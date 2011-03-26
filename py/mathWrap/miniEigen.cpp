@@ -93,6 +93,13 @@ static Vector6r Matrix3r_toVoigt(const Matrix3r& m, bool strain=false){ return t
 static Matrix3r Vector6r_toSymmTensor(const Vector6r& v, bool strain=false){ return voigt_toSymmTensor(v,strain); }
 static Quaternionr Quaternionr_setFromTwoVectors(Quaternionr& q, const Vector3r& u, const Vector3r& v){ return q.setFromTwoVectors(u,v); }
 static Vector3r Quaternionr_Rotate(Quaternionr& q, const Vector3r& u){ return q*u; }
+// swizzles for Vector3r
+static Vector2r Vector3r_xy(const Vector3r& v){ return Vector2r(v[0],v[1]); }
+static Vector2r Vector3r_yx(const Vector3r& v){ return Vector2r(v[1],v[0]); }
+static Vector2r Vector3r_xz(const Vector3r& v){ return Vector2r(v[0],v[2]); }
+static Vector2r Vector3r_zx(const Vector3r& v){ return Vector2r(v[2],v[0]); }
+static Vector2r Vector3r_yz(const Vector3r& v){ return Vector2r(v[1],v[2]); }
+static Vector2r Vector3r_zy(const Vector3r& v){ return Vector2r(v[2],v[1]); }
 // supposed to return raw pointer (or auto_ptr), boost::python takes care of the lifetime management
 static Quaternionr* Quaternionr_fromAxisAngle(const Vector3r& axis, const Real angle){ return new Quaternionr(AngleAxisr(angle,axis)); }
 static Quaternionr* Quaternionr_fromAngleAxis(const Real angle, const Vector3r& axis){ return new Quaternionr(AngleAxisr(angle,axis)); }
@@ -326,6 +333,8 @@ BOOST_PYTHON_MODULE(miniEigen){
 		// methods
 		.def("dot",&Vector3r_dot).def("cross",&Vector3r_cross)
 		.def("norm",&Vector3r::norm).def("squaredNorm",&Vector3r::squaredNorm).def("normalize",&Vector3r::normalize).def("normalized",&Vector3r::normalized)
+		// swizzles
+		.def("xy",&Vector3r_xy).def("yx",&Vector3r_yx).def("xz",&Vector3r_xz).def("zx",&Vector3r_zx).def("yz",&Vector3r_yz).def("zy",&Vector3r_zy)
 		// operators
 		.def("__neg__",&Vector3r__neg__) // -v
 		.def("__add__",&Vector3r__add__Vector3r).def("__iadd__",&Vector3r__iadd__Vector3r) // +, +=

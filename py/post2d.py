@@ -63,7 +63,8 @@ from miniEigen import *
 
 class Flatten:
 	"""Abstract class for converting 3d point into 2d. Used by post2d.data2d."""
-	def __init__(self): pass
+	def __init__(self,dispScale=1.):
+		self.dispScale=dispScale
 	def __call__(self,b):
 		"Given a :yref:`Body` / :yref:`Interaction` instance, should return either 2d coordinates as a 2-tuple, or None if the Body should be discarded." 
 		pass
@@ -71,11 +72,14 @@ class Flatten:
 		"Given position and vector value, project the vector value to the flat plane and return its 2 in-plane components."
 	def normal(self,pos,vec):
 		"Given position and vector value, return lenght of the vector normal to the flat plane."
+	def scaledPos(self,state):
+		if self.dispScale==1: return state.pos
+		else: return state.refPos+self.dispScale*(state.pos-state.refPos)
 
 class HelixFlatten(Flatten):
 	"""Class converting 3d point to 2d based on projection from helix.
 	The y-axis in the projection corresponds to the rotation axis"""
-	def __init__(self,useRef,thetaRange,dH_dTheta,axis=2,periodStart=0):
+	def __init__(self,useRef,thetaRange,dH_dTheta,axis=2,periodStart=0,dispScale=1.):
 		"""
 		:param bool useRef:       use reference positions rather than actual positions
 		:param (θmin,θmax) thetaRange: bodies outside this range will be discarded
@@ -83,10 +87,11 @@ class HelixFlatten(Flatten):
 		:param {0,1,2} axis:      axis of rotation of the spiral
 		:param float periodStart: height of the spiral for zero angle
 		"""
+		Flatten.__init__(self,dispScale)
 		self.useRef,self.thetaRange,self.dH_dTheta,self.axis,self.periodStart=useRef,thetaRange,dH_dTheta,axis,periodStart
 		self.ax1,self.ax2=(axis+1)%3,(axis+2)%3
 	def _getPos(self,b):
-		return b.state.refPos if self.useRef else b.state.pos
+		return b.state.refPos if self.useRef else self.scaledPos(b.state)
 	def __call__(self,b):
 		import yade.utils
 		xy,theta=yade.utils.spiralProject(_getPos(b),self.dH_dTheta,self.axis,self.periodStart)
@@ -107,15 +112,16 @@ class CylinderFlatten(Flatten):
 	"""Class for converting 3d point to 2d based on projection onto plane from circle.
 	The y-axis in the projection corresponds to the rotation axis; the x-axis is distance form the axis.
 	"""
-	def __init__(self,useRef,axis=2):
+	def __init__(self,useRef,axis=2,dispScale=1.):
 		"""
 		:param useRef: (bool) use reference positions rather than actual positions
 		:param axis: axis of the cylinder, ∈{0,1,2}
 		"""
 		if axis not in (0,1,2): raise IndexError("axis must be one of 0,1,2 (not %d)"%axis)
 		self.useRef,self.axis=useRef,axis
+		Flatten.__init__(self,dispScale)
 	def _getPos(self,b):
-		return b.state.refPos if self.useRef else b.state.pos
+		return b.state.refPos if self.useRef else self.scaledPos(b.state)
 	def __call__(self,b):
 		p=_getPos(b)
 		pp=(p[(self.axis+1)%3],p[(self.axis+2)%3])
@@ -134,7 +140,7 @@ class CylinderFlatten(Flatten):
 		
 
 class AxisFlatten(Flatten):
-	def __init__(self,useRef=False,axis=2):
+	def __init__(self,useRef=False,axis=2,dispScale=1.):
 		"""
 		:param bool useRef: use reference positions rather than actual positions (only meaningful when operating on Bodies)
 		:param {0,1,2}	axis: axis normal to the plane; the return value will be simply position with this component dropped.
@@ -142,8 +148,9 @@ class AxisFlatten(Flatten):
 		if axis not in (0,1,2): raise IndexError("axis must be one of 0,1,2 (not %d)"%axis)
 		self.useRef,self.axis=useRef,axis
 		self.ax1,self.ax2=(self.axis+1)%3,(self.axis+2)%3
+		Flatten.__init__(self,dispScale)
 	def __call__(self,b):
-		p=((b.state.refPos if self.useRef else b.state.pos) if isinstance(b,Body) else b.geom.contactPoint)
+		p=((b.state.refPos if self.useRef else self.scaledPos(b.state)) if isinstance(b,Body) else b.geom.contactPoint)
 		return (p[self.ax1],p[self.ax2])
 	def planar(self,pos,vec):
 		return vec[self.ax1],vec[self.ax2]

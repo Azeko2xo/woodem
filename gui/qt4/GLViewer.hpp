@@ -95,7 +95,6 @@ class GLViewer : public QGLViewer
 			virtual void paintGL();
 		#endif
 		virtual void draw();
-		virtual void drawWithNames();
 		void displayMessage(const std::string& s){ QGLViewer::displayMessage(QString(s.c_str()));}
 		void centerScene();
 		void centerPeriodic();

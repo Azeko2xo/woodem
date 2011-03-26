@@ -27,7 +27,9 @@ class State: public Serializable, public Indexable{
 		static const unsigned DOF_RXRYRZ=DOF_RX|DOF_RY|DOF_RZ; 
 
 		//! Return DOF_* constant for given axis∈{0,1,2} and rotationalDOF∈{false(default),true}; e.g. axisDOF(0,true)==DOF_RX
-		static unsigned axisDOF(int axis, bool rotationalDOF=false){return 1<<(axis+(rotationalDOF?3:0));}		
+		static unsigned axisDOF(int axis, bool rotationalDOF=false){return 1<<(axis+(rotationalDOF?3:0));}
+		//! Return DOF_* constant for given DOF number ∈{0,1,2,3,4,5}
+		static unsigned linDOF(int dof){ return 1<<(dof); }
 		//! set DOFs according to two Vector3r arguments (blocked is when disp[i]==1.0 or rot[i]==1.0)
 		void setDOFfromVector3r(Vector3r disp,Vector3r rot=Vector3r::Zero());
 		//! Getter of blockedDOFs for list of strings (e.g. DOF_X | DOR_RX | DOF_RZ → 'xXZ')

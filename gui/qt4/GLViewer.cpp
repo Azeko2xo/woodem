@@ -521,14 +521,6 @@ void GLViewer::draw()
 	}
 }
 
-void GLViewer::drawWithNames(){
-	qglviewer::Vec vd=camera()->viewDirection(); renderer->viewDirection=Vector3r(vd[0],vd[1],vd[2]);
-	const shared_ptr<Scene> scene(Omega::instance().getScene());
-	scene->renderer=renderer;
-	renderer->scene=scene;
-	renderer->renderShape();
-}
-
 // new object selected.
 // set frame coordinates, and isDynamic=false;
 void GLViewer::postSelection(const QPoint& point) 
