@@ -330,6 +330,8 @@ Real Gl1_L3Geom::axesScale;
 Real Gl1_L3Geom::uPhiWd;
 Real Gl1_L3Geom::uScale;
 Real Gl1_L6Geom::phiScale;
+Vector2r Gl1_L6Geom::phiScale_range;
+
 
 void Gl1_L3Geom::go(const shared_ptr<IGeom>& ig, const shared_ptr<Interaction>&, const shared_ptr<Body>&, const shared_ptr<Body>&, bool){ draw(ig); }
 void Gl1_L6Geom::go(const shared_ptr<IGeom>& ig, const shared_ptr<Interaction>&, const shared_ptr<Body>&, const shared_ptr<Body>&, bool){ draw(ig,true,phiScale); }

@@ -136,8 +136,8 @@ def globalHtmlStats():
 	return ret
 
 from BaseHTTPServer import BaseHTTPRequestHandler,HTTPServer
-import socket,re
-class HttpStatsServer(BaseHTTPRequestHandler):
+import socket,re,SocketServer
+class HttpStatsServer(SocketServer.ThreadingMixIn,BaseHTTPRequestHandler):
 	favicon=None # binary favicon, created when first requested
 	def do_GET(self):
 		if not self.path or self.path=='/': self.sendGlobal()

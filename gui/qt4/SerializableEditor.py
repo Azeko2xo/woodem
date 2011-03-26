@@ -151,6 +151,47 @@ class AttrEditor_Quaternion(AttrEditor,QFrame):
 		self.trySetter(q) 
 	def setFocus(self): self.grid.itemAt(0).widget().setFocus()
 
+
+class AttrEditor_FloatRange(AttrEditor,QFrame):
+	sliDiv=500
+	def __init__(self,parent,getter,setter): 
+		AttrEditor.__init__(self,getter,setter)
+		QFrame.__init__(self,parent)
+		self.grid=QGridLayout(self); self.grid.setSpacing(0); self.grid.setMargin(0)
+		curr,(mn,mx)=getter()
+		self.slider,self.edit=QSlider(self),QLineEdit(str(curr))
+		self.grid.addWidget(self.edit,0,0)
+		self.grid.addWidget(self.slider,0,1,1,2) # rowSpan=1,columnSpan=2
+		self.slider.setMinimum(0)
+		self.slider.setMaximum(self.sliDiv+1)
+		self.slider.setOrientation(Qt.Horizontal)
+		self.edit.textEdited.connect(self.isHot)
+		self.edit.selectionChanged.connect(self.isHot)
+		self.edit.editingFinished.connect(self.updateFromText)
+		self.slider.sliderMoved.connect(self.updateTextFromSlider)
+		self.slider.sliderReleased.connect(self.updateFromSlider)
+	def refresh(self):
+		curr,(mn,mx)=self.getter()
+		self.edit.setText('%g'%curr);
+		self.slider.setValue(int(self.sliDiv*((1.*curr-mn)/(1.*mx-mn))))
+	def updateFromText(self):
+		curr,(mn,mx)=self.getter()
+		try:
+			value=float(self.edit.text())
+			self.slider.setValue(int(self.sliDiv*((1.*value-mn)/(1.*mx-mn))))
+			self.trySetter(value)
+		except ValueError: self.refresh()
+	def updateTextFromSlider(self,callSetter=False):
+		if not callSetter: self.isHot(True) # FIXME: does not get called when moving
+		curr,(mn,mx)=self.getter()
+		value=mn+self.slider.value()*(1./self.sliDiv)*(mx-mn)
+		self.edit.setText('%g'%value)
+		if callSetter: self.trySetter(value)
+	def updateFromSlider(self):
+		self.updateTextFromSlider(callSetter=True)
+	def setFocus(self): self.slider.setFocus()
+
+
 class AttrEditor_Se3(AttrEditor,QFrame):
 	def __init__(self,parent,getter,setter):
 		AttrEditor.__init__(self,getter,setter)
@@ -401,11 +442,21 @@ class SerializableEditor(QFrame):
 				ret+=ll[i]
 			return ret
 		else: return '[no documentation found]'
+
+	def handleFloatRange(self,widgetKlass,getter,setter,entry):
+		# return editor for given attribute; no-op, unless float with associated range attribute
+		if entry.T==float and hasattr(self.ser,entry.name+'_range') and getattr(self.ser,entry.name+'_range').__class__==Vector2:
+			# getter returns tuple value,range
+			# setter needs just the value itself
+			return AttrEditor_FloatRange,lambda: (getattr(self.ser,entry.name),getattr(self.ser,entry.name+'_range')),lambda x: setattr(self.ser,entry.name,x)
+		return widgetKlass,getter,setter
+		
 	def mkWidget(self,entry):
 		if not entry.T: return None
 		# single fundamental object
 		Klass=_fundamentalEditorMap.get(entry.T,None)
 		getter,setter=lambda: getattr(self.ser,entry.name), lambda x: setattr(self.ser,entry.name,x)
+		Klass,getter,setter=self.handleFloatRange(Klass,getter,setter,entry)
 		if Klass:
 			widget=Klass(self,getter=getter,setter=setter)
 			widget.setFocusPolicy(Qt.StrongFocus)
