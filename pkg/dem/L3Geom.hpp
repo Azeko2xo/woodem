@@ -95,6 +95,7 @@ struct Gl1_L3Geom: public GlIGeomFunctor{
 		((bool,axesLabels,false,,"Whether to display labels for local axes (x,y,z)"))
 		((Real,axesScale,1.,,"Scale local axes, their reference length being half of the minimum radius."))
 		((Real,axesWd,1.,,"Width of axes lines, in pixels; not drawn if non-positive"))
+		((Vector2r,axesWd_range,Vector2r(-1,10),Attr::noGui,"Range for axesWd."))
 		((Real,uPhiWd,2.,,"Width of lines for drawing displacements (and rotations for :yref:`L6Geom`); not drawn if non-positive."))
 		((Real,uScale,1.,,"Scale local displacements (:yref:`u<L3Geom.u>` - :yref:`u0<L3Geom.u0>`); 1 means the true scale, 0 disables drawing local displacements; negative values are permissible."))
 	);

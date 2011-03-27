@@ -518,7 +518,9 @@ BOOST_PYTHON_MODULE(wrapper)
 		.value("noSave",yade::Attr::noSave)
 		.value("readonly",yade::Attr::readonly)
 		.value("triggerPostLoad",yade::Attr::triggerPostLoad)
+		.value("hidden",yade::Attr::hidden)
 		.value("noResize",yade::Attr::noResize)
+		.value("noGui",yade::Attr::noGui)
     ;
 
 	python::class_<pyOmega>("Omega")

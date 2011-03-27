@@ -326,6 +326,7 @@ void Law2_L6Geom_FrictPhys_Linear::go(shared_ptr<IGeom>& ig, shared_ptr<IPhys>& 
 #ifdef YADE_OPENGL
 bool Gl1_L3Geom::axesLabels;
 Real Gl1_L3Geom::axesWd;
+Vector2r Gl1_L3Geom::axesWd_range;
 Real Gl1_L3Geom::axesScale;
 Real Gl1_L3Geom::uPhiWd;
 Real Gl1_L3Geom::uScale;

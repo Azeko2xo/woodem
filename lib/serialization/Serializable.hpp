@@ -50,7 +50,7 @@ using namespace std;
 namespace yade{
 	namespace Attr{
 		// keep in sync with py/wrapper/yadeWrapper.cpp !
-		enum flags { noSave=1, readonly=2, triggerPostLoad=4, hidden=8, noResize=16 };
+		enum flags { noSave=1, readonly=2, triggerPostLoad=4, hidden=8, noResize=16, noGui=32 };
 	};
 };
 using namespace yade;
@@ -204,12 +204,12 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 #define _STATATTR_PY(x,thisClass,z) _STAT_NONSTAT_ATTR_PY(thisClass,_ATTR_NAM(z),/*docstring*/ "|ystatic| :ydefault:`" _ATTR_INI_STR(z) "` :yattrtype:`" _ATTR_TYP_STR(z) "` " _ATTR_DOC(z))
 #define _STATATTR_DECL(x,y,z) static _ATTR_TYP(z) _ATTR_NAM(z);
 #define _STATATTR_INITIALIZE(x,thisClass,z) thisClass::_ATTR_NAM(z)=_ATTR_INI(z);
-#define _STATATTR_MAKE_DOC(x,thisClass,z) ".. ystaticattr:: " BOOST_PP_STRINGIZE(thisClass) "." _ATTR_NAM_STR(z) "(=" _ATTR_INI_STR(z) ")" "\n\n\t" _ATTR_DOC(z) "\n\n"
+#define _STATATTR_MAKE_DOC(x,thisClass,z) + ".. ystaticattr:: " BOOST_PP_STRINGIZE(thisClass) "." _ATTR_NAM_STR(z) "(=" _ATTR_INI_STR(z) ")" "\n\n|ystatic| :ydefault:`" _ATTR_INI_STR(z) "` :yattrtype:`" _ATTR_TYP_STR(z) "` :yattrflags:`" + boost::lexical_cast<string>(_ATTR_FLG(z)) + "`\n\n\t" _ATTR_DOC(z) "\n\n"
 
 
 #define _STATCLASS_PY_REGISTER_CLASS(thisClass,baseClass,docString,attrs)\
 	virtual void pyRegisterClass(python::object _scope) { checkPyClassRegistersItself(#thisClass); initSetStaticAttributesValue(); boost::python::scope thisScope(_scope); YADE_SET_DOCSTRING_OPTS; \
-		boost::python::class_<thisClass,shared_ptr<thisClass>,boost::python::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,docString "\n\n" BOOST_PP_SEQ_FOR_EACH(_STATATTR_MAKE_DOC,thisClass,attrs) ); _classObj.def("__init__",python::raw_constructor(Serializable_ctor_kwAttrs<thisClass>)); \
+		boost::python::class_<thisClass,shared_ptr<thisClass>,boost::python::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,(docString + std::string("\n\n") BOOST_PP_SEQ_FOR_EACH(_STATATTR_MAKE_DOC,thisClass,attrs)).c_str() ); _classObj.def("__init__",python::raw_constructor(Serializable_ctor_kwAttrs<thisClass>)); \
 		BOOST_PP_SEQ_FOR_EACH(_STATATTR_PY,thisClass,attrs);  \
 	}
 

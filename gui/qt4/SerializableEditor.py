@@ -157,19 +157,18 @@ class AttrEditor_FloatRange(AttrEditor,QFrame):
 	def __init__(self,parent,getter,setter): 
 		AttrEditor.__init__(self,getter,setter)
 		QFrame.__init__(self,parent)
-		self.grid=QGridLayout(self); self.grid.setSpacing(0); self.grid.setMargin(0)
 		curr,(mn,mx)=getter()
 		self.slider,self.edit=QSlider(self),QLineEdit(str(curr))
-		self.grid.addWidget(self.edit,0,0)
-		self.grid.addWidget(self.slider,0,1,1,2) # rowSpan=1,columnSpan=2
-		self.slider.setMinimum(0)
-		self.slider.setMaximum(self.sliDiv+1)
+		self.grid=QHBoxLayout(self); self.grid.setSpacing(0); self.grid.setMargin(0)
+		self.grid.addWidget(self.edit); self.grid.addWidget(self.slider)
+		self.grid.setStretchFactor(self.edit,1); self.grid.setStretchFactor(self.slider,2)
+		self.slider.setMinimum(0); self.slider.setMaximum(self.sliDiv)
 		self.slider.setOrientation(Qt.Horizontal)
 		self.edit.textEdited.connect(self.isHot)
 		self.edit.selectionChanged.connect(self.isHot)
 		self.edit.editingFinished.connect(self.updateFromText)
-		self.slider.sliderMoved.connect(self.updateTextFromSlider)
-		self.slider.sliderReleased.connect(self.updateFromSlider)
+		self.slider.sliderMoved.connect(self.sliderMoved) #
+		self.slider.sliderReleased.connect(self.sliderReleased) #
 	def refresh(self):
 		curr,(mn,mx)=self.getter()
 		self.edit.setText('%g'%curr);
@@ -181,14 +180,16 @@ class AttrEditor_FloatRange(AttrEditor,QFrame):
 			self.slider.setValue(int(self.sliDiv*((1.*value-mn)/(1.*mx-mn))))
 			self.trySetter(value)
 		except ValueError: self.refresh()
-	def updateTextFromSlider(self,callSetter=False):
-		if not callSetter: self.isHot(True) # FIXME: does not get called when moving
+	def sliderPosToNum(self,sliderValue):
 		curr,(mn,mx)=self.getter()
-		value=mn+self.slider.value()*(1./self.sliDiv)*(mx-mn)
+		return mn+sliderValue*(1./self.sliDiv)*(mx-mn)
+	def sliderMoved(self,newSliderPos):
+		self.isHot(True)
+		self.edit.setText('%g'%self.sliderPosToNum(newSliderPos))
+	def sliderReleased(self):
+		value=self.sliderPosToNum(self.slider.value())
 		self.edit.setText('%g'%value)
-		if callSetter: self.trySetter(value)
-	def updateFromSlider(self):
-		self.updateTextFromSlider(callSetter=True)
+		self.trySetter(value)
 	def setFocus(self): self.slider.setFocus()
 
 
@@ -338,7 +339,7 @@ class SerializableEditor(QFrame):
 	import logging
 	# each attribute has one entry associated with itself
 	class EntryData:
-		def __init__(self,name,T,flags=0):
+		def __init__(self,name,T,flags):
 			self.name,self.T,self.flags=name,T,flags
 			self.lineNo,self.widget=None,None
 	def __init__(self,ser,parent=None,ignoredAttrs=set(),showType=False,path=None):
@@ -401,8 +402,8 @@ class SerializableEditor(QFrame):
 		for attr in attrs:
 			val=getattr(self.ser,attr) # get the value using serattr, as it might be different from what the dictionary provides (e.g. Body.blockedDOFs)
 			t=None
-			doc=getattr(self.ser.__class__,attr).__doc__;
-			if '|yhidden|' in doc: continue
+			isStatic=(getattr(self.ser.__class__,attr)==getattr(self.ser,attr))
+			doc=getattr(self.ser.__class__,attr).__doc__ if not isStatic else self.getStaticAttrDocstring(attr,raw=True)
 			if attr in self.ignoredAttrs: continue
 			if isinstance(val,list):
 				t=self.getListTypeFromDocstring(attr)
@@ -413,8 +414,10 @@ class SerializableEditor(QFrame):
 			else: t=val.__class__
 			match=re.search(':yattrflags:`\s*([0-9]+)\s*`',doc) # non-empty attribute
 			flags=int(match.group(1)) if match else 0
+			if not match:
+				print 'No attr match for docstring of %s.%s'%(self.ser.__class__.__name__,attr)
 			#logging.debug('Attr %s is of type %s'%(attr,((t[0].__name__,) if isinstance(t,tuple) else t.__name__)))
-			self.entries.append(self.EntryData(name=attr,T=t))
+			self.entries.append(self.EntryData(name=attr,T=t,flags=flags))
 	def getDocstring(self,attr=None):
 		"If attr is *None*, return docstring of the Serializable itself"
 		doc=(getattr(self.ser.__class__,attr).__doc__ if attr else self.ser.__class__.__doc__)
@@ -429,19 +432,22 @@ class SerializableEditor(QFrame):
 		import textwrap
 		wrapper=textwrap.TextWrapper(replace_whitespace=False)
 		return wrapper.fill(textwrap.dedent(doc))
-	def getStaticAttrDocstring(self,attr):
+	def getStaticAttrDocstring(self,attr,raw=False):
 		ret=''; c=self.ser.__class__
 		while hasattr(c,attr) and hasattr(c.__base__,attr): c=c.__base__
-		start='.. ystaticattr:: %s.%s('%(c.__name__,attr)
-		if start in c.__doc__:
-			ll=c.__doc__.split('\n')
-			for i in range(len(ll)):
-				if ll[i].startswith(start): break
-			for i in range(i+1,len(ll)):
-				if len(ll[i])>0 and ll[i][0] not in ' \t': break
-				ret+=ll[i]
-			return ret
-		else: return '[no documentation found]'
+		doc=c.__doc__
+		head='.. ystaticattr:: %s.%s('%(c.__name__,attr)
+		start=doc.find(head)
+		#print 'Found',attr,'at',start,'in docstring',doc
+		if start<0: return '[no documentation found]'
+		end=doc.find('.. ystaticattr:: ',start+len(head)) # start at the end of last match; returns -1 if not found
+		#print 'Attribute',attr,'returning:\n',doc[start+len(head)-1:end]
+		doc=doc[start+len(head):end]
+		if raw: return doc
+		meta=re.compile('^.*:yattrflags:`\s*[0-9]+\s*`',re.MULTILINE|re.DOTALL)
+		doc=re.sub(meta,'',doc).strip()
+		return doc
+		
 
 	def handleFloatRange(self,widgetKlass,getter,setter,entry):
 		# return editor for given attribute; no-op, unless float with associated range attribute
@@ -495,6 +501,7 @@ class SerializableEditor(QFrame):
 			lab.setFrameShape(QFrame.Box); lab.setFrameShadow(QFrame.Sunken); lab.setLineWidth(2); lab.setAlignment(Qt.AlignHCenter); lab.linkActivated.connect(yade.qt.openUrl)
 			grid.setWidget(0,QFormLayout.SpanningRole,lab)
 		for entry in self.entries:
+			if (entry.flags & AttrFlags.noGui): continue
 			entry.widget=self.mkWidget(entry)
 			objPath=(self.path+'.'+entry.name) if self.path else None
 			label=SerQLabel(self,serializableHref(self.ser,entry.name),tooltip=self.getDocstring(entry.name),path=objPath)
