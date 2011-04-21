@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>290</width>
+    <width>291</width>
     <height>495</height>
    </rect>
   </property>
@@ -185,42 +185,14 @@
             </widget>
            </item>
            <item row="4" column="1">
-            <layout class="QVBoxLayout" name="verticalLayout">
-             <item>
-              <layout class="QHBoxLayout" name="horizontalLayout">
-               <item>
-                <widget class="QRadioButton" name="dtFixedRadio">
-                 <property name="text">
-                  <string>fixed</string>
-                 </property>
-                 <property name="checked">
-                  <bool>true</bool>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QRadioButton" name="dtDynRadio">
-                 <property name="enabled">
-                  <bool>false</bool>
-                 </property>
-                 <property name="text">
-                  <string>time stepper</string>
-                 </property>
-                </widget>
-               </item>
-              </layout>
-             </item>
-             <item>
-              <widget class="QLineEdit" name="dtEdit">
-               <property name="enabled">
-                <bool>false</bool>
-               </property>
-               <property name="focusPolicy">
-                <enum>Qt::ClickFocus</enum>
-               </property>
-              </widget>
-             </item>
-            </layout>
+            <widget class="QLineEdit" name="dtEdit">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="focusPolicy">
+              <enum>Qt::ClickFocus</enum>
+             </property>
+            </widget>
            </item>
           </layout>
          </item>
@@ -546,8 +518,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>284</width>
-            <height>433</height>
+            <width>82</width>
+            <height>16</height>
            </rect>
           </property>
          </widget>
@@ -767,38 +739,6 @@
     <hint type="destinationlabel">
      <x>284</x>
      <y>0</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>dtFixedRadio</sender>
-   <signal>clicked()</signal>
-   <receiver>Controller</receiver>
-   <slot>dtFixedSlot()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>143</x>
-     <y>170</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>284</x>
-     <y>0</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>dtDynRadio</sender>
-   <signal>clicked()</signal>
-   <receiver>Controller</receiver>
-   <slot>dtDynSlot()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>268</x>
-     <y>176</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>284</x>
-     <y>4</y>
     </hint>
    </hints>
   </connection>

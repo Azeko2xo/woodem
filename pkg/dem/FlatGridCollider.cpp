@@ -39,7 +39,7 @@ void FlatGridCollider::action(){
 
 // called from the ctor
 void FlatGridCollider::initIndices(){
-	sphereIdx=facetIdx=wallIdx=boxIdx=-1;
+	sphereIdx=facetIdx=wallIdx=-1;
 	sphereIdx=Sphere::getClassIndexStatic();
 	LOG_DEBUG("sphereIdx="<<sphereIdx);
 }

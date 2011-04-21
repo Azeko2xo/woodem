@@ -1,7 +1,6 @@
 // 2009 © Václav Šmilauer <eudoxos@arcig.cz>
 #pragma once
-#include<yade/core/GlobalEngine.hpp>
-#include<yade/pkg/common/Callbacks.hpp>
+#include<yade/core/Engine.hpp>
 #include<yade/pkg/common/Dispatching.hpp>
 
 class InteractionLoop: public GlobalEngine {
@@ -22,7 +21,6 @@ class InteractionLoop: public GlobalEngine {
 			((shared_ptr<IGeomDispatcher>,geomDispatcher,new IGeomDispatcher,Attr::readonly,":yref:`IGeomDispatcher` object that is used for dispatch."))
 			((shared_ptr<IPhysDispatcher>,physDispatcher,new IPhysDispatcher,Attr::readonly,":yref:`IPhysDispatcher` object used for dispatch."))
 			((shared_ptr<LawDispatcher>,lawDispatcher,new LawDispatcher,Attr::readonly,":yref:`LawDispatcher` object used for dispatch."))
-			((vector<shared_ptr<IntrCallback> >,callbacks,,,":yref:`Callbacks<IntrCallback>` which will be called for every :yref:`Interaction`, if activated."))
 			,
 			/*ctor*/ alreadyWarnedNoCollider=false;
 				#ifdef IDISP_TIMING

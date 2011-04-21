@@ -8,11 +8,11 @@
 #include"ElasticContactLaw.hpp"
 #include<yade/pkg/dem/ScGeom.hpp>
 #include<yade/pkg/dem/FrictPhys.hpp>
-#include<yade/pkg/dem/DemXDofGeom.hpp>
+#include<yade/pkg/dem/GenericSpheresContact.hpp>
 #include<yade/core/Omega.hpp>
 #include<yade/core/Scene.hpp>
 
-YADE_PLUGIN((Law2_ScGeom_FrictPhys_CundallStrack)(ElasticContactLaw)(Law2_Dem3DofGeom_FrictPhys_CundallStrack));
+YADE_PLUGIN((Law2_ScGeom_FrictPhys_CundallStrack)(ElasticContactLaw));
 
 #if 1
 Real Law2_ScGeom_FrictPhys_CundallStrack::getPlasticDissipation() {return (Real) plasticDissipation;}
@@ -63,7 +63,7 @@ void Law2_ScGeom_FrictPhys_CundallStrack::go(shared_ptr<IGeom>& ig, shared_ptr<I
 	Vector3r& shearForce = geom->rotate(phys->shearForce);
 	const Vector3r& shearDisp = geom->shearIncrement();
 	shearForce -= phys->ks*shearDisp;
-	Real maxFs = phys->normalForce.squaredNorm()*std::pow(phys->tangensOfFrictionAngle,2);
+	Real maxFs = phys->normalForce.squaredNorm()*std::pow(phys->tanPhi,2);
 
 	if (likely(!scene->trackEnergy  && !traceEnergy)){//Update force but don't compute energy terms (see below))
 		// PFC3d SlipModel, is using friction angle. CoulombCriterion
@@ -97,17 +97,4 @@ void Law2_ScGeom_FrictPhys_CundallStrack::go(shared_ptr<IGeom>& ig, shared_ptr<I
 	}
 }
 
-//Same as elasticContactLaw, but using Dem3DofGeom (not maintained)
-void Law2_Dem3DofGeom_FrictPhys_CundallStrack::go(shared_ptr<IGeom>& ig, shared_ptr<IPhys>& ip, Interaction* contact){
-	Dem3DofGeom* geom=static_cast<Dem3DofGeom*>(ig.get());
-	FrictPhys* phys=static_cast<FrictPhys*>(ip.get());
-	Real displN=geom->displacementN();
-	if(displN>0){ scene->interactions->requestErase(contact->getId1(),contact->getId2()); return; }
-	phys->normalForce=phys->kn*displN*geom->normal;
-	Real maxFsSq=phys->normalForce.squaredNorm()*pow(phys->tangensOfFrictionAngle,2);
-	Vector3r trialFs=phys->ks*geom->displacementT();
-	if(trialFs.squaredNorm()>maxFsSq){ geom->slipToDisplacementTMax(sqrt(maxFsSq)/phys->ks); trialFs*=sqrt(maxFsSq/(trialFs.squaredNorm()));}
-	phys->shearForce=trialFs;
-	applyForceAtContactPoint(phys->normalForce+trialFs,geom->contactPoint,contact->getId1(),geom->se31.position,contact->getId2(),geom->se32.position);
-}
 

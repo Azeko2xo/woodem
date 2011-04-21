@@ -71,15 +71,11 @@ class Indexable
 	public: virtual const int& getBaseClassIndex(int) const { throw std::logic_error("One of the following errors was detected:\n(1) Class " #SomeClass " called createIndex() in its ctor (but it shouldn't, being a top-level indexable; only use REGISTER_INDEX_COUNTER, but not createIndex()).\n(2) Some DerivedClass deriving from " #SomeClass " forgot to use REGISTER_CLASS_INDEX(DerivedClass," #SomeClass ").\nPlease fix that and come back again." ); } \
 	private: static int& getMaxCurrentlyUsedIndexStatic() { static int maxCurrentlyUsedIndex = -1; return maxCurrentlyUsedIndex; } \
 	public: virtual const int& getMaxCurrentlyUsedClassIndex() const {  \
-		SomeClass * Indexable##SomeClass = 0;                            \
-		Indexable##SomeClass = dynamic_cast<SomeClass*>(const_cast<SomeClass*>(this)); \
-		assert(Indexable##SomeClass);                                    \
+		assert(dynamic_cast<SomeClass*>(const_cast<SomeClass*>(this)));  \
 		return getMaxCurrentlyUsedIndexStatic();                         \
 	}                                                                   \
 	public: virtual void incrementMaxCurrentlyUsedClassIndex() {        \
-		SomeClass * Indexable##SomeClass = 0;                            \
-		Indexable##SomeClass = dynamic_cast<SomeClass*>(this);           \
-		assert(Indexable##SomeClass);                                    \
+		assert(dynamic_cast<SomeClass*>(this));                          \
 		int& max = getMaxCurrentlyUsedIndexStatic();                     \
 		max++;                                                           \
 	}

@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include<yade/core/PartialEngine.hpp>
+#include<yade/core/Engine.hpp>
 
 class TorqueEngine: public PartialEngine{
 	public:

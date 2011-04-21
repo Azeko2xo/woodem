@@ -1,6 +1,6 @@
 
 #include<yade/pkg/common/PeriodicEngines.hpp>
-#include<yade/core/PartialEngine.hpp>
+#include<yade/core/Engine.hpp>
 
 class DomainLimiter: public PeriodicEngine{
 	public:

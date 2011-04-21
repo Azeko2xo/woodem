@@ -1,4 +1,4 @@
-#include<yade/core/GlobalEngine.hpp>
+#include<yade/core/Engine.hpp>
 #include<Eigen/Sparse>
 
 class Interaction;

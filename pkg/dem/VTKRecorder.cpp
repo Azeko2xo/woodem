@@ -26,9 +26,9 @@
 #include<yade/core/Scene.hpp>
 #include<yade/pkg/common/Sphere.hpp>
 #include<yade/pkg/common/Facet.hpp>
-#include<yade/pkg/dem/ConcretePM.hpp>
-#include<yade/pkg/dem/RockPM.hpp>
 #include<yade/pkg/dem/Shop.hpp>
+#include<yade/pkg/dem/GenericSpheresContact.hpp>
+#include<yade/pkg/common/NormShearPhys.hpp>
 
 
 YADE_PLUGIN((VTKRecorder));
@@ -53,8 +53,6 @@ void VTKRecorder::action(){
 		else if(rec=="velocity") recActive[REC_VELOCITY]=true;
 		else if(rec=="facets") recActive[REC_FACETS]=true;
 		else if((rec=="colors") || (rec=="color"))recActive[REC_COLORS]=true;
-		else if(rec=="cpm") recActive[REC_CPM]=true;
-		else if(rec=="rpm") recActive[REC_RPM]=true;
 		else if(rec=="intr") recActive[REC_INTR]=true;
 		else if((rec=="ids") || (rec=="id")) recActive[REC_ID]=true;
 		else if(rec=="mask") recActive[REC_MASK]=true;
@@ -63,8 +61,6 @@ void VTKRecorder::action(){
 		else if(rec=="stress") recActive[REC_STRESS]=true;
 		else LOG_ERROR("Unknown recorder named `"<<rec<<"' (supported are: all, spheres, velocity, facets, color, stress, cpm, rpm, intr, id, clumpId, materialId). Ignored.");
 	}
-	// cpm needs interactions
-	if(recActive[REC_CPM]) recActive[REC_INTR]=true;
 
 	// spheres
 	vtkSmartPointer<vtkPoints> spheresPos = vtkSmartPointer<vtkPoints>::New();
@@ -154,32 +150,6 @@ void VTKRecorder::action(){
 	vtkSmartPointer<vtkFloatArray> intrAbsForceT = vtkSmartPointer<vtkFloatArray>::New();
 	intrAbsForceT->SetNumberOfComponents(3);
 	intrAbsForceT->SetName("absForceT");
-
-	// extras for CPM
-	if(recActive[REC_CPM]){ CpmStateUpdater csu; csu.update(scene); }
-	vtkSmartPointer<vtkFloatArray> cpmDamage = vtkSmartPointer<vtkFloatArray>::New();
-	cpmDamage->SetNumberOfComponents(1);
-	cpmDamage->SetName("cpmDamage");
-	vtkSmartPointer<vtkFloatArray> cpmSigma = vtkSmartPointer<vtkFloatArray>::New();
-	cpmSigma->SetNumberOfComponents(3);
-	cpmSigma->SetName("cpmSigma");
-	vtkSmartPointer<vtkFloatArray> cpmSigmaM = vtkSmartPointer<vtkFloatArray>::New();
-	cpmSigmaM->SetNumberOfComponents(1);
-	cpmSigmaM->SetName("cpmSigmaM");
-	vtkSmartPointer<vtkFloatArray> cpmTau = vtkSmartPointer<vtkFloatArray>::New();
-	cpmTau->SetNumberOfComponents(3);
-	cpmTau->SetName("cpmTau");
-	
-	// extras for RPM
-	vtkSmartPointer<vtkFloatArray> rpmSpecNum = vtkSmartPointer<vtkFloatArray>::New();
-	rpmSpecNum->SetNumberOfComponents(1);
-	rpmSpecNum->SetName("rpmSpecNum");
-	vtkSmartPointer<vtkFloatArray> rpmSpecMass = vtkSmartPointer<vtkFloatArray>::New();
-	rpmSpecMass->SetNumberOfComponents(1);
-	rpmSpecMass->SetName("rpmSpecMass");
-	vtkSmartPointer<vtkFloatArray> rpmSpecDiam = vtkSmartPointer<vtkFloatArray>::New();
-	rpmSpecDiam->SetNumberOfComponents(1);
-	rpmSpecDiam->SetName("rpmSpecDiam");
 
 	if(recActive[REC_INTR]){
 		// holds information about cell distance between spatial and displayed position of each particle
@@ -295,22 +265,6 @@ void VTKRecorder::action(){
 					spheresNormalStressNorm->InsertNextValue(stress.norm());
 				}
 				
-				if (recActive[REC_CPM]){
-					cpmDamage->InsertNextValue(YADE_PTR_CAST<CpmState>(b->state)->normDmg);
-					const Vector3r& ss=YADE_PTR_CAST<CpmState>(b->state)->sigma;
-					const Vector3r& tt=YADE_PTR_CAST<CpmState>(b->state)->tau;
-					float s[3]={ss[0],ss[1],ss[2]};
-					float t[3]={tt[0],tt[1],tt[2]};
-					cpmSigma->InsertNextTupleValue(s);
-					cpmSigmaM->InsertNextValue((ss[0]+ss[1]+ss[2])/3.);
-					cpmTau->InsertNextTupleValue(t);
-				}
-				if (recActive[REC_RPM]){
-					rpmSpecNum->InsertNextValue(YADE_PTR_CAST<RpmState>(b->state)->specimenNumber);
-					rpmSpecMass->InsertNextValue(YADE_PTR_CAST<RpmState>(b->state)->specimenMass);
-					rpmSpecDiam->InsertNextValue(YADE_PTR_CAST<RpmState>(b->state)->specimenMaxDiam);
-				}
-				
 				if (recActive[REC_MATERIALID]) spheresMaterialId->InsertNextValue(b->material->id);
 				continue;
 			}
@@ -370,17 +324,6 @@ void VTKRecorder::action(){
 			spheresUg->GetPointData()->AddArray(spheresNormalStressVec);
 			spheresUg->GetPointData()->AddArray(spheresShearStressVec);
 			spheresUg->GetPointData()->AddArray(spheresNormalStressNorm);
-		}
-		if (recActive[REC_CPM]){
-			spheresUg->GetPointData()->AddArray(cpmDamage);
-			spheresUg->GetPointData()->AddArray(cpmSigma);
-			spheresUg->GetPointData()->AddArray(cpmSigmaM);
-			spheresUg->GetPointData()->AddArray(cpmTau);
-		}
-		if (recActive[REC_RPM]){
-			spheresUg->GetPointData()->AddArray(rpmSpecNum);
-			spheresUg->GetPointData()->AddArray(rpmSpecMass);
-			spheresUg->GetPointData()->AddArray(rpmSpecDiam);
 		}
 
 		if (recActive[REC_MATERIALID]) spheresUg->GetPointData()->AddArray(spheresMaterialId);

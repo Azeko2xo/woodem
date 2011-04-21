@@ -6,7 +6,7 @@
 
 #include<yade/core/Shape.hpp>
 #include<yade/core/IGeom.hpp>
-#include<yade/core/GlobalEngine.hpp>
+#include<yade/core/Engine.hpp>
 
 #include<yade/pkg/common/Aabb.hpp>
 #include<yade/pkg/common/Dispatching.hpp>

@@ -1,6 +1,6 @@
 // 2009 © Václav Šmilauer <eudoxos@arcig.cz>
 #pragma once
-#include<yade/core/GlobalEngine.hpp>
+#include<yade/core/Engine.hpp>
 #include<yade/core/Interaction.hpp>
 /*! Initializer for filling adjacency geometry data for facets.
  *

@@ -15,16 +15,12 @@
 #include<yade/pkg/dem/Clump.hpp>
 #include<yade/pkg/common/InsertionSortCollider.hpp>
 
-#include<yade/pkg/common/Box.hpp>
 #include<yade/pkg/common/Sphere.hpp>
 #include<yade/pkg/common/ElastMat.hpp>
-#include<yade/pkg/dem/ViscoelasticPM.hpp>
 
 #include<yade/pkg/common/Bo1_Sphere_Aabb.hpp>
-#include<yade/pkg/common/Bo1_Box_Aabb.hpp>
 #include<yade/pkg/dem/NewtonIntegrator.hpp>
 #include<yade/pkg/dem/Ig2_Sphere_Sphere_ScGeom.hpp>
-#include<yade/pkg/dem/Ig2_Box_Sphere_ScGeom.hpp>
 #include<yade/pkg/dem/Ip2_FrictMat_FrictMat_FrictPhys.hpp>
 
 #include<yade/pkg/common/ForceResetter.hpp>
@@ -33,7 +29,6 @@
 #include<yade/pkg/common/InteractionLoop.hpp>
 #include<yade/pkg/common/GravityEngines.hpp>
 
-#include<yade/pkg/dem/GlobalStiffnessTimeStepper.hpp>
 #include<yade/pkg/dem/ElasticContactLaw.hpp>
 
 #include<yade/pkg/dem/ScGeom.hpp>
@@ -229,19 +224,6 @@ shared_ptr<Body> Shop::sphere(Vector3r center, Real radius, shared_ptr<Material>
 	body->state->inertia=Vector3r(2.0/5.0*body->state->mass*radius*radius,2.0/5.0*body->state->mass*radius*radius,2.0/5.0*body->state->mass*radius*radius);
 	body->bound=shared_ptr<Aabb>(new Aabb);
 	body->shape=shared_ptr<Sphere>(new Sphere(radius));
-	return body;
-}
-
-/*! Create body - box. */
-shared_ptr<Body> Shop::box(Vector3r center, Vector3r extents, shared_ptr<Material> mat){
-	shared_ptr<Body> body(new Body);
-	body->material=mat ? mat : static_pointer_cast<Material>(defaultGranularMat());
-	body->state->pos=center;
-	Real mass=8.0*extents[0]*extents[1]*extents[2]*body->material->density;
-	body->state->mass=mass;
-	body->state->inertia=Vector3r(mass*(4*extents[1]*extents[1]+4*extents[2]*extents[2])/12.,mass*(4*extents[0]*extents[0]+4*extents[2]*extents[2])/12.,mass*(4*extents[0]*extents[0]+4*extents[1]*extents[1])/12.);
-	body->bound=shared_ptr<Aabb>(new Aabb);
-	body->shape=shared_ptr<Box>(new Box(extents));
 	return body;
 }
 
@@ -467,11 +449,17 @@ boost::tuple<Real,Real,Real> Shop::spiralProject(const Vector3r& pt, Real dH_dTh
 }
 
 shared_ptr<Interaction> Shop::createExplicitInteraction(Body::id_t id1, Body::id_t id2, bool force){
+	vector<shared_ptr<Interaction> > r=Shop::createExplicitInteractions(vector<Body::id_t>(1,id1),vector<Body::id_t>(1,id2),force);
+	if(r.size()>0) return r[0];
+	return shared_ptr<Interaction>();
+}
+
+vector<shared_ptr<Interaction> > Shop::createExplicitInteractions(const vector<Body::id_t>& ids1, const vector<Body::id_t>& ids2, bool force){
+	if(ids1.size()!=ids2.size()) throw invalid_argument("id1 and id2 arguments must have same length.");
 	IGeomDispatcher* geomMeta=NULL;
 	IPhysDispatcher* physMeta=NULL;
-	shared_ptr<Scene> rb=Omega::instance().getScene();
-	if(rb->interactions->find(Body::id_t(id1),Body::id_t(id2))!=0) throw runtime_error(string("Interaction #")+lexical_cast<string>(id1)+"+#"+lexical_cast<string>(id2)+" already exists.");
-	FOREACH(const shared_ptr<Engine>& e, rb->engines){
+	Scene* scene=Omega::instance().getScene().get();
+	FOREACH(const shared_ptr<Engine>& e, scene->engines){
 		if(!geomMeta) { geomMeta=dynamic_cast<IGeomDispatcher*>(e.get()); if(geomMeta) continue; }
 		if(!physMeta) { physMeta=dynamic_cast<IPhysDispatcher*>(e.get()); if(physMeta) continue; }
 		InteractionLoop* id(dynamic_cast<InteractionLoop*>(e.get()));
@@ -480,32 +468,27 @@ shared_ptr<Interaction> Shop::createExplicitInteraction(Body::id_t id1, Body::id
 	}
 	if(!geomMeta) throw runtime_error("No IGeomDispatcher in engines or inside InteractionLoop.");
 	if(!physMeta) throw runtime_error("No IPhysDispatcher in engines or inside InteractionLoop.");
-	shared_ptr<Body> b1=Body::byId(id1,rb), b2=Body::byId(id2,rb);
-	if(!b1) throw runtime_error(("No body #"+lexical_cast<string>(id1)).c_str());
-	if(!b2) throw runtime_error(("No body #"+lexical_cast<string>(id2)).c_str());
-	shared_ptr<Interaction> i=geomMeta->explicitAction(b1,b2,/*force*/force);
-	assert(force && i);
-	if(!i) return i;
-	physMeta->explicitAction(b1->material,b2->material,i);
-	i->iterMadeReal=rb->iter;
-	rb->interactions->insert(i);
-	return i;
+	vector<shared_ptr<Interaction> > ret;
+	for(int k=0; k<(int)ids1.size(); k++){
+		Body::id_t id1=ids1[k], id2=ids2[k];
+		if(scene->interactions->find(Body::id_t(id1),Body::id_t(id2))!=0) throw invalid_argument(string("Interaction ##")+lexical_cast<string>(id1)+"+"+lexical_cast<string>(id2)+" already exists.");
+		if(!scene->bodies->exists(id1)) throw invalid_argument(("No body #"+lexical_cast<string>(id1)).c_str());
+		if(!scene->bodies->exists(id2)) throw invalid_argument(("No body #"+lexical_cast<string>(id2)).c_str());
+		const shared_ptr<Body>& b1=Body::byId(id1,scene); const shared_ptr<Body>& b2=Body::byId(id2,scene);
+		shared_ptr<Interaction> i=geomMeta->explicitAction(b1,b2,/*force*/force);
+		assert(!force || i);
+		if(!i) continue;
+		physMeta->explicitAction(b1->material,b2->material,i);
+		i->iterMadeReal=scene->iter;
+		scene->interactions->insert(i);
+		ret.push_back(i);
+	}
+	return ret;
 }
 
 Vector3r Shop::inscribedCircleCenter(const Vector3r& v0, const Vector3r& v1, const Vector3r& v2)
 {
 	return v0+((v2-v0)*(v1-v0).norm()+(v1-v0)*(v2-v0).norm())/((v1-v0).norm()+(v2-v1).norm()+(v0-v2).norm());
-}
-
-void Shop::getViscoelasticFromSpheresInteraction( Real tc, Real en, Real es, shared_ptr<ViscElMat> b)
-{
-    b->kn = 1/tc/tc * ( Mathr::PI*Mathr::PI + pow(log(en),2) );
-    b->cn = -2.0 /tc * log(en);
-    b->ks = 2.0/7.0 /tc/tc * ( Mathr::PI*Mathr::PI + pow(log(es),2) );
-    b->cs = -2.0/7.0 /tc * log(es);
-
-    if (abs(b->cn) <= Mathr::ZERO_TOLERANCE ) b->cn=0;
-    if (abs(b->cs) <= Mathr::ZERO_TOLERANCE ) b->cs=0;
 }
 
 /* This function is copied almost verbatim from scientific python, module Visualization, class ColorScale
@@ -537,30 +520,14 @@ void Shop::getStressForEachBody(vector<Shop::bodyState>& bodyStates){
 		Vector3r normalStress,shearStress;
 		if(!I->isReal()) continue;
 		
-		//NormShearPhys + Dem3DofGeom
-		const NormShearPhys* physNSP = YADE_CAST<NormShearPhys*>(I->phys.get());
-		//Dem3DofGeom* geom=YADE_CAST<Dem3DofGeom*>(I->geom.get());	//For the moment only for Dem3DofGeom!!!
-		// FIXME: slower, but does not crash
-		Dem3DofGeom* geomDDG=dynamic_cast<Dem3DofGeom*>(I->geom.get());	//For the moment only for Dem3DofGeom!!!
-		
 		//FrictPhys + ScGeom
 		const FrictPhys* physFP = YADE_CAST<FrictPhys*>(I->phys.get());
 		ScGeom* geomScG=dynamic_cast<ScGeom*>(I->geom.get());
 		
 		const Body::id_t id1=I->getId1(), id2=I->getId2();
 		
-		if(((physNSP) and (geomDDG)) or ((physFP) and (geomScG))){
-			if ((physNSP) and (geomDDG)) {
-				Real minRad=(geomDDG->refR1<=0?geomDDG->refR2:(geomDDG->refR2<=0?geomDDG->refR1:min(geomDDG->refR1,geomDDG->refR2)));
-				Real crossSection=Mathr::PI*pow(minRad,2);
-		
-				normalStress=((1./crossSection)*geomDDG->normal.dot(physNSP->normalForce))*geomDDG->normal;
-				for(int i=0; i<3; i++){
-					int ix1=(i+1)%3,ix2=(i+2)%3;
-					shearStress[i]=geomDDG->normal[ix1]*physNSP->shearForce[ix1]+geomDDG->normal[ix2]*physNSP->shearForce[ix2];
-					shearStress[i]/=crossSection;
-				}
-			}	else if ((physFP) and (geomScG)) {
+		if(((physFP) and (geomScG))){
+			if ((physFP) and (geomScG)) {
 				Real minRad=(geomScG->radius1<=0?geomScG->radius2:(geomScG->radius2<=0?geomScG->radius1:min(geomScG->radius1,geomScG->radius2)));
 				Real crossSection=Mathr::PI*pow(minRad,2);
 				
@@ -738,7 +705,7 @@ py::tuple Shop::fabricTensor(bool splitTensor, bool revertSign, Real thresholdFo
 	if (!splitTensor){return py::make_tuple(fabric);} 
 	else{return py::make_tuple(fabricStrong,fabricWeak);}
 }
-
+#if 0
 Matrix3r Shop::stressTensorOfPeriodicCell(bool smallStrains){
 	Scene* scene=Omega::instance().getScene().get();
 	if (!scene->isPeriodic){ throw runtime_error("Can't compute stress of periodic cell in aperiodic simulation."); }
@@ -784,6 +751,7 @@ Matrix3r Shop::stressTensorOfPeriodicCell(bool smallStrains){
 	stress/=volume;
 	return stress;
 }
+#endif
 
 void Shop::getStressLWForEachBody(vector<Matrix3r>& bStresses, bool revertSign){
 	const shared_ptr<Scene>& scene=Omega::instance().getScene();

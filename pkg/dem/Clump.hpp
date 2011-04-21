@@ -8,7 +8,7 @@
 #include<yade/core/Body.hpp>
 #include<yade/lib/base/Logging.hpp>
 #include<yade/lib/base/Math.hpp>
-#include<yade/core/PartialEngine.hpp>
+#include<yade/core/Engine.hpp>
 
 
 /*! Body representing clump (rigid aggregate) composed by other existing bodies.

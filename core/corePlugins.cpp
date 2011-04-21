@@ -9,16 +9,13 @@
 #include<yade/core/Engine.hpp>
 #include<yade/core/FileGenerator.hpp>
 #include<yade/core/Functor.hpp>
-#include<yade/core/GlobalEngine.hpp>
 #include<yade/core/Interaction.hpp>
 #include<yade/core/InteractionContainer.hpp>
 #include<yade/core/IGeom.hpp>
 #include<yade/core/IPhys.hpp>
 #include<yade/core/Material.hpp>
-#include<yade/core/PartialEngine.hpp>
 #include<yade/core/Shape.hpp>
 #include<yade/core/State.hpp>
-#include<yade/core/TimeStepper.hpp>
 
 #include<boost/version.hpp>
 
@@ -32,7 +29,7 @@
 	BOOST_CLASS_EXPORT(InteractionContainer);
 #endif
 
-YADE_PLUGIN((Body)(Bound)(Cell)(Dispatcher)(EnergyTracker)(Engine)(FileGenerator)(Functor)(GlobalEngine)(Interaction)(IGeom)(IPhys)(Material)(PartialEngine)(Shape)(State)(TimeStepper));
+YADE_PLUGIN((Body)(Bound)(Cell)(Dispatcher)(EnergyTracker)(Engine)(FileGenerator)(Functor)(GlobalEngine)(Interaction)(IGeom)(IPhys)(Material)(PartialEngine)(Shape)(State));
 
 EnergyTracker::~EnergyTracker(){} // vtable
 

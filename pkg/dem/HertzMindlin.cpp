@@ -69,7 +69,7 @@ void Ip2_FrictMat_FrictMat_MindlinPhys::go(const shared_ptr<Material>& b1,const 
 	Real Adhesion = 4.*Mathr::PI*R*gamma; // calculate adhesion force as predicted by DMT theory
 
 	/* pass values calculated from above to MindlinPhys */
-	mindlinPhys->tangensOfFrictionAngle = std::tan(frictionAngle); 
+	mindlinPhys->tanPhi = std::tan(frictionAngle); 
 	//mindlinPhys->prevNormal = scg->normal; // used to compute relative rotation
 	mindlinPhys->kno = Kno; // this is just a coeff
 	mindlinPhys->kso = Kso; // this is just a coeff
@@ -183,7 +183,7 @@ void Law2_ScGeom_MindlinPhys_MindlinDeresiewitz::go(shared_ptr<IGeom>& ig, share
 	shearIncrement=geom->shearIncrement();
 	Fs-=ks*shearIncrement;
 	// Mohr-Coulomb slip
-	Real maxFs2=pow(Fn,2)*pow(phys->tangensOfFrictionAngle,2);
+	Real maxFs2=pow(Fn,2)*pow(phys->tanPhi,2);
 	if(Fs.squaredNorm()>maxFs2) Fs*=sqrt(maxFs2)/Fs.norm();
 #endif
 	// apply forces
@@ -222,7 +222,7 @@ void Law2_ScGeom_MindlinPhys_HertzWithLinearShear::go(shared_ptr<IGeom>& ig, sha
 	} else { shearIncrement=geom->shearIncrement(); }
 	Fs-=ks*shearIncrement;
 	// Mohr-Coulomb slip
-	Real maxFs2=pow(Fn,2)*pow(phys->tangensOfFrictionAngle,2);
+	Real maxFs2=pow(Fn,2)*pow(phys->tanPhi,2);
 	if(Fs.squaredNorm()>maxFs2) Fs*=sqrt(maxFs2)/Fs.norm();
 
 	// apply forces
@@ -370,7 +370,7 @@ void Law2_ScGeom_MindlinPhys_Mindlin::go(shared_ptr<IGeom>& ig, shared_ptr<IPhys
 	
 	phys->shearViscous=Vector3r::Zero(); // reset so that during sliding, the previous values is not there
 	if (!includeAdhesion) {
-		Real maxFs = Fn*phys->tangensOfFrictionAngle;
+		Real maxFs = Fn*phys->tanPhi;
 		if (shearElastic.squaredNorm() > maxFs*maxFs){
 			phys->isSliding=true;
 			noShearDamp = true; // no damping is added in the shear direction, hence no need to account for shear damping dissipation
@@ -384,7 +384,7 @@ void Law2_ScGeom_MindlinPhys_Mindlin::go(shared_ptr<IGeom>& ig, shared_ptr<IPhys
 		else if (!useDamping) {phys->shearForce = shearElastic;} // update the shear force at the elastic value if no damping is present and if we passed MC
 	}
 	else { // Mohr-Coulomb formulation adpated due to the presence of adhesion (see Thornton, 1991).
-		Real maxFs = phys->tangensOfFrictionAngle*(phys->adhesionForce+Fn); // adhesionForce already included in normalForce (above)
+		Real maxFs = phys->tanPhi*(phys->adhesionForce+Fn); // adhesionForce already included in normalForce (above)
 		if (shearElastic.squaredNorm() > maxFs*maxFs){
 			phys->isSliding=true;
 			noShearDamp = true; // no damping is added in the shear direction, hence no need to account for shear damping dissipation

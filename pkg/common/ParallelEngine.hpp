@@ -1,5 +1,5 @@
 #pragma once
-#include<yade/core/GlobalEngine.hpp>
+#include<yade/core/Engine.hpp>
 #include<boost/python.hpp>
 
 class ParallelEngine;

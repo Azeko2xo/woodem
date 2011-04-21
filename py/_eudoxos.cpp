@@ -2,11 +2,13 @@
 	#include<yade/lib/pyutil/numpy.hpp>
 #endif
 
-#include<yade/pkg/dem/ConcretePM.hpp>
 #include<boost/python.hpp>
 #include<yade/extra/boost_python_len.hpp>
+
+#include<yade/core/Scene.hpp>
 #include<yade/pkg/dem/Shop.hpp>
-#include<yade/pkg/dem/DemXDofGeom.hpp>
+#include<yade/pkg/dem/GenericSpheresContact.hpp>
+#include<yade/pkg/common/NormShearPhys.hpp>
 
 #ifdef YADE_VTK
 	#pragma GCC diagnostic ignored "-Wdeprecated"
@@ -74,10 +76,6 @@ void velocityTowardsAxis(const Vector3r& axisPoint, const Vector3r& axisDirectio
 }
 BOOST_PYTHON_FUNCTION_OVERLOADS(velocityTowardsAxis_overloads,velocityTowardsAxis,3,5);
 
-void particleConfinement(){
-	CpmStateUpdater csu; csu.update();
-}
-
 // makes linker error out with monolithic build..
 #if 0
 python::dict testNumpy(){
@@ -136,6 +134,8 @@ void particleMacroStress(void){
 	}
 }
 #endif
+
+#if 0
 #include<yade/lib/smoothing/WeightedAverage2d.hpp>
 /* Fastly locate interactions within given distance from a point in 2d (projected to plane) */
 struct HelixInteractionLocator2d{
@@ -220,6 +220,8 @@ struct HelixInteractionLocator2d{
 
 };
 
+#endif
+
 #ifdef YADE_VTK
 
 /* Fastly locate interactions within given distance from a given point. See python docs for details. */
@@ -246,7 +248,7 @@ class InteractionLocator{
 		int count=0;
 		FOREACH(const shared_ptr<Interaction>& i, *scene->interactions){
 			if(!i->isReal()) continue;
-			Dem3DofGeom* ge=dynamic_cast<Dem3DofGeom*>(i->geom.get());
+			GenericSpheresContact* ge(dynamic_cast<GenericSpheresContact*>(i->geom.get()));
 			if(!ge) continue;
 			const Vector3r& cp(ge->contactPoint);
 			int id=points->InsertNextPoint(cp[0],cp[1],cp[2]);
@@ -280,39 +282,81 @@ class InteractionLocator{
 		return ret;
 	}
 	python::tuple macroAroundPt(const Vector3r& pt, Real radius, Real forceVolume=-1){
+		throw std::runtime_error("macroAroundPt is broken, needs contact area, stress etc!");
+		#if 0
 		Matrix3r ss(Matrix3r::Zero());
 		vtkIdList *ids=vtkIdList::New();
 		locator->FindPointsWithinRadius(radius,(const double*)(&pt),ids);
 		int numIds=ids->GetNumberOfIds();
-		Real omegaCumm=0, kappaCumm=0;
 		for(int k=0; k<numIds; k++){
 			const shared_ptr<Interaction>& I(intrs[ids->GetId(k)]);
-			Dem3DofGeom* geom=YADE_CAST<Dem3DofGeom*>(I->geom.get());
-			CpmPhys* phys=YADE_CAST<CpmPhys*>(I->phys.get());
-			Real d=(geom->se31.position-geom->se32.position).norm(); // current contact length
+			GenericSpheresContact* geom=YADE_CAST<GenericSpheresContact*>(I->geom.get());
+			//Real d=(geom->se31.position-geom->se32.position).norm(); // current contact length
+			Real d=geom->refR1+geom->refR2;
 			const Vector3r& n=geom->normal;
-			const Real& A=phys->crossSection;
+			const Real& A=1; // phys->crossSection=0;
 			const Vector3r& sigmaT=phys->sigmaT;
 			const Real& sigmaN=phys->sigmaN;
 			for(int i=0; i<3; i++) for(int j=0;j<3; j++){
 				ss(i,j)+=d*A*(sigmaN*n[i]*n[j]+.5*(sigmaT[i]*n[j]+sigmaT[j]*n[i]));
 			}
-			omegaCumm+=phys->omega; kappaCumm+=phys->kappaD;
 		}
 		Real volume=(forceVolume>0?forceVolume:(4/3.)*Mathr::PI*pow(radius,3));
 		ss*=1/volume;
-		return py::make_tuple(ss,omegaCumm/numIds,kappaCumm/numIds);
+		#endif
+		return py::make_tuple(0 /* ss */ ); 
 	}
 	py::tuple getBounds(){ return py::make_tuple(mn,mx);}
 	int getCnt(){ return cnt; }
 };
 #endif
 
+py::tuple stressStiffness(Real volume=0){
+	Matrix6r K(Matrix6r::Zero());
+	Matrix3r stress(Matrix3r::Zero());
+	Scene* scene=Omega::instance().getScene().get();
+	FOREACH(const shared_ptr<Interaction>& I, *scene->interactions){
+		if(!I->isReal()) continue;
+		GenericSpheresContact* geom=YADE_CAST<GenericSpheresContact*>(I->geom.get());
+		NormShearPhys* phys=YADE_CAST<NormShearPhys*>(I->phys.get());
+		// not clear whether this should be the reference or the current distance
+		// current: gives consistent results for same configuration with different initial state
+		State *state1=Body::byId(I->getId1())->state.get(), *state2=Body::byId(I->getId2())->state.get();
+		const Real d0=(state1->pos-state2->pos+(scene->isPeriodic?scene->cell->intrShiftPos(I->cellDist):Vector3r::Zero())).norm();
+		const Vector3r& n=geom->normal; const Vector3r& fT=phys->shearForce; const Real fN=phys->normalForce.dot(n);
+		for(int i=0; i<3; i++) for(int j=0;j<3; j++){ stress(i,j)+=d0*(fN*n[i]*n[j]+.5*(fT[i]*n[j]+fT[j]*n[i])); }
+		const Real& kN=phys->kn; const Real& kT=phys->ks;
+		// mapping between 6x6 matrix indices and tensor indices (Voigt notation)
+		const int map[6][6][4]={
+			{{0,0,0,0},{0,0,1,1},{0,0,2,2},{0,0,1,2},{0,0,2,0},{0,0,0,1}},
+			{{8,8,8,8},{1,1,1,1},{1,1,2,2},{1,1,1,2},{1,1,2,0},{1,1,0,1}},
+			{{8,8,8,8},{8,8,8,8},{2,2,2,2},{2,2,1,2},{2,2,2,0},{2,2,0,1}},
+			{{8,8,8,8},{8,8,8,8},{8,8,8,8},{1,2,1,2},{1,2,2,0},{1,2,0,1}},
+			{{8,8,8,8},{8,8,8,8},{8,8,8,8},{8,8,8,8},{2,0,2,0},{2,0,0,1}},
+			{{8,8,8,8},{8,8,8,8},{8,8,8,8},{8,8,8,8},{8,8,8,8},{0,1,0,1}}};
+		const int kron[3][3]={{1,0,0},{0,1,0},{0,0,1}}; // Kronecker delta
+		for(int p=0; p<6; p++) for(int q=p;q<6;q++){
+			int i=map[p][q][0], j=map[p][q][1], k=map[p][q][2], l=map[p][q][3];
+			K(p,q)+=d0*d0*(kN*n[i]*n[j]*n[k]*n[l]+kT*(.25*(n[j]*n[k]*kron[i][l]+n[j]*n[l]*kron[i][k]+n[i]*n[k]*kron[j][l]+n[i]*n[l]*kron[j][k])-n[i]*n[j]*n[k]*n[l]));
+			if(p!=q) K(q,p)=K(p,q);
+		}
+	}
+	if(scene->isPeriodic){ volume=scene->cell->getVolume(); }
+	else if(volume<=0) throw invalid_argument("stressStiffness: positive volume value must be given for aperiodic simulations.");
+	stress/=volume; K/=volume;
+	// prune numerical noise from the stiffness matrix
+	Real maxElem=K.maxCoeff();
+	for(int p=0; p<6; p++) for(int q=0; q<6; q++) if(K(p,q)<1e-12*maxElem) K(p,q)=0;
+	//
+	return py::make_tuple(tensor_toVoigt(stress),K);
+}
+
 BOOST_PYTHON_MODULE(_eudoxos){
 	YADE_SET_DOCSTRING_OPTS;
 	py::def("velocityTowardsAxis",velocityTowardsAxis,velocityTowardsAxis_overloads(py::args("axisPoint","axisDirection","timeToAxis","subtractDist","perturbation")));
+	py::def("stressStiffness",stressStiffness,py::arg("volume")=0,"Compute stress and stiffness tensors; returns tuple (stress, stiffness) in Voigt notation");
 	// def("spiralSphereStresses2d",spiralSphereStresses2d,(python::arg("dH_dTheta"),python::arg("axis")=2));
-	py::def("particleConfinement",particleConfinement);
+		// py::def("particleConfinement",particleConfinement);
 	#if 0
 		import_array();
 		py::def("testNumpy",testNumpy);
@@ -325,13 +369,15 @@ BOOST_PYTHON_MODULE(_eudoxos){
 		.add_property("count",&InteractionLocator::getCnt,"Number of interactions held")
 	;
 #endif
+#if 0
 	py::class_<HelixInteractionLocator2d>("HelixInteractionLocator2d",
 		"Locate all real interactions in 2d plane (reduced by spiral projection from 3d, using ``Shop::spiralProject``, which is the same as :yref:`yade.utils.spiralProject`) using their :yref:`contact points<Dem3DofGeom::contactPoint>`. \n\n.. note::\n\tDo not run simulation while using this object.",
 		python::init<Real,int,Real,Real,Real,Real>((python::arg("dH_dTheta"),python::arg("axis")=0,python::arg("periodStart")=NaN,python::arg("theta0")=0,python::arg("thetaMin")=NaN,python::arg("thetaMax")=NaN),":param float dH_dTheta: Spiral inclination, i.e. height increase per 1 radian turn;\n:param int axis: axis of rotation (0=x,1=y,2=z)\n:param float theta: spiral angle at zero height (theta intercept)\n:param float thetaMin: only interactions with $\\theta$≥\\ *thetaMin* will be considered (NaN to deactivate)\n:param float thetaMax: only interactions with $\\theta$≤\\ *thetaMax* will be considered (NaN to deactivate)\n\nSee :yref:`yade.utils.spiralProject`.")
 	)
 		.def("intrsAroundPt",&HelixInteractionLocator2d::intrsAroundPt,(python::arg("pt2d"),python::arg("radius")),"Return list of interaction objects that are not further from *pt2d* than *radius* in the projection plane")
-		.def("macroAroundPt",&HelixInteractionLocator2d::macroAroundPt,(python::arg("pt2d"),python::arg("radius")),"Compute macroscopic stress around given point; the interaction ($n$ and $\\sigma^T$ are rotated to the projection plane by $\\theta$ (as given by :yref:`yade.utils.spiralProject`) first, but no skew is applied). The formula used is\n\n.. math::\n\n    \\sigma_{ij}=\\frac{1}{V}\\sum_{IJ}d^{IJ}A^{IJ}\\left[\\sigma^{N,IJ}n_i^{IJ}n_j^{IJ}+\\frac{1}{2}\\left(\\sigma_i^{T,IJ}n_j^{IJ}+\\sigma_j^{T,IJ}n_i^{IJ}\\right)\\right]\n\nwhere the sum is taken over volume $V$ containing interactions $IJ$ between spheres $I$ and $J$;\n\n* $i$, $j$ indices denote Cartesian components of vectors and tensors,\n* $d^{IJ}$ is current distance between spheres $I$ and $J$,\n* $A^{IJ}$ is area of contact $IJ$,\n* $n$ is ($\\theta$-rotated) interaction normal (unit vector pointing from center of $I$ to the center of $J$)\n* $\\sigma^{N,IJ}$  is normal stress (as scalar) in contact $IJ$,\n* $\\sigma^{T,IJ}$ is shear stress in contact $IJ$ in global coordinates and $\\theta$-rotated. \n\nAdditionally, computes average of :yref:`CpmPhys.omega` ($\\bar\\omega$) and :yref:`CpmPhys.kappaD` ($\\bar\\kappa_D$). *N* is the number of interactions in the volume given.\n\n:return: tuple of (*N*, $\\tens{\\sigma}$, $\\bar\\omega$, $\\bar\\kappa_D$).\n")
+		.def("macroAroundPt",&HelixInteractionLocator2d::macroAroundPt,(python::arg("pt2d"),python::arg("radius")),"Compute macroscopic stress around given point; the interaction ($n$ and $\\sigma^T$ are rotated to the projection plane by $\\theta$ (as given by :yref:`yade.utils.spiralProject`) first, but no skew is applied). The formula used is\n\n.. math::\n\n    \\sigma_{ij}=\\frac{1}{V}\\sum_{IJ}d^{IJ}A^{IJ}\\left[\\sigma^{N,IJ}n_i^{IJ}n_j^{IJ}+\\frac{1}{2}\\left(\\sigma_i^{T,IJ}n_j^{IJ}+\\sigma_j^{T,IJ}n_i^{IJ}\\right)\\right]\n\nwhere the sum is taken over volume $V$ containing interactions $IJ$ between spheres $I$ and $J$;\n\n* $i$, $j$ indices denote Cartesian components of vectors and tensors,\n* $d^{IJ}$ is current distance between spheres $I$ and $J$,\n* $A^{IJ}$ is area of contact $IJ$,\n* $n$ is ($\\theta$-rotated) interaction normal (unit vector pointing from center of $I$ to the center of $J$)\n* $\\sigma^{N,IJ}$  is normal stress (as scalar) in contact $IJ$,\n* $\\sigma^{T,IJ}$ is shear stress in contact $IJ$ in global coordinates and $\\theta$-rotated. *N* is the number of interactions in the volume given.\n\n:return: tuple of (*N*, $\\tens{\\sigma}$, $\\bar\\omega$, $\\bar\\kappa_D$).\n")
 		.add_property("lo",&HelixInteractionLocator2d::getLo,"Return lower corner of the rectangle containing all interactions.")
 		.add_property("hi",&HelixInteractionLocator2d::getHi,"Return upper corner of the rectangle containing all interactions.");
+#endif
 
 }

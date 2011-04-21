@@ -297,7 +297,7 @@ void Law2_L3Geom_FrictPhys_ElPerfPl::go(shared_ptr<IGeom>& ig, shared_ptr<IPhys>
 
 	if(!noSlip){
 		// plastic slip, if necessary; non-zero elastic limit only for compression
-		Real maxFs=-min(0.,localF[0]*phys->tangensOfFrictionAngle); Eigen::Map<Vector2r> Fs(&localF[1]);
+		Real maxFs=-min(0.,localF[0]*phys->tanPhi); Eigen::Map<Vector2r> Fs(&localF[1]);
 		//cerr<<"u="<<geom->relU()<<", maxFs="<<maxFs<<", Fn="<<localF[0]<<", |Fs|="<<Fs.norm()<<", Fs="<<Fs<<endl;
 		if(Fs.squaredNorm()>maxFs*maxFs){
 			Real ratio=sqrt(maxFs*maxFs/Fs.squaredNorm());
@@ -325,10 +325,11 @@ void Law2_L6Geom_FrictPhys_Linear::go(shared_ptr<IGeom>& ig, shared_ptr<IPhys>& 
 
 #ifdef YADE_OPENGL
 bool Gl1_L3Geom::axesLabels;
-Real Gl1_L3Geom::axesWd;
-Vector2r Gl1_L3Geom::axesWd_range;
+int Gl1_L3Geom::axesWd;
+Vector2i Gl1_L3Geom::axesWd_range;
 Real Gl1_L3Geom::axesScale;
-Real Gl1_L3Geom::uPhiWd;
+int Gl1_L3Geom::uPhiWd;
+Vector2i Gl1_L3Geom::uPhiWd_range;
 Real Gl1_L3Geom::uScale;
 Real Gl1_L6Geom::phiScale;
 Vector2r Gl1_L6Geom::phiScale_range;

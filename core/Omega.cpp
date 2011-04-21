@@ -10,7 +10,6 @@
 
 #include"Omega.hpp"
 #include"Scene.hpp"
-#include"TimeStepper.hpp"
 #include"ThreadRunner.hpp"
 #include<yade/lib/base/Math.hpp>
 #include<yade/lib/multimethods/FunctorWrapper.hpp>
@@ -115,17 +114,50 @@ void Omega::pause(){
 
 bool Omega::isRunning(){ if(simulationLoop) return simulationLoop->looping(); else return false; }
 
-void Omega::buildDynlibDatabase(const vector<string>& dynlibsList){	
-	LOG_DEBUG("called with "<<dynlibsList.size()<<" plugins.");
+
+bool Omega::isInheritingFrom(const string& className, const string& baseClassName){
+	return (dynlibs[className].baseClasses.find(baseClassName)!=dynlibs[className].baseClasses.end());
+}
+
+bool Omega::isInheritingFrom_recursive(const string& className, const string& baseClassName){
+	if (dynlibs[className].baseClasses.find(baseClassName)!=dynlibs[className].baseClasses.end()) return true;
+	FOREACH(const string& parent,dynlibs[className].baseClasses){
+		if(isInheritingFrom_recursive(parent,baseClassName)) return true;
+	}
+	return false;
+}
+
+void Omega::loadPlugins(vector<string> pluginFiles){
+	FOREACH(const string& plugin, pluginFiles){
+		LOG_DEBUG("Loading plugin "<<plugin);
+		try {
+			ClassFactory::instance().load(plugin);
+		} catch (std::runtime_error& e){
+			const std::string err=e.what();
+			if(err.find(": undefined symbol: ")!=std::string::npos){
+				size_t pos=err.rfind(":");	assert(pos!=std::string::npos); std::string sym(err,pos+2); //2 removes ": " from the beginning
+				int status=0; char* demangled_sym=abi::__cxa_demangle(sym.c_str(),0,0,&status);
+				LOG_FATAL(plugin<<": undefined symbol `"<<demangled_sym<<"'"); LOG_FATAL(plugin<<": "<<err); LOG_FATAL("Bailing out.");
+			}
+			else { LOG_FATAL(plugin<<": "<<err<<" ."); /* leave space to not to confuse c++filt */ LOG_FATAL("Bailing out."); }
+			throw;
+		}
+	}
+	list<string>& plugins(ClassFactory::instance().pluginClasses);
+	plugins.sort(); plugins.unique();
+	initializePlugins(vector<string>(plugins.begin(),plugins.end()));
+}
+
+void Omega::initializePlugins(const vector<string>& pluginClasses){	
+	LOG_DEBUG("called with "<<pluginClasses.size()<<" plugin classes.");
 	boost::python::object wrapperScope=boost::python::import("yade.wrapper");
 	std::list<string> pythonables;
-	FOREACH(string name, dynlibsList){
+	FOREACH(string name, pluginClasses){
 		shared_ptr<Factorable> f;
 		try {
-			LOG_DEBUG("Factoring plugin "<<name);
+			LOG_DEBUG("Factoring class "<<name);
 			f = ClassFactory::instance().createShared(name);
 			dynlibs[name].isIndexable    = dynamic_pointer_cast<Indexable>(f);
-			dynlibs[name].isFactorable   = dynamic_pointer_cast<Factorable>(f);
 			dynlibs[name].isSerializable = dynamic_pointer_cast<Serializable>(f);
 			for(int i=0;i<f->getBaseClassNumber();i++){
 				dynlibs[name].baseClasses.insert(f->getBaseClassName(i));
@@ -160,6 +192,7 @@ void Omega::buildDynlibDatabase(const vector<string>& dynlibsList){
 		}
 	}
 
+	// fixes inheritance ??
 	map<string,DynlibDescriptor>::iterator dli    = dynlibs.begin();
 	map<string,DynlibDescriptor>::iterator dliEnd = dynlibs.end();
 	for( ; dli!=dliEnd ; ++dli){
@@ -179,40 +212,6 @@ void Omega::buildDynlibDatabase(const vector<string>& dynlibsList){
 	}
 }
 
-
-bool Omega::isInheritingFrom(const string& className, const string& baseClassName){
-	return (dynlibs[className].baseClasses.find(baseClassName)!=dynlibs[className].baseClasses.end());
-}
-
-bool Omega::isInheritingFrom_recursive(const string& className, const string& baseClassName){
-	if (dynlibs[className].baseClasses.find(baseClassName)!=dynlibs[className].baseClasses.end()) return true;
-	FOREACH(const string& parent,dynlibs[className].baseClasses){
-		if(isInheritingFrom_recursive(parent,baseClassName)) return true;
-	}
-	return false;
-}
-
-void Omega::loadPlugins(vector<string> pluginFiles){
-	FOREACH(const string& plugin, pluginFiles){
-		LOG_DEBUG("Loading plugin "<<plugin);
-		if(!ClassFactory::instance().load(plugin)){
-			string err=ClassFactory::instance().lastError();
-			if(err.find(": undefined symbol: ")!=std::string::npos){
-				size_t pos=err.rfind(":");	assert(pos!=std::string::npos);
-				std::string sym(err,pos+2); //2 removes ": " from the beginning
-				int status=0; char* demangled_sym=abi::__cxa_demangle(sym.c_str(),0,0,&status);
-				LOG_FATAL(plugin<<": undefined symbol `"<<demangled_sym<<"'"); LOG_FATAL(plugin<<": "<<err); LOG_FATAL("Bailing out.");
-			}
-			else {
-				LOG_FATAL(plugin<<": "<<err<<" ."); /* leave space to not to confuse c++filt */ LOG_FATAL("Bailing out.");
-			}
-			abort();
-		}
-	}
-	list<string>& plugins(ClassFactory::instance().pluginClasses);
-	plugins.sort(); plugins.unique();
-	buildDynlibDatabase(vector<string>(plugins.begin(),plugins.end()));
-}
 
 void Omega::loadSimulation(const string& f, bool quiet){
 	bool isMem=algorithm::starts_with(f,":memory:");

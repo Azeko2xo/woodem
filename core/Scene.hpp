@@ -1,13 +1,3 @@
-/*************************************************************************
-*  Copyright (C) 2004 by Olivier Galizzi                                 *
-*  olivier.galizzi@imag.fr                                               *
-*  Copyright (C) 2004 by Janek Kozicki                                   *
-*  cosurgi@berlios.de                                                    *
-*                                                                        *
-*  This program is free software; it is licensed under the terms of the  *
-*  GNU General Public License v2 or later. See file LICENSE for details. *
-*************************************************************************/
-
 #pragma once
 
 #include<yade/core/Body.hpp>
@@ -46,14 +36,6 @@ class Scene: public Serializable{
 		void fillDefaultTags();
 		// advance by one iteration by running all engines
 		void moveToNextTimeStep();
-
-		/* Functions operating on TimeStepper; they all throw exception if there is more than 1 */
-		// return whether a TimeStepper is present
-		bool timeStepperPresent();
-		// true if TimeStepper is present and active, false otherwise
-		bool timeStepperActive();
-		// (de)activate TimeStepper; returns whether the operation was successful (i.e. whether a TimeStepper was found)
-		bool timeStepperActivate(bool activate);
 
 		shared_ptr<Engine> engineByName(const string& s);
 

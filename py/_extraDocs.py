@@ -29,84 +29,33 @@ import wrapper
 #	"""
 
 
-wrapper.TriaxialTest.__doc__='''
-Create a scene for triaxal test.
-
-**Introduction**
-	Yade includes tools to simulate triaxial tests on particles assemblies. This pre-processor (and variants like e.g. :yref:`CapillaryTriaxialTest`) illustrate how to use them. It generates a scene which will - by default - go through the following steps :
-
-	* generate random loose packings in a parallelepiped.
-	* compress the packing isotropicaly, either squeezing the packing between moving rigid boxes or expanding the particles while boxes are fixed (depending on flag :yref:`internalCompaction<TriaxialTest.internalCompaction>`). The confining pressure in this stage is defined via :yref:`sigmaIsoCompaction<TriaxialTest.sigmaIsoCompaction>`.
-	* when the packing is dense and stable, simulate a loading path and get the mechanical response as a result. 
-
-	The default loading path corresponds to a constant lateral stress (:yref:`sigmaLateralConfinement<TriaxialTest.sigmaLateralConfinement>`) in 2 directions and constant strain rate on the third direction. This default loading path is performed when the flag :yref:`autoCompressionActivation<TriaxialTest.autoCompressionActivation>` it ``True``, otherwise the simulation stops after isotropic compression.
-
-	Different loading paths might be performed. In order to define them, the user can modify the flags found in engine :yref:`TriaxialStressController` at any point in the simulation (in c++). If ``TriaxialStressController.wall_X_activated`` is ``true`` boundary X is moved automatically to maintain the defined stress level *sigmaN* (see axis conventions below). If ``false`` the boundary is not controlled by the engine at all. In that case the user is free to prescribe fixed position, constant velocity, or more complex conditions.
-
-	.. note:: *Axis conventions.* Boundaries perpendicular to the *x* axis are called "left" and "right", *y* corresponds to "top" and "bottom", and axis *z* to "front" and "back". In the default loading path, strain rate is assigned along *y*, and constant stresses are assigned on *x* and *z*.
-
-**Essential engines**
-	#. The :yref:`TrixaialCompressionEngine` is used for controlling the state of the sample and simulating loading paths. :yref:`TriaxialCompressionEngine` inherits from :yref:`TriaxialStressController`, which computes stress- and strain-like quantities in the packing and maintain a constant level of stress at each boundary. :yref:`TriaxialCompressionEngine` has few more members in order to impose constant strain rate and control the transition between isotropic compression and triaxial test. Transitions are defined by changing some flags of the :yref:`TriaxialStressController`, switching from/to imposed strain rate to/from imposed stress.
-	#. The class :yref:`TriaxialStateRecorder` is used to write to a file the history of stresses and strains.
-	#. :yref:`TriaxialTest` is using :yref:`GlobalStiffnessTimeStepper` to compute an appropriate $\Dt$ for the numerical scheme. 
-
-	.. note:: ``TriaxialStressController::ComputeUnbalancedForce`` returns a value that can be useful for evaluating the stability of the packing. It is defined as (mean force on particles)/(mean contact force), so that it tends to 0 in a stable packing. This parameter is checked by :yref:`TriaxialCompressionEngine` to switch from one stage of the simulation to the next one (e.g. stop isotropic confinment and start axial loading)
-
-.. admonition:: Frequently Asked Questions
-
-	#. How is generated the packing? How to change particles sizes distribution? Why do I have a message "Exceeded 3000 tries to insert non-overlapping sphere?
-		The initial positioning of spheres is done by generating random (x,y,z) in a box and checking if a sphere of radius R (R also randomly generated with respect to a uniform distribution between mean*(1-std_dev) and mean*(1+std_dev) can be inserted at this location without overlaping with others.
-
-		If the sphere overlaps, new (x,y,z)'s are generated until a free position for the new sphere is found. This explains the message you have: after 3000 trial-and-error, the sphere couldn't be placed, and the algorithm stops.
-		
-		You get the message above if you try to generate an initialy dense packing, which is not possible with this algorithm. It can only generate clouds. You should keep the default value of porosity (n~0.7), or even increase if it is still to low in some cases. The dense state will be obtained in the second step (compaction, see below).
-	
-	#. How is the compaction done, what are the parameters :yref:`maxWallVelocity<TriaxialTest.maxWallVelocity>` and :yref:`finalMaxMultiplier<TriaxialTest.finalMaxMultiplier>`?
-		Compaction is done
-			#. by moving rigid boxes or
-			#. by increasing the sizes of the particles (decided using the option :yref:`internalCompaction<TriaxialTest.internalCompaction>` ⇒ size increase).
-		Both algorithm needs numerical parameters to prevent instabilities. For instance, with the method (1) :yref:`maxWallVelocity<TriaxialTest.maxWallVelocity>` is the maximum wall velocity, with method (2) :yref:`finalMaxMultiplier<TriaxialTest.finalMaxMultiplier>` is the max value of the multiplier applied on sizes at each iteration (always something like 1.00001).
-
-	#. During the simulation of triaxial compression test, the wall in one direction moves with an increment of strain while the stresses in other two directions are adjusted to :yref:`sigma_iso<TriaxialStressController.sigma_iso>`. How the stresses in other directions are maintained constant to :yref:`sigma_iso<TriaxialStressController.sigma_iso>`? What is the mechanism? Where is it implemented in Yade?
-		The control of stress on a boundary is based on the total stiffness *K* of all contacts between the packing and this boundary. In short, at each step, displacement=stress_error/K. This algorithm is implemented in :yref:`TriaxialStressController`, and the control itself is in ``TriaxialStressController::ControlExternalStress``. The control can be turned off independently for each boundary, using the flags ``wall_XXX_activated``, with *XXX*\ ∈{*top*, *bottom*, *left*, *right*, *back*, *front*}. The imposed sress is a unique value (:yref:`sigma_iso<TriaxialStressController.sigma_iso>`) for all directions if :yref:`TriaxialStressController.isAxisymetric`, or 3 independent values :yref:`sigma1<TriaxialStressController.sigma1>`, :yref:`sigma2<TriaxialStressController.sigma2>`, :yref:`sigma3<TriaxialStressController.sigma3>`.
-
-	#. Which value of friction angle do you use during the compaction phase of the Triaxial Test?
-		The friction during the compaction (whether you are using the expansion method or the compression one for the specimen generation) can be anything between 0 and the final value used during the Triaxial phase. Note that higher friction than the final one would result in volumetric collapse at the beginning of the test. The purpose of using a different value of friction during this phase is related to the fact that the final porosity you get at the end of the sample generation essentially depends on it as well as on the assumed Particle Size Distribution. Changing the initial value of friction will get to a different value of the final porosity.
-
-	#. Which is the aim of the ``bool isRadiusControlIteration``?
-		This internal variable (updated automatically) is true each *N* timesteps (with *N*\ =\ :yref:`radiusControlInterval<TriaxialTest.radiusControlInterval>`). For other timesteps, there is no expansion. Cycling without expanding is just a way to speed up the simulation, based on the idea that 1% increase each 10 iterations needs less operations than 0.1% at each iteration, but will give similar results.
-
-	#. How comes the unbalanced force reaches a low value only after many timesteps in the compaction phase?
-		The value of unbalanced force (dimensionless) is expected to reach low value (i.e. identifying a static-equilibrium condition for the specimen) only at the end of the compaction phase. The code is not aiming at simulating a quasistatic isotropic compaction process, it is only giving a stable packing at the end of it.
-'''
-
-wrapper.Peri3dController.__doc__=r'''
-Class for controlling independently all 6 components of "engineering" :yref:`stress<Peri3dController.stress>` and :yref:`strain<Peri3dController.strain>` of periodic :yref:``Cell`. :yref:`goal<Peri3dController.goal>` are the goal values, while :yref:`stressMask<Peri3dController.stressMask>` determines which components prescribe stress and which prescribe strain.
-
-If the strain is prescribed, appropeiate strain rate is directly applied. If the stress is prescribed, the strain predictor is used: from stress values in two previous steps the value of strain rate is prescribed so as the value of stress in the next step is as close as possible to the ideal one. Current algorithm is extremly simple and probably will be changed in future, but is roboust enough and mostly works fine.
-
-Stress error (difference between actual and ideal stress)  is evaluated in current and previous steps ($\mathrm{d}\sigma_i,\mathrm{d}\sigma_{i-1}$. Linear extrapolation is used to estimate error in the next step
-
-.. math:: \mathrm{d}\sigma_{i+1}=2\mathrm{d}\sigma_i - \mathrm{d}\sigma_{i-1}
-
-According to this error, the strain rate is modified by :yref:`mod<Peri3dController.mod>` parameter
-
-.. math:: \mathrm{d}\sigma_{i+1}\left\{\begin{array}{c} >0 \rightarrow \dot{\varepsilon}_{i+1} = \dot{\varepsilon}_i - \max(\mathrm{abs}(\dot{\boldsymbol{\varepsilon}}_i))\cdot\mathrm{mod} \\ <0 \rightarrow \dot{\varepsilon}_{i+1} = \dot{\varepsilon}_i + \max(\mathrm{abs}(\dot{\boldsymbol{\varepsilon}}_i))\cdot\mathrm{mod} \end{array}\right.
-
-According to this fact, the prescribed stress will (almost) never have exact prescribed value, but the difference would be very small (and decreasing for increasing :yref:`nSteps<Peri3dController.nSteps>`. This approach works good if one of the dominant strain rates is prescribed. If all stresses are prescribed or if all goal strains is prescribed as zero, a good estimation is needed for the first step, therefore the compliance matrix is estimated (from user defined estimations of macroscopic material parameters :yref:`youngEstimation<Peri3dController.youngEstimation>` and :yref:`poissonEstimation<Peri3dController.poissonEstimation>`) and respective strain rates is computed form prescribed stress rates and compliance matrix (the estimation of compliance matrix could be computed autamatically avoiding user inputs of this kind).
-
-The simulation on rotated periodic cell is also supported. Firstly, the `polar decomposition <http://en.wikipedia.org/wiki/Polar_decomposition#Matrix_polar_decomposition>`_ is performed on cell's transformation matrix :yref:`trsf<Cell.trsf>` $\mathcal{T}=\mat{U}\mat{P}$, where $\mat{U}$ is orthogonal (unitary) matrix representing rotation and $\mat{P}$ is a positive semi-definite Hermitian matrix representing strain. A logarithm of $\mat{P}$ should be used to obtain realistic values at higher strain values (not implemented yet). A prescribed strain increment in global coordinates $\mathrm{d}t\cdot\dot{\boldsymbol{\varepsilon}}$ is properly rotated to cell's local coordinates and added to $\mat{P}$
-
-.. math:: \mat{P}_{i+1}=\mat{P}+\mat{U}^{\mathsf{T}}\mathrm{d}t\cdot\dot{\boldsymbol{\varepsilon}}\mat{U}
-
-The new value of :yref:`trsf<Cell.trsf>` is computed at $\mat{T}_{i+1}=\mat{UP}_{i+1}$. From current and next :yref:`trsf<Cell.trsf>` the cell's velocity gradient :yref:`velGrad<Cell.velGrad>` is computed (according to its definition) as
-
-.. math:: \mat{V} = (\mat{T}_{i+1}\mat{T}^{-1}-\mat{I})/\mathrm{d}t
-
-Current implementation allow user to define independent loading "path" for each prescribed component. i.e. define the prescribed value as a function of time (or :yref:`progress<Peri3dController.progress>` or steps). See :yref:`Paths<Peri3dController.xxPath>`.
-
-Examples :ysrc:`scripts/test/peri3dController_example1` and :ysrc:`scripts/test/peri3dController_triaxialCompression` explain usage and inputs of Peri3dController, :ysrc:`scripts/test/peri3dController_shear` is an example of using shear components and also simulation on rotatd cell.
-'''
+#wrapper.Peri3dController.__doc__=r'''
+#Class for controlling independently all 6 components of "engineering" :yref:`stress<Peri3dController.stress>` and :yref:`strain<Peri3dController.strain>` of periodic :yref:``Cell`. :yref:`goal<Peri3dController.goal>` are the goal values, while :yref:`stressMask<Peri3dController.stressMask>` determines which components prescribe stress and which prescribe strain.
+#
+#If the strain is prescribed, appropeiate strain rate is directly applied. If the stress is prescribed, the strain predictor is used: from stress values in two previous steps the value of strain rate is prescribed so as the value of stress in the next step is as close as possible to the ideal one. Current algorithm is extremly simple and probably will be changed in future, but is roboust enough and mostly works fine.
+#
+#Stress error (difference between actual and ideal stress)  is evaluated in current and previous steps ($\mathrm{d}\sigma_i,\mathrm{d}\sigma_{i-1}$. Linear extrapolation is used to estimate error in the next step
+#
+#.. math:: \mathrm{d}\sigma_{i+1}=2\mathrm{d}\sigma_i - \mathrm{d}\sigma_{i-1}
+#
+#According to this error, the strain rate is modified by :yref:`mod<Peri3dController.mod>` parameter
+#
+#.. math:: \mathrm{d}\sigma_{i+1}\left\{\begin{array}{c} >0 \rightarrow \dot{\varepsilon}_{i+1} = \dot{\varepsilon}_i - \max(\mathrm{abs}(\dot{\boldsymbol{\varepsilon}}_i))\cdot\mathrm{mod} \\ <0 \rightarrow \dot{\varepsilon}_{i+1} = \dot{\varepsilon}_i + \max(\mathrm{abs}(\dot{\boldsymbol{\varepsilon}}_i))\cdot\mathrm{mod} \end{array}\right.
+#
+#According to this fact, the prescribed stress will (almost) never have exact prescribed value, but the difference would be very small (and decreasing for increasing :yref:`nSteps<Peri3dController.nSteps>`. This approach works good if one of the dominant strain rates is prescribed. If all stresses are prescribed or if all goal strains is prescribed as zero, a good estimation is needed for the first step, therefore the compliance matrix is estimated (from user defined estimations of macroscopic material parameters :yref:`youngEstimation<Peri3dController.youngEstimation>` and :yref:`poissonEstimation<Peri3dController.poissonEstimation>`) and respective strain rates is computed form prescribed stress rates and compliance matrix (the estimation of compliance matrix could be computed autamatically avoiding user inputs of this kind).
+#
+#The simulation on rotated periodic cell is also supported. Firstly, the `polar decomposition <http://en.wikipedia.org/wiki/Polar_decomposition#Matrix_polar_decomposition>`_ is performed on cell's transformation matrix :yref:`trsf<Cell.trsf>` $\mathcal{T}=\mat{U}\mat{P}$, where $\mat{U}$ is orthogonal (unitary) matrix representing rotation and $\mat{P}$ is a positive semi-definite Hermitian matrix representing strain. A logarithm of $\mat{P}$ should be used to obtain realistic values at higher strain values (not implemented yet). A prescribed strain increment in global coordinates $\mathrm{d}t\cdot\dot{\boldsymbol{\varepsilon}}$ is properly rotated to cell's local coordinates and added to $\mat{P}$
+#
+#.. math:: \mat{P}_{i+1}=\mat{P}+\mat{U}^{\mathsf{T}}\mathrm{d}t\cdot\dot{\boldsymbol{\varepsilon}}\mat{U}
+#
+#The new value of :yref:`trsf<Cell.trsf>` is computed at $\mat{T}_{i+1}=\mat{UP}_{i+1}$. From current and next :yref:`trsf<Cell.trsf>` the cell's velocity gradient :yref:`velGrad<Cell.velGrad>` is computed (according to its definition) as
+#
+#.. math:: \mat{V} = (\mat{T}_{i+1}\mat{T}^{-1}-\mat{I})/\mathrm{d}t
+#
+#Current implementation allow user to define independent loading "path" for each prescribed component. i.e. define the prescribed value as a function of time (or :yref:`progress<Peri3dController.progress>` or steps). See :yref:`Paths<Peri3dController.xxPath>`.
+#
+#Examples :ysrc:`scripts/test/peri3dController_example1` and :ysrc:`scripts/test/peri3dController_triaxialCompression` explain usage and inputs of Peri3dController, :ysrc:`scripts/test/peri3dController_shear` is an example of using shear components and also simulation on rotatd cell.
+#'''
 
 
 wrapper.Ig2_Sphere_Sphere_L3Geom.__doc__=r'''Functor for computing incrementally configuration of 2 :yref:`Spheres<Sphere>` stored in :yref:`L3Geom`; the configuration is positioned in global space by local origin $\vec{c}$ (contact point) and rotation matrix $\mat{T}$ (orthonormal transformation matrix), and its degrees of freedom are local displacement $\vec{u}$ (in one normal and two shear directions); with :yref:`Ig2_Sphere_Sphere_L6Geom` and :yref:`L6Geom`, there is additionally $\vec{\phi}$. The first row of $\mat{T}$, i.e. local $x$-axis, is the contact normal noted $\vec{n}$ for brevity. Additionally, quasi-constant values of $\vec{u}_0$ (and $\vec{\phi}_0$) are stored as shifted origins of $\vec{u}$ (and $\vec{\phi}$); therefore, current value of displacement is always $\curr{\vec{u}}-\vec{u}_0$.

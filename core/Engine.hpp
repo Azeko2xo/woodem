@@ -59,5 +59,22 @@ class Engine: public Serializable{
 };
 REGISTER_SERIALIZABLE(Engine);
 
+class PartialEngine: public Engine{
+	public:
+		virtual ~PartialEngine() {};
+	YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(PartialEngine,Engine,"Engine affecting only particular bodies in the simulation, defined by :yref:`ids<PartialEngine.ids>`.",
+		((std::vector<int>,ids,,,":yref:`Ids<Body::id>` of bodies affected by this PartialEngine.")),
+		/*deprec*/, /*init*/, /* ctor */, /* py */
+	);
+};
+REGISTER_SERIALIZABLE(PartialEngine);
+
+class GlobalEngine: public Engine{
+	public :
+		virtual ~GlobalEngine() {};
+	YADE_CLASS_BASE_DOC(GlobalEngine,Engine,"Engine that will generally affect the whole simulation (contrary to :yref:`PartialEngine`).");
+};
+REGISTER_SERIALIZABLE(GlobalEngine);
+
 
 

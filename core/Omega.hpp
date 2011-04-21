@@ -1,13 +1,3 @@
-/*************************************************************************
-* Copyright (C) 2004 by Olivier Galizzi         *
-* olivier.galizzi@imag.fr            *
-* Copyright (C) 2004 by Janek Kozicki         *
-* cosurgi@berlios.de             *
-*                  *
-* This program is free software; it is licensed under the terms of the *
-* GNU General Public License v2 or later. See file LICENSE for details. *
-*************************************************************************/
-
 #pragma once
 
 // qt3 sucks
@@ -54,14 +44,14 @@ using namespace std;
 
 struct DynlibDescriptor{
 	set<string> baseClasses;
-	bool isIndexable, isFactorable, isSerializable;
+	bool isIndexable, isSerializable;
 };
 
 class Omega: public Singleton<Omega>{
 	shared_ptr<ThreadRunner> simulationLoop;
 	SimulationFlow simulationFlow_;
 	map<string,DynlibDescriptor> dynlibs; // FIXME : should store that in ClassFactory ?
-	void buildDynlibDatabase(const vector<string>& dynlibsList); // FIXME - maybe in ClassFactory ?
+	void initializePlugins(const vector<string>& dynlibsList); 
 	
 	shared_ptr<Scene> scene;
 	shared_ptr<Scene> sceneAnother; // used for temporarily running different simulation, in Omega().switchscene()

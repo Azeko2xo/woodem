@@ -11,7 +11,6 @@
 #include"Scene.hpp"
 #include<yade/core/Engine.hpp>
 #include<yade/core/Timing.hpp>
-#include<yade/core/TimeStepper.hpp>
 
 #include<yade/lib/base/Math.hpp>
 #include<boost/foreach.hpp>
@@ -132,33 +131,6 @@ shared_ptr<Engine> Scene::engineByName(const string& s){
 	}
 	return shared_ptr<Engine>();
 }
-
-bool Scene::timeStepperPresent(){
-	int n=0;
-	FOREACH(const shared_ptr<Engine>&e, engines){ if(dynamic_cast<TimeStepper*>(e.get())) n++; }
-	if(n>1) throw std::runtime_error(string("Multiple ("+lexical_cast<string>(n)+") TimeSteppers in the simulation?!").c_str());
-	return n>0;
-}
-
-bool Scene::timeStepperActive(){
-	int n=0; bool ret=false;
-	FOREACH(const shared_ptr<Engine>&e, engines){
-		TimeStepper* ts=dynamic_cast<TimeStepper*>(e.get()); if(ts) { ret=ts->active; n++; }
-	}
-	if(n>1) throw std::runtime_error(string("Multiple ("+lexical_cast<string>(n)+") TimeSteppers in the simulation?!").c_str());
-	return ret;
-}
-
-bool Scene::timeStepperActivate(bool a){
-	int n=0;
-	FOREACH(const shared_ptr<Engine> e, engines){
-		TimeStepper* ts=dynamic_cast<TimeStepper*>(e.get());
-		if(ts) { ts->setActive(a); n++; }
-	}
-	if(n>1) throw std::runtime_error(string("Multiple ("+lexical_cast<string>(n)+") TimeSteppers in the simulation?!").c_str());
-	return n>0;
-}
-
 
 
 void Scene::checkStateTypes(){

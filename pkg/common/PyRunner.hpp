@@ -1,6 +1,6 @@
 // 2008 © Václav Šmilauer <eudoxos@arcig.cz>
 #pragma once
-#include<yade/core/GlobalEngine.hpp>
+#include<yade/core/Engine.hpp>
 #include<yade/core/Scene.hpp>
 #include<yade/pkg/common/PeriodicEngines.hpp>
 #include<yade/lib/pyutil/gil.hpp>

@@ -34,7 +34,7 @@
 #include<yade/core/Engine.hpp>
 
 #include<yade/pkg/common/Dispatching.hpp>
-#include<yade/pkg/common/Callbacks.hpp>
+// #include<yade/pkg/common/Callbacks.hpp>
 #include<yade/pkg/dem/SpherePack.hpp>
 #include<yade/pkg/common/KinematicEngines.hpp>
 #ifdef YADE_OPENGL
@@ -225,12 +225,13 @@ BOOST_PYTHON_MODULE(_customConverters){
 		VECTOR_SEQ_CONV(shared_ptr<Body>);
 		VECTOR_SEQ_CONV(shared_ptr<Engine>);
 		VECTOR_SEQ_CONV(shared_ptr<Material>);
+		VECTOR_SEQ_CONV(shared_ptr<Interaction>);
 		VECTOR_SEQ_CONV(shared_ptr<Serializable>);
 		VECTOR_SEQ_CONV(shared_ptr<BoundFunctor>);
 		VECTOR_SEQ_CONV(shared_ptr<IGeomFunctor>);
 		VECTOR_SEQ_CONV(shared_ptr<IPhysFunctor>);
 		VECTOR_SEQ_CONV(shared_ptr<LawFunctor>);
-		VECTOR_SEQ_CONV(shared_ptr<IntrCallback>);
+		// VECTOR_SEQ_CONV(shared_ptr<IntrCallback>);
 		#ifdef YADE_BODY_CALLBACK
 			VECTOR_SEQ_CONV(shared_ptr<BodyCallback>);
 		#endif

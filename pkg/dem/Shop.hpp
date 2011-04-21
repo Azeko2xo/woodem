@@ -17,8 +17,6 @@
 
 class Scene;
 class Body;
-class SimpleViscoelasticBodyParameters;
-class ViscElMat;
 class FrictMat;
 class Interaction;
 
@@ -37,8 +35,6 @@ class Shop{
 
 		//! create default sphere, along with its bound etc. 
 		static shared_ptr<Body> sphere(Vector3r center, Real radius, shared_ptr<Material> mat);
-		//! create default box with everything needed
-		static shared_ptr<Body> box(Vector3r center, Vector3r extents, shared_ptr<Material> mat);
 		//! create default tetrahedron
 		static shared_ptr<Body> tetra(Vector3r v[4], shared_ptr<Material> mat);
 
@@ -71,11 +67,6 @@ class Shop{
 		//! Calculate inscribed circle center of trianlge
 		static Vector3r inscribedCircleCenter(const Vector3r& v0, const Vector3r& v1, const Vector3r& v2);
 
-		/// Get viscoelastic parameters kn,cn,ks,cs from analytical solution of
-		/// a problem of interaction of pair spheres with mass 1, collision
-		/// time tc and restitution coefficients en,es.
-	    static void getViscoelasticFromSpheresInteraction(Real tc, Real en, Real es, shared_ptr<ViscElMat> b);
-
 		//! Get unbalanced force of the whole simulation
 		static Real unbalancedForce(bool useMaxForce=false, Scene* _rb=NULL);
 		static Real kineticEnergy(Scene* _rb=NULL, Body::id_t* maxId=NULL);
@@ -85,6 +76,9 @@ class Shop{
 
 		//! create transientInteraction between 2 bodies, using existing Dispatcher in Omega
 		static shared_ptr<Interaction> createExplicitInteraction(Body::id_t id1, Body::id_t id2, bool force);
+		//! create multiple interactions, between pairs of bodies
+		static vector<shared_ptr<Interaction> > createExplicitInteractions(const vector<Body::id_t>& ids1, const vector<Body::id_t>& ids2, bool force);
+
 
 		//! apply force on contact point on both bodies (reversed on body 2)
 		static void applyForceAtContactPoint(const Vector3r& force, const Vector3r& contPt, Body::id_t id1, const Vector3r& pos1, Body::id_t id2, const Vector3r& pos2, Scene* scene);
@@ -114,8 +108,10 @@ class Shop{
 		static void getStressLWForEachBody(vector<Matrix3r>& bStresses, bool revertSign=false);
 		static py::tuple getStressLWForEachBody(bool revertSign);
 
-		//! Function to compute overall ("macroscopic") stress of periodic cell
-		static Matrix3r stressTensorOfPeriodicCell(bool smallStrains=true);
+		#if 0
+			//! Function to compute overall ("macroscopic") stress of periodic cell
+			//static Matrix3r stressTensorOfPeriodicCell(bool smallStrains=true);
+		#endif
 		//! Compute overall ("macroscopic") stress of periodic cell, returning 2 tensors
 		//! (contribution of normal and shear forces)
 		static py::tuple normalShearStressTensors(bool compressionPositive=false, bool splitNormalTensor=false, Real thresholdForce=NaN);

@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include<yade/core/GlobalEngine.hpp>
+#include<yade/core/Engine.hpp>
 #include<yade/pkg/common/Dispatching.hpp>
 #include<yade/pkg/dem/FrictPhys.hpp>
 #include<yade/pkg/dem/ScGeom.hpp>
@@ -25,7 +25,7 @@ class Law2_ScGeom_FrictPhys_CundallStrack: public LawFunctor{
 		void initPlasticDissipation(Real initVal=0);
 		YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Law2_ScGeom_FrictPhys_CundallStrack,LawFunctor,"Law for linear compression, and Mohr-Coulomb plasticity surface without cohesion.\nThis law implements the classical linear elastic-plastic law from [CundallStrack1979]_ (see also [Pfc3dManual30]_). The normal force is (with the convention of positive tensile forces) $F_n=\\min(k_n u_n, 0)$. The shear force is $F_s=k_s u_s$, the plasticity condition defines the maximum value of the shear force : $F_s^{\\max}=F_n\\tan(\\phi)$, with $\\phi$ the friction angle.\n\nThis law is well tested in the context of triaxial simulation, and has been used for a number of published results (see e.g. [Scholtes2009b]_ and other papers from the same authors). It is generalised by :yref:`Law2_ScGeom6D_CohFrictPhys_CohesionMoment`, which adds cohesion and moments at contact.",
 		((bool,neverErase,false,,"Keep interactions even if particles go away from each other (only in case another constitutive law is in the scene, e.g. :yref:`Law2_ScGeom_CapillaryPhys_Capillarity`)"))
-		((bool,sphericalBodies,true,,"If true, compute branch vectors from radii (faster), else use contactPoint-position. Turning this flag true is safe for sphere-sphere contacts and a few other specific cases. It will give wrong values of torques on facets or boxes."))
+		((bool,sphericalBodies,true,,"If true, compute branch vectors from radii (faster), else use contactPoint-position. Turning this flag true is safe for sphere-sphere contacts and a few other specific cases. It will give wrong values of torques on facets."))
 		((bool,traceEnergy,false,,"Define the total energy dissipated in plastic slips at all contacts. This will trace only plastic energy in this law, see O.trackEnergy for a more complete energies tracing"))
 		((int,plastDissipIx,-1,(Attr::hidden|Attr::noSave),"Index for plastic dissipation (with O.trackEnergy)"))
 		((int,elastPotentialIx,-1,(Attr::hidden|Attr::noSave),"Index for elastic potential energy (with O.trackEnergy)"))
@@ -48,14 +48,6 @@ class ElasticContactLaw : public GlobalEngine{
 	);
 };
 REGISTER_SERIALIZABLE(ElasticContactLaw);
-
-class Law2_Dem3DofGeom_FrictPhys_CundallStrack: public LawFunctor{
-	public:
-		virtual void go(shared_ptr<IGeom>& _geom, shared_ptr<IPhys>& _phys, Interaction* I);
-		FUNCTOR2D(Dem3DofGeom,FrictPhys);
-		YADE_CLASS_BASE_DOC(Law2_Dem3DofGeom_FrictPhys_CundallStrack,LawFunctor,"Constitutive law for linear compression, no tension, and linear plasticity surface.\n\nNo longer maintained and linking to known bugs; :consider using yref:`Law2_ScGeom_FrictPhys_CundallStrack`.");
-};
-REGISTER_SERIALIZABLE(Law2_Dem3DofGeom_FrictPhys_CundallStrack);
 
 
 

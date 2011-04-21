@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include<yade/core/PartialEngine.hpp>
+#include<yade/core/Engine.hpp>
 #include<yade/lib/base/Math.hpp>
 
 class KinematicEngine;

@@ -45,9 +45,6 @@ from _packPredicates import * ## imported in randomDensePack as well
 # import SpherePack
 from _packSpheres import *
 from _packObb import *
-try:
-	from _packSpherePadder import *
-except ImportError: pass
 
 ##
 # extend _packSphere.SpherePack c++ class by this method

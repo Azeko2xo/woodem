@@ -1,4 +1,4 @@
-#include"InteractionLoop.hpp"
+#include<yade/pkg/common/InteractionLoop.hpp>
 
 YADE_PLUGIN((InteractionLoop));
 CREATE_LOGGER(InteractionLoop);
@@ -50,6 +50,7 @@ void InteractionLoop::action(){
 	// call LawFunctor::preStep
 	FOREACH(const shared_ptr<LawFunctor>& law2, lawDispatcher->functors) law2->preStep();
 
+	#if 0
 	/*
 		initialize callbacks; they return pointer (used only in this timestep) to the function to be called
 		returning NULL deactivates the callback in this timestep
@@ -62,6 +63,7 @@ void InteractionLoop::action(){
 	}
 	assert(callbackPtrs.size()==callbacks.size());
 	size_t callbacksSize=callbacks.size();
+	#endif
 
 	// cache transformed cell size
 	Matrix3r cellHsize; if(scene->isPeriodic) cellHsize=scene->cell->hSize;
@@ -161,12 +163,14 @@ void InteractionLoop::action(){
 		}
 		assert(I->functorCache.constLaw);
 		I->functorCache.constLaw->go(I->geom,I->phys,I.get());
-
+		
+		#if 0
 		// process callbacks for this interaction
 		if(unlikely(!I->isReal())) continue; // it is possible that Law2_ functor called requestErase, hence this check
 		for(size_t i=0; i<callbacksSize; i++){
 			if(callbackPtrs[i]!=NULL) (*(callbackPtrs[i]))(callbacks[i].get(),I.get());
 		}
+		#endif
 	#ifdef YADE_SUBDOMAINS
 		} } YADE_PARALLEL_FOREACH_BODY_END();
 	#else

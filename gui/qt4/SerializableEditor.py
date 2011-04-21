@@ -152,6 +152,37 @@ class AttrEditor_Quaternion(AttrEditor,QFrame):
 	def setFocus(self): self.grid.itemAt(0).widget().setFocus()
 
 
+class AttrEditor_IntRange(AttrEditor,QFrame):
+	def __init__(self,parent,getter,setter): 
+		AttrEditor.__init__(self,getter,setter)
+		QFrame.__init__(self,parent)
+		self.grid=QGridLayout(self); self.grid.setSpacing(0); self.grid.setMargin(0)
+		curr,(mn,mx)=getter()
+		self.slider,self.spin=QSlider(self),QSpinBox(self)
+		self.grid.addWidget(self.spin,0,0)
+		self.grid.addWidget(self.slider,0,1,1,2) # rowSpan=1,columnSpan=2
+		self.slider.setMinimum(mn); self.slider.setMaximum(mx)
+		self.spin.setMinimum(mn); self.spin.setMaximum(mx)
+		self.slider.setOrientation(Qt.Horizontal)
+		self.spin.valueChanged.connect(self.updateFromSpin)
+		self.slider.sliderMoved.connect(self.sliderMoved)
+		self.slider.sliderReleased.connect(self.updateFromSlider)
+	def refresh(self):
+		curr,(mn,mx)=self.getter()
+		self.spin.setValue(curr); self.spin.setMinimum(mn); self.spin.setMaximum(mx)
+		self.slider.setValue(curr)
+	def updateFromSpin(self):
+		self.slider.setValue(self.spin.value())
+		self.trySetter(self.slider.value())
+	def updateFromSlider(self):
+		self.spin.setValue(self.slider.value())
+		self.trySetter(self.slider.value())
+	def sliderMoved(self,val):
+		self.isHot(True)
+		self.spin.setValue(val) # self.slider.value())
+	def setFocus(self): self.slider.setFocus()
+
+
 class AttrEditor_FloatRange(AttrEditor,QFrame):
 	sliDiv=500
 	def __init__(self,parent,getter,setter): 
@@ -380,8 +411,8 @@ class SerializableEditor(QFrame):
 			'Vector6r':Vector6,'Vector6i':Vector6i,'Vector3i':Vector3i,'Vector2r':Vector2,'Vector2i':Vector2i,
 			'Vector3r':Vector3,'Matrix3r':Matrix3,'Se3r':Se3FakeType,
 			'string':str,
-			#'BodyCallback':BodyCallback,
-			'IntrCallback':IntrCallback,'BoundFunctor':BoundFunctor,'IGeomFunctor':IGeomFunctor,'IPhysFunctor':IPhysFunctor,'LawFunctor':LawFunctor,'KinematicEngine':KinematicEngine,
+			#'BodyCallback':BodyCallback,'IntrCallback':IntrCallback,
+			'BoundFunctor':BoundFunctor,'IGeomFunctor':IGeomFunctor,'IPhysFunctor':IPhysFunctor,'LawFunctor':LawFunctor,'KinematicEngine':KinematicEngine,
 			'GlShapeFunctor':GlShapeFunctor,'GlStateFunctor':GlStateFunctor,'GlIGeomFunctor':GlIGeomFunctor,'GlIPhysFunctor':GlIPhysFunctor,'GlBoundFunctor':GlBoundFunctor,'GlExtraDrawer':GlExtraDrawer
 		}
 		for T,ret in vecMap.items():
@@ -450,12 +481,16 @@ class SerializableEditor(QFrame):
 		
 
 	def handleFloatRange(self,widgetKlass,getter,setter,entry):
+		rangeSuffix='_range'
+		rangeAttr=entry.name+rangeSuffix
 		# return editor for given attribute; no-op, unless float with associated range attribute
-		if entry.T==float and hasattr(self.ser,entry.name+'_range') and getattr(self.ser,entry.name+'_range').__class__==Vector2:
+		if entry.T==float and hasattr(self.ser,rangeAttr) and getattr(self.ser,rangeAttr).__class__==Vector2:
 			# getter returns tuple value,range
 			# setter needs just the value itself
-			return AttrEditor_FloatRange,lambda: (getattr(self.ser,entry.name),getattr(self.ser,entry.name+'_range')),lambda x: setattr(self.ser,entry.name,x)
-		return widgetKlass,getter,setter
+			return AttrEditor_FloatRange,lambda: (getattr(self.ser,entry.name),getattr(self.ser,rangeAttr)),lambda x: setattr(self.ser,entry.name,x)
+		elif entry.T==int and hasattr(self.ser,rangeAttr) and getattr(self.ser,rangeAttr).__class__==Vector2i:
+			return AttrEditor_IntRange,lambda: (getattr(self.ser,entry.name),getattr(self.ser,rangeAttr)),lambda x: setattr(self.ser,entry.name,x)
+		else: return widgetKlass,getter,setter
 		
 	def mkWidget(self,entry):
 		if not entry.T: return None

@@ -1,13 +1,3 @@
-/*************************************************************************
-*  Copyright (C) 2004 by Olivier Galizzi                                 *
-*  olivier.galizzi@imag.fr                                               *
-*  Copyright (C) 2004 by Janek Kozicki                                   *
-*  cosurgi@berlios.de                                                    *
-*                                                                        *
-*  This program is free software; it is licensed under the terms of the  *
-*  GNU General Public License v2 or later. See file LICENSE for details. *
-*************************************************************************/
-
 #pragma once
 
 #include <boost/any.hpp>
@@ -87,6 +77,9 @@ namespace yade{
 	template<> struct py_wrap_ref<Vector2i>: public boost::true_type{};
 	template<> struct py_wrap_ref<Quaternionr>: public boost::true_type{};
 	template<> struct py_wrap_ref<Matrix3r>: public boost::true_type{};
+	template<> struct py_wrap_ref<Matrix6r>: public boost::true_type{};
+	template<> struct py_wrap_ref<Vector6r>: public boost::true_type{};
+	template<> struct py_wrap_ref<Vector6i>: public boost::true_type{};
 
 	//template<class C, typename T, T C::*A>
 	//void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; cerr<<"make_setter_postLoad called"<<endl; postLoad(instance); }
@@ -185,8 +178,9 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 	_REGISTER_ATTRIBUTES_DEPREC(thisClass,baseClass,attrs,deprec) \
 	REGISTER_CLASS_AND_BASE(thisClass,baseClass) \
 	/* accessors for deprecated attributes, with warnings */ BOOST_PP_SEQ_FOR_EACH(_ACCESS_DEPREC,thisClass,deprec) \
-	/* python class registration */ virtual void pyRegisterClass(python::object _scope) { checkPyClassRegistersItself(#thisClass); boost::python::scope thisScope(_scope); YADE_SET_DOCSTRING_OPTS; boost::python::class_<thisClass,shared_ptr<thisClass>,boost::python::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,docString); _classObj.def("__init__",python::raw_constructor(Serializable_ctor_kwAttrs<thisClass>)); BOOST_PP_SEQ_FOR_EACH(_PYATTR_DEF,thisClass,attrs); (void) _classObj BOOST_PP_SEQ_FOR_EACH(_PYATTR_DEPREC_DEF,thisClass,deprec); (void) _classObj extras ; }
-	// use later: void must_use_both_YADE_CLASS_BASE_DOC_ATTRS_and_YADE_PLUGIN(); 
+	/* python class registration */ virtual void pyRegisterClass(python::object _scope) { checkPyClassRegistersItself(#thisClass); boost::python::scope thisScope(_scope); YADE_SET_DOCSTRING_OPTS; boost::python::class_<thisClass,shared_ptr<thisClass>,boost::python::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,docString); _classObj.def("__init__",python::raw_constructor(Serializable_ctor_kwAttrs<thisClass>)); BOOST_PP_SEQ_FOR_EACH(_PYATTR_DEF,thisClass,attrs); (void) _classObj BOOST_PP_SEQ_FOR_EACH(_PYATTR_DEPREC_DEF,thisClass,deprec); (void) _classObj extras ; } \
+	void must_use_both_YADE_CLASS_BASE_DOC_ATTRS_and_YADE_PLUGIN(); 
+
 // #define YADE_CLASS_BASE_DOC_ATTRS_PY(thisClass,baseClass,docString,attrs,extras) YADE_CLASS_BASE_DOC_ATTRS_DEPREC_PY(thisClass,baseClass,docString,attrs,,extras)
 
 // return "type name;" (for declaration inside class body)
@@ -229,14 +223,6 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 	thisClass() BOOST_PP_IF(BOOST_PP_SEQ_SIZE(inits attrDecls),:,) BOOST_PP_SEQ_FOR_EACH_I(_ATTR_MAKE_INITIALIZER,BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(inits attrDecls)), inits BOOST_PP_SEQ_FOR_EACH(_ATTR_MAKE_INIT_TUPLE,~,attrDecls)) { ctor ; } /* ctor, with initialization of defaults */ \
 	_YADE_CLASS_BASE_DOC_ATTRS_DEPREC_PY(thisClass,baseClass,docString,BOOST_PP_SEQ_FOR_EACH(_ATTRS_EMBED_INI_TYP_IN_DOC,~,attrDecls),deprec,extras)
 
-// see https://bugs.launchpad.net/yade/+bug/666876
-// we have to change things at a few other places as well
-#if BOOST_VERSION>=104200
-	#define REGISTER_SERIALIZABLE(name) REGISTER_FACTORABLE(name); BOOST_CLASS_EXPORT_KEY(name);
-#else
-	#define REGISTER_SERIALIZABLE(name) REGISTER_FACTORABLE(name); 
-#endif
-
 // for static classes (Gl1 functors, for instance)
 #define YADE_CLASS_BASE_DOC_STATICATTRS(thisClass,baseClass,docString,attrs)\
 	public: BOOST_PP_SEQ_FOR_EACH(_STATATTR_DECL,~,attrs) /* attribute declarations */ \
@@ -245,10 +231,20 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 	_REGISTER_ATTRIBUTES_DEPREC(thisClass,baseClass,attrs,) \
 	/* called only at class registration, to set initial values; storage still has to be alocated in the cpp file! */ \
 	void initSetStaticAttributesValue(void){ BOOST_PP_SEQ_FOR_EACH(_STATATTR_INITIALIZE,thisClass,attrs); } \
-	_STATCLASS_PY_REGISTER_CLASS(thisClass,baseClass,docString,attrs)
+	_STATCLASS_PY_REGISTER_CLASS(thisClass,baseClass,docString,attrs) \
+	void must_use_both_YADE_CLASS_BASE_DOC_ATTRS_and_YADE_PLUGIN(); 
+
 
 // used only in some exceptional cases, might disappear in the future
 #define REGISTER_ATTRIBUTES(baseClass,attrs) _REGISTER_ATTRIBUTES_DEPREC(_SOME_CLASS,baseClass,BOOST_PP_SEQ_FOR_EACH(_ATTR_NAME_ADD_DUMMY_FIELDS,~,attrs),)
+
+// see https://bugs.launchpad.net/yade/+bug/666876
+// we have to change things at a few other places as well
+#if BOOST_VERSION>=104200
+	#define REGISTER_SERIALIZABLE(name) BOOST_CLASS_EXPORT_KEY(name);
+#else
+	#define REGISTER_SERIALIZABLE(name) 
+#endif
 
 
 class Serializable: public Factorable {

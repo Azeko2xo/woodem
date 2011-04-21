@@ -2,7 +2,7 @@
 #pragma once
 
 #include<time.h>
-#include<yade/core/GlobalEngine.hpp>
+#include<yade/core/Engine.hpp>
 #include<yade/core/Omega.hpp>
 #include<yade/core/Scene.hpp>
 

@@ -85,11 +85,11 @@ def checkStress():
 				# stop rotations if any, as blockedDOFs block accelerations really
 				b.state.angVel=(0,0,0)
 		# set friction angle back to non-zero value
-		# tangensOfFrictionAngle is computed by the Ip2_* functor from material
+		# tanPhi is computed by the Ip2_* functor from material
 		# for future contacts change material (there is only one material for all particles)
 		O.materials[0].frictionAngle=.5 # radians
 		# for existing contacts, set contact friction directly
-		for i in O.interactions: i.phys.tangensOfFrictionAngle=tan(.5)
+		for i in O.interactions: i.phys.tanPhi=tan(.5)
 
 # called from the 'checker' engine periodically, during the shear phase
 def checkDistorsion():

@@ -149,10 +149,6 @@ class ControllerClass(QWidget,Ui_Controller):
 		from yade import plot
 		plot.splitData()
 		O.reload()
-	def dtFixedSlot(self):
-		O.dt=O.dt
-	def dtDynSlot(self):
-		O.dt=-O.dt
 	def dtEditNoupdateSlot(self):
 		self.dtEditUpdate=False
 	def dtEditedSlot(self):
@@ -201,10 +197,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.stepButton.setEnabled(False)
 		self.subStepCheckbox.setEnabled(False)
 		self.reloadButton.setEnabled(False)
-		self.dtFixedRadio.setEnabled(False)
-		self.dtDynRadio.setEnabled(False)
 		self.dtEdit.setEnabled(False)
-		self.dtEdit.setText('')
 		self.dtEditUpdate=True
 	def activateControls(self):
 		hasSim=len(O.engines)>0
@@ -221,15 +214,7 @@ class ControllerClass(QWidget,Ui_Controller):
 			self.reloadButton.setEnabled(False)
 			self.stepButton.setEnabled(False)
 			self.subStepCheckbox.setEnabled(False)
-		self.dtFixedRadio.setEnabled(True)
-		self.dtDynRadio.setEnabled(O.dynDtAvailable)
-		dynDt=O.dynDt
-		self.dtFixedRadio.setChecked(not dynDt)
-		self.dtDynRadio.setChecked(dynDt)
-		if dynDt or self.dtEditUpdate:
-			self.dtEdit.setText(str(O.dt))
-		if dynDt: self.dtEditUpdate=True
-		self.dtEdit.setEnabled(not dynDt)
+		self.dtEdit.setEnabled(True)
 		fn=O.filename
 		self.fileLabel.setText(fn if fn else '<i>[no file]</i>')
 
@@ -265,6 +250,7 @@ class ControllerClass(QWidget,Ui_Controller):
 			s=int(t); ms=int(t*1000)%1000; us=int(t*1000000)%1000; ns=int(t*1000000000)%1000
 			self.virtTimeLabel.setText(u'%03ds%03dm%03dμ%03dn'%(s,ms,us,ns))
 		else: self.virtTimeLabel.setText(u'[ ∞ ] ?!')
+		if self.dtEditUpdate: self.dtEdit.setText(str(O.dt))
 		self.show3dButton.setChecked(len(views())>0)
 		
 def Generator():
@@ -281,10 +267,3 @@ def Inspector():
 	global controller
 	if not controller: controller=ControllerClass();
 	controller.inspectSlot()
-
-#if __name__=='__main__':
-#	from PyQt4 import QtGui
-#	import sys
-#	qapp=QtGui.QApplication(sys.argv)
-#	c=Controller().show()
-#	qapp.exec_()

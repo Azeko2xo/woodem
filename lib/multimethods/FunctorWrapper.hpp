@@ -93,8 +93,8 @@
 /// So pay attention when you overload this function.
 ///
 
-template
-<	class ResultType, 		// type returned by multivirtual function
+template <
+	class ResultType, 		// type returned by multivirtual function
 	class ArgumentTypeList		// TypeList of arguments accepted by multivirtual function,
 >
 class FunctorWrapper //: public Serializable // FIXME functor shouldn't be serializable
@@ -147,16 +147,5 @@ class FunctorWrapper //: public Serializable // FIXME functor shouldn't be seria
 		virtual ResultType goReverse(	Parm1,Parm2,Parm3,Parm4,Parm5,Parm6,Parm7) 			{ return error(7); };
 };
 
-#define DEFINE_FUNCTOR_ORDER_2D(class1,class2)							\
-	public : virtual std::string checkOrder() const						\
-	{											\
-		return (string(#class1)+" "+string(#class2));					\
-	}											\
-
-#define DEFINE_FUNCTOR_ORDER_3D(class1,class2,class3)						\
-	public : virtual std::string checkOrder() const						\
-	{											\
-		return (string(#class1)+" "+string(#class2)+" "+string(#class3));		\
-	}											\
-
+#define DEFINE_FUNCTOR_ORDER_2D(class1,class2) public: virtual std::string checkOrder() const{ return (string(#class1)+" "+string(#class2));}
 

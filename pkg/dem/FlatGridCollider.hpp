@@ -22,7 +22,7 @@ class FlatGridCollider: public Collider{
 		const idVector& operator()(int x, int y, int z) const { return data[lin(x,y,z)];}
 	};
 	Grid grid;
-	int sphereIdx, facetIdx, wallIdx, boxIdx;
+	int sphereIdx, facetIdx, wallIdx;
 	// needed for maxVelSq
 	shared_ptr<NewtonIntegrator> newton;
 	// track maximum distance of fastest body, at every step in isActivated

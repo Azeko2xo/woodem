@@ -1,6 +1,6 @@
 // Kovthanan …
 #include<yade/lib/base/Math.hpp>
-#include<yade/core/GlobalEngine.hpp>
+#include<yade/core/Engine.hpp>
 #include<yade/pkg/common/Collider.hpp>
 
 

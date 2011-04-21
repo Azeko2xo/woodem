@@ -10,7 +10,7 @@
 
 #include<yade/core/Bound.hpp>
 #include<yade/core/Interaction.hpp>
-#include<yade/core/GlobalEngine.hpp>
+#include<yade/core/Engine.hpp>
 
 #include<yade/pkg/common/Dispatching.hpp>
 

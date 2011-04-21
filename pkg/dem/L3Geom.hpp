@@ -8,7 +8,7 @@
 #include<yade/pkg/common/Facet.hpp>
 #include<yade/pkg/common/Wall.hpp>
 #include<yade/pkg/common/Dispatching.hpp>
-#include<yade/pkg/dem/DemXDofGeom.hpp>
+#include<yade/pkg/dem/GenericSpheresContact.hpp>
 #include<yade/pkg/dem/FrictPhys.hpp>
 #ifdef YADE_OPENGL
 	#include<yade/pkg/common/GLDrawFunctors.hpp>
@@ -94,9 +94,10 @@ struct Gl1_L3Geom: public GlIGeomFunctor{
 	YADE_CLASS_BASE_DOC_STATICATTRS(Gl1_L3Geom,GlIGeomFunctor,"Render :yref:`L3Geom` geometry.",
 		((bool,axesLabels,false,,"Whether to display labels for local axes (x,y,z)"))
 		((Real,axesScale,1.,,"Scale local axes, their reference length being half of the minimum radius."))
-		((Real,axesWd,1.,,"Width of axes lines, in pixels; not drawn if non-positive"))
-		((Vector2r,axesWd_range,Vector2r(-1,10),Attr::noGui,"Range for axesWd."))
-		((Real,uPhiWd,2.,,"Width of lines for drawing displacements (and rotations for :yref:`L6Geom`); not drawn if non-positive."))
+		((int,axesWd,1,,"Width of axes lines, in pixels; not drawn if non-positive"))
+		((Vector2i,axesWd_range,Vector2i(0,10),Attr::noGui,"Range for axesWd."))
+		((int,uPhiWd,2,,"Width of lines for drawing displacements (and rotations for :yref:`L6Geom`); not drawn if non-positive."))
+		((Vector2i,uPhiWd_range,Vector2i(0,10),Attr::noGui,"Range for uPhiWd."))
 		((Real,uScale,1.,,"Scale local displacements (:yref:`u<L3Geom.u>` - :yref:`u0<L3Geom.u0>`); 1 means the true scale, 0 disables drawing local displacements; negative values are permissible."))
 	);
 };
