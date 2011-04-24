@@ -70,23 +70,23 @@ class TestPBC(unittest.TestCase):
 		s1=O.bodies[1].state
 		self.assertAlmostEqual(s1.vel[2],self.initVel[2])
 		self.assertAlmostEqual(s1.pos[2],self.initPos[2]+self.initPos[2]*O.cell.velGrad[2,2]*O.dt)
-	def testScGeomIncidentVelocity(self):
-		"PBC: ScGeom computes incident velocity correctly (homoDeform==3)"
-		O.step()
-		O.engines=[InteractionLoop([Ig2_Sphere_Sphere_ScGeom()],[Ip2_FrictMat_FrictMat_FrictPhys()],[])]
-		i=utils.createInteraction(0,1)
-		self.assertEqual(self.initVel,i.geom.incidentVel(i,avoidGranularRatcheting=True))
-		self.assertEqual(self.initVel,i.geom.incidentVel(i,avoidGranularRatcheting=False))
-		self.assertAlmostEqual(self.relDist[1],1-i.geom.penetrationDepth)
-	def testScGeomIncidentVelocity_homoPos(self):
-		"PBC: ScGeom computes incident velocity correctly (homoDeform==1)"
-		O.cell.homoDeform=1
-		O.step()
-		O.engines=[InteractionLoop([Ig2_Sphere_Sphere_ScGeom()],[Ip2_FrictMat_FrictMat_FrictPhys()],[])]
-		i=utils.createInteraction(0,1)
-		self.assertEqual(self.initVel,i.geom.incidentVel(i,avoidGranularRatcheting=True))
-		self.assertEqual(self.initVel,i.geom.incidentVel(i,avoidGranularRatcheting=False))
-		self.assertAlmostEqual(self.relDist[1],1-i.geom.penetrationDepth)
+	#def testScGeomIncidentVelocity(self):
+	#	"PBC: ScGeom computes incident velocity correctly (homoDeform==3)"
+	#	O.step()
+	#	O.engines=[InteractionLoop([Ig2_Sphere_Sphere_ScGeom()],[Ip2_FrictMat_FrictMat_FrictPhys()],[])]
+	#	i=utils.createInteraction(0,1)
+	#	self.assertEqual(self.initVel,i.geom.incidentVel(i,avoidGranularRatcheting=True))
+	#	self.assertEqual(self.initVel,i.geom.incidentVel(i,avoidGranularRatcheting=False))
+	#	self.assertAlmostEqual(self.relDist[1],1-i.geom.penetrationDepth)
+	#def testScGeomIncidentVelocity_homoPos(self):
+	#	"PBC: ScGeom computes incident velocity correctly (homoDeform==1)"
+	#	O.cell.homoDeform=1
+	#	O.step()
+	#	O.engines=[InteractionLoop([Ig2_Sphere_Sphere_ScGeom()],[Ip2_FrictMat_FrictMat_FrictPhys()],[])]
+	#	i=utils.createInteraction(0,1)
+	#	self.assertEqual(self.initVel,i.geom.incidentVel(i,avoidGranularRatcheting=True))
+	#	self.assertEqual(self.initVel,i.geom.incidentVel(i,avoidGranularRatcheting=False))
+	#	self.assertAlmostEqual(self.relDist[1],1-i.geom.penetrationDepth)
 	def testL3GeomIncidentVelocity(self):
 		"PBC: L3Geom computes incident velocity correctly (homoDeform==3)"
 		O.step()

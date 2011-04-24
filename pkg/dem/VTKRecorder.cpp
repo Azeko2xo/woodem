@@ -31,7 +31,7 @@
 #include<yade/pkg/common/NormShearPhys.hpp>
 
 
-YADE_PLUGIN((VTKRecorder));
+YADE_PLUGIN0((VTKRecorder));
 CREATE_LOGGER(VTKRecorder);
 
 void VTKRecorder::action(){
@@ -222,7 +222,7 @@ void VTKRecorder::action(){
 
 	//Additional Vector for storing forces
 	vector<Shop::bodyState> bodyStates;
-	if(recActive[REC_STRESS]) Shop::getStressForEachBody(bodyStates);
+	// if(recActive[REC_STRESS]) Shop::getStressForEachBody(bodyStates);
 	
 	FOREACH(const shared_ptr<Body>& b, *scene->bodies){
 		if (!b) continue;

@@ -34,10 +34,8 @@ env.Install('$LIBDIR/lib',[
 			'Dispatcher.cpp',
 			'Omega.cpp',
 			'Shape.cpp',
-			'SimulationFlow.cpp',
+			'BgThread.cpp',
 			'State.cpp',
-			'ThreadRunner.cpp',
-			'ThreadWorker.cpp',
 			'corePlugins.cpp'			
 			]
 			),

@@ -5,14 +5,13 @@
 *  This program is free software; it is licensed under the terms of the  *
 *  GNU General Public License v2 or later. See file LICENSE for details. *
 *************************************************************************/
-#include "Facet.hpp"
+#include<yade/pkg/common/Facet.hpp>
+#include<yade/pkg/common/Aabb.hpp>
+YADE_PLUGIN0((Facet)(Bo1_Facet_Aabb));
 
 CREATE_LOGGER(Facet);
 
-Facet::~Facet()
-{
-}
-
+Facet::~Facet(){}
 
 void Facet::postLoad(Facet&)
 {
@@ -35,4 +34,83 @@ void Facet::postLoad(Facet&)
 	icr = e[0].norm()*ne[0].dot(e[2])/p;
 }
 
-YADE_PLUGIN((Facet));
+
+void Bo1_Facet_Aabb::go(const shared_ptr<Shape>& cm, shared_ptr<Bound>& bv, const Se3r& se3, const Body* b){
+	if(!bv){ bv=shared_ptr<Bound>(new Aabb); }
+	Aabb* aabb=static_cast<Aabb*>(bv.get());
+	Facet* facet = static_cast<Facet*>(cm.get());
+	const Vector3r& O = se3.position;
+	Matrix3r facetAxisT=se3.orientation.toRotationMatrix();
+	const vector<Vector3r>& vertices=facet->vertices;
+	if(!scene->isPeriodic){
+		aabb->min=aabb->max = O + facetAxisT * vertices[0];
+		for (int i=1;i<3;++i)
+		{
+			Vector3r v = O + facetAxisT * vertices[i];
+			aabb->min = aabb->min.cwise().min(v);
+			aabb->max = aabb->max.cwise().max(v);
+		}
+	} else {
+		Real inf=std::numeric_limits<Real>::infinity();
+		aabb->min=Vector3r(inf,inf,inf); aabb->max=Vector3r(-inf,-inf,-inf);
+		for(int i=0; i<3; i++){
+			Vector3r v=scene->cell->unshearPt(O+facetAxisT*vertices[i]);
+			aabb->min=aabb->min.cwise().min(v);
+			aabb->max=aabb->max.cwise().max(v);
+		}
+	}
+}
+
+
+
+#ifdef YADE_OPENGL
+YADE_PLUGIN0((Gl1_Facet));
+
+#include<yade/lib/opengl/OpenGLWrapper.hpp>
+
+bool Gl1_Facet::normals=false;
+
+void Gl1_Facet::go(const shared_ptr<Shape>& cm, const shared_ptr<State>& ,bool wire,const GLViewInfo&)
+{   
+	Facet* facet = static_cast<Facet*>(cm.get());
+	const vector<Vector3r>& vertices = facet->vertices;
+	const Vector3r* ne = facet->ne;
+	const Real& icr = facet->icr;
+
+	if(cm->wire || wire){
+		// facet
+		glBegin(GL_LINE_LOOP);
+			glColor3v(normals ? Vector3r(1,0,0): cm->color);
+		   glVertex3v(vertices[0]);
+		   glVertex3v(vertices[1]);
+		   glVertex3v(vertices[2]);
+	    glEnd();
+		if(!normals) return;
+		// facet's normal 
+		glBegin(GL_LINES);
+			glColor3(0.0,0.0,1.0); 
+			glVertex3(0.0,0.0,0.0);
+			glVertex3v(facet->normal);
+		glEnd();
+		// normal of edges
+		glColor3(0.0,0.0,1.0); 
+		glBegin(GL_LINES);
+			glVertex3(0.0,0.0,0.0); glVertex3v(Vector3r(icr*ne[0]));
+			glVertex3(0.0,0.0,0.0);	glVertex3v(Vector3r(icr*ne[1]));
+			glVertex3(0.0,0.0,0.0);	glVertex3v(Vector3r(icr*ne[2]));
+		glEnd();
+	} else {
+		glDisable(GL_CULL_FACE); 
+		Vector3r normal=(facet->vertices[1]-facet->vertices[0]).cross(facet->vertices[2]-facet->vertices[1]); normal.normalize();
+		glColor3v(cm->color);
+		glBegin(GL_TRIANGLES);
+			glNormal3v(normal); // this makes every triangle different WRT the light direction; important!
+			glVertex3v(facet->vertices[0]);
+			glVertex3v(facet->vertices[1]);
+			glVertex3v(facet->vertices[2]);
+		glEnd();
+	}
+}
+
+#endif /* YADE_OPENGL */
+

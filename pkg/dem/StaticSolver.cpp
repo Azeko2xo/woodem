@@ -10,7 +10,7 @@
 Vector2r _foobar; // clang+linker?!
 
 
-YADE_PLUGIN((StaticSolver));
+YADE_PLUGIN0((StaticSolver));
 CREATE_LOGGER(StaticSolver);
 
 /*
@@ -129,7 +129,7 @@ SparseXr StaticSolver::assembleK(){
 };
 
 SparseXr StaticSolver::condenseK(SparseXr& KK0){
-	assert(KK0.cols()==dofs.size()); 
+	assert(KK0.cols()==(int)dofs.size()); 
 	assert(KK0.cols()==KK0.rows());
 	// count how many used dofs we have
 	int used=0;

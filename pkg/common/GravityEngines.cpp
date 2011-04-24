@@ -12,7 +12,7 @@
 #include<yade/core/Scene.hpp>
 #include<boost/regex.hpp>
 
-YADE_PLUGIN((GravityEngine)(CentralGravityEngine)(AxialGravityEngine)(HdapsGravityEngine));
+YADE_PLUGIN0((GravityEngine)(CentralGravityEngine)(AxialGravityEngine)(HdapsGravityEngine));
 
 void GravityEngine::action(){
 	const bool trackEnergy(unlikely(scene->trackEnergy));

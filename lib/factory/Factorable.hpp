@@ -22,9 +22,6 @@ class Factorable{
 		virtual std::vector<std::string> getBaseClassNames() const { return std::vector<std::string>(); }
 		std::string getBaseClassName(unsigned int i=0) const { std::vector<std::string> bases(getBaseClassNames()); return (i>=bases.size()?std::string(""):bases[i]); } 
 		int getBaseClassNumber(){ return getBaseClassNames().size(); }
-
-		//virtual std::string getBaseClassName(unsigned int i=0) const { return "";}	// FIXME[1]
-		//virtual int getBaseClassNumber() { return 0;}				// FIXME[1]
 	REGISTER_CLASS_NAME(Factorable);
 };
 

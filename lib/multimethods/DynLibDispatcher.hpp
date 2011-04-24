@@ -173,12 +173,7 @@ class DynLibDispatcher
 	typedef typename Impl::Parm15 Parm15;
 	
  	public:
-		DynLibDispatcher()
-		  {
-			// FIXME - static_assert( typeid(BaseClass1) == typeid(Parm1) ); // 1D
-			// FIXME - static_assert( typeid(BaseClass2) == typeid(Parm2) ); // 2D
-			clearMatrix();
-		};
+		DynLibDispatcher(){ clearMatrix(); };
 		  
 		void clearMatrix(){ callBacks.clear(); callBacksInfo.clear(); }
 
@@ -232,14 +227,13 @@ class DynLibDispatcher
 		}
 
 
-
  	public:
-		void add1DEntry(string baseClassName, shared_ptr<Executor> executor){
+		void add1DEntry(/*string baseClassName,*/ shared_ptr<Executor> executor){
 			// create base class, to access its index. (we can't access static variable, because
 			// the class might not exist in memory at all, and we have to load dynamic library,
 			// so that a static variable is created and accessible)
-			shared_ptr<BaseClass1> baseClass = 
-				YADE_PTR_CAST<BaseClass1>(ClassFactory::instance().createShared(baseClassName));
+			shared_ptr<BaseClass1> baseClass=executor->get1DFunctorArg1();
+				// YADE_PTR_CAST<BaseClass1>(ClassFactory::instance().createShared(baseClassName));
 			// this is a strange tweak without which it won't work.
 			shared_ptr<Indexable> base = YADE_PTR_CAST<Indexable>(baseClass);
 		
@@ -261,9 +255,9 @@ class DynLibDispatcher
 
 		
 	public:
-		void add2DEntry(string baseClassName1, string baseClassName2, shared_ptr<Executor> executor){
-			shared_ptr<BaseClass1> baseClass1 = YADE_PTR_CAST<BaseClass1>(ClassFactory::instance().createShared(baseClassName1));
-			shared_ptr<BaseClass2> baseClass2 = YADE_PTR_CAST<BaseClass2>(ClassFactory::instance().createShared(baseClassName2));
+		void add2DEntry(shared_ptr<Executor> executor){
+			shared_ptr<BaseClass1> baseClass1=executor->get2DFunctorArg1();
+			shared_ptr<BaseClass2> baseClass2=executor->get2DFunctorArg2();
 			shared_ptr<Indexable> base1 = YADE_PTR_CAST<Indexable>(baseClass1);
 			shared_ptr<Indexable> base2 = YADE_PTR_CAST<Indexable>(baseClass2);
 			
@@ -271,13 +265,11 @@ class DynLibDispatcher
 			assert(base2);
 
  			int& index1 = base1->getClassIndex();
-			if(index1 == -1)
-				std::cerr << "--------> Did you forget to call createIndex(); in constructor?\n";
+			if(index1 == -1) std::cerr << "--------> Did you forget to call createIndex(); in constructor?\n";
 			assert (index1 != -1);
  			
 			int& index2 = base2->getClassIndex();
-			if(index2 == -1)
-				std::cerr << "--------> Did you forget to call createIndex(); in constructor?\n";
+			if(index2 == -1) std::cerr << "--------> Did you forget to call createIndex(); in constructor?\n";
  			assert(index2 != -1);
 	
 			if( typeid(BaseClass1) == typeid(BaseClass2) )
@@ -298,15 +290,15 @@ class DynLibDispatcher
 				callBacks	[index2][index1] = executor;
 				callBacks	[index1][index2] = executor;
 				
-				string order		= baseClassName1 + " " + baseClassName2;
-				string reverseOrder	= baseClassName2 + " " + baseClassName1;
+				string order		= baseClass1->getClassName() + " " + baseClass2->getClassName();
+				string reverseOrder	= baseClass2->getClassName() + " " + baseClass1->getClassName();
 				
 				if( autoSymmetry || executor->checkOrder() == order ) // if you want autoSymmetry, you don't have to DEFINE_FUNCTOR_ORDER_2D
 				{
 					callBacksInfo	[index2][index1] = 1; // this is reversed call
 					callBacksInfo	[index1][index2] = 0;
 				}
-				else if( executor->checkOrder() == reverseOrder )
+				else if(executor->checkOrder() == reverseOrder )
 				{
 					callBacksInfo	[index2][index1] = 0;
 					callBacksInfo	[index1][index2] = 1; // this is reversed call
@@ -325,7 +317,6 @@ class DynLibDispatcher
 				cerr <<"Added new 2d functor "<<executor->getClassName()<<", callBacks size is "<<callBacks.size()<<","<<(callBacks.size()>0?callBacks[0].size():0)<<endl;
 			#endif
 		  }
-		
 
 		bool locateMultivirtualFunctor1D(int& index, shared_ptr<BaseClass1>& base) {
 			if(callBacks.empty()) return false;

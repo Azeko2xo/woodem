@@ -1,7 +1,7 @@
 #include<yade/pkg/dem/DomainLimiter.hpp>
 #include<yade/pkg/dem/Shop.hpp>
 
-YADE_PLUGIN((DomainLimiter)(LawTester)
+YADE_PLUGIN0((DomainLimiter)(LawTester)
 	#ifdef YADE_OPENGL
 		(GlExtra_LawTester)(GlExtra_OctreeCubes)
 	#endif
@@ -21,7 +21,7 @@ void DomainLimiter::action(){
 }
 
 #include<yade/pkg/dem/GenericSpheresContact.hpp>
-#include<yade/pkg/dem/ScGeom.hpp>
+// #include<yade/pkg/dem/ScGeom.hpp>
 #include<yade/pkg/dem/L3Geom.hpp>
 #include<yade/pkg/common/NormShearPhys.hpp>
 #include<yade/lib/smoothing/LinearInterpolate.hpp>
@@ -73,11 +73,12 @@ void LawTester::action(){
 	id1=I->getId1(); id2=I->getId2();
 	// test object types
 	GenericSpheresContact* gsc=dynamic_cast<GenericSpheresContact*>(I->geom.get());
-	ScGeom* scGeom=dynamic_cast<ScGeom*>(I->geom.get());
+	//ScGeom* scGeom=dynamic_cast<ScGeom*>(I->geom.get());
+	int* scGeom=NULL;
 	L3Geom* l3Geom=dynamic_cast<L3Geom*>(I->geom.get());
 	L6Geom* l6Geom=dynamic_cast<L6Geom*>(I->geom.get());
-	ScGeom6D* scGeom6d=dynamic_cast<ScGeom6D*>(I->geom.get());
-	bool hasRot=(l6Geom || scGeom6d);
+	//ScGeom6D* scGeom6d=dynamic_cast<ScGeom6D*>(I->geom.get());
+	bool hasRot=(l6Geom); //|| scGeom6d);
 	//NormShearPhys* phys=dynamic_cast<NormShearPhys*>(I->phys.get());			//Disabled because of warning
 	if(!gsc) throw std::invalid_argument("LawTester: IGeom of "+strIds+" not a GenericSpheresContact.");
 	if(!scGeom && !l3Geom) throw std::invalid_argument("LawTester: IGeom of "+strIds+" is neither ScGeom, nor Dem3DofGeom, nor L3Geom (or L6Geom).");
@@ -107,7 +108,9 @@ void LawTester::action(){
 			axY.normalize();
 			axZ=axX.cross(axY);
 			LOG_DEBUG("Initial axes x="<<axX<<", y="<<axY<<", z="<<axZ);
-			if(scGeom6d) uGeom.end<3>()=Vector3r::Zero();
+		}
+			// if(scGeom6d) uGeom.end<3>()=Vector3r::Zero();
+		#if 0
 		} else { // udpate of an existing interaction
 			if(scGeom){
 				scGeom->rotate(axY); scGeom->rotate(axZ);
@@ -121,6 +124,7 @@ void LawTester::action(){
 				// essentially copies code from ScGeom, which is not very nice indeed; oh well…
 			}
 		}
+		#endif
 		// update the transformation
 		// the matrix is orthonormal, since axX, axY are normalized and and axZ is their cross-product
 		trsf.row(0)=axX; trsf.row(1)=axY; trsf.row(2)=axZ;

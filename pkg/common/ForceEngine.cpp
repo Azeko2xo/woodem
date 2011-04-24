@@ -10,7 +10,7 @@
 #include<yade/core/IGeom.hpp>
 #include<yade/core/IPhys.hpp>
 
-YADE_PLUGIN((ForceEngine)(InterpolatingDirectedForceEngine)(RadialForceEngine));
+YADE_PLUGIN0((ForceEngine)(InterpolatingDirectedForceEngine)(RadialForceEngine));
 
 void ForceEngine::action(){
 	FOREACH(Body::id_t id, ids){

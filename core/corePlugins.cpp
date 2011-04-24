@@ -29,7 +29,7 @@
 	BOOST_CLASS_EXPORT(InteractionContainer);
 #endif
 
-YADE_PLUGIN((Body)(Bound)(Cell)(Dispatcher)(EnergyTracker)(Engine)(FileGenerator)(Functor)(GlobalEngine)(Interaction)(IGeom)(IPhys)(Material)(PartialEngine)(Shape)(State));
+YADE_PLUGIN0((Body)(Bound)(Cell)(Dispatcher)(EnergyTracker)(Engine)(FileGenerator)(Functor)(GlobalEngine)(Interaction)(IGeom)(IPhys)(Material)(PartialEngine)(Shape)(State));
 
 EnergyTracker::~EnergyTracker(){} // vtable
 

@@ -8,7 +8,7 @@
 
 #include<yade/pkg/common/Collider.hpp>
 
-YADE_PLUGIN((Collider));
+YADE_PLUGIN0((Collider));
 
 bool Collider::mayCollide(const Body* b1, const Body* b2){
 	return 

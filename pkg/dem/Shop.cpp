@@ -18,9 +18,7 @@
 #include<yade/pkg/common/Sphere.hpp>
 #include<yade/pkg/common/ElastMat.hpp>
 
-#include<yade/pkg/common/Bo1_Sphere_Aabb.hpp>
 #include<yade/pkg/dem/NewtonIntegrator.hpp>
-#include<yade/pkg/dem/Ig2_Sphere_Sphere_ScGeom.hpp>
 #include<yade/pkg/dem/Ip2_FrictMat_FrictMat_FrictPhys.hpp>
 
 #include<yade/pkg/common/ForceResetter.hpp>
@@ -29,17 +27,8 @@
 #include<yade/pkg/common/InteractionLoop.hpp>
 #include<yade/pkg/common/GravityEngines.hpp>
 
-#include<yade/pkg/dem/ElasticContactLaw.hpp>
-
-#include<yade/pkg/dem/ScGeom.hpp>
 #include<yade/pkg/dem/FrictPhys.hpp>
 
-
-#include<yade/pkg/dem/Tetra.hpp>
-
-#ifdef YADE_OPENGL
-	#include<yade/pkg/common/Gl1_NormPhys.hpp>
-#endif
 
 #include<boost/foreach.hpp>
 #ifndef FOREACH
@@ -224,22 +213,6 @@ shared_ptr<Body> Shop::sphere(Vector3r center, Real radius, shared_ptr<Material>
 	body->state->inertia=Vector3r(2.0/5.0*body->state->mass*radius*radius,2.0/5.0*body->state->mass*radius*radius,2.0/5.0*body->state->mass*radius*radius);
 	body->bound=shared_ptr<Aabb>(new Aabb);
 	body->shape=shared_ptr<Sphere>(new Sphere(radius));
-	return body;
-}
-
-/*! Create body - tetrahedron. */
-shared_ptr<Body> Shop::tetra(Vector3r v_global[4], shared_ptr<Material> mat){
-	shared_ptr<Body> body(new Body);
-	body->material=mat ? mat : static_pointer_cast<Material>(defaultGranularMat());
-	Vector3r centroid=(v_global[0]+v_global[1]+v_global[2]+v_global[3])*.25;
-	Vector3r v[4]; for(int i=0; i<4; i++) v[i]=v_global[i]-centroid;
-	body->state->pos=centroid;
-	body->state->mass=body->material->density*TetrahedronVolume(v);
-	// inertia will be calculated below, by TetrahedronWithLocalAxesPrincipal
-	body->bound=shared_ptr<Aabb>(new Aabb);
-	body->shape=shared_ptr<Tetra>(new Tetra(v[0],v[1],v[2],v[3]));
-	// make local axes coincident with principal axes
-	TetrahedronWithLocalAxesPrincipal(body);
 	return body;
 }
 
@@ -512,7 +485,7 @@ Real Shop::periodicWrap(Real x, Real x0, Real x1, long* period){
 	if(period) *period=(long)floor(xNorm);
 	return x0+xxNorm*(x1-x0);
 }
-
+#if 0
 void Shop::getStressForEachBody(vector<Shop::bodyState>& bodyStates){
 	const shared_ptr<Scene>& scene=Omega::instance().getScene();
 	bodyStates.resize(scene->bodies->size());
@@ -547,7 +520,7 @@ void Shop::getStressForEachBody(vector<Shop::bodyState>& bodyStates){
 		}
 	}
 }
-
+#endif
 /* Return the stress tensor decomposed in 2 contributions, from normal and shear forces.
 The formulation follows the [Thornton2000]_ article
 "Numerical simulations of deviatoric shear deformation of granular media", eq (3) and (4)

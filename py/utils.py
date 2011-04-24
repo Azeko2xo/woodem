@@ -415,11 +415,6 @@ def plotDirections(aabb=(),mask=0,bins=20,numHist=True,noShow=False):
 	else: pylab.show()
 
 
-def encodeVideoFromFrames(*args,**kw):
-	"|ydeprecated|"
-	_deprecatedUtilsFunction('utils.encodeVideoFromFrames','utils.makeVideo')
-	return makeVideo(*args,**kw)
-
 def makeVideo(frameSpec,out,renameNotOverwrite=True,fps=24,kbps=6000,bps=None):
 	"""Create a video from external image files using `mencoder <http://www.mplayerhq.hu>`__. Two-pass encoding using the default mencoder codec (mpeg4) is performed, running multi-threaded with number of threads equal to number of OpenMP threads allocated for Yade.
 

@@ -12,7 +12,7 @@
 	#include<GL/glu.h>
 #endif
 
-YADE_PLUGIN((L3Geom)(L6Geom)(Ig2_Sphere_Sphere_L3Geom)(Ig2_Wall_Sphere_L3Geom)(Ig2_Facet_Sphere_L3Geom)(Ig2_Sphere_Sphere_L6Geom)(Law2_L3Geom_FrictPhys_ElPerfPl)(Law2_L6Geom_FrictPhys_Linear)
+YADE_PLUGIN0((L3Geom)(L6Geom)(Ig2_Sphere_Sphere_L3Geom)(Ig2_Wall_Sphere_L3Geom)(Ig2_Facet_Sphere_L3Geom)(Ig2_Sphere_Sphere_L6Geom)(Law2_L3Geom_FrictPhys_ElPerfPl)(Law2_L6Geom_FrictPhys_Linear)
 	#ifdef YADE_OPENGL
 		(Gl1_L3Geom)(Gl1_L6Geom)
 	#endif

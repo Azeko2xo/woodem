@@ -1,16 +1,6 @@
-/*************************************************************************
-*  Copyright (C) 2004 by Olivier Galizzi                                 *
-*  olivier.galizzi@imag.fr                                               *
-*  Copyright (C) 2004 by Janek Kozicki                                   *
-*  cosurgi@berlios.de                                                    *
-*                                                                        *
-*  This program is free software; it is licensed under the terms of the  *
-*  GNU General Public License v2 or later. See file LICENSE for details. *
-*************************************************************************/
-
 #include"Omega.hpp"
 #include"Scene.hpp"
-#include"ThreadRunner.hpp"
+#include<yade/core/BgThread.hpp>
 #include<yade/lib/base/Math.hpp>
 #include<yade/lib/multimethods/FunctorWrapper.hpp>
 #include<yade/lib/multimethods/Indexable.hpp>
@@ -143,16 +133,19 @@ void Omega::loadPlugins(vector<string> pluginFiles){
 			throw;
 		}
 	}
-	list<string>& plugins(ClassFactory::instance().pluginClasses);
+	list<std::pair<string,string> >& plugins(ClassFactory::instance().modulePluginClasses);
 	plugins.sort(); plugins.unique();
-	initializePlugins(vector<string>(plugins.begin(),plugins.end()));
+	initializePlugins(vector<std::pair<std::string,std::string> >(plugins.begin(),plugins.end()));
 }
 
-void Omega::initializePlugins(const vector<string>& pluginClasses){	
+void Omega::initializePlugins(const vector<std::pair<string,string> >& pluginClasses){	
 	LOG_DEBUG("called with "<<pluginClasses.size()<<" plugin classes.");
 	boost::python::object wrapperScope=boost::python::import("yade.wrapper");
 	std::list<string> pythonables;
-	FOREACH(string name, pluginClasses){
+	typedef std::pair<string,string> StringStringPair;
+	FOREACH(StringStringPair moduleName, pluginClasses){
+		string module(moduleName.first);
+		string name(moduleName.second);
 		shared_ptr<Factorable> f;
 		try {
 			LOG_DEBUG("Factoring class "<<name);
@@ -192,6 +185,7 @@ void Omega::initializePlugins(const vector<string>& pluginClasses){
 		}
 	}
 
+	#if 0
 	// fixes inheritance ??
 	map<string,DynlibDescriptor>::iterator dli    = dynlibs.begin();
 	map<string,DynlibDescriptor>::iterator dliEnd = dynlibs.end();
@@ -210,6 +204,7 @@ void Omega::initializePlugins(const vector<string>& pluginClasses){
 			}
 		}
 	}
+	#endif
 }
 
 

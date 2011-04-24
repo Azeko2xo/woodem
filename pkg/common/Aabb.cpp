@@ -9,5 +9,27 @@
 #include "Aabb.hpp"
 
 Aabb::~Aabb(){}
-YADE_PLUGIN((Aabb));
+YADE_PLUGIN0((Aabb));
+
+#ifdef YADE_OPENGL
+YADE_PLUGIN0((Gl1_Aabb));
+
+#include<yade/lib/opengl/OpenGLWrapper.hpp>
+
+void Gl1_Aabb::go(const shared_ptr<Bound>& bv, Scene* scene){
+	Aabb* aabb = static_cast<Aabb*>(bv.get());
+	glColor3v(bv->color);
+	// glDisable(GL_LIGHTING);
+	if(!scene->isPeriodic){
+		glTranslatev(Vector3r(.5*(aabb->min+aabb->max)));
+		glScalev(Vector3r(aabb->max-aabb->min));
+	} else {
+		glTranslatev(Vector3r(scene->cell->shearPt(scene->cell->wrapPt(.5*(aabb->min+aabb->max)))));
+		glMultMatrixd(scene->cell->getGlShearTrsfMatrix());
+		glScalev(Vector3r(aabb->max-aabb->min));
+	}
+	glutWireCube(1);
+}
+
+#endif
 

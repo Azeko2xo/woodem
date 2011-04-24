@@ -34,8 +34,8 @@ class TestObjectInstantiation(unittest.TestCase):
 		# dispatchers take list of their functors in the ctor
 		# same functors are collapsed in one
 		cld1=LawDispatcher([Law2_L3Geom_FrictPhys_ElPerfPl(),Law2_L3Geom_FrictPhys_ElPerfPl()]); self.assert_(len(cld1.functors)==1)
-		### two different make two different, right?
-		##cld2=LawDispatcher([Law2_L3Geom_FrictPhys_ElPerfPl(),Law2_Dem3DofGeom_CpmPhys_Cpm()]); self.assert_(len(cld2.functors)==2)
+		# two different make two different, right?
+		cld2=LawDispatcher([Law2_L3Geom_FrictPhys_ElPerfPl(),Law2_L6Geom_FrictPhys_Linear()]); self.assert_(len(cld2.functors)==2)
 	def testInteractionLoopCtor(self):
 		"Core: InteractionLoop special ctor"
 		# InteractionLoop takes 3 lists

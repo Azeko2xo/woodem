@@ -3,7 +3,7 @@
 #include<yade/pkg/common/Aabb.hpp>
 #include<limits>
 
-YADE_PLUGIN((Wall)(Bo1_Wall_Aabb)
+YADE_PLUGIN0((Wall)(Bo1_Wall_Aabb)
 	#ifdef YADE_OPENGL
 		(Gl1_Wall)
 	#endif

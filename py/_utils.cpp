@@ -3,7 +3,6 @@
 #include<yade/extra/boost_python_len.hpp>
 #include<yade/core/Scene.hpp>
 #include<yade/core/Omega.hpp>
-#include<yade/pkg/dem/ScGeom.hpp>
 #include<yade/pkg/dem/GenericSpheresContact.hpp>
 #include<yade/pkg/common/Facet.hpp>
 #include<yade/pkg/common/Sphere.hpp>
@@ -353,7 +352,7 @@ py::object Shop__kineticEnergy(bool findMaxId=false){
 	Real E=Shop::kineticEnergy(NULL,&maxId);
 	return py::make_tuple(E,maxId);
 }
-
+#if 0
 Real maxOverlapRatio(){
 	Scene* scene=Omega::instance().getScene().get();
 	Real ret=-1;
@@ -368,6 +367,7 @@ Real maxOverlapRatio(){
 	}
 	return ret;
 }
+#endif
 
 Real Shop__getPorosity(Real volume=-1){ return Shop::getPorosity(Omega::instance().getScene(),volume); }
 Real Shop__getVoxelPorosity(int resolution=200, Vector3r start=Vector3r(0,0,0),Vector3r end=Vector3r(0,0,0)){ return Shop::getVoxelPorosity(Omega::instance().getScene(),resolution,start,end); }
@@ -433,6 +433,6 @@ BOOST_PYTHON_MODULE(_utils){
 	py::def("normalShearStressTensors",Shop__normalShearStressTensors,(py::args("compressionPositive")=false,py::args("splitNormalTensor")=false,py::args("thresholdForce")=NaN),"Compute overall stress tensor of the periodic cell decomposed in 2 parts, one contributed by normal forces, the other by shear forces. The formulation can be found in [Thornton2000]_, eq. (3):\n\n.. math:: \\tens{\\sigma}_{ij}=\\frac{2}{V}\\sum R N \\vec{n}_i \\vec{n}_j+\\frac{2}{V}\\sum R T \\vec{n}_i\\vec{t}_j\n\nwhere $V$ is the cell volume, $R$ is \"contact radius\" (in our implementation, current distance between particle centroids), $\\vec{n}$ is the normal vector, $\\vec{t}$ is a vector perpendicular to $\\vec{n}$, $N$ and $T$ are norms of normal and shear forces.\n\n:param bool splitNormalTensor: if true the function returns normal stress tensor split into two parts according to the two subnetworks of strong an weak forces.\n\n:param Real thresholdForce: threshold value according to which the normal stress tensor can be split (e.g. a zero value would make distinction between tensile and compressive forces).");
 	py::def("fabricTensor",Shop__fabricTensor,(py::args("splitTensor")=false,py::args("revertSign")=false,py::args("thresholdForce")=NaN),"Compute the fabric tensor of the periodic cell. The original paper can be found in [Satake1982]_.\n\n:param bool splitTensor: split the fabric tensor into two parts related to the strong and weak contact forces respectively.\n\n:param bool revertSign: it must be set to true if the contact law's convention takes compressive forces as positive.\n\n:param Real thresholdForce: if the fabric tensor is split into two parts, a threshold value can be specified otherwise the mean contact force is considered by default. It is worth to note that this value has a sign and the user needs to set it according to the convention adopted for the contact law. To note that this value could be set to zero if one wanted to make distinction between compressive and tensile forces.");
 	py::def("bodyStressTensors",Shop__getStressLWForEachBody,(py::args("revertSign")=false),"Compute and return a table with per-particle stress tensors. Each tensor represents the average stress in one particle, obtained from the contour integral of applied load as detailed below. This definition is considering each sphere as a continuum. It can be considered exact in the context of spheres at static equilibrium, interacting at contact points with negligible volume changes of the solid phase (this last assumption is not restricting possible deformations and volume changes at the packing scale).\n\nProof:\n\nFirst, we remark the identity:  $\\sigma_{ij}=\\delta_{ij}\\sigma_{ij}=x_{i,j}\\sigma_{ij}=(x_{i}\\sigma_{ij})_{,j}-x_{i}\\sigma_{ij,j}$.\n\nAt equilibrium, the divergence of stress is null: $\\sigma_{ij,j}=\\vec{0}$. Consequently, after divergence theorem: $\\frac{1}{V}\\int_V \\sigma_{ij}dV = \\frac{1}{V}\\int_V (x_{i}\\sigma_{ij})_{,j}dV = \\frac{1}{V}\\int_{\\partial V}x_i.\\sigma_{ij}.\\vec{n_j}.dS = \\frac{1}{V}\\sum_kx_i^k.f_j^k$.\n\nThe last equality is implicitely based on the representation of external loads as Dirac distributions whose zeros are the so-called *contact points*: 0-sized surfaces on which the *contact forces* are applied, located at $x_i$ in the deformed configuration.\n\nA weighted average of per-body stresses will give the average stress inside the solid phase. There is a simple relation between the stress inside the solid phase and the stress in an equivalent continuum in the absence of fluid pressure. For porosity $n$, the relation reads: $\\sigma_{ij}^{equ.}=(1-n)\\sigma_{ij}^{solid}$.\n\n:param bool revertSign: invert the sign of returned tensors components.");
-	py::def("maxOverlapRatio",maxOverlapRatio,"Return maximum overlap ration in interactions (with :yref:`ScGeom`) of two :yref:`spheres<Sphere>`. The ratio is computed as $\\frac{u_N}{2(r_1 r_2)/r_1+r_2}$, where $u_N$ is the current overlap distance and $r_1$, $r_2$ are radii of the two spheres in contact.");
+	// py::def("maxOverlapRatio",maxOverlapRatio,"Return maximum overlap ration in interactions (with :yref:`ScGeom`) of two :yref:`spheres<Sphere>`. The ratio is computed as $\\frac{u_N}{2(r_1 r_2)/r_1+r_2}$, where $u_N$ is the current overlap distance and $r_1$, $r_2$ are radii of the two spheres in contact.");
 	py::def("shiftBodies",shiftBodies,(py::arg("ids"),py::arg("shift")),"Shifts bodies listed in ids without updating their velocities.");
 }

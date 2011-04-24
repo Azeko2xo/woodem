@@ -34,8 +34,8 @@ REGISTER_SERIALIZABLE(Dispatcher);
 Because we need literal functor and class names for registration in python, we provide macro that creates the real dispatcher class with everything needed.
 */
 
-#define _YADE_DISPATCHER1D_FUNCTOR_ADD(FunctorT,f) virtual void addFunctor(shared_ptr<FunctorT> f){ add1DEntry(f->get1DFunctorType1(),f); }
-#define _YADE_DISPATCHER2D_FUNCTOR_ADD(FunctorT,f) virtual void addFunctor(shared_ptr<FunctorT> f){ add2DEntry(f->get2DFunctorType1(),f->get2DFunctorType2(),f); }
+#define _YADE_DISPATCHER1D_FUNCTOR_ADD(FunctorT,f) virtual void addFunctor(shared_ptr<FunctorT> f){ add1DEntry(f); }
+#define _YADE_DISPATCHER2D_FUNCTOR_ADD(FunctorT,f) virtual void addFunctor(shared_ptr<FunctorT> f){ add2DEntry(f); }
 
 #define _YADE_DIM_DISPATCHER_FUNCTOR_DOC_ATTRS_CTOR_PY(Dim,DispatcherT,FunctorT,doc,attrs,ctor,py) \
 	typedef FunctorT FunctorType; \

@@ -12,7 +12,7 @@
 #include<yade/lib/base/Logging.hpp>
 
 #include "Scene.hpp"
-#include "ThreadWorker.hpp"
+#include<yade/core/BgThread.hpp>
 
 class FileGenerator: public Serializable
 {

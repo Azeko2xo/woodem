@@ -1,4 +1,3 @@
-// 2007 © Václav Šmilauer <eudoxos@arcig.cz>
 
 #pragma once
 
@@ -35,8 +34,6 @@ class Shop{
 
 		//! create default sphere, along with its bound etc. 
 		static shared_ptr<Body> sphere(Vector3r center, Real radius, shared_ptr<Material> mat);
-		//! create default tetrahedron
-		static shared_ptr<Body> tetra(Vector3r v[4], shared_ptr<Material> mat);
 
 		//! return instance of default FrictMat
 		static shared_ptr<FrictMat> defaultGranularMat();
@@ -101,8 +98,6 @@ class Shop{
 					shearStress = Vector3r(0.0,0.0,0.0);
 				}
 		};
-		//! Function of getting stresses for each body
-		static void getStressForEachBody(vector<Shop::bodyState>&);
 		
 		//! Define the exact average stress in each particle from contour integral ("LW" stands for Love-Weber, since this is what the contour integral gives).
 		static void getStressLWForEachBody(vector<Matrix3r>& bStresses, bool revertSign=false);

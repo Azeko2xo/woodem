@@ -2,7 +2,7 @@
 #include<boost/python.hpp>
 using namespace boost;
 //#include<omp.h> // needed for omp_get_thread_num() (debugging)
-YADE_PLUGIN((ParallelEngine));
+YADE_PLUGIN0((ParallelEngine));
 
 //! ParallelEngine's pseudo-ctor (factory), taking nested lists of slave engines (might be moved to real ctor perhaps)
 shared_ptr<ParallelEngine> ParallelEngine_ctor_list(const python::list& slaves){ shared_ptr<ParallelEngine> instance(new ParallelEngine); instance->slaves_set(slaves); return instance; }
@@ -18,7 +18,7 @@ void ParallelEngine::action(){
 		FOREACH(const shared_ptr<Engine>& e, slaves[i]) {
 			//cerr<<"["<<omp_get_thread_num()<<":"<<e->getClassName()<<"]";
 			e->scene=scene;
-			if(e->dead || !e->isActivated()) e->action();
+			if(e->dead || e->isActivated()) e->action();
 		}
 	}
 }

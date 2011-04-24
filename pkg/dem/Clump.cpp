@@ -7,7 +7,7 @@
 #include<yade/core/State.hpp>
 
 
-YADE_PLUGIN((Clump));
+YADE_PLUGIN0((Clump));
 CREATE_LOGGER(Clump);
 
 python::dict Clump::members_get(){

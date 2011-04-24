@@ -28,7 +28,7 @@
 
 namespace py=boost::python;
 
-YADE_PLUGIN((Scene));
+YADE_PLUGIN0((Scene));
 CREATE_LOGGER(Scene);
 // should be elsewhere, probably
 bool TimingInfo::enabled=false;

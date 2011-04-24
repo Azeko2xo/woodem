@@ -8,5 +8,5 @@ void TorqueEngine::action(){
 	}
 }
 
-YADE_PLUGIN((TorqueEngine));
+YADE_PLUGIN0((TorqueEngine));
 

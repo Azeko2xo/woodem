@@ -29,11 +29,11 @@
 #include<yade/lib/pyutil/raw_constructor.hpp>
 #include<yade/lib/pyutil/doc_opts.hpp>
 #include<yade/core/Omega.hpp>
-#include<yade/core/ThreadRunner.hpp>
+#include<yade/core/BgThread.hpp>
 #include<yade/core/FileGenerator.hpp>
 #include<yade/core/EnergyTracker.hpp>
 
-#include<yade/pkg/dem/STLImporter.hpp>
+// #include<yade/pkg/dem/STLImporter.hpp>
 
 #include<yade/pkg/common/Dispatching.hpp>
 #include<yade/core/Engine.hpp>
@@ -461,21 +461,6 @@ class pyOmega{
 
 	pyTags tags_get(void){assertScene(); return pyTags(OMEGA.getScene());}
 
-	void interactionContainer_set(string clss){
-		Scene* rb=OMEGA.getScene().get();
-		if(rb->interactions->size()>0) throw std::runtime_error("Interaction container not empty, will not change its class.");
-		shared_ptr<InteractionContainer> ic=dynamic_pointer_cast<InteractionContainer>(ClassFactory::instance().createShared(clss));
-		rb->interactions=ic;
-	}
-	string interactionContainer_get(string clss){ return OMEGA.getScene()->interactions->getClassName(); }
-
-	void bodyContainer_set(string clss){
-		Scene* rb=OMEGA.getScene().get();
-		if(rb->bodies->size()>0) throw std::runtime_error("Body container not empty, will not change its class.");
-		shared_ptr<BodyContainer> bc=dynamic_pointer_cast<BodyContainer>(ClassFactory::instance().createShared(clss));
-		rb->bodies=bc;
-	}
-	string bodyContainer_get(string clss){ return OMEGA.getScene()->bodies->getClassName(); }
 	#ifdef YADE_OPENMP
 		int numThreads_get(){ return omp_get_max_threads();}
 		void numThreads_set(int n){ int bcn=OMEGA.getScene()->forces.getNumAllocatedThreads(); if(bcn<n) LOG_WARN("ForceContainer has only "<<bcn<<" threads allocated. Changing thread number to on "<<bcn<<" instead of "<<n<<" requested."); omp_set_num_threads(min(n,bcn)); LOG_WARN("BUG: Omega().numThreads=n doesn't work as expected (number of threads is not changed globally). Set env var OMP_NUM_THREADS instead."); }
@@ -635,7 +620,7 @@ BOOST_PYTHON_MODULE(wrapper)
 		.def("__getitem__",&pyMaterialContainer::getitem_label)
 		.def("__len__",&pyMaterialContainer::len);
 
-	python::class_<STLImporter>("STLImporter").def("ymport",&STLImporter::import);
+	// python::class_<STLImporter>("STLImporter").def("ymport",&STLImporter::import);
 
 //////////////////////////////////////////////////////////////
 ///////////// proxyless wrappers 

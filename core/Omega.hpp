@@ -28,7 +28,7 @@
 
 #include<yade/lib/base/Singleton.hpp>
 
-#include "SimulationFlow.hpp"
+#include<yade/core/BgThread.hpp>
 
 
 #ifndef FOREACH
@@ -51,7 +51,7 @@ class Omega: public Singleton<Omega>{
 	shared_ptr<ThreadRunner> simulationLoop;
 	SimulationFlow simulationFlow_;
 	map<string,DynlibDescriptor> dynlibs; // FIXME : should store that in ClassFactory ?
-	void initializePlugins(const vector<string>& dynlibsList); 
+	void initializePlugins(const vector<std::pair<std::string, std::string> >& dynlibsList); 
 	
 	shared_ptr<Scene> scene;
 	shared_ptr<Scene> sceneAnother; // used for temporarily running different simulation, in Omega().switchscene()

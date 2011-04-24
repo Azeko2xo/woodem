@@ -1,6 +1,6 @@
 #include<yade/pkg/common/InteractionLoop.hpp>
 
-YADE_PLUGIN((InteractionLoop));
+YADE_PLUGIN0((InteractionLoop));
 CREATE_LOGGER(InteractionLoop);
 
 void InteractionLoop::pyHandleCustomCtorArgs(python::tuple& t, python::dict& d){

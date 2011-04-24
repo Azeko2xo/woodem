@@ -7,7 +7,6 @@
 *************************************************************************/
 
 #include"Ip2_FrictMat_FrictMat_FrictPhys.hpp"
-#include<yade/pkg/dem/ScGeom.hpp>
 #include<yade/pkg/dem/GenericSpheresContact.hpp>
 #include<yade/pkg/dem/FrictPhys.hpp>
 #include<yade/core/Omega.hpp>
@@ -47,5 +46,5 @@ void Ip2_FrictMat_FrictMat_FrictPhys::go( const shared_ptr<Material>& b1
 	contactPhysics->kn = Kn;
 	contactPhysics->ks = Ks;
 };
-YADE_PLUGIN((Ip2_FrictMat_FrictMat_FrictPhys));
+YADE_PLUGIN0((Ip2_FrictMat_FrictMat_FrictPhys));
 

@@ -51,27 +51,21 @@ class Factorable;
 
 class ClassFactory: public Singleton<ClassFactory>{
 	private:
-		/// pointer to factory func
-		typedef shared_ptr<Factorable> (*CreateSharedFactorableFnPtr)();
+		typedef shared_ptr<Factorable> (*CreateSharedFnPtr)();
+		// pointer to factory func
 	 	/// map class name to the pointer of argumentless function returning shared_ptr<Factorable> to that class
-		typedef std::map<std::string, CreateSharedFactorableFnPtr> FactorableCreatorsMap;
-		FactorableCreatorsMap map;
+		typedef std::map<std::string, CreateSharedFnPtr> factorableCreatorsMap;
+		factorableCreatorsMap map;
 		ClassFactory() { if(getenv("YADE_DEBUG")) fprintf(stderr,"Constructing ClassFactory.\n"); }
 		DECLARE_LOGGER;
 	public:
 		// register class in the class factory
-		bool registerFactorable(const std::string& name, CreateSharedFactorableFnPtr createShared);
+		bool registerFactorable(const std::string& name, CreateSharedFnPtr createShared);
 		/// Create a shared pointer on a serializable class of the given name
 		shared_ptr<Factorable> createShared(const std::string& name);
-
 		void load(const std::string& fullFileName);
-
-		void registerPluginClasses(const char* fileAndClasses[]);
-		std::list<std::string> pluginClasses;
-
-		virtual std::string getClassName() const { return "Factorable"; };
-		virtual std::string getBaseClassName(int ) const { return "";};
-
+		void registerPluginClasses(const char* module, const char* fileAndClasses[]);
+		std::list<std::pair<std::string,std::string> > modulePluginClasses;
 	FRIEND_SINGLETON(ClassFactory);
 };
 
@@ -101,5 +95,7 @@ class ClassFactory: public Singleton<ClassFactory>{
 #define _YADE_FACTORY_REPEAT(x,y,z) shared_ptr<Factorable> BOOST_PP_CAT(createShared,z)(){ return shared_ptr<z>(new z); } const bool BOOST_PP_CAT(registered,z) __attribute__ ((unused))=ClassFactory::instance().registerFactorable(BOOST_PP_STRINGIZE(z),BOOST_PP_CAT(createShared,z));
 
 // priority 500 is greater than priority for log4cxx initialization (in core/main/pyboot.cpp); therefore lo5cxx will be initialized before plugins are registered
-#define YADE_PLUGIN(plugins) BOOST_PP_SEQ_FOR_EACH(_YADE_FACTORY_REPEAT,~,plugins); namespace{ __attribute__((constructor)) void BOOST_PP_CAT(registerThisPluginClasses_,BOOST_PP_SEQ_HEAD(plugins)) (void){ const char* info[]={__FILE__ , BOOST_PP_SEQ_FOR_EACH(_YADE_PLUGIN_REPEAT,~,plugins) NULL}; ClassFactory::instance().registerPluginClasses(info);} } BOOST_PP_SEQ_FOR_EACH(_YADE_PLUGIN_BOOST_REGISTER,~,plugins) BOOST_PP_SEQ_FOR_EACH(_PLUGIN_CHECK_REPEAT,~,plugins)
+#define YADE_PLUGIN0(plugins) YADE_PLUGIN(dummy,plugins)
+
+#define YADE_PLUGIN(module,plugins) BOOST_PP_SEQ_FOR_EACH(_YADE_FACTORY_REPEAT,~,plugins); namespace{ __attribute__((constructor)) void BOOST_PP_CAT(registerThisPluginClasses_,BOOST_PP_SEQ_HEAD(plugins)) (void){ const char* info[]={__FILE__ , BOOST_PP_SEQ_FOR_EACH(_YADE_PLUGIN_REPEAT,~,plugins) NULL}; ClassFactory::instance().registerPluginClasses(BOOST_PP_STRINGIZE(module),info);} } BOOST_PP_SEQ_FOR_EACH(_YADE_PLUGIN_BOOST_REGISTER,~,plugins) BOOST_PP_SEQ_FOR_EACH(_PLUGIN_CHECK_REPEAT,~,plugins)
 

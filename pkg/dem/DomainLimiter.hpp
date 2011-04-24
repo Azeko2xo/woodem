@@ -23,7 +23,7 @@ class LawTester: public PartialEngine{
 		Vector3r get_ptOurs(){ warnDeprec("ptOurs","uTest.head()"); return uTest.start<3>(); } Vector3r get_ptGeom(){ warnDeprec("ptGeom","uGeom.head()"); return uGeom.start<3>(); }
 		Vector3r get_rotOurs(){ warnDeprec("rotOurs","uTest.tail()"); return uTest.end<3>(); }  Vector3r get_rotGeom(){ warnDeprec("rotGeom","uGeom.tail()"); return uGeom.end<3>(); }
 	DECLARE_LOGGER;
-	YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(LawTester,PartialEngine,"Prescribe and apply deformations of an interaction in terms of local normal and shear displacements and rotations (using either :yref:`disPpath<LawTester.disPath>` and :yref:`rotPath<LawTester.rotPath>` [or :yref:`path<LawTester.path>` in the future]). Supported :yref:`IGeom` types are :yref:`ScGeom`, :yref:`L3Geom` and :yref:`L6Geom`. \n\nSee :ysrc:`scripts/test/law-test.py` for an example.",
+	YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(LawTester,PartialEngine,"Prescribe and apply deformations of an interaction in terms of local normal and shear displacements and rotations (using either :yref:`disPpath<LawTester.disPath>` and :yref:`rotPath<LawTester.rotPath>` [or :yref:`path<LawTester.path>` in the future]). Supported :yref:`IGeom` types are :yref:`L3Geom` and :yref:`L6Geom`. \n\nSee :ysrc:`scripts/test/law-test.py` for an example.",
 		((vector<Vector3r>,disPath,,Attr::triggerPostLoad,"Loading path, where each Vector3 contains desired normal displacement and two components of the shear displacement (in local coordinate system, which is being tracked automatically. If shorter than :yref:`rotPath<LawTester.rotPath>`, the last value is repeated."))
 		((vector<Vector3r>,rotPath,,Attr::triggerPostLoad,"Rotational components of the loading path, where each item contains torsion and two bending rotations in local coordinates. If shorter than :yref:`path<LawTester.path>`, the last value is repeated."))
 		((vector<string>,hooks,,,"Python commands to be run when the corresponding point in path is reached, before doing other things in that particular step. See also :yref:`doneHook<LawTester.doneHook>`. "))
@@ -31,7 +31,7 @@ class LawTester: public PartialEngine{
 		((Vector6r,uTest,Vector6r::Zero(),,"Current generalized displacements (3 displacements, 3 rotations), as they should be according to this :yref:`LawTester`. Should correspond to :yref:`uGeom<LawTester.uGeom>`."))
 		((Vector6r,uTestNext,Vector6r::Zero(),Attr::hidden,"The value of uTest in the next step; since uTest is computed before uGeom is updated (in the next time step), uTest and uGeom would be always shifted by one timestep."))
 		((bool,warnedDeprecPtRot,false,Attr::hidden,"Flag to say that the user was already warned about using deprecated ptOurg/ptGeom/rotOurs/rotGeom."))
-		((Vector3r,shearTot,Vector3r::Zero(),Attr::hidden,"Current displacement in global coordinates; only used internally with ScGeom."))
+		// ((Vector3r,shearTot,Vector3r::Zero(),Attr::hidden,"Current displacement in global coordinates; only used internally with ScGeom."))
 		((bool,displIsRel,true,,"Whether displacement values in *disPath* are normalized by reference contact length (r1+r2 for 2 spheres)."))
 		//((Vector3i,forceControl,Vector3i::Zero(),,"Select which components of path (non-zero value) have force (stress) rather than displacement (strain) meaning."))
 		((vector<int>,pathSteps,((void)"(constant step)",vector<int>(1,1)),Attr::triggerPostLoad,"Step number for corresponding values in :yref:`path<LawTester.path>`; if shorter than path, distance between last 2 values is used for the rest."))
