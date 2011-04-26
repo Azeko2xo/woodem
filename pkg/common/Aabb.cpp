@@ -9,14 +9,14 @@
 #include "Aabb.hpp"
 
 Aabb::~Aabb(){}
-YADE_PLUGIN0((Aabb));
+YADE_PLUGIN(dem,(Aabb));
 
 #ifdef YADE_OPENGL
-YADE_PLUGIN0((Gl1_Aabb));
+YADE_PLUGIN(gl,(Gl1_Aabb));
 
 #include<yade/lib/opengl/OpenGLWrapper.hpp>
 
-void Gl1_Aabb::go(const shared_ptr<Bound>& bv, Scene* scene){
+void Gl1_Aabb::go(const shared_ptr<Bound>& bv){
 	Aabb* aabb = static_cast<Aabb*>(bv.get());
 	glColor3v(bv->color);
 	// glDisable(GL_LIGHTING);

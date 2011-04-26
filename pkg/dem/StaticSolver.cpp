@@ -10,7 +10,7 @@
 Vector2r _foobar; // clang+linker?!
 
 
-YADE_PLUGIN0((StaticSolver));
+YADE_PLUGIN(dem,(StaticSolver));
 CREATE_LOGGER(StaticSolver);
 
 /*

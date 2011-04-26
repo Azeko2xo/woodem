@@ -4,7 +4,7 @@
 #include<yade/pkg/dem/Shop.hpp>
 #include<yade/lib/smoothing/LinearInterpolate.hpp>
 
-YADE_PLUGIN0((KinematicEngine)(CombinedKinematicEngine)(TranslationEngine)(HarmonicMotionEngine)(RotationEngine)(HelixEngine)(InterpolatingHelixEngine)(HarmonicRotationEngine));
+YADE_PLUGIN(dem,(KinematicEngine)(CombinedKinematicEngine)(TranslationEngine)(HarmonicMotionEngine)(RotationEngine)(HelixEngine)(InterpolatingHelixEngine)(HarmonicRotationEngine));
 
 CREATE_LOGGER(KinematicEngine);
 

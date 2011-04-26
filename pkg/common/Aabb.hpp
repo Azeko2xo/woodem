@@ -19,7 +19,7 @@ REGISTER_SERIALIZABLE(Aabb);
 #include<yade/pkg/common/GLDrawFunctors.hpp>
 class Gl1_Aabb: public GlBoundFunctor{
 	public:
-		virtual void go(const shared_ptr<Bound>&, Scene*);
+		virtual void go(const shared_ptr<Bound>&);
 	RENDERS(Aabb);
 	YADE_CLASS_BASE_DOC(Gl1_Aabb,GlBoundFunctor,"Render Axis-aligned bounding box (:yref:`Aabb`).");
 };

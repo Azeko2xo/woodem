@@ -264,28 +264,25 @@ class DynLibDispatcher
 			assert(base1);
 			assert(base2);
 
- 			int& index1 = base1->getClassIndex();
-			if(index1 == -1) std::cerr << "--------> Did you forget to call createIndex(); in constructor?\n";
-			assert (index1 != -1);
+ 			int& index1=base1->getClassIndex();
+			if(index1==-1) std::cerr<<"--------> Did you forget to call createIndex(); in constructor?\n";
+			assert(index1!=-1);
  			
 			int& index2 = base2->getClassIndex();
-			if(index2 == -1) std::cerr << "--------> Did you forget to call createIndex(); in constructor?\n";
- 			assert(index2 != -1);
+			if(index2==-1) std::cerr << "--------> Did you forget to call createIndex(); in constructor?\n";
+ 			assert(index2!=-1);
 	
-			if( typeid(BaseClass1) == typeid(BaseClass2) )
+			if(typeid(BaseClass1)==typeid(BaseClass2))
 				assert(base1->getMaxCurrentlyUsedClassIndex() == base2->getMaxCurrentlyUsedClassIndex());
 	
-			int maxCurrentIndex1 = base1->getMaxCurrentlyUsedClassIndex();
-			int maxCurrentIndex2 = base2->getMaxCurrentlyUsedClassIndex();
+			int maxCurrentIndex1=base1->getMaxCurrentlyUsedClassIndex(), maxCurrentIndex2=base2->getMaxCurrentlyUsedClassIndex();
 
-			callBacks.resize( maxCurrentIndex1+1 );		// resizing callBacks table
-			callBacksInfo.resize( maxCurrentIndex1+1 );
-			for( Iterator2 ci = callBacks.begin() ; ci != callBacks.end() ; ++ci )
-				ci->resize(maxCurrentIndex2+1);
-			for( IteratorInfo2 cii = callBacksInfo.begin() ; cii != callBacksInfo.end() ; ++cii )
-				cii->resize(maxCurrentIndex2+1);
+			// resizing callBacks table
+			callBacks.resize(maxCurrentIndex1+1); callBacksInfo.resize(maxCurrentIndex1+1);
+			for(Iterator2 ci=callBacks.begin();ci!=callBacks.end();++ci) ci->resize(maxCurrentIndex2+1);
+			for(IteratorInfo2 cii=callBacksInfo.begin();cii!=callBacksInfo.end();++cii) cii->resize(maxCurrentIndex2+1);
 	
-			if( typeid(BaseClass1) == typeid(BaseClass2) ) // both base classes are the same
+			if(typeid(BaseClass1)==typeid(BaseClass2)) // both base classes are the same
 			{
 				callBacks	[index2][index1] = executor;
 				callBacks	[index1][index2] = executor;

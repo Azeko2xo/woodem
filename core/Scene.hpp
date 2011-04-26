@@ -9,6 +9,7 @@
 #include<yade/core/ForceContainer.hpp>
 #include<yade/core/InteractionContainer.hpp>
 #include<yade/core/EnergyTracker.hpp>
+#include<yade/core/Field.hpp>
 
 #ifndef HOST_NAME_MAX
 #define HOST_NAME_MAX 255 
@@ -81,6 +82,8 @@ class Scene: public Serializable{
 		((shared_ptr<EnergyTracker>,energy,new EnergyTracker,Attr::hidden,"Energy values, if energy tracking is enabled."))
 		((vector<shared_ptr<Material> >,materials,,Attr::hidden,"Container of shared materials. Add elements using Scene::addMaterial, not directly. Do NOT remove elements from here unless you know what you are doing!"))
 		((shared_ptr<Bound>,bound,,Attr::hidden,"Bounding box of the scene (only used for rendering and initialized if needed)."))
+
+		((shared_ptr<Field>,field,,,"Some field (experimentally only one, later there will be multiple fields available)"))
 
 		((shared_ptr<Cell>,cell,new Cell,Attr::hidden,"Information on periodicity; only should be used if Scene::isPeriodic."))
 		((vector<shared_ptr<Serializable> >,miscParams,,Attr::hidden,"Store for arbitrary Serializable objects; will set static parameters during deserialization (primarily for GLDraw functors which otherwise have no attribute access)"))

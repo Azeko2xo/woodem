@@ -57,6 +57,10 @@ class OpenGLRenderer : public Serializable
 		GlIGeomDispatcher geomDispatcher;
 		GlIPhysDispatcher physDispatcher;
 		GlShapeDispatcher shapeDispatcher;
+
+		GlFieldDispatcher fieldDispatcher;
+		GlNodeDispatcher nodeDispatcher;
+
 		// GlStateDispatcher stateDispatcher;
 
 
@@ -65,7 +69,10 @@ class OpenGLRenderer : public Serializable
 			boundFunctorNames,
 			shapeFunctorNames,
 			geomFunctorNames,
-			physFunctorNames;
+			physFunctorNames,
+			fieldFunctorNames,
+			nodeFunctorNames;
+
 
 		DECLARE_LOGGER;
 
@@ -86,6 +93,9 @@ class OpenGLRenderer : public Serializable
 		void renderShape();
 		void renderAllInteractionsWire();
 
+		void renderField();
+		void renderNodes();
+
 	YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(OpenGLRenderer,Serializable,"Class responsible for rendering scene on OpenGL devices.",
 		((Vector3r,dispScale,((void)"disable scaling",Vector3r::Ones()),,"Artificially enlarge (scale) dispalcements from bodies' :yref:`reference positions<State.refPos>` by this relative amount, so that they become better visible (independently in 3 dimensions). Disbled if (1,1,1)."))
 		((Real,rotScale,((void)"disable scaling",1.),,"Artificially enlarge (scale) rotations of bodies relative to their :yref:`reference orientation<State.refOri>`, so the they are better visible."))
@@ -101,6 +111,10 @@ class OpenGLRenderer : public Serializable
 		((bool,id,false,,"Show body id's"))
 		((bool,bound,false,,"Render body :yref:`Bound`"))
 		((bool,shape,true,,"Render body :yref:`Shape`"))
+
+		((bool,field,true,,"Render fields"))
+		((bool,nodes,true,,"Render nodes belonging to fields"))
+
 		((bool,intrWire,false,,"If rendering interactions, use only wires to represent them."))
 		((bool,intrGeom,false,,"Render :yref:`Interaction::geom` objects."))
 		((bool,intrPhys,false,,"Render :yref:`Interaction::phys` objects"))

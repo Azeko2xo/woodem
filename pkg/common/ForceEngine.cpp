@@ -1,16 +1,11 @@
-// 2004 © Janek Kozicki <cosurgi@berlios.de> 
-// 2009 © Václav Šmilauer <eudoxos@arcig.cz> 
-
-
 #include"ForceEngine.hpp"
 #include<yade/core/Scene.hpp>
 #include<yade/lib/smoothing/LinearInterpolate.hpp>
 #include<yade/pkg/dem/Shop.hpp>
 
-#include<yade/core/IGeom.hpp>
-#include<yade/core/IPhys.hpp>
+#include<yade/core/Interaction.hpp>
 
-YADE_PLUGIN0((ForceEngine)(InterpolatingDirectedForceEngine)(RadialForceEngine));
+YADE_PLUGIN(dem,(ForceEngine)(InterpolatingDirectedForceEngine)(RadialForceEngine));
 
 void ForceEngine::action(){
 	FOREACH(Body::id_t id, ids){

@@ -18,6 +18,7 @@
 #    to the c++ documentation.
 
 import wrapper
+from yade import core, dem, gl
 
 # Update docstring of your class/function like this:
 #
@@ -58,7 +59,7 @@ import wrapper
 #'''
 
 
-wrapper.Ig2_Sphere_Sphere_L3Geom.__doc__=r'''Functor for computing incrementally configuration of 2 :yref:`Spheres<Sphere>` stored in :yref:`L3Geom`; the configuration is positioned in global space by local origin $\vec{c}$ (contact point) and rotation matrix $\mat{T}$ (orthonormal transformation matrix), and its degrees of freedom are local displacement $\vec{u}$ (in one normal and two shear directions); with :yref:`Ig2_Sphere_Sphere_L6Geom` and :yref:`L6Geom`, there is additionally $\vec{\phi}$. The first row of $\mat{T}$, i.e. local $x$-axis, is the contact normal noted $\vec{n}$ for brevity. Additionally, quasi-constant values of $\vec{u}_0$ (and $\vec{\phi}_0$) are stored as shifted origins of $\vec{u}$ (and $\vec{\phi}$); therefore, current value of displacement is always $\curr{\vec{u}}-\vec{u}_0$.
+dem.Ig2_Sphere_Sphere_L3Geom.__doc__=r'''Functor for computing incrementally configuration of 2 :yref:`Spheres<Sphere>` stored in :yref:`L3Geom`; the configuration is positioned in global space by local origin $\vec{c}$ (contact point) and rotation matrix $\mat{T}$ (orthonormal transformation matrix), and its degrees of freedom are local displacement $\vec{u}$ (in one normal and two shear directions); with :yref:`Ig2_Sphere_Sphere_L6Geom` and :yref:`L6Geom`, there is additionally $\vec{\phi}$. The first row of $\mat{T}$, i.e. local $x$-axis, is the contact normal noted $\vec{n}$ for brevity. Additionally, quasi-constant values of $\vec{u}_0$ (and $\vec{\phi}_0$) are stored as shifted origins of $\vec{u}$ (and $\vec{\phi}$); therefore, current value of displacement is always $\curr{\vec{u}}-\vec{u}_0$.
 
 Suppose two spheres with radii $r_i$, positions $\vec{x}_i$, velocities $\vec{v}_i$, angular velocities $\vec{\omega}_i$.
 
@@ -130,7 +131,7 @@ If this functor is called for :yref:`L6Geom`, local rotation is updated as
 
 '''
 
-wrapper.LawTester.__doc__='''Prescribe and apply deformations of an interaction in terms of local mutual displacements and rotations. The loading path is specified either using :yref:`path<LawTester.path>` (as sequence of 6-vectors containing generalized displacements $u_x$, $u_y$, $u_z$, $\phi_x$, $\phi_y$, $\phi_z$) or :yref:`disPath<LawTester.disPath>` ($u_x$, $u_y$, $u_z$) and :yref:`rotPath<LawTester.rotPath>` ($\phi_x$, $\phi_y$, $\phi_z$). Time function with time values (step numbers) corresponding to points on loading path is given by :yref:`pathSteps<LawTester.pathSteps>`. Loading values are linearly interpolated between given loading path points, and starting zero-value (the initial configuration) is assumed for both :yref:`path<LawTester.path>` and :yref:`pathSteps<LawTester.pathSteps>`. :yref:`hooks<LawTester.hooks>` can specify python code to run when respective point on the path is reached; when the path is finished, :yref:`doneHook<LawTester.doneHook>` will be run.
+dem.LawTester.__doc__='''Prescribe and apply deformations of an interaction in terms of local mutual displacements and rotations. The loading path is specified either using :yref:`path<LawTester.path>` (as sequence of 6-vectors containing generalized displacements $u_x$, $u_y$, $u_z$, $\phi_x$, $\phi_y$, $\phi_z$) or :yref:`disPath<LawTester.disPath>` ($u_x$, $u_y$, $u_z$) and :yref:`rotPath<LawTester.rotPath>` ($\phi_x$, $\phi_y$, $\phi_z$). Time function with time values (step numbers) corresponding to points on loading path is given by :yref:`pathSteps<LawTester.pathSteps>`. Loading values are linearly interpolated between given loading path points, and starting zero-value (the initial configuration) is assumed for both :yref:`path<LawTester.path>` and :yref:`pathSteps<LawTester.pathSteps>`. :yref:`hooks<LawTester.hooks>` can specify python code to run when respective point on the path is reached; when the path is finished, :yref:`doneHook<LawTester.doneHook>` will be run.
 
 
 LawTester should be placed between :yref:`InteractionLoop` and :yref:`NewtonIntegrator` in the simulation loop, since it controls motion via setting linear/angular velocities on particles; those velocities are integrated by :yref:`NewtonIntegrator` to yield an actual position change, which in turn causes :yref:`IGeom` to be updated (and :yref:`contact law<LawFunctor>` applied) when :yref:`InteractionLoop` is executed. Constitutive law generating forces on particles will not affect prescribed particle motion, since both particles have all :yref:`DoFs blocked<State.blockedDOFs>` when first used with LawTester.

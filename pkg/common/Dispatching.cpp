@@ -2,7 +2,7 @@
 #include<yade/pkg/common/VelocityBins.hpp>
 
 
-YADE_PLUGIN0((BoundFunctor)(IGeomFunctor)(IPhysFunctor)(LawFunctor)(BoundDispatcher)(IGeomDispatcher)(IPhysDispatcher)(LawDispatcher));
+YADE_PLUGIN(dem,(BoundFunctor)(IGeomFunctor)(IPhysFunctor)(LawFunctor)(BoundDispatcher)(IGeomDispatcher)(IPhysDispatcher)(LawDispatcher));
 BoundFunctor::~BoundFunctor(){};
 IGeomFunctor::~IGeomFunctor(){};
 IPhysFunctor::~IPhysFunctor(){};

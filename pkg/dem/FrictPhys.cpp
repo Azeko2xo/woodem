@@ -1,3 +1,3 @@
 #include "FrictPhys.hpp"
 FrictPhys::~FrictPhys(){}
-YADE_PLUGIN0((FrictPhys));
+YADE_PLUGIN(dem,(FrictPhys));

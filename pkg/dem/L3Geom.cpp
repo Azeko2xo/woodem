@@ -3,6 +3,7 @@
 #include<yade/pkg/common/Sphere.hpp>
 #include<yade/pkg/common/Wall.hpp>
 #include<yade/pkg/common/Facet.hpp>
+#include<yade/core/Field.hpp>
 
 #include<sstream>
 
@@ -12,12 +13,10 @@
 	#include<GL/glu.h>
 #endif
 
-YADE_PLUGIN0((L3Geom)(L6Geom)(Ig2_Sphere_Sphere_L3Geom)(Ig2_Wall_Sphere_L3Geom)(Ig2_Facet_Sphere_L3Geom)(Ig2_Sphere_Sphere_L6Geom)(Law2_L3Geom_FrictPhys_ElPerfPl)(Law2_L6Geom_FrictPhys_Linear)
-	#ifdef YADE_OPENGL
-		(Gl1_L3Geom)(Gl1_L6Geom)
-	#endif
-		
-);
+YADE_PLUGIN(dem,(L3Geom)(L6Geom)(Ig2_Sphere_Sphere_L3Geom)(Ig2_Wall_Sphere_L3Geom)(Ig2_Facet_Sphere_L3Geom)(Ig2_Sphere_Sphere_L6Geom)(Law2_L3Geom_FrictPhys_ElPerfPl)(Law2_L6Geom_FrictPhys_Linear));
+#ifdef YADE_OPENGL
+	YADE_PLUGIN(gl,(Gl1_L3Geom)(Gl1_L6Geom));
+#endif
 
 L3Geom::~L3Geom(){}
 void L3Geom::applyLocalForceTorque(const Vector3r& localF, const Vector3r& localT, const Interaction* I, Scene* scene, NormShearPhys* nsp) const {
@@ -260,6 +259,14 @@ bool Ig2_Facet_Sphere_L3Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<S
 		Vector3r normal=facet.normal; // trial contact normal
 		Real planeDist=normal.dot(cogLine);
 		if(abs(planeDist)>radius && !I->isReal() && !force) return false; // sphere too far
+
+		// HACK: refuse to collide sphere and facet with common node; for that, body is needed :-|
+		// this could be moved to the collider (the mayCollide function)
+		vector<shared_ptr<Node> > fn=Body::byId(I->getId1(),scene)->nodes;
+		vector<shared_ptr<Node> > sn=Body::byId(I->getId2(),scene)->nodes;
+		assert(fn.size()==3 && sn.size()==1);
+		if(fn[0]==sn[0] || fn[1]==sn[0] || fn[2]==sn[0]) return false;
+
 		if(planeDist<0){normal*=-1; planeDist*=-1; }
 		Vector3r planarPt=cogLine-planeDist*normal; // project sphere center to the facet plane
 		Vector3r contactPt; // facet's point closes to the sphere

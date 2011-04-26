@@ -1,11 +1,11 @@
 #include<yade/pkg/dem/DomainLimiter.hpp>
 #include<yade/pkg/dem/Shop.hpp>
 
-YADE_PLUGIN0((DomainLimiter)(LawTester)
-	#ifdef YADE_OPENGL
-		(GlExtra_LawTester)(GlExtra_OctreeCubes)
-	#endif
-);
+YADE_PLUGIN(dem,(DomainLimiter)(LawTester));
+
+#ifdef YADE_OPENGL
+YADE_PLUGIN(gl,(GlExtra_LawTester)(GlExtra_OctreeCubes))
+#endif
 
 void DomainLimiter::action(){
 	std::list<Body::id_t> out;

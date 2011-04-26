@@ -35,7 +35,7 @@ using namespace boost;
 	#include<gl2ps.h>
 #endif
 
-YADE_PLUGIN0((SnapshotEngine));
+YADE_PLUGIN(/*unused*/qt,(SnapshotEngine));
 
 /*****************************************************************************
 *********************************** SnapshotEngine ***************************

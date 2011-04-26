@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include <boost/scoped_ptr.hpp>
+#include<boost/scoped_ptr.hpp>
 #include<stdexcept>
 #include<string>
 
@@ -21,14 +21,11 @@
 
 #define _THROW_NOT_OVERRIDDEN  throw std::logic_error(std::string("Derived class did not override ")+__PRETTY_FUNCTION__+", use REGISTER_INDEX_COUNTER and REGISTER_CLASS_INDEX.")
 
-class Indexable
-{
-	protected :
-		void createIndex();
-
-	public :
-		Indexable ();
-		virtual ~Indexable ();
+class Indexable{
+	protected: void createIndex();
+	public:
+		Indexable();
+		virtual ~Indexable();
 
 		/// Returns the id of the current class. This id is set by a multimethod manager
 		virtual int& getClassIndex()                             { _THROW_NOT_OVERRIDDEN;}; 
@@ -37,7 +34,6 @@ class Indexable
 		virtual const int& getBaseClassIndex(int ) const         { _THROW_NOT_OVERRIDDEN;};
 		virtual const int& getMaxCurrentlyUsedClassIndex() const { _THROW_NOT_OVERRIDDEN;};
 		virtual void incrementMaxCurrentlyUsedClassIndex()       { _THROW_NOT_OVERRIDDEN;};
-
 };
 
 #undef _THROW_NOT_OVERRIDDEN
@@ -46,14 +42,14 @@ class Indexable
 
 #define REGISTER_CLASS_INDEX(SomeClass,BaseClass)                                      \
 	public: static int& getClassIndexStatic() { static int index = -1; return index; } \
-	public: virtual int& getClassIndex()       { return getClassIndexStatic(); }        \
-	public: virtual const int& getClassIndex() const { return getClassIndexStatic(); }  \
-	public: virtual int& getBaseClassIndex(int depth) {              \
+	virtual int& getClassIndex()       { return getClassIndexStatic(); }        \
+	virtual const int& getClassIndex() const { return getClassIndexStatic(); }  \
+	virtual int& getBaseClassIndex(int depth) {              \
 		static boost::scoped_ptr<BaseClass> baseClass(new BaseClass); \
 		if(depth == 1) return baseClass->getClassIndex();             \
 		else           return baseClass->getBaseClassIndex(--depth);  \
 	}                                                                \
-	public: virtual const int& getBaseClassIndex(int depth) const {  \
+	virtual const int& getBaseClassIndex(int depth) const {  \
 		static boost::scoped_ptr<BaseClass> baseClass(new BaseClass); \
 		if(depth == 1) return baseClass->getClassIndex();             \
 		else           return baseClass->getBaseClassIndex(--depth);  \
@@ -64,21 +60,14 @@ class Indexable
 // count this number (ie. as a size of the matrix), as there are many multimethod matrices
 
 #define REGISTER_INDEX_COUNTER(SomeClass) \
-	private: static int& getClassIndexStatic()       { static int index = -1; return index; }\
-	public: virtual int& getClassIndex()             { return getClassIndexStatic(); }       \
-	public: virtual const int& getClassIndex() const { return getClassIndexStatic(); }       \
-	public: virtual int& getBaseClassIndex(int)             { throw std::logic_error("One of the following errors was detected:\n(1) Class " #SomeClass " called createIndex() in its ctor (but it shouldn't, being a top-level indexable; only use REGISTER_INDEX_COUNTER, but not createIndex()).\n(2) Some DerivedClass deriving from " #SomeClass " forgot to use REGISTER_CLASS_INDEX(DerivedClass," #SomeClass ").\nPlease fix that and come back again." ); } \
-	public: virtual const int& getBaseClassIndex(int) const { throw std::logic_error("One of the following errors was detected:\n(1) Class " #SomeClass " called createIndex() in its ctor (but it shouldn't, being a top-level indexable; only use REGISTER_INDEX_COUNTER, but not createIndex()).\n(2) Some DerivedClass deriving from " #SomeClass " forgot to use REGISTER_CLASS_INDEX(DerivedClass," #SomeClass ").\nPlease fix that and come back again." ); } \
-	private: static int& getMaxCurrentlyUsedIndexStatic() { static int maxCurrentlyUsedIndex = -1; return maxCurrentlyUsedIndex; } \
-	public: virtual const int& getMaxCurrentlyUsedClassIndex() const {  \
-		assert(dynamic_cast<SomeClass*>(const_cast<SomeClass*>(this)));  \
-		return getMaxCurrentlyUsedIndexStatic();                         \
-	}                                                                   \
-	public: virtual void incrementMaxCurrentlyUsedClassIndex() {        \
-		assert(dynamic_cast<SomeClass*>(this));                          \
-		int& max = getMaxCurrentlyUsedIndexStatic();                     \
-		max++;                                                           \
-	}
+	private: static int& getClassIndexStatic()      { static int index = -1; return index; }\
+	 static int& getMaxCurrentlyUsedIndexStatic()   { static int maxCurrentlyUsedIndex = -1; return maxCurrentlyUsedIndex; } \
+	public: virtual int& getClassIndex()            { return getClassIndexStatic(); }       \
+	virtual const int& getClassIndex() const        { return getClassIndexStatic(); }       \
+	virtual int& getBaseClassIndex(int)             { throw std::logic_error("One of the following errors was detected:\n(1) Class " #SomeClass " called createIndex() in its ctor (but it shouldn't, being a top-level indexable; only use REGISTER_INDEX_COUNTER, but not createIndex()).\n(2) Some DerivedClass deriving from " #SomeClass " forgot to use REGISTER_CLASS_INDEX(DerivedClass," #SomeClass ").\nPlease fix that and come back again." ); } \
+	virtual const int& getBaseClassIndex(int) const { throw std::logic_error("One of the following errors was detected:\n(1) Class " #SomeClass " called createIndex() in its ctor (but it shouldn't, being a top-level indexable; only use REGISTER_INDEX_COUNTER, but not createIndex()).\n(2) Some DerivedClass deriving from " #SomeClass " forgot to use REGISTER_CLASS_INDEX(DerivedClass," #SomeClass ").\nPlease fix that and come back again." ); } \
+	virtual const int& getMaxCurrentlyUsedClassIndex() const { assert(dynamic_cast<SomeClass*>(const_cast<SomeClass*>(this))); return getMaxCurrentlyUsedIndexStatic(); } \
+	virtual void incrementMaxCurrentlyUsedClassIndex() { assert(dynamic_cast<SomeClass*>(this)); int& max = getMaxCurrentlyUsedIndexStatic(); max++; }
 
 // macro that should be passed in the 4th argument of YADE_CLASS_BASE_ATTR_PY in the top-level indexable
 #define YADE_PY_TOPINDEXABLE(className) .add_property("dispIndex",&Indexable_getClassIndex<className>,"Return class index of this instance.").def("dispHierarchy",&Indexable_getClassIndices<className>,(boost::python::arg("names")=true),"Return list of dispatch classes (from down upwards), starting with the class instance itself, top-level indexable at last. If names is true (default), return class names rather than numerical indices.")

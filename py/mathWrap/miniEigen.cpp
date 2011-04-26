@@ -115,6 +115,7 @@ static Matrix3r Matrix6r_lr(const Matrix6r& m){ return Matrix3r(m.block<3,3>(3,3
 static Vector6r Matrix3r_toVoigt(const Matrix3r& m, bool strain=false){ return tensor_toVoigt(m,strain); }
 static Matrix3r Vector6r_toSymmTensor(const Vector6r& v, bool strain=false){ return voigt_toSymmTensor(v,strain); }
 static Quaternionr Quaternionr_setFromTwoVectors(Quaternionr& q, const Vector3r& u, const Vector3r& v){ return q.setFromTwoVectors(u,v); }
+static Quaternionr Quaternionr_random(Quaternionr& self){ self=Quaternionr(Mathr::UnitRandom(),Mathr::UnitRandom(),Mathr::UnitRandom(),Mathr::UnitRandom()); self.normalize(); return self; }
 static Vector3r Quaternionr_Rotate(Quaternionr& q, const Vector3r& u){ return q*u; }
 // swizzles for Vector3r
 static Vector2r Vector3r_xy(const Vector3r& v){ return Vector2r(v[0],v[1]); }
@@ -338,6 +339,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.def("inverse",&Quaternionr::inverse)
 		.def("norm",&Quaternionr::norm)
 		.def("normalize",&Quaternionr::normalize)
+		.def("random",&Quaternionr_random,"Assign random orientation to the quaternion.")
 		// operators
 		.def(py::self * py::self)
 		.def(py::self *= py::self)

@@ -12,7 +12,7 @@
 #include<yade/pkg/common/VelocityBins.hpp>
 #include<yade/lib/base/Math.hpp>
 
-YADE_PLUGIN0((NewtonIntegrator));
+YADE_PLUGIN(dem,(NewtonIntegrator));
 CREATE_LOGGER(NewtonIntegrator);
 
 // 1st order numerical damping

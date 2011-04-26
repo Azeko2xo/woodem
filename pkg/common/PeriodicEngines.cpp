@@ -1,3 +1,3 @@
 #include<yade/pkg/common/PeriodicEngines.hpp>
-YADE_PLUGIN0((PeriodicEngine));
+YADE_PLUGIN(dem,(PeriodicEngine));
 PeriodicEngine::~PeriodicEngine(){};

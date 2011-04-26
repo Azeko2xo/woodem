@@ -35,11 +35,7 @@ class State: public Serializable, public Indexable{
 		//! Getter of blockedDOFs for list of strings (e.g. DOF_X | DOR_RX | DOF_RZ → 'xXZ')
 		std::string blockedDOFs_vec_get() const;
 		//! Setter of blockedDOFs from string ('xXZ' → DOF_X | DOR_RX | DOF_RZ)
-		#ifdef YADE_DEPREC_DOF_LIST
-			void blockedDOFs_vec_set(const python::object&);
-		#else
-			void blockedDOFs_vec_set(const std::string& dofs);
-		#endif
+		void blockedDOFs_vec_set(const std::string& dofs);
 
 		//! Return displacement (current-reference position)
 		Vector3r displ() const {return pos-refPos;}

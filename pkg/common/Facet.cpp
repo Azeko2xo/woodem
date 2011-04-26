@@ -7,7 +7,10 @@
 *************************************************************************/
 #include<yade/pkg/common/Facet.hpp>
 #include<yade/pkg/common/Aabb.hpp>
-YADE_PLUGIN0((Facet)(Bo1_Facet_Aabb));
+YADE_PLUGIN(dem,(Facet)(Bo1_Facet_Aabb));
+#ifdef YADE_OPENGL
+YADE_PLUGIN(gl,(Gl1_Facet));
+#endif
 
 CREATE_LOGGER(Facet);
 
@@ -33,6 +36,16 @@ void Facet::postLoad(Facet&)
 	Real p = e[0].norm()+e[1].norm()+e[2].norm();
 	icr = e[0].norm()*ne[0].dot(e[2])/p;
 }
+
+boost::tuple<Vector3r,Quaternionr> Facet::updateGlobalVertices(const Vector3r& v0, const Vector3r& v1, const Vector3r& v2){
+	Vector3r inscribedCenter(v0+((v2-v0)*(v1-v0).norm()+(v1-v0)*(v2-v0).norm())/((v1-v0).norm()+(v2-v1).norm()+(v0-v2).norm()));
+	vertices[0]=v0-inscribedCenter;
+	vertices[1]=v1-inscribedCenter;
+	vertices[2]=v2-inscribedCenter;
+	postLoad(*this);
+	return boost::make_tuple(inscribedCenter,Quaternionr::Identity());
+};
+
 
 
 void Bo1_Facet_Aabb::go(const shared_ptr<Shape>& cm, shared_ptr<Bound>& bv, const Se3r& se3, const Body* b){
@@ -64,8 +77,6 @@ void Bo1_Facet_Aabb::go(const shared_ptr<Shape>& cm, shared_ptr<Bound>& bv, cons
 
 
 #ifdef YADE_OPENGL
-YADE_PLUGIN0((Gl1_Facet));
-
 #include<yade/lib/opengl/OpenGLWrapper.hpp>
 
 bool Gl1_Facet::normals=false;

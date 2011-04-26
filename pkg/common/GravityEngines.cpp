@@ -1,18 +1,10 @@
-/*************************************************************************
-*  Copyright (C) 2004 by Janek Kozicki                                   *
-*  cosurgi@berlios.de                                                    *
-*                                                                        *
-*  This program is free software; it is licensed under the terms of the  *
-*  GNU General Public License v2 or later. See file LICENSE for details. *
-*************************************************************************/
-
 #include<yade/pkg/common/GravityEngines.hpp>
 #include<yade/pkg/common/PeriodicEngines.hpp>
 #include<yade/core/BodyContainer.hpp>
 #include<yade/core/Scene.hpp>
 #include<boost/regex.hpp>
 
-YADE_PLUGIN0((GravityEngine)(CentralGravityEngine)(AxialGravityEngine)(HdapsGravityEngine));
+YADE_PLUGIN(dem,(GravityEngine)(CentralGravityEngine)(AxialGravityEngine)(HdapsGravityEngine));
 
 void GravityEngine::action(){
 	const bool trackEnergy(unlikely(scene->trackEnergy));

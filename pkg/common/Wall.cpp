@@ -3,11 +3,10 @@
 #include<yade/pkg/common/Aabb.hpp>
 #include<limits>
 
-YADE_PLUGIN0((Wall)(Bo1_Wall_Aabb)
-	#ifdef YADE_OPENGL
-		(Gl1_Wall)
-	#endif
-	);
+YADE_PLUGIN(dem,(Wall)(Bo1_Wall_Aabb));
+#ifdef YADE_OPENGL
+	YADE_PLUGIN(gl,(Gl1_Wall))
+#endif
 
 Wall::~Wall(){} // vtable
 

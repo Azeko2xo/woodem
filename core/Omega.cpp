@@ -140,71 +140,80 @@ void Omega::loadPlugins(vector<string> pluginFiles){
 
 void Omega::initializePlugins(const vector<std::pair<string,string> >& pluginClasses){	
 	LOG_DEBUG("called with "<<pluginClasses.size()<<" plugin classes.");
-	boost::python::object wrapperScope=boost::python::import("yade.wrapper");
-	std::list<string> pythonables;
-	typedef std::pair<string,string> StringStringPair;
-	FOREACH(StringStringPair moduleName, pluginClasses){
+	// boost::python::object wrapperScope=boost::python::import("yade.wrapper");
+	std::map<std::string,py::object> pyModules;
+	pyModules["wrapper"]=py::import("yade.wrapper");
+
+	// http://boost.2283326.n4.nabble.com/C-sig-How-to-create-package-structure-in-single-extension-module-td2697292.html
+	py::object yadeScope=boost::python::import("yade");
+
+	typedef std::pair<std::string,shared_ptr<Serializable> > StringSerializablePair;
+	typedef std::pair<std::string,std::string> StringPair;
+	std::list<StringSerializablePair> pythonables;
+	FOREACH(StringPair moduleName, pluginClasses){
 		string module(moduleName.first);
 		string name(moduleName.second);
 		shared_ptr<Factorable> f;
 		try {
 			LOG_DEBUG("Factoring class "<<name);
-			f = ClassFactory::instance().createShared(name);
-			dynlibs[name].isIndexable    = dynamic_pointer_cast<Indexable>(f);
-			dynlibs[name].isSerializable = dynamic_pointer_cast<Serializable>(f);
-			for(int i=0;i<f->getBaseClassNumber();i++){
-				dynlibs[name].baseClasses.insert(f->getBaseClassName(i));
+			f=ClassFactory::instance().createShared(name);
+			for(int i=0;i<f->getBaseClassNumber();i++) dynlibs[name].baseClasses.insert(f->getBaseClassName(i));
+			shared_ptr<Serializable> ser(dynamic_pointer_cast<Serializable>(f));
+			if(ser){
+				if(pyModules.find(module)==pyModules.end()){
+					#if 0
+						// create new module here!
+						py::handle<> newModule(PyModule_New(module.c_str()));
+						yadeScope.attr(module.c_str())=newModule;
+						//pyModules[module]=py::import(("yade."+module).c_str());
+						pyModules[module]=py::object(newModule);
+						pyModules[module].attr("__file__")="<synthetic>";
+						cerr<<"Synthesized new module yade."<<module<<endl;
+					#endif
+					try{
+						pyModules[module]=py::import(("yade."+module).c_str());
+					} catch (...){
+						cerr<<"Error importing module yade."<<module<<" for class "<<name;
+						boost::python::handle_exception();
+						throw;
+					}
+				}
+				pythonables.push_back(StringSerializablePair(module,static_pointer_cast<Serializable>(f)));
 			}
-			if(dynlibs[name].isSerializable) pythonables.push_back(name);
 		}
 		catch (std::runtime_error& e){
 			/* FIXME: this catches all errors! Some of them are not harmful, however:
 			 * when a class is not factorable, it is OK to skip it; */	
+			 cerr<<"Caught non-critical error for class "<<module<<"."<<name;
 		}
 	}
+
 	// handle Serializable specially
-	//Serializable().pyRegisterClass(wrapperScope);
+	// Serializable().pyRegisterClass(pyModules["core"]);
+
 	/* python classes must be registered such that base classes come before derived ones;
 	for now, just loop until we succeed; proper solution will be to build graphs of classes
 	and traverse it from the top. It will be done once all classes are pythonable. */
-	for(int i=0; i<100 && pythonables.size()>0; i++){
+	for(int i=0; i<10 && pythonables.size()>0; i++){
 		if(getenv("YADE_DEBUG")) cerr<<endl<<"[[[ Round "<<i<<" ]]]: ";
 		std::list<string> done;
-		for(std::list<string>::iterator I=pythonables.begin(); I!=pythonables.end(); ){
-			shared_ptr<Serializable> s=static_pointer_cast<Serializable>(ClassFactory::instance().createShared(*I));
+		for(std::list<StringSerializablePair>::iterator I=pythonables.begin(); I!=pythonables.end(); ){
+			const std::string& module=I->first;
+			const shared_ptr<Serializable>& s=I->second;
+			const std::string& klass=s->getClassName();
 			try{
-				if(getenv("YADE_DEBUG")) cerr<<"{{"<<*I<<"}}";
-				s->pyRegisterClass(wrapperScope);
-				std::list<string>::iterator prev=I++;
+				if(getenv("YADE_DEBUG")) cerr<<"{{"<<klass<<"}}";
+				s->pyRegisterClass(pyModules[module]);
+				std::list<StringSerializablePair>::iterator prev=I++;
 				pythonables.erase(prev);
 			} catch (...){
-				if(getenv("YADE_DEBUG")){ cerr<<"["<<*I<<"]"; PyErr_Print(); }
+				if(getenv("YADE_DEBUG")){ cerr<<"["<<klass<<"]"; PyErr_Print(); }
 				boost::python::handle_exception();
 				I++;
 			}
 		}
 	}
 
-	#if 0
-	// fixes inheritance ??
-	map<string,DynlibDescriptor>::iterator dli    = dynlibs.begin();
-	map<string,DynlibDescriptor>::iterator dliEnd = dynlibs.end();
-	for( ; dli!=dliEnd ; ++dli){
-		set<string>::iterator bci    = (*dli).second.baseClasses.begin();
-		set<string>::iterator bciEnd = (*dli).second.baseClasses.end();
-		for( ; bci!=bciEnd ; ++bci){
-			string name = *bci;
-			if (name=="Dispatcher1D" || name=="Dispatcher2D") (*dli).second.baseClasses.insert("Dispatcher");
-			else if (name=="Functor1D" || name=="Functor2D") (*dli).second.baseClasses.insert("Functor");
-			else if (name=="Serializable") (*dli).second.baseClasses.insert("Factorable");
-			else if (name!="Factorable" && name!="Indexable") {
-				shared_ptr<Factorable> f = ClassFactory::instance().createShared(name);
-				for(int i=0;i<f->getBaseClassNumber();i++)
-					dynlibs[name].baseClasses.insert(f->getBaseClassName(i));
-			}
-		}
-	}
-	#endif
 }
 
 

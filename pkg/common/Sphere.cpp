@@ -1,6 +1,6 @@
 #include<yade/pkg/common/Sphere.hpp>
 #include<yade/pkg/common/Aabb.hpp>
-YADE_PLUGIN0((Sphere)(Bo1_Sphere_Aabb));
+YADE_PLUGIN(dem,(Sphere)(Bo1_Sphere_Aabb));
 
 Sphere::~Sphere(){}
 
@@ -31,7 +31,7 @@ void Bo1_Sphere_Aabb::go(const shared_ptr<Shape>& cm, shared_ptr<Bound>& bv, con
 	
 
 #ifdef YADE_OPENGL
-YADE_PLUGIN0((Gl1_Sphere));
+YADE_PLUGIN(gl,(Gl1_Sphere));
 
 #include<yade/lib/opengl/OpenGLWrapper.hpp>
 

@@ -7,7 +7,7 @@
 #include<yade/core/State.hpp>
 
 
-YADE_PLUGIN0((Clump));
+YADE_PLUGIN(dem,(Clump));
 CREATE_LOGGER(Clump);
 
 python::dict Clump::members_get(){
@@ -125,13 +125,13 @@ void Clump::updateProperties(const shared_ptr<Body>& clumpBody, bool intersectin
 			//TRWM3MAT(Clump::inertiaTensorRotate(Matrix3r(subRBP->inertia),subRBP_orientation_conjugate));
 		}
 	}
-	TRVAR1(M); TRWM3MAT(Ig); TRWM3VEC(Sg);
+	// TRVAR1(M); TRWM3MAT(Ig); TRWM3VEC(Sg);
 	assert(M>0);
 
 	state->pos=Sg/M; // clump's centroid
 	// this will calculate translation only, since rotation is zero
 	Matrix3r Ic_orientG=Clump::inertiaTensorTranslate(Ig, -M /* negative mass means towards centroid */, state->pos); // inertia at clump's centroid but with world orientation
-	TRWM3MAT(Ic_orientG);
+	//TRWM3MAT(Ic_orientG);
 
 	Matrix3r R_g2c(Matrix3r::Zero()); //rotation matrix
 	Ic_orientG(1,0)=Ic_orientG(0,1); Ic_orientG(2,0)=Ic_orientG(0,2); Ic_orientG(2,1)=Ic_orientG(1,2); // symmetrize
@@ -140,7 +140,7 @@ void Clump::updateProperties(const shared_ptr<Body>& clumpBody, bool intersectin
 	/*! @bug eigendecomposition might be wrong. see http://article.gmane.org/gmane.science.physics.yade.devel/99 for message. It is worked around below, however.
 	*/
 	// has NaNs for identity matrix!
-	TRWM3MAT(R_g2c);
+	//TRWM3MAT(R_g2c);
 
 	// set quaternion from rotation matrix
 	state->ori=Quaternionr(R_g2c); state->ori.normalize();
@@ -155,7 +155,7 @@ void Clump::updateProperties(const shared_ptr<Body>& clumpBody, bool intersectin
 			throw std::logic_error("Clump::updateProperties: NaNs in eigen-decomposition of inertia matrix?!");
 		}
 	#endif
-	TRWM3VEC(state->inertia);
+	//TRWM3VEC(state->inertia);
 
 	// TODO: these might be calculated from members... but complicated... - someone needs that?!
 	state->vel=state->angVel=Vector3r::Zero();

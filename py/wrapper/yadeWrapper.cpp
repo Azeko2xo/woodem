@@ -437,6 +437,9 @@ class pyOmega{
 
 	pyBodyContainer bodies_get(void){assertScene(); return pyBodyContainer(OMEGA.getScene()->bodies); }
 	pyInteractionContainer interactions_get(void){assertScene(); return pyInteractionContainer(OMEGA.getScene()->interactions); }
+
+	shared_ptr<Field> field_get(){ return OMEGA.getScene()->field; }
+	void field_set(shared_ptr<Field> f){ OMEGA.getScene()->field=f; }
 	
 	pyForceContainer forces_get(void){return pyForceContainer(OMEGA.getScene());}
 	pyMaterialContainer materials_get(void){return pyMaterialContainer(OMEGA.getScene());}
@@ -546,6 +549,7 @@ BOOST_PYTHON_MODULE(wrapper)
 		.add_property("_nextEngines",&pyOmega::nextEngines_get,"Engines for the next step, if different from the current ones, otherwise empty; debugging only!")
 		.add_property("miscParams",&pyOmega::miscParams_get,&pyOmega::miscParams_set,"MiscParams in the simulation (Scene::mistParams), usually used to save serializables that don't fit anywhere else, like GL functors")
 		.add_property("bodies",&pyOmega::bodies_get,"Bodies in the current simulation (container supporting index access by id and iteration)")
+		.add_property("field",&pyOmega::field_get,&pyOmega::field_set,"Get field associated with the scene")
 		.add_property("interactions",&pyOmega::interactions_get,"Interactions in the current simulation (container supporting index acces by either (id1,id2) or interactionNumber and iteration)")
 		.add_property("materials",&pyOmega::materials_get,"Shared materials; they can be accessed by id or by label")
 		.add_property("forces",&pyOmega::forces_get,":yref:`ForceContainer` (forces, torques, displacements) in the current simulation.")

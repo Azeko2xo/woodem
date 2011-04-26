@@ -11,14 +11,9 @@ struct TimingInfo{
 	static delta getNow(bool evenIfDisabled=false)
 	{
 		if(!enabled && !evenIfDisabled) return 0L;
-#ifdef __APPLE__
-		std::cerr << "ERROR: Time profiling (TimingInfo) not implemented on Apples." << std::endl;
-		return 0L;
-#else
 		struct timespec ts; 
 		clock_gettime(CLOCK_MONOTONIC,&ts); 
 		return delta(1e9*ts.tv_sec+ts.tv_nsec);		
-#endif
 	}
 	static bool enabled;
 };

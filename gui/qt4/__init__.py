@@ -66,6 +66,8 @@ def openUrl(url):
 controller=None
 
 class ControllerClass(QWidget,Ui_Controller):
+	#from yade.gl import *
+	#from yade import gl
 	def __init__(self,parent=None):
 		QWidget.__init__(self)
 		self.setupUi(self)
@@ -86,11 +88,13 @@ class ControllerClass(QWidget,Ui_Controller):
 		for c in yade.system.childClasses('FileGenerator'):
 			self.generatorCombo.addItem(c)
 	def addRenderers(self):
+		#from yade.gl import *
+		from yade import gl
 		self.displayCombo.addItem('OpenGLRenderer'); afterSep=1
-		for bc in ('GlShapeFunctor','GlStateFunctor','GlBoundFunctor','GlIGeomFunctor','GlIPhysFunctor'):
+		for bc in ('GlShapeFunctor','GlStateFunctor','GlBoundFunctor','GlIGeomFunctor','GlIPhysFunctor','GlNodeFunctor','GlFieldFunctor'):
 			if afterSep>0: self.displayCombo.insertSeparator(10000); afterSep=0
 			for c in yade.system.childClasses(bc) | set([bc]):
-				inst=eval(c+'()');
+				inst=eval('gl.'+c+'()');
 				if len(set(inst.dict().keys())-set(['label']))>0:
 					self.displayCombo.addItem(c); afterSep+=1
 	def inspectSlot(self):
@@ -129,7 +133,8 @@ class ControllerClass(QWidget,Ui_Controller):
 			if len(views())==0:
 				v=View(); v.center()
 	def displayComboSlot(self,dispStr):
-		ser=(self.renderer if dispStr=='OpenGLRenderer' else eval(str(dispStr)+'()'))
+		from yade import gl
+		ser=(self.renderer if dispStr=='OpenGLRenderer' else eval('gl.'+str(dispStr)+'()'))
 		path='yade.qt.Renderer()' if dispStr=='OpenGLRenderer' else dispStr
 		se=SerializableEditor(ser,parent=self.displayArea,ignoredAttrs=set(['label']),showType=True,path=path)
 		self.displayArea.setWidget(se)

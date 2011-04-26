@@ -1,7 +1,6 @@
 
 #pragma once
-#include<yade/core/IGeom.hpp>
-#include<yade/core/IPhys.hpp>
+#include<yade/core/Interaction.hpp>
 #include<yade/core/Shape.hpp>
 #include<yade/core/State.hpp>
 #include<yade/pkg/common/Sphere.hpp>

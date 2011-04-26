@@ -1,6 +1,6 @@
 // 2009 © Václav Šmilauer <eudoxos@arcig.cz>
 #pragma once
-#include<yade/core/IGeom.hpp>
+#include<yade/core/Interaction.hpp>
 
 /*! Abstract class that unites ScGeom and Dem3DofGeom,
 	created for the purposes of GlobalStiffnessTimeStepper.

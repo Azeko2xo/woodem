@@ -4,7 +4,7 @@
 #include<yade/pkg/common/SubdomainBalancer.hpp>
 #include<yade/pkg/dem/Clump.hpp>
 
-YADE_PLUGIN0((SubdomainBalancer));
+YADE_PLUGIN(dem,(SubdomainBalancer));
 CREATE_LOGGER(SubdomainBalancer);
 
 #ifdef YADE_OPENMP

@@ -405,6 +405,9 @@ class SerializableEditor(QFrame):
 			regexp=r'^\s*(std\s*::)?\s*vector\s*<\s*(shared_ptr\s*<\s*)?\s*(std\s*::)?\s*('+T+r')(\s*>)?\s*>\s*$'
 			m=re.match(regexp,cxxT)
 			return m
+		from yade import dem
+		from yade import gl
+		from yade import core
 		vecMap={
 			'bool':bool,'int':int,'long':int,'Body::id_t':long,'size_t':long,
 			'Real':float,'float':float,'double':float,
@@ -412,8 +415,8 @@ class SerializableEditor(QFrame):
 			'Vector3r':Vector3,'Matrix3r':Matrix3,'Se3r':Se3FakeType,
 			'string':str,
 			#'BodyCallback':BodyCallback,'IntrCallback':IntrCallback,
-			'BoundFunctor':BoundFunctor,'IGeomFunctor':IGeomFunctor,'IPhysFunctor':IPhysFunctor,'LawFunctor':LawFunctor,'KinematicEngine':KinematicEngine,
-			'GlShapeFunctor':GlShapeFunctor,'GlStateFunctor':GlStateFunctor,'GlIGeomFunctor':GlIGeomFunctor,'GlIPhysFunctor':GlIPhysFunctor,'GlBoundFunctor':GlBoundFunctor,'GlExtraDrawer':GlExtraDrawer
+			'BoundFunctor':dem.BoundFunctor,'IGeomFunctor':dem.IGeomFunctor,'IPhysFunctor':dem.IPhysFunctor,'LawFunctor':dem.LawFunctor,'KinematicEngine':dem.KinematicEngine,'Node':core.Node,
+			'GlShapeFunctor':gl.GlShapeFunctor,'GlStateFunctor':gl.GlStateFunctor,'GlIGeomFunctor':gl.GlIGeomFunctor,'GlIPhysFunctor':gl.GlIPhysFunctor,'GlBoundFunctor':gl.GlBoundFunctor,'GlExtraDrawer':gl.GlExtraDrawer,'GlNodeFunctor':gl.GlNodeFunctor,'GlFieldFunctor':gl.GlFieldFunctor
 		}
 		for T,ret in vecMap.items():
 			if vecTest(T,cxxT):

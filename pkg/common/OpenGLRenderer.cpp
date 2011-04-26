@@ -8,6 +8,7 @@
 #include<yade/lib/opengl/GLUtils.hpp>
 #include<yade/core/Timing.hpp>
 #include<yade/core/Scene.hpp>
+#include<yade/core/Field.hpp>
 #include<yade/pkg/common/Aabb.hpp>
 
 #ifdef __APPLE__
@@ -20,7 +21,7 @@
 #  include <GL/glut.h>
 #endif
 
-YADE_PLUGIN0((OpenGLRenderer)(GlExtraDrawer));
+YADE_PLUGIN(gl,(OpenGLRenderer)(GlExtraDrawer));
 CREATE_LOGGER(OpenGLRenderer);
 
 void GlExtraDrawer::render(){ throw runtime_error("GlExtraDrawer::render called from class "+getClassName()+". (did you forget to override it in the derived class?)"); }
@@ -38,6 +39,9 @@ void OpenGLRenderer::init(){
 		if (Omega::instance().isInheritingFrom_recursive(item.first,"GlShapeFunctor")) shapeFunctorNames.push_back(item.first);
 		if (Omega::instance().isInheritingFrom_recursive(item.first,"GlIGeomFunctor")) geomFunctorNames.push_back(item.first);
 		if (Omega::instance().isInheritingFrom_recursive(item.first,"GlIPhysFunctor")) physFunctorNames.push_back(item.first);
+
+		if (Omega::instance().isInheritingFrom_recursive(item.first,"GlFieldFunctor")) fieldFunctorNames.push_back(item.first);
+		if (Omega::instance().isInheritingFrom_recursive(item.first,"GlNodeFunctor")) nodeFunctorNames.push_back(item.first);
 	}
 	initgl(); // creates functor objects in the proper sense
 
@@ -74,6 +78,8 @@ void OpenGLRenderer::initgl(){
 		_SETUP_DISPATCHER(shapeFunctorNames,GlShapeFunctor,shapeDispatcher);
 		_SETUP_DISPATCHER(geomFunctorNames,GlIGeomFunctor,geomDispatcher);
 		_SETUP_DISPATCHER(physFunctorNames,GlIPhysFunctor,physDispatcher);
+		_SETUP_DISPATCHER(fieldFunctorNames,GlFieldFunctor,fieldDispatcher);
+		_SETUP_DISPATCHER(nodeFunctorNames,GlNodeFunctor,nodeDispatcher);
 	#undef _SETUP_DISPATCHER
 }
 
@@ -154,6 +160,8 @@ void OpenGLRenderer::render(const shared_ptr<Scene>& _scene,Body::id_t selection
 	geomDispatcher.updateScenePtr();
 	physDispatcher.updateScenePtr();
 	shapeDispatcher.updateScenePtr();
+	fieldDispatcher.updateScenePtr();
+	nodeDispatcher.updateScenePtr();
 	// stateDispatcher.updateScenePtr();
 
 	// just to make sure, since it is not initialized by default
@@ -222,6 +230,9 @@ void OpenGLRenderer::render(const shared_ptr<Scene>& _scene,Body::id_t selection
 	if (intrGeom) renderIGeom();
 	if (intrPhys) renderIPhys();
 
+	if(field) renderField();
+	if(nodes) renderNodes();
+
 	FOREACH(const shared_ptr<GlExtraDrawer> d, extraDrawers){
 		if(d->dead) continue;
 		glPushMatrix();
@@ -231,6 +242,26 @@ void OpenGLRenderer::render(const shared_ptr<Scene>& _scene,Body::id_t selection
 	}
 
 
+}
+
+
+void OpenGLRenderer::renderField(){
+	// later: loop over all fields
+	if(!scene->field) return;
+}
+
+void OpenGLRenderer::renderNodes(){
+	if(!scene->field) return;
+	FOREACH(shared_ptr<Node> node, scene->field->nodes){
+		Vector3r x=node->pos;
+		if(scene->isPeriodic) x=scene->cell->canonicalizePt(x);
+		glPushMatrix();
+			glTranslatev(scene->isPeriodic? scene->cell->canonicalizePt(node->pos) : node->pos);
+			AngleAxisr aa(node->ori);
+			glRotatef(aa.angle()*Mathr::RAD_TO_DEG,aa.axis()[0],aa.axis()[1],aa.axis()[2]);
+			nodeDispatcher(node,viewInfo);
+		glPopMatrix();
+	}
 }
 
 void OpenGLRenderer::renderAllInteractionsWire(){
@@ -312,7 +343,7 @@ void OpenGLRenderer::renderBound(){
 		if(!b || !b->bound) continue;
 		if(!bodyDisp[b->getId()].isDisplayed) continue;
 		if(b->bound && ((b->getGroupMask()&mask) || b->getGroupMask()==0)){
-			glPushMatrix(); boundDispatcher(b->bound,scene.get()); glPopMatrix();
+			glPushMatrix(); boundDispatcher(b->bound); glPopMatrix();
 		}
 	}
 	// since we remove the functor as Scene doesn't inherit from Body anymore, hardcore the rendering routine here

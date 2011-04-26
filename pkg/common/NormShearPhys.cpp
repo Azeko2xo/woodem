@@ -1,5 +1,5 @@
 #include"NormShearPhys.hpp"
-YADE_PLUGIN0((NormPhys)(NormShearPhys));
+YADE_PLUGIN(dem,(NormPhys)(NormShearPhys));
 /* At least one virtual function must be in the shared object; let's put empty desctructors here
  * Otherwise downcasting via dynamic_cast will not work (no vtable in the shared lib?)
  */
@@ -8,7 +8,7 @@ NormShearPhys::~NormShearPhys(){};
 
 
 #ifdef YADE_OPENGL
-YADE_PLUGIN0((Gl1_NormPhys));
+YADE_PLUGIN(gl,(Gl1_NormPhys));
 
 #include<yade/core/Scene.hpp>
 #include<yade/pkg/common/OpenGLRenderer.hpp>

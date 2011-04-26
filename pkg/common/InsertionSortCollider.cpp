@@ -15,7 +15,7 @@
 
 using namespace std;
 
-YADE_PLUGIN0((InsertionSortCollider))
+YADE_PLUGIN(dem,(InsertionSortCollider))
 CREATE_LOGGER(InsertionSortCollider);
 
 // return true if bodies bb overlap in all 3 dimensions

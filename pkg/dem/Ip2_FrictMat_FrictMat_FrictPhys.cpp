@@ -46,5 +46,5 @@ void Ip2_FrictMat_FrictMat_FrictPhys::go( const shared_ptr<Material>& b1
 	contactPhysics->kn = Kn;
 	contactPhysics->ks = Ks;
 };
-YADE_PLUGIN0((Ip2_FrictMat_FrictMat_FrictPhys));
+YADE_PLUGIN(dem,(Ip2_FrictMat_FrictMat_FrictPhys));
 

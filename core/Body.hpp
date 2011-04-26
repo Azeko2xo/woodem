@@ -11,10 +11,11 @@
 
 #include<iostream>
 #include<map>
-#include"Shape.hpp"
-#include"Bound.hpp"
-#include"State.hpp"
-#include"Material.hpp"
+#include<yade/core/Field.hpp>
+#include<yade/core/Shape.hpp>
+#include<yade/core/Bound.hpp>
+#include<yade/core/State.hpp>
+#include<yade/core/Material.hpp>
 
 #include<yade/lib/base/Math.hpp>
 #include<yade/lib/serialization/Serializable.hpp>
@@ -83,6 +84,7 @@ class Body: public Serializable{
 
 		((shared_ptr<Material>,material,,,":yref:`Material` instance associated with this body."))
 		((shared_ptr<State>,state,new State,,"Physical :yref:`state<State>`."))
+		((vector<shared_ptr<Node> >,nodes,,,"Node(s) associated with this particles."))
 		((shared_ptr<Shape>,shape,,,"Geometrical :yref:`Shape`."))
 		((shared_ptr<Bound>,bound,,,":yref:`Bound`, approximating volume for the purposes of collision detection."))
 		((MapId2IntrT,intrs,,Attr::hidden,"Map from otherId to Interaction with otherId, managed by InteractionContainer. NOTE: (currently) does not contain all interactions with this body (only those where otherId>id), since performance issues with such data duplication have not yet been investigated."))

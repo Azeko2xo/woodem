@@ -65,7 +65,12 @@ class Cell: public Serializable{
 	//! "integrate" velGrad, update cached values used by public getter.
 	void integrateAndUpdate(Real dt);
 	/*! Return point inside periodic cell, even if shear is applied */
+	// this method will be deprecated
 	Vector3r wrapShearedPt(const Vector3r& pt) const { return shearPt(wrapPt(unshearPt(pt))); }
+
+	// new name for wrapShearedPt
+	Vector3r canonicalizePt(const Vector3r& pt) const { return wrapShearedPt(pt);}
+
 	/*! Return point inside periodic cell, even if shear is applied; store cell coordinates in period. */
 	Vector3r wrapShearedPt(const Vector3r& pt, Vector3i& period) const { return shearPt(wrapPt(unshearPt(pt),period)); }
 	/*! Apply inverse shear on point; to put it inside (unsheared) periodic cell, apply wrapPt on the returned value. */

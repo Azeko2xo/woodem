@@ -42,10 +42,7 @@ using namespace boost;
 using namespace boost::posix_time;
 using namespace std;
 
-struct DynlibDescriptor{
-	set<string> baseClasses;
-	bool isIndexable, isSerializable;
-};
+struct DynlibDescriptor{ set<string> baseClasses; };
 
 class Omega: public Singleton<Omega>{
 	shared_ptr<ThreadRunner> simulationLoop;

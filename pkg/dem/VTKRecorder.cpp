@@ -31,7 +31,7 @@
 #include<yade/pkg/common/NormShearPhys.hpp>
 
 
-YADE_PLUGIN0((VTKRecorder));
+YADE_PLUGIN(dem,(VTKRecorder));
 CREATE_LOGGER(VTKRecorder);
 
 void VTKRecorder::action(){

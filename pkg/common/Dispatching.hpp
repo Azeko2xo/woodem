@@ -5,8 +5,7 @@
 #include<yade/core/Scene.hpp>
 #include<yade/core/State.hpp>
 #include<yade/core/Shape.hpp>
-#include<yade/core/IGeom.hpp>
-#include<yade/core/IPhys.hpp>
+#include<yade/core/Interaction.hpp>
 #include<yade/core/Functor.hpp>
 #include<yade/core/Dispatcher.hpp>
 #include<yade/pkg/common/Aabb.hpp>

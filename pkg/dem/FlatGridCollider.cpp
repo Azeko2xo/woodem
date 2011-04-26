@@ -6,7 +6,7 @@
 #include<yade/pkg/dem/NewtonIntegrator.hpp>
 //#include<yade/pkg/common/Facet.hpp>
 
-YADE_PLUGIN0((FlatGridCollider));
+YADE_PLUGIN(dem,(FlatGridCollider));
 CREATE_LOGGER(FlatGridCollider);
 
 bool FlatGridCollider::isActivated(){

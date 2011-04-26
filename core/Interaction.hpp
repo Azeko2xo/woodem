@@ -1,8 +1,7 @@
 #pragma once
 #include<yade/lib/serialization/Serializable.hpp>
 // keep those two here, template instantiation & boost::python gets broken otherwise, e.g. https://bugs.launchpad.net/bugs/618766
-#include<yade/core/IGeom.hpp> 
-#include<yade/core/IPhys.hpp>
+#include<yade/core/Interaction.hpp> 
 #include<yade/core/Body.hpp>
 
 
@@ -10,6 +9,24 @@ class IGeomFunctor;
 class IPhysFunctor;
 class LawFunctor;
 class Scene;
+
+class IGeom : public Serializable, public Indexable{
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(IGeom,Serializable,"Geometrical configuration of interaction",
+		/*no attrs*/,/*ctor*/,/*py*/YADE_PY_TOPINDEXABLE(IGeom)
+	);
+	REGISTER_INDEX_COUNTER(IGeom);
+};
+REGISTER_SERIALIZABLE(IGeom);
+
+class IPhys : public Serializable, public Indexable{
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(IPhys,Serializable,"Physical (material) properties of :yref:`interaction<Interaction>`.",
+		/*attrs*/,/*ctor*/,/*py*/YADE_PY_TOPINDEXABLE(IPhys)
+	);
+	REGISTER_INDEX_COUNTER(IPhys);
+};
+REGISTER_SERIALIZABLE(IPhys);
+
+
 
 class Interaction: public Serializable{
 	private:
