@@ -1,3 +1,4 @@
+#error Deprecated header
 // 2009 © Václav Šmilauer <eudoxos@arcig.cz>
 #pragma once
 #include<string>

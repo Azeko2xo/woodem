@@ -31,19 +31,28 @@
 #include<yade/lib/base/Math.hpp>
 #include<yade/lib/base/openmp-accu.hpp>
 
-#include<yade/core/Engine.hpp>
 #include<yade/core/Field.hpp>
+#include<yade/core/Scene.hpp>
 
+#include<yade/pkg/dem/Particle.hpp>
+#include<yade/pkg/dem/ContactLoop.hpp>
+#include<yade/pkg/dem/Collision.hpp>
+
+#include<yade/pkg/dem/ParticleContainer.hpp>
+
+#if 0
+#include<yade/core/Engine.hpp>
 #include<yade/pkg/common/Dispatching.hpp>
-// #include<yade/pkg/common/Callbacks.hpp>
 #include<yade/pkg/dem/SpherePack.hpp>
 #include<yade/pkg/common/KinematicEngines.hpp>
+#include<yade/pkg/common/MatchMaker.hpp>
+#endif
+
+
 #ifdef YADE_OPENGL
 	#include<yade/pkg/common/GLDrawFunctors.hpp>
 	#include<yade/pkg/common/OpenGLRenderer.hpp>
 #endif
-#include<yade/pkg/common/MatchMaker.hpp>
-
 
 
 
@@ -143,6 +152,7 @@ struct custom_vector_from_seq{
 };
 
 
+#if 0
 struct custom_ptrMatchMaker_from_float{
 	custom_ptrMatchMaker_from_float(){ converter::registry::push_back(&convertible,&construct,type_id<shared_ptr<MatchMaker> >()); }
 	static void* convertible(PyObject* obj_ptr){ if(!PyNumber_Check(obj_ptr)) { cerr<<"Not convertible to MatchMaker"<<endl; return 0; } return obj_ptr; }
@@ -154,6 +164,9 @@ struct custom_ptrMatchMaker_from_float{
 		data->convertible=storage;
 	}
 };
+#endif
+
+
 
 #if 0
 template<typename numT, int dim>
@@ -163,6 +176,8 @@ struct custom_numpyBoost_to_py{
 	}
 };
 #endif
+
+
 
 #if 0
 template<typename T>
@@ -199,7 +214,9 @@ BOOST_PYTHON_MODULE(_customConverters){
 	custom_OpenMPAccumulator_from_int(); to_python_converter<OpenMPAccumulator<int>, custom_OpenMPAccumulator_to_int>(); 
 	// todo: OpenMPAccumulator<int>
 
+	#if 0
 	custom_ptrMatchMaker_from_float();
+	#endif
 
 	// StrArrayMap (typedef for std::map<std::string,numpy_boost>) → python dictionary
 	//custom_StrArrayMap_to_dict();
@@ -223,8 +240,19 @@ BOOST_PYTHON_MODULE(_customConverters){
 		VECTOR_SEQ_CONV(Vector6i);
 		VECTOR_SEQ_CONV(Matrix3r);
 		VECTOR_SEQ_CONV(std::string);
-		VECTOR_SEQ_CONV(shared_ptr<Body>);
+		VECTOR_SEQ_CONV(shared_ptr<Node>);
+		VECTOR_SEQ_CONV(shared_ptr<Field>);
+		VECTOR_SEQ_CONV(shared_ptr<Particle>);
+
+		VECTOR_SEQ_CONV(shared_ptr<BoundFunctor>);
+		VECTOR_SEQ_CONV(shared_ptr<CGeomFunctor>);
+		VECTOR_SEQ_CONV(shared_ptr<CPhysFunctor>);
+		VECTOR_SEQ_CONV(shared_ptr<LawFunctor>);
+
 		VECTOR_SEQ_CONV(shared_ptr<Engine>);
+#if 0
+		VECTOR_SEQ_CONV(shared_ptr<NodeData>);
+		VECTOR_SEQ_CONV(shared_ptr<Body>);
 		VECTOR_SEQ_CONV(shared_ptr<Material>);
 		VECTOR_SEQ_CONV(shared_ptr<Interaction>);
 		VECTOR_SEQ_CONV(shared_ptr<Serializable>);
@@ -232,15 +260,9 @@ BOOST_PYTHON_MODULE(_customConverters){
 		VECTOR_SEQ_CONV(shared_ptr<IGeomFunctor>);
 		VECTOR_SEQ_CONV(shared_ptr<IPhysFunctor>);
 		VECTOR_SEQ_CONV(shared_ptr<LawFunctor>);
-		VECTOR_SEQ_CONV(shared_ptr<Node>);
-		VECTOR_SEQ_CONV(shared_ptr<Field>);
-		VECTOR_SEQ_CONV(shared_ptr<NodeData>);
-		// VECTOR_SEQ_CONV(shared_ptr<IntrCallback>);
-		#ifdef YADE_BODY_CALLBACK
-			VECTOR_SEQ_CONV(shared_ptr<BodyCallback>);
-		#endif
 		VECTOR_SEQ_CONV(shared_ptr<SpherePack>);
 		VECTOR_SEQ_CONV(shared_ptr<KinematicEngine>);
+#endif
 		#ifdef YADE_OPENGL
 			VECTOR_SEQ_CONV(shared_ptr<GlBoundFunctor>);
 			VECTOR_SEQ_CONV(shared_ptr<GlStateFunctor>);

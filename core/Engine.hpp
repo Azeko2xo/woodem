@@ -21,7 +21,6 @@
 #define FOREACH BOOST_FOREACH
 #endif
 
-class Body;
 class Scene;
 
 class Engine: public Serializable{

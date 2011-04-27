@@ -527,7 +527,7 @@ env.Append(BUILDERS = {'Combine': env.Builder(action = SCons.Action.Action(combi
 
 import yadeSCons
 allPlugs=yadeSCons.scanAllPlugins(None,feats=env['features'])
-buildPlugs=yadeSCons.getWantedPlugins(allPlugs,[],env['features'],env['chunkSize'],env['hotPlugins'].split(','))
+buildPlugs=yadeSCons.getWantedPlugins(allPlugs,['dem0','common0'],env['features'],env['chunkSize'],env['hotPlugins'].split(','))
 def linkPlugins(plugins):
 	"""Given list of plugins we need to link to, return list of real libraries that we should link to."""
 	ret=set()

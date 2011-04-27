@@ -1,3 +1,4 @@
+#error Deprecated header
 #pragma once
 
 #include<yade/lib/serialization/Serializable.hpp>

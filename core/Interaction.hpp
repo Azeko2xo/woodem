@@ -1,3 +1,4 @@
+#error Deprecated header
 #pragma once
 #include<yade/lib/serialization/Serializable.hpp>
 // keep those two here, template instantiation & boost::python gets broken otherwise, e.g. https://bugs.launchpad.net/bugs/618766

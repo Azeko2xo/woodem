@@ -29,22 +29,27 @@
 #include<yade/lib/pyutil/raw_constructor.hpp>
 #include<yade/lib/pyutil/doc_opts.hpp>
 #include<yade/core/Omega.hpp>
-#include<yade/core/BgThread.hpp>
-#include<yade/core/FileGenerator.hpp>
 #include<yade/core/EnergyTracker.hpp>
+#include<yade/core/Scene.hpp>
+// #include<yade/core/BodyContainer.hpp>
 
 // #include<yade/pkg/dem/STLImporter.hpp>
 
-#include<yade/pkg/common/Dispatching.hpp>
-#include<yade/core/Engine.hpp>
-#include<yade/core/Functor.hpp>
-#include<yade/pkg/common/ParallelEngine.hpp>
-#include<yade/pkg/common/Collider.hpp>
+// #define YADE_LABELED
+// #define YADE_CLUMP
 
-#include<yade/pkg/common/InteractionLoop.hpp>
+#ifdef YADE_LABELED
+	#include<yade/pkg/common/Dispatching.hpp>
+	#include<yade/core/Engine.hpp>
+	#include<yade/core/Functor.hpp>
+	#include<yade/pkg/common/Collider.hpp>
+	#include<yade/pkg/common/ParallelEngine.hpp>
+	#include<yade/pkg/common/InteractionLoop.hpp>
+#endif
 
-// #include<yade/pkg/dem/Shop.hpp>
+#ifdef YADE_CLUMP
 #include<yade/pkg/dem/Clump.hpp>
+#endif
 
 // local copy
 #include<boost/math/nonfinite_num_facets.hpp>
@@ -64,6 +69,7 @@ namespace py = boost::python;
 	log4cxx::LoggerPtr logger=log4cxx::Logger::getLogger("yade.python");
 #endif
 
+#if 0
 /*
 Python normally iterates over object it is has __getitem__ and __len__, which BodyContainer does.
 However, it will not skip removed bodies automatically, hence this iterator which does just that.
@@ -117,6 +123,7 @@ class pyBodyContainer{
 		#endif
 		vector<Body::id_t> ret; FOREACH(shared_ptr<Body>& b, bb){ret.push_back(append(b));} return ret;
 	}
+#ifdef YADE_CLUMP
 	Body::id_t clump(vector<Body::id_t> ids){
 		// create and add clump itself
 		shared_ptr<Body> clumpBody=shared_ptr<Body>(new Body());
@@ -136,12 +143,13 @@ class pyBodyContainer{
 		// clump them together (the clump fcn) and return
 		return python::make_tuple(clump(ids),ids);
 	}
+#endif
 	vector<Body::id_t> replace(vector<shared_ptr<Body> > bb){proxee->clear(); return appendList(bb);}
 	long length(){return proxee->size();}
 	void clear(){proxee->clear();}
 	bool erase(Body::id_t id){ return proxee->erase(id); }
 };
-
+#endif
 
 class pyTags{
 	public:
@@ -174,7 +182,7 @@ class pyTags{
 		}
 };
 
-
+#if 0
 class pyInteractionIterator{
 	InteractionContainer::iterator I, Iend;
 	public:
@@ -221,7 +229,9 @@ class pyInteractionContainer{
 		void eraseNonReal(){ proxee->eraseNonReal(); }
 		void erase(Body::id_t id1, Body::id_t id2){ proxee->requestErase(id1,id2); }
 };
+#endif
 
+#if 0
 class pyForceContainer{
 		shared_ptr<Scene> scene;
 	public:
@@ -254,6 +264,7 @@ class pyMaterialContainer{
 		int len(){ return (int)scene->materials.size(); }
 		int index(const std::string& label){ return Material::byLabelIndex(label,scene.get()); }
 };
+#endif
 
 void termHandlerNormal(int sig){cerr<<"Yade: normal exit."<<endl; raise(SIGTERM);}
 void termHandlerError(int sig){cerr<<"Yade: error exit."<<endl; raise(SIGTERM);}
@@ -275,6 +286,8 @@ class pyOmega{
 			OMEGA.createSimulationLoop();
 		}
 	};
+
+#ifdef YADE_LABELED
 	/* Create variables in python's __builtin__ namespace that correspond to labeled objects. At this moment, only engines and functors can be labeled (not bodies etc). */
 	void mapLabeledEntitiesToVariables(){
 		// not sure if we should map materials to variables by default...
@@ -322,8 +335,9 @@ class pyOmega{
 		}
 		throw std::invalid_argument(string("No engine labeled `")+label+"'");
 	}
+#endif
 
-	long iter(){ return OMEGA.getScene()->iter;}
+	long iter(){ return OMEGA.getScene()->step;}
 	int subStep(){ return OMEGA.getScene()->subStep; }
 	bool subStepping_get(){ return OMEGA.getScene()->subStepping; }
 	void subStepping_set(bool val){ OMEGA.getScene()->subStepping=val; }
@@ -333,32 +347,22 @@ class pyOmega{
 	double dt_get(){return OMEGA.getScene()->dt;}
 	void dt_set(double dt){
 		Scene* scene=OMEGA.getScene().get();
-		#if 0
-		// activate timestepper, if possible (throw exception if there is none)
-		if(dt<0){ if(!scene->timeStepperActivate(true)) /* not activated*/ throw runtime_error("No TimeStepper found in O.engines."); }
-		else { scene->timeStepperActivate(false); scene->dt=dt; }
-		#endif
 		scene->dt=dt;
 	}
-	//bool dynDt_get(){return OMEGA.getScene()->timeStepperActive();}
-	//bool dynDtAvailable_get(){ return OMEGA.getScene()->timeStepperPresent(); }
-	long stopAtIter_get(){return OMEGA.getScene()->stopAtIter; }
-	void stopAtIter_set(long s){OMEGA.getScene()->stopAtIter=s; }
+	long stopAtIter_get(){return OMEGA.getScene()->stopAtStep; }
+	void stopAtIter_set(long s){OMEGA.getScene()->stopAtStep=s; }
 
 
 	bool timingEnabled_get(){return TimingInfo::enabled;}
 	void timingEnabled_set(bool enabled){TimingInfo::enabled=enabled;}
-	// deprecated:
-		unsigned long forceSyncCount_get(){ return OMEGA.getScene()->forces.syncCount;}
-		void forceSyncCount_set(unsigned long count){ OMEGA.getScene()->forces.syncCount=count;}
 
 	void run(long int numIter=-1,bool doWait=false){
 		Scene* scene=OMEGA.getScene().get();
-		if(numIter>0) scene->stopAtIter=scene->iter+numIter;
+		if(numIter>0) scene->stopAtStep=scene->step+numIter;
 		OMEGA.run();
 		// timespec t1,t2; t1.tv_sec=0; t1.tv_nsec=40000000; /* 40 ms */
 		// while(!OMEGA.isRunning()) nanosleep(&t1,&t2); // wait till we start, so that calling wait() immediately afterwards doesn't return immediately
-		LOG_DEBUG("RUN"<<((scene->stopAtIter-scene->iter)>0?string(" ("+lexical_cast<string>(scene->stopAtIter-scene->iter)+" to go)"):string(""))<<"!");
+		LOG_DEBUG("RUN"<<((scene->stopAtStep-scene->step)>0?string(" ("+lexical_cast<string>(scene->stopAtStep-scene->step)+" to go)"):string(""))<<"!");
 		if(doWait) wait();
 	}
 	void pause(){Py_BEGIN_ALLOW_THREADS; OMEGA.pause(); Py_END_ALLOW_THREADS; LOG_DEBUG("PAUSE!");}
@@ -375,7 +379,9 @@ class pyOmega{
 		Py_BEGIN_ALLOW_THREADS; OMEGA.stop(); Py_END_ALLOW_THREADS; 
 		OMEGA.loadSimulation(fileName,quiet);
 		OMEGA.createSimulationLoop();
-		mapLabeledEntitiesToVariables();
+		#if YADE_LABELED
+			mapLabeledEntitiesToVariables();
+		#endif
 	}
 	void reload(bool quiet=false){	load(OMEGA.sceneFile,quiet);}
 	void saveTmp(string mark="", bool quiet=false){ save(":memory:"+mark,quiet);}
@@ -397,7 +403,7 @@ class pyOmega{
 
 	void reset(){Py_BEGIN_ALLOW_THREADS; OMEGA.reset(); Py_END_ALLOW_THREADS; }
 	void resetThisScene(){Py_BEGIN_ALLOW_THREADS; OMEGA.stop(); Py_END_ALLOW_THREADS; OMEGA.resetScene(); OMEGA.createSimulationLoop();}
-	void resetTime(){ OMEGA.getScene()->iter=0; OMEGA.getScene()->time=0; OMEGA.timeInit(); }
+	void resetTime(){ OMEGA.getScene()->step=0; OMEGA.getScene()->time=0; OMEGA.timeInit(); }
 	void switchScene(){ std::swap(OMEGA.scene,OMEGA.sceneAnother); }
 	shared_ptr<Scene> scene_get(){ return OMEGA.getScene(); }
 
@@ -407,6 +413,7 @@ class pyOmega{
 		// OMEGA.sceneFile=fileName; // done in Omega::saveSimulation;
 	}
 	
+	#if 0
 	python::list miscParams_get(){
 		python::list ret;
 		FOREACH(shared_ptr<Serializable>& s, OMEGA.getScene()->miscParams){
@@ -422,29 +429,31 @@ class pyOmega{
 			miscParams.push_back(s);
 		}
 	}
-
+	#endif
 
 	vector<shared_ptr<Engine> > engines_get(void){assertScene(); Scene* scene=OMEGA.getScene().get(); return scene->_nextEngines.empty()?scene->engines:scene->_nextEngines;}
 	void engines_set(const vector<shared_ptr<Engine> >& egs){
 		assertScene(); Scene* scene=OMEGA.getScene().get();
 		if(scene->subStep<0) scene->engines=egs; // not inside the engine loop right now, ok to update directly
 		else scene->_nextEngines=egs; // inside the engine loop, update _nextEngines; O.engines picks that up automatically, and Scene::moveToNextTimestep will put them in place of engines at the start of the next loop
-		mapLabeledEntitiesToVariables();
+		#ifdef YADE_LABELED
+			mapLabeledEntitiesToVariables();
+		#endif
 	}
 	// raw access to engines/_nextEngines, for debugging
 	vector<shared_ptr<Engine> > currEngines_get(){ return OMEGA.getScene()->engines; }
 	vector<shared_ptr<Engine> > nextEngines_get(){ return OMEGA.getScene()->_nextEngines; }
 
+	#if 0
 	pyBodyContainer bodies_get(void){assertScene(); return pyBodyContainer(OMEGA.getScene()->bodies); }
 	pyInteractionContainer interactions_get(void){assertScene(); return pyInteractionContainer(OMEGA.getScene()->interactions); }
+	pyForceContainer forces_get(void){return pyForceContainer(OMEGA.getScene());}
+	pyMaterialContainer materials_get(void){return pyMaterialContainer(OMEGA.getScene());}
+	#endif
 
 	shared_ptr<Field> field_get(){ return OMEGA.getScene()->field; }
 	void field_set(shared_ptr<Field> f){ OMEGA.getScene()->field=f; }
 	
-	pyForceContainer forces_get(void){return pyForceContainer(OMEGA.getScene());}
-	pyMaterialContainer materials_get(void){return pyMaterialContainer(OMEGA.getScene());}
-	
-
 	python::list listChildClassesNonrecursive(const string& base){
 		python::list ret;
 		for(map<string,DynlibDescriptor>::const_iterator di=Omega::instance().getDynlibsDescriptor().begin();di!=Omega::instance().getDynlibsDescriptor().end();++di) if (Omega::instance().isInheritingFrom((*di).first,base)) ret.append(di->first);
@@ -540,26 +549,30 @@ BOOST_PYTHON_MODULE(wrapper)
 		.def("reset",&pyOmega::reset,"Reset simulations completely (including another scene!).")
 		.def("resetThisScene",&pyOmega::resetThisScene,"Reset current scene.")
 		.def("switchScene",&pyOmega::switchScene,"Switch to alternative simulation (while keeping the old one). Calling the function again switches back to the first one. Note that most variables from the first simulation will still refer to the first simulation even after the switch\n(e.g. b=O.bodies[4]; O.switchScene(); [b still refers to the body in the first simulation here])")
-		.def("labeledEngine",&pyOmega::labeled_engine_get,"Return instance of engine/functor with the given label. This function shouldn't be called by the user directly; every ehange in O.engines will assign respective global python variables according to labels.\n\nFor example::\n\tO.engines=[InsertionSortCollider(label='collider')]\n\tcollider.nBins=5 ## collider has become a variable after assignment to O.engines automatically)")
+		#if YADE_LABELED
+			.def("labeledEngine",&pyOmega::labeled_engine_get,"Return instance of engine/functor with the given label. This function shouldn't be called by the user directly; every ehange in O.engines will assign respective global python variables according to labels.\n\nFor example::\n\tO.engines=[InsertionSortCollider(label='collider')]\n\tcollider.nBins=5 ## collider has become a variable after assignment to O.engines automatically)")
+		#endif
 		.def("resetTime",&pyOmega::resetTime,"Reset simulation time: step number, virtual and real time. (Doesn't touch anything else, including timings).")
 		.def("plugins",&pyOmega::plugins_get,"Return list of all plugins registered in the class factory.")
 		.def("_sceneObj",&pyOmega::scene_get,"Return the :yref:`scene <Scene>` object. Debugging only, all (or most) :yref:`Scene` functionality is proxies through :yref:`Omega`.")
 		.add_property("engines",&pyOmega::engines_get,&pyOmega::engines_set,"List of engines in the simulation (Scene::engines).")
 		.add_property("_currEngines",&pyOmega::currEngines_get,"Currently running engines; debugging only!")
 		.add_property("_nextEngines",&pyOmega::nextEngines_get,"Engines for the next step, if different from the current ones, otherwise empty; debugging only!")
+	#if 0
 		.add_property("miscParams",&pyOmega::miscParams_get,&pyOmega::miscParams_set,"MiscParams in the simulation (Scene::mistParams), usually used to save serializables that don't fit anywhere else, like GL functors")
 		.add_property("bodies",&pyOmega::bodies_get,"Bodies in the current simulation (container supporting index access by id and iteration)")
-		.add_property("field",&pyOmega::field_get,&pyOmega::field_set,"Get field associated with the scene")
 		.add_property("interactions",&pyOmega::interactions_get,"Interactions in the current simulation (container supporting index acces by either (id1,id2) or interactionNumber and iteration)")
 		.add_property("materials",&pyOmega::materials_get,"Shared materials; they can be accessed by id or by label")
 		.add_property("forces",&pyOmega::forces_get,":yref:`ForceContainer` (forces, torques, displacements) in the current simulation.")
+		.add_property("forceSyncCount",&pyOmega::forceSyncCount_get,&pyOmega::forceSyncCount_set,"Counter for number of syncs in ForceContainer, for profiling purposes.")
+	#endif
+		.add_property("field",&pyOmega::field_get,&pyOmega::field_set,"Get field associated with the scene")
 		.add_property("energy",&pyOmega::energy_get,":yref:`EnergyTracker` of the current simulation. (meaningful only with :yref:`O.trackEnergy<Omega.trackEnergy>`)")
 		.add_property("trackEnergy",&pyOmega::trackEnergy_get,&pyOmega::trackEnergy_set,"When energy tracking is enabled or disabled in this simulation.")
 		.add_property("tags",&pyOmega::tags_get,"Tags (string=string dictionary) of the current simulation (container supporting string-index access/assignment)")
 		.def("childClassesNonrecursive",&pyOmega::listChildClassesNonrecursive,"Return list of all classes deriving from given class, as registered in the class factory")
 		.def("isChildClassOf",&pyOmega::isChildClassOf,"Tells whether the first class derives from the second one (both given as strings).")
 		.add_property("timingEnabled",&pyOmega::timingEnabled_get,&pyOmega::timingEnabled_set,"Globally enable/disable timing services (see documentation of the :yref:`timing module<yade.timing>`).")
-		.add_property("forceSyncCount",&pyOmega::forceSyncCount_get,&pyOmega::forceSyncCount_set,"Counter for number of syncs in ForceContainer, for profiling purposes.")
 		.add_property("numThreads",&pyOmega::numThreads_get /* ,&pyOmega::numThreads_set*/ ,"Get maximum number of threads openMP can use.")
 		.add_property("cell",&pyOmega::cell_get,"Periodic cell of the current scene (None if the scene is aperiodic).")
 		.add_property("periodic",&pyOmega::periodic_get,&pyOmega::periodic_set,"Get/set whether the scene is periodic or not (True/False).")
@@ -573,14 +586,17 @@ BOOST_PYTHON_MODULE(wrapper)
 		.def("__setitem__",&pyTags::setItem)
 		.def("keys",&pyTags::keys)
 		.def("has_key",&pyTags::hasKey);
+#if 0
 	python::class_<pyBodyContainer>("BodyContainer",python::init<pyBodyContainer&>())
 		.def("__getitem__",&pyBodyContainer::pyGetitem)
 		.def("__len__",&pyBodyContainer::length)
 		.def("__iter__",&pyBodyContainer::pyIter)
 		.def("append",&pyBodyContainer::append,"Append one Body instance, return its id.")
 		.def("append",&pyBodyContainer::appendList,"Append list of Body instance, return list of ids")
-		.def("appendClumped",&pyBodyContainer::appendClump,"Append given list of bodies as a clump (rigid aggregate); return list of ids.")
-		.def("clump",&pyBodyContainer::clump,"Clump given bodies together (creating a rigid aggregate); returns clump id.")
+		#ifdef YADE_CLUMP
+			.def("appendClumped",&pyBodyContainer::appendClump,"Append given list of bodies as a clump (rigid aggregate); return list of ids.")
+			.def("clump",&pyBodyContainer::clump,"Clump given bodies together (creating a rigid aggregate); returns clump id.")
+		#endif
 		.def("clear", &pyBodyContainer::clear,"Remove all bodies (interactions not checked)")
 		.def("erase", &pyBodyContainer::erase,"Erase body with the given id; all interaction will be deleted by InteractionLoop in the next step.")
 		.def("replace",&pyBodyContainer::replace);
@@ -615,7 +631,6 @@ BOOST_PYTHON_MODULE(wrapper)
 		.def("addRot",&pyForceContainer::rot_add,(python::arg("id"),python::arg("r")),"Apply rotation on body (accumulates).")
 		.add_property("syncCount",&pyForceContainer::syncCount_get,&pyForceContainer::syncCount_set,"Number of synchronizations  of ForceContainer (cummulative); if significantly higher than number of steps, there might be unnecessary syncs hurting performance.")
 		;
-
 	python::class_<pyMaterialContainer>("MaterialContainer","Container for :yref:`Materials<Material>`. A material can be accessed using \n\n #. numerical index in range(0,len(cont)), like cont[2]; \n #. textual label that was given to the material, like cont['steel']. This etails traversing all materials and should not be used frequently.",python::init<pyMaterialContainer&>())
 		.def("append",&pyMaterialContainer::append,"Add new shared :yref:`Material`; changes its id and return it.")
 		.def("append",&pyMaterialContainer::appendList,"Append list of :yref:`Material` instances, return list of ids.")
@@ -623,9 +638,7 @@ BOOST_PYTHON_MODULE(wrapper)
 		.def("__getitem__",&pyMaterialContainer::getitem_id)
 		.def("__getitem__",&pyMaterialContainer::getitem_label)
 		.def("__len__",&pyMaterialContainer::len);
-
-	// python::class_<STLImporter>("STLImporter").def("ymport",&STLImporter::import);
-
+#endif
 //////////////////////////////////////////////////////////////
 ///////////// proxyless wrappers 
 	Serializable().pyRegisterClass(python::scope());

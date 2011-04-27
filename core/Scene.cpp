@@ -8,7 +8,7 @@
 *  GNU General Public License v2 or later. See file LICENSE for details. *
 *************************************************************************/
 
-#include"Scene.hpp"
+#include<yade/core/Scene.hpp>
 #include<yade/core/Engine.hpp>
 #include<yade/core/Timing.hpp>
 
@@ -17,8 +17,8 @@
 #include<boost/date_time/posix_time/posix_time.hpp>
 #include<boost/algorithm/string.hpp>
 
-#include<yade/core/BodyContainer.hpp>
-#include<yade/core/InteractionContainer.hpp>
+//#include<yade/core/BodyContainer.hpp>
+//#include<yade/core/InteractionContainer.hpp>
 
 
 // POSIX-only
@@ -55,6 +55,7 @@ void Scene::fillDefaultTags(){
 
 
 void Scene::postLoad(Scene&){
+#if 0
 	// update the interaction container; must be done in Scene ctor as well; important!
 	interactions->postLoad__calledFromScene(bodies);
 
@@ -63,6 +64,7 @@ void Scene::postLoad(Scene&){
 		if(!b || !b->material || b->material->id<0) continue; // not a shared material
 		if(b->material!=materials[b->material->id]) throw std::logic_error("Scene::postLoad: Internal inconsistency, shared materials not preserved when loaded; please report bug.");
 	}
+#endif
 }
 
 
@@ -70,7 +72,7 @@ void Scene::postLoad(Scene&){
 void Scene::moveToNextTimeStep(){
 	if(runInternalConsistencyChecks){
 		runInternalConsistencyChecks=false;
-		checkStateTypes();
+		// checkStateTypes();
 	}
 	// substepping or not, update engines from _nextEngines, if defined, at the beginning of step
 	// subStep can be 0, which happens if simulations is saved in the middle of step (without substepping)
@@ -97,7 +99,7 @@ void Scene::moveToNextTimeStep(){
 			if(unlikely(TimingInfo_enabled)) {TimingInfo::delta now=TimingInfo::getNow(); e->timingInfo.nsec+=now-last; e->timingInfo.nExec+=1; last=now;}
 		}
 		// ** 3. ** epilogue
-		iter++;
+		step++;
 		time+=dt;
 		subStep=-1;
 	} else {
@@ -115,7 +117,7 @@ void Scene::moveToNextTimeStep(){
 			// ** 2. ** engines
 			else if(subs>=0 && subs<(int)engines.size()){ const shared_ptr<Engine>& e(engines[subs]); e->scene=this; if(!e->dead && e->isActivated()) e->action(); }
 			// ** 3. ** epilogue
-			else if(subs==(int)engines.size()){ iter++; time+=dt; /* gives -1 along with the increment afterwards */ subStep=-2; }
+			else if(subs==(int)engines.size()){ step++; time+=dt; /* gives -1 along with the increment afterwards */ subStep=-2; }
 			// (?!)
 			else { /* never reached */ assert(false); }
 		}
@@ -124,15 +126,16 @@ void Scene::moveToNextTimeStep(){
 }
 
 
-
+#if 0
 shared_ptr<Engine> Scene::engineByName(const string& s){
 	FOREACH(shared_ptr<Engine> e, engines){
 		if(e->getClassName()==s) return e;
 	}
 	return shared_ptr<Engine>();
 }
+#endif
 
-
+#if 0
 void Scene::checkStateTypes(){
 	FOREACH(const shared_ptr<Body>& b, *bodies){
 		if(!b || !b->material) continue;
@@ -162,3 +165,4 @@ void Scene::updateBound(){
 	}
 	bound->min=mn; bound->max=mx;
 }
+#endif

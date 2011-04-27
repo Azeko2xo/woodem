@@ -72,7 +72,10 @@ from wrapper import *
 # import to separate namespace to be able to call dir(miniEigen) and dir(wrapper) below
 import miniEigen,wrapper 
 # out-of-class docstrings for some classes
-import _extraDocs
+try:
+	import _extraDocs
+except AttributeError:
+	print 'WARN: Error importing py/_extraDocs.py'
 # import a few "important" modules along with *
 #import utils # some others?
 __all__+=[]+dir(miniEigen)+dir(wrapper)

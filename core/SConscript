@@ -21,22 +21,22 @@ env.Install('$LIBDIR/py/yade',[
 env.Install('$LIBDIR/lib',[
 	env.SharedLibrary('core',
 		env.Combine('core.cpp',[
-			'Body.cpp',
-			'BodyContainer.cpp',
+			#'Body.cpp',
+			#'BodyContainer.cpp',
 			'Cell.cpp',
 			'EnergyTracker.cpp',
 			'Engine.cpp',
-			'FileGenerator.cpp',
-			'Interaction.cpp',
-			'InteractionContainer.cpp',
-			'Material.cpp',
+			#'FileGenerator.cpp',
+			#'Interaction.cpp',
+			#'InteractionContainer.cpp',
+			#'Material.cpp',
 			'Scene.cpp',
 			'Dispatcher.cpp',
 			'Omega.cpp',
-			'Shape.cpp',
+			#'Shape.cpp',
 			'BgThread.cpp',
-			'State.cpp',
-			'corePlugins.cpp'			
+			#'State.cpp',
+			'corePlugins.cpp'
 			]
 			),
 		LIBS=env['LIBS']+[

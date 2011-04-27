@@ -55,6 +55,7 @@ def scanAllPlugins(cacheFile,feats):
 		for root, dirs, files in os.walk('pkg/',topdown=True):
 			for f in files:
 				if not (f.endswith('.cpp') or f.endswith('.cc') or f.endswith('C')): continue
+				if 'dem0' in root or 'common0' in root: continue
 				ff=root+'/'+f
 				linkDeps,featureDeps=set(),set()
 				isPlugin=True # False
@@ -90,6 +91,7 @@ def scanAllPlugins(cacheFile,feats):
 	pp={}
 	for p in plugInfo.keys(): pp[p]=plugInfo[p]
 	if cacheFile: plugInfo.close()
+	#print pp
 	return pp
 
 def getWantedPlugins(plugInfo,excludes,features,chunkSize,hotPlugins):
@@ -112,9 +114,8 @@ def getWantedPlugins(plugInfo,excludes,features,chunkSize,hotPlugins):
 
 def getPluginObj(plug,chunkSize,hotPlugins):
 	"""Return name of library this plugin will be compiled into, based on current chunkSize."""
-	if   chunkSize==1: return plug.name
-	#elif linkStrategy=='per-pkg': return plug.module
-	elif chunkSize>1 or chunkSize<=0:
+	if   chunkSize==0: return plug.name
+	elif chunkSize>1 or chunkSize<=1:
 		if plug.name in hotPlugins: return plug.name
 		else: return 'plugins'
 	#elif linkStrategy=='static': return 'plugins'
@@ -145,6 +146,7 @@ def buildPluginLibs(env,plugInfo):
 		if len(srcs)>1:
 			if len(srcs)<chunkSize or chunkSize<=0: srcs=env.CombineWrapper('$buildDir/'+obj+'.cpp',srcs)
 			# thanks to http://stackoverflow.com/questions/312443/how-do-you-split-a-list-into-evenly-sized-chunks-in-python :
+			elif chunkSize==1: pass # srcs=srcs
 			else: srcs=[env.CombineWrapper('$buildDir/'+obj+'%d.cpp'%j,srcs[i:i+chunkSize]) for j,i in enumerate(range(0,len(srcs),chunkSize))]
 		#if linkStrategy!='static':
 		env.Install('$LIBDIR/plugins',env.SharedLibrary(obj,srcs,LIBS=env['LIBS']+['yade-support','core']+list(objs[obj][1])))

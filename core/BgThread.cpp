@@ -99,6 +99,6 @@ void SimulationFlow::singleAction()
 	if (!scene) throw logic_error("SimulationFlow::singleAction: no Scene object?!");
 	if(scene->subStepping) { LOG_INFO("Sub-stepping disabled when running simulation continuously."); scene->subStepping=false; }
 	scene->moveToNextTimeStep();
-	if(scene->stopAtIter>0 && scene->iter==scene->stopAtIter) setTerminate(true);
+	if(scene->stopAtStep>0 && scene->step==scene->stopAtStep) setTerminate(true);
 };
 

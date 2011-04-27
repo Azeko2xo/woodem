@@ -4,29 +4,28 @@ linkPlugins=env['linkPlugins']
 import os.path 
 
 env.Install('$LIBDIR/py/yade',[
-	env.SharedLibrary('WeightedAverage2d',['WeightedAverage2d.cpp'],SHLIBPREFIX=''),
-	env.SharedLibrary('_eudoxos',['_eudoxos.cpp'],SHLIBPREFIX='',CXXFLAGS=env['CXXFLAGS']+([] if not os.path.exists('../../brefcom-mm.hh') else ['-include','../brefcom-mm.hh']),LIBS=env['LIBS']+[
-		linkPlugins(['Shop']),
-		]),
+	#env.SharedLibrary('WeightedAverage2d',['WeightedAverage2d.cpp'],SHLIBPREFIX=''),
+	#env.SharedLibrary('_eudoxos',['_eudoxos.cpp'],SHLIBPREFIX='',CXXFLAGS=env['CXXFLAGS']+([] if not os.path.exists('../../brefcom-mm.hh') else ['-include','../brefcom-mm.hh']),LIBS=env['LIBS']+[
+	#	linkPlugins(['Shop']),
+	#	]),
 	env.SharedLibrary('log',['log.cpp'],SHLIBPREFIX=''),
-	env.SharedLibrary('_utils',['_utils.cpp'],SHLIBPREFIX='',LIBS=env['LIBS']+[
-		linkPlugins(['Shop','Facet']),
-		]),
-	env.SharedLibrary('_packPredicates',['pack/_packPredicates.cpp'],SHLIBPREFIX='',
-		# link to the symlink to the python module (created in lib/SConstruct; see explanation there)
-		LIBS=env['LIBS']+(['_gts__python-module'] if 'YADE_GTS' in env['CPPDEFINES'] else []),
-		),
-	env.SharedLibrary('_packSpheres',['pack/_packSpheres.cpp'],SHLIBPREFIX='',LIBS=env['LIBS']+[
-		linkPlugins(['Shop','SpherePack']),
-		]),
-	# include SpherePadder only optionally
-	env.SharedLibrary('_packObb',['pack/_packObb.cpp'],SHLIBPREFIX=''),
+	#env.SharedLibrary('_utils',['_utils.cpp'],SHLIBPREFIX='',LIBS=env['LIBS']+[
+	#	linkPlugins(['Shop','Facet']),
+	#	]),
+	#env.SharedLibrary('_packPredicates',['pack/_packPredicates.cpp'],SHLIBPREFIX='',
+	#	# link to the symlink to the python module (created in lib/SConstruct; see explanation there)
+	#	LIBS=env['LIBS']+(['_gts__python-module'] if 'YADE_GTS' in env['CPPDEFINES'] else []),
+	#	),
+	#env.SharedLibrary('_packSpheres',['pack/_packSpheres.cpp'],SHLIBPREFIX='',LIBS=env['LIBS']+[
+	#	linkPlugins(['Shop','SpherePack']),
+	#	]),
+	#env.SharedLibrary('_packObb',['pack/_packObb.cpp'],SHLIBPREFIX=''),
 	env.AlwaysBuild(env.ScanReplace('__init__.py.in')),
 	env.AlwaysBuild(env.ScanReplace('config.py.in')),
 	env.File(env.Glob('*.py')),
 	env.File('pack/pack.py'),
-	env.SharedLibrary('wrapper',['wrapper/yadeWrapper.cpp'],SHLIBPREFIX='',LIBS=linkPlugins(['Shop','Dispatching','InteractionLoop','ParallelEngine','Clump'])),
-	env.SharedLibrary('_customConverters',['wrapper/customConverters.cpp'],SHLIBPREFIX='',LIBS=env['LIBS']+linkPlugins(['Dispatching','MatchMaker']+(['GLDrawFunctors','OpenGLRenderer'] if 'opengl' in env['features'] else [])))
+	env.SharedLibrary('wrapper',['wrapper/wrapper.cpp'],SHLIBPREFIX=''), #,LIBS=linkPlugins(['Shop','Dispatching','InteractionLoop','ParallelEngine','Clump'])),
+	env.SharedLibrary('_customConverters',['wrapper/customConverters.cpp'],SHLIBPREFIX='',LIBS=env['LIBS']) #+linkPlugins(['Dispatching','MatchMaker']+(['GLDrawFunctors','OpenGLRenderer'] if 'opengl' in env['features'] else [])))
 ])
 env.Install('$LIBDIR/py/yade/tests',[
 	env.File(env.Glob('tests/*.py'),'tests'),
