@@ -2,7 +2,6 @@
 #pragma once
 
 #include<yade/lib/serialization/Serializable.hpp>
-#include<yade/pkg/dem/Particle.hpp>
 
 #include<boost/foreach.hpp>
 #ifndef FOREACH
@@ -36,12 +35,18 @@
 	#endif
 #endif
 
+namespace py=boost::python;
+
+class Particle;
+class DemField;
+
 /*
 Container of particles implemented as flat std::vector. It handles parts removal and
 intelligently reallocates free ids for newly added ones.
 */
-class ParticleContainer: public Serializable{
-	typedef Particle::id_t id_t;
+struct ParticleContainer: public Serializable{
+	DemField* dem; // backptr to DemField, set by DemField::postLoad; do not modify!
+	typedef int id_t;
 	private:
 		typedef std::vector<shared_ptr<Particle> > ContainerT;
 		// ContainerT parts;

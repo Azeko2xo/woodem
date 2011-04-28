@@ -1,6 +1,8 @@
 #pragma once
 #include<yade/core/Field.hpp>
 #include<yade/core/Scene.hpp>
+#include<yade/pkg/dem/ParticleContainer.hpp>
+#include<yade/pkg/dem/ContactContainer.hpp>
 
 // namespace yade{namespace dem{
 
@@ -13,7 +15,7 @@ class ParticleContainer;
 
 struct Particle: public Serializable{
 	shared_ptr<Contact> findContactWith(const shared_ptr<Particle>& other);
-	typedef int id_t;
+	typedef ParticleContainer::id_t id_t;
 	typedef std::map<id_t,shared_ptr<Contact> > MapParticleContact;
 	py::dict pyContacts();
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Particle,Serializable,"Particle in DEM",
@@ -27,16 +29,17 @@ struct Particle: public Serializable{
 };
 REGISTER_SERIALIZABLE(Particle);
 
-
 struct DemField: public Field{
-	void addContact(shared_ptr<Contact>);
-	void removeContact(shared_ptr<Contact>);
-	shared_ptr<Contact> findContact(Particle::id_t idA, Particle::id_t idB);
-	void removePending(){ /* stub */ }
+	__attribute__((deprecated)) void addContact(shared_ptr<Contact> c){ return contacts.add(c); }
+	__attribute__((deprecated)) void removeContact(shared_ptr<Contact> c){ return contacts.remove(c); }
+	__attribute__((deprecated)) shared_ptr<Contact> findContact(Particle::id_t idA, Particle::id_t idB){ return contacts.find(idA,idB); }
+	__attribute__((deprecated)) void removePending(){ /* stub */ }
 
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR(DemField,Field,"Field describing a discrete element assembly. Each body references (possibly many) nodes by their index in :yref:`Field.nodes` and :yref:`Field.nodalData`. ",
-		((shared_ptr<ParticleContainer>,particles,,Attr::noGui,"Particles (each particle holds its contacts, and references associated nodes)"))
-		, /* ctor */ createIndex();
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(DemField,Field,"Field describing a discrete element assembly. Each body references (possibly many) nodes by their index in :yref:`Field.nodes` and :yref:`Field.nodalData`. ",
+		((ParticleContainer,particles,,(Attr::pyByRef|Attr::readonly),"Particles (each particle holds its contacts, and references associated nodes)"))
+		((ContactContainer,contacts,,(Attr::pyByRef|Attr::readonly),"Linear view on particle contacts"))
+		, /* ctor */ createIndex(); particles.dem=this; contacts.dem=this; contacts.particles=&particles;
+		, /*py*/
 	);
 	REGISTER_CLASS_INDEX(DemField,Field);
 };
@@ -69,13 +72,14 @@ struct Contact: public Serializable{
 		((shared_ptr<Node>,node,,Attr::readonly,"Node at the contact point"))
 		((shared_ptr<CGeom>,geom,,Attr::readonly,"Contact geometry"))
 		((shared_ptr<CPhys>,phys,,Attr::readonly,"Physical properties of contact"))
-		((Vector3r,force,Vector3r::Zero(),,"Force applied on the first particle in the contact"))
-		((Vector3r,torque,Vector3r::Zero(),,"Torque applied on the first particle in the contact"))
+		//((Vector3r,force,Vector3r::Zero(),,"Force applied on the first particle in the contact"))
+		//((Vector3r,torque,Vector3r::Zero(),,"Torque applied on the first particle in the contact"))
 		((shared_ptr<Particle>,pA,,Attr::readonly,"First particle of the contact"))
 		((shared_ptr<Particle>,pB,,Attr::readonly,"Second particle of the contact"))
 		((Vector3i,cellDist,Vector3i::Zero(),Attr::readonly,"Distace in the number of periodic cells by which pB must be shifted to get to the right relative position."))
 		((int,stepLastSeen,-1,Attr::hidden,""))
 		((int,stepMadeReal,-1,Attr::hidden,""))
+		((size_t,linIx,0,Attr::hidden,"Position in the linear view (ContactContainer)"))
 		, /*ctor*/
 		, /*py*/ .add_property("id1",&Contact::pyId1).add_property("id2",&Contact::pyId2)
 	);

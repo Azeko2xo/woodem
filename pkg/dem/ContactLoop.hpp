@@ -62,15 +62,13 @@ REGISTER_SERIALIZABLE(LawDispatcher);
 class ContactLoop: public GlobalEngine {
 	// store interactions that should be deleted after loop in action, not later
 	shared_ptr<DemField> field;
-#if 0
 	#ifdef YADE_OPENMP
-		vector<list<idPair> > eraseAfterLoopObj;
-		void eraseAfterLoop(const shared_ptr<Contact>& c){ eraseAfterLoopIds[omp_get_thread_num()].push_back(idPair(id1,id2)); }
+		vector<list<shared_ptr<Contact> > > removeAfterLoopRefs;
+		void removeAfterLoop(const shared_ptr<Contact>& c){ removeAfterLoopRefs[omp_get_thread_num()].push_back(c); }
 	#else
-		list<shared_ptr<Contact> > eraseAfterLoopObj;
-		void eraseAfterLoop(const shared_ptr<Contact>& c){ eraseAfterLoopObj.push_back(c); }
+		list<shared_ptr<Contact> > removeAfterLoopRefs;
+		void removeAfterLoop(const shared_ptr<Contact>& c){ removeAfterLoopRefs.push_back(c); }
 	#endif
-#endif
 	public:
 		virtual void pyHandleCustomCtorArgs(python::tuple& t, python::dict& d);
 		virtual void action();
@@ -78,13 +76,14 @@ class ContactLoop: public GlobalEngine {
 			((shared_ptr<CGeomDispatcher>,geoDisp,new CGeomDispatcher,Attr::readonly,":yref:`CGeomDispatcher` object that is used for dispatch."))
 			((shared_ptr<CPhysDispatcher>,phyDisp,new CPhysDispatcher,Attr::readonly,":yref:`CPhysDispatcher` object used for dispatch."))
 			((shared_ptr<LawDispatcher>,lawDisp,new LawDispatcher,Attr::readonly,":yref:`LawDispatcher` object used for dispatch."))
+			((bool,alreadyWarnedNoCollider,false,,"Keep track of whether the user was already warned about missing collider."))
 			,
 			/*ctor*/
 				#ifdef IDISP_TIMING
 					timingDeltas=shared_ptr<TimingDeltas>(new TimingDeltas);
 				#endif
 				#ifdef YADE_OPENMP
-					eraseAfterLoopObj.resize(omp_get_max_threads());
+					removeAfterLoopRefs.resize(omp_get_max_threads());
 				#endif
 			,
 			/*py*/

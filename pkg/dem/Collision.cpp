@@ -8,7 +8,7 @@ bool Collider::mayCollide(const shared_ptr<Particle>&, const shared_ptr<Particle
 CREATE_LOGGER(BoundDispatcher);
 void BoundDispatcher::action(){
 	updateScenePtr();
-	FOREACH(const shared_ptr<Particle> p, *scene->field->cast<DemField>().particles){
+	FOREACH(const shared_ptr<Particle> p, scene->field->cast<DemField>().particles){
 		shared_ptr<Shape>& shape=p->shape;
 		//if(!shape || !b->isBounded()) continue;
 		if(!shape) continue;

@@ -520,6 +520,7 @@ BOOST_PYTHON_MODULE(wrapper)
 		.value("hidden",yade::Attr::hidden)
 		.value("noResize",yade::Attr::noResize)
 		.value("noGui",yade::Attr::noGui)
+		.value("pyByRef",yade::Attr::pyByRef)
     ;
 
 	python::class_<pyOmega>("Omega")

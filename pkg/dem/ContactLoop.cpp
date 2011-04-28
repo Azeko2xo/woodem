@@ -36,18 +36,14 @@ void ContactLoop::action(){
 	field=dynamic_pointer_cast<DemField>(scene->field);
 	if(!field) throw runtime_error("scene->field is not a DemField?!");
 
-	/*
-	if(scene->interactions->unconditionalErasePending()>0 && !alreadyWarnedNoCollider){
-		LOG_WARN("Interactions pending erase found (erased), no collider being used?");
+	if(field->contacts.removeAllPending()>0 && !alreadyWarnedNoCollider){
+		LOG_WARN("Interactions pending removal found (and were removed); no collider being used?");
 		alreadyWarnedNoCollider=true;
 	}
-	*/
 
-	/*
-	if(field->contactsDirty){
+	if(field->contacts.dirty){
 		throw std::logic_error("InteractionContainer::dirty is true; the collider should re-initialize in such case and clear the dirty flag.");
 	}
-	*/
 	// update Scene* of the dispatchers
 	geoDisp->scene=phyDisp->scene=lawDisp->scene=scene;
 	// ask dispatchers to update Scene* of their functors
@@ -56,63 +52,48 @@ void ContactLoop::action(){
 	// cache transformed cell size
 	Matrix3r cellHsize; if(scene->isPeriodic) cellHsize=scene->cell->hSize;
 
-	#if 0
 	// force removal of interactions that were not encountered by the collider
 	// (only for some kinds of colliders; see comment for InteractionContainer::iterColliderLastRun)
-	bool removeUnseenIntrs=(scene->interactions->iterColliderLastRun>=0 && scene->interactions->iterColliderLastRun==scene->iter);
-	#endif
+	bool removeUnseen=(field->contacts.stepColliderLastRun>=0 && field->contacts.stepColliderLastRun==scene->step);
 		
-	// TODO: REPLACE BY SOME MORE INTELLIGENT (and parallelizable) loop later
-	FOREACH(const shared_ptr<Particle>&p, *(field->particles)){
-		FOREACH(const Particle::MapParticleContact::value_type idC, p->contacts){
-			const shared_ptr<Contact> C(idC.second);
-			// skip the interaction where this particle is "B"
-			// does not work well with swapping particles to the order the functor expects them
-			if(C->pB.get()==p.get()) continue; 
-			// therefore we check stepMadeReal as well
-			// in the worst case, one contact will be uselessly processed twice, but only if there is no real contact
-			if(C->stepMadeReal==scene->step) continue;
-
-			#if 0
-				if(unlikely(removeUnseenIntrs && !I->isReal() && I->iterLastSeen<scene->iter)) {
-					eraseAfterLoop(I->getId1(),I->getId2());
-					continue;
-				}
-			#endif
-
-			shared_ptr<Shape>& sA(C->pA->shape);
-			shared_ptr<Shape>& sB(C->pB->shape);
-
-			bool swap=false;
-			if(!C->isReal()){
-				const shared_ptr<CGeomFunctor> cgf=geoDisp->getFunctor2D(sA,sB,swap);
-				if(swap){ C->swapOrder(); }
-				if(!cgf) continue;
-			}
-			bool geomCreated=geoDisp->operator()(sA,sB,(scene->isPeriodic?scene->cell->intrShiftPos(C->cellDist):Vector3r::Zero()),/*force*/false,C);
-			if(!geomCreated){
-				if(/* has both geo and phy */C->isReal()) LOG_ERROR("CGeomFunctor "<<geoDisp->getClassName()<<" did not update existing contact ##"<<C->pA->id<<"+"<<C->pB->id);
-				continue;
-			}
-
-			// CPhy
-			if(!C->phys) C->stepMadeReal=scene->step;
-			phyDisp->operator()(C->pA->material,C->pB->material,C);
-
-			// CLaw
-			lawDisp->operator()(C->geom,C->phys,C);
-		}
-	}
-#if 0
-	// process eraseAfterLoop
+	size_t size=field->contacts.size();
 	#ifdef YADE_OPENMP
-		FOREACH(list<idPair>& l, eraseAfterLoopIds){
-			FOREACH(idPair p,l) scene->interactions->erase(p.first,p.second);
+		#pragma omp parallel for schedule(guided)
+	#endif
+	for(size_t i=0; i<size; i++){
+		const shared_ptr<Contact>& C=field->contacts[i];
+
+		if(unlikely(removeUnseen && !C->isReal() && C->stepLastSeen<scene->step)) { removeAfterLoop(C); continue; }
+
+		shared_ptr<Shape>& sA(C->pA->shape); shared_ptr<Shape>& sB(C->pB->shape);
+
+		bool swap=false;
+		if(!C->isReal()){
+			const shared_ptr<CGeomFunctor> cgf=geoDisp->getFunctor2D(sA,sB,swap);
+			if(swap){ C->swapOrder(); }
+			if(!cgf) continue;
+		}
+		bool geomCreated=geoDisp->operator()(sA,sB,(scene->isPeriodic?scene->cell->intrShiftPos(C->cellDist):Vector3r::Zero()),/*force*/false,C);
+		if(!geomCreated){
+			if(/* has both geo and phy */C->isReal()) LOG_ERROR("CGeomFunctor "<<geoDisp->getClassName()<<" did not update existing contact ##"<<C->pA->id<<"+"<<C->pB->id);
+			continue;
+		}
+
+		// CPhy
+		if(!C->phys) C->stepMadeReal=scene->step;
+		phyDisp->operator()(C->pA->material,C->pB->material,C);
+
+		// CLaw
+		lawDisp->operator()(C->geom,C->phys,C);
+	}
+	// process removeAfterLoop
+	#ifdef YADE_OPENMP
+		FOREACH(list<shared_ptr<Contact> >& l, removeAfterLoopRefs){
+			FOREACH(const shared_ptr<Contact>& c,l) field->contacts.remove(c);
 			l.clear();
 		}
 	#else
-		FOREACH(idPair p, eraseAfterLoopIds) scene->interactions->erase(p.first,p.second);
-		eraseAfterLoopIds.clear();
+		FOREACH(const shared_ptr<Contact>& c, removeAfterLoopRefs) field->contacts.remove(c);
+		removeAfterLoopRefs.clear();
 	#endif
-#endif
 }

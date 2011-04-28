@@ -151,7 +151,7 @@ class InsertionSortCollider: public Collider{
 	bool periodic;
 
 	// updated at every step
-	shared_ptr<ParticleContainer> particles;
+	ParticleContainer* particles;
 	shared_ptr<DemField> field;
 
 	// return python representation of the BB struct, as ([...],[...],[...]).

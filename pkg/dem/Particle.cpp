@@ -1,8 +1,9 @@
 #include<yade/pkg/dem/Particle.hpp>
 #include<yade/pkg/dem/ParticleContainer.hpp>
+#include<yade/pkg/dem/ContactContainer.hpp>
 #include<yade/pkg/dem/ContactLoop.hpp>
 
-YADE_PLUGIN(dem,(DemField)(Particle)(Contact)(Shape)(Material)(Bound));
+YADE_PLUGIN(dem,(DemField)(Particle)(Contact)(Shape)(Material)(Bound)(ContactContainer));
 
 py::dict Particle::pyContacts(){
 	py::dict ret;
@@ -11,23 +12,6 @@ py::dict Particle::pyContacts(){
 	};
 	return ret;
 }
-
-void DemField::addContact(shared_ptr<Contact> c){
-	c->pA->contacts[c->pB->id]=c;
-	c->pB->contacts[c->pA->id]=c;
-};
-
-void DemField::removeContact(shared_ptr<Contact> c){
-	c->pA->contacts.erase(c->pB->id);
-	c->pB->contacts.erase(c->pA->id);
-};
-
-shared_ptr<Contact> DemField::findContact(Particle::id_t idA, Particle::id_t idB){
-	if(!particles->exists(idA)) return shared_ptr<Contact>();
-	Particle::MapParticleContact::iterator I((*particles)[idA]->contacts.find(idB));
-	if(I!=(*particles)[idA]->contacts.end()) return I->second;
-	return shared_ptr<Contact>();
-};
 
 void Contact::swapOrder(){
 	if(geom || phys){ throw std::logic_error("Particles in contact cannot be swapped if they have geom or phys already."); }

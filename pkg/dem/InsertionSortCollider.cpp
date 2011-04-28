@@ -124,7 +124,7 @@ void InsertionSortCollider::action(){
 
 	field=dynamic_pointer_cast<DemField>(scene->field);
 	assert(field);
-	particles=field->particles;
+	particles=&(field->particles);
 	long nBodies=(long)particles->size();
 
 	// scene->interactions->iterColliderLastRun=-1;
