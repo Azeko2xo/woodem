@@ -4,6 +4,7 @@
 
 // NB: workaround for https://bugs.launchpad.net/yade/+bug/528509 removed
 struct Sphere: public Shape{
+	bool numNodesOk(){ return nodes.size()==1; }
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR(Sphere,Shape,"Spherical particle.",
 		((Real,radius,NaN,,"Radius [m]")),
 		createIndex(); /*ctor*/
@@ -23,7 +24,7 @@ REGISTER_SERIALIZABLE(Bo1_Sphere_Aabb);
 
 
 #ifdef YADE_OPENGL
-#include<yade/pkg/common/GLDrawFunctors.hpp>
+#include<yade/pkg/gl/Functors.hpp>
 class Gl1_Sphere: public GlShapeFunctor{
 		// for stripes
 		static vector<Vector3r> vertices, faces;
@@ -37,7 +38,7 @@ class Gl1_Sphere: public GlShapeFunctor{
 		//for regenerating glutSphere list if needed
 		static Real prevQuality;
 	public:
-		virtual void go(const shared_ptr<Shape>&, const shared_ptr<State>&,bool,const GLViewInfo&);
+		virtual void go(const shared_ptr<Shape>&, const Vector3r&, bool,const GLViewInfo&);
 	YADE_CLASS_BASE_DOC_STATICATTRS(Gl1_Sphere,GlShapeFunctor,"Renders :yref:`Sphere` object",
 		((Real,quality,1.0,,"Change discretization level of spheres. quality>1  for better image quality, at the price of more cpu/gpu usage, 0<quality<1 for faster rendering. If mono-color sphres are displayed (:yref:`Gl1_Sphere::stripes=False), quality mutiplies :yref:`Gl1_Sphere::glutSlices` and :yref:`Gl1_Sphere::glutStacks`. If striped spheres are displayed (:yref:`Gl1_Sphere::stripes=True), only integer increments are meaningfull : quality=1 and quality=1.9 will give the same result, quality=2 will give finer result."))
 		((bool,wire,false,,"Only show wireframe (controlled by ``glutSlices`` and ``glutStacks``."))

@@ -12,9 +12,7 @@
 #include"OpenGLManager.hpp"
 
 #include<yade/lib/opengl/OpenGLWrapper.hpp>
-#include<yade/core/Body.hpp>
-#include<yade/core/Scene.hpp>
-#include<yade/core/Interaction.hpp>
+#include<yade/core/Field.hpp>
 #include<yade/core/DisplayParameters.hpp>
 #include<boost/filesystem/operations.hpp>
 #include<boost/algorithm/string.hpp>
@@ -35,6 +33,7 @@ using namespace boost;
 	#include<gl2ps.h>
 #endif
 
+#if 0
 YADE_PLUGIN(/*unused*/qt,(SnapshotEngine));
 
 /*****************************************************************************
@@ -73,7 +72,7 @@ void SnapshotEngine::action(){
 	usleep((long)(msecSleep*1000));
 	if(!plot.empty()){ pyRunString("import yade.plot; yade.plot.addImgData("+plot+"='"+fss.str()+"')"); }
 }
-
+#endif
 
 CREATE_LOGGER(GLViewer);
 
@@ -91,7 +90,7 @@ void GLViewer::closeEvent(QCloseEvent *e){
 	e->accept();
 }
 
-GLViewer::GLViewer(int _viewId, const shared_ptr<OpenGLRenderer>& _renderer, QGLWidget* shareWidget): QGLViewer(/*parent*/(QWidget*)NULL,shareWidget), renderer(_renderer), viewId(_viewId) {
+GLViewer::GLViewer(int _viewId, const shared_ptr<Renderer>& _renderer, QGLWidget* shareWidget): QGLViewer(/*parent*/(QWidget*)NULL,shareWidget), renderer(_renderer), viewId(_viewId) {
 	isMoving=false;
 	drawGrid=0;
 	drawScale=true;
@@ -216,10 +215,10 @@ void GLViewer::useDisplayParameters(size_t n){
 	if(dispParams.size()<=(size_t)n){ throw std::invalid_argument(("Display parameters #"+lexical_cast<string>(n)+" don't exist (number of entries "+lexical_cast<string>(dispParams.size())+")").c_str());; return;}
 	const shared_ptr<DisplayParameters>& dp=dispParams[n];
 	string val;
-	if(dp->getValue("OpenGLRenderer",val)){ istringstream oglre(val);
+	if(dp->getValue("Renderer",val)){ istringstream oglre(val);
 		yade::ObjectIO::load<typeof(renderer),boost::archive::xml_iarchive>(oglre,"renderer",renderer);
 	}
-	else { LOG_WARN("OpenGLRenderer configuration not found in display parameters, skipped.");}
+	else { LOG_WARN("Renderer configuration not found in display parameters, skipped.");}
 	if(dp->getValue("GLViewer",val)){ GLViewer::setState(val); displayMessage("Loaded view configuration #"+lexical_cast<string>(n)); }
 	else { LOG_WARN("GLViewer configuration not found in display parameters, skipped."); }
 }
@@ -231,7 +230,7 @@ void GLViewer::saveDisplayParameters(size_t n){
 	shared_ptr<DisplayParameters>& dp=dispParams[n];
 	ostringstream oglre;
 	yade::ObjectIO::save<typeof(renderer),boost::archive::xml_oarchive>(oglre,"renderer",renderer);
-	dp->setValue("OpenGLRenderer",oglre.str());
+	dp->setValue("Renderer",oglre.str());
 	dp->setValue("GLViewer",GLViewer::getState());
 	displayMessage("Saved view configuration ot #"+lexical_cast<string>(n));
 }
@@ -303,11 +302,14 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 	else if(e->key()==Qt::Key_C && (e->modifiers() & Qt::AltModifier)){ displayMessage("Median centering"); centerMedianQuartile(); }
 	else if(e->key()==Qt::Key_C){
 		// center around selected body
-		if(selectedName() >= 0 && (*(Omega::instance().getScene()->bodies)).exists(selectedName())) setSceneCenter(manipulatedFrame()->position());
+		// if(selectedName() >= 0 && (*(Omega::instance().getScene()->bodies)).exists(selectedName())) setSceneCenter(manipulatedFrame()->position());
 		// make all bodies visible
-		else centerScene();
+		//else
+		centerScene();
 	}
-	else if(e->key()==Qt::Key_D &&(e->modifiers() & Qt::AltModifier)){ Body::id_t id; if((id=Omega::instance().getScene()->selectedBody)>=0){ const shared_ptr<Body>& b=Body::byId(id); b->setDynamic(!b->isDynamic()); LOG_INFO("Body #"<<id<<" now "<<(b->isDynamic()?"":"NOT")<<" dynamic"); } }
+#if 0
+	else if(e->key()==Qt::Key_D &&(e->modifiers() & Qt::AltModifier)){ /*Body::id_t id; if((id=Omega::instance().getScene()->selection)>=0){ const shared_ptr<Body>& b=Body::byId(id); b->setDynamic(!b->isDynamic()); LOG_INFO("Body #"<<id<<" now "<<(b->isDynamic()?"":"NOT")<<" dynamic"); }*/ LOG_INFO("Selection not supported!!"); }
+#endif
 	else if(e->key()==Qt::Key_D) {timeDispMask+=1; if(timeDispMask>(TIME_REAL|TIME_VIRT|TIME_ITER))timeDispMask=0; }
 	else if(e->key()==Qt::Key_G) { if(e->modifiers() & Qt::ShiftModifier){ drawGrid=0; return; } else drawGrid++; if(drawGrid>=8) drawGrid=0; }
 	else if (e->key()==Qt::Key_M && selectedName() >= 0){ 
@@ -403,22 +405,21 @@ void GLViewer::centerPeriodic(){
 void GLViewer::centerMedianQuartile(){
 	Scene* scene=Omega::instance().getScene().get();
 	if(scene->isPeriodic){ centerPeriodic(); return; }
-	long nBodies=scene->bodies->size();
-	if(nBodies<4) {
+	long nNodes=scene->field->nodes.size();
+	if(nNodes<4) {
 		LOG_DEBUG("Less than 4 bodies, median makes no sense; calling centerScene() instead.");
 		return centerScene();
 	}
 	std::vector<Real> coords[3];
-	for(int i=0;i<3;i++)coords[i].reserve(nBodies);
-	FOREACH(shared_ptr<Body> b, *scene->bodies){
-		if(!b) continue;
-		for(int i=0; i<3; i++) coords[i].push_back(b->state->pos[i]);
+	for(int i=0;i<3;i++)coords[i].reserve(nNodes);
+	FOREACH(const shared_ptr<Node>& b, scene->field->nodes){
+		for(int i=0; i<3; i++) coords[i].push_back(b->pos[i]);
 	}
 	Vector3r median,interQuart;
 	for(int i=0;i<3;i++){
 		sort(coords[i].begin(),coords[i].end());
-		median[i]=*(coords[i].begin()+nBodies/2);
-		interQuart[i]=*(coords[i].begin()+3*nBodies/4)-*(coords[i].begin()+nBodies/4);
+		median[i]=*(coords[i].begin()+nNodes/2);
+		interQuart[i]=*(coords[i].begin()+3*nNodes/4)-*(coords[i].begin()+nNodes/4);
 	}
 	LOG_DEBUG("Median position is"<<median<<", inter-quartile distance is "<<interQuart);
 	setSceneCenter(qglviewer::Vec(median[0],median[1],median[2]));
@@ -433,26 +434,21 @@ void GLViewer::centerScene(){
 
 	LOG_INFO("Select with shift, press 'm' to move.");
 	Vector3r min,max;	
-	if(rb->bound){
-		min=rb->bound->min; max=rb->bound->max;
-		bool hasNan=(isnan(min[0])||isnan(min[1])||isnan(min[2])||isnan(max[0])||isnan(max[1])||isnan(max[2]));
-		Real minDim=std::min(max[0]-min[0],std::min(max[1]-min[1],max[2]-min[2]));
-		if(minDim<=0 || hasNan){
-			// Aabb is not yet calculated...
-			LOG_DEBUG("scene's bound not yet calculated or has zero or nan dimension(s), attempt get that from bodies' positions.");
-			Real inf=std::numeric_limits<Real>::infinity();
-			min=Vector3r(inf,inf,inf); max=Vector3r(-inf,-inf,-inf);
-			FOREACH(const shared_ptr<Body>& b, *rb->bodies){
-				if(!b) continue;
-				max=max.cwise().max(b->state->pos);
-				min=min.cwise().min(b->state->pos);
-			}
-			if(isinf(min[0])||isinf(min[1])||isinf(min[2])||isinf(max[0])||isinf(max[1])||isinf(max[2])){ LOG_DEBUG("No min/max computed from bodies either, setting cube (-1,-1,-1)×(1,1,1)"); min=-Vector3r::Ones(); max=Vector3r::Ones(); }
-		} else {LOG_DEBUG("Using scene's Aabb");}
-	} else {
-		LOG_DEBUG("No scene's Aabb; setting scene in cube (-1,-1,-1)x(1,1,1)");
-		min=Vector3r(-1,-1,-1); max=Vector3r(1,1,1);
-	}
+	min=rb->loHint; max=rb->hiHint;
+	bool hasNan=(isnan(min[0])||isnan(min[1])||isnan(min[2])||isnan(max[0])||isnan(max[1])||isnan(max[2]));
+	Real minDim=std::min(max[0]-min[0],std::min(max[1]-min[1],max[2]-min[2]));
+	if(minDim<=0 || hasNan){
+		// Aabb is not yet calculated...
+		LOG_DEBUG("scene's bound not yet calculated or has zero or nan dimension(s), attempt get that from nodes");
+		Real inf=std::numeric_limits<Real>::infinity();
+		min=Vector3r(inf,inf,inf); max=Vector3r(-inf,-inf,-inf);
+		FOREACH(const shared_ptr<Node>& b, rb->field->nodes){
+			if(!b) continue;
+			max=max.cwise().max(b->pos);
+			min=min.cwise().min(b->pos);
+		}
+		if(isinf(min[0])||isinf(min[1])||isinf(min[2])||isinf(max[0])||isinf(max[1])||isinf(max[2])){ LOG_DEBUG("No min/max computed from bodies either, setting cube (-1,-1,-1)×(1,1,1)"); min=-Vector3r::Ones(); max=Vector3r::Ones(); }
+	} else {LOG_DEBUG("Using scene's Aabb");}
 	LOG_DEBUG("Got scene box min="<<min<<" and max="<<max);
 	Vector3r center = (max+min)*0.5;
 	Vector3r halfSize = (max-min)*0.5;
@@ -486,6 +482,7 @@ void GLViewer::draw()
 	qglviewer::Vec vd=camera()->viewDirection(); renderer->viewDirection=Vector3r(vd[0],vd[1],vd[2]);
 	if(Omega::instance().getScene()){
 		int selection = selectedName();
+		#if 0
 		if(selection!=-1 && (*(Omega::instance().getScene()->bodies)).exists(selection) && isMoving){
 			static int last(-1);
 			if(last == selection) // delay by one redraw, so the body will not jump into 0,0,0 coords
@@ -498,6 +495,7 @@ void GLViewer::draw()
 			(*(Omega::instance().getScene()->bodies))[selection]->userForcedDisplacementRedrawHook();	
 			last=selection;
 		}
+#endif
 		if(manipulatedClipPlane>=0){
 			assert(manipulatedClipPlane<renderer->numClipPlanes);
 			float v0,v1,v2; manipulatedFrame()->getPosition(v0,v1,v2);
@@ -530,23 +528,25 @@ void GLViewer::postSelection(const QPoint& point)
 	if(selection<0){
 		if(isMoving){
 			displayMessage("Moving finished"); mouseMovesCamera(); isMoving=false;
-			Omega::instance().getScene()->selectedBody = -1;
+			Omega::instance().getScene()->selection = -1;
 		}
 		return;
 	}
+#if 0
 	if(selection>=0 && (*(Omega::instance().getScene()->bodies)).exists(selection)){
 		resetManipulation();
-		if(Body::byId(Body::id_t(selection))->isClumpMember()){ // select clump (invisible) instead of its member
+		/*if(Body::byId(Body::id_t(selection))->isClumpMember()){ // select clump (invisible) instead of its member
 			LOG_DEBUG("Clump member #"<<selection<<" selected, selecting clump instead.");
 			selection=Body::byId(Body::id_t(selection))->clumpId;
 		}
-		setSelectedName(selection);
 		LOG_DEBUG("New selection "<<selection);
 		displayMessage("Selected body #"+lexical_cast<string>(selection)+(Body::byId(selection)->isClump()?" (clump)":""));
+		*/
+		setSelectedName(selection);
 		Quaternionr& q = Body::byId(selection)->state->ori;
 		Vector3r&    v = Body::byId(selection)->state->pos;
 		manipulatedFrame()->setPositionAndOrientation(qglviewer::Vec(v[0],v[1],v[2]),qglviewer::Quaternion(q.x(),q.y(),q.z(),q.w()));
-		Omega::instance().getScene()->selectedBody = selection;
+		Omega::instance().getScene()->selection = selection;
 			PyGILState_STATE gstate;
 			gstate = PyGILState_Ensure();
 				python::object main=python::import("__main__");
@@ -560,6 +560,7 @@ void GLViewer::postSelection(const QPoint& point)
 			PyGILState_Release(gstate);
 			// see https://svn.boost.org/trac/boost/ticket/2781 for exception handling
 	}
+#endif
 }
 
 // maybe new object will be selected.
@@ -639,7 +640,7 @@ void GLViewer::postDraw(){
 		stopScreenCoordinatesSystem();
 	}
 
-	// cutting planes (should be moved to OpenGLRenderer perhaps?)
+	// cutting planes (should be moved to Renderer perhaps?)
 	// only painted if one of those is being manipulated
 	if(manipulatedClipPlane>=0){
 		for(int planeId=0; planeId<renderer->numClipPlanes; planeId++){
@@ -684,8 +685,8 @@ void GLViewer::postDraw(){
 		}
 		if(timeDispMask & GLViewer::TIME_ITER){
 			ostringstream oss;
-			oss<<"#"<<rb->iter;
-			if(rb->stopAtIter>rb->iter) oss<<" ("<<setiosflags(ios::fixed)<<setw(3)<<setprecision(1)<<setfill('0')<<(100.*rb->iter)/rb->stopAtIter<<"%)";
+			oss<<"#"<<rb->step;
+			if(rb->stopAtStep>rb->step) oss<<" ("<<setiosflags(ios::fixed)<<setw(3)<<setprecision(1)<<setfill('0')<<(100.*rb->step)/rb->stopAtStep<<"%)";
 			QGLViewer::drawText(x,y,oss.str().c_str());
 			y-=lineHt;
 		}

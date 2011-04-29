@@ -23,6 +23,7 @@
 #include<yade/lib/factory/Factorable.hpp>
 #include<yade/lib/pyutil/raw_constructor.hpp>
 #include<yade/lib/pyutil/doc_opts.hpp>
+#include<yade/lib/pyutil/except.hpp>
 
 #include<yade/lib/base/Math.hpp>
 
@@ -263,7 +264,7 @@ class Serializable: public Factorable {
 		void pyUpdateAttrs(const boost::python::dict& d);
 		//static void pyUpdateAttrs(const shared_ptr<Serializable>&, const boost::python::dict& d);
 
-		virtual void pySetAttr(const std::string& key, const boost::python::object& value){ PyErr_SetString(PyExc_AttributeError,(std::string("No such attribute: ")+key+".").c_str()); boost::python::throw_error_already_set(); };
+		virtual void pySetAttr(const std::string& key, const boost::python::object& value){ yade::AttributeError("No such attribute: "+key+".");};
 		//virtual boost::python::list pyKeys() const { return boost::python::list(); };
 		virtual boost::python::dict pyDict() const { return boost::python::dict(); }
 		virtual void callPostLoad(void){ postLoad(*this); }

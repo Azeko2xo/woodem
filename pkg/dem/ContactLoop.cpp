@@ -1,7 +1,7 @@
 #include<yade/pkg/dem/ContactLoop.hpp>
 #include<yade/pkg/dem/ParticleContainer.hpp>
 
-YADE_PLUGIN(dem,(CGeom)(CPhys)(CGeomFunctor)(CGeomDispatcher)(CPhysFunctor)(CPhysDispatcher)(LawFunctor)(LawDispatcher)(ContactLoop));
+YADE_PLUGIN(dem,(CGeomFunctor)(CGeomDispatcher)(CPhysFunctor)(CPhysDispatcher)(LawFunctor)(LawDispatcher)(ContactLoop));
 CREATE_LOGGER(ContactLoop);
 
 void ContactLoop::pyHandleCustomCtorArgs(python::tuple& t, python::dict& d){

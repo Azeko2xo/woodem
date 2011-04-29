@@ -401,9 +401,12 @@ class SerializableEditor(QFrame):
 		cxxT=m.group(1)
 		logging.debug('Got type "%s" from :yattrtype:'%cxxT)
 		def vecTest(T,cxxT):
-			#regexp=r'^\s*(std\s*::)?\s*vector\s*<\s*(std\s*::)?\s*('+T+r')\s*>\s*$'
 			regexp=r'^\s*(std\s*::)?\s*vector\s*<\s*(shared_ptr\s*<\s*)?\s*(std\s*::)?\s*('+T+r')(\s*>)?\s*>\s*$'
 			m=re.match(regexp,cxxT)
+			return m
+		def vecGuess(T):
+			regexp=r'^\s*(std\s*::)?\s*vector\s*<\s*(shared_ptr\s*<\s*)?\s*(std\s*::)?\s*(?P<elemT>[a-zA-Z_][a-zA-Z0-9_]+)(\s*>)?\s*>\s*$'
+			m=re.match(regexp,T)
 			return m
 		from yade import dem
 		from yade import gl
@@ -413,15 +416,22 @@ class SerializableEditor(QFrame):
 			'Real':float,'float':float,'double':float,
 			'Vector6r':Vector6,'Vector6i':Vector6i,'Vector3i':Vector3i,'Vector2r':Vector2,'Vector2i':Vector2i,
 			'Vector3r':Vector3,'Matrix3r':Matrix3,'Se3r':Se3FakeType,
-			'string':str,
-			#'BodyCallback':BodyCallback,'IntrCallback':IntrCallback,
-			'BoundFunctor':dem.BoundFunctor,'IGeomFunctor':dem.IGeomFunctor,'IPhysFunctor':dem.IPhysFunctor,'LawFunctor':dem.LawFunctor,'KinematicEngine':dem.KinematicEngine,'Node':core.Node,
-			'GlShapeFunctor':gl.GlShapeFunctor,'GlStateFunctor':gl.GlStateFunctor,'GlIGeomFunctor':gl.GlIGeomFunctor,'GlIPhysFunctor':gl.GlIPhysFunctor,'GlBoundFunctor':gl.GlBoundFunctor,'GlExtraDrawer':gl.GlExtraDrawer,'GlNodeFunctor':gl.GlNodeFunctor,'GlFieldFunctor':gl.GlFieldFunctor
+			'string':str
 		}
 		for T,ret in vecMap.items():
 			if vecTest(T,cxxT):
 				logging.debug("Got type %s from cxx type %s"%(repr(ret),cxxT))
 				return (ret,)
+		#print 'No luck with ',T
+		m=vecGuess(cxxT)
+		if m:
+			#print 'guessed literal type',m.group('elemT')
+			elemT=m.group('elemT')
+			for mod in gl,core,dem:
+				#print dir(mod)
+				if elemT in dir(mod) and type(mod.__dict__[elemT]).__name__=='class':
+					#print 'found type %s.%s for %s'%(mod.__name__,elemT,cxxT)
+					return (mod.__dict__[elemT],) # return tuple to signify sequence
 		logging.error("Unable to guess python type from cxx type '%s'"%cxxT)
 		return None
 	def mkAttrEntries(self):

@@ -164,10 +164,7 @@ class pyTags{
 			python::throw_error_already_set(); /* make compiler happy; never reached */ return string();
 		}
 		void setItem(const string& key,const string& item){
-			if(key.find("=")!=string::npos) {
-				PyErr_SetString(PyExc_KeyError, "Key must not contain the '=' character (implementation limitation; sorry).");
-				python::throw_error_already_set();
-			}
+			if(key.find("=")!=string::npos) yade::KeyError("Key must not contain the '=' character (implementation limitation; sorry).");
 			FOREACH(string& val, mb->tags){if(algorithm::starts_with(val,key+"=")){ val=key+"="+item; return; } }
 			mb->tags.push_back(key+"="+item);
 			}

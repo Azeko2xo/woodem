@@ -44,4 +44,9 @@ struct GLUtils{
 			glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, txt[i]);
 		glPopMatrix();
 	}
+	static void setLocalCoords(const Vector3r& pos, const Quaternionr& ori){
+		AngleAxisr aa(ori);
+		glTranslatef(pos[0],pos[1],pos[2]);
+		glRotatef(aa.angle()*Mathr::RAD_TO_DEG,aa.axis()[0],aa.axis()[1],aa.axis()[2]);
+	};
 };

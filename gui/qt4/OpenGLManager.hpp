@@ -17,7 +17,7 @@ class OpenGLManager: public QObject{
 		OpenGLManager(QObject *parent=0);
 		// manipulation must lock viewsMutex!
 		std::vector<shared_ptr<GLViewer> > views;
-		shared_ptr<OpenGLRenderer> renderer;
+		shared_ptr<Renderer> renderer;
 		// signals are protected, emitting them is therefore wrapped with such funcs
 		void emitResizeView(int id, int wd, int ht){ emit resizeView(id,wd,ht); }
 		void emitCreateView(){ emit createView(); }

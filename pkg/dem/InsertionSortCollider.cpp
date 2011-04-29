@@ -29,7 +29,7 @@ void InsertionSortCollider::handleBoundInversion(Particle::id_t id1, Particle::i
 	// do bboxes overlap in all 3 dimensions?
 	bool overlap=spatialOverlap(id1,id2);
 	// existing interaction?
-	const shared_ptr<Contact>& C=field->findContact(id1,id2);
+	const shared_ptr<Contact>& C=field->contacts.find(id1,id2);
 	bool hasInter=(bool)C;
 	// interaction doesn't exist and shouldn't, or it exists and should
 	if(likely(!overlap && !hasInter)) return;
@@ -42,10 +42,10 @@ void InsertionSortCollider::handleBoundInversion(Particle::id_t id1, Particle::i
 		// LOG_TRACE("Creating new interaction #"<<id1<<"+#"<<id2);
 		shared_ptr<Contact> newC=shared_ptr<Contact>(new Contact);
 		newC->pA=p1; newC->pB=p2;
-		field->addContact(newC);
+		field->contacts.add(newC);
 		return;
 	}
-	if(!overlap && hasInter){ if(!C->isReal()) field->removeContact(C); return; }
+	if(!overlap && hasInter){ if(!C->isReal()) field->contacts.remove(C); return; }
 	assert(false); // unreachable
 }
 
@@ -108,11 +108,11 @@ vector<Particle::id_t> InsertionSortCollider::probeBoundingVolume(const Bound& b
 		}
 		if((size_t)BB[0].size!=2*scene->bodies->size()) return true;
 		if(scene->interactions->dirty) return true;
-		// we wouldn't run in this step; in that case, just delete pending interactions
-		// this is done in ::action normally, but it would make the call counters not reflect the stride
-		scene->interactions->erasePending(*this,scene);
 		return false;
 	#else
+		// we wouldn't run in this step; in that case, just delete pending interactions
+		// this is done in ::action normally, but it would make the call counters not reflect the stride
+		scene->field->cast<DemField>().contacts.removePending(*this,scene);
 		return true;
 	#endif
 	}
@@ -399,7 +399,7 @@ void InsertionSortCollider::handleBoundInversionPeri(Particle::id_t id1, Particl
 	Vector3i periods;
 	bool overlap=spatialOverlapPeri(id1,id2,scene,periods);
 	// existing interaction?
-	const shared_ptr<Contact>& C=field->findContact(id1,id2);
+	const shared_ptr<Contact>& C=field->contacts.find(id1,id2);
 	bool hasInter=(bool)C;
 	#ifdef PISC_DEBUG
 		if(watchIds(id1,id2)) LOG_DEBUG("Inversion #"<<id1<<"+#"<<id2<<", overlap=="<<overlap<<", hasInter=="<<hasInter);
@@ -422,12 +422,12 @@ void InsertionSortCollider::handleBoundInversionPeri(Particle::id_t id1, Particl
 		#ifdef PISC_DEBUG
 			if(watchIds(id1,id2)) LOG_DEBUG("Created intr #"<<id1<<"+#"<<id2<<", periods="<<periods);
 		#endif
-		field->addContact(newC);
+		field->contacts.add(newC);
 		return;
 	}
 	if(!overlap && hasInter){
 		if(!C->isReal()) {
-			field->removeContact(C);
+			field->contacts.remove(C);
 			#ifdef PISC_DEBUG
 				if(watchIds(id1,id2)) LOG_DEBUG("Erased intr #"<<id1<<"+#"<<id2);
 			#endif

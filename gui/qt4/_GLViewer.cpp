@@ -1,7 +1,7 @@
 #include"GLViewer.hpp"
 #include"OpenGLManager.hpp"
 #include<boost/python.hpp>
-#include<yade/pkg/common/OpenGLRenderer.hpp>
+#include<yade/pkg/gl/Renderer.hpp>
 #include<yade/lib/pyutil/doc_opts.hpp>
 
 #include<QApplication>
@@ -83,7 +83,7 @@ pyGLViewer createView(){
 py::list getAllViews(){ py::list ret; FOREACH(const shared_ptr<GLViewer>& v, OpenGLManager::self->views){ if(v) ret.append(pyGLViewer(v->viewId)); } return ret; };
 void centerViews(void){ OpenGLManager::self->centerAllViews(); }
 
-shared_ptr<OpenGLRenderer> getRenderer(){ return OpenGLManager::self->renderer; }
+shared_ptr<Renderer> getRenderer(){ return OpenGLManager::self->renderer; }
 
 BOOST_PYTHON_MODULE(_GLViewer){
 	YADE_SET_DOCSTRING_OPTS;
@@ -91,14 +91,16 @@ BOOST_PYTHON_MODULE(_GLViewer){
 	OpenGLManager* glm=new OpenGLManager(); // keep this singleton object forever
 	glm->emitStartTimer();
 
+#if 0
 	// HACK: register SnapshotEngine here
 	SnapshotEngine se; se.pyRegisterClass(py::scope());
+#endif
 
 	py::def("View",createView,"Create a new 3d view.");
 	py::def("center",centerViews,"Center all views.");
 	py::def("views",getAllViews,"Return list of all open :yref:`yade.qt.GLViewer` objects");
 	
-	py::def("Renderer",&getRenderer,"Return the active :yref:`OpenGLRenderer` object.");
+	py::def("Renderer",&getRenderer,"Return the active :yref:`Renderer` object.");
 
 	py::class_<pyGLViewer>("GLViewer",py::no_init)
 		.add_property("upVector",&pyGLViewer::get_upVector,&pyGLViewer::set_upVector,"Vector that will be shown oriented up on the screen.")
@@ -113,12 +115,12 @@ BOOST_PYTHON_MODULE(_GLViewer){
 		.add_property("ortho",&pyGLViewer::get_orthographic,&pyGLViewer::set_orthographic,"Whether orthographic projection is used; if false, use perspective projection.")
 		.add_property("screenSize",&pyGLViewer::get_screenSize,&pyGLViewer::set_screenSize,"Size of the viewer's window, in scree pixels")
 		.add_property("timeDisp",&pyGLViewer::get_timeDisp,&pyGLViewer::set_timeDisp,"Time displayed on in the vindow; is a string composed of characters *r*, *v*, *i* standing respectively for real time, virtual time, iteration number.")
-		// .add_property("bgColor",&pyGLViewer::get_bgColor,&pyGLViewer::set_bgColor) // useless: OpenGLRenderer::Background_color is used via openGL directly, bypassing QGLViewer background property
+		// .add_property("bgColor",&pyGLViewer::get_bgColor,&pyGLViewer::set_bgColor) // useless: Renderer::Background_color is used via openGL directly, bypassing QGLViewer background property
 		.def("fitAABB",&pyGLViewer::fitAABB,(py::arg("mn"),py::arg("mx")),"Adjust scene bounds so that Axis-aligned bounding box given by its lower and upper corners *mn*, *mx* fits in.")
 		.def("fitSphere",&pyGLViewer::fitSphere,(py::arg("center"),py::arg("radius")),"Adjust scene bounds so that sphere given by *center* and *radius* fits in.")
 		.def("showEntireScene",&pyGLViewer::showEntireScene)
 		.def("center",&pyGLViewer::center,(py::arg("median")=true),"Center view. View is centered either so that all bodies fit inside (*median*=False), or so that 75\% of bodies fit inside (*median*=True).")
-		.def("saveState",&pyGLViewer::saveDisplayParameters,(py::arg("slot")),"Save display parameters into numbered memory slot. Saves state for both :yref:`GLViewer<yade._qt.GLViewer>` and associated :yref:`OpenGLRenderer`.")
+		.def("saveState",&pyGLViewer::saveDisplayParameters,(py::arg("slot")),"Save display parameters into numbered memory slot. Saves state for both :yref:`GLViewer<yade._qt.GLViewer>` and associated :yref:`Renderer`.")
 		.def("loadState",&pyGLViewer::useDisplayParameters,(py::arg("slot")),"Load display parameters from slot saved previously into, identified by its number.")
 		.def("__repr__",&pyGLViewer::pyStr).def("__str__",&pyGLViewer::pyStr)
 		.def("close",&pyGLViewer::close)

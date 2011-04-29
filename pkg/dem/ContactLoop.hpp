@@ -30,7 +30,7 @@ REGISTER_SERIALIZABLE(CPhysFunctor);
 class LawFunctor: public Functor2D<
 	/*dispatch types*/ CGeom,CPhys,
 	/*return type*/    void,
-	/*argument types*/ TYPELIST_3(shared_ptr<CGeom>&, shared_ptr<CPhys>&, const shared_ptr<Contact>&)
+	/*argument types*/ TYPELIST_3(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&)
 >{
 	YADE_CLASS_BASE_DOC(LawFunctor,Functor,"Functor for applying constitutive laws on :yref:`interactions<Interaction>`.");
 };

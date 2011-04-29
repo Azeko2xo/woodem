@@ -5,7 +5,7 @@
 //#include<yade/core/BodyContainer.hpp>
 #include<yade/core/Engine.hpp>
 //#include<yade/core/Material.hpp>
-//#include<yade/core/DisplayParameters.hpp>
+#include<yade/core/DisplayParameters.hpp>
 //#include<yade/core/ForceContainer.hpp>
 //#include<yade/core/InteractionContainer.hpp>
 #include<yade/core/EnergyTracker.hpp>
@@ -18,7 +18,7 @@
 
 class Bound;
 #ifdef YADE_OPENGL
-	class OpenGLRenderer;
+	class Renderer;
 #endif
 
 class Scene: public Serializable{
@@ -42,7 +42,7 @@ class Scene: public Serializable{
 		// shared_ptr<Engine> engineByName(const string& s);
 
 		#ifdef YADE_OPENGL
-			shared_ptr<OpenGLRenderer> renderer;
+			shared_ptr<Renderer> renderer;
 		#endif
 
 		void postLoad(Scene&);
@@ -62,9 +62,12 @@ class Scene: public Serializable{
 		((bool,isPeriodic,false,Attr::readonly,"Whether periodic boundary conditions are active."))
 		((bool,trackEnergy,false,Attr::readonly,"Whether energies are being traced."))
 
+		((Vector3r,loHint,Vector3r(-1,-1,-1),,"Lower corner, for rendering purposes"))
+		((Vector3r,hiHint,Vector3r(1,1,1),,"Upper corner, for rendering purposes"))
+
 		((bool,runInternalConsistencyChecks,true,Attr::hidden,"Run internal consistency check, right before the very first simulation step."))
 
-		// ((Body::id_t,selectedBody,-1,,"Id of body that is selected by the user"))
+		((int,selection,-1,,"Id of particle selected by the user"))
 
 		((list<string>,tags,,,"Arbitrary key=value associations (tags like mp3 tags: author, date, version, description etc.)"))
 
@@ -75,7 +78,7 @@ class Scene: public Serializable{
 		((shared_ptr<Field>,field,,,"Some field (experimentally only one, later there will be multiple fields available)"))
 		((shared_ptr<Cell>,cell,new Cell,Attr::hidden,"Information on periodicity; only should be used if Scene::isPeriodic."))
 		// ((vector<shared_ptr<Serializable> >,miscParams,,Attr::hidden,"Store for arbitrary Serializable objects; will set static parameters during deserialization (primarily for GLDraw functors which otherwise have no attribute access)"))
-		// ((vector<shared_ptr<DisplayParameters> >,dispParams,,Attr::hidden,"'hash maps' of display parameters (since yade::serialization had no support for maps, emulate it via vector of strings in format key=value)"))
+		((vector<shared_ptr<DisplayParameters> >,dispParams,,Attr::hidden,"'hash maps' of display parameters (since yade::serialization had no support for maps, emulate it via vector of strings in format key=value)"))
 
 		,
 		/*ctor*/

@@ -3,7 +3,7 @@
 #pragma once
 
 #include<yade/core/Omega.hpp>
-#include<yade/pkg/common/OpenGLRenderer.hpp>
+#include<yade/pkg/gl/Renderer.hpp>
 
 #include<QGLViewer/qglviewer.h>
 #include<QGLViewer/constraint.h>
@@ -11,6 +11,8 @@
 #include<boost/date_time/posix_time/posix_time.hpp>
 #include<set>
 
+
+#if 0
 #include<yade/pkg/common/PeriodicEngines.hpp>
 
 /*****************************************************************************
@@ -35,6 +37,8 @@ class SnapshotEngine: public PeriodicEngine{
 	DECLARE_LOGGER;
 };
 REGISTER_SERIALIZABLE(SnapshotEngine);
+
+#endif
 
 /*! Class handling user interaction with the openGL rendering of simulation.
  *
@@ -63,7 +67,7 @@ class GLViewer : public QGLViewer
 	
 	friend class QGLThread;
 	protected:
-		shared_ptr<OpenGLRenderer> renderer;
+		shared_ptr<Renderer> renderer;
 
 	private :
 
@@ -89,7 +93,7 @@ class GLViewer : public QGLViewer
 		int timeDispMask;
 		enum{TIME_REAL=1,TIME_VIRT=2,TIME_ITER=4};
 
-		GLViewer(int viewId, const shared_ptr<OpenGLRenderer>& renderer, QGLWidget* shareWidget=0);
+		GLViewer(int viewId, const shared_ptr<Renderer>& renderer, QGLWidget* shareWidget=0);
 		virtual ~GLViewer();
 		#if 0
 			virtual void paintGL();
@@ -107,9 +111,9 @@ class GLViewer : public QGLViewer
 		string getState();
 		//! set QGLViewer state from string (XML); QGLVIewer normally only supports loading state from file.
 		void setState(string);
-		//! Load display parameters (QGLViewer and OpenGLRenderer) from Scene::dispParams[n] and use them
+		//! Load display parameters (QGLViewer and Renderer) from Scene::dispParams[n] and use them
 		void useDisplayParameters(size_t n);
-		//! Save display parameters (QGOViewer and OpenGLRenderer) to Scene::dispParams[n]
+		//! Save display parameters (QGOViewer and Renderer) to Scene::dispParams[n]
 		void saveDisplayParameters(size_t n);
 		//! Get radius of the part of scene that fits the current view
 		float displayedSceneRadius();

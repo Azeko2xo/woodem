@@ -33,6 +33,7 @@ void Bo1_Sphere_Aabb::go(const shared_ptr<Shape>& sh){
 YADE_PLUGIN(gl,(Gl1_Sphere));
 
 #include<yade/lib/opengl/OpenGLWrapper.hpp>
+#include<yade/lib/opengl/GLUtils.hpp>
 
 bool Gl1_Sphere::wire;
 bool Gl1_Sphere::stripes;
@@ -45,13 +46,15 @@ int Gl1_Sphere::glStripedSphereList=-1;
 int Gl1_Sphere::glGlutSphereList=-1;
 Real  Gl1_Sphere::prevQuality=0;
 
-void Gl1_Sphere::go(const shared_ptr<Shape>& cm, const shared_ptr<State>& ,bool wire2, const GLViewInfo&)
-{
+void Gl1_Sphere::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool wire2, const GLViewInfo&){
+
+	GLUtils::setLocalCoords(shape->nodes[0]->pos+shift,shape->nodes[0]->ori);
+
 	glClearDepth(1.0f);
 	glEnable(GL_NORMALIZE);
 
-	Real r=(static_cast<Sphere*>(cm.get()))->radius;
-	glColor3v(cm->color);
+	Real r=shape->cast<Sphere>().radius;
+	glColor3v(shape->color);
 	if (wire || wire2) glutWireSphere(r,quality*glutSlices,quality*glutStacks);
 	else {
 		//Check if quality has been modified or if previous lists are invalidated (e.g. by creating a new qt view), then regenerate lists

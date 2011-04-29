@@ -90,13 +90,15 @@ class ControllerClass(QWidget,Ui_Controller):
 	def addRenderers(self):
 		#from yade.gl import *
 		from yade import gl
-		self.displayCombo.addItem('OpenGLRenderer'); afterSep=1
-		for bc in ('GlShapeFunctor','GlStateFunctor','GlBoundFunctor','GlIGeomFunctor','GlIPhysFunctor','GlNodeFunctor','GlFieldFunctor'):
+		self.displayCombo.addItem('Renderer'); afterSep=1
+		for bc in [t for t in dir(gl) if t.endswith('Functor') ]:
 			if afterSep>0: self.displayCombo.insertSeparator(10000); afterSep=0
 			for c in yade.system.childClasses(bc) | set([bc]):
-				inst=eval('gl.'+c+'()');
-				if len(set(inst.dict().keys())-set(['label']))>0:
-					self.displayCombo.addItem(c); afterSep+=1
+				try:
+					inst=eval('gl.'+c+'()');
+					if len(set(inst.dict().keys())-set(['label']))>0:
+						self.displayCombo.addItem(c); afterSep+=1
+				except (NameError,AttributeError): pass # functo which is not defined
 	def inspectSlot(self):
 		self.inspector=SimulationInspector(parent=None)
 		self.inspector.show()
@@ -134,8 +136,8 @@ class ControllerClass(QWidget,Ui_Controller):
 				v=View(); v.center()
 	def displayComboSlot(self,dispStr):
 		from yade import gl
-		ser=(self.renderer if dispStr=='OpenGLRenderer' else eval('gl.'+str(dispStr)+'()'))
-		path='yade.qt.Renderer()' if dispStr=='OpenGLRenderer' else dispStr
+		ser=(self.renderer if dispStr=='Renderer' else eval('gl.'+str(dispStr)+'()'))
+		path='yade.qt.Renderer()' if dispStr=='Renderer' else dispStr
 		se=SerializableEditor(ser,parent=self.displayArea,ignoredAttrs=set(['label']),showType=True,path=path)
 		self.displayArea.setWidget(se)
 	def loadSlot(self):

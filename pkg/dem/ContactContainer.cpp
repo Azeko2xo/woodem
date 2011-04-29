@@ -10,9 +10,11 @@ bool ContactContainer::IsReal::operator()(const shared_ptr<Contact>& c){ return 
 
 void ContactContainer::add(const shared_ptr<Contact>& c){
 	assert(dem);
+#if 0
 	#ifdef YADE_OPENGL
 		boost::mutex::scoped_lock lock(manipMutex);
 	#endif
+#endif
 	// make sure the contact does not exist yet
 	assert(c->pA->contacts.find(c->pB->id)==c->pA->contacts.end());
 	assert(c->pB->contacts.find(c->pA->id)==c->pB->contacts.end());
@@ -26,9 +28,11 @@ void ContactContainer::add(const shared_ptr<Contact>& c){
 
 void ContactContainer::clear(){
 	assert(dem);
+#if 0
 	#ifdef YADE_OPENGL
 		boost::mutex::scoped_lock lock(manipMutex);
 	#endif
+#endif
 	FOREACH(const shared_ptr<Particle>& p, dem->particles) p->contacts.clear();
 	linView.clear(); // clear the linear container
 	pending.clear();
@@ -37,9 +41,11 @@ void ContactContainer::clear(){
 
 void ContactContainer::remove(const shared_ptr<Contact>& c){
 	assert(dem);
+#if 0
 	#ifdef YADE_OPENGL
 		boost::mutex::scoped_lock lock(manipMutex);
 	#endif
+#endif
 	// make sure the contact is inside the dem->particles
 	Particle::MapParticleContact::iterator iA=c->pA->contacts.find(c->pB->id), iB=c->pB->contacts.find(c->pA->id);
 	assert(iA!=c->pA->contacts.end()); assert(iB!=c->pB->contacts.end());
@@ -110,14 +116,14 @@ void ContactContainer::removeNonReal(){
 shared_ptr<Contact> ContactContainer::pyByIds(Particle::id_t id1, Particle::id_t id2){ return find(id1,id2); };
 shared_ptr<Contact> ContactContainer::pyNth(int n){
 	int sz(size());
-	if(n<-sz || n>sz-1){ PyErr_SetString(PyExc_IndexError,(("Linear index out of range ("+lexical_cast<string>(-sz)+".."+lexical_cast<string>(sz-1)+")").c_str())); py::throw_error_already_set(); }
+	if(n<-sz || n>sz-1) IndexError("Linear index out of range ("+lexical_cast<string>(-sz)+".."+lexical_cast<string>(sz-1)+")");
 	return linView[n>=0?n:size()-n];
 }
 ContactContainer::pyIterator ContactContainer::pyIter(){ return ContactContainer::pyIterator(this); }
 
 ContactContainer::pyIterator::pyIterator(ContactContainer* _cc): cc(_cc), ix(0){}
 shared_ptr<Contact> ContactContainer::pyIterator::next(){
-	if(ix>=(int)cc->size()){ PyErr_SetNone(PyExc_StopIteration); python::throw_error_already_set(); }
+	if(ix>=(int)cc->size()) yade::StopIteration();
 	return (*cc)[ix++];
 }
 ContactContainer::pyIterator ContactContainer::pyIterator::iter(){ return *this; }

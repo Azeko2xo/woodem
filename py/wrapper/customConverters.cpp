@@ -37,6 +37,7 @@
 #include<yade/pkg/dem/Particle.hpp>
 #include<yade/pkg/dem/ContactLoop.hpp>
 #include<yade/pkg/dem/Collision.hpp>
+#include<yade/pkg/dem/IntraForce.hpp>
 
 #include<yade/pkg/dem/ParticleContainer.hpp>
 
@@ -50,8 +51,8 @@
 
 
 #ifdef YADE_OPENGL
-	#include<yade/pkg/common/GLDrawFunctors.hpp>
-	#include<yade/pkg/common/OpenGLRenderer.hpp>
+	#include<yade/pkg/gl/Functors.hpp>
+	#include<yade/pkg/gl/Renderer.hpp>
 #endif
 
 
@@ -248,6 +249,7 @@ BOOST_PYTHON_MODULE(_customConverters){
 		VECTOR_SEQ_CONV(shared_ptr<CGeomFunctor>);
 		VECTOR_SEQ_CONV(shared_ptr<CPhysFunctor>);
 		VECTOR_SEQ_CONV(shared_ptr<LawFunctor>);
+		VECTOR_SEQ_CONV(shared_ptr<IntraFunctor>);
 
 		VECTOR_SEQ_CONV(shared_ptr<Engine>);
 #if 0
@@ -264,14 +266,16 @@ BOOST_PYTHON_MODULE(_customConverters){
 		VECTOR_SEQ_CONV(shared_ptr<KinematicEngine>);
 #endif
 		#ifdef YADE_OPENGL
-			VECTOR_SEQ_CONV(shared_ptr<GlBoundFunctor>);
-			VECTOR_SEQ_CONV(shared_ptr<GlStateFunctor>);
 			VECTOR_SEQ_CONV(shared_ptr<GlShapeFunctor>);
+			VECTOR_SEQ_CONV(shared_ptr<GlNodeFunctor>);
+			VECTOR_SEQ_CONV(shared_ptr<GlBoundFunctor>);
+			VECTOR_SEQ_CONV(shared_ptr<GlExtraDrawer>);
+		#if 0
+			VECTOR_SEQ_CONV(shared_ptr<GlStateFunctor>);
 			VECTOR_SEQ_CONV(shared_ptr<GlIGeomFunctor>);
 			VECTOR_SEQ_CONV(shared_ptr<GlIPhysFunctor>);
-			VECTOR_SEQ_CONV(shared_ptr<GlExtraDrawer>);
 			VECTOR_SEQ_CONV(shared_ptr<GlFieldFunctor>);
-			VECTOR_SEQ_CONV(shared_ptr<GlNodeFunctor>);
+		#endif
 		#endif
 	#undef VECTOR_SEQ_CONV
 

@@ -115,13 +115,13 @@ ParticleContainer::pyIterator::pyIterator(ParticleContainer* _pc): pc(_pc), ix(-
 shared_ptr<Particle> ParticleContainer::pyIterator::next(){
 	int sz=pc->size();
 	while(ix<sz){ ix++; if(pc->exists(ix)) return (*pc)[ix]; }
-	PyErr_SetNone(PyExc_StopIteration); python::throw_error_already_set();
+	yade::StopIteration();
 	throw; // never reached, but makes the compiler happier
 }
 ParticleContainer::pyIterator ParticleContainer::pyIterator::iter(){ return *this; }
 
 Particle::id_t ParticleContainer::pyAppend(shared_ptr<Particle> p){
-	if(p->id>=0){ PyErr_SetString(PyExc_IndexError,("Particle already has id "+lexical_cast<string>(p->id)+" set; appending such particle (for the second time) is not allowed.").c_str()); python::throw_error_already_set(); }
+	if(p->id>=0) IndexError("Particle already has id "+lexical_cast<string>(p->id)+" set; appending such particle (for the second time) is not allowed.");
 	return insert(p);
 }
 
@@ -133,7 +133,7 @@ py::list ParticleContainer::pyAppendList(vector<shared_ptr<Particle> > pp){
 
 shared_ptr<Particle> ParticleContainer::pyGetItem(Particle::id_t id){
 	if(exists(id)) return (*this)[id];
-	PyErr_SetString(PyExc_IndexError,("No such particle: #"+lexical_cast<string>(id)+".").c_str()); python::throw_error_already_set();
+	yade::IndexError("No such particle: #"+lexical_cast<string>(id)+".");
 	return shared_ptr<Particle>(); // make compiler happy
 }
 

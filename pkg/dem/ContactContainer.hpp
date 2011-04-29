@@ -15,9 +15,11 @@ class Scene;
 
 struct ContactContainer: public Serializable{
 	/* internal data */
+	#if 0
 		#ifdef YADE_OPENGL
 			boost::mutex manipMutex; // to synchronize with rendering
 		#endif
+	#endif
 		DemField* dem; // backptr to DemField, set by DemField::postLoad; do not modify!
 		ParticleContainer* particles;
 

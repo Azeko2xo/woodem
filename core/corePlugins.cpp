@@ -15,6 +15,7 @@
 #include<yade/core/EnergyTracker.hpp>
 #include<yade/core/Engine.hpp>
 #include<yade/core/Functor.hpp>
+#include<yade/core/DisplayParameters.hpp>
 //#include<yade/core/Interaction.hpp>
 //#include<yade/core/InteractionContainer.hpp>
 
@@ -33,7 +34,7 @@
 #endif
 
 // YADE_PLUGIN(core,(Body)(Bound)(Cell)(Dispatcher)(EnergyTracker)(Engine)(FileGenerator)(Functor)(GlobalEngine)(Interaction)(IGeom)(IPhys)(Material)(PartialEngine)(Shape)(State));
-YADE_PLUGIN(core,(Cell)(Dispatcher)(EnergyTracker)(Engine)(Functor)(GlobalEngine)(PartialEngine));
+YADE_PLUGIN(core,(Cell)(Dispatcher)(EnergyTracker)(Engine)(Functor)(GlobalEngine)(PartialEngine)(PeriodicEngine)(PyRunner)(DisplayParameters));
 #include<yade/core/Field.hpp>
 YADE_PLUGIN(core,(Constraint)(Node)(DynState)(Field));
 
