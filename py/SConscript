@@ -5,21 +5,18 @@ import os.path
 
 env.Install('$LIBDIR/py/yade',[
 	#env.SharedLibrary('WeightedAverage2d',['WeightedAverage2d.cpp'],SHLIBPREFIX=''),
-	#env.SharedLibrary('_eudoxos',['_eudoxos.cpp'],SHLIBPREFIX='',CXXFLAGS=env['CXXFLAGS']+([] if not os.path.exists('../../brefcom-mm.hh') else ['-include','../brefcom-mm.hh']),LIBS=env['LIBS']+[
-	#	linkPlugins(['Shop']),
-	#	]),
+	#env.SharedLibrary('_eudoxos',['_eudoxos.cpp'],SHLIBPREFIX='',LIBS=env['LIBS']),
 	env.SharedLibrary('log',['log.cpp'],SHLIBPREFIX=''),
 	#env.SharedLibrary('_utils',['_utils.cpp'],SHLIBPREFIX='',LIBS=env['LIBS']+[
 	#	linkPlugins(['Shop','Facet']),
 	#	]),
-	#env.SharedLibrary('_packPredicates',['pack/_packPredicates.cpp'],SHLIBPREFIX='',
-	#	# link to the symlink to the python module (created in lib/SConstruct; see explanation there)
-	#	LIBS=env['LIBS']+(['_gts__python-module'] if 'YADE_GTS' in env['CPPDEFINES'] else []),
-	#	),
-	#env.SharedLibrary('_packSpheres',['pack/_packSpheres.cpp'],SHLIBPREFIX='',LIBS=env['LIBS']+[
-	#	linkPlugins(['Shop','SpherePack']),
-	#	]),
-	#env.SharedLibrary('_packObb',['pack/_packObb.cpp'],SHLIBPREFIX=''),
+	env.SharedLibrary('_utils2',['_utils2.cpp'],SHLIBPREFIX='',LIBS=env['LIBS']+[linkPlugins(['Particle'])]),
+	env.SharedLibrary('_packPredicates',['pack/_packPredicates.cpp'],SHLIBPREFIX='',
+		# link to the symlink to the python module (created in lib/SConstruct; see explanation there)
+		LIBS=env['LIBS']+(['_gts__python-module'] if 'YADE_GTS' in env['CPPDEFINES'] else []),
+	),
+	env.SharedLibrary('_packSpheres',['pack/_packSpheres.cpp'],SHLIBPREFIX=''),
+	env.SharedLibrary('_packObb',['pack/_packObb.cpp'],SHLIBPREFIX=''),
 	env.AlwaysBuild(env.ScanReplace('__init__.py.in')),
 	env.AlwaysBuild(env.ScanReplace('config.py.in')),
 	env.File(env.Glob('*.py')),

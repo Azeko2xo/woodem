@@ -1,11 +1,15 @@
 #ifdef YADE_OPENGL
 
-#include"Renderer.hpp"
+#include<yade/pkg/gl/Renderer.hpp>
 #include<yade/lib/opengl/OpenGLWrapper.hpp>
 #include<yade/lib/opengl/GLUtils.hpp>
+#include<yade/lib/base/CompUtils.hpp>
 #include<yade/core/Timing.hpp>
 #include<yade/core/Scene.hpp>
 #include<yade/core/Field.hpp>
+
+
+#include<yade/pkg/sparc/SparcField.hpp>
 
 #include <GL/glu.h>
 #include <GL/gl.h>
@@ -27,27 +31,6 @@ void Renderer::init(){
 		_TRY_ADD_FUNCTOR(GlBoundFunctor,boundDispatcher,item.first);
 		_TRY_ADD_FUNCTOR(GlNodeFunctor,nodeDispatcher,item.first);
 	}
-#if 0
-		// if (Omega::instance().isInheritingFrom_recursive(item.first,"GlStateFunctor")) stateFunctorNames.push_back(item.first);
-		if (Omega::instance().isInheritingFrom_recursive(item.first,"GlBoundFunctor")) boundFunctorNames.push_back(item.first);
-		if (Omega::instance().isInheritingFrom_recursive(item.first,"GlShapeFunctor")) shapeFunctorNames.push_back(item.first);
-		if (Omega::instance().isInheritingFrom_recursive(item.first,"GlIGeomFunctor")) geomFunctorNames.push_back(item.first);
-		if (Omega::instance().isInheritingFrom_recursive(item.first,"GlIPhysFunctor")) physFunctorNames.push_back(item.first);
-		if (Omega::instance().isInheritingFrom_recursive(item.first,"GlFieldFunctor")) fieldFunctorNames.push_back(item.first);
-		if (Omega::instance().isInheritingFrom_recursive(item.first,"GlNodeFunctor")) nodeFunctorNames.push_back(item.first);
-	}
-	
-	LOG_DEBUG("(re)initializing GL for gldraw methods.\n");
-	#define _SETUP_DISPATCHER(names,FunctorType,dispatcher) dispatcher.clearMatrix(); FOREACH(string& s,names) {shared_ptr<FunctorType> f(static_pointer_cast<FunctorType>(ClassFactory::instance().createShared(s))); f->initgl(); dispatcher.add(f);}
-		// _SETUP_DISPATCHER(stateFunctorNames,GlStateFunctor,stateDispatcher);
-		_SETUP_DISPATCHER(boundFunctorNames,GlBoundFunctor,boundDispatcher);
-		_SETUP_DISPATCHER(shapeFunctorNames,GlShapeFunctor,shapeDispatcher);
-		_SETUP_DISPATCHER(geomFunctorNames,GlIGeomFunctor,geomDispatcher);
-		_SETUP_DISPATCHER(physFunctorNames,GlIPhysFunctor,physDispatcher);
-		_SETUP_DISPATCHER(fieldFunctorNames,GlFieldFunctor,fieldDispatcher);
-		_SETUP_DISPATCHER(nodeFunctorNames,GlNodeFunctor,nodeDispatcher);
-	#undef _SETUP_DISPATCHER
-#endif
 	clipPlaneNormals.resize(numClipPlanes);
 	static bool glutInitDone=false;
 	if(!glutInitDone){
@@ -113,12 +96,15 @@ void Renderer::drawPeriodicCell(){
 	glPushMatrix();
 		// Vector3r size=scene->cell->getSize();
 		const Matrix3r& hSize=scene->cell->hSize;
+		#if 0
 		if(dispScale!=Vector3r::Ones()){
 			const Matrix3r& refHSize(scene->cell->refHSize);
 			Matrix3r scaledHSize;
 			for(int i=0; i<3; i++) scaledHSize.col(i)=refHSize.col(i)+dispScale.cwise()*Vector3r(hSize.col(i)-refHSize.col(i));
 			GLUtils::Parallelepiped(scaledHSize.col(0),scaledHSize.col(1),scaledHSize.col(2));
-		} else {
+		} else 
+		#endif
+		{
 			GLUtils::Parallelepiped(hSize.col(0),hSize.col(1),hSize.col(2));
 		}
 	glPopMatrix();
@@ -190,23 +176,26 @@ void Renderer::setLighting(){
 
 
 void Renderer::render(const shared_ptr<Scene>& _scene,int selection){
-
 	if(!initDone) init();
 	assert(initDone);
 	selId = selection;
 
 	scene=_scene;
-	dem=dynamic_pointer_cast<DemField>(scene->field);
-	assert(dem);
+	dem=shared_ptr<DemField>();
+	sparc=shared_ptr<SparcField>();
+	for(size_t i=0; i<scene->fields.size(); i++){
+		if(!dem) dem=dynamic_pointer_cast<DemField>(scene->fields[i]);
+		// if(!voro) voro=dynamic_pointer_cast<VoroField>(scene->fields[i]);
+		if(!sparc) sparc=dynamic_pointer_cast<SparcField>(scene->fields[i]);
+	}
+	// if(!dem) LOG_ERROR("No dem field to be rendered.");
+	//assert(dem);
 
-	shapeDispatcher.updateScenePtr();
 #if 0
 	// assign scene inside functors
-	boundDispatcher.updateScenePtr();
 	geomDispatcher.updateScenePtr();
 	physDispatcher.updateScenePtr();
 	fieldDispatcher.updateScenePtr();
-	nodeDispatcher.updateScenePtr();
 	// stateDispatcher.updateScenePtr();
 #endif
 
@@ -219,18 +208,24 @@ void Renderer::render(const shared_ptr<Scene>& _scene,int selection){
 	setLighting();
 	drawPeriodicCell();
 
-	if (shape) renderShape();
+	if(dem){
+		if(shape)renderShape();
+		if(bound)renderBound();
+		// if(cGeom)renderCGeom();
+		if(nodes) renderNodes();
+		if(cNodes>0)renderCNodes();
+	}
+	//if(voro){ renderVoro();	}
+	if(sparc){ renderSparc(); }
 
 	#if 0
 	if (dof || id) renderDOF_ID();
-	if (bound) renderBound();
 	if (intrAllWire) renderAllInteractionsWire();
 	if (intrGeom) renderIGeom();
 	if (intrPhys) renderIPhys();
 	#endif
 
 	// if(field) renderField();
-	if(nodes) renderNodes();
 
 	FOREACH(const shared_ptr<GlExtraDrawer> d, extraDrawers){
 		if(d->dead) continue;
@@ -250,16 +245,39 @@ void Renderer::renderField(){
 #endif
 
 void Renderer::renderNodes(){
+	nodeDispatcher.scene=scene.get(); nodeDispatcher.updateScenePtr();
 	FOREACH(shared_ptr<Node> node, dem->nodes){
-		Vector3r x=node->pos;
-		if(scene->isPeriodic) x=scene->cell->canonicalizePt(x);
-		glPushMatrix();
-			glTranslatev(scene->isPeriodic? scene->cell->canonicalizePt(node->pos) : node->pos);
-			AngleAxisr aa(node->ori);
-			glRotatef(aa.angle()*Mathr::RAD_TO_DEG,aa.axis()[0],aa.axis()[1],aa.axis()[2]);
-			nodeDispatcher(node,viewInfo);
-		glPopMatrix();
+		renderRawNode(node);
 	}
+}
+
+void Renderer::renderCNodes(){
+	nodeDispatcher.scene=scene.get(); nodeDispatcher.updateScenePtr();
+	boost::mutex::scoped_lock lock(*dem->contacts.manipMutex);
+	FOREACH(const shared_ptr<Contact>& C, dem->contacts){
+		assert(C->geom);
+		if(cNodes & 1) renderRawNode(C->geom->node);
+		if(cNodes & 2){ // connect node by lines with particle's positions
+			assert(C->pA->shape && C->pB->shape);
+			assert(C->pA->shape->nodes.size()>0); assert(C->pB->shape->nodes.size()>0);
+			Vector3r x[3]={C->geom->node->pos,C->pA->shape->avgNodePos(),C->pB->shape->avgNodePos()};
+			if(scene->isPeriodic) for(int i=0; i<3; i++){ x[i]=scene->cell->canonicalizePt(x[i]); }
+			Vector3r color=.7*CompUtils::mapColor(C->color);
+			GLUtils::GLDrawLine(x[0],x[1],color);
+			GLUtils::GLDrawLine(x[0],x[2],color);
+		}
+	}
+}
+
+void Renderer::renderRawNode(shared_ptr<Node> node){
+	Vector3r x=node->pos;
+	if(scene->isPeriodic) x=scene->cell->canonicalizePt(x);
+	glPushMatrix();
+		glTranslatev(scene->isPeriodic? scene->cell->canonicalizePt(node->pos) : node->pos);
+		AngleAxisr aa(node->ori.conjugate());
+		glRotatef(aa.angle()*Mathr::RAD_TO_DEG,aa.axis()[0],aa.axis()[1],aa.axis()[2]);
+		nodeDispatcher(node,viewInfo);
+	glPopMatrix();
 }
 
 // this function is called for both rendering as well as
@@ -351,7 +369,7 @@ void Renderer::renderShape(){
 void Renderer::renderBound(){
 	boundDispatcher.scene=scene.get(); boundDispatcher.updateScenePtr();
 	FOREACH(const shared_ptr<Particle>& b, dem->particles){
-		if(!b || !b->shape || b->shape->bound) continue;
+		if(!b->shape || !b->shape->bound) continue;
 		//if(!bodyDisp[b->getId()].isDisplayed) continue;
 		//if(b->bound && ((b->getGroupMask()&mask) || b->getGroupMask()==0)){
 		glPushMatrix(); boundDispatcher(b->shape->bound); glPopMatrix();
@@ -375,6 +393,35 @@ void Renderer::renderBound(){
 }
 
 
+/* FIXME: move to a field-specific renderer */
+void Renderer::renderSparc(){
+	FOREACH(const shared_ptr<Node>& n, sparc->nodes){
+		renderRawNode(n);
+		// show neighbours with lines, with random colors so that they can be told apart
+		Vector3r color=CompUtils::mapColor(n->getData<SparcData>().color);
+		FOREACH(const shared_ptr<Node>& neighbor, n->getData<SparcData>().neighbors){
+			GLUtils::GLDrawLine(n->pos,n->pos+.5*(neighbor->pos-n->pos),color,3);
+			GLUtils::GLDrawLine(n->pos+.5*(neighbor->pos-n->pos),neighbor->pos,color,1);
+		}
+	}
+}
+
+
+#if 0
+void Renderer::renderCGeom(){
+	geomDispatcher.scene=scene.get(); geomDispatcher.updateScenePtr();
+	{
+		boost::mutex::scoped_lock lock(dem->contacts.manipMutex);
+		FOREACH(const shared_ptr<Contact>& C, dem->contacts){
+			assert(C->geom); // should be handled by iterator
+			shared_ptr<IGeom> cg(C->geom); // keep reference so that ig does not disappear suddenly while being rendered
+			//if(!(bodyDisp[I->getId1()].isDisplayed||bodyDisp[I->getId2()].isDisplayed)) continue;
+			glPushMatrix(); geomDispatcher(C->geom,C,cWire); glPopMatrix();
+		}
+	}
+}
+#endif
+
 #if 0
 void Renderer::renderAllInteractionsWire(){
 	FOREACH(const shared_ptr<Interaction>& i, *scene->interactions){
@@ -397,11 +444,11 @@ void Renderer::renderDOF_ID(){
 	FOREACH(const shared_ptr<Body> b, *scene->bodies){
 		if(!b) continue;
 		if(b->shape && ((b->getGroupMask() & mask) || b->getGroupMask()==0)){
-			if(!id && b->state->blockedDOFs==0) continue;
+			if(!id && b->state->blocked==0) continue;
 			if(selId==b->getId()){glLightModelfv(GL_LIGHT_MODEL_AMBIENT,ambientColorSelected);}
 			{ // write text
 				glColor3f(1.0-bgColor[0],1.0-bgColor[1],1.0-bgColor[2]);
-				unsigned d = b->state->blockedDOFs;
+				unsigned d = b->state->blocked;
 				std::string sDof = std::string()+(((d&State::DOF_X )!=0)?"x":"")+(((d&State::DOF_Y )!=0)?"y":" ")+(((d&State::DOF_Z )!=0)?"z":"")+(((d&State::DOF_RX)!=0)?"X":"")+(((d&State::DOF_RY)!=0)?"Y":"")+(((d&State::DOF_RZ)!=0)?"Z":"");
 				std::string sId = boost::lexical_cast<std::string>(b->getId());
 				std::string str;
@@ -413,21 +460,6 @@ void Renderer::renderDOF_ID(){
 				GLUtils::GLDrawText(str,bodyDisp[b->id].pos,h);
 			}
 			if(selId == b->getId()){glLightModelfv(GL_LIGHT_MODEL_AMBIENT,ambientColorUnselected);}
-		}
-	}
-}
-
-void Renderer::renderIGeom(){
-	geomDispatcher.scene=scene.get(); geomDispatcher.updateScenePtr();
-	{
-		boost::mutex::scoped_lock lock(scene->interactions->drawloopmutex);
-		FOREACH(const shared_ptr<Interaction>& I, *scene->interactions){
-			if(!I->geom) continue; // avoid refcount manipulations if the interaction is not real anyway
-			shared_ptr<IGeom> ig(I->geom); // keep reference so that ig does not disappear suddenly while being rendered
-			if(!ig) continue;
-			const shared_ptr<Body>& b1=Body::byId(I->getId1(),scene), b2=Body::byId(I->getId2(),scene);
-			if(!(bodyDisp[I->getId1()].isDisplayed||bodyDisp[I->getId2()].isDisplayed)) continue;
-			glPushMatrix(); geomDispatcher(ig,I,b1,b2,intrWire); glPopMatrix();
 		}
 	}
 }

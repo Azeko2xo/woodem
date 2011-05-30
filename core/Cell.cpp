@@ -3,12 +3,18 @@
 
 CREATE_LOGGER(Cell);
 
+void Cell::checkTrsfUpperTriangular(){
+ if (trsf(1,0)!=0. || trsf(2,0)!=0. || trsf(2,1)!=0.) throw std::runtime_error("Cell.trsf must be upper-triagular (Cell.trsfUpperTriangular==True), but it is not! (Cell.velGrad must be upper-triangular too, since its components propagate to Cell.trsf)");
+}
+
 void Cell::integrateAndUpdate(Real dt){
 	//incremental displacement gradient
 	_trsfInc=dt*velGrad;
 	// total transformation; M = (Id+G).M = F.M
 	trsf+=_trsfInc*trsf;
 	_invTrsf=trsf.inverse();
+
+	if(trsfUpperTriangular) checkTrsfUpperTriangular();
 	// hSize contains colums with updated base vectors
 	hSize+=_trsfInc*hSize;
 	if(hSize.determinant()==0){ throw runtime_error("Cell is degenerate (zero volume)."); }

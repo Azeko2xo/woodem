@@ -1,25 +1,34 @@
 // © 2009 Václav Šmilauer <eudoxos@arcig.cz>
 
-#include<yade/pkg/dem/SpherePack.hpp>
 
-#include<yade/core/Omega.hpp>
-#include<yade/core/Scene.hpp>
-#include<yade/pkg/common/Sphere.hpp>
-#include<yade/pkg/dem/Shop.hpp>
+#include<yade/lib/sphere-pack/SpherePack.hpp>
 
-#include <boost/random/linear_congruential.hpp>
-#include <boost/random/uniform_real.hpp>
-#include <boost/random/variate_generator.hpp>
 
-#include<yade/core/Timing.hpp>
+#include<boost/random/linear_congruential.hpp>
+#include<boost/random/uniform_real.hpp>
+#include<boost/random/variate_generator.hpp>
 
-// not a serializable in the sense of YADE_PLUGIN
+#include<iostream>
+#include<fstream>
+
+#include<map>
+#include<list>
+#include<vector>
+
+#include<time.h>
 
 CREATE_LOGGER(SpherePack);
 
 using namespace std;
 using namespace boost;
 namespace py=boost::python;
+
+// seed for random numbers
+unsigned long long getNow(){
+	struct timespec ts; 
+	clock_gettime(CLOCK_MONOTONIC,&ts); 
+	return (unsigned long long)(1e9*ts.tv_sec+ts.tv_nsec);
+}
 
 
 void SpherePack::fromList(const py::list& l){
@@ -29,8 +38,7 @@ void SpherePack::fromList(const py::list& l){
 		const py::tuple& t=py::extract<py::tuple>(l[i]);
 		py::extract<Vector3r> vec(t[0]);
 		if(vec.check()) { pack.push_back(Sph(vec(),py::extract<double>(t[1]),(py::len(t)>2?py::extract<int>(t[2]):-1))); continue; }
-		PyErr_SetString(PyExc_TypeError, "List elements must be (Vector3, float) or (Vector3, float, int)!");
-		py::throw_error_already_set();
+		yade::TypeError("List elements must be (Vector3, float) or (Vector3, float, int)!");
 	}
 };
 
@@ -50,6 +58,7 @@ py::list SpherePack::toList() const {
 	return ret;
 };
 
+#if 0
 void SpherePack::fromFile(string file) {
 	typedef pair<Vector3r,Real> pairVector3rReal;
 	vector<pairVector3rReal> ss;
@@ -58,6 +67,7 @@ void SpherePack::fromFile(string file) {
 	pack.clear();
 	FOREACH(const pairVector3rReal& s, ss) pack.push_back(Sph(s.first,s.second));
 }
+#endif
 
 void SpherePack::toFile(const string fname) const {
 	ofstream f(fname.c_str());
@@ -69,7 +79,7 @@ void SpherePack::toFile(const string fname) const {
 	}
 	f.close();
 };
-
+#if 0
 void SpherePack::fromSimulation() {
 	pack.clear();
 	Scene* scene=Omega::instance().getScene().get();
@@ -81,9 +91,10 @@ void SpherePack::fromSimulation() {
 	}
 	if(scene->isPeriodic) { cellSize=scene->cell->getSize(); }
 }
+#endif
 
 long SpherePack::makeCloud(Vector3r mn, Vector3r mx, Real rMean, Real rRelFuzz, int num, bool periodic, Real porosity, const vector<Real>& psdSizes, const vector<Real>& psdCumm, bool distributeMass, int seed, Matrix3r hSize){
-	static boost::minstd_rand randGen(seed!=0?seed:(int)TimingInfo::getNow(/* get the number even if timing is disabled globally */ true));
+	static boost::minstd_rand randGen(seed!=0?seed:(int)getNow());
 	static boost::variate_generator<boost::minstd_rand&, boost::uniform_real<Real> > rnd(randGen, boost::uniform_real<Real>(0,1));
 	vector<Real> psdRadii; // holds plain radii (rather than diameters), scaled down in some situations to get the target number
 	vector<Real> psdCumm2; // psdCumm but dimensionally transformed to match mass distribution	
@@ -317,7 +328,7 @@ long SpherePack::particleSD(Vector3r mn, Vector3r mx, Real rMean, bool periodic,
 		FOREACH(Real p, passing) numbers.push_back(p);
 	}
 
-	static boost::minstd_rand randGen(seed!=0?seed:(int)TimingInfo::getNow(true));
+	static boost::minstd_rand randGen(seed!=0?seed:(int)getNow());
 	static boost::variate_generator<boost::minstd_rand&, boost::uniform_real<> > rnd(randGen, boost::uniform_real<>(0,1));
 
 	const int maxTry=1000;
@@ -374,7 +385,7 @@ long SpherePack::makeClumpCloud(const Vector3r& mn, const Vector3r& mx, const ve
 	const int maxTry=200;
 	int nGen=0; // number of clumps generated
 	// random point coordinate generator, with non-zero margins if aperiodic
-	static boost::minstd_rand randGen(TimingInfo::getNow(true));
+	static boost::minstd_rand randGen(getNow());
 	typedef boost::variate_generator<boost::minstd_rand&, boost::uniform_real<> > UniRandGen;
 	static UniRandGen rndX(randGen,boost::uniform_real<>(mn[0],mx[0]));
 	static UniRandGen rndY(randGen,boost::uniform_real<>(mn[1],mx[1]));

@@ -17,6 +17,7 @@
 
 class TimingDeltas;
 class Scene;
+class Field;
 
 class Functor: public Serializable
 {
@@ -24,6 +25,7 @@ class Functor: public Serializable
 	shared_ptr<TimingDeltas> timingDeltas;
 	//! updated before every dispatch loop by the dispatcher; DO NOT ABUSE access to scene, except for getting global variables like scene->dt.
 	Scene* scene;
+	Field* field;
 	virtual ~Functor(); // defined in Dispatcher.cpp
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Functor,Serializable,"Function-like object that is called by Dispatcher, if types of arguments match those the Functor declares to accept.",
 		((string,label,,,"Textual label for this object; must be valid python identifier, you can refer to it directly fron python (must be a valid python identifier).")),

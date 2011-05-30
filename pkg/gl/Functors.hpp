@@ -5,6 +5,7 @@
 #ifdef YADE_OPENGL
 
 #include<yade/lib/multimethods/FunctorWrapper.hpp>
+#include<yade/core/Dispatcher.hpp>
 
 
 #define RENDERS(name) public: virtual string renders() const { return #name;}; FUNCTOR1D(name);
@@ -29,15 +30,17 @@ class Renderer;
 
 #include<yade/pkg/dem/Particle.hpp>
 
-GL_FUNCTOR(GlShapeFunctor,TYPELIST_4(const shared_ptr<Shape>&, /*shift*/ const Vector3r&,/*wire*/bool,const GLViewInfo&),Shape);
-//GL_FUNCTOR(GlShapeFunctor,TYPELIST_1(const shared_ptr<Shape>&),Shape);
+GL_FUNCTOR(GlShapeFunctor,TYPELIST_4(const shared_ptr<Shape>&, /*shift*/ const Vector3r&, /*wire*/bool,const GLViewInfo&),Shape);
 GL_DISPATCHER(GlShapeDispatcher,GlShapeFunctor);
+
+//GL_FUNCTOR(GlCGeomFunctor,TYPELIST_3(const shared_ptr<CGeom>&, const shared_ptr<Contact>& c, /*wire*/ bool),CGeom);
+//GL_DISPATCHER(GlCGeomDispatcher,GlCGeomFunctor);
 
 GL_FUNCTOR(GlBoundFunctor,TYPELIST_1(const shared_ptr<Bound>&),Bound);
 GL_DISPATCHER(GlBoundDispatcher,GlBoundFunctor);
 
-GL_FUNCTOR(GlNodeFunctor ,TYPELIST_2(const shared_ptr<Node >&, const GLViewInfo&),Node);
-GL_DISPATCHER(GlNodeDispatcher ,GlNodeFunctor );
+GL_FUNCTOR(GlNodeFunctor,TYPELIST_2(const shared_ptr<Node>&, const GLViewInfo&),Node);
+GL_DISPATCHER(GlNodeDispatcher,GlNodeFunctor);
 
 #if 0
 #include<yade/core/Bound.hpp>

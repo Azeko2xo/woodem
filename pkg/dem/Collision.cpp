@@ -1,14 +1,29 @@
 #include<yade/pkg/dem/Collision.hpp>
 #include<yade/pkg/dem/ParticleContainer.hpp>
+#ifdef YADE_OPENGL
+	#include<yade/lib/opengl/OpenGLWrapper.hpp>
+#endif
 
 YADE_PLUGIN(dem,(Aabb)(BoundFunctor)(BoundDispatcher)(Collider));
 
-bool Collider::mayCollide(const shared_ptr<Particle>&, const shared_ptr<Particle>&){ return true; }
+#ifdef YADE_OPENGL
+	YADE_PLUGIN(gl,(Gl1_Aabb))
+#endif
+
+bool Collider::mayCollide(const shared_ptr<Particle>& pA, const shared_ptr<Particle>& pB){
+	/* particles which share nodes may not collide */
+	if(!pA->shape || !pB->shape) return false;
+	size_t nA=pA->shape->nodes.size(), nB=pB->shape->nodes.size();
+	for(size_t iA=0; iA<nA; iA++) for(size_t iB=0; iB>nB; iB++) if(pA->shape->nodes[iA]==pB->shape->nodes[iB]) return false;
+	// in other cases, do collide
+	return true;
+	
+}
 
 CREATE_LOGGER(BoundDispatcher);
-void BoundDispatcher::action(){
+void BoundDispatcher::run(){
 	updateScenePtr();
-	FOREACH(const shared_ptr<Particle> p, scene->field->cast<DemField>().particles){
+	FOREACH(const shared_ptr<Particle> p, field->cast<DemField>().particles){
 		shared_ptr<Shape>& shape=p->shape;
 		//if(!shape || !b->isBounded()) continue;
 		if(!shape) continue;
@@ -39,6 +54,8 @@ bool Collider::mayCollide(const Body* b1, const Body* b2){
 }
 #endif
 
+void Collider::getLabeledObjects(std::map<std::string,py::object>& m){ boundDispatcher->getLabeledObjects(m); GlobalEngine::getLabeledObjects(m); }
+
 void Collider::pyHandleCustomCtorArgs(python::tuple& t, python::dict& d){
 	if(python::len(t)==0) return; // nothing to do
 	if(python::len(t)!=1) throw invalid_argument(("Collider optionally takes exactly one list of BoundFunctor's as non-keyword argument for constructor ("+lexical_cast<string>(python::len(t))+" non-keyword ards given instead)").c_str());
@@ -48,3 +65,20 @@ void Collider::pyHandleCustomCtorArgs(python::tuple& t, python::dict& d){
 	t=python::tuple(); // empty the args
 }
 
+
+#ifdef YADE_OPENGL
+void Gl1_Aabb::go(const shared_ptr<Bound>& bv){
+	Aabb& aabb=bv->cast<Aabb>();
+	glColor3v(Vector3r(1,1,0));
+	// glDisable(GL_LIGHTING);
+	if(!scene->isPeriodic){
+		glTranslatev(Vector3r(.5*(aabb.min+aabb.max)));
+		glScalev(Vector3r(aabb.max-aabb.min));
+	} else {
+		glTranslatev(Vector3r(scene->cell->shearPt(scene->cell->wrapPt(.5*(aabb.min+aabb.max)))));
+		glMultMatrixd(scene->cell->getGlShearTrsfMatrix());
+		glScalev(Vector3r(aabb.max-aabb.min));
+	}
+	glutWireCube(1);
+}
+#endif

@@ -87,7 +87,7 @@ class NewtonIntegrator;
 
 class ParticleContainer;
 
-class InsertionSortCollider: public Collider{
+class InsertionSortCollider: public Collider, private DemField::Engine{
 	//! struct for storing bounds of bodies
 	struct Bounds{
 		//! coordinate along the given sortAxis
@@ -125,7 +125,7 @@ class InsertionSortCollider: public Collider{
 		int axis;
 		std::vector<Bounds> vec;
 		Real cellDim;
-		// cache vector size(), update at every step in action()
+		// cache vector size(), update at every step in run()
 		long size;
 		// index of the lowest coordinate element, before which the container wraps
 		long loIdx;
@@ -152,7 +152,7 @@ class InsertionSortCollider: public Collider{
 
 	// updated at every step
 	ParticleContainer* particles;
-	shared_ptr<DemField> field;
+	DemField* dem;
 
 	// return python representation of the BB struct, as ([...],[...],[...]).
 	python::tuple dumpBounds();
@@ -181,12 +181,13 @@ class InsertionSortCollider: public Collider{
 	}
 	virtual bool isActivated();
 
+
 	// force reinitialization at next run
 	virtual void invalidatePersistentData(){ for(int i=0; i<3; i++){ BB[i].vec.clear(); BB[i].size=0; }}
 
 	vector<Particle::id_t> probeBoundingVolume(const Bound&);
 
-	virtual void action();
+	virtual void run();
 	YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(InsertionSortCollider,Collider,"\
 		Collider with O(n log(n)) complexity, using :yref:`Aabb` for bounds.\
 		\n\n\

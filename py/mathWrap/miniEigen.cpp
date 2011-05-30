@@ -10,12 +10,13 @@
 
 #include<yade/lib/base/Math.hpp>
 #include<yade/lib/pyutil/doc_opts.hpp>
+#include<yade/lib/pyutil/except.hpp>
 
 
 namespace py=boost::python;
 
 #define IDX_CHECK(i,MAX){ if(i<0 || i>=MAX) { PyErr_SetString(PyExc_IndexError, ("Index out of range 0.." + boost::lexical_cast<std::string>(MAX-1)).c_str()); py::throw_error_already_set(); } }
-#define IDX2_CHECKED_TUPLE_INTS(tuple,max2,arr2) {int l=py::len(tuple); if(l!=2) { PyErr_SetString(PyExc_IndexError,"Index must be integer or a 2-tuple"); py::throw_error_already_set(); } for(int _i=0; _i<2; _i++) { py::extract<int> val(tuple[_i]); if(!val.check()) throw std::runtime_error("Unable to convert "+boost::lexical_cast<std::string>(_i)+"-th index to int."); int v=val(); IDX_CHECK(v,max2[_i]); arr2[_i]=v; }  }
+#define IDX2_CHECKED_TUPLE_INTS(tuple,max2,arr2) {int l=py::len(tuple); if(l!=2) { yade::IndexError("Index must be integer or a 2-tuple"); } for(int _i=0; _i<2; _i++) { py::extract<int> val(tuple[_i]); if(!val.check()) yade::ValueError("Unable to convert "+boost::lexical_cast<std::string>(_i)+"-th index to int."); int v=val(); IDX_CHECK(v,max2[_i]); arr2[_i]=v; }  }
 
 void Vector6r_set_item(Vector6r & self, int idx, Real value){ IDX_CHECK(idx,6); self[idx]=value; }
 void Vector6i_set_item(Vector6i & self, int idx, int  value){ IDX_CHECK(idx,6); self[idx]=value; }
@@ -26,7 +27,7 @@ void Vector2i_set_item(Vector2i & self, int idx, int  value){ IDX_CHECK(idx,2); 
 
 void Quaternionr_set_item(Quaternionr & self, int idx, Real value){ IDX_CHECK(idx,4);  if(idx==0) self.x()=value; else if(idx==1) self.y()=value; else if(idx==2) self.z()=value; else if(idx==3) self.w()=value; }
 void Matrix3r_set_item(Matrix3r & self, py::tuple _idx, Real value){ int idx[2]; int mx[2]={3,3}; IDX2_CHECKED_TUPLE_INTS(_idx,mx,idx); self(idx[0],idx[1])=value; }
-void Matrix3r_set_item_linear(Matrix3r & self, int idx, Real value){ IDX_CHECK(idx,9); self(idx/3,idx%3)=value; }
+void Matrix3r_set_item_linear(Matrix3r & self, int idx, const Vector3r& row){ IDX_CHECK(idx,3); self.row(idx)=row; }
 void Matrix6r_set_item(Matrix6r & self, py::tuple _idx, Real value){ int idx[2]; int mx[2]={6,6}; IDX2_CHECKED_TUPLE_INTS(_idx,mx,idx); self(idx[0],idx[1])=value; }
 
 //void Matrix6r_set_item_linear(Matrix6r & self, int idx, Real value){ IDX_CHECK(idx,36); self(idx/6,idx%6)=value; }
@@ -41,10 +42,10 @@ int  Vector2i_get_item(const Vector2i & self, int idx){ IDX_CHECK(idx,2); return
 
 Real Quaternionr_get_item(const Quaternionr & self, int idx){ IDX_CHECK(idx,4); if(idx==0) return self.x(); if(idx==1) return self.y(); if(idx==2) return self.z(); return self.w(); }
 Real Matrix3r_get_item(Matrix3r & self, py::tuple _idx){ int idx[2]; int mx[2]={3,3}; IDX2_CHECKED_TUPLE_INTS(_idx,mx,idx); return self(idx[0],idx[1]); }
-Real Matrix3r_get_item_linear(Matrix3r & self, int idx){ IDX_CHECK(idx,9); return self(idx/3,idx%3); }
+Vector3r Matrix3r_get_item_linear(Matrix3r & self, int idx){ IDX_CHECK(idx,3); return self.row(idx); }
 Real Matrix6r_get_item(Matrix6r & self, py::tuple _idx){ int idx[2]; int mx[2]={6,6}; IDX2_CHECKED_TUPLE_INTS(_idx,mx,idx); return self(idx[0],idx[1]); }
 
-Vector6r Matrix6r_get_item_linear(Matrix6r & self, int idx){ IDX_CHECK(idx,6); return self.row(idx); } // (idx/6,idx%6);
+Vector6r Matrix6r_get_item_linear(Matrix6r & self, int idx){ IDX_CHECK(idx,6); return self.row(idx); }
 
 std::string Vector6r_str(const Vector6r & self){ return std::string("Vector6(")+boost::lexical_cast<std::string>(self[0])+","+boost::lexical_cast<std::string>(self[1])+","+boost::lexical_cast<std::string>(self[2])+", "+boost::lexical_cast<std::string>(self[3])+","+boost::lexical_cast<std::string>(self[4])+","+boost::lexical_cast<std::string>(self[5])+")";}
 std::string Vector6i_str(const Vector6i & self){ return std::string("Vector6i(")+boost::lexical_cast<std::string>(self[0])+","+boost::lexical_cast<std::string>(self[1])+","+boost::lexical_cast<std::string>(self[2])+", "+boost::lexical_cast<std::string>(self[3])+","+boost::lexical_cast<std::string>(self[4])+","+boost::lexical_cast<std::string>(self[5])+")";}
@@ -64,8 +65,8 @@ int Vector3i_len(){return 3;}
 int Vector2r_len(){return 2;}
 int Vector2i_len(){return 2;}
 int Quaternionr_len(){return 4;}
-int Matrix3r_len(){return 9;}
-int Matrix6r_len(){return 6;} // return individual rows
+int Matrix3r_len(){return 3;} // rows
+int Matrix6r_len(){return 6;} // rows
 
 // pickling support
 struct Matrix3r_pickle: py::pickle_suite{static py::tuple getinitargs(const Matrix3r& x){ return py::make_tuple(x(0,0),x(0,1),x(0,2),x(1,0),x(1,1),x(1,2),x(2,0),x(2,1),x(2,2));} };
@@ -96,8 +97,11 @@ struct custom_VectorAnyAny_from_sequence{
 };
 
 static Matrix3r* Matrix3r_fromElements(Real m00, Real m01, Real m02, Real m10, Real m11, Real m12, Real m20, Real m21, Real m22){ Matrix3r* m(new Matrix3r); (*m)<<m00,m01,m02,m10,m11,m12,m20,m21,m22; return m; }
+static Matrix3r* Matrix3r_fromRows(const Vector3r& l0, const Vector3r& l1, const Vector3r& l2, bool cols=false){ Matrix3r* m(new Matrix3r); if(cols){m->col(0)=l0; m->col(1)=l1; m->col(2)=l2; } else {m->row(0)=l0; m->row(1)=l1; m->row(2)=l2;} return m; }
+static Matrix3r* Matrix3r_fromDiagonal(const Vector3r& d){ Matrix3r* m(new Matrix3r); *m=d.asDiagonal(); return m; }
 static Matrix6r* Matrix6r_fromBlocks(const Matrix3r& ul, const Matrix3r& ur, const Matrix3r& ll, const Matrix3r& lr){ Matrix6r* m(new Matrix6r); (*m)<<ul,ur,ll,lr; return m; }
 static Matrix6r* Matrix6r_fromRows(const Vector6r& l0, const Vector6r& l1, const Vector6r& l2, const Vector6r& l3, const Vector6r& l4, const Vector6r& l5, bool cols=false){ Matrix6r* m(new Matrix6r); if(cols){ m->col(0)=l0; m->col(1)=l1; m->col(2)=l2; m->col(3)=l3; m->col(4)=l4; m->col(5)=l5; } else { m->row(0)=l0; m->row(1)=l1; m->row(2)=l2; m->row(3)=l3; m->row(4)=l4; m->row(5)=l5; } return m; }
+static Matrix6r* Matrix6r_fromDiagonal(const Vector6r& d){ Matrix6r* m(new Matrix6r); *m=d.asDiagonal(); return m; }
 
 static Vector6r* Vector6r_fromElements(Real v0, Real v1, Real v2, Real v3, Real v4, Real v5){ Vector6r* v(new Vector6r); (*v)<<v0,v1,v2,v3,v4,v5; return v; }
 static Vector6i* Vector6i_fromElements(int v0, int v1, int v2, int v3, int v4, int v5){ Vector6i* v(new Vector6i); (*v)<<v0,v1,v2,v3,v4,v5; return v; }
@@ -115,7 +119,12 @@ static Matrix3r Matrix6r_lr(const Matrix6r& m){ return Matrix3r(m.block<3,3>(3,3
 static Vector6r Matrix3r_toVoigt(const Matrix3r& m, bool strain=false){ return tensor_toVoigt(m,strain); }
 static Matrix3r Vector6r_toSymmTensor(const Vector6r& v, bool strain=false){ return voigt_toSymmTensor(v,strain); }
 static Quaternionr Quaternionr_setFromTwoVectors(Quaternionr& q, const Vector3r& u, const Vector3r& v){ return q.setFromTwoVectors(u,v); }
-static Quaternionr Quaternionr_random(Quaternionr& self){ self=Quaternionr(Mathr::UnitRandom(),Mathr::UnitRandom(),Mathr::UnitRandom(),Mathr::UnitRandom()); self.normalize(); return self; }
+static Quaternionr Quaternionr_random(Quaternionr& self){
+	// thanks to http://planning.cs.uiuc.edu/node198.html
+	Real u1=Mathr::UnitRandom(), u2=Mathr::UnitRandom(), u3=Mathr::UnitRandom();
+	self=Quaternionr(sqrt(1-u1)*sin(2*Mathr::PI*u2),sqrt(1-u1)*cos(2*Mathr::PI*u2),sqrt(u1)*sin(2*Mathr::PI*u3),sqrt(u1)*cos(2*Mathr::PI*u3))
+	; /* self.normalize(); */ return self;
+}
 static Vector3r Quaternionr_Rotate(Quaternionr& q, const Vector3r& u){ return q*u; }
 // swizzles for Vector3r
 static Vector2r Vector3r_xy(const Vector3r& v){ return Vector2r(v[0],v[1]); }
@@ -145,6 +154,7 @@ static bool Quaternionr__neq__(const Quaternionr& q1, const Quaternionr& q2){ re
 #include<Eigen/SVD>
 static py::tuple Matrix3r_polarDecomposition(const Matrix3r& self){ Matrix3r unitary,positive; Matrix_computeUnitaryPositive(self,&unitary,&positive); return py::make_tuple(unitary,positive); }
 
+static Matrix3r Vector3r_asDiagonal(const Vector3r& self){ return self.asDiagonal(); }
 
 #undef IDX_CHECK
 
@@ -247,6 +257,8 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.def(py::init<Matrix3r const &>((py::arg("m"))))
 		.def(py::init<Quaternionr const &>((py::arg("q"))))
 		.def("__init__",py::make_constructor(&Matrix3r_fromElements,py::default_call_policies(),(py::arg("m00"),py::arg("m01"),py::arg("m02"),py::arg("m10"),py::arg("m11"),py::arg("m12"),py::arg("m20"),py::arg("m21"),py::arg("m22"))))
+		.def("__init__",py::make_constructor(&Matrix3r_fromRows,py::default_call_policies(),(py::arg("r0"),py::arg("r1"),py::arg("r2"),py::arg("cols")=false)))
+		.def("__init__",py::make_constructor(&Matrix3r_fromDiagonal,py::default_call_policies(),(py::arg("diag"))))
 		.def_pickle(Matrix3r_pickle())
 		//
 		.def("determinant",&Matrix3r::determinant)
@@ -285,7 +297,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.def(py::init<Matrix6r const &>((py::arg("m"))))
 		.def("__init__",py::make_constructor(&Matrix6r_fromBlocks,py::default_call_policies(),(py::arg("ul"),py::arg("ur"),py::arg("ll"),py::arg("lr"))))
 		.def("__init__",py::make_constructor(&Matrix6r_fromRows,py::default_call_policies(),(py::arg("l0"),py::arg("l1"),py::arg("l2"),py::arg("l3"),py::arg("l4"),py::arg("l5"),py::arg("cols")=false)))
-
+		.def("__init__",py::make_constructor(&Matrix6r_fromDiagonal,py::default_call_policies(),(py::arg("diag"))))
 		.def_pickle(Matrix6r_pickle())
 		//
 		.def("determinant",&Matrix6r::determinant)
@@ -339,6 +351,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.def("inverse",&Quaternionr::inverse)
 		.def("norm",&Quaternionr::norm)
 		.def("normalize",&Quaternionr::normalize)
+		.def("normalized",&Quaternionr::normalized)
 		.def("random",&Quaternionr_random,"Assign random orientation to the quaternion.")
 		// operators
 		.def(py::self * py::self)
@@ -416,6 +429,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		// methods
 		.def("dot",&Vector3r_dot).def("cross",&Vector3r_cross)
 		.def("norm",&Vector3r::norm).def("squaredNorm",&Vector3r::squaredNorm).def("normalize",&Vector3r::normalize).def("normalized",&Vector3r::normalized)
+		.def("asDiagonal",&Vector3r_asDiagonal)
 		// swizzles
 		.def("xy",&Vector3r_xy).def("yx",&Vector3r_yx).def("xz",&Vector3r_xz).def("zx",&Vector3r_zx).def("yz",&Vector3r_yz).def("zy",&Vector3r_zy)
 		// operators
@@ -464,7 +478,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.add_static_property("UnitX",&Vector2r_UnitX).add_static_property("UnitY",&Vector2r_UnitY)
 		// methods
 		.def("dot",&Vector2r_dot)
-		.def("norm",&Vector2r::norm).def("squaredNorm",&Vector2r::squaredNorm).def("normalize",&Vector2r::normalize)
+		.def("norm",&Vector2r::norm).def("squaredNorm",&Vector2r::squaredNorm).def("normalize",&Vector2r::normalize).def("normalized",&Vector2r::normalize)
 		// operators
 		.def("__neg__",&Vector2r__neg__) // -v
 		.def("__add__",&Vector2r__add__Vector2r).def("__iadd__",&Vector2r__iadd__Vector2r) // +, +=

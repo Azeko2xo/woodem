@@ -34,8 +34,7 @@ void ParallelEngine::slaves_set(const python::list& slaves2){
 		if (serialGroup.check()){ slaves.push_back(serialGroup()); continue; }
 		python::extract<shared_ptr<Engine> > serialAlone(slaves2[i]);
 		if (serialAlone.check()){ vector<shared_ptr<Engine> > aloneWrap; aloneWrap.push_back(serialAlone()); slaves.push_back(aloneWrap); continue; }
-		PyErr_SetString(PyExc_TypeError,"List elements must be either\n (a) sequences of engines to be executed one after another\n(b) alone engines.");
-		python::throw_error_already_set();
+		yade::TypeError("List elements must be either\n (a) sequences of engines to be executed one after another\n(b) alone engines.");
 	}
 }
 

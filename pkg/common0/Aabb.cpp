@@ -16,9 +16,12 @@ YADE_PLUGIN(gl,(Gl1_Aabb));
 
 #include<yade/lib/opengl/OpenGLWrapper.hpp>
 
+Vector3r Gl1_Aabb::color;
+
 void Gl1_Aabb::go(const shared_ptr<Bound>& bv){
+	cerr<<"!";
 	Aabb* aabb = static_cast<Aabb*>(bv.get());
-	glColor3v(bv->color);
+	glColor3v(color);
 	// glDisable(GL_LIGHTING);
 	if(!scene->isPeriodic){
 		glTranslatev(Vector3r(.5*(aabb->min+aabb->max)));

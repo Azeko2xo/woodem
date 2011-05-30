@@ -17,8 +17,9 @@ struct GlExtraDrawer: public Serializable{
 };
 REGISTER_SERIALIZABLE(GlExtraDrawer);
 
-class Renderer : public Serializable
-{
+class SparcField;
+
+class Renderer: public Serializable{
 	public:
 		static const int numClipPlanes=3;
 
@@ -56,7 +57,6 @@ class Renderer : public Serializable
 		GlBoundDispatcher boundDispatcher;
 		GlNodeDispatcher nodeDispatcher;
 	#if 0
-		GlIGeomDispatcher geomDispatcher;
 		GlIPhysDispatcher physDispatcher;
 		GlFieldDispatcher fieldDispatcher;
 		// GlStateDispatcher stateDispatcher;
@@ -67,14 +67,21 @@ class Renderer : public Serializable
 		// updated after every call to render
 		shared_ptr<Scene> scene;
 		shared_ptr<DemField> dem;
+		shared_ptr<SparcField> sparc;
 
 		void init();
 		void initgl();
 		void render(const shared_ptr<Scene>& scene, int selection=-1);
 
 		void renderNodes();
+		void renderRawNode(shared_ptr<Node>);
+		void renderCNodes();
 		void renderShape();
 		void renderBound();
+
+		void renderSparc();
+		//void renderCGeom();
+
 #if 0
 		void pyRender(){render(Omega::instance().getScene());}
 
@@ -94,20 +101,9 @@ class Renderer : public Serializable
 		((Vector3r,lightColor,Vector3r(0.6,0.6,0.6),,"Per-color intensity of primary light (RGB)."))
 		((Vector3r,light2Color,Vector3r(0.5,0.5,0.1),,"Per-color intensity of secondary light (RGB)."))
 		((Vector3r,bgColor,Vector3r(.2,.2,.2),,"Color of the background canvas (RGB)"))
-		((bool,wire,false,,"Render all bodies with wire only (faster)"))
 		((bool,light1,true,,"Turn light 1 on."))
 		((bool,light2,true,,"Turn light 2 on."))
-		//((bool,dof,false,,"Show which degrees of freedom are blocked for each body"))
-		((bool,id,false,,"Show body id's"))
-		((bool,bound,false,,"Render body :yref:`Bound`"))
-		((bool,shape,true,,"Render body :yref:`Shape`"))
-
-		((bool,field,true,,"Render fields"))
 		((bool,nodes,true,,"Render nodes belonging to fields"))
-
-		//((bool,intrWire,false,,"If rendering interactions, use only wires to represent them."))
-		//((bool,intrGeom,false,,"Render :yref:`Interaction::geom` objects."))
-		//((bool,intrPhys,false,,"Render :yref:`Interaction::phys` objects"))
 		((bool,ghosts,true,,"Render objects crossing periodic cell edges by cloning them in multiple places (periodic simulations only)."))
 		#ifdef YADE_SUBDOMAINS
 			((int,subDomMask,0,,"If non-zero, render shape only of particles that are inside respective domains - -they are counted from the left, i.e. 5 (binary 101) will show subdomains 1 and 3. If zero, render everything."))
@@ -117,6 +113,13 @@ class Renderer : public Serializable
 		((vector<Se3r>,clipPlaneSe3,vector<Se3r>(numClipPlanes,Se3r(Vector3r::Zero(),Quaternionr::Identity())),,"Position and orientation of clipping planes"))
 		((vector<bool>,clipPlaneActive,vector<bool>(numClipPlanes,false),,"Activate/deactivate respective clipping planes"))
 		((vector<shared_ptr<GlExtraDrawer> >,extraDrawers,,,"Additional rendering components (:yref:`GlExtraDrawer`)."))
+
+		((bool,wire,false,,"Render all bodies with wire only"))
+		((bool,id,false,,"Show particle id's"))
+		((bool,bound,false,,"Render particle's :yref:`Bound`"))
+		((bool,shape,true,,"Render particle's :yref:`Shape`"))
+		((int,cNodes,true,,"Render contact's nodes (0=no, 1=nodes only, 2=line between particles, 3=both"))
+		((Vector2i,cNodes_range,Vector2i(0,3),Attr::noGui,"Range for cNodes"))
 		//((bool,intrAllWire,false,,"Draw wire for all interactions, blue for potential and green for real ones (mostly for debugging)")),
 		,/*deprec*/
 		,/*init*/
@@ -124,9 +127,10 @@ class Renderer : public Serializable
 		,/*py*/
 		// .def("setRefSe3",&Renderer::setBodiesRefSe3,"Make current positions and orientation reference for scaleDisplacements and scaleRotations.")
 		//.def("render",&Renderer::pyRender,"Render the scene in the current OpenGL context.")
+		.def_readonly("shapeDispatcher",&Renderer::shapeDispatcher)
+		.def_readonly("boundDispatcher",&Renderer::boundDispatcher)
+		.def_readonly("nodeDispatcher",&Renderer::nodeDispatcher)
+		// .def_readonly("cgeomDispatcher",&Renderer::nodeDispatcher)
 	);
 };
 REGISTER_SERIALIZABLE(Renderer);
-
-
-

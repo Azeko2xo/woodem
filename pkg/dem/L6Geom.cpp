@@ -1,9 +1,7 @@
 
 #include<yade/pkg/dem/L6Geom.hpp>
-#include<yade/pkg/dem/Sphere.hpp>
-//#include<yade/pkg/common/Wall.hpp>
-//#include<yade/pkg/common/Facet.hpp>
 #include<yade/core/Field.hpp>
+#include<yade/lib/base/CompUtils.hpp>
 
 #include<sstream>
 
@@ -13,18 +11,21 @@
 	#include<GL/glu.h>
 #endif
 
-YADE_PLUGIN(dem,(L6Geom)(Cg2_Sphere_Sphere_L6Geom));
+YADE_PLUGIN(dem,(L6Geom)(Cg2_Sphere_Sphere_L6Geom)(Cg2_Truss_Sphere_L6Geom));
 // (Ig2_Wall_Sphere_L3Geom)(Ig2_Facet_Sphere_L3Geom)(Ig2_Sphere_Sphere_L6Geom)(Law2_L3Geom_FrictPhys_ElPerfPl)(Law2_L6Geom_FrictPhys_Linear);
-//#ifdef YADE_OPENGL
-//	YADE_PLUGIN(gl,/*(Gl1_L3Geom)*/(Gl1_L6Geom));
-//#endif
+#if 0
+#ifdef YADE_OPENGL
+	YADE_PLUGIN(gl,(Gl1_L6Geom));
+#endif
+#endif
 
 CREATE_LOGGER(Cg2_Sphere_Sphere_L6Geom);
 
 bool Cg2_Sphere_Sphere_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
 	const Real& r1=s1->cast<Sphere>().radius; const Real& r2=s2->cast<Sphere>().radius;
 	assert(s1->numNodesOk()); assert(s2->numNodesOk());
-	assert(s1->nodes[0]->dyn); assert(s2->nodes[0]->dyn);
+	assert(s1->nodes[0]->hasData<DemData>()); assert(s2->nodes[0]->hasData<DemData>());
+	const DemData& dyn1(s1->nodes[0]->getData<DemData>());	const DemData& dyn2(s2->nodes[0]->getData<DemData>());
 
 	Vector3r relPos=s2->nodes[0]->pos+shift2-s1->nodes[0]->pos;
 	Real unDistSq=relPos.squaredNorm()-pow(abs(distFactor)*(r1+r2),2);
@@ -37,10 +38,42 @@ bool Cg2_Sphere_Sphere_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<
 	Vector3r normal=relPos/dist;
 	Vector3r contPt=s1->nodes[0]->pos+(r1+0.5*uN)*normal;
 
-	handleSpheresLikeContact(C,s1->nodes[0]->pos,s1->nodes[0]->dyn->vel,s1->nodes[0]->dyn->angVel,s2->nodes[0]->pos+shift2,s2->nodes[0]->dyn->vel,s2->nodes[0]->dyn->angVel,normal,contPt,uN,r1,r2);
+	handleSpheresLikeContact(C,s1->nodes[0]->pos,dyn1.vel,dyn1.angVel,s2->nodes[0]->pos+shift2,dyn2.vel,dyn2.angVel,normal,contPt,uN,r1,r2);
 
 	return true;
 
+};
+
+bool Cg2_Truss_Sphere_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
+	const Truss& t=s1->cast<Truss>(); const Sphere& s=s2->cast<Sphere>();
+	assert(s1->numNodesOk()); assert(s2->numNodesOk());
+	assert(s1->nodes[0]->hasData<DemData>()); assert(s2->nodes[0]->hasData<DemData>());
+	const DemData& dynTruss(t.nodes[0]->getData<DemData>());
+	const DemData& dynSphere(s.nodes[0]->getData<DemData>());
+	Real normAxisPos;
+
+	Vector3r cylAxisPt=CompUtils::closestSegmentPt(s.nodes[0]->pos+shift2,t.nodes[0]->pos,t.nodes[1]->pos,&normAxisPos);
+	Vector3r relPos=s.nodes[0]->pos-cylAxisPt;
+	Real unDistSq=relPos.squaredNorm()-pow(s.radius+t.radius,2); // no distFactor here
+
+	// TODO: find closest point of sharp-cut ends, remove this error
+	if(!(t.caps|Truss::CAP_A) || !(t.caps|Truss::CAP_B)) throw std::runtime_error("Cg2_Sphere_Truss_L6Geom: only handles capped trusses for now.");
+
+	if (unDistSq>0 && !C->isReal() && !force) return false;
+
+	// contact exists, go ahead
+	Real dist=relPos.norm();
+	Real uN=dist-(s.radius+t.radius);
+	Vector3r normal=relPos/dist;
+	Vector3r contPt=s.nodes[0]->pos-(s.radius+0.5*uN)*normal;
+
+	Vector3r cylPtVel=(1-normAxisPos)*dynTruss.vel+normAxisPos*dynTruss.vel; // average velocity
+	// angular velocity of the contact point, exclusively due to linear velocity of endpoints
+	Vector3r cylPtAngVel=dynTruss.vel.cross(t.nodes[0]->pos-contPt)+dynTruss.vel.cross(t.nodes[1]->pos-contPt);
+
+	handleSpheresLikeContact(C,cylAxisPt,dynTruss.vel,dynTruss.angVel,s.nodes[0]->pos+shift2,dynSphere.vel,dynSphere.angVel,normal,contPt,uN,t.radius,s.radius);
+
+	return true;
 };
 
 /*
@@ -62,10 +95,10 @@ void Cg2_Sphere_Sphere_L6Geom::handleSpheresLikeContact(const shared_ptr<Contact
 			g.trsf.row(0)=locX; g.trsf.row(1)=locY; g.trsf.row(2)=locZ;
 		#endif
 		g.uN=uN;
-		g.lengthHint=Vector2r(r1,r2);
+		g.lens=Vector2r(r1,r2);
 		g.node->pos=contPt;
 		g.node->ori=Quaternionr(g.trsf);
-		// cerr<<"Init trsf=\n"<<g.trsf<<endl<<"locX="<<locX<<", locY="<<locY<<", locZ="<<locZ<<endl;
+		//cerr<<"##"<<C->pA->id<<"+"<<C->pB->id<<": init trsf=\n"<<g.trsf<<endl<<"locX="<<locX<<", locY="<<locY<<", locZ="<<locZ<<"; normal="<<normal<<endl;
 		return;
 	}
 	// update geometry
@@ -294,38 +327,41 @@ void Law2_L6Geom_FrictPhys_Linear::go(shared_ptr<IGeom>& ig, shared_ptr<IPhys>& 
 	geom.applyLocalForceTorque(localF,localT,I,scene,static_cast<NormShearPhys*>(ip.get()));
 }
 #endif 
-#if 0 // YADE_OPENGL
-bool Gl1_L3Geom::axesLabels;
-int Gl1_L3Geom::axesWd;
-Vector2i Gl1_L3Geom::axesWd_range;
-Real Gl1_L3Geom::axesScale;
-int Gl1_L3Geom::uPhiWd;
-Vector2i Gl1_L3Geom::uPhiWd_range;
-Real Gl1_L3Geom::uScale;
-Real Gl1_L6Geom::phiScale;
-Vector2r Gl1_L6Geom::phiScale_range;
+
+#if 0
+#if YADE_OPENGL
+bool Gl1_L6Geom::axesLabels;
+Real Gl1_L6Geom::axesScale;
+int Gl1_L6Geom::axesWd;
+Vector2i Gl1_L6Geom::axesWd_range;
+//int Gl1_L6Geom::uPhiWd;
+//Vector2i Gl1_L6Geom::uPhiWd_range;
+//Real Gl1_L6Geom::uScale;
+//Real Gl1_L6Geom::phiScale;
+//Vector2r Gl1_L6Geom::phiScale_range;
 
 
-void Gl1_L3Geom::go(const shared_ptr<IGeom>& ig, const shared_ptr<Interaction>&, const shared_ptr<Body>&, const shared_ptr<Body>&, bool){ draw(ig); }
-void Gl1_L6Geom::go(const shared_ptr<IGeom>& ig, const shared_ptr<Interaction>&, const shared_ptr<Body>&, const shared_ptr<Body>&, bool){ draw(ig,true,phiScale); }
+//void Gl1_L3Geom::go(const shared_ptr<IGeom>& ig, const shared_ptr<Interaction>&, const shared_ptr<Body>&, const shared_ptr<Body>&, bool){ draw(ig); }
+// void Gl1_L6Geom::go(const shared_ptr<CGeom>& ig, const shared_ptr<Contact>& C, bool){ draw(ig,true,phiScale); }
 
-void Gl1_L3Geom::draw(const shared_ptr<IGeom>& ig, bool isL6Geom, const Real& phiScale){
-	const L3Geom& g(ig->cast<L3Geom>());
-	glTranslatev(g.contactPoint);
+void Gl1_L6Geom::go(const shared_ptr<CGeom>& ig, const shared_ptr<Contact>& C, bool){
+	const L6Geom& g(ig->cast<L6Geom>());
+	const Node& cn=*(C->geom->node);
+	glTranslatev(cn.pos);
 	#ifdef L6_TRSF_QUATERNION
 		#if EIGEN_MAJOR_VERSION<30
- 			glMultMatrixd(Eigen::Transform3d(Matrix3r(g.trsf).transpose()).data());
+ 			glMultMatrixd(Eigen::Transform3d(Matrix3r(cn.ori).transpose()).data());
 		#else
- 			glMultMatrixd(Eigen::Affine3d(Matrix3r(g.trsf).transpose()).data());
+ 			glMultMatrixd(Eigen::Affine3d(Matrix3r(cn.ori).transpose()).data());
 		#endif
 	#else
 		#if EIGEN_MAJOR_VERSION<30
- 			glMultMatrixd(Eigen::Transform3d(g.trsf.transpose()).data());
+ 			glMultMatrixd(Eigen::Transform3d(cn.ori.transpose()).data());
 		#else
- 			glMultMatrixd(Eigen::Affine3d(g.trsf.transpose()).data());
+ 			glMultMatrixd(Eigen::Affine3d(cn.ori.transpose()).data());
 		#endif
 	#endif
-	Real rMin=g.refR1<=0?g.refR2:(g.refR2<=0?g.refR1:min(g.refR1,g.refR2));
+	Real rMin=g.getMinRefLen();
 	if(axesWd>0){
 		glLineWidth(axesWd);
 		for(int i=0; i<3; i++){
@@ -334,12 +370,16 @@ void Gl1_L3Geom::draw(const shared_ptr<IGeom>& ig, bool isL6Geom, const Real& ph
 			if(axesLabels) GLUtils::GLDrawText(string(i==0?"x":(i==1?"y":"z")),pt,color);
 		}
 	}
+	#if 0
 	if(uPhiWd>0){
 		glLineWidth(uPhiWd);
 		if(uScale!=0) GLUtils::GLDrawLine(Vector3r::Zero(),uScale*g.relU(),Vector3r(0,1,.5));
 		if(isL6Geom && phiScale>0) GLUtils::GLDrawLine(Vector3r::Zero(),ig->cast<L6Geom>().relPhi()/Mathr::PI*rMin*phiScale,Vector3r(.8,0,1));
 	}
+	#endif
 	glLineWidth(1.);
 };
+
+#endif
 
 #endif

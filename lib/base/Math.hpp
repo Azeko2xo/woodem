@@ -85,6 +85,10 @@ typedef VECTOR6_TEMPLATE(int) Vector6i;
 typedef MATRIX3_TEMPLATE(Real) Matrix3r;
 typedef MATRIX6_TEMPLATE(Real) Matrix6r;
 
+// NB: those lack python & serialization support
+typedef Eigen::Matrix<Real,Eigen::Dynamic,Eigen::Dynamic> MatrixXr;
+typedef Eigen::Matrix<Real,Eigen::Dynamic,1> VectorXr;
+
 typedef Eigen::Quaternion<Real> Quaternionr;
 typedef Eigen::AngleAxis<Real> AngleAxisr;
 using Eigen::AngleAxis; using Eigen::Quaternion;
@@ -160,6 +164,8 @@ void Matrix_computeUnitaryPositive(const MatrixT& in, MatrixT* unitary, MatrixT*
 		*positive=mV * mS * mV.adjoint();
 	#endif
 }
+
+
 
 /*
  * Extra yade math functions and classes

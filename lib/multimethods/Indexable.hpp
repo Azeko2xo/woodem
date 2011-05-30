@@ -11,8 +11,11 @@
 #pragma once
 
 #include<boost/scoped_ptr.hpp>
+#include<boost/python.hpp>
 #include<stdexcept>
 #include<string>
+
+namespace py=boost::python;
 
 /*! \brief Abstract interface for all Indexable class.
 	An indexable class is a class that will be managed by a MultiMethodManager.
@@ -35,6 +38,10 @@ class Indexable{
 		virtual const int& getMaxCurrentlyUsedClassIndex() const { _THROW_NOT_OVERRIDDEN;};
 		virtual void incrementMaxCurrentlyUsedClassIndex()       { _THROW_NOT_OVERRIDDEN;};
 };
+
+
+
+
 
 #undef _THROW_NOT_OVERRIDDEN
 

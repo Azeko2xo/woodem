@@ -3,17 +3,19 @@
 #include<yade/pkg/dem/Particle.hpp>
 #include<yade/pkg/dem/ContactLoop.hpp>
 #include<yade/pkg/dem/Sphere.hpp>
+#include<yade/pkg/dem/Truss.hpp>
 
 #ifdef YADE_OPENGL
 	#include<yade/pkg/gl/Functors.hpp>
 #endif
 
 struct L6Geom: public CGeom{
+	Real getMinRefLen(){ return (lens[0]<=0?lens[1]:(lens[1]<=0?lens[0]:lens.minCoeff())); }
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR(L6Geom,CGeom,"Geometry of particles in contact, defining relative velocities.",
 		((Vector3r,vel,Vector3r::Zero(),,"Relative displacement rate in local coordinates, defined by :yref:`CGeom.node`"))
 		((Vector3r,angVel,Vector3r::Zero(),,"Relative rotation rate in local coordinates"))
 		((Real,uN,NaN,,"Normal displacement, distace of separation of particles (mathematically equal to integral of vel[0], but given here for numerically more stable results, as this component can be usually computed directly)."))
-		((Vector2r,lengthHint,Vector2r::Zero(),,"Hint for Gp2 functor on how to distribute material stiffnesses."))
+		((Vector2r,lens,Vector2r::Zero(),,"Hint for Gp2 functor on how to distribute material stiffnesses according to lengths on both sides of the contact."))
 		((Matrix3r,trsf,Matrix3r::Identity(),,"Transformation (rotation) from global to local coordinates; only used internally, and is synchronized with :yref:`Node.ori` automatically. If the algorithm works with pure quaternions at some point (it is not stable now), can be removed safely."))
 		, /*ctor*/ createIndex();
 	);
@@ -22,9 +24,9 @@ struct L6Geom: public CGeom{
 REGISTER_SERIALIZABLE(L6Geom);
 
 struct Cg2_Sphere_Sphere_L6Geom: public CGeomFunctor{
-		virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
-		// common code for {sphere,facet,wall}+sphere contacts
-		void handleSpheresLikeContact(const shared_ptr<Contact>& C, const Vector3r& pos1, const Vector3r& vel1, const Vector3r& angVel1, const Vector3r& pos2, const Vector3r& vel2, const Vector3r& angVel2, const Vector3r& normal, const Vector3r& contPt, Real uN, Real r1, Real r2);
+	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
+	// common code for {sphere,facet,wall}+sphere contacts
+	void handleSpheresLikeContact(const shared_ptr<Contact>& C, const Vector3r& pos1, const Vector3r& vel1, const Vector3r& angVel1, const Vector3r& pos2, const Vector3r& vel2, const Vector3r& angVel2, const Vector3r& normal, const Vector3r& contPt, Real uN, Real r1, Real r2);
 
 	enum { APPROX_NO_MID_TRSF=1, APPROX_NO_MID_NORMAL=2, APPROX_NO_RENORM_MID_NORMAL=4 };
 
@@ -46,6 +48,17 @@ struct Cg2_Sphere_Sphere_L6Geom: public CGeomFunctor{
 	DECLARE_LOGGER;
 };
 REGISTER_SERIALIZABLE(Cg2_Sphere_Sphere_L6Geom);
+
+struct Cg2_Truss_Sphere_L6Geom: public Cg2_Sphere_Sphere_L6Geom{
+	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
+	virtual bool goReverse(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){ yade::ValueError("ContactLoop should swap interaction arguments, should be Truss+Sphere, but is "+s1->getClassName()+"+"+s2->getClassName()); return false; }
+
+	YADE_CLASS_BASE_DOC(Cg2_Truss_Sphere_L6Geom,Cg2_Sphere_Sphere_L6Geom,"Incrementally compute :yref:`L6Geom` for contact between :yref:`Truss` and :yref:`Sphere`. Uses attributes of :yref:`Cg2_Sphere_Sphere_L6Geom`.");
+	FUNCTOR2D(Truss,Sphere);
+	DEFINE_FUNCTOR_ORDER_2D(Truss,Sphere);
+	DECLARE_LOGGER;
+};
+REGISTER_SERIALIZABLE(Cg2_Truss_Sphere_L6Geom);
 
 #if 0
 struct Ig2_Wall_Sphere_L3Geom: public Ig2_Sphere_Sphere_L3Geom{
@@ -100,4 +113,23 @@ struct Law2_L6Geom_FrictPhys_Linear: public Law2_L3Geom_FrictPhys_ElPerfPl{
 	);
 };
 REGISTER_SERIALIZABLE(Law2_L6Geom_FrictPhys_Linear);
+#endif
+
+#if 0
+#ifdef YADE_OPENGL
+struct Gl1_L6Geom: public GlCGeomFunctor{
+	RENDERS(L6Geom);
+	void go(const shared_ptr<CGeom>&, const shared_ptr<Contact>&, bool);
+	YADE_CLASS_BASE_DOC_STATICATTRS(Gl1_L3Geom,GlIGeomFunctor,"Render :yref:`L3Geom` geometry.",
+		((bool,axesLabels,false,,"Whether to display labels for local axes (x,y,z)"))
+		((Real,axesScale,1.,,"Scale local axes, their reference length being half of the minimum radius."))
+		((int,axesWd,1,,"Width of axes lines, in pixels; not drawn if non-positive"))
+		((Vector2i,axesWd_range,Vector2i(0,10),Attr::noGui,"Range for axesWd."))
+		//((int,uPhiWd,2,,"Width of lines for drawing displacements (and rotations for :yref:`L6Geom`); not drawn if non-positive."))
+		//((Vector2i,uPhiWd_range,Vector2i(0,10),Attr::noGui,"Range for uPhiWd."))
+		//((Real,uScale,1.,,"Scale local displacements (:yref:`u<L3Geom.u>` - :yref:`u0<L3Geom.u0>`); 1 means the true scale, 0 disables drawing local displacements; negative values are permissible."))
+	);
+};
+REGISTER_SERIALIZABLE(Gl1_L6Geom);
+#endif
 #endif

@@ -15,13 +15,14 @@ class Scene;
 
 struct ContactContainer: public Serializable{
 	/* internal data */
-	#if 0
+		// created in the ctor
 		#ifdef YADE_OPENGL
-			boost::mutex manipMutex; // to synchronize with rendering
+			boost::mutex* manipMutex; // to synchronize with rendering
 		#endif
-	#endif
 		DemField* dem; // backptr to DemField, set by DemField::postLoad; do not modify!
 		ParticleContainer* particles;
+
+		~ContactContainer(){ delete manipMutex; }
 
 	/* basic functionality */
 		void add(const shared_ptr<Contact>& c);
@@ -41,18 +42,18 @@ struct ContactContainer: public Serializable{
 		typedef boost::filter_iterator<IsReal,ContainerT::iterator> iterator;
 		typedef boost::filter_iterator<IsReal,ContainerT::const_iterator> const_iterator;
 
-		iterator begin(){ return linView.begin(); }
-		iterator end(){ return linView.end(); }
-		const_iterator begin() const { return const_iterator(linView.begin()); }
-		const_iterator end() const { return const_iterator(linView.end()); }
+		iterator begin() { return iterator(linView.begin(),linView.end()); }
+		iterator end() { return iterator(linView.end(),linView.end()); }
+		const_iterator begin() const { return const_iterator(linView.begin(),linView.end()); }
+		const_iterator end() const { return const_iterator(linView.end(),linView.end()); }
 		size_t size() const { return linView.size(); }
 
 	/* Handling pending contacts */
 		struct PendingContact{ shared_ptr<Contact> contact; bool force; };
 		#ifdef YADE_OPENMP
-			vector<list<PendingContact> > threadsPending;
+			std::vector<std::list<PendingContact> > threadsPending;
 		#endif
-		list<PendingContact> pending;
+		std::list<PendingContact> pending;
 
 		// Ask for removing given contact (from the constitutive law); this resets the interaction (to the initial=potential state) and collider should traverse pending to decide whether to delete the interaction completely or keep it potential
 		void requestRemoval(const shared_ptr<Contact>& c, bool force=false);
@@ -85,7 +86,7 @@ struct ContactContainer: public Serializable{
 			pyIterator iter();
 			shared_ptr<Contact> next();
 		};
-		shared_ptr<Contact> pyByIds(ParticleContainer::id_t id1, ParticleContainer::id_t id2);
+		shared_ptr<Contact> pyByIds(const Vector2i& ids); // ParticleContainer::id_t id1, ParticleContainer::id_t id2);
 		shared_ptr<Contact> pyNth(int n);
 		pyIterator pyIter();
 
@@ -99,6 +100,7 @@ struct ContactContainer: public Serializable{
 			#ifdef YADE_OPENMP
 				threadsPending.resize(omp_get_max_threads());
 			#endif
+			manipMutex=new boost::mutex;
 		, /* py */
 		.def("clear",&ContactContainer::clear)
 		.def("__len__",&ContactContainer::size)

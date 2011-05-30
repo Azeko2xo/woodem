@@ -1,5 +1,6 @@
 #pragma once
 
+#if 0
 // qt3 sucks
 #ifdef QT_MOC_CPP
 	#undef slots
@@ -14,21 +15,24 @@
 	 #include<Python.h>
 	#endif
 #endif
+#endif
 
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <fstream>
-#include <set>
-#include <list>
-#include <time.h>
-#include <boost/thread/thread.hpp>
-#include <iostream>
+#include<boost/date_time/posix_time/posix_time.hpp>
+#include<fstream>
+#include<set>
+#include<list>
+#include<time.h>
+#include<boost/thread/thread.hpp>
+#include<iostream>
+#include<boost/python.hpp>
+#include<boost/foreach.hpp>
 
 #include<yade/lib/base/Math.hpp>
 #include<yade/lib/factory/ClassFactory.hpp>
-
 #include<yade/lib/base/Singleton.hpp>
 
 #include<yade/core/BgThread.hpp>
+
 
 
 #ifndef FOREACH
@@ -36,17 +40,20 @@
 #endif
 
 class Scene;
-class ThreadRunner;
 
 using namespace boost;
 using namespace boost::posix_time;
 using namespace std;
 
+namespace py=boost::python;
+
 struct DynlibDescriptor{ set<string> baseClasses; };
 
 class Omega: public Singleton<Omega>{
-	shared_ptr<ThreadRunner> simulationLoop;
-	SimulationFlow simulationFlow_;
+
+	ThreadRunner simulationLoop;
+	SimulationFlow simulationFlow;
+
 	map<string,DynlibDescriptor> dynlibs; // FIXME : should store that in ClassFactory ?
 	void initializePlugins(const vector<std::pair<std::string, std::string> >& dynlibsList); 
 	
@@ -64,20 +71,17 @@ class Omega: public Singleton<Omega>{
 	std::string tmpFileDir;
 
 	public:
-		// management, not generally useful
-		void init();
 		void reset();
-		void timeInit();
-		void initTemps();
 		void cleanupTemps();
 		const map<string,DynlibDescriptor>& getDynlibsDescriptor();
 		void loadPlugins(vector<string> pluginFiles);
+
 		bool isInheritingFrom(const string& className, const string& baseClassName );
 		bool isInheritingFrom_recursive(const string& className, const string& baseClassName );
-		void createSimulationLoop();
-		bool hasSimulationLoop(){return (bool)(simulationLoop);}
+
 		string gdbCrashBatch;
 		char** origArgv; int origArgc;
+
 		// do not change by hand
 		/* Mutex for:
 		* 1. GLViewer::paintGL (deffered lock: if fails, no GL painting is done)
@@ -85,17 +89,14 @@ class Omega: public Singleton<Omega>{
 		* 3. Omega when substantial changes to the scene are being made (bodies being deleted, simulation loaded etc) so that GL doesn't access those and crash */
 		boost::try_mutex renderMutex;
 
-
 		void run();
 		void pause();
 		void step();
 		void stop(); // resets the simulationLoop
 		bool isRunning();
-		std::string sceneFile; // updated at load/save automatically
 		void loadSimulation(const string& name, bool quiet=false);
 		void saveSimulation(const string& name, bool quiet=false);
 
-		void resetScene();
 		const shared_ptr<Scene>& getScene();
 		//! Return unique temporary filename. May be deleted by the user; if not, will be deleted at shutdown.
 		string tmpFilename();
@@ -107,11 +108,57 @@ class Omega: public Singleton<Omega>{
 
 	DECLARE_LOGGER;
 
-	Omega(){ LOG_DEBUG("Constructing Omega."); }
-	~Omega(){}
+	Omega();
 
 	FRIEND_SINGLETON(Omega);
 	friend class pyOmega;
 };
+
+
+/*! Function returning class name (as string) for given index and topIndexable (top-level indexable, such as Shape, Material and so on)
+This function exists solely for debugging, is quite slow: it has to traverse all classes and ask for inheritance information.
+It should be used primarily to convert indices to names in Dispatcher::dictDispatchMatrix?D; since it relies on Omega for RTTI,
+this code could not be in Dispatcher itself.
+s*/
+template<class topIndexable>
+std::string Dispatcher_indexToClassName(int idx){
+	scoped_ptr<topIndexable> top(new topIndexable);
+	std::string topName=top->getClassName();
+	typedef std::pair<string,DynlibDescriptor> classItemType;
+	FOREACH(classItemType clss, Omega::instance().getDynlibsDescriptor()){
+		if(Omega::instance().isInheritingFrom_recursive(clss.first,topName) || clss.first==topName){
+			// create instance, to ask for index
+			shared_ptr<topIndexable> inst=dynamic_pointer_cast<topIndexable>(ClassFactory::instance().createShared(clss.first));
+			assert(inst);
+			if(inst->getClassIndex()<0 && inst->getClassName()!=top->getClassName()){
+				throw logic_error("Class "+inst->getClassName()+" didn't use REGISTER_CLASS_INDEX("+inst->getClassName()+","+top->getClassName()+") and/or forgot to call createIndex() in the ctor. [[ Please fix that! ]]");
+			}
+			if(inst->getClassIndex()==idx) return clss.first;
+		}
+	}
+	throw runtime_error("No class with index "+boost::lexical_cast<string>(idx)+" found (top-level indexable is "+topName+")");
+}
+
+
+//! Return class index of given indexable
+template<typename TopIndexable>
+int Indexable_getClassIndex(const shared_ptr<TopIndexable> i){return i->getClassIndex();}
+
+//! Return sequence (hierarchy) of class indices of given indexable; optionally convert to names
+template<typename TopIndexable>
+py::list Indexable_getClassIndices(const shared_ptr<TopIndexable> i, bool convertToNames){
+	int depth=1; py::list ret; int idx0=i->getClassIndex();
+	if(convertToNames) ret.append(Dispatcher_indexToClassName<TopIndexable>(idx0));
+	else ret.append(idx0);
+	if(idx0<0) return ret; // don't continue and call getBaseClassIndex(), since we are at the top already
+	while(true){
+		int idx=i->getBaseClassIndex(depth++);
+		if(convertToNames) ret.append(Dispatcher_indexToClassName<TopIndexable>(idx));
+		else ret.append(idx);
+		if(idx<0) return ret;
+	}
+}
+
+
 
 

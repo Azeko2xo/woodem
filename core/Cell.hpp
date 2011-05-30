@@ -129,8 +129,12 @@ class Cell: public Serializable{
 	Vector3r wrapShearedPt_py(const Vector3r& pt) const { return wrapShearedPt(pt);}
 	Vector3r wrapPt_py(const Vector3r& pt) const { return wrapPt(pt);}
 
+	// check that trsf is upper triangular, throw an exception if not
+	void checkTrsfUpperTriangular();
+
 	enum { HOMO_NONE=0, HOMO_POS=1, HOMO_VEL=2, HOMO_VEL_2ND=3 };
 	YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(Cell,Serializable,"Parameters of periodic boundary conditions. Only applies if O.isPeriodic==True.",
+		((bool,trsfUpperTriangular,false,Attr::readonly,"Require that :yref:`Cell.trsf` is upper-triangular, to conform with the requirement of voro++ for sheared periodic cells."))
 		/* overridden below to be modified by getters/setters because of intended side-effects */
 		((Matrix3r,trsf,Matrix3r::Identity(),,"[overridden]")) //"Current transformation matrix of the cell, which defines how far is the current cell geometry (:yref:`hSize<Cell.hSize>`) from the reference configuration. Changing trsf will not change :yref:`hSize<Cell.hSize>`, it serves only as accumulator for transformations applied via :yref:`velGrad<Cell.velGrad>`."))
 		((Matrix3r,refHSize,Matrix3r::Identity(),,"Reference cell configuration, only used with :yref:`OpenGLRenderer.dispScale`. Updated automatically when :yref:`hSize<Cell.hSize>` or :yref:`trsf<Cell.trsf>` is assigned directly; also modified by :yref:`yade.utils.setRefSe3` (called e.g. by the :gui:`Reference` button in the UI)."))

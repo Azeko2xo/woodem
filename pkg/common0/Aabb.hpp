@@ -17,11 +17,12 @@ REGISTER_SERIALIZABLE(Aabb);
 
 #ifdef YADE_OPENGL
 #include<yade/pkg/common/GLDrawFunctors.hpp>
-class Gl1_Aabb: public GlBoundFunctor{
-	public:
-		virtual void go(const shared_ptr<Bound>&);
+struct Gl1_Aabb: public GlBoundFunctor{
+	virtual void go(const shared_ptr<Bound>&);
 	RENDERS(Aabb);
-	YADE_CLASS_BASE_DOC(Gl1_Aabb,GlBoundFunctor,"Render Axis-aligned bounding box (:yref:`Aabb`).");
+	YADE_CLASS_BASE_DOC_STATICATTRS(Gl1_Aabb,GlBoundFunctor,"Render Axis-aligned bounding box (:yref:`Aabb`).",
+		((Vector3r,color,Vector3r(1,1,0),,"Color or rendered wire boxes"))
+	);
 };
 REGISTER_SERIALIZABLE(Gl1_Aabb);
 #endif

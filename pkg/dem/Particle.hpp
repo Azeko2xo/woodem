@@ -1,4 +1,5 @@
 #pragma once
+#include<yade/core/Omega.hpp>
 #include<yade/core/Field.hpp>
 #include<yade/core/Scene.hpp>
 #include<yade/pkg/dem/ParticleContainer.hpp>
@@ -17,7 +18,8 @@ struct Particle: public Serializable{
 	shared_ptr<Contact> findContactWith(const shared_ptr<Particle>& other);
 	typedef ParticleContainer::id_t id_t;
 	typedef std::map<id_t,shared_ptr<Contact> > MapParticleContact;
-	void checkOneNode(bool dyn=true);
+	void checkNodes(bool dyn=true, bool checkOne=true);
+
 
 	Vector3r& getPos(); void setPos(const Vector3r&);
 	Quaternionr& getOri(); void setOri(const Quaternionr&);
@@ -26,31 +28,103 @@ struct Particle: public Serializable{
 	Vector3r getForce();
 	Vector3r getTorque();
 	py::dict pyContacts();
+	py::list pyCon();
+	py::list pyTacts();
+	std::string getBlocked(); void setBlocked(const std::string&);
+	std::vector<shared_ptr<Node> > getNodes();
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Particle,Serializable,"Particle in DEM",
 		((id_t,id,-1,Attr::readonly,"Index in DemField::particles"))
 		((shared_ptr<Shape>,shape,,,"Geometrical configuration of the particle"))
 		((shared_ptr<Material>,material,,,"Material of the particle"))
 		((MapParticleContact,contacts,,Attr::hidden,"Contacts of this particle, indexed by id of the other particle."))
 		, /*ctor*/
-		, /*py*/ .add_property("contacts",&Particle::pyContacts)
+		, /*py*/
+			.add_property("contacts",&Particle::pyContacts)
+			.add_property("con",&Particle::pyCon)
+			.add_property("tacts",&Particle::pyTacts)
 		.add_property("pos",py::make_function(&Particle::getPos,py::return_internal_reference<>()),py::make_function(&Particle::setPos))
 		.add_property("ori",py::make_function(&Particle::getOri,py::return_internal_reference<>()),py::make_function(&Particle::setOri))
 		.add_property("vel",py::make_function(&Particle::getVel,py::return_internal_reference<>()),py::make_function(&Particle::setVel))
 		.add_property("angVel",py::make_function(&Particle::getAngVel,py::return_internal_reference<>()),py::make_function(&Particle::setAngVel))
 		.add_property("f",&Particle::getForce)
 		.add_property("t",&Particle::getTorque)
+		.add_property("nodes",&Particle::getNodes)
+		.add_property("blocked",&Particle::getBlocked,&Particle::setBlocked)
 	);
 };
 REGISTER_SERIALIZABLE(Particle);
 
+
+// FIXME: rename to DemState?! applies to any rigid-body motion, though...
+class DemData: public NodeData{
+	boost::mutex lock; // used by applyForceTorque
+public:
+	// bits for blocked
+	enum {DOF_NONE=0,DOF_X=1,DOF_Y=2,DOF_Z=4,DOF_RX=8,DOF_RY=16,DOF_RZ=32};
+	//! shorthand for all DOFs blocked
+	static const unsigned DOF_ALL=DOF_X|DOF_Y|DOF_Z|DOF_RX|DOF_RY|DOF_RZ;
+	//! shorthand for all displacements blocked
+	static const unsigned DOF_XYZ=DOF_X|DOF_Y|DOF_Z;
+	//! shorthand for all rotations blocked
+	static const unsigned DOF_RXRYRZ=DOF_RX|DOF_RY|DOF_RZ; 
+
+	//! Return DOF_* constant for given axis∈{0,1,2} and rotationalDOF∈{false(default),true}; e.g. axisDOF(0,true)==DOF_RX
+	static unsigned axisDOF(int axis, bool rotationalDOF=false){return 1<<(axis+(rotationalDOF?3:0));}
+	//! Return DOF_* constant for given DOF number ∈{0,1,2,3,4,5}
+	static unsigned linDOF(int dof){ return 1<<(dof); }
+	//! Getter of blocked for list of strings (e.g. DOF_X | DOR_RX | DOF_RZ → 'xXZ')
+	std::string blocked_vec_get() const;
+	//! Setter of blocked from string ('xXZ' → DOF_X | DOR_RX | DOF_RZ)
+	void blocked_vec_set(const std::string& dofs);
+
+	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
+	void addForceTorque(const Vector3r& f, const Vector3r& t=Vector3r::Zero()){ boost::mutex::scoped_lock l(lock); force+=f; torque+=t; }
+
+	// defined as property of Node in py/_aliases.py
+	// so that Node.dyn translates to hidden call to getter/setter DemData.py{Get,Set}onNode(...)
+	// Node must be the first arg, since it is the "self" when called to get/set class property
+	static shared_ptr<NodeData> pyGetOnNode(const shared_ptr<Node>& n); // return base class, python does the conversion
+	static void pySetOnNode(const shared_ptr<Node>&, const shared_ptr<DemData>&);
+
+	bool isAspherical() const{ return !((inertia[0]==inertia[1] && inertia[1]==inertia[2])); }
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(DemData,NodeData,"Dynamic state of node.",
+		((Vector3r,vel,Vector3r::Zero(),,"Linear velocity."))
+		((Vector3r,angVel,Vector3r::Zero(),,"Angular velocity."))
+		((Real,mass,0,,"Associated mass."))
+		((Vector3r,inertia,Vector3r::Zero(),,"Inertia along local (principal) axes"))
+		((Vector3r,force,Vector3r::Zero(),,"Applied force"))
+		((Vector3r,torque,Vector3r::Zero(),,"Applied torque"))
+		((Vector3r,angMom,Vector3r::Zero(),,"Angular momentum (used with the aspherical integrator)"))
+		((unsigned,blocked,0,,"blocked degrees of freedom"))
+		, /*ctor*/
+		, /*py*/ .add_property("blocked",&DemData::blocked_vec_get,&DemData::blocked_vec_set,"Degress of freedom where linear/angular velocity will be always constant (equal to zero, or to an user-defined value), regardless of applied force/torque. String that may contain 'xyzXYZ' (translations and rotations).")
+		.def("_getOnNode",&DemData::pyGetOnNode).staticmethod("_getOnNode").def("_setOnNode",&DemData::pySetOnNode).staticmethod("_setOnNode");
+	);
+};
+REGISTER_SERIALIZABLE(DemData);
+
+// specialize data access with casting (the cast is unchecked)
+// define in the .cpp file
+template<> DemData& Node::getData<DemData>();
+template<> void Node::setData<DemData>(const shared_ptr<DemData>&);
+template<> bool Node::hasData<DemData>();
+
+
 struct DemField: public Field{
+	int collectNodes(bool clear=true, bool dynOnly=false);
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(DemField,Field,"Field describing a discrete element assembly. Each body references (possibly many) nodes by their index in :yref:`Field.nodes` and :yref:`Field.nodalData`. ",
 		((ParticleContainer,particles,,(Attr::pyByRef|Attr::readonly),"Particles (each particle holds its contacts, and references associated nodes)"))
 		((ContactContainer,contacts,,(Attr::pyByRef|Attr::readonly),"Linear view on particle contacts"))
 		, /* ctor */ createIndex(); particles.dem=this; contacts.dem=this; contacts.particles=&particles;
 		, /*py*/
+		.def("collectNodes",&DemField::collectNodes,(py::arg("clear")=true,py::arg("dynOnly")=false),"Collect nodes from all particles and insert them to nodes defined for this field. *clear* causes nodes to be cleared in advance, *dynOnly* adds only those defining :yref:`Node.dyn<dem.DemData>`. Nodes are not added multiple times, even if they are referenced from different particles.")
 	);
 	REGISTER_CLASS_INDEX(DemField,Field);
+	// DEM engines should inherit protected from this class
+	struct Engine: public Field::Engine{
+		virtual bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
+	};
+
 };
 REGISTER_SERIALIZABLE(DemField);
 
@@ -86,6 +160,8 @@ struct Contact: public Serializable{
 	bool isReal() const { return geom&&phys; }
 	void swapOrder();
 	void reset();
+	// return -1 or +1 depending on whether the particle passed to us is pA or pB
+	int forceSign(const shared_ptr<Particle>& p) const { return p==pA?1:-1; }
 	Particle::id_t pyId1();
 	Particle::id_t pyId2();
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Contact,Serializable,"Contact in DEM",
@@ -95,9 +171,12 @@ struct Contact: public Serializable{
 		((shared_ptr<Particle>,pA,,Attr::readonly,"First particle of the contact"))
 		((shared_ptr<Particle>,pB,,Attr::readonly,"Second particle of the contact"))
 		((Vector3i,cellDist,Vector3i::Zero(),Attr::readonly,"Distace in the number of periodic cells by which pB must be shifted to get to the right relative position."))
+		#ifdef YADE_OPENGL
+			((Real,color,0,,"(Normalized) color value for this contact"))
+		#endif
 		((int,stepLastSeen,-1,Attr::hidden,""))
 		((int,stepMadeReal,-1,Attr::hidden,""))
-		((size_t,linIx,0,Attr::hidden,"Position in the linear view (ContactContainer)"))
+		((size_t,linIx,0,(Attr::readonly|Attr::noGui),"Position in the linear view (ContactContainer)"))
 		, /*ctor*/
 		, /*py*/ .add_property("id1",&Contact::pyId1).add_property("id2",&Contact::pyId2)
 	);
@@ -105,12 +184,15 @@ struct Contact: public Serializable{
 REGISTER_SERIALIZABLE(Contact);
 
 struct Shape: public Serializable, public Indexable{
-	virtual bool numNodesOk(){ return true; } // checks for the right number of nodes; to be used in assertions
+	virtual bool numNodesOk() const { return true; } // checks for the right number of nodes; to be used in assertions
+	// return average position of nodes, useful for rendering
+	// caller must make sure that !nodes.empty()
+	Vector3r avgNodePos();
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Shape,Serializable,"Particle geometry",
 		((shared_ptr<Bound>,bound,,,"Bound of the particle, for use by collision detection only"))
 		((vector<shared_ptr<Node> >,nodes,,,"Nodes associated with this particle"))
 		((bool,wire,false,,"Rendering hint"))
-		((Vector3r,color,Vector3r(Mathr::UnitRandom(),Mathr::UnitRandom(),Mathr::UnitRandom()),,"Color for rendering"))
+		((Real,color,Mathr::UnitRandom(),,"Normalized color for rendering"))
 		,/*ctor*/,/*py*/ YADE_PY_TOPINDEXABLE(Shape);
 	);
 	REGISTER_INDEX_COUNTER(Shape);
@@ -140,6 +222,5 @@ REGISTER_SERIALIZABLE(Bound);
 
 
 // }}; /* yade::dem */
-
 
 

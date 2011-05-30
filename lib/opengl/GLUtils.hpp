@@ -18,11 +18,16 @@ struct GLUtils{
 	};
 	// render wire of parallelepiped with sides given by vectors a,b,c; zero corner is at origin
 	static void Parallelepiped(const Vector3r& a, const Vector3r& b, const Vector3r& c);
+	// render cylinder, wire or solid
+	// if rad2<0, rad1 is used;
+	// if stacks<0, then it is approximate stack length (axial subdivision) relative to rad1, multiplied by 10 (i.e. -5 -> stacks approximately .5*rad1)
+	static void Cylinder(const Vector3r& a, const Vector3r& b, Real rad1, const Vector3r& color, bool wire=false, Real rad2=-1 /* if negative, use rad1 */, int slices=6, int stacks=-10);
 	static void GLDrawArrow(const Vector3r& from, const Vector3r& to, const Vector3r& color=Vector3r(1,1,1)){
 		glEnable(GL_LIGHTING); glColor3v(color); QGLViewer::drawArrow(from,to);	
 	}
-	static void GLDrawLine(const Vector3r& from, const Vector3r& to, const Vector3r& color=Vector3r(1,1,1)){
+	static void GLDrawLine(const Vector3r& from, const Vector3r& to, const Vector3r& color=Vector3r(1,1,1), int width=-1){
 		glEnable(GL_LIGHTING); glColor3v(color);
+		if(width>0) glLineWidth(width);
 		glBegin(GL_LINES); glVertex3v(from); glVertex3v(to); glEnd();
 	}
 

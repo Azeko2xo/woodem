@@ -242,8 +242,10 @@ BOOST_PYTHON_MODULE(_customConverters){
 		VECTOR_SEQ_CONV(Matrix3r);
 		VECTOR_SEQ_CONV(std::string);
 		VECTOR_SEQ_CONV(shared_ptr<Node>);
+		VECTOR_SEQ_CONV(shared_ptr<NodeData>);
 		VECTOR_SEQ_CONV(shared_ptr<Field>);
 		VECTOR_SEQ_CONV(shared_ptr<Particle>);
+		VECTOR_SEQ_CONV(shared_ptr<Contact>);
 
 		VECTOR_SEQ_CONV(shared_ptr<BoundFunctor>);
 		VECTOR_SEQ_CONV(shared_ptr<CGeomFunctor>);

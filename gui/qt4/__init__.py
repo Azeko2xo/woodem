@@ -80,8 +80,9 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.refreshTimer=QtCore.QTimer()
 		self.refreshTimer.timeout.connect(self.refreshEvent)
 		self.refreshTimer.start(200)
-		self.iterPerSecTimeout=1 # how often to recompute the number of iterations per second
-		self.iterTimes,self.iterValues,self.iterPerSec=[],[],0 # arrays to keep track of the simulation speed
+		self.stepLabel=self.iterLabel # name change
+		self.stepPerSecTimeout=1 # how often to recompute the number of steps per second
+		self.stepTimes,self.stepValues,self.stepPerSec=[],[],0 # arrays to keep track of the simulation speed
 		self.dtEditUpdate=True # to avoid updating while being edited
 		# show off with this one as well now
 	def addPreprocessors(self):
@@ -161,9 +162,9 @@ class ControllerClass(QWidget,Ui_Controller):
 	def dtEditedSlot(self):
 		try:
 			t=float(self.dtEdit.text())
-			O.dt=t
+			O.scene.dt=t
 		except ValueError: pass
-		self.dtEdit.setText(str(O.dt))
+		self.dtEdit.setText(str(O.scene.dt))
 		self.dtEditUpdate=True
 	def playSlot(self):	O.run()
 	def pauseSlot(self): O.pause()
@@ -197,7 +198,7 @@ class ControllerClass(QWidget,Ui_Controller):
 	def deactivateControls(self):
 		self.realTimeLabel.setText('')
 		self.virtTimeLabel.setText('')
-		self.iterLabel.setText('')
+		self.stepLabel.setText('')
 		self.fileLabel.setText('<i>[loading]</i>')
 		self.playButton.setEnabled(False)
 		self.pauseButton.setEnabled(False)
@@ -207,12 +208,12 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.dtEdit.setEnabled(False)
 		self.dtEditUpdate=True
 	def activateControls(self):
-		hasSim=len(O.engines)>0
+		hasSim=len(O.scene.engines)>0
 		running=O.running
 		if hasSim:
 			self.playButton.setEnabled(not running)
 			self.pauseButton.setEnabled(running)
-			self.reloadButton.setEnabled(O.filename is not None)
+			self.reloadButton.setEnabled(O.scene.lastSave is not None)
 			self.stepButton.setEnabled(not running)
 			self.subStepCheckbox.setEnabled(not running)
 		else:
@@ -222,42 +223,43 @@ class ControllerClass(QWidget,Ui_Controller):
 			self.stepButton.setEnabled(False)
 			self.subStepCheckbox.setEnabled(False)
 		self.dtEdit.setEnabled(True)
-		fn=O.filename
+		fn=O.scene.lastSave
 		self.fileLabel.setText(fn if fn else '<i>[no file]</i>')
 
 	def refreshValues(self):
-		rt=int(O.realtime); t=O.time; iter=O.iter;
-		assert(len(self.iterTimes)==len(self.iterValues))
-		if len(self.iterTimes)==0: self.iterTimes.append(rt); self.iterValues.append(iter); self.iterPerSec=0 # update always for the first time
-		elif rt-self.iterTimes[-1]>self.iterPerSecTimeout: # update after a timeout
-			if len(self.iterTimes)==1: self.iterTimes.append(self.iterTimes[0]); self.iterValues.append(self.iterValues[0]) # 2 values, first one is bogus
-			self.iterTimes[0]=self.iterTimes[1]; self.iterValues[0]=self.iterValues[1]
-			self.iterTimes[1]=rt; self.iterValues[1]=iter;
-			self.iterPerSec=(self.iterValues[-1]-self.iterValues[-2])/(self.iterTimes[-1]-self.iterTimes[-2])
-		if not O.running: self.iterPerSec=0
-		stopAtIter=O.stopAtIter
+		scene=O.scene
+		rt=int(O.realtime); t=scene.time; step=scene.step;
+		assert(len(self.stepTimes)==len(self.stepValues))
+		if len(self.stepTimes)==0: self.stepTimes.append(rt); self.stepValues.append(step); self.stepPerSec=0 # update always for the first time
+		elif rt-self.stepTimes[-1]>self.stepPerSecTimeout: # update after a timeout
+			if len(self.stepTimes)==1: self.stepTimes.append(self.stepTimes[0]); self.stepValues.append(self.stepValues[0]) # 2 values, first one is bogus
+			self.stepTimes[0]=self.stepTimes[1]; self.stepValues[0]=self.stepValues[1]
+			self.stepTimes[1]=rt; self.stepValues[1]=step;
+			self.stepPerSec=(self.stepValues[-1]-self.stepValues[-2])/(self.stepTimes[-1]-self.stepTimes[-2])
+		if not O.running: self.stepPerSec=0
+		stopAtStep=scene.stopAtStep
 		subStepInfo=''
-		if O.subStepping:
-			subStep=O.subStep
+		if scene.subStepping:
+			subStep=scene.subStep
 			if subStep==-1: subStepInfo=u'→ <i>prologue</i>'
-			elif subStep>=0 and subStep<len(O.engines):
-				e=O.engines[subStep]; subStepInfo=u'→ %s'%(e.label if e.label else e.__class__.__name__)
-			elif subStep==len(O.engines): subStepInfo=u'→ <i>epilogue</i>'
-			else: raise RuntimeError("Invalid O.subStep value %d, should be ∈{-1,…,len(o.engines)}"%subStep)
-			subStepInfo="<br><small>sub %d/%d [%s]</small>"%(subStep,len(O.engines),subStepInfo)
-		self.subStepCheckbox.setChecked(O.subStepping) # might have been changed async
-		if stopAtIter<=iter:
+			elif subStep>=0 and subStep<len(O.scene.engines):
+				e=scene.engines[subStep]; subStepInfo=u'→ %s'%(e.label if e.label else e.__class__.__name__)
+			elif subStep==len(scene.engines): subStepInfo=u'→ <i>epilogue</i>'
+			else: raise RuntimeError("Invalid O.scene.subStep value %d, should be ∈{-1,…,len(o.engines)}"%subStep)
+			subStepInfo="<br><small>sub %d/%d [%s]</small>"%(subStep,len(scene.engines),subStepInfo)
+		self.subStepCheckbox.setChecked(scene.subStepping) # might have been changed async
+		if stopAtStep<=step:
 			self.realTimeLabel.setText('%02d:%02d:%02d'%(rt//3600,(rt%3600)//60,rt%60))
-			self.iterLabel.setText('#%ld, %.1f/s %s'%(iter,self.iterPerSec,subStepInfo))
+			self.stepLabel.setText('#%ld, %.1f/s %s'%(step,self.stepPerSec,subStepInfo))
 		else:
-			e=int((stopAtIter-iter)*self.iterPerSec)
+			e=int((stopAtStep-step)*self.stepPerSec)
 			self.realTimeLabel.setText('%02d:%02d:%02d (ETA %02d:%02d:%02d)'%(rt//3600,rt//60,rt%60,e//3600,e//60,e%60))
-			self.iterLabel.setText('#%ld / %ld, %.1f/s %s'%(O.iter,stopAtIter,self.iterPerSec,subStepInfo))
+			self.stepLabel.setText('#%ld / %ld, %.1f/s %s'%(scene.step,stopAtStep,self.stepPerSec,subStepInfo))
 		if t!=float('inf'):
 			s=int(t); ms=int(t*1000)%1000; us=int(t*1000000)%1000; ns=int(t*1000000000)%1000
 			self.virtTimeLabel.setText(u'%03ds%03dm%03dμ%03dn'%(s,ms,us,ns))
 		else: self.virtTimeLabel.setText(u'[ ∞ ] ?!')
-		if self.dtEditUpdate: self.dtEdit.setText(str(O.dt))
+		if self.dtEditUpdate: self.dtEdit.setText(str(scene.dt))
 		self.show3dButton.setChecked(len(views())>0)
 		
 def Generator():

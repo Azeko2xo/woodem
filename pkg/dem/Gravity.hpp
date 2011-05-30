@@ -1,16 +1,18 @@
 #pragma once
 #include<yade/core/Engine.hpp>
+#include<yade/pkg/dem/Particle.hpp>
 
-class GravityEngine: public GlobalEngine{
+class Gravity: public GlobalEngine, private DemField::Engine{
 	public:
-		virtual void action();
-	YADE_CLASS_BASE_DOC_ATTRS(GravityEngine,GlobalEngine,"Engine applying constant acceleration to all bodies.",
+		virtual void run();
+	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
+	YADE_CLASS_BASE_DOC_ATTRS(Gravity,GlobalEngine,"Engine applying constant acceleration to all bodies.",
 		((Vector3r,gravity,Vector3r::Zero(),,"Acceleration [kgms⁻²]"))
 		((int,gravWorkIx,-1,(Attr::noSave|Attr::hidden),"Index for work of gravity"))
 		// ((int,mask,0,,"If mask defined, only bodies with corresponding groupMask will be affected by this engine. If 0, all bodies will be affected."))
 	);
 };
-REGISTER_SERIALIZABLE(GravityEngine);
+REGISTER_SERIALIZABLE(Gravity);
 
 #if 0
 
@@ -20,7 +22,7 @@ REGISTER_SERIALIZABLE(GravityEngine);
  */
 class CentralGravityEngine: public FieldApplier {
 	public:
-		virtual void action();
+		virtual void run();
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(CentralGravityEngine,FieldApplier,"Engine applying acceleration to all bodies, towards a central body.",
 		((Body::id_t,centralBody,Body::ID_NONE,,"The :yref:`body<Body>` towards which all other bodies are attracted."))
 		((Real,accel,0,,"Acceleration magnitude [kgms⁻²]"))
@@ -36,7 +38,7 @@ REGISTER_SERIALIZABLE(CentralGravityEngine);
  */
 class AxialGravityEngine: public FieldApplier {
 	public:
-	virtual void action();
+	virtual void run();
 	YADE_CLASS_BASE_DOC_ATTRS(AxialGravityEngine,FieldApplier,"Apply acceleration (independent of distance) directed towards an axis.",
 		((Vector3r,axisPoint,Vector3r::Zero(),,"Point through which the axis is passing."))
 		((Vector3r,axisDirection,Vector3r::UnitX(),,"direction of the gravity axis (will be normalized automatically)"))
@@ -49,7 +51,7 @@ REGISTER_SERIALIZABLE(AxialGravityEngine);
 class HdapsGravityEngine: public GravityEngine{
 	public:
 	Vector2i readSysfsFile(const std::string& name);
-	virtual void action();
+	virtual void run();
 	YADE_CLASS_BASE_DOC_ATTRS(HdapsGravityEngine,GravityEngine,"Read accelerometer in Thinkpad laptops (`HDAPS <http://en.wikipedia.org/wiki/Active_hard_drive_protection>`__ and accordingly set gravity within the simulation. This code draws from `hdaps-gl <https://sourceforge.net/project/showfiles.php?group_id=138242>`__ . See :ysrc:`scripts/test/hdaps.py` for an example.",
 		((string,hdapsDir,"/sys/devices/platform/hdaps",,"Hdaps directory; contains ``position`` (with accelerometer readings) and ``calibration`` (zero acceleration)."))
 		((Real,msecUpdate,50,,"How often to update the reading."))

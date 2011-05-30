@@ -256,6 +256,52 @@ class AttrEditor_Se3(AttrEditor,QFrame):
 		self.trySetter((v,qq)) 
 	def setFocus(self): self.grid.itemAtPosition(0,0).widget().setFocus()
 
+class AttrEditor_flagArray(AttrEditor,QFrame):
+	def __init__(self,parent,getter,setter,labels):
+		AttrEditor.__init__(self,getter,setter)
+		QFrame.__init__(self,parent)
+		self.labels=labels
+		self.dim=len(labels),max([len(l) for l in labels])
+		self.grid=QGridLayout(self); self.grid.setSpacing(0); self.grid.setMargin(0)
+		for r in range(len(self.labels)):
+			for c in range(len(self.labels[r])):
+				if self.labels[r][c]==None: continue
+				w=QCheckBox()
+				w.setText(self.labels[r][c])
+				self.grid.addWidget(w,r,c)
+				w.clicked.connect(self.update)
+	def refresh(self):
+		val=self.getter()
+		#print self.getter, val
+		for r in range(len(val)):
+			for c in range(len(val[r])):
+				if val[r][c]==None: continue
+				self.grid.itemAtPosition(r,c).widget().setChecked(val[r][c])
+	def update(self):
+		ret=[]
+		for r in range(len(self.labels)):
+			ret.append([])
+			for c in range(len(self.labels[r])):
+				ret[r].append(None if self.labels[r][c]==None else self.grid.itemAtPosition(r,c).widget().isChecked())
+		self.setter(ret)
+	def setFocus(self): self.grid.itemAtPosition(0,0).widget().setFocus()
+
+class AttrEditor_DemData_blocked(AttrEditor_flagArray):
+	# getter: gets from cxx and returns as array of bools
+	# setter: receives bools from widgets, sets cxx value
+	def boolSetter(self,bb): # grab bools from widgets, call self.setter with bools given as string
+		assert(len(bb)==1 and len(bb[0])==6)
+		ss=''.join(['xyzXYZ'[i] for i in range(6) if bb[0][i]])
+		self.realSetter(ss)
+	def boolGetter(self):
+		ss=self.realGetter() #
+		return [[('xyzXYZ'[i] in ss) for i in range(6)]]
+	def __init__(self,parent,getter,setter):
+		AttrEditor_flagArray.__init__(self,parent,getter=self.boolGetter,setter=self.boolSetter,labels=[['x','y','z','X','Y','Z']])
+		self.realSetter=setter
+		self.realGetter=getter
+
+
 class AttrEditor_MatrixX(AttrEditor,QFrame):
 	def __init__(self,parent,getter,setter,rows,cols,idxConverter):
 		'idxConverter converts row,col tuple to either (row,col), (col) etc depending on what access is used for []'
@@ -348,6 +394,8 @@ class Se3FakeType: pass
 _fundamentalEditorMap={bool:AttrEditor_Bool,str:AttrEditor_Str,int:AttrEditor_Int,float:AttrEditor_Float,Quaternion:AttrEditor_Quaternion,Vector2:AttrEditor_Vector2,Vector3:AttrEditor_Vector3,Vector6:AttrEditor_Vector6,Matrix3:AttrEditor_Matrix3,Vector6i:AttrEditor_Vector6i,Vector3i:AttrEditor_Vector3i,Vector2i:AttrEditor_Vector2i,Se3FakeType:AttrEditor_Se3}
 _fundamentalInitValues={bool:True,str:'',int:0,float:0.0,Quaternion:Quaternion.Identity,Vector3:Vector3.Zero,Matrix3:Matrix3.Zero,Vector6:Vector6.Zero,Vector6i:Vector6i.Zero,Vector3i:Vector3i.Zero,Vector2i:Vector2i.Zero,Vector2:Vector2.Zero,Se3FakeType:(Vector3.Zero,Quaternion.Identity)}
 
+_fundamentalSpecialEditors={id(yade.dem.DemData.blocked):AttrEditor_DemData_blocked,}
+
 class SerQLabel(QLabel):
 	def __init__(self,parent,label,tooltip,path):
 		QLabel.__init__(self,parent)
@@ -370,9 +418,10 @@ class SerializableEditor(QFrame):
 	import logging
 	# each attribute has one entry associated with itself
 	class EntryData:
-		def __init__(self,name,T,flags):
-			self.name,self.T,self.flags=name,T,flags
+		def __init__(self,name,T,flags,containingClass):
+			self.name,self.T,self.flags,self.containingClass=name,T,flags,containingClass
 			self.lineNo,self.widget=None,None
+		def propertyId(self): return id(getattr(self.containingClass,self.name))
 	def __init__(self,ser,parent=None,ignoredAttrs=set(),showType=False,path=None):
 		"Construct window, *ser* is the object we want to show."
 		QtGui.QFrame.__init__(self,parent)
@@ -442,7 +491,7 @@ class SerializableEditor(QFrame):
 			logging.error('TypeError when getting attributes of '+str(self.ser)+',skipping. ')
 			import traceback
 			traceback.print_exc()
-		attrs=self.ser.dict().keys(); attrs.sort()
+		attrs=self.ser.yattrs(); attrs.sort()
 		for attr in attrs:
 			val=getattr(self.ser,attr) # get the value using serattr, as it might be different from what the dictionary provides (e.g. Body.blockedDOFs)
 			t=None
@@ -458,10 +507,11 @@ class SerializableEditor(QFrame):
 			else: t=val.__class__
 			match=re.search(':yattrflags:`\s*([0-9]+)\s*`',doc) # non-empty attribute
 			flags=int(match.group(1)) if match else 0
-			if not match:
-				print 'No attr match for docstring of %s.%s'%(self.ser.__class__.__name__,attr)
+
+			#if not match: print 'No attr match for docstring of %s.%s'%(self.ser.__class__.__name__,attr)
+
 			#logging.debug('Attr %s is of type %s'%(attr,((t[0].__name__,) if isinstance(t,tuple) else t.__name__)))
-			self.entries.append(self.EntryData(name=attr,T=t,flags=flags))
+			self.entries.append(self.EntryData(name=attr,T=t,flags=flags,containingClass=self.ser.__class__))
 	def getDocstring(self,attr=None):
 		"If attr is *None*, return docstring of the Serializable itself"
 		doc=(getattr(self.ser.__class__,attr).__doc__ if attr else self.ser.__class__.__doc__)
@@ -508,7 +558,7 @@ class SerializableEditor(QFrame):
 	def mkWidget(self,entry):
 		if not entry.T: return None
 		# single fundamental object
-		Klass=_fundamentalEditorMap.get(entry.T,None)
+		Klass=_fundamentalEditorMap.get(entry.T,None) if entry.propertyId() not in _fundamentalSpecialEditors else _fundamentalSpecialEditors[entry.propertyId()]
 		getter,setter=lambda: getattr(self.ser,entry.name), lambda x: setattr(self.ser,entry.name,x)
 		Klass,getter,setter=self.handleFloatRange(Klass,getter,setter,entry)
 		if Klass:
@@ -553,7 +603,7 @@ class SerializableEditor(QFrame):
 			entry.widget=self.mkWidget(entry)
 			objPath=(self.path+'.'+entry.name) if self.path else None
 			label=SerQLabel(self,serializableHref(self.ser,entry.name),tooltip=self.getDocstring(entry.name),path=objPath)
-			grid.addRow(label,entry.widget if entry.widget else QLabel('<i>unhandled type</i>'))
+			grid.addRow(label,entry.widget if entry.widget else (QLabel('<i>None</i>' if getattr(self.ser,entry.name)==None else QLabel('<i>unhandled type</i>'))))
 		self.setLayout(grid)
 		self.refreshEvent()
 	def refreshEvent(self):
@@ -743,7 +793,8 @@ class NewSerializableDialog(QDialog):
 		self.setWindowModality(Qt.WindowModal)
 	def comboSlot(self,index):
 		item=str(self.combo.itemText(index))
-		self.ser=eval(item+'()')
+		from yade import core,dem,gl,qt
+		self.ser=eval(item+'()',dict(sum([m.__dict__.items() for m in core,dem,gl,qt],[])))
 		self.scroll.setWidget(SerializableEditor(self.ser,self.scroll,showType=True))
 		self.scroll.show()
 	def result(self): return self.ser

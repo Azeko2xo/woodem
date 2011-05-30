@@ -1,4 +1,5 @@
 #include"GLUtils.hpp"
+#include<GL/glu.h>
 
 void GLUtils::Parallelepiped(const Vector3r& a, const Vector3r& b, const Vector3r& c){
    glBegin(GL_LINE_STRIP);
@@ -13,6 +14,27 @@ void GLUtils::Parallelepiped(const Vector3r& a, const Vector3r& b, const Vector3
 	glBegin(GL_LINES);
 		glVertex3v(Vector3r(a+c)); glVertex3v(Vector3r(a+b+c));
 	glEnd();
+}
+
+void GLUtils::Cylinder(const Vector3r& a, const Vector3r& b, Real rad1, const Vector3r& color, bool wire, Real rad2 /* if negative, use rad1 */,int slices, int stacks){
+	if(rad2<0) rad2=rad1;
+	static GLUquadric* gluQuadric;
+	if(!gluQuadric) gluQuadric=gluNewQuadric(); assert(gluQuadric);
+	Real dist=(b-a).norm();
+	glPushMatrix();
+		glTranslatev(a);
+		Quaternionr q(Quaternionr().setFromTwoVectors(Vector3r(0,0,1),(b-a)/dist /* normalized */));
+		// using Transform with OpenGL: http://eigen.tuxfamily.org/dox/TutorialGeometry.html
+		#if EIGEN_MAJOR_VERSION<30              //Eigen3 definition, while it is not realized
+			glMultMatrixd(Eigen::Affine3d(q).data());
+		#else
+			glMultMatrixd(Eigen::Affine3d(q).data());
+		#endif
+		glColor3v(color);
+		gluQuadricDrawStyle(gluQuadric,wire?GLU_LINE:GLU_FILL);
+		if(stacks<0) stacks=(int)(dist/(rad1*(-stacks/10.))+.5);
+		gluCylinder(gluQuadric,rad1,rad2,dist,slices,stacks);
+	glPopMatrix();
 }
 
 /****

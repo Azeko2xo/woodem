@@ -30,6 +30,8 @@
 using namespace boost;
 using namespace std;
 
+namespace py=boost::python;
+
 
 // empty functions for ADL
 //namespace{
@@ -132,7 +134,7 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 #define _PYGET_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) return boost::python::object(_ATTR_NAM(z));
 //#define _PYSET_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) { _ATTR_NAM(z)=boost::python::extract<typeof(_ATTR_NAM(z))>(t[1]); boost::python::delitem(d,boost::python::object(_ATTR_NAM(z))); continue; }
 #define _PYSET_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) { _ATTR_NAM(z)=boost::python::extract<typeof(_ATTR_NAM(z))>(value); return; }
-#define _PYKEYS_ATTR(x,y,z) ret.append(_ATTR_NAM_STR(z));
+#define _PYYATTR_ATTR(x,y,z) if(!(_ATTR_FLG(z) & yade::Attr::hidden)) ret.append(_ATTR_NAM_STR(z));
 #define _PYHASKEY_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) return true;
 #define _PYDICT_ATTR(x,y,z) if(!(_ATTR_FLG(z) & yade::Attr::hidden)) ret[_ATTR_NAM_STR(z)]=boost::python::object(_ATTR_NAM(z));
 #define _REGISTER_BOOST_ATTRIBUTES_REPEAT(x,y,z) if((_ATTR_FLG(z) & yade::Attr::noSave)==0) { ar & BOOST_SERIALIZATION_NVP(_ATTR_NAM(z)); }
@@ -150,6 +152,7 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 	void pySetAttr(const std::string& key, const boost::python::object& value){BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR,~,attrs); BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR_DEPREC,thisClass,deprec); baseClass::pySetAttr(key,value); } \
 	/* list all attributes (except deprecated ones); could return boost::python::set instead*/ /* boost::python::list pyKeys() const {  boost::python::list ret; BOOST_PP_SEQ_FOR_EACH(_PYKEYS_ATTR,~,attrs); ret.extend(baseClass::pyKeys()); return ret; }  */ \
 	/* return dictionary of all acttributes and values; deprecated attributes omitted */ boost::python::dict pyDict() const { boost::python::dict ret; BOOST_PP_SEQ_FOR_EACH(_PYDICT_ATTR,~,attrs); ret.update(baseClass::pyDict()); return ret; } \
+	/* return list of yade attribute names; deprecated attributes ignored */ boost::python::list pyYAttrs() const { boost::python::list ret(baseClass::pyYAttrs()); BOOST_PP_SEQ_FOR_EACH(_PYYATTR_ATTR,~,attrs); return ret; } \
 	virtual void callPostLoad(void){ baseClass::callPostLoad(); postLoad(*this); }
 
 
@@ -265,7 +268,7 @@ class Serializable: public Factorable {
 		//static void pyUpdateAttrs(const shared_ptr<Serializable>&, const boost::python::dict& d);
 
 		virtual void pySetAttr(const std::string& key, const boost::python::object& value){ yade::AttributeError("No such attribute: "+key+".");};
-		//virtual boost::python::list pyKeys() const { return boost::python::list(); };
+		virtual boost::python::list pyYAttrs() const { return boost::python::list(); };
 		virtual boost::python::dict pyDict() const { return boost::python::dict(); }
 		virtual void callPostLoad(void){ postLoad(*this); }
 		// check whether the class registers itself or whether it calls virtual function of some base class;
@@ -283,7 +286,6 @@ class Serializable: public Factorable {
 	REGISTER_CLASS_NAME(Serializable);
 	REGISTER_BASE_CLASS_NAME(Factorable);
 };
-
 
 // helper functions
 template <typename T>

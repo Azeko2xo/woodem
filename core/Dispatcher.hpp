@@ -10,12 +10,15 @@
 
 #include<boost/lexical_cast.hpp>
 
+#include<yade/core/Omega.hpp>
 #include<yade/core/Engine.hpp>
 #include<yade/core/Functor.hpp>
-#include<yade/core/Omega.hpp>
 #include<yade/lib/multimethods/DynLibDispatcher.hpp>
 
 #include<boost/preprocessor/cat.hpp>
+
+#include<boost/python.hpp>
+namespace py=boost::python;
 
 // real base class for all dispatchers (the other one are templates)
 class Dispatcher: public Engine{
@@ -37,19 +40,20 @@ Because we need literal functor and class names for registration in python, we p
 #define _YADE_DISPATCHER1D_FUNCTOR_ADD(FunctorT,f) virtual void addFunctor(shared_ptr<FunctorT> f){ add1DEntry(f); }
 #define _YADE_DISPATCHER2D_FUNCTOR_ADD(FunctorT,f) virtual void addFunctor(shared_ptr<FunctorT> f){ add2DEntry(f); }
 
-#define _YADE_DIM_DISPATCHER_FUNCTOR_DOC_ATTRS_CTOR_PY(Dim,DispatcherT,FunctorT,doc,attrs,ctor,py) \
+#define _YADE_DIM_DISPATCHER_FUNCTOR_DOC_ATTRS_CTOR_PY(Dim,DispatcherT,FunctorT,doc,attrs,ctor,ppy) \
 	typedef FunctorT FunctorType; \
-	void updateScenePtr(){ FOREACH(shared_ptr<FunctorT> f, functors){ f->scene=scene; }} \
+	void updateScenePtr(){ FOREACH(shared_ptr<FunctorT> f, functors){ f->scene=scene; f->field=field.get(); }} \
 	void postLoad(DispatcherT&){ clearMatrix(); FOREACH(shared_ptr<FunctorT> f, functors) add(static_pointer_cast<FunctorT>(f)); } \
 	virtual void add(FunctorT* f){ add(shared_ptr<FunctorT>(f)); } \
 	virtual void add(shared_ptr<FunctorT> f){ bool dupe=false; string fn=f->getClassName(); FOREACH(const shared_ptr<FunctorT>& f, functors) { if(fn==f->getClassName()) dupe=true; } if(!dupe) functors.push_back(f); addFunctor(f); } \
 	BOOST_PP_CAT(_YADE_DISPATCHER,BOOST_PP_CAT(Dim,D_FUNCTOR_ADD))(FunctorT,f) \
 	boost::python::list functors_get(void) const { boost::python::list ret; FOREACH(const shared_ptr<FunctorT>& f, functors){ ret.append(f); } return ret; } \
+	virtual void getLabeledObjects(std::map<std::string,py::object>& m){ FOREACH(const shared_ptr<FunctorT>& f, functors){ Engine::handlePossiblyLabeledObject(f,m); } } \
 	void functors_set(const vector<shared_ptr<FunctorT> >& ff){ functors.clear(); FOREACH(const shared_ptr<FunctorT>& f, ff) add(f); postLoad(*this); } \
 	void pyHandleCustomCtorArgs(python::tuple& t, python::dict& d){ if(python::len(t)==0)return; if(python::len(t)!=1) throw invalid_argument("Exactly one list of " BOOST_PP_STRINGIZE(FunctorT) " must be given."); typedef std::vector<shared_ptr<FunctorT> > vecF; vecF vf=boost::python::extract<vecF>(t[0])(); functors_set(vf); t=python::tuple(); } \
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(DispatcherT,Dispatcher,"Dispatcher calling :yref:`functors<" BOOST_PP_STRINGIZE(FunctorT) ">` based on received argument type(s).\n\n" doc, \
 		((vector<shared_ptr<FunctorT> >,functors,,,"Functors active in the dispatch mechanism [overridden below].")) /*additional attrs*/ attrs, \
-		/*ctor*/ ctor, /*py*/ py .add_property("functors",&DispatcherT::functors_get,&DispatcherT::functors_set,"Functors associated with this dispatcher." " :yattrtype:`vector<shared_ptr<" BOOST_PP_STRINGIZE(FunctorT) "> >` ") \
+		/*ctor*/ ctor, /*py*/ ppy .add_property("functors",&DispatcherT::functors_get,&DispatcherT::functors_set,"Functors associated with this dispatcher." " :yattrtype:`vector<shared_ptr<" BOOST_PP_STRINGIZE(FunctorT) "> >` ") \
 		.def("dispMatrix",&DispatcherT::dump,python::arg("names")=true,"Return dictionary with contents of the dispatch matrix.").def("dispFunctor",&DispatcherT::getFunctor,"Return functor that would be dispatched for given argument(s); None if no dispatch; ambiguous dispatch throws."); \
 	)
 
@@ -57,51 +61,6 @@ Because we need literal functor and class names for registration in python, we p
 #define YADE_DISPATCHER2D_FUNCTOR_DOC_ATTRS_CTOR_PY(DispatcherT,FunctorT,doc,attrs,ctor,py) _YADE_DIM_DISPATCHER_FUNCTOR_DOC_ATTRS_CTOR_PY(2,DispatcherT,FunctorT,doc,attrs,ctor,py)
 
 // HELPER FUNCTIONS
-
-/*! Function returning class name (as string) for given index and topIndexable (top-level indexable, such as Shape, Material and so on)
-This function exists solely for debugging, is quite slow: it has to traverse all classes and ask for inheritance information.
-It should be used primarily to convert indices to names in Dispatcher::dictDispatchMatrix?D; since it relies on Omega for RTTI,
-this code could not be in Dispatcher itself.
-s*/
-template<class topIndexable>
-std::string Dispatcher_indexToClassName(int idx){
-	scoped_ptr<topIndexable> top(new topIndexable);
-	std::string topName=top->getClassName();
-	typedef std::pair<string,DynlibDescriptor> classItemType;
-	FOREACH(classItemType clss, Omega::instance().getDynlibsDescriptor()){
-		if(Omega::instance().isInheritingFrom_recursive(clss.first,topName) || clss.first==topName){
-			// create instance, to ask for index
-			shared_ptr<topIndexable> inst=dynamic_pointer_cast<topIndexable>(ClassFactory::instance().createShared(clss.first));
-			assert(inst);
-			if(inst->getClassIndex()<0 && inst->getClassName()!=top->getClassName()){
-				throw logic_error("Class "+inst->getClassName()+" didn't use REGISTER_CLASS_INDEX("+inst->getClassName()+","+top->getClassName()+") and/or forgot to call createIndex() in the ctor. [[ Please fix that! ]]");
-			}
-			if(inst->getClassIndex()==idx) return clss.first;
-		}
-	}
-	throw runtime_error("No class with index "+boost::lexical_cast<string>(idx)+" found (top-level indexable is "+topName+")");
-}
-
-//! Return class index of given indexable
-template<typename TopIndexable>
-int Indexable_getClassIndex(const shared_ptr<TopIndexable> i){return i->getClassIndex();}
-
-//! Return sequence (hierarchy) of class indices of given indexable; optionally convert to names
-template<typename TopIndexable>
-python::list Indexable_getClassIndices(const shared_ptr<TopIndexable> i, bool convertToNames){
-	int depth=1; python::list ret; int idx0=i->getClassIndex();
-	if(convertToNames) ret.append(Dispatcher_indexToClassName<TopIndexable>(idx0));
-	else ret.append(idx0);
-	if(idx0<0) return ret; // don't continue and call getBaseClassIndex(), since we are at the top already
-	while(true){
-		int idx=i->getBaseClassIndex(depth++);
-		if(convertToNames) ret.append(Dispatcher_indexToClassName<TopIndexable>(idx));
-		else ret.append(idx);
-		if(idx<0) return ret;
-	}
-}
-
-
 
 //! Return functors of this dispatcher, as list of functors of appropriate type
 template<typename DispatcherT>

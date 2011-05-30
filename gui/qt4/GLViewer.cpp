@@ -33,7 +33,6 @@ using namespace boost;
 	#include<gl2ps.h>
 #endif
 
-#if 0
 YADE_PLUGIN(/*unused*/qt,(SnapshotEngine));
 
 /*****************************************************************************
@@ -41,7 +40,7 @@ YADE_PLUGIN(/*unused*/qt,(SnapshotEngine));
 *****************************************************************************/
 
 CREATE_LOGGER(SnapshotEngine);
-void SnapshotEngine::action(){
+void SnapshotEngine::run(){
 	if(!OpenGLManager::self) throw logic_error("No OpenGLManager instance?!");
 	if(OpenGLManager::self->views.size()==0){
 		int viewNo=OpenGLManager::self->waitForNewView(deadTimeout);
@@ -72,7 +71,6 @@ void SnapshotEngine::action(){
 	usleep((long)(msecSleep*1000));
 	if(!plot.empty()){ pyRunString("import yade.plot; yade.plot.addImgData("+plot+"='"+fss.str()+"')"); }
 }
-#endif
 
 CREATE_LOGGER(GLViewer);
 
@@ -119,8 +117,8 @@ GLViewer::GLViewer(int _viewId, const shared_ptr<Renderer>& _renderer, QGLWidget
 	setKeyDescription(Qt::Key_C,"Set scene center so that all bodies are visible; if a body is selected, center around this body.");
 	setKeyDescription(Qt::Key_C & Qt::AltModifier,"Set scene center to median body position (same as space)");
 	setKeyDescription(Qt::Key_D,"Toggle time display mask");
-	setKeyDescription(Qt::Key_G,"Toggle grid visibility; g turns on and cycles");
-	setKeyDescription(Qt::Key_G & Qt::ShiftModifier ,"Hide grid.");
+	setKeyDescription(Qt::Key_G,"Cycle through visible grid planes");
+	setKeyDescription(Qt::Key_G & Qt::ShiftModifier ,"Toggle grid visibility.");
 	setKeyDescription(Qt::Key_X,"Show the xz [shift: xy] (up-right) plane (clip plane: align normal with +x)");
 	setKeyDescription(Qt::Key_Y,"Show the yx [shift: yz] (up-right) plane (clip plane: align normal with +y)");
 	setKeyDescription(Qt::Key_Z,"Show the zy [shift: zx] (up-right) plane (clip plane: align normal with +z)");
@@ -311,7 +309,7 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 	else if(e->key()==Qt::Key_D &&(e->modifiers() & Qt::AltModifier)){ /*Body::id_t id; if((id=Omega::instance().getScene()->selection)>=0){ const shared_ptr<Body>& b=Body::byId(id); b->setDynamic(!b->isDynamic()); LOG_INFO("Body #"<<id<<" now "<<(b->isDynamic()?"":"NOT")<<" dynamic"); }*/ LOG_INFO("Selection not supported!!"); }
 #endif
 	else if(e->key()==Qt::Key_D) {timeDispMask+=1; if(timeDispMask>(TIME_REAL|TIME_VIRT|TIME_ITER))timeDispMask=0; }
-	else if(e->key()==Qt::Key_G) { if(e->modifiers() & Qt::ShiftModifier){ drawGrid=0; return; } else drawGrid++; if(drawGrid>=8) drawGrid=0; }
+	else if(e->key()==Qt::Key_G) { if(e->modifiers() & Qt::ShiftModifier){ drawGrid=(drawGrid>0?0:7); return; } else drawGrid++; if(drawGrid>=8) drawGrid=0; }
 	else if (e->key()==Qt::Key_M && selectedName() >= 0){ 
 		if(!(isMoving=!isMoving)){displayMessage("Moving done."); mouseMovesCamera();}
 		else{ displayMessage("Moving selected object"); mouseMovesManipulatedFrame();}
@@ -405,16 +403,19 @@ void GLViewer::centerPeriodic(){
 void GLViewer::centerMedianQuartile(){
 	Scene* scene=Omega::instance().getScene().get();
 	if(scene->isPeriodic){ centerPeriodic(); return; }
-	long nNodes=scene->field->nodes.size();
-	if(nNodes<4) {
-		LOG_DEBUG("Less than 4 bodies, median makes no sense; calling centerScene() instead.");
+	std::vector<Real> coords[3];
+	FOREACH(const shared_ptr<Field>& f, scene->fields){
+		for(int i=0; i<3; i++) coords[i].reserve(coords[i].size()+f->nodes.size());
+		FOREACH(const shared_ptr<Node>& b, f->nodes){
+			for(int i=0; i<3; i++) coords[i].push_back(b->pos[i]);
+		}
+	}
+	long nNodes=coords[0].size();
+	if(nNodes<4){
+		LOG_DEBUG("Less than 4 nodes, median makes no sense; calling centerScene() instead.");
 		return centerScene();
 	}
-	std::vector<Real> coords[3];
-	for(int i=0;i<3;i++)coords[i].reserve(nNodes);
-	FOREACH(const shared_ptr<Node>& b, scene->field->nodes){
-		for(int i=0; i<3; i++) coords[i].push_back(b->pos[i]);
-	}
+
 	Vector3r median,interQuart;
 	for(int i=0;i<3;i++){
 		sort(coords[i].begin(),coords[i].end());
@@ -428,13 +429,13 @@ void GLViewer::centerMedianQuartile(){
 }
 
 void GLViewer::centerScene(){
-	Scene* rb=Omega::instance().getScene().get();
-	if (!rb) return;
-	if(rb->isPeriodic){ centerPeriodic(); return; }
+	Scene* scene=Omega::instance().getScene().get();
+	if (!scene) return;
+	if(scene->isPeriodic){ centerPeriodic(); return; }
 
 	LOG_INFO("Select with shift, press 'm' to move.");
 	Vector3r min,max;	
-	min=rb->loHint; max=rb->hiHint;
+	min=scene->loHint; max=scene->hiHint;
 	bool hasNan=(isnan(min[0])||isnan(min[1])||isnan(min[2])||isnan(max[0])||isnan(max[1])||isnan(max[2]));
 	Real minDim=std::min(max[0]-min[0],std::min(max[1]-min[1],max[2]-min[2]));
 	if(minDim<=0 || hasNan){
@@ -442,10 +443,12 @@ void GLViewer::centerScene(){
 		LOG_DEBUG("scene's bound not yet calculated or has zero or nan dimension(s), attempt get that from nodes");
 		Real inf=std::numeric_limits<Real>::infinity();
 		min=Vector3r(inf,inf,inf); max=Vector3r(-inf,-inf,-inf);
-		FOREACH(const shared_ptr<Node>& b, rb->field->nodes){
-			if(!b) continue;
-			max=max.cwise().max(b->pos);
-			min=min.cwise().min(b->pos);
+		FOREACH(const shared_ptr<Field>& f, scene->fields){
+			FOREACH(const shared_ptr<Node>& b, f->nodes){
+				if(!b) continue;
+				max=max.cwise().max(b->pos);
+				min=min.cwise().min(b->pos);
+			}
 		}
 		if(isinf(min[0])||isinf(min[1])||isinf(min[2])||isinf(max[0])||isinf(max[1])||isinf(max[2])){ LOG_DEBUG("No min/max computed from bodies either, setting cube (-1,-1,-1)×(1,1,1)"); min=-Vector3r::Ones(); max=Vector3r::Ones(); }
 	} else {LOG_DEBUG("Using scene's Aabb");}
@@ -481,7 +484,7 @@ void GLViewer::draw()
 
 	qglviewer::Vec vd=camera()->viewDirection(); renderer->viewDirection=Vector3r(vd[0],vd[1],vd[2]);
 	if(Omega::instance().getScene()){
-		int selection = selectedName();
+		// int selection = selectedName();
 		#if 0
 		if(selection!=-1 && (*(Omega::instance().getScene()->bodies)).exists(selection) && isMoving){
 			static int last(-1);
@@ -659,7 +662,7 @@ void GLViewer::postDraw(){
 		}
 	}
 	
-	Scene* rb=Omega::instance().getScene().get();
+	Scene* scene=Omega::instance().getScene().get();
 	#define _W3 setw(3)<<setfill('0')
 	#define _W2 setw(2)<<setfill('0')
 	if(timeDispMask!=0){
@@ -685,8 +688,8 @@ void GLViewer::postDraw(){
 		}
 		if(timeDispMask & GLViewer::TIME_ITER){
 			ostringstream oss;
-			oss<<"#"<<rb->step;
-			if(rb->stopAtStep>rb->step) oss<<" ("<<setiosflags(ios::fixed)<<setw(3)<<setprecision(1)<<setfill('0')<<(100.*rb->step)/rb->stopAtStep<<"%)";
+			oss<<"#"<<scene->step;
+			if(scene->stopAtStep>scene->step) oss<<" ("<<setiosflags(ios::fixed)<<setw(3)<<setprecision(1)<<setfill('0')<<(100.*scene->step)/scene->stopAtStep<<"%)";
 			QGLViewer::drawText(x,y,oss.str().c_str());
 			y-=lineHt;
 		}

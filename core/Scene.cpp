@@ -1,24 +1,12 @@
-/*************************************************************************
-*  Copyright (C) 2004 by Olivier Galizzi                                 *
-*  olivier.galizzi@imag.fr                                               *
-*  Copyright (C) 2004 by Janek Kozicki                                   *
-*  cosurgi@berlios.de                                                    *
-*                                                                        *
-*  This program is free software; it is licensed under the terms of the  *
-*  GNU General Public License v2 or later. See file LICENSE for details. *
-*************************************************************************/
-
 #include<yade/core/Scene.hpp>
 #include<yade/core/Engine.hpp>
+#include<yade/core/Field.hpp>
 #include<yade/core/Timing.hpp>
 
 #include<yade/lib/base/Math.hpp>
 #include<boost/foreach.hpp>
 #include<boost/date_time/posix_time/posix_time.hpp>
 #include<boost/algorithm/string.hpp>
-
-//#include<yade/core/BodyContainer.hpp>
-//#include<yade/core/InteractionContainer.hpp>
 
 
 // POSIX-only
@@ -33,6 +21,12 @@ CREATE_LOGGER(Scene);
 // should be elsewhere, probably
 bool TimingInfo::enabled=false;
 
+std::string Scene::pyTagsProxy::getItem(const std::string& key){ return scene->tags[key]; }
+void Scene::pyTagsProxy::setItem(const std::string& key,const std::string& val){ scene->tags[key]=val; }
+void Scene::pyTagsProxy::delItem(const std::string& key){ size_t i=scene->tags.erase(key); if(i==0) yade::KeyError(key); }
+py::list Scene::pyTagsProxy::keys(){ py::list ret; FOREACH(Scene::StrStrMap::value_type& i, scene->tags) ret.append(i.first); return ret; }
+bool Scene::pyTagsProxy::has_key(const std::string& key){ return scene->tags.count(key)>0; }
+
 void Scene::fillDefaultTags(){
 	// fill default tags
 	struct passwd* pw;
@@ -43,28 +37,47 @@ void Scene::fillDefaultTags(){
 	// real name: will have all non-ASCII characters replaced by ? since serialization doesn't handle that
 	// the standard GECOS format is Real Name,,, - first comma and after will be discarded
 	string gecos(pw->pw_gecos), gecos2; size_t p=gecos.find(","); if(p!=string::npos) boost::algorithm::erase_tail(gecos,gecos.size()-p); for(size_t i=0;i<gecos.size();i++){gecos2.push_back(((unsigned char)gecos[i])<128 ? gecos[i] : '?'); }
-	tags.push_back(boost::algorithm::replace_all_copy(string("author=")+gecos2+" ("+string(pw->pw_name)+"@"+hostname+")"," ","~"));
-	tags.push_back(string("isoTime="+boost::posix_time::to_iso_string(boost::posix_time::second_clock::local_time())));
+	tags["author"]=boost::algorithm::replace_all_copy(gecos2+" ("+string(pw->pw_name)+"@"+hostname+")"," ","~");
+	tags["isoTime"]=boost::posix_time::to_iso_string(boost::posix_time::second_clock::local_time());
 	string id=boost::posix_time::to_iso_string(boost::posix_time::second_clock::local_time())+"p"+lexical_cast<string>(getpid());
-	tags.push_back("id="+id);
-	tags.push_back("d.id="+id);
-	tags.push_back("id.d="+id);
+	tags["id"]=id;
+	tags["d.id"]=id;
+	tags["id.d"]=id;
 	// tags.push_back("revision="+py::extract<string>(py::import("yade.config").attr("revision"))());;
+}
+
+
+vector<shared_ptr<Engine> > Scene::pyEnginesGet(void){ return _nextEngines.empty()?engines:_nextEngines; }
+
+void Scene::pyEnginesSet(const vector<shared_ptr<Engine> >& e){
+	if(subStep<0) engines=e;
+	else _nextEngines=e;
+	postLoad(*this);
 }
 
 
 
 void Scene::postLoad(Scene&){
-#if 0
-	// update the interaction container; must be done in Scene ctor as well; important!
-	interactions->postLoad__calledFromScene(bodies);
-
-	// this might be removed at some point, since it is checked by regression tests now
-	FOREACH(const shared_ptr<Body>& b, *bodies){
-		if(!b || !b->material || b->material->id<0) continue; // not a shared material
-		if(b->material!=materials[b->material->id]) throw std::logic_error("Scene::postLoad: Internal inconsistency, shared materials not preserved when loaded; please report bug.");
+	// assign fields to engines
+	FOREACH(const shared_ptr<Engine>& e, engines){
+		//cerr<<e->getClassName()<<endl;
+		e->scene=this;
+		e->setField();
 	}
-#endif
+	// manage labeled engines
+	typedef std::map<std::string,py::object> StrObjMap; StrObjMap m;
+	FOREACH(const shared_ptr<Engine>& e, engines){
+		Engine::handlePossiblyLabeledObject(e,m);
+		e->getLabeledObjects(m);
+	}
+	py::scope yadeScope(py::import("yade"));
+	// py::scope foo(yadeScope);
+	FOREACH(StrObjMap::value_type& v, m){
+		// cout<<"Label: "<<v.first<<endl;
+		yadeScope.attr(v.first.c_str())=v.second;
+	}
+	// delete labels which are no longer used
+	// py::delattr(yadeScope,name);
 }
 
 
@@ -80,6 +93,7 @@ void Scene::moveToNextTimeStep(){
 	if(!_nextEngines.empty() && (subStep<0 || (subStep<=0 && !subStepping))){
 		engines=_nextEngines;
 		_nextEngines.clear();
+		postLoad(*this); // setup labels, check fields etc
 		// hopefully this will not break in some margin cases (subStepping with setting _nextEngines and such)
 		subStep=-1;
 	}
@@ -94,8 +108,9 @@ void Scene::moveToNextTimeStep(){
 		// ** 2. ** engines
 		FOREACH(const shared_ptr<Engine>& e, engines){
 			e->scene=this;
-			if(unlikely(e->dead || !e->isActivated())) continue;
-			e->action();
+			if(!e->field && e->needsField()) throw std::runtime_error((getClassName()+" has no field to run on, but requires one.").c_str());
+			if(e->dead || !e->isActivated()) continue;
+			e->run();
 			if(unlikely(TimingInfo_enabled)) {TimingInfo::delta now=TimingInfo::getNow(); e->timingInfo.nsec+=now-last; e->timingInfo.nExec+=1; last=now;}
 		}
 		// ** 3. ** epilogue
@@ -115,7 +130,12 @@ void Scene::moveToNextTimeStep(){
 			// ** 1. ** prologue
 			if(subs==-1){ if(isPeriodic) cell->integrateAndUpdate(dt); }
 			// ** 2. ** engines
-			else if(subs>=0 && subs<(int)engines.size()){ const shared_ptr<Engine>& e(engines[subs]); e->scene=this; if(!e->dead && e->isActivated()) e->action(); }
+			else if(subs>=0 && subs<(int)engines.size()){
+				const shared_ptr<Engine>& e(engines[subs]);
+				e->scene=this;
+				if(!e->field && e->needsField()) throw std::runtime_error((getClassName()+" has no field to run on, but requires one.").c_str());
+				if(!e->dead && e->isActivated()) e->run();
+			}
 			// ** 3. ** epilogue
 			else if(subs==(int)engines.size()){ step++; time+=dt; /* gives -1 along with the increment afterwards */ subStep=-2; }
 			// (?!)
@@ -126,14 +146,6 @@ void Scene::moveToNextTimeStep(){
 }
 
 
-#if 0
-shared_ptr<Engine> Scene::engineByName(const string& s){
-	FOREACH(shared_ptr<Engine> e, engines){
-		if(e->getClassName()==s) return e;
-	}
-	return shared_ptr<Engine>();
-}
-#endif
 
 #if 0
 void Scene::checkStateTypes(){

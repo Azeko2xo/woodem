@@ -83,6 +83,13 @@ Particle::id_t ParticleContainer::insert(shared_ptr<Particle>& b){
 
 #endif /* YADE_SUBDOMAINS */
 
+const shared_ptr<Particle>& ParticleContainer::safeGet(Particle::id_t id){
+	if(!exists(id)) throw std::invalid_argument("No such particle: #"+lexical_cast<string>(id)+".");
+	return (*this)[id];
+}
+
+
+
 bool ParticleContainer::remove(Particle::id_t id){
 	if(!exists(id)) return false;
 	lowestFree=min(lowestFree,id);
@@ -132,6 +139,7 @@ py::list ParticleContainer::pyAppendList(vector<shared_ptr<Particle> > pp){
 }
 
 shared_ptr<Particle> ParticleContainer::pyGetItem(Particle::id_t id){
+	if(id<0 && id>=-(int)size()) id+=size();
 	if(exists(id)) return (*this)[id];
 	yade::IndexError("No such particle: #"+lexical_cast<string>(id)+".");
 	return shared_ptr<Particle>(); // make compiler happy

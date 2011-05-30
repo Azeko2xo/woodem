@@ -1,6 +1,6 @@
 // 2009 © Václav Šmilauer <eudoxos@arcig.cz>
 
-#include<yade/pkg/dem/SpherePack.hpp>
+#include<yade/lib/sphere-pack/SpherePack.hpp>
 #include<yade/lib/pyutil/doc_opts.hpp>
 #include<yade/lib/base/Math.hpp>
 
@@ -12,9 +12,11 @@ BOOST_PYTHON_MODULE(_packSpheres){
 		.def("toList",&SpherePack::toList,"Return packing data as python list.")
 		.def("fromList",&SpherePack::fromList,"Make packing from given list, same format as for constructor. Discards current data.")
 		.def("fromList",&SpherePack::fromLists,(python::arg("centers"),python::arg("radii")),"Make packing from given list, same format as for constructor. Discards current data.")
+	#if 0
 		.def("load",&SpherePack::fromFile,(python::arg("fileName")),"Load packing from external text file (current data will be discarded).")
+	#endif
 		.def("save",&SpherePack::toFile,(python::arg("fileName")),"Save packing to external text file (will be overwritten).")
-		.def("fromSimulation",&SpherePack::fromSimulation,"Make packing corresponding to the current simulation. Discards current data.")
+		// .def("fromSimulation",&SpherePack::fromSimulation,"Make packing corresponding to the current simulation. Discards current data.")
 		.def("makeCloud",&SpherePack::makeCloud,(python::arg("minCorner")=Vector3r(Vector3r::Zero()),python::arg("maxCorner")=Vector3r(Vector3r::Zero()),python::arg("rMean")=-1,python::arg("rRelFuzz")=0,python::arg("num")=-1,python::arg("periodic")=false,python::arg("porosity")=0.5,python::arg("psdSizes")=vector<Real>(),python::arg("psdCumm")=vector<Real>(),python::arg("distributeMass")=false,python::arg("seed")=0,python::arg("hSize")=Matrix3r(Matrix3r::Zero())),"Create random loose packing enclosed in a parallelepiped."
 		"\nSphere radius distribution can be specified using one of the following ways:\n\n#. *rMean*, *rRelFuzz* and *num* gives uniform radius distribution in *rMean* (1 ± *rRelFuzz* ). Less than *num* spheres can be generated if it is too high.\n#. *rRelFuzz*, *num* and (optional) *porosity*, which estimates mean radius so that *porosity* is attained at the end.  *rMean* must be less than 0 (default). *porosity* is only an initial guess for the generation algorithm, which will retry with higher porosity until the prescibed *num* is obtained.\n#. *psdSizes* and *psdCumm*, two arrays specifying points of the `particle size distribution <http://en.wikipedia.org/wiki/Particle_size_distribution>`__ function. As many spheres as possible are generated.\n#. *psdSizes*, *psdCumm*, *num*, and (optional) *porosity*, like above but if *num* is not obtained, *psdSizes* will be scaled down uniformly, until *num* is obtained (see :yref:`appliedPsdScaling<yade._packSpheres.SpherePack.appliedPsdScaling>`).\n\nBy default (with ``distributeMass==False``), the distribution is applied to particle radii. The usual sense of \"particle size distribution\" is the distribution of *mass fraction* (rather than particle count); this can be achieved with ``distributeMass=True``."
 		"\n\nIf *num* is defined, then sizes generation is deterministic, giving the best fit of target distribution. It enables spheres placement in descending size order, thus giving lower porosity than the random generation."

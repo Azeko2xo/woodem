@@ -18,7 +18,8 @@ from yade.dem import *
 from yade.core import *
 
 # c++ implementations for performance reasons
-from yade._utils import *
+#from yade._utils import *
+from yade._utils2 import *
 
 def saveVars(mark='',loadNow=True,**kw):
 	"""Save passed variables into the simulation so that it can be recovered when the simulation is loaded again.
@@ -80,52 +81,44 @@ def SpherePWaveTimeStep(radius,density,young):
 	from math import sqrt
 	return radius/sqrt(young/density)
 
-def randomColor():
-	"""Return random Vector3 with each component in interval 0…1 (uniform distribution)"""
-	return Vector3(random.random(),random.random(),random.random())
-
-def typedEngine(name):
-	"""Return first engine from current O.engines, identified by its type (as string). For example:
-
-	>>> from yade import utils
-	>>> O.engines=[InsertionSortCollider(),NewtonIntegrator(),GravityEngine()]
-	>>> utils.typedEngine("NewtonIntegrator") == O.engines[1]
-	True
-	"""
-	return [e for e in Omega().engines if e.__class__.__name__==name][0]
+#def randomColor():
+#	"""Return random Vector3 with each component in interval 0…1 (uniform distribution)"""
+#	return Vector3(random.random(),random.random(),random.random())
 
 def defaultMaterial():
-	"""Return default material, when creating bodies with :yref:`yade.utils.sphere` and friends, material is unspecified and there is no shared material defined yet. By default, this function returns::
+	"""Return default material, when creating bodies with :yref:`yade.utils.sphere` and friends, material is unspecified and there is no previous particle yet. By default, this function returns::
 
-		FrictMat(density=1e3,young=1e7,poisson=.3,frictionAngle=.5,label='defaultMat')
+		FrictMat(density=1e3,young=1e7,poisson=.3,tanPhi=tan(.5))
 	"""
-	return FrictMat(density=1e3,young=1e7,poisson=.3,frictionAngle=.5,label='defaultMat')
+	import math
+	return FrictMat(density=1e3,young=1e7,poisson=.3,tanPhi=math.tan(.5))
 
-def _commonBodySetup(b,volume,geomInertia,material,pos,noBound=False,resetState=True,dynamic=None,fixed=False,nodes=None):
+def _commonBodySetup(b,nodes,volumes,geomInertias,material,fixed=False):
 	"""Assign common body parameters."""
-	if isinstance(material,int):
-		if material<0 and len(O.materials)==0: O.materials.append(defaultMaterial());
-		b.mat=O.materials[material]
-	elif isinstance(material,str): b.mat=O.materials[material]
-	elif isinstance(material,Material): b.mat=material
+	#if isinstance(material,str): b.mat=O.materials[material]
+	if isinstance(material,Material): b.mat=material
 	elif callable(material): b.mat=material()
-	else: raise TypeError("The 'material' argument must be None (for defaultMaterial), string (for shared material label), int (for shared material id) or Material instance.");
-	## resets state (!!)
-	if not nodes: raise RuntimeError("Did not receive any nodes associated with particle about to be created.")
-	if resetState: b.state=b.mat.newAssocState()
-	mass=volume*b.mat.density
-	b.state.mass,b.state.inertia=mass,geomInertia*b.mat.density
-	b.state.pos=b.state.refPos=pos
-	b.nodes=nodes
-	b.bounded=(not noBound)
-	if dynamic!=None:
-		import warnings
-		warnings.warn('dynamic=%s is deprecated, use fixed=%s instead'%(str(dynamic),str(not dynamic)),category=DeprecationWarning,stacklevel=2)
-		fixed=not dynamic
-	b.state.blockedDOFs=('xyzXYZ' if fixed else '')
+	elif material==None:
+		if not len(O.dem.particles): b.mat=defaultMaterial()
+		else: b.mat=O.dem.particles[-1].mat
+	else: raise TypeError("The 'material' argument must be None (material of the last particle, or, if there is none, defaultMaterial), Material instance, or a callable returning Material.");
+	if len(nodes)!=len(volumes) or len(volumes)!=len(geomInertias): raise ValueError("nodes, volumes and geomInertias must have same lengths.")
+	masses=[v*b.mat.density for v in volumes]
+	b.shape.nodes=nodes
+	for i in range(0,len(nodes)):
+		b.nodes[i].dyn.mass=volumes[i]*b.mat.density
+		b.nodes[i].dyn.inertia=geomInertias[i]*b.mat.density
+	if(fixed):
+		for n in b.nodes: n.dyn.blocked='xyzXYZ'
 
 
-def sphere(center,radius,dynamic=None,fixed=False,wire=False,color=None,highlight=False,material=-1,mask=1):
+def _mkDynNode(**kw):
+	'''Helper function to create new Node instance, with dyn set to an new empty instance.
+	dyn can't be assigned directly in the ctor, since it is not a c++ attribute :-| '''
+	n=Node(**kw); n.dyn=DemData() 
+	return n
+
+def sphere(center,radius,dynamic=None,fixed=False,wire=False,color=None,highlight=False,material=None,mask=1):
 	"""Create sphere with given parameters; mass and inertia computed automatically.
 
 	Last assigned material is used by default (*material*=-1), and utils.defaultMaterial() will be used if no material is defined at all.
@@ -188,18 +181,13 @@ def sphere(center,radius,dynamic=None,fixed=False,wire=False,color=None,highligh
 		>>> s4=utils.sphere([1,2,0],1,material=matFactory)
 
 	"""
-	if isinstance(center,Node):
-		nodes=[center]
-		center=center.pos
-	else:
-		nodes=[Node(pos=center)]
-	b=Body()
-	b.shape=Sphere(radius=radius,color=color if color else randomColor(),wire=wire,highlight=highlight)
+	b=Particle()
+	b.shape=Sphere(radius=radius,color=color if color else random.random()) #,wire=wire,highlight=highlight)
 	V=(4./3)*math.pi*radius**3
 	geomInert=(2./5.)*V*radius**2
-	_commonBodySetup(b,V,Vector3(geomInert,geomInert,geomInert),material,pos=center,dynamic=dynamic,fixed=fixed,nodes=nodes)
-	b.aspherical=False
-	b.mask=mask
+	_commonBodySetup(b,([center] if isinstance(center,Node) else [_mkDynNode(pos=center),]),volumes=[V],geomInertias=[geomInert*Vector3.Ones],material=material,fixed=fixed)
+	#b.aspherical=False
+	#b.mask=mask
 	return b
 
 def wall(position,axis,sense=0,color=None,material=-1,mask=1):
@@ -211,17 +199,17 @@ def wall(position,axis,sense=0,color=None,material=-1,mask=1):
 
 	See :yref:`yade.utils.sphere`'s documentation for meaning of other parameters."""
 	b=Body()
-	b.shape=Wall(sense=sense,axis=axis,color=color if color else randomColor())
+	b.shape=Wall(sense=sense,axis=axis,color=color if color else random.random())
 	nodes=[]
 	if isinstance(position,(int,long,float)):
 		pos2=Vector3(0,0,0); pos2[axis]=position
-		nodes=[Node(pos=pos2)]
+		nodes=[_mkDynNode(pos=pos2)]
 	elif isinstance(position,Node):
 		pos2=position[0].pos
 		nodes=[position]
 	else:
 		pos2=position
-		nodes=[Node(pos=pos2)]
+		nodes=[_mkDynNode(pos=pos2)]
 	_commonBodySetup(b,0,Vector3(0,0,0),material,pos=pos2,fixed=True,nodes=nodes)
 	b.aspherical=False # wall never moves dynamically
 	b.mask=mask
@@ -242,10 +230,10 @@ def facet(vertices,dynamic=None,fixed=True,wire=True,color=None,highlight=False,
 		nodes=vertices
 		vertices=(nodes[0].pos,nodes[1].pos,nodes[2].pos)
 	else:
-		nodes=[Node(pos=vertices[0]),Node(pos=vertices[0]),Node(pos=vertices[0])]
+		nodes=[_mkDynNode(pos=vertices[0]),_mkDynNode(pos=vertices[0]),_mkDynNode(pos=vertices[0])]
 	center=inscribedCircleCenter(vertices[0],vertices[1],vertices[2])
 	vertices=Vector3(vertices[0])-center,Vector3(vertices[1])-center,Vector3(vertices[2])-center
-	b.shape=Facet(color=color if color else randomColor(),wire=wire,highlight=highlight,vertices=vertices)
+	b.shape=Facet(color=color if color else random.random(),wire=wire,highlight=highlight,vertices=vertices)
 	_commonBodySetup(b,0,Vector3(0,0,0),material,noBound=noBound,pos=center,fixed=fixed,nodes=nodes)
 	b.aspherical=False # mass and inertia are 0 anyway; fell free to change to ``True`` if needed
 	b.mask=mask

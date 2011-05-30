@@ -5,16 +5,14 @@
 	#include<omp.h>
 #endif
 
-bool ContactContainer::IsReal::operator()(shared_ptr<Contact>& c){ return c->isReal(); }
-bool ContactContainer::IsReal::operator()(const shared_ptr<Contact>& c){ return c->isReal(); }
+bool ContactContainer::IsReal::operator()(shared_ptr<Contact>& c){ return c && c->isReal(); }
+bool ContactContainer::IsReal::operator()(const shared_ptr<Contact>& c){ return c && c->isReal(); }
 
 void ContactContainer::add(const shared_ptr<Contact>& c){
 	assert(dem);
-#if 0
 	#ifdef YADE_OPENGL
-		boost::mutex::scoped_lock lock(manipMutex);
+		boost::mutex::scoped_lock lock(*manipMutex);
 	#endif
-#endif
 	// make sure the contact does not exist yet
 	assert(c->pA->contacts.find(c->pB->id)==c->pA->contacts.end());
 	assert(c->pB->contacts.find(c->pA->id)==c->pB->contacts.end());
@@ -28,11 +26,9 @@ void ContactContainer::add(const shared_ptr<Contact>& c){
 
 void ContactContainer::clear(){
 	assert(dem);
-#if 0
 	#ifdef YADE_OPENGL
-		boost::mutex::scoped_lock lock(manipMutex);
+		boost::mutex::scoped_lock lock(*manipMutex);
 	#endif
-#endif
 	FOREACH(const shared_ptr<Particle>& p, dem->particles) p->contacts.clear();
 	linView.clear(); // clear the linear container
 	pending.clear();
@@ -41,11 +37,9 @@ void ContactContainer::clear(){
 
 void ContactContainer::remove(const shared_ptr<Contact>& c){
 	assert(dem);
-#if 0
 	#ifdef YADE_OPENGL
-		boost::mutex::scoped_lock lock(manipMutex);
+		boost::mutex::scoped_lock lock(*manipMutex);
 	#endif
-#endif
 	// make sure the contact is inside the dem->particles
 	Particle::MapParticleContact::iterator iA=c->pA->contacts.find(c->pB->id), iB=c->pB->contacts.find(c->pA->id);
 	assert(iA!=c->pA->contacts.end()); assert(iB!=c->pB->contacts.end());
@@ -113,7 +107,8 @@ void ContactContainer::removeNonReal(){
 }
 
 
-shared_ptr<Contact> ContactContainer::pyByIds(Particle::id_t id1, Particle::id_t id2){ return find(id1,id2); };
+shared_ptr<Contact> ContactContainer::pyByIds(const Vector2i& ids){return find(ids[0],ids[1]); };
+
 shared_ptr<Contact> ContactContainer::pyNth(int n){
 	int sz(size());
 	if(n<-sz || n>sz-1) IndexError("Linear index out of range ("+lexical_cast<string>(-sz)+".."+lexical_cast<string>(sz-1)+")");

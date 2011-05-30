@@ -19,6 +19,8 @@ using namespace boost;
 #include<yade/lib/base/Logging.hpp>
 #include<yade/lib/base/Math.hpp>
 
+#include<yade/lib/pyutil/except.hpp>
+
 /*! Class representing geometry of spherical packing, with some utility functions. */
 class SpherePack{
 	// return coordinate wrapped to x0…x1, relative to x0; don't care about period
@@ -58,9 +60,11 @@ public:
 	void fromList(const python::list& l);
 	void fromLists(const vector<Vector3r>& centers, const vector<Real>& radii); // used as ctor in python
 	python::list toList() const;
+#if 0
 	void fromFile(const string file);
+#endif
 	void toFile(const string file) const;
-	void fromSimulation();
+	// void fromSimulation();
 
 	// random generation; if num<0, insert as many spheres as possible; if porosity>0, recompute meanRadius (porosity>0.65 recommended) and try generating this porosity with num spheres.
 	long makeCloud(Vector3r min, Vector3r max, Real rMean=-1, Real rFuzz=0, int num=-1, bool periodic=false, Real porosity=-1, const vector<Real>& psdSizes=vector<Real>(), const vector<Real>& psdCumm=vector<Real>(), bool distributeMass=false, int seed=0, Matrix3r hSize=Matrix3r::Zero());
@@ -127,7 +131,7 @@ public:
 		_iterator(const SpherePack& _sPack): sPack(_sPack), pos(0){}
 		_iterator iter(){ return *this;}
 		python::tuple next(){
-			if(pos==sPack.pack.size()){ PyErr_SetNone(PyExc_StopIteration); python::throw_error_already_set(); }
+			if(pos==sPack.pack.size()){ yade::StopIteration(); }
 			return sPack.pack[pos++].asTupleNoClump();
 		}
 	};

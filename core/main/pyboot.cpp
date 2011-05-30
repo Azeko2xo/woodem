@@ -55,10 +55,9 @@ void yadeInitialize(python::list& pp, const std::string& confDir){
 	PyEval_InitThreads();
 
 	Omega& O(Omega::instance());
-	O.init();
 	O.origArgv=NULL; O.origArgc=0; // not needed, anyway
 	O.confDir=confDir;
-	O.initTemps();
+	// O.initTemps();
 	#ifdef YADE_DEBUG
 		ofstream gdbBatch;
 		O.gdbCrashBatch=O.tmpFilename();

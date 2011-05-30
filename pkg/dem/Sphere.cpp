@@ -2,7 +2,7 @@
 #include<yade/pkg/dem/Sphere.hpp>
 #include<yade/pkg/dem/ParticleContainer.hpp>
 
-YADE_PLUGIN(dem,(Sphere)(Bo1_Sphere_Aabb));
+YADE_PLUGIN(dem,(Sphere)(Bo1_Sphere_Aabb)(In2_Sphere_ElastMat));
 
 void Bo1_Sphere_Aabb::go(const shared_ptr<Shape>& sh){
 	Sphere& s=sh->cast<Sphere>();
@@ -29,13 +29,35 @@ void Bo1_Sphere_Aabb::go(const shared_ptr<Shape>& sh){
 }
 	
 
+void In2_Sphere_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& particle){
+	FOREACH(const Particle::MapParticleContact::value_type& I,particle->contacts){
+		const shared_ptr<Contact>& C(I.second); if(!C->isReal()) continue;
+		bool isPA=(C->pA==particle);
+		int sign=(isPA?1:-1);
+		Vector3r F=C->geom->node->ori.conjugate()*C->phys->force*sign;
+		Vector3r T=(C->phys->torque==Vector3r::Zero() ? Vector3r::Zero() : C->geom->node->ori.conjugate()*C->phys->torque)*sign;
+		#ifdef YADE_DEBUG
+			if(isnan(F[0])||isnan(F[1])||isnan(F[2])||isnan(T[0])||isnan(T[1])||isnan(T[2])){
+				ostringstream oss; oss<<"NaN force/torque on particle #"<<particle->id<<" from ##"<<C->pA->id<<"+"<<C->pB->id<<":\n\tF="<<F<<", T="<<T; //"\n\tlocal F="<<C->phys->force*sign<<", T="<<C->phys->torque*sign<<"\n";
+				throw std::runtime_error(oss.str().c_str());
+			}
+		#endif
+		Vector3r xc=C->geom->node->pos-sh->nodes[0]->pos+((!isPA && scene->isPeriodic) ? scene->cell->intrShiftPos(C->cellDist) : Vector3r::Zero());
+		sh->nodes[0]->getData<DemData>().addForceTorque(F,xc.cross(F)+T);
+	}
+}
+
+
 #ifdef YADE_OPENGL
 YADE_PLUGIN(gl,(Gl1_Sphere));
 
 #include<yade/lib/opengl/OpenGLWrapper.hpp>
 #include<yade/lib/opengl/GLUtils.hpp>
+#include<yade/lib/base/CompUtils.hpp>
 
 bool Gl1_Sphere::wire;
+Real Gl1_Sphere::scale;
+Vector2r Gl1_Sphere::scale_range;
 bool Gl1_Sphere::stripes;
 int  Gl1_Sphere::glutSlices;
 int  Gl1_Sphere::glutStacks;
@@ -53,8 +75,10 @@ void Gl1_Sphere::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool 
 	glClearDepth(1.0f);
 	glEnable(GL_NORMALIZE);
 
-	Real r=shape->cast<Sphere>().radius;
-	glColor3v(shape->color);
+	if(quality>10) quality=10; // insane setting can quickly kill the GPU
+
+	Real r=shape->cast<Sphere>().radius*scale;
+	glColor3v(CompUtils::mapColor(shape->color));
 	if (wire || wire2) glutWireSphere(r,quality*glutSlices,quality*glutStacks);
 	else {
 		//Check if quality has been modified or if previous lists are invalidated (e.g. by creating a new qt view), then regenerate lists

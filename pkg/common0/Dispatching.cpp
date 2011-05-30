@@ -14,8 +14,7 @@ LawFunctor::~LawFunctor(){};
 *********************************************************************/
 
 CREATE_LOGGER(BoundDispatcher);
-void BoundDispatcher::action()
-{
+void BoundDispatcher::action(){
 	updateScenePtr();
 	shared_ptr<BodyContainer>& bodies = scene->bodies;
 	const long numBodies=(long)bodies->size();

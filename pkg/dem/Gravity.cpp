@@ -3,24 +3,29 @@
 #include<yade/core/Scene.hpp>
 // #include<boost/regex.hpp>
 
-YADE_PLUGIN(dem,(GravityEngine) /* (CentralGravityEngine)(AxialGravityEngine)(HdapsGravityEngine)*/ );
+YADE_PLUGIN(dem,(Gravity) /* (CentralGravityEngine)(AxialGravityEngine)(HdapsGravityEngine)*/ );
 
-void GravityEngine::action(){
+void Gravity::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){
+	if(py::len(args)==1){ gravity=py::extract<Vector3r>(args[0]); args=py::tuple(); }
+}
+
+void Gravity::run(){
 	const bool trackEnergy(unlikely(scene->trackEnergy));
 	const Real dt(scene->dt);
-	FOREACH(const shared_ptr<Node>& n, scene->field->nodes){
+	FOREACH(const shared_ptr<Node>& n, field->nodes){
 		// skip clumps, only apply forces on their constituents
 		//if(!b || b->isClump()) continue;
 		//if(mask!=0 && (b->groupMask & mask)==0) continue;
 		//scene->forces.addForce(b->getId(),gravity*b->state->mass);
 		// work done by gravity is "negative", since the energy appears in the system from outside
-		n->dyn->force+=gravity*n->dyn->mass;
-		if(trackEnergy) scene->energy->add(-gravity.dot(n->dyn->vel)*n->dyn->mass*dt,"gravWork",gravWorkIx,/*non-incremental*/false);
+		DemData& dyn(n->getData<DemData>());
+		dyn.force+=gravity*dyn.mass;
+		if(trackEnergy) scene->energy->add(-gravity.dot(dyn.vel)*dyn.mass*dt,"gravWork",gravWorkIx,/*non-incremental*/false);
 	}
 }
 
 #if 0
-void CentralGravityEngine::action(){
+void CentralGravityEngine::run(){
 	const Vector3r& centralPos=Body::byId(centralBody)->state->pos;
 	FOREACH(const shared_ptr<Body>& b, *scene->bodies){
 		if(!b || b->isClump() || b->getId()==centralBody) continue; // skip clumps and central body
@@ -32,7 +37,7 @@ void CentralGravityEngine::action(){
 	}
 }
 
-void AxialGravityEngine::action(){
+void AxialGravityEngine::run(){
 	FOREACH(const shared_ptr<Body>&b, *scene->bodies){
 		if(!b || b->isClump()) continue;
 		if(mask!=0 && (b->groupMask & mask)==0) continue;
@@ -61,7 +66,7 @@ Vector2i HdapsGravityEngine::readSysfsFile(const string& name){
 
 }
 
-void HdapsGravityEngine::action(){
+void HdapsGravityEngine::run(){
 	if(!calibrated) { calibrate=readSysfsFile(hdapsDir+"/calibrate"); calibrated=true; }
 	Real now=PeriodicEngine::getClock();
 	if(now-lastReading>1e-3*msecUpdate){
@@ -73,7 +78,7 @@ void HdapsGravityEngine::action(){
 		Quaternionr trsf(AngleAxisr(.5*accel[0]*M_PI/180.,-Vector3r::UnitY())*AngleAxisr(.5*accel[1]*M_PI/180.,-Vector3r::UnitX()));
 		gravity=trsf*zeroGravity;
 	}
-	GravityEngine::action();
+	GravityEngine::run();
 }
 
 #endif

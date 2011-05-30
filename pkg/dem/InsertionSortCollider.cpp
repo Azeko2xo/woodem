@@ -13,6 +13,7 @@ using namespace std;
 YADE_PLUGIN(dem,(InsertionSortCollider));
 CREATE_LOGGER(InsertionSortCollider);
 
+
 // return true if bodies bb overlap in all 3 dimensions
 bool InsertionSortCollider::spatialOverlap(Particle::id_t id1, Particle::id_t id2) const {
 	assert(!periodic);
@@ -29,7 +30,7 @@ void InsertionSortCollider::handleBoundInversion(Particle::id_t id1, Particle::i
 	// do bboxes overlap in all 3 dimensions?
 	bool overlap=spatialOverlap(id1,id2);
 	// existing interaction?
-	const shared_ptr<Contact>& C=field->contacts.find(id1,id2);
+	const shared_ptr<Contact>& C=dem->contacts.find(id1,id2);
 	bool hasInter=(bool)C;
 	// interaction doesn't exist and shouldn't, or it exists and should
 	if(likely(!overlap && !hasInter)) return;
@@ -42,10 +43,10 @@ void InsertionSortCollider::handleBoundInversion(Particle::id_t id1, Particle::i
 		// LOG_TRACE("Creating new interaction #"<<id1<<"+#"<<id2);
 		shared_ptr<Contact> newC=shared_ptr<Contact>(new Contact);
 		newC->pA=p1; newC->pB=p2;
-		field->contacts.add(newC);
+		dem->contacts.add(newC);
 		return;
 	}
-	if(!overlap && hasInter){ if(!C->isReal()) field->contacts.remove(C); return; }
+	if(!overlap && hasInter){ if(!C->isReal()) dem->contacts.remove(C); return; }
 	assert(false); // unreachable
 }
 
@@ -112,19 +113,19 @@ vector<Particle::id_t> InsertionSortCollider::probeBoundingVolume(const Bound& b
 	#else
 		// we wouldn't run in this step; in that case, just delete pending interactions
 		// this is done in ::action normally, but it would make the call counters not reflect the stride
-		scene->field->cast<DemField>().contacts.removePending(*this,scene);
+		field->cast<DemField>().contacts.removePending(*this,scene);
 		return true;
 	#endif
 	}
 
-void InsertionSortCollider::action(){
+void InsertionSortCollider::run(){
 	#ifdef ISC_TIMING
 		timingDeltas->start();
 	#endif
 
-	field=dynamic_pointer_cast<DemField>(scene->field);
-	assert(field);
-	particles=&(field->particles);
+	dem=dynamic_cast<DemField*>(field.get());
+	assert(dem);
+	particles=&(dem->particles);
 	long nBodies=(long)particles->size();
 
 	// scene->interactions->iterColliderLastRun=-1;
@@ -165,7 +166,9 @@ void InsertionSortCollider::action(){
 
 		// update bounds via boundDispatcher
 		boundDispatcher->scene=scene;
-		boundDispatcher->action();
+		boundDispatcher->field=field;
+		boundDispatcher->updateScenePtr();
+		boundDispatcher->run();
 
 	#if 0
 		// if interactions are dirty, force reinitialization
@@ -270,7 +273,8 @@ void InsertionSortCollider::action(){
 	ISC_CHECKPOINT("copy");
 
 	// process interactions that the constitutive law asked to be erased
-	//interactions->erasePending(*this,scene);
+	// done in isActivated():
+	//   interactions->erasePending(*this,scene);
 	
 	ISC_CHECKPOINT("erase");
 
@@ -399,7 +403,7 @@ void InsertionSortCollider::handleBoundInversionPeri(Particle::id_t id1, Particl
 	Vector3i periods;
 	bool overlap=spatialOverlapPeri(id1,id2,scene,periods);
 	// existing interaction?
-	const shared_ptr<Contact>& C=field->contacts.find(id1,id2);
+	const shared_ptr<Contact>& C=dem->contacts.find(id1,id2);
 	bool hasInter=(bool)C;
 	#ifdef PISC_DEBUG
 		if(watchIds(id1,id2)) LOG_DEBUG("Inversion #"<<id1<<"+#"<<id2<<", overlap=="<<overlap<<", hasInter=="<<hasInter);
@@ -422,12 +426,12 @@ void InsertionSortCollider::handleBoundInversionPeri(Particle::id_t id1, Particl
 		#ifdef PISC_DEBUG
 			if(watchIds(id1,id2)) LOG_DEBUG("Created intr #"<<id1<<"+#"<<id2<<", periods="<<periods);
 		#endif
-		field->contacts.add(newC);
+		dem->contacts.add(newC);
 		return;
 	}
 	if(!overlap && hasInter){
 		if(!C->isReal()) {
-			field->contacts.remove(C);
+			dem->contacts.remove(C);
 			#ifdef PISC_DEBUG
 				if(watchIds(id1,id2)) LOG_DEBUG("Erased intr #"<<id1<<"+#"<<id2);
 			#endif

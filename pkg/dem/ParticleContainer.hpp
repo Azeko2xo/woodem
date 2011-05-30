@@ -73,14 +73,15 @@ struct ParticleContainer: public Serializable{
 	
 		// mimick some STL api
 		void clear();
-		iterator begin() { return iterator(parts.begin()); }
-		iterator end() { return iterator(parts.end()); }
-		const_iterator begin() const { return const_iterator(parts.begin()); }
-		const_iterator end() const { return const_iterator(parts.end()); }
+		iterator begin() { return iterator(parts.begin(),parts.end()); }
+		iterator end() { return iterator(parts.end(),parts.end()); }
+		const_iterator begin() const { return const_iterator(parts.begin(),parts.begin()); }
+		const_iterator end() const { return const_iterator(parts.end(),parts.end()); }
 
 		size_t size() const { return parts.size(); }
 		shared_ptr<Particle>& operator[](id_t id){ return parts[id];}
 		const shared_ptr<Particle>& operator[](id_t id) const { return parts[id]; }
+		const shared_ptr<Particle>& safeGet(id_t id);
 
 		bool exists(id_t id) const { return (id>=0) && ((size_t)id<parts.size()) && ((bool)parts[id]); }
 		bool remove(id_t id);
