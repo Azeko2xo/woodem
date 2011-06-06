@@ -39,9 +39,10 @@ struct SparcField: public Field{
 };
 REGISTER_SERIALIZABLE(SparcField);
 
+
+
+
 struct SparcData: public NodeData{
-	static shared_ptr<NodeData> pyGetOnNode(const shared_ptr<Node>& n); // return base class, python does the conversion
-	static void pySetOnNode(const shared_ptr<Node>&, const shared_ptr<SparcData>&);
 	MatrixXr relPosInv; // intermediate storage
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(SparcData,NodeData,"Nodal data needed for SPARC",
 		((Matrix3r,T,Matrix3r::Zero(),,"Stress"))
@@ -56,10 +57,12 @@ struct SparcData: public NodeData{
 		// ((int,locatorId,-1,Attr::hidden,"Position in the point locator array"))
 		, /* ctor */
 		, /*py*/
-		.def("_getOnNode",&SparcData::pyGetOnNode).staticmethod("_getOnNode").def("_setOnNode",&SparcData::pySetOnNode).staticmethod("_setOnNode");
+		.def("_getDataOnNode",&Node::pyGetData<SparcData>).staticmethod("_getDataOnNode").def("_setDataOnNode",&Node::pySetData<SparcData>).staticmethod("_setDataOnNode");
 	);
 };
 REGISTER_SERIALIZABLE(SparcData);
+
+template<> struct NodeData::Index<SparcData>{enum{value=Node::ST_SPARC};};
 
 struct ExplicitNodeIntegrator: public GlobalEngine, private SparcField::Engine{
 	SparcField* mff; // lazy to type
@@ -76,9 +79,5 @@ struct ExplicitNodeIntegrator: public GlobalEngine, private SparcField::Engine{
 	);
 };
 REGISTER_SERIALIZABLE(ExplicitNodeIntegrator);
-
-template<> SparcData& Node::getData<SparcData>();
-template<> void Node::setData<SparcData>(const shared_ptr<SparcData>&);
-template<> bool Node::hasData<SparcData>();
 
 #endif

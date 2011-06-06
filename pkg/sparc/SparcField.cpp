@@ -179,16 +179,5 @@ void ExplicitNodeIntegrator::run(){
 	mff->locDirty=true;
 };
 
-template<> SparcData& Node::getData<SparcData>(){ return getData(Node::ST_SPARC)->cast<SparcData>(); }
-template<> void Node::setData<SparcData>(const shared_ptr<SparcData>& d){ return setData(d,Node::ST_SPARC); }
-template<> bool Node::hasData<SparcData>(){ return hasData(Node::ST_SPARC); }
-
-shared_ptr<NodeData> SparcData::pyGetOnNode(const shared_ptr<Node>& n){
-	if(!n->hasData<SparcData>()) return shared_ptr<SparcData>(); // return None
-	return n->getData(Node::ST_SPARC);
-}
-void SparcData::pySetOnNode(const shared_ptr<Node>& n, const shared_ptr<SparcData>& d){ n->setData<SparcData>(d); }
-
-
 
 #endif

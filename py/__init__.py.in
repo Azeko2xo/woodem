@@ -54,6 +54,10 @@ if 'YADE_DEBUG' in os.environ:
 	print 'The following plugins will be loaded:'
 	for p in plugins: print '\t'+p
 
+# enable warnings which are normally invisible, such as DeprecationWarning
+import warnings
+warnings.simplefilter('default')
+
 # c++ initialization code
 import boot
 boot.initialize(plugins,config.confDir)

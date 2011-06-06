@@ -26,7 +26,7 @@ Particle::id_t Contact::pyId1(){ return pA->id; }
 Particle::id_t Contact::pyId2(){ return pB->id; }
 
 void Particle::checkNodes(bool dyn, bool checkOne){
-	if(!shape || (checkOne  && shape->nodes.size()!=1) || (dyn && !shape->nodes[0]->hasData<DemData>())) yade::AttributeError("Particle #"+lexical_cast<string>(id)+" has no Shape"+(checkOne?string(", or the shape has no/multiple nodes")+string(!dyn?".":", or node.dyn is None."):string(".")));
+	if(!shape || (checkOne  && shape->nodes.size()!=1) || (dyn && !shape->nodes[0]->hasData<DemData>())) yade::AttributeError("Particle #"+lexical_cast<string>(id)+" has no Shape"+(checkOne?string(", or the shape has no/multiple nodes")+string(!dyn?".":", or node.dem is None."):string(".")));
 }
 
 Vector3r Shape::avgNodePos(){
@@ -38,15 +38,6 @@ Vector3r Shape::avgNodePos(){
 	return ret/sz;
 }
 
-template<> DemData& Node::getData<DemData>(){ return getData(Node::ST_DEM)->cast<DemData>(); }
-template<> void Node::setData<DemData>(const shared_ptr<DemData>& d){ return setData(d,Node::ST_DEM); }
-template<> bool Node::hasData<DemData>(){ return hasData(Node::ST_DEM); }
-
-shared_ptr<NodeData> DemData::pyGetOnNode(const shared_ptr<Node>& n){
-	if(!n->hasData<DemData>()) return shared_ptr<DemData>(); // return None
-	return n->getData(Node::ST_DEM);
-}
-void DemData::pySetOnNode(const shared_ptr<Node>& n, const shared_ptr<DemData>& d){ n->setData<DemData>(d); }
 
 void DemData::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){
 	if(!kw.has_key("blocked")) return;
@@ -76,15 +67,6 @@ void DemData::blocked_vec_set(const std::string& dofs){
 }
 
 
-
-#if 0
-// this is perhaps not necessary
-
-// return uncast pointer, python check types automatically
-shared_ptr<NodeData> Particle::getDyn(){ checkNodes(true,true); return shape->nodes[0]->getDem(); }
-// require the right pointer type
-Particle::setDyn(const shared_ptr<DemData>& ds){ checkNodes(false,true); shape->nodes[0]->setDem(ds); }
-#endif
 
 
 vector<shared_ptr<Node> > Particle::getNodes(){ checkNodes(false,false); return shape->nodes; }

@@ -136,7 +136,7 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 #define _PYSET_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) { _ATTR_NAM(z)=boost::python::extract<typeof(_ATTR_NAM(z))>(value); return; }
 #define _PYYATTR_ATTR(x,y,z) if(!(_ATTR_FLG(z) & yade::Attr::hidden)) ret.append(_ATTR_NAM_STR(z));
 #define _PYHASKEY_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) return true;
-#define _PYDICT_ATTR(x,y,z) if(!(_ATTR_FLG(z) & yade::Attr::hidden)) ret[_ATTR_NAM_STR(z)]=boost::python::object(_ATTR_NAM(z));
+#define _PYDICT_ATTR(x,y,z) if(!(_ATTR_FLG(z) & yade::Attr::hidden)){ /*if(_ATTR_FLG(z) & yade::Attr::pyByRef) ret[_ATTR_NAM_STR(z)]=boost::python::object(boost::ref(_ATTR_NAM(z))); else */  ret[_ATTR_NAM_STR(z)]=boost::python::object(_ATTR_NAM(z)); }
 #define _REGISTER_BOOST_ATTRIBUTES_REPEAT(x,y,z) if((_ATTR_FLG(z) & yade::Attr::noSave)==0) { ar & BOOST_SERIALIZATION_NVP(_ATTR_NAM(z)); }
 #define _REGISTER_BOOST_ATTRIBUTES(baseClass,attrs) \
 	friend class boost::serialization::access; \
@@ -261,8 +261,8 @@ class Serializable: public Factorable {
 		Serializable() {};
 		virtual ~Serializable() {};
 		// comparison of strong equality of 2 objects (by their address)
-		bool operator==(const Serializable& other){ return this==&other; }
-		bool operator!=(const Serializable& other){ return this!=&other; }
+		bool operator==(const Serializable& other) const { return this==&other; }
+		bool operator!=(const Serializable& other) const { return this!=&other; }
 
 		void pyUpdateAttrs(const boost::python::dict& d);
 		//static void pyUpdateAttrs(const shared_ptr<Serializable>&, const boost::python::dict& d);
@@ -281,7 +281,7 @@ class Serializable: public Factorable {
 		virtual void pyHandleCustomCtorArgs(boost::python::tuple& args, boost::python::dict& kw){ return; }
 		
 		//! string representation of this object
-		std::string pyStr() { return "<"+getClassName()+" instance at "+lexical_cast<string>(this)+">"; }
+		std::string pyStr() const { return "<"+getClassName()+" instance at "+lexical_cast<string>(this)+">"; }
 
 	REGISTER_CLASS_NAME(Serializable);
 	REGISTER_BASE_CLASS_NAME(Factorable);

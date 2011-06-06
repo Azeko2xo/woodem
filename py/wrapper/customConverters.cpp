@@ -40,13 +40,13 @@
 #include<yade/pkg/dem/IntraForce.hpp>
 
 #include<yade/pkg/dem/ParticleContainer.hpp>
+#include<yade/core/MatchMaker.hpp>
 
 #if 0
 #include<yade/core/Engine.hpp>
 #include<yade/pkg/common/Dispatching.hpp>
 #include<yade/pkg/dem/SpherePack.hpp>
 #include<yade/pkg/common/KinematicEngines.hpp>
-#include<yade/pkg/common/MatchMaker.hpp>
 #endif
 
 
@@ -54,6 +54,9 @@
 	#include<yade/pkg/gl/Functors.hpp>
 	#include<yade/pkg/gl/Renderer.hpp>
 #endif
+
+#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
+
 
 
 
@@ -153,7 +156,6 @@ struct custom_vector_from_seq{
 };
 
 
-#if 0
 struct custom_ptrMatchMaker_from_float{
 	custom_ptrMatchMaker_from_float(){ converter::registry::push_back(&convertible,&construct,type_id<shared_ptr<MatchMaker> >()); }
 	static void* convertible(PyObject* obj_ptr){ if(!PyNumber_Check(obj_ptr)) { cerr<<"Not convertible to MatchMaker"<<endl; return 0; } return obj_ptr; }
@@ -165,7 +167,6 @@ struct custom_ptrMatchMaker_from_float{
 		data->convertible=storage;
 	}
 };
-#endif
 
 
 
@@ -177,8 +178,6 @@ struct custom_numpyBoost_to_py{
 	}
 };
 #endif
-
-
 
 #if 0
 template<typename T>
@@ -213,11 +212,8 @@ BOOST_PYTHON_MODULE(_customConverters){
 
 	custom_OpenMPAccumulator_from_float(); to_python_converter<OpenMPAccumulator<Real>, custom_OpenMPAccumulator_to_float>(); 
 	custom_OpenMPAccumulator_from_int(); to_python_converter<OpenMPAccumulator<int>, custom_OpenMPAccumulator_to_int>(); 
-	// todo: OpenMPAccumulator<int>
 
-	#if 0
 	custom_ptrMatchMaker_from_float();
-	#endif
 
 	// StrArrayMap (typedef for std::map<std::string,numpy_boost>) → python dictionary
 	//custom_StrArrayMap_to_dict();
@@ -226,6 +222,13 @@ BOOST_PYTHON_MODULE(_customConverters){
 	to_python_converter<std::vector<std::vector<std::string> >,custom_vvector_to_list<std::string> >();
 	//to_python_converter<std::list<shared_ptr<Functor> >, custom_list_to_list<shared_ptr<Functor> > >();
 	//to_python_converter<std::list<shared_ptr<Functor> >, custom_list_to_list<shared_ptr<Functor> > >();
+
+	// don't return array of nodes as lists, each DemField.nodes[0] operation must create the list first,
+	// pick the element, and throw it away; since node lists are typically long, create a custom class
+	// using indexing suite (version 1; never found out how is the allegedly superior version 2
+	// supposed to be used):
+	// http://stackoverflow.com/questions/6157409/stdvector-to-boostpythonlist
+	py::class_<std::vector<shared_ptr<Node> > >("NodeList").def(py::vector_indexing_suite<std::vector<shared_ptr<Node> > >());
 
 	// register 2-way conversion between c++ vector and python homogeneous sequence (list/tuple) of corresponding type
 	#define VECTOR_SEQ_CONV(Type) custom_vector_from_seq<Type>();  to_python_converter<std::vector<Type>, custom_vector_to_list<Type> >();
@@ -241,7 +244,7 @@ BOOST_PYTHON_MODULE(_customConverters){
 		VECTOR_SEQ_CONV(Vector6i);
 		VECTOR_SEQ_CONV(Matrix3r);
 		VECTOR_SEQ_CONV(std::string);
-		VECTOR_SEQ_CONV(shared_ptr<Node>);
+		// VECTOR_SEQ_CONV(shared_ptr<Node>);
 		VECTOR_SEQ_CONV(shared_ptr<NodeData>);
 		VECTOR_SEQ_CONV(shared_ptr<Field>);
 		VECTOR_SEQ_CONV(shared_ptr<Particle>);

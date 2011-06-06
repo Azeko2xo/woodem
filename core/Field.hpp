@@ -18,14 +18,21 @@ REGISTER_SERIALIZABLE(Constraint);
 
 struct NodeData: public Serializable{
 	boost::mutex lock; // used by applyForceTorque
+
+	// template to be specialized by derived classes
+	template<typename Derived> struct Index; // { BOOST_STATIC_ASSERT(false); /* template must be specialized for derived NodeData types */ };
+
 	YADE_CLASS_BASE_DOC(NodeData,Serializable,"Data associated with some node.");
 };
 REGISTER_SERIALIZABLE(NodeData);
 
+
+
+
 struct Node: public Serializable, public Indexable{
 	// indexing data items
 	// allows to define non-casting accessors without paying runtime penalty for index lookup
-	enum {ST_DEM=0,ST_SPARC,/*always keep last*/ST_LAST }; // assign constants to data values
+	enum {ST_DEM=0,ST_SPARC,ST_ANCF,/*always keep last*/ST_LAST }; // assign constants to data values
 	//const char dataNames[][]={"dem","foo"}; // not yet used
 	#if 0
 		// allow runtime registration of additional data fields, which can be looked up (slow) by names
@@ -38,14 +45,22 @@ struct Node: public Serializable, public Indexable{
 	bool hasData(size_t ix){ assert(ix>=0&&ix<ST_LAST); return(ix>=0&&ix<data.size()&&data[ix]); }
 	void setData(const shared_ptr<NodeData>& nd, size_t ix){ assert(ix>=0 && ix<ST_LAST); if(ix>=data.size()) data.resize(ix+1); data[ix]=nd; }
 	const shared_ptr<NodeData>& getData(size_t ix){ assert(ix>=0 && data.size()>ix); return data[ix]; }
-	// should be specialized by relevant fields to return data cast to the right type
-	// see e.g. DemField class & DemData
-	template<class NodeDataSubclass> NodeDataSubclass& getData();
-	template<class NodeDataSubclass> void setData(const shared_ptr<NodeDataSubclass>&);
-	template<class NodeDataSubclass> bool hasData();
 
+	// templates to get data cast to correct type quickly
+	// classes derived from NodeData should only specialize the NodeData::Index template to make those functions work
+	template<class NodeDataSubclass>
+	NodeDataSubclass& getData(){ return getData(NodeData::Index<NodeDataSubclass>::value)->cast<NodeDataSubclass>(); }
+	template<class NodeDataSubclass>
+	void setData(const shared_ptr<NodeDataSubclass>& d){ setData(d,NodeData::Index<NodeDataSubclass>::value); }
+	template<class NodeDataSubclass>
+	bool hasData(){ return hasData(NodeData::Index<NodeDataSubclass>::value); }
 
-	#undef NODE_ACCESS_PROXY
+	// template for python access of nodal data
+	template<typename NodeDataSubclass>
+	static shared_ptr<NodeDataSubclass> pyGetData(const shared_ptr<Node>& n){ return n->hasData<NodeDataSubclass>() ? static_pointer_cast<NodeDataSubclass>(n->getData(NodeData::Index<NodeDataSubclass>::value)) : shared_ptr<NodeDataSubclass>(); }
+	template<typename NodeDataSubclass>
+	static void pySetData(const shared_ptr<Node>& n, const shared_ptr<NodeDataSubclass>& d){ n->setData<NodeDataSubclass>(d); }
+
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Node,Serializable,"A point in space, referenced by other objects.",
 		((Vector3r,pos,Vector3r::Zero(),,"Position in space (cartesian coordinates)."))
 		((Quaternionr,ori,Quaternionr::Identity(),,"Orientation of this node."))
@@ -57,22 +72,11 @@ struct Node: public Serializable, public Indexable{
 };
 REGISTER_SERIALIZABLE(Node);
 
-#if 0
-class NodeData: public Serializable, public Indexable{
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(NodeData,Serializable,"Field data associated with a node.",
-		((shared_ptr<Constraint>,constraint,,,"Constraint associated with this node."))
-		, /* ctor */
-		, /* py */ YADE_PY_TOPINDEXABLE(NodeData);
-	);
-	REGISTER_INDEX_COUNTER(NodeData);
-};
-REGISTER_SERIALIZABLE(NodeData);
-#endif
 
 struct Field: public Serializable, public Indexable{
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Field,Serializable,"Spatial field described by nodes, their topology and associated values.",
 		((Scene*,scene,NULL,Attr::hidden,"Backptr to scene")) // must be set by Scene!
-		((vector<shared_ptr<Node> >,nodes,,,"Nodes referenced from this field."))
+		((vector<shared_ptr<Node> >,nodes,,Attr::pyByRef,"Nodes referenced from this field."))
 		//((vector<shared_ptr<NodeData> >,nodeData,,,"Nodal data, associated to nodes with the same index."))
 		//((shared_ptr<Topology>,topology,,,"How nodes build up cells, neighborhood and coonectivity information."))
 		//((vector<shared_ptr<CellData> >,cells,,,""))

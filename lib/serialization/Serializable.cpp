@@ -1,5 +1,6 @@
 #include "Serializable.hpp"
 
+#if 0
 static void Serializable_setAttr(py::object self, py::str name, py::object value){
 #if 0
 	py::dict d=py::extract<py::dict>(py::getattr(self,"__dict__"));
@@ -10,7 +11,7 @@ static void Serializable_setAttr(py::object self, py::str name, py::object value
 	yade::AttributeError(("Class "+py::extract<std::string>(py::getattr(py::getattr(self,"__class__"),"__name__"))()+" does not have attribute "+py::extract<std::string>(name)()+".").c_str());
 #endif
 }
-
+#endif
 
 void Serializable::pyRegisterClass(boost::python::object _scope) {
 	checkPyClassRegistersItself("Serializable");

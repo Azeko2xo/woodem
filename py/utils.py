@@ -106,19 +106,19 @@ def _commonBodySetup(b,nodes,volumes,geomInertias,material,fixed=False):
 	masses=[v*b.mat.density for v in volumes]
 	b.shape.nodes=nodes
 	for i in range(0,len(nodes)):
-		b.nodes[i].dyn.mass=volumes[i]*b.mat.density
-		b.nodes[i].dyn.inertia=geomInertias[i]*b.mat.density
+		b.nodes[i].dem.mass=volumes[i]*b.mat.density
+		b.nodes[i].dem.inertia=geomInertias[i]*b.mat.density
 	if(fixed):
-		for n in b.nodes: n.dyn.blocked='xyzXYZ'
+		for n in b.nodes: n.dem.blocked='xyzXYZ'
 
 
-def _mkDynNode(**kw):
-	'''Helper function to create new Node instance, with dyn set to an new empty instance.
-	dyn can't be assigned directly in the ctor, since it is not a c++ attribute :-| '''
-	n=Node(**kw); n.dyn=DemData() 
+def _mkDemNode(**kw):
+	'''Helper function to create new Node instance, with dem set to an new empty instance.
+	dem can't be assigned directly in the ctor, since it is not a c++ attribute :-| '''
+	n=Node(**kw); n.dem=DemData() 
 	return n
 
-def sphere(center,radius,dynamic=None,fixed=False,wire=False,color=None,highlight=False,material=None,mask=1):
+def sphere(center,radius,fixed=False,wire=False,color=None,highlight=False,material=None,mask=1):
 	"""Create sphere with given parameters; mass and inertia computed automatically.
 
 	Last assigned material is used by default (*material*=-1), and utils.defaultMaterial() will be used if no material is defined at all.
@@ -185,7 +185,7 @@ def sphere(center,radius,dynamic=None,fixed=False,wire=False,color=None,highligh
 	b.shape=Sphere(radius=radius,color=color if color else random.random()) #,wire=wire,highlight=highlight)
 	V=(4./3)*math.pi*radius**3
 	geomInert=(2./5.)*V*radius**2
-	_commonBodySetup(b,([center] if isinstance(center,Node) else [_mkDynNode(pos=center),]),volumes=[V],geomInertias=[geomInert*Vector3.Ones],material=material,fixed=fixed)
+	_commonBodySetup(b,([center] if isinstance(center,Node) else [_mkDemNode(pos=center),]),volumes=[V],geomInertias=[geomInert*Vector3.Ones],material=material,fixed=fixed)
 	#b.aspherical=False
 	#b.mask=mask
 	return b
@@ -203,19 +203,19 @@ def wall(position,axis,sense=0,color=None,material=-1,mask=1):
 	nodes=[]
 	if isinstance(position,(int,long,float)):
 		pos2=Vector3(0,0,0); pos2[axis]=position
-		nodes=[_mkDynNode(pos=pos2)]
+		nodes=[_mkDemNode(pos=pos2)]
 	elif isinstance(position,Node):
 		pos2=position[0].pos
 		nodes=[position]
 	else:
 		pos2=position
-		nodes=[_mkDynNode(pos=pos2)]
+		nodes=[_mkDemNode(pos=pos2)]
 	_commonBodySetup(b,0,Vector3(0,0,0),material,pos=pos2,fixed=True,nodes=nodes)
 	b.aspherical=False # wall never moves dynamically
 	b.mask=mask
 	return b
 
-def facet(vertices,dynamic=None,fixed=True,wire=True,color=None,highlight=False,noBound=False,material=-1,mask=1):
+def facet(vertices,fixed=True,wire=True,color=None,highlight=False,noBound=False,material=-1,mask=1):
 	"""Create facet with given parameters.
 
 	:param [Vector3,Vector3,Vector3] vertices: coordinates of vertices in the global coordinate system.
@@ -230,7 +230,7 @@ def facet(vertices,dynamic=None,fixed=True,wire=True,color=None,highlight=False,
 		nodes=vertices
 		vertices=(nodes[0].pos,nodes[1].pos,nodes[2].pos)
 	else:
-		nodes=[_mkDynNode(pos=vertices[0]),_mkDynNode(pos=vertices[0]),_mkDynNode(pos=vertices[0])]
+		nodes=[_mkDemNode(pos=vertices[0]),_mkDemNode(pos=vertices[0]),_mkDemNode(pos=vertices[0])]
 	center=inscribedCircleCenter(vertices[0],vertices[1],vertices[2])
 	vertices=Vector3(vertices[0])-center,Vector3(vertices[1])-center,Vector3(vertices[2])-center
 	b.shape=Facet(color=color if color else random.random(),wire=wire,highlight=highlight,vertices=vertices)

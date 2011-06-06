@@ -80,12 +80,6 @@ public:
 	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
 	void addForceTorque(const Vector3r& f, const Vector3r& t=Vector3r::Zero()){ boost::mutex::scoped_lock l(lock); force+=f; torque+=t; }
 
-	// defined as property of Node in py/_aliases.py
-	// so that Node.dyn translates to hidden call to getter/setter DemData.py{Get,Set}onNode(...)
-	// Node must be the first arg, since it is the "self" when called to get/set class property
-	static shared_ptr<NodeData> pyGetOnNode(const shared_ptr<Node>& n); // return base class, python does the conversion
-	static void pySetOnNode(const shared_ptr<Node>&, const shared_ptr<DemData>&);
-
 	bool isAspherical() const{ return !((inertia[0]==inertia[1] && inertia[1]==inertia[2])); }
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(DemData,NodeData,"Dynamic state of node.",
 		((Vector3r,vel,Vector3r::Zero(),,"Linear velocity."))
@@ -98,17 +92,12 @@ public:
 		((unsigned,blocked,0,,"blocked degrees of freedom"))
 		, /*ctor*/
 		, /*py*/ .add_property("blocked",&DemData::blocked_vec_get,&DemData::blocked_vec_set,"Degress of freedom where linear/angular velocity will be always constant (equal to zero, or to an user-defined value), regardless of applied force/torque. String that may contain 'xyzXYZ' (translations and rotations).")
-		.def("_getOnNode",&DemData::pyGetOnNode).staticmethod("_getOnNode").def("_setOnNode",&DemData::pySetOnNode).staticmethod("_setOnNode");
+		.def("_getDataOnNode",&Node::pyGetData<DemData>).staticmethod("_getDataOnNode").def("_setDataOnNode",&Node::pySetData<DemData>).staticmethod("_setDataOnNode");
 	);
 };
 REGISTER_SERIALIZABLE(DemData);
 
-// specialize data access with casting (the cast is unchecked)
-// define in the .cpp file
-template<> DemData& Node::getData<DemData>();
-template<> void Node::setData<DemData>(const shared_ptr<DemData>&);
-template<> bool Node::hasData<DemData>();
-
+template<> struct NodeData::Index<DemData>{enum{value=Node::ST_DEM};};
 
 struct DemField: public Field{
 	int collectNodes(bool clear=true, bool dynOnly=false);
