@@ -23,6 +23,8 @@
 #include<boost/algorithm/string/case_conv.hpp>
 #include<yade/lib/serialization/ObjectIO.hpp>
 #include<yade/lib/pyutil/gil.hpp>
+#include<yade/lib/base/CompUtils.hpp>
+#include<yade/lib/opengl/GLUtils.hpp>
 
 
 #include<QtGui/qevent.h>
@@ -30,7 +32,7 @@
 using namespace boost;
 
 #ifdef YADE_GL2PS
-	#include<gl2ps.h>
+#include<gl2ps.h>
 #endif
 
 YADE_PLUGIN(/*unused*/qt,(SnapshotEngine));
@@ -102,7 +104,7 @@ GLViewer::GLViewer(int _viewId, const shared_ptr<Renderer>& _renderer, QGLWidget
 	else setWindowTitle(("Secondary view #"+lexical_cast<string>(viewId)).c_str());
 
 	show();
-	
+
 	mouseMovesCamera();
 	manipulatedClipPlane=-1;
 
@@ -129,14 +131,14 @@ GLViewer::GLViewer(int _viewId, const shared_ptr<Renderer>& _renderer, QGLWidget
 	setKeyDescription(Qt::Key_P,"Set wider field of view");
 	setKeyDescription(Qt::Key_R,"Revolve around scene center");
 	setKeyDescription(Qt::Key_V,"Save PDF of the current view to /tmp/yade-snapshot-0001.pdf (whichever number is available first). (Must be compiled with the gl2ps feature.)");
-#if 0
-	setKeyDescription(Qt::Key_Plus,    "Cut plane increase");
-	setKeyDescription(Qt::Key_Minus,   "Cut plane decrease");
-	setKeyDescription(Qt::Key_Slash,   "Cut plane step decrease");
-	setKeyDescription(Qt::Key_Asterisk,"Cut plane step increase");
-#endif
- 	setPathKey(-Qt::Key_F1);
- 	setPathKey(-Qt::Key_F2);
+	#if 0
+		setKeyDescription(Qt::Key_Plus,    "Cut plane increase");
+		setKeyDescription(Qt::Key_Minus,   "Cut plane decrease");
+		setKeyDescription(Qt::Key_Slash,   "Cut plane step decrease");
+		setKeyDescription(Qt::Key_Asterisk,"Cut plane step increase");
+	#endif
+	setPathKey(-Qt::Key_F1);
+	setPathKey(-Qt::Key_F2);
 	setKeyDescription(Qt::Key_Escape,"Manipulate scene (default)");
 	setKeyDescription(Qt::Key_F1,"Manipulate clipping plane #1");
 	setKeyDescription(Qt::Key_F2,"Manipulate clipping plane #2");
@@ -174,9 +176,9 @@ void GLViewer::mouseMovesCamera(){
 	setMouseBinding(Qt::LeftButton, CAMERA, ROTATE);
 	setMouseBinding(Qt::RightButton, CAMERA, TRANSLATE);
 	setWheelBinding(Qt::NoModifier, CAMERA, ZOOM);
-};
+	};
 
-void GLViewer::mouseMovesManipulatedFrame(qglviewer::Constraint* c){
+	void GLViewer::mouseMovesManipulatedFrame(qglviewer::Constraint* c){
 	setMouseBinding(Qt::LeftButton + Qt::RightButton, FRAME, ZOOM);
 	setMouseBinding(Qt::MidButton, FRAME, ZOOM);
 	setMouseBinding(Qt::LeftButton, FRAME, ROTATE);
@@ -219,9 +221,9 @@ void GLViewer::useDisplayParameters(size_t n){
 	else { LOG_WARN("Renderer configuration not found in display parameters, skipped.");}
 	if(dp->getValue("GLViewer",val)){ GLViewer::setState(val); displayMessage("Loaded view configuration #"+lexical_cast<string>(n)); }
 	else { LOG_WARN("GLViewer configuration not found in display parameters, skipped."); }
-}
+	}
 
-void GLViewer::saveDisplayParameters(size_t n){
+	void GLViewer::saveDisplayParameters(size_t n){
 	LOG_DEBUG("Saving display parameters to #"<<n);
 	vector<shared_ptr<DisplayParameters> >& dispParams=Omega::instance().getScene()->dispParams;
 	if(dispParams.size()<=n){while(dispParams.size()<=n) dispParams.push_back(shared_ptr<DisplayParameters>(new DisplayParameters));} assert(n<dispParams.size());
@@ -462,7 +464,7 @@ void GLViewer::centerScene(){
 	showEntireScene();
 }
 
-void GLViewer::draw()
+void GLViewer::draw(bool withNames)
 {
 #ifdef YADE_GL2PS
 	if(!nextFrameSnapshotFilename.empty() && boost::algorithm::ends_with(nextFrameSnapshotFilename,".pdf")){
@@ -518,7 +520,7 @@ void GLViewer::draw()
 		}
 		const shared_ptr<Scene>& scene=Omega::instance().getScene();
 		scene->renderer=renderer;
-		renderer->render(scene, selectedName());
+		renderer->render(scene,withNames);
 	}
 }
 
@@ -527,14 +529,27 @@ void GLViewer::draw()
 void GLViewer::postSelection(const QPoint& point) 
 {
 	LOG_DEBUG("Selection is "<<selectedName());
-	int selection = selectedName();
-	if(selection<0){
-		if(isMoving){
-			displayMessage("Moving finished"); mouseMovesCamera(); isMoving=false;
-			Omega::instance().getScene()->selection = -1;
-		}
-		return;
-	}
+	cerr<<"Selection is "<<selectedName()<<endl;
+	int selection=selectedName();
+	if(selection<0 || selection>=(int)renderer->glNamedObjects.size()) return;
+
+	renderer->selObj=renderer->glNamedObjects[selection];
+	renderer->selObjNode=renderer->glNamedNodes[selection];
+	renderer->glNamedObjects.clear(); renderer->glNamedNodes.clear();
+	setSceneCenter(qglviewer::Vec(renderer->selObjNode->pos[0],renderer->selObjNode->pos[1],renderer->selObjNode->pos[2]));
+
+	cerr<<"Selected object #"<<selection<<" is a "<<renderer->selObj->getClassName()<<endl;
+	pyRunString("import yade.qt; onSelection(yade.qt.getSel());");
+	
+	/*
+	gilLock lock(); // needed, since we call in python API from c++ here
+	py::scope yade=py::import("yade");
+	cerr<<"Selected "<<renderer->selObj->getClassName()<<" @ "<<lexical_cast<string>(renderer->selObj)<<endl;
+	if(!PyObject_HasAttrString(yade.ptr(),"onSelect")) return;
+	yade.attr("onSelect")(py::object(renderer->selObj));
+	*/
+
+
 #if 0
 	if(selection>=0 && (*(Omega::instance().getScene()->bodies)).exists(selection)){
 		resetManipulation();
@@ -638,8 +653,9 @@ void GLViewer::postDraw(){
 				glEnd();
 			}
 			glLineWidth(1.);
-			glEnable(GL_DEPTH_TEST);
 			QGLViewer::drawText(scaleCenter[0],scaleCenter[1],QString().sprintf("%.3g",(double)scaleStep));
+			glEnable(GL_DEPTH_TEST);
+			glEnable(GL_LIGHTING);
 		stopScreenCoordinatesSystem();
 	}
 
@@ -718,6 +734,41 @@ void GLViewer::postDraw(){
 		// notify the caller that it is done already (probably not an atomic op :-|, though)
 		nextFrameSnapshotFilename.clear();
 	}
+
+#if 1
+	/* draw colormapped ranges, on the right */
+	if(renderer->ranges.size()>0){
+		glDisable(GL_LIGHTING);
+		const int nDiv=20; 
+		const Real relHt=.8; 
+		int yStep=relHt*height()/nDiv;
+		int y0=(1-(1-relHt)/2.)*height();
+		glLineWidth(20);
+		for(size_t i=0; i<renderer->ranges.size(); i++){
+			if(!renderer->ranges[i]->isOk()) continue;
+			int x=width()-50-i*150; // 50px / scale horizontally
+			startScreenCoordinatesSystem();
+			glBegin(GL_LINE_STRIP);
+				for(int j=0; j<=nDiv; j++){
+					glColor3v(CompUtils::mapColor(j*(1./nDiv)));
+					glVertex2f(x,y0-yStep*j);
+				};
+			glEnd();
+			stopScreenCoordinatesSystem();
+			// show some numbers
+			int nNum=int(relHt*height())/100; // every 100px approx
+			for(int j=0; j<=nNum; j++){
+				// static void GLDrawText(const std::string& txt, const Vector3r& pos, const Vector3r& color=Vector3r(1,1,1), bool center=false, void* font=NULL, const Vector3r& bgColor=Vector3r(-1,-1,-1));
+				startScreenCoordinatesSystem();
+					Vector3r pos=Vector3r(x,y0-(j*relHt*height()/nNum)-6/*lower baseline*/,0.);
+					GLUtils::GLDrawText((boost::format("%.2g")%renderer->ranges[i]->normInv(j*1./nNum)).str(),pos,/*color*/Vector3r::Ones(),/*center*/true,/*font*/(j>0&&j<nNum)?NULL:GLUT_BITMAP_9_BY_15,Vector3r::Zero());
+				stopScreenCoordinatesSystem();
+			}
+		}
+		glLineWidth(1);
+		glEnable(GL_LIGHTING);
+	};
+#endif
 }
 
 string GLViewer::getRealTimeString(){

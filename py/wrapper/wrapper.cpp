@@ -35,6 +35,7 @@
 
 
 #include<yade/pkg/dem/Particle.hpp>
+#include<yade/pkg/sparc/SparcField.hpp>
 
 // #include<yade/pkg/dem/STLImporter.hpp>
 
@@ -151,6 +152,14 @@ class pyOmega{
 		}
 		throw std::runtime_error("No DEM field defined.");
 	}
+
+	shared_ptr<SparcField> sparc_get(){
+		FOREACH(const shared_ptr<Field>& f, OMEGA.getScene()->fields){
+			if(dynamic_pointer_cast<SparcField>(f)) return static_pointer_cast<SparcField>(f);
+		}
+		throw std::runtime_error("No Sparc field defined.");
+	}
+
 
 	void save(std::string fileName,bool quiet=false){
 		assertScene();
@@ -271,6 +280,7 @@ BOOST_PYTHON_MODULE(wrapper)
 		.def("plugins",&pyOmega::plugins_get,"Return list of all plugins registered in the class factory.")
 		.add_property("scene",&pyOmega::scene_get,"Return the current :yref:`scene <Scene>` object.")
 		.add_property("dem",&pyOmega::dem_get,"Return first DEM field.")
+		.add_property("sparc",&pyOmega::sparc_get,"Return first Sparc field.")
 		//.add_property("engines",&pyOmega::engines_get,&pyOmega::engines_set,"List of engines in the simulation (Scene::engines).")
 		//.add_property("_currEngines",&pyOmega::currEngines_get,"Currently running engines; debugging only!")
 		//.add_property("_nextEngines",&pyOmega::nextEngines_get,"Engines for the next step, if different from the current ones, otherwise empty; debugging only!")

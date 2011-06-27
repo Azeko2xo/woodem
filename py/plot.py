@@ -76,7 +76,7 @@ scatterMarkerKw=dict(verts=[(0.,0.),(-30.,10.),(-25,0),(-30.,-10.)],marker=None)
 
 
 componentSeparator='_'
-componentSuffixes={Vector2:{0:'x',1:'y'},Vector3:{0:'x',1:'y',2:'z'},Matrix3:{(0,0):'xx',(1,1):'yy',(2,2):'zz',(0,1):'xy',(0,2):'xz',(1,2):'yz',(1,0):'yz',(2,0):'zx',(2,1):'zy'}}
+componentSuffixes={Vector2:{0:'x',1:'y'},Vector3:{0:'x',1:'y',2:'z'},Vector6:{0:'xx',1:'yy',2:'zz',3:'yz',4:'zx',5:'xy'},Matrix3:{(0,0):'xx',(1,1):'yy',(2,2):'zz',(0,1):'xy',(1,0):'yz',(0,2):'xz',(1,2):'yz',(1,0):'yz',(2,0):'zx',(2,1):'zy'}}
 # if a type with entry in componentSuffixes is given in addData, columns for individual components are synthesized using indices and suffixes given for each type, e.g. foo=Vector3r(1,2,3) will result in columns foox=1,fooy=2,fooz=3
 
 def reset():
@@ -223,6 +223,7 @@ def addData(*d_in,**kw):
 	 'd_xx': [8.0],
 	 'd_xy': [9.0],
 	 'd_xz': [10.0],
+	 'd_yx': [11.0],
 	 'd_yy': [12.0],
 	 'd_yz': [11.0],
 	 'd_zx': [14.0],
@@ -453,7 +454,7 @@ def createPlots(subPlots=True,scatterSize=60,wider=False):
 		if len(plots_p_y2)>0:
 			pylab.twinx() # create the y2 axis
 			createLines(pStrip,plots_p_y2,isY1=False,y2Exists=True)
-		if 'title' in O.tags.keys(): pylab.title(O.tags['title'])
+		if 'title' in O.scene.tags.keys(): pylab.title(O.scene.tags['title'])
 
 
 
@@ -639,7 +640,7 @@ def saveDataTxt(fileName,vars=None):
 	if fileName.endswith('.bz2'): f=bz2.BZ2File(fileName,'w')
 	elif fileName.endswith('.gz'): f=gzip.GzipFile(fileName,'w')
 	else: f=open(fileName,'w')
-	f.write("# "+"\t\t".join(vars)+"\n")
+	f.write("# "+"\t".join(vars)+"\n")
 	for i in range(len(data[vars[0]])):
 		f.write("\t".join([str(data[var][i]) for var in vars])+"\n")
 	f.close()

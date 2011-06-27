@@ -80,6 +80,8 @@ void Omega::loadSimulation(const string& f, bool quiet){
 	if(!isMem && !filesystem::exists(f)) throw runtime_error("Simulation file to load doesn't exist: "+f);
 	if(isMem && memSavedSimulations.count(f)==0) throw runtime_error("Cannot load nonexistent memory-saved simulation "+f);
 	
+	simulationLoop.workerThrew=false;  // this is invalidated
+
 	if(!quiet) LOG_INFO("Loading file "+f);
 	{
 		stop(); // stop current simulation if running

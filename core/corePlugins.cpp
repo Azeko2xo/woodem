@@ -37,6 +37,10 @@
 YADE_PLUGIN(core,(Cell)(Dispatcher)(EnergyTracker)(Engine)(Functor)(GlobalEngine)(ParallelEngine)(PartialEngine)(PeriodicEngine)(PyRunner)(DisplayParameters));
 #include<yade/core/Field.hpp>
 YADE_PLUGIN(core,(Constraint)(Node)(NodeData)(Field));
+#ifdef YADE_OPENGL
+YADE_PLUGIN(gl,(NodeGlRep));
+//NodeGlRep::~NodeGlRep(){}
+#endif
 
 EnergyTracker::~EnergyTracker(){} // vtable
 

@@ -18,6 +18,7 @@
 
 #include<limits>
 #include<cstdlib>
+#include<boost/lexical_cast.hpp>
 
 /*
  * use Eigen http://eigen.tuxfamily.org
@@ -25,7 +26,11 @@
 // different macros for different versions of eigen:
 //  http://bitbucket.org/eigen/eigen/issue/96/eigen_dont_align-doesnt-exist-in-205-but-appears-in-web
 
-#define EIGEN2_SUPPORT  // This makes Eigen3 migration easier
+// don't want this anymore
+// #define EIGEN2_SUPPORT  // This makes Eigen3 migration easier
+
+// http://eigen.tuxfamily.org/dox/Eigen2SupportModes.html#Stage40
+#define EIGEN2_SUPPORT_STAGE40_FULL_EIGEN3_STRICTNESS
 
 // disable optimization which are "unsafe":
 //    eigen objects cannot be passed by-value, otherwise they will no be aligned
@@ -38,10 +43,6 @@
 #define EIGEN_NO_DEBUG
 #include<Eigen/Core>
 #include<Eigen/Geometry>
-	#if EIGEN_MAJOR_VERSION<20		//Eigen3 definition, while it is not realized
-
-		#include<Eigen/Array>
-	#endif
 #include<Eigen/QR>
 #include<Eigen/LU>
 #include<Eigen/SVD>
@@ -166,6 +167,9 @@ void Matrix_computeUnitaryPositive(const MatrixT& in, MatrixT* unitary, MatrixT*
 }
 
 
+bool MatrixXr_pseudoInverse(const MatrixXr &a, MatrixXr &a_pinv, double epsilon=std::numeric_limits<MatrixXr::Scalar>::epsilon());
+
+
 
 /*
  * Extra yade math functions and classes
@@ -259,6 +263,8 @@ BOOST_IS_BITWISE_SERIALIZABLE(Quaternionr);
 BOOST_IS_BITWISE_SERIALIZABLE(Se3r);
 BOOST_IS_BITWISE_SERIALIZABLE(Matrix3r);
 BOOST_IS_BITWISE_SERIALIZABLE(Matrix6r);
+BOOST_IS_BITWISE_SERIALIZABLE(MatrixXr);
+BOOST_IS_BITWISE_SERIALIZABLE(VectorXr);
 
 namespace boost {
 namespace serialization {
@@ -338,6 +344,22 @@ void serialize(Archive & ar, Matrix6r & m, const unsigned int version){
 		BOOST_SERIALIZATION_NVP(m40) & BOOST_SERIALIZATION_NVP(m41) & BOOST_SERIALIZATION_NVP(m42) & BOOST_SERIALIZATION_NVP(m43) & BOOST_SERIALIZATION_NVP(m44) & BOOST_SERIALIZATION_NVP(m45) &
 		BOOST_SERIALIZATION_NVP(m50) & BOOST_SERIALIZATION_NVP(m51) & BOOST_SERIALIZATION_NVP(m52) & BOOST_SERIALIZATION_NVP(m53) & BOOST_SERIALIZATION_NVP(m54) & BOOST_SERIALIZATION_NVP(m55);
 }
+
+template<class Archive>
+void serialize(Archive & ar, VectorXr & v, const unsigned int version){
+	int size=v.size();
+	ar & BOOST_SERIALIZATION_NVP(size);
+	if(Archive::is_loading::value) v.resize(size);
+	for(int i=0; i<v.size(); i++) ar & boost::serialization::make_nvp(("v"+boost::lexical_cast<std::string>(i)).c_str(),v[i]);
+};
+
+template<class Archive>
+void serialize(Archive & ar, MatrixXr & m, const unsigned int version){
+	int rows=m.rows(), cols=m.cols();
+	ar & BOOST_SERIALIZATION_NVP(rows) & BOOST_SERIALIZATION_NVP(cols);
+	if(Archive::is_loading::value) m.resize(rows,cols);
+	for(int r=0; r<m.rows(); r++) for(int c=0; c<m.cols(); c++) ar & boost::serialization::make_nvp(("i_"+boost::lexical_cast<std::string>(r)+"_"+boost::lexical_cast<std::string>(c)).c_str(),m(r,c));
+};
 
 } // namespace serialization
 } // namespace boost

@@ -32,7 +32,7 @@ struct GLUtils{
 	}
 
 	static void GLDrawNum(const Real& n, const Vector3r& pos, const Vector3r& color=Vector3r(1,1,1), unsigned precision=3){
-		std::ostringstream oss; oss<<std::setprecision(precision)<< /* "w="<< */ (double)n;
+		std::ostringstream oss; oss.precision(precision); oss<< /* "w="<< */ n;
 		GLUtils::GLDrawText(oss.str(),pos,color);
 	}
 
@@ -40,15 +40,8 @@ struct GLUtils{
 		GLUtils::GLDrawText(boost::lexical_cast<std::string>(i),pos,color);
 	}
 
-	static void GLDrawText(const std::string& txt, const Vector3r& pos, const Vector3r& color=Vector3r(1,1,1)){
-		glPushMatrix();
-		glTranslatev(pos);
-		glColor3(color[0],color[1],color[2]);
-		glRasterPos2i(0,0);
-		for(unsigned int i=0;i<txt.length();i++)
-			glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, txt[i]);
-		glPopMatrix();
-	}
+	static void GLDrawText(const std::string& txt, const Vector3r& pos, const Vector3r& color=Vector3r(1,1,1), bool center=false, void* font=NULL, const Vector3r& bgColor=Vector3r(-1,-1,-1));
+
 	static void setLocalCoords(const Vector3r& pos, const Quaternionr& ori){
 		AngleAxisr aa(ori);
 		glTranslatef(pos[0],pos[1],pos[2]);

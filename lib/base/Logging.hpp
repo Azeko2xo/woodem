@@ -24,6 +24,7 @@
  *
  */
 
+
 #ifdef YADE_LOG4CXX
 
 #	include<log4cxx/logger.h>

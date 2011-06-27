@@ -3,6 +3,7 @@
 #ifdef YADE_OPENGL
 #include<yade/pkg/dem/Gl1Node.hpp>
 #include<yade/lib/opengl/GLUtils.hpp>
+#include<yade/pkg/gl/Renderer.hpp>
 
 YADE_PLUGIN(gl,(Gl1_Node));
 
@@ -14,6 +15,8 @@ Vector2r Gl1_Node::len_range;
 void Gl1_Node::go(const shared_ptr<Node>& node, const GLViewInfo& viewInfo){
 	if(wd<=0) return;
 	glLineWidth(wd);
+	Renderer::glScopedName name(node);
+
 	if(len<=0){
 		glPointSize(wd);
 		glBegin(GL_POINTS); glVertex3f(0,0,0); glEnd();

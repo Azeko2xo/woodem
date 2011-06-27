@@ -23,6 +23,13 @@ void GlExtraDrawer::render(){ throw runtime_error("GlExtraDrawer::render called 
 bool Renderer::initDone=false;
 const int Renderer::numClipPlanes;
 
+Renderer* Renderer::self=NULL; // pointer to the only existing instance
+
+//bool Renderer::withNames=false;
+//vector<shared_ptr<Serializable> > Renderer::glNamedObjects;
+//vector<shared_ptr<Node> > Renderer::glNamedNodes;
+
+
 void Renderer::init(){
 	typedef std::pair<string,DynlibDescriptor> strDldPair; // necessary as FOREACH, being macro, cannot have the "," inside the argument (preprocessor does not parse templates)
 	#define _TRY_ADD_FUNCTOR(functorT,dispatcher,className) if(Omega::instance().isInheritingFrom_recursive(className,#functorT)){ shared_ptr<functorT> f(static_pointer_cast<functorT>(ClassFactory::instance().createShared(className))); dispatcher.add(f); continue; }
@@ -125,11 +132,11 @@ void Renderer::setClippingPlanes(){
 }
 
 void Renderer::resetSpecularEmission(){
-	glMateriali(GL_FRONT, GL_SHININESS, 80);
-	const GLfloat glutMatSpecular[4]={0.3,0.3,0.3,0.5};
-	const GLfloat glutMatEmit[4]={0.2,0.2,0.2,1.0};
-	glMaterialfv(GL_FRONT,GL_SPECULAR,glutMatSpecular);
-	glMaterialfv(GL_FRONT,GL_EMISSION,glutMatEmit);
+	glMateriali(GL_FRONT_AND_BACK, GL_SHININESS, 128);
+	const GLfloat glutMatSpecular[4]={.6,.6,.6,1};
+	const GLfloat glutMatEmit[4]={.1,.1,.1,.5};
+	glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,glutMatSpecular);
+	glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,glutMatEmit);
 }
 
 
@@ -145,8 +152,8 @@ void Renderer::setLighting(){
 	glLightModelf(GL_LIGHT_MODEL_TWO_SIDE,1); // important: do lighting calculations on both sides of polygons
 
 	const GLfloat pos[4]	= {lightPos[0],lightPos[1],lightPos[2],1.0};
-	const GLfloat ambientColor[4]={0.2,0.2,0.2,1.0};
-	const GLfloat specularColor[4]={1,1,1,1.f};
+	const GLfloat ambientColor[4]={0.5,0.5,0.5,1.0};
+	const GLfloat specularColor[4]={1,1,1,1.};
 	const GLfloat diffuseLight[4] = { lightColor[0], lightColor[1], lightColor[2], 1.0f };
 	glLightfv(GL_LIGHT0, GL_POSITION,pos);
 	glLightfv(GL_LIGHT0, GL_SPECULAR, specularColor);
@@ -156,7 +163,7 @@ void Renderer::setLighting(){
 
 	const GLfloat pos2[4]	= {light2Pos[0],light2Pos[1],light2Pos[2],1.0};
 	const GLfloat ambientColor2[4]={0.0,0.0,0.0,1.0};
-	const GLfloat specularColor2[4]={1,1,0.6,1.f};
+	const GLfloat specularColor2[4]={.8,.8,.8,1.};
 	const GLfloat diffuseLight2[4] = { light2Color[0], light2Color[1], light2Color[2], 1.0f };
 	glLightfv(GL_LIGHT1, GL_POSITION,pos2);
 	glLightfv(GL_LIGHT1, GL_SPECULAR, specularColor2);
@@ -166,19 +173,37 @@ void Renderer::setLighting(){
 
 	glEnable(GL_LIGHTING);
 
-	glEnable(GL_CULL_FACE);
+	// show both sides of triangles
+	glDisable(GL_CULL_FACE);
+
+	glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER,1);
+	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE,1);
+
 	// http://www.sjbaker.org/steve/omniv/opengl_lighting.html
-	glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE);
+	glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
 	glEnable(GL_COLOR_MATERIAL);
 	//Shared material settings
 	resetSpecularEmission();
+
+
+	// not sctrictly lighting related
+	glEnable(GL_BLEND);
+	glEnable(GL_LINE_SMOOTH);
+	glEnable(GL_POLYGON_SMOOTH);
+	glShadeModel(GL_SMOOTH);
+	glEnable(GL_RESCALE_NORMAL);
+	// important for rendering text, to avoid repetivie glDisable(GL_TEXTURE_2D) ... glEnable(GL_TEXTURE_2D)
+	// glBindTexture(GL_TEXTURE_2D,0);
 };
 
 
-void Renderer::render(const shared_ptr<Scene>& _scene,int selection){
+void Renderer::render(const shared_ptr<Scene>& _scene, bool _withNames){
 	if(!initDone) init();
 	assert(initDone);
-	selId = selection;
+	self=this; // HACK: in case someone creates a new instance in the meantime...
+
+	withNames=_withNames; // used in many methods
+	if(withNames) glNamedObjects.clear();
 
 	scene=_scene;
 	dem=shared_ptr<DemField>();
@@ -235,6 +260,8 @@ void Renderer::render(const shared_ptr<Scene>& _scene,int selection){
 		glPopMatrix();
 	}
 
+	if(withNames) cerr<<"render(withNames==true) done, "<<glNamedObjects.size()<<" objects inserted"<<endl;
+
 }
 
 #if 0
@@ -244,9 +271,20 @@ void Renderer::renderField(){
 }
 #endif
 
+void Renderer::setLightHighlighted(int highLev){
+	// highLev can be <=0 (for 0), or 1 (for 1)
+	const Vector3r& h=(highLev<=0?highlightEmission0:highlightEmission1);
+	glMaterialv(GL_FRONT_AND_BACK,GL_EMISSION,h);
+	glMaterialv(GL_FRONT_AND_BACK,GL_SPECULAR,h);
+}
+
+void Renderer::setLightUnhighlighted(){ resetSpecularEmission(); }	
+
+
 void Renderer::renderNodes(){
 	nodeDispatcher.scene=scene.get(); nodeDispatcher.updateScenePtr();
 	FOREACH(shared_ptr<Node> node, dem->nodes){
+		glScopedName name(node);
 		renderRawNode(node);
 	}
 }
@@ -258,6 +296,7 @@ void Renderer::renderCNodes(){
 		assert(C->geom);
 		if(cNodes & 1) renderRawNode(C->geom->node);
 		if(cNodes & 2){ // connect node by lines with particle's positions
+			glScopedName name(C,C->geom->node);
 			assert(C->pA->shape && C->pB->shape);
 			assert(C->pA->shape->nodes.size()>0); assert(C->pB->shape->nodes.size()>0);
 			Vector3r x[3]={C->geom->node->pos,C->pA->shape->avgNodePos(),C->pB->shape->avgNodePos()};
@@ -278,6 +317,7 @@ void Renderer::renderRawNode(shared_ptr<Node> node){
 		glRotatef(aa.angle()*Mathr::RAD_TO_DEG,aa.axis()[0],aa.axis()[1],aa.axis()[2]);
 		nodeDispatcher(node,viewInfo);
 	glPopMatrix();
+	if(node->rep){ node->rep->render(node,&viewInfo); }
 }
 
 // this function is called for both rendering as well as
@@ -293,7 +333,7 @@ void Renderer::renderShape(){
 	// Less efficient in terms of performance, since memory has to be written (not measured, though),
 	// but it is still better than crashes if the body gets deleted meanwile.
 	FOREACH(shared_ptr<Particle> b, dem->particles){
-		if(!b->shape) continue;
+		if(!b->shape || b->shape->nodes.size()==0) continue;
 		const shared_ptr<Shape>& sh=b->shape;
 
 		//if(!bodyDisp[b->getId()].isDisplayed) continue;
@@ -303,29 +343,18 @@ void Renderer::renderShape(){
 		//Quaternionr ori=sh->nodes[0].ori;
 		//if(!b->shape || !((b->getGroupMask()&mask) || b->getGroupMask()==0)) continue;
 
-		// ignored in non-selection mode, use it always
-		glPushName(b->id);
+		// int selId=(dynamic_pointer_cast<Particle>(selObj)?static_pointer_cast<Particle>(selObj)->id:-1);
+
+		// sets highlighted color, if the particle is selected
+		// last optional arg can be used to provide additional highlight conditions (unused for now)
+		glScopedName name(b,b->shape->nodes[0]);
 		// bool highlight=(b->id==selId || (b->clumpId>=0 && b->clumpId==selId) || b->shape->highlight);
 
-		bool highlight=(b->id==selId);
-
 		glPushMatrix();
-			if(highlight){
-				// set hightlight
-				// different color for body highlighted by selection and by the shape attribute
-				const Vector3r& h((selId==b->id /*||(b->clumpId>=0 && selId==b->clumpId) */) ? highlightEmission0 : highlightEmission1);
-				glMaterialv(GL_FRONT_AND_BACK,GL_EMISSION,h);
-				glMaterialv(GL_FRONT_AND_BACK,GL_SPECULAR,h);
-				shapeDispatcher(b->shape,/*shift*/Vector3r::Zero(),wire||sh->wire,viewInfo);
-				// reset highlight
-				resetSpecularEmission();
-			} else {
-				// no highlight; in case previous functor fiddled with glMaterial
-				resetSpecularEmission();
-				shapeDispatcher(b->shape,/*shift*/Vector3r::Zero(),wire||sh->wire,viewInfo);
-			}
+			shapeDispatcher(b->shape,/*shift*/Vector3r::Zero(),wire||sh->wire,viewInfo);
 		glPopMatrix();
-		if(highlight){
+
+		if(name.highlighted){
 			const Vector3r& p=sh->nodes[0]->pos;
 			if(!sh->bound || wire || sh->wire) GLUtils::GLDrawInt(b->id,p);
 			else {
@@ -362,7 +391,6 @@ void Renderer::renderShape(){
 				}
 			}
 		}
-		glPopName();
 	}
 }
 
@@ -396,7 +424,9 @@ void Renderer::renderBound(){
 /* FIXME: move to a field-specific renderer */
 void Renderer::renderSparc(){
 	FOREACH(const shared_ptr<Node>& n, sparc->nodes){
+		glScopedName name(n);
 		renderRawNode(n);
+		if(!sparc->showNeighbors) continue;
 		// show neighbours with lines, with random colors so that they can be told apart
 		Vector3r color=CompUtils::mapColor(n->getData<SparcData>().color);
 		FOREACH(const shared_ptr<Node>& neighbor, n->getData<SparcData>().neighbors){
@@ -435,32 +465,6 @@ void Renderer::renderAllInteractionsWire(){
 		Vector3r rel=Body::byId(i->getId2(),scene)->state->pos+shift2-p1;
 		if(scene->isPeriodic) p1=scene->cell->wrapShearedPt(p1);
 		glBegin(GL_LINES); glVertex3v(p1);glVertex3v(Vector3r(p1+rel));glEnd();
-	}
-}
-
-void Renderer::renderDOF_ID(){
-	const GLfloat ambientColorSelected[4]={10.0,0.0,0.0,1.0};
-	const GLfloat ambientColorUnselected[4]={0.5,0.5,0.5,1.0};
-	FOREACH(const shared_ptr<Body> b, *scene->bodies){
-		if(!b) continue;
-		if(b->shape && ((b->getGroupMask() & mask) || b->getGroupMask()==0)){
-			if(!id && b->state->blocked==0) continue;
-			if(selId==b->getId()){glLightModelfv(GL_LIGHT_MODEL_AMBIENT,ambientColorSelected);}
-			{ // write text
-				glColor3f(1.0-bgColor[0],1.0-bgColor[1],1.0-bgColor[2]);
-				unsigned d = b->state->blocked;
-				std::string sDof = std::string()+(((d&State::DOF_X )!=0)?"x":"")+(((d&State::DOF_Y )!=0)?"y":" ")+(((d&State::DOF_Z )!=0)?"z":"")+(((d&State::DOF_RX)!=0)?"X":"")+(((d&State::DOF_RY)!=0)?"Y":"")+(((d&State::DOF_RZ)!=0)?"Z":"");
-				std::string sId = boost::lexical_cast<std::string>(b->getId());
-				std::string str;
-				if(dof && id) sId += " ";
-				if(id) str += sId;
-				if(dof) str += sDof;
-				const Vector3r& h(selId==b->getId() ? highlightEmission0 : Vector3r(1,1,1));
-				glColor3v(h);
-				GLUtils::GLDrawText(str,bodyDisp[b->id].pos,h);
-			}
-			if(selId == b->getId()){glLightModelfv(GL_LIGHT_MODEL_AMBIENT,ambientColorUnselected);}
-		}
 	}
 }
 

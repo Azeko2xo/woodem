@@ -12,6 +12,7 @@ void Engine::explicitRun(){ scene=Omega::instance().getScene().get(); if(!field)
 
 void Engine::setField(){
 	if(userAssignedField) return; // do nothing in this case
+	if(!needsField()) return; // no field required, do nothing
 	vector<shared_ptr<Field> > accepted;
 	FOREACH(const shared_ptr<Field> f, scene->fields){ if(acceptsField(f.get())) accepted.push_back(f); }
 	if(accepted.size()>1) throw std::runtime_error(("Engine "+getClassName()+" accepted "+lexical_cast<string>(accepted.size())+" fields to run on. Only one field is allowed; this ambiguity can be resolved by setting the field attribute.").c_str()); 

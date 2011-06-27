@@ -53,6 +53,7 @@
 #ifdef YADE_OPENGL
 	#include<yade/pkg/gl/Functors.hpp>
 	#include<yade/pkg/gl/Renderer.hpp>
+	#include<yade/pkg/gl/NodeGlRep.hpp>
 #endif
 
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
@@ -228,7 +229,7 @@ BOOST_PYTHON_MODULE(_customConverters){
 	// using indexing suite (version 1; never found out how is the allegedly superior version 2
 	// supposed to be used):
 	// http://stackoverflow.com/questions/6157409/stdvector-to-boostpythonlist
-	py::class_<std::vector<shared_ptr<Node> > >("NodeList").def(py::vector_indexing_suite<std::vector<shared_ptr<Node> > >());
+	py::class_<std::vector<shared_ptr<Node> > >("NodeList").def(py::vector_indexing_suite<std::vector<shared_ptr<Node> >, /*NoProxy, shared_ptr provides proxy semantics already */true>());
 
 	// register 2-way conversion between c++ vector and python homogeneous sequence (list/tuple) of corresponding type
 	#define VECTOR_SEQ_CONV(Type) custom_vector_from_seq<Type>();  to_python_converter<std::vector<Type>, custom_vector_to_list<Type> >();
@@ -242,10 +243,13 @@ BOOST_PYTHON_MODULE(_customConverters){
 		VECTOR_SEQ_CONV(Vector3i);
 		VECTOR_SEQ_CONV(Vector6r);
 		VECTOR_SEQ_CONV(Vector6i);
+		VECTOR_SEQ_CONV(VectorXr);
 		VECTOR_SEQ_CONV(Matrix3r);
 		VECTOR_SEQ_CONV(std::string);
 		// VECTOR_SEQ_CONV(shared_ptr<Node>);
+		custom_vector_from_seq<shared_ptr<Node> >(); // allow assignments vector<shared_ptr<Node> >=[list of nodes]
 		VECTOR_SEQ_CONV(shared_ptr<NodeData>);
+		VECTOR_SEQ_CONV(shared_ptr<ScalarRange>);
 		VECTOR_SEQ_CONV(shared_ptr<Field>);
 		VECTOR_SEQ_CONV(shared_ptr<Particle>);
 		VECTOR_SEQ_CONV(shared_ptr<Contact>);

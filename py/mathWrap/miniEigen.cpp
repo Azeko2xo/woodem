@@ -7,17 +7,19 @@
 #include<sstream>
 #include<iostream>
 #include<iomanip>
+#include<vector>
 
 #include<yade/lib/base/Math.hpp>
 #include<yade/lib/pyutil/doc_opts.hpp>
 #include<yade/lib/pyutil/except.hpp>
 
-
+using boost::lexical_cast;
 namespace py=boost::python;
 
-#define IDX_CHECK(i,MAX){ if(i<0 || i>=MAX) { PyErr_SetString(PyExc_IndexError, ("Index out of range 0.." + boost::lexical_cast<std::string>(MAX-1)).c_str()); py::throw_error_already_set(); } }
+#define IDX_CHECK(i,MAX){ if(i<0 || i>=MAX) { yade::IndexError("Index out of range 0.." + boost::lexical_cast<std::string>(MAX-1)); } }
 #define IDX2_CHECKED_TUPLE_INTS(tuple,max2,arr2) {int l=py::len(tuple); if(l!=2) { yade::IndexError("Index must be integer or a 2-tuple"); } for(int _i=0; _i<2; _i++) { py::extract<int> val(tuple[_i]); if(!val.check()) yade::ValueError("Unable to convert "+boost::lexical_cast<std::string>(_i)+"-th index to int."); int v=val(); IDX_CHECK(v,max2[_i]); arr2[_i]=v; }  }
 
+void VectorXr_set_item(VectorXr & self, int idx, Real value){ IDX_CHECK(idx,self.size()); self[idx]=value; }
 void Vector6r_set_item(Vector6r & self, int idx, Real value){ IDX_CHECK(idx,6); self[idx]=value; }
 void Vector6i_set_item(Vector6i & self, int idx, int  value){ IDX_CHECK(idx,6); self[idx]=value; }
 void Vector3r_set_item(Vector3r & self, int idx, Real value){ IDX_CHECK(idx,3); self[idx]=value; }
@@ -26,13 +28,17 @@ void Vector2r_set_item(Vector2r & self, int idx, Real value){ IDX_CHECK(idx,2); 
 void Vector2i_set_item(Vector2i & self, int idx, int  value){ IDX_CHECK(idx,2); self[idx]=value; }
 
 void Quaternionr_set_item(Quaternionr & self, int idx, Real value){ IDX_CHECK(idx,4);  if(idx==0) self.x()=value; else if(idx==1) self.y()=value; else if(idx==2) self.z()=value; else if(idx==3) self.w()=value; }
+
 void Matrix3r_set_item(Matrix3r & self, py::tuple _idx, Real value){ int idx[2]; int mx[2]={3,3}; IDX2_CHECKED_TUPLE_INTS(_idx,mx,idx); self(idx[0],idx[1])=value; }
-void Matrix3r_set_item_linear(Matrix3r & self, int idx, const Vector3r& row){ IDX_CHECK(idx,3); self.row(idx)=row; }
+void Matrix3r_set_row (Matrix3r & self, int idx, const Vector3r& row){ IDX_CHECK(idx,3); self.row(idx)=row; }
 void Matrix6r_set_item(Matrix6r & self, py::tuple _idx, Real value){ int idx[2]; int mx[2]={6,6}; IDX2_CHECKED_TUPLE_INTS(_idx,mx,idx); self(idx[0],idx[1])=value; }
+void Matrix6r_set_row (Matrix6r & self, int idx, const Vector6r& row){ IDX_CHECK(idx,6); self.row(idx)=row; }
+void MatrixXr_set_item(MatrixXr & self, py::tuple _idx, Real value){ int idx[2]; int mx[2]={self.rows(),self.cols()}; IDX2_CHECKED_TUPLE_INTS(_idx,mx,idx); self(idx[0],idx[1])=value; }
+void MatrixXr_set_row (MatrixXr & self, int idx, const VectorXr& row){ IDX_CHECK(idx,self.rows()); self.row(idx)=row; }
 
-//void Matrix6r_set_item_linear(Matrix6r & self, int idx, Real value){ IDX_CHECK(idx,36); self(idx/6,idx%6)=value; }
-void Matrix6r_set_item_linear(Matrix6r & self, int idx, const Vector6r& row){ IDX_CHECK(idx,6); self.row(idx)=row; }
 
+
+Real VectorXr_get_item(const VectorXr & self, int idx){ IDX_CHECK(idx,self.size()); return self[idx]; }
 Real Vector6r_get_item(const Vector6r & self, int idx){ IDX_CHECK(idx,6); return self[idx]; }
 int  Vector6i_get_item(const Vector6r & self, int idx){ IDX_CHECK(idx,6); return self[idx]; }
 Real Vector3r_get_item(const Vector3r & self, int idx){ IDX_CHECK(idx,3); return self[idx]; }
@@ -41,13 +47,15 @@ Real Vector2r_get_item(const Vector2r & self, int idx){ IDX_CHECK(idx,2); return
 int  Vector2i_get_item(const Vector2i & self, int idx){ IDX_CHECK(idx,2); return self[idx]; }
 
 Real Quaternionr_get_item(const Quaternionr & self, int idx){ IDX_CHECK(idx,4); if(idx==0) return self.x(); if(idx==1) return self.y(); if(idx==2) return self.z(); return self.w(); }
-Real Matrix3r_get_item(Matrix3r & self, py::tuple _idx){ int idx[2]; int mx[2]={3,3}; IDX2_CHECKED_TUPLE_INTS(_idx,mx,idx); return self(idx[0],idx[1]); }
-Vector3r Matrix3r_get_item_linear(Matrix3r & self, int idx){ IDX_CHECK(idx,3); return self.row(idx); }
-Real Matrix6r_get_item(Matrix6r & self, py::tuple _idx){ int idx[2]; int mx[2]={6,6}; IDX2_CHECKED_TUPLE_INTS(_idx,mx,idx); return self(idx[0],idx[1]); }
-
-Vector6r Matrix6r_get_item_linear(Matrix6r & self, int idx){ IDX_CHECK(idx,6); return self.row(idx); }
+Real     Matrix3r_get_item(Matrix3r & self, py::tuple _idx){ int idx[2]; int mx[2]={3,3}; IDX2_CHECKED_TUPLE_INTS(_idx,mx,idx); return self(idx[0],idx[1]); }
+Vector3r Matrix3r_get_row (Matrix3r & self, int idx){ IDX_CHECK(idx,3); return self.row(idx); }
+Real     Matrix6r_get_item(Matrix6r & self, py::tuple _idx){ int idx[2]; int mx[2]={6,6}; IDX2_CHECKED_TUPLE_INTS(_idx,mx,idx); return self(idx[0],idx[1]); }
+Vector6r Matrix6r_get_row (Matrix6r & self, int idx){ IDX_CHECK(idx,6); return self.row(idx); }
+Real     MatrixXr_get_item(MatrixXr & self, py::tuple _idx){ int idx[2]; int mx[2]={self.rows(),self.cols()}; IDX2_CHECKED_TUPLE_INTS(_idx,mx,idx); return self(idx[0],idx[1]); }
+Vector6r MatrixXr_get_row (MatrixXr & self, int idx){ IDX_CHECK(idx,self.rows()); return self.row(idx); }
 
 std::string Vector6r_str(const Vector6r & self){ return std::string("Vector6(")+boost::lexical_cast<std::string>(self[0])+","+boost::lexical_cast<std::string>(self[1])+","+boost::lexical_cast<std::string>(self[2])+", "+boost::lexical_cast<std::string>(self[3])+","+boost::lexical_cast<std::string>(self[4])+","+boost::lexical_cast<std::string>(self[5])+")";}
+std::string VectorXr_str(const VectorXr & self){ std::ostringstream oss; oss<<"VectorX(["; for(int i=0; i<self.size(); i++) oss<<(i==0?"":((i%3)?", ":","))<<boost::lexical_cast<std::string>(self[i]); oss<<"])"; return oss.str(); }
 std::string Vector6i_str(const Vector6i & self){ return std::string("Vector6i(")+boost::lexical_cast<std::string>(self[0])+","+boost::lexical_cast<std::string>(self[1])+","+boost::lexical_cast<std::string>(self[2])+", "+boost::lexical_cast<std::string>(self[3])+","+boost::lexical_cast<std::string>(self[4])+","+boost::lexical_cast<std::string>(self[5])+")";}
 std::string Vector3r_str(const Vector3r & self){ return std::string("Vector3(")+boost::lexical_cast<std::string>(self[0])+","+boost::lexical_cast<std::string>(self[1])+","+boost::lexical_cast<std::string>(self[2])+")";}
 std::string Vector3i_str(const Vector3i & self){ return std::string("Vector3i(")+boost::lexical_cast<std::string>(self[0])+","+boost::lexical_cast<std::string>(self[1])+","+boost::lexical_cast<std::string>(self[2])+")";}
@@ -57,6 +65,7 @@ std::string Quaternionr_str(const Quaternionr & self){ AngleAxisr aa(self); retu
 std::string Matrix3r_str(const Matrix3r & self){ std::ostringstream oss; oss<<"Matrix3("; for(int i=0; i<3; i++) for(int j=0; j<3; j++) oss<<self(i,j)<<((i==2 && j==2)?")":",")<<((i<2 && j==2)?" ":""); return oss.str(); }
 //std::string Matrix6r_str(const Matrix6r & self){ std::ostringstream oss; oss<<"Matrix6(\n"; for(int i=0; i<6; i++) for(int j=0; j<6; j++) oss<<((j==0)?"\t":"")<<self(i,j)<<((i==5 && j==5)?")":",")<<((i<5 && j==5)?" ":""); return oss.str(); }
 std::string Matrix6r_str(const Matrix6r & self){ std::ostringstream oss; oss<<"Matrix6(\n"; for(int i=0; i<6; i++){ oss<<"\t("; for(int j=0; j<6; j++) oss<<std::setw(7)<<self(i,j)<<(j==2?", ":(j==5?"),\n":",")); } oss<<")"; return oss.str(); }
+std::string MatrixXr_str(const MatrixXr & self){ std::ostringstream oss; oss<<"MatrixX(\n"; for(int i=0; i<self.rows(); i++){ oss<<"\t("; for(int j=0; j<self.cols(); j++) oss<<std::setw(7)<<self(i,j)<<((((j+1)%3)==0 && j!=self.cols()-1)?", ":(j==(self.cols()-1)?"),\n":",")); } oss<<")"; return oss.str(); }
 
 int Vector6r_len(){return 6;}
 int Vector6i_len(){return 6;}
@@ -68,6 +77,9 @@ int Quaternionr_len(){return 4;}
 int Matrix3r_len(){return 3;} // rows
 int Matrix6r_len(){return 6;} // rows
 
+static int MatrixXr_len(const MatrixXr& self){return self.rows();} // rows
+static int VectorXr_len(const VectorXr& self){return self.size();}
+
 // pickling support
 struct Matrix3r_pickle: py::pickle_suite{static py::tuple getinitargs(const Matrix3r& x){ return py::make_tuple(x(0,0),x(0,1),x(0,2),x(1,0),x(1,1),x(1,2),x(2,0),x(2,1),x(2,2));} };
 struct Matrix6r_pickle: py::pickle_suite{static py::tuple getinitargs(const Matrix6r& x){ return py::make_tuple(x.row(0),x.row(1),x.row(2),x.row(3),x.row(4),x.row(5));} };
@@ -78,6 +90,8 @@ struct Vector3r_pickle: py::pickle_suite{static py::tuple getinitargs(const Vect
 struct Vector3i_pickle: py::pickle_suite{static py::tuple getinitargs(const Vector3i& x){ return py::make_tuple(x[0],x[1],x[2]);} };
 struct Vector2r_pickle: py::pickle_suite{static py::tuple getinitargs(const Vector2r& x){ return py::make_tuple(x[0],x[1]);} };
 struct Vector2i_pickle: py::pickle_suite{static py::tuple getinitargs(const Vector2i& x){ return py::make_tuple(x[0],x[1]);} };
+struct VectorXr_pickle: py::pickle_suite{static py::tuple getinitargs(const VectorXr& x){ return py::make_tuple(py::list(x)); } };
+struct MatrixXr_pickle: py::pickle_suite{static py::tuple getinitargs(const MatrixXr& x){ std::vector<VectorXr> vv; for(int i=0; i<x.rows(); i++) vv[i]=x.row(i); return py::tuple(x); } };
 
 
 /* template to define custom converter from sequence/list or approriate length and type, to eigen's Vector
@@ -87,11 +101,13 @@ struct Vector2i_pickle: py::pickle_suite{static py::tuple getinitargs(const Vect
 template<class VT>
 struct custom_VectorAnyAny_from_sequence{
 	custom_VectorAnyAny_from_sequence(){ py::converter::registry::push_back(&convertible,&construct,py::type_id<VT>()); }
-	static void* convertible(PyObject* obj_ptr){ if(!PySequence_Check(obj_ptr) || PySequence_Size(obj_ptr)!=VT::RowsAtCompileTime) return 0; return obj_ptr; }
+	static void* convertible(PyObject* obj_ptr){ if(!PySequence_Check(obj_ptr) || (VT::RowsAtCompileTime!=Eigen::Dynamic && (PySequence_Size(obj_ptr)!=VT::RowsAtCompileTime))) return 0; return obj_ptr; }
 	static void construct(PyObject* obj_ptr, py::converter::rvalue_from_python_stage1_data* data){
 		void* storage=((py::converter::rvalue_from_python_storage<VT>*)(data))->storage.bytes;
-		new (storage) VT;
-		for(size_t i=0; i<VT::RowsAtCompileTime; i++) (*((VT*)storage))[i]=py::extract<typename VT::Scalar>(PySequence_GetItem(obj_ptr,i));
+		new (storage) VT; size_t len;
+		if(VT::RowsAtCompileTime!=Eigen::Dynamic){ len=VT::RowsAtCompileTime; }
+		else{ len=PySequence_Size(obj_ptr); ((VT*)storage)->resize(len); }
+		for(size_t i=0; i<len; i++) (*((VT*)storage))[i]=py::extract<typename VT::Scalar>(PySequence_GetItem(obj_ptr,i));
 		data->convertible=storage;
 	}
 };
@@ -99,18 +115,45 @@ struct custom_VectorAnyAny_from_sequence{
 static Matrix3r* Matrix3r_fromElements(Real m00, Real m01, Real m02, Real m10, Real m11, Real m12, Real m20, Real m21, Real m22){ Matrix3r* m(new Matrix3r); (*m)<<m00,m01,m02,m10,m11,m12,m20,m21,m22; return m; }
 static Matrix3r* Matrix3r_fromRows(const Vector3r& l0, const Vector3r& l1, const Vector3r& l2, bool cols=false){ Matrix3r* m(new Matrix3r); if(cols){m->col(0)=l0; m->col(1)=l1; m->col(2)=l2; } else {m->row(0)=l0; m->row(1)=l1; m->row(2)=l2;} return m; }
 static Matrix3r* Matrix3r_fromDiagonal(const Vector3r& d){ Matrix3r* m(new Matrix3r); *m=d.asDiagonal(); return m; }
+static MatrixXr* MatrixXr_fromDiagonal(const VectorXr& d){ MatrixXr* m(new MatrixXr); *m=d.asDiagonal(); return m;}
+static MatrixXr* MatrixXr_fromRowSeq(const std::vector<VectorXr>& rr,bool setCols){
+	int rows=rr.size(),cols=rr.size()>0?rr[0].size():0;
+	for(int i=1; i<rows; i++) if(rr[i].size()!=cols) throw std::invalid_argument(("Matrix6r: all rows must have the same length."));
+	MatrixXr* m;
+	m=setCols?new MatrixXr(cols,rows):new MatrixXr(rows,cols);
+	for(int i=0; i<rows; i++){ if(setCols) m->col(i)=rr[i]; else m->row(i)=rr[i]; }
+	return m;
+};
+static MatrixXr* MatrixXr_fromRows(const VectorXr& r0, const VectorXr& r1, const VectorXr& r2, const VectorXr& r3, const VectorXr& r4, const VectorXr& r5, const VectorXr& r6, const VectorXr& r7, const VectorXr& r8, const VectorXr& r9, bool setCols){
+	/* check vector dimensions */ VectorXr rr[]={r0,r1,r2,r3,r4,r5,r6,r7,r8,r9};
+	int cols=-1, rows=-1;
+	for(int i=0; i<10; i++){
+		if(rows<0 && rr[i].size()==0) rows=i;
+		if(rows>=0 && rr[i].size()>0) throw std::invalid_argument("Matrix6r: non-empty rows not allowed after first empty row, which marks end of the matrix.");
+	}
+	cols=(rows>0?rr[0].size():0);
+	for(int i=1; i<rows; i++) if(rr[i].size()!=cols) throw std::invalid_argument(("Matrix6r: all non-empty rows must have the same length (0th row has "+lexical_cast<std::string>(rr[0].size())+" items, "+lexical_cast<std::string>(i)+"th row has "+lexical_cast<std::string>(rr[i].size())+" items)").c_str());
+	MatrixXr* m;
+	m=setCols?new MatrixXr(cols,rows):new MatrixXr(rows,cols);
+	for(int i=0; i<rows; i++){ if(setCols) m->col(i)=rr[i]; else m->row(i)=rr[i]; }
+	return m;
+}
 static Matrix6r* Matrix6r_fromBlocks(const Matrix3r& ul, const Matrix3r& ur, const Matrix3r& ll, const Matrix3r& lr){ Matrix6r* m(new Matrix6r); (*m)<<ul,ur,ll,lr; return m; }
 static Matrix6r* Matrix6r_fromRows(const Vector6r& l0, const Vector6r& l1, const Vector6r& l2, const Vector6r& l3, const Vector6r& l4, const Vector6r& l5, bool cols=false){ Matrix6r* m(new Matrix6r); if(cols){ m->col(0)=l0; m->col(1)=l1; m->col(2)=l2; m->col(3)=l3; m->col(4)=l4; m->col(5)=l5; } else { m->row(0)=l0; m->row(1)=l1; m->row(2)=l2; m->row(3)=l3; m->row(4)=l4; m->row(5)=l5; } return m; }
 static Matrix6r* Matrix6r_fromDiagonal(const Vector6r& d){ Matrix6r* m(new Matrix6r); *m=d.asDiagonal(); return m; }
 
 static Vector6r* Vector6r_fromElements(Real v0, Real v1, Real v2, Real v3, Real v4, Real v5){ Vector6r* v(new Vector6r); (*v)<<v0,v1,v2,v3,v4,v5; return v; }
+static VectorXr* VectorXr_fromList(const std::vector<Real>& ii){ VectorXr* v(new VectorXr(ii.size())); for(size_t i=0; i<ii.size(); i++) (*v)[i]=ii[i]; return v; }
 static Vector6i* Vector6i_fromElements(int v0, int v1, int v2, int v3, int v4, int v5){ Vector6i* v(new Vector6i); (*v)<<v0,v1,v2,v3,v4,v5; return v; }
 static Vector3r Matrix3r_diagonal(const Matrix3r& m){ return Vector3r(m.diagonal()); }
 static Vector6r Matrix6r_diagonal(const Matrix6r& m){ return Vector6r(m.diagonal()); }
+static VectorXr MatrixXr_diagonal(const MatrixXr& m){ return VectorXr(m.diagonal()); }
 static Vector3r Matrix3r_row(const Matrix3r& m, int ix){ IDX_CHECK(ix,3); return Vector3r(m.row(ix)); }
 static Vector3r Matrix3r_col(const Matrix3r& m, int ix){ IDX_CHECK(ix,3); return Vector3r(m.col(ix)); }
 static Vector6r Matrix6r_row(const Matrix6r& m, int ix){ IDX_CHECK(ix,6); return Vector6r(m.row(ix)); }
 static Vector6r Matrix6r_col(const Matrix6r& m, int ix){ IDX_CHECK(ix,6); return Vector6r(m.col(ix)); }
+static VectorXr MatrixXr_row(const MatrixXr& m, int ix){ IDX_CHECK(ix,m.rows()); return VectorXr(m.row(ix)); }
+static VectorXr MatrixXr_col(const MatrixXr& m, int ix){ IDX_CHECK(ix,m.cols()); return VectorXr(m.col(ix)); }
 static Matrix3r Matrix6r_ul(const Matrix6r& m){ return Matrix3r(m.block<3,3>(0,0)); }
 static Matrix3r Matrix6r_ur(const Matrix6r& m){ return Matrix3r(m.block<3,3>(0,3)); }
 static Matrix3r Matrix6r_ll(const Matrix6r& m){ return Matrix3r(m.block<3,3>(3,0)); }
@@ -118,6 +161,12 @@ static Matrix3r Matrix6r_lr(const Matrix6r& m){ return Matrix3r(m.block<3,3>(3,3
 
 static Vector6r Matrix3r_toVoigt(const Matrix3r& m, bool strain=false){ return tensor_toVoigt(m,strain); }
 static Matrix3r Vector6r_toSymmTensor(const Vector6r& v, bool strain=false){ return voigt_toSymmTensor(v,strain); }
+
+static void MatrixXr_resize(Matrix3r& m, int rows, int cols){ m.resize(rows,cols); }
+static void VectorXr_resize(VectorXr& v, int n){ v.resize(n); }
+
+static MatrixXr MatrixXr_pseudoInverse_wrapper(const MatrixXr& m){ MatrixXr ret; bool res=MatrixXr_pseudoInverse(m,ret); if(!res) throw std::invalid_argument("MatrixXr_pseudoInverse failed (incompatible matrix dimensions?)"); return ret; }
+
 static Quaternionr Quaternionr_setFromTwoVectors(Quaternionr& q, const Vector3r& u, const Vector3r& v){ return q.setFromTwoVectors(u,v); }
 static Quaternionr Quaternionr_random(Quaternionr& self){
 	// thanks to http://planning.cs.uiuc.edu/node198.html
@@ -153,11 +202,24 @@ static bool Quaternionr__eq__(const Quaternionr& q1, const Quaternionr& q2){ ret
 static bool Quaternionr__neq__(const Quaternionr& q1, const Quaternionr& q2){ return q1!=q2; }
 #include<Eigen/SVD>
 static py::tuple Matrix3r_polarDecomposition(const Matrix3r& self){ Matrix3r unitary,positive; Matrix_computeUnitaryPositive(self,&unitary,&positive); return py::make_tuple(unitary,positive); }
+static py::tuple Matrix3r_symmEigen(const Matrix3r& self){ Eigen::SelfAdjointEigenSolver<Matrix3r> a(self); return py::make_tuple(a.eigenvectors(),a.eigenvalues()); } 
+
 
 static Matrix3r Vector3r_asDiagonal(const Vector3r& self){ return self.asDiagonal(); }
+static Matrix6r Vector6r_asDiagonal(const Vector6r& self){ return self.asDiagonal(); }
+static MatrixXr VectorXr_asDiagonal(const VectorXr& self){ return self.asDiagonal(); }
+
 
 #undef IDX_CHECK
 
+
+#define EIG_WRAP_METH0_ROWS_COLS(klass,meth) static klass klass##_##meth(int rows, int cols){ return klass::meth(rows,cols); }
+#define EIG_WRAP_METH0_SIZE(klass,meth) static klass klass##_##meth(int size){ return klass::meth(size); }
+EIG_WRAP_METH0_ROWS_COLS(MatrixXr,Zero)
+EIG_WRAP_METH0_ROWS_COLS(MatrixXr,Ones)
+EIG_WRAP_METH0_ROWS_COLS(MatrixXr,Identity)
+EIG_WRAP_METH0_SIZE(VectorXr,Zero)
+EIG_WRAP_METH0_SIZE(VectorXr,Ones)
 
 #define EIG_WRAP_METH1(klass,meth) static klass klass##_##meth(const klass& self){ return self.meth(); }
 #define EIG_WRAP_METH0(klass,meth) static klass klass##_##meth(){ return klass().meth(); }
@@ -165,11 +227,15 @@ EIG_WRAP_METH1(Matrix3r,transpose);
 EIG_WRAP_METH1(Matrix3r,inverse);
 EIG_WRAP_METH1(Matrix6r,transpose);
 EIG_WRAP_METH1(Matrix6r,inverse);
+EIG_WRAP_METH1(MatrixXr,transpose);
+EIG_WRAP_METH1(MatrixXr,inverse);
 
 EIG_WRAP_METH0(Matrix3r,Zero);
 EIG_WRAP_METH0(Matrix3r,Identity);
+EIG_WRAP_METH0(Matrix3r,Ones);
 EIG_WRAP_METH0(Matrix6r,Zero);
 EIG_WRAP_METH0(Matrix6r,Identity);
+EIG_WRAP_METH0(Matrix6r,Ones);
 EIG_WRAP_METH0(Vector6r,Zero); EIG_WRAP_METH0(Vector6r,Ones);
 EIG_WRAP_METH0(Vector6i,Zero); EIG_WRAP_METH0(Vector6i,Ones);
 EIG_WRAP_METH0(Vector3r,Zero); EIG_WRAP_METH0(Vector3r,UnitX); EIG_WRAP_METH0(Vector3r,UnitY); EIG_WRAP_METH0(Vector3r,UnitZ); EIG_WRAP_METH0(Vector3r,Ones);
@@ -203,25 +269,39 @@ EIG_OP2(Matrix6r,__mul__,*,Matrix6r) EIG_OP2_INPLACE(Matrix6r,__imul__,*=,Matrix
 EIG_OP2(Matrix6r,__div__,/,Real) EIG_OP2_INPLACE(Matrix6r,__idiv__,/=,Real)
 EIG_OP2(Matrix6r,__div__,/,int) EIG_OP2_INPLACE(Matrix6r,__idiv__,/=,int)
 
+EIG_OP1(MatrixXr,__neg__,-)
+EIG_OP2(MatrixXr,__add__,+,MatrixXr) EIG_OP2_INPLACE(MatrixXr,__iadd__,+=,MatrixXr)
+EIG_OP2(MatrixXr,__sub__,-,MatrixXr) EIG_OP2_INPLACE(MatrixXr,__isub__,-=,MatrixXr)
+EIG_OP2(MatrixXr,__mul__,*,Real) EIG_OP2(MatrixXr,__rmul__,*,Real) EIG_OP2_INPLACE(MatrixXr,__imul__,*=,Real)
+EIG_OP2(MatrixXr,__mul__,*,int) EIG_OP2(MatrixXr,__rmul__,*,int) EIG_OP2_INPLACE(MatrixXr,__imul__,*=,int)
+EIG_OP2(MatrixXr,__mul__,*,VectorXr) EIG_OP2(MatrixXr,__rmul__,*,VectorXr)
+EIG_OP2(MatrixXr,__mul__,*,MatrixXr) EIG_OP2_INPLACE(MatrixXr,__imul__,*=,MatrixXr)
+EIG_OP2(MatrixXr,__div__,/,Real) EIG_OP2_INPLACE(MatrixXr,__idiv__,/=,Real)
+EIG_OP2(MatrixXr,__div__,/,int) EIG_OP2_INPLACE(MatrixXr,__idiv__,/=,int)
+
+EIG_OP1(VectorXr,__neg__,-);
+EIG_OP2(VectorXr,__add__,+,VectorXr); EIG_OP2_INPLACE(VectorXr,__iadd__,+=,VectorXr)
+EIG_OP2(VectorXr,__sub__,-,VectorXr); EIG_OP2_INPLACE(VectorXr,__isub__,-=,VectorXr)
+EIG_OP2(VectorXr,__mul__,*,Real) EIG_OP2(VectorXr,__rmul__,*,Real) EIG_OP2_INPLACE(VectorXr,__imul__,*=,Real) EIG_OP2(VectorXr,__div__,/,Real) EIG_OP2_INPLACE(VectorXr,__idiv__,/=,Real)
+EIG_OP2(VectorXr,__mul__,*,int) EIG_OP2(VectorXr,__rmul__,*,int) EIG_OP2_INPLACE(VectorXr,__imul__,*=,int) EIG_OP2(VectorXr,__div__,/,int) EIG_OP2_INPLACE(VectorXr,__idiv__,/=,int)
+
+
 EIG_OP1(Vector6r,__neg__,-);
 EIG_OP2(Vector6r,__add__,+,Vector6r); EIG_OP2_INPLACE(Vector6r,__iadd__,+=,Vector6r)
 EIG_OP2(Vector6r,__sub__,-,Vector6r); EIG_OP2_INPLACE(Vector6r,__isub__,-=,Vector6r)
 EIG_OP2(Vector6r,__mul__,*,Real) EIG_OP2(Vector6r,__rmul__,*,Real) EIG_OP2_INPLACE(Vector6r,__imul__,*=,Real) EIG_OP2(Vector6r,__div__,/,Real) EIG_OP2_INPLACE(Vector6r,__idiv__,/=,Real)
-EIG_OP2(
-Vector6r,__mul__,*,int) EIG_OP2(Vector6r,__rmul__,*,int) EIG_OP2_INPLACE(Vector6r,__imul__,*=,int) EIG_OP2(Vector6r,__div__,/,int) EIG_OP2_INPLACE(Vector6r,__idiv__,/=,int)
+EIG_OP2(Vector6r,__mul__,*,int) EIG_OP2(Vector6r,__rmul__,*,int) EIG_OP2_INPLACE(Vector6r,__imul__,*=,int) EIG_OP2(Vector6r,__div__,/,int) EIG_OP2_INPLACE(Vector6r,__idiv__,/=,int)
 
 EIG_OP1(Vector6i,__neg__,-);
 EIG_OP2(Vector6i,__add__,+,Vector6i); EIG_OP2_INPLACE(Vector6i,__iadd__,+=,Vector6i)
 EIG_OP2(Vector6i,__sub__,-,Vector6i); EIG_OP2_INPLACE(Vector6i,__isub__,-=,Vector6i)
-EIG_OP2(
-Vector6i,__mul__,*,int) EIG_OP2(Vector6i,__rmul__,*,int) EIG_OP2_INPLACE(Vector6i,__imul__,*=,int) EIG_OP2(Vector6i,__div__,/,int) EIG_OP2_INPLACE(Vector6i,__idiv__,/=,int)
+EIG_OP2(Vector6i,__mul__,*,int) EIG_OP2(Vector6i,__rmul__,*,int) EIG_OP2_INPLACE(Vector6i,__imul__,*=,int) EIG_OP2(Vector6i,__div__,/,int) EIG_OP2_INPLACE(Vector6i,__idiv__,/=,int)
 
 EIG_OP1(Vector3r,__neg__,-);
 EIG_OP2(Vector3r,__add__,+,Vector3r); EIG_OP2_INPLACE(Vector3r,__iadd__,+=,Vector3r)
 EIG_OP2(Vector3r,__sub__,-,Vector3r); EIG_OP2_INPLACE(Vector3r,__isub__,-=,Vector3r)
 EIG_OP2(Vector3r,__mul__,*,Real) EIG_OP2(Vector3r,__rmul__,*,Real) EIG_OP2_INPLACE(Vector3r,__imul__,*=,Real) EIG_OP2(Vector3r,__div__,/,Real) EIG_OP2_INPLACE(Vector3r,__idiv__,/=,Real)
-EIG_OP2(
-Vector3r,__mul__,*,int) EIG_OP2(Vector3r,__rmul__,*,int) EIG_OP2_INPLACE(Vector3r,__imul__,*=,int) EIG_OP2(Vector3r,__div__,/,int) EIG_OP2_INPLACE(Vector3r,__idiv__,/=,int)
+EIG_OP2(Vector3r,__mul__,*,int) EIG_OP2(Vector3r,__rmul__,*,int) EIG_OP2_INPLACE(Vector3r,__imul__,*=,int) EIG_OP2(Vector3r,__div__,/,int) EIG_OP2_INPLACE(Vector3r,__idiv__,/=,int)
 
 EIG_OP1(Vector3i,__neg__,-);
 EIG_OP2(Vector3i,__add__,+,Vector3i); EIG_OP2_INPLACE(Vector3i,__iadd__,+=,Vector3i)
@@ -245,7 +325,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 
 	YADE_SET_DOCSTRING_OPTS;
 
-
+	custom_VectorAnyAny_from_sequence<VectorXr>();
 	custom_VectorAnyAny_from_sequence<Vector6r>();
 	custom_VectorAnyAny_from_sequence<Vector6i>();
 	custom_VectorAnyAny_from_sequence<Vector3r>();
@@ -263,9 +343,11 @@ BOOST_PYTHON_MODULE(miniEigen){
 		//
 		.def("determinant",&Matrix3r::determinant)
 		.def("trace",&Matrix3r::trace)
+		.def("norm",&Matrix3r::norm)
 		.def("inverse",&Matrix3r_inverse)
 		.def("transpose",&Matrix3r_transpose)
 		.def("polarDecomposition",&Matrix3r_polarDecomposition)
+		.def("symmEigen",&Matrix3r_symmEigen)
 		.def("diagonal",&Matrix3r_diagonal)
 		.def("row",&Matrix3r_row)
 		.def("col",&Matrix3r_col)
@@ -285,9 +367,10 @@ BOOST_PYTHON_MODULE(miniEigen){
 		//
  		.def("__len__",&::Matrix3r_len).staticmethod("__len__").def("__setitem__",&::Matrix3r_set_item).def("__getitem__",&::Matrix3r_get_item).def("__str__",&::Matrix3r_str).def("__repr__",&::Matrix3r_str)
 		/* extras for matrices */
-		.def("__setitem__",&::Matrix3r_set_item_linear).def("__getitem__",&::Matrix3r_get_item_linear)
+		.def("__setitem__",&::Matrix3r_set_row).def("__getitem__",&::Matrix3r_get_row)
 		.add_static_property("Identity",&Matrix3r_Identity)
 		.add_static_property("Zero",&Matrix3r_Zero)
+		.add_static_property("Ones",&Matrix3r_Ones)
 		// specials
 		.def("toVoigt",&Matrix3r_toVoigt,(py::arg("strain")=false),"Convert 2nd order tensor to 6-vector (Voigt notation), symmetrizing the tensor;	if *strain* is ``True``, multiply non-diagonal compoennts by 2.")
 		
@@ -328,10 +411,94 @@ BOOST_PYTHON_MODULE(miniEigen){
 		//
  		.def("__len__",&::Matrix6r_len).staticmethod("__len__").def("__setitem__",&::Matrix6r_set_item).def("__getitem__",&::Matrix6r_get_item).def("__str__",&::Matrix6r_str).def("__repr__",&::Matrix6r_str)
 		/* extras for matrices */
-		.def("__setitem__",&::Matrix6r_set_item_linear).def("__getitem__",&::Matrix6r_get_item_linear)
+		.def("__setitem__",&::Matrix6r_set_row).def("__getitem__",&::Matrix6r_get_row)
 		.add_static_property("Identity",&Matrix6r_Identity)
 		.add_static_property("Zero",&Matrix6r_Zero)
+		.add_static_property("Ones",&Matrix6r_Ones)
 	;
+
+	py::class_<VectorXr>("VectorX","Dynamic-sized float vector.\n\nSupported operations (``f`` if a float/int, ``v`` is a VectorX): ``-v``, ``v+v``, ``v+=v``, ``v-v``, ``v-=v``, ``v*f``, ``f*v``, ``v*=f``, ``v/f``, ``v/=f``, ``v==v``, ``v!=v``.\n\nImplicit conversion from sequence (list,tuple, …) of X floats.",py::init<>())
+		.def(py::init<VectorXr>((py::arg("other"))))
+		.def("__init__",py::make_constructor(&VectorXr_fromList,py::default_call_policies(),(py::arg("vv"))))
+		.def_pickle(VectorXr_pickle())
+		// properties
+		.add_static_property("Ones",&VectorXr_Ones).add_static_property("Zero",&VectorXr_Zero)
+		// methods
+		.def("norm",&VectorXr::norm).def("squaredNorm",&VectorXr::squaredNorm).def("normalize",&VectorXr::normalize).def("normalized",&VectorXr::normalized)
+		.def("asDiagonal",&VectorXr_asDiagonal)
+		.def("size",&VectorXr::size)
+		.def("resize",&VectorXr_resize)
+		
+		// .def("head",&VectorXr_head).def("tail",&VectorXr_tail)
+		// operators
+		.def("__neg__",&VectorXr__neg__) // -v
+		.def("__add__",&VectorXr__add__VectorXr).def("__iadd__",&VectorXr__iadd__VectorXr) // +, +=
+		.def("__sub__",&VectorXr__sub__VectorXr).def("__isub__",&VectorXr__isub__VectorXr) // -, -=
+		.def("__mul__",&VectorXr__mul__Real).def("__rmul__",&VectorXr__rmul__Real) // f*v, v*f
+		.def("__div__",&VectorXr__div__Real).def("__idiv__",&VectorXr__idiv__Real) // v/f, v/=f
+		.def("__mul__",&VectorXr__mul__int).def("__rmul__",&VectorXr__rmul__int) // f*v, v*f
+		.def("__div__",&VectorXr__div__int).def("__idiv__",&VectorXr__idiv__int) // v/f, v/=f
+		.def(py::self != py::self).def(py::self == py::self)
+		// specials
+		.def("__abs__",&VectorXr::norm)
+		.def("__len__",&::VectorXr_len)
+		.def("__setitem__",&::VectorXr_set_item).def("__getitem__",&::VectorXr_get_item)
+		.def("__str__",&::VectorXr_str).def("__repr__",&::VectorXr_str)
+	;
+
+
+	py::class_<MatrixXr>("MatrixX","XxX *dynamic-sized) float matrix. Constructed from list of rows (as VectorX).\n\nSupported operations (``m`` is a MatrixX, ``f`` if a float/int, ``v`` is a VectorX): ``-m``, ``m+m``, ``m+=m``, ``m-m``, ``m-=m``, ``m*f``, ``f*m``, ``m*=f``, ``m/f``, ``m/=f``, ``m*m``, ``m*=m``, ``m*v``, ``v*m``, ``m==m``, ``m!=m``.",py::init<>())
+		.def(py::init<MatrixXr const &>((py::arg("m"))))
+		.def("__init__",py::make_constructor(&MatrixXr_fromRows,py::default_call_policies(),(
+			py::arg("r0")=VectorXr(),
+			py::arg("r1")=VectorXr(),
+			py::arg("r2")=VectorXr(),
+			py::arg("r3")=VectorXr(),
+			py::arg("r4")=VectorXr(),
+			py::arg("r5")=VectorXr(),
+			py::arg("r6")=VectorXr(),
+			py::arg("r7")=VectorXr(),
+			py::arg("r8")=VectorXr(),
+			py::arg("r9")=VectorXr(),
+			py::arg("cols")=false)
+		))
+		.def("__init__",py::make_constructor(&MatrixXr_fromDiagonal,py::default_call_policies(),(py::arg("diag"))))
+		.def("__init__",py::make_constructor(&MatrixXr_fromRowSeq,py::default_call_policies(),(py::arg("rows"),py::arg("cols")=false)))
+		.def_pickle(MatrixXr_pickle())
+		//
+		.def("determinant",&MatrixXr::determinant)
+		.def("trace",&MatrixXr::trace)
+		.def("inverse",&MatrixXr_inverse)
+		.def("transpose",&MatrixXr_transpose)
+		.def("pinv",&MatrixXr_pseudoInverse_wrapper)
+		.def("diagonal",&MatrixXr_diagonal)
+		.def("row",&MatrixXr_row)
+		.def("col",&MatrixXr_col)
+		.def("rows",&MatrixXr::rows)
+		.def("cols",&MatrixXr::cols)
+		.def("resize",&MatrixXr_resize)
+
+		//
+		.def("__neg__",&MatrixXr__neg__)
+		.def("__add__",&MatrixXr__add__MatrixXr).def("__iadd__",&MatrixXr__iadd__MatrixXr)
+		.def("__sub__",&MatrixXr__sub__MatrixXr).def("__isub__",&MatrixXr__isub__MatrixXr)
+		.def("__mul__",&MatrixXr__mul__Real).def("__rmul__",&MatrixXr__rmul__Real).def("__imul__",&MatrixXr__imul__Real)
+		.def("__mul__",&MatrixXr__mul__int).def("__rmul__",&MatrixXr__rmul__int).def("__imul__",&MatrixXr__imul__int)
+		.def("__mul__",&MatrixXr__mul__VectorXr).def("__rmul__",&MatrixXr__rmul__VectorXr)
+		.def("__mul__",&MatrixXr__mul__MatrixXr).def("__imul__",&MatrixXr__imul__MatrixXr)
+		.def("__div__",&MatrixXr__div__Real).def("__idiv__",&MatrixXr__idiv__Real)
+		.def("__div__",&MatrixXr__div__int).def("__idiv__",&MatrixXr__idiv__int)
+		.def(py::self == py::self)
+		.def(py::self != py::self)
+		//
+ 		.def("__len__",&::MatrixXr_len).def("__setitem__",&::MatrixXr_set_item).def("__getitem__",&::MatrixXr_get_item).def("__str__",&::MatrixXr_str).def("__repr__",&::MatrixXr_str)
+		/* extras for matrices */
+		.def("__setitem__",&::MatrixXr_set_row).def("__getitem__",&::MatrixXr_get_row)
+		.add_static_property("Identity",&MatrixXr_Identity)
+		.add_static_property("Zero",&MatrixXr_Zero)
+		.add_static_property("Ones",&MatrixXr_Ones)
+	;
+
 
 	py::class_<Quaternionr>("Quaternion","Quaternion representing rotation.\n\nSupported operations (``q`` is a Quaternion, ``v`` is a Vector3): ``q*q`` (rotation composition), ``q*=q``, ``q*v`` (rotating ``v`` by ``q``), ``q==q``, ``q!=q``.",py::init<>())
 		.def("__init__",py::make_constructor(&Quaternionr_fromAxisAngle,py::default_call_policies(),(py::arg("axis"),py::arg("angle"))))
@@ -365,6 +532,9 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.def("__setitem__",&Quaternionr_set_item).def("__getitem__",&Quaternionr_get_item)
 		.def("__str__",&Quaternionr_str).def("__repr__",&Quaternionr_str)
 	;
+
+
+
 	py::class_<Vector6r>("Vector6","6-dimensional float vector.\n\nSupported operations (``f`` if a float/int, ``v`` is a Vector6): ``-v``, ``v+v``, ``v+=v``, ``v-v``, ``v-=v``, ``v*f``, ``f*v``, ``v*=f``, ``v/f``, ``v/=f``, ``v==v``, ``v!=v``.\n\nImplicit conversion from sequence (list,tuple, …) of 6 floats.",py::init<>())
 		.def(py::init<Vector6r>((py::arg("other"))))
 		.def("__init__",py::make_constructor(&Vector6r_fromElements,py::default_call_policies(),(py::arg("v0"),py::arg("v1"),py::arg("v2"),py::arg("v3"),py::arg("v4"),py::arg("v5"))))
@@ -376,6 +546,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		//.def("dot",&Vector6r_dot).def("cross",&Vector6r_cross)
 		.def("norm",&Vector6r::norm).def("squaredNorm",&Vector6r::squaredNorm).def("normalize",&Vector6r::normalize).def("normalized",&Vector6r::normalized)
 		.def("head",&Vector6r_head).def("tail",&Vector6r_tail)
+		.def("asDiagonal",&Vector6r_asDiagonal)
 		// operators
 		.def("__neg__",&Vector6r__neg__) // -v
 		.def("__add__",&Vector6r__add__Vector6r).def("__iadd__",&Vector6r__iadd__Vector6r) // +, +=

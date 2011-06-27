@@ -11,7 +11,7 @@ from yade.qt.Inspector import *
 from yade import *
 import yade.system, yade.config
 
-from yade.qt._GLViewer import *
+from yade.qt._GLViewer import *  # imports Renderer() as well
 
 maxWebWindows=1
 "Number of webkit windows that will be cycled to show help on clickable objects"
@@ -33,6 +33,10 @@ elif  os.path.exists(sphinxBuildDocPath+'/index.html'): sphinxPrefix='file://'+s
 else: sphinxPrefix=sphinxOnlineDocPath
 
 sphinxDocWrapperPage=sphinxPrefix+'/yade.wrapper.html'
+
+
+## object selection
+def getSel(): return Renderer().selObj
 
 
 
@@ -168,8 +172,12 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.dtEditUpdate=True
 	def playSlot(self):	O.run()
 	def pauseSlot(self): O.pause()
-	def stepSlot(self):  O.step()
-	def subStepSlot(self,value): O.subStepping=bool(value)
+	def stepSlot(self):
+		if self.multiStepSpinBox.value()==1 or O.scene.subStepping: O.step()
+		else: O.run(self.multiStepSpinBox.value(),True) # wait and block until done
+	def subStepSlot(self,value):
+		self.multiStepSpinBox.setEnabled(not bool(value))
+		O.scene.subStepping=bool(value)
 	def show3dSlot(self, show):
 		vv=views()
 		assert(len(vv) in (0,1))

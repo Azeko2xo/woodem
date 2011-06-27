@@ -33,10 +33,8 @@ template< typename Type > inline void glTranslate	( Type ,Type , Type  )		{	STAT
 template< typename Type > inline void glTranslatev	( const Type )			{	STATIC_ASSERT(false);  };
 template< typename Type > inline void glVertex2		( Type ,Type  )			{	STATIC_ASSERT(false);  };
 template< typename Type > inline void glVertex3		( Type ,Type , Type  )		{	STATIC_ASSERT(false);  };
-template< typename Type > inline void glVertex4		( Type ,Type ,Type , Type  )	{	STATIC_ASSERT(false); };
 template< typename Type > inline void glVertex2v	( const Type )			{	STATIC_ASSERT(false); };
 template< typename Type > inline void glVertex3v	( const Type )			{	STATIC_ASSERT(false); };
-template< typename Type > inline void glVertex4v	( const Type )			{	STATIC_ASSERT(false); };
 template< typename Type > inline void glNormal3		( Type ,Type ,Type  )		{	STATIC_ASSERT(false); };
 template< typename Type > inline void glNormal3v	( const Type )			{	STATIC_ASSERT(false); };
 template< typename Type > inline void glIndex		( Type  )			{	STATIC_ASSERT(false); };
@@ -90,19 +88,12 @@ template< > inline void glVertex3< double >			( double x,double y, double z )		{
 template< > inline void glVertex3< float >			( float x,float y,float z )		{	glVertex3f(x,y,z);	};
 template< > inline void glVertex3< int >			( int x, int y, int z )			{	glVertex3i(x,y,z);	};
 
-template< > inline void glVertex4< double >			( double x,double y,double z, double w ){	glVertex4d(x,y,z,w);	};
-template< > inline void glVertex4< float >			( float x,float y,float z, float w )	{	glVertex4f(x,y,z,w);	};
-template< > inline void glVertex4< int >			( int x,int y,int z, int w )		{	glVertex4i(x,y,z,w);	};
-
 // :%s/\(void \)\(gl[A-Z,a-z,0-9]\+\)\(f\)( GLfloat \([a-z]\), GLfloat \([a-z]\), GLfloat \([a-z]\) );/template< > inline \1\2< float >			( float \4,float \5,float \6 )	{	\2\3(\4,\5,\6);	};/
 template< > inline void glVertex2v< Vector3r >		( const Vector3r v )		{	glVertex2dv((double*)&v);		};
 template< > inline void glVertex2v< Vector3i >		( const Vector3i v )		{	glVertex2iv((int*)&v);		};
 
 template< > inline void glVertex3v< Vector3r >		( const Vector3r v )		{	glVertex3dv((double*)&v);		};
 template< > inline void glVertex3v< Vector3i >		( const Vector3i v )		{	glVertex3iv((int*)&v);		};
-
-template< > inline void glVertex4v< Vector3r >		( const Vector3r v )		{	glVertex4dv((double*)&v);		};
-template< > inline void glVertex4v< Vector3i >		( const Vector3i v )		{	glVertex4iv((int*)&v);		};
 
 template< > inline void glNormal3< double >			(double nx,double ny,double nz )	{	glNormal3d(nx,ny,nz);	};
 template< > inline void glNormal3< int >			(int nx,int ny,int nz )			{	glNormal3i(nx,ny,nz);	};

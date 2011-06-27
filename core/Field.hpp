@@ -26,7 +26,17 @@ struct NodeData: public Serializable{
 };
 REGISTER_SERIALIZABLE(NodeData);
 
+#ifdef YADE_OPENGL
+struct GLViewInfo;
+struct Node;
 
+// object representing what should be rendered at associated node
+struct NodeGlRep: public Serializable{
+	virtual void render(const shared_ptr<Node>&, GLViewInfo*){};
+	YADE_CLASS_BASE_DOC(NodeGlRep,Serializable,"Object representing what should be rendered at associated node (abstract base class).");
+};
+REGISTER_SERIALIZABLE(NodeGlRep);
+#endif
 
 
 struct Node: public Serializable, public Indexable{
@@ -65,6 +75,9 @@ struct Node: public Serializable, public Indexable{
 		((Vector3r,pos,Vector3r::Zero(),,"Position in space (cartesian coordinates)."))
 		((Quaternionr,ori,Quaternionr::Identity(),,"Orientation of this node."))
 		((vector<shared_ptr<NodeData> >,data,,,"Array of data, ordered in globally consistent manner."))
+		#ifdef YADE_OPENGL
+			((shared_ptr<NodeGlRep>,rep,,,"What should be shown at this node when rendered via OpenGL."))
+		#endif
 		, /* ctor */ createIndex();
 		, /* py */ YADE_PY_TOPINDEXABLE(Node)
 	);

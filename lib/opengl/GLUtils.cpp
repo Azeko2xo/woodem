@@ -1,5 +1,6 @@
 #include"GLUtils.hpp"
 #include<GL/glu.h>
+#include<GL/freeglut_ext.h>
 
 void GLUtils::Parallelepiped(const Vector3r& a, const Vector3r& b, const Vector3r& c){
    glBegin(GL_LINE_STRIP);
@@ -25,11 +26,7 @@ void GLUtils::Cylinder(const Vector3r& a, const Vector3r& b, Real rad1, const Ve
 		glTranslatev(a);
 		Quaternionr q(Quaternionr().setFromTwoVectors(Vector3r(0,0,1),(b-a)/dist /* normalized */));
 		// using Transform with OpenGL: http://eigen.tuxfamily.org/dox/TutorialGeometry.html
-		#if EIGEN_MAJOR_VERSION<30              //Eigen3 definition, while it is not realized
-			glMultMatrixd(Eigen::Affine3d(q).data());
-		#else
-			glMultMatrixd(Eigen::Affine3d(q).data());
-		#endif
+		glMultMatrixd(Eigen::Affine3d(q).data());
 		glColor3v(color);
 		gluQuadricDrawStyle(gluQuadric,wire?GLU_LINE:GLU_FILL);
 		if(stacks<0) stacks=(int)(dist/(rad1*(-stacks/10.))+.5);
@@ -73,10 +70,37 @@ See drawArrow(float length, float radius, int nbSubdivisions) for details. */
 void GLUtils::QGLViewer::drawArrow(const Vector3r& from, const Vector3r& to, float radius, int nbSubdivisions)
 {
 	glPushMatrix();
-	glTranslatef(from[0],from[1],from[2]);
-	Quaternionr q(Quaternionr().setFromTwoVectors(Vector3r(0,0,1),to-from));
-	glMultMatrixd(q.toRotationMatrix().data());
-	drawArrow((to-from).norm(), radius, nbSubdivisions);
+		GLUtils::setLocalCoords(from,Quaternionr().setFromTwoVectors(Vector3r(0,0,1),to-from));
+		drawArrow((to-from).norm(), radius, nbSubdivisions);
+	glPopMatrix();
+}
+
+void GLUtils::GLDrawText(const std::string& txt, const Vector3r& pos, const Vector3r& color, bool center, void* font, const Vector3r& bgColor){
+	font=font?font:GLUT_BITMAP_8_BY_13;
+	Vector2i xyOff=center?Vector2i(-glutBitmapLength(font,(unsigned char*)txt.c_str())/2,glutBitmapHeight(font)/2):Vector2i::Zero();
+	glPushMatrix();
+	glPushAttrib(GL_ALL_ATTRIB_BITS);
+		glTranslatev(pos);
+	 	// copied from http://libqglviewer.sourcearchive.com/documentation/2.3.1-3/qglviewer_8cpp-source.html
+      glDisable(GL_LIGHTING);
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+      glEnable(GL_BLEND);
+      glDisable(GL_DEPTH_TEST);
+      glEnable(GL_LINE_SMOOTH);
+      glLineWidth(1.0);
+
+		if(bgColor[0]>=0){ // draw multiple copies with background color
+			glColor3v(bgColor);
+			int pos0[][2]={{-1,-1},{1,1},{1,-1},{-1,1}};
+			for(int i=0; i<4; i++){
+				glRasterPos2i(pos0[i][0]+xyOff[0],pos0[i][1]+xyOff[1]);
+				glutBitmapString(font,(unsigned char*)txt.c_str());
+			}
+		}
+		glColor3v(color);
+		glRasterPos2i(xyOff[0],xyOff[1]);
+		glutBitmapString(font,(unsigned char*)txt.c_str());
+	glPopAttrib();
 	glPopMatrix();
 }
 

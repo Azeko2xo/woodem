@@ -319,6 +319,7 @@ if not env.GetOption('clean'):
 	# check "optional" libs
 	if 'opengl' in env['features']:
 		ok=conf.CheckLibWithHeader('glut','GL/glut.h','c++','glutGetModifiers();',autoadd=1)
+		ok=conf.CheckLibWithHeader('gle','GL/gle.h','c++','gleSetNumSides(20);',autoadd=1)
 		# TODO ok=True for darwin platform where openGL (and glut) is native
 		if not ok: featureNotOK('opengl')
 		if 'qt4' in env['features']:

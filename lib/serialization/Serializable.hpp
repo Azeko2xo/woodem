@@ -80,9 +80,11 @@ namespace yade{
 	template<> struct py_wrap_ref<Vector2i>: public boost::true_type{};
 	template<> struct py_wrap_ref<Quaternionr>: public boost::true_type{};
 	template<> struct py_wrap_ref<Matrix3r>: public boost::true_type{};
+	template<> struct py_wrap_ref<MatrixXr>: public boost::true_type{};
 	template<> struct py_wrap_ref<Matrix6r>: public boost::true_type{};
 	template<> struct py_wrap_ref<Vector6r>: public boost::true_type{};
 	template<> struct py_wrap_ref<Vector6i>: public boost::true_type{};
+	template<> struct py_wrap_ref<VectorXr>: public boost::true_type{};
 
 	//template<class C, typename T, T C::*A>
 	//void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; cerr<<"make_setter_postLoad called"<<endl; postLoad(instance); }
@@ -182,7 +184,7 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 	_REGISTER_ATTRIBUTES_DEPREC(thisClass,baseClass,attrs,deprec) \
 	REGISTER_CLASS_AND_BASE(thisClass,baseClass) \
 	/* accessors for deprecated attributes, with warnings */ BOOST_PP_SEQ_FOR_EACH(_ACCESS_DEPREC,thisClass,deprec) \
-	/* python class registration */ virtual void pyRegisterClass(python::object _scope) { checkPyClassRegistersItself(#thisClass); boost::python::scope thisScope(_scope); YADE_SET_DOCSTRING_OPTS; boost::python::class_<thisClass,shared_ptr<thisClass>,boost::python::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,docString); _classObj.def("__init__",python::raw_constructor(Serializable_ctor_kwAttrs<thisClass>)); BOOST_PP_SEQ_FOR_EACH(_PYATTR_DEF,thisClass,attrs); (void) _classObj BOOST_PP_SEQ_FOR_EACH(_PYATTR_DEPREC_DEF,thisClass,deprec); (void) _classObj extras ; } \
+	/* python class registration */ virtual void pyRegisterClass(python::object _scope) { checkPyClassRegistersItself(#thisClass); boost::python::scope thisScope(_scope); YADE_SET_DOCSTRING_OPTS; boost::python::class_<thisClass,shared_ptr<thisClass>,boost::python::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,docString,/*call raw ctor even for parameterless construction*/boost::python::no_init); _classObj.def("__init__",python::raw_constructor(Serializable_ctor_kwAttrs<thisClass>)); BOOST_PP_SEQ_FOR_EACH(_PYATTR_DEF,thisClass,attrs); (void) _classObj BOOST_PP_SEQ_FOR_EACH(_PYATTR_DEPREC_DEF,thisClass,deprec); (void) _classObj extras ; } \
 	virtual void must_use_both_YADE_CLASS_BASE_DOC_ATTRS_and_YADE_PLUGIN(); // virtual ensures v-table for all classes 
 
 // #define YADE_CLASS_BASE_DOC_ATTRS_PY(thisClass,baseClass,docString,attrs,extras) YADE_CLASS_BASE_DOC_ATTRS_DEPREC_PY(thisClass,baseClass,docString,attrs,,extras)
@@ -207,7 +209,7 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 
 #define _STATCLASS_PY_REGISTER_CLASS(thisClass,baseClass,docString,attrs)\
 	virtual void pyRegisterClass(python::object _scope) { checkPyClassRegistersItself(#thisClass); initSetStaticAttributesValue(); boost::python::scope thisScope(_scope); YADE_SET_DOCSTRING_OPTS; \
-		boost::python::class_<thisClass,shared_ptr<thisClass>,boost::python::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,(docString + std::string("\n\n") BOOST_PP_SEQ_FOR_EACH(_STATATTR_MAKE_DOC,thisClass,attrs)).c_str() ); _classObj.def("__init__",python::raw_constructor(Serializable_ctor_kwAttrs<thisClass>)); \
+		boost::python::class_<thisClass,shared_ptr<thisClass>,boost::python::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,(docString + std::string("\n\n") BOOST_PP_SEQ_FOR_EACH(_STATATTR_MAKE_DOC,thisClass,attrs)).c_str(),/*call raw ctor even for parameterless construction*/boost::python::no_init); _classObj.def("__init__",python::raw_constructor(Serializable_ctor_kwAttrs<thisClass>)); \
 		BOOST_PP_SEQ_FOR_EACH(_STATATTR_PY,thisClass,attrs);  \
 	}
 
@@ -294,6 +296,7 @@ shared_ptr<T> Serializable_ctor_kwAttrs(python::tuple& t, python::dict& d){
 	instance=shared_ptr<T>(new T);
 	instance->pyHandleCustomCtorArgs(t,d); // can change t and d in-place
 	if(python::len(t)>0) throw runtime_error("Zero (not "+lexical_cast<string>(python::len(t))+") non-keyword constructor arguments required [in Serializable_ctor_kwAttrs; Serializable::pyHandleCustomCtorArgs might had changed it after your call].");
-	if(python::len(d)>0){ instance->pyUpdateAttrs(d); instance->callPostLoad(); }
+	if(python::len(d)>0) instance->pyUpdateAttrs(d);
+	instance->callPostLoad(); 
 	return instance;
 }
