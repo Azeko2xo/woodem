@@ -46,6 +46,13 @@ int  Vector3i_get_item(const Vector3i & self, int idx){ IDX_CHECK(idx,3); return
 Real Vector2r_get_item(const Vector2r & self, int idx){ IDX_CHECK(idx,2); return self[idx]; }
 int  Vector2i_get_item(const Vector2i & self, int idx){ IDX_CHECK(idx,2); return self[idx]; }
 
+template<typename MatrixType>
+MatrixType Matrix_pruned(const MatrixType& obj, typename MatrixType::Scalar absTol=1e-6){ MatrixType ret(MatrixType::Zero()); for(int i=0;i<obj.rows();i++)for(int j=0;j<obj.cols();j++) if(abs(obj(i,j))>absTol) ret(i,j)=obj(i,j); return ret; }
+
+template<typename MatrixType>
+typename MatrixType::Scalar Matrix_maxAbsCoeff(const MatrixType& obj){ return Eigen::Array<typename MatrixType::Scalar,MatrixType::RowsAtCompileTime,MatrixType::ColsAtCompileTime>(obj).abs().maxCoeff(); }
+
+
 Real Quaternionr_get_item(const Quaternionr & self, int idx){ IDX_CHECK(idx,4); if(idx==0) return self.x(); if(idx==1) return self.y(); if(idx==2) return self.z(); return self.w(); }
 Real     Matrix3r_get_item(Matrix3r & self, py::tuple _idx){ int idx[2]; int mx[2]={3,3}; IDX2_CHECKED_TUPLE_INTS(_idx,mx,idx); return self(idx[0],idx[1]); }
 Vector3r Matrix3r_get_row (Matrix3r & self, int idx){ IDX_CHECK(idx,3); return self.row(idx); }
@@ -351,6 +358,8 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.def("diagonal",&Matrix3r_diagonal)
 		.def("row",&Matrix3r_row)
 		.def("col",&Matrix3r_col)
+		.def("pruned",&Matrix_pruned<Matrix3r>,py::arg("absTol")=1e-6)
+		.def("maxAbsCoeff",&Matrix_maxAbsCoeff<Matrix3r>)
 
 		//
 		.def("__neg__",&Matrix3r__neg__)

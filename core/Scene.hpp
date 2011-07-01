@@ -18,6 +18,8 @@
 
 class Bound;
 class Field;
+class ScalarRange;
+
 #ifdef YADE_OPENGL
 	class Renderer;
 #endif
@@ -80,6 +82,10 @@ class Scene: public Serializable{
 		((shared_ptr<Cell>,cell,new Cell,Attr::hidden,"Information on periodicity; only should be used if Scene::isPeriodic."))
 		((vector<shared_ptr<DisplayParameters> >,dispParams,,Attr::hidden,"'hash maps' of display parameters (since yade::serialization had no support for maps, emulate it via vector of strings in format key=value)"))
 		((std::string,lastSave,,Attr::readonly,"Name under which the simulation was saved for the last time."))
+
+		#if YADE_OPENGL
+			((vector<shared_ptr<ScalarRange> >,ranges,,,"Scalar ranges to be rendered on the display as colormaps"))
+		#endif
 
 		// ((shared_ptr<Bound>,bound,,Attr::hidden,"Bounding box of the scene (only used for rendering and initialized if needed)."))
 

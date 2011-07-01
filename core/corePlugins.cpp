@@ -38,7 +38,7 @@ YADE_PLUGIN(core,(Cell)(Dispatcher)(EnergyTracker)(Engine)(Functor)(GlobalEngine
 #include<yade/core/Field.hpp>
 YADE_PLUGIN(core,(Constraint)(Node)(NodeData)(Field));
 #ifdef YADE_OPENGL
-YADE_PLUGIN(gl,(NodeGlRep));
+YADE_PLUGIN(gl,(NodeGlRep)(ScalarRange));
 //NodeGlRep::~NodeGlRep(){}
 #endif
 

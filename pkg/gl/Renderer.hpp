@@ -85,8 +85,8 @@ class Renderer: public Serializable{
 		// passing >=0 to highLev causes the object the to be highlighted, regardless of whether it is selected or not
 		struct glScopedName{
 			bool highlighted;
-			glScopedName(const shared_ptr<Serializable>& s, const shared_ptr<Node>& n, int highLev=-1){ init(s,n, highLev); }
-			glScopedName(const shared_ptr<Node>& n, int highLev=-1){ init(n,n, highLev); }
+			glScopedName(const shared_ptr<Serializable>& s, const shared_ptr<Node>& n, int highLev=-1): highlighted(false){ init(s,n, highLev); }
+			glScopedName(const shared_ptr<Node>& n, int highLev=-1): highlighted(false){ init(n,n, highLev); }
 			void init(const shared_ptr<Serializable>& s, const shared_ptr<Node>& n, int highLev){
 				Renderer* r=Renderer::self; // ugly hack, but we want to have that at all costs
 				if(!r->withNames){
@@ -157,7 +157,6 @@ class Renderer: public Serializable{
 		((bool,bound,false,,"Render particle's :yref:`Bound`"))
 		((bool,shape,true,,"Render particle's :yref:`Shape`"))
 		((int,cNodes,true,,"Render contact's nodes (0=no, 1=nodes only, 2=line between particles, 3=both"))
-		((vector<shared_ptr<ScalarRange> >,ranges,,,"Scalar ranges to be rendered on the display as colormaps"))
 		((Vector2i,cNodes_range,Vector2i(0,3),Attr::noGui,"Range for cNodes"))
 		//((bool,intrAllWire,false,,"Draw wire for all interactions, blue for potential and green for real ones (mostly for debugging)")),
 		,/*deprec*/

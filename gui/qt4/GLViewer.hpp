@@ -8,6 +8,8 @@
 #include<QGLViewer/qglviewer.h>
 #include<QGLViewer/constraint.h>
 
+#include<QMouseEvent>
+
 #include<boost/date_time/posix_time/posix_time.hpp>
 #include<set>
 
@@ -40,6 +42,42 @@ REGISTER_SERIALIZABLE(SnapshotEngine);
 
 #endif
 
+// for movable colorscales
+// mostly copied from
+// http://www.libqglviewer.com/refManual/classqglviewer_1_1MouseGrabber.html#_details
+struct QglMovableObject: public qglviewer::MouseGrabber{
+	QglMovableObject(int x0, int y0): qglviewer::MouseGrabber(), pos(x0,y0), moved(false){}
+	void checkIfGrabsMouse(int x, int y, const qglviewer::Camera* const){
+		QPoint relPos(QPoint(x,y)-pos);
+		bool isInside=(relPos.x()>=0 && relPos.y()>=0 && relPos.x()<=dim.x() && relPos.y()<=dim.y());
+		// cerr<<"relPos="<<relPos.x()<<","<<relPos.y()<<", dim="<<dim.x()<<","<<dim.y()<<", pos="<<pos.x()<<","<<pos.y()<<", mouse="<<x<<","<<y<<", moved="<<moved<<", test="<<isInside<<endl;
+		setGrabsMouse(moved||isInside);
+	}
+	void mousePressEvent(QMouseEvent* const e, qglviewer::Camera* const){  prevPos=e->pos(); moved=true; }
+   void mouseMoveEvent(QMouseEvent* const e, const qglviewer::Camera* const){
+		if(!moved) return;
+      pos+=e->pos()-prevPos; prevPos=e->pos();
+	}
+	void mouseReleaseEvent(QMouseEvent* const e, qglviewer::Camera* const c) { mouseMoveEvent(e,c); moved=false; }
+	// drawing itself done in GLViewer::postDraw
+	#if 0
+	   void draw() {
+	      // The object is drawn centered on its pos, with different possible aspects:
+	      if (grabsMouse()){
+	        if (moved)
+	          // Object being moved, maybe a transparent display
+	        else
+	          // Object ready to be moved, maybe a highlighted visual feedback
+	      else
+	        // Normal display
+	    }
+	#endif
+	 QPoint pos, prevPos;
+	 QPoint dim;
+	 bool moved;
+};
+
+
 /*! Class handling user interaction with the openGL rendering of simulation.
  *
  * Clipping planes:
@@ -69,10 +107,11 @@ class GLViewer : public QGLViewer
 	protected:
 		shared_ptr<Renderer> renderer;
 
-	private :
+	private:
+
+		Vector2i prevSize; // used to move scales accordingly
 
 		bool			isMoving;
-		bool			wasDynamic;
 		float			cut_plane;
 		int			cut_plane_delta;
 		bool			gridSubdivide;
@@ -114,7 +153,7 @@ class GLViewer : public QGLViewer
 		//! set QGLViewer state from string (XML); QGLVIewer normally only supports loading state from file.
 		void setState(string);
 		//! Load display parameters (QGLViewer and Renderer) from Scene::dispParams[n] and use them
-		void useDisplayParameters(size_t n);
+		void useDisplayParameters(size_t n, bool fromHandler=false);
 		//! Save display parameters (QGOViewer and Renderer) to Scene::dispParams[n]
 		void saveDisplayParameters(size_t n);
 		//! Get radius of the part of scene that fits the current view
@@ -139,7 +178,7 @@ class GLViewer : public QGLViewer
 
 
 		DECLARE_LOGGER;
-	protected :
+	protected:
 		virtual void keyPressEvent(QKeyEvent *e);
 		virtual void postDraw();
 		// overridden in the player that doesn't get time from system clock but from the db

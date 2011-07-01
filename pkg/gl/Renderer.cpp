@@ -426,7 +426,7 @@ void Renderer::renderSparc(){
 	FOREACH(const shared_ptr<Node>& n, sparc->nodes){
 		glScopedName name(n);
 		renderRawNode(n);
-		if(!sparc->showNeighbors) continue;
+		if(!sparc->showNeighbors && !name.highlighted) continue;
 		// show neighbours with lines, with random colors so that they can be told apart
 		Vector3r color=CompUtils::mapColor(n->getData<SparcData>().color);
 		FOREACH(const shared_ptr<Node>& neighbor, n->getData<SparcData>().neighbors){

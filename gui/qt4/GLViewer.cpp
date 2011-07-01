@@ -18,6 +18,7 @@
 #include<boost/algorithm/string.hpp>
 #include<boost/version.hpp>
 #include<boost/python.hpp>
+#include<boost/make_shared.hpp>
 #include<sstream>
 #include<iomanip>
 #include<boost/algorithm/string/case_conv.hpp>
@@ -98,7 +99,8 @@ GLViewer::GLViewer(int _viewId, const shared_ptr<Renderer>& _renderer, QGLWidget
 	cut_plane = 0;
 	cut_plane_delta = -2;
 	gridSubdivide = false;
-	resize(550,550);
+	prevSize=Vector2i(550,550);
+	resize(prevSize[0],prevSize[1]);
 
 	if(viewId==0) setWindowTitle("Primary view");
 	else setWindowTitle(("Secondary view #"+lexical_cast<string>(viewId)).c_str());
@@ -139,7 +141,7 @@ GLViewer::GLViewer(int _viewId, const shared_ptr<Renderer>& _renderer, QGLWidget
 	#endif
 	setPathKey(-Qt::Key_F1);
 	setPathKey(-Qt::Key_F2);
-	setKeyDescription(Qt::Key_Escape,"Manipulate scene (default)");
+	setKeyDescription(Qt::Key_Escape,"Manipulate scene (default); cancel selection (when manipulating scene)");
 	setKeyDescription(Qt::Key_F1,"Manipulate clipping plane #1");
 	setKeyDescription(Qt::Key_F2,"Manipulate clipping plane #2");
 	setKeyDescription(Qt::Key_F3,"Manipulate clipping plane #3");
@@ -154,6 +156,10 @@ GLViewer::GLViewer(int _viewId, const shared_ptr<Renderer>& _renderer, QGLWidget
 	setKeyDescription(Qt::Key_8,"Load [Alt: save] view configuration #1");
 	setKeyDescription(Qt::Key_9,"Load [Alt: save] view configuration #2");
 	setKeyDescription(Qt::Key_Space,"Center scene (same as Alt-C); clip plane: activate/deactivate");
+
+
+	// needed for movable scales
+	setMouseTracking(true);
 
 	centerScene();
 
@@ -209,10 +215,15 @@ void GLViewer::startClipPlaneManipulation(int planeNo){
 	displayMessage("Manipulating clip plane #"+lexical_cast<string>(planeNo+1)+(grp.empty()?grp:" (bound planes:"+grp+")"));
 }
 
-void GLViewer::useDisplayParameters(size_t n){
+void GLViewer::useDisplayParameters(size_t n, bool fromHandler){
 	LOG_DEBUG("Loading display parameters from #"<<n);
 	vector<shared_ptr<DisplayParameters> >& dispParams=Omega::instance().getScene()->dispParams;
-	if(dispParams.size()<=(size_t)n){ throw std::invalid_argument(("Display parameters #"+lexical_cast<string>(n)+" don't exist (number of entries "+lexical_cast<string>(dispParams.size())+")").c_str());; return;}
+	if(dispParams.size()<=(size_t)n){
+		string msg("Display parameters #"+lexical_cast<string>(n)+" don't exist (number of entries "+lexical_cast<string>(dispParams.size())+")");
+		if(fromHandler) displayMessage(msg.c_str());
+		else throw std::runtime_error(msg.c_str());
+		return;
+	}
 	const shared_ptr<DisplayParameters>& dp=dispParams[n];
 	string val;
 	if(dp->getValue("Renderer",val)){ istringstream oglre(val);
@@ -265,7 +276,10 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 	/* special keys: Escape and Space */
 	else if(e->key()==Qt::Key_A){ toggleAxisIsDrawn(); return; }
 	else if(e->key()==Qt::Key_Escape){
-		if(!isManipulating()){ return; }
+		if(!isManipulating()){ 
+			// reset selection
+			renderer->selObj=shared_ptr<Serializable>(); renderer->selObjNode=shared_ptr<Node>();
+		}
 		else { resetManipulation(); displayMessage("Manipulating scene."); }
 	}
 	else if(e->key()==Qt::Key_Space){
@@ -296,7 +310,7 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 	else if(e->key()==Qt::Key_7 || e->key()==Qt::Key_8 || e->key()==Qt::Key_9){
 		int nn=-1; if(e->key()==Qt::Key_7)nn=0; else if(e->key()==Qt::Key_8)nn=1; else if(e->key()==Qt::Key_9)nn=2; assert(nn>=0); size_t n=(size_t)nn;
 		if(e->modifiers() & Qt::AltModifier) saveDisplayParameters(n);
-		else useDisplayParameters(n);
+		else useDisplayParameters(n,/*fromHandler*/ true);
 	}
 	/* letters alphabetically */
 	else if(e->key()==Qt::Key_C && (e->modifiers() & Qt::AltModifier)){ displayMessage("Median centering"); centerMedianQuartile(); }
@@ -307,9 +321,9 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 		//else
 		centerScene();
 	}
-#if 0
-	else if(e->key()==Qt::Key_D &&(e->modifiers() & Qt::AltModifier)){ /*Body::id_t id; if((id=Omega::instance().getScene()->selection)>=0){ const shared_ptr<Body>& b=Body::byId(id); b->setDynamic(!b->isDynamic()); LOG_INFO("Body #"<<id<<" now "<<(b->isDynamic()?"":"NOT")<<" dynamic"); }*/ LOG_INFO("Selection not supported!!"); }
-#endif
+	#if 0
+		else if(e->key()==Qt::Key_D &&(e->modifiers() & Qt::AltModifier)){ /*Body::id_t id; if((id=Omega::instance().getScene()->selection)>=0){ const shared_ptr<Body>& b=Body::byId(id); b->setDynamic(!b->isDynamic()); LOG_INFO("Body #"<<id<<" now "<<(b->isDynamic()?"":"NOT")<<" dynamic"); }*/ LOG_INFO("Selection not supported!!"); }
+	#endif
 	else if(e->key()==Qt::Key_D) {timeDispMask+=1; if(timeDispMask>(TIME_REAL|TIME_VIRT|TIME_ITER))timeDispMask=0; }
 	else if(e->key()==Qt::Key_G) { if(e->modifiers() & Qt::ShiftModifier){ drawGrid=(drawGrid>0?0:7); return; } else drawGrid++; if(drawGrid>=8) drawGrid=0; }
 	else if (e->key()==Qt::Key_M && selectedName() >= 0){ 
@@ -737,21 +751,43 @@ void GLViewer::postDraw(){
 
 #if 1
 	/* draw colormapped ranges, on the right */
-	if(renderer->ranges.size()>0){
+	if(prevSize[0]!=width() || prevSize[1]!=height()){
+		Vector2i curr(width(),height());
+		FOREACH(const shared_ptr<ScalarRange>& r, scene->ranges){
+			// positions normalized to window size
+			r->dispPos=Vector2i(curr[0]*(r->dispPos[0]*1./prevSize[0]),curr[1]*(r->dispPos[1]*1./prevSize[1]));
+			if(r->movablePtr) r->movablePtr->pos=QPoint(r->dispPos[0],r->dispPos[1]);
+		};
+		prevSize=curr;
+	}
+	if(scene->ranges.size()>0){
 		glDisable(GL_LIGHTING);
 		const int nDiv=20; 
+		const int scaleWd=20; // width in pixels
 		const Real relHt=.8; 
-		int yStep=relHt*height()/nDiv;
-		int y0=(1-(1-relHt)/2.)*height();
-		glLineWidth(20);
-		for(size_t i=0; i<renderer->ranges.size(); i++){
-			if(!renderer->ranges[i]->isOk()) continue;
-			int x=width()-50-i*150; // 50px / scale horizontally
+		int ht0=relHt*height();
+		int yDef=((1-relHt)/2.)*height(); // default y position, if current is not valid
+		glLineWidth(scaleWd);
+		for(size_t i=0; i<scene->ranges.size(); i++){
+			ScalarRange& range(*scene->ranges[i]);
+			if(!range.isOk()) continue;
+			int xDef=width()-50-i*150; /* 50px / scale horizontally */ // default x position, if current not valid
+			if(!range.movablePtr){ range.movablePtr=make_shared<QglMovableObject>(xDef,yDef);  }
+			QglMovableObject& mov(*range.movablePtr);
+			// adjust if off-screen
+			if(mov.pos.x()<0 || mov.pos.y()<0 || mov.pos.x()>width() || mov.pos.y()>(height()-/*leave 20px on the lower edge*/20)){ mov.pos.setX(xDef); mov.pos.setY(yDef); cerr<<"$"; }
+			int ht=ht0; // perhaps adjust in the future, if scales might have different heights
+			int yStep=ht/nDiv;
+			// update dimensions of the grabber object
+			mov.dim=QPoint(scaleWd,ht);
+			int y0=mov.pos.y(); // upper edge y-position
+			int x=mov.pos.x()+scaleWd/2; // upper-edge center x-position
+			range.dispPos=Vector2i(x,y0); // for loading & saving
 			startScreenCoordinatesSystem();
 			glBegin(GL_LINE_STRIP);
 				for(int j=0; j<=nDiv; j++){
-					glColor3v(CompUtils::mapColor(j*(1./nDiv)));
-					glVertex2f(x,y0-yStep*j);
+					glColor3v(CompUtils::mapColor((nDiv-j)*(1./nDiv)));
+					glVertex2f(x,y0+yStep*j);
 				};
 			glEnd();
 			stopScreenCoordinatesSystem();
@@ -760,8 +796,14 @@ void GLViewer::postDraw(){
 			for(int j=0; j<=nNum; j++){
 				// static void GLDrawText(const std::string& txt, const Vector3r& pos, const Vector3r& color=Vector3r(1,1,1), bool center=false, void* font=NULL, const Vector3r& bgColor=Vector3r(-1,-1,-1));
 				startScreenCoordinatesSystem();
-					Vector3r pos=Vector3r(x,y0-(j*relHt*height()/nNum)-6/*lower baseline*/,0.);
-					GLUtils::GLDrawText((boost::format("%.2g")%renderer->ranges[i]->normInv(j*1./nNum)).str(),pos,/*color*/Vector3r::Ones(),/*center*/true,/*font*/(j>0&&j<nNum)?NULL:GLUT_BITMAP_9_BY_15,Vector3r::Zero());
+					Vector3r pos=Vector3r(x,y0+((nNum-j)*ht/nNum)-6/*lower baseline*/,0.);
+					GLUtils::GLDrawText((boost::format("%.2g")%range.normInv(j*1./nNum)).str(),pos,/*color*/Vector3r::Ones(),/*center*/true,/*font*/(j>0&&j<nNum)?NULL:GLUT_BITMAP_9_BY_15,Vector3r::Zero());
+				stopScreenCoordinatesSystem();
+			}
+			// show label, if any
+			if(!range.label.empty()){
+				startScreenCoordinatesSystem();
+					GLUtils::GLDrawText(range.label,Vector3r(x,y0-20,0),/*color*/Vector3r::Ones(),/*center*/true,/*font*/GLUT_BITMAP_9_BY_15,Vector3r::Zero());
 				stopScreenCoordinatesSystem();
 			}
 		}

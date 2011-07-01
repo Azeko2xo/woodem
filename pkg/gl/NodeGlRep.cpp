@@ -10,23 +10,13 @@
 
 #include<GL/gle.h>
 
-YADE_PLUGIN(gl,(ScalarGlRep)(VectorGlRep)(TensorGlRep)(ScalarRange));
-
-void ScalarRange::reset(){
-	mnmx=Vector2r(std::numeric_limits<Real>::infinity(),-std::numeric_limits<Real>::infinity());
-	autoAdjust=true;
-}
-Vector3r ScalarRange::color(Real v){
-	if(autoAdjust){if(v<mnmx[0]) mnmx[0]=v; if(v>mnmx[1]) mnmx[1]=v;}
-	return CompUtils::scalarOnColorScale(v,mnmx[0],mnmx[1]);
-}
+YADE_PLUGIN(gl,(ScalarGlRep)(VectorGlRep)(TensorGlRep));
 
 void ScalarGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
 	Vector3r color=(range?range->color(val):CompUtils::scalarOnColorScale(val,0,1));
 	switch(how){
 		case 0: {
-			ostringstream oss; oss.precision(prec); oss<<val;
-			GLUtils::GLDrawNum(val,node->pos,color,prec);
+			GLUtils::GLDrawText((boost::format("%03g")%val).str(),node->pos,color); // ,/*center*/true,/*font*/NULL,/*bgColor*/Vector3r::Zero());
 			break;
 		}
 		case 1: {
