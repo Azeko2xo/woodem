@@ -1,12 +1,14 @@
 #pragma once
 #include<yade/core/Field.hpp>
+namespace voropp{
 #include<yade/lib/voro++/voro++.cc>
+};
 
 struct VoroField: public Field{
 	void updateFromDem();
 
-	container_periodic_poly* conp;
-	voronoi_network* vnet;
+	voropp::container_periodic_poly* conp;
+	voropp::voronoi_network* vnet;
 
 	void postLoad(VoroField&);
 	void preSave(VoroField&);

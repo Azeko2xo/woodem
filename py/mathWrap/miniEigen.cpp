@@ -33,7 +33,7 @@ void Matrix3r_set_item(Matrix3r & self, py::tuple _idx, Real value){ int idx[2];
 void Matrix3r_set_row (Matrix3r & self, int idx, const Vector3r& row){ IDX_CHECK(idx,3); self.row(idx)=row; }
 void Matrix6r_set_item(Matrix6r & self, py::tuple _idx, Real value){ int idx[2]; int mx[2]={6,6}; IDX2_CHECKED_TUPLE_INTS(_idx,mx,idx); self(idx[0],idx[1])=value; }
 void Matrix6r_set_row (Matrix6r & self, int idx, const Vector6r& row){ IDX_CHECK(idx,6); self.row(idx)=row; }
-void MatrixXr_set_item(MatrixXr & self, py::tuple _idx, Real value){ int idx[2]; int mx[2]={self.rows(),self.cols()}; IDX2_CHECKED_TUPLE_INTS(_idx,mx,idx); self(idx[0],idx[1])=value; }
+void MatrixXr_set_item(MatrixXr & self, py::tuple _idx, Real value){ int idx[2]; long mx[2]={self.rows(),self.cols()}; IDX2_CHECKED_TUPLE_INTS(_idx,mx,idx); self(idx[0],idx[1])=value; }
 void MatrixXr_set_row (MatrixXr & self, int idx, const VectorXr& row){ IDX_CHECK(idx,self.rows()); self.row(idx)=row; }
 
 
@@ -58,11 +58,11 @@ Real     Matrix3r_get_item(Matrix3r & self, py::tuple _idx){ int idx[2]; int mx[
 Vector3r Matrix3r_get_row (Matrix3r & self, int idx){ IDX_CHECK(idx,3); return self.row(idx); }
 Real     Matrix6r_get_item(Matrix6r & self, py::tuple _idx){ int idx[2]; int mx[2]={6,6}; IDX2_CHECKED_TUPLE_INTS(_idx,mx,idx); return self(idx[0],idx[1]); }
 Vector6r Matrix6r_get_row (Matrix6r & self, int idx){ IDX_CHECK(idx,6); return self.row(idx); }
-Real     MatrixXr_get_item(MatrixXr & self, py::tuple _idx){ int idx[2]; int mx[2]={self.rows(),self.cols()}; IDX2_CHECKED_TUPLE_INTS(_idx,mx,idx); return self(idx[0],idx[1]); }
+Real     MatrixXr_get_item(MatrixXr & self, py::tuple _idx){ int idx[2]; long mx[2]={self.rows(),self.cols()}; IDX2_CHECKED_TUPLE_INTS(_idx,mx,idx); return self(idx[0],idx[1]); }
 Vector6r MatrixXr_get_row (MatrixXr & self, int idx){ IDX_CHECK(idx,self.rows()); return self.row(idx); }
 
 std::string Vector6r_str(const Vector6r & self){ return std::string("Vector6(")+boost::lexical_cast<std::string>(self[0])+","+boost::lexical_cast<std::string>(self[1])+","+boost::lexical_cast<std::string>(self[2])+", "+boost::lexical_cast<std::string>(self[3])+","+boost::lexical_cast<std::string>(self[4])+","+boost::lexical_cast<std::string>(self[5])+")";}
-std::string VectorXr_str(const VectorXr & self){ std::ostringstream oss; oss<<"VectorX(["; for(int i=0; i<self.size(); i++) oss<<(i==0?"":((i%3)?", ":","))<<boost::lexical_cast<std::string>(self[i]); oss<<"])"; return oss.str(); }
+std::string VectorXr_str(const VectorXr & self){ std::ostringstream oss; oss<<"VectorX(["; for(int i=0; i<self.size(); i++) oss<<(i==0?"":((i%3)?",":", "))<<boost::lexical_cast<std::string>(self[i]); oss<<"])"; return oss.str(); }
 std::string Vector6i_str(const Vector6i & self){ return std::string("Vector6i(")+boost::lexical_cast<std::string>(self[0])+","+boost::lexical_cast<std::string>(self[1])+","+boost::lexical_cast<std::string>(self[2])+", "+boost::lexical_cast<std::string>(self[3])+","+boost::lexical_cast<std::string>(self[4])+","+boost::lexical_cast<std::string>(self[5])+")";}
 std::string Vector3r_str(const Vector3r & self){ return std::string("Vector3(")+boost::lexical_cast<std::string>(self[0])+","+boost::lexical_cast<std::string>(self[1])+","+boost::lexical_cast<std::string>(self[2])+")";}
 std::string Vector3i_str(const Vector3i & self){ return std::string("Vector3i(")+boost::lexical_cast<std::string>(self[0])+","+boost::lexical_cast<std::string>(self[1])+","+boost::lexical_cast<std::string>(self[2])+")";}
@@ -251,8 +251,8 @@ EIG_WRAP_METH0(Vector2r,Zero); EIG_WRAP_METH0(Vector2r,UnitX); EIG_WRAP_METH0(Ve
 EIG_WRAP_METH0(Vector2i,Zero); EIG_WRAP_METH0(Vector2i,UnitX); EIG_WRAP_METH0(Vector2i,UnitY); EIG_WRAP_METH0(Vector2i,Ones);
 EIG_WRAP_METH0(Quaternionr,Identity);
 
-#define EIG_OP1(klass,op,sym) typeof((sym klass()).eval()) klass##op(const klass& self){ return (sym self).eval();}
-#define EIG_OP2(klass,op,sym,klass2) typeof((klass() sym klass2()).eval()) klass##op##klass2(const klass& self, const klass2& other){ return (self sym other).eval(); }
+#define EIG_OP1(klass,op,sym) decltype((sym klass()).eval()) klass##op(const klass& self){ return (sym self).eval();}
+#define EIG_OP2(klass,op,sym,klass2) decltype((klass() sym klass2()).eval()) klass##op##klass2(const klass& self, const klass2& other){ return (self sym other).eval(); }
 #define EIG_OP2_INPLACE(klass,op,sym,klass2) klass klass##op##klass2(klass& self, const klass2& other){ self sym other; return self; }
 
 

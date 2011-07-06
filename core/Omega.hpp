@@ -1,22 +1,5 @@
 #pragma once
 
-#if 0
-// qt3 sucks
-#ifdef QT_MOC_CPP
-	#undef slots
-	#include<Python.h>
-	#define slots slots
-#else
-	#ifdef slots
-	 #undef slots
-	 #include<Python.h>
-	 #define slots
-	#else
-	 #include<Python.h>
-	#endif
-#endif
-#endif
-
 #include<boost/date_time/posix_time/posix_time.hpp>
 #include<fstream>
 #include<set>
@@ -30,6 +13,7 @@
 #include<yade/lib/base/Math.hpp>
 #include<yade/lib/factory/ClassFactory.hpp>
 #include<yade/lib/base/Singleton.hpp>
+#include<yade/lib/base/Types.hpp>
 
 #include<yade/core/BgThread.hpp>
 
@@ -40,10 +24,6 @@
 #endif
 
 class Scene;
-
-using namespace boost;
-using namespace boost::posix_time;
-using namespace std;
 
 namespace py=boost::python;
 
@@ -60,7 +40,7 @@ class Omega: public Singleton<Omega>{
 	shared_ptr<Scene> scene;
 	shared_ptr<Scene> sceneAnother; // used for temporarily running different simulation, in Omega().switchscene()
 
-	ptime startupLocalTime;
+	boost::posix_time::ptime startupLocalTime;
 
 	map<string,string> memSavedSimulations;
 
@@ -101,7 +81,7 @@ class Omega: public Singleton<Omega>{
 		//! Return unique temporary filename. May be deleted by the user; if not, will be deleted at shutdown.
 		string tmpFilename();
 		Real getRealTime();
-		time_duration getRealTime_duration();
+		boost::posix_time::time_duration getRealTime_duration();
 
 		// configuration directory used for logging config and possibly other things
 		std::string confDir;
@@ -122,7 +102,7 @@ this code could not be in Dispatcher itself.
 s*/
 template<class topIndexable>
 std::string Dispatcher_indexToClassName(int idx){
-	scoped_ptr<topIndexable> top(new topIndexable);
+	boost::scoped_ptr<topIndexable> top(new topIndexable);
 	std::string topName=top->getClassName();
 	typedef std::pair<string,DynlibDescriptor> classItemType;
 	FOREACH(classItemType clss, Omega::instance().getDynlibsDescriptor()){
@@ -136,7 +116,7 @@ std::string Dispatcher_indexToClassName(int idx){
 			if(inst->getClassIndex()==idx) return clss.first;
 		}
 	}
-	throw runtime_error("No class with index "+boost::lexical_cast<string>(idx)+" found (top-level indexable is "+topName+")");
+	throw std::runtime_error("No class with index "+boost::lexical_cast<string>(idx)+" found (top-level indexable is "+topName+")");
 }
 
 

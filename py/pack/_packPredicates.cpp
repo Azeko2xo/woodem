@@ -6,7 +6,6 @@
 #include<yade/lib/pyutil/doc_opts.hpp>
 
 namespace py=boost::python;
-using namespace std;
 #ifdef YADE_LOG4CXX
 	log4cxx::LoggerPtr logger=log4cxx::Logger::getLogger("yade.pack.predicates");
 #endif

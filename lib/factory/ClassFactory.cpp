@@ -4,7 +4,6 @@
 CREATE_LOGGER(ClassFactory);
 SINGLETON_SELF(ClassFactory);
 class Factorable;
-using namespace std;
 
 bool ClassFactory::registerFactorable(const std::string& name, CreateSharedFnPtr createShared){
 	return map.insert(factorableCreatorsMap::value_type(name,createShared)).second;

@@ -8,8 +8,6 @@
 #include<yade/pkg/dem/GenericSpheresContact.hpp>
 #include<yade/lib/pyutil/gil.hpp>
 
-using namespace std;
-
 YADE_PLUGIN(dem,(PeriIsoCompressor)(PeriTriaxController))
 
 CREATE_LOGGER(PeriIsoCompressor);

@@ -5,11 +5,10 @@
 #include<vector>
 #include<string>	
 #include<limits>
-using namespace std; // sorry
+
 
 #include<boost/python.hpp>
 #include<yade/extra/boost_python_len.hpp>
-using namespace boost;
 
 #include<boost/foreach.hpp>
 #ifndef FOREACH
@@ -20,6 +19,8 @@ using namespace boost;
 #include<yade/lib/base/Math.hpp>
 
 #include<yade/lib/pyutil/except.hpp>
+
+#include<yade/lib/base/Types.hpp>
 
 /*! Class representing geometry of spherical packing, with some utility functions. */
 class SpherePack{
@@ -41,25 +42,25 @@ public:
 	struct Sph{
 		Vector3r c; Real r; int clumpId;
 		Sph(const Vector3r& _c, Real _r, int _clumpId=-1): c(_c), r(_r), clumpId(_clumpId) {};
-		python::tuple asTuple() const {
-			if(clumpId<0) return python::make_tuple(c,r);
-			return python::make_tuple(c,r,clumpId);
+		py::tuple asTuple() const {
+			if(clumpId<0) return py::make_tuple(c,r);
+			return py::make_tuple(c,r,clumpId);
 		}
-		python::tuple asTupleNoClump() const { return python::make_tuple(c,r); }
+		py::tuple asTupleNoClump() const { return py::make_tuple(c,r); }
 	};
 	std::vector<Sph> pack;
 	Vector3r cellSize;
 	Real psdScaleExponent;
 	Real appliedPsdScaling;//a scaling factor that can be applied on size distribution
 	SpherePack(): cellSize(Vector3r::Zero()), psdScaleExponent(2.5), appliedPsdScaling(1.){};
-	SpherePack(const python::list& l):cellSize(Vector3r::Zero()){ fromList(l); }
+	SpherePack(const py::list& l):cellSize(Vector3r::Zero()){ fromList(l); }
 	// add single sphere
 	void add(const Vector3r& c, Real r){ pack.push_back(Sph(c,r)); }
 
 	// I/O
-	void fromList(const python::list& l);
+	void fromList(const py::list& l);
 	void fromLists(const vector<Vector3r>& centers, const vector<Real>& radii); // used as ctor in python
-	python::list toList() const;
+	py::list toList() const;
 #if 0
 	void fromFile(const string file);
 #endif
@@ -91,7 +92,7 @@ public:
 
 	// spatial characteristics
 	Vector3r dim() const {Vector3r mn,mx; aabb(mn,mx); return mx-mn;}
-	python::tuple aabb_py() const { Vector3r mn,mx; aabb(mn,mx); return python::make_tuple(mn,mx); }
+	py::tuple aabb_py() const { Vector3r mn,mx; aabb(mn,mx); return py::make_tuple(mn,mx); }
 	void aabb(Vector3r& mn, Vector3r& mx) const {
 		Real inf=std::numeric_limits<Real>::infinity(); mn=Vector3r(inf,inf,inf); mx=Vector3r(-inf,-inf,-inf);
 		FOREACH(const Sph& s, pack){ Vector3r r(s.r,s.r,s.r); mn=mn.cwise().min(s.c-r); mx=mx.cwise().max(s.c+r);}
@@ -103,9 +104,9 @@ public:
 		sphVol*=(4/3.)*Mathr::PI;
 		return sphVol/(dd[0]*dd[1]*dd[2]);
 	}
-	python::tuple psd(int bins=10, bool mass=false) const;
+	py::tuple psd(int bins=10, bool mass=false) const;
 	bool hasClumps() const;
-	python::tuple getClumps() const;
+	py::tuple getClumps() const;
 
 	// transformations
 	void translate(const Vector3r& shift){ FOREACH(Sph& s, pack) s.c+=shift; }
@@ -125,12 +126,12 @@ public:
 
 	// iteration 
 	size_t len() const{ return pack.size(); }
-	python::tuple getitem(size_t idx){ if(idx<0 || idx>=pack.size()) throw runtime_error("Index "+lexical_cast<string>(idx)+" out of range 0.."+lexical_cast<string>(pack.size()-1)); return pack[idx].asTuple(); }
+	py::tuple getitem(size_t idx){ if(idx<0 || idx>=pack.size()) throw runtime_error("Index "+lexical_cast<string>(idx)+" out of range 0.."+lexical_cast<string>(pack.size()-1)); return pack[idx].asTuple(); }
 	struct _iterator{
 		const SpherePack& sPack; size_t pos;
 		_iterator(const SpherePack& _sPack): sPack(_sPack), pos(0){}
 		_iterator iter(){ return *this;}
-		python::tuple next(){
+		py::tuple next(){
 			if(pos==sPack.pack.size()){ yade::StopIteration(); }
 			return sPack.pack[pos++].asTupleNoClump();
 		}

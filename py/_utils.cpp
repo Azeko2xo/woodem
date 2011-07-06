@@ -12,7 +12,6 @@
 
 #include<numpy/ndarrayobject.h>
 
-using namespace std;
 namespace py = boost::python;
 
 #ifdef YADE_LOG4CXX

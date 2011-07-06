@@ -151,20 +151,20 @@ void Renderer::setLighting(){
 	// set light sources
 	glLightModelf(GL_LIGHT_MODEL_TWO_SIDE,1); // important: do lighting calculations on both sides of polygons
 
-	const GLfloat pos[4]	= {lightPos[0],lightPos[1],lightPos[2],1.0};
+	const GLfloat pos[4]	= {(GLfloat)lightPos[0],(GLfloat)lightPos[1],(GLfloat)lightPos[2],(GLfloat)1.0};
 	const GLfloat ambientColor[4]={0.5,0.5,0.5,1.0};
 	const GLfloat specularColor[4]={1,1,1,1.};
-	const GLfloat diffuseLight[4] = { lightColor[0], lightColor[1], lightColor[2], 1.0f };
+	const GLfloat diffuseLight[4] = { (GLfloat)lightColor[0], (GLfloat)lightColor[1], (GLfloat)lightColor[2], 1.0f };
 	glLightfv(GL_LIGHT0, GL_POSITION,pos);
 	glLightfv(GL_LIGHT0, GL_SPECULAR, specularColor);
 	glLightfv(GL_LIGHT0, GL_AMBIENT, ambientColor);
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
 	if (light1) glEnable(GL_LIGHT0); else glDisable(GL_LIGHT0);
 
-	const GLfloat pos2[4]	= {light2Pos[0],light2Pos[1],light2Pos[2],1.0};
+	const GLfloat pos2[4]	= {(GLfloat)light2Pos[0],(GLfloat)light2Pos[1],(GLfloat)light2Pos[2],1.0};
 	const GLfloat ambientColor2[4]={0.0,0.0,0.0,1.0};
 	const GLfloat specularColor2[4]={.8,.8,.8,1.};
-	const GLfloat diffuseLight2[4] = { light2Color[0], light2Color[1], light2Color[2], 1.0f };
+	const GLfloat diffuseLight2[4] = { (GLfloat)light2Color[0], (GLfloat)light2Color[1], (GLfloat)light2Color[2], 1.0f };
 	glLightfv(GL_LIGHT1, GL_POSITION,pos2);
 	glLightfv(GL_LIGHT1, GL_SPECULAR, specularColor2);
 	glLightfv(GL_LIGHT1, GL_AMBIENT, ambientColor2);

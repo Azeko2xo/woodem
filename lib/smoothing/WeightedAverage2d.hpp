@@ -27,8 +27,6 @@
 #ifndef FOREACH
 	#define FOREACH BOOST_FOREACH
 #endif
-using namespace std;
-using namespace boost;
 
 #include<yade/lib/base/Math.hpp>
 

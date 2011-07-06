@@ -19,10 +19,6 @@ class Body;
 class FrictMat;
 class Interaction;
 
-using namespace std;
-using boost::shared_ptr;
-namespace py = boost::python;
-
 /*! Miscillaneous utility functions which are believed to be generally useful.
  *
  * All data members are methods are static, no instance of Shop is created. It is not serializable either.

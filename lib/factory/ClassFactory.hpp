@@ -10,21 +10,10 @@
 
 #pragma once
 
+#include<yade/lib/base/Types.hpp>
 
-#include<map>
-#include<string>
-#include<list>
 #include<iostream>
 #include<cstdio>
-
-#ifndef  __GXX_EXPERIMENTAL_CXX0X__
-#	include<boost/shared_ptr.hpp>
-	using boost::shared_ptr;
-#else
-#	include<memory>
-	using std::shared_ptr;
-#endif
-
 
 #include<yade/lib/base/Singleton.hpp>
 #include<yade/lib/base/Logging.hpp>

@@ -19,9 +19,9 @@
 
 CREATE_LOGGER(SpherePack);
 
-using namespace std;
-using namespace boost;
-namespace py=boost::python;
+using boost::lexical_cast;
+using std::string;
+using std::invalid_argument;
 
 // seed for random numbers
 unsigned long long getNow(){
@@ -70,12 +70,12 @@ void SpherePack::fromFile(string file) {
 #endif
 
 void SpherePack::toFile(const string fname) const {
-	ofstream f(fname.c_str());
-	if(!f.good()) throw runtime_error("Unable to open file `"+fname+"'");
-	if(cellSize!=Vector3r::Zero()){ f<<"##PERIODIC:: "<<cellSize[0]<<" "<<cellSize[1]<<" "<<cellSize[2]<<endl; }
+	std::ofstream f(fname.c_str());
+	if(!f.good()) throw std::runtime_error("Unable to open file `"+fname+"'");
+	if(cellSize!=Vector3r::Zero()){ f<<"##PERIODIC:: "<<cellSize[0]<<" "<<cellSize[1]<<" "<<cellSize[2]<<std::endl; }
 	FOREACH(const Sph& s, pack){
 		if(s.clumpId>=0) throw std::invalid_argument("SpherePack with clumps cannot be (currently) exported to a text file.");
-		f<<s.c[0]<<" "<<s.c[1]<<" "<<s.c[2]<<" "<<s.r<<endl;
+		f<<s.c[0]<<" "<<s.c[1]<<" "<<s.c[2]<<" "<<s.r<<std::endl;
 	}
 	f.close();
 };
@@ -104,7 +104,7 @@ long SpherePack::makeCloud(Vector3r mn, Vector3r mx, Real rMean, Real rRelFuzz, 
 	if (hSizeFound && !periodic) LOG_WARN("hSize can be defined only for periodic cells.");
 	Matrix3r invHsize =hSize.inverse();
 	Real volume=hSize.determinant();
-	if (!volume) throw invalid_argument("The box defined as null volume. Define at least maxCorner of the box, or hSize if periodic.");
+	if (!volume) throw std::invalid_argument("The box defined as null volume. Define at least maxCorner of the box, or hSize if periodic.");
 	int mode=-1; bool err=false;
 	// determine the way we generate radii
 	if(porosity<=0) {LOG_WARN("porosity must be >0, changing it for you. It will be ineffective if rMean>0."); porosity=0.5;}
@@ -116,7 +116,7 @@ long SpherePack::makeCloud(Vector3r mn, Vector3r mx, Real rMean, Real rRelFuzz, 
 		rMean=pow(volume*(1-porosity)/(Mathr::PI*(4/3.)*(1+rRelFuzz*rRelFuzz)*num),1/3.);}
 	if(psdSizes.size()>0){
 		err=(mode>=0); mode=RDIST_PSD;
-		if(psdSizes.size()!=psdCumm.size()) throw invalid_argument(("SpherePack.makeCloud: psdSizes and psdCumm must have same dimensions ("+lexical_cast<string>(psdSizes.size())+"!="+lexical_cast<string>(psdCumm.size())).c_str());
+		if(psdSizes.size()!=psdCumm.size()) throw std::invalid_argument(("SpherePack.makeCloud: psdSizes and psdCumm must have same dimensions ("+lexical_cast<string>(psdSizes.size())+"!="+lexical_cast<string>(psdCumm.size())).c_str());
 		if(psdSizes.size()<=1) throw invalid_argument("SpherePack.makeCloud: psdSizes must have at least 2 items");
 		if((*psdCumm.begin())!=0. && (*psdCumm.rbegin())!=1.) throw invalid_argument("SpherePack.makeCloud: first and last items of psdCumm *must* be exactly 0 and 1.");
 		psdRadii.reserve(psdSizes.size());
@@ -478,7 +478,8 @@ long SpherePack::makeClumpCloud(const Vector3r& mn, const Vector3r& mx, const ve
 }
 
 bool SpherePack::hasClumps() const { FOREACH(const Sph& s, pack){ if(s.clumpId>=0) return true; } return false; }
-python::tuple SpherePack::getClumps() const{
+
+py::tuple SpherePack::getClumps() const{
 	std::map<int,py::list> clumps;
 	py::list standalone; size_t packSize=pack.size();
 	for(size_t i=0; i<packSize; i++){
@@ -490,6 +491,6 @@ python::tuple SpherePack::getClumps() const{
 	py::list clumpList;
 	typedef std::pair<int,py::list> intListPair;
 	FOREACH(const intListPair& c, clumps) clumpList.append(c.second);
-	return python::make_tuple(standalone,clumpList); 
+	return py::make_tuple(standalone,clumpList); 
 }
 

@@ -68,8 +68,7 @@ struct SparcData: public NodeData{
 		((Matrix3r,gradV,Matrix3r::Zero(),,"gradient of velocity (only used as intermediate storage)"))
 		// static equilibrium solver data
 		#ifdef SPARC_STATIC
-			((int,nid,-1,,"Node id (to located coordinates in solution matrix)"))
-			((vector<int>,neighborsNids,,Attr::noGui,"List of neighbour nids, updated internally in findNeighbors")) 
+			((int,nid,-1,,"Node id (to locate coordinates in solution matrix)"))
 		#endif
 	#ifdef SPARC_INSPECT
 		// debugging only
@@ -91,26 +90,32 @@ REGISTER_SERIALIZABLE(SparcData);
 template<> struct NodeData::Index<SparcData>{enum{value=Node::ST_SPARC};};
 
 struct ExplicitNodeIntegrator: public GlobalEngine, private SparcField::Engine{
+	enum{ MAT_HOOKE=0, MAT_BARODESY_JESSE, MAT_SENTINEL /* to check max value */ };
 	SparcField* mff; // lazy to type
 	void findNeighbors(const shared_ptr<Node>& n) const;
 	void updateNeighborsRelPos(const shared_ptr<Node>& n, bool useNext=false) const;
 	Vector3r computeDivT(const shared_ptr<Node>& n, bool useNext=false) const;
 	Matrix3r computeGradV(const shared_ptr<Node>& n) const;
-	Matrix3r computeStressRate(const Matrix3r& T, const Matrix3r& D) const;
+	Matrix3r computeStressRate(const Matrix3r& T, const Matrix3r& D, Real e=-1) const;
+	// porosity updated using current deformation rate
+	Real nextPorosity(Real e, const Matrix3r& D) const { return e+scene->dt*(1+e)*D.trace(); }
 	void applyKinematicConstraints(const shared_ptr<Node>& n) const;
-	Matrix6r C; // update at every step
+	Matrix6r C; // updated at every step
 	void postLoad(ExplicitNodeIntegrator&);
 	virtual void run();
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ExplicitNodeIntegrator,GlobalEngine,"Monolithic engine for explicit integration of motion of nodes in SparcField.",
 		((Real,E,1e6,Attr::triggerPostLoad,"Young's modulus, for the linear elastic constitutive law"))
 		((Real,nu,0,Attr::triggerPostLoad,"Poisson's ratio for the linear elastic constitutive law"))
+		((vector<Real>,barodesyC,vector<Real>({-1.7637,-1.0249,-0.5517,-1174.,-4175.,2218}),Attr::triggerPostLoad,"Material constants for barodesy"))
+		((Real,ec0,.8703,,"Initial void ratio"))
 		((Real,rSearch,-1,,"Radius for neighbor-search"))
 		((int,neighborUpdate,1,,"Number of steps to periodically update neighbour information"))
+		((int,matModel,0,Attr::triggerPostLoad,"Material model to be used (0=linear elasticity, 1=barodesy (Jesse)"))
 		((Real,damping,0,,"Numerical damping, applied by-component on acceleration"))
 		((Real,c,0,,"Viscous damping coefficient."))
 		,/*ctor*/
 		,/*py*/
-		.def("stressRate",&ExplicitNodeIntegrator::computeStressRate) // for debugging
+		.def("stressRate",&ExplicitNodeIntegrator::computeStressRate,(py::arg("T"),py::arg("D"),py::arg("e")=-1)) // for debugging
 		.def_readonly("C",&ExplicitNodeIntegrator::C)
 	);
 };
@@ -127,6 +132,7 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 	void dumpUnbalanced();
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(StaticEquilibriumSolver,ExplicitNodeIntegrator,"Find global static equilibrium of a Sparc system.",
 		((Real,supportStiffness,1e10,,"Stiffness of constrained DoFs"))
+		((Real,residuum,NaN,Attr::readonly,"Norm of residuals (fnorm) as reported by the solver."))
 		#ifdef SPARC_INSPECT
 			((VectorXr,solverDivT,,Attr::readonly,"Solution vector as provided by the solver"))
 		#endif

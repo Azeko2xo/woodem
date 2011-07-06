@@ -140,7 +140,7 @@ struct PyRunner: public PeriodicEngine{
 	virtual void run();
 	// to give command without saying 'command=...'
 	virtual bool needsField(){ return false; }
-	virtual void pyHandleCustomCtorArgs(python::tuple& t, python::dict& d);
+	virtual void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d);
 	YADE_CLASS_BASE_DOC_ATTRS(PyRunner,PeriodicEngine,
 		"Execute a python command periodically, with defined (and adjustable) periodicity. See :yref:`PeriodicEngine` documentation for details.\n\n.. admonition:: Special constructor\n\n*command* can be given as first unnamed string argument (``PyRunner('foo()')``), stepPeriod as unnamed integer argument (``PyRunner('foo()',100)`` or ``PyRunner(100,'foo()')``).",
 		((string,command,"",,"Command to be run by python interpreter. Not run if empty."))

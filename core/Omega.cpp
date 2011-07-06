@@ -1,5 +1,5 @@
-#include"Omega.hpp"
-#include"Scene.hpp"
+#include<yade/core/Omega.hpp>
+#include<yade/core/Scene.hpp>
 #include<yade/core/BgThread.hpp>
 #include<yade/lib/base/Math.hpp>
 #include<yade/lib/multimethods/FunctorWrapper.hpp>
@@ -31,17 +31,17 @@ SINGLETON_SELF(Omega);
 Omega::Omega(): simulationLoop(&simulationFlow){
 	sceneAnother=shared_ptr<Scene>(new Scene);
 	scene=shared_ptr<Scene>(new Scene);
-	startupLocalTime=microsec_clock::local_time();
+	startupLocalTime=boost::posix_time::microsec_clock::local_time();
 	char dirTemplate[]="/tmp/yade-XXXXXX"; tmpFileDir=mkdtemp(dirTemplate); tmpFileCounter=0;
 }
 
 void Omega::reset(){ stop(); scene=shared_ptr<Scene>(new Scene); }
-void Omega::cleanupTemps(){ filesystem::path tmpPath(tmpFileDir); filesystem::remove_all(tmpPath); }
+void Omega::cleanupTemps(){ boost::filesystem::path tmpPath(tmpFileDir); boost::filesystem::remove_all(tmpPath); }
 
 const map<string,DynlibDescriptor>& Omega::getDynlibsDescriptor(){return dynlibs;}
 
-Real Omega::getRealTime(){ return (microsec_clock::local_time()-startupLocalTime).total_milliseconds()/1e3; }
-time_duration Omega::getRealTime_duration(){return microsec_clock::local_time()-startupLocalTime;}
+Real Omega::getRealTime(){ return (boost::posix_time::microsec_clock::local_time()-startupLocalTime).total_milliseconds()/1e3; }
+boost::posix_time::time_duration Omega::getRealTime_duration(){return boost::posix_time::microsec_clock::local_time()-startupLocalTime;}
 
 
 std::string Omega::tmpFilename(){
@@ -76,8 +76,8 @@ bool Omega::isInheritingFrom_recursive(const string& className, const string& ba
 /* IO */
 
 void Omega::loadSimulation(const string& f, bool quiet){
-	bool isMem=algorithm::starts_with(f,":memory:");
-	if(!isMem && !filesystem::exists(f)) throw runtime_error("Simulation file to load doesn't exist: "+f);
+	bool isMem=boost::algorithm::starts_with(f,":memory:");
+	if(!isMem && !boost::filesystem::exists(f)) throw runtime_error("Simulation file to load doesn't exist: "+f);
 	if(isMem && memSavedSimulations.count(f)==0) throw runtime_error("Cannot load nonexistent memory-saved simulation "+f);
 	
 	simulationLoop.workerThrew=false;  // this is invalidated
@@ -88,15 +88,15 @@ void Omega::loadSimulation(const string& f, bool quiet){
 		scene=shared_ptr<Scene>(new Scene);
 		RenderMutexLock lock;
 		if(isMem){
-			istringstream iss(memSavedSimulations[f]);
-			yade::ObjectIO::load<typeof(scene),boost::archive::binary_iarchive>(iss,"scene",scene);
+			std::istringstream iss(memSavedSimulations[f]);
+			yade::ObjectIO::load<decltype(scene),boost::archive::binary_iarchive>(iss,"scene",scene);
 		} else {
 			yade::ObjectIO::load(f,"scene",scene);
 		}
 	}
 	if(scene->getClassName()!="Scene") throw logic_error("Wrong file format (scene is not a Scene!?) in "+f);
 	scene->lastSave=f;
-	startupLocalTime=microsec_clock::local_time();
+	startupLocalTime=boost::posix_time::microsec_clock::local_time();
 	if(!quiet) LOG_DEBUG("Simulation loaded");
 }
 
@@ -105,10 +105,10 @@ void Omega::saveSimulation(const string& f, bool quiet){
 	if(f.size()==0) throw runtime_error("f of file to save has zero length.");
 	if(!quiet) LOG_INFO("Saving file " << f);
 	scene->lastSave=f;
-	if(algorithm::starts_with(f,":memory:")){
+	if(boost::algorithm::starts_with(f,":memory:")){
 		if(memSavedSimulations.count(f)>0 && !quiet) LOG_INFO("Overwriting in-memory saved simulation "<<f);
-		ostringstream oss;
-		yade::ObjectIO::save<typeof(scene),boost::archive::binary_oarchive>(oss,"scene",scene);
+		std::ostringstream oss;
+		yade::ObjectIO::save<decltype(scene),boost::archive::binary_oarchive>(oss,"scene",scene);
 		memSavedSimulations[f]=oss.str();
 	}
 	else {

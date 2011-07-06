@@ -140,7 +140,7 @@ class InsertionSortCollider: public Collider, private DemField::Engine{
 		// normalize given index to the right range (wraps around)
 		long norm(long i) const { if(i<0) i+=size; long ret=i%size; assert(ret>=0 && ret<size); return ret;}
 		VecBounds(): axis(-1), size(0), loIdx(0){}
-		void dump(ostream& os){ string ret; for(size_t i=0; i<vec.size(); i++) os<<((long)i==loIdx?"@@ ":"")<<vec[i].coord<<"(id="<<vec[i].id<<","<<(vec[i].flags.isMin?"min":"max")<<",p"<<vec[i].period<<") "; os<<endl;}
+		void dump(std::ostream& os){ string ret; for(size_t i=0; i<vec.size(); i++) os<<((long)i==loIdx?"@@ ":"")<<vec[i].coord<<"(id="<<vec[i].id<<","<<(vec[i].flags.isMin?"min":"max")<<",p"<<vec[i].period<<") "; os<<endl;}
 	};
 	private:
 	//! storage for bounds
@@ -155,7 +155,7 @@ class InsertionSortCollider: public Collider, private DemField::Engine{
 	DemField* dem;
 
 	// return python representation of the BB struct, as ([...],[...],[...]).
-	python::tuple dumpBounds();
+	py::tuple dumpBounds();
 
 	/*! sorting routine; insertion sort is very fast for strongly pre-sorted lists, which is our case
   	    http://en.wikipedia.org/wiki/Insertion_sort has the algorithm and other details

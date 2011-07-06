@@ -15,7 +15,7 @@ void Engine::setField(){
 	if(!needsField()) return; // no field required, do nothing
 	vector<shared_ptr<Field> > accepted;
 	FOREACH(const shared_ptr<Field> f, scene->fields){ if(acceptsField(f.get())) accepted.push_back(f); }
-	if(accepted.size()>1) throw std::runtime_error(("Engine "+getClassName()+" accepted "+lexical_cast<string>(accepted.size())+" fields to run on. Only one field is allowed; this ambiguity can be resolved by setting the field attribute.").c_str()); 
+	if(accepted.size()>1) throw std::runtime_error(("Engine "+getClassName()+" accepted "+boost::lexical_cast<string>(accepted.size())+" fields to run on. Only one field is allowed; this ambiguity can be resolved by setting the field attribute.").c_str()); 
 	if(accepted.empty()) throw std::runtime_error(("Engine "+getClassName()+" accepted no field to run on; remove it from engines.").c_str()); 
 	field=accepted[0];
 }
@@ -62,7 +62,7 @@ void ParallelEngine::run(){
 
 void ParallelEngine::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){
 	if(py::len(args)==0) return;
-	if(py::len(args)>1) yade::TypeError("ParallelEngine takes 0 or 1 non-keyword arguments ("+lexical_cast<string>(py::len(args))+" given)");
+	if(py::len(args)>1) yade::TypeError("ParallelEngine takes 0 or 1 non-keyword arguments ("+boost::lexical_cast<string>(py::len(args))+" given)");
 	py::extract<py::list> listEx(args[0]);
 	if(!listEx.check()) yade::TypeError("ParallelEngine: non-keyword argument must be a list");
 	pySlavesSet(listEx());

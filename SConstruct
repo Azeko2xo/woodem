@@ -208,10 +208,10 @@ if len(sys.argv)>1 and ('clean' in sys.argv) or ('tags' in sys.argv) or ('doc' i
 ##########################################################################################
 
 # ensure non-None
-env.Append(CPPPATH='',LIBPATH='',LIBS='',CXXFLAGS='',SHCCFLAGS='')
+env.Append(CPPPATH='',LIBPATH='',LIBS='',CXXFLAGS='-std=c++0x',SHCCFLAGS='')
 
 def CheckCXX(context):
-	context.Message('Checking whether c++ compiler "%s" works...'%env['CXX'])
+	context.Message('Checking whether c++ compiler (with -std=c++0x) "%s" works...'%env['CXX'])
 	ret=context.TryLink('#include<iostream>\nint main(int argc, char**argv){std::cerr<<std::endl;return 0;}\n','.cpp')
 	context.Result(ret)
 	return ret

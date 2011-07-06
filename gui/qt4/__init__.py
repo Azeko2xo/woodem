@@ -162,10 +162,10 @@ class ControllerClass(QWidget,Ui_Controller):
 		plot.splitData()
 		O.reload()
 	def dtEditNoupdateSlot(self):
-		print 'dt not refreshed'
+		#print 'dt not refreshed'
 		self.dtEditUpdate=False
 	def dtEditedSlot(self):
-		print 'dt refreshed'
+		#print 'dt refreshed'
 		try:
 			t=float(self.dtEdit.text())
 			O.scene.dt=t

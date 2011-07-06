@@ -30,8 +30,6 @@
 
 #include<QtGui/qevent.h>
 
-using namespace boost;
-
 #ifdef YADE_GL2PS
 #include<gl2ps.h>
 #endif
@@ -55,7 +53,7 @@ void SnapshotEngine::run(){
 		}
 	}
 	const shared_ptr<GLViewer>& glv=OpenGLManager::self->views[0];
-	ostringstream fss; fss<<fileBase<<setw(5)<<setfill('0')<<counter++<<"."<<boost::algorithm::to_lower_copy(format);
+	std::ostringstream fss; fss<<fileBase<<std::setw(5)<<std::setfill('0')<<counter++<<"."<<boost::algorithm::to_lower_copy(format);
 	LOG_DEBUG("GL view → "<<fss.str())
 	glv->setSnapshotFormat(QString(format.c_str()));
 	glv->nextFrameSnapshotFilename=fss.str();
@@ -226,8 +224,8 @@ void GLViewer::useDisplayParameters(size_t n, bool fromHandler){
 	}
 	const shared_ptr<DisplayParameters>& dp=dispParams[n];
 	string val;
-	if(dp->getValue("Renderer",val)){ istringstream oglre(val);
-		yade::ObjectIO::load<typeof(renderer),boost::archive::xml_iarchive>(oglre,"renderer",renderer);
+	if(dp->getValue("Renderer",val)){ std::istringstream oglre(val);
+		yade::ObjectIO::load<decltype(renderer),boost::archive::xml_iarchive>(oglre,"renderer",renderer);
 	}
 	else { LOG_WARN("Renderer configuration not found in display parameters, skipped.");}
 	if(dp->getValue("GLViewer",val)){ GLViewer::setState(val); displayMessage("Loaded view configuration #"+lexical_cast<string>(n)); }
@@ -239,8 +237,8 @@ void GLViewer::useDisplayParameters(size_t n, bool fromHandler){
 	vector<shared_ptr<DisplayParameters> >& dispParams=Omega::instance().getScene()->dispParams;
 	if(dispParams.size()<=n){while(dispParams.size()<=n) dispParams.push_back(shared_ptr<DisplayParameters>(new DisplayParameters));} assert(n<dispParams.size());
 	shared_ptr<DisplayParameters>& dp=dispParams[n];
-	ostringstream oglre;
-	yade::ObjectIO::save<typeof(renderer),boost::archive::xml_oarchive>(oglre,"renderer",renderer);
+	std::ostringstream oglre;
+	yade::ObjectIO::save<decltype(renderer),boost::archive::xml_oarchive>(oglre,"renderer",renderer);
 	dp->setValue("Renderer",oglre.str());
 	dp->setValue("GLViewer",GLViewer::getState());
 	displayMessage("Saved view configuration ot #"+lexical_cast<string>(n));
@@ -253,7 +251,7 @@ string GLViewer::getState(){
 	LOG_DEBUG("State saved to temp file "<<tmpFile);
 	// read tmp file contents and return it as string
 	// this will replace all whitespace by space (nowlines will disappear, which is what we want)
-	ifstream in(tmpFile.c_str()); string ret; while(!in.eof()){string ss; in>>ss; ret+=" "+ss;}; in.close();
+	std::ifstream in(tmpFile.c_str()); string ret; while(!in.eof()){string ss; in>>ss; ret+=" "+ss;}; in.close();
 	boost::filesystem::remove(boost::filesystem::path(tmpFile));
 	return ret;
 }
@@ -693,14 +691,14 @@ void GLViewer::postDraw(){
 	}
 	
 	Scene* scene=Omega::instance().getScene().get();
-	#define _W3 setw(3)<<setfill('0')
-	#define _W2 setw(2)<<setfill('0')
+	#define _W3 std::setw(3)<<std::setfill('0')
+	#define _W2 std::setw(2)<<std::setfill('0')
 	if(timeDispMask!=0){
 		const int lineHt=13;
 		unsigned x=10,y=height()-3-lineHt*2;
 		glColor3v(Vector3r(1,1,1));
 		if(timeDispMask & GLViewer::TIME_VIRT){
-			ostringstream oss;
+			std::ostringstream oss;
 			const Real& t=Omega::instance().getScene()->time;
 			unsigned min=((unsigned)t/60),sec=(((unsigned)t)%60),msec=((unsigned)(1e3*t))%1000,usec=((unsigned long)(1e6*t))%1000,nsec=((unsigned long)(1e9*t))%1000;
 			if(min>0) oss<<_W2<<min<<":"<<_W2<<sec<<"."<<_W3<<msec<<"m"<<_W3<<usec<<"u"<<_W3<<nsec<<"n";
@@ -717,17 +715,17 @@ void GLViewer::postDraw(){
 			y-=lineHt;
 		}
 		if(timeDispMask & GLViewer::TIME_ITER){
-			ostringstream oss;
+			std::ostringstream oss;
 			oss<<"#"<<scene->step;
-			if(scene->stopAtStep>scene->step) oss<<" ("<<setiosflags(ios::fixed)<<setw(3)<<setprecision(1)<<setfill('0')<<(100.*scene->step)/scene->stopAtStep<<"%)";
+			if(scene->stopAtStep>scene->step) oss<<" ("<<std::setiosflags(std::ios::fixed)<<std::setw(3)<<std::setprecision(1)<<std::setfill('0')<<(100.*scene->step)/scene->stopAtStep<<"%)";
 			QGLViewer::drawText(x,y,oss.str().c_str());
 			y-=lineHt;
 		}
 		if(drawGrid){
 			glColor3v(Vector3r(1,1,0));
-			ostringstream oss;
-			oss<<"grid: "<<setprecision(4)<<gridStep;
-			if(gridSubdivide) oss<<" (minor "<<setprecision(3)<<gridStep*.1<<")";
+			std::ostringstream oss;
+			oss<<"grid: "<<std::setprecision(4)<<gridStep;
+			if(gridSubdivide) oss<<" (minor "<<std::setprecision(3)<<gridStep*.1<<")";
 			QGLViewer::drawText(x,y,oss.str().c_str());
 			y-=lineHt;
 		}
@@ -814,8 +812,8 @@ void GLViewer::postDraw(){
 }
 
 string GLViewer::getRealTimeString(){
-	ostringstream oss;
-	time_duration t=Omega::instance().getRealTime_duration();
+	std::ostringstream oss;
+	boost::posix_time::time_duration t=Omega::instance().getRealTime_duration();
 	unsigned d=t.hours()/24,h=t.hours()%24,m=t.minutes(),s=t.seconds();
 	oss<<"clock ";
 	if(d>0) oss<<d<<"days "<<_W2<<h<<":"<<_W2<<m<<":"<<_W2<<s;

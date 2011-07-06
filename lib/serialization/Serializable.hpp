@@ -1,36 +1,19 @@
 #pragma once
 
-#include <boost/any.hpp>
-#include <boost/foreach.hpp>
-#ifndef  __GXX_EXPERIMENTAL_CXX0X__
-#	include<boost/shared_ptr.hpp>
-	using boost::shared_ptr;
-#else
-#	include<memory>
-	using std::shared_ptr;
-#endif
+#include<yade/lib/base/Types.hpp>
+
+#include<boost/any.hpp>
 #include<boost/version.hpp>
 #include<boost/python.hpp>
 #include<boost/type_traits.hpp>
-#include<boost/lexical_cast.hpp>
 #include<boost/preprocessor.hpp>
 #include<boost/type_traits/integral_constant.hpp>
-#include<list>
-#include<map>
-#include<string>
-#include<vector>
-#include<iostream>
 #include<yade/lib/factory/Factorable.hpp>
 #include<yade/lib/pyutil/raw_constructor.hpp>
 #include<yade/lib/pyutil/doc_opts.hpp>
 #include<yade/lib/pyutil/except.hpp>
 
 #include<yade/lib/base/Math.hpp>
-
-using namespace boost;
-using namespace std;
-
-namespace py=boost::python;
 
 
 // empty functions for ADL
@@ -94,24 +77,24 @@ namespace yade{
 template<class C, typename T, T C::*A>
 void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<"make_setter_postLoad called"<<endl; */ instance.callPostLoad(); /* postLoad(instance); */ }
 
-#define _DEF_READWRITE_BY_VALUE(thisClass,attr,doc) add_property(/*attr name*/BOOST_PP_STRINGIZE(attr),/*read access*/boost::python::make_getter(&thisClass::attr,boost::python::return_value_policy<boost::python::return_by_value>()),/*write access*/boost::python::make_setter(&thisClass::attr,boost::python::return_value_policy<boost::python::return_by_value>()),/*docstring*/doc)
+#define _DEF_READWRITE_BY_VALUE(thisClass,attr,doc) add_property(/*attr name*/BOOST_PP_STRINGIZE(attr),/*read access*/py::make_getter(&thisClass::attr,py::return_value_policy<py::return_by_value>()),/*write access*/py::make_setter(&thisClass::attr,py::return_value_policy<py::return_by_value>()),/*docstring*/doc)
 // not sure if this is correct: the getter works by value, the setter by reference (the default)...?
-#define _DEF_READWRITE_BY_VALUE_POSTLOAD(thisClass,attr,doc) add_property(/*attr name*/BOOST_PP_STRINGIZE(attr),/*read access*/boost::python::make_getter(&thisClass::attr,boost::python::return_value_policy<boost::python::return_by_value>()),/*write access*/ make_setter_postLoad<thisClass,typeof(thisClass::attr),&thisClass::attr>,/*docstring*/doc)
-#define _DEF_READONLY_BY_VALUE(thisClass,attr,doc) add_property(/*attr name*/BOOST_PP_STRINGIZE(attr),/*read access*/boost::python::make_getter(&thisClass::attr,boost::python::return_value_policy<boost::python::return_by_value>()),/*docstring*/doc)
+#define _DEF_READWRITE_BY_VALUE_POSTLOAD(thisClass,attr,doc) add_property(/*attr name*/BOOST_PP_STRINGIZE(attr),/*read access*/py::make_getter(&thisClass::attr,py::return_value_policy<py::return_by_value>()),/*write access*/ make_setter_postLoad<thisClass,decltype(thisClass::attr),&thisClass::attr>,/*docstring*/doc)
+#define _DEF_READONLY_BY_VALUE(thisClass,attr,doc) add_property(/*attr name*/BOOST_PP_STRINGIZE(attr),/*read access*/py::make_getter(&thisClass::attr,py::return_value_policy<py::return_by_value>()),/*docstring*/doc)
 /* Huh, add_static_property does not support doc argument (add_property does); if so, use add_property for now at least... */
 #define _DEF_READWRITE_BY_VALUE_STATIC(thisClass,attr,doc)  _DEF_READWRITE_BY_VALUE(thisClass,attr,doc)
 // the conditional yade::py_wrap_ref should be eliminated by compiler at compile-time, as it depends only on types, not their values
 // most of this could be written with templates, including flags (ints can be template args)
-#define _DEF_READWRITE_CUSTOM(thisClass,attr) if(!(_ATTR_FLG(attr) & yade::Attr::hidden)){ bool _ro(_ATTR_FLG(attr) & Attr::readonly), _post(_ATTR_FLG(attr) & Attr::triggerPostLoad), _ref(yade::py_wrap_ref<typeof(thisClass::_ATTR_NAM(attr))>::value || (_ATTR_FLG(attr)& yade::Attr::pyByRef)); std::string docStr(_ATTR_DOC(attr)); docStr+=" :yattrflags:`"+boost::lexical_cast<string>(_ATTR_FLG(attr))+"` "; \
+#define _DEF_READWRITE_CUSTOM(thisClass,attr) if(!(_ATTR_FLG(attr) & yade::Attr::hidden)){ bool _ro(_ATTR_FLG(attr) & Attr::readonly), _post(_ATTR_FLG(attr) & Attr::triggerPostLoad), _ref(yade::py_wrap_ref<decltype(thisClass::_ATTR_NAM(attr))>::value || (_ATTR_FLG(attr)& yade::Attr::pyByRef)); std::string docStr(_ATTR_DOC(attr)); docStr+=" :yattrflags:`"+boost::lexical_cast<string>(_ATTR_FLG(attr))+"` "; \
 	if      ( _ref && !_ro && !_post) _classObj.def_readwrite(_ATTR_NAM_STR(attr),&thisClass::_ATTR_NAM(attr),docStr.c_str()); \
-	else if ( _ref && !_ro &&  _post) _classObj.add_property(_ATTR_NAM_STR(attr),boost::python::make_getter(&thisClass::_ATTR_NAM(attr)),make_setter_postLoad<thisClass,typeof(thisClass::_ATTR_NAM(attr)),&thisClass::_ATTR_NAM(attr)>,docStr.c_str()); \
+	else if ( _ref && !_ro &&  _post) _classObj.add_property(_ATTR_NAM_STR(attr),py::make_getter(&thisClass::_ATTR_NAM(attr)),make_setter_postLoad<thisClass,decltype(thisClass::_ATTR_NAM(attr)),&thisClass::_ATTR_NAM(attr)>,docStr.c_str()); \
 	else if ( _ref &&  _ro)           _classObj.def_readonly(_ATTR_NAM_STR(attr),&thisClass::_ATTR_NAM(attr),docStr.c_str()); \
 	else if (!_ref && !_ro && !_post) _classObj._DEF_READWRITE_BY_VALUE(thisClass,_ATTR_NAM(attr),docStr.c_str()); \
 	else if (!_ref && !_ro &&  _post) _classObj._DEF_READWRITE_BY_VALUE_POSTLOAD(thisClass,_ATTR_NAM(attr),docStr.c_str()); \
 	else if (!_ref &&  _ro)           _classObj._DEF_READONLY_BY_VALUE(thisClass,_ATTR_NAM(attr),docStr.c_str()); \
 	if(_ro && _post) std::cerr<<"WARN: " BOOST_PP_STRINGIZE(thisClass) "::" _ATTR_NAM_STR(attr) " with the yade::Attr::readonly flag also uselessly sets yade::Attr::triggerPostLoad."<<std::endl; \
 }
-#define _DEF_READWRITE_CUSTOM_STATIC(thisClass,attr,doc) { /* if(yade::py_wrap_ref<typeof(thisClass::attr)>::value)*/ _classObj.def_readwrite(BOOST_PP_STRINGIZE(attr),&thisClass::attr,doc); /* else _classObj._DEF_READWRITE_BY_VALUE_STATIC(thisClass,attr,doc);*/ }
+#define _DEF_READWRITE_CUSTOM_STATIC(thisClass,attr,doc) { /* if(yade::py_wrap_ref<decltype(thisClass::attr)>::value)*/ _classObj.def_readwrite(BOOST_PP_STRINGIZE(attr),&thisClass::attr,doc); /* else _classObj._DEF_READWRITE_BY_VALUE_STATIC(thisClass,attr,doc);*/ }
 
 
 
@@ -119,11 +102,11 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 // gcc<=4.3 is not able to compile this code; we will just not generate any code for deprecated attributes in such case
 #if !defined(__GNUG__) || (defined(__GNUG__) && (__GNUC__ > 4 || (__GNUC__==4 && __GNUC_MINOR__ > 3)))
 	// gcc > 4.3 && non-gcc compilers
-	#define _PYSET_ATTR_DEPREC(x,thisClass,z) if(key==BOOST_PP_STRINGIZE(_DEPREC_OLDNAME(z))){ _DEPREC_WARN(thisClass,z); _DEPREC_NEWNAME(z)=boost::python::extract<typeof(_DEPREC_NEWNAME(z))>(value); return; }
+	#define _PYSET_ATTR_DEPREC(x,thisClass,z) if(key==BOOST_PP_STRINGIZE(_DEPREC_OLDNAME(z))){ _DEPREC_WARN(thisClass,z); _DEPREC_NEWNAME(z)=py::extract<decltype(_DEPREC_NEWNAME(z))>(value); return; }
 	#define _PYATTR_DEPREC_DEF(x,thisClass,z) .add_property(BOOST_PP_STRINGIZE(_DEPREC_OLDNAME(z)),&thisClass::BOOST_PP_CAT(_getDeprec_,_DEPREC_OLDNAME(z)),&thisClass::BOOST_PP_CAT(_setDeprec_,_DEPREC_OLDNAME(z)),"|ydeprecated| alias for :yref:`" BOOST_PP_STRINGIZE(_DEPREC_NEWNAME(z)) "<" BOOST_PP_STRINGIZE(thisClass) "." BOOST_PP_STRINGIZE(_DEPREC_NEWNAME(z)) ">` (" _DEPREC_COMMENT(z) ")")
 	#define _PYHASKEY_ATTR_DEPREC(x,thisClass,z) if(key==BOOST_PP_STRINGIZE(_DEPREC_OLDNAME(z))) return true;
 	/* accessors functions ussing warning */
-	#define _ACCESS_DEPREC(x,thisClass,z) /*getter*/ typeof(_DEPREC_NEWNAME(z)) BOOST_PP_CAT(_getDeprec_,_DEPREC_OLDNAME(z))(){_DEPREC_WARN(thisClass,z); return _DEPREC_NEWNAME(z); } /*setter*/ void BOOST_PP_CAT(_setDeprec_,_DEPREC_OLDNAME(z))(const typeof(_DEPREC_NEWNAME(z))& val){_DEPREC_WARN(thisClass,z); _DEPREC_NEWNAME(z)=val; }
+	#define _ACCESS_DEPREC(x,thisClass,z) /*getter*/ decltype(_DEPREC_NEWNAME(z)) BOOST_PP_CAT(_getDeprec_,_DEPREC_OLDNAME(z))(){_DEPREC_WARN(thisClass,z); return _DEPREC_NEWNAME(z); } /*setter*/ void BOOST_PP_CAT(_setDeprec_,_DEPREC_OLDNAME(z))(const decltype(_DEPREC_NEWNAME(z))& val){_DEPREC_WARN(thisClass,z); _DEPREC_NEWNAME(z)=val; }
 #else
 	#define _PYSET_ATTR_DEPREC(x,y,z)
 	#define _PYATTR_DEPREC_DEF(x,y,z)
@@ -133,12 +116,12 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 
 
 // loop bodies for attribute access
-#define _PYGET_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) return boost::python::object(_ATTR_NAM(z));
-//#define _PYSET_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) { _ATTR_NAM(z)=boost::python::extract<typeof(_ATTR_NAM(z))>(t[1]); boost::python::delitem(d,boost::python::object(_ATTR_NAM(z))); continue; }
-#define _PYSET_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) { _ATTR_NAM(z)=boost::python::extract<typeof(_ATTR_NAM(z))>(value); return; }
+#define _PYGET_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) return py::object(_ATTR_NAM(z));
+//#define _PYSET_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) { _ATTR_NAM(z)=py::extract<decltype(_ATTR_NAM(z))>(t[1]); py::delitem(d,py::object(_ATTR_NAM(z))); continue; }
+#define _PYSET_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) { _ATTR_NAM(z)=py::extract<decltype(_ATTR_NAM(z))>(value); return; }
 #define _PYYATTR_ATTR(x,y,z) if(!(_ATTR_FLG(z) & yade::Attr::hidden)) ret.append(_ATTR_NAM_STR(z));
 #define _PYHASKEY_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) return true;
-#define _PYDICT_ATTR(x,y,z) if(!(_ATTR_FLG(z) & yade::Attr::hidden)){ /*if(_ATTR_FLG(z) & yade::Attr::pyByRef) ret[_ATTR_NAM_STR(z)]=boost::python::object(boost::ref(_ATTR_NAM(z))); else */  ret[_ATTR_NAM_STR(z)]=boost::python::object(_ATTR_NAM(z)); }
+#define _PYDICT_ATTR(x,y,z) if(!(_ATTR_FLG(z) & yade::Attr::hidden)){ /*if(_ATTR_FLG(z) & yade::Attr::pyByRef) ret[_ATTR_NAM_STR(z)]=py::object(boost::ref(_ATTR_NAM(z))); else */  ret[_ATTR_NAM_STR(z)]=py::object(_ATTR_NAM(z)); }
 #define _REGISTER_BOOST_ATTRIBUTES_REPEAT(x,y,z) if((_ATTR_FLG(z) & yade::Attr::noSave)==0) { ar & BOOST_SERIALIZATION_NVP(_ATTR_NAM(z)); }
 #define _REGISTER_BOOST_ATTRIBUTES(baseClass,attrs) \
 	friend class boost::serialization::access; \
@@ -151,10 +134,10 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 	}
 
 #define _REGISTER_ATTRIBUTES_DEPREC(thisClass,baseClass,attrs,deprec)  _REGISTER_BOOST_ATTRIBUTES(baseClass,attrs) public: \
-	void pySetAttr(const std::string& key, const boost::python::object& value){BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR,~,attrs); BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR_DEPREC,thisClass,deprec); baseClass::pySetAttr(key,value); } \
-	/* list all attributes (except deprecated ones); could return boost::python::set instead*/ /* boost::python::list pyKeys() const {  boost::python::list ret; BOOST_PP_SEQ_FOR_EACH(_PYKEYS_ATTR,~,attrs); ret.extend(baseClass::pyKeys()); return ret; }  */ \
-	/* return dictionary of all acttributes and values; deprecated attributes omitted */ boost::python::dict pyDict() const { boost::python::dict ret; BOOST_PP_SEQ_FOR_EACH(_PYDICT_ATTR,~,attrs); ret.update(baseClass::pyDict()); return ret; } \
-	/* return list of yade attribute names; deprecated attributes ignored */ boost::python::list pyYAttrs() const { boost::python::list ret(baseClass::pyYAttrs()); BOOST_PP_SEQ_FOR_EACH(_PYYATTR_ATTR,~,attrs); return ret; } \
+	void pySetAttr(const std::string& key, const py::object& value){BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR,~,attrs); BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR_DEPREC,thisClass,deprec); baseClass::pySetAttr(key,value); } \
+	/* list all attributes (except deprecated ones); could return py::set instead*/ /* py::list pyKeys() const {  py::list ret; BOOST_PP_SEQ_FOR_EACH(_PYKEYS_ATTR,~,attrs); ret.extend(baseClass::pyKeys()); return ret; }  */ \
+	/* return dictionary of all acttributes and values; deprecated attributes omitted */ py::dict pyDict() const { py::dict ret; BOOST_PP_SEQ_FOR_EACH(_PYDICT_ATTR,~,attrs); ret.update(baseClass::pyDict()); return ret; } \
+	/* return list of yade attribute names; deprecated attributes ignored */ py::list pyYAttrs() const { py::list ret(baseClass::pyYAttrs()); BOOST_PP_SEQ_FOR_EACH(_PYYATTR_ATTR,~,attrs); return ret; } \
 	virtual void callPostLoad(void){ baseClass::callPostLoad(); postLoad(*this); }
 
 
@@ -184,7 +167,7 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 	_REGISTER_ATTRIBUTES_DEPREC(thisClass,baseClass,attrs,deprec) \
 	REGISTER_CLASS_AND_BASE(thisClass,baseClass) \
 	/* accessors for deprecated attributes, with warnings */ BOOST_PP_SEQ_FOR_EACH(_ACCESS_DEPREC,thisClass,deprec) \
-	/* python class registration */ virtual void pyRegisterClass(python::object _scope) { checkPyClassRegistersItself(#thisClass); boost::python::scope thisScope(_scope); YADE_SET_DOCSTRING_OPTS; boost::python::class_<thisClass,shared_ptr<thisClass>,boost::python::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,docString,/*call raw ctor even for parameterless construction*/boost::python::no_init); _classObj.def("__init__",python::raw_constructor(Serializable_ctor_kwAttrs<thisClass>)); BOOST_PP_SEQ_FOR_EACH(_PYATTR_DEF,thisClass,attrs); (void) _classObj BOOST_PP_SEQ_FOR_EACH(_PYATTR_DEPREC_DEF,thisClass,deprec); (void) _classObj extras ; } \
+	/* python class registration */ virtual void pyRegisterClass(py::object _scope) { checkPyClassRegistersItself(#thisClass); py::scope thisScope(_scope); YADE_SET_DOCSTRING_OPTS; py::class_<thisClass,shared_ptr<thisClass>,py::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,docString,/*call raw ctor even for parameterless construction*/py::no_init); _classObj.def("__init__",py::raw_constructor(Serializable_ctor_kwAttrs<thisClass>)); BOOST_PP_SEQ_FOR_EACH(_PYATTR_DEF,thisClass,attrs); (void) _classObj BOOST_PP_SEQ_FOR_EACH(_PYATTR_DEPREC_DEF,thisClass,deprec); (void) _classObj extras ; } \
 	virtual void must_use_both_YADE_CLASS_BASE_DOC_ATTRS_and_YADE_PLUGIN(); // virtual ensures v-table for all classes 
 
 // #define YADE_CLASS_BASE_DOC_ATTRS_PY(thisClass,baseClass,docString,attrs,extras) YADE_CLASS_BASE_DOC_ATTRS_DEPREC_PY(thisClass,baseClass,docString,attrs,,extras)
@@ -208,8 +191,8 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 
 
 #define _STATCLASS_PY_REGISTER_CLASS(thisClass,baseClass,docString,attrs)\
-	virtual void pyRegisterClass(python::object _scope) { checkPyClassRegistersItself(#thisClass); initSetStaticAttributesValue(); boost::python::scope thisScope(_scope); YADE_SET_DOCSTRING_OPTS; \
-		boost::python::class_<thisClass,shared_ptr<thisClass>,boost::python::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,(docString + std::string("\n\n") BOOST_PP_SEQ_FOR_EACH(_STATATTR_MAKE_DOC,thisClass,attrs)).c_str(),/*call raw ctor even for parameterless construction*/boost::python::no_init); _classObj.def("__init__",python::raw_constructor(Serializable_ctor_kwAttrs<thisClass>)); \
+	virtual void pyRegisterClass(py::object _scope) { checkPyClassRegistersItself(#thisClass); initSetStaticAttributesValue(); py::scope thisScope(_scope); YADE_SET_DOCSTRING_OPTS; \
+		py::class_<thisClass,shared_ptr<thisClass>,py::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,(docString + std::string("\n\n") BOOST_PP_SEQ_FOR_EACH(_STATATTR_MAKE_DOC,thisClass,attrs)).c_str(),/*call raw ctor even for parameterless construction*/py::no_init); _classObj.def("__init__",py::raw_constructor(Serializable_ctor_kwAttrs<thisClass>)); \
 		BOOST_PP_SEQ_FOR_EACH(_STATATTR_PY,thisClass,attrs);  \
 	}
 
@@ -266,24 +249,24 @@ class Serializable: public Factorable {
 		bool operator==(const Serializable& other) const { return this==&other; }
 		bool operator!=(const Serializable& other) const { return this!=&other; }
 
-		void pyUpdateAttrs(const boost::python::dict& d);
-		//static void pyUpdateAttrs(const shared_ptr<Serializable>&, const boost::python::dict& d);
+		void pyUpdateAttrs(const py::dict& d);
+		//static void pyUpdateAttrs(const shared_ptr<Serializable>&, const py::dict& d);
 
-		virtual void pySetAttr(const std::string& key, const boost::python::object& value){ yade::AttributeError("No such attribute: "+key+".");};
-		virtual boost::python::list pyYAttrs() const { return boost::python::list(); };
-		virtual boost::python::dict pyDict() const { return boost::python::dict(); }
+		virtual void pySetAttr(const std::string& key, const py::object& value){ yade::AttributeError("No such attribute: "+key+".");};
+		virtual py::list pyYAttrs() const { return py::list(); };
+		virtual py::dict pyDict() const { return py::dict(); }
 		virtual void callPostLoad(void){ postLoad(*this); }
 		// check whether the class registers itself or whether it calls virtual function of some base class;
 		// that means that the class doesn't register itself properly
 		virtual void checkPyClassRegistersItself(const std::string& thisClassName) const;
 		// perform class registration; overridden in all classes
-		virtual void pyRegisterClass(boost::python::object _scope);
+		virtual void pyRegisterClass(py::object _scope);
 		// perform any manipulation of arbitrary constructor arguments coming from python, manipulating them in-place;
 		// the remainder is passed to the Serializable_ctor_kwAttrs of the respective class (note: args must be empty)
-		virtual void pyHandleCustomCtorArgs(boost::python::tuple& args, boost::python::dict& kw){ return; }
+		virtual void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){ return; }
 		
 		//! string representation of this object
-		std::string pyStr() const { return "<"+getClassName()+" instance at "+lexical_cast<string>(this)+">"; }
+		std::string pyStr() const { return "<"+getClassName()+" instance at "+boost::lexical_cast<string>(this)+">"; }
 
 	REGISTER_CLASS_NAME(Serializable);
 	REGISTER_BASE_CLASS_NAME(Factorable);
@@ -291,12 +274,11 @@ class Serializable: public Factorable {
 
 // helper functions
 template <typename T>
-shared_ptr<T> Serializable_ctor_kwAttrs(python::tuple& t, python::dict& d){
-	shared_ptr<T> instance;
-	instance=shared_ptr<T>(new T);
+shared_ptr<T> Serializable_ctor_kwAttrs(py::tuple& t, py::dict& d){
+	shared_ptr<T> instance=make_shared<T>();
 	instance->pyHandleCustomCtorArgs(t,d); // can change t and d in-place
-	if(python::len(t)>0) throw runtime_error("Zero (not "+lexical_cast<string>(python::len(t))+") non-keyword constructor arguments required [in Serializable_ctor_kwAttrs; Serializable::pyHandleCustomCtorArgs might had changed it after your call].");
-	if(python::len(d)>0) instance->pyUpdateAttrs(d);
+	if(py::len(t)>0) throw std::runtime_error("Zero (not "+boost::lexical_cast<string>(py::len(t))+") non-keyword constructor arguments required [in Serializable_ctor_kwAttrs; Serializable::pyHandleCustomCtorArgs might had changed it after your call].");
+	if(py::len(d)>0) instance->pyUpdateAttrs(d);
 	instance->callPostLoad(); 
 	return instance;
 }

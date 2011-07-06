@@ -28,6 +28,8 @@
 #include<iostream>
 #include<map>
 
+#include<yade/lib/base/Types.hpp>
+
 #include<yade/lib/base/Math.hpp>
 #include<yade/lib/base/openmp-accu.hpp>
 
@@ -60,16 +62,14 @@
 
 
 
-
-using namespace boost::python;
-
+using namespace py; // = boost::python
 
 // move this to the miniEigen wrapper later
 
 /* two-way se3 handling */
 struct custom_se3_to_tuple{
 	static PyObject* convert(const Se3r& se3){
-		python::tuple ret=python::make_tuple(se3.position,se3.orientation);
+		py::tuple ret=py::make_tuple(se3.position,se3.orientation);
 		return incref(ret.ptr());
 	}
 };
@@ -115,8 +115,8 @@ struct custom_OpenMPAccumulator_from_int{
 template<typename T>
 struct custom_vvector_to_list{
 	static PyObject* convert(const std::vector<std::vector<T> >& vv){
-		python::list ret; FOREACH(const std::vector<T>& v, vv){
-			python::list ret2;
+		py::list ret; FOREACH(const std::vector<T>& v, vv){
+			py::list ret2;
 			FOREACH(const T& e, v) ret2.append(e);
 			ret.append(ret2);
 		}
@@ -127,7 +127,7 @@ struct custom_vvector_to_list{
 template<typename containedType>
 struct custom_list_to_list{
 	static PyObject* convert(const std::list<containedType>& v){
-		python::list ret; FOREACH(const containedType& e, v) ret.append(e);
+		py::list ret; FOREACH(const containedType& e, v) ret.append(e);
 		return incref(ret.ptr());
 	}
 };
@@ -135,7 +135,7 @@ struct custom_list_to_list{
 template<typename containedType>
 struct custom_vector_to_list{
 	static PyObject* convert(const std::vector<containedType>& v){
-		python::list ret; FOREACH(const containedType& e, v) ret.append(e);
+		py::list ret; FOREACH(const containedType& e, v) ret.append(e);
 		return incref(ret.ptr());
 	}
 };
@@ -190,8 +190,6 @@ std::string vectorRepr(const vector<std::string>& v){ std::string ret("["); for(
 bool operator<(const Vector3r& a, const Vector3r& b){ return a[0]<b[0]; }
 #endif
 
-
-using namespace boost::python;
 
 BOOST_PYTHON_MODULE(_customConverters){
 

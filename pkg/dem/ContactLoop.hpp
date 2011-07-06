@@ -70,7 +70,7 @@ class ContactLoop: public GlobalEngine, private DemField::Engine {
 		void removeAfterLoop(const shared_ptr<Contact>& c){ removeAfterLoopRefs.push_back(c); }
 	#endif
 	public:
-		virtual void pyHandleCustomCtorArgs(python::tuple& t, python::dict& d);
+		virtual void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d);
 		virtual void getLabeledObjects(std::map<std::string, py::object>& m);
 		virtual void run();
 		YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ContactLoop,GlobalEngine,"Loop over all contacts, possible in a parallel manner.\n\n.. admonition:: Special constructor\n\n\tConstructs from 3 lists of :yref:`Cg2<CGeomFunctor>`, :yref:`Cp2<IPhysFunctor>`, :yref:`Law<LawFunctor>` functors respectively; they will be passed to interal dispatchers.",

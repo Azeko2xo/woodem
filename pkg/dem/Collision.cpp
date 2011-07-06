@@ -56,13 +56,13 @@ bool Collider::mayCollide(const Body* b1, const Body* b2){
 
 void Collider::getLabeledObjects(std::map<std::string,py::object>& m){ boundDispatcher->getLabeledObjects(m); GlobalEngine::getLabeledObjects(m); }
 
-void Collider::pyHandleCustomCtorArgs(python::tuple& t, python::dict& d){
-	if(python::len(t)==0) return; // nothing to do
-	if(python::len(t)!=1) throw invalid_argument(("Collider optionally takes exactly one list of BoundFunctor's as non-keyword argument for constructor ("+lexical_cast<string>(python::len(t))+" non-keyword ards given instead)").c_str());
+void Collider::pyHandleCustomCtorArgs(py::tuple& t, py::dict& d){
+	if(py::len(t)==0) return; // nothing to do
+	if(py::len(t)!=1) throw invalid_argument(("Collider optionally takes exactly one list of BoundFunctor's as non-keyword argument for constructor ("+lexical_cast<string>(py::len(t))+" non-keyword ards given instead)").c_str());
 	typedef std::vector<shared_ptr<BoundFunctor> > vecBound;
-	vecBound vb=python::extract<vecBound>(t[0])();
+	vecBound vb=py::extract<vecBound>(t[0])();
 	FOREACH(shared_ptr<BoundFunctor> bf, vb) this->boundDispatcher->add(bf);
-	t=python::tuple(); // empty the args
+	t=py::tuple(); // empty the args
 }
 
 

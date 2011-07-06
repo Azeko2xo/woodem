@@ -4,6 +4,7 @@
 #include<boost/preprocessor.hpp>
 
 #include<unsupported/Eigen/NonLinearOptimization>
+#include<unsupported/Eigen/MatrixFunctions>
 
 
 using boost::format;
@@ -73,12 +74,6 @@ vector<shared_ptr<Node> > SparcField::nodesAround(const Vector3r& pt, int count,
 void ExplicitNodeIntegrator::findNeighbors(const shared_ptr<Node>&n) const {
 	SparcData& dta(n->getData<SparcData>());
 	dta.neighbors=mff->nodesAround(n->pos,/*count*/-1,rSearch,/*self=*/n);
-	#if 0
-		// update nids
-		dta.neighborNids.resize(dta.neighbors);
-		int i=0;
-		FOREACH(const shared_ptr<Node>& nn, dta.neighbors) n->neighborNids[i++]=nn->getData<SparcData>().nid;
-	#endif
 };
 
 void ExplicitNodeIntegrator::updateNeighborsRelPos(const shared_ptr<Node>& n, bool useNext) const {
@@ -122,7 +117,6 @@ Matrix3r ExplicitNodeIntegrator::computeGradV(const shared_ptr<Node>& n) const {
 	const vector<shared_ptr<Node> >& NN(midDta.neighbors); size_t sz=NN.size();
 	MatrixXr relVels(sz,3); for(size_t i=0; i<sz; i++){
 		relVels.row(i)=VectorXr(NN[i]->getData<SparcData>().v-midDta.v);
-		// cerr<<(NN[i]->getData<SparcData>().v-midDta.v).transpose()<<" || "<<relVels.row(i)<<" $$ "<<NN[i]->getData<SparcData>().v.transpose()<<" ## "<<midDta.v.transpose()<<endl;
 	}
 	#ifdef SPARC_INSPECT
 		n->getData<SparcData>().relVels=relVels;
@@ -130,9 +124,28 @@ Matrix3r ExplicitNodeIntegrator::computeGradV(const shared_ptr<Node>& n) const {
 	return midDta.relPosInv*relVels;
 }
 
-Matrix3r ExplicitNodeIntegrator::computeStressRate(const Matrix3r& T, const Matrix3r& D) const {
-	// linear elastic, doesn't depend on current T
-	return voigt_toSymmTensor((C*tensor_toVoigt(D,/*strain*/true)).eval());
+Matrix3r ExplicitNodeIntegrator::computeStressRate(const Matrix3r& T, const Matrix3r& D, const Real e /* =-1 */) const {
+	#define CC(i) barodesyC[i-1]
+	switch(matModel){
+		case MAT_HOOKE:
+			// isotropic linear elastic
+			return voigt_toSymmTensor((C*tensor_toVoigt(D,/*strain*/true)).eval());
+		case MAT_BARODESY_JESSE:{
+			// barodesy from the Theoretical Soil Mechanics course
+			if(e<0 || e>1) throw std::invalid_argument("Porosity out of 0..1 range");
+			Real Tnorm=T.norm(), Dnorm=D.norm();
+			if(Dnorm==0 || Tnorm==0) return Matrix3r::Zero();
+			Matrix3r D0=D/Dnorm, T0=T/Tnorm;
+			Matrix3r R=D0.trace()*Matrix3r::Identity()+CC(1)*(CC(2)*D0).exp(); Matrix3r R0=R/R.norm();
+			Real ec=(1+ec0)*exp(pow(Tnorm,1-CC(3))/(CC(4)*(1-CC(3))))-1;
+			Real f=CC(4)*D0.trace()+CC(5)*(e-ec)+CC(6);
+			Real g=-CC(6);
+			Real h=pow(Tnorm,CC(3));
+			// cerr<<"CC(2)*D0=\n"<<(CC(2)*D0)<<"\n(CC(2)*D0).exp()=\n"<<(CC(2)*D0).exp()<<endl;
+			return h*(f*R0+g*T0)*Dnorm;
+		}
+	}
+	throw std::logic_error((boost::format("Unknown material model number %d (this should have been caught much earlier!)")%matModel).str());
 };
 
 void ExplicitNodeIntegrator::applyKinematicConstraints(const shared_ptr<Node>& n) const {
@@ -161,6 +174,8 @@ void ExplicitNodeIntegrator::postLoad(ExplicitNodeIntegrator&){
 	// update stiffness matrix
 	C<<(Matrix3r()<<1-nu,nu,nu, nu,1-nu,nu, nu,nu,1-nu).finished(),Matrix3r::Zero(),Matrix3r::Zero(),Matrix3r(((1-2*nu)/2.)*Matrix3r::Identity());
 	C*=E/((1+nu)*(1-2*nu));
+	if(matModel<0 || matModel>MAT_SENTINEL) yade::ValueError(boost::format("matModel must be in range 0..%d")%MAT_SENTINEL);
+	if(barodesyC.size()!=6) yade::ValueError(boost::format("barodesyC must have exactly 6 values (%d given)")%barodesyC.size());
 }
 
 #define _CATCH_CRAP(x,y,z) if(eig_isnan(z)){ throw std::runtime_error((boost::format("NaN in O.sparc.nodes[%d], attribute %s: %s\n")%nid%BOOST_PP_STRINGIZE(z)%z).str().c_str()); }
@@ -186,23 +201,24 @@ void ExplicitNodeIntegrator::run(){
 	loop 1: (does not update state vars x,T,v,rho; only stores values needed for update in the next loop)
 		0. find neighbors (+compute relPos inverse)
 		1. from old positions, compute L(=gradV), D, W, Tcirc, Tdot
-		2. from old T, compute divT, acceleration
+		2. from old T, compute Tdot, divT, acceleration
 	loop 2: (updates state variables, and does not
 		1. update x (from prev x, prev v)
 		2. update T (from prev T, prev Tdot)
 		3. update v (from prev v, prev accel, constraints)
 		4. update rho (from prev rho and prev L)
+		5. update e (from prev e and prev gradV)
 	*/
 
-	if(mff->locDirty || (neighborUpdate%scene->step)==0) mff->updateLocator(); // if(mff->locDirty) throw std::runtime_error("SparcField locator was not updated to new positions.");
+	if(mff->locDirty || (scene->step%neighborUpdate)==0) mff->updateLocator(); // if(mff->locDirty) throw std::runtime_error("SparcField locator was not updated to new positions.");
 
 	FOREACH(const shared_ptr<Node>& n, field->nodes){
 		nid++; SparcData& dta(n->getData<SparcData>());
 		findNeighbors(n);
 		updateNeighborsRelPos(n);
 		dta.gradV=computeGradV(n);
-		Matrix3r D(dta.getD()), W(dta.getW()); // symm/antisymm decomposition
-		Matrix3r Tcirc=computeStressRate(dta.T,D);
+		Matrix3r D=dta.getD(), W=dta.getW(); // symm/antisymm decomposition of dta.gradV
+		Matrix3r Tcirc=computeStressRate(dta.T,D,dta.e);
 		dta.Tdot=Tcirc+dta.T*W-W*dta.T;
 		Vector3r divT=computeDivT(n);
 		dta.accel=(1/dta.rho)*(divT-c*dta.v);
@@ -224,6 +240,7 @@ void ExplicitNodeIntegrator::run(){
 		dta.v+=dt*dta.accel;
 		applyKinematicConstraints(n);
 		dta.rho+=dt*(-dta.rho*dta.gradV.trace());
+		dta.e+=dt*(1+dta.e)*dta.gradV.trace(); // gradV.trace()==D.trace()
 		#ifdef YADE_DEBUG
 			dta.catchCrap2(nid,n);
 		#endif
@@ -243,15 +260,22 @@ struct StressDivergenceFunctor{
 	StaticEquilibriumSolver* ses;
 	StressDivergenceFunctor(int inputs, int values, StaticEquilibriumSolver* _ses): m_inputs(inputs), m_values(values), ses(_ses){}
 	int operator()(const VectorXr &v, VectorXr& divT) const {
-		// copy velocity to inside node data (could be eliminated later to be more effective)
+		// copy velocity to inside node data (could be eliminated later to be more efficient)
 		ses->copyVelocityToNodes(v);
 		FOREACH(const shared_ptr<Node>& n, ses->field->nodes){
 			SparcData& dta(n->getData<SparcData>());
 			ses->updateNeighborsRelPos(n,/*useNext*/true);
 			dta.gradV=ses->computeGradV(n);
-			Matrix3r D(dta.getD()), W(dta.getW()); // symm/antisymm decomposition
-			Matrix3r Tcirc=ses->computeStressRate(dta.T,D);
+			Matrix3r D=dta.getD(), W=dta.getW(); // symm/antisymm decomposition of dta.gradV
+			Matrix3r Tcirc=ses->computeStressRate(dta.T,D,/*porosity*/ses->nextPorosity(dta.e,D));
 			dta.Tdot=Tcirc+dta.T*W-W*dta.T;
+			#ifdef SPARC_INSPECT
+				dta.Tcirc=Tcirc;
+			#endif
+		}
+		// divT needs Tdot of other points, in separate loop
+		FOREACH(const shared_ptr<Node>& n, ses->field->nodes){
+			SparcData& dta(n->getData<SparcData>());
 			Vector3r nodeDivT=ses->computeDivT(n,/*useNext*/true);
 			ses->applyConstraintReaction(n,nodeDivT);
 			divT.segment<3>(dta.nid*3)=nodeDivT;
@@ -300,11 +324,14 @@ VectorXr StaticEquilibriumSolver::computeInitialVelocities() const {
 };
 
 void StaticEquilibriumSolver::integrateSolution() const {
+	const Real& dt=scene->dt;
 	FOREACH(const shared_ptr<Node>& n, field->nodes){
 		SparcData& dta(n->getData<SparcData>());
 		applyKinematicConstraints(n); // be more precise than the solver itself
-		dta.T+=scene->dt*dta.Tdot;
-		n->pos+=scene->dt*dta.v;
+		dta.e+=dt*(1+dta.e)*dta.gradV.trace(); // gradV.trace()==D.trace()
+		dta.rho+=dt*(-dta.rho*dta.gradV.trace()); // rho is not really used for the implicit solution, but can be useful
+		dta.T+=dt*dta.Tdot;
+		n->pos+=dt*dta.v;
 	}
 };
 
@@ -322,16 +349,35 @@ VectorXr StaticEquilibriumSolver::trySolution(const VectorXr& vv){
 	renumberNodes();
 	FOREACH(const shared_ptr<Node>& n, field->nodes) findNeighbors(n); 
 
-	if(vv.size()!=field->nodes.size()*3) yade::ValueError("len(vv) must be 3*number of nodes");
+	if(vv.size()!=(int)field->nodes.size()*3) yade::ValueError("len(vv) must be 3*number of nodes");
 	StressDivergenceFunctor functor(vv.size(),vv.size(),this);
 	VectorXr divT(vv.size());
-	int status=functor(vv,divT);
+	functor(vv,divT);
 	return divT;
 };
 
+template<typename Solver>
+string solverStatus2str(int status);
+
+template<> string solverStatus2str<Eigen::HybridNonLinearSolver<StressDivergenceFunctor> >(int status){
+	#define CASE_STATUS(st) case Eigen::HybridNonLinearSolverSpace::st: return string(#st);
+	switch(status){
+		CASE_STATUS(Running);
+		CASE_STATUS(ImproperInputParameters);
+		CASE_STATUS(RelativeErrorTooSmall);
+		CASE_STATUS(TooManyFunctionEvaluation);
+		CASE_STATUS(TolTooSmall);
+		CASE_STATUS(NotMakingProgressJacobian);
+		CASE_STATUS(NotMakingProgressIterations);
+		CASE_STATUS(UserAsked);
+	}
+	#undef CASE_STATUS
+	throw std::logic_error(("solverStatus2str called with unknown status number "+lexical_cast<string>(status)).c_str());
+}
+
 void StaticEquilibriumSolver::run(){
 	mff=static_cast<SparcField*>(field.get());
-	if(mff->locDirty || (neighborUpdate%scene->step)==0) mff->updateLocator();
+	if(mff->locDirty || (scene->step%neighborUpdate)==0) mff->updateLocator();
 
 	renumberNodes();  // not necessary at every step...
 	// assume neighbors don't change during one step
@@ -344,20 +390,18 @@ void StaticEquilibriumSolver::run(){
 
 	// solution loop
 	int status;
-	solver.parameters.maxfev=100000;
-	solver.parameters.factor=.1;
 	status=solver.solveNumericalDiffInit(vv);
-	if(status==Eigen::HybridNonLinearSolverSpace::ImproperInputParameters) yade::RuntimeError("StaticEquilibriumSolver:: improper input parameters for the solver.");
-	dumpUnbalanced();
-	int step=0;
-	while(status==Eigen::HybridNonLinearSolverSpace::Running || step<100){
+	if(status==Eigen::HybridNonLinearSolverSpace::ImproperInputParameters) throw std::runtime_error("StaticEquilibriumSolver:: improper input parameters for the solver.");
+	while(status==Eigen::HybridNonLinearSolverSpace::Running){
 		status=solver.solveNumericalDiffOneStep(vv);
-		dumpUnbalanced();
 	}
-	// cerr<<"StaticEquilibriumSolver: status "<<status<<endl;
+	if(status!=Eigen::HybridNonLinearSolverSpace::RelativeErrorTooSmall){
+		throw std::runtime_error((boost::format("Solver did not find acceptable solution, returned %s (%d)")%solverStatus2str<decltype(solver)>(status)%status).str());
+	}
 	#ifdef SPARC_INSPECT
 		solverDivT=solver.fvec;
 	#endif
+	residuum=solver.fnorm;
 	integrateSolution();
 };
 

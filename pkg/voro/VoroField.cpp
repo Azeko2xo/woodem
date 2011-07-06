@@ -49,7 +49,7 @@ void VoroField::updateFromDem(){
 
 	 */
 	const Matrix3r& T(scene->cell->trsf);
-	conp=new container_periodic_poly(/*xb*/T(0,0),/*xyb*/T(0,1),/*yb*/T(1,1),/*xzb*/T(0,2),/*yzb*/T(1,2),/*zb*/T(2,2),/*xn*/subDiv[0],/*yn*/subDiv[1],/*zn*/subDiv[2],initMem);
+	conp=new voropp::container_periodic_poly(/*xb*/T(0,0),/*xyb*/T(0,1),/*yb*/T(1,1),/*xzb*/T(0,2),/*yzb*/T(1,2),/*zb*/T(2,2),/*xn*/subDiv[0],/*yn*/subDiv[1],/*zn*/subDiv[2],initMem);
 
 	// add particles
 	FOREACH(const shared_ptr<Particle>& par, dem->particles){
@@ -59,7 +59,7 @@ void VoroField::updateFromDem(){
 	}
 
 	// compute the network
-	vnet=new voronoi_network(*conp);
+	vnet=new voropp::voronoi_network(*conp);
 	bool isRectangular=(T(0,1)==0 && T(0,2)==0 && T(1,0)==0 && T(1,2)==0 && T(2,0)==0 && T(2,1)==0);
 	if(isRectangular) conp->compute_network_rectangular(*vnet);
 	else conp->compute_network(*vnet);

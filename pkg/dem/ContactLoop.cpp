@@ -39,20 +39,20 @@ void CPhysDispatcher::explicitAction(Scene* _scene, shared_ptr<Material>& mA, sh
 };
 
 
-void ContactLoop::pyHandleCustomCtorArgs(python::tuple& t, python::dict& d){
-	if(python::len(t)==0) return; // nothing to do
-	if(python::len(t)!=3) throw invalid_argument("Exactly 3 lists of functors must be given");
+void ContactLoop::pyHandleCustomCtorArgs(py::tuple& t, py::dict& d){
+	if(py::len(t)==0) return; // nothing to do
+	if(py::len(t)!=3) throw invalid_argument("Exactly 3 lists of functors must be given");
 	// parse custom arguments (3 lists) and do in-place modification of args
 	typedef std::vector<shared_ptr<CGeomFunctor> > vecGeom;
 	typedef std::vector<shared_ptr<CPhysFunctor> > vecPhys;
 	typedef std::vector<shared_ptr<LawFunctor> > vecLaw;
-	vecGeom vg=python::extract<vecGeom>(t[0])();
-	vecPhys vp=python::extract<vecPhys>(t[1])();
-	vecLaw vl=python::extract<vecLaw>(t[2])();
+	vecGeom vg=py::extract<vecGeom>(t[0])();
+	vecPhys vp=py::extract<vecPhys>(t[1])();
+	vecLaw vl=py::extract<vecLaw>(t[2])();
 	FOREACH(shared_ptr<CGeomFunctor> gf, vg) this->geoDisp->add(gf);
 	FOREACH(shared_ptr<CPhysFunctor> pf, vp) this->phyDisp->add(pf);
 	FOREACH(shared_ptr<LawFunctor> cf, vl)   this->lawDisp->add(cf);
-	t=python::tuple(); // empty the args; not sure if this is OK, as there is some refcounting in raw_constructor code
+	t=py::tuple(); // empty the args; not sure if this is OK, as there is some refcounting in raw_constructor code
 }
 
 void ContactLoop::getLabeledObjects(std::map<std::string, py::object>& m){

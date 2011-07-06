@@ -1,5 +1,6 @@
 // 2007,2008 © Václav Šmilauer <eudoxos@arcig.cz> 
 
+#include<yade/lib/base/Types.hpp>
 #include<sstream>
 #include<map>
 #include<vector>
@@ -9,10 +10,6 @@
 
 #include<boost/python.hpp>
 #include<boost/python/raw_function.hpp>
-// unused now
-#if 0
-	#include<boost/python/suite/indexing/vector_indexing_suite.hpp>
-#endif
 #include<boost/bind.hpp>
 #include<boost/lambda/bind.hpp>
 #include<boost/thread/thread.hpp>
@@ -37,26 +34,15 @@
 #include<yade/pkg/dem/Particle.hpp>
 #include<yade/pkg/sparc/SparcField.hpp>
 
-// #include<yade/pkg/dem/STLImporter.hpp>
-
-// #define YADE_CLUMP
-
 #ifdef YADE_CLUMP
 #include<yade/pkg/dem/Clump.hpp>
 #endif
 
 // local copy
 #include<boost/math/nonfinite_num_facets.hpp>
-
 #include<locale>
 #include<boost/archive/codecvt_null.hpp>
-
-using namespace boost;
-using namespace std;
-namespace py = boost::python;
-
 #include<yade/lib/serialization/ObjectIO.hpp>
-
 #include<yade/extra/boost_python_len.hpp>
 
 #ifdef YADE_LOG4CXX
@@ -117,7 +103,7 @@ class pyOmega{
 		LOG_ERROR("Simulation error encountered."); OMEGA.simulationLoop.workerThrew=false; throw OMEGA.simulationLoop.workerException;
 	}
 	bool isRunning(){ return OMEGA.isRunning(); }
-	python::object get_filename(){ string f(OMEGA.getScene()->lastSave); if(f.size()>0) return python::object(f); return python::object();}
+	py::object get_filename(){ string f(OMEGA.getScene()->lastSave); if(f.size()>0) return py::object(f); return py::object();}
 	void load(std::string fileName,bool quiet=false) {
 		Py_BEGIN_ALLOW_THREADS; OMEGA.stop(); Py_END_ALLOW_THREADS; 
 		OMEGA.loadSimulation(fileName,quiet);
@@ -126,12 +112,12 @@ class pyOmega{
 	void reload(bool quiet=false){	load(OMEGA.getScene()->lastSave,quiet);}
 	void saveTmp(string mark="", bool quiet=false){ save(":memory:"+mark,quiet);}
 	void loadTmp(string mark="", bool quiet=false){ load(":memory:"+mark,quiet);}
-	python::list lsTmp(){ python::list ret; typedef pair<std::string,string> strstr; FOREACH(const strstr& sim,OMEGA.memSavedSimulations){ string mark=sim.first; boost::algorithm::replace_first(mark,":memory:",""); ret.append(mark); } return ret; }
+	py::list lsTmp(){ py::list ret; typedef pair<std::string,string> strstr; FOREACH(const strstr& sim,OMEGA.memSavedSimulations){ string mark=sim.first; boost::algorithm::replace_first(mark,":memory:",""); ret.append(mark); } return ret; }
 	void tmpToFile(string mark, string filename){
 		if(OMEGA.memSavedSimulations.count(":memory:"+mark)==0) throw runtime_error("No memory-saved simulation named "+mark);
-		iostreams::filtering_ostream out;
-		if(algorithm::ends_with(filename,".bz2")) out.push(iostreams::bzip2_compressor());
-		out.push(iostreams::file_sink(filename));
+		boost::iostreams::filtering_ostream out;
+		if(boost::algorithm::ends_with(filename,".bz2")) out.push(boost::iostreams::bzip2_compressor());
+		out.push(boost::iostreams::file_sink(filename));
 		if(!out.good()) throw runtime_error("Error while opening file `"+filename+"' for writing.");
 		LOG_INFO("Saving :memory:"<<mark<<" to "<<filename);
 		out<<OMEGA.memSavedSimulations[":memory:"+mark];
@@ -180,8 +166,8 @@ class pyOmega{
 	//shared_ptr<Field> field_get(){ return OMEGA.getScene()->field; }
 	//void field_set(shared_ptr<Field> f){ OMEGA.getScene()->field=f; }
 	
-	python::list listChildClassesNonrecursive(const string& base){
-		python::list ret;
+	py::list listChildClassesNonrecursive(const string& base){
+		py::list ret;
 		for(map<string,DynlibDescriptor>::const_iterator di=Omega::instance().getDynlibsDescriptor().begin();di!=Omega::instance().getDynlibsDescriptor().end();++di) if (Omega::instance().isInheritingFrom((*di).first,base)) ret.append(di->first);
 		return ret;
 	}
@@ -190,9 +176,9 @@ class pyOmega{
 		return (Omega::instance().isInheritingFrom_recursive(child,base));
 	}
 
-	python::list plugins_get(){
+	py::list plugins_get(){
 		const map<string,DynlibDescriptor>& plugins=Omega::instance().getDynlibsDescriptor();
-		std::pair<string,DynlibDescriptor> p; python::list ret;
+		std::pair<string,DynlibDescriptor> p; py::list ret;
 		FOREACH(p, plugins) ret.append(p.first);
 		return ret;
 	}
@@ -232,11 +218,11 @@ class pyOmega{
 
 BOOST_PYTHON_MODULE(wrapper)
 {
-	python::scope().attr("__doc__")="Wrapper for c++ internals of yade.";
+	py::scope().attr("__doc__")="Wrapper for c++ internals of yade.";
 
 	YADE_SET_DOCSTRING_OPTS;
 
-	python::enum_<yade::Attr::flags>("AttrFlags")
+	py::enum_<yade::Attr::flags>("AttrFlags")
 		.value("noSave",yade::Attr::noSave)
 		.value("readonly",yade::Attr::readonly)
 		.value("triggerPostLoad",yade::Attr::triggerPostLoad)
@@ -246,7 +232,7 @@ BOOST_PYTHON_MODULE(wrapper)
 		.value("pyByRef",yade::Attr::pyByRef)
     ;
 
-	python::class_<pyOmega>("Omega")
+	py::class_<pyOmega>("Omega")
 		// .add_property("iter",&pyOmega::iter,"Get current step number")
 		// .add_property("subStep",&pyOmega::subStep,"Get the current subStep number (only meaningful if O.subStepping==True); -1 when outside the loop, otherwise either 0 (O.subStepping==False) or number of engine to be run (O.subStepping==True)")
 
@@ -264,10 +250,10 @@ BOOST_PYTHON_MODULE(wrapper)
 		.def("loadTmp",&pyOmega::loadTmp,(py::arg("mark")="",py::arg("quiet")=false),"Load simulation previously stored in memory by saveTmp. *mark* optionally distinguishes multiple saved simulations")
 		.def("saveTmp",&pyOmega::saveTmp,(py::arg("mark")="",py::arg("quiet")=false),"Save simulation to memory (disappears at shutdown), can be loaded later with loadTmp. *mark* optionally distinguishes different memory-saved simulations.")
 		.def("lsTmp",&pyOmega::lsTmp,"Return list of all memory-saved simulations.")
-		.def("tmpToFile",&pyOmega::tmpToFile,(python::arg("fileName"),python::arg("mark")=""),"Save XML of :yref:`saveTmp<Omega.saveTmp>`'d simulation into *fileName*.")
-		.def("tmpToString",&pyOmega::tmpToString,(python::arg("mark")=""),"Return XML of :yref:`saveTmp<Omega.saveTmp>`'d simulation as string.")
+		.def("tmpToFile",&pyOmega::tmpToFile,(py::arg("fileName"),py::arg("mark")=""),"Save XML of :yref:`saveTmp<Omega.saveTmp>`'d simulation into *fileName*.")
+		.def("tmpToString",&pyOmega::tmpToString,(py::arg("mark")=""),"Return XML of :yref:`saveTmp<Omega.saveTmp>`'d simulation as string.")
 
-		.def("run",&pyOmega::run,(python::arg("nSteps")=-1,python::arg("wait")=false),"Run the simulation. *nSteps* how many steps to run, then stop (if positive); *wait* will cause not returning to python until simulation will have stopped.")
+		.def("run",&pyOmega::run,(py::arg("nSteps")=-1,py::arg("wait")=false),"Run the simulation. *nSteps* how many steps to run, then stop (if positive); *wait* will cause not returning to python until simulation will have stopped.")
 		.def("pause",&pyOmega::pause,"Stop simulation execution. (May be called from within the loop, and it will stop after the current step).")
 		.def("step",&pyOmega::step,"Advance the simulation by one step. Returns after the step will have finished.")
 		.def("wait",&pyOmega::wait,"Don't return until the simulation will have been paused. (Returns immediately if not running).")
@@ -302,16 +288,16 @@ BOOST_PYTHON_MODULE(wrapper)
 		.add_property("numThreads",&pyOmega::numThreads_get /* ,&pyOmega::numThreads_set*/ ,"Get maximum number of threads openMP can use.")
 		//.add_property("cell",&pyOmega::cell_get,"Periodic cell of the current scene (None if the scene is aperiodic).")
 		//.add_property("periodic",&pyOmega::periodic_get,&pyOmega::periodic_set,"Get/set whether the scene is periodic or not (True/False).")
-		.def("exitNoBacktrace",&pyOmega::exitNoBacktrace,(python::arg("status")=0),"Disable SEGV handler and exit, optionally with given status number.")
+		.def("exitNoBacktrace",&pyOmega::exitNoBacktrace,(py::arg("status")=0),"Disable SEGV handler and exit, optionally with given status number.")
 		.def("disableGdb",&pyOmega::disableGdb,"Revert SEGV and ABRT handlers to system defaults.")
 		.def("tmpFilename",&pyOmega::tmpFilename,"Return unique name of file in temporary directory which will be deleted when yade exits.")
 		;
 //////////////////////////////////////////////////////////////
 ///////////// proxyless wrappers 
-	Serializable().pyRegisterClass(python::scope());
+	Serializable().pyRegisterClass(py::scope());
 
-	python::class_<TimingDeltas, shared_ptr<TimingDeltas>, noncopyable >("TimingDeltas").add_property("data",&TimingDeltas::pyData,"Get timing data as list of tuples (label, execTime[nsec], execCount) (one tuple per checkpoint)").def("reset",&TimingDeltas::reset,"Reset timing information");
+	py::class_<TimingDeltas, shared_ptr<TimingDeltas>, boost::noncopyable >("TimingDeltas").add_property("data",&TimingDeltas::pyData,"Get timing data as list of tuples (label, execTime[nsec], execCount) (one tuple per checkpoint)").def("reset",&TimingDeltas::reset,"Reset timing information");
 
-	python::scope().attr("O")=pyOmega();
+	py::scope().attr("O")=pyOmega();
 }
 
