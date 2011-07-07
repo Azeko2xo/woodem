@@ -47,7 +47,7 @@ Real Vector2r_get_item(const Vector2r & self, int idx){ IDX_CHECK(idx,2); return
 int  Vector2i_get_item(const Vector2i & self, int idx){ IDX_CHECK(idx,2); return self[idx]; }
 
 template<typename MatrixType>
-MatrixType Matrix_pruned(const MatrixType& obj, typename MatrixType::Scalar absTol=1e-6){ MatrixType ret(MatrixType::Zero()); for(int i=0;i<obj.rows();i++)for(int j=0;j<obj.cols();j++) if(abs(obj(i,j))>absTol) ret(i,j)=obj(i,j); return ret; }
+MatrixType Matrix_pruned(const MatrixType& obj, typename MatrixType::Scalar absTol=1e-6){ MatrixType ret(MatrixType::Zero()); for(int i=0;i<obj.rows();i++)for(int j=0;j<obj.cols();j++) if(abs(obj(i,j))>absTol && obj(i,j)!=-0) ret(i,j)=obj(i,j); return ret; }
 
 template<typename MatrixType>
 typename MatrixType::Scalar Matrix_maxAbsCoeff(const MatrixType& obj){ return Eigen::Array<typename MatrixType::Scalar,MatrixType::RowsAtCompileTime,MatrixType::ColsAtCompileTime>(obj).abs().maxCoeff(); }
@@ -210,6 +210,11 @@ static bool Quaternionr__neq__(const Quaternionr& q1, const Quaternionr& q2){ re
 #include<Eigen/SVD>
 static py::tuple Matrix3r_polarDecomposition(const Matrix3r& self){ Matrix3r unitary,positive; Matrix_computeUnitaryPositive(self,&unitary,&positive); return py::make_tuple(unitary,positive); }
 static py::tuple Matrix3r_symmEigen(const Matrix3r& self){ Eigen::SelfAdjointEigenSolver<Matrix3r> a(self); return py::make_tuple(a.eigenvectors(),a.eigenvalues()); } 
+
+static Vector3r Vector3r_Unit(int ax){ IDX_CHECK(ax,3); Vector3r ret=Vector3r::Zero(); ret[ax]=1; return ret; }
+static Vector3i Vector3i_Unit(int ax){ IDX_CHECK(ax,3); Vector3i ret=Vector3i::Zero(); ret[ax]=1; return ret; }
+static Vector2r Vector2r_Unit(int ax){ IDX_CHECK(ax,2); Vector2r ret=Vector2r::Zero(); ret[ax]=1; return ret; }
+static Vector2i Vector2i_Unit(int ax){ IDX_CHECK(ax,2); Vector2i ret=Vector2i::Zero(); ret[ax]=1; return ret; }
 
 
 static Matrix3r Vector3r_asDiagonal(const Vector3r& self){ return self.asDiagonal(); }
@@ -610,6 +615,8 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.def("dot",&Vector3r_dot).def("cross",&Vector3r_cross)
 		.def("norm",&Vector3r::norm).def("squaredNorm",&Vector3r::squaredNorm).def("normalize",&Vector3r::normalize).def("normalized",&Vector3r::normalized)
 		.def("asDiagonal",&Vector3r_asDiagonal)
+		.def("Unit",&Vector3r_Unit).staticmethod("Unit")
+		.def("pruned",&Matrix_pruned<Vector3r>,py::arg("absTol")=1e-6)
 		// swizzles
 		.def("xy",&Vector3r_xy).def("yx",&Vector3r_yx).def("xz",&Vector3r_xz).def("zx",&Vector3r_zx).def("yz",&Vector3r_yz).def("zy",&Vector3r_zy)
 		// operators
@@ -637,6 +644,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		// methods
 		.def("dot",&Vector3i_dot).def("cross",&Vector3i_cross)
 		.def("norm",&Vector3i::norm).def("squaredNorm",&Vector3i::squaredNorm)
+		.def("Unit",&Vector3i_Unit).staticmethod("Unit")
 		// operators
 		.def("__neg__",&Vector3i__neg__) // -v
 		.def("__add__",&Vector3i__add__Vector3i).def("__iadd__",&Vector3i__iadd__Vector3i) // +, +=
@@ -659,6 +667,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		// methods
 		.def("dot",&Vector2r_dot)
 		.def("norm",&Vector2r::norm).def("squaredNorm",&Vector2r::squaredNorm).def("normalize",&Vector2r::normalize).def("normalized",&Vector2r::normalize)
+		.def("Unit",&Vector2r_Unit).staticmethod("Unit")
 		// operators
 		.def("__neg__",&Vector2r__neg__) // -v
 		.def("__add__",&Vector2r__add__Vector2r).def("__iadd__",&Vector2r__iadd__Vector2r) // +, +=
@@ -684,6 +693,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		// methods
 		.def("dot",&Vector2i_dot)
 		.def("norm",&Vector2i::norm).def("squaredNorm",&Vector2i::squaredNorm).def("normalize",&Vector2i::normalize)
+		.def("Unit",&Vector2i_Unit).staticmethod("Unit")
 		// operators
 		.def("__neg__",&Vector2i__neg__) // -v
 		.def("__add__",&Vector2i__add__Vector2i).def("__iadd__",&Vector2i__iadd__Vector2i) // +, +=

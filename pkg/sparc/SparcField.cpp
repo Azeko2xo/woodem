@@ -132,7 +132,7 @@ Matrix3r ExplicitNodeIntegrator::computeStressRate(const Matrix3r& T, const Matr
 			return voigt_toSymmTensor((C*tensor_toVoigt(D,/*strain*/true)).eval());
 		case MAT_BARODESY_JESSE:{
 			// barodesy from the Theoretical Soil Mechanics course
-			if(e<0 || e>1) throw std::invalid_argument("Porosity out of 0..1 range");
+			// if(e<0 || e>1) throw std::invalid_argument((boost::format("Porosity %g out of 0..1 range (D=%s)\n")%e%D).str());
 			Real Tnorm=T.norm(), Dnorm=D.norm();
 			if(Dnorm==0 || Tnorm==0) return Matrix3r::Zero();
 			Matrix3r D0=D/Dnorm, T0=T/Tnorm;
@@ -148,24 +148,16 @@ Matrix3r ExplicitNodeIntegrator::computeStressRate(const Matrix3r& T, const Matr
 	throw std::logic_error((boost::format("Unknown material model number %d (this should have been caught much earlier!)")%matModel).str());
 };
 
-void ExplicitNodeIntegrator::applyKinematicConstraints(const shared_ptr<Node>& n) const {
+void ExplicitNodeIntegrator::applyKinematicConstraints(const shared_ptr<Node>& n, bool permitFixedDivT) const {
 	// apply kinematic constraints (prescribed velocities)
 	SparcData& dta(n->getData<SparcData>());
-	size_t i=-1;
-	FOREACH(const Vector3r& dir, dta.dirs){
-		i++;
-		#if 1
-			Real val=dta.getDirVel(i);
-			if(dir==Vector3r::UnitX()){ dta.v[0]=val; continue; }
-			else if(dir==Vector3r::UnitY()){ dta.v[1]=val; continue; }
-			else if(dir==Vector3r::UnitZ()){ dta.v[2]=val; continue; }
-			else 
-		#endif
-		{ // numerically perhaps unstable?
-			throw std::runtime_error("Only axis-aligned prescribed velocities are reliably supported now.");
-			dta.v-=dir*dir.dot(dta.v); // subtract component along that vector
-			dta.v+=dir*dta.getDirVel(i); // set velocity in that sense
-		}
+	Vector3r locVel=n->ori*dta.v;
+	for(int i=0;i<3;i++){
+		if(!isnan(dta.fixedV[i])) locVel[i]=dta.fixedV[i];
+	}
+	dta.v=n->ori.conjugate()*dta.v;
+	if(!permitFixedDivT && dta.fixedDivT!=Vector3r(NaN,NaN,NaN)){
+		throw std::invalid_argument((boost::format("Nid %d: fixedDivT not allowed (is %s")%dta.fixedDivT.transpose()).str());
 	}
 };
 
@@ -238,7 +230,7 @@ void ExplicitNodeIntegrator::run(){
 		n->pos+=dt*dta.v;
 		dta.T+=dt*dta.Tdot;
 		dta.v+=dt*dta.accel;
-		applyKinematicConstraints(n);
+		applyKinematicConstraints(n,/*disallow prescribed stress*/false);
 		dta.rho+=dt*(-dta.rho*dta.gradV.trace());
 		dta.e+=dt*(1+dta.e)*dta.gradV.trace(); // gradV.trace()==D.trace()
 		#ifdef YADE_DEBUG
@@ -277,7 +269,7 @@ struct StressDivergenceFunctor{
 		FOREACH(const shared_ptr<Node>& n, ses->field->nodes){
 			SparcData& dta(n->getData<SparcData>());
 			Vector3r nodeDivT=ses->computeDivT(n,/*useNext*/true);
-			ses->applyConstraintReaction(n,nodeDivT);
+			ses->applyConstraintsAsDivT(n,nodeDivT,/*useNextT*/true);
 			divT.segment<3>(dta.nid*3)=nodeDivT;
 			#ifdef SPARC_INSPECT
 				dta.divT=nodeDivT;
@@ -299,26 +291,50 @@ void StaticEquilibriumSolver::renumberNodes() const{
 }
 
 // set divT in the sense of kinematic constraints, so that they are fulfilled by the static solution
-void StaticEquilibriumSolver::applyConstraintReaction(const shared_ptr<Node>& n, Vector3r& divT) const {
+void StaticEquilibriumSolver::applyConstraintsAsDivT(const shared_ptr<Node>& n, Vector3r& divT, bool useNextT) const {
 	SparcData& dta(n->getData<SparcData>());
-	if(dta.dirs.empty()) return;
-	// in the sense of prescribed velocity, set divT to be proportional to the difference between current and prescribed velocity
-	//cerr<<"Nid "<<dta.nid<<", solver v = "<<dta.v<<endl;
-	int i=-1; FOREACH(const Vector3r& dir, dta.dirs){
-		i++;
-		Real dv=dta.v.dot(dir)-dta.getDirVel(i);
-		divT=divT/*set to zero in that sense first */ -dir*divT.dot(dir) /*assign value*/ +dir*dv*scene->dt*supportStiffness;
-		//cerr<<"Nid "<<dta.nid<<" prescribed v="<<dta.getDirVel(i)<<" along "<<dir<<"; solver v="<<dta.v.dot(dir)<<" divT -> "<<divT<<" ("<<divT.dot(dir)<<endl;
-		// if(dta.nid==26) cerr<<"Nid "<<dta.nid<<": v="<<dta.v<<", prescribed "<<dta.getDirVel(i)<<" along "<<dir<<", dv="<<dv<<endl;
+	#ifdef YADE_DEBUG
+		for(int i=0;i<3;i++) if(!isnan(dta.fixedV[i])&&!isnan(dta.fixedDivT[i])) throw std::invalid_argument((boost::format("Nid %d: both velocity and stress prescribed along local axis %d (%s in global space)") %dta.nid %i %(n->ori.conjugate()*(i==0?Vector3r::UnitX():(i==1?Vector3r::UnitY():Vector3r::UnitZ()))).transpose()).str());
+	#endif
+	if(dta.fixedV!=Vector3r(NaN,NaN,NaN)){
+		Vector3r locV=n->ori*dta.v;
+		Vector3r locDivT=n->ori*divT;
+		for(int i=0;i<3;i++){
+			if(isnan(dta.fixedV[i])) continue; // no velocity prescribed, leave locDivT at current value
+			locDivT[i]=(locV[i]-dta.fixedV[i])*scene->dt*supportStiffness;
+			//cerr<<"Nid "<<dta.nid<<", v["<<i<<"] "<<locV[i]<<"(should be "<<dta.fixedV[i]<<") adds locDivT "<<locDivT[i]<<endl;
+		}
+		divT=n->ori.conjugate()*locDivT;
 	}
-};
+	if(dta.fixedDivT!=Vector3r(NaN,NaN,NaN)){
+		Vector3r locDivT=n->ori*divT;
+		// considered stress value (current or next one?)
+		Matrix3r T=dta.T+(useNextT?Matrix3r(dta.Tdot*scene->dt):Matrix3r::Zero());
+		Matrix3r trsf(n->ori);
+		Matrix3r locT=trsf*T*trsf.transpose();
+		for(int i=0;i<3;i++){
+			if(isnan(dta.fixedDivT[i])) continue;
+			// sum stress components in the direction of the prescribed value (local axis i)
+			// mechanical meaning: internal stress in that direction
+			Real locAxT=locT.row(i).sum(); // locT(0,i)+locT(1,i)+locT(2,i);
+			// locDivT is actually stress residual
+			// we make it correspond to difference between current and prescribed (internal) stress
+			// the term is only added, since there might be divergence from other sources (??)
+			locDivT[i]=locAxT-dta.fixedDivT[i];
+			//cerr<<"Nid "<<dta.nid<<", divT["<<i<<"] "<<locAxT<<"(should be "<<dta.fixedDivT[i]<<") adds locDivT "<<locDivT[i]<<endl;
+		}
+		//cerr<<"@@@ Nid "<<dta.nid<<", divT "<<divT.transpose()<<" -> "<<n->ori.conjugate()*locDivT<<endl; // <<", fixedDivT="<<dta.fixedDivT.transpose()<<", T=\n"<<T<<"\nlocT=\n"<<locT<<endl;
+		divT=n->ori.conjugate()*locDivT;
+	}
+}
 
 VectorXr StaticEquilibriumSolver::computeInitialVelocities() const {
 	VectorXr ret; ret.setZero(field->nodes.size()*3);
 	FOREACH(const shared_ptr<Node>& n, field->nodes){
 		const SparcData& dta(n->getData<SparcData>());
-		if(dta.dirs.empty()) continue;
-		size_t sz=dta.dirs.size();	for(size_t i=0; i<sz; i++) ret.segment<3>(3*dta.nid)+=dta.dirs[i]*dta.getDirVel(i);
+		// fixedV and zeroed are in local coords
+		Vector3r zeroed; for(int i=0;i<3;i++) zeroed[i]=isnan(dta.fixedV[i])?0:dta.fixedV[i];
+		ret.segment<3>(3*dta.nid)=n->ori.conjugate()*zeroed; 
 	}
 	return ret;
 };
@@ -327,7 +343,8 @@ void StaticEquilibriumSolver::integrateSolution() const {
 	const Real& dt=scene->dt;
 	FOREACH(const shared_ptr<Node>& n, field->nodes){
 		SparcData& dta(n->getData<SparcData>());
-		applyKinematicConstraints(n); // be more precise than the solver itself
+		// this applies kinematic constraints directly (the solver might have some error in satisfying them)
+		applyKinematicConstraints(n,/*allow prescribed divT*/true); 
 		dta.e+=dt*(1+dta.e)*dta.gradV.trace(); // gradV.trace()==D.trace()
 		dta.rho+=dt*(-dta.rho*dta.gradV.trace()); // rho is not really used for the implicit solution, but can be useful
 		dta.T+=dt*dta.Tdot;
@@ -339,7 +356,8 @@ void StaticEquilibriumSolver::integrateSolution() const {
 void StaticEquilibriumSolver::dumpUnbalanced(){
 	FOREACH(const shared_ptr<Node>& n, field->nodes){
 		SparcData& dta(n->getData<SparcData>());
-		cerr<<(boost::format("%d: vel=%s, Tdot=%g %g %g, %g %g %g, divT=%s\n")%dta.nid%dta.v.transpose()%dta.Tdot(0,0)%dta.Tdot(1,1)%dta.Tdot(2,2)%dta.Tdot(1,2)%dta.Tdot(2,0)%dta.Tdot(0,1)%dta.divT.transpose()).str();
+		Matrix3r Tnew=dta.T+scene->dt*dta.Tdot;
+		cerr<<(boost::format("%d: vel=%s, Tnew=%s, divT=%s\n")%dta.nid%dta.v.transpose()%tensor_toVoigt(Tnew).transpose()%dta.divT.transpose()).str();
 	}
 }
 
@@ -387,13 +405,25 @@ void StaticEquilibriumSolver::run(){
 	// functor used by solver, and solver itself
 	StressDivergenceFunctor functor(vv.size(),vv.size(),this);
 	Eigen::HybridNonLinearSolver<StressDivergenceFunctor> solver(functor);
+	solver.parameters.factor=solverFactor;
+	solver.parameters.maxfev=maxfev;
 
 	// solution loop
 	int status;
+	int nFactorLowered=0;
 	status=solver.solveNumericalDiffInit(vv);
 	if(status==Eigen::HybridNonLinearSolverSpace::ImproperInputParameters) throw std::runtime_error("StaticEquilibriumSolver:: improper input parameters for the solver.");
-	while(status==Eigen::HybridNonLinearSolverSpace::Running){
+	while(true){
 		status=solver.solveNumericalDiffOneStep(vv);
+		if(status==Eigen::HybridNonLinearSolverSpace::Running) continue; // good
+		// dumpUnbalanced();
+		if(status==Eigen::HybridNonLinearSolverSpace::RelativeErrorTooSmall) break; // done
+		if(status==Eigen::HybridNonLinearSolverSpace::NotMakingProgressIterations || status==Eigen::HybridNonLinearSolverSpace::NotMakingProgressJacobian){
+			solver.parameters.factor*=.2;
+			if(++nFactorLowered<20){ LOG_WARN("Step "<<scene->step<<": solver did not converge, lowering factor to "<<solver.parameters.factor); continue; }
+			LOG_WARN("Step "<<scene->step<<": solver not converging, but factor already lowered too many times; giving up.");
+		}
+		break;
 	}
 	if(status!=Eigen::HybridNonLinearSolverSpace::RelativeErrorTooSmall){
 		throw std::runtime_error((boost::format("Solver did not find acceptable solution, returned %s (%d)")%solverStatus2str<decltype(solver)>(status)%status).str());

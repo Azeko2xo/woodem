@@ -31,7 +31,7 @@ struct SparcField: public Field{
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(SparcField,Field,"Field for SPARC meshfree method",
 		// ((Real,maxRadius,-1,,"Maximum radius for neighbour search (required for periodic simulations)"))
 		((bool,locDirty,true,Attr::readonly,"Flag whether the locator is updated."))
-		((bool,showNeighbors,true,,"Whether to show neighbors in the 3d view (FIXME: should go to Gl1_SparcField, once it is created"))
+		((bool,showNeighbors,false,,"Whether to show neighbors in the 3d view (FIXME: should go to Gl1_SparcField, once it is created). When a node is selected, neighbors are shown nevertheless."))
 		,/*ctor*/ locator=vtkPointLocator::New(); points=vtkPoints::New(); grid=vtkUnstructuredGrid::New(); grid->SetPoints(points); locator->SetDataSet(grid);
 		,/*py*/
 			.def("nodesAround",&SparcField::nodesAround,(py::arg("pt"),py::arg("radius")=-1,py::arg("count")=-1,py::arg("ptNode")=shared_ptr<Node>()),"Return array of nodes close to given point *pt*")
@@ -49,17 +49,16 @@ struct SparcData: public NodeData{
 	Matrix3r getW() const{ return .5*(gradV-gradV.transpose()); }
 	void catchCrap1(int nid, const shared_ptr<Node>&);
 	void catchCrap2(int nid, const shared_ptr<Node>&);
-	Real getDirVel(size_t i) const { return i<dirVels.size()?dirVels[i]:0.; }
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(SparcData,NodeData,"Nodal data needed for SPARC",
+	// Real getDirVel(size_t i) const { return i<dirVels.size()?dirVels[i]:0.; }
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(SparcData,NodeData,"Nodal data needed for SPARC; everything is in global coordinates, except for constraints (fixedV, fixedDivT)",
 
 		((Matrix3r,T,Matrix3r::Zero(),,"Stress"))
 		((Vector3r,v,Vector3r::Zero(),,"Velocity"))
 		((Real,rho,0,,"Density"))
 		((Real,e,0,,"Porosity"))
 		((Real,color,Mathr::UnitRandom(),Attr::noGui,"Set node color, so that rendering is more readable"))
-		// dirVels can be shorter, in which case zeros are assumed
-		((vector<Vector3r>,dirs,,,"Directions in which velocity is prescribed."))
-		((vector<Real>,dirVels,,,"Velocities along dir"))
+		((Vector3r,fixedV,Vector3r(NaN,NaN,NaN),,"Prescribed velocity, in node-local (!!) coordinates. NaN prescribes noting along respective axis."))
+		((Vector3r,fixedDivT,Vector3r(NaN,NaN,NaN),,"Prescribed stress divergence, in node-local (!!) coordinates. NaN prescribes nothing along respective axis."))
 		// storage within the step
 		((vector<shared_ptr<Node> >,neighbors,,Attr::noGui,"List of neighbours, updated internally"))
 		((Vector3r,accel,Vector3r::Zero(),,"Acceleration"))
@@ -99,7 +98,7 @@ struct ExplicitNodeIntegrator: public GlobalEngine, private SparcField::Engine{
 	Matrix3r computeStressRate(const Matrix3r& T, const Matrix3r& D, Real e=-1) const;
 	// porosity updated using current deformation rate
 	Real nextPorosity(Real e, const Matrix3r& D) const { return e+scene->dt*(1+e)*D.trace(); }
-	void applyKinematicConstraints(const shared_ptr<Node>& n) const;
+	void applyKinematicConstraints(const shared_ptr<Node>& n, bool permitFixedDivT) const;
 	Matrix6r C; // updated at every step
 	void postLoad(ExplicitNodeIntegrator&);
 	virtual void run();
@@ -125,7 +124,7 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 	virtual void run();
 	void renumberNodes() const;
 	void copyVelocityToNodes(const VectorXr&) const;
-	void applyConstraintReaction(const shared_ptr<Node>& n, Vector3r& divT) const ;
+	void applyConstraintsAsDivT(const shared_ptr<Node>& n, Vector3r& divT, bool useNextT) const ;
 	VectorXr computeInitialVelocities() const;
 	void integrateSolution() const;
 	VectorXr trySolution(const VectorXr& vv);
@@ -133,6 +132,8 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(StaticEquilibriumSolver,ExplicitNodeIntegrator,"Find global static equilibrium of a Sparc system.",
 		((Real,supportStiffness,1e10,,"Stiffness of constrained DoFs"))
 		((Real,residuum,NaN,Attr::readonly,"Norm of residuals (fnorm) as reported by the solver."))
+		((Real,solverFactor,200,,"Factor for the Dogleg method (automatically lowered in case of convergence troubles"))
+		((Real,maxfev,10000,,"Maximum number of function evaluation in solver"))
 		#ifdef SPARC_INSPECT
 			((VectorXr,solverDivT,,Attr::readonly,"Solution vector as provided by the solver"))
 		#endif

@@ -289,6 +289,7 @@ void Renderer::renderNodes(){
 	}
 }
 
+// render nodes of DEM contacts
 void Renderer::renderCNodes(){
 	nodeDispatcher.scene=scene.get(); nodeDispatcher.updateScenePtr();
 	boost::mutex::scoped_lock lock(*dem->contacts.manipMutex);
@@ -426,8 +427,11 @@ void Renderer::renderSparc(){
 	FOREACH(const shared_ptr<Node>& n, sparc->nodes){
 		glScopedName name(n);
 		renderRawNode(n);
+		// GLUtils::GLDrawText((boost::format("%d")%n->getData<SparcData>().nid).str(),n->pos,/*color*/Vector3r(1,1,1), /*center*/true,/*font*/NULL);
+		int nid=n->getData<SparcData>().nid;
+		if(nid>=0) GLUtils::GLDrawNum(nid,n->pos);
 		if(!sparc->showNeighbors && !name.highlighted) continue;
-		// show neighbours with lines, with random colors so that they can be told apart
+		// show neighbours with lines, with node colors
 		Vector3r color=CompUtils::mapColor(n->getData<SparcData>().color);
 		FOREACH(const shared_ptr<Node>& neighbor, n->getData<SparcData>().neighbors){
 			GLUtils::GLDrawLine(n->pos,n->pos+.5*(neighbor->pos-n->pos),color,3);
@@ -467,6 +471,7 @@ void Renderer::renderAllInteractionsWire(){
 		glBegin(GL_LINES); glVertex3v(p1);glVertex3v(Vector3r(p1+rel));glEnd();
 	}
 }
+
 
 
 void Renderer::renderIPhys(){
