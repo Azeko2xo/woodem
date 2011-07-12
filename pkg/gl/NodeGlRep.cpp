@@ -14,23 +14,24 @@ YADE_PLUGIN(gl,(ScalarGlRep)(VectorGlRep)(TensorGlRep));
 
 void ScalarGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
 	Vector3r color=(range?range->color(val):CompUtils::scalarOnColorScale(val,0,1));
+	Vector3r pos=(node->hasData<GlData>()?node->getData<GlData>().glPos:node->pos);
 	switch(how){
 		case 0: {
-			GLUtils::GLDrawText((boost::format("%03g")%val).str(),node->pos,color); // ,/*center*/true,/*font*/NULL,/*bgColor*/Vector3r::Zero());
+			GLUtils::GLDrawText((boost::format("%03g")%val).str(),pos,color); // ,/*center*/true,/*font*/NULL,/*bgColor*/Vector3r::Zero());
 			break;
 		}
 		case 1: {
 			glColor3v(color);
 			glPointSize((int)(100*relSz));
 			glBegin(GL_POINTS);
-				glVertex3v(node->pos);
+				glVertex3v(pos);
 			glEnd();
 			break;
 		}
 		case 2: {
 			glColor3v(color);
 			glPushMatrix();
-				glTranslatev(node->pos);
+				glTranslatev(pos);
 				glutSolidSphere(relSz*viewInfo->sceneRadius,6,12);
 			glPopMatrix();
 		}
@@ -43,8 +44,9 @@ void VectorGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
 	Real mxNorm=(range?range->mnmx[1]:1);
 	Real len=relSz*viewInfo->sceneRadius;
 	if(!isnan(scaleExp)) len*=pow(valNorm/mxNorm,scaleExp);
+	Vector3r pos=(node->hasData<GlData>()?node->getData<GlData>().glPos:node->pos);
 	glColor3v(color);
-	GLUtils::GLDrawArrow(node->pos,node->pos+len*(val/valNorm),color);
+	GLUtils::GLDrawArrow(pos,pos+len*(val/valNorm),color);
 }
 
 void TensorGlRep::postLoad(TensorGlRep&){
@@ -75,6 +77,8 @@ void TensorGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
 
 	if(range && !skewRange) skewRange=range;
 
+	Vector3r pos=(node->hasData<GlData>()?node->getData<GlData>().glPos:node->pos);
+
 	for(int i=0;i<3;i++){
 		Vector3r color=(range?range->color(eigVal[i]):CompUtils::scalarOnColorScale(eigVal[i],-1,1));
 		Real mxNorm=(range?range->maxAbs(eigVal[i]):1);
@@ -83,8 +87,8 @@ void TensorGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
 		glColor3v(color);
 		Vector3r dx(len*eigVec.col(i));
 		// arrows which go towards each other for negative eigenvalues, and away from each other for positive ones
-		GLUtils::GLDrawArrow(node->pos+(eigVal[i]>0?Vector3r::Zero():dx),node->pos+(eigVal[i]>0?dx:Vector3r::Zero()),color);
-		GLUtils::GLDrawArrow(node->pos-(eigVal[i]>0?Vector3r::Zero():dx),node->pos-(eigVal[i]>0?dx:Vector3r::Zero()),color);
+		GLUtils::GLDrawArrow(pos+(eigVal[i]>0?Vector3r::Zero():dx),pos+(eigVal[i]>0?dx:Vector3r::Zero()),color);
+		GLUtils::GLDrawArrow(pos-(eigVal[i]>0?Vector3r::Zero():dx),pos-(eigVal[i]>0?dx:Vector3r::Zero()),color);
 
 		// draw circular arrow to show skew components, in the half-height
 		// compute it in the xy plane, transform coords instead
@@ -101,9 +105,9 @@ void TensorGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
 		for(int j=0; j<2; j++){
 			glPushMatrix();
 				Eigen::Affine3d T=Eigen::Affine3d::Identity();
-				T.translate(node->pos+(j==0?1:-1)*eigVec.col(i)*torDist).rotate(Quaternionr().setFromTwoVectors(Vector3r::UnitZ(),eigVec.col(i)*(skew[i]>0?-1:1))).scale(torRad1);
+				T.translate(pos+(j==0?1:-1)*eigVec.col(i)*torDist).rotate(Quaternionr().setFromTwoVectors(Vector3r::UnitZ(),eigVec.col(i)*(skew[i]>0?-1:1))).scale(torRad1);
 				if(j==1) T.rotate(AngleAxisr(Mathr::PI,Vector3r::UnitZ()));
-				//GLUtils::setLocalCoords(node->pos+(j==0?1:-1)*eigVec.col(i)*torDist,
+				//GLUtils::setLocalCoords(pos+(j==0?1:-1)*eigVec.col(i)*torDist,
 				glMultMatrixd(T.data());
 				// since we scaled coords to transform unit circle coords to our radius, we will need to scale dimensions now by 1/torRad1
 				glePolyCylinder(nPts+2,circ,/* use current color*/NULL,torRad2*(1/torRad1));

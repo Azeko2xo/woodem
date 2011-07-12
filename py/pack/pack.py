@@ -92,12 +92,13 @@ The current state (even if rotated) is taken as mechanically undeformed, i.e. wi
 """
 	if isinstance(rot,Quaternion): rot=rot.toRotationMatrix()
 	assert(isinstance(rot,Matrix3))
+	scene=O.scene
 	if self.cellSize!=Vector3.Zero:
-		O.periodic=True
-		O.cell.hSize=rot*Matrix3(self.cellSize[0],0,0, 0,self.cellSize[0],0, 0,0,self.cellSize[1])
-		O.cell.trsf=Matrix3.Identity
+		scene.periodic=True
+		scene.cell.hSize=rot*Matrix3(self.cellSize[0],0,0, 0,self.cellSize[0],0, 0,0,self.cellSize[1])
+		scene.cell.trsf=Matrix3.Identity
 	if not self.hasClumps():
-		return O.bodies.append([utils.sphere(rot*c,r,**kw) for c,r in self])
+		return O.dem.particles.append([utils.sphere(rot*c,r,**kw) for c,r in self])
 	else:
 		standalone,clumps=self.getClumps()
 		ids=O.bodies.append([utils.sphere(rot*c,r,**kw) for c,r in self]) # append all spheres first

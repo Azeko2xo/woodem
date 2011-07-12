@@ -62,7 +62,7 @@ class Engine: public Serializable, protected Field::Engine {
 		((shared_ptr<Field>,field,,Attr::noGui,"User-requested :yref:`Field` to run this engine on; if empty, fields will be searched for admissible ones; if more than one is found, exception will be raised."))
 		((bool,userAssignedField,false,(Attr::readonly|Attr::noGui),"Whether the :yref:`Engine.field` was user-assigned or automatically assigned, to know whether to update automatically."))
 		((bool,isNewObject,true,Attr::hidden,"Flag to recognize in postLoad whether this object has just been constructed, to set userAssignedField properly (ugly...)"))
-		,/* ctor */ scene=Omega::instance().getScene().get() ,
+		,/* ctor */ scene=Omega::instance().getScene().get(); ,
 		/* py */
 		.add_property("execTime",&Engine::timingInfo_nsec_get,&Engine::timingInfo_nsec_set,"Cummulative time this Engine took to run (only used if :yref:`O.timingEnabled<Omega.timingEnabled>`\\ ==\\ ``True``).")
 		.add_property("execCount",&Engine::timingInfo_nExec_get,&Engine::timingInfo_nExec_set,"Cummulative count this engine was run (only used if :yref:`O.timingEnabled<Omega.timingEnabled>`\\ ==\\ ``True``).")

@@ -18,6 +18,18 @@ struct GlExtraDrawer: public Serializable{
 };
 REGISTER_SERIALIZABLE(GlExtraDrawer);
 
+struct GlData: public NodeData{
+	YADE_CLASS_BASE_DOC_ATTRS(GlData,NodeData,"Nodal data used for rendering.",
+		((Vector3r,refPos,Vector3r(NaN,NaN,NaN),,"Reference position (for displacement scaling)"))
+		((Quaternionr,refOri,Quaternionr(NaN,NaN,NaN,NaN),,"Reference orientation (for rotation scaling)"))
+		((Vector3r,glPos,Vector3r(NaN,NaN,NaN),,"Position where this node should be rendered."))
+		((Quaternionr,glOri,Quaternionr(NaN,NaN,NaN,NaN),,"Rendered orientation of this node."))
+	);
+};
+REGISTER_SERIALIZABLE(GlData);
+template<> struct NodeData::Index<GlData>{enum{value=Node::ST_GL};};
+
+
 
 class SparcField;
 
@@ -107,9 +119,11 @@ class Renderer: public Serializable{
 		void initgl();
 		void render(const shared_ptr<Scene>& scene, bool withNames);
 
-		void renderNodes();
+		void setNodeGlData(const shared_ptr<Node>& n);
+
 		void renderRawNode(shared_ptr<Node>);
-		void renderCNodes();
+		void renderDemNodes();
+		void renderDemContactNodes();
 		void renderShape();
 		void renderBound();
 
@@ -157,6 +171,7 @@ class Renderer: public Serializable{
 		((bool,bound,false,,"Render particle's :yref:`Bound`"))
 		((bool,shape,true,,"Render particle's :yref:`Shape`"))
 		((int,cNodes,true,,"Render contact's nodes (0=no, 1=nodes only, 2=line between particles, 3=both"))
+		((bool,nid,false,,"Show node ids for Sparc models"))
 		((Vector2i,cNodes_range,Vector2i(0,3),Attr::noGui,"Range for cNodes"))
 		//((bool,intrAllWire,false,,"Draw wire for all interactions, blue for potential and green for real ones (mostly for debugging)")),
 		,/*deprec*/

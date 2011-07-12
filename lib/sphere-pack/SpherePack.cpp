@@ -3,6 +3,8 @@
 
 #include<yade/lib/sphere-pack/SpherePack.hpp>
 
+#include<Eigen/Array>
+
 
 #include<boost/random/linear_congruential.hpp>
 #include<boost/random/uniform_real.hpp>
@@ -494,3 +496,38 @@ py::tuple SpherePack::getClumps() const{
 	return py::make_tuple(standalone,clumpList); 
 }
 
+
+int SpherePack::addShadows(){
+	size_t sz0=pack.size();
+	if(cellSize==Vector3r::Zero()) throw std::runtime_error("SpherePack.addShadows is not meaningful on aperiodic packing.");
+	// check there are no shadows yet
+	for(size_t i=0; i<sz0; i++){ if (pack[i].shadowOf>=0) throw std::runtime_error((boost::format("SpherePack.addShadows: %d is a shadow of %d; remove shadows (SpherePack.removeShadows) before calling addShadows.")%i%pack[i].shadowOf).str()); }
+	int ret=0;
+	for(size_t i=0; i<sz0; i++){
+		Sph& s=pack[i];
+		// check that points are in canonical positions
+		for(int j=0;j<3;j++){
+			if(s.c[j]<0 || s.c[j]>cellSize[j]){
+				if(s.clumpId>=0) throw std::runtime_error((boost::format("SpherePack.addShadows: %d in non-canonical position %s, but cannot be canonicalized as it is member of clump %d")%i%s.c%s.clumpId).str());
+				Real norm=s.c[j]/cellSize[j]; s.c[j]=(norm-floor(norm))*cellSize[j];
+			}
+		}
+		Vector3i mn=Vector3i::Zero(), mx=Vector3i::Zero();
+		for(int j=0;j<3;j++){ mn[j]=(s.c[j]+s.r>cellSize[j]?-1:0); mx[j]=(s.c[j]-s.r<0?1:0); }
+		Vector3i n;
+		for(n[0]=mn[0]; n[0]<=mx[0]; n[0]++) for(n[1]=mn[1]; n[1]<=mx[1]; n[1]++) for(n[2]=mn[2]; n[2]<=mx[2]; n[2]++){
+			if(n==Vector3i::Zero()) continue; // in the middle
+			pack.push_back(Sph(s.c+Vector3r(n[0]*cellSize[0],n[1]*cellSize[1],n[2]*cellSize[2]),s.r,/*clumpId*/-1,/*shadowOf*/i));
+			ret++;
+		}
+	};
+	return ret;
+}
+
+int SpherePack::removeShadows(){
+	int ret=0;
+	for(size_t i=pack.size(); i>=0; i--){
+		if(pack[i].shadowOf>=0){ pack.erase(pack.begin()+i); ret++; }
+	}
+	return ret;
+};

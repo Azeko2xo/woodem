@@ -147,6 +147,10 @@ struct Math{
 };
 typedef Math<Real> Mathr;
 
+// http://stackoverflow.com/questions/1903954/is-there-a-standard-sign-function-signum-sgn-in-c-c
+template <typename T> int sgn(T val){ return (val>T(0))-(val<T(0)); }
+
+
 /* this was removed in eigen3, see http://forum.kde.org/viewtopic.php?f=74&t=90914 */
 template<typename MatrixT>
 void Matrix_computeUnitaryPositive(const MatrixT& in, MatrixT* unitary, MatrixT* positive){

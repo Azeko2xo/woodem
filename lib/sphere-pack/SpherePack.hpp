@@ -40,8 +40,8 @@ class SpherePack{
 public:
 	enum {RDIST_RMEAN, RDIST_NUM, RDIST_PSD};
 	struct Sph{
-		Vector3r c; Real r; int clumpId;
-		Sph(const Vector3r& _c, Real _r, int _clumpId=-1): c(_c), r(_r), clumpId(_clumpId) {};
+		Vector3r c; Real r; int clumpId; int shadowOf;
+		Sph(const Vector3r& _c, Real _r, int _clumpId=-1, int _shadowOf=-1): c(_c), r(_r), clumpId(_clumpId), shadowOf(_shadowOf) {};
 		py::tuple asTuple() const {
 			if(clumpId<0) return py::make_tuple(c,r);
 			return py::make_tuple(c,r,clumpId);
@@ -85,6 +85,10 @@ public:
 	// generate packing of clumps, selected with equal probability
 	// periodic boundary is supported
 	long makeClumpCloud(const Vector3r& mn, const Vector3r& mx, const vector<shared_ptr<SpherePack> >& clumps, bool periodic=false, int num=-1);
+
+	// add/remove shadow spheres with periodic boundary, for spheres crossing it
+	int addShadows();
+	int removeShadows();
 
 	// periodic repetition
 	void cellRepeat(Vector3i count);

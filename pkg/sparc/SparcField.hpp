@@ -47,6 +47,9 @@ REGISTER_SERIALIZABLE(SparcField);
 struct SparcData: public NodeData{
 	Matrix3r getD() const{ return .5*(gradV+gradV.transpose()); }
 	Matrix3r getW() const{ return .5*(gradV-gradV.transpose()); }
+	py::list getGFixedV(const Quaternionr& ori){ return getGFixedAny(fixedV,ori); }
+	py::list getGFixedT(const Quaternionr& ori){ return getGFixedAny(fixedDivT,ori); }
+	py::list getGFixedAny(const Vector3r& any, const Quaternionr& ori);
 	void catchCrap1(int nid, const shared_ptr<Node>&);
 	void catchCrap2(int nid, const shared_ptr<Node>&);
 	// Real getDirVel(size_t i) const { return i<dirVels.size()?dirVels[i]:0.; }
@@ -81,6 +84,7 @@ struct SparcData: public NodeData{
 		, /*py*/
 		.def("_getDataOnNode",&Node::pyGetData<SparcData>).staticmethod("_getDataOnNode").def("_setDataOnNode",&Node::pySetData<SparcData>).staticmethod("_setDataOnNode")
 		.add_property("D",&SparcData::getD).add_property("W",&SparcData::getW)
+		.def("gFixedV",&SparcData::getGFixedV).def("gFixedT",&SparcData::getGFixedT)
 		;
 	);
 };
@@ -133,7 +137,7 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 		((Real,supportStiffness,1e10,,"Stiffness of constrained DoFs"))
 		((Real,residuum,NaN,Attr::readonly,"Norm of residuals (fnorm) as reported by the solver."))
 		((Real,solverFactor,200,,"Factor for the Dogleg method (automatically lowered in case of convergence troubles"))
-		((Real,maxfev,10000,,"Maximum number of function evaluation in solver"))
+		((Real,relMaxfev,10000,,"Maximum number of function evaluation in solver, relative to number of DoFs"))
 		#ifdef SPARC_INSPECT
 			((VectorXr,solverDivT,,Attr::readonly,"Solution vector as provided by the solver"))
 		#endif

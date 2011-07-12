@@ -58,6 +58,9 @@ if 'YADE_DEBUG' in os.environ:
 import warnings
 warnings.simplefilter('default')
 
+# import eigen before plugins because of its converters, so that default args to python methods can use Vector3r etc
+import miniEigen
+
 # c++ initialization code
 import boot
 boot.initialize(plugins,config.confDir)
@@ -70,11 +73,11 @@ deprecatedTypes=system.cxxCtorsDict()
 globals().update(deprecatedTypes)
 # declare what should be imported for "from yade import *"
 __all__=deprecatedTypes.keys()+['O']
-# fake miniWm3 and wrapper being in yade itself
+# fake miniEigen and wrapper being in yade itself
 from miniEigen import *
 from wrapper import *
 # import to separate namespace to be able to call dir(miniEigen) and dir(wrapper) below
-import miniEigen,wrapper 
+import wrapper 
 # out-of-class docstrings for some classes
 try: import _extraDocs
 except AttributeError: print 'WARN: Error importing py/_extraDocs.py'

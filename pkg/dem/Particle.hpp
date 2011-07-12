@@ -176,13 +176,24 @@ struct Shape: public Serializable, public Indexable{
 	virtual bool numNodesOk() const { return true; } // checks for the right number of nodes; to be used in assertions
 	// return average position of nodes, useful for rendering
 	// caller must make sure that !nodes.empty()
+	Real getSignedBaseColor(){ return color-trunc(color); }
+	Real getBaseColor(){ return abs(color)-trunc(abs(color)); }
+	bool getWire() const { return color<0; }
+	void setWire(bool w){ color=(w?-1:1)*abs(color); }
+	bool getHighlighted() const { return abs(color)>=1 && abs(color)<2; }
+	void setHighlighted(bool h){ if(getHighlighted()==h) return; color=(color>=0?1:-1)+getSignedBaseColor(); }
+	bool getVisible() const { return abs(color)<=2; }
+	void setVisible(bool w){ if(getVisible()==w) return; bool hi=abs(color)>1; color=getSignedBaseColor()+(hi?1:0); }
 	Vector3r avgNodePos();
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Shape,Serializable,"Particle geometry",
 		((shared_ptr<Bound>,bound,,,"Bound of the particle, for use by collision detection only"))
 		((vector<shared_ptr<Node> >,nodes,,,"Nodes associated with this particle"))
-		((bool,wire,false,,"Rendering hint"))
-		((Real,color,Mathr::UnitRandom(),,"Normalized color for rendering"))
-		,/*ctor*/,/*py*/ YADE_PY_TOPINDEXABLE(Shape);
+		((Real,color,Mathr::UnitRandom(),,"Normalized color for rendering; negative values render with wire (rather than solid), |color|>2 means invisible. (use *wire*, *hi* and *visible* to manipulate those)"))
+		,/*ctor*/,/*py*/
+			.add_property("wire",&Shape::getWire,&Shape::setWire)
+			.add_property("hi",&Shape::setHighlighted,&Shape::getHighlighted)
+			.add_property("visible",&Shape::setVisible,&Shape::getVisible)
+			YADE_PY_TOPINDEXABLE(Shape)
 	);
 	REGISTER_INDEX_COUNTER(Shape);
 };

@@ -48,6 +48,7 @@ using std::invalid_argument;
 using std::logic_error;
 using std::max;
 using std::min;
+using std::abs;
 
 #include<boost/python.hpp>
 namespace py=boost::python;

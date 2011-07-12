@@ -15,7 +15,7 @@
 #include <GL/gl.h>
 #include <GL/glut.h>
 
-YADE_PLUGIN(gl,(Renderer)(GlExtraDrawer));
+YADE_PLUGIN(gl,(Renderer)(GlExtraDrawer)(GlData));
 CREATE_LOGGER(Renderer);
 
 void GlExtraDrawer::render(){ throw runtime_error("GlExtraDrawer::render called from class "+getClassName()+". (did you forget to override it in the derived class?)"); }
@@ -25,9 +25,8 @@ const int Renderer::numClipPlanes;
 
 Renderer* Renderer::self=NULL; // pointer to the only existing instance
 
-//bool Renderer::withNames=false;
-//vector<shared_ptr<Serializable> > Renderer::glNamedObjects;
-//vector<shared_ptr<Node> > Renderer::glNamedNodes;
+
+
 
 
 void Renderer::init(){
@@ -63,38 +62,44 @@ bool Renderer::pointClipped(const Vector3r& p){
 }
 
 
-#if 0
-void Renderer::setBodiesDispInfo(){
-	if(scene->bodies->size()!=bodyDisp.size()) bodyDisp.resize(scene->bodies->size());
+void Renderer::setNodeGlData(const shared_ptr<Node>& n){
 	bool scaleRotations=(rotScale!=1.0);
 	bool scaleDisplacements=(dispScale!=Vector3r::Ones());
-	FOREACH(const shared_ptr<Body>& b, *scene->bodies){
-		if(!b || !b->state) continue;
-		size_t id=b->getId();
-		const Vector3r& pos=b->state->pos; const Vector3r& refPos=b->state->refPos;
-		const Quaternionr& ori=b->state->ori; const Quaternionr& refOri=b->state->refOri;
-		Vector3r cellPos=(!scene->isPeriodic ? pos : scene->cell->wrapShearedPt(pos)); // inside the cell if periodic, same as pos otherwise
-		bodyDisp[id].isDisplayed=!pointClipped(cellPos);
+	const bool isPeriodic=scene->isPeriodic;
+
+	// FOREACH(const shared_ptr<Node>& n, nn){
+
+		if(!n->hasData<GlData>()) n->setData<GlData>(make_shared<GlData>());
+		GlData& gld=n->getData<GlData>();
+		// inside the cell if periodic, same as pos otherwise
+		Vector3r cellPos=(!isPeriodic ? n->pos : scene->cell->canonicalizePt(n->pos)); 
+		bool rendered=!pointClipped(cellPos);
+		if(!rendered){ gld.glPos=Vector3r(NaN,NaN,NaN); return; }
+		if(isnan(gld.refPos[0])) gld.refPos=n->pos;
+		if(isnan(gld.refOri.x())) gld.refOri=n->ori;
+		const Vector3r& pos=n->pos; const Vector3r& refPos=gld.refPos;
+		const Quaternionr& ori=n->ori; const Quaternionr& refOri=gld.refOri;
 		#ifdef YADE_SUBDOMAINS
 			int subDom; Body::id_t localId;
 			boost::tie(subDom,localId)=scene->bodies->subDomId2domNumLocalId(b->subDomId);
 			if(subDomMask!=0 && (((1<<subDom) & subDomMask)==0)) bodyDisp[id].isDisplayed=false;
 		#endif
 		// if no scaling and no periodic, return quickly
-		if(!(scaleDisplacements||scaleRotations||scene->isPeriodic)){ bodyDisp[id].pos=pos; bodyDisp[id].ori=ori; continue; }
+		if(!(scaleDisplacements||scaleRotations||isPeriodic)){ gld.glPos=pos; gld.glOri=ori; return; }
 		// apply scaling
-		bodyDisp[id].pos=cellPos; // point of reference (inside the cell for periodic)
-		if(scaleDisplacements) bodyDisp[id].pos+=dispScale.cwise()*Vector3r(pos-refPos); // add scaled translation to the point of reference
-		if(!scaleRotations) bodyDisp[id].ori=ori;
+		gld.glPos=cellPos;
+		// add scaled translation to the point of reference
+		if(scaleDisplacements) gld.glPos+=dispScale.cwise()*Vector3r(pos-refPos); 
+		if(!scaleRotations) gld.glOri=ori;
 		else{
 			Quaternionr relRot=refOri.conjugate()*ori;
 			AngleAxisr aa(relRot);
 			aa.angle()*=rotScale;
-			bodyDisp[id].ori=refOri*Quaternionr(aa);
+			gld.glOri=refOri*Quaternionr(aa);
 		}
-	}
+
+	// }
 }
-#endif
 
 // draw periodic cell, if active
 void Renderer::drawPeriodicCell(){
@@ -237,11 +242,13 @@ void Renderer::render(const shared_ptr<Scene>& _scene, bool _withNames){
 		if(shape)renderShape();
 		if(bound)renderBound();
 		// if(cGeom)renderCGeom();
-		if(nodes) renderNodes();
-		if(cNodes>0)renderCNodes();
+		if(nodes) renderDemNodes();
+		if(cNodes>0)renderDemContactNodes();
 	}
 	//if(voro){ renderVoro();	}
-	if(sparc){ renderSparc(); }
+	if(sparc){
+		renderSparc();
+	}
 
 	#if 0
 	if (dof || id) renderDOF_ID();
@@ -281,20 +288,22 @@ void Renderer::setLightHighlighted(int highLev){
 void Renderer::setLightUnhighlighted(){ resetSpecularEmission(); }	
 
 
-void Renderer::renderNodes(){
+void Renderer::renderDemNodes(){
 	nodeDispatcher.scene=scene.get(); nodeDispatcher.updateScenePtr();
 	FOREACH(shared_ptr<Node> node, dem->nodes){
 		glScopedName name(node);
+		setNodeGlData(node);
 		renderRawNode(node);
 	}
 }
 
 // render nodes of DEM contacts
-void Renderer::renderCNodes(){
+void Renderer::renderDemContactNodes(){
 	nodeDispatcher.scene=scene.get(); nodeDispatcher.updateScenePtr();
 	boost::mutex::scoped_lock lock(*dem->contacts.manipMutex);
 	FOREACH(const shared_ptr<Contact>& C, dem->contacts){
 		assert(C->geom);
+		setNodeGlData(C->geom->node);
 		if(cNodes & 1) renderRawNode(C->geom->node);
 		if(cNodes & 2){ // connect node by lines with particle's positions
 			glScopedName name(C,C->geom->node);
@@ -310,11 +319,16 @@ void Renderer::renderCNodes(){
 }
 
 void Renderer::renderRawNode(shared_ptr<Node> node){
-	Vector3r x=node->pos;
-	if(scene->isPeriodic) x=scene->cell->canonicalizePt(x);
+	Vector3r x;
+	if(node->hasData<GlData>()){
+		x=node->getData<GlData>().glPos; // glPos is already canonicalized, if periodic
+		if(isnan(x[0])) return;
+	}
+	else{ x=(scene->isPeriodic?scene->cell->canonicalizePt(node->pos):node->pos); }
+	Quaternionr ori=node->hasData<GlData>()?node->getData<GlData>().glOri:node->ori;
 	glPushMatrix();
-		glTranslatev(scene->isPeriodic? scene->cell->canonicalizePt(node->pos) : node->pos);
-		AngleAxisr aa(node->ori.conjugate());
+		glTranslatev(x);
+		AngleAxisr aa(ori.conjugate());
 		glRotatef(aa.angle()*Mathr::RAD_TO_DEG,aa.axis()[0],aa.axis()[1],aa.axis()[2]);
 		nodeDispatcher(node,viewInfo);
 	glPopMatrix();
@@ -336,6 +350,7 @@ void Renderer::renderShape(){
 	FOREACH(shared_ptr<Particle> b, dem->particles){
 		if(!b->shape || b->shape->nodes.size()==0) continue;
 		const shared_ptr<Shape>& sh=b->shape;
+		if(!sh->getVisible()) continue;
 
 		//if(!bodyDisp[b->getId()].isDisplayed) continue;
 		//Vector3r pos=bodyDisp[b->getId()].pos;
@@ -352,12 +367,12 @@ void Renderer::renderShape(){
 		// bool highlight=(b->id==selId || (b->clumpId>=0 && b->clumpId==selId) || b->shape->highlight);
 
 		glPushMatrix();
-			shapeDispatcher(b->shape,/*shift*/Vector3r::Zero(),wire||sh->wire,viewInfo);
+			shapeDispatcher(b->shape,/*shift*/Vector3r::Zero(),wire||sh->getWire(),viewInfo);
 		glPopMatrix();
 
 		if(name.highlighted){
 			const Vector3r& p=sh->nodes[0]->pos;
-			if(!sh->bound || wire || sh->wire) GLUtils::GLDrawInt(b->id,p);
+			if(!sh->bound || wire || sh->getWire()) GLUtils::GLDrawInt(b->id,p);
 			else {
 				// move the label towards the camera by the bounding box so that it is not hidden inside the body
 				const Vector3r& mn=sh->bound->min; const Vector3r& mx=sh->bound->max;
@@ -426,16 +441,19 @@ void Renderer::renderBound(){
 void Renderer::renderSparc(){
 	FOREACH(const shared_ptr<Node>& n, sparc->nodes){
 		glScopedName name(n);
+		setNodeGlData(n); // assures that GlData is defined
 		renderRawNode(n);
 		// GLUtils::GLDrawText((boost::format("%d")%n->getData<SparcData>().nid).str(),n->pos,/*color*/Vector3r(1,1,1), /*center*/true,/*font*/NULL);
-		int nid=n->getData<SparcData>().nid;
-		if(nid>=0) GLUtils::GLDrawNum(nid,n->pos);
+		int nnid=n->getData<SparcData>().nid;
+		const Vector3r& pos=n->getData<GlData>().glPos;
+		if(nid && nnid>=0) GLUtils::GLDrawNum(nnid,pos);
 		if(!sparc->showNeighbors && !name.highlighted) continue;
 		// show neighbours with lines, with node colors
 		Vector3r color=CompUtils::mapColor(n->getData<SparcData>().color);
 		FOREACH(const shared_ptr<Node>& neighbor, n->getData<SparcData>().neighbors){
-			GLUtils::GLDrawLine(n->pos,n->pos+.5*(neighbor->pos-n->pos),color,3);
-			GLUtils::GLDrawLine(n->pos+.5*(neighbor->pos-n->pos),neighbor->pos,color,1);
+			const Vector3r& np=neighbor->getData<GlData>().glPos;
+			GLUtils::GLDrawLine(pos,pos+.5*(np-pos),color,3);
+			GLUtils::GLDrawLine(pos+.5*(np-pos),np,color,1);
 		}
 	}
 }

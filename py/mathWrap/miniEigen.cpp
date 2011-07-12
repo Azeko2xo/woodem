@@ -47,7 +47,7 @@ Real Vector2r_get_item(const Vector2r & self, int idx){ IDX_CHECK(idx,2); return
 int  Vector2i_get_item(const Vector2i & self, int idx){ IDX_CHECK(idx,2); return self[idx]; }
 
 template<typename MatrixType>
-MatrixType Matrix_pruned(const MatrixType& obj, typename MatrixType::Scalar absTol=1e-6){ MatrixType ret(MatrixType::Zero()); for(int i=0;i<obj.rows();i++)for(int j=0;j<obj.cols();j++) if(abs(obj(i,j))>absTol && obj(i,j)!=-0) ret(i,j)=obj(i,j); return ret; }
+MatrixType Matrix_pruned(const MatrixType& obj, typename MatrixType::Scalar absTol=1e-6){ MatrixType ret(MatrixType::Zero()); for(int i=0;i<obj.rows();i++){ for(int j=0;j<obj.cols();j++){ if(std::abs(obj(i,j))>absTol  && obj(i,j)!=-0) ret(i,j)=obj(i,j); } } return ret; }
 
 template<typename MatrixType>
 typename MatrixType::Scalar Matrix_maxAbsCoeff(const MatrixType& obj){ return Eigen::Array<typename MatrixType::Scalar,MatrixType::RowsAtCompileTime,MatrixType::ColsAtCompileTime>(obj).abs().maxCoeff(); }

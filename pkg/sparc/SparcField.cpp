@@ -155,7 +155,7 @@ void ExplicitNodeIntegrator::applyKinematicConstraints(const shared_ptr<Node>& n
 	for(int i=0;i<3;i++){
 		if(!isnan(dta.fixedV[i])) locVel[i]=dta.fixedV[i];
 	}
-	dta.v=n->ori.conjugate()*dta.v;
+	dta.v=n->ori.conjugate()*locVel;
 	if(!permitFixedDivT && dta.fixedDivT!=Vector3r(NaN,NaN,NaN)){
 		throw std::invalid_argument((boost::format("Nid %d: fixedDivT not allowed (is %s")%dta.fixedDivT.transpose()).str());
 	}
@@ -183,6 +183,17 @@ void SparcData::catchCrap1(int nid, const shared_ptr<Node>& node){
 void SparcData::catchCrap2(int nid, const shared_ptr<Node>& node){
 	BOOST_PP_SEQ_FOR_EACH(_CATCH_CRAP,~,(node->pos)(T)(v)(rho));
 };
+
+py::list SparcData::getGFixedAny(const Vector3r& any, const Quaternionr& ori){
+	py::list ret;
+	for(int i=0;i<3;i++){
+		if(isnan(any[i])) continue;
+		Vector3r a=Vector3r::Zero(); a[i]=1;
+		ret.append(py::make_tuple(any[i],ori*a));
+	}
+	return ret;
+};
+
 
 void ExplicitNodeIntegrator::run(){
 	mff=static_cast<SparcField*>(field.get());
@@ -320,7 +331,8 @@ void StaticEquilibriumSolver::applyConstraintsAsDivT(const shared_ptr<Node>& n, 
 			// locDivT is actually stress residual
 			// we make it correspond to difference between current and prescribed (internal) stress
 			// the term is only added, since there might be divergence from other sources (??)
-			locDivT[i]=locAxT-dta.fixedDivT[i];
+			// locDivT[i]=locAxT-dta.fixedDivT[i];
+			locDivT[i]=dta.fixedDivT[i]-locAxT;
 			//cerr<<"Nid "<<dta.nid<<", divT["<<i<<"] "<<locAxT<<"(should be "<<dta.fixedDivT[i]<<") adds locDivT "<<locDivT[i]<<endl;
 		}
 		//cerr<<"@@@ Nid "<<dta.nid<<", divT "<<divT.transpose()<<" -> "<<n->ori.conjugate()*locDivT<<endl; // <<", fixedDivT="<<dta.fixedDivT.transpose()<<", T=\n"<<T<<"\nlocT=\n"<<locT<<endl;
@@ -406,7 +418,7 @@ void StaticEquilibriumSolver::run(){
 	StressDivergenceFunctor functor(vv.size(),vv.size(),this);
 	Eigen::HybridNonLinearSolver<StressDivergenceFunctor> solver(functor);
 	solver.parameters.factor=solverFactor;
-	solver.parameters.maxfev=maxfev;
+	solver.parameters.maxfev=relMaxfev*vv.size();
 
 	// solution loop
 	int status;
