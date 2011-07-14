@@ -8,11 +8,13 @@
 #include<boost/lexical_cast.hpp>
 using boost::lexical_cast;
 
+// enables beautiful constructs like: for(int x: {0,1,2})...
+#include<initializer_list>
+
 /* Avoid using std::shared_ptr, because boost::serialization does not support it.
    For boost::python, declaring get_pointer template would be enough.
 	See http://stackoverflow.com/questions/6568952/c0x-stdshared-ptr-vs-boostshared-ptr
 */
-
 #include<boost/shared_ptr.hpp>
 #include<boost/make_shared.hpp>
 using boost::shared_ptr;

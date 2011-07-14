@@ -66,13 +66,10 @@ class Cell: public Serializable{
 	void integrateAndUpdate(Real dt);
 	/*! Return point inside periodic cell, even if shear is applied */
 	// this method will be deprecated
-	Vector3r wrapShearedPt(const Vector3r& pt) const { return shearPt(wrapPt(unshearPt(pt))); }
-
-	// new name for wrapShearedPt
-	Vector3r canonicalizePt(const Vector3r& pt) const { return wrapShearedPt(pt);}
+	Vector3r canonicalizePt(const Vector3r& pt) const { return shearPt(wrapPt(unshearPt(pt))); }
 
 	/*! Return point inside periodic cell, even if shear is applied; store cell coordinates in period. */
-	Vector3r wrapShearedPt(const Vector3r& pt, Vector3i& period) const { return shearPt(wrapPt(unshearPt(pt),period)); }
+	Vector3r canonicalizePt(const Vector3r& pt, Vector3i& period) const { return shearPt(wrapPt(unshearPt(pt),period)); }
 	/*! Apply inverse shear on point; to put it inside (unsheared) periodic cell, apply wrapPt on the returned value. */
 	Vector3r unshearPt(const Vector3r& pt) const { return _unshearTrsf*pt; }
 	//! Apply shear on point. 
@@ -126,7 +123,7 @@ class Cell: public Serializable{
 	void postLoad(Cell&){ integrateAndUpdate(0); }
 
 	// to resolve overloads
-	Vector3r wrapShearedPt_py(const Vector3r& pt) const { return wrapShearedPt(pt);}
+	Vector3r canonicalizePt_py(const Vector3r& pt) const { return canonicalizePt(pt);}
 	Vector3r wrapPt_py(const Vector3r& pt) const { return wrapPt(pt);}
 
 	// check that trsf is upper triangular, throw an exception if not
@@ -140,7 +137,7 @@ class Cell: public Serializable{
 		((Matrix3r,refHSize,Matrix3r::Identity(),,"Reference cell configuration, only used with :yref:`OpenGLRenderer.dispScale`. Updated automatically when :yref:`hSize<Cell.hSize>` or :yref:`trsf<Cell.trsf>` is assigned directly; also modified by :yref:`yade.utils.setRefSe3` (called e.g. by the :gui:`Reference` button in the UI)."))
 		((Matrix3r,hSize,Matrix3r::Identity(),,"[overridden below]"))
 		/* normal attributes */
-		((Matrix3r,velGrad,Matrix3r::Zero(),,"Velocity gradient of the transformation; used in :yref:`NewtonIntegrator`. Values of :yref:`velGrad<Cell.velGrad>` accumulate in :yref:`trsf<Cell.trsf>` at every step."))
+		((Matrix3r,velGrad,Matrix3r::Zero(),,"Velocity gradient of the transformation; used in :yref:`Leapfrog`. Values of :yref:`velGrad<Cell.velGrad>` accumulate in :yref:`trsf<Cell.trsf>` at every step."))
 		((Matrix3r,prevVelGrad,Matrix3r::Zero(),Attr::readonly,"Velocity gradient in the previous step."))
 		((int,homoDeform,3,Attr::triggerPostLoad,"Deform (:yref:`velGrad<Cell.velGrad>`) the cell homothetically, by adjusting positions or velocities of particles. The values have the following meaning: 0: no homothetic deformation, 1: set absolute particle positions directly (when ``velGrad`` is non-zero), but without changing their velocity, 2: adjust particle velocity (only when ``velGrad`` changed) with Δv_i=Δ ∇v x_i. 3: as 2, but include a 2nd order term in addition -- the derivative of 1 (convective term in the velocity update).")),
 		/*deprec*/ ((Hsize,hSize,"conform to Yade's names convention.")),
@@ -159,7 +156,8 @@ class Cell: public Serializable{
 		.def("setBox",&Cell::setBox,"Set :yref:`Cell` shape to be rectangular, with dimensions along axes specified by given argument. Shorthand for assigning diagonal matrix with respective entries to :yref:`hSize<Cell.hSize>`.")
 		.def("setBox",&Cell::setBox3,"Set :yref:`Cell` shape to be rectangular, with dimensions along $x$, $y$, $z$ specified by arguments. Shorthand for assigning diagonal matrix with the respective entries to :yref:`hSize<Cell.hSize>`.")
 		// debugging only
-		.def("wrap",&Cell::wrapShearedPt_py,"Transform an arbitrary point into a point in the reference cell")
+		//.def("wrap",&Cell::wrapShearedPt_py,"Transform an arbitrary point into a point in the reference cell")
+		.def("canonicalizePt",&Cell::canonicalizePt_py,"Transform any point such that it is inside the base cell")
 		.def("unshearPt",&Cell::unshearPt,"Apply inverse shear on the point (removes skew+rot of the cell)")
 		.def("shearPt",&Cell::shearPt,"Apply shear (cell skew+rot) on the point")
 		.def("wrapPt",&Cell::wrapPt_py,"Wrap point inside the reference cell, assuming the cell has no skew+rot.")

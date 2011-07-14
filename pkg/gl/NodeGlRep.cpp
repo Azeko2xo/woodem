@@ -14,7 +14,7 @@ YADE_PLUGIN(gl,(ScalarGlRep)(VectorGlRep)(TensorGlRep));
 
 void ScalarGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
 	Vector3r color=(range?range->color(val):CompUtils::scalarOnColorScale(val,0,1));
-	Vector3r pos=(node->hasData<GlData>()?node->getData<GlData>().glPos:node->pos);
+	Vector3r pos=node->pos+(node->hasData<GlData>()?node->getData<GlData>().dGlPos:Vector3r::Zero());
 	switch(how){
 		case 0: {
 			GLUtils::GLDrawText((boost::format("%03g")%val).str(),pos,color); // ,/*center*/true,/*font*/NULL,/*bgColor*/Vector3r::Zero());
@@ -44,7 +44,7 @@ void VectorGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
 	Real mxNorm=(range?range->mnmx[1]:1);
 	Real len=relSz*viewInfo->sceneRadius;
 	if(!isnan(scaleExp)) len*=pow(valNorm/mxNorm,scaleExp);
-	Vector3r pos=(node->hasData<GlData>()?node->getData<GlData>().glPos:node->pos);
+	Vector3r pos=node->pos+(node->hasData<GlData>()?node->getData<GlData>().dGlPos:Vector3r::Zero());
 	glColor3v(color);
 	GLUtils::GLDrawArrow(pos,pos+len*(val/valNorm),color);
 }
@@ -77,7 +77,7 @@ void TensorGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
 
 	if(range && !skewRange) skewRange=range;
 
-	Vector3r pos=(node->hasData<GlData>()?node->getData<GlData>().glPos:node->pos);
+	Vector3r pos=node->pos+(node->hasData<GlData>()?node->getData<GlData>().dGlPos:Vector3r::Zero());
 
 	for(int i=0;i<3;i++){
 		Vector3r color=(range?range->color(eigVal[i]):CompUtils::scalarOnColorScale(eigVal[i],-1,1));

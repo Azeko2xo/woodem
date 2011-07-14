@@ -179,8 +179,10 @@ def userSession(qt4=False,qapp=None):
 	# start non-blocking qt4 app here; need to ask on the mailing list on how to make it functional
 	## with ipython 0.11, start the even loop early (impossible with 0.10, which is thread-based)
 	#if qt4 and yade.runtime.ipython_version==11:
-	#	import IPython
-	#	IPython.appstart_qt4(qapp)
+	#	import IPython.lib.guisupport
+	#	print 'aa'
+	#	IPython.lib.guisupport.start_event_loop_qt4()
+	#	print 'bb'
 	if len(sys.argv)>0:
 		arg0=sys.argv[0]
 		if qt4: yade.qt.Controller();
@@ -221,6 +223,7 @@ def userSession(qt4=False,qapp=None):
 	
 	# show python console
 	# handle both ipython 0.10 and 0.11 (incompatible API)
+	# print 'ipython version', yade.runtime.ipython_version
 	if yade.runtime.ipython_version==10:
 		from IPython.Shell import IPShellEmbed
 		ipshell=IPShellEmbed(banner=banner,rc_override=ipconfig)
@@ -230,10 +233,11 @@ def userSession(qt4=False,qapp=None):
 		import IPython.ipapi
 		IPython.ipapi.get().IP.atexit_operations()
 	elif yade.runtime.ipython_version==11:
-		from IPython.core.embed import InteractiveShellEmbed
+		# avoid warnings from ipython code
+		from IPython.frontend.terminal.embed import InteractiveShellEmbed
 		# use the dict to set attributes
 		for k in ipconfig: setattr(InteractiveShellEmbed,k,ipconfig[k])
-		InteractiveShellEmbed.banner1=banner # called banner1 here, not banner anymore
+		InteractiveShellEmbed.banner1=banner+'\n' # called banner1 here, not banner anymore
 		ipshell=InteractiveShellEmbed()
 		ipshell()
 		# similar to the workaround, as for 0.10 (perhaps not needed?)
@@ -271,9 +275,15 @@ elif gui=='qt4':
 	import PyQt4
 	from PyQt4 import QtGui
 	from PyQt4.QtCore import *
-	import yade.qt # this yade.qt is different from the one that comes with qt3
-	qapp=QtGui.QApplication(sys.argv)
+	import yade.qt
+	if yade.runtime.ipython_version==10:
+		qapp=QtGui.QApplication(sys.argv)
+	else:
+		import IPython.lib.inputhook #guisupport
+		qapp=IPython.lib.inputhook.enable_gui(gui='qt4')
+		#qapp=IPython.lib.guisupport.get_app_qt4()
 	userSession(qt4=True,qapp=qapp)
 
+from yade import O
 O.exitNoBacktrace()
 

@@ -15,7 +15,7 @@ shared_ptr<DemField> getDemField(Scene* scene){
 	return ret;
 }
 
-Real PWaveTimeStep(){
+Real pWaveTimeStep(){
 	Scene* scene=Omega::instance().getScene().get(); DemField* field=getDemField(scene).get();
 	Real dt=std::numeric_limits<Real>::infinity();
 	FOREACH(const shared_ptr<Particle>& b, field->particles){
@@ -117,7 +117,7 @@ BOOST_PYTHON_MODULE(_utils2){
 	//import_array();
 
 	YADE_SET_DOCSTRING_OPTS;
-	//py::def("PWaveTimeStep",PWaveTimeStep,"Get timestep accoring to the velocity of P-Wave propagation; computed from sphere radii, rigidities and masses.");
+	py::def("pWaveTimeStep",pWaveTimeStep,"Get timestep accoring to the velocity of P-Wave propagation; computed from sphere radii, rigidities and masses.");
 	py::def("createContacts",createContacts,(py::arg("ids1"),py::arg("id2s"),py::arg("geomFunctors")=vector<shared_ptr<CGeomFunctor> >(),py::arg("physFunctors")=vector<shared_ptr<CPhysFunctor> >(),py::arg("force")=true),"Create contacts between given DEM particles.\n\nCurrent engines are searched for :yref:`ContactLoop`, unless *geomFunctors* and *physFunctors* are given. *force* will make :yref:`CGeomFunctors` acknowledge the contact even if particles don't touch geometrically.\n\n.. warning::\n\tThis function will very likely behave incorrectly for periodic simulations (though it could be extended it to handle it farily easily).");
 	py::def("stressStiffness",stressStiffness,(py::arg("volume")=0,py::arg("skipMultinodal")=true),"Compute stress and stiffness tensors; returns tuple (stress, stiffness) in Voigt notation. *skipMultinodal* skips all contacts involving particles with multiple nodes, where stress & stiffness values can be determined only by In2 functors.");
 }

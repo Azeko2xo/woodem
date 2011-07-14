@@ -74,7 +74,7 @@ void Gl1_NormPhys::go(const shared_ptr<IPhys>& ip, const shared_ptr<Interaction>
 	#else
 		// get endpoints from geom
 		// max(r,0) handles r<0 which is the case for "radius" of the facet in Dem3DofGeom_FacetSphere
-		Vector3r cp=scene->isPeriodic? scene->cell->wrapShearedPt(geom->contactPoint) : geom->contactPoint;
+		Vector3r cp=scene->isPeriodic? scene->cell->canonicalizePt(geom->contactPoint) : geom->contactPoint;
 		Vector3r p1=cp-max(geom->refR1,0.)*geom->normal;
 		Vector3r p2=cp+max(geom->refR2,0.)*geom->normal;
 		const Vector3r& dispScale=scene->renderer ? scene->renderer->dispScale : Vector3r::Ones(); 

@@ -99,7 +99,7 @@ void OpenGLRenderer::setBodiesDispInfo(){
 		size_t id=b->getId();
 		const Vector3r& pos=b->state->pos; const Vector3r& refPos=b->state->refPos;
 		const Quaternionr& ori=b->state->ori; const Quaternionr& refOri=b->state->refOri;
-		Vector3r cellPos=(!scene->isPeriodic ? pos : scene->cell->wrapShearedPt(pos)); // inside the cell if periodic, same as pos otherwise
+		Vector3r cellPos=(!scene->isPeriodic ? pos : scene->cell->canonicalizePt(pos)); // inside the cell if periodic, same as pos otherwise
 		bodyDisp[id].isDisplayed=!pointClipped(cellPos);
 		#ifdef YADE_SUBDOMAINS
 			int subDom; Body::id_t localId;
@@ -274,7 +274,7 @@ void OpenGLRenderer::renderAllInteractionsWire(){
 		// in sheared cell, apply shear on the mutual position as well
 		shift2=scene->cell->shearPt(shift2);
 		Vector3r rel=Body::byId(i->getId2(),scene)->state->pos+shift2-p1;
-		if(scene->isPeriodic) p1=scene->cell->wrapShearedPt(p1);
+		if(scene->isPeriodic) p1=scene->cell->canonicalizePt(p1);
 		glBegin(GL_LINES); glVertex3v(p1);glVertex3v(Vector3r(p1+rel));glEnd();
 	}
 }

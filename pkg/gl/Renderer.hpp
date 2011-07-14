@@ -22,8 +22,9 @@ struct GlData: public NodeData{
 	YADE_CLASS_BASE_DOC_ATTRS(GlData,NodeData,"Nodal data used for rendering.",
 		((Vector3r,refPos,Vector3r(NaN,NaN,NaN),,"Reference position (for displacement scaling)"))
 		((Quaternionr,refOri,Quaternionr(NaN,NaN,NaN,NaN),,"Reference orientation (for rotation scaling)"))
-		((Vector3r,glPos,Vector3r(NaN,NaN,NaN),,"Position where this node should be rendered."))
-		((Quaternionr,glOri,Quaternionr(NaN,NaN,NaN,NaN),,"Rendered orientation of this node."))
+		((Vector3r,dGlPos,Vector3r(NaN,NaN,NaN),,"Difference from real spatial position when rendered."))
+		((Quaternionr,dGlOri,Quaternionr(NaN,NaN,NaN,NaN),,"Difference from real spatial orientation when rendered."))
+		((Vector3i,dCellDist,Vector3i::Zero(),,"How much is canonicalized point from the real one."))
 	);
 };
 REGISTER_SERIALIZABLE(GlData);
@@ -154,7 +155,7 @@ class Renderer: public Serializable{
 		((bool,light1,true,,"Turn light 1 on."))
 		((bool,light2,true,,"Turn light 2 on."))
 		((bool,nodes,true,,"Render nodes belonging to fields"))
-		((bool,ghosts,true,,"Render objects crossing periodic cell edges by cloning them in multiple places (periodic simulations only)."))
+		((bool,ghosts,false,,"Render objects crossing periodic cell edges by cloning them in multiple places (periodic simulations only)."))
 		#ifdef YADE_SUBDOMAINS
 			((int,subDomMask,0,,"If non-zero, render shape only of particles that are inside respective domains - -they are counted from the left, i.e. 5 (binary 101) will show subdomains 1 and 3. If zero, render everything."))
 		#endif

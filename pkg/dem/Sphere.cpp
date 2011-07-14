@@ -53,6 +53,7 @@ YADE_PLUGIN(gl,(Gl1_Sphere));
 
 #include<yade/lib/opengl/OpenGLWrapper.hpp>
 #include<yade/lib/opengl/GLUtils.hpp>
+#include<yade/pkg/gl/Renderer.hpp>
 #include<yade/lib/base/CompUtils.hpp>
 
 bool Gl1_Sphere::wire;
@@ -70,7 +71,9 @@ Real  Gl1_Sphere::prevQuality=0;
 
 void Gl1_Sphere::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool wire2, const GLViewInfo&){
 
-	GLUtils::setLocalCoords(shape->nodes[0]->pos+shift,shape->nodes[0]->ori);
+	const shared_ptr<Node>& n=shape->nodes[0];
+	Vector3r dPos=(n->hasData<GlData>()?n->getData<GlData>().dGlPos:Vector3r::Zero());
+	GLUtils::setLocalCoords(shape->nodes[0]->pos+shift+dPos,shape->nodes[0]->ori);
 
 	glClearDepth(1.0f);
 	glEnable(GL_NORMALIZE);
@@ -78,7 +81,7 @@ void Gl1_Sphere::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool 
 	if(quality>10) quality=10; // insane setting can quickly kill the GPU
 
 	Real r=shape->cast<Sphere>().radius*scale;
-	glColor3v(CompUtils::mapColor(shape->color));
+	glColor3v(CompUtils::mapColor(shape->getBaseColor()));
 	if (wire || wire2){ glLineWidth(1.); glutWireSphere(r,quality*glutSlices,quality*glutStacks); }
 	else {
 		//Check if quality has been modified or if previous lists are invalidated (e.g. by creating a new qt view), then regenerate lists

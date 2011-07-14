@@ -63,7 +63,7 @@ Matrix3r Shop::flipCell(const Matrix3r& _flip){
 	// current cell coords of bodies
 	vector<Vector3i > oldCells; oldCells.resize(scene->bodies->size());
 	FOREACH(const shared_ptr<Body>& b, *scene->bodies){
-		if(!b) continue; cell->wrapShearedPt(b->state->pos,oldCells[b->getId()]);
+		if(!b) continue; cell->canonicalizePt(b->state->pos,oldCells[b->getId()]);
 	}
 
 	// change cell trsf here
@@ -83,7 +83,7 @@ Matrix3r Shop::flipCell(const Matrix3r& _flip){
 	vector<Vector3i > newCells; newCells.resize(scene->bodies->size());
 	FOREACH(const shared_ptr<Body>& b, *scene->bodies){
 		if(!b) continue;
-		cell->wrapShearedPt(b->state->pos,newCells[b->getId()]);
+		cell->canonicaliePt(b->state->pos,newCells[b->getId()]);
 	}
 
 	// remove all potential interactions

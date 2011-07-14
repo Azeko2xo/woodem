@@ -163,7 +163,7 @@ void VTKRecorder::action(){
 			}
 			if(!scene->isPeriodic){ intrBodyPos->InsertNextPoint(b->state->pos[0],b->state->pos[1],b->state->pos[2]); }
 			else {
-				Vector3r pos=scene->cell->wrapShearedPt(b->state->pos,wrapCellDist[b->id]);
+				Vector3r pos=scene->cell->canonicalizePt(b->state->pos,wrapCellDist[b->id]);
 				intrBodyPos->InsertNextPoint(pos[0],pos[1],pos[2]);
 			}
 			assert(intrBodyPos->GetNumberOfPoints()==b->id+1);
@@ -232,7 +232,7 @@ void VTKRecorder::action(){
 			if (sphere){
 				if(skipNondynamic && b->state->blockedDOFs==State::DOF_ALL) continue;
 				vtkIdType pid[1];
-				Vector3r pos(scene->isPeriodic ? scene->cell->wrapShearedPt(b->state->pos) : b->state->pos);
+				Vector3r pos(scene->isPeriodic ? scene->cell->canonicalizePt(b->state->pos) : b->state->pos);
 				pid[0] = spheresPos->InsertNextPoint(pos[0], pos[1], pos[2]);
 				spheresCells->InsertNextCell(1,pid);
 				radii->InsertNextValue(sphere->radius);
@@ -272,7 +272,7 @@ void VTKRecorder::action(){
 		if (recActive[REC_FACETS]){
 			const Facet* facet = dynamic_cast<Facet*>(b->shape.get()); 
 			if (facet){
-				Vector3r pos(scene->isPeriodic ? scene->cell->wrapShearedPt(b->state->pos) : b->state->pos);
+				Vector3r pos(scene->isPeriodic ? scene->cell->canonicalizePt(b->state->pos) : b->state->pos);
 				const vector<Vector3r>& localPos = facet->vertices;
 				Matrix3r facetAxisT=b->state->ori.toRotationMatrix();
 				vtkSmartPointer<vtkTriangle> tri = vtkSmartPointer<vtkTriangle>::New();

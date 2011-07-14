@@ -72,9 +72,9 @@ void Renderer::setNodeGlData(const shared_ptr<Node>& n){
 		if(!n->hasData<GlData>()) n->setData<GlData>(make_shared<GlData>());
 		GlData& gld=n->getData<GlData>();
 		// inside the cell if periodic, same as pos otherwise
-		Vector3r cellPos=(!isPeriodic ? n->pos : scene->cell->canonicalizePt(n->pos)); 
+		Vector3r cellPos=(!isPeriodic ? n->pos : scene->cell->canonicalizePt(n->pos,gld.dCellDist)); 
 		bool rendered=!pointClipped(cellPos);
-		if(!rendered){ gld.glPos=Vector3r(NaN,NaN,NaN); return; }
+		if(!rendered){ gld.dGlPos=Vector3r(NaN,NaN,NaN); return; }
 		if(isnan(gld.refPos[0])) gld.refPos=n->pos;
 		if(isnan(gld.refOri.x())) gld.refOri=n->ori;
 		const Vector3r& pos=n->pos; const Vector3r& refPos=gld.refPos;
@@ -85,17 +85,17 @@ void Renderer::setNodeGlData(const shared_ptr<Node>& n){
 			if(subDomMask!=0 && (((1<<subDom) & subDomMask)==0)) bodyDisp[id].isDisplayed=false;
 		#endif
 		// if no scaling and no periodic, return quickly
-		if(!(scaleDisplacements||scaleRotations||isPeriodic)){ gld.glPos=pos; gld.glOri=ori; return; }
+		if(!(scaleDisplacements||scaleRotations||isPeriodic)){ gld.dGlPos=Vector3r::Zero(); gld.dGlOri=Quaternionr::Identity(); return; }
 		// apply scaling
-		gld.glPos=cellPos;
+		gld.dGlPos=cellPos-n->pos;
 		// add scaled translation to the point of reference
-		if(scaleDisplacements) gld.glPos+=dispScale.cwise()*Vector3r(pos-refPos); 
-		if(!scaleRotations) gld.glOri=ori;
+		if(scaleDisplacements) gld.dGlPos+=(dispScale-Vector3r::Ones()).cwise()*Vector3r(pos-refPos); 
+		if(!scaleRotations) gld.dGlOri=Quaternionr::Identity();
 		else{
 			Quaternionr relRot=refOri.conjugate()*ori;
 			AngleAxisr aa(relRot);
 			aa.angle()*=rotScale;
-			gld.glOri=refOri*Quaternionr(aa);
+			gld.dGlOri=Quaternionr(aa);
 		}
 
 	// }
@@ -106,16 +106,13 @@ void Renderer::drawPeriodicCell(){
 	if(!scene->isPeriodic) return;
 	glColor3v(Vector3r(1,1,0));
 	glPushMatrix();
-		// Vector3r size=scene->cell->getSize();
 		const Matrix3r& hSize=scene->cell->hSize;
-		#if 0
 		if(dispScale!=Vector3r::Ones()){
 			const Matrix3r& refHSize(scene->cell->refHSize);
 			Matrix3r scaledHSize;
-			for(int i=0; i<3; i++) scaledHSize.col(i)=refHSize.col(i)+dispScale.cwise()*Vector3r(hSize.col(i)-refHSize.col(i));
+			for(int i=0; i<3; i++) scaledHSize.col(i)=refHSize.col(i)+(dispScale-Vector3r::Ones()).cwise()*Vector3r(hSize.col(i)-refHSize.col(i));
 			GLUtils::Parallelepiped(scaledHSize.col(0),scaledHSize.col(1),scaledHSize.col(2));
 		} else 
-		#endif
 		{
 			GLUtils::Parallelepiped(hSize.col(0),hSize.col(1),hSize.col(2));
 		}
@@ -321,11 +318,11 @@ void Renderer::renderDemContactNodes(){
 void Renderer::renderRawNode(shared_ptr<Node> node){
 	Vector3r x;
 	if(node->hasData<GlData>()){
-		x=node->getData<GlData>().glPos; // glPos is already canonicalized, if periodic
+		x=node->pos+node->getData<GlData>().dGlPos; // pos+dGlPos is already canonicalized, if periodic
 		if(isnan(x[0])) return;
 	}
 	else{ x=(scene->isPeriodic?scene->cell->canonicalizePt(node->pos):node->pos); }
-	Quaternionr ori=node->hasData<GlData>()?node->getData<GlData>().glOri:node->ori;
+	Quaternionr ori=(node->hasData<GlData>()?node->getData<GlData>().dGlOri:Quaternionr::Identity())*node->ori;
 	glPushMatrix();
 		glTranslatev(x);
 		AngleAxisr aa(ori.conjugate());
@@ -366,6 +363,8 @@ void Renderer::renderShape(){
 		glScopedName name(b,b->shape->nodes[0]);
 		// bool highlight=(b->id==selId || (b->clumpId>=0 && b->clumpId==selId) || b->shape->highlight);
 
+		FOREACH(const shared_ptr<Node>& n,b->shape->nodes) setNodeGlData(n);
+
 		glPushMatrix();
 			shapeDispatcher(b->shape,/*shift*/Vector3r::Zero(),wire||sh->getWire(),viewInfo);
 		glPopMatrix();
@@ -387,10 +386,12 @@ void Renderer::renderShape(){
 			const Vector3r& cellSize(scene->cell->getSize());
 			//Vector3r pos=scene->cell->unshearPt(.5*(sh->bound->min+sh->bound->max)); // middle of bbox, remove the shear component
 			Vector3r pos=.5*(sh->bound->min+sh->bound->max); // middle of bbox, in sheared coords already
+			pos+=scene->cell->intrShiftPos(sh->nodes[0]->getData<GlData>().dCellDist); // wrap the same as node[0] was wrapped
 			// traverse all periodic cells around the body, to see if any of them touches
 			Vector3r halfSize=.5*(sh->bound->max-sh->bound->min);
 			Vector3r pmin,pmax;
 			Vector3i i;
+			// try all positions around, to see if any of them sticks outside the cell boundary
 			for(i[0]=-1; i[0]<=1; i[0]++) for(i[1]=-1;i[1]<=1; i[1]++) for(i[2]=-1; i[2]<=1; i[2]++){
 				if(i[0]==0 && i[1]==0 && i[2]==0) continue; // middle; already rendered above
 				Vector3r pos2=pos+Vector3r(cellSize[0]*i[0],cellSize[1]*i[1],cellSize[2]*i[2]); // shift, but without shear!
@@ -400,7 +401,6 @@ void Renderer::renderShape(){
 					pmin[2]<=cellSize[2] && pmax[2]>=0) {
 					Vector3r pt=scene->cell->shearPt(pos2);
 					// if(pointClipped(pt)) continue;
-					glLoadName(b->id);
 					glPushMatrix();
 						shapeDispatcher(b->shape,/*shift*/pt-pos,/*wire*/true,viewInfo);
 					glPopMatrix();
@@ -445,13 +445,13 @@ void Renderer::renderSparc(){
 		renderRawNode(n);
 		// GLUtils::GLDrawText((boost::format("%d")%n->getData<SparcData>().nid).str(),n->pos,/*color*/Vector3r(1,1,1), /*center*/true,/*font*/NULL);
 		int nnid=n->getData<SparcData>().nid;
-		const Vector3r& pos=n->getData<GlData>().glPos;
+		const Vector3r& pos=n->pos+n->getData<GlData>().dGlPos;
 		if(nid && nnid>=0) GLUtils::GLDrawNum(nnid,pos);
 		if(!sparc->showNeighbors && !name.highlighted) continue;
 		// show neighbours with lines, with node colors
 		Vector3r color=CompUtils::mapColor(n->getData<SparcData>().color);
 		FOREACH(const shared_ptr<Node>& neighbor, n->getData<SparcData>().neighbors){
-			const Vector3r& np=neighbor->getData<GlData>().glPos;
+			const Vector3r& np=neighbor->pos+neighbor->getData<GlData>().dGlPos;
 			GLUtils::GLDrawLine(pos,pos+.5*(np-pos),color,3);
 			GLUtils::GLDrawLine(pos+.5*(np-pos),np,color,1);
 		}
@@ -485,7 +485,7 @@ void Renderer::renderAllInteractionsWire(){
 		// in sheared cell, apply shear on the mutual position as well
 		shift2=scene->cell->shearPt(shift2);
 		Vector3r rel=Body::byId(i->getId2(),scene)->state->pos+shift2-p1;
-		if(scene->isPeriodic) p1=scene->cell->wrapShearedPt(p1);
+		if(scene->isPeriodic) p1=scene->cell->canonicalizePt(p1);
 		glBegin(GL_LINES); glVertex3v(p1);glVertex3v(Vector3r(p1+rel));glEnd();
 	}
 }

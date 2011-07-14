@@ -9,7 +9,12 @@ struct AnisoPorosityAnalyzer: public GlobalEngine, private DemField::Engine{
 	DemField* dem;
 	SpherePack pack;
 	virtual void run();
+	static vector<Vector3r> splitRay(Real theta, Real phi, Vector3r pt0=Vector3r::Zero(), const Matrix3r& T=Matrix3r::Identity());
+	Real relSolid(Real theta, Real phi, Vector3r pt0=Vector3r::Zero());
+	// _check variants to be called from python (safe scene setup etc)
 	Real computeOneRay_check(const Vector3r& A, const Vector3r& B, bool vis=true);
+	Real computeOneRay_angles_check(Real theta, Real phi, bool vis=true);
+
 	Real computeOneRay(const Vector3r& A, const Vector3r& B, bool vis=false);
 	void initialize();
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(AnisoPorosityAnalyzer,GlobalEngine,"Engine which analyzes current scene and computes directionaly porosity value by intersecting spheres with lines. The algorithm only works on periodic simulations.",
@@ -22,7 +27,10 @@ struct AnisoPorosityAnalyzer: public GlobalEngine, private DemField::Engine{
 		((vector<Vector3r>,rayPts,,Attr::readonly,"Starting and ending points of segments intersecting particles."))
 		,/*ctor*/
 		,/*py*/
-			.def("oneRay",&AnisoPorosityAnalyzer::computeOneRay_check,(py::arg("A"),py::arg("B")=Vector3r(Vector3r::Zero()),py::arg("vis")=true)) //,(py::arg("A")/*,py::arg("B")=Vector3r::Zero()))
+			.def("oneRay",&AnisoPorosityAnalyzer::computeOneRay_check,(py::arg("A"),py::arg("B")=Vector3r(Vector3r::Zero()),py::arg("vis")=true))
+			.def("oneRay",&AnisoPorosityAnalyzer::computeOneRay_angles_check,(py::arg("theta"),py::arg("phi"),py::arg("vis")=true))
+			.def("splitRay",&AnisoPorosityAnalyzer::splitRay,(py::arg("theta"),py::arg("phi"),py::arg("pt0")=Vector3r::Zero().eval(),py::arg("T")=Matrix3r::Identity().eval())).staticmethod("splitRay")
+			.def("relSolid",&AnisoPorosityAnalyzer::relSolid,(py::arg("theta"),py::arg("phi"),py::arg("pt0")=Vector3r::Zero().eval()))
 	);
 };
 REGISTER_SERIALIZABLE(AnisoPorosityAnalyzer);
