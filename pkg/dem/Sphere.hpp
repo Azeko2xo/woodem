@@ -28,7 +28,9 @@ struct In2_Sphere_ElastMat: public IntraFunctor{
 	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&);
 	FUNCTOR2D(Sphere,ElastMat);
 	YADE_CLASS_BASE_DOC_ATTRS(In2_Sphere_ElastMat,IntraFunctor,"Apply contact forces on sphere; having one node only, Sphere generates no internal forces as such.",/*attrs*/
-		((Vector2i,watch,Vector2i(-1,-1),,""))
+		#ifdef YADE_DEBUG
+			((Vector2i,watch,Vector2i(-1,-1),,"Print detailed information about contact having those ids (debugging only)"))
+		#endif
 	);
 };
 REGISTER_SERIALIZABLE(In2_Sphere_ElastMat);
