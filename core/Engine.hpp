@@ -69,7 +69,7 @@ class Engine: public Serializable, protected Field::Engine {
 		.def_readonly("timingDeltas",&Engine::timingDeltas,"Detailed information about timing inside the Engine itself. Empty unless enabled in the source code and :yref:`O.timingEnabled<Omega.timingEnabled>`\\ ==\\ ``True``.")
 		.def("__call__",&Engine::explicitRun)
 		.def("acceptsField",&Engine::acceptsField)
-		.add_property("field",&Engine::field_get,&Engine::field_set,"Field to run this engine on; if unassigned, or set to *None*, automatic field selection is triggered.")
+		.add_property("field",&Engine::field_get,&Engine::field_set,"Field to run this engine on; if unassigned, or set to *None*, automatic field selection is triggered. :yattrflags:`noGui` ") // yattrflags must be specified by hand, since the attribute was overridden
 	);
 };
 REGISTER_SERIALIZABLE(Engine);

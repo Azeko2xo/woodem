@@ -27,6 +27,18 @@ struct VectorGlRep: public NodeGlRep{
 };
 REGISTER_SERIALIZABLE(VectorGlRep);
 
+struct ActReactGlRep: public VectorGlRep{
+	void render(const shared_ptr<Node>&, GLViewInfo*);
+	void renderDoubleArrow(const Vector3r& pos, const Vector3r& arr, bool posStart, const Vector3r& offset, const Vector3r& color);
+	YADE_CLASS_BASE_DOC_ATTRS(ActReactGlRep,VectorGlRep,"Render action and reaction vectors as opposing arrows, with offset and optionally separate normal/shear components. The value is always given in node-local coordinates!",
+		((int,comp,3,,"Which components of the force to show 0: x-only, 1: yz-only, 2: both as separate arrows, 3: both as one arrow."))
+		((Vector2i,comp_range,Vector2i(0,3),Attr::noGui,"Range for *comp*"))
+		((Real,relOff,.01,,"Offset from the node in the sense of local x-axis, relative to scene radius"))
+		((shared_ptr<ScalarRange>,shearRange,,,"Optional range for shear foces; if not defined range (for normal force) is used instead."))
+	);
+};
+REGISTER_SERIALIZABLE(ActReactGlRep);
+
 struct TensorGlRep: public NodeGlRep{
 	void render(const shared_ptr<Node>&, GLViewInfo*);
 	void postLoad(TensorGlRep&);

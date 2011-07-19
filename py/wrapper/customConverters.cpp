@@ -259,12 +259,12 @@ BOOST_PYTHON_MODULE(_customConverters){
 		VECTOR_SEQ_CONV(shared_ptr<IntraFunctor>);
 
 		VECTOR_SEQ_CONV(shared_ptr<Engine>);
+		VECTOR_SEQ_CONV(shared_ptr<Serializable>);
 #if 0
 		VECTOR_SEQ_CONV(shared_ptr<NodeData>);
 		VECTOR_SEQ_CONV(shared_ptr<Body>);
 		VECTOR_SEQ_CONV(shared_ptr<Material>);
 		VECTOR_SEQ_CONV(shared_ptr<Interaction>);
-		VECTOR_SEQ_CONV(shared_ptr<Serializable>);
 		VECTOR_SEQ_CONV(shared_ptr<BoundFunctor>);
 		VECTOR_SEQ_CONV(shared_ptr<IGeomFunctor>);
 		VECTOR_SEQ_CONV(shared_ptr<IPhysFunctor>);
@@ -277,10 +277,10 @@ BOOST_PYTHON_MODULE(_customConverters){
 			VECTOR_SEQ_CONV(shared_ptr<GlNodeFunctor>);
 			VECTOR_SEQ_CONV(shared_ptr<GlBoundFunctor>);
 			VECTOR_SEQ_CONV(shared_ptr<GlExtraDrawer>);
+			VECTOR_SEQ_CONV(shared_ptr<GlCPhysFunctor>);
 		#if 0
 			VECTOR_SEQ_CONV(shared_ptr<GlStateFunctor>);
-			VECTOR_SEQ_CONV(shared_ptr<GlIGeomFunctor>);
-			VECTOR_SEQ_CONV(shared_ptr<GlIPhysFunctor>);
+			VECTOR_SEQ_CONV(shared_ptr<GlCGeomFunctor>);
 			VECTOR_SEQ_CONV(shared_ptr<GlFieldFunctor>);
 		#endif
 		#endif

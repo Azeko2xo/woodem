@@ -35,11 +35,11 @@ REGISTER_SERIALIZABLE(NormShearPhys);
 #include<yade/pkg/common/GLDrawFunctors.hpp>
 #include<GL/glu.h>
 
-class Gl1_NormPhys: public GlIPhysFunctor{	
+class Gl1_NormPhys: public GlCPhysFunctor{	
 		static GLUquadric* gluQuadric; // needed for gluCylinder, initialized by ::go if no initialized yet
 	public:
 		virtual void go(const shared_ptr<IPhys>&,const shared_ptr<Interaction>&,const shared_ptr<Body>&,const shared_ptr<Body>&,bool wireFrame);
-	YADE_CLASS_BASE_DOC_STATICATTRS(Gl1_NormPhys,GlIPhysFunctor,"Renders :yref:`NormPhys` objects as cylinders of which diameter and color depends on :yref:`NormPhys:normForce` magnitude.",
+	YADE_CLASS_BASE_DOC_STATICATTRS(Gl1_NormPhys,GlCPhysFunctor,"Renders :yref:`NormPhys` objects as cylinders of which diameter and color depends on :yref:`NormPhys:normForce` magnitude.",
 		((Real,maxFn,0,,"Value of :yref:`NormPhys.normalForce` corresponding to :yref:`maxDiameter<Gl1_NormPhys.maxDiameter>`. This value will be increased (but *not decreased*) automatically."))
 		((int,signFilter,0,,"If non-zero, only display contacts with negative (-1) or positive (+1) normal forces; if zero, all contacts will be displayed."))
 		((Real,refRadius,std::numeric_limits<Real>::infinity(),,"Reference (minimum) particle radius; used only if :yref:`maxRadius<Gl1_NormPhys.maxRadius>` is negative. This value will be decreased (but *not increased*) automatically. |yupdate|"))

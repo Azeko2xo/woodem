@@ -176,7 +176,10 @@ class ControllerClass(QWidget,Ui_Controller):
 	def pauseSlot(self): O.pause()
 	def stepSlot(self):
 		if self.multiStepSpinBox.value()==1 or O.scene.subStepping: O.step()
-		else: O.run(self.multiStepSpinBox.value(),True) # wait and block until done
+		else:
+			O.run() # don't block with multistep
+			O.scene.stopAtStep=O.scene.step+self.multiStepSpinBox.value()
+			#O.run(self.multiStepSpinBox.value(),True) # wait and block until done
 	def subStepSlot(self,value):
 		self.multiStepSpinBox.setEnabled(not bool(value))
 		O.scene.subStepping=bool(value)

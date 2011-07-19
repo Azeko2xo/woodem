@@ -10,7 +10,7 @@
 
 #include<GL/gle.h>
 
-YADE_PLUGIN(gl,(ScalarGlRep)(VectorGlRep)(TensorGlRep));
+YADE_PLUGIN(gl,(ScalarGlRep)(VectorGlRep)(TensorGlRep)(ActReactGlRep));
 
 void ScalarGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
 	Vector3r color=(range?range->color(val):CompUtils::scalarOnColorScale(val,0,1));
@@ -47,6 +47,40 @@ void VectorGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
 	Vector3r pos=node->pos+(node->hasData<GlData>()?node->getData<GlData>().dGlPos:Vector3r::Zero());
 	glColor3v(color);
 	GLUtils::GLDrawArrow(pos,pos+len*(val/valNorm),color);
+}
+
+
+void ActReactGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
+	Real len0=relSz*viewInfo->sceneRadius;
+	Vector3r offset=relOff*viewInfo->sceneRadius*(node->ori.conjugate()*Vector3r::UnitX());
+	Vector3r pos=node->pos;
+	if(viewInfo->scene->isPeriodic) pos=viewInfo->scene->cell->canonicalizePt(pos);
+	if(range && !shearRange) shearRange=range;
+	// separate normal component
+	if(comp==0 || comp==2){
+		Vector3r c=range?range->color(val[0]):CompUtils::scalarOnColorScale(val[0],0,1);
+		Real len=len0*abs(val[0])/(range?range->maxAbs(val[0]):1);
+		//arr.push_back(Vector3r(len,0,0)*sgn(val[0]));
+		renderDoubleArrow(pos,node->ori.conjugate()*Vector3r(sgn(val[0])*len,0,0),/*posStart*/val[0]>0,offset,c);
+	}
+	// separate shear component
+	if(comp==1 || comp==2){
+		Real shear=Vector2r(val[1],val[2]).norm();
+		Vector3r c=shearRange?shearRange->color(shear):CompUtils::scalarOnColorScale(shear,0,1);
+		Real len=len0*shear/(shearRange?shearRange->maxAbs(shear):1);
+		renderDoubleArrow(pos,node->ori.conjugate()*Vector3r(0,val[1]/shear*len,val[2]/shear*len),/*posStart*/true,offset,c);
+	}
+	if(comp==3){
+		Real fNorm=val.norm();
+		Vector3r c=range?range->color(fNorm):CompUtils::scalarOnColorScale(fNorm,0,1);
+		Real len=len0*fNorm/(range?range->maxAbs(fNorm):1);
+		renderDoubleArrow(pos,node->ori.conjugate()*(len*val/fNorm),/*posStart*/val[0]>0,offset,c);
+	}
+}
+
+void ActReactGlRep::renderDoubleArrow(const Vector3r& pos, const Vector3r& arr, bool posStart, const Vector3r& offset, const Vector3r& color){
+	if(posStart){ GLUtils::GLDrawArrow(pos+offset,pos+offset+arr,color); GLUtils::GLDrawArrow(pos-offset,pos-offset-arr,color); }
+	else        { GLUtils::GLDrawArrow(pos+offset-arr,pos+offset,color); GLUtils::GLDrawArrow(pos-offset+arr,pos-offset,color); }
 }
 
 void TensorGlRep::postLoad(TensorGlRep&){

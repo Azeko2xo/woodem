@@ -44,8 +44,8 @@ class CellInspector(QWidget):
 		self.periCheckBox.setChecked(O.scene.periodic)
 		editor=self.scroll.widget()
 		if not O.scene.periodic and editor: self.scroll.takeWidget()
-		if (O.scene.periodic and not editor) or (editor and editor.ser!=O.cell):
-			self.scroll.setWidget(SerializableEditor(O.cell,parent=self,showType=True,path='O.cell'))
+		if (O.scene.periodic and not editor) or (editor and editor.ser!=O.scene.cell):
+			self.scroll.setWidget(SerializableEditor(O.scene.cell,parent=self,showType=True,path='O.scene.cell'))
 	def update(self):
 		self.scroll.takeWidget() # do this before changing periodicity, otherwise the SerializableEditor will raise exception about None object
 		O.scene.periodic=self.periCheckBox.isChecked()
@@ -128,7 +128,7 @@ class BodyInspector(QWidget):
 		if not b.shape: noshow='no shape'
 		elif len(b.shape.nodes)==0: noshow='no nodes'
 		elif len(b.shape.nodes)>1: noshow='multinodal'
-		elif not b.shape.nodes[0].dyn: noshow='no Node.dyn'
+		elif not b.shape.nodes[0].dem: noshow='no Node.dem'
 		else: noshow=None
 		if noshow:
 			self.forceGrid.itemAtPosition(0,1).widget().setText('<small>'+noshow+'</small>')
@@ -136,7 +136,7 @@ class BodyInspector(QWidget):
 		else:
 			try:
 				#val=[O.forces.f(self.bodyId),O.forces.t(self.bodyId),O.forces.move(self.bodyId),O.forces.rot(self.bodyId)]
-				d=b.shape.nodes[0].dyn
+				d=b.shape.nodes[0].dem
 				val=[d.force,d.torque]
 				#hasMovRot=(val[2]!=Vector3.Zero or val[3]!=Vector3.Zero)
 				#if hasMovRot!=self.showMovRot:
@@ -265,9 +265,11 @@ class InteractionInspector(QWidget):
 		if self.bodyLinkCallback: self.bodyLinkCallback(bodyId)
 		else: self.bi=BodyInspector(bodyId); self.bi.show()
 	def setLinIxSlot(self,linIx):
-		C=O.dem.con[linIx]
-		self.ids=C.id1,C.id2
-		self.setupInteraction()
+		try:
+			C=O.dem.con[linIx]
+			self.ids=C.id1,C.id2
+			self.setupInteraction()
+		except IndexError: pass
 	def gotoId1Slot(self): self.gotoId(self.ids[0])
 	def gotoId2Slot(self): self.gotoId(self.ids[1])
 	def refreshEvent(self):
@@ -283,9 +285,9 @@ class InteractionInspector(QWidget):
 		try: # try to fetch the contact we have
 			c=O.dem.con[self.ids[0],self.ids[1]]
 			self.intrLinIxBox.setValue(c.linIx) # update linIx, it can change asynchronously
-		except IndexError:
+		except (IndexError,AttributeError):
 			self.ids=None
-			setupInteraction() # will make it empty
+			self.setupInteraction() # will make it empty
 			
 class SimulationInspector(QWidget):
 	def __init__(self,parent=None):

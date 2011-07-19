@@ -25,6 +25,11 @@ try:
 	core.Node.sparc=property(sparc.SparcData._getDataOnNode,sparc.SparcData._setDataOnNode)
 except ImportError: pass
 
+try:
+	from yade import gl
+	core.Node.gl=property(gl.GlData._getDataOnNode,gl.GlData._setDataOnNode)
+except ImportError: pass
+
 #try:
 #	from yade import ancf
 #	core.Node.ancf=property(ancf.AncfData._getDataOnNode,ancf.AncfData._setDataOnNode)

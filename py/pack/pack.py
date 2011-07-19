@@ -97,11 +97,20 @@ The current state (even if rotated) is taken as mechanically undeformed, i.e. wi
 		scene.periodic=True
 		scene.cell.hSize=rot*Matrix3(self.cellSize[0],0,0, 0,self.cellSize[0],0, 0,0,self.cellSize[1])
 		scene.cell.trsf=Matrix3.Identity
+
+	from yade.dem import DemField
+	try:
+		dem=O.dem
+	except RuntimeError: # no DEM field
+		dem=DemField()
+		O.scene.fields=O.scene.fields+[dem]
+	
 	if not self.hasClumps():
+		if 'material' not in kw.keys(): kw['material']=utils.defaultMaterial()
 		return O.dem.particles.append([utils.sphere(rot*c,r,**kw) for c,r in self])
 	else:
 		standalone,clumps=self.getClumps()
-		ids=O.bodies.append([utils.sphere(rot*c,r,**kw) for c,r in self]) # append all spheres first
+		ids=O.dem.particles.append([utils.sphere(rot*c,r,**kw) for c,r in self]) # append all spheres first
 		clumpIds=[]
 		userColor='color' in kw
 		for clump in clumps:

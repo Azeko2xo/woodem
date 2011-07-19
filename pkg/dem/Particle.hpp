@@ -18,19 +18,23 @@ struct Particle: public Serializable{
 	shared_ptr<Contact> findContactWith(const shared_ptr<Particle>& other);
 	typedef ParticleContainer::id_t id_t;
 	typedef std::map<id_t,shared_ptr<Contact> > MapParticleContact;
-	void checkNodes(bool dyn=true, bool checkOne=true);
+	void checkNodes(bool dyn=true, bool checkOne=true) const;
 
 
-	Vector3r& getPos(); void setPos(const Vector3r&);
-	Quaternionr& getOri(); void setOri(const Quaternionr&);
-	Vector3r& getVel(); void setVel(const Vector3r&);
-	Vector3r& getAngVel(); void setAngVel(const Vector3r&);
-	Vector3r getForce();
-	Vector3r getTorque();
-	py::dict pyContacts();
-	py::list pyCon();
-	py::list pyTacts();
-	std::string getBlocked(); void setBlocked(const std::string&);
+	Vector3r& getPos() const; void setPos(const Vector3r&);
+	Quaternionr& getOri() const; void setOri(const Quaternionr&);
+	Vector3r& getVel() const; void setVel(const Vector3r&);
+	Vector3r& getAngVel() const; void setAngVel(const Vector3r&);
+	Real getEk_any(bool trans, bool rot) const;
+	Real getEk() const {return getEk_any(true,true); }
+	Real getEk_trans() const { return getEk_any(true,false); }
+	Real getEk_rot() const {return getEk_any(false,true); }
+	Vector3r getForce() const;
+	Vector3r getTorque() const;
+	py::dict pyContacts() const;
+	py::list pyCon() const;
+	py::list pyTacts() const;
+	std::string getBlocked() const; void setBlocked(const std::string&);
 	std::vector<shared_ptr<Node> > getNodes();
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Particle,Serializable,"Particle in DEM",
 		((id_t,id,-1,Attr::readonly,"Index in DemField::particles"))
@@ -50,6 +54,9 @@ struct Particle: public Serializable{
 		.add_property("t",&Particle::getTorque)
 		.add_property("nodes",&Particle::getNodes)
 		.add_property("blocked",&Particle::getBlocked,&Particle::setBlocked)
+		.add_property("Ek",&Particle::getEk,"Summary kinetic energy of the particle")
+		.add_property("Ekt",&Particle::getEk_trans,"Translational kinetic energy of the particle")
+		.add_property("Ekr",&Particle::getEk_rot,"Rotational kinetic energy of the particle")
 	);
 };
 REGISTER_SERIALIZABLE(Particle);
@@ -131,7 +138,7 @@ class CPhys: public Serializable, public Indexable{
 		/*attrs*/
 		((Vector3r,force,Vector3r::Zero(),,"Force applied on the first particle in the contact"))
 		((Vector3r,torque,Vector3r::Zero(),,"Torque applied on the first particle in the contact"))
-		,/*ctor*/,/*py*/YADE_PY_TOPINDEXABLE(CPhys)
+		,/*ctor*/ createIndex(); ,/*py*/YADE_PY_TOPINDEXABLE(CPhys)
 	);
 	REGISTER_INDEX_COUNTER(CPhys);
 };

@@ -36,6 +36,7 @@ void Renderer::init(){
 		_TRY_ADD_FUNCTOR(GlShapeFunctor,shapeDispatcher,item.first);
 		_TRY_ADD_FUNCTOR(GlBoundFunctor,boundDispatcher,item.first);
 		_TRY_ADD_FUNCTOR(GlNodeFunctor,nodeDispatcher,item.first);
+		_TRY_ADD_FUNCTOR(GlCPhysFunctor,cPhysDispatcher,item.first);
 	}
 	clipPlaneNormals.resize(numClipPlanes);
 	static bool glutInitDone=false;
@@ -208,6 +209,9 @@ void Renderer::render(const shared_ptr<Scene>& _scene, bool _withNames){
 	if(withNames) glNamedObjects.clear();
 
 	scene=_scene;
+	// smuggle scene in GLViewInfo for use with GlRep (ugly)
+	viewInfo.scene=scene.get();
+
 	dem=shared_ptr<DemField>();
 	sparc=shared_ptr<SparcField>();
 	for(size_t i=0; i<scene->fields.size(); i++){
@@ -239,8 +243,9 @@ void Renderer::render(const shared_ptr<Scene>& _scene, bool _withNames){
 		if(shape)renderShape();
 		if(bound)renderBound();
 		// if(cGeom)renderCGeom();
-		if(nodes) renderDemNodes();
-		if(cNodes>0)renderDemContactNodes();
+		renderDemNodes(); // unconditionally, since nodes might have GlRep's
+		if(cPhys) renderDemCPhys();
+		if(cNodes>=0)renderDemContactNodes();
 	}
 	//if(voro){ renderVoro();	}
 	if(sparc){
@@ -289,8 +294,11 @@ void Renderer::renderDemNodes(){
 	nodeDispatcher.scene=scene.get(); nodeDispatcher.updateScenePtr();
 	FOREACH(shared_ptr<Node> node, dem->nodes){
 		glScopedName name(node);
-		setNodeGlData(node);
-		renderRawNode(node);
+		if(nodes){
+			setNodeGlData(node);
+			renderRawNode(node);
+		}
+		if(node->rep){ node->rep->render(node,&viewInfo); }
 	}
 }
 
@@ -299,19 +307,40 @@ void Renderer::renderDemContactNodes(){
 	nodeDispatcher.scene=scene.get(); nodeDispatcher.updateScenePtr();
 	boost::mutex::scoped_lock lock(*dem->contacts.manipMutex);
 	FOREACH(const shared_ptr<Contact>& C, dem->contacts){
-		assert(C->geom);
-		setNodeGlData(C->geom->node);
-		if(cNodes & 1) renderRawNode(C->geom->node);
+		shared_ptr<CGeom> geom=C->geom;
+		if(!geom) continue;
+		const shared_ptr<Node>& node=C->geom->node;
+		setNodeGlData(node);
+		glScopedName name(C,node);
+		if(cNodes & 1) renderRawNode(node);
 		if(cNodes & 2){ // connect node by lines with particle's positions
-			glScopedName name(C,C->geom->node);
 			assert(C->pA->shape && C->pB->shape);
 			assert(C->pA->shape->nodes.size()>0); assert(C->pB->shape->nodes.size()>0);
-			Vector3r x[3]={C->geom->node->pos,C->pA->shape->avgNodePos(),C->pB->shape->avgNodePos()};
-			if(scene->isPeriodic) for(int i=0; i<3; i++){ x[i]=scene->cell->canonicalizePt(x[i]); }
+			Vector3r x[3]={node->pos,C->pA->shape->avgNodePos(),C->pB->shape->avgNodePos()};
+			if(scene->isPeriodic){
+				Vector3i cellDist;
+				x[0]=scene->cell->canonicalizePt(x[0],cellDist);
+				x[1]+=scene->cell->intrShiftPos(cellDist);
+				x[2]+=scene->cell->intrShiftPos(cellDist+C->cellDist);
+			}
 			Vector3r color=.7*CompUtils::mapColor(C->color);
 			GLUtils::GLDrawLine(x[0],x[1],color);
 			GLUtils::GLDrawLine(x[0],x[2],color);
 		}
+		if(node->rep){ node->rep->render(node,&viewInfo); }
+	}
+}
+
+void Renderer::renderDemCPhys(){
+	nodeDispatcher.scene=scene.get(); nodeDispatcher.updateScenePtr();
+	boost::mutex::scoped_lock lock(*dem->contacts.manipMutex);
+	FOREACH(const shared_ptr<Contact>& C, dem->contacts){
+		glScopedName name(C,C->geom->node);
+		assert(C->pA->shape && C->pB->shape);
+		assert(C->pA->shape->nodes.size()>0); assert(C->pB->shape->nodes.size()>0);
+		shared_ptr<CPhys> phys(C->phys);
+		if(!phys) continue;
+		cPhysDispatcher(phys,C,viewInfo);
 	}
 }
 
@@ -329,7 +358,7 @@ void Renderer::renderRawNode(shared_ptr<Node> node){
 		glRotatef(aa.angle()*Mathr::RAD_TO_DEG,aa.axis()[0],aa.axis()[1],aa.axis()[2]);
 		nodeDispatcher(node,viewInfo);
 	glPopMatrix();
-	if(node->rep){ node->rep->render(node,&viewInfo); }
+	// if(node->rep){ node->rep->render(node,&viewInfo); }
 }
 
 // this function is called for both rendering as well as
@@ -386,7 +415,7 @@ void Renderer::renderShape(){
 			const Vector3r& cellSize(scene->cell->getSize());
 			//Vector3r pos=scene->cell->unshearPt(.5*(sh->bound->min+sh->bound->max)); // middle of bbox, remove the shear component
 			Vector3r pos=.5*(sh->bound->min+sh->bound->max); // middle of bbox, in sheared coords already
-			pos+=scene->cell->intrShiftPos(sh->nodes[0]->getData<GlData>().dCellDist); // wrap the same as node[0] was wrapped
+			pos-=scene->cell->intrShiftPos(sh->nodes[0]->getData<GlData>().dCellDist); // wrap the same as node[0] was wrapped
 			// traverse all periodic cells around the body, to see if any of them touches
 			Vector3r halfSize=.5*(sh->bound->max-sh->bound->min);
 			Vector3r pmin,pmax;
@@ -443,6 +472,7 @@ void Renderer::renderSparc(){
 		glScopedName name(n);
 		setNodeGlData(n); // assures that GlData is defined
 		renderRawNode(n);
+		if(n->rep){ n->rep->render(n,&viewInfo); }
 		// GLUtils::GLDrawText((boost::format("%d")%n->getData<SparcData>().nid).str(),n->pos,/*color*/Vector3r(1,1,1), /*center*/true,/*font*/NULL);
 		int nnid=n->getData<SparcData>().nid;
 		const Vector3r& pos=n->pos+n->getData<GlData>().dGlPos;

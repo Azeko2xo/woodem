@@ -56,6 +56,12 @@ void Scene::pyEnginesSet(const vector<shared_ptr<Engine> >& e){
 }
 
 
+shared_ptr<ScalarRange> Scene::getRange(const std::string& l) const{
+	FOREACH(const shared_ptr<ScalarRange>& r, ranges) if(r->label==l) return r;
+	throw std::runtime_error("No range labeled `"+l+"'.");
+}
+
+
 
 void Scene::postLoad(Scene&){
 	// assign fields to engines

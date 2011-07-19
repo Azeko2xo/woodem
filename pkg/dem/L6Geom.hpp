@@ -120,7 +120,7 @@ REGISTER_SERIALIZABLE(Law2_L6Geom_FrictPhys_Linear);
 struct Gl1_L6Geom: public GlCGeomFunctor{
 	RENDERS(L6Geom);
 	void go(const shared_ptr<CGeom>&, const shared_ptr<Contact>&, bool);
-	YADE_CLASS_BASE_DOC_STATICATTRS(Gl1_L3Geom,GlIGeomFunctor,"Render :yref:`L3Geom` geometry.",
+	YADE_CLASS_BASE_DOC_STATICATTRS(Gl1_L3Geom,GlCGeomFunctor,"Render :yref:`L3Geom` geometry.",
 		((bool,axesLabels,false,,"Whether to display labels for local axes (x,y,z)"))
 		((Real,axesScale,1.,,"Scale local axes, their reference length being half of the minimum radius."))
 		((int,axesWd,1,,"Width of axes lines, in pixels; not drawn if non-positive"))

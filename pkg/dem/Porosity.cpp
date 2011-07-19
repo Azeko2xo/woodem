@@ -8,7 +8,9 @@ YADE_PLUGIN(dem,(AnisoPorosityAnalyzer));
 YADE_PLUGIN(gl,(GlExtra_AnisoPorosityAnalyzer));
 #endif
 
-Real AnisoPorosityAnalyzer::relSolid(Real theta, Real phi, Vector3r pt0){
+CREATE_LOGGER(AnisoPorosityAnalyzer);
+
+Real AnisoPorosityAnalyzer::relSolid(Real theta, Real phi, Vector3r pt0, bool vis){
 	setField();
 	initialize();
 	vector<Vector3r> endPts=splitRay(theta,phi,pt0,scene->cell->hSize);
@@ -17,7 +19,10 @@ Real AnisoPorosityAnalyzer::relSolid(Real theta, Real phi, Vector3r pt0){
 	size_t sz=endPts.size()/2;
 	for(size_t i=0; i<sz; i++){
 		const Vector3r A(endPts[2*i]), B(endPts[2*i+1]);
-		solid+=computeOneRay(A,B,/*vis*/false);
+		#ifdef YADE_DEBUG
+			for(int j:{0,1,2}) if(A[j]<0 || A[j]>scene->cell->getSize()[j] || B[j]<0 || B[j]>scene->cell->getSize()[j]) throw std::logic_error((boost::format("Points outside periodic cell after splitting? %s %s (cell size %s)")%A.transpose()%B.transpose()%scene->cell->getSize().transpose()).str());
+		#endif
+		solid+=computeOneRay(A,B,vis);
 		total+=(B-A).norm();
 	}
 	return solid/total;
@@ -42,7 +47,7 @@ vector<Vector3r> AnisoPorosityAnalyzer::splitRay(Real theta, Real phi, Vector3r 
 	bool done=false; int N=0; Real cummLenN=0;
 	do{
 		// current starting pos at the boundary opposite to ray direction for that axis, if on the boundary
-		for(int i: {0,1,2}) if(pt0N[i]-floor(pt0N[i])<epsN) pt0N[i]=(unitN[i]>=0?0:1); 
+		for(int i: {0,1,2}) if(abs(pt0N[i]-round(pt0N[i]))<epsN) pt0N[i]=(unitN[i]>=0?0:1); 
 		// find in which sense we come to cell boundary first, and where the ray will be split
 		Real t=/*true max is sqrt(3)*/10.;
 		for(int i:{0,1,2}){ if(unitN[i]==0) continue; Real tt=((unitN[i]>0?1:0)-pt0N[i])/unitN[i]; /*cerr<<"[u"<<i<<"="<<unitN[i]<<";t"<<i<<"="<<tt<<"]";*/ if(tt>0) t=min(t,tt); }
@@ -51,8 +56,12 @@ vector<Vector3r> AnisoPorosityAnalyzer::splitRay(Real theta, Real phi, Vector3r 
 		if(cummLenN+t>=totLenN){ t=totLenN-cummLenN; done=true; }
 		else cummLenN+=t;
 		// prune tiny segments (but still count their contribution to cummLenN and advance the point)
-		if(t>epsN){ rayPtsR.push_back(T*pt0N); rayPtsR.push_back(T*(pt0N+unitN*t)); }
-		pt0N=pt0N+unitN*t;
+		if(t>epsN){
+			Vector3r aR=T*pt0N, bR=T*(pt0N+unitN*t);
+			rayPtsR.push_back(aR); rayPtsR.push_back(bR);
+			LOG_TRACE("Added points: local "<<pt0N.transpose()<<" -- "<<(pt0N+unitN*t).transpose()<<"; global "<<aR.transpose()<<" -- "<<bR.transpose());
+		}
+		pt0N+=unitN*t;
 		if(++N>10){
 			cerr<<"Computed ray points:\npts=[";
 			for(const Vector3r& p: rayPtsR) cerr<<"Vector3("<<p.transpose()<<"),";
@@ -87,29 +96,28 @@ Real AnisoPorosityAnalyzer::computeOneRay_angles_check(Real theta, Real phi, boo
 Real AnisoPorosityAnalyzer::computeOneRay_check(const Vector3r& A, const Vector3r& B, bool vis){
 	setField();
 	initialize();
-	return computeOneRay(A,B,/*storeVis*/true);
+	return computeOneRay(A,B,vis);
 }
 
 Real AnisoPorosityAnalyzer::computeOneRay(const Vector3r& A, const Vector3r& B, bool vis){
 	Real tot=0; // cummulative intersected length
-	Vector3r rayDir=(B-A).normalized();
+	Real lenAB=(B-A).norm();
+	Vector3r rayDir=(B-A)/lenAB;
 	int i=-1;
-	if(vis){ rayIds.clear(); rayPts.clear(); }
 	FOREACH(const SpherePack::Sph& s, pack.pack){
 		i++;
-		Vector3r P=CompUtils::closestSegmentPt(s.c,A,B);
-		Vector3r PC(P-s.c);
-		if(PC.squaredNorm()>=pow(s.r,2)) continue; // does not intersect the sphere
-		// intersected distance (is perpendicular to the center-closest point segment, with hypotenuse of r)
-		Real intersected=2*sqrt(pow(s.r,2)-PC.squaredNorm());
-		// if one of endpoints is inside this sphere as well, then take just corresponding part
-		for(int j=0; j<2; j++){
-			const Vector3r& end(j==0?A:B);
-			// if the endpoint is inside the sphere, take half of the intersection plus the rest (which may be negative if the dot-product is negative)
-			if((end-s.c).squaredNorm()<pow(s.r,2)){ intersected=.5*intersected+(end-P).dot(rayDir*(j==0?-1:1)); break; }
-		}
-		tot+=intersected;
-		if(vis){ rayIds.push_back(s.shadowOf>=0?s.shadowOf:i); rayPts.push_back(P+.5*intersected*rayDir); rayPts.push_back(P-.5*intersected*rayDir); }
+		Real t0,t1;
+		int nIntr=CompUtils::lineSphereIntersection(A,rayDir,s.c,s.r,t0,t1);
+		if(nIntr<2) continue;
+		assert(t1>t0);
+		// segment endpoints have parameters 0 and lenAB, we constrain the intersection to that length only
+		//cerr<<"#"<<s.shadowOf>=0?s.shadowOf:i<<(s.shadowOf>=0?"s":"")<<": ";	cerr<<"t="<<t0<<","<<t1<<" | ";
+		t0=max(0.,t0); t1=min(lenAB,t1);
+		//cerr<<"t="<<t0<<","<<t1<<endl;
+		// same as: t0=max(0.,min(lenAB,t0)); t1=max(0.,min(lenAB,t1)); if(t1==t0) continue;
+		if(t1<=t0) continue; // no intersection on the segment: t0>lenAB or t1<0
+		tot+=t1-t0;
+		if(vis){ rayIds.push_back(s.shadowOf>=0?s.shadowOf:i); rayPts.push_back(A+t0*rayDir); rayPts.push_back(A+t1*rayDir);	}
 	}
 	return tot;
 }
@@ -127,7 +135,7 @@ void AnisoPorosityAnalyzer::initialize(){
 		pack.add(s->nodes[0]->pos,s->radius);
 	}
 	int sh=pack.addShadows();
-	LOG_WARN("Added "<<sh<<" shadow spheres");
+	LOG_DEBUG("Added "<<sh<<" shadow spheres");
 	initStep=scene->step;
 	initNum=dem->particles.size();
 }
@@ -142,16 +150,16 @@ void AnisoPorosityAnalyzer::run(){
 void GlExtra_AnisoPorosityAnalyzer::render(){
 	if(analyzer && analyzer->scene!=scene) analyzer=shared_ptr<AnisoPorosityAnalyzer>();
 	if(!analyzer) return;
+	size_t sz=min(analyzer->rayIds.size(),analyzer->rayPts.size()/2); // assert(analyzer->rayPts.size()==2*sz);
 	glLineWidth(wd);
+	// for(size_t i=0; i<sz; i++) GLUtils::GLDrawLine(analyzer->rayPts[2*i],analyzer->rayPts[2*i+1],CompUtils::mapColor(idColor(analyzer->rayIds[i])));
 	glBegin(GL_LINES);
-		FOREACH(const Vector3r& v, analyzer->rayPts){
-			glVertex3v(v);
-		}
+		for(size_t i=0; i<sz; i++){ glColor3v(CompUtils::mapColor(idColor(analyzer->rayIds[i]))); glVertex3v(analyzer->rayPts[2*i]); glVertex3v(analyzer->rayPts[2*i+1]); }
 	glEnd();
-	if(ids){
-		size_t sz=analyzer->rayIds.size(); assert(analyzer->rayPts.size()==2*sz);
-		for(size_t i=0; i<sz; i++){
-			GLUtils::GLDrawInt(analyzer->rayIds[i],.5*(analyzer->rayPts[2*i]+analyzer->rayPts[2*i+1]));
+	if(num>0){
+		switch(num){
+			case 1: for(size_t i=0; i<sz; i++){ glColor3v(CompUtils::mapColor(idColor(analyzer->rayIds[i]))); GLUtils::GLDrawInt(analyzer->rayIds[i],.5*(analyzer->rayPts[2*i]+analyzer->rayPts[2*i+1])); } break; 
+			case 2: for(size_t i=0; i<sz; i++){ glColor3v(CompUtils::mapColor(idColor(analyzer->rayIds[i]))); GLUtils::GLDrawNum((analyzer->rayPts[2*i+1]-analyzer->rayPts[2*i]).norm(),.5*(analyzer->rayPts[2*i]+analyzer->rayPts[2*i+1])); } break;
 		}
 	};
 	glLineWidth(1);

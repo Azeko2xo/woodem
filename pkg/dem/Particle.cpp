@@ -6,9 +6,9 @@
 
 YADE_PLUGIN(dem,(CPhys)(CGeom)(CData)(DemField)(Particle)(DemData)(Contact)(Shape)(Material)(Bound)(ContactContainer));
 
-py::dict Particle::pyContacts(){	py::dict ret; FOREACH(MapParticleContact::value_type i,contacts) ret[i.first]=i.second; return ret;}
-py::list Particle::pyCon(){ py::list ret; FOREACH(MapParticleContact::value_type i,contacts) ret.append(i.first); return ret;}
-py::list Particle::pyTacts(){	py::list ret; FOREACH(MapParticleContact::value_type i,contacts) ret.append(i.second); return ret;}
+py::dict Particle::pyContacts()const{	py::dict ret; FOREACH(MapParticleContact::value_type i,contacts) ret[i.first]=i.second; return ret;}
+py::list Particle::pyCon()const{ py::list ret; FOREACH(MapParticleContact::value_type i,contacts) ret.append(i.first); return ret;}
+py::list Particle::pyTacts()const{	py::list ret; FOREACH(MapParticleContact::value_type i,contacts) ret.append(i.second); return ret;}
 
 void Contact::swapOrder(){
 	if(geom || phys){ throw std::logic_error("Particles in contact cannot be swapped if they have geom or phys already."); }
@@ -25,7 +25,7 @@ void Contact::reset(){
 Particle::id_t Contact::pyId1(){ return pA->id; }
 Particle::id_t Contact::pyId2(){ return pB->id; }
 
-void Particle::checkNodes(bool dyn, bool checkOne){
+void Particle::checkNodes(bool dyn, bool checkOne) const {
 	if(!shape || (checkOne  && shape->nodes.size()!=1) || (dyn && !shape->nodes[0]->hasData<DemData>())) yade::AttributeError("Particle #"+lexical_cast<string>(id)+" has no Shape"+(checkOne?string(", or the shape has no/multiple nodes")+string(!dyn?".":", or node.dem is None."):string(".")));
 }
 
@@ -71,22 +71,40 @@ void DemData::blocked_vec_set(const std::string& dofs){
 
 vector<shared_ptr<Node> > Particle::getNodes(){ checkNodes(false,false); return shape->nodes; }
 
-Vector3r& Particle::getPos(){ checkNodes(false); return shape->nodes[0]->pos; };
+Vector3r& Particle::getPos() const { checkNodes(false); return shape->nodes[0]->pos; };
 void Particle::setPos(const Vector3r& p){ checkNodes(false); shape->nodes[0]->pos=p; }
-Quaternionr& Particle::getOri(){ checkNodes(false); return shape->nodes[0]->ori; };
+Quaternionr& Particle::getOri() const { checkNodes(false); return shape->nodes[0]->ori; };
 void Particle::setOri(const Quaternionr& p){ checkNodes(false); shape->nodes[0]->ori=p; }
 
-Vector3r& Particle::getVel(){ checkNodes(); return shape->nodes[0]->getData<DemData>().vel; };
+Vector3r& Particle::getVel() const { checkNodes(); return shape->nodes[0]->getData<DemData>().vel; };
 void Particle::setVel(const Vector3r& p){ checkNodes(); shape->nodes[0]->getData<DemData>().vel=p; }
-Vector3r& Particle::getAngVel(){ checkNodes(); return shape->nodes[0]->getData<DemData>().angVel; };
+Vector3r& Particle::getAngVel() const { checkNodes(); return shape->nodes[0]->getData<DemData>().angVel; };
 void Particle::setAngVel(const Vector3r& p){ checkNodes(); shape->nodes[0]->getData<DemData>().angVel=p; }
 
-Vector3r Particle::getForce(){ checkNodes(); return shape->nodes[0]->getData<DemData>().force; };
-Vector3r Particle::getTorque(){ checkNodes(); return shape->nodes[0]->getData<DemData>().torque; };
+Vector3r Particle::getForce() const { checkNodes(); return shape->nodes[0]->getData<DemData>().force; };
+Vector3r Particle::getTorque() const { checkNodes(); return shape->nodes[0]->getData<DemData>().torque; };
 
-std::string Particle::getBlocked(){ checkNodes(); return shape->nodes[0]->getData<DemData>().blocked_vec_get(); }
+std::string Particle::getBlocked() const { checkNodes(); return shape->nodes[0]->getData<DemData>().blocked_vec_get(); }
 void Particle::setBlocked(const std::string& s){ checkNodes(); shape->nodes[0]->getData<DemData>().blocked_vec_set(s); }
 
+Real Particle::getEk_any(bool trans, bool rot) const {
+	Real ret=0;
+	checkNodes();
+	const DemData& dyn=shape->nodes[0]->getData<DemData>();
+	if(trans){
+		Scene* scene=Omega::instance().getScene().get();
+		Vector3r fluctVel=scene->isPeriodic?scene->cell->bodyFluctuationVel(shape->nodes[0]->pos,dyn.vel):dyn.vel;
+		Real Etrans=.5*(dyn.mass*(fluctVel.dot(fluctVel.transpose())));
+		ret+=Etrans;
+	}
+	if(rot){
+		Matrix3r T(shape->nodes[0]->ori);
+		Matrix3r mI(dyn.inertia.asDiagonal());
+		Real Erot=.5*dyn.angVel.transpose().dot((T.transpose()*mI*T)*dyn.angVel);	
+		ret+=Erot;
+	}
+	return ret;
+}
 
 
 

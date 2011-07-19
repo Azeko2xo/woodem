@@ -548,7 +548,9 @@ void GLViewer::postSelection(const QPoint& point)
 	renderer->selObj=renderer->glNamedObjects[selection];
 	renderer->selObjNode=renderer->glNamedNodes[selection];
 	renderer->glNamedObjects.clear(); renderer->glNamedNodes.clear();
-	setSceneCenter(qglviewer::Vec(renderer->selObjNode->pos[0],renderer->selObjNode->pos[1],renderer->selObjNode->pos[2]));
+	Vector3r pos=renderer->selObjNode->pos;
+	if(renderer->scene->isPeriodic) pos=renderer->scene->cell->canonicalizePt(pos);
+	setSceneCenter(qglviewer::Vec(pos[0],pos[1],pos[2]));
 
 	cerr<<"Selected object #"<<selection<<" is a "<<renderer->selObj->getClassName()<<endl;
 	pyRunString("import yade.qt; onSelection(yade.qt.getSel());");
@@ -769,7 +771,7 @@ void GLViewer::postDraw(){
 		for(size_t i=0; i<scene->ranges.size(); i++){
 			ScalarRange& range(*scene->ranges[i]);
 			if(!range.isOk()) continue;
-			int xDef=width()-50-i*150; /* 50px / scale horizontally */ // default x position, if current not valid
+			int xDef=width()-50-i*70; /* 70px / scale horizontally */ // default x position, if current not valid
 			if(!range.movablePtr){ range.movablePtr=make_shared<QglMovableObject>(xDef,yDef);  }
 			QglMovableObject& mov(*range.movablePtr);
 			// adjust if off-screen

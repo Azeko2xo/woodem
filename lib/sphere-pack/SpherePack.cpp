@@ -512,8 +512,8 @@ int SpherePack::addShadows(){
 				Real norm=s.c[j]/cellSize[j]; s.c[j]=(norm-floor(norm))*cellSize[j];
 			}
 		}
-		Vector3i mn=Vector3i::Zero(), mx=Vector3i::Zero();
-		for(int j=0;j<3;j++){ mn[j]=(s.c[j]+s.r>cellSize[j]?-1:0); mx[j]=(s.c[j]-s.r<0?1:0); }
+		Vector3i mn, mx;
+		for(int j:{0,1,2}){ mn[j]=(s.c[j]+s.r>cellSize[j]?-1:0); mx[j]=(s.c[j]-s.r<0?1:0); }
 		Vector3i n;
 		for(n[0]=mn[0]; n[0]<=mx[0]; n[0]++) for(n[1]=mn[1]; n[1]<=mx[1]; n[1]++) for(n[2]=mn[2]; n[2]<=mx[2]; n[2]++){
 			if(n==Vector3i::Zero()) continue; // in the middle

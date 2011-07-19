@@ -40,6 +40,7 @@ class Scene: public Serializable{
 
 		std::vector<shared_ptr<Engine> > pyEnginesGet();
 		void pyEnginesSet(const std::vector<shared_ptr<Engine> >&);
+		shared_ptr<ScalarRange> getRange(const std::string& l) const;
 		
 		struct pyTagsProxy{
 			Scene* scene;
@@ -75,17 +76,18 @@ class Scene: public Serializable{
 
 		((StrStrMap,tags,,Attr::hidden,"Arbitrary key=value associations (tags like mp3 tags: author, date, version, description etc.)"))
 
-		((vector<shared_ptr<Engine> >,engines,,(Attr::hidden|Attr::triggerPostLoad),"Engines sequence in the simulation."))
-		((vector<shared_ptr<Engine> >,_nextEngines,,Attr::hidden,"Engines to be used from the next step on; is returned transparently by O.engines if in the middle of the loop (controlled by subStep>=0)."))
+		((vector<shared_ptr<Engine>>,engines,,(Attr::hidden|Attr::triggerPostLoad),"Engines sequence in the simulation."))
+		((vector<shared_ptr<Engine>>,_nextEngines,,Attr::hidden,"Engines to be used from the next step on; is returned transparently by O.engines if in the middle of the loop (controlled by subStep>=0)."))
 		((shared_ptr<EnergyTracker>,energy,new EnergyTracker,Attr::readonly,"Energy values, if energy tracking is enabled."))
-		((vector<shared_ptr<Field> >,fields,,Attr::triggerPostLoad,"Defined simulation fields."))
+		((vector<shared_ptr<Field>>,fields,,Attr::triggerPostLoad,"Defined simulation fields."))
 		((shared_ptr<Cell>,cell,new Cell,Attr::hidden,"Information on periodicity; only should be used if Scene::isPeriodic."))
-		((vector<shared_ptr<DisplayParameters> >,dispParams,,Attr::hidden,"'hash maps' of display parameters (since yade::serialization had no support for maps, emulate it via vector of strings in format key=value)"))
+		((vector<shared_ptr<DisplayParameters>>,dispParams,,Attr::hidden,"'hash maps' of display parameters (since yade::serialization had no support for maps, emulate it via vector of strings in format key=value)"))
 		((std::string,lastSave,,Attr::readonly,"Name under which the simulation was saved for the last time."))
 
 		#if YADE_OPENGL
-			((vector<shared_ptr<ScalarRange> >,ranges,,,"Scalar ranges to be rendered on the display as colormaps"))
+			((vector<shared_ptr<ScalarRange>>,ranges,,,"Scalar ranges to be rendered on the display as colormaps"))
 		#endif
+		((vector<shared_ptr<Serializable>>,any,,,"Storage for arbitrary Serializables; meant for storing and loading static objects like Gl1_* functors to restore their parameters when scene is loaded."))
 
 		// ((shared_ptr<Bound>,bound,,Attr::hidden,"Bounding box of the scene (only used for rendering and initialized if needed)."))
 
@@ -98,12 +100,15 @@ class Scene: public Serializable{
 		.add_property("engines",&Scene::pyEnginesGet,&Scene::pyEnginesSet,"Engine sequence in the simulation")
 		.def_readonly("_currEngines",&Scene::engines,"Current engines, debugging only")
 		.def_readonly("_nextEngines",&Scene::_nextEngines,"Current engines, debugging only")
+		#ifdef YADE_OPENGL
+			.def("getRange",&Scene::getRange,"Retrieve a *ScalarRange* object by its label")
+		#endif
 		
 		;
 		
 		// define nested class
 		boost::python::scope foo(_classObj);
-		boost::python::class_<Scene::pyTagsProxy>("TagsProxy",py::init<pyTagsProxy>()).def("__getitem__",&pyTagsProxy::getItem).def("__setitem__",&pyTagsProxy::setItem).def("__delitem__",&pyTagsProxy::delItem).def("has_key",&pyTagsProxy::has_key).def("__contains__",&pyTagsProxy::has_key).def("keys",&pyTagsProxy::keys);
+		boost::python::class_<Scene::pyTagsProxy>("TagsProxy",py::init<pyTagsProxy>()).def("__getitem__",&pyTagsProxy::getItem).def("__setitem__",&pyTagsProxy::setItem).def("__delitem__",&pyTagsProxy::delItem).def("has_key",&pyTagsProxy::has_key).def("__contains__",&pyTagsProxy::has_key).def("keys",&pyTagsProxy::keys)
 	);
 	DECLARE_LOGGER;
 };

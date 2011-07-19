@@ -20,7 +20,8 @@ bool Collider::mayCollide(const shared_ptr<Particle>& pA, const shared_ptr<Parti
 	
 }
 
-CREATE_LOGGER(BoundDispatcher);
+// CREATE_LOGGER(BoundDispatcher);
+
 void BoundDispatcher::run(){
 	updateScenePtr();
 	FOREACH(const shared_ptr<Particle> p, field->cast<DemField>().particles){

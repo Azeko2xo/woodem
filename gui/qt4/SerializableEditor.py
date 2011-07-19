@@ -10,6 +10,7 @@ logging.trace=logging.debug
 logging.basicConfig(level=logging.INFO)
 #from logging import debug,info,warning,error
 from yade import *
+import yade._customConverters, yade.core
 import yade.qt
 
 seqSerializableShowType=True # show type headings in serializable sequences (takes vertical space, but makes the type hyperlinked)
@@ -402,6 +403,8 @@ _fundamentalInitValues={bool:True,str:'',int:0,float:0.0,Quaternion:Quaternion.I
 
 _fundamentalSpecialEditors={id(yade.dem.DemData.blocked):AttrEditor_DemData_blocked,}
 
+_attributeGuessedTypeMap={yade._customConverters.NodeList:(yade.core.Node,), }
+
 class SerQLabel(QLabel):
 	def __init__(self,parent,label,tooltip,path):
 		QLabel.__init__(self,parent)
@@ -491,12 +494,12 @@ class SerializableEditor(QFrame):
 		return None
 	def mkAttrEntries(self):
 		if self.ser==None: return
-		try:
-			d=self.ser.dict()
-		except TypeError:
-			logging.error('TypeError when getting attributes of '+str(self.ser)+',skipping. ')
-			import traceback
-			traceback.print_exc()
+		#try:
+		#	d=self.ser.dict()
+		#except TypeError:
+		#	logging.error('TypeError when getting attributes of '+str(self.ser)+',skipping. ')
+		#	import traceback
+		#	traceback.print_exc()
 		attrs=self.ser.yattrs(); attrs.sort()
 		for attr in attrs:
 			val=getattr(self.ser,attr) # get the value using serattr, as it might be different from what the dictionary provides (e.g. Body.blockedDOFs)
@@ -510,9 +513,12 @@ class SerializableEditor(QFrame):
 				#if not t: raise RuntimeError('Unable to guess type of '+str(self.ser)+'.'+attr)
 			# hack for Se3, which is returned as (Vector3,Quaternion) in python
 			elif isinstance(val,tuple) and len(val)==2 and val[0].__class__==Vector3 and val[1].__class__==Quaternion: t=Se3FakeType
-			else: t=val.__class__
-			match=re.search(':yattrflags:`\s*([0-9]+)\s*`',doc) # non-empty attribute
-			flags=int(match.group(1)) if match else 0
+			else:
+				t=val.__class__
+				if t in _attributeGuessedTypeMap: t=_attributeGuessedTypeMap[val.__class__]
+
+			match=re.search(':yattrflags:`\s*([0-9a-zA-Z_|&() ]+)\s*`',doc) # non-empty attribute
+			flags=int(eval(match.group(1).replace('Attr::',''),{},AttrFlags.__dict__)) if match else 0
 
 			#if not match: print 'No attr match for docstring of %s.%s'%(self.ser.__class__.__name__,attr)
 
@@ -605,6 +611,7 @@ class SerializableEditor(QFrame):
 			lab.setFrameShape(QFrame.Box); lab.setFrameShadow(QFrame.Sunken); lab.setLineWidth(2); lab.setAlignment(Qt.AlignHCenter); lab.linkActivated.connect(yade.qt.openUrl)
 			grid.setWidget(0,QFormLayout.SpanningRole,lab)
 		for entry in self.entries:
+			# print entry.name, entry.T, entry.flags
 			if (entry.flags & AttrFlags.noGui): continue
 			entry.widget=self.mkWidget(entry)
 			objPath=(self.path+'.'+entry.name) if self.path else None
@@ -631,7 +638,7 @@ def makeSerializableLabel(ser,href=False,addr=True,boldHref=True,num=-1,count=-1
 	else: ret+=ser.__class__.__name__+' '
 	if hasattr(ser,'label') and ser.label: ret+=u' “'+unicode(ser.label)+u'”'
 	# do not show address if there is a label already
-	elif addr:
+	elif addr and ser!=None:
 		import re
 		ss=unicode(ser); m=re.match(u'<(.*) instance at (0x.*)>',ss)
 		if m: ret+=m.group(2)

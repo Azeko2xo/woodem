@@ -37,8 +37,8 @@ void OpenGLRenderer::init(){
 		// if (Omega::instance().isInheritingFrom_recursive(item.first,"GlStateFunctor")) stateFunctorNames.push_back(item.first);
 		if (Omega::instance().isInheritingFrom_recursive(item.first,"GlBoundFunctor")) boundFunctorNames.push_back(item.first);
 		if (Omega::instance().isInheritingFrom_recursive(item.first,"GlShapeFunctor")) shapeFunctorNames.push_back(item.first);
-		if (Omega::instance().isInheritingFrom_recursive(item.first,"GlIGeomFunctor")) geomFunctorNames.push_back(item.first);
-		if (Omega::instance().isInheritingFrom_recursive(item.first,"GlIPhysFunctor")) physFunctorNames.push_back(item.first);
+		if (Omega::instance().isInheritingFrom_recursive(item.first,"GlCGeomFunctor")) geomFunctorNames.push_back(item.first);
+		if (Omega::instance().isInheritingFrom_recursive(item.first,"GlCPhysFunctor")) physFunctorNames.push_back(item.first);
 
 		if (Omega::instance().isInheritingFrom_recursive(item.first,"GlFieldFunctor")) fieldFunctorNames.push_back(item.first);
 		if (Omega::instance().isInheritingFrom_recursive(item.first,"GlNodeFunctor")) nodeFunctorNames.push_back(item.first);
@@ -76,8 +76,8 @@ void OpenGLRenderer::initgl(){
 		// _SETUP_DISPATCHER(stateFunctorNames,GlStateFunctor,stateDispatcher);
 		_SETUP_DISPATCHER(boundFunctorNames,GlBoundFunctor,boundDispatcher);
 		_SETUP_DISPATCHER(shapeFunctorNames,GlShapeFunctor,shapeDispatcher);
-		_SETUP_DISPATCHER(geomFunctorNames,GlIGeomFunctor,geomDispatcher);
-		_SETUP_DISPATCHER(physFunctorNames,GlIPhysFunctor,physDispatcher);
+		_SETUP_DISPATCHER(geomFunctorNames,GlCGeomFunctor,geomDispatcher);
+		_SETUP_DISPATCHER(physFunctorNames,GlCPhysFunctor,physDispatcher);
 		_SETUP_DISPATCHER(fieldFunctorNames,GlFieldFunctor,fieldDispatcher);
 		_SETUP_DISPATCHER(nodeFunctorNames,GlNodeFunctor,nodeDispatcher);
 	#undef _SETUP_DISPATCHER

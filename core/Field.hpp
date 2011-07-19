@@ -47,6 +47,7 @@ struct ScalarRange: public Serializable{
 	bool isOk(){ return(mnmx[0]<mnmx[1]); }
 	// return value on the range, given normalized value
 	Real normInv(Real norm){ return mnmx[0]+norm*(mnmx[1]-mnmx[0]); } 
+	Real norm(Real v);
 	YADE_CLASS_BASE_DOC_ATTRS(ScalarRange,Serializable,"Store and share range of scalar values",
 		((Vector2r,mnmx,Vector2r(std::numeric_limits<Real>::infinity(),-std::numeric_limits<Real>::infinity()),,"Packed minimum and maximum values"))
 		((bool,autoAdjust,true,,"Automatically adjust range using given values."))

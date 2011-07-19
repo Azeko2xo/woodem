@@ -42,7 +42,11 @@ void In2_Sphere_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Mater
 				throw std::runtime_error(oss.str().c_str());
 			}
 		#endif
-		Vector3r xc=C->geom->node->pos-sh->nodes[0]->pos+((!isPA && scene->isPeriodic) ? scene->cell->intrShiftPos(C->cellDist) : Vector3r::Zero());
+		Vector3r xc=C->geom->node->pos-(sh->nodes[0]->pos+((!isPA && scene->isPeriodic) ? scene->cell->intrShiftPos(C->cellDist) : Vector3r::Zero()));
+		if(watch.maxCoeff()==max(C->pA->id,C->pB->id) && watch.minCoeff()==min(C->pA->id,C->pB->id)){
+			cerr<<"Step "<<scene->step<<": apply ##"<<C->pA->id<<"+"<<C->pB->id<<": F="<<F.transpose()<<", T="<<T.transpose()<<endl;
+			cerr<<"\t#"<<(isPA?C->pA->id:C->pB->id)<<" @ "<<xc.transpose()<<", F="<<F.transpose()<<", T="<<(xc.cross(F)+T).transpose()<<endl;
+		}
 		sh->nodes[0]->getData<DemData>().addForceTorque(F,xc.cross(F)+T);
 	}
 }
@@ -57,6 +61,7 @@ YADE_PLUGIN(gl,(Gl1_Sphere));
 #include<yade/lib/base/CompUtils.hpp>
 
 bool Gl1_Sphere::wire;
+bool Gl1_Sphere::smooth;
 Real Gl1_Sphere::scale;
 Vector2r Gl1_Sphere::scale_range;
 bool Gl1_Sphere::stripes;
@@ -82,7 +87,11 @@ void Gl1_Sphere::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool 
 
 	Real r=shape->cast<Sphere>().radius*scale;
 	glColor3v(CompUtils::mapColor(shape->getBaseColor()));
-	if (wire || wire2){ glLineWidth(1.); glutWireSphere(r,quality*glutSlices,quality*glutStacks); }
+	if (wire || wire2){ glLineWidth(1.);
+		if(!smooth) glDisable(GL_LINE_SMOOTH);
+		glutWireSphere(r,quality*glutSlices,quality*glutStacks);
+		if(!smooth) glEnable(GL_LINE_SMOOTH); // re-enable
+	}
 	else {
 		//Check if quality has been modified or if previous lists are invalidated (e.g. by creating a new qt view), then regenerate lists
 		bool somethingChanged = (abs(quality-prevQuality)>0.001 || glIsList(glStripedSphereList)!=GL_TRUE);

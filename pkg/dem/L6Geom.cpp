@@ -78,6 +78,8 @@ bool Cg2_Truss_Sphere_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<S
 
 /*
 Generic function to compute L6Geom, used for {sphere,facet,wall}+sphere contacts
+
+NB. the vel2 should be givne WITHOUT periodic correction due to C->cellDist, it is handled inside
 */
 void Cg2_Sphere_Sphere_L6Geom::handleSpheresLikeContact(const shared_ptr<Contact>& C, const Vector3r& pos1, const Vector3r& vel1, const Vector3r& angVel1, const Vector3r& pos2, const Vector3r& vel2, const Vector3r& angVel2, const Vector3r& normal, const Vector3r& contPt, Real uN, Real r1, Real r2){
 	// create geometry
@@ -125,8 +127,8 @@ void Cg2_Sphere_Sphere_L6Geom::handleSpheresLikeContact(const shared_ptr<Contact
 	Vector3r normTwistVec=avgNormal*scene->dt*.5*avgNormal.dot(angVel1+angVel2);
 	// compute relative velocity
 	// noRatch: take radius or current distance as the branch vector; see discussion in ScGeom::precompute (avoidGranularRatcheting)
-	Vector3r c1x=((noRatch && !r1>0) ? ( r1*normal).eval() : (contPt-pos1).eval()); // used only for sphere-sphere
-	Vector3r c2x=( noRatch           ? (-r2*normal).eval() : (contPt-pos2).eval());
+	Vector3r c1x=((noRatch && r1>0) ? ( r1*normal).eval() : (contPt-pos1).eval()); // used only for sphere-sphere
+	Vector3r c2x=( noRatch          ? (-r2*normal).eval() : (contPt-pos2).eval());
 	//Vector3r state2velCorrected=state2.vel+(scene->isPeriodic?scene->cell->intrShiftVel(I->cellDist):Vector3r::Zero()); // velocity of the second particle, corrected with meanfield velocity if necessary
 	//cerr<<"correction "<<(scene->isPeriodic?scene->cell->intrShiftVel(I->cellDist):Vector3r::Zero())<<endl;
 	Vector3r relVel=(vel2+angVel2.cross(c2x))-(vel1+angVel1.cross(c1x));

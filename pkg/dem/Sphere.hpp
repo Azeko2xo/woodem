@@ -27,7 +27,9 @@ REGISTER_SERIALIZABLE(Bo1_Sphere_Aabb);
 struct In2_Sphere_ElastMat: public IntraFunctor{
 	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&);
 	FUNCTOR2D(Sphere,ElastMat);
-	YADE_CLASS_BASE_DOC_ATTRS(In2_Sphere_ElastMat,IntraFunctor,"Apply contact forces on sphere; having one node only, Sphere generates no internal forces as such.",/*attrs*/);
+	YADE_CLASS_BASE_DOC_ATTRS(In2_Sphere_ElastMat,IntraFunctor,"Apply contact forces on sphere; having one node only, Sphere generates no internal forces as such.",/*attrs*/
+		((Vector2i,watch,Vector2i(-1,-1),,""))
+	);
 };
 REGISTER_SERIALIZABLE(In2_Sphere_ElastMat);
 
@@ -52,6 +54,7 @@ class Gl1_Sphere: public GlShapeFunctor{
 	YADE_CLASS_BASE_DOC_STATICATTRS(Gl1_Sphere,GlShapeFunctor,"Renders :yref:`Sphere` object",
 		((Real,quality,1.0,,"Change discretization level of spheres. quality>1  for better image quality, at the price of more cpu/gpu usage, 0<quality<1 for faster rendering. If mono-color sphres are displayed (:yref:`Gl1_Sphere::stripes=False), quality mutiplies :yref:`Gl1_Sphere::glutSlices` and :yref:`Gl1_Sphere::glutStacks`. If striped spheres are displayed (:yref:`Gl1_Sphere::stripes=True), only integer increments are meaningfull : quality=1 and quality=1.9 will give the same result, quality=2 will give finer result."))
 		((bool,wire,false,,"Only show wireframe (controlled by ``glutSlices`` and ``glutStacks``."))
+		((bool,smooth,false,,"Render lines smooth (it makes them thicker and less clear if there are many spheres.)"))
 		((Real,scale,1.,,"Scale sphere radii"))
 		((Vector2r,scale_range,Vector2r(.1,2.),Attr::noGui,"Range for scale"))
 		((bool,stripes,false,,"In non-wire rendering, show stripes clearly showing particle rotation."))

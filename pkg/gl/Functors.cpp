@@ -3,8 +3,9 @@
 	YADE_PLUGIN(gl,
 		(GlShapeFunctor)(GlShapeDispatcher)
 		(GlBoundFunctor)(GlBoundDispatcher)
+		(GlCPhysFunctor)(GlCPhysDispatcher)
 		(GlNodeFunctor)(GlNodeDispatcher)
-		//(GlBoundFunctor)(GlIGeomFunctor)(GlIPhysFunctor)(GlStateFunctor)(GlFieldFunctor)(GlNodeFunctor)
-		//(GlBoundDispatcher)(GlIGeomDispatcher)(GlIPhysDispatcher)(GlStateDispatcher)(GlFieldDispatcher)(GlNodeDispatcher)
+		//(GlBoundFunctor)(GlCGeomFunctor)(GlStateFunctor)(GlFieldFunctor)(GlNodeFunctor)
+		//(GlBoundDispatcher)(GlCGeomDispatcher)(GlStateDispatcher)(GlFieldDispatcher)(GlNodeDispatcher)
 	);
 #endif

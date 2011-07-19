@@ -85,7 +85,14 @@ void Leapfrog::run(){
 		LOG_WARN("Collected "<<i<<" nodes.");
 	}
 	
-	FOREACH(const shared_ptr<Node>& node, dem->nodes){
+	//FOREACH(const shared_ptr<Node>& node, dem->nodes){
+	size_t size=dem->nodes.size();
+	const auto& nodes=dem->nodes;
+	#ifdef YADE_OPENMP
+		#pragma omp parallel for schedule(guided)
+	#endif
+	for(size_t i=0; i<size; i++){
+		const shared_ptr<Node>& node=nodes[i];
 		if(!node->hasData<DemData>()) continue;
 		DemData& dyn(node->getData<DemData>());
 		Vector3r& f=dyn.force;	Vector3r& t=dyn.torque;

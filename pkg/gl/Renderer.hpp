@@ -19,12 +19,16 @@ struct GlExtraDrawer: public Serializable{
 REGISTER_SERIALIZABLE(GlExtraDrawer);
 
 struct GlData: public NodeData{
-	YADE_CLASS_BASE_DOC_ATTRS(GlData,NodeData,"Nodal data used for rendering.",
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(GlData,NodeData,"Nodal data used for rendering.",
 		((Vector3r,refPos,Vector3r(NaN,NaN,NaN),,"Reference position (for displacement scaling)"))
 		((Quaternionr,refOri,Quaternionr(NaN,NaN,NaN,NaN),,"Reference orientation (for rotation scaling)"))
 		((Vector3r,dGlPos,Vector3r(NaN,NaN,NaN),,"Difference from real spatial position when rendered."))
 		((Quaternionr,dGlOri,Quaternionr(NaN,NaN,NaN,NaN),,"Difference from real spatial orientation when rendered."))
 		((Vector3i,dCellDist,Vector3i::Zero(),,"How much is canonicalized point from the real one."))
+		, /* ctor */
+		, /* py */
+		.def("_getDataOnNode",&Node::pyGetData<GlData>).staticmethod("_getDataOnNode").def("_setDataOnNode",&Node::pySetData<GlData>).staticmethod("_setDataOnNode")
+
 	);
 };
 REGISTER_SERIALIZABLE(GlData);
@@ -72,8 +76,9 @@ class Renderer: public Serializable{
 		GlShapeDispatcher shapeDispatcher;
 		GlBoundDispatcher boundDispatcher;
 		GlNodeDispatcher nodeDispatcher;
+		GlCPhysDispatcher cPhysDispatcher;
 	#if 0
-		GlIPhysDispatcher physDispatcher;
+		GlCPhysDispatcher physDispatcher;
 		GlFieldDispatcher fieldDispatcher;
 		// GlStateDispatcher stateDispatcher;
 	#endif
@@ -105,10 +110,11 @@ class Renderer: public Serializable{
 				if(!r->withNames){
 					if(highLev>=0 || s==r->selObj){ r->setLightHighlighted(highLev); highlighted=true; }
 					else { r->setLightUnhighlighted(); highlighted=false; }
+				} else {
+					r->glNamedObjects.push_back(s);
+					r->glNamedNodes.push_back(n);
+					::glPushName(r->glNamedObjects.size()-1);
 				}
-				r->glNamedObjects.push_back(s);
-				r->glNamedNodes.push_back(n);
-				::glPushName(r->glNamedObjects.size()-1);
 			};
 			~glScopedName(){ glPopName(); }
 		};
@@ -125,6 +131,7 @@ class Renderer: public Serializable{
 		void renderRawNode(shared_ptr<Node>);
 		void renderDemNodes();
 		void renderDemContactNodes();
+		void renderDemCPhys();
 		void renderShape();
 		void renderBound();
 
@@ -133,11 +140,11 @@ class Renderer: public Serializable{
 
 		void pyInitError(py::tuple, py::dict){ throw std::runtime_error("yade.gl.Renderer() may not be instantiated directly, use yade.qt.Renderer() to get the current instance."); }
 
+		// void renderCPhys();
 #if 0
 		void pyRender(){render(Omega::instance().getScene());}
 
 		void renderDOF_ID();
-		void renderIPhys();
 		void renderIGeom();
 		// called also to render selectable entitites;
 		void renderAllInteractionsWire();
@@ -171,9 +178,10 @@ class Renderer: public Serializable{
 		((bool,id,false,,"Show particle id's"))
 		((bool,bound,false,,"Render particle's :yref:`Bound`"))
 		((bool,shape,true,,"Render particle's :yref:`Shape`"))
-		((int,cNodes,true,,"Render contact's nodes (0=no, 1=nodes only, 2=line between particles, 3=both"))
+		((int,cNodes,1,,"Render contact's nodes (-1=nothing, 0=rep only, 1=nodes, 2=line between particles, 3=both"))
+		((bool,cPhys,true,,"Render contact's nodes"))
 		((bool,nid,false,,"Show node ids for Sparc models"))
-		((Vector2i,cNodes_range,Vector2i(0,3),Attr::noGui,"Range for cNodes"))
+		((Vector2i,cNodes_range,Vector2i(-1,3),Attr::noGui,"Range for cNodes"))
 		//((bool,intrAllWire,false,,"Draw wire for all interactions, blue for potential and green for real ones (mostly for debugging)")),
 		,/*deprec*/
 		,/*init*/
@@ -184,7 +192,7 @@ class Renderer: public Serializable{
 		.def_readonly("shapeDispatcher",&Renderer::shapeDispatcher)
 		.def_readonly("boundDispatcher",&Renderer::boundDispatcher)
 		.def_readonly("nodeDispatcher",&Renderer::nodeDispatcher)
-		// .def_readonly("cgeomDispatcher",&Renderer::nodeDispatcher)
+		.def_readonly("cPhysDispatcher",&Renderer::cPhysDispatcher)
 
 		.def("__init__",py::make_constructor(&Renderer::pyInitError)) // does not seem to be called :-(
 	);

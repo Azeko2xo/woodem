@@ -36,16 +36,16 @@ class OpenGLRenderer;
 
 GL_FUNCTOR(GlBoundFunctor,TYPELIST_1(const shared_ptr<Bound>&),Bound);
 GL_FUNCTOR(GlShapeFunctor,TYPELIST_4(const shared_ptr<Shape>&, const shared_ptr<State>&,bool,const GLViewInfo&),Shape);
-GL_FUNCTOR(GlIGeomFunctor,TYPELIST_5(const shared_ptr<IGeom>&, const shared_ptr<Interaction>&, const shared_ptr<Body>&, const shared_ptr<Body>&, bool),IGeom);
-GL_FUNCTOR(GlIPhysFunctor,TYPELIST_5(const shared_ptr<IPhys>&, const shared_ptr<Interaction>&, const shared_ptr<Body>&, const shared_ptr<Body>&, bool),IPhys);
+GL_FUNCTOR(GlCGeomFunctor,TYPELIST_5(const shared_ptr<IGeom>&, const shared_ptr<Interaction>&, const shared_ptr<Body>&, const shared_ptr<Body>&, bool),IGeom);
+GL_FUNCTOR(GlCPhysFunctor,TYPELIST_5(const shared_ptr<IPhys>&, const shared_ptr<Interaction>&, const shared_ptr<Body>&, const shared_ptr<Body>&, bool),IPhys);
 GL_FUNCTOR(GlStateFunctor,TYPELIST_1(const shared_ptr<State>&),State);
 GL_FUNCTOR(GlFieldFunctor,TYPELIST_1(const shared_ptr<Field>&),Field);
 GL_FUNCTOR(GlNodeFunctor ,TYPELIST_2(const shared_ptr<Node >&, const GLViewInfo&),Node);
 
 GL_DISPATCHER(GlBoundDispatcher,GlBoundFunctor);
 GL_DISPATCHER(GlShapeDispatcher,GlShapeFunctor);
-GL_DISPATCHER(GlIGeomDispatcher,GlIGeomFunctor);
-GL_DISPATCHER(GlIPhysDispatcher,GlIPhysFunctor);
+GL_DISPATCHER(GlCGeomDispatcher,GlCGeomFunctor);
+GL_DISPATCHER(GlCPhysDispatcher,GlCPhysFunctor);
 GL_DISPATCHER(GlStateDispatcher,GlStateFunctor);
 GL_DISPATCHER(GlFieldDispatcher,GlFieldFunctor);
 GL_DISPATCHER(GlNodeDispatcher ,GlNodeFunctor );

@@ -86,11 +86,11 @@ struct L6Geom: public L3Geom{
 REGISTER_SERIALIZABLE(L6Geom);
 
 #ifdef YADE_OPENGL
-struct Gl1_L3Geom: public GlIGeomFunctor{
+struct Gl1_L3Geom: public GlCGeomFunctor{
 	RENDERS(L3Geom);
 	void go(const shared_ptr<IGeom>&, const shared_ptr<Interaction>&, const shared_ptr<Body>&, const shared_ptr<Body>&, bool);
 	void draw(const shared_ptr<IGeom>&, bool isL6Geom=false, const Real& phiScale=0);
-	YADE_CLASS_BASE_DOC_STATICATTRS(Gl1_L3Geom,GlIGeomFunctor,"Render :yref:`L3Geom` geometry.",
+	YADE_CLASS_BASE_DOC_STATICATTRS(Gl1_L3Geom,GlCGeomFunctor,"Render :yref:`L3Geom` geometry.",
 		((bool,axesLabels,false,,"Whether to display labels for local axes (x,y,z)"))
 		((Real,axesScale,1.,,"Scale local axes, their reference length being half of the minimum radius."))
 		((int,axesWd,1,,"Width of axes lines, in pixels; not drawn if non-positive"))

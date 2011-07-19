@@ -139,7 +139,7 @@ class Cell: public Serializable{
 		/* normal attributes */
 		((Matrix3r,velGrad,Matrix3r::Zero(),,"Velocity gradient of the transformation; used in :yref:`Leapfrog`. Values of :yref:`velGrad<Cell.velGrad>` accumulate in :yref:`trsf<Cell.trsf>` at every step."))
 		((Matrix3r,prevVelGrad,Matrix3r::Zero(),Attr::readonly,"Velocity gradient in the previous step."))
-		((int,homoDeform,3,Attr::triggerPostLoad,"Deform (:yref:`velGrad<Cell.velGrad>`) the cell homothetically, by adjusting positions or velocities of particles. The values have the following meaning: 0: no homothetic deformation, 1: set absolute particle positions directly (when ``velGrad`` is non-zero), but without changing their velocity, 2: adjust particle velocity (only when ``velGrad`` changed) with Δv_i=Δ ∇v x_i. 3: as 2, but include a 2nd order term in addition -- the derivative of 1 (convective term in the velocity update).")),
+		((int,homoDeform,HOMO_VEL_2ND,Attr::triggerPostLoad,"Deform (:yref:`velGrad<Cell.velGrad>`) the cell homothetically, by adjusting positions or velocities of particles. The values have the following meaning: 0: no homothetic deformation, 1: set absolute particle positions directly (when ``velGrad`` is non-zero), but without changing their velocity, 2: adjust particle velocity (only when ``velGrad`` changed) with Δv_i=Δ ∇v x_i. 3: as 2, but include a 2nd order term in addition -- the derivative of 1 (convective term in the velocity update).")),
 		/*deprec*/ ((Hsize,hSize,"conform to Yade's names convention.")),
 		/*init*/ ,
 		/*ctor*/ _invTrsf=Matrix3r::Identity(); integrateAndUpdate(0),

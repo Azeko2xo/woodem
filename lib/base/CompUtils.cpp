@@ -40,4 +40,15 @@ Vector3r CompUtils::inscribedCircleCenter(const Vector3r& v0, const Vector3r& v1
 	return v0+((v2-v0)*(v1-v0).norm()+(v1-v0)*(v2-v0).norm())/((v1-v0).norm()+(v2-v1).norm()+(v0-v2).norm());
 }
 
+int CompUtils::lineSphereIntersection(const Vector3r& A, const Vector3r& u, const Vector3r& C, Real r, Real& t0, Real& t1, Real relTol){
+	// http://en.wikipedia.org/wiki/Line%E2%80%93sphere_intersection
+	// ray goes through origin, therefore we move sphere relative to A
+	Vector3r Cr=C-A;
+	Real disc=(pow(u.dot(Cr),2)-Cr.dot(Cr)+pow(r,2));
+	if(disc<0) return 0; // no intersection
+	if(4*disc<pow(relTol*r,2)){ t0=u.dot(Cr); return 1; }
+	disc=sqrt(disc);
+	t0=u.dot(Cr)-disc; t1=u.dot(Cr)+disc;
+	return 2;
+}
 

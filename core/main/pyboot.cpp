@@ -67,7 +67,7 @@ void yadeInitialize(py::list& pp, const std::string& confDir){
 	#endif
 	#ifdef YADE_LOG4CXX
 		// read logging configuration from file and watch it (creates a separate thread)
-		if(filesystem::exists(confDir+"/logging.conf")){
+		if(boost::filesystem::exists(confDir+"/logging.conf")){
 			std::string logConf=confDir+"/logging.conf";
 			log4cxx::PropertyConfigurator::configure(logConf);
 			LOG_INFO("Loaded "<<logConf);

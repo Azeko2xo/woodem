@@ -1,7 +1,7 @@
 #include<yade/pkg/common/GLDrawFunctors.hpp>
 #ifdef YADE_OPENGL
 	YADE_PLUGIN(gl,
-		(GlBoundFunctor)(GlShapeFunctor)(GlIGeomFunctor)(GlIPhysFunctor)(GlStateFunctor)(GlFieldFunctor)(GlNodeFunctor)
-		(GlBoundDispatcher)(GlShapeDispatcher)(GlIGeomDispatcher)(GlIPhysDispatcher)(GlStateDispatcher)(GlFieldDispatcher)(GlNodeDispatcher)
+		(GlBoundFunctor)(GlShapeFunctor)(GlCGeomFunctor)(GlCPhysFunctor)(GlStateFunctor)(GlFieldFunctor)(GlNodeFunctor)
+		(GlBoundDispatcher)(GlShapeDispatcher)(GlCGeomDispatcher)(GlCPhysDispatcher)(GlStateDispatcher)(GlFieldDispatcher)(GlNodeDispatcher)
 	);
 #endif

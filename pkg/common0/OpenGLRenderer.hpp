@@ -54,8 +54,8 @@ class OpenGLRenderer : public Serializable
 		void resetSpecularEmission();
 
 		GlBoundDispatcher boundDispatcher;
-		GlIGeomDispatcher geomDispatcher;
-		GlIPhysDispatcher physDispatcher;
+		GlCGeomDispatcher geomDispatcher;
+		GlCPhysDispatcher physDispatcher;
 		GlShapeDispatcher shapeDispatcher;
 
 		GlFieldDispatcher fieldDispatcher;

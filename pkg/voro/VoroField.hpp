@@ -16,6 +16,8 @@ struct VoroField: public Field{
 	void cellsToPov(const std::string& out);
 	void particlesToPov(const std::string& out);
 
+	DECLARE_LOGGER;
+
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(VoroField,Field,"Radical voronoi tesellation, given number of points",
 		// ((vector<Vector4r>,sph,,Attr::readonly,"Positions and radius of particles; negative radius means no sphere; index the same as particles in associated DEM field"))
 		((Vector3i,subDiv,Vector3i::Zero(),,"Number of internal cell subdivisions for voro++; zero terms will be computed from relSubcellSize."))
