@@ -786,7 +786,7 @@ void GLViewer::postDraw(){
 			startScreenCoordinatesSystem();
 			glBegin(GL_LINE_STRIP);
 				for(int j=0; j<=nDiv; j++){
-					glColor3v(CompUtils::mapColor((nDiv-j)*(1./nDiv)));
+					glColor3v(CompUtils::mapColor((nDiv-j)*(1./nDiv),range.cmap));
 					glVertex2f(x,y0+yStep*j);
 				};
 			glEnd();

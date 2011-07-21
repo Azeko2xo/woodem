@@ -22,6 +22,7 @@
 #include<boost/version.hpp>
 
 #include<yade/lib/base/Logging.hpp>
+#include<yade/lib/base/CompUtils.hpp>
 #include<yade/lib/pyutil/gil.hpp>
 #include<yade/lib/pyutil/raw_constructor.hpp>
 #include<yade/lib/pyutil/doc_opts.hpp>
@@ -214,6 +215,34 @@ class pyOmega{
 		exit(status);
 	}
 	std::string tmpFilename(){ return OMEGA.tmpFilename(); }
+
+	vector<string> lsCmap(){ vector<string> ret; for(const CompUtils::Colormap& cm: CompUtils::colormaps) ret.push_back(cm.name); return ret; }
+	py::tuple getCmap(){ return py::make_tuple(CompUtils::defaultCmap,CompUtils::colormaps[CompUtils::defaultCmap].name); }
+	void setCmap(py::object obj){
+		py::extract<int> exInt(obj);
+		py::extract<string> exStr(obj);
+		py::extract<py::tuple> exTuple(obj);
+		if(exInt.check()){
+			int i=exInt();
+			if(i<0 || i>=(int)CompUtils::colormaps.size()) yade::IndexError(boost::format("Colormap index out of range 0…%d")%(CompUtils::colormaps.size()));
+			CompUtils::defaultCmap=i;
+			return;
+		}
+		if(exStr.check()){
+			int i=-1; string s(exStr());
+			for(const CompUtils::Colormap& cm: CompUtils::colormaps){ i++; if(cm.name==s){ CompUtils::defaultCmap=i; return; } }
+			yade::KeyError("No colormap named `"+s+"'.");
+		}
+		if(exTuple.check() && py::extract<int>(exTuple()[0]).check() && py::extract<string>(exTuple()[1]).check()){
+			int i=py::extract<int>(exTuple()[0]); string s=py::extract<string>(exTuple()[1]);
+			if(i<0 || i>=(int)CompUtils::colormaps.size()) yade::IndexError(boost::format("Colormap index out of range 0…%d")%(CompUtils::colormaps.size()));
+			CompUtils::defaultCmap=i;
+			if(CompUtils::colormaps[i].name!=s) LOG_WARN("Given colormap name ignored, does not match index");
+			return;
+		}
+		yade::TypeError("cmap can be specified as int, str or (int,str)");
+	}
+	
 };
 
 BOOST_PYTHON_MODULE(wrapper)
@@ -267,6 +296,10 @@ BOOST_PYTHON_MODULE(wrapper)
 		.add_property("scene",&pyOmega::scene_get,"Return the current :yref:`scene <Scene>` object.")
 		.add_property("dem",&pyOmega::dem_get,"Return first DEM field.")
 		.add_property("sparc",&pyOmega::sparc_get,"Return first Sparc field.")
+
+		.add_property("cmaps",&pyOmega::lsCmap,"List available colormaps (by name)")
+		.add_property("cmap",&pyOmega::getCmap,&pyOmega::setCmap,"Current colormap as (index,name) tuple; set by index or by name alone.")
+	
 		//.add_property("engines",&pyOmega::engines_get,&pyOmega::engines_set,"List of engines in the simulation (Scene::engines).")
 		//.add_property("_currEngines",&pyOmega::currEngines_get,"Currently running engines; debugging only!")
 		//.add_property("_nextEngines",&pyOmega::nextEngines_get,"Engines for the next step, if different from the current ones, otherwise empty; debugging only!")

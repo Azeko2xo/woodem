@@ -53,6 +53,7 @@ struct ScalarRange: public Serializable{
 		((bool,autoAdjust,true,,"Automatically adjust range using given values."))
 		((Vector2i,dispPos,Vector2i(-1000,-1000),,"Where is this range displayd on the OpenGL canvas; initially out of range, will be reset automatically."))
 		((std::string,label,,,"Short name of this range (is not a labeled object which is automatically reflected in python now)."))
+		((int,cmap,-1,,"Colormap index to be used; -1 means to use the default colormap (see *O.lsCmap*, *O.setCmap*)"))
 	);
 };
 REGISTER_SERIALIZABLE(ScalarRange);

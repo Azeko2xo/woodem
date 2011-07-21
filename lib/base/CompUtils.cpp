@@ -5,16 +5,18 @@
 
 using std::min; using std::max;
 
-int CompUtils::defaultCmap=0; 
+int CompUtils::defaultCmap=18; // corresponds to 'jet' in Colormap-data.ipp
+
+const vector<CompUtils::Colormap> CompUtils::colormaps={
+	#include"Colormap-data.ipp"
+};
 
 Vector3r CompUtils::mapColor(Real normalizedColor, int cmap){
-	if(cmap<0) cmap=defaultCmap;
-	switch(cmap){
-		case 0:
-			return mapColor_map0(normalizedColor);
-		// case 1:
-	};
-	throw std::invalid_argument(("Colormap number "+boost::lexical_cast<std::string>(cmap)+" is not defined.").c_str());
+	if(cmap<0 || cmap>(int)colormaps.size()) cmap=defaultCmap;
+	assert(cmap>=0 && cmap<(int)colormaps.size());
+	// throw std::invalid_argument(("Colormap number "+boost::lexical_cast<std::string>(cmap)+" is not defined.").c_str());
+	Vector3r* v=(Vector3r*)(&colormaps[cmap].rgb[3*((int)(normalizedColor*255))]);
+	return Vector3r(*v);
 };
 
 Vector3r CompUtils::mapColor_map0(Real xnorm){
@@ -24,9 +26,9 @@ Vector3r CompUtils::mapColor_map0(Real xnorm){
 	return Vector3r(1,1-4.*(xnorm-.75),0);
 }
 
-Vector3r CompUtils::scalarOnColorScale(Real x, Real xmin, Real xmax){
+Vector3r CompUtils::scalarOnColorScale(Real x, Real xmin, Real xmax, int cmap){
 	Real xnorm=min((Real)1.,max((x-xmin)/(xmax-xmin),(Real)0.));
-	return mapColor(xnorm);
+	return mapColor(xnorm,cmap);
 }
 
 Vector3r CompUtils::closestSegmentPt(const Vector3r& P, const Vector3r& A, const Vector3r& B, Real* normPos){

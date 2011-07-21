@@ -12,7 +12,7 @@ Real ScalarRange::norm(Real v){
 
 Vector3r ScalarRange::color(Real v){
 	if(autoAdjust){if(v<mnmx[0]) mnmx[0]=v; if(v>mnmx[1]) mnmx[1]=v;}
-	return CompUtils::scalarOnColorScale(v,mnmx[0],mnmx[1]);
+	return CompUtils::scalarOnColorScale(v,mnmx[0],mnmx[1],cmap);
 }
 
 
