@@ -1,4 +1,3 @@
-#include<yade/pkg/dem/Collision.hpp>
 #include<yade/pkg/dem/Sphere.hpp>
 #include<yade/pkg/dem/ParticleContainer.hpp>
 
@@ -6,7 +5,7 @@ YADE_PLUGIN(dem,(Sphere)(Bo1_Sphere_Aabb)(In2_Sphere_ElastMat));
 
 void Bo1_Sphere_Aabb::go(const shared_ptr<Shape>& sh){
 	Sphere& s=sh->cast<Sphere>();
-	if(!s.bound){ s.bound=shared_ptr<Bound>(new Aabb); }
+	if(!s.bound){ s.bound=make_shared<Aabb>(); }
 	Aabb& aabb=s.bound->cast<Aabb>();
 	assert(s.numNodesOk());
 	const Vector3r& pos=s.nodes[0]->pos;
@@ -32,12 +31,10 @@ void Bo1_Sphere_Aabb::go(const shared_ptr<Shape>& sh){
 void In2_Sphere_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& particle){
 	FOREACH(const Particle::MapParticleContact::value_type& I,particle->contacts){
 		const shared_ptr<Contact>& C(I.second); if(!C->isReal()) continue;
-		bool isPA=(C->pA==particle);
-		int sign=(isPA?1:-1);
-		Vector3r F=C->geom->node->ori.conjugate()*C->phys->force*sign;
-		Vector3r T=(C->phys->torque==Vector3r::Zero() ? Vector3r::Zero() : C->geom->node->ori.conjugate()*C->phys->torque)*sign;
-		Vector3r xc=C->geom->node->pos-(sh->nodes[0]->pos+((!isPA && scene->isPeriodic) ? scene->cell->intrShiftPos(C->cellDist) : Vector3r::Zero()));
+		Vector3r F,T,xc;
+		boost::tie(F,T,xc)=C->getForceTorqueBranch(particle,/*nodeI*/0,scene);
 		#ifdef YADE_DEBUG
+			bool isPA=(C->pA==particle); int sign=(isPA?1:-1);
 			if(isnan(F[0])||isnan(F[1])||isnan(F[2])||isnan(T[0])||isnan(T[1])||isnan(T[2])){
 				std::ostringstream oss; oss<<"NaN force/torque on particle #"<<particle->id<<" from ##"<<C->pA->id<<"+"<<C->pB->id<<":\n\tF="<<F<<", T="<<T; //"\n\tlocal F="<<C->phys->force*sign<<", T="<<C->phys->torque*sign<<"\n";
 				throw std::runtime_error(oss.str().c_str());

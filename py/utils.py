@@ -21,6 +21,8 @@ from yade.core import *
 #from yade._utils import *
 from yade._utils2 import *
 
+inf=float('inf')
+
 def saveVars(mark='',loadNow=True,**kw):
 	"""Save passed variables into the simulation so that it can be recovered when the simulation is loaded again.
 
@@ -93,7 +95,7 @@ def defaultMaterial():
 	import math
 	return FrictMat(density=1e3,young=1e7,poisson=.3,tanPhi=math.tan(.5))
 
-def _commonBodySetup(b,nodes,volumes,geomInertias,material,fixed=False):
+def _commonBodySetup(b,nodes,volumes,geomInertias,material,masses=None,fixed=False):
 	"""Assign common body parameters."""
 	#if isinstance(material,str): b.mat=O.materials[material]
 	if isinstance(material,Material): b.mat=material
@@ -102,14 +104,18 @@ def _commonBodySetup(b,nodes,volumes,geomInertias,material,fixed=False):
 		if not len(O.dem.particles): b.mat=defaultMaterial()
 		else: b.mat=O.dem.particles[-1].mat
 	else: raise TypeError("The 'material' argument must be None (material of the last particle, or, if there is none, defaultMaterial), Material instance, or a callable returning Material.");
-	if len(nodes)!=len(volumes) or len(volumes)!=len(geomInertias): raise ValueError("nodes, volumes and geomInertias must have same lengths.")
-	masses=[v*b.mat.density for v in volumes]
+	if masses and volumes: raise ValueError("Only one of masses, volumes can be given")
+	if volumes:
+		if len(nodes)!=len(volumes) or len(volumes)!=len(geomInertias): raise ValueError("nodes, volumes (or masses) and geomInertias must have same lengths.")
+		masses=[v*b.mat.density for v in volumes]
+	if len(nodes)!=len(masses) or len(masses)!=len(geomInertias): raise ValueError("nodes, volumes (or masses) and geomInertias must have same lengths.")
 	b.shape.nodes=nodes
 	for i in range(0,len(nodes)):
-		b.nodes[i].dem.mass=volumes[i]*b.mat.density
+		b.nodes[i].dem.mass=masses[i]
 		b.nodes[i].dem.inertia=geomInertias[i]*b.mat.density
-	if(fixed):
-		for n in b.nodes: n.dem.blocked='xyzXYZ'
+	for i,n in enumerate(b.nodes):
+		if fixed: n.dem.blocked='xyzXYZ'
+		else: n.dem.blocked=''.join(['XYZ'[ax] for ax in (0,1,2) if geomInertias[i][ax]==inf]) # block rotational DOFs where inertia is infinite
 
 
 def _mkDemNode(**kw):
@@ -182,7 +188,7 @@ def sphere(center,radius,fixed=False,wire=False,color=None,highlight=False,mater
 
 	"""
 	b=Particle()
-	b.shape=Sphere(radius=radius,color=color if color else random.random()) #,wire=wire,highlight=highlight)
+	b.shape=Sphere(radius=radius,color=color if color else random.random())
 	V=(4./3)*math.pi*radius**3
 	geomInert=(2./5.)*V*radius**2
 	_commonBodySetup(b,([center] if isinstance(center,Node) else [_mkDemNode(pos=center),]),volumes=[V],geomInertias=[geomInert*Vector3.Ones],material=material,fixed=fixed)
@@ -190,27 +196,25 @@ def sphere(center,radius,fixed=False,wire=False,color=None,highlight=False,mater
 	#b.mask=mask
 	return b
 
-def wall(position,axis,sense=0,color=None,material=-1,mask=1):
+def wall(position,axis,sense=0,fixed=True,mass=0,color=None,material=-1,mask=1):
 	"""Return ready-made wall body.
 
-	:param float-or-Vector3 position: center of the wall. If float, it is the position along given axis, the other 2 components being zero
+	:param float-or-Vector3-or-Node position: center of the wall. If float, it is the position along given axis, the other 2 components being zero
 	:param ∈{0,1,2} axis: orientation of the wall normal (0,1,2) for x,y,z (sc. planes yz, xz, xy)
 	:param ∈{-1,0,1} sense: sense in which to interact (0: both, -1: negative, +1: positive; see :yref:`Wall`)
 
 	See :yref:`yade.utils.sphere`'s documentation for meaning of other parameters."""
-	b=Body()
-	b.shape=Wall(sense=sense,axis=axis,color=color if color else random.random())
-	nodes=[]
+	p=Particle()
+	p.shape=Wall(sense=sense,axis=axis,color=color if color else random.random())
+	if not fixed and mass<=0: raise ValueError("Non-fixed wall must have positive mass")
 	if isinstance(position,(int,long,float)):
 		pos2=Vector3(0,0,0); pos2[axis]=position
-		nodes=[_mkDemNode(pos=pos2)]
+		node=_mkDemNode(pos=pos2)
 	elif isinstance(position,Node):
-		pos2=position[0].pos
-		nodes=[position]
+		node=position
 	else:
-		pos2=position
-		nodes=[_mkDemNode(pos=pos2)]
-	_commonBodySetup(b,0,Vector3(0,0,0),material,pos=pos2,fixed=True,nodes=nodes)
+		node=_mkDemNode(pos=position)
+	_commonBodySetup(p,[node],volumes=None,masses=[mass],geomInertials=[inf*Vector3.Ones],material=material,fixed=fixed)
 	b.aspherical=False # wall never moves dynamically
 	b.mask=mask
 	return b
@@ -402,16 +406,6 @@ def makeVideo(frameSpec,out,renameNotOverwrite=True,fps=24,kbps=6000,bps=None):
 		print 'Pass %d:'%passNo,' '.join(cmd)
 		ret=subprocess.call(cmd)
 		if ret!=0: raise RuntimeError("Error when running mencoder.")
-
-def replaceCollider(colliderEngine):
-	"""Replaces collider (Collider) engine with the engine supplied. Raises error if no collider is in engines."""
-	colliderIdx=-1
-	for i,e in enumerate(O.engines):
-		if O.isChildClassOf(e.__class__.__name__,"Collider"):
-			colliderIdx=i
-			break
-	if colliderIdx<0: raise RuntimeError("No Collider found within O.engines.")
-	O.engines=O.engines[:colliderIdx]+[colliderEngine]+O.engines[colliderIdx+1:]
 
 def _procStatus(name):
 	import os

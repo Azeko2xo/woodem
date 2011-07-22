@@ -22,6 +22,19 @@ void Contact::reset(){
 	stepMadeReal=-1;
 }
 
+boost::tuple<Vector3r,Vector3r,Vector3r> Contact::getForceTorqueBranch(const shared_ptr<Particle>& particle, int nodeI, Scene* scene){
+	assert(pA==particle || pB==particle);
+	assert(geom && phys);
+	assert(nodeI>=0 && particle->nodes.size()>nodeI);
+	bool isPA=(pA==particle);
+	int sign=(isPA?1:-1);
+	Vector3r F=geom->node->ori.conjugate()*phys->force*sign;
+	Vector3r T=(phys->torque==Vector3r::Zero() ? Vector3r::Zero() : geom->node->ori.conjugate()*phys->torque)*sign;
+	Vector3r xc=geom->node->pos-(particle->shape->nodes[nodeI]->pos+((!isPA && scene->isPeriodic) ? scene->cell->intrShiftPos(cellDist) : Vector3r::Zero()));
+	return boost::make_tuple(F,T,xc);
+}
+
+
 Particle::id_t Contact::pyId1(){ return pA->id; }
 Particle::id_t Contact::pyId2(){ return pB->id; }
 

@@ -5,6 +5,8 @@
 #include<yade/pkg/dem/ParticleContainer.hpp>
 #include<yade/pkg/dem/ContactContainer.hpp>
 
+#include<boost/tuple/tuple.hpp>
+
 // namespace yade{namespace dem{
 
 class Particle;
@@ -158,6 +160,12 @@ struct Contact: public Serializable{
 	void reset();
 	// return -1 or +1 depending on whether the particle passed to us is pA or pB
 	int forceSign(const shared_ptr<Particle>& p) const { return p==pA?1:-1; }
+	/* return force and torque in global coordinates which act at contact point C located at branch from node nodeI of particle.
+	Contact force is reversed automatically if particle==pB.
+	Force and torque at node itself are  F and branch.cross(F)+T respectively.
+	Branch takes periodicity (cellDist) in account.
+	See In2_Sphere_Elastmat::go for its use.  */
+	boost::tuple<Vector3r,Vector3r,Vector3r> getForceTorqueBranch(const shared_ptr<Particle>&, int nodeI, Scene* scene);
 	Particle::id_t pyId1();
 	Particle::id_t pyId2();
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Contact,Serializable,"Contact in DEM",

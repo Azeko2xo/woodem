@@ -4,6 +4,7 @@
 #include<yade/pkg/dem/ContactLoop.hpp>
 #include<yade/pkg/dem/Sphere.hpp>
 #include<yade/pkg/dem/Truss.hpp>
+#include<yade/pkg/dem/Wall.hpp>
 
 #ifdef YADE_OPENGL
 	#include<yade/pkg/gl/Functors.hpp>
@@ -49,9 +50,19 @@ struct Cg2_Sphere_Sphere_L6Geom: public CGeomFunctor{
 };
 REGISTER_SERIALIZABLE(Cg2_Sphere_Sphere_L6Geom);
 
+struct Cg2_Wall_Sphere_L6Geom: public Cg2_Sphere_Sphere_L6Geom{
+	YADE_CLASS_BASE_DOC(Cg2_Wall_Sphere_L6Geom,Cg2_Sphere_Sphere_L6Geom,"Incrementally compute :yref:`L6Geom` for contact between :yref:`Wall` and :yref:`Sphere`. Uses attributes of :yref:`Cg2_Sphere_Sphere_L6Geom`.");
+	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
+	virtual bool goReverse(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){ throw std::logic_error("ContactLoop should swap interaction arguments, should be Wall+Sphere, but is "+s1->getClassName()+"+"+s2->getClassName()); }
+	FUNCTOR2D(Wall,Sphere);
+	DEFINE_FUNCTOR_ORDER_2D(Wall,Sphere);
+	DECLARE_LOGGER;
+};
+REGISTER_SERIALIZABLE(Cg2_Wall_Sphere_L6Geom);
+
 struct Cg2_Truss_Sphere_L6Geom: public Cg2_Sphere_Sphere_L6Geom{
 	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
-	virtual bool goReverse(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){ yade::ValueError("ContactLoop should swap interaction arguments, should be Truss+Sphere, but is "+s1->getClassName()+"+"+s2->getClassName()); return false; }
+	virtual bool goReverse(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){ throw std::logic_error("ContactLoop should swap interaction arguments, should be Truss+Sphere, but is "+s1->getClassName()+"+"+s2->getClassName()); }
 
 	YADE_CLASS_BASE_DOC(Cg2_Truss_Sphere_L6Geom,Cg2_Sphere_Sphere_L6Geom,"Incrementally compute :yref:`L6Geom` for contact between :yref:`Truss` and :yref:`Sphere`. Uses attributes of :yref:`Cg2_Sphere_Sphere_L6Geom`.");
 	FUNCTOR2D(Truss,Sphere);
@@ -61,15 +72,6 @@ struct Cg2_Truss_Sphere_L6Geom: public Cg2_Sphere_Sphere_L6Geom{
 REGISTER_SERIALIZABLE(Cg2_Truss_Sphere_L6Geom);
 
 #if 0
-struct Ig2_Wall_Sphere_L3Geom: public Ig2_Sphere_Sphere_L3Geom{
-	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const State& state1, const State& state2, const Vector3r& shift2, const bool& force, const shared_ptr<Interaction>& I);
-	//virtual bool genericGo(bool is6Dof, const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const State& state1, const State& state2, const Vector3r& shift2, const bool& force, const shared_ptr<Interaction>& I);
-	YADE_CLASS_BASE_DOC(Ig2_Wall_Sphere_L3Geom,Ig2_Sphere_Sphere_L3Geom,"Incrementally compute :yref:`L3Geom` for contact between :yref:`Wall` and :yref:`Sphere`. Uses attributes of :yref:`Ig2_Sphere_Sphere_L3Geom`.");
-	FUNCTOR2D(Wall,Sphere);
-	DEFINE_FUNCTOR_ORDER_2D(Wall,Sphere);
-	DECLARE_LOGGER;
-};
-REGISTER_SERIALIZABLE(Ig2_Wall_Sphere_L3Geom);
 
 #ifdef L3GEOM_SPHERESLIKE
 struct Ig2_Facet_Sphere_L3Geom: public Ig2_Sphere_Sphere_L3Geom{

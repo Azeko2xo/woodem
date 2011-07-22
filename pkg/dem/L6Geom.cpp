@@ -11,7 +11,7 @@
 	#include<GL/glu.h>
 #endif
 
-YADE_PLUGIN(dem,(L6Geom)(Cg2_Sphere_Sphere_L6Geom)(Cg2_Truss_Sphere_L6Geom));
+YADE_PLUGIN(dem,(L6Geom)(Cg2_Sphere_Sphere_L6Geom)(Cg2_Wall_Sphere_L6Geom)(Cg2_Truss_Sphere_L6Geom));
 // (Ig2_Wall_Sphere_L3Geom)(Ig2_Facet_Sphere_L3Geom)(Ig2_Sphere_Sphere_L6Geom)(Law2_L3Geom_FrictPhys_ElPerfPl)(Law2_L6Geom_FrictPhys_Linear);
 #if 0
 #ifdef YADE_OPENGL
@@ -43,6 +43,35 @@ bool Cg2_Sphere_Sphere_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<
 	return true;
 
 };
+
+bool Cg2_Wall_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
+	if(scene->isPeriodic) throw std::logic_error("Cg2_Wall_Sphere_L3Geom does not handle periodic boundary conditions.");
+	const Wall& wall=sh1->cast<Wall>(); const Sphere& sphere=sh2->cast<Sphere>();
+	assert(wall->numNodesOk()); assert(sphere->numNodesOk());
+	const Real& radius=sphere.radius; const int& ax=wall.axis; const int& sense=wall.sense;
+	const Vector3r& wallPos=wall.nodes[0]->pos; Vector3r spherePos=sphere.nodes[0]->pos+shift2;
+	Real dist=spherePos[ax]-wallPos[ax]; // signed "distance" between centers
+	if(!C->isReal() && abs(dist)>radius && !force) { return false; }// wall and sphere too far from each other
+	// contact point is sphere center projected onto the wall
+	Vector3r contPt=spherePos; contPt[ax]=wallPos[ax];
+	Vector3r normal=Vector3r::Zero();
+	// wall interacting from both sides: normal depends on sphere's position
+	assert(sense==-1 || sense==0 || sense==1);
+	if(sense==0) normal[ax]=dist>0?1.:-1.;
+	else normal[ax]=(sense==1?1.:-1);
+	Real uN=normal[ax]*dist-radius; // takes in account sense, radius and distance
+
+	// check that the normal did not change orientation (would be abrupt here)
+	if(C->geom && C->geom->cast<L6Geom>().trsf.row(0)!=normal.transpose()){
+		throw std::logic_error((boost::format("Cg2_Wall_Sphere_L6Geom: normal changed from %s to %s in Wall+Sphere ##%d+%d (with Wall.sense=0, a particle might cross the Wall plane if Δt is too high, repulsive force to small or velocity too high.")%C->geom->cast<L6Geom>().trsf.row(0)%normal.transpose()%C->pA->id%C->pB->id).str());
+	}
+
+	const DemData& dyn1(sh1->nodes[0]->getData<DemData>());	const DemData& dyn2(sh2->nodes[0]->getData<DemData>());
+	handleSpheresLikeContact(C,wallPos,dyn1.vel,dyn1.angVel,spherePos,dyn2.vel,dyn2.angVel,normal,contPt,uN,/*r1*/-radius,radius);
+	return true;
+};
+
+
 
 bool Cg2_Truss_Sphere_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
 	const Truss& t=s1->cast<Truss>(); const Sphere& s=s2->cast<Sphere>();
@@ -79,7 +108,10 @@ bool Cg2_Truss_Sphere_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<S
 /*
 Generic function to compute L6Geom, used for {sphere,facet,wall}+sphere contacts
 
-NB. the vel2 should be givne WITHOUT periodic correction due to C->cellDist, it is handled inside
+NB. the vel2 should be given WITHOUT periodic correction due to C->cellDist, it is handled inside
+pos2 however is with periodic correction already!!
+
+
 */
 void Cg2_Sphere_Sphere_L6Geom::handleSpheresLikeContact(const shared_ptr<Contact>& C, const Vector3r& pos1, const Vector3r& vel1, const Vector3r& angVel1, const Vector3r& pos2, const Vector3r& vel2, const Vector3r& angVel2, const Vector3r& normal, const Vector3r& contPt, Real uN, Real r1, Real r2){
 	// create geometry

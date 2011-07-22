@@ -247,7 +247,7 @@ bool Ig2_Wall_Sphere_L3Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<Sh
 	if(I->geom && I->geom->cast<L3Geom>().normal!=normal){
 		ostringstream oss; oss<<"Ig2_Wall_Sphere_L3Geom: normal changed from ("<<I->geom->cast<L3Geom>().normal<<" to "<<normal<<" in Wall+Sphere ##"<<I->getId1()<<"+"<<I->getId2()<<" (with Wall.sense=0, a particle might cross the Wall plane, if Δt is too high)"; throw std::logic_error(oss.str().c_str());
 	}
-	handleSpheresLikeContact(I,state1,state2,shift2,/*is6Dof*/false,normal,contPt,uN,/*r1*/0,/*r2*/radius);
+	handleSpheresLikeContact(I,state1,state2,shift2,/*is6Dof*/false,normal,contPt,uN,/*r1*/-radius,/*r2*/radius);
 	return true;
 };
 
