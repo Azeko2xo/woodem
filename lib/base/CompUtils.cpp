@@ -14,6 +14,7 @@ const vector<CompUtils::Colormap> CompUtils::colormaps={
 Vector3r CompUtils::mapColor(Real normalizedColor, int cmap){
 	if(cmap<0 || cmap>(int)colormaps.size()) cmap=defaultCmap;
 	assert(cmap>=0 && cmap<(int)colormaps.size());
+	normalizedColor=max(0.,min(normalizedColor,1.));
 	// throw std::invalid_argument(("Colormap number "+boost::lexical_cast<std::string>(cmap)+" is not defined.").c_str());
 	Vector3r* v=(Vector3r*)(&colormaps[cmap].rgb[3*((int)(normalizedColor*255))]);
 	return Vector3r(*v);

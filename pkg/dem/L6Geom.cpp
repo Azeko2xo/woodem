@@ -47,7 +47,7 @@ bool Cg2_Sphere_Sphere_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<
 bool Cg2_Wall_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
 	if(scene->isPeriodic) throw std::logic_error("Cg2_Wall_Sphere_L3Geom does not handle periodic boundary conditions.");
 	const Wall& wall=sh1->cast<Wall>(); const Sphere& sphere=sh2->cast<Sphere>();
-	assert(wall->numNodesOk()); assert(sphere->numNodesOk());
+	assert(wall.numNodesOk()); assert(sphere.numNodesOk());
 	const Real& radius=sphere.radius; const int& ax=wall.axis; const int& sense=wall.sense;
 	const Vector3r& wallPos=wall.nodes[0]->pos; Vector3r spherePos=sphere.nodes[0]->pos+shift2;
 	Real dist=spherePos[ax]-wallPos[ax]; // signed "distance" between centers

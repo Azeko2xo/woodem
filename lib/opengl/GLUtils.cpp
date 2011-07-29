@@ -17,10 +17,12 @@ void GLUtils::Parallelepiped(const Vector3r& a, const Vector3r& b, const Vector3
 	glEnd();
 }
 
-void GLUtils::Cylinder(const Vector3r& a, const Vector3r& b, Real rad1, const Vector3r& color, bool wire, Real rad2 /* if negative, use rad1 */,int slices, int stacks){
+void GLUtils::Cylinder(const Vector3r& a, const Vector3r& b, Real rad1, const Vector3r& color, bool wire, bool caps, Real rad2 /* if negative, use rad1 */,int slices, int stacks){
 	if(rad2<0) rad2=rad1;
 	static GLUquadric* gluQuadric;
+	static GLUquadric* gluDiskQuadric;
 	if(!gluQuadric) gluQuadric=gluNewQuadric(); assert(gluQuadric);
+	if(!gluDiskQuadric) gluDiskQuadric=gluNewQuadric(); assert(gluDiskQuadric);
 	Real dist=(b-a).norm();
 	glPushMatrix();
 		glTranslatev(a);
@@ -29,8 +31,13 @@ void GLUtils::Cylinder(const Vector3r& a, const Vector3r& b, Real rad1, const Ve
 		glMultMatrixd(Eigen::Affine3d(q).data());
 		glColor3v(color);
 		gluQuadricDrawStyle(gluQuadric,wire?GLU_LINE:GLU_FILL);
-		if(stacks<0) stacks=(int)(dist/(rad1*(-stacks/10.))+.5);
+		if(stacks<0) stacks=max(1,(int)(dist/(rad1*(-stacks/10.))+.5));
 		gluCylinder(gluQuadric,rad1,rad2,dist,slices,stacks);
+		if(caps){
+			gluQuadricDrawStyle(gluDiskQuadric,wire?GLU_LINE:GLU_FILL);
+			if(rad1>0) gluDisk(gluDiskQuadric,/*inner*/0,/*outer*/rad1,/*slices*/slices,/*loops*/3);
+			if(rad2>0){ /* along local z axis*/ glTranslatev(Vector3r(0,0,(b-a).norm())); gluDisk(gluDiskQuadric,/*inner*/0,/*outer*/rad1,/*slices*/slices,/*loops*/3); }
+		}
 	glPopMatrix();
 }
 

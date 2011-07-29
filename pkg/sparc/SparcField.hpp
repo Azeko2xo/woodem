@@ -10,6 +10,11 @@
 #include<vtkUnstructuredGrid.h>
 #include<vtkPoints.h>
 
+#include<unsupported/Eigen/NonLinearOptimization>
+#include<unsupported/Eigen/MatrixFunctions>
+
+
+
 
 class vtkPointLocator;
 class vtkPoints;
@@ -41,19 +46,18 @@ struct SparcField: public Field{
 REGISTER_SERIALIZABLE(SparcField);
 
 #define SPARC_INSPECT
-#define SPARC_STATIC
 
 
 struct SparcData: public NodeData{
 	Matrix3r getD() const{ return .5*(gradV+gradV.transpose()); }
 	Matrix3r getW() const{ return .5*(gradV-gradV.transpose()); }
 	py::list getGFixedV(const Quaternionr& ori){ return getGFixedAny(fixedV,ori); }
-	py::list getGFixedT(const Quaternionr& ori){ return getGFixedAny(fixedDivT,ori); }
+	py::list getGFixedT(const Quaternionr& ori){ return getGFixedAny(fixedT,ori); }
 	py::list getGFixedAny(const Vector3r& any, const Quaternionr& ori);
 	void catchCrap1(int nid, const shared_ptr<Node>&);
 	void catchCrap2(int nid, const shared_ptr<Node>&);
 	// Real getDirVel(size_t i) const { return i<dirVels.size()?dirVels[i]:0.; }
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(SparcData,NodeData,"Nodal data needed for SPARC; everything is in global coordinates, except for constraints (fixedV, fixedDivT)",
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(SparcData,NodeData,"Nodal data needed for SPARC; everything is in global coordinates, except for constraints (fixedV, fixedT)",
 
 		((Matrix3r,T,Matrix3r::Zero(),,"Stress"))
 		((Vector3r,v,Vector3r::Zero(),,"Velocity"))
@@ -61,22 +65,24 @@ struct SparcData: public NodeData{
 		((Real,e,0,,"Porosity"))
 		((Real,color,Mathr::UnitRandom(),Attr::noGui,"Set node color, so that rendering is more readable"))
 		((Vector3r,fixedV,Vector3r(NaN,NaN,NaN),,"Prescribed velocity, in node-local (!!) coordinates. NaN prescribes noting along respective axis."))
-		((Vector3r,fixedDivT,Vector3r(NaN,NaN,NaN),,"Prescribed stress divergence, in node-local (!!) coordinates. NaN prescribes nothing along respective axis."))
+		((Vector3r,fixedT,Vector3r(NaN,NaN,NaN),,"Prescribed stress divergence, in node-local (!!) coordinates. NaN prescribes nothing along respective axis."))
 		// storage within the step
 		((vector<shared_ptr<Node> >,neighbors,,Attr::noGui,"List of neighbours, updated internally"))
 		((Vector3r,accel,Vector3r::Zero(),,"Acceleration"))
 		((Matrix3r,Tdot,Matrix3r::Zero(),,"Jaumann Stress rate")) 
 		((MatrixXr,relPosInv,,,"Relative positions' pseudo-inverse"))
+		#ifdef SPARC_WEIGHTS
+			((VectorXr,rWeights,,,"Weight when distance weighting is effective"))
+		#endif
 		((Matrix3r,gradV,Matrix3r::Zero(),,"gradient of velocity (only used as intermediate storage)"))
 		// static equilibrium solver data
-		#ifdef SPARC_STATIC
 			((int,nid,-1,,"Node id (to locate coordinates in solution matrix)"))
-		#endif
 	#ifdef SPARC_INSPECT
 		// debugging only
 		((MatrixXr,relPos,,Attr::noSave,"Debug storage for relative positions"))
 		((Matrix3r,Tcirc,Matrix3r::Zero(),Attr::noSave,"Debugging only -- stress rate"))
 		((Vector3r,divT,Vector3r::Zero(),Attr::noSave,"Debugging only -- stress divergence"))
+		((Vector3r,resid,Vector3r::Zero(),Attr::noSave,"Debugging only -- implicit solver residuals for global DoFs"))
 		((MatrixXr,relVels,,Attr::noSave,"Debugging only -- relative neighbor velocities"))
 	#endif
 		// ((int,locatorId,-1,Attr::hidden,"Position in the point locator array"))
@@ -112,6 +118,7 @@ struct ExplicitNodeIntegrator: public GlobalEngine, private SparcField::Engine{
 		((vector<Real>,barodesyC,vector<Real>({-1.7637,-1.0249,-0.5517,-1174.,-4175.,2218}),Attr::triggerPostLoad,"Material constants for barodesy"))
 		((Real,ec0,.8703,,"Initial void ratio"))
 		((Real,rSearch,-1,,"Radius for neighbor-search"))
+		((int,rPow,0,,"Exponent for distance weighting ∈{0,1,2}"))
 		((int,neighborUpdate,1,,"Number of steps to periodically update neighbour information"))
 		((int,matModel,0,Attr::triggerPostLoad,"Material model to be used (0=linear elasticity, 1=barodesy (Jesse)"))
 		((Real,damping,0,,"Numerical damping, applied by-component on acceleration"))
@@ -125,27 +132,73 @@ struct ExplicitNodeIntegrator: public GlobalEngine, private SparcField::Engine{
 REGISTER_SERIALIZABLE(ExplicitNodeIntegrator);
 
 struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
+	struct StressDivergenceFunctor{
+		typedef Real Scalar;
+		enum { InputsAtCompileTime=Eigen::Dynamic, ValuesAtCompileTime=Eigen::Dynamic};
+		typedef VectorXr InputType;
+		typedef VectorXr ValueType;
+		typedef MatrixXr JacobianType;
+		const int m_inputs, m_values;
+		int inputs() const { return m_inputs; }
+		int values() const { return m_values; }
+		StaticEquilibriumSolver* ses;
+		StressDivergenceFunctor(int inputs, int values, StaticEquilibriumSolver* _ses): m_inputs(inputs), m_values(values), ses(_ses){}
+		int operator()(const VectorXr &v, VectorXr& resid) const;
+	};
+	typedef Eigen::HybridNonLinearSolver<StressDivergenceFunctor> SolverT;
+	shared_ptr<SolverT> solver;
+	shared_ptr<StressDivergenceFunctor> functor;
+	VectorXr vv;
+	int nFactorLowered;
+
 	virtual void run();
 	void renumberNodes() const;
 	void copyVelocityToNodes(const VectorXr&) const;
-	void applyConstraintsAsDivT(const shared_ptr<Node>& n, Vector3r& divT, bool useNextT) const ;
+	void applyConstraintsAsResiduals(const shared_ptr<Node>& n, Vector3r& divT, bool useNextT) const ;
 	VectorXr computeInitialVelocities() const;
 	void integrateSolution() const;
 	VectorXr trySolution(const VectorXr& vv);
+	VectorXr currResid() const;
 	void dumpUnbalanced();
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(StaticEquilibriumSolver,ExplicitNodeIntegrator,"Find global static equilibrium of a Sparc system.",
+		((bool,substep,false,,"Whether the solver tries to find solution within one step, or does just one iteration towards the solution"))
+		((int,nIter,0,Attr::readonly,"Whether we are at the start of the solution (0), or further down the way?"))
 		((Real,supportStiffness,1e10,,"Stiffness of constrained DoFs"))
+		((VectorXr,solution,,Attr::readonly,"Current solution which the solver computes"))
+		((VectorXr,residuals,,Attr::readonly,"Residuals corresponding to the current solution"))
 		((Real,residuum,NaN,Attr::readonly,"Norm of residuals (fnorm) as reported by the solver."))
 		((Real,solverFactor,200,,"Factor for the Dogleg method (automatically lowered in case of convergence troubles"))
 		((Real,relMaxfev,10000,,"Maximum number of function evaluation in solver, relative to number of DoFs"))
+		((int,watch,-1,,"Nid to be watched (debugging)."))
 		#ifdef SPARC_INSPECT
 			((VectorXr,solverDivT,,Attr::readonly,"Solution vector as provided by the solver"))
 		#endif
 		, /* ctor */
 		, /* py */ .def("trySolution",&StaticEquilibriumSolver::trySolution)
+			.def("currResid",&StaticEquilibriumSolver::currResid)
 	);
 
 };
 REGISTER_SERIALIZABLE(StaticEquilibriumSolver);
 
-#endif
+#ifdef YADE_OPENGL
+#include<yade/pkg/gl/NodeGlRep.hpp>
+struct SparcConstraintGlRep: public NodeGlRep{
+	void render(const shared_ptr<Node>&, GLViewInfo*);
+	void renderLabeledArrow(const Vector3r& pos, const Vector3r& vec, const Vector3r& color, Real num, bool posIsA, bool doubleHead=false);
+	YADE_CLASS_BASE_DOC_ATTRS(SparcConstraintGlRep,NodeGlRep,"Render static and kinematic constraints on Sparc nodes",
+		((Vector3r,fixedV,Vector3r(NaN,NaN,NaN),,"Prescribed velocity value in local coords (nan if not prescribed)"))
+		((Vector3r,fixedT,Vector3r(NaN,NaN,NaN),,"Prescribed traction value in local coords (nan if not prescribed)"))
+		((Vector2r,vColor,Vector2r(0,.3),,"Color for rendering kinematic constraint."))
+		((Vector2r,tColor,Vector2r(.7,1),,"Color for rendering static constraint."))
+		((shared_ptr<ScalarRange>,vRange,,,"Range for velocity components"))
+		((shared_ptr<ScalarRange>,tRange,,,"Range for stress components"))
+		((Real,relSz,.1,,"Relative size of constrain arrows"))
+		((bool,num,true,,"Show numbers "))
+	);
+};
+REGISTER_SERIALIZABLE(SparcConstraintGlRep);
+#endif // YADE_OPENGL
+
+
+#endif // YADE_VTK

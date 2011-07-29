@@ -3,9 +3,7 @@
 
 #include<boost/preprocessor.hpp>
 
-#include<unsupported/Eigen/NonLinearOptimization>
-#include<unsupported/Eigen/MatrixFunctions>
-
+#define _FIELD(prefix) // cerr<<__FILE__<<":"<<__LINE__<<": field="<< prefix field.get()<<endl;
 
 using boost::format;
 
@@ -42,9 +40,13 @@ void SparcField::updateLocator(){
 
 // template<> std::string boost::lexical_cast<Vector3r,std::string>(const Vector3r& v){ return "("+lexical_cast<string>(v[0])+","+lexical_cast<string>(v[1])+","+lexical_cast<string>(v[2])+")"; }
 
+// using std::isnan;
 
 template<typename M>
-bool eig_isnan(const M& m){for(int i=0; i<m.cols(); i++)for(int j=0;j<m.rows(); j++) if(isnan(m(i,j))) return true; return false; }
+bool eig_isnan(const M& m){for(int j=0; j<m.cols(); j++)for(int i=0;i<m.rows(); i++) if(isnan(m(i,j))) return true; return false; }
+
+template<typename M>
+bool eig_all_isnan(const M&m){for(int j=0; j<m.cols(); j++)for(int i=0;i<m.rows();i++) if(!isnan(m(i,j))) return false; return true; }
 
 template<>
 bool eig_isnan<Vector3r>(const Vector3r& v){for(int i=0; i<v.size(); i++) if(isnan(v[i])) return true; return false; }
@@ -81,13 +83,28 @@ void ExplicitNodeIntegrator::updateNeighborsRelPos(const shared_ptr<Node>& n, bo
 	int sz(dta.neighbors.size());
 	if(sz<3) yade::RuntimeError(format("Node at %s has lass than 3 neighbors")%n->pos.transpose());
 	MatrixXr relPos(sz,3);
+	#ifdef SPARC_WEIGHTS
+		dta.rWeights=rPow>0?VectorXr(sz):VectorXr();
+	#endif
 	Vector3r currPos(n->pos+(useNext?Vector3r(scene->dt*dta.v):Vector3r::Zero()));
-	for(int i=0; i<sz; i++) relPos.row(i)=VectorXr(dta.neighbors[i]->pos+(useNext?Vector3r(scene->dt*dta.neighbors[i]->getData<SparcData>().v):Vector3r::Zero())-currPos);
-	bool succ=MatrixXr_pseudoInverse(relPos,/*result*/dta.relPosInv);
-	if(!succ) throw std::runtime_error("ExplicitNodeIntegrator::updateNeigbours: pseudoInverse failed.");
+	for(int i=0; i<sz; i++){
+		relPos.row(i)=VectorXr(dta.neighbors[i]->pos+(useNext?Vector3r(scene->dt*dta.neighbors[i]->getData<SparcData>().v):Vector3r::Zero())-currPos);
+		#if SPARC_WEIGHTS
+			if(rPow>0){
+				dta.rWeights[i]=(rPow%2==0?pow(Vector3r(relPos.row(i)).squarednorm(),rPow/2):pow(Vector3r(relPos.row(i)).norm(),rPow));
+				relPos.row(i)*=rWeights;
+			}
+		#endif
+	}
 	#ifdef SPARC_INSPECT
 		dta.relPos=relPos;
 	#endif
+	if(eig_isnan(relPos)){
+		cerr<<"=== Relative positions for nid "<<dta.nid<<":\n"<<relPos<<endl;
+		throw std::runtime_error("NaN's in relative positions in O.sparc.nodes["+lexical_cast<string>(dta.nid)+"].sparc.relPos .");
+	}
+	bool succ=MatrixXr_pseudoInverse(relPos,/*result*/dta.relPosInv);
+	if(!succ) throw std::runtime_error("ExplicitNodeIntegrator::updateNeigbours: pseudoInverse failed.");
 }
 
 Vector3r ExplicitNodeIntegrator::computeDivT(const shared_ptr<Node>& n, bool useNext) const {
@@ -156,8 +173,8 @@ void ExplicitNodeIntegrator::applyKinematicConstraints(const shared_ptr<Node>& n
 		if(!isnan(dta.fixedV[i])) locVel[i]=dta.fixedV[i];
 	}
 	dta.v=n->ori.conjugate()*locVel;
-	if(!permitFixedDivT && dta.fixedDivT!=Vector3r(NaN,NaN,NaN)){
-		throw std::invalid_argument((boost::format("Nid %d: fixedDivT not allowed (is %s")%dta.fixedDivT.transpose()).str());
+	if(!permitFixedDivT && !eig_all_isnan(dta.fixedT)){
+		throw std::invalid_argument((boost::format("Nid %d: fixedT not allowed (is %s)")%dta.nid%dta.fixedT.transpose()).str());
 	}
 };
 
@@ -251,107 +268,138 @@ void ExplicitNodeIntegrator::run(){
 };
 
 
-struct StressDivergenceFunctor{
-	typedef Real Scalar;
-	enum { InputsAtCompileTime=Eigen::Dynamic, ValuesAtCompileTime=Eigen::Dynamic};
-	typedef VectorXr InputType;
-	typedef VectorXr ValueType;
-	typedef MatrixXr JacobianType;
-	const int m_inputs, m_values;
-	int inputs() const { return m_inputs; }
-	int values() const { return m_values; }
-	StaticEquilibriumSolver* ses;
-	StressDivergenceFunctor(int inputs, int values, StaticEquilibriumSolver* _ses): m_inputs(inputs), m_values(values), ses(_ses){}
-	int operator()(const VectorXr &v, VectorXr& divT) const {
-		// copy velocity to inside node data (could be eliminated later to be more efficient)
-		ses->copyVelocityToNodes(v);
-		FOREACH(const shared_ptr<Node>& n, ses->field->nodes){
-			SparcData& dta(n->getData<SparcData>());
-			ses->updateNeighborsRelPos(n,/*useNext*/true);
-			dta.gradV=ses->computeGradV(n);
-			Matrix3r D=dta.getD(), W=dta.getW(); // symm/antisymm decomposition of dta.gradV
-			Matrix3r Tcirc=ses->computeStressRate(dta.T,D,/*porosity*/ses->nextPorosity(dta.e,D));
-			dta.Tdot=Tcirc+dta.T*W-W*dta.T;
-			#ifdef SPARC_INSPECT
-				dta.Tcirc=Tcirc;
-			#endif
-		}
-		// divT needs Tdot of other points, in separate loop
-		FOREACH(const shared_ptr<Node>& n, ses->field->nodes){
-			SparcData& dta(n->getData<SparcData>());
-			Vector3r nodeDivT=ses->computeDivT(n,/*useNext*/true);
-			ses->applyConstraintsAsDivT(n,nodeDivT,/*useNextT*/true);
-			divT.segment<3>(dta.nid*3)=nodeDivT;
-			#ifdef SPARC_INSPECT
-				dta.divT=nodeDivT;
-			#endif
-		}
-		return 0;
-	};
+int StaticEquilibriumSolver::StressDivergenceFunctor::operator()(const VectorXr &v, VectorXr& resid) const{
+	// copy velocity to inside node data (could be eliminated later to be more efficient)
+	static unsigned long N=0;
+	// cerr<<"ses="<<ses<<endl;
+	//_FIELD(ses->);
+	// if((N++%1)==0) cerr<<".["<<v.size()<<","<<ses->field->nodes.size()<<"]";
+	if(eig_isnan(v)){	LOG_WARN("Solver proposing solution with NaN's, return [∞,…,∞]"); resid.setConstant(v.size(),std::numeric_limits<Real>::infinity()); return 0; }
+	ses->copyVelocityToNodes(v);
+	FOREACH(const shared_ptr<Node>& n, ses->field->nodes){
+		SparcData& dta(n->getData<SparcData>());
+		ses->updateNeighborsRelPos(n,/*useNext*/true);
+		dta.gradV=ses->computeGradV(n);
+		Matrix3r D=dta.getD(), W=dta.getW(); // symm/antisymm decomposition of dta.gradV
+		Matrix3r Tcirc=ses->computeStressRate(dta.T,D,/*porosity*/ses->nextPorosity(dta.e,D));
+		dta.Tdot=Tcirc+dta.T*W-W*dta.T;
+		#ifdef SPARC_INSPECT
+			dta.Tcirc=Tcirc;
+		#endif
+	}
+	// resid needs Tdot of other points, in separate loop
+	FOREACH(const shared_ptr<Node>& n, ses->field->nodes){
+		SparcData& dta(n->getData<SparcData>());
+		Vector3r nodeResid=ses->computeDivT(n,/*useNext*/true);
+		#ifdef SPARC_INSPECT
+			dta.divT=nodeResid;
+		#endif
+		ses->applyConstraintsAsResiduals(n,nodeResid,/*useNextT*/true);
+		resid.segment<3>(dta.nid*3)=nodeResid;
+		// cerr<<"# "<<dta.nid<<": "<<resid.segment<3>(dta.nid*3)<<" || "<<nodeResid<<endl;
+		if(eig_isnan(nodeResid)) throw std::logic_error("Nid "+lexical_cast<string>(dta.nid)+": Residuals contain NaN.");
+		#ifdef SPARC_INSPECT
+			dta.resid=nodeResid;
+		#endif
+	}
+	return 0;
 };
 
+
 void StaticEquilibriumSolver::copyVelocityToNodes(const VectorXr &v) const{
+	_FIELD();
 	size_t sz=field->nodes.size();
+	assert(3*sz==(int)v.size());
+	// cerr<<"Field="<<field.get()<<", field->nodes="<<&(field->nodes)<<endl;
+	if((int)(3*sz)!=(int)v.size()){ cerr<<"Unequal # of DoFs != 3 * # of nodes??: 3*"<<sz<<","<<v.size()<<endl; }
+	if(eig_isnan(v)) throw std::runtime_error("Solver proposing nan's in velocities, vv = "+lexical_cast<string>(v.transpose()));
 	for(size_t nid=0; nid<sz; nid++){
 		field->nodes[nid]->getData<SparcData>().v=v.segment<3>(nid*3);
 	}
+	_FIELD();
 };
 
 void StaticEquilibriumSolver::renumberNodes() const{
+	_FIELD();
 	int i=0; FOREACH(const shared_ptr<Node>& n, field->nodes) n->getData<SparcData>().nid=i++;
+	_FIELD();
 }
 
-// set divT in the sense of kinematic constraints, so that they are fulfilled by the static solution
-void StaticEquilibriumSolver::applyConstraintsAsDivT(const shared_ptr<Node>& n, Vector3r& divT, bool useNextT) const {
+// set resid in the sense of kinematic constraints, so that they are fulfilled by the static solution
+void StaticEquilibriumSolver::applyConstraintsAsResiduals(const shared_ptr<Node>& n, Vector3r& resid, bool useNextT) const {
+	_FIELD();
 	SparcData& dta(n->getData<SparcData>());
 	#ifdef YADE_DEBUG
-		for(int i=0;i<3;i++) if(!isnan(dta.fixedV[i])&&!isnan(dta.fixedDivT[i])) throw std::invalid_argument((boost::format("Nid %d: both velocity and stress prescribed along local axis %d (%s in global space)") %dta.nid %i %(n->ori.conjugate()*(i==0?Vector3r::UnitX():(i==1?Vector3r::UnitY():Vector3r::UnitZ()))).transpose()).str());
+		for(int i=0;i<3;i++) if(!isnan(dta.fixedV[i])&&!isnan(dta.fixedT[i])) throw std::invalid_argument((boost::format("Nid %d: both velocity and stress prescribed along local axis %d (axis %s in global space)") %dta.nid %i %(n->ori.conjugate()*(i==0?Vector3r::UnitX():(i==1?Vector3r::UnitY():Vector3r::UnitZ()))).transpose()).str());
 	#endif
-	if(dta.fixedV!=Vector3r(NaN,NaN,NaN)){
+	#define _WATCH_NID(aaa) if(dta.nid==watch) cerr<<"\t"<<aaa<<endl;
+	if(dta.nid==watch) cerr<<"Step "<<scene->step<<", nid "<<watch<<endl;
+	_WATCH_NID("divT="<<resid.transpose());
+	if(!eig_all_isnan(dta.fixedV)){
 		Vector3r locV=n->ori*dta.v;
-		Vector3r locDivT=n->ori*divT;
-		for(int i=0;i<3;i++){
-			if(isnan(dta.fixedV[i])) continue; // no velocity prescribed, leave locDivT at current value
-			locDivT[i]=(locV[i]-dta.fixedV[i])*scene->dt*supportStiffness;
-			//cerr<<"Nid "<<dta.nid<<", v["<<i<<"] "<<locV[i]<<"(should be "<<dta.fixedV[i]<<") adds locDivT "<<locDivT[i]<<endl;
+		Vector3r locResid=n->ori*resid;
+		for(int i:{0,1,2}){
+			if(isnan(dta.fixedV[i])) continue; // no velocity prescribed, leave locResid at current value
+			locResid[i]=(locV[i]-dta.fixedV[i])*scene->dt*supportStiffness;
+			_WATCH_NID("\tv["<<i<<"] "<<locV[i]<<" (should be "<<dta.fixedV[i]<<") sets locResid["<<i<<"]="<<locResid[i]);
 		}
-		divT=n->ori.conjugate()*locDivT;
+		if(eig_isnan(locResid)){
+			cerr<<"Nid "<<dta.nid<<"\n\tfixedV="<<dta.fixedV.transpose()<<"\n\tlocResid="<<locResid<<"\n";
+			throw std::logic_error("Residual contains NaN: "+lexical_cast<string>(locResid.transpose()));
+		}
+		resid=n->ori.conjugate()*locResid;
+		_WATCH_NID("postV="<<resid);
 	}
-	if(dta.fixedDivT!=Vector3r(NaN,NaN,NaN)){
-		Vector3r locDivT=n->ori*divT;
+	if(!eig_all_isnan(dta.fixedT)){
+		Vector3r locResid=n->ori*resid;
 		// considered stress value (current or next one?)
 		Matrix3r T=dta.T+(useNextT?Matrix3r(dta.Tdot*scene->dt):Matrix3r::Zero());
 		Matrix3r trsf(n->ori);
 		Matrix3r locT=trsf*T*trsf.transpose();
 		for(int i=0;i<3;i++){
-			if(isnan(dta.fixedDivT[i])) continue;
+			if(isnan(dta.fixedT[i])) continue;
 			// sum stress components in the direction of the prescribed value (local axis i)
 			// mechanical meaning: internal stress in that direction
-			Real locAxT=locT.row(i).sum(); // locT(0,i)+locT(1,i)+locT(2,i);
+
+			//Real locAxT=locT.row(i).sum(); // locT(0,i)+locT(1,i)+locT(2,i);
+
+			Real locAxT=locT(i,i); // locT(0,i)+locT(1,i)+locT(2,i);
 			// locDivT is actually stress residual
 			// we make it correspond to difference between current and prescribed (internal) stress
 			// the term is only added, since there might be divergence from other sources (??)
-			// locDivT[i]=locAxT-dta.fixedDivT[i];
-			locDivT[i]=dta.fixedDivT[i]-locAxT;
-			//cerr<<"Nid "<<dta.nid<<", divT["<<i<<"] "<<locAxT<<"(should be "<<dta.fixedDivT[i]<<") adds locDivT "<<locDivT[i]<<endl;
+			// locDivT[i]=locAxT-dta.fixedT[i];
+			locResid[i]=-(dta.fixedT[i]-locAxT);
+			_WATCH_NID("\tΣT["<<i<<",i] "<<locAxT<<" (should be "<<dta.fixedT[i]<<") sets locResid["<<i<<"]="<<locResid[i]);
 		}
-		//cerr<<"@@@ Nid "<<dta.nid<<", divT "<<divT.transpose()<<" -> "<<n->ori.conjugate()*locDivT<<endl; // <<", fixedDivT="<<dta.fixedDivT.transpose()<<", T=\n"<<T<<"\nlocT=\n"<<locT<<endl;
-		divT=n->ori.conjugate()*locDivT;
+		if(eig_isnan(locResid)){
+			cerr<<"Nid "<<dta.nid<<"\n\tfixedT="<<dta.fixedV.transpose()<<"\n\tlocResid="<<locResid<<"\n";
+			throw std::logic_error("Residual contains NaN: "+lexical_cast<string>(locResid.transpose()));
+		}
+		//cerr<<"@@@ Nid "<<dta.nid<<", resid "<<resid.transpose()<<" -> "<<n->ori.conjugate()*locDivT<<endl; // <<", fixedT="<<dta.fixedT.transpose()<<", T=\n"<<T<<"\nlocT=\n"<<locT<<endl;
+		resid=n->ori.conjugate()*locResid;
+		_WATCH_NID("postT="<<resid);
 	}
+	if(eig_isnan(resid)) throw std::logic_error("Residual contains NaN, although local residuals did not contain it?!");
+	_FIELD();
 }
 
 VectorXr StaticEquilibriumSolver::computeInitialVelocities() const {
+	_FIELD();
 	VectorXr ret; ret.setZero(field->nodes.size()*3);
 	FOREACH(const shared_ptr<Node>& n, field->nodes){
 		const SparcData& dta(n->getData<SparcData>());
 		// fixedV and zeroed are in local coords
-		Vector3r zeroed; for(int i=0;i<3;i++) zeroed[i]=isnan(dta.fixedV[i])?0:dta.fixedV[i];
-		ret.segment<3>(3*dta.nid)=n->ori.conjugate()*zeroed; 
+		Vector3r init; for(int i=0;i<3;i++) init[i]=isnan(dta.fixedV[i])?(n->ori*dta.v)[i]:dta.fixedV[i];
+		ret.segment<3>(3*dta.nid)=n->ori.conjugate()*init; 
+		if(eig_isnan(init) || eig_isnan(n->ori.conjugate()*init)){ cerr<<"Nid "<<dta.nid<<", initial velocity has NaNs: "<<init.transpose()<<", "<<(n->ori.conjugate()*init).transpose()<<"."; }
 	}
+	// cerr<<"Initial velocities "<<ret.transpose()<<endl;
+	_FIELD();
 	return ret;
 };
 
 void StaticEquilibriumSolver::integrateSolution() const {
+	_FIELD();
 	const Real& dt=scene->dt;
 	FOREACH(const shared_ptr<Node>& n, field->nodes){
 		SparcData& dta(n->getData<SparcData>());
@@ -362,6 +410,7 @@ void StaticEquilibriumSolver::integrateSolution() const {
 		dta.T+=dt*dta.Tdot;
 		n->pos+=dt*dta.v;
 	}
+	_FIELD();
 };
 
 
@@ -386,10 +435,21 @@ VectorXr StaticEquilibriumSolver::trySolution(const VectorXr& vv){
 	return divT;
 };
 
+VectorXr StaticEquilibriumSolver::currResid() const {
+	VectorXr resid(field->nodes.size()*3);
+	FOREACH(const shared_ptr<Node>& n, field->nodes){
+		SparcData& dta(n->getData<SparcData>());
+		Vector3r nodeResid=computeDivT(n,/*useNext*/false);
+		applyConstraintsAsResiduals(n,nodeResid,/*useNextT*/false);
+		resid.segment<3>(dta.nid*3)=nodeResid;
+	}
+	return resid;
+}
+
 template<typename Solver>
 string solverStatus2str(int status);
 
-template<> string solverStatus2str<Eigen::HybridNonLinearSolver<StressDivergenceFunctor> >(int status){
+template<> string solverStatus2str<StaticEquilibriumSolver::SolverT>(int status){
 	#define CASE_STATUS(st) case Eigen::HybridNonLinearSolverSpace::st: return string(#st);
 	switch(status){
 		CASE_STATUS(Running);
@@ -406,46 +466,129 @@ template<> string solverStatus2str<Eigen::HybridNonLinearSolver<StressDivergence
 }
 
 void StaticEquilibriumSolver::run(){
-	mff=static_cast<SparcField*>(field.get());
-	if(mff->locDirty || (scene->step%neighborUpdate)==0) mff->updateLocator();
+	//cerr<<"Field shared_ptr address is "<<&(field)<<endl;
+	//cerr<<"\n == Field="<<field.get()<<endl;
+	_FIELD();
+	if(!solver || !substep){ nIter=0; }
+	int status;
+	using namespace Eigen::HybridNonLinearSolverSpace;
+	if(nIter==0 || nIter<0){
+		if(nIter<0) LOG_WARN("Previous solver step ended abnormally, restarting solver.");
+		mff=static_cast<SparcField*>(field.get());
+		if(mff->locDirty || (scene->step%neighborUpdate)==0) mff->updateLocator();
 
-	renumberNodes();  // not necessary at every step...
-	// assume neighbors don't change during one step
-	FOREACH(const shared_ptr<Node>& n, field->nodes) findNeighbors(n); 
-	// intial solution is zero velocities, except where they are prescribed
-	VectorXr vv=computeInitialVelocities();
-	// functor used by solver, and solver itself
-	StressDivergenceFunctor functor(vv.size(),vv.size(),this);
-	Eigen::HybridNonLinearSolver<StressDivergenceFunctor> solver(functor);
-	solver.parameters.factor=solverFactor;
-	solver.parameters.maxfev=relMaxfev*vv.size();
+		renumberNodes();  // not necessary at every step...
+	_FIELD();
+		// assume neighbors don't change during one step
+		FOREACH(const shared_ptr<Node>& n, field->nodes) findNeighbors(n); 
+	_FIELD();
+		// intial solution is previous (or zero) velocities, except where they are prescribed
+		vv=computeInitialVelocities();
+	_FIELD();
+	_FIELD();
+		//functor=make_shared<StressDivergenceFunctor>(vv.size(),vv.size(),this);
+		functor=shared_ptr<StressDivergenceFunctor>(new StressDivergenceFunctor(vv.size(),vv.size(),this));
+		solver=make_shared<SolverT>(*functor);
+		solver->parameters.factor=solverFactor;
+		solver->parameters.maxfev=relMaxfev*vv.size();
+		nFactorLowered=0;
+		
+		// intiial solver setup
+		status=solver->solveNumericalDiffInit(vv);
+		if(status==ImproperInputParameters) throw std::runtime_error("StaticEquilibriumSolver:: improper input parameters for the solver.");
+		nIter=0;
+	}
 
 	// solution loop
-	int status;
-	int nFactorLowered=0;
-	status=solver.solveNumericalDiffInit(vv);
-	if(status==Eigen::HybridNonLinearSolverSpace::ImproperInputParameters) throw std::runtime_error("StaticEquilibriumSolver:: improper input parameters for the solver.");
 	while(true){
-		status=solver.solveNumericalDiffOneStep(vv);
-		if(status==Eigen::HybridNonLinearSolverSpace::Running) continue; // good
+	_FIELD();
+		nIter=-abs(nIter);
+		nIter--; 
+	// cerr<<"vv.size()="<<vv.size()<<endl;
+		status=solver->solveNumericalDiffOneStep(vv);
+		cerr<<"\titer="<<-nIter<<", residuum "<<solver->fnorm<<endl;
+		#ifdef SPARC_INSPECT
+			solution=vv;
+			residuals=solver->fvec;
+			residuum=solver->fnorm;
+		#endif
+		if(status==Running){ if(substep) goto okReturn; else continue; }// good
 		// dumpUnbalanced();
-		if(status==Eigen::HybridNonLinearSolverSpace::RelativeErrorTooSmall) break; // done
-		if(status==Eigen::HybridNonLinearSolverSpace::NotMakingProgressIterations || status==Eigen::HybridNonLinearSolverSpace::NotMakingProgressJacobian){
-			solver.parameters.factor*=.2;
-			if(++nFactorLowered<20){ LOG_WARN("Step "<<scene->step<<": solver did not converge, lowering factor to "<<solver.parameters.factor); continue; }
+		if(status==RelativeErrorTooSmall) break; // done
+		if(status==NotMakingProgressIterations || status==NotMakingProgressJacobian){
+			solver->parameters.factor*=.2;
+			if(++nFactorLowered<20){ LOG_WARN("Step "<<scene->step<<": solver did not converge, lowering factor to "<<solver->parameters.factor); if(substep) goto okReturn; else continue; }
 			LOG_WARN("Step "<<scene->step<<": solver not converging, but factor already lowered too many times; giving up.");
 		}
-		break;
+		break; // any other possibility?
 	}
-	if(status!=Eigen::HybridNonLinearSolverSpace::RelativeErrorTooSmall){
-		throw std::runtime_error((boost::format("Solver did not find acceptable solution, returned %s (%d)")%solverStatus2str<decltype(solver)>(status)%status).str());
+	_FIELD();
+	if(status!=RelativeErrorTooSmall){
+		throw std::runtime_error((boost::format("Solver did not find acceptable solution, returned %s (%d).")%solverStatus2str<SolverT>(status)%status).str());
 	}
-	#ifdef SPARC_INSPECT
-		solverDivT=solver.fvec;
-	#endif
-	residuum=solver.fnorm;
+	LOG_WARN("Iteration done, residuum is "<<solver->fnorm);
+	nIter=0; // next step will be from the start again
+	// residuum=solver->fnorm;
+	_FIELD();
+	/* NOTE!!! The last call to functor is not necessarily the one with chosen solution; therefore, velocities must be copied back to nodes again! */
+	copyVelocityToNodes(vv);
 	integrateSolution();
+	_FIELD();
+	okReturn:
+		if(substep) copyVelocityToNodes(vv);
+		#ifdef SPARC_INSPECT  // copy real residuals
+		FOREACH(const shared_ptr<Node>& node, field->nodes) node->getData<SparcData>().resid=solver->fvec.segment<3>(3*node->getData<SparcData>().nid);
+		#endif
+		nIter=abs(nIter);
+		return;
 };
 
 
-#endif
+#ifdef YADE_OPENGL
+#include<yade/lib/base/CompUtils.hpp>
+#include<yade/lib/opengl/OpenGLWrapper.hpp>
+#include<yade/lib/opengl/GLUtils.hpp>
+#include<yade/pkg/gl/Renderer.hpp>
+
+
+YADE_PLUGIN(gl,(SparcConstraintGlRep));
+
+void SparcConstraintGlRep::renderLabeledArrow(const Vector3r& pos, const Vector3r& vec, const Vector3r& color, Real num, bool posIsA, bool doubleHead){
+	Vector3r A(posIsA?pos:pos-vec), B(posIsA?pos+vec:pos);
+	GLUtils::GLDrawArrow(A,B,color);
+	if(doubleHead) GLUtils::GLDrawArrow(A,A+.9*(B-A),color);
+	if(!isnan(num)) GLUtils::GLDrawNum(num,posIsA?B:A,Vector3r::Ones());
+}
+
+void SparcConstraintGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
+	// if(!vRange || !tRange) return; // require ranges
+	Real len=(relSz*viewInfo->sceneRadius);
+	Vector3r pos=node->pos+(node->hasData<GlData>()?node->getData<GlData>().dGlPos:Vector3r::Zero());
+	for(int i:{0,1,2}){
+		for(int j:{0,1}){
+			bool isV=(j==0);
+			Real val=(isV?fixedV[i]:fixedT[i]);
+			if(isnan(val)) continue;
+			#if 0
+				const Vector2r& cMnMx=(isV?vColor:tColor);
+				const shared_ptr<ScalarRange>& rg=(isV?vRange:tRange);
+				Real n=rg->norm(val); n=cMnMx[0]+n*(cMnMx[1]-cMnMx[0]);
+				Vector3r color=CompUtils::mapColor(n,rg->cmap);
+			#endif
+			Vector3r color=isV?(val!=0?Vector3r(0,1,0):Vector3r(1-.2*i,0+.2*i,0)):Vector3r(.2,.2,1);
+			// axis in global coords
+			Vector3r ax=Vector3r::Zero(); ax[i]=(val>=0?1:-1)*len; ax=node->ori.conjugate()*ax; 
+			if(isV && val==0){ // zero prescribed velocity gets disc displayed
+				GLUtils::Cylinder(pos,pos+.05*ax,.35*len,color,/*wire*/false,/*caps*/true,/*rad2*/-1,/*slices*/12);
+				continue;
+			}
+			bool posIsA=((!isV&&val>0)||(isV&&val<0));
+			renderLabeledArrow(pos,ax,color,num?val:NaN,/*posIsA*/posIsA,/*doubleHead*/!isV);
+		}
+	};
+};
+
+#endif /*YADE_OPENGL*/
+
+
+#endif /*YADE_VTK*/

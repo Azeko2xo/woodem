@@ -39,8 +39,8 @@
 	#define EIGEN_DONT_ALIGN
 #endif
 
-#define EIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT
-#define EIGEN_NO_DEBUG
+//#define EIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT
+// #define EIGEN_NO_DEBUG
 #include<Eigen/Core>
 #include<Eigen/Geometry>
 #include<Eigen/QR>

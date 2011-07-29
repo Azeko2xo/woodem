@@ -21,7 +21,7 @@ struct GLUtils{
 	// render cylinder, wire or solid
 	// if rad2<0, rad1 is used;
 	// if stacks<0, then it is approximate stack length (axial subdivision) relative to rad1, multiplied by 10 (i.e. -5 -> stacks approximately .5*rad1)
-	static void Cylinder(const Vector3r& a, const Vector3r& b, Real rad1, const Vector3r& color, bool wire=false, Real rad2=-1 /* if negative, use rad1 */, int slices=6, int stacks=-10);
+	static void Cylinder(const Vector3r& a, const Vector3r& b, Real rad1, const Vector3r& color, bool wire=false, bool caps=false, Real rad2=-1 /* if negative, use rad1 */, int slices=6, int stacks=-10);
 	static void GLDrawArrow(const Vector3r& from, const Vector3r& to, const Vector3r& color=Vector3r(1,1,1)){
 		glEnable(GL_LIGHTING); glColor3v(color); QGLViewer::drawArrow(from,to);	
 	}

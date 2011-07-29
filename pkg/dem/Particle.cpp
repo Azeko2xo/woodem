@@ -25,7 +25,7 @@ void Contact::reset(){
 boost::tuple<Vector3r,Vector3r,Vector3r> Contact::getForceTorqueBranch(const shared_ptr<Particle>& particle, int nodeI, Scene* scene){
 	assert(pA==particle || pB==particle);
 	assert(geom && phys);
-	assert(nodeI>=0 && particle->nodes.size()>nodeI);
+	assert(nodeI>=0 && particle->shape && particle->shape->nodes.size()>nodeI);
 	bool isPA=(pA==particle);
 	int sign=(isPA?1:-1);
 	Vector3r F=geom->node->ori.conjugate()*phys->force*sign;

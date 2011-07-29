@@ -321,6 +321,14 @@ class AttrEditor_MatrixX(AttrEditor,QFrame):
 			w.editingFinished.connect(self.update)
 	def refresh(self):
 		val=self.getter()
+		#if (hasattr(val,'cols') and self.cols!=val.cols()) or (hasattr(val,'rows') and self.rows!=val.rows()):
+		#	# matrix size changed, reinitialize the widget completely
+		#	for row,col in itertools.product(range(self.rows),range(self.cols)):
+		#		w=self.grid.itemAtPosition(row,col).widget()
+		#		self.grid.removeWidget(w)
+		#		w.setParent(None)
+		#	self.grid.setParent(None)
+		#	self.__init__(self.parent,self.getter,self.setter,self.rows,self.cols,self.idxConverter)
 		for row,col in itertools.product(range(self.rows),range(self.cols)):
 			w=self.grid.itemAtPosition(row,col).widget()
 			w.setText(str(val[self.idxConverter(row,col)]))
@@ -394,7 +402,8 @@ class AttrEditor_Matrix3(AttrEditor_MatrixX):
 		AttrEditor_MatrixX.__init__(self,parent,getter,setter,3,3,lambda r,c:(r,c))
 class AttrEditor_MatrixXX(AttrEditor_MatrixX):
 	def __init__(self,parent,getter,setter):
-		AttrEditor_MatrixX.__init__(self,parent,getter,setter,self.rows,self.cols,lambda r,c:(r,c))
+		val=getter()
+		AttrEditor_MatrixX.__init__(self,parent,getter,setter,val.rows(),val.cols(),lambda r,c:(r,c))
 
 class Se3FakeType: pass
 

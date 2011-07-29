@@ -159,7 +159,10 @@ GLViewer::GLViewer(int _viewId, const shared_ptr<Renderer>& _renderer, QGLWidget
 	// needed for movable scales
 	setMouseTracking(true);
 
-	centerScene();
+	// set initial orientation, z up
+	camera()->setViewDirection(qglviewer::Vec(-1,0,0));
+	camera()->setUpVector(qglviewer::Vec(0,0,1));
+	centerMedianQuartile();
 
 	//connect(&GLGlobals::redrawTimer,SIGNAL(timeout()),this,SLOT(updateGL()));
 

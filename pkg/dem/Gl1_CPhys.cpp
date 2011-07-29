@@ -32,5 +32,5 @@ void Gl1_CPhys::go(const shared_ptr<CPhys>& cp, const shared_ptr<Contact>& C, co
 			B+=scene->cell->intrShiftPos(glB.dCellDist);
 		}
 	}
-	GLUtils::Cylinder(A,B,r,color,/*wire*/false,/*rad2*/-1,slices);
+	GLUtils::Cylinder(A,B,r,color,/*wire*/false,/*caps*/false,/*rad2*/-1,slices);
 }

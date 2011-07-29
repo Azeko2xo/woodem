@@ -38,6 +38,7 @@ par.add_option('--checks',help='Run a series of user-defined check tests as desc
 par.add_option('--performance',help='Starts a test to measure the productivity',dest='performance',action='store_true')
 par.add_option('--no-gdb',help='Do not show backtrace when yade crashes (only effective with \-\-debug).',dest='noGdb',action='store_true',)
 par.add_option('--in-gdb',help='Run yade inside gdb (must be in $PATH).',dest='inGdb',action='store_true')
+par.add_option('--in-valgrind',help='Run inside valgrind (must be in $PATH); automatically adds python ignore files',dest='inValgrind',action='store_true')
 par.disable_interspersed_args()
 
 opts,args=par.parse_args()
@@ -64,6 +65,18 @@ if opts.inGdb:
 	gdbBatch.flush()
 	print 'Spawning: gdb -x '+gdbBatch.name+' ${pyExecutable}'
 	sys.exit(subprocess.call(['gdb','-x',gdbBatch.name,'${pyExecutable}']))
+
+if opts.inValgrind:
+	import subprocess,urllib,os.path
+	saveTo='/tmp/valgrind-python.supp'
+	if not os.path.exists(saveTo):
+		print 'Downloading '+saveTo
+		urllib.urlretrieve('http://svn.python.org/projects/python/trunk/Misc/valgrind-python.supp',saveTo)
+	else:
+		print 'Using alread-downloaded '+saveTo
+	args=['valgrind','--suppressions='+saveTo,'${pyExecutable}']+[a for a in sys.argv if a!='--in-valgrind']
+	print 'Running',' '.join(args)
+	sys.exit(subprocess.call(args))
 
 if opts.debug:
 	if not hasDebug:
