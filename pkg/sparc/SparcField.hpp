@@ -18,7 +18,16 @@
 #include<unsupported/Eigen/NonLinearOptimization>
 #include<unsupported/Eigen/MatrixFunctions>
 
+// trace many intermediate numbers in a file given by StaticEquilibriumSolver::dbgOut
+//#define SPARC_TRACE
 
+#ifdef SPARC_TRACE
+	#define SPARC_TRACE_OUT(a) out<<a;
+	#define SPARC_TRACE_SES_OUT(a) ses->out<<a;
+#else
+	#define SPARC_TRACE_OUT(a)
+	#define SPARC_TRACE_SES_OUT(a)
+#endif
 
 
 class vtkPointLocator;
@@ -67,6 +76,7 @@ struct SparcData: public NodeData{
 		((Matrix3r,T,Matrix3r::Zero(),,"Stress"))
 		((Vector3r,v,Vector3r::Zero(),,"Velocity"))
 		((Vector3r,locV,Vector3r::Zero(),,"Velocity in local coordinates"))
+		((Vector3i,dofs,Vector3i(-1,-1,-1),Attr::readonly,"Degrees of freedom in the solution system corresponding to 3 locV components (negative for prescribed velocity, not touched by the solver)"))
 		((Real,rho,0,,"Density"))
 		((Real,e,0,,"Porosity"))
 		((Real,color,Mathr::UnitRandom(),Attr::noGui,"Set node color, so that rendering is more readable"))
@@ -127,6 +137,7 @@ struct ExplicitNodeIntegrator: public GlobalEngine, private SparcField::Engine{
 		((int,rPow,0,,"Exponent for distance weighting ∈{0,1,2}"))
 		((int,neighborUpdate,1,,"Number of steps to periodically update neighbour information"))
 		((int,matModel,0,Attr::triggerPostLoad,"Material model to be used (0=linear elasticity, 1=barodesy (Jesse)"))
+		((int,watch,-1,,"Nid to be watched (debugging)."))
 		((Real,damping,0,,"Numerical damping, applied by-component on acceleration"))
 		((Real,c,0,,"Viscous damping coefficient."))
 		,/*ctor*/
@@ -160,26 +171,13 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 	ofstream out;
 
 	virtual void run();
-	void renumberNodes() const;
-	void copyVelocityToNodes(const VectorXr&) const;
-	void applyConstraintsAsResiduals(const shared_ptr<Node>& n, Vector3r& divT, bool useNextT);
-	VectorXr computeInitialVelocities() const;
-	void useSolution(const VectorXr&, VectorXr&);
+	void assignDofs();
+	void copyLocalVelocityToNodes(const VectorXr&) const;
+	void applyConstraintsAsResiduals(const shared_ptr<Node>& n, const Vector3r& divT, VectorXr& v, bool useNextT);
+	VectorXr computeInitialDofVelocities() const;
+	void integrateLocalVels(const VectorXr&, VectorXr&);
 	VectorXr compResid(const VectorXr& v);
-#if 0
-VectorXr StaticEquilibriumSolver::currResid() const {
-	VectorXr resid(field->nodes.size()*3);
-	FOREACH(const shared_ptr<Node>& n, field->nodes){
-		SparcData& dta(n->getData<SparcData>());
-		Vector3r nodeResid=computeDivT(n,/*useNext*/false);
-		applyConstraintsAsResiduals(n,nodeResid,/*useNextT*/false);
-		resid.segment<3>(dta.nid*3)=nodeResid;
-	}
-	return resid;
-}
-#endif
 
-	// void dumpUnbalanced();
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(StaticEquilibriumSolver,ExplicitNodeIntegrator,"Find global static equilibrium of a Sparc system.",
 		((bool,substep,false,,"Whether the solver tries to find solution within one step, or does just one iteration towards the solution"))
 		((int,nIter,0,Attr::readonly,"Indicates number of iteration of the implicit solver (within one solution step), if *substep* is True. 0 means at the beginning of next solution step; nIter is negative during the iteration step, therefore if there is interruption by an exception, it is indicated by its negative value; this makes the solver restart at the next step. Positive value indicates successful progress towards solution."))
@@ -189,8 +187,12 @@ VectorXr StaticEquilibriumSolver::currResid() const {
 		((Real,residuum,NaN,Attr::readonly,"Norm of residuals (fnorm) as reported by the solver."))
 		((Real,solverFactor,200,,"Factor for the Dogleg method (automatically lowered in case of convergence troubles"))
 		((Real,relMaxfev,10000,,"Maximum number of function evaluation in solver, relative to number of DoFs"))
-		((int,watch,-1,,"Nid to be watched (debugging)."))
-		((string,dbgOut,,,"Output file where to put debug information for detecting non-determinism in the solver"))
+		((int,nDofs,-1,,"Number of degrees of freedom, set by renumberDoFs"))
+		((Real,charLen,1,,"Characteristic length, for making divT/T errors comensurable"))
+		((bool,relPosOnce,false,,"Only compute relative positions when initializing solver step, using initial velocities"))
+		#ifdef SPARC_TRACE
+			((string,dbgOut,,,"Output file where to put debug information for detecting non-determinism in the solver"))
+		#endif
 		, /* ctor */
 		, /* py */ .def("compResid",&StaticEquilibriumSolver::compResid,(py::arg("vv")=VectorXr()),"Compute residuals corresponding to either given velocities *vv*, or to the current state (if *vv* is not given or empty)")
 		.def_readonly("solution",&StaticEquilibriumSolver::vv)
