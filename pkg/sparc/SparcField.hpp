@@ -10,6 +10,11 @@
 #include<vtkUnstructuredGrid.h>
 #include<vtkPoints.h>
 
+#ifdef YADE_DEBUG
+	// uncomment to trace most calculations in files, slows down!
+	//#define DOGLEG_DEBUG
+#endif
+
 #include<unsupported/Eigen/NonLinearOptimization>
 #include<unsupported/Eigen/MatrixFunctions>
 
@@ -61,6 +66,7 @@ struct SparcData: public NodeData{
 
 		((Matrix3r,T,Matrix3r::Zero(),,"Stress"))
 		((Vector3r,v,Vector3r::Zero(),,"Velocity"))
+		((Vector3r,locV,Vector3r::Zero(),,"Velocity in local coordinates"))
 		((Real,rho,0,,"Density"))
 		((Real,e,0,,"Porosity"))
 		((Real,color,Mathr::UnitRandom(),Attr::noGui,"Set node color, so that rendering is more readable"))
@@ -132,50 +138,62 @@ struct ExplicitNodeIntegrator: public GlobalEngine, private SparcField::Engine{
 REGISTER_SERIALIZABLE(ExplicitNodeIntegrator);
 
 struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
-	struct StressDivergenceFunctor{
+	struct ResidualsFunctor{
 		typedef Real Scalar;
+		typedef VectorXr::Index Index;
 		enum { InputsAtCompileTime=Eigen::Dynamic, ValuesAtCompileTime=Eigen::Dynamic};
 		typedef VectorXr InputType;
 		typedef VectorXr ValueType;
 		typedef MatrixXr JacobianType;
-		const int m_inputs, m_values;
-		int inputs() const { return m_inputs; }
-		int values() const { return m_values; }
+		const Index m_inputs, m_values;
+		Index inputs() const { return m_inputs; }
+		Index values() const { return m_values; }
 		StaticEquilibriumSolver* ses;
-		StressDivergenceFunctor(int inputs, int values, StaticEquilibriumSolver* _ses): m_inputs(inputs), m_values(values), ses(_ses){}
-		int operator()(const VectorXr &v, VectorXr& resid) const;
+		ResidualsFunctor(Index inputs, Index values, StaticEquilibriumSolver* _ses): m_inputs(inputs), m_values(values), ses(_ses){}
+		enum{ MODE_TRIAL_V_IS_ARG=0, MODE_TRIAL_V_IN_NODES, MODE_CURRENT_STATE };
+		int operator()(const VectorXr &v, VectorXr& resid, int mode=MODE_TRIAL_V_IS_ARG) const;
 	};
-	typedef Eigen::HybridNonLinearSolver<StressDivergenceFunctor> SolverT;
+	typedef Eigen::HybridNonLinearSolver<ResidualsFunctor> SolverT;
 	shared_ptr<SolverT> solver;
-	shared_ptr<StressDivergenceFunctor> functor;
-	VectorXr vv;
+	shared_ptr<ResidualsFunctor> functor;
 	int nFactorLowered;
+	ofstream out;
 
 	virtual void run();
 	void renumberNodes() const;
 	void copyVelocityToNodes(const VectorXr&) const;
-	void applyConstraintsAsResiduals(const shared_ptr<Node>& n, Vector3r& divT, bool useNextT) const ;
+	void applyConstraintsAsResiduals(const shared_ptr<Node>& n, Vector3r& divT, bool useNextT);
 	VectorXr computeInitialVelocities() const;
-	void integrateSolution() const;
-	VectorXr trySolution(const VectorXr& vv);
-	VectorXr currResid() const;
-	void dumpUnbalanced();
+	void useSolution(const VectorXr&, VectorXr&);
+	VectorXr compResid(const VectorXr& v);
+#if 0
+VectorXr StaticEquilibriumSolver::currResid() const {
+	VectorXr resid(field->nodes.size()*3);
+	FOREACH(const shared_ptr<Node>& n, field->nodes){
+		SparcData& dta(n->getData<SparcData>());
+		Vector3r nodeResid=computeDivT(n,/*useNext*/false);
+		applyConstraintsAsResiduals(n,nodeResid,/*useNextT*/false);
+		resid.segment<3>(dta.nid*3)=nodeResid;
+	}
+	return resid;
+}
+#endif
+
+	// void dumpUnbalanced();
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(StaticEquilibriumSolver,ExplicitNodeIntegrator,"Find global static equilibrium of a Sparc system.",
 		((bool,substep,false,,"Whether the solver tries to find solution within one step, or does just one iteration towards the solution"))
-		((int,nIter,0,Attr::readonly,"Whether we are at the start of the solution (0), or further down the way?"))
+		((int,nIter,0,Attr::readonly,"Indicates number of iteration of the implicit solver (within one solution step), if *substep* is True. 0 means at the beginning of next solution step; nIter is negative during the iteration step, therefore if there is interruption by an exception, it is indicated by its negative value; this makes the solver restart at the next step. Positive value indicates successful progress towards solution."))
 		((Real,supportStiffness,1e10,,"Stiffness of constrained DoFs"))
-		((VectorXr,solution,,Attr::readonly,"Current solution which the solver computes"))
+		((VectorXr,vv,,Attr::readonly,"Current solution which the solver computes"))
 		((VectorXr,residuals,,Attr::readonly,"Residuals corresponding to the current solution"))
 		((Real,residuum,NaN,Attr::readonly,"Norm of residuals (fnorm) as reported by the solver."))
 		((Real,solverFactor,200,,"Factor for the Dogleg method (automatically lowered in case of convergence troubles"))
 		((Real,relMaxfev,10000,,"Maximum number of function evaluation in solver, relative to number of DoFs"))
 		((int,watch,-1,,"Nid to be watched (debugging)."))
-		#ifdef SPARC_INSPECT
-			((VectorXr,solverDivT,,Attr::readonly,"Solution vector as provided by the solver"))
-		#endif
+		((string,dbgOut,,,"Output file where to put debug information for detecting non-determinism in the solver"))
 		, /* ctor */
-		, /* py */ .def("trySolution",&StaticEquilibriumSolver::trySolution)
-			.def("currResid",&StaticEquilibriumSolver::currResid)
+		, /* py */ .def("compResid",&StaticEquilibriumSolver::compResid,(py::arg("vv")=VectorXr()),"Compute residuals corresponding to either given velocities *vv*, or to the current state (if *vv* is not given or empty)")
+		.def_readonly("solution",&StaticEquilibriumSolver::vv)
 	);
 
 };

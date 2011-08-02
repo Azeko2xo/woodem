@@ -387,7 +387,8 @@ class AttrEditor_Vector2i(AttrEditor_MatrixXi):
 
 class AttrEditor_VectorX(AttrEditor_MatrixX):
 	def __init__(self,parent,getter,setter):
-		AttrEditor_MatrixX.__init__(self,parent,getter,setter,1,len(self),lambda r,c:c)
+		val=getter()
+		AttrEditor_MatrixX.__init__(self,parent,getter,setter,1,len(val),lambda r,c:c)
 class AttrEditor_Vector6(AttrEditor_MatrixX):
 	def __init__(self,parent,getter,setter):
 		AttrEditor_MatrixX.__init__(self,parent,getter,setter,1,6,lambda r,c:c)

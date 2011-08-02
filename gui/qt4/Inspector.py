@@ -294,14 +294,15 @@ class SimulationInspector(QWidget):
 		QWidget.__init__(self,parent)
 		self.setWindowTitle("Simulation Inspection")
 		self.tabWidget=QTabWidget(self)
-
+		try: demField=O.dem
+		except: demField=None
 		self.engineInspector=EngineInspector(parent=None)
-		self.bodyInspector=BodyInspector(parent=None,intrLinkCallback=self.changeIntrIds)
-		self.intrInspector=InteractionInspector(parent=None,bodyLinkCallback=self.changeBodyId)
+		self.bodyInspector=BodyInspector(parent=None,intrLinkCallback=self.changeIntrIds) if demField else None
+		self.intrInspector=InteractionInspector(parent=None,bodyLinkCallback=self.changeBodyId) if demField else None
 		self.cellInspector=CellInspector(parent=None)
 
 		for i,name,widget in [(0,'Engines',self.engineInspector),(1,'Particles',self.bodyInspector),(2,'Contacts',self.intrInspector),(3,'Cell',self.cellInspector)]:
-			self.tabWidget.addTab(widget,name)
+			if widget: self.tabWidget.addTab(widget,name)
 		grid=QGridLayout(self); grid.setSpacing(0); grid.setMargin(0)
 		grid.addWidget(self.tabWidget)
 		self.setLayout(grid)
