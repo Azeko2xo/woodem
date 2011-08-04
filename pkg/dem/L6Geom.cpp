@@ -1,4 +1,3 @@
-
 #include<yade/pkg/dem/L6Geom.hpp>
 #include<yade/core/Field.hpp>
 #include<yade/lib/base/CompUtils.hpp>
@@ -96,9 +95,11 @@ bool Cg2_Truss_Sphere_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<S
 	Vector3r normal=relPos/dist;
 	Vector3r contPt=s.nodes[0]->pos-(s.radius+0.5*uN)*normal;
 
-	Vector3r cylPtVel=(1-normAxisPos)*dynTruss.vel+normAxisPos*dynTruss.vel; // average velocity
-	// angular velocity of the contact point, exclusively due to linear velocity of endpoints
-	Vector3r cylPtAngVel=dynTruss.vel.cross(t.nodes[0]->pos-contPt)+dynTruss.vel.cross(t.nodes[1]->pos-contPt);
+	#if 0
+		Vector3r cylPtVel=(1-normAxisPos)*dynTruss.vel+normAxisPos*dynTruss.vel; // average velocity
+		// angular velocity of the contact point, exclusively due to linear velocity of endpoints
+		Vector3r cylPtAngVel=dynTruss.vel.cross(t.nodes[0]->pos-contPt)+dynTruss.vel.cross(t.nodes[1]->pos-contPt);
+	#endif
 
 	handleSpheresLikeContact(C,cylAxisPt,dynTruss.vel,dynTruss.angVel,s.nodes[0]->pos+shift2,dynSphere.vel,dynSphere.angVel,normal,contPt,uN,t.radius,s.radius);
 

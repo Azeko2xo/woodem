@@ -64,8 +64,8 @@ bool Renderer::pointClipped(const Vector3r& p){
 
 
 void Renderer::setNodeGlData(const shared_ptr<Node>& n){
-	bool scaleRotations=(rotScale!=1.0);
-	bool scaleDisplacements=(dispScale!=Vector3r::Ones());
+	bool scaleRotations=(rotScale!=1.0 && scaleOn);
+	bool scaleDisplacements=(dispScale!=Vector3r::Ones() && scaleOn);
 	const bool isPeriodic=scene->isPeriodic;
 
 	// FOREACH(const shared_ptr<Node>& n, nn){
@@ -309,7 +309,7 @@ void Renderer::renderDemContactNodes(){
 	FOREACH(const shared_ptr<Contact>& C, dem->contacts){
 		shared_ptr<CGeom> geom=C->geom;
 		if(!geom) continue;
-		const shared_ptr<Node>& node=C->geom->node;
+		shared_ptr<Node> node=geom->node;
 		setNodeGlData(node);
 		glScopedName name(C,node);
 		if(cNodes & 1) renderRawNode(node);
@@ -335,11 +335,12 @@ void Renderer::renderDemCPhys(){
 	nodeDispatcher.scene=scene.get(); nodeDispatcher.updateScenePtr();
 	boost::mutex::scoped_lock lock(*dem->contacts.manipMutex);
 	FOREACH(const shared_ptr<Contact>& C, dem->contacts){
-		glScopedName name(C,C->geom->node);
-		assert(C->pA->shape && C->pB->shape);
-		assert(C->pA->shape->nodes.size()>0); assert(C->pB->shape->nodes.size()>0);
+		shared_ptr<CGeom> geom(C->geom);
+		//assert(C->pA->shape && C->pB->shape);
+		//assert(C->pA->shape->nodes.size()>0); assert(C->pB->shape->nodes.size()>0);
 		shared_ptr<CPhys> phys(C->phys);
-		if(!phys) continue;
+		if(!geom || !phys) continue;
+		glScopedName name(C,geom->node);
 		cPhysDispatcher(phys,C,viewInfo);
 	}
 }

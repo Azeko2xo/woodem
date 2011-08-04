@@ -108,7 +108,7 @@ void Scene::moveToNextTimeStep(){
 		subStep=0;
 		// ** 1. ** prologue
 		if(isPeriodic) cell->integrateAndUpdate(dt);
-		//forces.reset(); // uncomment if ForceResetter is removed
+		if(trackEnergy) energy->resetResettables();
 		const bool TimingInfo_enabled=TimingInfo::enabled; // cache the value, so that when it is changed inside the step, the engine that was just running doesn't get bogus values
 		TimingInfo::delta last=TimingInfo::getNow(); // actually does something only if TimingInfo::enabled, no need to put the condition here
 		// ** 2. ** engines
@@ -134,7 +134,10 @@ void Scene::moveToNextTimeStep(){
 		for(int subs=subStep; subs<=maxSubStep; subs++){
 			assert(subs>=-1 && subs<=(int)engines.size());
 			// ** 1. ** prologue
-			if(subs==-1){ if(isPeriodic) cell->integrateAndUpdate(dt); }
+			if(subs==-1){
+				if(isPeriodic) cell->integrateAndUpdate(dt);
+				if(trackEnergy) energy->resetResettables();
+			}
 			// ** 2. ** engines
 			else if(subs>=0 && subs<(int)engines.size()){
 				const shared_ptr<Engine>& e(engines[subs]);

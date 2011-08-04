@@ -152,8 +152,9 @@ class Renderer: public Serializable{
 		void renderField();
 #endif
 	YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(Renderer,Serializable,"Class responsible for rendering scene on OpenGL devices.",
-		((Vector3r,dispScale,((void)"disable scaling",Vector3r::Ones()),,"Artificially enlarge (scale) dispalcements from bodies' :yref:`reference positions<State.refPos>` by this relative amount, so that they become better visible (independently in 3 dimensions). Disbled if (1,1,1)."))
-		((Real,rotScale,((void)"disable scaling",1.),,"Artificially enlarge (scale) rotations of bodies relative to their :yref:`reference orientation<State.refOri>`, so the they are better visible."))
+		((bool,scaleOn,true,,"Whether *dispScale* has any effect or not."))
+		((Vector3r,dispScale,((void)"disable scaling",Vector3r::Ones()),,"Artificially enlarge (scale) dispalcements from bodies' :yref:`reference positions<State.refPos>` by this relative amount, so that they become better visible (independently in 3 dimensions). Disbled if (1,1,1), and also if *scaleOn* is false."))
+		((Real,rotScale,((void)"disable scaling",1.),,"Artificially enlarge (scale) rotations of bodies relative to their :yref:`reference orientation<State.refOri>`, so the they are better visible. No effect if 1, and also if *scaleOn* is false."))
 		((Vector3r,lightPos,Vector3r(75,130,0),,"Position of OpenGL light source in the scene."))
 		((Vector3r,light2Pos,Vector3r(-130,75,30),,"Position of secondary OpenGL light source in the scene."))
 		((Vector3r,lightColor,Vector3r(0.6,0.6,0.6),,"Per-color intensity of primary light (RGB)."))

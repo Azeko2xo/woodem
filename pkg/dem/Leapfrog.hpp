@@ -8,7 +8,7 @@
 
 class ForceResetter: public GlobalEngine{
 	void run();
-	YADE_CLASS_BASE_DOC(ForceResetter,GlobalEngine,"Reset forces on nodes in DEM field");
+	YADE_CLASS_BASE_DOC(ForceResetter,GlobalEngine,"Reset forces on nodes in DEM field.");
 };
 REGISTER_SERIALIZABLE(ForceResetter);
 

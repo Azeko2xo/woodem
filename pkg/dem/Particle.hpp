@@ -31,6 +31,7 @@ struct Particle: public Serializable{
 	Real getEk() const {return getEk_any(true,true); }
 	Real getEk_trans() const { return getEk_any(true,false); }
 	Real getEk_rot() const {return getEk_any(false,true); }
+	Real getMass() const;
 	Vector3r getForce() const;
 	Vector3r getTorque() const;
 	py::dict pyContacts() const;
@@ -52,6 +53,7 @@ struct Particle: public Serializable{
 		.add_property("ori",py::make_function(&Particle::getOri,py::return_internal_reference<>()),py::make_function(&Particle::setOri))
 		.add_property("vel",py::make_function(&Particle::getVel,py::return_internal_reference<>()),py::make_function(&Particle::setVel))
 		.add_property("angVel",py::make_function(&Particle::getAngVel,py::return_internal_reference<>()),py::make_function(&Particle::setAngVel))
+		.add_property("mass",&Particle::getMass)
 		.add_property("f",&Particle::getForce)
 		.add_property("t",&Particle::getTorque)
 		.add_property("nodes",&Particle::getNodes)
@@ -156,6 +158,7 @@ REGISTER_SERIALIZABLE(CData);
 
 struct Contact: public Serializable{
 	bool isReal() const { return geom&&phys; }
+	bool isFresh(Scene* s){ return s->step==stepMadeReal; }
 	void swapOrder();
 	void reset();
 	// return -1 or +1 depending on whether the particle passed to us is pA or pB
@@ -182,7 +185,7 @@ struct Contact: public Serializable{
 		((int,stepMadeReal,-1,Attr::hidden,""))
 		((size_t,linIx,0,(Attr::readonly|Attr::noGui),"Position in the linear view (ContactContainer)"))
 		, /*ctor*/
-		, /*py*/ .add_property("id1",&Contact::pyId1).add_property("id2",&Contact::pyId2)
+		, /*py*/ .add_property("id1",&Contact::pyId1).add_property("id2",&Contact::pyId2).add_property("real",&Contact::isReal)
 	);
 };
 REGISTER_SERIALIZABLE(Contact);

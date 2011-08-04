@@ -183,7 +183,7 @@ if opts.performance:
 
 # be helpful when not overridden
 def onSelection(o):
-	print "You selected an object. Define your own useful *onSelect(obj)* function to process it."
+	print "You selected an object. Define your own useful *onSelection(obj)* function to process it."
 
 def userSession(qt4=False,qapp=None):
 	# prepare nice namespace for users

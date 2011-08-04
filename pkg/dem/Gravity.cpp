@@ -20,7 +20,12 @@ void Gravity::run(){
 		// work done by gravity is "negative", since the energy appears in the system from outside
 		DemData& dyn(n->getData<DemData>());
 		dyn.force+=gravity*dyn.mass;
-		if(trackEnergy) scene->energy->add(-gravity.dot(dyn.vel)*dyn.mass*dt,"gravWork",gravWorkIx,/*non-incremental*/false);
+		if(trackEnergy){
+			Real e=0;
+			if(dyn.blocked==DemData::DOF_NONE) e=-gravity.dot(dyn.vel)*dyn.mass*dt;
+			else { for(int ax:{0,1,2}){ if(!(dyn.blocked & DemData::axisDOF(ax,false))) e-=gravity[ax]*dyn.vel[ax]*dyn.mass*dt; } }
+			scene->energy->add(e,"gravWork",gravWorkIx,/*non-incremental*/false);
+		}
 	}
 }
 

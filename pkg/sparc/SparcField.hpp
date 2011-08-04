@@ -29,6 +29,9 @@
 	#define SPARC_TRACE_SES_OUT(a)
 #endif
 
+// enable distance-based weighting when evaluating derivatives
+#define SPARC_WEIGHTS
+
 
 class vtkPointLocator;
 class vtkPoints;
@@ -134,7 +137,7 @@ struct ExplicitNodeIntegrator: public GlobalEngine, private SparcField::Engine{
 		((vector<Real>,barodesyC,vector<Real>({-1.7637,-1.0249,-0.5517,-1174.,-4175.,2218}),Attr::triggerPostLoad,"Material constants for barodesy"))
 		((Real,ec0,.8703,,"Initial void ratio"))
 		((Real,rSearch,-1,,"Radius for neighbor-search"))
-		((int,rPow,0,,"Exponent for distance weighting ∈{0,1,2}"))
+		((int,rPow,0,,"Exponent for distance weighting ∈{0,-1,-2,…}"))
 		((int,neighborUpdate,1,,"Number of steps to periodically update neighbour information"))
 		((int,matModel,0,Attr::triggerPostLoad,"Material model to be used (0=linear elasticity, 1=barodesy (Jesse)"))
 		((int,watch,-1,,"Nid to be watched (debugging)."))
@@ -174,9 +177,10 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 	void assignDofs();
 	void copyLocalVelocityToNodes(const VectorXr&) const;
 	void applyConstraintsAsResiduals(const shared_ptr<Node>& n, const Vector3r& divT, VectorXr& v, bool useNextT);
-	VectorXr computeInitialDofVelocities() const;
+	VectorXr computeInitialDofVelocities(bool useCurrV=false) const;
 	void integrateLocalVels(const VectorXr&, VectorXr&);
 	VectorXr compResid(const VectorXr& v);
+	Real gradVError(const shared_ptr<Node>&, int rPow=0);
 
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(StaticEquilibriumSolver,ExplicitNodeIntegrator,"Find global static equilibrium of a Sparc system.",
 		((bool,substep,false,,"Whether the solver tries to find solution within one step, or does just one iteration towards the solution"))
@@ -195,6 +199,7 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 		#endif
 		, /* ctor */
 		, /* py */ .def("compResid",&StaticEquilibriumSolver::compResid,(py::arg("vv")=VectorXr()),"Compute residuals corresponding to either given velocities *vv*, or to the current state (if *vv* is not given or empty)")
+		.def("gradVError",&StaticEquilibriumSolver::gradVError,(py::arg("node"),py::arg("rPow")=0),"Compute sum of errors from local velocity linearization (i.e. sum of errors between linear velocity field and real neighbor velocities; errors are weighted according to |x-x₀|^rPow.")
 		.def_readonly("solution",&StaticEquilibriumSolver::vv)
 	);
 

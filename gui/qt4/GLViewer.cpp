@@ -125,6 +125,7 @@ GLViewer::GLViewer(int _viewId, const shared_ptr<Renderer>& _renderer, QGLWidget
 	setKeyDescription(Qt::Key_Y,"Show the yx [shift: yz] (up-right) plane (clip plane: align normal with +y)");
 	setKeyDescription(Qt::Key_Z,"Show the zy [shift: zx] (up-right) plane (clip plane: align normal with +z)");
 	setKeyDescription(Qt::Key_Period,"Toggle grid subdivision by 10");
+	setKeyDescription(Qt::Key_S,"Toggle displacement and rotation scaling (Renderer.scaleOn)");
 	setKeyDescription(Qt::Key_S & Qt::AltModifier,"Save QGLViewer state to /tmp/qglviewerState.xml");
 	setKeyDescription(Qt::Key_T,"Switch orthographic / perspective camera");
 	setKeyDescription(Qt::Key_O,"Set narrower field of view");
@@ -276,10 +277,16 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 	if(false){}
 	/* special keys: Escape and Space */
 	else if(e->key()==Qt::Key_A){ toggleAxisIsDrawn(); return; }
+	else if(e->key()==Qt::Key_S){ renderer->scaleOn=!renderer->scaleOn;
+		displayMessage("Scaling is "+(renderer->scaleOn?string("on (displacements ")+lexical_cast<string>(renderer->dispScale.transpose())+", rotations "+lexical_cast<string>(renderer->rotScale)+")":string("off")));
+		return;
+	}
 	else if(e->key()==Qt::Key_Escape){
 		if(!isManipulating()){ 
 			// reset selection
 			renderer->selObj=shared_ptr<Serializable>(); renderer->selObjNode=shared_ptr<Node>();
+			LOG_INFO("Calling onSelection with None to deselect");
+			pyRunString("import yade.qt; onSelection(None);");
 		}
 		else { resetManipulation(); displayMessage("Manipulating scene."); }
 	}
