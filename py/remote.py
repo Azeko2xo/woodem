@@ -25,7 +25,8 @@ bgThreads=[] # needed to keep background threads alive
 
 class InfoProvider:
 	def basicInfo(self):
-		ret=dict(iter=O.iter,dt=O.dt,stopAtIter=O.stopAtIter,realtime=O.realtime,time=O.time,id=O.tags['id'] if O.tags.has_key('id') else None,threads=os.environ['OMP_NUM_THREADS'] if os.environ.has_key('OMP_NUM_THREADS') else '0',numBodies=len(O.bodies),numIntrs=len(O.interactions))
+		s=Omega().scene
+		ret=dict(step=s.step,dt=s.dt,stopAtStep=s.stopAtStep,time=s.time,id=s.tags['id'] if s.tags.has_key('id') else None,threads=os.environ['OMP_NUM_THREADS'] if os.environ.has_key('OMP_NUM_THREADS') else '0',numBodies=(len(O.dem.par) if O.hasDem() else -1),numIntrs=(len(O.dem.con) if O.hasDem() else -1))
 		sys.stdout.flush(); sys.stderr.flush()
 		return ret
 	def plot(self):

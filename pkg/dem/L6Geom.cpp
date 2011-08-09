@@ -144,35 +144,74 @@ void Cg2_Sphere_Sphere_L6Geom::handleSpheresLikeContact(const shared_ptr<Contact
 
 	L6Geom& g(C->geom->cast<L6Geom>());
 	const Vector3r& currNormal(normal); const Vector3r& prevNormal(g.trsf.row(0));
+	const Vector3r& prevContPt(C->geom->node->pos);
+	const Real& dt(scene->dt);
+	Vector3r shiftVel2(scene->isPeriodic?scene->cell->intrShiftVel(C->cellDist):Vector3r::Zero());
+
+
 	//cerr<<"prevNormal="<<prevNormal<<", currNomal="<<currNormal<<endl;
 	// normal rotation vector, between last steps
 	Vector3r normRotVec=prevNormal.cross(currNormal);
+	Vector3r midNormal=(approxMask&APPROX_NO_MID_NORMAL) ? prevNormal : .5*(prevNormal+currNormal);
+	if(!(approxMask&APPROX_NO_RENORM_MID_NORMAL) && !(approxMask&APPROX_NO_MID_NORMAL)) midNormal.normalize(); // normalize only if used and if requested via approxMask
+	Vector3r normTwistVec=midNormal*dt*.5*midNormal.dot(angVel1+angVel2);
+
+	// compute current transformation, by updating previous axes
+	// the X axis can be prescribed directly (copy of normal)
+	// the mutual motion on the contact does not affect the transformation, that is handled below
+	#ifdef L6_TRSF_QUATERNION
+		const Matrix3r prevTrsf(g.trsf.toRotationMatrix());
+		Quaternionr prevTrsfQ(g.trsf);
+	#else
+		const Matrix3r prevTrsf(g.trsf); // could be reference perhaps, but we need it to compute midTrsf (if applicable)
+	#endif
+	Matrix3r currTrsf; currTrsf.row(0)=currNormal;
+	for(int i:{1,2})	currTrsf.row(i)=prevTrsf.row(i)-prevTrsf.row(i).cross(normRotVec+normTwistVec);
+	#ifdef L6_TRSF_QUATERNION
+		Quaternionr currTrsfQ(currTrsf);
+		if(trsfRenorm>0 && (scene->iter % trsfRenorm)==0) currTrsfQ.normalize();
+	#else
+		if(trsfRenorm>0 && (scene->step % trsfRenorm)==0){
+			currTrsf.row(0).normalize();
+			currTrsf.row(1)-=currTrsf.row(0)*currTrsf.row(1).dot(currTrsf.row(0)); // take away y projected on x, to stabilize numerically
+			currTrsf.row(1).normalize();
+			currTrsf.row(2)=currTrsf.row(0).cross(currTrsf.row(1));
+			currTrsf.row(2).normalize();
+			#ifdef YADE_DEBUG
+				if(abs(currTrsf.determinant()-1)>.05){
+					LOG_ERROR("##"<<C->pA->id<<"+"<<C->pB->id<<", |trsf|="<<currTrsf.determinant());
+					g.trsf=currTrsf;
+					throw runtime_error("Transformation matrix far from orthonormal.");
+				}
+			#endif
+		}
+	#endif
+	// compute midTrsf
+	#ifdef L6_TRSF_QUATERNION
+		Quaternionr midTrsf=(approxMask&APPROX_NO_MID_TRSF) ? prevTrsfQ : prevTrsfQ.slerp(.5,currTrsfQ);
+	#else
+		Quaternionr midTrsf=(approxMask&APPROX_NO_MID_TRSF) ? Quaternionr(prevTrsf) : Quaternionr(prevTrsf).slerp(.5,Quaternionr(currTrsf));
+	#endif
+
 	#ifdef YADE_DEBUG
 		// cerr<<"Error: prevNormal="<<prevNormal<<", currNomal="<<currNormal<<endl;
 		// if(normRotVec.squaredNorm()==0) throw std::runtime_error("Normal moving too fast (changed sense during one step), motion numerically unstable?");
 	#endif
-	// contrary to what ScGeom::precompute does now (r2486), we take average normal, i.e. .5*(prevNormal+currNormal),
-	// so that all terms in the equation are in the previous mid-step
-	// the re-normalization might not be necessary for very small increments, but better do it
-	Vector3r avgNormal=(approxMask&APPROX_NO_MID_NORMAL) ? prevNormal : .5*(prevNormal+currNormal);
-	if(!(approxMask&APPROX_NO_RENORM_MID_NORMAL) && !(approxMask&APPROX_NO_MID_NORMAL)) avgNormal.normalize(); // normalize only if used and if requested via approxMask
-	// twist vector of the normal from the last step
-	Vector3r normTwistVec=avgNormal*scene->dt*.5*avgNormal.dot(angVel1+angVel2);
+
 	// compute relative velocity
 	// noRatch: take radius or current distance as the branch vector; see discussion in ScGeom::precompute (avoidGranularRatcheting)
-	Vector3r c1x=((noRatch && r1>0) ? ( r1*normal).eval() : (contPt-pos1).eval()); // used only for sphere-sphere
-	Vector3r c2x=( noRatch          ? (-r2*normal).eval() : (contPt-pos2).eval());
+	Vector3r midContPt, midPos1, midPos2;
+	if(approxMask&APPROX_NO_MID_BRANCH){ midContPt=contPt; midPos1=pos1; midPos2=pos2; }
+	else{ midContPt=.5*(prevContPt+contPt); midPos1=pos1-(dt/2.)*vel1; /* pos2 is wrapped, use corrected vel2 as well */ midPos2=pos2-(dt/2.)*(vel2+shiftVel2); }
+	Vector3r c1x=((noRatch && r1>0) ? ( r1*midNormal).eval() : (midContPt-midPos1).eval()); // used only for sphere-sphere
+	Vector3r c2x=( noRatch          ? (-r2*midNormal).eval() : (midContPt-midPos2).eval());
 	//Vector3r state2velCorrected=state2.vel+(scene->isPeriodic?scene->cell->intrShiftVel(I->cellDist):Vector3r::Zero()); // velocity of the second particle, corrected with meanfield velocity if necessary
 	//cerr<<"correction "<<(scene->isPeriodic?scene->cell->intrShiftVel(I->cellDist):Vector3r::Zero())<<endl;
-	Vector3r relVel=(vel2+angVel2.cross(c2x))-(vel1+angVel1.cross(c1x));
-	// account for relative velocity of particles in different cell periods
-	if(scene->isPeriodic) relVel+=scene->cell->intrShiftVel(C->cellDist);
+	Vector3r relVel=(vel2+shiftVel2+angVel2.cross(c2x))-(vel1+angVel1.cross(c1x));
 
 	// relVel-=avgNormal.dot(relShearVel)*avgNormal;
 	//Vector3r relShearDu=relShearVel*scene->dt;
 	// cerr<<"normRotVec="<<normRotVec<<", avgNormal="<<avgNormal<<", normTwistVec="<<normTwistVec<<"c1x="<<c1x<<", c2x="<<c2x<<", relVel="<<relVel<<endl;
-
-
 
 
 	/* Update of quantities in global coords consists in adding 3 increments we have computed; in global coords (a is any vector)
@@ -183,42 +222,6 @@ void Cg2_Sphere_Sphere_L6Geom::handleSpheresLikeContact(const shared_ptr<Contact
 
 	*/
 
-	// compute current transformation, by updating previous axes
-	// the X axis can be prescribed directly (copy of normal)
-	// the mutual motion on the contact does not change transformation
-	#ifdef L6_TRSF_QUATERNION
-		const Matrix3r prevTrsf(g.trsf.toRotationMatrix());
-		Quaternionr prevTrsfQ(g.trsf);
-	#else
-		const Matrix3r prevTrsf(g.trsf); // could be reference perhaps, but we need it to compute midTrsf (if applicable)
-	#endif
-	Matrix3r currTrsf; currTrsf.row(0)=currNormal;
-	for(int i=1; i<3; i++){
-		currTrsf.row(i)=prevTrsf.row(i)-prevTrsf.row(i).cross(normRotVec)-prevTrsf.row(i).cross(normTwistVec);
-	}
-	#ifdef L6_TRSF_QUATERNION
-		Quaternionr currTrsfQ(currTrsf);
-		if((scene->iter % trsfRenorm)==0 && trsfRenorm>0) currTrsfQ.normalize();
-	#else
-		if((scene->step % trsfRenorm)==0 && trsfRenorm>0){
-			#if 1
-				currTrsf.row(0).normalize();
-				currTrsf.row(1)-=currTrsf.row(0)*currTrsf.row(1).dot(currTrsf.row(0)); // take away y projected on x, to stabilize numerically
-				currTrsf.row(1).normalize();
-				currTrsf.row(2)=currTrsf.row(0).cross(currTrsf.row(1));
-				currTrsf.row(2).normalize();
-			#else
-				currTrsf=Matrix3r(Quaternionr(currTrsf).normalized());
-			#endif
-			#ifdef YADE_DEBUG
-				if(abs(currTrsf.determinant()-1)>.05){
-					LOG_ERROR("##"<<C->pA->id<<"+"<<C->pB->id<<", |trsf|="<<currTrsf.determinant());
-					g.trsf=currTrsf;
-					throw runtime_error("Transformation matrix far from orthonormal.");
-				}
-			#endif
-		}
-	#endif
 
 	/* Previous local trsf u'⁻ must be updated to current u'⁰. We have transformation T⁻ and T⁰,
 		δ(a) denotes increment of a as defined above.  Two possibilities:
@@ -232,11 +235,6 @@ void Cg2_Sphere_Sphere_L6Geom::handleSpheresLikeContact(const shared_ptr<Contact
 			but it would have to be verified somehow.
 	*/
 	// if requested via approxMask, just use prevTrsf
-	#ifdef L6_TRSF_QUATERNION
-		Quaternionr midTrsf=(approxMask&APPROX_NO_MID_TRSF) ? prevTrsfQ : prevTrsfQ.slerp(.5,currTrsfQ);
-	#else
-		Quaternionr midTrsf=(approxMask&APPROX_NO_MID_TRSF) ? Quaternionr(prevTrsf) : Quaternionr(prevTrsf).slerp(.5,Quaternionr(currTrsf));
-	#endif
 	// cerr<<"prevTrsf=\n"<<prevTrsf<<", currTrsf=\n"<<currTrsf<<", midTrsf=\n"<<Matrix3r(midTrsf)<<endl;
 	
 	// updates of geom here

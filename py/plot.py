@@ -117,7 +117,7 @@ def addAutoData():
 	>>> from pprint import pprint
 	>>> O.reset()
 	>>> plot.resetData()
-	>>> plot.plots={'O.iter':('O.time',None,'numParticles=len(O.bodies)')}
+	>>> plot.plots={'O.scene.step':('O.scene.time',None,'numParticles=len(O.bodies)')}
 	>>> plot.addAutoData()
 	>>> pprint(plot.data)
 	{'O.iter': [0], 'O.time': [0.0], 'numParticles': [0]}
@@ -131,7 +131,7 @@ def addAutoData():
 	A simple simulation with plot can be written in the following way; note how the energy plot is specified.
 
 	>>> from yade import plot, utils
-	>>> plot.plots={'i=O.iter':(O.energy,None,'total energy=O.energy.total()')}
+	>>> plot.plots={'i=O.scene.step':(O.energy,None,'total energy=O.energy.total()')}
 	>>> # we create a simple simulation with one ball falling down
 	>>> plot.resetData()
 	>>> O.bodies.append(utils.sphere((0,0,0),1))

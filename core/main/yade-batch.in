@@ -10,7 +10,10 @@ import os, sys, thread, time, logging, pipes, socket, xmlrpclib, re, shutil, ran
 
 ## replaced by scons automatically
 prefix,suffix='${runtimePREFIX}' if not os.environ.has_key('YADE_PREFIX') else os.environ['YADE_PREFIX'],'${SUFFIX}'
-libDir=prefix+'/lib/yade'+suffix # run the batch always in non-debug mode (the spawned processes do honor debuggin flag, however)
+# run the batch always in non-debug mode (the spawned processes do honor debuggin flag, however)
+libDir=prefix+'/lib/yade'+suffix
+if not os.path.exists(libDir): libDir=libDir+'/dbg' # ude debugging dir if available
+if not os.path.exists(libDir): raise RuntimeError("Yade plugin directory does not exist: "+libDir)
 sys.path.append(os.path.join(libDir,'py'))
 executable=os.path.join(prefix,'bin','yade'+suffix)
 ## we just need this ...
@@ -76,13 +79,14 @@ finished: %s
 		info=self.getInfoDict()
 		self.updatePlots() # checks for last update time
 		if info:
+			runningTime=time.time()-self.started
 			ret+='<td>'
-			if info['stopAtIter']>0:
-				ret+='<nobr>%2.2f%% done</nobr><br/><nobr>step %d/%d</nobr>'%(info['iter']*100./info['stopAtIter'],info['iter'],info['stopAtIter'])
-				finishTime = str(time.ctime(time.time()+int(round(info['stopAtIter']/(info['iter']/info['realtime'])))))
+			if info['stopAtStep']>0:
+				ret+='<nobr>%2.2f%% done</nobr><br/><nobr>step %d/%d</nobr>'%(info['step']*100./info['stopAtStep'],info['step'],info['stopAtStep'])
+				finishTime=str(time.ctime(time.time()+int(round(info['stopAtStep']/(info['step']/runningTime)))))
 				ret+='<br/><font size="1"><nobr>%s finishes</nobr></font><br/>'%finishTime
-			else: ret+='<nobr>step %d</nobr>'%(info['iter'])
-			if info['realtime']!=0: ret+='<br/><nobr>avg %g/sec</nobr>'%(info['iter']/info['realtime'])
+			else: ret+='<nobr>step %d</nobr>'%(info['step'])
+			if runningTime!=0: ret+='<br/><nobr>avg %g/sec</nobr>'%(info['step']/runningTime)
 			ret+='<br/><nobr>%d bodies</nobr><br/><nobr>%d intrs</nobr>'%(info['numBodies'],info['numIntrs'])
 			ret+='</td>'
 		else:

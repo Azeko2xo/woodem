@@ -41,7 +41,7 @@ def saveVars(mark='',loadNow=True,**kw):
 	and they will be defined in the yade.params.\ *mark* module. The *loadNow* parameter calls :yref:`yade.utils.loadVars` after saving automatically.
 	"""
 	import cPickle
-	Omega().tags['pickledPythonVariablesDictionary'+mark]=cPickle.dumps(kw)
+	Omega().scene.tags['pickledPythonVariablesDictionary'+mark]=cPickle.dumps(kw)
 	if loadNow: loadVars(mark)
 
 def loadVars(mark=None):
@@ -49,6 +49,7 @@ def loadVars(mark=None):
 	If ``mark==None``, all save variables are loaded. Otherwise only those with
 	the mark passed."""
 	import cPickle, types, sys, warnings
+	scene=Omega().scene
 	def loadOne(d,mark=None):
 		"""Load given dictionary into a synthesized module yade.params.name (or yade.params if *name* is not given). Update yade.params.__all__ as well."""
 		import yade.params
@@ -65,10 +66,10 @@ def loadVars(mark=None):
 			yade.params.__all__+=list(d.keys())
 			yade.params.__dict__.update(d)
 	if mark!=None:
-		d=cPickle.loads(Omega().tags['pickledPythonVariablesDictionary'+mark])
+		d=cPickle.loads(scene.tags['pickledPythonVariablesDictionary'+mark])
 		loadOne(d,mark)
 	else: # load everything one by one
-		for m in Omega().tags.keys():
+		for m in scene.tags.keys():
 			if m.startswith('pickledPythonVariablesDictionary'):
 				loadVars(m[len('pickledPythonVariableDictionary')+1:])
 
@@ -667,11 +668,12 @@ def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 
 	Assigned tags (the ``description`` column is synthesized if absent,see :yref:`yade.utils.TableParamReader`); 
 
-		O.tags['description']=…                                      # assigns the description column; might be synthesized
-		O.tags['params']="name1=val1,name2=val2,…"                   # all explicitly assigned parameters
-		O.tags['defaultParams']="unassignedName1=defaultValue1,…"    # parameters that were left at their defaults
-		O.tags['d.id']=O.tags['id']+'.'+O.tags['description']
-		O.tags['id.d']=O.tags['description']+'.'+O.tags['id']
+		s=O.scene
+		s.tags['description']=…                                      # assigns the description column; might be synthesized
+		s.tags['params']="name1=val1,name2=val2,…"                   # all explicitly assigned parameters
+		s.tags['defaultParams']="unassignedName1=defaultValue1,…"    # parameters that were left at their defaults
+		s.tags['d.id']=s.tags['id']+'.'+s.tags['description']
+		s.tags['id.d']=s.tags['description']+'.'+s.tags['id']
 
 	All parameters (default as well as settable) are saved using :yref:`yade.utils.saveVars`\ ``('table')``.
 
@@ -685,9 +687,10 @@ def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 	# dictParams is what eventually ends up in yade.params.table (default+specified values)
 	dictDefaults,dictParams,dictAssign={},{},{}
 	import os, __builtin__,re,math
+	s=Omega().scene
 	if not tableFileLine and ('YADE_BATCH' not in os.environ or os.environ['YADE_BATCH']==''):
 		if not noTableOk: raise EnvironmentError("YADE_BATCH is not defined in the environment")
-		O.tags['line']='l!'
+		s.tags['line']='l!'
 	else:
 		if not tableFileLine: tableFileLine=os.environ['YADE_BATCH']
 		env=tableFileLine.split(':')
@@ -695,9 +698,9 @@ def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 		allTab=TableParamReader(tableFile).paramDict()
 		if not allTab.has_key(tableLine): raise RuntimeError("Table %s doesn't contain valid line number %d"%(tableFile,tableLine))
 		vv=allTab[tableLine]
-		O.tags['line']='l%d'%tableLine
-		O.tags['description']=vv['description']
-		O.tags['id.d']=O.tags['id']+'.'+O.tags['description']; O.tags['d.id']=O.tags['description']+'.'+O.tags['id']
+		s.tags['line']='l%d'%tableLine
+		s.tags['description']=vv['description']
+		s.tags['id.d']=s.tags['id']+'.'+s.tags['description']; s.tags['d.id']=s.tags['description']+'.'+s.tags['id']
 		# assign values specified in the table to python vars
 		# !something cols are skipped, those are env vars we don't treat at all (they are contained in description, though)
 		for col in vv.keys():
@@ -713,8 +716,8 @@ def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 	for k in kw.keys():
 		dictDefaults[k]=kw[k]
 		defaults+=["%s=%s"%(k,kw[k])];
-	O.tags['defaultParams']=",".join(defaults)
-	O.tags['params']=",".join(tagsParams)
+	s.tags['defaultParams']=",".join(defaults)
+	s.tags['params']=",".join(tagsParams)
 	dictParams.update(dictDefaults)
 	saveVars('table',loadNow=True,**dictParams)
 	return len(tagsParams)
