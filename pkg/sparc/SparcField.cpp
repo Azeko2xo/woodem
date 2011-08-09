@@ -18,8 +18,14 @@ static bool Matrix_pseudoInverse(const MatrixT &a, MatrixT &result, double epsil
 	return true;
 }
 #endif
+void SparcField::constructLocator(){
+	locator=vtkPointLocator::New(); points=vtkPoints::New(); grid=vtkUnstructuredGrid::New(); grid->SetPoints(points); locator->SetDataSet(grid);
+}
 
 void SparcField::updateLocator(){
+	// FIXME: just for debugging, leaks memory by discarding old objects
+	// however, it fixes errors when called with point positions beion only update
+	constructLocator();
 	assert(locator && points && grid);
 	/* adjust points size */
 	if(points->GetNumberOfPoints()!=(int)nodes.size()) points->SetNumberOfPoints(nodes.size());
@@ -66,7 +72,9 @@ vector<shared_ptr<Node> > SparcField::nodesAround(const Vector3r& pt, int count,
 		if(self && self==nodes[ids.GetId(i)]){ ret.resize(numIds-1); continue; }
 		ret[j++]=nodes[ids.GetId(i)];
 	};
-	if(self && j>numIds-1){ throw std::runtime_error(("SparcField::nodesAround asked to remove (central?) point form the result, but it was not there (node pos="+lexical_cast<string>(self->pos.transpose())+", search point="+lexical_cast<string>(pt.transpose())+")").c_str()); }
+	if(self && j>numIds-1){
+		cerr<<"Neighbors found: "<<endl; for(int i=0; i<numIds; i++) cerr<<"\t"<<ids.GetId(i)<<": "<<nodes[ids.GetId(i)]->pos.transpose()<<" (@ "<<nodes[i].get()<<")"<<endl;
+		throw std::runtime_error(("SparcField::nodesAround asked to remove (central?) point form the result, but it was not there (me @"+lexical_cast<string>(self.get())+" pos="+lexical_cast<string>(self->pos.transpose())+", searching around "+lexical_cast<string>(pt.transpose())+")").c_str()); }
 	_ids->Delete();
 	return ret;
 };
@@ -109,7 +117,7 @@ Vector3r ExplicitNodeIntegrator::computeDivT(const shared_ptr<Node>& n, bool use
 	const SparcData& midDta=n->getData<SparcData>();
 	const vector<shared_ptr<Node> >& NN(midDta.neighbors);  size_t sz=NN.size();
 	Vector3r A[6];
-	for(int l=0; l<6; l++){
+	for(int l:{0,1,2,3,4,5}){
 		int i=vIx[l][0], j=vIx[l][1]; // matrix indices from voigt indices
 		VectorXr rhs(sz); for(size_t r=0; r<sz; r++){
 			const SparcData& nDta=NN[r]->getData<SparcData>();
@@ -121,6 +129,11 @@ Vector3r ExplicitNodeIntegrator::computeDivT(const shared_ptr<Node>& n, bool use
 		A[l]=midDta.relPosInv*rhs;
 		if(eig_isnan(A[l])) yade::ValueError(format("Node at %s has NaNs in A[%i]=%s")%n->pos%l%A[l].transpose());
 	};
+	#ifdef SPARC_INSPECT
+		SparcData& midDta2=n->getData<SparcData>();
+		midDta2.gradT=MatrixXr(6,3);
+		for(int l:{0,1,2,3,4,5}) midDta2.gradT.row(l)=A[l];
+	#endif
 	int vIx33[3][3]={{0,5,4},{5,1,3},{4,3,2}}; // from matrix indices to voigt
 	return Vector3r(
 		A[vIx33[0][0]][0]+A[vIx33[0][1]][1]+A[vIx33[0][2]][2],
@@ -250,7 +263,7 @@ void ExplicitNodeIntegrator::run(){
 		5. update e (from prev e and prev gradV)
 	*/
 
-	if(mff->locDirty || (scene->step%neighborUpdate)==0) mff->updateLocator(); // if(mff->locDirty) throw std::runtime_error("SparcField locator was not updated to new positions.");
+	if(mff->locDirty || neighborUpdate<2 || (scene->step%neighborUpdate)==0) mff->updateLocator(); // if(mff->locDirty) throw std::runtime_error("SparcField locator was not updated to new positions.");
 
 	FOREACH(const shared_ptr<Node>& n, field->nodes){
 		nid++; SparcData& dta(n->getData<SparcData>());

@@ -47,7 +47,10 @@ Real Vector2r_get_item(const Vector2r & self, int idx){ IDX_CHECK(idx,2); return
 int  Vector2i_get_item(const Vector2i & self, int idx){ IDX_CHECK(idx,2); return self[idx]; }
 
 template<typename MatrixType>
-MatrixType Matrix_pruned(const MatrixType& obj, typename MatrixType::Scalar absTol=1e-6){ MatrixType ret(MatrixType::Zero()); for(int i=0;i<obj.rows();i++){ for(int j=0;j<obj.cols();j++){ if(std::abs(obj(i,j))>absTol  && obj(i,j)!=-0) ret(i,j)=obj(i,j); } } return ret; }
+MatrixType Matrix_pruned(const MatrixType& obj, typename MatrixType::Scalar absTol=1e-6){ MatrixType ret(MatrixType::Zero(obj.rows(),obj.cols())); for(int i=0;i<obj.rows();i++){ for(int j=0;j<obj.cols();j++){ if(std::abs(obj(i,j))>absTol  && obj(i,j)!=-0) ret(i,j)=obj(i,j); } } return ret; }
+
+template<typename MatrixType>
+typename MatrixType::Scalar Matrix_sum(const MatrixType& obj){ return obj.sum(); }
 
 template<typename MatrixType>
 typename MatrixType::Scalar Matrix_maxAbsCoeff(const MatrixType& obj){ return Eigen::Array<typename MatrixType::Scalar,MatrixType::RowsAtCompileTime,MatrixType::ColsAtCompileTime>(obj).abs().maxCoeff(); }
@@ -443,6 +446,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.def("asDiagonal",&VectorXr_asDiagonal)
 		.def("size",&VectorXr::size)
 		.def("resize",&VectorXr_resize)
+		.def("sum",&Matrix_sum<VectorXr>)
 		
 		// .def("head",&VectorXr_head).def("tail",&VectorXr_tail)
 		// operators
@@ -492,6 +496,8 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.def("rows",&MatrixXr::rows)
 		.def("cols",&MatrixXr::cols)
 		.def("resize",&MatrixXr_resize)
+		.def("pruned",&Matrix_pruned<MatrixXr>,py::arg("absTol")=1e-6)
+		.def("maxAbsCoeff",&Matrix_maxAbsCoeff<MatrixXr>)
 
 		//
 		.def("__neg__",&MatrixXr__neg__)
@@ -563,6 +569,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.def("norm",&Vector6r::norm).def("squaredNorm",&Vector6r::squaredNorm).def("normalize",&Vector6r::normalize).def("normalized",&Vector6r::normalized)
 		.def("head",&Vector6r_head).def("tail",&Vector6r_tail)
 		.def("asDiagonal",&Vector6r_asDiagonal)
+		.def("sum",&Matrix_sum<Vector6r>)
 		// operators
 		.def("__neg__",&Vector6r__neg__) // -v
 		.def("__add__",&Vector6r__add__Vector6r).def("__iadd__",&Vector6r__iadd__Vector6r) // +, +=
@@ -620,6 +627,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.def("Unit",&Vector3r_Unit).staticmethod("Unit")
 		.def("pruned",&Matrix_pruned<Vector3r>,py::arg("absTol")=1e-6)
 		.def("maxAbsCoeff",&Matrix_maxAbsCoeff<Vector3r>)
+		.def("sum",&Matrix_sum<Vector3r>)
 		// swizzles
 		.def("xy",&Vector3r_xy).def("yx",&Vector3r_yx).def("xz",&Vector3r_xz).def("zx",&Vector3r_zx).def("yz",&Vector3r_yz).def("zy",&Vector3r_zy)
 		// operators

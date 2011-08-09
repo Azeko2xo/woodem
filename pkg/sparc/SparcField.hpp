@@ -49,13 +49,15 @@ struct SparcField: public Field{
 	// if count is given, only count closest nodes are returned; radius is the initial radius, which will be however expanded, if insufficient number of points is found.
 	// count does not include self in this case; not finding self in the result throws an exception
 	std::vector<shared_ptr<Node> > nodesAround(const Vector3r& x, int count=-1, Real radius=-1, const shared_ptr<Node>& self=shared_ptr<Node>());
+	void constructLocator();
 	void updateLocator();
+
 	~SparcField(){ locator->Delete(); points->Delete(); grid->Delete(); }
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(SparcField,Field,"Field for SPARC meshfree method",
 		// ((Real,maxRadius,-1,,"Maximum radius for neighbour search (required for periodic simulations)"))
 		((bool,locDirty,true,Attr::readonly,"Flag whether the locator is updated."))
 		((bool,showNeighbors,false,,"Whether to show neighbors in the 3d view (FIXME: should go to Gl1_SparcField, once it is created). When a node is selected, neighbors are shown nevertheless."))
-		,/*ctor*/ locator=vtkPointLocator::New(); points=vtkPoints::New(); grid=vtkUnstructuredGrid::New(); grid->SetPoints(points); locator->SetDataSet(grid);
+		,/*ctor*/ constructLocator(); 
 		,/*py*/
 			.def("nodesAround",&SparcField::nodesAround,(py::arg("pt"),py::arg("radius")=-1,py::arg("count")=-1,py::arg("ptNode")=shared_ptr<Node>()),"Return array of nodes close to given point *pt*")
 			.def("updateLocator",&SparcField::updateLocator,"Update the locator, should be done manually before the first step perhaps.")
@@ -104,11 +106,12 @@ struct SparcData: public NodeData{
 			((int,nid,-1,,"Node id (to locate coordinates in solution matrix)"))
 	#ifdef SPARC_INSPECT
 		// debugging only
-		((MatrixXr,relPos,,Attr::noSave,"Debug storage for relative positions"))
+		((MatrixXr,relPos,,(Attr::noSave|Attr::noGui),"Debug storage for relative positions"))
 		((Matrix3r,Tcirc,Matrix3r::Zero(),Attr::noSave,"Debugging only -- stress rate"))
 		((Vector3r,divT,Vector3r::Zero(),Attr::noSave,"Debugging only -- stress divergence"))
-		((Vector3r,resid,Vector3r::Zero(),Attr::noSave,"Debugging only -- implicit solver residuals for global DoFs"))
-		((MatrixXr,relVels,,Attr::noSave,"Debugging only -- relative neighbor velocities"))
+		((MatrixXr,gradT,,(Attr::noSave|Attr::noGui),"Debugging only -- derivatives of stress components (6 lines, one for each voigt-component of stress tensor); evaluated as by-product in computeDivT"))
+		((Vector3r,resid,Vector3r::Zero(),(Attr::noSave|Attr::noGui),"Debugging only -- implicit solver residuals for global DoFs"))
+		((MatrixXr,relVels,,(Attr::noSave|Attr::noGui),"Debugging only -- relative neighbor velocities"))
 	#endif
 		// ((int,locatorId,-1,Attr::hidden,"Position in the point locator array"))
 		, /* ctor */

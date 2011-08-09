@@ -35,6 +35,9 @@ class EnergyTracker: public Serializable{
 		if(id<0) findId(name,id,reset);
 		energies.add(id,val);
 	}
+	// add value from python (without the possibility of caching index, do name lookup every time)
+	void add_py(const Real& val, const std::string& name, bool reset=false){ int id=-1; add(val,name,id,reset); }
+
 	Real getItem_py(const std::string& name){
 		int id=-1; findId(name,id,false,false); 
 		if (id<0) KeyError("Unknown energy name '"+name+"'.");
@@ -62,6 +65,7 @@ class EnergyTracker: public Serializable{
 		,/*py*/
 			.def("__getitem__",&EnergyTracker::getItem_py,"Get energy value for given name.")
 			.def("__setitem__",&EnergyTracker::setItem_py,"Set energy value for given name (will create a non-resettable item, if it does not exist yet).")
+			.def("add",&EnergyTracker::add_py,(py::arg("dE"),py::arg("name"),py::arg("reset")=false),"Accumulate energy, used from python (likely inefficient)")
 			.def("clear",&EnergyTracker::clear,"Clear all stored values.")
 			.def("keys",&EnergyTracker::keys_py,"Return defined energies.")
 			.def("items",&EnergyTracker::items_py,"Return contents as list of (name,value) tuples.")

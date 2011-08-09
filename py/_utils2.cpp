@@ -2,6 +2,7 @@
 #include<yade/pkg/dem/FrictMat.hpp>
 #include<yade/pkg/dem/Sphere.hpp>
 #include<yade/pkg/dem/ContactLoop.hpp>
+#include<yade/pkg/dem/G3Geom.hpp>
 
 shared_ptr<DemField> getDemField(Scene* scene){
 	shared_ptr<DemField> ret;
@@ -70,7 +71,7 @@ vector<shared_ptr<Contact> > createContacts(const vector<Particle::id_t>& ids1, 
 	return ret;
 }
 
-py::tuple stressStiffness(Real volume=0, bool skipMultinodal=false){
+py::tuple stressStiffnessWork(Real volume=0, bool skipMultinodal=false){
 	Matrix6r K(Matrix6r::Zero());
 	Matrix3r stress(Matrix3r::Zero());
 	Scene* scene=Omega::instance().getScene().get(); DemField* dem=getDemField(scene).get();
@@ -82,12 +83,19 @@ py::tuple stressStiffness(Real volume=0, bool skipMultinodal=false){
 		}
 		// use current distance here
 		const Real d0=(C->pB->shape->nodes[0]->pos-C->pA->shape->nodes[0]->pos+(scene->isPeriodic?scene->cell->intrShiftPos(C->cellDist):Vector3r::Zero())).norm();
-		const Vector3r& n=C->geom->node->ori.conjugate()*Vector3r::UnitX(); // normal in global coords
+		Vector3r n=C->geom->node->ori.conjugate()*Vector3r::UnitX(); // normal in global coords
+		#if 1
+			// g3geom doesn't set local x axis propertly
+			G3Geom* g3g=dynamic_cast<G3Geom*>(C->geom.get());
+			if(g3g) n=g3g->normal;
+		#endif
 		// contact force, in global coords
 		Vector3r F=C->geom->node->ori.conjugate()*C->phys->force;
 		Real fN=F.dot(n);
-		Vector3r fT=F-n*F.dot(n);
-		for(int i=0; i<3; i++) for(int j=0;j<3; j++){ stress(i,j)+=d0*(fN*n[i]*n[j]+.5*(fT[i]*n[j]+fT[j]*n[i])); }
+		Vector3r fT=F-n*fN;
+		//cerr<<"n="<<n.transpose()<<", fN="<<fN<<", fT="<<fT.transpose()<<endl;
+		for(int i:{0,1,2}) for(int j:{0,1,2}) stress(i,j)+=d0*(fN*n[i]*n[j]+.5*(fT[i]*n[j]+fT[j]*n[i]));
+		//cerr<<"stress="<<stress<<endl;
 		const Real& kN=phys->kn; const Real& kT=phys->kt;
 		// mapping between 6x6 matrix indices and tensor indices (Voigt notation)
 		// only upper triangle used here
@@ -111,8 +119,9 @@ py::tuple stressStiffness(Real volume=0, bool skipMultinodal=false){
 	// prune numerical noise from the stiffness matrix
 	Real maxElem=K.maxCoeff();
 	for(int p=0; p<6; p++) for(int q=0; q<6; q++) if(K(p,q)<1e-12*maxElem) K(p,q)=0;
-	//
-	return py::make_tuple(tensor_toVoigt(stress),K);
+	// compute velGrad work in periodic simulations
+	Real work=scene->isPeriodic?-(scene->cell->velGrad*stress).trace()*scene->dt*scene->cell->getVolume():NaN;
+	return py::make_tuple(tensor_toVoigt(stress),K,work);
 }
 
 
@@ -124,7 +133,7 @@ BOOST_PYTHON_MODULE(_utils2){
 	py::def("pWaveTimeStep",pWaveTimeStep,"Do not use, remaed to pWaveDt and will be removed.");
 	py::def("pWaveDt",pWaveDt,"Get timestep accoring to the velocity of P-Wave propagation; computed from sphere radii, rigidities and masses.");
 	py::def("createContacts",createContacts,(py::arg("ids1"),py::arg("id2s"),py::arg("geomFunctors")=vector<shared_ptr<CGeomFunctor> >(),py::arg("physFunctors")=vector<shared_ptr<CPhysFunctor> >(),py::arg("force")=true),"Create contacts between given DEM particles.\n\nCurrent engines are searched for :yref:`ContactLoop`, unless *geomFunctors* and *physFunctors* are given. *force* will make :yref:`CGeomFunctors` acknowledge the contact even if particles don't touch geometrically.\n\n.. warning::\n\tThis function will very likely behave incorrectly for periodic simulations (though it could be extended it to handle it farily easily).");
-	py::def("stressStiffness",stressStiffness,(py::arg("volume")=0,py::arg("skipMultinodal")=true),"Compute stress and stiffness tensors; returns tuple (stress, stiffness) in Voigt notation. *skipMultinodal* skips all contacts involving particles with multiple nodes, where stress & stiffness values can be determined only by In2 functors.");
+	py::def("stressStiffnessWork",stressStiffnessWork,(py::arg("volume")=0,py::arg("skipMultinodal")=true),"Compute stress and stiffness tensors, and work increment of current velocity gradient (*nan* for aperiodic simulations); returns tuple (stress, stiffness, work), where stress and stiffness are in Voigt notation. *skipMultinodal* skips all contacts involving particles with multiple nodes, where stress & stiffness values can be determined only by In2 functors.");
 }
 
 
