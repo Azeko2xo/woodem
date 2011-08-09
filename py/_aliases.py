@@ -1,3 +1,4 @@
+from yade import Omega
 from yade import core
 core.Field.nod=core.Field.nodes
 
@@ -6,22 +7,16 @@ try:
 	dem.DemField.par=dem.DemField.particles
 	dem.DemField.con=dem.DemField.contacts
 	dem.Particle.mat=dem.Particle.material
+	Omega.dem=property(lambda o: dem.DemField.sceneGetField())
+	Omega.hasDem=property(lambda o: dem.DemField.sceneHasField)
 	# DemData defines those methods, which are used for transparent access to respective data field
 	core.Node.dem=property(dem.DemData._getDataOnNode,dem.DemData._setDataOnNode)
-	# support Node.dyn (legacy)
-	def DemData_warnGet(self):
-		import warnings
-		warnings.warn("Node.dyn is deprecated, use Node.dem instead.",DeprecationWarning)
-		return self.dem
-	def DemData_warnSet(self,val):
-		import warnings
-		warnings.warn("Node.dyn is deprecated, use Node.dem instead.",DeprecationWarning)
-		self.dem=val
-	core.Node.dyn=property(DemData_warnGet,DemData_warnSet)
 except ImportError: pass
 
 try:
 	from yade import sparc
+	Omega.sparc=property(lambda o: sparc.SparcField.sceneGetField())
+	Omega.hasSparc=property(lambda o: sparc.SparcField.sceneHasField)
 	core.Node.sparc=property(sparc.SparcData._getDataOnNode,sparc.SparcData._setDataOnNode)
 except ImportError: pass
 

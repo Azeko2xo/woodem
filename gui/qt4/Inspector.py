@@ -198,7 +198,8 @@ class BodyInspector(QWidget):
 		except IndexError: meLabel=u'…'
 		self.plusLabel.setText(' '.join(meLabel.split()[1:])+'  <b>+</b>') # do not repeat the id
 		self.bodyIdBox.setMaximum(len(O.dem.par)-1)
-		others=O.dem.par[meId].con
+		try: others=O.dem.par[meId].con
+		except IndexError: others=[]
 		#(i.id1 if i.id1!=meId else i.id2) for i in O.interactions.withBody(self.bodyIdBox.value()) if i.isReal]
 		others.sort()
 		self.intrWithCombo.clear()
@@ -294,8 +295,7 @@ class SimulationInspector(QWidget):
 		QWidget.__init__(self,parent)
 		self.setWindowTitle("Simulation Inspection")
 		self.tabWidget=QTabWidget(self)
-		try: demField=O.dem
-		except: demField=None
+		demField=O.dem if O.hasDem() else None
 		self.engineInspector=EngineInspector(parent=None)
 		self.bodyInspector=BodyInspector(parent=None,intrLinkCallback=self.changeIntrIds) if demField else None
 		self.intrInspector=InteractionInspector(parent=None,bodyLinkCallback=self.changeBodyId) if demField else None
@@ -303,6 +303,13 @@ class SimulationInspector(QWidget):
 
 		for i,name,widget in [(0,'Engines',self.engineInspector),(1,'Particles',self.bodyInspector),(2,'Contacts',self.intrInspector),(3,'Cell',self.cellInspector)]:
 			if widget: self.tabWidget.addTab(widget,name)
+
+		# add fields
+		for i,f in enumerate(O.scene.fields):
+			path='O.scene.fields[%d]'%i
+			if O.hasDem() and f==O.dem: path='O.dem'
+			if O.hasSparc() and f==O.sparc: path='O.sparc'
+			self.tabWidget.addTab(SerializableEditor(f,parent=None,path=path,showType=True),'%d. '%i+path)
 		grid=QGridLayout(self); grid.setSpacing(0); grid.setMargin(0)
 		grid.addWidget(self.tabWidget)
 		self.setLayout(grid)

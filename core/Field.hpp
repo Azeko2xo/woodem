@@ -120,6 +120,7 @@ struct Field: public Serializable, public Indexable{
 			YADE_PY_TOPINDEXABLE(Field)
 	);
 	REGISTER_INDEX_COUNTER(Field);
+
 	// nested mixin class
 	class Engine{
 		// say whether a particular field is acceptable by this engine

@@ -18,3 +18,14 @@ class Law2_L6Geom_FrictPhys_IdealElPl: public LawFunctor{
 };
 REGISTER_SERIALIZABLE(Law2_L6Geom_FrictPhys_IdealElPl);
 
+class Law2_L6Geom_FrictPhys_LinEl6: public LawFunctor{
+	void go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&);
+	FUNCTOR2D(L6Geom,FrictPhys);
+	YADE_CLASS_BASE_DOC_ATTRS(Law2_L6Geom_FrictPhys_LinEl6,LawFunctor,"Ideally elastic-plastic behavior.",
+		((Real,charLen,-1,,"Characteristic length, which is equal to stiffnesses ratio kNormal/kTwist and kShear/kBend. Must be non-negative."))
+		((int,elastPotIx,-1,(Attr::hidden|Attr::noSave),"Index for elastic potential energy"))
+	);
+};
+REGISTER_SERIALIZABLE(Law2_L6Geom_FrictPhys_LinEl6);
+
+

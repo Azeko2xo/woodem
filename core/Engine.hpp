@@ -126,9 +126,9 @@ class PeriodicEngine: public GlobalEngine{
 		((long,stepPeriod,((void)"deactivated",1),,"Periodicity criterion using step number (deactivated if <= 0)"))
 		((long,nDo,((void)"deactivated",-1),,"Limit number of executions by this number (deactivated if negative)"))
 		((bool,initRun,true,,"Run the first time we are called as well."))
-		((Real,virtLast,0,,"Tracks virtual time of last run |yupdate|."))
-		((Real,realLast,0,,"Tracks real time of last run |yupdate|."))
-		((long,stepLast,0,,"Tracks step number of last run |yupdate|."))
+		((Real,virtLast,NaN,,"Tracks virtual time of last run |yupdate|."))
+		((Real,realLast,NaN,,"Tracks real time of last run |yupdate|."))
+		((long,stepLast,-1,,"Tracks step number of last run |yupdate|."))
 		((long,nDone,0,,"Track number of executions (cummulative) |yupdate|.")),
 		/* this will be put inside the ctor */ realLast=getClock();
 	);

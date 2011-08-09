@@ -630,7 +630,7 @@ htmlhelp_basename = 'Yadedoc'
 
 # -- Options for LaTeX output --------------------------------------------------
 
-my_maketitle=r'''
+my_maketitle=ur'''
 \begin{titlepage}
 
 \begin{flushright}
@@ -645,7 +645,7 @@ my_maketitle=r'''
 \vspace{5 mm}
 \textit{\sffamily\huge Release '''\
 +yade.config.revision\
-+r'''}\\
++ur'''}\\
 \vspace{40 mm}
 \textit{\sffamily\LARGE Editor}\\
 \text{\sffamily\bfseries\LARGE Václav Šmilauer}\\

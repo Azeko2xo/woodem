@@ -150,6 +150,7 @@ static Matrix6r* Matrix6r_fromRows(const Vector6r& l0, const Vector6r& l1, const
 static Matrix6r* Matrix6r_fromDiagonal(const Vector6r& d){ Matrix6r* m(new Matrix6r); *m=d.asDiagonal(); return m; }
 
 static Vector6r* Vector6r_fromElements(Real v0, Real v1, Real v2, Real v3, Real v4, Real v5){ Vector6r* v(new Vector6r); (*v)<<v0,v1,v2,v3,v4,v5; return v; }
+static Vector6r* Vector6r_fromHeadTail(const Vector3r& head, const Vector3r& tail){ Vector6r* ret(new Vector6r); ret->segment<3>(0)=head; ret->segment<3>(3)=tail; return ret; }
 static VectorXr* VectorXr_fromList(const std::vector<Real>& ii){ VectorXr* v(new VectorXr(ii.size())); for(size_t i=0; i<ii.size(); i++) (*v)[i]=ii[i]; return v; }
 static Vector6i* Vector6i_fromElements(int v0, int v1, int v2, int v3, int v4, int v5){ Vector6i* v(new Vector6i); (*v)<<v0,v1,v2,v3,v4,v5; return v; }
 static Vector3r Matrix3r_diagonal(const Matrix3r& m){ return Vector3r(m.diagonal()); }
@@ -552,6 +553,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 	py::class_<Vector6r>("Vector6","6-dimensional float vector.\n\nSupported operations (``f`` if a float/int, ``v`` is a Vector6): ``-v``, ``v+v``, ``v+=v``, ``v-v``, ``v-=v``, ``v*f``, ``f*v``, ``v*=f``, ``v/f``, ``v/=f``, ``v==v``, ``v!=v``.\n\nImplicit conversion from sequence (list,tuple, …) of 6 floats.",py::init<>())
 		.def(py::init<Vector6r>((py::arg("other"))))
 		.def("__init__",py::make_constructor(&Vector6r_fromElements,py::default_call_policies(),(py::arg("v0"),py::arg("v1"),py::arg("v2"),py::arg("v3"),py::arg("v4"),py::arg("v5"))))
+		.def("__init__",py::make_constructor(&Vector6r_fromHeadTail,py::default_call_policies(),(py::arg("head"),py::arg("tail"))))
 		.def_pickle(Vector6r_pickle())
 		// properties
 		.add_static_property("Ones",&Vector6r_Ones).add_static_property("Zero",&Vector6r_Zero)
@@ -617,6 +619,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.def("asDiagonal",&Vector3r_asDiagonal)
 		.def("Unit",&Vector3r_Unit).staticmethod("Unit")
 		.def("pruned",&Matrix_pruned<Vector3r>,py::arg("absTol")=1e-6)
+		.def("maxAbsCoeff",&Matrix_maxAbsCoeff<Vector3r>)
 		// swizzles
 		.def("xy",&Vector3r_xy).def("yx",&Vector3r_yx).def("xz",&Vector3r_xz).def("zx",&Vector3r_zx).def("yz",&Vector3r_yz).def("zy",&Vector3r_zy)
 		// operators

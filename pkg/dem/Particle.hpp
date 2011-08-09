@@ -2,6 +2,7 @@
 #include<yade/core/Omega.hpp>
 #include<yade/core/Field.hpp>
 #include<yade/core/Scene.hpp>
+#include<yade/core/Field-templates.hpp>
 #include<yade/pkg/dem/ParticleContainer.hpp>
 #include<yade/pkg/dem/ContactContainer.hpp>
 
@@ -112,12 +113,18 @@ template<> struct NodeData::Index<DemData>{enum{value=Node::ST_DEM};};
 
 struct DemField: public Field{
 	int collectNodes(bool clear=true, bool dynOnly=false);
+
+	//template<> bool sceneHasField<DemField>() const;
+	//template<> shared_ptr<DemField> sceneGetField<DemField>() const;
+
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(DemField,Field,"Field describing a discrete element assembly. Each body references (possibly many) nodes by their index in :yref:`Field.nodes` and :yref:`Field.nodalData`. ",
 		((ParticleContainer,particles,,(Attr::pyByRef|Attr::readonly),"Particles (each particle holds its contacts, and references associated nodes)"))
 		((ContactContainer,contacts,,(Attr::pyByRef|Attr::readonly),"Linear view on particle contacts"))
 		, /* ctor */ createIndex(); particles.dem=this; contacts.dem=this; contacts.particles=&particles;
 		, /*py*/
 		.def("collectNodes",&DemField::collectNodes,(py::arg("clear")=true,py::arg("dynOnly")=false),"Collect nodes from all particles and insert them to nodes defined for this field. *clear* causes nodes to be cleared in advance, *dynOnly* adds only those defining :yref:`Node.dyn<dem.DemData>`. Nodes are not added multiple times, even if they are referenced from different particles.")
+		.def("sceneHasField",&Field_sceneHasField<DemField>).staticmethod("sceneHasField")
+		.def("sceneGetField",&Field_sceneGetField<DemField>).staticmethod("sceneGetField")
 	);
 	REGISTER_CLASS_INDEX(DemField,Field);
 	// DEM engines should inherit protected from this class

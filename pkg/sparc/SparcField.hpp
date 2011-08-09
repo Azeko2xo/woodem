@@ -4,6 +4,7 @@
 
 #include<yade/core/Field.hpp>
 #include<yade/core/Scene.hpp>
+#include<yade/core/Field-templates.hpp>
 
 #include<vtkPointLocator.h>
 #include<vtkIdList.h>
@@ -58,6 +59,9 @@ struct SparcField: public Field{
 		,/*py*/
 			.def("nodesAround",&SparcField::nodesAround,(py::arg("pt"),py::arg("radius")=-1,py::arg("count")=-1,py::arg("ptNode")=shared_ptr<Node>()),"Return array of nodes close to given point *pt*")
 			.def("updateLocator",&SparcField::updateLocator,"Update the locator, should be done manually before the first step perhaps.")
+			.def("sceneHasField",&Field_sceneHasField<SparcField>).staticmethod("sceneHasField")
+			.def("sceneGetField",&Field_sceneGetField<SparcField>).staticmethod("sceneGetField")
+
 	);
 };
 REGISTER_SERIALIZABLE(SparcField);
@@ -68,6 +72,8 @@ REGISTER_SERIALIZABLE(SparcField);
 struct SparcData: public NodeData{
 	Matrix3r getD() const{ return .5*(gradV+gradV.transpose()); }
 	Matrix3r getW() const{ return .5*(gradV-gradV.transpose()); }
+	Quaternionr getRotQ(const Real& dt) const;
+	Vector3r getRotVec(){ Quaternionr q(getRotQ(Omega::instance().getScene()->dt)); AngleAxisr aa(q); return aa.axis()*aa.angle(); }
 	py::list getGFixedV(const Quaternionr& ori){ return getGFixedAny(fixedV,ori); }
 	py::list getGFixedT(const Quaternionr& ori){ return getGFixedAny(fixedT,ori); }
 	py::list getGFixedAny(const Vector3r& any, const Quaternionr& ori);
@@ -108,7 +114,7 @@ struct SparcData: public NodeData{
 		, /* ctor */
 		, /*py*/
 		.def("_getDataOnNode",&Node::pyGetData<SparcData>).staticmethod("_getDataOnNode").def("_setDataOnNode",&Node::pySetData<SparcData>).staticmethod("_setDataOnNode")
-		.add_property("D",&SparcData::getD).add_property("W",&SparcData::getW)
+		.add_property("D",&SparcData::getD).add_property("W",&SparcData::getW).add_property("rot",&SparcData::getRotVec)
 		.def("gFixedV",&SparcData::getGFixedV).def("gFixedT",&SparcData::getGFixedT)
 		;
 	);
@@ -138,6 +144,7 @@ struct ExplicitNodeIntegrator: public GlobalEngine, private SparcField::Engine{
 		((Real,ec0,.8703,,"Initial void ratio"))
 		((Real,rSearch,-1,,"Radius for neighbor-search"))
 		((int,rPow,0,,"Exponent for distance weighting ∈{0,-1,-2,…}"))
+		((bool,spinRot,false,,"Rotate particles according to spin in their location; Dofs which prescribe velocity will never be rotated (i.e. only rotation parallel with them will be allowed)."))
 		((int,neighborUpdate,1,,"Number of steps to periodically update neighbour information"))
 		((int,matModel,0,Attr::triggerPostLoad,"Material model to be used (0=linear elasticity, 1=barodesy (Jesse)"))
 		((int,watch,-1,,"Nid to be watched (debugging)."))
@@ -176,7 +183,7 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 	virtual void run();
 	void assignDofs();
 	void copyLocalVelocityToNodes(const VectorXr&) const;
-	void applyConstraintsAsResiduals(const shared_ptr<Node>& n, const Vector3r& divT, VectorXr& v, bool useNextT);
+	void applyConstraintsAsResiduals(const shared_ptr<Node>& n, const Vector3r& divT, VectorXr& resid, bool useNext);
 	VectorXr computeInitialDofVelocities(bool useCurrV=false) const;
 	void integrateLocalVels(const VectorXr&, VectorXr&);
 	VectorXr compResid(const VectorXr& v);

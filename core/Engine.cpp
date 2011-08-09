@@ -107,10 +107,10 @@ bool PeriodicEngine::isActivated(){
 		realLast=realNow; virtLast=virtNow; stepLast=stepNow; nDone++;
 		return true;
 	}
-	if(nDone==0){
-		realLast=realNow; virtLast=virtNow; stepLast=stepNow; nDone++;
-		if(initRun) return true;
-		return false;
+	// we run for the very first time here, initialize counters
+	if(stepLast<0){ 
+		realLast=realNow; virtLast=virtNow; stepLast=stepNow;
+		if(initRun){ nDone++; return true; }
 	}
 	return false;
 }

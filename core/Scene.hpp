@@ -56,6 +56,8 @@ class Scene: public Serializable{
 
 		typedef std::map<std::string,std::string> StrStrMap;
 
+
+
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Scene,Serializable,"Object comprising the whole simulation.",
 		((Real,dt,1e-8,,"Current timestep for integration."))
 		((long,step,0,Attr::readonly,"Current step number"))

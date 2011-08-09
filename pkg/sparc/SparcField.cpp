@@ -220,6 +220,17 @@ py::list SparcData::getGFixedAny(const Vector3r& any, const Quaternionr& ori){
 	return ret;
 };
 
+Quaternionr SparcData::getRotQ(const Real& dt) const {
+	// reduce rotation by projections on axes with prescribed velocity; this axis will not rotate
+	// this should automatically zero rotation vector if 2 or 3 axes are fixed
+	Matrix3r W=getW();
+	Vector3r rot(W(1,2),W(0,2),W(0,1));
+	for(int ax:{0,1,2}) if(!isnan(fixedV[ax])) rot=Vector3r::Unit(ax)*rot.dot(Vector3r::Unit(ax));
+	Real angle=rot.norm();
+	if(angle>0) return Quaternionr(AngleAxisr(angle*dt,rot/angle));
+	return Quaternionr::Identity();
+};
+
 
 void ExplicitNodeIntegrator::run(){
 	mff=static_cast<SparcField*>(field.get());
@@ -265,6 +276,7 @@ void ExplicitNodeIntegrator::run(){
 	FOREACH(const shared_ptr<Node>& n, field->nodes){
 		nid++; SparcData& dta(n->getData<SparcData>());
 		n->pos+=dt*dta.v;
+		if(spinRot) n->pos=dta.getRotQ(scene->dt)*n->pos;
 		dta.T+=dt*dta.Tdot;
 		dta.v+=dt*dta.accel;
 		applyKinematicConstraints(n,/*disallow prescribed stress*/false);
@@ -372,7 +384,7 @@ void StaticEquilibriumSolver::assignDofs() {
 }
 
 // set resid in the sense of kinematic constraints, so that they are fulfilled by the static solution
-void StaticEquilibriumSolver::applyConstraintsAsResiduals(const shared_ptr<Node>& n, const Vector3r& divT, VectorXr& resid, bool useNextT){
+void StaticEquilibriumSolver::applyConstraintsAsResiduals(const shared_ptr<Node>& n, const Vector3r& divT, VectorXr& resid, bool useNext){
 	SparcData& dta(n->getData<SparcData>());
 	#ifdef YADE_DEBUG
 		for(int i=0;i<3;i++) if(!isnan(dta.fixedV[i])&&!isnan(dta.fixedT[i])) throw std::invalid_argument((boost::format("Nid %d: both velocity and stress prescribed along local axis %d (axis %s in global space)") %dta.nid %i %(n->ori.conjugate()*(i==0?Vector3r::UnitX():(i==1?Vector3r::UnitY():Vector3r::UnitZ()))).transpose()).str());
@@ -382,28 +394,29 @@ void StaticEquilibriumSolver::applyConstraintsAsResiduals(const shared_ptr<Node>
 	#ifdef SPARC_INSPECT
 		dta.resid=Vector3r::Zero(); // in global coords here
 	#endif
+	// use current or next orientation
+	Matrix3r oriTrsf(useNext && spinRot ? dta.getRotQ(scene->dt)*n->ori : n->ori);
 	for(int ax:{0,1,2}){
 		// prescribed velocity, does not come up in the solution
 		if(dta.dofs[ax]<0){ continue; }
 		// nothing prescribed, divT is the residual
 		if(isnan(dta.fixedT[ax])){
 			// NB: dta.divT is not the current value, that exists only with SPARC_INSPECT
-			Vector3r locDivT=n->ori*divT;
+			Vector3r locDivT=oriTrsf*divT;
 			resid[dta.dofs[ax]]=charLen*locDivT[ax];
 			_WATCH_NID("\t#"<<dta.nid<<" dof "<<dta.dofs[ax]<<": locDivT["<<ax<<"] "<<locDivT[ax]<<" (should be 0) sets resid["<<dta.dofs[ax]<<"]="<<resid[dta.dofs[ax]]);
 		}
 		// prescribed stress
 		else{
 			// considered global stress
-			Matrix3r T=dta.T+(useNextT?Matrix3r(dta.Tdot*scene->dt):Matrix3r::Zero()); 
+			Matrix3r T=dta.T+(useNext?Matrix3r(dta.Tdot*scene->dt):Matrix3r::Zero()); 
 			// TODO: check that this could be perhaps written as locAxT=(T*n).dot(n) ?
 			#if 0
-				Vector3r normal=n->ori*Vector3r::Unit(ax); // local normal (i.e. axis) in global coords
+				Vector3r normal=oriTrsf*Vector3r::Unit(ax); // local normal (i.e. axis) in global coords
 				Real locAxT=(T*normal).dot(normal);
 			#else
 				// current local stress
-				Matrix3r trsf(n->ori);
-				Matrix3r locT=trsf*T*trsf.transpose();
+				Matrix3r locT=oriTrsf*T*oriTrsf.transpose();
 				/* NB: using row sum leads to asymmetries and generally weird behavior on the boundary! */
 				//Real locAxT=locT.row(ax).sum();
 				Real locAxT=locT(ax,ax);
@@ -413,7 +426,7 @@ void StaticEquilibriumSolver::applyConstraintsAsResiduals(const shared_ptr<Node>
 			_WATCH_NID("\t#"<<dta.nid<<" dof "<<dta.dofs[ax]<<": ΣT["<<ax<<",i] "<<locAxT<<" (should be "<<dta.fixedT[ax]<<") sets resid["<<dta.dofs[ax]<<"]="<<resid[dta.dofs[ax]]);
 		}
 		#ifdef SPARC_INSPECT
-			dta.resid+=n->ori.conjugate()*Vector3r::Unit(ax)*resid[dta.dofs[ax]];
+			dta.resid+=oriTrsf.transpose()*Vector3r::Unit(ax)*resid[dta.dofs[ax]];
 		#endif
 	};
 }
@@ -446,6 +459,7 @@ void StaticEquilibriumSolver::integrateLocalVels(const VectorXr& v, VectorXr& re
 		dta.rho+=dt*(-dta.rho*dta.gradV.trace()); // rho is not really used for the implicit solution, but can be useful
 		dta.T+=dt*dta.Tdot;
 		n->pos+=dt*dta.v;
+		if(spinRot) n->ori=dta.getRotQ(scene->dt)*n->ori;
 	}
 };
 
@@ -562,7 +576,7 @@ void StaticEquilibriumSolver::run(){
 		if(status==NotMakingProgressIterations || status==NotMakingProgressJacobian){
 			// try decreasing factor
 			solver->parameters.factor*=.6;
-			if(++nFactorLowered<10){ LOG_WARN("Step "<<scene->step<<": solver did not converge, lowering factor to "<<solver->parameters.factor); if(substep) goto substepDone; else continue; }
+			if(++nFactorLowered<10){ LOG_WARN("Step "<<scene->step<<": solver did not converge (error="<<solver->fnorm<<"), lowering factor to "<<solver->parameters.factor); if(substep) goto substepDone; else continue; }
 			// or give up
 			LOG_WARN("Step "<<scene->step<<": solver not converging, but factor already lowered too many times ("<<nFactorLowered<<"). giving up.");
 		}
@@ -579,7 +593,6 @@ void StaticEquilibriumSolver::run(){
 		// LOG_WARN("Solution found, error norm "<<solver->fnorm);
 		nIter=solver->iter; // next step will be from the start again, since the number is positive
 		// residuum=solver->fnorm;
-		/* The last call to functor is not necessarily the one with chosen solution; therefore, velocities must be copied back to nodes again! */
 		integrateLocalVels(vv,residuals);
 		return;
 };

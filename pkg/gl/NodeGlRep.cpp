@@ -85,13 +85,16 @@ void ActReactGlRep::renderDoubleArrow(const Vector3r& pos, const Vector3r& arr, 
 
 void TensorGlRep::postLoad(TensorGlRep&){
 	// symmetrize the tensor
-	Matrix3r sym=.5*(val+val.transpose()), skewM=.5*(val-val.transpose());
-	skew=Vector3r(skewM(1,2),skewM(0,2),skewM(0,1));
+	Matrix3r sym=.5*(val+val.transpose());
 
 	Eigen::SelfAdjointEigenSolver<Matrix3r> eig(sym);
 	// multiply rotation matrix (princ) rows by diagonal entries 
 	eigVec=eig.eigenvectors();
 	eigVal=eig.eigenvalues();
+	// non-symmetric tensor in principal coordinates, extract the asymmetric part
+	Matrix3r valP=eigVec*val*eigVec.transpose();
+	Matrix3r skewM=.5*(valP-valP.transpose());
+	skew=2*Vector3r(skewM(1,2),skewM(0,2),skewM(0,1));
 };
 
 void TensorGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
@@ -113,7 +116,7 @@ void TensorGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
 
 	Vector3r pos=node->pos+(node->hasData<GlData>()?node->getData<GlData>().dGlPos:Vector3r::Zero());
 
-	for(int i=0;i<3;i++){
+	for(int i:{0,1,2}){
 		Vector3r color=(range?range->color(eigVal[i]):CompUtils::scalarOnColorScale(eigVal[i],-1,1));
 		Real mxNorm=(range?range->maxAbs(eigVal[i]):1);
 		Real len=relSz*viewInfo->sceneRadius;
@@ -136,7 +139,7 @@ void TensorGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
 		Real torDist=0*.3*torRad1; // draw both arcs in-plane
 		Real torRad2=torRad1*.1;
 		glColor3v(skewRange?skewRange->color(skew[i]):CompUtils::scalarOnColorScale(skew[i],-1,1));
-		for(int j=0; j<2; j++){
+		for(int j:{0,1,2}){
 			glPushMatrix();
 				Eigen::Affine3d T=Eigen::Affine3d::Identity();
 				T.translate(pos+(j==0?1:-1)*eigVec.col(i)*torDist).rotate(Quaternionr().setFromTwoVectors(Vector3r::UnitZ(),eigVec.col(i)*(skew[i]>0?-1:1))).scale(torRad1);

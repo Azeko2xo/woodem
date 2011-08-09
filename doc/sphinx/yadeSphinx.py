@@ -33,7 +33,7 @@ yade.%s module
 #
 # don't forget to put the module in index.rst as well!
 #
-mods={'export':[],'eudoxos':['_eudoxos'],'log':[],'post2d':[],'pack':['_packSpheres','_packPredicates','_packObb','_packSpherePadder'],'plot':[],'timing':[],'utils':['_utils'],'ymport':[],'geom':[],'bodiesHandling':[],'qt':['_qt','qt._GLViewer'],'linterpolation':[]}
+mods={'export':[],'eudoxos':['_eudoxos'],'log':[],'post2d':[],'pack':['_packSpheres','_packPredicates','_packObb','_packSpherePadder'],'plot':[],'timing':[],'utils':['_utils'],'ymport':[],'qt':['_qt','qt._GLViewer'],'linterpolation':[],'dem':[],'sparc':[],'gl':[],'core':[]}
 #
 # generate documentation, in alphabetical order
 mm=mods.keys(); mm.sort()
@@ -212,11 +212,11 @@ writer=None
 for w in ['html','latex']: #['html','latex']:
 	if 'nolatex' in sys.argv and w=='latex': continue # skip latex build if passed nolatex (used in debian packages)
 	writer=w
-	genWrapperRst()
+	#genWrapperRst()
 	# HACK: must rewrite sys.argv, since reference generator in conf.py determines if we output latex/html by inspecting it
 	sys.argv=['sphinx-build','-a','-E','-b','%s'%writer,'-d',outDir+'/doctrees','.',outDir+'/%s'%writer]
 	sphinx.main(sys.argv)
-	makeBaseClassesClickable((outDir+'/html/yade.wrapper.html' if writer=='html' else outDir+'/latex/Yade.tex'),writer)
+	#makeBaseClassesClickable((outDir+'/html/yade.wrapper.html' if writer=='html' else outDir+'/latex/Yade.tex'),writer)
 	if (os.path.exists('/usr/share/javascript/jquery/jquery.js')): #Check, whether jquery.js installed in system
 		os.system('rm '+ outDir+'/html/_static/jquery.js')
 		os.system('ln -s /usr/share/javascript/jquery/jquery.js '+ outDir+'/html/_static/jquery.js')
