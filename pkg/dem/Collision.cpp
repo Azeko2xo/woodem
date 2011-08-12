@@ -20,23 +20,20 @@ bool Collider::mayCollide(const shared_ptr<Particle>& pA, const shared_ptr<Parti
 	
 }
 
-// CREATE_LOGGER(BoundDispatcher);
-
 void BoundDispatcher::run(){
 	updateScenePtr();
 	FOREACH(const shared_ptr<Particle> p, field->cast<DemField>().particles){
 		shared_ptr<Shape>& shape=p->shape;
-		//if(!shape || !b->isBounded()) continue;
 		if(!shape) continue;
 		operator()(shape);
 		if(!shape) continue; // the functor did not create new bound
-		if(sweepDist>0){
-			Aabb* aabb=YADE_CAST<Aabb*>(shape->bound.get());
-			aabb->min-=Vector3r(sweepDist,sweepDist,sweepDist);
-			aabb->max+=Vector3r(sweepDist,sweepDist,sweepDist);
-		}
+	#if 0
+		Aabb* aabb=YADE_CAST<Aabb*>(shape->bound.get());
+		Real sweep=velocityBins->bins[velocityBins->bodyBins[p->id]].maxDist;
+		aabb->min-=Vector3r(sweep,sweep,sweep);
+		aabb->max+=Vector3r(sweep,sweep,sweep);
+	#endif
 	}
-	// scene->updateBound();
 }
 
 
@@ -71,7 +68,6 @@ void Collider::pyHandleCustomCtorArgs(py::tuple& t, py::dict& d){
 void Gl1_Aabb::go(const shared_ptr<Bound>& bv){
 	Aabb& aabb=bv->cast<Aabb>();
 	glColor3v(Vector3r(1,1,0));
-	// glDisable(GL_LIGHTING);
 	if(!scene->isPeriodic){
 		glTranslatev(Vector3r(.5*(aabb.min+aabb.max)));
 		glScalev(Vector3r(aabb.max-aabb.min));
@@ -80,6 +76,8 @@ void Gl1_Aabb::go(const shared_ptr<Bound>& bv){
 		glMultMatrixd(scene->cell->getGlShearTrsfMatrix());
 		glScalev(Vector3r(aabb.max-aabb.min));
 	}
+	glDisable(GL_LINE_SMOOTH);
 	glutWireCube(1);
+	glEnable(GL_LINE_SMOOTH);
 }
 #endif

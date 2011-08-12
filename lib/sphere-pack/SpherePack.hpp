@@ -61,10 +61,8 @@ public:
 	void fromList(const py::list& l);
 	void fromLists(const vector<Vector3r>& centers, const vector<Real>& radii); // used as ctor in python
 	py::list toList() const;
-#if 0
-	void fromFile(const string file);
-#endif
-	void toFile(const string file) const;
+	void fromFile(const string& file);
+	void toFile(const string& file) const;
 	// void fromSimulation();
 
 	// random generation; if num<0, insert as many spheres as possible; if porosity>0, recompute meanRadius (porosity>0.65 recommended) and try generating this porosity with num spheres.

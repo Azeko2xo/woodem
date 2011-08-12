@@ -7,6 +7,8 @@ See :ref:`timing` section of the programmer's manual, `wiki page <http://yade-de
 """
 
 from yade.wrapper import *
+from yade.core import *
+from yade.dem import *
 
 
 def _resetEngine(e):
@@ -20,7 +22,7 @@ def _resetEngine(e):
 
 def reset():
 	"Zero all timing data."
-	for e in O.engines: _resetEngine(e)
+	for e in O.scene.engines: _resetEngine(e)
 
 _statCols={'label':40,'count':20,'time':20,'relTime':20}
 _maxLev=3
@@ -59,10 +61,10 @@ def _engines_stats(engines,totalTime,level):
 			else: execTime=e.execTime
 			lines+=_delta_stats(e.timingDeltas,execTime,level+1)
 		if isinstance(e,Dispatcher): lines+=_engines_stats(e.functors,e.execTime,level+1)
-		if isinstance(e,InteractionLoop):
-			lines+=_engines_stats(e.geomDispatcher.functors,e.execTime,level+1)
-			lines+=_engines_stats(e.physDispatcher.functors,e.execTime,level+1)
-			lines+=_engines_stats(e.lawDispatcher.functors,e.execTime,level+1)
+		if isinstance(e,ContactLoop):
+			lines+=_engines_stats(e.geoDisp.functors,e.execTime,level+1)
+			lines+=_engines_stats(e.phyDisp.functors,e.execTime,level+1)
+			lines+=_engines_stats(e.lawDisp.functors,e.execTime,level+1)
 		elif isinstance(e,ParallelEngine): lines+=_engines_stats(e.slave,e.execTime,level+1)
 	if hereLines>1:
 		print _formatLine('TOTAL',totalTime,-1,totalTime,level); lines+=1
@@ -96,5 +98,5 @@ def stats():
 	"""
 	print 'Name'.ljust(_statCols['label'])+' '+'Count'.rjust(_statCols['count'])+' '+'Time'.rjust(_statCols['time'])+' '+'Rel. time'.rjust(_statCols['relTime'])
 	print '-'*(sum([_statCols[k] for k in _statCols])+len(_statCols)-1)
-	_engines_stats(O.engines,sum([e.execTime for e in O.engines]),0)
+	_engines_stats(O.scene.engines,sum([e.execTime for e in O.scene.engines]),0)
 	print

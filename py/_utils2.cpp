@@ -71,7 +71,7 @@ vector<shared_ptr<Contact> > createContacts(const vector<Particle::id_t>& ids1, 
 	return ret;
 }
 
-py::tuple stressStiffnessWork(Real volume=0, bool skipMultinodal=false){
+py::tuple stressStiffnessWork(Real volume=0, bool skipMultinodal=false, const Vector6r& prevStress=(Vector6r()<<NaN,NaN,NaN,NaN,NaN,NaN).finished()){
 	Matrix6r K(Matrix6r::Zero());
 	Matrix3r stress(Matrix3r::Zero());
 	Scene* scene=Omega::instance().getScene().get(); DemField* dem=getDemField(scene).get();
@@ -120,7 +120,12 @@ py::tuple stressStiffnessWork(Real volume=0, bool skipMultinodal=false){
 	Real maxElem=K.maxCoeff();
 	for(int p=0; p<6; p++) for(int q=0; q<6; q++) if(K(p,q)<1e-12*maxElem) K(p,q)=0;
 	// compute velGrad work in periodic simulations
-	Real work=scene->isPeriodic?-(scene->cell->velGrad*stress).trace()*scene->dt*scene->cell->getVolume():NaN;
+	Real work=NaN;
+	if(scene->isPeriodic){
+		Matrix3r midStress=!isnan(prevStress[0])?.5*(voigt_toSymmTensor(prevStress)+stress):stress;
+		Real midVolume=(scene->cell->hSize-.5*scene->dt*scene->cell->velGrad).determinant();
+		work=-(scene->cell->velGrad*midStress).trace()*scene->dt*midVolume;
+	}
 	return py::make_tuple(tensor_toVoigt(stress),K,work);
 }
 
@@ -133,7 +138,7 @@ BOOST_PYTHON_MODULE(_utils2){
 	py::def("pWaveTimeStep",pWaveTimeStep,"Do not use, remaed to pWaveDt and will be removed.");
 	py::def("pWaveDt",pWaveDt,"Get timestep accoring to the velocity of P-Wave propagation; computed from sphere radii, rigidities and masses.");
 	py::def("createContacts",createContacts,(py::arg("ids1"),py::arg("id2s"),py::arg("geomFunctors")=vector<shared_ptr<CGeomFunctor> >(),py::arg("physFunctors")=vector<shared_ptr<CPhysFunctor> >(),py::arg("force")=true),"Create contacts between given DEM particles.\n\nCurrent engines are searched for :yref:`ContactLoop`, unless *geomFunctors* and *physFunctors* are given. *force* will make :yref:`CGeomFunctors` acknowledge the contact even if particles don't touch geometrically.\n\n.. warning::\n\tThis function will very likely behave incorrectly for periodic simulations (though it could be extended it to handle it farily easily).");
-	py::def("stressStiffnessWork",stressStiffnessWork,(py::arg("volume")=0,py::arg("skipMultinodal")=true),"Compute stress and stiffness tensors, and work increment of current velocity gradient (*nan* for aperiodic simulations); returns tuple (stress, stiffness, work), where stress and stiffness are in Voigt notation. *skipMultinodal* skips all contacts involving particles with multiple nodes, where stress & stiffness values can be determined only by In2 functors.");
+	py::def("stressStiffnessWork",stressStiffnessWork,(py::arg("volume")=0,py::arg("skipMultinodal")=true,py::arg("prevStress")=(Vector6r()<<NaN,NaN,NaN,NaN,NaN,NaN).finished()),"Compute stress and stiffness tensors, and work increment of current velocity gradient (*nan* for aperiodic simulations); returns tuple (stress, stiffness, work), where stress and stiffness are in Voigt notation. *skipMultinodal* skips all contacts involving particles with multiple nodes, where stress & stiffness values can be determined only by In2 functors.");
 }
 
 

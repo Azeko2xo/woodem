@@ -1,18 +1,14 @@
 // 2009 © Václav Šmilauer <eudoxos@arcig.cz>
+#if 0
 
-
-#include"VelocityBins.hpp"
+#include<yade/pkg/dem/VelocityBins.hpp>
 #include<yade/core/Scene.hpp>
-#include<boost/foreach.hpp>
-#ifndef FOREACH
-#	define FOREACH BOOST_FOREACH
-#endif
 CREATE_LOGGER(VelocityBins);
 
-bool VelocityBins::checkSize_incrementDists_shouldCollide(const Scene* scene){
+bool VelocityBins::checkSize_incrementDists_shouldCollide(const Scene* scene, const DemField* dem){
 	// number of particles increased, recollision necessary
 	// smaller number of particles is handled in setBins
-	if(bodyBins.size()<scene->bodies->size()) { bodyBins.resize(scene->bodies->size(),/* put new particles to the slowest bin*/ bins.size()-1); return true; }
+	if(bodyBins.size()<dem->particles->size()) { bodyBins.resize(dem->particles->size(),/* put new particles to the slowest bin*/ bins.size()-1); return true; }
 	int i=0;
 	const Real& dt=scene->dt;
 	FOREACH(Bin& bin, bins){
@@ -27,7 +23,7 @@ bool VelocityBins::checkSize_incrementDists_shouldCollide(const Scene* scene){
 	return false;
 }
 
-void VelocityBins::setBins(Scene* scene, Real currMaxVelSq, Real refSweepLength){
+void VelocityBins::setBins(const Scene* scene, const DemField* dem, Real currMaxVelSq, Real refSweepLength){
 	// initialization
 		// sanity checks
 		if(nBins<1 || nBins>100){ throw runtime_error("VelocityBins: Number of bins must be >=1 and <=100"); }
@@ -38,7 +34,7 @@ void VelocityBins::setBins(Scene* scene, Real currMaxVelSq, Real refSweepLength)
 			bins.resize(nBins);	
 		}
 		// number of bodies changed
-		if(bodyBins.size()!=scene->bodies->size()) bodyBins.resize(scene->bodies->size(),-1);
+		if(bodyBins.size()!=dem->particles->size()) bodyBins.resize(dem->partices->size(),-1);
 		// set the new overall refMaxVelSq
 		if(refMaxVelSq<0){ refMaxVelSq=currMaxVelSq; /* first time */}
 		else {
@@ -68,9 +64,8 @@ void VelocityBins::setBins(Scene* scene, Real currMaxVelSq, Real refSweepLength)
 			bin.currDist=0; bin.currMaxVelSq=0; bin.nBodies=0;
 		}
 	long moveFaster=0, moveSlower=0;
-	FOREACH(const shared_ptr<Body>& b, *scene->bodies){
-		if(!b) continue;
-		Real velSq=VelocityBins::getBodyVelSq(b->state.get());
+	FOREACH(const shared_ptr<Particles>& p, *dem->particles){
+		Real velSq=VelocityBins::getBodyVelSq(p);
 		binNo_t newBin=-1, oldBin=bodyBins[b->getId()];
 		// we could compute logarithm and round it here, but perhaps this is faster
 		for(size_t i=0; i<nBins; i++){
@@ -89,8 +84,8 @@ void VelocityBins::setBins(Scene* scene, Real currMaxVelSq, Real refSweepLength)
 	}
 	#ifdef YADE_LOG4CXX
 		// if debugging output
-		if(logger->isDebugEnabled() && (scene->iter-histLast>=histInterval || histLast<0)){
-			histLast=scene->iter;
+		if(logger->isDebugEnabled() && (scene->step-histLast>=histInterval || histLast<0)){
+			histLast=scene->step;
 			LOG_INFO(bodyBins.size()<<" bodies (moves: "<<moveFaster<<" faster, "<<moveSlower<<" slower), refMaxVel="<<sqrt(refMaxVelSq));
 			for(size_t i=0; i<nBins; i++){
 				int nChars=int(80*(bins[i].nBodies/Real(bodyBins.size())));
@@ -123,3 +118,4 @@ void VelocityBins::setBins(Scene* scene, Real currMaxVelSq, Real refSweepLength)
 	void VelocityBins::binVelSqFinalize(){}
 #endif
 
+#endif

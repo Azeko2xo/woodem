@@ -10,6 +10,10 @@
 #include<boost/random/uniform_real.hpp>
 #include<boost/random/variate_generator.hpp>
 
+#include<boost/filesystem/convenience.hpp>
+#include<boost/tokenizer.hpp>
+
+
 #include<iostream>
 #include<fstream>
 
@@ -60,18 +64,37 @@ py::list SpherePack::toList() const {
 	return ret;
 };
 
-#if 0
-void SpherePack::fromFile(string file) {
-	typedef pair<Vector3r,Real> pairVector3rReal;
-	vector<pairVector3rReal> ss;
-	Vector3r mn,mx;
-	ss=Shop::loadSpheresFromFile(file,mn,mx,&cellSize);
+void SpherePack::fromFile(const string& fname) {
+	if(!boost::filesystem::exists(fname)) {
+		throw std::invalid_argument(string("File with spheres `")+fname+"' doesn't exist.");
+	}
+	std::ifstream sphereFile(fname.c_str());
+	if(!sphereFile.good()) throw std::runtime_error("File with spheres `"+fname+"' couldn't be opened.");
 	pack.clear();
-	FOREACH(const pairVector3rReal& s, ss) pack.push_back(Sph(s.first,s.second));
-}
-#endif
+	cellSize=Vector3r::Zero();
 
-void SpherePack::toFile(const string fname) const {
+	Vector3r C;
+	Real r=0;
+	string line;
+	size_t lineNo=0;
+	while(std::getline(sphereFile,line,'\n')){
+		lineNo++;
+		boost::tokenizer<boost::char_separator<char> > toks(line,boost::char_separator<char>(" \t"));
+		vector<string> tokens; FOREACH(const string& s, toks) tokens.push_back(s);
+		if(tokens.empty()) continue;
+		if(tokens[0]=="##PERIODIC::"){
+			if(tokens.size()!=4) throw std::invalid_argument(("Spheres file "+fname+":"+lexical_cast<string>(lineNo)+" contains ##PERIODIC::, but the line is malformed.").c_str());
+			cellSize=Vector3r(lexical_cast<Real>(tokens[1]),lexical_cast<Real>(tokens[2]),lexical_cast<Real>(tokens[3]));
+			continue;
+		}
+		if(tokens.size()!=4) throw std::invalid_argument(("Line "+lexical_cast<string>(lineNo)+" in the spheres file "+fname+" has "+lexical_cast<string>(tokens.size())+" columns (must be 4).").c_str());
+		C=Vector3r(lexical_cast<Real>(tokens[0]),lexical_cast<Real>(tokens[1]),lexical_cast<Real>(tokens[2]));
+		r=lexical_cast<Real>(tokens[3]);
+		pack.push_back(Sph(C,r));
+	}
+}
+
+void SpherePack::toFile(const string& fname) const {
 	std::ofstream f(fname.c_str());
 	if(!f.good()) throw std::runtime_error("Unable to open file `"+fname+"'");
 	if(cellSize!=Vector3r::Zero()){ f<<"##PERIODIC:: "<<cellSize[0]<<" "<<cellSize[1]<<" "<<cellSize[2]<<std::endl; }
@@ -81,19 +104,6 @@ void SpherePack::toFile(const string fname) const {
 	}
 	f.close();
 };
-#if 0
-void SpherePack::fromSimulation() {
-	pack.clear();
-	Scene* scene=Omega::instance().getScene().get();
-	FOREACH(const shared_ptr<Body>& b, *scene->bodies){
-		if(!b) continue;
-		shared_ptr<Sphere> intSph=dynamic_pointer_cast<Sphere>(b->shape);
-		if(!intSph) continue;
-		pack.push_back(Sph(b->state->pos,intSph->radius,(b->isClumpMember()?b->clumpId:-1)));
-	}
-	if(scene->isPeriodic) { cellSize=scene->cell->getSize(); }
-}
-#endif
 
 long SpherePack::makeCloud(Vector3r mn, Vector3r mx, Real rMean, Real rRelFuzz, int num, bool periodic, Real porosity, const vector<Real>& psdSizes, const vector<Real>& psdCumm, bool distributeMass, int seed, Matrix3r hSize){
 	static boost::minstd_rand randGen(seed!=0?seed:(int)getNow());

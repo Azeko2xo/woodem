@@ -265,8 +265,11 @@ class ControllerClass(QWidget,Ui_Controller):
 			self.realTimeLabel.setText('%02d:%02d:%02d'%(rt//3600,(rt%3600)//60,rt%60))
 			self.stepLabel.setText('#%ld, %.1f/s %s'%(step,self.stepPerSec,subStepInfo))
 		else:
-			e=int((stopAtStep-step)*self.stepPerSec)
-			self.realTimeLabel.setText('%02d:%02d:%02d (ETA %02d:%02d:%02d)'%(rt//3600,rt//60,rt%60,e//3600,e//60,e%60))
+			if self.stepPerSec!=0:
+				e=int((stopAtStep-step)/self.stepPerSec)
+				eta='(ETA %02d:%02d:%02d)'%(e//3600,e//60,e%60)
+			else: eta=u'(ETA −)'
+			self.realTimeLabel.setText('%02d:%02d:%02d %s'%(rt//3600,rt//60,rt%60,eta))
 			self.stepLabel.setText('#%ld / %ld, %.1f/s %s'%(scene.step,stopAtStep,self.stepPerSec,subStepInfo))
 		if t!=float('inf'):
 			s=int(t); ms=int(t*1000)%1000; us=int(t*1000000)%1000; ns=int(t*1000000000)%1000

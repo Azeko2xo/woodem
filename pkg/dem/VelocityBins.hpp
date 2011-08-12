@@ -1,17 +1,14 @@
 // 2009 © Václav Šmilauer <eudoxos@arcig.cz>
 #pragma once 
-
-#include<yade/core/Body.hpp> // for Body::id_t
-#include<yade/core/State.hpp>
-#include<yade/core/Interaction.hpp>
-#include<vector>
+#if 0
+#include<yade/pkg/dem/Particle.hpp> // for Body::id_t
 #ifdef YADE_OPENMP
 	#include<omp.h>
 #endif
 
 class Scene;
 
-/* Class for putting bodies to velcoity bins, for optimization
+/* Class for putting bodies to velocity bins, for optimization
 of collision detection.
 Each bin is characterized by its minimum/maximum velocity. 
 See http://yade.wikia.com/wiki/Insertion_Sort_Collider_Stride#Enhancement_ideas:_velocity_bins for brief design overview.
@@ -57,11 +54,11 @@ class VelocityBins{
 	// how often to show histogram, if LOG_DEBUG is enabled;
 	long histInterval, histLast;
 	// Assign bins to all bodies
-	void setBins(Scene*, Real currMaxVelSq, Real refSweepLength);
+	void setBins(Scene*, const DemField*, Real currMaxVelSq, Real refSweepLength);
 
 	// Increment maximum per-bin distances and tell whether some bodies may be	already getting out of the swept bbox (in that case, we need to recompute bounding volumes and run the collider)
 	// Also returns true if number of particles changed, in which case it adjusts internal storage accordingly
-	bool checkSize_incrementDists_shouldCollide(const Scene*);
+	bool checkSize_incrementDists_shouldCollide(const Scene*, const DemField*);
 	
 	/* NOTE: following 3 functions are separated because of multi-threaded operation of NewtonIntegrator
 	in that case, every thread must have its own per-bin maximum and binVelSqFinalize will assign the
@@ -80,9 +77,12 @@ class VelocityBins{
 	// get velSq for given body; this should be called from NewtonIntegrator as well,
 	// to ensure that the same formulas are used (once we have angularVelocity + Aabb span,
 	// for instance
-	static Real getBodyVelSq(const State* state){
-		return state->vel.squaredNorm();
+	static Real getBodyVelSq(const shared_ptr<Particle>& p){
+		Real ret=0;
+		if(!p->shape) return 0;
+		FOREACH(const shared_ptr<Node>& n, p->shape->nodes) ret=max(ret,n->getData<DemData>().vel.squaredLength());
+		return ret;
 	}
-
 	DECLARE_LOGGER;
 };
+#endif

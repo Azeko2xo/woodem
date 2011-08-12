@@ -29,8 +29,6 @@ class Cell: public Serializable{
 	const Matrix3r& getShearTrsf() const { return _shearTrsf; }
 	//! inverse of getShearTrsfMatrix().
 	const Matrix3r& getUnshearTrsf() const {return _unshearTrsf;}
-	//! transformation increment matrix applying arbitrary field (remove if not used in NewtonIntegrator! )
-	// const Matrix3r& getTrsfInc() const { return _trsfInc; }
 	
 	/*! return pointer to column-major OpenGL 4x4 matrix applying pure shear. This matrix is suitable as argument for glMultMatrixd.
 
@@ -99,20 +97,8 @@ class Cell: public Serializable{
 	// set current transformation; has no influence on current configuration (hSize); sets display refHSize as side-effect
 	Matrix3r getTrsf() const { return trsf; }
 	void setTrsf(const Matrix3r& m){ trsf=m; postLoad(*this); }
-	//BEGIN Deprecated (see refSize property)
 	// get undeformed shape
 	Matrix3r getHSize0() const { return _invTrsf*hSize; }
-	// edge lengths of the undeformed shape
-	Vector3r getRefSize() const { Matrix3r h=getHSize0(); return Vector3r(h.col(0).norm(),h.col(1).norm(),h.col(2).norm()); }
-	// temporary, will be removed in favor of more descriptive setBox(...)
-	void setRefSize(const Vector3r& s){
-		// if refSize is set to the current size and the cell is a box (used in older scripts), say it is not necessary
-		Matrix3r hSizeEigen3=hSize.diagonal().asDiagonal();		//Eigen3 support
-		if(s==_size && hSize==hSizeEigen3){ LOG_WARN("Setting O.cell.refSize=O.cell.size is useless, O.trsf=Matrix3.Identity is enough now."); }
-		else {LOG_WARN("Setting Cell.refSize is deprecated, use Cell.setBox(...) instead.");}
-		setBox(s); postLoad(*this);
-	} 
-	//END Deprecated
 	// set box shape of the cell
 	void setBox(const Vector3r& size){ setHSize(size.asDiagonal()); trsf=Matrix3r::Identity(); postLoad(*this); }
 	void setBox3(const Real& s0, const Real& s1, const Real& s2){ setBox(Vector3r(s0,s1,s2)); }
@@ -138,7 +124,6 @@ class Cell: public Serializable{
 		((Matrix3r,hSize,Matrix3r::Identity(),,"[overridden below]"))
 		/* normal attributes */
 		((Matrix3r,velGrad,Matrix3r::Zero(),,"Velocity gradient of the transformation; used in :yref:`Leapfrog`. Values of :yref:`velGrad<Cell.velGrad>` accumulate in :yref:`trsf<Cell.trsf>` at every step."))
-		((Matrix3r,prevVelGrad,Matrix3r::Zero(),Attr::readonly,"Velocity gradient in the previous step."))
 		((int,homoDeform,HOMO_VEL_2ND,Attr::triggerPostLoad,"Deform (:yref:`velGrad<Cell.velGrad>`) the cell homothetically, by adjusting positions or velocities of particles. The values have the following meaning: 0: no homothetic deformation, 1: set absolute particle positions directly (when ``velGrad`` is non-zero), but without changing their velocity, 2: adjust particle velocity (only when ``velGrad`` changed) with Δv_i=Δ ∇v x_i. 3: as 2, but include a 2nd order term in addition -- the derivative of 1 (convective term in the velocity update).")),
 		/*deprec*/ ((Hsize,hSize,"conform to Yade's names convention.")),
 		/*init*/ ,
@@ -147,7 +132,6 @@ class Cell: public Serializable{
 		// override some attributes above
 		.add_property("hSize",&Cell::getHSize,&Cell::setHSize,"Base cell vectors (columns of the matrix), updated at every step from :yref:`velGrad<Cell.velGrad>` (:yref:`trsf<Cell.trsf>` accumulates applied :yref:`velGrad<Cell.velGrad>` transformations). Setting *hSize* during a simulation is not supported by most contact laws, it is only meant to be used at iteration 0 before any interactions have been created.")
 		.add_property("size",&Cell::getSize_copy,&Cell::setSize,"Current size of the cell, i.e. lengths of the 3 cell lateral vectors contained in :yref:`Cell.hSize` columns. Updated automatically at every step. Assigning a value will change the lengths of base vectors (see :yref:`Cell.hSize`), keeping their orientations unchanged.")
-		.add_property("refSize",&Cell::getRefSize,&Cell::setRefSize,"Reference size of the cell (lengths of initial cell vectors, i.e. column norms of :yref:`hSize<Cell.hSize>`).\n\n.. note:: Modifying this value is deprecated, use :yref:`setBox<Cell.setBox>` instead.\n\n")
 		// useful properties
 		.add_property("trsf",&Cell::getTrsf,&Cell::setTrsf,"Current transformation matrix of the cell, obtained from time integration of :yref:`Cell.velGrad`.")
 		.def_readonly("size",&Cell::getSize_copy,"Current size of the cell, i.e. lengths of the 3 cell lateral vectors contained in :yref:`Cell.hSize` columns. Updated automatically at every step.")

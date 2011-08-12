@@ -1,6 +1,9 @@
 #include<yade/pkg/dem/ContactLoop.hpp>
 #include<yade/pkg/dem/ParticleContainer.hpp>
 
+// temporary
+#include<yade/pkg/dem/G3Geom.hpp>
+
 YADE_PLUGIN(dem,(CGeomFunctor)(CGeomDispatcher)(CPhysFunctor)(CPhysDispatcher)(LawFunctor)(LawDispatcher)(ContactLoop));
 CREATE_LOGGER(ContactLoop);
 
@@ -95,13 +98,17 @@ void ContactLoop::run(){
 	// cache transformed cell size
 	Matrix3r cellHsize; if(scene->isPeriodic) cellHsize=scene->cell->hSize;
 
+	stress=Matrix3r::Zero();
+
 	// force removal of interactions that were not encountered by the collider
 	// (only for some kinds of colliders; see comment for InteractionContainer::iterColliderLastRun)
 	bool removeUnseen=(dem.contacts.stepColliderLastRun>=0 && dem.contacts.stepColliderLastRun==scene->step);
+
+	const bool doGradVWork=(trackWork && scene->trackEnergy && scene->isPeriodic);
 		
 	size_t size=dem.contacts.size();
 	#ifdef YADE_OPENMP
-		#pragma omp parallel for schedule(guided)
+		#pragma omp parallel for schedule(guided)	
 	#endif
 	for(size_t i=0; i<size; i++){
 		const shared_ptr<Contact>& C=dem.contacts[i];
@@ -130,6 +137,24 @@ void ContactLoop::run(){
 
 		// CLaw
 		lawDisp->operator()(C->geom,C->phys,C);
+
+		// track gradV work
+		/* this is meant to avoid calling extra loop at every step, since the work must be evaluated incrementally */
+		if(doGradVWork && /*contact law deleted the contact?*/ C->isReal()){
+			if(C->pA->shape->nodes.size()!=1 || C->pB->shape->nodes.size()!=1) throw std::runtime_error("ContactLoop.trackWork not allowed with multi-nodal particles in contact (##"+lexical_cast<string>(C->pA->id)+"+"+lexical_cast<string>(C->pB->id)+")");
+			const Real d0=(C->pB->shape->nodes[0]->pos-C->pA->shape->nodes[0]->pos+scene->cell->intrShiftPos(C->cellDist)).norm();
+			Vector3r n=C->geom->node->ori.conjugate()*Vector3r::UnitX(); // normal in global coords
+			#if 1
+				// g3geom doesn't set local x axis propertly, use its internal data instead
+				G3Geom* g3g=dynamic_cast<G3Geom*>(C->geom.get());
+				if(g3g) n=g3g->normal;
+			#endif
+			Vector3r F=C->geom->node->ori.conjugate()*C->phys->force;
+			Real fN=F.dot(n); Vector3r fT=F-n*fN;
+			// this could be done better using reductions, but those don't allow overloaded operators :-|
+			#pragma omp critical
+			{ for(int i:{0,1,2}) for(int j:{0,1,2}) stress(i,j)+=d0*(fN*n[i]*n[j]+.5*(fT[i]*n[j]+fT[j]*n[i])); }
+		}
 	}
 	// process removeAfterLoop
 	#ifdef YADE_OPENMP
@@ -141,4 +166,10 @@ void ContactLoop::run(){
 		FOREACH(const shared_ptr<Contact>& c, removeAfterLoopRefs) dem.contacts.remove(c);
 		removeAfterLoopRefs.clear();
 	#endif
+	// compute gradVWork eventually
+	if(doGradVWork){
+		stress/=scene->cell->getVolume();
+		Real dW=-(scene->cell->velGrad*stress).trace()*scene->dt*scene->cell->getVolume();
+		scene->energy->add(dW,"gradV",gradVIx,/*non-incremental*/false);
+	}
 }

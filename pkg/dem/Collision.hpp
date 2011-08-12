@@ -8,7 +8,12 @@
 #endif
 
 class Aabb: public Bound{
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR(Aabb,Bound,"Axis-aligned bounding box, for use with :yref:`InsertionSortCollider`. (This class is quasi-redundant since min,max are already contained in :yref:`Bound` itself. That might change at some point, though.)",/*attrs*/,/*ctor*/createIndex(););
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR(Aabb,Bound,"Axis-aligned bounding box, for use with :yref:`InsertionSortCollider`.",/*attrs*/
+		((vector<Vector3r>,nodeLastPos,,Attr::readonly,"Node positions when bbox was last updated."))
+		((Real,maxD2,0,Attr::readonly,"Maximum allowed squared distance for nodal displacements (i.e. how much was the bbox enlarged last time)"))
+		,
+		/*ctor*/createIndex();
+	);
 	REGISTER_CLASS_INDEX(Aabb,Bound);
 };
 REGISTER_SERIALIZABLE(Aabb);
@@ -32,7 +37,6 @@ struct BoundDispatcher: public Dispatcher1D</* functor type*/ BoundFunctor>{
 	void run();
 	YADE_DISPATCHER1D_FUNCTOR_DOC_ATTRS_CTOR_PY(BoundDispatcher,BoundFunctor,/*optional doc*/,
 		/*additional attrs*/
-		((Real,sweepDist,0,,"Distance by which enlarge all bounding boxes, to prevent collider from being run at every step (only should be changed by the collider)."))
 		,/*ctor*/,/*py*/
 	);
 };

@@ -482,6 +482,7 @@ void Renderer::renderSparc(){
 		// show neighbours with lines, with node colors
 		Vector3r color=CompUtils::mapColor(n->getData<SparcData>().color);
 		FOREACH(const shared_ptr<Node>& neighbor, n->getData<SparcData>().neighbors){
+			if(!neighbor->hasData<GlData>()) continue; // neighbor might not have GlData yet, will be ok in next frame
 			const Vector3r& np=neighbor->pos+neighbor->getData<GlData>().dGlPos;
 			GLUtils::GLDrawLine(pos,pos+.5*(np-pos),color,3);
 			GLUtils::GLDrawLine(pos+.5*(np-pos),np,color,1);

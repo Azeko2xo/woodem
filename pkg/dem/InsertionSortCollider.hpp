@@ -80,9 +80,10 @@ Possible performance improvements & bugs
 	#define ISC_CHECKPOINT(cpt)
 #endif
 
-//#define YADE_VBINS
+// #define YADE_VBINS
+
 #ifdef YADE_VBINS
-class NewtonIntegrator;
+class Leapfrog;
 #endif
 
 class ParticleContainer;
@@ -115,7 +116,7 @@ class InsertionSortCollider: public Collider, private DemField::Engine{
 	#endif
 		#ifdef YADE_VBINS
 			// we need this to find out about current maxVelocitySq
-			shared_ptr<NewtonIntegrator> newton;
+			shared_ptr<Leapfrog> leapfrog;
 		#endif
 			// if False, no type of striding is used
 			// if True, then either verletDist XOR nBins is set
@@ -182,8 +183,13 @@ class InsertionSortCollider: public Collider, private DemField::Engine{
 	virtual bool isActivated();
 
 
+
 	// force reinitialization at next run
 	virtual void invalidatePersistentData(){ for(int i=0; i<3; i++){ BB[i].vec.clear(); BB[i].size=0; }}
+	// check params for consistency
+	void postLoad(InsertionSortCollider&);
+	// check whether bounding boxes are bounding
+	bool updateBboxes_doFullRun();
 
 	vector<Particle::id_t> probeBoundingVolume(const Bound&);
 
@@ -203,7 +209,7 @@ class InsertionSortCollider: public Collider, private DemField::Engine{
 			\n\n \
 			#. No body can travel more than cell's distance in one step; this would mean that the simulation is numerically exploding, and it is only detected in some cases.\
 		\n\n \
-		**Stride** can be used to avoid running collider at every step by enlarging the particle's bounds, tracking their velocities and only re-run if they might have gone out of that bounds (see `Verlet list <http://en.wikipedia.org/wiki/Verlet_list>`_ for brief description and background) . This requires cooperation from :yref:`NewtonIntegrator` as well as :yref:`BoundDispatcher`, which will be found among engines automatically (exception is thrown if they are not found).\
+		**Stride** can be used to avoid running collider at every step by enlarging the particle's bounds, tracking their velocities and only re-run if they might have gone out of that bounds (see `Verlet list <http://en.wikipedia.org/wiki/Verlet_list>`_ for brief description and background) . This requires cooperation from :yref:`Leapfrog` as well as :yref:`BoundDispatcher`, which will be found among engines automatically (exception is thrown if they are not found).\
 		\n\n \
 		If you wish to use strides, set ``verletDist`` (length by which bounds will be enlarged in all directions) to some value, e.g. 0.05 × typical particle radius. This parameter expresses the tradeoff between many potential interactions (running collider rarely, but with longer exact interaction resolution phase) and few potential interactions (running collider more frequently, but with less exact resolutions of interactions); it depends mainly on packing density and particle radius distribution.\
 		\n\n \
@@ -211,11 +217,12 @@ class InsertionSortCollider: public Collider, private DemField::Engine{
 	",
 		((int,sortAxis,0,,"Axis for the initial contact detection."))
 		((bool,sortThenCollide,false,,"Separate sorting and colliding phase; it is MUCH slower, but all interactions are processed at every step; this effectively makes the collider non-persistent, not remembering last state. (The default behavior relies on the fact that inversions during insertion sort are overlaps of bounding boxes that just started/ceased to exist, and only processes those; this makes the collider much more efficient.)"))
-#ifdef YADE_VBINS
 		((Real,verletDist,((void)"Automatically initialized",-.05),,"Length by which to enlarge particle bounds, to avoid running collider at every step. Stride disabled if zero. Negative value will trigger automatic computation, so that the real value will be |verletDist| × minimum spherical particle radius; if there are no spherical particles, it will be disabled."))
-		((Real,sweepFactor,1.05,,"Overestimation factor for the sweep velocity; must be >=1.0. Has no influence on verletDist, only on the computed stride. [DEPRECATED, is used only when bins are not used]."))
+		((Real,maxVel2,0,Attr::readonly,"Maximum encountered velocity of a particle, to compute bounding box shift."))
+		((int,nFullRuns,0,,"Number of full runs, when collision detection is needed; only informative."))
+#ifdef YADE_VBINS
 		((Real,fastestBodyMaxDist,-1,,"Maximum displacement of the fastest body since last run; if >= verletDist, we could get out of bboxes and will trigger full run. DEPRECATED, was only used without bins. |yupdate|"))
-		((int,nBins,5,,"Number of velocity bins for striding. If <=0, bin-less strigin is used (this is however DEPRECATED)."))
+		((int,nBins,5,,"Number of velocity bins for striding. Must be a positive number!"))
 		((Real,binCoeff,2,,"Coefficient of bins for velocities, i.e. if ``binCoeff==5``, successive bins have 5 × smaller velocity peak than the previous one. (Passed to VelocityBins)"))
 		((Real,binOverlap,0.8,,"Relative bins hysteresis, to avoid moving body back and forth if its velocity is around the border value. (Passed to VelocityBins)"))
 		((Real,maxRefRelStep,.3,,"(Passed to VelocityBins)"))

@@ -193,11 +193,11 @@ def sphere(center,radius,fixed=False,wire=False,color=None,highlight=False,mater
 	V=(4./3)*math.pi*radius**3
 	geomInert=(2./5.)*V*radius**2
 	_commonBodySetup(b,([center] if isinstance(center,Node) else [_mkDemNode(pos=center),]),volumes=[V],geomInertias=[geomInert*Vector3.Ones],material=material,fixed=fixed)
-	#b.aspherical=False
+	b.aspherical=False
 	#b.mask=mask
 	return b
 
-def wall(position,axis,sense=0,fixed=True,mass=0,color=None,material=-1,mask=1):
+def wall(position,axis,sense=0,fixed=True,mass=0,color=None,material=None,mask=1):
 	"""Return ready-made wall body.
 
 	:param float-or-Vector3-or-Node position: center of the wall. If float, it is the position along given axis, the other 2 components being zero
@@ -215,10 +215,10 @@ def wall(position,axis,sense=0,fixed=True,mass=0,color=None,material=-1,mask=1):
 		node=position
 	else:
 		node=_mkDemNode(pos=position)
-	_commonBodySetup(p,[node],volumes=None,masses=[mass],geomInertials=[inf*Vector3.Ones],material=material,fixed=fixed)
-	b.aspherical=False # wall never moves dynamically
-	b.mask=mask
-	return b
+	_commonBodySetup(p,[node],volumes=None,masses=[mass],geomInertias=[inf*Vector3.Ones],material=material,fixed=fixed)
+	p.aspherical=False # wall never rotates anyway
+	#p.mask=mask
+	return p
 
 def facet(vertices,fixed=True,wire=True,color=None,highlight=False,noBound=False,material=-1,mask=1):
 	"""Create facet with given parameters.

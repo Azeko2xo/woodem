@@ -2,6 +2,7 @@
 
 #include<yade/pkg/dem/InsertionSortCollider.hpp>
 #include<yade/pkg/dem/ParticleContainer.hpp>
+#include<yade/pkg/dem/Sphere.hpp>
 #include<yade/core/Scene.hpp>
 
 #include<algorithm>
@@ -94,32 +95,103 @@ vector<Particle::id_t> InsertionSortCollider::probeBoundingVolume(const Bound& b
 
 // STRIDE
 	bool InsertionSortCollider::isActivated(){
-	#if YADE_VBINS
+	#ifdef YADE_VBINS
+		assert(nBins>0);
 		// activated if number of bodies changes (hence need to refresh collision information)
 		// or the time of scheduled run already came, or we were never scheduled yet
 		if(!strideActive) return true;
-		if(!newton || (nBins>=1 && !newton->velocityBins)) return true;
-		if(nBins>=1 && newton->velocityBins->checkSize_incrementDists_shouldCollide(scene)) return true;
-		if(nBins<=0){
-			if(fastestBodyMaxDist<0){fastestBodyMaxDist=0; return true;}
-			fastestBodyMaxDist+=sqrt(newton->maxVelocitySq)*scene->dt;
-			if(fastestBodyMaxDist>=verletDist) return true;
-		}
+		if(!leapfrog || !leapfrog->velocityBins) return true;
+		if(leapfrog->velocityBins->checkSize_incrementDists_shouldCollide(scene)) return true;
 		if((size_t)BB[0].size!=2*scene->bodies->size()) return true;
 		if(scene->interactions->dirty) return true;
 		return false;
-	#else
+	#endif
 		// we wouldn't run in this step; in that case, just delete pending interactions
 		// this is done in ::action normally, but it would make the call counters not reflect the stride
 		field->cast<DemField>().contacts.removePending(*this,scene);
 		return true;
-	#endif
 	}
+
+
+void InsertionSortCollider::postLoad(InsertionSortCollider&){
+	#ifdef YADE_VBINS
+		if(nBins<=0) throw std::invalid_argument("InsertionSortCollider.nBins must be positive (not "+lexical_cast<string>(nBins)+")");
+	#endif
+}
+
+bool InsertionSortCollider::updateBboxes_doFullRun(){
+	// update bounds via boundDispatcher
+	boundDispatcher->scene=scene;
+	boundDispatcher->field=field;
+	boundDispatcher->updateScenePtr();
+	// boundDispatcher->run();
+
+	// automatically initialize from min sphere size; if no spheres, disable stride
+	if(verletDist<0){
+		Real minR=std::numeric_limits<Real>::infinity();
+		FOREACH(const shared_ptr<Particle>& p, dem->particles){
+			if(!p || !p->shape) continue;
+			if(!dynamic_pointer_cast<Sphere>(p->shape))continue;
+			minR=min(p->shape->cast<Sphere>().radius,minR);
+		}
+		verletDist=isinf(minR) ? 0 : abs(verletDist)*minR;
+	}
+
+	bool recomputeBounds=false;
+	// first loop only checks if there something is our
+	FOREACH(const shared_ptr<Particle>& p, dem->particles){
+		if(!p->shape) continue;
+		const int nNodes=p->shape->nodes.size();
+		// below we throw exception for particle that has no functor afer the dispatcher has been called
+		// that would prevent mistakenly boundless particless triggering collisions every time
+		if(!p->shape->bound){ recomputeBounds=true; break; }
+		// existing bound, do we need to update it?
+		const Aabb& aabb=p->shape->bound->cast<Aabb>();
+		assert(aabb.nodeLastPos.size()==p->shape->nodes.size());
+		Real d2=0; 
+		for(int i=0; i<nNodes; i++){
+			d2=max(d2,(aabb.nodeLastPos[i]-p->shape->nodes[i]->pos).squaredNorm());
+			// maxVel2b=max(maxVel2b,p->shape->nodes[i]->getData<DemData>().vel.squaredNorm());
+		}
+		if(d2>aabb.maxD2){ recomputeBounds=true; break; }
+		// fine, particle doesn't need to be updated
+	}
+	// bounds don't need update, collision neither
+	if(!recomputeBounds) return false;
+
+	FOREACH(const shared_ptr<Particle>& p, dem->particles){
+		if(!p->shape) continue;
+		// call dispatcher now
+		boundDispatcher->operator()(p->shape);
+		if(!p->shape->bound){
+			throw std::runtime_error("InsertionSortCollider: No bound was created for #"+lexical_cast<string>(p->id)+", provide a Bo1_*_Aabb functor for it. (Particle without Aabb are not supported yet, and perhaps will never be (what is such a particle good for?!)");
+		}
+		Aabb& aabb=p->shape->bound->cast<Aabb>();
+		const int nNodes=p->shape->nodes.size();
+		// save reference node positions
+		aabb.nodeLastPos.resize(nNodes);
+		for(int i=0; i<nNodes; i++) aabb.nodeLastPos[i]=p->shape->nodes[i]->pos;
+		aabb.maxD2=pow(verletDist,2);
+		#if 0
+			// proportionally to relVel, shift bbox margin in the direction of velocity
+			// take velocity of nodes[0] as representative
+			const Vector3r& v0=p->shape->nodes[0]->getData<DemData>().vel;
+			Real vNorm=v0.norm();
+			Real relVel=max(maxVel2b,maxVel2)==0?0:vNorm/sqrt(max(maxVel2b,maxVel2));
+		#endif
+		if(verletDist>0){
+			aabb.max+=verletDist*Vector3r::Ones();
+			aabb.min-=verletDist*Vector3r::Ones();
+		}
+	};
+	return true;
+}
 
 void InsertionSortCollider::run(){
 	#ifdef ISC_TIMING
 		timingDeltas->start();
 	#endif
+
 
 	dem=dynamic_cast<DemField*>(field.get());
 	assert(dem);
@@ -128,11 +200,27 @@ void InsertionSortCollider::run(){
 
 	// scene->interactions->iterColliderLastRun=-1;
 
-	// periodicity changed, force reinit
+	// conditions when we need to run a full pass
+	bool fullRun=false;
+
+	// number of particles changed
+	if((size_t)BB[0].size!=2*nBodies) fullRun=true;
+
+	// periodicity changed
 	if(scene->isPeriodic != periodic){
 		for(int i=0; i<3; i++) BB[i].vec.clear();
 		periodic=scene->isPeriodic;
+		fullRun=true;
 	}
+
+	ISC_CHECKPOINT("aabb");
+
+	bool runBboxes=updateBboxes_doFullRun();
+	if(runBboxes) fullRun=true;
+
+	if(!fullRun) return;
+	
+	nFullRuns++;
 
 
 	// pre-conditions
@@ -162,12 +250,6 @@ void InsertionSortCollider::run(){
 		assert(BB[0].axis==0); assert(BB[1].axis==1); assert(BB[2].axis==2);
 		if(periodic) for(int i=0; i<3; i++) BB[i].updatePeriodicity(scene);
 
-		// update bounds via boundDispatcher
-		boundDispatcher->scene=scene;
-		boundDispatcher->field=field;
-		boundDispatcher->updateScenePtr();
-		boundDispatcher->run();
-
 	#if 0
 		// if interactions are dirty, force reinitialization
 		if(scene->interactions->dirty){
@@ -176,65 +258,7 @@ void InsertionSortCollider::run(){
 		}
 	#endif
 
-	#ifdef YADE_VBINS
-		if(verletDist<0){
-			Real minR=std::numeric_limits<Real>::infinity();
-			FOREACH(const shared_ptr<Particle>& b, *scene->bodies){
-				if(!b->shape) continue;
-				Sphere* s=dynamic_cast<Sphere*>(b->shape.get());
-				if(!s) continue;
-				minR=min(s->radius,minR);
-			}
-			// if no spheres, disable stride
-			verletDist=isinf(minR) ? 0 : abs(verletDist)*minR;
-		}
-		
 
-		// STRIDE
-			if(verletDist>0){
-				// get NewtonIntegrator, to ask for the maximum velocity value
-				if(!newton){
-					FOREACH(shared_ptr<Engine>& e, scene->engines){ newton=dynamic_pointer_cast<NewtonIntegrator>(e); if(newton) break; }
-					if(!newton){ throw runtime_error("InsertionSortCollider.verletDist>0, but unable to locate NewtonIntegrator within O.engines."); }
-				}
-			}
-	ISC_CHECKPOINT("init");
-	
-		// STRIDE
-			// get us ready for strides, if they were deactivated
-			if(!strideActive && verletDist>0 && newton->maxVelocitySq>=0){ // maxVelocitySq is a really computed value
-				strideActive=true;
-			}
-			if(strideActive){
-				assert(verletDist>0);
-				if(nBins<=0){
-					// reset bins, in case they were active but are not anymore
-					if(newton->velocityBins) newton->velocityBins=shared_ptr<VelocityBins>(); if(boundDispatcher->velocityBins) boundDispatcher->velocityBins=shared_ptr<VelocityBins>();
-					assert(strideActive); assert(newton->maxVelocitySq>=0); assert(sweepFactor>1.);
-					Real sweepVelocity=sqrt(newton->maxVelocitySq)*sweepFactor; int stride=-1;
-					if(sweepVelocity>0) {
-						stride=max(1,int((verletDist/sweepVelocity)/scene->dt));
-						boundDispatcher->sweepDist=scene->dt*(stride-1)*sweepVelocity;
-					} else { // no motion
-						boundDispatcher->sweepDist=0; // nothing moves, no need to make bboxes larger
-					}
-					LOG_DEBUG(scene->time<<"s: stride ≈"<<stride<<"; maxVelocity="<<sqrt(newton->maxVelocitySq)<<", sweepDist="<<boundDispatcher->sweepDist);
-					fastestBodyMaxDist=0; // reset
-				} else { // nBins>=1
-					if(!newton->velocityBins){ newton->velocityBins=shared_ptr<VelocityBins>(new VelocityBins(nBins,newton->maxVelocitySq,binCoeff,binOverlap)); }
-					if(!boundDispatcher->velocityBins) boundDispatcher->velocityBins=newton->velocityBins;
-					// update things:
-					newton->velocityBins->nBins=nBins; newton->velocityBins->binCoeff=binCoeff; newton->velocityBins->binOverlap=binOverlap; newton->velocityBins->maxRefRelStep=maxRefRelStep; newton->velocityBins->histInterval=histInterval;  
-					boundDispatcher->sweepDist=0; // not used with bins at all
-					// re-bin bodies
-					newton->velocityBins->setBins(scene,newton->maxVelocitySq,verletDist);
-				}
-			} else { /* !strideActive */
-				boundDispatcher->sweepDist=0;
-			}
-		#else
-			boundDispatcher->sweepDist=0;
-		#endif
 
 
 	ISC_CHECKPOINT("bound");
