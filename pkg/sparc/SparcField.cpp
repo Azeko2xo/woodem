@@ -81,13 +81,35 @@ vector<shared_ptr<Node> > SparcField::nodesAround(const Vector3r& pt, int count,
 
 void ExplicitNodeIntegrator::findNeighbors(const shared_ptr<Node>&n) const {
 	SparcData& dta(n->getData<SparcData>());
+	size_t prevN=dta.neighbors.size();
 	dta.neighbors=mff->nodesAround(n->pos,/*count*/-1,rSearch,/*self=*/n);
+	if(prevN>0 && dta.neighbors.size()!=prevN){
+		cerr<<"Nid "<<dta.nid<<" changed number of neighbors: "<<prevN<<" → "<<dta.neighbors.size()<<endl;
+	}
 };
+
+#ifdef SPARC_WEIGHTS
+	Real ExplicitNodeIntegrator::pointWeight(Real distSq) const {
+		if(weightFunc==WEIGHT_DIST){
+			Real w=(rPow%2==0?pow(distSq,rPow/2):pow(sqrt(distSq),rPow));
+			assert(!(rPow==0 && w!=1.)); // rPow==0 → weight==1.
+			return w;
+		}
+		else if(weightFunc==WEIGHT_GAUSS){
+			Real w=pow(sqrt(distSq),-1); // make all points the same weight first
+			Real hSq=pow(rSearch,2);
+			assert(distSq<=hSq); // taken care of by neighbor search algorithm already
+			w*=exp(-gaussAlpha*(distSq/hSq));
+			return w;
+		}
+		throw std::logic_error("ExplicitNodeIntegrator.weightFunc has inadmissible value; this should have been trapped in postLoad already!");
+	}
+#endif
 
 void ExplicitNodeIntegrator::updateNeighborsRelPos(const shared_ptr<Node>& n, bool useNext) const {
 	SparcData& dta(n->getData<SparcData>());
 	int sz(dta.neighbors.size());
-	if(sz<3) yade::RuntimeError(format("Node at %s has lass than 3 neighbors")%n->pos.transpose());
+	if(sz<3) throw std::runtime_error((format("Node #%d at %s has only %d neighbors (3 is minimum)")%dta.nid%n->pos.transpose()%sz).str());
 	MatrixXr relPos(sz,3);
 	#ifdef SPARC_WEIGHTS
 		dta.rWeights=VectorXr(sz);
@@ -96,9 +118,8 @@ void ExplicitNodeIntegrator::updateNeighborsRelPos(const shared_ptr<Node>& n, bo
 	for(int i=0; i<sz; i++){
 		relPos.row(i)=VectorXr(dta.neighbors[i]->pos+(useNext?Vector3r(scene->dt*dta.neighbors[i]->getData<SparcData>().v):Vector3r::Zero())-currPos);
 		#ifdef SPARC_WEIGHTS
-			dta.rWeights[i]=(rPow%2==0?pow(Vector3r(relPos.row(i)).squaredNorm(),rPow/2):pow(Vector3r(relPos.row(i)).norm(),rPow));
+			dta.rWeights[i]=pointWeight(Vector3r(relPos.row(i)).squaredNorm());
 			relPos.row(i)*=dta.rWeights[i];
-			assert(!(rPow==0 && dta.rWeights[i]!=1.)); // rPow==0 → weight==1.
 		#endif
 	}
 	#ifdef SPARC_INSPECT
@@ -200,7 +221,8 @@ void ExplicitNodeIntegrator::postLoad(ExplicitNodeIntegrator&){
 	// update stiffness matrix
 	C<<(Matrix3r()<<1-nu,nu,nu, nu,1-nu,nu, nu,nu,1-nu).finished(),Matrix3r::Zero(),Matrix3r::Zero(),Matrix3r(((1-2*nu)/2.)*Matrix3r::Identity());
 	C*=E/((1+nu)*(1-2*nu));
-	if(matModel<0 || matModel>MAT_SENTINEL) yade::ValueError(boost::format("matModel must be in range 0..%d")%MAT_SENTINEL);
+	if(matModel<0 || matModel>MAT_SENTINEL) yade::ValueError(boost::format("matModel must be in range 0..%d")%(MAT_SENTINEL-1));
+	if(weightFunc<0 || weightFunc>=WEIGHT_SENTINEL) yade::ValueError(boost::format("weightFunc must be in range 0..%d")%(WEIGHT_SENTINEL-1));
 	if(barodesyC.size()!=6) yade::ValueError(boost::format("barodesyC must have exactly 6 values (%d given)")%barodesyC.size());
 	#ifndef SPARC_WEIGHTS
 		if(rPow!=0) LOG_WARN("Non-zero value of ExplicitNodeIntegrator.rPow, will be ignored, as SPARC_WEIGHTS is disabled.");
@@ -430,8 +452,6 @@ void StaticEquilibriumSolver::applyConstraintsAsResiduals(const shared_ptr<Node>
 			#else
 				// current local stress
 				Matrix3r locT=oriTrsf*T*oriTrsf.transpose();
-				/* NB: using row sum leads to asymmetries and generally weird behavior on the boundary! */
-				//Real locAxT=locT.row(ax).sum();
 				Real locAxT=locT(ax,ax);
 			#endif
 			// TODO end 

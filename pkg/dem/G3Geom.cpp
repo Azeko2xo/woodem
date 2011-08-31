@@ -119,11 +119,11 @@ void Law2_G3Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shar
 		_WATCH_MSG("\tPlastic slip by "<<((dta.shearForce/ratio)*(1-ratio)).transpose()<<", ratio="<<ratio<<", new Ft="<<dta.shearForce.transpose()<<endl);
 		if(scene->trackEnergy){
 			Real dissip=((1/phys.kt)*(trialForce-dta.shearForce))/*plastic disp*/ .dot(dta.shearForce)/*active force*/;
-			if(dissip>0) scene->energy->add(dissip,"plastDissip",plastDissipIx,/*reset*/false);
+			scene->energy->add(dissip,"plastDissip",plastDissipIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate);
 		}
 	}
 	// elastic potential
-	if(scene->trackEnergy) scene->energy->add(0.5*(normalForce.squaredNorm()/phys.kn+dta.shearForce.squaredNorm()/phys.kt),"elastPot",elastPotIx,/*reset at every timestep*/true);
+	if(scene->trackEnergy) scene->energy->add(0.5*(normalForce.squaredNorm()/phys.kn+dta.shearForce.squaredNorm()/phys.kt),"elastPot",elastPotIx,/*reset at every timestep*/EnergyTracker::IsResettable);
 	// this is the force in contact local coordinates, which will be applied
 	// local coordinates are not rotated, though
 	assert(C->geom->node->ori==Quaternionr::Identity());

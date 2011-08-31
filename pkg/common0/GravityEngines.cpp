@@ -15,7 +15,7 @@ void GravityEngine::action(){
 		if(mask!=0 && (b->groupMask & mask)==0) continue;
 		scene->forces.addForce(b->getId(),gravity*b->state->mass);
 		// work done by gravity is "negative", since the energy appears in the system from outside
-		if(trackEnergy) scene->energy->add(-gravity.dot(b->state->vel)*b->state->mass*dt,"gravWork",fieldWorkIx,/*non-incremental*/false);
+		if(trackEnergy) scene->energy->add(-gravity.dot(b->state->vel)*b->state->mass*dt,"gravWork",fieldWorkIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate);
 	} YADE_PARALLEL_FOREACH_BODY_END();
 }
 

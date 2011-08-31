@@ -140,13 +140,19 @@ struct ExplicitNodeIntegrator: public GlobalEngine, private SparcField::Engine{
 	Matrix6r C; // updated at every step
 	void postLoad(ExplicitNodeIntegrator&);
 	virtual void run();
+	#ifdef SPARC_WEIGHTS
+		Real pointWeight(Real distSq) const;
+	#endif
+	enum {WEIGHT_DIST=0,WEIGHT_GAUSS,WEIGHT_SENTINEL};
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ExplicitNodeIntegrator,GlobalEngine,"Monolithic engine for explicit integration of motion of nodes in SparcField.",
 		((Real,E,1e6,Attr::triggerPostLoad,"Young's modulus, for the linear elastic constitutive law"))
 		((Real,nu,0,Attr::triggerPostLoad,"Poisson's ratio for the linear elastic constitutive law"))
 		((vector<Real>,barodesyC,vector<Real>({-1.7637,-1.0249,-0.5517,-1174.,-4175.,2218}),Attr::triggerPostLoad,"Material constants for barodesy"))
 		((Real,ec0,.8703,,"Initial void ratio"))
 		((Real,rSearch,-1,,"Radius for neighbor-search"))
+		((int,weightFunc,WEIGHT_DIST,,"Weighting function to be used (WEIGHT_DIST,WEIGHT_GAUSS)"))
 		((int,rPow,0,,"Exponent for distance weighting ∈{0,-1,-2,…}"))
+		((Real,gaussAlpha,.6,,"Decay coefficient used with Gauss weight function."))
 		((bool,spinRot,false,,"Rotate particles according to spin in their location; Dofs which prescribe velocity will never be rotated (i.e. only rotation parallel with them will be allowed)."))
 		((int,neighborUpdate,1,,"Number of steps to periodically update neighbour information"))
 		((int,matModel,0,Attr::triggerPostLoad,"Material model to be used (0=linear elasticity, 1=barodesy (Jesse)"))
@@ -156,7 +162,13 @@ struct ExplicitNodeIntegrator: public GlobalEngine, private SparcField::Engine{
 		,/*ctor*/
 		,/*py*/
 		.def("stressRate",&ExplicitNodeIntegrator::computeStressRate,(py::arg("T"),py::arg("D"),py::arg("e")=-1)) // for debugging
-		.def_readonly("C",&ExplicitNodeIntegrator::C)
+		.def_readonly("C",&ExplicitNodeIntegrator::C);
+
+		_classObj.attr("wGauss")=(int)WEIGHT_GAUSS;
+		_classObj.attr("wDist")=(int)WEIGHT_DIST;
+		
+		//.add_property("wDist",& [](){ return WEIGHT_DIST; })
+		// .enum_<WeightFunc>("weight").value("dist",WEIGHT_DIST).value("gauss",WEIGHT_GAUSS)
 	);
 };
 REGISTER_SERIALIZABLE(ExplicitNodeIntegrator);

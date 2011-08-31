@@ -80,6 +80,9 @@ class ContactLoop: public GlobalEngine, private DemField::Engine {
 			((bool,alreadyWarnedNoCollider,false,,"Keep track of whether the user was already warned about missing collider."))
 			((bool,trackWork,false,,"In periodic simulations, increment *gradV* energy according to current stress and cell configuration."))
 			((Matrix3r,stress,Matrix3r::Zero(),Attr::readonly,"Stress value, used to compute *gradV*  energy if *trackWork* is True."))
+			((Real,prevVol,NaN,Attr::hidden,"Previous value of cell volume"))
+			//((Real,prevTrGradVStress,NaN,Attr::hidden,"Previous value of tr(gradV*stress)"))
+			((Matrix3r,prevStress,Matrix3r::Zero(),,"Previous value of stress, used to compute mid-step stress"))
 			((int,gradVIx,-1,(Attr::hidden|Attr::noSave),"Cache energy index for gradV work"))
 			,
 			/*ctor*/

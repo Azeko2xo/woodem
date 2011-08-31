@@ -15,17 +15,18 @@ REGISTER_SERIALIZABLE(ForceResetter);
 struct Leapfrog: public GlobalEngine, private DemField::Engine {
 	void nonviscDamp1st(Vector3r& force, const Vector3r& vel);
 	void nonviscDamp2nd(const Real& dt, const Vector3r& force, const Vector3r& vel, Vector3r& accel);
-	void leapfrogTranslate(const shared_ptr<Node>&, const Real& dt);
-	void leapfrogSphericalRotate(const shared_ptr<Node>&, const Real& dt);
-	void leapfrogAsphericalRotate(const shared_ptr<Node>&, const Real& dt, const Vector3r& M);
+	void applyPeriodicCorrections(const shared_ptr<Node>&, const Vector3r& linAccel);
+	void leapfrogTranslate(const shared_ptr<Node>&);
+	void leapfrogSphericalRotate(const shared_ptr<Node>&);
+	void leapfrogAsphericalRotate(const shared_ptr<Node>&, const Vector3r& M);
 	Quaternionr DotQ(const Vector3r& angVel, const Quaternionr& Q);
 	// compute linear and angular acceleration, respecting DemData::blocked
 	Vector3r computeAccel(const Vector3r& force, const Real& mass, int blocked);
 	Vector3r computeAngAccel(const Vector3r& torque, const Vector3r& inertia, int blocked);
 	void updateEnergy(const shared_ptr<Node>&, const Vector3r& fluctVel, const Vector3r& f, const Vector3r& m, const Vector3r& linAccel, const Vector3r& angAccel);
 	// whether the cell has changed from the previous step
-	bool cellChanged;
 	int homoDeform; // updated from scene at every call; -1 for aperiodic simulations, otherwise equal to scene->cell->homoDeform
+	Real dt; // updated from scene at every call
 	Matrix3r dVelGrad; // dtto
 
 	public:

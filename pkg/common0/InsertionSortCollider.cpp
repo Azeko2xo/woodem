@@ -96,15 +96,12 @@ vector<Body::id_t> InsertionSortCollider::probeBoundingVolume(const Bound& bv){
 		// activated if number of bodies changes (hence need to refresh collision information)
 		// or the time of scheduled run already came, or we were never scheduled yet
 		if(!strideActive) return true;
-		if(!newton || (nBins>=1 && !newton->velocityBins)) return true;
-		if(nBins>=1 && newton->velocityBins->checkSize_incrementDists_shouldCollide(scene)) return true;
-		if(nBins<=0){
-			if(fastestBodyMaxDist<0){fastestBodyMaxDist=0; return true;}
-			fastestBodyMaxDist+=sqrt(newton->maxVelocitySq)*scene->dt;
-			if(fastestBodyMaxDist>=verletDist) return true;
-		}
+		if(!leapfrog || && !leapfrog->velocityBins) return true;
+		if(leapfrog->velocityBins->checkSize_incrementDists_shouldCollide(scene)) return true;
 		if((size_t)BB[0].size!=2*scene->bodies->size()) return true;
-		if(scene->interactions->dirty) return true;
+
+		//if(scene->interactions->dirty) return true;
+
 		// we wouldn't run in this step; in that case, just delete pending interactions
 		// this is done in ::action normally, but it would make the call counters not reflect the stride
 		scene->interactions->erasePending(*this,scene);

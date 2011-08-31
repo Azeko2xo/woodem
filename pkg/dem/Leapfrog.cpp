@@ -35,7 +35,6 @@ Vector3r Leapfrog::computeAngAccel(const Vector3r& torque, const Vector3r& inert
 
 void Leapfrog::updateEnergy(const shared_ptr<Node>& node, const Vector3r& fluctVel, const Vector3r& f, const Vector3r& m, const Vector3r& linAccel, const Vector3r& angAccel){
 	const DemData& dyn(node->getData<DemData>());
-	const Real& dt(scene->dt);
 	/* damping is evaluated incrementally, therefore computed with mid-step values */
 	// always positive dissipation, by-component: |F_i|*|v_i|*damping*dt (|T_i|*|ω_i|*damping*dt for rotations)
 	if(damping!=0.){
@@ -43,7 +42,7 @@ void Leapfrog::updateEnergy(const shared_ptr<Node>& node, const Vector3r& fluctV
 			fluctVel.cwise().abs().dot(f.cwise().abs())*damping*scene->dt
 			// with aspherical integrator, torque is damped instead of ang acceleration; this is only approximate
 			+ dyn.angVel.cwise().abs().dot(m.cwise().abs())*damping*scene->dt
-			,"nonviscDamp",nonviscDampIx,/*non-incremental*/false
+			,"nonviscDamp",nonviscDampIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate
 		);
 	}
 	/* kinetic and potential energy is non-incremental, therefore is evaluated on-step */
@@ -59,17 +58,17 @@ void Leapfrog::updateEnergy(const shared_ptr<Node>& node, const Vector3r& fluctV
 		Erot=.5*onStepAngVel.transpose().dot((T.transpose()*mI*T)*onStepAngVel);
 	} else { Erot=0.5*onStepAngVel.dot(dyn.inertia.cwise()*onStepAngVel); }
 	if(isnan(Erot) && isinf(dyn.inertia.maxCoeff())) Erot=0;
-	if(!kinSplit) scene->energy->add(Etrans+Erot,"kinetic",kinEnergyIx,/*non-incremental*/true);
+	if(!kinSplit) scene->energy->add(Etrans+Erot,"kinetic",kinEnergyIx,EnergyTracker::IsResettable);
 	else{
-		scene->energy->add(Etrans,"kinTrans",kinEnergyTransIx,true);
-		scene->energy->add(Erot,"kinRot",kinEnergyRotIx,true);
+		scene->energy->add(Etrans,"kinTrans",kinEnergyTransIx,EnergyTracker::IsResettable);
+		scene->energy->add(Erot,"kinRot",kinEnergyRotIx,EnergyTracker::IsResettable);
 	}
 }
 
 void Leapfrog::run(){
-	const Real& dt=scene->dt;
 	homoDeform=(scene->isPeriodic ? scene->cell->homoDeform : -1); // -1 for aperiodic simulations
 	dVelGrad=scene->cell->velGrad-prevVelGrad;
+	dt=scene->dt;
 
 	const bool isPeriodic(scene->isPeriodic);
 	/* don't evaluate energy in the first step with non-zero velocity gradient, since kinetic energy will be way off
@@ -104,6 +103,7 @@ void Leapfrog::run(){
 		if(!node->hasData<DemData>()) continue;
 		DemData& dyn(node->getData<DemData>());
 		Vector3r& f=dyn.force;	Vector3r& t=dyn.torque;
+
 		// fluctuation velocity does not contain meanfield velocity in periodic boundaries
 		// in aperiodic boundaries, it is equal to absolute velocity
 		Vector3r fluctVel=isPeriodic?scene->cell->bodyFluctuationVel(node->pos,dyn.vel):dyn.vel;
@@ -128,7 +128,9 @@ void Leapfrog::run(){
 				}
 			}
 		}
-		// numerical damping & kinetic energy (accelerations are needed, therefore not evaluated earlier)
+
+		// numerical damping & kinetic energy
+		// accelerations are needed, therefore not evaluated earlier; fluctVel is still at t-dt/2
 		// is it OK that force and torque (except for aspherical integration) are undamped, that's handled inside
 		#ifdef YADE_DEBUG
 			if(unlikely(reallyTrackEnergy)) updateEnergy(node,fluctVel,f,t,kinOnStep?linAccel:Vector3r::Zero(),kinOnStep?angAccel:Vector3r::Zero());
@@ -136,12 +138,18 @@ void Leapfrog::run(){
 			if(unlikely(reallyTrackEnergy)) updateEnergy(node,fluctVel,f,t,linAccel,angAccel);
 		#endif
 
-		// update positions from velocities (or torque, for the aspherical integrator)
-		leapfrogTranslate(node,dt);
+		/*
+			adapt node velocity/position in (t+dt/2) to space gradV;
+			must be done before position update, so that particle follows
+		*/
+		applyPeriodicCorrections(node,linAccel);
 
+		// update positions from velocities
+		leapfrogTranslate(node);
+		// update orientation from angular velocity (or torque, for aspherical integrator)
 		if(dyn.inertia!=Vector3r::Zero()){
-			if(!useAspherical) leapfrogSphericalRotate(node,dt);
-			else leapfrogAsphericalRotate(node,dt,t);
+			if(!useAspherical) leapfrogSphericalRotate(node);
+			else leapfrogAsphericalRotate(node,t);
 		}
 
 		if(reset){ dyn.force=dyn.torque=Vector3r::Zero(); }
@@ -149,25 +157,28 @@ void Leapfrog::run(){
 	if(isPeriodic) prevVelGrad=scene->cell->velGrad;
 }
 
-void Leapfrog::leapfrogTranslate(const shared_ptr<Node>& node, const Real& dt){
+void Leapfrog::applyPeriodicCorrections(const shared_ptr<Node>& node, const Vector3r& linAccel){
 	DemData& dyn(node->getData<DemData>());
 	if (homoDeform==Cell::HOMO_VEL || homoDeform==Cell::HOMO_VEL_2ND) {
 		// update velocity reflecting changes in the macroscopic velocity field, making the problem homothetic.
 		//NOTE : if the velocity is updated before moving the body, it means the current velGrad (i.e. before integration in cell->integrateAndUpdate) will be effective for the current time-step. Is it correct? If not, this velocity update can be moved just after "pos += vel*dt", meaning the current velocity impulse will be applied at next iteration, after the contact law. (All this assuming the ordering is resetForces->integrateAndUpdate->contactLaw->PeriCompressor->NewtonsLaw. Any other might fool us.)
 		//NOTE : dVel defined without wraping the coordinates means bodies out of the (0,0,0) period can move realy fast. It has to be compensated properly in the definition of relative velocities (see Ig2 functors and contact laws).
 		//This is the convective term, appearing in the time derivation of Cundall/Thornton expression (dx/dt=velGrad*pos -> d²x/dt²=dvelGrad/dt+velGrad*vel), negligible in many cases but not for high speed large deformations (gaz or turbulent flow).
-		if (homoDeform==Cell::HOMO_VEL_2ND) dyn.vel+=prevVelGrad*dyn.vel*dt;
-
+		if (homoDeform==Cell::HOMO_VEL_2ND) dyn.vel+=.5*(prevVelGrad+scene->cell->velGrad)*(dyn.vel-(dt/2.)*linAccel)*dt;
 		//In all cases, reflect macroscopic (periodic cell) acceleration in the velocity. This is the dominant term in the update in most cases
-		Vector3r dVel=dVelGrad*node->pos;
-		dyn.vel+=dVel;
+		dyn.vel+=dVelGrad*node->pos;
 	} else if (homoDeform==Cell::HOMO_POS){
 		node->pos+=scene->cell->velGrad*node->pos*dt;
 	}
+	/* should likewise apply angular velocity due to gradV spin, but this has never been done and contact laws don't handle that either */
+}
+
+void Leapfrog::leapfrogTranslate(const shared_ptr<Node>& node){
+	DemData& dyn(node->getData<DemData>());
 	node->pos+=dyn.vel*dt;
 }
 
-void Leapfrog::leapfrogSphericalRotate(const shared_ptr<Node>& node, const Real& dt){
+void Leapfrog::leapfrogSphericalRotate(const shared_ptr<Node>& node){
 	Vector3r axis=node->getData<DemData>().angVel;
 	if (axis!=Vector3r::Zero()) {//If we have an angular velocity, we make a rotation
 		Real angle=axis.norm(); axis/=angle;
@@ -177,7 +188,7 @@ void Leapfrog::leapfrogSphericalRotate(const shared_ptr<Node>& node, const Real&
 	node->ori.normalize();
 }
 
-void Leapfrog::leapfrogAsphericalRotate(const shared_ptr<Node>& node, const Real& dt, const Vector3r& M){
+void Leapfrog::leapfrogAsphericalRotate(const shared_ptr<Node>& node, const Vector3r& M){
 	Quaternionr& ori(node->ori); DemData& dyn(node->getData<DemData>());
 	Vector3r& angMom(dyn.angMom);	Vector3r& angVel(dyn.angVel);	const Vector3r& inertia(dyn.inertia);
 

@@ -13,21 +13,37 @@ void Law2_L6Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shar
 		bool watched=(max(C->pA->id,C->pB->id)==watch.maxCoeff() && min(C->pA->id,C->pB->id)==watch.minCoeff());
 	#endif
 	_WATCH_MSG("Step "<<scene->step<<", ##"<<C->pA->id<<"+"<<C->pB->id<<": "<<endl);
-	if(g.uN>0 && !noBreak){ _WATCH_MSG("\tContact being broken."<<endl); field->cast<DemField>().contacts.requestRemoval(C); return; }
+	if(g.uN>0 && !noBreak){ _WATCH_MSG("\tContact being broken."<<endl);
+		// without slipping, it is possible that a contact breaks and shear force disappears
+		if(noSlip && scene->trackEnergy){
+			// when contact is broken, it is simply its elastic potential which gets lost
+			// it should be the current potential, though, since the previous one already generated force response
+			// ugly, we duplicate the code below here
+			const Vector2r velT(g.vel[1],g.vel[2]); Eigen::Map<Vector2r> prevFt(&ph.force[1]); const Real& prevFn=ph.force[0];
+			Real Fn=ph.kn*g.uN; Vector2r Ft=prevFt+scene->dt*ph.kt*velT;
+			// Real z=.5;
+			//Real z=abs(prevFn)/(abs(Fn)+abs(prevFn));
+			//Fn=.5*(z*Fn+(1-z)*ph.force[0]); Ft=.5*(z*prevFt+(1-z)*Ft);
+			// Real Fn=ph.force[0]; Vector2r Ft(ph.force[1],ph.force[2]);
+			scene->energy->add(.5*(pow(Fn,2)/ph.kn+Ft.squaredNorm()/ph.kt),"broken",brokenIx,EnergyTracker::IsIncrement);
+		}
+		field->cast<DemField>().contacts.requestRemoval(C); return;
+	}
 	ph.torque=Vector3r::Zero();
 	ph.force[0]=ph.kn*g.uN;
-	Eigen::Map<Vector2r> Ft(&ph.force[1]); 
-	Ft+=scene->dt*ph.kt*Vector2r(g.vel[1],g.vel[2]);
+	const Vector2r velT(g.vel[1],g.vel[2]);
+	Eigen::Map<Vector2r> Ft(&ph.force[1]); // const Eigen::Map<Vector2r> velT(&g.vel[1]);
+	Ft+=scene->dt*ph.kt*velT;
 	Real maxFt=abs(ph.force[0])*ph.tanPhi; assert(maxFt>=0);
-	_WATCH_MSG("\tFn="<<ph.force[0]<<", trial Ft="<<Ft.transpose()<<" (incremented by "<<(scene->dt*ph.kt*Vector2r(g.vel[1],g.vel[2])).transpose()<<"), max Ft="<<maxFt<<endl);
+	_WATCH_MSG("\tFn="<<ph.force[0]<<", trial Ft="<<Ft.transpose()<<" (incremented by "<<(scene->dt*ph.kt*velT).transpose()<<"), max Ft="<<maxFt<<endl);
 	if(Ft.squaredNorm()>maxFt*maxFt && !noSlip){
 		Real ratio=maxFt/Ft.norm();
 		Ft*=ratio;
 		_WATCH_MSG("\tPlastic slip by "<<((Ft/ratio)*(1-ratio)).transpose()<<", ratio="<<ratio<<", new Ft="<<Ft.transpose()<<endl);
 		// not sure about the sin term; it would be the minimum dissipation path (?) if we consider the slip as associated (which it is not)
-		if(scene->trackEnergy){ Real dissip=/*sin(atan(ph.tanPhi))* */ (1/ph.kt)*(1/ratio-1)*Ft.squaredNorm(); if(dissip>0) scene->energy->add(dissip,"plast",plastDissipIx,/*reset*/false); }
+		if(scene->trackEnergy){ Real dissip=/*sin(atan(ph.tanPhi))* */ (1/ph.kt)*(1/ratio-1)*Ft.squaredNorm(); scene->energy->add(dissip,"plast",plastDissipIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate); }
 	}
-	if(unlikely(scene->trackEnergy)){ scene->energy->add(0.5*(pow(ph.force[0],2)/ph.kn+Ft.squaredNorm()/ph.kt),"elast",elastPotIx,/*non-cummulative*/true); }
+	if(unlikely(scene->trackEnergy)){ scene->energy->add(0.5*(pow(ph.force[0],2)/ph.kn+Ft.squaredNorm()/ph.kt),"elast",elastPotIx,EnergyTracker::IsResettable); }
 };
 
 void Law2_L6Geom_FrictPhys_LinEl6::go(const shared_ptr<CGeom>& cg, const shared_ptr<CPhys>& cp, const shared_ptr<Contact>& C){
@@ -43,10 +59,10 @@ void Law2_L6Geom_FrictPhys_LinEl6::go(const shared_ptr<CGeom>& cg, const shared_
 	if(scene->trackEnergy){
 		/* both formulations give the same result with relative precision within 1e-14 (values 1e3, difference 1e-11) */
 		// absolute, as .5*F^2/k (per-component)
-		scene->energy->add(.5*((phys.force.array().pow(2)/kntt.array()).sum()+(phys.torque.array().pow(2)/ktbb.array()).sum()),"elast",elastPotIx,/*non-cummulative*/true);
+		scene->energy->add(.5*((phys.force.array().pow(2)/kntt.array()).sum()+(phys.torque.array().pow(2)/ktbb.array()).sum()),"elast",elastPotIx,EnergyTracker::IsResettable);
 		#if 0
 			// incremental delta (needs mid-step force) as (F-½Δt v k)*Δt v
-			scene->energy->add((phys.force-.5*dt*(geom.vel.cwise()*kntt)).dot(dt*geom.vel)+(phys.torque-.5*dt*(geom.angVel.cwise()*ktbb)).dot(dt*geom.angVel),"elast",elastPotIx,/*non-cummulative*/false);
+			scene->energy->add((phys.force-.5*dt*(geom.vel.cwise()*kntt)).dot(dt*geom.vel)+(phys.torque-.5*dt*(geom.angVel.cwise()*ktbb)).dot(dt*geom.angVel),"elast",elastPotIx,EnergyTracker::IsIncrement);
 		#endif
 	}
 };
