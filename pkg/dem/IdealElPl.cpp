@@ -37,11 +37,21 @@ void Law2_L6Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shar
 	Real maxFt=abs(ph.force[0])*ph.tanPhi; assert(maxFt>=0);
 	_WATCH_MSG("\tFn="<<ph.force[0]<<", trial Ft="<<Ft.transpose()<<" (incremented by "<<(scene->dt*ph.kt*velT).transpose()<<"), max Ft="<<maxFt<<endl);
 	if(Ft.squaredNorm()>maxFt*maxFt && !noSlip){
-		Real ratio=maxFt/Ft.norm();
+		Real FtNorm=Ft.norm();
+		Real ratio=maxFt/FtNorm;
+		// do this while Ft is still the trial value
+		if(scene->trackEnergy){
+			/* in the linear displacement-force graph, compute the are sliced away by the force drop; it has the
+			1. top triangle part, .5*(Ft-Fm)*(Ft-Fm)/kt
+			2. rectangle under this triangle, Fm*(Ft-Fm)/kt
+			which gives together (.5*(Ft-Fm)+Fm)*(Ft-Fm)/kt (rectangle with top in the middle of the triangle height)
+			where Fm=maxFt and Ft=FtNorm
+			*/
+			Real dissip=(.5*(FtNorm-maxFt)+maxFt)*(FtNorm-maxFt)/ph.kt;
+			scene->energy->add(dissip,"plast",plastDissipIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate);
+		}
 		Ft*=ratio;
 		_WATCH_MSG("\tPlastic slip by "<<((Ft/ratio)*(1-ratio)).transpose()<<", ratio="<<ratio<<", new Ft="<<Ft.transpose()<<endl);
-		// not sure about the sin term; it would be the minimum dissipation path (?) if we consider the slip as associated (which it is not)
-		if(scene->trackEnergy){ Real dissip=/*sin(atan(ph.tanPhi))* */ (1/ph.kt)*(1/ratio-1)*Ft.squaredNorm(); scene->energy->add(dissip,"plast",plastDissipIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate); }
 	}
 	if(unlikely(scene->trackEnergy)){ scene->energy->add(0.5*(pow(ph.force[0],2)/ph.kn+Ft.squaredNorm()/ph.kt),"elast",elastPotIx,EnergyTracker::IsResettable); }
 };

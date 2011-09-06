@@ -527,8 +527,13 @@ class SerializableEditor(QFrame):
 				t=val.__class__
 				if t in _attributeGuessedTypeMap: t=_attributeGuessedTypeMap[val.__class__]
 
-			match=re.search(':yattrflags:`\s*([0-9a-zA-Z_|&() ]+)\s*`',doc) # non-empty attribute
-			flags=int(eval(match.group(1).replace('Attr::',''),{},AttrFlags.__dict__)) if match else 0
+			#print 'attr=',attr,'DOC: ',doc
+			if not doc==None:
+				match=re.search(':yattrflags:`\s*([0-9a-zA-Z_|&() ]+)\s*`',doc) # non-empty attribute
+				flags=int(eval(match.group(1).replace('Attr::',''),{},AttrFlags.__dict__)) if match else 0
+			else:
+				print "Attribute %s.%s has no docstring."%(self.ser.__class__.__name__,attr)
+				flags=0
 
 			#if not match: print 'No attr match for docstring of %s.%s'%(self.ser.__class__.__name__,attr)
 

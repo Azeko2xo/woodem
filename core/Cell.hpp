@@ -5,7 +5,7 @@
 The Cell has current box configuration represented by the parallelepiped's base vectors (*hSize*). Lengths of the base vectors can be accessed via *size*.
 
 * Matrix3r *trsf* is "deformation gradient tensor" F (http://en.wikipedia.org/wiki/Finite_strain_theory) 
-* Matrix3r *velGrad* is "velocity gradient tensor" (http://www.cs.otago.ac.nz/postgrads/alexis/FluidMech/node7.html)
+* Matrix3r *gradV* is "velocity gradient tensor" (http://www.cs.otago.ac.nz/postgrads/alexis/FluidMech/node7.html)
 
 The transformation is split between "normal" part and "rotation/shear" part for contact detection algorithms. The shearPt, unshearPt, getShearTrsf etc functions refer to both shear and rotation. This decomposition is frame-dependant and does not correspond to the rotation/stretch decomposition of mechanics (with stretch further decomposed into isotropic and deviatoric). Therefore, using the shearPt family in equations of mechanics is not recommended. Similarly, attributes assuming the existence of a "reference" state are considered deprecated (refSize, hSize0). It is better to not use them since there is no guarantee that the so-called "reference state" will be maintained consistently in the future.
 
@@ -60,7 +60,9 @@ class Cell: public Serializable{
 
 	DECLARE_LOGGER;
 
-	//! "integrate" velGrad, update cached values used by public getter.
+	// at the end of step, bring gradV(t-dt/2) to the value gradV(t+dt/2) so that e.g. kinetic energies are right
+	void setNextGradV();
+	//! "integrate" gradV, update cached values used by public getter.
 	void integrateAndUpdate(Real dt);
 	/*! Return point inside periodic cell, even if shear is applied */
 	// this method will be deprecated
@@ -87,9 +89,15 @@ class Cell: public Serializable{
 
 	// relative position and velocity for interaction accross multiple cells
 	Vector3r intrShiftPos(const Vector3i& cellDist) const { return hSize*cellDist.cast<Real>(); }
-	Vector3r intrShiftVel(const Vector3i& cellDist) const { if(homoDeform==HOMO_VEL || homoDeform==HOMO_VEL_2ND) return velGrad*hSize*cellDist.cast<Real>(); return Vector3r::Zero(); }
-	// return body velocity while taking away mean field velocity (coming from velGrad) if the mean field velocity is applied on velocity
-	Vector3r bodyFluctuationVel(const Vector3r& pos, const Vector3r& vel) const { if(homoDeform==HOMO_VEL || homoDeform==HOMO_VEL_2ND) return (vel-velGrad*pos); return vel; }
+	Vector3r intrShiftVel(const Vector3i& cellDist) const { if(homoDeform==HOMO_VEL || homoDeform==HOMO_VEL_2ND) return gradV*hSize*cellDist.cast<Real>(); return Vector3r::Zero(); }
+	// return body velocity while taking away mean field velocity (coming from gradV) if the mean field velocity is applied on velocity
+	Vector3r bodyFluctuationVel(const Vector3r& pos, const Vector3r& vel) const { if(homoDeform==HOMO_VEL || homoDeform==HOMO_VEL_2ND) return (vel-gradV*pos); return vel; }
+	// should not be needed now
+	#if 0
+		// same, but with custom value of gradV
+		Vector3r bodyFluctuationVel(const Vector3r& pos, const Vector3r& vel, const Matrix3r& gradV) const { if(homoDeform==HOMO_VEL || homoDeform==HOMO_VEL_2ND) return (vel-gradV*pos); return vel; }
+	#endif
+
 
 	// get/set current shape; setting resets trsf to identity
 	Matrix3r getHSize() const { return hSize; }
@@ -112,6 +120,12 @@ class Cell: public Serializable{
 	Vector3r canonicalizePt_py(const Vector3r& pt) const { return canonicalizePt(pt);}
 	Vector3r wrapPt_py(const Vector3r& pt) const { return wrapPt(pt);}
 
+	Matrix3r getVelGrad() const;
+	void setVelGrad(const Matrix3r& v);
+	Matrix3r getGradV() const;
+	void setGradV(const Matrix3r& v);
+	void setCurrGradV(const Matrix3r& v);
+
 	// check that trsf is upper triangular, throw an exception if not
 	void checkTrsfUpperTriangular();
 
@@ -119,26 +133,30 @@ class Cell: public Serializable{
 	YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(Cell,Serializable,"Parameters of periodic boundary conditions. Only applies if O.isPeriodic==True.",
 		((bool,trsfUpperTriangular,false,Attr::readonly,"Require that :yref:`Cell.trsf` is upper-triangular, to conform with the requirement of voro++ for sheared periodic cells."))
 		/* overridden below to be modified by getters/setters because of intended side-effects */
-		((Matrix3r,trsf,Matrix3r::Identity(),,"[overridden]")) //"Current transformation matrix of the cell, which defines how far is the current cell geometry (:yref:`hSize<Cell.hSize>`) from the reference configuration. Changing trsf will not change :yref:`hSize<Cell.hSize>`, it serves only as accumulator for transformations applied via :yref:`velGrad<Cell.velGrad>`."))
+		((Matrix3r,trsf,Matrix3r::Identity(),,"[overridden]")) //"Current transformation matrix of the cell, which defines how far is the current cell geometry (:yref:`hSize<Cell.hSize>`) from the reference configuration. Changing trsf will not change :yref:`hSize<Cell.hSize>`, it serves only as accumulator for transformations applied via :yref:`gradV<Cell.gradV>`."))
 		((Matrix3r,refHSize,Matrix3r::Identity(),,"Reference cell configuration, only used with :yref:`OpenGLRenderer.dispScale`. Updated automatically when :yref:`hSize<Cell.hSize>` or :yref:`trsf<Cell.trsf>` is assigned directly; also modified by :yref:`yade.utils.setRefSe3` (called e.g. by the :gui:`Reference` button in the UI)."))
 		((Matrix3r,hSize,Matrix3r::Identity(),,"[overridden below]"))
 		/* normal attributes */
-		((Matrix3r,velGrad,Matrix3r::Zero(),,"Velocity gradient of the transformation; used in :yref:`Leapfrog`. Values of :yref:`velGrad<Cell.velGrad>` accumulate in :yref:`trsf<Cell.trsf>` at every step."))
-		((int,homoDeform,HOMO_VEL_2ND,Attr::triggerPostLoad,"Deform (:yref:`velGrad<Cell.velGrad>`) the cell homothetically, by adjusting positions or velocities of particles. The values have the following meaning: 0: no homothetic deformation, 1: set absolute particle positions directly (when ``velGrad`` is non-zero), but without changing their velocity, 2: adjust particle velocity (only when ``velGrad`` changed) with Δv_i=Δ ∇v x_i. 3: as 2, but include a 2nd order term in addition -- the derivative of 1 (convective term in the velocity update).")),
+		((Matrix3r,gradV,Matrix3r::Zero(),,"[overridden below]"))
+		((Matrix3r,nextGradV,Matrix3r::Zero(),,"Value of gradV to be applied in the next step (that is, at t+dt/2). If any engine changes gradV, it should do it via this variable. The value propagates to gradV at the very end of each timestep, so if it is user-adjusted between steps, it will not become effective until after 1 steps. It should not be changed between Leapfrog and end of the step!"))
+		((int,homoDeform,HOMO_VEL_2ND,Attr::triggerPostLoad,"Deform (:yref:`gradV<Cell.gradV>`) the cell homothetically, by adjusting positions or velocities of particles. The values have the following meaning: 0: no homothetic deformation, 1: set absolute particle positions directly (when ``gradV`` is non-zero), but without changing their velocity, 2: adjust particle velocity (only when ``gradV`` changed) with Δv_i=Δ ∇v x_i. 3: as 2, but include a 2nd order term in addition -- the derivative of 1 (convective term in the velocity update).")),
 		/*deprec*/ ((Hsize,hSize,"conform to Yade's names convention.")),
 		/*init*/ ,
 		/*ctor*/ _invTrsf=Matrix3r::Identity(); integrateAndUpdate(0),
 		/*py*/
 		// override some attributes above
-		.add_property("hSize",&Cell::getHSize,&Cell::setHSize,"Base cell vectors (columns of the matrix), updated at every step from :yref:`velGrad<Cell.velGrad>` (:yref:`trsf<Cell.trsf>` accumulates applied :yref:`velGrad<Cell.velGrad>` transformations). Setting *hSize* during a simulation is not supported by most contact laws, it is only meant to be used at iteration 0 before any interactions have been created.")
+		.add_property("hSize",&Cell::getHSize,&Cell::setHSize,"Base cell vectors (columns of the matrix), updated at every step from :yref:`gradV<Cell.gradV>` (:yref:`trsf<Cell.trsf>` accumulates applied :yref:`gradV<Cell.gradV>` transformations). Setting *hSize* during a simulation is not supported by most contact laws, it is only meant to be used at iteration 0 before any interactions have been created.")
 		.add_property("size",&Cell::getSize_copy,&Cell::setSize,"Current size of the cell, i.e. lengths of the 3 cell lateral vectors contained in :yref:`Cell.hSize` columns. Updated automatically at every step. Assigning a value will change the lengths of base vectors (see :yref:`Cell.hSize`), keeping their orientations unchanged.")
 		// useful properties
-		.add_property("trsf",&Cell::getTrsf,&Cell::setTrsf,"Current transformation matrix of the cell, obtained from time integration of :yref:`Cell.velGrad`.")
+		.add_property("trsf",&Cell::getTrsf,&Cell::setTrsf,"Current transformation matrix of the cell, obtained from time integration of :yref:`Cell.gradV`.")
 		.def_readonly("size",&Cell::getSize_copy,"Current size of the cell, i.e. lengths of the 3 cell lateral vectors contained in :yref:`Cell.hSize` columns. Updated automatically at every step.")
 		.add_property("volume",&Cell::getVolume,"Current volume of the cell.")
 		// functions
 		.def("setBox",&Cell::setBox,"Set :yref:`Cell` shape to be rectangular, with dimensions along axes specified by given argument. Shorthand for assigning diagonal matrix with respective entries to :yref:`hSize<Cell.hSize>`.")
 		.def("setBox",&Cell::setBox3,"Set :yref:`Cell` shape to be rectangular, with dimensions along $x$, $y$, $z$ specified by arguments. Shorthand for assigning diagonal matrix with the respective entries to :yref:`hSize<Cell.hSize>`.")
+		.add_property("velGrad",&Cell::getVelGrad,&Cell::setVelGrad)
+		.add_property("gradV",&Cell::getGradV,&Cell::setGradV,"Velocity gradient of the transformation; used in :yref:`Leapfrog`. Values of :yref:`gradV<Cell.gradV>` accumulate in :yref:`trsf<Cell.trsf>` at every step. This is the value at t-dt/2 and should _never_ be changed directly. Engines can modify nextGradV, which will be assigned between time-steps. Humans should assign Cell.nnextGradV so that correct velocity correction is applied to all particles, in which case the given value will be effective in t+2*dt.")
+		.def("setCurrGradV",&Cell::setCurrGradV)
 		// debugging only
 		//.def("wrap",&Cell::wrapShearedPt_py,"Transform an arbitrary point into a point in the reference cell")
 		.def("canonicalizePt",&Cell::canonicalizePt_py,"Transform any point such that it is inside the base cell")

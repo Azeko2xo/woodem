@@ -177,7 +177,7 @@ void ContactLoop::run(){
 		stress/=scene->cell->getVolume();
 		Matrix3r midStress=.5*(stress+prevStress);
 		Real midVol=(!isnan(prevVol)?.5*(prevVol+scene->cell->getVolume()):scene->cell->getVolume());
-		Real dW=-(scene->cell->velGrad*midStress).trace()*scene->dt*midVol;
+		Real dW=-(scene->cell->gradV*midStress).trace()*scene->dt*midVol;
 		scene->energy->add(dW,"gradV",gradVIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate);
 		//prevTrGradVStress=trGradVStress;
 		prevVol=scene->cell->getVolume();

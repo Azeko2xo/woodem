@@ -120,6 +120,7 @@ void Scene::moveToNextTimeStep(){
 			if(unlikely(TimingInfo_enabled)) {TimingInfo::delta now=TimingInfo::getNow(); e->timingInfo.nsec+=now-last; e->timingInfo.nExec+=1; last=now;}
 		}
 		// ** 3. ** epilogue
+		if(isPeriodic) cell->setNextGradV();
 		step++;
 		time+=dt;
 		subStep=-1;
@@ -146,7 +147,10 @@ void Scene::moveToNextTimeStep(){
 				if(!e->dead && e->isActivated()) e->run();
 			}
 			// ** 3. ** epilogue
-			else if(subs==(int)engines.size()){ step++; time+=dt; /* gives -1 along with the increment afterwards */ subStep=-2; }
+			else if(subs==(int)engines.size()){
+				if(isPeriodic) cell->setNextGradV();
+				step++; time+=dt; /* gives -1 along with the increment afterwards */ subStep=-2;
+			}
 			// (?!)
 			else { /* never reached */ assert(false); }
 		}

@@ -67,13 +67,15 @@ void Leapfrog::updateEnergy(const shared_ptr<Node>& node, const Vector3r& fluctV
 
 void Leapfrog::run(){
 	homoDeform=(scene->isPeriodic ? scene->cell->homoDeform : -1); // -1 for aperiodic simulations
-	dVelGrad=scene->cell->velGrad-prevVelGrad;
+	dGradV=scene->cell->nextGradV-scene->cell->gradV;
+	midGradV=.5*(scene->cell->gradV+scene->cell->nextGradV);
+	//cerr<<"gradV\n"<<scene->cell->gradV<<"\nnextGradV\n"<<scene->cell->nextGradV<<endl;
 	dt=scene->dt;
 
 	const bool isPeriodic(scene->isPeriodic);
 	/* don't evaluate energy in the first step with non-zero velocity gradient, since kinetic energy will be way off
 	   (meanfield velocity has not yet been applied) */
-	const bool reallyTrackEnergy=(scene->trackEnergy&&(!isPeriodic || scene->step>0 || scene->cell->velGrad==Matrix3r::Identity()));
+	const bool reallyTrackEnergy=(scene->trackEnergy&&(!isPeriodic || scene->step>0 || scene->cell->gradV==Matrix3r::Identity()));
 
 	DemField* dem=dynamic_cast<DemField*>(field.get());
 	assert(dem);
@@ -132,6 +134,7 @@ void Leapfrog::run(){
 		// numerical damping & kinetic energy
 		// accelerations are needed, therefore not evaluated earlier; fluctVel is still at t-dt/2
 		// is it OK that force and torque (except for aspherical integration) are undamped, that's handled inside
+		// FIXME: force and torque are already damped here!
 		#ifdef YADE_DEBUG
 			if(unlikely(reallyTrackEnergy)) updateEnergy(node,fluctVel,f,t,kinOnStep?linAccel:Vector3r::Zero(),kinOnStep?angAccel:Vector3r::Zero());
 		#else
@@ -154,21 +157,21 @@ void Leapfrog::run(){
 
 		if(reset){ dyn.force=dyn.torque=Vector3r::Zero(); }
 	}
-	if(isPeriodic) prevVelGrad=scene->cell->velGrad;
+	// if(isPeriodic) prevVelGrad=scene->cell->velGrad;
 }
 
 void Leapfrog::applyPeriodicCorrections(const shared_ptr<Node>& node, const Vector3r& linAccel){
 	DemData& dyn(node->getData<DemData>());
 	if (homoDeform==Cell::HOMO_VEL || homoDeform==Cell::HOMO_VEL_2ND) {
 		// update velocity reflecting changes in the macroscopic velocity field, making the problem homothetic.
-		//NOTE : if the velocity is updated before moving the body, it means the current velGrad (i.e. before integration in cell->integrateAndUpdate) will be effective for the current time-step. Is it correct? If not, this velocity update can be moved just after "pos += vel*dt", meaning the current velocity impulse will be applied at next iteration, after the contact law. (All this assuming the ordering is resetForces->integrateAndUpdate->contactLaw->PeriCompressor->NewtonsLaw. Any other might fool us.)
+		//NOTE : if the velocity is updated before moving the body, it means the current gradV (i.e. before integration in cell->integrateAndUpdate) will be effective for the current time-step. Is it correct? If not, this velocity update can be moved just after "pos += vel*dt", meaning the current velocity impulse will be applied at next iteration, after the contact law. (All this assuming the ordering is resetForces->integrateAndUpdate->contactLaw->PeriCompressor->NewtonsLaw. Any other might fool us.)
 		//NOTE : dVel defined without wraping the coordinates means bodies out of the (0,0,0) period can move realy fast. It has to be compensated properly in the definition of relative velocities (see Ig2 functors and contact laws).
-		//This is the convective term, appearing in the time derivation of Cundall/Thornton expression (dx/dt=velGrad*pos -> d²x/dt²=dvelGrad/dt+velGrad*vel), negligible in many cases but not for high speed large deformations (gaz or turbulent flow).
-		if (homoDeform==Cell::HOMO_VEL_2ND) dyn.vel+=.5*(prevVelGrad+scene->cell->velGrad)*(dyn.vel-(dt/2.)*linAccel)*dt;
+		//This is the convective term, appearing in the time derivation of Cundall/Thornton expression (dx/dt=gradV*pos -> d²x/dt²=dGradV/dt+gradV*vel), negligible in many cases but not for high speed large deformations (gaz or turbulent flow).
+		if (homoDeform==Cell::HOMO_VEL_2ND) dyn.vel+=midGradV*(dyn.vel-(dt/2.)*linAccel)*dt;
 		//In all cases, reflect macroscopic (periodic cell) acceleration in the velocity. This is the dominant term in the update in most cases
-		dyn.vel+=dVelGrad*node->pos;
+		dyn.vel+=dGradV*node->pos;
 	} else if (homoDeform==Cell::HOMO_POS){
-		node->pos+=scene->cell->velGrad*node->pos*dt;
+		node->pos+=scene->cell->nextGradV*node->pos*dt;
 	}
 	/* should likewise apply angular velocity due to gradV spin, but this has never been done and contact laws don't handle that either */
 }

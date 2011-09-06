@@ -3,13 +3,32 @@
 
 CREATE_LOGGER(Cell);
 
+Matrix3r Cell::getVelGrad() const{ LOG_WARN("Cell.velGrad is a deprecated alias for Cell.gradV, update your code!."); return gradV; }
+void Cell::setVelGrad(const Matrix3r& v){
+	throw std::invalid_argument("Cell.velGrad was renamed to Cell.gradV. Besides, it is no longer directly settable, set Cell.nextGradV instead, to be applied one step later.");
+}
+Matrix3r Cell::getGradV() const { return gradV; }
+void Cell::setGradV(const Matrix3r& v){
+	throw std::invalid_argument("Cell.gradV is not directly settable, set Cell.nextGradV instead, to be applied one step later. [If you really know what you're doing, call Cell.setCurrGradV(...).");
+}
+void Cell::setCurrGradV(const Matrix3r& v){
+	nextGradV=v; /* assigns gradV itself */ integrateAndUpdate(0);
+}
+
+
 void Cell::checkTrsfUpperTriangular(){
- if (trsf(1,0)!=0. || trsf(2,0)!=0. || trsf(2,1)!=0.) throw std::runtime_error("Cell.trsf must be upper-triagular (Cell.trsfUpperTriangular==True), but it is not! (Cell.velGrad must be upper-triangular too, since its components propagate to Cell.trsf)");
+ if (trsf(1,0)!=0. || trsf(2,0)!=0. || trsf(2,1)!=0.) throw std::runtime_error("Cell.trsf must be upper-triagular (Cell.trsfUpperTriangular==True), but it is not! (Cell.gradV must be upper-triangular too, since its components propagate to Cell.trsf)");
+}
+
+/* at the end of step, bring gradV(t-dt/2) to the value gradV(t+dt/2) so that e.g. kinetic energies are right */
+void Cell::setNextGradV(){
+	gradV=nextGradV;
+	// if(!isnan(nnextGradV(0,0))){ nextGradV=nnextGradV; nnextGradV<<NaN,NaN,NaN, NaN,NaN,NaN, NaN,NaN,NaN; }
 }
 
 void Cell::integrateAndUpdate(Real dt){
 	//incremental displacement gradient
-	_trsfInc=dt*velGrad;
+	_trsfInc=dt*gradV;
 	// total transformation; M = (Id+G).M = F.M
 	trsf+=_trsfInc*trsf;
 	_invTrsf=trsf.inverse();

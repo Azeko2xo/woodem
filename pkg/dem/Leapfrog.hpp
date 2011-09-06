@@ -27,14 +27,15 @@ struct Leapfrog: public GlobalEngine, private DemField::Engine {
 	// whether the cell has changed from the previous step
 	int homoDeform; // updated from scene at every call; -1 for aperiodic simulations, otherwise equal to scene->cell->homoDeform
 	Real dt; // updated from scene at every call
-	Matrix3r dVelGrad; // dtto
+	Matrix3r dGradV, midGradV; // dtto
+
 
 	public:
 		virtual void run();
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR(Leapfrog,GlobalEngine,"Engine integrating newtonian motion equations, using the leap-frog scheme.",
 		((Real,damping,0.2,,"damping coefficient for non-viscous damping"))
 		((bool,reset,false,,"Reset forces immediately after applying them."))
-		((Matrix3r,prevVelGrad,Matrix3r::Zero(),Attr::readonly,"Previous value of velocity gradient, to detect its changes"))
+		// ((Matrix3r,prevVelGrad,Matrix3r::Zero(),Attr::readonly,"Previous value of velocity gradient, to detect its changes"))
 		// ((bool,exactAsphericalRot,true,,"Enable more exact body rotation integrator for :yref:`aspherical bodies<Body.aspherical>` *only*, using formulation from [Allen1989]_, pg. 89."))
 		// energy tracking
 		((int,nonviscDampIx,-1,(Attr::hidden|Attr::noSave),"Index of the energy dissipated using the non-viscous damping (:yref:`damping<Leapfrog.damping>`)."))
@@ -46,7 +47,9 @@ struct Leapfrog: public GlobalEngine, private DemField::Engine {
 
 		((int,kinEnergyIx,-1,(Attr::hidden|Attr::noSave),"Index for kinetic energy in scene->energies."))
 		((int,kinEnergyTransIx,-1,(Attr::hidden|Attr::noSave),"Index for translational kinetic energy in scene->energies."))
-		((int,kinEnergyRotIx,-1,(Attr::hidden|Attr::noSave),"Index for rotational kinetic energy in scene->energies.")),
+		((int,kinEnergyRotIx,-1,(Attr::hidden|Attr::noSave),"Index for rotational kinetic energy in scene->energies."))
+		// ((Matrix3r,nextGradV,(Matrix3r()<<NaN,NaN,NaN, NaN,NaN,NaN, NaN,NaN,NaN).finished(),,"Use to set new value of Cell.gradV, setting it directly between steps will produce spurious jumps in kinetic energy due to Cell.homoDeform corrections. Once applied, it will be automatically set to an invalid value (which is NaN at [0,0])"))
+		,
 	);
 	DECLARE_LOGGER;
 };

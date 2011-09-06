@@ -123,8 +123,8 @@ py::tuple stressStiffnessWork(Real volume=0, bool skipMultinodal=false, const Ve
 	Real work=NaN;
 	if(scene->isPeriodic){
 		Matrix3r midStress=!isnan(prevStress[0])?.5*(voigt_toSymmTensor(prevStress)+stress):stress;
-		Real midVolume=(scene->cell->hSize-.5*scene->dt*scene->cell->velGrad).determinant();
-		work=-(scene->cell->velGrad*midStress).trace()*scene->dt*midVolume;
+		Real midVolume=(scene->cell->hSize-.5*scene->dt*scene->cell->gradV).determinant();
+		work=-(scene->cell->gradV*midStress).trace()*scene->dt*midVolume;
 	}
 	return py::make_tuple(tensor_toVoigt(stress),K,work);
 }
