@@ -26,6 +26,12 @@ void Cell::setNextGradV(){
 	// if(!isnan(nnextGradV(0,0))){ nextGradV=nnextGradV; nnextGradV<<NaN,NaN,NaN, NaN,NaN,NaN, NaN,NaN,NaN; }
 }
 
+#ifdef CELL_APPROX2
+Matrix3r Cell::invIL2Dt(Real dt, bool useNext){
+	return (Matrix3r::Identity()-*(useNext?nextGradV:gradV)*dt/2).inverse();
+}
+#endif
+
 void Cell::integrateAndUpdate(Real dt){
 	//incremental displacement gradient
 	_trsfInc=dt*gradV;
@@ -34,8 +40,13 @@ void Cell::integrateAndUpdate(Real dt){
 	_invTrsf=trsf.inverse();
 
 	if(trsfUpperTriangular) checkTrsfUpperTriangular();
-	// hSize contains colums with updated base vectors
-	hSize+=_trsfInc*hSize;
+	#ifdef CELL_APPROX2
+		hSize=hSize*(Matrix3r::Identity()+gradV*dt/2.)*invIL2Dt;
+	#else
+		// hSize contains colums with updated base vectors
+		hSize+=_trsfInc*hSize;
+	#endif
+
 	if(hSize.determinant()==0){ throw std::runtime_error("Cell is degenerate (zero volume)."); }
 	// lengths of transformed cell vectors, skew cosines
 	Matrix3r Hnorm; // normalized transformed base vectors

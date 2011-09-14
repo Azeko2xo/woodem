@@ -22,7 +22,14 @@ void Gravity::run(){
 		dyn.force+=gravity*dyn.mass;
 		if(trackEnergy){
 			Real e=0;
-			if(dyn.blocked==DemData::DOF_NONE) e=-gravity.dot(dyn.vel)*dyn.mass*dt;
+			if(dyn.blocked==DemData::DOF_NONE){
+				#if 1
+					e=-gravity.dot(dyn.vel)*dyn.mass*dt;
+				#else
+					// attempt to better estimate current velocity from acceleration :-|
+					e=-gravity.dot(dyn.vel+.5*dt*(dyn.force/dyn.mass))*dyn.mass*dt;
+				#endif
+			}
 			else { for(int ax:{0,1,2}){ if(!(dyn.blocked & DemData::axisDOF(ax,false))) e-=gravity[ax]*dyn.vel[ax]*dyn.mass*dt; } }
 			scene->energy->add(e,"grav",gravWorkIx,EnergyTracker::IsIncrement);
 		}

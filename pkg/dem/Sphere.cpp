@@ -34,7 +34,7 @@ void In2_Sphere_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Mater
 		Vector3r F,T,xc;
 		boost::tie(F,T,xc)=C->getForceTorqueBranch(particle,/*nodeI*/0,scene);
 		#ifdef YADE_DEBUG
-			bool isPA=(C->pA==particle); int sign=(isPA?1:-1);
+			bool isPA=(C->pA==particle); // int sign=(isPA?1:-1);
 			if(isnan(F[0])||isnan(F[1])||isnan(F[2])||isnan(T[0])||isnan(T[1])||isnan(T[2])){
 				std::ostringstream oss; oss<<"NaN force/torque on particle #"<<particle->id<<" from ##"<<C->pA->id<<"+"<<C->pB->id<<":\n\tF="<<F<<", T="<<T; //"\n\tlocal F="<<C->phys->force*sign<<", T="<<C->phys->torque*sign<<"\n";
 				throw std::runtime_error(oss.str().c_str());

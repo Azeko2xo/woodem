@@ -20,18 +20,20 @@
 #include<unsupported/Eigen/MatrixFunctions>
 
 // trace many intermediate numbers in a file given by StaticEquilibriumSolver::dbgOut
-//#define SPARC_TRACE
+#ifdef YADE_DEBUG
+	#define SPARC_TRACE
+#endif
 
 #ifdef SPARC_TRACE
-	#define SPARC_TRACE_OUT(a) out<<a;
-	#define SPARC_TRACE_SES_OUT(a) ses->out<<a;
+	#define SPARC_TRACE_OUT(a) out<<a
+	#define SPARC_TRACE_SES_OUT(a) ses->out<<a
 #else
 	#define SPARC_TRACE_OUT(a)
 	#define SPARC_TRACE_SES_OUT(a)
 #endif
 
-// enable distance-based weighting when evaluating derivatives
-#define SPARC_WEIGHTS
+// enable Levenberg-Marquardt solver; not useful until functor can evaluate the jacobian
+#define SPARC_LM
 
 
 class vtkPointLocator;
@@ -50,6 +52,8 @@ struct SparcField: public Field{
 	// count does not include self in this case; not finding self in the result throws an exception
 	std::vector<shared_ptr<Node> > nodesAround(const Vector3r& x, int count=-1, Real radius=-1, const shared_ptr<Node>& self=shared_ptr<Node>());
 	void constructLocator();
+
+	template<bool useNext=false>
 	void updateLocator();
 
 	~SparcField(){ locator->Delete(); points->Delete(); grid->Delete(); }
@@ -83,33 +87,46 @@ struct SparcData: public NodeData{
 	void catchCrap2(int nid, const shared_ptr<Node>&);
 	// Real getDirVel(size_t i) const { return i<dirVels.size()?dirVels[i]:0.; }
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(SparcData,NodeData,"Nodal data needed for SPARC; everything is in global coordinates, except for constraints (fixedV, fixedT)",
+		// informational
+		((Real,color,Mathr::UnitRandom(),Attr::noGui,"Set node color, so that rendering is more readable"))
+		((int,nid,-1,,"Node id (to locate coordinates in solution matrix)"))
 
+		// state variables
 		((Matrix3r,T,Matrix3r::Zero(),,"Stress"))
-		((Vector3r,v,Vector3r::Zero(),,"Velocity"))
-		((Vector3r,locV,Vector3r::Zero(),,"Velocity in local coordinates"))
-		((Vector3i,dofs,Vector3i(-1,-1,-1),Attr::readonly,"Degrees of freedom in the solution system corresponding to 3 locV components (negative for prescribed velocity, not touched by the solver)"))
 		((Real,rho,0,,"Density"))
 		((Real,e,0,,"Porosity"))
-		((Real,color,Mathr::UnitRandom(),Attr::noGui,"Set node color, so that rendering is more readable"))
+
+		// prescribed values
 		((Vector3r,fixedV,Vector3r(NaN,NaN,NaN),,"Prescribed velocity, in node-local (!!) coordinates. NaN prescribes noting along respective axis."))
 		((Vector3r,fixedT,Vector3r(NaN,NaN,NaN),,"Prescribed stress divergence, in node-local (!!) coordinates. NaN prescribes nothing along respective axis."))
-		// storage within the step
+
+		// computed in prologue (once per timestep)
+		((Vector3i,dofs,Vector3i(-1,-1,-1),Attr::readonly,"Degrees of freedom in the solution system corresponding to 3 locV components (negative for prescribed velocity, not touched by the solver)"))
 		((vector<shared_ptr<Node> >,neighbors,,Attr::noGui,"List of neighbours, updated internally"))
-		((Vector3r,accel,Vector3r::Zero(),,"Acceleration"))
-		((Matrix3r,Tdot,Matrix3r::Zero(),,"Jaumann Stress rate")) 
+		((VectorXr,weights,,,"Weight when distance weighting is effective"))
 		((MatrixXr,relPosInv,,,"Relative positions' pseudo-inverse"))
-		#ifdef SPARC_WEIGHTS
-			((VectorXr,rWeights,,,"Weight when distance weighting is effective"))
-		#endif
+
+		// recomputed in each solver iteration
+		((Vector3r,locV,Vector3r::Zero(),,"Velocity in local coordinates"))
+		((Vector3r,v,Vector3r::Zero(),,"Velocity"))
 		((Matrix3r,gradV,Matrix3r::Zero(),,"gradient of velocity (only used as intermediate storage)"))
-		// static equilibrium solver data
-			((int,nid,-1,,"Node id (to locate coordinates in solution matrix)"))
+		// ((Matrix3r,Tdot,Matrix3r::Zero(),,"Jaumann Stress rate")) 
+		((Matrix3r,nextT,Matrix3r::Zero(),,"Stress in the next step")) 
+		((vector<shared_ptr<Node> >,nextNeighbors,,Attr::noGui,"Neighbors in the next step"))
+		((VectorXr,nextWeights,,,"Weights in t+dt/2, with positions updated as per v"))
+		((MatrixXr,nextRelPosInv,,,"Relative position's pseudoinverse in the next step"))
+		((Quaternionr,nextOri,,,"Orientation in the next step (FIXME: not yet updated)"))
+
+		// explicit solver
+		((Vector3r,accel,Vector3r::Zero(),,"Acceleration"))
 	#ifdef SPARC_INSPECT
 		// debugging only
 		((MatrixXr,relPos,,(Attr::noSave|Attr::noGui),"Debug storage for relative positions"))
+		((MatrixXr,nextRelPos,,(Attr::noSave|Attr::noGui),"Relative positions in next step"))
+		((MatrixXr,gradT,,(Attr::noSave|Attr::noGui),"Debugging only -- derivatives of stress components (6 lines, one for each voigt-component of stress tensor); evaluated as by-product in computeDivT"))
+
 		((Matrix3r,Tcirc,Matrix3r::Zero(),Attr::noSave,"Debugging only -- stress rate"))
 		((Vector3r,divT,Vector3r::Zero(),Attr::noSave,"Debugging only -- stress divergence"))
-		((MatrixXr,gradT,,(Attr::noSave|Attr::noGui),"Debugging only -- derivatives of stress components (6 lines, one for each voigt-component of stress tensor); evaluated as by-product in computeDivT"))
 		((Vector3r,resid,Vector3r::Zero(),(Attr::noSave|Attr::noGui),"Debugging only -- implicit solver residuals for global DoFs"))
 		((MatrixXr,relVels,,(Attr::noSave|Attr::noGui),"Debugging only -- relative neighbor velocities"))
 	#endif
@@ -129,9 +146,13 @@ template<> struct NodeData::Index<SparcData>{enum{value=Node::ST_SPARC};};
 struct ExplicitNodeIntegrator: public GlobalEngine, private SparcField::Engine{
 	enum{ MAT_HOOKE=0, MAT_BARODESY_JESSE, MAT_SENTINEL /* to check max value */ };
 	SparcField* mff; // lazy to type
+	template<bool useNext>
 	void findNeighbors(const shared_ptr<Node>& n) const;
-	void updateNeighborsRelPos(const shared_ptr<Node>& n, bool useNext=false) const;
-	Vector3r computeDivT(const shared_ptr<Node>& n, bool useNext=false) const;
+	template<bool useNext>
+	void updateNeighborsRelPos(const shared_ptr<Node>& n) const;
+	template<bool useNext>
+	Vector3r computeDivT(const shared_ptr<Node>& n) const;
+
 	Matrix3r computeGradV(const shared_ptr<Node>& n) const;
 	Matrix3r computeStressRate(const Matrix3r& T, const Matrix3r& D, Real e=-1) const;
 	// porosity updated using current deformation rate
@@ -140,9 +161,7 @@ struct ExplicitNodeIntegrator: public GlobalEngine, private SparcField::Engine{
 	Matrix6r C; // updated at every step
 	void postLoad(ExplicitNodeIntegrator&);
 	virtual void run();
-	#ifdef SPARC_WEIGHTS
-		Real pointWeight(Real distSq) const;
-	#endif
+	Real pointWeight(Real distSq) const;
 	enum {WEIGHT_DIST=0,WEIGHT_GAUSS,WEIGHT_SENTINEL};
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ExplicitNodeIntegrator,GlobalEngine,"Monolithic engine for explicit integration of motion of nodes in SparcField.",
 		((Real,E,1e6,Attr::triggerPostLoad,"Young's modulus, for the linear elastic constitutive law"))
@@ -159,6 +178,7 @@ struct ExplicitNodeIntegrator: public GlobalEngine, private SparcField::Engine{
 		((int,watch,-1,,"Nid to be watched (debugging)."))
 		((Real,damping,0,,"Numerical damping, applied by-component on acceleration"))
 		((Real,c,0,,"Viscous damping coefficient."))
+		((bool,barodesyConvertPaToKPa,true,,"Assume stresses are given in Pa, while parameters are calibrated with kPa. This divides input stress by 1000 (at the beginning of the constitutive law routine), then computes stress rate, which is multiplied by 1000."))
 		,/*ctor*/
 		,/*py*/
 		.def("stressRate",&ExplicitNodeIntegrator::computeStressRate,(py::arg("T"),py::arg("D"),py::arg("e")=-1)) // for debugging
@@ -174,7 +194,7 @@ struct ExplicitNodeIntegrator: public GlobalEngine, private SparcField::Engine{
 REGISTER_SERIALIZABLE(ExplicitNodeIntegrator);
 
 struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
-	struct ResidualsFunctor{
+	struct ResidualsFunctorBase {
 		typedef Real Scalar;
 		typedef VectorXr::Index Index;
 		enum { InputsAtCompileTime=Eigen::Dynamic, ValuesAtCompileTime=Eigen::Dynamic};
@@ -185,44 +205,80 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 		Index inputs() const { return m_inputs; }
 		Index values() const { return m_values; }
 		StaticEquilibriumSolver* ses;
-		ResidualsFunctor(Index inputs, Index values, StaticEquilibriumSolver* _ses): m_inputs(inputs), m_values(values), ses(_ses){}
+		ResidualsFunctorBase(Index inputs, Index values): m_inputs(inputs), m_values(values){}
 		enum{ MODE_TRIAL_V_IS_ARG=0, MODE_TRIAL_V_IN_NODES, MODE_CURRENT_STATE };
-		int operator()(const VectorXr &v, VectorXr& resid, int mode=MODE_TRIAL_V_IS_ARG) const;
+		int operator()(const VectorXr &v, VectorXr& resid) const;
 	};
-	typedef Eigen::HybridNonLinearSolver<ResidualsFunctor> SolverT;
-	shared_ptr<SolverT> solver;
+	// adds df() method to ResidualsFunctorBase; it is used by SolverLM (not by SolverPowell, where we use solverNumericalDiff* functions which evaluate Jacobian internally (and differently?))
+	// defines a templated forward ctor (with const refs only :-| )
+	typedef Eigen::NumericalDiff<ResidualsFunctorBase> ResidualsFunctor;
+	typedef Eigen::HybridNonLinearSolver<ResidualsFunctor> SolverPowell;
+	typedef Eigen::LevenbergMarquardt<ResidualsFunctor> SolverLM;
+	shared_ptr<SolverPowell> solverPowell;
+	shared_ptr<SolverLM> solverLM;
 	shared_ptr<ResidualsFunctor> functor;
 	int nFactorLowered;
 	ofstream out;
 
 	virtual void run();
-	void assignDofs();
-	void copyLocalVelocityToNodes(const VectorXr&) const;
-	void applyConstraintsAsResiduals(const shared_ptr<Node>& n, const Vector3r& divT, VectorXr& resid, bool useNext);
-	VectorXr computeInitialDofVelocities(bool useCurrV=false) const;
-	void integrateLocalVels(const VectorXr&, VectorXr&);
+#if 0
 	VectorXr compResid(const VectorXr& v);
+#endif
 	Real gradVError(const shared_ptr<Node>&, int rPow=0);
 
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(StaticEquilibriumSolver,ExplicitNodeIntegrator,"Find global static equilibrium of a Sparc system.",
+	void prologuePhase();
+		void assignDofs();
+		VectorXr computeInitialDofVelocities(bool useZero=true) const;
+
+	void solutionPhase(VectorXr& errors);
+		void solutionPhase_computeResponse();
+			void copyLocalVelocityToNodes(const VectorXr&) const;
+		void solutionPhase_computeErrors(VectorXr& errors);
+			template<bool useNext>
+			void computeConstraintErrors(const shared_ptr<Node>& n, const Vector3r& divT, VectorXr& errors);
+
+	void epiloguePhase();
+		void integrateStateVariables();
+
+	#ifndef SPARC_LM
+		const bool usePowell;
+	#endif
+	enum {DBG_JAC=1,DBG_DOFERR=2,DBG_NIDERR=4};
+
+	YADE_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(StaticEquilibriumSolver,ExplicitNodeIntegrator,"Find global static equilibrium of a Sparc system.",
 		((bool,substep,false,,"Whether the solver tries to find solution within one step, or does just one iteration towards the solution"))
 		((int,nIter,0,Attr::readonly,"Indicates number of iteration of the implicit solver (within one solution step), if *substep* is True. 0 means at the beginning of next solution step; nIter is negative during the iteration step, therefore if there is interruption by an exception, it is indicated by its negative value; this makes the solver restart at the next step. Positive value indicates successful progress towards solution."))
-		((Real,supportStiffness,1e10,,"Stiffness of constrained DoFs"))
-		((VectorXr,vv,,Attr::readonly,"Current solution which the solver computes"))
-		((VectorXr,residuals,,Attr::readonly,"Residuals corresponding to the current solution"))
+		((VectorXr,currV,,Attr::readonly,"Current solution which the solver computes"))
+		#ifdef SPARC_INSPECT
+			((VectorXr,residuals,,Attr::readonly,"Residuals corresponding to the current solution (copy of error vector inside the solver)"))
+		#endif
 		((Real,residuum,NaN,Attr::readonly,"Norm of residuals (fnorm) as reported by the solver."))
 		((Real,solverFactor,200,,"Factor for the Dogleg method (automatically lowered in case of convergence troubles"))
+		((Real,solverXtol,-1,,"Relative tolerance of the solver; if negative, default is used."))
 		((Real,relMaxfev,10000,,"Maximum number of function evaluation in solver, relative to number of DoFs"))
 		((int,nDofs,-1,,"Number of degrees of freedom, set by renumberDoFs"))
 		((Real,charLen,1,,"Characteristic length, for making divT/T errors comensurable"))
 		((bool,relPosOnce,false,,"Only compute relative positions when initializing solver step, using initial velocities"))
+		((bool,neighborsOnce,true,,"Only compute new neighbor set in epilogue, and use it for subsequent trial solutions as well"))
+		((bool,initZero,false,,"Use zero as initial solution for DoFs where velocity is not prescribed; otherwise use velocity from previous step."))
+		#ifdef SPARC_LM
+			((bool,usePowell,true,,"Use Powell's hybrid solver (dogleg); if *False*, use Levenberg-Marquardt instead."))
+		#endif
 		#ifdef SPARC_TRACE
 			((string,dbgOut,,,"Output file where to put debug information for detecting non-determinism in the solver"))
+			((int,dbgFlags,0,,"Select what things to dump to the output file: 1: Jacobian, 2: dof residua, 4: nid residua"))
 		#endif
+		, /*init*/
+			#ifndef SPARC_LM
+				 ((solverLM,shared_ptr<SolverLM>()))((usePowell,true))
+			#endif
 		, /* ctor */
-		, /* py */ .def("compResid",&StaticEquilibriumSolver::compResid,(py::arg("vv")=VectorXr()),"Compute residuals corresponding to either given velocities *vv*, or to the current state (if *vv* is not given or empty)")
+		, /* py */
+		#if 0
+			.def("compResid",&StaticEquilibriumSolver::compResid,(py::arg("vv")=VectorXr()),"Compute residuals corresponding to either given velocities *vv*, or to the current state (if *vv* is not given or empty)")
+		#endif
 		.def("gradVError",&StaticEquilibriumSolver::gradVError,(py::arg("node"),py::arg("rPow")=0),"Compute sum of errors from local velocity linearization (i.e. sum of errors between linear velocity field and real neighbor velocities; errors are weighted according to |x-x₀|^rPow.")
-		.def_readonly("solution",&StaticEquilibriumSolver::vv)
+		.def_readonly("solution",&StaticEquilibriumSolver::currV)
 	);
 
 };

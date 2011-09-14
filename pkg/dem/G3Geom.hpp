@@ -2,6 +2,7 @@
 #include<yade/pkg/dem/Particle.hpp>
 #include<yade/pkg/dem/ContactLoop.hpp>
 #include<yade/pkg/dem/Sphere.hpp>
+#include<yade/pkg/dem/Wall.hpp>
 
 struct G3Geom: public CGeom{
 	// rotates any contact-local vector expressed inglobal coordinates to keep track of local contact rotation in last step
@@ -30,6 +31,17 @@ struct Cg2_Sphere_Sphere_G3Geom: public CGeomFunctor{
 	DECLARE_LOGGER;
 };
 REGISTER_SERIALIZABLE(Cg2_Sphere_Sphere_G3Geom);
+
+struct Cg2_Wall_Sphere_G3Geom: public CGeomFunctor{
+	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
+	YADE_CLASS_BASE_DOC_ATTRS(Cg2_Wall_Sphere_G3Geom,CGeomFunctor,"Incrementally compute :yref:`G3Geom` for contact of 2 spheres. Detailed documentation in py/_extraDocs.py",
+	);
+	FUNCTOR2D(Wall,Sphere);
+	DEFINE_FUNCTOR_ORDER_2D(Wall,Sphere);
+	DECLARE_LOGGER;
+};
+REGISTER_SERIALIZABLE(Cg2_Wall_Sphere_G3Geom);
+
 
 struct G3GeomCData: public CData{
 	YADE_CLASS_BASE_DOC_ATTRS(G3GeomCData,CData,"Internal variables for use with G3Geom",

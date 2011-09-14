@@ -105,6 +105,7 @@ void Leapfrog::run(){
 		if(!node->hasData<DemData>()) continue;
 		DemData& dyn(node->getData<DemData>());
 		Vector3r& f=dyn.force;	Vector3r& t=dyn.torque;
+		Vector3r undampedF=f, undampedT=t; // to get the energy right;
 
 		// fluctuation velocity does not contain meanfield velocity in periodic boundaries
 		// in aperiodic boundaries, it is equal to absolute velocity
@@ -136,9 +137,9 @@ void Leapfrog::run(){
 		// is it OK that force and torque (except for aspherical integration) are undamped, that's handled inside
 		// FIXME: force and torque are already damped here!
 		#ifdef YADE_DEBUG
-			if(unlikely(reallyTrackEnergy)) updateEnergy(node,fluctVel,f,t,kinOnStep?linAccel:Vector3r::Zero(),kinOnStep?angAccel:Vector3r::Zero());
+			if(unlikely(reallyTrackEnergy)) updateEnergy(node,fluctVel,undampedF,undampedT,kinOnStep?linAccel:Vector3r::Zero(),kinOnStep?angAccel:Vector3r::Zero());
 		#else
-			if(unlikely(reallyTrackEnergy)) updateEnergy(node,fluctVel,f,t,linAccel,angAccel);
+			if(unlikely(reallyTrackEnergy)) updateEnergy(node,fluctVel,undampedF,undampedT,linAccel,angAccel);
 		#endif
 
 		/*

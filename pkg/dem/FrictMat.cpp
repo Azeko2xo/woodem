@@ -23,8 +23,9 @@ void Cp2_FrictMat_FrictPhys::go(const shared_ptr<Material>& m1, const shared_ptr
 		else{
 			assert(dynamic_pointer_cast<Sphere>(C->pA->shape));
 			assert(dynamic_pointer_cast<Sphere>(C->pB->shape));
-			l0=C->pA->shape->cast<Sphere>().radius;
-			l1=C->pA->shape->cast<Sphere>().radius;
+			l1=C->pB->shape->cast<Sphere>().radius;
+			if(!dynamic_pointer_cast<Sphere>(C->pA->shape)) l0=l1; // wall-sphere contact, for instance
+			else l0=C->pA->shape->cast<Sphere>().radius;
 		}
 	#endif
 	ph.kn=1/(1/(mat1.young*2*std::abs(l0))+1/(mat2.young*2*l1));

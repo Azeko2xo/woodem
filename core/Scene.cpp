@@ -103,6 +103,7 @@ void Scene::moveToNextTimeStep(){
 		// hopefully this will not break in some margin cases (subStepping with setting _nextEngines and such)
 		subStep=-1;
 	}
+	FOREACH(const shared_ptr<Field>& f, fields) if(f->scene!=this) f->scene=this;
 	if(likely(!subStepping && subStep<0)){
 		/* set substep to 0 during the loop, so that engines/nextEngines handler know whether we are inside the loop currently */
 		subStep=0;

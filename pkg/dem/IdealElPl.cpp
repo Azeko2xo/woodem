@@ -19,7 +19,8 @@ void Law2_L6Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shar
 			// when contact is broken, it is simply its elastic potential which gets lost
 			// it should be the current potential, though, since the previous one already generated force response
 			// ugly, we duplicate the code below here
-			const Vector2r velT(g.vel[1],g.vel[2]); Eigen::Map<Vector2r> prevFt(&ph.force[1]); const Real& prevFn=ph.force[0];
+			const Vector2r velT(g.vel[1],g.vel[2]); Eigen::Map<Vector2r> prevFt(&ph.force[1]);
+			// const Real& prevFn=ph.force[0];
 			Real Fn=ph.kn*g.uN; Vector2r Ft=prevFt+scene->dt*ph.kt*velT;
 			// Real z=.5;
 			//Real z=abs(prevFn)/(abs(Fn)+abs(prevFn));
@@ -48,6 +49,7 @@ void Law2_L6Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shar
 			where Fm=maxFt and Ft=FtNorm
 			*/
 			Real dissip=(.5*(FtNorm-maxFt)+maxFt)*(FtNorm-maxFt)/ph.kt;
+			//Real dissip=(maxFt)*(FtNorm-maxFt)/ph.kt;
 			scene->energy->add(dissip,"plast",plastDissipIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate);
 		}
 		Ft*=ratio;

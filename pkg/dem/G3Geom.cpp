@@ -4,7 +4,7 @@
 */
 #include<yade/pkg/dem/G3Geom.hpp>
 
-YADE_PLUGIN(dem,(G3Geom)(Cg2_Sphere_Sphere_G3Geom)(Law2_G3Geom_FrictPhys_IdealElPl)(G3GeomCData));
+YADE_PLUGIN(dem,(G3Geom)(Cg2_Sphere_Sphere_G3Geom)(Cg2_Wall_Sphere_G3Geom)(Law2_G3Geom_FrictPhys_IdealElPl)(G3GeomCData));
 
 void G3Geom::rotateVectorWithContact(Vector3r& v){
 	assert(!isnan(orthonormalAxis.maxCoeff()) && !isnan(twistAxis.maxCoeff()));
@@ -85,6 +85,61 @@ bool Cg2_Sphere_Sphere_G3Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<
 }
 
 
+bool Cg2_Wall_Sphere_G3Geom::go(const shared_ptr<Shape>& wallSh, const shared_ptr<Shape>& sphereSh, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
+	if(scene->isPeriodic) throw std::logic_error("Wall may not be used with periodic boundary conditions (how did you manage to persuade collider to handle this?!).");
+	const Wall& wall=wallSh->cast<Wall>(); const Sphere& sphere=sphereSh->cast<Sphere>();
+	assert(wall.numNodesOk()); assert(sphere.numNodesOk());
+	assert(wall.nodes[0]->hasData<DemData>()); assert(sphere.nodes[0]->hasData<DemData>());
+	const DemData& dynW(wall.nodes[0]->getData<DemData>()); const DemData& dynS(sphere.nodes[0]->getData<DemData>());
+	const Vector3r& posW(wall.nodes[0]->pos), posS(sphere.nodes[0]->pos);
+	const Real& radius=sphere.radius; const int& ax=wall.axis; const int& sense=wall.sense;
+	const Real& dt=scene->dt;
+
+	Real dist=posS[ax]-posW[ax]; // signed "distance" between centers
+	if(!C->isReal() && abs(dist)>radius && !force) { return false; }// wall and sphere too far from each other
+
+	// contact point is sphere center projected onto the wall
+	Vector3r contPt=posS; contPt[ax]=posW[ax];
+	Vector3r normal(Vector3r::Zero());
+	// wall interacting from both sides: normal depends on sphere's position
+	assert(sense==-1 || sense==0 || sense==1);
+	if(sense==0) normal[ax]=dist>0?1.:-1.;
+	else normal[ax]=sense==1?1.:-1;
+
+	shared_ptr<G3Geom> g3g;
+	bool isNew=!C->geom;
+	if(!isNew) g3g=static_pointer_cast<G3Geom>(C->geom);
+	else { g3g=make_shared<G3Geom>(); C->geom=g3g; }
+
+	g3g->uN=normal[ax]*dist-radius; // takes in account sense, radius and distance
+	g3g->node->pos=contPt;
+
+	if(!isNew) {
+		const Vector3r& oldNormal=g3g->normal;
+		g3g->orthonormalAxis=oldNormal.cross(normal);
+		Real angle=dt*0.5*oldNormal.dot(dynW.angVel+dynS.angVel);
+		g3g->twistAxis=angle*oldNormal;
+	}
+	else{
+		g3g->twistAxis=g3g->orthonormalAxis=Vector3r(NaN,NaN,NaN);
+		// local and global orientation coincide
+		C->geom->node->ori=Quaternionr::Identity();
+	}
+	g3g->normal=normal;
+	
+	/* compute relative velocity */
+	Vector3r cWx=contPt-posW;
+	Vector3r cSx=contPt-posS;
+	Vector3r relVel=(dynS.vel+dynS.angVel.cross(cSx))-(dynW.vel+dynW.angVel.cross(cWx));
+	//keep the shear part only
+	relVel-=normal.dot(relVel)*normal;
+	// update shear displacement delta
+	g3g->dShear=-relVel*dt;
+	return true;
+}
+
+
+
 #ifdef YADE_DEBUG
 	#define _WATCH_MSG(msg) if(watched) cerr<<msg;
 #else
@@ -119,7 +174,7 @@ void Law2_G3Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shar
 		_WATCH_MSG("\tPlastic slip by "<<((dta.shearForce/ratio)*(1-ratio)).transpose()<<", ratio="<<ratio<<", new Ft="<<dta.shearForce.transpose()<<endl);
 		if(scene->trackEnergy){
 			Real dissip=((1/phys.kt)*(trialForce-dta.shearForce))/*plastic disp*/ .dot(dta.shearForce)/*active force*/;
-			scene->energy->add(dissip,"plastDissip",plastDissipIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate);
+			scene->energy->add(dissip,"plast",plastDissipIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate);
 		}
 	}
 	// elastic potential

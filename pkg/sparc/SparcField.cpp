@@ -2,29 +2,23 @@
 #include<yade/pkg/sparc/SparcField.hpp>
 
 #include<boost/preprocessor.hpp>
+#include<boost/filesystem/convenience.hpp>
+
+namespace bfs=boost::filesystem;
+
 
 using boost::format;
 
 YADE_PLUGIN(sparc,(SparcField)(SparcData)(ExplicitNodeIntegrator)(StaticEquilibriumSolver));
 
-#if 0
-// http://listengine.tuxfamily.org/lists.tuxfamily.org/eigen/2010/01/msg00187.html
-template<typename MatrixT>
-static bool Matrix_pseudoInverse(const MatrixT &a, MatrixT &result, double epsilon=std::numeric_limits<typename MatrixT::Scalar>::epsilon()) {
-	if(a.rows()<a.cols()) return false;
-	Eigen::SVD<MatrixT>svd (a.svd());
-	typename MatrixT::Scalar tolerance = epsilon * std::max(a.cols(), a.rows()) * svd.singularValues().cwise().abs().maxCoeff();
-	result = svd.matrixV() * (svd.singularValues().cwise().abs() > tolerance).select(svd.singularValues().cwise().inverse(), 0).asDiagonal() * svd.matrixU().adjoint();
-	return true;
-}
-#endif
 void SparcField::constructLocator(){
 	locator=vtkPointLocator::New(); points=vtkPoints::New(); grid=vtkUnstructuredGrid::New(); grid->SetPoints(points); locator->SetDataSet(grid);
 }
 
+template<bool useNext>
 void SparcField::updateLocator(){
 	// FIXME: just for debugging, leaks memory by discarding old objects
-	// however, it fixes errors when called with point positions beion only update
+	// however, it fixes errors when called with point positions being only updated
 	constructLocator();
 	assert(locator && points && grid);
 	/* adjust points size */
@@ -34,29 +28,18 @@ void SparcField::updateLocator(){
 	for(size_t i=0; i<sz; i++){
 		const shared_ptr<Node>& n(nodes[i]);
 		assert(n->hasData<SparcData>());
-		//n->getData<SparcData>().locatorId=
-		points->SetPoint(i,n->pos[0],n->pos[1],n->pos[2]);
+		if(!useNext) points->SetPoint(i,n->pos[0],n->pos[1],n->pos[2]);
+		else{ Vector3r pos=n->pos+n->getData<SparcData>().v*scene->dt; points->SetPoint(i,pos[0],pos[1],pos[2]); }
 	}
 	// points->ComputeBounds(); points->GetBounds(bb)
 	locator->BuildLocator();
 	locDirty=false;
 };
 
-// template<> std::string boost::lexical_cast<Vector3r,std::string>(const Vector3r& v){ return "("+lexical_cast<string>(v[0])+","+lexical_cast<string>(v[1])+","+lexical_cast<string>(v[2])+")"; }
-
-// using std::isnan;
-
-template<typename M>
-bool eig_isnan(const M& m){for(int j=0; j<m.cols(); j++)for(int i=0;i<m.rows(); i++) if(isnan(m(i,j))) return true; return false; }
-
-template<typename M>
-bool eig_all_isnan(const M&m){for(int j=0; j<m.cols(); j++)for(int i=0;i<m.rows();i++) if(!isnan(m(i,j))) return false; return true; }
-
-template<>
-bool eig_isnan<Vector3r>(const Vector3r& v){for(int i=0; i<v.size(); i++) if(isnan(v[i])) return true; return false; }
-
-template<>
-bool eig_isnan(const Real& r){ return isnan(r); }
+template<typename M> bool eig_isnan(const M& m){for(int j=0; j<m.cols(); j++)for(int i=0;i<m.rows(); i++) if(isnan(m(i,j))) return true; return false; }
+template<typename M> bool eig_all_isnan(const M&m){for(int j=0; j<m.cols(); j++)for(int i=0;i<m.rows();i++) if(!isnan(m(i,j))) return false; return true; }
+template<> bool eig_isnan<Vector3r>(const Vector3r& v){for(int i=0; i<v.size(); i++) if(isnan(v[i])) return true; return false; }
+template<> bool eig_isnan(const Real& r){ return isnan(r); }
 
 vector<shared_ptr<Node> > SparcField::nodesAround(const Vector3r& pt, int count, Real radius, const shared_ptr<Node>& self){
 	if(!locator) throw runtime_error("SparcField::locator not initialized!");	
@@ -79,79 +62,88 @@ vector<shared_ptr<Node> > SparcField::nodesAround(const Vector3r& pt, int count,
 	return ret;
 };
 
+template<bool useNext>
 void ExplicitNodeIntegrator::findNeighbors(const shared_ptr<Node>&n) const {
 	SparcData& dta(n->getData<SparcData>());
 	size_t prevN=dta.neighbors.size();
-	dta.neighbors=mff->nodesAround(n->pos,/*count*/-1,rSearch,/*self=*/n);
-	if(prevN>0 && dta.neighbors.size()!=prevN){
+	Vector3r pos(!useNext?n->pos:n->pos+dta.v*scene->dt);
+	dta.neighbors=mff->nodesAround(pos,/*count*/-1,rSearch,/*self=*/n);
+
+	// say if number of neighbors changes between steps
+	if(!useNext && prevN>0 && dta.neighbors.size()!=prevN){
 		cerr<<"Nid "<<dta.nid<<" changed number of neighbors: "<<prevN<<" → "<<dta.neighbors.size()<<endl;
 	}
 };
 
-#ifdef SPARC_WEIGHTS
-	Real ExplicitNodeIntegrator::pointWeight(Real distSq) const {
-		if(weightFunc==WEIGHT_DIST){
-			Real w=(rPow%2==0?pow(distSq,rPow/2):pow(sqrt(distSq),rPow));
-			assert(!(rPow==0 && w!=1.)); // rPow==0 → weight==1.
-			return w;
-		}
-		else if(weightFunc==WEIGHT_GAUSS){
-			Real w=pow(sqrt(distSq),-1); // make all points the same weight first
-			Real hSq=pow(rSearch,2);
-			assert(distSq<=hSq); // taken care of by neighbor search algorithm already
-			w*=exp(-gaussAlpha*(distSq/hSq));
-			return w;
-		}
-		throw std::logic_error("ExplicitNodeIntegrator.weightFunc has inadmissible value; this should have been trapped in postLoad already!");
+Real ExplicitNodeIntegrator::pointWeight(Real distSq) const {
+	if(weightFunc==WEIGHT_DIST){
+		Real w=(rPow%2==0?pow(distSq,rPow/2):pow(sqrt(distSq),rPow));
+		assert(!(rPow==0 && w!=1.)); // rPow==0 → weight==1.
+		return w;
 	}
-#endif
+	else if(weightFunc==WEIGHT_GAUSS){
+		Real w=pow(sqrt(distSq),-1); // make all points the same weight first
+		Real hSq=pow(rSearch,2);
+		assert(distSq<=hSq); // taken care of by neighbor search algorithm already
+		w*=exp(-gaussAlpha*(distSq/hSq));
+		return w;
+	}
+	throw std::logic_error("ExplicitNodeIntegrator.weightFunc has inadmissible value; this should have been trapped in postLoad already!");
+}
 
-void ExplicitNodeIntegrator::updateNeighborsRelPos(const shared_ptr<Node>& n, bool useNext) const {
+template<bool useNext>
+void ExplicitNodeIntegrator::updateNeighborsRelPos(const shared_ptr<Node>& n) const {
 	SparcData& dta(n->getData<SparcData>());
-	int sz(dta.neighbors.size());
+	// current or next inputs
+	const vector<shared_ptr<Node>>& neighbors(useNext?dta.nextNeighbors:dta.neighbors);
+	VectorXr& weights(useNext?dta.nextWeights:dta.weights);
+	MatrixXr& relPosInv(useNext?dta.nextRelPosInv:dta.relPosInv);
+
+	int sz(neighbors.size());
 	if(sz<3) throw std::runtime_error((format("Node #%d at %s has only %d neighbors (3 is minimum)")%dta.nid%n->pos.transpose()%sz).str());
 	MatrixXr relPos(sz,3);
-	#ifdef SPARC_WEIGHTS
-		dta.rWeights=VectorXr(sz);
-	#endif
-	Vector3r currPos(n->pos+(useNext?Vector3r(scene->dt*dta.v):Vector3r::Zero()));
+	weights=VectorXr(sz);
+	Vector3r midPos(n->pos+(useNext?Vector3r(scene->dt*dta.v):Vector3r::Zero()));
 	for(int i=0; i<sz; i++){
-		relPos.row(i)=VectorXr(dta.neighbors[i]->pos+(useNext?Vector3r(scene->dt*dta.neighbors[i]->getData<SparcData>().v):Vector3r::Zero())-currPos);
-		#ifdef SPARC_WEIGHTS
-			dta.rWeights[i]=pointWeight(Vector3r(relPos.row(i)).squaredNorm());
-			relPos.row(i)*=dta.rWeights[i];
-		#endif
+		Vector3r dX=VectorXr(neighbors[i]->pos+(useNext?Vector3r(scene->dt*neighbors[i]->getData<SparcData>().v):Vector3r::Zero())-midPos);
+		weights[i]=pointWeight(dX.squaredNorm());
+		relPos.row(i)=weights[i]*dX;
 	}
 	#ifdef SPARC_INSPECT
-		dta.relPos=relPos;
+		if(useNext) dta.relPos=relPos;
+		else dta.nextRelPos=relPos;
 	#endif
 	if(eig_isnan(relPos)){
 		cerr<<"=== Relative positions for nid "<<dta.nid<<":\n"<<relPos<<endl;
-		throw std::runtime_error("NaN's in relative positions in O.sparc.nodes["+lexical_cast<string>(dta.nid)+"].sparc.relPos .");
+		throw std::runtime_error("NaN's in relative positions in O.sparc.nodes["+lexical_cast<string>(dta.nid)+"].sparc."+string(useNext?"nextRelPos":"relPos")+") .");
 	}
-	bool succ=MatrixXr_pseudoInverse(relPos,/*result*/dta.relPosInv);
+	bool succ=MatrixXr_pseudoInverse(relPos,/*result*/relPosInv);
 	if(!succ) throw std::runtime_error("ExplicitNodeIntegrator::updateNeigbours: pseudoInverse failed.");
 }
 
-Vector3r ExplicitNodeIntegrator::computeDivT(const shared_ptr<Node>& n, bool useNext) const {
+template<bool useNext>
+Vector3r ExplicitNodeIntegrator::computeDivT(const shared_ptr<Node>& n) const {
 	int vIx[][2]={{0,0},{1,1},{2,2},{1,2},{2,0},{0,1}}; // from voigt index to matrix indices
 	const SparcData& midDta=n->getData<SparcData>();
-	const vector<shared_ptr<Node> >& NN(midDta.neighbors);  size_t sz=NN.size();
+	const vector<shared_ptr<Node> >& NN(useNext?midDta.nextNeighbors:midDta.neighbors);
+	const VectorXr& weights(useNext?midDta.nextWeights:midDta.weights);
+	const MatrixXr& relPosInv(useNext?midDta.nextRelPosInv:midDta.relPosInv);
+	size_t sz=NN.size();
 	Vector3r A[6];
 	for(int l:{0,1,2,3,4,5}){
 		int i=vIx[l][0], j=vIx[l][1]; // matrix indices from voigt indices
-		VectorXr rhs(sz); for(size_t r=0; r<sz; r++){
+		VectorXr rhs(sz);
+		for(size_t r=0; r<sz; r++){
 			const SparcData& nDta=NN[r]->getData<SparcData>();
-			rhs[r]=nDta.T(i,j)-midDta.T(i,j)+(useNext?scene->dt*(nDta.Tdot(i,j)-midDta.Tdot(i,j)):0);
-			#ifdef SPARC_WEIGHTS
-				rhs[r]*=midDta.rWeights[r];
-			#endif
+			if(useNext) rhs[r]=nDta.nextT(i,j)-midDta.nextT(i,j);
+			else rhs[r]=nDta.T(i,j)-midDta.T(i,j);
+			rhs[r]*=weights[r];
 		}
-		A[l]=midDta.relPosInv*rhs;
-		if(eig_isnan(A[l])) yade::ValueError(format("Node at %s has NaNs in A[%i]=%s")%n->pos%l%A[l].transpose());
+		A[l]=relPosInv*rhs;
+		if(eig_isnan(A[l])) yade::ValueError(format("Node %d at %s has NaNs in A[%i]=%s")% midDta.nid % n->pos.transpose() % l % A[l].transpose());
 	};
 	#ifdef SPARC_INSPECT
-		SparcData& midDta2=n->getData<SparcData>();
+		/* non-const ref*/ SparcData& midDta2=n->getData<SparcData>();
 		midDta2.gradT=MatrixXr(6,3);
 		for(int l:{0,1,2,3,4,5}) midDta2.gradT.row(l)=A[l];
 	#endif
@@ -169,9 +161,7 @@ Matrix3r ExplicitNodeIntegrator::computeGradV(const shared_ptr<Node>& n) const {
 	MatrixXr relVels(sz,3);
 	for(size_t i=0; i<sz; i++){
 		relVels.row(i)=VectorXr(NN[i]->getData<SparcData>().v-midDta.v);
-		#ifdef SPARC_WEIGHTS
-			relVels.row(i)*=midDta.rWeights[i];
-		#endif
+		relVels.row(i)*=midDta.weights[i];
 	}
 	#ifdef SPARC_INSPECT
 		n->getData<SparcData>().relVels=relVels;
@@ -179,13 +169,14 @@ Matrix3r ExplicitNodeIntegrator::computeGradV(const shared_ptr<Node>& n) const {
 	return midDta.relPosInv*relVels;
 }
 
-Matrix3r ExplicitNodeIntegrator::computeStressRate(const Matrix3r& T, const Matrix3r& D, const Real e /* =-1 */) const {
+Matrix3r ExplicitNodeIntegrator::computeStressRate(const Matrix3r& inT, const Matrix3r& D, const Real e /* =-1 */) const {
 	#define CC(i) barodesyC[i-1]
 	switch(matModel){
 		case MAT_HOOKE:
 			// isotropic linear elastic
 			return voigt_toSymmTensor((C*tensor_toVoigt(D,/*strain*/true)).eval());
 		case MAT_BARODESY_JESSE:{
+			Matrix3r T(barodesyConvertPaToKPa?(inT/1e3).eval():inT);
 			// barodesy from the Theoretical Soil Mechanics course
 			// if(e<0 || e>1) throw std::invalid_argument((boost::format("Porosity %g out of 0..1 range (D=%s)\n")%e%D).str());
 			Real Tnorm=T.norm(), Dnorm=D.norm();
@@ -197,7 +188,8 @@ Matrix3r ExplicitNodeIntegrator::computeStressRate(const Matrix3r& T, const Matr
 			Real g=-CC(6);
 			Real h=pow(Tnorm,CC(3));
 			// cerr<<"CC(2)*D0=\n"<<(CC(2)*D0)<<"\n(CC(2)*D0).exp()=\n"<<(CC(2)*D0).exp()<<endl;
-			return h*(f*R0+g*T0)*Dnorm;
+			Matrix3r Tcirc=h*(f*R0+g*T0)*Dnorm;
+			return (barodesyConvertPaToKPa?(1e3*Tcirc).eval():Tcirc);
 		}
 	}
 	throw std::logic_error((boost::format("Unknown material model number %d (this should have been caught much earlier!)")%matModel).str());
@@ -224,17 +216,13 @@ void ExplicitNodeIntegrator::postLoad(ExplicitNodeIntegrator&){
 	if(matModel<0 || matModel>MAT_SENTINEL) yade::ValueError(boost::format("matModel must be in range 0..%d")%(MAT_SENTINEL-1));
 	if(weightFunc<0 || weightFunc>=WEIGHT_SENTINEL) yade::ValueError(boost::format("weightFunc must be in range 0..%d")%(WEIGHT_SENTINEL-1));
 	if(barodesyC.size()!=6) yade::ValueError(boost::format("barodesyC must have exactly 6 values (%d given)")%barodesyC.size());
-	#ifndef SPARC_WEIGHTS
-		if(rPow!=0) LOG_WARN("Non-zero value of ExplicitNodeIntegrator.rPow, will be ignored, as SPARC_WEIGHTS is disabled.");
-	#else
-		if(rPow>0) LOG_WARN("Positive value of ExplicitNodeIntegrator.rPow: makes weight increasing with distance, ATRE YOU NUTS?!");
-	#endif
+	if(rPow>0) LOG_WARN("Positive value of ExplicitNodeIntegrator.rPow: makes weight increasing with distance, ARE YOU NUTS?!");
 }
 
 #define _CATCH_CRAP(x,y,z) if(eig_isnan(z)){ throw std::runtime_error((boost::format("NaN in O.sparc.nodes[%d], attribute %s: %s\n")%nid%BOOST_PP_STRINGIZE(z)%z).str().c_str()); }
 
 void SparcData::catchCrap1(int nid, const shared_ptr<Node>& node){
-	BOOST_PP_SEQ_FOR_EACH(_CATCH_CRAP,~,(gradV)(Tdot)(accel)
+	BOOST_PP_SEQ_FOR_EACH(_CATCH_CRAP,~,(gradV)(nextT)(accel)
 		#ifdef SPARC_INSPECT
 			(Tcirc)(divT)
 		#endif
@@ -269,8 +257,8 @@ Quaternionr SparcData::getRotQ(const Real& dt) const {
 
 void ExplicitNodeIntegrator::run(){
 	mff=static_cast<SparcField*>(field.get());
-	const Real& dt=scene->dt;
 	int nid=-1;
+	const Real& dt(scene->dt);
 	/*
 	update locator
 	loop 1: (does not update state vars x,T,v,rho; only stores values needed for update in the next loop)
@@ -285,17 +273,17 @@ void ExplicitNodeIntegrator::run(){
 		5. update e (from prev e and prev gradV)
 	*/
 
-	if(mff->locDirty || neighborUpdate<2 || (scene->step%neighborUpdate)==0) mff->updateLocator(); // if(mff->locDirty) throw std::runtime_error("SparcField locator was not updated to new positions.");
+	if(mff->locDirty || neighborUpdate<2 || (scene->step%neighborUpdate)==0) mff->updateLocator</*useNext*/false>(); // if(mff->locDirty) throw std::runtime_error("SparcField locator was not updated to new positions.");
 
 	FOREACH(const shared_ptr<Node>& n, field->nodes){
 		nid++; SparcData& dta(n->getData<SparcData>());
-		findNeighbors(n);
-		updateNeighborsRelPos(n);
+		findNeighbors</*useNext*/false>(n);
+		updateNeighborsRelPos</*useNext*/false>(n);
 		dta.gradV=computeGradV(n);
 		Matrix3r D=dta.getD(), W=dta.getW(); // symm/antisymm decomposition of dta.gradV
 		Matrix3r Tcirc=computeStressRate(dta.T,D,dta.e);
-		dta.Tdot=Tcirc+dta.T*W-W*dta.T;
-		Vector3r divT=computeDivT(n);
+		dta.nextT=dta.T+dt*(Tcirc+dta.T*W-W*dta.T);
+		Vector3r divT=computeDivT</*useNext*/false>(n);
 		dta.accel=(1/dta.rho)*(divT-c*dta.v);
 		if(damping!=0) for(int i=0;i<3;i++) dta.accel[i]*=(dta.accel[i]*dta.v[i]>0 ? 1.-damping : 1.+damping);
 		#ifdef SPARC_INSPECT
@@ -312,7 +300,7 @@ void ExplicitNodeIntegrator::run(){
 		nid++; SparcData& dta(n->getData<SparcData>());
 		n->pos+=dt*dta.v;
 		if(spinRot) n->pos=dta.getRotQ(scene->dt)*n->pos;
-		dta.T+=dt*dta.Tdot;
+		dta.T=dta.nextT; // dt*dta.Tdot;
 		dta.v+=dt*dta.accel;
 		applyKinematicConstraints(n,/*disallow prescribed stress*/false);
 		dta.rho+=dt*(-dta.rho*dta.gradV.trace());
@@ -323,68 +311,27 @@ void ExplicitNodeIntegrator::run(){
 	};
 };
 
-/*
-mode determines what input data are used to compute the residual, and at which time point:
-
-1. MODE_CURRENT_STATE
-	only update relative positions and compute residuals, in the current moment
-2. MODE_TRIAL_V_IN_NODES
-	use velocity inside nodes (SparcData.v) to compute relative positions at t+Δt,
-	evaluate Tdot etc to compute residuals at a future point
-3. MODE_TRIAL_V_IS_ARG
-	like 2, but copy velocities passed in the first argument inside nodes first
-	(this is what the solver uses)
-
-*/
-int StaticEquilibriumSolver::ResidualsFunctor::operator()(const VectorXr &v, VectorXr& resid, int mode) const {
-	// static unsigned long N=0; if((N++%1)==0) cerr<<".["<<v.size()<<","<<ses->field->nodes.size()<<"]";
-	SPARC_TRACE_SES_OUT(
-		"### functor called"<<endl
-		<<"--- current "<<ses->solver->fjac.cols()<<"x"<<ses->solver->fjac.rows()<<" jacobian is "<<endl<<ses->solver->fjac<<endl
-		<<"--- current diagonal is "<<ses->solver->diag.transpose()<<endl);
+int StaticEquilibriumSolver::ResidualsFunctorBase::operator()(const VectorXr &v, VectorXr& resid) const {
+	#ifdef SPARC_TRACE
+		#define _INFO(s) "--- current "<<s->fjac.cols()<<"x"<<s->fjac.rows()<<" jacobian is "<<endl<<s->fjac<<endl<<"--- current diagonal is "<<s->diag.transpose()<<endl
+		if(ses->dbgFlags&DBG_JAC){
+			if(ses->solverPowell){ SPARC_TRACE_SES_OUT("### functor called"<<endl<<_INFO(ses->solverPowell));}
+			else{ SPARC_TRACE_SES_OUT("### functor called"<<endl<<_INFO(ses->solverLM)); }
+		}
+		#undef _INFO
+	#endif
 	if(eig_isnan(v)){
 		LOG_ERROR("Solver proposing solution with NaN's, return [∞,…,∞]"); resid.setConstant(v.size(),std::numeric_limits<Real>::infinity());
 		SPARC_TRACE_SES_OUT("--- input NaN'ed v = "<<v.transpose()<<endl<<"--- !! returning "<<resid.transpose()<<endl);
 		return 0;
 	}
-	assert((mode==MODE_TRIAL_V_IS_ARG || v.size()>0) || mode!=MODE_TRIAL_V_IS_ARG);
-	// copy velocity to inside node data (could be eliminated later to be more efficient perhaps)
-	if(mode==MODE_TRIAL_V_IS_ARG) ses->copyLocalVelocityToNodes(v);
-	bool useNext=(mode!=MODE_CURRENT_STATE);
-	SPARC_TRACE_SES_OUT("--- input v = "<<v.transpose()<<endl);
-#if 0
-	if(!useNext){ // move conditional outside the loop
-		FOREACH(const shared_ptr<Node>& n, ses->field->nodes){
-			ses->updateNeighborsRelPos(n,/*useNext*/false);
-		}
-	}
-	else {
+	#ifdef SPARC_TRACE
+		SPARC_TRACE_SES_OUT("#-- input velocities = "<<v.transpose()<<endl);
 	#endif
-		FOREACH(const shared_ptr<Node>& n, ses->field->nodes){
-			SparcData& dta(n->getData<SparcData>());
-			if(!ses->relPosOnce || mode==MODE_CURRENT_STATE) ses->updateNeighborsRelPos(n,/*useNext*/useNext);
-			dta.gradV=ses->computeGradV(n);
-			Matrix3r D=dta.getD(), W=dta.getW(); // symm/antisymm decomposition of dta.gradV
-			Matrix3r Tcirc=ses->computeStressRate(dta.T,D,/*porosity*/useNext?ses->nextPorosity(dta.e,D):dta.e);
-			dta.Tdot=Tcirc+dta.T*W-W*dta.T;
-			#ifdef SPARC_INSPECT
-				dta.Tcirc=Tcirc;
-			#endif
-		}
-//	}
-	// resid needs Tdot of other points, in separate loop
-	FOREACH(const shared_ptr<Node>& n, ses->field->nodes){
-		SparcData& dta(n->getData<SparcData>());
-		Vector3r divT=ses->computeDivT(n,/*useNext*/useNext);
-		SPARC_TRACE_SES_OUT("-->    nid "<<dta.nid<<" (dofs "<<dta.dofs.transpose()<<"), divT="<<divT.transpose()<<endl);
-		ses->applyConstraintsAsResiduals(n,divT,resid,/*useNextT*/useNext);
-		#ifdef SPARC_INSPECT
-			dta.divT=divT; // pure equilibrium residual, without constraints yet
-			SPARC_TRACE_SES_OUT("<--     nid "<<dta.nid<<" final residuum "<<dta.resid<<endl);
-		#endif
-	}
-	SPARC_TRACE_SES_OUT("@@ Final residuals ("<<resid.blueNorm()<<") = "<<resid.transpose()<<endl);
-	SPARC_TRACE_SES_OUT("@@ for input velocities = "<<v.transpose()<<endl);
+
+	ses->solutionPhase(resid);
+
+	SPARC_TRACE_SES_OUT("### Final residuals ("<<resid.blueNorm()<<") = "<<resid.transpose()<<endl);
 	return 0;
 };
 
@@ -418,19 +365,115 @@ void StaticEquilibriumSolver::assignDofs() {
 	nDofs=dof;
 }
 
+VectorXr StaticEquilibriumSolver::computeInitialDofVelocities(bool useZero) const {
+	VectorXr ret; ret.setZero(nDofs);
+	FOREACH(const shared_ptr<Node>& n, field->nodes){
+		const SparcData& dta(n->getData<SparcData>());
+		// fixedV and zeroed are in local coords
+		for(int ax:{0,1,2}){
+			if(dta.dofs[ax]<0) continue;
+			if(useZero){
+				// TODO: assign random velocities if scene->step==0
+				ret[dta.dofs[ax]]=0.;
+			}
+			else ret[dta.dofs[ax]]=(n->ori*dta.v)[ax]; 
+		}
+	}
+	return ret;
+};
+
+void StaticEquilibriumSolver::prologuePhase(){
+	mff->updateLocator</*useNext*/false>();
+	FOREACH(const shared_ptr<Node>& n, field->nodes){
+		SparcData& dta(n->getData<SparcData>());
+		findNeighbors</*useNext*/false>(n); 
+		if(neighborsOnce) dta.nextNeighbors=dta.neighbors;
+		updateNeighborsRelPos</*useNext*/false>(n);
+		if(relPosOnce){ dta.nextRelPosInv=dta.relPosInv; dta.nextWeights=dta.weights; }
+	}
+	assignDofs();  // this is necessary only after number of free DoFs have changed; assign at every step to ensure consistency (perhaps not necessary if this is detected in the future)
+	// intial solution is previous (or zero) velocities, except wher they are prescribed
+	currV=computeInitialDofVelocities(/*useZero*/initZero);
+	#ifdef SPARC_TRACE
+		SPARC_TRACE_OUT("Neighbor numbers: "); FOREACH(const shared_ptr<Node>& n, field->nodes) SPARC_TRACE_OUT(n->getData<SparcData>().neighbors.size()<<" "); SPARC_TRACE_OUT("\n");
+	#endif
+}
+
+
+void StaticEquilibriumSolver::solutionPhase(VectorXr& errors){
+	solutionPhase_computeResponse();
+	solutionPhase_computeErrors(errors);
+};
+
+void StaticEquilibriumSolver::solutionPhase_computeResponse(){
+	copyLocalVelocityToNodes(currV);
+	FOREACH(const shared_ptr<Node>& n, field->nodes){
+		SparcData& dta=n->getData<SparcData>();
+		dta.gradV=computeGradV(n);
+		Matrix3r D=dta.getD(), W=dta.getW(); // symm/antisymm decomposition of dta.gradV
+		Matrix3r Tcirc=computeStressRate(dta.T,D,/*porosity*/dta.e);
+		dta.nextT=dta.T+scene->dt*(Tcirc+dta.T*W-W*dta.T);
+		#ifdef SPARC_INSPECT
+			dta.Tcirc=Tcirc;
+		#endif
+	}
+}
+
+void StaticEquilibriumSolver::solutionPhase_computeErrors(VectorXr& errors){
+	// optionally, update locator
+	if(!neighborsOnce){
+		mff->updateLocator</*useNext*/true>();
+	}
+	FOREACH(const shared_ptr<Node>& n, field->nodes){
+		findNeighbors</*useNext*/true>(n);
+		if(!relPosOnce) updateNeighborsRelPos</*useNext*/true>(n);
+		// TODO: update the value really, following spin perhaps?
+		SparcData& dta=n->getData<SparcData>();
+		dta.nextOri=n->ori;  
+	}
+	// resid needs nextT of other points, hence in separate loop
+	FOREACH(const shared_ptr<Node>& n, field->nodes){
+		SparcData& dta(n->getData<SparcData>());
+		Vector3r divT=computeDivT</*useNext*/true>(n);
+		#ifdef SPARC_TRACE
+			if(dbgFlags&DBG_DOFERR){
+				SPARC_TRACE_OUT("-->    nid "<<dta.nid<<" (dofs "<<dta.dofs.transpose()<<"), divT="<<divT.transpose()<<", v="<<dta.v.transpose());
+				if(dbgFlags&DBG_NIDERR) SPARC_TRACE_OUT(endl);
+			}
+		#endif
+		computeConstraintErrors</*useNext*/true>(n,divT,errors);
+		#ifdef SPARC_INSPECT
+			dta.divT=divT; // pure equilibrium residual, without constraints yet
+		#endif
+		#ifdef SPARC_TRACE
+			if(dbgFlags&DBG_DOFERR){
+				if(dbgFlags&DBG_NIDERR) SPARC_TRACE_OUT("<--     nid "<<dta.nid<<" final residuum "<<dta.resid<<endl);
+				else SPARC_TRACE_OUT(", err="<<dta.resid<<endl);
+			}
+		#endif
+	}
+}
+
+void StaticEquilibriumSolver::epiloguePhase(){
+	solutionPhase_computeResponse();
+	integrateStateVariables();
+}
+
 // set resid in the sense of kinematic constraints, so that they are fulfilled by the static solution
-void StaticEquilibriumSolver::applyConstraintsAsResiduals(const shared_ptr<Node>& n, const Vector3r& divT, VectorXr& resid, bool useNext){
+template<bool useNext>
+void StaticEquilibriumSolver::computeConstraintErrors(const shared_ptr<Node>& n, const Vector3r& divT, VectorXr& resid){
 	SparcData& dta(n->getData<SparcData>());
 	#ifdef YADE_DEBUG
 		for(int i=0;i<3;i++) if(!isnan(dta.fixedV[i])&&!isnan(dta.fixedT[i])) throw std::invalid_argument((boost::format("Nid %d: both velocity and stress prescribed along local axis %d (axis %s in global space)") %dta.nid %i %(n->ori.conjugate()*(i==0?Vector3r::UnitX():(i==1?Vector3r::UnitY():Vector3r::UnitZ()))).transpose()).str());
 	#endif
 	#define _WATCH_NID(aaa) SPARC_TRACE_OUT("           "<<aaa<<endl); if(dta.nid==watch) cerr<<aaa<<endl;
-	// _WATCH_NID("\tnid "<<dta.nid<<", divT="<<divT);
 	#ifdef SPARC_INSPECT
 		dta.resid=Vector3r::Zero(); // in global coords here
 	#endif
-	// use current or next orientation
-	Matrix3r oriTrsf(useNext && spinRot ? dta.getRotQ(scene->dt)*n->ori : n->ori);
+	// use current or next orientation,stress
+	Matrix3r oriTrsf(useNext?dta.nextOri:n->ori);
+	const Matrix3r& T(!useNext?dta.T:dta.nextT); 
+
 	for(int ax:{0,1,2}){
 		// prescribed velocity, does not come up in the solution
 		if(dta.dofs[ax]<0){ continue; }
@@ -439,12 +482,13 @@ void StaticEquilibriumSolver::applyConstraintsAsResiduals(const shared_ptr<Node>
 			// NB: dta.divT is not the current value, that exists only with SPARC_INSPECT
 			Vector3r locDivT=oriTrsf*divT;
 			resid[dta.dofs[ax]]=charLen*locDivT[ax];
-			_WATCH_NID("\t#"<<dta.nid<<" dof "<<dta.dofs[ax]<<": locDivT["<<ax<<"] "<<locDivT[ax]<<" (should be 0) sets resid["<<dta.dofs[ax]<<"]="<<resid[dta.dofs[ax]]);
+			#ifdef SPARC_TRACE
+				if(dbgFlags&DBG_DOFERR) _WATCH_NID("\tnid "<<dta.nid<<" dof "<<dta.dofs[ax]<<": locDivT["<<ax<<"] "<<locDivT[ax]<<" (should be 0) sets resid["<<dta.dofs[ax]<<"]="<<resid[dta.dofs[ax]]);
+			#endif
 		}
 		// prescribed stress
 		else{
 			// considered global stress
-			Matrix3r T=dta.T+(useNext?Matrix3r(dta.Tdot*scene->dt):Matrix3r::Zero()); 
 			// TODO: check that this could be perhaps written as locAxT=(T*n).dot(n) ?
 			#if 0
 				Vector3r normal=oriTrsf*Vector3r::Unit(ax); // local normal (i.e. axis) in global coords
@@ -456,7 +500,9 @@ void StaticEquilibriumSolver::applyConstraintsAsResiduals(const shared_ptr<Node>
 			#endif
 			// TODO end 
 			resid[dta.dofs[ax]]=-(dta.fixedT[ax]-locAxT);
-			_WATCH_NID("\t#"<<dta.nid<<" dof "<<dta.dofs[ax]<<": ΣT["<<ax<<",i] "<<locAxT<<" (should be "<<dta.fixedT[ax]<<") sets resid["<<dta.dofs[ax]<<"]="<<resid[dta.dofs[ax]]);
+			#ifdef SPARC_TRACE
+				if(dbgFlags&DBG_DOFERR) _WATCH_NID("\t nid"<<dta.nid<<" dof "<<dta.dofs[ax]<<": ΣT["<<ax<<",i] "<<locAxT<<" (should be "<<dta.fixedT[ax]<<") sets resid["<<dta.dofs[ax]<<"]="<<resid[dta.dofs[ax]]);
+			#endif
 		}
 		#ifdef SPARC_INSPECT
 			dta.resid+=oriTrsf.transpose()*Vector3r::Unit(ax)*resid[dta.dofs[ax]];
@@ -464,25 +510,9 @@ void StaticEquilibriumSolver::applyConstraintsAsResiduals(const shared_ptr<Node>
 	};
 }
 
-VectorXr StaticEquilibriumSolver::computeInitialDofVelocities(bool useCurrV) const {
-	VectorXr ret; ret.setZero(nDofs);
-	FOREACH(const shared_ptr<Node>& n, field->nodes){
-		const SparcData& dta(n->getData<SparcData>());
-		// fixedV and zeroed are in local coords
-		for(int ax:{0,1,2}){
-			if(dta.dofs[ax]<0) continue;
-			ret[dta.dofs[ax]]=useCurrV?dta.locV[ax]:0;
-		}
-	}
-	return ret;
-};
-
-void StaticEquilibriumSolver::integrateLocalVels(const VectorXr& v, VectorXr& resid){
-	const Real& dt=scene->dt;
+void StaticEquilibriumSolver::integrateStateVariables(){
 	assert(functor);
-	// recompute node variables from v
-	// TODO: to avoid extra loop for integration, it could be moved to inside the functor, and executed conditionally?
-	(*functor)(v,resid,/*mode*/ResidualsFunctor::MODE_TRIAL_V_IS_ARG);
+	const Real& dt(scene->dt);
 
 	FOREACH(const shared_ptr<Node>& n, field->nodes){
 		SparcData& dta(n->getData<SparcData>());
@@ -490,13 +520,13 @@ void StaticEquilibriumSolver::integrateLocalVels(const VectorXr& v, VectorXr& re
 		applyKinematicConstraints(n,/*allow prescribed divT*/true); 
 		dta.e+=dt*(1+dta.e)*dta.gradV.trace(); // gradV.trace()==D.trace()
 		dta.rho+=dt*(-dta.rho*dta.gradV.trace()); // rho is not really used for the implicit solution, but can be useful
-		dta.T+=dt*dta.Tdot;
+		dta.T=dta.nextT;
 		n->pos+=dt*dta.v;
-		if(spinRot) n->ori=dta.getRotQ(scene->dt)*n->ori;
+		n->ori=dta.nextOri;
 	}
 };
 
-
+#if 0
 VectorXr StaticEquilibriumSolver::compResid(const VectorXr& vv){
 	bool useNext=vv.size()>0;
 	if(useNext && (size_t)vv.size()!=nDofs) yade::ValueError("len(vv) must be equal to number of nDofs ("+lexical_cast<string>(nDofs)+"), or empty for only evaluating current residuals.");
@@ -512,11 +542,12 @@ VectorXr StaticEquilibriumSolver::compResid(const VectorXr& vv){
 	functor(vv,ret,useNext ? ResidualsFunctor::MODE_TRIAL_V_IS_ARG : ResidualsFunctor::MODE_CURRENT_STATE);
 	return ret;
 };
+#endif
 
 template<typename Solver>
 string solverStatus2str(int status);
 
-template<> string solverStatus2str<StaticEquilibriumSolver::SolverT>(int status){
+template<> string solverStatus2str<StaticEquilibriumSolver::SolverPowell>(int status){
 	#define CASE_STATUS(st) case Eigen::HybridNonLinearSolverSpace::st: return string(#st);
 	switch(status){
 		CASE_STATUS(Running);
@@ -529,58 +560,87 @@ template<> string solverStatus2str<StaticEquilibriumSolver::SolverT>(int status)
 		CASE_STATUS(UserAsked);
 	}
 	#undef CASE_STATUS
-	throw std::logic_error(("solverStatus2str called with unknown status number "+lexical_cast<string>(status)).c_str());
+	throw std::logic_error(("solverStatus2str<HybridNonLinearSolver> called with unknown status number "+lexical_cast<string>(status)).c_str());
 }
+
+template<> string solverStatus2str<StaticEquilibriumSolver::SolverLM>(int status){
+	#define CASE_STATUS(st) case Eigen::LevenbergMarquardtSpace::st: return string(#st);
+	switch(status){
+		CASE_STATUS(NotStarted);
+		CASE_STATUS(Running);
+		CASE_STATUS(ImproperInputParameters);
+		CASE_STATUS(RelativeReductionTooSmall);
+		CASE_STATUS(RelativeErrorTooSmall);
+		CASE_STATUS(RelativeErrorAndReductionTooSmall);
+		CASE_STATUS(CosinusTooSmall);
+		CASE_STATUS(TooManyFunctionEvaluation);
+		CASE_STATUS(FtolTooSmall);
+		CASE_STATUS(XtolTooSmall);
+		CASE_STATUS(GtolTooSmall);
+		CASE_STATUS(UserAsked);
+	}
+	#undef CASE_STATUS
+	throw std::logic_error(("solverStatus2str<LevenbergMarquardt> called with unknown status number "+lexical_cast<string>(status)).c_str());
+}
+
 
 void StaticEquilibriumSolver::run(){
 	#ifdef SPARC_TRACE
-		out.open(dbgOut.empty()?"/dev/null":dbgOut.c_str(),ios::out|ios::app);
+		if(!dbgOut.empty() && scene->step==0 && bfs::exists(dbgOut)){
+			bfs::remove(bfs::path(dbgOut));
+			LOG_WARN("Old StaticEquilibriumSolver.dbgOut "<<dbgOut<<" deleted.");
+		}
+		if(!out.is_open()) out.open(dbgOut.empty()?"/dev/null":dbgOut.c_str(),ios::out|ios::app);
+		if(scene->step==0) out<<"# vim: guifont=Monospace\\ 7:nowrap:\n";
 	#endif
-	if(!solver || !substep){ /* start fresh iteration*/ nIter=0; }
+	if(!substep || (usePowell && !solverPowell) || (!usePowell && !solverLM)){ /* start fresh iteration*/ nIter=0; }
 	int status;
-	using namespace Eigen::HybridNonLinearSolverSpace; // status constants
 	SPARC_TRACE_OUT("\n\n ==== Scene step "<<scene->step<<", solution iteration "<<nIter<<endl);
 	if(nIter==0 || nIter<0){
 		if(nIter<0) LOG_WARN("Previous solver step ended abnormally, restarting solver.");
 		mff=static_cast<SparcField*>(field.get());
-		/* BEGIN: factor out to a common step prologue func? */
-			if(mff->locDirty || (scene->step%neighborUpdate)==0) mff->updateLocator();
-			assignDofs();  // this is necessary only after number of free DoFs have changed; assign at every step to ensure consistency (perhaps not necessary if this is detected in the future)
-			// assume neighbors don't change during one step
-			FOREACH(const shared_ptr<Node>& n, field->nodes) findNeighbors(n); 
-			#ifdef SPARC_TRACE
-				SPARC_TRACE_OUT("Neighbor numbers: "); FOREACH(const shared_ptr<Node>& n, field->nodes) SPARC_TRACE_OUT(n->getData<SparcData>().neighbors.size()<<" "); SPARC_TRACE_OUT("\n");
-			#endif
-		/* END */
 
-		// intial solution is previous (or zero) velocities, except where they are prescribed
-		vv=computeInitialDofVelocities();
-		SPARC_TRACE_OUT("Initial DOF velocities "<<vv.transpose()<<endl);
-		// evaluate relpos here rather than from the functor; this needs velocities in nodes already
-		if(relPosOnce){
-			copyLocalVelocityToNodes(vv);
-			FOREACH(const shared_ptr<Node>& n, field->nodes) updateNeighborsRelPos(n,/*useNext*/true);
-		}
+		prologuePhase();
+
+		SPARC_TRACE_OUT("Initial DOF velocities "<<currV.transpose()<<endl);
 		// http://stackoverflow.com/questions/6895980/boostmake-sharedt-does-not-compile-shared-ptrtnew-t-does
 		// functor=make_shared<ResidualsFunctor>(vv.size(),vv.size(),this); 
-		functor=shared_ptr<ResidualsFunctor>(new ResidualsFunctor(nDofs,nDofs,this));
-		solver=make_shared<SolverT>(*functor);
-		solver->parameters.factor=solverFactor;
-		solver->parameters.maxfev=relMaxfev*vv.size(); // this is perhaps bogus, what is exactly maxfev?
-		#ifdef SPARC_TRACE
-			// avoid uninitialized values giving false positives in text comparisons
-			solver->fjac.setZero(nDofs,nDofs); solver->diag.setZero(nDofs);
-		#endif
-		// solver->parameters.epsfcn=1e-6;
-		nFactorLowered=0;
-		
+		functor=shared_ptr<ResidualsFunctor>(new ResidualsFunctor(nDofs,nDofs)); functor->ses=this;
+		if(usePowell){
+			solverLM.reset();
+			solverPowell=make_shared<SolverPowell>(*functor);
+			solverPowell->parameters.factor=solverFactor;
+			if(solverXtol>0) solverPowell->parameters.xtol=solverXtol;
+			solverPowell->parameters.maxfev=relMaxfev*currV.size(); // this is perhaps bogus, what is exactly maxfev?
+			#ifdef SPARC_TRACE
+				// avoid uninitialized values giving false positives in text comparisons
+				solverPowell->fjac.setZero(nDofs,nDofs); solverPowell->diag.setZero(nDofs);
+			#endif
+			status=solverPowell->solveNumericalDiffInit(currV);
+			SPARC_TRACE_OUT("Initial solution norm "<<solverPowell->fnorm<<endl);
+			#ifdef SPARC_TRACE
+				solverPowell->fjac.setZero();
+			#endif
+			if(status==Eigen::HybridNonLinearSolverSpace::ImproperInputParameters) throw std::runtime_error("StaticEquilibriumSolver:: improper input parameters for the Powell dogleg solver.");
+			// solver->parameters.epsfcn=1e-6;
+			nFactorLowered=0;
+		} else {
+			solverPowell.reset();
+			solverLM=make_shared<SolverLM>(*functor);
+			solverLM->parameters.factor=solverFactor;
+			solverLM->parameters.maxfev=relMaxfev*currV.size(); // this is perhaps bogus, what is exactly maxfev?
+			#ifdef SPARC_TRACE
+				// avoid uninitialized values giving false positives in text comparisons
+				solverLM->fjac.setZero(nDofs,nDofs); solverLM->diag.setZero(nDofs);
+			#endif
+			status=solverLM->minimizeInit(currV);
+			SPARC_TRACE_OUT("Initial solution norm "<<solverLM->fnorm<<endl);
+			#ifdef SPARC_TRACE
+				solverLM->fjac.setZero();
+			#endif
+			if(status==Eigen::LevenbergMarquardtSpace::ImproperInputParameters) throw std::runtime_error("StaticEquilibriumSolver:: improper input parameters for the Levenberg-Marquardt solver.");
+		}
 		// intial solver setup
-		status=solver->solveNumericalDiffInit(vv);
-		SPARC_TRACE_OUT("Initial solution norm "<<solver->fnorm<<endl);
-		#ifdef SPARC_TRACE
-			solver->fjac.setZero();	// SPARC_TRACE_OUT("Zeroed jacobian "<<endl<<solver->fjac<<endl);
-		#endif
-		if(status==ImproperInputParameters) throw std::runtime_error("StaticEquilibriumSolver:: improper input parameters for the solver.");
 		nIter=0;
 	}
 
@@ -590,43 +650,49 @@ void StaticEquilibriumSolver::run(){
 		nIter=-abs(nIter);
 		nIter--; 
 
-		status=solver->solveNumericalDiffOneStep(vv);
-		SPARC_TRACE_OUT(
-			"Inner iteration "<<-nIter<<endl
-			<<"Solver proposed solution "<<vv.transpose()<<endl
-			<<"Residuals vector "<<solver->fvec.transpose()<<endl
-			<<"Error norm "<<solver->fnorm<<endl);
-
+		if(solverPowell){
+			status=solverPowell->solveNumericalDiffOneStep(currV);
+			SPARC_TRACE_OUT("Powell inner iteration "<<-nIter<<endl<<"Solver proposed solution "<<currV.transpose()<<endl<<"Residuals vector "<<solverPowell->fvec.transpose()<<endl<<"Error norm "<<solverPowell->fnorm<<endl);
+			#ifdef SPARC_INSPECT
+				residuals=solverPowell->fvec; residuum=solverPowell->fnorm;
+			#endif
+		} else {
+			assert(solverLM);
+			status=solverLM->minimizeOneStep(currV);
+			SPARC_TRACE_OUT("Levenberg-Marquardt inner iteration "<<-nIter<<endl<<"Solver proposed solution "<<currV.transpose()<<endl<<"Residuals vector "<<solverLM->fvec.transpose()<<endl<<"Error norm "<<solverLM->fnorm<<endl);
+			#ifdef SPARC_INSPECT
+				residuals=solverLM->fvec; residuum=solverLM->fnorm;
+			#endif
+		}
 		// cerr<<"\titer="<<-nIter<<", "<<nDofs<<" dofs, residuum "<<solver->fnorm<<endl;
-		#ifdef SPARC_INSPECT
-			residuals=solver->fvec; residuum=solver->fnorm;
-		#endif
 		// good progress
-		if(status==Running){ if(substep) goto substepDone; else continue; }
+		if((solverPowell && status==Eigen::HybridNonLinearSolverSpace::Running) || (solverLM && status==Eigen::LevenbergMarquardtSpace::Running)){ if(substep) goto substepDone; else continue; }
 		// solution found
-		if(status==RelativeErrorTooSmall) goto solutionFound;
+		if((solverPowell && status==Eigen::HybridNonLinearSolverSpace::RelativeErrorTooSmall) ||
+			(solverLM && (status==Eigen::LevenbergMarquardtSpace::RelativeErrorTooSmall || status==Eigen::LevenbergMarquardtSpace::RelativeErrorAndReductionTooSmall || status==Eigen::LevenbergMarquardtSpace::RelativeReductionTooSmall || status==Eigen::LevenbergMarquardtSpace::CosinusTooSmall)))
+			goto solutionFound;
 		// bad convergence
-		if(status==NotMakingProgressIterations || status==NotMakingProgressJacobian){
+		if(solverPowell && (status==Eigen::HybridNonLinearSolverSpace::NotMakingProgressIterations || status==Eigen::HybridNonLinearSolverSpace::NotMakingProgressJacobian)){
 			// try decreasing factor
-			solver->parameters.factor*=.6;
-			if(++nFactorLowered<10){ LOG_WARN("Step "<<scene->step<<": solver did not converge (error="<<solver->fnorm<<"), lowering factor to "<<solver->parameters.factor); if(substep) goto substepDone; else continue; }
+			solverPowell->parameters.factor*=.6;
+			if(++nFactorLowered<10){ LOG_WARN("Step "<<scene->step<<": solver did not converge (error="<<solverPowell->fnorm<<"), lowering factor to "<<solverPowell->parameters.factor); if(substep) goto substepDone; else continue; }
 			// or give up
 			LOG_WARN("Step "<<scene->step<<": solver not converging, but factor already lowered too many times ("<<nFactorLowered<<"). giving up.");
 		}
-		throw std::runtime_error((boost::format("Solver did not find acceptable solution, returned %s (%d).")%solverStatus2str<SolverT>(status)%status).str());
+		string msg(solverPowell?solverStatus2str<SolverPowell>(status):solverStatus2str<SolverLM>(status));
+		throw std::runtime_error((boost::format("Solver did not find acceptable solution, returned %s (%d).")%msg%status).str());
 	}
 	substepDone:
-		if(substep) copyLocalVelocityToNodes(vv);
-		#ifdef SPARC_INSPECT  // copy residuals to nodes for easy inspection
-			FOREACH(const shared_ptr<Node>& node, field->nodes){ SparcData& dta(node->getData<SparcData>()); for(int ax:{0,1,2}) dta.resid[ax]=dta.dofs[ax]>0?residuals[dta.dofs[ax]]:NaN; }
-		#endif
+		if(substep) copyLocalVelocityToNodes(currV);
 		nIter=abs(nIter); // make nIter positive, to indicate successful substep
 		return;
 	solutionFound:
 		// LOG_WARN("Solution found, error norm "<<solver->fnorm);
-		nIter=solver->iter; // next step will be from the start again, since the number is positive
+		if(solverPowell) nIter=solverPowell->iter; // next step will be from the start again, since the number is positive
+		else nIter=solverLM->iter;
 		// residuum=solver->fnorm;
-		integrateLocalVels(vv,residuals);
+		//integrateStateVariables();
+		epiloguePhase();
 		return;
 };
 
