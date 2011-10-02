@@ -313,10 +313,10 @@ void ExplicitNodeIntegrator::run(){
 
 int StaticEquilibriumSolver::ResidualsFunctorBase::operator()(const VectorXr &v, VectorXr& resid) const {
 	#ifdef SPARC_TRACE
-		#define _INFO(s) "--- current "<<s->fjac.cols()<<"x"<<s->fjac.rows()<<" jacobian is "<<endl<<s->fjac<<endl<<"--- current diagonal is "<<s->diag.transpose()<<endl
+		#define _INFO(s) "{ jacobian "<<s->fjac.cols()<<"x"<<s->fjac.rows()<<endl<<s->fjac<<endl<<"--- current diagonal is "<<s->diag.transpose()<<"}"<<endl
 		if(ses->dbgFlags&DBG_JAC){
-			if(ses->solverPowell){ SPARC_TRACE_SES_OUT("### functor called"<<endl<<_INFO(ses->solverPowell));}
-			else{ SPARC_TRACE_SES_OUT("### functor called"<<endl<<_INFO(ses->solverLM)); }
+			if(ses->solverPowell){ SPARC_TRACE_SES_OUT("// functor called"<<endl<<_INFO(ses->solverPowell));}
+			else{ SPARC_TRACE_SES_OUT("// functor called"<<endl<<_INFO(ses->solverLM)); }
 		}
 		#undef _INFO
 	#endif
@@ -329,9 +329,9 @@ int StaticEquilibriumSolver::ResidualsFunctorBase::operator()(const VectorXr &v,
 		SPARC_TRACE_SES_OUT("#-- input velocities = "<<v.transpose()<<endl);
 	#endif
 
-	ses->solutionPhase(resid);
+	ses->solutionPhase(v,resid);
 
-	SPARC_TRACE_SES_OUT("### Final residuals ("<<resid.blueNorm()<<") = "<<resid.transpose()<<endl);
+	SPARC_TRACE_SES_OUT("### errors |"<<lexical_cast<string>(resid.blueNorm())<<"| = "<<resid.transpose()<<endl);
 	return 0;
 };
 
@@ -382,7 +382,7 @@ VectorXr StaticEquilibriumSolver::computeInitialDofVelocities(bool useZero) cons
 	return ret;
 };
 
-void StaticEquilibriumSolver::prologuePhase(){
+void StaticEquilibriumSolver::prologuePhase(VectorXr& initVel){
 	mff->updateLocator</*useNext*/false>();
 	FOREACH(const shared_ptr<Node>& n, field->nodes){
 		SparcData& dta(n->getData<SparcData>());
@@ -391,22 +391,22 @@ void StaticEquilibriumSolver::prologuePhase(){
 		updateNeighborsRelPos</*useNext*/false>(n);
 		if(relPosOnce){ dta.nextRelPosInv=dta.relPosInv; dta.nextWeights=dta.weights; }
 	}
-	assignDofs();  // this is necessary only after number of free DoFs have changed; assign at every step to ensure consistency (perhaps not necessary if this is detected in the future)
-	// intial solution is previous (or zero) velocities, except wher they are prescribed
-	currV=computeInitialDofVelocities(/*useZero*/initZero);
 	#ifdef SPARC_TRACE
 		SPARC_TRACE_OUT("Neighbor numbers: "); FOREACH(const shared_ptr<Node>& n, field->nodes) SPARC_TRACE_OUT(n->getData<SparcData>().neighbors.size()<<" "); SPARC_TRACE_OUT("\n");
 	#endif
+	assignDofs();  // this is necessary only after number of free DoFs have changed; assign at every step to ensure consistency (perhaps not necessary if this is detected in the future)
+	// intial solution is previous (or zero) velocities, except wher they are prescribed
+	initVel=computeInitialDofVelocities(/*useZero*/initZero);
 }
 
 
-void StaticEquilibriumSolver::solutionPhase(VectorXr& errors){
-	solutionPhase_computeResponse();
+void StaticEquilibriumSolver::solutionPhase(const VectorXr& trialVel, VectorXr& errors){
+	solutionPhase_computeResponse(trialVel);
 	solutionPhase_computeErrors(errors);
 };
 
-void StaticEquilibriumSolver::solutionPhase_computeResponse(){
-	copyLocalVelocityToNodes(currV);
+void StaticEquilibriumSolver::solutionPhase_computeResponse(const VectorXr& trialVel){
+	copyLocalVelocityToNodes(trialVel);
 	FOREACH(const shared_ptr<Node>& n, field->nodes){
 		SparcData& dta=n->getData<SparcData>();
 		dta.gradV=computeGradV(n);
@@ -431,13 +431,16 @@ void StaticEquilibriumSolver::solutionPhase_computeErrors(VectorXr& errors){
 		SparcData& dta=n->getData<SparcData>();
 		dta.nextOri=n->ori;  
 	}
+	#ifdef SPARC_TRACE
+		if(dbgFlags&DBG_DOFERR) SPARC_TRACE_OUT("{"<<endl);
+	#endif
 	// resid needs nextT of other points, hence in separate loop
 	FOREACH(const shared_ptr<Node>& n, field->nodes){
 		SparcData& dta(n->getData<SparcData>());
 		Vector3r divT=computeDivT</*useNext*/true>(n);
 		#ifdef SPARC_TRACE
 			if(dbgFlags&DBG_DOFERR){
-				SPARC_TRACE_OUT("-->    nid "<<dta.nid<<" (dofs "<<dta.dofs.transpose()<<"), divT="<<divT.transpose()<<", v="<<dta.v.transpose());
+				SPARC_TRACE_OUT("  -->    nid "<<dta.nid<<" (dofs "<<dta.dofs.transpose()<<"), divT="<<divT.transpose()<<", locV="<<dta.locV.transpose()<<", v="<<dta.v.transpose());
 				if(dbgFlags&DBG_NIDERR) SPARC_TRACE_OUT(endl);
 			}
 		#endif
@@ -447,15 +450,19 @@ void StaticEquilibriumSolver::solutionPhase_computeErrors(VectorXr& errors){
 		#endif
 		#ifdef SPARC_TRACE
 			if(dbgFlags&DBG_DOFERR){
-				if(dbgFlags&DBG_NIDERR) SPARC_TRACE_OUT("<--     nid "<<dta.nid<<" final residuum "<<dta.resid<<endl);
+				if(dbgFlags&DBG_NIDERR) SPARC_TRACE_OUT("  <--     nid "<<dta.nid<<" final residuum "<<dta.resid<<endl);
 				else SPARC_TRACE_OUT(", err="<<dta.resid<<endl);
 			}
 		#endif
 	}
+	#ifdef SPARC_TRACE
+		if(dbgFlags&DBG_DOFERR) SPARC_TRACE_OUT("}"<<endl);
+	#endif
 }
 
-void StaticEquilibriumSolver::epiloguePhase(){
-	solutionPhase_computeResponse();
+void StaticEquilibriumSolver::epiloguePhase(const VectorXr& vel, VectorXr& errors){
+	solutionPhase_computeResponse(vel);
+	solutionPhase_computeErrors(errors); // this is just to have the error terms consistent with the solution at the end of the step
 	integrateStateVariables();
 }
 
@@ -501,7 +508,7 @@ void StaticEquilibriumSolver::computeConstraintErrors(const shared_ptr<Node>& n,
 			// TODO end 
 			resid[dta.dofs[ax]]=-(dta.fixedT[ax]-locAxT);
 			#ifdef SPARC_TRACE
-				if(dbgFlags&DBG_DOFERR) _WATCH_NID("\t nid"<<dta.nid<<" dof "<<dta.dofs[ax]<<": ΣT["<<ax<<",i] "<<locAxT<<" (should be "<<dta.fixedT[ax]<<") sets resid["<<dta.dofs[ax]<<"]="<<resid[dta.dofs[ax]]);
+				if(dbgFlags&DBG_DOFERR) _WATCH_NID("\tnid "<<dta.nid<<" dof "<<dta.dofs[ax]<<": ΣT["<<ax<<",i] "<<locAxT<<" (should be "<<dta.fixedT[ax]<<") sets resid["<<dta.dofs[ax]<<"]="<<resid[dta.dofs[ax]]);
 			#endif
 		}
 		#ifdef SPARC_INSPECT
@@ -591,7 +598,7 @@ void StaticEquilibriumSolver::run(){
 			LOG_WARN("Old StaticEquilibriumSolver.dbgOut "<<dbgOut<<" deleted.");
 		}
 		if(!out.is_open()) out.open(dbgOut.empty()?"/dev/null":dbgOut.c_str(),ios::out|ios::app);
-		if(scene->step==0) out<<"# vim: guifont=Monospace\\ 7:nowrap:\n";
+		if(scene->step==0) out<<"# vim: guifont=Monospace\\ 7:nowrap:syntax=c:foldenable:foldmethod=syntax:foldopen=percent:foldclose=all:\n";
 	#endif
 	if(!substep || (usePowell && !solverPowell) || (!usePowell && !solverLM)){ /* start fresh iteration*/ nIter=0; }
 	int status;
@@ -600,7 +607,7 @@ void StaticEquilibriumSolver::run(){
 		if(nIter<0) LOG_WARN("Previous solver step ended abnormally, restarting solver.");
 		mff=static_cast<SparcField*>(field.get());
 
-		prologuePhase();
+		prologuePhase(currV);
 
 		SPARC_TRACE_OUT("Initial DOF velocities "<<currV.transpose()<<endl);
 		// http://stackoverflow.com/questions/6895980/boostmake-sharedt-does-not-compile-shared-ptrtnew-t-does
@@ -610,6 +617,7 @@ void StaticEquilibriumSolver::run(){
 			solverLM.reset();
 			solverPowell=make_shared<SolverPowell>(*functor);
 			solverPowell->parameters.factor=solverFactor;
+			solverPowell->parameters.epsfcn=epsfcn;
 			if(solverXtol>0) solverPowell->parameters.xtol=solverXtol;
 			solverPowell->parameters.maxfev=relMaxfev*currV.size(); // this is perhaps bogus, what is exactly maxfev?
 			#ifdef SPARC_TRACE
@@ -629,6 +637,7 @@ void StaticEquilibriumSolver::run(){
 			solverLM=make_shared<SolverLM>(*functor);
 			solverLM->parameters.factor=solverFactor;
 			solverLM->parameters.maxfev=relMaxfev*currV.size(); // this is perhaps bogus, what is exactly maxfev?
+			solverLM->parameters.epsfcn=epsfcn;
 			#ifdef SPARC_TRACE
 				// avoid uninitialized values giving false positives in text comparisons
 				solverLM->fjac.setZero(nDofs,nDofs); solverLM->diag.setZero(nDofs);
@@ -652,7 +661,7 @@ void StaticEquilibriumSolver::run(){
 
 		if(solverPowell){
 			status=solverPowell->solveNumericalDiffOneStep(currV);
-			SPARC_TRACE_OUT("Powell inner iteration "<<-nIter<<endl<<"Solver proposed solution "<<currV.transpose()<<endl<<"Residuals vector "<<solverPowell->fvec.transpose()<<endl<<"Error norm "<<solverPowell->fnorm<<endl);
+			SPARC_TRACE_OUT("Powell inner iteration "<<-nIter<<endl<<"Solver proposed solution "<<currV.transpose()<<endl<<"Residuals vector "<<solverPowell->fvec.transpose()<<endl<<"Error norm "<<lexical_cast<string>(solverPowell->fnorm)<<endl);
 			#ifdef SPARC_INSPECT
 				residuals=solverPowell->fvec; residuum=solverPowell->fnorm;
 			#endif
@@ -692,7 +701,7 @@ void StaticEquilibriumSolver::run(){
 		else nIter=solverLM->iter;
 		// residuum=solver->fnorm;
 		//integrateStateVariables();
-		epiloguePhase();
+		epiloguePhase(currV,residuals);
 		return;
 };
 

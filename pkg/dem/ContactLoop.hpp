@@ -78,7 +78,7 @@ class ContactLoop: public GlobalEngine, private DemField::Engine {
 			((shared_ptr<CPhysDispatcher>,phyDisp,new CPhysDispatcher,Attr::readonly,":yref:`CPhysDispatcher` object used for dispatch."))
 			((shared_ptr<LawDispatcher>,lawDisp,new LawDispatcher,Attr::readonly,":yref:`LawDispatcher` object used for dispatch."))
 			((bool,alreadyWarnedNoCollider,false,,"Keep track of whether the user was already warned about missing collider."))
-			((bool,trackWork,false,,"In periodic simulations, increment *gradV* energy according to current stress and cell configuration."))
+			((bool,evalStress,false,,"Evaluate stress tensor, in periodic simluations; if energy tracking is enabled, increments *gradV* energy."))
 			((Matrix3r,stress,Matrix3r::Zero(),Attr::readonly,"Stress value, used to compute *gradV*  energy if *trackWork* is True."))
 			((Real,prevVol,NaN,Attr::hidden,"Previous value of cell volume"))
 			//((Real,prevTrGradVStress,NaN,Attr::hidden,"Previous value of tr(gradV*stress)"))

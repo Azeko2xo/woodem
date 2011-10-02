@@ -9,7 +9,7 @@ void Bo1_Sphere_Aabb::go(const shared_ptr<Shape>& sh){
 	Aabb& aabb=s.bound->cast<Aabb>();
 	assert(s.numNodesOk());
 	const Vector3r& pos=s.nodes[0]->pos;
-	Vector3r halfSize=(aabbEnlargeFactor>0?aabbEnlargeFactor:1.)*s.radius*Vector3r::Ones();
+	Vector3r halfSize=(distFactor>0?distFactor:1.)*s.radius*Vector3r::Ones();
 	if(!scene->isPeriodic){ aabb.min=pos-halfSize; aabb.max=pos+halfSize; return; }
 
 	// adjust box size along axes so that sphere doesn't stick out of the box even if sheared (i.e. parallelepiped)

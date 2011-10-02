@@ -19,7 +19,7 @@ struct Bo1_Sphere_Aabb: public BoundFunctor{
 	void go(const shared_ptr<Shape>&);
 	FUNCTOR1D(Sphere);
 	YADE_CLASS_BASE_DOC_ATTRS(Bo1_Sphere_Aabb,BoundFunctor,"Functor creating :yref:`Aabb` from :yref:`Sphere`.",
-		((Real,aabbEnlargeFactor,((void)"deactivated",-1),,"Relative enlargement of the bounding box; deactivated if negative.\n\n.. note::\n\tThis attribute is used to create distant interaction, but is only meaningful with an :yref:`IGeomFunctor` which will not simply discard such interactions: :yref:`Ig2_Sphere_Sphere_Dem3DofGeom::distFactor` / :yref:`Ig2_Sphere_Sphere_ScGeom::interactionDetectionFactor` should have the same value as :yref:`aabbEnlargeFactor<Bo1_Sphere_Aabb::aabbEnlargeFactor>`."))
+		((Real,distFactor,((void)"deactivated",-1),,"Relative enlargement of the bounding box; deactivated if negative.\n\n.. note::\n\tThis attribute is used to create distant contacts, but is only meaningful with an :yref:`CGeomFunctor` which will not simply discard such interactions: :yref:`Cg2_Sphere_Sphere_L6Geom::distFactor` should have the same value."))
 	);
 };
 REGISTER_SERIALIZABLE(Bo1_Sphere_Aabb);

@@ -3,10 +3,11 @@
 #include<yade/pkg/dem/L6Geom.hpp>
 #include<yade/pkg/dem/ContactLoop.hpp>
 
-class Law2_L6Geom_FrictPhys_IdealElPl: public LawFunctor{
+struct Law2_L6Geom_FrictPhys_IdealElPl: public LawFunctor{
 	void go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&);
 	FUNCTOR2D(L6Geom,FrictPhys);
 	YADE_CLASS_BASE_DOC_ATTRS(Law2_L6Geom_FrictPhys_IdealElPl,LawFunctor,"Ideally elastic-plastic behavior.",
+		((bool,iniEqlb,false,,"Consider the intial distance as equilibrium distance (saved in contact data, subtracted from L6Geom.uN); enabling during simulation will only affect newly created contacts; disabling will affect all contacts."))
 		((bool,noSlip,false,,"Disable plastic slipping"))
 		((bool,noBreak,false,,"Disable removal of contacts when in tension."))
 		((int,plastDissipIx,-1,(Attr::noSave|Attr::hidden),"Index of plastically dissipated energy"))
@@ -19,7 +20,14 @@ class Law2_L6Geom_FrictPhys_IdealElPl: public LawFunctor{
 };
 REGISTER_SERIALIZABLE(Law2_L6Geom_FrictPhys_IdealElPl);
 
-class Law2_L6Geom_FrictPhys_LinEl6: public LawFunctor{
+struct IdealElPlData: public CData{
+	YADE_CLASS_BASE_DOC_ATTRS(IdealElPlData,CData,"Hold (optional) state variables for ideally elasto-plastic contacts.",
+		((Real,uN0,0,,"Reference (equilibrium) value for uN (normal displacement)."))
+	);
+};
+REGISTER_SERIALIZABLE(IdealElPlData);
+
+struct Law2_L6Geom_FrictPhys_LinEl6: public LawFunctor{
 	void go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&);
 	FUNCTOR2D(L6Geom,FrictPhys);
 	YADE_CLASS_BASE_DOC_ATTRS(Law2_L6Geom_FrictPhys_LinEl6,LawFunctor,"Ideally elastic-plastic behavior.",

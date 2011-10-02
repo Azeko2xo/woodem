@@ -106,6 +106,12 @@ void ContactContainer::removeNonReal(){
 	FOREACH(const shared_ptr<Contact>& c, cc){ this->remove(c); }
 }
 
+int ContactContainer::countReal() const{
+	int ret=0;
+	FOREACH(const shared_ptr<Contact>& c, *this) ret++;
+	return ret;
+};
+
 
 shared_ptr<Contact> ContactContainer::pyByIds(const Vector2i& ids){return find(ids[0],ids[1]); };
 

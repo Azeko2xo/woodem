@@ -226,18 +226,18 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 #endif
 	Real gradVError(const shared_ptr<Node>&, int rPow=0);
 
-	void prologuePhase();
+	void prologuePhase(VectorXr& initVel);
 		void assignDofs();
 		VectorXr computeInitialDofVelocities(bool useZero=true) const;
 
-	void solutionPhase(VectorXr& errors);
-		void solutionPhase_computeResponse();
-			void copyLocalVelocityToNodes(const VectorXr&) const;
+	void solutionPhase(const VectorXr& trialVel, VectorXr& errors);
+		void solutionPhase_computeResponse(const VectorXr& trialVel);
+			void copyLocalVelocityToNodes(const VectorXr& vel) const;
 		void solutionPhase_computeErrors(VectorXr& errors);
 			template<bool useNext>
 			void computeConstraintErrors(const shared_ptr<Node>& n, const Vector3r& divT, VectorXr& errors);
 
-	void epiloguePhase();
+	void epiloguePhase(const VectorXr& vel, VectorXr& errors);
 		void integrateStateVariables();
 
 	#ifndef SPARC_LM
@@ -256,6 +256,7 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 		((Real,solverFactor,200,,"Factor for the Dogleg method (automatically lowered in case of convergence troubles"))
 		((Real,solverXtol,-1,,"Relative tolerance of the solver; if negative, default is used."))
 		((Real,relMaxfev,10000,,"Maximum number of function evaluation in solver, relative to number of DoFs"))
+		((Real,epsfcn,0.,,"Epsfcn parameter of the solver (0 = use machine precision), pg. 26 of MINPACK manual"))
 		((int,nDofs,-1,,"Number of degrees of freedom, set by renumberDoFs"))
 		((Real,charLen,1,,"Characteristic length, for making divT/T errors comensurable"))
 		((bool,relPosOnce,false,,"Only compute relative positions when initializing solver step, using initial velocities"))

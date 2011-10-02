@@ -60,6 +60,7 @@ struct ContactContainer: public Serializable{
 
 		int removeAllPending();
 		void clearPending();
+		int countReal() const;
 
 		template<class T> int removePending(const T& t, Scene* scene){
 			int ret=0;
@@ -108,6 +109,7 @@ struct ContactContainer: public Serializable{
 		.def("__getitem__",&ContactContainer::pyNth)
 		.def("remove",&ContactContainer::requestRemoval,(py::arg("contact"),py::arg("force")=false))
 		.def("removeNonReal",&ContactContainer::removeNonReal)
+		.def("countReal",&ContactContainer::countReal)
 		.def("__iter__",&ContactContainer::pyIter)
 		// define nested iterator class here; ugly, same as in ParticleContainer
 		; boost::python::scope foo(_classObj);

@@ -104,7 +104,7 @@ void ContactLoop::run(){
 	// (only for some kinds of colliders; see comment for InteractionContainer::iterColliderLastRun)
 	bool removeUnseen=(dem.contacts.stepColliderLastRun>=0 && dem.contacts.stepColliderLastRun==scene->step);
 
-	const bool doGradVWork=(trackWork && scene->trackEnergy && scene->isPeriodic);
+	const bool doStress=(evalStress && scene->isPeriodic);
 		
 	size_t size=dem.contacts.size();
 	#ifdef YADE_OPENMP
@@ -140,7 +140,7 @@ void ContactLoop::run(){
 
 		// track gradV work
 		/* this is meant to avoid calling extra loop at every step, since the work must be evaluated incrementally */
-		if(doGradVWork && /*contact law deleted the contact?*/ C->isReal()){
+		if(doStress && /*contact law deleted the contact?*/ C->isReal()){
 			if(C->pA->shape->nodes.size()!=1 || C->pB->shape->nodes.size()!=1) throw std::runtime_error("ContactLoop.trackWork not allowed with multi-nodal particles in contact (##"+lexical_cast<string>(C->pA->id)+"+"+lexical_cast<string>(C->pB->id)+")");
 			#if 0
 				const Real d0=(C->pB->shape->nodes[0]->pos-C->pA->shape->nodes[0]->pos+scene->cell->intrShiftPos(C->cellDist)).norm();
@@ -173,12 +173,14 @@ void ContactLoop::run(){
 		removeAfterLoopRefs.clear();
 	#endif
 	// compute gradVWork eventually
-	if(doGradVWork){
+	if(doStress){
 		stress/=scene->cell->getVolume();
-		Matrix3r midStress=.5*(stress+prevStress);
-		Real midVol=(!isnan(prevVol)?.5*(prevVol+scene->cell->getVolume()):scene->cell->getVolume());
-		Real dW=-(scene->cell->gradV*midStress).trace()*scene->dt*midVol;
-		scene->energy->add(dW,"gradV",gradVIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate);
+		if(scene->trackEnergy){
+			Matrix3r midStress=.5*(stress+prevStress);
+			Real midVol=(!isnan(prevVol)?.5*(prevVol+scene->cell->getVolume()):scene->cell->getVolume());
+			Real dW=-(scene->cell->gradV*midStress).trace()*scene->dt*midVol;
+			scene->energy->add(dW,"gradV",gradVIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate);
+		}
 		//prevTrGradVStress=trGradVStress;
 		prevVol=scene->cell->getVolume();
 		prevStress=stress;

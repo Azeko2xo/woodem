@@ -1,5 +1,5 @@
 #include<yade/pkg/dem/IdealElPl.hpp>
-YADE_PLUGIN(dem,(Law2_L6Geom_FrictPhys_IdealElPl)(Law2_L6Geom_FrictPhys_LinEl6));
+YADE_PLUGIN(dem,(Law2_L6Geom_FrictPhys_IdealElPl)(IdealElPlData)(Law2_L6Geom_FrictPhys_LinEl6));
 
 #ifdef YADE_DEBUG
 	#define _WATCH_MSG(msg) if(watched) cerr<<msg;
@@ -13,7 +13,12 @@ void Law2_L6Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shar
 		bool watched=(max(C->pA->id,C->pB->id)==watch.maxCoeff() && min(C->pA->id,C->pB->id)==watch.minCoeff());
 	#endif
 	_WATCH_MSG("Step "<<scene->step<<", ##"<<C->pA->id<<"+"<<C->pB->id<<": "<<endl);
-	if(g.uN>0 && !noBreak){ _WATCH_MSG("\tContact being broken."<<endl);
+	Real uN=g.uN;
+	if(iniEqlb){
+		if(C->isFresh(scene)){ C->data=make_shared<IdealElPlData>(); C->data->cast<IdealElPlData>().uN0=uN; }
+		if(C->data) uN-=C->data->cast<IdealElPlData>().uN0;
+	}
+	if(uN>0 && !noBreak){ _WATCH_MSG("\tContact being broken."<<endl);
 		// without slipping, it is possible that a contact breaks and shear force disappears
 		if(noSlip && scene->trackEnergy){
 			// when contact is broken, it is simply its elastic potential which gets lost
@@ -21,7 +26,7 @@ void Law2_L6Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shar
 			// ugly, we duplicate the code below here
 			const Vector2r velT(g.vel[1],g.vel[2]); Eigen::Map<Vector2r> prevFt(&ph.force[1]);
 			// const Real& prevFn=ph.force[0];
-			Real Fn=ph.kn*g.uN; Vector2r Ft=prevFt+scene->dt*ph.kt*velT;
+			Real Fn=ph.kn*uN; Vector2r Ft=prevFt+scene->dt*ph.kt*velT;
 			// Real z=.5;
 			//Real z=abs(prevFn)/(abs(Fn)+abs(prevFn));
 			//Fn=.5*(z*Fn+(1-z)*ph.force[0]); Ft=.5*(z*prevFt+(1-z)*Ft);
@@ -31,7 +36,7 @@ void Law2_L6Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shar
 		field->cast<DemField>().contacts.requestRemoval(C); return;
 	}
 	ph.torque=Vector3r::Zero();
-	ph.force[0]=ph.kn*g.uN;
+	ph.force[0]=ph.kn*uN;
 	const Vector2r velT(g.vel[1],g.vel[2]);
 	Eigen::Map<Vector2r> Ft(&ph.force[1]); // const Eigen::Map<Vector2r> velT(&g.vel[1]);
 	Ft+=scene->dt*ph.kt*velT;

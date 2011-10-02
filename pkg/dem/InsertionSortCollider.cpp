@@ -148,6 +148,7 @@ bool InsertionSortCollider::updateBboxes_doFullRun(){
 		// existing bound, do we need to update it?
 		const Aabb& aabb=p->shape->bound->cast<Aabb>();
 		assert(aabb.nodeLastPos.size()==p->shape->nodes.size());
+		if(isnan(aabb.min.maxCoeff())||isnan(aabb.max.maxCoeff())) { recomputeBounds=true; break; } 
 		Real d2=0; 
 		for(int i=0; i<nNodes; i++){
 			d2=max(d2,(aabb.nodeLastPos[i]-p->shape->nodes[i]->pos).squaredNorm());
@@ -203,8 +204,12 @@ void InsertionSortCollider::run(){
 	// conditions when we need to run a full pass
 	bool fullRun=false;
 
+	// contacts are dirty and must be detected anew
+	if(dem->contacts.dirty){  fullRun=true; dem->contacts.dirty=false; }
+
 	// number of particles changed
 	if((size_t)BB[0].size!=2*nBodies) fullRun=true;
+	//redundant: if(minima.size()!=3*nBodies || maxima.size()!=3*nBodies) fullRun=true;
 
 	// periodicity changed
 	if(scene->isPeriodic != periodic){
@@ -484,6 +489,14 @@ bool InsertionSortCollider::spatialOverlapPeri(Particle::id_t id1, Particle::id_
 		Real dim=scene->cell->getSize()[axis];
 		// LOG_DEBUG("dim["<<axis<<"]="<<dim);
 		// too big bodies in interaction
+		#if 0
+		if(!(maxima[3*id1+axis]-minima[3*id1+axis]<.99*dim)){
+			LOG_ERROR("##"<<id1<<"+"<<id2<<": min["<<axis<<"]="<<minima[3*id1+axis]<<" max["<<axis<<"]="<<maxima[3*id1+axis]<<", dim="<<dim<<", ignored!!")
+			return false;
+		}
+		#endif
+		assert(!isnan(minima[3*id1+axis])); assert(!isnan(maxima[3*id1+axis]));
+		assert(!isnan(minima[3*id2+axis])); assert(!isnan(maxima[3*id2+axis]));
 		assert(maxima[3*id1+axis]-minima[3*id1+axis]<.99*dim); assert(maxima[3*id2+axis]-minima[3*id2+axis]<.99*dim);
 		// find particle of which minimum when taken as period start will make the gap smaller
 		Real m1=minima[3*id1+axis],m2=minima[3*id2+axis];
