@@ -197,6 +197,16 @@ VECTOR6_TEMPLATE(Scalar) tensor_toVoigt(const MATRIX3_TEMPLATE(Scalar)& m, bool 
 	VECTOR6_TEMPLATE(Scalar) ret; ret<<m(0,0),m(1,1),m(2,2),k*.5*(m(1,2)+m(2,1)),k*.5*(m(2,0)+m(0,2)),k*.5*(m(0,1)+m(1,0)); return ret;
 }
 
+/* Apply Levi-Civita permutation tensor on m
+	http://en.wikipedia.org/wiki/Levi-Civita_symbol
+*/
+template<typename Scalar>
+VECTOR3_TEMPLATE(Scalar) leviCivita(const MATRIX3_TEMPLATE(Scalar)& m){
+	// i,j,k: v_i=ε_ijk W_j,k
+	// +: 1,2,3; 3,1,2; 2,3,1
+	// -: 1,3,2; 3,2,1; 2,1,3
+	return Vector3r(/*+2,3-3,2*/m(1,2)-m(2,1),/*+3,1-1,3*/m(2,0)-m(0,2),/*+1,2-2,1*/m(0,1)-m(1,0));
+}
 
 __attribute__((unused))
 const Real NaN(std::numeric_limits<Real>::signaling_NaN());

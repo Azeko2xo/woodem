@@ -578,6 +578,7 @@ if such colum is absent, description will be built by concatenating column names
 
 * from columns ending in ``!`` (the ``!`` is not included in the column name)
 * from all columns, if no columns end in ``!``.
+* columns containing literal - (minus) will be ignored
 
 Empty lines within the file are ignored (although counted); ``#`` starts comment till the end of line. Number of blank-separated columns must be the same for all non-empty lines.
 
@@ -619,7 +620,7 @@ This class is used by :yref:`yade.utils.readParamsFromTable`.
 		if not 'description' in headings:
 			descs=set()
 			for l in lines:
-				dd=','.join(head.replace('!','')+'='+('%g'%values[head] if isinstance(values[l][head],float) else str(values[l][head])) for head in bangHeads).replace("'",'').replace('"','')
+				dd=','.join(head.replace('!','')+'='+('%g'%values[head] if isinstance(values[l][head],float) else str(values[l][head])) for head in bangHeads if values[l][head].strip()!='-').replace("'",'').replace('"','')
 				if dd in descs: dd+='__line=%d__'%l
 				values[l]['description']=dd
 				descs.add(dd)

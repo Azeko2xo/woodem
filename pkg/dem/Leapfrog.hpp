@@ -23,16 +23,27 @@ struct Leapfrog: public GlobalEngine, private DemField::Engine {
 	// compute linear and angular acceleration, respecting DemData::blocked
 	Vector3r computeAccel(const Vector3r& force, const Real& mass, int blocked);
 	Vector3r computeAngAccel(const Vector3r& torque, const Vector3r& inertia, int blocked);
-	void updateEnergy(const shared_ptr<Node>&, const Vector3r& fluctVel, const Vector3r& f, const Vector3r& m, const Vector3r& linAccel, const Vector3r& angAccel);
+	void doKineticEnergy(const shared_ptr<Node>&, const Vector3r& pprevFluctVel, const Vector3r& pprevFluctAngVel, const Vector3r& linAccel, const Vector3r& angAccel);
+	void doDampingDissipation(const shared_ptr<Node>&);
 	// whether the cell has changed from the previous step
 	int homoDeform; // updated from scene at every call; -1 for aperiodic simulations, otherwise equal to scene->cell->homoDeform
 	Real dt; // updated from scene at every call
 	Matrix3r dGradV, midGradV; // dtto
 
+	// used with homoDeform==Cell::HOMO_GRADV2
+	//Matrix3r IpLL4,ImLL4Inv, LmL; // (1-(nextGradV+gradV)/4).inverse()
+	//Vector3r deltaSpinVec;
+
 
 	public:
 		virtual void run();
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR(Leapfrog,GlobalEngine,"Engine integrating newtonian motion equations, using the leap-frog scheme.",
+		// cached values
+		((Matrix3r,IpLL4h,,(Attr::readonly|Attr::noSave),"I+(nnextL+pprevL)/4"))
+		((Matrix3r,ImLL4hInv,,(Attr::readonly|Attr::noSave),"(I-(nnextL+pprevL)/4)^-1"))
+		((Matrix3r,LmL,,(Attr::readonly|Attr::noSave),"(nnextL-pprevL)/dt"))
+		((Vector3r,deltaSpinVec,,(Attr::readonly|Attr::noSave),""))
+
 		((Real,damping,0.2,,"damping coefficient for non-viscous damping"))
 		((bool,reset,false,,"Reset forces immediately after applying them."))
 		// ((Matrix3r,prevVelGrad,Matrix3r::Zero(),Attr::readonly,"Previous value of velocity gradient, to detect its changes"))
@@ -40,9 +51,6 @@ struct Leapfrog: public GlobalEngine, private DemField::Engine {
 		// energy tracking
 		((int,nonviscDampIx,-1,(Attr::hidden|Attr::noSave),"Index of the energy dissipated using the non-viscous damping (:yref:`damping<Leapfrog.damping>`)."))
 		((bool,kinSplit,false,,"Whether to separately track translational and rotational kinetic energy."))
-		#ifdef YADE_DEBUG
-			((bool,kinOnStep,true,,"Evaluate kinetic energy on-step (which is correct) rather then mid-step (incorrect)"))
-		#endif
 		((Real,maxVelocitySq,NaN,Attr::readonly,"store square of max. velocity, for informative purposes; computed again at every step."))
 
 		((int,kinEnergyIx,-1,(Attr::hidden|Attr::noSave),"Index for kinetic energy in scene->energies."))

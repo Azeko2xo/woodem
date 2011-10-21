@@ -25,7 +25,7 @@ void Contact::reset(){
 boost::tuple<Vector3r,Vector3r,Vector3r> Contact::getForceTorqueBranch(const shared_ptr<Particle>& particle, int nodeI, Scene* scene){
 	assert(pA==particle || pB==particle);
 	assert(geom && phys);
-	assert(nodeI>=0 && particle->shape && particle->shape->nodes.size()>nodeI);
+	assert(nodeI>=0 && particle->shape && particle->shape->nodes.size()>(size_t)nodeI);
 	bool isPA=(pA==particle);
 	int sign=(isPA?1:-1);
 	Vector3r F=geom->node->ori.conjugate()*phys->force*sign;
@@ -105,16 +105,17 @@ Real Particle::getEk_any(bool trans, bool rot) const {
 	Real ret=0;
 	checkNodes();
 	const DemData& dyn=shape->nodes[0]->getData<DemData>();
+	Scene* scene=Omega::instance().getScene().get();
 	if(trans){
-		Scene* scene=Omega::instance().getScene().get();
-		Vector3r fluctVel=scene->isPeriodic?scene->cell->bodyFluctuationVel(shape->nodes[0]->pos,dyn.vel):dyn.vel;
+		Vector3r fluctVel=scene->isPeriodic?scene->cell->pprevFluctVel(shape->nodes[0]->pos,dyn.vel,scene->dt):dyn.vel;
 		Real Etrans=.5*(dyn.mass*(fluctVel.dot(fluctVel.transpose())));
 		ret+=Etrans;
 	}
 	if(rot){
 		Matrix3r T(shape->nodes[0]->ori);
 		Matrix3r mI(dyn.inertia.asDiagonal());
-		Real Erot=.5*dyn.angVel.transpose().dot((T.transpose()*mI*T)*dyn.angVel);	
+		Vector3r fluctAngVel=scene->isPeriodic?scene->cell->pprevFluctAngVel(dyn.angVel):dyn.angVel;
+		Real Erot=.5*fluctAngVel.transpose().dot((T.transpose()*mI*T)*fluctAngVel);	
 		ret+=Erot;
 	}
 	return ret;

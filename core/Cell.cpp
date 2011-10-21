@@ -20,17 +20,47 @@ void Cell::checkTrsfUpperTriangular(){
  if (trsf(1,0)!=0. || trsf(2,0)!=0. || trsf(2,1)!=0.) throw std::runtime_error("Cell.trsf must be upper-triagular (Cell.trsfUpperTriangular==True), but it is not! (Cell.gradV must be upper-triangular too, since its components propagate to Cell.trsf)");
 }
 
+Vector3r Cell::intrShiftVel(const Vector3i& cellDist) const {
+	switch(homoDeform){
+		case HOMO_VEL: case HOMO_VEL_2ND: return gradV*hSize*cellDist.cast<Real>();
+		case HOMO_GRADV2: return gradV*pprevHsize*cellDist.cast<Real>();
+		default: return Vector3r::Zero();
+	}
+}
+
+Vector3r Cell::pprevFluctVel(const Vector3r& currPos, const Vector3r& pprevVel, const Real& dt){
+	switch(homoDeform){
+		case HOMO_NONE:
+		case HOMO_POS:
+			return pprevVel;
+		case HOMO_VEL:
+		case HOMO_VEL_2ND:
+			return (pprevVel-gradV*currPos);
+		case HOMO_GRADV2:
+			return pprevVel-gradV*(currPos-dt/2*pprevVel);
+		default:
+			LOG_FATAL("Cell::ptPprevFlutVel_pprev: invalid value of homoDeform");
+			abort();
+	};
+}
+
+Vector3r Cell::pprevFluctAngVel(const Vector3r& pprevAngVel){
+	switch(homoDeform){
+		case HOMO_GRADV2: return pprevAngVel-spinVec;
+		default: return pprevAngVel;
+	}
+}
+
 /* at the end of step, bring gradV(t-dt/2) to the value gradV(t+dt/2) so that e.g. kinetic energies are right */
 void Cell::setNextGradV(){
 	gradV=nextGradV;
+	// spin tensor
+	W=.5*(gradV-gradV.transpose());
+	spinVec=.5*leviCivita(W);
 	// if(!isnan(nnextGradV(0,0))){ nextGradV=nnextGradV; nnextGradV<<NaN,NaN,NaN, NaN,NaN,NaN, NaN,NaN,NaN; }
 }
 
-#ifdef CELL_APPROX2
-Matrix3r Cell::invIL2Dt(Real dt, bool useNext){
-	return (Matrix3r::Identity()-*(useNext?nextGradV:gradV)*dt/2).inverse();
-}
-#endif
+
 
 void Cell::integrateAndUpdate(Real dt){
 	//incremental displacement gradient
@@ -40,12 +70,12 @@ void Cell::integrateAndUpdate(Real dt){
 	_invTrsf=trsf.inverse();
 
 	if(trsfUpperTriangular) checkTrsfUpperTriangular();
-	#ifdef CELL_APPROX2
-		hSize=hSize*(Matrix3r::Identity()+gradV*dt/2.)*invIL2Dt;
-	#else
-		// hSize contains colums with updated base vectors
-		hSize+=_trsfInc*hSize;
-	#endif
+
+	// hSize contains colums with updated base vectors
+	Matrix3r prevHsize=hSize; // remember old value
+	if(homoDeform==HOMO_GRADV2) hSize=(Matrix3r::Identity()-gradV*dt/2.).inverse()*(Matrix3r::Identity()+gradV*dt/2.)*hSize;
+	else hSize+=_trsfInc*hSize;
+	pprevHsize=.5*(prevHsize+hSize); // average of previous and current value
 
 	if(hSize.determinant()==0){ throw std::runtime_error("Cell is degenerate (zero volume)."); }
 	// lengths of transformed cell vectors, skew cosines
@@ -69,7 +99,7 @@ void Cell::integrateAndUpdate(Real dt){
 	// OpenGL shear matrix (used frequently)
 	fillGlShearTrsfMatrix(_glShearTrsfMatrix);
 
-	if(!(homoDeform==HOMO_NONE || homoDeform==HOMO_POS || homoDeform==HOMO_VEL || homoDeform==HOMO_VEL_2ND)) throw std::invalid_argument("Cell.homoDeform must be in {0,1,2,3}.");
+	if(!(homoDeform==HOMO_NONE || homoDeform==HOMO_POS || homoDeform==HOMO_VEL || homoDeform==HOMO_VEL_2ND || homoDeform==HOMO_GRADV2)) throw std::invalid_argument("Cell.homoDeform must be in {0,1,2,3,4}.");
 }
 
 void Cell::fillGlShearTrsfMatrix(double m[16]){

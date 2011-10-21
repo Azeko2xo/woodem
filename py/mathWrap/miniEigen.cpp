@@ -214,6 +214,7 @@ static bool Quaternionr__neq__(const Quaternionr& q1, const Quaternionr& q2){ re
 #include<Eigen/SVD>
 static py::tuple Matrix3r_polarDecomposition(const Matrix3r& self){ Matrix3r unitary,positive; Matrix_computeUnitaryPositive(self,&unitary,&positive); return py::make_tuple(unitary,positive); }
 static py::tuple Matrix3r_symmEigen(const Matrix3r& self){ Eigen::SelfAdjointEigenSolver<Matrix3r> a(self); return py::make_tuple(a.eigenvectors(),a.eigenvalues()); } 
+static Vector3r Matrix3r_leviCivita(const Matrix3r& self){ return leviCivita(self); }
 
 static Vector3r Vector3r_Unit(int ax){ IDX_CHECK(ax,3); Vector3r ret=Vector3r::Zero(); ret[ax]=1; return ret; }
 static Vector3i Vector3i_Unit(int ax){ IDX_CHECK(ax,3); Vector3i ret=Vector3i::Zero(); ret[ax]=1; return ret; }
@@ -369,6 +370,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.def("col",&Matrix3r_col)
 		.def("pruned",&Matrix_pruned<Matrix3r>,py::arg("absTol")=1e-6)
 		.def("maxAbsCoeff",&Matrix_maxAbsCoeff<Matrix3r>)
+		.def("leviCivita",&Matrix3r_leviCivita,"Compute dual vector, using the matrix as representation of 2nd order tensor in 3d cartesian coords (applies Levi-Civita symbol)")
 
 		//
 		.def("__neg__",&Matrix3r__neg__)

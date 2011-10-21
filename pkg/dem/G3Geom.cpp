@@ -166,19 +166,21 @@ void Law2_G3Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shar
 	_WATCH_MSG("\t; incremented by "<<(phys.kt*geom.dShear).transpose()<<" to "<<dta.shearForce.transpose()<<endl);
 	Real maxFs=max(0.,normalForce.squaredNorm()*std::pow(phys.tanPhi,2));
 	_WATCH_MSG("\tFn="<<normalForce.norm()<<", trial Fs="<<dta.shearForce.transpose()<<", max Fs="<<sqrt(maxFs)<<endl);
-	if(dta.shearForce.squaredNorm()>maxFs){
+	if(dta.shearForce.squaredNorm()>maxFs && !noSlip){
 		Real ratio=sqrt(maxFs)/dta.shearForce.norm();
 		Vector3r trialForce=dta.shearForce;//store prev force for definition of plastic slip
 		//define the plastic work input and increment the total plastic energy dissipated
 		dta.shearForce*=ratio;
 		_WATCH_MSG("\tPlastic slip by "<<((dta.shearForce/ratio)*(1-ratio)).transpose()<<", ratio="<<ratio<<", new Ft="<<dta.shearForce.transpose()<<endl);
 		if(scene->trackEnergy){
-			Real dissip=((1/phys.kt)*(trialForce-dta.shearForce))/*plastic disp*/ .dot(dta.shearForce)/*active force*/;
+			Vector3r dEpsPl=(1/phys.kt)*(trialForce-dta.shearForce);
+			//Real dissip=dEpsPl.dot(dta.shearForce) /*active force*/;
+			Real dissip=dEpsPl.dot(dta.shearForce+.5*(dta.shearForce-trialForce));
 			scene->energy->add(dissip,"plast",plastDissipIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate);
 		}
 	}
 	// elastic potential
-	if(scene->trackEnergy) scene->energy->add(0.5*(normalForce.squaredNorm()/phys.kn+dta.shearForce.squaredNorm()/phys.kt),"elastPot",elastPotIx,/*reset at every timestep*/EnergyTracker::IsResettable);
+	if(scene->trackEnergy) scene->energy->add(0.5*(normalForce.squaredNorm()/phys.kn+dta.shearForce.squaredNorm()/phys.kt),"elast",elastPotIx,/*reset at every timestep*/EnergyTracker::IsResettable);
 	// this is the force in contact local coordinates, which will be applied
 	// local coordinates are not rotated, though
 	assert(C->geom->node->ori==Quaternionr::Identity());

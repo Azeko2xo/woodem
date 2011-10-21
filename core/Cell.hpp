@@ -16,6 +16,8 @@ The transformation is split between "normal" part and "rotation/shear" part for 
 #include<yade/lib/serialization/Serializable.hpp>
 #include<yade/lib/base/Math.hpp>
 
+class Scene;
+
 class Cell: public Serializable{
 	public:
 	//! Get/set sizes of cell base vectors
@@ -68,6 +70,10 @@ class Cell: public Serializable{
 	// this method will be deprecated
 	Vector3r canonicalizePt(const Vector3r& pt) const { return shearPt(wrapPt(unshearPt(pt))); }
 
+	//! Compute angular velocity vector from given spin tensor (dual pseudovector)
+	static Vector3r spin2angVel(const Matrix3r& W);
+
+
 	/*! Return point inside periodic cell, even if shear is applied; store cell coordinates in period. */
 	Vector3r canonicalizePt(const Vector3r& pt, Vector3i& period) const { return shearPt(wrapPt(unshearPt(pt),period)); }
 	/*! Apply inverse shear on point; to put it inside (unsheared) periodic cell, apply wrapPt on the returned value. */
@@ -89,19 +95,17 @@ class Cell: public Serializable{
 
 	// relative position and velocity for interaction accross multiple cells
 	Vector3r intrShiftPos(const Vector3i& cellDist) const { return hSize*cellDist.cast<Real>(); }
-	Vector3r intrShiftVel(const Vector3i& cellDist) const { if(homoDeform==HOMO_VEL || homoDeform==HOMO_VEL_2ND) return gradV*hSize*cellDist.cast<Real>(); return Vector3r::Zero(); }
-	// return body velocity while taking away mean field velocity (coming from gradV) if the mean field velocity is applied on velocity
-	Vector3r bodyFluctuationVel(const Vector3r& pos, const Vector3r& vel) const { if(homoDeform==HOMO_VEL || homoDeform==HOMO_VEL_2ND) return (vel-gradV*pos); return vel; }
-	// should not be needed now
-	#if 0
-		// same, but with custom value of gradV
-		Vector3r bodyFluctuationVel(const Vector3r& pos, const Vector3r& vel, const Matrix3r& gradV) const { if(homoDeform==HOMO_VEL || homoDeform==HOMO_VEL_2ND) return (vel-gradV*pos); return vel; }
-	#endif
+	Vector3r intrShiftVel(const Vector3i& cellDist) const;
+
+	// fluctuation velocities at t-dt/2 and at t
+	Vector3r pprevFluctVel(const Vector3r& pos, const Vector3r& vel, const Real& dt);
+	// flutuation angular velocities at t-dt/2 and at t
+	Vector3r pprevFluctAngVel(const Vector3r& angVel);
 
 
 	// get/set current shape; setting resets trsf to identity
 	Matrix3r getHSize() const { return hSize; }
-	void setHSize(const Matrix3r& m){ hSize=refHSize=m; postLoad(*this); }
+	void setHSize(const Matrix3r& m){ hSize=refHSize=m; pprevHsize=hSize; postLoad(*this); }
 	// set current transformation; has no influence on current configuration (hSize); sets display refHSize as side-effect
 	Matrix3r getTrsf() const { return trsf; }
 	void setTrsf(const Matrix3r& m){ trsf=m; postLoad(*this); }
@@ -129,17 +133,20 @@ class Cell: public Serializable{
 	// check that trsf is upper triangular, throw an exception if not
 	void checkTrsfUpperTriangular();
 
-	enum { HOMO_NONE=0, HOMO_POS=1, HOMO_VEL=2, HOMO_VEL_2ND=3 };
+	enum { HOMO_NONE=0, HOMO_POS=1, HOMO_VEL=2, HOMO_VEL_2ND=3, HOMO_GRADV2=4 };
 	YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(Cell,Serializable,"Parameters of periodic boundary conditions. Only applies if O.isPeriodic==True.",
 		((bool,trsfUpperTriangular,false,Attr::readonly,"Require that :yref:`Cell.trsf` is upper-triangular, to conform with the requirement of voro++ for sheared periodic cells."))
 		/* overridden below to be modified by getters/setters because of intended side-effects */
 		((Matrix3r,trsf,Matrix3r::Identity(),,"[overridden]")) //"Current transformation matrix of the cell, which defines how far is the current cell geometry (:yref:`hSize<Cell.hSize>`) from the reference configuration. Changing trsf will not change :yref:`hSize<Cell.hSize>`, it serves only as accumulator for transformations applied via :yref:`gradV<Cell.gradV>`."))
 		((Matrix3r,refHSize,Matrix3r::Identity(),,"Reference cell configuration, only used with :yref:`OpenGLRenderer.dispScale`. Updated automatically when :yref:`hSize<Cell.hSize>` or :yref:`trsf<Cell.trsf>` is assigned directly; also modified by :yref:`yade.utils.setRefSe3` (called e.g. by the :gui:`Reference` button in the UI)."))
 		((Matrix3r,hSize,Matrix3r::Identity(),,"[overridden below]"))
+		((Matrix3r,pprevHsize,Matrix3r::Identity(),Attr::readonly,"hSize at t-dt/2; used to compute velocity correction in contact with non-zero cellDist. Updated automatically."))
 		/* normal attributes */
 		((Matrix3r,gradV,Matrix3r::Zero(),,"[overridden below]"))
+		((Matrix3r,W,Matrix3r::Zero(),Attr::readonly,"Spin tensor, computed from gradV when it is updated."))
+		((Vector3r,spinVec,Vector3r::Zero(),Attr::readonly,"Angular velocity vector (1/2 * dual of spin tensor W), computed from W when it is updated."))
 		((Matrix3r,nextGradV,Matrix3r::Zero(),,"Value of gradV to be applied in the next step (that is, at t+dt/2). If any engine changes gradV, it should do it via this variable. The value propagates to gradV at the very end of each timestep, so if it is user-adjusted between steps, it will not become effective until after 1 steps. It should not be changed between Leapfrog and end of the step!"))
-		((int,homoDeform,HOMO_VEL_2ND,Attr::triggerPostLoad,"Deform (:yref:`gradV<Cell.gradV>`) the cell homothetically, by adjusting positions or velocities of particles. The values have the following meaning: 0: no homothetic deformation, 1: set absolute particle positions directly (when ``gradV`` is non-zero), but without changing their velocity, 2: adjust particle velocity (only when ``gradV`` changed) with Δv_i=Δ ∇v x_i. 3: as 2, but include a 2nd order term in addition -- the derivative of 1 (convective term in the velocity update).")),
+		((int,homoDeform,HOMO_GRADV2,Attr::triggerPostLoad,"Deform (:yref:`gradV<Cell.gradV>`) the cell homothetically, by adjusting positions or velocities of particles. The values have the following meaning: 0: no homothetic deformation, 1: set absolute particle positions directly (when ``gradV`` is non-zero), but without changing their velocity, 2: adjust particle velocity (only when ``gradV`` changed) with Δv_i=Δ ∇v x_i. 3: as 2, but include a 2nd order term in addition -- the derivative of 1 (convective term in the velocity update).")),
 		/*deprec*/ ((Hsize,hSize,"conform to Yade's names convention.")),
 		/*init*/ ,
 		/*ctor*/ _invTrsf=Matrix3r::Identity(); integrateAndUpdate(0),
