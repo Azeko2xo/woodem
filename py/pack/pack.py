@@ -47,8 +47,22 @@ from _packSpheres import *
 from _packObb import *
 
 ##
-# extend _packSphere.SpherePack c++ class by this method
+# extend _packSphere.SpherePack c++ class by these methods
 ##
+def SpherePack_fromSimulation(self):
+	ur"""Reset this SpherePack object and initialize it from the current simulation; only spherical particles are taken in account. Clumps are not handled. Periodic boundary conditions are supported, but the hSize matrix must be diagonal."""
+	self.reset()
+	import yade.dem
+	for p in O.dem.par:
+		if p.shape.__class__!=yade.dem.Sphere: continue
+		self.add(p.pos,p.shape.radius)
+	if O.scene.periodic:
+		h=O.scene.cell.hSize
+		if h-h.transpose()!=Matrix3.Zero: raise RuntimeError("Only box-shaped (no shear) periodic boundary conditions can be represented with a pack.SpherePack object")
+		self.cellSize=h.diagonal()
+
+SpherePack.fromSimulation=SpherePack_fromSimulation
+
 def SpherePack_toSimulation(self,rot=Matrix3.Identity,**kw):
 	ur"""Append spheres directly to the simulation. In addition calling :yref:`O.bodies.append<BodyContainer.append>`,
 this method also appropriately sets periodic cell information of the simulation.

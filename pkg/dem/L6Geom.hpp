@@ -29,18 +29,18 @@ struct Cg2_Sphere_Sphere_L6Geom: public CGeomFunctor{
 	// common code for {sphere,facet,wall}+sphere contacts
 	void handleSpheresLikeContact(const shared_ptr<Contact>& C, const Vector3r& pos1, const Vector3r& vel1, const Vector3r& angVel1, const Vector3r& pos2, const Vector3r& vel2, const Vector3r& angVel2, const Vector3r& normal, const Vector3r& contPt, Real uN, Real r1, Real r2);
 
-	enum { APPROX_NO_MID_TRSF=1, APPROX_NO_MID_NORMAL=2, APPROX_NO_RENORM_MID_NORMAL=4, APPROX_NO_MID_BRANCH=8 };
+	enum { APPROX_NO_MID_NORMAL=1, APPROX_NO_RENORM_MID_NORMAL=2, APPROX_NO_MID_TRSF=4, APPROX_NO_MID_BRANCH=8 };
 
 	YADE_CLASS_BASE_DOC_ATTRS(Cg2_Sphere_Sphere_L6Geom,CGeomFunctor,"Incrementally compute :yref:`L6Geom` for contact of 2 spheres. Detailed documentation in py/_extraDocs.py",
-		((bool,noRatch,true,,"FIXME: document what it really does."))
+		((bool,noRatch,false,,"FIXME: document what it really does."))
 		((Real,distFactor,1,,"Create interaction if spheres are not futher than |distFactor|*(r1+r2). If negative, zero normal deformation will be set to be the initial value (otherwise, the geometrical distance is the 'zero' one)."))
 		((int,trsfRenorm,100,,"How often to renormalize :yref:`trsf<L6Geom.trsf>`; if non-positive, never renormalized (simulation might be unstable)"))
 		((int,approxMask,0,,"Selectively enable geometrical approximations (bitmask); add the values for approximations to be enabled.\n\n"
 		"== ===============================================================\n"
-		"1  use previous transformation to transform velocities (which are known at mid-steps), instead of mid-step transformation computed as quaternion slerp at t=0.5.\n"
-		"2  do not take average (mid-step) normal when computing relative shear displacement, use previous value instead\n"
-		"4  do not re-normalize average (mid-step) normal, if used.…\n"
-		"8  (used without noRatch) use current branches, rather than mid-step branches, to evaluate incident velocity\n"
+		"1  use previous normal instead of mid-step normal for computing tangent velocity\n"
+		"2  do not re-normalize average (mid-step) normal, if used.\n"
+		"4  use previous rotation instead of mid-step rotation to transform velocities\n"
+		"8  use current branches instead of mid-step branches to evaluate incident velocity (used without noRatch)\n"
 		"== ===============================================================\n\n"
 		"By default, the mask is zero, wherefore none of these approximations is used.\n"
 		))

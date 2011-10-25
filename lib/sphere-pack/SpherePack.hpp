@@ -54,6 +54,7 @@ public:
 	Real appliedPsdScaling;//a scaling factor that can be applied on size distribution
 	SpherePack(): cellSize(Vector3r::Zero()), psdScaleExponent(2.5), appliedPsdScaling(1.){};
 	SpherePack(const py::list& l):cellSize(Vector3r::Zero()){ fromList(l); }
+	void reset(){ pack.clear(); cellSize=Vector3r::Zero(); }
 	// add single sphere
 	void add(const Vector3r& c, Real r){ pack.push_back(Sph(c,r)); }
 

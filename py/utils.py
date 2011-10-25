@@ -708,6 +708,7 @@ def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 			if col=='description' or col[0]=='!': continue
 			if col not in kw.keys() and (not unknownOk): raise NameError("Parameter `%s' has no default value assigned"%col)
 			if vv[col]=='*': vv[col]=kw[col] # use default value for * in the table
+			elif vv[col]=='-': continue # skip this column
 			elif col in kw.keys(): kw.pop(col) # remove the var from kw, so that it contains only those that were default at the end of this loop
 			#print 'ASSIGN',col,vv[col]
 			tagsParams+=['%s=%s'%(col,vv[col])];

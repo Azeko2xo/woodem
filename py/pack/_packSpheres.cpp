@@ -13,6 +13,7 @@ BOOST_PYTHON_MODULE(_packSpheres){
 		.def("fromList",&SpherePack::fromList,"Make packing from given list, same format as for constructor. Discards current data.")
 		.def("fromList",&SpherePack::fromLists,(py::arg("centers"),py::arg("radii")),"Make packing from given list, same format as for constructor. Discards current data.")
 		.def("load",&SpherePack::fromFile,(py::arg("fileName")),"Load packing from external text file (current data will be discarded).")
+		.def("reset",&SpherePack::reset,"Re-inialize this object (clear all spheres and reset periodic cell size.")
 		.def("save",&SpherePack::toFile,(py::arg("fileName")),"Save packing to external text file (will be overwritten).")
 		// .def("fromSimulation",&SpherePack::fromSimulation,"Make packing corresponding to the current simulation. Discards current data.")
 		.def("makeCloud",&SpherePack::makeCloud,(py::arg("minCorner")=Vector3r(Vector3r::Zero()),py::arg("maxCorner")=Vector3r(Vector3r::Zero()),py::arg("rMean")=-1,py::arg("rRelFuzz")=0,py::arg("num")=-1,py::arg("periodic")=false,py::arg("porosity")=0.5,py::arg("psdSizes")=vector<Real>(),py::arg("psdCumm")=vector<Real>(),py::arg("distributeMass")=false,py::arg("seed")=0,py::arg("hSize")=Matrix3r(Matrix3r::Zero())),"Create random loose packing enclosed in a parallelepiped."

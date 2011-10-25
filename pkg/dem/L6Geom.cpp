@@ -165,12 +165,23 @@ void Cg2_Sphere_Sphere_L6Geom::handleSpheresLikeContact(const shared_ptr<Contact
 	#else
 		const Matrix3r prevTrsf(g.trsf); // could be reference perhaps, but we need it to compute midTrsf (if applicable)
 	#endif
-	Matrix3r currTrsf; currTrsf.row(0)=currNormal;
-	for(int i:{1,2})	currTrsf.row(i)=prevTrsf.row(i)-prevTrsf.row(i).cross(normRotVec+normTwistVec);
+	/* middle transformation first */
+	Matrix3r midTrsf;
+	if(approxMask&APPROX_NO_MID_TRSF) midTrsf=prevTrsf;
+	else{
+		midTrsf.row(0)=midNormal;
+		for(int i:{1,2}) midTrsf.row(i)=prevTrsf.row(i)-prevTrsf.row(i).cross(normRotVec+normTwistVec)/2.;
+	}
+	/* current transformation now */
+	Matrix3r currTrsf;
+	currTrsf.row(0)=currNormal;
+	for(int i:{1,2}) currTrsf.row(i)=prevTrsf.row(i)-midTrsf .row(i).cross(normRotVec+normTwistVec);
+
 	#ifdef L6_TRSF_QUATERNION
 		Quaternionr currTrsfQ(currTrsf);
 		if(trsfRenorm>0 && (scene->iter % trsfRenorm)==0) currTrsfQ.normalize();
 	#else
+		/* orthonormalize in a way to not alter local x-axis */
 		if(trsfRenorm>0 && (scene->step % trsfRenorm)==0){
 			currTrsf.row(0).normalize();
 			currTrsf.row(1)-=currTrsf.row(0)*currTrsf.row(1).dot(currTrsf.row(0)); // take away y projected on x, to stabilize numerically
@@ -186,12 +197,15 @@ void Cg2_Sphere_Sphere_L6Geom::handleSpheresLikeContact(const shared_ptr<Contact
 			#endif
 		}
 	#endif
-	// compute midTrsf
+
+#if 0
+		// compute midTrsf
 	#ifdef L6_TRSF_QUATERNION
 		Quaternionr midTrsf=(approxMask&APPROX_NO_MID_TRSF) ? prevTrsfQ : prevTrsfQ.slerp(.5,currTrsfQ);
 	#else
 		Quaternionr midTrsf=(approxMask&APPROX_NO_MID_TRSF) ? Quaternionr(prevTrsf) : Quaternionr(prevTrsf).slerp(.5,Quaternionr(currTrsf));
 	#endif
+#endif
 
 	#ifdef YADE_DEBUG
 		// cerr<<"Error: prevNormal="<<prevNormal<<", currNomal="<<currNormal<<endl;
