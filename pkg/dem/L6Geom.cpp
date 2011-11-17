@@ -10,8 +10,7 @@
 	#include<GL/glu.h>
 #endif
 
-YADE_PLUGIN(dem,(L6Geom)(Cg2_Sphere_Sphere_L6Geom)(Cg2_Wall_Sphere_L6Geom)(Cg2_Truss_Sphere_L6Geom));
-// (Ig2_Wall_Sphere_L3Geom)(Ig2_Facet_Sphere_L3Geom)(Ig2_Sphere_Sphere_L6Geom)(Law2_L3Geom_FrictPhys_ElPerfPl)(Law2_L6Geom_FrictPhys_Linear);
+YADE_PLUGIN(dem,(L6Geom)(Cg2_Sphere_Sphere_L6Geom)(Cg2_Facet_Sphere_L6Geom)(Cg2_Wall_Sphere_L6Geom)(Cg2_Truss_Sphere_L6Geom));
 #if 0
 #ifdef YADE_OPENGL
 	YADE_PLUGIN(gl,(Gl1_L6Geom));
@@ -41,6 +40,44 @@ bool Cg2_Sphere_Sphere_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<
 
 	return true;
 
+};
+
+bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
+	const Facet& f=sh1->cast<Facet>(); const Sphere& s=sh2->cast<Sphere>();
+	const Vector3r& sC=s.nodes[0]->pos+shift2;
+	Vector3r fNormal=f.getNormal();
+	Real planeDist=(sC-f.nodes[0]->pos).dot(fNormal);
+	if(abs(planeDist)<s.radius && !C->isReal() && !force) return false;
+	Vector3r fC=sC-planeDist*fNormal; // sphere's center projected to facet's plane
+	Vector3r outVec[3];
+	boost::tie(outVec[0],outVec[1],outVec[2])=f.getOuterVectors();
+	Real ll[3]; // whether the projected center is on the outer or inner side of each side's line
+	for(int i:{0,1,2}) ll[i]=outVec[i].dot(fC-f.nodes[i]->pos);
+	short w=(ll[0]>0?1:0)+(ll[1]>0?2:0)+(ll[2]>0?4:0); // bitmask whether the closest point is outside (1,2,4 for respective edges)
+	Vector3r contPt;
+	switch(w){
+		case 0: contPt=fC; break; // ---: inside triangle
+		case 1: contPt=CompUtils::closestSegmentPt(fC,f.nodes[0]->pos,f.nodes[1]->pos); break; // +-- (n1)
+		case 2: contPt=CompUtils::closestSegmentPt(fC,f.nodes[1]->pos,f.nodes[2]->pos); break; // -+- (n2)
+		case 4: contPt=CompUtils::closestSegmentPt(fC,f.nodes[2]->pos,f.nodes[0]->pos); break; // --+ (n3)
+		case 3: contPt=f.nodes[1]->pos; break; // ++- (v1)
+		case 5: contPt=f.nodes[0]->pos; break; // +-+ (v0)
+		case 6: contPt=f.nodes[2]->pos; break; // -++ (v2)
+		case 7: throw logic_error("Cg2_Facet_Sphere_L3Geom: Impossible sphere-facet intersection (all points are outside the edges). (please report bug)"); // +++ (impossible)
+		default: throw logic_error("Ig2_Facet_Sphere_L3Geom: Nonsense intersection value. (please report bug)");
+	}
+	Vector3r normal=sC-contPt; // normal is now the contact normal (not yet normalized)
+	if(!C->isReal() && normal.squaredNorm()>pow(s.radius,2) && !force) { return false; }
+	Real dist=normal.norm(); normal/=dist; // normal is normalized now
+	Real uN=dist-s.radius;
+	throw std::logic_error("Cg2_Facet_Sphere_L6Geom::go: Not yet implemented.");
+	// TODO: not yet tested!!
+	Vector3r linVel,angVel;
+	boost::tie(linVel,angVel)=f.interpolatePtLinAngVel(contPt);
+	const DemData& dyn2(s.nodes[0]->getData<DemData>()); // sphere
+	// check if this will work when contact point == pseudo-position of the facet
+	handleSpheresLikeContact(C,contPt,linVel,angVel,sC,dyn2.vel,dyn2.angVel,normal,contPt,uN,0,s.radius);
+	return true;
 };
 
 bool Cg2_Wall_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
@@ -130,7 +167,12 @@ void Cg2_Sphere_Sphere_L6Geom::handleSpheresLikeContact(const shared_ptr<Contact
 			g.trsf.row(0)=locX; g.trsf.row(1)=locY; g.trsf.row(2)=locZ;
 		#endif
 		g.uN=uN;
-		g.lens=Vector2r(r1,r2);
+		// FIXME FIXME FIXME: this needs to be changed
+		// for now, assign lengths of half of the distance between spheres
+		// this works good for distance, but breaks radius, which is used for stiffness computation and is hacked around in Cp2_FrictMat_FrictPhys
+		// perhaps separating those 2 would help, or computing A/l1, A/l2 for stiffness in Cg2 functors already would be a good idea??
+		g.lens=Vector2r(abs(r1)+uN/2,abs(r2)+uN/2); // 
+		g.contA=Mathr::PI*pow((r1>0&&r2>0)?min(r1,r2):(r1>0?r1:r2),2);
 		g.node->pos=contPt;
 		g.node->ori=Quaternionr(g.trsf);
 		//cerr<<"##"<<C->pA->id<<"+"<<C->pB->id<<": init trsf=\n"<<g.trsf<<endl<<"locX="<<locX<<", locY="<<locY<<", locZ="<<locZ<<"; normal="<<normal<<endl;
@@ -167,15 +209,15 @@ void Cg2_Sphere_Sphere_L6Geom::handleSpheresLikeContact(const shared_ptr<Contact
 	#endif
 	/* middle transformation first */
 	Matrix3r midTrsf;
-	if(approxMask&APPROX_NO_MID_TRSF) midTrsf=prevTrsf;
-	else{
-		midTrsf.row(0)=midNormal;
-		for(int i:{1,2}) midTrsf.row(i)=prevTrsf.row(i)-prevTrsf.row(i).cross(normRotVec+normTwistVec)/2.;
-	}
+	if(approxMask&APPROX_NO_MID_TRSF){ midTrsf.row(0)=prevNormal; midTrsf.row(1)=prevTrsf.row(1); }
+	else{ midTrsf.row(0)=midNormal; midTrsf.row(1)=prevTrsf.row(1)-prevTrsf.row(1).cross(normRotVec+normTwistVec)/2.; }
+	midTrsf.row(2)=midTrsf.row(0).cross(midTrsf.row(1));
+
 	/* current transformation now */
 	Matrix3r currTrsf;
 	currTrsf.row(0)=currNormal;
-	for(int i:{1,2}) currTrsf.row(i)=prevTrsf.row(i)-midTrsf .row(i).cross(normRotVec+normTwistVec);
+	currTrsf.row(1)=prevTrsf.row(1)-midTrsf.row(1).cross(normRotVec+normTwistVec);
+	currTrsf.row(2)=currTrsf.row(0).cross(currTrsf.row(1));
 
 	#ifdef L6_TRSF_QUATERNION
 		Quaternionr currTrsfQ(currTrsf);
@@ -186,8 +228,7 @@ void Cg2_Sphere_Sphere_L6Geom::handleSpheresLikeContact(const shared_ptr<Contact
 			currTrsf.row(0).normalize();
 			currTrsf.row(1)-=currTrsf.row(0)*currTrsf.row(1).dot(currTrsf.row(0)); // take away y projected on x, to stabilize numerically
 			currTrsf.row(1).normalize();
-			currTrsf.row(2)=currTrsf.row(0).cross(currTrsf.row(1));
-			currTrsf.row(2).normalize();
+			currTrsf.row(2)=currTrsf.row(0).cross(currTrsf.row(1)); // normalized automatically
 			#ifdef YADE_DEBUG
 				if(abs(currTrsf.determinant()-1)>.05){
 					LOG_ERROR("##"<<C->pA->id<<"+"<<C->pB->id<<", |trsf|="<<currTrsf.determinant());

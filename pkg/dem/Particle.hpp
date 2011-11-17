@@ -67,7 +67,6 @@ struct Particle: public Serializable{
 REGISTER_SERIALIZABLE(Particle);
 
 
-// FIXME: rename to DemState?! applies to any rigid-body motion, though...
 class DemData: public NodeData{
 	boost::mutex lock; // used by applyForceTorque
 public:
@@ -176,6 +175,10 @@ struct Contact: public Serializable{
 	Branch takes periodicity (cellDist) in account.
 	See In2_Sphere_Elastmat::go for its use.  */
 	boost::tuple<Vector3r,Vector3r,Vector3r> getForceTorqueBranch(const shared_ptr<Particle>&, int nodeI, Scene* scene);
+	// return position vector between pA and pB, taking in account PBC's; both must be uninodal
+	Vector3r dPos(Scene* s);
+	Vector3r dPos_py(){ return dPos(Omega::instance().getScene().get()); }
+	Real dist_py(){ return dPos_py().norm(); }
 	Particle::id_t pyId1();
 	Particle::id_t pyId2();
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Contact,Serializable,"Contact in DEM",
@@ -193,6 +196,8 @@ struct Contact: public Serializable{
 		((size_t,linIx,0,(Attr::readonly|Attr::noGui),"Position in the linear view (ContactContainer)"))
 		, /*ctor*/
 		, /*py*/ .add_property("id1",&Contact::pyId1).add_property("id2",&Contact::pyId2).add_property("real",&Contact::isReal)
+		.def("dPos",&Contact::dPos_py,"Return position difference vector pB-pA, taking `Contact.cellDist` in account properly. Both particles must be uninodal, exception is raised otherwise.")
+		.def("dist",&Contact::dist_py,"Shorthand for dPos.norm().")
 	);
 };
 REGISTER_SERIALIZABLE(Contact);

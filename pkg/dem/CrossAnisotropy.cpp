@@ -8,7 +8,7 @@ YADE_PLUGIN(dem,(Cp2_FrictMat_FrictPhys_CrossAnisotropic));
 void Cp2_FrictMat_FrictPhys_CrossAnisotropic::postLoad(Cp2_FrictMat_FrictPhys_CrossAnisotropic&){
 	Real a=alpha*(deg?Mathr::PI/180.:1.), b=beta*(deg?Mathr::PI/180.:1.);
 	Vector3r anisoNormal=Vector3r(cos(a)*sin(b),-sin(a)*sin(b),cos(b));
-	rot.setFromTwoVectors(Vector3r::UnitZ(),anisoNormal);
+	rot.setFromTwoVectors(Vector3r::UnitX(),anisoNormal);
 	recomputeIter=scene->step+1; // recompute everything at the next step
 	alpha_range=Vector2r(0.,deg?180.:Mathr::PI);
 	beta_range=Vector2r(0.,deg?90.:.5*Mathr::PI);
@@ -18,17 +18,29 @@ void Cp2_FrictMat_FrictPhys_CrossAnisotropic::postLoad(Cp2_FrictMat_FrictPhys_Cr
 	nu1=E1/(2*G1)-1;
 }
 
-void Cp2_FrictMat_FrictPhys_CrossAnisotropic::go(const shared_ptr<Material>& b1, const shared_ptr<Material>& b2, const shared_ptr<Contact>& I){
-	if(I->phys && recomputeIter!=scene->step) return;
-	I->phys=shared_ptr<CPhys>(new FrictPhys); // this deletes the old CPhys, if it was there
-	FrictPhys& ph=I->phys->cast<FrictPhys>();
-	L6Geom& g=I->geom->cast<L6Geom>();
+void Cp2_FrictMat_FrictPhys_CrossAnisotropic::go(const shared_ptr<Material>& b1, const shared_ptr<Material>& b2, const shared_ptr<Contact>& C){
+	if(C->phys && recomputeIter!=scene->step) return;
+	// if(C->phys) cerr<<"Cp2_..._CrossAnisotropic: Recreating ##"<<C->pA->id<<"+"<<C->pB->id<<endl;
+	C->phys=shared_ptr<CPhys>(new FrictPhys); // this deletes the old CPhys, if it was there
+	FrictPhys& ph=C->phys->cast<FrictPhys>();
+	L6Geom& g=C->geom->cast<L6Geom>();
 
-	Real A=Mathr::PI*pow(g.getMinRefLen(),2); // contact "area"
-	Real l=g.lens[0]+g.lens[1]; // contact length
+	#if 0
+		// this is fucked up, since we rely on data passed from the Cg2 functors
+		Real A=Mathr::PI*pow(g.getMinRefLen(),2); // contact "area"
+		Real l=g.lens[0]+g.lens[1]; // contact length
+	#else
+		if(!dynamic_cast<Sphere*>(C->pA->shape.get()) || !dynamic_cast<Sphere*>(C->pB->shape.get())){
+			LOG_FATAL("Cp2_FrictMat_FrictPhys_CrossAnisotropic: can be only used on spherical particles!");
+			throw std::runtime_error("Cp2_FrictMat_FrictPhys_CrossAnisotropic: can be only used on spherical particles!");
+		}
+		Real r1=C->pA->shape->cast<Sphere>().radius, r2=C->pB->shape->cast<Sphere>().radius;
+		Real A=Mathr::PI*pow(min(r1,r2),2);
+		Real l=C->dPos(scene).norm(); // handles periodicity gracefully
+	#endif
 
 	// angle between pole (i.e. anisotropy normal) and contact normal
-	Real sinTheta=/*aniso z-axis in global coords*/((rot.conjugate()*Vector3r::UnitZ()).cross(/*normal in global coords*/g.node->ori.conjugate()*Vector3r::UnitX())).norm();
+	Real sinTheta=/*aniso z-axis in global coords*/((rot.conjugate()*Vector3r::UnitX()).cross(/*normal in global coords*/g.node->ori.conjugate()*Vector3r::UnitX())).norm();
 	// cerr<<"x-aniso normal "<<Vector3r(rot.conjugate()*Vector3r::UnitZ())<<", contact axis "<<Vector3r(g.node->ori.conjugate()*Vector3r::UnitX())<<", angle "<<asin(sinTheta)*180/Mathr::PI<<" (sin="<<sinTheta<<")"<<endl;
 	//Real theta=asin(theta);
 	Real weight=pow(sinTheta,2);

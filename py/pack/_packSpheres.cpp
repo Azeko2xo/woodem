@@ -35,7 +35,7 @@ BOOST_PYTHON_MODULE(_packSpheres){
 		.def("relDensity",&SpherePack::relDensity,"Relative packing density, measured as sum of spheres' volumes / aabb volume.\n(Sphere overlaps are ignored.)")
 		.def("translate",&SpherePack::translate,"Translate all spheres by given vector.")
 		.def("rotate",&SpherePack::rotate,(py::arg("axis"),py::arg("angle")),"Rotate all spheres around packing center (in terms of aabb()), given axis and angle of the rotation.")
-		.def("scale",&SpherePack::scale,"Scale the packing around its center (in terms of aabb()) by given factor (may be negative).")
+		.def("scale",&SpherePack::scale,"Scale the packing around its center (in terms of aabb()) by given factor (may be negative). If periodic, scale around origin.")
 		.def("hasClumps",&SpherePack::hasClumps,"Whether this object contains clumps.")
 		.def("getClumps",&SpherePack::getClumps,"Return lists of sphere ids sorted by clumps they belong to. The return value is (standalones,[clump1,clump2,…]), where each item is list of id's of spheres.")
 		.def("__len__",&SpherePack::len,"Get number of spheres in the packing")

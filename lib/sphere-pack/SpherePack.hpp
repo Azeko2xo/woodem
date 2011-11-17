@@ -121,7 +121,7 @@ public:
 		if(cellSize!=Vector3r::Zero()){ LOG_WARN("Periodicity reset when rotating periodic packing (non-zero cellSize="<<cellSize<<")"); cellSize=Vector3r::Zero(); }
 		FOREACH(Sph& s, pack) s.c=rot*s.c;
 	}
-	void scale(Real scale){ Vector3r mid=midPt(); cellSize*=scale; FOREACH(Sph& s, pack) {s.c=scale*(s.c-mid)+mid; s.r*=abs(scale); } }
+	void scale(Real scale);
 	#if 0
 		void shrinkMaxRelOverlap(Real maxRelOverlap);
 		Real maxRelOverlap();

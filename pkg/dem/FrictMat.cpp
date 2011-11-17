@@ -16,19 +16,19 @@ void Cp2_FrictMat_FrictPhys::go(const shared_ptr<Material>& m1, const shared_ptr
 		const Vector2r& len=C->geom->cast<L6Geom>().lens;
 		Real l0=len[0],l1=len[1];
 	#else
-		// slower variant, to be compiled if G3Geom or similar is used
-		Real l0,l1;
+		Real l0,l1,A;
 		L6Geom* l6g=dynamic_cast<L6Geom*>(C->geom.get());
-		if(l6g){ l0=l6g->lens[0]; l1=l6g->lens[1]; }
+		if(l6g){ l0=std::abs(l6g->lens[0]); l1=std::abs(l6g->lens[1]); A=l6g->contA; }
 		else{
-			assert(dynamic_pointer_cast<Sphere>(C->pA->shape));
 			assert(dynamic_pointer_cast<Sphere>(C->pB->shape));
-			l1=C->pB->shape->cast<Sphere>().radius;
+			l1=std::abs(C->pB->shape->cast<Sphere>().radius);
 			if(!dynamic_pointer_cast<Sphere>(C->pA->shape)) l0=l1; // wall-sphere contact, for instance
-			else l0=C->pA->shape->cast<Sphere>().radius;
+			else l0=std::abs(C->pA->shape->cast<Sphere>().radius);
+			A=Mathr::PI*pow(min(l0,l1),2);
 		}
 	#endif
-	ph.kn=1/(1/(mat1.young*2*std::abs(l0))+1/(mat2.young*2*l1));
+	//ph.kn=1/(1/(mat1.young*2*std::abs(l0))+1/(mat2.young*2*l1));
+	ph.kn=1/(1/(mat1.young*A/l0)+1/(mat2.young*A/l1));
 	ph.kt=ktDivKn*ph.kn;
 	ph.tanPhi=(!tanPhi)?std::min(mat1.tanPhi,mat2.tanPhi):(*tanPhi)(mat1.id,mat2.id,mat1.tanPhi,mat2.tanPhi);
 };

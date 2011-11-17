@@ -3,6 +3,7 @@
 #include<yade/pkg/dem/Particle.hpp>
 #include<yade/pkg/dem/ContactLoop.hpp>
 #include<yade/pkg/dem/Sphere.hpp>
+#include<yade/pkg/dem/Facet.hpp>
 #include<yade/pkg/dem/Truss.hpp>
 #include<yade/pkg/dem/Wall.hpp>
 
@@ -16,7 +17,8 @@ struct L6Geom: public CGeom{
 		((Vector3r,vel,Vector3r::Zero(),,"Relative displacement rate in local coordinates, defined by :yref:`CGeom.node`"))
 		((Vector3r,angVel,Vector3r::Zero(),,"Relative rotation rate in local coordinates"))
 		((Real,uN,NaN,,"Normal displacement, distace of separation of particles (mathematically equal to integral of vel[0], but given here for numerically more stable results, as this component can be usually computed directly)."))
-		((Vector2r,lens,Vector2r::Zero(),,"Hint for Gp2 functor on how to distribute material stiffnesses according to lengths on both sides of the contact."))
+		((Vector2r,lens,Vector2r::Zero(),,"Hint for Gp2 functor on how to distribute material stiffnesses according to lengths on both sides of the contact; their sum should be equal to the initial contact length."))
+		((Real,contA,NaN,,"(Fictious) contact area, used by Gp2 functor to compute stiffness."))
 		((Matrix3r,trsf,Matrix3r::Identity(),,"Transformation (rotation) from global to local coordinates; only used internally, and is synchronized with :yref:`Node.ori` automatically. If the algorithm works with pure quaternions at some point (it is not stable now), can be removed safely."))
 		, /*ctor*/ createIndex();
 	);
@@ -50,6 +52,16 @@ struct Cg2_Sphere_Sphere_L6Geom: public CGeomFunctor{
 	DECLARE_LOGGER;
 };
 REGISTER_SERIALIZABLE(Cg2_Sphere_Sphere_L6Geom);
+
+struct Cg2_Facet_Sphere_L6Geom: public Cg2_Sphere_Sphere_L6Geom{
+	YADE_CLASS_BASE_DOC(Cg2_Facet_Sphere_L6Geom,Cg2_Sphere_Sphere_L6Geom,"Incrementally compute :yref:`L6Geom` for contact between :yref:`Facet` and :yref:`Sphere`. Uses attributes of :yref:`Cg2_Sphere_Sphere_L6Geom`.");
+	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
+	virtual bool goReverse(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){ throw std::logic_error("ContactLoop should swap interaction arguments, should be Facet+Sphere, but is "+s1->getClassName()+"+"+s2->getClassName()); }
+	FUNCTOR2D(Facet,Sphere);
+	DEFINE_FUNCTOR_ORDER_2D(Facet,Sphere);
+	DECLARE_LOGGER;
+};
+REGISTER_SERIALIZABLE(Cg2_Facet_Sphere_L6Geom);
 
 struct Cg2_Wall_Sphere_L6Geom: public Cg2_Sphere_Sphere_L6Geom{
 	YADE_CLASS_BASE_DOC(Cg2_Wall_Sphere_L6Geom,Cg2_Sphere_Sphere_L6Geom,"Incrementally compute :yref:`L6Geom` for contact between :yref:`Wall` and :yref:`Sphere`. Uses attributes of :yref:`Cg2_Sphere_Sphere_L6Geom`.");

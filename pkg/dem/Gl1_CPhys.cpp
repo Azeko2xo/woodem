@@ -18,6 +18,7 @@ void Gl1_CPhys::go(const shared_ptr<CPhys>& cp, const shared_ptr<Contact>& C, co
 	if(shearColor && !shearRange) shearColor=false;
 	// shared_ptr<CGeom> cg(C->geom); if(!cg) return; // changed meanwhile?
 	Real fn=cp->force[0];
+	if(isnan(fn)) return;
 	if((signFilter>0 && fn<0) || (signFilter<0 && fn>0)) return;
 	range->norm(fn); // adjust range, return value discarded
 	Real r=relMaxRad*viewInfo.sceneRadius*(abs(fn)/(max(abs(range->mnmx[0]),abs(range->mnmx[1]))));

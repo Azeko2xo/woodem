@@ -211,6 +211,9 @@ VECTOR3_TEMPLATE(Scalar) leviCivita(const MATRIX3_TEMPLATE(Scalar)& m){
 __attribute__((unused))
 const Real NaN(std::numeric_limits<Real>::signaling_NaN());
 
+__attribute__((unused))
+const Real Inf(std::numeric_limits<Real>::infinity());
+
 // void quaternionToEulerAngles (const Quaternionr& q, Vector3r& eulerAngles,Real threshold=1e-6f);
 template<typename Scalar> void quaterniontoGLMatrix(const Quaternion<Scalar>& q, Scalar m[16]){
 	Scalar w2=2.*q.w(), x2=2.*q.x(), y2=2.*q.y(), z2=2.*q.z();

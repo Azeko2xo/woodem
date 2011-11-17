@@ -85,7 +85,7 @@ py::tuple stressStiffnessWork(Real volume=0, bool skipMultinodal=false, const Ve
 		const Real d0=(C->pB->shape->nodes[0]->pos-C->pA->shape->nodes[0]->pos+(scene->isPeriodic?scene->cell->intrShiftPos(C->cellDist):Vector3r::Zero())).norm();
 		Vector3r n=C->geom->node->ori.conjugate()*Vector3r::UnitX(); // normal in global coords
 		#if 1
-			// g3geom doesn't set local x axis propertly
+			// g3geom doesn't set local x axis properly
 			G3Geom* g3g=dynamic_cast<G3Geom*>(C->geom.get());
 			if(g3g) n=g3g->normal;
 		#endif
@@ -113,8 +113,10 @@ py::tuple stressStiffnessWork(Real volume=0, bool skipMultinodal=false, const Ve
 		}
 	}
 	for(int p=0;p<6;p++)for(int q=p+1;q<6;q++) K(q,p)=K(p,q); // symmetrize
-	if(scene->isPeriodic){ volume=scene->cell->getVolume(); }
-	else if(volume<=0) yade::ValueError("stressStiffness: positive volume value must be given for aperiodic simulations.");
+	if(volume<=0){
+		if(scene->isPeriodic) volume=scene->cell->getVolume();
+		else yade::ValueError("Positive volume value must be given for aperiodic simulations.");
+	}
 	stress/=volume; K/=volume;
 	// prune numerical noise from the stiffness matrix
 	Real maxElem=K.maxCoeff();
@@ -129,6 +131,32 @@ py::tuple stressStiffnessWork(Real volume=0, bool skipMultinodal=false, const Ve
 	return py::make_tuple(tensor_toVoigt(stress),K,work);
 }
 
+Real muStiffnessScaling(Real piHat=Mathr::PI/2, bool skipFloaters=false, Real V=-1){
+	Scene* scene=Omega::instance().getScene().get(); const auto& dem=getDemField(scene);
+	if(V<=0){
+		if(scene->isPeriodic) V=scene->cell->getVolume();
+		else yade::RuntimeError("Positive value of volume (V) must be givne for aperiodic simulations.");
+	}
+	int N=0;
+	Real rr2=0, r2_rr=0; // rPrime^2, r^2/rPrime
+	FOREACH(const shared_ptr<Contact>& c, dem->contacts){
+		if(!(dynamic_pointer_cast<Sphere>(c->pA->shape) && dynamic_pointer_cast<Sphere>(c->pB->shape))) continue;
+		if(skipFloaters && (
+			count_if(c->pA->contacts.begin(),c->pA->contacts.end(),[](const Particle::MapParticleContact::value_type& v){return v.second->isReal();})<=1 || /* smaller than one would be a grave bug*/
+			count_if(c->pB->contacts.begin(),c->pB->contacts.end(),[](const Particle::MapParticleContact::value_type& v){return v.second->isReal();})<=1
+		)) continue;
+		Real rr=.5*(c->pA->shape->nodes[0]->pos-c->pB->shape->nodes[0]->pos-scene->cell->intrShiftPos(c->cellDist)).norm();
+		Real r=min(c->pA->shape->cast<Sphere>().radius,c->pB->shape->cast<Sphere>().radius);
+		rr2+=rr*rr;
+		r2_rr+=r*r/rr;
+		N++;
+	}
+	rr2/=N; r2_rr/=N; // averages
+	//cerr<<"r*r="<<rr2<<", r*r/r'="<<r2_rr<<endl;
+	// (6/5.)
+	return (2/3.)*(N*piHat/V)*rr2*r2_rr;
+}
+
 
 BOOST_PYTHON_MODULE(_utils2){
 	// http://numpy.scipy.org/numpydoc/numpy-13.html mentions this must be done in module init, otherwise we will crash
@@ -139,6 +167,7 @@ BOOST_PYTHON_MODULE(_utils2){
 	py::def("pWaveDt",pWaveDt,"Get timestep accoring to the velocity of P-Wave propagation; computed from sphere radii, rigidities and masses.");
 	py::def("createContacts",createContacts,(py::arg("ids1"),py::arg("id2s"),py::arg("geomFunctors")=vector<shared_ptr<CGeomFunctor> >(),py::arg("physFunctors")=vector<shared_ptr<CPhysFunctor> >(),py::arg("force")=true),"Create contacts between given DEM particles.\n\nCurrent engines are searched for :yref:`ContactLoop`, unless *geomFunctors* and *physFunctors* are given. *force* will make :yref:`CGeomFunctors` acknowledge the contact even if particles don't touch geometrically.\n\n.. warning::\n\tThis function will very likely behave incorrectly for periodic simulations (though it could be extended it to handle it farily easily).");
 	py::def("stressStiffnessWork",stressStiffnessWork,(py::arg("volume")=0,py::arg("skipMultinodal")=true,py::arg("prevStress")=(Vector6r()<<NaN,NaN,NaN,NaN,NaN,NaN).finished()),"Compute stress and stiffness tensors, and work increment of current velocity gradient (*nan* for aperiodic simulations); returns tuple (stress, stiffness, work), where stress and stiffness are in Voigt notation. *skipMultinodal* skips all contacts involving particles with multiple nodes, where stress & stiffness values can be determined only by In2 functors.");
+	py::def("muStiffnessScaling",muStiffnessScaling,(py::arg("piHat")=Mathr::PI/2,py::arg("skipFloaters")=false,py::arg("V")=-1),"Compute stiffness scaling parameter relating continuum-like stiffness with packing stiffness; see 'Particle assembly with cross-anisotropic stiffness tensor' for details. With *skipFloaters*, ignore contacts where any of the two contacting particlds has only one *real* contact (thus not contributing to the assembly stability).");
 }
 
 

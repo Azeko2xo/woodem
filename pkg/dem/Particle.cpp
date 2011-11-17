@@ -121,7 +121,12 @@ Real Particle::getEk_any(bool trans, bool rot) const {
 	return ret;
 }
 
-
+Vector3r Contact::dPos(Scene* scene){
+	pA->checkNodes(/*dyn*/false,/*checkUninodal*/true); pB->checkNodes(false,true);
+	Vector3r rawDx=pB->shape->nodes[0]->pos-pA->shape->nodes[0]->pos;
+	if(!scene->isPeriodic || cellDist==Vector3i::Zero()) return rawDx;
+	return rawDx+scene->cell->intrShiftPos(cellDist);
+}
 
 int DemField::collectNodes(bool clear, bool dynOnly){
 	std::set<void*> seen;

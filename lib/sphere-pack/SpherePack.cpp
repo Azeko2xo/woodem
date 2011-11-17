@@ -541,3 +541,10 @@ int SpherePack::removeShadows(){
 	}
 	return ret;
 };
+
+void SpherePack::scale(Real scale){
+	bool periodic=(cellSize!=Vector3r::Zero());
+	Vector3r mid=periodic?Vector3r::Zero():midPt();
+	cellSize*=scale;
+	FOREACH(Sph& s, pack){ s.c=scale*(s.c-mid)+mid; s.r*=abs(scale); }
+}
