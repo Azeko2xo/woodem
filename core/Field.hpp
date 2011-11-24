@@ -43,20 +43,23 @@ struct ScalarRange: public Serializable{
 	void reset();
 	Vector3r color(Real v);
 	Real maxAbs(){ if(!isOk()) abort(); throw std::runtime_error("ScalarRange::maxAbs(): uninitialized object, call with value to adjust range.");  return max(abs(mnmx[0]),abs(mnmx[1])); }
-	Real maxAbs(Real v){ if(v<mnmx[0])mnmx[0]=v; if(v>mnmx[1])mnmx[1]=v; return max(abs(mnmx[0]),abs(mnmx[1])); }
+	Real maxAbs(Real v){ adjust(v); return max(abs(mnmx[0]),abs(mnmx[1])); }
 	bool isOk(){ return(mnmx[0]<mnmx[1]); }
 	// return value on the range, given normalized value
 	Real normInv(Real norm){ return mnmx[0]+norm*(mnmx[1]-mnmx[0]); } 
 	Real norm(Real v);
+	void adjust(const Real& v);
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ScalarRange,Serializable,"Store and share range of scalar values",
 		((Vector2r,mnmx,Vector2r(std::numeric_limits<Real>::infinity(),-std::numeric_limits<Real>::infinity()),,"Packed minimum and maximum values"))
 		((bool,autoAdjust,true,,"Automatically adjust range using given values."))
+		((bool,sym,false,,"Force maximum to be negative of minimum and vice versa (only with autoadjust)"))
 		((Vector2i,dispPos,Vector2i(-1000,-1000),,"Where is this range displayed on the OpenGL canvas; initially out of range, will be reset automatically."))
 		((std::string,label,,,"Short name of this range (is not a labeled object which is automatically reflected in python now)."))
 		((int,cmap,-1,,"Colormap index to be used; -1 means to use the default colormap (see *O.lsCmap*, *O.setCmap*)"))
 		, /* ctor */
 		, /* py */
 			.def("norm",&ScalarRange::norm,"Return value of the argument normalized to 0..1 range; the value is not clamped to 0..1 however: if autoAdjust is false, it can fall outside.")
+			.def("reset",&ScalarRange::reset)
 	);
 };
 REGISTER_SERIALIZABLE(ScalarRange);
