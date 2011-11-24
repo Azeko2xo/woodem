@@ -134,7 +134,7 @@ void AnisoPorosityAnalyzer::initialize(){
 		if(!s || s->nodes.size()==0)continue;
 		pack.add(s->nodes[0]->pos,s->radius);
 	}
-	int sh=pack.addShadows();
+	__attribute__((unused)) int sh=pack.addShadows();
 	LOG_DEBUG("Added "<<sh<<" shadow spheres");
 	initStep=scene->step;
 	initNum=dem->particles.size();

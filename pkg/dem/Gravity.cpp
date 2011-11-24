@@ -3,7 +3,7 @@
 #include<yade/core/Scene.hpp>
 // #include<boost/regex.hpp>
 
-YADE_PLUGIN(dem,(Gravity) /* (CentralGravityEngine)(AxialGravityEngine)(HdapsGravityEngine)*/ );
+YADE_PLUGIN(dem,(Gravity)(AxialGravity) /* (CentralGravityEngine)(AxialGravityEngine)(HdapsGravityEngine)*/ );
 
 void Gravity::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){
 	if(py::len(args)==1){ gravity=py::extract<Vector3r>(args[0]); args=py::tuple(); }
@@ -36,6 +36,22 @@ void Gravity::run(){
 	}
 }
 
+void AxialGravity::run(){
+	axisDir.normalize();
+	FOREACH(const shared_ptr<Node>& n, field->nodes){
+		/* http://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html */
+		const Vector3r& x0=n->pos;
+		const Vector3r& x1=axisPt;
+		const Vector3r x2=axisPt+axisDir;
+		Vector3r closestAxisPoint=x1+(x2-x1) * /* t */ (-(x1-x0).dot(x2-x1))/((x2-x1).squaredNorm());
+		Vector3r toAxis=closestAxisPoint-x0; toAxis.normalize();
+		if(toAxis.squaredNorm()==0) continue;
+		DemData& dyn(n->getData<DemData>());
+		dyn.addForceTorque(accel*dyn.mass*toAxis,Vector3r::Zero());
+	}
+}
+
+
 #if 0
 void CentralGravityEngine::run(){
 	const Vector3r& centralPos=Body::byId(centralBody)->state->pos;
@@ -48,22 +64,6 @@ void CentralGravityEngine::run(){
 		if(reciprocal) scene->forces.addForce(centralBody,-F*toCenter);
 	}
 }
-
-void AxialGravityEngine::run(){
-	FOREACH(const shared_ptr<Body>&b, *scene->bodies){
-		if(!b || b->isClump()) continue;
-		if(mask!=0 && (b->groupMask & mask)==0) continue;
-		/* http://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html */
-		const Vector3r& x0=b->state->pos;
-		const Vector3r& x1=axisPoint;
-		const Vector3r x2=axisPoint+axisDirection;
-		Vector3r closestAxisPoint=x1+(x2-x1) * /* t */ (-(x1-x0).dot(x2-x1))/((x2-x1).squaredNorm());
-		Vector3r toAxis=closestAxisPoint-x0; toAxis.normalize();
-		if(toAxis.squaredNorm()==0) continue;
-		scene->forces.addForce(b->getId(),acceleration*b->state->mass*toAxis);
-	}
-}
-
 
 Vector2i HdapsGravityEngine::readSysfsFile(const string& name){
 	char buf[256];

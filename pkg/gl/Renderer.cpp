@@ -219,8 +219,7 @@ void Renderer::render(const shared_ptr<Scene>& _scene, bool _withNames){
 		// if(!voro) voro=dynamic_pointer_cast<VoroField>(scene->fields[i]);
 		if(!sparc) sparc=dynamic_pointer_cast<SparcField>(scene->fields[i]);
 	}
-	// if(!dem) LOG_ERROR("No dem field to be rendered.");
-	//assert(dem);
+
 
 #if 0
 	// assign scene inside functors

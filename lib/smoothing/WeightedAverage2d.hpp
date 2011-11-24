@@ -2,14 +2,7 @@
 
 #pragma once
 
-// temporary fix:
-// clang #includes  first /usr/include/c++/4.4/fenv.h, which through some obscure #ifdefs does not eventually include any code
-// why...?
-#ifdef __clang__
-	#include</usr/include/fenv.h>
-#endif
-
-
+#if 0
 #include<iostream>
 #include<vector>
 #include<cstdlib>
@@ -21,14 +14,11 @@
 #include<boost/lexical_cast.hpp>
 #include<boost/python.hpp>
 #include<yade/extra/boost_python_len.hpp>
-#include<boost/math/distributions/normal.hpp>
-
-
-#ifndef FOREACH
-	#define FOREACH BOOST_FOREACH
 #endif
 
 #include<yade/lib/base/Math.hpp>
+#include<yade/lib/base/Types.hpp>
+#include<boost/math/distributions/normal.hpp>
 
 
 template<typename T>
@@ -175,13 +165,13 @@ struct SGDA_Scalar2d: public WeightedAverage<Scalar2d,Real> {
  * */
 class pyGaussAverage{
 	//struct Scalar2d{Vector2r pos; Real val;};
-	Vector2r tuple2vec2r(const python::tuple& t){return Vector2r(python::extract<Real>(t[0])(),python::extract<Real>(t[1])());}
-	Vector2i tuple2vec2i(const python::tuple& t){return Vector2i(python::extract<int>(t[0])(),python::extract<int>(t[1])());}
+	Vector2r tuple2vec2r(const py::tuple& t){return Vector2r(py::extract<Real>(t[0])(),py::extract<Real>(t[1])());}
+	Vector2i tuple2vec2i(const py::tuple& t){return Vector2i(py::extract<int>(t[0])(),py::extract<int>(t[1])());}
 	shared_ptr<SGDA_Scalar2d> sgda;
 	struct Poly2d{vector<Vector2r> vertices; bool inclusive;};
 	vector<Poly2d> clips;
 	public:
-	pyGaussAverage(python::tuple lo, python::tuple hi, python::tuple nCells, Real stDev, Real relThreshold=3.){
+	pyGaussAverage(py::tuple lo, py::tuple hi, py::tuple nCells, Real stDev, Real relThreshold=3.){
 		shared_ptr<GridContainer<Scalar2d> > g(new GridContainer<Scalar2d>(tuple2vec2r(lo),tuple2vec2r(hi),tuple2vec2i(nCells)));
 		sgda=shared_ptr<SGDA_Scalar2d>(new SGDA_Scalar2d(g,stDev));
 		sgda->relThreshold=relThreshold;
@@ -194,36 +184,36 @@ class pyGaussAverage{
 		}
 		return false;
 	}
-	bool addPt(Real val, python::tuple pos){Scalar2d d; d.pos=tuple2vec2r(pos); if(ptIsClipped(d.pos)) return false; d.val=val; sgda->grid->add(d,d.pos); return true; } 
+	bool addPt(Real val, py::tuple pos){Scalar2d d; d.pos=tuple2vec2r(pos); if(ptIsClipped(d.pos)) return false; d.val=val; sgda->grid->add(d,d.pos); return true; } 
 	Real avg(Vector2r pt){ if(ptIsClipped(pt)) return std::numeric_limits<Real>::quiet_NaN(); return sgda->computeAverage(pt);}
 	Real avgPerUnitArea(Vector2r pt){ if(ptIsClipped(pt)) return std::numeric_limits<Real>::quiet_NaN(); return sgda->computeAvgPerUnitArea(pt); }
 	Real stDev_get(){return sgda->stDev;} void stDev_set(Real s){sgda->stDev=s;}
 	Real relThreshold_get(){return sgda->relThreshold;} void relThreshold_set(Real rt){sgda->relThreshold=rt;}
-	python::tuple aabb_get(){return python::make_tuple(sgda->grid->getLo(),sgda->grid->getHi());}
-	python::list clips_get(){
-		python::list ret;
+	py::tuple aabb_get(){return py::make_tuple(sgda->grid->getLo(),sgda->grid->getHi());}
+	py::list clips_get(){
+		py::list ret;
 		FOREACH(const Poly2d& poly, clips){
-			python::list vertices;
-			FOREACH(const Vector2r& v, poly.vertices) vertices.append(python::make_tuple(v[0],v[1]));
-			ret.append(python::make_tuple(vertices,poly.inclusive));
+			py::list vertices;
+			FOREACH(const Vector2r& v, poly.vertices) vertices.append(py::make_tuple(v[0],v[1]));
+			ret.append(py::make_tuple(vertices,poly.inclusive));
 		}
 		return ret;
 	}
-	void clips_set(python::list l){
+	void clips_set(py::list l){
 		/* [ ( [(x1,y1),(x2,y2),…], true), … ] */
 		clips.clear();
-		for(int i=0; i<python::len(l); i++){
-			python::tuple polyDesc=python::extract<python::tuple>(l[i])();
-			python::list coords=python::extract<python::list>(polyDesc[0]);
-			Poly2d poly; poly.inclusive=python::extract<bool>(polyDesc[1]);
-			for(int j=0; j<python::len(coords); j++){
-				poly.vertices.push_back(tuple2vec2r(python::extract<python::tuple>(coords[j])));
+		for(int i=0; i<py::len(l); i++){
+			py::tuple polyDesc=py::extract<py::tuple>(l[i])();
+			py::list coords=py::extract<py::list>(polyDesc[0]);
+			Poly2d poly; poly.inclusive=py::extract<bool>(polyDesc[1]);
+			for(int j=0; j<py::len(coords); j++){
+				poly.vertices.push_back(tuple2vec2r(py::extract<py::tuple>(coords[j])));
 			}
 			clips.push_back(poly);
 		}
 	}
-	python::tuple data_get(){
-		python::list x,y,val;
+	py::tuple data_get(){
+		py::list x,y,val;
 		const Vector2i& dim=sgda->grid->getSize();
 		for(int i=0; i<dim[0]; i++){
 			for(int j=0; j<dim[1]; j++){
@@ -232,7 +222,7 @@ class pyGaussAverage{
 				}
 			}
 		}
-		return python::make_tuple(x,y,val);
+		return py::make_tuple(x,y,val);
 	}
 	Vector2i nCells_get(){ return sgda->grid->getSize(); }
 	int cellNum(const Vector2i& cell){ return sgda->grid->grid[cell[0]][cell[1]].size(); }

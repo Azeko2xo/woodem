@@ -108,7 +108,7 @@ void ContactContainer::removeNonReal(){
 
 int ContactContainer::countReal() const{
 	int ret=0;
-	FOREACH(const shared_ptr<Contact>& c, *this) ret++;
+	FOREACH(__attribute__((unused)) const shared_ptr<Contact>& c, *this) ret++;
 	return ret;
 };
 

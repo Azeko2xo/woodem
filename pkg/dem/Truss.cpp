@@ -38,7 +38,8 @@ void In2_Truss_ElastMat::go(const shared_ptr<Shape>& shape, const shared_ptr<Mat
 		// compute reactions (simply supported beam) on both ends
 		Vector3r AC(C->geom->node->pos-t.nodes[0]->pos);
 		// torque on A from contact
-		Vector3r Ta=(Tc+Fc.cross(AC));
+		//Vector3r Ta=(Tc+Fc.cross(AC));
+
 		// force FC and torque TC (at contact point C) are to be replaced by
 		// Fac abd Fbc; from torque around A, we get the perpendicular contribution as
 		// Tc-AC×FcPerp+AB×Fbc=0 and Fbc.AB=0, from which

@@ -13,9 +13,10 @@ struct Law2_L6Geom_FrictPhys_IdealElPl: public LawFunctor{
 		((int,plastDissipIx,-1,(Attr::noSave|Attr::hidden),"Index of plastically dissipated energy"))
 		((int,elastPotIx,-1,(Attr::hidden|Attr::noSave),"Index for elastic potential energy"))
 		((int,brokenIx,-1,(Attr::hidden|Attr::noSave),"Index for energy lost in broken contacts with non-zero force"))
-		#ifdef YADE_DEBUG
+		// unused in the non-debugging version, but keep to not break archive compatibility
+		//#ifdef YADE_DEBUG
 			((Vector2i,watch,Vector2i(-1,-1),,"Print debug information for this coule of IDs"))
-		#endif
+		//#endif
 	);
 };
 REGISTER_SERIALIZABLE(Law2_L6Geom_FrictPhys_IdealElPl);

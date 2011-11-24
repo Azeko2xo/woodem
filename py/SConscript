@@ -4,7 +4,7 @@ linkPlugins=env['linkPlugins']
 import os.path 
 
 env.Install('$LIBDIR/py/yade',[
-	#env.SharedLibrary('WeightedAverage2d',['WeightedAverage2d.cpp'],SHLIBPREFIX=''),
+	env.SharedLibrary('WeightedAverage2d',['WeightedAverage2d.cpp'],SHLIBPREFIX=''),
 	#env.SharedLibrary('_eudoxos',['_eudoxos.cpp'],SHLIBPREFIX='',LIBS=env['LIBS']),
 	env.SharedLibrary('log',['log.cpp'],SHLIBPREFIX=''),
 	#env.SharedLibrary('_utils',['_utils.cpp'],SHLIBPREFIX='',LIBS=env['LIBS']+[

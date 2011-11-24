@@ -2,10 +2,10 @@
 # 2009 © Václav Šmilauer <eudoxos@arcig.cz>
 """
 Module for 2d postprocessing, containing classes to project points from 3d to 2d in various ways,
-providing basic but flexible framework for extracting arbitrary scalar values from bodies/interactions
+providing basic but flexible framework for extracting arbitrary scalar values from particles/contacts
 and plotting the results. There are 2 basic components: flatteners and extractors.
 
-The algorithms operate on bodies (default) or interactions, depending on the ``intr`` parameter
+The algorithms operate on particles (default) or contacts, depending on the ``con`` parameter
 of post2d.data.
 
 Flatteners
@@ -61,6 +61,8 @@ This example can be found in examples/concrete/uniax-post.py ::
 from yade.wrapper import *
 from miniEigen import *
 
+from yade.dem import Particle,Sphere
+
 class Flatten:
 	"""Abstract class for converting 3d point into 2d. Used by post2d.data2d."""
 	def __init__(self,dispScale=1.):
@@ -72,9 +74,9 @@ class Flatten:
 		"Given position and vector value, project the vector value to the flat plane and return its 2 in-plane components."
 	def normal(self,pos,vec):
 		"Given position and vector value, return lenght of the vector normal to the flat plane."
-	def scaledPos(self,state):
+	def scaledPos(self,p):
 		if self.dispScale==1: return state.pos
-		else: return state.refPos+self.dispScale*(state.pos-state.refPos)
+		else: return p.refPos+self.dispScale*(p.pos-p.refPos)
 
 class HelixFlatten(Flatten):
 	"""Class converting 3d point to 2d based on projection from helix.
@@ -82,7 +84,7 @@ class HelixFlatten(Flatten):
 	def __init__(self,useRef,thetaRange,dH_dTheta,axis=2,periodStart=0,dispScale=1.):
 		"""
 		:param bool useRef:       use reference positions rather than actual positions
-		:param (θmin,θmax) thetaRange: bodies outside this range will be discarded
+		:param (θmin,θmax) thetaRange: particles outside this range will be discarded
 		:param float dH_dTheta:   inclination of the spiral (per radian)
 		:param {0,1,2} axis:      axis of rotation of the spiral
 		:param float periodStart: height of the spiral for zero angle
@@ -91,7 +93,7 @@ class HelixFlatten(Flatten):
 		self.useRef,self.thetaRange,self.dH_dTheta,self.axis,self.periodStart=useRef,thetaRange,dH_dTheta,axis,periodStart
 		self.ax1,self.ax2=(axis+1)%3,(axis+2)%3
 	def _getPos(self,b):
-		return b.state.refPos if self.useRef else self.scaledPos(b.state)
+		return b.refPos if self.useRef else self.scaledPos(b)
 	def __call__(self,b):
 		import yade.utils
 		xy,theta=yade.utils.spiralProject(_getPos(b),self.dH_dTheta,self.axis,self.periodStart)
@@ -121,7 +123,7 @@ class CylinderFlatten(Flatten):
 		self.useRef,self.axis=useRef,axis
 		Flatten.__init__(self,dispScale)
 	def _getPos(self,b):
-		return b.state.refPos if self.useRef else self.scaledPos(b.state)
+		return b.refPos if self.useRef else self.scaledPos(b)
 	def __call__(self,b):
 		p=_getPos(b)
 		pp=(p[(self.axis+1)%3],p[(self.axis+2)%3])
@@ -142,7 +144,7 @@ class CylinderFlatten(Flatten):
 class AxisFlatten(Flatten):
 	def __init__(self,useRef=False,axis=2,dispScale=1.):
 		"""
-		:param bool useRef: use reference positions rather than actual positions (only meaningful when operating on Bodies)
+		:param bool useRef: use reference positions rather than actual positions (only meaningful when operating on Particles)
 		:param {0,1,2}	axis: axis normal to the plane; the return value will be simply position with this component dropped.
 		"""
 		if axis not in (0,1,2): raise IndexError("axis must be one of 0,1,2 (not %d)"%axis)
@@ -150,31 +152,31 @@ class AxisFlatten(Flatten):
 		self.ax1,self.ax2=(self.axis+1)%3,(self.axis+2)%3
 		Flatten.__init__(self,dispScale)
 	def __call__(self,b):
-		p=((b.state.refPos if self.useRef else self.scaledPos(b.state)) if isinstance(b,Body) else b.geom.contactPoint)
+		p=((b.refPos if self.useRef else self.scaledPos(b)) if isinstance(b,Particle) else b.geom.node.pos)
 		return (p[self.ax1],p[self.ax2])
 	def planar(self,pos,vec):
 		return vec[self.ax1],vec[self.ax2]
 	def normal(self,pos,vec):
 		return vec[self.axis]
 
-def data(extractor,flattener,intr=False,onlyDynamic=True,stDev=None,relThreshold=3.,perArea=0,div=(50,50),margin=(0,0),radius=1):
-	"""Filter all bodies/interactions, project them to 2d and extract required scalar value;
+def data(extractor,flattener,con=False,onlyDynamic=True,stDev=None,relThreshold=3.,perArea=0,div=(50,50),margin=(0,0),radius=1):
+	"""Filter all particles/contacts, project them to 2d and extract required scalar value;
 	return either discrete array of positions and values, or smoothed data, depending on whether the stDev
 	value is specified.
 
-	The ``intr`` parameter determines whether we operate on bodies or interactions;
+	The ``con`` parameter determines whether we operate on particles or contacts;
 	the extractor provided should expect to receive body/interaction.
 
-	:param callable extractor: receives :yref:`Body` (or :yref:`Interaction`, if ``intr`` is ``True``) instance, should return scalar, a 2-tuple (vector fields) or None (to skip that body/interaction)
+	:param callable extractor: receives :yref:`Body` (or :yref:`Interaction`, if ``con`` is ``True``) instance, should return scalar, a 2-tuple (vector fields) or None (to skip that body/interaction)
 	:param callable flattener: :yref:`yade.post2d.Flatten` instance, receiving body/interaction, returns its 2d coordinates or ``None`` (to skip that body/interaction)
-	:param bool intr: operate on interactions rather than bodies
-	:param bool onlyDynamic: skip all non-dynamic bodies
+	:param bool con: operate on contacts rather than particles
+	:param bool onlyDynamic: skip all non-dynamic particles
 	:param float/None stDev: standard deviation for averaging, enables smoothing; ``None`` (default) means raw mode, where discrete points are returned
 	:param float relThreshold: threshold for the gaussian weight function relative to stDev (smooth mode only)
 	:param int perArea: if 1, compute weightedSum/weightedArea rather than weighted average (weightedSum/sumWeights); the first is useful to compute average stress; if 2, compute averages on subdivision elements, not using weight function
 	:param (int,int) div: number of cells for the gaussian grid (smooth mode only)
 	:param (float,float) margin: x,y margins around bounding box for data (smooth mode only)
-	:param float/callable radius: Fallback value for radius (for raw plotting) for non-spherical bodies or interactions; if a callable, receives body/interaction and returns radius
+	:param float/callable radius: Fallback value for radius (for raw plotting) for non-spherical particles or contacts; if a callable, receives body/interaction and returns radius
 	:return: dictionary
 	
 	Returned dictionary always containing keys 'type' (one of 'rawScalar','rawVector','smoothScalar','smoothVector', depending on value of smooth and on return value from extractor), 'x', 'y', 'bbox'.
@@ -184,11 +186,12 @@ def data(extractor,flattener,intr=False,onlyDynamic=True,stDev=None,relThreshold
 	Scalar fields contain 'val' (value from *extractor*), vector fields have 'valX' and 'valY' (2 components returned by the *extractor*).
 	"""
 	from miniEigen import Vector3
+	from yade.dem import Sphere
 	xx,yy,dd1,dd2,rr=[],[],[],[],[]
 	nDim=0
-	objects=O.interactions if intr else O.bodies
+	objects=O.dem.con if con else O.dem.par
 	for b in objects:
-		if not intr and onlyDynamic and not b.dynamic: continue
+		if not con and onlyDynamic and b.blocked=='xyzXYZ': continue
 		xy,d=flattener(b),extractor(b)
 		if xy==None or d==None: continue
 		if nDim==0: nDim=1 if isinstance(d,float) else 2
@@ -201,7 +204,7 @@ def data(extractor,flattener,intr=False,onlyDynamic=True,stDev=None,relThreshold
 		else:
 			raise RuntimeError("Extractor must return float or 2 or 3 (not %d) floats"%nDim)
 		if stDev==None: # radii are needed in the raw mode exclusively
-			if not intr and isinstance(b.shape,Sphere): r=b.shape.radius
+			if not con and isinstance(b.shape,Sphere): r=b.shape.radius
 			else: r=(radius(b) if callable(radius) else radius)
 			rr.append(r)
 		xx.append(xy[0]); yy.append(xy[1]);

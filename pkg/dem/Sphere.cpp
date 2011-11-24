@@ -71,7 +71,7 @@ int Gl1_Sphere::glStripedSphereList=-1;
 int Gl1_Sphere::glGlutSphereList=-1;
 Real  Gl1_Sphere::prevQuality=0;
 
-void Gl1_Sphere::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool wire2, const GLViewInfo&){
+void Gl1_Sphere::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool wire2, const GLViewInfo& glInfo){
 
 	const shared_ptr<Node>& n=shape->nodes[0];
 	Vector3r dPos=(n->hasData<GlData>()?n->getData<GlData>().dGlPos:Vector3r::Zero());

@@ -4,6 +4,10 @@
 #include<yade/pkg/dem/ContactLoop.hpp>
 #include<yade/lib/pyutil/except.hpp>
 
+#ifdef YADE_OPENGL
+	#include<yade/pkg/gl/Renderer.hpp>
+#endif
+
 YADE_PLUGIN(dem,(CPhys)(CGeom)(CData)(DemField)(Particle)(DemData)(Contact)(Shape)(Material)(Bound)(ContactContainer));
 
 py::dict Particle::pyContacts()const{	py::dict ret; FOREACH(MapParticleContact::value_type i,contacts) ret[i.first]=i.second; return ret;}
@@ -88,6 +92,24 @@ Vector3r& Particle::getPos() const { checkNodes(false); return shape->nodes[0]->
 void Particle::setPos(const Vector3r& p){ checkNodes(false); shape->nodes[0]->pos=p; }
 Quaternionr& Particle::getOri() const { checkNodes(false); return shape->nodes[0]->ori; };
 void Particle::setOri(const Quaternionr& p){ checkNodes(false); shape->nodes[0]->ori=p; }
+
+#ifdef YADE_OPENGL
+	Vector3r& Particle::getRefPos() {
+		checkNodes(false);
+		if(!shape->nodes[0]->hasData<GlData>()) setRefPos(getPos());
+		return shape->nodes[0]->getData<GlData>().refPos;
+	};
+	void Particle::setRefPos(const Vector3r& p){
+		checkNodes(false);
+		if(!shape->nodes[0]->hasData<GlData>()) shape->nodes[0]->setData<GlData>(make_shared<GlData>());
+		shape->nodes[0]->getData<GlData>().refPos=p;
+	}
+#else
+	Vector3r& Partial::getRefPos() const{ return Vector3r(NaN,NaN,NaN); }
+	void Particle::setRefPos(const Vector3r& p){
+		yade::RuntimeError("Particle.refPos only supported with YADE_OPENGL.");
+	}
+#endif
 
 Vector3r& Particle::getVel() const { checkNodes(); return shape->nodes[0]->getData<DemData>().vel; };
 void Particle::setVel(const Vector3r& p){ checkNodes(); shape->nodes[0]->getData<DemData>().vel=p; }

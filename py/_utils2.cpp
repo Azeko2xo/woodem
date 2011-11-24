@@ -3,6 +3,9 @@
 #include<yade/pkg/dem/Sphere.hpp>
 #include<yade/pkg/dem/ContactLoop.hpp>
 #include<yade/pkg/dem/G3Geom.hpp>
+#include<yade/pkg/dem/L6Geom.hpp>
+
+#include<yade/lib/base/CompUtils.hpp>
 
 shared_ptr<DemField> getDemField(Scene* scene){
 	shared_ptr<DemField> ret;
@@ -71,6 +74,38 @@ vector<shared_ptr<Contact> > createContacts(const vector<Particle::id_t>& ids1, 
 	return ret;
 }
 
+
+Real unbalancedForce(bool useMaxForce=false){
+	Scene* scene=Omega::instance().getScene().get(); DemField* field=getDemField(scene).get();
+	Real sumF=0,maxF=0; int nb=0;
+	FOREACH(const shared_ptr<Node>& n, field->nodes){
+		Real currF=n->getData<DemData>().force.norm();
+		maxF=max(currF,maxF); sumF+=currF; nb++;
+	}
+	Real meanF=sumF/nb;
+	sumF=0; nb=0;
+	FOREACH(const shared_ptr<Contact>& c, field->contacts){
+		sumF+=c->phys->force.norm(); nb++;
+	}
+	sumF/=nb;
+	// cerr<<endl<<"maxF="<<maxF<<", meanF="<<meanF<<", sumF="<<sumF<<endl;
+	return (useMaxForce?maxF:meanF)/(sumF);
+}
+
+
+
+
+// mapping between 6x6 matrix indices and tensor indices (Voigt notation)
+const int voigtMap[6][6][4]={
+	{{0,0,0,0},{0,0,1,1},{0,0,2,2},{0,0,1,2},{0,0,2,0},{0,0,0,1}},
+	{{1,1,0,0},{1,1,1,1},{1,1,2,2},{1,1,1,2},{1,1,2,0},{1,1,0,1}},
+	{{2,2,0,0},{2,2,1,1},{2,2,2,2},{2,2,1,2},{2,2,2,0},{2,2,0,1}},
+	{{1,2,0,0},{1,2,1,1},{1,2,2,2},{1,2,1,2},{1,2,2,0},{1,2,0,1}},
+	{{2,0,0,0},{2,0,1,1},{2,0,2,2},{2,0,1,2},{2,0,2,0},{2,0,0,1}},
+	{{0,1,0,0},{0,1,1,1},{0,1,2,2},{0,1,1,2},{0,1,2,0},{0,1,0,1}}};
+const int kron[3][3]={{1,0,0},{0,1,0},{0,0,1}}; // Kronecker delta
+
+
 py::tuple stressStiffnessWork(Real volume=0, bool skipMultinodal=false, const Vector6r& prevStress=(Vector6r()<<NaN,NaN,NaN,NaN,NaN,NaN).finished()){
 	Matrix6r K(Matrix6r::Zero());
 	Matrix3r stress(Matrix3r::Zero());
@@ -97,18 +132,9 @@ py::tuple stressStiffnessWork(Real volume=0, bool skipMultinodal=false, const Ve
 		for(int i:{0,1,2}) for(int j:{0,1,2}) stress(i,j)+=d0*(fN*n[i]*n[j]+.5*(fT[i]*n[j]+fT[j]*n[i]));
 		//cerr<<"stress="<<stress<<endl;
 		const Real& kN=phys->kn; const Real& kT=phys->kt;
-		// mapping between 6x6 matrix indices and tensor indices (Voigt notation)
 		// only upper triangle used here
-		const int map[6][6][4]={
-			{{0,0,0,0},{0,0,1,1},{0,0,2,2},{0,0,1,2},{0,0,2,0},{0,0,0,1}},
-			{{1,1,0,0},{1,1,1,1},{1,1,2,2},{1,1,1,2},{1,1,2,0},{1,1,0,1}},
-			{{2,2,0,0},{2,2,1,1},{2,2,2,2},{2,2,1,2},{2,2,2,0},{2,2,0,1}},
-			{{1,2,0,0},{1,2,1,1},{1,2,2,2},{1,2,1,2},{1,2,2,0},{1,2,0,1}},
-			{{2,0,0,0},{2,0,1,1},{2,0,2,2},{2,0,1,2},{2,0,2,0},{2,0,0,1}},
-			{{0,1,0,0},{0,1,1,1},{0,1,2,2},{0,1,1,2},{0,1,2,0},{0,1,0,1}}};
-		const int kron[3][3]={{1,0,0},{0,1,0},{0,0,1}}; // Kronecker delta
 		for(int p=0; p<6; p++) for(int q=p;q<6;q++){
-			int i=map[p][q][0], j=map[p][q][1], k=map[p][q][2], l=map[p][q][3];
+			int i=voigtMap[p][q][0], j=voigtMap[p][q][1], k=voigtMap[p][q][2], l=voigtMap[p][q][3];
 			K(p,q)+=d0*d0*(kN*n[i]*n[j]*n[k]*n[l]+kT*(.25*(n[j]*n[k]*kron[i][l]+n[j]*n[l]*kron[i][k]+n[i]*n[k]*kron[j][l]+n[i]*n[l]*kron[j][k])-n[i]*n[j]*n[k]*n[l]));
 		}
 	}
@@ -138,24 +164,56 @@ Real muStiffnessScaling(Real piHat=Mathr::PI/2, bool skipFloaters=false, Real V=
 		else yade::RuntimeError("Positive value of volume (V) must be givne for aperiodic simulations.");
 	}
 	int N=0;
-	Real rr2=0, r2_rr=0; // rPrime^2, r^2/rPrime
+	Real Rr2=0; // r'*r^2
 	FOREACH(const shared_ptr<Contact>& c, dem->contacts){
 		if(!(dynamic_pointer_cast<Sphere>(c->pA->shape) && dynamic_pointer_cast<Sphere>(c->pB->shape))) continue;
 		if(skipFloaters && (
 			count_if(c->pA->contacts.begin(),c->pA->contacts.end(),[](const Particle::MapParticleContact::value_type& v){return v.second->isReal();})<=1 || /* smaller than one would be a grave bug*/
 			count_if(c->pB->contacts.begin(),c->pB->contacts.end(),[](const Particle::MapParticleContact::value_type& v){return v.second->isReal();})<=1
 		)) continue;
-		Real rr=.5*(c->pA->shape->nodes[0]->pos-c->pB->shape->nodes[0]->pos-scene->cell->intrShiftPos(c->cellDist)).norm();
+		Real rr=.5*c->dPos(scene).norm(); // handles PBC
 		Real r=min(c->pA->shape->cast<Sphere>().radius,c->pB->shape->cast<Sphere>().radius);
-		rr2+=rr*rr;
-		r2_rr+=r*r/rr;
+		Rr2+=rr*r*r;
 		N++;
 	}
-	rr2/=N; r2_rr/=N; // averages
-	//cerr<<"r*r="<<rr2<<", r*r/r'="<<r2_rr<<endl;
-	// (6/5.)
-	return (2/3.)*(N*piHat/V)*rr2*r2_rr;
+	Rr2/=N; // averages
+	return (2/3.)*(N*piHat/V)*Rr2;
 }
+
+/* Liao1997: Stress-strain relationship for granular materials based on the hypothesis of the best fit */
+Matrix6r bestFitCompliance(){
+	Scene* scene=Omega::instance().getScene().get(); const auto& dem=getDemField(scene);
+	if(!scene->isPeriodic) yade::RuntimeError("Only implemented fro periodic simulations.");
+	Real V=scene->cell->getVolume();
+	// stuff data in here first
+	struct ContData{ Real hn,hs; Vector3r l,n,s,t; };
+	vector<ContData> CC;
+	FOREACH(const shared_ptr<Contact>& c, dem->contacts){
+		if(!(dynamic_pointer_cast<Sphere>(c->pA->shape) && dynamic_pointer_cast<Sphere>(c->pB->shape))) continue;
+		const Matrix3r& trsf=c->geom->cast<L6Geom>().trsf;
+		ContData cd={1/c->phys->cast<FrictPhys>().kn,1/c->phys->cast<FrictPhys>().kt,c->dPos(scene),trsf.row(0),trsf.row(1),trsf.row(2)};
+		CC.push_back(cd);
+	}
+	Matrix3r AA(Matrix3r::Zero());
+	FOREACH(const ContData& c, CC){ for(int j:{0,1,2}) for(int n:{0,1,2}) AA(j,n)+=c.l[j]*c.l[n]; }
+	AA*=1/V;
+	AA=Matrix3r::Ones().cwise()/AA; // componentwise reciprocal
+	Matrix6r H(Matrix6r::Zero());
+	FOREACH(const ContData& c, CC){
+		for(int p=0; p<6; p++) for(int q=p;q<6;q++){
+			int i=voigtMap[p][q][0], j=voigtMap[p][q][1], k=voigtMap[p][q][2], l=voigtMap[p][q][3];
+			const Vector3r& n(c.n); const Vector3r& s(c.s);	const Vector3r& t(c.t);
+			Real hh=c.hn*n[i]*n[k]+c.hs*(s[i]*s[k]+t[i]*t[k]);
+			Real lnAjn=0, lqAlq=0;
+			for(int N:{0,1,2}) lnAjn+=c.l[N]*AA(j,N);
+			for(int Q:{0,1,2}) lqAlq+=c.l[Q]*AA(l,Q);
+			H(p,q)=hh*lnAjn*lqAlq;
+			if(q!=p) H(q,p)=H(p,q);
+		}
+	}
+	H*=1/V;
+	return H;
+};
 
 
 BOOST_PYTHON_MODULE(_utils2){
@@ -168,6 +226,9 @@ BOOST_PYTHON_MODULE(_utils2){
 	py::def("createContacts",createContacts,(py::arg("ids1"),py::arg("id2s"),py::arg("geomFunctors")=vector<shared_ptr<CGeomFunctor> >(),py::arg("physFunctors")=vector<shared_ptr<CPhysFunctor> >(),py::arg("force")=true),"Create contacts between given DEM particles.\n\nCurrent engines are searched for :yref:`ContactLoop`, unless *geomFunctors* and *physFunctors* are given. *force* will make :yref:`CGeomFunctors` acknowledge the contact even if particles don't touch geometrically.\n\n.. warning::\n\tThis function will very likely behave incorrectly for periodic simulations (though it could be extended it to handle it farily easily).");
 	py::def("stressStiffnessWork",stressStiffnessWork,(py::arg("volume")=0,py::arg("skipMultinodal")=true,py::arg("prevStress")=(Vector6r()<<NaN,NaN,NaN,NaN,NaN,NaN).finished()),"Compute stress and stiffness tensors, and work increment of current velocity gradient (*nan* for aperiodic simulations); returns tuple (stress, stiffness, work), where stress and stiffness are in Voigt notation. *skipMultinodal* skips all contacts involving particles with multiple nodes, where stress & stiffness values can be determined only by In2 functors.");
 	py::def("muStiffnessScaling",muStiffnessScaling,(py::arg("piHat")=Mathr::PI/2,py::arg("skipFloaters")=false,py::arg("V")=-1),"Compute stiffness scaling parameter relating continuum-like stiffness with packing stiffness; see 'Particle assembly with cross-anisotropic stiffness tensor' for details. With *skipFloaters*, ignore contacts where any of the two contacting particlds has only one *real* contact (thus not contributing to the assembly stability).");
+	py::def("bestFitCompliance",bestFitCompliance,"Compute compliance based on best-fit hypothesis, using the paper [Liao1997], equations (30) and (28,31).");
+	py::def("mapColor",CompUtils::scalarOnColorScale,(py::arg("x"),py::arg("min")=0,py::arg("max")=1,py::arg("cmap")=-1),"Map scalar to color (as 3-tuple). See O.cmap, O.cmaps to set colormap globally.");
+	py::def("unbalancedForce",unbalancedForce,(py::arg("useMaxForce")=false),"Compute the ratio of mean (or maximum, if *useMaxForce*) summary force on bodies and mean force magnitude on interactions. It is an adimensional measure of staticity, which approaches zero for quasi-static states.");
 }
 
 

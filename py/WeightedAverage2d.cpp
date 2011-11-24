@@ -16,8 +16,8 @@ bool pyGaussAverage::pointInsidePolygon(const Vector2r& pt, const vector<Vector2
 
 BOOST_PYTHON_MODULE(WeightedAverage2d)
 {
-	boost::python::scope().attr("__doc__")="Smoothing (2d gauss-weighted average) for postprocessing scalars in 2d.";
-	boost::python::class_<pyGaussAverage>("GaussAverage",python::init<python::tuple,python::tuple,python::tuple,Real,python::optional<Real> >(python::args("min","max","nCells","stDev","relThreshold"),"Create empty container for data, which can be added using add and later retrieved using avg."))
+	py::scope().attr("__doc__")="Smoothing (2d gauss-weighted average) for postprocessing scalars in 2d.";
+	py::class_<pyGaussAverage>("GaussAverage",py::init<py::tuple,py::tuple,py::tuple,Real,py::optional<Real> >(py::args("min","max","nCells","stDev","relThreshold"),"Create empty container for data, which can be added using add and later retrieved using avg."))
 		.def("add",&pyGaussAverage::addPt)
 		.def("avg",&pyGaussAverage::avg)
 		.def("avgPerUnitArea",&pyGaussAverage::avgPerUnitArea)

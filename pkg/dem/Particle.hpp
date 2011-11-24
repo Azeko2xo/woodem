@@ -6,6 +6,7 @@
 #include<yade/pkg/dem/ParticleContainer.hpp>
 #include<yade/pkg/dem/ContactContainer.hpp>
 
+
 #include<boost/tuple/tuple.hpp>
 
 // namespace yade{namespace dem{
@@ -16,6 +17,8 @@ class Material;
 class Bound;
 class Shape;
 class ParticleContainer;
+
+class ScalarRange;
 
 struct Particle: public Serializable{
 	shared_ptr<Contact> findContactWith(const shared_ptr<Particle>& other);
@@ -39,6 +42,8 @@ struct Particle: public Serializable{
 	py::list pyCon() const;
 	py::list pyTacts() const;
 	std::string getBlocked() const; void setBlocked(const std::string&);
+	// getRefPos creates refPos if it does not exist, and initializes to current pos
+	Vector3r& getRefPos(); void setRefPos(const Vector3r&);
 	std::vector<shared_ptr<Node> > getNodes();
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Particle,Serializable,"Particle in DEM",
 		((id_t,id,-1,Attr::readonly,"Index in DemField::particles"))
@@ -51,6 +56,7 @@ struct Particle: public Serializable{
 			.add_property("con",&Particle::pyCon)
 			.add_property("tacts",&Particle::pyTacts)
 		.add_property("pos",py::make_function(&Particle::getPos,py::return_internal_reference<>()),py::make_function(&Particle::setPos))
+		.add_property("refPos",py::make_function(&Particle::getRefPos,py::return_internal_reference<>()),py::make_function(&Particle::setRefPos))
 		.add_property("ori",py::make_function(&Particle::getOri,py::return_internal_reference<>()),py::make_function(&Particle::setOri))
 		.add_property("vel",py::make_function(&Particle::getVel,py::return_internal_reference<>()),py::make_function(&Particle::setVel))
 		.add_property("angVel",py::make_function(&Particle::getAngVel,py::return_internal_reference<>()),py::make_function(&Particle::setAngVel))

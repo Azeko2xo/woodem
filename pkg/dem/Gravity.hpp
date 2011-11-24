@@ -2,9 +2,8 @@
 #include<yade/core/Engine.hpp>
 #include<yade/pkg/dem/Particle.hpp>
 
-class Gravity: public GlobalEngine, private DemField::Engine{
-	public:
-		virtual void run();
+struct Gravity: public GlobalEngine, private DemField::Engine{
+	virtual void run();
 	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
 	YADE_CLASS_BASE_DOC_ATTRS(Gravity,GlobalEngine,"Engine applying constant acceleration to all bodies.",
 		((Vector3r,gravity,Vector3r::Zero(),,"Acceleration [kgms⁻²]"))
@@ -13,6 +12,17 @@ class Gravity: public GlobalEngine, private DemField::Engine{
 	);
 };
 REGISTER_SERIALIZABLE(Gravity);
+
+struct AxialGravity: public GlobalEngine, private DemField::Engine {
+	virtual void run();
+	YADE_CLASS_BASE_DOC_ATTRS(AxialGravity,GlobalEngine,"Apply acceleration (independent of distance) directed towards an axis.",
+		((Vector3r,axisPt,Vector3r::Zero(),,"Point through which the axis is passing."))
+		((Vector3r,axisDir,Vector3r::UnitX(),,"direction of the gravity axis (will be normalized automatically)"))
+		((Real,accel,0,,"Acceleration magnitude [kgms⁻²]"))
+		// ((int,mask,0,,"If mask defined, only bodies with corresponding groupMask will be affected by this engine. If 0, all bodies will be affected."))
+	);
+};
+REGISTER_SERIALIZABLE(AxialGravity);
 
 #if 0
 
@@ -36,17 +46,6 @@ REGISTER_SERIALIZABLE(CentralGravityEngine);
 /*! Apply acceleration (independent of distance) directed towards an axis.
  *
  */
-class AxialGravityEngine: public FieldApplier {
-	public:
-	virtual void run();
-	YADE_CLASS_BASE_DOC_ATTRS(AxialGravityEngine,FieldApplier,"Apply acceleration (independent of distance) directed towards an axis.",
-		((Vector3r,axisPoint,Vector3r::Zero(),,"Point through which the axis is passing."))
-		((Vector3r,axisDirection,Vector3r::UnitX(),,"direction of the gravity axis (will be normalized automatically)"))
-		((Real,acceleration,0,,"Acceleration magnitude [kgms⁻²]"))
-		((int,mask,0,,"If mask defined, only bodies with corresponding groupMask will be affected by this engine. If 0, all bodies will be affected."))
-	);
-};
-REGISTER_SERIALIZABLE(AxialGravityEngine);
 
 class HdapsGravityEngine: public GravityEngine{
 	public:

@@ -58,9 +58,10 @@ struct Law2_G3Geom_FrictPhys_IdealElPl: public LawFunctor{
 		((bool,noBreak,false,,"Disable removal of contacts when in tension."))
 		((int,plastDissipIx,-1,(Attr::noSave|Attr::hidden),"Index of plastically dissipated energy"))
 		((int,elastPotIx,-1,(Attr::hidden|Attr::noSave),"Index for elastic potential energy"))
-		#ifdef YADE_DEBUG
+		// unused in the non-debugging version, but keep to not break archive compatibility
+		//#ifdef YADE_DEBUG
 			((Vector2i,watch,Vector2i(-1,-1),,"Print debug information for this couple of IDs"))
-		#endif
+		//#endif
 	);
 };
 REGISTER_SERIALIZABLE(Law2_G3Geom_FrictPhys_IdealElPl);
