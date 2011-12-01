@@ -7,10 +7,9 @@ YADE_PLUGIN(dem,(Cp2_FrictMat_FrictPhys_CrossAnisotropic));
 
 void Cp2_FrictMat_FrictPhys_CrossAnisotropic::postLoad(Cp2_FrictMat_FrictPhys_CrossAnisotropic&){
 	Real a=alpha*(deg?Mathr::PI/180.:1.), b=beta*(deg?Mathr::PI/180.:1.);
-	Vector3r anisoNormal=Vector3r(cos(a)*sin(b),-sin(a)*sin(b),cos(b));
-	rot.setFromTwoVectors(Vector3r::UnitX(),anisoNormal);
+	xisoAxis=Vector3r(cos(a)*sin(b),-sin(a)*sin(b),cos(b));
 	recomputeIter=scene->step+1; // recompute everything at the next step
-	alpha_range=Vector2r(0.,deg?180.:Mathr::PI);
+	alpha_range=Vector2r(0.,deg?360.:2*Mathr::PI);
 	beta_range=Vector2r(0.,deg?90.:.5*Mathr::PI);
 
 	// recompute dependent poisson's ratio
@@ -40,18 +39,11 @@ void Cp2_FrictMat_FrictPhys_CrossAnisotropic::go(const shared_ptr<Material>& b1,
 	#endif
 
 	// angle between pole (i.e. anisotropy normal) and contact normal
-	Real sinTheta=/*aniso z-axis in global coords*/((rot.conjugate()*Vector3r::UnitX()).cross(/*normal in global coords*/g.node->ori.conjugate()*Vector3r::UnitX())).norm();
+	Real sinTheta=(/*xiso axis in global coords*/(xisoAxis).cross(/*contact axis in global coords*/g.node->ori.conjugate()*Vector3r::UnitX())).norm();
 	// cerr<<"x-aniso normal "<<Vector3r(rot.conjugate()*Vector3r::UnitZ())<<", contact axis "<<Vector3r(g.node->ori.conjugate()*Vector3r::UnitX())<<", angle "<<asin(sinTheta)*180/Mathr::PI<<" (sin="<<sinTheta<<")"<<endl;
-	//Real theta=asin(theta);
 	Real weight=pow(sinTheta,2);
 	ph.kn=(A/l)*(weight*E1+(1-weight)*E2);
 	ph.kt=(A/l)*(weight*G1+(1-weight)*G2);
-	#if 0
-		Vector3r n=rot.conjugate()*(g.node->ori*Vector3r::UnitX()); // normal in anisotropy coords
-		ph.kn=(A/l)/sqrt(pow(n[0]/E1,2)+pow(n[1]/E1,2)+pow(n[2]/E2,2));
-		if(G2>0) ph.kt=(A/l)/sqrt(pow(n[0]/G1,2)+pow(n[1]/G2,2)+pow(n[2]/G2,2));
-		else ph.kt=0;
-	#endif
 	ph.tanPhi=min(b1->cast<FrictMat>().tanPhi,b2->cast<FrictMat>().tanPhi);
 }
 

@@ -15,8 +15,8 @@ class Gl1_CPhys: public GlCPhysFunctor{
 		((shared_ptr<ScalarRange>,shearRange,make_shared<ScalarRange>(),,"Range for absolute value of shear force"))
 		((bool,shearColor,false,,"Set color by shear force rather than by normal force. (Radius still depends on normal force)"))
 		((int,signFilter,0,,"If non-zero, only display contacts with negative (-1) or positive (+1) normal forces; if zero, all contacts will be displayed."))
-		((Real,relMaxRad,.1,,"Relative radius for maximum forces"))
-		((int,slices,12,,"Number of cylinder slices"))
+		((Real,relMaxRad,.01,,"Relative radius for maximum forces"))
+		((int,slices,6,,"Number of cylinder slices"))
 		((Vector2i,slices_range,Vector2i(4,16),Attr::noGui,"Range for slices"))
 	);
 	RENDERS(CPhys);

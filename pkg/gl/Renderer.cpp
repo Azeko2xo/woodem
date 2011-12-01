@@ -292,9 +292,9 @@ void Renderer::setLightUnhighlighted(){ resetSpecularEmission(); }
 void Renderer::renderDemNodes(){
 	nodeDispatcher.scene=scene.get(); nodeDispatcher.updateScenePtr();
 	FOREACH(shared_ptr<Node> node, dem->nodes){
+		setNodeGlData(node);
 		glScopedName name(node);
 		if(nodes){
-			setNodeGlData(node);
 			renderRawNode(node);
 		}
 		if(node->rep){ node->rep->render(node,&viewInfo); }
@@ -331,15 +331,21 @@ void Renderer::renderDemContactNodes(){
 }
 
 void Renderer::renderDemCPhys(){
-	nodeDispatcher.scene=scene.get(); nodeDispatcher.updateScenePtr();
+	cPhysDispatcher.scene=scene.get(); cPhysDispatcher.updateScenePtr();
 	boost::mutex::scoped_lock lock(*dem->contacts.manipMutex);
 	FOREACH(const shared_ptr<Contact>& C, dem->contacts){
-		shared_ptr<CGeom> geom(C->geom);
+		#if 1
+			shared_ptr<CGeom> geom(C->geom);
+			shared_ptr<CPhys> phys(C->phys);
+		#else
+			// HACK: make fast now
+			shared_ptr<CGeom>& geom(C->geom);
+			shared_ptr<CPhys>& phys(C->phys);
+		#endif
 		//assert(C->pA->shape && C->pB->shape);
 		//assert(C->pA->shape->nodes.size()>0); assert(C->pB->shape->nodes.size()>0);
-		shared_ptr<CPhys> phys(C->phys);
 		if(!geom || !phys) continue;
-		glScopedName name(C,geom->node);
+		// glScopedName name(C,geom->node);
 		cPhysDispatcher(phys,C,viewInfo);
 	}
 }

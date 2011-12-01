@@ -18,12 +18,13 @@ struct Cp2_FrictMat_FrictPhys_CrossAnisotropic: CPhysFunctor {
 		((Real,nu1,.4,Attr::readonly,"Major Poisson's ratio; dependent value computed as $\\frac{E_1}{2G_1}-1$."))
 
 		((Real,alpha,0,Attr::triggerPostLoad,"Strike angle for the local axes"))
-		((Vector2r,alpha_range,Vector2r(0,180),,"Range for alpha (adjusted automatically depending on degrees)"))
+		((Vector2r,alpha_range,Vector2r(0,360),,"Range for alpha (adjusted automatically depending on degrees)"))
 		((Real,beta,0,Attr::triggerPostLoad,"Dip angle for the local axes"))
 		((Vector2r,beta_range,Vector2r(0,90),,"Range for beta (adjusted automatically depending on degrees)"))
 		((bool,deg,true,Attr::triggerPostLoad,"True is alpha/beta are given in degrees rather than radians."))
 
-		((Quaternionr,rot,Quaternionr::Identity(),Attr::readonly,"Rotation of principal axes of anisotropy. (Automatically orthonormalized)"))
+		// ((Quaternionr,rot,Quaternionr::Identity(),Attr::readonly,"Rotation of principal axes of anisotropy. (Automatically orthonormalized)"))
+		((Vector3r,xisoAxis,Vector3r::UnitX(),Attr::readonly,"Axis (normal) of the cross-anisotropy in global coordinates (computed from *alpha* and *beta* as $n=(\\cos\\alpha\\sin\\beta,-\\sin\\alpha\\sin\\beta,\\cos\\beta)$."))
 		// ((Vector3r,scale,Vector3r::Ones(),,"Scaling coefficients for computes stiffnesses along principal axes (colums of :yref:`rot<Cp2_FrictMat_FrictPhys_CrossAnisotropic.rot>`."))
 		((int,recomputeIter,-1,,"Flag to keep track of updates of rot/scale, so that stiffnesses of existing contacts are forced to be updated."))
 	);
