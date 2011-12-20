@@ -220,7 +220,7 @@ def wall(position,axis,sense=0,fixed=True,mass=0,color=None,material=None,mask=1
 	#p.mask=mask
 	return p
 
-def facet(vertices,fixed=True,wire=True,color=None,highlight=False,noBound=False,material=-1,mask=1):
+def facet(vertices,fixed=True,wire=True,color=None,highlight=False,material=None,mask=1):
 	"""Create facet with given parameters.
 
 	:param [Vector3,Vector3,Vector3] vertices: coordinates of vertices in the global coordinate system.
@@ -229,20 +229,20 @@ def facet(vertices,fixed=True,wire=True,color=None,highlight=False,noBound=False
 	:param Vector3-or-None color: color of the facet; random color will be assigned if ``None``.
 
 	See :yref:`yade.utils.sphere`'s documentation for meaning of other parameters."""
-	b=Body()
+	p=Particle()
 	nodes=[]
 	if isinstance(vertices[0],Node):
 		nodes=vertices
 		vertices=(nodes[0].pos,nodes[1].pos,nodes[2].pos)
 	else:
-		nodes=[_mkDemNode(pos=vertices[0]),_mkDemNode(pos=vertices[0]),_mkDemNode(pos=vertices[0])]
-	center=inscribedCircleCenter(vertices[0],vertices[1],vertices[2])
-	vertices=Vector3(vertices[0])-center,Vector3(vertices[1])-center,Vector3(vertices[2])-center
-	b.shape=Facet(color=color if color else random.random(),wire=wire,highlight=highlight,vertices=vertices)
-	_commonBodySetup(b,0,Vector3(0,0,0),material,noBound=noBound,pos=center,fixed=fixed,nodes=nodes)
-	b.aspherical=False # mass and inertia are 0 anyway; fell free to change to ``True`` if needed
-	b.mask=mask
-	return b
+		nodes=[_mkDemNode(pos=vertices[0]),_mkDemNode(pos=vertices[1]),_mkDemNode(pos=vertices[2])]
+	#center=inscribedCircleCenter(vertices[0],vertices[1],vertices[2])
+	#vertices=Vector3(vertices[0])-center,Vector3(vertices[1])-center,Vector3(vertices[2])-center
+	p.shape=Facet(color=color if color else random.random())
+	_commonBodySetup(p,nodes,volumes=None,masses=(0,0,0),geomInertias=[Vector3(0,0,0),Vector3(0,0,0),Vector3(0,0,0)],material=material,fixed=fixed)
+	p.aspherical=False # mass and inertia are 0 anyway; fell free to change to ``True`` if needed
+	#b.mask=mask
+	return p
 	
 def facetBox(*args,**kw):
 	"|ydeprecated|"

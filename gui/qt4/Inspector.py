@@ -59,7 +59,7 @@ def makeBodyLabel(b):
 	else:
 		typeMap={'Sphere':u'⚫','Facet':u'△','Wall':u'┃','Box':u'⎕','Cylinder':u'⌭','Clump':u'☍'}
 		ret+=typeMap.get(b.shape.__class__.__name__,u'﹖')
-	if b.blocked!='': ret+=u'⚓'
+	if (b.shape.nodes)==1 and b.blocked!='': ret+=u'⚓'
 	return ret
 
 def getBodyIdFromLabel(label):
@@ -162,7 +162,7 @@ class BodyInspector(QWidget):
 	def bodyIdSlot(self):
 		self.bodyId=self.bodyIdBox.value()
 		self.tryShowBody()
-		self.setWindowTitle('Body #%d'%self.bodyId)
+		self.setWindowTitle('Particle #%d'%self.bodyId)
 		self.refreshEvent()
 	def gotoBodySlot(self):
 		try:

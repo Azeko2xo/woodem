@@ -26,7 +26,6 @@ struct OpenGLWrapper {}; // for ctags
 
 ///	Primary Templates
 
-template< typename Type > inline void glRotate		( Type ,Type ,Type , Type  )	{	STATIC_ASSERT(false);  };
 template< typename Type > inline void glScale		( Type ,Type , Type  )		{	STATIC_ASSERT(false); };
 template< typename Type > inline void glScalev		( const Type  )			{	STATIC_ASSERT(false); };
 template< typename Type > inline void glTranslate	( Type ,Type , Type  )		{	STATIC_ASSERT(false); };
@@ -43,20 +42,7 @@ template< typename Type > inline void glColor3		( Type ,Type ,Type  )		{	STATIC_
 template< typename Type > inline void glColor4		( Type ,Type ,Type , Type  )	{	STATIC_ASSERT(false); };
 template< typename Type > inline void glColor3v		( const Type )			{	STATIC_ASSERT(false); };
 template< typename Type > inline void glColor4v		( const Type )			{	STATIC_ASSERT(false); };
-template< typename Type > inline void glTexCoord1	( Type  )			{	STATIC_ASSERT(false); };
-template< typename Type > inline void glTexCoord2	( Type ,Type  )			{	STATIC_ASSERT(false); };
-template< typename Type > inline void glTexCoord3	( Type ,Type , Type  )		{	STATIC_ASSERT(false); };
-template< typename Type > inline void glTexCoord4	( Type ,Type ,Type , Type  )	{	STATIC_ASSERT(false); };
-template< typename Type > inline void glTexCoord1v	( const Type )			{	STATIC_ASSERT(false); };
-template< typename Type > inline void glTexCoord2v	( const Type )			{	STATIC_ASSERT(false); };
-template< typename Type > inline void glTexCoord3v	( const Type )			{	STATIC_ASSERT(false); };
-template< typename Type > inline void glTexCoord4v	( const Type )			{	STATIC_ASSERT(false); };
-template< typename Type > inline void glRasterPos2	( Type ,Type  )			{	STATIC_ASSERT(false); };
-template< typename Type > inline void glRasterPos3	( Type ,Type , Type  )		{	STATIC_ASSERT(false); };
-template< typename Type > inline void glRasterPos4	( Type ,Type ,Type , Type  )	{	STATIC_ASSERT(false); };
-template< typename Type > inline void glRasterPos2v	( const Type )			{	STATIC_ASSERT(false); };
-template< typename Type > inline void glRasterPos3v	( const Type )			{	STATIC_ASSERT(false); };
-template< typename Type > inline void glRasterPos4v	( const Type )			{	STATIC_ASSERT(false); };
+
 template< typename Type > inline void glRect		( Type ,Type ,Type , Type  )	{	STATIC_ASSERT(false); };
 template< typename Type > inline void glMaterial	( GLenum face, GLenum pname, Type param ){	STATIC_ASSERT(false); };
 template< typename Type > inline void glMaterialv	( GLenum face, GLenum pname, Type param ){	STATIC_ASSERT(false); };
@@ -66,9 +52,6 @@ template< typename Type > inline void glMultMatrix	(const Type*){	STATIC_ASSERT(
 ///	Template Specializations
 template< > inline void glMultMatrix<double>(const double* m){glMultMatrixd(m);	};
 template< > inline void glMultMatrix<long double>(const long double* m){double mm[16]; for(int i=0;i<16;i++)mm[i]=(double)m[i]; glMultMatrixd(mm);};
-
-template< > inline void glRotate< double >			(double angle,double x,double y, double z )	{	glRotated(angle,x,y,z);	};
-template< > inline void glRotate< float >			(float angle,float x,float y, float z )	{	glRotatef(angle,x,y,z);	};
 
 template< > inline void glScale< double >			( double x,double y, double z )		{	glScaled(x,y,z);	};
 template< > inline void glScale< long double >			( long double x,long double y, long double z )		{	glScaled(x,y,z);	};
@@ -124,58 +107,6 @@ template< > inline void glColor3v< Vector3i >		( const Vector3i v )		{	glColor3i
 template< > inline void glColor4v< Vector3r >		( const Vector3r v )		{	glColor4dv((double*)&v);		};
 template< > inline void glColor4v< Vector3i >		( const Vector3i v )		{	glColor4iv((int*)&v);		};
 
-
-template< > inline void glTexCoord1< double >			( double s )				{	glTexCoord1d(s);	};
-template< > inline void glTexCoord1< float >			( float s )				{	glTexCoord1f(s);	};
-template< > inline void glTexCoord1< int >			( int s )				{	glTexCoord1i(s);	};
-
-template< > inline void glTexCoord2< double >			( double s,double t )			{	glTexCoord2d(s,t);	};
-template< > inline void glTexCoord2< float >			( float s,float t )			{	glTexCoord2f(s,t);	};
-template< > inline void glTexCoord2< int >			( int s,int t )				{	glTexCoord2i(s,t);	};
-
-template< > inline void glTexCoord3< double >			( double s,double t, double r )		{	glTexCoord3d(s,t,r);	};
-template< > inline void glTexCoord3< float >			( float s,float t,float r )		{	glTexCoord3f(s,t,r);	};
-template< > inline void glTexCoord3< int >			( int s, int t, int r )			{	glTexCoord3i(s,t,r);	};
-
-template< > inline void glTexCoord4< double >			(double s,double t,double r, double q )	{	glTexCoord4d(s,t,r,q);	};
-template< > inline void glTexCoord4< float >			(float s,float t,float r, float q )	{	glTexCoord4f(s,t,r,q);	};
-template< > inline void glTexCoord4< int >			(int s,int t,int r, int q )		{	glTexCoord4i(s,t,r,q);	};
-
-template< > inline void glTexCoord1v< Vector3r >	( const Vector3r v )		{	glTexCoord1dv((double*)&v);	};
-template< > inline void glTexCoord1v< Vector3i >		( const Vector3i v )		{	glTexCoord1iv((int*)&v);	};
-
-template< > inline void glTexCoord2v< Vector3r >	( const Vector3r v )		{	glTexCoord2dv((double*)&v);	};
-template< > inline void glTexCoord2v< Vector3i >		( const Vector3i v )		{	glTexCoord2iv((int*)&v);	};
-
-template< > inline void glTexCoord3v< Vector3r >	( const Vector3r v )		{	glTexCoord3dv((double*)&v);	};
-template< > inline void glTexCoord3v< Vector3i >		( const Vector3i v )		{	glTexCoord3iv((int*)&v);	};
-
-template< > inline void glTexCoord4v< Vector3r >	( const Vector3r v )		{	glTexCoord4dv((double*)&v);	};
-template< > inline void glTexCoord4v< Vector3i >		( const Vector3i v )		{	glTexCoord4iv((int*)&v);	};
-
-
-template< > inline void glRasterPos2< double >			( double x,double y )			{	glRasterPos2d(x,y);	};
-template< > inline void glRasterPos2< float >			( float x,float y )			{	glRasterPos2f(x,y);	};
-template< > inline void glRasterPos2< int >			( int x,int y )				{	glRasterPos2i(x,y);	};
-
-template< > inline void glRasterPos3< double >			( double x,double y, double z )		{	glRasterPos3d(x,y,z);	};
-template< > inline void glRasterPos3< float >			( float x,float y,float z )		{	glRasterPos3f(x,y,z);	};
-template< > inline void glRasterPos3< int >			( int x, int y, int z )			{	glRasterPos3i(x,y,z);	};
-
-template< > inline void glRasterPos4< double >			(double x,double y,double z, double w )	{	glRasterPos4d(x,y,z,w);	};
-template< > inline void glRasterPos4< float >			(float x,float y,float z, float w )	{	glRasterPos4f(x,y,z,w);	};
-template< > inline void glRasterPos4< int >			(int x,int y,int z, int w )		{	glRasterPos4i(x,y,z,w);	};
-
-template< > inline void glRasterPos2v< Vector3r >	( const Vector3r v )		{	glRasterPos2dv((double*)&v);	};
-template< > inline void glRasterPos2v< Vector3i >		( const Vector3i v )		{	glRasterPos2iv((int*)&v);	};
-
-
-// :%s/\(void \)\(gl[A-Z,a-z,0-9]\+\)\(us\)\(v\)( const GLushort \*\(v\) );/template< > inline \1\2\4< Vector3<unsigned short> >	( const Vector3<unsigned short> \5 )	{	\2\3\4(\5);		};/
-template< > inline void glRasterPos3v< Vector3r >	( const Vector3r v )		{	glRasterPos3dv((double*)&v);		};
-template< > inline void glRasterPos3v< Vector3i >		( const Vector3i v )		{	glRasterPos3iv((int*)&v);		};
-
-template< > inline void glRasterPos4v< Vector3r >	( const Vector3r v )		{	glRasterPos4dv((double*)&v);		};
-template< > inline void glRasterPos4v< Vector3i >		( const Vector3i v )		{	glRasterPos4iv((int*)&v);		};
 
 
 template< > inline void glRect< double >			(double x1,double y1,double x2, double y2 )	{	glRectd(x1,y1,x2,y2);	};

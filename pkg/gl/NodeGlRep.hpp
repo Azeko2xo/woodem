@@ -56,5 +56,18 @@ struct TensorGlRep: public NodeGlRep{
 };
 REGISTER_SERIALIZABLE(TensorGlRep);
 
+struct CylGlRep: public NodeGlRep{
+	void render(const shared_ptr<Node>&, GLViewInfo*);
+	//void postLoad(CylGlRep&);
+	YADE_CLASS_BASE_DOC_ATTRS(CylGlRep,NodeGlRep,"Render cylinder aligned with local x-axis, with color and radius given by val (and optionally val2).",
+		((Real,rad,NaN,,"Scalar determining radius; 1 if NaN"))
+		((Real,col,NaN,,"Scalar determining color; *rad* is used if NaN."))
+		((Vector2r,xx,Vector2r(0,0),,"End positions on the local x-axis"))
+		((Real,relSz,.05,,"Maximum cylinder radius, relative to scene radius"))
+		((shared_ptr<ScalarRange>,rangeRad,,,"Range for rad (only used if rad is not NaN)"))
+		((shared_ptr<ScalarRange>,rangeCol,,,"Range for col (or for rad, if *col* is NaN)"))
+	);
+};
+
 
 #endif

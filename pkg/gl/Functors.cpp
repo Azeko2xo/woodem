@@ -5,7 +5,7 @@
 		(GlBoundFunctor)(GlBoundDispatcher)
 		(GlCPhysFunctor)(GlCPhysDispatcher)
 		(GlNodeFunctor)(GlNodeDispatcher)
-		//(GlBoundFunctor)(GlCGeomFunctor)(GlStateFunctor)(GlFieldFunctor)(GlNodeFunctor)
-		//(GlBoundDispatcher)(GlCGeomDispatcher)(GlStateDispatcher)(GlFieldDispatcher)(GlNodeDispatcher)
+		(GlFieldFunctor)(GlFieldDispatcher)
+		//(GlCGeomFunctor)(GlCGeomDispatcher)
 	);
 #endif

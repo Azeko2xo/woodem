@@ -33,6 +33,7 @@ void Renderer::init(){
 	typedef std::pair<string,DynlibDescriptor> strDldPair; // necessary as FOREACH, being macro, cannot have the "," inside the argument (preprocessor does not parse templates)
 	#define _TRY_ADD_FUNCTOR(functorT,dispatcher,className) if(Omega::instance().isInheritingFrom_recursive(className,#functorT)){ shared_ptr<functorT> f(static_pointer_cast<functorT>(ClassFactory::instance().createShared(className))); dispatcher.add(f); continue; }
 	FOREACH(const strDldPair& item, Omega::instance().getDynlibsDescriptor()){
+		_TRY_ADD_FUNCTOR(GlFieldFunctor,fieldDispatcher,item.first);
 		_TRY_ADD_FUNCTOR(GlShapeFunctor,shapeDispatcher,item.first);
 		_TRY_ADD_FUNCTOR(GlBoundFunctor,boundDispatcher,item.first);
 		_TRY_ADD_FUNCTOR(GlNodeFunctor,nodeDispatcher,item.first);
@@ -209,8 +210,19 @@ void Renderer::render(const shared_ptr<Scene>& _scene, bool _withNames){
 	if(withNames) glNamedObjects.clear();
 
 	scene=_scene;
-	// smuggle scene in GLViewInfo for use with GlRep (ugly)
+	// smuggle scene and ourselves into GLViewInfo for use with GlRep and field functors
 	viewInfo.scene=scene.get();
+	viewInfo.renderer=this;
+
+	setClippingPlanes();
+	setLighting();
+	drawPeriodicCell();
+
+	fieldDispatcher.scene=scene.get(); fieldDispatcher.updateScenePtr();
+
+	FOREACH(shared_ptr<Field> f, scene->fields){
+		fieldDispatcher(f,&viewInfo);
+	}
 
 	dem=shared_ptr<DemField>();
 	sparc=shared_ptr<SparcField>();
@@ -220,25 +232,7 @@ void Renderer::render(const shared_ptr<Scene>& _scene, bool _withNames){
 		if(!sparc) sparc=dynamic_pointer_cast<SparcField>(scene->fields[i]);
 	}
 
-
-#if 0
-	// assign scene inside functors
-	geomDispatcher.updateScenePtr();
-	physDispatcher.updateScenePtr();
-	fieldDispatcher.updateScenePtr();
-	// stateDispatcher.updateScenePtr();
-#endif
-
-#if 0
-	// set displayed Se3 of body (scaling) and isDisplayed (clipping)
-	setBodiesDispInfo();
-#endif
-
-	setClippingPlanes();
-	setLighting();
-	drawPeriodicCell();
-
-	if(dem){
+	if(dem && oldDem){
 		if(shape)renderShape();
 		if(bound)renderBound();
 		// if(cGeom)renderCGeom();

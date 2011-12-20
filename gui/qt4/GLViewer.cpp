@@ -41,6 +41,18 @@ YADE_PLUGIN(/*unused*/qt,(SnapshotEngine));
 *****************************************************************************/
 
 CREATE_LOGGER(SnapshotEngine);
+
+void SnapshotEngine::pyHandleCustomCtorArgs(py::tuple& t, py::dict& d){
+	if(py::len(t)==0) return;
+	if(py::len(t)!=2) throw std::invalid_argument(("SnapshotEngine takes exactly 2 unnamed arguments iterPeriod,fileBase ("+lexical_cast<string>(py::len(t))+" given)").c_str());
+	py::extract<int> ii(t[0]);
+	py::extract<string> ff(t[1]);
+	if(!(ii.check()&&ff.check())) throw std::invalid_argument("TypeError: SnapshotEngine takes 2 unnamed argument of type int, string (iterPeriod, fileBase)");
+	stepPeriod=ii();
+	fileBase=ff();
+	t=py::tuple();
+};
+
 void SnapshotEngine::run(){
 	if(!OpenGLManager::self) throw logic_error("No OpenGLManager instance?!");
 	if(OpenGLManager::self->views.size()==0){
@@ -64,7 +76,7 @@ void SnapshotEngine::run(){
 		nanosleep(&t1,&t2); waiting++;
 		if(((waiting) % 1000)==0) LOG_WARN("Already waiting "<<waiting/100<<"s for snapshot to be saved. Something went wrong?");
 		if(waiting/100.>deadTimeout){
-			if(ignoreErrors){ LOG_WARN("Timeout waiting for snapshot to be saved, making byself Engine::dead"); dead=true; return; }
+			if(ignoreErrors){ LOG_WARN("Timeout waiting for snapshot to be saved, making myself Engine::dead"); dead=true; return; }
 			else throw runtime_error("SnapshotEngine: Timeout waiting for snapshot to be saved.");
 		}
 	}

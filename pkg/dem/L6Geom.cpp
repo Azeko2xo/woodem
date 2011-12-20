@@ -47,7 +47,8 @@ bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<
 	const Vector3r& sC=s.nodes[0]->pos+shift2;
 	Vector3r fNormal=f.getNormal();
 	Real planeDist=(sC-f.nodes[0]->pos).dot(fNormal);
-	if(abs(planeDist)<s.radius && !C->isReal() && !force) return false;
+	// cerr<<"planeDist="<<planeDist<<endl;
+	if(abs(planeDist)>s.radius && !C->isReal() && !force) return false;
 	Vector3r fC=sC-planeDist*fNormal; // sphere's center projected to facet's plane
 	Vector3r outVec[3];
 	boost::tie(outVec[0],outVec[1],outVec[2])=f.getOuterVectors();
@@ -67,10 +68,12 @@ bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<
 		default: throw logic_error("Ig2_Facet_Sphere_L3Geom: Nonsense intersection value. (please report bug)");
 	}
 	Vector3r normal=sC-contPt; // normal is now the contact normal (not yet normalized)
-	if(!C->isReal() && normal.squaredNorm()>pow(s.radius,2) && !force) { return false; }
+	cerr<<"sC="<<sC.transpose()<<", contPt="<<contPt.transpose()<<endl;
+	//cerr<<"dist="<<normal.norm()<<endl;
+	if(normal.squaredNorm()>pow(s.radius,2) && !C->isReal() && !force) { return false; }
 	Real dist=normal.norm(); normal/=dist; // normal is normalized now
 	Real uN=dist-s.radius;
-	throw std::logic_error("Cg2_Facet_Sphere_L6Geom::go: Not yet implemented.");
+	//throw std::logic_error("Cg2_Facet_Sphere_L6Geom::go: Not yet implemented.");
 	// TODO: not yet tested!!
 	Vector3r linVel,angVel;
 	boost::tie(linVel,angVel)=f.interpolatePtLinAngVel(contPt);

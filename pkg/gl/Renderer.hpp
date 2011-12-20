@@ -73,13 +73,16 @@ class Renderer: public Serializable{
 		void resetSpecularEmission();
 		void setLighting();
 		void setClippingPlanes();
+
+	public:
+		// used from within field functors
+		GlFieldDispatcher fieldDispatcher;
 		GlShapeDispatcher shapeDispatcher;
 		GlBoundDispatcher boundDispatcher;
 		GlNodeDispatcher nodeDispatcher;
 		GlCPhysDispatcher cPhysDispatcher;
 	#if 0
 		GlCPhysDispatcher physDispatcher;
-		GlFieldDispatcher fieldDispatcher;
 		// GlStateDispatcher stateDispatcher;
 	#endif
 		DECLARE_LOGGER;
@@ -175,12 +178,14 @@ class Renderer: public Serializable{
 		((vector<bool>,clipPlaneActive,vector<bool>(numClipPlanes,false),,"Activate/deactivate respective clipping planes"))
 		((vector<shared_ptr<GlExtraDrawer> >,extraDrawers,,,"Additional rendering components (:yref:`GlExtraDrawer`)."))
 
+		((bool,oldDem,false,,"Render the DEM field using old rendering routine built into Renderer itself, rather than Gl1_DemField."))
+
 		((bool,wire,false,,"Render all bodies with wire only"))
 		((bool,id,false,,"Show particle id's"))
 		((bool,bound,false,,"Render particle's :yref:`Bound`"))
 		((bool,shape,true,,"Render particle's :yref:`Shape`"))
 		((int,cNodes,1,,"Render contact's nodes (-1=nothing, 0=rep only, 1=nodes, 2=line between particles, 3=both"))
-		((bool,cPhys,true,,"Render contact's nodes"))
+		((bool,cPhys,false,,"Render contact's nodes"))
 		((bool,nid,false,,"Show node ids for Sparc models"))
 		((Vector2i,cNodes_range,Vector2i(-1,3),Attr::noGui,"Range for cNodes"))
 		//((bool,intrAllWire,false,,"Draw wire for all interactions, blue for potential and green for real ones (mostly for debugging)")),

@@ -21,7 +21,10 @@ boost::tuple<Vector3r,Vector3r> Facet::interpolatePtLinAngVel(const Vector3r& x)
 	/* first compute relative position (a1,a2,a3): x1*a1+x2*2+x3*a3=x */
 	Matrix3r A;
 	A.col(0)=nodes[0]->pos; A.col(1)=nodes[1]->pos; A.col(2)=nodes[2]->pos;
+	cerr<<"A=\n"<<A<<endl;
+	cerr<<"x="<<x.transpose()<<endl;
 	Vector3r a=A.inverse()*x;
+	cerr<<"A^-1 x =\n"<<a<<endl;
 	Vector3r vv[3]={(nodes[0]->getData<DemData>().vel,nodes[1]->getData<DemData>().vel,nodes[2]->getData<DemData>().vel)};
 	//#Vector3r linVel=a[0]*nodes[0]->getData<DemData>().vel+a[1]*nodes[1]->getData<DemData>().vel+a[2]*nodes[2]->getData<DemData>().vel;
 	Vector3r linVel=a[0]*vv[0]+a[1]*vv[1]+a[2]*vv[2];
@@ -37,7 +40,7 @@ void Bo1_Facet_Aabb::go(const shared_ptr<Shape>& sh){
 		aabb.min=aabb.max=f.nodes[0]->pos;
 		for(int i:{1,2}){
 			aabb.min=aabb.min.cwise().min(f.nodes[i]->pos);
-			aabb.max=aabb.max.cwise().min(f.nodes[i]->pos);
+			aabb.max=aabb.max.cwise().max(f.nodes[i]->pos);
 		}
 	} else {
 		// periodic cell: unshear everything

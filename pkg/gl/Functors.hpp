@@ -11,14 +11,16 @@
 #define RENDERS(name) public: virtual string renders() const { return #name;}; FUNCTOR1D(name);
 
 struct scene;
+struct Renderer;
+
 struct GLViewInfo{
 	GLViewInfo(): sceneCenter(Vector3r::Zero()), sceneRadius(1.){}
 	Vector3r sceneCenter;
 	Real sceneRadius;
 	Scene* scene;
+	Renderer* renderer;
 };
 
-class Renderer;
 
 #define GL_FUNCTOR(Klass,typelist,renderedType) class Klass: public Functor1D<renderedType,void,typelist>{public:\
 	virtual ~Klass(){};\
@@ -46,6 +48,9 @@ GL_DISPATCHER(GlNodeDispatcher,GlNodeFunctor);
 
 GL_FUNCTOR(GlCPhysFunctor,TYPELIST_3(const shared_ptr<CPhys>&, const shared_ptr<Contact>&, const GLViewInfo&),CPhys);
 GL_DISPATCHER(GlCPhysDispatcher,GlCPhysFunctor);
+
+GL_FUNCTOR(GlFieldFunctor,TYPELIST_2(const shared_ptr<Field>&, GLViewInfo*),Field);
+GL_DISPATCHER(GlFieldDispatcher,GlFieldFunctor);
 
 #if 0
 #include<yade/core/Bound.hpp>

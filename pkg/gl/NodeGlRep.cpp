@@ -10,7 +10,7 @@
 
 #include<GL/gle.h>
 
-YADE_PLUGIN(gl,(ScalarGlRep)(VectorGlRep)(TensorGlRep)(ActReactGlRep));
+YADE_PLUGIN(gl,(ScalarGlRep)(VectorGlRep)(TensorGlRep)(ActReactGlRep)(CylGlRep));
 
 void ScalarGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
 	Vector3r color=(range?range->color(val):CompUtils::scalarOnColorScale(val,0,1));
@@ -155,6 +155,15 @@ void TensorGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
 	}
 }
 
+
+void CylGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
+	Real radius=viewInfo->sceneRadius*relSz*(isnan(rad)?1:(rangeRad?rangeRad->norm(rad):1));
+	Real ccol=isnan(col)?0:col;
+	Vector3r color=(rangeCol?rangeCol->color(ccol):CompUtils::scalarOnColorScale(ccol,0,1));
+	Vector3r A=(node->pos+node->ori.conjugate()*Vector3r(xx[0],0,0)), B=(node->pos+node->ori.conjugate()*Vector3r(xx[1],0,0));
+	// cerr<<"A="<<A.transpose()<<", B="<<B.transpose()<<", r="<<radius<<endl;
+	GLUtils::Cylinder(A,B,radius,color,/*wire*/false,/*caps*/false,/*rad2*/-1,/*slices*/10,2);
+}
 
 
 #endif
