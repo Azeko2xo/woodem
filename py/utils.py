@@ -190,6 +190,7 @@ def sphere(center,radius,fixed=False,wire=False,color=None,highlight=False,mater
 	"""
 	b=Particle()
 	b.shape=Sphere(radius=radius,color=color if color else random.random())
+	b.shape.wire=wire
 	V=(4./3)*math.pi*radius**3
 	geomInert=(2./5.)*V*radius**2
 	_commonBodySetup(b,([center] if isinstance(center,Node) else [_mkDemNode(pos=center),]),volumes=[V],geomInertias=[geomInert*Vector3.Ones],material=material,fixed=fixed)
@@ -233,12 +234,12 @@ def facet(vertices,fixed=True,wire=True,color=None,highlight=False,material=None
 	nodes=[]
 	if isinstance(vertices[0],Node):
 		nodes=vertices
-		vertices=(nodes[0].pos,nodes[1].pos,nodes[2].pos)
+		for n in nodes:
+			if not n.dem: n.dem=DemData()
 	else:
 		nodes=[_mkDemNode(pos=vertices[0]),_mkDemNode(pos=vertices[1]),_mkDemNode(pos=vertices[2])]
-	#center=inscribedCircleCenter(vertices[0],vertices[1],vertices[2])
-	#vertices=Vector3(vertices[0])-center,Vector3(vertices[1])-center,Vector3(vertices[2])-center
 	p.shape=Facet(color=color if color else random.random())
+	p.shape.wire=wire
 	_commonBodySetup(p,nodes,volumes=None,masses=(0,0,0),geomInertias=[Vector3(0,0,0),Vector3(0,0,0),Vector3(0,0,0)],material=material,fixed=fixed)
 	p.aspherical=False # mass and inertia are 0 anyway; fell free to change to ``True`` if needed
 	#b.mask=mask

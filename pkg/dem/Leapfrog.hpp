@@ -21,8 +21,8 @@ struct Leapfrog: public GlobalEngine, private DemField::Engine {
 	void leapfrogAsphericalRotate(const shared_ptr<Node>&, const Vector3r& M);
 	Quaternionr DotQ(const Vector3r& angVel, const Quaternionr& Q);
 	// compute linear and angular acceleration, respecting DemData::blocked
-	Vector3r computeAccel(const Vector3r& force, const Real& mass, int blocked);
-	Vector3r computeAngAccel(const Vector3r& torque, const Vector3r& inertia, int blocked);
+	Vector3r computeAccel(const Vector3r& force, const Real& mass, /* for passing blocked DoFs */const DemData& dyn);
+	Vector3r computeAngAccel(const Vector3r& torque, const Vector3r& inertia, const DemData& dyn);
 	void doKineticEnergy(const shared_ptr<Node>&, const Vector3r& pprevFluctVel, const Vector3r& pprevFluctAngVel, const Vector3r& linAccel, const Vector3r& angAccel);
 	void doDampingDissipation(const shared_ptr<Node>&);
 	// whether the cell has changed from the previous step

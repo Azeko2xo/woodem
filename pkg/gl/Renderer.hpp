@@ -165,7 +165,7 @@ class Renderer: public Serializable{
 		((Vector3r,bgColor,Vector3r(.2,.2,.2),,"Color of the background canvas (RGB)"))
 		((bool,light1,true,,"Turn light 1 on."))
 		((bool,light2,true,,"Turn light 2 on."))
-		((bool,nodes,true,,"Render nodes belonging to fields"))
+		((bool,nodes,false,,"Render nodes belonging to fields"))
 		((bool,ghosts,false,,"Render objects crossing periodic cell edges by cloning them in multiple places (periodic simulations only)."))
 		#ifdef YADE_SUBDOMAINS
 			((int,subDomMask,0,,"If non-zero, render shape only of particles that are inside respective domains - -they are counted from the left, i.e. 5 (binary 101) will show subdomains 1 and 3. If zero, render everything."))
@@ -184,7 +184,7 @@ class Renderer: public Serializable{
 		((bool,id,false,,"Show particle id's"))
 		((bool,bound,false,,"Render particle's :yref:`Bound`"))
 		((bool,shape,true,,"Render particle's :yref:`Shape`"))
-		((int,cNodes,1,,"Render contact's nodes (-1=nothing, 0=rep only, 1=nodes, 2=line between particles, 3=both"))
+		((int,cNodes,-1,,"Render contact's nodes (-1=nothing, 0=rep only, 1=nodes, 2=line between particles, 3=both"))
 		((bool,cPhys,false,,"Render contact's nodes"))
 		((bool,nid,false,,"Show node ids for Sparc models"))
 		((Vector2i,cNodes_range,Vector2i(-1,3),Attr::noGui,"Range for cNodes"))

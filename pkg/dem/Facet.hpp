@@ -7,8 +7,8 @@ struct Facet: public Shape {
 	bool numNodesOk() const { return nodes.size()==3; }
 	Vector3r getNormal() const;
 	// return velocity which is linearly interpolated between velocities of facet nodes, and also angular velocity at that point
-	boost::tuple<Vector3r,Vector3r> interpolatePtLinAngVel(const Vector3r& x) const;
-	boost::tuple<Vector3r,Vector3r,Vector3r> getOuterVectors() const;
+	std::tuple<Vector3r,Vector3r> interpolatePtLinAngVel(const Vector3r& x) const;
+	std::tuple<Vector3r,Vector3r,Vector3r> getOuterVectors() const;
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR(Facet,Shape,"Facet (triangle in 3d) particle.",
 		/*attrs*/
 		,/*ctor*/ createIndex();

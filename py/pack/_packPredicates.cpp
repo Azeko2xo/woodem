@@ -3,6 +3,7 @@
 #include<yade/extra/boost_python_len.hpp>
 #include<yade/lib/base/Logging.hpp>
 #include<yade/lib/base/Math.hpp>
+#include<yade/lib/base/Types.hpp>
 #include<yade/lib/pyutil/doc_opts.hpp>
 
 namespace py=boost::python;

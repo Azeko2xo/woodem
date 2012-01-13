@@ -17,6 +17,21 @@ YADE_PLUGIN(dem,(L6Geom)(Cg2_Sphere_Sphere_L6Geom)(Cg2_Facet_Sphere_L6Geom)(Cg2_
 #endif
 #endif
 
+void L6Geom::setInitialLocalCoords(const Vector3r& locX){
+	// initial local y-axis orientation, in the xz or xy plane, depending on which component is larger to avoid singularities
+	Vector3r locY=locX.cross(abs(locX[1])<abs(locX[2])?Vector3r::UnitY():Vector3r::UnitZ()); locY-=locX*locY.dot(locX); locY.normalize();
+	Vector3r locZ=locX.cross(locY);
+	// set our data
+	#ifdef L6_TRSF_QUATERNION
+		Matrix3r T; T.row(0)=locX; T.row(1)=locY; T.row(2)=locZ;
+		trsf=Quaternionr(T); // from transformation matrix
+	#else
+		trsf.row(0)=locX; trsf.row(1)=locY; trsf.row(2)=locZ;
+	#endif
+}
+
+
+
 CREATE_LOGGER(Cg2_Sphere_Sphere_L6Geom);
 
 bool Cg2_Sphere_Sphere_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
@@ -51,7 +66,7 @@ bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<
 	if(abs(planeDist)>s.radius && !C->isReal() && !force) return false;
 	Vector3r fC=sC-planeDist*fNormal; // sphere's center projected to facet's plane
 	Vector3r outVec[3];
-	boost::tie(outVec[0],outVec[1],outVec[2])=f.getOuterVectors();
+	std::tie(outVec[0],outVec[1],outVec[2])=f.getOuterVectors();
 	Real ll[3]; // whether the projected center is on the outer or inner side of each side's line
 	for(int i:{0,1,2}) ll[i]=outVec[i].dot(fC-f.nodes[i]->pos);
 	short w=(ll[0]>0?1:0)+(ll[1]>0?2:0)+(ll[2]>0?4:0); // bitmask whether the closest point is outside (1,2,4 for respective edges)
@@ -67,20 +82,37 @@ bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<
 		case 7: throw logic_error("Cg2_Facet_Sphere_L3Geom: Impossible sphere-facet intersection (all points are outside the edges). (please report bug)"); // +++ (impossible)
 		default: throw logic_error("Ig2_Facet_Sphere_L3Geom: Nonsense intersection value. (please report bug)");
 	}
-	Vector3r normal=sC-contPt; // normal is now the contact normal (not yet normalized)
-	cerr<<"sC="<<sC.transpose()<<", contPt="<<contPt.transpose()<<endl;
-	//cerr<<"dist="<<normal.norm()<<endl;
-	if(normal.squaredNorm()>pow(s.radius,2) && !C->isReal() && !force) { return false; }
-	Real dist=normal.norm(); normal/=dist; // normal is normalized now
-	Real uN=dist-s.radius;
-	//throw std::logic_error("Cg2_Facet_Sphere_L6Geom::go: Not yet implemented.");
-	// TODO: not yet tested!!
-	Vector3r linVel,angVel;
-	boost::tie(linVel,angVel)=f.interpolatePtLinAngVel(contPt);
-	const DemData& dyn2(s.nodes[0]->getData<DemData>()); // sphere
-	// check if this will work when contact point == pseudo-position of the facet
-	handleSpheresLikeContact(C,contPt,linVel,angVel,sC,dyn2.vel,dyn2.angVel,normal,contPt,uN,0,s.radius);
-	return true;
+	if(!centralNoFrict){
+		Vector3r normal=sC-contPt; // normal is now the contact normal (not yet normalized)
+		//cerr<<"sC="<<sC.transpose()<<", contPt="<<contPt.transpose()<<endl;
+		//cerr<<"dist="<<normal.norm()<<endl;
+		if(normal.squaredNorm()>pow(s.radius,2) && !C->isReal() && !force) { return false; }
+		Real dist=normal.norm(); normal/=dist; // normal is normalized now
+		Real uN=dist-s.radius;
+		// TODO: not yet tested!!
+		Vector3r linVel,angVel;
+		std::tie(linVel,angVel)=f.interpolatePtLinAngVel(contPt);
+		const DemData& dyn2(s.nodes[0]->getData<DemData>()); // sphere
+		// check if this will work when contact point == pseudo-position of the facet
+		handleSpheresLikeContact(C,contPt,linVel,angVel,sC,dyn2.vel,dyn2.angVel,normal,contPt,uN,0,s.radius);
+		return true;
+	}else{
+		Real dist=(sC-contPt).norm();
+		Vector3r normal;
+		if(dist==0.) normal=fNormal;
+		else normal=(sC-contPt)/dist;
+		/* imitate handleSpheresLikeContact here... */
+		if(!C->geom) C->geom=make_shared<L6Geom>();
+		L6Geom& g(C->geom->cast<L6Geom>());
+		g.setInitialLocalCoords(normal);
+		// FIXME: do the same as in handleSpheresLikeContact, but without hacks!!
+		g.lens=Vector2r(s.radius,s.radius);
+		g.contA=Mathr::PI*pow(s.radius,2);
+		g.node->pos=contPt;
+		g.node->ori=Quaternionr(g.trsf);
+		g.uN=dist;
+		return true;
+	}
 };
 
 bool Cg2_Wall_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
@@ -157,18 +189,9 @@ pos2 however is with periodic correction already!!
 void Cg2_Sphere_Sphere_L6Geom::handleSpheresLikeContact(const shared_ptr<Contact>& C, const Vector3r& pos1, const Vector3r& vel1, const Vector3r& angVel1, const Vector3r& pos2, const Vector3r& vel2, const Vector3r& angVel2, const Vector3r& normal, const Vector3r& contPt, Real uN, Real r1, Real r2){
 	// create geometry
 	if(!C->geom){
-		C->geom=shared_ptr<L6Geom>(new L6Geom);
+		C->geom=make_shared<L6Geom>();
 		L6Geom& g(C->geom->cast<L6Geom>());
-		const Vector3r& locX(normal);
-		// initial local y-axis orientation, in the xz or xy plane, depending on which component is larger to avoid singularities
-		Vector3r locY=normal.cross(abs(normal[1])<abs(normal[2])?Vector3r::UnitY():Vector3r::UnitZ()); locY-=locX*locY.dot(locX); locY.normalize();
-		Vector3r locZ=normal.cross(locY);
-		#ifdef L6_TRSF_QUATERNION
-			Matrix3r trsf; trsf.row(0)=locX; trsf.row(1)=locY; trsf.row(2)=locZ;
-			g.trsf=Quaternionr(trsf); // from transformation matrix
-		#else
-			g.trsf.row(0)=locX; g.trsf.row(1)=locY; g.trsf.row(2)=locZ;
-		#endif
+		g.setInitialLocalCoords(normal);
 		g.uN=uN;
 		// FIXME FIXME FIXME: this needs to be changed
 		// for now, assign lengths of half of the distance between spheres
@@ -315,109 +338,6 @@ void Cg2_Sphere_Sphere_L6Geom::handleSpheresLikeContact(const shared_ptr<Contact
 	g.node->pos=contPt;
 	g.node->ori=Quaternionr(g.trsf);
 };
-
-#if 0
-bool Ig2_Wall_Sphere_L3Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const State& state1, const State& state2, const Vector3r& shift2, const bool& force, const shared_ptr<Interaction>& I){
-	if(scene->isPeriodic) throw std::logic_error("Ig2_Wall_Sphere_L3Geom does not handle periodic boundary conditions.");
-	const Real& radius=s2->cast<Sphere>().radius; const int& ax(s1->cast<Wall>().axis); const int& sense(s1->cast<Wall>().sense);
-	Real dist=state2.pos[ax]+shift2[ax]-state1.pos[ax]; // signed "distance" between centers
-	if(!I->isReal() && abs(dist)>radius && !force) { return false; }// wall and sphere too far from each other
-	// contact point is sphere center projected onto the wall
-	Vector3r contPt=state2.pos+shift2; contPt[ax]=state1.pos[ax];
-	Vector3r normal=Vector3r::Zero();
-	// wall interacting from both sides: normal depends on sphere's position
-	assert(sense==-1 || sense==0 || sense==1);
-	if(sense==0) normal[ax]=dist>0?1.:-1.;
-	else normal[ax]=(sense==1?1.:-1);
-	Real uN=normal[ax]*dist-radius; // takes in account sense, radius and distance
-
-	// check that the normal did not change orientation (would be abrup here)
-	if(I->geom && I->geom->cast<L3Geom>().normal!=normal){
-		ostringstream oss; oss<<"Ig2_Wall_Sphere_L3Geom: normal changed from ("<<I->geom->cast<L3Geom>().normal<<" to "<<normal<<" in Wall+Sphere ##"<<I->getId1()<<"+"<<I->getId2()<<" (with Wall.sense=0, a particle might cross the Wall plane, if Δt is too high)"; throw std::logic_error(oss.str().c_str());
-	}
-	handleSpheresLikeContact(I,state1,state2,shift2,/*is6Dof*/false,normal,contPt,uN,/*r1*/0,/*r2*/radius);
-	return true;
-};
-
-bool Ig2_Facet_Sphere_L3Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const State& state1, const State& state2, const Vector3r& shift2, const bool& force, const shared_ptr<Interaction>& I){
-	const Facet& facet(s1->cast<Facet>());
-	Real radius=s2->cast<Sphere>().radius;
-	// begin facet-local coordinates
-		Vector3r cogLine=state1.ori.conjugate()*(state2.pos+shift2-state1.pos); // connect centers of gravity
-		Vector3r normal=facet.normal; // trial contact normal
-		Real planeDist=normal.dot(cogLine);
-		if(abs(planeDist)>radius && !I->isReal() && !force) return false; // sphere too far
-
-		// HACK: refuse to collide sphere and facet with common node; for that, body is needed :-|
-		// this could be moved to the collider (the mayCollide function)
-		vector<shared_ptr<Node> > fn=Body::byId(I->getId1(),scene)->nodes;
-		vector<shared_ptr<Node> > sn=Body::byId(I->getId2(),scene)->nodes;
-		assert(fn.size()==3 && sn.size()==1);
-		if(fn[0]==sn[0] || fn[1]==sn[0] || fn[2]==sn[0]) return false;
-
-		if(planeDist<0){normal*=-1; planeDist*=-1; }
-		Vector3r planarPt=cogLine-planeDist*normal; // project sphere center to the facet plane
-		Vector3r contactPt; // facet's point closes to the sphere
-		Real normDotPt[3];  // edge outer normals dot products
-		for(int i=0; i<3; i++) normDotPt[i]=facet.ne[i].dot(planarPt-facet.vertices[i]);
-		short w=(normDotPt[0]>0?1:0)+(normDotPt[1]>0?2:0)+(normDotPt[2]>0?4:0); // bitmask whether the closest point is outside (1,2,4 for respective edges)
-		switch(w){
-			case 0: contactPt=planarPt; break; // ---: inside triangle
-			case 1: contactPt=getClosestSegmentPt(planarPt,facet.vertices[0],facet.vertices[1]); break; // +-- (n1)
-			case 2: contactPt=getClosestSegmentPt(planarPt,facet.vertices[1],facet.vertices[2]); break; // -+- (n2)
-			case 4: contactPt=getClosestSegmentPt(planarPt,facet.vertices[2],facet.vertices[0]); break; // --+ (n3)
-			case 3: contactPt=facet.vertices[1]; break; // ++- (v1)
-			case 5: contactPt=facet.vertices[0]; break; // +-+ (v0)
-			case 6: contactPt=facet.vertices[2]; break; // -++ (v2)
-			case 7: throw logic_error("Ig2_Facet_Sphere_L3Geom: Impossible sphere-facet intersection (all points are outside the edges). (please report bug)"); // +++ (impossible)
-			default: throw logic_error("Ig2_Facet_Sphere_L3Geom: Nonsense intersection value. (please report bug)");
-		}
-		normal=cogLine-contactPt; // normal is now the contact normal, still in local coords
-		if(!I->isReal() && normal.squaredNorm()>radius*radius && !force) { return false; } // fast test before sqrt
-		Real dist=normal.norm(); normal/=dist; // normal is unit vector now
-	// end facet-local coordinates
-	normal=state1.ori*normal; // normal is in global coords now
-	handleSpheresLikeContact(I,state1,state2,shift2,/*is6Dof*/false,normal,/*contact pt*/state2.pos+shift2-normal*dist,dist-radius,0,radius);
-	return true;
-}
-
-void Law2_L3Geom_FrictPhys_ElPerfPl::go(shared_ptr<IGeom>& ig, shared_ptr<IPhys>& ip, Interaction* I){
-	L3Geom* geom=static_cast<L3Geom*>(ig.get()); FrictPhys* phys=static_cast<FrictPhys*>(ip.get());
-
-	// compute force
-	Vector3r& localF(geom->F);
-	localF=geom->relU().cwise()*Vector3r(phys->kn,phys->ks,phys->ks);
-	// break if necessary
-	if(localF[0]>0 && !noBreak){ scene->interactions->requestErase(I->getId1(),I->getId2()); return; }
-
-	if(!noSlip){
-		// plastic slip, if necessary; non-zero elastic limit only for compression
-		Real maxFs=-min(0.,localF[0]*phys->tanPhi); Eigen::Map<Vector2r> Fs(&localF[1]);
-		//cerr<<"u="<<geom->relU()<<", maxFs="<<maxFs<<", Fn="<<localF[0]<<", |Fs|="<<Fs.norm()<<", Fs="<<Fs<<endl;
-		if(Fs.squaredNorm()>maxFs*maxFs){
-			Real ratio=sqrt(maxFs*maxFs/Fs.squaredNorm());
-			Vector3r u0slip=(1-ratio)*Vector3r(/*no slip in the normal sense*/0,geom->relU()[1],geom->relU()[2]);
-			geom->u0+=u0slip; // increment plastic displacement
-			Fs*=ratio; // decrement shear force value;
-			if(unlikely(scene->trackEnergy)){ Real dissip=Fs.norm()*u0slip.norm(); if(dissip>0) scene->energy->add(dissip,"plastDissip",plastDissipIx,/*reset*/false); }
-		}
-	}
-	if(unlikely(scene->trackEnergy)){ scene->energy->add(0.5*(pow(geom->relU()[0],2)*phys->kn+(pow(geom->relU()[1],2)+pow(geom->relU()[2],2))*phys->ks),"elastPotential",elastPotentialIx,/*reset at every timestep*/true); }
-	// apply force: this converts the force to global space, updates NormShearPhys::{normal,shear}Force, applies to particles
-	geom->applyLocalForce(localF,I,scene,phys);
-}
-
-
-void Law2_L6Geom_FrictPhys_Linear::go(shared_ptr<IGeom>& ig, shared_ptr<IPhys>& ip, Interaction* I){
-	L6Geom& geom=ig->cast<L6Geom>(); FrictPhys& phys=ip->cast<FrictPhys>();
-
-	// simple linear relationships
-	Vector3r localF=geom.relU().cwise()*Vector3r(phys.kn,phys.ks,phys.ks);
-	Vector3r localT=charLen*(geom.relPhi().cwise()*Vector3r(phys.kn,phys.ks,phys.ks));
-
-	geom.applyLocalForceTorque(localF,localT,I,scene,static_cast<NormShearPhys*>(ip.get()));
-}
-#endif 
 
 #if 0
 #if YADE_OPENGL

@@ -7,8 +7,6 @@
 #include<yade/pkg/dem/ContactContainer.hpp>
 
 
-#include<boost/tuple/tuple.hpp>
-
 // namespace yade{namespace dem{
 
 class Particle;
@@ -50,6 +48,7 @@ struct Particle: public Serializable{
 		((shared_ptr<Shape>,shape,,,"Geometrical configuration of the particle"))
 		((shared_ptr<Material>,material,,,"Material of the particle"))
 		((MapParticleContact,contacts,,Attr::hidden,"Contacts of this particle, indexed by id of the other particle."))
+		// ((int,flags,0,Attr::hidden,"Various flags, only individually accesible from Python"))
 		, /*ctor*/
 		, /*py*/
 			.add_property("contacts",&Particle::pyContacts)
@@ -76,14 +75,15 @@ REGISTER_SERIALIZABLE(Particle);
 class DemData: public NodeData{
 	boost::mutex lock; // used by applyForceTorque
 public:
-	// bits for blocked
-	enum {DOF_NONE=0,DOF_X=1,DOF_Y=2,DOF_Z=4,DOF_RX=8,DOF_RY=16,DOF_RZ=32};
-	//! shorthand for all DOFs blocked
+	// bits for flags
+	enum {
+		DOF_NONE=0,DOF_X=1,DOF_Y=2,DOF_Z=4,DOF_RX=8,DOF_RY=16,DOF_RZ=32,
+		CLUMP_CLUMPED=64,CLUMP_CLUMP=128
+	};
+	//! shorthands
 	static const unsigned DOF_ALL=DOF_X|DOF_Y|DOF_Z|DOF_RX|DOF_RY|DOF_RZ;
-	//! shorthand for all displacements blocked
 	static const unsigned DOF_XYZ=DOF_X|DOF_Y|DOF_Z;
-	//! shorthand for all rotations blocked
-	static const unsigned DOF_RXRYRZ=DOF_RX|DOF_RY|DOF_RZ; 
+	static const unsigned DOF_RXRYRZ=DOF_RX|DOF_RY|DOF_RZ;
 
 	//! Return DOF_* constant for given axis∈{0,1,2} and rotationalDOF∈{false(default),true}; e.g. axisDOF(0,true)==DOF_RX
 	static unsigned axisDOF(int axis, bool rotationalDOF=false){return 1<<(axis+(rotationalDOF?3:0));}
@@ -93,6 +93,18 @@ public:
 	std::string blocked_vec_get() const;
 	//! Setter of blocked from string ('xXZ' → DOF_X | DOR_RX | DOF_RZ)
 	void blocked_vec_set(const std::string& dofs);
+
+	bool isBlockedNone() const { return (flags&DOF_ALL)==DOF_NONE; }
+	bool isBlockedAll()  const { return (flags&DOF_ALL)==DOF_ALL; }
+	bool isBlockedAxisDOF(int axis, bool rot) const { return (flags & axisDOF(axis,rot)); }
+
+	// predicates and setters for clumps
+	bool isClumped() const { return flags&CLUMP_CLUMPED; }
+	bool isClump()   const { return flags&CLUMP_CLUMP; }
+	bool isNoClump() const { return !isClumped() && !isClump(); }
+	void setClumped(){ flags|=CLUMP_CLUMPED; flags&=~CLUMP_CLUMP; }
+	void setClump()  { flags|=CLUMP_CLUMP; flags&=~CLUMP_CLUMPED; }
+	void setNoClump(){ flags&=~(CLUMP_CLUMP | CLUMP_CLUMPED); }
 
 	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
 	void addForceTorque(const Vector3r& f, const Vector3r& t=Vector3r::Zero()){ boost::mutex::scoped_lock l(lock); force+=f; torque+=t; }
@@ -106,7 +118,7 @@ public:
 		((Vector3r,force,Vector3r::Zero(),,"Applied force"))
 		((Vector3r,torque,Vector3r::Zero(),,"Applied torque"))
 		((Vector3r,angMom,Vector3r::Zero(),,"Angular momentum (used with the aspherical integrator)"))
-		((unsigned,blocked,0,,"blocked degrees of freedom"))
+		((unsigned,flags,0,Attr::readonly,"Bit flags storing blocked DOFs, clump status"))
 		, /*ctor*/
 		, /*py*/ .add_property("blocked",&DemData::blocked_vec_get,&DemData::blocked_vec_set,"Degress of freedom where linear/angular velocity will be always constant (equal to zero, or to an user-defined value), regardless of applied force/torque. String that may contain 'xyzXYZ' (translations and rotations).")
 		.def("_getDataOnNode",&Node::pyGetData<DemData>).staticmethod("_getDataOnNode").def("_setDataOnNode",&Node::pySetData<DemData>).staticmethod("_setDataOnNode");
@@ -117,7 +129,7 @@ REGISTER_SERIALIZABLE(DemData);
 template<> struct NodeData::Index<DemData>{enum{value=Node::ST_DEM};};
 
 struct DemField: public Field{
-	int collectNodes(bool clear=true, bool dynOnly=false);
+	int collectNodes();
 
 	//template<> bool sceneHasField<DemField>() const;
 	//template<> shared_ptr<DemField> sceneGetField<DemField>() const;
@@ -125,9 +137,10 @@ struct DemField: public Field{
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(DemField,Field,"Field describing a discrete element assembly. Each body references (possibly many) nodes by their index in :yref:`Field.nodes` and :yref:`Field.nodalData`. ",
 		((ParticleContainer,particles,,(Attr::pyByRef|Attr::readonly),"Particles (each particle holds its contacts, and references associated nodes)"))
 		((ContactContainer,contacts,,(Attr::pyByRef|Attr::readonly),"Linear view on particle contacts"))
+		((vector<shared_ptr<Node>>,clumps,,Attr::readonly,"Nodes which define clumps; only manipulated from clump-related user-routines, not directly."))
 		, /* ctor */ createIndex(); particles.dem=this; contacts.dem=this; contacts.particles=&particles;
 		, /*py*/
-		.def("collectNodes",&DemField::collectNodes,(py::arg("clear")=true,py::arg("dynOnly")=false),"Collect nodes from all particles and insert them to nodes defined for this field. *clear* causes nodes to be cleared in advance, *dynOnly* adds only those defining :yref:`Node.dyn<dem.DemData>`. Nodes are not added multiple times, even if they are referenced from different particles.")
+		.def("collectNodes",&DemField::collectNodes,"Collect nodes from all particles and clumps and insert them to nodes defined for this field. Nodes are not added multiple times, even if they are referenced from different particles / clumps.")
 		.def("sceneHasField",&Field_sceneHasField<DemField>).staticmethod("sceneHasField")
 		.def("sceneGetField",&Field_sceneGetField<DemField>).staticmethod("sceneGetField")
 	);
@@ -180,7 +193,7 @@ struct Contact: public Serializable{
 	Force and torque at node itself are  F and branch.cross(F)+T respectively.
 	Branch takes periodicity (cellDist) in account.
 	See In2_Sphere_Elastmat::go for its use.  */
-	boost::tuple<Vector3r,Vector3r,Vector3r> getForceTorqueBranch(const shared_ptr<Particle>&, int nodeI, Scene* scene);
+	std::tuple<Vector3r,Vector3r,Vector3r> getForceTorqueBranch(const shared_ptr<Particle>&, int nodeI, Scene* scene);
 	// return position vector between pA and pB, taking in account PBC's; both must be uninodal
 	Vector3r dPos(Scene* s);
 	Vector3r dPos_py(){ return dPos(Omega::instance().getScene().get()); }

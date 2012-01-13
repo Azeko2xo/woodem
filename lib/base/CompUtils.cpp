@@ -55,3 +55,22 @@ int CompUtils::lineSphereIntersection(const Vector3r& A, const Vector3r& u, cons
 	return 2;
 }
 
+Vector3r CompUtils::facetBarycentrics(const Vector3r& x, const Vector3r& A, const Vector3r& B, const Vector3r& C){
+	/* http://www.blackpawn.com/texts/pointinpoly/default.html, but we used different notation
+		vert=[A,B,C]
+		reference point (origin) is A
+		u,v, are with respect to B-A, C-A; the third coord is computed
+		x-A=u*(B-A)+v*(C-A), i.e. vX=u*vB+v*vC;
+		dot-multiply by vB and vC to get 2 equations for u,v
+
+		return (1-u-v,u,v)
+	*/
+		 
+	typedef Eigen::Matrix<Real,2,2> Matrix2r;
+	Vector3r vB=B-A, vC=C-A, vX=x-A;
+	Matrix2r M;
+	M<<vB.dot(vB),vC.dot(vB),
+	   vB.dot(vC),vC.dot(vC);
+	Vector2r uv=M.inverse()*Vector2r(vX.dot(vB),vX.dot(vC));
+	return Vector3r(1-uv[0]-uv[1],uv[0],uv[1]);
+}

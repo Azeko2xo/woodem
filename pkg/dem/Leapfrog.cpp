@@ -1,6 +1,7 @@
 #include<yade/pkg/dem/Leapfrog.hpp>
 #include<yade/core/Scene.hpp>
 #include<yade/pkg/dem/Particle.hpp>
+#include<yade/pkg/dem/Clump.hpp>
 
 YADE_PLUGIN(dem,(Leapfrog)(ForceResetter));
 CREATE_LOGGER(Leapfrog);
@@ -20,16 +21,16 @@ void Leapfrog::nonviscDamp2nd(const Real& dt, const Vector3r& force, const Vecto
 	for(int i=0; i<3; i++) accel[i]*=1-damping*Mathr::Sign(force[i]*(vel[i]+0.5*dt*accel[i]));
 }
 
-Vector3r Leapfrog::computeAccel(const Vector3r& force, const Real& mass, int blocked){
-	if(likely(blocked==0)) return force/mass;
+Vector3r Leapfrog::computeAccel(const Vector3r& force, const Real& mass, const DemData& dyn){
+	if(likely(dyn.isBlockedNone())) return force/mass;
 	Vector3r ret(Vector3r::Zero());
-	for(int i=0; i<3; i++) if(!(blocked & DemData::axisDOF(i,false))) ret[i]+=force[i]/mass;
+	for(int i=0; i<3; i++) if(!(dyn.isBlockedAxisDOF(i,false))) ret[i]+=force[i]/mass;
 	return ret;
 }
-Vector3r Leapfrog::computeAngAccel(const Vector3r& torque, const Vector3r& inertia, int blocked){
-	if(likely(blocked==0)) return torque.cwise()/inertia;
+Vector3r Leapfrog::computeAngAccel(const Vector3r& torque, const Vector3r& inertia, const DemData& dyn){
+	if(likely(dyn.isBlockedNone())) return torque.cwise()/inertia;
 	Vector3r ret(Vector3r::Zero());
-	for(int i=0; i<3; i++) if(!(blocked & DemData::axisDOF(i,true))) ret[i]+=torque[i]/inertia[i];
+	for(int i=0; i<3; i++) if(!(dyn.isBlockedAxisDOF(i,true))) ret[i]+=torque[i]/inertia[i];
 	return ret;
 }
 
@@ -92,16 +93,8 @@ void Leapfrog::run(){
 
 	/* temporary hack */
 	if(dem->nodes.empty()){
-		LOG_WARN("No nodes found, collecting nodes from all particles; shared nodes will be erroneously added multiple times");
-		int i=0;
-		FOREACH(const shared_ptr<Particle>& p, dem->particles){
-			if(!p->shape) continue;
-			FOREACH(const shared_ptr<Node>& n, p->shape->nodes){
-				dem->nodes.push_back(n);
-				i++;
-			}
-		}
-		LOG_WARN("Collected "<<i<<" nodes.");
+		int i=dem->collectNodes();
+		LOG_WARN("No DEM nodes were defined, "<<i<<" nodes were collected from particles.");
 	}
 	
 
@@ -114,7 +107,14 @@ void Leapfrog::run(){
 		const shared_ptr<Node>& node=nodes[i];
 		if(!node->hasData<DemData>()) continue;
 		DemData& dyn(node->getData<DemData>());
-		Vector3r& f=dyn.force;	Vector3r& t=dyn.torque;
+		// handle clumps
+		if(dyn.isClumped()) continue; // those particles are integrated via the clump's master node
+		bool isClump=dyn.isClump();
+		if(isClump){
+			ClumpData::collectFromMembers(node);
+		}
+		Vector3r& f=dyn.force;
+		Vector3r& t=dyn.torque;
 
 		if(unlikely(reallyTrackEnergy) && (damping!=0.)) doDampingDissipation(node);
 
@@ -124,12 +124,12 @@ void Leapfrog::run(){
 		Vector3r pprevFluctVel, pprevFluctAngVel;
 
 		// whether to use aspherical rotation integration for this body; for no accelerations, spherical integrator is "exact" (and faster)
-		bool useAspherical=(dyn.isAspherical() && dyn.blocked!=DemData::DOF_ALL);
+		bool useAspherical=(dyn.isAspherical() && (!dyn.isBlockedAll()));
 
 		Vector3r linAccel(Vector3r::Zero()), angAccel(Vector3r::Zero());
 		// for particles not totally blocked, compute accelerations; otherwise, the computations would be useless
-		if (dyn.blocked!=DemData::DOF_ALL) {
-			linAccel=computeAccel(f,dyn.mass,dyn.blocked);
+		if (!dyn.isBlockedAll()) {
+			linAccel=computeAccel(f,dyn.mass,dyn);
 			// fluctuation velocities
 			if(isPeriodic){
 				pprevFluctVel=scene->cell->pprevFluctVel(node->pos,dyn.vel,dt);
@@ -143,12 +143,12 @@ void Leapfrog::run(){
 			// angular acceleration
 			if(dyn.inertia!=Vector3r::Zero()){
 				if(!useAspherical){ // spherical integrator, uses angular velocity
-					angAccel=computeAngAccel(t,dyn.inertia,dyn.blocked);
+					angAccel=computeAngAccel(t,dyn.inertia,dyn);
 					nonviscDamp2nd(dt,t,pprevFluctAngVel,angAccel);
 					dyn.angVel+=dt*angAccel;
 					if(homoDeform==Cell::HOMO_GRADV2) dyn.angVel+=deltaSpinVec;
 				} else { // uses torque
-					for(int i=0; i<3; i++) if(dyn.blocked & DemData::axisDOF(i,true)) t[i]=0; // block DOFs here
+					for(int i=0; i<3; i++) if(dyn.isBlockedAxisDOF(i,true)) t[i]=0; // block DOFs here
 					nonviscDamp1st(t,pprevFluctAngVel);
 				}
 			}
@@ -174,6 +174,8 @@ void Leapfrog::run(){
 			if(!useAspherical) leapfrogSphericalRotate(node);
 			else leapfrogAsphericalRotate(node,t);
 		}
+		// for clumps, update positions/orientations of members as well
+		if(isClump) ClumpData::applyToMembers(node);
 
 		if(reset){ dyn.force=dyn.torque=Vector3r::Zero(); }
 	}

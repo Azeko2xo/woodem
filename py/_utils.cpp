@@ -332,7 +332,7 @@ Vector3r forcesOnCoordPlane(Real coord, int axis){
 
 py::tuple spiralProject(const Vector3r& pt, Real dH_dTheta, int axis=2, Real periodStart=std::numeric_limits<Real>::quiet_NaN(), Real theta0=0){
 	Real r,h,theta;
-	boost::tie(r,h,theta)=Shop::spiralProject(pt,dH_dTheta,axis,periodStart,theta0);
+	std::tie(r,h,theta)=Shop::spiralProject(pt,dH_dTheta,axis,periodStart,theta0);
 	return py::make_tuple(py::make_tuple(r,h),theta);
 }
 //BOOST_PYTHON_FUNCTION_OVERLOADS(spiralProject_overloads,spiralProject,2,5);

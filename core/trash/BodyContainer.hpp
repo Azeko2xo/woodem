@@ -11,8 +11,6 @@
 #  define FOREACH BOOST_FOREACH
 #endif
 
-#include<boost/tuple/tuple.hpp>
-
 class Body;
 class InteractionContainer;
 
@@ -119,7 +117,7 @@ class BodyContainer: public Serializable{
 			// return the number of actually defined subdomains; if no subdomains were defined, return 1, which has the meaning of the whole domain
 			int numSubdomains(){ return std::max((size_t)1,subDomains.size()); }
 			// convert global subId to subDomain number and domain-local id
-			boost::tuple<int,Body::id_t> subDomId2domNumLocalId(Body::id_t subDomId) const { return boost::make_tuple(subDomId % maxSubdomains, subDomId / maxSubdomains); }
+			std::tuple<int,Body::id_t> subDomId2domNumLocalId(Body::id_t subDomId) const { return std::make_tuple(subDomId % maxSubdomains, subDomId / maxSubdomains); }
 			// convert subDomain number and subDomain-local id to global subId
 			Body::id_t domNumLocalId2subDomId(int domNum,Body::id_t localId) const { return localId*maxSubdomains+domNum; }
 

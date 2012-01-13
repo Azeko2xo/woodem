@@ -18,7 +18,7 @@ void StateNodeXCompat::action(){
 	FOREACH(const shared_ptr<Body>& b, *scene->bodies){
 		Facet* fac=dynamic_cast<Facet*>(b->shape.get());
 		if(!fac) continue;
-		boost::tie(b->state->pos,b->state->ori)=fac->updateGlobalVertices(b->nodes[0]->pos,b->nodes[1]->pos,b->nodes[2]->pos);
+		std::tie(b->state->pos,b->state->ori)=fac->updateGlobalVertices(b->nodes[0]->pos,b->nodes[1]->pos,b->nodes[2]->pos);
 	}
 }
 

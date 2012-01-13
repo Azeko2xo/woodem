@@ -1,4 +1,5 @@
 #include<yade/pkg/dem/Gravity.hpp>
+#include<yade/pkg/dem/Clump.hpp>
 #include<yade/core/Field.hpp>
 #include<yade/core/Scene.hpp>
 // #include<boost/regex.hpp>
@@ -13,16 +14,18 @@ void Gravity::run(){
 	const bool trackEnergy(unlikely(scene->trackEnergy));
 	const Real dt(scene->dt);
 	FOREACH(const shared_ptr<Node>& n, field->nodes){
-		// skip clumps, only apply forces on their constituents
-		//if(!b || b->isClump()) continue;
 		//if(mask!=0 && (b->groupMask & mask)==0) continue;
 		//scene->forces.addForce(b->getId(),gravity*b->state->mass);
 		// work done by gravity is "negative", since the energy appears in the system from outside
 		DemData& dyn(n->getData<DemData>());
+
+		// clumps skipped
+		if(dyn.isClump()) continue;
+
 		dyn.force+=gravity*dyn.mass;
 		if(trackEnergy){
 			Real e=0;
-			if(dyn.blocked==DemData::DOF_NONE){
+			if(dyn.isBlockedNone()){
 				#if 1
 					e=-gravity.dot(dyn.vel)*dyn.mass*dt;
 				#else
@@ -30,7 +33,7 @@ void Gravity::run(){
 					e=-gravity.dot(dyn.vel+.5*dt*(dyn.force/dyn.mass))*dyn.mass*dt;
 				#endif
 			}
-			else { for(int ax:{0,1,2}){ if(!(dyn.blocked & DemData::axisDOF(ax,false))) e-=gravity[ax]*dyn.vel[ax]*dyn.mass*dt; } }
+			else { for(int ax:{0,1,2}){ if(!(dyn.isBlockedAxisDOF(ax,false))) e-=gravity[ax]*dyn.vel[ax]*dyn.mass*dt; } }
 			scene->energy->add(e,"grav",gravWorkIx,EnergyTracker::IsIncrement);
 		}
 	}

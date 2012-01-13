@@ -35,6 +35,7 @@ using boost::make_shared;
 #include<string>
 #include<iostream>
 #include<stdexcept>
+#include<tuple>
 using std::vector;
 using std::map;
 using std::set;

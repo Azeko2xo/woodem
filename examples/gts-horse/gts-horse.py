@@ -5,7 +5,9 @@
 which can further be either filled with packing (if used as predicate) or converted
 to facets representing the surface."""
 
-from yade import pack
+from yade import pack,utils
+from yade.core import *
+from yade.dem import *
 import gts, os.path
 
 # coarsen the original horse if we have it
@@ -27,30 +29,31 @@ if surf.is_closed():
 	pred=pack.inGtsSurface(surf)
 	aabb=pred.aabb()
 	dim0=aabb[1][0]-aabb[0][0]; radius=dim0/40. # get some characteristic dimension, use it for radius
-	O.bodies.append(pack.regularHexa(pred,radius=radius,gap=radius/4.))
+	O.dem.par.append(pack.regularHexa(pred,radius=radius,gap=radius/4.))
 	surf.translate(0,0,-(aabb[1][2]-aabb[0][2])) # move surface down so that facets are underneath the falling spheres
-O.bodies.append(pack.gtsSurface2Facets(surf,wire=True))
+O.dem.par.append(pack.gtsSurface2Facets(surf,wire=True))
 
-O.engines=[
+O.scene.engines=[
 	ForceResetter(),
 	InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb()],label='collider'),
-	InteractionLoop(
-		[Ig2_Sphere_Sphere_L3Geom(),Ig2_Facet_Sphere_L3Geom()],
-		[Ip2_FrictMat_FrictMat_FrictPhys()],
-		[Law2_L3Geom_FrictPhys_ElPerfPl()],
+	ContactLoop(
+		[Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom()],
+		[Cp2_FrictMat_FrictPhys()],
+		[Law2_L6Geom_FrictPhys_IdealElPl()],
 	),
-	GravityEngine(gravity=[0,0,-5000]),
-	NewtonIntegrator(damping=.1),
-	PyRunner(iterPeriod=1000,command='timing.stats(); O.pause();'),
-	PyRunner(iterPeriod=10,command='addPlotData()')
+	IntraForce([In2_Sphere_ElastMat()]),
+	Gravity(gravity=(0,0,-5000)),
+	Leapfrog(damping=.1),
+	PyRunner(2000,'timing.stats(); O.pause();'),
+	PyRunner(10,'addPlotData()')
 ]
-O.dt=.7*utils.PWaveTimeStep()
+O.scene.dt=.7*utils.pWaveDt()
 O.saveTmp()
 O.timingEnabled=True
-O.trackEnergy=True
+O.scene.trackEnergy=True
 from yade import plot
-plot.plots={'i':('total',O.energy.keys,)}
-def addPlotData(): plot.addData(i=O.iter,total=O.energy.total(),**O.energy)
+plot.plots={'i':('total',O.scene.energy.keys,)}
+def addPlotData(): plot.addData(i=O.scene.step,total=O.scene.energy.total(),**O.scene.energy)
 plot.plot()
 
 from yade import timing

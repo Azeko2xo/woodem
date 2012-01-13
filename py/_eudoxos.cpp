@@ -155,7 +155,7 @@ struct HelixInteractionLocator2d{
 			CpmPhys* ph=dynamic_cast<CpmPhys*>(i->phys.get());
 			if(!ge || !ph) continue;
 			Real r,h,theta;
-			boost::tie(r,h,theta)=Shop::spiralProject(ge->contactPoint,dH_dTheta,axis,periodStart,theta0);
+			std::tie(r,h,theta)=Shop::spiralProject(ge->contactPoint,dH_dTheta,axis,periodStart,theta0);
 			if(!isnan(thetaMin) && theta<thetaMin) continue;
 			if(!isnan(thetaMax) && theta>thetaMax) continue;
 			lo=lo.cwise().min(Vector2r(r,h)); hi=hi.cwise().max(Vector2r(r,h));

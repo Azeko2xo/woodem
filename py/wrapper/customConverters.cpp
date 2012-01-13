@@ -243,6 +243,7 @@ BOOST_PYTHON_MODULE(_customConverters){
 		VECTOR_SEQ_CONV(Vector6i);
 		VECTOR_SEQ_CONV(VectorXr);
 		VECTOR_SEQ_CONV(Matrix3r);
+		VECTOR_SEQ_CONV(Quaternionr);
 		VECTOR_SEQ_CONV(std::string);
 		// VECTOR_SEQ_CONV(shared_ptr<Node>);
 		custom_vector_from_seq<shared_ptr<Node> >(); // allow assignments vector<shared_ptr<Node> >=[list of nodes]

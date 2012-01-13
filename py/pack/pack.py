@@ -194,10 +194,16 @@ class inSpace(Predicate):
 ## surface construction and manipulation
 #####
 
-def gtsSurface2Facets(surf,**kw):
+def gtsSurface2Facets(surf,shareNodes=True,**kw):
 	"""Construct facets from given GTS surface. **kw is passed to utils.facet."""
 	import gts
-	return [utils.facet([v.coords() for v in face.vertices()],**kw) for face in surf.faces()]
+	from yade.core import Node
+	if not shareNodes:
+		return [utils.facet([v.coords() for v in face.vertices()],**kw) for face in surf.faces()]
+	else:
+		nodesMap=dict([(v.id,Node(pos=v.coords())) for v in surf.vertices()])
+		return [utils.facet([nodesMap[v.id] for v in face.vertices()],**kw) for face in surf.faces()]
+
 
 def sweptPolylines2gtsSurface(pts,threshold=0,capStart=False,capEnd=False):
 	"""Create swept suface (as GTS triangulation) given same-length sequences of points (as 3-tuples).

@@ -564,7 +564,7 @@ template<> string solverStatus2str<StaticEquilibriumSolver::SolverPowell>(int st
 		CASE_STATUS(TolTooSmall);
 		CASE_STATUS(NotMakingProgressJacobian);
 		CASE_STATUS(NotMakingProgressIterations);
-		CASE_STATUS(UserAsked);
+		// CASE_STATUS(UserAsked);
 	}
 	#undef CASE_STATUS
 	throw std::logic_error(("solverStatus2str<HybridNonLinearSolver> called with unknown status number "+lexical_cast<string>(status)).c_str());

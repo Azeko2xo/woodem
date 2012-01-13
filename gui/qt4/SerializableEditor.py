@@ -483,7 +483,7 @@ class SerializableEditor(QFrame):
 			'bool':bool,'int':int,'long':int,'Body::id_t':long,'size_t':long,
 			'Real':float,'float':float,'double':float,
 			'Vector6r':Vector6,'Vector6i':Vector6i,'Vector3i':Vector3i,'Vector2r':Vector2,'Vector2i':Vector2i,
-			'Vector3r':Vector3,'Matrix3r':Matrix3,'Se3r':Se3FakeType,
+			'Vector3r':Vector3,'Matrix3r':Matrix3,'Se3r':Se3FakeType,'Quaternionr':Quaternion,
 			'string':str
 		}
 		for T,ret in vecMap.items():

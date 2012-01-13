@@ -13,6 +13,8 @@
 
 struct L6Geom: public CGeom{
 	Real getMinRefLen(){ return (lens[0]<=0?lens[1]:(lens[1]<=0?lens[0]:lens.minCoeff())); }
+	// set trsf with locX, and orient y and z arbitrarily
+	void setInitialLocalCoords(const Vector3r& locX);
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR(L6Geom,CGeom,"Geometry of particles in contact, defining relative velocities.",
 		((Vector3r,vel,Vector3r::Zero(),,"Relative displacement rate in local coordinates, defined by :yref:`CGeom.node`"))
 		((Vector3r,angVel,Vector3r::Zero(),,"Relative rotation rate in local coordinates"))
@@ -54,7 +56,9 @@ struct Cg2_Sphere_Sphere_L6Geom: public CGeomFunctor{
 REGISTER_SERIALIZABLE(Cg2_Sphere_Sphere_L6Geom);
 
 struct Cg2_Facet_Sphere_L6Geom: public Cg2_Sphere_Sphere_L6Geom{
-	YADE_CLASS_BASE_DOC(Cg2_Facet_Sphere_L6Geom,Cg2_Sphere_Sphere_L6Geom,"Incrementally compute :yref:`L6Geom` for contact between :yref:`Facet` and :yref:`Sphere`. Uses attributes of :yref:`Cg2_Sphere_Sphere_L6Geom`.");
+	YADE_CLASS_BASE_DOC_ATTRS(Cg2_Facet_Sphere_L6Geom,Cg2_Sphere_Sphere_L6Geom,"Incrementally compute :yref:`L6Geom` for contact between :yref:`Facet` and :yref:`Sphere`. Uses attributes of :yref:`Cg2_Sphere_Sphere_L6Geom`.",
+		((bool,centralNoFrict,false,,"Instead of working normally, compute the contact such that the equilibrium position is when the sphere's center is on the facet."))
+	);
 	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
 	virtual bool goReverse(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){ throw std::logic_error("ContactLoop should swap interaction arguments, should be Facet+Sphere, but is "+s1->getClassName()+"+"+s2->getClassName()); }
 	FUNCTOR2D(Facet,Sphere);

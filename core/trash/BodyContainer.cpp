@@ -105,7 +105,7 @@ bool BodyContainer::erase(Body::id_t id){
 			const shared_ptr<Body>& b=body[id];
 			if(b->subDomId!=Body::ID_NONE){
 				int subDom, localId;
-				boost::tie(subDom,localId)=subDomId2domNumLocalId(b->subDomId);
+				std::tie(subDom,localId)=subDomId2domNumLocalId(b->subDomId);
 				if(subDom<(int)subDomains.size() && localId<(Body::id_t)subDomains[subDom].size() && subDomains[subDom][localId]==b){
 					subDomainsLowestFree[subDom]=min(subDomainsLowestFree[subDom],localId);
 				} else {

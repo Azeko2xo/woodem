@@ -3,6 +3,7 @@
 #include<yade/pkg/dem/ParticleContainer.hpp>
 #include<yade/pkg/dem/Particle.hpp>
 #include<yade/pkg/dem/ContactLoop.hpp>
+#include<yade/pkg/dem/Clump.hpp>
 
 #ifdef YADE_OPENMP
 	#include<omp.h>
@@ -98,7 +99,7 @@ bool ParticleContainer::remove(Particle::id_t id){
 			const shared_ptr<Particle>& b=parts[id];
 			if(b->subDomId!=Particle::ID_NONE){
 				int subDom, localId;
-				boost::tie(subDom,localId)=subDomId2domNumLocalId(b->subDomId);
+				std::tie(subDom,localId)=subDomId2domNumLocalId(b->subDomId);
 				if(subDom<(int)subDomains.size() && localId<(id_t)subDomains[subDom].size() && subDomains[subDom][localId]==b){
 					subDomainsLowestFree[subDom]=min(subDomainsLowestFree[subDom],localId);
 				} else {
@@ -132,10 +133,26 @@ Particle::id_t ParticleContainer::pyAppend(shared_ptr<Particle> p){
 	return insert(p);
 }
 
-py::list ParticleContainer::pyAppendList(vector<shared_ptr<Particle> > pp){
+py::list ParticleContainer::pyAppendList(vector<shared_ptr<Particle>> pp){
 	py::list ret;
 	FOREACH(shared_ptr<Particle>& p, pp){ret.append(pyAppend(p));}
 	return ret;
+}
+
+shared_ptr<Node> ParticleContainer::pyAppendClumped(vector<shared_ptr<Particle>> pp){
+	std::set<void*> seen;
+	vector<shared_ptr<Node>> nodes; nodes.reserve(pp.size());
+	for(const auto& p:pp){
+		pyAppend(p);
+		for(const auto& n: p->shape->nodes){
+			if(seen.count((void*)n.get())!=0) continue;
+			seen.insert((void*)n.get());
+			nodes.push_back(n);
+		}
+	}
+	shared_ptr<Node> clump=ClumpData::makeClump(nodes);
+	dem->clumps.push_back(clump);
+	return clump;
 }
 
 shared_ptr<Particle> ParticleContainer::pyGetItem(Particle::id_t id){

@@ -103,7 +103,7 @@ void OpenGLRenderer::setBodiesDispInfo(){
 		bodyDisp[id].isDisplayed=!pointClipped(cellPos);
 		#ifdef YADE_SUBDOMAINS
 			int subDom; Body::id_t localId;
-			boost::tie(subDom,localId)=scene->bodies->subDomId2domNumLocalId(b->subDomId);
+			std::tie(subDom,localId)=scene->bodies->subDomId2domNumLocalId(b->subDomId);
 			if(subDomMask!=0 && (((1<<subDom) & subDomMask)==0)) bodyDisp[id].isDisplayed=false;
 		#endif
 		// if no scaling and no periodic, return quickly

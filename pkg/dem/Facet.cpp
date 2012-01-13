@@ -1,4 +1,5 @@
 #include<yade/pkg/dem/Facet.hpp>
+#include<yade/lib/base/CompUtils.hpp>
 YADE_PLUGIN(dem,(Facet)(Bo1_Facet_Aabb));
 #ifdef YADE_OPENGL
 YADE_PLUGIN(gl,(Gl1_Facet));
@@ -9,28 +10,22 @@ Vector3r Facet::getNormal() const {
 	return ((nodes[1]->pos-nodes[0]->pos).cross(nodes[2]->pos-nodes[0]->pos)).normalized();
 }
 
-boost::tuple<Vector3r,Vector3r,Vector3r> Facet::getOuterVectors() const {
+std::tuple<Vector3r,Vector3r,Vector3r> Facet::getOuterVectors() const {
 	assert(numNodesOk());
 	// is not normalized
 	Vector3r nn=(nodes[1]->pos-nodes[0]->pos).cross(nodes[2]->pos-nodes[0]->pos);
-	return boost::make_tuple((nodes[1]->pos-nodes[0]->pos).cross(nn),(nodes[2]->pos-nodes[1]->pos).cross(nn),(nodes[0]->pos-nodes[2]->pos).cross(nn));
+	return std::make_tuple((nodes[1]->pos-nodes[0]->pos).cross(nn),(nodes[2]->pos-nodes[1]->pos).cross(nn),(nodes[0]->pos-nodes[2]->pos).cross(nn));
 }
 
-boost::tuple<Vector3r,Vector3r> Facet::interpolatePtLinAngVel(const Vector3r& x) const {
+std::tuple<Vector3r,Vector3r> Facet::interpolatePtLinAngVel(const Vector3r& x) const {
 	assert(numNodesOk());
-	/* first compute relative position (a1,a2,a3): x1*a1+x2*2+x3*a3=x */
-	Matrix3r A;
-	A.col(0)=nodes[0]->pos; A.col(1)=nodes[1]->pos; A.col(2)=nodes[2]->pos;
-	cerr<<"A=\n"<<A<<endl;
-	cerr<<"x="<<x.transpose()<<endl;
-	Vector3r a=A.inverse()*x;
-	cerr<<"A^-1 x =\n"<<a<<endl;
+	Vector3r a=CompUtils::facetBarycentrics(x,nodes[0]->pos,nodes[1]->pos,nodes[2]->pos);
 	Vector3r vv[3]={(nodes[0]->getData<DemData>().vel,nodes[1]->getData<DemData>().vel,nodes[2]->getData<DemData>().vel)};
-	//#Vector3r linVel=a[0]*nodes[0]->getData<DemData>().vel+a[1]*nodes[1]->getData<DemData>().vel+a[2]*nodes[2]->getData<DemData>().vel;
 	Vector3r linVel=a[0]*vv[0]+a[1]*vv[1]+a[2]*vv[2];
 	Vector3r angVel=(nodes[0]->pos-x).cross(vv[0])+(nodes[1]->pos-x).cross(vv[1])+(nodes[2]->pos-x).cross(vv[2]);
-	return boost::make_tuple(linVel,angVel);
+	return std::make_tuple(linVel,angVel);
 }
+
 
 void Bo1_Facet_Aabb::go(const shared_ptr<Shape>& sh){
 	Facet& f=sh->cast<Facet>();

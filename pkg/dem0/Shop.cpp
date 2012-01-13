@@ -5,7 +5,6 @@
 
 #include<boost/filesystem/convenience.hpp>
 #include<boost/tokenizer.hpp>
-#include<boost/tuple/tuple.hpp>
 
 #include<yade/core/Scene.hpp>
 #include<yade/core/Body.hpp>
@@ -394,7 +393,7 @@ Real Shop::RayleighWaveTimeStep(const shared_ptr<Scene> _rb){
  * dH_dTheta is the inclination of the spiral (height increase per radian),
  * theta0 is the angle for zero height (by given axis).
  */
-boost::tuple<Real,Real,Real> Shop::spiralProject(const Vector3r& pt, Real dH_dTheta, int axis, Real periodStart, Real theta0){
+std::tuple<Real,Real,Real> Shop::spiralProject(const Vector3r& pt, Real dH_dTheta, int axis, Real periodStart, Real theta0){
 	int ax1=(axis+1)%3,ax2=(axis+2)%3;
 	Real r=sqrt(pow(pt[ax1],2)+pow(pt[ax2],2));
 	Real theta;
@@ -407,7 +406,7 @@ boost::tuple<Real,Real,Real> Shop::spiralProject(const Vector3r& pt, Real dH_dTh
 	long period;
 	if(isnan(periodStart)){
 		Real h=Shop::periodicWrap(pt[axis]-hRef,hRef-Mathr::PI*dH_dTheta,hRef+Mathr::PI*dH_dTheta,&period);
-		return boost::make_tuple(r,h,theta);
+		return std::make_tuple(r,h,theta);
 	}
 	else{
 		// Real hPeriodStart=(periodStart-theta0)*dH_dTheta;
@@ -417,7 +416,7 @@ boost::tuple<Real,Real,Real> Shop::spiralProject(const Vector3r& pt, Real dH_dTh
 		Real h=pt[axis]-hRef+period*2*Mathr::PI*dH_dTheta;
 		//TRVAR3(pt[axis],pt[axis]-hRef,period);
 		//TRVAR2(h,theta);
-		return boost::make_tuple(r,h,theta);
+		return std::make_tuple(r,h,theta);
 	}
 }
 

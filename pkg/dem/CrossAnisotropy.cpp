@@ -5,6 +5,8 @@
 
 YADE_PLUGIN(dem,(Cp2_FrictMat_FrictPhys_CrossAnisotropic));
 
+CREATE_LOGGER(Cp2_FrictMat_FrictPhys_CrossAnisotropic);
+
 void Cp2_FrictMat_FrictPhys_CrossAnisotropic::postLoad(Cp2_FrictMat_FrictPhys_CrossAnisotropic&){
 	Real a=alpha*(deg?Mathr::PI/180.:1.), b=beta*(deg?Mathr::PI/180.:1.);
 	xisoAxis=Vector3r(cos(a)*sin(b),-sin(a)*sin(b),cos(b));

@@ -23,7 +23,7 @@ void In2_Wall_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Materia
 	FOREACH(const Particle::MapParticleContact::value_type& I,particle->contacts){
 		const shared_ptr<Contact>& C(I.second); if(!C->isReal()) continue;
 		Vector3r F,T,xc;
-		boost::tie(F,T,xc)=C->getForceTorqueBranch(particle,/*nodeI*/0,scene);
+		std::tie(F,T,xc)=C->getForceTorqueBranch(particle,/*nodeI*/0,scene);
 		sh->nodes[0]->getData<DemData>().addForceTorque(F,/*discard any torque on wall*/Vector3r::Zero());
 	}
 }

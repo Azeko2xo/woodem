@@ -8,7 +8,6 @@
 #  define FOREACH BOOST_FOREACH
 #endif
 
-#include<boost/tuple/tuple.hpp>
 #include<boost/iterator/filter_iterator.hpp>
 
 #ifdef YADE_SUBDOMAINS
@@ -124,7 +123,7 @@ struct ParticleContainer: public Serializable{
 			// return the number of actually defined subdomains; if no subdomains were defined, return 1, which has the meaning of the whole domain
 			int numSubdomains(){ return std::max((size_t)1,subDomains.size()); }
 			// convert global subId to subDomain number and domain-local id
-			boost::tuple<int,id_t> subDomId2domNumLocalId(id_t subDomId) const { return boost::make_tuple(subDomId % maxSubdomains, subDomId / maxSubdomains); }
+			std::tuple<int,id_t> subDomId2domNumLocalId(id_t subDomId) const { return std::make_tuple(subDomId % maxSubdomains, subDomId / maxSubdomains); }
 			// convert subDomain number and subDomain-local id to global subId
 			id_t domNumLocalId2subDomId(int domNum,id_t localId) const { return localId*maxSubdomains+domNum; }
 
@@ -145,7 +144,8 @@ struct ParticleContainer: public Serializable{
 			shared_ptr<Particle> next();
 		};
 		id_t pyAppend(shared_ptr<Particle>);
-		py::list pyAppendList(std::vector<shared_ptr<Particle> >);
+		shared_ptr<Node> pyAppendClumped(vector<shared_ptr<Particle>>);
+		py::list pyAppendList(vector<shared_ptr<Particle>>);
 		bool pyRemove(id_t id);
 		shared_ptr<Particle> pyGetItem(id_t id);
 		size_t pyLen();
@@ -167,6 +167,7 @@ struct ParticleContainer: public Serializable{
 			,/*py*/
 			.def("append",&ParticleContainer::pyAppend) /* wrapper chacks if the id is not already assigned */
 			.def("append",&ParticleContainer::pyAppendList)
+			.def("appendClumped",&ParticleContainer::pyAppendClumped,"Add particles as rigid aggregate. Add resulting clump node (which is *not* a particle) to O.dem.clumps, subject to integration.")
 			.def("remove",&ParticleContainer::remove) /* no wrapping needed */
 			.def("__getitem__",&ParticleContainer::pyGetItem)
 			.def("__len__",&ParticleContainer::size)

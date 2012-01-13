@@ -32,7 +32,7 @@ void In2_Sphere_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Mater
 	FOREACH(const Particle::MapParticleContact::value_type& I,particle->contacts){
 		const shared_ptr<Contact>& C(I.second); if(!C->isReal()) continue;
 		Vector3r F,T,xc;
-		boost::tie(F,T,xc)=C->getForceTorqueBranch(particle,/*nodeI*/0,scene);
+		std::tie(F,T,xc)=C->getForceTorqueBranch(particle,/*nodeI*/0,scene);
 		#ifdef YADE_DEBUG
 			bool isPA=(C->pA==particle); // int sign=(isPA?1:-1);
 			if(isnan(F[0])||isnan(F[1])||isnan(F[2])||isnan(T[0])||isnan(T[1])||isnan(T[2])){

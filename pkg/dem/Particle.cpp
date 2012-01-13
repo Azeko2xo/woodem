@@ -26,7 +26,7 @@ void Contact::reset(){
 	stepMadeReal=-1;
 }
 
-boost::tuple<Vector3r,Vector3r,Vector3r> Contact::getForceTorqueBranch(const shared_ptr<Particle>& particle, int nodeI, Scene* scene){
+std::tuple<Vector3r,Vector3r,Vector3r> Contact::getForceTorqueBranch(const shared_ptr<Particle>& particle, int nodeI, Scene* scene){
 	assert(pA==particle || pB==particle);
 	assert(geom && phys);
 	assert(nodeI>=0 && particle->shape && particle->shape->nodes.size()>(size_t)nodeI);
@@ -35,7 +35,7 @@ boost::tuple<Vector3r,Vector3r,Vector3r> Contact::getForceTorqueBranch(const sha
 	Vector3r F=geom->node->ori.conjugate()*phys->force*sign;
 	Vector3r T=(phys->torque==Vector3r::Zero() ? Vector3r::Zero() : geom->node->ori.conjugate()*phys->torque)*sign;
 	Vector3r xc=geom->node->pos-(particle->shape->nodes[nodeI]->pos+((!isPA && scene->isPeriodic) ? scene->cell->intrShiftPos(cellDist) : Vector3r::Zero()));
-	return boost::make_tuple(F,T,xc);
+	return std::make_tuple(F,T,xc);
 }
 
 
@@ -67,16 +67,16 @@ void DemData::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){
 
 std::string DemData::blocked_vec_get() const {
 	std::string ret;
-	#define _SET_DOF(DOF_ANY,ch) if((blocked & DemData::DOF_ANY)!=0) ret.push_back(ch);
+	#define _SET_DOF(DOF_ANY,ch) if((flags & DemData::DOF_ANY)!=0) ret.push_back(ch);
 	_SET_DOF(DOF_X,'x'); _SET_DOF(DOF_Y,'y'); _SET_DOF(DOF_Z,'z'); _SET_DOF(DOF_RX,'X'); _SET_DOF(DOF_RY,'Y'); _SET_DOF(DOF_RZ,'Z');
 	#undef _SET_DOF
 	return ret;
 }
 
 void DemData::blocked_vec_set(const std::string& dofs){
-	blocked=0;
+	flags&=~DOF_ALL; // reset DOF bits first
 	FOREACH(char c, dofs){
-		#define _GET_DOF(DOF_ANY,ch) if(c==ch) { blocked|=DemData::DOF_ANY; continue; }
+		#define _GET_DOF(DOF_ANY,ch) if(c==ch) { flags|=DemData::DOF_ANY; continue; }
 		_GET_DOF(DOF_X,'x'); _GET_DOF(DOF_Y,'y'); _GET_DOF(DOF_Z,'z'); _GET_DOF(DOF_RX,'X'); _GET_DOF(DOF_RY,'Y'); _GET_DOF(DOF_RZ,'Z');
 		#undef _GET_DOF
 		throw std::invalid_argument("Invalid  DOF specification `"+lexical_cast<string>(c)+"' in '"+dofs+"', characters must be ∈{x,y,z,X,Y,Z}.");
@@ -150,21 +150,29 @@ Vector3r Contact::dPos(Scene* scene){
 	return rawDx+scene->cell->intrShiftPos(cellDist);
 }
 
-int DemField::collectNodes(bool clear, bool dynOnly){
+int DemField::collectNodes(){
 	std::set<void*> seen;
-	if(clear) nodes.clear();
-	else FOREACH(const shared_ptr<Node>& n, nodes) seen.insert((void*)n.get());
+	// add regular nodes and clumps
+	for(const auto& n: nodes) seen.insert((void*)n.get());
+	//not this: for(const auto& n: clumps) seen.insert((void*)n.get());
 	int added=0;
-	FOREACH(const shared_ptr<Particle>& p, particles){
+	// from particles
+	for(const auto& p: particles){
 		if(!p || !p->shape || p->shape->nodes.empty()) continue;
 		FOREACH(const shared_ptr<Node>& n, p->shape->nodes){
 			if(seen.count((void*)n.get())!=0) continue; // node already seen
-			if(dynOnly && !n->hasData<DemData>()) continue; // doesn't have DemData
 			seen.insert((void*)n.get());
 			nodes.push_back(n);
 			added++;
 		};
 	};
+	// from clumps
+	for(const auto& n: clumps){
+		if(seen.count((void*)n.get())!=0) continue; // already seen
+		seen.insert((void*)n.get());
+		nodes.push_back(n);
+		added++;
+	}
 	return added;
 }
 
