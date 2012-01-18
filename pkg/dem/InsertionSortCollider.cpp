@@ -188,16 +188,10 @@ bool InsertionSortCollider::updateBboxes_doFullRun(){
 	return true;
 }
 
-void InsertionSortCollider::run(){
-	#ifdef ISC_TIMING
-		timingDeltas->start();
-	#endif
-
-
+bool InsertionSortCollider::prologue_doFullRun(){
 	dem=dynamic_cast<DemField*>(field.get());
 	assert(dem);
 	particles=&(dem->particles);
-	long nBodies=(long)particles->size();
 
 	// scene->interactions->iterColliderLastRun=-1;
 
@@ -208,7 +202,7 @@ void InsertionSortCollider::run(){
 	if(dem->contacts.dirty){  fullRun=true; dem->contacts.dirty=false; }
 
 	// number of particles changed
-	if((size_t)BB[0].size!=2*nBodies) fullRun=true;
+	if((size_t)BB[0].size!=2*particles->size()) fullRun=true;
 	//redundant: if(minima.size()!=3*nBodies || maxima.size()!=3*nBodies) fullRun=true;
 
 	// periodicity changed
@@ -217,9 +211,16 @@ void InsertionSortCollider::run(){
 		periodic=scene->isPeriodic;
 		fullRun=true;
 	}
+	return fullRun;
+}
+
+void InsertionSortCollider::run(){
+	#ifdef ISC_TIMING
+		timingDeltas->start();
+	#endif
+	bool fullRun=prologue_doFullRun();
 
 	ISC_CHECKPOINT("aabb");
-
 	bool runBboxes=updateBboxes_doFullRun();
 	if(runBboxes) fullRun=true;
 
@@ -227,6 +228,7 @@ void InsertionSortCollider::run(){
 	
 	nFullRuns++;
 
+	long nBodies=(long)particles->size();
 
 	// pre-conditions
 		// adjust storage size

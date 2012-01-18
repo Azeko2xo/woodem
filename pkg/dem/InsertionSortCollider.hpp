@@ -151,6 +151,7 @@ class InsertionSortCollider: public Collider, private DemField::Engine{
 	//! Whether the Scene was periodic (to detect the change, which shouldn't happen, but shouldn't crash us either)
 	bool periodic;
 
+	protected:
 	// updated at every step
 	ParticleContainer* particles;
 	DemField* dem;
@@ -188,6 +189,8 @@ class InsertionSortCollider: public Collider, private DemField::Engine{
 	virtual void invalidatePersistentData(){ for(int i=0; i<3; i++){ BB[i].vec.clear(); BB[i].size=0; }}
 	// check params for consistency
 	void postLoad(InsertionSortCollider&);
+	// initial setup (reused in derived classes)
+	bool prologue_doFullRun(); 
 	// check whether bounding boxes are bounding
 	bool updateBboxes_doFullRun();
 
