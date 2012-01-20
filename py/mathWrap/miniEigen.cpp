@@ -55,6 +55,9 @@ typename MatrixType::Scalar Matrix_sum(const MatrixType& obj){ return obj.sum();
 template<typename MatrixType>
 typename MatrixType::Scalar Matrix_maxAbsCoeff(const MatrixType& obj){ return Eigen::Array<typename MatrixType::Scalar,MatrixType::RowsAtCompileTime,MatrixType::ColsAtCompileTime>(obj).abs().maxCoeff(); }
 
+template<typename VecTypeA, typename VecTypeB>
+typename Eigen::Matrix<typename VecTypeA::Scalar,VecTypeA::RowsAtCompileTime,VecTypeB::RowsAtCompileTime> Vector_outer(const VecTypeA& a, const VecTypeB& b){ return a*b.transpose(); }
+
 
 Real Quaternionr_get_item(const Quaternionr & self, int idx){ IDX_CHECK(idx,4); if(idx==0) return self.x(); if(idx==1) return self.y(); if(idx==2) return self.z(); return self.w(); }
 Real     Matrix3r_get_item(Matrix3r & self, py::tuple _idx){ int idx[2]; int mx[2]={3,3}; IDX2_CHECKED_TUPLE_INTS(_idx,mx,idx); return self(idx[0],idx[1]); }
@@ -185,6 +188,7 @@ static Quaternionr Quaternionr_random(Quaternionr& self){
 	self=Quaternionr(sqrt(1-u1)*sin(2*Mathr::PI*u2),sqrt(1-u1)*cos(2*Mathr::PI*u2),sqrt(u1)*sin(2*Mathr::PI*u3),sqrt(u1)*cos(2*Mathr::PI*u3))
 	; /* self.normalize(); */ return self;
 }
+static VectorXr Quaternionr__sub__Quaternionr(const Quaternionr& a, const Quaternionr& b){  VectorXr r(4); r<<a.w()-b.w(),a.x()-b.x(),a.y()-b.y(),a.z()-b.z(); return r; }
 static Vector3r Quaternionr_Rotate(Quaternionr& q, const Vector3r& u){ return q*u; }
 // swizzles for Vector3r
 static Vector2r Vector3r_xy(const Vector3r& v){ return Vector2r(v[0],v[1]); }
@@ -198,6 +202,7 @@ static Quaternionr* Quaternionr_fromAxisAngle(const Vector3r& axis, const Real a
 static Quaternionr* Quaternionr_fromAngleAxis(const Real angle, const Vector3r& axis){ return new Quaternionr(AngleAxisr(angle,axis)); }
 static py::tuple Quaternionr_toAxisAngle(const Quaternionr& self){ AngleAxisr aa(self); return py::make_tuple(aa.axis(),aa.angle());}
 static py::tuple Quaternionr_toAngleAxis(const Quaternionr& self){ AngleAxisr aa(self); return py::make_tuple(aa.angle(),aa.axis());}
+static Vector3r Quaternionr_toRotationVector(const Quaternionr& self){ AngleAxisr aa(self); return aa.angle()*aa.axis();}
 
 static Real Vector3r_dot(const Vector3r& self, const Vector3r& v){ return self.dot(v); }
 static Real Vector3i_dot(const Vector3i& self, const Vector3i& v){ return self.dot(v); }
@@ -235,8 +240,10 @@ static MatrixXr VectorXr_asDiagonal(const VectorXr& self){ return self.asDiagona
 EIG_WRAP_METH0_ROWS_COLS(MatrixXr,Zero)
 EIG_WRAP_METH0_ROWS_COLS(MatrixXr,Ones)
 EIG_WRAP_METH0_ROWS_COLS(MatrixXr,Identity)
+EIG_WRAP_METH0_ROWS_COLS(MatrixXr,Random)
 EIG_WRAP_METH0_SIZE(VectorXr,Zero)
 EIG_WRAP_METH0_SIZE(VectorXr,Ones)
+EIG_WRAP_METH0_SIZE(VectorXr,Random)
 
 #define EIG_WRAP_METH1(klass,meth) static klass klass##_##meth(const klass& self){ return self.meth(); }
 #define EIG_WRAP_METH0(klass,meth) static klass klass##_##meth(){ return klass().meth(); }
@@ -250,21 +257,22 @@ EIG_WRAP_METH1(MatrixXr,inverse);
 EIG_WRAP_METH0(Matrix3r,Zero);
 EIG_WRAP_METH0(Matrix3r,Identity);
 EIG_WRAP_METH0(Matrix3r,Ones);
+EIG_WRAP_METH0(Matrix3r,Random);
 EIG_WRAP_METH0(Matrix6r,Zero);
 EIG_WRAP_METH0(Matrix6r,Identity);
 EIG_WRAP_METH0(Matrix6r,Ones);
-EIG_WRAP_METH0(Vector6r,Zero); EIG_WRAP_METH0(Vector6r,Ones);
+EIG_WRAP_METH0(Matrix6r,Random);
+EIG_WRAP_METH0(Vector6r,Zero); EIG_WRAP_METH0(Vector6r,Ones); EIG_WRAP_METH0(Vector6r,Random);
 EIG_WRAP_METH0(Vector6i,Zero); EIG_WRAP_METH0(Vector6i,Ones);
-EIG_WRAP_METH0(Vector3r,Zero); EIG_WRAP_METH0(Vector3r,UnitX); EIG_WRAP_METH0(Vector3r,UnitY); EIG_WRAP_METH0(Vector3r,UnitZ); EIG_WRAP_METH0(Vector3r,Ones);
-EIG_WRAP_METH0(Vector3i,Zero); EIG_WRAP_METH0(Vector3i,UnitX); EIG_WRAP_METH0(Vector3i,UnitY); EIG_WRAP_METH0(Vector3i,UnitZ); EIG_WRAP_METH0(Vector3i,Ones);
-EIG_WRAP_METH0(Vector2r,Zero); EIG_WRAP_METH0(Vector2r,UnitX); EIG_WRAP_METH0(Vector2r,UnitY); EIG_WRAP_METH0(Vector2r,Ones);
+EIG_WRAP_METH0(Vector3r,Zero); EIG_WRAP_METH0(Vector3r,UnitX); EIG_WRAP_METH0(Vector3r,UnitY); EIG_WRAP_METH0(Vector3r,UnitZ); EIG_WRAP_METH0(Vector3r,Ones); EIG_WRAP_METH0(Vector3r,Random);
+EIG_WRAP_METH0(Vector3i,Zero); EIG_WRAP_METH0(Vector3i,UnitX); EIG_WRAP_METH0(Vector3i,UnitY); EIG_WRAP_METH0(Vector3i,UnitZ); EIG_WRAP_METH0(Vector3i,Ones); 
+EIG_WRAP_METH0(Vector2r,Zero); EIG_WRAP_METH0(Vector2r,UnitX); EIG_WRAP_METH0(Vector2r,UnitY); EIG_WRAP_METH0(Vector2r,Ones); EIG_WRAP_METH0(Vector2r,Random);
 EIG_WRAP_METH0(Vector2i,Zero); EIG_WRAP_METH0(Vector2i,UnitX); EIG_WRAP_METH0(Vector2i,UnitY); EIG_WRAP_METH0(Vector2i,Ones);
 EIG_WRAP_METH0(Quaternionr,Identity);
 
 #define EIG_OP1(klass,op,sym) decltype((sym klass()).eval()) klass##op(const klass& self){ return (sym self).eval();}
 #define EIG_OP2(klass,op,sym,klass2) decltype((klass() sym klass2()).eval()) klass##op##klass2(const klass& self, const klass2& other){ return (self sym other).eval(); }
 #define EIG_OP2_INPLACE(klass,op,sym,klass2) klass klass##op##klass2(klass& self, const klass2& other){ self sym other; return self; }
-
 
 EIG_OP1(Matrix3r,__neg__,-)
 EIG_OP2(Matrix3r,__add__,+,Matrix3r) EIG_OP2_INPLACE(Matrix3r,__iadd__,+=,Matrix3r)
@@ -391,6 +399,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.add_static_property("Identity",&Matrix3r_Identity)
 		.add_static_property("Zero",&Matrix3r_Zero)
 		.add_static_property("Ones",&Matrix3r_Ones)
+		.def("Random",&Matrix3r_Random).staticmethod("Random")
 		// specials
 		.def("toVoigt",&Matrix3r_toVoigt,(py::arg("strain")=false),"Convert 2nd order tensor to 6-vector (Voigt notation), symmetrizing the tensor;	if *strain* is ``True``, multiply non-diagonal compoennts by 2.")
 		
@@ -435,6 +444,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.add_static_property("Identity",&Matrix6r_Identity)
 		.add_static_property("Zero",&Matrix6r_Zero)
 		.add_static_property("Ones",&Matrix6r_Ones)
+		.def("Random",&Matrix6r_Random).staticmethod("Random")
 	;
 
 	py::class_<VectorXr>("VectorX","Dynamic-sized float vector.\n\nSupported operations (``f`` if a float/int, ``v`` is a VectorX): ``-v``, ``v+v``, ``v+=v``, ``v-v``, ``v-=v``, ``v*f``, ``f*v``, ``v*=f``, ``v/f``, ``v/=f``, ``v==v``, ``v!=v``.\n\nImplicit conversion from sequence (list,tuple, …) of X floats.",py::init<>())
@@ -444,6 +454,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		// properties
 		.add_static_property("Ones",&VectorXr_Ones).add_static_property("Zero",&VectorXr_Zero)
 		// methods
+		.def("Random",&VectorXr_Random).staticmethod("Random")
 		.def("norm",&VectorXr::norm).def("squaredNorm",&VectorXr::squaredNorm).def("normalize",&VectorXr::normalize).def("normalized",&VectorXr::normalized)
 		.def("asDiagonal",&VectorXr_asDiagonal)
 		.def("size",&VectorXr::size)
@@ -520,6 +531,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.add_static_property("Identity",&MatrixXr_Identity)
 		.add_static_property("Zero",&MatrixXr_Zero)
 		.add_static_property("Ones",&MatrixXr_Ones)
+		.def("Random",&MatrixXr_Random).staticmethod("Random")
 	;
 
 
@@ -537,6 +549,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.def("conjugate",&Quaternionr::conjugate)
 		.def("toAxisAngle",&Quaternionr_toAxisAngle).def("toAngleAxis",&Quaternionr_toAngleAxis)
 		.def("toRotationMatrix",&Quaternionr::toRotationMatrix)
+		.def("toRotationVector",&Quaternionr_toRotationVector)
 		.def("Rotate",&Quaternionr_Rotate,((py::arg("v"))))
 		.def("inverse",&Quaternionr::inverse)
 		.def("norm",&Quaternionr::norm)
@@ -547,8 +560,8 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.def(py::self * py::self)
 		.def(py::self *= py::self)
 		.def(py::self * py::other<Vector3r>())
-		//.def(py::self != py::self).def(py::self == py::self) // these don't work... (?)
 		.def("__eq__",&Quaternionr__eq__).def("__neq__",&Quaternionr__neq__)
+		.def("__sub__",&Quaternionr__sub__Quaternionr) 
 		// specials
 		.def("__abs__",&Quaternionr::norm)
 		.def("__len__",&Quaternionr_len).staticmethod("__len__")
@@ -568,6 +581,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		//.add_static_property("UnitX",&Vector6r_UnitX).add_static_property("UnitY",&Vector6r_UnitY).add_static_property("UnitZ",&Vector6r_UnitZ)
 		// methods
 		//.def("dot",&Vector6r_dot).def("cross",&Vector6r_cross)
+		.def("Random",&Vector6r_Random).staticmethod("Random")
 		.def("norm",&Vector6r::norm).def("squaredNorm",&Vector6r::squaredNorm).def("normalize",&Vector6r::normalize).def("normalized",&Vector6r::normalized)
 		.def("head",&Vector6r_head).def("tail",&Vector6r_tail)
 		.def("asDiagonal",&Vector6r_asDiagonal)
@@ -623,6 +637,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.add_static_property("Ones",&Vector3r_Ones).add_static_property("Zero",&Vector3r_Zero)
 		.add_static_property("UnitX",&Vector3r_UnitX).add_static_property("UnitY",&Vector3r_UnitY).add_static_property("UnitZ",&Vector3r_UnitZ)
 		// methods
+		.def("Random",&Vector3r_Random).staticmethod("Random")
 		.def("dot",&Vector3r_dot).def("cross",&Vector3r_cross)
 		.def("norm",&Vector3r::norm).def("squaredNorm",&Vector3r::squaredNorm).def("normalize",&Vector3r::normalize).def("normalized",&Vector3r::normalized)
 		.def("asDiagonal",&Vector3r_asDiagonal)
@@ -630,6 +645,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.def("pruned",&Matrix_pruned<Vector3r>,py::arg("absTol")=1e-6)
 		.def("maxAbsCoeff",&Matrix_maxAbsCoeff<Vector3r>)
 		.def("sum",&Matrix_sum<Vector3r>)
+		.def("outer",&Vector_outer<Vector3r,Vector3r>)
 		// swizzles
 		.def("xy",&Vector3r_xy).def("yx",&Vector3r_yx).def("xz",&Vector3r_xz).def("zx",&Vector3r_zx).def("yz",&Vector3r_yz).def("zy",&Vector3r_zy)
 		// operators
@@ -678,6 +694,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.add_static_property("Ones",&Vector2r_Ones).add_static_property("Zero",&Vector2r_Zero)
 		.add_static_property("UnitX",&Vector2r_UnitX).add_static_property("UnitY",&Vector2r_UnitY)
 		// methods
+		.def("Random",&Vector2r_Random).staticmethod("Random")
 		.def("dot",&Vector2r_dot)
 		.def("norm",&Vector2r::norm).def("squaredNorm",&Vector2r::squaredNorm).def("normalize",&Vector2r::normalize).def("normalized",&Vector2r::normalized)
 		.def("Unit",&Vector2r_Unit).staticmethod("Unit")
