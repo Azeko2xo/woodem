@@ -82,7 +82,7 @@ bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<
 		case 7: throw logic_error("Cg2_Facet_Sphere_L3Geom: Impossible sphere-facet intersection (all points are outside the edges). (please report bug)"); // +++ (impossible)
 		default: throw logic_error("Ig2_Facet_Sphere_L3Geom: Nonsense intersection value. (please report bug)");
 	}
-	if(!centralNoFrict){
+	if(centralSphereMask==0 || (centralSphereMask & C->pB->mask&centralSphereMask)==0){
 		Vector3r normal=sC-contPt; // normal is now the contact normal (not yet normalized)
 		//cerr<<"sC="<<sC.transpose()<<", contPt="<<contPt.transpose()<<endl;
 		//cerr<<"dist="<<normal.norm()<<endl;

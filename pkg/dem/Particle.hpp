@@ -45,6 +45,7 @@ struct Particle: public Serializable{
 	std::vector<shared_ptr<Node> > getNodes();
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Particle,Serializable,"Particle in DEM",
 		((id_t,id,-1,Attr::readonly,"Index in DemField::particles"))
+		((unsigned int,mask,1,,"Bitmask for collision detection and other (group 1 by default)"))
 		((shared_ptr<Shape>,shape,,,"Geometrical configuration of the particle"))
 		((shared_ptr<Material>,material,,,"Material of the particle"))
 		((MapParticleContact,contacts,,Attr::hidden,"Contacts of this particle, indexed by id of the other particle."))

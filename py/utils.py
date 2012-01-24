@@ -195,7 +195,7 @@ def sphere(center,radius,fixed=False,wire=False,color=None,highlight=False,mater
 	geomInert=(2./5.)*V*radius**2
 	_commonBodySetup(b,([center] if isinstance(center,Node) else [_mkDemNode(pos=center),]),volumes=[V],geomInertias=[geomInert*Vector3.Ones],material=material,fixed=fixed)
 	b.aspherical=False
-	#b.mask=mask
+	b.mask=mask
 	return b
 
 def wall(position,axis,sense=0,fixed=True,mass=0,color=None,material=None,mask=1):
@@ -218,7 +218,7 @@ def wall(position,axis,sense=0,fixed=True,mass=0,color=None,material=None,mask=1
 		node=_mkDemNode(pos=position)
 	_commonBodySetup(p,[node],volumes=None,masses=[mass],geomInertias=[inf*Vector3.Ones],material=material,fixed=fixed)
 	p.aspherical=False # wall never rotates anyway
-	#p.mask=mask
+	p.mask=mask
 	return p
 
 def facet(vertices,fixed=True,wire=True,color=None,highlight=False,material=None,mask=1):
@@ -242,7 +242,7 @@ def facet(vertices,fixed=True,wire=True,color=None,highlight=False,material=None
 	p.shape.wire=wire
 	_commonBodySetup(p,nodes,volumes=None,masses=(0,0,0),geomInertias=[Vector3(0,0,0),Vector3(0,0,0),Vector3(0,0,0)],material=material,fixed=fixed)
 	p.aspherical=False # mass and inertia are 0 anyway; fell free to change to ``True`` if needed
-	#b.mask=mask
+	p.mask=mask
 	return p
 	
 def facetBox(*args,**kw):

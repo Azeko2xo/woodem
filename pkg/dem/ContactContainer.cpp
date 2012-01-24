@@ -8,25 +8,30 @@
 bool ContactContainer::IsReal::operator()(shared_ptr<Contact>& c){ return c && c->isReal(); }
 bool ContactContainer::IsReal::operator()(const shared_ptr<Contact>& c){ return c && c->isReal(); }
 
-void ContactContainer::add(const shared_ptr<Contact>& c){
+bool ContactContainer::add(const shared_ptr<Contact>& c, bool threadSafe){
 	assert(dem);
-	#ifdef YADE_OPENGL
+	#if defined(YADE_OPENMP) || defined(YADE_OPENGL)
 		boost::mutex::scoped_lock lock(*manipMutex);
 	#endif
-	// make sure the contact does not exist yet
-	assert(c->pA->contacts.find(c->pB->id)==c->pA->contacts.end());
-	assert(c->pB->contacts.find(c->pA->id)==c->pB->contacts.end());
+	if(!threadSafe){
+		// make sure the contact does not exist yet
+		assert(c->pA->contacts.find(c->pB->id)==c->pA->contacts.end());
+		assert(c->pB->contacts.find(c->pA->id)==c->pB->contacts.end());
+	} else {
+		if(c->pA->contacts.find(c->pB->id)!=c->pA->contacts.end() || c->pB->contacts.find(c->pA->id)!=c->pB->contacts.end()) return false;
+	}
 
 	c->pA->contacts[c->pB->id]=c;
 	c->pB->contacts[c->pA->id]=c;
 	linView.push_back(c);
 	// store the index back-reference in the interaction (so that it knows how to (re)move itself)
 	c->linIx=linView.size()-1; 
+	return true;
 }
 
 void ContactContainer::clear(){
 	assert(dem);
-	#ifdef YADE_OPENGL
+	#if defined(YADE_OPENMP) || defined(YADE_OPENGL)
 		boost::mutex::scoped_lock lock(*manipMutex);
 	#endif
 	FOREACH(const shared_ptr<Particle>& p, dem->particles) p->contacts.clear();
@@ -35,14 +40,15 @@ void ContactContainer::clear(){
 	dirty=true;
 }
 
-void ContactContainer::remove(const shared_ptr<Contact>& c){
+bool ContactContainer::remove(const shared_ptr<Contact>& c, bool threadSafe){
 	assert(dem);
-	#ifdef YADE_OPENGL
+	#if defined(YADE_OPENMP) || defined(YADE_OPENGL)
 		boost::mutex::scoped_lock lock(*manipMutex);
 	#endif
 	// make sure the contact is inside the dem->particles
 	Particle::MapParticleContact::iterator iA=c->pA->contacts.find(c->pB->id), iB=c->pB->contacts.find(c->pA->id);
-	assert(iA!=c->pA->contacts.end()); assert(iB!=c->pB->contacts.end());
+	if(!threadSafe) {assert(iA!=c->pA->contacts.end()); assert(iB!=c->pB->contacts.end());}
+	else { if (iA!=c->pA->contacts.end() || iB!=c->pB->contacts.end()) return false; }
 	// and in the linear container, that it is the same we got, and the same we found in dem->particles
 	assert(linView.size()>c->linIx);	assert(linView[c->linIx]==c); assert(iA->second==c); assert(iB->second==c);
 	// remove from dem->particles
@@ -53,6 +59,7 @@ void ContactContainer::remove(const shared_ptr<Contact>& c){
 		linView[c->linIx]->linIx=c->linIx; // and update its linIx
 	}
 	linView.resize(linView.size()-1);
+	return true;
 };
 
 shared_ptr<Contact> ContactContainer::find(ParticleContainer::id_t idA, ParticleContainer::id_t idB){
@@ -62,6 +69,15 @@ shared_ptr<Contact> ContactContainer::find(ParticleContainer::id_t idA, Particle
 	if(I!=dem->particles[idA]->contacts.end()) return I->second;
 	return shared_ptr<Contact>();
 };
+
+// query existence; use find(...) to get the instance if it exists as well
+bool ContactContainer::exists(ParticleContainer::id_t idA, ParticleContainer::id_t idB){
+	assert(dem);
+	if(!dem->particles.exists(idA)) return false;
+	Particle::MapParticleContact::iterator I(dem->particles[idA]->contacts.find(idB));
+	if(I==dem->particles[idA]->contacts.end()) return false;
+	return true;
+}
 
 
 

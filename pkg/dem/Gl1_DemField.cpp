@@ -13,10 +13,13 @@ Real Gl1_Node::len;
 Vector2r Gl1_Node::len_range;
 #endif
 
+unsigned int Gl1_DemField::mask;
+
 void Gl1_DemField::doBound(){
 	rrr->boundDispatcher.scene=scene; rrr->boundDispatcher.updateScenePtr();
 	FOREACH(const shared_ptr<Particle>& b, dem->particles){
 		if(!b->shape || !b->shape->bound) continue;
+		if(mask!=0 && !(b->mask&mask)) continue;
 		glPushMatrix(); rrr->boundDispatcher(b->shape->bound); glPopMatrix();
 	}
 }
@@ -29,6 +32,7 @@ void Gl1_DemField::doShape(){
 	// but it is still better than crashes if the body gets deleted meanwile.
 	FOREACH(shared_ptr<Particle> b, dem->particles){
 		if(!b->shape || b->shape->nodes.size()==0) continue;
+		if(mask!=0 && !(b->mask&mask)) continue;
 		const shared_ptr<Shape>& sh=b->shape;
 		if(!sh->getVisible()) continue;
 

@@ -16,8 +16,8 @@ class Scene;
 struct ContactContainer: public Serializable{
 	/* internal data */
 		// created in the ctor
-		#ifdef YADE_OPENGL
-			boost::mutex* manipMutex; // to synchronize with rendering
+		#if defined(YADE_OPENMP) || defined(YADE_OPENGL)
+			boost::mutex* manipMutex; // to synchronize with rendering, and between threads
 		#endif
 		DemField* dem; // backptr to DemField, set by DemField::postLoad; do not modify!
 		ParticleContainer* particles;
@@ -25,9 +25,10 @@ struct ContactContainer: public Serializable{
 		~ContactContainer(){ delete manipMutex; }
 
 	/* basic functionality */
-		void add(const shared_ptr<Contact>& c);
-		void remove(const shared_ptr<Contact>& c);
+		bool add(const shared_ptr<Contact>& c, bool threadSafe=false);
+		bool remove(const shared_ptr<Contact>& c, bool threadSafe=false);
 		shared_ptr<Contact> find(ParticleContainer::id_t idA, ParticleContainer::id_t idB);
+		bool exists(ParticleContainer::id_t idA, ParticleContainer::id_t idB);
 		shared_ptr<Contact>& operator[](size_t ix){return linView[ix];}
 		const shared_ptr<Contact>& operator[](size_t ix) const { return linView[ix];}
 		void clear();

@@ -15,6 +15,8 @@ bool Collider::mayCollide(const shared_ptr<Particle>& pA, const shared_ptr<Parti
 	if(!pA->shape || !pB->shape) return false;
 	size_t nA=pA->shape->nodes.size(), nB=pB->shape->nodes.size();
 	for(size_t iA=0; iA<nA; iA++) for(size_t iB=0; iB>nB; iB++) if(pA->shape->nodes[iA]==pB->shape->nodes[iB]) return false;
+	/* partciels not shaing mask may not collide */
+	if(!(pA->mask&pB->mask)) return false;
 	// in other cases, do collide
 	return true;
 	
