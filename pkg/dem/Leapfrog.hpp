@@ -5,7 +5,6 @@
 #ifdef YADE_OPENMP
 	#include<omp.h>
 #endif
-
 struct ForceResetter: public GlobalEngine{
 	void run();
 	YADE_CLASS_BASE_DOC(ForceResetter,GlobalEngine,"Reset forces on nodes in DEM field.");

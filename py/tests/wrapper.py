@@ -12,7 +12,15 @@ from miniEigen import *
 from yade._customConverters import *
 from math import *
 from yade import system
+from yade import utils
 from yade import *
+from yade.dem import *
+from yade.gl import *
+from yade.core import *
+try: from yade.sparc import *
+except: pass
+try: from yade.voro import *
+except: pass
 
 allClasses=system.childClasses('Serializable')
 
@@ -28,26 +36,26 @@ class TestObjectInstantiation(unittest.TestCase):
 	def testRootDerivedCtors_attrs_few(self):
 		"Core: class ctor's attributes"
 		# attributes passed when using the Foo(attr1=value1,attr2=value2) syntax
-		gm=Shape(wire=True); self.assert_(gm.wire==True)
+		gm=Shape(color=1.); self.assert_(gm.color==1.)
 	def testDispatcherCtor(self):
 		"Core: dispatcher ctors with functors"
 		# dispatchers take list of their functors in the ctor
 		# same functors are collapsed in one
-		cld1=LawDispatcher([Law2_L3Geom_FrictPhys_ElPerfPl(),Law2_L3Geom_FrictPhys_ElPerfPl()]); self.assert_(len(cld1.functors)==1)
-		# two different make two different, right?
-		cld2=LawDispatcher([Law2_L3Geom_FrictPhys_ElPerfPl(),Law2_L6Geom_FrictPhys_Linear()]); self.assert_(len(cld2.functors)==2)
-	def testInteractionLoopCtor(self):
-		"Core: InteractionLoop special ctor"
-		# InteractionLoop takes 3 lists
-		id=InteractionLoop([Ig2_Facet_Sphere_L3Geom(),Ig2_Sphere_Sphere_L3Geom()],[Ip2_FrictMat_FrictMat_FrictPhys()],[Law2_L3Geom_FrictPhys_ElPerfPl()],)
-		self.assert_(len(id.geomDispatcher.functors)==2)
-		self.assert_(id.geomDispatcher.__class__==IGeomDispatcher().__class__)
-		self.assert_(id.physDispatcher.functors[0].__class__==Ip2_FrictMat_FrictMat_FrictPhys().__class__)
-		self.assert_(id.lawDispatcher.functors[0].__class__==Law2_L3Geom_FrictPhys_ElPerfPl().__class__)
+		cld1=LawDispatcher([Law2_L6Geom_FrictPhys_IdealElPl(),Law2_L6Geom_FrictPhys_IdealElPl()]); self.assert_(len(cld1.functors)==1)
+		# two different make two different
+		cld2=LawDispatcher([Law2_L6Geom_FrictPhys_IdealElPl(),Law2_L6Geom_FrictPhys_LinEl6()]); self.assert_(len(cld2.functors)==2)
+	def testContactLoopCtor(self):
+		"Core: ContactLoop special ctor"
+		# ContactLoop takes 3 lists
+		id=ContactLoop([Cg2_Facet_Sphere_L6Geom(),Cg2_Sphere_Sphere_L6Geom()],[Cp2_FrictMat_FrictPhys()],[Law2_L6Geom_FrictPhys_IdealElPl()],)
+		self.assert_(len(id.geoDisp.functors)==2)
+		self.assert_(id.geoDisp.__class__==CGeomDispatcher)
+		self.assert_(id.phyDisp.functors[0].__class__==Cp2_FrictMat_FrictPhys)
+		self.assert_(id.lawDisp.functors[0].__class__==Law2_L6Geom_FrictPhys_IdealElPl)
 	def testParallelEngineCtor(self):
 		"Core: ParallelEngine special ctor"
 		pe=ParallelEngine([InsertionSortCollider(),[BoundDispatcher(),ForceResetter()]])
-		self.assert_(pe.slaves[0].__class__==InsertionSortCollider().__class__)
+		self.assert_(pe.slaves[0].__class__==InsertionSortCollider)
 		self.assert_(len(pe.slaves[1])==2)
 		pe.slaves=[]
 		self.assert_(len(pe.slaves)==0)
@@ -68,31 +76,33 @@ class TestObjectInstantiation(unittest.TestCase):
 	##
 	def testTriggerPostLoad(self):
 		'Core: Attr::triggerPostLoad'
-		# TranslationEngine normalizes translationAxis automatically
+		# RadialEngine normalizes axisDir automatically
 		# anything else could be tested
-		te=TranslationEngine();
-		te.translationAxis=(0,2,0)
-		self.assert_(te.translationAxis==(0,1,0))
+		te=RadialForce();
+		te.axisDir=(0,2,0)
+		self.assert_(te.axisDir==(0,1,0))
 	def testHidden(self):
 		'Core: Attr::hidden'
 		# hidden attributes are not wrapped in python at all
-		self.assert_(not hasattr(Interaction(),'iterLastSeen'))
+		self.assert_(not hasattr(Contact(),'stepLastSeen'))
 	def testNoSave(self):
 		'Core: Attr::noSave'
 		# update bound of the particle
-		O.bodies.append(utils.sphere((0,0,0),1))
-		O.engines=[InsertionSortCollider([Bo1_Sphere_Aabb()]),NewtonIntegrator()]
+		O.scene.fields=[DemField()]
+		O.dem.par.append(utils.sphere((0,0,0),1))
+		O.dem.collectNodes()
+		O.scene.engines=[InsertionSortCollider([Bo1_Sphere_Aabb()]),Leapfrog()]
 		O.step()
 		O.saveTmp(quiet=True)
-		mn0=Vector3(O.bodies[0].bound.min)
+		mn0=Vector3(O.dem.par[0].shape.bound.min)
 		O.reload(quiet=True)
-		mn1=Vector3(O.bodies[0].bound.min)
+		mn1=Vector3(O.dem.par[0].shape.bound.min)
 		# check that the minimum is not saved
 		self.assert_(not isnan(mn0[0]))
 		self.assert_(isnan(mn1[0]))
 	def _testReadonly(self):
 		'Core: Attr::readonly'
-		self.assertRaises(AttributeError,lambda: setattr(Body(),'id',3))
+		self.assertRaises(AttributeError,lambda: setattr(Particle(),'id',3))
 	
 class TestEigenWrapper(unittest.TestCase):
 	def assertSeqAlmostEqual(self,v1,v2):
@@ -136,7 +146,7 @@ class TestEigenWrapper(unittest.TestCase):
 		# comparison
 		self.assert_(m1==Matrix3().Identity)
 		# rotation matrix from quaternion
-		m1=Matrix3(Quaternion(Vector3(0,0,1),pi/2).toRotationMatrix())
+		m1=Matrix3(Quaternion(Vector3(0,0,1),pi/2))
 		# multiplication with vectors
 		self.assertSeqAlmostEqual(m1*Vector3().UnitX,Vector3().UnitY)
 		# determinant

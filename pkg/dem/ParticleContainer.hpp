@@ -169,6 +169,7 @@ struct ParticleContainer: public Serializable{
 			.def("append",&ParticleContainer::pyAppendList)
 			.def("appendClumped",&ParticleContainer::pyAppendClumped,"Add particles as rigid aggregate. Add resulting clump node (which is *not* a particle) to O.dem.clumps, subject to integration.")
 			.def("remove",&ParticleContainer::remove) /* no wrapping needed */
+			.def("exists",&ParticleContainer::exists)
 			.def("__getitem__",&ParticleContainer::pyGetItem)
 			.def("__len__",&ParticleContainer::size)
 			.def("clear",&ParticleContainer::clear)

@@ -76,7 +76,7 @@ scatterMarkerKw=dict(verts=[(0.,0.),(-30.,10.),(-25,0),(-30.,-10.)],marker=None)
 
 
 componentSeparator='_'
-componentSuffixes={Vector2:{0:'x',1:'y'},Vector3:{0:'x',1:'y',2:'z'},Vector6:{0:'xx',1:'yy',2:'zz',3:'yz',4:'zx',5:'xy'},Matrix3:{(0,0):'xx',(1,1):'yy',(2,2):'zz',(0,1):'xy',(1,0):'yz',(0,2):'xz',(1,2):'yz',(1,0):'yz',(2,0):'zx',(2,1):'zy'}}
+componentSuffixes={Vector2:{0:'x',1:'y'},Vector3:{0:'x',1:'y',2:'z'},Vector6:{0:'xx',1:'yy',2:'zz',3:'yz',4:'zx',5:'xy'},Matrix3:{(0,0):'xx',(1,1):'yy',(2,2):'zz',(0,1):'xy',(1,0):'yx',(0,2):'xz',(2,0):'zx',(1,2):'yz',(2,1):'zy'}}
 # if a type with entry in componentSuffixes is given in addData, columns for individual components are synthesized using indices and suffixes given for each type, e.g. foo=Vector3r(1,2,3) will result in columns foox=1,fooy=2,fooz=3
 
 def reset():
@@ -113,14 +113,14 @@ def addDataColumns(dd):
 def addAutoData():
 	"""Add data by evaluating contents of :yref:`yade.plot.plots`. Expressions rasing exceptions will be handled gracefully, but warning is printed for each.
 	
-	>>> from yade import plot
+	>>> from yade import plot; from yade.dem import *; from yade.core import *
 	>>> from pprint import pprint
-	>>> O.reset()
+	>>> O.reset(); O.scene.fields=[DemField()]
 	>>> plot.resetData()
-	>>> plot.plots={'O.scene.step':('O.scene.time',None,'numParticles=len(O.bodies)')}
+	>>> plot.plots={'O.scene.step':('O.scene.time',None,'numParticles=len(O.dem.par)')}
 	>>> plot.addAutoData()
 	>>> pprint(plot.data)
-	{'O.iter': [0], 'O.time': [0.0], 'numParticles': [0]}
+	{'O.scene.step': [0], 'O.scene.time': [0.0], 'numParticles': [0]}
 
 	Note that each item in :yref:`yade.plot.plots` can be
 
@@ -131,28 +131,30 @@ def addAutoData():
 	A simple simulation with plot can be written in the following way; note how the energy plot is specified.
 
 	>>> from yade import plot, utils
-	>>> plot.plots={'i=O.scene.step':(O.energy,None,'total energy=O.energy.total()')}
+	>>> plot.plots={'i=O.scene.step':(O.scene.energy,None,'total energy=O.scene.energy.total()')}
 	>>> # we create a simple simulation with one ball falling down
 	>>> plot.resetData()
-	>>> O.bodies.append(utils.sphere((0,0,0),1))
+	>>> O.dem.par.append(utils.sphere((0,0,0),1))
 	0
-	>>> O.dt=utils.PWaveTimeStep()
-	>>> O.engines=[
+	>>> O.dem.collectNodes() 
+	1
+	>>> O.dt=utils.pWaveDt()
+	>>> O.scene.engines=[
 	...    ForceResetter(),
-	...    GravityEngine(gravity=(0,0,-10)),
-	...    NewtonIntegrator(damping=.4,kinSplit=True),
+	...    Gravity(gravity=(0,0,-10)),
+	...    Leapfrog(damping=.4,kinSplit=True),
 	...    # get data required by plots at every step
-	...    PyRunner(command='yade.plot.addAutoData()',iterPeriod=1,initRun=True)
+	...    PyRunner(1,'yade.plot.addAutoData()')
 	... ]
-	>>> O.trackEnergy=True
+	>>> O.scene.trackEnergy=True
 	>>> O.run(2,True)
 	>>> pprint(plot.data)   #doctest: +ELLIPSIS
-	{'gravWork': [0.0, -25.13274...],
+	{'grav': [0.0, -2.513...],
 	 'i': [0, 1],
 	 'kinRot': [0.0, 0.0],
-	 'kinTrans': [0.0, 7.5398...],
-	 'nonviscDamp': [0.0, 10.0530...],
-	 'total energy': [0.0, -7.5398...]}
+	 'kinTrans': [1.8849...e-12, 1.6964...e-11],
+	 'nonviscDamp': [nan, 1.0053...e-11],
+	 'total energy': [1.884...e-12, 1.884...e-12]}
 
 	.. plot::
 		from yade import *
@@ -225,7 +227,7 @@ def addData(*d_in,**kw):
 	 'd_xz': [10.0],
 	 'd_yx': [11.0],
 	 'd_yy': [12.0],
-	 'd_yz': [11.0],
+	 'd_yz': [13.0],
 	 'd_zx': [14.0],
 	 'd_zy': [15.0],
 	 'd_zz': [16.0]}

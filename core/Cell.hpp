@@ -111,6 +111,7 @@ class Cell: public Serializable{
 	void setTrsf(const Matrix3r& m){ trsf=m; postLoad(*this); }
 	// get undeformed shape
 	Matrix3r getHSize0() const { return _invTrsf*hSize; }
+	Vector3r getSize0() const { Matrix3r h0=getHSize0(); return Vector3r(h0.col(0).norm(),h0.col(1).norm(),h0.col(2).norm()); }
 	// set box shape of the cell
 	void setBox(const Vector3r& size){ setHSize(size.asDiagonal()); trsf=Matrix3r::Identity(); postLoad(*this); }
 	void setBox3(const Real& s0, const Real& s1, const Real& s2){ setBox(Vector3r(s0,s1,s2)); }
@@ -173,6 +174,7 @@ class Cell: public Serializable{
 		.def_readonly("shearTrsf",&Cell::_shearTrsf,"Current skew+rot transformation (no resize)")
 		.def_readonly("unshearTrsf",&Cell::_unshearTrsf,"Inverse of the current skew+rot transformation (no resize)")
 		.add_property("hSize0",&Cell::getHSize0,"Value of untransformed hSize, with respect to current :yref:`trsf<Cell.trsf>` (computed as :yref:`trsf<Cell.trsf>`⁻¹ × :yref:`hSize<Cell.hSize>`.")
+		.add_property("size0",&Cell::getSize0,"norms of columns of `hSize0` (edge lengths of the untransformed configuration)")
 	);
 };
 REGISTER_SERIALIZABLE(Cell);

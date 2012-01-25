@@ -1,15 +1,9 @@
 #pragma once
 
-//#include<yade/core/Body.hpp>
 #include<yade/core/Cell.hpp>
-//#include<yade/core/BodyContainer.hpp>
 #include<yade/core/Engine.hpp>
-//#include<yade/core/Material.hpp>
 #include<yade/core/DisplayParameters.hpp>
-//#include<yade/core/ForceContainer.hpp>
-//#include<yade/core/InteractionContainer.hpp>
 #include<yade/core/EnergyTracker.hpp>
-// #include<yade/core/Field.hpp>
 
 #ifndef HOST_NAME_MAX
 #define HOST_NAME_MAX 255 
@@ -100,8 +94,8 @@ class Scene: public Serializable{
 		.add_property("cell",&Scene::pyGetCell,"Periodic space configuration (is None for aperiodic scene); set :yref:`Scene.periodic` to enable/disable periodicity")
 		.def_readwrite("periodic",&Scene::isPeriodic,"Set whether the scene is periodic or not")
 		.add_property("engines",&Scene::pyEnginesGet,&Scene::pyEnginesSet,"Engine sequence in the simulation")
-		.def_readonly("_currEngines",&Scene::engines,"Current engines, debugging only")
-		.def_readonly("_nextEngines",&Scene::_nextEngines,"Current engines, debugging only")
+		.add_property("_currEngines",py::make_getter(&Scene::engines,py::return_value_policy<py::return_by_value>()),"Current engines, debugging only")
+		.add_property("_nextEngines",py::make_getter(&Scene::_nextEngines,py::return_value_policy<py::return_by_value>()),"Next engines, debugging only")
 		#ifdef YADE_OPENGL
 			.def("getRange",&Scene::getRange,"Retrieve a *ScalarRange* object by its label")
 		#endif

@@ -34,6 +34,7 @@ struct Particle: public Serializable{
 	Real getEk_trans() const { return getEk_any(true,false); }
 	Real getEk_rot() const {return getEk_any(false,true); }
 	Real getMass() const;
+	Vector3r getInertia() const;
 	Vector3r getForce() const;
 	Vector3r getTorque() const;
 	py::dict pyContacts() const;
@@ -61,6 +62,7 @@ struct Particle: public Serializable{
 		.add_property("vel",py::make_function(&Particle::getVel,py::return_internal_reference<>()),py::make_function(&Particle::setVel))
 		.add_property("angVel",py::make_function(&Particle::getAngVel,py::return_internal_reference<>()),py::make_function(&Particle::setAngVel))
 		.add_property("mass",&Particle::getMass)
+		.add_property("inertia",&Particle::getInertia)
 		.add_property("f",&Particle::getForce)
 		.add_property("t",&Particle::getTorque)
 		.add_property("nodes",&Particle::getNodes)
@@ -122,6 +124,7 @@ public:
 		((unsigned,flags,0,Attr::readonly,"Bit flags storing blocked DOFs, clump status"))
 		, /*ctor*/
 		, /*py*/ .add_property("blocked",&DemData::blocked_vec_get,&DemData::blocked_vec_set,"Degress of freedom where linear/angular velocity will be always constant (equal to zero, or to an user-defined value), regardless of applied force/torque. String that may contain 'xyzXYZ' (translations and rotations).")
+		.add_property("clump",&DemData::isClump).add_property("clumped",&DemData::isClumped).add_property("noClump",&DemData::isNoClump)
 		.def("_getDataOnNode",&Node::pyGetData<DemData>).staticmethod("_getDataOnNode").def("_setDataOnNode",&Node::pySetData<DemData>).staticmethod("_setDataOnNode");
 	);
 };

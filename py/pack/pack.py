@@ -67,7 +67,7 @@ def SpherePack_toSimulation(self,rot=Matrix3.Identity,**kw):
 	ur"""Append spheres directly to the simulation. In addition calling :yref:`O.bodies.append<BodyContainer.append>`,
 this method also appropriately sets periodic cell information of the simulation.
 
-	>>> from yade import pack; from math import *
+	>>> from yade import pack; from math import *; from yade.dem import *
 	>>> sp=pack.SpherePack()
 
 Create random periodic packing with 20 spheres:
@@ -77,27 +77,27 @@ Create random periodic packing with 20 spheres:
 
 Virgin simulation is aperiodic:
 
-	>>> O.reset()
-	>>> O.periodic
+	>>> O.reset(); O.scene.fields=[DemField()]
+	>>> O.scene.periodic
 	False
 
 Add generated packing to the simulation, rotated by 45° along +z
 
-	>>> sp.toSimulation(rot=Quaternion((0,0,1),pi/4),color=(0,0,1))
+	>>> sp.toSimulation(rot=Quaternion((0,0,1),pi/4),color=0)
 	[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
 
 Periodic properties are transferred to the simulation correctly, including rotation:
 
-	>>> O.periodic
+	>>> O.scene.periodic
 	True
-	>>> O.cell.refSize
+	>>> O.scene.cell.size
 	Vector3(5,5,5)
-	>>> O.cell.hSize
+	>>> O.scene.cell.hSize
 	Matrix3(3.53553,-3.53553,0, 3.53553,3.53553,0, 0,0,5)
 
 The current state (even if rotated) is taken as mechanically undeformed, i.e. with identity transformation:
 
-	>>> O.cell.trsf
+	>>> O.scene.cell.trsf
 	Matrix3(1,0,0, 0,1,0, 0,0,1)
 
 :param Quaternion/Matrix3 rot: rotation of the packing, which will be applied on spheres and will be used to set :yref:`Cell.trsf` as well.

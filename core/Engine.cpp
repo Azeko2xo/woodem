@@ -66,6 +66,7 @@ void ParallelEngine::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){
 	py::extract<py::list> listEx(args[0]);
 	if(!listEx.check()) yade::TypeError("ParallelEngine: non-keyword argument must be a list");
 	pySlavesSet(listEx());
+	args=py::tuple();
 }
 
 void ParallelEngine::pySlavesSet(const py::list& slaves2){

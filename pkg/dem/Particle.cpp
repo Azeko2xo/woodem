@@ -117,6 +117,7 @@ Vector3r& Particle::getAngVel() const { checkNodes(); return shape->nodes[0]->ge
 void Particle::setAngVel(const Vector3r& p){ checkNodes(); shape->nodes[0]->getData<DemData>().angVel=p; }
 
 Real Particle::getMass() const { checkNodes(); return shape->nodes[0]->getData<DemData>().mass; };
+Vector3r Particle::getInertia() const { checkNodes(); return shape->nodes[0]->getData<DemData>().inertia; };
 Vector3r Particle::getForce() const { checkNodes(); return shape->nodes[0]->getData<DemData>().force; };
 Vector3r Particle::getTorque() const { checkNodes(); return shape->nodes[0]->getData<DemData>().torque; };
 
