@@ -62,7 +62,7 @@ shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, bool i
 			throw std::logic_error("Clump::updateProperties: NaNs in eigen-decomposition of inertia matrix?!");
 		}
 	#endif
-	LOG_TRACE("clump->inertia="<<clump.inertia.transpose());
+	LOG_TRACE("clump->inertia="<<clump->inertia.transpose());
 	// TODO: these might be calculated from members... but complicated... - someone needs that?!
 	clump->vel=clump->angVel=Vector3r::Zero();
 

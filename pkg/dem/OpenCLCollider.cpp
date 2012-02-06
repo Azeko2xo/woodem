@@ -2,6 +2,10 @@
 
 YADE_PLUGIN(dem,(OpenCLCollider));
 
+CREATE_LOGGER(OpenCLCollider);
+
+#define OCLC_TIMING
+
 #ifdef OCLC_TIMING
 	#define OCLC_CHECKPOINT(cpt) timingDeltas->checkpoint(cpt)
 #else
@@ -30,8 +34,9 @@ void OpenCLCollider::updateMiniMaxi(){
 }
 
 void OpenCLCollider::initialSort(){
+	LOG_TRACE("Initial sort, number of bounds "<<bounds[0].size());
 	// sort all arrays without looking for inversions first
-	for(int ax:{0,1,2}) std::sort(bounds[ax].begin(),bounds[ax].end(),[](const AxBound& b1, const AxBound& b2) -> bool { return (isnan(b1.coord)||isnan(b2.coord))?false:b1.coord<b2.coord; } );
+	for(int ax:{0,1,2}) std::sort(bounds[ax].begin(),bounds[ax].end(),[](const AxBound& b1, const AxBound& b2) -> bool { return (isnan(b1.coord)||isnan(b2.coord))?true:b1.coord<b2.coord; } );
 	// traverse one axis, always from lower bound to upper bound of the same particle
 	// all intermediary bounds are candidates for collision, which must be checked in maxi/mini
 	// along other two axes
@@ -39,12 +44,15 @@ void OpenCLCollider::initialSort(){
 	for(size_t i=0; i<bounds[ax0].size(); i++){
 		const AxBound& b(bounds[ax0][i]);
 		if(!b.isMin || isnan(b.coord)) continue;
+		LOG_TRACE("← "<<b.coord<<", #"<<b.id);
 		for(size_t j=i+1; bounds[ax0][j].id!=b.id && /* just in case, e.g. maximum smaller than minimum */ j<bounds[ax0].size(); j++){
 			const AxBound& b2(bounds[ax0][j]);
 			if(!b2.isMin || isnan(b2.coord)) continue; // overlaps of this kind have been already checked when b2.id was processed upwards
-			if(!bboxOverlap(b.id,b2.id)) continue; // when no overlap along all axes, stop
-			if(dem->contacts.exists(b.id,b2.id)) continue; // contact already there, stop
+			LOG_TRACE("\t→ "<<b2.coord<<", #"<<b2.id);
+			if(!bboxOverlap(b.id,b2.id)){ LOG_TRACE("\t-- no overlap"); continue; } // when no overlap along all axes, stop
+			if(dem->contacts.exists(b.id,b2.id)){ LOG_TRACE("\t-- in contact already"); continue;} // contact already there, stop
 			/* create new potential contact here */
+			LOG_TRACE("\t++ new contact");
 			shared_ptr<Contact> c=make_shared<Contact>();
 			c->pA=dem->particles[b.id]; c->pB=dem->particles[b2.id];
 			dem->contacts.add(c); // single-threaded, can be thread-unsafe
@@ -110,7 +118,7 @@ void OpenCLCollider::handleInversions(const vector<Vector2i>(&validInv)[3]){
 			} else { /* possible new overlap: min going below max */
 				if(dem->contacts.exists(inv[0],inv[1])){
 					// since the boxes were separate, existing contact must be actual
-					assert(dem.contacts->find(inv[0],inv[1])->isReal());
+					assert(dem->contacts.find(inv[0],inv[1])->isReal());
 					continue; 
 				}
 				// no contact yet, check overlap in other two dimensions
@@ -134,13 +142,14 @@ void OpenCLCollider::run(){
 	if(!cpu && !gpu) throw std::runtime_error("OpenCLCollider: Neither CPU nor GPU collision detection enabled.");
 	OCLC_CHECKPOINT("aabbCheck");
 	// optimizations to not run the collider at every step
-	bool run=prologue_doFullRun() || updateBboxes_doFullRun();
-	if(!run) return;
+	bool run=prologue_doFullRun();
+	if(run) run=/*not to be short-cirtuited!*/updateBboxes_doFullRun();
+	if(!run){ LOG_TRACE("Not running in this step."); return; }
 	nFullRuns++;
 	size_t N=dem->particles.size(); size_t oldN=mini[0].size();
 	bool initialize=(N!=oldN);
 	#ifdef YADE_DEBUG
-		for(int ax:{0,1,2}){ assert(bounds[ax].size()==2*oldN); assert(mini[ax].size()==oldN); assert(maxi[ax].size()==oldN);
+		for(int ax:{0,1,2}){ assert(bounds[ax].size()==2*oldN); assert(mini[ax].size()==oldN); assert(maxi[ax].size()==oldN); }
 	#endif
 
 

@@ -16,6 +16,7 @@ struct AxBound{
 };
 
 class OpenCLCollider: public InsertionSortCollider{
+	DECLARE_LOGGER;
 	bool bboxOverlapAx(int id1, int id2, int ax);
 	bool bboxOverlap(int id1, int id2);
 
@@ -26,7 +27,6 @@ class OpenCLCollider: public InsertionSortCollider{
 	void handleInversions(const vector<Vector2i>(&validInv)[3]);
 
 	virtual void run();
-	shared_ptr<TimingDeltas> timingDeltas;
 	vector<AxBound> bounds[3];
 	vector<Real> mini[3];
 	vector<Real> maxi[3];
