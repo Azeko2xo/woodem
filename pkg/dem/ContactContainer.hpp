@@ -27,8 +27,8 @@ struct ContactContainer: public Serializable{
 	/* basic functionality */
 		bool add(const shared_ptr<Contact>& c, bool threadSafe=false);
 		bool remove(const shared_ptr<Contact>& c, bool threadSafe=false);
-		shared_ptr<Contact> find(ParticleContainer::id_t idA, ParticleContainer::id_t idB);
-		bool exists(ParticleContainer::id_t idA, ParticleContainer::id_t idB);
+		shared_ptr<Contact> find(ParticleContainer::id_t idA, ParticleContainer::id_t idB) const;
+		bool exists(ParticleContainer::id_t idA, ParticleContainer::id_t idB) const;
 		shared_ptr<Contact>& operator[](size_t ix){return linView[ix];}
 		const shared_ptr<Contact>& operator[](size_t ix) const { return linView[ix];}
 		void clear();
@@ -111,6 +111,7 @@ struct ContactContainer: public Serializable{
 		.def("remove",&ContactContainer::requestRemoval,(py::arg("contact"),py::arg("force")=false))
 		.def("removeNonReal",&ContactContainer::removeNonReal)
 		.def("countReal",&ContactContainer::countReal)
+		.def("exists",&ContactContainer::exists)
 		.def("__iter__",&ContactContainer::pyIter)
 		// define nested iterator class here; ugly, same as in ParticleContainer
 		; boost::python::scope foo(_classObj);

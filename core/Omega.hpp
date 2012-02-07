@@ -85,6 +85,8 @@ class Omega: public Singleton<Omega>{
 
 		// configuration directory used for logging config and possibly other things
 		std::string confDir;
+		// default OpenCL device passed from the command-line
+		Vector2i defaultClDev;
 
 	DECLARE_LOGGER;
 

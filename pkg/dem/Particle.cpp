@@ -39,8 +39,9 @@ std::tuple<Vector3r,Vector3r,Vector3r> Contact::getForceTorqueBranch(const share
 }
 
 
-Particle::id_t Contact::pyId1(){ return pA->id; }
-Particle::id_t Contact::pyId2(){ return pB->id; }
+Particle::id_t Contact::pyId1() const { return pA->id; }
+Particle::id_t Contact::pyId2() const { return pB->id; }
+Vector2i Contact::pyIds() const { return Vector2i(min(pA->id,pB->id),max(pA->id,pB->id)); }
 
 void Particle::checkNodes(bool dyn, bool checkOne) const {
 	if(!shape || (checkOne  && shape->nodes.size()!=1) || (dyn && !shape->nodes[0]->hasData<DemData>())) yade::AttributeError("Particle #"+lexical_cast<string>(id)+" has no Shape"+(checkOne?string(", or the shape has no/multiple nodes")+string(!dyn?".":", or node.dem is None."):string(".")));
@@ -144,7 +145,7 @@ Real Particle::getEk_any(bool trans, bool rot) const {
 	return ret;
 }
 
-Vector3r Contact::dPos(Scene* scene){
+Vector3r Contact::dPos(const Scene* scene) const{
 	pA->checkNodes(/*dyn*/false,/*checkUninodal*/true); pB->checkNodes(false,true);
 	Vector3r rawDx=pB->shape->nodes[0]->pos-pA->shape->nodes[0]->pos;
 	if(!scene->isPeriodic || cellDist==Vector3i::Zero()) return rawDx;

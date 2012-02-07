@@ -62,7 +62,7 @@ bool ContactContainer::remove(const shared_ptr<Contact>& c, bool threadSafe){
 	return true;
 };
 
-shared_ptr<Contact> ContactContainer::find(ParticleContainer::id_t idA, ParticleContainer::id_t idB){
+shared_ptr<Contact> ContactContainer::find(ParticleContainer::id_t idA, ParticleContainer::id_t idB) const {
 	assert(dem);
 	if(!dem->particles.exists(idA)) return shared_ptr<Contact>();
 	Particle::MapParticleContact::iterator I(dem->particles[idA]->contacts.find(idB));
@@ -71,7 +71,7 @@ shared_ptr<Contact> ContactContainer::find(ParticleContainer::id_t idA, Particle
 };
 
 // query existence; use find(...) to get the instance if it exists as well
-bool ContactContainer::exists(ParticleContainer::id_t idA, ParticleContainer::id_t idB){
+bool ContactContainer::exists(ParticleContainer::id_t idA, ParticleContainer::id_t idB) const {
 	assert(dem);
 	if(!dem->particles.exists(idA)) return false;
 	Particle::MapParticleContact::iterator I(dem->particles[idA]->contacts.find(idB));

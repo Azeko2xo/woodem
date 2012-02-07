@@ -33,6 +33,7 @@ Omega::Omega(): simulationLoop(&simulationFlow){
 	scene=shared_ptr<Scene>(new Scene);
 	startupLocalTime=boost::posix_time::microsec_clock::local_time();
 	char dirTemplate[]="/tmp/yade-XXXXXX"; tmpFileDir=mkdtemp(dirTemplate); tmpFileCounter=0;
+	defaultClDev=Vector2i(-1,-1);
 }
 
 void Omega::reset(){ stop(); scene=shared_ptr<Scene>(new Scene); }

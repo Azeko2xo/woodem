@@ -193,6 +193,11 @@ class pyOmega{
 		int numThreads_get(){return 1;}
 		// void numThreads_set(int n){ LOG_WARN("Yade was compiled without openMP support, changing number of threads will have no effect."); }
 	#endif
+
+	#ifdef YADE_OPENCL
+		Vector2i defaultClDev_get(){ return OMEGA.defaultClDev; }
+		void defaultClDev_set(const Vector2i dev){ OMEGA.defaultClDev=dev; }
+	#endif
 	
 	// shared_ptr<Cell> cell_get(){ if(OMEGA.getScene()->isPeriodic) return OMEGA.getScene()->cell; return shared_ptr<Cell>(); }
 
@@ -293,6 +298,9 @@ BOOST_PYTHON_MODULE(wrapper)
 		.def("switchScene",&pyOmega::switchScene,"Switch to alternative simulation (while keeping the old one). Calling the function again switches back to the first one. Note that most variables from the first simulation will still refer to the first simulation even after the switch\n(e.g. b=O.bodies[4]; O.switchScene(); [b still refers to the body in the first simulation here])")
 		.def("resetTime",&pyOmega::resetTime,"Reset simulation time: step number, virtual and real time. (Doesn't touch anything else, including timings).")
 		.def("plugins",&pyOmega::plugins_get,"Return list of all plugins registered in the class factory.")
+		#ifdef YADE_OPENCL
+			.add_property("defaultClDev",&pyOmega::defaultClDev_get,&pyOmega::defaultClDev_set,"Default OpenCL platform/device couple (as ints), set internally from the command-line arg.")
+		#endif
 		.add_property("scene",&pyOmega::scene_get,"Return the current :yref:`scene <Scene>` object.")
 		.add_property("dem",&pyOmega::dem_get,"Return first DEM field.")
 		.add_property("sparc",&pyOmega::sparc_get,"Return first Sparc field.")

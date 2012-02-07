@@ -46,6 +46,52 @@ void Scene::fillDefaultTags(){
 	// tags.push_back("revision="+py::extract<string>(py::import("yade.config").attr("revision"))());;
 }
 
+void Scene::ensureCl(){
+	#ifdef YADE_OPENCL
+		if(clDev[0]<0) initCl();
+		return;
+	#else
+		throw std::runtime_error("Yade was compiled without OpenCL support (add to features and recompile).");
+	#endif
+}
+
+#ifdef YADE_OPENCL
+void Scene::initCl(){
+	Vector2i dev=(clDev[0]<0?Omega::instance().defaultClDev:clDev);
+	clDev=Vector2i(-1,-1); // invalidate old settings before attempting new
+	int pNum=dev[0], dNum=dev[1];
+	std::vector<cl::Platform> platforms;
+	std::vector<cl::Device> devices;
+	cl::Platform::get(&platforms);
+	if(pNum<0){
+		LOG_WARN("OpenCL device will be chosen automatically; set --cl-dev or Scene.clDev to override (and get rid of this warning)");
+		LOG_WARN("==== OpenCL devices: ====");
+		for(size_t i=0; i<platforms.size(); i++){
+			LOG_WARN("   "<<i<<". platform: "<<platforms[i].getInfo<CL_PLATFORM_NAME>());
+			platforms[i].getDevices(CL_DEVICE_TYPE_ALL,&devices);
+			for(size_t j=0; j<devices.size(); j++){
+				LOG_WARN("      "<<j<<". device: "<<devices[j].getInfo<CL_DEVICE_NAME>());
+			}
+		}
+		LOG_WARN("==== --------------- ====");
+	}
+	cl::Platform::get(&platforms);
+	if(platforms.empty()){ throw std::runtime_error("No OpenCL platforms available."); }
+	if(pNum>=(int)platforms.size()){ LOG_WARN("Only "<<platforms.size()<<" platforms available, taking 0th platform."); pNum=0; }
+	if(pNum<0) pNum=0;
+	platform=platforms[pNum];
+	platforms[pNum].getDevices(CL_DEVICE_TYPE_ALL,&devices);
+	if(devices.empty()){ throw std::runtime_error("No OpenCL devices available on the platform "+platform.getInfo<CL_PLATFORM_NAME>()+"."); }
+	if(dNum>=(int)devices.size()){ LOG_WARN("Only "<<devices.size()<<" devices available, taking 0th device."); dNum=0; }
+	if(dNum<0) dNum=0;
+	context=cl::Context(devices);
+	device=devices[dNum];
+	LOG_WARN("OpenCL ready: platform \""<<platform.getInfo<CL_PLATFORM_NAME>()<<"\", device \""<<device.getInfo<CL_DEVICE_NAME>()<<"\".");
+	queue=cl::CommandQueue(context,device);
+	clDev=Vector2i(pNum,dNum);
+}
+#endif
+
 
 vector<shared_ptr<Engine> > Scene::pyEnginesGet(void){ return _nextEngines.empty()?engines:_nextEngines; }
 
@@ -64,6 +110,9 @@ shared_ptr<ScalarRange> Scene::getRange(const std::string& l) const{
 
 
 void Scene::postLoad(Scene&){
+	//
+	if(clDev[0]>0) initCl();
+	//
 	// assign fields to engines
 	FOREACH(const shared_ptr<Engine>& e, engines){
 		//cerr<<e->getClassName()<<endl;

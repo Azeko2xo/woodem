@@ -199,11 +199,12 @@ struct Contact: public Serializable{
 	See In2_Sphere_Elastmat::go for its use.  */
 	std::tuple<Vector3r,Vector3r,Vector3r> getForceTorqueBranch(const shared_ptr<Particle>&, int nodeI, Scene* scene);
 	// return position vector between pA and pB, taking in account PBC's; both must be uninodal
-	Vector3r dPos(Scene* s);
-	Vector3r dPos_py(){ return dPos(Omega::instance().getScene().get()); }
-	Real dist_py(){ return dPos_py().norm(); }
-	Particle::id_t pyId1();
-	Particle::id_t pyId2();
+	Vector3r dPos(const Scene* s) const;
+	Vector3r dPos_py() const{ return dPos(Omega::instance().getScene().get()); }
+	Real dist_py() const { return dPos_py().norm(); }
+	Particle::id_t pyId1() const;
+	Particle::id_t pyId2() const;
+	Vector2i pyIds() const;
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Contact,Serializable,"Contact in DEM",
 		((shared_ptr<CGeom>,geom,,Attr::readonly,"Contact geometry"))
 		((shared_ptr<CPhys>,phys,,Attr::readonly,"Physical properties of contact"))
@@ -218,7 +219,7 @@ struct Contact: public Serializable{
 		((int,stepMadeReal,-1,Attr::hidden,""))
 		((size_t,linIx,0,(Attr::readonly|Attr::noGui),"Position in the linear view (ContactContainer)"))
 		, /*ctor*/
-		, /*py*/ .add_property("id1",&Contact::pyId1).add_property("id2",&Contact::pyId2).add_property("real",&Contact::isReal)
+		, /*py*/ .add_property("id1",&Contact::pyId1).add_property("id2",&Contact::pyId2).add_property("real",&Contact::isReal).add_property("ids",&Contact::pyIds)
 		.def("dPos",&Contact::dPos_py,"Return position difference vector pB-pA, taking `Contact.cellDist` in account properly. Both particles must be uninodal, exception is raised otherwise.")
 		.def("dist",&Contact::dist_py,"Shorthand for dPos.norm().")
 	);

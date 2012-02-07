@@ -319,7 +319,7 @@ if not env.GetOption('clean'):
 	# check "optional" libs
 	if 'opengl' in env['features']:
 		ok=conf.CheckLibWithHeader('glut','GL/glut.h','c++','glutGetModifiers();',autoadd=1)
-		ok=conf.CheckLibWithHeader('gle','GL/gle.h','c++','gleSetNumSides(20);',autoadd=1)
+		ok&=conf.CheckLibWithHeader('gle','GL/gle.h','c++','gleSetNumSides(20);',autoadd=1)
 		# TODO ok=True for darwin platform where openGL (and glut) is native
 		if not ok: featureNotOK('opengl')
 		if 'qt4' in env['features']:
@@ -333,10 +333,11 @@ if not env.GetOption('clean'):
 			elif conf.CheckLibWithHeader(['libQGLViewer'],'QGLViewer/qglviewer.h','c++','QGLViewer();',autoadd=1):
 				env['QGLVIEWER_LIB']='libQGLViewer'
 			else: featureNotOK('qt4','Building with Qt4 implies the QGLViewer library installed (package libqglviewer-qt4-dev package in debian/ubuntu, libQGLViewer in RPM-based distributions)')
-	if 'opencl' in env['features']: pass
-		# TODO: check 
-		#
-		#ok=conf.CheckLibWithHeaders('OpenCL','CL/cl.h')
+	if 'opencl' in env['features']:
+		ok=conf.CheckLibWithHeader('OpenCL','CL/cl.h','c','clGetPlatformIDs(0,NULL,NULL);',autoadd=1)
+		if not ok: featureNotOK('opencl','OpenCL headers not found. Install an OpenCL SDK, and add appropriate directory to CPPPATH, LDPATH if necessary (note: this is not a test that your computer has an OpenCL-capable device)')
+		env['haveClHpp']=conf.CheckCXXHeader('CL/cl.hpp')
+		if not env['haveClHpp']: print '(OK, local version (from Khronos website) will be used instead; some SDK\'s (Intel) are not providing cl.hpp)'
 	if 'vtk' in env['features']:
 		ok=conf.CheckLibWithHeader(['vtkCommon'],'vtkInstantiator.h','c++','vtkInstantiator::New();',autoadd=1)
 		env.Append(LIBS=['vtkHybrid','vtkRendering','vtkIO','vtkFiltering'])
@@ -489,6 +490,10 @@ if not env.GetOption('clean'):
 	if not exists(boostDir): os.makedirs(boostDir)
 	if not env['haveForeach']:
 		mkSymlink(boostDir+'/foreach.hpp','extra/foreach.hpp_local')
+	if 'opencl' in env['features'] and not env['haveClHpp']:
+		clDir=buildDir+'/include/CL'
+		if not exists(clDir): os.makedirs(clDir)
+		mkSymlink(clDir+'/cl.hpp','extra/cl.hpp_local')
 	#mkSymlink(boostDir+'/python','py/3rd-party/boost-python-indexing-suite-v2-noSymlinkHeaders')
 	mkSymlink(buildDir+'/include/indexing_suite','py/3rd-party/boost-python-indexing-suite-v2-noSymlinkHeaders')
 	mkSymlink(boostDir+'/math','extra/floating_point_utilities_v3/boost/math')

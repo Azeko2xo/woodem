@@ -5,9 +5,15 @@
 #include<yade/core/DisplayParameters.hpp>
 #include<yade/core/EnergyTracker.hpp>
 
+#ifdef YADE_OPENCL
+	#define __CL_ENABLE_EXCEPTIONS
+	#include<CL/cl.hpp>
+#endif
+
 #ifndef HOST_NAME_MAX
 #define HOST_NAME_MAX 255 
 #endif
+
 
 
 class Bound;
@@ -28,6 +34,13 @@ class Scene: public Serializable{
 			shared_ptr<Renderer> renderer;
 		#endif
 		void postLoad(Scene&);
+
+		#ifdef YADE_OPENCL
+			cl::Platform platform;
+			cl::Device device;
+			cl::Context context;
+			cl::CommandQueue queue;
+		#endif
 
 		// keep track of created labels; delete those which are no longer active and so on
 		// std::set<std::string> pyLabels;
@@ -50,7 +63,10 @@ class Scene: public Serializable{
 
 		typedef std::map<std::string,std::string> StrStrMap;
 
-
+		void ensureCl(); // calls initCL or throws exception if compiled without OpenCL
+		#ifdef YADE_OPENCL
+			void initCl(); // initialize OpenCL using clDev
+		#endif
 
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Scene,Serializable,"Object comprising the whole simulation.",
 		((Real,dt,1e-8,,"Current timestep for integration."))
@@ -62,6 +78,8 @@ class Scene: public Serializable{
 
 		((bool,isPeriodic,false,/*exposed as "periodic" in python */ Attr::hidden,"Whether periodic boundary conditions are active."))
 		((bool,trackEnergy,false,,"Whether energies are being tracked."))
+
+		((Vector2i,clDev,Vector2i(-1,-1),Attr::triggerPostLoad,"OpenCL device to be used; if (-1,-1) (default), no OpenCL device will be initialized until requested. Saved simulations should thus always use the same device when re-loaded."))
 
 		((Vector3r,loHint,Vector3r(-1,-1,-1),,"Lower corner, for rendering purposes"))
 		((Vector3r,hiHint,Vector3r(1,1,1),,"Upper corner, for rendering purposes"))
@@ -98,6 +116,9 @@ class Scene: public Serializable{
 		.add_property("_nextEngines",py::make_getter(&Scene::_nextEngines,py::return_value_policy<py::return_by_value>()),"Next engines, debugging only")
 		#ifdef YADE_OPENGL
 			.def("getRange",&Scene::getRange,"Retrieve a *ScalarRange* object by its label")
+		#endif
+		#ifdef YADE_OPENCL
+			.def("ensureCl",&Scene::ensureCl,"[for debugging] Initialize the OpenCL subsystem (this is done by engines using OpenCL, but trying to do so in advance might catch errors earlier)")
 		#endif
 		
 		;
