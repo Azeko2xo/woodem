@@ -175,9 +175,8 @@ vector<Vector2i> OpenCLCollider::inversionsGPU(const vector<AxBound>& bb){
 void OpenCLCollider::sortAndCopyInversions(vector<Vector2i>(&cpuInv)[3], vector<Vector2i>(&gpuInv)[3]){
 	#pragma omp parallel for
 	for(int ax=0; ax<3; ax++){
-		for(bool isCpu:{true,false}){
-			auto& invs(isCpu?cpuInv[ax]:gpuInv[ax]);
-			std::sort(invs.begin(),invs.end(),[](const Vector2i& p1, const Vector2i& p2)->bool{ return (p1[0]<p2[0] || (p1[0]==p2[0] && p1[1]<p2[1])); });
+		for(auto invs:{&cpuInv[ax],&gpuInv[ax]}){
+			std::sort(invs->begin(),invs->end(),[](const Vector2i& p1, const Vector2i& p2)->bool{ return (p1[0]<p2[0] || (p1[0]==p2[0] && p1[1]<p2[1])); });
 		}
 	}
 	/* copy sorted arrays for python inspection */
@@ -275,7 +274,7 @@ void OpenCLCollider::run(){
 		// comparison
 		if(cpu&&gpu){
 			if(cpuInit.size()!=gpuInit.size()) throw std::runtime_error("OpenCLCollider: initial contacts differ in length");
-			for(bool isCpu: {true,false}){ auto& init(isCpu?cpuInit:gpuInit); std::sort(init.begin(),init.end(),[](const Vector2i& p1, const Vector2i& p2){ return (p1[0]<p2[0] || (p1[0]==p2[0] && p1[1]<p2[1])); }); }
+			for(auto init: {&cpuInit,&gpuInit}) std::sort(init->begin(),init->end(),[](const Vector2i& p1, const Vector2i& p2){ return (p1[0]<p2[0] || (p1[0]==p2[0] && p1[1]<p2[1])); });
 			if(memcmp(&(cpuInit[0]),&(gpuInit[0]),cpuInit.size()*sizeof(Vector2i))!=0) throw std::runtime_error("OpenCLCollider: initial contacts differ in values");
 		}
 		// create contacts
