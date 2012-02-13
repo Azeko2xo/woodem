@@ -98,7 +98,7 @@ public:
 	py::tuple aabb_py() const { Vector3r mn,mx; aabb(mn,mx); return py::make_tuple(mn,mx); }
 	void aabb(Vector3r& mn, Vector3r& mx) const {
 		Real inf=std::numeric_limits<Real>::infinity(); mn=Vector3r(inf,inf,inf); mx=Vector3r(-inf,-inf,-inf);
-		FOREACH(const Sph& s, pack){ Vector3r r(s.r,s.r,s.r); mn=mn.cwise().min(s.c-r); mx=mx.cwise().max(s.c+r);}
+		FOREACH(const Sph& s, pack){ Vector3r rrr(s.r,s.r,s.r); mn=mn.array().min((s.c-rrr).array()).matrix(); mx=mx.array().max((s.c+rrr).array()).matrix();}
 	}
 	Vector3r midPt() const {Vector3r mn,mx; aabb(mn,mx); return .5*(mn+mx);}
 	Real relDensity() const {

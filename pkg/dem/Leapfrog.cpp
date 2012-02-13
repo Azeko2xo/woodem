@@ -28,7 +28,7 @@ Vector3r Leapfrog::computeAccel(const Vector3r& force, const Real& mass, const D
 	return ret;
 }
 Vector3r Leapfrog::computeAngAccel(const Vector3r& torque, const Vector3r& inertia, const DemData& dyn){
-	if(likely(dyn.isBlockedNone())) return torque.cwise()/inertia;
+	if(likely(dyn.isBlockedNone())) return (torque.array()/inertia.array()).matrix();
 	Vector3r ret(Vector3r::Zero());
 	for(int i=0; i<3; i++) if(!(dyn.isBlockedAxisDOF(i,true))) ret[i]+=torque[i]/inertia[i];
 	return ret;
@@ -39,9 +39,9 @@ void Leapfrog::doDampingDissipation(const shared_ptr<Node>& node){
 	/* damping is evaluated incrementally, therefore computed with mid-step values */
 	// always positive dissipation, by-component: |F_i|*|v_i|*damping*dt (|T_i|*|ω_i|*damping*dt for rotations)
 	scene->energy->add(
-		dyn.vel.cwise().abs().dot(dyn.force.cwise().abs())*damping*scene->dt
+		dyn.vel.array().abs().matrix().dot(dyn.force.array().abs().matrix())*damping*scene->dt
 		// with aspherical integrator, torque is damped instead of ang acceleration; this is only approximate
-		+ dyn.angVel.cwise().abs().dot(dyn.torque.cwise().abs())*damping*scene->dt
+		+ dyn.angVel.array().abs().matrix().dot(dyn.torque.array().abs().matrix())*damping*scene->dt
 		,"nonviscDamp",nonviscDampIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate
 	);
 }
@@ -59,7 +59,7 @@ void Leapfrog::doKineticEnergy(const shared_ptr<Node>& node, const Vector3r& ppr
 		Matrix3r mI(dyn.inertia.asDiagonal());
 		Matrix3r T(node->ori);
 		Erot=.5*currFluctAngVel.transpose().dot((T.transpose()*mI*T)*currFluctAngVel);
-	} else { Erot=0.5*currFluctAngVel.dot(dyn.inertia.cwise()*currFluctAngVel); }
+	} else { Erot=0.5*currFluctAngVel.dot((dyn.inertia.array()*currFluctAngVel.array()).matrix()); }
 	if(isnan(Erot) || isinf(dyn.inertia.maxCoeff())) Erot=0;
 	if(!kinSplit) scene->energy->add(Etrans+Erot,"kinetic",kinEnergyIx,EnergyTracker::IsResettable);
 	else{
@@ -222,12 +222,12 @@ void Leapfrog::leapfrogAsphericalRotate(const shared_ptr<Node>& node, const Vect
 	Matrix3r A=ori.conjugate().toRotationMatrix(); // rotation matrix from global to local r.f.
 	const Vector3r l_n = angMom + dt/2 * M; // global angular momentum at time n
 	const Vector3r l_b_n = A*l_n; // local angular momentum at time n
-	const Vector3r angVel_b_n = l_b_n.cwise()/inertia; // local angular velocity at time n
+	const Vector3r angVel_b_n = (l_b_n.array()/inertia.array()).matrix(); // local angular velocity at time n
 	const Quaternionr dotQ_n=DotQ(angVel_b_n,ori); // dQ/dt at time n
 	const Quaternionr Q_half = ori + dt/2 * dotQ_n; // Q at time n+1/2
 	angMom+=dt*M; // global angular momentum at time n+1/2
 	const Vector3r l_b_half = A*angMom; // local angular momentum at time n+1/2
-	Vector3r angVel_b_half = l_b_half.cwise()/inertia; // local angular velocity at time n+1/2
+	Vector3r angVel_b_half = (l_b_half.array()/inertia.array()).matrix(); // local angular velocity at time n+1/2
 	const Quaternionr dotQ_half=DotQ(angVel_b_half,Q_half); // dQ/dt at time n+1/2
 	ori=ori+dt*dotQ_half; // Q at time n+1
 	angVel=ori*angVel_b_half; // global angular velocity at time n+1/2

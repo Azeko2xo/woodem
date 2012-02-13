@@ -46,6 +46,7 @@ int  Vector3i_get_item(const Vector3i & self, int idx){ IDX_CHECK(idx,3); return
 Real Vector2r_get_item(const Vector2r & self, int idx){ IDX_CHECK(idx,2); return self[idx]; }
 int  Vector2i_get_item(const Vector2i & self, int idx){ IDX_CHECK(idx,2); return self[idx]; }
 
+
 template<typename MatrixType>
 MatrixType Matrix_pruned(const MatrixType& obj, typename MatrixType::Scalar absTol=1e-6){ MatrixType ret(MatrixType::Zero(obj.rows(),obj.cols())); for(int i=0;i<obj.rows();i++){ for(int j=0;j<obj.cols();j++){ if(std::abs(obj(i,j))>absTol  && obj(i,j)!=-0) ret(i,j)=obj(i,j); } } return ret; }
 
@@ -111,19 +112,30 @@ struct MatrixXr_pickle: py::pickle_suite{static py::tuple getinitargs(const Matr
    - length is stored in VT::RowsAtCompileTime
 	- type is VT::Scalar
 */
+// http://news.gmane.org/gmane.comp.python.c%2b%2b
+template<class VT> 
+struct AlignedHolder{
+	operator VT const &(){ return *p; }
+	std::auto_ptr<VT> p;
+};
 template<class VT>
 struct custom_VectorAnyAny_from_sequence{
 	custom_VectorAnyAny_from_sequence(){ py::converter::registry::push_back(&convertible,&construct,py::type_id<VT>()); }
 	static void* convertible(PyObject* obj_ptr){ if(!PySequence_Check(obj_ptr) || (VT::RowsAtCompileTime!=Eigen::Dynamic && (PySequence_Size(obj_ptr)!=VT::RowsAtCompileTime))) return 0; return obj_ptr; }
 	static void construct(PyObject* obj_ptr, py::converter::rvalue_from_python_stage1_data* data){
-		void* storage=((py::converter::rvalue_from_python_storage<VT>*)(data))->storage.bytes;
-		new (storage) VT; size_t len;
+		std::cerr<<"["<<py::type_id<VT>().name()<<"]";
+		void* storage=((py::converter::rvalue_from_python_storage<AlignedHolder<VT>>*)(data))->storage.bytes;
+		new (storage) AlignedHolder<VT>; size_t len;
 		if(VT::RowsAtCompileTime!=Eigen::Dynamic){ len=VT::RowsAtCompileTime; }
-		else{ len=PySequence_Size(obj_ptr); ((VT*)storage)->resize(len); }
-		for(size_t i=0; i<len; i++) (*((VT*)storage))[i]=py::extract<typename VT::Scalar>(PySequence_GetItem(obj_ptr,i));
+		else{ len=PySequence_Size(obj_ptr); ((AlignedHolder<VT>*)storage)->p->resize(len); }
+		for(size_t i=0; i<len; i++) (*(((AlignedHolder<VT>*)storage)->p))[i]=py::extract<typename VT::Scalar>(PySequence_GetItem(obj_ptr,i));
 		data->convertible=storage;
 	}
 };
+
+
+
+template<typename MatrixType> MatrixType* Matrix_new(){ MatrixType* m(new MatrixType); std::cerr<<"[__init__:"<<py::type_id<MatrixType>().name()<<" @ "<<(void*)m<<"]"; return m; }
 
 static Matrix3r* Matrix3r_fromElements(Real m00, Real m01, Real m02, Real m10, Real m11, Real m12, Real m20, Real m21, Real m22){ Matrix3r* m(new Matrix3r); (*m)<<m00,m01,m02,m10,m11,m12,m20,m21,m22; return m; }
 static Matrix3r* Matrix3r_fromRows(const Vector3r& l0, const Vector3r& l1, const Vector3r& l2, bool cols=false){ Matrix3r* m(new Matrix3r); if(cols){m->col(0)=l0; m->col(1)=l1; m->col(2)=l2; } else {m->row(0)=l0; m->row(1)=l1; m->row(2)=l2;} return m; }
@@ -210,10 +222,10 @@ static Real Vector2r_dot(const Vector2r& self, const Vector2r& v){ return self.d
 static Real Vector2i_dot(const Vector2i& self, const Vector2i& v){ return self.dot(v); }
 static Vector3r Vector3r_cross(const Vector3r& self, const Vector3r& v){ return self.cross(v); }
 static Vector3i Vector3i_cross(const Vector3i& self, const Vector3i& v){ return self.cross(v); }
-static Vector3r Vector6r_head(const Vector6r& self){ return self.start<3>(); }
-static Vector3r Vector6r_tail(const Vector6r& self){ return self.end<3>(); }
-static Vector3i Vector6i_head(const Vector6i& self){ return self.start<3>(); }
-static Vector3i Vector6i_tail(const Vector6i& self){ return self.end<3>(); }
+static Vector3r Vector6r_head(const Vector6r& self){ return self.head<3>(); }
+static Vector3r Vector6r_tail(const Vector6r& self){ return self.tail<3>(); }
+static Vector3i Vector6i_head(const Vector6i& self){ return self.head<3>(); }
+static Vector3i Vector6i_tail(const Vector6i& self){ return self.tail<3>(); }
 static bool Quaternionr__eq__(const Quaternionr& q1, const Quaternionr& q2){ return q1==q2; }
 static bool Quaternionr__neq__(const Quaternionr& q1, const Quaternionr& q2){ return q1!=q2; }
 #include<Eigen/SVD>
@@ -262,7 +274,9 @@ EIG_WRAP_METH0(Matrix6r,Zero);
 EIG_WRAP_METH0(Matrix6r,Identity);
 EIG_WRAP_METH0(Matrix6r,Ones);
 EIG_WRAP_METH0(Matrix6r,Random);
-EIG_WRAP_METH0(Vector6r,Zero); EIG_WRAP_METH0(Vector6r,Ones); EIG_WRAP_METH0(Vector6r,Random);
+EIG_WRAP_METH0(Vector6r,Zero);
+//static Vector6r* Vector6r_Zero(const Vector6r&){ return new Vector6r(Vector6r::Zero()); }
+EIG_WRAP_METH0(Vector6r,Ones); EIG_WRAP_METH0(Vector6r,Random);
 EIG_WRAP_METH0(Vector6i,Zero); EIG_WRAP_METH0(Vector6i,Ones);
 EIG_WRAP_METH0(Vector3r,Zero); EIG_WRAP_METH0(Vector3r,UnitX); EIG_WRAP_METH0(Vector3r,UnitY); EIG_WRAP_METH0(Vector3r,UnitZ); EIG_WRAP_METH0(Vector3r,Ones); EIG_WRAP_METH0(Vector3r,Random);
 EIG_WRAP_METH0(Vector3i,Zero); EIG_WRAP_METH0(Vector3i,UnitX); EIG_WRAP_METH0(Vector3i,UnitY); EIG_WRAP_METH0(Vector3i,UnitZ); EIG_WRAP_METH0(Vector3i,Ones); 
@@ -358,7 +372,8 @@ BOOST_PYTHON_MODULE(miniEigen){
 	custom_VectorAnyAny_from_sequence<Vector2r>();
 	custom_VectorAnyAny_from_sequence<Vector2i>();
 
-	py::class_<Matrix3r>("Matrix3","3x3 float matrix.\n\nSupported operations (``m`` is a Matrix3, ``f`` if a float/int, ``v`` is a Vector3): ``-m``, ``m+m``, ``m+=m``, ``m-m``, ``m-=m``, ``m*f``, ``f*m``, ``m*=f``, ``m/f``, ``m/=f``, ``m*m``, ``m*=m``, ``m*v``, ``v*m``, ``m==m``, ``m!=m``.",py::init<>())
+	py::class_<Matrix3r>("Matrix3","3x3 float matrix.\n\nSupported operations (``m`` is a Matrix3, ``f`` if a float/int, ``v`` is a Vector3): ``-m``, ``m+m``, ``m+=m``, ``m-m``, ``m-=m``, ``m*f``, ``f*m``, ``m*=f``, ``m/f``, ``m/=f``, ``m*m``, ``m*=m``, ``m*v``, ``v*m``, ``m==m``, ``m!=m``.",py::no_init)
+		.def("__init__",py::make_constructor(Matrix_new<Matrix3r>))
 		.def(py::init<Matrix3r const &>((py::arg("m"))))
 		.def(py::init<Quaternionr const &>((py::arg("q"))))
 		.def("__init__",py::make_constructor(&Matrix3r_fromElements,py::default_call_policies(),(py::arg("m00"),py::arg("m01"),py::arg("m02"),py::arg("m10"),py::arg("m11"),py::arg("m12"),py::arg("m20"),py::arg("m21"),py::arg("m22"))))
@@ -405,7 +420,8 @@ BOOST_PYTHON_MODULE(miniEigen){
 		
 	;
 
-	py::class_<Matrix6r>("Matrix6","6x6 float matrix. Constructed from 4 3x3 sub-matrices, from 6xVector6 (rows).\n\nSupported operations (``m`` is a Matrix6, ``f`` if a float/int, ``v`` is a Vector6): ``-m``, ``m+m``, ``m+=m``, ``m-m``, ``m-=m``, ``m*f``, ``f*m``, ``m*=f``, ``m/f``, ``m/=f``, ``m*m``, ``m*=m``, ``m*v``, ``v*m``, ``m==m``, ``m!=m``.",py::init<>())
+	py::class_<Matrix6r>("Matrix6","6x6 float matrix. Constructed from 4 3x3 sub-matrices, from 6xVector6 (rows).\n\nSupported operations (``m`` is a Matrix6, ``f`` if a float/int, ``v`` is a Vector6): ``-m``, ``m+m``, ``m+=m``, ``m-m``, ``m-=m``, ``m*f``, ``f*m``, ``m*=f``, ``m/f``, ``m/=f``, ``m*m``, ``m*=m``, ``m*v``, ``v*m``, ``m==m``, ``m!=m``.",py::no_init)
+		.def("__init__",py::make_constructor(Matrix_new<Matrix6r>))
 		.def(py::init<Matrix6r const &>((py::arg("m"))))
 		.def("__init__",py::make_constructor(&Matrix6r_fromBlocks,py::default_call_policies(),(py::arg("ul"),py::arg("ur"),py::arg("ll"),py::arg("lr"))))
 		.def("__init__",py::make_constructor(&Matrix6r_fromRows,py::default_call_policies(),(py::arg("l0"),py::arg("l1"),py::arg("l2"),py::arg("l3"),py::arg("l4"),py::arg("l5"),py::arg("cols")=false)))
@@ -535,7 +551,8 @@ BOOST_PYTHON_MODULE(miniEigen){
 	;
 
 
-	py::class_<Quaternionr>("Quaternion","Quaternion representing rotation.\n\nSupported operations (``q`` is a Quaternion, ``v`` is a Vector3): ``q*q`` (rotation composition), ``q*=q``, ``q*v`` (rotating ``v`` by ``q``), ``q==q``, ``q!=q``.",py::init<>())
+	py::class_<Quaternionr>("Quaternion","Quaternion representing rotation.\n\nSupported operations (``q`` is a Quaternion, ``v`` is a Vector3): ``q*q`` (rotation composition), ``q*=q``, ``q*v`` (rotating ``v`` by ``q``), ``q==q``, ``q!=q``.",py::no_init)
+		.def("__init__",py::make_constructor(Matrix_new<Quaternionr>))
 		.def("__init__",py::make_constructor(&Quaternionr_fromAxisAngle,py::default_call_policies(),(py::arg("axis"),py::arg("angle"))))
 		.def("__init__",py::make_constructor(&Quaternionr_fromAngleAxis,py::default_call_policies(),(py::arg("angle"),py::arg("axis"))))
 		.def(py::init<Real,Real,Real,Real>((py::arg("w"),py::arg("x"),py::arg("y"),py::arg("z")),"Initialize from coefficients.\n\n.. note:: The order of coefficients is *w*, *x*, *y*, *z*. The [] operator numbers them differently, 0…4 for *x* *y* *z* *w*!"))
@@ -571,13 +588,16 @@ BOOST_PYTHON_MODULE(miniEigen){
 
 
 
-	py::class_<Vector6r>("Vector6","6-dimensional float vector.\n\nSupported operations (``f`` if a float/int, ``v`` is a Vector6): ``-v``, ``v+v``, ``v+=v``, ``v-v``, ``v-=v``, ``v*f``, ``f*v``, ``v*=f``, ``v/f``, ``v/=f``, ``v==v``, ``v!=v``.\n\nImplicit conversion from sequence (list,tuple, …) of 6 floats.",py::init<>())
+	py::class_<Vector6r>("Vector6","6-dimensional float vector.\n\nSupported operations (``f`` if a float/int, ``v`` is a Vector6): ``-v``, ``v+v``, ``v+=v``, ``v-v``, ``v-=v``, ``v*f``, ``f*v``, ``v*=f``, ``v/f``, ``v/=f``, ``v==v``, ``v!=v``.\n\nImplicit conversion from sequence (list,tuple, …) of 6 floats.",py::no_init)
+		.def("__init__",py::make_constructor(Matrix_new<Vector6r>))
 		.def(py::init<Vector6r>((py::arg("other"))))
 		.def("__init__",py::make_constructor(&Vector6r_fromElements,py::default_call_policies(),(py::arg("v0"),py::arg("v1"),py::arg("v2"),py::arg("v3"),py::arg("v4"),py::arg("v5"))))
 		.def("__init__",py::make_constructor(&Vector6r_fromHeadTail,py::default_call_policies(),(py::arg("head"),py::arg("tail"))))
 		.def_pickle(Vector6r_pickle())
 		// properties
-		.add_static_property("Ones",&Vector6r_Ones).add_static_property("Zero",&Vector6r_Zero)
+		.add_static_property("Ones",&Vector6r_Ones)
+		//.add_static_property("Zero",&Vector6r_Zero)
+		.def("Zero",&Vector6r_Zero,py::return_value_policy<py::manage_new_object>())
 		//.add_static_property("UnitX",&Vector6r_UnitX).add_static_property("UnitY",&Vector6r_UnitY).add_static_property("UnitZ",&Vector6r_UnitZ)
 		// methods
 		//.def("dot",&Vector6r_dot).def("cross",&Vector6r_cross)
@@ -604,7 +624,8 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.def("toSymmTensor",&Vector6r_toSymmTensor,(py::args("strain")=false),"Convert Vector6 in the Voigt notation to the corresponding 2nd order symmetric tensor (as Matrix3); if *strain* is ``True``, multiply non-diagonal components by .5")
 	;
 
-	py::class_<Vector6i>("Vector6i","6-dimensional float vector.\n\nSupported operations (``f`` if a float/int, ``v`` is a Vector6): ``-v``, ``v+v``, ``v+=v``, ``v-v``, ``v-=v``, ``v*f``, ``f*v``, ``v*=f``, ``v/f``, ``v/=f``, ``v==v``, ``v!=v``.\n\nImplicit conversion from sequence (list,tuple, …) of 6 floats.",py::init<>())
+	py::class_<Vector6i>("Vector6i","6-dimensional float vector.\n\nSupported operations (``f`` if a float/int, ``v`` is a Vector6): ``-v``, ``v+v``, ``v+=v``, ``v-v``, ``v-=v``, ``v*f``, ``f*v``, ``v*=f``, ``v/f``, ``v/=f``, ``v==v``, ``v!=v``.\n\nImplicit conversion from sequence (list,tuple, …) of 6 floats.",py::no_init)
+		.def("__init__",py::make_constructor(Matrix_new<Vector6i>))
 		.def(py::init<Vector6i>((py::arg("other"))))
 		.def("__init__",py::make_constructor(&Vector6i_fromElements,py::default_call_policies(),(py::arg("v0"),py::arg("v1"),py::arg("v2"),py::arg("v3"),py::arg("v4"),py::arg("v5"))))
 		.def_pickle(Vector6i_pickle())
@@ -613,7 +634,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		//.add_static_property("UnitX",&Vector6i_UnitX).add_static_property("UnitY",&Vector6i_UnitY).add_static_property("UnitZ",&Vector6i_UnitZ)
 		// methods
 		//.def("dot",&Vector6i_dot).def("cross",&Vector6i_cross)
-		.def("norm",&Vector6i::norm).def("squaredNorm",&Vector6i::squaredNorm).def("normalize",&Vector6i::normalize).def("normalized",&Vector6i::normalized)
+		//.def("norm",&Vector6i::norm).def("squaredNorm",&Vector6i::squaredNorm).def("normalize",&Vector6i::normalize).def("normalized",&Vector6i::normalized)
 		.def("head",&Vector6i_head).def("tail",&Vector6i_tail)
 		// operators
 		.def("__neg__",&Vector6i__neg__) // -v
@@ -623,18 +644,20 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.def("__div__",&Vector6i__div__int).def("__idiv__",&Vector6i__idiv__int) // v/f, v/=f
 		.def(py::self != py::self).def(py::self == py::self)
 		// specials
-		.def("__abs__",&Vector6i::norm)
+		//.def("__abs__",&Vector6i::norm)
 		.def("__len__",&::Vector6i_len).staticmethod("__len__")
 		.def("__setitem__",&::Vector6i_set_item).def("__getitem__",&::Vector6i_get_item)
 		.def("__str__",&::Vector6i_str).def("__repr__",&::Vector6i_str)
 	;
 
-	py::class_<Vector3r>("Vector3","3-dimensional float vector.\n\nSupported operations (``f`` if a float/int, ``v`` is a Vector3): ``-v``, ``v+v``, ``v+=v``, ``v-v``, ``v-=v``, ``v*f``, ``f*v``, ``v*=f``, ``v/f``, ``v/=f``, ``v==v``, ``v!=v``, plus operations with ``Matrix3`` and ``Quaternion``.\n\nImplicit conversion from sequence (list,tuple, …) of 3 floats.",py::init<>())
+	py::class_<Vector3r>("Vector3","3-dimensional float vector.\n\nSupported operations (``f`` if a float/int, ``v`` is a Vector3): ``-v``, ``v+v``, ``v+=v``, ``v-v``, ``v-=v``, ``v*f``, ``f*v``, ``v*=f``, ``v/f``, ``v/=f``, ``v==v``, ``v!=v``, plus operations with ``Matrix3`` and ``Quaternion``.\n\nImplicit conversion from sequence (list,tuple, …) of 3 floats.",py::no_init)
+		.def("__init__",py::make_constructor(Matrix_new<Vector3r>))
 		.def(py::init<Vector3r>((py::arg("other"))))
 		.def(py::init<Real,Real,Real>((py::arg("x"),py::arg("y"),py::arg("z"))))
 		.def_pickle(Vector3r_pickle())
 		// properties
-		.add_static_property("Ones",&Vector3r_Ones).add_static_property("Zero",&Vector3r_Zero)
+		.add_static_property("Ones",&Vector3r_Ones)
+		.add_static_property("Zero",&Vector3r_Zero)
 		.add_static_property("UnitX",&Vector3r_UnitX).add_static_property("UnitY",&Vector3r_UnitY).add_static_property("UnitZ",&Vector3r_UnitZ)
 		// methods
 		.def("Random",&Vector3r_Random).staticmethod("Random")
@@ -663,7 +686,8 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.def("__setitem__",&::Vector3r_set_item).def("__getitem__",&::Vector3r_get_item)
 		.def("__str__",&::Vector3r_str).def("__repr__",&::Vector3r_str)
 	;	
-	py::class_<Vector3i>("Vector3i","3-dimensional integer vector.\n\nSupported operations (``i`` if an int, ``v`` is a Vector3i): ``-v``, ``v+v``, ``v+=v``, ``v-v``, ``v-=v``, ``v*i``, ``i*v``, ``v*=i``, ``v==v``, ``v!=v``.\n\nImplicit conversion from sequence  (list,tuple, …) of 3 integers.",py::init<>())
+	py::class_<Vector3i>("Vector3i","3-dimensional integer vector.\n\nSupported operations (``i`` if an int, ``v`` is a Vector3i): ``-v``, ``v+v``, ``v+=v``, ``v-v``, ``v-=v``, ``v*i``, ``i*v``, ``v*=i``, ``v==v``, ``v!=v``.\n\nImplicit conversion from sequence  (list,tuple, …) of 3 integers.",py::no_init)
+		.def("__init__",py::make_constructor(Matrix_new<Vector3i>))
 		.def(py::init<Vector3i>((py::arg("other"))))
 		.def(py::init<int,int,int>((py::arg("x"),py::arg("y"),py::arg("z"))))
 		.def_pickle(Vector3i_pickle())
@@ -672,7 +696,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.add_static_property("UnitX",&Vector3i_UnitX).add_static_property("UnitY",&Vector3i_UnitY).add_static_property("UnitZ",&Vector3i_UnitZ)
 		// methods
 		.def("dot",&Vector3i_dot).def("cross",&Vector3i_cross)
-		.def("norm",&Vector3i::norm).def("squaredNorm",&Vector3i::squaredNorm)
+		//.def("norm",&Vector3i::norm).def("squaredNorm",&Vector3i::squaredNorm)
 		.def("Unit",&Vector3i_Unit).staticmethod("Unit")
 		// operators
 		.def("__neg__",&Vector3i__neg__) // -v
@@ -681,12 +705,13 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.def("__mul__",&Vector3i__mul__int).def("__rmul__",&Vector3i__rmul__int) // f*v, v*f
 		.def(py::self != py::self).def(py::self == py::self)
 		// specials
-		.def("__abs__",&Vector3i::norm)
+		//.def("__abs__",&Vector3i::norm)
 		.def("__len__",&::Vector3i_len).staticmethod("__len__")
 		.def("__setitem__",&::Vector3i_set_item).def("__getitem__",&::Vector3i_get_item)
 		.def("__str__",&::Vector3i_str).def("__repr__",&::Vector3i_str)
 	;	
-	py::class_<Vector2r>("Vector2","3-dimensional float vector.\n\nSupported operations (``f`` if a float/int, ``v`` is a Vector3): ``-v``, ``v+v``, ``v+=v``, ``v-v``, ``v-=v``, ``v*f``, ``f*v``, ``v*=f``, ``v/f``, ``v/=f``, ``v==v``, ``v!=v``.\n\nImplicit conversion from sequence (list,tuple, …) of 2 floats.",py::init<>())
+	py::class_<Vector2r>("Vector2","3-dimensional float vector.\n\nSupported operations (``f`` if a float/int, ``v`` is a Vector3): ``-v``, ``v+v``, ``v+=v``, ``v-v``, ``v-=v``, ``v*f``, ``f*v``, ``v*=f``, ``v/f``, ``v/=f``, ``v==v``, ``v!=v``.\n\nImplicit conversion from sequence (list,tuple, …) of 2 floats.",py::no_init)
+		.def("__init__",py::make_constructor(Matrix_new<Vector2r>))
 		.def(py::init<Vector2r>((py::arg("other"))))
 		.def(py::init<Real,Real>((py::arg("x"),py::arg("y"))))
 		.def_pickle(Vector2r_pickle())
@@ -713,7 +738,8 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.def("__setitem__",&::Vector2r_set_item).def("__getitem__",&::Vector2r_get_item)
 		.def("__str__",&::Vector2r_str).def("__repr__",&::Vector2r_str)
 	;	
-	py::class_<Vector2i>("Vector2i","2-dimensional integer vector.\n\nSupported operations (``i`` if an int, ``v`` is a Vector2i): ``-v``, ``v+v``, ``v+=v``, ``v-v``, ``v-=v``, ``v*i``, ``i*v``, ``v*=i``, ``v==v``, ``v!=v``.\n\nImplicit conversion from sequence (list,tuple, …) of 2 integers.",py::init<>())
+	py::class_<Vector2i>("Vector2i","2-dimensional integer vector.\n\nSupported operations (``i`` if an int, ``v`` is a Vector2i): ``-v``, ``v+v``, ``v+=v``, ``v-v``, ``v-=v``, ``v*i``, ``i*v``, ``v*=i``, ``v==v``, ``v!=v``.\n\nImplicit conversion from sequence (list,tuple, …) of 2 integers.",py::no_init)
+		.def("__init__",py::make_constructor(Matrix_new<Vector2i>))
 		.def(py::init<Vector2i>((py::arg("other"))))
 		.def(py::init<int,int>((py::arg("x"),py::arg("y"))))
 		.def_pickle(Vector2i_pickle())
@@ -722,7 +748,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.add_static_property("UnitX",&Vector2i_UnitX).add_static_property("UnitY",&Vector2i_UnitY)
 		// methods
 		.def("dot",&Vector2i_dot)
-		.def("norm",&Vector2i::norm).def("squaredNorm",&Vector2i::squaredNorm).def("normalize",&Vector2i::normalize)
+		//.def("norm",&Vector2i::norm).def("squaredNorm",&Vector2i::squaredNorm).def("normalize",&Vector2i::normalize)
 		.def("Unit",&Vector2i_Unit).staticmethod("Unit")
 		// operators
 		.def("__neg__",&Vector2i__neg__) // -v
@@ -731,7 +757,7 @@ BOOST_PYTHON_MODULE(miniEigen){
 		.def("__mul__",&Vector2i__mul__int).def("__rmul__",&Vector2i__rmul__int) // f*v, v*f
 		.def(py::self != py::self).def(py::self == py::self)
 		// specials
-		.def("__abs__",&Vector2i::norm)
+		//.def("__abs__",&Vector2i::norm)
 		.def("__len__",&::Vector2i_len).staticmethod("__len__")
 		.def("__setitem__",&::Vector2i_set_item).def("__getitem__",&::Vector2i_get_item)
 		.def("__str__",&::Vector2i_str).def("__repr__",&::Vector2i_str)

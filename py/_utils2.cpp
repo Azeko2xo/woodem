@@ -197,7 +197,7 @@ Matrix6r bestFitCompliance(){
 	Matrix3r AA(Matrix3r::Zero());
 	FOREACH(const ContData& c, CC){ for(int j:{0,1,2}) for(int n:{0,1,2}) AA(j,n)+=c.l[j]*c.l[n]; }
 	AA*=1/V;
-	AA=Matrix3r::Ones().cwise()/AA; // componentwise reciprocal
+	AA=(Matrix3r::Ones().array()/AA.array()).matrix(); // componentwise reciprocal
 	Matrix6r H(Matrix6r::Zero());
 	FOREACH(const ContData& c, CC){
 		for(int p=0; p<6; p++) for(int q=p;q<6;q++){

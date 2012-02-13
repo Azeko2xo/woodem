@@ -31,7 +31,7 @@ env.Install('$LIBDIR/py/yade/tests',[
 # 3rd party modules:
 # ==================
 env.Install('$LIBDIR/py',[
-	env.SharedLibrary('miniEigen',['mathWrap/miniEigen.cpp'],SHLIBPREFIX='',CPPPATH=env['CPPPATH']+['../lib/'],LIBS=env['LIBS']+['core']),
+	#env.SharedLibrary('miniEigen',['mathWrap/miniEigen.cpp'],SHLIBPREFIX='',CPPPATH=env['CPPPATH']+['../lib/'],LIBS=env['LIBS']+['core']),
 	env.File('mtTkinter.py','3rd-party/mtTkinter-0.3'),
 ])
 

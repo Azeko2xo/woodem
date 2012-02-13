@@ -79,7 +79,7 @@ class PredicateUnion: public PredicateBoolean{
 	public:
 		PredicateUnion(const py::object _A, const py::object _B): PredicateBoolean(_A,_B){}
 		virtual bool operator()(const Vector3r& pt,Real pad) const {return obj2pred(A)(pt,pad)||obj2pred(B)(pt,pad);}
-		virtual py::tuple aabb() const { Vector3r minA,maxA,minB,maxB; ttuple2vvec(obj2pred(A).aabb(),minA,maxA); ttuple2vvec(obj2pred(B).aabb(),minB,maxB); return vvec2tuple(minA.cwise().min(minB),maxA.cwise().max(maxB));}
+		virtual py::tuple aabb() const { Vector3r minA,maxA,minB,maxB; ttuple2vvec(obj2pred(A).aabb(),minA,maxA); ttuple2vvec(obj2pred(B).aabb(),minB,maxB); return vvec2tuple(minA.array().min(minB.array()).matrix(),maxA.array().max(maxB.array()).matrix());}
 };
 PredicateUnion makeUnion(const py::object& A, const py::object& B){ return PredicateUnion(A,B);}
 
@@ -87,7 +87,7 @@ class PredicateIntersection: public PredicateBoolean{
 	public:
 		PredicateIntersection(const py::object _A, const py::object _B): PredicateBoolean(_A,_B){}
 		virtual bool operator()(const Vector3r& pt,Real pad) const {return obj2pred(A)(pt,pad) && obj2pred(B)(pt,pad);}
-		virtual py::tuple aabb() const { Vector3r minA,maxA,minB,maxB; ttuple2vvec(obj2pred(A).aabb(),minA,maxA); ttuple2vvec(obj2pred(B).aabb(),minB,maxB); return vvec2tuple(minA.cwise().max(minB),maxA.cwise().min(maxB));}
+		virtual py::tuple aabb() const { Vector3r minA,maxA,minB,maxB; ttuple2vvec(obj2pred(A).aabb(),minA,maxA); ttuple2vvec(obj2pred(B).aabb(),minB,maxB); return vvec2tuple(minA.array().max(minB.array()).matrix(),maxA.array().min(maxB.array()).matrix());}
 };
 PredicateIntersection makeIntersection(const py::object& A, const py::object& B){ return PredicateIntersection(A,B);}
 
@@ -103,7 +103,7 @@ class PredicateSymmetricDifference: public PredicateBoolean{
 	public:
 		PredicateSymmetricDifference(const py::object _A, const py::object _B): PredicateBoolean(_A,_B){}
 		virtual bool operator()(const Vector3r& pt,Real pad) const {bool inA=obj2pred(A)(pt,pad), inB=obj2pred(B)(pt,pad); return (inA && !inB) || (!inA && inB);}
-		virtual py::tuple aabb() const { Vector3r minA,maxA,minB,maxB; ttuple2vvec(obj2pred(A).aabb(),minA,maxA); ttuple2vvec(obj2pred(B).aabb(),minB,maxB); return vvec2tuple(minA.cwise().min(minB),maxA.cwise().max(maxB));}
+		virtual py::tuple aabb() const { Vector3r minA,maxA,minB,maxB; ttuple2vvec(obj2pred(A).aabb(),minA,maxA); ttuple2vvec(obj2pred(B).aabb(),minB,maxB); return vvec2tuple(minA.array().min(minB.array()).matrix(),maxA.array().max(maxB.array()).matrix());}
 };
 PredicateSymmetricDifference makeSymmetricDifference(const py::object& A, const py::object& B){ return PredicateSymmetricDifference(A,B);}
 
@@ -149,7 +149,7 @@ public:
 		// bounding box
 		Vector3r vertices[8]={A,B,C,D,E,F,G,H};
 		mn=mx=vertices[0];
-		for(int i=1; i<8; i++){ mn=mn.cwise().min(vertices[i]); mx=mx.cwise().max(vertices[i]); }
+		for(int i=1; i<8; i++){ mn=mn.array().min(vertices[i].array()).matrix(); mx=mx.array().max(vertices[i].array()).matrix(); }
 	}
 	virtual bool operator()(const Vector3r& pt, Real pad=0.) const {
 		for(int i=0; i<6; i++) if((pt-pts[i]).dot(n[i])>-pad) return false;
@@ -177,7 +177,7 @@ public:
 			sqrt((pow(A[1]-B[1],2)+pow(A[2]-B[2],2)))/ht,
 			sqrt((pow(A[0]-B[0],2)+pow(A[2]-B[2],2)))/ht,
 			sqrt((pow(A[0]-B[0],2)+pow(A[1]-B[1],2)))/ht);
-		Vector3r mn=A.cwise().min(B), mx=A.cwise().max(B);
+		Vector3r mn=A.array().min(B.array()).matrix(), mx=A.array().max(B.array()).matrix();
 		return vvec2tuple((mn-radius*k).eval(),(mx+radius*k).eval());
 	}
 };
@@ -293,8 +293,8 @@ static void vertex_aabb(GtsVertex *vertex, pair<Vector3r,Vector3r> *bb)
 {
 	GtsPoint *_p=GTS_POINT(vertex);
 	Vector3r p(_p->x,_p->y,_p->z);
-	bb->first=bb->first.cwise().min(p);
-	bb->second=bb->second.cwise().max(p);
+	bb->first=bb->first.array().min(p.array()).matrix();
+	bb->second=bb->second.array().max(p.array()).matrix();
 }
 
 /*

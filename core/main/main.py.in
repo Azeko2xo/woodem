@@ -39,6 +39,7 @@ par.add_option('--checks',help='Run a series of user-defined check tests as desc
 par.add_option('--performance',help='Starts a test to measure the productivity',dest='performance',action='store_true')
 par.add_option('--no-gdb',help='Do not show backtrace when yade crashes (only effective with \-\-debug).',dest='noGdb',action='store_true',)
 par.add_option('--in-gdb',help='Run yade inside gdb (must be in $PATH).',dest='inGdb',action='store_true')
+par.add_option('--in-pdb',help='Run yade inside pdb',dest='inPdb',action='store_true')
 par.add_option('--in-valgrind',help='Run inside valgrind (must be in $PATH); automatically adds python ignore files',dest='inValgrind',action='store_true')
 par.disable_interspersed_args()
 
@@ -56,6 +57,11 @@ if opts.rebuild:
 	argv=[v for v in sys.argv if v!='--rebuild']
 	print 'Running yade using',' '.join(argv)
 	sys.exit(subprocess.call(argv))
+
+# run this instance inside pdb
+if opts.inPdb:
+	import pdb
+	pdb.set_trace()
 
 # re-run inside gdb
 if opts.inGdb:

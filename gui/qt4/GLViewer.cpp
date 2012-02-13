@@ -482,8 +482,8 @@ void GLViewer::centerScene(){
 		FOREACH(const shared_ptr<Field>& f, scene->fields){
 			FOREACH(const shared_ptr<Node>& b, f->nodes){
 				if(!b) continue;
-				max=max.cwise().max(b->pos);
-				min=min.cwise().min(b->pos);
+				max=max.array().max(b->pos.array()).matrix();
+				min=min.array().min(b->pos.array()).matrix();
 			}
 		}
 		if(isinf(min[0])||isinf(min[1])||isinf(min[2])||isinf(max[0])||isinf(max[1])||isinf(max[2])){ LOG_DEBUG("No min/max computed from bodies either, setting cube (-1,-1,-1)×(1,1,1)"); min=-Vector3r::Ones(); max=Vector3r::Ones(); }

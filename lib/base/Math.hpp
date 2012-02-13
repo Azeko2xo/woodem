@@ -21,36 +21,21 @@
 #include<boost/lexical_cast.hpp>
 
 /*
- * use Eigen http://eigen.tuxfamily.org
+ * use Eigen http://eigen.tuxfamily.org, version at least 3
  */
-// different macros for different versions of eigen:
-//  http://bitbucket.org/eigen/eigen/issue/96/eigen_dont_align-doesnt-exist-in-205-but-appears-in-web
 
-// don't want this anymore
-// #define EIGEN2_SUPPORT  // This makes Eigen3 migration easier
+// IMPORTANT!!
+#define EIGEN_DONT_ALIGN
 
-// http://eigen.tuxfamily.org/dox/Eigen2SupportModes.html#Stage40
-#define EIGEN2_SUPPORT_STAGE40_FULL_EIGEN3_STRICTNESS
-
-// disable optimization which are "unsafe":
-//    eigen objects cannot be passed by-value, otherwise they will no be aligned
-#if 1
-	#define EIGEN_DONT_VECTORIZE
-	#define EIGEN_DONT_ALIGN
-#endif
-
-//#define EIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT
-// #define EIGEN_NO_DEBUG
+// require eigen3
+//#define EIGEN_NO_DEBUG
 #include<Eigen/Core>
 #include<Eigen/Geometry>
+#include<Eigen/Eigenvalues>
 #include<Eigen/QR>
 #include<Eigen/LU>
 #include<Eigen/SVD>
 #include<float.h>
-
-// USING_PART_OF_NAMESPACE_EIGEN
-//using namespace eigen; // for eigen3
-// 
 
 // mimick expectation macros that linux has (see e.g. http://kerneltrap.org/node/4705)
 #ifndef likely
@@ -155,19 +140,13 @@ template <typename T> int sgn(T val){ return (val>T(0))-(val<T(0)); }
 template<typename MatrixT>
 void Matrix_computeUnitaryPositive(const MatrixT& in, MatrixT* unitary, MatrixT* positive){
 	assert(unitary); assert(positive); 
-	#if EIGEN_MAJOR_VERSION<20		//Eigen3 definition, while it is not realized
-	
-		Eigen::SVD<MatrixT>(in).computeUnitaryPositive(unitary,positive);
-	#else
-		Eigen::JacobiSVD<MatrixT> svd(in, Eigen::ComputeThinU | Eigen::ComputeThinV);
-		MatrixT mU, mV, mS;
-		mU = svd.matrixU();
-        	mV = svd.matrixV();
-        	mS = svd.singularValues().asDiagonal();
-
-		*unitary=mU * mV.adjoint();
-		*positive=mV * mS * mV.adjoint();
-	#endif
+	Eigen::JacobiSVD<MatrixT> svd(in, Eigen::ComputeThinU | Eigen::ComputeThinV);
+	MatrixT mU, mV, mS;
+	mU = svd.matrixU();
+   mV = svd.matrixV();
+   mS = svd.singularValues().asDiagonal();
+	*unitary=mU * mV.adjoint();
+	*positive=mV * mS * mV.adjoint();
 }
 
 

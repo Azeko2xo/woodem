@@ -70,8 +70,8 @@ void Law2_L6Geom_FrictPhys_LinEl6::go(const shared_ptr<CGeom>& cg, const shared_
 	// simple linear increments
 	Vector3r kntt(phys.kn,phys.kt,phys.kt); // normal and tangent stiffnesses
 	Vector3r ktbb(kntt/charLen); // twist and beding stiffnesses
-	phys.force+=dt*(geom.vel.cwise()*kntt);
-	phys.torque+=dt*(geom.angVel.cwise()*ktbb);
+	phys.force+=dt*(geom.vel.array()*kntt.array()).matrix();
+	phys.torque+=dt*(geom.angVel.array()*ktbb.array()).matrix();
 	// compute normal force non-incrementally
 	phys.force[0]=phys.kn*geom.uN;
 	if(scene->trackEnergy){

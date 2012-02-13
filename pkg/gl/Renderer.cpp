@@ -91,7 +91,7 @@ void Renderer::setNodeGlData(const shared_ptr<Node>& n){
 		// apply scaling
 		gld.dGlPos=cellPos-n->pos;
 		// add scaled translation to the point of reference
-		if(scaleDisplacements) gld.dGlPos+=(dispScale-Vector3r::Ones()).cwise()*Vector3r(pos-refPos); 
+		if(scaleDisplacements) gld.dGlPos+=((dispScale-Vector3r::Ones()).array()*Vector3r(pos-refPos).array()).matrix(); 
 		if(!scaleRotations) gld.dGlOri=Quaternionr::Identity();
 		else{
 			Quaternionr relRot=refOri.conjugate()*ori;
@@ -112,7 +112,7 @@ void Renderer::drawPeriodicCell(){
 		if(dispScale!=Vector3r::Ones()){
 			const Matrix3r& refHSize(scene->cell->refHSize);
 			Matrix3r scaledHSize;
-			for(int i=0; i<3; i++) scaledHSize.col(i)=refHSize.col(i)+(dispScale-Vector3r::Ones()).cwise()*Vector3r(hSize.col(i)-refHSize.col(i));
+			for(int i=0; i<3; i++) scaledHSize.col(i)=refHSize.col(i)+((dispScale-Vector3r::Ones()).array()*Vector3r(hSize.col(i)-refHSize.col(i)).array()).matrix();
 			GLUtils::Parallelepiped(scaledHSize.col(0),scaledHSize.col(1),scaledHSize.col(2));
 		} else 
 		{

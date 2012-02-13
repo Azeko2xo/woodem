@@ -34,16 +34,16 @@ void Bo1_Facet_Aabb::go(const shared_ptr<Shape>& sh){
 	if(!scene->isPeriodic){
 		aabb.min=aabb.max=f.nodes[0]->pos;
 		for(int i:{1,2}){
-			aabb.min=aabb.min.cwise().min(f.nodes[i]->pos);
-			aabb.max=aabb.max.cwise().max(f.nodes[i]->pos);
+			aabb.min=aabb.min.array().min(f.nodes[i]->pos.array()).matrix();
+			aabb.max=aabb.max.array().max(f.nodes[i]->pos.array()).matrix();
 		}
 	} else {
 		// periodic cell: unshear everything
 		aabb.min=aabb.max=scene->cell->unshearPt(f.nodes[0]->pos);
 		for(int i:{1,2}){
 			Vector3r v=scene->cell->unshearPt(f.nodes[i]->pos);
-			aabb.min=aabb.min.cwise().min(v);
-			aabb.max=aabb.max.cwise().max(v);
+			aabb.min=aabb.min.array().min(v.array()).matrix();
+			aabb.max=aabb.max.array().max(v.array()).matrix();
 		}
 	}
 }
