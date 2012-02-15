@@ -36,6 +36,7 @@ Vector3r Leapfrog::computeAngAccel(const Vector3r& torque, const Vector3r& inert
 
 void Leapfrog::doDampingDissipation(const shared_ptr<Node>& node){
 	const DemData& dyn(node->getData<DemData>());
+	if(dyn.isEnergySkip()) return;
 	/* damping is evaluated incrementally, therefore computed with mid-step values */
 	// always positive dissipation, by-component: |F_i|*|v_i|*damping*dt (|T_i|*|ω_i|*damping*dt for rotations)
 	scene->energy->add(
@@ -48,6 +49,7 @@ void Leapfrog::doDampingDissipation(const shared_ptr<Node>& node){
 
 void Leapfrog::doKineticEnergy(const shared_ptr<Node>& node, const Vector3r& pprevFluctVel, const Vector3r& pprevFluctAngVel, const Vector3r& linAccel, const Vector3r& angAccel){
 	const DemData& dyn(node->getData<DemData>());
+	if(dyn.isEnergySkip()) return;
 	/* kinetic and potential energy is non-incremental, therefore is evaluated on-step */
 	// note: angAccel is zero for aspherical particles; in that case, mid-step value is used
 	Vector3r currFluctVel(pprevFluctVel+.5*dt*linAccel), currFluctAngVel(pprevFluctAngVel+.5*dt*angAccel);
@@ -65,8 +67,13 @@ void Leapfrog::doKineticEnergy(const shared_ptr<Node>& node, const Vector3r& ppr
 	else{
 		scene->energy->add(Etrans,"kinTrans",kinEnergyTransIx,EnergyTracker::IsResettable);
 		scene->energy->add(Erot,"kinRot",kinEnergyRotIx,EnergyTracker::IsResettable);
+		// cerr<<"*E+: "<<Etrans<<" (v="<<currFluctVel<<", a="<<linAccel<<", v="<<pprevFluctVel<<")"<<endl;
 	}
 }
+
+
+// debugging output, for comparison with OpenCL
+//#define DUMP_INTEGRATOR
 
 void Leapfrog::run(){
 	homoDeform=(scene->isPeriodic ? scene->cell->homoDeform : -1); // -1 for aperiodic simulations
@@ -135,11 +142,20 @@ void Leapfrog::run(){
 				pprevFluctVel=scene->cell->pprevFluctVel(node->pos,dyn.vel,dt);
 				pprevFluctAngVel=scene->cell->pprevFluctAngVel(dyn.angVel);
 			} else { pprevFluctVel=dyn.vel; pprevFluctAngVel=dyn.angVel; }
-			// linear damping 
+			// linear damping
+			#ifdef DUMP_INTEGRATOR
+				cerr<<"*"<<scene->step<<"/"<<i<<": v="<<dyn.vel<<", ω="<<dyn.angVel<<", F="<<f<<", T="<<t<<", a="<<linAccel;
+			#endif
 			nonviscDamp2nd(dt,f,pprevFluctVel,linAccel);
+			#ifdef DUMP_INTEGRATOR
+				cerr<<", aDamp="<<linAccel;
+			#endif
 			// compute v(t+dt/2)
 			if(homoDeform==Cell::HOMO_GRADV2) dyn.vel=ImLL4hInv*(LmL*node->pos+IpLL4h*dyn.vel+linAccel*dt);
 			else dyn.vel+=dt*linAccel; // correction for this case is below
+			#ifdef DUMP_INTEGRATOR
+				cerr<<", vNew="<<dyn.vel;
+			#endif
 			// angular acceleration
 			if(dyn.inertia!=Vector3r::Zero()){
 				if(!useAspherical){ // spherical integrator, uses angular velocity
@@ -169,6 +185,9 @@ void Leapfrog::run(){
 
 		// update positions from velocities
 		leapfrogTranslate(node);
+		#ifdef DUMP_INTEGRATOR
+			if(!dyn.isBlockedAll()) cerr<<", posNew="<<node->pos<<endl;
+		#endif
 		// update orientation from angular velocity (or torque, for aspherical integrator)
 		if(dyn.inertia!=Vector3r::Zero()){
 			if(!useAspherical) leapfrogSphericalRotate(node);

@@ -29,6 +29,7 @@ void Cp2_FrictMat_FrictPhys::go(const shared_ptr<Material>& m1, const shared_ptr
 	#endif
 	//ph.kn=1/(1/(mat1.young*2*std::abs(l0))+1/(mat2.young*2*l1));
 	ph.kn=1/(1/(mat1.young*A/l0)+1/(mat2.young*A/l1));
+	// cerr<<"l0="<<l0<<", l1="<<l1<<", A="<<A<<", E1="<<mat1.young<<", E2="<<mat2.young<<", kN="<<ph.kn<<endl;
 	ph.kt=ktDivKn*ph.kn;
 	ph.tanPhi=(!tanPhi)?std::min(mat1.tanPhi,mat2.tanPhi):(*tanPhi)(mat1.id,mat2.id,mat1.tanPhi,mat2.tanPhi);
 };

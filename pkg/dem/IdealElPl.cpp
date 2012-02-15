@@ -75,9 +75,15 @@ void Law2_L6Geom_FrictPhys_LinEl6::go(const shared_ptr<CGeom>& cg, const shared_
 	// compute normal force non-incrementally
 	phys.force[0]=phys.kn*geom.uN;
 	if(scene->trackEnergy){
+		// this handles zero stiffnesses correctly
+		Real E=.5*pow(phys.force[0],2)/phys.kn; // normal stiffness always non-zero
+		if(kntt[1]!=0.) E+=.5*(pow(phys.force[1],2)+pow(phys.force[2],2))/kntt[1];
+		if(ktbb[0]!=0.) E+=.5*pow(phys.torque[0],2)/ktbb[0];
+		if(ktbb[1]!=0.) E+=.5*(pow(phys.torque[1],2)+pow(phys.torque[2],2))/ktbb[1];
+		scene->energy->add(E,"elast",elastPotIx,EnergyTracker::IsResettable);
 		/* both formulations give the same result with relative precision within 1e-14 (values 1e3, difference 1e-11) */
 		// absolute, as .5*F^2/k (per-component)
-		scene->energy->add(.5*((phys.force.array().pow(2)/kntt.array()).sum()+(phys.torque.array().pow(2)/ktbb.array()).sum()),"elast",elastPotIx,EnergyTracker::IsResettable);
+		//scene->energy->add(.5*((phys.force.array().pow(2)/kntt.array()).sum()+(phys.torque.array().pow(2)/ktbb.array()).sum()),"elast",elastPotIx,EnergyTracker::IsResettable);
 		#if 0
 			// incremental delta (needs mid-step force) as (F-½Δt v k)*Δt v
 			scene->energy->add((phys.force-.5*dt*(geom.vel.cwise()*kntt)).dot(dt*geom.vel)+(phys.torque-.5*dt*(geom.angVel.cwise()*ktbb)).dot(dt*geom.angVel),"elast",elastPotIx,EnergyTracker::IsIncrement);
