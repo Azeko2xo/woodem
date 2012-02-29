@@ -21,6 +21,14 @@ try:
 except ImportError: pass
 
 try:
+	import yade.clDem
+	Omega.clDem=property(lambda o: yade.clDem.CLDemField.sceneGetField())
+	#Omega.hasClDem=property(lambda o: yade.clDem.CLDemField.sceneHasField)
+	#core.Node.clDem=property(yade.clDem.SparcData._getDataOnNode,yade.clDem.SparcData._setDataOnNode)
+except ImportError: pass
+
+
+try:
 	from yade import gl
 	core.Node.gl=property(gl.GlData._getDataOnNode,gl.GlData._setDataOnNode)
 except ImportError: pass

@@ -148,9 +148,10 @@ if not 'opencl' in features and opts.clDev:
 if opts.clDev:
 	try:
 		clDev=[int(a) for a in opts.clDev.split(',')]
-		aseert(len(clDev)==2)
-	except:
-		raise ValueError('Invalid --cl-dev specification %s, should a be a comma-separated couple of integers'%opts.clDev)
+		if len(clDev)==1: clDev.append(-1) # default device
+		if not len(clDev) in (1,2): raise ValueError()
+	except (IndexError, ValueError, AssertionError):
+		raise ValueError('Invalid --cl-dev specification %s, should an integer (platform), or a comma-separated couple (platform,device) of integers'%opts.clDev)
 
 sys.stderr.write('Welcome to Yade '+version+'%s\n'%(' (debug build)' if opts.debug else ''))
 
@@ -180,7 +181,7 @@ if yade.config.debug and opts.noGdb:
 if 'log4cxx' in yade.config.features and opts.verbosity:
 	yade.log.setLevel('',[yade.log.INFO,yade.log.DEBUG,yade.log.TRACE][min(opts.verbosity,2)])
 if 'opencl' in yade.config.features and opts.clDev:
-	yade.wrapper.Omega().clDev=clDev
+	yade.wrapper.Omega().defaultClDev=clDev
 
 
 # modify sys.argv in-place so that it can be handled by userSession

@@ -70,7 +70,7 @@ REGISTER_SERIALIZABLE(ScalarRange);
 struct Node: public Serializable, public Indexable{
 	// indexing data items
 	// allows to define non-casting accessors without paying runtime penalty for index lookup
-	enum {ST_DEM=0,ST_GL,ST_SPARC,ST_ANCF,/*always keep last*/ST_LAST }; // assign constants to data values
+	enum {ST_DEM=0,ST_GL,ST_CLDEM,ST_SPARC,ST_ANCF,/*always keep last*/ST_LAST }; // assign constants to data values
 	//const char dataNames[][]={"dem","foo"}; // not yet used
 	#if 0
 		// allow runtime registration of additional data fields, which can be looked up (slow) by names
@@ -128,6 +128,10 @@ struct Field: public Serializable, public Indexable{
 			YADE_PY_TOPINDEXABLE(Field)
 	);
 	REGISTER_INDEX_COUNTER(Field);
+
+	// return bounding box for rendering
+	// by defalt, returns bbox of nodes, but derived fields may override this
+	virtual bool renderingBbox(Vector3r& mn, Vector3r& mx);
 
 	// nested mixin class
 	class Engine{

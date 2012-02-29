@@ -476,15 +476,16 @@ void GLViewer::centerScene(){
 	Real minDim=std::min(max[0]-min[0],std::min(max[1]-min[1],max[2]-min[2]));
 	if(minDim<=0 || hasNan){
 		// Aabb is not yet calculated...
-		LOG_DEBUG("scene's bound not yet calculated or has zero or nan dimension(s), attempt get that from nodes");
+		LOG_DEBUG("scene's bound not yet calculated or has zero or nan dimension(s), attempt get that from fields (nodes)");
 		Real inf=std::numeric_limits<Real>::infinity();
 		min=Vector3r(inf,inf,inf); max=Vector3r(-inf,-inf,-inf);
 		FOREACH(const shared_ptr<Field>& f, scene->fields){
-			FOREACH(const shared_ptr<Node>& b, f->nodes){
-				if(!b) continue;
-				max=max.array().max(b->pos.array()).matrix();
-				min=min.array().min(b->pos.array()).matrix();
-			}
+			cerr<<"@";
+			Vector3r a,b;
+			if(!f->renderingBbox(a,b)) return;
+			max=max.array().max(b.array()).matrix();
+			min=min.array().min(a.array()).matrix();
+			cerr<<"#";
 		}
 		if(isinf(min[0])||isinf(min[1])||isinf(min[2])||isinf(max[0])||isinf(max[1])||isinf(max[2])){ LOG_DEBUG("No min/max computed from bodies either, setting cube (-1,-1,-1)×(1,1,1)"); min=-Vector3r::Ones(); max=Vector3r::Ones(); }
 	} else {LOG_DEBUG("Using scene's Aabb");}

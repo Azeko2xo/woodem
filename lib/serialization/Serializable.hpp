@@ -122,7 +122,17 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 #define _PYYATTR_ATTR(x,y,z) if(!(_ATTR_FLG(z) & yade::Attr::hidden)) ret.append(_ATTR_NAM_STR(z));
 #define _PYHASKEY_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) return true;
 #define _PYDICT_ATTR(x,y,z) if(!(_ATTR_FLG(z) & yade::Attr::hidden)){ /*if(_ATTR_FLG(z) & yade::Attr::pyByRef) ret[_ATTR_NAM_STR(z)]=py::object(boost::ref(_ATTR_NAM(z))); else */  ret[_ATTR_NAM_STR(z)]=py::object(_ATTR_NAM(z)); }
-#define _REGISTER_BOOST_ATTRIBUTES_REPEAT(x,y,z) if((_ATTR_FLG(z) & yade::Attr::noSave)==0) { ar & BOOST_SERIALIZATION_NVP(_ATTR_NAM(z)); }
+// use the old version, the new one does not work (yet?)
+#if 0
+	/* template version; generates no code for non-serializable types at all */
+	template<bool noSave, class ArchiveT, typename T> struct _SerializeUnlessNoSave{ static void serialize(ArchiveT& ar, const T&, const char* name); };
+	template<class ArchiveT, typename T> struct _SerializeUnlessNoSave<true,ArchiveT,T>{ static void serialize(ArchiveT& ar, const T& t, const char* name){}; };
+	template<class ArchiveT, typename T> struct _SerializeUnlessNoSave<false,ArchiveT,T>{ static void serialize(ArchiveT& ar, const T& obj, const char* name){ ar & boost::serialization::make_nvp(name,obj); } };
+	#define _REGISTER_BOOST_ATTRIBUTES_REPEAT(x,y,z) _SerializeUnlessNoSave<(_ATTR_FLG(z) & yade::Attr::noSave),ArchiveT,decltype(_ATTR_NAM(z))>::serialize(ar,_ATTR_NAM(z), BOOST_PP_STRINGIZE(_ATTR_NAM(z)));
+#else
+	// generates code for noSave attributes as well, which must therefore be theoretically serializable
+	#define _REGISTER_BOOST_ATTRIBUTES_REPEAT(x,y,z) if((_ATTR_FLG(z) & yade::Attr::noSave)==0) { ar & BOOST_SERIALIZATION_NVP(_ATTR_NAM(z)); }
+#endif
 #define _REGISTER_BOOST_ATTRIBUTES(baseClass,attrs) \
 	friend class boost::serialization::access; \
 	private: template<class ArchiveT> void serialize(ArchiveT & ar, unsigned int version){ \

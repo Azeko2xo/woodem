@@ -92,9 +92,10 @@ opts.AddVariables(
 	BoolVariable('gprof','Enable profiling information for gprof',0),
 	('optimize','Turn on optimizations (-1, 0 or 1); negative value sets optimization based on debugging: not optimize with debugging and vice versa.',-1,None,int),
 	EnumVariable('PGO','Whether to "gen"erate or "use" Profile-Guided Optimization','',['','gen','use'],{'no':'','0':'','false':''},1),
-	ListVariable('features','Optional features that are turned on','log4cxx,opengl,opencl,gts,openmp,vtk,qt4',names=['opengl','log4cxx','cgal','openmp','opencl','gts','vtk','gl2ps','qt4','subdomains','never_use_this_one']),
+	ListVariable('features','Optional features that are turned on','log4cxx,opengl,opencl,gts,openmp,vtk,qt4',names=['opengl','log4cxx','cgal','openmp','opencl','gts','vtk','gl2ps','qt4','subdomains','cldem','never_use_this_one']),
 	('jobs','Number of jobs to run at the same time (same as -j, but saved)',2,None,int),
 	#('extraModules', 'Extra directories with their own SConscript files (must be in-tree) (whitespace separated)',None,None,Split),
+	('cxxstd','Name of the c++ standard (or dialect) to compile with. With gcc, use gnu++11 (gcc >=4.7) or gnu++0x (with gcc 4.5, 4.6)','gnu++0x'),
 	('buildPrefix','Where to create build-[version][variant] directory for intermediary files','..'),
 	('hotPlugins','Files (without the .cpp extension) that will be compiled separately even in the monolithic build (use for those that you modify frequently); comma-separated.',''),
 	('chunkSize','Maximum files to compile in one translation unit when building plugins. (unlimited if <= 0, per-file linkage is used if 1)',7,None,int),
@@ -112,7 +113,8 @@ opts.AddVariables(
 	('execCheck','Name of the main script that should be installed; if the current one differs, an error is raised (do not use directly, only intended for --rebuild',None),
 	('defThreads','No longer used, specify -j each time yade is run (defaults to 1 now)',-1),
 	#('SHLINK','Linker for shared objects','g++'),
-	('SHCCFLAGS','Additional compiler flags for linking (for plugins).',None,None,Split),
+	#('SHCCFLAGS','Additional compiler flags for linking (for plugins).',None,None,Split),
+	('EXTRA_SHLINKFLAGS','Additional compiler flags for linking (for plugins).',None,None,Split),
 	BoolVariable('QUAD_PRECISION','typedef Real as long double (=quad)',0),
 	BoolVariable('brief',"Don't show commands being run, only what files are being compiled/linked/installed",True),
 )
@@ -208,10 +210,10 @@ if len(sys.argv)>1 and ('clean' in sys.argv) or ('tags' in sys.argv) or ('doc' i
 ##########################################################################################
 
 # ensure non-None
-env.Append(CPPPATH='',LIBPATH='',LIBS='',CXXFLAGS='-std=c++0x',SHCCFLAGS='')
+env.Append(CPPPATH='',LIBPATH='',LIBS='',CXXFLAGS=('-std='+env['cxxstd'] if env['cxxstd'] else ''),SHCCFLAGS='',SHLINKFLAGS='')
 
 def CheckCXX(context):
-	context.Message('Checking whether c++ compiler (with -std=c++0x) "%s" works...'%env['CXX'])
+	context.Message('Checking whether c++ compiler "%s %s" works...'%(env['CXX'],' '.join(env['CXXFLAGS'])))
 	ret=context.TryLink('#include<iostream>\nint main(int argc, char**argv){std::cerr<<std::endl;return 0;}\n','.cpp')
 	context.Result(ret)
 	return ret
@@ -442,7 +444,11 @@ if 'clang' in env['CXX']:
 ### LINKER
 ## libs for all plugins
 env.Append(LIBS=[],SHLINKFLAGS=['-rdynamic'])
+env.Append(SHLINKFLAGS=env['EXTRA_SHLINKFLAGS'])
 env.Append(LINKFLAGS=['-rdynamic','-Wl,-z,origin'])
+
+## newer scons (?) does not pass SHCCFLAGS when linking with g++
+#env['SHCXXFLAGS']=env['SHCCFLAGS']
 
 if not env['debug']: env.Append(SHLINKFLAGS=['-W,--strip-all'])
 

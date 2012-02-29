@@ -22,6 +22,18 @@ Vector3r ScalarRange::color(Real v){
 }
 
 
+bool Field::renderingBbox(Vector3r& min, Vector3r& max){
+	if(nodes.empty()) return false;
+	Real inf=std::numeric_limits<Real>::infinity();
+	min=Vector3r(inf,inf,inf); max=Vector3r(-inf,-inf,-inf);
+	FOREACH(const shared_ptr<Node>& b, nodes){
+		if(!b) continue;
+		max=max.array().max(b->pos.array()).matrix();
+		min=min.array().min(b->pos.array()).matrix();
+	}
+	return true;
+}
+
 
 // Node::dataIndexMax=Node::ST_LAST;
 
