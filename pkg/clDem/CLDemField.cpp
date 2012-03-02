@@ -31,7 +31,7 @@ bool CLDemField::renderingBbox(Vector3r& mn, Vector3r& mx){
 		b=b.array().max((v2v(sim->par[i].pos)).array()).matrix();
 	}
 	if(a[0]==inf) return false;
-	cerr<<"bbox: "<<a.transpose()<<","<<b.transpose()<<endl;
+	// cerr<<"bbox: "<<a.transpose()<<","<<b.transpose()<<endl;
 	mn=a; mx=b;
 	return true;
 }
@@ -56,6 +56,15 @@ void CLDemRun::run(){
 
 #ifdef YADE_OPENGL
 
+bool Gl1_CLDemField::parWire;
+Real Gl1_CLDemField::quality;
+Vector2r Gl1_CLDemField::quality_range;
+bool Gl1_CLDemField::bboxes;
+bool Gl1_CLDemField::par;
+bool Gl1_CLDemField::pot;
+bool Gl1_CLDemField::con;
+shared_ptr<ScalarRange> Gl1_CLDemField::parRange;
+
 void Gl1_CLDemField::renderBboxes(){
 	glColor3v(Vector3r(1,1,0));
 	for(size_t i=0; i<sim->par.size(); i++){
@@ -65,43 +74,75 @@ void Gl1_CLDemField::renderBboxes(){
 		glPushMatrix();
 			glTranslatev(Vector3r(.5*(mn+mx)));
 			glScalev(Vector3r(mx-mn));
-			glDisable(GL_LINE_SMOOTH);
 			glutWireCube(1);
-			glEnable(GL_LINE_SMOOTH);
 		glPopMatrix();
 	}
 }
 
-void Gl1_CLDemField::renderParticles(){
-	glColor3v(Vector3r(0,1,0));
+void Gl1_CLDemField::renderPar(){
+	if(!parRange) parRange=make_shared<ScalarRange>();
 	for(size_t i=0; i<sim->par.size(); i++){
 		int shapeT=clDem::par_shapeT_get(&(sim->par[i]));
 		if(shapeT==0) continue; // invalid particle
+		const clDem::Particle& p(sim->par[i]);
+		glColor3v(parRange->color(v2v(p.vel).norm()));
 		glPushMatrix();
-			Vector3r pos=v2v(sim->par[i].pos);
-			Quaternionr ori=q2q(sim->par[i].ori);
+			Vector3r pos=v2v(p.pos);
+			#if 0
+				// this crashes when compiled with optimizations... why??!
+				Quaternionr ori=q2q(p.ori);
+			#else
+				Quaternionr ori=Quaternionr::Identity();
+			#endif
 			GLUtils::setLocalCoords(pos,ori);
 			switch(shapeT){
 				case clDem::Shape_Sphere:{
-					glutWireSphere(sim->par[i].shape.sphere.radius,6,6);
-					//glutSolidSphere(sim->par[i].shape.sphere.radius,6,6);
+					if(parWire) glutWireSphere(sim->par[i].shape.sphere.radius,slices,stacks);
+					else glutSolidSphere(sim->par[i].shape.sphere.radius,slices,stacks);
 				}
 			}
 		glPopMatrix();
 	}
 }
 
+void Gl1_CLDemField::renderPot(){
+	glLineWidth(2);
+	for(const cl_long2& ids: sim->pot){
+		if(ids.s0<0) continue;
+		assert(ids.s0<(cl_long)sim->par.size()); assert(ids.s1<(cl_long)sim->par.size());
+		GLUtils::GLDrawLine(v2v(sim->par[ids.s0].pos),v2v(sim->par[ids.s1].pos),Vector3r(0,0,1));
+	}
+	glLineWidth(1);
+}
+
+void Gl1_CLDemField::renderCon(){
+	glLineWidth(4);
+	for(const clDem::Contact& c: sim->con){
+		if(c.ids.s0<0) continue;
+		assert(c.ids.s0<(cl_long)sim->par.size()); assert(c.ids.s1<(cl_long)sim->par.size());
+		GLUtils::GLDrawLine(v2v(sim->par[c.ids.s0].pos),v2v(sim->par[c.ids.s1].pos),Vector3r(0,1,0));
+	}
+	glLineWidth(1);
+}
+
 void Gl1_CLDemField::go(const shared_ptr<Field>& field, GLViewInfo* _viewInfo){
 	//rrr=_viewInfo->renderer;
-	cldem=static_pointer_cast<CLDemField>(field);
-	sim=cldem->sim;
+	sim=static_pointer_cast<CLDemField>(field)->sim;
 	viewInfo=_viewInfo;
-	// render bboxes
-	renderBboxes();
-	// render particles
-	renderParticles();
-	// render potential contacts
-	// render contacts
+	stacks=6+quality*14;
+	slices=stacks;
+	//cerr<<"A";
+
+	glDisable(GL_LINE_SMOOTH);
+		// render bboxes
+		if(bboxes) renderBboxes();
+		// render particles
+		if(par) renderPar();
+		// render potential contacts
+		if(pot) renderPot();
+		// render contacts
+		if(con) renderCon();
+	glEnable(GL_LINE_SMOOTH);
 };
 
 #endif
