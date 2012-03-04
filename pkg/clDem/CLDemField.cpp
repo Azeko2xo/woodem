@@ -88,9 +88,10 @@ void Gl1_CLDemField::renderPar(){
 		glColor3v(parRange->color(v2v(p.vel).norm()));
 		glPushMatrix();
 			Vector3r pos=v2v(p.pos);
-			#if 0
+			#if 1
 				// this crashes when compiled with optimizations... why??!
 				Quaternionr ori=q2q(p.ori);
+				//cerr<<*(int*)(1)<<endl;
 			#else
 				Quaternionr ori=Quaternionr::Identity();
 			#endif
@@ -109,6 +110,12 @@ void Gl1_CLDemField::renderPot(){
 	glLineWidth(2);
 	for(const cl_long2& ids: sim->pot){
 		if(ids.s0<0) continue;
+		#if 1
+			if(ids.s0>=(cl_long)sim->par.size() || ids.s1>=(cl_long)sim->par.size()){
+				cerr<<"Gl1_CLDemField::renderPot(): ##"<<ids.s0<<"+"<<ids.s1<<": Only "<<sim->par.size()<<" particles!"<<endl;
+				continue;
+			}
+		#endif
 		assert(ids.s0<(cl_long)sim->par.size()); assert(ids.s1<(cl_long)sim->par.size());
 		GLUtils::GLDrawLine(v2v(sim->par[ids.s0].pos),v2v(sim->par[ids.s1].pos),Vector3r(0,0,1));
 	}

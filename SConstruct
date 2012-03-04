@@ -90,7 +90,7 @@ opts.AddVariables(
 	('variant','Build variant, will be suffixed to all files, along with version.','' if profile=='default' else '-'+profile,None,lambda x:x),
 	BoolVariable('debug', 'Enable debugging information',0),
 	BoolVariable('gprof','Enable profiling information for gprof',0),
-	('optimize','Turn on optimizations (-1, 0 or 1); negative value sets optimization based on debugging: not optimize with debugging and vice versa.',-1,None,int),
+	('optimize','Turn on optimizations (-1, 0 or 1); negative value sets optimization based on debugging: not optimize with debugging and vice versa. -3 (the default) selects -O3 for non-debug and no optimization flags for debug builds',-3,None,int),
 	EnumVariable('PGO','Whether to "gen"erate or "use" Profile-Guided Optimization','',['','gen','use'],{'no':'','0':'','false':''},1),
 	ListVariable('features','Optional features that are turned on','log4cxx,opengl,opencl,gts,openmp,vtk,qt4',names=['opengl','log4cxx','cgal','openmp','opencl','gts','vtk','gl2ps','qt4','subdomains','cldem','never_use_this_one']),
 	('jobs','Number of jobs to run at the same time (same as -j, but saved)',2,None,int),
@@ -127,8 +127,8 @@ if str(env['features'])=='all':
 if saveProfile: opts.Save(optsFile,env)
 # fix expansion in python substitution by assigning the right value if not specified
 if not env.has_key('runtimePREFIX') or not env['runtimePREFIX']: env['runtimePREFIX']=env['PREFIX']
-# set optimization based on debug, if required
-if env['optimize']<0: env['optimize']=not env['debug']
+# set optimization based on debug, if required 
+if env['optimize']<0: env['optimize']=(None if env['debug'] else -env['optimize']) 
 
 # handle colon-separated lists:
 for k in ('CPPPATH','LIBPATH','QTDIR','PATH'):
@@ -420,7 +420,7 @@ if env['debug']: env.Append(CXXFLAGS='-ggdb2',CPPDEFINES=['YADE_DEBUG'])
 if 'openmp' in env['features']: env.Append(CXXFLAGS='-fopenmp',LIBS='gomp',CPPDEFINES='YADE_OPENMP')
 if env['optimize']:
 	# NDEBUG is used in /usr/include/assert.h: when defined, asserts() are no-ops
-	env.Append(CXXFLAGS=['-O3'],CPPDEFINES=[('YADE_CAST','static_cast'),('YADE_PTR_CAST','static_pointer_cast'),'NDEBUG'])
+	env.Append(CXXFLAGS=['-O%d'%env['optimize']],CPPDEFINES=[('YADE_CAST','static_cast'),('YADE_PTR_CAST','static_pointer_cast'),'NDEBUG'])
 	# do not state architecture if not provided
 	# used for debian packages, where 'native' would generate instructions outside the package architecture
 	# (such as SSE instructions on i386 builds, if the builder supports them)
