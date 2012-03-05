@@ -47,18 +47,25 @@ REGISTER_SERIALIZABLE(SnapshotEngine);
 // mostly copied from
 // http://www.libqglviewer.com/refManual/classqglviewer_1_1MouseGrabber.html#_details
 struct QglMovableObject: public qglviewer::MouseGrabber{
-	QglMovableObject(int x0, int y0): qglviewer::MouseGrabber(), pos(x0,y0), moved(false){}
+	QglMovableObject(int x0, int y0): qglviewer::MouseGrabber(), pos(x0,y0), moved(false), reset(false){}
 	void checkIfGrabsMouse(int x, int y, const qglviewer::Camera* const){
 		QPoint relPos(QPoint(x,y)-pos);
 		bool isInside=(relPos.x()>=0 && relPos.y()>=0 && relPos.x()<=dim.x() && relPos.y()<=dim.y());
 		// cerr<<"relPos="<<relPos.x()<<","<<relPos.y()<<", dim="<<dim.x()<<","<<dim.y()<<", pos="<<pos.x()<<","<<pos.y()<<", mouse="<<x<<","<<y<<", moved="<<moved<<", test="<<isInside<<endl;
 		setGrabsMouse(moved||isInside);
 	}
-	void mousePressEvent(QMouseEvent* const e, qglviewer::Camera* const){  prevPos=e->pos(); moved=true; }
+	void mousePressEvent(QMouseEvent* const e, qglviewer::Camera* const){
+		if(e->button()==Qt::RightButton){
+			reset=true;
+		} else {
+			prevPos=e->pos(); moved=true;
+		}
+	}
    void mouseMoveEvent(QMouseEvent* const e, const qglviewer::Camera* const){
 		if(!moved) return;
       pos+=e->pos()-prevPos; prevPos=e->pos();
 	}
+	//void mouseDoubleClickEvent(QMouseEvent* const e, qglviewer::Camera* const){ reset=true; cerr<<"@@"; }
 	void mouseReleaseEvent(QMouseEvent* const e, qglviewer::Camera* const c) { mouseMoveEvent(e,c); moved=false; }
 	// drawing itself done in GLViewer::postDraw
 	#if 0
@@ -75,7 +82,7 @@ struct QglMovableObject: public qglviewer::MouseGrabber{
 	#endif
 	 QPoint pos, prevPos;
 	 QPoint dim;
-	 bool moved;
+	 bool moved, reset;
 };
 
 

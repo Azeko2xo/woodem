@@ -84,24 +84,42 @@ void Gl1_CLDemField::renderPar(){
 	if(!parRange) parRange=make_shared<ScalarRange>();
 	for(size_t i=0; i<sim->par.size(); i++){
 		int shapeT=clDem::par_shapeT_get(&(sim->par[i]));
-		if(shapeT==0) continue; // invalid particle
+		if(shapeT==Shape_None) continue; // invalid particle
 		const clDem::Particle& p(sim->par[i]);
 		glColor3v(parRange->color(v2v(p.vel).norm()));
 		glPushMatrix();
 			Vector3r pos=v2v(p.pos);
-			#if 1
-				// this crashes when compiled with optimizations... why??!
-				Quaternionr ori=q2q(p.ori);
-				//cerr<<*(int*)(1)<<endl;
-			#else
-				Quaternionr ori=Quaternionr::Identity();
-			#endif
-			GLUtils::setLocalCoords(pos,ori);
+			// this crashes when compiled with -O3... why??!
+			Quaternionr ori=q2q(p.ori);
 			switch(shapeT){
 				case clDem::Shape_Sphere:{
-					if(parWire) glutWireSphere(sim->par[i].shape.sphere.radius,slices,stacks);
+					GLUtils::setLocalCoords(pos,ori);
+					if(parWire){ glDisable(GL_LIGHTING); glutWireSphere(sim->par[i].shape.sphere.radius,slices,stacks); glEnable(GL_LIGHTING); }
 					else glutSolidSphere(sim->par[i].shape.sphere.radius,slices,stacks);
+					break;
 				}
+				case clDem::Shape_Wall:{
+					// copied from pkg/dem/Wall.cpp (should be moved to a separate func in GLUtils)
+					const int div=20;
+					int ax0=sim->par[i].shape.wall.axis; int ax1=(ax0+1)%3, ax2=(ax0+2)%3;
+					Vector3r corner=viewInfo->sceneCenter-viewInfo->sceneRadius*Vector3r::Ones();
+					corner[ax0]=pos[ax0];
+					Real step=2*viewInfo->sceneRadius/div;
+					Vector3r unit1, unit2; unit1=unit2=Vector3r::Zero();
+					unit1[ax1]=step; unit2[ax2]=step;
+					glDisable(GL_LINE_SMOOTH);
+					glLineWidth(10);
+					GLUtils::Grid(corner,unit1,unit2,Vector2i(div,div));
+					//cerr<<"corner="<<corner.transpose()<<", unit1="<<unit1.transpose()<<", unit2="<<unit2.transpose()<<", div="<<2*div<<endl;
+					GLUtils::GLDrawLine(corner,corner+div*unit1,Vector3r(1,1,1),5);
+					GLUtils::GLDrawLine(corner,corner+div*unit2,Vector3r(1,1,1),5);
+					GLUtils::GLDrawLine(corner+div*unit2,corner+div*unit1+div*unit2,Vector3r(1,1,1),5);
+					GLUtils::GLDrawLine(corner+div*unit1,corner+div*unit1+div*unit2,Vector3r(1,1,1),5);
+					GLUtils::GLDrawLine(corner,corner+div*unit1+div*unit2,Vector3r(1,1,1),5);
+					GLUtils::GLDrawLine(corner+div*unit1,corner+div*unit2,Vector3r(1,1,1),5);
+					break;
+				}
+				default: cerr<<"[shapeT="<<shapeT<<"?]";
 			}
 		glPopMatrix();
 	}
@@ -128,7 +146,14 @@ void Gl1_CLDemField::renderCon(){
 	for(const clDem::Contact& c: sim->con){
 		if(c.ids.s0<0) continue;
 		assert(c.ids.s0<(cl_long)sim->par.size()); assert(c.ids.s1<(cl_long)sim->par.size());
-		GLUtils::GLDrawLine(v2v(sim->par[c.ids.s0].pos),v2v(sim->par[c.ids.s1].pos),Vector3r(0,1,0));
+		const clDem::Particle& p1(sim->par[c.ids.s0]), &p2(sim->par[c.ids.s1]);
+		int s1=clDem::par_shapeT_get(&p1), s2=clDem::par_shapeT_get(&p2);
+		Vector3r A,B;
+		if((s1==s2 && s1==clDem::Shape_Sphere) || (s1!=clDem::Shape_Sphere && s2!=clDem::Shape_Sphere)){ A=v2v(p1.pos); B=v2v(p2.pos); }
+		else if(s1==clDem::Shape_Sphere){ A=v2v(p1.pos); B=v2v(c.pos); }
+		else if(s2==clDem::Shape_Sphere){ A=v2v(c.pos); B=v2v(p2.pos); }
+		else continue; // unreachable, but makes compiler happy
+		GLUtils::GLDrawLine(A,B,Vector3r(0,1,0));
 	}
 	glLineWidth(1);
 }

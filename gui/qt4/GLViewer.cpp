@@ -795,6 +795,7 @@ void GLViewer::postDraw(){
 			int xDef=width()-50-i*70; /* 70px / scale horizontally */ // default x position, if current not valid
 			if(!range.movablePtr){ range.movablePtr=make_shared<QglMovableObject>(xDef,yDef);  }
 			QglMovableObject& mov(*range.movablePtr);
+			if(mov.reset){ mov.reset=false; range.reset(); continue; }
 			// adjust if off-screen
 			if(mov.pos.x()<0 || mov.pos.y()<0 || mov.pos.x()>width() || mov.pos.y()>(height()-/*leave 20px on the lower edge*/20)){ mov.pos.setX(xDef); mov.pos.setY(yDef); cerr<<"$"; }
 			int ht=ht0; // perhaps adjust in the future, if scales might have different heights
