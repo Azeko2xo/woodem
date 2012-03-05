@@ -8,6 +8,8 @@
 #include<yade/core/Scene.hpp>
 #include<yade/core/Field.hpp>
 
+#include<yade/pkg/dem/Particle.hpp>
+
 
 #include<yade/pkg/sparc/SparcField.hpp>
 
@@ -360,6 +362,7 @@ void Renderer::renderRawNode(shared_ptr<Node> node){
 	glPopMatrix();
 	// if(node->rep){ node->rep->render(node,&viewInfo); }
 }
+
 
 // this function is called for both rendering as well as
 // in the selection mode

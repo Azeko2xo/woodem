@@ -2,6 +2,7 @@
 #pragma once
 
 #include<yade/lib/serialization/Serializable.hpp>
+#include<yade/core/Field.hpp>
 
 #include<boost/foreach.hpp>
 #ifndef FOREACH

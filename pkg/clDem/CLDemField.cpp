@@ -1,3 +1,5 @@
+#ifdef YADE_CLDEM
+
 #include<yade/pkg/clDem/CLDemField.hpp>
 #include<yade/core/Scene.hpp>
 
@@ -9,7 +11,6 @@
 
 #include<cl-dem0/cl/Simulation.hpp>
 
-#ifdef YADE_CLDEM
 
 YADE_PLUGIN(cld,(CLDemData)(CLDemField)(CLDemRun));
 
