@@ -16,6 +16,7 @@ CREATE_LOGGER(OpenCLCollider);
 void OpenCLCollider::postLoad(OpenCLCollider&){
 	#ifdef YADE_OPENCL
 	if(!clSrc.empty()){
+		scene->ensureCl();
 		// compile the program
 		string src("#include\""+clSrc+"\"\n");
 		cl::Program::Sources source(1,std::make_pair(src.c_str(),src.size()));
@@ -46,7 +47,7 @@ bool OpenCLCollider::bboxOverlap(int id1, int id2){
 }
 
 /* update mini and maxi arrays from actual particle positions */
-void OpenCLCollider::updateMiniMaxi(vector<cl_double>(&mini)[3], vector<cl_double>(&maxi)[3]){
+void OpenCLCollider::updateMiniMaxi(vector<cl_float>(&mini)[3], vector<cl_float>(&maxi)[3]){
 	size_t N=dem->particles.size();
 	for(size_t id=0; id<N; id++){
 		if(!dem->particles.exists(id)){ for(int ax:{0,1,2}){ mini[ax][id]=NaN; maxi[ax][id]=NaN; } continue; }
@@ -58,11 +59,11 @@ void OpenCLCollider::updateMiniMaxi(vector<cl_double>(&mini)[3], vector<cl_doubl
 }
 
 /* update coordinates in the bounds array from mini and maxi arrays */
-void OpenCLCollider::updateBounds(const vector<cl_double>(&mini)[3], const vector<cl_double>(&maxi)[3], vector<AxBound>(&bounds)[3]){
+void OpenCLCollider::updateBounds(const vector<cl_float>(&mini)[3], const vector<cl_float>(&maxi)[3], vector<CpuAxBound>(&bounds)[3]){
 	size_t N=bounds[0].size();
 	for(size_t n=0; n<N; n++){
 		for(int ax:{0,1,2}){
-			AxBound& b=bounds[ax][n];
+			CpuAxBound& b=bounds[ax][n];
 			b.coord=b.isMin?mini[ax][b.id]:maxi[ax][b.id];
 		}
 	}
@@ -73,17 +74,17 @@ vector<Vector2i> OpenCLCollider::initSortCPU(){
 	vector<Vector2i> ret;
 	LOG_TRACE("Initial sort, number of bounds "<<bounds[0].size());
 	// sort all arrays without looking for inversions first
-	for(int ax:{0,1,2}) std::sort(bounds[ax].begin(),bounds[ax].end(),[](const AxBound& b1, const AxBound& b2) -> bool { return (isnan(b1.coord)||isnan(b2.coord))?true:b1.coord<b2.coord; } );
+	for(int ax:{0,1,2}) std::sort(bounds[ax].begin(),bounds[ax].end(),[](const CpuAxBound& b1, const CpuAxBound& b2) -> bool { return (isnan(b1.coord)||isnan(b2.coord))?true:b1.coord<b2.coord; } );
 	// traverse one axis, always from lower bound to upper bound of the same particle
 	// all intermediary bounds are candidates for collision, which must be checked in maxi/mini
 	// along other two axes
 	int ax0=0; // int ax1=(ax0+1)%3, ax2=(ax0+2)%3;
 	for(size_t i=0; i<bounds[ax0].size(); i++){
-		const AxBound& b(bounds[ax0][i]);
+		const CpuAxBound& b(bounds[ax0][i]);
 		if(!b.isMin || isnan(b.coord)) continue;
 		LOG_TRACE("← "<<b.coord<<", #"<<b.id);
 		for(size_t j=i+1; bounds[ax0][j].id!=b.id && /* just in case, e.g. maximum smaller than minimum */ j<bounds[ax0].size(); j++){
-			const AxBound& b2(bounds[ax0][j]);
+			const CpuAxBound& b2(bounds[ax0][j]);
 			if(!b2.isMin || isnan(b2.coord)) continue; // overlaps of this kind have been already checked when b2.id was processed upwards
 			LOG_TRACE("\t→ "<<b2.coord<<", #"<<b2.id);
 			if(!bboxOverlap(b.id,b2.id)){ LOG_TRACE("\t-- no overlap"); continue; } // when no overlap along all axes, stop
@@ -97,11 +98,11 @@ vector<Vector2i> OpenCLCollider::initSortCPU(){
 
 /* sort the bb array on the CPU (called for each axis separately)
    and return (unsorted) array of inversions */
-vector<Vector2i> OpenCLCollider::inversionsCPU(vector<AxBound>& bb){
+vector<Vector2i> OpenCLCollider::inversionsCPU(vector<CpuAxBound>& bb){
 	vector<Vector2i> inv;
 	long iMax=bb.size();
 	for(long i=0; i<iMax; i++){
-		const AxBound bbInit=bb[i]; // copy, so that it is const
+		const CpuAxBound bbInit=bb[i]; // copy, so that it is const
 		if(isnan(bbInit.coord)) continue;
 		long j=i-1;
 		while(j>=0 && (bb[j].coord>bbInit.coord || isnan(bb[j].coord))){
@@ -126,9 +127,246 @@ vector<Vector2i> OpenCLCollider::inversionsCPU(vector<AxBound>& bb){
 #ifdef YADE_OPENCL
 /* finid initial contact set on the GPU */
 vector<Vector2i> OpenCLCollider::initSortGPU(){
-	// run bitonic sort, then check overlap along other axes
-	// return array of all overlaps
-	throw std::runtime_error("OpenCLCollider::initSortGPU Not yet implemented.");
+	cl::Context& context(scene->context);
+	cl::CommandQueue queue(scene->queue);
+	// throw std::runtime_error("OpenCLCollider::initSortGPU Not yet implemented.");
+	int N=dem->particles.size();
+
+	for(int i:{0,1,2}) gpuBounds[i].resize(2*N);
+
+	const int local_size=16;
+	int global_size=(trunc(trunc(sqrt(N)) / local_size) + 1) * local_size;
+
+	int powerOfTwo = (pow(2, trunc(log2(2*N))) == 2*N) ?
+		pow(2, trunc(log2(2*N))) : pow(2, trunc(log2(2*N)) + 1);
+
+	global_size = (trunc(trunc(sqrt(powerOfTwo / 2)) / local_size) + 1) * local_size;
+
+	cl_uint bits = 0;
+	for (int temp = powerOfTwo; temp > 1; temp >>= 1) {
+		++bits;
+	}
+
+	int less = powerOfTwo - 2*N;
+	cerr << "=======================" << endl;
+	cerr << "powerOfTwo : " << powerOfTwo << endl;
+	cerr << "less : " << less << endl;
+	cerr << "=======================" << endl;
+
+
+	for(int ax:{0,1,2}){
+		minBuf[ax]=cl::Buffer(context,CL_MEM_READ_ONLY,N*sizeof(float),NULL);
+		maxBuf[ax]=cl::Buffer(context,CL_MEM_READ_ONLY,N*sizeof(float),NULL);
+		boundBufs[ax]=cl::Buffer(context,CL_MEM_READ_WRITE,N*2*sizeof(AxBound));
+	}
+
+   try {
+		cl::Kernel k1(program,"createAxBound");
+		for(int ax:{0,1,2}){
+			k1.setArg(0,minBuf[ax]);
+			LOG_DEBUG("A");
+			k1.setArg(1,maxBuf[ax]);
+			LOG_DEBUG("B");
+			k1.setArg(2,boundBufs[ax]);
+			LOG_DEBUG("C");
+			k1.setArg(3,N);
+			LOG_DEBUG("D");
+			queue.enqueueWriteBuffer(minBuf[ax],CL_FALSE,0,N*sizeof(float),mini[ax].data());
+			LOG_DEBUG("E");
+			queue.enqueueWriteBuffer(maxBuf[ax],CL_FALSE,0,N*sizeof(float),maxi[ax].data());
+			LOG_DEBUG("F");
+			queue.enqueueNDRangeKernel(k1,cl::NullRange,cl::NDRange(global_size*global_size),cl::NDRange(local_size));
+			LOG_DEBUG("G");
+		}
+	}
+	catch(cl::Error& e){
+		LOG_FATAL(e.what());
+		throw;
+	}
+
+	cerr<<"axBound ok"<<endl;
+
+	
+   queue.enqueueReadBuffer(boundBufs[0], CL_TRUE, 0, 2*N * sizeof (AxBound), gpuBounds[0].data());
+	LOG_DEBUG("H");
+	// bitonic sort needs a power-of-two array; fill with infinities
+	boundBufs[0]=cl::Buffer(context, CL_MEM_READ_WRITE, powerOfTwo * sizeof (AxBound), NULL);
+	gpuBounds[0].resize(powerOfTwo);
+	queue.enqueueWriteBuffer(boundBufs[0],CL_TRUE, 0, powerOfTwo * sizeof (AxBound), gpuBounds[0].data());
+	LOG_DEBUG("I");
+
+	try {
+		cl::Kernel k2(program, "sortBitonic");
+		LOG_DEBUG("J");
+		//cl::Event event;
+		k2.setArg(3, powerOfTwo);
+		LOG_DEBUG("K");
+		k2.setArg(4, 1);
+		LOG_DEBUG("L");
+		k2.setArg(0, boundBufs[0]);
+		LOG_DEBUG("M");
+
+		for (cl_uint stage = 0; stage < bits; stage++) {
+			k2.setArg(1, stage);
+			for (cl_uint passOfStage = 0; passOfStage < stage + 1; passOfStage++) {
+				k2.setArg(2, passOfStage);
+				queue.enqueueNDRangeKernel(k2, cl::NullRange,
+						cl::NDRange(global_size, global_size),
+						cl::NDRange(local_size, local_size));
+				queue.finish();
+			}
+		}
+		// shrink the buffer back, read just the part we need
+		boundBufs[0]=cl::Buffer(context,CL_MEM_READ_WRITE,2*N*sizeof(AxBound));
+		gpuBounds[0].resize(2*N);
+		queue.enqueueReadBuffer(boundBufs[0], CL_TRUE, 0, 2*N*sizeof (AxBound), gpuBounds[0].data());
+		LOG_DEBUG("N");
+	} catch (cl::Error& e) {
+		LOG_FATAL(e.what()); throw;
+	}
+	//end of sort
+	//have sorted array AxBound
+	cerr << "** Array AxBound was sorted.\n";
+
+
+	cl_uint *counter;
+	counter = new cl_uint[1];
+	counter[0] = 0;
+	//create overlay array
+	int overAlocMem = 2*N;
+
+	cl::Buffer gCounter = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof (cl_uint), NULL);
+	cl::Buffer gMemCheck = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof (cl_uint), NULL);
+
+	cl_uint *test;
+	test = new cl_uint[1];
+	test[0] = 0;
+
+	cl_uint *memCheck;
+	memCheck = new cl_uint[1];
+
+	global_size = (trunc(trunc(sqrt(2*N)) / local_size) + 1) * local_size;
+
+	vector<cl_uint2> overlay;
+	cl::Buffer gOverlay;
+
+
+	for(int i:{0,1,2}){
+		boundBufs[i]=cl::Buffer(context, CL_MEM_READ_WRITE, powerOfTwo * sizeof (AxBound), NULL);
+		LOG_DEBUG("O");
+		queue.enqueueWriteBuffer(boundBufs[i], CL_TRUE, 0, powerOfTwo * sizeof (AxBound), gpuBounds[i].data());
+		LOG_DEBUG("P");
+	}
+
+	try {
+		cl::Kernel createOverlayK(program, "createOverlay");
+		LOG_DEBUG("Q");
+		createOverlayK.setArg(0, boundBufs[0]);
+		LOG_DEBUG("R");
+		createOverlayK.setArg(3, 2*N);
+		LOG_DEBUG("S");
+		for(int ax:{1,2}){
+			queue.enqueueWriteBuffer(minBuf[ax], CL_TRUE, 0, N * sizeof (cl_float), mini[ax].data());
+			LOG_DEBUG("T");
+			queue.enqueueWriteBuffer(maxBuf[ax], CL_TRUE, 0, N * sizeof (cl_float), maxi[ax].data());
+			LOG_DEBUG("U");
+		}
+
+		createOverlayK.setArg(6, minBuf[1]);
+		LOG_DEBUG("V");
+		createOverlayK.setArg(7, maxBuf[1]);
+		LOG_DEBUG("W");
+		createOverlayK.setArg(8, minBuf[2]);
+		LOG_DEBUG("X");
+		createOverlayK.setArg(9, maxBuf[2]);
+		LOG_DEBUG("Y");
+
+		memCheck[0] = 0;
+
+		gOverlay = cl::Buffer(context, CL_MEM_WRITE_ONLY, overAlocMem * sizeof (cl_uint2), NULL);
+
+		queue.enqueueWriteBuffer(gMemCheck, CL_TRUE, 0, sizeof (cl_uint), memCheck);
+		LOG_DEBUG("Z");
+		queue.enqueueWriteBuffer(gCounter, CL_TRUE, 0, sizeof (cl_uint), test);
+		LOG_DEBUG("1");
+		createOverlayK.setArg(1, gOverlay);
+		LOG_DEBUG("2");
+		createOverlayK.setArg(2, gCounter);
+		LOG_DEBUG("3");
+		createOverlayK.setArg(4, overAlocMem);
+		LOG_DEBUG("4");
+		createOverlayK.setArg(5, gMemCheck);
+		LOG_DEBUG("5");
+
+		queue.enqueueNDRangeKernel(createOverlayK, cl::NullRange,
+				cl::NDRange(global_size, global_size),
+				cl::NDRange(local_size, local_size));
+
+		queue.enqueueReadBuffer(gMemCheck, CL_TRUE, 0, 1 * sizeof (cl_uint), memCheck);
+		LOG_DEBUG("6");
+		queue.enqueueReadBuffer(gCounter, CL_TRUE, 0, sizeof (cl_uint), counter);
+		LOG_DEBUG("7");
+
+		if (memCheck[0] == 1) {
+			memCheck[0] = 0;
+			cerr << "** Realokace pole na : " << counter[0] + 1 << endl;
+			overAlocMem = counter[0] + 1;
+
+			gOverlay = cl::Buffer(context, CL_MEM_WRITE_ONLY, overAlocMem * sizeof (cl_uint2), NULL);
+
+			queue.enqueueWriteBuffer(gMemCheck, CL_TRUE, 0, sizeof (cl_uint), memCheck);
+		LOG_DEBUG("7");
+			queue.enqueueWriteBuffer(gCounter, CL_TRUE, 0, sizeof (cl_uint), test);
+		LOG_DEBUG("8");
+			createOverlayK.setArg(1, gOverlay);
+		LOG_DEBUG("9");
+			createOverlayK.setArg(2, gCounter);
+		LOG_DEBUG("!");
+			createOverlayK.setArg(4, overAlocMem);
+		LOG_DEBUG("@");
+			createOverlayK.setArg(5, gMemCheck);
+		LOG_DEBUG("#");
+
+			queue.enqueueNDRangeKernel(createOverlayK, cl::NullRange,
+					cl::NDRange(global_size, global_size),
+					cl::NDRange(local_size, local_size));
+
+			queue.enqueueReadBuffer(gMemCheck, CL_TRUE, 0, 1 * sizeof (cl_uint), memCheck);
+		LOG_DEBUG("$");
+			queue.enqueueReadBuffer(gCounter, CL_TRUE, 0, sizeof (cl_uint), counter);
+		LOG_DEBUG("%");
+		}
+
+		if (memCheck[0] == 1) {
+			LOG_FATAL("Allocated memory insufficient.");
+			abort();
+		}
+
+		overlay.resize(overAlocMem);
+		queue.enqueueReadBuffer(gOverlay, CL_TRUE, 0, overAlocMem * sizeof (cl_uint2), overlay.data());
+		LOG_DEBUG("^");
+
+
+	} catch (cl::Error& e) {
+		cerr << "err: " << e.err() << endl << "what: " << e.what() << endl;
+	}
+
+	std::vector<cl_uint2> overlay1;
+	overlay1.resize(counter[0]);
+	queue.enqueueReadBuffer(gOverlay, CL_TRUE, 0, counter[0] * sizeof (cl_uint2), overlay1.data());
+
+	std::sort(overlay1.begin(), overlay1.end(), [](const cl_uint2& a, const cl_uint2 & b)->bool {
+		return a.lo < b.lo || (a.lo == b.lo && a.hi < b.hi);
+	});
+
+	cerr << "pocet preryvu : " << counter[0] << endl;
+	cout << counter[0] << endl;
+	vector<Vector2i> ret; ret.reserve(counter[0]);
+	for (const cl_uint2& o : overlay1){
+		ret.push_back(Vector2i(o.lo,o.hi));
+		//cout<<o.lo<<" "<<o.hi<<endl;
+	}
+	return ret;
 }
 
 /* find inversions in the bb array (called for each axis separately)
@@ -139,7 +377,7 @@ vector<Vector2i> OpenCLCollider::initSortGPU(){
 	Ideally, the bounds array would sit on the GPU and would be re-used between
 	runs without copying it back and forth.
 */
-vector<Vector2i> OpenCLCollider::inversionsGPU(const vector<AxBound>& bb){
+vector<Vector2i> OpenCLCollider::inversionsGPU(const vector<CpuAxBound>& bb){
 	if(!cpu) throw std::runtime_error("Running on GPU only is not supported, since bound arrays are not copied from GPU back to the host memory.");
 	throw std::runtime_error("OpenCLCollider::inversionsGPU Not yet implemented.");
 	#if 0

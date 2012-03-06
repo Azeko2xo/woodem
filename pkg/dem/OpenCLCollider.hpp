@@ -1,24 +1,31 @@
 #include<yade/pkg/dem/InsertionSortCollider.hpp>
 
-struct AxBound{
-	cl_double coord;
-	cl_ulong id;
-	cl_bool isMin;
-};
-
 class OpenCLCollider: public InsertionSortCollider{
+
+	struct CpuAxBound{
+		float coord;
+		unsigned long id;
+		bool isMin;
+	};
+	// for the GPU
+	struct AxBound{
+		cl_float coord;
+		cl_ulong id;
+		AxBound(): coord(std::numeric_limits<cl_float>::infinity()){};
+	};
+
 	DECLARE_LOGGER;
 	bool bboxOverlapAx(int id1, int id2, int ax);
 	bool bboxOverlap(int id1, int id2);
 
-	void updateMiniMaxi(vector<cl_double>(&mini)[3],vector<cl_double>(&maxi)[3]);
-	void updateBounds(const vector<cl_double>(&mini)[3],const vector<cl_double>(&maxi)[3],vector<AxBound>(&bounds)[3]);
+	void updateMiniMaxi(vector<cl_float>(&mini)[3],vector<cl_float>(&maxi)[3]);
+	void updateBounds(const vector<cl_float>(&mini)[3],const vector<cl_float>(&maxi)[3],vector<CpuAxBound>(&bounds)[3]);
 
 	vector<Vector2i> initSortCPU();
-	vector<Vector2i> inversionsCPU(vector<AxBound>& bb);
+	vector<Vector2i> inversionsCPU(vector<CpuAxBound>& bb);
 	#ifdef YADE_OPENCL
 		vector<Vector2i> initSortGPU();
-		vector<Vector2i> inversionsGPU(const vector<AxBound>& bb);
+		vector<Vector2i> inversionsGPU(const vector<CpuAxBound>& bb);
 	#endif
 	void sortAndCopyInversions(vector<Vector2i>(&cpuInv)[3], vector<Vector2i>(&gpuInv)[3]);
 	void compareInversions(vector<Vector2i>(&cpuInv)[3], vector<Vector2i>(&gpuInv)[3]);
@@ -27,13 +34,14 @@ class OpenCLCollider: public InsertionSortCollider{
 	virtual void postLoad(OpenCLCollider&);
 
 	virtual void run();
-	vector<AxBound> bounds[3];
-	vector<cl_double> mini[3];
-	vector<cl_double> maxi[3];
+	vector<CpuAxBound> bounds[3];
+	vector<float> mini[3];
+	vector<float> maxi[3];
 	#ifdef YADE_OPENCL
 		cl::Program program;
-		cl::Buffer boundBufs[3], minBufs[3], maxBufs[3], invBufs[3];
+		cl::Buffer boundBufs[3], minBuf[3], maxBuf[3], invBufs[3];
 		cl::Kernel kernels[3];
+		vector<AxBound> gpuBounds[3];
 	#endif
 	YADE_CLASS_BASE_DOC_ATTRS(OpenCLCollider,InsertionSortCollider,"Collider which prepares data structures for an OpenCL implementation of the algorithm using defined interface. The collision (bound inversion) detection can then run on the CPU (host code) or GPU (OpenCL); both can run in the same step and the results compared.",
 		((bool,cpu,true,,"Run host (CPU) code for collision detection"))
