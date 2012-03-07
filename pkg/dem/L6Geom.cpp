@@ -19,7 +19,7 @@ YADE_PLUGIN(dem,(L6Geom)(Cg2_Sphere_Sphere_L6Geom)(Cg2_Facet_Sphere_L6Geom)(Cg2_
 
 void L6Geom::setInitialLocalCoords(const Vector3r& locX){
 	// initial local y-axis orientation, in the xz or xy plane, depending on which component is larger to avoid singularities
-	Vector3r locY=locX.cross(fabs(locX[1])<fabs(locX[2])?Vector3r::UnitY():Vector3r::UnitZ()); locY-=locX*locY.dot(locX); locY.normalize();
+	Vector3r locY=locX.cross(abs(locX[1])<abs(locX[2])?Vector3r::UnitY():Vector3r::UnitZ()); locY-=locX*locY.dot(locX); locY.normalize();
 	Vector3r locZ=locX.cross(locY);
 	// set our data
 	#ifdef L6_TRSF_QUATERNION

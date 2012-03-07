@@ -111,7 +111,7 @@ shared_ptr<ScalarRange> Scene::getRange(const std::string& l) const{
 
 void Scene::postLoad(Scene&){
 	//
-	if(clDev[0]>0) initCl();
+	if(clDev[0]>=0) initCl();
 	//
 	// assign fields to engines
 	FOREACH(const shared_ptr<Engine>& e, engines){
