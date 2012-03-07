@@ -132,15 +132,15 @@ struct Field: public Serializable, public Indexable{
 	// return bounding box for rendering
 	// by defalt, returns bbox of nodes, but derived fields may override this
 	virtual bool renderingBbox(Vector3r& mn, Vector3r& mx);
-
+	
 	// nested mixin class
-	class Engine{
+	struct Engine{
 		// say whether a particular field is acceptable by this engine
 		// each field defines class inherited from Field::Engine,
 		// and it is then inherited _privately_ (or as protected,
 		// to include all subclasses, as e.g. Engine itself does).
 		// in this way, diamond inhertiace is avoided
-		virtual bool acceptsField(Field*){ return true; }
+		virtual bool acceptsField(Field*){ cerr<<"-- acceptsField not overridden."<<endl; return true; };
 	};
 };
 REGISTER_SERIALIZABLE(Field);

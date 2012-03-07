@@ -21,7 +21,7 @@ class Field;
 
 namespace py=boost::python;
 
-class Engine: public Serializable, protected Field::Engine {
+class Engine: public Serializable, private Field::Engine {
 	public:
 		// pointer to the simulation and field, set by Scene::moveToNextTimeStep
 		Scene* scene;
@@ -35,7 +35,7 @@ class Engine: public Serializable, protected Field::Engine {
 		// by default runs the engine for accepted fields
 		virtual void run();
 
-		virtual bool acceptsField(Field*){ return true; }
+		// virtual bool acceptsField(Field*){ cerr<<getClassName()<<"::acceptsField not overridden."<<endl; return true; }
 		virtual bool needsField(){ return true; }
 		virtual void setField();
 		shared_ptr<Field> field_get();
@@ -68,7 +68,7 @@ class Engine: public Serializable, protected Field::Engine {
 		.add_property("execCount",&Engine::timingInfo_nExec_get,&Engine::timingInfo_nExec_set,"Cummulative count this engine was run (only used if :yref:`O.timingEnabled<Omega.timingEnabled>`\\ ==\\ ``True``).")
 		.def_readonly("timingDeltas",&Engine::timingDeltas,"Detailed information about timing inside the Engine itself. Empty unless enabled in the source code and :yref:`O.timingEnabled<Omega.timingEnabled>`\\ ==\\ ``True``.")
 		.def("__call__",&Engine::explicitRun)
-		.def("acceptsField",&Engine::acceptsField)
+		// .def("acceptsField",&Field::Engine::acceptsField)
 		.add_property("field",&Engine::field_get,&Engine::field_set,"Field to run this engine on; if unassigned, or set to *None*, automatic field selection is triggered. :yattrflags:`noGui` ") // yattrflags must be specified by hand, since the attribute was overridden
 	);
 };

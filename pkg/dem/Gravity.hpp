@@ -2,7 +2,7 @@
 #include<yade/core/Engine.hpp>
 #include<yade/pkg/dem/Particle.hpp>
 
-struct Gravity: public GlobalEngine, private DemField::Engine{
+struct Gravity: protected DemField::Engine, public GlobalEngine{
 	virtual void run();
 	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
 	YADE_CLASS_BASE_DOC_ATTRS(Gravity,GlobalEngine,"Engine applying constant acceleration to all bodies.",
@@ -13,7 +13,7 @@ struct Gravity: public GlobalEngine, private DemField::Engine{
 };
 REGISTER_SERIALIZABLE(Gravity);
 
-struct AxialGravity: public GlobalEngine, private DemField::Engine {
+struct AxialGravity: protected DemField::Engine, public GlobalEngine {
 	virtual void run();
 	YADE_CLASS_BASE_DOC_ATTRS(AxialGravity,GlobalEngine,"Apply acceleration (independent of distance) directed towards an axis.",
 		((Vector3r,axisPt,Vector3r::Zero(),,"Point through which the axis is passing."))

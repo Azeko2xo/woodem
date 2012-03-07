@@ -28,6 +28,7 @@ struct CLDemField: public Field{
 		, .def_readwrite("sim",&CLDemField::sim,"Simulation field to operate on")
 	);
 	REGISTER_CLASS_INDEX(CLDemField,Field);
+	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
 	// get coordinates from particles, not from nodes
 	bool renderingBbox(Vector3r&, Vector3r&); 
 	// clDem engines should inherit protected from this class
@@ -39,14 +40,18 @@ struct CLDemField: public Field{
 REGISTER_SERIALIZABLE(CLDemField);
 
 struct CLDemRun: public CLDemField::Engine, public PeriodicEngine {
+	shared_ptr<clDem::Simulation> sim;
 	void run();
+	void doCompare();
 	//void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
 	YADE_CLASS_BASE_DOC_ATTRS(CLDemRun,PeriodicEngine,"Engine which runs some number of steps of the clDem simulation synchronously.",
 		((long,steps,-1,,"How many steps to run each time the engine runs. If negative, the value of *stepPeriod* is used."))
+		((bool,compare,false,,"Run comparison at the end of each run; must call cld.mirrorSimToYade prior to running the simulation."))
+		((Real,relTol,1e-5,,"Tolerance for float comparisons"))
 	);
-
 };
 REGISTER_SERIALIZABLE(CLDemRun);
+
 
 #ifdef YADE_OPENGL
 #include<yade/pkg/gl/Functors.hpp>

@@ -15,7 +15,12 @@ void Engine::setField(){
 	if(!needsField()) return; // no field required, do nothing
 	vector<shared_ptr<Field> > accepted;
 	FOREACH(const shared_ptr<Field> f, scene->fields){ if(acceptsField(f.get())) accepted.push_back(f); }
-	if(accepted.size()>1) throw std::runtime_error(("Engine "+getClassName()+" accepted "+boost::lexical_cast<string>(accepted.size())+" fields to run on. Only one field is allowed; this ambiguity can be resolved by setting the field attribute.").c_str()); 
+	if(accepted.size()>1){
+		string err="Engine "+getClassName()+" accepted "+boost::lexical_cast<string>(accepted.size())+" fields to run on:";
+		FOREACH(const shared_ptr<Field>& f,accepted) err+=" "+f->getClassName();
+		err+=". Only one field is allowed; this ambiguity can be resolved by setting the field attribute.";
+		throw std::runtime_error(err); 
+	}
 	if(accepted.empty()) throw std::runtime_error(("Engine "+getClassName()+" accepted no field to run on; remove it from engines.").c_str()); 
 	field=accepted[0];
 }

@@ -41,7 +41,9 @@ void InsertionSortCollider::handleBoundInversion(Particle::id_t id1, Particle::i
 		if(!Collider::mayCollide(p1,p2)) return;
 		// LOG_TRACE("Creating new interaction #"<<id1<<"+#"<<id2);
 		shared_ptr<Contact> newC=shared_ptr<Contact>(new Contact);
-		newC->pA=p1; newC->pB=p2;
+		// mimick the way clDem::Collider does the job so that results are easily comparable
+		if(id1<id2){ newC->pA=p1; newC->pB=p2; }
+		else{ newC->pA=p2; newC->pB=p1; }
 		dem->contacts.add(newC);
 		return;
 	}
