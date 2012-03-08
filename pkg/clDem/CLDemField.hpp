@@ -20,12 +20,18 @@ REGISTER_SERIALIZABLE(CLDemData);
 
 template<> struct NodeData::Index<CLDemData>{enum{value=Node::ST_CLDEM};};
 
+// #define YADE_CLDEM_SERIALIZABLE
+
 struct CLDemField: public Field{
-	shared_ptr<clDem::Simulation> sim;
+	#ifndef YADE_CLDEM_SERIALIZABLE
+		shared_ptr<clDem::Simulation> sim;
+	#endif
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(CLDemField,Field,"Field referencing clDem simulation; it contains reference pointer clDem::Simulation. GL functions and proxy engine is defined on this field.",
-		// ((shared_ptr<clDem::Simulation>,sim,,Attr::noSave,"The OpenCL simulation in question (not saved!)."))
+		#ifdef YADE_CLDEM_SERIALIZABLE
+			((shared_ptr<clDem::Simulation>,sim,,,"The OpenCL simulation in question."))
+		#endif
 		, /* ctor */ createIndex();
-		, .def_readwrite("sim",&CLDemField::sim,"Simulation field to operate on")
+		, /* py */ // .def_readwrite("sim",&CLDemField::sim,"Simulation field to operate on")
 	);
 	REGISTER_CLASS_INDEX(CLDemField,Field);
 	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);

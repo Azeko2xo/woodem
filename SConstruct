@@ -92,7 +92,7 @@ opts.AddVariables(
 	BoolVariable('gprof','Enable profiling information for gprof',0),
 	('optimize','Turn on optimizations (-1, 0 or 1); negative value sets optimization based on debugging: not optimize with debugging and vice versa. -3 (the default) selects -O3 for non-debug and no optimization flags for debug builds',-3,None,int),
 	EnumVariable('PGO','Whether to "gen"erate or "use" Profile-Guided Optimization','',['','gen','use'],{'no':'','0':'','false':''},1),
-	ListVariable('features','Optional features that are turned on','log4cxx,opengl,opencl,gts,openmp,vtk,qt4',names=['opengl','log4cxx','cgal','openmp','opencl','gts','vtk','gl2ps','qt4','subdomains','cldem','never_use_this_one']),
+	ListVariable('features','Optional features that are turned on','log4cxx,opengl,opencl,gts,openmp,vtk,qt4',names=['opengl','log4cxx','cgal','openmp','opencl','gts','vtk','gl2ps','qt4','subdomains','cldem','xmlserialization','never_use_this_one']),
 	('jobs','Number of jobs to run at the same time (same as -j, but saved)',2,None,int),
 	#('extraModules', 'Extra directories with their own SConscript files (must be in-tree) (whitespace separated)',None,None,Split),
 	('cxxstd','Name of the c++ standard (or dialect) to compile with. With gcc, use gnu++11 (gcc >=4.7) or gnu++0x (with gcc 4.5, 4.6)','gnu++0x'),

@@ -49,7 +49,13 @@ struct ObjectIO{
 		if(boost::algorithm::ends_with(fileName,".gz")) out.push(boost::iostreams::gzip_compressor());
 		out.push(boost::iostreams::file_sink(fileName));
 		if(!out.good()) throw std::runtime_error("Error opening file "+fileName+" for writing.");
-		if(isXmlFilename(fileName)) save<T,boost::archive::xml_oarchive>(out,objectTag,object);
+		if(isXmlFilename(fileName)){
+			#ifdef YADE_XMLSERIALIZATION
+				save<T,boost::archive::xml_oarchive>(out,objectTag,object);
+			#else
+				throw std::runtime_error("Serialization to XML is not supported in this build of Yade (enable the 'xmlserialization' feature).");
+			#endif
+		}
 		else save<T,boost::archive::binary_oarchive>(out,objectTag,object);
 	}
 	// load from given file, guessing compression and XML/binary from extension
@@ -60,7 +66,13 @@ struct ObjectIO{
 		if(boost::algorithm::ends_with(fileName,".gz")) in.push(boost::iostreams::gzip_decompressor());
 		in.push(boost::iostreams::file_source(fileName));
 		if(!in.good()) throw std::runtime_error("Error opening file "+fileName+" for reading.");
-		if(isXmlFilename(fileName)) load<T,boost::archive::xml_iarchive>(in,objectTag,object);
+		if(isXmlFilename(fileName)){
+			#ifdef YADE_XMLSERIALIZATION
+				load<T,boost::archive::xml_iarchive>(in,objectTag,object);
+			#else
+				throw std::runtime_error("De-serialization from XML is not supported in this build of Yade (enable the 'xmlserialization' feature).");
+			#endif
+		}
 		else load<T,boost::archive::binary_iarchive>(in,objectTag,object);
 	}
 };

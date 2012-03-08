@@ -22,8 +22,11 @@
 #include<boost/version.hpp>
 #include<boost/archive/binary_oarchive.hpp>
 #include<boost/archive/binary_iarchive.hpp>
-#include<boost/archive/xml_oarchive.hpp>
-#include<boost/archive/xml_iarchive.hpp>
+
+#ifdef YADE_XMLSERIALIZATION
+	#include<boost/archive/xml_oarchive.hpp>
+	#include<boost/archive/xml_iarchive.hpp>
+#endif
 
 #include<boost/serialization/export.hpp> // must come after all supported archive types
 

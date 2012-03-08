@@ -230,6 +230,7 @@ void GLViewer::startClipPlaneManipulation(int planeNo){
 }
 
 void GLViewer::useDisplayParameters(size_t n, bool fromHandler){
+	/* when build without YADE_XMLSERIALIZATION, serialize to binary; otherwise, prefer xml for readability */
 	LOG_DEBUG("Loading display parameters from #"<<n);
 	vector<shared_ptr<DisplayParameters> >& dispParams=Omega::instance().getScene()->dispParams;
 	if(dispParams.size()<=(size_t)n){
@@ -241,7 +242,13 @@ void GLViewer::useDisplayParameters(size_t n, bool fromHandler){
 	const shared_ptr<DisplayParameters>& dp=dispParams[n];
 	string val;
 	if(dp->getValue("Renderer",val)){ std::istringstream oglre(val);
-		yade::ObjectIO::load<decltype(renderer),boost::archive::xml_iarchive>(oglre,"renderer",renderer);
+		yade::ObjectIO::load<decltype(renderer),
+			#ifdef YADE_XMLSERIALIZATION
+				boost::archive::xml_iarchive
+			#else
+				boost::archive::binary_iarchive
+		#endif
+		>(oglre,"renderer",renderer);
 	}
 	else { LOG_WARN("Renderer configuration not found in display parameters, skipped.");}
 	if(dp->getValue("GLViewer",val)){ GLViewer::setState(val); displayMessage("Loaded view configuration #"+lexical_cast<string>(n)); }
@@ -254,7 +261,13 @@ void GLViewer::useDisplayParameters(size_t n, bool fromHandler){
 	if(dispParams.size()<=n){while(dispParams.size()<=n) dispParams.push_back(shared_ptr<DisplayParameters>(new DisplayParameters));} assert(n<dispParams.size());
 	shared_ptr<DisplayParameters>& dp=dispParams[n];
 	std::ostringstream oglre;
-	yade::ObjectIO::save<decltype(renderer),boost::archive::xml_oarchive>(oglre,"renderer",renderer);
+	yade::ObjectIO::save<decltype(renderer),
+		#ifdef YADE_XMLSERIALIZATION
+			boost::archive::xml_oarchive
+		#else
+			boost::archive::binary_oarchive
+		#endif
+			>(oglre,"renderer",renderer);	
 	dp->setValue("Renderer",oglre.str());
 	dp->setValue("GLViewer",GLViewer::getState());
 	displayMessage("Saved view configuration ot #"+lexical_cast<string>(n));
