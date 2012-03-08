@@ -10,13 +10,15 @@ YADE_PLUGIN(dem,(Aabb)(BoundFunctor)(BoundDispatcher)(Collider));
 	YADE_PLUGIN(gl,(Gl1_Aabb))
 #endif
 
-bool Collider::mayCollide(const shared_ptr<Particle>& pA, const shared_ptr<Particle>& pB){
+bool Collider::mayCollide(const shared_ptr<Particle>& pA, const shared_ptr<Particle>& pB, const DemField* dem){
 	/* particles which share nodes may not collide */
 	if(!pA->shape || !pB->shape) return false;
 	size_t nA=pA->shape->nodes.size(), nB=pB->shape->nodes.size();
 	for(size_t iA=0; iA<nA; iA++) for(size_t iB=0; iB>nB; iB++) if(pA->shape->nodes[iA]==pB->shape->nodes[iB]) return false;
-	/* partciels not shaing mask may not collide */
+	/* particles not shaing mask may not collide */
 	if(!(pA->mask&pB->mask)) return false;
+	/* particles sharing bits in loneMask may not collide */
+	if((pA->mask&pB->mask&dem->loneMask)!=0) return false;
 	// in other cases, do collide
 	return true;
 	

@@ -60,13 +60,23 @@ void CLDemField::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){
 void CLDemRun::run(){
 	CLDemField& cldem=field->cast<CLDemField>();
 	sim=cldem.sim;
+	// in case timestep was adjusted in yade
 	sim->scene.dt=scene->dt;
 	if(!sim) throw std::runtime_error("No CLDemField.sim! (beware: it is not saved automatically)");
-	// in case timestep was adjusted in yade
-	sim->run(steps>0?steps:stepPeriod);
+	// at the very first run, run one step exactly
+	// so that the modular arithmetics works
+	// when we compare with yade at the end of the step (below)
+	// (at the end of 0th step, 1 step has been run already, etc)
+	//
+	if(scene->step==0) sim->run(1);
+	else sim->run(steps>0?steps:stepPeriod);
+	// for this reason, CLDemRun should always be at the end of the engine sequence!
 	if(compare) doCompare();
 }
 
+
+#define _THROW_ERROR(a){ std::ostringstream o; o<<a; LOG_ERROR(a); throw std::runtime_error(o.str()); }
+#define _CHK_ERR(where,err,cexpr,yexpr){ if(err > relTol) LOG_ERROR(where<<": "<<#err<<"="<<err<<">"<<relTol<<": "<<cexpr<<"/"<<yexpr); if(err>relTol*raiseLimit) _THROW_ERROR(where<<": "<<#err<<"="<<err<<">"<<relTol<<"*"<<raiseLimit<<": "<<cexpr<<"/"<<yexpr); }
 
 /* TODO: define tolerance when exception is thrown, rather than just showing errors */
 void CLDemRun::doCompare(){
@@ -75,42 +85,43 @@ void CLDemRun::doCompare(){
 	FOREACH(const auto& f, scene->fields){
 		if(dynamic_pointer_cast<DemField>(f)){ dem=static_pointer_cast<DemField>(f); break; }
 	}
-	if(sim->scene.step!=scene->step) LOG_ERROR("Step differs: "<<sim->scene.step<<"/"<<scene->step);
-	if(sim->scene.dt!=scene->dt) LOG_ERROR("Δt differs: "<<sim->scene.dt<<"/"<<scene->dt);
+	if(sim->scene.step!=scene->step) _THROW_ERROR("Step differs: "<<sim->scene.step<<"/"<<scene->step);
+	if(sim->scene.dt!=scene->dt) _THROW_ERROR("Δt differs: "<<sim->scene.dt<<"/"<<scene->dt);
 
 	// units so that errors are scaled properly
 	Real kgU=NaN, mU=NaN; // taken from particles
 	Real sU=scene->dt;
 
 	/* compare particles */
-	if(dem->particles.size()!=sim->par.size()) LOG_ERROR("Differing number of particles: "<<sim->par.size()<<"/"<<dem->particles.size());
+	if(dem->particles.size()!=sim->par.size()) _THROW_ERROR("Differing number of particles: "<<sim->par.size()<<"/"<<dem->particles.size());
 	// compare particle's positions, orientations
 	for(size_t id=0; id<sim->par.size(); id++){
 		// no particles in yade and clDem
-		if(id>=dem->particles.size()){ LOG_ERROR("#"<<id<<" not in Yade"); continue; }
+		string pId="#"+lexical_cast<string>(id);
+		if(id>=dem->particles.size()){ _THROW_ERROR(pId<<" not in Yade"); continue; }
 		int shapeT=clDem::par_shapeT_get(&(sim->par[id]));
 		if(!dem->particles[id] && shapeT==Shape_None) continue;
-		if(!dem->particles[id]){ LOG_ERROR("#"<<id<<" not in Yade"); continue; }
-		if(shapeT==Shape_None){ LOG_ERROR("#"<<id<<" not in clDem"); continue; }
+		if(!dem->particles[id]){ _THROW_ERROR(pId<<" not in Yade"); continue; }
+		if(shapeT==Shape_None){ _THROW_ERROR(pId<<" not in clDem"); continue; }
 		const clDem::Particle& cp(sim->par[id]);
 		const shared_ptr< ::Particle>& yp(dem->particles[id]);
 		// check that shapes match
 		switch(shapeT){
 			case Shape_Sphere:{
-				if(!dynamic_pointer_cast< ::Sphere>(yp->shape)){ LOG_ERROR("#"<<id<<": shape mismatch Sphere/"<<typeid(*(yp->shape)).name()); continue; }
+				if(!dynamic_pointer_cast< ::Sphere>(yp->shape)){ _THROW_ERROR(pId<<": shape mismatch Sphere/"<<typeid(*(yp->shape)).name()); continue; }
 				const ::Sphere& ys(yp->shape->cast< ::Sphere>());
-				if(ys.radius!=cp.shape.sphere.radius){ LOG_ERROR("#"<<id<<": spheres radius "<<cp.shape.sphere.radius<<"/"<<ys.radius); continue; }
+				if(ys.radius!=cp.shape.sphere.radius){ _THROW_ERROR(pId<<": spheres radius "<<cp.shape.sphere.radius<<"/"<<ys.radius); continue; }
 				break;
 			}
 			case Shape_Wall:{
-				if(!dynamic_pointer_cast< ::Wall>(yp->shape)){ LOG_ERROR("#"<<id<<": shape mismatch Wall/"<<typeid(*(yp->shape)).name()); continue; }
+				if(!dynamic_pointer_cast< ::Wall>(yp->shape)){ _THROW_ERROR(pId<<": shape mismatch Wall/"<<typeid(*(yp->shape)).name()); continue; }
 				const ::Wall& yw(yp->shape->cast< ::Wall>());
-				if(yw.axis!=cp.shape.wall.axis){ LOG_ERROR("#"<<id<<": wall axis "<<cp.shape.wall.axis<<"/"<<yw.axis); continue; }
-				if(yw.sense!=cp.shape.wall.sense){ LOG_ERROR("#"<<id<<": wall sense "<<cp.shape.wall.sense<<"/"<<yw.sense); continue; }
+				if(yw.axis!=cp.shape.wall.axis){ _THROW_ERROR(pId<<": wall axis "<<cp.shape.wall.axis<<"/"<<yw.axis); continue; }
+				if(yw.sense!=cp.shape.wall.sense){ _THROW_ERROR(pId<<": wall sense "<<cp.shape.wall.sense<<"/"<<yw.sense); continue; }
 				break;
 			}
 			default:
-				LOG_ERROR("#"<<id<<": shape index "<<shapeT<<" not handled by the comparator."); continue;
+				_THROW_ERROR(pId<<": shape index "<<shapeT<<" not handled by the comparator."); continue;
 		}
 
 		// check that materials match
@@ -118,16 +129,16 @@ void CLDemRun::doCompare(){
 		int matT=clDem::mat_matT_get(&(sim->scene.materials[matId]));
 		switch(matT){
 			case clDem::Mat_ElastMat:{
-				if(!dynamic_pointer_cast< ::FrictMat>(yp->material)){ LOG_ERROR("#"<<id<<": material mismatch ElastMat/"<<typeid(*(yp->material)).name()); continue; }
+				if(!dynamic_pointer_cast< ::FrictMat>(yp->material)){ _THROW_ERROR(pId<<": material mismatch ElastMat/"<<typeid(*(yp->material)).name()); continue; }
 				const ::FrictMat& ym(yp->material->cast<FrictMat>());
-				if(!isinf(ym.tanPhi)) LOG_ERROR("#"<<id<<": yade::FrictMat::tanPhi="<<ym.tanPhi<<" should be infinity to represent frictionless clDem::ElastMat");
+				if(!isinf(ym.tanPhi)) _THROW_ERROR(pId<<": yade::FrictMat::tanPhi="<<ym.tanPhi<<" should be infinity to represent frictionless clDem::ElastMat");
 				const clDem::ElastMat& cm(sim->scene.materials[matId].mat.elast);
-				if(ym.density!=cm.density){ LOG_ERROR("#"<<id<<": density differs "<<cm.density<<"/"<<ym.density); continue; }
-				if(ym.young!=cm.young){ LOG_ERROR("#"<<id<<": young differes "<<cm.young<<"/"<<ym.young); continue; }
+				if(ym.density!=cm.density){ _THROW_ERROR(pId<<": density differs "<<cm.density<<"/"<<ym.density); continue; }
+				if(ym.young!=cm.young){ _THROW_ERROR(pId<<": young differes "<<cm.young<<"/"<<ym.young); continue; }
 				break;
 			}
 			default:
-				LOG_ERROR("#"<<id<<": mat index "<<matT<<" not handled by the comparator"); continue;
+				_THROW_ERROR(pId<<": mat index "<<matT<<" not handled by the comparator"); continue;
 		}
 
 		// set units for relative errors
@@ -150,14 +161,12 @@ void CLDemRun::doCompare(){
 		Real angVelErr=(v2v(cp.angVel)-angVel).norm()/(1/sU);
 		Real forceErr=(v2v(cp.force)-force).norm()/(kgU*mU/pow(sU,2));
 		Real torqueErr=(v2v(cp.torque)-torque).norm()/(kgU*pow(mU,2)/pow(sU,2));
-		#define _CHK_ERR(what) if(what ## Err > relTol) LOG_ERROR("#"<<id<<": "<<#what<<"Err="<<what ## Err<<">"<<relTol<<": "<<cp.what<<"/"<<what);
-			_CHK_ERR(pos);
-			_CHK_ERR(ori);
-			_CHK_ERR(vel);
-			_CHK_ERR(angVel);
-			_CHK_ERR(force);
-			_CHK_ERR(torque);
-		#undef _CHK_ERR
+			_CHK_ERR(pId,posErr,cp.pos,pos);
+			_CHK_ERR(pId,oriErr,cp.ori,ori);
+			_CHK_ERR(pId,velErr,cp.vel,vel);
+			_CHK_ERR(pId,angVelErr,cp.angVel,vel);
+			_CHK_ERR(pId,forceErr,cp.force,force);
+			_CHK_ERR(pId,torqueErr,cp.torque,torque);
 
 		// reset back to NaN so that another particle might define it right
 		if(mFaked) mU=NaN;
@@ -174,49 +183,51 @@ void CLDemRun::doCompare(){
 		if(cc.ids.s0<0) continue; // invalid contact
 		string cId="##"+lexical_cast<string>(cc.ids.s0)+"+"+lexical_cast<string>(cc.ids.s1);
 		const shared_ptr< ::Contact>& yc(dem->contacts.find(cc.ids.s0,cc.ids.s1));
-		if(!yc){ LOG_ERROR(cId<<": not in yade"); continue; }
-		if(!yc->isReal()){ LOG_ERROR(cId<<": only potential in yade"); continue; }
-		#define _CHK_ERR(err,cexpr,yexpr) if(err > relTol) LOG_ERROR(cId<<": "<<#err<<"="<<err<<">"<<relTol<<": "<<cexpr<<"/"<<yexpr);
+		if(!yc){ _THROW_ERROR(cId<<": not in yade"); continue; }
+		int geomT=clDem::con_geomT_get(&cc);
+		int physT=clDem::con_physT_get(&cc);
+		if(!yc->geom && geomT!=clDem::Geom_None){ _THROW_ERROR(cId<<": only has geom in clDem"); continue; }
+		if( yc->geom && geomT==clDem::Geom_None){ _THROW_ERROR(cId<<": only has geom in yade"); continue; }
+		if(!yc->phys && physT!=clDem::Phys_None){ _THROW_ERROR(cId<<": only has phys in clDem"); continue; }
+		if( yc->phys && physT==clDem::Phys_None){ _THROW_ERROR(cId<<": only has phys in yade"); continue; }
+		if(!yc->geom || !yc->phys) continue;
 		Real posErr=(v2v(cc.pos)-yc->geom->node->pos).norm();
-		_CHK_ERR(posErr,cc.pos,yc->geom->node->pos);
+		_CHK_ERR(cId,posErr,cc.pos,yc->geom->node->pos);
 		// force+torque
 		Real forceErr=(v2v(cc.force)-yc->phys->force).norm()/(NU);
 		Real torqueErr=(v2v(cc.torque)-yc->phys->torque).norm()/(NU*mU);
-		_CHK_ERR(forceErr,cc.force,yc->phys->force);
-		_CHK_ERR(torqueErr,cc.torque,yc->phys->torque);
+		_CHK_ERR(cId,forceErr,cc.force,yc->phys->force);
+		_CHK_ERR(cId,torqueErr,cc.torque,yc->phys->torque);
 
-		int geomT=clDem::con_geomT_get(&cc);
 		switch(geomT){
 			case(clDem::Geom_L6Geom):{
-				if(!dynamic_pointer_cast< ::L6Geom>(yc->geom)){ LOG_ERROR(cId<<": geom mismatch L6Geom/"<<typeid(*(yc->geom)).name()); continue; }
+				if(!dynamic_pointer_cast< ::L6Geom>(yc->geom)){ _THROW_ERROR(cId<<": geom mismatch L6Geom/"<<typeid(*(yc->geom)).name()); continue; }
 				const ::L6Geom yg(yc->geom->cast< ::L6Geom>());
 				Real oriErr=(m2m(cc.ori)-yg.trsf).norm();
 				Real velErr=(v2v(cc.geom.l6g.vel)-yg.vel).norm()/(mU/sU);
 				Real angVelErr=(v2v(cc.geom.l6g.angVel)-yg.angVel).norm()/(1/sU);
 				Real uNErr=abs(cc.geom.l6g.uN-yg.uN)/(mU);
-				_CHK_ERR(oriErr,cc.ori,yg.trsf);
-				_CHK_ERR(velErr,cc.geom.l6g.vel,yg.vel);
-				_CHK_ERR(angVelErr,cc.geom.l6g.angVel,yg.angVel);
-				_CHK_ERR(uNErr,cc.geom.l6g.uN,yg.uN);
+				_CHK_ERR(cId,oriErr,cc.ori,yg.trsf);
+				_CHK_ERR(cId,velErr,cc.geom.l6g.vel,yg.vel);
+				_CHK_ERR(cId,angVelErr,cc.geom.l6g.angVel,yg.angVel);
+				_CHK_ERR(cId,uNErr,cc.geom.l6g.uN,yg.uN);
 				break;
 			}
-			default: LOG_ERROR(cId<<": geomT "<<geomT<<" not handled by the comparator"); continue;
+			default: _THROW_ERROR(cId<<": geomT "<<geomT<<" not handled by the comparator"); continue;
 		}
 
-		int physT=clDem::con_physT_get(&cc);
 		switch(physT){
 			case(clDem::Phys_NormPhys):{
-				if(!dynamic_pointer_cast< ::FrictPhys>(yc->phys)){ LOG_ERROR(cId<<": phys mismatch NormPhys/"<<typeid(*(yc->phys)).name()); continue; }
+				if(!dynamic_pointer_cast< ::FrictPhys>(yc->phys)){ _THROW_ERROR(cId<<": phys mismatch NormPhys/"<<typeid(*(yc->phys)).name()); continue; }
 				const ::FrictPhys yp(yc->phys->cast< ::FrictPhys>());
 				Real kNErr=abs(cc.phys.normPhys.kN-yp.kn)/(NU/mU);
-				_CHK_ERR(kNErr,cc.phys.normPhys.kN,yp.kn);
+				_CHK_ERR(cId,kNErr,cc.phys.normPhys.kN,yp.kn);
 				// kT not checked
-				if(!isinf(yp.tanPhi)) LOG_ERROR(cId<<": yade::FrictMat::tanPhi="<<yp.tanPhi<<" should be infinity to represent frictionless clDem::NormPhys");
+				if(!isinf(yp.tanPhi)) _THROW_ERROR(cId<<": yade::FrictMat::tanPhi="<<yp.tanPhi<<" should be infinity to represent frictionless clDem::NormPhys");
 				break;
 			}
-			default: LOG_ERROR(cId<<": physT "<<physT<<" not handled by the comparator"); continue;
+			default: _THROW_ERROR(cId<<": physT "<<physT<<" not handled by the comparator"); continue;
 		}
-		#undef _CHK_ERR
 	}
 	/* compare potential contacts */
 
@@ -232,7 +243,7 @@ void CLDemRun::doCompare(){
 				case ENERGY_grav: name="grav"; break;
 				case ENERGY_damp: name="nonviscDamp"; break;
 				case ENERGY_elast: name="elast"; break;
-				default: LOG_ERROR("Energy number "<<i<<" not handled by the comparator.");
+				default: _THROW_ERROR("Energy number "<<i<<" not handled by the comparator.");
 			}
 			int yId=-1; scene->energy->findId(name,yId,/*flags*/0,/*newIfNotFound*/false);
 			Real ye=0.;
@@ -241,13 +252,16 @@ void CLDemRun::doCompare(){
 			// NU*mU = N*m = Joule
 			//if(fabs(ce)/(NU*mU)<relTol && fabs(ye)/(NU*mU)<relTol) continue;
 			Real eErr=abs(ye-ce)/(NU*mU);
-			if(eErr>relTol) LOG_ERROR("Energy: "<<clDem::energyDefinitions[i].name<<"/"<<name<<" differs "<<eErr<<">"<<relTol<<": "<<ce<<"/"<<ye);
+			_CHK_ERR("Energy "<<clDem::energyDefinitions[i].name<<"/"<<name,eErr,ce,ye);
+			//if(eErr>relTol) LOG_ERROR("Energy: "<<clDem::energyDefinitions[i].name<<"/"<<name<<" differs "<<eErr<<">"<<relTol<<": "<<ce<<"/"<<ye);
 		}
 	}
 }
+#undef _CHK_ERR
+#undef _THROW_ERROR
 
 
-shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& sim, int stepPeriod){
+shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& sim, int stepPeriod, Real relTol){
 	auto scene=make_shared< ::Scene>();
 
 	auto dem=make_shared< ::DemField>();
@@ -258,9 +272,11 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 	// global params
 	scene->dt=sim->scene.dt;
 	scene->step=sim->scene.step+1;
-	scene->trackEnergy=true;
+	scene->trackEnergy=sim->trackEnergy;
+	dem->loneMask=sim->scene.loneGroups;
 
 	// create engines
+	// yade first
 	auto grav=make_shared<Gravity>();
 	grav->gravity=v2v(sim->scene.gravity);
 	auto integrator=make_shared<Leapfrog>();
@@ -271,29 +287,42 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 	collider->boundDispatcher->add(make_shared<Bo1_Sphere_Aabb>());
 	collider->boundDispatcher->add(make_shared<Bo1_Wall_Aabb>());
 	collider->boundDispatcher->add(make_shared<Bo1_Facet_Aabb>());
+	if(sim->scene.verletDist<0) collider->dead=true;
 	auto loop=make_shared<ContactLoop>();
 	loop->geoDisp->add(make_shared<Cg2_Sphere_Sphere_L6Geom>());
 	loop->geoDisp->add(make_shared<Cg2_Wall_Sphere_L6Geom>());
 	loop->geoDisp->add(make_shared<Cg2_Facet_Sphere_L6Geom>());
 	auto frict=make_shared<Cp2_FrictMat_FrictPhys>();
-	frict->ktDivKn=.8; // FIXME: use value from clDem somehow!
+	frict->ktDivKn=isnan(sim->ktDivKn)?0:sim->ktDivKn;
 	loop->phyDisp->add(frict);
-	auto law=make_shared<Law2_L6Geom_FrictPhys_LinEl6>();
-	law->charLen=500; // FIXME: use value from clDem somehow!
-	loop->lawDisp->add(law);
-	auto intra=make_shared<IntraForce>();
-	intra->add(make_shared<In2_Sphere_ElastMat>());
+	loop->applyForces=true;
+	if(sim->breakTension){
+		if(!isnan(sim->charLen)) throw std::runtime_error("The combination of breaking contacts and non-NaN charLen (i.e. bending stiffness) is not handled yet!");
+		auto law=make_shared<Law2_L6Geom_FrictPhys_IdealElPl>();
+		law->noSlip=true;
+		loop->lawDisp->add(law);
+	} else {
+		auto law=make_shared<Law2_L6Geom_FrictPhys_LinEl6>();
+		law->charLen=isnan(sim->charLen)?Inf:sim->charLen;
+		loop->lawDisp->add(law);
+	}
+	// our engine at the end
 	auto clDemRun=make_shared<CLDemRun>();
 	clDemRun->stepPeriod=stepPeriod;
-	clDemRun->compare=true;
-	clDemRun->relTol=1e-5;
+	clDemRun->initRun=true; // the initial run runs merely one step
+	if(relTol>0){
+		clDemRun->compare=true;
+		clDemRun->relTol=relTol;
+	} else {
+		clDemRun->compare=false;
+	}
+
 	scene->engines={
 		grav,
 		integrator,
 		collider,
 		loop,
-		intra,
-		clDemRun
+		clDemRun,
 	};
 
 	// materials
@@ -377,9 +406,31 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 
 		dem->particles.insertAt(yp,i);
 	}
-	if(!sim->con.empty()) throw std::runtime_error("Copying contacts from clDem to yade is not implemented yet.");
+	// real/"real" contacts
+	for(const clDem::Contact& c: sim->con){
+		string cId="##"+lexical_cast<string>(c.ids.s0)+"+"+lexical_cast<string>(c.ids.s1);
+		if(c.ids.s0<0) continue; // invalid contact
+		if(clDem::con_geomT_get(&c)!=Geom_None) throw std::runtime_error(cId+": pre-existing geom not handled yet.");
+		if(clDem::con_physT_get(&c)!=Phys_None) throw std::runtime_error(cId+": pre-existing phys not handled yet.");
+		auto yc=make_shared< ::Contact>();
+		assert(c.ids.s0>=0 && c.ids.s0<(long)dem->particles.size());
+		assert(c.ids.s1>=0 && c.ids.s1<(long)dem->particles.size());
+		yc->pA=dem->particles[c.ids.s0];
+		yc->pB=dem->particles[c.ids.s1];
+		dem->contacts.add(yc);
+	}
+	// potential contacts
+	for(const clDem::par_id2_t ids: sim->pot){
+		string cId="pot##"+lexical_cast<string>(ids.s0)+"+"+lexical_cast<string>(ids.s1);
+		auto yc=make_shared< ::Contact>();
+		if(ids.s0<0) continue;
+		assert(ids.s0>=0 && ids.s0<(long)dem->particles.size());
+		assert(ids.s1>=0 && ids.s1<(long)dem->particles.size());
+		yc->pA=dem->particles[ids.s0];
+		yc->pB=dem->particles[ids.s1];
+		dem->contacts.add(yc);
+	}
 
-	//
 
 	dem->collectNodes();
 
@@ -399,6 +450,7 @@ bool Gl1_CLDemField::par;
 bool Gl1_CLDemField::pot;
 bool Gl1_CLDemField::con;
 shared_ptr<ScalarRange> Gl1_CLDemField::parRange;
+shared_ptr<ScalarRange> Gl1_CLDemField::conRange;
 
 void Gl1_CLDemField::renderBboxes(){
 	glColor3v(Vector3r(.4,.7,.2));
@@ -416,6 +468,7 @@ void Gl1_CLDemField::renderBboxes(){
 
 void Gl1_CLDemField::renderPar(){
 	if(!parRange) parRange=make_shared<ScalarRange>();
+	if(!conRange) conRange=make_shared<ScalarRange>();
 	for(size_t i=0; i<sim->par.size(); i++){
 		int shapeT=clDem::par_shapeT_get(&(sim->par[i]));
 		if(shapeT==Shape_None) continue; // invalid particle
@@ -487,7 +540,7 @@ void Gl1_CLDemField::renderCon(){
 		else if(s1==clDem::Shape_Sphere){ A=v2v(p1.pos); B=v2v(c.pos); }
 		else if(s2==clDem::Shape_Sphere){ A=v2v(c.pos); B=v2v(p2.pos); }
 		else continue; // unreachable, but makes compiler happy
-		GLUtils::GLDrawLine(A,B,Vector3r(0,1,0));
+		GLUtils::GLDrawLine(A,B,conRange->color(c.force[0]));
 	}
 	glLineWidth(1);
 }

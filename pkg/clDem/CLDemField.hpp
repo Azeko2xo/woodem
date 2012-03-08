@@ -52,14 +52,15 @@ struct CLDemRun: public PeriodicEngine {
 	shared_ptr<clDem::Simulation> sim;
 	void run();
 	void doCompare();
-	static shared_ptr<Scene> clDemToYade(const shared_ptr<clDem::Simulation>& sim, int stepPeriod=1);
+	static shared_ptr<Scene> clDemToYade(const shared_ptr<clDem::Simulation>& sim, int stepPeriod=1, Real relTol=-1);
 	//void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(CLDemRun,PeriodicEngine,"Engine which runs some number of steps of the clDem simulation synchronously.",
 		((long,steps,-1,,"How many steps to run each time the engine runs. If negative, the value of *stepPeriod* is used."))
 		((bool,compare,false,,"Run comparison at the end of each run; must call cld.mirrorSimToYade prior to running the simulation."))
-		((Real,relTol,1e-5,,"Tolerance for float comparisons"))
+		((Real,relTol,1e-5,,"Tolerance for float comparisons; if it is exceeded, error message is shown, but the simulation is not interrupted."))
+		((Real,raiseLimit,100.,,"When relative error exceeds relTol*raiseLimit, an exception will be raised. (>=1)"))
 		, /* ctor */
-		, /*py*/ .def("clDemToYade",&CLDemRun::clDemToYade,(py::arg("clDemSim"),py::arg("step")=1),"Create yade simulation which mimics the one in *clDemSim* as close as possible, and prepare engines for running and comparing them in parallel. *stepPeriod* determines how many steps of the CL simulation to launch at once.").staticmethod("clDemToYade")
+		, /*py*/ .def("clDemToYade",&CLDemRun::clDemToYade,(py::arg("clDemSim"),py::arg("stepPeriod")=1,py::arg("relTol")=-1),"Create yade simulation which mimics the one in *clDemSim* as close as possible, and prepare engines for running and comparing them in parallel. *stepPeriod* determines how many steps of the CL simulation to launch at once. If *relTol* is greater than 0., comparison between clDem and Yade will be done at every step, with the tolerance specified.").staticmethod("clDemToYade")
 	);
 };
 REGISTER_SERIALIZABLE(CLDemRun);
@@ -82,12 +83,13 @@ struct Gl1_CLDemField: public GlFieldFunctor{
 	YADE_CLASS_BASE_DOC_STATICATTRS(Gl1_CLDemField,GlFieldFunctor,"Render clDemField.",
 		((bool,parWire,false,,"Whether particles are rendered with wirte only"))
 		((Real,quality,.2,,"Adjust number of slices/stacks for spheres &c"))
-		((Vector2r,quality_range,Vector2r(0,1),,"Range for quality"))
+		((Vector2r,quality_range,Vector2r(0,1),Attr::noGui,"Range for quality"))
 		((bool,bboxes,true,,"Render bounding boxes"))
 		((bool,par,true,,"Render particles"))
 		((bool,pot,true,,"Render potential contacts"))
 		((bool,con,true,,"Render real contacts"))
 		((shared_ptr<ScalarRange>,parRange,make_shared<ScalarRange>(),,"Range for particle colors (velocity)"))
+		((shared_ptr<ScalarRange>,conRange,make_shared<ScalarRange>(),,"Range for contact colors (normal force)"))
 		// ((unsigned int,mask,0,,"Only shapes/bounds of particles with this mask will be displayed; if 0, all particles are shown"))
 	);
 };

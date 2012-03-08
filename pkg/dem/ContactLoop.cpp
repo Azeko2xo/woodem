@@ -138,6 +138,22 @@ void ContactLoop::run(){
 		// CLaw
 		lawDisp->operator()(C->geom,C->phys,C);
 
+		if(applyForces && C->isReal()){
+			for(const shared_ptr<Particle>& particle:{C->pA,C->pB}){
+				const shared_ptr<Shape>& sh(particle->shape);
+				if(!sh) continue;
+				if(sh->nodes.size()!=1){
+					for(int i=0; i<sh->nodes.size(); i++){
+						if(sh->nodes[i]->getData<DemData>().flags&DemData::DOF_ALL!=DemData::DOF_ALL) LOG_WARN("Multinodal #"<<particle->id<<" has free DOFs, but force will not be applied; set ContactLoop.applyForces=False and use IntraForce(...) dispatcher instead.");
+					}
+					continue;
+				}
+				Vector3r F,T,xc;
+				std::tie(F,T,xc)=C->getForceTorqueBranch(particle,/*nodeI*/0,scene);
+				sh->nodes[0]->getData<DemData>().addForceTorque(F,xc.cross(F)+T);
+			}
+		}
+
 		// track gradV work
 		/* this is meant to avoid calling extra loop at every step, since the work must be evaluated incrementally */
 		if(doStress && /*contact law deleted the contact?*/ C->isReal()){
