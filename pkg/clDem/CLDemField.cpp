@@ -68,6 +68,7 @@ void CLDemRun::run(){
 }
 
 
+/* TODO: define tolerance when exception is thrown, rather than just showing errors */
 void CLDemRun::doCompare(){
 	// get DEM field to compare with
 	shared_ptr<DemField> dem;
@@ -278,7 +279,7 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 	frict->ktDivKn=.8; // FIXME: use value from clDem somehow!
 	loop->phyDisp->add(frict);
 	auto law=make_shared<Law2_L6Geom_FrictPhys_LinEl6>();
-	law->charLen=Inf; // FIXME: use value from clDem somehow!
+	law->charLen=500; // FIXME: use value from clDem somehow!
 	loop->lawDisp->add(law);
 	auto intra=make_shared<IntraForce>();
 	intra->add(make_shared<In2_Sphere_ElastMat>());
@@ -371,6 +372,7 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 		}
 		// not yet implemented in cl-dem0
 		// if(par_stateT_get(&cp)!=clDem::State_None)
+		yp->shape->color=(par_dofs_get(&cp)==0?.5:.3);
 		yp->shape->setWire(true);
 
 		dem->particles.insertAt(yp,i);
