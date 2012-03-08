@@ -9,6 +9,10 @@
 #include<yade/pkg/dem/Wall.hpp>
 #include<yade/pkg/dem/L6Geom.hpp>
 #include<yade/pkg/dem/FrictMat.hpp>
+#include<yade/pkg/dem/Gravity.hpp>
+#include<yade/pkg/dem/IdealElPl.hpp>
+#include<yade/pkg/dem/Leapfrog.hpp>
+#include<yade/pkg/dem/InsertionSortCollider.hpp>
 
 #ifdef YADE_OPENGL
 	#include<yade/lib/opengl/GLUtils.hpp>
@@ -239,8 +243,148 @@ void CLDemRun::doCompare(){
 			if(eErr>relTol) LOG_ERROR("Energy: "<<clDem::energyDefinitions[i].name<<"/"<<name<<" differs "<<eErr<<">"<<relTol<<": "<<ce<<"/"<<ye);
 		}
 	}
-
 }
+
+
+shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& sim, int stepPeriod){
+	auto scene=make_shared< ::Scene>();
+
+	auto dem=make_shared< ::DemField>();
+	auto cld=make_shared< ::CLDemField>();
+	cld->sim=sim;
+	scene->fields={dem,cld};
+
+	// global params
+	scene->dt=sim->scene.dt;
+	scene->step=sim->scene.step+1;
+	scene->trackEnergy=true;
+
+	// create engines
+	auto grav=make_shared<Gravity>();
+	grav->gravity=v2v(sim->scene.gravity);
+	auto integrator=make_shared<Leapfrog>();
+	integrator->damping=sim->scene.damping;
+	integrator->reset=true;
+	integrator->kinSplit=true;
+	auto collider=make_shared<InsertionSortCollider>();
+	collider->boundDispatcher->add(make_shared<Bo1_Sphere_Aabb>());
+	collider->boundDispatcher->add(make_shared<Bo1_Wall_Aabb>());
+	collider->boundDispatcher->add(make_shared<Bo1_Facet_Aabb>());
+	auto loop=make_shared<ContactLoop>();
+	loop->geoDisp->add(make_shared<Cg2_Sphere_Sphere_L6Geom>());
+	loop->geoDisp->add(make_shared<Cg2_Wall_Sphere_L6Geom>());
+	loop->geoDisp->add(make_shared<Cg2_Facet_Sphere_L6Geom>());
+	auto frict=make_shared<Cp2_FrictMat_FrictPhys>();
+	frict->ktDivKn=.8; // FIXME: use value from clDem somehow!
+	loop->phyDisp->add(frict);
+	auto law=make_shared<Law2_L6Geom_FrictPhys_LinEl6>();
+	law->charLen=Inf; // FIXME: use value from clDem somehow!
+	loop->lawDisp->add(law);
+	auto intra=make_shared<IntraForce>();
+	intra->add(make_shared<In2_Sphere_ElastMat>());
+	auto clDemRun=make_shared<CLDemRun>();
+	clDemRun->stepPeriod=stepPeriod;
+	clDemRun->compare=true;
+	clDemRun->relTol=1e-5;
+	scene->engines={
+		grav,
+		integrator,
+		collider,
+		loop,
+		intra,
+		clDemRun
+	};
+
+	// materials
+	shared_ptr< ::Material> ymats[clDem::SCENE_MAT_NUM];
+	for(int i=0; i<clDem::SCENE_MAT_NUM; i++){
+		const clDem::Material& cmat(sim->scene.materials[i]);
+		int matT=clDem::mat_matT_get(&cmat);
+		switch(matT){
+			case clDem::Mat_None: break;
+			case clDem::Mat_ElastMat:{
+				auto fm=make_shared< ::FrictMat>();
+				fm->density=cmat.mat.elast.density;
+				fm->young=cmat.mat.elast.young;
+				fm->tanPhi=Inf; // no friction
+				fm->poisson=NaN; // meaningless
+				ymats[i]=fm;
+				break;
+			}
+			default: throw std::runtime_error("materials["+lexical_cast<string>(i)+": unhandled matT "+lexical_cast<string>(matT)+".");
+		}
+	}
+	// particles
+	for(size_t i=0; i<sim->par.size(); i++){
+		const clDem::Particle& cp=sim->par[i];
+		auto yp=make_shared< ::Particle>();
+		string pId="#"+lexical_cast<string>(i);
+		// material
+		int matId=par_matId_get(&cp);
+		assert(matId>=0 && matId<clDem::SCENE_MAT_NUM);
+		yp->material=ymats[matId];
+		assert(yp->material);
+		// shape
+		int shapeT=par_shapeT_get(&cp);
+		// multinodal particles set this to false and copy pos & ori by themselves
+		// other particles set to true and will have those copied automatically after the switch block
+		bool monoNodal=false; 
+		switch(shapeT){
+			case Shape_None: continue;
+			case Shape_Wall:{
+				auto yw=make_shared< ::Wall>();
+				yw->sense=cp.shape.wall.sense;
+				yw->axis=cp.shape.wall.axis;
+				yp->shape=yw;
+				monoNodal=true;
+				break;
+			}
+			case Shape_Sphere:{
+				auto ys=make_shared< ::Sphere>();
+				ys->radius=cp.shape.sphere.radius;
+				yp->shape=ys;
+				monoNodal=true;
+				break;
+			}
+			default: throw std::runtime_error(pId+": unhandled shapeT "+lexical_cast<string>(shapeT)+".");
+		}
+		// copy pos, ori, vel, angVel & c
+		if(monoNodal){
+			yp->shape->nodes.resize(1);
+			auto& node=yp->shape->nodes[0];
+			node=make_shared<Node>();
+			node->pos=v2v(cp.pos);
+			node->ori=q2q(cp.ori);
+			node->setData<DemData>(make_shared<DemData>());
+			DemData& dyn=node->getData<DemData>();
+			dyn.vel=v2v(cp.vel);
+			dyn.angVel=v2v(cp.angVel);
+			dyn.mass=cp.mass;
+			dyn.inertia=v2v(cp.inertia);
+			dyn.force=v2v(cp.force);
+			dyn.torque=v2v(cp.torque);
+			int dofs=par_dofs_get(&cp);
+			for(int i=0; i<6; i++){
+				// clDem defines free dofs, yade defines blocked dofs
+				if(!(dofs&clDem::dof_axis(i%3,i/3))) dyn.flags|=::DemData::axisDOF(i%3,i/3);
+			}
+		}
+		// not yet implemented in cl-dem0
+		// if(par_stateT_get(&cp)!=clDem::State_None)
+		yp->shape->setWire(true);
+
+		dem->particles.insertAt(yp,i);
+	}
+	if(!sim->con.empty()) throw std::runtime_error("Copying contacts from clDem to yade is not implemented yet.");
+
+	//
+
+	dem->collectNodes();
+
+	// set engine's fields and scene pointers
+	scene->postLoad(*scene);
+	return scene;
+};
 
 
 #ifdef YADE_OPENGL

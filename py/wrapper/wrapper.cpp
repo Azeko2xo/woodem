@@ -133,6 +133,7 @@ class pyOmega{
 	void resetTime(){ OMEGA.getScene()->step=0; OMEGA.getScene()->time=0; }
 	void switchScene(){ std::swap(OMEGA.scene,OMEGA.sceneAnother); }
 	shared_ptr<Scene> scene_get(){ return OMEGA.getScene(); }
+	void scene_set(const shared_ptr<Scene>& s){ OMEGA.setScene(s); }
 	shared_ptr<DemField> dem_get(){
 		FOREACH(const shared_ptr<Field>& f, OMEGA.getScene()->fields){
 			if(dynamic_pointer_cast<DemField>(f)) return static_pointer_cast<DemField>(f);
@@ -301,7 +302,7 @@ BOOST_PYTHON_MODULE(wrapper)
 		#ifdef YADE_OPENCL
 			.add_property("defaultClDev",&pyOmega::defaultClDev_get,&pyOmega::defaultClDev_set,"Default OpenCL platform/device couple (as ints), set internally from the command-line arg.")
 		#endif
-		.add_property("scene",&pyOmega::scene_get,"Return the current :yref:`scene <Scene>` object.")
+		.add_property("scene",&pyOmega::scene_get,&pyOmega::scene_set,"Return the current :yref:`scene <Scene>` object. Only set this object carefully!")
 		.add_property("dem",&pyOmega::dem_get,"Return first DEM field.")
 		.add_property("sparc",&pyOmega::sparc_get,"Return first Sparc field.")
 

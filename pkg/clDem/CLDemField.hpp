@@ -52,11 +52,14 @@ struct CLDemRun: public PeriodicEngine {
 	shared_ptr<clDem::Simulation> sim;
 	void run();
 	void doCompare();
+	static shared_ptr<Scene> clDemToYade(const shared_ptr<clDem::Simulation>& sim, int stepPeriod=1);
 	//void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
-	YADE_CLASS_BASE_DOC_ATTRS(CLDemRun,PeriodicEngine,"Engine which runs some number of steps of the clDem simulation synchronously.",
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(CLDemRun,PeriodicEngine,"Engine which runs some number of steps of the clDem simulation synchronously.",
 		((long,steps,-1,,"How many steps to run each time the engine runs. If negative, the value of *stepPeriod* is used."))
 		((bool,compare,false,,"Run comparison at the end of each run; must call cld.mirrorSimToYade prior to running the simulation."))
 		((Real,relTol,1e-5,,"Tolerance for float comparisons"))
+		, /* ctor */
+		, /*py*/ .def("clDemToYade",&CLDemRun::clDemToYade,(py::arg("clDemSim"),py::arg("step")=1),"Create yade simulation which mimics the one in *clDemSim* as close as possible, and prepare engines for running and comparing them in parallel. *stepPeriod* determines how many steps of the CL simulation to launch at once.").staticmethod("clDemToYade")
 	);
 };
 REGISTER_SERIALIZABLE(CLDemRun);

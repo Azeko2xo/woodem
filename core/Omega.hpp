@@ -78,6 +78,7 @@ class Omega: public Singleton<Omega>{
 		void saveSimulation(const string& name, bool quiet=false);
 
 		const shared_ptr<Scene>& getScene();
+		void setScene(const shared_ptr<Scene>& s);
 		//! Return unique temporary filename. May be deleted by the user; if not, will be deleted at shutdown.
 		string tmpFilename();
 		Real getRealTime();

@@ -52,6 +52,7 @@ std::string Omega::tmpFilename(){
 }
 
 const shared_ptr<Scene>& Omega::getScene(){return scene;}
+void Omega::setScene(const shared_ptr<Scene>& s){ if(!s) throw std::runtime_error("Scene must not be None."); scene=s; }
 
 void Omega::stop(){ LOG_DEBUG(""); if(simulationLoop.looping())simulationLoop.stop(); }
 void Omega::step(){ simulationLoop.spawnSingleAction(); }

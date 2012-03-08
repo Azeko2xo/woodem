@@ -70,6 +70,8 @@ struct ParticleContainer: public Serializable{
 		typedef boost::filter_iterator<IsExisting,ContainerT::const_iterator> const_iterator;
 
 		id_t insert(shared_ptr<Particle>&);
+		void insertAt(shared_ptr<Particle>& p, id_t id);
+
 	
 		// mimick some STL api
 		void clear();

@@ -10,8 +10,9 @@ env.InstallAs(pyMain,main)
 env.InstallAs(pyMain+'-batch',batch)
 env.AddPostAction(pyMain,Chmod(pyMain,0755))
 env.AddPostAction(pyMain+'-batch',Chmod(pyMain+'-batch',0755))
+import os.path
 ## for --rebuild
-if 'execCheck' in env and env['execCheck']!=env.subst(pyMain):
+if 'execCheck' in env and env['execCheck']!=os.path.abspath(env.subst(pyMain)):
 	raise RuntimeError('execCheck option (%s) does not match what is about to be installed (%s)'%(env['execCheck'],env.subst(pyMain)))
 
 env.Install('$LIBDIR/py/yade',[
