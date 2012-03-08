@@ -8,9 +8,6 @@
 
 
 struct AncfField: public Field{
-	struct Engine: public Field::Engine{
-		virtual bool acceptsField(Field* f){ return dynamic_cast<AncfField*>(f); }
-	};
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(AncfField,Field,"Field for ANCF (absolute nodal coordinate formulation) finite elements (highly experimental)",
 	);
 }

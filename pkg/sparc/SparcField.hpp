@@ -41,9 +41,6 @@ class vtkPoints;
 class vtkUnstructuredGrid;
 
 struct SparcField: public Field{
-	struct Engine: public Field::Engine{
-		virtual bool acceptsField(Field* f){ return dynamic_cast<SparcField*>(f); }
-	};
 	vtkPointLocator* locator;
 	vtkPoints* points;
 	vtkUnstructuredGrid* grid;
@@ -143,7 +140,9 @@ REGISTER_SERIALIZABLE(SparcData);
 
 template<> struct NodeData::Index<SparcData>{enum{value=Node::ST_SPARC};};
 
-struct ExplicitNodeIntegrator: public GlobalEngine, private SparcField::Engine{
+struct ExplicitNodeIntegrator: public GlobalEngine {
+	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
+
 	enum{ MAT_HOOKE=0, MAT_BARODESY_JESSE, MAT_SENTINEL /* to check max value */ };
 	SparcField* mff; // lazy to type
 	template<bool useNext>

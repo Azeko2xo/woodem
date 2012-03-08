@@ -132,7 +132,9 @@ struct Field: public Serializable, public Indexable{
 	// return bounding box for rendering
 	// by defalt, returns bbox of nodes, but derived fields may override this
 	virtual bool renderingBbox(Vector3r& mn, Vector3r& mx);
-	
+
+	// replaced by regular virtual function of Engine
+	#if 0
 	// nested mixin class
 	struct Engine{
 		// say whether a particular field is acceptable by this engine
@@ -142,5 +144,6 @@ struct Field: public Serializable, public Indexable{
 		// in this way, diamond inhertiace is avoided
 		virtual bool acceptsField(Field*){ cerr<<"-- acceptsField not overridden."<<endl; return true; };
 	};
+	#endif
 };
 REGISTER_SERIALIZABLE(Field);

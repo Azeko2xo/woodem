@@ -153,11 +153,6 @@ struct DemField: public Field{
 		.def("sceneGetField",&Field_sceneGetField<DemField>).staticmethod("sceneGetField")
 	);
 	REGISTER_CLASS_INDEX(DemField,Field);
-	// DEM engines should inherit protected from this class
-	struct Engine: public Field::Engine{
-		virtual bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
-	};
-
 };
 REGISTER_SERIALIZABLE(DemField);
 

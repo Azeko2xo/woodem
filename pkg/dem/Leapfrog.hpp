@@ -11,7 +11,9 @@ struct ForceResetter: public GlobalEngine{
 };
 REGISTER_SERIALIZABLE(ForceResetter);
 
-struct Leapfrog: public GlobalEngine, private DemField::Engine {
+struct Leapfrog: public GlobalEngine {
+	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
+
 	void nonviscDamp1st(Vector3r& force, const Vector3r& vel);
 	void nonviscDamp2nd(const Real& dt, const Vector3r& force, const Vector3r& vel, Vector3r& accel);
 	void applyPeriodicCorrections(const shared_ptr<Node>&, const Vector3r& linAccel);

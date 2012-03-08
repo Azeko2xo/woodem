@@ -88,7 +88,11 @@ class Leapfrog;
 
 class ParticleContainer;
 
-class InsertionSortCollider: public Collider, private DemField::Engine{
+struct InsertionSortCollider: public Collider {
+	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
+
+	private:
+
 	//! struct for storing bounds of bodies
 	struct Bounds{
 		//! coordinate along the given sortAxis

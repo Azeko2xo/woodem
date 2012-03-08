@@ -12,7 +12,8 @@ class IntraFunctor: public Functor2D<
 };
 REGISTER_SERIALIZABLE(IntraFunctor);
 
-struct IntraForce: public Dispatcher2D</* functor type*/ IntraFunctor, /* autosymmetry*/ false>, private DemField::Engine{
+struct IntraForce: public Dispatcher2D</* functor type*/ IntraFunctor, /* autosymmetry*/ false>{
+	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	void run();
 	YADE_DISPATCHER2D_FUNCTOR_DOC_ATTRS_CTOR_PY(IntraForce,IntraFunctor,/* doc is optional*/,/*attrs*/,/*ctor*/,/*py*/);
 	DECLARE_LOGGER;

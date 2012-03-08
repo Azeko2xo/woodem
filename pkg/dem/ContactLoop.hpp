@@ -39,6 +39,7 @@ REGISTER_SERIALIZABLE(LawFunctor);
 /* ***************************************** */
 
 struct CGeomDispatcher: public Dispatcher2D</* functor type*/ CGeomFunctor, /* autosymmetry*/ false>{
+	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	shared_ptr<Contact> explicitAction(Scene*, const shared_ptr<Particle>&, const shared_ptr<Particle>&, bool force);
 	YADE_DISPATCHER2D_FUNCTOR_DOC_ATTRS_CTOR_PY(CGeomDispatcher,CGeomFunctor,/* doc is optional*/,/*attrs*/,/*ctor*/,/*py*/);
 	DECLARE_LOGGER;
@@ -46,12 +47,14 @@ struct CGeomDispatcher: public Dispatcher2D</* functor type*/ CGeomFunctor, /* a
 REGISTER_SERIALIZABLE(CGeomDispatcher);
 
 struct CPhysDispatcher: public Dispatcher2D</*functor type*/ CPhysFunctor>{		
+	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	void explicitAction(Scene*, shared_ptr<Material>&, shared_ptr<Material>&, shared_ptr<Contact>&);
 	YADE_DISPATCHER2D_FUNCTOR_DOC_ATTRS_CTOR_PY(CPhysDispatcher,CPhysFunctor,/*doc is optional*/,/*attrs*/,/*ctor*/,/*py*/);
 };
 REGISTER_SERIALIZABLE(CPhysDispatcher);
 
 struct LawDispatcher: public Dispatcher2D</*functor type*/ LawFunctor, /*autosymmetry*/ false>{
+	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	YADE_DISPATCHER2D_FUNCTOR_DOC_ATTRS_CTOR_PY(LawDispatcher,LawFunctor,/*doc is optional*/,/*attrs*/,/*ctor*/,/*py*/);
 	DECLARE_LOGGER;
 };
@@ -59,7 +62,8 @@ REGISTER_SERIALIZABLE(LawDispatcher);
 
 
 
-class ContactLoop: public GlobalEngine, private DemField::Engine {
+class ContactLoop: public GlobalEngine {
+	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	// store interactions that should be deleted after loop in action, not later
 	DemField* dem;
 	#ifdef YADE_OPENMP

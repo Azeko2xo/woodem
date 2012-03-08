@@ -2,7 +2,8 @@
 #include<yade/pkg/dem/Particle.hpp>
 #include<yade/core/Engine.hpp>
 
-struct RadialForce: public GlobalEngine, private DemField::Engine {
+struct RadialForce: public GlobalEngine {
+	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	virtual void run();
 	virtual void postLoad(RadialForce&){ axisDir.normalize(); }
 	YADE_CLASS_BASE_DOC_ATTRS(RadialForce,GlobalEngine,"Apply force of given magnitude directed away from spatial axis on some nodes.",

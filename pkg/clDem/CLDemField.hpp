@@ -31,15 +31,18 @@ struct CLDemField: public Field{
 	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
 	// get coordinates from particles, not from nodes
 	bool renderingBbox(Vector3r&, Vector3r&); 
+	#if 0
 	// clDem engines should inherit protected from this class
 	struct Engine: public Field::Engine{
 		virtual bool acceptsField(Field* f){ return dynamic_cast<CLDemField*>(f); }
 	};
+	#endif
 
 };
 REGISTER_SERIALIZABLE(CLDemField);
 
-struct CLDemRun: public CLDemField::Engine, public PeriodicEngine {
+struct CLDemRun: public PeriodicEngine {
+	bool acceptsField(Field* f){ return dynamic_cast<CLDemField*>(f); }
 	shared_ptr<clDem::Simulation> sim;
 	void run();
 	void doCompare();

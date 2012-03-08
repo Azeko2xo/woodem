@@ -5,7 +5,8 @@
 
 #include<yade/lib/sphere-pack/SpherePack.hpp>
 
-struct AnisoPorosityAnalyzer: public GlobalEngine, private DemField::Engine{
+struct AnisoPorosityAnalyzer: public GlobalEngine {
+	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	DemField* dem;
 	SpherePack pack;
 	virtual void run();
