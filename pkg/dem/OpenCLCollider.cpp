@@ -104,6 +104,7 @@ vector<Vector2i> OpenCLCollider::inversionsCPU(vector<CpuAxBound>& bb){
 	for(long i=0; i<iMax; i++){
 		const CpuAxBound bbInit=bb[i]; // copy, so that it is const
 		if(isnan(bbInit.coord)) continue;
+
 		long j=i-1;
 		while(j>=0 && (bb[j].coord>bbInit.coord || isnan(bb[j].coord))){
 			// bbInit is bb[j+1] which is travelling downwards and swaps with b[j]
@@ -140,8 +141,6 @@ vector<Vector2i> OpenCLCollider::initSortGPU(){
 	int powerOfTwo = (pow(2, trunc(log2(2*N))) == 2*N) ?
 		pow(2, trunc(log2(2*N))) : pow(2, trunc(log2(2*N)) + 1);
 
-	global_size = (trunc(trunc(sqrt(powerOfTwo / 2)) / local_size) + 1) * local_size;
-
 	cl_uint bits = 0;
 	for (int temp = powerOfTwo; temp > 1; temp >>= 1) {
 		++bits;
@@ -171,9 +170,9 @@ vector<Vector2i> OpenCLCollider::initSortGPU(){
 			LOG_DEBUG("C");
 			k1.setArg(3,N);
 			LOG_DEBUG("D");
-			queue.enqueueWriteBuffer(minBuf[ax],CL_FALSE,0,N*sizeof(float),mini[ax].data());
+			queue.enqueueWriteBuffer(minBuf[ax],CL_TRUE,0,N*sizeof(float),mini[ax].data());
 			LOG_DEBUG("E");
-			queue.enqueueWriteBuffer(maxBuf[ax],CL_FALSE,0,N*sizeof(float),maxi[ax].data());
+			queue.enqueueWriteBuffer(maxBuf[ax],CL_TRUE,0,N*sizeof(float),maxi[ax].data());
 			LOG_DEBUG("F");
 			queue.enqueueNDRangeKernel(k1,cl::NullRange,cl::NDRange(global_size*global_size),cl::NDRange(local_size));
 			LOG_DEBUG("G");
@@ -187,18 +186,26 @@ vector<Vector2i> OpenCLCollider::initSortGPU(){
 	cerr<<"axBound ok"<<endl;
 
 	
-   queue.enqueueReadBuffer(boundBufs[0], CL_TRUE, 0, 2*N * sizeof (AxBound), gpuBounds[0].data());
+    queue.enqueueReadBuffer(boundBufs[0], CL_TRUE, 0, 2*N * sizeof (AxBound), gpuBounds[0].data());
 	LOG_DEBUG("H");
+	//for (int i = 0; i < 2*N; i++){
+	//	LOG_DEBUG(gpuBounds[0][i].coord);
+	//}
+
 	// bitonic sort needs a power-of-two array; fill with infinities
 	boundBufs[0]=cl::Buffer(context, CL_MEM_READ_WRITE, powerOfTwo * sizeof (AxBound), NULL);
 	gpuBounds[0].resize(powerOfTwo);
 	queue.enqueueWriteBuffer(boundBufs[0],CL_TRUE, 0, powerOfTwo * sizeof (AxBound), gpuBounds[0].data());
 	LOG_DEBUG("I");
+    queue.enqueueReadBuffer(boundBufs[0], CL_TRUE, 0, 2*N * sizeof (AxBound), gpuBounds[0].data());
+
+//	for (int i = 0; i < 2*N; i++){
+//		LOG_DEBUG(gpuBounds[0][i].coord);
+	//}
 
 	try {
 		cl::Kernel k2(program, "sortBitonic");
 		LOG_DEBUG("J");
-		//cl::Event event;
 		k2.setArg(3, powerOfTwo);
 		LOG_DEBUG("K");
 		k2.setArg(4, 1);
@@ -206,20 +213,25 @@ vector<Vector2i> OpenCLCollider::initSortGPU(){
 		k2.setArg(0, boundBufs[0]);
 		LOG_DEBUG("M");
 
+//		cl::Event eve;
 		for (cl_uint stage = 0; stage < bits; stage++) {
 			k2.setArg(1, stage);
 			for (cl_uint passOfStage = 0; passOfStage < stage + 1; passOfStage++) {
 				k2.setArg(2, passOfStage);
 				queue.enqueueNDRangeKernel(k2, cl::NullRange,
 						cl::NDRange(global_size, global_size),
-						cl::NDRange(local_size, local_size));
+						cl::NDRange(local_size, local_size));//, NULL, &eve);
 				queue.finish();
+				//eve.wait();
 			}
 		}
 		// shrink the buffer back, read just the part we need
-		boundBufs[0]=cl::Buffer(context,CL_MEM_READ_WRITE,2*N*sizeof(AxBound));
 		gpuBounds[0].resize(2*N);
 		queue.enqueueReadBuffer(boundBufs[0], CL_TRUE, 0, 2*N*sizeof (AxBound), gpuBounds[0].data());
+		boundBufs[0]=cl::Buffer(context,CL_MEM_READ_WRITE,2*N*sizeof(AxBound));
+		queue.enqueueWriteBuffer(boundBufs[0],CL_TRUE, 0, 2*N * sizeof (AxBound), gpuBounds[0].data());
+
+
 		LOG_DEBUG("N");
 	} catch (cl::Error& e) {
 		LOG_FATAL(e.what()); throw;
@@ -228,6 +240,10 @@ vector<Vector2i> OpenCLCollider::initSortGPU(){
 	//have sorted array AxBound
 	cerr << "** Array AxBound was sorted.\n";
 
+	//for(int i = 0; i < 2*N; i++){
+//		LOG_DEBUG(gpuBounds[0][i].coord);
+//		cerr << "test: \n";
+//	}
 
 	cl_uint *counter;
 	counter = new cl_uint[1];
@@ -235,8 +251,10 @@ vector<Vector2i> OpenCLCollider::initSortGPU(){
 	//create overlay array
 	int overAlocMem = 2*N;
 
+
 	cl::Buffer gCounter = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof (cl_uint), NULL);
 	cl::Buffer gMemCheck = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof (cl_uint), NULL);
+
 
 	cl_uint *test;
 	test = new cl_uint[1];
@@ -244,8 +262,6 @@ vector<Vector2i> OpenCLCollider::initSortGPU(){
 
 	cl_uint *memCheck;
 	memCheck = new cl_uint[1];
-
-	global_size = (trunc(trunc(sqrt(2*N)) / local_size) + 1) * local_size;
 
 	vector<cl_uint2> overlay;
 	cl::Buffer gOverlay;
@@ -257,7 +273,7 @@ vector<Vector2i> OpenCLCollider::initSortGPU(){
 		queue.enqueueWriteBuffer(boundBufs[i], CL_TRUE, 0, powerOfTwo * sizeof (AxBound), gpuBounds[i].data());
 		LOG_DEBUG("P");
 	}
-
+	global_size = (trunc(trunc(sqrt(powerOfTwo / 2)) / local_size) + 1) * local_size;
 	try {
 		cl::Kernel createOverlayK(program, "createOverlay");
 		LOG_DEBUG("Q");
@@ -364,7 +380,7 @@ vector<Vector2i> OpenCLCollider::initSortGPU(){
 	vector<Vector2i> ret; ret.reserve(counter[0]);
 	for (const cl_uint2& o : overlay1){
 		ret.push_back(Vector2i(o.lo,o.hi));
-		//cout<<o.lo<<" "<<o.hi<<endl;
+		cout<<o.lo<<" "<<o.hi<<endl;
 	}
 	return ret;
 }
