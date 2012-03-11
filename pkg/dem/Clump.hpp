@@ -1,3 +1,4 @@
+#pragma once
 #include<yade/pkg/dem/Particle.hpp>
 
 struct ClumpData: public DemData{

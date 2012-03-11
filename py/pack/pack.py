@@ -305,29 +305,19 @@ def regularHexa(predicate,radius,gap,**kw):
 		if predicate((x,y,z),radius): ret+=[utils.sphere((x,y,z),radius=radius,**kw)]
 	return ret
 
-def filterSpherePack(predicate,spherePack,returnSpherePack=None,**kw):
+def filterSpherePack(predicate,spherePack,**kw):
 	"""Using given SpherePack instance, return spheres the satisfy predicate.
 	The packing will be recentered to match the predicate and warning is given if the predicate
 	is larger than the packing."""
-	if returnSpherePack==None:
-		warnings.warn('The default behavior will change; specify returnSpherePack=True for the new behavior, and False to get rid of this warning (your code will break in the future, however). The returned SpherePack object can be added to the simulation using SpherePack.toSimulation()',category=FutureWarning)
-		returnSpherePack=False
 	mn,mx=predicate.aabb()
 	dimP,centP=predicate.dim(),predicate.center()
 	dimS,centS=spherePack.dim(),spherePack.center()
 	if dimP[0]>dimS[0] or dimP[1]>dimS[1] or dimP[2]>dimS[2]: warnings.warn("Packing's dimension (%s) doesn't fully contain dimension of the predicate (%s)."%(dimS,dimP))
 	spherePack.translate(centP-centS)
-	if returnSpherePack:
-		ret=SpherePack()
-		for c,r in spherePack:
-			if predicate(c,r): ret.add(c,r)
-		return ret
-	else:
-		# return particles to be added to O.bodies
-		ret=[]
-		for s in spherePack:
-			if predicate(s[0],s[1]): ret+=[utils.sphere(s[0],radius=s[1],**kw)]
-		return ret
+	ret=SpherePack()
+	for c,r in spherePack:
+		if predicate(c,r): ret.add(c,r)
+	return ret
 
 def _memoizePacking(memoizeDb,sp,radius,rRelFuzz,wantPeri,fullDim):
 	if not memoizeDb: return
@@ -399,7 +389,7 @@ def randomDensePack(predicate,radius,material=-1,dim=None,cropLayers=0,rRelFuzz=
 	"""Generator of random dense packing with given geometry properties, using TriaxialTest (aperiodic)
 	or PeriIsoCompressor (periodic). The periodicity depens on whether	the spheresInCell parameter is given.
 
-	*O.switchScene()* magic is used to have clean simulation for TriaxialTest without deleting the original simulation.
+	*O.scene* is temporarily reassigned to have clean simulation for TriaxialTest without deleting the original simulation.
 	This function therefore should never run in parallel with some code accessing your simulation.
 
 	:param predicate: solid-defining predicate for which we generate packing
@@ -423,7 +413,7 @@ def randomDensePack(predicate,radius,material=-1,dim=None,cropLayers=0,rRelFuzz=
 	:return: SpherePack object with spheres, filtered by the predicate.
 	"""
 	import sqlite3, os.path, cPickle, time, sys, _packPredicates
-	from yade import log
+	from yade import log, core, dem
 	from math import pi
 	wantPeri=(spheresInCell>0)
 	if 'inGtsSurface' in dir(_packPredicates) and type(predicate)==inGtsSurface and useOBB:
@@ -456,25 +446,28 @@ def randomDensePack(predicate,radius,material=-1,dim=None,cropLayers=0,rRelFuzz=
 			return filterSpherePack(predicate,sp,material=material)
 		else: print "No suitable packing in database found, running",'PERIODIC compression' if wantPeri else 'triaxial'
 		sys.stdout.flush()
-	O.switchScene(); O.resetThisScene() ### !!
+	oldScene=O.scene
+	O.scene=core.Scene()
 	if wantPeri:
 		# x1,y1,z1 already computed above
 		sp=SpherePack()
-		O.periodic=True
-		O.cell.refSize=(x1,y1,z1)
+		O.scene.periodic=True
+		O.scene.cell.setBox(x1,y1,z1)
 		#print cloudPorosity,beta,gamma,N100,x1,y1,z1,O.cell.refSize
 		#print x1,y1,z1,radius,rRelFuzz
-		O.materials.append(FrictMat(young=3e10,density=2400))
-		num=sp.makeCloud(Vector3().Zero,O.cell.refSize,radius,rRelFuzz,spheresInCell,True)
-		O.engines=[ForceResetter(),InsertionSortCollider([Bo1_Sphere_Aabb()],nBins=5,verletDist=.05*radius),InteractionLoop([Ig2_Sphere_Sphere_Dem3DofGeom()],[Ip2_FrictMat_FrictMat_FrictPhys()],[Law2_Dem3DofGeom_FrictPhys_CundallStrack()]),PeriIsoCompressor(charLen=2*radius,stresses=[-100e9,-1e8],maxUnbalanced=1e-2,doneHook='O.pause();',globalUpdateInt=5,keepProportions=True),NewtonIntegrator(damping=.6)]
-		O.materials.append(FrictMat(young=30e9,frictionAngle=.5,poisson=.3,density=1e3))
-		for s in sp: O.bodies.append(utils.sphere(s[0],s[1]))
-		O.dt=utils.PWaveTimeStep()
+		O.scene.fields=[dem.DemField()]
+		O.scene.engines=[dem.ForceResetter(),dem.InsertionSortCollider([dem.Bo1_Sphere_Aabb()],verletDist=.05*radius),dem.ContactLoop([dem.Cg2_Sphere_Sphere_L6Geom()],[dem.Cp2_FrictMat_FrictPhys(ktDivKn=.2)],[dem.Law2_L6Geom_FrictPhys_IdealElPl()],applyForces=True),dem.Leapfrog(damping=.7,reset=False),dem.PeriIsoCompressor(charLen=2*radius,stresses=[-100e9,-1e8],maxUnbalanced=1e-2,doneHook='O.pause();',globalUpdateInt=5,keepProportions=True,label='_compressor')]
+		num=sp.makeCloud(Vector3().Zero,O.scene.cell.size0,radius,rRelFuzz,spheresInCell,True)
+		mat=dem.FrictMat(young=30e9,tanPhi=.5,poisson=.3,density=1e3)
+		for s in sp: O.dem.par.append(utils.sphere(s[0],s[1],material=mat))
+		O.dem.collectNodes()
+		O.scene.dt=.5*utils.pWaveDt()
 		O.run(); O.wait()
 		sp=SpherePack(); sp.fromSimulation()
 		#print 'Resulting cellSize',sp.cellSize,'proportions',sp.cellSize[1]/sp.cellSize[0],sp.cellSize[2]/sp.cellSize[0]
 		# repetition to the required cell size will be done below, after memoizing the result
 	else:
+		raise RuntimError("Aperiodic compression not implemented.")
 		assumedFinalDensity=0.6
 		V=(4/3)*pi*radius**3; N=assumedFinalDensity*fullDim[0]*fullDim[1]*fullDim[2]/V;
 		TriaxialTest(
@@ -486,7 +479,7 @@ def randomDensePack(predicate,radius,material=-1,dim=None,cropLayers=0,rRelFuzz=
 		log.setLevel('TriaxialCompressionEngine',log.WARN)
 		O.run(); O.wait()
 		sp=SpherePack(); sp.fromSimulation()
-	O.switchScene() ### !!
+	O.scene=oldScene
 	_memoizePacking(memoizeDb,sp,radius,rRelFuzz,wantPeri,fullDim)
 	if wantPeri: sp.cellFill(Vector3(fullDim[0],fullDim[1],fullDim[2]))
 	if orientation:
@@ -497,8 +490,7 @@ def randomDensePack(predicate,radius,material=-1,dim=None,cropLayers=0,rRelFuzz=
 def randomPeriPack(radius,initSize,rRelFuzz=0.0,memoizeDb=None):
 	"""Generate periodic dense packing.
 
-	A cell of initSize is stuffed with as many spheres as possible, then we run periodic compression with PeriIsoCompressor, just like with
-	randomDensePack.
+	A cell of initSize is stuffed with as many spheres as possible, then we run periodic compression with PeriIsoCompressor, just like with randomDensePack.
 
 	:param radius: mean sphere radius
 	:param rRelFuzz: relative fuzz of sphere radius (equal distribution); see the same param for randomDensePack.
@@ -507,23 +499,25 @@ def randomPeriPack(radius,initSize,rRelFuzz=0.0,memoizeDb=None):
 	:return: SpherePack object, which also contains periodicity information.
 	"""
 	from math import pi
+	from yade import core, dem
 	sp=_getMemoizedPacking(memoizeDb,radius,rRelFuzz,initSize[0],initSize[1],initSize[2],fullDim=Vector3(0,0,0),wantPeri=True,fillPeriodic=False,spheresInCell=-1,memoDbg=True)
 	if sp: return sp
-	O.switchScene(); O.resetThisScene()
+	oldScene=O.scene
+	O.scene=core.Scene()
 	sp=SpherePack()
-	O.periodic=True
-	O.cell.refSize=initSize
-	sp.makeCloud(Vector3().Zero,O.cell.refSize,radius,rRelFuzz,-1,True)
-	O.engines=[ForceResetter(),InsertionSortCollider([Bo1_Sphere_Aabb()],nBins=2,verletDist=.05*radius),InteractionLoop([Ig2_Sphere_Sphere_Dem3DofGeom()],[Ip2_FrictMat_FrictMat_FrictPhys()],[Law2_Dem3DofGeom_FrictPhys_CundallStrack()]),PeriIsoCompressor(charLen=2*radius,stresses=[-100e9,-1e8],maxUnbalanced=1e-2,doneHook='O.pause();',globalUpdateInt=20,keepProportions=True),NewtonIntegrator(damping=.8)]
-	O.materials.append(FrictMat(young=30e9,frictionAngle=.1,poisson=.3,density=1e3))
-	for s in sp: O.bodies.append(utils.sphere(s[0],s[1]))
-	O.dt=utils.PWaveTimeStep()
+	O.scene.periodic=True
+	O.scene.cell.setBox(initSize)
+	sp.makeCloud(Vector3().Zero,O.cell.size0,radius,rRelFuzz,-1,True)
+	O.scene.engines=[dem.ForceResetter(),dem.InsertionSortCollider([dem.Bo1_Sphere_Aabb()],verletDist=.05*radius),dem.ContactLoop([dem.Cg2_Sphere_Sphere_L6Geom()],[Cp2_FrictMat_FrictPhys()],[Law2_L6Geom_FrictPhys_IdealElPl()],applyForces=True),dem.PeriIsoCompressor(charLen=2*radius,stresses=[-100e9,-1e8],maxUnbalanced=1e-2,doneHook='O.pause();',globalUpdateInt=20,keepProportions=True),dem.Leapfrog(damping=.8)]
+	mat=FrictMat(young=30e9,frictionAngle=.1,poisson=.3,density=1e3)
+	for s in sp: O.bodies.append(utils.sphere(s[0],s[1],material=mat))
+	O.scene.dt=utils.PWaveTimeStep()
 	O.timingEnabled=True
 	O.run(); O.wait()
 	ret=SpherePack()
 	ret.fromSimulation()
 	_memoizePacking(memoizeDb,ret,radius,rRelFuzz,wantPeri=True,fullDim=Vector3(0,0,0)) # fullDim unused
-	O.switchScene()
+	O.scene=oldScene
 	return ret
 
 def hexaNet( radius, cornerCoord=[0,0,0], xLength=1., yLength=0.5, mos=0.08, a=0.04, b=0.04, startAtCorner=True, isSymmetric=False, **kw ):

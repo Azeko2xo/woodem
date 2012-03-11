@@ -380,7 +380,7 @@ vector<Vector2i> OpenCLCollider::initSortGPU(){
 	vector<Vector2i> ret; ret.reserve(counter[0]);
 	for (const cl_uint2& o : overlay1){
 		ret.push_back(Vector2i(o.lo,o.hi));
-		cout<<o.lo<<" "<<o.hi<<endl;
+		//cout<<o.lo<<" "<<o.hi<<endl;
 	}
 	return ret;
 }
