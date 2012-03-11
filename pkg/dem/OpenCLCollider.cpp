@@ -507,7 +507,6 @@ void OpenCLCollider::run(){
 		timingDeltas->start();
 	#endif
 	if(!cpu && !gpu) throw std::runtime_error("OpenCLCollider: Neither CPU nor GPU collision detection enabled.");
-	OCLC_CHECKPOINT("aabbCheck");
 	// optimizations to not run the collider at every step
 	bool run=prologue_doFullRun();
 	if(run) run=/*not to be short-cirtuited!*/updateBboxes_doFullRun();
@@ -529,7 +528,6 @@ void OpenCLCollider::run(){
 	We will want to avoid this global initial sort when particles are added/deleted with a special array for ids of deleted/added particles.
 	In that case, this expensive procedure will be a separate kernel, run only once.
 	*/
-	OCLC_CHECKPOINT("initialize");
 	if(initialize){
 		for(int ax:{0,1,2}){ bounds[ax].resize(2*N); mini[ax].resize(N); maxi[ax].resize(N); }
 		updateMiniMaxi(mini,maxi);
@@ -541,10 +539,13 @@ void OpenCLCollider::run(){
 			}
 		}
 		// collision detection
+		OCLC_CHECKPOINT("aabb");
 		if(cpu) cpuInit=initSortCPU();
+		OCLC_CHECKPOINT("initCPU");
 		#ifdef YADE_OPENCL
 			if(gpu) gpuInit=initSortGPU();
 		#endif
+		OCLC_CHECKPOINT("initGPU");
 		// comparison
 		if(cpu&&gpu){
 			if(cpuInit.size()!=gpuInit.size()) throw std::runtime_error("OpenCLCollider: initial contacts differ in length");
@@ -558,7 +559,11 @@ void OpenCLCollider::run(){
 			c->pA=dem->particles[ids[0]]; c->pB=dem->particles[ids[1]];
 			dem->contacts.add(c); // single-threaded, can be thread-unsafe
 		}
+		OCLC_CHECKPOINT("initCompare");
 		return;
+	} else {
+		// checkpoints must always follow in the same sequence
+		OCLC_CHECKPOINT("aabb"); OCLC_CHECKPOINT("initCPU"); OCLC_CHECKPOINT("initGPU"); OCLC_CHECKPOINT("initCompare");
 	}
 
 

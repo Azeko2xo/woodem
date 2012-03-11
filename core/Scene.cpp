@@ -48,7 +48,7 @@ void Scene::fillDefaultTags(){
 
 void Scene::ensureCl(){
 	#ifdef YADE_OPENCL
-		if(clDev[0]<0) initCl();
+		if(_clDev[0]<0) initCl(); // no device really initialized
 		return;
 	#else
 		throw std::runtime_error("Yade was compiled without OpenCL support (add to features and recompile).");
@@ -89,6 +89,7 @@ void Scene::initCl(){
 	LOG_WARN("OpenCL ready: platform \""<<platform.getInfo<CL_PLATFORM_NAME>()<<"\", device \""<<device.getInfo<CL_DEVICE_NAME>()<<"\".");
 	queue=cl::CommandQueue(context,device);
 	clDev=Vector2i(pNum,dNum);
+	_clDev=clDev;
 }
 #endif
 
@@ -110,8 +111,12 @@ shared_ptr<ScalarRange> Scene::getRange(const std::string& l) const{
 
 
 void Scene::postLoad(Scene&){
-	//
-	if(clDev[0]>=0) initCl();
+	#ifdef YADE_OPENCL
+		// clDev is set and does not match really initialized device in _clDev
+		if(clDev[0]!=_clDev[0] || clDev[1]!=_clDev[1]) initCl();
+	#else
+		if(clDev[0]>=0) ensureCl(); // only throws
+	#endif
 	//
 	// assign fields to engines
 	FOREACH(const shared_ptr<Engine>& e, engines){

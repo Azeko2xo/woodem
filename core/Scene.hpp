@@ -80,6 +80,9 @@ class Scene: public Serializable{
 		((bool,trackEnergy,false,,"Whether energies are being tracked."))
 
 		((Vector2i,clDev,Vector2i(-1,-1),Attr::triggerPostLoad,"OpenCL device to be used; if (-1,-1) (default), no OpenCL device will be initialized until requested. Saved simulations should thus always use the same device when re-loaded."))
+		#ifdef YADE_OPENCL
+			((Vector2i,_clDev,Vector2i(-1,-1),(Attr::readonly|Attr::noSave),"OpenCL device which is really initialized (to detect whether clDev was changed manually to avoid spurious re-initializations from postLoad"))
+		#endif
 
 		((Vector3r,loHint,Vector3r(-1,-1,-1),,"Lower corner, for rendering purposes"))
 		((Vector3r,hiHint,Vector3r(1,1,1),,"Upper corner, for rendering purposes"))
