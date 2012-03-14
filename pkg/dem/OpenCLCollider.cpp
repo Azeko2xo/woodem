@@ -193,18 +193,19 @@ vector<Vector2i> OpenCLCollider::initSortGPU(){
 	cerr<<"axBound ok"<<endl;
 
 	
-    queue.enqueueReadBuffer(boundBufs[0], CL_TRUE, 0, 2*N * sizeof (AxBound), gpuBounds[0].data());
+	for(int ax:{0,1,2}){
+    queue.enqueueReadBuffer(boundBufs[ax], CL_TRUE, 0, 2*N * sizeof (AxBound), gpuBounds[ax].data());
 	LOG_DEBUG("H");
 	//for (int i = 0; i < 2*N; i++){
 	//	LOG_DEBUG(gpuBounds[0][i].coord);
 	//}
 
 	// bitonic sort needs a power-of-two array; fill with infinities
-	boundBufs[0]=cl::Buffer(context, CL_MEM_READ_WRITE, powerOfTwo * sizeof (AxBound), NULL);
-	gpuBounds[0].resize(powerOfTwo);
-	queue.enqueueWriteBuffer(boundBufs[0],CL_TRUE, 0, powerOfTwo * sizeof (AxBound), gpuBounds[0].data());
+	boundBufs[ax]=cl::Buffer(context, CL_MEM_READ_WRITE, powerOfTwo * sizeof (AxBound), NULL);
+	gpuBounds[ax].resize(powerOfTwo);
+	queue.enqueueWriteBuffer(boundBufs[ax],CL_TRUE, 0, powerOfTwo * sizeof (AxBound), gpuBounds[ax].data());
 	LOG_DEBUG("I");
-    queue.enqueueReadBuffer(boundBufs[0], CL_TRUE, 0, powerOfTwo * sizeof (AxBound), gpuBounds[0].data());
+    queue.enqueueReadBuffer(boundBufs[ax], CL_TRUE, 0, powerOfTwo * sizeof (AxBound), gpuBounds[ax].data());
 
 	//for (int i = 0; i < powerOfTwo; i++){
 	//	LOG_DEBUG(gpuBounds[0][i].coord);
@@ -220,32 +221,33 @@ vector<Vector2i> OpenCLCollider::initSortGPU(){
 		LOG_DEBUG("K");
 		k2.setArg(4, 1);
 		LOG_DEBUG("L");
-		k2.setArg(0, boundBufs[0]);
+		k2.setArg(0, boundBufs[ax]);
 		LOG_DEBUG("M");
-
+	
 		cl::Event eve;
 		for (cl_uint stage = 0; stage < bits; stage++) {
 			k2.setArg(1, stage);
 			for (cl_uint passOfStage = 0; passOfStage < stage + 1; passOfStage++) {
 				k2.setArg(2, passOfStage);
 				queue.enqueueNDRangeKernel(k2, cl::NullRange,
-						cl::NDRange(global_size, global_size),
-						cl::NDRange(local_size, local_size), NULL, &eve);
+					cl::NDRange(global_size, global_size),
+					cl::NDRange(local_size, local_size), NULL, &eve);
 				//queue.finish();
 				eve.wait();
 			}
 		}
+
 		// shrink the buffer back, read just the part we need
-		gpuBounds[0].resize(2*N);
-		queue.enqueueReadBuffer(boundBufs[0], CL_TRUE, 0, 2*N*sizeof (AxBound), gpuBounds[0].data());
-		boundBufs[0]=cl::Buffer(context,CL_MEM_READ_WRITE,2*N*sizeof(AxBound), NULL);
-		queue.enqueueWriteBuffer(boundBufs[0],CL_TRUE, 0, 2*N * sizeof (AxBound), gpuBounds[0].data());
-
-
+		gpuBounds[ax].resize(2*N);
+		queue.enqueueReadBuffer(boundBufs[ax], CL_TRUE, 0, 2*N*sizeof (AxBound), gpuBounds[ax].data());
+		boundBufs[ax]=cl::Buffer(context,CL_MEM_READ_WRITE,2*N*sizeof(AxBound), NULL);
+		queue.enqueueWriteBuffer(boundBufs[ax],CL_TRUE, 0, 2*N * sizeof (AxBound), gpuBounds[ax].data());
+	
 		LOG_DEBUG("N");
 	} catch (cl::Error& e) {
 		LOG_FATAL(e.what()); throw;
 	}
+}
 	//end of sort
 	//have sorted array AxBound
 	cerr << "** Array AxBound was sorted.\n";
@@ -434,7 +436,6 @@ vector<Vector2i> OpenCLCollider::inversionsGPU(int ax){
 	cl::Buffer boundsG(scene->context, CL_MEM_READ_WRITE, N * sizeof (AxBound), NULL);
 	cl::Buffer miniG(scene->context, CL_MEM_READ_ONLY, N/2 * sizeof (AxBound), NULL);
 	cl::Buffer maxiG(scene->context, CL_MEM_READ_ONLY, N/2 * sizeof (AxBound), NULL);
-
 	LOG_DEBUG("A");
 	scene->queue.enqueueWriteBuffer(boundsG, CL_TRUE, 0, N * sizeof (AxBound), gpuBounds[ax].data());
 	LOG_DEBUG("B");
@@ -464,11 +465,110 @@ vector<Vector2i> OpenCLCollider::inversionsGPU(int ax){
 	scene->queue.enqueueReadBuffer(boundsG, CL_TRUE, 0, N * sizeof(AxBound), gpuBounds[ax].data());
 	LOG_DEBUG("F");
 	LOG_DEBUG(ax);
-	for(int i = 0; i < N; i++){
-		LOG_DEBUG(gpuBounds[ax][i].coord);
-	}
-		
+	
+	global_size = (trunc(trunc(sqrt(N/2)) / local_size) + 1) * local_size;
+ 	
+	LOG_DEBUG("G");
+	cl::Buffer gpuNoOfInv(scene->context, CL_MEM_READ_WRITE, sizeof (cl_uint), NULL);
+	cl::Buffer gpuDone(scene->context, CL_MEM_READ_WRITE, sizeof (cl_uint), NULL);
+	LOG_DEBUG("H");
+	cl_uint noOfInv = 0;
+	cl_uint done = 1;
+	cl_uint off = 1;
+	cl_uint zero = 0;
+	LOG_DEBUG("I");
+	scene->queue.enqueueWriteBuffer(gpuNoOfInv, CL_TRUE, 0, sizeof (cl_uint), &noOfInv);
+	LOG_DEBUG("J");
+	LOG_DEBUG(global_size);
+	LOG_DEBUG(N);
+	/*compute No. of inversions for alloc mem*/
+	try {
+		cl::Kernel computeNoOfInvK(program, "computeNoOfInv");
+		computeNoOfInvK.setArg(0, boundsG);
+		computeNoOfInvK.setArg(1, gpuNoOfInv);
+		computeNoOfInvK.setArg(4, N);
+	LOG_DEBUG("K");
+		while (done == 1){
 
+			if(off == 0){
+				off = 1;
+			} else {
+				off = 0;
+			}
+
+	LOG_DEBUG("L");
+			scene->queue.enqueueWriteBuffer(gpuDone, CL_TRUE, 0, sizeof (cl_uint), &zero);
+			computeNoOfInvK.setArg(2, gpuDone);
+			computeNoOfInvK.setArg(3, off);
+	LOG_DEBUG("M");
+			scene->queue.enqueueNDRangeKernel(computeNoOfInvK, cl::NullRange,
+					cl::NDRange(global_size, global_size),
+					cl::NDRange(local_size, local_size));
+			scene->queue.finish();
+	LOG_DEBUG("N");
+			scene->queue.enqueueReadBuffer(gpuDone, CL_TRUE, 0, sizeof (cl_uint), &done);	
+		}
+	
+	} catch(cl::Error& e) {
+		cerr << "err: " << e.err() << endl << "what: " << e.what() << endl;	
+	}
+		LOG_DEBUG("O");
+	scene->queue.enqueueReadBuffer(gpuNoOfInv, CL_TRUE, 0, sizeof(cl_uint), &noOfInv);
+		LOG_DEBUG("P");
+	LOG_DEBUG("No. of inversions");
+	LOG_DEBUG(noOfInv);
+
+	//inv.resize(noOfInv);
+	cl_uint2 *inversions =  new cl_uint2[noOfInv];
+	cl::Buffer gpuInversion(scene->context, CL_MEM_WRITE_ONLY, noOfInv * sizeof(cl_uint2), NULL);
+
+	/*compute inversion*/
+	scene->queue.enqueueWriteBuffer(gpuNoOfInv, CL_TRUE, 0, sizeof (cl_uint), &zero);
+	scene->queue.enqueueWriteBuffer(boundsG, CL_TRUE, 0, N * sizeof (AxBound), gpuBounds[ax].data());
+	off = 1;
+	done = 1;
+	try {
+		cl::Kernel computeInvK(program, "computeInv");
+		computeInvK.setArg(0, boundsG);
+		LOG_DEBUG("Q");
+		computeInvK.setArg(1, gpuNoOfInv);
+		LOG_DEBUG("R");
+		computeInvK.setArg(5, N);
+		LOG_DEBUG("S");
+		computeInvK.setArg(3, gpuInversion); 
+		LOG_DEBUG("T");
+		while (done == 1){
+
+			if(off == 0){
+				off = 1;
+			} else {
+				off = 0;
+			}
+
+	LOG_DEBUG("L");
+			scene->queue.enqueueWriteBuffer(gpuDone, CL_TRUE, 0, sizeof (cl_uint), &zero);
+			computeInvK.setArg(2, gpuDone);
+			computeInvK.setArg(4, off);
+	LOG_DEBUG("M");
+			scene->queue.enqueueNDRangeKernel(computeInvK, cl::NullRange,
+					cl::NDRange(global_size, global_size),
+					cl::NDRange(local_size, local_size));
+			scene->queue.finish();
+	LOG_DEBUG("N");
+			scene->queue.enqueueReadBuffer(gpuDone, CL_TRUE, 0, sizeof (cl_uint), &done);	
+		}
+	
+	} catch(cl::Error& e) {
+		cerr << "err: " << e.err() << endl << "what: " << e.what() << endl;	
+	}
+
+	scene->queue.enqueueReadBuffer(gpuInversion, CL_TRUE, 0, noOfInv * sizeof (cl_uint2), inversions);	
+
+	for(uint i = 0; i < noOfInv; i++){
+	//	cerr << inversions[i].lo << " x " << inversions[i].hi << endl;
+		inv.push_back(Vector2i(inversions[i].lo, inversions[i].hi));
+	}
+	LOG_DEBUG(inv.size());
 	return inv;
 
 	#if 0
@@ -517,7 +617,7 @@ void OpenCLCollider::compareInversions(vector<Vector2i>(&cpuInv)[3], vector<Vect
 	axErr=Vector3i::Zero();
 	// sort for easy comparison
 	for(int ax=0; ax<3; ax++){
-		if(cpuInv[ax].size()!=gpuInv[ax].size()){ axErr[ax]=1; continue; }
+		if(cpuInv[ax].size()!=gpuInv[ax].size()){ axErr[ax]=cpuInv[ax].size(); continue; }
 		if(memcmp(&(cpuInv[ax][0]),&(gpuInv[ax][0]),cpuInv[ax].size()*sizeof(Vector2i))!=0) axErr[ax]=2;
 	}
 	// report as exception; sorted arrays available for post-mortem analysis
@@ -534,13 +634,14 @@ void OpenCLCollider::modifyContactsFromInversions(const vector<Vector2i>(&invs)[
 				// then the contact should exists and is deleted if it is only potential
 				if(bboxOverlapAx(inv[0],inv[1],(ax+1)%3) && bboxOverlapAx(inv[0],inv[1],(ax+2)%3)){
 					shared_ptr<Contact> c=dem->contacts.find(inv[0],inv[1]);
-					assert(c);
+					//assert(c);
+					if(!c) continue;
 					if(!c->isReal()) dem->contacts.remove(c,/*threadSafe*/true);
 				}
 			} else { /* possible new overlap: min going below max */
 				if(dem->contacts.exists(inv[0],inv[1])){
 					// since the boxes were separate, existing contact must be actual
-					assert(dem->contacts.find(inv[0],inv[1])->isReal());
+					//assert(dem->contacts.find(inv[0],inv[1])->isReal());
 					continue; 
 				}
 				// no contact yet, check overlap in other two dimensions
