@@ -20,6 +20,8 @@ try: from yade.gl import *
 except: pass
 try: from yade.voro import *
 except: pass
+try: from yade.cld import *
+except: pass
 
 ## TODO tests
 class TestInteractions(unittest.TestCase): pass

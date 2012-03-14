@@ -2,11 +2,15 @@
 #include<GL/glu.h>
 #include<GL/freeglut_ext.h>
 
-void GLUtils::Grid(const Vector3r& pos, const Vector3r& unitX, const Vector3r& unitY, const Vector2i& size){
-	glBegin(GL_LINES);
-		for(int x=0; x<=size[0]; x++){ glVertex3v(pos+x*unitX); glVertex3v(pos+x*unitX+size[1]*unitY); }
-		for(int y=0; y<=size[1]; y++){ glVertex3v(pos+y*unitY); glVertex3v(pos+y*unitY+size[0]*unitX); }
-	glEnd();
+void GLUtils::Grid(const Vector3r& pos, const Vector3r& unitX, const Vector3r& unitY, const Vector2i& size, int edgeMask){
+	//glPushAttrib(GL_ALL_ATTRIB_BITS);
+		glDisable(GL_LIGHTING);
+		glBegin(GL_LINES);
+			for(int x=(edgeMask&1?0:1); x<=size[0]-(edgeMask&2?0:1); x++){ glVertex3v(Vector3r(pos+x*unitX)); glVertex3v(Vector3r(pos+x*unitX+size[1]*unitY)); }
+			for(int y=(edgeMask&4?0:1); y<=size[1]-(edgeMask&8?0:1); y++){ glVertex3v(Vector3r(pos+y*unitY)); glVertex3v(Vector3r(pos+y*unitY+size[0]*unitX)); }
+		glEnd();
+		glEnable(GL_LIGHTING);
+	//glPopAttrib();
 }
 
 void GLUtils::Parallelepiped(const Vector3r& a, const Vector3r& b, const Vector3r& c){

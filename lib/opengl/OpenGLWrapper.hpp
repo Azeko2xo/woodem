@@ -17,7 +17,8 @@
 
 // disable temporarily
 //#include<boost/static_assert.hpp>
-#define STATIC_ASSERT(arg) 
+//#define STATIC_ASSERT(arg) 
+
 
 #include<GL/gl.h>
 #include<GL/glut.h>
@@ -26,27 +27,29 @@ struct OpenGLWrapper {}; // for ctags
 
 ///	Primary Templates
 
-template< typename Type > inline void glScale		( Type ,Type , Type  )		{	STATIC_ASSERT(false); };
-template< typename Type > inline void glScalev		( const Type  )			{	STATIC_ASSERT(false); };
-template< typename Type > inline void glTranslate	( Type ,Type , Type  )		{	STATIC_ASSERT(false); };
-template< typename Type > inline void glTranslatev	( const Type )			{	STATIC_ASSERT(false);  };
-template< typename Type > inline void glVertex2		( Type ,Type  )			{	STATIC_ASSERT(false);  };
-template< typename Type > inline void glVertex3		( Type ,Type , Type  )		{	STATIC_ASSERT(false);  };
-template< typename Type > inline void glVertex2v	( const Type )			{	STATIC_ASSERT(false); };
-template< typename Type > inline void glVertex3v	( const Type )			{	STATIC_ASSERT(false); };
-template< typename Type > inline void glNormal3		( Type ,Type ,Type  )		{	STATIC_ASSERT(false); };
-template< typename Type > inline void glNormal3v	( const Type )			{	STATIC_ASSERT(false); };
-template< typename Type > inline void glIndex		( Type  )			{	STATIC_ASSERT(false); };
-template< typename Type > inline void glIndexv		( Type  )			{	STATIC_ASSERT(false); };
-template< typename Type > inline void glColor3		( Type ,Type ,Type  )		{	STATIC_ASSERT(false); };
-template< typename Type > inline void glColor4		( Type ,Type ,Type , Type  )	{	STATIC_ASSERT(false); };
-template< typename Type > inline void glColor3v		( const Type )			{	STATIC_ASSERT(false); };
-template< typename Type > inline void glColor4v		( const Type )			{	STATIC_ASSERT(false); };
+#define _VOID_IMPL { Type::undefined_template; }
+template< typename Type > inline void glScale		( Type ,Type , Type  ) _VOID_IMPL;
+template< typename Type > inline void glScalev		( const Type  ) _VOID_IMPL;
+template< typename Type > inline void glTranslate	( Type ,Type , Type  ) _VOID_IMPL;
+template< typename Type > inline void glTranslatev	( const Type ) _VOID_IMPL;
+template< typename Type > inline void glVertex2		( Type ,Type  ) _VOID_IMPL;
+template< typename Type > inline void glVertex3		( Type ,Type , Type  ) _VOID_IMPL;
+template< typename Type > inline void glVertex2v	( const Type ) _VOID_IMPL;
+template< typename Type > inline void glVertex3v	( const Type ) _VOID_IMPL;
+template< typename Type > inline void glNormal3		( Type ,Type ,Type  ) _VOID_IMPL;
+template< typename Type > inline void glNormal3v	( const Type ) _VOID_IMPL;
+template< typename Type > inline void glIndex		( Type  ) _VOID_IMPL;
+template< typename Type > inline void glIndexv		( Type  ) _VOID_IMPL;
+template< typename Type > inline void glColor3		( Type ,Type ,Type  ) _VOID_IMPL;
+template< typename Type > inline void glColor4		( Type ,Type ,Type , Type  ) _VOID_IMPL;
+template< typename Type > inline void glColor3v		( const Type ) _VOID_IMPL;
+template< typename Type > inline void glColor4v		( const Type ) _VOID_IMPL;
 
-template< typename Type > inline void glRect		( Type ,Type ,Type , Type  )	{	STATIC_ASSERT(false); };
-template< typename Type > inline void glMaterial	( GLenum face, GLenum pname, Type param ){	STATIC_ASSERT(false); };
-template< typename Type > inline void glMaterialv	( GLenum face, GLenum pname, Type param ){	STATIC_ASSERT(false); };
-template< typename Type > inline void glMultMatrix	(const Type*){	STATIC_ASSERT(false); };
+template< typename Type > inline void glRect		( Type ,Type ,Type , Type  )	_VOID_IMPL;
+template< typename Type > inline void glMaterial	( GLenum face, GLenum pname, Type param ) _VOID_IMPL;
+template< typename Type > inline void glMaterialv	( GLenum face, GLenum pname, Type param ) _VOID_IMPL;
+template< typename Type > inline void glMultMatrix	(const Type*) _VOID_IMPL;
+#undef _VOID_IMPL
 
 
 ///	Template Specializations

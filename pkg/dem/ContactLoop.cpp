@@ -143,8 +143,8 @@ void ContactLoop::run(){
 				const shared_ptr<Shape>& sh(particle->shape);
 				if(!sh) continue;
 				if(sh->nodes.size()!=1){
-					for(int i=0; i<sh->nodes.size(); i++){
-						if(sh->nodes[i]->getData<DemData>().flags&DemData::DOF_ALL!=DemData::DOF_ALL) LOG_WARN("Multinodal #"<<particle->id<<" has free DOFs, but force will not be applied; set ContactLoop.applyForces=False and use IntraForce(...) dispatcher instead.");
+					for(size_t i=0; i<sh->nodes.size(); i++){
+						if((sh->nodes[i]->getData<DemData>().flags&DemData::DOF_ALL)!=DemData::DOF_ALL) LOG_WARN("Multinodal #"<<particle->id<<" has free DOFs, but force will not be applied; set ContactLoop.applyForces=False and use IntraForce(...) dispatcher instead.");
 					}
 					continue;
 				}

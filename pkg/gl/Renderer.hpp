@@ -76,6 +76,7 @@ class Renderer: public Serializable{
 
 	public:
 		// used from within field functors
+		// should be moved inside those functors themselves instead
 		GlFieldDispatcher fieldDispatcher;
 		GlShapeDispatcher shapeDispatcher;
 		GlBoundDispatcher boundDispatcher;
@@ -132,14 +133,6 @@ class Renderer: public Serializable{
 		void setNodeGlData(const shared_ptr<Node>& n);
 
 		void renderRawNode(shared_ptr<Node>);
-		void renderDemNodes();
-		void renderDemContactNodes();
-		void renderDemCPhys();
-		void renderShape();
-		void renderBound();
-
-		void renderSparc();
-		//void renderCGeom();
 
 		void pyInitError(py::tuple, py::dict){ throw std::runtime_error("yade.gl.Renderer() may not be instantiated directly, use yade.qt.Renderer() to get the current instance."); }
 
@@ -165,7 +158,6 @@ class Renderer: public Serializable{
 		((Vector3r,bgColor,Vector3r(.2,.2,.2),,"Color of the background canvas (RGB)"))
 		((bool,light1,true,,"Turn light 1 on."))
 		((bool,light2,true,,"Turn light 2 on."))
-		((bool,nodes,false,,"Render nodes belonging to fields"))
 		((bool,ghosts,false,,"Render objects crossing periodic cell edges by cloning them in multiple places (periodic simulations only)."))
 		#ifdef YADE_SUBDOMAINS
 			((int,subDomMask,0,,"If non-zero, render shape only of particles that are inside respective domains - -they are counted from the left, i.e. 5 (binary 101) will show subdomains 1 and 3. If zero, render everything."))
@@ -177,30 +169,17 @@ class Renderer: public Serializable{
 		((vector<Se3r>,clipPlaneSe3,vector<Se3r>(numClipPlanes,Se3r(Vector3r::Zero(),Quaternionr::Identity())),,"Position and orientation of clipping planes"))
 		((vector<bool>,clipPlaneActive,vector<bool>(numClipPlanes,false),,"Activate/deactivate respective clipping planes"))
 		((vector<shared_ptr<GlExtraDrawer> >,extraDrawers,,,"Additional rendering components (:yref:`GlExtraDrawer`)."))
-
-		((bool,oldDem,false,,"Render the DEM field using old rendering routine built into Renderer itself, rather than Gl1_DemField."))
-
-		((bool,wire,false,,"Render all bodies with wire only"))
-		((bool,id,false,,"Show particle id's"))
-		((bool,bound,false,,"Render particle's :yref:`Bound`"))
-		((bool,shape,true,,"Render particle's :yref:`Shape`"))
-		((int,cNodes,-1,,"Render contact's nodes (-1=nothing, 0=rep only, 1=nodes, 2=line between particles, 3=both"))
-		((bool,cPhys,false,,"Render contact's nodes"))
-		((bool,nid,false,,"Show node ids for Sparc models"))
-		((Vector2i,cNodes_range,Vector2i(-1,3),Attr::noGui,"Range for cNodes"))
-		//((bool,intrAllWire,false,,"Draw wire for all interactions, blue for potential and green for real ones (mostly for debugging)")),
 		,/*deprec*/
 		,/*init*/
 		,/*ctor*/ if(self && initDone) throw std::runtime_error("yade.gl.Renderer() is already constructed, use yade.qt.Renderer() to retrieve the instance."); self=this;
 		,/*py*/
-		// .def("setRefSe3",&Renderer::setBodiesRefSe3,"Make current positions and orientation reference for scaleDisplacements and scaleRotations.")
 		//.def("render",&Renderer::pyRender,"Render the scene in the current OpenGL context.")
 		.def_readonly("shapeDispatcher",&Renderer::shapeDispatcher)
 		.def_readonly("boundDispatcher",&Renderer::boundDispatcher)
 		.def_readonly("nodeDispatcher",&Renderer::nodeDispatcher)
 		.def_readonly("cPhysDispatcher",&Renderer::cPhysDispatcher)
 
-		.def("__init__",py::make_constructor(&Renderer::pyInitError)) // does not seem to be called :-(
+		// .def("__init__",py::make_constructor(&Renderer::pyInitError)) // does not seem to be called :-(
 	);
 };
 REGISTER_SERIALIZABLE(Renderer);

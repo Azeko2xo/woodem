@@ -6,14 +6,14 @@
 
 YADE_PLUGIN(gl,(Gl1_DemField));
 
-#if 0
-int Gl1_Node::wd;
-Vector2i Gl1_Node::wd_range;
-Real Gl1_Node::len;
-Vector2r Gl1_Node::len_range;
-#endif
-
 unsigned int Gl1_DemField::mask;
+bool Gl1_DemField::wire;
+bool Gl1_DemField::bound;
+bool Gl1_DemField::shape;
+bool Gl1_DemField::nodes;
+int Gl1_DemField::cNodes;
+Vector2i Gl1_DemField::cNodes_range;
+bool Gl1_DemField::cPhys;
 
 void Gl1_DemField::doBound(){
 	rrr->boundDispatcher.scene=scene; rrr->boundDispatcher.updateScenePtr();
@@ -23,6 +23,12 @@ void Gl1_DemField::doBound(){
 		glPushMatrix(); rrr->boundDispatcher(b->shape->bound); glPopMatrix();
 	}
 }
+
+// this function is called for both rendering as well as
+// in the selection mode
+
+// nice reading on OpenGL selection
+// http://glprogramming.com/red/chapter13.html
 
 void Gl1_DemField::doShape(){
 	rrr->shapeDispatcher.scene=scene; rrr->shapeDispatcher.updateScenePtr();
@@ -53,12 +59,12 @@ void Gl1_DemField::doShape(){
 		FOREACH(const shared_ptr<Node>& n,b->shape->nodes) rrr->setNodeGlData(n);
 
 		glPushMatrix();
-			rrr->shapeDispatcher(b->shape,/*shift*/Vector3r::Zero(),rrr->wire||sh->getWire(),*viewInfo);
+			rrr->shapeDispatcher(b->shape,/*shift*/Vector3r::Zero(),wire||sh->getWire(),*viewInfo);
 		glPopMatrix();
 
 		if(name.highlighted){
 			const Vector3r& p=sh->nodes[0]->pos;
-			if(!sh->bound || rrr->wire || sh->getWire()) GLUtils::GLDrawInt(b->id,p);
+			if(!sh->bound || wire || sh->getWire()) GLUtils::GLDrawInt(b->id,p);
 			else {
 				// move the label towards the camera by the bounding box so that it is not hidden inside the body
 				const Vector3r& mn=sh->bound->min; const Vector3r& mx=sh->bound->max;
@@ -101,9 +107,9 @@ void Gl1_DemField::doNodes(){
 	rrr->nodeDispatcher.scene=scene; rrr->nodeDispatcher.updateScenePtr();
 	FOREACH(shared_ptr<Node> node, dem->nodes){
 		rrr->setNodeGlData(node);
-		if(!rrr->nodes && !node->rep) continue;
+		if(!nodes && !node->rep) continue;
 		Renderer::glScopedName name(node);
-		if(rrr->nodes){ rrr->renderRawNode(node); }
+		if(nodes){ rrr->renderRawNode(node); }
 		if(node->rep){ node->rep->render(node,viewInfo); }
 	}
 	// contact nodes
@@ -118,11 +124,11 @@ void Gl1_DemField::doContactNodes(){
 		if(!geom) continue;
 		shared_ptr<Node> node=geom->node;
 		rrr->setNodeGlData(node);
-		if(!(rrr->cNodes>=0) && !node->rep) continue;
+		if(!(cNodes>=0) && !node->rep) continue;
 		Renderer::glScopedName name(C,node);
-		if(rrr->cNodes>0){ // cNodes>0: show something else than just the GlRep
-			if(rrr->cNodes & 1) rrr->renderRawNode(node);
-			if(rrr->cNodes & 2){ // connect node by lines with particle's positions
+		if(cNodes>0){ // cNodes>0: show something else than just the GlRep
+			if(cNodes & 1) rrr->renderRawNode(node);
+			if(cNodes & 2){ // connect node by lines with particle's positions
 				assert(C->pA->shape && C->pB->shape);
 				assert(C->pA->shape->nodes.size()>0); assert(C->pB->shape->nodes.size()>0);
 				Vector3r x[3]={node->pos,C->pA->shape->avgNodePos(),C->pB->shape->avgNodePos()};
@@ -171,11 +177,11 @@ void Gl1_DemField::go(const shared_ptr<Field>& demField, GLViewInfo* _viewInfo){
 	dem=static_pointer_cast<DemField>(demField);
 	viewInfo=_viewInfo;
 
-	if(rrr->shape) doShape();
-	if(rrr->bound) doBound();
+	if(shape) doShape();
+	if(bound) doBound();
 	doNodes();
 	doContactNodes();
-	if(rrr->cPhys) doCPhys();
+	if(cPhys) doCPhys();
 };
 
 #endif

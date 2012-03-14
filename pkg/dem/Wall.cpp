@@ -30,29 +30,23 @@ void In2_Wall_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Materia
 
 
 #ifdef YADE_OPENGL
-#include<yade/lib/opengl/OpenGLWrapper.hpp>
-#include<yade/pkg/gl/Renderer.hpp>
-#include<yade/lib/base/CompUtils.hpp>
+	#include<yade/lib/opengl/OpenGLWrapper.hpp>
+	#include<yade/pkg/gl/Renderer.hpp>
+	#include<yade/lib/base/CompUtils.hpp>
+	#include<yade/lib/opengl/GLUtils.hpp>
+
 	int  Gl1_Wall::div=20;
 	void Gl1_Wall::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool wire2, const GLViewInfo& viewInfo){
 		const Wall& wall=shape->cast<Wall>();
 		int ax0=wall.axis,ax1=(wall.axis+1)%3,ax2=(wall.axis+2)%3;
 		glColor3v(CompUtils::mapColor(shape->getBaseColor()));
-		Vector3r a1,b1,a2,b2; // beginnings (a) and endings (b) of lines in both senses (0,1)
-		Real mn1=viewInfo.sceneCenter[ax1]-viewInfo.sceneRadius, mn2=viewInfo.sceneCenter[ax2]-viewInfo.sceneRadius;
-		Real step=2*viewInfo.sceneRadius/div;
-		//cerr<<"center "<<glinfo.sceneCenter<<", radius "<<glinfo.sceneRadius<<", mn["<<ax1<<"]="<<mn1<<", mn["<<ax2<<"]="<<mn2<<endl;
-		a1[ax0]=b1[ax0]=a2[ax0]=b2[ax0]=0;
-		a1[ax1]=mn1-step; a2[ax2]=mn2-step;
-		b1[ax1]=mn1+step*(div+2); b2[ax2]=mn2+step*(div+2);
-		glBegin(GL_LINES);
-			for(int i=0; i<=div; i++){
-				a1[ax2]=b1[ax2]=mn1+i*step;
-				a2[ax1]=b2[ax1]=mn2+i*step;
-				glVertex3v(a1); glVertex3v(b1);
-				glVertex3v(a2); glVertex3v(b2);
-			}
-		glEnd();
+		glLineWidth(1);
+		assert(wall.nodes.size()==1);
+		// corner of the drawn plane is at the edge of the visible scene, except for the axis sense, which is in the wall plane
+		Vector3r corner=viewInfo.sceneCenter-Vector3r::Ones()*viewInfo.sceneRadius;
+		corner[ax0]=wall.nodes[0]->pos[ax0];
+		Vector3r unitX=Vector3r::Unit(ax1)*2*viewInfo.sceneRadius/div;
+		Vector3r unitY=Vector3r::Unit(ax2)*2*viewInfo.sceneRadius/div;
+		GLUtils::Grid(corner,unitX,unitY,Vector2i(div,div),/*edgeMask*/0);
 	}
-
 #endif

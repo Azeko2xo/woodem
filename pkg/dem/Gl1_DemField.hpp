@@ -15,6 +15,14 @@ struct Gl1_DemField: public GlFieldFunctor{
 	void doCPhys();
 	RENDERS(DemField);
 	YADE_CLASS_BASE_DOC_STATICATTRS(Gl1_DemField,GlFieldFunctor,"Render DEM field.",
+		((bool,wire,false,,"Render all bodies with wire only"))
+		// ((bool,id,false,,"Show particle id's"))
+		((bool,bound,false,,"Render particle's :yref:`Bound`"))
+		((bool,shape,true,,"Render particle's :yref:`Shape`"))
+		((bool,nodes,false,,"Render DEM nodes"))
+		((int,cNodes,-1,,"Render contact's nodes (-1=nothing, 0=rep only, 1=nodes, 2=line between particles, 3=both"))
+		((Vector2i,cNodes_range,Vector2i(-1,3),Attr::noGui,"Range for cNodes"))
+		((bool,cPhys,false,,"Render contact's nodes"))
 		 /*
 		((int,wd,1,,"Local axes line width in pixels"))
 		((Vector2i,wd_range,Vector2i(0,5),Attr::noGui,"Range for width"))

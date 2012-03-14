@@ -726,7 +726,38 @@ Real StaticEquilibriumSolver::gradVError(const shared_ptr<Node>& n, int rPow){
 #include<yade/pkg/gl/Renderer.hpp>
 
 
-YADE_PLUGIN(gl,(SparcConstraintGlRep));
+YADE_PLUGIN(gl,(Gl1_SparcField)(SparcConstraintGlRep));
+
+
+bool Gl1_SparcField::nid;
+
+void Gl1_SparcField::go(const shared_ptr<Field>& sparcField, GLViewInfo* _viewInfo){
+	rrr=_viewInfo->renderer;
+	sparc=static_pointer_cast<SparcField>(sparcField);
+	viewInfo=_viewInfo;
+
+	FOREACH(const shared_ptr<Node>& n, sparc->nodes){
+		Renderer::glScopedName name(n);
+		rrr->setNodeGlData(n); // assures that GlData is defined
+		rrr->renderRawNode(n);
+		if(n->rep){ n->rep->render(n,viewInfo); }
+		// GLUtils::GLDrawText((boost::format("%d")%n->getData<SparcData>().nid).str(),n->pos,/*color*/Vector3r(1,1,1), /*center*/true,/*font*/NULL);
+		int nnid=n->getData<SparcData>().nid;
+		const Vector3r& pos=n->pos+n->getData<GlData>().dGlPos;
+		if(nid && nnid>=0) GLUtils::GLDrawNum(nnid,pos);
+		if(!sparc->showNeighbors && !name.highlighted) continue;
+		// show neighbours with lines, with node colors
+		Vector3r color=CompUtils::mapColor(n->getData<SparcData>().color);
+		FOREACH(const shared_ptr<Node>& neighbor, n->getData<SparcData>().neighbors){
+			if(!neighbor->hasData<GlData>()) continue; // neighbor might not have GlData yet, will be ok in next frame
+			const Vector3r& np=neighbor->pos+neighbor->getData<GlData>().dGlPos;
+			GLUtils::GLDrawLine(pos,pos+.5*(np-pos),color,3);
+			GLUtils::GLDrawLine(pos+.5*(np-pos),np,color,1);
+		}
+	}
+};
+
+
 
 void SparcConstraintGlRep::renderLabeledArrow(const Vector3r& pos, const Vector3r& vec, const Vector3r& color, Real num, bool posIsA, bool doubleHead){
 	Vector3r A(posIsA?pos:pos-vec), B(posIsA?pos+vec:pos);

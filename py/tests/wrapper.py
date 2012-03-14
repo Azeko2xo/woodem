@@ -21,6 +21,8 @@ try: from yade.sparc import *
 except: pass
 try: from yade.voro import *
 except: pass
+try: from yade.cld import *
+except: pass
 
 allClasses=system.childClasses('Serializable')
 

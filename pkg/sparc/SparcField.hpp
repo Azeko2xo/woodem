@@ -2,6 +2,9 @@
 
 #ifdef YADE_VTK
 
+// perhaps move to features?
+#define YADE_SPARC
+
 #include<yade/core/Field.hpp>
 #include<yade/core/Scene.hpp>
 #include<yade/core/Field-templates.hpp>
@@ -58,7 +61,7 @@ struct SparcField: public Field{
 		// ((Real,maxRadius,-1,,"Maximum radius for neighbour search (required for periodic simulations)"))
 		((bool,locDirty,true,Attr::readonly,"Flag whether the locator is updated."))
 		((bool,showNeighbors,false,,"Whether to show neighbors in the 3d view (FIXME: should go to Gl1_SparcField, once it is created). When a node is selected, neighbors are shown nevertheless."))
-		,/*ctor*/ constructLocator(); 
+		,/*ctor*/  createIndex(); constructLocator(); 
 		,/*py*/
 			.def("nodesAround",&SparcField::nodesAround,(py::arg("pt"),py::arg("radius")=-1,py::arg("count")=-1,py::arg("ptNode")=shared_ptr<Node>()),"Return array of nodes close to given point *pt*")
 			.def("updateLocator",&SparcField::updateLocator,"Update the locator, should be done manually before the first step perhaps.")
@@ -141,7 +144,7 @@ REGISTER_SERIALIZABLE(SparcData);
 template<> struct NodeData::Index<SparcData>{enum{value=Node::ST_SPARC};};
 
 struct ExplicitNodeIntegrator: public GlobalEngine {
-	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
+	bool acceptsField(Field* f){ return dynamic_cast<SparcField*>(f); }
 
 	enum{ MAT_HOOKE=0, MAT_BARODESY_JESSE, MAT_SENTINEL /* to check max value */ };
 	SparcField* mff; // lazy to type
@@ -286,6 +289,22 @@ REGISTER_SERIALIZABLE(StaticEquilibriumSolver);
 
 #ifdef YADE_OPENGL
 #include<yade/pkg/gl/NodeGlRep.hpp>
+#include<yade/pkg/gl/Functors.hpp>
+
+
+struct Gl1_SparcField: public GlFieldFunctor{
+	virtual void go(const shared_ptr<Field>&, GLViewInfo*);
+	Renderer* rrr; // will be removed later, once the parameters are local
+	GLViewInfo* viewInfo;
+	shared_ptr<SparcField> sparc; // used by do* methods
+	RENDERS(SparcField);
+	YADE_CLASS_BASE_DOC_STATICATTRS(Gl1_SparcField,GlFieldFunctor,"Render Sparc field.",
+		((bool,nid,false,,"Show node ids for Sparc models"))
+		/* attrs */
+	);
+};
+
+
 struct SparcConstraintGlRep: public NodeGlRep{
 	void render(const shared_ptr<Node>&, GLViewInfo*);
 	void renderLabeledArrow(const Vector3r& pos, const Vector3r& vec, const Vector3r& color, Real num, bool posIsA, bool doubleHead=false);

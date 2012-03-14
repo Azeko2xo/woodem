@@ -98,7 +98,7 @@ void Gl1_Truss::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool w
 	for(int end=0; end<2; end++){
 		if(!(t.caps&(end==0?Truss::CAP_A:Truss::CAP_B))) continue;
 		glPushMatrix();
-			glTranslatev(t.nodes[end]);
+			glTranslatev(t.nodes[end]->pos);
 			// do not use stack value here, that is for cylinder length subdivision
 			// TODO: only render half of the sphere
 			if(wire||wire2) glutWireSphere(t.radius,slices,slices/3);

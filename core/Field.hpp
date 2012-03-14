@@ -89,7 +89,7 @@ struct Node: public Serializable, public Indexable{
 	template<class NodeDataSubclass>
 	NodeDataSubclass& getData(){ return getData(NodeData::Index<NodeDataSubclass>::value)->cast<NodeDataSubclass>(); }
 	template<class NodeDataSubclass>
-	const shared_ptr<NodeDataSubclass>& getDataPtr(){ return static_pointer_cast<NodeDataSubclass>(NodeData::Index<NodeDataSubclass>::value); }
+	const shared_ptr<NodeDataSubclass> getDataPtr(){ return static_pointer_cast<NodeDataSubclass>(getData(NodeData::Index<NodeDataSubclass>::value)); }
 	template<class NodeDataSubclass>
 	void setData(const shared_ptr<NodeDataSubclass>& d){ setData(d,NodeData::Index<NodeDataSubclass>::value); }
 	template<class NodeDataSubclass>

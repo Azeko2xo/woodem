@@ -141,12 +141,14 @@ class pyOmega{
 		throw std::runtime_error("No DEM field defined.");
 	}
 
+#ifdef YADE_SPARC
 	shared_ptr<SparcField> sparc_get(){
 		FOREACH(const shared_ptr<Field>& f, OMEGA.getScene()->fields){
 			if(dynamic_pointer_cast<SparcField>(f)) return static_pointer_cast<SparcField>(f);
 		}
 		throw std::runtime_error("No Sparc field defined.");
 	}
+#endif
 
 
 	void save(std::string fileName,bool quiet=false){
@@ -248,7 +250,15 @@ class pyOmega{
 		}
 		yade::TypeError("cmap can be specified as int, str or (int,str)");
 	}
-	
+
+	#define _DEPREC_ERR(a) void err_##a(){ yade::AttributeError("O." #a " does not exist in tr2 anymore, use O.scene." #a); }
+	_DEPREC_ERR(dt);
+	_DEPREC_ERR(engines);
+	_DEPREC_ERR(cell);
+	_DEPREC_ERR(periodic);
+	_DEPREC_ERR(trackEnergy);
+	_DEPREC_ERR(energy);
+	_DEPREC_ERR(tags);
 };
 
 BOOST_PYTHON_MODULE(wrapper)
@@ -304,26 +314,22 @@ BOOST_PYTHON_MODULE(wrapper)
 		#endif
 		.add_property("scene",&pyOmega::scene_get,&pyOmega::scene_set,"Return the current :yref:`scene <Scene>` object. Only set this object carefully!")
 		.add_property("dem",&pyOmega::dem_get,"Return first DEM field.")
+#ifdef YADE_SPARC
 		.add_property("sparc",&pyOmega::sparc_get,"Return first Sparc field.")
+#endif
 
 		.add_property("cmaps",&pyOmega::lsCmap,"List available colormaps (by name)")
 		.add_property("cmap",&pyOmega::getCmap,&pyOmega::setCmap,"Current colormap as (index,name) tuple; set by index or by name alone.")
+
+		// throw on deprecated attributes
+		.add_property("dt",&pyOmega::err_dt)
+		.add_property("engines",&pyOmega::err_engines)
+		.add_property("cell",&pyOmega::err_cell)
+		.add_property("periodic",&pyOmega::err_periodic)
+		.add_property("trackEnergy",&pyOmega::err_trackEnergy)
+		.add_property("energy",&pyOmega::err_energy)
+		.add_property("tags",&pyOmega::err_tags)
 	
-		//.add_property("engines",&pyOmega::engines_get,&pyOmega::engines_set,"List of engines in the simulation (Scene::engines).")
-		//.add_property("_currEngines",&pyOmega::currEngines_get,"Currently running engines; debugging only!")
-		//.add_property("_nextEngines",&pyOmega::nextEngines_get,"Engines for the next step, if different from the current ones, otherwise empty; debugging only!")
-	#if 0
-		.add_property("miscParams",&pyOmega::miscParams_get,&pyOmega::miscParams_set,"MiscParams in the simulation (Scene::mistParams), usually used to save serializables that don't fit anywhere else, like GL functors")
-		.add_property("bodies",&pyOmega::bodies_get,"Bodies in the current simulation (container supporting index access by id and iteration)")
-		.add_property("interactions",&pyOmega::interactions_get,"Interactions in the current simulation (container supporting index acces by either (id1,id2) or interactionNumber and iteration)")
-		.add_property("materials",&pyOmega::materials_get,"Shared materials; they can be accessed by id or by label")
-		.add_property("forces",&pyOmega::forces_get,":yref:`ForceContainer` (forces, torques, displacements) in the current simulation.")
-		.add_property("forceSyncCount",&pyOmega::forceSyncCount_get,&pyOmega::forceSyncCount_set,"Counter for number of syncs in ForceContainer, for profiling purposes.")
-	#endif
-		// .add_property("field",&pyOmega::field_get,&pyOmega::field_set,"Get field associated with the scene")
-		// .add_property("energy",&pyOmega::energy_get,":yref:`EnergyTracker` of the current simulation. (meaningful only with :yref:`O.trackEnergy<Omega.trackEnergy>`)")
-		// .add_property("trackEnergy",&pyOmega::trackEnergy_get,&pyOmega::trackEnergy_set,"When energy tracking is enabled or disabled in this simulation.")
-	//	.add_property("tags",&pyOmega::tags_get,"Tags (string=string dictionary) of the current simulation (container supporting string-index access/assignment)")
 		.def("childClassesNonrecursive",&pyOmega::listChildClassesNonrecursive,"Return list of all classes deriving from given class, as registered in the class factory")
 		.def("isChildClassOf",&pyOmega::isChildClassOf,"Tells whether the first class derives from the second one (both given as strings).")
 		.add_property("timingEnabled",&pyOmega::timingEnabled_get,&pyOmega::timingEnabled_set,"Globally enable/disable timing services (see documentation of the :yref:`timing module<yade.timing>`).")
