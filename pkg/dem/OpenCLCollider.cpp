@@ -101,10 +101,12 @@ vector<Vector2i> OpenCLCollider::initSortCPU(){
 vector<Vector2i> OpenCLCollider::inversionsCPU(vector<CpuAxBound>& bb){
 	vector<Vector2i> inv;
 	long iMax=bb.size();
+	LOG_DEBUG("INVERSIONS_CPU");
+
 	for(long i=0; i<iMax; i++){
+	//	LOG_DEBUG(bb[i].coord);
 		const CpuAxBound bbInit=bb[i]; // copy, so that it is const
 		if(isnan(bbInit.coord)) continue;
-
 		long j=i-1;
 		while(j>=0 && (bb[j].coord>bbInit.coord || isnan(bb[j].coord))){
 			// bbInit is bb[j+1] which is travelling downwards and swaps with b[j]
@@ -186,6 +188,7 @@ vector<Vector2i> OpenCLCollider::initSortGPU(){
 		LOG_FATAL(e.what());
 		throw;
 	}
+
 
 	cerr<<"axBound ok"<<endl;
 
@@ -413,9 +416,61 @@ vector<Vector2i> OpenCLCollider::initSortGPU(){
 	Ideally, the bounds array would sit on the GPU and would be re-used between
 	runs without copying it back and forth.
 */
-vector<Vector2i> OpenCLCollider::inversionsGPU(const vector<CpuAxBound>& bb){
+vector<Vector2i> OpenCLCollider::inversionsGPU(int ax){
 	if(!cpu) throw std::runtime_error("Running on GPU only is not supported, since bound arrays are not copied from GPU back to the host memory.");
-	throw std::runtime_error("OpenCLCollider::inversionsGPU Not yet implemented.");
+	//throw std::runtime_error("OpenCLCollider::inversionsGPU Not yet implemented.");
+
+	vector<Vector2i> inv;
+
+	int N = gpuBounds[ax].size();		
+	LOG_DEBUG("N size");
+	LOG_DEBUG(N);
+	LOG_DEBUG("mini size");
+	LOG_DEBUG(mini[ax].size());
+	
+	int local_size = 16;
+	int global_size = (trunc(trunc(sqrt(N)) / local_size) + 1) * local_size;
+
+	cl::Buffer boundsG(scene->context, CL_MEM_READ_WRITE, N * sizeof (AxBound), NULL);
+	cl::Buffer miniG(scene->context, CL_MEM_READ_ONLY, N/2 * sizeof (AxBound), NULL);
+	cl::Buffer maxiG(scene->context, CL_MEM_READ_ONLY, N/2 * sizeof (AxBound), NULL);
+
+	LOG_DEBUG("A");
+	scene->queue.enqueueWriteBuffer(boundsG, CL_TRUE, 0, N * sizeof (AxBound), gpuBounds[ax].data());
+	LOG_DEBUG("B");
+	scene->queue.enqueueWriteBuffer(miniG, CL_TRUE, 0, N/2 * sizeof (AxBound), mini[ax].data());
+	LOG_DEBUG("C");
+	scene->queue.enqueueWriteBuffer(maxiG, CL_TRUE, 0, N/2 * sizeof (AxBound), maxi[ax].data());
+
+	try {
+ 		cl::Kernel updateBoundK(program, "boundsUpdate");
+		updateBoundK.setArg(0, boundsG);
+		updateBoundK.setArg(1, miniG);
+		updateBoundK.setArg(2, maxiG);
+		updateBoundK.setArg(3, N);
+
+		LOG_DEBUG("D");
+
+		scene->queue.enqueueNDRangeKernel(updateBoundK, cl::NullRange,
+					cl::NDRange(global_size, global_size),
+					cl::NDRange(local_size, local_size));
+		scene->queue.finish();
+		LOG_DEBUG("E");
+	} catch(cl::Error& e) {
+		cerr << "err: " << e.err() << endl << "what: " << e.what() << endl;
+	}
+	cerr << "OK" << endl;
+	
+	scene->queue.enqueueReadBuffer(boundsG, CL_TRUE, 0, N * sizeof(AxBound), gpuBounds[ax].data());
+	LOG_DEBUG("F");
+	LOG_DEBUG(ax);
+	for(int i = 0; i < N; i++){
+		LOG_DEBUG(gpuBounds[ax][i].coord);
+	}
+		
+
+	return inv;
+
 	#if 0
 		int invMax=1<<10; 
 		int invFound;
@@ -578,9 +633,11 @@ void OpenCLCollider::run(){
 
 	OCLC_CHECKPOINT("gpuInv");
 	#ifdef YADE_OPENCL
+	LOG_DEBUG("INVERSION");
 		if(gpu){ 
 			// bounds will be modified by the CPU, therefore GPU must be called first and the bounds buffer must not be copied back to the host!
-			for(int ax=0; ax<3; ax++){ gpuInv[ax]=inversionsGPU(bounds[ax]); }
+			LOG_DEBUG("START INVERSION");
+			for(int ax=0; ax<3; ax++){ gpuInv[ax]=inversionsGPU(ax); }
 		}
 	#endif
 	OCLC_CHECKPOINT("cpuInv");

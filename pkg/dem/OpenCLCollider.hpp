@@ -25,7 +25,7 @@ class OpenCLCollider: public InsertionSortCollider{
 	vector<Vector2i> inversionsCPU(vector<CpuAxBound>& bb);
 	#ifdef YADE_OPENCL
 		vector<Vector2i> initSortGPU();
-		vector<Vector2i> inversionsGPU(const vector<CpuAxBound>& bb);
+		vector<Vector2i> inversionsGPU(int ax);
 	#endif
 	void sortAndCopyInversions(vector<Vector2i>(&cpuInv)[3], vector<Vector2i>(&gpuInv)[3]);
 	void compareInversions(vector<Vector2i>(&cpuInv)[3], vector<Vector2i>(&gpuInv)[3]);
@@ -35,8 +35,8 @@ class OpenCLCollider: public InsertionSortCollider{
 
 	virtual void run();
 	vector<CpuAxBound> bounds[3];
-	vector<float> mini[3];
-	vector<float> maxi[3];
+	vector<cl_float> mini[3];
+	vector<cl_float> maxi[3];
 	#ifdef YADE_OPENCL
 		cl::Program program;
 		cl::Buffer boundBufs[3], minBuf[3], maxBuf[3], invBufs[3];
