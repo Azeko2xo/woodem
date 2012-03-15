@@ -59,11 +59,11 @@ void OpenCLCollider::updateMiniMaxi(vector<cl_float>(&mini)[3], vector<cl_float>
 }
 
 /* update coordinates in the bounds array from mini and maxi arrays */
-void OpenCLCollider::updateBounds(const vector<cl_float>(&mini)[3], const vector<cl_float>(&maxi)[3], vector<CpuAxBound>(&bounds)[3]){
-	size_t N=bounds[0].size();
+void OpenCLCollider::updateBounds(const vector<cl_float>(&mini)[3], const vector<cl_float>(&maxi)[3], vector<CpuAxBound>(&cpuBounds)[3]){
+	size_t N=cpuBounds[0].size();
 	for(size_t n=0; n<N; n++){
 		for(int ax:{0,1,2}){
-			CpuAxBound& b=bounds[ax][n];
+			CpuAxBound& b=cpuBounds[ax][n];
 			b.coord=b.isMin?mini[ax][b.id]:maxi[ax][b.id];
 		}
 	}
@@ -72,19 +72,19 @@ void OpenCLCollider::updateBounds(const vector<cl_float>(&mini)[3], const vector
 /* find initial contact set on the CPU */
 vector<Vector2i> OpenCLCollider::initSortCPU(){
 	vector<Vector2i> ret;
-	LOG_TRACE("Initial sort, number of bounds "<<bounds[0].size());
+	LOG_TRACE("Initial sort, number of bounds "<<cpuBounds[0].size());
 	// sort all arrays without looking for inversions first
-	for(int ax:{0,1,2}) std::sort(bounds[ax].begin(),bounds[ax].end(),[](const CpuAxBound& b1, const CpuAxBound& b2) -> bool { return (isnan(b1.coord)||isnan(b2.coord))?true:b1.coord<b2.coord; } );
+	for(int ax:{0,1,2}) std::sort(cpuBounds[ax].begin(),cpuBounds[ax].end(),[](const CpuAxBound& b1, const CpuAxBound& b2) -> bool { return (isnan(b1.coord)||isnan(b2.coord))?true:b1.coord<b2.coord; } );
 	// traverse one axis, always from lower bound to upper bound of the same particle
 	// all intermediary bounds are candidates for collision, which must be checked in maxi/mini
 	// along other two axes
 	int ax0=0; // int ax1=(ax0+1)%3, ax2=(ax0+2)%3;
-	for(size_t i=0; i<bounds[ax0].size(); i++){
-		const CpuAxBound& b(bounds[ax0][i]);
+	for(size_t i=0; i<cpuBounds[ax0].size(); i++){
+		const CpuAxBound& b(cpuBounds[ax0][i]);
 		if(!b.isMin || isnan(b.coord)) continue;
 		LOG_TRACE("← "<<b.coord<<", #"<<b.id);
-		for(size_t j=i+1; bounds[ax0][j].id!=b.id && /* just in case, e.g. maximum smaller than minimum */ j<bounds[ax0].size(); j++){
-			const CpuAxBound& b2(bounds[ax0][j]);
+		for(size_t j=i+1; cpuBounds[ax0][j].id!=b.id && /* just in case, e.g. maximum smaller than minimum */ j<cpuBounds[ax0].size(); j++){
+			const CpuAxBound& b2(cpuBounds[ax0][j]);
 			if(!b2.isMin || isnan(b2.coord)) continue; // overlaps of this kind have been already checked when b2.id was processed upwards
 			LOG_TRACE("\t→ "<<b2.coord<<", #"<<b2.id);
 			if(!bboxOverlap(b.id,b2.id)){ LOG_TRACE("\t-- no overlap"); continue; } // when no overlap along all axes, stop
@@ -613,15 +613,42 @@ void OpenCLCollider::sortAndCopyInversions(vector<Vector2i>(&cpuInv)[3], vector<
 	gpuInvX=gpuInv[0]; gpuInvY=gpuInv[1]; gpuInvZ=gpuInv[2];
 }
 
-void OpenCLCollider::compareInversions(vector<Vector2i>(&cpuInv)[3], vector<Vector2i>(&gpuInv)[3]){
+bool OpenCLCollider::compareInversions(vector<Vector2i>(&cpuInv)[3], vector<Vector2i>(&gpuInv)[3]){
 	axErr=Vector3i::Zero();
 	// sort for easy comparison
 	for(int ax=0; ax<3; ax++){
-		if(cpuInv[ax].size()!=gpuInv[ax].size()){ axErr[ax]=cpuInv[ax].size(); continue; }
+		if(cpuInv[ax].size()!=gpuInv[ax].size()){ axErr[ax]=1; continue; }
 		if(memcmp(&(cpuInv[ax][0]),&(gpuInv[ax][0]),cpuInv[ax].size()*sizeof(Vector2i))!=0) axErr[ax]=2;
 	}
 	// report as exception; sorted arrays available for post-mortem analysis
-	if(axErr!=Vector3i::Zero()) throw std::runtime_error(string("OpenCLCollider: inversions along some axes not equal (1=lengths differ, 2=only values differ): "+lexical_cast<string>(axErr)));
+	if(axErr!=Vector3i::Zero()){
+		LOG_ERROR("Inversions along some axes not equal (1=lengths differ, 2=only values differ): "<<axErr.transpose());
+		LOG_ERROR("Number of inversions gpu/cpu: "<<cpuInv[0].size()<<","<<cpuInv[1].size()<<","<<cpuInv[2].size()<<" / "<<gpuInv[0].size()<<","<<gpuInv[1].size()<<","<<gpuInv[2].size());
+		return false;
+	}
+	return true;
+}
+
+
+bool OpenCLCollider::checkBoundsSorted(){
+	bool ok=true;
+	if(cpu){
+		for(int ax=0; ax<3; ax++){
+			for(size_t i=0; i<cpuBounds[ax].size()-1; i++){
+				if(cpuBounds[ax][i].coord>cpuBounds[ax][i+1].coord){ ok=false; LOG_ERROR("cpuBounds["<<ax<<"]["<<i<<"].coord="<<">"<<"cpuBounds["<<ax<<"]["<<i+1<<"].coord: "<<cpuBounds[ax][i].coord<<">"<<cpuBounds[ax][i+1].coord) }
+			}
+		}
+	}
+#ifdef YADE_OPENCL
+	if(gpu){
+		for(int ax=0; ax<3; ax++){
+			for(size_t i=0; i<gpuBounds[ax].size()-1; i++){
+				if(gpuBounds[ax][i].coord>gpuBounds[ax][i+1].coord){ ok=false; LOG_ERROR("gpuBounds["<<ax<<"]["<<i<<"].coord="<<">"<<"gpuBounds["<<ax<<"]["<<i+1<<"].coord: "<<gpuBounds[ax][i].coord<<">"<<gpuBounds[ax][i+1].coord) }
+			}
+		}
+	}
+#endif
+	return ok;
 }
 
 void OpenCLCollider::modifyContactsFromInversions(const vector<Vector2i>(&invs)[3]){
@@ -671,7 +698,7 @@ void OpenCLCollider::run(){
 	size_t N=dem->particles.size(); size_t oldN=mini[0].size();
 	bool initialize=(N!=oldN);
 	#ifdef YADE_DEBUG
-		for(int ax:{0,1,2}){ assert(bounds[ax].size()==2*oldN); assert(mini[ax].size()==oldN); assert(maxi[ax].size()==oldN); }
+		for(int ax:{0,1,2}){ assert(cpuBounds[ax].size()==2*oldN); assert(mini[ax].size()==oldN); assert(maxi[ax].size()==oldN); }
 	#endif
 	#ifdef YADE_OPENCL
 		scene->ensureCl();
@@ -685,13 +712,13 @@ void OpenCLCollider::run(){
 	In that case, this expensive procedure will be a separate kernel, run only once.
 	*/
 	if(initialize){
-		for(int ax:{0,1,2}){ bounds[ax].resize(2*N); mini[ax].resize(N); maxi[ax].resize(N); }
+		for(int ax:{0,1,2}){ cpuBounds[ax].resize(2*N); mini[ax].resize(N); maxi[ax].resize(N); }
 		updateMiniMaxi(mini,maxi);
 		// create initial unsorted bound arrays, ordered by particle ids
 		for(size_t id=0; id<N; id++){
 			for(int ax:{0,1,2}){
-				bounds[ax][2*id]  ={mini[ax][id],id,true };
-				bounds[ax][2*id+1]={maxi[ax][id],id,false};
+				cpuBounds[ax][2*id]  ={mini[ax][id],id,true };
+				cpuBounds[ax][2*id+1]={maxi[ax][id],id,false};
 			}
 		}
 		// collision detection
@@ -708,6 +735,7 @@ void OpenCLCollider::run(){
 			for(auto init: {&cpuInit,&gpuInit}) std::sort(init->begin(),init->end(),[](const Vector2i& p1, const Vector2i& p2){ return (p1[0]<p2[0] || (p1[0]==p2[0] && p1[1]<p2[1])); });
 			if(memcmp(&(cpuInit[0]),&(gpuInit[0]),cpuInit.size()*sizeof(Vector2i))!=0) throw std::runtime_error("OpenCLCollider: initial contacts differ in values");
 		}
+		if(!checkBoundsSorted()) throw std::runtime_error("OpenCLCollider: bounds are not sorted");
 		// create contacts
 		for(const Vector2i& ids: (gpu?gpuInit:cpuInit)){
 			if(dem->contacts.exists(ids[0],ids[1])){ LOG_TRACE("##"<<ids[0]<<"+"<<ids[1]<<"exists already."); continue; } // contact already there, stop
@@ -728,7 +756,7 @@ void OpenCLCollider::run(){
 	updateMiniMaxi(mini,maxi);
 	OCLC_CHECKPOINT("boundsUp");
 	// update coordinates in pre-sorted arrays
-	updateBounds(mini,maxi,bounds);
+	updateBounds(mini,maxi,cpuBounds);
 
 	vector<Vector2i> cpuInv[3], gpuInv[3];
 
@@ -744,14 +772,17 @@ void OpenCLCollider::run(){
 	OCLC_CHECKPOINT("cpuInv");
 	if(cpu){
 		#pragma omp parallel for
-		for(int ax=0; ax<3; ax++){ cpuInv[ax]=inversionsCPU(bounds[ax]/*gets modified as well*/); }
+		for(int ax=0; ax<3; ax++){ cpuInv[ax]=inversionsCPU(cpuBounds[ax]/*gets modified as well*/); }
 	}
 	// copy sorted inversions into python-exposed arrays
 	OCLC_CHECKPOINT("sortAndCopy");
 	sortAndCopyInversions(cpuInv,gpuInv);
 	// if cpu&&gpu, set axErr and throws exception if there is a difference
 	OCLC_CHECKPOINT("compareInv");
-	if(cpu&&gpu) compareInversions(cpuInv,gpuInv);
+	bool ok=true;
+	if(cpu&&gpu) ok=compareInversions(cpuInv,gpuInv);
+	ok=(ok && checkBoundsSorted());
+	if(!ok) throw std::runtime_error("OpenCLCollider: error, see messages above.");
 
 	OCLC_CHECKPOINT("handleInversions");
 	modifyContactsFromInversions(cpu?cpuInv:gpuInv);

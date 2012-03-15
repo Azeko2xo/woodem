@@ -19,7 +19,7 @@ class OpenCLCollider: public InsertionSortCollider{
 	bool bboxOverlap(int id1, int id2);
 
 	void updateMiniMaxi(vector<cl_float>(&mini)[3],vector<cl_float>(&maxi)[3]);
-	void updateBounds(const vector<cl_float>(&mini)[3],const vector<cl_float>(&maxi)[3],vector<CpuAxBound>(&bounds)[3]);
+	void updateBounds(const vector<cl_float>(&mini)[3],const vector<cl_float>(&maxi)[3],vector<CpuAxBound>(&cpuBounds)[3]);
 
 	vector<Vector2i> initSortCPU();
 	vector<Vector2i> inversionsCPU(vector<CpuAxBound>& bb);
@@ -28,13 +28,15 @@ class OpenCLCollider: public InsertionSortCollider{
 		vector<Vector2i> inversionsGPU(int ax);
 	#endif
 	void sortAndCopyInversions(vector<Vector2i>(&cpuInv)[3], vector<Vector2i>(&gpuInv)[3]);
-	void compareInversions(vector<Vector2i>(&cpuInv)[3], vector<Vector2i>(&gpuInv)[3]);
+	// return false on error
+	bool compareInversions(vector<Vector2i>(&cpuInv)[3], vector<Vector2i>(&gpuInv)[3]);
+	bool checkBoundsSorted();
 	void modifyContactsFromInversions(const vector<Vector2i>(&invs)[3]);
 
 	virtual void postLoad(OpenCLCollider&);
 
 	virtual void run();
-	vector<CpuAxBound> bounds[3];
+	vector<CpuAxBound> cpuBounds[3];
 	vector<cl_float> mini[3];
 	vector<cl_float> maxi[3];
 	#ifdef YADE_OPENCL
