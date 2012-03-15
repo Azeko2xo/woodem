@@ -489,13 +489,8 @@ vector<Vector2i> OpenCLCollider::inversionsGPU(int ax){
 		computeNoOfInvK.setArg(4, N);
 	LOG_DEBUG("K");
 		while (done == 1){
-
-			if(off == 0){
-				off = 1;
-			} else {
-				off = 0;
-			}
-
+	
+	off = 0;
 	LOG_DEBUG("L");
 			scene->queue.enqueueWriteBuffer(gpuDone, CL_TRUE, 0, sizeof (cl_uint), &zero);
 			computeNoOfInvK.setArg(2, gpuDone);
@@ -507,6 +502,20 @@ vector<Vector2i> OpenCLCollider::inversionsGPU(int ax){
 			scene->queue.finish();
 	LOG_DEBUG("N");
 			scene->queue.enqueueReadBuffer(gpuDone, CL_TRUE, 0, sizeof (cl_uint), &done);	
+	
+/*offset 1*/
+	off = 1;
+	LOG_DEBUG("L");
+			computeNoOfInvK.setArg(2, gpuDone);
+			computeNoOfInvK.setArg(3, off);
+	LOG_DEBUG("M");
+			scene->queue.enqueueNDRangeKernel(computeNoOfInvK, cl::NullRange,
+					cl::NDRange(global_size, global_size),
+					cl::NDRange(local_size, local_size));
+			scene->queue.finish();
+	LOG_DEBUG("N");
+			scene->queue.enqueueReadBuffer(gpuDone, CL_TRUE, 0, sizeof (cl_uint), &done);	
+
 		}
 	
 	} catch(cl::Error& e) {
@@ -538,13 +547,8 @@ vector<Vector2i> OpenCLCollider::inversionsGPU(int ax){
 		computeInvK.setArg(3, gpuInversion); 
 		LOG_DEBUG("T");
 		while (done == 1){
-
-			if(off == 0){
-				off = 1;
-			} else {
-				off = 0;
-			}
-
+	
+			off = 0;
 	LOG_DEBUG("L");
 			scene->queue.enqueueWriteBuffer(gpuDone, CL_TRUE, 0, sizeof (cl_uint), &zero);
 			computeInvK.setArg(2, gpuDone);
@@ -556,12 +560,26 @@ vector<Vector2i> OpenCLCollider::inversionsGPU(int ax){
 			scene->queue.finish();
 	LOG_DEBUG("N");
 			scene->queue.enqueueReadBuffer(gpuDone, CL_TRUE, 0, sizeof (cl_uint), &done);	
+		
+		/*offset 1*/
+			off = 1;
+	LOG_DEBUG("L");
+			computeInvK.setArg(2, gpuDone);
+			computeInvK.setArg(4, off);
+	LOG_DEBUG("M");
+			scene->queue.enqueueNDRangeKernel(computeInvK, cl::NullRange,
+					cl::NDRange(global_size, global_size),
+					cl::NDRange(local_size, local_size));
+			scene->queue.finish();
+	LOG_DEBUG("N");
+			scene->queue.enqueueReadBuffer(gpuDone, CL_TRUE, 0, sizeof (cl_uint), &done);	
 		}
-	
+					
 	} catch(cl::Error& e) {
 		cerr << "err: " << e.err() << endl << "what: " << e.what() << endl;	
 	}
 
+	scene->queue.enqueueReadBuffer(boundsG, CL_TRUE, 0, N * sizeof(AxBound), gpuBounds[ax].data());
 	scene->queue.enqueueReadBuffer(gpuInversion, CL_TRUE, 0, noOfInv * sizeof (cl_uint2), inversions);	
 
 	for(uint i = 0; i < noOfInv; i++){
@@ -623,7 +641,7 @@ bool OpenCLCollider::compareInversions(vector<Vector2i>(&cpuInv)[3], vector<Vect
 	// report as exception; sorted arrays available for post-mortem analysis
 	if(axErr!=Vector3i::Zero()){
 		LOG_ERROR("Inversions along some axes not equal (1=lengths differ, 2=only values differ): "<<axErr.transpose());
-		LOG_ERROR("Number of inversions gpu/cpu: "<<cpuInv[0].size()<<","<<cpuInv[1].size()<<","<<cpuInv[2].size()<<" / "<<gpuInv[0].size()<<","<<gpuInv[1].size()<<","<<gpuInv[2].size());
+		LOG_ERROR("Number of inversions cpu/gpu: "<<cpuInv[0].size()<<","<<cpuInv[1].size()<<","<<cpuInv[2].size()<<" / "<<gpuInv[0].size()<<","<<gpuInv[1].size()<<","<<gpuInv[2].size());
 		return false;
 	}
 	return true;
