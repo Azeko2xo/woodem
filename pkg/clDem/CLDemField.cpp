@@ -374,8 +374,8 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 	};
 
 	// materials
-	shared_ptr< ::Material> ymats[clDem::SCENE_MAT_NUM];
-	for(int i=0; i<clDem::SCENE_MAT_NUM; i++){
+	shared_ptr< ::Material> ymats[clDem::SCENE_MAT_NUM_];
+	for(int i=0; i<clDem::SCENE_MAT_NUM_; i++){
 		const clDem::Material& cmat(sim->scene.materials[i]);
 		int matT=clDem::mat_matT_get(&cmat);
 		switch(matT){
@@ -399,7 +399,7 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 		string pId="#"+lexical_cast<string>(i);
 		// material
 		int matId=par_matId_get(&cp);
-		assert(matId>=0 && matId<clDem::SCENE_MAT_NUM);
+		assert(matId>=0 && matId<clDem::SCENE_MAT_NUM_);
 		yp->material=ymats[matId];
 		assert(yp->material);
 		// shape
