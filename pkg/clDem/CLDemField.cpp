@@ -428,8 +428,8 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 				/* do everything here, not below */
 				vector<shared_ptr<Node>> members;
 				long ix=cp.shape.clump.ix;
-				for(int i=ix; sim->clumps[i].id>=0; i++){
-					long id=sim->clumps[i].id;
+				for(int ii=ix; sim->clumps[ii].id>=0; i++){
+					long id=sim->clumps[ii].id;
 					if(id>=(long)dem->particles.size()) throw std::runtime_error(pId+": clump members mut come before the clump (references #"+lexical_cast<string>(id)+")");
 					members.push_back(dem->particles[id]->shape->nodes[0]);
 				}

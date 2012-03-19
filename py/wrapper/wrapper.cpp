@@ -39,8 +39,12 @@
 #include<yade/pkg/dem/Clump.hpp>
 #endif
 
-// local copy
-#include<boost/math/nonfinite_num_facets.hpp>
+#if BOOST_VERSION<14800
+	// local copy
+	#include<boost/math/nonfinite_num_facets.hpp>
+#else
+	#include<boost/math/special_functions/nonfinite_num_facets.hpp>
+#endif
 #include<locale>
 #include<boost/archive/codecvt_null.hpp>
 #include<yade/lib/serialization/ObjectIO.hpp>

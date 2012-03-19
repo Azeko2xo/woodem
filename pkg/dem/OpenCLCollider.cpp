@@ -1,4 +1,5 @@
 #include<yade/pkg/dem/OpenCLCollider.hpp>
+#include<algorithm>
 
 YADE_PLUGIN(dem,(OpenCLCollider));
 
@@ -11,6 +12,10 @@ CREATE_LOGGER(OpenCLCollider);
 #else
 	#define OCLC_CHECKPOINT(cpt)
 #endif
+
+namespace Eigen{
+	bool operator<(const Vector2i& a, const Vector2i& b){ return (a[0]<b[0] || (a[0]==b[0] && a[1]<b[1])); }
+}
 
 /* setup OpenCL, load kernel */
 void OpenCLCollider::postLoad(OpenCLCollider&){
@@ -754,17 +759,30 @@ void OpenCLCollider::run(){
 			if(gpu) gpuInit=initSortGPU();
 		#endif
 		OCLC_CHECKPOINT("initGPU");
-		// comparison
-		std::set<Vector2i> set1;
-		std::copy(cpuInit.begin(), cpuInit.end(), set1.begin());
 
 		if(cpu&&gpu){
+			bool err=false;
 			if(cpuInit.size()!=gpuInit.size()) {
-				LOG_ERROR("(cpu/gpu): " << cpuInit.size() << " / " << gpuInit.size());
-				throw std::runtime_error("OpenCLCollider: initial contacts differ in length");
+				LOG_ERROR("Initial contacts differ in length (cpu/gpu): " << cpuInit.size() << " / " << gpuInit.size());
+				err=true;
 			}
 			for(auto init: {&cpuInit,&gpuInit}) std::sort(init->begin(),init->end(),[](const Vector2i& p1, const Vector2i& p2){ return (p1[0]<p2[0] || (p1[0]==p2[0] && p1[1]<p2[1])); });
-			if(memcmp(&(cpuInit[0]),&(gpuInit[0]),cpuInit.size()*sizeof(Vector2i))!=0) throw std::runtime_error("OpenCLCollider: initial contacts differ in values");
+			if(memcmp(&(cpuInit[0]),&(gpuInit[0]),cpuInit.size()*sizeof(Vector2i))!=0){ LOG_ERROR("initial contacts differ in values"); err=true; }
+			// show differing values
+			if(err){
+				std::set<Vector2i> cpuSet(cpuInit.begin(),cpuInit.end()), gpuSet(gpuInit.begin(),gpuInit.end()), cpuExtra, gpuExtra;
+				std::set_difference(cpuSet.begin(),cpuSet.end(),gpuSet.begin(),gpuSet.end(),std::inserter(cpuExtra,cpuExtra.end()));
+				std::set_difference(gpuSet.begin(),gpuSet.end(),cpuSet.begin(),cpuSet.end(),std::inserter(gpuExtra,gpuExtra.end()));
+				if(!cpuExtra.empty()){
+					LOG_ERROR("There are "<<cpuExtra.size()<<" extra contacts on the CPU:");
+					for(const Vector2i& v: cpuExtra) LOG_ERROR("\t"<<v[0]<<","<<v[1]);
+				}
+				if(!gpuExtra.empty()){
+					LOG_ERROR("There are "<<gpuExtra.size()<<" extra contacts on the GPU:");
+					for(const Vector2i& v: gpuExtra) LOG_ERROR("\t"<<v[0]<<","<<v[1]);
+				}
+				throw std::runtime_error("Initial sort errors (see above).");
+			} 
 		}
 		if(!checkBoundsSorted()) throw std::runtime_error("OpenCLCollider: bounds are not sorted");
 		// create contacts

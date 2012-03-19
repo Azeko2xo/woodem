@@ -2,6 +2,7 @@
 
 class OpenCLCollider: public InsertionSortCollider{
 
+
 	struct CpuAxBound{
 		float coord;
 		unsigned long id;
