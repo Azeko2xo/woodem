@@ -78,6 +78,11 @@ vector<Vector2i> OpenCLCollider::initSortCPU(){
 	// traverse one axis, always from lower bound to upper bound of the same particle
 	// all intermediary bounds are candidates for collision, which must be checked in maxi/mini
 	// along other two axes
+
+	for(uint i = 0; i < cpuBounds[0].size(); i++){
+		LOG_DEBUG(cpuBounds[0][i].coord);
+	}
+
 	int ax0=0; // int ax1=(ax0+1)%3, ax2=(ax0+2)%3;
 	for(size_t i=0; i<cpuBounds[ax0].size(); i++){
 		const CpuAxBound& b(cpuBounds[ax0][i]);
@@ -90,7 +95,7 @@ vector<Vector2i> OpenCLCollider::initSortCPU(){
 			if(!bboxOverlap(b.id,b2.id)){ LOG_TRACE("\t-- no overlap"); continue; } // when no overlap along all axes, stop
 			/* create new potential contact here */
 			LOG_TRACE("\t++ new contact");
-			ret.push_back(Vector2i(b.id,b2.id));
+			ret.push_back(Vector2i(min(b.id,b2.id),max(b.id,b2.id)));
 		}
 	}
 	return ret;
@@ -239,7 +244,7 @@ vector<Vector2i> OpenCLCollider::initSortGPU(){
 
 		// shrink the buffer back, read just the part we need
 		gpuBounds[ax].resize(2*N);
-		queue.enqueueReadBuffer(boundBufs[ax], CL_TRUE, 0, 2*N*sizeof (AxBound), gpuBounds[ax].data());
+		queue.enqueueReadBuffer(boundBufs[ax], CL_TRUE, 0, (2*N)*sizeof (AxBound), gpuBounds[ax].data());
 		boundBufs[ax]=cl::Buffer(context,CL_MEM_READ_WRITE,2*N*sizeof(AxBound), NULL);
 		queue.enqueueWriteBuffer(boundBufs[ax],CL_TRUE, 0, 2*N * sizeof (AxBound), gpuBounds[ax].data());
 	
@@ -288,6 +293,12 @@ vector<Vector2i> OpenCLCollider::initSortGPU(){
 		queue.enqueueWriteBuffer(boundBufs[i], CL_TRUE, 0, 2*N * sizeof (AxBound), gpuBounds[i].data());
 		LOG_DEBUG("P.1");
 	}
+
+	for(uint i = 0; i < gpuBounds[0].size(); i++){
+		LOG_DEBUG(gpuBounds[0][i].coord);
+	}
+
+LOG_DEBUG(N);
 	global_size = (trunc(trunc(sqrt(2*N)) / local_size) + 1) * local_size;
 	try {
 		cl::Kernel createOverlayK(program, "createOverlay");
@@ -329,13 +340,11 @@ vector<Vector2i> OpenCLCollider::initSortGPU(){
 		createOverlayK.setArg(5, gMemCheck);
 		LOG_DEBUG("5.1");
 	
-		cl::Event eve;
 		queue.enqueueNDRangeKernel(createOverlayK, cl::NullRange,
 				cl::NDRange(global_size, global_size),
-				cl::NDRange(local_size, local_size), NULL, &eve);
+				cl::NDRange(local_size, local_size));
 
 		LOG_DEBUG("5.3");
-		eve.wait();
 		LOG_DEBUG("5.5");
 		queue.finish();
 		LOG_DEBUG("5.9");
@@ -369,7 +378,7 @@ vector<Vector2i> OpenCLCollider::initSortGPU(){
 					cl::NDRange(global_size, global_size),
 					cl::NDRange(local_size, local_size));
 
-			queue.enqueueReadBuffer(gMemCheck, CL_TRUE, 0, 1 * sizeof (cl_uint), memCheck);
+			queue.enqueueReadBuffer(gMemCheck, CL_TRUE, 0, sizeof (cl_uint), memCheck);
 		LOG_DEBUG("$");
 			queue.enqueueReadBuffer(gCounter, CL_TRUE, 0, sizeof (cl_uint), counter);
 		LOG_DEBUG("%");
@@ -383,7 +392,6 @@ vector<Vector2i> OpenCLCollider::initSortGPU(){
 		overlay.resize(overAlocMem);
 		queue.enqueueReadBuffer(gOverlay, CL_TRUE, 0, overAlocMem * sizeof (cl_uint2), overlay.data());
 		LOG_DEBUG("^");
-
 
 	} catch (cl::Error& e) {
 		cerr << "err: " << e.err() << endl << "what: " << e.what() << endl;
@@ -400,8 +408,7 @@ vector<Vector2i> OpenCLCollider::initSortGPU(){
 		return a.lo < b.lo || (a.lo == b.lo && a.hi < b.hi);
 	});
 
-	cerr << "pocet preryvu : " << counter[0] << endl;
-	cout << counter[0] << endl;
+	cerr << "pocet prekryvu : " << counter[0] << endl;
 	vector<Vector2i> ret; ret.reserve(counter[0]);
 	for (const cl_uint2& o : overlay1){
 		ret.push_back(Vector2i(o.lo,o.hi));
@@ -748,8 +755,14 @@ void OpenCLCollider::run(){
 		#endif
 		OCLC_CHECKPOINT("initGPU");
 		// comparison
+		std::set<Vector2i> set1;
+		std::copy(cpuInit.begin(), cpuInit.end(), set1.begin());
+
 		if(cpu&&gpu){
-			if(cpuInit.size()!=gpuInit.size()) throw std::runtime_error("OpenCLCollider: initial contacts differ in length");
+			if(cpuInit.size()!=gpuInit.size()) {
+				LOG_ERROR("(cpu/gpu): " << cpuInit.size() << " / " << gpuInit.size());
+				throw std::runtime_error("OpenCLCollider: initial contacts differ in length");
+			}
 			for(auto init: {&cpuInit,&gpuInit}) std::sort(init->begin(),init->end(),[](const Vector2i& p1, const Vector2i& p2){ return (p1[0]<p2[0] || (p1[0]==p2[0] && p1[1]<p2[1])); });
 			if(memcmp(&(cpuInit[0]),&(gpuInit[0]),cpuInit.size()*sizeof(Vector2i))!=0) throw std::runtime_error("OpenCLCollider: initial contacts differ in values");
 		}
