@@ -1,6 +1,7 @@
 #ifdef YADE_CLDEM
 
 #include<yade/pkg/clDem/CLDemField.hpp>
+
 #include<yade/core/Scene.hpp>
 
 
@@ -21,8 +22,8 @@
 	#include<yade/lib/opengl/OpenGLWrapper.hpp>
 #endif
 
+// after all other includes, since it ambiguates many class in yade includes otherwise! 
 #include<cl-dem0/cl/Simulation.hpp>
-
 
 YADE_PLUGIN(cld,(CLDemData)(CLDemField)(CLDemRun));
 
@@ -569,7 +570,7 @@ void Gl1_CLDemField::renderPar(){
 
 void Gl1_CLDemField::renderPot(){
 	glLineWidth(2);
-	for(const cl_long2& ids: sim->pot){
+	for(const par_id2_t& ids: sim->pot){
 		if(ids.s0<0) continue;
 		#if 1
 			if(ids.s0>=(cl_long)sim->par.size() || ids.s1>=(cl_long)sim->par.size()){

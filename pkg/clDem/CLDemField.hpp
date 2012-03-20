@@ -5,7 +5,6 @@
 #include<yade/core/Engine.hpp>
 
 
-
 namespace clDem{ class Simulation; };
 
 // namespace yade{namespace clDem{
@@ -20,7 +19,14 @@ REGISTER_SERIALIZABLE(CLDemData);
 
 template<> struct NodeData::Index<CLDemData>{enum{value=Node::ST_CLDEM};};
 
-// #define YADE_CLDEM_SERIALIZABLE
+#define YADE_CLDEM_SERIALIZABLE
+
+#if BOOST_VERSION<104900
+	namespace boost {
+		namespace align { struct __attribute__((__aligned__(128))) a128 {};}
+		template<> class type_with_alignment<128> { public: typedef align::a128 type; };
+	};
+#endif
 
 struct CLDemField: public Field{
 	#ifndef YADE_CLDEM_SERIALIZABLE

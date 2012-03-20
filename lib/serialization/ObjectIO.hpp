@@ -17,6 +17,12 @@
 	#include<boost/math/special_functions/nonfinite_num_facets.hpp>
 #endif
 
+// this used to be feature given to scons
+#ifndef YADE_XMLSERIALIZATION
+	#define YADE_XMLSERIALIZATION
+#endif
+
+
 namespace yade{
 /* Utility template functions for (de)serializing objects using boost::serialization from/to streams or files.
 

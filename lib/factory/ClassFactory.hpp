@@ -23,6 +23,11 @@
 #include<boost/archive/binary_oarchive.hpp>
 #include<boost/archive/binary_iarchive.hpp>
 
+// this used to be feature given to scons
+#ifndef YADE_XMLSERIALIZATION
+	#define YADE_XMLSERIALIZATION
+#endif
+
 #ifdef YADE_XMLSERIALIZATION
 	#include<boost/archive/xml_oarchive.hpp>
 	#include<boost/archive/xml_iarchive.hpp>
