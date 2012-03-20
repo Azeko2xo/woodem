@@ -10,7 +10,7 @@
 #include<boost/iostreams/device/file.hpp>
 #include<boost/algorithm/string.hpp>
 #include<boost/version.hpp>
-#if BOOST_VERSION<14800
+#if BOOST_VERSION<104800
 	// local copy
 	#include<boost/math/nonfinite_num_facets.hpp>
 #else

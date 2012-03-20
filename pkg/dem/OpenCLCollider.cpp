@@ -44,7 +44,7 @@ void OpenCLCollider::postLoad(OpenCLCollider&){
 
 /* check overlap along one axis */
 bool OpenCLCollider::bboxOverlapAx(int id1, int id2, int ax){
-	return ((mini[ax][id1]<=maxi[ax][id2]) && (maxi[ax][id1]>=mini[ax][id2]));
+	return ((mini[ax][id1]<maxi[ax][id2]) && (maxi[ax][id1]>mini[ax][id2]));
 }
 /* check overlap along all axes */
 bool OpenCLCollider::bboxOverlap(int id1, int id2){
@@ -84,9 +84,9 @@ vector<Vector2i> OpenCLCollider::initSortCPU(){
 	// all intermediary bounds are candidates for collision, which must be checked in maxi/mini
 	// along other two axes
 
-	for(uint i = 0; i < cpuBounds[0].size(); i++){
-		LOG_DEBUG(cpuBounds[0][i].coord);
-	}
+//	for(uint i = 0; i < cpuBounds[0].size(); i++){
+//		LOG_DEBUG(cpuBounds[0][i].coord);
+//	}
 
 	int ax0=0; // int ax1=(ax0+1)%3, ax2=(ax0+2)%3;
 	for(size_t i=0; i<cpuBounds[ax0].size(); i++){
@@ -312,11 +312,9 @@ LOG_DEBUG(N);
 		LOG_DEBUG("R");
 		createOverlayK.setArg(3, 2*N);
 		LOG_DEBUG("S");
-		for(int ax:{1,2}){
+		for(int ax:{0,1,2}){
 			queue.enqueueWriteBuffer(minBuf[ax], CL_TRUE, 0, N * sizeof (cl_float), mini[ax].data());
 			LOG_DEBUG("T");
-			queue.enqueueWriteBuffer(maxBuf[ax], CL_TRUE, 0, N * sizeof (cl_float), maxi[ax].data());
-			LOG_DEBUG("U");
 		}
 
 		createOverlayK.setArg(6, minBuf[1]);
@@ -326,6 +324,10 @@ LOG_DEBUG(N);
 		createOverlayK.setArg(8, minBuf[2]);
 		LOG_DEBUG("X");
 		createOverlayK.setArg(9, maxBuf[2]);
+		LOG_DEBUG("Y");
+		createOverlayK.setArg(10, minBuf[0]);
+		LOG_DEBUG("X");
+		createOverlayK.setArg(11, maxBuf[0]);
 		LOG_DEBUG("Y");
 
 		memCheck[0] = 0;

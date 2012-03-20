@@ -39,7 +39,7 @@
 #include<yade/pkg/dem/Clump.hpp>
 #endif
 
-#if BOOST_VERSION<14800
+#if BOOST_VERSION<104800
 	// local copy
 	#include<boost/math/nonfinite_num_facets.hpp>
 #else
