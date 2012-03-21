@@ -270,9 +270,7 @@ vector<Vector2i> OpenCLCollider::initSortGPU(){
 //		cerr << "test: \n";
 	}
 
-	cl_uint *counter;
-	counter = new cl_uint[1];
-	counter[0] = 0;
+	cl_uint counter = 0;
 	//create overlay array
 	int overAlocMem = 2*N;
 
@@ -281,13 +279,9 @@ vector<Vector2i> OpenCLCollider::initSortGPU(){
 	cl::Buffer gMemCheck = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof (cl_uint), NULL);
 
 
-	cl_uint *test;
-	test = new cl_uint[1];
-	test[0] = 0;
-
-	cl_uint *memCheck;
-	memCheck = new cl_uint[1];
-
+	cl_uint test = 0;
+	cl_uint memCheck;
+	
 	vector<cl_uint2> overlay;
 	cl::Buffer gOverlay;
 
@@ -330,13 +324,13 @@ LOG_DEBUG(N);
 		createOverlayK.setArg(11, maxBuf[0]);
 		LOG_DEBUG("Y");
 
-		memCheck[0] = 0;
+		memCheck = 0;
 
 		gOverlay = cl::Buffer(context, CL_MEM_WRITE_ONLY, overAlocMem * sizeof (cl_uint2), NULL);
 
-		queue.enqueueWriteBuffer(gMemCheck, CL_TRUE, 0, sizeof (cl_uint), memCheck);
+		queue.enqueueWriteBuffer(gMemCheck, CL_TRUE, 0, sizeof (cl_uint), &memCheck);
 		LOG_DEBUG("Z");
-		queue.enqueueWriteBuffer(gCounter, CL_TRUE, 0, sizeof (cl_uint), test);
+		queue.enqueueWriteBuffer(gCounter, CL_TRUE, 0, sizeof (cl_uint), &test);
 		LOG_DEBUG("1");
 		createOverlayK.setArg(1, gOverlay);
 		LOG_DEBUG("2");
@@ -355,22 +349,22 @@ LOG_DEBUG(N);
 		LOG_DEBUG("5.5");
 		queue.finish();
 		LOG_DEBUG("5.9");
-		queue.enqueueReadBuffer(gMemCheck, CL_TRUE, 0, sizeof (cl_uint), memCheck);
+		queue.enqueueReadBuffer(gMemCheck, CL_TRUE, 0, sizeof (cl_uint), &memCheck);
 		LOG_DEBUG("6");
-		queue.enqueueReadBuffer(gCounter, CL_TRUE, 0, sizeof (cl_uint), counter);
+		queue.enqueueReadBuffer(gCounter, CL_TRUE, 0, sizeof (cl_uint), &counter);
 		LOG_DEBUG("7");
 
-		if (memCheck[0] == 1) {
-			memCheck[0] = 0;
-			cerr << "** Realokace pole na : " << counter[0] + 1 << endl;
-			overAlocMem = counter[0] + 1;
+		if (memCheck == 1) {
+			memCheck = 0;
+			cerr << "** Realokace pole na : " << counter + 1 << endl;
+			overAlocMem = counter + 1;
 
 			gOverlay = cl::Buffer(context, CL_MEM_WRITE_ONLY, overAlocMem * sizeof (cl_uint2), NULL);
 
-			queue.enqueueWriteBuffer(gMemCheck, CL_TRUE, 0, sizeof (cl_uint), memCheck);
+			queue.enqueueWriteBuffer(gMemCheck, CL_TRUE, 0, sizeof (cl_uint), &memCheck);
 		LOG_DEBUG("7");
 		LOG_DEBUG(test[0]);
-			queue.enqueueWriteBuffer(gCounter, CL_TRUE, 0, sizeof (cl_uint), test);
+			queue.enqueueWriteBuffer(gCounter, CL_TRUE, 0, sizeof (cl_uint), &test);
 		LOG_DEBUG("8");
 			createOverlayK.setArg(1, gOverlay);
 		LOG_DEBUG("9");
@@ -385,13 +379,13 @@ LOG_DEBUG(N);
 					cl::NDRange(global_size, global_size),
 					cl::NDRange(local_size, local_size));
 
-			queue.enqueueReadBuffer(gMemCheck, CL_TRUE, 0, sizeof (cl_uint), memCheck);
+			queue.enqueueReadBuffer(gMemCheck, CL_TRUE, 0, sizeof (cl_uint), &memCheck);
 		LOG_DEBUG("$");
-			queue.enqueueReadBuffer(gCounter, CL_TRUE, 0, sizeof (cl_uint), counter);
+			queue.enqueueReadBuffer(gCounter, CL_TRUE, 0, sizeof (cl_uint), &counter);
 		LOG_DEBUG("%");
 		}
 
-		if (memCheck[0] == 1) {
+		if (memCheck == 1) {
 			LOG_FATAL("Allocated memory insufficient.");
 			abort();
 		}
@@ -405,18 +399,18 @@ LOG_DEBUG(N);
 	}
 
 	std::vector<cl_uint2> overlay1;
-	overlay1.resize(counter[0]);
+	overlay1.resize(counter);
 	LOG_DEBUG("R-start");
-	LOG_DEBUG(counter[0]);
+	LOG_DEBUG(counter);
 	LOG_DEBUG(overAlocMem);
-	queue.enqueueReadBuffer(gOverlay, CL_TRUE, 0, counter[0] * sizeof (cl_uint2), overlay1.data());
+	queue.enqueueReadBuffer(gOverlay, CL_TRUE, 0, counter * sizeof (cl_uint2), overlay1.data());
 	LOG_DEBUG("R-end");
 	std::sort(overlay1.begin(), overlay1.end(), [](const cl_uint2& a, const cl_uint2 & b)->bool {
 		return a.lo < b.lo || (a.lo == b.lo && a.hi < b.hi);
 	});
 
-	cerr << "pocet prekryvu : " << counter[0] << endl;
-	vector<Vector2i> ret; ret.reserve(counter[0]);
+	cerr << "pocet prekryvu : " << counter << endl;
+	vector<Vector2i> ret; ret.reserve(counter);
 	for (const cl_uint2& o : overlay1){
 		ret.push_back(Vector2i(o.lo,o.hi));
 		//cout<<o.lo<<" "<<o.hi<<endl;
@@ -542,7 +536,7 @@ vector<Vector2i> OpenCLCollider::inversionsGPU(int ax){
 	LOG_DEBUG(noOfInv);
 
 	//inv.resize(noOfInv);
-	cl_uint2 *inversions =  new cl_uint2[noOfInv];
+	vector<cl_uint2> inversions(noOfInv);
 	cl::Buffer gpuInversion(scene->context, CL_MEM_WRITE_ONLY, noOfInv * sizeof(cl_uint2), NULL);
 
 	/*compute inversion*/
@@ -594,10 +588,9 @@ vector<Vector2i> OpenCLCollider::inversionsGPU(int ax){
 	}
 
 	scene->queue.enqueueReadBuffer(boundsG, CL_TRUE, 0, N * sizeof(AxBound), gpuBounds[ax].data());
-	scene->queue.enqueueReadBuffer(gpuInversion, CL_TRUE, 0, noOfInv * sizeof (cl_uint2), inversions);	
+	scene->queue.enqueueReadBuffer(gpuInversion, CL_TRUE, 0, noOfInv * sizeof (cl_uint2), inversions.data());	
 
 	for(uint i = 0; i < noOfInv; i++){
-	//	cerr << inversions[i].lo << " x " << inversions[i].hi << endl;
 		inv.push_back(Vector2i(inversions[i].lo, inversions[i].hi));
 	}
 	LOG_DEBUG(inv.size());
@@ -676,20 +669,6 @@ bool OpenCLCollider::checkBoundsSorted(){
 		for(int ax=0; ax<3; ax++){
 			for(size_t i=0; i<gpuBounds[ax].size()-1; i++){
 				if(gpuBounds[ax][i].coord>gpuBounds[ax][i+1].coord){ ok=false; LOG_ERROR("gpuBounds["<<ax<<"]["<<i<<"].coord="<<">"<<"gpuBounds["<<ax<<"]["<<i+1<<"].coord: "<<gpuBounds[ax][i].coord<<">"<<gpuBounds[ax][i+1].coord) }
-			}
-		}
-	}
-	if(gpu){
-		for(int ax=0; ax < 3; ax++){
-			for(int i = 0; i < gpuBounds[ax].size() - 1; i++){
-				int gID = gpuBounds[ax][i].id >> 2; 
-				int cID = cpuBounds[ax][i].id >> 2;
-				//if(gID != cID){
-				//	LOG_ERROR("gpu ID: [" << gID << "] x cpu ID: [" << cID <<"]");
-				//}
-				if(gpuBounds[ax][i].coord != cpuBounds[ax][i].coord){
-					LOG_ERROR("gpu: " << gpuBounds[ax][i].coord << " cpu: " << cpuBounds[ax][i].coord);
-				}
 			}
 		}
 	}
