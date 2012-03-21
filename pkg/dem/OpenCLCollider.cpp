@@ -79,7 +79,7 @@ vector<Vector2i> OpenCLCollider::initSortCPU(){
 	vector<Vector2i> ret;
 	LOG_TRACE("Initial sort, number of bounds "<<cpuBounds[0].size());
 	// sort all arrays without looking for inversions first
-	for(int ax:{0,1,2}) std::sort(cpuBounds[ax].begin(),cpuBounds[ax].end(),[](const CpuAxBound& b1, const CpuAxBound& b2) -> bool { return (isnan(b1.coord)||isnan(b2.coord))?true:b1.coord<b2.coord; } );
+	for(int ax:{0,1,2}) std::sort(cpuBounds[ax].begin(),cpuBounds[ax].end(),[](const CpuAxBound& b1, const CpuAxBound& b2) -> bool { return (isnan(b1.coord)||isnan(b2.coord))?true:(b1.coord<b2.coord)||(b1.coord==b2.coord&&b1.id<b2.id);} );
 	// traverse one axis, always from lower bound to upper bound of the same particle
 	// all intermediary bounds are candidates for collision, which must be checked in maxi/mini
 	// along other two axes
@@ -676,6 +676,20 @@ bool OpenCLCollider::checkBoundsSorted(){
 		for(int ax=0; ax<3; ax++){
 			for(size_t i=0; i<gpuBounds[ax].size()-1; i++){
 				if(gpuBounds[ax][i].coord>gpuBounds[ax][i+1].coord){ ok=false; LOG_ERROR("gpuBounds["<<ax<<"]["<<i<<"].coord="<<">"<<"gpuBounds["<<ax<<"]["<<i+1<<"].coord: "<<gpuBounds[ax][i].coord<<">"<<gpuBounds[ax][i+1].coord) }
+			}
+		}
+	}
+	if(gpu){
+		for(int ax=0; ax < 3; ax++){
+			for(int i = 0; i < gpuBounds[ax].size() - 1; i++){
+				int gID = gpuBounds[ax][i].id >> 2; 
+				int cID = cpuBounds[ax][i].id >> 2;
+				//if(gID != cID){
+				//	LOG_ERROR("gpu ID: [" << gID << "] x cpu ID: [" << cID <<"]");
+				//}
+				if(gpuBounds[ax][i].coord != cpuBounds[ax][i].coord){
+					LOG_ERROR("gpu: " << gpuBounds[ax][i].coord << " cpu: " << cpuBounds[ax][i].coord);
+				}
 			}
 		}
 	}
