@@ -363,7 +363,7 @@ LOG_DEBUG(N);
 
 			queue.enqueueWriteBuffer(gMemCheck, CL_TRUE, 0, sizeof (cl_uint), &memCheck);
 		LOG_DEBUG("7");
-		LOG_DEBUG(test[0]);
+		LOG_DEBUG(test);
 			queue.enqueueWriteBuffer(gCounter, CL_TRUE, 0, sizeof (cl_uint), &test);
 		LOG_DEBUG("8");
 			createOverlayK.setArg(1, gOverlay);

@@ -85,11 +85,27 @@ void CLDemRun::doCompare(){
 	// get DEM field to compare with
 	shared_ptr<DemField> dem;
 	FOREACH(const auto& f, scene->fields){
-		if(dynamic_pointer_cast<DemField>(f)){ dem=static_pointer_cast<DemField>(f); break; }
+		dem=dynamic_pointer_cast<DemField>(f);
+		if(dem) break;
 	}
 	if(!dem) _THROW_ERROR("No DEM field to compare clDem with. Set CLDemRun.compare=False.");
 	if(sim->scene.step!=scene->step) _THROW_ERROR("Step differs: "<<sim->scene.step<<"/"<<scene->step);
 	if(sim->scene.dt!=scene->dt) _THROW_ERROR("Δt differs: "<<sim->scene.dt<<"/"<<scene->dt);
+
+	// find contact loop
+	shared_ptr<ContactLoop> loop;
+	FOREACH(const auto& e, scene->engines){
+		loop=dynamic_pointer_cast<ContactLoop>(e);
+		if(loop) break;
+	}
+	if(!loop) _THROW_ERROR("No ContactLoop in scene.engines.");
+
+	shared_ptr<Cp2_FrictMat_FrictPhys> cp2Frict;
+	FOREACH(const auto& f, loop->phyDisp->functors){
+		cp2Frict=dynamic_pointer_cast<Cp2_FrictMat_FrictPhys>(f);
+		if(cp2Frict) break;
+	}
+	if(!cp2Frict) _THROW_ERROR("No Cp2_FrictMat_FrictPhys in ContactLoop.physDisp.");
 
 	// units so that errors are scaled properly
 	Real kgU=NaN, mU=NaN; // taken from particles
@@ -103,12 +119,12 @@ void CLDemRun::doCompare(){
 	for(size_t id=0; id<sim->par.size(); id++){
 		// no particles in yade and clDem
 		string pId="#"+lexical_cast<string>(id);
-		if(id>=dem->particles.size()){ _THROW_ERROR(pId<<" not in Yade"); continue; }
+		if(id>=dem->particles.size()) _THROW_ERROR(pId<<" not in Yade");
 		int shapeT=clDem::par_shapeT_get(&(sim->par[id]));
 		if(!dem->particles[id] && shapeT==Shape_None) continue;
-		if(shapeT==Shape_None){ _THROW_ERROR(pId<<" not in clDem"); continue; }
+		if(shapeT==Shape_None) _THROW_ERROR(pId<<" not in clDem");
 		// clumps have no associated particle
-		if(!dem->particles[id] && !par_clumped_get(&(sim->par[id]))){ _THROW_ERROR(pId<<" not in Yade"); continue; }
+		if(!dem->particles[id] && !par_clumped_get(&(sim->par[id]))) _THROW_ERROR(pId<<" not in Yade");
 		const clDem::Particle& cp(sim->par[id]);
 		const shared_ptr< ::Particle>& yp(dem->particles[id]);
 
@@ -125,17 +141,17 @@ void CLDemRun::doCompare(){
 		switch(shapeT){
 			case Shape_Sphere:{
 				yn=yp->shape->nodes[0];
-				if(!dynamic_pointer_cast< ::Sphere>(yp->shape)){ _THROW_ERROR(pId<<": shape mismatch Sphere/"<<typeid(*(yp->shape)).name()); continue; }
+				if(!dynamic_pointer_cast< ::Sphere>(yp->shape)) _THROW_ERROR(pId<<": shape mismatch Sphere/"<<typeid(*(yp->shape)).name());
 				const ::Sphere& ys(yp->shape->cast< ::Sphere>());
-				if(ys.radius!=cp.shape.sphere.radius){ _THROW_ERROR(pId<<": spheres radius "<<cp.shape.sphere.radius<<"/"<<ys.radius); continue; }
+				if(ys.radius!=cp.shape.sphere.radius) _THROW_ERROR(pId<<": spheres radius "<<cp.shape.sphere.radius<<"/"<<ys.radius);
 				break;
 			}
 			case Shape_Wall:{
 				yn=yp->shape->nodes[0];
-				if(!dynamic_pointer_cast< ::Wall>(yp->shape)){ _THROW_ERROR(pId<<": shape mismatch Wall/"<<typeid(*(yp->shape)).name()); continue; }
+				if(!dynamic_pointer_cast< ::Wall>(yp->shape)) _THROW_ERROR(pId<<": shape mismatch Wall/"<<typeid(*(yp->shape)).name());
 				const ::Wall& yw(yp->shape->cast< ::Wall>());
-				if(yw.axis!=cp.shape.wall.axis){ _THROW_ERROR(pId<<": wall axis "<<cp.shape.wall.axis<<"/"<<yw.axis); continue; }
-				if(yw.sense!=cp.shape.wall.sense){ _THROW_ERROR(pId<<": wall sense "<<cp.shape.wall.sense<<"/"<<yw.sense); continue; }
+				if(yw.axis!=cp.shape.wall.axis) _THROW_ERROR(pId<<": wall axis "<<cp.shape.wall.axis<<"/"<<yw.axis);
+				if(yw.sense!=cp.shape.wall.sense) _THROW_ERROR(pId<<": wall sense "<<cp.shape.wall.sense<<"/"<<yw.sense);
 				break;
 			}
 			case Shape_Clump:{
@@ -171,7 +187,7 @@ void CLDemRun::doCompare(){
 				break;
 			}
 			default:
-				_THROW_ERROR(pId<<": shape index "<<shapeT<<" not handled by the comparator."); continue;
+				_THROW_ERROR(pId<<": shape index "<<shapeT<<" not handled by the comparator.");
 		}
 		assert(yn);
 
@@ -181,12 +197,22 @@ void CLDemRun::doCompare(){
 			int matT=clDem::mat_matT_get(&(sim->scene.materials[matId]));
 			switch(matT){
 				case clDem::Mat_ElastMat:{
-					if(!dynamic_pointer_cast< ::FrictMat>(yp->material)){ _THROW_ERROR(pId<<": material mismatch ElastMat/"<<typeid(*(yp->material)).name()); continue; }
-					const ::FrictMat& ym(yp->material->cast<FrictMat>());
+					if(!dynamic_pointer_cast< ::FrictMat>(yp->material)) _THROW_ERROR(pId<<": material mismatch ElastMat/"<<typeid(*(yp->material)).name());
+					const ::FrictMat& ym(yp->material->cast< ::FrictMat>());
 					if(!isinf(ym.tanPhi)) _THROW_ERROR(pId<<": yade::FrictMat::tanPhi="<<ym.tanPhi<<" should be infinity to represent frictionless clDem::ElastMat");
 					const clDem::ElastMat& cm(sim->scene.materials[matId].mat.elast);
-					if(ym.density!=cm.density){ _THROW_ERROR(pId<<": density differs "<<cm.density<<"/"<<ym.density); continue; }
-					if(ym.young!=cm.young){ _THROW_ERROR(pId<<": young differes "<<cm.young<<"/"<<ym.young); continue; }
+					if(ym.density!=cm.density) _THROW_ERROR(pId<<": density differs "<<cm.density<<"/"<<ym.density);
+					if(ym.young!=cm.young) _THROW_ERROR(pId<<": young differes "<<cm.young<<"/"<<ym.young);
+					break;
+				}
+				case clDem::Mat_FrictMat:{
+					if(!dynamic_pointer_cast< ::FrictMat>(yp->material)) _THROW_ERROR(pId<<": material mismatch FrictMat/"<<typeid(*(yp->material)).name());
+					const ::FrictMat& ym(yp->material->cast< ::FrictMat>());
+					const clDem::FrictMat& cm(sim->scene.materials[matId].mat.frict);
+					if(ym.density!=cm.density) _THROW_ERROR(pId<<": density differs "<<cm.density<<"/"<<ym.density);
+					if(ym.young!=cm.young) _THROW_ERROR(pId<<": young differs "<<cm.young<<"/"<<ym.young);
+					if(ym.tanPhi!=cm.tanPhi) _THROW_ERROR(pId<<": young differs "<<cm.tanPhi<<"/"<<ym.tanPhi);
+					if(cp2Frict->ktDivKn!=cm.ktDivKn) _THROW_ERROR(pId<<": ktDivKn differs "<<cm.ktDivKn<<"/"<<cp2Frict->ktDivKn<<" (Cp2_FrictMat_FrictPhys.ktDivKn)");
 					break;
 				}
 				default:
@@ -235,10 +261,10 @@ void CLDemRun::doCompare(){
 		if(!yc){ _THROW_ERROR(cId<<": not in yade"); continue; }
 		int geomT=clDem::con_geomT_get(&cc);
 		int physT=clDem::con_physT_get(&cc);
-		if(!yc->geom && geomT!=clDem::Geom_None){ _THROW_ERROR(cId<<": only has geom in clDem"); continue; }
-		if( yc->geom && geomT==clDem::Geom_None){ _THROW_ERROR(cId<<": only has geom in yade"); continue; }
-		if(!yc->phys && physT!=clDem::Phys_None){ _THROW_ERROR(cId<<": only has phys in clDem"); continue; }
-		if( yc->phys && physT==clDem::Phys_None){ _THROW_ERROR(cId<<": only has phys in yade"); continue; }
+		if(!yc->geom && geomT!=clDem::Geom_None) _THROW_ERROR(cId<<": only has geom in clDem");
+		if( yc->geom && geomT==clDem::Geom_None) _THROW_ERROR(cId<<": only has geom in yade"); 
+		if(!yc->phys && physT!=clDem::Phys_None) _THROW_ERROR(cId<<": only has phys in clDem");
+		if( yc->phys && physT==clDem::Phys_None) _THROW_ERROR(cId<<": only has phys in yade"); 
 		if(!yc->geom || !yc->phys) continue;
 		Real posErr=(v2v(cc.pos)-yc->geom->node->pos).norm();
 		_CHK_ERR(cId,posErr,cc.pos,yc->geom->node->pos);
@@ -267,12 +293,23 @@ void CLDemRun::doCompare(){
 
 		switch(physT){
 			case(clDem::Phys_NormPhys):{
-				if(!dynamic_pointer_cast< ::FrictPhys>(yc->phys)){ _THROW_ERROR(cId<<": phys mismatch NormPhys/"<<typeid(*(yc->phys)).name()); continue; }
+				if(!dynamic_pointer_cast< ::FrictPhys>(yc->phys)) _THROW_ERROR(cId<<": phys mismatch NormPhys/"<<typeid(*(yc->phys)).name());
 				const ::FrictPhys yp(yc->phys->cast< ::FrictPhys>());
-				Real kNErr=abs(cc.phys.normPhys.kN-yp.kn)/(NU/mU);
-				_CHK_ERR(cId,kNErr,cc.phys.normPhys.kN,yp.kn);
+				Real kNErr=abs(cc.phys.norm.kN-yp.kn)/(NU/mU);
+				_CHK_ERR(cId,kNErr,cc.phys.norm.kN,yp.kn);
 				// kT not checked
 				if(!isinf(yp.tanPhi)) _THROW_ERROR(cId<<": yade::FrictMat::tanPhi="<<yp.tanPhi<<" should be infinity to represent frictionless clDem::NormPhys");
+				break;
+			}
+			case(clDem::Phys_FrictPhys):{
+				if(!dynamic_pointer_cast< ::FrictPhys>(yc->phys)) _THROW_ERROR(cId<<": phys mismatch FrictPhys/"<<typeid(*(yc->phys)).name());
+				const ::FrictPhys yp(yc->phys->cast< ::FrictPhys>());
+				Real kNErr=abs(cc.phys.frict.kN-yp.kn)/(NU/mU);
+				Real kTErr=abs(cc.phys.frict.kT-yp.kt)/(NU/mU);
+				Real tanPhiErr=abs(cc.phys.frict.tanPhi-yp.tanPhi)/(NU/mU);
+				_CHK_ERR(cId,kNErr,cc.phys.frict.kN,yp.kn);
+				_CHK_ERR(cId,kTErr,cc.phys.frict.kT,yp.kt);
+				_CHK_ERR(cId,tanPhiErr,cc.phys.frict.tanPhi,yp.tanPhi);
 				break;
 			}
 			default: _THROW_ERROR(cId<<": physT "<<physT<<" not handled by the comparator"); continue;
@@ -292,6 +329,7 @@ void CLDemRun::doCompare(){
 				case ENERGY_grav: name="grav"; break;
 				case ENERGY_damp: name="nonviscDamp"; break;
 				case ENERGY_elast: name="elast"; break;
+				case ENERGY_frict: name="frict"; break;
 				case ENERGY_broken: name="broken"; break;
 				default: _THROW_ERROR("Energy number "<<i<<" not handled by the comparator.");
 			}
@@ -325,6 +363,45 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 	scene->trackEnergy=sim->trackEnergy;
 	dem->loneMask=sim->scene.loneGroups;
 
+	// materials
+	int mmatT=clDem::Mat_None; // track combination of materials, which is not supported
+	Real ktDivKn=NaN; // track difference ktDivKn, which is not supported in yade
+
+	shared_ptr< ::Material> ymats[clDem::SCENE_MAT_NUM_];
+	for(int i=0; i<clDem::SCENE_MAT_NUM_; i++){
+		const clDem::Material& cmat(sim->scene.materials[i]);
+		int matT=clDem::mat_matT_get(&cmat);
+		switch(matT){
+			case clDem::Mat_None: break;
+			case clDem::Mat_ElastMat:{
+				if(mmatT==clDem::Mat_None) mmatT=clDem::Mat_ElastMat;
+				if(mmatT!=clDem::Mat_ElastMat) throw std::runtime_error("Combination of materials (ElastMat, FrictMat) not handled.");
+				auto fm=make_shared< ::FrictMat>();
+				fm->density=cmat.mat.elast.density;
+				fm->young=cmat.mat.elast.young;
+				fm->tanPhi=Inf; // no friction
+				fm->poisson=NaN; // meaningless
+				ymats[i]=fm;
+				break;
+			}
+			case clDem::Mat_FrictMat:{
+				if(mmatT==clDem::Mat_None) mmatT=clDem::Mat_FrictMat;
+				if(mmatT!=clDem::Mat_FrictMat) throw std::runtime_error("Combination of materials (ElastMat, FrictMat) not handled.");
+				if(isnan(ktDivKn)) ktDivKn=cmat.mat.frict.ktDivKn;
+				if(ktDivKn!=cmat.mat.frict.ktDivKn) throw std::runtime_error("Combinations of different values of FrictMar.ktDivKn not handled.");
+				auto fm=make_shared< ::FrictMat>();
+				fm->density=cmat.mat.frict.density;
+				fm->young=cmat.mat.frict.young;
+				fm->tanPhi=cmat.mat.frict.tanPhi;
+				fm->poisson=NaN; // meaningless
+				ymats[i]=fm;
+				break;
+			}
+			default: throw std::runtime_error("materials["+lexical_cast<string>(i)+": unhandled matT "+lexical_cast<string>(matT)+".");
+		}
+	}
+	if(mmatT==clDem::Mat_None) throw std::runtime_error("No materials defined.");
+
 	// create engines
 	// yade first
 	auto grav=make_shared<Gravity>();
@@ -343,18 +420,30 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 	loop->geoDisp->add(make_shared<Cg2_Wall_Sphere_L6Geom>());
 	loop->geoDisp->add(make_shared<Cg2_Facet_Sphere_L6Geom>());
 	auto frict=make_shared<Cp2_FrictMat_FrictPhys>();
-	frict->ktDivKn=isnan(sim->ktDivKn)?0:sim->ktDivKn;
 	loop->phyDisp->add(frict);
 	loop->applyForces=true;
-	if(sim->breakTension){
-		if(!isnan(sim->charLen)) throw std::runtime_error("The combination of breaking contacts and non-NaN charLen (i.e. bending stiffness) is not handled yet!");
-		auto law=make_shared<Law2_L6Geom_FrictPhys_IdealElPl>();
-		law->noSlip=true;
-		loop->lawDisp->add(law);
-	} else {
-		auto law=make_shared<Law2_L6Geom_FrictPhys_LinEl6>();
-		law->charLen=isnan(sim->charLen)?Inf:sim->charLen;
-		loop->lawDisp->add(law);
+	switch(mmatT){
+		case clDem::Mat_ElastMat:{
+			frict->ktDivKn=isnan(sim->ktDivKn)?0:sim->ktDivKn;
+			if(sim->breakTension){
+				if(!isnan(sim->charLen)) throw std::runtime_error("The combination of breaking contacts and non-NaN charLen (i.e. bending stiffness) is not handled yet!");
+				auto law=make_shared<Law2_L6Geom_FrictPhys_IdealElPl>();
+				law->noSlip=true;
+				loop->lawDisp->add(law);
+			} else {
+				auto law=make_shared<Law2_L6Geom_FrictPhys_LinEl6>();
+				law->charLen=isnan(sim->charLen)?Inf:sim->charLen;
+				loop->lawDisp->add(law);
+			}
+			break;
+		}
+		case clDem::Mat_FrictMat:{
+			frict->ktDivKn=ktDivKn;
+			auto law=make_shared<Law2_L6Geom_FrictPhys_IdealElPl>();
+			law->noSlip=false;
+			loop->lawDisp->add(law);
+			break;
+		}
 	}
 	// our engine at the end
 	auto clDemRun=make_shared<CLDemRun>();
@@ -375,25 +464,6 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 		clDemRun,
 	};
 
-	// materials
-	shared_ptr< ::Material> ymats[clDem::SCENE_MAT_NUM_];
-	for(int i=0; i<clDem::SCENE_MAT_NUM_; i++){
-		const clDem::Material& cmat(sim->scene.materials[i]);
-		int matT=clDem::mat_matT_get(&cmat);
-		switch(matT){
-			case clDem::Mat_None: break;
-			case clDem::Mat_ElastMat:{
-				auto fm=make_shared< ::FrictMat>();
-				fm->density=cmat.mat.elast.density;
-				fm->young=cmat.mat.elast.young;
-				fm->tanPhi=Inf; // no friction
-				fm->poisson=NaN; // meaningless
-				ymats[i]=fm;
-				break;
-			}
-			default: throw std::runtime_error("materials["+lexical_cast<string>(i)+": unhandled matT "+lexical_cast<string>(matT)+".");
-		}
-	}
 	// particles
 	for(size_t i=0; i<sim->par.size(); i++){
 		const clDem::Particle& cp=sim->par[i];
