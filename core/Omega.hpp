@@ -60,7 +60,6 @@ class Omega: public Singleton<Omega>{
 		bool isInheritingFrom_recursive(const string& className, const string& baseClassName );
 
 		string gdbCrashBatch;
-		char** origArgv; int origArgc;
 
 		// do not change by hand
 		/* Mutex for:

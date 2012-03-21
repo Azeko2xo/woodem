@@ -292,6 +292,7 @@ void CLDemRun::doCompare(){
 				case ENERGY_grav: name="grav"; break;
 				case ENERGY_damp: name="nonviscDamp"; break;
 				case ENERGY_elast: name="elast"; break;
+				case ENERGY_broken: name="broken"; break;
 				default: _THROW_ERROR("Energy number "<<i<<" not handled by the comparator.");
 			}
 			int yId=-1; scene->energy->findId(name,yId,/*flags*/0,/*newIfNotFound*/false);

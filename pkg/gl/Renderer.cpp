@@ -47,6 +47,7 @@ void Renderer::init(){
 		char* argv[]={};
 		int argc=0;
 		glutInit(&argc,argv);
+		//glutInitDisplayMode(GLUT_DOUBLE);
 		/* transparent spheres (still not working): glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH | GLUT_MULTISAMPLE | GLUT_ALPHA); glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE); */
 		glutInitDone=true;
 	}
