@@ -36,10 +36,10 @@ class Scene: public Serializable{
 		void postLoad(Scene&);
 
 		#ifdef YADE_OPENCL
-			cl::Platform platform;
-			cl::Device device;
-			cl::Context context;
-			cl::CommandQueue queue;
+			shared_ptr<cl::Platform> platform;
+			shared_ptr<cl::Device> device;
+			shared_ptr<cl::Context> context;
+			shared_ptr<cl::CommandQueue> queue;
 		#endif
 
 		// keep track of created labels; delete those which are no longer active and so on

@@ -79,15 +79,16 @@ void Scene::initCl(){
 	if(platforms.empty()){ throw std::runtime_error("No OpenCL platforms available."); }
 	if(pNum>=(int)platforms.size()){ LOG_WARN("Only "<<platforms.size()<<" platforms available, taking 0th platform."); pNum=0; }
 	if(pNum<0) pNum=0;
-	platform=platforms[pNum];
-	platforms[pNum].getDevices(CL_DEVICE_TYPE_ALL,&devices);
-	if(devices.empty()){ throw std::runtime_error("No OpenCL devices available on the platform "+platform.getInfo<CL_PLATFORM_NAME>()+"."); }
+	platform=make_shared<cl::Platform>(platforms[pNum]);
+	platform->getDevices(CL_DEVICE_TYPE_ALL,&devices);
+	if(devices.empty()){ throw std::runtime_error("No OpenCL devices available on the platform "+platform->getInfo<CL_PLATFORM_NAME>()+"."); }
 	if(dNum>=(int)devices.size()){ LOG_WARN("Only "<<devices.size()<<" devices available, taking 0th device."); dNum=0; }
 	if(dNum<0) dNum=0;
-	context=cl::Context(devices);
-	device=devices[dNum];
-	LOG_WARN("OpenCL ready: platform \""<<platform.getInfo<CL_PLATFORM_NAME>()<<"\", device \""<<device.getInfo<CL_DEVICE_NAME>()<<"\".");
-	queue=cl::CommandQueue(context,device);
+	device=make_shared<cl::Device>(devices[dNum]);
+	// create context only for one device
+	context=make_shared<cl::Context>(vector<cl::Device>({*device}));
+	LOG_WARN("OpenCL ready: platform \""<<platform->getInfo<CL_PLATFORM_NAME>()<<"\", device \""<<device->getInfo<CL_DEVICE_NAME>()<<"\".");
+	queue=make_shared<cl::CommandQueue>(*context,*device);
 	clDev=Vector2i(pNum,dNum);
 	_clDev=clDev;
 }
@@ -213,36 +214,3 @@ void Scene::moveToNextTimeStep(){
 	}
 }
 
-
-
-#if 0
-void Scene::checkStateTypes(){
-	FOREACH(const shared_ptr<Body>& b, *bodies){
-		if(!b || !b->material) continue;
-		if(b->material && !b->state) throw std::runtime_error("Body #"+lexical_cast<string>(b->getId())+": has Body::material, but NULL Body::state.");
-		if(!b->material->stateTypeOk(b->state.get())){
-			throw std::runtime_error("Body #"+lexical_cast<string>(b->getId())+": Body::material type "+b->material->getClassName()+" doesn't correspond to Body::state type "+b->state->getClassName()+" (should be "+b->material->newAssocState()->getClassName()+" instead).");
-		}
-	}
-}
-
-void Scene::updateBound(){
-	if(!bound) bound=shared_ptr<Bound>(new Bound);
-	const Real& inf=std::numeric_limits<Real>::infinity();
-	Vector3r mx(-inf,-inf,-inf);
-	Vector3r mn(inf,inf,inf);
-	FOREACH(const shared_ptr<Body>& b, *bodies){
-		if(!b) continue;
-		if(b->bound){
-			for(int i=0; i<3; i++){
-				if(!isinf(b->bound->max[i])) mx[i]=max(mx[i],b->bound->max[i]);
-				if(!isinf(b->bound->min[i])) mn[i]=min(mn[i],b->bound->min[i]);
-			}
-		} else {
-	 		mx=mx.cwise().max(b->state->pos);
- 			mn=mn.cwise().min(b->state->pos);
-		}
-	}
-	bound->min=mn; bound->max=mx;
-}
-#endif

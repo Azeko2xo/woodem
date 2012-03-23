@@ -62,6 +62,13 @@ void CLDemField::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){
 void CLDemRun::run(){
 	CLDemField& cldem=field->cast<CLDemField>();
 	sim=cldem.sim;
+	if(!sim->context || sim->context!=scene->context){
+		scene->ensureCl();
+		sim->platform=scene->platform;
+		sim->device=scene->device;
+		sim->context=scene->context;
+		sim->queue=scene->queue;
+	}
 	// in case timestep was adjusted in yade
 	sim->scene.dt=scene->dt;
 	if(!sim) throw std::runtime_error("No CLDemField.sim! (beware: it is not saved automatically)");
