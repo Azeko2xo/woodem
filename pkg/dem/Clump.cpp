@@ -65,6 +65,10 @@ shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, bool i
 	LOG_TRACE("clump->inertia="<<clump->inertia.transpose());
 	// TODO: these might be calculated from members... but complicated... - someone needs that?!
 	clump->vel=clump->angVel=Vector3r::Zero();
+	#ifdef YADE_DEBUG
+		AngleAxisr aa(cNode->ori);
+	#endif
+	LOG_TRACE("pos="<<cNode->pos.transpose()<<", ori="<<aa.axis()<<":"<<aa.angle());
 
 	clump->nodes.reserve(N); clump->relPos.reserve(N); clump->relOri.reserve(N);
 	for(size_t i=0; i<N; i++){
@@ -73,6 +77,10 @@ shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, bool i
 		clump->nodes. push_back(n);
 		clump->relPos.push_back(cNode->ori.conjugate()*(n->pos-cNode->pos));
 		clump->relOri.push_back(cNode->ori.conjugate()*n->ori);
+		#ifdef YADE_DEBUG
+			AngleAxisr aa(*(clump->relOri.rbegin()));
+		#endif
+		LOG_TRACE("relPos="<<clump->relPos.rbegin()->transpose()<<", relOri="<<aa.axis()<<":"<<aa.angle());
 		dem.setClumped();
 	}
 	return cNode;
@@ -89,7 +97,7 @@ void ClumpData::collectFromMembers(const shared_ptr<Node>& node){
 	}
 }
 
-void ClumpData::applyToMembers(const shared_ptr<Node>& node){
+void ClumpData::applyToMembers(const shared_ptr<Node>& node, bool reset){
 	ClumpData& clump=node->getData<DemData>().cast<ClumpData>();
 	const Vector3r& clumpPos(node->pos); const Quaternionr& clumpOri(node->ori);
 	assert(clump.nodes.size()==clump.relPos.size()); assert(clump.nodes.size()==clump.relOri.size());
@@ -100,6 +108,15 @@ void ClumpData::applyToMembers(const shared_ptr<Node>& node){
 		n->ori=clumpOri*clump.relOri[i];
 		nDyn.vel=clump.vel+clump.angVel.cross(n->pos-clumpPos);
 		nDyn.angVel=clump.angVel;
+		if(reset) nDyn.force=nDyn.torque=Vector3r::Zero();
+	}
+}
+
+void ClumpData::resetForceTorque(const shared_ptr<Node>& node){
+	ClumpData& clump=node->getData<DemData>().cast<ClumpData>();
+	for(size_t i=0; i<clump.nodes.size(); i++){
+		DemData& nDyn(clump.nodes[i]->getData<DemData>());
+		nDyn.force=nDyn.torque=Vector3r::Zero();
 	}
 }
 

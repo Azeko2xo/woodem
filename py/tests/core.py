@@ -45,7 +45,7 @@ class TestLoop(unittest.TestCase):
 		O.scene.subStepping=False
 		O.step(); self.assert_(O.scene.subStep==-1)
 		# subStep==0 inside the loop without substepping
-		O.engines=[PyRunner(1,'if O.scene.subStep!=0: raise RuntimeError("O.scene.subStep!=0 inside the loop with O.scene.subStepping==False!")')]
+		O.scene.engines=[PyRunner(1,'if O.scene.subStep!=0: raise RuntimeError("O.scene.subStep!=0 inside the loop with O.scene.subStepping==False!")')]
 		O.step()
 	def testEnginesModificationInsideLoop(self):
 		'Loop: O.engines can be modified inside the loop transparently.'
@@ -69,8 +69,8 @@ class TestLoop(unittest.TestCase):
 		self.assert_(len(O.scene._currEngines)==3)
 	def testDead(self):
 		'Loop: dead engines are not run'
-		O.engines=[PyRunner(1,'pass',dead=True)]
-		O.step(); self.assert_(O.engines[0].nDone==0)
+		O.scene.engines=[PyRunner(1,'pass',dead=True)]
+		O.step(); self.assert_(O.scene.engines[0].nDone==0)
 			
 
 

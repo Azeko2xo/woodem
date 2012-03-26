@@ -88,6 +88,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.stepPerSecTimeout=1 # how often to recompute the number of steps per second
 		self.stepTimes,self.stepValues,self.stepPerSec=[],[],0 # arrays to keep track of the simulation speed
 		self.dtEditUpdate=True # to avoid updating while being edited
+		self.dtEdit.setEnabled(False)
 		# show off with this one as well now
 	def addPreprocessors(self):
 		for c in yade.system.childClasses('FileGenerator'):
@@ -161,6 +162,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		from yade import plot
 		plot.splitData()
 		O.reload()
+	## FIXME: this does not seem to work. Disabled setting dt from the gui until fixed
 	def dtEditNoupdateSlot(self):
 		#print 'dt not refreshed'
 		self.dtEditUpdate=False
@@ -235,7 +237,9 @@ class ControllerClass(QWidget,Ui_Controller):
 			self.reloadButton.setEnabled(False)
 			self.stepButton.setEnabled(False)
 			self.subStepCheckbox.setEnabled(False)
-		self.dtEdit.setEnabled(True)
+		## FIXME: dt editing broken, never enable editable
+		#self.dtEdit.setEnabled(True)
+		self.dtEdit.setEnabled(False)
 		fn=O.scene.lastSave
 		self.fileLabel.setText(fn if fn else '<i>[no file]</i>')
 
@@ -275,7 +279,9 @@ class ControllerClass(QWidget,Ui_Controller):
 			s=int(t); ms=int(t*1000)%1000; us=int(t*1000000)%1000; ns=int(t*1000000000)%1000
 			self.virtTimeLabel.setText(u'%03ds%03dm%03dμ%03dn'%(s,ms,us,ns))
 		else: self.virtTimeLabel.setText(u'[ ∞ ] ?!')
-		if self.dtEditUpdate: self.dtEdit.setText(str(scene.dt))
+		## FIXME:
+		##if self.dtEditUpdate:
+		self.dtEdit.setText(str(scene.dt))
 		self.show3dButton.setChecked(len(views())>0)
 		
 def Generator():

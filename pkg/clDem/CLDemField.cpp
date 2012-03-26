@@ -69,16 +69,28 @@ void CLDemRun::run(){
 		sim->context=scene->context;
 		sim->queue=scene->queue;
 	}
-	// in case timestep was adjusted in yade
-	sim->scene.dt=scene->dt;
 	if(!sim) throw std::runtime_error("No CLDemField.sim! (beware: it is not saved automatically)");
 	// at the very first run, run one step exactly
 	// so that the modular arithmetics works
 	// when we compare with yade at the end of the step (below)
 	// (at the end of 0th step, 1 step has been run already, etc)
-	//
-	if(scene->step==0) sim->run(1);
-	else sim->run(steps>0?steps:stepPeriod);
+	if(scene->step==0){
+		LOG_WARN("Running first step");
+		bool setDt=sim->scene.dt<0;
+		sim->run(1);
+		if(setDt){
+			scene->dt=sim->scene.dt;
+			LOG_WARN("Setting O.scene.dt according to clDem "<<scene->dt);
+		}
+	}
+	else{
+		// in case timestep was adjusted in yade
+		if(sim->scene.dt!=scene->dt){
+			LOG_WARN("Setting clDem Δt="<<sim->scene.dt);
+			sim->scene.dt=scene->dt;
+		}
+		sim->run(steps>0?steps:stepPeriod);
+	}
 	// for this reason, CLDemRun should always be at the end of the engine sequence!
 	if(compare) doCompare();
 }
@@ -126,14 +138,16 @@ void CLDemRun::doCompare(){
 	for(size_t id=0; id<sim->par.size(); id++){
 		// no particles in yade and clDem
 		string pId="#"+lexical_cast<string>(id);
-		if(id>=dem->particles.size()) _THROW_ERROR(pId<<" not in Yade");
+		bool yadeNone=(id>=dem->particles.size() || !dem->particles[id]);
+		//if(id>=dem->particles.size()) _THROW_ERROR(pId<<" not in Yade");
 		int shapeT=clDem::par_shapeT_get(&(sim->par[id]));
-		if(!dem->particles[id] && shapeT==Shape_None) continue;
-		if(shapeT==Shape_None) _THROW_ERROR(pId<<" not in clDem");
+		if(yadeNone && shapeT==Shape_None) continue;
+		if(!yadeNone && shapeT==Shape_None) _THROW_ERROR(pId<<" not in clDem");
 		// clumps have no associated particle
-		if(!dem->particles[id] && !par_clumped_get(&(sim->par[id]))) _THROW_ERROR(pId<<" not in Yade");
+		if(yadeNone && shapeT!=Shape_Clump) _THROW_ERROR(pId<<" not in Yade");
 		const clDem::Particle& cp(sim->par[id]);
-		const shared_ptr< ::Particle>& yp(dem->particles[id]);
+		shared_ptr< ::Particle> yp;
+		if(!yadeNone) yp=dem->particles[id];
 
 		shared_ptr<Node> yn; /* must be set by shapeT handlers! */
 
@@ -168,7 +182,7 @@ void CLDemRun::doCompare(){
 				if(yp) _THROW_ERROR(pId<<": particle with the index of clump must be None in yade");
 				yn=dem->clumps[clumpId];
 				if(!yn->hasData<DemData>() || !dynamic_pointer_cast<ClumpData>(yn->getDataPtr<DemData>())) _THROW_ERROR(pId<<": clump number "<<clumpId<<" does not have associated ClumpData instance");
-				const ::ClumpData& ycd(yp->shape->nodes[0]->getData<DemData>().cast<ClumpData>());
+				const ::ClumpData& ycd(yn->getData<DemData>().cast<ClumpData>());
 				long ix=cp.shape.clump.ix;
 				if(ix<0 || ix>=(long)sim->clumps.size()) _THROW_ERROR(pId<<": clump index "<<ix<<" is out of range for sim.clumps 〈0.."<<sim->clumps.size()<<")");
 				size_t cLen;
@@ -182,14 +196,16 @@ void CLDemRun::doCompare(){
 					const ClumpMember& cm=sim->clumps[ix+i];
 					// check that the node referenced from yade is the one of the particle referenced by clDem
 					// this should never happen
-					if(cm.id<0 || (long)dem->particles.size()<=cm.id || !dem->particles[cm.id]->shape || dem->particles[cm.id]->shape->nodes.empty()) _THROW_ERROR(pId<<": clump member "<<i<<" references #"<<cm.id<<" which does not exist in yade");
-					if(dem->particles[cm.id]->shape->nodes[0]!=yn) _THROW_ERROR(pId<<": clump member "<<i<<" references particle #"<<cm.id<<" with node which is not the same as the one in yade (are clump members in the same order?)");
+					if(cm.id<0 || (long)dem->particles.size()<=cm.id || !dem->particles[cm.id] || !dem->particles[cm.id]->shape || dem->particles[cm.id]->shape->nodes.empty()) _THROW_ERROR(pId<<": clump member "<<i<<" references #"<<cm.id<<" which does not exist in yade");
+					if(dem->particles[cm.id]->shape->nodes[0]!=ycd.nodes[i]) _THROW_ERROR(pId<<": clump member "<<i<<" references particle #"<<cm.id<<" with node which is not the same as the one in yade (are clump members in the same order?)");
 					// check relative positions and orientations
 					Real relPosErr=(v2v(cm.relPos)-ycd.relPos[i]).norm()/mU;
 					AngleAxisr caa(q2q(cm.relOri)), yaa(ycd.relOri[i]);
 					Real relOriErr=(caa.axis()*caa.angle()-yaa.axis()*yaa.angle()).norm()/mU;
 					_CHK_ERR(pId<<"/"<<i,relPosErr,cm.relPos,ycd.relPos[i]);
 					_CHK_ERR(pId<<"/"<<i,relOriErr,cm.relOri,ycd.relOri[i]);
+					// consistency check
+					// if(sim->par[cm.id].clumpId!=id) _THROW_ERROR(pId<<"/"<<i<<": Particle.clumpId="<<sim->par[cm.id].clumpId<<", but the particle is referenced by clump #"<<id<<" (consistency error)");
 				}
 				break;
 			}
@@ -237,6 +253,7 @@ void CLDemRun::doCompare(){
 		Real oriErr=(cAa.axis()*cAa.angle()-yAa.axis()*yAa.angle()).norm();
 		Real velErr=(v2v(cp.vel)-dyn.vel).norm()/(mU/sU);
 		Real angVelErr=(v2v(cp.angVel)-dyn.angVel).norm()/(1/sU);
+		Real angMomErr=(v2v(cp.angMom)-dyn.angMom).norm()/(1/(kgU*pow(mU,2)/sU)); // unit: Nms=kgm²/s
 		Real forceErr=(v2v(cp.force)-dyn.force).norm()/(kgU*mU/pow(sU,2));
 		Real torqueErr=(v2v(cp.torque)-dyn.torque).norm()/(kgU*pow(mU,2)/pow(sU,2));
 		Real massErr=(cp.mass-dyn.mass)/kgU;
@@ -245,6 +262,7 @@ void CLDemRun::doCompare(){
 			_CHK_ERR(pId,oriErr,cp.ori,yn->ori);
 			_CHK_ERR(pId,velErr,cp.vel,dyn.vel);
 			_CHK_ERR(pId,angVelErr,cp.angVel,dyn.angVel);
+			_CHK_ERR(pId,angMomErr,cp.angMom,dyn.angMom);
 			_CHK_ERR(pId,forceErr,cp.force,dyn.force);
 			_CHK_ERR(pId,torqueErr,cp.torque,dyn.torque);
 			_CHK_ERR(pId,massErr,cp.mass,dyn.mass);
@@ -260,7 +278,6 @@ void CLDemRun::doCompare(){
 	Real NU=kgU*mU/pow(sU,2); // force unit
 	
 	/* compare contacts */
-	// TODO: check that all contacts in yade exist in clDem
 	for(const clDem::Contact& cc: sim->con){
 		if(cc.ids.s0<0) continue; // invalid contact
 		string cId="##"+lexical_cast<string>(cc.ids.s0)+"+"+lexical_cast<string>(cc.ids.s1);
@@ -322,7 +339,17 @@ void CLDemRun::doCompare(){
 			default: _THROW_ERROR(cId<<": physT "<<physT<<" not handled by the comparator"); continue;
 		}
 	}
-	/* compare potential contacts */
+	/* check the other way */
+	if(sim->cpuCollider){
+		FOREACH(const auto& C, dem->contacts){
+			Vector2i ids(C->pA->id,C->pB->id);
+			string cId="##"+lexical_cast<string>(ids[0])+"+"+lexical_cast<string>(ids[1]);
+			clDem::CpuCollider::ConLoc* cl=sim->cpuCollider->find(ids[0],ids[1]);
+			if(!cl) LOG_ERROR(cId<<": not in clDem");
+		}
+	}
+
+	/* compare potential contacts: does not make sense, since verletDist is different */
 
 
 	/* compare energies */
@@ -364,6 +391,13 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 	cld->sim=sim;
 	scene->fields={dem,cld};
 
+	// determine timestep here, if negative
+	if(sim->scene.dt<0){
+		sim->scene.dt=fabs(sim->scene.dt)*sim->pWaveDt();
+		if(isinf(sim->scene.dt)) throw std::runtime_error("Invalid p-wave timestep; are there no spherical particles in the simulation?");
+		LOG_INFO("Setting Δt="<<sim->scene.dt);
+	}
+	
 	// global params
 	scene->dt=sim->scene.dt;
 	scene->step=sim->scene.step+1;
@@ -421,7 +455,7 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 	collider->boundDispatcher->add(make_shared<Bo1_Sphere_Aabb>());
 	collider->boundDispatcher->add(make_shared<Bo1_Wall_Aabb>());
 	collider->boundDispatcher->add(make_shared<Bo1_Facet_Aabb>());
-	if(sim->scene.verletDist<0) collider->dead=true;
+	if(isnan(sim->scene.verletDist)) collider->dead=true;
 	auto loop=make_shared<ContactLoop>();
 	loop->geoDisp->add(make_shared<Cg2_Sphere_Sphere_L6Geom>());
 	loop->geoDisp->add(make_shared<Cg2_Wall_Sphere_L6Geom>());
@@ -507,14 +541,20 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 				/* do everything here, not below */
 				vector<shared_ptr<Node>> members;
 				long ix=cp.shape.clump.ix;
-				for(int ii=ix; sim->clumps[ii].id>=0; i++){
+				for(int ii=ix; sim->clumps[ii].id>=0; ii++){
 					long id=sim->clumps[ii].id;
 					if(id>=(long)dem->particles.size()) throw std::runtime_error(pId+": clump members mut come before the clump (references #"+lexical_cast<string>(id)+")");
+					if(!dem->particles[id]->shape->nodes[0]->getData<DemData>().isClumped()) throw std::runtime_error(pId+": clump members should have been marked as clumped (#"+lexical_cast<string>(id));
+					// avoid check in ClumpData::makeClump
+					dem->particles[id]->shape->nodes[0]->getData<DemData>().setNoClump();
 					members.push_back(dem->particles[id]->shape->nodes[0]);
 				}
 				dem->clumps.push_back(ClumpData::makeClump(members));
 				// insert void particle to the corresponding slot to help the comparator later
+				// and don't run the block below at all
+				yp.reset();
 				dem->particles.insertAt(yp,i);
+				break;
 			}
 			default: throw std::runtime_error(pId+": unhandled shapeT "+lexical_cast<string>(shapeT)+".");
 		}
@@ -545,6 +585,7 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 			// if(par_stateT_get(&cp)!=clDem::State_None)
 			yp->shape->color=(par_dofs_get(&cp)==0?.5:.3);
 			yp->shape->setWire(true);
+			yp->mask=par_groups_get(&cp);
 			dem->particles.insertAt(yp,i);
 		}
 	}
@@ -640,7 +681,15 @@ void Gl1_CLDemField::renderPar(){
 					GLUtils::Grid(corner,unit1,unit2,Vector2i(div,div),/*edgeMask*/0);
 					break;
 				}
-				default: cerr<<"[shapeT="<<shapeT<<"?]";
+				case clDem::Shape_Clump:{
+					// draw lines between the clump and its members
+					GLUtils::setLocalCoords(pos,ori);
+					for(int i=p.shape.clump.ix; sim->clumps[i].id<0; i++){
+						GLUtils::GLDrawLine(Vector3r::Zero(),v2v(sim->clumps[i].relPos),/*color*/Vector3r(1,0,0),/*width*/2);
+					}
+					break;
+				}
+				default: cerr<<"[gl:shapeT="<<shapeT<<"?]";
 			}
 		glPopMatrix();
 	}

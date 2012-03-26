@@ -9,6 +9,7 @@ CREATE_LOGGER(Leapfrog);
 void ForceResetter::run(){
 	FOREACH(const shared_ptr<Node>& n, field->nodes){
 		if(n->hasData<DemData>()) n->getData<DemData>().force=n->getData<DemData>().torque=Vector3r::Zero();
+		if(n->getData<DemData>().isClump()) ClumpData::resetForceTorque(n);
 	}
 }
 
@@ -194,7 +195,7 @@ void Leapfrog::run(){
 			else leapfrogAsphericalRotate(node,t);
 		}
 		// for clumps, update positions/orientations of members as well
-		if(isClump) ClumpData::applyToMembers(node);
+		if(isClump) ClumpData::applyToMembers(node,/*resetForceTorque*/reset);
 
 		if(reset){ dyn.force=dyn.torque=Vector3r::Zero(); }
 	}

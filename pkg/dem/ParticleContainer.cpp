@@ -49,7 +49,8 @@ Particle::id_t ParticleContainer::findFreeId(){
 void ParticleContainer::insertAt(shared_ptr<Particle>& p, id_t id){
 	assert(id>=0);
 	if((size_t)id>=parts.size()) parts.resize(id+1);
-	p->id=id;
+	// can be an empty shared_ptr, check needed
+	if(p) p->id=id;
 	parts[id]=p;
 	#ifdef YADE_SUBDOMAINS
 		setParticleSubdomain(p,0); // add it to subdomain #0; only effective if subdomains are set up

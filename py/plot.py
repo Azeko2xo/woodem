@@ -138,7 +138,7 @@ def addAutoData():
 	0
 	>>> O.dem.collectNodes() 
 	1
-	>>> O.dt=utils.pWaveDt()
+	>>> O.scene.dt=utils.pWaveDt()
 	>>> O.scene.engines=[
 	...    ForceResetter(),
 	...    Gravity(gravity=(0,0,-10)),
@@ -149,12 +149,12 @@ def addAutoData():
 	>>> O.scene.trackEnergy=True
 	>>> O.run(2,True)
 	>>> pprint(plot.data)   #doctest: +ELLIPSIS
-	{'grav': [0.0, -2.513...],
+	{'grav': [0.0, -25.13...],
 	 'i': [0, 1],
 	 'kinRot': [0.0, 0.0],
-	 'kinTrans': [1.8849...e-12, 1.6964...e-11],
-	 'nonviscDamp': [nan, 1.0053...e-11],
-	 'total energy': [1.884...e-12, 1.884...e-12]}
+	 'kinTrans': [1.8849..., 16.964...],
+	 'nonviscDamp': [nan, 10.053...],
+	 'total energy': [1.884..., 1.884...]}
 
 	.. plot::
 		from yade import *

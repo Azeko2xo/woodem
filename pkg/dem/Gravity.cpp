@@ -19,8 +19,8 @@ void Gravity::run(){
 		// work done by gravity is "negative", since the energy appears in the system from outside
 		DemData& dyn(n->getData<DemData>());
 
-		// clumps skipped
-		if(dyn.isClump()) continue;
+		// clump members skipped
+		if(dyn.isClumped()) continue;
 
 		dyn.force+=gravity*dyn.mass;
 		if(trackEnergy){

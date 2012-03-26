@@ -35,7 +35,7 @@ class TestPBC(unittest.TestCase):
 		O.scene.dt=0 # do not change positions with dt=0 in NewtonIntegrator, but still update velocities from velGrad
 	def testVelGrad(self):
 		'PBC: velGrad changes hSize but not hSize0, accumulates in trsf'
-		O.dt=1e-3
+		O.scene.dt=1e-3
 		hSize,trsf=O.scene.cell.hSize,Matrix3.Identity
 		hSize0=hSize
 		for i in range(0,10):
@@ -47,7 +47,7 @@ class TestPBC(unittest.TestCase):
 			#self.assertAlmostEqual(hSize0[i],O.scene.cell.hSize0[i])
 	def testTrsfChange(self):
 		'PBC: chaing trsf changes hSize0, but does not modify hSize'
-		O.dt=1e-2
+		O.scene.dt=1e-2
 		O.step()
 		O.scene.cell.trsf=Matrix3.Identity
 		for i in range(0,len(O.scene.cell.hSize)):
@@ -61,7 +61,7 @@ class TestPBC(unittest.TestCase):
 		self.assert_(O.scene.cell.hSize==Matrix3(2.55,0,0, 0,11,0, 0,0,45));
 	def testHomotheticResizeVel(self):
 		"PBC: homothetic cell deformation adjusts particle velocity (homoDeform==3)"
-		O.dt=1e-5
+		O.scene.dt=1e-5
 		O.step()
 		s1=O.dem.par[1]
 		self.assertAlmostEqual(s1.vel[2],self.initVel[2]+self.initPos[2]*O.scene.cell.gradV[2,2])

@@ -60,7 +60,7 @@ class TestSimpleClump(unittest.TestCase):
 	def testVelocity(self):
 		"Clump: velocities of member assigned by Leapfrog"
 		b1,b2,bC=[O.dem.nodes[i] for i in (0,1,2)]
-		O.dt=0
+		O.scene.dt=0
 		print bC.dem.vel,bC.dem.angVel
 		bC.dem.vel=(1.,.2,.4)
 		bC.dem.angVel=(0,.4,.1)
