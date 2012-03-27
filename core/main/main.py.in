@@ -204,7 +204,7 @@ def onSelection(o):
 
 from math import *
 
-def userSession(qt4=False):
+def userSession(qt4=False,qapp=None):
 	# prepare nice namespace for users
 	import yade, yade.runtime
 	import sys
@@ -313,16 +313,17 @@ elif gui=='qt4':
 	from PyQt4.QtCore import *
 	import yade.qt
 	if yade.runtime.ipython_version==10:
-		QtGui.QApplication(sys.argv)
+		qapp=QtGui.QApplication(sys.argv)
 	else:
 		# create an instance of InteractiveShell before the inputhook is created
 		# see http://stackoverflow.com/questions/9872517/how-to-embed-ipython-0-12-so-that-it-inherits-namespace-of-the-caller for details
 		# fixes http://gpu.doxos.eu/trac/ticket/40
 		from IPython.frontend.terminal.embed import InteractiveShellEmbed
 		ipshell=InteractiveShellEmbed.instance()
+		# keep the qapp referenced, otherwise 0.11 will die with "QWidget: Must construct QApplication before a QPaintDevice
 		import IPython.lib.inputhook #guisupport
-		IPython.lib.inputhook.enable_gui(gui='qt4')
-	userSession(qt4=True)
+		qapp=IPython.lib.inputhook.enable_gui(gui='qt4')
+	userSession(qt4=True,qapp=qapp)
 
 from yade import O
 O.exitNoBacktrace()

@@ -2,6 +2,7 @@
 #include<yade/core/Scene.hpp>
 #include<yade/pkg/dem/Particle.hpp>
 #include<yade/pkg/dem/Clump.hpp>
+#include<iomanip>
 
 YADE_PLUGIN(dem,(Leapfrog)(ForceResetter));
 CREATE_LOGGER(Leapfrog);
@@ -77,6 +78,9 @@ void Leapfrog::doKineticEnergy(const shared_ptr<Node>& node, const Vector3r& ppr
 //#define DUMP_INTEGRATOR
 
 void Leapfrog::run(){
+	#ifdef DUMP_INTEGRATOR
+		cerr<<std::setprecision(17);
+	#endif
 	homoDeform=(scene->isPeriodic ? scene->cell->homoDeform : -1); // -1 for aperiodic simulations
 	dGradV=scene->cell->nextGradV-scene->cell->gradV;
 	midGradV=.5*(scene->cell->gradV+scene->cell->nextGradV);

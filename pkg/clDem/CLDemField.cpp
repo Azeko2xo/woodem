@@ -428,8 +428,9 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 			case clDem::Mat_FrictMat:{
 				if(mmatT==clDem::Mat_None) mmatT=clDem::Mat_FrictMat;
 				if(mmatT!=clDem::Mat_FrictMat) throw std::runtime_error("Combination of materials (ElastMat, FrictMat) not handled.");
+				if(isnan(cmat.mat.frict.ktDivKn)) throw std::runtime_error("FrictMat.ktDivKn must not be NaN");
 				if(isnan(ktDivKn)) ktDivKn=cmat.mat.frict.ktDivKn;
-				if(ktDivKn!=cmat.mat.frict.ktDivKn) throw std::runtime_error("Combinations of different values of FrictMar.ktDivKn not handled.");
+				if(ktDivKn!=cmat.mat.frict.ktDivKn) throw std::runtime_error("Several different values of FrictMar.ktDivKn not handled (this material has "+lexical_cast<string>(cmat.mat.frict.ktDivKn)+", previous value is "+lexical_cast<string>(ktDivKn)+")");
 				auto fm=make_shared< ::FrictMat>();
 				fm->density=cmat.mat.frict.density;
 				fm->young=cmat.mat.frict.young;
