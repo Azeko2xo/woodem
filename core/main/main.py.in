@@ -188,9 +188,6 @@ if 'opencl' in yade.config.features and opts.clDev:
 sys.argv=yade.runtime.argv=args
 yade.runtime.opts=opts
 
-from yade import *
-from math import *
-
 # Run the check tests listed in scripts/test/checks/checkList.py
 if opts.checks:
 	checksPath='${sourceRoot}'+'/scripts/test/checks' # replaced at install-time
@@ -205,7 +202,9 @@ if opts.performance:
 def onSelection(o):
 	print "You selected an object. Define your own useful *onSelection(obj)* function to process it."
 
-def userSession(qt4=False,qapp=None):
+from math import *
+
+def userSession(qt4=False):
 	# prepare nice namespace for users
 	import yade, yade.runtime
 	import sys
@@ -272,8 +271,7 @@ def userSession(qt4=False,qapp=None):
 		for k in ipconfig: setattr(InteractiveShellEmbed,k,ipconfig[k])
 		InteractiveShellEmbed.banner1=banner+'\n' # called banner1 here, not banner anymore
 		ipshell=InteractiveShellEmbed()
-		if yade.runtime.ipython_version==11: ipshell()
-		else: ipshell()
+		ipshell()
 		# similar to the workaround, as for 0.10 (perhaps not needed?)
 		ipshell.atexit_operations()
 
@@ -301,6 +299,10 @@ from yade import remote
 yade.remote.useQThread=(gui=='qt4')
 yade.remote.runServers()
 
+# for scripts
+from yade import *
+from math import *
+
 if gui==None:
 	userSession()
 elif gui=='qt4':
@@ -311,12 +313,16 @@ elif gui=='qt4':
 	from PyQt4.QtCore import *
 	import yade.qt
 	if yade.runtime.ipython_version==10:
-		qapp=QtGui.QApplication(sys.argv)
+		QtGui.QApplication(sys.argv)
 	else:
+		# create an instance of InteractiveShell before the inputhook is created
+		# see http://stackoverflow.com/questions/9872517/how-to-embed-ipython-0-12-so-that-it-inherits-namespace-of-the-caller for details
+		# fixes http://gpu.doxos.eu/trac/ticket/40
+		from IPython.frontend.terminal.embed import InteractiveShellEmbed
+		ipshell=InteractiveShellEmbed.instance()
 		import IPython.lib.inputhook #guisupport
-		qapp=IPython.lib.inputhook.enable_gui(gui='qt4')
-		#qapp=IPython.lib.guisupport.get_app_qt4()
-	userSession(qt4=True,qapp=qapp)
+		IPython.lib.inputhook.enable_gui(gui='qt4')
+	userSession(qt4=True)
 
 from yade import O
 O.exitNoBacktrace()

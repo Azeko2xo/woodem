@@ -4,12 +4,16 @@ from PyQt4.QtGui import *
 from PyQt4 import QtGui
 #from PyQt4 import Qwt5
 
+from miniEigen import *
+# don't import * from yade, it would be circular import
+from yade.wrapper import AttrFlags, Serializable
+
 import re,itertools
 import logging
 logging.trace=logging.debug
 logging.basicConfig(level=logging.INFO)
 #from logging import debug,info,warning,error
-from yade import *
+#from yade import *
 import yade._customConverters, yade.core
 import yade.qt
 

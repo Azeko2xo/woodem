@@ -85,7 +85,8 @@ except AttributeError: print 'WARN: Error importing py/_extraDocs.py'
 try: import _aliases
 except AttributeError: print 'WARN: Error importing py/_aliases.py'
 
+## DON'T DO THIS:
 # import a few "important" modules along with *
 #import utils # some others?
-__all__+=[]+dir(miniEigen)+dir(wrapper)
+# __all__+=[]+dir(miniEigen)+dir(wrapper)
 
