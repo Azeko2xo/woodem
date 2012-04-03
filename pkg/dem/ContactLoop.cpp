@@ -79,6 +79,13 @@ void ContactLoop::run(){
 		timingDeltas->start();
 	#endif
 
+	if(!applyForces && !_forceApplyChecked){
+		shared_ptr<IntraForce> intra;
+		for(const auto& e: scene->engines){ intra=dynamic_pointer_cast<IntraForce>(e); if(intra) break; }
+		if(!intra) LOG_WARN("ContactLoop.applyForce==False and no IntraForce in Scene.engines! Are you sure this is ok? (proceeding)");
+		_forceApplyChecked=true;
+	}
+
 	DemField& dem=field->cast<DemField>();
 
 	if(dem.contacts.removeAllPending()>0 && !alreadyWarnedNoCollider){

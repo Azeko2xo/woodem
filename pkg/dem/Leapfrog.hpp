@@ -47,6 +47,7 @@ struct Leapfrog: public GlobalEngine {
 
 		((Real,damping,0.2,,"damping coefficient for non-viscous damping"))
 		((bool,reset,false,,"Reset forces immediately after applying them."))
+		((bool,_forceResetChecked,false,Attr::noGui,"Whether we already issued a warning for forces being (probably) not reset"))
 		// ((Matrix3r,prevVelGrad,Matrix3r::Zero(),Attr::readonly,"Previous value of velocity gradient, to detect its changes"))
 		// ((bool,exactAsphericalRot,true,,"Enable more exact body rotation integrator for :yref:`aspherical bodies<Body.aspherical>` *only*, using formulation from [Allen1989]_, pg. 89."))
 		// energy tracking

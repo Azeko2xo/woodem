@@ -78,6 +78,12 @@ void Leapfrog::doKineticEnergy(const shared_ptr<Node>& node, const Vector3r& ppr
 //#define DUMP_INTEGRATOR
 
 void Leapfrog::run(){
+	if(!reset && !_forceResetChecked){
+		shared_ptr<ForceResetter> resetter;
+		for(const auto& e: scene->engines){ resetter=dynamic_pointer_cast<ForceResetter>(e); if(resetter) break; }
+		if(!resetter) LOG_WARN("Leapfrog.reset==False and no ForceResetter in Scene.engines! Are you sure this is ok? (proceeding)");
+		_forceResetChecked=true;
+	}
 	#ifdef DUMP_INTEGRATOR
 		cerr<<std::setprecision(17);
 	#endif

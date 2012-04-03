@@ -91,10 +91,10 @@ def SpherePWaveTimeStep(radius,density,young):
 def defaultMaterial():
 	"""Return default material, when creating bodies with :yref:`yade.utils.sphere` and friends, material is unspecified and there is no previous particle yet. By default, this function returns::
 
-		FrictMat(density=1e3,young=1e7,poisson=.3,tanPhi=tan(.5))
+		FrictMat(density=1e3,young=1e7,poisson=.3,ktDivKn=.2,tanPhi=tan(.5))
 	"""
 	import math
-	return FrictMat(density=1e3,young=1e7,poisson=.3,tanPhi=math.tan(.5))
+	return FrictMat(density=1e3,young=1e7,poisson=.3,ktDivKn=.2,tanPhi=math.tan(.5))
 
 def _commonBodySetup(b,nodes,volumes,geomInertias,material,masses=None,fixed=False):
 	"""Assign common body parameters."""
@@ -135,7 +135,7 @@ def sphere(center,radius,fixed=False,wire=False,color=None,highlight=False,mater
 	:param Vector3-or-None: body's color, as normalized RGB; random color will be assigned if ``None`.
 	:param material:
 		specify :yref:`Body.material`; different types are accepted:
-			* int: O.materials[material] will be used; as a special case, if material==-1 and there is no shared materials defined, utils.defaultMaterial() will be assigned to O.materials[0]
+			* int: O.scene.materials[material] will be used; as a special case, if material==-1 and there is no shared materials defined, utils.defaultMaterial() will be assigned to O.materials[0]
 			* string: label of an existing material that will be used
 			* :yref:`Material` instance: this instance will be used
 			* callable: will be called without arguments; returned Material value will be used (Material factory object, if you like)
@@ -167,7 +167,7 @@ def sphere(center,radius,fixed=False,wire=False,color=None,highlight=False,mater
 
 	Material can be given by label::
 
-		>>> O.materials.append(FrictMat(young=10e9,poisson=.11,label='myMaterial'))
+		>>> m=FrictMat(young=10e9,poisson=.11,label='myMaterial'))
 		1
 		>>> s2=utils.sphere([0,0,2],1,material='myMaterial')
 		>>> s2.mat.label

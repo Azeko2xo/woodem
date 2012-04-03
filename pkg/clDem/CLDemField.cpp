@@ -92,14 +92,42 @@ void CLDemRun::run(){
 		sim->run(steps>0?steps:stepPeriod);
 	}
 	// for this reason, CLDemRun should always be at the end of the engine sequence!
-	if(compare) doCompare();
+	if(relTol>0.) doCompare();
 }
 
 
 #define _THROW_ERROR(a){ std::ostringstream o; o<<a; LOG_ERROR(a); throw std::runtime_error(o.str()); }
 #define _CHK_ERR(where,err,cexpr,yexpr){ if(err > relTol) LOG_ERROR(where<<": "<<#err<<"="<<err<<">"<<relTol<<": "<<cexpr<<"/"<<yexpr); if(err>relTol*raiseLimit) _THROW_ERROR(where<<": "<<#err<<"="<<err<<">"<<relTol<<"*"<<raiseLimit<<": "<<cexpr<<"/"<<yexpr); }
 
-/* TODO: define tolerance when exception is thrown, rather than just showing errors */
+
+void CLDemRun::compareParticleNodeDyn(const string& pId, const clDem::Particle& cp, const shared_ptr<Node>& yn, const Real kgU, const Real mU, const Real sU){
+	assert(yn->hasData<DemData>());
+	// check that positions, orientations, velocities etc match
+	const DemData& dyn(yn->getData<DemData>());
+
+	Real posErr=(v2v(cp.pos)-yn->pos).norm()/(mU);
+	AngleAxisr cAa(q2q(cp.ori)), yAa(yn->ori);
+	Real oriErr=(cAa.axis()*cAa.angle()-yAa.axis()*yAa.angle()).norm();
+	Real velErr=(v2v(cp.vel)-dyn.vel).norm()/(mU/sU);
+	Real angVelErr=(v2v(cp.angVel)-dyn.angVel).norm()/(1/sU);
+	Real angMomErr=(v2v(cp.angMom)-dyn.angMom).norm()/(1/(kgU*pow(mU,2)/sU)); // unit: Nms=kgm²/s
+	Real forceErr=(v2v(cp.force)-dyn.force).norm()/(kgU*mU/pow(sU,2));
+	Real torqueErr=(v2v(cp.torque)-dyn.torque).norm()/(kgU*pow(mU,2)/pow(sU,2));
+	Real massErr=(cp.mass-dyn.mass)/kgU;
+	Real inertiaErr=(v2v(cp.inertia)-dyn.inertia).norm()/(kgU*pow(mU,2));
+
+	_CHK_ERR(pId,posErr,cp.pos,yn->pos);
+	_CHK_ERR(pId,oriErr,cp.ori,yn->ori);
+	_CHK_ERR(pId,velErr,cp.vel,dyn.vel);
+	_CHK_ERR(pId,angVelErr,cp.angVel,dyn.angVel);
+	_CHK_ERR(pId,angMomErr,cp.angMom,dyn.angMom);
+	_CHK_ERR(pId,forceErr,cp.force,dyn.force);
+	_CHK_ERR(pId,torqueErr,cp.torque,dyn.torque);
+	_CHK_ERR(pId,massErr,cp.mass,dyn.mass);
+	_CHK_ERR(pId,inertiaErr,cp.inertia,dyn.inertia);
+}
+
+
 void CLDemRun::doCompare(){
 	// get DEM field to compare with
 	shared_ptr<DemField> dem;
@@ -130,24 +158,17 @@ void CLDemRun::doCompare(){
 	Real kgU=NaN, mU=NaN; // taken from particles
 	Real sU=scene->dt;
 
-	long clumpId=-1; // incremented for each clump encountered; corresponding particle must be None
-
 	/* compare particles */
-	if(dem->particles.size()!=sim->par.size()) _THROW_ERROR("Differing number of particles: "<<sim->par.size()<<"/"<<dem->particles.size());
-	// compare particle's positions, orientations
-	for(size_t id=0; id<sim->par.size(); id++){
+	FOREACH(const shared_ptr< ::Particle> yp, dem->particles){
 		// no particles in yade and clDem
-		string pId="#"+lexical_cast<string>(id);
-		bool yadeNone=(id>=dem->particles.size() || !dem->particles[id]);
-		//if(id>=dem->particles.size()) _THROW_ERROR(pId<<" not in Yade");
-		int shapeT=clDem::par_shapeT_get(&(sim->par[id]));
-		if(yadeNone && shapeT==Shape_None) continue;
-		if(!yadeNone && shapeT==Shape_None) _THROW_ERROR(pId<<" not in clDem");
-		// clumps have no associated particle
-		if(yadeNone && shapeT!=Shape_Clump) _THROW_ERROR(pId<<" not in Yade");
-		const clDem::Particle& cp(sim->par[id]);
-		shared_ptr< ::Particle> yp;
-		if(!yadeNone) yp=dem->particles[id];
+		::Particle::id_t yId=yp->id;
+		if(!yp->shape || !yp->shape->nodes.empty() || yp->shape->nodes[0]->hasData<CLDemData>()) _THROW_ERROR("#"<<yId<<": no CLDemData with clDem id information.");
+		clDem::par_id_t clId=yp->shape->nodes[0]->getData<CLDemData>().clIx;
+		string pId="#"+lexical_cast<string>(clId)+"/"+lexical_cast<string>(yId);
+		const clDem::Particle& cp(sim->par[clId]);
+		int shapeT=clDem::par_shapeT_get(&cp);
+		if(shapeT==Shape_None) _THROW_ERROR(pId<<": not in clDem");
+		if(shapeT==Shape_Clump) _THROW_ERROR(pId<<": yade::Particle associated with clump clDem::Particle");
 
 		shared_ptr<Node> yn; /* must be set by shapeT handlers! */
 
@@ -157,6 +178,34 @@ void CLDemRun::doCompare(){
 		bool kgFaked=false, mFaked=false; // use unit units, but reset back to NaN afterwards
 		if(isnan(kgU)){ kgU=1.; kgFaked=true; }
 		if(isnan(mU)){ mU=1.; mFaked=true; }
+
+		// check that materials match
+		int matId=clDem::par_matId_get(&cp);
+		// check that materials match
+		int matT=clDem::mat_matT_get(&(sim->scene.materials[matId]));
+		switch(matT){
+			case clDem::Mat_ElastMat:{
+				if(!dynamic_pointer_cast< ::FrictMat>(yp->material)) _THROW_ERROR(pId<<": material mismatch ElastMat/"<<typeid(*(yp->material)).name());
+				const ::FrictMat& ym(yp->material->cast< ::FrictMat>());
+				if(!isinf(ym.tanPhi)) _THROW_ERROR(pId<<": yade::FrictMat::tanPhi="<<ym.tanPhi<<" should be infinity to represent frictionless clDem::ElastMat");
+				const clDem::ElastMat& cm(sim->scene.materials[matId].mat.elast);
+				if(ym.density!=cm.density) _THROW_ERROR(pId<<": density differs "<<cm.density<<"/"<<ym.density);
+				if(ym.young!=cm.young) _THROW_ERROR(pId<<": young differes "<<cm.young<<"/"<<ym.young);
+				break;
+			}
+			case clDem::Mat_FrictMat:{
+				if(!dynamic_pointer_cast< ::FrictMat>(yp->material)) _THROW_ERROR(pId<<": material mismatch FrictMat/"<<typeid(*(yp->material)).name());
+				const ::FrictMat& ym(yp->material->cast< ::FrictMat>());
+				const clDem::FrictMat& cm(sim->scene.materials[matId].mat.frict);
+				if(ym.density!=cm.density) _THROW_ERROR(pId<<": density differs "<<cm.density<<"/"<<ym.density);
+				if(ym.young!=cm.young) _THROW_ERROR(pId<<": young differs "<<cm.young<<"/"<<ym.young);
+				if(ym.tanPhi!=cm.tanPhi) _THROW_ERROR(pId<<": young differs "<<cm.tanPhi<<"/"<<ym.tanPhi);
+				if(ym.ktDivKn!=cm.ktDivKn) _THROW_ERROR(pId<<": ktDivKn differs "<<cm.ktDivKn<<"/"<<ym.ktDivKn);
+				break;
+			}
+			default:
+				_THROW_ERROR(pId<<": mat index "<<matT<<" not handled by the comparator"); continue;
+		}
 
 		// check that shapes match
 		switch(shapeT){
@@ -175,108 +224,66 @@ void CLDemRun::doCompare(){
 				if(yw.sense!=cp.shape.wall.sense) _THROW_ERROR(pId<<": wall sense "<<cp.shape.wall.sense<<"/"<<yw.sense);
 				break;
 			}
-			case Shape_Clump:{
-				clumpId++;
-				if(dem->clumps.size()<=(size_t)clumpId) _THROW_ERROR(pId<<": clump number "<<clumpId<<" does not exist in yade (out of range)");
-				if(!dem->clumps[clumpId]) _THROW_ERROR(pId<<": clump number "<<clumpId<<" is None in yade");
-				if(yp) _THROW_ERROR(pId<<": particle with the index of clump must be None in yade");
-				yn=dem->clumps[clumpId];
-				if(!yn->hasData<DemData>() || !dynamic_pointer_cast<ClumpData>(yn->getDataPtr<DemData>())) _THROW_ERROR(pId<<": clump number "<<clumpId<<" does not have associated ClumpData instance");
-				const ::ClumpData& ycd(yn->getData<DemData>().cast<ClumpData>());
-				long ix=cp.shape.clump.ix;
-				if(ix<0 || ix>=(long)sim->clumps.size()) _THROW_ERROR(pId<<": clump index "<<ix<<" is out of range for sim.clumps 〈0.."<<sim->clumps.size()<<")");
-				size_t cLen;
-				for(cLen=0; sim->clumps[ix+cLen].id>=0; cLen++){
-					// last element must sentinel with id<0, therefore we should never come here
-					if(ix+cLen==sim->clumps.size()-1) _THROW_ERROR(pId<<": clumps["<<ix+cLen<<"] is last element and should have id<0 (id="<<sim->clumps[ix+cLen].id<<")");
-				}
-				if(cLen!=ycd.nodes.size()) _THROW_ERROR(pId<<": clumps have different number of members "<<cLen<<"/"<<ycd.nodes.size());
-				// assume nodes/particles are in the same order
-				for(size_t i=0; i<cLen; i++){
-					const ClumpMember& cm=sim->clumps[ix+i];
-					// check that the node referenced from yade is the one of the particle referenced by clDem
-					// this should never happen
-					if(cm.id<0 || (long)dem->particles.size()<=cm.id || !dem->particles[cm.id] || !dem->particles[cm.id]->shape || dem->particles[cm.id]->shape->nodes.empty()) _THROW_ERROR(pId<<": clump member "<<i<<" references #"<<cm.id<<" which does not exist in yade");
-					if(dem->particles[cm.id]->shape->nodes[0]!=ycd.nodes[i]) _THROW_ERROR(pId<<": clump member "<<i<<" references particle #"<<cm.id<<" with node which is not the same as the one in yade (are clump members in the same order?)");
-					// check relative positions and orientations
-					Real relPosErr=(v2v(cm.relPos)-ycd.relPos[i]).norm()/mU;
-					AngleAxisr caa(q2q(cm.relOri)), yaa(ycd.relOri[i]);
-					Real relOriErr=(caa.axis()*caa.angle()-yaa.axis()*yaa.angle()).norm()/mU;
-					_CHK_ERR(pId<<"/"<<i,relPosErr,cm.relPos,ycd.relPos[i]);
-					_CHK_ERR(pId<<"/"<<i,relOriErr,cm.relOri,ycd.relOri[i]);
-					// consistency check
-					// if(sim->par[cm.id].clumpId!=id) _THROW_ERROR(pId<<"/"<<i<<": Particle.clumpId="<<sim->par[cm.id].clumpId<<", but the particle is referenced by clump #"<<id<<" (consistency error)");
-				}
-				break;
-			}
+			case Shape_Clump: /* was handled above */ LOG_FATAL("Impossible error: clump here?"); abort();  break;
 			default:
 				_THROW_ERROR(pId<<": shape index "<<shapeT<<" not handled by the comparator.");
 		}
 		assert(yn);
 
-		int matId=clDem::par_matId_get(&(sim->par[id]));
-		if(shapeT!=Shape_Clump){
-			// check that materials match
-			int matT=clDem::mat_matT_get(&(sim->scene.materials[matId]));
-			switch(matT){
-				case clDem::Mat_ElastMat:{
-					if(!dynamic_pointer_cast< ::FrictMat>(yp->material)) _THROW_ERROR(pId<<": material mismatch ElastMat/"<<typeid(*(yp->material)).name());
-					const ::FrictMat& ym(yp->material->cast< ::FrictMat>());
-					if(!isinf(ym.tanPhi)) _THROW_ERROR(pId<<": yade::FrictMat::tanPhi="<<ym.tanPhi<<" should be infinity to represent frictionless clDem::ElastMat");
-					const clDem::ElastMat& cm(sim->scene.materials[matId].mat.elast);
-					if(ym.density!=cm.density) _THROW_ERROR(pId<<": density differs "<<cm.density<<"/"<<ym.density);
-					if(ym.young!=cm.young) _THROW_ERROR(pId<<": young differes "<<cm.young<<"/"<<ym.young);
-					break;
-				}
-				case clDem::Mat_FrictMat:{
-					if(!dynamic_pointer_cast< ::FrictMat>(yp->material)) _THROW_ERROR(pId<<": material mismatch FrictMat/"<<typeid(*(yp->material)).name());
-					const ::FrictMat& ym(yp->material->cast< ::FrictMat>());
-					const clDem::FrictMat& cm(sim->scene.materials[matId].mat.frict);
-					if(ym.density!=cm.density) _THROW_ERROR(pId<<": density differs "<<cm.density<<"/"<<ym.density);
-					if(ym.young!=cm.young) _THROW_ERROR(pId<<": young differs "<<cm.young<<"/"<<ym.young);
-					if(ym.tanPhi!=cm.tanPhi) _THROW_ERROR(pId<<": young differs "<<cm.tanPhi<<"/"<<ym.tanPhi);
-					if(cp2Frict->ktDivKn!=cm.ktDivKn) _THROW_ERROR(pId<<": ktDivKn differs "<<cm.ktDivKn<<"/"<<cp2Frict->ktDivKn<<" (Cp2_FrictMat_FrictPhys.ktDivKn)");
-					break;
-				}
-				default:
-					_THROW_ERROR(pId<<": mat index "<<matT<<" not handled by the comparator"); continue;
-			}
-		} else {
-			if(matId!=clDem::Mat_None) _THROW_ERROR(pId<<": clumps should have matId==0, not "<<matId);
-		}
-
-		// check that positions, orientations, velocities etc match
-		const DemData& dyn(yn->getData<DemData>());
-
-		Real posErr=(v2v(cp.pos)-yn->pos).norm()/(mU);
-		AngleAxisr cAa(q2q(cp.ori)), yAa(yn->ori);
-		Real oriErr=(cAa.axis()*cAa.angle()-yAa.axis()*yAa.angle()).norm();
-		Real velErr=(v2v(cp.vel)-dyn.vel).norm()/(mU/sU);
-		Real angVelErr=(v2v(cp.angVel)-dyn.angVel).norm()/(1/sU);
-		Real angMomErr=(v2v(cp.angMom)-dyn.angMom).norm()/(1/(kgU*pow(mU,2)/sU)); // unit: Nms=kgm²/s
-		Real forceErr=(v2v(cp.force)-dyn.force).norm()/(kgU*mU/pow(sU,2));
-		Real torqueErr=(v2v(cp.torque)-dyn.torque).norm()/(kgU*pow(mU,2)/pow(sU,2));
-		Real massErr=(cp.mass-dyn.mass)/kgU;
-		Real inertiaErr=(v2v(cp.inertia)-dyn.inertia).norm()/(kgU*pow(mU,2));
-			_CHK_ERR(pId,posErr,cp.pos,yn->pos);
-			_CHK_ERR(pId,oriErr,cp.ori,yn->ori);
-			_CHK_ERR(pId,velErr,cp.vel,dyn.vel);
-			_CHK_ERR(pId,angVelErr,cp.angVel,dyn.angVel);
-			_CHK_ERR(pId,angMomErr,cp.angMom,dyn.angMom);
-			_CHK_ERR(pId,forceErr,cp.force,dyn.force);
-			_CHK_ERR(pId,torqueErr,cp.torque,dyn.torque);
-			_CHK_ERR(pId,massErr,cp.mass,dyn.mass);
-			_CHK_ERR(pId,inertiaErr,cp.inertia,dyn.inertia);
+		// compare dynamic params
+		compareParticleNodeDyn(pId,cp,yn,kgU,mU,sU);
 
 		// reset back to NaN so that another particle might define it right
 		if(mFaked) mU=NaN;
 		if(kgFaked) kgU=NaN;
 	}
 
+	// in case we got no good units, use stupid values here
 	if(isnan(kgU)) kgU=1.;
 	if(isnan(mU)) mU=1.;
 	Real NU=kgU*mU/pow(sU,2); // force unit
 	
+	// check clumps
+	FOREACH(const shared_ptr< ::Node> yn, dem->clumps){
+		if(yn->hasData<CLDemData>()) _THROW_ERROR("clump@"<<yn<<": no CLDemData with clDem id information.");
+		clDem::par_id_t clId=yn->getData<CLDemData>().clIx;
+		string pId="clump#"+lexical_cast<string>(clId)+"/@"+lexical_cast<string>(yn);
+		const clDem::Particle& cp(sim->par[clId]);
+		int shapeT=clDem::par_shapeT_get(&cp);
+		if(shapeT==Shape_None) _THROW_ERROR(pId<<": not in clDem");
+		if(shapeT!=Shape_Clump) _THROW_ERROR(pId<<": yade's clump associated with a regular clDem::Particle (shapeT="<<shapeT<<")");
+
+		if(!yn->hasData<DemData>() || !dynamic_pointer_cast<ClumpData>(yn->getDataPtr<DemData>())) _THROW_ERROR(pId<<": does not have associated ClumpData instance");
+		const ::ClumpData& ycd(yn->getData<DemData>().cast<ClumpData>());
+		long ix=cp.shape.clump.ix;
+		if(ix<0 || ix>=(long)sim->clumps.size()) _THROW_ERROR(pId<<": clump index "<<ix<<" is out of range for sim.clumps 〈0.."<<sim->clumps.size()<<")");
+		size_t cLen;
+		for(cLen=0; sim->clumps[ix+cLen].id>=0; cLen++){
+			// last element must sentinel with id<0, therefore we should never come here
+			if(ix+cLen==sim->clumps.size()-1) _THROW_ERROR(pId<<": clumps["<<ix+cLen<<"] is last element and should have id<0 (id="<<sim->clumps[ix+cLen].id<<")");
+		}
+		if(cLen!=ycd.nodes.size()) _THROW_ERROR(pId<<": clumps have different number of members "<<cLen<<"/"<<ycd.nodes.size());
+		// assume nodes/particles are in the same order
+		for(size_t i=0; i<cLen; i++){
+			const ClumpMember& cm=sim->clumps[ix+i];
+			if(!ycd.nodes[i]->hasData<CLDemData>()) _THROW_ERROR(pId<<"/"<<i<<" references node without CLDemData");
+			// get CLDemData::clIx
+			clDem::par_id_t clMemberId=ycd.nodes[i]->getData<CLDemData>().clIx;
+			// check that the node referenced from yade is the one of the particle referenced by clDem
+			if(clMemberId!=cm.id) _THROW_ERROR(pId<<"/"<<i<<": yade thinks the referenced clDem member should be "<<clMemberId<<", but clDem stores the value of "<<cm.id<<" (are clumps in the same order?)");
+			// check relative positions and orientations
+			Real relPosErr=(v2v(cm.relPos)-ycd.relPos[i]).norm()/mU;
+			AngleAxisr caa(q2q(cm.relOri)), yaa(ycd.relOri[i]);
+			Real relOriErr=(caa.axis()*caa.angle()-yaa.axis()*yaa.angle()).norm()/mU;
+			_CHK_ERR(pId<<"/"<<i,relPosErr,cm.relPos,ycd.relPos[i]);
+			_CHK_ERR(pId<<"/"<<i,relOriErr,cm.relOri,ycd.relOri[i]);
+		}
+
+		// compare dynamic params
+		compareParticleNodeDyn(pId,cp,yn,kgU,mU,sU);
+	}
+
+
 	/* compare contacts */
 	for(const clDem::Contact& cc: sim->con){
 		if(cc.ids.s0<0) continue; // invalid contact
@@ -383,7 +390,174 @@ void CLDemRun::doCompare(){
 #undef _THROW_ERROR
 
 
-shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& sim, int stepPeriod, Real relTol){
+/* convert simulation from Yade to clDem, optionally add engines running the clDem simulation alongside */
+shared_ptr<clDem::Simulation> CLDemField::yadeToClDem(const shared_ptr< ::Scene>& scene, int stepPeriod, Real relTol){
+	auto sim=make_shared<clDem::Simulation>();
+	shared_ptr<DemField> dem;
+	for(const auto& f: scene->fields){ dem=dynamic_pointer_cast<DemField>(f); if(dem) break; }
+	if(!dem) throw std::runtime_error("No DemField found");
+
+	scene->ensureCl();
+	sim->platform=scene->platform;
+	sim->device=scene->device;
+	sim->context=scene->context;
+	sim->queue=scene->queue;
+
+	sim->scene.dt=scene->dt;
+	sim->scene.step=scene->step-1;
+	sim->trackEnergy=scene->trackEnergy;
+	sim->scene.loneGroups=dem->loneMask;
+
+	std::map< ::Material*,int> ymm; // yade materials, mapping to clDem material numbers
+	for(const auto& yp: dem->particles){
+		ymm.insert(std::make_pair(yp->material.get(),ymm.size())); // this makes sure materials are numbered consecutively
+	}
+	if(ymm.size()>(size_t)clDem::SCENE_MAT_NUM_) throw std::runtime_error("Yade uses "+lexical_cast<string>(ymm.size())+" materials, which is more than the maximum "+lexical_cast<string>(clDem::SCENE_MAT_NUM_)+" clDem was compiled with.");
+	// copy materials
+	for(const auto& ymi: ymm){
+		const ::Material* ym(ymi.first);
+		clDem::Material cm;
+		const ::FrictMat* yfm=dynamic_cast<const ::FrictMat*>(ym);
+		if(yfm){
+			clDem::mat_matT_set(&cm,Mat_FrictMat);
+			cm.mat.frict.density=ym->density;
+			cm.mat.frict.young=yfm->young;
+			cm.mat.frict.ktDivKn=yfm->ktDivKn;
+			cm.mat.frict.tanPhi=yfm->tanPhi;
+			sim->scene.materials[ymi.second]=cm;
+			continue;
+		}
+		// handle ElastMat here, once needed
+		throw std::runtime_error(string("Unhandled material ")+typeid(*(ym)).name());
+	}
+
+	// create particles
+	for(const auto& yp: dem->particles){
+		string pId="#"+lexical_cast<string>(yp->id);
+		if(!yp->shape) throw std::runtime_error(pId+": Particle.shape==None.");
+		clDem::Particle cp;
+		par_matId_set(&cp,ymm[yp->material.get()]);
+		par_groups_set(&cp,yp->mask);
+
+		auto ysphere=dynamic_pointer_cast< ::Sphere>(yp->shape);
+		auto ywall=dynamic_pointer_cast< ::Wall>(yp->shape);
+		bool monoNodal=true;
+		if(ysphere){
+			clDem::par_shapeT_set(&cp,clDem::Shape_Sphere);
+			cp.shape.sphere.radius=ysphere->radius;
+		}
+		else if(ywall){
+			clDem::par_shapeT_set(&cp,clDem::Shape_Wall);
+			cp.shape.wall.axis=ywall->axis;
+			cp.shape.wall.sense=ywall->sense;
+		}
+		else {
+			throw std::runtime_error(pId+": unhandled Particle.shape type "+typeid(*(yp->shape)).name());
+		}
+		if(monoNodal){
+			// other cases must be taken care of by the shape handler
+			if(yp->shape->nodes.size()!=1) throw std::runtime_error(pId+": should have exactly one node, has "+lexical_cast<string>(yp->shape->nodes.size()));
+			auto& node(yp->shape->nodes[0]);
+			auto& dyn(node->getData<DemData>());
+			cp.pos=clDem::fromEigen(node->pos);
+			cp.vel=clDem::fromEigen(dyn.vel);
+			cp.mass=dyn.mass;
+			cp.force=clDem::fromEigen(dyn.force);
+			cp.ori=clDem::fromEigen(node->ori);
+			cp.angVel=clDem::fromEigen(dyn.angVel);
+			cp.angMom=clDem::fromEigen(dyn.angMom);
+			cp.inertia=clDem::fromEigen(dyn.inertia);
+			cp.torque=clDem::fromEigen(dyn.torque);
+			int dofs=0;
+			for(int i=0; i<6; i++){
+				if(!dyn.isBlockedAxisDOF(i%3,i/3)) dofs|=clDem::dof_axis(i%3,i/3);
+			}
+			clDem::par_dofs_set(&cp,dofs);
+			if(node->hasData<CLDemData>()) throw std::runtime_error(pId+": nodes[0] already has CLDemData.");
+			node->setData<CLDemData>(make_shared<CLDemData>());
+			node->getData<CLDemData>().clIx=sim->par.size(); // will be pushed back to this position
+		}
+		sim->par.push_back(cp);
+		
+		// if we run in parallel with cldem, make dem particles render with wire only
+		if(stepPeriod>0) yp->shape->setWire(true);
+	}
+
+	// create clumps
+	for(const auto& yn: dem->clumps){
+		if(!yn->hasData<DemData>() || !dynamic_pointer_cast<ClumpData>(yn->getDataPtr<DemData>())) throw std::runtime_error("clump @ 0x"+lexical_cast<string>(yn.get())+": does not have associated ClumpData instance");
+		const ::ClumpData& ycd(yn->getData<DemData>().cast<ClumpData>());
+		vector<clDem::par_id_t> cIds;
+		for(size_t i=0; i<ycd.nodes.size(); i++){
+			const auto& yn=ycd.nodes[i];
+			if(!yn->hasData<CLDemData>()) throw runtime_error("clump @0x"+lexical_cast<string>(yn.get())+"/"+lexical_cast<string>(i)+": member without CLDemData?");
+			cIds.push_back(yn->getData<CLDemData>().clIx);
+		}
+		sim->makeClumped(cIds);
+	}
+
+	// copy existing contacts
+	FOREACH(const shared_ptr< ::Contact>& c, dem->contacts){
+		clDem::Contact con;
+		par_id2_t ids={c->pA->id,c->pB->id};
+		con.ids=ids;
+		sim->con.push_back(con);
+	}
+	
+	// decide which contact model to use
+	shared_ptr<ContactLoop> loop;
+	shared_ptr<Leapfrog> leapfrog;
+	shared_ptr<Gravity> gravity;
+	for(const auto& e: scene->engines){
+		if(!loop) loop=dynamic_pointer_cast<ContactLoop>(e);
+		if(!leapfrog) leapfrog=dynamic_pointer_cast<Leapfrog>(e);
+		if(!gravity) gravity=dynamic_pointer_cast<Gravity>(e);
+	}
+	if(!loop) throw std::runtime_error("No ContactLoop in simulation.");
+	if(!loop) throw std::runtime_error("No Leapfrog in simulation.");
+
+	if(!loop->lawDisp) throw std::runtime_error("No ContactLoop.lawDisp");
+	if(loop->lawDisp->functors.size()!=1) throw std::runtime_error("Exactly one ContactLoop.lawDisp.functors is required (zero or many found)");
+	shared_ptr<LawFunctor> law=loop->lawDisp->functors[0];
+
+	auto linEl6=dynamic_pointer_cast<Law2_L6Geom_FrictPhys_LinEl6>(law);
+	auto idealElPl=dynamic_pointer_cast<Law2_L6Geom_FrictPhys_IdealElPl>(law);
+	if(linEl6){
+		throw std::runtime_error("Law2_L6Geom_FrictPhys_LinEl6 not handled yet.");
+		sim->breakTension=false;
+		if(isnan(linEl6->charLen) || isinf(linEl6->charLen)) sim->charLen=NaN;
+	} else if(idealElPl){
+		if(idealElPl->noSlip) throw std::runtime_error("Law2_L6Geom_FrictPhys_IdealElPl.noSlip==True not handled yet.");
+		// nothing to do in this case
+	} else {
+		throw std::runtime_error("Unhandled Law2 functor "+string(typeid(*loop).name()));
+	}
+
+	sim->scene.damping=leapfrog->damping;
+	sim->scene.gravity=clDem::fromEigen(gravity?gravity->gravity:Vector3r(0,0,0));
+	sim->trackEnergy=scene->trackEnergy;
+	//sim->scene.step=scene->step-1; // right before
+	//sim->scene.t=scene->t-
+	sim->scene.loneGroups=dem->loneMask;
+
+	// run in parallel optionally
+	if(stepPeriod>=1){
+		auto clField=make_shared<CLDemField>();
+		clField->sim=sim;
+		auto clRun=make_shared<CLDemRun>();
+		clRun->stepPeriod=stepPeriod;
+		clRun->relTol=relTol;
+		clRun->field=clField;
+		scene->fields.push_back(clField);
+		scene->engines.push_back(clRun);
+	}
+
+	return sim;
+}
+
+
+/* convert simulation from clDem to Yade, create engines such that both simulations run in parallel */
+shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>& sim, int stepPeriod, Real relTol){
 	auto scene=make_shared< ::Scene>();
 
 	auto dem=make_shared< ::DemField>();
@@ -395,7 +569,7 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 	if(sim->scene.dt<0){
 		sim->scene.dt=fabs(sim->scene.dt)*sim->pWaveDt();
 		if(isinf(sim->scene.dt)) throw std::runtime_error("Invalid p-wave timestep; are there no spherical particles in the simulation?");
-		LOG_INFO("Setting Δt="<<sim->scene.dt);
+		std::cout<<"Note: setting Δt="<<sim->scene.dt<<endl;
 	}
 	
 	// global params
@@ -406,7 +580,6 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 
 	// materials
 	int mmatT=clDem::Mat_None; // track combination of materials, which is not supported
-	Real ktDivKn=NaN; // track difference ktDivKn, which is not supported in yade
 
 	shared_ptr< ::Material> ymats[clDem::SCENE_MAT_NUM_];
 	for(int i=0; i<clDem::SCENE_MAT_NUM_; i++){
@@ -428,12 +601,11 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 			case clDem::Mat_FrictMat:{
 				if(mmatT==clDem::Mat_None) mmatT=clDem::Mat_FrictMat;
 				if(mmatT!=clDem::Mat_FrictMat) throw std::runtime_error("Combination of materials (ElastMat, FrictMat) not handled.");
-				if(isnan(cmat.mat.frict.ktDivKn)) throw std::runtime_error("FrictMat.ktDivKn must not be NaN");
-				if(isnan(ktDivKn)) ktDivKn=cmat.mat.frict.ktDivKn;
-				if(ktDivKn!=cmat.mat.frict.ktDivKn) throw std::runtime_error("Several different values of FrictMar.ktDivKn not handled (this material has "+lexical_cast<string>(cmat.mat.frict.ktDivKn)+", previous value is "+lexical_cast<string>(ktDivKn)+")");
+				//if(isnan(cmat.mat.frict.ktDivKn)) throw std::runtime_error("FrictMat.ktDivKn must not be NaN");
 				auto fm=make_shared< ::FrictMat>();
 				fm->density=cmat.mat.frict.density;
 				fm->young=cmat.mat.frict.young;
+				fm->ktDivKn=cmat.mat.frict.ktDivKn;
 				fm->tanPhi=cmat.mat.frict.tanPhi;
 				fm->poisson=NaN; // meaningless
 				ymats[i]=fm;
@@ -466,7 +638,6 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 	loop->applyForces=true;
 	switch(mmatT){
 		case clDem::Mat_ElastMat:{
-			frict->ktDivKn=isnan(sim->ktDivKn)?0:sim->ktDivKn;
 			if(sim->breakTension){
 				if(!isnan(sim->charLen)) throw std::runtime_error("The combination of breaking contacts and non-NaN charLen (i.e. bending stiffness) is not handled yet!");
 				auto law=make_shared<Law2_L6Geom_FrictPhys_IdealElPl>();
@@ -480,7 +651,6 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 			break;
 		}
 		case clDem::Mat_FrictMat:{
-			frict->ktDivKn=ktDivKn;
 			auto law=make_shared<Law2_L6Geom_FrictPhys_IdealElPl>();
 			law->noSlip=false;
 			loop->lawDisp->add(law);
@@ -491,12 +661,7 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 	auto clDemRun=make_shared<CLDemRun>();
 	clDemRun->stepPeriod=stepPeriod;
 	clDemRun->initRun=true; // the initial run runs merely one step
-	if(relTol>0){
-		clDemRun->compare=true;
-		clDemRun->relTol=relTol;
-	} else {
-		clDemRun->compare=false;
-	}
+	clDemRun->relTol=relTol;
 
 	scene->engines={
 		grav,
@@ -506,6 +671,8 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 		clDemRun,
 	};
 
+	std::vector<clDem::par_id_t> yadeIds; // ids of particles in yade
+	yadeIds.resize(sim->par.size(),-1);
 	// particles
 	for(size_t i=0; i<sim->par.size(); i++){
 		const clDem::Particle& cp=sim->par[i];
@@ -520,7 +687,7 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 		int shapeT=par_shapeT_get(&cp);
 		// multinodal particles set this to false and copy pos & ori by themselves
 		// other particles set to true and will have those copied automatically after the switch block
-		bool monoNodal=false; 
+		bool monoNodal=true; 
 		switch(shapeT){
 			case Shape_None: continue;
 			case Shape_Wall:{
@@ -528,14 +695,12 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 				yw->sense=cp.shape.wall.sense;
 				yw->axis=cp.shape.wall.axis;
 				yp->shape=yw;
-				monoNodal=true;
 				break;
 			}
 			case Shape_Sphere:{
 				auto ys=make_shared< ::Sphere>();
 				ys->radius=cp.shape.sphere.radius;
 				yp->shape=ys;
-				monoNodal=true;
 				break;
 			}
 			case Shape_Clump:{
@@ -546,15 +711,18 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 					long id=sim->clumps[ii].id;
 					if(id>=(long)dem->particles.size()) throw std::runtime_error(pId+": clump members mut come before the clump (references #"+lexical_cast<string>(id)+")");
 					if(!dem->particles[id]->shape->nodes[0]->getData<DemData>().isClumped()) throw std::runtime_error(pId+": clump members should have been marked as clumped (#"+lexical_cast<string>(id));
-					// avoid check in ClumpData::makeClump
+					// avoid check in CLlumpData::makeClump
 					dem->particles[id]->shape->nodes[0]->getData<DemData>().setNoClump();
 					members.push_back(dem->particles[id]->shape->nodes[0]);
 				}
-				dem->clumps.push_back(ClumpData::makeClump(members));
-				// insert void particle to the corresponding slot to help the comparator later
-				// and don't run the block below at all
+				auto clump=ClumpData::makeClump(members);
+				clump->setData<CLDemData>(make_shared<CLDemData>());
+				clump->getData<CLDemData>().clIx=i;
+				dem->clumps.push_back(clump);
+				// void the particle, since there is no particle object for clump
+				// that avoids running the block below as well
 				yp.reset();
-				dem->particles.insertAt(yp,i);
+				//dem->particles.insertAt(yp,i);
 				break;
 			}
 			default: throw std::runtime_error(pId+": unhandled shapeT "+lexical_cast<string>(shapeT)+".");
@@ -571,6 +739,7 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 				DemData& dyn=node->getData<DemData>();
 				dyn.vel=v2v(cp.vel);
 				dyn.angVel=v2v(cp.angVel);
+				dyn.angMom=v2v(cp.angMom);
 				dyn.mass=cp.mass;
 				dyn.inertia=v2v(cp.inertia);
 				dyn.force=v2v(cp.force);
@@ -581,13 +750,15 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 					// clDem defines free dofs, yade defines blocked dofs
 					if(!(dofs&clDem::dof_axis(i%3,i/3))) dyn.flags|=::DemData::axisDOF(i%3,i/3);
 				}
+				node->setData<CLDemData>(make_shared<CLDemData>());
+				node->getData<CLDemData>().clIx=i;
 			}
 			// not yet implemented in cl-dem0
 			// if(par_stateT_get(&cp)!=clDem::State_None)
 			yp->shape->color=(par_dofs_get(&cp)==0?.5:.3);
 			yp->shape->setWire(true);
 			yp->mask=par_groups_get(&cp);
-			dem->particles.insertAt(yp,i);
+			yadeIds[i]=dem->particles.insert(yp);
 		}
 	}
 	// real/"real" contacts
@@ -597,24 +768,29 @@ shared_ptr< ::Scene> CLDemRun::clDemToYade(const shared_ptr<clDem::Simulation>& 
 		if(clDem::con_geomT_get(&c)!=Geom_None) throw std::runtime_error(cId+": pre-existing geom not handled yet.");
 		if(clDem::con_physT_get(&c)!=Phys_None) throw std::runtime_error(cId+": pre-existing phys not handled yet.");
 		auto yc=make_shared< ::Contact>();
-		assert(c.ids.s0>=0 && c.ids.s0<(long)dem->particles.size());
-		assert(c.ids.s1>=0 && c.ids.s1<(long)dem->particles.size());
-		yc->pA=dem->particles[c.ids.s0];
-		yc->pB=dem->particles[c.ids.s1];
-		dem->contacts.add(yc);
-	}
-	// potential contacts
-	for(const clDem::par_id2_t ids: sim->pot){
-		string cId="pot##"+lexical_cast<string>(ids.s0)+"+"+lexical_cast<string>(ids.s1);
-		auto yc=make_shared< ::Contact>();
-		if(ids.s0<0) continue;
-		assert(ids.s0>=0 && ids.s0<(long)dem->particles.size());
-		assert(ids.s1>=0 && ids.s1<(long)dem->particles.size());
-		yc->pA=dem->particles[ids.s0];
-		yc->pB=dem->particles[ids.s1];
+		::Particle::id_t idA=yadeIds[c.ids.s0], idB=yadeIds[c.ids.s1];
+		assert(idA>=0 && idA<(long)dem->particles.size());
+		assert(idB>=0 && idB<(long)dem->particles.size());
+		yc->pA=dem->particles[idA];
+		yc->pB=dem->particles[idB];
 		dem->contacts.add(yc);
 	}
 
+	// without collisions detection, potential contacts are given in advance
+	if(isnan(sim->scene.verletDist)){
+		// potential contacts
+		for(const clDem::par_id2_t ids: sim->pot){
+			string cId="pot##"+lexical_cast<string>(ids.s0)+"+"+lexical_cast<string>(ids.s1);
+			auto yc=make_shared< ::Contact>();
+			if(ids.s0<0) continue;
+			::Particle::id_t idA=yadeIds[ids.s0], idB=yadeIds[ids.s1];
+			assert(idA>=0 && idA<(long)dem->particles.size());
+			assert(idB>=0 && idB<(long)dem->particles.size());
+			yc->pA=dem->particles[idA];
+			yc->pB=dem->particles[idB];
+			dem->contacts.add(yc);
+		}
+	}
 
 	dem->collectNodes();
 
