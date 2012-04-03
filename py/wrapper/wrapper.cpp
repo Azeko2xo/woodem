@@ -33,7 +33,9 @@
 
 
 #include<yade/pkg/dem/Particle.hpp>
-#include<yade/pkg/sparc/SparcField.hpp>
+#ifdef YADE_SPARC
+	#include<yade/pkg/sparc/SparcField.hpp>
+#endif
 
 #ifdef YADE_CLUMP
 #include<yade/pkg/dem/Clump.hpp>
@@ -151,6 +153,17 @@ class pyOmega{
 			if(dynamic_pointer_cast<SparcField>(f)) return static_pointer_cast<SparcField>(f);
 		}
 		throw std::runtime_error("No Sparc field defined.");
+	}
+#endif
+#if 0
+	// #ifdef YADE_CLDEM
+	shared_ptr<CLDemField> clDem_get(){
+		shared_ptr<CLDemField> cldf;
+		FOREACH(const shared_ptr<Field>& f, OMEGA.getScene()->fields){
+			cldf=dynamic_pointer_cast<CLDemField>(f);
+			if(cldf) return cldf;
+		}
+		throw std::runtime_error("No CLDemField defined.");
 	}
 #endif
 
@@ -318,9 +331,14 @@ BOOST_PYTHON_MODULE(wrapper)
 		#endif
 		.add_property("scene",&pyOmega::scene_get,&pyOmega::scene_set,"Return the current :yref:`scene <Scene>` object. Only set this object carefully!")
 		.add_property("dem",&pyOmega::dem_get,"Return first DEM field.")
-#ifdef YADE_SPARC
-		.add_property("sparc",&pyOmega::sparc_get,"Return first Sparc field.")
-#endif
+		#ifdef YADE_SPARC
+			.add_property("sparc",&pyOmega::sparc_get,"Return first Sparc field.")
+		#endif
+		//#ifdef YADE_CLDEM
+		#if 0
+			.add_property("clDem",&pyOmega::clDem_get,"Return the simulation object in the first clDem field.")
+		#endif
+	
 
 		.add_property("cmaps",&pyOmega::lsCmap,"List available colormaps (by name)")
 		.add_property("cmap",&pyOmega::getCmap,&pyOmega::setCmap,"Current colormap as (index,name) tuple; set by index or by name alone.")

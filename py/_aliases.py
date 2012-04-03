@@ -21,10 +21,10 @@ try:
 except ImportError: pass
 
 try:
-	import yade.clDem
-	Omega.clDem=property(lambda o: yade.clDem.CLDemField.sceneGetField())
+	import yade.cld
+	Omega.clDem=property(lambda o: yade.cld.CLDemField.sceneGetField())
 	#Omega.hasClDem=property(lambda o: yade.clDem.CLDemField.sceneHasField)
-	#core.Node.clDem=property(yade.clDem.SparcData._getDataOnNode,yade.clDem.SparcData._setDataOnNode)
+	core.Node.clDem=property(yade.cld.CLDemData._getDataOnNode,yade.cld.CLDemData._setDataOnNode)
 except ImportError: pass
 
 

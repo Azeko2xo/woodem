@@ -35,6 +35,18 @@ Vector3r v2v(const Vec3& v){ return Vector3r(v[0],v[1],v[2]); }
 Quaternionr q2q(const Quat& q){ return Quaternionr(q[3],q[0],q[1],q[2]); }
 Matrix3r m2m(const Mat3& m){ Matrix3r ret; ret<<m[0],m[1],m[2],m[3],m[4],m[5],m[6],m[7],m[8]; return ret; }
 
+shared_ptr<clDem::Simulation> CLDemField::getSimulation(){
+	shared_ptr<CLDemField> clf;
+	for(const auto& f: Omega::instance().getScene()->fields){
+		clf=dynamic_pointer_cast<CLDemField>(f);
+		if(clf) break;
+	}
+	if(!clf) throw std::runtime_error("No CLDemField in O.Scene.fields");
+	if(!clf->sim) throw std::runtime_error("CLDemField.sim==None.");
+	return clf->sim;
+}
+
+
 bool CLDemField::renderingBbox(Vector3r& mn, Vector3r& mx){
 	if(!sim) return false;
 	Real inf=std::numeric_limits<Real>::infinity();
@@ -116,10 +128,10 @@ void CLDemRun::compareParticleNodeDyn(const string& pId, const clDem::Particle& 
 	Real massErr=(cp.mass-dyn.mass)/kgU;
 	Real inertiaErr=(v2v(cp.inertia)-dyn.inertia).norm()/(kgU*pow(mU,2));
 
-	_CHK_ERR(pId,posErr,cp.pos,yn->pos);
-	_CHK_ERR(pId,oriErr,cp.ori,yn->ori);
 	_CHK_ERR(pId,velErr,cp.vel,dyn.vel);
 	_CHK_ERR(pId,angVelErr,cp.angVel,dyn.angVel);
+	_CHK_ERR(pId,posErr,cp.pos,yn->pos);
+	_CHK_ERR(pId,oriErr,cp.ori,yn->ori);
 	_CHK_ERR(pId,angMomErr,cp.angMom,dyn.angMom);
 	_CHK_ERR(pId,forceErr,cp.force,dyn.force);
 	_CHK_ERR(pId,torqueErr,cp.torque,dyn.torque);
@@ -162,7 +174,7 @@ void CLDemRun::doCompare(){
 	FOREACH(const shared_ptr< ::Particle> yp, dem->particles){
 		// no particles in yade and clDem
 		::Particle::id_t yId=yp->id;
-		if(!yp->shape || !yp->shape->nodes.empty() || yp->shape->nodes[0]->hasData<CLDemData>()) _THROW_ERROR("#"<<yId<<": no CLDemData with clDem id information.");
+		if(!yp->shape || yp->shape->nodes.empty() || !yp->shape->nodes[0]->hasData<CLDemData>()) _THROW_ERROR("#"<<yId<<": no CLDemData with clDem id information.");
 		clDem::par_id_t clId=yp->shape->nodes[0]->getData<CLDemData>().clIx;
 		string pId="#"+lexical_cast<string>(clId)+"/"+lexical_cast<string>(yId);
 		const clDem::Particle& cp(sim->par[clId]);
@@ -432,7 +444,7 @@ shared_ptr<clDem::Simulation> CLDemField::yadeToClDem(const shared_ptr< ::Scene>
 	}
 
 	// create particles
-	for(const auto& yp: dem->particles){
+	for(auto& yp: dem->particles){
 		string pId="#"+lexical_cast<string>(yp->id);
 		if(!yp->shape) throw std::runtime_error(pId+": Particle.shape==None.");
 		clDem::Particle cp;
@@ -527,6 +539,7 @@ shared_ptr<clDem::Simulation> CLDemField::yadeToClDem(const shared_ptr< ::Scene>
 		sim->breakTension=false;
 		if(isnan(linEl6->charLen) || isinf(linEl6->charLen)) sim->charLen=NaN;
 	} else if(idealElPl){
+		sim->breakTension=true;
 		if(idealElPl->noSlip) throw std::runtime_error("Law2_L6Geom_FrictPhys_IdealElPl.noSlip==True not handled yet.");
 		// nothing to do in this case
 	} else {

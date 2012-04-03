@@ -11,8 +11,10 @@ namespace clDem{ class Simulation; class Particle; };
 
 class CLDemData: public NodeData{
 public:
-	YADE_CLASS_BASE_DOC_ATTRS(CLDemData,NodeData,"Dynamic state of node.",
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(CLDemData,NodeData,"Dynamic state of node.",
 		((long,clIx,,,"Index of object belonging to this node within clDem arrays (particle/contact)"))
+		, /* ctor */
+		, /* py */ .def("_getDataOnNode",&Node::pyGetData<CLDemData>).staticmethod("_getDataOnNode").def("_setDataOnNode",&Node::pySetData<CLDemData>).staticmethod("_setDataOnNode");
 	);
 };
 REGISTER_SERIALIZABLE(CLDemData);
@@ -29,6 +31,8 @@ template<> struct NodeData::Index<CLDemData>{enum{value=Node::ST_CLDEM};};
 struct CLDemField: public Field{
 	static shared_ptr<Scene> clDemToYade(const shared_ptr<clDem::Simulation>& sim, int stepPeriod=-1, Real relTol=-1);
 	static shared_ptr<clDem::Simulation> yadeToClDem(const shared_ptr< ::Scene>& scene, int stepPeriod=-1, Real relTol=-1);
+	// returns clDem::Simulation within current scene
+	static shared_ptr<clDem::Simulation> getSimulation();
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(CLDemField,Field,"Field referencing clDem simulation; it contains reference pointer clDem::Simulation. GL functions and proxy engine is defined on this field.",
 			((shared_ptr<clDem::Simulation>,sim,,,"The OpenCL simulation in question."))
 		, /* ctor */ createIndex();
@@ -37,18 +41,12 @@ struct CLDemField: public Field{
 		.staticmethod("clDemToYade")
 		.def("yadeToClDem",&CLDemField::yadeToClDem,(py::arg("scene"),py::arg("stepPeriod")=-1,py::arg("relTol")=-1),"Convert yade simulation in *scene* to clDem simulation (returned object), optionally adding the clDem simulation to the yade's scene itself (if stepPeriod>=1) to be run in parallel. Positive value of *relTol* will run checks between both computations after each *stepPeriod* steps.")
 		.staticmethod("yadeToClDem")
+		.def("getSimulation",&CLDemField::getSimulation).staticmethod("getSimulation");
 	);
 	REGISTER_CLASS_INDEX(CLDemField,Field);
 	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
 	// get coordinates from particles, not from nodes
 	bool renderingBbox(Vector3r&, Vector3r&); 
-	#if 0
-	// clDem engines should inherit protected from this class
-	struct Engine: public Field::Engine{
-		virtual bool acceptsField(Field* f){ return dynamic_cast<CLDemField*>(f); }
-	};
-	#endif
-
 };
 REGISTER_SERIALIZABLE(CLDemField);
 
