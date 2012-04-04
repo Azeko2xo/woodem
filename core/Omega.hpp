@@ -75,6 +75,8 @@ class Omega: public Singleton<Omega>{
 		bool isRunning();
 		void loadSimulation(const string& name, bool quiet=false);
 		void saveSimulation(const string& name, bool quiet=false);
+		void saveTmp(const shared_ptr<Scene>& _scene, const string& slot, bool quiet);
+
 
 		const shared_ptr<Scene>& getScene();
 		void setScene(const shared_ptr<Scene>& s);

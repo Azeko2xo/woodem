@@ -2,6 +2,7 @@
 #ifdef YADE_CLDEM
 
 #include<yade/core/Field.hpp>
+#include<yade/core/Field-templates.hpp>
 #include<yade/core/Engine.hpp>
 
 // forwards
@@ -41,7 +42,9 @@ struct CLDemField: public Field{
 		.staticmethod("clDemToYade")
 		.def("yadeToClDem",&CLDemField::yadeToClDem,(py::arg("scene"),py::arg("stepPeriod")=-1,py::arg("relTol")=-1),"Convert yade simulation in *scene* to clDem simulation (returned object), optionally adding the clDem simulation to the yade's scene itself (if stepPeriod>=1) to be run in parallel. Positive value of *relTol* will run checks between both computations after each *stepPeriod* steps.")
 		.staticmethod("yadeToClDem")
-		.def("getSimulation",&CLDemField::getSimulation).staticmethod("getSimulation");
+		.def("getSimulation",&CLDemField::getSimulation).staticmethod("getSimulation")
+		.def("sceneHasField",&Field_sceneHasField<CLDemField>).staticmethod("sceneHasField")
+		.def("sceneGetField",&Field_sceneGetField<CLDemField>).staticmethod("sceneGetField")
 	);
 	REGISTER_CLASS_INDEX(CLDemField,Field);
 	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);

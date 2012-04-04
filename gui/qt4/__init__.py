@@ -91,7 +91,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.dtEdit.setEnabled(False)
 		# show off with this one as well now
 	def addPreprocessors(self):
-		for c in yade.system.childClasses('FileGenerator'):
+		for c in yade.system.childClasses('Preprocessor'):
 			self.generatorCombo.addItem(c)
 	def addRenderers(self):
 		#from yade.gl import *
@@ -129,17 +129,15 @@ class ControllerClass(QWidget,Ui_Controller):
 			import traceback
 			traceback.print_exc()
 	def generateSlot(self):
-		filename=str(self.generatorFilenameEdit.text())
-		if self.generatorMemoryCheck.isChecked():
-			filename=':memory:'+filename
-			print 'BUG: Saving to memory slots freezes Yade (cause unknown). Cross fingers.'
-		#print 'Will save to ',filename
-		self.generator.generate(filename)
-		if self.generatorAutoCheck:
-			O.load(filename)
-			self.setTabActive('simulation')
-			if len(views())==0:
-				v=View(); v.center()
+		out=str(self.generatorFilenameEdit.text())
+		mem=self.generatorMemoryCheck.isChecked()
+		auto=self.generatorAutoCheck.isChecked()
+		pre=self.generator
+		newScene=pre()
+		if mem: newScene.saveTmp(out)
+		elif out: newScene.save(out)
+		else: pass # only generate, don't save
+		if auto: O.scene=newScene
 	def displayComboSlot(self,dispStr):
 		from yade import gl
 		ser=(self.renderer if dispStr=='Renderer' else eval('gl.'+str(dispStr)+'()'))

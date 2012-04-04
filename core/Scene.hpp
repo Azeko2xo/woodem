@@ -25,6 +25,9 @@ class ScalarRange;
 #endif
 
 class Scene: public Serializable{
+	// http://www.boost.org/doc/libs/1_49_0/libs/smart_ptr/sp_techniques.html#static
+	struct null_deleter{void operator()(void const *)const{}};
+
 	public:
 		// initialize tags (author, date, time)
 		void fillDefaultTags();
@@ -67,6 +70,9 @@ class Scene: public Serializable{
 		#ifdef YADE_OPENCL
 			void initCl(); // initialize OpenCL using clDev
 		#endif
+
+		void save(const string& out);
+		void saveTmp(const string& slot, bool quiet=true);
 
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Scene,Serializable,"Object comprising the whole simulation.",
 		((Real,dt,1e-8,,"Current timestep for integration."))
@@ -123,9 +129,8 @@ class Scene: public Serializable{
 		#ifdef YADE_OPENCL
 			.def("ensureCl",&Scene::ensureCl,"[for debugging] Initialize the OpenCL subsystem (this is done by engines using OpenCL, but trying to do so in advance might catch errors earlier)")
 		#endif
-		
+		.def("save",&Scene::save,(py::arg("out")),"Save into a file (loadable with O.load)").def("saveTmp",&Scene::saveTmp,(py::arg("slot")="",py::arg("quiet")=false),"Save into a temporary slot inside Omega (loadable with O.loadTmp)")
 		;
-		
 		// define nested class
 		boost::python::scope foo(_classObj);
 		boost::python::class_<Scene::pyTagsProxy>("TagsProxy",py::init<pyTagsProxy>()).def("__getitem__",&pyTagsProxy::getItem).def("__setitem__",&pyTagsProxy::setItem).def("__delitem__",&pyTagsProxy::delItem).def("has_key",&pyTagsProxy::has_key).def("__contains__",&pyTagsProxy::has_key).def("keys",&pyTagsProxy::keys)
@@ -133,4 +138,5 @@ class Scene: public Serializable{
 	DECLARE_LOGGER;
 };
 REGISTER_SERIALIZABLE(Scene);
+
 

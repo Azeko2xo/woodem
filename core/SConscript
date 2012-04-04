@@ -38,6 +38,7 @@ env.Install('$LIBDIR/lib',[
 			'Omega.cpp',
 			#'Shape.cpp',
 			'BgThread.cpp',
+			'Preprocessor.cpp',
 			#'State.cpp',
 			'corePlugins.cpp'
 			]

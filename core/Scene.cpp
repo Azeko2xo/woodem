@@ -2,6 +2,7 @@
 #include<yade/core/Engine.hpp>
 #include<yade/core/Field.hpp>
 #include<yade/core/Timing.hpp>
+#include<yade/lib/serialization/ObjectIO.hpp>
 
 #include<yade/lib/base/Math.hpp>
 #include<boost/foreach.hpp>
@@ -109,6 +110,18 @@ shared_ptr<ScalarRange> Scene::getRange(const std::string& l) const{
 	throw std::runtime_error("No range labeled `"+l+"'.");
 }
 
+void Scene::save(const string& out){
+	if(out.empty()) throw std::runtime_error("Scene.save() with empty file argument.");
+	lastSave=out;
+	shared_ptr<Scene> thisPtr(this,null_deleter());
+	yade::ObjectIO::save(out,"scene",thisPtr);
+}
+
+void Scene::saveTmp(const string& slot, bool quiet){
+	lastSave=":memory:"+slot;
+	shared_ptr<Scene> thisPtr(this,null_deleter());
+	Omega::instance().saveTmp(thisPtr,slot,/*quiet*/true);
+}
 
 
 void Scene::postLoad(Scene&){
@@ -213,4 +226,3 @@ void Scene::moveToNextTimeStep(){
 		subStep++; // if not substepping, this will make subStep=-2+1=-1, which is what we want
 	}
 }
-

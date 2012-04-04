@@ -116,8 +116,14 @@ class pyOmega{
 		OMEGA.loadSimulation(fileName,quiet);
 		mapLabeledEntitiesToVariables();
 	}
-	void reload(bool quiet=false){	load(OMEGA.getScene()->lastSave,quiet);}
-	void saveTmp(string mark="", bool quiet=false){ save(":memory:"+mark,quiet);}
+	void reload(bool quiet=false){
+		load(OMEGA.getScene()->lastSave,quiet);
+	}
+	void saveTmp(string mark="", bool quiet=false){
+		//save(":memory:"+mark,quiet);
+		assertScene();
+		OMEGA.getScene()->saveTmp(mark,quiet);
+	}
 	void loadTmp(string mark="", bool quiet=false){ load(":memory:"+mark,quiet);}
 	py::list lsTmp(){ py::list ret; typedef pair<std::string,string> strstr; FOREACH(const strstr& sim,OMEGA.memSavedSimulations){ string mark=sim.first; boost::algorithm::replace_first(mark,":memory:",""); ret.append(mark); } return ret; }
 	void tmpToFile(string mark, string filename){
@@ -155,22 +161,11 @@ class pyOmega{
 		throw std::runtime_error("No Sparc field defined.");
 	}
 #endif
-#if 0
-	// #ifdef YADE_CLDEM
-	shared_ptr<CLDemField> clDem_get(){
-		shared_ptr<CLDemField> cldf;
-		FOREACH(const shared_ptr<Field>& f, OMEGA.getScene()->fields){
-			cldf=dynamic_pointer_cast<CLDemField>(f);
-			if(cldf) return cldf;
-		}
-		throw std::runtime_error("No CLDemField defined.");
-	}
-#endif
-
 
 	void save(std::string fileName,bool quiet=false){
 		assertScene();
-		OMEGA.saveSimulation(fileName,quiet);
+		//OMEGA.saveSimulation(fileName,quiet);
+		OMEGA.getScene()->save(fileName);
 	}
 	
 	vector<shared_ptr<Engine> > engines_get(void){assertScene(); Scene* scene=OMEGA.getScene().get(); return scene->_nextEngines.empty()?scene->engines:scene->_nextEngines;}

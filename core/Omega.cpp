@@ -76,7 +76,6 @@ bool Omega::isInheritingFrom_recursive(const string& className, const string& ba
 
 
 /* IO */
-
 void Omega::loadSimulation(const string& f, bool quiet){
 	bool isMem=boost::algorithm::starts_with(f,":memory:");
 	if(!isMem && !boost::filesystem::exists(f)) throw runtime_error("Simulation file to load doesn't exist: "+f);
@@ -105,7 +104,7 @@ void Omega::loadSimulation(const string& f, bool quiet){
 
 void Omega::saveSimulation(const string& f, bool quiet){
 	if(f.size()==0) throw runtime_error("f of file to save has zero length.");
-	if(!quiet) LOG_INFO("Saving file " << f);
+	if(!quiet) LOG_INFO("Saving file "<<f);
 	scene->lastSave=f;
 	if(boost::algorithm::starts_with(f,":memory:")){
 		if(memSavedSimulations.count(f)>0 && !quiet) LOG_INFO("Overwriting in-memory saved simulation "<<f);
@@ -115,10 +114,19 @@ void Omega::saveSimulation(const string& f, bool quiet){
 	}
 	else {
 		// handles automatically the XML/binary distinction as well as gz/bz2 compression
-		yade::ObjectIO::save(f,"scene",scene); 
+		yade::ObjectIO::save(f,"scene",scene);
 	}
 }
 
+void Omega::saveTmp(const shared_ptr<Scene>& _scene, const string& _slot, bool quiet){
+	if(!quiet) LOG_INFO("Saving into memory slot "<<_slot);
+	string slot=":memory:"+_slot;
+	_scene->lastSave=slot;
+	if(memSavedSimulations.count(slot)>0 && !quiet) LOG_INFO("Overwriting in-memory saved simulation "<<_slot);
+	std::ostringstream oss;
+	yade::ObjectIO::save<decltype(_scene),boost::archive::binary_oarchive>(oss,"scene",_scene);
+	memSavedSimulations[slot]=oss.str();
+}
 
 
 /* PLUGINS */
