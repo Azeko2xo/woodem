@@ -117,7 +117,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.controllerTabs.setCurrentIndex(ix)
 	def generatorComboSlot(self,genStr):
 		"update generator parameters when a new one is selected"
-		gen=eval(str(genStr)+'()')
+		gen=eval('yade.pre.'+str(genStr)+'()')
 		self.generator=gen
 		se=SerializableEditor(gen,parent=self.generatorArea,showType=True)
 		self.generatorArea.setWidget(se)
@@ -129,15 +129,27 @@ class ControllerClass(QWidget,Ui_Controller):
 			import traceback
 			traceback.print_exc()
 	def generateSlot(self):
-		out=str(self.generatorFilenameEdit.text())
-		mem=self.generatorMemoryCheck.isChecked()
-		auto=self.generatorAutoCheck.isChecked()
-		pre=self.generator
-		newScene=pre()
-		if mem: newScene.saveTmp(out)
-		elif out: newScene.save(out)
-		else: pass # only generate, don't save
-		if auto: O.scene=newScene
+		try:
+			QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)
+			out=str(self.generatorFilenameEdit.text())
+			mem=self.generatorMemoryCheck.isChecked()
+			auto=self.generatorAutoCheck.isChecked()
+			pre=self.generator
+			newScene=pre()
+			if mem: newScene.saveTmp(out)
+			elif out: newScene.save(out)
+			else: pass # only generate, don't save
+			if auto:
+				if O.running:
+					import sys
+					sys.stdout.write('Stopping the current simulation...')
+					O.pause()
+					print ' ok'
+				O.scene=newScene
+				controller.setTabActive('simulation')
+		except: raise
+		finally:
+			QApplication.restoreOverrideCursor()
 	def displayComboSlot(self,dispStr):
 		from yade import gl
 		ser=(self.renderer if dispStr=='Renderer' else eval('gl.'+str(dispStr)+'()'))

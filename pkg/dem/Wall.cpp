@@ -13,7 +13,7 @@ void Bo1_Wall_Aabb::go(const shared_ptr<Shape>& sh){
 	if(!wall.bound){ wall.bound=make_shared<Aabb>(); }
 	assert(wall.numNodesOk());
 	Aabb& aabb=wall.bound->cast<Aabb>();
-	if(scene->isPeriodic && scene->cell->hasShear()) throw logic_error(__FILE__ "Walls not supported in sheared cell.");
+	if(scene->isPeriodic /* && scene->cell->hasShear()*/) throw logic_error(__FILE__ "Walls not supported in periodic cell.");
 	const Real& inf=std::numeric_limits<Real>::infinity();
 	aabb.min=Vector3r(-inf,-inf,-inf); aabb.max=Vector3r( inf, inf, inf);
 	aabb.min[wall.axis]=aabb.max[wall.axis]=sh->nodes[0]->pos[wall.axis];

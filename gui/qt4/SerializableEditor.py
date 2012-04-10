@@ -63,7 +63,7 @@ def serializableHref(ser,attr=None,text=None):
 	else:
 		klass=ser.__class__
 		if not text: text=klass.__name__
-	return makeWrapperHref(text,klass.__name__,attr,static=(attr and getattr(klass,attr)==getattr(ser,attr)))
+	return makeWrapperHref(text,klass.__name__,attr,static=(attr and getattr(klass,attr,None)==getattr(ser,attr)))
 
 class AttrEditor():
 	"""Abstract base class handing some aspects common to all attribute editors.
@@ -444,7 +444,10 @@ class SerializableEditor(QFrame):
 		def __init__(self,name,T,flags,containingClass):
 			self.name,self.T,self.flags,self.containingClass=name,T,flags,containingClass
 			self.lineNo,self.widget=None,None
-		def propertyId(self): return id(getattr(self.containingClass,self.name))
+		def propertyId(self):
+			try:
+				return id(getattr(self.containingClass,self.name))
+			except AttributeError: return None
 	def __init__(self,ser,parent=None,ignoredAttrs=set(),showType=False,path=None):
 		"Construct window, *ser* is the object we want to show."
 		QtGui.QFrame.__init__(self,parent)
@@ -518,8 +521,14 @@ class SerializableEditor(QFrame):
 		for attr in attrs:
 			val=getattr(self.ser,attr) # get the value using serattr, as it might be different from what the dictionary provides (e.g. Body.blockedDOFs)
 			t=None
-			isStatic=(getattr(self.ser.__class__,attr)==getattr(self.ser,attr))
-			doc=getattr(self.ser.__class__,attr).__doc__ if not isStatic else self.getStaticAttrDocstring(attr,raw=True)
+			isStatic=(getattr(self.ser.__class__,attr,None)==getattr(self.ser,attr))
+			if isStatic: doc=self.getStaticAttrDocstring(attr,raw=True)
+			else:
+				try:
+					doc=getattr(self.ser.__class__,attr).__doc__
+				except AttributeError:
+					print 'No docstring for ',self.ser.__class__.__name__+'.'+attr+": using None (pure python attribute?)"
+					doc=None
 			if attr in self.ignoredAttrs: continue
 			if isinstance(val,list):
 				t=self.getListTypeFromDocstring(attr)
@@ -545,7 +554,9 @@ class SerializableEditor(QFrame):
 			self.entries.append(self.EntryData(name=attr,T=t,flags=flags,containingClass=self.ser.__class__))
 	def getDocstring(self,attr=None):
 		"If attr is *None*, return docstring of the Serializable itself"
-		doc=(getattr(self.ser.__class__,attr).__doc__ if attr else self.ser.__class__.__doc__)
+		try:
+			doc=(getattr(self.ser.__class__,attr).__doc__ if attr else self.ser.__class__.__doc__)
+		except AttributeError: doc=None
 		if not doc: return ''
 		doc=re.sub(':y(attrtype|default|attrflags):`[^`]*`','',doc)
 		statAttr=re.compile('^.. ystaticattr::.*$',re.MULTILINE|re.DOTALL)

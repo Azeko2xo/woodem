@@ -307,7 +307,7 @@ BOOST_PYTHON_MODULE(wrapper)
 		.def("loadTmp",&pyOmega::loadTmp,(py::arg("mark")="",py::arg("quiet")=false),"Load simulation previously stored in memory by saveTmp. *mark* optionally distinguishes multiple saved simulations")
 		.def("saveTmp",&pyOmega::saveTmp,(py::arg("mark")="",py::arg("quiet")=false),"Save simulation to memory (disappears at shutdown), can be loaded later with loadTmp. *mark* optionally distinguishes different memory-saved simulations.")
 		.def("lsTmp",&pyOmega::lsTmp,"Return list of all memory-saved simulations.")
-		.def("tmpToFile",&pyOmega::tmpToFile,(py::arg("fileName"),py::arg("mark")=""),"Save XML of :yref:`saveTmp<Omega.saveTmp>`'d simulation into *fileName*.")
+		.def("tmpToFile",&pyOmega::tmpToFile,(py::arg("mark"),py::arg("fileName")),"Save XML of :yref:`saveTmp<Omega.saveTmp>`'d simulation into *fileName*.")
 		.def("tmpToString",&pyOmega::tmpToString,(py::arg("mark")=""),"Return XML of :yref:`saveTmp<Omega.saveTmp>`'d simulation as string.")
 
 		.def("run",&pyOmega::run,(py::arg("nSteps")=-1,py::arg("wait")=false),"Run the simulation. *nSteps* how many steps to run, then stop (if positive); *wait* will cause not returning to python until simulation will have stopped.")

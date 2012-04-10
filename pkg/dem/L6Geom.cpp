@@ -10,7 +10,7 @@
 	#include<GL/glu.h>
 #endif
 
-YADE_PLUGIN(dem,(L6Geom)(Cg2_Sphere_Sphere_L6Geom)(Cg2_Facet_Sphere_L6Geom)(Cg2_Wall_Sphere_L6Geom)(Cg2_Truss_Sphere_L6Geom));
+YADE_PLUGIN(dem,(L6Geom)(Cg2_Sphere_Sphere_L6Geom)(Cg2_Facet_Sphere_L6Geom)(Cg2_Wall_Sphere_L6Geom)(Cg2_InfCylinder_Sphere_L6Geom)(Cg2_Truss_Sphere_L6Geom));
 #if 0
 #ifdef YADE_OPENGL
 	YADE_PLUGIN(gl,(Gl1_L6Geom));
@@ -82,7 +82,9 @@ bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<
 		case 7: throw logic_error("Cg2_Facet_Sphere_L3Geom: Impossible sphere-facet intersection (all points are outside the edges). (please report bug)"); // +++ (impossible)
 		default: throw logic_error("Ig2_Facet_Sphere_L3Geom: Nonsense intersection value. (please report bug)");
 	}
-	if(centralSphereMask==0 || (centralSphereMask & C->pB->mask&centralSphereMask)==0){
+	#if 0
+	//if(centralSphereMask==0 || (centralSphereMask & C->pB->mask&centralSphereMask)==0){
+	#endif
 		Vector3r normal=sC-contPt; // normal is now the contact normal (not yet normalized)
 		//cerr<<"sC="<<sC.transpose()<<", contPt="<<contPt.transpose()<<endl;
 		//cerr<<"dist="<<normal.norm()<<endl;
@@ -96,6 +98,7 @@ bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<
 		// check if this will work when contact point == pseudo-position of the facet
 		handleSpheresLikeContact(C,contPt,linVel,angVel,sC,dyn2.vel,dyn2.angVel,normal,contPt,uN,0,s.radius);
 		return true;
+	#if 0
 	}else{
 		Real dist=(sC-contPt).norm();
 		Vector3r normal;
@@ -113,6 +116,7 @@ bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<
 		g.uN=dist;
 		return true;
 	}
+	#endif
 };
 
 bool Cg2_Wall_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
@@ -142,7 +146,28 @@ bool Cg2_Wall_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<S
 	return true;
 };
 
+bool Cg2_InfCylinder_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
+	if(scene->isPeriodic) throw std::logic_error("Cg2_InfCylinder_Sphere_L3Geom does not handle periodic boundary conditions.");
+	const InfCylinder& cyl=sh1->cast<InfCylinder>(); const Sphere& sphere=sh2->cast<Sphere>();
+	assert(cyl.numNodesOk()); assert(sphere.numNodesOk());
+	const Real& sphRad=sphere.radius;
+	const Real& cylRad=cyl.radius; const int& ax=cyl.axis;
+	const Vector3r& cylPos=cyl.nodes[0]->pos; Vector3r sphPos=sphere.nodes[0]->pos+shift2;
+	Vector3r relPos=sphPos-cylPos;
+	relPos[ax]=0.;
+	if(!C->isReal() && relPos.squaredNorm()>pow(cylRad+sphRad,2) && !force){ return false; }
+	Real dist=relPos.norm();
+	Real uN=dist-(cylRad+sphRad);
+	Vector3r normal=relPos/dist;
+	Vector3r cylPosAx=cylPos; cylPosAx[ax]=sphPos[ax]; // projected
+	Vector3r contPt=cylPosAx+(cylRad+0.5*uN)*normal;
 
+	const DemData& cylDyn(cyl.nodes[0]->getData<DemData>());	const DemData& sphDyn(sphere.nodes[0]->getData<DemData>());
+	// check impossible rotations of the infinite cylinder
+	assert(cylDyn.angVel[(ax+1)%3]==0. && cylDyn.angVel[(ax+2)%3]==0.);
+	handleSpheresLikeContact(C,cylPos,cylDyn.vel,cylDyn.angVel,sphPos,sphDyn.vel,sphDyn.angVel,normal,contPt,uN,cylRad,sphRad);
+	return true;
+};
 
 bool Cg2_Truss_Sphere_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
 	const Truss& t=s1->cast<Truss>(); const Sphere& s=s2->cast<Sphere>();

@@ -20,8 +20,9 @@ shared_ptr<DemField> getDemField(Scene* scene){
 	return ret;
 }
 
-Real pWaveDt(){
-	Scene* scene=Omega::instance().getScene().get(); DemField* field=getDemField(scene).get();
+Real pWaveDt(shared_ptr<Scene> _scene=shared_ptr<Scene>()){
+	Scene* scene=(_scene?_scene.get():Omega::instance().getScene().get());
+	DemField* field=getDemField(scene).get();
 	Real dt=std::numeric_limits<Real>::infinity();
 	FOREACH(const shared_ptr<Particle>& b, field->particles){
 		if(!b || !b->material || !b->shape || b->shape->nodes.size()!=1 || !b->shape->nodes[0]->hasData<DemData>()) continue;
@@ -169,7 +170,7 @@ BOOST_PYTHON_MODULE(_utils2){
 
 	YADE_SET_DOCSTRING_OPTS;
 	py::def("pWaveTimeStep",pWaveTimeStep,"Do not use, remaed to pWaveDt and will be removed.");
-	py::def("pWaveDt",pWaveDt,"Get timestep accoring to the velocity of P-Wave propagation; computed from sphere radii, rigidities and masses.");
+	py::def("pWaveDt",pWaveDt,(py::arg("scene")=py::object()),"Get timestep accoring to the velocity of P-Wave propagation; computed from sphere radii, rigidities and masses.");
 	py::def("createContacts",createContacts,(py::arg("ids1"),py::arg("id2s"),py::arg("geomFunctors")=vector<shared_ptr<CGeomFunctor> >(),py::arg("physFunctors")=vector<shared_ptr<CPhysFunctor> >(),py::arg("force")=true),"Create contacts between given DEM particles.\n\nCurrent engines are searched for :yref:`ContactLoop`, unless *geomFunctors* and *physFunctors* are given. *force* will make :yref:`CGeomFunctors` acknowledge the contact even if particles don't touch geometrically.\n\n.. warning::\n\tThis function will very likely behave incorrectly for periodic simulations (though it could be extended it to handle it farily easily).");
 	py::def("stressStiffnessWork",stressStiffnessWork,(py::arg("volume")=0,py::arg("skipMultinodal")=true,py::arg("prevStress")=(Vector6r()<<NaN,NaN,NaN,NaN,NaN,NaN).finished()),"Compute stress and stiffness tensors, and work increment of current velocity gradient (*nan* for aperiodic simulations); returns tuple (stress, stiffness, work), where stress and stiffness are in Voigt notation. *skipMultinodal* skips all contacts involving particles with multiple nodes, where stress & stiffness values can be determined only by In2 functors.");
 	py::def("muStiffnessScaling",muStiffnessScaling,(py::arg("piHat")=Mathr::PI/2,py::arg("skipFloaters")=false,py::arg("V")=-1),"Compute stiffness scaling parameter relating continuum-like stiffness with packing stiffness; see 'Particle assembly with cross-anisotropic stiffness tensor' for details. With *skipFloaters*, ignore contacts where any of the two contacting particlds has only one *real* contact (thus not contributing to the assembly stability).");

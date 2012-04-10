@@ -96,6 +96,19 @@ def defaultMaterial():
 	import math
 	return FrictMat(density=1e3,young=1e7,poisson=.3,ktDivKn=.2,tanPhi=math.tan(.5))
 
+def defaultEngines(damping=0.,gravity=(0,0,-10),noSlip=False,noBreak=False):
+	"""Return default set of engines, suitable for basic simulations during testing."""
+	return [
+		InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb(),Bo1_Wall_Aabb(),Bo1_InfCylinder_Aabb()]),
+		ContactLoop(
+			[Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom(),Cg2_Wall_Sphere_L6Geom(),Cg2_InfCylinder_Sphere_L6Geom()],
+			[Cp2_FrictMat_FrictPhys()],
+			[Law2_L6Geom_FrictPhys_IdealElPl(noSlip=noSlip,noBreak=noBreak)],applyForces=True
+		),
+		Gravity(gravity=gravity),
+		Leapfrog(damping=damping,reset=True)
+	]
+
 def _commonBodySetup(b,nodes,volumes,geomInertias,material,masses=None,fixed=False):
 	"""Assign common body parameters."""
 	#if isinstance(material,str): b.mat=O.materials[material]
@@ -244,7 +257,19 @@ def facet(vertices,fixed=True,wire=True,color=None,highlight=False,material=None
 	p.aspherical=False # mass and inertia are 0 anyway; fell free to change to ``True`` if needed
 	p.mask=mask
 	return p
-	
+
+def infCylinder(position,radius,axis,fixed=True,mass=0,color=None,material=None,mask=1):
+	"""Return a read-made infinite cylinder particle."""
+	p=Particle()
+	p.shape=InfCylinder(radius=radius,axis=axis,color=color if color else random.random())
+	if(isinstance(position,Node)):
+		node=position
+	else: node=_mkDemNode(pos=position)
+	_commonBodySetup(p,[node],volumes=None,masses=[mass],geomInertias=[inf*Vector3.Ones],material=material,fixed=fixed)
+	p.aspherical=False # only rotates along one axis
+	p.mask=mask
+	return p
+
 def facetBox(*args,**kw):
 	"|ydeprecated|"
 	_deprecatedUtilsFunction('facetBox','geom.facetBox')
