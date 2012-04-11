@@ -17,6 +17,11 @@ void Gravity::run(){
 		//if(mask!=0 && (b->groupMask & mask)==0) continue;
 		//scene->forces.addForce(b->getId(),gravity*b->state->mass);
 		// work done by gravity is "negative", since the energy appears in the system from outside
+		if(!n) throw std::logic_error("O.dem.nodes contains None!?");
+		if(!n->hasData<DemData>()){
+			cerr<<"Node at "<<n.get()<<" (pos "<<n->pos.transpose()<<") has not DemData"<<endl;
+			throw std::logic_error("No DemData");
+		}
 		DemData& dyn(n->getData<DemData>());
 
 		// clump members skipped

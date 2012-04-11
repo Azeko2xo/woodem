@@ -47,6 +47,9 @@ intelligently reallocates free ids for newly added ones.
 struct ParticleContainer: public Serializable{
 	DemField* dem; // backptr to DemField, set by DemField::postLoad; do not modify!
 	typedef int id_t;
+
+	boost::mutex* manipMutex; // to synchronize with rendering, and between threads
+
 	private:
 		typedef std::vector<shared_ptr<Particle> > ContainerT;
 		// ContainerT parts;
@@ -58,6 +61,8 @@ struct ParticleContainer: public Serializable{
 			std::vector<std::vector<shared_ptr<Particle> > > subDomains;
 		#endif
 	public:
+		~ParticleContainer(){ delete manipMutex; }
+
 		struct IsExisting{
 			bool operator()(shared_ptr<Particle>& p){ return (bool)p;} 
 			bool operator()(const shared_ptr<Particle>& p){ return (bool)p;} 
@@ -167,6 +172,7 @@ struct ParticleContainer: public Serializable{
 					((subDomainsLowestFree,vector<id_t>(maxSubdomains,0)))
 				#endif /* YADE_SUBDOMAINS */
 			,/* ctor */
+				manipMutex=new boost::mutex;
 			,/*py*/
 			.def("append",&ParticleContainer::pyAppend) /* wrapper chacks if the id is not already assigned */
 			.def("append",&ParticleContainer::pyAppendList)

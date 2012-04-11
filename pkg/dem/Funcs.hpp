@@ -7,6 +7,7 @@
 struct DemFuncs{
 	static void stressStiffness(/*results*/ Matrix3r& stress, Matrix6r& K, /* inputs*/ const Scene* scene, const DemField* dem, bool skipMultinodal, Real volume);
 	static Real unbalancedForce(const Scene* scene, const DemField* dem, bool useMaxForce);
+	static shared_ptr<Particle> makeSphere(Real radius, const shared_ptr<Material>& m);
 };
 
 

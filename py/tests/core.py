@@ -14,6 +14,7 @@ from yade import utils
 from yade import *
 from yade.core import *
 from yade.dem import *
+from yade.pre import *
 try: from yade.sparc import *
 except: pass
 try: from yade.gl import *

@@ -48,7 +48,10 @@ Particle::id_t ParticleContainer::findFreeId(){
 
 void ParticleContainer::insertAt(shared_ptr<Particle>& p, id_t id){
 	assert(id>=0);
-	if((size_t)id>=parts.size()) parts.resize(id+1);
+	if((size_t)id>=parts.size()){
+		boost::mutex::scoped_lock lock(*manipMutex);
+		parts.resize(id+1);
+	}
 	// can be an empty shared_ptr, check needed
 	if(p) p->id=id;
 	parts[id]=p;
@@ -98,6 +101,8 @@ const shared_ptr<Particle>& ParticleContainer::safeGet(Particle::id_t id){
 
 bool ParticleContainer::remove(Particle::id_t id){
 	if(!exists(id)) return false;
+	// this is perhaps not necessary
+	boost::mutex::scoped_lock lock(*manipMutex);
 	lowestFree=min(lowestFree,id);
 	#ifdef YADE_SUBDOMAINS
 		#ifdef YADE_OPENMP

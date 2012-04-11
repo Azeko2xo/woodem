@@ -45,8 +45,8 @@ REGISTER_SERIALIZABLE(BoundDispatcher);
 
 class Collider: public GlobalEngine{
 	public:
-		/*! Probe the Bound on a bodies presence. Returns list of body ids with which there is potential overlap. */
-		//virtual vector<Body::id_t> probeBoundingVolume(const Bound&){throw;}
+		/*! Probe the Aabb on particle's presence. Returns list of body ids with which there is potential overlap. */
+		virtual vector<Particle::id_t> probeAabb(const Vector3r& mn, const Vector3r& mx){throw std::runtime_error("Calling abstract Collider.probeAabb.");}
 
 		/*!
 		Tell whether given bodies may interact, for other than spatial reasons.
@@ -62,8 +62,10 @@ class Collider: public GlobalEngine{
 		virtual void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d);
 
 	virtual void getLabeledObjects(std::map<std::string,py::object>& m);
-	YADE_CLASS_BASE_DOC_ATTRS(Collider,GlobalEngine,"Abstract class for finding spatial collisions between bodies. \n\n.. admonition:: Special constructor\n\n\tDerived colliders (unless they override ``pyHandleCustomCtorArgs``) can be given list of :yref:`BoundFunctors <BoundFunctor>` which is used to initialize the internal :yref:`boundDispatcher <Collider.boundDispatcher>` instance.",
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Collider,GlobalEngine,"Abstract class for finding spatial collisions between bodies. \n\n.. admonition:: Special constructor\n\n\tDerived colliders (unless they override ``pyHandleCustomCtorArgs``) can be given list of :yref:`BoundFunctors <BoundFunctor>` which is used to initialize the internal :yref:`boundDispatcher <Collider.boundDispatcher>` instance.",
 		((shared_ptr<BoundDispatcher>,boundDispatcher,new BoundDispatcher,Attr::readonly,":yref:`BoundDispatcher` object that is used for creating :yref:`bounds <Body.bound>` on collider's request as necessary."))
+		,/*ctor*/
+		,/*py*/ .def("probeAabb",&Collider::probeAabb,(py::arg("mn"),py::arg("mx")),"Return list of particles intersected by axis-aligned box with given corners")
 	);
 };
 REGISTER_SERIALIZABLE(Collider);

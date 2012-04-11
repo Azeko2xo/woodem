@@ -68,3 +68,19 @@ Real DemFuncs::unbalancedForce(const Scene* scene, const DemField* dem, bool use
 	return (useMaxForce?maxF:meanF)/(sumF);
 }
 
+shared_ptr<Particle> DemFuncs::makeSphere(Real radius, const shared_ptr<Material>& m){
+	auto sphere=make_shared<Sphere>();
+	sphere->radius=radius;
+	sphere->nodes.push_back(make_shared<Node>());
+
+	const auto& n=sphere->nodes[0];
+	n->setData<DemData>(make_shared<DemData>());
+	auto& dyn=n->getData<DemData>();
+	dyn.mass=(4/3.)*Mathr::PI*pow(radius,3)*m->density;
+	dyn.inertia=Vector3r::Ones()*(2./5.)*dyn.mass*pow(radius,2);
+
+	auto par=make_shared<Particle>();
+	par->shape=sphere;
+	par->material=m;
+	return par;
+};

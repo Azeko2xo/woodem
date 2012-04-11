@@ -17,6 +17,7 @@ bool Gl1_DemField::cPhys;
 
 void Gl1_DemField::doBound(){
 	rrr->boundDispatcher.scene=scene; rrr->boundDispatcher.updateScenePtr();
+	boost::mutex::scoped_lock lock(*dem->particles.manipMutex);
 	FOREACH(const shared_ptr<Particle>& b, dem->particles){
 		if(!b->shape || !b->shape->bound) continue;
 		if(mask!=0 && !(b->mask&mask)) continue;
@@ -32,12 +33,13 @@ void Gl1_DemField::doBound(){
 
 void Gl1_DemField::doShape(){
 	rrr->shapeDispatcher.scene=scene; rrr->shapeDispatcher.updateScenePtr();
+	boost::mutex::scoped_lock lock(*dem->particles.manipMutex);
 
 	// instead of const shared_ptr&, get proper shared_ptr;
 	// Less efficient in terms of performance, since memory has to be written (not measured, though),
 	// but it is still better than crashes if the body gets deleted meanwile.
 	FOREACH(shared_ptr<Particle> b, dem->particles){
-		if(!b->shape || b->shape->nodes.size()==0) continue;
+		if(!b->shape || b->shape->nodes.empty()) continue;
 		if(mask!=0 && !(b->mask&mask)) continue;
 		const shared_ptr<Shape>& sh=b->shape;
 		if(!sh->getVisible()) continue;

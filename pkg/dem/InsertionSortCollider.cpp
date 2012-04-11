@@ -72,28 +72,22 @@ void InsertionSortCollider::insertionSort(VecBounds& v, bool doCollide){
 	}
 }
 
-#if 0
-vector<Particle::id_t> InsertionSortCollider::probeBoundingVolume(const Bound& bv){
-	if(periodic){ throw invalid_argument("InsertionSortCollider::probeBoundingVolume: handling periodic boundary not implemented."); }
+// if(verletDist>0){ mn-=verletDist*Vector3r::Ones(); mx+=verletDist*Vector3r::Ones(); }
+vector<Particle::id_t> InsertionSortCollider::probeAabb(const Vector3r& mn, const Vector3r& mx){
 	vector<Particle::id_t> ret;
-	for( vector<Bounds>::iterator 
-			it=BB[0].vec.begin(),et=BB[0].vec.end(); it < et; ++it)
-	{
-		if (it->coord > bv.max[0]) break;
-		if (!it->flags.isMin || !it->flags.hasBB) continue;
-		int offset = 3*it->id;
-		if (!(maxima[offset] < bv.min[0] ||
-				minima[offset+1] > bv.max[1] ||
-				maxima[offset+1] < bv.min[1] ||
-				minima[offset+2] > bv.max[2] ||
-				maxima[offset+2] < bv.min[2] )) 
-		{
-			ret.push_back(it->id);
-		}
+	const short ax0=0; // use the x-axis for the traversal
+	const VecBounds& v(BB[ax0]);
+	auto I=std::lower_bound(v.vec.begin(),v.vec.end(),mn[ax0],[](const Bounds& b, const Real& c)->bool{ return b.coord<c; } );
+	for(; I!=v.vec.end() && I->coord<mx[ax0]; I++){
+		Particle::id_t id2=I->id;
+		bool overlap=
+			(mn[0]<=maxima[3*id2+0]) && (mx[0]>=minima[3*id2+0]) &&
+			(mn[1]<=maxima[3*id2+1]) && (mx[1]>=minima[3*id2+1]) &&
+			(mn[2]<=maxima[3*id2+2]) && (mx[2]>=minima[3*id2+2]);
+		if(overlap) ret.push_back(id2);
 	}
 	return ret;
-}
-#endif
+};
 
 // STRIDE
 	bool InsertionSortCollider::isActivated(){

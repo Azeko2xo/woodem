@@ -198,7 +198,7 @@ struct InsertionSortCollider: public Collider {
 	// check whether bounding boxes are bounding
 	bool updateBboxes_doFullRun();
 
-	vector<Particle::id_t> probeBoundingVolume(const Bound&);
+	vector<Particle::id_t> probeAabb(const Vector3r& mn, const Vector3r& mx);
 
 	virtual void run();
 	YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(InsertionSortCollider,Collider,"\
