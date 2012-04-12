@@ -114,7 +114,7 @@ void ParticleFactory::run(){
 				p->shape->color=color_;
 			#endif
 			assert(p->shape->nodes.size()==1); // if this fails, enable the block below
-			assert(p->shape->nodes[0]->pos==Vector3r::Zero);
+			assert(p->shape->nodes[0]->pos==Vector3r::Zero());
 			p->shape->nodes[0]->pos+=pos;
 			auto& dyn=p->shape->nodes[0]->getData<DemData>();
 			(*shooter)(dyn.vel,dyn.angVel);
