@@ -697,6 +697,7 @@ class SeqSerializableComboBox(QFrame):
 		self.setLayout(self.layout)
 		self.hot=None # API compat with SerializableEditor
 		self.setFrameShape(QFrame.Box); self.setFrameShadow(QFrame.Raised); self.setLineWidth(1)
+		self.newDialog=None # is set when new dialog is created, and destroyed when it returns
 		# signals
 		for b,slot in zip(buttons,buttonSlots): b.clicked.connect(slot)
 		self.combo.currentIndexChanged.connect(self.comboIndexSlot)
@@ -759,9 +760,28 @@ class SeqSerializableComboBox(QFrame):
 			self.combo.setCurrentIndex(-1)
 		self.killButton.setEnabled(len(currSeq)>0)
 	def newSlot(self):
-		dialog=NewSerializableDialog(self,self.serType.__name__)
-		if not dialog.exec_(): return # cancelled
-		ser=dialog.result()
+		print 'newSlot called'
+		if self.newDialog:
+			raise RuntimeError("newSlot called, but there is already a dialogue?")
+		self.newDialog=NewSerializableDialog(self,self.serType.__name__)
+		self.newDialog.show()
+		self.newDialog.accepted.connect(self.newInsertSlot)
+		self.newDialog.rejected.connect(self.newCancelledSlot)
+		#raise RuntimeError("newSlot does not work due to dialogs getting closed immediately")
+		if 0: # old code which does not work due to exec_ returning immediately (used to work?!)
+			if not dialog.exec_():
+				print 'NewSerializableDialog cancelled'
+				return # cancelled
+			ser=dialog.result()
+			ix=self.combo.currentIndex()
+			currSeq=self.getter(); currSeq.insert(ix,ser); self.setter(currSeq)
+			logging.debug('%s new item created at index %d'%(self.serType.__name__,ix))
+			self.refreshEvent(forceIx=ix)
+	def newCancelledSlot(self):
+		self.newDialog=None # this must be tracked properly if cancelled
+	def newInsertSlot(self):
+		ser=self.newDialog.result()
+		self.newDialog=None
 		ix=self.combo.currentIndex()
 		currSeq=self.getter(); currSeq.insert(ix,ser); self.setter(currSeq)
 		logging.debug('%s new item created at index %d'%(self.serType.__name__,ix))
@@ -878,14 +898,25 @@ class SeqFundamentalEditor(QFrame):
 		if index<0: [a.setEnabled(False) for a in actKill,actUp,actDown]
 		if index==len(seq)-1: actDown.setEnabled(False)
 		if index==0: actUp.setEnabled(False)
-		if field: field.setStyleSheet('QWidget { background: green }')
-		act=menu.exec_(self.mapToGlobal(event.pos()))
-		if field: field.setStyleSheet('QWidget { background: none }')
-		if not act: return
-		if act==actNew: self.newSlot(index)
-		elif act==actKill: self.killSlot(index)
-		elif act==actUp: self.upSlot(index)
-		elif act==actDown: self.downSlot(index)
+		# disable until we figure out how to cancel when the no item in the menu is chosen
+		#if field: field.setStyleSheet('QWidget { background: green }')
+		if 1:
+			menu.popup(self.mapToGlobal(event.pos()))
+			actNew.triggered.connect(lambda: self.newSlot(index))
+			actKill.triggered.connect(lambda: self.killSlot(index))
+			actUp.triggered.connect(lambda: self.upSlot(index))
+			actDown.triggered.connect(lambda: self.downSlot(index))
+			# this does not work...?!
+			#menu.destroyed.connect(lambda: field.setStyleSheet('QWidget { background : none }'))
+		else: # this is the old code which returns immediately; don't use it anymore
+			act=menu.exec_(self.mapToGlobal(event.pos()))
+			if field: field.setStyleSheet('QWidget { background: none }')
+			if not act:
+				return
+			if act==actNew: self.newSlot(aindex)
+			elif act==actKill: self.killSlot(index)
+			elif act==actUp: self.upSlot(index)
+			elif act==actDown: self.downSlot(index)
 	def localPositionToIndex(self,pos):
 		gp=self.mapToGlobal(pos)
 		for row in range(self.form.count()/2):
@@ -905,7 +936,9 @@ class SeqFundamentalEditor(QFrame):
 		self.refreshEvent()
 	def upSlot(self,i):
 		seq=self.getter(); assert(i<len(seq));
-		prev,curr=seq[i-1:i+1]; seq[i-1],seq[i]=curr,prev; self.setter(seq)
+		prev,curr=seq[i-1:i+1];
+		seq[i-1],seq[i]=curr,prev;
+		self.setter(seq)
 		self.refreshEvent(forceIx=i-1)
 	def downSlot(self,i):
 		seq=self.getter(); assert(i<len(seq)-1);
