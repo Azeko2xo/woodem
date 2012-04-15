@@ -26,7 +26,7 @@ void ParticleFactory::run(){
 	}
 
 	// to be attained in this step;
-	goalMass+=massFlowRate*scene->dt;
+	goalMass+=massFlowRate*scene->dt*(scene->step-this->stepPrev); // stepLast==-1 if never run, which is OK
 	vector<Vector3r> minima, maxima; // of particles created in this step
 
 	while(totalMass<goalMass && (maxNum<0 || totalNum<maxNum) && (maxMass<0 || totalMass<maxMass)){
@@ -103,6 +103,9 @@ void ParticleFactory::run(){
 			// TODO: compute initial angular momentum, since wi will (very likely) use the aspherical integrator
 			ClumpData::applyToMembers(clump,/*reset*/false); // apply velocity
 			dem->clumps.push_back(clump);
+			#ifdef YADE_OPENGL
+				boost::mutex::scoped_lock lock(dem->nodesMutex);
+			#endif
 			dem->nodes.push_back(clump);
 
 			totalMass+=clump->getData<DemData>().mass;
@@ -121,6 +124,9 @@ void ParticleFactory::run(){
 			totalMass+=dyn.mass;
 			assert(p->shape->nodes[0]->hasData<DemData>());
 			dem->particles.insert(p);
+			#ifdef YADE_OPENGL
+				boost::mutex::scoped_lock lock(dem->nodesMutex);
+			#endif
 			dem->nodes.push_back(p->shape->nodes[0]);
 			// handle multi-nodal particle (unused now)
 			#if 0

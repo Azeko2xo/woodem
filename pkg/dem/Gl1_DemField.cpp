@@ -106,6 +106,8 @@ void Gl1_DemField::doShape(){
 }
 
 void Gl1_DemField::doNodes(){
+	boost::mutex::scoped_lock lock(dem->nodesMutex);
+
 	rrr->nodeDispatcher.scene=scene; rrr->nodeDispatcher.updateScenePtr();
 	FOREACH(shared_ptr<Node> node, dem->nodes){
 		rrr->setNodeGlData(node);

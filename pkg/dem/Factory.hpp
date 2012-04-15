@@ -58,6 +58,7 @@ struct ParticleFactory: public PeriodicEngine{
 		((Real,color,NaN,,"Color for new particles (NaN for random)"))
 		//
 		((Real,goalMass,0,Attr::readonly,"Mass to be attained in this step"))
+		((long,stepPrev,-1,Attr::readonly,"Step in which we were run for the last time"))
 	);
 };
 REGISTER_SERIALIZABLE(ParticleFactory);

@@ -138,6 +138,7 @@ template<> struct NodeData::Index<DemData>{enum{value=Node::ST_DEM};};
 
 struct DemField: public Field{
 	int collectNodes();
+	boost::mutex nodesMutex; // sync adding nodes with the renderer, which might otherwise crash
 
 	//template<> bool sceneHasField<DemField>() const;
 	//template<> shared_ptr<DemField> sceneGetField<DemField>() const;

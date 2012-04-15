@@ -77,14 +77,25 @@ vector<Particle::id_t> InsertionSortCollider::probeAabb(const Vector3r& mn, cons
 	vector<Particle::id_t> ret;
 	const short ax0=0; // use the x-axis for the traversal
 	const VecBounds& v(BB[ax0]);
+#if 0
 	auto I=std::lower_bound(v.vec.begin(),v.vec.end(),mn[ax0],[](const Bounds& b, const Real& c)->bool{ return b.coord<c; } );
-	for(; I!=v.vec.end() && I->coord<mx[ax0]; I++){
-		Particle::id_t id2=I->id;
+	#ifdef YADE_DEBUG
+		long i=I-v.vec.begin();
+		long pi=max(0L,i-1), ppi=max(0L,i-2), ni=min((long)v.vec.size(),i+1), nni=min((long)v.vec.size(),i+2);
+		cerr<<"x="<<mn[ax0]<<":: b["<<ppi<<"]="<<v.vec[ppi].coord<<", b["<<pi<<"]="<<v.vec[pi].coord<<" || "<<v.vec[i].coord<<" || b["<<ni<<"]="<<v.vec[ni].coord<<", b["<<nni<<"]="<<v.vec[nni].coord<<endl;
+	#endif
+#endif
+	for(long i=0; i<v.size; i++){
+		const Bounds& b(v.vec[i]);
+		if(!b.flags.isMin || !b.flags.hasBB) continue;
+		if(b.coord>mx[ax0]) break;
+		long off=3*b.id;
+		//Particle::id_t id2=I->id;
 		bool overlap=
-			(mn[0]<=maxima[3*id2+0]) && (mx[0]>=minima[3*id2+0]) &&
-			(mn[1]<=maxima[3*id2+1]) && (mx[1]>=minima[3*id2+1]) &&
-			(mn[2]<=maxima[3*id2+2]) && (mx[2]>=minima[3*id2+2]);
-		if(overlap) ret.push_back(id2);
+			(mn[0]<=maxima[off+0]) && (mx[0]>=minima[off+0]) &&
+			(mn[1]<=maxima[off+1]) && (mx[1]>=minima[off+1]) &&
+			(mn[2]<=maxima[off+2]) && (mx[2]>=minima[off+2]);
+		if(overlap) ret.push_back(b.id);
 	}
 	return ret;
 };
