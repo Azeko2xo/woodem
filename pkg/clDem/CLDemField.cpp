@@ -223,8 +223,8 @@ void CLDemRun::doCompare(){
 		switch(shapeT){
 			case Shape_Sphere:{
 				yn=yp->shape->nodes[0];
-				if(!dynamic_pointer_cast< ::Sphere>(yp->shape)) _THROW_ERROR(pId<<": shape mismatch Sphere/"<<typeid(*(yp->shape)).name());
-				const ::Sphere& ys(yp->shape->cast< ::Sphere>());
+				if(!dynamic_pointer_cast<yade::Sphere>(yp->shape)) _THROW_ERROR(pId<<": shape mismatch Sphere/"<<typeid(*(yp->shape)).name());
+				const yade::Sphere& ys(yp->shape->cast<yade::Sphere>());
 				if(ys.radius!=cp.shape.sphere.radius) _THROW_ERROR(pId<<": spheres radius "<<cp.shape.sphere.radius<<"/"<<ys.radius);
 				break;
 			}
@@ -451,7 +451,7 @@ shared_ptr<clDem::Simulation> CLDemField::yadeToClDem(const shared_ptr< ::Scene>
 		par_matId_set(&cp,ymm[yp->material.get()]);
 		par_groups_set(&cp,yp->mask);
 
-		auto ysphere=dynamic_pointer_cast< ::Sphere>(yp->shape);
+		auto ysphere=dynamic_pointer_cast<yade::Sphere>(yp->shape);
 		auto ywall=dynamic_pointer_cast< ::Wall>(yp->shape);
 		bool monoNodal=true;
 		if(ysphere){
@@ -711,7 +711,7 @@ shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>
 				break;
 			}
 			case Shape_Sphere:{
-				auto ys=make_shared< ::Sphere>();
+				auto ys=make_shared<yade::Sphere>();
 				ys->radius=cp.shape.sphere.radius;
 				yp->shape=ys;
 				break;

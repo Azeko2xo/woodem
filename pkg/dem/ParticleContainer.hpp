@@ -82,7 +82,7 @@ struct ParticleContainer: public Serializable{
 		void clear();
 		iterator begin() { return iterator(parts.begin(),parts.end()); }
 		iterator end() { return iterator(parts.end(),parts.end()); }
-		const_iterator begin() const { return const_iterator(parts.begin(),parts.begin()); }
+		const_iterator begin() const { return const_iterator(parts.begin(),parts.end()); }
 		const_iterator end() const { return const_iterator(parts.end(),parts.end()); }
 
 		size_t size() const { return parts.size(); }

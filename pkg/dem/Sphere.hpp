@@ -5,13 +5,15 @@
 #include<yade/pkg/dem/IntraForce.hpp>
 
 // NB: workaround for https://bugs.launchpad.net/yade/+bug/528509 removed
-struct Sphere: public Shape{
-	bool numNodesOk() const { return nodes.size()==1; }
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR(Sphere,Shape,"Spherical particle.",
-		((Real,radius,NaN,,"Radius [m]")),
-		createIndex(); /*ctor*/
-	);
-	REGISTER_CLASS_INDEX(Sphere,Shape);
+namespace yade{
+	struct Sphere: public Shape{
+		bool numNodesOk() const { return nodes.size()==1; }
+		YADE_CLASS_BASE_DOC_ATTRS_CTOR(Sphere,Shape,"Spherical particle.",
+			((Real,radius,NaN,,"Radius [m]")),
+			createIndex(); /*ctor*/
+		);
+		REGISTER_CLASS_INDEX(Sphere,Shape);
+	};
 };
 REGISTER_SERIALIZABLE(Sphere);
 

@@ -2,6 +2,7 @@
 #include<yade/pkg/dem/Collision.hpp>
 #include<yade/pkg/dem/Funcs.hpp>
 #include<yade/pkg/dem/Clump.hpp>
+#include<yade/pkg/dem/Sphere.hpp>
 
 YADE_PLUGIN(dem,(ParticleGenerator)(MinMaxSphereGenerator)(PsdSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(ParticleFactory)(BoxFactory));
 CREATE_LOGGER(PsdSphereGenerator);
@@ -39,11 +40,13 @@ PsdSphereGenerator::operator()(const shared_ptr<Material>&m){
 	if(numTot<=0) maxBin=0;
 	else{
 		for(size_t i=0;i<psd.size();i++){
-			Real binDiff=psd[i][1]-numPerBin[i]/numTot;
+			Real binDiff=(psd[i][1]-(i>0?psd[i-1][1]:0.))-numPerBin[i]*1./numTot;
+			LOG_TRACE("bin "<<i<<" (d="<<psd[i][0]<<"): should be "<<psd[i][1]-(i>0?psd[i-1][1]:0.)<<", current "<<numPerBin[i]*1./numTot<<", should be "<<psd[i][1]<<"; diff="<<binDiff);
 			if(binDiff>maxBinDiff){ maxBinDiff=binDiff; maxBin=i; }
 		}
 	}
 	assert(maxBin>=0);
+	LOG_TRACE("** maxBin="<<maxBin<<", d="<<psd[maxBin][0]);
 	numPerBin[maxBin]++;
 	numTot++;
 	Real r=psd[maxBin][0]/2.;
@@ -65,6 +68,7 @@ void ParticleFactory::run(){
 	// to be attained in this step;
 	goalMass+=massFlowRate*scene->dt*(scene->step-this->stepPrev); // stepLast==-1 if never run, which is OK
 	vector<Vector3r> minima, maxima; // of particles created in this step
+	vector<shared_ptr<Particle>> generated;
 
 	while(totalMass<goalMass && (maxNum<0 || totalNum<maxNum) && (maxMass<0 || totalMass<maxMass)){
 		shared_ptr<Material> mat;
@@ -91,13 +95,14 @@ void ParticleFactory::run(){
 			LOG_TRACE("Trying pos="<<pos.transpose());
 			for(const auto& pe: pee){
 				bool overlap=false;
+				bool isSphere=dynamic_pointer_cast<yade::Sphere>(pe.par->shape);
 				mn=pos+pe.extMin, mx=pos+pe.extMax;
 				vector<Particle::id_t> ids=collider->probeAabb(mn,mx);
-				if(!ids.empty()){
-					#ifdef YADE_DEBUG
-						for(const auto& id: ids) LOG_TRACE("Collider reports intersection with #"<<id);
-					#endif
-					goto tryAgain;
+				for(const auto& id: ids){
+					LOG_TRACE("Collider reports intersection with #"<<id);
+					const shared_ptr<Shape>& sh2(dem->particles[id]->shape);
+					// no spheres, or they are too close
+					if(!isSphere || !dynamic_pointer_cast<yade::Sphere>(sh2) || (pos-sh2->nodes[0]->pos).squaredNorm()<pow(pe.par->shape->cast<Sphere>().radius+sh2->cast<Sphere>().radius,2)) goto tryAgain;
 				}
 				for(size_t i=0; i<minima.size(); i++){
 					overlap=
@@ -105,8 +110,11 @@ void ParticleFactory::run(){
 						minima[i][1]<mx[1] && mn[1]<maxima[i][1] &&
 						minima[i][2]<mx[2] && mn[2]<maxima[i][2];
 					if(overlap){
-						LOG_TRACE("Collision with "<<i<<"-th particle generated in this step.");
-						goto tryAgain;
+						// for spheres, try to compute whether they really touch
+						if(!isSphere || !dynamic_pointer_cast<Sphere>(generated[i]) || (pos-generated[i]->shape->nodes[0]->pos).squaredNorm()<pow(pe.par->shape->cast<Sphere>().radius+generated[i]->shape->cast<Sphere>().radius,2)){
+							LOG_TRACE("Collision with "<<i<<"-th particle generated in this step.");
+							goto tryAgain;
+						}
 					}
 				}
 			}
@@ -118,6 +126,7 @@ void ParticleFactory::run(){
 		// particle was generated successfully and we have place for it
 		for(const auto& pe: pee){
 			minima.push_back(pe.extMin+pos); maxima.push_back(pe.extMax+pos);
+			generated.push_back(pe.par);
 		}
 
 		totalNum+=1;

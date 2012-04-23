@@ -87,15 +87,15 @@ shared_ptr<Particle> DemFuncs::makeSphere(Real radius, const shared_ptr<Material
 	return par;
 };
 
-vector<Vector2r> DemFuncs::psd(const Scene* scene, const DemField* dem, const Vector3r& min, const Vector3r& max, int nBins, int mask, Vector2r rRange){
-	bool haveBox=!isnan(min[0]) && !isnan(max[0]);
-	Eigen::AlignedBox<Real,3> box(min,max);
+vector<Vector2r> DemFuncs::psd(const Scene* scene, const DemField* dem, const Vector3r& mn, const Vector3r& mx, int nBins, int mask, Vector2r rRange){
+	bool haveBox=!isnan(mn[0]) && !isnan(mx[0]);
+	Eigen::AlignedBox<Real,3> box(mn,mx);
 	// if not given, determine radius range first
 	if(rRange[0]<=0 || rRange[1]<=0){
 		rRange=Vector2r(Inf,-Inf);
-		for(const auto& p: dem->particles){
+		for(const shared_ptr<Particle>& p: dem->particles){
 			if(mask && !(p->mask & mask)) continue;
-			if(!p->shape || !dynamic_pointer_cast<Sphere>(p->shape)) continue;
+			if(!p->shape || !dynamic_pointer_cast<yade::Sphere>(p->shape)) continue;
 			if(haveBox && !box.contains(p->shape->nodes[0]->pos)) continue;
 			Real r=p->shape->cast<Sphere>().radius;
 			if(r<rRange[0]) rRange[0]=r;
@@ -111,16 +111,18 @@ vector<Vector2r> DemFuncs::psd(const Scene* scene, const DemField* dem, const Ve
 	}
 
 	vector<Vector2r> ret(nBins+1,Vector2r::Zero());
+	LOG_TRACE("Returned vector size is "<<ret.size());
 	//ret[0][1]=rRange[0]; // minimum, which will have zero passing value
 	size_t nPar=0;
-	for(const auto& p: dem->particles){
+	for(const shared_ptr<Particle>& p: dem->particles){
 		if(mask && !(p->mask & mask)) continue;
-		if(!p->shape || !dynamic_pointer_cast<Sphere>(p->shape)) continue;
+		if(!p->shape || !dynamic_pointer_cast<yade::Sphere>(p->shape)) continue;
 		if(haveBox && !box.contains(p->shape->nodes[0]->pos)) continue;
 		Real r=p->shape->cast<Sphere>().radius;
 		if(r<rRange[0] || r>rRange[1]) continue; // for rRange given in advance, discard spheres which don't pass
-		int bin=nBins*((r-rRange[0])/(rRange[1]-rRange[0]));
-		ret[bin+1][0]+=1;
+		int bin=min(nBins,1+(int)(nBins*((r-rRange[0])/(rRange[1]-rRange[0]))));
+		LOG_TRACE("Particle with diameter "<<2*r<<" goes to position no. "<<bin);
+		ret[bin][1]+=1;
 		nPar++;
 	}
 	for(int i=0; i<nBins+1; i++){
@@ -128,7 +130,7 @@ vector<Vector2r> DemFuncs::psd(const Scene* scene, const DemField* dem, const Ve
 		ret[i][0]=2*(rRange[0]+i*(rRange[1]-rRange[0])/nBins);
 		// normalize and make cummulative
 		ret[i][1]=ret[i][1]/nPar+(i>0?ret[i-1][1]:0.);
-		cerr<<i<<": "<<ret[i].transpose()<<endl;
+		LOG_TRACE("bin "<<i<<": "<<ret[i].transpose());
 	}
 	// due to numerical imprecision, the normalization might not be exact, fix here
 	for(int i=0; i<nBins+1; i++){

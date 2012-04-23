@@ -52,4 +52,3 @@ void Serializable::pyUpdateAttrs(const py::dict& d){
 	}
 	callPostLoad();
 }
-

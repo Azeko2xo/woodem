@@ -15,13 +15,11 @@
 
 #include<yade/lib/base/Math.hpp>
 
-
 // empty functions for ADL
 //namespace{
 	template<typename T>	void preLoad(T&){}; template<typename T> void postLoad(T& obj){ /* cerr<<"Generic no-op postLoad("<<typeid(T).name()<<"&) called for "<<obj.getClassName()<<std::endl; */ }
 	template<typename T>	void preSave(T&){}; template<typename T> void postSave(T&){}
 //};
-
 // attribute flags
 namespace yade{
 	namespace Attr{
@@ -29,6 +27,7 @@ namespace yade{
 		enum flags { noSave=1, readonly=2, triggerPostLoad=4, hidden=8, noResize=16, noGui=32, pyByRef=64 };
 	};
 };
+
 using namespace yade;
 
 // see:
@@ -72,11 +71,11 @@ namespace yade{
 	//template<class C, typename T, T C::*A>
 	//void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; cerr<<"make_setter_postLoad called"<<endl; postLoad(instance); }
 };
+
 // ADL only works within the same namespace
 // this duplicate is for classes that are not in yade:: namespace (yet)
 template<class C, typename T, T C::*A>
 void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<"make_setter_postLoad called"<<endl; */ instance.callPostLoad(); /* postLoad(instance); */ }
-
 #define _DEF_READWRITE_BY_VALUE(thisClass,attr,doc) add_property(/*attr name*/BOOST_PP_STRINGIZE(attr),/*read access*/py::make_getter(&thisClass::attr,py::return_value_policy<py::return_by_value>()),/*write access*/py::make_setter(&thisClass::attr,py::return_value_policy<py::return_by_value>()),/*docstring*/doc)
 // not sure if this is correct: the getter works by value, the setter by reference (the default)...?
 #define _DEF_READWRITE_BY_VALUE_POSTLOAD(thisClass,attr,doc) add_property(/*attr name*/BOOST_PP_STRINGIZE(attr),/*read access*/py::make_getter(&thisClass::attr,py::return_value_policy<py::return_by_value>()),/*write access*/ make_setter_postLoad<thisClass,decltype(thisClass::attr),&thisClass::attr>,/*docstring*/doc)

@@ -14,8 +14,6 @@
 #define HOST_NAME_MAX 255 
 #endif
 
-
-
 class Bound;
 class Field;
 class ScalarRange;
@@ -137,6 +135,5 @@ class Scene: public Serializable{
 	);
 	DECLARE_LOGGER;
 };
+
 REGISTER_SERIALIZABLE(Scene);
-
-
