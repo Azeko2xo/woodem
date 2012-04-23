@@ -3,12 +3,13 @@
 #include<yade/pkg/dem/G3Geom.hpp>
 #include<yade/pkg/dem/FrictMat.hpp>
 
+CREATE_LOGGER(DemFuncs);
 
-void DemFuncs::stressStiffness(/*results*/ Matrix3r& stress, Matrix6r& K, /* inputs*/ const Scene* scene, const DemField* dem, bool skipMultinodal, Real volume){
+std::tuple</*stress*/Matrix3r,/*stiffness*/Matrix6r> DemFuncs::stressStiffness(const Scene* scene, const DemField* dem, bool skipMultinodal, Real volume){
 	const int kron[3][3]={{1,0,0},{0,1,0},{0,0,1}}; // Kronecker delta
 
-	stress=Matrix3r::Zero();
-	K=Matrix6r::Zero();
+	Matrix3r stress=Matrix3r::Zero();
+	Matrix6r K=Matrix6r::Zero();
 
 	FOREACH(const shared_ptr<Contact>& C, dem->contacts){
 		FrictPhys* phys=YADE_CAST<FrictPhys*>(C->phys.get());
@@ -44,6 +45,7 @@ void DemFuncs::stressStiffness(/*results*/ Matrix3r& stress, Matrix6r& K, /* inp
 		else yade::ValueError("Positive volume value must be given for aperiodic simulations.");
 	}
 	stress/=volume; K/=volume;
+	return std::make_tuple(stress,K);
 }
 
 Real DemFuncs::unbalancedForce(const Scene* scene, const DemField* dem, bool useMaxForce){
@@ -84,3 +86,54 @@ shared_ptr<Particle> DemFuncs::makeSphere(Real radius, const shared_ptr<Material
 	par->material=m;
 	return par;
 };
+
+vector<Vector2r> DemFuncs::psd(const Scene* scene, const DemField* dem, const Vector3r& min, const Vector3r& max, int nBins, int mask, Vector2r rRange){
+	bool haveBox=!isnan(min[0]) && !isnan(max[0]);
+	Eigen::AlignedBox<Real,3> box(min,max);
+	// if not given, determine radius range first
+	if(rRange[0]<=0 || rRange[1]<=0){
+		rRange=Vector2r(Inf,-Inf);
+		for(const auto& p: dem->particles){
+			if(mask && !(p->mask & mask)) continue;
+			if(!p->shape || !dynamic_pointer_cast<Sphere>(p->shape)) continue;
+			if(haveBox && !box.contains(p->shape->nodes[0]->pos)) continue;
+			Real r=p->shape->cast<Sphere>().radius;
+			if(r<rRange[0]) rRange[0]=r;
+			if(r>rRange[1]) rRange[1]=r;
+		}
+		if(isinf(rRange[0])) throw std::runtime_error("DemFuncs::boxPsd: no spherical particles?");
+	}
+	if(nBins<1) yade::ValueError("DemFuncs::boxPsd: nBins must be > 1 (not "+to_string(nBins));
+	if(rRange[0]>rRange[1]) yade::ValueError("DemFuncs::boxPsd: invalid radius range "+lexical_cast<string>(rRange.transpose())+" (must be min,max)");
+	if(rRange[0]==rRange[1]){ // dirac distribution
+		LOG_WARN("All sphere have the same radius, returning step PSD with 2 values only");
+		return vector<Vector2r>({Vector2r(rRange[0],0),Vector2r(rRange[0],1.)});
+	}
+
+	vector<Vector2r> ret(nBins+1,Vector2r::Zero());
+	//ret[0][1]=rRange[0]; // minimum, which will have zero passing value
+	size_t nPar=0;
+	for(const auto& p: dem->particles){
+		if(mask && !(p->mask & mask)) continue;
+		if(!p->shape || !dynamic_pointer_cast<Sphere>(p->shape)) continue;
+		if(haveBox && !box.contains(p->shape->nodes[0]->pos)) continue;
+		Real r=p->shape->cast<Sphere>().radius;
+		if(r<rRange[0] || r>rRange[1]) continue; // for rRange given in advance, discard spheres which don't pass
+		int bin=nBins*((r-rRange[0])/(rRange[1]-rRange[0]));
+		ret[bin+1][0]+=1;
+		nPar++;
+	}
+	for(int i=0; i<nBins+1; i++){
+		// set diameter values
+		ret[i][0]=2*(rRange[0]+i*(rRange[1]-rRange[0])/nBins);
+		// normalize and make cummulative
+		ret[i][1]=ret[i][1]/nPar+(i>0?ret[i-1][1]:0.);
+		cerr<<i<<": "<<ret[i].transpose()<<endl;
+	}
+	// due to numerical imprecision, the normalization might not be exact, fix here
+	for(int i=0; i<nBins+1; i++){
+		ret[i][1]/=ret[nBins][1];
+	}
+	return ret;
+}
+

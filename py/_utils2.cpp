@@ -39,6 +39,15 @@ Real pWaveTimeStep(){
 	return pWaveDt();
 }
 
+py::object psd(const Vector3r& min, const Vector3r& max, int nBins, int mask, Vector2r rRange, bool unzip){
+	Scene* scene=Omega::instance().getScene().get(); DemField* field=getDemField(scene).get();
+	vector<Vector2r> psd0=DemFuncs::psd(scene,field,min,max,nBins,mask,rRange);
+	if(!unzip) return py::list(psd0);
+	py::list diameters,percentage;
+	for(const auto& dp: psd0){ diameters.append(dp[0]); percentage.append(dp[1]); }
+	return py::make_tuple(diameters,percentage);
+}
+
 vector<shared_ptr<Contact> > createContacts(const vector<Particle::id_t>& ids1, const vector<Particle::id_t>& ids2, const vector<shared_ptr<CGeomFunctor> >& cgff, const vector<shared_ptr<CPhysFunctor> >& cpff, bool force){
 	if(ids1.size()!=ids2.size()) yade::ValueError("id1 and id2 arguments must have same length.");
 	if(cgff.size()+cpff.size()>0 && cgff.size()*cpff.size()==0) yade::ValueError("Either both CGeomFunctors and CPhysFunctors must be specified, or neither of them (now: "+lexical_cast<string>(cgff.size())+", "+lexical_cast<string>(cpff.size())+")");
@@ -90,7 +99,7 @@ py::tuple stressStiffnessWork(Real volume=0, bool skipMultinodal=false, const Ve
 	Matrix3r stress(Matrix3r::Zero());
 	Scene* scene=Omega::instance().getScene().get(); DemField* dem=getDemField(scene).get();
 	
-	DemFuncs::stressStiffness(stress,K,scene,dem,skipMultinodal,volume);
+	std::tie(stress,K)=DemFuncs::stressStiffness(scene,dem,skipMultinodal,volume);
 
 	// prune numerical noise from the stiffness matrix
 	Real maxElem=K.maxCoeff();
@@ -171,6 +180,7 @@ BOOST_PYTHON_MODULE(_utils2){
 	YADE_SET_DOCSTRING_OPTS;
 	py::def("pWaveTimeStep",pWaveTimeStep,"Do not use, remaed to pWaveDt and will be removed.");
 	py::def("pWaveDt",pWaveDt,(py::arg("scene")=py::object()),"Get timestep accoring to the velocity of P-Wave propagation; computed from sphere radii, rigidities and masses.");
+	py::def("psd",psd,(py::arg("min")=Vector3r(NaN,NaN,NaN),py::arg("max")=Vector3r(NaN,NaN,NaN),py::arg("nBins")=20,py::arg("mask")=0,py::arg("rRange")=Vector2r(0.,0.),py::arg("unzip")=false),"Compute Particle size distribution in given box (min,max) or in the whole simulation, if box is not specified; list of couples (diameter,passing) is returned; with *unzip*, tuple of two sequences, diameters and passing values, are returned.");
 	py::def("createContacts",createContacts,(py::arg("ids1"),py::arg("id2s"),py::arg("geomFunctors")=vector<shared_ptr<CGeomFunctor> >(),py::arg("physFunctors")=vector<shared_ptr<CPhysFunctor> >(),py::arg("force")=true),"Create contacts between given DEM particles.\n\nCurrent engines are searched for :yref:`ContactLoop`, unless *geomFunctors* and *physFunctors* are given. *force* will make :yref:`CGeomFunctors` acknowledge the contact even if particles don't touch geometrically.\n\n.. warning::\n\tThis function will very likely behave incorrectly for periodic simulations (though it could be extended it to handle it farily easily).");
 	py::def("stressStiffnessWork",stressStiffnessWork,(py::arg("volume")=0,py::arg("skipMultinodal")=true,py::arg("prevStress")=(Vector6r()<<NaN,NaN,NaN,NaN,NaN,NaN).finished()),"Compute stress and stiffness tensors, and work increment of current velocity gradient (*nan* for aperiodic simulations); returns tuple (stress, stiffness, work), where stress and stiffness are in Voigt notation. *skipMultinodal* skips all contacts involving particles with multiple nodes, where stress & stiffness values can be determined only by In2 functors.");
 	py::def("muStiffnessScaling",muStiffnessScaling,(py::arg("piHat")=Mathr::PI/2,py::arg("skipFloaters")=false,py::arg("V")=-1),"Compute stiffness scaling parameter relating continuum-like stiffness with packing stiffness; see 'Particle assembly with cross-anisotropic stiffness tensor' for details. With *skipFloaters*, ignore contacts where any of the two contacting particlds has only one *real* contact (thus not contributing to the assembly stability).");

@@ -41,6 +41,7 @@ using std::map;
 using std::set;
 using std::list;
 using std::string;
+using std::to_string;
 using std::cerr;
 using std::cout;
 using std::endl;

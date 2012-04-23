@@ -1,20 +1,34 @@
 #include<yade/pkg/dem/Particle.hpp>
 
 struct ParticleGenerator: public Serializable{
+	// particle and two extents sizes (bbox if p is at origin)
+	struct ParticleExtExt{ shared_ptr<Particle> par; Vector3r extMin; Vector3r extMax; };
 	// return (one or multiple, for clump) particles and extents (min and max)
 	// extents are computed for position of (0,0,0)
-	virtual std::tuple<vector<shared_ptr<Particle>>,Vector3r,Vector3r> operator()(const shared_ptr<Material>& m){ throw std::runtime_error("Calling ParticleGenerator.operator() (abstract method); use derived classes."); }
+	virtual vector<ParticleExtExt> operator()(const shared_ptr<Material>& m){ throw std::runtime_error("Calling ParticleGenerator.operator() (abstract method); use derived classes."); }
 	YADE_CLASS_BASE_DOC(ParticleGenerator,Serializable,"Abstract class for generating particles");
 };
 REGISTER_SERIALIZABLE(ParticleGenerator);
 
 struct MinMaxSphereGenerator: public ParticleGenerator{
-	std::tuple<vector<shared_ptr<Particle>>,Vector3r,Vector3r> operator()(const shared_ptr<Material>&m);
+	vector<ParticleExtExt> operator()(const shared_ptr<Material>&m);
 	YADE_CLASS_BASE_DOC_ATTRS(MinMaxSphereGenerator,ParticleGenerator,"Generate particles with given minimum and maximum radius",
 		((Vector2r,rRange,Vector2r(NaN,NaN),,"Minimum and maximum radius of generated spheres"))
 	);
 };
 REGISTER_SERIALIZABLE(MinMaxSphereGenerator);
+
+struct PsdSphereGenerator: public ParticleGenerator{
+	DECLARE_LOGGER;
+	vector<ParticleExtExt> operator()(const shared_ptr<Material>&m);
+	void postLoad(PsdSphereGenerator&);
+	YADE_CLASS_BASE_DOC_ATTRS(PsdSphereGenerator,ParticleGenerator,"Generate particles following a discrete Particle Size Distribution (PSD)",
+		((vector<Vector2r>,psd,,,"Points of the PSD curve; the first component is particle diameter [m] (not radius!), the second component is passing percentage. Both diameter and passing values must be increasing (diameters must be strictly increasing). Passing values are normalized so that the last value is 1.0 (therefore, you can enter the values in percents if you like)"))
+		((vector<int>,numPerBin,,Attr::noGui,"Keep track of how much particles were generated for each point on the PSD so that we get as close to the curve as possible."))
+		((int,numTot,,Attr::noGui,"Total number of particles generated"))
+	);
+};
+REGISTER_SERIALIZABLE(PsdSphereGenerator);
 
 struct ParticleShooter: public Serializable{
 	virtual void operator()(Vector3r& vel, Vector3r& angVel){ throw std::runtime_error("Calling ParticleShooter.setVelocities (abstract method); use derived classes"); }

@@ -3,16 +3,53 @@
 #include<yade/pkg/dem/Funcs.hpp>
 #include<yade/pkg/dem/Clump.hpp>
 
-YADE_PLUGIN(dem,(ParticleGenerator)(MinMaxSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(ParticleFactory)(BoxFactory));
+YADE_PLUGIN(dem,(ParticleGenerator)(MinMaxSphereGenerator)(PsdSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(ParticleFactory)(BoxFactory));
+CREATE_LOGGER(PsdSphereGenerator);
 CREATE_LOGGER(ParticleFactory);
 
-std::tuple<vector<shared_ptr<Particle>>,Vector3r,Vector3r>
+vector<ParticleGenerator::ParticleExtExt>
 MinMaxSphereGenerator::operator()(const shared_ptr<Material>&m){
 	if(isnan(rRange[0]) || isnan(rRange[1]) || rRange[0]>rRange[1]) throw std::runtime_error("MinMaxSphereGenerator: rRange[0]>rRange[1], or they are NaN!");
 	Real r=rRange[0]+Mathr::UnitRandom()*(rRange[1]-rRange[0]);
-	vector<shared_ptr<Particle>> pp={DemFuncs::makeSphere(r,m)};
-	return std::make_tuple(pp,Vector3r(-r,-r,-r),Vector3r(r,r,r));
+	return vector<ParticleExtExt>({{DemFuncs::makeSphere(r,m),Vector3r(-r,-r,-r),Vector3r(r,r,r)}});
 };
+
+
+void PsdSphereGenerator::postLoad(PsdSphereGenerator&){
+	if(psd.empty()) return;
+	for(int i=0; i<(int)psd.size()-1; i++){
+		if(psd[i][0]>=psd[i+1][0]) throw std::runtime_error("PsdSphereGenerator.psd: diameters (the x-component) must be strictly increasing ("+to_string(psd[i][0])+">="+to_string(psd[i+1][0])+")");
+		if(psd[i][1]>psd[i+1][1]) throw std::runtime_error("PsdSphereGenerator.psd: passing values (the y-component) must be increasing ("+to_string(psd[i][1])+">"+to_string(psd[i+1][1])+")");
+	}
+	Real maxPass=(*psd.rbegin())[1];
+	if(maxPass!=1.0){
+		LOG_INFO("Normalizing PSD so that highest value of passing is 1.0 rather than "<<maxPass);
+		for(Vector2r& v: psd) v[1]/=maxPass;
+	}
+	numPerBin.resize(psd.size());
+	std::fill(numPerBin.begin(),numPerBin.end(),0);
+	numTot=0;
+}
+
+vector<ParticleGenerator::ParticleExtExt>
+PsdSphereGenerator::operator()(const shared_ptr<Material>&m){
+	if(psd.empty()) throw std::runtime_error("PsdSphereGenerator.psd is empty.");
+	Real maxBinDiff=-Inf; int maxBin=-1;
+	// find the bin which is the most below the expected percentage according to the PSD
+	if(numTot<=0) maxBin=0;
+	else{
+		for(size_t i=0;i<psd.size();i++){
+			Real binDiff=psd[i][1]-numPerBin[i]/numTot;
+			if(binDiff>maxBinDiff){ maxBinDiff=binDiff; maxBin=i; }
+		}
+	}
+	assert(maxBin>=0);
+	numPerBin[maxBin]++;
+	numTot++;
+	Real r=psd[maxBin][0]/2.;
+	return vector<ParticleExtExt>({{DemFuncs::makeSphere(r,m),Vector3r(-r,-r,-r),Vector3r(r,r,r)}});
+};
+
 
 
 void ParticleFactory::run(){
@@ -36,10 +73,8 @@ void ParticleFactory::run(){
 			size_t i=max(size_t(materials.size()*Mathr::UnitRandom()),materials.size()-1);;
 			mat=materials[i];
 		}
-		vector<shared_ptr<Particle>> pp;
-		Vector3r extNeg, extPos; // extents of the generated objects
-		std::tie(pp,extNeg,extPos)=(*generator)(mat);
-		assert(!pp.empty());
+		vector<ParticleGenerator::ParticleExtExt> pee=(*generator)(mat);
+		assert(!pee.empty());
 		Vector3r pos=Vector3r::Zero(), mn, mx;
 		int attempt=-1;
 		while(true){
@@ -54,37 +89,45 @@ void ParticleFactory::run(){
 			}	
 			pos=randomPosition(); // overridden in child classes
 			LOG_TRACE("Trying pos="<<pos.transpose());
-			mn=extNeg+pos, mx=extPos+pos;
-			vector<Particle::id_t> ids=collider->probeAabb(mn,mx);
-			if(!ids.empty()){
-				#ifdef YADE_DEBUG
-					for(const auto& id: ids) LOG_TRACE("Collider reports intersection with #"<<id);
-				#endif
-				continue;
-			}
-			bool overlap=false;
-			for(size_t i=0; i<minima.size(); i++){
-				overlap=
-					minima[i][0]<mx[0] && mn[0]<maxima[i][0] &&
-				   minima[i][1]<mx[1] && mn[1]<maxima[i][1] &&
-				   minima[i][2]<mx[2] && mn[2]<maxima[i][2];
-				if(overlap){
-					LOG_TRACE("Collision with "<<i<<"-th particle generated in this step.");
-					break;
+			for(const auto& pe: pee){
+				bool overlap=false;
+				mn=pos+pe.extMin, mx=pos+pe.extMax;
+				vector<Particle::id_t> ids=collider->probeAabb(mn,mx);
+				if(!ids.empty()){
+					#ifdef YADE_DEBUG
+						for(const auto& id: ids) LOG_TRACE("Collider reports intersection with #"<<id);
+					#endif
+					goto tryAgain;
+				}
+				for(size_t i=0; i<minima.size(); i++){
+					overlap=
+						minima[i][0]<mx[0] && mn[0]<maxima[i][0] &&
+						minima[i][1]<mx[1] && mn[1]<maxima[i][1] &&
+						minima[i][2]<mx[2] && mn[2]<maxima[i][2];
+					if(overlap){
+						LOG_TRACE("Collision with "<<i<<"-th particle generated in this step.");
+						goto tryAgain;
+					}
 				}
 			}
-			if(!overlap) break;
+			LOG_TRACE("No collision, particle will be created :-) ");
+			break;
+			tryAgain: ; // reiterate
 		}
 
 		// particle was generated successfully and we have place for it
-		minima.push_back(mn); maxima.push_back(mx);
+		for(const auto& pe: pee){
+			minima.push_back(pe.extMin+pos); maxima.push_back(pe.extMax+pos);
+		}
+
 		totalNum+=1;
 		
 		Real color_=isnan(color)?Mathr::UnitRandom():color;
-		if(pp.size()>1){ // clump was generated
+		if(pee.size()>1){ // clump was generated
 			throw std::runtime_error("ParticleFactory: Clumps not yet tested properly.");
 			vector<shared_ptr<Node>> nn;
-			for(auto& p: pp){
+			for(auto& pe: pee){
+				auto& p=pe.par;
 				p->mask=mask;
 				#ifdef YADE_OPENGL
 					assert(p->shape);
@@ -110,7 +153,7 @@ void ParticleFactory::run(){
 
 			totalMass+=clump->getData<DemData>().mass;
 		} else {
-			auto& p=pp[0];
+			auto& p=pee[0].par;
 			p->mask=mask;
 			assert(p->shape);
 			#ifdef YADE_OPENGL
