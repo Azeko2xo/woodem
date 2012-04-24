@@ -1,5 +1,10 @@
 #include<yade/pkg/dem/Particle.hpp>
 
+#ifdef YADE_OPENGL
+	#include<yade/lib/opengl/GLUtils.hpp>
+	#include<yade/lib/base/CompUtils.hpp>
+#endif
+
 struct ParticleGenerator: public Serializable{
 	// particle and two extents sizes (bbox if p is at origin)
 	struct ParticleExtExt{ shared_ptr<Particle> par; Vector3r extMin; Vector3r extMax; };
@@ -78,14 +83,32 @@ struct ParticleFactory: public PeriodicEngine{
 REGISTER_SERIALIZABLE(ParticleFactory);
 
 struct BoxFactory: public ParticleFactory{
-	Vector3r randomPosition(){
-		Vector3r ret;
-		for(int i=0; i<3; i++) ret[i]=min[i]+Mathr::UnitRandom()*(max[i]-min[i]);
-		return ret;
-	};
+	Vector3r randomPosition(){ return box.sample(); }
+	#ifdef YADE_OPENGL
+		void render(const GLViewInfo&){ if(!isnan(color)) GLUtils::AlignedBox(box,CompUtils::mapColor(color)); }
+	#endif
 	YADE_CLASS_BASE_DOC_ATTRS(BoxFactory,ParticleFactory,"Generate particle inside axis-aligned box volume.",
-		((Vector3r,min,Vector3r(NaN,NaN,NaN),,"Lower corner of the box"))
-		((Vector3r,max,Vector3r(NaN,NaN,NaN),,"Upper corner of the box"))
+		((AlignedBox3r,box,AlignedBox3r(Vector3r(NaN,NaN,NaN),Vector3r(NaN,NaN,NaN)),,"Box volume specification (lower and upper corners)"))
+		((Real,color,0,Attr::noGui,"Color for rendering (nan disables rendering)"))
 	);
 };
 REGISTER_SERIALIZABLE(BoxFactory);
+
+struct BoxDeleter: public PeriodicEngine{
+	DECLARE_LOGGER;
+	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
+	#ifdef YADE_OPENGL
+		void render(const GLViewInfo&){ if(!isnan(color)) GLUtils::AlignedBox(box,CompUtils::mapColor(color)); }
+	#endif
+	void run();
+	YADE_CLASS_BASE_DOC_ATTRS(BoxDeleter,PeriodicEngine,"Delete particles which fall outside (or inside, if *inside* is True) given box. Deleted particles are optionally stored in the *deleted* array for later processing, if needed.",
+		((AlignedBox3r,box,AlignedBox3r(Vector3r(NaN,NaN,NaN),Vector3r(NaN,NaN,NaN)),,"Box volume specification (lower and upper corners)"))
+		((bool,inside,false,,"Delete particles which fall inside the vlome rather than outside"))
+		((bool,save,false,,"Save particles which are deleted in the *deleted* list"))
+		((vector<shared_ptr<Particle>>,deleted,,Attr::noGui,"Deleted particle's list"))
+		((int,delNum,0,Attr::readonly,"Number of deleted particles"))
+		((Real,delMass,0.,Attr::readonly,"Total mass of deleted particles"))
+		((Real,color,0,Attr::noGui,"Color for rendering (nan disables rendering)"))
+	);
+};
+REGISTER_SERIALIZABLE(BoxDeleter);

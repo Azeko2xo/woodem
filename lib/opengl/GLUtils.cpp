@@ -28,6 +28,17 @@ void GLUtils::Parallelepiped(const Vector3r& a, const Vector3r& b, const Vector3
 	glEnd();
 }
 
+void GLUtils::AlignedBox(const AlignedBox3r& box, const Vector3r& color){
+	glPushMatrix();
+		glColor3v(color);
+		glTranslatev(box.center().eval());
+		glScalev(Vector3r(box.max()-box.min()));
+		glDisable(GL_LINE_SMOOTH);
+		glutWireCube(1);
+		glEnable(GL_LINE_SMOOTH);
+	glPopMatrix();
+}
+
 void GLUtils::Cylinder(const Vector3r& a, const Vector3r& b, Real rad1, const Vector3r& color, bool wire, bool caps, Real rad2 /* if negative, use rad1 */,int slices, int stacks){
 	if(rad2<0) rad2=rad1;
 	static GLUquadric* gluQuadric;

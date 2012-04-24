@@ -257,7 +257,7 @@ REGISTER_SERIALIZABLE(Shape);
 class Material: public Serializable, public Indexable{
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Material,Serializable,"Particle material",
 		((Real,density,NaN,,"Material density"))
-		((int,id,-1,,"Some number identifying this material; used with MatchMaker objects, otherwise useless"))
+		((int,id,-1,,"Some number identifying this material; used with MatchMaker objects, useless otherwise"))
 		,/*ctor*/,/*py*/ YADE_PY_TOPINDEXABLE(Material);
 	);
 	REGISTER_INDEX_COUNTER(Material);

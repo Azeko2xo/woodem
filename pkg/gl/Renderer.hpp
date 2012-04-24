@@ -169,6 +169,7 @@ class Renderer: public Serializable{
 		((vector<Se3r>,clipPlaneSe3,vector<Se3r>(numClipPlanes,Se3r(Vector3r::Zero(),Quaternionr::Identity())),,"Position and orientation of clipping planes"))
 		((vector<bool>,clipPlaneActive,vector<bool>(numClipPlanes,false),,"Activate/deactivate respective clipping planes"))
 		((vector<shared_ptr<GlExtraDrawer> >,extraDrawers,,,"Additional rendering components (:yref:`GlExtraDrawer`)."))
+		((bool,engines,true,,"Call engine's rendering functions (if defined)"))
 		,/*deprec*/
 		,/*init*/
 		,/*ctor*/ if(self && initDone) throw std::runtime_error("yade.gl.Renderer() is already constructed, use yade.qt.Renderer() to retrieve the instance."); self=this;

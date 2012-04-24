@@ -221,6 +221,8 @@ void Renderer::render(const shared_ptr<Scene>& _scene, bool _withNames){
 		fieldDispatcher(f,&viewInfo);
 	}
 
+	if(engines) for(const auto& e: scene->engines){ e->render(viewInfo); }
+
 	FOREACH(const shared_ptr<GlExtraDrawer> d, extraDrawers){
 		if(d->dead) continue;
 		glPushMatrix();

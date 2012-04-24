@@ -42,6 +42,10 @@ class Engine: public Serializable {
 		shared_ptr<Field> field_get();
 		void field_set(const shared_ptr<Field>&);
 
+		#ifdef YADE_OPENGL
+			virtual void render(const GLViewInfo&){};
+		#endif
+
 		void postLoad(Engine&);
 
 		virtual void getLabeledObjects(std::map<std::string,py::object>&){};

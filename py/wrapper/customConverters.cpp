@@ -64,7 +64,6 @@
 
 using namespace py; // = boost::python
 
-// move this to the miniEigen wrapper later
 
 /* two-way se3 handling */
 struct custom_se3_to_tuple{

@@ -4,9 +4,10 @@
 #include<yade/pkg/dem/Clump.hpp>
 #include<yade/pkg/dem/Sphere.hpp>
 
-YADE_PLUGIN(dem,(ParticleGenerator)(MinMaxSphereGenerator)(PsdSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(ParticleFactory)(BoxFactory));
+YADE_PLUGIN(dem,(ParticleGenerator)(MinMaxSphereGenerator)(PsdSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(ParticleFactory)(BoxFactory)(BoxDeleter));
 CREATE_LOGGER(PsdSphereGenerator);
 CREATE_LOGGER(ParticleFactory);
+CREATE_LOGGER(BoxDeleter);
 
 vector<ParticleGenerator::ParticleExtExt>
 MinMaxSphereGenerator::operator()(const shared_ptr<Material>&m){
@@ -56,7 +57,7 @@ PsdSphereGenerator::operator()(const shared_ptr<Material>&m){
 
 
 void ParticleFactory::run(){
-	DemField* dem=dynamic_cast<DemField*>(field.get());
+	DemField* dem=static_cast<DemField*>(field.get());
 	if(!generator) throw std::runtime_error("ParticleFactor.generator==None!");
 	if(!shooter) throw std::runtime_error("ParticleFactor.shooter==None!");
 	if(materials.empty()) throw std::runtime_error("ParticleFactory.materials is empty!");
@@ -197,3 +198,21 @@ void ParticleFactory::run(){
 		}
 	};
 }
+
+void BoxDeleter::run(){
+	DemField* dem=static_cast<DemField*>(field.get());
+	// iterate over indices so that iterators are not invalidated
+	for(size_t i=0; i<dem->particles.size(); i++){
+		const auto& p=dem->particles[i];
+		if(!p || !p->shape || p->shape->nodes.size()!=1) continue;
+		const Vector3r pos=p->shape->nodes[0]->pos;
+		if(inside!=box.contains(pos)) continue; // keep this particle
+		if(save) deleted.push_back(dem->particles[i]);
+		delNum++;
+		delMass+=p->shape->nodes[0]->getData<DemData>().mass;
+		// FIXME: compute energy that disappeared
+		dem->particles.remove(i);
+		LOG_DEBUG("Particle #"<<p<<" deleted");
+	}
+}
+

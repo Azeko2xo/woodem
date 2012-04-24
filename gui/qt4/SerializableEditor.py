@@ -409,11 +409,14 @@ class AttrEditor_MatrixXX(AttrEditor_MatrixX):
 	def __init__(self,parent,getter,setter):
 		val=getter()
 		AttrEditor_MatrixX.__init__(self,parent,getter,setter,val.rows(),val.cols(),lambda r,c:(r,c))
+class AttrEditor_AlignedBox3(AttrEditor_MatrixX):
+	def __init__(self,parent,getter,setter):
+		AttrEditor_MatrixX.__init__(self,parent,getter,setter,2,3,lambda r,c:(r,c))
 
 class Se3FakeType: pass
 
-_fundamentalEditorMap={bool:AttrEditor_Bool,str:AttrEditor_Str,int:AttrEditor_Int,float:AttrEditor_Float,Quaternion:AttrEditor_Quaternion,Vector2:AttrEditor_Vector2,Vector3:AttrEditor_Vector3,Vector6:AttrEditor_Vector6,Matrix3:AttrEditor_Matrix3,Vector6i:AttrEditor_Vector6i,Vector3i:AttrEditor_Vector3i,Vector2i:AttrEditor_Vector2i,MatrixX:AttrEditor_MatrixXX,VectorX:AttrEditor_VectorX,Se3FakeType:AttrEditor_Se3}
-_fundamentalInitValues={bool:True,str:'',int:0,float:0.0,Quaternion:Quaternion.Identity,Vector3:Vector3.Zero,Matrix3:Matrix3.Zero,Vector6:Vector6.Zero,Vector6i:Vector6i.Zero,Vector3i:Vector3i.Zero,Vector2i:Vector2i.Zero,Vector2:Vector2.Zero,Se3FakeType:(Vector3.Zero,Quaternion.Identity),MatrixX:MatrixX(),VectorX:VectorX()}
+_fundamentalEditorMap={bool:AttrEditor_Bool,str:AttrEditor_Str,int:AttrEditor_Int,float:AttrEditor_Float,Quaternion:AttrEditor_Quaternion,Vector2:AttrEditor_Vector2,Vector3:AttrEditor_Vector3,Vector6:AttrEditor_Vector6,Matrix3:AttrEditor_Matrix3,Vector6i:AttrEditor_Vector6i,Vector3i:AttrEditor_Vector3i,Vector2i:AttrEditor_Vector2i,MatrixX:AttrEditor_MatrixXX,VectorX:AttrEditor_VectorX,Se3FakeType:AttrEditor_Se3,AlignedBox3:AttrEditor_AlignedBox3}
+_fundamentalInitValues={bool:True,str:'',int:0,float:0.0,Quaternion:Quaternion.Identity,Vector3:Vector3.Zero,Matrix3:Matrix3.Zero,Vector6:Vector6.Zero,Vector6i:Vector6i.Zero,Vector3i:Vector3i.Zero,Vector2i:Vector2i.Zero,Vector2:Vector2.Zero,Se3FakeType:(Vector3.Zero,Quaternion.Identity),AlignedBox3:(Vector3.Zero,Vector3.Zero),MatrixX:MatrixX(),VectorX:VectorX()}
 
 _fundamentalSpecialEditors={id(yade.dem.DemData.blocked):AttrEditor_DemData_blocked,}
 

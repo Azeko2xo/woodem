@@ -71,12 +71,12 @@ typedef VECTOR6_TEMPLATE(int) Vector6i;
 typedef MATRIX3_TEMPLATE(Real) Matrix3r;
 typedef MATRIX6_TEMPLATE(Real) Matrix6r;
 
-// NB: those lack python & serialization support
 typedef Eigen::Matrix<Real,Eigen::Dynamic,Eigen::Dynamic> MatrixXr;
 typedef Eigen::Matrix<Real,Eigen::Dynamic,1> VectorXr;
 
 typedef Eigen::Quaternion<Real> Quaternionr;
 typedef Eigen::AngleAxis<Real> AngleAxisr;
+typedef Eigen::AlignedBox<Real,3> AlignedBox3r;
 using Eigen::AngleAxis; using Eigen::Quaternion;
 
 // in some cases, we want to initialize types that have no default constructor (OpenMPAccumulator, for instance)
@@ -272,6 +272,7 @@ BOOST_IS_BITWISE_SERIALIZABLE(Matrix3r);
 BOOST_IS_BITWISE_SERIALIZABLE(Matrix6r);
 BOOST_IS_BITWISE_SERIALIZABLE(MatrixXr);
 BOOST_IS_BITWISE_SERIALIZABLE(VectorXr);
+BOOST_IS_BITWISE_SERIALIZABLE(AlignedBox3r);
 
 namespace boost {
 namespace serialization {
@@ -324,6 +325,11 @@ template<class Archive>
 void serialize(Archive & ar, Se3r & g, const unsigned int version){
 	Vector3r& position=g.position; Quaternionr& orientation=g.orientation;
 	ar & BOOST_SERIALIZATION_NVP(position) & BOOST_SERIALIZATION_NVP(orientation);
+}
+
+template<class Archive>
+void serialize(Archive & ar, AlignedBox3r & b, const unsigned int version){
+	ar & BOOST_SERIALIZATION_NVP(b.min()) & BOOST_SERIALIZATION_NVP(b.max());
 }
 
 template<class Archive>

@@ -18,6 +18,7 @@ struct GLUtils{
 	};
 	// render wire of parallelepiped with sides given by vectors a,b,c; zero corner is at origin
 	static void Parallelepiped(const Vector3r& a, const Vector3r& b, const Vector3r& c);
+	static void AlignedBox(const AlignedBox3r& box, const Vector3r& color=Vector3r(1,1,1));
 	// render cylinder, wire or solid
 	// if rad2<0, rad1 is used;
 	// if stacks<0, then it is approximate stack length (axial subdivision) relative to rad1, multiplied by 10 (i.e. -5 -> stacks approximately .5*rad1)
