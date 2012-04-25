@@ -64,7 +64,7 @@ class TestSimpleClump(unittest.TestCase):
 		print bC.dem.vel,bC.dem.angVel
 		bC.dem.vel=(1.,.2,.4)
 		bC.dem.angVel=(0,.4,.1)
-		O.scene.engines=[Leapfrog()]; O.step() # update velocities
+		O.scene.engines=[Leapfrog(reset=True)]; O.step() # update velocities
 		# linear velocities
 		self.assertEqual(b1.dem.vel,bC.dem.vel+bC.dem.angVel.cross(b1.pos-bC.pos))
 		self.assertEqual(b2.dem.vel,bC.dem.vel+bC.dem.angVel.cross(b2.pos-bC.pos))

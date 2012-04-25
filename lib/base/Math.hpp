@@ -329,7 +329,8 @@ void serialize(Archive & ar, Se3r & g, const unsigned int version){
 
 template<class Archive>
 void serialize(Archive & ar, AlignedBox3r & b, const unsigned int version){
-	ar & BOOST_SERIALIZATION_NVP(b.min()) & BOOST_SERIALIZATION_NVP(b.max());
+	Vector3r& min(b.min()); Vector3r& max(b.max());
+	ar & BOOST_SERIALIZATION_NVP(min) & BOOST_SERIALIZATION_NVP(max);
 }
 
 template<class Archive>

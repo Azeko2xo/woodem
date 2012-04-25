@@ -34,7 +34,8 @@ shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, bool i
 	// first loop: compute clump's centroid and principal orientation
 	for(const auto& n: nn){
 		const auto& dem=n->getData<DemData>();
-		if(dem.isClumped()) yade::RuntimeError("Node "+lexical_cast<string>(n)+" is already clumped.");
+		if(dem.isClumped()) yade::RuntimeError("Node "+lexical_cast<string>(n)+": already clumped.");
+		if(dem.parCount!=1) yade::RuntimeError("Node "+lexical_cast<string>(n)+": particle count for clumped particles must be 1, not "+to_string(dem.parCount));
 		M+=dem.mass;
 		Sg+=dem.mass*n->pos;
 		Ig+=inertiaTensorTranslate(inertiaTensorRotate(dem.inertia.asDiagonal(),n->ori.conjugate()),dem.mass,-1.*n->pos);

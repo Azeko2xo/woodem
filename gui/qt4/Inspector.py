@@ -249,14 +249,15 @@ class InteractionInspector(QWidget):
 		'Change view; called whenever the interaction to be displayed changes'
 		try:
 			if self.ids==None: raise IndexError() # to be caught right away
-			intr=O.dem.con[self.ids[0],self.ids[1]] # also might raise IndexError, if the contact is dead
+			intr=O.dem.con[self.ids] # also might raise IndexError, if the contact is dead
+			if not intr: raise IndexError()
 			self.intrLinIxBox.setValue(intr.linIx)
 			self.serEd=SerializableEditor(intr,showType=True,parent=self.scroll,path='O.dem.con[%d,%d]'%(self.ids[0],self.ids[1]))
 			self.scroll.setWidget(self.serEd)
 			self.gotoId1Button.setText('#'+makeBodyLabel(O.dem.par[self.ids[0]]))
 			self.gotoId2Button.setText('#'+makeBodyLabel(O.dem.par[self.ids[1]]))
 			self.setWindowTitle('Contact #%d + #%d'%(self.ids[0],self.ids[1]))
-		except IndexError:
+		except (IndexError,):
 			if self.ids:  # reset view (there was an interaction)
 				self.ids=None
 				self.serEd=QFrame(self.scroll); self.scroll.setWidget(self.serEd) 

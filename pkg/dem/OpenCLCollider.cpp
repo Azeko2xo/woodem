@@ -94,6 +94,7 @@ vector<Vector2i> OpenCLCollider::initSortCPU(){
 		if(!b.isMin || isnan(b.coord)) continue;
 		LOG_TRACE("← "<<b.coord<<", #"<<b.id);
 		for(size_t j=i+1; cpuBounds[ax0][j].id!=b.id && /* just in case, e.g. maximum smaller than minimum */ j<cpuBounds[ax0].size(); j++){
+			numInvs++;
 			const CpuAxBound& b2(cpuBounds[ax0][j]);
 			if(!b2.isMin || isnan(b2.coord)) continue; // overlaps of this kind have been already checked when b2.id was processed upwards
 			LOG_TRACE("\t→ "<<b2.coord<<", #"<<b2.id);

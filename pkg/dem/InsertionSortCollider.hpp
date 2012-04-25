@@ -162,16 +162,18 @@ struct InsertionSortCollider: public Collider {
 
 	// return python representation of the BB struct, as ([...],[...],[...]).
 	py::tuple dumpBounds();
+	py::object dbgInfo();
 
 	/*! sorting routine; insertion sort is very fast for strongly pre-sorted lists, which is our case
   	    http://en.wikipedia.org/wiki/Insertion_sort has the algorithm and other details
 	*/
-	void insertionSort(VecBounds& v,bool doCollide=true);
+	Vector3i countInversions(); // for debugging only
+	void insertionSort(VecBounds& v,bool doCollide=true, int ax=0);
 	void handleBoundInversion(Particle::id_t,Particle::id_t);
 	bool spatialOverlap(Particle::id_t,Particle::id_t) const;
 
 	// periodic variants
-	void insertionSortPeri(VecBounds& v,bool doCollide=true);
+	void insertionSortPeri(VecBounds& v,bool doCollide=true, int ax=0);
 	void handleBoundInversionPeri(Particle::id_t,Particle::id_t);
 	bool spatialOverlapPeri(Particle::id_t,Particle::id_t,Scene*,Vector3i&) const;
 	static Real cellWrap(const Real, const Real, const Real, int&);
@@ -191,8 +193,6 @@ struct InsertionSortCollider: public Collider {
 
 	// force reinitialization at next run
 	virtual void invalidatePersistentData(){ for(int i=0; i<3; i++){ BB[i].vec.clear(); BB[i].size=0; }}
-	// check params for consistency
-	void postLoad(InsertionSortCollider&);
 	// initial setup (reused in derived classes)
 	bool prologue_doFullRun(); 
 	// check whether bounding boxes are bounding
@@ -222,20 +222,15 @@ struct InsertionSortCollider: public Collider {
 		\n\n \
 		If you additionally set ``nBins`` to >=1, not all particles will have their bound enlarged by ``verletDist``; instead, they will be put to bins (in the statistical sense) based on magnitude of their velocity; ``verletDist`` will only be used for particles in the fastest bin, whereas only proportionally smaller length will be used for slower particles; The coefficient between bin's velocities is given by ``binCoeff``.\
 	",
+		((bool,forceInitSort,false,,"When set to true, full sort will be run regardless of other conditions. This flag is then reset automatically to false"))
 		((int,sortAxis,0,,"Axis for the initial contact detection."))
 		((bool,sortThenCollide,false,,"Separate sorting and colliding phase; it is MUCH slower, but all interactions are processed at every step; this effectively makes the collider non-persistent, not remembering last state. (The default behavior relies on the fact that inversions during insertion sort are overlaps of bounding boxes that just started/ceased to exist, and only processes those; this makes the collider much more efficient.)"))
 		((Real,verletDist,((void)"Automatically initialized",-.05),,"Length by which to enlarge particle bounds, to avoid running collider at every step. Stride disabled if zero. Negative value will trigger automatic computation, so that the real value will be |verletDist| × minimum spherical particle radius; if there are no spherical particles, it will be disabled."))
 		((Real,maxVel2,0,Attr::readonly,"Maximum encountered velocity of a particle, to compute bounding box shift."))
 		((int,nFullRuns,0,,"Number of full runs, when collision detection is needed; only informative."))
-#ifdef YADE_VBINS
-		((Real,fastestBodyMaxDist,-1,,"Maximum displacement of the fastest body since last run; if >= verletDist, we could get out of bboxes and will trigger full run. DEPRECATED, was only used without bins. |yupdate|"))
-		((int,nBins,5,,"Number of velocity bins for striding. Must be a positive number!"))
-		((Real,binCoeff,2,,"Coefficient of bins for velocities, i.e. if ``binCoeff==5``, successive bins have 5 × smaller velocity peak than the previous one. (Passed to VelocityBins)"))
-		((Real,binOverlap,0.8,,"Relative bins hysteresis, to avoid moving body back and forth if its velocity is around the border value. (Passed to VelocityBins)"))
-		((Real,maxRefRelStep,.3,,"(Passed to VelocityBins)"))
-		((int,histInterval,100,,"How often to show velocity bins graphically, if debug logging is enabled for VelocityBins."))
-#endif
-		((int,numReinit,0,Attr::readonly,"Cummulative number of bound array re-initialization."))
+		((int,numReinit,0,Attr::readonly,"Cumulative number of bound array re-initialization."))
+		((Vector3i,stepInvs,Vector3i::Zero(),,"Number of inversions in insertion sort in the last step; always zero in the non-debug builds"))
+		((Vector3i,numInvs,Vector3i::Zero(),,"Cumulative number of inversions in insertion sort; always zero in the non-debug builds"))
 		, /*deprec*/
 		, /* init */
 		,
@@ -254,6 +249,7 @@ struct InsertionSortCollider: public Collider {
 		.def_readonly("strideActive",&InsertionSortCollider::strideActive,"Whether striding is active (read-only; for debugging). |yupdate|")
 		.def_readonly("periodic",&InsertionSortCollider::periodic,"Whether the collider is in periodic mode (read-only; for debugging) |yupdate|")
 		.def("dumpBounds",&InsertionSortCollider::dumpBounds,"Return representation of the internal sort data. The format is ``([...],[...],[...])`` for 3 axes, where each ``...`` is a list of entries (bounds). The entry is a tuple with the fllowing items:\n\n* coordinate (float)\n* body id (int), but negated for negative bounds\n* period numer (int), if the collider is in the periodic regime.")
+		.def("dbgInfo",&InsertionSortCollider::dbgInfo,"Return python distionary with information on some internal structures (debugging only)")
 		#ifdef PISC_DEBUG
 			.def_readwrite("watch1",&InsertionSortCollider::watch1,"debugging only: watched body Id.")
 			.def_readwrite("watch2",&InsertionSortCollider::watch2,"debugging only: watched body Id.")

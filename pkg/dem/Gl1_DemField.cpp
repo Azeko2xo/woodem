@@ -14,6 +14,7 @@ bool Gl1_DemField::nodes;
 int Gl1_DemField::cNodes;
 Vector2i Gl1_DemField::cNodes_range;
 bool Gl1_DemField::cPhys;
+bool Gl1_DemField::potWire;
 
 void Gl1_DemField::doBound(){
 	rrr->boundDispatcher.scene=scene; rrr->boundDispatcher.updateScenePtr();
@@ -123,31 +124,41 @@ void Gl1_DemField::doNodes(){
 void Gl1_DemField::doContactNodes(){
 	rrr->nodeDispatcher.scene=scene; rrr->nodeDispatcher.updateScenePtr();
 	boost::mutex::scoped_lock lock(*dem->contacts.manipMutex);
-	FOREACH(const shared_ptr<Contact>& C, dem->contacts){
-		shared_ptr<CGeom> geom=C->geom;
-		if(!geom) continue;
-		shared_ptr<Node> node=geom->node;
-		rrr->setNodeGlData(node);
-		if(!(cNodes>=0) && !node->rep) continue;
-		Renderer::glScopedName name(C,node);
-		if(cNodes>0){ // cNodes>0: show something else than just the GlRep
-			if(cNodes & 1) rrr->renderRawNode(node);
-			if(cNodes & 2){ // connect node by lines with particle's positions
-				assert(C->pA->shape && C->pB->shape);
-				assert(C->pA->shape->nodes.size()>0); assert(C->pB->shape->nodes.size()>0);
-				Vector3r x[3]={node->pos,C->pA->shape->avgNodePos(),C->pB->shape->avgNodePos()};
-				if(scene->isPeriodic){
-					Vector3i cellDist;
-					x[0]=scene->cell->canonicalizePt(x[0],cellDist);
-					x[1]+=scene->cell->intrShiftPos(-cellDist);
-					x[2]+=scene->cell->intrShiftPos(-cellDist+C->cellDist);
+	for(size_t i=0; i<dem->contacts.size(); i++){
+		const shared_ptr<Contact>& C(dem->contacts[i]);
+		if(C->isReal()){
+			shared_ptr<CGeom> geom=C->geom;
+			if(!geom) continue;
+			shared_ptr<Node> node=geom->node;
+			rrr->setNodeGlData(node);
+			if(!(cNodes>=0) && !node->rep) continue;
+			Renderer::glScopedName name(C,node);
+			if(cNodes>0){ // cNodes>0: show something else than just the GlRep
+				if(cNodes & 1){ // connect node by lines with particle's positions
+					assert(C->pA->shape && C->pB->shape);
+					assert(C->pA->shape->nodes.size()>0); assert(C->pB->shape->nodes.size()>0);
+					Vector3r x[3]={node->pos,C->pA->shape->avgNodePos(),C->pB->shape->avgNodePos()};
+					if(scene->isPeriodic){
+						Vector3i cellDist;
+						x[0]=scene->cell->canonicalizePt(x[0],cellDist);
+						x[1]+=scene->cell->intrShiftPos(-cellDist);
+						x[2]+=scene->cell->intrShiftPos(-cellDist+C->cellDist);
+					}
+					Vector3r color=CompUtils::mapColor(C->color);
+					GLUtils::GLDrawLine(x[0],x[1],color);
+					GLUtils::GLDrawLine(x[0],x[2],color);
 				}
-				Vector3r color=.7*CompUtils::mapColor(C->color);
-				GLUtils::GLDrawLine(x[0],x[1],color);
-				GLUtils::GLDrawLine(x[0],x[2],color);
+				if(cNodes & 2) rrr->renderRawNode(node);
 			}
+			if(node->rep){ node->rep->render(node,viewInfo); }
+		} else {
+			if(!potWire) continue;
+			assert(C->pA->shape && C->pB->shape);
+			assert(C->pA->shape->nodes.size()>0); assert(C->pB->shape->nodes.size()>0);
+			Vector3r x[2]={C->pA->shape->avgNodePos(),C->pB->shape->avgNodePos()};
+			if(scene->isPeriodic){ x[1]+=scene->cell->intrShiftPos(C->cellDist); }
+			GLUtils::GLDrawLine(x[0],x[1],.5*CompUtils::mapColor(C->color));
 		}
-		if(node->rep){ node->rep->render(node,viewInfo); }
 	}
 }
 

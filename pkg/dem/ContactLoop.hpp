@@ -83,7 +83,7 @@ class ContactLoop: public GlobalEngine {
 			((shared_ptr<LawDispatcher>,lawDisp,new LawDispatcher,Attr::readonly,":yref:`LawDispatcher` object used for dispatch."))
 			((bool,alreadyWarnedNoCollider,false,,"Keep track of whether the user was already warned about missing collider."))
 			((bool,evalStress,false,,"Evaluate stress tensor, in periodic simluations; if energy tracking is enabled, increments *gradV* energy."))
-			((bool,applyForces,false,,"Apply forces directly; this avoids IntraForce engine, but will silently skip muyltinodal particles."))
+			((bool,applyForces,true,,"Apply forces directly; this avoids IntraForce engine, but will silently skip muyltinodal particles."))
 			((bool,_forceApplyChecked,false,Attr::noGui,"We already warned if forces are not applied here and no IntraForce engine exists in O.scene.engines"))
 			((Matrix3r,stress,Matrix3r::Zero(),Attr::readonly,"Stress value, used to compute *gradV*  energy if *trackWork* is True."))
 			((Real,prevVol,NaN,Attr::hidden,"Previous value of cell volume"))

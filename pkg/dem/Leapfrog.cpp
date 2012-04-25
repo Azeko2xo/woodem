@@ -124,6 +124,9 @@ void Leapfrog::run(){
 	for(size_t i=0; i<size; i++){
 		const shared_ptr<Node>& node=nodes[i];
 		if(!node->hasData<DemData>()) continue;
+		#ifdef YADE_DEBUG
+			if(node->getData<DemData>().parCount==0) throw std::runtime_error("Node #"+to_string(i)+" has parCount==0.");
+		#endif
 		DemData& dyn(node->getData<DemData>());
 		// handle clumps
 		if(dyn.isClumped()) continue; // those particles are integrated via the clump's master node

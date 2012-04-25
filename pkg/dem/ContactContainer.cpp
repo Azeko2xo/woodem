@@ -36,7 +36,7 @@ void ContactContainer::clear(){
 	#endif
 	FOREACH(const shared_ptr<Particle>& p, dem->particles) p->contacts.clear();
 	linView.clear(); // clear the linear container
-	pending.clear();
+	clearPending();
 	dirty=true;
 }
 
@@ -45,10 +45,17 @@ bool ContactContainer::remove(const shared_ptr<Contact>& c, bool threadSafe){
 	#if defined(YADE_OPENMP) || defined(YADE_OPENGL)
 		boost::mutex::scoped_lock lock(*manipMutex);
 	#endif
+	Particle::id_t idA(c->pA->id), idB(c->pB->id);
 	// make sure the contact is inside the dem->particles
-	Particle::MapParticleContact::iterator iA=c->pA->contacts.find(c->pB->id), iB=c->pB->contacts.find(c->pA->id);
-	if(!threadSafe) {assert(iA!=c->pA->contacts.end()); assert(iB!=c->pB->contacts.end());}
-	else { if (iA!=c->pA->contacts.end() || iB!=c->pB->contacts.end()) return false; }
+	Particle::MapParticleContact::iterator iA=c->pA->contacts.find(idB), iB=c->pB->contacts.find(idA);
+	if(!threadSafe){
+		// particle deleted from engine while at the same time pending; check that the particle vanished
+		if((iA==c->pA->contacts.end() && c->pA.get()!=dem->particles[idA].get()) || 
+			(iB==c->pB->contacts.end() && c->pB.get()!=dem->particles[idB].get())) return false;
+		// this can happen if _contact_ were deleted directly, not by ContactLoop; but that is an error
+		assert(iA!=c->pA->contacts.end()); assert(iB!=c->pB->contacts.end());
+	}
+	else { if (iA==c->pA->contacts.end() || iB==c->pB->contacts.end()) return false; }
 	// and in the linear container, that it is the same we got, and the same we found in dem->particles
 	assert(linView.size()>c->linIx);	assert(linView[c->linIx]==c); assert(iA->second==c); assert(iB->second==c);
 	// remove from dem->particles
@@ -62,12 +69,13 @@ bool ContactContainer::remove(const shared_ptr<Contact>& c, bool threadSafe){
 	return true;
 };
 
-shared_ptr<Contact> ContactContainer::find(ParticleContainer::id_t idA, ParticleContainer::id_t idB) const {
+const shared_ptr<Contact>& ContactContainer::find(ParticleContainer::id_t idA, ParticleContainer::id_t idB) const {
 	assert(dem);
-	if(!dem->particles.exists(idA)) return shared_ptr<Contact>();
+	assert(!nullContactPtr);
+	if(!dem->particles.exists(idA)) return nullContactPtr;
 	Particle::MapParticleContact::iterator I(dem->particles[idA]->contacts.find(idB));
 	if(I!=dem->particles[idA]->contacts.end()) return I->second;
-	return shared_ptr<Contact>();
+	return nullContactPtr;
 };
 
 // query existence; use find(...) to get the instance if it exists as well
@@ -107,7 +115,7 @@ int ContactContainer::removeAllPending(){
 		FOREACH(list<PendingContact>& pending, threadsPending){
 	#endif
 			if(!pending.empty()){
-				FOREACH(const PendingContact& p, pending){ ret++; remove(p.contact); }
+				FOREACH(const PendingContact& p, pending){ if(remove(p.contact)) ret++; }
 				pending.clear();
 			}
 	#ifdef YADE_OPENMP

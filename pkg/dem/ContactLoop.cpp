@@ -79,10 +79,10 @@ void ContactLoop::run(){
 		timingDeltas->start();
 	#endif
 
-	if(!applyForces && !_forceApplyChecked){
+	if(applyForces && !_forceApplyChecked){
 		shared_ptr<IntraForce> intra;
 		for(const auto& e: scene->engines){ intra=dynamic_pointer_cast<IntraForce>(e); if(intra) break; }
-		if(!intra) LOG_WARN("ContactLoop.applyForce==False and no IntraForce in Scene.engines! Are you sure this is ok? (proceeding)");
+		if(intra) LOG_WARN("ContactLoop.applyForce==True (default) and IntraForce is in Scene.engines! Are you sure this is ok? Forces might be applied twice. (proceeding)");
 		_forceApplyChecked=true;
 	}
 

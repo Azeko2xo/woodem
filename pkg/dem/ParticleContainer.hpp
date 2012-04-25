@@ -53,7 +53,6 @@ struct ParticleContainer: public Serializable{
 	private:
 		typedef std::vector<shared_ptr<Particle> > ContainerT;
 		// ContainerT parts;
-		id_t lowestFree;
 		id_t findFreeId();
 		#ifdef YADE_SUBDOMAINS
 			id_t findFreeDomainLocalId(int subDom);
@@ -151,6 +150,7 @@ struct ParticleContainer: public Serializable{
 			pyIterator iter();
 			shared_ptr<Particle> next();
 		};
+		py::list pyFreeIds();
 		id_t pyAppend(shared_ptr<Particle>);
 		shared_ptr<Node> pyAppendClumped(vector<shared_ptr<Particle>>);
 		py::list pyAppendList(vector<shared_ptr<Particle>>);
@@ -162,7 +162,8 @@ struct ParticleContainer: public Serializable{
 
 		YADE_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(ParticleContainer,Serializable,"Storage for DEM particles",
 			((ContainerT/* = std::vector<shared_ptr<Particle> > */,parts,,Attr::hidden,"Actual particle storage"))
-			,/* init */ ((lowestFree,0))
+			((list<id_t>,freeIds,,Attr::hidden,"Free particle id's"))
+			,/* init */
 				#ifdef YADE_SUBDOMAINS
 					#ifdef YADE_OPENMP
 						((maxSubdomains,omp_get_max_threads()))
@@ -183,6 +184,7 @@ struct ParticleContainer: public Serializable{
 			.def("__len__",&ParticleContainer::size)
 			.def("clear",&ParticleContainer::clear)
 			.def("__iter__",&ParticleContainer::pyIter)
+			.def("_freeIds",&ParticleContainer::pyFreeIds)
 			// define nested iterator class here; ugly: abuses _classObj from the macro definition (implementation detail)
 			; boost::python::scope foo(_classObj);
 			boost::python::class_<ParticleContainer::pyIterator>("iterator",py::init<pyIterator>()).def("__iter__",&pyIterator::iter).def("next",&pyIterator::next);

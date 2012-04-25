@@ -96,10 +96,10 @@ def defaultMaterial():
 	import math
 	return FrictMat(density=1e3,young=1e7,poisson=.3,ktDivKn=.2,tanPhi=math.tan(.5))
 
-def defaultEngines(damping=0.,gravity=(0,0,-10),noSlip=False,noBreak=False):
+def defaultEngines(damping=0.,gravity=(0,0,-10),verletDist=-.05,noSlip=False,noBreak=False):
 	"""Return default set of engines, suitable for basic simulations during testing."""
 	return [
-		InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb(),Bo1_Wall_Aabb(),Bo1_InfCylinder_Aabb()]),
+		InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb(),Bo1_Wall_Aabb(),Bo1_InfCylinder_Aabb()],label='collider'),
 		ContactLoop(
 			[Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom(),Cg2_Wall_Sphere_L6Geom(),Cg2_InfCylinder_Sphere_L6Geom()],
 			[Cp2_FrictMat_FrictPhys()],
@@ -128,6 +128,7 @@ def _commonBodySetup(b,nodes,volumes,geomInertias,material,masses=None,fixed=Fal
 		b.nodes[i].dem.mass=masses[i]
 		b.nodes[i].dem.inertia=geomInertias[i]*b.mat.density
 	for i,n in enumerate(b.nodes):
+		n.dem.parCount+=1 # increase particle count
 		if fixed: n.dem.blocked='xyzXYZ'
 		else: n.dem.blocked=''.join(['XYZ'[ax] for ax in (0,1,2) if geomInertias[i][ax]==inf]) # block rotational DOFs where inertia is infinite
 

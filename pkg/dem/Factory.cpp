@@ -4,6 +4,9 @@
 #include<yade/pkg/dem/Clump.hpp>
 #include<yade/pkg/dem/Sphere.hpp>
 
+// hack
+#include<yade/pkg/dem/InsertionSortCollider.hpp>
+
 YADE_PLUGIN(dem,(ParticleGenerator)(MinMaxSphereGenerator)(PsdSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(ParticleFactory)(BoxFactory)(BoxDeleter));
 CREATE_LOGGER(PsdSphereGenerator);
 CREATE_LOGGER(ParticleFactory);
@@ -65,9 +68,11 @@ void ParticleFactory::run(){
 		for(const auto& e: scene->engines){ collider=dynamic_pointer_cast<Collider>(e); if(collider) break; }
 		if(!collider) throw std::runtime_error("ParticleFactory: no Collider found within engines (needed for collisions detection)");
 	}
+	if(dynamic_pointer_cast<InsertionSortCollider>(collider)) static_pointer_cast<InsertionSortCollider>(collider)->forceInitSort=true;
 
 	// to be attained in this step;
 	goalMass+=massFlowRate*scene->dt*(scene->step-this->stepPrev); // stepLast==-1 if never run, which is OK
+	this->stepPrev=scene->step;
 	vector<Vector3r> minima, maxima; // of particles created in this step
 	vector<shared_ptr<Particle>> generated;
 
@@ -96,14 +101,14 @@ void ParticleFactory::run(){
 			LOG_TRACE("Trying pos="<<pos.transpose());
 			for(const auto& pe: pee){
 				bool overlap=false;
-				bool isSphere=dynamic_pointer_cast<yade::Sphere>(pe.par->shape);
+				const shared_ptr<yade::Sphere>& peSphere=dynamic_pointer_cast<yade::Sphere>(pe.par->shape);
 				mn=pos+pe.extMin, mx=pos+pe.extMax;
 				vector<Particle::id_t> ids=collider->probeAabb(mn,mx);
 				for(const auto& id: ids){
 					LOG_TRACE("Collider reports intersection with #"<<id);
 					const shared_ptr<Shape>& sh2(dem->particles[id]->shape);
 					// no spheres, or they are too close
-					if(!isSphere || !dynamic_pointer_cast<yade::Sphere>(sh2) || (pos-sh2->nodes[0]->pos).squaredNorm()<pow(pe.par->shape->cast<Sphere>().radius+sh2->cast<Sphere>().radius,2)) goto tryAgain;
+					if(!peSphere || !dynamic_pointer_cast<yade::Sphere>(sh2) || 1.1*(pos-sh2->nodes[0]->pos).squaredNorm()<pow(peSphere->radius+sh2->cast<Sphere>().radius,2)) goto tryAgain;
 				}
 				for(size_t i=0; i<minima.size(); i++){
 					overlap=
@@ -111,8 +116,9 @@ void ParticleFactory::run(){
 						minima[i][1]<mx[1] && mn[1]<maxima[i][1] &&
 						minima[i][2]<mx[2] && mn[2]<maxima[i][2];
 					if(overlap){
+						const auto& genSh(generated[i]->shape);
 						// for spheres, try to compute whether they really touch
-						if(!isSphere || !dynamic_pointer_cast<Sphere>(generated[i]) || (pos-generated[i]->shape->nodes[0]->pos).squaredNorm()<pow(pe.par->shape->cast<Sphere>().radius+generated[i]->shape->cast<Sphere>().radius,2)){
+						if(!peSphere || !dynamic_pointer_cast<Sphere>(genSh) || (pos-genSh->nodes[0]->pos).squaredNorm()<pow(peSphere->radius+genSh->cast<Sphere>().radius,2)){
 							LOG_TRACE("Collision with "<<i<<"-th particle generated in this step.");
 							goto tryAgain;
 						}
@@ -159,6 +165,7 @@ void ParticleFactory::run(){
 			#ifdef YADE_OPENGL
 				boost::mutex::scoped_lock lock(dem->nodesMutex);
 			#endif
+			dyn.linIx=dem->nodes.size();
 			dem->nodes.push_back(clump);
 
 			totalMass+=clump->getData<DemData>().mass;
@@ -170,17 +177,19 @@ void ParticleFactory::run(){
 				p->shape->color=color_;
 			#endif
 			assert(p->shape->nodes.size()==1); // if this fails, enable the block below
-			assert(p->shape->nodes[0]->pos==Vector3r::Zero());
-			p->shape->nodes[0]->pos+=pos;
-			auto& dyn=p->shape->nodes[0]->getData<DemData>();
+			const auto& node0=p->shape->nodes[0];
+			assert(node0->pos==Vector3r::Zero());
+			node0->pos+=pos;
+			auto& dyn=node0->getData<DemData>();
 			(*shooter)(dyn.vel,dyn.angVel);
 			totalMass+=dyn.mass;
-			assert(p->shape->nodes[0]->hasData<DemData>());
+			assert(node0->hasData<DemData>());
 			dem->particles.insert(p);
 			#ifdef YADE_OPENGL
 				boost::mutex::scoped_lock lock(dem->nodesMutex);
 			#endif
-			dem->nodes.push_back(p->shape->nodes[0]);
+			dyn.linIx=dem->nodes.size();
+			dem->nodes.push_back(node0);
 			// handle multi-nodal particle (unused now)
 			#if 0
 				// TODO: track energy of the shooter
@@ -192,6 +201,7 @@ void ParticleFactory::run(){
 					dyn.vel=vel; dyn.angVel=angVel;
 					totalMass+=dyn.mass;
 
+					n->linIx=dem->nodes.size();
 					dem->nodes.push_back(n);
 				}
 			#endif
@@ -205,14 +215,29 @@ void BoxDeleter::run(){
 	for(size_t i=0; i<dem->particles.size(); i++){
 		const auto& p=dem->particles[i];
 		if(!p || !p->shape || p->shape->nodes.size()!=1) continue;
+		if(p->shape->nodes[0]->getData<DemData>().isClumped()) continue;
 		const Vector3r pos=p->shape->nodes[0]->pos;
 		if(inside!=box.contains(pos)) continue; // keep this particle
 		if(save) deleted.push_back(dem->particles[i]);
 		delNum++;
 		delMass+=p->shape->nodes[0]->getData<DemData>().mass;
 		// FIXME: compute energy that disappeared
-		dem->particles.remove(i);
+		dem->removeParticle(i);
+		//dem->particles.remove(i);
 		LOG_DEBUG("Particle #"<<p<<" deleted");
+	}
+	for(size_t i=0; i<dem->clumps.size(); i++){
+		const auto& c=dem->clumps[i];
+		if(inside!=box.contains(c->pos)){
+			ClumpData& cd=c->getData<DemData>().cast<ClumpData>();
+			if(save){
+				for(Particle::id_t memberId: cd.memberIds) deleted.push_back(dem->particles[memberId]);
+			}
+			delNum++;
+			for(const auto& n: cd.nodes) delMass+=n->getData<DemData>().mass;
+			dem->removeClump(i);
+			LOG_DEBUG("Clump #"<<i<<" deleted");
+		}
 	}
 }
 

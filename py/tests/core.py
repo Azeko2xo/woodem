@@ -51,7 +51,7 @@ class TestLoop(unittest.TestCase):
 	def testEnginesModificationInsideLoop(self):
 		'Loop: O.engines can be modified inside the loop transparently.'
 		O.scene.engines=[
-			PyRunner(stepPeriod=1,command='from yade import*; from yade.dem import *; O.scene.engines=[ForceResetter(),Gravity(),Leapfrog()]'), # change engines here
+			PyRunner(stepPeriod=1,command='from yade import*; from yade.dem import *; O.scene.engines=[ForceResetter(),Gravity(),Leapfrog(reset=False)]'), # change engines here
 			ForceResetter() # useless engine
 		]
 		O.scene.subStepping=True

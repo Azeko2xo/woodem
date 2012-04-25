@@ -15,18 +15,25 @@ YADE_PLUGIN(dem,(ParticleContainer));
 CREATE_LOGGER(ParticleContainer);
  
 void ParticleContainer::clear(){
-	parts.clear(); lowestFree=0;
+	parts.clear();
 	#ifdef YADE_SUBDOMAINS
 		subDomains.clear();
 	#endif
 }
 
 Particle::id_t ParticleContainer::findFreeId(){
-	id_t max=parts.size();
-	for(; lowestFree<max; lowestFree++){
-		if(!(bool)parts[lowestFree]) return lowestFree;
+	size_t size=parts.size();
+	auto idI=freeIds.begin();
+	while(!freeIds.empty()){
+		id_t id=(*idI); assert(id>=0);
+		idI=freeIds.erase(idI); // remove the current element, advances the iterator
+		if(id<=size){
+			if(parts[id]) throw std::logic_error("ParticleContainer::findFreeId: freeIds contained "+to_string(id)+", but it is occupied?!");
+			return id;
+		}
+		// if the id is bigger than our size, it could be due to container shrinking, which is ok
 	}
-	return parts.size();
+	return size; // all particles busy, past-the-end will cause resize
 }
 
 #ifdef YADE_SUBDOMAINS
@@ -103,7 +110,7 @@ bool ParticleContainer::remove(Particle::id_t id){
 	if(!exists(id)) return false;
 	// this is perhaps not necessary
 	boost::mutex::scoped_lock lock(*manipMutex);
-	lowestFree=min(lowestFree,id);
+	freeIds.push_back(id);
 	#ifdef YADE_SUBDOMAINS
 		#ifdef YADE_OPENMP
 			const shared_ptr<Particle>& b=parts[id];
@@ -124,6 +131,12 @@ bool ParticleContainer::remove(Particle::id_t id){
 		#endif 
 	#endif /* YADE_SUBDOMAINS */
 	parts[id]=shared_ptr<Particle>();
+	// removing last element, shrink the size as much as possible
+	// extending the vector when the space is allocated is rather efficient
+	if((size_t)(id+1)==parts.size()){
+		while(!parts[id--]);
+		parts.resize(id+2);
+	}
 	return true;
 }
 
@@ -137,6 +150,12 @@ shared_ptr<Particle> ParticleContainer::pyIterator::next(){
 	throw; // never reached, but makes the compiler happier
 }
 ParticleContainer::pyIterator ParticleContainer::pyIterator::iter(){ return *this; }
+
+py::list ParticleContainer::pyFreeIds(){
+	py::list ret;
+	for(id_t id: freeIds) ret.append(id);
+	return ret;
+}
 
 Particle::id_t ParticleContainer::pyAppend(shared_ptr<Particle> p){
 	if(p->id>=0) IndexError("Particle already has id "+lexical_cast<string>(p->id)+" set; appending such particle (for the second time) is not allowed.");
@@ -152,8 +171,9 @@ py::list ParticleContainer::pyAppendList(vector<shared_ptr<Particle>> pp){
 shared_ptr<Node> ParticleContainer::pyAppendClumped(vector<shared_ptr<Particle>> pp){
 	std::set<void*> seen;
 	vector<shared_ptr<Node>> nodes; nodes.reserve(pp.size());
+	vector<Particle::id_t> memberIds;
 	for(const auto& p:pp){
-		pyAppend(p);
+		memberIds.push_back(pyAppend(p));
 		for(const auto& n: p->shape->nodes){
 			if(seen.count((void*)n.get())!=0) continue;
 			seen.insert((void*)n.get());
@@ -161,6 +181,9 @@ shared_ptr<Node> ParticleContainer::pyAppendClumped(vector<shared_ptr<Particle>>
 		}
 	}
 	shared_ptr<Node> clump=ClumpData::makeClump(nodes);
+	auto& cd=clump->getData<DemData>().cast<ClumpData>();
+	cd.clumpLinIx=dem->clumps.size();
+	cd.memberIds=memberIds;
 	dem->clumps.push_back(clump);
 	return clump;
 }

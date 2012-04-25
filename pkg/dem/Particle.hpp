@@ -1,4 +1,5 @@
 #pragma once
+#include<unordered_map>
 #include<yade/core/Omega.hpp>
 #include<yade/core/Field.hpp>
 #include<yade/core/Scene.hpp>
@@ -21,6 +22,7 @@ class ScalarRange;
 struct Particle: public Serializable{
 	shared_ptr<Contact> findContactWith(const shared_ptr<Particle>& other);
 	typedef ParticleContainer::id_t id_t;
+	// try unordered_map
 	typedef std::map<id_t,shared_ptr<Contact> > MapParticleContact;
 	void checkNodes(bool dyn=true, bool checkOne=true) const;
 
@@ -126,6 +128,8 @@ public:
 		((Vector3r,torque,Vector3r::Zero(),,"Applied torque"))
 		((Vector3r,angMom,Vector3r::Zero(),,"Angular momentum (used with the aspherical integrator)"))
 		((unsigned,flags,0,Attr::readonly,"Bit flags storing blocked DOFs, clump status"))
+		((long,linIx,-1,Attr::hidden,"Index within O.dem.nodes (for efficient removal"))
+		((int,parCount,0,Attr::noGui,"Number of particles associated with this node (to know whether a node should be deleted when a particle is)"))
 		, /*ctor*/
 		, /*py*/ .add_property("blocked",&DemData::blocked_vec_get,&DemData::blocked_vec_set,"Degress of freedom where linear/angular velocity will be always constant (equal to zero, or to an user-defined value), regardless of applied force/torque. String that may contain 'xyzXYZ' (translations and rotations).")
 		.add_property("clump",&DemData::isClump).add_property("clumped",&DemData::isClumped).add_property("noClump",&DemData::isNoClump).add_property("energySkip",&DemData::isEnergySkip,&DemData::setEnergySkip)
@@ -137,7 +141,10 @@ REGISTER_SERIALIZABLE(DemData);
 template<> struct NodeData::Index<DemData>{enum{value=Node::ST_DEM};};
 
 struct DemField: public Field{
+	DECLARE_LOGGER;
 	int collectNodes();
+	void removeParticle(Particle::id_t id);
+	void removeClump(size_t id);
 	boost::mutex nodesMutex; // sync adding nodes with the renderer, which might otherwise crash
 
 	//template<> bool sceneHasField<DemField>() const;

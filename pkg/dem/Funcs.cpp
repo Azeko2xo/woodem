@@ -3,6 +3,10 @@
 #include<yade/pkg/dem/G3Geom.hpp>
 #include<yade/pkg/dem/FrictMat.hpp>
 
+#ifdef YADE_OPENGL
+	#include<yade/pkg/gl/Renderer.hpp>
+#endif
+
 CREATE_LOGGER(DemFuncs);
 
 std::tuple</*stress*/Matrix3r,/*stiffness*/Matrix6r> DemFuncs::stressStiffness(const Scene* scene, const DemField* dem, bool skipMultinodal, Real volume){
@@ -77,7 +81,12 @@ shared_ptr<Particle> DemFuncs::makeSphere(Real radius, const shared_ptr<Material
 
 	const auto& n=sphere->nodes[0];
 	n->setData<DemData>(make_shared<DemData>());
+	#ifdef YADE_OPENGL
+		// to avoid crashes if 3renderer must resize the node's data array and reallocates it while other thread accesses those data
+		n->setData<GlData>(make_shared<GlData>());
+	#endif
 	auto& dyn=n->getData<DemData>();
+	dyn.parCount=1;
 	dyn.mass=(4/3.)*Mathr::PI*pow(radius,3)*m->density;
 	dyn.inertia=Vector3r::Ones()*(2./5.)*dyn.mass*pow(radius,2);
 

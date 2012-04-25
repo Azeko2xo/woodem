@@ -53,6 +53,7 @@ class OpenCLCollider: public InsertionSortCollider{
 		((string,clSrc,"",Attr::triggerPostLoad,"Filename of the OpenCL code"))
 		((string,clKernel,"collide",,"Name of the kernel to call"))
 		((Vector3i,axErr,Vector3i::Zero(),Attr::readonly,"Show (non-zero) along which axes the CPU/GPU comparison failed."))
+		((long,numInvs,0,,"Number of inversions on the CPU"))
 		((vector<Vector2i>,cpuInit,,Attr::readonly,"Initial contacts created on the CPU"))
 		((vector<Vector2i>,gpuInit,,Attr::readonly,"Initial contacts created on the GPU"))
 		((vector<Vector2i>,cpuInvX,,Attr::readonly,"Inversion found on the CPU in the last step, along X"))

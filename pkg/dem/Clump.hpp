@@ -17,8 +17,10 @@ struct ClumpData: public DemData{
 	DECLARE_LOGGER;
 	YADE_CLASS_BASE_DOC_ATTRS(ClumpData,DemData,"Data of a DEM particle which binds multiple particles together.",
 		((vector<shared_ptr<Node>>,nodes,,Attr::readonly,"Member nodes"))
+		((vector<Particle::id_t>,memberIds,,Attr::readonly,"Ids of member particles (used only for deletion)"))
 		((vector<Vector3r>,relPos,,Attr::readonly,"Relative member's positions"))
 		((vector<Quaternionr>,relOri,,Attr::readonly,"Relative member's orientations"))
+		((long,clumpLinIx,-1,Attr::hidden,"Index in the O.dem.clumps array, for efficient deletion."))
 	);
 };
 REGISTER_SERIALIZABLE(ClumpData);

@@ -4,11 +4,14 @@
 #include<yade/pkg/dem/ContactLoop.hpp>
 #include<yade/lib/pyutil/except.hpp>
 
+#include<yade/pkg/dem/Clump.hpp>
+
 #ifdef YADE_OPENGL
 	#include<yade/pkg/gl/Renderer.hpp>
 #endif
 
 YADE_PLUGIN(dem,(CPhys)(CGeom)(CData)(DemField)(Particle)(DemData)(Contact)(Shape)(Material)(Bound)(ContactContainer));
+CREATE_LOGGER(DemField);
 
 py::dict Particle::pyContacts()const{	py::dict ret; FOREACH(MapParticleContact::value_type i,contacts) ret[i.first]=i.second; return ret;}
 py::list Particle::pyCon()const{ py::list ret; FOREACH(MapParticleContact::value_type i,contacts) ret.append(i.first); return ret;}
@@ -164,6 +167,7 @@ int DemField::collectNodes(){
 		FOREACH(const shared_ptr<Node>& n, p->shape->nodes){
 			if(seen.count((void*)n.get())!=0) continue; // node already seen
 			seen.insert((void*)n.get());
+			n->getData<DemData>().linIx=nodes.size();
 			nodes.push_back(n);
 			added++;
 		};
@@ -172,10 +176,76 @@ int DemField::collectNodes(){
 	for(const auto& n: clumps){
 		if(seen.count((void*)n.get())!=0) continue; // already seen
 		seen.insert((void*)n.get());
+		assert(n->hasData<DemData>());
+		n->getData<DemData>().linIx=nodes.size();
 		nodes.push_back(n);
 		added++;
 	}
 	return added;
+}
+
+void DemField::removeParticle(Particle::id_t id){
+	LOG_DEBUG("Removing #"<<id);
+	const auto& p(particles[id]);
+	for(const auto& n: p->shape->nodes){
+		if(n->getData<DemData>().isClumped()) throw std::runtime_error("#"+to_string(id)+": a node is clumped, remove the clump itself instead!");
+	}
+	if(!p->shape || p->shape->nodes.empty()){
+		particles.remove(id);
+		return;
+	}
+	// remove particle's nodes, if they are no longer used
+	for(const auto& n: p->shape->nodes){
+		// decrease parCount for each node
+		DemData& dyn=n->getData<DemData>();
+		if(dyn.parCount==0) throw std::runtime_error("#"+to_string(id)+" has node which has zero particle count!");
+		dyn.parCount-=1;
+		// no particle left, delete the node itself as well
+		if(dyn.parCount==0){
+			if(dyn.linIx<0) continue; // node not in O.dem.nodes
+			if(nodes[dyn.linIx].get()!=n.get()) throw std::runtime_error("Node in #"+to_string(id)+" has invalid linIx entry!");
+			LOG_DEBUG("Removing #"<<id<<" / DemField::nodes["<<dyn.linIx<<"]"<<" (not used anymore)");
+			boost::mutex::scoped_lock lock(nodesMutex);
+			(*nodes.rbegin())->getData<DemData>().linIx=dyn.linIx;
+			nodes[dyn.linIx]=*nodes.rbegin(); // move the last node to the current position
+			nodes.resize(nodes.size()-1);
+		}
+	}
+	// remove all contacts of the particle
+	if(!p->contacts.empty()){
+		vector<shared_ptr<Contact>> cc; cc.reserve(p->contacts.size());
+		for(const auto& idCon: p->contacts) cc.push_back(idCon.second);
+		for(const auto& c: cc){
+			LOG_DEBUG("Removing #"<<id<<" / ##"<<c->pA->id<<"+"<<c->pB->id);
+			contacts.remove(c);
+		}
+	}
+	particles.remove(id);
+};
+
+void DemField::removeClump(size_t clumpLinIx){
+	const auto& node=clumps[clumpLinIx];
+	assert(node->hasData<DemData>());
+	assert(dynamic_pointer_cast<ClumpData>(node->getDataPtr<DemData>()));
+	ClumpData& cd=node->getData<DemData>().cast<ClumpData>();
+	if(cd.clumpLinIx!=(long)clumpLinIx) throw std::runtime_error("Clump #"+to_string(clumpLinIx)+": clumpLinIx ("+to_string(cd.clumpLinIx)+") does not match its position ("+to_string(clumpLinIx)+")");
+	for(size_t i=0; i<cd.memberIds.size(); i++){
+		auto& p=particles[cd.memberIds[i]];
+		// make sure that clump nodes are those which the particles have
+		assert(p && p->shape && p->shape->nodes.size()>0);
+		for(auto& n: p->shape->nodes){
+			#ifdef YADE_DEBUG
+				if(std::find_if(cd.nodes.begin(),cd.nodes.end(),[&](const shared_ptr<Node>& a)->bool{ return(a.get()==n.get()); })==cd.nodes.end()) throw std::runtime_error("#"+to_string(cd.memberIds[i])+" should contain node at "+lexical_cast<string>(n->pos.transpose()));
+			#endif
+			n->getData<DemData>().setNoClump(); // fool the test in removeParticle
+		}
+		removeParticle(i);
+	}
+	// remove the clump node here
+	boost::mutex::scoped_lock lock(nodesMutex);
+	(*clumps.rbegin())->getData<DemData>().cast<ClumpData>().clumpLinIx=cd.clumpLinIx;
+	clumps[cd.clumpLinIx]=*clumps.rbegin();
+	clumps.resize(clumps.size()-1);
 }
 
 

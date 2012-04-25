@@ -28,7 +28,7 @@ class TestPBC(unittest.TestCase):
 		self.initPos=Vector3([O.dem.par[0].pos[i]+self.relDist[i]+self.cellDist[i]*O.scene.cell.hSize0.col(i).norm() for i in (0,1,2)])
 		O.dem.par.append(utils.sphere(self.initPos,.5))
 		O.dem.par[1].vel=self.initVel
-		O.scene.engines=[Leapfrog()]
+		O.scene.engines=[Leapfrog(reset=True)]
 		O.scene.cell.nextGradV=Matrix3(0,0,0, 0,0,0, 0,0,-1)
 		O.scene.cell.homoDeform=3
 		O.dem.collectNodes() # avoid msg from Leapfrog
@@ -92,14 +92,14 @@ class TestPBC(unittest.TestCase):
 	def testL6GeomIncidentVelocity(self):
 		"PBC: L3Geom computes incident velocity correctly (homoDeform==3)"
 		O.step()
-		O.scene.engines=[ForceResetter(),ContactLoop([Cg2_Sphere_Sphere_L6Geom()],[Cp2_FrictMat_FrictPhys()],[Law2_L6Geom_FrictPhys_IdealElPl(noBreak=True)]),Leapfrog()]
+		O.scene.engines=[ForceResetter(),ContactLoop([Cg2_Sphere_Sphere_L6Geom()],[Cp2_FrictMat_FrictPhys()],[Law2_L6Geom_FrictPhys_IdealElPl(noBreak=True)]),Leapfrog(reset=True)]
 		i=utils.createContacts([0],[1])[0]
 		O.scene.dt=1e-10; O.step() # tiny timestep, to not move the normal too much
 		self.assertAlmostEqual(self.initVel.norm(),i.geom.vel.norm())
 	def testL3GeomIncidentVelocity_homoPos(self):
 		"PBC: L3Geom computes incident velocity correctly (homoDeform==1)"
 		O.scene.cell.homoDeform=1; O.step()
-		O.scene.engines=[ForceResetter(),ContactLoop([Cg2_Sphere_Sphere_L6Geom()],[Cp2_FrictMat_FrictPhys()],[Law2_L6Geom_FrictPhys_IdealElPl(noBreak=True)]),Leapfrog()]
+		O.scene.engines=[ForceResetter(),ContactLoop([Cg2_Sphere_Sphere_L6Geom()],[Cp2_FrictMat_FrictPhys()],[Law2_L6Geom_FrictPhys_IdealElPl(noBreak=True)]),Leapfrog(reset=True)]
 		i=utils.createContacts([0],[1])[0]
 		O.scene.dt=1e-10; O.step()
 		self.assertAlmostEqual(self.initVel.norm(),i.geom.vel.norm())

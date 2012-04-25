@@ -40,7 +40,7 @@ void InsertionSortCollider::handleBoundInversion(Particle::id_t id1, Particle::i
 		const shared_ptr<Particle>& p2((*particles)[id2]);
 		if(!Collider::mayCollide(p1,p2,dem)) return;
 		// LOG_TRACE("Creating new interaction #"<<id1<<"+#"<<id2);
-		shared_ptr<Contact> newC=shared_ptr<Contact>(new Contact);
+		shared_ptr<Contact> newC=make_shared<Contact>();
 		// mimick the way clDem::Collider does the job so that results are easily comparable
 		if(id1<id2){ newC->pA=p1; newC->pB=p2; }
 		else{ newC->pA=p2; newC->pB=p1; }
@@ -51,7 +51,7 @@ void InsertionSortCollider::handleBoundInversion(Particle::id_t id1, Particle::i
 	assert(false); // unreachable
 }
 
-void InsertionSortCollider::insertionSort(VecBounds& v, bool doCollide){
+void InsertionSortCollider::insertionSort(VecBounds& v, bool doCollide, int ax){
 	assert(!periodic);
 	assert(v.size==(long)v.vec.size());
 	for(long i=0; i<v.size; i++){
@@ -62,14 +62,36 @@ void InsertionSortCollider::insertionSort(VecBounds& v, bool doCollide){
 				if(watchIds(v[j].id,viInit.id)) cerr<<"Swapping #"<<v[j].id<<"  with #"<<viInit.id<<" ("<<setprecision(80)<<v[j].coord<<">"<<setprecision(80)<<viInit.coord<<" along axis "<<v.axis<<")"<<endl;
 				if(v[j].id==viInit.id){ cerr<<"Inversion of #"<<v[j].id<<" with itself, "<<v[j].flags.isMin<<" & "<<viInit.flags.isMin<<", isGreater "<<(v[j]>viInit)<<", "<<(v[j].coord>viInit.coord)<<endl; j--; continue; }
 			#endif
+			#ifdef YADE_DEBUG
+				stepInvs[ax]++; numInvs[ax]++;
+			#endif
 			// no collisions without bounding boxes
 			// also, do not collide particle with itself; it sometimes happens for facets aligned perpendicular to an axis, for reasons that are not very clear
 			// see https://bugs.launchpad.net/yade/+bug/669095
-			if(likely(doCollide && viInitBB && v[j].flags.hasBB && (viInit.id!=v[j].id))) handleBoundInversion(viInit.id,v[j].id);
+			if(likely(doCollide && viInitBB && v[j].flags.hasBB && (viInit.id!=v[j].id))){
+				handleBoundInversion(viInit.id,v[j].id);
+			}
 			j--;
 		}
 		v[j+1]=viInit;
 	}
+}
+
+Vector3i InsertionSortCollider::countInversions(){
+	Vector3i ret;
+	for(int ax:{0,1,2}){
+		int N=0;
+		const VecBounds& v(BB[ax]);
+		for(long i=0; i<v.size-1; i++){
+			for(long j=i+1; j<v.size; j++){
+				if(v[i]>v[j]){
+					N++;
+				}
+			}
+		}
+		ret[ax]=N;
+	}
+	return ret;
 }
 
 // if(verletDist>0){ mn-=verletDist*Vector3r::Ones(); mx+=verletDist*Vector3r::Ones(); }
@@ -102,29 +124,12 @@ vector<Particle::id_t> InsertionSortCollider::probeAabb(const Vector3r& mn, cons
 
 // STRIDE
 	bool InsertionSortCollider::isActivated(){
-	#ifdef YADE_VBINS
-		assert(nBins>0);
-		// activated if number of bodies changes (hence need to refresh collision information)
-		// or the time of scheduled run already came, or we were never scheduled yet
-		if(!strideActive) return true;
-		if(!leapfrog || !leapfrog->velocityBins) return true;
-		if(leapfrog->velocityBins->checkSize_incrementDists_shouldCollide(scene)) return true;
-		if((size_t)BB[0].size!=2*scene->bodies->size()) return true;
-		if(scene->interactions->dirty) return true;
-		return false;
-	#endif
 		// we wouldn't run in this step; in that case, just delete pending interactions
 		// this is done in ::action normally, but it would make the call counters not reflect the stride
 		field->cast<DemField>().contacts.removePending(*this,scene);
 		return true;
 	}
 
-
-void InsertionSortCollider::postLoad(InsertionSortCollider&){
-	#ifdef YADE_VBINS
-		if(nBins<=0) throw std::invalid_argument("InsertionSortCollider.nBins must be positive (not "+lexical_cast<string>(nBins)+")");
-	#endif
-}
 
 bool InsertionSortCollider::updateBboxes_doFullRun(){
 	// update bounds via boundDispatcher
@@ -206,7 +211,7 @@ bool InsertionSortCollider::prologue_doFullRun(){
 	bool fullRun=false;
 
 	// contacts are dirty and must be detected anew
-	if(dem->contacts.dirty){  fullRun=true; dem->contacts.dirty=false; }
+	if(dem->contacts.dirty || forceInitSort){ fullRun=true; dem->contacts.dirty=false; }
 
 	// number of particles changed
 	if((size_t)BB[0].size!=2*particles->size()) fullRun=true;
@@ -231,6 +236,8 @@ void InsertionSortCollider::run(){
 	bool runBboxes=updateBboxes_doFullRun();
 	if(runBboxes) fullRun=true;
 
+	stepInvs=Vector3i::Zero();
+
 	if(!fullRun) return;
 	
 	nFullRuns++;
@@ -240,6 +247,7 @@ void InsertionSortCollider::run(){
 	// pre-conditions
 		// adjust storage size
 		bool doInitSort=false;
+		if(forceInitSort){ doInitSort=true; forceInitSort=false; }
 		if(BB[0].size!=2*nBodies){
 			long BBsize=BB[0].size;
 			LOG_DEBUG("Resize bounds containers from "<<BBsize<<" to "<<nBodies*2<<", will std::sort.");
@@ -288,7 +296,12 @@ void InsertionSortCollider::run(){
 					// coordinate is min/max if has bounding volume, otherwise both are the position. Add periodic shift so that we are inside the cell
 					// watch out for the parentheses around ?: within ?: (there was unwanted conversion of the Reals to bools!)
 					BBj[i].coord=((BBj[i].flags.hasBB=((bool)bv)) ? (BBj[i].flags.isMin ? bv->min[j] : bv->max[j]) : (b->shape->nodes[0]->pos[j])) - (periodic ? BBj.cellDim*BBj[i].period : 0.);
-				} else { BBj[i].flags.hasBB=false; /* for vanished body, keep the coordinate as-is, to minimize inversions. */ }
+				} else { // vanished particle
+					BBj[i].flags.hasBB=false;
+					// when doing initial sort, set to -inf so that nonexistent particles don't generate inversions later
+					if(doInitSort) BBj[i].coord=-Inf;
+					// otherwise keep the coordinate as-is, to minimize inversions
+				}
 				// if initializing periodic, shift coords & record the period into BBj[i].period
 				if(doInitSort && periodic) {
 					BBj[i].coord=cellWrap(BBj[i].coord,0,BBj.cellDim,BBj[i].period);
@@ -318,19 +331,24 @@ void InsertionSortCollider::run(){
 		// the regular case
 		if(!doInitSort && !sortThenCollide){
 			/* each inversion in insertionSort calls handleBoundInversion, which in turns may add/remove interaction */
-			if(!periodic) for(int i=0; i<3; i++) insertionSort(BB[i]); 
-			else for(int i=0; i<3; i++) insertionSortPeri(BB[i]);
+			if(!periodic) for(int i=0; i<3; i++){
+				//Vector3i invs=countInversions();
+				insertionSort(BB[i],/*collide*/true,i); 
+				//LOG_INFO(invs.sum()<<"/"<<stepInvs<<" invs (counted/insertion sort)");
+			}
+			else for(int i=0; i<3; i++) insertionSortPeri(BB[i],/*collide*/true,i);
 		}
 		// create initial interactions (much slower)
 		else {
 			if(doInitSort){
 				// the initial sort is in independent in 3 dimensions, may be run in parallel; it seems that there is no time gain running in parallel, though
 				// important to reset loInx for periodic simulation (!!)
+				LOG_DEBUG("Initial std::sort over all axes");
 				for(int i=0; i<3; i++) { BB[i].loIdx=0; std::sort(BB[i].vec.begin(),BB[i].vec.end()); }
 				numReinit++;
 			} else { // sortThenCollide
-				if(!periodic) for(int i=0; i<3; i++) insertionSort(BB[i],false);
-				else for(int i=0; i<3; i++) insertionSortPeri(BB[i],false);
+				if(!periodic) for(int i=0; i<3; i++) insertionSort(BB[i],false,i);
+				else for(int i=0; i<3; i++) insertionSortPeri(BB[i],false,i);
 			}
 			// traverse the container along requested axis
 			assert(sortAxis==0 || sortAxis==1 || sortAxis==2);
@@ -384,7 +402,7 @@ Real InsertionSortCollider::cellWrapRel(const Real x, const Real x0, const Real 
 	return (xNorm-floor(xNorm))*(x1-x0);
 }
 
-void InsertionSortCollider::insertionSortPeri(VecBounds& v, bool doCollide){
+void InsertionSortCollider::insertionSortPeri(VecBounds& v, bool doCollide, int ax){
 	assert(periodic);
 	long &loIdx=v.loIdx; const long &size=v.size;
 	for(long _i=0; _i<size; _i++){
@@ -424,7 +442,12 @@ void InsertionSortCollider::insertionSortPeri(VecBounds& v, bool doCollide){
 					throw runtime_error(__FILE__ ": Body's boundary metting its opposite boundary.");
 				}
 				#endif
-				if(likely(vi.id!=vNew.id)) handleBoundInversionPeri(vi.id,vNew.id);
+				if(likely(vi.id!=vNew.id)){
+					#ifdef YADE_DEBUG
+						stepInvs[ax]++; numInvs[ax]++;
+					#endif
+					handleBoundInversionPeri(vi.id,vNew.id);
+				}
 			}
 			j=v.norm(j-1);
 		}
@@ -456,7 +479,7 @@ void InsertionSortCollider::handleBoundInversionPeri(Particle::id_t id1, Particl
 		const shared_ptr<Particle>& pB((*particles)[id2]);
 		if(!Collider::mayCollide(pA,pB,dem)) return;
 		// LOG_TRACE("Creating new interaction #"<<id1<<"+#"<<id2);
-		shared_ptr<Contact> newC=shared_ptr<Contact>(new Contact);
+		shared_ptr<Contact> newC=make_shared<Contact>();
 		newC->pA=pA; newC->pB=pB;
 		newC->cellDist=periods;
 		#ifdef PISC_DEBUG
@@ -557,4 +580,9 @@ py::tuple InsertionSortCollider::dumpBounds(){
 		}
 	}
 	return py::make_tuple(bl[0],bl[1],bl[2]);
+}
+
+py::object InsertionSortCollider::dbgInfo(){
+	py::dict ret;
+	return ret;
 }
