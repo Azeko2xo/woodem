@@ -161,6 +161,7 @@ void Scene::moveToNextTimeStep(){
 		runInternalConsistencyChecks=false;
 		// checkStateTypes();
 	}
+	if(isnan(dt)||dt<0) throw std::runtime_error("Scene::dt is NaN or negative");
 	// substepping or not, update engines from _nextEngines, if defined, at the beginning of step
 	// subStep can be 0, which happens if simulations is saved in the middle of step (without substepping)
 	// this assumes that prologue will not set _nextEngines, which is safe hopefully

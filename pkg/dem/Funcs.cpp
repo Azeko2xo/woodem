@@ -96,9 +96,8 @@ shared_ptr<Particle> DemFuncs::makeSphere(Real radius, const shared_ptr<Material
 	return par;
 };
 
-vector<Vector2r> DemFuncs::psd(const Scene* scene, const DemField* dem, const Vector3r& mn, const Vector3r& mx, int nBins, int mask, Vector2r rRange){
-	bool haveBox=!isnan(mn[0]) && !isnan(mx[0]);
-	Eigen::AlignedBox<Real,3> box(mn,mx);
+vector<Vector2r> DemFuncs::boxPsd(const Scene* scene, const DemField* dem, const AlignedBox3r& box, int num, int mask, Vector2r rRange){
+	bool haveBox=!isnan(box.min()[0]) && !isnan(box.max()[0]);
 	// if not given, determine radius range first
 	if(rRange[0]<=0 || rRange[1]<=0){
 		rRange=Vector2r(Inf,-Inf);
@@ -112,14 +111,14 @@ vector<Vector2r> DemFuncs::psd(const Scene* scene, const DemField* dem, const Ve
 		}
 		if(isinf(rRange[0])) throw std::runtime_error("DemFuncs::boxPsd: no spherical particles?");
 	}
-	if(nBins<1) yade::ValueError("DemFuncs::boxPsd: nBins must be > 1 (not "+to_string(nBins));
+	if(num<=1) yade::ValueError("DemFuncs::boxPsd: num must be > 1 (not "+to_string(num));
 	if(rRange[0]>rRange[1]) yade::ValueError("DemFuncs::boxPsd: invalid radius range "+lexical_cast<string>(rRange.transpose())+" (must be min,max)");
 	if(rRange[0]==rRange[1]){ // dirac distribution
 		LOG_WARN("All sphere have the same radius, returning step PSD with 2 values only");
 		return vector<Vector2r>({Vector2r(rRange[0],0),Vector2r(rRange[0],1.)});
 	}
 
-	vector<Vector2r> ret(nBins+1,Vector2r::Zero());
+	vector<Vector2r> ret(num,Vector2r::Zero());
 	LOG_TRACE("Returned vector size is "<<ret.size());
 	//ret[0][1]=rRange[0]; // minimum, which will have zero passing value
 	size_t nPar=0;
@@ -128,23 +127,48 @@ vector<Vector2r> DemFuncs::psd(const Scene* scene, const DemField* dem, const Ve
 		if(!p->shape || !dynamic_pointer_cast<yade::Sphere>(p->shape)) continue;
 		if(haveBox && !box.contains(p->shape->nodes[0]->pos)) continue;
 		Real r=p->shape->cast<Sphere>().radius;
-		if(r<rRange[0] || r>rRange[1]) continue; // for rRange given in advance, discard spheres which don't pass
-		int bin=min(nBins,1+(int)(nBins*((r-rRange[0])/(rRange[1]-rRange[0]))));
+		nPar++;
+		if(r>rRange[1]) continue; // for rRange given in advance, discard spheres which don't pass
+		int bin=max(0,min(num-1,1+(int)((num-1)*((r-rRange[0])/(rRange[1]-rRange[0])))));
 		LOG_TRACE("Particle with diameter "<<2*r<<" goes to position no. "<<bin);
 		ret[bin][1]+=1;
-		nPar++;
 	}
-	for(int i=0; i<nBins+1; i++){
+	for(int i=0; i<num; i++){
 		// set diameter values
-		ret[i][0]=2*(rRange[0]+i*(rRange[1]-rRange[0])/nBins);
+		ret[i][0]=2*(rRange[0]+i*(rRange[1]-rRange[0])/(num-1));
 		// normalize and make cummulative
 		ret[i][1]=ret[i][1]/nPar+(i>0?ret[i-1][1]:0.);
 		LOG_TRACE("bin "<<i<<": "<<ret[i].transpose());
 	}
-	// due to numerical imprecision, the normalization might not be exact, fix here
-	for(int i=0; i<nBins+1; i++){
-		ret[i][1]/=ret[nBins][1];
-	}
 	return ret;
 }
+
+vector<Vector2r> DemFuncs::psd(const vector<shared_ptr<Particle>>& pp, int num, Vector2r rRange){
+	if(isnan(rRange[0]) || isnan(rRange[1]) || rRange[0]<0 || rRange[1]<=0 || rRange[0]>=rRange[1]){
+		rRange=Vector2r(Inf,-Inf);
+		for(const shared_ptr<Particle>& p: pp){
+			if(!p || !p->shape || !dynamic_pointer_cast<yade::Sphere>(p->shape)) continue;
+			Real r=p->shape->cast<Sphere>().radius;
+			if(r<rRange[0]) rRange[0]=r;
+			if(r>rRange[1]) rRange[1]=r;
+		}
+		if(isinf(rRange[0])) throw std::runtime_error("DemFuncs::boxPsd: no spherical particles?");
+	}
+	vector<Vector2r> ret(num,Vector2r::Zero());
+	size_t nPar=0;
+	for(const shared_ptr<Particle>& p: pp){
+		if(!p || !p->shape || !dynamic_pointer_cast<yade::Sphere>(p->shape)) continue;
+		Real r=p->shape->cast<Sphere>().radius;
+		if(r>rRange[1]) continue;
+		nPar++;
+		int bin=max(0,min(num-1,1+(int)((num-1)*((r-rRange[0])/(rRange[1]-rRange[0])))));
+		ret[bin][1]+=1;
+	}
+	for(int i=0;i<num;i++){
+		ret[i][0]=2*(rRange[0]+i*(rRange[1]-rRange[0])/(num-1));
+		ret[i][1]=ret[i][1]/pp.size()+(i>0?ret[i-1][1]:0.);
+	}
+	// for(int i=0; i<num; i++) ret[i][1]/=ret[num-1][1];
+	return ret;
+};
 

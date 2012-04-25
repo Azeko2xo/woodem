@@ -285,7 +285,7 @@ class ControllerClass(QWidget,Ui_Controller):
 			else: eta=u'(ETA −)'
 			self.realTimeLabel.setText('%02d:%02d:%02d %s'%(rt//3600,rt//60,rt%60,eta))
 			self.stepLabel.setText('#%ld / %ld, %.1f/s %s'%(scene.step,stopAtStep,self.stepPerSec,subStepInfo))
-		if t!=float('inf'):
+		if t!=float('inf') and t!=float('nan'):
 			s=int(t); ms=int(t*1000)%1000; us=int(t*1000000)%1000; ns=int(t*1000000000)%1000
 			self.virtTimeLabel.setText(u'%03ds%03dm%03dμ%03dn'%(s,ms,us,ns))
 		else: self.virtTimeLabel.setText(u'[ ∞ ] ?!')

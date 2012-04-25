@@ -9,24 +9,27 @@ struct Roro: public Preprocessor {
 		return py::call<shared_ptr<Scene>>(py::getattr(pre,"run").ptr(),boost::ref(*this));
 	}
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR(Roro,Preprocessor,"Preprocessor for the Rollenrost simulation.",
-		((int,cylNum,8,,"Number of cylinders"))
+		((int,cylNum,6,,"Number of cylinders"))
 		//((Vector2i,numCyl_range,Vector2i(1,12),Attr::noGui,"range for numCyl"))
+		((Real,massFlowRate,100,,"Mass flow rate of generated particles [kg/s]"))
+		((Real,flowVel,1.,,"Velocity of generated particles [m/s]"))
 		((Real,cylDiameter,.2,,"Diameter of cylinders [m]"))
-		((Real,cylLength,.2,,"Length of cylinders [m]"))
-		((Real,gap,.05,,"Gap between cylinders [m]"))
-		((Real,inclination,0,,"Inclination cylinders [deg]"))
-		((Real,angVel,1.,,"Angular velocity of cylinders [rot/sec]"))
+		((Real,cylLength,.5,,"Length of cylinders [m]"))
+		((Real,gap,.04,,"Gap between cylinders [m]"))
+		((Real,inclination,40,,"Inclination cylinders [deg]"))
+		((Real,angVel,10.,,"Angular velocity of cylinders [rot/sec]"))
 		((vector<Vector2r>,psd,/*set in the ctor*/,,"Particle size distribution of generated particles: first value is diameter [mm], second value is cummulative percentage [%]"))
-		//((Real,friction,,,"Friction coefficient between particles"))
 		//((Real,adhesion,,,"Adhesion coefficient between particles"))
-		//((Real,density,3600,,"Density of particles [kg/m³]"))
-		//((Real,young,1e6,,"Young's modulus of particles"))
-		//((Real,ktDivKn,.2,,"Normal to tangential stiffness ratio"))
 		((shared_ptr<FrictMat>,material,make_shared<FrictMat>(),,"Material of particles"))
-		//((Real,sphRad,.2,,"Mean particle radius"))
 		, /*ctor*/
-			psd.push_back(Vector2r(.2,.5));
-			psd.push_back(Vector2r(.3,1.));
+			psd.push_back(Vector2r(.01,.2));
+			psd.push_back(Vector2r(.02,.4));
+			psd.push_back(Vector2r(.04,.8));
+			psd.push_back(Vector2r(.05,1.));
+			material->density=2500;
+			material->cast<FrictMat>().young=1e7;
+			material->cast<FrictMat>().ktDivKn=.2;
+			material->cast<FrictMat>().tanPhi=tan(.5);
 	);
 };
 REGISTER_SERIALIZABLE(Roro);
