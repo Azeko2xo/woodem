@@ -207,10 +207,13 @@ void Leapfrog::run(){
 			if(!useAspherical) leapfrogSphericalRotate(node);
 			else leapfrogAsphericalRotate(node,t);
 		}
+		if(reset){ dyn.force=dyn.torque=Vector3r::Zero(); }
+
+		// if something is imposed, apply it here
+		if(dyn.impose) (*dyn.impose)(scene,node);
+
 		// for clumps, update positions/orientations of members as well
 		if(isClump) ClumpData::applyToMembers(node,/*resetForceTorque*/reset);
-
-		if(reset){ dyn.force=dyn.torque=Vector3r::Zero(); }
 	}
 	// if(isPeriodic) prevVelGrad=scene->cell->velGrad;
 }

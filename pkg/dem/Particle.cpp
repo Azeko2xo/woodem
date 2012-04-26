@@ -10,7 +10,7 @@
 	#include<yade/pkg/gl/Renderer.hpp>
 #endif
 
-YADE_PLUGIN(dem,(CPhys)(CGeom)(CData)(DemField)(Particle)(DemData)(Contact)(Shape)(Material)(Bound)(ContactContainer));
+YADE_PLUGIN(dem,(CPhys)(CGeom)(CData)(DemField)(Particle)(DemData)(Impose)(Contact)(Shape)(Material)(Bound)(ContactContainer));
 CREATE_LOGGER(DemField);
 
 py::dict Particle::pyContacts()const{	py::dict ret; FOREACH(MapParticleContact::value_type i,contacts) ret[i.first]=i.second; return ret;}
@@ -119,6 +119,8 @@ Vector3r& Particle::getVel() const { checkNodes(); return shape->nodes[0]->getDa
 void Particle::setVel(const Vector3r& p){ checkNodes(); shape->nodes[0]->getData<DemData>().vel=p; }
 Vector3r& Particle::getAngVel() const { checkNodes(); return shape->nodes[0]->getData<DemData>().angVel; };
 void Particle::setAngVel(const Vector3r& p){ checkNodes(); shape->nodes[0]->getData<DemData>().angVel=p; }
+shared_ptr<Impose> Particle::getImpose() const { checkNodes(); return shape->nodes[0]->getData<DemData>().impose; };
+void Particle::setImpose(const shared_ptr<Impose>& i){ checkNodes(); shape->nodes[0]->getData<DemData>().impose=i; }
 
 Real Particle::getMass() const { checkNodes(); return shape->nodes[0]->getData<DemData>().mass; };
 Vector3r Particle::getInertia() const { checkNodes(); return shape->nodes[0]->getData<DemData>().inertia; };

@@ -16,6 +16,7 @@ class Material;
 class Bound;
 class Shape;
 class ParticleContainer;
+class Impose;
 
 class ScalarRange;
 
@@ -31,6 +32,7 @@ struct Particle: public Serializable{
 	Quaternionr& getOri() const; void setOri(const Quaternionr&);
 	Vector3r& getVel() const; void setVel(const Vector3r&);
 	Vector3r& getAngVel() const; void setAngVel(const Vector3r&);
+	shared_ptr<Impose> getImpose() const; void setImpose(const shared_ptr<Impose>&);
 	Real getEk_any(bool trans, bool rot) const;
 	Real getEk() const {return getEk_any(true,true); }
 	Real getEk_trans() const { return getEk_any(true,false); }
@@ -63,6 +65,7 @@ struct Particle: public Serializable{
 		.add_property("ori",py::make_function(&Particle::getOri,py::return_internal_reference<>()),py::make_function(&Particle::setOri))
 		.add_property("vel",py::make_function(&Particle::getVel,py::return_internal_reference<>()),py::make_function(&Particle::setVel))
 		.add_property("angVel",py::make_function(&Particle::getAngVel,py::return_internal_reference<>()),py::make_function(&Particle::setAngVel))
+		.add_property("impose",&Particle::getImpose,&Particle::setImpose)
 		.add_property("mass",&Particle::getMass)
 		.add_property("inertia",&Particle::getInertia)
 		.add_property("f",&Particle::getForce)
@@ -76,6 +79,11 @@ struct Particle: public Serializable{
 };
 REGISTER_SERIALIZABLE(Particle);
 
+struct Impose: public Serializable{
+	virtual void operator()(const Scene*, const shared_ptr<Node>&){ throw std::runtime_error("Calling abstract DemImpose::operator()."); }
+	YADE_CLASS_BASE_DOC(Impose,Serializable,"Impose arbitrary changes in Node and DemData, right after integration of the node.");
+};
+REGISTER_SERIALIZABLE(Impose);
 
 class DemData: public NodeData{
 	boost::mutex lock; // used by applyForceTorque
@@ -128,8 +136,9 @@ public:
 		((Vector3r,torque,Vector3r::Zero(),,"Applied torque"))
 		((Vector3r,angMom,Vector3r::Zero(),,"Angular momentum (used with the aspherical integrator)"))
 		((unsigned,flags,0,Attr::readonly,"Bit flags storing blocked DOFs, clump status"))
-		((long,linIx,-1,Attr::hidden,"Index within O.dem.nodes (for efficient removal"))
+		((long,linIx,-1,Attr::hidden,"Index within O.dem.nodes (for efficient removal)"))
 		((int,parCount,0,Attr::noGui,"Number of particles associated with this node (to know whether a node should be deleted when a particle is)"))
+		((shared_ptr<Impose>,impose,,,"Impose arbitrary velocity, angular velocity, ... on the node; the functor is called from Leapfrog, after new position and velocity have been computed."))
 		, /*ctor*/
 		, /*py*/ .add_property("blocked",&DemData::blocked_vec_get,&DemData::blocked_vec_set,"Degress of freedom where linear/angular velocity will be always constant (equal to zero, or to an user-defined value), regardless of applied force/torque. String that may contain 'xyzXYZ' (translations and rotations).")
 		.add_property("clump",&DemData::isClump).add_property("clumped",&DemData::isClumped).add_property("noClump",&DemData::isNoClump).add_property("energySkip",&DemData::isEnergySkip,&DemData::setEnergySkip)
