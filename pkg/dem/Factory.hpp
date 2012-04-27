@@ -27,10 +27,14 @@ struct PsdSphereGenerator: public ParticleGenerator{
 	DECLARE_LOGGER;
 	vector<ParticleExtExt> operator()(const shared_ptr<Material>&m);
 	void postLoad(PsdSphereGenerator&);
-	YADE_CLASS_BASE_DOC_ATTRS(PsdSphereGenerator,ParticleGenerator,"Generate particles following a discrete Particle Size Distribution (PSD)",
-		((vector<Vector2r>,psd,,,"Points of the PSD curve; the first component is particle diameter [m] (not radius!), the second component is passing percentage. Both diameter and passing values must be increasing (diameters must be strictly increasing). Passing values are normalized so that the last value is 1.0 (therefore, you can enter the values in percents if you like)"))
+	py::tuple pyPsd() const;
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(PsdSphereGenerator,ParticleGenerator,"Generate particles following a discrete Particle Size Distribution (PSD)",
+		((vector<Vector2r>,psdPts,,,"Points of the PSD curve; the first component is particle diameter [m] (not radius!), the second component is passing percentage. Both diameter and passing values must be increasing (diameters must be strictly increasing). Passing values are normalized so that the last value is 1.0 (therefore, you can enter the values in percents if you like)"))
 		((vector<int>,numPerBin,,Attr::noGui,"Keep track of how much particles were generated for each point on the PSD so that we get as close to the curve as possible."))
 		((int,numTot,,Attr::noGui,"Total number of particles generated"))
+		, /* ctor */
+		, /* py */
+			.def("psd",&PsdSphereGenerator::pyPsd,"Return points of the PSD suitable for plotting")
 	);
 };
 REGISTER_SERIALIZABLE(PsdSphereGenerator);
@@ -68,8 +72,8 @@ struct ParticleFactory: public PeriodicEngine{
 		((Real,massFlowRate,NaN,,"Mass flow rate [kg/s]"))
 		((Real,maxMass,-1,,"Mass at which the engine will not produce any particles (inactive if negative)"))
 		((long,maxNum,-1,,"Number of generated particles after which no more will be produced (inacitve if negative)"))
-		((Real,totalMass,0,,"Mass generated so far"))
-		((long,totalNum,0,,"Number of particles generated so far"))
+		((Real,mass,0,,"Generated mass total"))
+		((long,num,0,,"Number of generated particles"))
 		((vector<shared_ptr<Material>>,materials,,,"Set of materials for new particles, randomly picked from"))
 		((shared_ptr<ParticleGenerator>,generator,,,"Particle generator instance"))
 		((shared_ptr<ParticleShooter>,shooter,,,"Particle shooter instance (assigns velocities to generated particles"))
@@ -77,7 +81,7 @@ struct ParticleFactory: public PeriodicEngine{
 		((int,mask,1,,"Groupmask for new particles"))
 		((Real,color,NaN,,"Color for new particles (NaN for random)"))
 		//
-		((Real,goalMass,0,Attr::readonly,"Mass to be attained in this step"))
+		((Real,stepMass,0,Attr::readonly,"Mass to be attained in this step"))
 		((long,stepPrev,-1,Attr::readonly,"Step in which we were run for the last time"))
 	);
 };
@@ -116,7 +120,7 @@ struct BoxDeleter: public PeriodicEngine{
 		((Real,color,0,Attr::noGui,"Color for rendering (nan disables rendering)"))
 		,/*ctor*/
 		,/*py*/
-		.def("psd",&BoxDeleter::pyPsd,(py::arg("num")=20,py::arg("rRange")=Vector2r(NaN,NaN),py::arg("zip")=true),"Return particle size distribution of deleted particles (only useful with *save*), spaced between *rRange* (a 2-tuple of minimum and maximum radius); )")
+		.def("psd",&BoxDeleter::pyPsd,(py::arg("num")=80,py::arg("rRange")=Vector2r(NaN,NaN),py::arg("zip")=false),"Return particle size distribution of deleted particles (only useful with *save*), spaced between *rRange* (a 2-tuple of minimum and maximum radius); )")
 		.def("clear",&BoxDeleter::pyClear,"Clear information about saved particles (particle list, if saved, mass and number)")
 	);
 };

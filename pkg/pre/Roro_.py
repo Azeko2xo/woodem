@@ -51,11 +51,13 @@ def run(ui): # use inputs as argument
 		# generator
 		BoxFactory(stepPeriod=factStep,box=((xmin,ymin,rCyl),(0,ymax,zmax)),color=.4,label='factory',
 			massFlowRate=ui.massFlowRate,materials=[ui.material],
-			generator=PsdSphereGenerator(psd=ui.psd),
+			generator=PsdSphereGenerator(psdPts=ui.psd),
 			shooter=AlignedMinMaxShooter(dir=(1,0,-.1),vRange=(ui.flowVel,ui.flowVel)),
-			mask=sphMask
+			mask=sphMask,
+			maxMass=200, ## later: user-settable
 		),
-
+		# this might go away as well, later
+		PyRunner(2000,'remains=(yade.factory.maxMass-yade.fallThrough.mass-yade.fallOver.mass)/yade.factory.maxMass;\nif remains<.02:\n\tyade.pre.Roro_.plotFinalPsd(); print "Simulation finished."; O.pause()')
 	]
 	s.any=[yade.gl.Gl1_InfCylinder(wire=True),yade.gl.Gl1_Wall(div=3)]
 	print 'Generated Rollenrost.'
@@ -63,16 +65,19 @@ def run(ui): # use inputs as argument
 	return s
 
 def plotFinalPsd():
+	import matplotlib
+	matplotlib.use('Agg')
 	import pylab
 	import yade
 	import os
-	pylab.plot(*yade.fallThrough.psd(num=80,zip=False),label='fall through (mass %g)'%yade.fallThrough.mass)
-	pylab.plot(*yade.fallOver.psd(num=80,zip=False),label='fall over (mass %g)'%yade.fallOver.mass)
+	pylab.plot(*yade.factory.generator.psd(),label='input (mass %g)'%yade.factory.mass)
+	pylab.plot(*yade.fallThrough.psd(),label='fall through (mass %g)'%yade.fallThrough.mass)
+	pylab.plot(*yade.fallOver.psd(),label='fall over (mass %g)'%yade.fallOver.mass)
 	pylab.grid(True)
 	pylab.legend(loc='lower right')
 	pylab.xlabel('particle diameter [m]')
 	pylab.ylabel('passing fraction')
-	if 1: pylab.show()
+	if 0: pylab.show()
 	else:
 		out=yade.O.tmpFilename()+".pdf"
 		pylab.savefig(out)
@@ -82,9 +87,7 @@ def plotFinalPsd():
 if __name__=='__main__':
 	import yade.pre
 	import yade.qt
-	import yade.plot
 	O.scene=yade.pre.Roro()()
-	O.scene.engines=O.scene.engines+[PyRunner(20000,'yade.pre.Roro_.plotFinalPsd(); O.pause();',initRun=False)]
 	O.saveTmp()
 	yade.qt.View()
 	O.run()

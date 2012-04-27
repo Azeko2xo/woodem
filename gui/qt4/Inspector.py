@@ -57,7 +57,7 @@ def makeBodyLabel(b):
 	ret=unicode(b.id)+u' '
 	if not b.shape: ret+=u'⬚'
 	else:
-		typeMap={'Sphere':u'⚫','Facet':u'△','Wall':u'┃','Box':u'⎕','Cylinder':u'⌭','Clump':u'☍'}
+		typeMap={'Sphere':u'⚫','Facet':u'△','Wall':u'┃','Box':u'⎕','Cylinder':u'⌭','Clump':u'☍','InfCylinder':u'◎'}
 		ret+=typeMap.get(b.shape.__class__.__name__,u'﹖')
 	if (b.shape.nodes)==1 and b.blocked!='': ret+=u'⚓'
 	return ret

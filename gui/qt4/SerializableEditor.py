@@ -291,7 +291,8 @@ class AttrEditor_flagArray(AttrEditor,QFrame):
 		self.setter(ret)
 	def setFocus(self): self.grid.itemAtPosition(0,0).widget().setFocus()
 
-class AttrEditor_DemData_blocked(AttrEditor_flagArray):
+# FIXME: broken
+class AttrEditor_DemData_flags(AttrEditor_flagArray):
 	# getter: gets from cxx and returns as array of bools
 	# setter: receives bools from widgets, sets cxx value
 	def boolSetter(self,bb): # grab bools from widgets, call self.setter with bools given as string
@@ -418,7 +419,10 @@ class Se3FakeType: pass
 _fundamentalEditorMap={bool:AttrEditor_Bool,str:AttrEditor_Str,int:AttrEditor_Int,float:AttrEditor_Float,Quaternion:AttrEditor_Quaternion,Vector2:AttrEditor_Vector2,Vector3:AttrEditor_Vector3,Vector6:AttrEditor_Vector6,Matrix3:AttrEditor_Matrix3,Vector6i:AttrEditor_Vector6i,Vector3i:AttrEditor_Vector3i,Vector2i:AttrEditor_Vector2i,MatrixX:AttrEditor_MatrixXX,VectorX:AttrEditor_VectorX,Se3FakeType:AttrEditor_Se3,AlignedBox3:AttrEditor_AlignedBox3}
 _fundamentalInitValues={bool:True,str:'',int:0,float:0.0,Quaternion:Quaternion.Identity,Vector3:Vector3.Zero,Matrix3:Matrix3.Zero,Vector6:Vector6.Zero,Vector6i:Vector6i.Zero,Vector3i:Vector3i.Zero,Vector2i:Vector2i.Zero,Vector2:Vector2.Zero,Se3FakeType:(Vector3.Zero,Quaternion.Identity),AlignedBox3:(Vector3.Zero,Vector3.Zero),MatrixX:MatrixX(),VectorX:VectorX()}
 
-_fundamentalSpecialEditors={id(yade.dem.DemData.blocked):AttrEditor_DemData_blocked,}
+_fundamentalSpecialEditors={
+	# FIXME: re-eanble once fixed
+	#id(yade.dem.DemData.flags):AttrEditor_DemData_flags,
+}
 
 _attributeGuessedTypeMap={yade._customConverters.NodeList:(yade.core.Node,), }
 

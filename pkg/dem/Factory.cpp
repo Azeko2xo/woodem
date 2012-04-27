@@ -21,42 +21,51 @@ MinMaxSphereGenerator::operator()(const shared_ptr<Material>&m){
 
 
 void PsdSphereGenerator::postLoad(PsdSphereGenerator&){
-	if(psd.empty()) return;
-	for(int i=0; i<(int)psd.size()-1; i++){
-		if(psd[i][0]>=psd[i+1][0]) throw std::runtime_error("PsdSphereGenerator.psd: diameters (the x-component) must be strictly increasing ("+to_string(psd[i][0])+">="+to_string(psd[i+1][0])+")");
-		if(psd[i][1]>psd[i+1][1]) throw std::runtime_error("PsdSphereGenerator.psd: passing values (the y-component) must be increasing ("+to_string(psd[i][1])+">"+to_string(psd[i+1][1])+")");
+	if(psdPts.empty()) return;
+	for(int i=0; i<(int)psdPts.size()-1; i++){
+		if(psdPts[i][0]>=psdPts[i+1][0]) throw std::runtime_error("PsdSphereGenerator.psdPts: diameters (the x-component) must be strictly increasing ("+to_string(psdPts[i][0])+">="+to_string(psdPts[i+1][0])+")");
+		if(psdPts[i][1]>psdPts[i+1][1]) throw std::runtime_error("PsdSphereGenerator.psdPts: passing values (the y-component) must be increasing ("+to_string(psdPts[i][1])+">"+to_string(psdPts[i+1][1])+")");
 	}
-	Real maxPass=(*psd.rbegin())[1];
+	Real maxPass=(*psdPts.rbegin())[1];
 	if(maxPass!=1.0){
-		LOG_INFO("Normalizing PSD so that highest value of passing is 1.0 rather than "<<maxPass);
-		for(Vector2r& v: psd) v[1]/=maxPass;
+		LOG_INFO("Normalizing psdPts so that highest value of passing is 1.0 rather than "<<maxPass);
+		for(Vector2r& v: psdPts) v[1]/=maxPass;
 	}
-	numPerBin.resize(psd.size());
+	numPerBin.resize(psdPts.size());
 	std::fill(numPerBin.begin(),numPerBin.end(),0);
 	numTot=0;
 }
 
 vector<ParticleGenerator::ParticleExtExt>
 PsdSphereGenerator::operator()(const shared_ptr<Material>&m){
-	if(psd.empty()) throw std::runtime_error("PsdSphereGenerator.psd is empty.");
+	if(psdPts.empty()) throw std::runtime_error("PsdSphereGenerator.psdPts is empty.");
 	Real maxBinDiff=-Inf; int maxBin=-1;
-	// find the bin which is the most below the expected percentage according to the PSD
+	// find the bin which is the most below the expected percentage according to the psdPts
 	if(numTot<=0) maxBin=0;
 	else{
-		for(size_t i=0;i<psd.size();i++){
-			Real binDiff=(psd[i][1]-(i>0?psd[i-1][1]:0.))-numPerBin[i]*1./numTot;
-			LOG_TRACE("bin "<<i<<" (d="<<psd[i][0]<<"): should be "<<psd[i][1]-(i>0?psd[i-1][1]:0.)<<", current "<<numPerBin[i]*1./numTot<<", should be "<<psd[i][1]<<"; diff="<<binDiff);
+		for(size_t i=0;i<psdPts.size();i++){
+			Real binDiff=(psdPts[i][1]-(i>0?psdPts[i-1][1]:0.))-numPerBin[i]*1./numTot;
+			LOG_TRACE("bin "<<i<<" (d="<<psdPts[i][0]<<"): should be "<<psdPts[i][1]-(i>0?psdPts[i-1][1]:0.)<<", current "<<numPerBin[i]*1./numTot<<", should be "<<psdPts[i][1]<<"; diff="<<binDiff);
 			if(binDiff>maxBinDiff){ maxBinDiff=binDiff; maxBin=i; }
 		}
 	}
 	assert(maxBin>=0);
-	LOG_TRACE("** maxBin="<<maxBin<<", d="<<psd[maxBin][0]);
+	LOG_TRACE("** maxBin="<<maxBin<<", d="<<psdPts[maxBin][0]);
 	numPerBin[maxBin]++;
 	numTot++;
-	Real r=psd[maxBin][0]/2.;
+	Real r=psdPts[maxBin][0]/2.;
 	return vector<ParticleExtExt>({{DemFuncs::makeSphere(r,m),AlignedBox3r(Vector3r(-r,-r,-r),Vector3r(r,r,r))}});
 };
 
+py::tuple PsdSphereGenerator::pyPsd() const {
+	py::list dia, frac; // diameter and fraction axes
+	for(size_t i=0;i<psdPts.size();i++){
+		if(i==0){ dia.append(psdPts[0][0]); frac.append(0); }
+		dia.append(psdPts[i][0]); frac.append(psdPts[i][1]);
+		if(i<psdPts.size()-1){ dia.append(psdPts[i+1][0]); frac.append(psdPts[i][1]); }
+	}
+	return py::make_tuple(dia,frac);
+}
 
 
 void ParticleFactory::run(){
@@ -71,12 +80,12 @@ void ParticleFactory::run(){
 	if(dynamic_pointer_cast<InsertionSortCollider>(collider)) static_pointer_cast<InsertionSortCollider>(collider)->forceInitSort=true;
 
 	// to be attained in this step;
-	goalMass+=massFlowRate*scene->dt*(scene->step-this->stepPrev); // stepLast==-1 if never run, which is OK
+	stepMass+=massFlowRate*scene->dt*(scene->step-this->stepPrev); // stepLast==-1 if never run, which is OK
 	this->stepPrev=scene->step;
 	vector<AlignedBox3r> genBoxes; // of particles created in this step
 	vector<shared_ptr<Particle>> generated;
 
-	while(totalMass<goalMass && (maxNum<0 || totalNum<maxNum) && (maxMass<0 || totalMass<maxMass)){
+	while(mass<stepMass && (maxNum<0 || num<maxNum) && (maxMass<0 || mass<maxMass)){
 		shared_ptr<Material> mat;
 		if(materials.size()==1) mat=materials[0];
 		else{ // random choice of material with equal probability
@@ -113,7 +122,7 @@ void ParticleFactory::run(){
 				vector<Particle::id_t> ids=collider->probeAabb(peBox.min(),peBox.max());
 				for(const auto& id: ids){
 					LOG_TRACE("Collider reports intersection with #"<<id);
-					if(id>dem->particles.size() || !dem->particles[id]) continue;
+					if(id>(Particle::id_t)dem->particles.size() || !dem->particles[id]) continue;
 					const shared_ptr<Shape>& sh2(dem->particles[id]->shape);
 					// no spheres, or they are too close
 					if(!peSphere || !dynamic_pointer_cast<yade::Sphere>(sh2) || 1.1*(pos-sh2->nodes[0]->pos).squaredNorm()<pow(peSphere->radius+sh2->cast<Sphere>().radius,2)) goto tryAgain;
@@ -143,7 +152,7 @@ void ParticleFactory::run(){
 			generated.push_back(pe.par);
 		}
 
-		totalNum+=1;
+		num+=1;
 		
 		Real color_=isnan(color)?Mathr::UnitRandom():color;
 		if(pee.size()>1){ // clump was generated
@@ -175,7 +184,7 @@ void ParticleFactory::run(){
 			dyn.linIx=dem->nodes.size();
 			dem->nodes.push_back(clump);
 
-			totalMass+=clump->getData<DemData>().mass;
+			mass+=clump->getData<DemData>().mass;
 		} else {
 			auto& p=pee[0].par;
 			p->mask=mask;
@@ -189,7 +198,7 @@ void ParticleFactory::run(){
 			node0->pos+=pos;
 			auto& dyn=node0->getData<DemData>();
 			(*shooter)(dyn.vel,dyn.angVel);
-			totalMass+=dyn.mass;
+			mass+=dyn.mass;
 			assert(node0->hasData<DemData>());
 			dem->particles.insert(p);
 			#ifdef YADE_OPENGL
@@ -206,7 +215,7 @@ void ParticleFactory::run(){
 				for(const auto& n: p.shape->nodes){
 					auto& dyn=n->getData<DemData>();
 					dyn.vel=vel; dyn.angVel=angVel;
-					totalMass+=dyn.mass;
+					mass+=dyn.mass;
 
 					n->linIx=dem->nodes.size();
 					dem->nodes.push_back(n);
