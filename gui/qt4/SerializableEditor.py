@@ -448,21 +448,24 @@ class SerializableEditor(QFrame):
 	import logging
 	# each attribute has one entry associated with itself
 	class EntryData:
-		def __init__(self,name,T,flags,containingClass):
-			self.name,self.T,self.flags,self.containingClass=name,T,flags,containingClass
+		def __init__(self,name,T,groupNo,flags,containingClass):
+			self.name,self.T,self.flags,self.groupNo,self.containingClass=name,T,flags,groupNo,containingClass
 			self.lineNo,self.widget=None,None
 		def propertyId(self):
 			try:
 				return id(getattr(self.containingClass,self.name))
 			except AttributeError: return None
+	class EntryGroupData:
+		def __init__(self,name): self.name=name
 	def __init__(self,ser,parent=None,ignoredAttrs=set(),showType=False,path=None):
 		"Construct window, *ser* is the object we want to show."
 		QtGui.QFrame.__init__(self,parent)
 		self.ser=ser
-		self.path=(ser.label if (hasattr(ser,'label') and ser.label) else path)
+		self.path=('yade.'+ser.label if (hasattr(ser,'label') and ser.label) else path)
 		self.showType=showType
 		self.hot=False
 		self.entries=[]
+		self.entryGroups=[]
 		self.ignoredAttrs=ignoredAttrs
 		logging.debug('New Serializable of type %s'%ser.__class__.__name__)
 		self.setWindowTitle(str(ser))
@@ -524,7 +527,7 @@ class SerializableEditor(QFrame):
 		#	logging.error('TypeError when getting attributes of '+str(self.ser)+',skipping. ')
 		#	import traceback
 		#	traceback.print_exc()
-		attrs=self.ser.yattrs(); attrs.sort()
+		attrs=self.ser.yattrs(); # do not sort here, since we need separators
 		for attr in attrs:
 			val=getattr(self.ser,attr) # get the value using serattr, as it might be different from what the dictionary provides (e.g. Body.blockedDOFs)
 			t=None
@@ -537,6 +540,13 @@ class SerializableEditor(QFrame):
 					print 'No docstring for ',self.ser.__class__.__name__+'.'+attr+": using None (pure python attribute?)"
 					doc=None
 			if attr in self.ignoredAttrs: continue
+
+			# group sparator, handle specially
+			m=re.match('_groupSeparator_(.*)',attr)
+			if m:
+				self.entryGroups.append(self.EntryGroupData(name=self.getDocstring(attr)))
+				continue
+
 			if isinstance(val,list):
 				t=self.getListTypeFromDocstring(attr)
 				if not t and len(val)==0: t=(val[0].__class__,) # 1-tuple is list of the contained type
@@ -555,10 +565,13 @@ class SerializableEditor(QFrame):
 				print "Attribute %s.%s has no docstring."%(self.ser.__class__.__name__,attr)
 				flags=0
 
+			if len(self.entryGroups)==0: self.entryGroups.append(self.EntryGroupData(name=None))
+			groupNo=len(self.entryGroups)-1
+
 			#if not match: print 'No attr match for docstring of %s.%s'%(self.ser.__class__.__name__,attr)
 
 			#logging.debug('Attr %s is of type %s'%(attr,((t[0].__name__,) if isinstance(t,tuple) else t.__name__)))
-			self.entries.append(self.EntryData(name=attr,T=t,flags=flags,containingClass=self.ser.__class__))
+			self.entries.append(self.EntryData(name=attr,T=t,groupNo=groupNo,flags=flags,containingClass=self.ser.__class__))
 	def getDocstring(self,attr=None):
 		"If attr is *None*, return docstring of the Serializable itself"
 		try:
@@ -639,14 +652,41 @@ class SerializableEditor(QFrame):
 		return None
 	def mkWidgets(self):
 		self.mkAttrEntries()
-		grid=QFormLayout()
-		grid.setContentsMargins(2,2,2,2)
-		grid.setVerticalSpacing(0)
-		grid.setLabelAlignment(Qt.AlignRight)
-		if self.showType:
+		onlyDefaultGroups=(len(self.entryGroups)==1 and self.entryGroups[0].name==None)
+		formLayouts=[]
+		if self.showType: # create type label
 			lab=SerQLabel(self,makeSerializableLabel(self.ser,addr=True,href=True),tooltip=self.getDocstring(),path=self.path)
 			lab.setFrameShape(QFrame.Box); lab.setFrameShadow(QFrame.Sunken); lab.setLineWidth(2); lab.setAlignment(Qt.AlignHCenter); lab.linkActivated.connect(yade.qt.openUrl)
-			grid.setWidget(0,QFormLayout.SpanningRole,lab)
+		if onlyDefaultGroups:
+			lay=QFormLayout(self)
+			lay.setContentsMargins(2,2,2,2)
+			lay.setVerticalSpacing(0)
+			lay.setLabelAlignment(Qt.AlignRight)
+			if self.showType: lay.setWidget(0,QFormLayout.SpanningRole,lab)
+			formLayouts=[lay]
+		else:
+			# make one grid, in which optionally the label and the toolbox lives
+			# the toolbox has one tab for each group; each tab contains the formlayout, where will the attribute widgets live
+			lay=QGridLayout(self)
+			lay.setContentsMargins(2,2,2,2)
+			lay.setVerticalSpacing(0)
+			if self.showType: lay.addWidget(lab)
+			lay.setVerticalSpacing(0)
+			tbx=QToolBox()
+			#style=QtGui.QCommonStyle()
+			#rightArrow=style.standardIcon(QtGui.QStyle.SP_ArrowRight)
+			for group in self.entryGroups:
+				#g=QGridLayout(); g.setContentsMargins(0,0,0,0); g.setVerticalSpacing(0)
+				form=QFormLayout()
+				frame=QFrame()
+				frame.setLayout(form)
+				form.setContentsMargins(2,2,2,2)
+				form.setVerticalSpacing(0)
+				form.setLabelAlignment(Qt.AlignRight)
+				tbx.addItem(frame,u'⧉ '+(group.name if group.name else ''))
+				formLayouts.append(form)
+			tbx.setStyleSheet('QToolBox::tab { font: bold; }')
+			lay.addWidget(tbx)
 		for entry in self.entries:
 			# print entry.name, entry.T, entry.flags
 			if (entry.flags & AttrFlags.noGui): continue
@@ -654,12 +694,12 @@ class SerializableEditor(QFrame):
 			objPath=(self.path+'.'+entry.name) if self.path else None
 			label=SerQLabel(self,serializableHref(self.ser,entry.name),tooltip=self.getDocstring(entry.name),path=objPath)
 			try:
-				grid.addRow(label,entry.widget if entry.widget else (QLabel('<i>None</i>' if getattr(self.ser,entry.name)==None else QLabel('<i>unhandled type</i>'))))
+				formLayouts[entry.groupNo].addRow(label,entry.widget if entry.widget else (QLabel('<i>None</i>' if getattr(self.ser,entry.name)==None else QLabel('<i>unhandled type</i>'))))
 			except RuntimeError:
 				print 'ERROR while creating widget for entry %s (%s)'%(entry.name,objPath)
 				import traceback
 				traceback.print_exc()
-		self.setLayout(grid)
+		if onlyDefaultGroups: self.setLayout(lay)
 		self.refreshEvent()
 	def refreshEvent(self):
 		for e in self.entries:

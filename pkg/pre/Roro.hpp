@@ -15,6 +15,7 @@ struct Roro: public Preprocessor {
 		((Real,flowVel,1.,,"Velocity of generated particles [m/s]"))
 		((Real,cylDiameter,.2,,"Diameter of cylinders [m]"))
 		((Real,cylLength,.5,,"Length of cylinders [m]"))
+		((int,_groupSeparator_whatever,Attr::readonly,,"<some group name>"))
 		((Real,gap,.04,,"Gap between cylinders [m]"))
 		((Real,inclination,40,,"Inclination cylinders [deg]"))
 		((Real,angVel,10.,,"Angular velocity of cylinders [rot/sec]"))
