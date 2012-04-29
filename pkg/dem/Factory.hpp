@@ -125,3 +125,13 @@ struct BoxDeleter: public PeriodicEngine{
 	);
 };
 REGISTER_SERIALIZABLE(BoxDeleter);
+
+#if 0
+strct MultiBoxDeleter: public PeriodicEngine{
+	DECLARE_LOGGER;
+	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
+	#ifdef YADE_OPENGL
+		void render(const GLViewInfo&){ for(int i=0;i<colors.size();i++) if(!isnan(color)) GLUtils::AlignedBox(box,CompUtils::mapColor(color)); }
+	#endif
+}
+#endif

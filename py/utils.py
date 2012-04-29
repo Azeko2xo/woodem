@@ -212,7 +212,7 @@ def sphere(center,radius,fixed=False,wire=False,color=None,highlight=False,mater
 	b.mask=mask
 	return b
 
-def wall(position,axis,sense=0,fixed=True,mass=0,color=None,material=None,mask=1):
+def wall(position,axis,sense=0,glAB=None,fixed=True,mass=0,color=None,material=None,mask=1):
 	"""Return ready-made wall body.
 
 	:param float-or-Vector3-or-Node position: center of the wall. If float, it is the position along given axis, the other 2 components being zero
@@ -222,6 +222,7 @@ def wall(position,axis,sense=0,fixed=True,mass=0,color=None,material=None,mask=1
 	See :yref:`yade.utils.sphere`'s documentation for meaning of other parameters."""
 	p=Particle()
 	p.shape=Wall(sense=sense,axis=axis,color=color if color else random.random())
+	if glAB: p.shape.glAB=glAB
 	if not fixed and mass<=0: raise ValueError("Non-fixed wall must have positive mass")
 	if isinstance(position,(int,long,float)):
 		pos2=Vector3(0,0,0); pos2[axis]=position
@@ -259,10 +260,11 @@ def facet(vertices,fixed=True,wire=True,color=None,highlight=False,material=None
 	p.mask=mask
 	return p
 
-def infCylinder(position,radius,axis,fixed=True,mass=0,color=None,material=None,mask=1):
+def infCylinder(position,radius,axis,glAB=None,fixed=True,mass=0,color=None,material=None,mask=1):
 	"""Return a read-made infinite cylinder particle."""
 	p=Particle()
 	p.shape=InfCylinder(radius=radius,axis=axis,color=color if color else random.random())
+	if glAB: p.shape.glAB=glAB
 	if(isinstance(position,Node)):
 		node=position
 	else: node=_mkDemNode(pos=position)

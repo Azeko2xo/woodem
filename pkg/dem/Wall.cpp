@@ -39,14 +39,24 @@ void In2_Wall_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Materia
 	void Gl1_Wall::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool wire2, const GLViewInfo& viewInfo){
 		const Wall& wall=shape->cast<Wall>();
 		int ax0=wall.axis,ax1=(wall.axis+1)%3,ax2=(wall.axis+2)%3;
+		const Vector3r& pos(wall.nodes[0]->pos);
 		glColor3v(CompUtils::mapColor(shape->getBaseColor()));
 		glLineWidth(1);
 		assert(wall.nodes.size()==1);
 		// corner of the drawn plane is at the edge of the visible scene, except for the axis sense, which is in the wall plane
-		Vector3r corner=viewInfo.sceneCenter-Vector3r::Ones()*viewInfo.sceneRadius;
-		corner[ax0]=wall.nodes[0]->pos[ax0];
-		Vector3r unitX=Vector3r::Unit(ax1)*2*viewInfo.sceneRadius/div;
-		Vector3r unitY=Vector3r::Unit(ax2)*2*viewInfo.sceneRadius/div;
-		GLUtils::Grid(corner,unitX,unitY,Vector2i(div,div),/*edgeMask*/0);
+		Vector3r A, unit1, unit2;
+		if(isnan(wall.glAB.min()[0])){
+			A=viewInfo.sceneCenter-Vector3r::Ones()*viewInfo.sceneRadius;
+			A[ax0]=pos[ax0];
+			unit1=Vector3r::Unit(ax1)*2*viewInfo.sceneRadius/div;
+			unit2=Vector3r::Unit(ax2)*2*viewInfo.sceneRadius/div;
+		} else {
+			A[ax0]=pos[ax0];
+			A[ax1]=pos[ax1]+wall.glAB.min()[0];
+			A[ax2]=pos[ax2]+wall.glAB.min()[1];
+			unit1=Vector3r::Unit(ax1)*wall.glAB.sizes()[0]/div;
+			unit2=Vector3r::Unit(ax2)*wall.glAB.sizes()[1]/div;
+		}
+		GLUtils::Grid(A,unit1,unit2,Vector2i(div,div),/*edgeMask*/0);
 	}
 #endif

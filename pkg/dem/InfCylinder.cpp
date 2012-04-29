@@ -37,11 +37,17 @@ void Bo1_InfCylinder_Aabb::go(const shared_ptr<Shape>& sh){
 		const InfCylinder& cyl=shape->cast<InfCylinder>();
 		glLineWidth(1);
 		assert(cyl.nodes.size()==1);
-		Vector3r mid=cyl.nodes[0]->pos; mid[cyl.axis]=viewInfo.sceneCenter[cyl.axis];
-		GLUtils::setLocalCoords(mid,cyl.nodes[0]->ori);
-		Vector3r A,B; A=B=Vector3r::Zero();
-		A[cyl.axis]=-viewInfo.sceneRadius;
-		B[cyl.axis]=+viewInfo.sceneRadius;
+		Vector3r A(Vector3r::Zero()),B(Vector3r::Zero());
+		if(isnan(cyl.glAB[0])||isnan(cyl.glAB[1])){
+			Vector3r mid=cyl.nodes[0]->pos; mid[cyl.axis]=viewInfo.sceneCenter[cyl.axis];
+			GLUtils::setLocalCoords(mid,cyl.nodes[0]->ori);
+			A[cyl.axis]=-viewInfo.sceneRadius;
+			B[cyl.axis]=+viewInfo.sceneRadius;
+		} else {
+			GLUtils::setLocalCoords(cyl.nodes[0]->pos,cyl.nodes[0]->ori);
+			A[cyl.axis]=cyl.nodes[0]->pos[cyl.axis]+cyl.glAB[0];
+			B[cyl.axis]=cyl.nodes[0]->pos[cyl.axis]+cyl.glAB[1];
+		}
 		GLUtils::Cylinder(A,B,cyl.radius,CompUtils::mapColor(shape->getBaseColor()),/*wire*/wire||wire2,/*caps*/false,/*rad2*/-1,slices);
 	}
 #endif

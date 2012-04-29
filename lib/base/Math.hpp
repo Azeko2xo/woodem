@@ -76,6 +76,7 @@ typedef Eigen::Matrix<Real,Eigen::Dynamic,1> VectorXr;
 
 typedef Eigen::Quaternion<Real> Quaternionr;
 typedef Eigen::AngleAxis<Real> AngleAxisr;
+typedef Eigen::AlignedBox<Real,2> AlignedBox2r;
 typedef Eigen::AlignedBox<Real,3> AlignedBox3r;
 using Eigen::AngleAxis; using Eigen::Quaternion;
 
@@ -272,6 +273,7 @@ BOOST_IS_BITWISE_SERIALIZABLE(Matrix3r);
 BOOST_IS_BITWISE_SERIALIZABLE(Matrix6r);
 BOOST_IS_BITWISE_SERIALIZABLE(MatrixXr);
 BOOST_IS_BITWISE_SERIALIZABLE(VectorXr);
+BOOST_IS_BITWISE_SERIALIZABLE(AlignedBox2r);
 BOOST_IS_BITWISE_SERIALIZABLE(AlignedBox3r);
 
 namespace boost {
@@ -325,6 +327,12 @@ template<class Archive>
 void serialize(Archive & ar, Se3r & g, const unsigned int version){
 	Vector3r& position=g.position; Quaternionr& orientation=g.orientation;
 	ar & BOOST_SERIALIZATION_NVP(position) & BOOST_SERIALIZATION_NVP(orientation);
+}
+
+template<class Archive>
+void serialize(Archive & ar, AlignedBox2r & b, const unsigned int version){
+	Vector2r& min(b.min()); Vector2r& max(b.max());
+	ar & BOOST_SERIALIZATION_NVP(min) & BOOST_SERIALIZATION_NVP(max);
 }
 
 template<class Archive>

@@ -24,12 +24,12 @@ def run(ui): # use inputs as argument
 	delMask= 0b00001
 	
 	de.par.append([
-		utils.wall(ymin,axis=1,sense= 1,material=ui.material,mask=wallMask),
-		utils.wall(ymax,axis=1,sense=-1,material=ui.material,mask=wallMask)
+		utils.wall(ymin,axis=1,sense= 1,glAB=((zmin,xmin),(zmax,xmax)),material=ui.material,mask=wallMask),
+		utils.wall(ymax,axis=1,sense=-1,glAB=((zmin,xmin),(zmax,xmax)),material=ui.material,mask=wallMask)
 	])
 	for i in range(0,ui.cylNum):
 		x=i*(2*rCyl+ui.gap)
-		c=utils.infCylinder((x,0,0),radius=rCyl,axis=1,material=ui.material,mask=wallMask)
+		c=utils.infCylinder((x,0,0),radius=rCyl,axis=1,glAB=(ymin,ymax),material=ui.material,mask=wallMask)
 		c.angVel=(0,ui.angVel,0)
 		c.impose=AlignedHarmonicOscillations(
 			amps=(.05*rCyl,float('nan'),.03*rCyl),

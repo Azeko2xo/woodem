@@ -215,6 +215,8 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 #define YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(klass,base,doc,attrs,ctor,py) YADE_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,,ctor,py)
 #define YADE_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,inits,ctor,py) YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(klass,base,doc,attrs,,inits,ctor,py)
 
+#define YADE_GROUP_SEPARATOR(name) ((int,BOOST_PP_CAT(_groupSeparator_,__LINE__),,(Attr::noGui|Attr::noSave|Attr::readonly),BOOST_PP_STRINGIZE(name)))
+
 // the most general
 #define YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(thisClass,baseClass,docString,attrDecls,deprec,inits,ctor,extras) \
 	public: BOOST_PP_SEQ_FOR_EACH(_ATTR_DECL,~,attrDecls) /* attribute declarations */ \
