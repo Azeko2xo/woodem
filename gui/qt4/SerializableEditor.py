@@ -65,6 +65,15 @@ def serializableHref(ser,attr=None,text=None):
 		if not text: text=klass.__name__
 	return makeWrapperHref(text,klass.__name__,attr,static=(attr and getattr(klass,attr,None)==getattr(ser,attr)))
 
+# HACK: extend the QLineEdit class
+# set text but preserve cursor position
+def QLineEdit_setTextStable(self,text):
+	c=self.cursorPosition(); self.setText(text); self.setCursorPosition(c)
+def QSpinBox_setValueStable(self,value):
+	c=self.lineEdit().cursorPosition(); self.setValue(value); self.lineEdit().setCursorPosition(c)
+QLineEdit.setTextStable=QLineEdit_setTextStable
+QSpinBox.setValueStable=QSpinBox_setValueStable
+
 class AttrEditor():
 	"""Abstract base class handing some aspects common to all attribute editors.
 	Holds exacly one attribute which is updated whenever it changes."""
@@ -102,7 +111,8 @@ class AttrEditor_Int(AttrEditor,QSpinBox):
 		QSpinBox.__init__(self,parent)
 		self.setRange(int(-1e9),int(1e9)); self.setSingleStep(1);
 		self.valueChanged.connect(self.update)
-	def refresh(self): self.setValue(self.getter())
+	def refresh(self):
+		self.setValueStable(self.getter())
 	def update(self):  self.trySetter(self.value())
 
 class AttrEditor_Str(AttrEditor,QLineEdit):
@@ -112,7 +122,7 @@ class AttrEditor_Str(AttrEditor,QLineEdit):
 		self.textEdited.connect(self.isHot)
 		self.selectionChanged.connect(self.isHot)
 		self.editingFinished.connect(self.update)
-	def refresh(self): self.setText(self.getter())
+	def refresh(self): self.setTextStable(self.getter())
 	def update(self):  self.trySetter(str(self.text()))
 
 class AttrEditor_Float(AttrEditor,QLineEdit):
@@ -123,8 +133,8 @@ class AttrEditor_Float(AttrEditor,QLineEdit):
 		self.selectionChanged.connect(self.isHot)
 		self.editingFinished.connect(self.update)
 	def refresh(self):
-		self.setText(str(self.getter()));
-		if True or not self.hasFocus(): self.home(False)
+		self.setTextStable(str(self.getter()))
+		#if True or not self.hasFocus(): self.home(False)
 	def update(self):
 		try: self.trySetter(float(self.text()))
 		except ValueError: self.refresh()
@@ -146,8 +156,8 @@ class AttrEditor_Quaternion(AttrEditor,QFrame):
 	def refresh(self):
 		val=self.getter(); axis,angle=val.toAxisAngle()
 		for i in (0,1,2,4):
-			w=self.grid.itemAt(i).widget(); w.setText(str(axis[i] if i<3 else angle));
-			if True or not w.hasFocus(): w.home(False)
+			w=self.grid.itemAt(i).widget(); w.setTextStable(str(axis[i] if i<3 else angle));
+			#if True or not w.hasFocus(): w.home(False)
 	def update(self):
 		try:
 			x=[float((self.grid.itemAt(i).widget().text())) for i in (0,1,2,4)]
@@ -174,7 +184,9 @@ class AttrEditor_IntRange(AttrEditor,QFrame):
 		self.slider.sliderReleased.connect(self.updateFromSlider)
 	def refresh(self):
 		curr,(mn,mx)=self.getter()
-		self.spin.setValue(curr); self.spin.setMinimum(mn); self.spin.setMaximum(mx)
+		c=self.spin.lineEdit().cursorPosition()
+		self.spin.setValueStable(curr); self.spin.setMinimum(mn); self.spin.setMaximum(mx)
+		self.spin.lineEdit().setCursorPosition(c)
 		self.slider.setValue(curr)
 	def updateFromSpin(self):
 		self.slider.setValue(self.spin.value())
@@ -207,7 +219,7 @@ class AttrEditor_FloatRange(AttrEditor,QFrame):
 		self.slider.sliderReleased.connect(self.sliderReleased) #
 	def refresh(self):
 		curr,(mn,mx)=self.getter()
-		self.edit.setText('%g'%curr);
+		self.edit.setTextStable('%g'%curr)
 		self.slider.setValue(int(self.sliDiv*((1.*curr-mn)/(1.*mx-mn))))
 	def updateFromText(self):
 		curr,(mn,mx)=self.getter()
@@ -247,11 +259,11 @@ class AttrEditor_Se3(AttrEditor,QFrame):
 	def refresh(self):
 		pos,ori=self.getter(); axis,angle=ori.toAxisAngle()
 		for i in (0,1,2,4):
-			w=self.grid.itemAtPosition(1,i).widget(); w.setText(str(axis[i] if i<3 else angle));
-			if True or not w.hasFocus(): w.home(False)
+			w=self.grid.itemAtPosition(1,i).widget(); w.setTextStable(str(axis[i] if i<3 else angle));
+			#if True or not w.hasFocus(): w.home(False)
 		for i in (0,1,2):
-			w=self.grid.itemAtPosition(0,i).widget(); w.setText(str(pos[i]));
-			if True or not w.hasFocus(): w.home(False)
+			w=self.grid.itemAtPosition(0,i).widget(); w.setTextStable(str(pos[i]));
+			#if True or not w.hasFocus(): w.home(False)
 	def update(self):
 		try:
 			q=[float((self.grid.itemAtPosition(1,i).widget().text())) for i in (0,1,2,4)]
@@ -336,8 +348,8 @@ class AttrEditor_MatrixX(AttrEditor,QFrame):
 		#	self.__init__(self.parent,self.getter,self.setter,self.rows,self.cols,self.idxConverter)
 		for row,col in itertools.product(range(self.rows),range(self.cols)):
 			w=self.grid.itemAtPosition(row,col).widget()
-			w.setText(str(val[self.idxConverter(row,col)]))
-			if True or not w.hasFocus: w.home(False) # make the left-most part visible, if the text is wider than the widget
+			w.setTextStable(str(val[self.idxConverter(row,col)]))
+			#if True or not w.hasFocus: w.home(False) # make the left-most part visible, if the text is wider than the widget
 	def update(self):
 		try:
 			val=self.getter()
@@ -368,7 +380,7 @@ class AttrEditor_MatrixXi(AttrEditor,QFrame):
 	def refresh(self):
 		val=self.getter()
 		for row,col in itertools.product(range(self.rows),range(self.cols)):
-			w=self.grid.itemAtPosition(row,col).widget().setValue(val[self.idxConverter(row,col)])
+			w=self.grid.itemAtPosition(row,col).widget().setValueStable(val[self.idxConverter(row,col)])
 	def update(self):
 		val=self.getter(); modified=False
 		for row,col in itertools.product(range(self.rows),range(self.cols)):
