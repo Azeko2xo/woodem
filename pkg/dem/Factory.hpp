@@ -1,4 +1,7 @@
 #include<yade/pkg/dem/Particle.hpp>
+#include<boost/range/numeric.hpp>
+#include<boost/range/algorithm/fill.hpp>
+
 
 #ifdef YADE_OPENGL
 	#include<yade/lib/opengl/GLUtils.hpp>
@@ -112,7 +115,7 @@ struct BoxDeleter: public PeriodicEngine{
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(BoxDeleter,PeriodicEngine,"Delete particles which fall outside (or inside, if *inside* is True) given box. Deleted particles are optionally stored in the *deleted* array for later processing, if needed.",
 		((AlignedBox3r,box,AlignedBox3r(Vector3r(NaN,NaN,NaN),Vector3r(NaN,NaN,NaN)),,"Box volume specification (lower and upper corners)"))
 		((int,mask,0,,"If non-zero, only particles matching the mask will be candidates for removal"))
-		((bool,inside,false,,"Delete particles which fall inside the vlome rather than outside"))
+		((bool,inside,false,,"Delete particles which fall inside the volume rather than outside"))
 		((bool,save,false,,"Save particles which are deleted in the *deleted* list"))
 		((vector<shared_ptr<Particle>>,deleted,,(Attr::noGui|Attr::readonly),"Deleted particle's list; can be cleared with BoxDeleter.clear()"))
 		((int,num,0,Attr::readonly,"Number of deleted particles"))
@@ -127,11 +130,34 @@ struct BoxDeleter: public PeriodicEngine{
 REGISTER_SERIALIZABLE(BoxDeleter);
 
 #if 0
-strct MultiBoxDeleter: public PeriodicEngine{
+struct MultiBoxDeleter: public PeriodicEngine{
 	DECLARE_LOGGER;
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
+	void postLoad(MultiBoxDeleter&){
+		colors.resize(boxes.size());
+		masses.resize(boxes.size());
+		nums.resize(boxes.size());
+		deleted.resize(boxes.size());
+	}
+	int pyNum(){ return boost::accumulate(nums,0); }
+	int pyMass(){ return boost::accumulate(masses,0.); }
+	void pyClear(){ boost::fill(masses,0.); boost::fill(nums,0); for(auto& d:deleted) c.clear(); }
 	#ifdef YADE_OPENGL
 		void render(const GLViewInfo&){ for(int i=0;i<colors.size();i++) if(!isnan(color)) GLUtils::AlignedBox(box,CompUtils::mapColor(color)); }
 	#endif
+	py::object pyPsd(int boxNo, int num);
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(MultiBoxDeleter,PeriodicEngine,"Delete particles which fall inside one of the many boxes. The advantage of this engine over multiple BoxDeleters is easier setup and the possibility of reporting individual or combined PSD's",
+		((bool,save,false,"Save particles in the *deleted* list."))
+		((vector<vector<shared_ptr<Particle>>,deleted,,(Attr::hidden),"deleted particle's list; can be cleared with MultiBoxDeleter.clear()"))
+		((vector<int>,nums,,Attr::readonly,"Number of deleted particles for each contained box"))
+		((vector<Real>,masses,,Attr::readonly,"Mass of deleted particles for each box"))
+		((vector<Real>,colors,,Attr::readonly,"Color for each box"))
+		,/*ctor*/
+		,/*py*/
+		.add_property("mass",&MultiBoxDeleter::pyMass)
+		.add_property("num",&MultiBoxDeleter::pyNum)
+		.def("clear",&BoxDeleter::pyClear,"Clear information about saved particles")
+		.def("psd",&BoxDeleter::pyPsd,(py::arg("boxNo")=-1,py::arg("num")=80),"Return particle size distribution of deleted particles. When no box number is provided, all boxes combined are returned")
+	)
 }
 #endif

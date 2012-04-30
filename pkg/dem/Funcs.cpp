@@ -7,6 +7,8 @@
 	#include<yade/pkg/gl/Renderer.hpp>
 #endif
 
+#include <boost/range/adaptor/filtered.hpp>
+
 CREATE_LOGGER(DemFuncs);
 
 std::tuple</*stress*/Matrix3r,/*stiffness*/Matrix6r> DemFuncs::stressStiffness(const Scene* scene, const DemField* dem, bool skipMultinodal, Real volume){
@@ -98,51 +100,10 @@ shared_ptr<Particle> DemFuncs::makeSphere(Real radius, const shared_ptr<Material
 
 vector<Vector2r> DemFuncs::boxPsd(const Scene* scene, const DemField* dem, const AlignedBox3r& box, int num, int mask, Vector2r rRange){
 	bool haveBox=!isnan(box.min()[0]) && !isnan(box.max()[0]);
-	// if not given, determine radius range first
-	if(rRange[0]<=0 || rRange[1]<=0){
-		rRange=Vector2r(Inf,-Inf);
-		for(const shared_ptr<Particle>& p: dem->particles){
-			if(mask && !(p->mask & mask)) continue;
-			if(!p->shape || !dynamic_pointer_cast<yade::Sphere>(p->shape)) continue;
-			if(haveBox && !box.contains(p->shape->nodes[0]->pos)) continue;
-			Real r=p->shape->cast<Sphere>().radius;
-			if(r<rRange[0]) rRange[0]=r;
-			if(r>rRange[1]) rRange[1]=r;
-		}
-		if(isinf(rRange[0])) throw std::runtime_error("DemFuncs::boxPsd: no spherical particles?");
-	}
-	if(num<=1) yade::ValueError("DemFuncs::boxPsd: num must be > 1 (not "+to_string(num));
-	if(rRange[0]>rRange[1]) yade::ValueError("DemFuncs::boxPsd: invalid radius range "+lexical_cast<string>(rRange.transpose())+" (must be min,max)");
-	if(rRange[0]==rRange[1]){ // dirac distribution
-		LOG_WARN("All sphere have the same radius, returning step PSD with 2 values only");
-		return vector<Vector2r>({Vector2r(rRange[0],0),Vector2r(rRange[0],1.)});
-	}
-
-	vector<Vector2r> ret(num,Vector2r::Zero());
-	LOG_TRACE("Returned vector size is "<<ret.size());
-	//ret[0][1]=rRange[0]; // minimum, which will have zero passing value
-	size_t nPar=0;
-	for(const shared_ptr<Particle>& p: dem->particles){
-		if(mask && !(p->mask & mask)) continue;
-		if(!p->shape || !dynamic_pointer_cast<yade::Sphere>(p->shape)) continue;
-		if(haveBox && !box.contains(p->shape->nodes[0]->pos)) continue;
-		Real r=p->shape->cast<Sphere>().radius;
-		nPar++;
-		if(r>rRange[1]) continue; // for rRange given in advance, discard spheres which don't pass
-		int bin=max(0,min(num-1,1+(int)((num-1)*((r-rRange[0])/(rRange[1]-rRange[0])))));
-		LOG_TRACE("Particle with diameter "<<2*r<<" goes to position no. "<<bin);
-		ret[bin][1]+=1;
-	}
-	for(int i=0; i<num; i++){
-		// set diameter values
-		ret[i][0]=2*(rRange[0]+i*(rRange[1]-rRange[0])/(num-1));
-		// normalize and make cummulative
-		ret[i][1]=ret[i][1]/nPar+(i>0?ret[i-1][1]:0.);
-		LOG_TRACE("bin "<<i<<": "<<ret[i].transpose());
-	}
-	return ret;
+	return psd(dem->particles|boost::adaptors::filtered([&](const shared_ptr<Particle>&p){ return p && p->shape && (mask?(p->mask&mask):true) && (bool)(dynamic_pointer_cast<yade::Sphere>(p->shape)) && (haveBox?:box.contains(p->shape->nodes[0]->pos)); }),num,rRange);
 }
 
+#if 0
 vector<Vector2r> DemFuncs::psd(const vector<shared_ptr<Particle>>& pp, int num, Vector2r rRange){
 	if(isnan(rRange[0]) || isnan(rRange[1]) || rRange[0]<0 || rRange[1]<=0 || rRange[0]>=rRange[1]){
 		rRange=Vector2r(Inf,-Inf);
@@ -171,4 +132,5 @@ vector<Vector2r> DemFuncs::psd(const vector<shared_ptr<Particle>>& pp, int num, 
 	// for(int i=0; i<num; i++) ret[i][1]/=ret[num-1][1];
 	return ret;
 };
+#endif
 

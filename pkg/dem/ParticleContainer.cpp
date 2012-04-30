@@ -22,7 +22,7 @@ void ParticleContainer::clear(){
 }
 
 Particle::id_t ParticleContainer::findFreeId(){
-	size_t size=parts.size();
+	long size=(long)parts.size();
 	auto idI=freeIds.begin();
 	while(!freeIds.empty()){
 		id_t id=(*idI); assert(id>=0);

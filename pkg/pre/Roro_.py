@@ -11,8 +11,9 @@ def run(ui): # use inputs as argument
 	s.fields=[de]
 	rCyl=ui.cylDiameter/2.
 	lastCylX=(ui.cylNum-1)*(ui.gap+2*rCyl)
+	cylX=[]
 	ymin,ymax=-ui.cylLength/2.,ui.cylLength/2.
-	zmin,zmax=-rCyl,rCyl+6*rCyl
+	zmin,zmax=-2*rCyl,rCyl+6*rCyl
 	xmin,xmax=-3*rCyl,lastCylX+3*rCyl
 	rMin=ui.psd[0][0]/2.
 	rMax=ui.psd[-1][0]/2.
@@ -29,6 +30,7 @@ def run(ui): # use inputs as argument
 	])
 	for i in range(0,ui.cylNum):
 		x=i*(2*rCyl+ui.gap)
+		cylX.append(x)
 		c=utils.infCylinder((x,0,0),radius=rCyl,axis=1,glAB=(ymin,ymax),material=ui.material,mask=wallMask)
 		c.angVel=(0,ui.angVel,0)
 		c.impose=AlignedHarmonicOscillations(
@@ -45,7 +47,10 @@ def run(ui): # use inputs as argument
 	factStep=500
 	s.engines=utils.defaultEngines(damping=.4,gravity=gravity,verletDist=.05*rMin)+[
 		# what falls beyond
-		BoxDeleter(stepPeriod=factStep,box=((xmin,ymin,zmin),(xmax,ymax,zmax)),color=.9,save=True,mask=delMask,label='fallThrough'),
+		BoxDeleter(stepPeriod=factStep,inside=True,box=((cylX[i],ymin,zmin),(cylX[i+1],ymax,-rCyl/2.)),color=.05*i,save=True,mask=delMask,label='aperture[%d]'%i) for i in range(0,ui.cylNum-1)
+	]+[
+		# this one should not collect any particles at all
+		BoxDeleter(stepPeriod=factStep,box=((xmin,ymin,zmin),(xmax,ymax,zmax)),color=.9,save=False,mask=delMask,label='outOfDomain'),
 		# what falls inside
 		BoxDeleter(stepPeriod=factStep,inside=True,box=((lastCylX+rCyl,ymin,zmin),(xmax,ymax,zmax)),color=.9,save=True,mask=delMask,label='fallOver'),
 		# generator
@@ -57,7 +62,7 @@ def run(ui): # use inputs as argument
 			maxMass=200, ## later: user-settable
 		),
 		# this might go away as well, later
-		PyRunner(2000,'remains=(yade.factory.maxMass-yade.fallThrough.mass-yade.fallOver.mass)/yade.factory.maxMass;\nif remains<.02:\n\tyade.pre.Roro_.plotFinalPsd(); print "Simulation finished."; O.pause()')
+		PyRunner(2000,'remains=(yade.factory.maxMass-sum([a.mass for a in yade.aperture])-yade.fallOver.mass)/yade.factory.maxMass;\nif remains<.02:\n\tyade.pre.Roro_.plotFinalPsd(); print "Simulation finished."; O.pause()')
 	]
 	s.any=[yade.gl.Gl1_InfCylinder(wire=True),yade.gl.Gl1_Wall(div=3)]
 	print 'Generated Rollenrost.'
@@ -71,7 +76,7 @@ def plotFinalPsd():
 	import yade
 	import os
 	pylab.plot(*yade.factory.generator.psd(),label='input (mass %g)'%yade.factory.mass)
-	pylab.plot(*yade.fallThrough.psd(),label='fall through (mass %g)'%yade.fallThrough.mass)
+	for i in range(0,len(yade.aperture)): pylab.plot(*yade.aperture[i].psd(),label='aperture %d (mass %g)'%(i,yade.aperture[i].mass))
 	pylab.plot(*yade.fallOver.psd(),label='fall over (mass %g)'%yade.fallOver.mass)
 	pylab.grid(True)
 	pylab.legend(loc='lower right')
@@ -88,6 +93,7 @@ if __name__=='__main__':
 	import yade.pre
 	import yade.qt
 	O.scene=yade.pre.Roro()()
+	O.timingEnabled=True
 	O.saveTmp()
 	yade.qt.View()
 	O.run()
