@@ -39,9 +39,9 @@ Real pWaveTimeStep(){
 	return pWaveDt();
 }
 
-py::object boxPsd(const AlignedBox3r& box, int num, int mask, Vector2r rRange, bool zip){
+py::object boxPsd(const AlignedBox3r& box, bool mass, int num, int mask, Vector2r dRange, bool zip){
 	Scene* scene=Omega::instance().getScene().get(); DemField* field=getDemField(scene).get();
-	vector<Vector2r> psd0=DemFuncs::boxPsd(scene,field,box,num,mask,rRange);
+	vector<Vector2r> psd0=DemFuncs::boxPsd(scene,field,box,mass,num,mask,dRange);
 	if(zip){
 		py::list ret;
 		for(const auto& dp: psd0) ret.append(py::make_tuple(dp[0],dp[1]));
@@ -185,7 +185,7 @@ BOOST_PYTHON_MODULE(_utils2){
 	YADE_SET_DOCSTRING_OPTS;
 	py::def("pWaveTimeStep",pWaveTimeStep,"Do not use, remaed to pWaveDt and will be removed.");
 	py::def("pWaveDt",pWaveDt,(py::arg("scene")=py::object()),"Get timestep accoring to the velocity of P-Wave propagation; computed from sphere radii, rigidities and masses.");
-	py::def("boxPsd",boxPsd,(py::arg("box")=AlignedBox3r(Vector3r(NaN,NaN,NaN),Vector3r(NaN,NaN,NaN)),py::arg("num")=20,py::arg("mask")=0,py::arg("rRange")=Vector2r(0.,0.),py::arg("zip")=true),"Compute Particle size distribution in given box (min,max) or in the whole simulation, if box is not specified; list of couples (diameter,passing) is returned; with *unzip*, tuple of two sequences, diameters and passing values, are returned.");
+	py::def("boxPsd",boxPsd,(py::arg("box")=AlignedBox3r(Vector3r(NaN,NaN,NaN),Vector3r(NaN,NaN,NaN)),py::arg("num")=20,py::arg("mask")=0,py::arg("dRange")=Vector2r(0.,0.),py::arg("zip")=true),"Compute Particle size distribution in given box (min,max) or in the whole simulation, if box is not specified; list of couples (diameter,passing) is returned; with *unzip*, tuple of two sequences, diameters and passing values, are returned.");
 	py::def("createContacts",createContacts,(py::arg("ids1"),py::arg("id2s"),py::arg("geomFunctors")=vector<shared_ptr<CGeomFunctor> >(),py::arg("physFunctors")=vector<shared_ptr<CPhysFunctor> >(),py::arg("force")=true),"Create contacts between given DEM particles.\n\nCurrent engines are searched for :yref:`ContactLoop`, unless *geomFunctors* and *physFunctors* are given. *force* will make :yref:`CGeomFunctors` acknowledge the contact even if particles don't touch geometrically.\n\n.. warning::\n\tThis function will very likely behave incorrectly for periodic simulations (though it could be extended it to handle it farily easily).");
 	py::def("stressStiffnessWork",stressStiffnessWork,(py::arg("volume")=0,py::arg("skipMultinodal")=true,py::arg("prevStress")=(Vector6r()<<NaN,NaN,NaN,NaN,NaN,NaN).finished()),"Compute stress and stiffness tensors, and work increment of current velocity gradient (*nan* for aperiodic simulations); returns tuple (stress, stiffness, work), where stress and stiffness are in Voigt notation. *skipMultinodal* skips all contacts involving particles with multiple nodes, where stress & stiffness values can be determined only by In2 functors.");
 	py::def("muStiffnessScaling",muStiffnessScaling,(py::arg("piHat")=Mathr::PI/2,py::arg("skipFloaters")=false,py::arg("V")=-1),"Compute stiffness scaling parameter relating continuum-like stiffness with packing stiffness; see 'Particle assembly with cross-anisotropic stiffness tensor' for details. With *skipFloaters*, ignore contacts where any of the two contacting particlds has only one *real* contact (thus not contributing to the assembly stability).");

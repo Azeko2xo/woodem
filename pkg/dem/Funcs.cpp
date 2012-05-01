@@ -98,9 +98,16 @@ shared_ptr<Particle> DemFuncs::makeSphere(Real radius, const shared_ptr<Material
 	return par;
 };
 
-vector<Vector2r> DemFuncs::boxPsd(const Scene* scene, const DemField* dem, const AlignedBox3r& box, int num, int mask, Vector2r rRange){
+vector<Vector2r> DemFuncs::boxPsd(const Scene* scene, const DemField* dem, const AlignedBox3r& box, bool mass, int num, int mask, Vector2r rRange){
 	bool haveBox=!isnan(box.min()[0]) && !isnan(box.max()[0]);
-	return psd(dem->particles|boost::adaptors::filtered([&](const shared_ptr<Particle>&p){ return p && p->shape && (mask?(p->mask&mask):true) && (bool)(dynamic_pointer_cast<yade::Sphere>(p->shape)) && (haveBox?:box.contains(p->shape->nodes[0]->pos)); }),num,rRange);
+	return psd(
+		dem->particles|boost::adaptors::filtered([&](const shared_ptr<Particle>&p){ return p && p->shape && p->shape->nodes.size()==1 && (mask?(p->mask&mask):true) && (bool)(dynamic_pointer_cast<yade::Sphere>(p->shape)) && (haveBox?box.contains(p->shape->nodes[0]->pos):true); }),
+		/*cumulative*/true,/*normalize*/true,
+		num,
+		rRange,
+		/*radius getter*/[](const shared_ptr<Particle>&p) ->Real { return p->shape->cast<Sphere>().radius; },
+		/*weight getter*/[&](const shared_ptr<Particle>&p) -> Real{ return mass?p->shape->nodes[0]->getData<DemData>().mass:1.; }
+	);
 }
 
 #if 0

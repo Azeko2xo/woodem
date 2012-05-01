@@ -18,16 +18,17 @@ struct Roro: public Preprocessor {
 		YADE_GROUP_SEPARATOR(advanced)
 		//((int,_groupSeparator_whatever,Attr::readonly,,"<some group name>"))
 		((Real,gap,.04,,"Gap between cylinders [m]"))
-		((Real,inclination,40,,"Inclination cylinders [deg]"))
+		((Real,inclination,30,,"Inclination cylinders [deg]"))
 		((Real,angVel,10.,,"Angular velocity of cylinders [rot/sec]"))
 		((vector<Vector2r>,psd,/*set in the ctor*/,,"Particle size distribution of generated particles: first value is diameter [mm], second value is cummulative percentage [%]"))
 		//((Real,adhesion,,,"Adhesion coefficient between particles"))
 		((shared_ptr<FrictMat>,material,make_shared<FrictMat>(),,"Material of particles"))
 		, /*ctor*/
-			psd.push_back(Vector2r(.01,.2));
-			psd.push_back(Vector2r(.02,.4));
-			psd.push_back(Vector2r(.04,.8));
-			psd.push_back(Vector2r(.05,1.));
+			psd.push_back(Vector2r(.02,.0));
+			psd.push_back(Vector2r(.03,.2));
+			psd.push_back(Vector2r(.04,.3));
+			psd.push_back(Vector2r(.05,.7));
+			psd.push_back(Vector2r(.06,1.));
 			material->density=2500;
 			material->cast<FrictMat>().young=1e7;
 			material->cast<FrictMat>().ktDivKn=.2;

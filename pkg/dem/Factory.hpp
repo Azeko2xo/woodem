@@ -14,14 +14,25 @@ struct ParticleGenerator: public Serializable{
 	// return (one or multiple, for clump) particles and extents (min and max)
 	// extents are computed for position of (0,0,0)
 	virtual vector<ParticleExtExt> operator()(const shared_ptr<Material>& m){ throw std::runtime_error("Calling ParticleGenerator.operator() (abstract method); use derived classes."); }
-	YADE_CLASS_BASE_DOC(ParticleGenerator,Serializable,"Abstract class for generating particles");
+	virtual void clear(){ genDiamMass.clear(); }
+	py::tuple pyPsd(bool mass, bool cumulative, bool normalize, Vector2r dRange, int num) const;
+	py::tuple pyDiamMass();
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ParticleGenerator,Serializable,"Abstract class for generating particles",
+		((vector<Vector2r>,genDiamMass,,(Attr::noGui|Attr::readonly),"List of generated particle's (equivalent) radii and masses (for making granulometry)"))
+		((bool,save,true,,"Save generated particles so that PSD can be generated afterwards"))
+		,/*ctor*/
+		,/*py*/
+			.def("psd",&ParticleGenerator::pyPsd,(py::arg("mass")=true,py::arg("cumulative")=true,py::arg("normalize")=false,py::arg("dRange")=Vector2r(NaN,NaN),py::arg("num")=80),"Return PSD for particles generated.")
+			.def("diamMass",&ParticleGenerator::pyDiamMass,"Return tuple of 2 arrays, diameters and masses.")
+			.def("clear",&ParticleGenerator::clear,"Clear stored data about generated particles; only subsequently generated particles will be considered in the PSD.")
+	);
 };
 REGISTER_SERIALIZABLE(ParticleGenerator);
 
 struct MinMaxSphereGenerator: public ParticleGenerator{
 	vector<ParticleExtExt> operator()(const shared_ptr<Material>&m);
 	YADE_CLASS_BASE_DOC_ATTRS(MinMaxSphereGenerator,ParticleGenerator,"Generate particles with given minimum and maximum radius",
-		((Vector2r,rRange,Vector2r(NaN,NaN),,"Minimum and maximum radius of generated spheres"))
+		((Vector2r,dRange,Vector2r(NaN,NaN),,"Minimum and maximum radius of generated spheres"))
 	);
 };
 REGISTER_SERIALIZABLE(MinMaxSphereGenerator);
@@ -30,14 +41,17 @@ struct PsdSphereGenerator: public ParticleGenerator{
 	DECLARE_LOGGER;
 	vector<ParticleExtExt> operator()(const shared_ptr<Material>&m);
 	void postLoad(PsdSphereGenerator&);
-	py::tuple pyPsd() const;
+	void clear(){ ParticleGenerator::clear(); weightTotal=0.; std::fill(weightPerBin.begin(),weightPerBin.end(),0.); }
+	py::tuple pyInputPsd(bool scale) const;
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(PsdSphereGenerator,ParticleGenerator,"Generate particles following a discrete Particle Size Distribution (PSD)",
-		((vector<Vector2r>,psdPts,,,"Points of the PSD curve; the first component is particle diameter [m] (not radius!), the second component is passing percentage. Both diameter and passing values must be increasing (diameters must be strictly increasing). Passing values are normalized so that the last value is 1.0 (therefore, you can enter the values in percents if you like)"))
-		((vector<int>,numPerBin,,Attr::noGui,"Keep track of how much particles were generated for each point on the PSD so that we get as close to the curve as possible."))
-		((int,numTot,,Attr::noGui,"Total number of particles generated"))
+		((bool,discrete,true,,"The points on the PSD curve will be interpreted as the only allowed diameter values; if *false*, linear interpolation between them is assumed instead. Do not change once the generator is running."))
+		((vector<Vector2r>,psdPts,,,"Points of the PSD curve; the first component is particle diameter [m] (not radius!), the second component is passing percentage. Both diameter and passing values must be increasing (diameters must be strictly increasing). Passing values are normalized so that the last value is 1.0 (therefore, you can enter the values in percents if you like)."))
+		((bool,mass,true,,"PSD has mass percentages; if false, number of particles percentages are assumed. Do not change once the generator is running."))
+		((vector<Real>,weightPerBin,,Attr::noGui,"Keep track of mass/number of particles for each point on the PSD so that we get as close to the curve as possible. Only used for discrete PSD."))
+		((Real,weightTotal,,Attr::noGui,"Total mass/number of of particles generated. Only used for discrete PSD."))
 		, /* ctor */
 		, /* py */
-			.def("psd",&PsdSphereGenerator::pyPsd,"Return points of the PSD suitable for plotting")
+			.def("inputPsd",&PsdSphereGenerator::pyInputPsd,(py::arg("scale")=false),"Return input PSD; it will be a staircase function if *discrete* is true, otherwise linearly interpolated. With *scale*, the curve is multiplied with the actually generated mass/numer of particles (depending on whether *mass* is true or false); the result should then be very similar to the psd() output with actually generated spheres.")
 	);
 };
 REGISTER_SERIALIZABLE(PsdSphereGenerator);
@@ -70,8 +84,9 @@ struct ParticleFactory: public PeriodicEngine{
 	virtual Vector3r randomPosition(){ throw std::runtime_error("Calling ParticleFactor.randomPosition	(abstract method); use derived classes."); }
 	virtual bool validateBox(const AlignedBox3r& b) { throw std::runtime_error("Calling ParticleFactor.validateBox (abstract method); use derived classes."); }
 	void run();
+	void pyClear(){ if(generator) generator->clear(); num=0; mass=0; stepMass=0; /* do not reset stepPrev! */ }
 	shared_ptr<Collider> collider;
-	YADE_CLASS_BASE_DOC_ATTRS(ParticleFactory,PeriodicEngine,"Factory generating new particles.",
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ParticleFactory,PeriodicEngine,"Factory generating new particles.",
 		((Real,massFlowRate,NaN,,"Mass flow rate [kg/s]"))
 		((Real,maxMass,-1,,"Mass at which the engine will not produce any particles (inactive if negative)"))
 		((long,maxNum,-1,,"Number of generated particles after which no more will be produced (inacitve if negative)"))
@@ -86,6 +101,9 @@ struct ParticleFactory: public PeriodicEngine{
 		//
 		((Real,stepMass,0,Attr::readonly,"Mass to be attained in this step"))
 		((long,stepPrev,-1,Attr::readonly,"Step in which we were run for the last time"))
+		,/*ctor*/
+		,/*py*/
+			.def("clear",&ParticleFactory::pyClear)
 	);
 };
 REGISTER_SERIALIZABLE(ParticleFactory);
@@ -110,7 +128,8 @@ struct BoxDeleter: public PeriodicEngine{
 		void render(const GLViewInfo&){ if(!isnan(color)) GLUtils::AlignedBox(box,CompUtils::mapColor(color)); }
 	#endif
 	void run();
-	py::object pyPsd(int num, const Vector2r& rRange, bool zip);
+	py::object pyPsd(bool mass, bool cumulative, bool normalize, int num, const Vector2r& dRange, bool zip);
+	py::tuple pyDiamMass();
 	void pyClear(){ deleted.clear(); mass=0.; num=0; }
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(BoxDeleter,PeriodicEngine,"Delete particles which fall outside (or inside, if *inside* is True) given box. Deleted particles are optionally stored in the *deleted* array for later processing, if needed.",
 		((AlignedBox3r,box,AlignedBox3r(Vector3r(NaN,NaN,NaN),Vector3r(NaN,NaN,NaN)),,"Box volume specification (lower and upper corners)"))
@@ -120,11 +139,12 @@ struct BoxDeleter: public PeriodicEngine{
 		((vector<shared_ptr<Particle>>,deleted,,(Attr::noGui|Attr::readonly),"Deleted particle's list; can be cleared with BoxDeleter.clear()"))
 		((int,num,0,Attr::readonly,"Number of deleted particles"))
 		((Real,mass,0.,Attr::readonly,"Total mass of deleted particles"))
-		((Real,color,0,Attr::noGui,"Color for rendering (nan disables rendering)"))
+		((Real,color,0,Attr::noGui,"Color for rendering (NaN disables rendering)"))
 		,/*ctor*/
 		,/*py*/
-		.def("psd",&BoxDeleter::pyPsd,(py::arg("num")=80,py::arg("rRange")=Vector2r(NaN,NaN),py::arg("zip")=false),"Return particle size distribution of deleted particles (only useful with *save*), spaced between *rRange* (a 2-tuple of minimum and maximum radius); )")
+		.def("psd",&BoxDeleter::pyPsd,(py::arg("mass")=true,py::arg("cumulative")=true,py::arg("normalize")=false,py::arg("num")=80,py::arg("dRange")=Vector2r(NaN,NaN),py::arg("zip")=false),"Return particle size distribution of deleted particles (only useful with *save*), spaced between *dRange* (a 2-tuple of minimum and maximum radius); )")
 		.def("clear",&BoxDeleter::pyClear,"Clear information about saved particles (particle list, if saved, mass and number)")
+		.def("diamMass",&BoxDeleter::pyDiamMass,"Return 2-tuple of same-length list of diameters and masses.")
 	);
 };
 REGISTER_SERIALIZABLE(BoxDeleter);

@@ -7,16 +7,39 @@
 // hack
 #include<yade/pkg/dem/InsertionSortCollider.hpp>
 
+#include<boost/range/algorithm/lower_bound.hpp>
+
 YADE_PLUGIN(dem,(ParticleGenerator)(MinMaxSphereGenerator)(PsdSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(ParticleFactory)(BoxFactory)(BoxDeleter));
 CREATE_LOGGER(PsdSphereGenerator);
 CREATE_LOGGER(ParticleFactory);
 CREATE_LOGGER(BoxDeleter);
 
+
+py::tuple ParticleGenerator::pyPsd(bool mass, bool cumulative, bool normalize, Vector2r dRange, int num) const {
+	if(!save) throw std::runtime_error("ParticleGenerator.save must be True for calling ParticleGenerator.psd()");
+	vector<Vector2r> psd=DemFuncs::psd(genDiamMass,/*cumulative*/cumulative,/*normalize*/normalize,num,dRange,
+		/*radius getter*/[](const Vector2r& diamMass) ->Real { return diamMass[0]; },
+		/*weight getter*/[&](const Vector2r& diamMass) -> Real{ return mass?diamMass[1]:1.; }
+	);
+	py::list diameters,percentage;
+	for(const auto& dp: psd){ diameters.append(dp[0]); percentage.append(dp[1]); }
+	return py::make_tuple(diameters,percentage);
+}
+
+py::tuple ParticleGenerator::pyDiamMass(){
+	py::list diam, mass;
+	for(const Vector2r& vv: genDiamMass){ diam.append(vv[0]); mass.append(vv[1]); }
+	return py::make_tuple(diam,mass);
+}
+
 vector<ParticleGenerator::ParticleExtExt>
-MinMaxSphereGenerator::operator()(const shared_ptr<Material>&m){
-	if(isnan(rRange[0]) || isnan(rRange[1]) || rRange[0]>rRange[1]) throw std::runtime_error("MinMaxSphereGenerator: rRange[0]>rRange[1], or they are NaN!");
-	Real r=rRange[0]+Mathr::UnitRandom()*(rRange[1]-rRange[0]);
-	return vector<ParticleExtExt>({{DemFuncs::makeSphere(r,m),AlignedBox3r(Vector3r(-r,-r,-r),Vector3r(r,r,r))}});
+MinMaxSphereGenerator::operator()(const shared_ptr<Material>&mat){
+	if(isnan(dRange[0]) || isnan(dRange[1]) || dRange[0]>dRange[1]) throw std::runtime_error("MinMaxSphereGenerator: dRange[0]>dRange[1], or they are NaN!");
+	Real r=dRange[0]+Mathr::UnitRandom()*(dRange[1]-dRange[0]);
+	auto sphere=DemFuncs::makeSphere(r,mat);
+	Real m=sphere->shape->nodes[0]->getData<DemData>().mass;
+	if(save) genDiamMass.push_back(Vector2r(2*r,m));
+	return vector<ParticleExtExt>({{sphere,AlignedBox3r(Vector3r(-r,-r,-r),Vector3r(r,r,r))}});
 };
 
 
@@ -31,38 +54,75 @@ void PsdSphereGenerator::postLoad(PsdSphereGenerator&){
 		LOG_INFO("Normalizing psdPts so that highest value of passing is 1.0 rather than "<<maxPass);
 		for(Vector2r& v: psdPts) v[1]/=maxPass;
 	}
-	numPerBin.resize(psdPts.size());
-	std::fill(numPerBin.begin(),numPerBin.end(),0);
-	numTot=0;
+	weightPerBin.resize(psdPts.size());
+	std::fill(weightPerBin.begin(),weightPerBin.end(),0);
+	weightTotal=0;
 }
 
 vector<ParticleGenerator::ParticleExtExt>
-PsdSphereGenerator::operator()(const shared_ptr<Material>&m){
+PsdSphereGenerator::operator()(const shared_ptr<Material>&mat){
 	if(psdPts.empty()) throw std::runtime_error("PsdSphereGenerator.psdPts is empty.");
-	Real maxBinDiff=-Inf; int maxBin=-1;
-	// find the bin which is the most below the expected percentage according to the psdPts
-	if(numTot<=0) maxBin=0;
-	else{
-		for(size_t i=0;i<psdPts.size();i++){
-			Real binDiff=(psdPts[i][1]-(i>0?psdPts[i-1][1]:0.))-numPerBin[i]*1./numTot;
-			LOG_TRACE("bin "<<i<<" (d="<<psdPts[i][0]<<"): should be "<<psdPts[i][1]-(i>0?psdPts[i-1][1]:0.)<<", current "<<numPerBin[i]*1./numTot<<", should be "<<psdPts[i][1]<<"; diff="<<binDiff);
-			if(binDiff>maxBinDiff){ maxBinDiff=binDiff; maxBin=i; }
+	Real r,m;
+	shared_ptr<Particle> sphere;
+	if(discrete){
+		Real maxBinDiff=-Inf; int maxBin=-1;
+		// find the bin which is the most below the expected percentage according to the psdPts
+		if(weightTotal<=0) maxBin=0;
+		else{
+			for(size_t i=0;i<psdPts.size();i++){
+				Real binDiff=(psdPts[i][1]-(i>0?psdPts[i-1][1]:0.))-weightPerBin[i]*1./weightTotal;
+				LOG_TRACE("bin "<<i<<" (d="<<psdPts[i][0]<<"): should be "<<psdPts[i][1]-(i>0?psdPts[i-1][1]:0.)<<", current "<<weightPerBin[i]*1./weightTotal<<", should be "<<psdPts[i][1]<<"; diff="<<binDiff);
+				if(binDiff>maxBinDiff){ maxBinDiff=binDiff; maxBin=i; }
+			}
 		}
+		assert(maxBin>=0);
+		LOG_TRACE("** maxBin="<<maxBin<<", d="<<psdPts[maxBin][0]);
+		r=psdPts[maxBin][0]/2.;
+		sphere=DemFuncs::makeSphere(r,mat);
+		m=sphere->shape->nodes[0]->getData<DemData>().mass;
+		weightPerBin[maxBin]+=(mass?m:1.);
+		weightTotal+=(mass?m:1.);
+	} else {
+		/* continuous distribution */
+		Real rnd=Mathr::UnitRandom(); // uniformly distribute the percentage
+		// below lowest or above highest, generate particle at the edge
+		if(mass) rnd=pow(rnd,3);
+		if(rnd<=psdPts[0][1]){ r=.5*psdPts[0][0]; } 
+		else if(rnd>=(*psdPts.rbegin())[1]){ r=(*psdPts.rbegin())[0]; }
+		else {
+			// find PSD interval corresponding to the random passing value
+			int ix; Real pieceNorm;
+			auto I=boost::lower_bound(psdPts,rnd,[](const Vector2r& a, const Real& b)->bool{ return a[1]<=b; });
+			ix=int(I-psdPts.begin())-1; // get the last one smaller than lower_bound
+			// cerr<<"Uniform random is "<<rnd<<", bin ix="<<ix<<" out of "<<psdPts.size()<<endl;
+			assert(ix<(int)psdPts.size()-1 && ix>=0); 
+			Real pass0=psdPts[ix][1], pass1=psdPts[ix+1][1];
+			Real r0=.5*psdPts[ix][0], r1=.5*psdPts[ix+1][0];
+			//Real pt0=psdPts[ix], pt1=psdPts[ix+1];
+			if(pass1==pass0) pieceNorm=0.;
+			else pieceNorm=(rnd-pass0)/(pass1-pass0);
+			// TODO: check this mathematically, does it make sense at all?
+			if(mass) r=pow(pow(r0,3)+pieceNorm*(pow(r1,3)-pow(r0,3)),1./3);
+			else r=r0+pieceNorm*(r1-r0);
+		}
+		sphere=DemFuncs::makeSphere(r,mat);
+		m=sphere->shape->nodes[0]->getData<DemData>().mass;
 	}
-	assert(maxBin>=0);
-	LOG_TRACE("** maxBin="<<maxBin<<", d="<<psdPts[maxBin][0]);
-	numPerBin[maxBin]++;
-	numTot++;
-	Real r=psdPts[maxBin][0]/2.;
-	return vector<ParticleExtExt>({{DemFuncs::makeSphere(r,m),AlignedBox3r(Vector3r(-r,-r,-r),Vector3r(r,r,r))}});
+	if(save) genDiamMass.push_back(Vector2r(2*r,m));
+	return vector<ParticleExtExt>({{sphere,AlignedBox3r(Vector3r(-r,-r,-r),Vector3r(r,r,r))}});
 };
 
-py::tuple PsdSphereGenerator::pyPsd() const {
+py::tuple PsdSphereGenerator::pyInputPsd(bool scale) const {
+	Real factor=1.; // no scaling at all
+	if(scale){
+		if(mass) for(const auto& vv: genDiamMass) factor+=vv[1]; // scale by total mass of all generated particles
+		else factor=genDiamMass.size(); //  scale by number of particles
+	}
 	py::list dia, frac; // diameter and fraction axes
 	for(size_t i=0;i<psdPts.size();i++){
-		if(i==0){ dia.append(psdPts[0][0]); frac.append(0); }
-		dia.append(psdPts[i][0]); frac.append(psdPts[i][1]);
-		if(i<psdPts.size()-1){ dia.append(psdPts[i+1][0]); frac.append(psdPts[i][1]); }
+		if(i==0 && psdPts[0][1]>0.){ dia.append(psdPts[0][0]); frac.append(0); }
+		dia.append(psdPts[i][0]); frac.append(psdPts[i][1]*factor);
+		if(discrete && i<psdPts.size()-1){ dia.append(psdPts[i+1][0]); frac.append(psdPts[i][1]*factor); }
 	}
 	return py::make_tuple(dia,frac);
 }
@@ -263,10 +323,23 @@ void BoxDeleter::run(){
 		keepClump: ;
 	}
 }
+py::tuple BoxDeleter::pyDiamMass(){
+	py::list diam, mass;
+	for(const auto& del: deleted){
+		if(!del || !del->shape || del->shape->nodes.size()!=1 || !dynamic_pointer_cast<Sphere>(del->shape)) continue;
+		Real d=2*del->shape->cast<Sphere>().radius;
+		Real m=del->shape->nodes[0]->getData<DemData>().mass;
+		diam.append(d); mass.append(m);
+	}
+	return py::make_tuple(diam,mass);
+}
 
-py::object BoxDeleter::pyPsd(int num, const Vector2r& rRange, bool zip){
+py::object BoxDeleter::pyPsd(bool mass, bool cumulative, bool normalize, int num, const Vector2r& dRange, bool zip){
 	if(!save) throw std::runtime_error("BoxDeleter.save must be True for calling BoxDeleter.psd()");
-	vector<Vector2r> psd=DemFuncs::psd(deleted,num,rRange);
+	vector<Vector2r> psd=DemFuncs::psd(deleted,cumulative,normalize,num,dRange,
+		/*radius getter*/[](const shared_ptr<Particle>&p) ->Real { return 2*p->shape->cast<Sphere>().radius; },
+		/*weight getter*/[&](const shared_ptr<Particle>&p) -> Real{ return mass?p->shape->nodes[0]->getData<DemData>().mass:1.; }
+	);
 	if(zip){
 		py::list ret;
 		for(const auto& dp: psd) ret.append(py::make_tuple(dp[0],dp[1]));
