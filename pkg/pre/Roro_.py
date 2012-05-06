@@ -93,7 +93,7 @@ def watchProgress():
 		if yade.factory.mass>yade.factory.maxMass:
 			plotFinalPsd()
 			print 'Simulation finished.'
-			O.pause()
+			yade.O.pause()
 
 def plotFinalPsd():
 	import matplotlib

@@ -451,6 +451,7 @@ class SerQLabel(QLabel):
 	def mousePressEvent(self,event):
 		if event.button()!=Qt.MidButton:
 			event.ignore(); return
+		if self.path==None: return # no path set
 		# middle button clicked, paste pasteText to clipboard
 		cb=QApplication.clipboard()
 		cb.setText(self.path,mode=QClipboard.Clipboard)
@@ -463,8 +464,8 @@ class SerializableEditor(QFrame):
 	import logging
 	# each attribute has one entry associated with itself
 	class EntryData:
-		def __init__(self,name,T,groupNo,flags,containingClass):
-			self.name,self.T,self.flags,self.groupNo,self.containingClass=name,T,flags,groupNo,containingClass
+		def __init__(self,name,T,doc,groupNo,flags,containingClass):
+			self.name,self.T,self.doc,self.flags,self.groupNo,self.containingClass=name,T,doc,flags,groupNo,containingClass
 			self.lineNo,self.widget=None,None
 		def propertyId(self):
 			try:
@@ -472,12 +473,13 @@ class SerializableEditor(QFrame):
 			except AttributeError: return None
 	class EntryGroupData:
 		def __init__(self,name): self.name=name
-	def __init__(self,ser,parent=None,ignoredAttrs=set(),showType=False,path=None):
+	def __init__(self,ser,parent=None,ignoredAttrs=set(),showType=False,path=None,attrVar=True):
 		"Construct window, *ser* is the object we want to show."
 		QtGui.QFrame.__init__(self,parent)
 		self.ser=ser
 		self.path=('yade.'+ser.label if (hasattr(ser,'label') and ser.label) else path)
 		self.showType=showType
+		self.attrVar=attrVar # show variable name; if false, docstring is used instead
 		self.hot=False
 		self.entries=[]
 		self.entryGroups=[]
@@ -586,7 +588,7 @@ class SerializableEditor(QFrame):
 			#if not match: print 'No attr match for docstring of %s.%s'%(self.ser.__class__.__name__,attr)
 
 			#logging.debug('Attr %s is of type %s'%(attr,((t[0].__name__,) if isinstance(t,tuple) else t.__name__)))
-			self.entries.append(self.EntryData(name=attr,T=t,groupNo=groupNo,flags=flags,containingClass=self.ser.__class__))
+			self.entries.append(self.EntryData(name=attr,T=t,groupNo=groupNo,doc=self.getDocstring(attr),flags=flags,containingClass=self.ser.__class__))
 	def getDocstring(self,attr=None):
 		"If attr is *None*, return docstring of the Serializable itself"
 		try:
@@ -661,17 +663,45 @@ class SerializableEditor(QFrame):
 			if hasattr(obj,'label') and obj.label: path=obj.label
 			elif self.path: path=self.path+'.'+entry.name
 			else: path=None
-			widget=SerializableEditor(getattr(self.ser,entry.name),parent=self,showType=self.showType,path=(self.path+'.'+entry.name if self.path else None))
+			widget=SerializableEditor(getattr(self.ser,entry.name),parent=self,showType=self.showType,path=(self.path+'.'+entry.name if self.path else None),attrVar=self.attrVar)
 			widget.setFrameShape(QFrame.Box); widget.setFrameShadow(QFrame.Raised); widget.setLineWidth(1)
 			return widget
 		return None
+	def serQLabelMenu(self,widget,position):
+		menu=QMenu(self)
+		toggleAttrVar=menu.addAction("Show "+("descriptions" if self.attrVar else "variables"))
+		toggleAttrVar.triggered.connect(self.toggleAttrVar)
+		menu.popup(self.mapToGlobal(position))
+		#print 'menu popped up at ',widget.mapToGlobal(position),' (local',position,')'
+	def toggleAttrVar(self):
+		print "Toggling attrVar"
+		self.attrVar=not self.attrVar
+		self.mkWidgets() # repaint everything 
+
 	def mkWidgets(self):
-		self.mkAttrEntries()
+		if not self.entries: self.mkAttrEntries()
+		else: # delete old widgets, will be recreated
+			# http://stackoverflow.com/a/9383780/761090
+			def deleteLayoutChilds(l):
+				while l.count():
+					item=l.takeAt(0)
+					widget=item.widget()
+					if widget: widget.deleteLater()
+					else: deleteLayoutChilds(item.layout())
+			for l in self.allLayouts: deleteLayoutChilds(l)
+			l=self.layout()
+			del l
+			#for l in self.allLayouts: del l
+			#del self.allLayouts
+			# self.clearLayout(l)
 		onlyDefaultGroups=(len(self.entryGroups)==1 and self.entryGroups[0].name==None)
 		formLayouts=[]
 		if self.showType: # create type label
 			lab=SerQLabel(self,makeSerializableLabel(self.ser,addr=True,href=True),tooltip=self.getDocstring(),path=self.path)
 			lab.setFrameShape(QFrame.Box); lab.setFrameShadow(QFrame.Sunken); lab.setLineWidth(2); lab.setAlignment(Qt.AlignHCenter); lab.linkActivated.connect(yade.qt.openUrl)
+			## attach context menu to the label
+			lab.setContextMenuPolicy(Qt.CustomContextMenu)
+			lab.customContextMenuRequested.connect(lambda pos: self.serQLabelMenu(lab,pos))
 		if onlyDefaultGroups:
 			lay=QFormLayout(self)
 			lay.setContentsMargins(2,2,2,2)
@@ -679,14 +709,16 @@ class SerializableEditor(QFrame):
 			lay.setLabelAlignment(Qt.AlignRight)
 			if self.showType: lay.setWidget(0,QFormLayout.SpanningRole,lab)
 			formLayouts=[lay]
+			self.allLayouts=formLayouts
 		else:
 			# make one grid, in which optionally the label and the toolbox lives
 			# the toolbox has one tab for each group; each tab contains the formlayout, where will the attribute widgets live
+			# this warns when called after re-layout
 			lay=QGridLayout(self)
 			lay.setContentsMargins(2,2,2,2)
 			lay.setVerticalSpacing(0)
 			if self.showType: lay.addWidget(lab)
-			lay.setVerticalSpacing(0)
+			#lay.setVerticalSpacing(0)
 			tbx=QToolBox()
 			#style=QtGui.QCommonStyle()
 			#rightArrow=style.standardIcon(QtGui.QStyle.SP_ArrowRight)
@@ -702,12 +734,25 @@ class SerializableEditor(QFrame):
 				formLayouts.append(form)
 			tbx.setStyleSheet('QToolBox::tab { font: bold; }')
 			lay.addWidget(tbx)
+			#if attrVar:
+			for f in formLayouts: f.setRowWrapPolicy(QFormLayout.WrapLongRows)
+			self.allLayouts=formLayouts+[lay]
 		for entry in self.entries:
 			# print entry.name, entry.T, entry.flags
 			if (entry.flags & AttrFlags.noGui): continue
 			entry.widget=self.mkWidget(entry)
 			objPath=(self.path+'.'+entry.name) if self.path else None
-			label=SerQLabel(self,serializableHref(self.ser,entry.name),tooltip=self.getDocstring(entry.name),path=objPath)
+			if self.attrVar: labelText,labelTooltip=serializableHref(self.ser,entry.name),entry.doc
+			else: labelText,labelTooltip=entry.doc,entry.name #serializableHref(self.ser,entry.name,entry.doc),entry.name
+			label=SerQLabel(self,labelText,tooltip=labelTooltip,path=objPath)
+			if not self.attrVar:
+				label.setWordWrap(True)
+				label.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
+				#label.setSizePolicy(QSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.Preferred));
+				label.sizePolicy().setHeightForWidth(True)
+				#label.sizePolicy().setHorizontalStretch(1000)
+				label.setMinimumWidth(150)
+				#label.setScaledContents(True)
 			try:
 				formLayouts[entry.groupNo].addRow(label,entry.widget if entry.widget else (QLabel('<i>None</i>' if getattr(self.ser,entry.name)==None else QLabel('<i>unhandled type</i>'))))
 			except RuntimeError:

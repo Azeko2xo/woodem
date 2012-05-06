@@ -84,30 +84,37 @@ PsdSphereGenerator::operator()(const shared_ptr<Material>&mat){
 		weightTotal+=(mass?m:1.);
 	} else {
 		/* continuous distribution */
-		Real rnd=Mathr::UnitRandom(); // uniformly distribute the percentage
-		// below lowest or above highest, generate particle at the edge
-		if(mass) rnd=pow(rnd,3);
+		Real rnd0=Mathr::UnitRandom(); // uniformly distribute the percentage
+		Real rnd=rnd0;
+		if(mass) rnd=pow(rnd,3); // favorize small values here
+		/* handle values at beyond boundaries; prescribe boundary values in such a case */
 		if(rnd<=psdPts[0][1]){ r=.5*psdPts[0][0]; } 
-		else if(rnd>=(*psdPts.rbegin())[1]){ r=(*psdPts.rbegin())[0]; }
+		else if(rnd>=(*psdPts.rbegin())[1]){ r=.5*(*psdPts.rbegin())[0]; }
 		else {
+			//cerr<<"rnd="<<rnd<<", rnd^3="<<pow(rnd,3)<<", probabilities "<<psdPts[0][1]<<"..."<<(*psdPts.rbegin())[1]<<endl;
 			// find PSD interval corresponding to the random passing value
+			//if(mass){
+			//	rnd=pstPts[0][1]+pow(rnd0-pstPts[0][1],3);
+			//}
 			int ix; Real pieceNorm;
 			auto I=boost::lower_bound(psdPts,rnd,[](const Vector2r& a, const Real& b)->bool{ return a[1]<=b; });
 			ix=int(I-psdPts.begin())-1; // get the last one smaller than lower_bound
-			// cerr<<"Uniform random is "<<rnd<<", bin ix="<<ix<<" out of "<<psdPts.size()<<endl;
+			//cerr<<"ix="<<ix<<"/"<<psdPts.size()<<endl;
+			//cerr<<"rnd^3="<<rnd<<", bin ix="<<ix<<"/"<<psdPts.size()<<", probs "<<psdPts[ix][1]<<"..."<<psdPts[ix+1][1]<<endl;
 			assert(ix<(int)psdPts.size()-1 && ix>=0); 
 			Real pass0=psdPts[ix][1], pass1=psdPts[ix+1][1];
 			Real r0=.5*psdPts[ix][0], r1=.5*psdPts[ix+1][0];
 			//Real pt0=psdPts[ix], pt1=psdPts[ix+1];
-			if(pass1==pass0) pieceNorm=0.;
+			if(pass1==pass0) pieceNorm=0.; // plateau in the PSD
 			else pieceNorm=(rnd-pass0)/(pass1-pass0);
 			// TODO: check this mathematically, does it make sense at all?
-			if(mass) r=pow(pow(r0,3)+pieceNorm*(pow(r1,3)-pow(r0,3)),1./3);
+			if(mass) r=r0+/*pow(pieceNorm,3)*/ pow(pieceNorm,2)*(r1-r0); //r=pow(pow(r0,3)+pieceNorm*(pow(r1,3)-pow(r0,3)),1./3);
 			else r=r0+pieceNorm*(r1-r0);
 		}
 		sphere=DemFuncs::makeSphere(r,mat);
 		m=sphere->shape->nodes[0]->getData<DemData>().mass;
 	}
+	assert(r>=.5*psdPts[0][0]);
 	if(save) genDiamMass.push_back(Vector2r(2*r,m));
 	return vector<ParticleExtExt>({{sphere,AlignedBox3r(Vector3r(-r,-r,-r),Vector3r(r,r,r))}});
 };

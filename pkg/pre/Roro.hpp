@@ -9,14 +9,16 @@ struct Roro: public Preprocessor {
 		return py::call<shared_ptr<Scene>>(py::getattr(pre,"run").ptr(),boost::ref(*this));
 	}
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR(Roro,Preprocessor,"Preprocessor for the Rollenrost simulation.",
+
+		YADE_GROUP_SEPARATOR(basic)
 		((int,cylNum,6,,"Number of cylinders"))
-		//((Vector2i,numCyl_range,Vector2i(1,12),Attr::noGui,"range for numCyl"))
+		((Vector2i,cylNum_range,Vector2i(4,15),Attr::noGui,"range for numCyl"))
 		((Real,massFlowRate,100,,"Mass flow rate of generated particles [kg/s]"))
 		((Real,flowVel,1.,,"Velocity of generated particles [m/s]"))
 		((Real,cylDiameter,.2,,"Diameter of cylinders [m]"))
 		((Real,cylLength,.5,,"Length of cylinders [m]"))
+
 		YADE_GROUP_SEPARATOR(advanced)
-		//((int,_groupSeparator_whatever,Attr::readonly,,"<some group name>"))
 		((Real,gap,.04,,"Gap between cylinders [m]"))
 		((Real,inclination,30,,"Inclination cylinders [deg]"))
 		((Real,angVel,10.,,"Angular velocity of cylinders [rot/sec]"))
@@ -28,8 +30,7 @@ struct Roro: public Preprocessor {
 			psd.push_back(Vector2r(.03,.2));
 			psd.push_back(Vector2r(.04,.3));
 			psd.push_back(Vector2r(.05,.7));
-			psd.push_back(Vector2r(.06,1.));
-			material->density=2500;
+			material->density=3200;
 			material->cast<FrictMat>().young=1e7;
 			material->cast<FrictMat>().ktDivKn=.2;
 			material->cast<FrictMat>().tanPhi=tan(.5);
