@@ -4,7 +4,7 @@
 import unittest,inspect
 
 # add any new test suites to the list here, so that they are picked up by testAll
-allTests=['wrapper','core','pbc','clump']
+allTests=['wrapper','core','pbc','clump','psd']
 
 # all yade modules (ugly...)
 import yade.export,yade.linterpolation,yade.log,yade.pack,yade.plot,yade.post2d,yade.timing,yade.utils,yade.ymport,yade.geom

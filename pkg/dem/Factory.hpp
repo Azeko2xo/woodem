@@ -10,13 +10,14 @@
 
 struct ParticleGenerator: public Serializable{
 	// particle and two extents sizes (bbox if p is at origin)
-	struct ParticleExtExt{ shared_ptr<Particle> par; AlignedBox3r extents; };
+	struct ParticleAndBox{ shared_ptr<Particle> par; AlignedBox3r extents; };
 	// return (one or multiple, for clump) particles and extents (min and max)
 	// extents are computed for position of (0,0,0)
-	virtual vector<ParticleExtExt> operator()(const shared_ptr<Material>& m){ throw std::runtime_error("Calling ParticleGenerator.operator() (abstract method); use derived classes."); }
+	virtual vector<ParticleAndBox> operator()(const shared_ptr<Material>& m){ throw std::runtime_error("Calling ParticleGenerator.operator() (abstract method); use derived classes."); }
 	virtual void clear(){ genDiamMass.clear(); }
 	py::tuple pyPsd(bool mass, bool cumulative, bool normalize, Vector2r dRange, int num) const;
 	py::tuple pyDiamMass();
+	py::list pyCall(const shared_ptr<Material>& m){ vector<ParticleAndBox> pee=(*this)(m); py::list ret; for(const auto& pe: pee) ret.append(py::make_tuple(pe.par,pe.extents)); return ret; }
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ParticleGenerator,Serializable,"Abstract class for generating particles",
 		((vector<Vector2r>,genDiamMass,,(Attr::noGui|Attr::readonly),"List of generated particle's (equivalent) radii and masses (for making granulometry)"))
 		((bool,save,true,,"Save generated particles so that PSD can be generated afterwards"))
@@ -25,12 +26,13 @@ struct ParticleGenerator: public Serializable{
 			.def("psd",&ParticleGenerator::pyPsd,(py::arg("mass")=true,py::arg("cumulative")=true,py::arg("normalize")=false,py::arg("dRange")=Vector2r(NaN,NaN),py::arg("num")=80),"Return PSD for particles generated.")
 			.def("diamMass",&ParticleGenerator::pyDiamMass,"Return tuple of 2 arrays, diameters and masses.")
 			.def("clear",&ParticleGenerator::clear,"Clear stored data about generated particles; only subsequently generated particles will be considered in the PSD.")
+			.def("__call__",&ParticleGenerator::pyCall,"Call the generation routine, returning one particle (at origin) and its bounding-box when at origin. Useful for debugging.")
 	);
 };
 REGISTER_SERIALIZABLE(ParticleGenerator);
 
 struct MinMaxSphereGenerator: public ParticleGenerator{
-	vector<ParticleExtExt> operator()(const shared_ptr<Material>&m);
+	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m);
 	YADE_CLASS_BASE_DOC_ATTRS(MinMaxSphereGenerator,ParticleGenerator,"Generate particles with given minimum and maximum radius",
 		((Vector2r,dRange,Vector2r(NaN,NaN),,"Minimum and maximum radius of generated spheres"))
 	);
@@ -39,7 +41,7 @@ REGISTER_SERIALIZABLE(MinMaxSphereGenerator);
 
 struct PsdSphereGenerator: public ParticleGenerator{
 	DECLARE_LOGGER;
-	vector<ParticleExtExt> operator()(const shared_ptr<Material>&m);
+	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m);
 	void postLoad(PsdSphereGenerator&);
 	void clear(){ ParticleGenerator::clear(); weightTotal=0.; std::fill(weightPerBin.begin(),weightPerBin.end(),0.); }
 	py::tuple pyInputPsd(bool scale) const;

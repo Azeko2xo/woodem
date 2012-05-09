@@ -32,24 +32,25 @@ py::tuple ParticleGenerator::pyDiamMass(){
 	return py::make_tuple(diam,mass);
 }
 
-vector<ParticleGenerator::ParticleExtExt>
+vector<ParticleGenerator::ParticleAndBox>
 MinMaxSphereGenerator::operator()(const shared_ptr<Material>&mat){
 	if(isnan(dRange[0]) || isnan(dRange[1]) || dRange[0]>dRange[1]) throw std::runtime_error("MinMaxSphereGenerator: dRange[0]>dRange[1], or they are NaN!");
 	Real r=dRange[0]+Mathr::UnitRandom()*(dRange[1]-dRange[0]);
 	auto sphere=DemFuncs::makeSphere(r,mat);
 	Real m=sphere->shape->nodes[0]->getData<DemData>().mass;
 	if(save) genDiamMass.push_back(Vector2r(2*r,m));
-	return vector<ParticleExtExt>({{sphere,AlignedBox3r(Vector3r(-r,-r,-r),Vector3r(r,r,r))}});
+	return vector<ParticleAndBox>({{sphere,AlignedBox3r(Vector3r(-r,-r,-r),Vector3r(r,r,r))}});
 };
 
 
 void PsdSphereGenerator::postLoad(PsdSphereGenerator&){
 	if(psdPts.empty()) return;
 	for(int i=0; i<(int)psdPts.size()-1; i++){
-		if(psdPts[i][0]>=psdPts[i+1][0]) throw std::runtime_error("PsdSphereGenerator.psdPts: diameters (the x-component) must be strictly increasing ("+to_string(psdPts[i][0])+">="+to_string(psdPts[i+1][0])+")");
+		if(psdPts[i][0]<0 || psdPts[i][1]<0) throw std::runtime_error("PsdSphereGenerator.psdPts: negative values not allowed.");
+		if(psdPts[i][0]>psdPts[i+1][0]) throw std::runtime_error("PsdSphereGenerator.psdPts: diameters (the x-component) must be increasing ("+to_string(psdPts[i][0])+">="+to_string(psdPts[i+1][0])+")");
 		if(psdPts[i][1]>psdPts[i+1][1]) throw std::runtime_error("PsdSphereGenerator.psdPts: passing values (the y-component) must be increasing ("+to_string(psdPts[i][1])+">"+to_string(psdPts[i+1][1])+")");
 	}
-	Real maxPass=(*psdPts.rbegin())[1];
+	Real maxPass=psdPts.back()[1];
 	if(maxPass!=1.0){
 		LOG_INFO("Normalizing psdPts so that highest value of passing is 1.0 rather than "<<maxPass);
 		for(Vector2r& v: psdPts) v[1]/=maxPass;
@@ -59,64 +60,51 @@ void PsdSphereGenerator::postLoad(PsdSphereGenerator&){
 	weightTotal=0;
 }
 
-vector<ParticleGenerator::ParticleExtExt>
+vector<ParticleGenerator::ParticleAndBox>
 PsdSphereGenerator::operator()(const shared_ptr<Material>&mat){
 	if(psdPts.empty()) throw std::runtime_error("PsdSphereGenerator.psdPts is empty.");
 	Real r,m;
 	shared_ptr<Particle> sphere;
-	if(discrete){
-		Real maxBinDiff=-Inf; int maxBin=-1;
-		// find the bin which is the most below the expected percentage according to the psdPts
-		if(weightTotal<=0) maxBin=0;
-		else{
-			for(size_t i=0;i<psdPts.size();i++){
-				Real binDiff=(psdPts[i][1]-(i>0?psdPts[i-1][1]:0.))-weightPerBin[i]*1./weightTotal;
-				LOG_TRACE("bin "<<i<<" (d="<<psdPts[i][0]<<"): should be "<<psdPts[i][1]-(i>0?psdPts[i-1][1]:0.)<<", current "<<weightPerBin[i]*1./weightTotal<<", should be "<<psdPts[i][1]<<"; diff="<<binDiff);
-				if(binDiff>maxBinDiff){ maxBinDiff=binDiff; maxBin=i; }
-			}
+	Real maxBinDiff=-Inf; int maxBin=-1;
+	// find the bin which is the most below the expected percentage according to the psdPts
+	// we use mass or number automatically: weightTotal and weightPerBin accumulates number or mass
+	if(weightTotal<=0) maxBin=0;
+	else{
+		for(size_t i=0;i<psdPts.size();i++){
+			Real binDesired=psdPts[i][1]-(i>0?psdPts[i-1][1]:0.);
+			Real binDiff=binDesired-weightPerBin[i]*1./weightTotal;
+			LOG_TRACE("bin "<<i<<" (d="<<psdPts[i][0]<<"): should be "<<binDesired<<", current "<<weightPerBin[i]*1./weightTotal<<", diff="<<binDiff);
+			if(binDiff>maxBinDiff){ maxBinDiff=binDiff; maxBin=i; }
 		}
-		assert(maxBin>=0);
-		LOG_TRACE("** maxBin="<<maxBin<<", d="<<psdPts[maxBin][0]);
-		r=psdPts[maxBin][0]/2.;
-		sphere=DemFuncs::makeSphere(r,mat);
-		m=sphere->shape->nodes[0]->getData<DemData>().mass;
-		weightPerBin[maxBin]+=(mass?m:1.);
-		weightTotal+=(mass?m:1.);
-	} else {
-		/* continuous distribution */
-		Real rnd0=Mathr::UnitRandom(); // uniformly distribute the percentage
-		Real rnd=rnd0;
-		if(mass) rnd=pow(rnd,3); // favorize small values here
-		/* handle values at beyond boundaries; prescribe boundary values in such a case */
-		if(rnd<=psdPts[0][1]){ r=.5*psdPts[0][0]; } 
-		else if(rnd>=(*psdPts.rbegin())[1]){ r=.5*(*psdPts.rbegin())[0]; }
-		else {
-			//cerr<<"rnd="<<rnd<<", rnd^3="<<pow(rnd,3)<<", probabilities "<<psdPts[0][1]<<"..."<<(*psdPts.rbegin())[1]<<endl;
-			// find PSD interval corresponding to the random passing value
-			//if(mass){
-			//	rnd=pstPts[0][1]+pow(rnd0-pstPts[0][1],3);
-			//}
-			int ix; Real pieceNorm;
-			auto I=boost::lower_bound(psdPts,rnd,[](const Vector2r& a, const Real& b)->bool{ return a[1]<=b; });
-			ix=int(I-psdPts.begin())-1; // get the last one smaller than lower_bound
-			//cerr<<"ix="<<ix<<"/"<<psdPts.size()<<endl;
-			//cerr<<"rnd^3="<<rnd<<", bin ix="<<ix<<"/"<<psdPts.size()<<", probs "<<psdPts[ix][1]<<"..."<<psdPts[ix+1][1]<<endl;
-			assert(ix<(int)psdPts.size()-1 && ix>=0); 
-			Real pass0=psdPts[ix][1], pass1=psdPts[ix+1][1];
-			Real r0=.5*psdPts[ix][0], r1=.5*psdPts[ix+1][0];
-			//Real pt0=psdPts[ix], pt1=psdPts[ix+1];
-			if(pass1==pass0) pieceNorm=0.; // plateau in the PSD
-			else pieceNorm=(rnd-pass0)/(pass1-pass0);
-			// TODO: check this mathematically, does it make sense at all?
-			if(mass) r=r0+/*pow(pieceNorm,3)*/ pow(pieceNorm,2)*(r1-r0); //r=pow(pow(r0,3)+pieceNorm*(pow(r1,3)-pow(r0,3)),1./3);
-			else r=r0+pieceNorm*(r1-r0);
-		}
-		sphere=DemFuncs::makeSphere(r,mat);
-		m=sphere->shape->nodes[0]->getData<DemData>().mass;
 	}
+	assert(maxBin>=0);
+	LOG_TRACE("** maxBin="<<maxBin<<", d="<<psdPts[maxBin][0]);
+	if(discrete){
+		// just pick the radius found
+		r=psdPts[maxBin][0]/2.; 
+	} else {
+		// here we are between the maxBin and the previous one (interpolate between them, add to maxBin anyways)
+		if(maxBin==0){ r=psdPts[0][0]/2.; }
+		else{
+			Real a=psdPts[maxBin-1][0]/2., b=psdPts[maxBin][0]/2.;
+			Real rnd=Mathr::UnitRandom();
+			// size grows linearly with size, mass with 3rd power; therefore 2nd-order power-law for mass
+			// interpolate on inverse-power-law
+			// r=(a^-2+rnd*(b^-2-a^-2))^(-1/2.)
+			if(mass) r=sqrt(1/(1/(a*a)+rnd*(1/(b*b)-1/(a*a))));
+			// interpolate linearly
+			else r=a+rnd*(b-a);
+			LOG_TRACE((mass?"Power-series":"Linear")<<" interpolation "<<a<<".."<<b<<" @ "<<rnd<<" = "<<r)
+		}
+	}
+
+	sphere=DemFuncs::makeSphere(r,mat);
+	m=sphere->shape->nodes[0]->getData<DemData>().mass;
+	weightPerBin[maxBin]+=(mass?m:1.);
+	weightTotal+=(mass?m:1.);
 	assert(r>=.5*psdPts[0][0]);
 	if(save) genDiamMass.push_back(Vector2r(2*r,m));
-	return vector<ParticleExtExt>({{sphere,AlignedBox3r(Vector3r(-r,-r,-r),Vector3r(r,r,r))}});
+	return vector<ParticleAndBox>({{sphere,AlignedBox3r(Vector3r(-r,-r,-r),Vector3r(r,r,r))}});
 };
 
 py::tuple PsdSphereGenerator::pyInputPsd(bool scale) const {
@@ -159,7 +147,7 @@ void ParticleFactory::run(){
 			size_t i=max(size_t(materials.size()*Mathr::UnitRandom()),materials.size()-1);;
 			mat=materials[i];
 		}
-		vector<ParticleGenerator::ParticleExtExt> pee=(*generator)(mat);
+		vector<ParticleGenerator::ParticleAndBox> pee=(*generator)(mat);
 		assert(!pee.empty());
 		LOG_TRACE("Placing "<<pee.size()<<"-sized particle; first component is a "<<pee[0].par->getClassName()<<", extents from "<<pee[0].extents.min().transpose()<<" to "<<pee[0].extents.max().transpose());
 		Vector3r pos=Vector3r::Zero();
