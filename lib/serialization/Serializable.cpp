@@ -13,13 +13,13 @@ static void Serializable_setAttr(py::object self, py::str name, py::object value
 }
 #endif
 
-void Serializable::pyRegisterClass(py::object _scope) {
+void Serializable::pyRegisterClass() {
 	checkPyClassRegistersItself("Serializable");
-	py::scope thisScope(_scope); 
 	py::class_<Serializable, shared_ptr<Serializable>, boost::noncopyable >("Serializable")
 		.def("__str__",&Serializable::pyStr).def("__repr__",&Serializable::pyStr)
 		.def("dict",&Serializable::pyDict,"Return dictionary of attributes.")
 		.def("yattrs",&Serializable::pyYAttrs,"Return names of registered attributes.")
+		.def("_attrTraits",&Serializable::pyAttrTraits,(py::arg("parents")=true),"Return list of attribute traits.")
 		.def("updateAttrs",&Serializable::pyUpdateAttrs,"Update object attributes from given dictionary")
 		#if 1
 			/* boost::python pickling support, as per http://www.boost.org/doc/libs/1_42_0/libs/python/doc/v2/pickle.html */ 

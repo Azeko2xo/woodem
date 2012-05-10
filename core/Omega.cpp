@@ -203,6 +203,7 @@ void Omega::initializePlugins(const vector<std::pair<string,string> >& pluginCla
 	}
 
 	// handle Serializable specially
+	// py::scope _scope(pyModules["core"]);
 	// Serializable().pyRegisterClass(pyModules["core"]);
 
 	/* python classes must be registered such that base classes come before derived ones;
@@ -217,7 +218,8 @@ void Omega::initializePlugins(const vector<std::pair<string,string> >& pluginCla
 			const std::string& klass=s->getClassName();
 			try{
 				if(getenv("YADE_DEBUG")) cerr<<"{{"<<klass<<"}}";
-				s->pyRegisterClass(pyModules[module]);
+				py::scope _scope(pyModules[module]);
+				s->pyRegisterClass();
 				std::list<StringSerializablePair>::iterator prev=I++;
 				pythonables.erase(prev);
 			} catch (...){

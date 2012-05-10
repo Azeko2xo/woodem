@@ -22,10 +22,81 @@
 //};
 // attribute flags
 namespace yade{
-	namespace Attr{
-		// keep in sync with py/wrapper/yadeWrapper.cpp !
-		enum flags { noSave=1, readonly=2, triggerPostLoad=4, hidden=8, noResize=16, noGui=32, pyByRef=64 };
+	#define ATTR_FLAGS_VALUES noSave=1, readonly=2, triggerPostLoad=4, hidden=8, noResize=16, noGui=32, pyByRef=64 
+	// this will disappear later
+	namespace Attr { enum flags { ATTR_FLAGS_VALUES }; }
+	struct AttrTrait{
+		// do not access those directly; public for convenience when accessed from python
+			int _flags;
+			string _doc, _name, _cxxType;
+			string _unit;
+			map<string,Real> _otherUnits;
+			py::object _ini;
+			// keep in sync with py/wrapper/yadeWrapper.cpp !
+			enum class Flags { ATTR_FLAGS_VALUES };
+			AttrTrait(): _flags(0) {}
+			#define ATTR_FLAG(flag,isFlag) AttrTrait& flag(bool val=true){ if(val) _flags|=(int)Flags::flag; else _flags&=~((int)Flags::flag); return *this; } bool isFlag() const { return _flags&(int)Flags::flag; }
+				ATTR_FLAG(noSave,isNoSave)
+				ATTR_FLAG(readonly,isReadonly)
+				ATTR_FLAG(triggerPostLoad,isTriggerPostLoad)
+				ATTR_FLAG(hidden,isHidden)
+				ATTR_FLAG(noResize,isNoResize)
+				ATTR_FLAG(noGui,isNoGui)
+				ATTR_FLAG(pyByRef,isPyByRef)
+			#undef ATTR_FLAG
+			// compat:
+			AttrTrait& flags(int f=0){ _flags=f; return *this; }
+			int getFlags() const{ return _flags; }
+
+			AttrTrait& name(const string& s){ _name=s; return *this; }
+			AttrTrait& doc(const string& s){ _doc=s; return *this; }
+			AttrTrait& cxxType(const string& s){ _cxxType=s; return *this; }
+			template<typename Tdecl,typename Tobj>
+			AttrTrait& ini(const Tobj& o=Tobj()){ _ini=py::object(Tdecl(o)); return *this; }
+			AttrTrait& unit(const string& s){ _unit=s; return *this; }
+			AttrTrait& otherUnits(const map<string,Real>& m){ _otherUnits=m; return *this; }
+			
+			// define alternative units: name and factor, by which the base unit is multiplied to obtain this one
+			py::dict pyOtherUnits(){ py::dict ret; for(const auto& a: _otherUnits) ret[a.first]=a.second; return ret; }
+			// shorthands for common units
+			AttrTrait& angleUnit(){ unit("rad"); otherUnits({{"deg",180/Mathr::PI}}); return *this; }
+			AttrTrait& lenUnit(){ unit("m"); otherUnits({{"mm",1e3}}); return *this; }
+			AttrTrait& velUnit(){ unit("m/s"); otherUnits({{"km/h",1e-3*3600}}); return *this; }
+			AttrTrait& massUnit(){ unit("kg"); otherUnits({{"g",1e3},{"t",1e-3}}); return *this; }
+			AttrTrait& angVelUnit(){ unit("rad/s"); otherUnits({{"rot/s",1./Mathr::PI}}); return *this; }
+			AttrTrait& pressureUnit(){ unit("Pa"); otherUnits({{"kPa",1e-3},{"MPa",1e-6},{"GPa",1e-9}}); return *this; }
+			AttrTrait& stiffnessUnit(){ return stiffnessUnit(); }
+			AttrTrait& massFlowUnit(){ unit("kg/s"); otherUnits({{"t/year",1e-3*(24*3600*365)}}); return *this; }
+
+			static void pyRegisterClass(){
+				py::class_<AttrTrait>("AttrTrait")
+					.add_property("noSave",&AttrTrait::isNoSave)
+					.add_property("readonly",&AttrTrait::isReadonly)
+					.add_property("triggerPostLoad",&AttrTrait::isTriggerPostLoad)
+					.add_property("hidden",&AttrTrait::isHidden)
+					.add_property("noResize",&AttrTrait::isNoResize)
+					.add_property("noGui",&AttrTrait::isNoGui)
+					.add_property("pyByRef",&AttrTrait::isPyByRef)
+					// non-flag attributes
+					.def_readonly("ini",&AttrTrait::_ini)
+					.def_readonly("cxxType",&AttrTrait::_cxxType)
+					.def_readonly("name",&AttrTrait::_name)
+					.def_readonly("unit",&AttrTrait::_unit)
+					.add_property("otherUnits",&AttrTrait::pyOtherUnits)
+				;
+			}
 	};
+	#undef ATTR_FLAGS_VALUES
+	#if 0
+		/* make templated child class for compile-time flags */
+		template<bool noSave=false>
+		struct AttrTrait: public AttrTraitBase{
+			AttrTrait(){ }
+			static void pyRegisterClass(const string& suffix){
+				py::class_<decltype(*this),py::bases<AttrTraitBase>>(("AttrTrait"+suffix).c_str());
+			}
+		};
+	#endif
 };
 
 using namespace yade;
@@ -84,7 +155,9 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 #define _DEF_READWRITE_BY_VALUE_STATIC(thisClass,attr,doc)  _DEF_READWRITE_BY_VALUE(thisClass,attr,doc)
 // the conditional yade::py_wrap_ref should be eliminated by compiler at compile-time, as it depends only on types, not their values
 // most of this could be written with templates, including flags (ints can be template args)
-#define _DEF_READWRITE_CUSTOM(thisClass,attr) if(!(_ATTR_FLG(attr) & yade::Attr::hidden)){ bool _ro(_ATTR_FLG(attr) & Attr::readonly), _post(_ATTR_FLG(attr) & Attr::triggerPostLoad), _ref(yade::py_wrap_ref<decltype(thisClass::_ATTR_NAM(attr))>::value || (_ATTR_FLG(attr)& yade::Attr::pyByRef)); std::string docStr(_ATTR_DOC(attr)); docStr+=" :yattrflags:`"+boost::lexical_cast<string>(_ATTR_FLG(attr))+"` "; \
+#define _DEF_READWRITE_CUSTOM(thisClass,attr) if(!(_ATTR_FLG(attr) & yade::Attr::hidden)){ \
+	bool _ro(_ATTR_FLG(attr) & Attr::readonly), _post(_ATTR_FLG(attr) & Attr::triggerPostLoad), _ref(yade::py_wrap_ref<decltype(thisClass::_ATTR_NAM(attr))>::value || (_ATTR_FLG(attr)& yade::Attr::pyByRef)); \
+	std::string docStr(_ATTR_DOC(attr)); docStr+=" :yattrflags:`"+boost::lexical_cast<string>(_ATTR_FLG(attr))+"` "; \
 	if      ( _ref && !_ro && !_post) _classObj.def_readwrite(_ATTR_NAM_STR(attr),&thisClass::_ATTR_NAM(attr),docStr.c_str()); \
 	else if ( _ref && !_ro &&  _post) _classObj.add_property(_ATTR_NAM_STR(attr),py::make_getter(&thisClass::_ATTR_NAM(attr)),make_setter_postLoad<thisClass,decltype(thisClass::_ATTR_NAM(attr)),&thisClass::_ATTR_NAM(attr)>,docStr.c_str()); \
 	else if ( _ref &&  _ro)           _classObj.def_readonly(_ATTR_NAM_STR(attr),&thisClass::_ATTR_NAM(attr),docStr.c_str()); \
@@ -93,6 +166,7 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 	else if (!_ref &&  _ro)           _classObj._DEF_READONLY_BY_VALUE(thisClass,_ATTR_NAM(attr),docStr.c_str()); \
 	if(_ro && _post) std::cerr<<"WARN: " BOOST_PP_STRINGIZE(thisClass) "::" _ATTR_NAM_STR(attr) " with the yade::Attr::readonly flag also uselessly sets yade::Attr::triggerPostLoad."<<std::endl; \
 }
+
 #define _DEF_READWRITE_CUSTOM_STATIC(thisClass,attr,doc) { /* if(yade::py_wrap_ref<decltype(thisClass::attr)>::value)*/ _classObj.def_readwrite(BOOST_PP_STRINGIZE(attr),&thisClass::attr,doc); /* else _classObj._DEF_READWRITE_BY_VALUE_STATIC(thisClass,attr,doc);*/ }
 
 
@@ -119,6 +193,7 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 //#define _PYSET_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) { _ATTR_NAM(z)=py::extract<decltype(_ATTR_NAM(z))>(t[1]); py::delitem(d,py::object(_ATTR_NAM(z))); continue; }
 #define _PYSET_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) { _ATTR_NAM(z)=py::extract<decltype(_ATTR_NAM(z))>(value); return; }
 #define _PYYATTR_ATTR(x,y,z) if(!(_ATTR_FLG(z) & yade::Attr::hidden)) ret.append(_ATTR_NAM_STR(z));
+#define _PYATTR_TRAIT(x,y,z) ret.append(_ATTR_TRAIT(z));
 #define _PYHASKEY_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) return true;
 #define _PYDICT_ATTR(x,y,z) if(!(_ATTR_FLG(z) & yade::Attr::hidden)){ /*if(_ATTR_FLG(z) & yade::Attr::pyByRef) ret[_ATTR_NAM_STR(z)]=py::object(boost::ref(_ATTR_NAM(z))); else */  ret[_ATTR_NAM_STR(z)]=py::object(_ATTR_NAM(z)); }
 // use the old version, the new one does not work (yet?)
@@ -127,26 +202,26 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 	template<bool noSave, class ArchiveT, typename T> struct _SerializeUnlessNoSave{ static void serialize(ArchiveT& ar, const T&, const char* name); };
 	template<class ArchiveT, typename T> struct _SerializeUnlessNoSave<true,ArchiveT,T>{ static void serialize(ArchiveT& ar, const T& t, const char* name){}; };
 	template<class ArchiveT, typename T> struct _SerializeUnlessNoSave<false,ArchiveT,T>{ static void serialize(ArchiveT& ar, const T& obj, const char* name){ ar & boost::serialization::make_nvp(name,obj); } };
-	#define _REGISTER_BOOST_ATTRIBUTES_REPEAT(x,y,z) _SerializeUnlessNoSave<(_ATTR_FLG(z) & yade::Attr::noSave),ArchiveT,decltype(_ATTR_NAM(z))>::serialize(ar,_ATTR_NAM(z), BOOST_PP_STRINGIZE(_ATTR_NAM(z)));
+	#define _REGISTER_BOOST_SERIALIZATION_ATTRIBUTES_REPEAT(x,y,z) _SerializeUnlessNoSave<(_ATTR_FLG(z) & yade::Attr::noSave),ArchiveT,decltype(_ATTR_NAM(z))>::serialize(ar,_ATTR_NAM(z), BOOST_PP_STRINGIZE(_ATTR_NAM(z)));
 #else
 	// generates code for noSave attributes as well, which must therefore be theoretically serializable
-	#define _REGISTER_BOOST_ATTRIBUTES_REPEAT(x,y,z) if((_ATTR_FLG(z) & yade::Attr::noSave)==0) { ar & BOOST_SERIALIZATION_NVP(_ATTR_NAM(z)); }
+	#define _REGISTER_BOOST_SERIALIZATION_ATTRIBUTES_REPEAT(x,y,z) if((_ATTR_FLG(z) & yade::Attr::noSave)==0) { ar & BOOST_SERIALIZATION_NVP(_ATTR_NAM(z)); }
 #endif
-#define _REGISTER_BOOST_ATTRIBUTES(baseClass,attrs) \
+#define _REGISTER_BOOST_SERIALIZATION_ATTRIBUTES(baseClass,attrs) \
 	friend class boost::serialization::access; \
 	private: template<class ArchiveT> void serialize(ArchiveT & ar, unsigned int version){ \
 		ar & BOOST_SERIALIZATION_BASE_OBJECT_NVP(baseClass);  \
 		/* with ADL, either the generic (empty) version above or baseClass::preLoad etc will be called (compile-time resolution) */ \
 		if(ArchiveT::is_loading::value) preLoad(*this); else preSave(*this); \
-		BOOST_PP_SEQ_FOR_EACH(_REGISTER_BOOST_ATTRIBUTES_REPEAT,~,attrs) \
+		BOOST_PP_SEQ_FOR_EACH(_REGISTER_BOOST_SERIALIZATION_ATTRIBUTES_REPEAT,~,attrs) \
 		if(ArchiveT::is_loading::value) postLoad(*this); else postSave(*this); \
 	}
 
-#define _REGISTER_ATTRIBUTES_DEPREC(thisClass,baseClass,attrs,deprec)  _REGISTER_BOOST_ATTRIBUTES(baseClass,attrs) public: \
+#define _REGISTER_ATTRIBUTES_DEPREC(thisClass,baseClass,attrs,deprec)  _REGISTER_BOOST_SERIALIZATION_ATTRIBUTES(baseClass,attrs) public: \
 	void pySetAttr(const std::string& key, const py::object& value){BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR,~,attrs); BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR_DEPREC,thisClass,deprec); baseClass::pySetAttr(key,value); } \
-	/* list all attributes (except deprecated ones); could return py::set instead*/ /* py::list pyKeys() const {  py::list ret; BOOST_PP_SEQ_FOR_EACH(_PYKEYS_ATTR,~,attrs); ret.extend(baseClass::pyKeys()); return ret; }  */ \
 	/* return dictionary of all acttributes and values; deprecated attributes omitted */ py::dict pyDict() const { py::dict ret; BOOST_PP_SEQ_FOR_EACH(_PYDICT_ATTR,~,attrs); ret.update(baseClass::pyDict()); return ret; } \
 	/* return list of yade attribute names; deprecated attributes ignored */ py::list pyYAttrs() const { py::list ret(baseClass::pyYAttrs()); BOOST_PP_SEQ_FOR_EACH(_PYYATTR_ATTR,~,attrs); return ret; } \
+	/* return list of attribute traits; deprecated ignored */ py::list pyAttrTraits(bool parents=true) const { py::list ret; if(parents) ret=baseClass::pyAttrTraits(parents); BOOST_PP_SEQ_FOR_EACH(_PYATTR_TRAIT,~,attrs); return ret; } \
 	virtual void callPostLoad(void){ baseClass::callPostLoad(); postLoad(*this); }
 
 
@@ -157,7 +232,9 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 #define _ATTR_TYP(s) BOOST_PP_TUPLE_ELEM(5,0,s)
 #define _ATTR_NAM(s) BOOST_PP_TUPLE_ELEM(5,1,s)
 #define _ATTR_INI(s) BOOST_PP_TUPLE_ELEM(5,2,s)
-#define _ATTR_FLG(s) (BOOST_PP_TUPLE_ELEM(5,3,s)+0) // ( ) to avoid operator precedence mess, +0 expands either to unary + or addition; we need () around the arg, but it must be correct if arg is empty as well
+#define _ATTR_TRAIT(s) AttrTrait().flags(BOOST_PP_TUPLE_ELEM(5,3,s)).doc(_ATTR_DOC(s)).name(_ATTR_NAM_STR(s)).cxxType(_ATTR_TYP_STR(s)) // .ini(_ATTR_INI(s))
+// get flags through AttrTrait now, to test
+#define _ATTR_FLG(s) _ATTR_TRAIT(s).getFlags()
 #define _ATTR_DOC(s) BOOST_PP_TUPLE_ELEM(5,4,s)
 // stringized getters
 #define _ATTR_TYP_STR(s) BOOST_PP_STRINGIZE(_ATTR_TYP(s))
@@ -176,7 +253,7 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 	_REGISTER_ATTRIBUTES_DEPREC(thisClass,baseClass,attrs,deprec) \
 	REGISTER_CLASS_AND_BASE(thisClass,baseClass) \
 	/* accessors for deprecated attributes, with warnings */ BOOST_PP_SEQ_FOR_EACH(_ACCESS_DEPREC,thisClass,deprec) \
-	/* python class registration */ virtual void pyRegisterClass(py::object _scope) { checkPyClassRegistersItself(#thisClass); py::scope thisScope(_scope); YADE_SET_DOCSTRING_OPTS; py::class_<thisClass,shared_ptr<thisClass>,py::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,docString,/*call raw ctor even for parameterless construction*/py::no_init); _classObj.def("__init__",py::raw_constructor(Serializable_ctor_kwAttrs<thisClass>)); BOOST_PP_SEQ_FOR_EACH(_PYATTR_DEF,thisClass,attrs); (void) _classObj BOOST_PP_SEQ_FOR_EACH(_PYATTR_DEPREC_DEF,thisClass,deprec); (void) _classObj extras ; } \
+	/* python class registration */ virtual void pyRegisterClass() { checkPyClassRegistersItself(#thisClass); YADE_SET_DOCSTRING_OPTS; py::class_<thisClass,shared_ptr<thisClass>,py::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,docString,/*call raw ctor even for parameterless construction*/py::no_init); _classObj.def("__init__",py::raw_constructor(Serializable_ctor_kwAttrs<thisClass>)); BOOST_PP_SEQ_FOR_EACH(_PYATTR_DEF,thisClass,attrs); (void) _classObj BOOST_PP_SEQ_FOR_EACH(_PYATTR_DEPREC_DEF,thisClass,deprec); (void) _classObj extras ; } \
 	virtual void must_use_both_YADE_CLASS_BASE_DOC_ATTRS_and_YADE_PLUGIN(); // virtual ensures v-table for all classes 
 
 // #define YADE_CLASS_BASE_DOC_ATTRS_PY(thisClass,baseClass,docString,attrs,extras) YADE_CLASS_BASE_DOC_ATTRS_DEPREC_PY(thisClass,baseClass,docString,attrs,,extras)
@@ -185,12 +262,10 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 #define _ATTR_DECL(x,y,z) _ATTR_TYP(z) _ATTR_NAM(z);
 // return name(default), (for initializers list); TRICKY: last one must not have the comma
 #define _ATTR_MAKE_INITIALIZER(x,maxIndex,i,z) BOOST_PP_TUPLE_ELEM(2,0,z)(BOOST_PP_TUPLE_ELEM(2,1,z)) BOOST_PP_COMMA_IF(BOOST_PP_NOT_EQUAL(maxIndex,i))
-// attrDecl is (type,name,defaultValue,docString)
-
+#define _ATTR_NAME_ADD_DUMMY_FIELDS(x,y,z) ((/*type*/,z,/*default*/,/*flags*/,/*doc*/))
 #define _ATTR_MAKE_INIT_TUPLE(x,y,z) (( _ATTR_NAM(z),_ATTR_INI(z) ))
 
 
-#define _ATTR_NAME_ADD_DUMMY_FIELDS(x,y,z) ((/*type*/,z,/*default*/,/*flags*/,/*doc*/))
 
 #define _STAT_NONSTAT_ATTR_PY(thisClass,attr,doc) _DEF_READWRITE_CUSTOM_STATIC(thisClass,attr,doc) /* _DEF_READWRITE_CUSTOM(thisClass,attr,doc) */ /* duplicate static and non-static attributes do not work (they apparently trigger to-python converter being added; for now, make then non-static, that's it. */
 #define _STATATTR_PY(x,thisClass,z) _STAT_NONSTAT_ATTR_PY(thisClass,_ATTR_NAM(z),/*docstring*/ "|ystatic| :ydefault:`" _ATTR_INI_STR(z) "` :yattrtype:`" _ATTR_TYP_STR(z) "` " _ATTR_DOC(z))
@@ -200,7 +275,7 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 
 
 #define _STATCLASS_PY_REGISTER_CLASS(thisClass,baseClass,docString,attrs)\
-	virtual void pyRegisterClass(py::object _scope) { checkPyClassRegistersItself(#thisClass); initSetStaticAttributesValue(); py::scope thisScope(_scope); YADE_SET_DOCSTRING_OPTS; \
+	virtual void pyRegisterClass() { checkPyClassRegistersItself(#thisClass); initSetStaticAttributesValue(); YADE_SET_DOCSTRING_OPTS; \
 		py::class_<thisClass,shared_ptr<thisClass>,py::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,(docString + std::string("\n\n") BOOST_PP_SEQ_FOR_EACH(_STATATTR_MAKE_DOC,thisClass,attrs)).c_str(),/*call raw ctor even for parameterless construction*/py::no_init); _classObj.def("__init__",py::raw_constructor(Serializable_ctor_kwAttrs<thisClass>)); \
 		BOOST_PP_SEQ_FOR_EACH(_STATATTR_PY,thisClass,attrs);  \
 	}
@@ -212,6 +287,7 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 #define YADE_CLASS_BASE_DOC(klass,base,doc)                             YADE_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,,,,)
 #define YADE_CLASS_BASE_DOC_ATTRS(klass,base,doc,attrs)                 YADE_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,,,)
 #define YADE_CLASS_BASE_DOC_ATTRS_CTOR(klass,base,doc,attrs,ctor)       YADE_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,,ctor,)
+#define YADE_CLASS_BASE_DOC_ATTRS_PY(klass,base,doc,attrs,py)           YADE_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,,,py)
 #define YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(klass,base,doc,attrs,ctor,py) YADE_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,,ctor,py)
 #define YADE_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,inits,ctor,py) YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(klass,base,doc,attrs,,inits,ctor,py)
 
@@ -265,13 +341,14 @@ class Serializable: public Factorable {
 
 		virtual void pySetAttr(const std::string& key, const py::object& value){ yade::AttributeError("No such attribute: "+key+".");};
 		virtual py::list pyYAttrs() const { return py::list(); };
+		virtual py::list pyAttrTraits(bool parents) const { return py::list(); };
 		virtual py::dict pyDict() const { return py::dict(); }
 		virtual void callPostLoad(void){ postLoad(*this); }
 		// check whether the class registers itself or whether it calls virtual function of some base class;
 		// that means that the class doesn't register itself properly
 		virtual void checkPyClassRegistersItself(const std::string& thisClassName) const;
 		// perform class registration; overridden in all classes
-		virtual void pyRegisterClass(py::object _scope);
+		virtual void pyRegisterClass();
 		// perform any manipulation of arbitrary constructor arguments coming from python, manipulating them in-place;
 		// the remainder is passed to the Serializable_ctor_kwAttrs of the respective class (note: args must be empty)
 		virtual void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){ return; }

@@ -287,7 +287,13 @@ BOOST_PYTHON_MODULE(wrapper)
 		.value("noResize",yade::Attr::noResize)
 		.value("noGui",yade::Attr::noGui)
 		.value("pyByRef",yade::Attr::pyByRef)
-    ;
+   ;
+	// all template combinations must be wrapped separately */
+	yade::AttrTrait::pyRegisterClass();
+	#if 0
+		yade::AttrTrait<false>::pyRegisterClass("0");
+		yade::AttrTrait<true> ::pyRegisterClass("1");
+	#endif
 
 	py::class_<pyOmega>("Omega")
 		// .add_property("iter",&pyOmega::iter,"Get current step number")
@@ -359,7 +365,7 @@ BOOST_PYTHON_MODULE(wrapper)
 		;
 //////////////////////////////////////////////////////////////
 ///////////// proxyless wrappers 
-	Serializable().pyRegisterClass(py::scope());
+	Serializable().pyRegisterClass();
 
 	py::class_<TimingDeltas, shared_ptr<TimingDeltas>, boost::noncopyable >("TimingDeltas").add_property("data",&TimingDeltas::pyData,"Get timing data as list of tuples (label, execTime[nsec], execCount) (one tuple per checkpoint)").def("reset",&TimingDeltas::reset,"Reset timing information");
 

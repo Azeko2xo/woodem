@@ -93,7 +93,7 @@ BOOST_PYTHON_MODULE(_GLViewer){
 
 #if 1
 	// HACK: register SnapshotEngine here
-	SnapshotEngine se; se.pyRegisterClass(py::scope());
+	SnapshotEngine se; se.pyRegisterClass();
 #endif
 
 	py::def("View",createView,"Create a new 3d view.");

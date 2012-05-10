@@ -117,13 +117,14 @@ REGISTER_SERIALIZABLE(Node);
 
 
 struct Field: public Serializable, public Indexable{
+	Scene* scene; // backptr to scene; must be set by Scene!
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Field,Serializable,"Spatial field described by nodes, their topology and associated values.",
-		((Scene*,scene,NULL,Attr::hidden,"Backptr to scene")) // must be set by Scene!
+		// ((Scene*,scene,NULL,Attr::hidden,"Backptr to scene")) // must be set by Scene!
 		((vector<shared_ptr<Node> >,nodes,,Attr::pyByRef,"Nodes referenced from this field."))
 		//((vector<shared_ptr<NodeData> >,nodeData,,,"Nodal data, associated to nodes with the same index."))
 		//((shared_ptr<Topology>,topology,,,"How nodes build up cells, neighborhood and coonectivity information."))
 		//((vector<shared_ptr<CellData> >,cells,,,""))
-		, /* ctor */
+		, /* ctor */ scene=NULL;
 		, /* py */
 			YADE_PY_TOPINDEXABLE(Field)
 	);
