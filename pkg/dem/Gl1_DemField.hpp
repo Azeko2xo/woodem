@@ -30,7 +30,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 		((Real,len,.05,,"Relative local axes line length in pixels, relative to scene radius; if non-positive, only points are drawn"))
 		((Vector2r,len_range,Vector2r(0.,.1),Attr::noGui,"Range for len"))
 		*/
-		((unsigned int,mask,0,,"Only shapes/bounds of particles with this mask will be displayed; if 0, all particles are shown"))
+		((uint,mask,0,,"Only shapes/bounds of particles with this mask will be displayed; if 0, all particles are shown"))
 	);
 };
 #endif

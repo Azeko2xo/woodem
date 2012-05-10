@@ -442,12 +442,16 @@ _fundamentalSpecialEditors={
 _attributeGuessedTypeMap={yade._customConverters.NodeList:(yade.core.Node,), }
 
 class SerQLabel(QLabel):
-	def __init__(self,parent,label,tooltip,path):
+	def __init__(self,parent,label,tooltip,path,elide=False):
 		QLabel.__init__(self,parent)
 		self.path=path
-		self.setText(label)
-		if tooltip or path: self.setToolTip(('<b>'+path+'</b><br>' if self.path else '')+(tooltip if tooltip else ''))
+		self.setTextToolTip(label,tooltip,elide=elide)
 		self.linkActivated.connect(yade.qt.openUrl)
+	def setTextToolTip(self,label,tooltip,elide=False):
+		if elide: label=self.fontMetrics().elidedText(label,Qt.ElideRight,2*self.width())
+		self.setText(label)
+		if tooltip or self.path: self.setToolTip(('<b>'+self.path+'</b><br>' if self.path else '')+(tooltip if tooltip else ''))
+		else: self.setToolTip(None)
 	def mousePressEvent(self,event):
 		if event.button()!=Qt.MidButton:
 			event.ignore(); return
@@ -464,9 +468,10 @@ class SerializableEditor(QFrame):
 	import logging
 	# each attribute has one entry associated with itself
 	class EntryData:
-		def __init__(self,name,T,doc,groupNo,flags,containingClass):
-			self.name,self.T,self.doc,self.flags,self.groupNo,self.containingClass=name,T,doc,flags,groupNo,containingClass
-			self.lineNo,self.widget=None,None
+		def __init__(self,name,T,doc,groupNo,trait,containingClass):
+			self.name,self.T,self.doc,self.trait,self.groupNo,self.containingClass=name,T,doc,trait,groupNo,containingClass
+			self.widget=None
+			self.widgets={'label':None,'value':None}
 		def propertyId(self):
 			try:
 				return id(getattr(self.containingClass,self.name))
@@ -490,18 +495,20 @@ class SerializableEditor(QFrame):
 		self.refreshTimer=QTimer(self)
 		self.refreshTimer.timeout.connect(self.refreshEvent)
 		self.refreshTimer.start(500)
-	def getListTypeFromDocstring(self,attr):
+	def getListTypeFromDocstring(self,attr,cxxType=None):
 		"Guess type of array by scanning docstring for :yattrtype: and parsing its argument; ugly, but works."
-		doc=getattr(self.ser.__class__,attr).__doc__
-		if doc==None:
-			logging.error("Attribute %s has no docstring."%attr)
-			return None
-		m=re.search(r':yattrtype:`([^`]*)`',doc)
-		if not m:
-			logging.error("Attribute %s does not contain :yattrtype:`....` (docstring is '%s'"%(attr,doc))
-			return None
-		cxxT=m.group(1)
-		logging.debug('Got type "%s" from :yattrtype:'%cxxT)
+		if not cxxType:
+			doc=getattr(self.ser.__class__,attr).__doc__
+			if doc==None:
+				logging.error("Attribute %s has no docstring."%attr)
+				return None
+			m=re.search(r':yattrtype:`([^`]*)`',doc)
+			if not m:
+				logging.error("Attribute %s does not contain :yattrtype:`....` (docstring is '%s'"%(attr,doc))
+				return None
+			cxxT=m.group(1)
+			logging.debug('Got type "%s" from :yattrtype:'%cxxT)
+		else: cxxT=cxxType
 		def vecTest(T,cxxT):
 			regexp=r'^\s*(std\s*::)?\s*vector\s*<\s*(shared_ptr\s*<\s*)?\s*(std\s*::)?\s*('+T+r')(\s*>)?\s*>\s*$'
 			m=re.match(regexp,cxxT)
@@ -544,15 +551,24 @@ class SerializableEditor(QFrame):
 		#	logging.error('TypeError when getting attributes of '+str(self.ser)+',skipping. ')
 		#	import traceback
 		#	traceback.print_exc()
-		attrs=self.ser.yattrs(); # do not sort here, since we need separators
-		for attr in attrs:
-			val=getattr(self.ser,attr) # get the value using serattr, as it might be different from what the dictionary provides (e.g. Body.blockedDOFs)
+		#attrs=self.ser.yattrs(); # do not sort here, since we need separators
+
+		# crawl class hierarchy up, ask each one for attribute traits
+		attrTraits=[]; k=self.ser.__class__
+		while k!=yade.wrapper.Serializable:
+			attrTraits=k._attrTraits+attrTraits
+			k=k.__bases__[0]
+		
+		for trait in attrTraits:
+			attr=trait.name
+			val=getattr(self.ser,attr) # get the value using serattt, as it might be different from what the dictionary provides (e.g. Body.blockedDOFs)
 			t=None
 			isStatic=(getattr(self.ser.__class__,attr,None)==getattr(self.ser,attr))
 			if isStatic: doc=self.getStaticAttrDocstring(attr,raw=True)
 			else:
 				try:
-					doc=getattr(self.ser.__class__,attr).__doc__
+					doc=trait.doc
+					#doc=getattr(self.ser.__class__,attr).__doc__
 				except AttributeError:
 					print 'No docstring for ',self.ser.__class__.__name__+'.'+attr+": using None (pure python attribute?)"
 					doc=None
@@ -565,7 +581,7 @@ class SerializableEditor(QFrame):
 				continue
 
 			if isinstance(val,list):
-				t=self.getListTypeFromDocstring(attr)
+				t=self.getListTypeFromDocstring(attr,cxxType=trait.cxxType)
 				if not t and len(val)==0: t=(val[0].__class__,) # 1-tuple is list of the contained type
 				#if not t: raise RuntimeError('Unable to guess type of '+str(self.ser)+'.'+attr)
 			# hack for Se3, which is returned as (Vector3,Quaternion) in python
@@ -574,21 +590,13 @@ class SerializableEditor(QFrame):
 				t=val.__class__
 				if t in _attributeGuessedTypeMap: t=_attributeGuessedTypeMap[val.__class__]
 
-			#print 'attr=',attr,'DOC: ',doc
-			if not doc==None:
-				match=re.search(':yattrflags:`\s*([0-9a-zA-Z_|&() ]+)\s*`',doc) # non-empty attribute
-				flags=int(eval(match.group(1).replace('Attr::',''),{},AttrFlags.__dict__)) if match else 0
-			else:
-				print "Attribute %s.%s has no docstring."%(self.ser.__class__.__name__,attr)
-				flags=0
-
 			if len(self.entryGroups)==0: self.entryGroups.append(self.EntryGroupData(name=None))
 			groupNo=len(self.entryGroups)-1
 
 			#if not match: print 'No attr match for docstring of %s.%s'%(self.ser.__class__.__name__,attr)
 
 			#logging.debug('Attr %s is of type %s'%(attr,((t[0].__name__,) if isinstance(t,tuple) else t.__name__)))
-			self.entries.append(self.EntryData(name=attr,T=t,groupNo=groupNo,doc=self.getDocstring(attr),flags=flags,containingClass=self.ser.__class__))
+			self.entries.append(self.EntryData(name=attr,T=t,groupNo=groupNo,doc=self.getDocstring(attr),trait=trait,containingClass=self.ser.__class__))
 	def getDocstring(self,attr=None):
 		"If attr is *None*, return docstring of the Serializable itself"
 		try:
@@ -643,7 +651,7 @@ class SerializableEditor(QFrame):
 		if Klass:
 			widget=Klass(self,getter=getter,setter=setter)
 			widget.setFocusPolicy(Qt.StrongFocus)
-			if (entry.flags & AttrFlags.readonly): widget.setEnabled(False)
+			if entry.trait.readonly: widget.setEnabled(False)
 			return widget
 		# sequences
 		if entry.T.__class__==tuple:
@@ -673,27 +681,17 @@ class SerializableEditor(QFrame):
 		toggleAttrVar.triggered.connect(self.toggleAttrVar)
 		menu.popup(self.mapToGlobal(position))
 		#print 'menu popped up at ',widget.mapToGlobal(position),' (local',position,')'
+	def getAttrLabelToolTip(self,entry):
+		if self.attrVar: return serializableHref(self.ser,entry.name),entry.doc
+		return entry.doc, entry.name
 	def toggleAttrVar(self):
-		print "Toggling attrVar"
 		self.attrVar=not self.attrVar
-		self.mkWidgets() # repaint everything 
+		for entry in self.entries:
+			if not entry.widgets['label']: continue
+			entry.widgets['label'].setTextToolTip(*self.getAttrLabelToolTip(entry),elide=not self.attrVar)
 
 	def mkWidgets(self):
-		if not self.entries: self.mkAttrEntries()
-		else: # delete old widgets, will be recreated
-			# http://stackoverflow.com/a/9383780/761090
-			def deleteLayoutChilds(l):
-				while l.count():
-					item=l.takeAt(0)
-					widget=item.widget()
-					if widget: widget.deleteLater()
-					else: deleteLayoutChilds(item.layout())
-			for l in self.allLayouts: deleteLayoutChilds(l)
-			l=self.layout()
-			del l
-			#for l in self.allLayouts: del l
-			#del self.allLayouts
-			# self.clearLayout(l)
+		self.mkAttrEntries()
 		onlyDefaultGroups=(len(self.entryGroups)==1 and self.entryGroups[0].name==None)
 		formLayouts=[]
 		if self.showType: # create type label
@@ -738,13 +736,13 @@ class SerializableEditor(QFrame):
 			for f in formLayouts: f.setRowWrapPolicy(QFormLayout.WrapLongRows)
 			self.allLayouts=formLayouts+[lay]
 		for entry in self.entries:
-			# print entry.name, entry.T, entry.flags
-			if (entry.flags & AttrFlags.noGui): continue
+			if entry.trait.noGui: continue
 			entry.widget=self.mkWidget(entry)
+			entry.widgets['value']=entry.widget # for code compat
 			objPath=(self.path+'.'+entry.name) if self.path else None
-			if self.attrVar: labelText,labelTooltip=serializableHref(self.ser,entry.name),entry.doc
-			else: labelText,labelTooltip=entry.doc,entry.name #serializableHref(self.ser,entry.name,entry.doc),entry.name
-			label=SerQLabel(self,labelText,tooltip=labelTooltip,path=objPath)
+			labelText,labelTooltip=self.getAttrLabelToolTip(entry)
+			label=SerQLabel(self,labelText,tooltip=labelTooltip,path=objPath,elide=not self.attrVar)
+			entry.widgets['label']=label
 			if not self.attrVar:
 				label.setWordWrap(True)
 				label.setAlignment(Qt.AlignRight|Qt.AlignVCenter)

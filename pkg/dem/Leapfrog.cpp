@@ -125,7 +125,7 @@ void Leapfrog::run(){
 		const shared_ptr<Node>& node=nodes[i];
 		if(!node->hasData<DemData>()) continue;
 		#ifdef YADE_DEBUG
-			if(node->getData<DemData>().parCount==0) throw std::runtime_error("Node #"+to_string(i)+" has parCount==0.");
+			if(node->getData<DemData>().parCount==0 && !node->getData<DemData>().isClump()) throw std::runtime_error("Node #"+to_string(i)+" has parCount==0 and is not a clump.");
 		#endif
 		DemData& dyn(node->getData<DemData>());
 		// handle clumps

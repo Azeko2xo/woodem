@@ -33,6 +33,14 @@
 	#include<boost/archive/xml_iarchive.hpp>
 #endif
 
+// declare supported archive types so that we can declare the templates explcitily in headers
+// and specialize them explicitly in implementation files
+#ifdef YADEXMLSERIALIZATION
+	#define YADE_BOOST_ARCHIVES (boost::archive::binary_iarchive)(boost::archive::binary_oarchive)(boost::archive::xml_iarchive)(boost::archive::xml_oarchive)
+#else
+	#define YADE_BOOST_ARCHIVES (boost::archive::binary_iarchive)(boost::archive::binary_oarchive)
+#endif
+
 #include<boost/serialization/export.hpp> // must come after all supported archive types
 
 

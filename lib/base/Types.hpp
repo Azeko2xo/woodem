@@ -54,6 +54,10 @@ using std::max;
 using std::min;
 using std::abs;
 
+typedef unsigned int uint;
+typedef unsigned long ulong;
+typedef unsigned short ushort;
+
 #include<boost/python.hpp>
 namespace py=boost::python;
 
