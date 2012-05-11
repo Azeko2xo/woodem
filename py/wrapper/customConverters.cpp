@@ -130,6 +130,28 @@ struct custom_list_to_list{
 		return incref(ret.ptr());
 	}
 };
+/* pair-tuple converter */
+template<typename CxxPair>
+struct custom_CxxPair_to_PyTuple{
+	static PyObject* convert(const CxxPair& t){ return incref(py::make_tuple(std::get<0>(t),std::get<1>(t)).ptr()); }
+};
+template<typename CxxPair>
+struct custom_CxxPair_from_PyTuple{
+	custom_CxxPair_from_PyTuple(){ converter::registry::push_back(&convertible,&construct,type_id<CxxPair>()); }
+	static void* convertible(PyObject* obj_ptr){
+		if(!PySequence_Check(obj_ptr) || !PyObject_HasAttrString(obj_ptr,"__len__") || PySequence_Size(obj_ptr)!=2) return 0;
+		return obj_ptr;
+	}
+	static void construct(PyObject* obj_ptr, converter::rvalue_from_python_stage1_data* data){
+		void* storage=((converter::rvalue_from_python_storage<CxxPair>*)(data))->storage.bytes;
+		new (storage) CxxPair();
+		CxxPair* t=(CxxPair*)(storage);
+		t->first=extract<typename CxxPair::first_type>(PySequence_GetItem(obj_ptr,0));
+		t->second=extract<typename CxxPair::second_type>(PySequence_GetItem(obj_ptr,1));
+		data->convertible=storage;
+	}
+};
+
 /*** c++-list to python-list */
 template<typename containedType>
 struct custom_vector_to_list{
@@ -213,6 +235,11 @@ BOOST_PYTHON_MODULE(_customConverters){
 
 	custom_ptrMatchMaker_from_float();
 
+	// 2-way conversion for std::pair -- python 2-tuple
+	#define PAIR_TUPLE_CONV(T) custom_CxxPair_from_PyTuple<T>(); to_python_converter<T,custom_CxxPair_to_PyTuple<T>>();
+	typedef std::pair<int,string> pairIntString;
+	PAIR_TUPLE_CONV(pairIntString);
+
 	// StrArrayMap (typedef for std::map<std::string,numpy_boost>) → python dictionary
 	//custom_StrArrayMap_to_dict();
 	// register from-python converter and to-python converter
@@ -244,6 +271,7 @@ BOOST_PYTHON_MODULE(_customConverters){
 		VECTOR_SEQ_CONV(Matrix3r);
 		VECTOR_SEQ_CONV(Quaternionr);
 		VECTOR_SEQ_CONV(std::string);
+		VECTOR_SEQ_CONV(pairIntString);
 		// VECTOR_SEQ_CONV(shared_ptr<Node>);
 		custom_vector_from_seq<shared_ptr<Node> >(); // allow assignments vector<shared_ptr<Node> >=[list of nodes]
 		VECTOR_SEQ_CONV(shared_ptr<NodeData>);

@@ -160,8 +160,8 @@ struct DemField: public Field{
 	//template<> shared_ptr<DemField> sceneGetField<DemField>() const;
 
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(DemField,Field,"Field describing a discrete element assembly. Each body references (possibly many) nodes by their index in :yref:`Field.nodes` and :yref:`Field.nodalData`. ",
-		((ParticleContainer,particles,,(Attr::pyByRef|Attr::readonly),"Particles (each particle holds its contacts, and references associated nodes)"))
-		((ContactContainer,contacts,,(Attr::pyByRef|Attr::readonly),"Linear view on particle contacts"))
+		((ParticleContainer,particles,,AttrTrait().pyByRef().readonly().ini(),"Particles (each particle holds its contacts, and references associated nodes)"))
+		((ContactContainer,contacts,,AttrTrait().pyByRef().readonly().ini(),"Linear view on particle contacts"))
 		((vector<shared_ptr<Node>>,clumps,,Attr::readonly,"Nodes which define clumps; only manipulated from clump-related user-routines, not directly."))
 		((int,loneMask,0,,"Particle groups which have bits in loneMask in common (i.e. (A.mask & B.mask & loneMask)!=0) will not have contacts between themselves"))
 		, /* ctor */ createIndex(); particles.dem=this; contacts.dem=this; contacts.particles=&particles;

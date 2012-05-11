@@ -17,6 +17,9 @@ struct Roro: public Preprocessor {
 		((Real,flowVel,1.,AttrTrait().velUnit().cxxType("fooBar"),"Velocity of generated particles"))
 		((Real,cylDiameter,.2,AttrTrait().lenUnit(),"Diameter of cylinders"))
 		((Real,cylLength,.5,AttrTrait().lenUnit(),"Length of cylinders"))
+		((Real,rangeThing,.4,AttrTrait().range(Vector2r(0,2)),"something with range"))
+		((int,intChoice,2,AttrTrait().choice({0,1,2,3,4}),"something with int choice"))
+		((int,stringIntChoice,2,AttrTrait().choice({{0,"zero"},{1,"one"},{2,"two"}}),"something with int choice"))
 
 		YADE_GROUP_SEPARATOR(advanced)
 		((Real,gap,.04,AttrTrait().lenUnit(),"Gap between cylinders"))
