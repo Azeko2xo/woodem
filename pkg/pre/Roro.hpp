@@ -10,20 +10,17 @@ struct Roro: public Preprocessor {
 	}
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR(Roro,Preprocessor,"Preprocessor for the Rollenrost simulation.",
 
-		YADE_GROUP_SEPARATOR(basic)
-		((int,cylNum,6,,"Number of cylinders"))
-		((Vector2i,cylNum_range,Vector2i(4,15),Attr::noGui,"range for numCyl"))
-		((Real,massFlowRate,100,AttrTrait().massFlowUnit(),"Mass flow rate of generated particles [kg/s]"))
+		((int,cylNum,6,AttrTrait().range(Vector2i(4,15)).startGroup("Basic"),"Number of cylinders"))
+		((Real,massFlowRate,100,AttrTrait().massFlowRateUnit().prefUnit("t/year"),"Mass flow rate of generated particles [kg/s]"))
 		((Real,flowVel,1.,AttrTrait().velUnit().cxxType("fooBar"),"Velocity of generated particles"))
 		((Real,cylDiameter,.2,AttrTrait().lenUnit(),"Diameter of cylinders"))
 		((Real,cylLength,.5,AttrTrait().lenUnit(),"Length of cylinders"))
-		((Real,rangeThing,.4,AttrTrait().range(Vector2r(0,2)),"something with range"))
-		((int,intChoice,2,AttrTrait().choice({0,1,2,3,4}),"something with int choice"))
-		((int,stringIntChoice,2,AttrTrait().choice({{0,"zero"},{1,"one"},{2,"two"}}),"something with int choice"))
+		((Real,inclination,30*Mathr::PI/180.,AttrTrait().angleUnit().prefUnit("deg"),"Inclination cylinders"))
+		//((Real,rangeThing,.4,AttrTrait().range(Vector2r(0,2)),"something with range"))
+		//((int,intChoice,2,AttrTrait().choice({0,1,2,3,4}),"something with int choice"))
+		//((int,stringIntChoice,2,AttrTrait().choice({{0,"zero"},{1,"one"},{2,"two"}}),"something with int choice"))
 
-		YADE_GROUP_SEPARATOR(advanced)
-		((Real,gap,.04,AttrTrait().lenUnit(),"Gap between cylinders"))
-		((Real,inclination,30,AttrTrait().angleUnit(),"Inclination cylinders"))
+		((Real,gap,.04,AttrTrait().lenUnit().startGroup("Advanced"),"Gap between cylinders"))
 		((Real,angVel,10.,AttrTrait().angVelUnit(),"Angular velocity of cylinders [rot/sec]"))
 		((vector<Vector2r>,psd,/*set in the ctor*/,,"Particle size distribution of generated particles: first value is diameter [mm], second value is cummulative percentage [%]"))
 		//((Real,adhesion,,,"Adhesion coefficient between particles"))

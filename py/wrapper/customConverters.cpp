@@ -238,7 +238,9 @@ BOOST_PYTHON_MODULE(_customConverters){
 	// 2-way conversion for std::pair -- python 2-tuple
 	#define PAIR_TUPLE_CONV(T) custom_CxxPair_from_PyTuple<T>(); to_python_converter<T,custom_CxxPair_to_PyTuple<T>>();
 	typedef std::pair<int,string> pairIntString;
+	typedef std::pair<string,Real> pairStringReal;
 	PAIR_TUPLE_CONV(pairIntString);
+	PAIR_TUPLE_CONV(pairStringReal);
 
 	// StrArrayMap (typedef for std::map<std::string,numpy_boost>) → python dictionary
 	//custom_StrArrayMap_to_dict();
@@ -272,6 +274,7 @@ BOOST_PYTHON_MODULE(_customConverters){
 		VECTOR_SEQ_CONV(Quaternionr);
 		VECTOR_SEQ_CONV(std::string);
 		VECTOR_SEQ_CONV(pairIntString);
+		VECTOR_SEQ_CONV(pairStringReal);
 		// VECTOR_SEQ_CONV(shared_ptr<Node>);
 		custom_vector_from_seq<shared_ptr<Node> >(); // allow assignments vector<shared_ptr<Node> >=[list of nodes]
 		VECTOR_SEQ_CONV(shared_ptr<NodeData>);

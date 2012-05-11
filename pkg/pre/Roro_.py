@@ -41,7 +41,7 @@ def run(ui): # use inputs as argument
 	A,B,C,D=(xmin,ymin,rCyl),(0,ymin,rCyl),(0,ymax,rCyl),(xmin,ymax,rCyl)
 	de.par.append([utils.facet(vertices,material=ui.material,mask=wallMask) for vertices in ((A,B,C),(C,D,A))])
 
-	incl=ui.inclination*math.pi/180. # in radians
+	incl=ui.inclination # is in radians
 	grav=100.
 	gravity=(grav*math.sin(incl),0,-grav*math.cos(incl))
 	factStep=200

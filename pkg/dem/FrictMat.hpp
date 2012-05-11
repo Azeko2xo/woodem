@@ -6,7 +6,7 @@
 
 class ElastMat: public Material{
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR(ElastMat,Material,"Elastic material with contact friction. See also :yref:`ElastMat`.",
-		((Real,young,1e9,,"Young's modulus [Pa]"))
+		((Real,young,1e9,AttrTrait().stiffnessUnit(),"Young's modulus"))
 		((Real,poisson,.2,,"Poisson's ratio; this value should be only used in internal force computation, not for contacts."))
 		, /*ctor*/ createIndex();
 	);

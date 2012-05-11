@@ -80,6 +80,7 @@ class AttrEditor():
 	def __init__(self,getter=None,setter=None):
 		self.getter,self.setter=getter,setter
 		self.hot,self.focused=False,False
+		self.multiplier=None
 		self.widget=None
 	def refresh(self): pass
 	def update(self): pass
@@ -94,6 +95,8 @@ class AttrEditor():
 		try: self.setter(val)
 		except AttributeError: self.setEnabled(False)
 		self.isHot(False)
+	def multiplierChanged(self):
+		raise RuntimeError("This widget has no multiplierChanged method defined.")
 
 class AttrEditor_Bool(AttrEditor,QFrame):
 	def __init__(self,parent,getter,setter):
@@ -102,7 +105,9 @@ class AttrEditor_Bool(AttrEditor,QFrame):
 		self.checkBox=QCheckBox(self)
 		lay=QVBoxLayout(self); lay.setSpacing(0); lay.setMargin(0); lay.addStretch(1); lay.addWidget(self.checkBox); lay.addStretch(1)
 		self.checkBox.clicked.connect(self.update)
-	def refresh(self): self.checkBox.setChecked(self.getter())
+	def refresh(self):
+		assert(not self.multiplier)
+		self.checkBox.setChecked(self.getter())
 	def update(self): self.trySetter(self.checkBox.isChecked())
 
 class AttrEditor_Int(AttrEditor,QSpinBox):
@@ -112,6 +117,7 @@ class AttrEditor_Int(AttrEditor,QSpinBox):
 		self.setRange(int(-1e9),int(1e9)); self.setSingleStep(1);
 		self.valueChanged.connect(self.update)
 	def refresh(self):
+		assert(not self.multiplier)
 		self.setValueStable(self.getter())
 	def update(self):  self.trySetter(self.value())
 
@@ -122,7 +128,9 @@ class AttrEditor_Str(AttrEditor,QLineEdit):
 		self.textEdited.connect(self.isHot)
 		self.selectionChanged.connect(self.isHot)
 		self.editingFinished.connect(self.update)
-	def refresh(self): self.setTextStable(self.getter())
+	def refresh(self):
+		assert(not self.multiplier)
+		self.setTextStable(self.getter())
 	def update(self):  self.trySetter(str(self.text()))
 
 class AttrEditor_Float(AttrEditor,QLineEdit):
@@ -133,11 +141,19 @@ class AttrEditor_Float(AttrEditor,QLineEdit):
 		self.selectionChanged.connect(self.isHot)
 		self.editingFinished.connect(self.update)
 	def refresh(self):
-		self.setTextStable(str(self.getter()))
-		#if True or not self.hasFocus(): self.home(False)
+		v=self.getter()
+		if self.multiplier: v*=self.multiplier
+		self.setTextStable(str(v))
 	def update(self):
-		try: self.trySetter(float(self.text()))
+		try:
+			v=float(self.text())
+			if self.multiplier: v/=self.multiplier
+			self.trySetter(v)
 		except ValueError: self.refresh()
+	def multiplierChanged(self,convSpec):
+		if self.multiplier: self.setToolTip(QString.fromUtf8(u'Converting %s (× %g)'%(convSpec,self.multiplier)))
+		else: self.setToolTip('')
+		self.refresh()
 
 class AttrEditor_Quaternion(AttrEditor,QFrame):
 	def __init__(self,parent,getter,setter):
@@ -154,6 +170,7 @@ class AttrEditor_Quaternion(AttrEditor,QFrame):
 			w.selectionChanged.connect(self.isHot)
 			w.editingFinished.connect(self.update)
 	def refresh(self):
+		assert(not self.multiplier)
 		val=self.getter(); axis,angle=val.toAxisAngle()
 		for i in (0,1,2,4):
 			w=self.grid.itemAt(i).widget(); w.setTextStable(str(axis[i] if i<3 else angle));
@@ -183,6 +200,7 @@ class AttrEditor_IntRange(AttrEditor,QFrame):
 		self.slider.sliderMoved.connect(self.sliderMoved)
 		self.slider.sliderReleased.connect(self.updateFromSlider)
 	def refresh(self):
+		assert(not self.multiplier)
 		curr,(mn,mx)=self.getter()
 		c=self.spin.lineEdit().cursorPosition()
 		self.spin.setValueStable(curr); self.spin.setMinimum(mn); self.spin.setMaximum(mx)
@@ -205,7 +223,7 @@ class AttrEditor_FloatRange(AttrEditor,QFrame):
 	def __init__(self,parent,getter,setter): 
 		AttrEditor.__init__(self,getter,setter)
 		QFrame.__init__(self,parent)
-		curr,(mn,mx)=getter()
+		curr,(mn,mx)=multipliedGetter()
 		self.slider,self.edit=QSlider(self),QLineEdit(str(curr))
 		self.grid=QHBoxLayout(self); self.grid.setSpacing(0); self.grid.setMargin(0)
 		self.grid.addWidget(self.edit); self.grid.addWidget(self.slider)
@@ -217,12 +235,17 @@ class AttrEditor_FloatRange(AttrEditor,QFrame):
 		self.edit.editingFinished.connect(self.updateFromText)
 		self.slider.sliderMoved.connect(self.sliderMoved) #
 		self.slider.sliderReleased.connect(self.sliderReleased) #
-	def refresh(self):
+	def multipliedGetter(self):
 		curr,(mn,mx)=self.getter()
+		if self.multiplier:
+			curr*=self.multiplier(curr); mn*=self.multiplier; mx*=self.multiplier
+		return curr,(mn,mx)
+	def refresh(self):
+		curr,(mn,mx)=multipliedGetter()
 		self.edit.setTextStable('%g'%curr)
 		self.slider.setValue(int(self.sliDiv*((1.*curr-mn)/(1.*mx-mn))))
 	def updateFromText(self):
-		curr,(mn,mx)=self.getter()
+		curr,(mn,mx)=multipliedGetter()
 		try:
 			value=float(self.edit.text())
 			self.slider.setValue(int(self.sliDiv*((1.*value-mn)/(1.*mx-mn))))
@@ -237,8 +260,59 @@ class AttrEditor_FloatRange(AttrEditor,QFrame):
 	def sliderReleased(self):
 		value=self.sliderPosToNum(self.slider.value())
 		self.edit.setText('%g'%value)
+		if self.multiplier: value/=self.multiplier
 		self.trySetter(value)
 	def setFocus(self): self.slider.setFocus()
+	def multiplierChanged(self,convSpec):
+		log.debug("New multiplier is "+str(self.multiplier))
+		if self.multiplier: self.setToolTip("Unit-conversion %s: factor %g"%(convSpec,self.multiplier))
+		else: self.setToolTip()
+		self.refresh()
+		#pass # this is OK
+
+class AttrEditor_Choice(AttrEditor,QFrame):
+	def __init__(self,parent,getter,setter):
+		AttrEditor.__init__(self,getter,setter)
+		QFrame.__init__(self,parent)
+		curr,choices=getter()
+		self.choices=choices
+		if len(choices)<1: raise RuntimeError("There are 0 choices for this attribute?")
+		self.combo=QComboBox(self)
+		# if choices are single items, then we choose from those values
+		# otherwise the first item is code value and second is the displayed value
+		self.justValues=(choices[0].__class__!=tuple)
+		self.admitValues=[(c if self.justValues else c[0]) for c in choices]
+		if choices[0].__class__==tuple and len(choices[0])!=2: raise ValueError("Choice must be either single items or 2-tuples of code-value,display-value")
+		for c in choices:
+			self.combo.addItem(str(c if self.justValues else c[1])) 
+		self.grid=QGridLayout(self); self.grid.setSpacing(0); self.grid.setMargin(0)
+		self.grid.addWidget(self.combo,0,0)
+		self.combo.activated.connect(self.update)
+	def refresh(self):
+		curr,choices=self.getter()
+		if curr not in self.admitValues:
+			raise ValueError("Choice attribute value "+str(curr)+" is not within admitted values "+str(self.admitValues))
+		#	self.combo.setEnabled(False)
+		#else:
+		#	if not self.combo.enabled(): self.combo.setEnabled(True)
+		if self.admitValues[self.combo.currentIndex()]!=curr: # update the combo
+			self.combo.setCurrentIndex(self.admitValues.index(curr))
+	def update(self):
+		choice=self.choices[self.combo.currentIndex()]
+		val=choice if self.justValues else choice[0]
+		self.trySetter(val)
+	def setFocus(self): self.combo.setFocus()
+	def multiplierChanged(self,convSpec):
+		if self.multiplier: self.setToolTip("Unit-conversion %s: factor %g"%(convSpec,self.multiplier))
+		else: self.setToolTip()
+		for i,c in enumerate(self.choices):
+			val=c if self.justValues else c[1]
+			if c.__class__!=float: raise RuntimeError("Only float choices can meaningfully support unit multipliers")
+			if self.multiplier: val*=self.multiplier
+			self.combo.setItemText(i,str(val))
+		self.refresh()
+
+		
 
 
 class AttrEditor_Se3(AttrEditor,QFrame):
@@ -348,18 +422,28 @@ class AttrEditor_MatrixX(AttrEditor,QFrame):
 		#	self.__init__(self.parent,self.getter,self.setter,self.rows,self.cols,self.idxConverter)
 		for row,col in itertools.product(range(self.rows),range(self.cols)):
 			w=self.grid.itemAtPosition(row,col).widget()
-			w.setTextStable(str(val[self.idxConverter(row,col)]))
+			v=val[self.idxConverter(row,col)]
+			if self.multiplier: v*=self.multiplier
+			w.setTextStable(str(v))
 			#if True or not w.hasFocus: w.home(False) # make the left-most part visible, if the text is wider than the widget
 	def update(self):
 		try:
 			val=self.getter()
 			for row,col in itertools.product(range(self.rows),range(self.cols)):
 				w=self.grid.itemAtPosition(row,col).widget()
-				if w.isModified(): val[self.idxConverter(row,col)]=float(w.text())
+				if w.isModified():
+					v=float(w.text())
+					if self.multiplier: v/=self.multiplier
+					val[self.idxConverter(row,col)]=v
 			logging.debug('setting'+str(val))
 			self.trySetter(val)
 		except ValueError: self.refresh()
 	def setFocus(self): self.grid.itemAtPosition(0,0).widget().setFocus()
+	def multiplierChanged(self,convSpec):
+		if self.multiplier: self.setToolTip("Unit-conversion %s: factor %g"%(convSpec,self.multiplier))
+		else: self.setToolTip()
+		log.debug("Multiplier changed to "+str(self.multiplier))
+		self.refresh()
 
 class AttrEditor_MatrixXi(AttrEditor,QFrame):
 	def __init__(self,parent,getter,setter,rows,cols,idxConverter):
@@ -471,20 +555,34 @@ class SerializableEditor(QFrame):
 		def __init__(self,name,T,doc,groupNo,trait,containingClass):
 			self.name,self.T,self.doc,self.trait,self.groupNo,self.containingClass=name,T,doc,trait,groupNo,containingClass
 			self.widget=None
-			self.widgets={'label':None,'value':None}
+			self.widgets={'label':None,'value':None,'unit':None}
 		def propertyId(self):
 			try:
 				return id(getattr(self.containingClass,self.name))
 			except AttributeError: return None
+		def unitChanged(self):
+			c=self.widgets['unit']
+			ix=c.currentIndex()
+			w=self.widgets['value']
+			if ix==0: # base unit:
+				w.multiplier=None
+			else: w.multiplier=self.trait.altUnits[ix-1][1]
+			w.multiplierChanged(u'%s → %s'%(self.trait.altUnits[ix-1][0].decode('utf-8') if ix>0 else '',self.trait.unit.decode('utf-8')))
+		def toggleChecked(self,checked):
+			self.widgets['value'].setEnabled(not checked)
+			self.widgets['label'].setEnabled(not checked)
+			
+			
 	class EntryGroupData:
 		def __init__(self,name): self.name=name
-	def __init__(self,ser,parent=None,ignoredAttrs=set(),showType=False,path=None,attrVar=True):
+	def __init__(self,ser,parent=None,ignoredAttrs=set(),showType=False,path=None,labelIsVar=True,showChecks=False):
 		"Construct window, *ser* is the object we want to show."
 		QtGui.QFrame.__init__(self,parent)
 		self.ser=ser
 		self.path=('yade.'+ser.label if (hasattr(ser,'label') and ser.label) else path)
 		self.showType=showType
-		self.attrVar=attrVar # show variable name; if false, docstring is used instead
+		self.labelIsVar=labelIsVar # show variable name; if false, docstring is used instead
+		self.showChecks=showChecks
 		self.hot=False
 		self.entries=[]
 		self.entryGroups=[]
@@ -560,6 +658,7 @@ class SerializableEditor(QFrame):
 			k=k.__bases__[0]
 		
 		for trait in attrTraits:
+			if trait.hidden or trait.noGui: continue
 			attr=trait.name
 			val=getattr(self.ser,attr) # get the value using serattt, as it might be different from what the dictionary provides (e.g. Body.blockedDOFs)
 			t=None
@@ -574,11 +673,8 @@ class SerializableEditor(QFrame):
 					doc=None
 			if attr in self.ignoredAttrs: continue
 
-			# group sparator, handle specially
-			m=re.match('_groupSeparator_(.*)',attr)
-			if m:
-				self.entryGroups.append(self.EntryGroupData(name=self.getDocstring(attr)))
-				continue
+			# this attribute starts a new attribute group
+			if trait.startGroup: self.entryGroups.append(self.EntryGroupData(name=trait.startGroup))
 
 			if isinstance(val,list):
 				t=self.getListTypeFromDocstring(attr,cxxType=trait.cxxType)
@@ -630,24 +726,28 @@ class SerializableEditor(QFrame):
 		return doc
 		
 
-	def handleFloatRange(self,widgetKlass,getter,setter,entry):
-		rangeSuffix='_range'
-		rangeAttr=entry.name+rangeSuffix
+	def handleRanges(self,widgetKlass,getter,setter,entry):
+		rg=entry.trait.range
 		# return editor for given attribute; no-op, unless float with associated range attribute
-		if entry.T==float and hasattr(self.ser,rangeAttr) and getattr(self.ser,rangeAttr).__class__==Vector2:
+		if entry.T==float and rg and rg.__class__==Vector2:
 			# getter returns tuple value,range
 			# setter needs just the value itself
-			return AttrEditor_FloatRange,lambda: (getattr(self.ser,entry.name),getattr(self.ser,rangeAttr)),lambda x: setattr(self.ser,entry.name,x)
-		elif entry.T==int and hasattr(self.ser,rangeAttr) and getattr(self.ser,rangeAttr).__class__==Vector2i:
-			return AttrEditor_IntRange,lambda: (getattr(self.ser,entry.name),getattr(self.ser,rangeAttr)),lambda x: setattr(self.ser,entry.name,x)
-		else: return widgetKlass,getter,setter
+			return AttrEditor_FloatRange,lambda: (getattr(self.ser,entry.name),rg),lambda x: setattr(self.ser,entry.name,x)
+		elif entry.T==int and rg and rg.__class__==Vector2i:
+			return AttrEditor_IntRange,lambda: (getattr(self.ser,entry.name),rg),lambda x: setattr(self.ser,entry.name,x)
+		else:
+			raise RuntimeError("Invalid range object for "+self.ser.__class__.__name__+"."+entry.name+": type is "+entry.T.__name__+", range is "+str(rg)+" (of type "+rg.__class__.__name__+")")
+	def handleChoices(self,widgetKlass,getter,setter,entry):
+		choice=entry.trait.choice
+		return AttrEditor_Choice, lambda: (getattr(self.ser,entry.name),choice),lambda x: setattr(self.ser,entry.name,x)
 		
 	def mkWidget(self,entry):
 		if not entry.T: return None
 		# single fundamental object
 		Klass=_fundamentalEditorMap.get(entry.T,None) if entry.propertyId() not in _fundamentalSpecialEditors else _fundamentalSpecialEditors[entry.propertyId()]
 		getter,setter=lambda: getattr(self.ser,entry.name), lambda x: setattr(self.ser,entry.name,x)
-		Klass,getter,setter=self.handleFloatRange(Klass,getter,setter,entry)
+		if entry.trait.range: Klass,getter,setter=self.handleRanges(Klass,getter,setter,entry)
+		elif entry.trait.choice: Klass,getter,setter=self.handleChoices(Klass,getter,setter,entry)
 		if Klass:
 			widget=Klass(self,getter=getter,setter=setter)
 			widget.setFocusPolicy(Qt.StrongFocus)
@@ -671,29 +771,43 @@ class SerializableEditor(QFrame):
 			if hasattr(obj,'label') and obj.label: path=obj.label
 			elif self.path: path=self.path+'.'+entry.name
 			else: path=None
-			widget=SerializableEditor(getattr(self.ser,entry.name),parent=self,showType=self.showType,path=(self.path+'.'+entry.name if self.path else None),attrVar=self.attrVar)
+			widget=SerializableEditor(getattr(self.ser,entry.name),parent=self,showType=self.showType,path=(self.path+'.'+entry.name if self.path else None),labelIsVar=self.labelIsVar,showChecks=self.showChecks)
 			widget.setFrameShape(QFrame.Box); widget.setFrameShadow(QFrame.Raised); widget.setLineWidth(1)
 			return widget
 		return None
 	def serQLabelMenu(self,widget,position):
 		menu=QMenu(self)
-		toggleAttrVar=menu.addAction("Show "+("descriptions" if self.attrVar else "variables"))
-		toggleAttrVar.triggered.connect(self.toggleAttrVar)
+		toggleLabelIsVar=menu.addAction('Show variables')
+		toggleLabelIsVar.setCheckable(True); toggleLabelIsVar.setChecked(self.labelIsVar)
+		toggleLabelIsVar.triggered.connect(lambda: self.toggleLabelIsVar(None))
+		toggleShowChecks=menu.addAction('Show checks')
+		toggleShowChecks.setCheckable(True); toggleShowChecks.setChecked(self.showChecks)
+		toggleShowChecks.triggered.connect(lambda: self.toggleShowChecks(None))
 		menu.popup(self.mapToGlobal(position))
 		#print 'menu popped up at ',widget.mapToGlobal(position),' (local',position,')'
 	def getAttrLabelToolTip(self,entry):
-		if self.attrVar: return serializableHref(self.ser,entry.name),entry.doc
-		return entry.doc, entry.name
-	def toggleAttrVar(self):
-		self.attrVar=not self.attrVar
+		if self.labelIsVar: return serializableHref(self.ser,entry.name),entry.doc
+		return entry.doc, '<b><i>'+entry.name+'</i></b><br>'+entry.doc
+	def toggleLabelIsVar(self,val=None):
+		self.labelIsVar=(not self.labelIsVar if val==None else val)
 		for entry in self.entries:
-			if not entry.widgets['label']: continue
-			entry.widgets['label'].setTextToolTip(*self.getAttrLabelToolTip(entry),elide=not self.attrVar)
-
+			entry.widgets['label'].setTextToolTip(*self.getAttrLabelToolTip(entry),elide=not self.labelIsVar)
+			if entry.widget.__class__==SerializableEditor:
+				entry.widget.toggleLabelIsVar(self.labelIsVar)
+	def toggleShowChecks(self,val=None):
+		self.showChecks=(not self.showChecks if val==None else val)
+		for entry in self.entries:
+			entry.widgets['check'].setVisible(self.showChecks)
+			if not entry.trait.readonly:
+				entry.widgets['value'].setEnabled(True)
+				entry.widgets['label'].setEnabled(True)
+			if entry.widget.__class__==SerializableEditor:
+				entry.widget.toggleShowChecks(self.showChecks)
 	def mkWidgets(self):
 		self.mkAttrEntries()
 		onlyDefaultGroups=(len(self.entryGroups)==1 and self.entryGroups[0].name==None)
 		formLayouts=[]
+		gridCols={'check':0,'label':1,'value':2,'unit':3}
 		if self.showType: # create type label
 			lab=SerQLabel(self,makeSerializableLabel(self.ser,addr=True,href=True),tooltip=self.getDocstring(),path=self.path)
 			lab.setFrameShape(QFrame.Box); lab.setFrameShadow(QFrame.Sunken); lab.setLineWidth(2); lab.setAlignment(Qt.AlignHCenter); lab.linkActivated.connect(yade.qt.openUrl)
@@ -701,63 +815,85 @@ class SerializableEditor(QFrame):
 			lab.setContextMenuPolicy(Qt.CustomContextMenu)
 			lab.customContextMenuRequested.connect(lambda pos: self.serQLabelMenu(lab,pos))
 		if onlyDefaultGroups:
-			lay=QFormLayout(self)
-			lay.setContentsMargins(2,2,2,2)
-			lay.setVerticalSpacing(0)
-			lay.setLabelAlignment(Qt.AlignRight)
-			if self.showType: lay.setWidget(0,QFormLayout.SpanningRole,lab)
-			formLayouts=[lay]
-			self.allLayouts=formLayouts
-		else:
-			# make one grid, in which optionally the label and the toolbox lives
-			# the toolbox has one tab for each group; each tab contains the formlayout, where will the attribute widgets live
-			# this warns when called after re-layout
 			lay=QGridLayout(self)
 			lay.setContentsMargins(2,2,2,2)
 			lay.setVerticalSpacing(0)
-			if self.showType: lay.addWidget(lab)
-			#lay.setVerticalSpacing(0)
+			if self.showType:
+				lay.addWidget(lab,0,0,1,-1)
+			formLayouts=[lay]
+			self.setLayout(lay)
+		else:
+			lay=QGridLayout(self)
+			lay.setContentsMargins(2,2,2,2)
+			lay.setVerticalSpacing(0)
+			if self.showType:	lay.addWidget(lab,0,0,1,-1)
 			tbx=QToolBox()
-			#style=QtGui.QCommonStyle()
-			#rightArrow=style.standardIcon(QtGui.QStyle.SP_ArrowRight)
 			for group in self.entryGroups:
-				#g=QGridLayout(); g.setContentsMargins(0,0,0,0); g.setVerticalSpacing(0)
-				form=QFormLayout()
+				form=QGridLayout()
 				frame=QFrame()
 				frame.setLayout(form)
 				form.setContentsMargins(2,2,2,2)
 				form.setVerticalSpacing(0)
-				form.setLabelAlignment(Qt.AlignRight)
 				tbx.addItem(frame,u'▶ '+(group.name if group.name else ''))
 				formLayouts.append(form)
 			tbx.setStyleSheet('QToolBox::tab { font: bold; }')
 			lay.addWidget(tbx)
-			#if attrVar:
-			for f in formLayouts: f.setRowWrapPolicy(QFormLayout.WrapLongRows)
-			self.allLayouts=formLayouts+[lay]
+		hasUnits=sum([1 for e in self.entries if e.trait.unit])
+		maxLabelWd=0.
 		for entry in self.entries:
-			if entry.trait.noGui: continue
 			entry.widget=self.mkWidget(entry)
 			entry.widgets['value']=entry.widget # for code compat
 			objPath=(self.path+'.'+entry.name) if self.path else None
 			labelText,labelTooltip=self.getAttrLabelToolTip(entry)
-			label=SerQLabel(self,labelText,tooltip=labelTooltip,path=objPath,elide=not self.attrVar)
+			label=SerQLabel(self,labelText,tooltip=labelTooltip,path=objPath,elide=not self.labelIsVar)
 			entry.widgets['label']=label
-			if not self.attrVar:
-				label.setWordWrap(True)
-				label.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
-				#label.setSizePolicy(QSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.Preferred));
-				label.sizePolicy().setHeightForWidth(True)
-				#label.sizePolicy().setHorizontalStretch(1000)
-				label.setMinimumWidth(150)
-				#label.setScaledContents(True)
+			entry.widgets['check']=QCheckBox('',self)
+			ch=entry.widgets['check']
+			ch.setVisible(self.showChecks)
+			if entry.trait.readonly: ch.setEnabled(False)
+			ch.clicked.connect(entry.toggleChecked)
+				#sys.stderr.write('%s/%s\n'%(entry.name,checked))) #entry.widgets['value'].setEnabled(not checked))
+			if entry.trait.unit:
+				alt=entry.trait.altUnits
+				if alt:
+					w=QComboBox(self)
+					entry.widgets['unit']=w
+					w.addItem(entry.trait.unit.decode('utf-8'))
+					w.activated.connect(entry.unitChanged)
+					for unit,multiplier in alt: w.addItem(unit.decode('utf-8'))
+					if entry.trait.prefUnit: # set preferred unit right away
+						if entry.trait.prefUnit==entry.trait.unit: pass # this is nonsense, but harmless
+						else:
+							ii=[i for i in range(len(entry.trait.altUnits)) if alt[i][0]==entry.trait.prefUnit]
+							if len(ii)!=1: raise ValueError(str(self.name)+'.'+str(entry.name)+': prefUnit "'+str(entry.trait.prefUnit)+'" does not match any defined unit ('+str(entry.trait.unit)+"; "+','.join([a[0] for a in alt])+')');
+							w.setCurrentIndex(ii[0]+1)
+							entry.unitChanged()
+				else:
+					w=QLabel(entry.trait.unit,self)
+					entry.widgets['unit']=w
+			else: entry.widgets['unit']=QLabel(u'−',self) if (hasUnits and entry.widget.__class__!=SerializableEditor) else None
 			try:
-				formLayouts[entry.groupNo].addRow(label,entry.widget if entry.widget else (QLabel('<i>None</i>' if getattr(self.ser,entry.name)==None else QLabel('<i>unhandled type</i>'))))
+				fl=formLayouts[entry.groupNo]
+				row=fl.rowCount()
+				fl.addWidget(entry.widgets['check'],row,gridCols['check'])
+				fl.addWidget(entry.widgets['label'],row,gridCols['label'])
+				maxLabelWd=max(maxLabelWd,entry.widgets['label'].width())
+				if entry.widgets['value']: fl.addWidget(entry.widgets['value'],row,gridCols['value'])
+				if hasUnits and entry.widgets['unit']: fl.addWidget(entry.widgets['unit'],row,gridCols['unit'])
 			except RuntimeError:
 				print 'ERROR while creating widget for entry %s (%s)'%(entry.name,objPath)
 				import traceback
 				traceback.print_exc()
-		if onlyDefaultGroups: self.setLayout(lay)
+		for fl in formLayouts:
+			for i in range(0,fl.rowCount()): fl.setRowStretch(i,2)
+			if self.showType: fl.setRowStretch(0,-1)
+			fl.setColumnMinimumWidth(gridCols['label'],maxLabelWd)
+			fl.addWidget(QFrame(self),fl.rowCount(),0,1,-1)
+			fl.setRowStretch(fl.rowCount()-1,100)
+			fl.setColumnStretch(gridCols['check'],-1)
+			fl.setColumnStretch(gridCols['label'],2)
+			fl.setColumnStretch(gridCols['value'],8)
+			fl.setColumnStretch(gridCols['unit'],0)
 		self.refreshEvent()
 	def refreshEvent(self):
 		for e in self.entries:

@@ -10,8 +10,8 @@ namespace yade{
 	struct AttrTrait{
 		// do not access those directly; public for convenience when accessed from python
 			int _flags;
-			string _doc, _name, _cxxType, _unit, _prefUnit;
-			map<string,Real> _altUnits;
+			string _doc, _name, _cxxType, _unit, _prefUnit, _startGroup;
+			vector<pair<string,Real>> _altUnits;
 			//boost::any _ini;
 			std::function<py::object()> _ini;
 			std::function<py::object()> _range;
@@ -21,10 +21,10 @@ namespace yade{
 			void resetFactories(){ _ini=_range=_choice=[]()->py::object{ return py::object(); }; }
 			AttrTrait(): _flags(0) { resetFactories(); }
 			AttrTrait(int f): _flags(f) { resetFactories(); }  // construct from flags, for compat
-			AttrTrait(const AttrTrait& b): _flags(b._flags), _doc(b._doc), _name(b._name), _cxxType(b._cxxType), _unit(b._unit), _prefUnit(b._prefUnit), _ini(b._ini), _range(b._range), _choice(b._choice){ _altUnits.insert(b._altUnits.begin(),b._altUnits.end()); }
+			AttrTrait(const AttrTrait& b): _flags(b._flags), _doc(b._doc), _name(b._name), _cxxType(b._cxxType), _unit(b._unit), _prefUnit(b._prefUnit), _startGroup(b._startGroup), _altUnits(b._altUnits), _ini(b._ini), _range(b._range), _choice(b._choice){ }
 			AttrTrait& operator=(const AttrTrait& b){
 				if(this==&b) return *this;
-				_flags=b._flags; _doc=b._doc; _name=b._name; _cxxType=b._cxxType; _unit=b._unit; _prefUnit=b._prefUnit; _altUnits.insert(b._altUnits.begin(),b._altUnits.end()); _ini=b._ini; _range=b._range; _choice=b._choice;
+				_flags=b._flags; _doc=b._doc; _name=b._name; _cxxType=b._cxxType; _unit=b._unit; _prefUnit=b._prefUnit; _startGroup=b._startGroup; _altUnits=b._altUnits; _ini=b._ini; _range=b._range; _choice=b._choice;
 				return *this;
 			}
 
@@ -45,7 +45,8 @@ namespace yade{
 			AttrTrait& cxxType(const string& s){ _cxxType=s; return *this; }
 			AttrTrait& unit(const string& s){ _unit=s; return *this; }
 			AttrTrait& prefUnit(const string& s){ _prefUnit=s; return *this; }
-			AttrTrait& altUnits(const map<string,Real>& m){ _altUnits=m; return *this; }
+			AttrTrait& altUnits(const vector<pair<string,Real>>& m){ _altUnits=m; return *this; }
+			AttrTrait& startGroup(const string& s){ _startGroup=s; return *this; }
 
 			template<typename T>
 			AttrTrait& ini(const T& t){ _ini=std::function<py::object()>([=]()->py::object{ return py::object(t); }); return *this; }
@@ -67,7 +68,8 @@ namespace yade{
 			py::object pyGetChoice()const{ return _choice(); }
 			
 			// define alternative units: name and factor, by which the base unit is multiplied to obtain this one
-			py::dict pyAltUnits(){ py::dict ret; for(const auto& a: _altUnits) ret[a.first]=a.second; return ret; }
+			py::object pyAltUnits(){ return py::object(_altUnits); }
+				// { py::dict ret; for(const auto& a: _altUnits) ret[a.first]=a.second; return ret; }
 			// shorthands for common units
 			AttrTrait& angleUnit(){ unit("rad"); altUnits({{"deg",180/Mathr::PI}}); return *this; }
 			AttrTrait& lenUnit(){ unit("m"); altUnits({{"mm",1e3}}); return *this; }
@@ -77,7 +79,8 @@ namespace yade{
 			AttrTrait& angVelUnit(){ unit("rad/s"); altUnits({{"rot/s",1./Mathr::PI}}); return *this; }
 			AttrTrait& pressureUnit(){ unit("Pa"); altUnits({{"kPa",1e-3},{"MPa",1e-6},{"GPa",1e-9}}); return *this; }
 			AttrTrait& stiffnessUnit(){ return pressureUnit(); }
-			AttrTrait& massFlowUnit(){ unit("kg/s"); altUnits({{"t/year",1e-3*(24*3600*365)}}); return *this; }
+			AttrTrait& massFlowRateUnit(){ unit("kg/s"); altUnits({{"t/year",1e-3*(24*3600*365)}}); return *this; }
+			AttrTrait& densityUnit(){ unit("kg/m³"); altUnits({{"t/m³",1e-3},{"g/cm³",1e-3}}); return *this; }
 
 
 			static void pyRegisterClass(){
@@ -97,6 +100,7 @@ namespace yade{
 					.def_readonly("name",&AttrTrait::_name)
 					.def_readonly("unit",&AttrTrait::_unit)
 					.def_readonly("prefUnit",&AttrTrait::_prefUnit)
+					.def_readonly("startGroup",&AttrTrait::_startGroup)
 					.add_property("altUnits",&AttrTrait::pyAltUnits)
 					.add_property("ini",&AttrTrait::pyGetIni)
 					.add_property("range",&AttrTrait::pyGetRange)

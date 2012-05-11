@@ -89,7 +89,7 @@ struct ParticleFactory: public PeriodicEngine{
 	void pyClear(){ if(generator) generator->clear(); num=0; mass=0; stepMass=0; /* do not reset stepPrev! */ }
 	shared_ptr<Collider> collider;
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ParticleFactory,PeriodicEngine,"Factory generating new particles.",
-		((Real,massFlowRate,NaN,,"Mass flow rate [kg/s]"))
+		((Real,massFlowRate,NaN,AttrTrait().massFlowRateUnit(),"Mass flow rate"))
 		((Real,maxMass,-1,,"Mass at which the engine will not produce any particles (inactive if negative)"))
 		((long,maxNum,-1,,"Number of generated particles after which no more will be produced (inacitve if negative)"))
 		((Real,mass,0,,"Generated mass total"))
