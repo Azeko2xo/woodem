@@ -279,20 +279,16 @@ BOOST_PYTHON_MODULE(wrapper)
 
 	YADE_SET_DOCSTRING_OPTS;
 
-	py::enum_<yade::Attr::flags>("AttrFlags")
-		.value("noSave",yade::Attr::noSave)
-		.value("readonly",yade::Attr::readonly)
-		.value("triggerPostLoad",yade::Attr::triggerPostLoad)
-		.value("hidden",yade::Attr::hidden)
-		.value("noResize",yade::Attr::noResize)
-		.value("noGui",yade::Attr::noGui)
-		.value("pyByRef",yade::Attr::pyByRef)
-   ;
-	// all template combinations must be wrapped separately */
-	yade::AttrTrait::pyRegisterClass();
 	#if 0
-		yade::AttrTrait<false>::pyRegisterClass("0");
-		yade::AttrTrait<true> ::pyRegisterClass("1");
+		py::enum_<yade::Attr::flags>("AttrFlags")
+			.value("noSave",yade::Attr::noSave)
+			.value("readonly",yade::Attr::readonly)
+			.value("triggerPostLoad",yade::Attr::triggerPostLoad)
+			.value("hidden",yade::Attr::hidden)
+			.value("noResize",yade::Attr::noResize)
+			.value("noGui",yade::Attr::noGui)
+			.value("pyByRef",yade::Attr::pyByRef)
+		;
 	#endif
 
 	py::class_<pyOmega>("Omega")
@@ -365,7 +361,10 @@ BOOST_PYTHON_MODULE(wrapper)
 		;
 //////////////////////////////////////////////////////////////
 ///////////// proxyless wrappers 
+	// wrapped as AttrTrait in python
+	yade::AttrTraitBase::pyRegisterClass();
 	Serializable().pyRegisterClass();
+	cerr<<"AttrTraits and Serializable registered in import of yade.wrapper."<<endl;
 
 	py::class_<TimingDeltas, shared_ptr<TimingDeltas>, boost::noncopyable >("TimingDeltas").add_property("data",&TimingDeltas::pyData,"Get timing data as list of tuples (label, execTime[nsec], execCount) (one tuple per checkpoint)").def("reset",&TimingDeltas::reset,"Reset timing information");
 

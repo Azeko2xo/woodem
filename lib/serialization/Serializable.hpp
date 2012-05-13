@@ -117,8 +117,8 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 //#define _PYSET_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) { _ATTR_NAM(z)=py::extract<decltype(_ATTR_NAM(z))>(t[1]); py::delitem(d,py::object(_ATTR_NAM(z))); continue; }
 #define _PYSET_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) { _ATTR_NAM(z)=py::extract<decltype(_ATTR_NAM(z))>(value); return; }
 #define _PYYATTR_ATTR(x,y,z) if(!(_ATTR_FLG(z).isHidden())) ret.append(_ATTR_NAM_STR(z));
-#define _PYATTR_TRAIT(x,y,z) traitList.append(_ATTR_TRAIT(z));
-#define _PYATTR_TRAIT_STATIC(x,y,z) traitList.append(_ATTR_TRAIT(z).static_());
+#define _PYATTR_TRAIT(x,y,z)        traitList.append(py::ptr(static_cast<AttrTraitBase*>(&_ATTR_TRAIT_GET(z)())));
+#define _PYATTR_TRAIT_STATIC(x,y,z) traitList.append(py::ptr(static_cast<AttrTraitBase*>(&_ATTR_TRAIT_GET(z)()))); // static_() already set in trait definition
 #define _PYHASKEY_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) return true;
 #define _PYDICT_ATTR(x,y,z) if(!(_ATTR_FLG(z).isHidden())){ /*if(_ATTR_FLG(z) & yade::Attr::pyByRef) ret[_ATTR_NAM_STR(z)]=py::object(boost::ref(_ATTR_NAM(z))); else */  ret[_ATTR_NAM_STR(z)]=py::object(_ATTR_NAM(z)); }
 // use the old version, the new one does not work (yet?)
@@ -148,6 +148,10 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 	/* return list of yade attribute names; deprecated attributes ignored */ py::list pyYAttrs() const { py::list ret(baseClass::pyYAttrs()); BOOST_PP_SEQ_FOR_EACH(_PYYATTR_ATTR,~,attrs); return ret; } \
 	virtual void callPostLoad(void){ baseClass::callPostLoad(); postLoad(*this); }
 
+#define _DEF_TRAIT_GETTER(x,thisClass,z) template<class Trait, > 
+#define _DEFINE_TRAIT_GETTERS(thisClass,attrs) BOOST_PP_SEQ_FOR_EACH(_DEF_TRAIT_GETTER,thisClass,attrs)
+
+
 
 // print warning about deprecated attribute; thisClass is type name, not string
 #define _DEPREC_WARN(thisClass,deprec)  std::cerr<<"WARN: "<<getClassName()<<"."<<BOOST_PP_STRINGIZE(_DEPREC_OLDNAME(deprec))<<" is deprecated, use "<<BOOST_PP_STRINGIZE(thisClass)<<"."<<BOOST_PP_STRINGIZE(_DEPREC_NEWNAME(deprec))<<" instead. "; if(_DEPREC_COMMENT(deprec)){ if(std::string(_DEPREC_COMMENT(deprec))[0]=='!'){ std::cerr<<endl; throw std::invalid_argument(BOOST_PP_STRINGIZE(thisClass) "." BOOST_PP_STRINGIZE(_DEPREC_OLDNAME(deprec)) " is deprecated; throwing exception requested. Reason: " _DEPREC_COMMENT(deprec));} else std::cerr<<"("<<_DEPREC_COMMENT(deprec)<<")"; } std::cerr<<std::endl;
@@ -157,7 +161,9 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 #define _ATTR_NAM(s) BOOST_PP_TUPLE_ELEM(5,1,s)
 #define _ATTR_INI(s) BOOST_PP_TUPLE_ELEM(5,2,s)
 #define _ATTR_FLG_RAW(s) BOOST_PP_TUPLE_ELEM(5,3,s)
-#define _ATTR_TRAIT(s) AttrTrait(BOOST_PP_TUPLE_ELEM(5,3,s)).doc(_ATTR_DOC(s)).name(_ATTR_NAM_STR(s)).cxxType(_ATTR_TYP_STR(s)) // .ini(_ATTR_TYP(s)(_ATTR_INI(s)))
+#define _ATTR_TRAIT(s) AttrTrait<0>(BOOST_PP_TUPLE_ELEM(5,3,s)).doc(_ATTR_DOC(s)).name(_ATTR_NAM_STR(s)).cxxType(_ATTR_TYP_STR(s)) // .ini(_ATTR_TYP(s)(_ATTR_INI(s)))
+#define _ATTR_TRAIT_TYPE(s) BOOST_PP_CAT(TraitType_,_ATTR_NAM(s))
+#define _ATTR_TRAIT_GET(s) BOOST_PP_CAT(getTrait_,_ATTR_NAM(s))
 // get flags through AttrTrait now, to test
 #define _ATTR_FLG(s) _ATTR_TRAIT(s)
 #define _ATTR_DOC(s) BOOST_PP_TUPLE_ELEM(5,4,s)
@@ -184,8 +190,12 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 
 // #define YADE_CLASS_BASE_DOC_ATTRS_PY(thisClass,baseClass,docString,attrs,extras) YADE_CLASS_BASE_DOC_ATTRS_DEPREC_PY(thisClass,baseClass,docString,attrs,,extras)
 
-// return "type name;" (for declaration inside class body)
-#define _ATTR_DECL(x,y,z) _ATTR_TYP(z) _ATTR_NAM(z);
+// return "type name;", define trait type and getter
+#define _ATTR_DECL_AND_TRAIT(x,y,z) \
+	_ATTR_TYP(z) _ATTR_NAM(z); \
+	typedef std::remove_reference<decltype(_ATTR_TRAIT(z))>::type _ATTR_TRAIT_TYPE(z); \
+	static _ATTR_TRAIT_TYPE(z)& _ATTR_TRAIT_GET(z)(){ static _ATTR_TRAIT_TYPE(z) _tmp=_ATTR_TRAIT(z); return _tmp; }
+
 // return name(default), (for initializers list); TRICKY: last one must not have the comma
 #define _ATTR_MAKE_INITIALIZER(x,maxIndex,i,z) BOOST_PP_TUPLE_ELEM(2,0,z)(BOOST_PP_TUPLE_ELEM(2,1,z)) BOOST_PP_COMMA_IF(BOOST_PP_NOT_EQUAL(maxIndex,i))
 #define _ATTR_NAME_ADD_DUMMY_FIELDS(x,y,z) ((/*type*/,z,/*default*/,/*flags*/,/*doc*/))
@@ -195,7 +205,10 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 
 #define _STAT_NONSTAT_ATTR_PY(thisClass,attr,doc) _DEF_READWRITE_CUSTOM_STATIC(thisClass,attr,doc) /* _DEF_READWRITE_CUSTOM(thisClass,attr,doc) */ /* duplicate static and non-static attributes do not work (they apparently trigger to-python converter being added; for now, make then non-static, that's it. */
 #define _STATATTR_PY(x,thisClass,z) _STAT_NONSTAT_ATTR_PY(thisClass,_ATTR_NAM(z),/*docstring*/ "|ystatic| :ydefault:`" _ATTR_INI_STR(z) "` :yattrtype:`" _ATTR_TYP_STR(z) "` " _ATTR_DOC(z))
-#define _STATATTR_DECL(x,y,z) static _ATTR_TYP(z) _ATTR_NAM(z);
+#define _STATATTR_DECL_AND_TRAIT(x,y,z) \
+	static _ATTR_TYP(z) _ATTR_NAM(z); \
+	typedef std::remove_reference<decltype(_ATTR_TRAIT(z))>::type _ATTR_TRAIT_TYPE(z); \
+	static _ATTR_TRAIT_TYPE(z)& _ATTR_TRAIT_GET(z)(){ static _ATTR_TRAIT_TYPE(z) _tmp=_ATTR_TRAIT(z).static_(); return _tmp; }
 #define _STATATTR_INITIALIZE(x,thisClass,z) thisClass::_ATTR_NAM(z)=_ATTR_INI(z);
 #define _STATATTR_MAKE_DOC(x,thisClass,z) + ".. ystaticattr:: " BOOST_PP_STRINGIZE(thisClass) "." _ATTR_NAM_STR(z) "(=" _ATTR_INI_STR(z) ")" "\n\n|ystatic| :ydefault:`" _ATTR_INI_STR(z) "` :yattrtype:`" _ATTR_TYP_STR(z) /*"` :yattrflags:`" + boost::lexical_cast<string>(_ATTR_FLG(z)) +*/ "`\n\n\t" _ATTR_DOC(z) "\n\n"
 
@@ -220,7 +233,7 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 
 // the most general
 #define YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(thisClass,baseClass,docString,attrDecls,deprec,inits,ctor,extras) \
-	public: BOOST_PP_SEQ_FOR_EACH(_ATTR_DECL,~,attrDecls) /* attribute declarations */ \
+	public: BOOST_PP_SEQ_FOR_EACH(_ATTR_DECL_AND_TRAIT,~,attrDecls) /* attribute declarations */ \
 	thisClass() BOOST_PP_IF(BOOST_PP_SEQ_SIZE(inits attrDecls),:,) BOOST_PP_SEQ_FOR_EACH_I(_ATTR_MAKE_INITIALIZER,BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(inits attrDecls)), inits BOOST_PP_SEQ_FOR_EACH(_ATTR_MAKE_INIT_TUPLE,~,attrDecls)) { ctor ; } /* ctor, with initialization of defaults */ \
 	_YADE_CLASS_BASE_DOC_ATTRS_DEPREC_PY(thisClass,baseClass,docString,BOOST_PP_SEQ_FOR_EACH(_ATTRS_EMBED_INI_TYP_IN_DOC,~,attrDecls),deprec,extras)
 
@@ -238,7 +251,7 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 
 #define _YAD3_CLASS_DECLARATION(thisClass,baseClass,docString,attrDecls,deprec,inits,ctor,etras) \
 	/*class itself*/	REGISTER_CLASS_AND_BASE(thisClass,baseClass) \
-	/* attribute declarations*/ BOOST_PP_SEQ_FOR_EACH(_ATTR_DECL,~,attrDecls) \
+	/* attribute declarations*/ BOOST_PP_SEQ_FOR_EACH(_ATTR_DECL_AND_TRAIT,~,attrDecls) \
 	/* boost::serialization, all in header*/ _REGISTER_BOOST_SERIALIZATION_ATTRIBUTES(baseClass,attrDecls) public: \
 	/* later: call postLoad via ADL*/virtual void callPostLoad(void){ baseClass::callPostLoad(); postLoad(*this); } \
 	/* accessors for deprecated attributes, with warnings */ BOOST_PP_SEQ_FOR_EACH(_ACCESS_DEPREC,thisClass,deprec) \
@@ -266,7 +279,7 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 
 // for static classes (Gl1 functors, for instance)
 #define YADE_CLASS_BASE_DOC_STATICATTRS(thisClass,baseClass,docString,attrs)\
-	public: BOOST_PP_SEQ_FOR_EACH(_STATATTR_DECL,~,attrs) /* attribute declarations */ \
+	public: BOOST_PP_SEQ_FOR_EACH(_STATATTR_DECL_AND_TRAIT,~,attrs) /* attribute declarations */ \
 	/* no ctor */ \
 	REGISTER_CLASS_AND_BASE(thisClass,baseClass); \
 	_REGISTER_ATTRIBUTES_DEPREC(thisClass,baseClass,attrs,) \

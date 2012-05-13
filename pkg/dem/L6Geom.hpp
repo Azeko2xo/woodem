@@ -40,7 +40,7 @@ struct Cg2_Sphere_Sphere_L6Geom: public CGeomFunctor{
 		((bool,noRatch,false,,"FIXME: document what it really does."))
 		((Real,distFactor,1,,"Create interaction if spheres are not futher than |distFactor|*(r1+r2). If negative, zero normal deformation will be set to be the initial value (otherwise, the geometrical distance is the 'zero' one)."))
 		((int,trsfRenorm,100,,"How often to renormalize :yref:`trsf<L6Geom.trsf>`; if non-positive, never renormalized (simulation might be unstable)"))
-		((int,approxMask,0,AttrTrait().range(Vector2i(0,15)),"Selectively enable geometrical approximations (bitmask); add the values for approximations to be enabled.\n\n"
+		((int,approxMask,0,AttrTrait<>().range(Vector2i(0,15)),"Selectively enable geometrical approximations (bitmask); add the values for approximations to be enabled.\n\n"
 		"== ===============================================================\n"
 		"1  use previous normal instead of mid-step normal for computing tangent velocity\n"
 		"2  do not re-normalize average (mid-step) normal, if used.\n"

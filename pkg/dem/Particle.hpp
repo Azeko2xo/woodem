@@ -160,8 +160,8 @@ struct DemField: public Field{
 	//template<> shared_ptr<DemField> sceneGetField<DemField>() const;
 
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(DemField,Field,"Field describing a discrete element assembly. Each body references (possibly many) nodes by their index in :yref:`Field.nodes` and :yref:`Field.nodalData`. ",
-		((ParticleContainer,particles,,AttrTrait().pyByRef().readonly().ini(),"Particles (each particle holds its contacts, and references associated nodes)"))
-		((ContactContainer,contacts,,AttrTrait().pyByRef().readonly().ini(),"Linear view on particle contacts"))
+		((ParticleContainer,particles,,AttrTrait<>().pyByRef().readonly().ini(),"Particles (each particle holds its contacts, and references associated nodes)"))
+		((ContactContainer,contacts,,AttrTrait<>().pyByRef().readonly().ini(),"Linear view on particle contacts"))
 		((vector<shared_ptr<Node>>,clumps,,Attr::readonly,"Nodes which define clumps; only manipulated from clump-related user-routines, not directly."))
 		((int,loneMask,0,,"Particle groups which have bits in loneMask in common (i.e. (A.mask & B.mask & loneMask)!=0) will not have contacts between themselves"))
 		, /* ctor */ createIndex(); particles.dem=this; contacts.dem=this; contacts.particles=&particles;
@@ -272,8 +272,8 @@ REGISTER_SERIALIZABLE(Shape);
 
 class Material: public Serializable, public Indexable{
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Material,Serializable,"Particle material",
-		((Real,density,NaN,AttrTrait().densityUnit(),"Density"))
-		((int,id,-1,AttrTrait().noGui(),"Some number identifying this material; used with MatchMaker objects, useless otherwise"))
+		((Real,density,NaN,AttrTrait<>().densityUnit(),"Density"))
+		((int,id,-1,AttrTrait<>().noGui(),"Some number identifying this material; used with MatchMaker objects, useless otherwise"))
 		,/*ctor*/,/*py*/ YADE_PY_TOPINDEXABLE(Material);
 	);
 	REGISTER_INDEX_COUNTER(Material);

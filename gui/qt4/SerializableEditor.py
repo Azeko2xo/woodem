@@ -6,7 +6,7 @@ from PyQt4 import QtGui
 
 from miniEigen import *
 # don't import * from yade, it would be circular import
-from yade.wrapper import AttrFlags, Serializable
+from yade.wrapper import Serializable
 
 import re,itertools
 import logging
@@ -95,7 +95,7 @@ class AttrEditor():
 		try: self.setter(val)
 		except AttributeError: self.setEnabled(False)
 		self.isHot(False)
-	def multiplierChanged(self):
+	def multiplierChanged(self,convSpec):
 		raise RuntimeError("This widget has no multiplierChanged method defined.")
 
 class AttrEditor_Bool(AttrEditor,QFrame):
@@ -441,8 +441,8 @@ class AttrEditor_MatrixX(AttrEditor,QFrame):
 	def setFocus(self): self.grid.itemAtPosition(0,0).widget().setFocus()
 	def multiplierChanged(self,convSpec):
 		if self.multiplier: self.setToolTip("Unit-conversion %s: factor %g"%(convSpec,self.multiplier))
-		else: self.setToolTip()
-		log.debug("Multiplier changed to "+str(self.multiplier))
+		else: self.setToolTip('')
+		logging.debug("Multiplier changed to "+str(self.multiplier))
 		self.refresh()
 
 class AttrEditor_MatrixXi(AttrEditor,QFrame):
@@ -799,7 +799,7 @@ class SerializableEditor(QFrame):
 		for entry in self.entries:
 			entry.widgets['check'].setVisible(self.showChecks)
 			if not entry.trait.readonly:
-				entry.widgets['value'].setEnabled(True)
+				if 'value' in entry.widgets: entry.widgets['value'].setEnabled(True)
 				entry.widgets['label'].setEnabled(True)
 			if entry.widget.__class__==SerializableEditor:
 				entry.widget.toggleShowChecks(self.showChecks)
@@ -1231,6 +1231,13 @@ class SeqFundamentalEditor(QFrame):
 				widget.refresh()
 			if forceIx>=0 and forceIx==i: widget.setFocus()
 	def refresh(self): pass # SerializableEditor API
+	# propagate multiplier change to children
+	def multiplierChanged(self,convSpec):
+		for row in range(self.form.count()/2):
+			w=self.form.itemAt(row,QFormLayout.FieldRole).widget()
+			w.multiplier=self.multiplier
+			w.multiplierChanged(convSpec)
+	
 
 
 
