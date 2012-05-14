@@ -196,6 +196,7 @@ class AttrEditor_IntRange(AttrEditor,QFrame):
 		self.slider.setMinimum(mn); self.slider.setMaximum(mx)
 		self.spin.setMinimum(mn); self.spin.setMaximum(mx)
 		self.slider.setOrientation(Qt.Horizontal)
+		self.slider.setFocusPolicy(Qt.ClickFocus)
 		self.spin.valueChanged.connect(self.updateFromSpin)
 		self.slider.sliderMoved.connect(self.sliderMoved)
 		self.slider.sliderReleased.connect(self.updateFromSlider)
@@ -230,6 +231,7 @@ class AttrEditor_FloatRange(AttrEditor,QFrame):
 		self.grid.setStretchFactor(self.edit,1); self.grid.setStretchFactor(self.slider,2)
 		self.slider.setMinimum(0); self.slider.setMaximum(self.sliDiv)
 		self.slider.setOrientation(Qt.Horizontal)
+		self.slider.setFocusPolicy(Qt.ClickFocus)
 		self.edit.textEdited.connect(self.isHot)
 		self.edit.selectionChanged.connect(self.isHot)
 		self.edit.editingFinished.connect(self.updateFromText)
@@ -555,7 +557,7 @@ class SerializableEditor(QFrame):
 		def __init__(self,name,T,doc,groupNo,trait,containingClass):
 			self.name,self.T,self.doc,self.trait,self.groupNo,self.containingClass=name,T,doc,trait,groupNo,containingClass
 			self.widget=None
-			self.widgets={'label':None,'value':None,'unit':None}
+			self.widgets={} #{'label':None,'value':None,'unit':None}
 		def propertyId(self):
 			try:
 				return id(getattr(self.containingClass,self.name))
@@ -571,10 +573,44 @@ class SerializableEditor(QFrame):
 		def toggleChecked(self,checked):
 			self.widgets['value'].setEnabled(not checked)
 			self.widgets['label'].setEnabled(not checked)
+		def hideWidgets(self,hide):
+			# TODO: this should not show checker if disabled etc
+			if hide:
+				for w in self.widgets.values():
+					if w: w.hide()
+			else:
+				for w in self.widgets.values():
+					if w: w.show()
 			
 			
 	class EntryGroupData:
-		def __init__(self,name): self.name=name
+		def __init__(self,number,name,showChecks):
+			self.number=number
+			self.name=name
+			self.expander=None
+			self.entries=[]
+			self.showChecks=showChecks # initial value same as the editor initially
+			style=QtGui.QCommonStyle()
+			self.rightArrow=style.standardIcon(QtGui.QStyle.SP_ArrowRight)
+			self.downArrow =style.standardIcon(QtGui.QStyle.SP_ArrowDown)
+		def makeExpander(self,expanded):
+			self.expander=QPushButton(self.name)
+			self.expander.setCheckable(True)
+			self.expander.setChecked(expanded)
+			self.expander.setStyleSheet('text-align: left; padding: 0pt; padding-left: 6px; ')
+			self.expander.setFocusPolicy(Qt.StrongFocus)
+			self.expander.toggled.connect(self.toggleExpander)
+			self.setExpanderIcon()
+			return self.expander
+		def setExpanderIcon(self): self.expander.setIcon(self.downArrow if self.expander.isChecked() else self.rightArrow)
+		def toggleExpander(self): 
+			self.setExpanderIcon()
+			for e in self.entries: e.hideWidgets(not self.expander.isChecked())
+			
+
+
+			
+
 	def __init__(self,ser,parent=None,ignoredAttrs=set(),showType=False,path=None,labelIsVar=True,showChecks=False):
 		"Construct window, *ser* is the object we want to show."
 		QtGui.QFrame.__init__(self,parent)
@@ -654,10 +690,10 @@ class SerializableEditor(QFrame):
 		# crawl class hierarchy up, ask each one for attribute traits
 		attrTraits=[]; k=self.ser.__class__
 		while k!=yade.wrapper.Serializable:
-			attrTraits=k._attrTraits+attrTraits
+			attrTraits=[(k,trait) for trait in k._attrTraits]+attrTraits
 			k=k.__bases__[0]
 		
-		for trait in attrTraits:
+		for klass,trait in attrTraits:
 			if trait.hidden or trait.noGui: continue
 			attr=trait.name
 			val=getattr(self.ser,attr) # get the value using serattt, as it might be different from what the dictionary provides (e.g. Body.blockedDOFs)
@@ -674,7 +710,7 @@ class SerializableEditor(QFrame):
 			if attr in self.ignoredAttrs: continue
 
 			# this attribute starts a new attribute group
-			if trait.startGroup: self.entryGroups.append(self.EntryGroupData(name=trait.startGroup))
+			if trait.startGroup: self.entryGroups.append(self.EntryGroupData(number=len(self.entryGroups),name=trait.startGroup,showChecks=self.showChecks))
 
 			if isinstance(val,list):
 				t=self.getListTypeFromDocstring(attr,cxxType=trait.cxxType)
@@ -686,13 +722,13 @@ class SerializableEditor(QFrame):
 				t=val.__class__
 				if t in _attributeGuessedTypeMap: t=_attributeGuessedTypeMap[val.__class__]
 
-			if len(self.entryGroups)==0: self.entryGroups.append(self.EntryGroupData(name=None))
+			if len(self.entryGroups)==0: self.entryGroups.append(self.EntryGroupData(number=0,name=None,showChecks=self.showChecks))
 			groupNo=len(self.entryGroups)-1
 
 			#if not match: print 'No attr match for docstring of %s.%s'%(self.ser.__class__.__name__,attr)
 
 			#logging.debug('Attr %s is of type %s'%(attr,((t[0].__name__,) if isinstance(t,tuple) else t.__name__)))
-			self.entries.append(self.EntryData(name=attr,T=t,groupNo=groupNo,doc=self.getDocstring(attr),trait=trait,containingClass=self.ser.__class__))
+			self.entries.append(self.EntryData(name=attr,T=t,groupNo=groupNo,doc=self.getDocstring(attr),trait=trait,containingClass=klass))
 	def getDocstring(self,attr=None):
 		"If attr is *None*, return docstring of the Serializable itself"
 		try:
@@ -786,8 +822,9 @@ class SerializableEditor(QFrame):
 		menu.popup(self.mapToGlobal(position))
 		#print 'menu popped up at ',widget.mapToGlobal(position),' (local',position,')'
 	def getAttrLabelToolTip(self,entry):
-		if self.labelIsVar: return serializableHref(self.ser,entry.name),entry.doc
-		return entry.doc, '<b><i>'+entry.name+'</i></b><br>'+entry.doc
+		attrLabel=entry.containingClass.__name__+'.<b><i>'+entry.name+'</i></b><br>'
+		if self.labelIsVar: return serializableHref(self.ser,entry.name),attrLabel+entry.doc
+		return entry.doc, attrLabel+entry.doc
 	def toggleLabelIsVar(self,val=None):
 		self.labelIsVar=(not self.labelIsVar if val==None else val)
 		for entry in self.entries:
@@ -796,6 +833,7 @@ class SerializableEditor(QFrame):
 				entry.widget.toggleLabelIsVar(self.labelIsVar)
 	def toggleShowChecks(self,val=None):
 		self.showChecks=(not self.showChecks if val==None else val)
+		for g in self.entryGroups: g.showChecks=self.showChecks # propagate down
 		for entry in self.entries:
 			entry.widgets['check'].setVisible(self.showChecks)
 			if not entry.trait.readonly:
@@ -806,7 +844,6 @@ class SerializableEditor(QFrame):
 	def mkWidgets(self):
 		self.mkAttrEntries()
 		onlyDefaultGroups=(len(self.entryGroups)==1 and self.entryGroups[0].name==None)
-		formLayouts=[]
 		gridCols={'check':0,'label':1,'value':2,'unit':3}
 		if self.showType: # create type label
 			lab=SerQLabel(self,makeSerializableLabel(self.ser,addr=True,href=True),tooltip=self.getDocstring(),path=self.path)
@@ -814,35 +851,21 @@ class SerializableEditor(QFrame):
 			## attach context menu to the label
 			lab.setContextMenuPolicy(Qt.CustomContextMenu)
 			lab.customContextMenuRequested.connect(lambda pos: self.serQLabelMenu(lab,pos))
-		if onlyDefaultGroups:
-			lay=QGridLayout(self)
-			lay.setContentsMargins(2,2,2,2)
-			lay.setVerticalSpacing(0)
-			if self.showType:
-				lay.addWidget(lab,0,0,1,-1)
-			formLayouts=[lay]
-			self.setLayout(lay)
-		else:
-			lay=QGridLayout(self)
-			lay.setContentsMargins(2,2,2,2)
-			lay.setVerticalSpacing(0)
-			if self.showType:	lay.addWidget(lab,0,0,1,-1)
-			tbx=QToolBox()
-			for group in self.entryGroups:
-				form=QGridLayout()
-				frame=QFrame()
-				frame.setLayout(form)
-				form.setContentsMargins(2,2,2,2)
-				form.setVerticalSpacing(0)
-				tbx.addItem(frame,u'▶ '+(group.name if group.name else ''))
-				formLayouts.append(form)
-			tbx.setStyleSheet('QToolBox::tab { font: bold; }')
-			lay.addWidget(tbx)
-		hasUnits=sum([1 for e in self.entries if e.trait.unit])
+			lab.setFocusPolicy(Qt.ClickFocus)
+		lay=QGridLayout(self)
+		lay.setContentsMargins(2,2,2,2)
+		lay.setVerticalSpacing(0)
+		if self.showType:
+			lay.addWidget(lab,0,0,1,-1)
+			lay.setRowStretch(0,-1)
+		self.setLayout(lay)
+
+		self.hasUnits=sum([1 for e in self.entries if e.trait.unit])
 		maxLabelWd=0.
 		for entry in self.entries:
 			entry.widget=self.mkWidget(entry)
 			entry.widgets['value']=entry.widget # for code compat
+			if not entry.widgets['value']: entry.widgets['value']=QFrame() # avoid None widgets
 			objPath=(self.path+'.'+entry.name) if self.path else None
 			labelText,labelTooltip=self.getAttrLabelToolTip(entry)
 			label=SerQLabel(self,labelText,tooltip=labelTooltip,path=objPath,elide=not self.labelIsVar)
@@ -852,7 +875,6 @@ class SerializableEditor(QFrame):
 			ch.setVisible(self.showChecks)
 			if entry.trait.readonly: ch.setEnabled(False)
 			ch.clicked.connect(entry.toggleChecked)
-				#sys.stderr.write('%s/%s\n'%(entry.name,checked))) #entry.widgets['value'].setEnabled(not checked))
 			if entry.trait.unit:
 				alt=entry.trait.altUnits
 				if alt:
@@ -871,29 +893,45 @@ class SerializableEditor(QFrame):
 				else:
 					w=QLabel(entry.trait.unit,self)
 					entry.widgets['unit']=w
-			else: entry.widgets['unit']=QLabel(u'−',self) if (hasUnits and entry.widget.__class__!=SerializableEditor) else None
-			try:
-				fl=formLayouts[entry.groupNo]
-				row=fl.rowCount()
-				fl.addWidget(entry.widgets['check'],row,gridCols['check'])
-				fl.addWidget(entry.widgets['label'],row,gridCols['label'])
-				maxLabelWd=max(maxLabelWd,entry.widgets['label'].width())
-				if entry.widgets['value']: fl.addWidget(entry.widgets['value'],row,gridCols['value'])
-				if hasUnits and entry.widgets['unit']: fl.addWidget(entry.widgets['unit'],row,gridCols['unit'])
-			except RuntimeError:
-				print 'ERROR while creating widget for entry %s (%s)'%(entry.name,objPath)
-				import traceback
-				traceback.print_exc()
-		for fl in formLayouts:
-			for i in range(0,fl.rowCount()): fl.setRowStretch(i,2)
-			if self.showType: fl.setRowStretch(0,-1)
-			fl.setColumnMinimumWidth(gridCols['label'],maxLabelWd)
-			fl.addWidget(QFrame(self),fl.rowCount(),0,1,-1)
-			fl.setRowStretch(fl.rowCount()-1,100)
-			fl.setColumnStretch(gridCols['check'],-1)
-			fl.setColumnStretch(gridCols['label'],2)
-			fl.setColumnStretch(gridCols['value'],8)
-			fl.setColumnStretch(gridCols['unit'],0)
+			else: entry.widgets['unit']=QLabel(u'−',self) if (self.hasUnits and entry.widget.__class__!=SerializableEditor) else QFrame() # avoid NaN widgets
+			self.entryGroups[entry.groupNo].entries.append(entry)
+		for i,g in enumerate(self.entryGroups):
+			hide=i>0
+			if not onlyDefaultGroups:
+				ex=g.makeExpander(not hide) # first group expanded, other hidden
+				lay.addWidget(ex,lay.rowCount(),0,1,-1)
+				lay.setRowStretch(lay.rowCount()-1,-1)
+			for i,entry in enumerate(g.entries):
+				try:
+					row=lay.rowCount()
+					lay.addWidget(entry.widgets['check'],row,gridCols['check'],1,1)
+					lay.addWidget(entry.widgets['label'],row,gridCols['label'],1,1)
+					entry.widgets['check'].setFocusPolicy(Qt.ClickFocus)
+					# entry.widgets['label'].setFocusPolicy(Qt.NoFocus) # default
+					maxLabelWd=max(maxLabelWd,entry.widgets['label'].width())
+					if entry.widgets['value']:
+						lay.addWidget(entry.widgets['value'],row,gridCols['value'])
+						# entry.widgets['value'].setFocusPolicy(Qt.StrongFocus) # default
+					if entry.widgets['unit']:
+						lay.addWidget(entry.widgets['unit'],row,gridCols['unit'])
+						entry.widgets['unit'].setFocusPolicy(Qt.ClickFocus) # skip when keyboard-navigating
+					lay.setRowStretch(row,2)
+					for w in entry.widgets['label'],: # entry.widgets['value']:
+						if not w or w.__class__==SerializableEditor: continue # nested editor not modified
+						w.setStyleSheet('background: palette(%s); '%('Base' if i%2 else 'AlternateBase'))
+				except RuntimeError:
+					print 'ERROR while creating widget for entry %s (%s)'%(entry.name,objPath)
+					import traceback
+					traceback.print_exc()
+		# close all groups except the first one			
+		for g in self.entryGroups[1:]: g.toggleExpander()
+		lay.setColumnMinimumWidth(gridCols['label'],maxLabelWd)
+		lay.addWidget(QFrame(self),lay.rowCount(),0,1,-1) # expander at the very end
+		lay.setRowStretch(lay.rowCount()-1,10000)
+		lay.setColumnStretch(gridCols['check'],-1)
+		lay.setColumnStretch(gridCols['label'],2)
+		lay.setColumnStretch(gridCols['value'],8)
+		lay.setColumnStretch(gridCols['unit'],0)
 		self.refreshEvent()
 	def refreshEvent(self):
 		for e in self.entries:
@@ -1158,8 +1196,8 @@ class SeqFundamentalEditor(QFrame):
 			elif act==actKill: self.killSlot(index)
 			elif act==actUp: self.upSlot(index)
 			elif act==actDown: self.downSlot(index)
-	def localPositionToIndex(self,pos):
-		gp=self.mapToGlobal(pos)
+	def localPositionToIndex(self,pos,isGlobal=False):
+		gp=self.mapToGlobal(pos) if not isGlobal else pos
 		for row in range(self.form.count()/2):
 			w,i=self.form.itemAt(row,QFormLayout.FieldRole),self.form.itemAt(row,QFormLayout.LabelRole)
 			for wi in w.widget(),i.widget():
@@ -1167,26 +1205,57 @@ class SeqFundamentalEditor(QFrame):
 				if globG.contains(gp):
 					return row
 		return -1
+	def keyFocusIndex(self):
+		w=QApplication.focusWidget()
+		globPos=w.mapToGlobal(QPoint(.5*w.width(),.5*w.height()))
+		return self.localPositionToIndex(globPos,isGlobal=True)
+	def keyPressEvent(self,ev):
+		isModified=ev.modifiers()&Qt.AltModifier
+		if not isModified:
+			if ev.key()==Qt.Key_Return: QApplication.focusWidget().focusNextPrevChild(True)
+			if ev.key()==Qt.Key_Up: QApplication.focusWidget().focusNextPrevChild(False)
+			if ev.key()==Qt.Key_Down: QApplication.focusWidget().focusNextPrevChild(True)
+			return
+		if ev.key()==Qt.Key_Up:
+			self.upSlot(self.keyFocusIndex()); ev.accept()
+		elif ev.key()==Qt.Key_Down: self.downSlot(self.keyFocusIndex())
+		elif ev.key()==Qt.Key_Delete:
+			self.killSlot(self.keyFocusIndex())
+			ev.accept()
+		elif ev.key()==Qt.Key_Backspace:
+			self.killSlot(self.keyFocusIndex()-1)
+			ev.accept()
+		elif ev.key()==Qt.Key_Enter or ev.key()==Qt.Key_Return:
+			self.newSlot(self.keyFocusIndex())
+			ev.accept();
 	def newSlot(self,i):
 		seq=self.getter();
 		seq.insert(i,_fundamentalInitValues.get(self.itemType,self.itemType()))
 		self.setter(seq)
 		self.rebuild()
+		if len(seq)>0: self.form.itemAt(i,QFormLayout.FieldRole).widget().setFocus()
 	def killSlot(self,i):
-		seq=self.getter(); assert(i<len(seq)); del seq[i]; self.setter(seq)
+		seq=self.getter();
+		if i<0: return
+		assert(i<len(seq)); del seq[i]; self.setter(seq)
 		self.refreshEvent()
+		if len(seq)>0: self.form.itemAt(max(0,i if i<len(seq)-1 else i-1),QFormLayout.FieldRole).widget().setFocus()
 	def upSlot(self,i):
+		if i==0: return
 		seq=self.getter(); assert(i<len(seq));
 		prev,curr=seq[i-1:i+1];
 		seq[i-1],seq[i]=curr,prev;
 		self.setter(seq)
 		self.refreshEvent(forceIx=i-1)
 	def downSlot(self,i):
-		seq=self.getter(); assert(i<len(seq)-1);
+		seq=self.getter();
+		if i==len(seq)-1: return
+		assert(i<len(seq)-1);
 		curr,nxt=seq[i:i+2]; seq[i],seq[i+1]=nxt,curr; self.setter(seq)
 		self.refreshEvent(forceIx=i+1)
 	def rebuild(self):
 		currSeq=self.getter()
+		#print 'aaa',len(currSeq)
 		# clear everything
 		rows=self.form.count()/2
 		for row in range(rows):
@@ -1206,10 +1275,16 @@ class SeqFundamentalEditor(QFrame):
 			return
 		class ItemGetter():
 			def __init__(self,getter,index): self.getter,self.index=getter,index
-			def __call__(self): return self.getter()[self.index]
+			def __call__(self):
+				try:
+					return self.getter()[self.index]
+				except IndexError: return None
 		class ItemSetter():
 			def __init__(self,getter,setter,index): self.getter,self.setter,self.index=getter,setter,index
-			def __call__(self,val): seq=self.getter(); seq[self.index]=val; self.setter(seq)
+			def __call__(self,val):
+				try:
+					seq=self.getter(); seq[self.index]=val; self.setter(seq)
+				except IndexError: pass
 		for i,item in enumerate(currSeq):
 			widget=Klass(self,ItemGetter(self.getter,i),ItemSetter(self.getter,self.setter,i)) #proxy,'value')
 			self.form.insertRow(i,'%d. '%i,widget)
@@ -1219,6 +1294,7 @@ class SeqFundamentalEditor(QFrame):
 		self.refreshEvent(dontRebuild=True) # avoid infinite recursion it the length would change meanwhile
 	def refreshEvent(self,dontRebuild=False,forceIx=-1):
 		currSeq=self.getter()
+		#print 'bbb',len(currSeq)
 		if len(currSeq)!=self.form.count()/2: #rowCount():
 			if dontRebuild: return # length changed behind our back, just pretend nothing happened and update next time instead
 			self.rebuild()
