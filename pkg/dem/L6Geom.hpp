@@ -17,11 +17,11 @@ struct L6Geom: public CGeom{
 	// set trsf with locX, and orient y and z arbitrarily
 	void setInitialLocalCoords(const Vector3r& locX);
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR(L6Geom,CGeom,"Geometry of particles in contact, defining relative velocities.",
-		((Vector3r,vel,Vector3r::Zero(),,"Relative displacement rate in local coordinates, defined by :yref:`CGeom.node`"))
-		((Vector3r,angVel,Vector3r::Zero(),,"Relative rotation rate in local coordinates"))
+		((Vector3r,vel,Vector3r::Zero(),AttrTrait<>().velUnit(),"Relative displacement rate in local coordinates, defined by :yref:`CGeom.node`"))
+		((Vector3r,angVel,Vector3r::Zero(),AttrTrait<>().angVelUnit(),"Relative rotation rate in local coordinates"))
 		((Real,uN,NaN,,"Normal displacement, distace of separation of particles (mathematically equal to integral of vel[0], but given here for numerically more stable results, as this component can be usually computed directly)."))
-		((Vector2r,lens,Vector2r::Zero(),,"Hint for Gp2 functor on how to distribute material stiffnesses according to lengths on both sides of the contact; their sum should be equal to the initial contact length."))
-		((Real,contA,NaN,,"(Fictious) contact area, used by Gp2 functor to compute stiffness."))
+		((Vector2r,lens,Vector2r::Zero(),AttrTrait<>().lenUnit(),"Hint for Gp2 functor on how to distribute material stiffnesses according to lengths on both sides of the contact; their sum should be equal to the initial contact length."))
+		((Real,contA,NaN,AttrTrait<>().areaUnit(),"(Fictious) contact area, used by Gp2 functor to compute stiffness."))
 		((Matrix3r,trsf,Matrix3r::Identity(),,"Transformation (rotation) from global to local coordinates; only used internally, and is synchronized with :yref:`Node.ori` automatically. If the algorithm works with pure quaternions at some point (it is not stable now), can be removed safely."))
 		, /*ctor*/ createIndex();
 	);

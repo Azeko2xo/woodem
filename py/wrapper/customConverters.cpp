@@ -239,6 +239,7 @@ BOOST_PYTHON_MODULE(_customConverters){
 	#define PAIR_TUPLE_CONV(T) custom_CxxPair_from_PyTuple<T>(); to_python_converter<T,custom_CxxPair_to_PyTuple<T>>();
 	typedef std::pair<int,string> pairIntString;
 	typedef std::pair<string,Real> pairStringReal;
+	typedef vector<std::pair<string,Real>> vecPairStringReal;
 	PAIR_TUPLE_CONV(pairIntString);
 	PAIR_TUPLE_CONV(pairStringReal);
 
@@ -275,6 +276,7 @@ BOOST_PYTHON_MODULE(_customConverters){
 		VECTOR_SEQ_CONV(std::string);
 		VECTOR_SEQ_CONV(pairIntString);
 		VECTOR_SEQ_CONV(pairStringReal);
+		VECTOR_SEQ_CONV(vecPairStringReal); // vector<vector<pair<string,Real>>>
 		// VECTOR_SEQ_CONV(shared_ptr<Node>);
 		custom_vector_from_seq<shared_ptr<Node> >(); // allow assignments vector<shared_ptr<Node> >=[list of nodes]
 		VECTOR_SEQ_CONV(shared_ptr<NodeData>);

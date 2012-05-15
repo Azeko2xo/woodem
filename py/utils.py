@@ -73,7 +73,6 @@ def loadVars(mark=None):
 			if m.startswith('pickledPythonVariablesDictionary'):
 				loadVars(m[len('pickledPythonVariableDictionary')+1:])
 
-
 def spherePWaveDt(radius,density,young):
 	r"""Compute P-wave critical timestep for a single (presumably representative) sphere, using formula for P-Wave propagation speed $\Delta t_{c}=\frac{r}{\sqrt{E/\rho}}$.
 	If you want to compute minimum critical timestep for all spheres in the simulation, use :yref:`yade.utils.PWaveTimeStep` instead.

@@ -22,7 +22,7 @@ struct Roro: public Preprocessor {
 
 		((Real,gap,.04,AttrTrait<>().lenUnit().startGroup("Advanced"),"Gap between cylinders"))
 		((Real,angVel,10.,AttrTrait<>().angVelUnit(),"Angular velocity of cylinders [rot/sec]"))
-		((vector<Vector2r>,psd,/*set in the ctor*/,AttrTrait<>().lenUnit().prefUnit("mm"),"Particle size distribution of generated particles: first value is diameter [mm], second value is cummulative percentage [%]"))
+		((vector<Vector2r>,psd,/*set in the ctor*/,AttrTrait<>().multiUnit().lenUnit().prefUnit("mm").fractionUnit().prefUnit("%"),"Particle size distribution of generated particles: first value is diameter [mm], second value is cummulative percentage [%]"))
 		//((Real,adhesion,,,"Adhesion coefficient between particles"))
 		((shared_ptr<FrictMat>,material,make_shared<FrictMat>(),,"Material of particles"))
 		, /*ctor*/

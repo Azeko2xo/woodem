@@ -102,7 +102,7 @@ struct Node: public Serializable, public Indexable{
 	static void pySetData(const shared_ptr<Node>& n, const shared_ptr<NodeDataSubclass>& d){ n->setData<NodeDataSubclass>(d); }
 
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Node,Serializable,"A point in space, referenced by other objects.",
-		((Vector3r,pos,Vector3r::Zero(),,"Position in space (cartesian coordinates)."))
+		((Vector3r,pos,Vector3r::Zero(),AttrTrait<>().lenUnit(),"Position in space (cartesian coordinates)."))
 		((Quaternionr,ori,Quaternionr::Identity(),,"Orientation of this node."))
 		((vector<shared_ptr<NodeData> >,data,,,"Array of data, ordered in globally consistent manner."))
 		#ifdef YADE_OPENGL

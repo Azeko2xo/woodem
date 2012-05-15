@@ -151,6 +151,7 @@ class AttrEditor_Float(AttrEditor,QLineEdit):
 			self.trySetter(v)
 		except ValueError: self.refresh()
 	def multiplierChanged(self,convSpec):
+		if isinstance(self.multiplier,tuple): raise RuntimeError("Float cannot have multiple units.")
 		if self.multiplier: self.setToolTip(QString.fromUtf8(u'Converting %s (× %g)'%(convSpec,self.multiplier)))
 		else: self.setToolTip('')
 		self.refresh()
@@ -266,6 +267,7 @@ class AttrEditor_FloatRange(AttrEditor,QFrame):
 		self.trySetter(value)
 	def setFocus(self): self.slider.setFocus()
 	def multiplierChanged(self,convSpec):
+		if isinstance(self.multiplier,tuple): raise RuntimeError("Float range cannot have multiple units.")
 		log.debug("New multiplier is "+str(self.multiplier))
 		if self.multiplier: self.setToolTip("Unit-conversion %s: factor %g"%(convSpec,self.multiplier))
 		else: self.setToolTip()
@@ -305,7 +307,7 @@ class AttrEditor_Choice(AttrEditor,QFrame):
 		self.trySetter(val)
 	def setFocus(self): self.combo.setFocus()
 	def multiplierChanged(self,convSpec):
-		if self.multiplier: self.setToolTip("Unit-conversion %s: factor %g"%(convSpec,self.multiplier))
+		if isinstance(self.multiplier,tuple): raise RuntimeError("Float choice cannot have multiple units.")
 		else: self.setToolTip()
 		for i,c in enumerate(self.choices):
 			val=c if self.justValues else c[1]
@@ -425,7 +427,8 @@ class AttrEditor_MatrixX(AttrEditor,QFrame):
 		for row,col in itertools.product(range(self.rows),range(self.cols)):
 			w=self.grid.itemAtPosition(row,col).widget()
 			v=val[self.idxConverter(row,col)]
-			if self.multiplier: v*=self.multiplier
+			mult=(self.multiplier[col] if isinstance(self.multiplier,tuple) else self.multiplier)
+			if mult!=None: v*=mult
 			w.setTextStable(str(v))
 			#if True or not w.hasFocus: w.home(False) # make the left-most part visible, if the text is wider than the widget
 	def update(self):
@@ -435,14 +438,15 @@ class AttrEditor_MatrixX(AttrEditor,QFrame):
 				w=self.grid.itemAtPosition(row,col).widget()
 				if w.isModified():
 					v=float(w.text())
-					if self.multiplier: v/=self.multiplier
+					if self.multiplier:
+						v/=(self.multiplier[col] if isinstance(self.multiplier,tuple) else self.multiplier)
 					val[self.idxConverter(row,col)]=v
 			logging.debug('setting'+str(val))
 			self.trySetter(val)
 		except ValueError: self.refresh()
 	def setFocus(self): self.grid.itemAtPosition(0,0).widget().setFocus()
 	def multiplierChanged(self,convSpec):
-		if self.multiplier: self.setToolTip("Unit-conversion %s: factor %g"%(convSpec,self.multiplier))
+		if self.multiplier: self.setToolTip(convSpec)
 		else: self.setToolTip('')
 		logging.debug("Multiplier changed to "+str(self.multiplier))
 		self.refresh()
@@ -563,13 +567,28 @@ class SerializableEditor(QFrame):
 				return id(getattr(self.containingClass,self.name))
 			except AttributeError: return None
 		def unitChanged(self):
-			c=self.widgets['unit']
-			ix=c.currentIndex()
-			w=self.widgets['value']
-			if ix==0: # base unit:
-				w.multiplier=None
-			else: w.multiplier=self.trait.altUnits[ix-1][1]
-			w.multiplierChanged(u'%s → %s'%(self.trait.altUnits[ix-1][0].decode('utf-8') if ix>0 else '',self.trait.unit.decode('utf-8')))
+			c=self.unitLayout
+			if not self.trait.multiUnit:
+				# print self.name,self.containingClass.__name__,self.trait.unit
+				ix=c.itemAt(0).widget().currentIndex()
+				w=self.widgets['value']
+				if ix==0: # base unit:
+					w.multiplier=None
+					w.multiplierChanged('')
+				else:
+					w.multiplier=self.trait.altUnits[0][ix-1][1]
+					w.multiplierChanged(u'%s × %g = %s'%(self.trait.altUnits[0][ix-1][0].decode('utf-8') if ix>0 else '',w.multiplier,self.trait.unit[0].decode('utf-8')))
+			else: # multiplier is a tuple applied to each column separately
+				mult,msg=[],[]
+				for i in range(len(self.trait.unit)):
+					if self.trait.altUnits[i]: # not empty, there is a combo box
+						ix=c.itemAt(i).widget().currentIndex()
+						mult.append(None if ix==0 else self.trait.altUnits[i][ix-1][1])
+						if mult[-1]!=None: msg.append(u'%s × %g = %s'%(self.trait.altUnits[i][ix-1][0].decode('utf-8') if ix>0 else '-',mult[-1],self.trait.unit[i].decode('utf-8')))
+						else: msg.append('')
+				w=self.widgets['value']
+				w.multiplier=tuple(mult)
+				w.multiplierChanged('<br>'.join(msg))
 		def toggleChecked(self,checked):
 			self.widgets['value'].setEnabled(not checked)
 			self.widgets['label'].setEnabled(not checked)
@@ -876,24 +895,30 @@ class SerializableEditor(QFrame):
 			if entry.trait.readonly: ch.setEnabled(False)
 			ch.clicked.connect(entry.toggleChecked)
 			if entry.trait.unit:
-				alt=entry.trait.altUnits
-				if alt:
-					w=QComboBox(self)
-					entry.widgets['unit']=w
-					w.addItem(entry.trait.unit.decode('utf-8'))
-					w.activated.connect(entry.unitChanged)
-					for unit,multiplier in alt: w.addItem(unit.decode('utf-8'))
-					if entry.trait.prefUnit: # set preferred unit right away
-						if entry.trait.prefUnit==entry.trait.unit: pass # this is nonsense, but harmless
-						else:
-							ii=[i for i in range(len(entry.trait.altUnits)) if alt[i][0]==entry.trait.prefUnit]
-							if len(ii)!=1: raise ValueError(str(self.name)+'.'+str(entry.name)+': prefUnit "'+str(entry.trait.prefUnit)+'" does not match any defined unit ('+str(entry.trait.unit)+"; "+','.join([a[0] for a in alt])+')');
-							w.setCurrentIndex(ii[0]+1)
-							entry.unitChanged()
-				else:
-					w=QLabel(entry.trait.unit,self)
-					entry.widgets['unit']=w
-			else: entry.widgets['unit']=QLabel(u'−',self) if (self.hasUnits and entry.widget.__class__!=SerializableEditor) else QFrame() # avoid NaN widgets
+				# frame for all unit-manipulating boxes
+				entry.widgets['unit']=QFrame()
+				unitLay=QHBoxLayout(entry.widgets['unit'])
+				entry.unitLayout=unitLay
+				unitLay.setSpacing(0); unitLay.setMargin(0)
+				entry.widgets['unit'].setLayout(unitLay)
+				assert(len(entry.trait.unit)==len(entry.trait.altUnits))
+				assert(len(entry.trait.unit)==len(entry.trait.prefUnit))
+				for unit,pref,alt in zip(entry.trait.unit,entry.trait.prefUnit,entry.trait.altUnits):
+					if alt: # there are alternative units, we give choice therefore
+						w=QComboBox(self)
+						w.addItem(unit.decode('utf-8'))
+						w.activated.connect(entry.unitChanged)
+						for u,mult in alt: w.addItem(u.decode('utf-8'))
+						if unit!=pref[0]: # set preferred unit right away
+							# this is checked in c++, should never fail
+							ii=[i for i in range(len(alt)) if alt[i][0]==pref[0]][0]
+							w.setCurrentIndex(ii+1)
+					else:
+						w=QLabel(unit,self)
+					unitLay.addWidget(w)
+				entry.unitChanged() # postpone calling this at the very end
+			#if self.hasUnits and entry.widget.__class__!=SerializableEditor: entry.widgets['unit']=QLabel(u'−',self)
+			##else: entry.widgets['unit']=QLabel(u'−',self) if (self.hasUnits and entry.widget.__class__!=SerializableEditor) else QFrame() # avoid NaN widgets
 			self.entryGroups[entry.groupNo].entries.append(entry)
 		for i,g in enumerate(self.entryGroups):
 			hide=i>0
@@ -909,10 +934,10 @@ class SerializableEditor(QFrame):
 					entry.widgets['check'].setFocusPolicy(Qt.ClickFocus)
 					# entry.widgets['label'].setFocusPolicy(Qt.NoFocus) # default
 					maxLabelWd=max(maxLabelWd,entry.widgets['label'].width())
-					if entry.widgets['value']:
+					if 'value' in entry.widgets:
 						lay.addWidget(entry.widgets['value'],row,gridCols['value'])
 						# entry.widgets['value'].setFocusPolicy(Qt.StrongFocus) # default
-					if entry.widgets['unit']:
+					if 'unit' in entry.widgets:
 						lay.addWidget(entry.widgets['unit'],row,gridCols['unit'])
 						entry.widgets['unit'].setFocusPolicy(Qt.ClickFocus) # skip when keyboard-navigating
 					lay.setRowStretch(row,2)

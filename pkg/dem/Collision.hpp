@@ -9,8 +9,8 @@
 
 class Aabb: public Bound{
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR(Aabb,Bound,"Axis-aligned bounding box, for use with :yref:`InsertionSortCollider`.",/*attrs*/
-		((vector<Vector3r>,nodeLastPos,,Attr::readonly,"Node positions when bbox was last updated."))
-		((Real,maxD2,0,Attr::readonly,"Maximum allowed squared distance for nodal displacements (i.e. how much was the bbox enlarged last time)"))
+		((vector<Vector3r>,nodeLastPos,,AttrTrait<>(Attr::readonly).lenUnit(),"Node positions when bbox was last updated."))
+		((Real,maxD2,0,AttrTrait<>(Attr::readonly).unit("m²").noGui(),"Maximum allowed squared distance for nodal displacements (i.e. how much was the bbox enlarged last time)"))
 		,
 		/*ctor*/createIndex();
 	);

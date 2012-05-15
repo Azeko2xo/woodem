@@ -128,13 +128,13 @@ public:
 
 	bool isAspherical() const{ return !((inertia[0]==inertia[1] && inertia[1]==inertia[2])); }
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(DemData,NodeData,"Dynamic state of node.",
-		((Vector3r,vel,Vector3r::Zero(),,"Linear velocity."))
-		((Vector3r,angVel,Vector3r::Zero(),,"Angular velocity."))
-		((Real,mass,0,,"Associated mass."))
-		((Vector3r,inertia,Vector3r::Zero(),,"Inertia along local (principal) axes"))
-		((Vector3r,force,Vector3r::Zero(),,"Applied force"))
-		((Vector3r,torque,Vector3r::Zero(),,"Applied torque"))
-		((Vector3r,angMom,Vector3r::Zero(),,"Angular momentum (used with the aspherical integrator)"))
+		((Vector3r,vel,Vector3r::Zero(),AttrTrait<>().velUnit(),"Linear velocity."))
+		((Vector3r,angVel,Vector3r::Zero(),AttrTrait<>().angVelUnit(),"Angular velocity."))
+		((Real,mass,0,AttrTrait<>().massUnit(),"Associated mass."))
+		((Vector3r,inertia,Vector3r::Zero(),AttrTrait<>().inertiaUnit(),"Inertia along local (principal) axes"))
+		((Vector3r,force,Vector3r::Zero(),AttrTrait<>().forceUnit(),"Applied force"))
+		((Vector3r,torque,Vector3r::Zero(),AttrTrait<>().torqueUnit(),"Applied torque"))
+		((Vector3r,angMom,Vector3r::Zero(),AttrTrait<>().angMomUnit(),"Angular momentum (used with the aspherical integrator)"))
 		((unsigned,flags,0,Attr::readonly,"Bit flags storing blocked DOFs, clump status"))
 		((long,linIx,-1,Attr::hidden,"Index within O.dem.nodes (for efficient removal)"))
 		((int,parCount,0,Attr::noGui,"Number of particles associated with this node (to know whether a node should be deleted when a particle is)"))
@@ -186,8 +186,8 @@ REGISTER_SERIALIZABLE(CGeom);
 class CPhys: public Serializable, public Indexable{
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(CPhys,Serializable,"Physical properties of contact.",
 		/*attrs*/
-		((Vector3r,force,Vector3r::Zero(),,"Force applied on the first particle in the contact"))
-		((Vector3r,torque,Vector3r::Zero(),,"Torque applied on the first particle in the contact"))
+		((Vector3r,force,Vector3r::Zero(),AttrTrait<>().forceUnit(),"Force applied on the first particle in the contact"))
+		((Vector3r,torque,Vector3r::Zero(),AttrTrait<>().torqueUnit(),"Torque applied on the first particle in the contact"))
 		,/*ctor*/ createIndex(); ,/*py*/YADE_PY_TOPINDEXABLE(CPhys)
 	);
 	REGISTER_INDEX_COUNTER(CPhys);
@@ -283,8 +283,8 @@ REGISTER_SERIALIZABLE(Material);
 class Bound: public Serializable, public Indexable{
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Bound,Serializable,"Object bounding the associated body.",
 		// ((Vector3r,color,Vector3r(1,1,1),,"Color for rendering this object"))
-		((Vector3r,min,Vector3r(NaN,NaN,NaN),(Attr::noSave|Attr::readonly),"Lower corner of box containing this bound"))
-		((Vector3r,max,Vector3r(NaN,NaN,NaN),(Attr::noSave|Attr::readonly),"Lower corner of box containing this bound"))
+		((Vector3r,min,Vector3r(NaN,NaN,NaN),AttrTrait<>(Attr::noSave|Attr::readonly).lenUnit(),"Lower corner of box containing this bound"))
+		((Vector3r,max,Vector3r(NaN,NaN,NaN),AttrTrait<>(Attr::noSave|Attr::readonly).lenUnit(),"Lower corner of box containing this bound"))
 		,/* ctor*/,	/*py*/ YADE_PY_TOPINDEXABLE(Bound)
 	);
 	REGISTER_INDEX_COUNTER(Bound);
