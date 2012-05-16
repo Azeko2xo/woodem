@@ -76,6 +76,9 @@ __all__=deprecatedTypes.keys()+['O']
 # fake miniEigen and wrapper being in yade itself
 from miniEigen import *
 from wrapper import *
+
+import _monkey # adds methods to c++ classes
+
 # import to separate namespace to be able to call dir(miniEigen) and dir(wrapper) below
 import wrapper 
 # out-of-class docstrings for some classes

@@ -211,6 +211,13 @@ std::string vectorRepr(const vector<std::string>& v){ std::string ret("["); for(
 bool operator<(const Vector3r& a, const Vector3r& b){ return a[0]<b[0]; }
 #endif
 
+// this defines getstate and setstate methods to support pickling on linear sequences (should work for std::list as well)
+template<class T>
+struct VectorPickle: py::pickle_suite{
+	static py::list getstate(const T& tt){ py::list ret; for(const typename T::value_type& t: tt) ret.append(t); return ret; }
+	static void setstate(T& tt, py::list state){ tt.clear(); for(int i=0;i<py::len(state);i++) tt.push_back(py::extract<typename T::value_type>(state[i])); }
+};
+
 
 BOOST_PYTHON_MODULE(_customConverters){
 
@@ -256,7 +263,8 @@ BOOST_PYTHON_MODULE(_customConverters){
 	// using indexing suite (version 1; never found out how is the allegedly superior version 2
 	// supposed to be used):
 	// http://stackoverflow.com/questions/6157409/stdvector-to-boostpythonlist
-	py::class_<std::vector<shared_ptr<Node> > >("NodeList").def(py::vector_indexing_suite<std::vector<shared_ptr<Node> >, /*NoProxy, shared_ptr provides proxy semantics already */true>());
+
+	py::class_<std::vector<shared_ptr<Node> > >("NodeList").def(py::vector_indexing_suite<std::vector<shared_ptr<Node> >, /*NoProxy, shared_ptr provides proxy semantics already */true>()).def_pickle(VectorPickle<vector<shared_ptr<Node>>>());
 
 	// register 2-way conversion between c++ vector and python homogeneous sequence (list/tuple) of corresponding type
 	#define VECTOR_SEQ_CONV(Type) custom_vector_from_seq<Type>();  to_python_converter<std::vector<Type>, custom_vector_to_list<Type> >();
