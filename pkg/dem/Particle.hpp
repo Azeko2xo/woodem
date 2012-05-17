@@ -48,6 +48,7 @@ struct Particle: public Serializable{
 	// getRefPos creates refPos if it does not exist, and initializes to current pos
 	Vector3r& getRefPos(); void setRefPos(const Vector3r&);
 	std::vector<shared_ptr<Node> > getNodes();
+	virtual string pyStr() const { return "<Particle #"+to_string(id)+" @ "+lexical_cast<string>(this)+">"; }
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Particle,Serializable,"Particle in DEM",
 		((id_t,id,-1,Attr::readonly,"Index in DemField::particles"))
 		((uint,mask,1,,"Bitmask for collision detection and other (group 1 by default)"))
@@ -222,6 +223,7 @@ struct Contact: public Serializable{
 	Particle::id_t pyId1() const;
 	Particle::id_t pyId2() const;
 	Vector2i pyIds() const;
+	virtual string pyStr() const { return "<Contact ##"+to_string(pyId1())+"+"+to_string(pyId2())+" @ "+lexical_cast<string>(this)+">"; }
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Contact,Serializable,"Contact in DEM",
 		((shared_ptr<CGeom>,geom,,Attr::readonly,"Contact geometry"))
 		((shared_ptr<CPhys>,phys,,Attr::readonly,"Physical properties of contact"))

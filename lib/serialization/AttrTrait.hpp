@@ -4,7 +4,7 @@
 
 // attribute flags
 namespace yade{
-	#define ATTR_FLAGS_VALUES noSave=1, readonly=2, triggerPostLoad=4, hidden=8, noResize=16, noGui=32, pyByRef=64, static_=128, multiUnit=256
+	#define ATTR_FLAGS_VALUES noSave=1, readonly=2, triggerPostLoad=4, hidden=8, noResize=16, noGui=32, pyByRef=64, static_=128, multiUnit=256, noDump=512
 	// this will disappear later
 	namespace Attr { enum flags { ATTR_FLAGS_VALUES }; }
 	// prohibit copies, only references should be passed around
@@ -39,6 +39,7 @@ namespace yade{
 			ATTR_FLAG_DO(pyByRef,isPyByRef)
 			ATTR_FLAG_DO(static_,isStatic)
 			ATTR_FLAG_DO(multiUnit,isMultiUnit)
+			ATTR_FLAG_DO(noDump,isNoDump)
 		#undef ATTR_FLAG_DO
 		py::object pyGetIni()const{ return _ini(); }
 		py::object pyGetRange()const{ return _range(); }
@@ -63,6 +64,7 @@ namespace yade{
 				.add_property("pyByRef",&AttrTraitBase::isPyByRef)
 				.add_property("static",&AttrTraitBase::isStatic)
 				.add_property("multiUnit",&AttrTraitBase::isMultiUnit)
+				.add_property("noDump",&AttrTraitBase::isNoDump)
 				.def_readonly("_flags",&AttrTraitBase::_flags)
 				// non-flag attributes
 				.def_readonly("doc",&AttrTraitBase::_doc)
@@ -94,6 +96,7 @@ namespace yade{
 			ATTR_FLAG_DO(pyByRef,isPyByRef)
 			ATTR_FLAG_DO(static_,isStatic)
 			ATTR_FLAG_DO(multiUnit,isMultiUnit)
+			ATTR_FLAG_DO(noDump,isNoDump)
 		#undef ATTR_FLAG_DO
 		AttrTrait& name(const string& s){ _name=s; return *this; }
 		AttrTrait& doc(const string& s){ _doc=s; return *this; }

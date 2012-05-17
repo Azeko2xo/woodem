@@ -23,9 +23,6 @@ class ScalarRange;
 #endif
 
 class Scene: public Serializable{
-	// http://www.boost.org/doc/libs/1_49_0/libs/smart_ptr/sp_techniques.html#static
-	struct null_deleter{void operator()(void const *)const{}};
-
 	public:
 		// initialize tags (author, date, time)
 		void fillDefaultTags();
@@ -69,7 +66,8 @@ class Scene: public Serializable{
 			void initCl(); // initialize OpenCL using clDev
 		#endif
 
-		void save(const string& out);
+		// different from generic Serialization::save, called from _monkey.py indirectly
+		void _boostSave_special(const string& out);
 		void saveTmp(const string& slot, bool quiet=true);
 
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Scene,Serializable,"Object comprising the whole simulation.",
@@ -103,7 +101,7 @@ class Scene: public Serializable{
 		((vector<shared_ptr<Field>>,fields,,Attr::triggerPostLoad,"Defined simulation fields."))
 		((shared_ptr<Cell>,cell,new Cell,Attr::hidden,"Information on periodicity; only should be used if Scene::isPeriodic."))
 		((vector<shared_ptr<DisplayParameters>>,dispParams,,Attr::hidden,"'hash maps' of display parameters (since yade::serialization had no support for maps, emulate it via vector of strings in format key=value)"))
-		((std::string,lastSave,,Attr::readonly,"Name under which the simulation was saved for the last time."))
+		((std::string,lastSave,,Attr::noGui,"Name under which the simulation was saved for the last time; used for reloading the simulation. Updated automatically, don't change."))
 
 		#if YADE_OPENGL
 			((vector<shared_ptr<ScalarRange>>,ranges,,,"Scalar ranges to be rendered on the display as colormaps"))
@@ -127,7 +125,7 @@ class Scene: public Serializable{
 		#ifdef YADE_OPENCL
 			.def("ensureCl",&Scene::ensureCl,"[for debugging] Initialize the OpenCL subsystem (this is done by engines using OpenCL, but trying to do so in advance might catch errors earlier)")
 		#endif
-		.def("save",&Scene::save,(py::arg("out")),"Save into a file (loadable with O.load)").def("saveTmp",&Scene::saveTmp,(py::arg("slot")="",py::arg("quiet")=false),"Save into a temporary slot inside Omega (loadable with O.loadTmp)")
+		.def("_boostSave_special",&Scene::_boostSave_special,(py::arg("out")),"Save into a file (loadable with O.load)").def("saveTmp",&Scene::saveTmp,(py::arg("slot")="",py::arg("quiet")=false),"Save into a temporary slot inside Omega (loadable with O.loadTmp)")
 		;
 		// define nested class
 		boost::python::scope foo(_classObj);

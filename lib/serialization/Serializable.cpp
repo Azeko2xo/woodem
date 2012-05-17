@@ -13,9 +13,13 @@ static void Serializable_setAttr(py::object self, py::str name, py::object value
 }
 #endif
 
+vector<py::object> Serializable::derivedCxxClasses;
+py::list Serializable::getDerivedCxxClasses(){ py::list ret; for(py::object c: derivedCxxClasses) ret.append(c); return ret; }
+
 void Serializable::pyRegisterClass() {
 	checkPyClassRegistersItself("Serializable");
-	py::class_<Serializable, shared_ptr<Serializable>, boost::noncopyable >("Serializable")
+	py::class_<Serializable, shared_ptr<Serializable>, boost::noncopyable > classObj("Serializable");
+	classObj
 		.def("__str__",&Serializable::pyStr).def("__repr__",&Serializable::pyStr)
 		.def("dict",&Serializable::pyDict,"Return dictionary of attributes.")
 		.def("yattrs",&Serializable::pyYAttrs,"Return names of registered attributes.")
@@ -27,16 +31,22 @@ void Serializable::pyRegisterClass() {
 			.add_property("__safe_for_unpickling__",&Serializable::getClassName,"just define the attr, return some bogus data")
 			.add_property("__getstate_manages_dict__",&Serializable::getClassName,"just define the attr, return some bogus data")
 		#endif
+		.def("_boostSave",&Serializable::_boostSave,py::arg("filename"))
+		.def("_boostLoad",&Serializable::_boostLoad,py::arg("filename")).staticmethod("_boostLoad")
+		//.def_readonly("_derivedCxxClasses",&Serializable::derivedCxxClasses)
+		.add_static_property("_derivedCxxClasses",&Serializable::getDerivedCxxClasses)
+		.add_property("_cxxAddr",&Serializable::pyCxxAddr)
 		// setting attributes with protection of creating class instance mistakenly
 		#if 0
 			.def("__setattr__",&Serializable_setAttr)
 		#endif
 		// constructor with dictionary of attributes
-		.def("__init__",py::raw_constructor(Serializable_ctor_kwAttrs<Serializable>))
+		//.def("__init__",py::raw_constructor(Serializable_ctor_kwAttrs<Serializable>))
 		// comparison operators
 		.def(py::self == py::self)
 		.def(py::self != py::self)
 		;
+	//classObj.attr("_derivedCxxClasses")=Serializable::derivedCxxClasses;
 }
 
 void Serializable::checkPyClassRegistersItself(const std::string& thisClassName) const {

@@ -113,8 +113,8 @@ struct custom_OpenMPAccumulator_from_int{
 
 template<typename T>
 struct custom_vvector_to_list{
-	static PyObject* convert(const std::vector<std::vector<T> >& vv){
-		py::list ret; FOREACH(const std::vector<T>& v, vv){
+	static PyObject* convert(const vector<vector<T> >& vv){
+		py::list ret; FOREACH(const vector<T>& v, vv){
 			py::list ret2;
 			FOREACH(const T& e, v) ret2.append(e);
 			ret.append(ret2);
@@ -155,23 +155,23 @@ struct custom_CxxPair_from_PyTuple{
 /*** c++-list to python-list */
 template<typename containedType>
 struct custom_vector_to_list{
-	static PyObject* convert(const std::vector<containedType>& v){
+	static PyObject* convert(const vector<containedType>& v){
 		py::list ret; FOREACH(const containedType& e, v) ret.append(e);
 		return incref(ret.ptr());
 	}
 };
 template<typename containedType>
 struct custom_vector_from_seq{
-	custom_vector_from_seq(){ converter::registry::push_back(&convertible,&construct,type_id<std::vector<containedType> >()); }
+	custom_vector_from_seq(){ converter::registry::push_back(&convertible,&construct,type_id<vector<containedType> >()); }
 	static void* convertible(PyObject* obj_ptr){
 		// the second condition is important, for some reason otherwise there were attempted conversions of Body to list which failed afterwards.
 		if(!PySequence_Check(obj_ptr) || !PyObject_HasAttrString(obj_ptr,"__len__")) return 0;
 		return obj_ptr;
 	}
 	static void construct(PyObject* obj_ptr, converter::rvalue_from_python_stage1_data* data){
-		 void* storage=((converter::rvalue_from_python_storage<std::vector<containedType> >*)(data))->storage.bytes;
-		 new (storage) std::vector<containedType>();
-		 std::vector<containedType>* v=(std::vector<containedType>*)(storage);
+		 void* storage=((converter::rvalue_from_python_storage<vector<containedType> >*)(data))->storage.bytes;
+		 new (storage) vector<containedType>();
+		 vector<containedType>* v=(vector<containedType>*)(storage);
 		 int l=PySequence_Size(obj_ptr); if(l<0) abort(); /*std::cerr<<"l="<<l<<"; "<<typeid(containedType).name()<<std::endl;*/ v->reserve(l); for(int i=0; i<l; i++) { v->push_back(extract<containedType>(PySequence_GetItem(obj_ptr,i))); }
 		 data->convertible=storage;
 	}
@@ -203,9 +203,9 @@ struct custom_numpyBoost_to_py{
 
 #if 0
 template<typename T>
-std::string vectorRepr(const vector<T>& v){ std::string ret("["); for(size_t i=0; i<v.size(); i++) { if(i>0) ret+=","; ret+=lexical_cast<string>(v[i]); } return ret+"]"; }
+string vectorRepr(const vector<T>& v){ string ret("["); for(size_t i=0; i<v.size(); i++) { if(i>0) ret+=","; ret+=lexical_cast<string>(v[i]); } return ret+"]"; }
 template<>
-std::string vectorRepr(const vector<std::string>& v){ std::string ret("["); for(size_t i=0; i<v.size(); i++) { if(i>0) ret+=","; ret+="'"+lexical_cast<string>(v[i])+"'"; } return ret+"]"; }
+string vectorRepr(const vector<string>& v){ string ret("["); for(size_t i=0; i<v.size(); i++) { if(i>0) ret+=","; ret+="'"+lexical_cast<string>(v[i])+"'"; } return ret+"]"; }
 
 // is not picked up?
 bool operator<(const Vector3r& a, const Vector3r& b){ return a[0]<b[0]; }
@@ -224,15 +224,15 @@ BOOST_PYTHON_MODULE(_customConverters){
 	// syntax ??
 	//   http://language-binding.net/pyplusplus/documentation/indexing_suite_v2.html.html#container_proxy
 	//   http://www.mail-archive.com/cplusplus-sig@python.org/msg00862.html
-	//class_<indexing::container_proxy<std::vector<string> >,bases<class_<std::vector<string> > > >("vecStr").def(indexing::container_suite<indexing::container_proxy<std::vector<string> > >());
-	//class_<std::vector<string> >("vecStr").def(indexing::container_suite<std::vector<string> >());
+	//class_<indexing::container_proxy<vector<string> >,bases<class_<vector<string> > > >("vecStr").def(indexing::container_suite<indexing::container_proxy<vector<string> > >());
+	//class_<vector<string> >("vecStr").def(indexing::container_suite<vector<string> >());
 
 	#if 0
-		custom_vector_from_seq<string>(); class_<std::vector<string> >("vector_" "string").def(indexing::container_suite<std::vector<string> >()).def("__repr__",&vectorRepr<string>);
-		custom_vector_from_seq<int>(); class_<std::vector<int> >("vector_" "int").def(indexing::container_suite<std::vector<int> >()).def("__repr__",&vectorRepr<int>);
-		custom_vector_from_seq<Real>(); class_<std::vector<Real> >("vector_" "Real").def(indexing::container_suite<std::vector<Real> >()).def("__repr__",&vectorRepr<Real>);
+		custom_vector_from_seq<string>(); class_<vector<string> >("vector_" "string").def(indexing::container_suite<vector<string> >()).def("__repr__",&vectorRepr<string>);
+		custom_vector_from_seq<int>(); class_<vector<int> >("vector_" "int").def(indexing::container_suite<vector<int> >()).def("__repr__",&vectorRepr<int>);
+		custom_vector_from_seq<Real>(); class_<vector<Real> >("vector_" "Real").def(indexing::container_suite<vector<Real> >()).def("__repr__",&vectorRepr<Real>);
 		// this needs operator< for Vector3r (defined above, but not picked up for some reason)
-		custom_vector_from_seq<Vector3r>(); class_<std::vector<Vector3r> >("vector_" "Vector3r").def(indexing::container_suite<std::vector<Vector3r> >()).def("__repr__",&vectorRepr<Vector3r>);
+		custom_vector_from_seq<Vector3r>(); class_<vector<Vector3r> >("vector_" "Vector3r").def(indexing::container_suite<vector<Vector3r> >()).def("__repr__",&vectorRepr<Vector3r>);
 	#endif
 
 	custom_Se3r_from_seq(); to_python_converter<Se3r,custom_se3_to_tuple>();
@@ -250,13 +250,16 @@ BOOST_PYTHON_MODULE(_customConverters){
 	PAIR_TUPLE_CONV(pairIntString);
 	PAIR_TUPLE_CONV(pairStringReal);
 
-	// StrArrayMap (typedef for std::map<std::string,numpy_boost>) → python dictionary
+	// StrArrayMap (typedef for std::map<string,numpy_boost>) → python dictionary
 	//custom_StrArrayMap_to_dict();
 	// register from-python converter and to-python converter
 
-	to_python_converter<std::vector<std::vector<std::string> >,custom_vvector_to_list<std::string> >();
+	to_python_converter<vector<vector<string> >,custom_vvector_to_list<string> >();
 	//to_python_converter<std::list<shared_ptr<Functor> >, custom_list_to_list<shared_ptr<Functor> > >();
 	//to_python_converter<std::list<shared_ptr<Functor> >, custom_list_to_list<shared_ptr<Functor> > >();
+
+	// this somehow did not work really...
+	//to_python_converter<vector<py::object>,custom_vector_to_list<py::object>>();
 
 	// don't return array of nodes as lists, each DemField.nodes[0] operation must create the list first,
 	// pick the element, and throw it away; since node lists are typically long, create a custom class
@@ -264,10 +267,10 @@ BOOST_PYTHON_MODULE(_customConverters){
 	// supposed to be used):
 	// http://stackoverflow.com/questions/6157409/stdvector-to-boostpythonlist
 
-	py::class_<std::vector<shared_ptr<Node> > >("NodeList").def(py::vector_indexing_suite<std::vector<shared_ptr<Node> >, /*NoProxy, shared_ptr provides proxy semantics already */true>()).def_pickle(VectorPickle<vector<shared_ptr<Node>>>());
+	py::class_<vector<shared_ptr<Node> > >("NodeList").def(py::vector_indexing_suite<vector<shared_ptr<Node> >, /*NoProxy, shared_ptr provides proxy semantics already */true>()).def_pickle(VectorPickle<vector<shared_ptr<Node>>>());
 
 	// register 2-way conversion between c++ vector and python homogeneous sequence (list/tuple) of corresponding type
-	#define VECTOR_SEQ_CONV(Type) custom_vector_from_seq<Type>();  to_python_converter<std::vector<Type>, custom_vector_to_list<Type> >();
+	#define VECTOR_SEQ_CONV(Type) custom_vector_from_seq<Type>();  to_python_converter<vector<Type>, custom_vector_to_list<Type> >();
 		VECTOR_SEQ_CONV(int);
 		VECTOR_SEQ_CONV(bool);
 		VECTOR_SEQ_CONV(Real);
@@ -281,7 +284,7 @@ BOOST_PYTHON_MODULE(_customConverters){
 		VECTOR_SEQ_CONV(VectorXr);
 		VECTOR_SEQ_CONV(Matrix3r);
 		VECTOR_SEQ_CONV(Quaternionr);
-		VECTOR_SEQ_CONV(std::string);
+		VECTOR_SEQ_CONV(string);
 		VECTOR_SEQ_CONV(pairIntString);
 		VECTOR_SEQ_CONV(pairStringReal);
 		VECTOR_SEQ_CONV(vecPairStringReal); // vector<vector<pair<string,Real>>>

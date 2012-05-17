@@ -120,7 +120,6 @@ class pyOmega{
 		load(OMEGA.getScene()->lastSave,quiet);
 	}
 	void saveTmp(string mark="", bool quiet=false){
-		//save(":memory:"+mark,quiet);
 		assertScene();
 		OMEGA.getScene()->saveTmp(mark,quiet);
 	}
@@ -164,8 +163,7 @@ class pyOmega{
 
 	void save(std::string fileName,bool quiet=false){
 		assertScene();
-		//OMEGA.saveSimulation(fileName,quiet);
-		OMEGA.getScene()->save(fileName);
+		OMEGA.getScene()->_boostSave_special(fileName);
 	}
 	
 	vector<shared_ptr<Engine> > engines_get(void){assertScene(); Scene* scene=OMEGA.getScene().get(); return scene->_nextEngines.empty()?scene->engines:scene->_nextEngines;}

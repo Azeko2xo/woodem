@@ -145,48 +145,27 @@ def sphere(center,radius,fixed=False,wire=False,color=None,highlight=False,mater
 
 	:param Vector3 center: center
 	:param float radius: radius
-	:param Vector3-or-None: body's color, as normalized RGB; random color will be assigned if ``None`.
+	:param float-or-None: particle's color as float; random color will be assigned if ``None`.
 	:param material:
 		specify :yref:`Body.material`; different types are accepted:
-			* int: O.scene.materials[material] will be used; as a special case, if material==-1 and there is no shared materials defined, utils.defaultMaterial() will be assigned to O.materials[0]
-			* string: label of an existing material that will be used
 			* :yref:`Material` instance: this instance will be used
 			* callable: will be called without arguments; returned Material value will be used (Material factory object, if you like)
-	:param int mask: :yref:`Body.mask` for the body
+			* `None`: attempt to use material of last particle in `O.dem.par`; if that fails, use the result of :yref:`utils.defaultMaterial`.
+	:param int mask: :yref:`dem.Particle.mask` for the body
 
 	:return:
-		A Body instance with desired characteristics.
-
-
-	Creating default shared material if none exists neither is given::
-
-		>>> O.reset()
-		>>> from yade import utils
-		>>> len(O.materials)
-		0
-		>>> s0=utils.sphere([2,0,0],1)
-		>>> len(O.materials)
-		1
+		Particle instance with desired characteristics.
 
 	Instance of material can be given::
 
-		>>> s1=utils.sphere([0,0,0],1,wire=False,color=(0,1,0),material=ElastMat(young=30e9,density=2e3))
+		>>> from yade import utils
+		>>> s1=utils.sphere((0,0,0),1,wire=False,color=.7,material=ElastMat(young=30e9,density=2e3))
 		>>> s1.shape.wire
 		False
 		>>> s1.shape.color
-		Vector3(0,1,0)
+		0.7
 		>>> s1.mat.density
 		2000.0
-
-	Material can be given by label::
-
-		>>> m=FrictMat(young=10e9,poisson=.11,label='myMaterial'))
-		1
-		>>> s2=utils.sphere([0,0,2],1,material='myMaterial')
-		>>> s2.mat.label
-		'myMaterial'
-		>>> s2.mat.poisson
-		0.11
 
 	Finally, material can be a callable object (taking no arguments), which returns a Material instance.
 	Use this if you don't call this function directly (for instance, through yade.pack.randomDensePack), passing
@@ -197,8 +176,8 @@ def sphere(center,radius,fixed=False,wire=False,color=None,highlight=False,mater
 		>>> import random
 		>>> def matFactory(): return ElastMat(young=1e10*random.random(),density=1e3+1e3*random.random())
 		...
-		>>> s3=utils.sphere([0,2,0],1,material=matFactory)
-		>>> s4=utils.sphere([1,2,0],1,material=matFactory)
+		>>> s2=utils.sphere([0,2,0],1,material=matFactory)
+		>>> s3=utils.sphere([1,2,0],1,material=matFactory)
 
 	"""
 	b=Particle()

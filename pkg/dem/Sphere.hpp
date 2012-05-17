@@ -8,6 +8,7 @@
 namespace yade{
 	struct Sphere: public Shape{
 		bool numNodesOk() const { return nodes.size()==1; }
+		virtual string pyStr() const { return "<Sphere r="+to_string(radius)+" @ "+lexical_cast<string>(this)+">"; }
 		YADE_CLASS_BASE_DOC_ATTRS_CTOR(Sphere,Shape,"Spherical particle.",
 			((Real,radius,NaN,AttrTrait<>().lenUnit(),"Radius [m]")),
 			createIndex(); /*ctor*/

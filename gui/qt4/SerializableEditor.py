@@ -973,10 +973,12 @@ def makeSerializableLabel(ser,href=False,addr=True,boldHref=True,num=-1,count=-1
 	if hasattr(ser,'label') and ser.label: ret+=u' “'+unicode(ser.label)+u'”'
 	# do not show address if there is a label already
 	elif addr and ser!=None:
-		import re
-		ss=unicode(ser); m=re.match(u'<(.*) instance at (0x.*)>',ss)
-		if m: ret+=m.group(2)
-		else: logging.warning(u"Serializable converted to str ('%s') does not contain 'instance at 0x…'"%ss)
+		ret+='0x%x'%ser._cxxAddr
+		#import re
+		#ss=unicode(ser); m=re.match(u'<(.*)(instance at|@) (0x.*)>',ss)
+		#if m: ret+=m.group(3)+'/ 0x%x'%id(ser)
+		#else: logging.warning(u"Serializable converted to str ('%s') does not contain 'instance at 0x…'"%ss)
+		#return '%x'%id(ser)
 	return ret
 
 class SeqSerializableComboBox(QFrame):

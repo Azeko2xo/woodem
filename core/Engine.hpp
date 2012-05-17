@@ -85,7 +85,7 @@ class Engine: public Serializable {
 		((bool,dead,false,,"If true, this engine will not run at all; can be used for making an engine temporarily deactivated and only resurrect it at a later point."))
 		((string,label,,,"Textual label for this object; must be valid python identifier, you can refer to it directly from python."))
 		// ((bool,parallelFields,false,,"Whether to run (if compiled with openMP) this engine on active fields in parallel"))
-		((shared_ptr<Field>,field,,Attr::noGui,"User-requested :yref:`Field` to run this engine on; if empty, fields will be searched for admissible ones; if more than one is found, exception will be raised."))
+		((shared_ptr<Field>,field,,(Attr::noGui|Attr::noDump),"User-requested :yref:`Field` to run this engine on; if empty, fields will be searched for admissible ones; if more than one is found, exception will be raised."))
 		((bool,userAssignedField,false,(Attr::readonly|Attr::noGui),"Whether the :yref:`Engine.field` was user-assigned or automatically assigned, to know whether to update automatically."))
 		((bool,isNewObject,true,Attr::hidden,"Flag to recognize in postLoad whether this object has just been constructed, to set userAssignedField properly (ugly...)"))
 		,/* ctor */ scene=Omega::instance().getScene().get(); ,

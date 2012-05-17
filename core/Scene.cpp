@@ -110,11 +110,9 @@ shared_ptr<ScalarRange> Scene::getRange(const std::string& l) const{
 	throw std::runtime_error("No range labeled `"+l+"'.");
 }
 
-void Scene::save(const string& out){
-	if(out.empty()) throw std::runtime_error("Scene.save() with empty file argument.");
+void Scene::_boostSave_special(const string& out){
 	lastSave=out;
-	shared_ptr<Scene> thisPtr(this,null_deleter());
-	yade::ObjectIO::save(out,"scene",thisPtr);
+	Serializable::_boostSave(out);
 }
 
 void Scene::saveTmp(const string& slot, bool quiet){
@@ -122,7 +120,6 @@ void Scene::saveTmp(const string& slot, bool quiet){
 	shared_ptr<Scene> thisPtr(this,null_deleter());
 	Omega::instance().saveTmp(thisPtr,slot,/*quiet*/true);
 }
-
 
 void Scene::postLoad(Scene&){
 	#ifdef YADE_OPENCL

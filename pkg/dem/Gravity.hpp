@@ -6,6 +6,7 @@ struct Gravity: public GlobalEngine{
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	virtual void run();
 	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
+	virtual string pyStr() const { return "<Gravity ("+to_string(gravity[0])+", "+to_string(gravity[1])+", "+to_string(gravity[2])+") @ "+lexical_cast<string>(this)+">"; }
 	YADE_CLASS_BASE_DOC_ATTRS(Gravity,GlobalEngine,"Engine applying constant acceleration to all bodies.",
 		((Vector3r,gravity,Vector3r::Zero(),,"Acceleration [kgms⁻²]"))
 		((int,gravWorkIx,-1,(Attr::noSave|Attr::hidden),"Index for work of gravity"))

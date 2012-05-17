@@ -94,7 +94,7 @@ class TestObjectInstantiation(unittest.TestCase):
 		O.scene.fields=[DemField()]
 		O.dem.par.append(utils.sphere((0,0,0),1))
 		O.dem.collectNodes()
-		O.scene.engines=[InsertionSortCollider([Bo1_Sphere_Aabb()]),Leapfrog()]
+		O.scene.engines=[InsertionSortCollider([Bo1_Sphere_Aabb()]),Leapfrog(reset=True)]
 		O.step()
 		O.saveTmp(quiet=True)
 		mn0=Vector3(O.dem.par[0].shape.bound.min)

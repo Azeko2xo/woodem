@@ -3,9 +3,14 @@ from yade.core import *
 from yade.dem import *
 import yade.gl
 import math
+from miniEigen import *
+import sys
 
 def run(ui): # use inputs as argument
-	print 'Roro_.run(...)'
+	print 'Roro_.run()'
+	print 'Input parameters:'
+	print ui.save(sys.stdout,format='expr',noMagic=True)
+
 	s=Scene()
 	de=DemField();
 	s.fields=[de]

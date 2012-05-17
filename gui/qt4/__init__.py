@@ -93,6 +93,8 @@ class ControllerClass(QWidget,Ui_Controller):
 	def addPreprocessors(self):
 		for c in yade.system.childClasses('Preprocessor'):
 			self.generatorCombo.addItem(c)
+		self.generatorCombo.insertSeparator(self.generatorCombo.count())
+		self.generatorCombo.addItem('load')
 	def addRenderers(self):
 		#from yade.gl import *
 		from yade import gl
