@@ -126,10 +126,10 @@ void AnisoPorosityAnalyzer::initialize(){
 	if(!scene->isPeriodic) throw std::runtime_error("AnisoPorosityAnalyzer can only be used with periodic BC");
 	if(scene->cell->hasShear()) throw std::runtime_error("AnisoPorosityAnalyzer only works so far with PBC without skew.");
 	dem=dynamic_cast<DemField*>(field.get());
-	if(scene->step==initStep && dem->particles.size()==initNum) return;
+	if(scene->step==initStep && dem->particles->size()==initNum) return;
 	pack=SpherePack();
 	pack.cellSize=scene->cell->getSize();
-	FOREACH(const shared_ptr<Particle>& p, dem->particles){
+	FOREACH(const shared_ptr<Particle>& p, *dem->particles){
 		const shared_ptr<Sphere> s=dynamic_pointer_cast<Sphere>(p->shape);
 		if(!s || s->nodes.size()==0)continue;
 		pack.add(s->nodes[0]->pos,s->radius);
@@ -137,7 +137,7 @@ void AnisoPorosityAnalyzer::initialize(){
 	__attribute__((unused)) int sh=pack.addShadows();
 	LOG_DEBUG("Added "<<sh<<" shadow spheres");
 	initStep=scene->step;
-	initNum=dem->particles.size();
+	initNum=dem->particles->size();
 }
 
 void AnisoPorosityAnalyzer::run(){

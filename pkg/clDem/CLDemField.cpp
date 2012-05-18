@@ -171,7 +171,7 @@ void CLDemRun::doCompare(){
 	Real sU=scene->dt;
 
 	/* compare particles */
-	FOREACH(const shared_ptr< ::Particle> yp, dem->particles){
+	FOREACH(const shared_ptr< ::Particle> yp, *dem->particles){
 		// no particles in yade and clDem
 		::Particle::id_t yId=yp->id;
 		if(!yp->shape || yp->shape->nodes.empty() || !yp->shape->nodes[0]->hasData<CLDemData>()) _THROW_ERROR("#"<<yId<<": no CLDemData with clDem id information.");
@@ -300,7 +300,7 @@ void CLDemRun::doCompare(){
 	for(const clDem::Contact& cc: sim->con){
 		if(cc.ids.s0<0) continue; // invalid contact
 		string cId="##"+lexical_cast<string>(cc.ids.s0)+"+"+lexical_cast<string>(cc.ids.s1);
-		const shared_ptr< ::Contact>& yc(dem->contacts.find(cc.ids.s0,cc.ids.s1));
+		const shared_ptr< ::Contact>& yc(dem->contacts->find(cc.ids.s0,cc.ids.s1));
 		if(!yc){ _THROW_ERROR(cId<<": not in yade"); continue; }
 		int geomT=clDem::con_geomT_get(&cc);
 		int physT=clDem::con_physT_get(&cc);
@@ -337,7 +337,7 @@ void CLDemRun::doCompare(){
 		switch(physT){
 			case(clDem::Phys_NormPhys):{
 				if(!dynamic_pointer_cast< ::FrictPhys>(yc->phys)) _THROW_ERROR(cId<<": phys mismatch NormPhys/"<<typeid(*(yc->phys)).name());
-				const ::FrictPhys yp(yc->phys->cast< ::FrictPhys>());
+				const ::FrictPhys& yp(yc->phys->cast< ::FrictPhys>());
 				Real kNErr=abs(cc.phys.norm.kN-yp.kn)/(NU/mU);
 				_CHK_ERR(cId,kNErr,cc.phys.norm.kN,yp.kn);
 				// kT not checked
@@ -346,7 +346,7 @@ void CLDemRun::doCompare(){
 			}
 			case(clDem::Phys_FrictPhys):{
 				if(!dynamic_pointer_cast< ::FrictPhys>(yc->phys)) _THROW_ERROR(cId<<": phys mismatch FrictPhys/"<<typeid(*(yc->phys)).name());
-				const ::FrictPhys yp(yc->phys->cast< ::FrictPhys>());
+				const ::FrictPhys& yp(yc->phys->cast< ::FrictPhys>());
 				Real kNErr=abs(cc.phys.frict.kN-yp.kn)/(NU/mU);
 				Real kTErr=abs(cc.phys.frict.kT-yp.kt)/(NU/mU);
 				Real tanPhiErr=abs(cc.phys.frict.tanPhi-yp.tanPhi)/(NU/mU);
@@ -360,7 +360,7 @@ void CLDemRun::doCompare(){
 	}
 	/* check the other way */
 	if(sim->cpuCollider){
-		FOREACH(const auto& C, dem->contacts){
+		FOREACH(const auto& C, *dem->contacts){
 			Vector2i ids(C->pA->id,C->pB->id);
 			string cId="##"+lexical_cast<string>(ids[0])+"+"+lexical_cast<string>(ids[1]);
 			clDem::CpuCollider::ConLoc* cl=sim->cpuCollider->find(ids[0],ids[1]);
@@ -421,7 +421,7 @@ shared_ptr<clDem::Simulation> CLDemField::yadeToClDem(const shared_ptr< ::Scene>
 	sim->scene.loneGroups=dem->loneMask;
 
 	std::map< ::Material*,int> ymm; // yade materials, mapping to clDem material numbers
-	for(const auto& yp: dem->particles){
+	for(const auto& yp: *dem->particles){
 		ymm.insert(std::make_pair(yp->material.get(),ymm.size())); // this makes sure materials are numbered consecutively
 	}
 	if(ymm.size()>(size_t)clDem::SCENE_MAT_NUM_) throw std::runtime_error("Yade uses "+lexical_cast<string>(ymm.size())+" materials, which is more than the maximum "+lexical_cast<string>(clDem::SCENE_MAT_NUM_)+" clDem was compiled with.");
@@ -444,7 +444,7 @@ shared_ptr<clDem::Simulation> CLDemField::yadeToClDem(const shared_ptr< ::Scene>
 	}
 
 	// create particles
-	for(auto& yp: dem->particles){
+	for(auto& yp: *dem->particles){
 		string pId="#"+lexical_cast<string>(yp->id);
 		if(!yp->shape) throw std::runtime_error(pId+": Particle.shape==None.");
 		clDem::Particle cp;
@@ -509,7 +509,7 @@ shared_ptr<clDem::Simulation> CLDemField::yadeToClDem(const shared_ptr< ::Scene>
 	}
 
 	// copy existing contacts
-	FOREACH(const shared_ptr< ::Contact>& c, dem->contacts){
+	FOREACH(const shared_ptr< ::Contact>& c, *dem->contacts){
 		clDem::Contact con;
 		par_id2_t ids={c->pA->id,c->pB->id};
 		con.ids=ids;
@@ -722,11 +722,11 @@ shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>
 				long ix=cp.shape.clump.ix;
 				for(int ii=ix; sim->clumps[ii].id>=0; ii++){
 					long id=sim->clumps[ii].id;
-					if(id>=(long)dem->particles.size()) throw std::runtime_error(pId+": clump members mut come before the clump (references #"+lexical_cast<string>(id)+")");
-					if(!dem->particles[id]->shape->nodes[0]->getData<DemData>().isClumped()) throw std::runtime_error(pId+": clump members should have been marked as clumped (#"+lexical_cast<string>(id));
+					if(id>=(long)dem->particles->size()) throw std::runtime_error(pId+": clump members mut come before the clump (references #"+lexical_cast<string>(id)+")");
+					if(!(*dem->particles)[id]->shape->nodes[0]->getData<DemData>().isClumped()) throw std::runtime_error(pId+": clump members should have been marked as clumped (#"+lexical_cast<string>(id));
 					// avoid check in CLlumpData::makeClump
-					dem->particles[id]->shape->nodes[0]->getData<DemData>().setNoClump();
-					members.push_back(dem->particles[id]->shape->nodes[0]);
+					(*dem->particles)[id]->shape->nodes[0]->getData<DemData>().setNoClump();
+					members.push_back((*dem->particles)[id]->shape->nodes[0]);
 				}
 				auto clump=ClumpData::makeClump(members);
 				clump->setData<CLDemData>(make_shared<CLDemData>());
@@ -771,7 +771,7 @@ shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>
 			yp->shape->color=(par_dofs_get(&cp)==0?.5:.3);
 			yp->shape->setWire(true);
 			yp->mask=par_groups_get(&cp);
-			yadeIds[i]=dem->particles.insert(yp);
+			yadeIds[i]=dem->particles->insert(yp);
 		}
 	}
 	// real/"real" contacts
@@ -782,11 +782,11 @@ shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>
 		if(clDem::con_physT_get(&c)!=Phys_None) throw std::runtime_error(cId+": pre-existing phys not handled yet.");
 		auto yc=make_shared< ::Contact>();
 		::Particle::id_t idA=yadeIds[c.ids.s0], idB=yadeIds[c.ids.s1];
-		assert(idA>=0 && idA<(long)dem->particles.size());
-		assert(idB>=0 && idB<(long)dem->particles.size());
-		yc->pA=dem->particles[idA];
-		yc->pB=dem->particles[idB];
-		dem->contacts.add(yc);
+		assert(idA>=0 && idA<(long)dem->particles->size());
+		assert(idB>=0 && idB<(long)dem->particles->size());
+		yc->pA=(*dem->particles)[idA];
+		yc->pB=(*dem->particles)[idB];
+		dem->contacts->add(yc);
 	}
 
 	// without collisions detection, potential contacts are given in advance
@@ -797,11 +797,11 @@ shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>
 			auto yc=make_shared< ::Contact>();
 			if(ids.s0<0) continue;
 			::Particle::id_t idA=yadeIds[ids.s0], idB=yadeIds[ids.s1];
-			assert(idA>=0 && idA<(long)dem->particles.size());
-			assert(idB>=0 && idB<(long)dem->particles.size());
-			yc->pA=dem->particles[idA];
-			yc->pB=dem->particles[idB];
-			dem->contacts.add(yc);
+			assert(idA>=0 && idA<(long)dem->particles->size());
+			assert(idB>=0 && idB<(long)dem->particles->size());
+			yc->pA=(*dem->particles)[idA];
+			yc->pB=(*dem->particles)[idB];
+			dem->contacts->add(yc);
 		}
 	}
 

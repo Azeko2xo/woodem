@@ -31,7 +31,7 @@ void VoroField::updateFromDem(){
 
 	// get average radius first, to know how finely to subdivide the cell
 	Real rSum=0; int N=0;
-	FOREACH(const shared_ptr<Particle>& par, dem->particles){
+	FOREACH(const shared_ptr<Particle>& par, *dem->particles){
 		if(!dynamic_cast<Sphere*>(par->shape.get())) continue;
 		rSum+=par->shape->cast<Sphere>().radius; N++;
 	}
@@ -52,7 +52,7 @@ void VoroField::updateFromDem(){
 	conp=new voropp::container_periodic_poly(/*xb*/T(0,0),/*xyb*/T(0,1),/*yb*/T(1,1),/*xzb*/T(0,2),/*yzb*/T(1,2),/*zb*/T(2,2),/*xn*/subDiv[0],/*yn*/subDiv[1],/*zn*/subDiv[2],initMem);
 
 	// add particles
-	FOREACH(const shared_ptr<Particle>& par, dem->particles){
+	FOREACH(const shared_ptr<Particle>& par, *dem->particles){
 		if(!dynamic_cast<Sphere*>(par->shape.get())) continue;
 		const Vector3r& pos(par->shape->nodes[0]->pos);
 		conp->put(par->id,pos[0],pos[1],pos[2],par->shape->cast<Sphere>().radius);

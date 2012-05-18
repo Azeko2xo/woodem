@@ -18,8 +18,8 @@ bool Gl1_DemField::potWire;
 
 void Gl1_DemField::doBound(){
 	rrr->boundDispatcher.scene=scene; rrr->boundDispatcher.updateScenePtr();
-	boost::mutex::scoped_lock lock(*dem->particles.manipMutex);
-	FOREACH(const shared_ptr<Particle>& b, dem->particles){
+	boost::mutex::scoped_lock lock(*dem->particles->manipMutex);
+	FOREACH(const shared_ptr<Particle>& b, *dem->particles){
 		if(!b->shape || !b->shape->bound) continue;
 		if(mask!=0 && !(b->mask&mask)) continue;
 		glPushMatrix(); rrr->boundDispatcher(b->shape->bound); glPopMatrix();
@@ -34,12 +34,12 @@ void Gl1_DemField::doBound(){
 
 void Gl1_DemField::doShape(){
 	rrr->shapeDispatcher.scene=scene; rrr->shapeDispatcher.updateScenePtr();
-	boost::mutex::scoped_lock lock(*dem->particles.manipMutex);
+	boost::mutex::scoped_lock lock(*dem->particles->manipMutex);
 
 	// instead of const shared_ptr&, get proper shared_ptr;
 	// Less efficient in terms of performance, since memory has to be written (not measured, though),
 	// but it is still better than crashes if the body gets deleted meanwile.
-	FOREACH(shared_ptr<Particle> b, dem->particles){
+	FOREACH(shared_ptr<Particle> b, *dem->particles){
 		if(!b->shape || b->shape->nodes.empty()) continue;
 		if(mask!=0 && !(b->mask&mask)) continue;
 		const shared_ptr<Shape>& sh=b->shape;
@@ -123,9 +123,9 @@ void Gl1_DemField::doNodes(){
 
 void Gl1_DemField::doContactNodes(){
 	rrr->nodeDispatcher.scene=scene; rrr->nodeDispatcher.updateScenePtr();
-	boost::mutex::scoped_lock lock(*dem->contacts.manipMutex);
-	for(size_t i=0; i<dem->contacts.size(); i++){
-		const shared_ptr<Contact>& C(dem->contacts[i]);
+	boost::mutex::scoped_lock lock(*dem->contacts->manipMutex);
+	for(size_t i=0; i<dem->contacts->size(); i++){
+		const shared_ptr<Contact>& C((*dem->contacts)[i]);
 		if(C->isReal()){
 			shared_ptr<CGeom> geom=C->geom;
 			if(!geom) continue;
@@ -165,8 +165,8 @@ void Gl1_DemField::doContactNodes(){
 
 void Gl1_DemField::doCPhys(){
 	rrr->cPhysDispatcher.scene=scene; rrr->cPhysDispatcher.updateScenePtr();
-	boost::mutex::scoped_lock lock(*dem->contacts.manipMutex);
-	FOREACH(const shared_ptr<Contact>& C, dem->contacts){
+	boost::mutex::scoped_lock lock(*dem->contacts->manipMutex);
+	FOREACH(const shared_ptr<Contact>& C, *dem->contacts){
 		#if 1
 			shared_ptr<CGeom> geom(C->geom);
 			shared_ptr<CPhys> phys(C->phys);

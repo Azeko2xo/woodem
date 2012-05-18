@@ -29,7 +29,7 @@ void InsertionSortCollider::handleBoundInversion(Particle::id_t id1, Particle::i
 	// do bboxes overlap in all 3 dimensions?
 	bool overlap=spatialOverlap(id1,id2);
 	// existing interaction?
-	const shared_ptr<Contact>& C=dem->contacts.find(id1,id2);
+	const shared_ptr<Contact>& C=dem->contacts->find(id1,id2);
 	bool hasInter=(bool)C;
 	// interaction doesn't exist and shouldn't, or it exists and should
 	if(likely(!overlap && !hasInter)) return;
@@ -44,10 +44,10 @@ void InsertionSortCollider::handleBoundInversion(Particle::id_t id1, Particle::i
 		// mimick the way clDem::Collider does the job so that results are easily comparable
 		if(id1<id2){ newC->pA=p1; newC->pB=p2; }
 		else{ newC->pA=p2; newC->pB=p1; }
-		dem->contacts.add(newC);
+		dem->contacts->add(newC);
 		return;
 	}
-	if(!overlap && hasInter){ if(!C->isReal()) dem->contacts.remove(C); return; }
+	if(!overlap && hasInter){ if(!C->isReal()) dem->contacts->remove(C); return; }
 	assert(false); // unreachable
 }
 
@@ -126,7 +126,7 @@ vector<Particle::id_t> InsertionSortCollider::probeAabb(const Vector3r& mn, cons
 	bool InsertionSortCollider::isActivated(){
 		// we wouldn't run in this step; in that case, just delete pending interactions
 		// this is done in ::action normally, but it would make the call counters not reflect the stride
-		field->cast<DemField>().contacts.removePending(*this,scene);
+		field->cast<DemField>().contacts->removePending(*this,scene);
 		return true;
 	}
 
@@ -141,7 +141,7 @@ bool InsertionSortCollider::updateBboxes_doFullRun(){
 	// automatically initialize from min sphere size; if no spheres, disable stride
 	if(verletDist<0){
 		Real minR=std::numeric_limits<Real>::infinity();
-		FOREACH(const shared_ptr<Particle>& p, dem->particles){
+		FOREACH(const shared_ptr<Particle>& p, *dem->particles){
 			if(!p || !p->shape) continue;
 			if(!dynamic_pointer_cast<Sphere>(p->shape))continue;
 			minR=min(p->shape->cast<Sphere>().radius,minR);
@@ -151,7 +151,7 @@ bool InsertionSortCollider::updateBboxes_doFullRun(){
 
 	bool recomputeBounds=false;
 	// first loop only checks if there something is our
-	FOREACH(const shared_ptr<Particle>& p, dem->particles){
+	FOREACH(const shared_ptr<Particle>& p, *dem->particles){
 		if(!p->shape) continue;
 		const int nNodes=p->shape->nodes.size();
 		// below we throw exception for particle that has no functor afer the dispatcher has been called
@@ -172,7 +172,7 @@ bool InsertionSortCollider::updateBboxes_doFullRun(){
 	// bounds don't need update, collision neither
 	if(!recomputeBounds) return false;
 
-	FOREACH(const shared_ptr<Particle>& p, dem->particles){
+	FOREACH(const shared_ptr<Particle>& p, *dem->particles){
 		if(!p->shape) continue;
 		// call dispatcher now
 		boundDispatcher->operator()(p->shape);
@@ -203,7 +203,7 @@ bool InsertionSortCollider::updateBboxes_doFullRun(){
 bool InsertionSortCollider::prologue_doFullRun(){
 	dem=dynamic_cast<DemField*>(field.get());
 	assert(dem);
-	particles=&(dem->particles);
+	particles=dem->particles.get();
 
 	// scene->interactions->iterColliderLastRun=-1;
 
@@ -211,7 +211,7 @@ bool InsertionSortCollider::prologue_doFullRun(){
 	bool fullRun=false;
 
 	// contacts are dirty and must be detected anew
-	if(dem->contacts.dirty || forceInitSort){ fullRun=true; dem->contacts.dirty=false; }
+	if(dem->contacts->dirty || forceInitSort){ fullRun=true; dem->contacts->dirty=false; }
 
 	// number of particles changed
 	if((size_t)BB[0].size!=2*particles->size()) fullRun=true;
@@ -462,7 +462,7 @@ void InsertionSortCollider::handleBoundInversionPeri(Particle::id_t id1, Particl
 	Vector3i periods;
 	bool overlap=spatialOverlapPeri(id1,id2,scene,periods);
 	// existing interaction?
-	const shared_ptr<Contact>& C=dem->contacts.find(id1,id2);
+	const shared_ptr<Contact>& C=dem->contacts->find(id1,id2);
 	bool hasInter=(bool)C;
 	#ifdef PISC_DEBUG
 		if(watchIds(id1,id2)) LOG_DEBUG("Inversion #"<<id1<<"+#"<<id2<<", overlap=="<<overlap<<", hasInter=="<<hasInter);
@@ -485,12 +485,12 @@ void InsertionSortCollider::handleBoundInversionPeri(Particle::id_t id1, Particl
 		#ifdef PISC_DEBUG
 			if(watchIds(id1,id2)) LOG_DEBUG("Created intr #"<<id1<<"+#"<<id2<<", periods="<<periods);
 		#endif
-		dem->contacts.add(newC);
+		dem->contacts->add(newC);
 		return;
 	}
 	if(!overlap && hasInter){
 		if(!C->isReal()) {
-			dem->contacts.remove(C);
+			dem->contacts->remove(C);
 			#ifdef PISC_DEBUG
 				if(watchIds(id1,id2)) LOG_DEBUG("Erased intr #"<<id1<<"+#"<<id2);
 			#endif

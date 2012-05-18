@@ -17,7 +17,7 @@ std::tuple</*stress*/Matrix3r,/*stiffness*/Matrix6r> DemFuncs::stressStiffness(c
 	Matrix3r stress=Matrix3r::Zero();
 	Matrix6r K=Matrix6r::Zero();
 
-	FOREACH(const shared_ptr<Contact>& C, dem->contacts){
+	FOREACH(const shared_ptr<Contact>& C, *dem->contacts){
 		FrictPhys* phys=YADE_CAST<FrictPhys*>(C->phys.get());
 		if(C->pA->shape->nodes.size()!=1 || C->pB->shape->nodes.size()!=1){
 			if(skipMultinodal) continue;
@@ -69,7 +69,7 @@ Real DemFuncs::unbalancedForce(const Scene* scene, const DemField* dem, bool use
 	Real meanF=sumF/nb;
 	// get mean force on interactions
 	sumF=0; nb=0;
-	FOREACH(const shared_ptr<Contact>& C, dem->contacts){
+	FOREACH(const shared_ptr<Contact>& C, *dem->contacts){
 		sumF+=C->phys->force.norm(); nb++;
 	}
 	sumF/=nb;
@@ -101,7 +101,7 @@ shared_ptr<Particle> DemFuncs::makeSphere(Real radius, const shared_ptr<Material
 vector<Vector2r> DemFuncs::boxPsd(const Scene* scene, const DemField* dem, const AlignedBox3r& box, bool mass, int num, int mask, Vector2r rRange){
 	bool haveBox=!isnan(box.min()[0]) && !isnan(box.max()[0]);
 	return psd(
-		dem->particles|boost::adaptors::filtered([&](const shared_ptr<Particle>&p){ return p && p->shape && p->shape->nodes.size()==1 && (mask?(p->mask&mask):true) && (bool)(dynamic_pointer_cast<yade::Sphere>(p->shape)) && (haveBox?box.contains(p->shape->nodes[0]->pos):true); }),
+		*dem->particles|boost::adaptors::filtered([&](const shared_ptr<Particle>&p){ return p && p->shape && p->shape->nodes.size()==1 && (mask?(p->mask&mask):true) && (bool)(dynamic_pointer_cast<yade::Sphere>(p->shape)) && (haveBox?box.contains(p->shape->nodes[0]->pos):true); }),
 		/*cumulative*/true,/*normalize*/true,
 		num,
 		rRange,

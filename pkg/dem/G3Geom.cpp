@@ -154,7 +154,7 @@ void Law2_G3Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shar
 	#endif
 	_WATCH_MSG("Step "<<scene->step<<", ##"<<C->pA->id<<"+"<<C->pB->id<<": "<<endl);
 	if(geom.uN>0){
-		if(!noBreak){ _WATCH_MSG("Contact being broken."<<endl); field->cast<DemField>().contacts.requestRemoval(C); return; }
+		if(!noBreak){ _WATCH_MSG("Contact being broken."<<endl); field->cast<DemField>().contacts->requestRemoval(C); return; }
 	}
 	Vector3r normalForce=phys.kn*geom.uN*geom.normal;
 	if(!C->data){ C->data=make_shared<G3GeomCData>(); }

@@ -33,7 +33,7 @@ void Law2_L6Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shar
 			// Real Fn=ph.force[0]; Vector2r Ft(ph.force[1],ph.force[2]);
 			scene->energy->add(.5*(pow(Fn,2)/ph.kn+Ft.squaredNorm()/ph.kt),"broken",brokenIx,EnergyTracker::IsIncrement);
 		}
-		field->cast<DemField>().contacts.requestRemoval(C); return;
+		field->cast<DemField>().contacts->requestRemoval(C); return;
 	}
 	ph.torque=Vector3r::Zero();
 	ph.force[0]=ph.kn*uN;

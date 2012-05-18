@@ -9,7 +9,7 @@ import sys
 def run(ui): # use inputs as argument
 	print 'Roro_.run()'
 	print 'Input parameters:'
-	print ui.save(sys.stdout,format='expr',noMagic=True)
+	print ui.dump(sys.stdout,format='expr',noMagic=True)
 
 	s=Scene()
 	de=DemField();

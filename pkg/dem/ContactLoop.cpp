@@ -88,12 +88,12 @@ void ContactLoop::run(){
 
 	DemField& dem=field->cast<DemField>();
 
-	if(dem.contacts.removeAllPending()>0 && !alreadyWarnedNoCollider){
+	if(dem.contacts->removeAllPending()>0 && !alreadyWarnedNoCollider){
 		LOG_WARN("Contacts pending removal found (and were removed); no collider being used?");
 		alreadyWarnedNoCollider=true;
 	}
 
-	if(dem.contacts.dirty){
+	if(dem.contacts->dirty){
 		throw std::logic_error("ContactContainer::dirty is true; the collider should re-initialize in such case and clear the dirty flag.");
 	}
 	// update Scene* of the dispatchers
@@ -109,16 +109,16 @@ void ContactLoop::run(){
 
 	// force removal of interactions that were not encountered by the collider
 	// (only for some kinds of colliders; see comment for InteractionContainer::iterColliderLastRun)
-	bool removeUnseen=(dem.contacts.stepColliderLastRun>=0 && dem.contacts.stepColliderLastRun==scene->step);
+	bool removeUnseen=(dem.contacts->stepColliderLastRun>=0 && dem.contacts->stepColliderLastRun==scene->step);
 
 	const bool doStress=(evalStress && scene->isPeriodic);
 		
-	size_t size=dem.contacts.size();
+	size_t size=dem.contacts->size();
 	#ifdef YADE_OPENMP
 		#pragma omp parallel for schedule(guided)	
 	#endif
 	for(size_t i=0; i<size; i++){
-		const shared_ptr<Contact>& C=dem.contacts[i];
+		const shared_ptr<Contact>& C=(*dem.contacts)[i];
 
 		if(unlikely(removeUnseen && !C->isReal() && C->stepLastSeen<scene->step)) { removeAfterLoop(C); continue; }
 
@@ -188,7 +188,7 @@ void ContactLoop::run(){
 	// process removeAfterLoop
 	#ifdef YADE_OPENMP
 		FOREACH(list<shared_ptr<Contact> >& l, removeAfterLoopRefs){
-			FOREACH(const shared_ptr<Contact>& c,l) dem.contacts.remove(c);
+			FOREACH(const shared_ptr<Contact>& c,l) dem.contacts->remove(c);
 			l.clear();
 		}
 	#else

@@ -130,12 +130,14 @@ class ControllerClass(QWidget,Ui_Controller):
 		except:
 			import traceback
 			traceback.print_exc()
+	def genSaveParamsSlot(self):	
+		raise NotImplementedError("Saving preprocessor parameters to file not yet implemented.")
 	def generateSlot(self):
 		try:
 			QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)
 			out=str(self.generatorFilenameEdit.text())
-			mem=self.generatorMemoryCheck.isChecked()
-			auto=self.generatorAutoCheck.isChecked()
+			mem=self.genMemoryCombo.currentIndex()==0
+			auto=self.genOpenCheckbox.isChecked()
 			pre=self.generator
 			newScene=pre()
 			if mem: newScene.saveTmp(out)

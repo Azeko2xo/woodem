@@ -14,7 +14,7 @@ YADE_PLUGIN(dem,(PeriIsoCompressor))
 
 void PeriIsoCompressor::avgStressIsoStiffness(const Vector3r& cellAreas, Vector3r& stress, Real& isoStiff){
 	Vector3r force(Vector3r::Zero()); Real stiff=0; long n=0;
-	FOREACH(const shared_ptr<Contact>& C, dem->contacts){
+	FOREACH(const shared_ptr<Contact>& C, *dem->contacts){
 		const auto fp=dynamic_pointer_cast<FrictPhys>(C->phys); // needed for stiffness
 		if(!fp) continue;
 		force+=(C->geom->node->ori.conjugate()*C->phys->force).array().abs().matrix();
@@ -33,15 +33,15 @@ void PeriIsoCompressor::run(){
 	if(state>=stresses.size()) return;
 	// initialize values
 	if(charLen<=0){
-		if(dem->particles.size()>0 && dem->particles[0] && dem->particles[0]->shape && dem->particles[0]->shape->bound){
-			const Bound& bv=*(dem->particles[0]->shape->bound);
+		if(dem->particles->size()>0 && (*dem->particles)[0] && (*dem->particles)[0]->shape && (*dem->particles)[0]->shape->bound){
+			const Bound& bv=*((*dem->particles)[0]->shape->bound);
 			const Vector3r sz=bv.max-bv.min;
 			charLen=(sz[0]+sz[1]+sz[2])/3.;
 			LOG_INFO("No charLen defined, taking avg bbox size of body #0 = "<<charLen);
 		} else { LOG_FATAL("No charLen defined and body #0 does not exist has no bound"); throw; }
 	}
 	if(maxSpan<=0){
-		FOREACH(const shared_ptr<Particle>& p, dem->particles){
+		FOREACH(const shared_ptr<Particle>& p, *dem->particles){
 			if(!p || !p->shape || !p->shape->bound) continue;
 			for(int i=0; i<3; i++) maxSpan=max(maxSpan,p->shape->bound->max[i]-p->shape->bound->min[i]);
 		}

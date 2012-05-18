@@ -53,6 +53,8 @@ namespace yade{
 		// define alternative units: name and factor, by which the base unit is multiplied to obtain this one
 		py::object pyAltUnits(){ return py::object(_altUnits); }
 
+		string pyStr(){ return "<AttrTrait '"+_name+"', flags="+to_string(_flags)+" @ '"+lexical_cast<string>(this)+">"; }
+
 		static void pyRegisterClass(){
 			py::class_<AttrTraitBase,boost::noncopyable>("AttrTrait",py::no_init) // this is intentional; no need for templates in python
 				.add_property("noSave",&AttrTraitBase::isNoSave)
@@ -77,6 +79,8 @@ namespace yade{
 				.add_property("ini",&AttrTraitBase::pyGetIni)
 				.add_property("range",&AttrTraitBase::pyGetRange)
 				.add_property("choice",&AttrTraitBase::pyGetChoice)
+				.def("__str__",&AttrTraitBase::pyStr)
+				.def("__repr__",&AttrTraitBase::pyStr)
 			;
 		}
 	};

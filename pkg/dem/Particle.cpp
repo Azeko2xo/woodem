@@ -164,7 +164,7 @@ int DemField::collectNodes(){
 	//not this: for(const auto& n: clumps) seen.insert((void*)n.get());
 	int added=0;
 	// from particles
-	for(const auto& p: particles){
+	for(const auto& p: *particles){
 		if(!p || !p->shape || p->shape->nodes.empty()) continue;
 		FOREACH(const shared_ptr<Node>& n, p->shape->nodes){
 			if(seen.count((void*)n.get())!=0) continue; // node already seen
@@ -188,12 +188,12 @@ int DemField::collectNodes(){
 
 void DemField::removeParticle(Particle::id_t id){
 	LOG_DEBUG("Removing #"<<id);
-	const auto& p(particles[id]);
+	const auto& p((*particles)[id]);
 	for(const auto& n: p->shape->nodes){
 		if(n->getData<DemData>().isClumped()) throw std::runtime_error("#"+to_string(id)+": a node is clumped, remove the clump itself instead!");
 	}
 	if(!p->shape || p->shape->nodes.empty()){
-		particles.remove(id);
+		particles->remove(id);
 		return;
 	}
 	// remove particle's nodes, if they are no longer used
@@ -219,10 +219,10 @@ void DemField::removeParticle(Particle::id_t id){
 		for(const auto& idCon: p->contacts) cc.push_back(idCon.second);
 		for(const auto& c: cc){
 			LOG_DEBUG("Removing #"<<id<<" / ##"<<c->pA->id<<"+"<<c->pB->id);
-			contacts.remove(c);
+			contacts->remove(c);
 		}
 	}
-	particles.remove(id);
+	particles->remove(id);
 };
 
 void DemField::removeClump(size_t clumpLinIx){
@@ -232,7 +232,7 @@ void DemField::removeClump(size_t clumpLinIx){
 	ClumpData& cd=node->getData<DemData>().cast<ClumpData>();
 	if(cd.clumpLinIx!=(long)clumpLinIx) throw std::runtime_error("Clump #"+to_string(clumpLinIx)+": clumpLinIx ("+to_string(cd.clumpLinIx)+") does not match its position ("+to_string(clumpLinIx)+")");
 	for(size_t i=0; i<cd.memberIds.size(); i++){
-		auto& p=particles[cd.memberIds[i]];
+		auto& p=(*particles)[cd.memberIds[i]];
 		// make sure that clump nodes are those which the particles have
 		assert(p && p->shape && p->shape->nodes.size()>0);
 		for(auto& n: p->shape->nodes){

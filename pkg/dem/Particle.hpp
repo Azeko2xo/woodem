@@ -161,11 +161,11 @@ struct DemField: public Field{
 	//template<> shared_ptr<DemField> sceneGetField<DemField>() const;
 
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(DemField,Field,"Field describing a discrete element assembly. Each body references (possibly many) nodes by their index in :yref:`Field.nodes` and :yref:`Field.nodalData`. ",
-		((ParticleContainer,particles,,AttrTrait<>().pyByRef().readonly().ini(),"Particles (each particle holds its contacts, and references associated nodes)"))
-		((ContactContainer,contacts,,AttrTrait<>().pyByRef().readonly().ini(),"Linear view on particle contacts"))
+		((shared_ptr<ParticleContainer>,particles,make_shared<ParticleContainer>(),AttrTrait<>().pyByRef().readonly().ini(),"Particles (each particle holds its contacts, and references associated nodes)"))
+		((shared_ptr<ContactContainer>,contacts,make_shared<ContactContainer>(),AttrTrait<>().pyByRef().readonly().ini(),"Linear view on particle contacts"))
 		((vector<shared_ptr<Node>>,clumps,,Attr::readonly,"Nodes which define clumps; only manipulated from clump-related user-routines, not directly."))
 		((int,loneMask,0,,"Particle groups which have bits in loneMask in common (i.e. (A.mask & B.mask & loneMask)!=0) will not have contacts between themselves"))
-		, /* ctor */ createIndex(); particles.dem=this; contacts.dem=this; contacts.particles=&particles;
+		, /* ctor */ createIndex(); particles->dem=this; contacts->dem=this; contacts->particles=particles.get();
 		, /*py*/
 		.def("collectNodes",&DemField::collectNodes,"Collect nodes from all particles and clumps and insert them to nodes defined for this field. Nodes are not added multiple times, even if they are referenced from different particles / clumps.")
 		.def("sceneHasField",&Field_sceneHasField<DemField>).staticmethod("sceneHasField")

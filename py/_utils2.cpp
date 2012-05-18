@@ -24,7 +24,7 @@ Real pWaveDt(shared_ptr<Scene> _scene=shared_ptr<Scene>()){
 	Scene* scene=(_scene?_scene.get():Omega::instance().getScene().get());
 	DemField* field=getDemField(scene).get();
 	Real dt=std::numeric_limits<Real>::infinity();
-	FOREACH(const shared_ptr<Particle>& b, field->particles){
+	FOREACH(const shared_ptr<Particle>& b, *field->particles){
 		if(!b || !b->material || !b->shape || b->shape->nodes.size()!=1 || !b->shape->nodes[0]->hasData<DemData>()) continue;
 		const shared_ptr<ElastMat>& elMat=dynamic_pointer_cast<ElastMat>(b->material);
 		const shared_ptr<Sphere>& s=dynamic_pointer_cast<Sphere>(b->shape);
@@ -77,14 +77,14 @@ vector<shared_ptr<Contact> > createContacts(const vector<Particle::id_t>& ids1, 
 	vector<shared_ptr<Contact> > ret;
 	for(int k=0; k<(int)ids1.size(); k++){
 		Particle::id_t id1=ids1[k], id2=ids2[k];
-		const shared_ptr<Particle>& b1=dem->particles.safeGet(id1); const shared_ptr<Particle>& b2=dem->particles.safeGet(id2);
+		const shared_ptr<Particle>& b1=dem->particles->safeGet(id1); const shared_ptr<Particle>& b2=dem->particles->safeGet(id2);
 		if(b1->contacts.find(id2)!=b1->contacts.end()) yade::ValueError("Contact ##"+lexical_cast<string>(id1)+"+"+lexical_cast<string>(id2)+" already exists.");
 		shared_ptr<Contact> C=gDisp->explicitAction(scene,b1,b2,/*force*/force);
 		if(force && !C) throw std::logic_error("CGeomFunctor did not create contact, although force==true");
 		if(!C) continue;
 		pDisp->explicitAction(scene,b1->material,b2->material,C);
 		C->stepMadeReal=scene->step;
-		dem->contacts.add(C);
+		dem->contacts->add(C);
 		ret.push_back(C);
 	}
 	return ret;
@@ -127,7 +127,7 @@ Real muStiffnessScaling(Real piHat=Mathr::PI/2, bool skipFloaters=false, Real V=
 	}
 	int N=0;
 	Real Rr2=0; // r'*r^2
-	FOREACH(const shared_ptr<Contact>& c, dem->contacts){
+	FOREACH(const shared_ptr<Contact>& c, *dem->contacts){
 		if(!(dynamic_pointer_cast<Sphere>(c->pA->shape) && dynamic_pointer_cast<Sphere>(c->pB->shape))) continue;
 		if(skipFloaters && (
 			count_if(c->pA->contacts.begin(),c->pA->contacts.end(),[](const Particle::MapParticleContact::value_type& v){return v.second->isReal();})<=1 || /* smaller than one would be a grave bug*/
@@ -150,7 +150,7 @@ Matrix6r bestFitCompliance(){
 	// stuff data in here first
 	struct ContData{ Real hn,hs; Vector3r l,n,s,t; };
 	vector<ContData> CC;
-	FOREACH(const shared_ptr<Contact>& c, dem->contacts){
+	FOREACH(const shared_ptr<Contact>& c, *dem->contacts){
 		if(!(dynamic_pointer_cast<Sphere>(c->pA->shape) && dynamic_pointer_cast<Sphere>(c->pB->shape))) continue;
 		const Matrix3r& trsf=c->geom->cast<L6Geom>().trsf;
 		ContData cd={1/c->phys->cast<FrictPhys>().kn,1/c->phys->cast<FrictPhys>().kt,c->dPos(scene),trsf.row(0),trsf.row(1),trsf.row(2)};

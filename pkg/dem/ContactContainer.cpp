@@ -34,7 +34,7 @@ void ContactContainer::clear(){
 	#if defined(YADE_OPENMP) || defined(YADE_OPENGL)
 		boost::mutex::scoped_lock lock(*manipMutex);
 	#endif
-	FOREACH(const shared_ptr<Particle>& p, dem->particles) p->contacts.clear();
+	FOREACH(const shared_ptr<Particle>& p, *dem->particles) p->contacts.clear();
 	linView.clear(); // clear the linear container
 	clearPending();
 	dirty=true;
@@ -50,8 +50,8 @@ bool ContactContainer::remove(const shared_ptr<Contact>& c, bool threadSafe){
 	Particle::MapParticleContact::iterator iA=c->pA->contacts.find(idB), iB=c->pB->contacts.find(idA);
 	if(!threadSafe){
 		// particle deleted from engine while at the same time pending; check that the particle vanished
-		if((iA==c->pA->contacts.end() && c->pA.get()!=dem->particles[idA].get()) || 
-			(iB==c->pB->contacts.end() && c->pB.get()!=dem->particles[idB].get())) return false;
+		if((iA==c->pA->contacts.end() && c->pA.get()!=(*dem->particles)[idA].get()) || 
+			(iB==c->pB->contacts.end() && c->pB.get()!=(*dem->particles)[idB].get())) return false;
 		// this can happen if _contact_ were deleted directly, not by ContactLoop; but that is an error
 		assert(iA!=c->pA->contacts.end()); assert(iB!=c->pB->contacts.end());
 	}
@@ -72,18 +72,18 @@ bool ContactContainer::remove(const shared_ptr<Contact>& c, bool threadSafe){
 const shared_ptr<Contact>& ContactContainer::find(ParticleContainer::id_t idA, ParticleContainer::id_t idB) const {
 	assert(dem);
 	assert(!nullContactPtr);
-	if(!dem->particles.exists(idA)) return nullContactPtr;
-	Particle::MapParticleContact::iterator I(dem->particles[idA]->contacts.find(idB));
-	if(I!=dem->particles[idA]->contacts.end()) return I->second;
+	if(!dem->particles->exists(idA)) return nullContactPtr;
+	Particle::MapParticleContact::iterator I((*dem->particles)[idA]->contacts.find(idB));
+	if(I!=(*dem->particles)[idA]->contacts.end()) return I->second;
 	return nullContactPtr;
 };
 
 // query existence; use find(...) to get the instance if it exists as well
 bool ContactContainer::exists(ParticleContainer::id_t idA, ParticleContainer::id_t idB) const {
 	assert(dem);
-	if(!dem->particles.exists(idA)) return false;
-	Particle::MapParticleContact::iterator I(dem->particles[idA]->contacts.find(idB));
-	if(I==dem->particles[idA]->contacts.end()) return false;
+	if(!dem->particles->exists(idA)) return false;
+	Particle::MapParticleContact::iterator I((*dem->particles)[idA]->contacts.find(idB));
+	if(I==(*dem->particles)[idA]->contacts.end()) return false;
 	return true;
 }
 

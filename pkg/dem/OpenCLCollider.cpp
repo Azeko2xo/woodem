@@ -53,10 +53,10 @@ bool OpenCLCollider::bboxOverlap(int id1, int id2){
 
 /* update mini and maxi arrays from actual particle positions */
 void OpenCLCollider::updateMiniMaxi(vector<cl_float>(&mini)[3], vector<cl_float>(&maxi)[3]){
-	size_t N=dem->particles.size();
+	size_t N=dem->particles->size();
 	for(size_t id=0; id<N; id++){
-		if(!dem->particles.exists(id)){ for(int ax:{0,1,2}){ mini[ax][id]=NaN; maxi[ax][id]=NaN; } continue; }
-		const shared_ptr<Particle>& p=dem->particles[id];
+		if(!dem->particles->exists(id)){ for(int ax:{0,1,2}){ mini[ax][id]=NaN; maxi[ax][id]=NaN; } continue; }
+		const shared_ptr<Particle>& p=(*dem->particles)[id];
 		if(!p->shape || !p->shape->bound){ for(int ax:{0,1,2}){ mini[ax][id]=NaN; maxi[ax][id]=NaN; } continue; }
 		const Bound& b=*p->shape->bound;
 		for(int ax:{0,1,2}){ mini[ax][id]=b.min[ax]; maxi[ax][id]=b.max[ax]; }
@@ -144,7 +144,7 @@ vector<Vector2i> OpenCLCollider::initSortGPU(){
 	cl::Context& context(*scene->context);
 	cl::CommandQueue& queue(*scene->queue);
 	// throw std::runtime_error("OpenCLCollider::initSortGPU Not yet implemented.");
-	int N=dem->particles.size();
+	int N=dem->particles->size();
 
 	//
 	for(int i:{0,1,2}) gpuBounds[i].resize(2*N);
@@ -687,13 +687,13 @@ void OpenCLCollider::modifyContactsFromInversions(const vector<Vector2i>(&invs)[
 				// is there still overlap along other 2 axes?
 				// then the contact should exists and is deleted if it is only potential
 				if(bboxOverlapAx(inv[0],inv[1],(ax+1)%3) && bboxOverlapAx(inv[0],inv[1],(ax+2)%3)){
-					shared_ptr<Contact> c=dem->contacts.find(inv[0],inv[1]);
+					shared_ptr<Contact> c=dem->contacts->find(inv[0],inv[1]);
 					//assert(c);
 					if(!c) continue;
-					if(!c->isReal()) dem->contacts.remove(c,/*threadSafe*/true);
+					if(!c->isReal()) dem->contacts->remove(c,/*threadSafe*/true);
 				}
 			} else { /* possible new overlap: min going below max */
-				if(dem->contacts.exists(inv[0],inv[1])){
+				if(dem->contacts->exists(inv[0],inv[1])){
 					// since the boxes were separate, existing contact must be actual
 					//assert(dem->contacts.find(inv[0],inv[1])->isReal());
 					continue; 
@@ -702,8 +702,8 @@ void OpenCLCollider::modifyContactsFromInversions(const vector<Vector2i>(&invs)[
 				if(!(bboxOverlapAx(inv[0],inv[1],(ax+1)%3) && bboxOverlapAx(inv[0],inv[1],(ax+2)%3))) continue;
 				// there is overlap, and no contact; create new potential contact then
 				shared_ptr<Contact> c=make_shared<Contact>();
-				c->pA=dem->particles[inv[0]]; c->pB=dem->particles[inv[1]];
-				dem->contacts.add(c,/*threadSafe*/true);
+				c->pA=(*dem->particles)[inv[0]]; c->pB=(*dem->particles)[inv[1]];
+				dem->contacts->add(c,/*threadSafe*/true);
 			}
 		}
 	}
@@ -722,7 +722,7 @@ void OpenCLCollider::run(){
 	if(run) run=/*not to be short-cirtuited!*/updateBboxes_doFullRun();
 	if(!run){ LOG_TRACE("Not running in this step."); return; }
 	nFullRuns++;
-	size_t N=dem->particles.size(); size_t oldN=mini[0].size();
+	size_t N=dem->particles->size(); size_t oldN=mini[0].size();
 	bool initialize=(N!=oldN);
 	#ifdef YADE_DEBUG
 		for(int ax:{0,1,2}){ assert(cpuBounds[ax].size()==2*oldN); assert(mini[ax].size()==oldN); assert(maxi[ax].size()==oldN); }
@@ -784,10 +784,10 @@ void OpenCLCollider::run(){
 		if(!checkBoundsSorted()) throw std::runtime_error("OpenCLCollider: bounds are not sorted");
 		// create contacts
 		for(const Vector2i& ids: (gpu?gpuInit:cpuInit)){
-			if(dem->contacts.exists(ids[0],ids[1])){ LOG_TRACE("##"<<ids[0]<<"+"<<ids[1]<<"exists already."); continue; } // contact already there, stop
+			if(dem->contacts->exists(ids[0],ids[1])){ LOG_TRACE("##"<<ids[0]<<"+"<<ids[1]<<"exists already."); continue; } // contact already there, stop
 			shared_ptr<Contact> c=make_shared<Contact>();
-			c->pA=dem->particles[ids[0]]; c->pB=dem->particles[ids[1]];
-			dem->contacts.add(c); // single-threaded, can be thread-unsafe
+			c->pA=(*dem->particles)[ids[0]]; c->pB=(*dem->particles)[ids[1]];
+			dem->contacts->add(c); // single-threaded, can be thread-unsafe
 		}
 		OCLC_CHECKPOINT("initCompare");
 		return;

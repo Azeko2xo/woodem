@@ -26,7 +26,7 @@ bool Collider::mayCollide(const shared_ptr<Particle>& pA, const shared_ptr<Parti
 
 void BoundDispatcher::run(){
 	updateScenePtr();
-	FOREACH(const shared_ptr<Particle> p, field->cast<DemField>().particles){
+	FOREACH(const shared_ptr<Particle> p, *(field->cast<DemField>().particles)){
 		shared_ptr<Shape>& shape=p->shape;
 		if(!shape) continue;
 		operator()(shape);

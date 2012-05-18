@@ -177,8 +177,8 @@ void ParticleFactory::run(){
 				vector<Particle::id_t> ids=collider->probeAabb(peBox.min(),peBox.max());
 				for(const auto& id: ids){
 					LOG_TRACE("Collider reports intersection with #"<<id);
-					if(id>(Particle::id_t)dem->particles.size() || !dem->particles[id]) continue;
-					const shared_ptr<Shape>& sh2(dem->particles[id]->shape);
+					if(id>(Particle::id_t)dem->particles->size() || !(*dem->particles)[id]) continue;
+					const shared_ptr<Shape>& sh2((*dem->particles)[id]->shape);
 					// no spheres, or they are too close
 					if(!peSphere || !dynamic_pointer_cast<yade::Sphere>(sh2) || 1.1*(pos-sh2->nodes[0]->pos).squaredNorm()<pow(peSphere->radius+sh2->cast<Sphere>().radius,2)) goto tryAgain;
 				}
@@ -220,7 +220,7 @@ void ParticleFactory::run(){
 					assert(p->shape);
 					p->shape->color=color_;
 				#endif
-				dem->particles.insert(p);
+				dem->particles->insert(p);
 				for(const auto& n: p->shape->nodes){
 					nn.push_back(n);
 					n->pos+=pos;
@@ -255,7 +255,7 @@ void ParticleFactory::run(){
 			(*shooter)(dyn.vel,dyn.angVel);
 			mass+=dyn.mass;
 			assert(node0->hasData<DemData>());
-			dem->particles.insert(p);
+			dem->particles->insert(p);
 			#ifdef YADE_OPENGL
 				boost::mutex::scoped_lock lock(dem->nodesMutex);
 			#endif
@@ -283,14 +283,14 @@ void ParticleFactory::run(){
 void BoxDeleter::run(){
 	DemField* dem=static_cast<DemField*>(field.get());
 	// iterate over indices so that iterators are not invalidated
-	for(size_t i=0; i<dem->particles.size(); i++){
-		const auto& p=dem->particles[i];
+	for(size_t i=0; i<dem->particles->size(); i++){
+		const auto& p=(*dem->particles)[i];
 		if(!p || !p->shape || p->shape->nodes.size()!=1) continue;
 		if(mask & !(p->mask&mask)) continue;
 		if(p->shape->nodes[0]->getData<DemData>().isClumped()) continue;
 		const Vector3r pos=p->shape->nodes[0]->pos;
 		if(inside!=box.contains(pos)) continue; // keep this particle
-		if(save) deleted.push_back(dem->particles[i]);
+		if(save) deleted.push_back((*dem->particles)[i]);
 		num++;
 		mass+=p->shape->nodes[0]->getData<DemData>().mass;
 		// FIXME: compute energy that disappeared
@@ -304,11 +304,11 @@ void BoxDeleter::run(){
 			ClumpData& cd=c->getData<DemData>().cast<ClumpData>();
 			// check mask of constituents first
 			for(Particle::id_t memberId: cd.memberIds){
-				const shared_ptr<Particle>& member=dem->particles[memberId];
+				const shared_ptr<Particle>& member=(*dem->particles)[memberId];
 				if(mask & !(mask&member->mask)) goto keepClump;
 			}
 			for(Particle::id_t memberId: cd.memberIds){
-				deleted.push_back(dem->particles[memberId]);
+				deleted.push_back((*dem->particles)[memberId]);
 			}
 			num++;
 			for(const auto& n: cd.nodes) mass+=n->getData<DemData>().mass;

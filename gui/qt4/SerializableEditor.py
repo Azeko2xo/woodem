@@ -668,12 +668,12 @@ class SerializableEditor(QFrame):
 			'Vector3r':Vector3,'Matrix3r':Matrix3,'Se3r':Se3FakeType,'Quaternionr':Quaternion,
 			'string':str
 		}
-		cxxT=cxxType
+		cxxT=trait.cxxType
 		if not cxxT:
 			logging.error("Trait for %s does not define cxxType"%(trait.name))
 			return None
 		for T,ret in vecMap.items():
-			if vecTest(T,trait.cxxT):
+			if vecTest(T,cxxT):
 				logging.debug("Got type %s from cxx type %s"%(repr(ret),cxxT))
 				return (ret,)
 		#print 'No luck with ',T
