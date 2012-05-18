@@ -648,20 +648,8 @@ class SerializableEditor(QFrame):
 		self.refreshTimer=QTimer(self)
 		self.refreshTimer.timeout.connect(self.refreshEvent)
 		self.refreshTimer.start(500)
-	def getListTypeFromDocstring(self,attr,cxxType=None):
+	def getListTypeFromDocstring(self,trait):
 		"Guess type of array by scanning docstring for :yattrtype: and parsing its argument; ugly, but works."
-		if not cxxType:
-			doc=getattr(self.ser.__class__,attr).__doc__
-			if doc==None:
-				logging.error("Attribute %s has no docstring."%attr)
-				return None
-			m=re.search(r':yattrtype:`([^`]*)`',doc)
-			if not m:
-				logging.error("Attribute %s does not contain :yattrtype:`....` (docstring is '%s'"%(attr,doc))
-				return None
-			cxxT=m.group(1)
-			logging.debug('Got type "%s" from :yattrtype:'%cxxT)
-		else: cxxT=cxxType
 		def vecTest(T,cxxT):
 			regexp=r'^\s*(std\s*::)?\s*vector\s*<\s*(shared_ptr\s*<\s*)?\s*(std\s*::)?\s*('+T+r')(\s*>)?\s*>\s*$'
 			m=re.match(regexp,cxxT)
@@ -680,8 +668,12 @@ class SerializableEditor(QFrame):
 			'Vector3r':Vector3,'Matrix3r':Matrix3,'Se3r':Se3FakeType,'Quaternionr':Quaternion,
 			'string':str
 		}
+		cxxT=cxxType
+		if not cxxT:
+			logging.error("Trait for %s does not define cxxType"%(trait.name))
+			return None
 		for T,ret in vecMap.items():
-			if vecTest(T,cxxT):
+			if vecTest(T,trait.cxxT):
 				logging.debug("Got type %s from cxx type %s"%(repr(ret),cxxT))
 				return (ret,)
 		#print 'No luck with ',T
@@ -732,7 +724,7 @@ class SerializableEditor(QFrame):
 			if trait.startGroup: self.entryGroups.append(self.EntryGroupData(number=len(self.entryGroups),name=trait.startGroup,showChecks=self.showChecks))
 
 			if isinstance(val,list):
-				t=self.getListTypeFromDocstring(attr,cxxType=trait.cxxType)
+				t=self.getListTypeFromDocstring(trait)
 				if not t and len(val)==0: t=(val[0].__class__,) # 1-tuple is list of the contained type
 				#if not t: raise RuntimeError('Unable to guess type of '+str(self.ser)+'.'+attr)
 			# hack for Se3, which is returned as (Vector3,Quaternion) in python

@@ -14,21 +14,15 @@ for obj,section in ((rr,'Preprocessor'),(O.dem.par[10],'Particle'),([c for c in 
 	for fmt in ('html','expr','pickle','xml'):
 		out.write('<h2>%s</h2>'%fmt)
 		if fmt!='html': out.write('<pre>')
-		# those can only save to files			
+		# those can only dump to files			
 		if fmt in ('xml',):
 			outFile=O.tmpFilename()+'.'+fmt
-			obj.save(outFile)
+			obj.dump(outFile)
 			out.write(open(outFile).read().replace('<','&lt;').replace('>','&gt;'))
 		else:
-			obj.save(out,format=fmt)
+			obj.dump(out,format=fmt)
 		if fmt!='html': out.write('</pre>')
 
 out.write('</body>')
 out.close()
-
-#O.dem.par[10].save('/tmp/par.xml')
-#p=yade.Serializable.load('/tmp/par.xml')
-#p2=yade.dem.Particle.load('/tmp/par.xml')
-#p3=yade.Serializable.load('/tmp/par.xml')
-#p4=yade.dem.Contact.load('/tmp/par.xml')
 

@@ -22,7 +22,6 @@ void Serializable::pyRegisterClass() {
 	classObj
 		.def("__str__",&Serializable::pyStr).def("__repr__",&Serializable::pyStr)
 		.def("dict",&Serializable::pyDict,"Return dictionary of attributes.")
-		.def("yattrs",&Serializable::pyYAttrs,"Return names of registered attributes.")
 		//.def("_attrTraits",&Serializable::pyAttrTraits,(py::arg("parents")=true),"Return list of attribute traits.")
 		.def("updateAttrs",&Serializable::pyUpdateAttrs,"Update object attributes from given dictionary")
 		#if 1
@@ -31,8 +30,8 @@ void Serializable::pyRegisterClass() {
 			.add_property("__safe_for_unpickling__",&Serializable::getClassName,"just define the attr, return some bogus data")
 			.add_property("__getstate_manages_dict__",&Serializable::getClassName,"just define the attr, return some bogus data")
 		#endif
-		.def("_boostSave",&Serializable::_boostSave,py::arg("filename"))
-		.def("_boostLoad",&Serializable::_boostLoad,py::arg("filename")).staticmethod("_boostLoad")
+		.def("save",&Serializable::boostSave,py::arg("filename"))
+		.def("_boostLoad",&Serializable::boostLoad,py::arg("filename")).staticmethod("_boostLoad")
 		//.def_readonly("_derivedCxxClasses",&Serializable::derivedCxxClasses)
 		.add_static_property("_derivedCxxClasses",&Serializable::getDerivedCxxClasses)
 		.add_property("_cxxAddr",&Serializable::pyCxxAddr)
@@ -45,7 +44,7 @@ void Serializable::pyRegisterClass() {
 		// comparison operators
 		.def(py::self == py::self)
 		.def(py::self != py::self)
-		;
+	;
 	//classObj.attr("_derivedCxxClasses")=Serializable::derivedCxxClasses;
 }
 

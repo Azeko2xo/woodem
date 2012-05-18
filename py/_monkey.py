@@ -22,8 +22,8 @@ def _Serializable_getAllTraits(obj):
 _dumpingForbidden=(yade.core.Engine.field,)
 
 
-def _Serializable_save(obj,out,format='auto',overwrite=True,fragment=False,width=80,noMagic=False):
-	'''Save an object in specified *format*; *out* can be a string (filename) or a *file* object. Supported formats are: `auto` (auto-detected from *out* extension; raises exception when *out* is an object), `xml`, `bin`, `html`, `pyexpr`.'''
+def _Serializable_dump(obj,out,format='auto',overwrite=True,fragment=False,width=80,noMagic=False):
+	'''Dump an object in specified *format*; *out* can be a string (filename) or a *file* object. Supported formats are: `auto` (auto-detected from *out* extension; raises exception when *out* is an object), `xml`, `bin`, `html`, `pyexpr`.'''
 	hasFilename=isinstance(out,str)
 	if hasFilename:
 		import os.path
@@ -39,8 +39,7 @@ def _Serializable_save(obj,out,format='auto',overwrite=True,fragment=False,width
 	# this will go away later
 	if format=='boost::serialization':
 		if not hasFilename: raise NotImplementedError('Only serialization to files is supported with boost::serialization.') 
-		if hasattr(obj,'_boostSave_special'): obj._boostSave_special(out)
-		else: obj._boostSave(out)
+		obj.save(out)
 	elif format=='pickle':
 		import pickle
 		if hasFilename: pickle.dump(obj,open(out,'w'))
@@ -234,5 +233,5 @@ def _Serializable_load(typ,inFile=None,format='auto'):
 	return obj
 
 Serializable._getAllTraits=_Serializable_getAllTraits
-Serializable.save=_Serializable_save
+Serializable.dump=_Serializable_dump
 Serializable.load=classmethod(_Serializable_load)

@@ -320,7 +320,7 @@ void CLDemRun::doCompare(){
 		switch(geomT){
 			case(clDem::Geom_L6Geom):{
 				if(!dynamic_pointer_cast< ::L6Geom>(yc->geom)){ _THROW_ERROR(cId<<": geom mismatch L6Geom/"<<typeid(*(yc->geom)).name()); continue; }
-				const ::L6Geom yg(yc->geom->cast< ::L6Geom>());
+				const ::L6Geom& yg(yc->geom->cast< ::L6Geom>());
 				Real oriErr=(m2m(cc.ori)-yg.trsf).norm();
 				Real velErr=(v2v(cc.geom.l6g.vel)-yg.vel).norm()/(mU/sU);
 				Real angVelErr=(v2v(cc.geom.l6g.angVel)-yg.angVel).norm()/(1/sU);

@@ -147,7 +147,6 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 #define _REGISTER_ATTRIBUTES_DEPREC(thisClass,baseClass,attrs,deprec)  _REGISTER_BOOST_SERIALIZATION_ATTRIBUTES(baseClass,attrs) public: \
 	void pySetAttr(const std::string& key, const py::object& value){BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR,~,attrs); BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR_DEPREC,thisClass,deprec); baseClass::pySetAttr(key,value); } \
 	/* return dictionary of all acttributes and values; deprecated attributes omitted */ py::dict pyDict() const { py::dict ret; BOOST_PP_SEQ_FOR_EACH(_PYDICT_ATTR,~,attrs); ret.update(baseClass::pyDict()); return ret; } \
-	/* return list of yade attribute names; deprecated attributes ignored */ py::list pyYAttrs() const { py::list ret(baseClass::pyYAttrs()); BOOST_PP_SEQ_FOR_EACH(_PYYATTR_ATTR,~,attrs); return ret; } \
 	virtual void callPostLoad(void){ baseClass::callPostLoad(); postLoad(*this); }
 
 #define _DEF_TRAIT_GETTER(x,thisClass,z) template<class Trait, > 
@@ -271,7 +270,6 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 	/*1. ctor declaration */ thisClass();\
 	/*2. set attributes from kw ctor */ void pySetAttr(const std::string& key, const py::object& value); \
 	/*3. for pickling*/ py::dict pyDict() const; \
-	/*4. list of attr names*/py::list pyYAttrs() const; \
 	/*6. python class registration*/ virtual void pyRegisterClass(); \
 	/*7. ensures v-table; will be removed later*/virtual void must_use_both_YADE_CLASS_BASE_DOC_ATTRS_and_YADE_PLUGIN();
 
@@ -281,7 +279,6 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 	/*1.*/ thisClass::thisClass() BOOST_PP_IF(BOOST_PP_SEQ_SIZE(init attrs),:,) BOOST_PP_SEQ_FOR_EACH_I(_ATTR_MAKE_INITIALIZER,BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(init attrs)), init BOOST_PP_SEQ_FOR_EACH(_ATTR_MAKE_INIT_TUPLE,~,attrs)) { ctor; } \
 	/*2.*/ void thisClass::pySetAttr(const std::string& key, const py::object& value){ BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR,~,attrs); BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR_DEPREC,thisClass,deprec); baseClass::pySetAttr(key,value); } \
 	/*3.*/ py::dict thisClass::pyDict() const { py::dict ret; BOOST_PP_SEQ_FOR_EACH(_PYDICT_ATTR,~,attrs); ret.update(baseClass::pyDict()); return ret; } \
-	/*4.*/ py::list thisClass::pyYAttrs() const { py::list ret(baseClass::pyYAttrs()); BOOST_PP_SEQ_FOR_EACH(_PYYATTR_ATTR,~,attrs); return ret; } \
 	/*6.*/ void thisClass::pyRegisterClass() { _PY_REGISTER_CLASS_BODY(thisClass,baseClass,docString,attrs,deprec,extras); } \
 	/*7.*/ /*void thisClass::must_use_both_YADE_CLASS_BASE_DOC_ATTRS_and_YADE_PLUGIN();*/
 
@@ -314,7 +311,7 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 #endif
 
 
-struct Serializable: public Factorable {
+struct Serializable: public Factorable /*, public boost::noncopyable*/ {
 	// http://www.boost.org/doc/libs/1_49_0/libs/smart_ptr/sp_techniques.html#static
 	struct null_deleter{void operator()(void const *)const{}};
 	static vector<py::object> derivedCxxClasses;
@@ -327,8 +324,8 @@ struct Serializable: public Factorable {
 		template <class DerivedT> const DerivedT& cast() const { return *static_cast<DerivedT*>(this); }
 		template <class DerivedT> DerivedT& cast(){ return *static_cast<DerivedT*>(this); }
 
-		static shared_ptr<Serializable> _boostLoad(const string& f){ auto obj=make_shared<Serializable>(); ObjectIO::load(f,"yade__Serializable",obj); return obj; }
-		void _boostSave(const string& f){ shared_ptr<Serializable> thisPtr(this,null_deleter()); ObjectIO::save(f,"yade__Serializable",thisPtr); }
+		static shared_ptr<Serializable> boostLoad(const string& f){ auto obj=make_shared<Serializable>(); ObjectIO::load(f,"yade__Serializable",obj); return obj; }
+		virtual void boostSave(const string& f){ shared_ptr<Serializable> thisPtr(this,null_deleter()); ObjectIO::save(f,"yade__Serializable",thisPtr); }
 		//template<class DerivedT> shared_ptr<DerivedT> _cxxLoadChecked(const string& f){ auto obj=_cxxLoad(f); auto obj2=dynamic_pointer_cast<DerivedT>(obj); if(!obj2) throw std::runtime_error("Loaded type "+obj->getClassName()+" could not be cast to requested type "+DerivedT::getClassNameStatic()); }
 
 		Serializable() {};
@@ -341,7 +338,6 @@ struct Serializable: public Factorable {
 		//static void pyUpdateAttrs(const shared_ptr<Serializable>&, const py::dict& d);
 
 		virtual void pySetAttr(const std::string& key, const py::object& value){ yade::AttributeError("No such attribute: "+key+".");};
-		virtual py::list pyYAttrs() const { return py::list(); };
 		virtual py::dict pyDict() const { return py::dict(); }
 		virtual void callPostLoad(void){ postLoad(*this); }
 		// check whether the class registers itself or whether it calls virtual function of some base class;

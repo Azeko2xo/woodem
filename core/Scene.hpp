@@ -66,8 +66,8 @@ class Scene: public Serializable{
 			void initCl(); // initialize OpenCL using clDev
 		#endif
 
-		// different from generic Serialization::save, called from _monkey.py indirectly
-		void _boostSave_special(const string& out);
+		// override Serializable::boostSave, to set lastSave correctly
+		void boostSave(const string& out);
 		void saveTmp(const string& slot, bool quiet=true);
 
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Scene,Serializable,"Object comprising the whole simulation.",
@@ -125,7 +125,7 @@ class Scene: public Serializable{
 		#ifdef YADE_OPENCL
 			.def("ensureCl",&Scene::ensureCl,"[for debugging] Initialize the OpenCL subsystem (this is done by engines using OpenCL, but trying to do so in advance might catch errors earlier)")
 		#endif
-		.def("_boostSave_special",&Scene::_boostSave_special,(py::arg("out")),"Save into a file (loadable with O.load)").def("saveTmp",&Scene::saveTmp,(py::arg("slot")="",py::arg("quiet")=false),"Save into a temporary slot inside Omega (loadable with O.loadTmp)")
+		.def("saveTmp",&Scene::saveTmp,(py::arg("slot")="",py::arg("quiet")=false),"Save into a temporary slot inside Omega (loadable with O.loadTmp)")
 		;
 		// define nested class
 		boost::python::scope foo(_classObj);

@@ -110,9 +110,9 @@ shared_ptr<ScalarRange> Scene::getRange(const std::string& l) const{
 	throw std::runtime_error("No range labeled `"+l+"'.");
 }
 
-void Scene::_boostSave_special(const string& out){
+void Scene::boostSave(const string& out){
 	lastSave=out;
-	Serializable::_boostSave(out);
+	Serializable::boostSave(out);
 }
 
 void Scene::saveTmp(const string& slot, bool quiet){

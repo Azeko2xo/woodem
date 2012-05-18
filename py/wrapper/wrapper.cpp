@@ -163,7 +163,7 @@ class pyOmega{
 
 	void save(std::string fileName,bool quiet=false){
 		assertScene();
-		OMEGA.getScene()->_boostSave_special(fileName);
+		OMEGA.getScene()->boostSave(fileName);
 	}
 	
 	vector<shared_ptr<Engine> > engines_get(void){assertScene(); Scene* scene=OMEGA.getScene().get(); return scene->_nextEngines.empty()?scene->engines:scene->_nextEngines;}

@@ -17,11 +17,10 @@ class TestFormatsAndDetection(unittest.TestCase):
 		O.scene.fields=[DemField()]
 		O.scene.engines=utils.defaultEngines()
 		O.dem.par.append(utils.sphere((0,0,0),radius=1))
-	def trySaveLoad(self,fmt='auto',ext='',load=True):
+	def tryDumpLoad(self,fmt='auto',ext='',load=True):
 		for o in O.scene.engines+[O.dem.par[0]]:
-			#print 'Saving object',o
 			out=O.tmpFilename()+ext
-			o.save(out,format=fmt)
+			o.dump(out,format=fmt)
 			if load:
 				o2=Serializable.load(out,format='auto')
 				self.assert_(type(o2)==type(o))
@@ -30,40 +29,32 @@ class TestFormatsAndDetection(unittest.TestCase):
 				#if fmt=='expr': print open(out).read()
 	def testExpr(self):
 		'IO: expression dump/load & format detection'
-		self.trySaveLoad(fmt='expr')
+		self.tryDumpLoad(fmt='expr')
 	def testHtml(self):
 		'IO: HTML dump'
-		self.trySaveLoad(fmt='html',load=False)
+		self.tryDumpLoad(fmt='html',load=False)
 	def testPickle(self):
 		'IO: pickle dump/load & format detection'
-		self.trySaveLoad(fmt='pickle')
+		self.tryDumpLoad(fmt='pickle')
 	def testXml(self):
 		'IO: XML save/load & format detection'
-		self.trySaveLoad(ext='.xml')
+		self.tryDumpLoad(ext='.xml')
 	def testXmlBz2(self):
 		'IO: XML save/load (bzip2 compressed) & format detection'
-		self.trySaveLoad(ext='.xml.bz2')
+		self.tryDumpLoad(ext='.xml.bz2')
 	def testBin(self):
 		'IO: binary save/load & format detection'
-		self.trySaveLoad(ext='.bin')
+		self.tryDumpLoad(ext='.bin')
 	def testBinGz(self):
 		'IO: binary save/load (gzip compressed) & format detection'
-		self.trySaveLoad(ext='.bin.gz')
+		self.tryDumpLoad(ext='.bin.gz')
 
-class TestSpecialSaveMethods(unittest.TestCase):
+class TestSpecialDumpMethods(unittest.TestCase):
 	def setUp(self):
 		O.reset()
-		O.scene.lastSave='foo'
+		O.scene.lastDump='foo'
 		self.out=O.tmpFilename()
-	def testSceneLastSave_direct(self):
-		'IO: Scene.lastSave set'
+	def testSceneLastDump_direct(self):
+		'IO: Scene.lastSave set (Serializable._boostSave overridden)'
 		O.scene.save(self.out)
 		self.assert_(O.scene.lastSave==self.out)
-	def testSceneLastSave_omega(self):
-		'IO: Scene.lastSave set'
-		O.save(self.out)
-		self.assert_(O.scene.lastSave==self.out)
-	def testSceneLastSave_direct(self):
-		'IO: Scene.lastSave not set with _boostSave'
-		O.scene._boostSave(self.out)
-		self.assert_(O.scene.lastSave=='foo')
