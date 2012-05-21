@@ -107,17 +107,44 @@ PsdSphereGenerator::operator()(const shared_ptr<Material>&mat){
 	return vector<ParticleAndBox>({{sphere,AlignedBox3r(Vector3r(-r,-r,-r),Vector3r(r,r,r))}});
 };
 
-py::tuple PsdSphereGenerator::pyInputPsd(bool scale) const {
+py::tuple PsdSphereGenerator::pyInputPsd(bool scale, bool cumulative, int num) const {
 	Real factor=1.; // no scaling at all
 	if(scale){
 		if(mass) for(const auto& vv: genDiamMass) factor+=vv[1]; // scale by total mass of all generated particles
 		else factor=genDiamMass.size(); //  scale by number of particles
 	}
 	py::list dia, frac; // diameter and fraction axes
-	for(size_t i=0;i<psdPts.size();i++){
-		if(i==0 && psdPts[0][1]>0.){ dia.append(psdPts[0][0]); frac.append(0); }
-		dia.append(psdPts[i][0]); frac.append(psdPts[i][1]*factor);
-		if(discrete && i<psdPts.size()-1){ dia.append(psdPts[i+1][0]); frac.append(psdPts[i][1]*factor); }
+	if(cumulative){
+		if(psdPts[0][1]>0.){ dia.append(psdPts[0][0]); frac.append(0); }
+		for(size_t i=0;i<psdPts.size();i++){
+			dia.append(psdPts[i][0]); frac.append(psdPts[i][1]*factor);
+			if(discrete && i<psdPts.size()-1){ dia.append(psdPts[i+1][0]); frac.append(psdPts[i][1]*factor); }
+		}
+	} else {
+		if(discrete){
+			// points shown as bars with relative width given in *num*
+			Real wd=(psdPts.back()[0]-psdPts.front()[0])/num;
+			for(size_t i=0;i<psdPts.size();i++){
+				Vector2r offset=(i==0?Vector2r(0,wd):(i==psdPts.size()-1?Vector2r(-wd,0):Vector2r(-wd/2.,wd/2.)));
+				Vector2r xx=psdPts[i][0]*Vector2r::Ones()+offset;
+				Real y=factor*(psdPts[i][1]-(i==0?0.:psdPts[i-1][1]));
+				dia.append(xx[0]); frac.append(0.);
+				dia.append(xx[0]); frac.append(y);
+				dia.append(xx[1]); frac.append(y);
+				dia.append(xx[1]); frac.append(0.);
+			}
+		}
+		else{
+			dia.append(psdPts[0][0]); frac.append(0);
+			Real xSpan=(psdPts.back()[0]-psdPts[0][0]);
+			for(size_t i=0;i<psdPts.size()-1;i++){
+				Real dx=(psdPts[i+1][0]-psdPts[i][0]);
+				Real y=factor*(psdPts[i+1][1]-psdPts[i][1])*1./(num*dx/xSpan);
+				dia.append(psdPts[i][0]); frac.append(y);
+				dia.append(psdPts[i+1][0]); frac.append(y);
+			}
+			dia.append(psdPts.back()[0]); frac.append(0.);
+		}
 	}
 	return py::make_tuple(dia,frac);
 }
@@ -319,14 +346,14 @@ void BoxDeleter::run(){
 	}
 }
 py::tuple BoxDeleter::pyDiamMass(){
-	py::list diam, mass;
+	py::list dd, mm;
 	for(const auto& del: deleted){
 		if(!del || !del->shape || del->shape->nodes.size()!=1 || !dynamic_pointer_cast<Sphere>(del->shape)) continue;
 		Real d=2*del->shape->cast<Sphere>().radius;
 		Real m=del->shape->nodes[0]->getData<DemData>().mass;
-		diam.append(d); mass.append(m);
+		dd.append(d); mm.append(m);
 	}
-	return py::make_tuple(diam,mass);
+	return py::make_tuple(dd,mm);
 }
 
 py::object BoxDeleter::pyPsd(bool mass, bool cumulative, bool normalize, int num, const Vector2r& dRange, bool zip){

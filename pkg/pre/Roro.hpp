@@ -20,16 +20,12 @@ struct Roro: public Preprocessor {
 		//((int,intChoice,2,AttrTrait<>().choice({0,1,2,3,4}),"something with int choice"))
 		//((int,stringIntChoice,2,AttrTrait<>().choice({{0,"zero"},{1,"one"},{2,"two"}}),"something with int choice"))
 
-		((Real,gap,.04,AttrTrait<>().lenUnit().startGroup("Advanced"),"Gap between cylinders"))
+		((Real,gap,.038,AttrTrait<>().lenUnit().startGroup("Advanced"),"Gap between cylinders"))
 		((Real,angVel,10.,AttrTrait<>().angVelUnit(),"Angular velocity of cylinders [rot/sec]"))
-		((vector<Vector2r>,psd,/*set in the ctor*/,AttrTrait<>().multiUnit().lenUnit().prefUnit("mm").fractionUnit().prefUnit("%"),"Particle size distribution of generated particles: first value is diameter [mm], second value is cummulative percentage [%]"))
+		((vector<Vector2r>,psd,vector<Vector2r>({Vector2r(0.02,.0),Vector2r(.03,.2),Vector2r(.04,.3),Vector2r(.05,.7)})/*set in the ctor*/,AttrTrait<>().multiUnit().lenUnit().prefUnit("mm").fractionUnit().prefUnit("%"),"Particle size distribution of generated particles: first value is diameter [mm], second value is cummulative percentage [%]"))
 		//((Real,adhesion,,,"Adhesion coefficient between particles"))
 		((shared_ptr<FrictMat>,material,make_shared<FrictMat>(),,"Material of particles"))
 		, /*ctor*/
-			psd.push_back(Vector2r(.02,.0));
-			psd.push_back(Vector2r(.03,.2));
-			psd.push_back(Vector2r(.04,.3));
-			psd.push_back(Vector2r(.05,.7));
 			material->density=3200;
 			material->cast<FrictMat>().young=1e7;
 			material->cast<FrictMat>().ktDivKn=.2;

@@ -569,7 +569,7 @@ class SerializableEditor(QFrame):
 		def unitChanged(self):
 			c=self.unitLayout
 			if not self.trait.multiUnit:
-				# print self.name,self.containingClass.__name__,self.trait.unit
+				#print self.name,self.containingClass.__name__,self.trait.unit
 				ix=c.itemAt(0).widget().currentIndex()
 				w=self.widgets['value']
 				if ix==0: # base unit:
@@ -833,9 +833,9 @@ class SerializableEditor(QFrame):
 		menu.popup(self.mapToGlobal(position))
 		#print 'menu popped up at ',widget.mapToGlobal(position),' (local',position,')'
 	def getAttrLabelToolTip(self,entry):
-		attrLabel=entry.containingClass.__name__+'.<b><i>'+entry.name+'</i></b><br>'
-		if self.labelIsVar: return serializableHref(self.ser,entry.name),attrLabel+entry.doc
-		return entry.doc, attrLabel+entry.doc
+		attrLabel=entry.containingClass.__name__+'.<b><i>'+entry.name+'</i></b><br>'+entry.doc+('<br><small>default: %s</small>'%str(entry.trait.ini) if (entry.trait.ini and not isinstance(entry.trait.ini,Serializable)) else '')
+		if self.labelIsVar: return serializableHref(self.ser,entry.name),attrLabel
+		return entry.doc,attrLabel
 	def toggleLabelIsVar(self,val=None):
 		self.labelIsVar=(not self.labelIsVar if val==None else val)
 		for entry in self.entries:

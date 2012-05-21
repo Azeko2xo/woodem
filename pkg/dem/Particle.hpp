@@ -54,7 +54,7 @@ struct Particle: public Serializable{
 		((uint,mask,1,,"Bitmask for collision detection and other (group 1 by default)"))
 		((shared_ptr<Shape>,shape,,,"Geometrical configuration of the particle"))
 		((shared_ptr<Material>,material,,,"Material of the particle"))
-		((MapParticleContact,contacts,,Attr::hidden,"Contacts of this particle, indexed by id of the other particle."))
+		((MapParticleContact,contacts,,(Attr::hidden|Attr::noSave),"Contacts of this particle, indexed by id of the other particle."))
 		// ((int,flags,0,Attr::hidden,"Various flags, only individually accesible from Python"))
 		, /*ctor*/
 		, /*py*/

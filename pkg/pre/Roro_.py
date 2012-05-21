@@ -5,11 +5,13 @@ import yade.gl
 import math
 from miniEigen import *
 import sys
+import cStringIO as StringIO
 
 def run(ui): # use inputs as argument
 	print 'Roro_.run()'
 	print 'Input parameters:'
-	print ui.dump(sys.stdout,format='expr',noMagic=True)
+	print ui.dump(format='expr',noMagic=True)
+	print ui.dump(format='html',fragment=True)
 
 	s=Scene()
 	de=DemField();
@@ -65,11 +67,13 @@ def run(ui): # use inputs as argument
 			generator=PsdSphereGenerator(psdPts=ui.psd,discrete=False,mass=True),
 			shooter=AlignedMinMaxShooter(dir=(1,0,-.1),vRange=(ui.flowVel,ui.flowVel)),
 			mask=sphMask,
-			maxMass=-400, ## set negative, flip sign once we enter steady state
+			maxMass=-100, ## set negative, flip sign once we enter steady state
 		),
 		PyRunner(factStep,'import yade.pre.Roro_; yade.pre.Roro_.watchProgress()')
 	]
+	# improtant: save the preprocessor here!
 	s.any=[yade.gl.Gl1_InfCylinder(wire=True),yade.gl.Gl1_Wall(div=3)]
+	s.tags['preprocessor']=ui.dump(format='pickle')
 	print 'Generated Rollenrost.'
 	de.collectNodes()
 	return s
@@ -83,11 +87,13 @@ def watchProgress():
 	if yade.aperture[0].save==False:
 		# first particles have just fallen over
 		# start saving apertures and reset our counters here
-		if yade.fallOver.num>100: # FIXME: this number here is ugly
+		if yade.fallOver.num>50: # FIXME: this number here is ugly
 			yade.fallOver.clear()
 			yade.factory.clear()
 			yade.factory.maxMass=abs(yade.factory.maxMass)
-			for ap in yade.aperture: ap.save=True
+			for ap in yade.aperture:
+				ap.clear() # to clear overall mass, which gets counted even with save=False
+				ap.save=True
 			print 'Stabilized regime reached, counters started.'
 	# already in the stable regime, end simulation at some point
 	else:
@@ -100,23 +106,62 @@ def watchProgress():
 			print 'Simulation finished.'
 			yade.O.pause()
 
+def splitPsd(xx0,yy0,splitX):
+	'''Split input *psd0* (given by *xx0* and *yy0*) at diameter (x-axis) specified by *splitX*; two PSDs are returned, one grows from splitX and has maximum value for all points x>=splitX; the second PSD is zero for all values <=splitX, then grows to the maximum value proportionally. The maximum value is the last point of psd0, thus both normalized and non-normalized input can be given. If splitX falls in the middle of *psd0* intervals, it is interpolated.'''
+	maxY=float(yy0[-1])
+	assert(len(xx0)==len(yy0))
+	import bisect
+	ix=bisect.bisect(xx0,splitX)
+	#print 'split index %d/%d'%(ix,len(xx0))
+	if ix==0: return (xx0,[0.]*len(xx0)),(xx0,yy0)
+	if ix==len(xx0): return (xx0,yy0),(xx0,[maxY]*len(xx0))
+	splitY=yy0[ix-1]+(yy0[ix]-yy0[ix-1])*(splitX-xx0[ix-1])/(xx0[ix]-xx0[ix-1])
+	smallTrsf,bigTrsf=lambda y: 0.+(y-0)*1./(splitY/maxY),lambda y: 0.+(y-splitY)*1./(1-splitY/maxY)
+	#print 'splitY/maxY = %g/%g'%(splitY,maxY)
+	xx1,yy1,xx2,yy2=[],[],[],[]
+	for i in range(0,ix):
+		xx1.append(xx0[i]); yy1.append(smallTrsf(yy0[i]))
+		xx2.append(xx0[i]); yy2.append(0.)
+	xx1.append(splitX); xx2.append(splitX);
+	yy1.append(maxY); yy2.append(0.)
+	for i in range(ix,len(xx0)):
+		xx1.append(xx0[i]); yy1.append(1.)
+		xx2.append(xx0[i]); yy2.append(bigTrsf(yy0[i]))
+	return (xx1,yy1),(xx2,yy2)
+
+
+
 def plotFinalPsd():
+	# generator parameters
+	import yade
+	import yade.pre
+	ui=yade.pre.Roro.load(data=yade.O.scene.tags['preprocessor'])
+	#ui=[a for a in yade.O.scene.any if type(a)==yade.pre.Roro][0]
+	print 'Parameters were:'
+	ui.dump(sys.stdout,noMagic=True,format='expr')
 	import matplotlib
 	matplotlib.use('Agg')
 	import pylab
-	import yade
 	import os
-	fig1=pylab.figure()
+	import numpy
+	# http://www.mail-archive.com/matplotlib-users@lists.sourceforge.net/msg05474.html
+	from matplotlib.ticker import FuncFormatter
+	percent=FuncFormatter(lambda x,pos=0: '%g%%'%(100*x))
+
+	fig=pylab.figure()
+	fig.set_size_inches(8,24)
+	ax=pylab.subplot(311)
 	pylab.plot(*yade.factory.generator.inputPsd(scale=True),label='input PSD')
 	pylab.plot(*yade.factory.generator.psd(),label='generated (mass %g)'%yade.factory.mass)
 	for i in range(0,len(yade.aperture)): pylab.plot(*yade.aperture[i].psd(),label='aperture %d (mass %g)'%(i,yade.aperture[i].mass))
 	pylab.plot(*yade.fallOver.psd(),label='fall over (mass %g)'%yade.fallOver.mass)
 	pylab.grid(True)
+	#ax.yaxis.set_major_formatter(percent)
 	pylab.legend(loc='best')
 	pylab.xlabel('particle diameter [m]')
 	pylab.ylabel('passing fraction')
 
-	fig2=pylab.figure()
+	ax=pylab.subplot(312)
 	dd,mm=[],[] # lists with diameters and masses
 	ff=yade.fallOver.diamMass()
 	dd.append(ff[0]); mm.append(ff[1])
@@ -126,16 +171,40 @@ def plotFinalPsd():
 		dd[-1].extend(ff[0]); mm[-1].extend(ff[1])
 	pylab.hist(dd,weights=mm,bins=20,histtype='barstacked',label=['fallOver','apertures']) #+['aperture %d'%i for i in range(0,len(yade.aperture))])
 	pylab.grid(True)
+	pylab.xlabel('particle diameter [m]')
+	pylab.ylabel('mass [kg]')
+	pylab.legend(loc='best')
+
+	ax=pylab.subplot(313)
+	pylab.plot(*yade.factory.generator.inputPsd(scale=False),marker='o',label='prescribed')
+	genPsd=yade.factory.generator.psd(normalize=True)
+	inPsd=yade.factory.generator.inputPsd(scale=False)
+	pylab.plot(*genPsd,label='generated')
+	smallerPsd,biggerPsd=splitPsd(*inPsd,splitX=ui.gap)
+	pylab.plot(*smallerPsd,marker='v',label='< gap')
+	pylab.plot(*biggerPsd,marker='^',label='> gap')
+	pylab.axvline(x=ui.gap,linewidth=2,ymin=0,ymax=1,color='g',label='gap')
+	n,bins,patches=pylab.hist(dd[-1],weights=numpy.array(mm[-1])/sum([ap.mass for ap in yade.aperture]),histtype='step',label='apertures',normed=False,bins=60,cumulative=True,linewidth=2)
+	patches[0].set_xy(patches[0].get_xy()[:-1])
+	n,bins,patches=pylab.hist(dd[0],weights=mm[0],normed=True,bins=60,cumulative=True,histtype='step',label='fallOver',linewidth=2)
+	patches[0].set_xy(patches[0].get_xy()[:-1])
+	for a in yade.aperture:
+		print a.mass,sum([dm[1] for dm in a.diamMass()]),'|',len(a.deleted),a.num
+	pylab.ylim(ymin=-.05,ymax=1.05)
+
+	#print 'smaller',smallerPsd
+	#print 'bigger',biggerPsd
+	pylab.grid(True)
+	ax.yaxis.set_major_formatter(percent)
+	pylab.xlabel('diameter [m]')
+	pylab.ylabel('mass fraction')
 	pylab.legend(loc='best')
 
 	if 0: pylab.show()
 	else:
-		out1=yade.O.tmpFilename()+".pdf"
-		out2=yade.O.tmpFilename()+".pdf"
-		fig1.savefig(out1)
-		fig2.savefig(out2)
-		os.system("xdg-open '%s' &"%out1) # not safe, but whatever here
-		os.system("xdg-open '%s' &"%out2) # not safe, but whatever here
+		out=yade.O.tmpFilename()+".pdf"
+		fig.savefig(out)
+		os.system("xdg-open '%s' &"%out)
 
 # test drive
 if __name__=='__main__':

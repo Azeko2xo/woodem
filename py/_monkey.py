@@ -5,6 +5,8 @@ import yade.system
 #import yade.dem
 from miniEigen import * # for recognizing the types
 
+import StringIO # cStringIO does not handle unicode, so stick with the slower one
+
 from yade.wrapper import Serializable
 import yade._customConverters # to make sure they are loaded already
 
@@ -22,38 +24,45 @@ def _Serializable_getAllTraits(obj):
 _dumpingForbidden=(yade.core.Engine.field,)
 
 
-def _Serializable_dump(obj,out,format='auto',overwrite=True,fragment=False,width=80,noMagic=False):
-	'''Dump an object in specified *format*; *out* can be a string (filename) or a *file* object. Supported formats are: `auto` (auto-detected from *out* extension; raises exception when *out* is an object), `xml`, `bin`, `html`, `pyexpr`.'''
+def _Serializable_dump(obj,out=None,format='auto',overwrite=True,fragment=False,width=80,noMagic=False):
+	'''Dump an object in specified *format*; *out* can be a string (filename) or a *file* object. Supported formats are: `auto` (auto-detected from *out* extension; raises exception when *out* is an object), `xml`, `bin`, `html`, `expr`.'''
+	if format not in ('auto','html','expr','pickle','boost::serialization'): raise IOError("Unsupported dump format %s"%format)
 	hasFilename=isinstance(out,str)
+	toString=(out==None)
 	if hasFilename:
 		import os.path
 		if os.path.exists(out) and not overwrite: raise IOError("File '%s' exists (use overwrite=True)"%out)
-	if not hasFilename and not hasattr(out,'write'): raise IOError('*out* must be filename or file-like object')
+	#if not hasFilename and not hasattr(out,'write'): raise IOError('*out* must be filename or file-like object')
 	if format=='auto':
-		if not isinstance(out,str): raise IOError("format='auto' is only possible when a file (not a file object) is given.")
+		if not isinstance(out,str): raise IOError("format='auto' is only possible when a fileName is given.")
 		if out.endswith('.html'): format='html'
 		if sum([out.endswith(ext) for ext in ('.pickle','pickle.gz','pickle.bz2')]): format='pickle'
 		if sum([out.endswith(ext) for ext in ('.xml','.xml.gz','.xml.bz2','.bin','.gz','.bz2')]): format='boost::serialization'
 		else: IOError("Output format not deduced for filename '%s'"%out)
-	if format in ('boost::serialization',) and not hasFilename: raise IOError("format='boost::serialization' needs filename, not file-like object")
+	if format in ('boost::serialization',) and not hasFilename: raise IOError("format='boost::serialization' needs filename.")
 	# this will go away later
 	if format=='boost::serialization':
-		if not hasFilename: raise NotImplementedError('Only serialization to files is supported with boost::serialization.') 
+		if not hasFilename or toString: raise NotImplementedError('Only serialization to files is supported with boost::serialization.') 
 		obj.save(out)
 	elif format=='pickle':
 		import pickle
 		if hasFilename: pickle.dump(obj,open(out,'w'))
-		else: out.write(pickle.dumps(obj))
+		else:
+			if toString: return pickle.dumps(obj)
+			else: out.write(pickle.dumps(obj))
 	elif format=='expr' or format=='html': 
 		#raise NotImplementedError("format='expr' not yet implemented")
 		if hasFilename:
 			out=codecs.open(out,'w','utf-8')
+		elif toString:
+			out=StringIO.StringIO()
 		if format=='expr':
 			out.write(SerializerToExpr(maxWd=width,noMagic=noMagic)(obj))
 		elif format=='html':
 			if not fragment: out.write('<head><meta http-equiv="content-type" content="text/html;charset=UTF-8" /></head><body>\n')
 			out.write(SerializerToHtmlTable()(obj))
 			if not fragment: out.write('</body>')
+		if toString: return out.getvalue()
 		
 class SerializerToHtmlTable:
 	padding='cellpadding=2px'
@@ -174,22 +183,25 @@ class SerializerToExpr:
 		indent0,indent1=self.indent*level,self.indent*(level+1)
 		return magic+delims[0]+'\n'+indent1+(',\n'+indent1).join(lst)+'\n'+indent0+delims[1]+('\n' if level==0 else '')
 
-def _Serializable_load(typ,inFile=None,format='auto'):
+def _Serializable_load(typ,inFile=None,data=None,format='auto'):
 	validFormats=('auto','boost::serialization','expr','pickle')
 	if format not in validFormats: raise ValueError('format must be one of '+', '.join(validFormats)+'.')
 	obj=None
+	if (inFile==None and data==None) or (inFile!=None and data!=None): raise ValueError("Exactly one of *inFile* or *data* arguments must be given")
+	fromData=(data!=None)
 	if format=='auto':
 		format=None
 		## DO NOT use extensions to determine type, that is evil
 		# check for compression first
-		head=open(inFile).read(100)
-		# we might want to pass this data to ObjectIO, which currently determines format by looking at extension
-		if head[:2]=='\x1f\x8b':
-			import gzip
-			head=gzip.open(inFile).read(100)
-		elif head[:2]=='BZ':
-			import bz2
-			head=bz2.BZ2File(inFile).read(100)
+		head=(data[:100] if fromData else open(inFile).read(100))
+		if not fromData: # when reading from file, handle compressed files
+			# we might want to pass this data to ObjectIO, which currently determines format by looking at extension
+			if head[:2]=='\x1f\x8b':
+				import gzip
+				head=gzip.open(inFile).read(100)
+			elif head[:2]=='BZ':
+				import bz2
+				head=bz2.BZ2File(inFile).read(100)
 		# detect real format here (head is uncompressed already)
 		# the string between nulls is 'serialization::archive'
 		# see http://stackoverflow.com/questions/10614215/magic-for-detecting-boostserialization-file
@@ -202,7 +214,8 @@ def _Serializable_load(typ,inFile=None,format='auto'):
 		else:
 			try: # test pickling by trying to load
 				import pickle
-				obj=pickle.load(open(inFile)) # open again to seek to the beginning
+				if fromData: obj=pickle.loads(data)
+				else: obj=pickle.load(open(inFile)) # open again to seek to the beginning
 				format='pickle'
 			except (IOError,KeyError): pass
 		if not format: raise RuntimeError('File format detection failed on %s (head: %s)'%(inFile,''.join(["\\x%02x"%ord(x) for x in head])))
@@ -212,11 +225,12 @@ def _Serializable_load(typ,inFile=None,format='auto'):
 		if format==None:
 			raise IOError('Input file format not detected')
 		elif format=='boost::serialization':
+			if fromData: raise IOError('Boost::serialization can only be loaded from files')
 			# ObjectIO takes care of detecting binary, xml, compression independently
 			obj=Serializable._boostLoad(inFile)
 		elif format=='expr':
 			import codecs
-			buf=codecs.open(inFile,'r','utf-8').read()
+			buf=(data if fromData else codecs.open(inFile,'r','utf-8').read())
 			nan,inf=float('nan'),float('inf')
 			#print buf
 			try:
@@ -226,7 +240,8 @@ def _Serializable_load(typ,inFile=None,format='auto'):
 				raise
 		elif format=='pickle':
 			import pickle
-			obj=pickle.load(f)
+			if fromData: obj=pickle.loads(data)
+			else: obj=pickle.load(open(inFile))
 		else: raise RuntimeError("format='%s'??"%format)
 	# typecheck here
 	if not isinstance(obj,typ): raise TypeError('Loaded object of type '+obj.__class__.__name__+' is not a '+typ.__name__)

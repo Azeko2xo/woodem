@@ -27,15 +27,22 @@ class TestFormatsAndDetection(unittest.TestCase):
 				o3=type(o).load(out,format='auto')
 				self.assertRaises(TypeError,lambda: yade.core.Node.load(out))
 				#if fmt=='expr': print open(out).read()
+	def tryDumpLoadStr(self,fmt,load=True):
+		for o in O.scene.engines+[O.dem.par[0]]:
+			dump=o.dump(format=fmt)
+			if load: Serializable.load(data=dump,format='auto')
 	def testExpr(self):
-		'IO: expression dump/load & format detection'
+		'IO: expression dump/load & format detection (file+string)'
 		self.tryDumpLoad(fmt='expr')
+		self.tryDumpLoadStr(fmt='expr')
 	def testHtml(self):
-		'IO: HTML dump'
+		'IO: HTML dump (file+string)'
 		self.tryDumpLoad(fmt='html',load=False)
+		self.tryDumpLoadStr(fmt='html',load=False)
 	def testPickle(self):
-		'IO: pickle dump/load & format detection'
+		'IO: pickle dump/load & format detection (file+string)'
 		self.tryDumpLoad(fmt='pickle')
+		self.tryDumpLoadStr(fmt='pickle',load=True)
 	def testXml(self):
 		'IO: XML save/load & format detection'
 		self.tryDumpLoad(ext='.xml')
@@ -48,6 +55,10 @@ class TestFormatsAndDetection(unittest.TestCase):
 	def testBinGz(self):
 		'IO: binary save/load (gzip compressed) & format detection'
 		self.tryDumpLoad(ext='.bin.gz')
+	def testInvalidFormat(self):
+		'IO: invalid formats rejected'
+		self.assertRaises(IOError,lambda: O.dem.par[0].dump(format='bogus'))
+
 
 class TestSpecialDumpMethods(unittest.TestCase):
 	def setUp(self):
