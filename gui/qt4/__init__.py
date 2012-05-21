@@ -77,6 +77,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.setupUi(self)
 		self.generator=None # updated automatically
 		self.renderer=Renderer() # only hold one instance, managed by OpenGLManager
+		self.genIndexLoad=-1
 		self.addPreprocessors()
 		self.addRenderers()
 		global controller
@@ -95,8 +96,8 @@ class ControllerClass(QWidget,Ui_Controller):
 			self.generatorCombo.addItem(c)
 		self.generatorCombo.insertSeparator(self.generatorCombo.count())
 		self.generatorCombo.addItem('load')
+		self.genIndexLoad=self.generatorCombo.count()-1
 	def addRenderers(self):
-		#from yade.gl import *
 		from yade import gl
 		self.displayCombo.addItem('Renderer'); afterSep=1
 		for bc in [t for t in dir(gl) if t.endswith('Functor') ]:
@@ -119,10 +120,20 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.controllerTabs.setCurrentIndex(ix)
 	def generatorComboSlot(self,genStr):
 		"update generator parameters when a new one is selected"
-		gen=eval('yade.pre.'+str(genStr)+'()')
-		self.generator=gen
-		se=SerializableEditor(gen,parent=self.generatorArea,showType=True,labelIsVar=False,showChecks=True) # TODO
-		self.generatorArea.setWidget(se)
+		ix=self.generatorCombo.currentIndex()
+		if ix==self.genIndexLoad:
+			f=str(QFileDialog.getOpenFileName(self,'Load preprocessor from','.'))
+			if not f: self.generator=None
+			self.generator=Preprocessor.load(f)
+			self.generatorCombo.setItemText(self.genIndexLoad,'%s'%f)
+		else:
+			if self.genIndexLoad>=0: self.generatorCombo.setItemText(self.genIndexLoad,'load')
+			self.generator=eval('yade.pre.'+str(genStr)+'()')
+		if self.generator:
+			se=SerializableEditor(self.generator,parent=self.generatorArea,showType=True,labelIsVar=False,showChecks=True) # TODO
+			self.generatorArea.setWidget(se)
+		else:
+			self.generatorArea.setWidget(QFrame(self))
 	def pythonComboSlot(self,cmd):
 		try:
 			code=compile(str(cmd),'<UI entry>','exec')
@@ -130,8 +141,18 @@ class ControllerClass(QWidget,Ui_Controller):
 		except:
 			import traceback
 			traceback.print_exc()
-	def genSaveParamsSlot(self):	
-		raise NotImplementedError("Saving preprocessor parameters to file not yet implemented.")
+	def genSaveParamsSlot(self):
+		if 0:
+			formats=[('expr','Text, loadable (*.expr)'),('pickle','Pickle, loadable (*.pickle)'),('xml','XML (loadable)'),('HTML (write-only)','html')]
+			dialog=QFileDialog(None,'Save preprocessor parameters to','.',';; '.join([fmt[1] for fmt in formats]))
+			dialog.setAcceptMode(QFileDialog.AcceptSave)
+			f=dialog.exec_()
+			print 'chosen file',str(dialog.selectedFiles()[0])
+			if not f: return # cancelled
+		else:
+			f=str(QFileDialog.getSaveFileName(self,'Save preprocessor parameters','.'))
+			if not f: return
+			self.generator.dump(f,format='expr')
 	def generateSlot(self):
 		try:
 			QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)
