@@ -576,9 +576,10 @@ def plot(noShow=False,subPlots=True):
 		>>> from yade import plot
 		>>> plot.resetData()
 		>>> plot.plots={'foo':('bar',)}
-		>>> plot.plot(noShow=True).savefig('someFile.pdf')
+		>>> somePdf=O.tmpFilename()+'.pdf'
+		>>> plot.plot(noShow=True).savefig(somePdf)
 		>>> import os
-		>>> os.path.exists('someFile.pdf')
+		>>> os.path.exists(somePdf)
 		True
 		
 	to save the figure to file automatically.
