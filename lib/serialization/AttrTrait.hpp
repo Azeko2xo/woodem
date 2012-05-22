@@ -24,7 +24,8 @@ namespace yade{
 		vector<pair<string,Real>> _prefUnit;
 		vector<vector<pair<string,Real>>> _altUnits;
 		// avoid throwing exceptions when not initialized, just return None
-		AttrTraitBase(): _flags(0) { _ini=_range=_choice=[]()->py::object{ return py::object(); }; }
+		AttrTraitBase(): _flags(0)              { _ini=_range=_choice=[]()->py::object{ return py::object(); }; }
+		AttrTraitBase(int flags): _flags(flags) { _ini=_range=_choice=[]()->py::object{ return py::object(); }; }
 		std::function<py::object()> _ini;
 		std::function<py::object()> _range;
 		std::function<py::object()> _choice;
@@ -87,17 +88,19 @@ namespace yade{
 	template<int _compileFlags=0>
 	struct AttrTrait: public AttrTraitBase {
 		enum { compileFlags=_compileFlags };
-		AttrTrait(){};
-		AttrTrait(int f){ _flags=f; } // for compatibility
+		AttrTrait(): AttrTraitBase::_flags(_compileFlags) { };
+		//AttrTrait(int f){ _flags=f; } // for compatibility
 		// setters
 		#define ATTR_FLAG_DO(flag,isFlag) AttrTrait& flag(bool val=true){ if(val) _flags|=(int)Flags::flag; else _flags&=~((int)Flags::flag); return *this; } bool isFlag() const { return _flags&(int)Flags::flag; }
-			ATTR_FLAG_DO(noSave,isNoSave)
-			ATTR_FLAG_DO(readonly,isReadonly)
-			ATTR_FLAG_DO(triggerPostLoad,isTriggerPostLoad)
-			ATTR_FLAG_DO(hidden,isHidden)
+			//ATTR_FLAG_DO(noSave,isNoSave)
+			//ATTR_FLAG_DO(readonly,isReadonly)
+			//ATTR_FLAG_DO(triggerPostLoad,isTriggerPostLoad)
+			//ATTR_FLAG_DO(hidden,isHidden)
+			//ATTR_FLAG_DO(pyByRef,isPyByRef)
+
+			// dynamically modifiable without harm
 			ATTR_FLAG_DO(noResize,isNoResize)
 			ATTR_FLAG_DO(noGui,isNoGui)
-			ATTR_FLAG_DO(pyByRef,isPyByRef)
 			ATTR_FLAG_DO(static_,isStatic)
 			ATTR_FLAG_DO(multiUnit,isMultiUnit)
 			ATTR_FLAG_DO(noDump,isNoDump)
