@@ -88,15 +88,17 @@ namespace yade{
 	template<int _compileFlags=0>
 	struct AttrTrait: public AttrTraitBase {
 		enum { compileFlags=_compileFlags };
-		AttrTrait(): AttrTraitBase::_flags(_compileFlags) { };
-		//AttrTrait(int f){ _flags=f; } // for compatibility
+		AttrTrait(): AttrTraitBase(_compileFlags) { };
+		AttrTrait(int f){ _flags=f; } // for compatibility
+		AttrTrait(const AttrTrait<_compileFlags>& other){ cerr<<"called@#$"<<endl; }
 		// setters
 		#define ATTR_FLAG_DO(flag,isFlag) AttrTrait& flag(bool val=true){ if(val) _flags|=(int)Flags::flag; else _flags&=~((int)Flags::flag); return *this; } bool isFlag() const { return _flags&(int)Flags::flag; }
-			//ATTR_FLAG_DO(noSave,isNoSave)
-			//ATTR_FLAG_DO(readonly,isReadonly)
-			//ATTR_FLAG_DO(triggerPostLoad,isTriggerPostLoad)
-			//ATTR_FLAG_DO(hidden,isHidden)
-			//ATTR_FLAG_DO(pyByRef,isPyByRef)
+			// REMOVE later
+			ATTR_FLAG_DO(noSave,isNoSave)
+			ATTR_FLAG_DO(readonly,isReadonly)
+			ATTR_FLAG_DO(triggerPostLoad,isTriggerPostLoad)
+			ATTR_FLAG_DO(hidden,isHidden)
+			ATTR_FLAG_DO(pyByRef,isPyByRef)
 
 			// dynamically modifiable without harm
 			ATTR_FLAG_DO(noResize,isNoResize)

@@ -24,8 +24,8 @@ for path,dirs,files in os.walk(root,topdown=True):
 			#print lout[-1]
 		if changed:
 			print path+'/'+f
-			#out=open(path+'/'+f,'w')
-			#out.write('\n'.join(lout))
+			out=open(path+'/'+f,'w')
+			out.write('\n'.join(lout))
 
 
 
