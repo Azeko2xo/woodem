@@ -61,9 +61,9 @@ class ClassFactory: public Singleton<ClassFactory>{
 	 	/// map class name to the pointer of argumentless function returning shared_ptr<Factorable> to that class
 		typedef std::map<std::string, CreateSharedFnPtr> factorableCreatorsMap;
 		factorableCreatorsMap map;
+	public:
 		ClassFactory() { if(getenv("YADE_DEBUG")) fprintf(stderr,"Constructing ClassFactory.\n"); }
 		DECLARE_LOGGER;
-	public:
 		// register class in the class factory
 		bool registerFactorable(const std::string& name, CreateSharedFnPtr createShared);
 		/// Create a shared pointer on a serializable class of the given name

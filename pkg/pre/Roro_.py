@@ -10,8 +10,8 @@ import cStringIO as StringIO
 def run(ui): # use inputs as argument
 	print 'Roro_.run()'
 	print 'Input parameters:'
-	print ui.dump(format='expr',noMagic=True)
-	print ui.dump(format='html',fragment=True)
+	print ui.dumps(format='expr',noMagic=True)
+	print ui.dumps(format='html',fragment=True)
 
 	s=Scene()
 	de=DemField();
@@ -73,7 +73,7 @@ def run(ui): # use inputs as argument
 	]
 	# improtant: save the preprocessor here!
 	s.any=[yade.gl.Gl1_InfCylinder(wire=True),yade.gl.Gl1_Wall(div=3)]
-	s.tags['preprocessor']=ui.dump(format='pickle')
+	s.tags['preprocessor']=ui.dumps(format='pickle')
 	print 'Generated Rollenrost.'
 	de.collectNodes()
 	return s
@@ -135,7 +135,7 @@ def plotFinalPsd():
 	# generator parameters
 	import yade
 	import yade.pre
-	ui=yade.pre.Roro.load(data=yade.O.scene.tags['preprocessor'])
+	ui=yade.pre.Roro.loads(yade.O.scene.tags['preprocessor'])
 	#ui=[a for a in yade.O.scene.any if type(a)==yade.pre.Roro][0]
 	print 'Parameters were:'
 	ui.dump(sys.stdout,noMagic=True,format='expr')

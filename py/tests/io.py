@@ -29,8 +29,8 @@ class TestFormatsAndDetection(unittest.TestCase):
 				#if fmt=='expr': print open(out).read()
 	def tryDumpLoadStr(self,fmt,load=True):
 		for o in O.scene.engines+[O.dem.par[0]]:
-			dump=o.dump(format=fmt)
-			if load: Serializable.load(data=dump,format='auto')
+			dump=o.dumps(format=fmt)
+			if load: Serializable.loads(dump,format='auto')
 	def testExpr(self):
 		'IO: expression dump/load & format detection (file+string)'
 		self.tryDumpLoad(fmt='expr')
@@ -57,7 +57,7 @@ class TestFormatsAndDetection(unittest.TestCase):
 		self.tryDumpLoad(ext='.bin.gz')
 	def testInvalidFormat(self):
 		'IO: invalid formats rejected'
-		self.assertRaises(IOError,lambda: O.dem.par[0].dump(format='bogus'))
+		self.assertRaises(IOError,lambda: O.dem.par[0].dumps(format='bogus'))
 
 
 class TestSpecialDumpMethods(unittest.TestCase):
