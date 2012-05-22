@@ -86,7 +86,7 @@ struct ParticleFactory: public PeriodicEngine{
 	virtual Vector3r randomPosition(){ throw std::runtime_error("Calling ParticleFactor.randomPosition	(abstract method); use derived classes."); }
 	virtual bool validateBox(const AlignedBox3r& b) { throw std::runtime_error("Calling ParticleFactor.validateBox (abstract method); use derived classes."); }
 	void run();
-	void pyClear(){ if(generator) generator->clear(); num=0; mass=0; stepMass=0; /* do not reset stepPrev! */ }
+	void pyClear(){ if(generator) generator->clear(); num=0; mass=0; stepGoalMass=0; /* do not reset stepPrev! */ }
 	shared_ptr<Collider> collider;
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ParticleFactory,PeriodicEngine,"Factory generating new particles.",
 		((Real,massFlowRate,NaN,AttrTrait<>().massFlowRateUnit(),"Mass flow rate"))
@@ -101,8 +101,10 @@ struct ParticleFactory: public PeriodicEngine{
 		((int,mask,1,,"Groupmask for new particles"))
 		((Real,color,NaN,,"Color for new particles (NaN for random)"))
 		//
-		((Real,stepMass,0,Attr::readonly,"Mass to be attained in this step"))
+		((Real,stepGoalMass,0,Attr::readonly,"Mass to be attained in this step"))
 		((long,stepPrev,-1,Attr::readonly,"Step in which we were run for the last time"))
+		((Real,currRate,NaN,AttrTrait<>().readonly(),"Current value of mass flow rate"))
+		((Real,currRateSmooth,1,AttrTrait<>().noGui().range(Vector2r(0,1)),"Smoothing factor for currRate ∈〈0,1〉"))
 		,/*ctor*/
 		,/*py*/
 			.def("clear",&ParticleFactory::pyClear)
@@ -142,6 +144,10 @@ struct BoxDeleter: public PeriodicEngine{
 		((int,num,0,Attr::readonly,"Number of deleted particles"))
 		((Real,mass,0.,Attr::readonly,"Total mass of deleted particles"))
 		((Real,color,0,Attr::noGui,"Color for rendering (NaN disables rendering)"))
+		//
+		((Real,currRate,NaN,AttrTrait<>().readonly(),"Current value of mass flow rate"))
+		((Real,currRateSmooth,1,AttrTrait<>().noGui().range(Vector2r(0,1)),"Smoothing factor for currRate ∈〈0,1〉"))
+		((long,stepPrev,-1,,"Step when run for the last time"))
 		,/*ctor*/
 		,/*py*/
 		.def("psd",&BoxDeleter::pyPsd,(py::arg("mass")=true,py::arg("cumulative")=true,py::arg("normalize")=false,py::arg("num")=80,py::arg("dRange")=Vector2r(NaN,NaN),py::arg("zip")=false),"Return particle size distribution of deleted particles (only useful with *save*), spaced between *dRange* (a 2-tuple of minimum and maximum radius); )")

@@ -1,3 +1,4 @@
+#pragma once
 #include<yade/lib/serialization/Serializable.hpp>
 
 struct Scene; 

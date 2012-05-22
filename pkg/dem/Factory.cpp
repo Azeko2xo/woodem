@@ -161,13 +161,16 @@ void ParticleFactory::run(){
 	}
 	if(dynamic_pointer_cast<InsertionSortCollider>(collider)) static_pointer_cast<InsertionSortCollider>(collider)->forceInitSort=true;
 
-	// to be attained in this step;
-	stepMass+=massFlowRate*scene->dt*(scene->step-this->stepPrev); // stepLast==-1 if never run, which is OK
+	long nSteps=scene->step-this->stepPrev;
 	this->stepPrev=scene->step;
+	// to be attained in this step;
+	stepGoalMass+=massFlowRate*scene->dt*nSteps; // stepLast==-1 if never run, which is OK
 	vector<AlignedBox3r> genBoxes; // of particles created in this step
 	vector<shared_ptr<Particle>> generated;
+	Real stepMass=0.;
+	
 
-	while(mass<stepMass && (maxNum<0 || num<maxNum) && (maxMass<0 || mass<maxMass)){
+	while(mass<stepGoalMass && (maxNum<0 || num<maxNum) && (maxMass<0 || mass<maxMass)){
 		shared_ptr<Material> mat;
 		if(materials.size()==1) mat=materials[0];
 		else{ // random choice of material with equal probability
@@ -267,6 +270,7 @@ void ParticleFactory::run(){
 			dem->nodes.push_back(clump);
 
 			mass+=clump->getData<DemData>().mass;
+			stepMass+=clump->getData<DemData>().mass;
 		} else {
 			auto& p=pee[0].par;
 			p->mask=mask;
@@ -281,6 +285,7 @@ void ParticleFactory::run(){
 			auto& dyn=node0->getData<DemData>();
 			(*shooter)(dyn.vel,dyn.angVel);
 			mass+=dyn.mass;
+			stepMass+=dyn.mass;
 			assert(node0->hasData<DemData>());
 			dem->particles->insert(p);
 			#ifdef YADE_OPENGL
@@ -305,10 +310,14 @@ void ParticleFactory::run(){
 			#endif
 		}
 	};
+	Real currRateNoSmooth=stepMass/(nSteps*scene->dt);
+	if(isnan(currRate)) currRate=currRateNoSmooth;
+	else currRate=(1-currRateSmooth)*currRate+currRateSmooth*currRateNoSmooth;
 }
 
 void BoxDeleter::run(){
 	DemField* dem=static_cast<DemField*>(field.get());
+	Real stepMass=0.;
 	// iterate over indices so that iterators are not invalidated
 	for(size_t i=0; i<dem->particles->size(); i++){
 		const auto& p=(*dem->particles)[i];
@@ -318,8 +327,10 @@ void BoxDeleter::run(){
 		const Vector3r pos=p->shape->nodes[0]->pos;
 		if(inside!=box.contains(pos)) continue; // keep this particle
 		if(save) deleted.push_back((*dem->particles)[i]);
+		const Real& m=p->shape->nodes[0]->getData<DemData>().mass;
 		num++;
-		mass+=p->shape->nodes[0]->getData<DemData>().mass;
+		mass+=m;
+		stepMass+=m;
 		// FIXME: compute energy that disappeared
 		dem->removeParticle(i);
 		//dem->particles.remove(i);
@@ -338,12 +349,16 @@ void BoxDeleter::run(){
 				deleted.push_back((*dem->particles)[memberId]);
 			}
 			num++;
-			for(const auto& n: cd.nodes) mass+=n->getData<DemData>().mass;
+			for(const auto& n: cd.nodes){ mass+=n->getData<DemData>().mass; stepMass+=n->getData<DemData>().mass; }
 			dem->removeClump(i);
 			LOG_DEBUG("Clump #"<<i<<" deleted");
 		}
 		keepClump: ;
 	}
+	Real currRateNoSmooth=stepMass/((scene->step-stepPrev)*scene->dt);
+	if(isnan(currRate)||stepPrev<0) currRate=currRateNoSmooth;
+	else currRate=(1-currRateSmooth)*currRate+currRateSmooth*currRateNoSmooth;
+	stepPrev=scene->step;
 }
 py::tuple BoxDeleter::pyDiamMass(){
 	py::list dd, mm;

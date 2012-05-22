@@ -30,16 +30,13 @@
 #include<yade/core/EnergyTracker.hpp>
 #include<yade/core/Scene.hpp>
 #include<yade/core/Field.hpp>
-
-
 #include<yade/pkg/dem/Particle.hpp>
+
+
 #ifdef YADE_SPARC
 	#include<yade/pkg/sparc/SparcField.hpp>
 #endif
 
-#ifdef YADE_CLUMP
-#include<yade/pkg/dem/Clump.hpp>
-#endif
 
 #if BOOST_VERSION<104800
 	// local copy
@@ -364,6 +361,8 @@ BOOST_PYTHON_MODULE(wrapper)
 	Serializable().pyRegisterClass();
 
 	py::class_<TimingDeltas, shared_ptr<TimingDeltas>, boost::noncopyable >("TimingDeltas").add_property("data",&TimingDeltas::pyData,"Get timing data as list of tuples (label, execTime[nsec], execCount) (one tuple per checkpoint)").def("reset",&TimingDeltas::reset,"Reset timing information");
+
+
 
 	py::scope().attr("O")=pyOmega();
 }

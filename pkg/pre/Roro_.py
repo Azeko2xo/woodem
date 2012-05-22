@@ -1,17 +1,23 @@
 from yade import utils,pack
 from yade.core import *
 from yade.dem import *
+from yade.pre import Roro
 import yade.gl
 import math
 from miniEigen import *
 import sys
 import cStringIO as StringIO
+nan=float('nan')
 
 def run(ui): # use inputs as argument
 	print 'Roro_.run()'
 	print 'Input parameters:'
 	print ui.dumps(format='expr',noMagic=True)
-	print ui.dumps(format='html',fragment=True)
+	#print ui.dumps(format='html',fragment=True)
+
+	# this is useful supposing the simulation will run in the same process
+	import matplotlib
+	matplotlib.use('Agg') # make sure the headless backend is used
 
 	s=Scene()
 	de=DemField();
@@ -19,12 +25,12 @@ def run(ui): # use inputs as argument
 	rCyl=ui.cylDiameter/2.
 	lastCylX=(ui.cylNum-1)*(ui.gap+2*rCyl)
 	cylX=[]
-	ymin,ymax=-ui.cylLength/2.,ui.cylLength/2.
+	ymin,ymax=-ui.cylLenSim/2.,ui.cylLenSim/2.
 	zmin,zmax=-4*rCyl,rCyl+6*rCyl
 	xmin,xmax=-3*rCyl,lastCylX+6*rCyl
 	rMin=ui.psd[0][0]/2.
 	rMax=ui.psd[-1][0]/2.
-	s.dt=.7*utils.spherePWaveDt(rMin,ui.material.density,ui.material.young)
+	s.dt=ui.pWaveSafety*utils.spherePWaveDt(rMin,ui.material.density,ui.material.young)
 
 	wallMask=0b00110
 	loneMask=0b00100
@@ -40,40 +46,49 @@ def run(ui): # use inputs as argument
 		cylX.append(x)
 		c=utils.infCylinder((x,0,0),radius=rCyl,axis=1,glAB=(ymin,ymax),material=ui.material,mask=wallMask)
 		c.angVel=(0,ui.angVel,0)
+		qv,qh=ui.quivVPeriod,ui.quivHPeriod
 		c.impose=AlignedHarmonicOscillations(
-			amps=(.05*rCyl,float('nan'),.03*rCyl),
-			freqs=(1/((4000+(i%3-1)*500)*s.dt),float('nan'),1/((8000+(i%4)*1000)*s.dt))
+			amps=(ui.quivAmp[0]*rCyl,nan,ui.quivAmp[1]*rCyl),
+			freqs=(
+				1./((qh[0]+(i%int(qh[2]))*(qh[1]-qh[0])/int(qh[2]))*s.dt),
+				nan,
+				1./((qv[0]+(i%int(qv[2]))*(qv[1]-qv[0])/int(qv[2]))*s.dt)
+			)
 		)
 		de.par.append(c)
 	A,B,C,D=(xmin,ymin,rCyl),(0,ymin,rCyl),(0,ymax,rCyl),(xmin,ymax,rCyl)
 	de.par.append([utils.facet(vertices,material=ui.material,mask=wallMask) for vertices in ((A,B,C),(C,D,A))])
 
 	incl=ui.inclination # is in radians
-	grav=100.
+	grav=ui.gravity
 	gravity=(grav*math.sin(incl),0,-grav*math.cos(incl))
-	factStep=200
+	factStep=ui.factStepPeriod
 	s.engines=utils.defaultEngines(damping=.4,gravity=gravity,verletDist=.05*rMin)+[
 		# what falls beyond
 		# initially not saved
-		BoxDeleter(stepPeriod=factStep,inside=True,box=((cylX[i],ymin,zmin),(cylX[i+1],ymax,-rCyl/2.)),color=.05*i,save=False,mask=delMask,label='aperture[%d]'%i) for i in range(0,ui.cylNum-1)
+		BoxDeleter(stepPeriod=factStep,inside=True,box=((cylX[i],ymin,zmin),(cylX[i+1],ymax,-rCyl/2.)),color=.05*i,save=False,mask=delMask,currRateSmooth=ui.rateSmooth,label='aperture[%d]'%i) for i in range(0,ui.cylNum-1)
 	]+[
 		# this one should not collect any particles at all
 		BoxDeleter(stepPeriod=factStep,box=((xmin,ymin,zmin),(xmax,ymax,zmax)),color=.9,save=False,mask=delMask,label='outOfDomain'),
 		# what falls inside
-		BoxDeleter(stepPeriod=factStep,inside=True,box=((lastCylX+rCyl,ymin,zmin),(xmax,ymax,zmax)),color=.9,save=True,mask=delMask,label='fallOver'),
+		BoxDeleter(stepPeriod=factStep,inside=True,box=((lastCylX+rCyl,ymin,zmin),(xmax,ymax,zmax)),color=.9,save=True,mask=delMask,currRateSmooth=ui.rateSmooth,label='fallOver'),
 		# generator
 		BoxFactory(stepPeriod=factStep,box=((xmin,ymin,rCyl),(0,ymax,zmax)),color=.4,label='factory',
-			massFlowRate=ui.massFlowRate,materials=[ui.material],
+			massFlowRate=ui.massFlowRate*ui.cylRelLen, # mass flow rate for the simulated part only
+			currRateSmooth=ui.rateSmooth,
+			materials=[ui.material],
 			generator=PsdSphereGenerator(psdPts=ui.psd,discrete=False,mass=True),
 			shooter=AlignedMinMaxShooter(dir=(1,0,-.1),vRange=(ui.flowVel,ui.flowVel)),
 			mask=sphMask,
-			maxMass=-100, ## set negative, flip sign once we enter steady state
+			maxMass=-1, ## do not limit, before steady state is reached
 		),
-		PyRunner(factStep,'import yade.pre.Roro_; yade.pre.Roro_.watchProgress()')
+		PyRunner(factStep,'import yade.pre.Roro_; yade.pre.Roro_.watchProgress()'),
+		PyRunner(factStep,'yade.pre.Roro_.savePlotData()'),
 	]
 	# improtant: save the preprocessor here!
 	s.any=[yade.gl.Gl1_InfCylinder(wire=True),yade.gl.Gl1_Wall(div=3)]
-	s.tags['preprocessor']=ui.dumps(format='pickle')
+	s.pre=ui
+	#s.tags['preprocessor']=ui.dumps(format='pickle')
 	print 'Generated Rollenrost.'
 	de.collectNodes()
 	return s
@@ -83,28 +98,37 @@ def watchProgress():
 	it means we have reached some steady state; at that point, all objects (deleters,
 	factory, ... are clear()ed so that PSD's and such correspond to the steady
 	state only'''
+	pre=yade.O.scene.pre
 	# not yet saving what falls through, i.e. not in stabilized regime yet
 	if yade.aperture[0].save==False:
 		# first particles have just fallen over
 		# start saving apertures and reset our counters here
-		if yade.fallOver.num>50: # FIXME: this number here is ugly
+		if yade.fallOver.num>pre.steadyOver:
 			yade.fallOver.clear()
 			yade.factory.clear()
-			yade.factory.maxMass=abs(yade.factory.maxMass)
+			yade.factory.maxMass=pre.cylRelLen*pre.time*pre.massFlowRate # required mass scaled to simulated part
 			for ap in yade.aperture:
 				ap.clear() # to clear overall mass, which gets counted even with save=False
 				ap.save=True
-			print 'Stabilized regime reached, counters started.'
+			print 'Stabilized regime reached at step %d, counters engaged.'%yade.O.scene.step
 	# already in the stable regime, end simulation at some point
 	else:
-		#remains=(yade.factory.maxMass-sum([a.mass for a in yade.aperture])-yade.fallOver.mass)/yade.factory.maxMass
-		# if remains<.02:\n\tyade.pre.Roro_.plotFinalPsd(); print "Simulation finished."; O.pause()
-
 		# factory has finished generating particles
 		if yade.factory.mass>yade.factory.maxMass:
 			plotFinalPsd()
 			print 'Simulation finished.'
 			yade.O.pause()
+
+def savePlotData():
+
+	import yade
+	if yade.aperture[0].save==False: return # not in the steady state yet
+	import yade.plot
+	# save unscaled data here!
+	sc=yade.O.scene
+	apRate=sum([a.currRate for a in yade.aperture])
+	overRate=yade.fallOver.currRate
+	yade.plot.addData(i=sc.step,t=sc.time,genRate=yade.factory.currRate,apRate=apRate,overRate=overRate,delRate=apRate+overRate)
 
 def splitPsd(xx0,yy0,splitX):
 	'''Split input *psd0* (given by *xx0* and *yy0*) at diameter (x-axis) specified by *splitX*; two PSDs are returned, one grows from splitX and has maximum value for all points x>=splitX; the second PSD is zero for all values <=splitX, then grows to the maximum value proportionally. The maximum value is the last point of psd0, thus both normalized and non-normalized input can be given. If splitX falls in the middle of *psd0* intervals, it is interpolated.'''
@@ -130,15 +154,14 @@ def splitPsd(xx0,yy0,splitX):
 	return (xx1,yy1),(xx2,yy2)
 
 
-
 def plotFinalPsd():
 	# generator parameters
 	import yade
 	import yade.pre
-	ui=yade.pre.Roro.loads(yade.O.scene.tags['preprocessor'])
+	pre=yade.O.scene.pre
 	#ui=[a for a in yade.O.scene.any if type(a)==yade.pre.Roro][0]
 	print 'Parameters were:'
-	ui.dump(sys.stdout,noMagic=True,format='expr')
+	pre.dump(sys.stdout,noMagic=True,format='expr')
 	import matplotlib
 	matplotlib.use('Agg')
 	import pylab
@@ -147,58 +170,92 @@ def plotFinalPsd():
 	# http://www.mail-archive.com/matplotlib-users@lists.sourceforge.net/msg05474.html
 	from matplotlib.ticker import FuncFormatter
 	percent=FuncFormatter(lambda x,pos=0: '%g%%'%(100*x))
+	milimeter=FuncFormatter(lambda x,pos=0: '%3g'%(1000*x))
+
+	# should this be scaled to t/year as well?
+	massScale=(
+		(1./pre.cylRelLen)*(1./pre.time) # in kg/sec
+		*3600*24*365/1000.  # in t/y
+	)
+
+	def scaledFlowPsd(x,y): return numpy.array(x),massScale*numpy.array(y)
+	def scaledNormPsd(x,y): return numpy.array(x),numpy.array(y)
 
 	fig=pylab.figure()
-	fig.set_size_inches(8,24)
-	ax=pylab.subplot(311)
-	pylab.plot(*yade.factory.generator.inputPsd(scale=True),label='input PSD')
-	pylab.plot(*yade.factory.generator.psd(),label='generated (mass %g)'%yade.factory.mass)
-	for i in range(0,len(yade.aperture)): pylab.plot(*yade.aperture[i].psd(),label='aperture %d (mass %g)'%(i,yade.aperture[i].mass))
-	pylab.plot(*yade.fallOver.psd(),label='fall over (mass %g)'%yade.fallOver.mass)
+	fig.set_size_inches(16,16)
+	ax=pylab.subplot(221)
+	inPsd=scaledFlowPsd(*yade.factory.generator.inputPsd(scale=True))
+	#print 'massScale',massScale
+	#print 'inPsd',inPsd
+	genPsd=scaledFlowPsd(*yade.factory.generator.psd())
+	pylab.plot(*inPsd,label='input PSD')
+	pylab.plot(*genPsd,label='generated (%g t/y)'%(yade.factory.mass*massScale))
+	for i in range(0,len(yade.aperture)):
+		apPsd=scaledFlowPsd(*yade.aperture[i].psd())
+		pylab.plot(*apPsd,label='aperture %d (%g t/y)'%(i,yade.aperture[i].mass*massScale))
+	overPsd=scaledFlowPsd(*yade.fallOver.psd())
+	pylab.plot(*overPsd,label='fall over (%g t/y)'%(yade.fallOver.mass*massScale))
+	pylab.axvline(x=pre.gap,linewidth=2,ymin=0,ymax=1,color='g',label='gap')
 	pylab.grid(True)
-	#ax.yaxis.set_major_formatter(percent)
 	pylab.legend(loc='best')
-	pylab.xlabel('particle diameter [m]')
-	pylab.ylabel('passing fraction')
+	ax.xaxis.set_major_formatter(milimeter)
+	pylab.xlabel('particle diameter [mm]')
+	pylab.ylabel('flow [t/y]')
 
-	ax=pylab.subplot(312)
+	ax=pylab.subplot(222)
 	dd,mm=[],[] # lists with diameters and masses
-	ff=yade.fallOver.diamMass()
+	ff=scaledFlowPsd(*yade.fallOver.diamMass())
 	dd.append(ff[0]); mm.append(ff[1])
 	dd.append([]); mm.append([]) # sum apertures together
 	for a in yade.aperture:
-		ff=a.diamMass()
+		ff=scaledFlowPsd(*a.diamMass())
 		dd[-1].extend(ff[0]); mm[-1].extend(ff[1])
 	pylab.hist(dd,weights=mm,bins=20,histtype='barstacked',label=['fallOver','apertures']) #+['aperture %d'%i for i in range(0,len(yade.aperture))])
+	pylab.axvline(x=pre.gap,linewidth=2,ymin=0,ymax=1,color='g',label='gap')
 	pylab.grid(True)
-	pylab.xlabel('particle diameter [m]')
-	pylab.ylabel('mass [kg]')
+	ax.xaxis.set_major_formatter(milimeter)
+	pylab.xlabel('particle diameter [mm]')
+	pylab.ylabel('flow [t/y]')
 	pylab.legend(loc='best')
 
-	ax=pylab.subplot(313)
-	pylab.plot(*yade.factory.generator.inputPsd(scale=False),marker='o',label='prescribed')
-	genPsd=yade.factory.generator.psd(normalize=True)
-	inPsd=yade.factory.generator.inputPsd(scale=False)
+
+	ax=pylab.subplot(223)
+	pylab.plot(*scaledNormPsd(*yade.factory.generator.inputPsd(scale=False)),marker='o',label='prescribed')
+	genPsd=scaledNormPsd(*yade.factory.generator.psd(normalize=True))
+	inPsd=scaledNormPsd(*yade.factory.generator.inputPsd(scale=False))
 	pylab.plot(*genPsd,label='generated')
-	smallerPsd,biggerPsd=splitPsd(*inPsd,splitX=ui.gap)
+	smallerPsd,biggerPsd=splitPsd(*inPsd,splitX=pre.gap)
 	pylab.plot(*smallerPsd,marker='v',label='< gap')
 	pylab.plot(*biggerPsd,marker='^',label='> gap')
-	pylab.axvline(x=ui.gap,linewidth=2,ymin=0,ymax=1,color='g',label='gap')
-	n,bins,patches=pylab.hist(dd[-1],weights=numpy.array(mm[-1])/sum([ap.mass for ap in yade.aperture]),histtype='step',label='apertures',normed=False,bins=60,cumulative=True,linewidth=2)
+	pylab.axvline(x=pre.gap,linewidth=2,ymin=0,ymax=1,color='g',label='gap')
+	n,bins,patches=pylab.hist(dd[-1],weights=numpy.array(mm[-1])/sum([ap.mass for ap in yade.aperture]),histtype='step',label='apertures',normed=True,bins=60,cumulative=True,linewidth=2)
 	patches[0].set_xy(patches[0].get_xy()[:-1])
 	n,bins,patches=pylab.hist(dd[0],weights=mm[0],normed=True,bins=60,cumulative=True,histtype='step',label='fallOver',linewidth=2)
 	patches[0].set_xy(patches[0].get_xy()[:-1])
-	for a in yade.aperture:
-		print a.mass,sum([dm[1] for dm in a.diamMass()]),'|',len(a.deleted),a.num
+	#for a in yade.aperture:
+	#	print a.mass,sum([dm[1] for dm in a.diamMass()]),'|',len(a.deleted),a.num
 	pylab.ylim(ymin=-.05,ymax=1.05)
 
 	#print 'smaller',smallerPsd
 	#print 'bigger',biggerPsd
 	pylab.grid(True)
+	ax.xaxis.set_major_formatter(milimeter)
+	pylab.xlabel('diameter [mm]')
 	ax.yaxis.set_major_formatter(percent)
-	pylab.xlabel('diameter [m]')
 	pylab.ylabel('mass fraction')
 	pylab.legend(loc='best')
+
+	ax=pylab.subplot(224)
+	d=yade.plot.data
+	pylab.plot(d['t'],massScale*numpy.array(d['genRate']),label='generate')
+	pylab.plot(d['t'],massScale*numpy.array(d['delRate']),label='delete')
+	pylab.plot(d['t'],massScale*numpy.array(d['apRate']),label='apertures')
+	pylab.plot(d['t'],massScale*numpy.array(d['overRate']),label='fallOver')
+	pylab.legend(loc='lower left')
+	pylab.grid(True)
+	pylab.xlabel('time [s]')
+	pylab.ylabel('mass rate [t/y]')
+
 
 	if 0: pylab.show()
 	else:

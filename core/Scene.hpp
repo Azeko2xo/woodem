@@ -4,6 +4,7 @@
 #include<yade/core/Engine.hpp>
 #include<yade/core/DisplayParameters.hpp>
 #include<yade/core/EnergyTracker.hpp>
+#include<yade/core/Preprocessor.hpp>
 
 #ifdef YADE_OPENCL
 	#define __CL_ENABLE_EXCEPTIONS
@@ -107,6 +108,7 @@ class Scene: public Serializable{
 			((vector<shared_ptr<ScalarRange>>,ranges,,,"Scalar ranges to be rendered on the display as colormaps"))
 		#endif
 		((vector<shared_ptr<Serializable>>,any,,,"Storage for arbitrary Serializables; meant for storing and loading static objects like Gl1_* functors to restore their parameters when scene is loaded."))
+		((shared_ptr<Preprocessor>,pre,,Attr::noGui,"Preprocessor used for generating this simulation; to be only used in user scripts to query preprocessing parameters, not in c++ code."))
 
 		// ((shared_ptr<Bound>,bound,,Attr::hidden,"Bounding box of the scene (only used for rendering and initialized if needed)."))
 

@@ -649,7 +649,7 @@ class SerializableEditor(QFrame):
 		self.refreshTimer.timeout.connect(self.refreshEvent)
 		self.refreshTimer.start(500)
 	def getListTypeFromDocstring(self,trait):
-		"Guess type of array by scanning docstring for :yattrtype: and parsing its argument; ugly, but works."
+		"Guess type of array from parsing trait.cxxType. Ugly but works."
 		def vecTest(T,cxxT):
 			regexp=r'^\s*(std\s*::)?\s*vector\s*<\s*(shared_ptr\s*<\s*)?\s*(std\s*::)?\s*('+T+r')(\s*>)?\s*>\s*$'
 			m=re.match(regexp,cxxT)
@@ -743,7 +743,7 @@ class SerializableEditor(QFrame):
 	def getDocstring(self,attr=None):
 		"If attr is *None*, return docstring of the Serializable itself"
 		try:
-			doc=(getattr(self.ser.__class__,attr).__doc__ if attr else self.ser.__class__.__doc__)
+			doc=(getattr(self.ser.__class__,attr).__doc__ if attr else self.ser.__class__.__doc__).decode('utf-8')
 		except AttributeError: doc=None
 		if not doc: return ''
 		doc=re.sub(':y(attrtype|default|attrflags):`[^`]*`','',doc)
@@ -895,8 +895,10 @@ class SerializableEditor(QFrame):
 				entry.widgets['unit'].setLayout(unitLay)
 				assert(len(entry.trait.unit)==len(entry.trait.altUnits))
 				assert(len(entry.trait.unit)==len(entry.trait.prefUnit))
+				unitChoice=False
 				for unit,pref,alt in zip(entry.trait.unit,entry.trait.prefUnit,entry.trait.altUnits):
 					if alt: # there are alternative units, we give choice therefore
+						unitChoice=True
 						w=QComboBox(self)
 						w.addItem(unit.decode('utf-8'))
 						w.activated.connect(entry.unitChanged)
@@ -906,9 +908,9 @@ class SerializableEditor(QFrame):
 							ii=[i for i in range(len(alt)) if alt[i][0]==pref[0]][0]
 							w.setCurrentIndex(ii+1)
 					else:
-						w=QLabel(unit,self)
+						w=QLabel(unit.decode('utf-8'),self)
 					unitLay.addWidget(w)
-				entry.unitChanged() # postpone calling this at the very end
+				if unitChoice: entry.unitChanged() # postpone calling this at the very end
 			#if self.hasUnits and entry.widget.__class__!=SerializableEditor: entry.widgets['unit']=QLabel(u'−',self)
 			##else: entry.widgets['unit']=QLabel(u'−',self) if (self.hasUnits and entry.widget.__class__!=SerializableEditor) else QFrame() # avoid NaN widgets
 			self.entryGroups[entry.groupNo].entries.append(entry)

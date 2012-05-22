@@ -24,7 +24,8 @@ namespace yade{
 		vector<pair<string,Real>> _prefUnit;
 		vector<vector<pair<string,Real>>> _altUnits;
 		// avoid throwing exceptions when not initialized, just return None
-		AttrTraitBase(): _flags(0) { _ini=_range=_choice=[]()->py::object{ return py::object(); }; }
+		AttrTraitBase(): _flags(0)              { _ini=_range=_choice=[]()->py::object{ return py::object(); }; }
+		AttrTraitBase(int flags): _flags(flags) { _ini=_range=_choice=[]()->py::object{ return py::object(); }; }
 		std::function<py::object()> _ini;
 		std::function<py::object()> _range;
 		std::function<py::object()> _choice;
@@ -87,17 +88,21 @@ namespace yade{
 	template<int _compileFlags=0>
 	struct AttrTrait: public AttrTraitBase {
 		enum { compileFlags=_compileFlags };
-		AttrTrait(){};
+		AttrTrait(): AttrTraitBase(_compileFlags) { };
 		AttrTrait(int f){ _flags=f; } // for compatibility
+		//AttrTrait(const AttrTrait<_compileFlags>& other){ cerr<<"called@#$"<<endl; }
 		// setters
 		#define ATTR_FLAG_DO(flag,isFlag) AttrTrait& flag(bool val=true){ if(val) _flags|=(int)Flags::flag; else _flags&=~((int)Flags::flag); return *this; } bool isFlag() const { return _flags&(int)Flags::flag; }
+			// REMOVE later
 			ATTR_FLAG_DO(noSave,isNoSave)
 			ATTR_FLAG_DO(readonly,isReadonly)
 			ATTR_FLAG_DO(triggerPostLoad,isTriggerPostLoad)
 			ATTR_FLAG_DO(hidden,isHidden)
+			ATTR_FLAG_DO(pyByRef,isPyByRef)
+
+			// dynamically modifiable without harm
 			ATTR_FLAG_DO(noResize,isNoResize)
 			ATTR_FLAG_DO(noGui,isNoGui)
-			ATTR_FLAG_DO(pyByRef,isPyByRef)
 			ATTR_FLAG_DO(static_,isStatic)
 			ATTR_FLAG_DO(multiUnit,isMultiUnit)
 			ATTR_FLAG_DO(noDump,isNoDump)
@@ -148,6 +153,7 @@ namespace yade{
 		AttrTrait& choice(const vector<pair<int,string>>& t){ _choice=std::function<py::object()>([=]()->py::object{ return py::object(t);} ); return *this; }
 		// shorthands for common units
 		AttrTrait& angleUnit(){ unit("rad"); altUnits({{"deg",180/Mathr::PI}}); return *this; }
+		AttrTrait& timeUnit(){ unit("s"); altUnits({{"ms",1e3},{"μs",1e6},{"day",1./(60*60*24)},{"year",1./(60*60*24*365)}}); return *this; }
 		AttrTrait& lenUnit(){ unit("m"); altUnits({{"mm",1e3}}); return *this; }
 		AttrTrait& areaUnit(){ unit("m²"); altUnits({{"mm²",1e6}}); return *this; }
 		AttrTrait& volUnit(){ unit("m³"); altUnits({{"mm³",1e9}}); return *this; }
