@@ -71,7 +71,7 @@ def _Serializable_dump(obj,out,format='auto',overwrite=True,fragment=False,width
 			if not fragment: out.write('</body>')
 		
 class SerializerToHtmlTable:
-	padding='cellpadding=2px'
+	padding='cellpadding="2px"'
 	def __init__(self,maxDepth=8,hideNoGui=False):
 		self.maxDepth=maxDepth
 		self.hideNoGui=hideNoGui
@@ -81,16 +81,17 @@ class SerializerToHtmlTable:
 		indent2=indent1+'\t'
 		if hasattr(s[0],'__len__') and not isinstance(s[0],str): # 2d array
 			# disregard insideTable in this case
-			ret+=indent+'<table frame=box rules=all width=100%% %s>'%self.padding
+			ret+=indent+'<table frame="box" rules="all" width="100%%" %s>'%self.padding
 			for r in range(len(s)):
 				ret+=indent1+'<tr>'
 				for c in range(len(s[0])):
-					ret+=indent2+'<td align=right width=%g%%>'%(100./len(s[0])-1.)+('%g'%s[r][c] if isinstance(s[r][c],float) else str(s[r][c]))
+					ret+=indent2+'<td align="right" width="%g%%">'%(100./len(s[0])-1.)+('%g'%s[r][c] if isinstance(s[r][c],float) else str(s[r][c]))+'</td>'
+				ret+=indent1+'</tr>'
 			ret+=indent+'</table>'
 			return ret
 		# 1d array
-		if not insideTable: ret+=indent+'<table frame=box rules=all width=100%% %s>'%self.padding
-		for e in s: ret+=indent1+'<td align="right" width=%g%%>'%(100./len(s)-1.)+('%g'%e if isinstance(e,float) else str(e))
+		if not insideTable: ret+=indent+'<table frame="box" rules="all" width="100%%" %s>'%self.padding
+		for e in s: ret+=indent1+'<td align="right" width="%g%%">'%(100./len(s)-1.)+('%g'%e if isinstance(e,float) else str(e))+'</td>'
 		if not insideTable: ret+=indent+'</table>'
 		return ret;
 	def __call__(self,obj,depth=0):
@@ -98,7 +99,7 @@ class SerializerToHtmlTable:
 		indent0=u'\n'+u'\t'*2*depth
 		indent1=indent0+u'\t'
 		indent2=indent1+u'\t'
-		ret=indent0+'<table frame=box rules=all %s %s><th colspan="3"><b>%s</b></th>'%(self.padding, 'width="100%"' if depth>0 else '','.'.join(obj.__class__.__module__.split('.')[1:])+'.'+obj.__class__.__name__)
+		ret=indent0+'<table frame="box" rules="all" %s %s><th colspan="3" align="left"><b>%s</b></th>'%(self.padding, 'width="100%"' if depth>0 else '','.'.join(obj.__class__.__module__.split('.')[1:])+'.'+obj.__class__.__name__)
 		# get all attribute traits first
 		traits=obj._getAllTraits()
 		for trait in traits:
@@ -106,17 +107,17 @@ class SerializerToHtmlTable:
 			if getattr(obj.__class__,trait.name) in _dumpingForbidden: continue
 			# start new group (additional line)
 			if trait.startGroup:
-				ret+=indent1+'<tr><td colspan=3><i>&#9656; %s</i></td></tr>'%trait.startGroup
+				ret+=indent1+'<tr><td colspan="3"><i>&#9656; %s</i></td></tr>'%trait.startGroup
 			attr=getattr(obj,trait.name)
-			ret+=indent1+'<tr>'+indent2+'<td>%s'%trait.name
+			ret+=indent1+'<tr>'+indent2+'<td>%s</td>'%trait.name
 			# nested object
 			if isinstance(attr,yade.wrapper.Serializable):
-				ret+=indent2+'<td align=justify>'+self(attr,depth+1)
+				ret+=indent2+'<td align="justify">'+self(attr,depth+1)+indent2+'</td>'
 			# sequence of objects (no units here)
 			elif hasattr(attr,'__len__') and len(attr)>0 and isinstance(attr[0],yade.wrapper.Serializable):
-				ret+=indent2+u'<td><ol>'+('<li>' if len(attr) else '')+u'<li>'.join([self(o,depth+1) for o in attr])+'</ol></td>'
+				ret+=indent2+u'<td><ol>'+''.join('<li>'+[self(o,depth+1)+'</li>' for o in attr])+'</ol></td>'
 			else:
-				ret+=indent2+'<td align=right>'
+				#ret+=indent2+'<td align="right">'
 				if not trait.multiUnit: # the easier case
 					if not trait.prefUnit: unit='&mdash;'
 					else:
@@ -136,10 +137,13 @@ class SerializerToHtmlTable:
 					unit=', '.join(unit)
 				# sequence type, or something similar				
 				if hasattr(attr,'__len__') and not isinstance(attr,str):
-					if len(attr)>0: ret+=self.htmlSeq(attr,indent=indent2+'\t',insideTable=False)
-					else: ret+='<td><i>[empty]</i>'
-				else: ret+='%g'%attr if isinstance(attr,float) else str(attr)
-				if unit: ret+=indent2+u'<td align="right">'+unit
+					if len(attr)>0:
+						ret+=indent2+'<td align="right">'
+						ret+=self.htmlSeq(attr,indent=indent2+'\t',insideTable=False)
+						ret+=indent2+'</td>'
+					else: ret+='<td align="right"><i>[empty]</i></td>'
+				else: ret+='<td align="right">%s</td>'%('%g'%attr if isinstance(attr,float) else str(attr))
+				if unit: ret+=indent2+u'<td align="right">'+unit+'</td>'
 			ret+=indent1+'</tr>'
 		return ret+indent0+'</table>'
 

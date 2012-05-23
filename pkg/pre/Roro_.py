@@ -115,12 +115,16 @@ def watchProgress():
 	else:
 		# factory has finished generating particles
 		if yade.factory.mass>yade.factory.maxMass:
-			plotFinalPsd()
+			try:
+				plotFinalPsd()
+			except:
+				import traceback
+				traceback.print_exc()
+				print 'Error during post-processing.'
 			print 'Simulation finished.'
 			yade.O.pause()
 
 def savePlotData():
-
 	import yade
 	if yade.aperture[0].save==False: return # not in the steady state yet
 	import yade.plot
@@ -153,6 +157,9 @@ def splitPsd(xx0,yy0,splitX):
 		xx2.append(xx0[i]); yy2.append(bigTrsf(yy0[i]))
 	return (xx1,yy1),(xx2,yy2)
 
+def svgFragment(data):
+	return data[data.find('<svg '):]
+	
 
 def plotFinalPsd():
 	# generator parameters
@@ -181,9 +188,10 @@ def plotFinalPsd():
 	def scaledFlowPsd(x,y): return numpy.array(x),massScale*numpy.array(y)
 	def scaledNormPsd(x,y): return numpy.array(x),numpy.array(y)
 
+	figs=[]
 	fig=pylab.figure()
-	fig.set_size_inches(16,16)
-	ax=pylab.subplot(221)
+	#fig.set_size_inches(16,16)
+	#ax=pylab.subplot(221)
 	inPsd=scaledFlowPsd(*yade.factory.generator.inputPsd(scale=True))
 	#print 'massScale',massScale
 	#print 'inPsd',inPsd
@@ -191,35 +199,43 @@ def plotFinalPsd():
 	pylab.plot(*inPsd,label='input PSD')
 	pylab.plot(*genPsd,label='generated (%g t/y)'%(yade.factory.mass*massScale))
 	for i in range(0,len(yade.aperture)):
-		apPsd=scaledFlowPsd(*yade.aperture[i].psd())
-		pylab.plot(*apPsd,label='aperture %d (%g t/y)'%(i,yade.aperture[i].mass*massScale))
+		try:
+			apPsd=scaledFlowPsd(*yade.aperture[i].psd())
+			pylab.plot(*apPsd,label='aperture %d (%g t/y)'%(i,yade.aperture[i].mass*massScale))
+		except ValueError: pass
 	overPsd=scaledFlowPsd(*yade.fallOver.psd())
 	pylab.plot(*overPsd,label='fall over (%g t/y)'%(yade.fallOver.mass*massScale))
 	pylab.axvline(x=pre.gap,linewidth=2,ymin=0,ymax=1,color='g',label='gap')
 	pylab.grid(True)
 	pylab.legend(loc='best')
-	ax.xaxis.set_major_formatter(milimeter)
+	pylab.gca().xaxis.set_major_formatter(milimeter)
 	pylab.xlabel('particle diameter [mm]')
 	pylab.ylabel('flow [t/y]')
+	figs.append(fig)
 
-	ax=pylab.subplot(222)
+	#ax=pylab.subplot(222)
+	fig=pylab.figure()
 	dd,mm=[],[] # lists with diameters and masses
 	ff=scaledFlowPsd(*yade.fallOver.diamMass())
 	dd.append(ff[0]); mm.append(ff[1])
 	dd.append([]); mm.append([]) # sum apertures together
 	for a in yade.aperture:
-		ff=scaledFlowPsd(*a.diamMass())
-		dd[-1].extend(ff[0]); mm[-1].extend(ff[1])
+		try:
+			ff=scaledFlowPsd(*a.diamMass())
+			dd[-1].extend(ff[0]); mm[-1].extend(ff[1])
+		except ValueError: pass
 	pylab.hist(dd,weights=mm,bins=20,histtype='barstacked',label=['fallOver','apertures']) #+['aperture %d'%i for i in range(0,len(yade.aperture))])
 	pylab.axvline(x=pre.gap,linewidth=2,ymin=0,ymax=1,color='g',label='gap')
 	pylab.grid(True)
-	ax.xaxis.set_major_formatter(milimeter)
+	pylab.gca().xaxis.set_major_formatter(milimeter)
 	pylab.xlabel('particle diameter [mm]')
 	pylab.ylabel('flow [t/y]')
 	pylab.legend(loc='best')
+	figs.append(fig)
 
 
-	ax=pylab.subplot(223)
+	#ax=pylab.subplot(223)
+	fig=pylab.figure()
 	pylab.plot(*scaledNormPsd(*yade.factory.generator.inputPsd(scale=False)),marker='o',label='prescribed')
 	genPsd=scaledNormPsd(*yade.factory.generator.psd(normalize=True))
 	inPsd=scaledNormPsd(*yade.factory.generator.inputPsd(scale=False))
@@ -239,13 +255,15 @@ def plotFinalPsd():
 	#print 'smaller',smallerPsd
 	#print 'bigger',biggerPsd
 	pylab.grid(True)
-	ax.xaxis.set_major_formatter(milimeter)
+	pylab.gca().xaxis.set_major_formatter(milimeter)
 	pylab.xlabel('diameter [mm]')
-	ax.yaxis.set_major_formatter(percent)
+	pylab.gca().yaxis.set_major_formatter(percent)
 	pylab.ylabel('mass fraction')
 	pylab.legend(loc='best')
+	figs.append(fig)
 
-	ax=pylab.subplot(224)
+	#ax=pylab.subplot(224)
+	fig=pylab.figure()
 	d=yade.plot.data
 	pylab.plot(d['t'],massScale*numpy.array(d['genRate']),label='generate')
 	pylab.plot(d['t'],massScale*numpy.array(d['delRate']),label='delete')
@@ -255,13 +273,54 @@ def plotFinalPsd():
 	pylab.grid(True)
 	pylab.xlabel('time [s]')
 	pylab.ylabel('mass rate [t/y]')
+	figs.append(fig)
 
+	svgs=[]
+	for f in figs:
+		svgs.append(yade.O.tmpFilename()+'.svg')
+		f.savefig(svgs[-1])
+		
+	#if 0: pylab.show()
+	#else:
+	#	figOut=yade.O.tmpFilename()+".svg"
+	#	fig.savefig(figOut)
+	#	os.system("xdg-open '%s' &"%figOut)
 
-	if 0: pylab.show()
-	else:
-		out=yade.O.tmpFilename()+".pdf"
-		fig.savefig(out)
-		os.system("xdg-open '%s' &"%out)
+	import time
+	#out.write('<head></head><body>')
+	xmlhead='''<?xml version="1.0" encoding="UTF-8"?>
+	<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> 
+	<html xmlns="http://www.w3.org/1999/xhtml" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	'''
+	# <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
+	html=('''<head><title>Report for Roller screen simulation</title></head><body>
+		<h1>Report for Roller screen simulation</h1>
+		<h2>General</h2>
+		<table>
+			<tr><td>started</td><td align="right">{started}</td></tr>
+			<tr><td>duration</td><td align="right">{duration:g} s</td></tr>
+			<tr><td>number of cores used</td><td align="right">{nCores}</td></tr>
+			<tr><td>average speed</td><td align="right">{stepsPerSec:g} steps/sec</td></tr>
+			<tr><td>engine</td><td align="right">{engine}</td></tr>
+			<tr><td>compiled with</td><td align="right">{compiledWith}</td></tr>
+		</table>
+		'''.format(started=time.ctime(time.time()-yade.O.realtime),duration=yade.O.realtime,nCores=yade.O.numThreads,stepsPerSec=yade.O.scene.step/yade.O.realtime,engine='wooDem '+yade.config.version+'/'+yade.config.revision+(' (debug)' if yade.config.debug else ''),compiledWith=','.join(yade.config.features))
+		+'<h2>Input data</h2>'+pre.dumps(format='html',fragment=True)
+		+'<h3>Outputs</h3>'
+		+'\n'.join([svgFragment(open(svg).read()) for svg in svgs])
+		+'</body></html>'
+	)
+	# to play with that afterwards
+	yade.html=html
+	#from genshi.input import HTMLParser
+	#import codecs, StringIO
+	import codecs
+	repName=yade.O.scene.tags['id']+'-report.xhtml'
+	rep=codecs.open(repName,'w','utf-8')
+	import os.path
+	print 'Report written to file://'+os.path.abspath(repName)
+	#rep.write(HTMLParser(StringIO.StringIO(html),'[filename]').parse().render('xhtml',doctype='xhtml').decode('utf-8'))
+	rep.write(xmlhead+html)
 
 # test drive
 if __name__=='__main__':

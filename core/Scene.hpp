@@ -72,11 +72,11 @@ class Scene: public Serializable{
 		void saveTmp(const string& slot, bool quiet=true);
 
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Scene,Serializable,"Object comprising the whole simulation.",
-		((Real,dt,1e-8,,"Current timestep for integration."))
+		((Real,dt,1e-8,AttrTrait<>().timeUnit(),"Current timestep for integration."))
 		((long,step,0,Attr::readonly,"Current step number"))
 		((bool,subStepping,false,,"Whether we currently advance by one engine in every step (rather than by single run through all engines)."))
 		((int,subStep,-1,Attr::readonly,"Number of sub-step; not to be changed directly. -1 means to run loop prologue (cell integration), 0…n-1 runs respective engines (n is number of engines), n runs epilogue (increment step number and time."))
-		((Real,time,0,Attr::readonly,"Simulation time (virtual time) [s]"))
+		((Real,time,0,AttrTrait<>().readonly().timeUnit(),"Simulation time (virtual time) [s]"))
 		((long,stopAtStep,0,,"Iteration after which to stop the simulation."))
 
 		((bool,isPeriodic,false,/*exposed as "periodic" in python */ Attr::hidden,"Whether periodic boundary conditions are active."))

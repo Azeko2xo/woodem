@@ -28,11 +28,11 @@ struct Roro: public Preprocessor {
 
 
 		((Real,flowVel,1.,AttrTrait<>().velUnit().cxxType("fooBar"),"Velocity of generated particles"))
-		((Real,cylDiameter,.2,AttrTrait<>().lenUnit(),"Diameter of cylinders"))
+		((Real,cylDiameter,.2,AttrTrait<>().lenUnit().prefUnit("mm"),"Diameter of cylinders"))
 		((Real,inclination,30*Mathr::PI/180.,AttrTrait<>().angleUnit().prefUnit("deg"),"Inclination cylinders"))
-		((Real,gap,.038,AttrTrait<>().lenUnit().startGroup("Advanced"),"Gap between cylinders"))
-		((Real,angVel,10.,AttrTrait<>().angVelUnit(),"Angular velocity of cylinders [rot/sec]"))
-		((vector<Vector2r>,psd,vector<Vector2r>({Vector2r(0.02,.0),Vector2r(.03,.2),Vector2r(.04,.3),Vector2r(.05,.7)})/*set in the ctor*/,AttrTrait<>().triggerPostLoad().multiUnit().lenUnit().prefUnit("mm").fractionUnit().prefUnit("%"),"Particle size distribution of generated particles: first value is diameter [mm], second value is cummulative percentage [%]"))
+		((Real,gap,.038,AttrTrait<>().lenUnit().prefUnit("mm").startGroup("Advanced"),"Gap between cylinders"))
+		((Real,angVel,10.,AttrTrait<>().angVelUnit().prefUnit("rot/min"),"Angular velocity of cylinders [rot/sec]"))
+		((vector<Vector2r>,psd,vector<Vector2r>({Vector2r(0.02,.0),Vector2r(.03,.2),Vector2r(.04,.3),Vector2r(.05,.7)})/*set in the ctor*/,AttrTrait<>().triggerPostLoad().multiUnit().lenUnit().prefUnit("mm").fractionUnit().prefUnit("%"),"Particle size distribution of generated particles: first value is diameter, second value is cummulative fraction"))
 		((shared_ptr<FrictMat>,material,make_shared<FrictMat>(),,"Material of particles"))
 
 
@@ -40,7 +40,7 @@ struct Roro: public Preprocessor {
 		((long,ccaSteps,,AttrTrait<>().readonly(),"number of steps"))
 		((Real,totMass ,,AttrTrait<>().readonly().massUnit(),"mass amount"))
 
-		((Vector2r,quivAmp,Vector2r(.05,.03),AttrTrait<>().startGroup("Tunables"),"Cylinder quiver amplitudes (horizontal and vertical), relative to cylinder radius"))
+		((Vector2r,quivAmp,Vector2r(.05,.03),AttrTrait<>().lenUnit().prefUnit("mm").startGroup("Tunables"),"Cylinder quiver amplitudes (horizontal and vertical), relative to cylinder radius"))
 		((Vector3r,quivHPeriod,Vector3r(3000,5000,3),,"Horizontal quiver period (relative to Δt); assigned quasi-randomly from the given range, with z-component giving modulo divisor"))
 		((Vector3r,quivVPeriod,Vector3r(5000,11000,5),,"Vertical quiver period (relative to Δt); assigned quasi-randomly from the given range, with z-component giving modulo divisor"))
 		((Real,gravity,100.,AttrTrait<>().accelUnit(),"Gravity acceleration magnitude"))
