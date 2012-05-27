@@ -162,7 +162,7 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 #define _ATTR_NAM(s) BOOST_PP_TUPLE_ELEM(5,1,s)
 #define _ATTR_INI(s) BOOST_PP_TUPLE_ELEM(5,2,s)
 #define _ATTR_FLG_RAW(s) BOOST_PP_TUPLE_ELEM(5,3,s)
-#define _ATTR_TRAIT(s) AttrTrait<>(BOOST_PP_TUPLE_ELEM(5,3,s)).doc(_ATTR_DOC(s)).name(_ATTR_NAM_STR(s)).cxxType(_ATTR_TYP_STR(s)).ini(_ATTR_TYP(s)(_ATTR_INI(s)))
+#define _ATTR_TRAIT(s) makeAttrTrait(BOOST_PP_TUPLE_ELEM(5,3,s)).doc(_ATTR_DOC(s)).name(_ATTR_NAM_STR(s)).cxxType(_ATTR_TYP_STR(s)).ini(_ATTR_TYP(s)(_ATTR_INI(s)))
 #define _ATTR_TRAIT_TYPE(s) BOOST_PP_CAT(TraitType_,_ATTR_NAM(s))
 #define _ATTR_TRAIT_GET(s) BOOST_PP_CAT(getTrait_,_ATTR_NAM(s))
 // get flags through AttrTrait now, to test

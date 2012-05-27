@@ -174,5 +174,14 @@ namespace yade{
 
 	};
 	#undef ATTR_FLAGS_VALUES
+
+	// overloaded for seamless expansion of macros
+	// empty value returns default traits
+	AttrTrait<0> makeAttrTrait(){ return AttrTrait<0>(); }
+	// this will be removed
+	__attribute__((deprecated)) AttrTrait<0> makeAttrTrait(int flags){ return AttrTrait<0>(flags); }
+	// passing an AttrTrait object returns itself
+	template<int flags>
+	AttrTrait<flags> makeAttrTrait(const AttrTrait<flags>& at){ return at; }
 };
 
