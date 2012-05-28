@@ -11,21 +11,25 @@ try:
 	Omega.hasDem=property(lambda o: dem.DemField.sceneHasField)
 	# DemData defines those methods, which are used for transparent access to respective data field
 	core.Node.dem=property(dem.DemData._getDataOnNode,dem.DemData._setDataOnNode)
-except ImportError: pass
+except ImportError:
+	Omega.hasDem=lambda o: False
 
 try:
 	from yade import sparc
 	Omega.sparc=property(lambda o: sparc.SparcField.sceneGetField())
 	Omega.hasSparc=property(lambda o: sparc.SparcField.sceneHasField)
 	core.Node.sparc=property(sparc.SparcData._getDataOnNode,sparc.SparcData._setDataOnNode)
-except ImportError: pass
+except ImportError:
+	Omega.hasSparc=lambda o: False
+
 
 try:
 	import yade.cld
 	Omega.clDem=property(lambda o: yade.cld.CLDemField.sceneGetField())
 	#Omega.hasClDem=property(lambda o: yade.clDem.CLDemField.sceneHasField)
 	core.Node.clDem=property(yade.cld.CLDemData._getDataOnNode,yade.cld.CLDemData._setDataOnNode)
-except ImportError: pass
+except ImportError:
+	Omega.hasClDem=lambda o: False
 
 
 try:

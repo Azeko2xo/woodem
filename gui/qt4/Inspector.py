@@ -132,7 +132,7 @@ class BodyInspector(QWidget):
 		else: noshow=None
 		if noshow:
 			self.forceGrid.itemAtPosition(0,1).widget().setText('<small>'+noshow+'</small>')
-			for i,j in ((1,1),(0,2),(1,2)): self.forceGrid.itemAtPosition(i,j).widget().setText('')
+			for i,j in ((0,2),(0,3),(1,1),(1,2),(1,3)): self.forceGrid.itemAtPosition(i,j).widget().setText('')
 		else:
 			try:
 				#val=[O.forces.f(self.bodyId),O.forces.t(self.bodyId),O.forces.move(self.bodyId),O.forces.rot(self.bodyId)]
