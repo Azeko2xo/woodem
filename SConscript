@@ -3,7 +3,7 @@ Import('*')
 
 import yadeSCons
 yadeSCons.buildPluginLibs(env,env['buildPlugs'])
-SConscript(dirs=['core','lib','gui','py'],duplicate=0)
+SConscript(dirs=['core','lib','gui','py','resources'],duplicate=0)
 
 #install preprocessor scripts
 env.Install('$LIBDIR/py/yade/pre',

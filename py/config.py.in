@@ -9,6 +9,7 @@ prefix='${runtimePREFIX}' if not os.environ.has_key('YADE_PREFIX') else os.envir
 suffix='${SUFFIX}'
 debug=bool(${debug})
 libDir=os.path.abspath(prefix+'/lib/yade$SUFFIX'+('/dbg' if debug else ''))
+resourceDir=os.path.abspath(prefix+'/share/yade$SUFFIX')
 confDir=os.environ['HOME']+'/.yade$SUFFIX'
 libstdcxx='${libstdcxx}'
 features='${features}'.split(',')
