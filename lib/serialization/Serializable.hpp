@@ -123,17 +123,19 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 #define _PYATTR_TRAIT_STATIC(x,y,z) traitList.append(py::ptr(static_cast<AttrTraitBase*>(&_ATTR_TRAIT_GET(z)()))); // static_() already set in trait definition
 #define _PYHASKEY_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) return true;
 #define _PYDICT_ATTR(x,y,z) if(!(_ATTR_FLG(z).isHidden()) && !(_ATTR_FLG(z).isNoSave()) && !(_ATTR_FLG(z).isNoDump())){ /*if(_ATTR_FLG(z) & yade::Attr::pyByRef) ret[_ATTR_NAM_STR(z)]=py::object(boost::ref(_ATTR_NAM(z))); else */  ret[_ATTR_NAM_STR(z)]=py::object(_ATTR_NAM(z)); }
-// use the old version, the new one does not work (yet?)
-#if 0
-	/* template version; generates no code for non-serializable types at all */
-	template<bool noSave, class ArchiveT, typename T> struct _SerializeUnlessNoSave{ static void serialize(ArchiveT& ar, const T&, const char* name); };
-	template<class ArchiveT, typename T> struct _SerializeUnlessNoSave<true,ArchiveT,T>{ static void serialize(ArchiveT& ar, const T& t, const char* name){}; };
-	template<class ArchiveT, typename T> struct _SerializeUnlessNoSave<false,ArchiveT,T>{ static void serialize(ArchiveT& ar, const T& obj, const char* name){ ar & boost::serialization::make_nvp(name,obj); } };
-	#define _REGISTER_BOOST_SERIALIZATION_ATTRIBUTES_REPEAT(x,y,z) _SerializeUnlessNoSave<(_ATTR_FLG(z) & yade::Attr::noSave),ArchiveT,decltype(_ATTR_NAM(z))>::serialize(ar,_ATTR_NAM(z), BOOST_PP_STRINGIZE(_ATTR_NAM(z)));
-#else
-	// generates code for noSave attributes as well, which must therefore be theoretically serializable
-	#define _REGISTER_BOOST_SERIALIZATION_ATTRIBUTES_REPEAT(x,y,z) if((_ATTR_FLG(z).isNoSave())==0) { ar & BOOST_SERIALIZATION_NVP(_ATTR_NAM(z)); }
-#endif
+
+// static switch for noSave attributes via templates
+template<bool noSave> struct _SerializeMaybe{};
+template<> struct _SerializeMaybe<true>{
+	template<class ArchiveT, typename T>
+	static void serialize(ArchiveT& ar, T& obj, const char* name){ ar & boost::serialization::make_nvp(name,obj); }
+};
+template<> struct _SerializeMaybe<false>{
+	template<class ArchiveT, typename T>
+	static void serialize(ArchiveT& ar, T&, const char* name){ /* do nothing */ }
+};
+#define _REGISTER_BOOST_SERIALIZATION_ATTRIBUTES_REPEAT(x,y,z) _SerializeMaybe<!(_ATTR_TRAIT_TYPE(z)::compileFlags & yade::Attr::noSave)>::serialize(ar,_ATTR_NAM(z), BOOST_PP_STRINGIZE(_ATTR_NAM(z)));
+
 #define _REGISTER_BOOST_SERIALIZATION_ATTRIBUTES(baseClass,attrs) \
 	friend class boost::serialization::access; \
 	private: template<class ArchiveT> void serialize(ArchiveT & ar, unsigned int version){ \

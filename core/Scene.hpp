@@ -79,7 +79,7 @@ class Scene: public Serializable{
 		((Real,time,0,AttrTrait<>().readonly().timeUnit(),"Simulation time (virtual time) [s]"))
 		((long,stopAtStep,0,,"Iteration after which to stop the simulation."))
 
-		((bool,isPeriodic,false,/*exposed as "periodic" in python */ Attr::hidden,"Whether periodic boundary conditions are active."))
+		((bool,isPeriodic,false,/*exposed as "periodic" in python */AttrTrait<Attr::hidden>(),"Whether periodic boundary conditions are active."))
 		((bool,trackEnergy,false,,"Whether energies are being tracked."))
 
 		((Vector2i,clDev,Vector2i(-1,-1),AttrTrait<Attr::triggerPostLoad>(),"OpenCL device to be used; if (-1,-1) (default), no OpenCL device will be initialized until requested. Saved simulations should thus always use the same device when re-loaded."))

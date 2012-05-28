@@ -30,13 +30,6 @@
 #include<yade/core/EnergyTracker.hpp>
 #include<yade/core/Scene.hpp>
 #include<yade/core/Field.hpp>
-#include<yade/pkg/dem/Particle.hpp>
-
-
-#ifdef YADE_SPARC
-	#include<yade/pkg/sparc/SparcField.hpp>
-#endif
-
 
 #if BOOST_VERSION<104800
 	// local copy
@@ -142,21 +135,6 @@ class pyOmega{
 	void switchScene(){ std::swap(OMEGA.scene,OMEGA.sceneAnother); }
 	shared_ptr<Scene> scene_get(){ return OMEGA.getScene(); }
 	void scene_set(const shared_ptr<Scene>& s){ OMEGA.setScene(s); }
-	shared_ptr<DemField> dem_get(){
-		FOREACH(const shared_ptr<Field>& f, OMEGA.getScene()->fields){
-			if(dynamic_pointer_cast<DemField>(f)) return static_pointer_cast<DemField>(f);
-		}
-		throw std::runtime_error("No DEM field defined.");
-	}
-
-#ifdef YADE_SPARC
-	shared_ptr<SparcField> sparc_get(){
-		FOREACH(const shared_ptr<Field>& f, OMEGA.getScene()->fields){
-			if(dynamic_pointer_cast<SparcField>(f)) return static_pointer_cast<SparcField>(f);
-		}
-		throw std::runtime_error("No Sparc field defined.");
-	}
-#endif
 
 	void save(std::string fileName,bool quiet=false){
 		assertScene();
@@ -274,30 +252,8 @@ BOOST_PYTHON_MODULE(wrapper)
 
 	YADE_SET_DOCSTRING_OPTS;
 
-	#if 0
-		py::enum_<yade::Attr::flags>("AttrFlags")
-			.value("noSave",yade::Attr::noSave)
-			.value("readonly",yade::Attr::readonly)
-			.value("triggerPostLoad",yade::Attr::triggerPostLoad)
-			.value("hidden",yade::Attr::hidden)
-			.value("noResize",yade::Attr::noResize)
-			.value("noGui",yade::Attr::noGui)
-			.value("pyByRef",yade::Attr::pyByRef)
-		;
-	#endif
-
 	py::class_<pyOmega>("Omega")
-		// .add_property("iter",&pyOmega::iter,"Get current step number")
-		// .add_property("subStep",&pyOmega::subStep,"Get the current subStep number (only meaningful if O.subStepping==True); -1 when outside the loop, otherwise either 0 (O.subStepping==False) or number of engine to be run (O.subStepping==True)")
-
-		// .add_property("subStepping",&pyOmega::subStepping_get,&pyOmega::subStepping_set,"Get/set whether subStepping is active.")
-
-		// .add_property("stopAtIter",&pyOmega::stopAtIter_get,&pyOmega::stopAtIter_set,"Get/set number of iteration after which the simulation will stop.")
-		// .add_property("time",&pyOmega::time,"Return virtual (model world) time of the simulation.")
 		.add_property("realtime",&pyOmega::realTime,"Return clock (human world) time the simulation has been running.")
-		// .add_property("dt",&pyOmega::dt_get,&pyOmega::dt_set,"Current timestep (Δt) value.") ///\n\n* assigning negative value enables dynamic Δt (by looking for a :yref:`TimeStepper` in :yref:`O.engine<Omega.engines>`) and sets positive timestep ``O.dt=|Δt|`` (will be used until the timestepper is run and updates it)\n* assigning positive value sets Δt to that value and disables dynamic Δt (via :yref:`TimeStepper`, if there is one).\n\n:yref:`dynDt<Omega.dynDt>` can be used to query whether dynamic Δt is in use.")
-		//.add_property("dynDt",&pyOmega::dynDt_get,"Whether a :yref:`TimeStepper` is used for dynamic Δt control. See :yref:`dt<Omega.dt>` on how to enable/disable :yref:`TimeStepper`.")
-		//.add_property("dynDtAvailable",&pyOmega::dynDtAvailable_get,"Whether a :yref:`TimeStepper` is amongst :yref:`O.engines<Omega.engines>`, activated or not.")
 		.def("load",&pyOmega::load,(py::arg("file"),py::arg("quiet")=false),"Load simulation from file.")
 		.def("reload",&pyOmega::reload,(py::arg("quiet")=false),"Reload current simulation")
 		.def("save",&pyOmega::save,(py::arg("file"),py::arg("quiet")=false),"Save current simulation to file (should be .xml or .xml.bz2)")
@@ -312,9 +268,7 @@ BOOST_PYTHON_MODULE(wrapper)
 		.def("step",&pyOmega::step,"Advance the simulation by one step. Returns after the step will have finished.")
 		.def("wait",&pyOmega::wait,"Don't return until the simulation will have been paused. (Returns immediately if not running).")
 		.add_property("running",&pyOmega::isRunning,"Whether background thread is currently running a simulation.")
-		// .add_property("filename",&pyOmega::get_filename,"Filename under which the current simulation was saved (None if never saved).")
 		.def("reset",&pyOmega::reset,"Reset simulations completely (including another scene!).")
-		// .def("resetThisScene",&pyOmega::resetThisScene,"Reset current scene.")
 		.def("switchScene",&pyOmega::switchScene,"Switch to alternative simulation (while keeping the old one). Calling the function again switches back to the first one. Note that most variables from the first simulation will still refer to the first simulation even after the switch\n(e.g. b=O.bodies[4]; O.switchScene(); [b still refers to the body in the first simulation here])")
 		.def("resetTime",&pyOmega::resetTime,"Reset simulation time: step number, virtual and real time. (Doesn't touch anything else, including timings).")
 		.def("plugins",&pyOmega::plugins_get,"Return list of all plugins registered in the class factory.")
@@ -322,16 +276,6 @@ BOOST_PYTHON_MODULE(wrapper)
 			.add_property("defaultClDev",&pyOmega::defaultClDev_get,&pyOmega::defaultClDev_set,"Default OpenCL platform/device couple (as ints), set internally from the command-line arg.")
 		#endif
 		.add_property("scene",&pyOmega::scene_get,&pyOmega::scene_set,"Return the current :yref:`scene <Scene>` object. Only set this object carefully!")
-
-		//.add_property("dem",&pyOmega::dem_get,"Return first DEM field.")
-		//#ifdef YADE_SPARC
-		//	.add_property("sparc",&pyOmega::sparc_get,"Return first Sparc field.")
-		//#endif
-		//#ifdef YADE_CLDEM
-		#if 0
-			.add_property("clDem",&pyOmega::clDem_get,"Return the simulation object in the first clDem field.")
-		#endif
-	
 
 		.add_property("cmaps",&pyOmega::lsCmap,"List available colormaps (by name)")
 		.add_property("cmap",&pyOmega::getCmap,&pyOmega::setCmap,"Current colormap as (index,name) tuple; set by index or by name alone.")
@@ -349,8 +293,7 @@ BOOST_PYTHON_MODULE(wrapper)
 		.def("isChildClassOf",&pyOmega::isChildClassOf,"Tells whether the first class derives from the second one (both given as strings).")
 		.add_property("timingEnabled",&pyOmega::timingEnabled_get,&pyOmega::timingEnabled_set,"Globally enable/disable timing services (see documentation of the :yref:`timing module<yade.timing>`).")
 		.add_property("numThreads",&pyOmega::numThreads_get /* ,&pyOmega::numThreads_set*/ ,"Get maximum number of threads openMP can use.")
-		//.add_property("cell",&pyOmega::cell_get,"Periodic cell of the current scene (None if the scene is aperiodic).")
-		//.add_property("periodic",&pyOmega::periodic_get,&pyOmega::periodic_set,"Get/set whether the scene is periodic or not (True/False).")
+
 		.def("exitNoBacktrace",&pyOmega::exitNoBacktrace,(py::arg("status")=0),"Disable SEGV handler and exit, optionally with given status number.")
 		.def("disableGdb",&pyOmega::disableGdb,"Revert SEGV and ABRT handlers to system defaults.")
 		.def("tmpFilename",&pyOmega::tmpFilename,"Return unique name of file in temporary directory which will be deleted when yade exits.")

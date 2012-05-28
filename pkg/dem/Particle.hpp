@@ -285,8 +285,8 @@ REGISTER_SERIALIZABLE(Material);
 class Bound: public Serializable, public Indexable{
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Bound,Serializable,"Object bounding the associated body.",
 		// ((Vector3r,color,Vector3r(1,1,1),,"Color for rendering this object"))
-		((Vector3r,min,Vector3r(NaN,NaN,NaN),AttrTrait<>(Attr::noSave|Attr::readonly).lenUnit(),"Lower corner of box containing this bound"))
-		((Vector3r,max,Vector3r(NaN,NaN,NaN),AttrTrait<>(Attr::noSave|Attr::readonly).lenUnit(),"Lower corner of box containing this bound"))
+		((Vector3r,min,Vector3r(NaN,NaN,NaN),AttrTrait<Attr::noSave>().readonly().lenUnit(),"Lower corner of box containing this bound"))
+		((Vector3r,max,Vector3r(NaN,NaN,NaN),AttrTrait<Attr::noSave>().readonly().lenUnit(),"Lower corner of box containing this bound"))
 		,/* ctor*/,	/*py*/ YADE_PY_TOPINDEXABLE(Bound)
 	);
 	REGISTER_INDEX_COUNTER(Bound);

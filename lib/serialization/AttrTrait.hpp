@@ -94,7 +94,7 @@ namespace yade{
 		// setters
 		#define ATTR_FLAG_DO(flag,isFlag) AttrTrait& flag(bool val=true){ if(val) _flags|=(int)Flags::flag; else _flags&=~((int)Flags::flag); return *this; } bool isFlag() const { return _flags&(int)Flags::flag; }
 			// REMOVE later
-			ATTR_FLAG_DO(noSave,isNoSave)
+			//ATTR_FLAG_DO(noSave,isNoSave)
 			ATTR_FLAG_DO(readonly,isReadonly)
 			ATTR_FLAG_DO(triggerPostLoad,isTriggerPostLoad)
 			ATTR_FLAG_DO(hidden,isHidden)
@@ -178,8 +178,6 @@ namespace yade{
 	// overloaded for seamless expansion of macros
 	// empty value returns default traits
 	inline AttrTrait<0> makeAttrTrait(){ return AttrTrait<0>(); }
-	// this will be removed
-	inline AttrTrait<0> makeAttrTrait(int flags){ return AttrTrait<0>(flags); }
 	// passing an AttrTrait object returns itself
 	template<int flags>
 	AttrTrait<flags> makeAttrTrait(const AttrTrait<flags>& at){ return at; }

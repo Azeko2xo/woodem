@@ -104,7 +104,6 @@ opts.AddVariables(
 	('CPPPATH', 'Additional paths for the C preprocessor (colon-separated)','/usr/include/vtk-5.6:/usr/include/eigen3:/usr/include/vtk'), # hardy has vtk-5.0
 	('LIBPATH','Additional paths for the linker (colon-separated)',None),
 	('libstdcxx','Specify libstdc++ location by hand (opened dynamically at startup), usually not needed',None),
-	('QT4CXX','Specify a different compiler for files including qt4; this is necessary for older qt version (<=4.7) which don\'t compile with clang',None),
 	('QT4DIR','Directory where Qt4 is installed','/usr/share/qt4'),
 	('PATH','Path (not imported automatically from the shell) (colon-separated)',None),
 	('CXX','The c++ compiler','g++'),
@@ -437,8 +436,6 @@ if env['PGO']=='use': env.Append(CXXFLAGS=['-fprofile-use'],LINKFLAGS=['-fprofil
 if 'clang' in env['CXX']:
 	print 'Looks like we use clang, adding some flags to avoid warning flood.'
 	env.Append(CXXFLAGS=['-Wno-unused-variable','-Wno-mismatched-tags','-Wno-constant-logical-operand','-Qunused-arguments','-Wno-empty-body','-Wno-self-assign'])
-	if 'openmp' in env['features']: print 'WARNING: building with clang and OpenMP feature, expect compilation errors!'
-	if env['march']: print 'WARNING: specifying march with clang might lead to crash at startup (if so, recompile with march= )!'
 
 
 ### LINKER
@@ -450,7 +447,7 @@ env.Append(LINKFLAGS=['-rdynamic','-Wl,-z,origin'])
 ## newer scons (?) does not pass SHCCFLAGS when linking with g++
 #env['SHCXXFLAGS']=env['SHCCFLAGS']
 
-if not env['debug']: env.Append(SHLINKFLAGS=['-W,--strip-all'])
+if not env['debug']: env.Append(SHLINKFLAGS=['-Wl,--strip-all'])
 
 # makes dynamic library loading easier (no LD_LIBRARY_PATH) and perhaps faster
 env.Append(RPATH=runtimeLibDirs)
