@@ -20,7 +20,7 @@ std::tuple<Vector3r,Vector3r,Vector3r> Facet::getOuterVectors() const {
 std::tuple<Vector3r,Vector3r> Facet::interpolatePtLinAngVel(const Vector3r& x) const {
 	assert(numNodesOk());
 	Vector3r a=CompUtils::facetBarycentrics(x,nodes[0]->pos,nodes[1]->pos,nodes[2]->pos);
-	Vector3r vv[3]={(nodes[0]->getData<DemData>().vel,nodes[1]->getData<DemData>().vel,nodes[2]->getData<DemData>().vel)};
+	Vector3r vv[3]={nodes[0]->getData<DemData>().vel,nodes[1]->getData<DemData>().vel,nodes[2]->getData<DemData>().vel};
 	Vector3r linVel=a[0]*vv[0]+a[1]*vv[1]+a[2]*vv[2];
 	Vector3r angVel=(nodes[0]->pos-x).cross(vv[0])+(nodes[1]->pos-x).cross(vv[1])+(nodes[2]->pos-x).cross(vv[2]);
 	return std::make_tuple(linVel,angVel);

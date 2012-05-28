@@ -322,10 +322,11 @@ BOOST_PYTHON_MODULE(wrapper)
 			.add_property("defaultClDev",&pyOmega::defaultClDev_get,&pyOmega::defaultClDev_set,"Default OpenCL platform/device couple (as ints), set internally from the command-line arg.")
 		#endif
 		.add_property("scene",&pyOmega::scene_get,&pyOmega::scene_set,"Return the current :yref:`scene <Scene>` object. Only set this object carefully!")
-		.add_property("dem",&pyOmega::dem_get,"Return first DEM field.")
-		#ifdef YADE_SPARC
-			.add_property("sparc",&pyOmega::sparc_get,"Return first Sparc field.")
-		#endif
+
+		//.add_property("dem",&pyOmega::dem_get,"Return first DEM field.")
+		//#ifdef YADE_SPARC
+		//	.add_property("sparc",&pyOmega::sparc_get,"Return first Sparc field.")
+		//#endif
 		//#ifdef YADE_CLDEM
 		#if 0
 			.add_property("clDem",&pyOmega::clDem_get,"Return the simulation object in the first clDem field.")

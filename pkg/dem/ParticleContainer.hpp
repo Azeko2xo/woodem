@@ -161,8 +161,8 @@ struct ParticleContainer: public Serializable{
 	
 
 		YADE_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(ParticleContainer,Serializable,"Storage for DEM particles",
-			((ContainerT/* = std::vector<shared_ptr<Particle> > */,parts,,Attr::hidden,"Actual particle storage"))
-			((list<id_t>,freeIds,,Attr::hidden,"Free particle id's"))
+			((ContainerT/* = std::vector<shared_ptr<Particle> > */,parts,,AttrTrait<Attr::hidden>(),"Actual particle storage"))
+			((list<id_t>,freeIds,,AttrTrait<Attr::hidden>(),"Free particle id's"))
 			,/* init */
 				#ifdef YADE_SUBDOMAINS
 					#ifdef YADE_OPENMP

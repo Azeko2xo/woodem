@@ -50,12 +50,12 @@ struct Particle: public Serializable{
 	std::vector<shared_ptr<Node> > getNodes();
 	virtual string pyStr() const { return "<Particle #"+to_string(id)+" @ "+lexical_cast<string>(this)+">"; }
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Particle,Serializable,"Particle in DEM",
-		((id_t,id,-1,Attr::readonly,"Index in DemField::particles"))
+		((id_t,id,-1,AttrTrait<Attr::readonly>(),"Index in DemField::particles"))
 		((uint,mask,1,,"Bitmask for collision detection and other (group 1 by default)"))
 		((shared_ptr<Shape>,shape,,,"Geometrical configuration of the particle"))
 		((shared_ptr<Material>,material,,,"Material of the particle"))
-		((MapParticleContact,contacts,,(Attr::hidden|Attr::noSave),"Contacts of this particle, indexed by id of the other particle."))
-		// ((int,flags,0,Attr::hidden,"Various flags, only individually accesible from Python"))
+		((MapParticleContact,contacts,,AttrTrait<Attr::hidden|Attr::noSave>(),"Contacts of this particle, indexed by id of the other particle."))
+		// ((int,flags,0,AttrTrait<Attr::hidden>(),"Various flags, only individually accesible from Python"))
 		, /*ctor*/
 		, /*py*/
 			.add_property("contacts",&Particle::pyContacts)
@@ -136,9 +136,9 @@ public:
 		((Vector3r,force,Vector3r::Zero(),AttrTrait<>().forceUnit(),"Applied force"))
 		((Vector3r,torque,Vector3r::Zero(),AttrTrait<>().torqueUnit(),"Applied torque"))
 		((Vector3r,angMom,Vector3r::Zero(),AttrTrait<>().angMomUnit(),"Angular momentum (used with the aspherical integrator)"))
-		((unsigned,flags,0,Attr::readonly,"Bit flags storing blocked DOFs, clump status"))
-		((long,linIx,-1,Attr::hidden,"Index within O.dem.nodes (for efficient removal)"))
-		((int,parCount,0,Attr::noGui,"Number of particles associated with this node (to know whether a node should be deleted when a particle is)"))
+		((unsigned,flags,0,AttrTrait<Attr::readonly>(),"Bit flags storing blocked DOFs, clump status"))
+		((long,linIx,-1,AttrTrait<Attr::hidden>(),"Index within O.dem.nodes (for efficient removal)"))
+		((int,parCount,0,AttrTrait<>().noGui(),"Number of particles associated with this node (to know whether a node should be deleted when a particle is)"))
 		((shared_ptr<Impose>,impose,,,"Impose arbitrary velocity, angular velocity, ... on the node; the functor is called from Leapfrog, after new position and velocity have been computed."))
 		, /*ctor*/
 		, /*py*/ .add_property("blocked",&DemData::blocked_vec_get,&DemData::blocked_vec_set,"Degress of freedom where linear/angular velocity will be always constant (equal to zero, or to an user-defined value), regardless of applied force/torque. String that may contain 'xyzXYZ' (translations and rotations).")
@@ -163,7 +163,7 @@ struct DemField: public Field{
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(DemField,Field,"Field describing a discrete element assembly. Each body references (possibly many) nodes by their index in :yref:`Field.nodes` and :yref:`Field.nodalData`. ",
 		((shared_ptr<ParticleContainer>,particles,make_shared<ParticleContainer>(),AttrTrait<>().pyByRef().readonly().ini(),"Particles (each particle holds its contacts, and references associated nodes)"))
 		((shared_ptr<ContactContainer>,contacts,make_shared<ContactContainer>(),AttrTrait<>().pyByRef().readonly().ini(),"Linear view on particle contacts"))
-		((vector<shared_ptr<Node>>,clumps,,Attr::readonly,"Nodes which define clumps; only manipulated from clump-related user-routines, not directly."))
+		((vector<shared_ptr<Node>>,clumps,,AttrTrait<Attr::readonly>(),"Nodes which define clumps; only manipulated from clump-related user-routines, not directly."))
 		((int,loneMask,0,,"Particle groups which have bits in loneMask in common (i.e. (A.mask & B.mask & loneMask)!=0) will not have contacts between themselves"))
 		, /* ctor */ createIndex(); particles->dem=this; contacts->dem=this; contacts->particles=particles.get();
 		, /*py*/
@@ -225,18 +225,18 @@ struct Contact: public Serializable{
 	Vector2i pyIds() const;
 	virtual string pyStr() const { return "<Contact ##"+to_string(pyId1())+"+"+to_string(pyId2())+" @ "+lexical_cast<string>(this)+">"; }
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Contact,Serializable,"Contact in DEM",
-		((shared_ptr<CGeom>,geom,,Attr::readonly,"Contact geometry"))
-		((shared_ptr<CPhys>,phys,,Attr::readonly,"Physical properties of contact"))
-		((shared_ptr<CData>,data,,Attr::readonly,"Optional data stored by the functor for its own use"))
-		((shared_ptr<Particle>,pA,,Attr::readonly,"First particle of the contact"))
-		((shared_ptr<Particle>,pB,,Attr::readonly,"Second particle of the contact"))
-		((Vector3i,cellDist,Vector3i::Zero(),Attr::readonly,"Distace in the number of periodic cells by which pB must be shifted to get to the right relative position."))
+		((shared_ptr<CGeom>,geom,,AttrTrait<Attr::readonly>(),"Contact geometry"))
+		((shared_ptr<CPhys>,phys,,AttrTrait<Attr::readonly>(),"Physical properties of contact"))
+		((shared_ptr<CData>,data,,AttrTrait<Attr::readonly>(),"Optional data stored by the functor for its own use"))
+		((shared_ptr<Particle>,pA,,AttrTrait<Attr::readonly>(),"First particle of the contact"))
+		((shared_ptr<Particle>,pB,,AttrTrait<Attr::readonly>(),"Second particle of the contact"))
+		((Vector3i,cellDist,Vector3i::Zero(),AttrTrait<Attr::readonly>(),"Distace in the number of periodic cells by which pB must be shifted to get to the right relative position."))
 		#ifdef YADE_OPENGL
 			((Real,color,0,,"(Normalized) color value for this contact"))
 		#endif
-		((int,stepLastSeen,-1,Attr::hidden,""))
-		((int,stepMadeReal,-1,Attr::hidden,""))
-		((size_t,linIx,0,(Attr::readonly|Attr::noGui),"Position in the linear view (ContactContainer)"))
+		((int,stepLastSeen,-1,AttrTrait<Attr::hidden>(),""))
+		((int,stepMadeReal,-1,AttrTrait<Attr::hidden>(),""))
+		((size_t,linIx,0,AttrTrait<Attr::readonly>().noGui(),"Position in the linear view (ContactContainer)"))
 		, /*ctor*/
 		, /*py*/ .add_property("id1",&Contact::pyId1).add_property("id2",&Contact::pyId2).add_property("real",&Contact::isReal).add_property("ids",&Contact::pyIds)
 		.def("dPos",&Contact::dPos_py,"Return position difference vector pB-pA, taking `Contact.cellDist` in account properly. Both particles must be uninodal, exception is raised otherwise.")
@@ -295,5 +295,4 @@ REGISTER_SERIALIZABLE(Bound);
 
 
 // }}; /* yade::dem */
-
 

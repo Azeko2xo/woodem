@@ -533,7 +533,7 @@ int SpherePack::addShadows(){
 
 int SpherePack::removeShadows(){
 	int ret=0;
-	for(size_t i=pack.size(); i>=0; i--){
+	for(long i=(long)pack.size(); i>=0; i--){
 		if(pack[i].shadowOf>=0){ pack.erase(pack.begin()+i); ret++; }
 	}
 	return ret;

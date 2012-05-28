@@ -17,10 +17,9 @@ class Gl1_CPhys: public GlCPhysFunctor{
 		((int,signFilter,0,,"If non-zero, only display contacts with negative (-1) or positive (+1) normal forces; if zero, all contacts will be displayed."))
 		((Real,relMaxRad,.01,,"Relative radius for maximum forces"))
 		((int,slices,6,,"Number of cylinder slices"))
-		((Vector2i,slices_range,Vector2i(4,16),Attr::noGui,"Range for slices"))
+		((Vector2i,slices_range,Vector2i(4,16),AttrTrait<>().noGui(),"Range for slices"))
 	);
 	RENDERS(CPhys);
 };
 REGISTER_SERIALIZABLE(Gl1_CPhys);
 #endif
-

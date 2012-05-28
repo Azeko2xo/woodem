@@ -62,11 +62,11 @@ class Gl1_Sphere: public GlShapeFunctor{
 		((bool,wire,false,,"Only show wireframe (controlled by ``glutSlices`` and ``glutStacks``."))
 		((bool,smooth,false,,"Render lines smooth (it makes them thicker and less clear if there are many spheres.)"))
 		((Real,scale,1.,,"Scale sphere radii"))
-		((Vector2r,scale_range,Vector2r(.1,2.),Attr::noGui,"Range for scale"))
+		((Vector2r,scale_range,Vector2r(.1,2.),AttrTrait<>().noGui(),"Range for scale"))
 		((bool,stripes,false,,"In non-wire rendering, show stripes clearly showing particle rotation."))
 		((bool,localSpecView,true,,"Compute specular light in local eye coordinate system."))
-		((int,glutSlices,12,(Attr::noSave | Attr::readonly),"Base number of sphere slices, multiplied by :yref:`Gl1_Sphere::quality` before use); not used with ``stripes`` (see `glut{Solid,Wire}Sphere reference <http://www.opengl.org/documentation/specs/glut/spec3/node81.html>`_)"))
-		((int,glutStacks,6,(Attr::noSave | Attr::readonly),"Base number of sphere stacks, multiplied by :yref:`Gl1_Sphere::quality` before use; not used with ``stripes`` (see `glut{Solid,Wire}Sphere reference <http://www.opengl.org/documentation/specs/glut/spec3/node81.html>`_)"))
+		((int,glutSlices,12,AttrTrait<>().noSave().readonly(),"Base number of sphere slices, multiplied by :yref:`Gl1_Sphere::quality` before use); not used with ``stripes`` (see `glut{Solid,Wire}Sphere reference <http://www.opengl.org/documentation/specs/glut/spec3/node81.html>`_)"))
+		((int,glutStacks,6,AttrTrait<>().noSave().readonly(),"Base number of sphere stacks, multiplied by :yref:`Gl1_Sphere::quality` before use; not used with ``stripes`` (see `glut{Solid,Wire}Sphere reference <http://www.opengl.org/documentation/specs/glut/spec3/node81.html>`_)"))
 	);
 	RENDERS(Sphere);
 };

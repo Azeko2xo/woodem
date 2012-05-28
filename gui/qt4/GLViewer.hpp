@@ -30,7 +30,7 @@ struct SnapshotEngine: public PeriodicEngine{
 	YADE_CLASS_BASE_DOC_ATTRS(SnapshotEngine,PeriodicEngine,"Periodically save snapshots of GLView(s) as .png files. Files are named *fileBase*+*counter*+'.png' (counter is left-padded by 0s, i.e. snap00004.png).",
 		((string,format,"PNG",,"Format of snapshots (one of JPEG, PNG, EPS, PS, PPM, BMP) `QGLViewer documentation <http://www.libqglviewer.com/refManual/classQGLViewer.html#abbb1add55632dced395e2f1b78ef491c>`_. File extension will be lowercased *format*. Validity of format is not checked."))
 		((string,fileBase,"",,"Basename for snapshots"))
-		((int,counter,0,Attr::readonly,"Number that will be appended to fileBase when the next snapshot is saved (incremented at every save)."))
+		((int,counter,0,AttrTrait<Attr::readonly>(),"Number that will be appended to fileBase when the next snapshot is saved (incremented at every save)."))
 		((bool,ignoreErrors,true,,"Only report errors instead of throwing exceptions, in case of timeouts."))
 		((vector<string>,snapshots,,,"Files that have been created so far"))
 		((int,msecSleep,0,,"number of msec to sleep after snapshot (to prevent 3d hw problems) [ms]"))
@@ -61,7 +61,7 @@ struct QglMovableObject: public qglviewer::MouseGrabber{
 			prevPos=e->pos(); moved=true;
 		}
 	}
-   void mouseMoveEvent(QMouseEvent* const e, const qglviewer::Camera* const){
+   void mouseMoveEvent(QMouseEvent* const e, qglviewer::Camera* const camera){
 		if(!moved) return;
       pos+=e->pos()-prevPos; prevPos=e->pos();
 	}
@@ -224,6 +224,5 @@ class YadeCamera : public qglviewer::Camera
 		virtual float zNear() const;
 		virtual void setCuttingDistance(float s){cuttingDistance=s;};
 };
-
 
 

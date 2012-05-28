@@ -96,9 +96,9 @@ struct ContactContainer: public Serializable{
 
 
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ContactContainer,Serializable,"Linear view on all contacts in the DEM field",
-		((ContainerT,linView,,Attr::hidden,"Linear storage of references; managed by accessor methods, do not modify directly!"))
-		((bool,dirty,false,Attr::hidden,"Flag for notifying the collider that persistent data should be invalidated"))
-		((int,stepColliderLastRun,-1,Attr::readonly,"Step number when a collider was last run; set by the collider, if it wants contacts that were not encoutered in that step to be deleted by ContactLoop (such as SpatialQuickSortCollider). Other colliders (such as InsertionSortCollider) set it it -1, which is the default."))
+		((ContainerT,linView,,AttrTrait<Attr::hidden>(),"Linear storage of references; managed by accessor methods, do not modify directly!"))
+		((bool,dirty,false,AttrTrait<Attr::hidden>(),"Flag for notifying the collider that persistent data should be invalidated"))
+		((int,stepColliderLastRun,-1,AttrTrait<Attr::readonly>(),"Step number when a collider was last run; set by the collider, if it wants contacts that were not encoutered in that step to be deleted by ContactLoop (such as SpatialQuickSortCollider). Other colliders (such as InsertionSortCollider) set it it -1, which is the default."))
 
 		, /*ctor*/
 			#ifdef YADE_OPENMP
@@ -123,4 +123,3 @@ struct ContactContainer: public Serializable{
 	);
 };
 REGISTER_SERIALIZABLE(ContactContainer);
-

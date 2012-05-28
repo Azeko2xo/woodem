@@ -78,18 +78,18 @@ class ContactLoop: public GlobalEngine {
 		virtual void getLabeledObjects(std::map<std::string, py::object>& m);
 		virtual void run();
 		YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ContactLoop,GlobalEngine,"Loop over all contacts, possible in a parallel manner.\n\n.. admonition:: Special constructor\n\n\tConstructs from 3 lists of :yref:`Cg2<CGeomFunctor>`, :yref:`Cp2<IPhysFunctor>`, :yref:`Law<LawFunctor>` functors respectively; they will be passed to interal dispatchers.",
-			((shared_ptr<CGeomDispatcher>,geoDisp,new CGeomDispatcher,Attr::readonly,":yref:`CGeomDispatcher` object that is used for dispatch."))
-			((shared_ptr<CPhysDispatcher>,phyDisp,new CPhysDispatcher,Attr::readonly,":yref:`CPhysDispatcher` object used for dispatch."))
-			((shared_ptr<LawDispatcher>,lawDisp,new LawDispatcher,Attr::readonly,":yref:`LawDispatcher` object used for dispatch."))
+			((shared_ptr<CGeomDispatcher>,geoDisp,new CGeomDispatcher,AttrTrait<Attr::readonly>(),":yref:`CGeomDispatcher` object that is used for dispatch."))
+			((shared_ptr<CPhysDispatcher>,phyDisp,new CPhysDispatcher,AttrTrait<Attr::readonly>(),":yref:`CPhysDispatcher` object used for dispatch."))
+			((shared_ptr<LawDispatcher>,lawDisp,new LawDispatcher,AttrTrait<Attr::readonly>(),":yref:`LawDispatcher` object used for dispatch."))
 			((bool,alreadyWarnedNoCollider,false,,"Keep track of whether the user was already warned about missing collider."))
 			((bool,evalStress,false,,"Evaluate stress tensor, in periodic simluations; if energy tracking is enabled, increments *gradV* energy."))
 			((bool,applyForces,true,,"Apply forces directly; this avoids IntraForce engine, but will silently skip muyltinodal particles."))
-			((bool,_forceApplyChecked,false,Attr::noGui,"We already warned if forces are not applied here and no IntraForce engine exists in O.scene.engines"))
-			((Matrix3r,stress,Matrix3r::Zero(),Attr::readonly,"Stress value, used to compute *gradV*  energy if *trackWork* is True."))
-			((Real,prevVol,NaN,Attr::hidden,"Previous value of cell volume"))
-			//((Real,prevTrGradVStress,NaN,Attr::hidden,"Previous value of tr(gradV*stress)"))
+			((bool,_forceApplyChecked,false,AttrTrait<>().noGui(),"We already warned if forces are not applied here and no IntraForce engine exists in O.scene.engines"))
+			((Matrix3r,stress,Matrix3r::Zero(),AttrTrait<Attr::readonly>(),"Stress value, used to compute *gradV*  energy if *trackWork* is True."))
+			((Real,prevVol,NaN,AttrTrait<Attr::hidden>(),"Previous value of cell volume"))
+			//((Real,prevTrGradVStress,NaN,AttrTrait<Attr::hidden>(),"Previous value of tr(gradV*stress)"))
 			((Matrix3r,prevStress,Matrix3r::Zero(),,"Previous value of stress, used to compute mid-step stress"))
-			((int,gradVIx,-1,(Attr::hidden|Attr::noSave),"Cache energy index for gradV work"))
+			((int,gradVIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Cache energy index for gradV work"))
 			,
 			/*ctor*/
 				#ifdef IDISP_TIMING
@@ -104,5 +104,4 @@ class ContactLoop: public GlobalEngine {
 		DECLARE_LOGGER;
 };
 REGISTER_SERIALIZABLE(ContactLoop);
-
 

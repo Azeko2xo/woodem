@@ -11,9 +11,9 @@ struct G3Geom: public CGeom{
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR(G3Geom,CGeom,"Geometry of particles in contact, defining relative velocities.",
 		((Real,uN,NaN,,"Normal displacement, distace of separation of particles (mathematically equal to integral of vel[0], but given here for numerically more stable results, as this component can be usually computed directly)."))
 		((Vector3r,dShear,Vector3r::Zero(),,"Shear displacement delta during last step."))
-		((Vector3r,twistAxis,Vector3r(NaN,NaN,NaN),Attr::readonly,"Axis of twisting rotation"))
-		((Vector3r,orthonormalAxis,Vector3r(NaN,NaN,NaN),Attr::readonly,"Axis normal to twisting axis"))
-		((Vector3r,normal,Vector3r(NaN,NaN,NaN),Attr::readonly,"Contact normal in global coordinates; G3Geom doesn't touch Contact.node.ori (which is identity), therefore orientation must be kep separately"))
+		((Vector3r,twistAxis,Vector3r(NaN,NaN,NaN),AttrTrait<Attr::readonly>(),"Axis of twisting rotation"))
+		((Vector3r,orthonormalAxis,Vector3r(NaN,NaN,NaN),AttrTrait<Attr::readonly>(),"Axis normal to twisting axis"))
+		((Vector3r,normal,Vector3r(NaN,NaN,NaN),AttrTrait<Attr::readonly>(),"Contact normal in global coordinates; G3Geom doesn't touch Contact.node.ori (which is identity), therefore orientation must be kep separately"))
 		, /*ctor*/ createIndex();
 	);
 	REGISTER_CLASS_INDEX(G3Geom,CGeom);
@@ -56,8 +56,8 @@ struct Law2_G3Geom_FrictPhys_IdealElPl: public LawFunctor{
 	YADE_CLASS_BASE_DOC_ATTRS(Law2_G3Geom_FrictPhys_IdealElPl,LawFunctor,"Ideally elastic-plastic behavior, for use with G3Geom.",
 		((bool,noSlip,false,,"Disable plastic slipping"))
 		((bool,noBreak,false,,"Disable removal of contacts when in tension."))
-		((int,plastDissipIx,-1,(Attr::noSave|Attr::hidden),"Index of plastically dissipated energy"))
-		((int,elastPotIx,-1,(Attr::hidden|Attr::noSave),"Index for elastic potential energy"))
+		((int,plastDissipIx,-1,AttrTrait<Attr::noSave|Attr::hidden>(),"Index of plastically dissipated energy"))
+		((int,elastPotIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for elastic potential energy"))
 		// unused in the non-debugging version, but keep to not break archive compatibility
 		//#ifdef YADE_DEBUG
 			((Vector2i,watch,Vector2i(-1,-1),,"Print debug information for this couple of IDs"))
@@ -65,5 +65,4 @@ struct Law2_G3Geom_FrictPhys_IdealElPl: public LawFunctor{
 	);
 };
 REGISTER_SERIALIZABLE(Law2_G3Geom_FrictPhys_IdealElPl);
-
 

@@ -131,8 +131,8 @@ struct Law2_L3Geom_FrictPhys_ElPerfPl: public LawFunctor{
 	YADE_CLASS_BASE_DOC_ATTRS(Law2_L3Geom_FrictPhys_ElPerfPl,LawFunctor,"Basic law for testing :yref:`L3Geom`; it bears no cohesion (unless *noBreak* is ``True``), and plastic slip obeys the Mohr-Coulomb criterion (unless *noSlip* is ``True``).",
 		((bool,noBreak,false,,"Do not break contacts when particles separate."))
 		((bool,noSlip,false,,"No plastic slipping."))
-		((int,plastDissipIx,-1,(Attr::noSave|Attr::hidden),"Index of plastically dissipated energy"))
-		((int,elastPotentialIx,-1,(Attr::hidden|Attr::noSave),"Index for elastic potential energy (with O.trackEnergy)"))
+		((int,plastDissipIx,-1,AttrTrait<Attr::noSave|Attr::hidden>(),"Index of plastically dissipated energy"))
+		((int,elastPotentialIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for elastic potential energy (with O.trackEnergy)"))
 	);
 };
 REGISTER_SERIALIZABLE(Law2_L3Geom_FrictPhys_ElPerfPl);
@@ -156,9 +156,9 @@ struct Gl1_L6Geom: public GlCGeomFunctor{
 		((bool,axesLabels,false,,"Whether to display labels for local axes (x,y,z)"))
 		((Real,axesScale,1.,,"Scale local axes, their reference length being half of the minimum radius."))
 		((int,axesWd,1,,"Width of axes lines, in pixels; not drawn if non-positive"))
-		((Vector2i,axesWd_range,Vector2i(0,10),Attr::noGui,"Range for axesWd."))
+		((Vector2i,axesWd_range,Vector2i(0,10),AttrTrait<>().noGui(),"Range for axesWd."))
 		//((int,uPhiWd,2,,"Width of lines for drawing displacements (and rotations for :yref:`L6Geom`); not drawn if non-positive."))
-		//((Vector2i,uPhiWd_range,Vector2i(0,10),Attr::noGui,"Range for uPhiWd."))
+		//((Vector2i,uPhiWd_range,Vector2i(0,10),AttrTrait<>().noGui(),"Range for uPhiWd."))
 		//((Real,uScale,1.,,"Scale local displacements (:yref:`u<L3Geom.u>` - :yref:`u0<L3Geom.u0>`); 1 means the true scale, 0 disables drawing local displacements; negative values are permissible."))
 	);
 };

@@ -73,44 +73,44 @@ class Scene: public Serializable{
 
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Scene,Serializable,"Object comprising the whole simulation.",
 		((Real,dt,1e-8,AttrTrait<>().timeUnit(),"Current timestep for integration."))
-		((long,step,0,Attr::readonly,"Current step number"))
+		((long,step,0,AttrTrait<Attr::readonly>(),"Current step number"))
 		((bool,subStepping,false,,"Whether we currently advance by one engine in every step (rather than by single run through all engines)."))
-		((int,subStep,-1,Attr::readonly,"Number of sub-step; not to be changed directly. -1 means to run loop prologue (cell integration), 0…n-1 runs respective engines (n is number of engines), n runs epilogue (increment step number and time."))
+		((int,subStep,-1,AttrTrait<Attr::readonly>(),"Number of sub-step; not to be changed directly. -1 means to run loop prologue (cell integration), 0…n-1 runs respective engines (n is number of engines), n runs epilogue (increment step number and time."))
 		((Real,time,0,AttrTrait<>().readonly().timeUnit(),"Simulation time (virtual time) [s]"))
 		((long,stopAtStep,0,,"Iteration after which to stop the simulation."))
 
 		((bool,isPeriodic,false,/*exposed as "periodic" in python */ Attr::hidden,"Whether periodic boundary conditions are active."))
 		((bool,trackEnergy,false,,"Whether energies are being tracked."))
 
-		((Vector2i,clDev,Vector2i(-1,-1),Attr::triggerPostLoad,"OpenCL device to be used; if (-1,-1) (default), no OpenCL device will be initialized until requested. Saved simulations should thus always use the same device when re-loaded."))
+		((Vector2i,clDev,Vector2i(-1,-1),AttrTrait<Attr::triggerPostLoad>(),"OpenCL device to be used; if (-1,-1) (default), no OpenCL device will be initialized until requested. Saved simulations should thus always use the same device when re-loaded."))
 		#ifdef YADE_OPENCL
-			((Vector2i,_clDev,Vector2i(-1,-1),(Attr::readonly|Attr::noSave),"OpenCL device which is really initialized (to detect whether clDev was changed manually to avoid spurious re-initializations from postLoad"))
+			((Vector2i,_clDev,Vector2i(-1,-1),AttrTrait<Attr::readonly|Attr::noSave>(),"OpenCL device which is really initialized (to detect whether clDev was changed manually to avoid spurious re-initializations from postLoad"))
 		#endif
 
 		((Vector3r,loHint,Vector3r(-1,-1,-1),,"Lower corner, for rendering purposes"))
 		((Vector3r,hiHint,Vector3r(1,1,1),,"Upper corner, for rendering purposes"))
 
-		((bool,runInternalConsistencyChecks,true,Attr::hidden,"Run internal consistency check, right before the very first simulation step."))
+		((bool,runInternalConsistencyChecks,true,AttrTrait<Attr::hidden>(),"Run internal consistency check, right before the very first simulation step."))
 
 		((int,selection,-1,,"Id of particle selected by the user"))
 
-		((StrStrMap,tags,,Attr::hidden,"Arbitrary key=value associations (tags like mp3 tags: author, date, version, description etc.)"))
+		((StrStrMap,tags,,AttrTrait<Attr::hidden>(),"Arbitrary key=value associations (tags like mp3 tags: author, date, version, description etc.)"))
 
-		((vector<shared_ptr<Engine>>,engines,,(Attr::hidden|Attr::triggerPostLoad),"Engines sequence in the simulation."))
-		((vector<shared_ptr<Engine>>,_nextEngines,,Attr::hidden,"Engines to be used from the next step on; is returned transparently by O.engines if in the middle of the loop (controlled by subStep>=0)."))
-		((shared_ptr<EnergyTracker>,energy,new EnergyTracker,Attr::readonly,"Energy values, if energy tracking is enabled."))
-		((vector<shared_ptr<Field>>,fields,,Attr::triggerPostLoad,"Defined simulation fields."))
-		((shared_ptr<Cell>,cell,new Cell,Attr::hidden,"Information on periodicity; only should be used if Scene::isPeriodic."))
-		((vector<shared_ptr<DisplayParameters>>,dispParams,,Attr::hidden,"'hash maps' of display parameters (since yade::serialization had no support for maps, emulate it via vector of strings in format key=value)"))
-		((std::string,lastSave,,Attr::noGui,"Name under which the simulation was saved for the last time; used for reloading the simulation. Updated automatically, don't change."))
+		((vector<shared_ptr<Engine>>,engines,,AttrTrait<Attr::hidden|Attr::triggerPostLoad>(),"Engines sequence in the simulation."))
+		((vector<shared_ptr<Engine>>,_nextEngines,,AttrTrait<Attr::hidden>(),"Engines to be used from the next step on; is returned transparently by O.engines if in the middle of the loop (controlled by subStep>=0)."))
+		((shared_ptr<EnergyTracker>,energy,new EnergyTracker,AttrTrait<Attr::readonly>(),"Energy values, if energy tracking is enabled."))
+		((vector<shared_ptr<Field>>,fields,,AttrTrait<Attr::triggerPostLoad>(),"Defined simulation fields."))
+		((shared_ptr<Cell>,cell,new Cell,AttrTrait<Attr::hidden>(),"Information on periodicity; only should be used if Scene::isPeriodic."))
+		((vector<shared_ptr<DisplayParameters>>,dispParams,,AttrTrait<Attr::hidden>(),"'hash maps' of display parameters (since yade::serialization had no support for maps, emulate it via vector of strings in format key=value)"))
+		((std::string,lastSave,,AttrTrait<>().noGui(),"Name under which the simulation was saved for the last time; used for reloading the simulation. Updated automatically, don't change."))
 
 		#if YADE_OPENGL
 			((vector<shared_ptr<ScalarRange>>,ranges,,,"Scalar ranges to be rendered on the display as colormaps"))
 		#endif
 		((vector<shared_ptr<Serializable>>,any,,,"Storage for arbitrary Serializables; meant for storing and loading static objects like Gl1_* functors to restore their parameters when scene is loaded."))
-		((shared_ptr<Preprocessor>,pre,,Attr::noGui,"Preprocessor used for generating this simulation; to be only used in user scripts to query preprocessing parameters, not in c++ code."))
+		((shared_ptr<Preprocessor>,pre,,AttrTrait<>().noGui(),"Preprocessor used for generating this simulation; to be only used in user scripts to query preprocessing parameters, not in c++ code."))
 
-		// ((shared_ptr<Bound>,bound,,Attr::hidden,"Bounding box of the scene (only used for rendering and initialized if needed)."))
+		// ((shared_ptr<Bound>,bound,,AttrTrait<Attr::hidden>(),"Bounding box of the scene (only used for rendering and initialized if needed)."))
 
 		,
 		/*ctor*/ fillDefaultTags();

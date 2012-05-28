@@ -20,8 +20,8 @@ class DisplayParameters: public Serializable{
 		//! Set value of given display type; if such display type exists, it is overwritten, otherwise a new one is created.
 		void setValue(std::string displayType, std::string value){assert(values.size()==displayTypes.size()); vector<string>::iterator I=std::find(displayTypes.begin(),displayTypes.end(),displayType); if(I==displayTypes.end()){displayTypes.push_back(displayType); values.push_back(value);} else {values[std::distance(displayTypes.begin(),I)]=value;};}
 	YADE_CLASS_BASE_DOC_ATTRS(DisplayParameters,Serializable,"Store display parameters, not useful for user.",
-		((std::vector<std::string>,values,,Attr::hidden,""))
-		((std::vector<std::string>,displayTypes,,Attr::hidden,""))
+		((std::vector<std::string>,values,,AttrTrait<Attr::hidden>(),""))
+		((std::vector<std::string>,displayTypes,,AttrTrait<Attr::hidden>(),""))
 	);
 };
 REGISTER_SERIALIZABLE(DisplayParameters);

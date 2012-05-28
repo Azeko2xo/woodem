@@ -1,4 +1,5 @@
 #pragma once
+#ifdef YADE_SPARC
 
 #ifdef YADE_VTK
 
@@ -59,12 +60,12 @@ struct SparcField: public Field{
 	~SparcField(){ locator->Delete(); points->Delete(); grid->Delete(); }
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(SparcField,Field,"Field for SPARC meshfree method",
 		// ((Real,maxRadius,-1,,"Maximum radius for neighbour search (required for periodic simulations)"))
-		((bool,locDirty,true,Attr::readonly,"Flag whether the locator is updated."))
+		((bool,locDirty,true,AttrTrait<Attr::readonly>(),"Flag whether the locator is updated."))
 		((bool,showNeighbors,false,,"Whether to show neighbors in the 3d view (FIXME: should go to Gl1_SparcField, once it is created). When a node is selected, neighbors are shown nevertheless."))
 		,/*ctor*/  createIndex(); constructLocator(); 
 		,/*py*/
 			.def("nodesAround",&SparcField::nodesAround,(py::arg("pt"),py::arg("radius")=-1,py::arg("count")=-1,py::arg("ptNode")=shared_ptr<Node>()),"Return array of nodes close to given point *pt*")
-			.def("updateLocator",&SparcField::updateLocator,"Update the locator, should be done manually before the first step perhaps.")
+			.def("updateLocator",&SparcField::updateLocator</*useNext*/false>,"Update the locator, should be done manually before the first step perhaps.")
 			.def("sceneHasField",&Field_sceneHasField<SparcField>).staticmethod("sceneHasField")
 			.def("sceneGetField",&Field_sceneGetField<SparcField>).staticmethod("sceneGetField")
 
@@ -88,7 +89,7 @@ struct SparcData: public NodeData{
 	// Real getDirVel(size_t i) const { return i<dirVels.size()?dirVels[i]:0.; }
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(SparcData,NodeData,"Nodal data needed for SPARC; everything is in global coordinates, except for constraints (fixedV, fixedT)",
 		// informational
-		((Real,color,Mathr::UnitRandom(),Attr::noGui,"Set node color, so that rendering is more readable"))
+		((Real,color,Mathr::UnitRandom(),AttrTrait<>().noGui(),"Set node color, so that rendering is more readable"))
 		((int,nid,-1,,"Node id (to locate coordinates in solution matrix)"))
 
 		// state variables
@@ -101,8 +102,8 @@ struct SparcData: public NodeData{
 		((Vector3r,fixedT,Vector3r(NaN,NaN,NaN),,"Prescribed stress divergence, in node-local (!!) coordinates. NaN prescribes nothing along respective axis."))
 
 		// computed in prologue (once per timestep)
-		((Vector3i,dofs,Vector3i(-1,-1,-1),Attr::readonly,"Degrees of freedom in the solution system corresponding to 3 locV components (negative for prescribed velocity, not touched by the solver)"))
-		((vector<shared_ptr<Node> >,neighbors,,Attr::noGui,"List of neighbours, updated internally"))
+		((Vector3i,dofs,Vector3i(-1,-1,-1),AttrTrait<Attr::readonly>(),"Degrees of freedom in the solution system corresponding to 3 locV components (negative for prescribed velocity, not touched by the solver)"))
+		((vector<shared_ptr<Node> >,neighbors,,AttrTrait<>().noGui(),"List of neighbours, updated internally"))
 		((VectorXr,weights,,,"Weight when distance weighting is effective"))
 		((MatrixXr,relPosInv,,,"Relative positions' pseudo-inverse"))
 
@@ -112,7 +113,7 @@ struct SparcData: public NodeData{
 		((Matrix3r,gradV,Matrix3r::Zero(),,"gradient of velocity (only used as intermediate storage)"))
 		// ((Matrix3r,Tdot,Matrix3r::Zero(),,"Jaumann Stress rate")) 
 		((Matrix3r,nextT,Matrix3r::Zero(),,"Stress in the next step")) 
-		((vector<shared_ptr<Node> >,nextNeighbors,,Attr::noGui,"Neighbors in the next step"))
+		((vector<shared_ptr<Node> >,nextNeighbors,,AttrTrait<>().noGui(),"Neighbors in the next step"))
 		((VectorXr,nextWeights,,,"Weights in t+dt/2, with positions updated as per v"))
 		((MatrixXr,nextRelPosInv,,,"Relative position's pseudoinverse in the next step"))
 		((Quaternionr,nextOri,,,"Orientation in the next step (FIXME: not yet updated)"))
@@ -121,16 +122,16 @@ struct SparcData: public NodeData{
 		((Vector3r,accel,Vector3r::Zero(),,"Acceleration"))
 	#ifdef SPARC_INSPECT
 		// debugging only
-		((MatrixXr,relPos,,(Attr::noSave|Attr::noGui),"Debug storage for relative positions"))
-		((MatrixXr,nextRelPos,,(Attr::noSave|Attr::noGui),"Relative positions in next step"))
-		((MatrixXr,gradT,,(Attr::noSave|Attr::noGui),"Debugging only -- derivatives of stress components (6 lines, one for each voigt-component of stress tensor); evaluated as by-product in computeDivT"))
+		((MatrixXr,relPos,,AttrTrait<Attr::noSave>().noGui(),"Debug storage for relative positions"))
+		((MatrixXr,nextRelPos,,AttrTrait<Attr::noSave>().noGui(),"Relative positions in next step"))
+		((MatrixXr,gradT,,AttrTrait<Attr::noSave>().noGui(),"Debugging only -- derivatives of stress components (6 lines, one for each voigt-component of stress tensor); evaluated as by-product in computeDivT"))
 
-		((Matrix3r,Tcirc,Matrix3r::Zero(),Attr::noSave,"Debugging only -- stress rate"))
-		((Vector3r,divT,Vector3r::Zero(),Attr::noSave,"Debugging only -- stress divergence"))
-		((Vector3r,resid,Vector3r::Zero(),(Attr::noSave|Attr::noGui),"Debugging only -- implicit solver residuals for global DoFs"))
-		((MatrixXr,relVels,,(Attr::noSave|Attr::noGui),"Debugging only -- relative neighbor velocities"))
+		((Matrix3r,Tcirc,Matrix3r::Zero(),AttrTrait<Attr::noSave>(),"Debugging only -- stress rate"))
+		((Vector3r,divT,Vector3r::Zero(),AttrTrait<Attr::noSave>(),"Debugging only -- stress divergence"))
+		((Vector3r,resid,Vector3r::Zero(),AttrTrait<Attr::noSave>().noGui(),"Debugging only -- implicit solver residuals for global DoFs"))
+		((MatrixXr,relVels,,AttrTrait<Attr::noSave>().noGui(),"Debugging only -- relative neighbor velocities"))
 	#endif
-		// ((int,locatorId,-1,Attr::hidden,"Position in the point locator array"))
+		// ((int,locatorId,-1,AttrTrait<Attr::hidden>(),"Position in the point locator array"))
 		, /* ctor */
 		, /*py*/
 		.def("_getDataOnNode",&Node::pyGetData<SparcData>).staticmethod("_getDataOnNode").def("_setDataOnNode",&Node::pySetData<SparcData>).staticmethod("_setDataOnNode")
@@ -166,9 +167,9 @@ struct ExplicitNodeIntegrator: public GlobalEngine {
 	Real pointWeight(Real distSq) const;
 	enum {WEIGHT_DIST=0,WEIGHT_GAUSS,WEIGHT_SENTINEL};
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ExplicitNodeIntegrator,GlobalEngine,"Monolithic engine for explicit integration of motion of nodes in SparcField.",
-		((Real,E,1e6,Attr::triggerPostLoad,"Young's modulus, for the linear elastic constitutive law"))
-		((Real,nu,0,Attr::triggerPostLoad,"Poisson's ratio for the linear elastic constitutive law"))
-		((vector<Real>,barodesyC,vector<Real>({-1.7637,-1.0249,-0.5517,-1174.,-4175.,2218}),Attr::triggerPostLoad,"Material constants for barodesy"))
+		((Real,E,1e6,AttrTrait<Attr::triggerPostLoad>(),"Young's modulus, for the linear elastic constitutive law"))
+		((Real,nu,0,AttrTrait<Attr::triggerPostLoad>(),"Poisson's ratio for the linear elastic constitutive law"))
+		((vector<Real>,barodesyC,vector<Real>({-1.7637,-1.0249,-0.5517,-1174.,-4175.,2218}),AttrTrait<Attr::triggerPostLoad>(),"Material constants for barodesy"))
 		((Real,ec0,.8703,,"Initial void ratio"))
 		((Real,rSearch,-1,,"Radius for neighbor-search"))
 		((int,weightFunc,WEIGHT_DIST,,"Weighting function to be used (WEIGHT_DIST,WEIGHT_GAUSS)"))
@@ -176,7 +177,7 @@ struct ExplicitNodeIntegrator: public GlobalEngine {
 		((Real,gaussAlpha,.6,,"Decay coefficient used with Gauss weight function."))
 		((bool,spinRot,false,,"Rotate particles according to spin in their location; Dofs which prescribe velocity will never be rotated (i.e. only rotation parallel with them will be allowed)."))
 		((int,neighborUpdate,1,,"Number of steps to periodically update neighbour information"))
-		((int,matModel,0,Attr::triggerPostLoad,"Material model to be used (0=linear elasticity, 1=barodesy (Jesse)"))
+		((int,matModel,0,AttrTrait<Attr::triggerPostLoad>(),"Material model to be used (0=linear elasticity, 1=barodesy (Jesse)"))
 		((int,watch,-1,,"Nid to be watched (debugging)."))
 		((Real,damping,0,,"Numerical damping, applied by-component on acceleration"))
 		((Real,c,0,,"Viscous damping coefficient."))
@@ -249,12 +250,12 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 
 	YADE_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(StaticEquilibriumSolver,ExplicitNodeIntegrator,"Find global static equilibrium of a Sparc system.",
 		((bool,substep,false,,"Whether the solver tries to find solution within one step, or does just one iteration towards the solution"))
-		((int,nIter,0,Attr::readonly,"Indicates number of iteration of the implicit solver (within one solution step), if *substep* is True. 0 means at the beginning of next solution step; nIter is negative during the iteration step, therefore if there is interruption by an exception, it is indicated by its negative value; this makes the solver restart at the next step. Positive value indicates successful progress towards solution."))
-		((VectorXr,currV,,Attr::readonly,"Current solution which the solver computes"))
+		((int,nIter,0,AttrTrait<Attr::readonly>(),"Indicates number of iteration of the implicit solver (within one solution step), if *substep* is True. 0 means at the beginning of next solution step; nIter is negative during the iteration step, therefore if there is interruption by an exception, it is indicated by its negative value; this makes the solver restart at the next step. Positive value indicates successful progress towards solution."))
+		((VectorXr,currV,,AttrTrait<Attr::readonly>(),"Current solution which the solver computes"))
 		#ifdef SPARC_INSPECT
-			((VectorXr,residuals,,Attr::readonly,"Residuals corresponding to the current solution (copy of error vector inside the solver)"))
+			((VectorXr,residuals,,AttrTrait<Attr::readonly>(),"Residuals corresponding to the current solution (copy of error vector inside the solver)"))
 		#endif
-		((Real,residuum,NaN,Attr::readonly,"Norm of residuals (fnorm) as reported by the solver."))
+		((Real,residuum,NaN,AttrTrait<Attr::readonly>(),"Norm of residuals (fnorm) as reported by the solver."))
 		((Real,solverFactor,200,,"Factor for the Dogleg method (automatically lowered in case of convergence troubles"))
 		((Real,solverXtol,-1,,"Relative tolerance of the solver; if negative, default is used."))
 		((Real,relMaxfev,10000,,"Maximum number of function evaluation in solver, relative to number of DoFs"))
@@ -324,3 +325,5 @@ REGISTER_SERIALIZABLE(SparcConstraintGlRep);
 
 
 #endif // YADE_VTK
+
+#endif // YADE_SPARC

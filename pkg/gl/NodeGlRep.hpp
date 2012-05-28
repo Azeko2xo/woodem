@@ -32,7 +32,7 @@ struct ActReactGlRep: public VectorGlRep{
 	void renderDoubleArrow(const Vector3r& pos, const Vector3r& arr, bool posStart, const Vector3r& offset, const Vector3r& color);
 	YADE_CLASS_BASE_DOC_ATTRS(ActReactGlRep,VectorGlRep,"Render action and reaction vectors as opposing arrows, with offset and optionally separate normal/shear components. The value is always given in node-local coordinates!",
 		((int,comp,3,,"Which components of the force to show 0: x-only, 1: yz-only, 2: both as separate arrows, 3: both as one arrow."))
-		((Vector2i,comp_range,Vector2i(0,3),Attr::noGui,"Range for *comp*"))
+		((Vector2i,comp_range,Vector2i(0,3),AttrTrait<>().noGui(),"Range for *comp*"))
 		((Real,relOff,.01,,"Offset from the node in the sense of local x-axis, relative to scene radius"))
 		((shared_ptr<ScalarRange>,shearRange,,,"Optional range for shear foces; if not defined range (for normal force) is used instead."))
 	);
@@ -43,10 +43,10 @@ struct TensorGlRep: public NodeGlRep{
 	void render(const shared_ptr<Node>&, GLViewInfo*);
 	void postLoad(TensorGlRep&);
 	YADE_CLASS_BASE_DOC_ATTRS(TensorGlRep,NodeGlRep,"Render tensor (given as 3x3 matrix) as its principal components.",
-		((Matrix3r,val,Matrix3r::Zero(),Attr::triggerPostLoad,"Value to be rendered."))
-		((Matrix3r,eigVec,Matrix3r::Zero(),(Attr::noSave|Attr::readonly),"eigenvectors as columns, updated in postLoad."))
-		((Vector3r,eigVal,Vector3r::Zero(),(Attr::noSave|Attr::readonly),"eigenvalues of corresponding eigenvectors, updated in postLoad."))
-		((Vector3r,skew,Vector3r::Zero(),(Attr::noSave),"skew (asymmetric) components of the tensor"))
+		((Matrix3r,val,Matrix3r::Zero(),AttrTrait<Attr::triggerPostLoad>(),"Value to be rendered."))
+		((Matrix3r,eigVec,Matrix3r::Zero(),AttrTrait<Attr::noSave|Attr::readonly>(),"eigenvectors as columns, updated in postLoad."))
+		((Vector3r,eigVal,Vector3r::Zero(),AttrTrait<Attr::noSave|Attr::readonly>(),"eigenvalues of corresponding eigenvectors, updated in postLoad."))
+		((Vector3r,skew,Vector3r::Zero(),AttrTrait<Attr::noSave>(),"skew (asymmetric) components of the tensor"))
 		((Real,relSz,.1,,"Size of maximum-length arrows, relative to scene radius"))
 		((Real,skewRelSz,-1,,"Size of maximum-length skew curved arrows; if negative, use relSz instead."))
 		((Real,scaleExp,1,,"Exponent for scaling arrow sizem kuje wutg VectorGlRep. NaN disables scaling, making all arrows the same size."))

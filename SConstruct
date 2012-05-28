@@ -92,7 +92,7 @@ opts.AddVariables(
 	BoolVariable('gprof','Enable profiling information for gprof',0),
 	('optimize','Turn on optimizations (-1, 0 or 1); negative value sets optimization based on debugging: not optimize with debugging and vice versa. -3 (the default) selects -O3 for non-debug and no optimization flags for debug builds',-3,None,int),
 	EnumVariable('PGO','Whether to "gen"erate or "use" Profile-Guided Optimization','',['','gen','use'],{'no':'','0':'','false':''},1),
-	ListVariable('features','Optional features that are turned on','log4cxx,opengl,opencl,gts,openmp,vtk,qt4',names=['opengl','log4cxx','cgal','openmp','opencl','gts','vtk','gl2ps','qt4','subdomains','cldem','never_use_this_one']),
+	ListVariable('features','Optional features that are turned on','log4cxx,opengl,opencl,gts,openmp,vtk,qt4',names=['opengl','log4cxx','cgal','openmp','opencl','gts','vtk','gl2ps','qt4','subdomains','cldem','sparc','never_use_this_one']),
 	('jobs','Number of jobs to run at the same time (same as -j, but saved)',2,None,int),
 	#('extraModules', 'Extra directories with their own SConscript files (must be in-tree) (whitespace separated)',None,None,Split),
 	('cxxstd','Name of the c++ standard (or dialect) to compile with. With gcc, use gnu++11 (gcc >=4.7) or gnu++0x (with gcc 4.5, 4.6)','gnu++0x'),
@@ -259,7 +259,7 @@ def CheckBoost(context):
 		('boost_iostreams','boost/iostreams/device/file.hpp','boost::iostreams::file_sink("");',True),
 		('boost_regex','boost/regex.hpp','boost::regex("");',True),
 		('boost_serialization','boost/archive/archive_exception.hpp','try{} catch (const boost::archive::archive_exception& e) {};',True),
-		('boost_program_options','boost/program_options.hpp','boost::program_options::options_description o;',True),
+		#('boost_program_options','boost/program_options.hpp','boost::program_options::options_description o;',True),
 		('boost_python','boost/python.hpp','boost::python::scope();',True),
 	]
 	failed=[]
@@ -436,15 +436,15 @@ if env['PGO']=='use': env.Append(CXXFLAGS=['-fprofile-use'],LINKFLAGS=['-fprofil
 
 if 'clang' in env['CXX']:
 	print 'Looks like we use clang, adding some flags to avoid warning flood.'
-	env.Append(CXXFLAGS=['-Wno-unused-variable','-Wno-mismatched-tags','-Wno-constant-logical-operand','-Qunused-arguments','-Wno-empty-body'])
+	env.Append(CXXFLAGS=['-Wno-unused-variable','-Wno-mismatched-tags','-Wno-constant-logical-operand','-Qunused-arguments','-Wno-empty-body','-Wno-self-assign'])
 	if 'openmp' in env['features']: print 'WARNING: building with clang and OpenMP feature, expect compilation errors!'
-	if env['march']: print 'WARNING: specifying march with clang\'s might lead to crash at startup (if so, recompile with march= )!'
+	if env['march']: print 'WARNING: specifying march with clang might lead to crash at startup (if so, recompile with march= )!'
 
 
 ### LINKER
 ## libs for all plugins
 env.Append(LIBS=[],SHLINKFLAGS=['-rdynamic'])
-env.Append(SHLINKFLAGS=env['EXTRA_SHLINKFLAGS'])
+if 'EXTRA_SHLINKFLAGS' in env: env.Append(SHLINKFLAGS=env['EXTRA_SHLINKFLAGS'])
 env.Append(LINKFLAGS=['-rdynamic','-Wl,-z,origin'])
 
 ## newer scons (?) does not pass SHCCFLAGS when linking with g++
@@ -543,7 +543,7 @@ env.Append(BUILDERS = {'Combine': env.Builder(action = SCons.Action.Action(combi
 
 import yadeSCons
 allPlugs=yadeSCons.scanAllPlugins(None,feats=env['features'])
-buildPlugs=yadeSCons.getWantedPlugins(allPlugs,['dem0','common0'],env['features'],env['chunkSize'],env['hotPlugins'].split(','))
+buildPlugs=yadeSCons.getWantedPlugins(allPlugs,[],env['features'],env['chunkSize'],env['hotPlugins'].split(','))
 def linkPlugins(plugins):
 	"""Given list of plugins we need to link to, return list of real libraries that we should link to."""
 	ret=set()

@@ -115,7 +115,7 @@ class SerializerToHtmlTable:
 				ret+=indent2+'<td align="justify">'+self(attr,depth+1)+indent2+'</td>'
 			# sequence of objects (no units here)
 			elif hasattr(attr,'__len__') and len(attr)>0 and isinstance(attr[0],yade.wrapper.Serializable):
-				ret+=indent2+u'<td><ol>'+''.join('<li>'+[self(o,depth+1)+'</li>' for o in attr])+'</ol></td>'
+				ret+=indent2+u'<td><ol>'+''.join(['<li>'+self(o,depth+1)+'</li>' for o in attr])+'</ol></td>'
 			else:
 				#ret+=indent2+'<td align="right">'
 				if not trait.multiUnit: # the easier case

@@ -14,7 +14,7 @@ struct Truss: public Shape{
 		((Real,radius,NaN,,"Radius of the cylinder"))
 		((Real,l0,NaN,,"Initial (usually equilibrium) length"))
 		((Real,axialStress,0,,"Current normal stress (informative only)"))
-		// ((Quaternionr,axisOri,Quaternionr::Identity(),Attr::readonly,"Orientation of the cylinder axis in undeformed state relative to nodes[0] coordinates"))
+		// ((Quaternionr,axisOri,Quaternionr::Identity(),AttrTrait<Attr::readonly>(),"Orientation of the cylinder axis in undeformed state relative to nodes[0] coordinates"))
 		, /*ctor*/ createIndex();
 	);
 	REGISTER_CLASS_INDEX(Truss,Shape);

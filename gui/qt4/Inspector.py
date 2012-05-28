@@ -6,7 +6,7 @@ from yade import *
 from yade.qt.SerializableEditor import *
 import yade.qt
 from yade.dem import *
-from yade.sparc import *
+#from yade.sparc import *
 from yade.gl import *
 from yade.core import *
 

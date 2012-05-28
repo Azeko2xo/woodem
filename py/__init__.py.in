@@ -83,10 +83,17 @@ import _monkey # adds methods to c++ classes
 import wrapper 
 # out-of-class docstrings for some classes
 try: import _extraDocs
-except AttributeError: print 'WARN: Error importing py/_extraDocs.py'
+except AttributeError:
+	print 'WARN: Error importing py/_extraDocs.py'
+	import traceback
+	traceback.print_exc()
 # attribute aliases
 try: import _aliases
-except AttributeError: print 'WARN: Error importing py/_aliases.py'
+except AttributeError:
+	print 'WARN: Error importing py/_aliases.py'
+	import traceback
+	traceback.print_exc()
+
 
 ## DON'T DO THIS:
 # import a few "important" modules along with *

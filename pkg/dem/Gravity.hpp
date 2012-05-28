@@ -9,7 +9,7 @@ struct Gravity: public GlobalEngine{
 	virtual string pyStr() const { return "<Gravity ("+to_string(gravity[0])+", "+to_string(gravity[1])+", "+to_string(gravity[2])+") @ "+lexical_cast<string>(this)+">"; }
 	YADE_CLASS_BASE_DOC_ATTRS(Gravity,GlobalEngine,"Engine applying constant acceleration to all bodies.",
 		((Vector3r,gravity,Vector3r::Zero(),,"Acceleration [kgms⁻²]"))
-		((int,gravWorkIx,-1,(Attr::noSave|Attr::hidden),"Index for work of gravity"))
+		((int,gravWorkIx,-1,AttrTrait<Attr::noSave|Attr::hidden>(),"Index for work of gravity"))
 		// ((int,mask,0,,"If mask defined, only bodies with corresponding groupMask will be affected by this engine. If 0, all bodies will be affected."))
 	);
 };
@@ -58,8 +58,8 @@ class HdapsGravityEngine: public GravityEngine{
 		((string,hdapsDir,"/sys/devices/platform/hdaps",,"Hdaps directory; contains ``position`` (with accelerometer readings) and ``calibration`` (zero acceleration)."))
 		((Real,msecUpdate,50,,"How often to update the reading."))
 		((int,updateThreshold,4,,"Minimum difference of reading from the file before updating gravity, to avoid jitter."))
-		((Real,lastReading,-1,(Attr::hidden|Attr::noSave),"Time of the last reading."))
-		((Vector2i,accel,Vector2i::Zero(),(Attr::noSave|Attr::readonly),"reading from the sysfs file"))
+		((Real,lastReading,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Time of the last reading."))
+		((Vector2i,accel,Vector2i::Zero(),AttrTrait<Attr::noSave|Attr::readonly>(),"reading from the sysfs file"))
 		((Vector2i,calibrate,Vector2i::Zero(),,"Zero position; if NaN, will be read from the *hdapsDir* / calibrate."))
 		((bool,calibrated,false,,"Whether *calibrate* was already updated. Do not set to ``True`` by hand unless you also give a meaningful value for *calibrate*."))
 		((Vector3r,zeroGravity,Vector3r(0,0,-1),,"Gravity if the accelerometer is in flat (zero) position."))

@@ -65,7 +65,7 @@ class EnergyTracker: public Serializable{
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(EnergyTracker,Serializable,"Storage for tracing energies. Only to be used if O.traceEnergy is True.",
 		((OpenMPArrayAccumulator<Real>,energies,,,"Energy values, in linear array"))
 		((mapStringInt,names,,/*no python converter for this type*/Attr::hidden,"Associate textual name to an index in the energies array [overridden bellow].")) 
-		((vector<int>,flags,,Attr::readonly,"Flags for respective energies; most importantly, whether the value should be reset at every step."))
+		((vector<int>,flags,,AttrTrait<Attr::readonly>(),"Flags for respective energies; most importantly, whether the value should be reset at every step."))
 		,/*ctor*/
 		,/*py*/
 			.def("__getitem__",&EnergyTracker::getItem_py,"Get energy value for given name.")

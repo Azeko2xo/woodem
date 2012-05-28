@@ -138,16 +138,16 @@ class Cell: public Serializable{
 	#define Cell_CLASS_DESCRIPTOR \
 	/*attrs*/ \
 		Cell,Serializable,"Parameters of periodic boundary conditions. Only applies if O.isPeriodic==True.", \
-		((bool,trsfUpperTriangular,false,Attr::readonly,"Require that :yref:`Cell.trsf` is upper-triangular, to conform with the requirement of voro++ for sheared periodic cells."))\
+		((bool,trsfUpperTriangular,false,AttrTrait<Attr::readonly>(),"Require that :yref:`Cell.trsf` is upper-triangular, to conform with the requirement of voro++ for sheared periodic cells."))\
 		/* overridden below to be modified by getters/setters because of intended side-effects */\
 		((Matrix3r,trsf,Matrix3r::Identity(),,"[overridden]")) \
 		((Matrix3r,refHSize,Matrix3r::Identity(),,"Reference cell configuration, only used with :yref:`OpenGLRenderer.dispScale`. Updated automatically when :yref:`hSize<Cell.hSize>` or :yref:`trsf<Cell.trsf>` is assigned directly; also modified by :yref:`yade.utils.setRefSe3` (called e.g. by the :gui:`Reference` button in the UI)."))\
 		((Matrix3r,hSize,Matrix3r::Identity(),,"[overridden below]"))\
-		((Matrix3r,pprevHsize,Matrix3r::Identity(),Attr::readonly,"hSize at t-dt/2; used to compute velocity correction in contact with non-zero cellDist. Updated automatically."))\
+		((Matrix3r,pprevHsize,Matrix3r::Identity(),AttrTrait<Attr::readonly>(),"hSize at t-dt/2; used to compute velocity correction in contact with non-zero cellDist. Updated automatically."))\
 		/* normal attributes */\
 		((Matrix3r,gradV,Matrix3r::Zero(),,"[overridden below]"))\
-		((Matrix3r,W,Matrix3r::Zero(),Attr::readonly,"Spin tensor, computed from gradV when it is updated."))\
-		((Vector3r,spinVec,Vector3r::Zero(),Attr::readonly,"Angular velocity vector (1/2 * dual of spin tensor W), computed from W when it is updated."))\
+		((Matrix3r,W,Matrix3r::Zero(),AttrTrait<Attr::readonly>(),"Spin tensor, computed from gradV when it is updated."))\
+		((Vector3r,spinVec,Vector3r::Zero(),AttrTrait<Attr::readonly>(),"Angular velocity vector (1/2 * dual of spin tensor W), computed from W when it is updated."))\
 		((Matrix3r,nextGradV,Matrix3r::Zero(),,"Value of gradV to be applied in the next step (that is, at t+dt/2). If any engine changes gradV, it should do it via this variable. The value propagates to gradV at the very end of each timestep, so if it is user-adjusted between steps, it will not become effective until after 1 steps. It should not be changed between Leapfrog and end of the step!"))\
 		((int,homoDeform,HOMO_GRADV2,AttrTrait<>().triggerPostLoad().choice({{HOMO_NONE,"None"},{HOMO_POS,"position only"},{HOMO_VEL,"pos & vel, 1st order"},{HOMO_VEL_2ND,"pos & vel, 2nd order"},{HOMO_GRADV2,"all, leapfrog-consistent"}}),"Deform (:yref:`gradV<Cell.gradV>`) the cell homothetically, by adjusting positions or velocities of particles. The values have the following meaning: 0: no homothetic deformation, 1: set absolute particle positions directly (when ``gradV`` is non-zero), but without changing their velocity, 2: adjust particle velocity (only when ``gradV`` changed) with Δv_i=Δ ∇v x_i. 3: as 2, but include a 2nd order term in addition -- the derivative of 1 (convective term in the velocity update)."))\
 		,\

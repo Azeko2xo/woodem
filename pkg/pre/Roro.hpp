@@ -46,7 +46,7 @@ struct Roro: public Preprocessor {
 		((Real,gravity,100.,AttrTrait<>().accelUnit(),"Gravity acceleration magnitude"))
 		((int,steadyOver,500,,"Start steady (measured) phase when this number of particles falls over the last cylinder"))
 		((int,factStepPeriod,200,,"Run factory (and deleters) every *factStepPeriod* steps."))
-		((Real,pWaveSafety,.7,Attr::triggerPostLoad,"Safety factor for critical timestep"))
+		((Real,pWaveSafety,.7,AttrTrait<Attr::triggerPostLoad>(),"Safety factor for critical timestep"))
 		((Real,rateSmooth,.1,,"Smoothing factor for plotting rates in factory and deleters"))
 
 		, /*ctor*/

@@ -85,9 +85,9 @@ class Engine: public Serializable {
 		((bool,dead,false,,"If true, this engine will not run at all; can be used for making an engine temporarily deactivated and only resurrect it at a later point."))
 		((string,label,,,"Textual label for this object; must be valid python identifier, you can refer to it directly from python."))
 		// ((bool,parallelFields,false,,"Whether to run (if compiled with openMP) this engine on active fields in parallel"))
-		((shared_ptr<Field>,field,,(Attr::noGui|Attr::noDump),"User-requested :yref:`Field` to run this engine on; if empty, fields will be searched for admissible ones; if more than one is found, exception will be raised."))
-		((bool,userAssignedField,false,(Attr::readonly|Attr::noGui),"Whether the :yref:`Engine.field` was user-assigned or automatically assigned, to know whether to update automatically."))
-		((bool,isNewObject,true,Attr::hidden,"Flag to recognize in postLoad whether this object has just been constructed, to set userAssignedField properly (ugly...)"))
+		((shared_ptr<Field>,field,,AttrTrait<>().noGui().noDump(),"User-requested :yref:`Field` to run this engine on; if empty, fields will be searched for admissible ones; if more than one is found, exception will be raised."))
+		((bool,userAssignedField,false,AttrTrait<Attr::readonly>().noGui(),"Whether the :yref:`Engine.field` was user-assigned or automatically assigned, to know whether to update automatically."))
+		((bool,isNewObject,true,AttrTrait<Attr::hidden>(),"Flag to recognize in postLoad whether this object has just been constructed, to set userAssignedField properly (ugly...)"))
 		,/* ctor */ scene=Omega::instance().getScene().get(); ,
 		/* py */
 		.add_property("execTime",&Engine::timingInfo_nsec_get,&Engine::timingInfo_nsec_set,"Cummulative time this Engine took to run (only used if :yref:`O.timingEnabled<Omega.timingEnabled>`\\ ==\\ ``True``).")
@@ -128,7 +128,7 @@ class ParallelEngine: public Engine {
 		py::list pySlavesGet();
 		void pySlavesSet(const py::list& slaves);
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ParallelEngine,Engine,"Engine for running other Engine in parallel.\n\n.. admonition:: Special constructor\n\nPossibly nested list of engines, where each top-level item (engine or list) will be run in parallel; nested lists will be run sequentially.",
-		((slaveContainer,slaves,,Attr::hidden,"[will be overridden]")),
+		((slaveContainer,slaves,,AttrTrait<Attr::hidden>(),"[will be overridden]")),
 		/*ctor*/,
 		/*py*/
 		.add_property("slaves",&ParallelEngine::pySlavesGet,&ParallelEngine::pySlavesSet,"List of lists of Engines; each top-level group will be run in parallel with other groups, while Engines inside each group will be run sequentially, in given order.");
@@ -173,5 +173,4 @@ struct PyRunner: public PeriodicEngine{
 	);
 };
 REGISTER_SERIALIZABLE(PyRunner);
-
 

@@ -226,9 +226,9 @@ struct InsertionSortCollider: public Collider {
 		((int,sortAxis,0,,"Axis for the initial contact detection."))
 		((bool,sortThenCollide,false,,"Separate sorting and colliding phase; it is MUCH slower, but all interactions are processed at every step; this effectively makes the collider non-persistent, not remembering last state. (The default behavior relies on the fact that inversions during insertion sort are overlaps of bounding boxes that just started/ceased to exist, and only processes those; this makes the collider much more efficient.)"))
 		((Real,verletDist,((void)"Automatically initialized",-.05),,"Length by which to enlarge particle bounds, to avoid running collider at every step. Stride disabled if zero. Negative value will trigger automatic computation, so that the real value will be |verletDist| × minimum spherical particle radius; if there are no spherical particles, it will be disabled."))
-		((Real,maxVel2,0,Attr::readonly,"Maximum encountered velocity of a particle, to compute bounding box shift."))
+		((Real,maxVel2,0,AttrTrait<Attr::readonly>(),"Maximum encountered velocity of a particle, to compute bounding box shift."))
 		((int,nFullRuns,0,,"Number of full runs, when collision detection is needed; only informative."))
-		((int,numReinit,0,Attr::readonly,"Cumulative number of bound array re-initialization."))
+		((int,numReinit,0,AttrTrait<Attr::readonly>(),"Cumulative number of bound array re-initialization."))
 		((Vector3i,stepInvs,Vector3i::Zero(),,"Number of inversions in insertion sort in the last step; always zero in the non-debug builds"))
 		((Vector3i,numInvs,Vector3i::Zero(),,"Cumulative number of inversions in insertion sort; always zero in the non-debug builds"))
 		, /*deprec*/

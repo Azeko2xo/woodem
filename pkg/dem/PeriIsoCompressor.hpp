@@ -22,9 +22,9 @@ struct PeriIsoCompressor: public Engine{
 		((string,doneHook,"",,"Python command to be run when reaching the last specified stress"))
 		((bool,keepProportions,true,,"Exactly keep proportions of the cell (stress is controlled based on average, not its components"))
 
-		((Real,currUnbalanced,NaN,Attr::readonly,"Current unbalanced force (updated internally)"))
-		((Real,avgStiffness,NaN,Attr::readonly,"Value of average stiffness (updated internally)"))
-		((Vector3r,sigma,Vector3r(NaN,NaN,NaN),Attr::readonly,"Current value of average stress (update internally)"))
+		((Real,currUnbalanced,NaN,AttrTrait<Attr::readonly>(),"Current unbalanced force (updated internally)"))
+		((Real,avgStiffness,NaN,AttrTrait<Attr::readonly>(),"Value of average stiffness (updated internally)"))
+		((Vector3r,sigma,Vector3r(NaN,NaN,NaN),AttrTrait<Attr::readonly>(),"Current value of average stress (update internally)"))
 		,
 		/*ctor*/
 			maxDisplPerStep=-1;

@@ -223,8 +223,8 @@ void GLViewer::startClipPlaneManipulation(int planeNo){
 	resetManipulation();
 	mouseMovesManipulatedFrame(xyPlaneConstraint.get());
 	manipulatedClipPlane=planeNo;
-	const Se3r se3(renderer->clipPlaneSe3[planeNo]);
-	manipulatedFrame()->setPositionAndOrientation(qglviewer::Vec(se3.position[0],se3.position[1],se3.position[2]),qglviewer::Quaternion(se3.orientation.x(),se3.orientation.y(),se3.orientation.z(),se3.orientation.w()));
+	const Vector3r& pos(renderer->clipPlanePos[planeNo]); const Quaternionr& ori(renderer->clipPlaneOri[planeNo]);
+	manipulatedFrame()->setPositionAndOrientation(qglviewer::Vec(pos[0],pos[1],pos[2]),qglviewer::Quaternion(ori.x(),ori.y(),ori.z(),ori.w()));
 	string grp=strBoundGroup();
 	displayMessage("Manipulating clip plane #"+lexical_cast<string>(planeNo+1)+(grp.empty()?grp:" (bound planes:"+grp+")"));
 }
@@ -335,7 +335,7 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 			else {boundClipPlanes.erase(planeId); displayMessage("Removed plane #"+lexical_cast<string>(planeId+1)+" from the bound group: "+strBoundGroup());}
 		}
 		else if(manipulatedClipPlane>=0 && manipulatedClipPlane!=planeId) {
-			const Quaternionr& o=renderer->clipPlaneSe3[planeId].orientation;
+			const Quaternionr& o=renderer->clipPlaneOri[planeId];
 			manipulatedFrame()->setOrientation(qglviewer::Quaternion(o.x(),o.y(),o.z(),o.w()));
 			displayMessage("Copied orientation from plane #1");
 		}
@@ -368,8 +368,8 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 	else if(e->key()==Qt::Key_P) camera()->setFieldOfView(camera()->fieldOfView()*1.1);
 	else if(e->key()==Qt::Key_R){ // reverse the clipping plane; revolve around scene center if no clipping plane selected
 		if(manipulatedClipPlane>=0 && manipulatedClipPlane<renderer->numClipPlanes){
-			/* here, we must update both manipulatedFrame orientation and renderer->clipPlaneSe3 orientation in the same way */
-			Quaternionr& ori=renderer->clipPlaneSe3[manipulatedClipPlane].orientation;
+			/* here, we must update both manipulatedFrame orientation and renderer->clipPlaneOri in the same way */
+			Quaternionr& ori=renderer->clipPlaneOri[manipulatedClipPlane];
 			ori=Quaternionr(AngleAxisr(Mathr::PI,Vector3r(0,1,0)))*ori; 
 			manipulatedFrame()->setOrientation(qglviewer::Quaternion(qglviewer::Vec(0,1,0),Mathr::PI)*manipulatedFrame()->orientation());
 			displayMessage("Plane #"+lexical_cast<string>(manipulatedClipPlane+1)+" reversed.");
@@ -551,18 +551,20 @@ void GLViewer::draw(bool withNames)
 			assert(manipulatedClipPlane<renderer->numClipPlanes);
 			float v0,v1,v2; manipulatedFrame()->getPosition(v0,v1,v2);
 			double q0,q1,q2,q3; manipulatedFrame()->getOrientation(q0,q1,q2,q3);
-			Se3r newSe3(Vector3r(v0,v1,v2),Quaternionr(q0,q1,q2,q3)); newSe3.orientation.normalize();
-			const Se3r& oldSe3=renderer->clipPlaneSe3[manipulatedClipPlane];
+			Vector3r newPos(v0,v1,v2); Quaternionr newOri(q0,q1,q2,q3);
+			const Vector3r& oldPos(renderer->clipPlanePos[manipulatedClipPlane]);
+			const Quaternionr& oldOri(renderer->clipPlaneOri[manipulatedClipPlane]);
 			FOREACH(int planeId, boundClipPlanes){
 				if(planeId>=renderer->numClipPlanes || !renderer->clipPlaneActive[planeId] || planeId==manipulatedClipPlane) continue;
-				Se3r& boundSe3=renderer->clipPlaneSe3[planeId];
-				Quaternionr relOrient=oldSe3.orientation.conjugate()*boundSe3.orientation; relOrient.normalize();
-				Vector3r relPos=oldSe3.orientation.conjugate()*(boundSe3.position-oldSe3.position);
-				boundSe3.position=newSe3.position+newSe3.orientation*relPos;
-				boundSe3.orientation=newSe3.orientation*relOrient;
-				boundSe3.orientation.normalize();
+				Vector3r& boundPos(renderer->clipPlanePos[planeId]); Quaternionr& boundOri(renderer->clipPlaneOri[planeId]);
+				Quaternionr relOrient=oldOri.conjugate()*boundOri; relOrient.normalize();
+				Vector3r relPos=oldOri.conjugate()*(boundPos-oldPos);
+				boundPos=newPos+newOri*relPos;
+				boundOri=newOri*relOrient;
+				boundOri.normalize();
 			}
-			renderer->clipPlaneSe3[manipulatedClipPlane]=newSe3;
+			renderer->clipPlanePos[manipulatedClipPlane]=newPos;
+			renderer->clipPlaneOri[manipulatedClipPlane]=newOri;
 		}
 		const shared_ptr<Scene>& scene=Omega::instance().getScene();
 		scene->renderer=renderer;
@@ -713,9 +715,10 @@ void GLViewer::postDraw(){
 		for(int planeId=0; planeId<renderer->numClipPlanes; planeId++){
 			if(!renderer->clipPlaneActive[planeId] && planeId!=manipulatedClipPlane) continue;
 			glPushMatrix();
-				const Se3r& se3=renderer->clipPlaneSe3[planeId];
-				AngleAxisr aa(se3.orientation);	
-				glTranslatef(se3.position[0],se3.position[1],se3.position[2]);
+				const Vector3r& pos=renderer->clipPlanePos[planeId];
+				const Quaternionr& ori=renderer->clipPlaneOri[planeId];
+				AngleAxisr aa(ori);	
+				glTranslatef(pos[0],pos[1],pos[2]);
 				glRotated(aa.angle()*Mathr::RAD_TO_DEG,aa.axis()[0],aa.axis()[1],aa.axis()[2]);
 				Real cff=1;
 				if(!renderer->clipPlaneActive[planeId]) cff=.4;
@@ -901,10 +904,10 @@ void GLViewer::wheelEvent(QWheelEvent* event){
 	//const float wheelSensitivityCoef = 8E-4f;
 	//Vec trans(0.0, 0.0, -event->delta()*wheelSensitivity()*wheelSensitivityCoef*(camera->position()-position()).norm());
 	float dist=event->delta()*manipulatedFrame()->wheelSensitivity()*distStep;
-	Vector3r normal=renderer->clipPlaneSe3[manipulatedClipPlane].orientation*Vector3r(0,0,1);
+	Vector3r normal=renderer->clipPlaneOri[manipulatedClipPlane]*Vector3r(0,0,1);
 	qglviewer::Vec newPos=manipulatedFrame()->position()+qglviewer::Vec(normal[0],normal[1],normal[2])*dist;
 	manipulatedFrame()->setPosition(newPos);
-	renderer->clipPlaneSe3[manipulatedClipPlane].position=Vector3r(newPos[0],newPos[1],newPos[2]);
+	renderer->clipPlanePos[manipulatedClipPlane]=Vector3r(newPos[0],newPos[1],newPos[2]);
 	updateGL();
 	/* in draw, bound cutting planes will be moved as well */
 }

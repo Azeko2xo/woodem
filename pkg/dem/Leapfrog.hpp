@@ -40,29 +40,28 @@ struct Leapfrog: public GlobalEngine {
 		virtual void run();
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR(Leapfrog,GlobalEngine,"Engine integrating newtonian motion equations, using the leap-frog scheme.",
 		// cached values
-		((Matrix3r,IpLL4h,,(Attr::readonly|Attr::noSave),"I+(nnextL+pprevL)/4"))
-		((Matrix3r,ImLL4hInv,,(Attr::readonly|Attr::noSave),"(I-(nnextL+pprevL)/4)^-1"))
-		((Matrix3r,LmL,,(Attr::readonly|Attr::noSave),"(nnextL-pprevL)/dt"))
-		((Vector3r,deltaSpinVec,,(Attr::readonly|Attr::noSave),""))
+		((Matrix3r,IpLL4h,,AttrTrait<Attr::readonly|Attr::noSave>(),"I+(nnextL+pprevL)/4"))
+		((Matrix3r,ImLL4hInv,,AttrTrait<Attr::readonly|Attr::noSave>(),"(I-(nnextL+pprevL)/4)^-1"))
+		((Matrix3r,LmL,,AttrTrait<Attr::readonly|Attr::noSave>(),"(nnextL-pprevL)/dt"))
+		((Vector3r,deltaSpinVec,,AttrTrait<Attr::readonly|Attr::noSave>(),""))
 
 		((Real,damping,0.2,,"damping coefficient for non-viscous damping"))
 		((bool,reset,false,,"Reset forces immediately after applying them."))
-		((bool,_forceResetChecked,false,Attr::noGui,"Whether we already issued a warning for forces being (probably) not reset"))
-		// ((Matrix3r,prevVelGrad,Matrix3r::Zero(),Attr::readonly,"Previous value of velocity gradient, to detect its changes"))
+		((bool,_forceResetChecked,false,AttrTrait<>().noGui(),"Whether we already issued a warning for forces being (probably) not reset"))
+		// ((Matrix3r,prevVelGrad,Matrix3r::Zero(),AttrTrait<Attr::readonly>(),"Previous value of velocity gradient, to detect its changes"))
 		// ((bool,exactAsphericalRot,true,,"Enable more exact body rotation integrator for :yref:`aspherical bodies<Body.aspherical>` *only*, using formulation from [Allen1989]_, pg. 89."))
 		// energy tracking
-		((int,nonviscDampIx,-1,(Attr::hidden|Attr::noSave),"Index of the energy dissipated using the non-viscous damping (:yref:`damping<Leapfrog.damping>`)."))
+		((int,nonviscDampIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index of the energy dissipated using the non-viscous damping (:yref:`damping<Leapfrog.damping>`)."))
 		((bool,kinSplit,false,,"Whether to separately track translational and rotational kinetic energy."))
-		((Real,maxVelocitySq,NaN,Attr::readonly,"store square of max. velocity, for informative purposes; computed again at every step."))
+		((Real,maxVelocitySq,NaN,AttrTrait<Attr::readonly>(),"store square of max. velocity, for informative purposes; computed again at every step."))
 
-		((int,kinEnergyIx,-1,(Attr::hidden|Attr::noSave),"Index for kinetic energy in scene->energies."))
-		((int,kinEnergyTransIx,-1,(Attr::hidden|Attr::noSave),"Index for translational kinetic energy in scene->energies."))
-		((int,kinEnergyRotIx,-1,(Attr::hidden|Attr::noSave),"Index for rotational kinetic energy in scene->energies."))
+		((int,kinEnergyIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for kinetic energy in scene->energies."))
+		((int,kinEnergyTransIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for translational kinetic energy in scene->energies."))
+		((int,kinEnergyRotIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for rotational kinetic energy in scene->energies."))
 		// ((Matrix3r,nextGradV,(Matrix3r()<<NaN,NaN,NaN, NaN,NaN,NaN, NaN,NaN,NaN).finished(),,"Use to set new value of Cell.gradV, setting it directly between steps will produce spurious jumps in kinetic energy due to Cell.homoDeform corrections. Once applied, it will be automatically set to an invalid value (which is NaN at [0,0])"))
 		,
 	);
 	DECLARE_LOGGER;
 };
 REGISTER_SERIALIZABLE(Leapfrog);
-
 

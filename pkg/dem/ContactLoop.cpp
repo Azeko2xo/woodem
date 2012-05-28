@@ -192,7 +192,7 @@ void ContactLoop::run(){
 			l.clear();
 		}
 	#else
-		FOREACH(const shared_ptr<Contact>& c, removeAfterLoopRefs) dem.contacts.remove(c);
+		FOREACH(const shared_ptr<Contact>& c, removeAfterLoopRefs) dem.contacts->remove(c);
 		removeAfterLoopRefs.clear();
 	#endif
 	// compute gradVWork eventually

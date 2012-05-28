@@ -19,7 +19,7 @@ struct ParticleGenerator: public Serializable{
 	py::tuple pyDiamMass();
 	py::list pyCall(const shared_ptr<Material>& m){ vector<ParticleAndBox> pee=(*this)(m); py::list ret; for(const auto& pe: pee) ret.append(py::make_tuple(pe.par,pe.extents)); return ret; }
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ParticleGenerator,Serializable,"Abstract class for generating particles",
-		((vector<Vector2r>,genDiamMass,,(Attr::noGui|Attr::readonly),"List of generated particle's (equivalent) radii and masses (for making granulometry)"))
+		((vector<Vector2r>,genDiamMass,,AttrTrait<Attr::readonly>().noGui(),"List of generated particle's (equivalent) radii and masses (for making granulometry)"))
 		((bool,save,true,,"Save generated particles so that PSD can be generated afterwards"))
 		,/*ctor*/
 		,/*py*/
@@ -47,10 +47,10 @@ struct PsdSphereGenerator: public ParticleGenerator{
 	py::tuple pyInputPsd(bool scale, bool cumulative, int num) const;
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(PsdSphereGenerator,ParticleGenerator,"Generate particles following a discrete Particle Size Distribution (PSD)",
 		((bool,discrete,true,,"The points on the PSD curve will be interpreted as the only allowed diameter values; if *false*, linear interpolation between them is assumed instead. Do not change once the generator is running."))
-		((vector<Vector2r>,psdPts,,Attr::triggerPostLoad,"Points of the PSD curve; the first component is particle diameter [m] (not radius!), the second component is passing percentage. Both diameter and passing values must be increasing (diameters must be strictly increasing). Passing values are normalized so that the last value is 1.0 (therefore, you can enter the values in percents if you like)."))
+		((vector<Vector2r>,psdPts,,AttrTrait<Attr::triggerPostLoad>(),"Points of the PSD curve; the first component is particle diameter [m] (not radius!), the second component is passing percentage. Both diameter and passing values must be increasing (diameters must be strictly increasing). Passing values are normalized so that the last value is 1.0 (therefore, you can enter the values in percents if you like)."))
 		((bool,mass,true,,"PSD has mass percentages; if false, number of particles percentages are assumed. Do not change once the generator is running."))
-		((vector<Real>,weightPerBin,,Attr::noGui,"Keep track of mass/number of particles for each point on the PSD so that we get as close to the curve as possible. Only used for discrete PSD."))
-		((Real,weightTotal,,Attr::noGui,"Total mass/number of of particles generated. Only used for discrete PSD."))
+		((vector<Real>,weightPerBin,,AttrTrait<>().noGui(),"Keep track of mass/number of particles for each point on the PSD so that we get as close to the curve as possible. Only used for discrete PSD."))
+		((Real,weightTotal,,AttrTrait<>().noGui(),"Total mass/number of of particles generated. Only used for discrete PSD."))
 		, /* ctor */
 		, /* py */
 			.def("inputPsd",&PsdSphereGenerator::pyInputPsd,(py::arg("scale")=false,py::arg("cumulative")=true,py::arg("num")=80),"Return input PSD; it will be a staircase function if *discrete* is true, otherwise linearly interpolated. With *scale*, the curve is multiplied with the actually generated mass/numer of particles (depending on whether *mass* is true or false); the result should then be very similar to the psd() output with actually generated spheres. Discrete non-cumulative PSDs are handled specially: discrete distributions return skypline plot with peaks represented as plateaus of the relative width 1/*num*; continuous distributions return ideal histogram computed for relative bin with 1/*num*; thus returned histogram will match non-cummulative histogram returned by `ParticleGenerator.psd(cumulative=False)`, provided *num* is the same in both cases.")
@@ -72,7 +72,7 @@ struct AlignedMinMaxShooter: public ParticleShooter{
 	}
 	void postLoad(AlignedMinMaxShooter&){ dir.normalize(); }
 	YADE_CLASS_BASE_DOC_ATTRS(AlignedMinMaxShooter,ParticleShooter,"Shoot particles in one direction, with velocity magnitude constrained by vRange values",
-		((Vector3r,dir,Vector3r::UnitX(),Attr::triggerPostLoad,"Direction (will be normalized)"))
+		((Vector3r,dir,Vector3r::UnitX(),AttrTrait<Attr::triggerPostLoad>(),"Direction (will be normalized)"))
 		((Vector2r,vRange,Vector2r(NaN,NaN),,"Minimum velocity magnitude"))
 	);
 };
@@ -101,8 +101,8 @@ struct ParticleFactory: public PeriodicEngine{
 		((int,mask,1,,"Groupmask for new particles"))
 		((Real,color,NaN,,"Color for new particles (NaN for random)"))
 		//
-		((Real,stepGoalMass,0,Attr::readonly,"Mass to be attained in this step"))
-		((long,stepPrev,-1,Attr::readonly,"Step in which we were run for the last time"))
+		((Real,stepGoalMass,0,AttrTrait<Attr::readonly>(),"Mass to be attained in this step"))
+		((long,stepPrev,-1,AttrTrait<Attr::readonly>(),"Step in which we were run for the last time"))
 		((Real,currRate,NaN,AttrTrait<>().readonly(),"Current value of mass flow rate"))
 		((Real,currRateSmooth,1,AttrTrait<>().noGui().range(Vector2r(0,1)),"Smoothing factor for currRate ∈〈0,1〉"))
 		,/*ctor*/
@@ -120,7 +120,7 @@ struct BoxFactory: public ParticleFactory{
 	#endif
 	YADE_CLASS_BASE_DOC_ATTRS(BoxFactory,ParticleFactory,"Generate particle inside axis-aligned box volume.",
 		((AlignedBox3r,box,AlignedBox3r(Vector3r(NaN,NaN,NaN),Vector3r(NaN,NaN,NaN)),,"Box volume specification (lower and upper corners)"))
-		((Real,color,0,Attr::noGui,"Color for rendering (nan disables rendering)"))
+		((Real,color,0,AttrTrait<>().noGui(),"Color for rendering (nan disables rendering)"))
 	);
 };
 REGISTER_SERIALIZABLE(BoxFactory);
@@ -140,10 +140,10 @@ struct BoxDeleter: public PeriodicEngine{
 		((int,mask,0,,"If non-zero, only particles matching the mask will be candidates for removal"))
 		((bool,inside,false,,"Delete particles which fall inside the volume rather than outside"))
 		((bool,save,false,,"Save particles which are deleted in the *deleted* list"))
-		((vector<shared_ptr<Particle>>,deleted,,(Attr::noGui|Attr::readonly),"Deleted particle's list; can be cleared with BoxDeleter.clear()"))
-		((int,num,0,Attr::readonly,"Number of deleted particles"))
-		((Real,mass,0.,Attr::readonly,"Total mass of deleted particles"))
-		((Real,color,0,Attr::noGui,"Color for rendering (NaN disables rendering)"))
+		((vector<shared_ptr<Particle>>,deleted,,AttrTrait<Attr::readonly>().noGui(),"Deleted particle's list; can be cleared with BoxDeleter.clear()"))
+		((int,num,0,AttrTrait<Attr::readonly>(),"Number of deleted particles"))
+		((Real,mass,0.,AttrTrait<Attr::readonly>(),"Total mass of deleted particles"))
+		((Real,color,0,AttrTrait<>().noGui(),"Color for rendering (NaN disables rendering)"))
 		//
 		((Real,currRate,NaN,AttrTrait<>().readonly(),"Current value of mass flow rate"))
 		((Real,currRateSmooth,1,AttrTrait<>().noGui().range(Vector2r(0,1)),"Smoothing factor for currRate ∈〈0,1〉"))
@@ -176,10 +176,10 @@ struct MultiBoxDeleter: public PeriodicEngine{
 	py::object pyPsd(int boxNo, int num);
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(MultiBoxDeleter,PeriodicEngine,"Delete particles which fall inside one of the many boxes. The advantage of this engine over multiple BoxDeleters is easier setup and the possibility of reporting individual or combined PSD's",
 		((bool,save,false,"Save particles in the *deleted* list."))
-		((vector<vector<shared_ptr<Particle>>,deleted,,(Attr::hidden),"deleted particle's list; can be cleared with MultiBoxDeleter.clear()"))
-		((vector<int>,nums,,Attr::readonly,"Number of deleted particles for each contained box"))
-		((vector<Real>,masses,,Attr::readonly,"Mass of deleted particles for each box"))
-		((vector<Real>,colors,,Attr::readonly,"Color for each box"))
+		((vector<vector<shared_ptr<Particle>>,deleted,,AttrTrait<Attr::hidden>(),"deleted particle's list; can be cleared with MultiBoxDeleter.clear()"))
+		((vector<int>,nums,,AttrTrait<Attr::readonly>(),"Number of deleted particles for each contained box"))
+		((vector<Real>,masses,,AttrTrait<Attr::readonly>(),"Mass of deleted particles for each box"))
+		((vector<Real>,colors,,AttrTrait<Attr::readonly>(),"Color for each box"))
 		,/*ctor*/
 		,/*py*/
 		.add_property("mass",&MultiBoxDeleter::pyMass)

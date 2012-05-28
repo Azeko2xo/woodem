@@ -19,7 +19,7 @@ struct VoroField: public Field{
 	DECLARE_LOGGER;
 
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(VoroField,Field,"Radical voronoi tesellation, given number of points",
-		// ((vector<Vector4r>,sph,,Attr::readonly,"Positions and radius of particles; negative radius means no sphere; index the same as particles in associated DEM field"))
+		// ((vector<Vector4r>,sph,,AttrTrait<Attr::readonly>(),"Positions and radius of particles; negative radius means no sphere; index the same as particles in associated DEM field"))
 		((Vector3i,subDiv,Vector3i::Zero(),,"Number of internal cell subdivisions for voro++; zero terms will be computed from relSubcellSize."))
 		((Real,relSubcellSize,2.5,,"Approximate size of subdivision cell relative to average particle diameter"))
 		((int,initMem,8,,"How many spheres per cell to allocate by default"))

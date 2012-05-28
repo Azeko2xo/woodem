@@ -56,7 +56,7 @@ void Renderer::init(){
 
 bool Renderer::pointClipped(const Vector3r& p){
 	if(numClipPlanes<1) return false;
-	for(int i=0;i<numClipPlanes;i++) if(clipPlaneActive[i]&&(p-clipPlaneSe3[i].position).dot(clipPlaneNormals[i])<0) return true;
+	for(int i=0;i<numClipPlanes;i++) if(clipPlaneActive[i]&&(p-clipPlanePos[i]).dot(clipPlaneNormals[i])<0) return true;
 	return false;
 }
 
@@ -123,12 +123,13 @@ void Renderer::setClippingPlanes(){
 	assert(clipPlaneNormals.size()==(size_t)numClipPlanes);
 	for(size_t i=0;i<(size_t)numClipPlanes; i++){
 		// someone could have modified those from python and truncate the vectors; fill those here in that case
-		if(i==clipPlaneSe3.size()) clipPlaneSe3.push_back(Se3r(Vector3r::Zero(),Quaternionr::Identity()));
+		if(i==clipPlanePos.size()) clipPlanePos.push_back(Vector3r::Zero());
+		if(i==clipPlaneOri.size()) clipPlaneOri.push_back(Quaternionr::Identity());
 		if(i==clipPlaneActive.size()) clipPlaneActive.push_back(false);
 		if(i==clipPlaneNormals.size()) clipPlaneNormals.push_back(Vector3r::UnitX());
 		// end filling stuff modified from python
-		if(clipPlaneActive[i]) clipPlaneNormals[i]=clipPlaneSe3[i].orientation*Vector3r(0,0,1);
-		/* glBegin(GL_LINES);glVertex3v(clipPlaneSe3[i].position);glVertex3v(clipPlaneSe3[i].position+clipPlaneNormals[i]);glEnd(); */
+		if(clipPlaneActive[i]) clipPlaneNormals[i]=clipPlaneOri[i]*Vector3r(0,0,1);
+		/* glBegin(GL_LINES);glVertex3v(clipPlanePos[i]);glVertex3v(clipPlanePos[i]+clipPlaneNormals[i]);glEnd(); */
 	}
 }
 

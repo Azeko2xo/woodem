@@ -80,14 +80,14 @@ struct Node: public Serializable, public Indexable{
 	#endif
 
 	// generic access functions
-	bool hasData(size_t ix){ assert(ix>=0&&ix<ST_LAST); return(ix>=0&&ix<data.size()&&data[ix]); }
-	void setData(const shared_ptr<NodeData>& nd, size_t ix){ assert(ix>=0 && ix<ST_LAST); if(ix>=data.size()) data.resize(ix+1); data[ix]=nd; }
-	const shared_ptr<NodeData>& getData(size_t ix){ assert(ix>=0 && data.size()>ix); return data[ix]; }
+	bool hasData(size_t ix){ assert(/*ix>=0&&*/ix<ST_LAST); return(/*ix>=0&&*/ix<data.size()&&data[ix]); }
+	void setData(const shared_ptr<NodeData>& nd, size_t ix){ assert(/*ix>=0&&*/ ix<ST_LAST); if(ix>=data.size()) data.resize(ix+1); data[ix]=nd; }
+	const shared_ptr<NodeData>& getData(size_t ix){ assert(/*ix>=0&&*/data.size()>ix); return data[ix]; }
 
 	// templates to get data cast to correct type quickly
 	// classes derived from NodeData should only specialize the NodeData::Index template to make those functions work
 	template<class NodeDataSubclass>
-	NodeDataSubclass& getData(){ return getData(NodeData::Index<NodeDataSubclass>::value)->cast<NodeDataSubclass>(); }
+	NodeDataSubclass& getData(){ return getData(NodeData::Index<NodeDataSubclass>::value)->template cast<NodeDataSubclass>(); }
 	template<class NodeDataSubclass>
 	const shared_ptr<NodeDataSubclass> getDataPtr(){ return static_pointer_cast<NodeDataSubclass>(getData(NodeData::Index<NodeDataSubclass>::value)); }
 	template<class NodeDataSubclass>
@@ -119,8 +119,8 @@ REGISTER_SERIALIZABLE(Node);
 struct Field: public Serializable, public Indexable{
 	Scene* scene; // backptr to scene; must be set by Scene!
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Field,Serializable,"Spatial field described by nodes, their topology and associated values.",
-		// ((Scene*,scene,NULL,Attr::hidden,"Backptr to scene")) // must be set by Scene!
-		((vector<shared_ptr<Node> >,nodes,,Attr::pyByRef,"Nodes referenced from this field."))
+		// ((Scene*,scene,NULL,AttrTrait<Attr::hidden>(),"Backptr to scene")) // must be set by Scene!
+		((vector<shared_ptr<Node> >,nodes,,AttrTrait<Attr::pyByRef>(),"Nodes referenced from this field."))
 		//((vector<shared_ptr<NodeData> >,nodeData,,,"Nodal data, associated to nodes with the same index."))
 		//((shared_ptr<Topology>,topology,,,"How nodes build up cells, neighborhood and coonectivity information."))
 		//((vector<shared_ptr<CellData> >,cells,,,""))

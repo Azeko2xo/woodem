@@ -1,3 +1,5 @@
+#ifdef YADE_SPARC
+
 #ifdef YADE_VTK
 #include<yade/pkg/sparc/SparcField.hpp>
 
@@ -799,3 +801,4 @@ void SparcConstraintGlRep::render(const shared_ptr<Node>& node, GLViewInfo* view
 
 
 #endif /*YADE_VTK*/
+#endif /*YADE_SPARC*/
