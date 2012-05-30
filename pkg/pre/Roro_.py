@@ -83,7 +83,7 @@ def run(ui): # use inputs as argument
 			maxMass=-1, ## do not limit, before steady state is reached
 		),
 		PyRunner(factStep,'import yade.pre.Roro_; yade.pre.Roro_.watchProgress()'),
-		PyRunner(factStep,'yade.pre.Roro_.savePlotData()'),
+		PyRunner(factStep,'import yade.pre.Roro_; yade.pre.Roro_.savePlotData()'),
 	]
 	# improtant: save the preprocessor here!
 	s.any=[yade.gl.Gl1_InfCylinder(wire=True),yade.gl.Gl1_Wall(div=3)]
@@ -116,9 +116,10 @@ def watchProgress():
 		# factory has finished generating particles
 		if yade.factory.mass>yade.factory.maxMass:
 			try:
-				out='/tmp/'+yade.O.scene.tags['id']+'.xml.bz2'
-				yade.O.scene.save(out)
-				print 'Saved to',out
+				if not yade.O.scene.lastSave.startswith('/tmp'):
+					out='/tmp/'+yade.O.scene.tags['id']+'.gz'
+					yade.O.scene.save(out)
+					print 'Saved to',out
 				plotFinalPsd()
 			except:
 				import traceback
@@ -167,18 +168,21 @@ def psdFeedApertureFalloverTable(inPsd,feedDM,apDM,overDM,splitD):
 	import collections, numpy
 	TabLine=collections.namedtuple('TabLine','dMin dMax dAvg inFrac feedFrac feedSmallFrac feedBigFrac overFrac')
 	dScale=1e3 # mm
-	edges=inPsd[0] # those will be displayed in the table
+	# must convert to list to get slices right in the next line
+	edges=list(inPsd[0]) # those will be displayed in the table
 	# enlarge a bit so that marginal particles, if any, fit in comfortably; used for histogram computation
-	bins=numpy.array([99*edges[0]]+edges[1:-1]+[1.01*edges[-1]]) 
+	bins=numpy.array([.99*edges[0]]+edges[1:-1]+[1.01*edges[-1]]) 
+	edges=numpy.array(edges) # convert back
 	# cumulative; otherwise use numpy.diff
 	inHist=numpy.diff(inPsd[1]) # non-cumulative
-	feedHist=numpy.histogram(feedDM[0],weights=feedDM[1],bins=bins,density=True)
-	feedSmallHist=numpy.histogram(feedDM[0][feedDM[0]<splitD],weights=feedDM[1][feedDM[0]<splitD],bins=bins,density=True)
-	feedBigHist=numpy.histogram(feedDM[0][feedDM[0]>=splitD],weights=feedDM[1][feedDM[0]>=splitD],bins=bins,density=True)
-	overHist=numpy.histogram(overDM[0],weights=overDM[1],bins=bins,density=True)
+	feedHist,b=numpy.histogram(feedDM[0],weights=feedDM[1],bins=bins,density=True)
+	feedSmallHist,b=numpy.histogram(feedDM[0][feedDM[0]<splitD],weights=feedDM[1][feedDM[0]<splitD],bins=bins,density=True)
+	feedBigHist,b=numpy.histogram(feedDM[0][feedDM[0]>=splitD],weights=feedDM[1][feedDM[0]>=splitD],bins=bins,density=True)
+	overHist,b=numpy.histogram(overDM[0],weights=overDM[1],bins=bins,density=True)
+	#print 'lengths bins=%d, in=%d feed=%d feedSmall=%d feedBig=%d over=%d'%(len(bins),len(inHist),len(feedHist),len(feedSmallHist),len(feedBigHist),len(overHist))
 	tab=[]
 	for i in range(0,len(inHist)):
-		tab.append(TabLine(dMin=edges[i]*dScale,dMax=edges[i+1]*dScale,dAvg=dScale*.5*(edges[i]+edges[i+1]),feedFrac=feedHist[i],feedSmallFrac=feedSmallHist[i],feedBigFrac=feedBigHist[i],overFrac=overHist[i]))
+		tab.append(TabLine(dMin=edges[i]*dScale,dMax=edges[i+1]*dScale,dAvg=dScale*.5*(edges[i]+edges[i+1]),inFrac=inHist[i],feedFrac=feedHist[i],feedSmallFrac=feedSmallHist[i],feedBigFrac=feedBigHist[i],overFrac=overHist[i]))
 	import pprint
 	pprint.pprint(tab)
 
@@ -190,8 +194,8 @@ def plotFinalPsd():
 	import yade.pre
 	pre=yade.O.scene.pre
 	#ui=[a for a in yade.O.scene.any if type(a)==yade.pre.Roro][0]
-	print 'Parameters were:'
-	pre.dump(sys.stdout,noMagic=True,format='expr')
+	#print 'Parameters were:'
+	#pre.dump(sys.stdout,noMagic=True,format='expr')
 	import matplotlib
 	matplotlib.use('Agg')
 	import pylab
@@ -286,18 +290,23 @@ def plotFinalPsd():
 	pylab.legend(loc='best')
 	figs.append(fig)
 
-	#ax=pylab.subplot(224)
-	fig=pylab.figure()
-	d=yade.plot.data
-	pylab.plot(d['t'],massScale*numpy.array(d['genRate']),label='generate')
-	pylab.plot(d['t'],massScale*numpy.array(d['delRate']),label='delete')
-	pylab.plot(d['t'],massScale*numpy.array(d['apRate']),label='apertures')
-	pylab.plot(d['t'],massScale*numpy.array(d['overRate']),label='fallOver')
-	pylab.legend(loc='lower left')
-	pylab.grid(True)
-	pylab.xlabel('time [s]')
-	pylab.ylabel('mass rate [t/y]')
-	figs.append(fig)
+	try:
+		#ax=pylab.subplot(224)
+		fig=pylab.figure()
+		import yade.plot
+		d=yade.plot.data
+		pylab.plot(d['t'],massScale*numpy.array(d['genRate']),label='generate')
+		pylab.plot(d['t'],massScale*numpy.array(d['delRate']),label='delete')
+		pylab.plot(d['t'],massScale*numpy.array(d['apRate']),label='apertures')
+		pylab.plot(d['t'],massScale*numpy.array(d['overRate']),label='fallOver')
+		pylab.legend(loc='lower left')
+		pylab.grid(True)
+		pylab.xlabel('time [s]')
+		pylab.ylabel('mass rate [t/y]')
+		figs.append(fig)
+	except KeyError:
+		print 'No yade.plot plots done due to lack of data'
+		# after loading no data are recovered
 
 	svgs=[]
 	for f in figs:

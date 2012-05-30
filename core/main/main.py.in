@@ -22,6 +22,7 @@ else:
 # handle command-line options first
 import optparse
 par=optparse.OptionParser(usage='%prog [options] [ simulation.xml[.bz2] | script.py [script options]]',prog=os.path.basename(sys.argv[0]),version='%s (%s; %s)'%(version,','.join(features),buildsAvailable),description="Yade: open-source platform for dynamic compuations. Homepage http://www.yade-dem.org, code hosted at http://www.launchpad.net/yade. This is version %s (with features %s, %s)."%(version,','.join(features),buildsAvailable))
+par.add_option('-c',help='Run these python commands after the start (use -x to exit afterwards)',dest='commands',metavar='COMMANDS')
 par.add_option('-j','--threads',help='Number of OpenMP threads to run; defaults to 1. Equivalent to setting OMP_NUM_THREADS environment variable.',dest='threads',type='int')
 par.add_option('--cores',help='Set number of OpenMP threads (as \-\-threads) and in addition set affinity of threads to the cores given.',dest='cores',type='string')
 par.add_option('--cl-dev',help='Numerical couple (comma-separated) givin OpenCL platform/device indices. This is machine-dependent value',dest='clDev')
@@ -218,7 +219,7 @@ def userSession(qt4=False,qapp=None):
 	if len(sys.argv)>0:
 		arg0=sys.argv[0]
 		if qt4: yade.qt.Controller();
-		if sum(bool(arg0.endswith(ext)) for ext in ('.xml','.xml.bz2','.xml.gz','.yade','.yade.gz','.yade.bz2','.bin','.bin.gz','.bin.bz2'))>0:
+		if sum(bool(arg0.endswith(ext)) for ext in ('.xml','.xml.bz2','.xml.gz','.yade','.yade.gz','.yade.bz2','.bin','.bin.gz','.bin.bz2','.gz'))>0:
 			if len(sys.argv)>1: raise RuntimeError('Extra arguments to saved simulation to run: '+' '.join(sys.argv[1:]))
 			sys.stderr.write("Running simulation "+arg0+'\n')
 			O=yade.wrapper.Omega(); O.load(arg0); O.run()
@@ -234,6 +235,8 @@ def userSession(qt4=False,qapp=None):
 					if yade.runtime.opts.exitAfter: sys.exit(1)
 				if yade.runtime.opts.exitAfter: sys.exit(0)
 			runScript(arg0)
+	if opts.commands:
+		exec(opts.commands) in globals()
 	if yade.runtime.opts.exitAfter: sys.exit(0)
 	# common ipython configuration
 	banner='[[ ^L clears screen, ^U kills line. '+', '.join((['F12 controller','F11 3d view','F10 both','F9 generator'] if (qt4) else [])+['F8 plot'])+'. ]]'

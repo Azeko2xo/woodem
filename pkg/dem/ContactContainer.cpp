@@ -5,6 +5,8 @@
 	#include<omp.h>
 #endif
 
+CREATE_LOGGER(ContactContainer);
+
 bool ContactContainer::IsReal::operator()(shared_ptr<Contact>& c){ return c && c->isReal(); }
 bool ContactContainer::IsReal::operator()(const shared_ptr<Contact>& c){ return c && c->isReal(); }
 
@@ -53,6 +55,13 @@ bool ContactContainer::remove(const shared_ptr<Contact>& c, bool threadSafe){
 		if((iA==c->pA->contacts.end() && c->pA.get()!=(*dem->particles)[idA].get()) || 
 			(iB==c->pB->contacts.end() && c->pB.get()!=(*dem->particles)[idB].get())) return false;
 		// this can happen if _contact_ were deleted directly, not by ContactLoop; but that is an error
+		if(iA==c->pA->contacts.end() || iB==c->pB->contacts.end()){
+			LOG_FATAL("Contact ##"<<idA<<"+"<<idB<<" vanished from particle!");
+			if(iA==c->pA->contacts.end()) LOG_FATAL("not in O.dem.par["<<idA<<"].con (particle exists)");
+			if(iB==c->pB->contacts.end()) LOG_FATAL("not in O.dem.par["<<idB<<"].con (particle exists)");
+			abort();
+		}
+		// this is superfluous with the diagnostics above now
 		assert(iA!=c->pA->contacts.end()); assert(iB!=c->pB->contacts.end());
 	}
 	else { if (iA==c->pA->contacts.end() || iB==c->pB->contacts.end()) return false; }

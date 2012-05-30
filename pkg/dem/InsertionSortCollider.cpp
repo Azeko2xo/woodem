@@ -126,7 +126,6 @@ vector<Particle::id_t> InsertionSortCollider::probeAabb(const Vector3r& mn, cons
 	bool InsertionSortCollider::isActivated(){
 		// we wouldn't run in this step; in that case, just delete pending interactions
 		// this is done in ::action normally, but it would make the call counters not reflect the stride
-		field->cast<DemField>().contacts->removePending(*this,scene);
 		return true;
 	}
 
@@ -238,7 +237,12 @@ void InsertionSortCollider::run(){
 
 	stepInvs=Vector3i::Zero();
 
-	if(!fullRun) return;
+	if(!fullRun){
+		// done in every step; with fullRun, number of particles might have changed
+		// in that case, this is called below, not here
+		field->cast<DemField>().contacts->removePending(*this,scene);
+		return;
+	}
 	
 	nFullRuns++;
 
@@ -322,8 +326,7 @@ void InsertionSortCollider::run(){
 	ISC_CHECKPOINT("copy");
 
 	// process interactions that the constitutive law asked to be erased
-	// done in isActivated():
-	//   interactions->erasePending(*this,scene);
+	field->cast<DemField>().contacts->removePending(*this,scene);
 	
 	ISC_CHECKPOINT("erase");
 

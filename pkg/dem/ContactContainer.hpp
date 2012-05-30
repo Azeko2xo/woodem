@@ -14,6 +14,7 @@ class Contact;
 class Scene;
 
 struct ContactContainer: public Serializable{
+	DECLARE_LOGGER;
 	/* internal data */
 		// created in the ctor
 		#if defined(YADE_OPENMP) || defined(YADE_OPENGL)
@@ -52,11 +53,11 @@ struct ContactContainer: public Serializable{
 		size_t size() const { return linView.size(); }
 
 	/* Handling pending contacts */
-		struct PendingContact{ shared_ptr<Contact> contact; bool force; };
-		#ifdef YADE_OPENMP
-			std::vector<std::list<PendingContact> > threadsPending;
-		#endif
-		std::list<PendingContact> pending;
+		struct PendingContact{
+			shared_ptr<Contact> contact;
+			bool force;
+			template<class ArchiveT> void serialize(ArchiveT & ar, unsigned int version){ ar & BOOST_SERIALIZATION_NVP(contact); ar & BOOST_SERIALIZATION_NVP(force); }
+		};
 
 		// Ask for removing given contact (from the constitutive law); this resets the interaction (to the initial=potential state) and collider should traverse pending to decide whether to delete the interaction completely or keep it potential
 		void requestRemoval(const shared_ptr<Contact>& c, bool force=false);
@@ -99,11 +100,13 @@ struct ContactContainer: public Serializable{
 		((ContainerT,linView,,AttrTrait<Attr::hidden>(),"Linear storage of references; managed by accessor methods, do not modify directly!"))
 		((bool,dirty,false,AttrTrait<Attr::hidden>(),"Flag for notifying the collider that persistent data should be invalidated"))
 		((int,stepColliderLastRun,-1,AttrTrait<Attr::readonly>(),"Step number when a collider was last run; set by the collider, if it wants contacts that were not encoutered in that step to be deleted by ContactLoop (such as SpatialQuickSortCollider). Other colliders (such as InsertionSortCollider) set it it -1, which is the default."))
+		#ifdef YADE_OPENMP
+			((std::vector<std::list<PendingContact>>,threadsPending,std::vector<std::list<PendingContact>>(omp_get_max_threads()),AttrTrait<Attr::hidden>(),"Contacts which might be deleted by the collider in the next step (separate for each thread, for safe lock-free writes)"))
+		#else
+			((std::list<PendingContact>,pending,,AttrTrait<Attr::hidden>(),"Contact which might be deleted by the collider in the next step."))
+		#endif
 
 		, /*ctor*/
-			#ifdef YADE_OPENMP
-				threadsPending.resize(omp_get_max_threads());
-			#endif
 			manipMutex=new boost::mutex;
 		, /* py */
 		.def("clear",&ContactContainer::clear)
