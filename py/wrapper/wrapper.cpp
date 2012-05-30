@@ -40,7 +40,10 @@
 #include<locale>
 #include<boost/archive/codecvt_null.hpp>
 #include<yade/lib/serialization/ObjectIO.hpp>
-#include<yade/extra/boost_python_len.hpp>
+
+
+#include<numpy/ndarrayobject.h>
+
 
 #ifdef YADE_LOG4CXX
 	log4cxx::LoggerPtr logger=log4cxx::Logger::getLogger("yade.python");
@@ -101,20 +104,12 @@ class pyOmega{
 	}
 	bool isRunning(){ return OMEGA.isRunning(); }
 	py::object get_filename(){ string f(OMEGA.getScene()->lastSave); if(f.size()>0) return py::object(f); return py::object();}
-	void load(std::string fileName,bool quiet=false) {
-		Py_BEGIN_ALLOW_THREADS; OMEGA.stop(); Py_END_ALLOW_THREADS; 
-		OMEGA.loadSimulation(fileName,quiet);
-		mapLabeledEntitiesToVariables();
-	}
-	void reload(bool quiet=false){
-		load(OMEGA.getScene()->lastSave,quiet);
-	}
-	void saveTmp(string mark="", bool quiet=false){
-		assertScene();
-		OMEGA.getScene()->saveTmp(mark,quiet);
-	}
-	void loadTmp(string mark="", bool quiet=false){ load(":memory:"+mark,quiet);}
+
+	void saveTmpAny(shared_ptr<Serializable> obj, const string& name, bool quiet){ OMEGA.saveTmp(obj,name,quiet); }
+	shared_ptr<Serializable> loadTmpAny(const string& name){ return OMEGA.loadTmp(name); }
+
 	py::list lsTmp(){ py::list ret; typedef pair<std::string,string> strstr; FOREACH(const strstr& sim,OMEGA.memSavedSimulations){ string mark=sim.first; boost::algorithm::replace_first(mark,":memory:",""); ret.append(mark); } return ret; }
+
 	void tmpToFile(string mark, string filename){
 		if(OMEGA.memSavedSimulations.count(":memory:"+mark)==0) throw runtime_error("No memory-saved simulation named "+mark);
 		boost::iostreams::filtering_ostream out;
@@ -136,25 +131,6 @@ class pyOmega{
 	shared_ptr<Scene> scene_get(){ return OMEGA.getScene(); }
 	void scene_set(const shared_ptr<Scene>& s){ OMEGA.setScene(s); }
 
-	void save(std::string fileName,bool quiet=false){
-		assertScene();
-		OMEGA.getScene()->boostSave(fileName);
-	}
-	
-	vector<shared_ptr<Engine> > engines_get(void){assertScene(); Scene* scene=OMEGA.getScene().get(); return scene->_nextEngines.empty()?scene->engines:scene->_nextEngines;}
-	void engines_set(const vector<shared_ptr<Engine> >& egs){
-		assertScene(); Scene* scene=OMEGA.getScene().get();
-		if(scene->subStep<0) scene->engines=egs; // not inside the engine loop right now, ok to update directly
-		else scene->_nextEngines=egs; // inside the engine loop, update _nextEngines; O.engines picks that up automatically, and Scene::moveToNextTimestep will put them in place of engines at the start of the next loop
-		mapLabeledEntitiesToVariables();
-	}
-	// raw access to engines/_nextEngines, for debugging
-	vector<shared_ptr<Engine> > currEngines_get(){ return OMEGA.getScene()->engines; }
-	vector<shared_ptr<Engine> > nextEngines_get(){ return OMEGA.getScene()->_nextEngines; }
-
-	//shared_ptr<Field> field_get(){ return OMEGA.getScene()->field; }
-	//void field_set(shared_ptr<Field> f){ OMEGA.getScene()->field=f; }
-	
 	py::list listChildClassesNonrecursive(const string& base){
 		py::list ret;
 		for(map<string,DynlibDescriptor>::const_iterator di=Omega::instance().getDynlibsDescriptor().begin();di!=Omega::instance().getDynlibsDescriptor().end();++di) if (Omega::instance().isInheritingFrom((*di).first,base)) ret.append(di->first);
@@ -254,11 +230,13 @@ BOOST_PYTHON_MODULE(wrapper)
 
 	py::class_<pyOmega>("Omega")
 		.add_property("realtime",&pyOmega::realTime,"Return clock (human world) time the simulation has been running.")
-		.def("load",&pyOmega::load,(py::arg("file"),py::arg("quiet")=false),"Load simulation from file.")
-		.def("reload",&pyOmega::reload,(py::arg("quiet")=false),"Reload current simulation")
-		.def("save",&pyOmega::save,(py::arg("file"),py::arg("quiet")=false),"Save current simulation to file (should be .xml or .xml.bz2)")
-		.def("loadTmp",&pyOmega::loadTmp,(py::arg("mark")="",py::arg("quiet")=false),"Load simulation previously stored in memory by saveTmp. *mark* optionally distinguishes multiple saved simulations")
-		.def("saveTmp",&pyOmega::saveTmp,(py::arg("mark")="",py::arg("quiet")=false),"Save simulation to memory (disappears at shutdown), can be loaded later with loadTmp. *mark* optionally distinguishes different memory-saved simulations.")
+		//.def("load",&pyOmega::load,(py::arg("file"),py::arg("quiet")=false),"Load simulation from file.")
+		//.def("reload",&pyOmega::reload,(py::arg("quiet")=false),"Reload current simulation")
+		//.def("save",&pyOmega::save,(py::arg("file"),py::arg("quiet")=false),"Save current simulation to file (should be .xml or .xml.bz2)")
+		//.def("loadTmp",&pyOmega::loadTmp,(py::arg("mark")="",py::arg("quiet")=false),"Load simulation previously stored in memory by saveTmp. *mark* optionally distinguishes multiple saved simulations")
+		//.def("saveTmp",&pyOmega::saveTmp,(py::arg("mark")="",py::arg("quiet")=false),"Save simulation to memory (disappears at shutdown), can be loaded later with loadTmp. *mark* optionally distinguishes different memory-saved simulations.")
+		.def("loadTmpAny",&pyOmega::loadTmpAny,(py::arg("name")=""),"Load any object from named temporary store.")
+		.def("saveTmpAny",&pyOmega::saveTmpAny,(py::arg("obj"),py::arg("name")="",py::arg("quiet")=false),"Save any object to named temporary store; *quiet* will supress warning if the name is already used.")
 		.def("lsTmp",&pyOmega::lsTmp,"Return list of all memory-saved simulations.")
 		.def("tmpToFile",&pyOmega::tmpToFile,(py::arg("mark"),py::arg("fileName")),"Save XML of :yref:`saveTmp<Omega.saveTmp>`'d simulation into *fileName*.")
 		.def("tmpToString",&pyOmega::tmpToString,(py::arg("mark")=""),"Return XML of :yref:`saveTmp<Omega.saveTmp>`'d simulation as string.")
@@ -306,6 +284,9 @@ BOOST_PYTHON_MODULE(wrapper)
 
 	py::class_<TimingDeltas, shared_ptr<TimingDeltas>, boost::noncopyable >("TimingDeltas").add_property("data",&TimingDeltas::pyData,"Get timing data as list of tuples (label, execTime[nsec], execCount) (one tuple per checkpoint)").def("reset",&TimingDeltas::reset,"Reset timing information");
 
+
+	// http://numpy.scipy.org/numpydoc/numpy-13.html mentions this must be done in module init, otherwise we will crash
+	import_array();
 
 
 	py::scope().attr("O")=pyOmega();

@@ -2,20 +2,6 @@
 
 #pragma once
 
-#if 0
-#include<iostream>
-#include<vector>
-#include<cstdlib>
-#include<algorithm>
-#include<cassert>
-#include<cmath>
-#include<stdexcept>
-#include<boost/foreach.hpp>
-#include<boost/lexical_cast.hpp>
-#include<boost/python.hpp>
-#include<yade/extra/boost_python_len.hpp>
-#endif
-
 #include<yade/lib/base/Math.hpp>
 #include<yade/lib/base/Types.hpp>
 #include<boost/math/distributions/normal.hpp>

@@ -74,60 +74,20 @@ bool Omega::isInheritingFrom_recursive(const string& className, const string& ba
 	return false;
 }
 
-
-/* IO */
-void Omega::loadSimulation(const string& f, bool quiet){
-	bool isMem=boost::algorithm::starts_with(f,":memory:");
-	if(!isMem && !boost::filesystem::exists(f)) throw runtime_error("Simulation file to load doesn't exist: "+f);
-	if(isMem && memSavedSimulations.count(f)==0) throw runtime_error("Cannot load nonexistent memory-saved simulation "+f);
-	
-	simulationLoop.workerThrew=false;  // this is invalidated
-
-	if(!quiet) LOG_INFO("Loading file "+f);
-	{
-		stop(); // stop current simulation if running
-		scene=shared_ptr<Scene>(new Scene);
-		RenderMutexLock lock;
-		if(isMem){
-			std::istringstream iss(memSavedSimulations[f]);
-			yade::ObjectIO::load<decltype(scene),boost::archive::binary_iarchive>(iss,"scene",scene);
-		} else {
-			yade::ObjectIO::load(f,"scene",scene);
-		}
-	}
-	if(scene->getClassName()!="Scene") throw logic_error("Wrong file format (scene is not a Scene!?) in "+f);
-	scene->lastSave=f;
-	startupLocalTime=boost::posix_time::microsec_clock::local_time();
-	if(!quiet) LOG_DEBUG("Simulation loaded");
-}
-
-
-void Omega::saveSimulation(const string& f, bool quiet){
-	if(f.size()==0) throw runtime_error("f of file to save has zero length.");
-	if(!quiet) LOG_INFO("Saving file "<<f);
-	scene->lastSave=f;
-	if(boost::algorithm::starts_with(f,":memory:")){
-		if(memSavedSimulations.count(f)>0 && !quiet) LOG_INFO("Overwriting in-memory saved simulation "<<f);
-		std::ostringstream oss;
-		yade::ObjectIO::save<decltype(scene),boost::archive::binary_oarchive>(oss,"scene",scene);
-		memSavedSimulations[f]=oss.str();
-	}
-	else {
-		// handles automatically the XML/binary distinction as well as gz/bz2 compression
-		yade::ObjectIO::save(f,"scene",scene);
-	}
-}
-
-void Omega::saveTmp(const shared_ptr<Scene>& _scene, const string& _slot, bool quiet){
-	if(!quiet) LOG_INFO("Saving into memory slot "<<_slot);
-	string slot=":memory:"+_slot;
-	_scene->lastSave=slot;
-	if(memSavedSimulations.count(slot)>0 && !quiet) LOG_INFO("Overwriting in-memory saved simulation "<<_slot);
+/* named temporary store */
+void Omega::saveTmp(shared_ptr<Serializable> obj, const string& name, bool quiet){
+	if(memSavedSimulations.count(name)>0 && !quiet) LOG_INFO("Overwriting in-memory saved simulation "<<name);
 	std::ostringstream oss;
-	yade::ObjectIO::save<decltype(_scene),boost::archive::binary_oarchive>(oss,"scene",_scene);
-	memSavedSimulations[slot]=oss.str();
+	yade::ObjectIO::save<shared_ptr<Serializable>,boost::archive::binary_oarchive>(oss,"yade__Serializable",obj);
+	memSavedSimulations[name]=oss.str();
 }
-
+shared_ptr<Serializable> Omega::loadTmp(const string& name){
+	if(memSavedSimulations.count(name)==0) throw std::runtime_error("No memory-saved simulation "+name);
+	std::istringstream iss(memSavedSimulations[name]);
+	auto obj=make_shared<Serializable>();
+	yade::ObjectIO::load<shared_ptr<Serializable>,boost::archive::binary_iarchive>(iss,"yade__Serializable",obj);
+	return obj;
+}
 
 /* PLUGINS */
 
@@ -229,7 +189,13 @@ void Omega::initializePlugins(const vector<std::pair<string,string> >& pluginCla
 			}
 		}
 	}
-
+#if 0
+	// import all known modules, this should solve crashes which happen at serialization when the module (yade.pre in particular) is not imported by hand first
+	for(const auto& m: pyModules){
+		if(getenv("YADE_DEBUG")){ cerr<<"import module yade."<<m.first<<endl; }
+		py::import(("yade."+m.first).c_str());
+	}
+#endif
 }
 
 

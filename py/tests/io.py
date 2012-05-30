@@ -58,6 +58,11 @@ class TestFormatsAndDetection(unittest.TestCase):
 	def testInvalidFormat(self):
 		'IO: invalid formats rejected'
 		self.assertRaises(IOError,lambda: O.dem.par[0].dumps(format='bogus'))
+	def testTmpStore(self):
+		'IO: temporary store loadTmp, saveTmp'
+		for o in O.scene.engines+[O.dem.par[0]]:
+			o.saveTmp(quiet=True);
+			o.__class__.loadTmp() # discard the result, but checks type
 
 
 class TestSpecialDumpMethods(unittest.TestCase):

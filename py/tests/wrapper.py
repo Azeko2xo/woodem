@@ -98,7 +98,7 @@ class TestObjectInstantiation(unittest.TestCase):
 		O.step()
 		O.saveTmp(quiet=True)
 		mn0=Vector3(O.dem.par[0].shape.bound.min)
-		O.reload(quiet=True)
+		O.reload()
 		mn1=Vector3(O.dem.par[0].shape.bound.min)
 		# check that the minimum is not saved
 		self.assert_(not isnan(mn0[0]))

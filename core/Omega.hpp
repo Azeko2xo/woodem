@@ -24,6 +24,7 @@
 #endif
 
 class Scene;
+class Serializable;
 
 namespace py=boost::python;
 
@@ -73,9 +74,14 @@ class Omega: public Singleton<Omega>{
 		void step();
 		void stop(); // resets the simulationLoop
 		bool isRunning();
-		void loadSimulation(const string& name, bool quiet=false);
-		void saveSimulation(const string& name, bool quiet=false);
-		void saveTmp(const shared_ptr<Scene>& _scene, const string& slot, bool quiet);
+
+		shared_ptr<Serializable> loadTmp(const string& name);
+		void saveTmp(shared_ptr<Serializable> s, const string& name, bool quiet=false);
+		#if 0
+			void loadSimulation(const string& name, bool quiet=false);
+			void saveSimulation(const string& name, bool quiet=false);
+			void saveTmp(const shared_ptr<Scene>& _scene, const string& slot, bool quiet);
+		#endif
 
 
 		const shared_ptr<Scene>& getScene();

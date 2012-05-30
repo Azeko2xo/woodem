@@ -3,7 +3,6 @@
 #endif
 
 #include<boost/python.hpp>
-#include<yade/extra/boost_python_len.hpp>
 
 #include<yade/core/Scene.hpp>
 #include<yade/pkg/dem/Shop.hpp>

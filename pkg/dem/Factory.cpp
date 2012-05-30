@@ -9,6 +9,8 @@
 
 #include<boost/range/algorithm/lower_bound.hpp>
 
+#include<yade/extra/numpy_boost.hpp>
+
 YADE_PLUGIN(dem,(ParticleGenerator)(MinMaxSphereGenerator)(PsdSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(ParticleFactory)(BoxFactory)(BoxDeleter));
 CREATE_LOGGER(PsdSphereGenerator);
 CREATE_LOGGER(ParticleFactory);
@@ -26,10 +28,19 @@ py::tuple ParticleGenerator::pyPsd(bool mass, bool cumulative, bool normalize, V
 	return py::make_tuple(diameters,percentage);
 }
 
-py::tuple ParticleGenerator::pyDiamMass(){
-	py::list diam, mass;
-	for(const Vector2r& vv: genDiamMass){ diam.append(vv[0]); mass.append(vv[1]); }
-	return py::make_tuple(diam,mass);
+py::object ParticleGenerator::pyDiamMass(){
+	#if 1
+		py::list diam, mass;
+		for(const Vector2r& vv: genDiamMass){ diam.append(vv[0]); mass.append(vv[1]); }
+		return py::object(py::make_tuple(diam,mass));
+	#else
+		boost::multi_array<double,2> ret(boost::extents[genDiamMass.size()][2]);
+		for(size_t i=0;i<genDiamMass.size();i++){ ret[i][0]=genDiamMass[i][0]; ret[i][1]=genDiamMass[i][1]; }
+		//PyObject* result=numpy_from_boost_array(ret).py_ptr();
+		PyObject* o=numpy_boost<double,2>(numpy_from_boost_array(ret)).py_ptr();
+		//return py::incref(o);
+		return py::object(py::handle<>(py::borrowed(o)));
+	#endif
 }
 
 vector<ParticleGenerator::ParticleAndBox>

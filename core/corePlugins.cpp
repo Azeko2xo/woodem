@@ -21,7 +21,6 @@
 
 #include<boost/version.hpp>
 
-// YADE_PLUGIN(core,(Body)(Bound)(Cell)(Dispatcher)(EnergyTracker)(Engine)(FileGenerator)(Functor)(GlobalEngine)(Interaction)(IGeom)(IPhys)(Material)(PartialEngine)(Shape)(State));
 YAD3_CLASS_IMPLEMENTATION(Cell_CLASS_DESCRIPTOR)
 
 YADE_PLUGIN(core,(Cell)(Dispatcher)(EnergyTracker)(Engine)(Functor)(GlobalEngine)(ParallelEngine)(PartialEngine)(PeriodicEngine)(PyRunner)(DisplayParameters));

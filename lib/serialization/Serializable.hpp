@@ -128,7 +128,7 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 template<bool noSave> struct _SerializeMaybe{};
 template<> struct _SerializeMaybe<true>{
 	template<class ArchiveT, typename T>
-	static void serialize(ArchiveT& ar, T& obj, const char* name){ ar & boost::serialization::make_nvp(name,obj); }
+	static void serialize(ArchiveT& ar, T& obj, const char* name){ /*std::cerr<<"["<<name<<"]";*/ ar & boost::serialization::make_nvp(name,obj); }
 };
 template<> struct _SerializeMaybe<false>{
 	template<class ArchiveT, typename T>
@@ -216,23 +216,20 @@ template<> struct _SerializeMaybe<false>{
 
 
 #define _STAT_NONSTAT_ATTR_PY(thisClass,attr,doc) _DEF_READWRITE_CUSTOM_STATIC(thisClass,attr,doc) /* _DEF_READWRITE_CUSTOM(thisClass,attr,doc) */ /* duplicate static and non-static attributes do not work (they apparently trigger to-python converter being added; for now, make then non-static, that's it. */
-#define _STATATTR_PY(x,thisClass,z) _STAT_NONSTAT_ATTR_PY(thisClass,_ATTR_NAM(z),/*docstring*/ "|ystatic| :ydefault:`" _ATTR_INI_STR(z) "` :yattrtype:`" _ATTR_TYP_STR(z) "` " _ATTR_DOC(z))
+#define _STATATTR_PY(x,thisClass,z) _STAT_NONSTAT_ATTR_PY(thisClass,_ATTR_NAM(z),/*docstring*/_ATTR_DOC(z))
 #define _STATATTR_DECL_AND_TRAIT(x,y,z) \
 	static _ATTR_TYP(z) _ATTR_NAM(z); \
 	typedef std::remove_reference<decltype(_ATTR_TRAIT(z))>::type _ATTR_TRAIT_TYPE(z); \
 	static _ATTR_TRAIT_TYPE(z)& _ATTR_TRAIT_GET(z)(){ static _ATTR_TRAIT_TYPE(z) _tmp=_ATTR_TRAIT(z).static_(); return _tmp; }
 #define _STATATTR_INITIALIZE(x,thisClass,z) thisClass::_ATTR_NAM(z)=_ATTR_INI(z);
-#define _STATATTR_MAKE_DOC(x,thisClass,z) + ".. ystaticattr:: " BOOST_PP_STRINGIZE(thisClass) "." _ATTR_NAM_STR(z) "(=" _ATTR_INI_STR(z) ")" "\n\n|ystatic| :ydefault:`" _ATTR_INI_STR(z) "` :yattrtype:`" _ATTR_TYP_STR(z) /*"` :yattrflags:`" + boost::lexical_cast<string>(_ATTR_FLG(z)) +*/ "`\n\n\t" _ATTR_DOC(z) "\n\n"
-
 
 #define _STATCLASS_PY_REGISTER_CLASS(thisClass,baseClass,docString,attrs)\
 	virtual void pyRegisterClass() { checkPyClassRegistersItself(#thisClass); initSetStaticAttributesValue(); YADE_SET_DOCSTRING_OPTS; \
-		py::class_<thisClass,shared_ptr<thisClass>,py::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,(docString + std::string("\n\n") BOOST_PP_SEQ_FOR_EACH(_STATATTR_MAKE_DOC,thisClass,attrs)).c_str(),/*call raw ctor even for parameterless construction*/py::no_init); _classObj.def("__init__",py::raw_constructor(Serializable_ctor_kwAttrs<thisClass>)); \
+		py::class_<thisClass,shared_ptr<thisClass>,py::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,docString,/*call raw ctor even for parameterless construction*/py::no_init); _classObj.def("__init__",py::raw_constructor(Serializable_ctor_kwAttrs<thisClass>)); \
 		BOOST_PP_SEQ_FOR_EACH(_STATATTR_PY,thisClass,attrs); \
 		py::list traitList; BOOST_PP_SEQ_FOR_EACH(_PYATTR_TRAIT_STATIC,thisClass,attrs); _classObj.attr("_attrTraits")=traitList; \
 		Serializable::derivedCxxClasses.push_back(py::object(_classObj)); \
 	}
-
 
 /********************** USER MACROS START HERE ********************/
 
@@ -248,7 +245,7 @@ template<> struct _SerializeMaybe<false>{
 #define YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(thisClass,baseClass,docString,attrs,deprec,inits,ctor,extras) \
 	public: BOOST_PP_SEQ_FOR_EACH(_ATTR_DECL_AND_TRAIT,~,attrs) /* attribute declarations */ \
 	thisClass() BOOST_PP_IF(BOOST_PP_SEQ_SIZE(inits attrs),:,) BOOST_PP_SEQ_FOR_EACH_I(_ATTR_MAKE_INITIALIZER,BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(inits attrs)), inits BOOST_PP_SEQ_FOR_EACH(_ATTR_MAKE_INIT_TUPLE,~,attrs)) { ctor ; } /* ctor, with initialization of defaults */ \
-	_YADE_CLASS_BASE_DOC_ATTRS_DEPREC_PY(thisClass,baseClass,docString,BOOST_PP_SEQ_FOR_EACH(_ATTRS_EMBED_INI_TYP_IN_DOC,~,attrs),deprec,extras)
+	_YADE_CLASS_BASE_DOC_ATTRS_DEPREC_PY(thisClass,baseClass,docString,attrs,deprec,extras)
 
 /** new-style macros **/
 // attrs is (type,name,init-value,docstring)

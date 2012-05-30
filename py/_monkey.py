@@ -259,8 +259,41 @@ def _Serializable_load(typ,inFile,format='auto'):
 		return typeChecked(pickle.load(open(inFile)),typ)
 	assert(False)
 
+
+
+def _Serializable_loadTmp(typ,name=''):
+	obj=yade.O.loadTmpAny(name)
+	if not isinstance(obj,typ): raise TypeError('Loaded object of type '+obj.__class__.__name__+' is not a '+typ.__name__)
+	return obj
+def _Serializable_saveTmp(obj,name='',quiet=False):
+	yade.O.saveTmpAny(obj,name,quiet)
+	
+
 Serializable._getAllTraits=_Serializable_getAllTraits
 Serializable.dump=_Serializable_dump
 Serializable.dumps=_Serializable_dumps
+Serializable.saveTmp=_Serializable_saveTmp
 Serializable.load=classmethod(_Serializable_load)
 Serializable.loads=classmethod(_Serializable_loads)
+Serializable.loadTmp=classmethod(_Serializable_loadTmp)
+
+
+def _Omega_save(o,*args,**kw):
+	o.scene.save(*args,**kw)
+def _Omega_load(o,*args,**kw):
+	o.scene=yade.core.Scene.load(*args,**kw)
+def _Omega_reload(o,quiet=None,*args,**kw): # this arg is deprecated
+	f=o.scene.lastSave
+	if not f: raise ValueError("Scene.lastSave is empty.")
+	if f.startswith(':memory:'): o.scene=yade.core.Scene.loadTmp(f[8:])
+	else: o.scene=yade.core.Scene.load(f,*args,**kw)
+def _Omega_loadTmp(o,name='',quiet=None): # quiet deprecated
+	o.scene=yade.core.Scene.loadTmp(name)
+def _Omega_saveTmp(o,name='',quiet=False):
+	o.scene.lastSave=':memory:'+name
+	o.scene.saveTmp(name,quiet)
+yade.wrapper.Omega.save=_Omega_save
+yade.wrapper.Omega.load=_Omega_load
+yade.wrapper.Omega.reload=_Omega_reload
+yade.wrapper.Omega.loadTmp=_Omega_loadTmp
+yade.wrapper.Omega.saveTmp=_Omega_saveTmp

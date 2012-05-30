@@ -397,6 +397,11 @@ class AttrEditor_DemData_flags(AttrEditor_flagArray):
 		self.realSetter=setter
 		self.realGetter=getter
 
+#class AttrEditor_MatriX2(AttrEditor,QTableWidget):
+#	def __init__(self,parent,getter,setter,rows,cols,idxConverter):
+#		AttrEditor.__init__(self,getter,setter)
+#		QTableWidget.__init__(self,parent)
+
 
 class AttrEditor_MatrixX(AttrEditor,QFrame):
 	def __init__(self,parent,getter,setter,rows,cols,idxConverter):
@@ -709,15 +714,7 @@ class SerializableEditor(QFrame):
 			attr=trait.name
 			val=getattr(self.ser,attr) # get the value using serattt, as it might be different from what the dictionary provides (e.g. Body.blockedDOFs)
 			t=None
-			isStatic=(getattr(self.ser.__class__,attr,None)==getattr(self.ser,attr))
-			if isStatic: doc=self.getStaticAttrDocstring(attr,raw=True)
-			else:
-				try:
-					doc=trait.doc
-					#doc=getattr(self.ser.__class__,attr).__doc__
-				except AttributeError:
-					print 'No docstring for ',self.ser.__class__.__name__+'.'+attr+": using None (pure python attribute?)"
-					doc=None
+			doc=trait.doc
 			if attr in self.ignoredAttrs: continue
 
 			# this attribute starts a new attribute group
@@ -739,19 +736,17 @@ class SerializableEditor(QFrame):
 			#if not match: print 'No attr match for docstring of %s.%s'%(self.ser.__class__.__name__,attr)
 
 			#logging.debug('Attr %s is of type %s'%(attr,((t[0].__name__,) if isinstance(t,tuple) else t.__name__)))
-			self.entries.append(self.EntryData(name=attr,T=t,groupNo=groupNo,doc=self.getDocstring(attr),trait=trait,containingClass=klass))
+			self.entries.append(self.EntryData(name=attr,T=t,groupNo=groupNo,doc=trait.doc,trait=trait,containingClass=klass))
 	def getDocstring(self,attr=None):
 		"If attr is *None*, return docstring of the Serializable itself"
-		try:
-			doc=(getattr(self.ser.__class__,attr).__doc__ if attr else self.ser.__class__.__doc__).decode('utf-8')
-		except AttributeError: doc=None
-		if not doc: return ''
-		doc=re.sub(':y(attrtype|default|attrflags):`[^`]*`','',doc)
-		statAttr=re.compile('^.. ystaticattr::.*$',re.MULTILINE|re.DOTALL)
-		doc=re.sub(statAttr,'',doc) # static classes have their proper docs at the beginning, discard static memeber docs
-		# static: attribute of the type is the same object as attribute of the instance
-		# in that case, get docstring from the class documentation by parsing it
-		if attr and getattr(self.ser.__class__,attr)==getattr(self.ser,attr): doc=self.getStaticAttrDocstring(attr)
+		if attr==None:
+			doc=self.ser.__class__.__doc__.decode('utf-8')
+		else:
+			tt=[t.doc for t in self.ser.__class__._attrTraits if t.name==attr]
+			if not tt:
+				logging.error('Attr %s.%s has no trait?'%(self.ser.__class__,attr))
+				doc='[no documentation found]'
+			else: doc=tt[0]
 		doc=re.sub(':yref:`([^`]*)`','\\1',doc)
 		import textwrap
 		wrapper=textwrap.TextWrapper(replace_whitespace=False)

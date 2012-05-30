@@ -28,18 +28,12 @@ env.Install('$LIBDIR/lib',[
 			'EnergyTracker.cpp',
 			'Engine.cpp',
 			'Field.cpp',
-			#'FileGenerator.cpp',
-			#'Interaction.cpp',
-			#'InteractionContainer.cpp',
-			#'Material.cpp',
 			'MatchMaker.cpp',
 			'Scene.cpp',
 			'Dispatcher.cpp',
 			'Omega.cpp',
-			#'Shape.cpp',
 			'BgThread.cpp',
 			'Preprocessor.cpp',
-			#'State.cpp',
 			'corePlugins.cpp'
 			]
 			),

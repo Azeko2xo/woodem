@@ -19,7 +19,7 @@ class PsdSphereGeneratorTest(unittest.TestCase):
 	def testMassContinuous(self):
 		'PSD: continuous mass-based generator'
 		self.gen.mass=True; self.gen.discrete=False
-		self.checkOk()
+		self.checkOk(relDeltaInt=.03)
 	def testNumDiscrete(self):
 		'PSD: discrete number-based generator'
 		self.gen.mass=False; self.gen.discrete=True
@@ -28,7 +28,7 @@ class PsdSphereGeneratorTest(unittest.TestCase):
 		'PSD: continuous number-based generator'
 		self.gen.mass=False; self.gen.discrete=False
 		self.checkOk()
-	def checkOk(self):
+	def checkOk(self,relDeltaInt=.01,relDeltaD=.03):
 		for i in range(10000): self.gen(self.mat)
 		iPsd=self.gen.inputPsd(scale=True)
 		iPsdNcum=self.gen.inputPsd(scale=True,cumulative=False,num=150)
@@ -63,9 +63,9 @@ class PsdSphereGeneratorTest(unittest.TestCase):
 
 			pylab.savefig('/tmp/psd-test-%s-%s.png'%desc)
 		# tolerance of 1%
-		self.assertAlmostEqual(iInt,oInt,delta=.01*iInt) 
+		self.assertAlmostEqual(iInt,oInt,delta=relDeltaInt*iInt) 
 		# check that integration minima and maxima match
 		dMin,dMax=self.gen.psdPts[0][0],self.gen.psdPts[-1][0]
 		# 3% tolerance here
-		self.assertAlmostEqual(dMin,oPsd[0][0],delta=.03*dMin)
-		self.assertAlmostEqual(dMax,oPsd[0][-1],delta=.03*dMax)
+		self.assertAlmostEqual(dMin,oPsd[0][0],delta=relDeltaD*dMin)
+		self.assertAlmostEqual(dMax,oPsd[0][-1],delta=relDeltaD*dMax)
