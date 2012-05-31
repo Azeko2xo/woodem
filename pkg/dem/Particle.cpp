@@ -157,6 +157,19 @@ Vector3r Contact::dPos(const Scene* scene) const{
 	return rawDx+scene->cell->intrShiftPos(cellDist);
 }
 
+void DemField::postLoad(DemField&){
+	particles->dem=this;
+	contacts->dem=this;
+	contacts->particles=particles.get();
+	/* recreate particle contact information */
+	for(size_t i=0; i<contacts->size(); i++){
+		const shared_ptr<Contact>& c((*contacts)[i]);
+		(*particles)[c->pA->id]->contacts[c->pB->id]=c;
+		(*particles)[c->pB->id]->contacts[c->pA->id]=c;
+	}
+}
+
+
 int DemField::collectNodes(){
 	std::set<void*> seen;
 	// add regular nodes and clumps

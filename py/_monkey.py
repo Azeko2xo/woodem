@@ -1,3 +1,4 @@
+# encoding: utf-8
 # various monkey-patches for wrapped c++ classes
 import yade.wrapper
 import yade.core
@@ -28,14 +29,16 @@ _dumpingForbidden=(yade.core.Engine.field,)
 
 htmlHead='<head><meta http-equiv="content-type" content="text/html;charset=UTF-8" /></head><body>\n'
 
-def _Serializable_dumps(obj,format,fragment=False,width=80,noMagic=False):
-	if format not in ('html','expr','pickle'): raise IOError("Unsupported string dump format %s"%format)
+def _Serializable_dumps(obj,format,fragment=False,width=80,noMagic=False,stream=True):
+	if format not in ('html','expr','pickle','genshi'): raise IOError("Unsupported string dump format %s"%format)
 	if format=='pickle':
 		return pickle.dumps(obj)
 	elif format=='expr':
 		return SerializerToExpr(maxWd=width,noMagic=noMagic)(obj)
 	elif format=='html':
 		return ('' if fragment else htmlHead)+SerializerToHtmlTable()(obj)+('' if fragment else '</body>')
+	elif format=='genshi':
+		return SerializeToHtmlTable()(obj,dontRender=True)
 
 def _Serializable_dump(obj,out,format='auto',overwrite=True,fragment=False,width=80,noMagic=False):
 	'''Dump an object in specified *format*; *out* can be a string (filename) or a *file* object. Supported formats are: `auto` (auto-detected from *out* extension; raises exception when *out* is an object), `xml`, `bin`, `html`, `expr`.'''
@@ -70,7 +73,7 @@ def _Serializable_dump(obj,out,format='auto',overwrite=True,fragment=False,width
 			out.write(SerializerToHtmlTable()(obj))
 			if not fragment: out.write('</body>')
 		
-class SerializerToHtmlTable:
+class SerializerToHtmlTableRaw:
 	padding='cellpadding="2px"'
 	def __init__(self,maxDepth=8,hideNoGui=False):
 		self.maxDepth=maxDepth
@@ -146,6 +149,83 @@ class SerializerToHtmlTable:
 				if unit: ret+=indent2+u'<td align="right">'+unit+'</td>'
 			ret+=indent1+'</tr>'
 		return ret+indent0+'</table>'
+
+class SerializerToHtmlTableGenshi:
+	padding=dict(cellpadding='2px')
+	def __init__(self,maxDepth=8,hideNoGui=False):
+		self.maxDepth=maxDepth
+		self.hideNoGui=hideNoGui
+	def htmlSeq(self,s,insideTable):
+		from genshi.builder import tag
+		table=tag.table(frame='box',rules='all',width='100%',**self.padding)
+		if hasattr(s[0],'__len__') and not isinstance(s[0],str): # 2d array
+			# disregard insideTable in this case
+			for r in range(len(s)):
+				tr=tag.tr()
+				for c in range(len(s[0])):
+					tr.append(tag.td('%g'%s[r][c] if isinstance(s[r][c],float) else str(s[r][c]),align='right',width='%g%%'%(100./len(s[0])-1.)))
+				table.append(tr)
+			return table
+		# 1d array
+		ret=table if not insideTable else []
+		for e in s: ret.append(tag.td('%g'%e if isinstance(e,float) else str(e),align='right',width='%g%%'%(100./len(s)-1.)))
+		return ret
+	def __call__(self,obj,depth=0,dontRender=False):
+		from genshi.builder import tag
+		if depth>self.maxDepth: raise RuntimeError("Maximum nesting depth %d exceeded"%self.maxDepth)
+		kw=self.padding.copy()
+		if depth>0: kw.update(width='100%')
+		ret=tag.table(tag.th(tag.b('.'.join(obj.__class__.__module__.split('.')[1:])+'.'+obj.__class__.__name__),colspan=3,align='left'),frame='box',rules='all',**kw)
+		# get all attribute traits first
+		traits=obj._getAllTraits()
+		for trait in traits:
+			if trait.hidden or (self.hideNoGui and trait.noGui) or trait.noDump: continue
+			if getattr(obj.__class__,trait.name) in _dumpingForbidden: continue
+			# start new group (additional line)
+			if trait.startGroup:
+				ret.append(tag.tr(tag.td(tag.i(u'▸ %s'%trait.startGroup.decode('utf-8')),colspan=3)))
+			attr=getattr(obj,trait.name)
+			tr=tag.tr(tag.td(trait.name))
+			# nested object
+			if isinstance(attr,yade.wrapper.Serializable):
+				tr.append([tag.td(self(attr,depth+1),align='justify'),tag.td()])
+			# sequence of objects (no units here)
+			elif hasattr(attr,'__len__') and len(attr)>0 and isinstance(attr[0],yade.wrapper.Serializable):
+				tr.append(tag.td(tag.ol([tag.li(self(o,depth+1)) for o in attr])))
+			else:
+				if not trait.multiUnit: # the easier case
+					if not trait.prefUnit: unit=u'−'
+					else:
+						unit=trait.prefUnit[0][0].decode('utf-8')
+						# create new list, where entries are multiplied by the multiplier
+						if type(attr)==list: attr=[a*trait.prefUnit[0][1] for a in attr]
+						else: attr=attr*trait.prefUnit[0][1]
+				else: # multiple units
+					unit=[]
+					wasList=isinstance(attr,list)
+					if not wasList: attr=[attr] # handle uniformly
+					for i in range(len(attr)):
+						attr[i]=[attr[i][j]*trait.prefUnit[j][1] for j in range(len(attr[i]))]
+					for pu in trait.prefUnit:
+						unit.append(pu[0].decode('utf-8'))
+					if not wasList: attr=attr[0]
+					unit=', '.join(unit)
+				# sequence type, or something similar				
+				if hasattr(attr,'__len__') and not isinstance(attr,str):
+					if len(attr)>0:
+						tr.append(tag.td(self.htmlSeq(attr,insideTable=False),align='right'))
+					else:
+						tr.append(tag.td(tag.i('[empty]'),align='right'))
+				else:
+					tr.append(tag.td('%g'%attr if isinstance(attr,float) else str(attr),align='right'))
+				if unit:
+					tr.append(tag.td(unit,align='right'))
+			ret.append(tr)
+		if depth>0 or dontRender: return ret
+		return ret.generate().render('xhtml',encoding='ascii')+'\n'
+
+SerializerToHtmlTable=SerializerToHtmlTableGenshi
+
 
 #class SerializerToHTML2:
 #	unbreakableTypes=(Vector2i,Vector2,Vector3i,Vector3)

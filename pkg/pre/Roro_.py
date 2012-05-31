@@ -1,3 +1,4 @@
+# encoding: utf-8
 from yade import utils,pack
 from yade.core import *
 from yade.dem import *
@@ -117,7 +118,7 @@ def watchProgress():
 		if yade.factory.mass>yade.factory.maxMass:
 			try:
 				if not yade.O.scene.lastSave.startswith('/tmp'):
-					out='/tmp/'+yade.O.scene.tags['id']+'.gz'
+					out='/tmp/'+yade.O.scene.tags['id']+'.bin.gz'
 					yade.O.scene.save(out)
 					print 'Saved to',out
 				plotFinalPsd()
@@ -167,7 +168,7 @@ def svgFragment(data):
 def psdFeedApertureFalloverTable(inPsd,feedDM,apDM,overDM,splitD):
 	import collections, numpy
 	TabLine=collections.namedtuple('TabLine','dMin dMax dAvg inFrac feedFrac feedSmallFrac feedBigFrac overFrac')
-	dScale=1e3 # mm
+	dScale=1e3 # m → mm
 	# must convert to list to get slices right in the next line
 	edges=list(inPsd[0]) # those will be displayed in the table
 	# enlarge a bit so that marginal particles, if any, fit in comfortably; used for histogram computation
@@ -176,15 +177,33 @@ def psdFeedApertureFalloverTable(inPsd,feedDM,apDM,overDM,splitD):
 	# cumulative; otherwise use numpy.diff
 	inHist=numpy.diff(inPsd[1]) # non-cumulative
 	feedHist,b=numpy.histogram(feedDM[0],weights=feedDM[1],bins=bins,density=True)
+	feedHist/=sum(feedHist)
 	feedSmallHist,b=numpy.histogram(feedDM[0][feedDM[0]<splitD],weights=feedDM[1][feedDM[0]<splitD],bins=bins,density=True)
+	feedSmallHist/=sum(feedSmallHist)
 	feedBigHist,b=numpy.histogram(feedDM[0][feedDM[0]>=splitD],weights=feedDM[1][feedDM[0]>=splitD],bins=bins,density=True)
+	feedBigHist/=sum(feedBigHist)
 	overHist,b=numpy.histogram(overDM[0],weights=overDM[1],bins=bins,density=True)
+	overHist/=sum(overHist)
 	#print 'lengths bins=%d, in=%d feed=%d feedSmall=%d feedBig=%d over=%d'%(len(bins),len(inHist),len(feedHist),len(feedSmallHist),len(feedBigHist),len(overHist))
 	tab=[]
 	for i in range(0,len(inHist)):
-		tab.append(TabLine(dMin=edges[i]*dScale,dMax=edges[i+1]*dScale,dAvg=dScale*.5*(edges[i]+edges[i+1]),inFrac=inHist[i],feedFrac=feedHist[i],feedSmallFrac=feedSmallHist[i],feedBigFrac=feedBigHist[i],overFrac=overHist[i]))
-	import pprint
-	pprint.pprint(tab)
+		tab.append(TabLine(dMin=edges[i],dMax=edges[i+1],dAvg=.5*(edges[i]+edges[i+1]),inFrac=inHist[i],feedFrac=feedHist[i],feedSmallFrac=feedSmallHist[i],feedBigFrac=feedBigHist[i],overFrac=overHist[i]))
+	from genshi.builder import tag as t
+	return t.table(
+		t.tr(
+			t.th('Diameter',t.br,'[mm]'),t.th('Average',t.br,'[mm]'),t.th('user input',t.br,'[mass %]',colspan=2),t.th('feed',t.br,'[mass %]',colspan=2),t.th('feed < %g mm'%(dScale*splitD),t.br,'[mass %]',colspan=2),t.th('feed > %g mm'%(dScale*splitD),t.br,'[mass %]',colspan=2),t.th('fall over',t.br,'[mass %]',colspan=2),align='center'
+		),
+		*tuple([t.tr(
+			t.td('%g-%g'%(dScale*tt.dMin,dScale*tt.dMax),align='left'),t.td('%g'%(dScale*tt.dAvg),align='right'),
+			t.td('%.4g'%(1e2*tt.inFrac)),t.td('%.4g'%(1e2*sum([ttt.inFrac for ttt in tab[:i+1]]))),
+			t.td('%.4g'%(1e2*tt.feedFrac)),t.td('%.4g'%(1e2*sum([ttt.feedFrac for ttt in tab[:i+1]]))),
+			t.td('%.4g'%(1e2*tt.feedSmallFrac)),t.td('%.4g'%(1e2*sum([ttt.feedSmallFrac for ttt in tab[:i+1]]))),
+			t.td('%.4g'%(1e2*tt.feedBigFrac)),t.td('%.4g'%(1e2*sum([ttt.feedBigFrac for ttt in tab[:i+1]]))),
+			t.td('%.4g'%(1e2*tt.overFrac)),t.td('%.4g'%(1e2*sum([ttt.overFrac for ttt in tab[:i+1]]))),
+			align='right'
+		) for i,tt in enumerate(tab)])
+		,cellpadding='2px',frame='box',rules='all'
+	).generate().render('xhtml')
 
 	
 
@@ -213,7 +232,7 @@ def plotFinalPsd():
 	)
 
 	def scaledFlowPsd(x,y): return numpy.array(x),massScale*numpy.array(y)
-	#def scaledNormPsd(x,y): return numpy.array(x),numpy.array(y)
+	def unscaledPsd(x,y): return numpy.array(x),numpy.array(y)
 
 	figs=[]
 	fig=pylab.figure()
@@ -259,7 +278,13 @@ def plotFinalPsd():
 	pylab.legend(loc='best')
 	figs.append(fig)
 
-	psdFeedApertureFalloverTable(inPsd,feedDM=genPsd,apDM=(dAper,mAper),overDM=(dOver,mOver),splitD=pre.gap)
+	feedTab=psdFeedApertureFalloverTable(
+		unscaledPsd(*yade.factory.generator.inputPsd()),
+		feedDM=genPsd,
+		apDM=(dAper,mAper),
+		overDM=(dOver,mOver),
+		splitD=pre.gap
+	)
 
 
 	#ax=pylab.subplot(223)
@@ -338,10 +363,32 @@ def plotFinalPsd():
 		</table>
 		'''.format(started=time.ctime(time.time()-yade.O.realtime),duration=yade.O.realtime,nCores=yade.O.numThreads,stepsPerSec=yade.O.scene.step/yade.O.realtime,engine='wooDem '+yade.config.version+'/'+yade.config.revision+(' (debug)' if yade.config.debug else ''),compiledWith=','.join(yade.config.features))
 		+'<h2>Input data</h2>'+pre.dumps(format='html',fragment=True)
-		+'<h3>Outputs</h3>'
+		+'<h2>Outputs</h2>'
 		+'\n'.join([svgFragment(open(svg).read()) for svg in svgs])
+		+'<h2>Tables</h2>'
+		+feedTab
 		+'</body></html>'
 	)
+	if 0: # pure genshi version; probably does not work
+		html=(tag.head(tag.title('Report for Roller screen simulation')),tag.body(
+			tag.h1('Report for Roller screen simulation'),
+			tag.h2('General'),
+			tag.table(
+				tag.tr(tag.td('started'),tag.td('%g s'%(time.ctime(time.time()-yade.O.realtime)),align='right')),
+				tag.tr(tag.td('duration'),tag.td('%g s'%(yade.O.realtime),align='right')),
+				tag.tr(tag.td('number of cores'),tag.td(str(yade.O.numThreads),align='right')),
+				tag.tr(tag.td('average speed'),tag.td('%g steps/sec'%(yade.O.scene.step/yade.O.realtime))),
+				tag.tr(tag.td('engine'),tag.td('wooDem '+yade.config.version+'/'+yade.config.revision+(' (debug)' if yade.config.debug else ''))),
+				tag.tr(tag.td('compiled with'),tag.td(', '.join(yade.config.features))),
+			),
+			tag.h2('Input data'),
+			pre.dumps(format='genshi'),
+			tag.h2('Tables'),
+			feedTab,
+			tag.h2('Graphs'),
+			*tuple([XMLParser(StringIO.StringIO(svgFragment(open(svg).read()))).parse() for svg in svgs])
+		)).render('xhtml')
+
 	# to play with that afterwards
 	yade.html=html
 	#from genshi.input import HTMLParser
