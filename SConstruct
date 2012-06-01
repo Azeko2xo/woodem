@@ -72,6 +72,10 @@ opts=Variables(optsFile)
 ## compatibility hack again
 if 'AddVariables' not in dir(opts): opts.AddVariables=opts.AddOptions
 
+# save profile file so that we know compilation flags
+env['buildProfile']=dict([(l.split('=',1)[0].strip(),eval(l.split('=',1)[1])) for l in file(optsFile)])
+env['buildCmdLine']=sys.argv
+
 def colonSplit(x): return x.split(':')
 
 #

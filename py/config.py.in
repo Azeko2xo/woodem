@@ -16,6 +16,9 @@ features='${features}'.split(',')
 revision='${realVersion}'
 version='${version}'
 sourceRoot='${sourceRoot}'
+buildProfile=${buildProfile}
+buildCmdLine=${buildCmdLine}
+
 
 # project metadata
 metadata=dict(
