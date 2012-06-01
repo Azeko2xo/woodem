@@ -62,8 +62,11 @@ class TestPBC(unittest.TestCase):
 	def testHomotheticResizeVel(self):
 		"PBC: homothetic cell deformation adjusts particle velocity (homoDeform==3)"
 		O.scene.dt=1e-5
-		O.step()
 		s1=O.dem.par[1]
+		print 'init',self.initPos,self.initVel
+		print 'before',s1.pos,s1.vel
+		O.step()
+		print 'after',s1.pos,s1.vel
 		self.assertAlmostEqual(s1.vel[2],self.initVel[2]+self.initPos[2]*O.scene.cell.gradV[2,2])
 	def testHomotheticResizePos(self):
 		"PBC: homothetic cell deformation adjusts particle position (homoDeform==1)"
@@ -72,32 +75,15 @@ class TestPBC(unittest.TestCase):
 		s1=O.dem.par[1]
 		self.assertAlmostEqual(s1.vel[2],self.initVel[2])
 		self.assertAlmostEqual(s1.pos[2],self.initPos[2]+self.initPos[2]*O.scene.cell.gradV[2,2]*O.scene.dt)
-	#def testScGeomIncidentVelocity(self):
-	#	"PBC: ScGeom computes incident velocity correctly (homoDeform==3)"
-	#	O.step()
-	#	O.engines=[ContactLoop([Ig2_Sphere_Sphere_ScGeom()],[Ip2_FrictMat_FrictMat_FrictPhys()],[])]
-	#	i=utils.createInteraction(0,1)
-	#	self.assertEqual(self.initVel,i.geom.incidentVel(i,avoidGranularRatcheting=True))
-	#	self.assertEqual(self.initVel,i.geom.incidentVel(i,avoidGranularRatcheting=False))
-	#	self.assertAlmostEqual(self.relDist[1],1-i.geom.penetrationDepth)
-	#def testScGeomIncidentVelocity_homoPos(self):
-	#	"PBC: ScGeom computes incident velocity correctly (homoDeform==1)"
-	#	O.scene.cell.homoDeform=1
-	#	O.step()
-	#	O.engines=[ContactLoop([Ig2_Sphere_Sphere_ScGeom()],[Ip2_FrictMat_FrictMat_FrictPhys()],[])]
-	#	i=utils.createInteraction(0,1)
-	#	self.assertEqual(self.initVel,i.geom.incidentVel(i,avoidGranularRatcheting=True))
-	#	self.assertEqual(self.initVel,i.geom.incidentVel(i,avoidGranularRatcheting=False))
-	#	self.assertAlmostEqual(self.relDist[1],1-i.geom.penetrationDepth)
 	def testL6GeomIncidentVelocity(self):
-		"PBC: L3Geom computes incident velocity correctly (homoDeform==3)"
+		"PBC: L6Geom incident velocity (homoDeform==3)"
 		O.step()
 		O.scene.engines=[ForceResetter(),ContactLoop([Cg2_Sphere_Sphere_L6Geom()],[Cp2_FrictMat_FrictPhys()],[Law2_L6Geom_FrictPhys_IdealElPl(noBreak=True)]),Leapfrog(reset=True)]
 		i=utils.createContacts([0],[1])[0]
 		O.scene.dt=1e-10; O.step() # tiny timestep, to not move the normal too much
 		self.assertAlmostEqual(self.initVel.norm(),i.geom.vel.norm())
 	def testL3GeomIncidentVelocity_homoPos(self):
-		"PBC: L3Geom computes incident velocity correctly (homoDeform==1)"
+		"PBC: L6Geom incident velocity (homoDeform==1)"
 		O.scene.cell.homoDeform=1; O.step()
 		O.scene.engines=[ForceResetter(),ContactLoop([Cg2_Sphere_Sphere_L6Geom()],[Cp2_FrictMat_FrictPhys()],[Law2_L6Geom_FrictPhys_IdealElPl(noBreak=True)]),Leapfrog(reset=True)]
 		i=utils.createContacts([0],[1])[0]

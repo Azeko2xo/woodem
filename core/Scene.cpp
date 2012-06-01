@@ -25,7 +25,7 @@ bool TimingInfo::enabled=false;
 std::string Scene::pyTagsProxy::getItem(const std::string& key){ return scene->tags[key]; }
 void Scene::pyTagsProxy::setItem(const std::string& key,const std::string& val){ scene->tags[key]=val; }
 void Scene::pyTagsProxy::delItem(const std::string& key){ size_t i=scene->tags.erase(key); if(i==0) yade::KeyError(key); }
-py::list Scene::pyTagsProxy::keys(){ py::list ret; FOREACH(Scene::StrStrMap::value_type& i, scene->tags) ret.append(i.first); return ret; }
+py::list Scene::pyTagsProxy::keys(){ py::list ret; FOREACH(Scene::StrStrMap::value_type i, scene->tags) ret.append(i.first); return ret; }
 bool Scene::pyTagsProxy::has_key(const std::string& key){ return scene->tags.count(key)>0; }
 
 void Scene::fillDefaultTags(){
@@ -35,10 +35,11 @@ void Scene::fillDefaultTags(){
 	gethostname(hostname,HOST_NAME_MAX);
 	pw=getpwuid(geteuid()); if(!pw) throw runtime_error("getpwuid(geteuid()) failed!");
 	// a few default tags
-	// real name: will have all non-ASCII characters replaced by ? since serialization doesn't handle that
 	// the standard GECOS format is Real Name,,, - first comma and after will be discarded
-	string gecos(pw->pw_gecos), gecos2; size_t p=gecos.find(","); if(p!=string::npos) boost::algorithm::erase_tail(gecos,gecos.size()-p); for(size_t i=0;i<gecos.size();i++){gecos2.push_back(((unsigned char)gecos[i])<128 ? gecos[i] : '?'); }
-	tags["author"]=boost::algorithm::replace_all_copy(gecos2+" ("+string(pw->pw_name)+"@"+hostname+")"," ","~");
+	string gecos(pw->pw_gecos); size_t p=gecos.find(","); if(p!=string::npos) boost::algorithm::erase_tail(gecos,gecos.size()-p);
+	// no need to remove non-ascii anymore
+	// for(size_t i=0;i<gecos.size();i++){gecos2.push_back(((unsigned char)gecos[i])<128 ? gecos[i] : '?'); }
+	tags["user"]=gecos+" ("+string(pw->pw_name)+"@"+hostname+")";
 	tags["isoTime"]=boost::posix_time::to_iso_string(boost::posix_time::second_clock::local_time());
 	string id=boost::posix_time::to_iso_string(boost::posix_time::second_clock::local_time())+"p"+lexical_cast<string>(getpid());
 	tags["id"]=id;

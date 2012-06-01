@@ -99,6 +99,7 @@ def watchProgress():
 	it means we have reached some steady state; at that point, all objects (deleters,
 	factory, ... are clear()ed so that PSD's and such correspond to the steady
 	state only'''
+	import yade
 	pre=yade.O.scene.pre
 	# not yet saving what falls through, i.e. not in stabilized regime yet
 	if yade.aperture[0].save==False:
@@ -116,11 +117,16 @@ def watchProgress():
 	else:
 		# factory has finished generating particles
 		if yade.factory.mass>yade.factory.maxMass:
+			scene=yade.O.scene
+			import yade.plot, pickle
 			try:
-				if not yade.O.scene.lastSave.startswith('/tmp'):
-					out='/tmp/'+yade.O.scene.tags['id']+'.bin.gz'
-					yade.O.scene.save(out)
+				if not scene.lastSave.startswith('/tmp'):
+					out='/tmp/'+scene.tags['id']+'.bin.gz'
+					scene.tags['plot.data']=pickle.dumps(yade.plot.data)
+					scene.save(out)
 					print 'Saved to',out
+				else:
+					yade.plot.data=pickle.loads(scene.tags['plot.data'])
 				plotFinalPsd()
 			except:
 				import traceback
@@ -168,6 +174,7 @@ def svgFragment(data):
 def psdFeedApertureFalloverTable(inPsd,feedDM,apDM,overDM,splitD):
 	import collections, numpy
 	TabLine=collections.namedtuple('TabLine','dMin dMax dAvg inFrac feedFrac feedSmallFrac feedBigFrac overFrac')
+	feedD,feedM=feedDM
 	dScale=1e3 # m → mm
 	# must convert to list to get slices right in the next line
 	edges=list(inPsd[0]) # those will be displayed in the table
@@ -176,15 +183,14 @@ def psdFeedApertureFalloverTable(inPsd,feedDM,apDM,overDM,splitD):
 	edges=numpy.array(edges) # convert back
 	# cumulative; otherwise use numpy.diff
 	inHist=numpy.diff(inPsd[1]) # non-cumulative
-	feedHist,b=numpy.histogram(feedDM[0],weights=feedDM[1],bins=bins,density=True)
+	feedHist,b=numpy.histogram(feedD,weights=feedM,bins=bins,density=True)
 	feedHist/=sum(feedHist)
-	feedSmallHist,b=numpy.histogram(feedDM[0][feedDM[0]<splitD],weights=feedDM[1][feedDM[0]<splitD],bins=bins,density=True)
+	feedSmallHist,b=numpy.histogram(feedD[feedD<splitD],weights=feedM[feedD<splitD],bins=bins,density=True)
 	feedSmallHist/=sum(feedSmallHist)
-	feedBigHist,b=numpy.histogram(feedDM[0][feedDM[0]>=splitD],weights=feedDM[1][feedDM[0]>=splitD],bins=bins,density=True)
+	feedBigHist,b=numpy.histogram(feedD[feedD>=splitD],weights=feedM[feedD>=splitD],bins=bins,density=True)
 	feedBigHist/=sum(feedBigHist)
 	overHist,b=numpy.histogram(overDM[0],weights=overDM[1],bins=bins,density=True)
 	overHist/=sum(overHist)
-	#print 'lengths bins=%d, in=%d feed=%d feedSmall=%d feedBig=%d over=%d'%(len(bins),len(inHist),len(feedHist),len(feedSmallHist),len(feedBigHist),len(overHist))
 	tab=[]
 	for i in range(0,len(inHist)):
 		tab.append(TabLine(dMin=edges[i],dMax=edges[i+1],dAvg=.5*(edges[i]+edges[i+1]),inFrac=inHist[i],feedFrac=feedHist[i],feedSmallFrac=feedSmallHist[i],feedBigFrac=feedBigHist[i],overFrac=overHist[i]))
@@ -224,6 +230,7 @@ def plotFinalPsd():
 	from matplotlib.ticker import FuncFormatter
 	percent=FuncFormatter(lambda x,pos=0: '%g%%'%(100*x))
 	milimeter=FuncFormatter(lambda x,pos=0: '%3g'%(1000*x))
+	megaUnit=FuncFormatter(lambda x,pos=0: '%3g'%(1e-6*x))
 
 	# should this be scaled to t/year as well?
 	massScale=(
@@ -236,28 +243,25 @@ def plotFinalPsd():
 
 	figs=[]
 	fig=pylab.figure()
-	#fig.set_size_inches(16,16)
-	#ax=pylab.subplot(221)
 	inPsd=scaledFlowPsd(*yade.factory.generator.inputPsd(scale=True))
-	#print 'massScale',massScale
-	#print 'inPsd',inPsd
-	genPsd=scaledFlowPsd(*yade.factory.generator.psd())
-	pylab.plot(*inPsd,label='input PSD')
-	pylab.plot(*genPsd,label='generated (%g t/y)'%(yade.factory.mass*massScale))
+	feedPsd=scaledFlowPsd(*yade.factory.generator.psd())
+	pylab.plot(*inPsd,label='user',marker='o')
+	pylab.plot(*feedPsd,label='feed (%g Mt/y)'%(yade.factory.mass*massScale*1e-6))
+	overPsd=scaledFlowPsd(*yade.fallOver.psd())
+	pylab.plot(*overPsd,label='fall over (%.3g Mt/y)'%(yade.fallOver.mass*massScale*1e-6))
 	for i in range(0,len(yade.aperture)):
 		try:
 			apPsd=scaledFlowPsd(*yade.aperture[i].psd())
-			pylab.plot(*apPsd,label='aperture %d (%g t/y)'%(i,yade.aperture[i].mass*massScale))
+			pylab.plot(*apPsd,label='aperture %d (%.3g Mt/y)'%(i,yade.aperture[i].mass*massScale*1e-6))
 		except ValueError: pass
-	overPsd=scaledFlowPsd(*yade.fallOver.psd())
-	pylab.plot(*overPsd,label='fall over (%g t/y)'%(yade.fallOver.mass*massScale))
-	pylab.axvline(x=pre.gap,linewidth=2,ymin=0,ymax=1,color='g',label='gap')
+	pylab.axvline(x=pre.gap,linewidth=5,alpha=.3,ymin=0,ymax=1,color='g',label='gap')
 	pylab.grid(True)
 	pylab.legend(loc='best')
 	pylab.gca().xaxis.set_major_formatter(milimeter)
-	pylab.xlabel('particle diameter [mm]')
-	pylab.ylabel('flow [t/y]')
-	figs.append(fig)
+	pylab.gca().yaxis.set_major_formatter(megaUnit)
+	pylab.xlabel('diameter [mm]')
+	pylab.ylabel('cumulative flow [Mt/y]')
+	figs.append(('Cumulative flow',fig))
 
 	#ax=pylab.subplot(222)
 	fig=pylab.figure()
@@ -268,19 +272,22 @@ def plotFinalPsd():
 			d,m=scaledFlowPsd(*a.diamMass())
 			dAper=numpy.hstack([dAper,d]); mAper=numpy.hstack([mAper,m])
 		except ValueError: pass
-	pylab.hist([dOver,dAper],weights=[mOver,mAper],bins=20,histtype='barstacked',label=['fallOver','apertures'])
-	#+['aperture %d'%i for i in range(0,len(yade.aperture))])
-	pylab.axvline(x=pre.gap,linewidth=2,ymin=0,ymax=1,color='g',label='gap')
+	hh=pylab.hist([dOver,dAper],weights=[mOver,mAper],bins=20,histtype='barstacked',label=['fallOver','apertures'])
+	flowBins=hh[1]
+	feedD,feedM=scaledFlowPsd(*yade.factory.generator.diamMass())
+	pylab.plot(.5*(flowBins[1:]+flowBins[:-1]),numpy.histogram(feedD,weights=feedM,bins=flowBins)[0],label='feed',alpha=.3,linewidth=2,marker='o')
+	pylab.axvline(x=pre.gap,linewidth=5,alpha=.3,ymin=0,ymax=1,color='g',label='gap')
 	pylab.grid(True)
 	pylab.gca().xaxis.set_major_formatter(milimeter)
+	pylab.gca().yaxis.set_major_formatter(megaUnit)
 	pylab.xlabel('particle diameter [mm]')
-	pylab.ylabel('flow [t/y]')
+	pylab.ylabel('flow [Mt/y]')
 	pylab.legend(loc='best')
-	figs.append(fig)
+	figs.append(('Flow',fig))
 
 	feedTab=psdFeedApertureFalloverTable(
 		unscaledPsd(*yade.factory.generator.inputPsd()),
-		feedDM=genPsd,
+		feedDM=unscaledPsd(*yade.factory.generator.diamMass()),
 		apDM=(dAper,mAper),
 		overDM=(dOver,mOver),
 		splitD=pre.gap
@@ -289,18 +296,41 @@ def plotFinalPsd():
 
 	#ax=pylab.subplot(223)
 	fig=pylab.figure()
-	pylab.plot(*yade.factory.generator.inputPsd(scale=False),marker='o',label='prescribed')
-	genPsd=yade.factory.generator.psd(normalize=True)
-	inPsd=yade.factory.generator.inputPsd(scale=False)
-	pylab.plot(*genPsd,label='generated')
+	pylab.plot(*yade.factory.generator.inputPsd(scale=False),marker='o',label='user')
+	feedPsd=unscaledPsd(*yade.factory.generator.psd(normalize=True))
+	inPsd=unscaledPsd(*yade.factory.generator.inputPsd(scale=False))
+	pylab.plot(*feedPsd,label=None)
 	smallerPsd,biggerPsd=splitPsd(*inPsd,splitX=pre.gap)
-	pylab.plot(*smallerPsd,marker='v',label='< gap')
-	pylab.plot(*biggerPsd,marker='^',label='> gap')
-	pylab.axvline(x=pre.gap,linewidth=2,ymin=0,ymax=1,color='g',label='gap')
-	n,bins,patches=pylab.hist(dAper,weights=mAper/sum([ap.mass for ap in yade.aperture]),histtype='step',label='apertures',normed=True,bins=60,cumulative=True,linewidth=2)
-	patches[0].set_xy(patches[0].get_xy()[:-1])
-	n,bins,patches=pylab.hist(dOver,weights=mOver,normed=True,bins=60,cumulative=True,histtype='step',label='fallOver',linewidth=2)
-	patches[0].set_xy(patches[0].get_xy()[:-1])
+	pylab.plot(*smallerPsd,marker='v',label='user <')
+	pylab.plot(*biggerPsd,marker='^',label='user >')
+
+	splitD=pre.gap
+	feedD,feedM=unscaledPsd(*yade.factory.generator.diamMass())
+	feedHist,feedBins=numpy.histogram(feedD,weights=feedM,bins=60)
+	feedHist/=feedHist.sum()
+	binMids=feedBins[1:] #.5*(feedBins[1:]+feedBins[:-1])
+	feedSmallHist,b=numpy.histogram(feedD[feedD<splitD],weights=feedM[feedD<splitD],bins=feedBins,density=True)
+	feedSmallHist/=feedSmallHist.sum()
+	feedBigHist,b=numpy.histogram(feedD[feedD>=splitD],weights=feedM[feedD>=splitD],bins=feedBins,density=True)
+	feedBigHist/=feedBigHist.sum()
+	pylab.plot(binMids,feedHist.cumsum(),label=None)
+	pylab.plot(binMids,feedSmallHist.cumsum(),label=None) #'feed <')
+	pylab.plot(binMids,feedBigHist.cumsum(),label=None) #'feed >')
+	feedD=feedPsd[0]
+
+	pylab.axvline(x=pre.gap,linewidth=5,alpha=.3,ymin=0,ymax=1,color='g',label='gap')
+	if 0:
+		n,bins,patches=pylab.hist(dAper,weights=mAper/sum([ap.mass for ap in yade.aperture]),histtype='step',label='apertures',normed=True,bins=60,cumulative=True,linewidth=2)
+		patches[0].set_xy(patches[0].get_xy()[:-1])
+		n,bins,patches=pylab.hist(dOver,weights=mOver,normed=True,bins=60,cumulative=True,histtype='step',label='fallOver',linewidth=2)
+		patches[0].set_xy(patches[0].get_xy()[:-1])
+	else:
+		apHist,apBins=numpy.histogram(dAper,weights=mAper,bins=feedBins)
+		apHist/=apHist.sum()
+		overHist,overBins=numpy.histogram(dOver,weights=mOver,bins=feedBins)
+		overHist/=overHist.sum()
+		pylab.plot(binMids,apHist.cumsum(),label='apertures',linewidth=3)
+		pylab.plot(binMids,overHist.cumsum(),label='fall over',linewidth=3)
 	#for a in yade.aperture:
 	#	print a.mass,sum([dm[1] for dm in a.diamMass()]),'|',len(a.deleted),a.num
 	pylab.ylim(ymin=-.05,ymax=1.05)
@@ -313,30 +343,31 @@ def plotFinalPsd():
 	pylab.gca().yaxis.set_major_formatter(percent)
 	pylab.ylabel('mass fraction')
 	pylab.legend(loc='best')
-	figs.append(fig)
+	figs.append(('Efficiency',fig))
 
 	try:
 		#ax=pylab.subplot(224)
 		fig=pylab.figure()
 		import yade.plot
 		d=yade.plot.data
-		pylab.plot(d['t'],massScale*numpy.array(d['genRate']),label='generate')
-		pylab.plot(d['t'],massScale*numpy.array(d['delRate']),label='delete')
+		pylab.plot(d['t'],massScale*numpy.array(d['genRate']),label='feed')
 		pylab.plot(d['t'],massScale*numpy.array(d['apRate']),label='apertures')
 		pylab.plot(d['t'],massScale*numpy.array(d['overRate']),label='fallOver')
+		pylab.plot(d['t'],massScale*numpy.array(d['delRate']),label='delete')
+		pylab.ylim(ymin=0)
 		pylab.legend(loc='lower left')
 		pylab.grid(True)
 		pylab.xlabel('time [s]')
 		pylab.ylabel('mass rate [t/y]')
-		figs.append(fig)
+		figs.append(('Regime',fig))
 	except KeyError:
 		print 'No yade.plot plots done due to lack of data'
 		# after loading no data are recovered
 
 	svgs=[]
-	for f in figs:
-		svgs.append(yade.O.tmpFilename()+'.svg')
-		f.savefig(svgs[-1])
+	for name,fig in figs:
+		svgs.append((name,yade.O.tmpFilename()+'.svg'))
+		fig.savefig(svgs[-1][-1])
 		
 	#if 0: pylab.show()
 	#else:
@@ -354,6 +385,7 @@ def plotFinalPsd():
 		<h1>Report for Roller screen simulation</h1>
 		<h2>General</h2>
 		<table>
+			<tr><td>operator</td><td align="right">{user}</td></tr>
 			<tr><td>started</td><td align="right">{started}</td></tr>
 			<tr><td>duration</td><td align="right">{duration:g} s</td></tr>
 			<tr><td>number of cores used</td><td align="right">{nCores}</td></tr>
@@ -361,12 +393,11 @@ def plotFinalPsd():
 			<tr><td>engine</td><td align="right">{engine}</td></tr>
 			<tr><td>compiled with</td><td align="right">{compiledWith}</td></tr>
 		</table>
-		'''.format(started=time.ctime(time.time()-yade.O.realtime),duration=yade.O.realtime,nCores=yade.O.numThreads,stepsPerSec=yade.O.scene.step/yade.O.realtime,engine='wooDem '+yade.config.version+'/'+yade.config.revision+(' (debug)' if yade.config.debug else ''),compiledWith=','.join(yade.config.features))
+		'''.format(user=yade.O.scene.tags['user'],started=time.ctime(time.time()-yade.O.realtime),duration=yade.O.realtime,nCores=yade.O.numThreads,stepsPerSec=yade.O.scene.step/yade.O.realtime,engine='wooDem '+yade.config.version+'/'+yade.config.revision+(' (debug)' if yade.config.debug else ''),compiledWith=','.join(yade.config.features))
 		+'<h2>Input data</h2>'+pre.dumps(format='html',fragment=True)
 		+'<h2>Outputs</h2>'
-		+'\n'.join([svgFragment(open(svg).read()) for svg in svgs])
-		+'<h2>Tables</h2>'
 		+feedTab
+		+'\n'.join(['<h3>'+svg[0]+'</h3>'+svgFragment(open(svg[1]).read()) for svg in svgs])
 		+'</body></html>'
 	)
 	if 0: # pure genshi version; probably does not work

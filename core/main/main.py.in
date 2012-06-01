@@ -223,6 +223,7 @@ def userSession(qt4=False,qapp=None):
 			if len(sys.argv)>1: raise RuntimeError('Extra arguments to saved simulation to run: '+' '.join(sys.argv[1:]))
 			sys.stderr.write("Running simulation "+arg0+'\n')
 			O=yade.wrapper.Omega(); O.load(arg0); O.run()
+			if yade.runtime.opts.exitAfter: O.wait() 
 		if arg0.endswith('.py'):
 			def runScript(script):
 				sys.stderr.write("Running script "+arg0+'\n')
