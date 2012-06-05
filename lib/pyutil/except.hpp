@@ -10,4 +10,9 @@ namespace yade{
 	#define _DECLARE_YADE_PY_ERROR(x,y,err) void err(const std::string&); void err(const boost::format& f);
 	BOOST_PP_SEQ_FOR_EACH(_DECLARE_YADE_PY_ERROR,~,YADE_PYUTIL_ERRORS)
 	#undef _DECLARE_YADE_PY_ERROR
+
+	// return string representation of current python exception
+	std::string parsePythonException();
+	// use this if the GIL is already locked
+	std::string parsePythonException_gilLocked();
 };

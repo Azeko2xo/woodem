@@ -828,9 +828,9 @@ class SerializableEditor(QFrame):
 		menu.popup(self.mapToGlobal(position))
 		#print 'menu popped up at ',widget.mapToGlobal(position),' (local',position,')'
 	def getAttrLabelToolTip(self,entry):
-		attrLabel=entry.containingClass.__name__+'.<b><i>'+entry.name+'</i></b><br>'+entry.doc+('<br><small>default: %s</small>'%str(entry.trait.ini) if (entry.trait.ini and not isinstance(entry.trait.ini,Serializable)) else '')
-		if self.labelIsVar: return serializableHref(self.ser,entry.name),attrLabel
-		return entry.doc,attrLabel
+		toolTip=entry.containingClass.__name__+'.<b><i>'+entry.name+'</i></b><br>'+entry.doc+('<br><small>default: %s</small>'%str(entry.trait.ini) if (entry.trait.ini and not isinstance(entry.trait.ini,Serializable)) else '')
+		if self.labelIsVar: return serializableHref(self.ser,entry.name),toolTip
+		return entry.doc.decode('utf-8'),toolTip
 	def toggleLabelIsVar(self,val=None):
 		self.labelIsVar=(not self.labelIsVar if val==None else val)
 		for entry in self.entries:

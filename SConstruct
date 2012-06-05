@@ -173,6 +173,7 @@ if not env.has_key('version'): env['version']=env['realVersion']
 env['SUFFIX']=('-'+env['version'] if len(env['version'])>0 else '')+env['variant']
 env['SUFFIX_DBG']=env['SUFFIX']+('' if not env['debug'] else '/dbg')
 env['LIBDIR']='$PREFIX/lib/yade$SUFFIX_DBG'
+env['RESOURCEDIR']='$PREFIX/share/yade$SUFFIX'
 print "Yade version is `%s' (%s), installed files will be suffixed with `%s'."%(env['version'],env['realVersion'],env['SUFFIX'])
 buildDir=os.path.abspath(env.subst('$buildPrefix/build$SUFFIX_DBG'))
 print "All intermediary files will be in `%s'."%env.subst(buildDir)
@@ -504,7 +505,7 @@ if not env.GetOption('clean'):
 	#mkSymlink(boostDir+'/python','py/3rd-party/boost-python-indexing-suite-v2-noSymlinkHeaders')
 	mkSymlink(buildDir+'/include/indexing_suite','py/3rd-party/boost-python-indexing-suite-v2-noSymlinkHeaders')
 	mkSymlink(boostDir+'/math','extra/floating_point_utilities_v3/boost/math')
-	env.Default(env.Alias('install',['$PREFIX/bin','$PREFIX/lib'])) # build and install everything that should go to instDirs, which are $PREFIX/{bin,lib} (uses scons' Install)
+	env.Default(env.Alias('install',['$PREFIX/bin','$PREFIX/lib','$PREFIX/share'])) # build and install everything that should go to instDirs, which are $PREFIX/{bin,lib} (uses scons' Install)
 
 env.Export('env');
 
@@ -582,7 +583,7 @@ if not COMMAND_LINE_TARGETS:
 #### DOCUMENTATION
 # must be explicitly requested to be installed, e.g.:
 #    scons /usr/local/share/doc
-env.Install('$PREFIX/share/doc/yade$SUFFIX-doc/',['examples','scripts','doc'])
+#env.Install('$PREFIX/share/doc/yade$SUFFIX-doc/',['examples','scripts','doc'])
 
 
 ### check if combinedFiles is different; if so, force rebuild of all of them

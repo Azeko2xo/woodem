@@ -82,8 +82,12 @@ struct Particle: public Serializable{
 REGISTER_SERIALIZABLE(Particle);
 
 struct Impose: public Serializable{
-	virtual void operator()(const Scene*, const shared_ptr<Node>&){ throw std::runtime_error("Calling abstract DemImpose::operator()."); }
-	YADE_CLASS_BASE_DOC(Impose,Serializable,"Impose arbitrary changes in Node and DemData, right after integration of the node.");
+	virtual void velocity(const Scene*, const shared_ptr<Node>&){ throw std::runtime_error("Calling abstract Impose::velocity."); }
+	virtual void force(const Scene*, const shared_ptr<Node>&){ throw std::runtime_error("Calling abstract Impose::force."); }
+	enum{ VELOCITY=1, FORCE=2};
+	YADE_CLASS_BASE_DOC_ATTRS(Impose,Serializable,"Impose arbitrary changes in Node and DemData, right after integration of the node.",
+		((int,what,,AttrTrait<>().readonly().choice({{0,"none"},{VELOCITY,"velocity"},{FORCE,"force"},{VELOCITY|FORCE,"velocity+force"}}),"What values are to be imposed; this is set by the derived engine automatically depending on what is to be prescribed."))
+	);
 };
 REGISTER_SERIALIZABLE(Impose);
 
@@ -166,7 +170,7 @@ struct DemField: public Field{
 		((shared_ptr<ContactContainer>,contacts,make_shared<ContactContainer>(),AttrTrait<>().pyByRef().readonly().ini(),"Linear view on particle contacts"))
 		((vector<shared_ptr<Node>>,clumps,,AttrTrait<Attr::readonly>(),"Nodes which define clumps; only manipulated from clump-related user-routines, not directly."))
 		((int,loneMask,0,,"Particle groups which have bits in loneMask in common (i.e. (A.mask & B.mask & loneMask)!=0) will not have contacts between themselves"))
-		, /* ctor */ createIndex(); 
+		, /* ctor */ createIndex(); postLoad(*this); /* to make sure pointers are OK */
 		, /*py*/
 		.def("collectNodes",&DemField::collectNodes,"Collect nodes from all particles and clumps and insert them to nodes defined for this field. Nodes are not added multiple times, even if they are referenced from different particles / clumps.")
 		.def("sceneHasField",&Field_sceneHasField<DemField>).staticmethod("sceneHasField")

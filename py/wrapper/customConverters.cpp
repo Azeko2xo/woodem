@@ -40,6 +40,7 @@
 #include<yade/pkg/dem/ContactLoop.hpp>
 #include<yade/pkg/dem/Collision.hpp>
 #include<yade/pkg/dem/IntraForce.hpp>
+#include<yade/pkg/dem/LawTester.hpp>
 
 #include<yade/pkg/dem/ParticleContainer.hpp>
 #include<yade/core/MatchMaker.hpp>
@@ -302,6 +303,7 @@ BOOST_PYTHON_MODULE(_customConverters){
 		VECTOR_SEQ_CONV(shared_ptr<CPhysFunctor>);
 		VECTOR_SEQ_CONV(shared_ptr<LawFunctor>);
 		VECTOR_SEQ_CONV(shared_ptr<IntraFunctor>);
+		VECTOR_SEQ_CONV(shared_ptr<LawTesterStage>);
 
 		VECTOR_SEQ_CONV(shared_ptr<Engine>);
 		VECTOR_SEQ_CONV(shared_ptr<Serializable>);

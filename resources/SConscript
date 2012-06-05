@@ -1,6 +1,6 @@
 # vim: set filetype=python :
 Import('*')
 import os.path 
-env.Install('$RESOURCEDIR',[
-	env.File(env.Glob('*')),
-])
+env.Install('$RESOURCEDIR',
+	env.File(env.Glob('*.qss'),''),
+)

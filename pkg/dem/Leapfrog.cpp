@@ -9,7 +9,9 @@ CREATE_LOGGER(Leapfrog);
 
 void ForceResetter::run(){
 	FOREACH(const shared_ptr<Node>& n, field->nodes){
-		if(n->hasData<DemData>()) n->getData<DemData>().force=n->getData<DemData>().torque=Vector3r::Zero();
+		DemData& dyn=n->getData<DemData>();
+		dyn.force=dyn.torque=Vector3r::Zero();
+		if(dyn.impose && (dyn.impose->what & Impose::FORCE)) dyn.impose->force(scene,n);
 		if(n->getData<DemData>().isClump()) ClumpData::resetForceTorque(n);
 	}
 }
@@ -182,6 +184,9 @@ void Leapfrog::run(){
 					nonviscDamp1st(t,pprevFluctAngVel);
 				}
 			}
+			// in case velocity is imposed, it must be re-applied to cancel effects of forces
+			// this is not necessary if all DOFs are blocked, since then velocity is not modified
+			if(dyn.impose && (dyn.impose->what & Impose::VELOCITY)) dyn.impose->velocity(scene,node);
 		}
 		else{
 			// fixed particle, with gradV2: velocity correction, without acceleration
@@ -207,10 +212,14 @@ void Leapfrog::run(){
 			if(!useAspherical) leapfrogSphericalRotate(node);
 			else leapfrogAsphericalRotate(node,t);
 		}
-		if(reset){ dyn.force=dyn.torque=Vector3r::Zero(); }
+
+		if(reset){
+			dyn.force=dyn.torque=Vector3r::Zero();
+			if(dyn.impose && (dyn.impose->what & Impose::FORCE)) dyn.impose->force(scene,node);
+		}
 
 		// if something is imposed, apply it here
-		if(dyn.impose) (*dyn.impose)(scene,node);
+		if(dyn.impose && (dyn.impose->what & Impose::VELOCITY)) dyn.impose->velocity(scene,node);
 
 		// for clumps, update positions/orientations of members as well
 		if(isClump) ClumpData::applyToMembers(node,/*resetForceTorque*/reset);

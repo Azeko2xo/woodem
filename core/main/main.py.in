@@ -332,6 +332,9 @@ elif gui=='qt4':
 		# keep the qapp referenced, otherwise 0.11 will die with "QWidget: Must construct QApplication before a QPaintDevice
 		import IPython.lib.inputhook #guisupport
 		qapp=IPython.lib.inputhook.enable_gui(gui='qt4')
+	#try:
+	#	qapp.setStyleSheet(open(yade.config.resourceDir+'/qmc2-black-0.10.qss').read())
+	#except IOError: pass # stylesheet not readable or whatever
 	userSession(qt4=True,qapp=qapp)
 
 from yade import O
