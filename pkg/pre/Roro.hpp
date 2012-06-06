@@ -23,7 +23,7 @@ struct Roro: public Preprocessor {
 		((Real,cylLenReal,8,AttrTrait<>().lenUnit().triggerPostLoad(),"Real length of cylinders"))
 		((Real,cylLenSim,.5,AttrTrait<>().lenUnit().triggerPostLoad(),"Simulated length of cylinders"))
 		((Real,cylRelLen,,AttrTrait<>().readonly(),"Relative length of simulated cylinders"))
-		((Real,massFlowRate,1600,AttrTrait<>().massFlowRateUnit().prefUnit("t/year"),"Incoming mass flow rate (considering real length)"))
+		((Real,massFlowRate,1600,AttrTrait<>().massFlowRateUnit().prefUnit("Mt/y"),"Incoming mass flow rate (considering real length)"))
 		((Real,time,2,AttrTrait<>().timeUnit(),"Time of the simulation (after reaching steady state)"))
 
 
@@ -44,7 +44,7 @@ struct Roro: public Preprocessor {
 		((Vector3r,quivHPeriod,Vector3r(3000,5000,3),,"Horizontal quiver period (relative to Δt); assigned quasi-randomly from the given range, with z-component giving modulo divisor"))
 		((Vector3r,quivVPeriod,Vector3r(5000,11000,5),,"Vertical quiver period (relative to Δt); assigned quasi-randomly from the given range, with z-component giving modulo divisor"))
 		((Real,gravity,100.,AttrTrait<>().accelUnit(),"Gravity acceleration magnitude"))
-		((int,steadyOver,500,,"Start steady (measured) phase when this number of particles falls over the last cylinder"))
+		((Real,steadyFlowFrac,.9,,"Start steady (measured) phase when efflux (fall over, apertures, out-of-domain) reaches this fraction of influx (feed)"))
 		((int,factStepPeriod,200,,"Run factory (and deleters) every *factStepPeriod* steps."))
 		((Real,pWaveSafety,.7,AttrTrait<Attr::triggerPostLoad>(),"Safety factor for critical timestep"))
 		((Real,rateSmooth,.1,,"Smoothing factor for plotting rates in factory and deleters"))

@@ -58,9 +58,6 @@ REGISTER_SERIALIZABLE(Cg2_Sphere_Sphere_L6Geom);
 
 struct Cg2_Facet_Sphere_L6Geom: public Cg2_Sphere_Sphere_L6Geom{
 	YADE_CLASS_BASE_DOC_ATTRS(Cg2_Facet_Sphere_L6Geom,Cg2_Sphere_Sphere_L6Geom,"Incrementally compute :yref:`L6Geom` for contact between :yref:`Facet` and :yref:`Sphere`. Uses attributes of :yref:`Cg2_Sphere_Sphere_L6Geom`.",
-		#if 0
-			((unsigned int,centralSphereMask,0,,"If non-zero, for particles with sphere's matching mask compute the contact such that the equilibrium position is when the sphere's center is on the facet."))
-		#endif
 	);
 	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
 	virtual bool goReverse(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){ throw std::logic_error("ContactLoop should swap interaction arguments, should be Facet+Sphere, but is "+s1->getClassName()+"+"+s2->getClassName()); }

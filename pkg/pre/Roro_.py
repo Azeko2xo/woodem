@@ -3,6 +3,7 @@ from yade import utils,pack
 from yade.core import *
 from yade.dem import *
 from yade.pre import *
+import yade.plot
 import yade.gl
 import math
 from miniEigen import *
@@ -15,10 +16,6 @@ def run(ui): # use inputs as argument
 	print 'Input parameters:'
 	print ui.dumps(format='expr',noMagic=True)
 	#print ui.dumps(format='html',fragment=True)
-
-	# this is useful supposing the simulation will run in the same process
-	import matplotlib
-	matplotlib.use('Agg') # make sure the headless backend is used
 
 	s=Scene()
 	de=DemField();
@@ -40,7 +37,8 @@ def run(ui): # use inputs as argument
 	
 	de.par.append([
 		utils.wall(ymin,axis=1,sense= 1,glAB=((zmin,xmin),(zmax,xmax)),material=ui.material,mask=wallMask),
-		utils.wall(ymax,axis=1,sense=-1,glAB=((zmin,xmin),(zmax,xmax)),material=ui.material,mask=wallMask)
+		utils.wall(ymax,axis=1,sense=-1,glAB=((zmin,xmin),(zmax,xmax)),material=ui.material,mask=wallMask),
+		utils.wall(xmin,axis=0,sense= 1,glAB=((ymin,zmin),(ymax,zmax)),material=ui.material,mask=wallMask)
 	])
 	for i in range(0,ui.cylNum):
 		x=i*(2*rCyl+ui.gap)
@@ -58,7 +56,7 @@ def run(ui): # use inputs as argument
 		)
 		de.par.append(c)
 	A,B,C,D=(xmin,ymin,rCyl),(0,ymin,rCyl),(0,ymax,rCyl),(xmin,ymax,rCyl)
-	de.par.append([utils.facet(vertices,material=ui.material,mask=wallMask) for vertices in ((A,B,C),(C,D,A))])
+	de.par.append([utils.facet(vertices,material=ui.material,mask=wallMask,fakeVel=(ui.flowVel*math.cos(ui.inclination),0,0)) for vertices in ((A,B,C),(C,D,A))])
 
 	incl=ui.inclination # is in radians
 	grav=ui.gravity
@@ -105,7 +103,9 @@ def watchProgress():
 	if yade.aperture[0].save==False:
 		# first particles have just fallen over
 		# start saving apertures and reset our counters here
-		if yade.fallOver.num>pre.steadyOver:
+		#if yade.fallOver.num>pre.steadyOver:
+		inFlux,outFlux=yade.factory.currRate,(yade.fallOver.currRate+yade.outOfDomain.currRate+sum([a.currRate for a in yade.aperture]))
+		if outFlux>pre.steadyFlowFrac*inFlux:
 			yade.fallOver.clear()
 			yade.factory.clear()
 			yade.factory.maxMass=pre.cylRelLen*pre.time*pre.massFlowRate # required mass scaled to simulated part
@@ -137,13 +137,15 @@ def watchProgress():
 
 def savePlotData():
 	import yade
-	if yade.aperture[0].save==False: return # not in the steady state yet
+	#if yade.aperture[0].save==False: return # not in the steady state yet
 	import yade.plot
 	# save unscaled data here!
 	sc=yade.O.scene
 	apRate=sum([a.currRate for a in yade.aperture])
 	overRate=yade.fallOver.currRate
-	yade.plot.addData(i=sc.step,t=sc.time,genRate=yade.factory.currRate,apRate=apRate,overRate=overRate,delRate=apRate+overRate)
+	lostRate=yade.outOfDomain.currRate
+	yade.plot.addData(i=sc.step,t=sc.time,genRate=yade.factory.currRate,apRate=apRate,overRate=overRate,lostRate=lostRate,delRate=apRate+overRate+lostRate,numPar=len(yade.O.dem.par))
+	if not yade.plot.plots: yade.plot.plots={'t':('genRate','apRate','lostRate','overRate','delRate',None,'numPar')}
 
 def splitPsd(xx0,yy0,splitX):
 	'''Split input *psd0* (given by *xx0* and *yy0*) at diameter (x-axis) specified by *splitX*; two PSDs are returned, one grows from splitX and has maximum value for all points x>=splitX; the second PSD is zero for all values <=splitX, then grows to the maximum value proportionally. The maximum value is the last point of psd0, thus both normalized and non-normalized input can be given. If splitX falls in the middle of *psd0* intervals, it is interpolated.'''
@@ -221,8 +223,12 @@ def plotFinalPsd():
 	#ui=[a for a in yade.O.scene.any if type(a)==yade.pre.Roro][0]
 	#print 'Parameters were:'
 	#pre.dump(sys.stdout,noMagic=True,format='expr')
-	import matplotlib
-	matplotlib.use('Agg')
+
+	import matplotlib.pyplot as pyplot
+	pyplot.switch_backend('Agg')
+
+	#import matplotlib
+	#matplotlib.use('Agg')
 	import pylab
 	import os
 	import numpy
@@ -352,8 +358,10 @@ def plotFinalPsd():
 		d=yade.plot.data
 		pylab.plot(d['t'],massScale*numpy.array(d['genRate']),label='feed')
 		pylab.plot(d['t'],massScale*numpy.array(d['apRate']),label='apertures')
+		pylab.plot(d['t'],massScale*numpy.array(d['lostRate']),label='(lost)')
 		pylab.plot(d['t'],massScale*numpy.array(d['overRate']),label='fallOver')
 		pylab.plot(d['t'],massScale*numpy.array(d['delRate']),label='delete')
+		pylab.axvline(x=(yade.O.scene.time-pre.time),linewidth=5,alpha=.3,ymin=0,ymax=1,color='r',label='steady')
 		pylab.ylim(ymin=0)
 		pylab.legend(loc='lower left')
 		pylab.grid(True)

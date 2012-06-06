@@ -563,19 +563,22 @@ class SerializableEditor(QFrame):
 	import logging
 	# each attribute has one entry associated with itself
 	class EntryData:
-		def __init__(self,name,T,doc,groupNo,trait,containingClass):
+		def __init__(self,name,T,doc,groupNo,trait,containingClass,editor):
 			self.name,self.T,self.doc,self.trait,self.groupNo,self.containingClass=name,T,doc,trait,groupNo,containingClass
 			self.widget=None
+			self.visible=True
 			self.widgets={} #{'label':None,'value':None,'unit':None}
+			self.editor=editor
 		def propertyId(self):
 			try:
 				return id(getattr(self.containingClass,self.name))
 			except AttributeError: return None
-		def unitChanged(self):
+		def unitChanged(self,ix0=-1,forceBaseUnit=False):
+			if not self.trait.unit or len(self.trait.altUnits[0])==0: return
 			c=self.unitLayout
 			if not self.trait.multiUnit:
 				#print self.name,self.containingClass.__name__,self.trait.unit
-				ix=c.itemAt(0).widget().currentIndex()
+				ix=c.itemAt(0).widget().currentIndex() if not forceBaseUnit else 0
 				w=self.widgets['value']
 				if ix==0: # base unit:
 					w.multiplier=None
@@ -587,7 +590,7 @@ class SerializableEditor(QFrame):
 				mult,msg=[],[]
 				for i in range(len(self.trait.unit)):
 					if self.trait.altUnits[i]: # not empty, there is a combo box
-						ix=c.itemAt(i).widget().currentIndex()
+						ix=c.itemAt(i).widget().currentIndex() if not forceBaseUnit else 0
 						mult.append(None if ix==0 else self.trait.altUnits[i][ix-1][1])
 						if mult[-1]!=None: msg.append(u'%s × %g = %s'%(self.trait.altUnits[i][ix-1][0].decode('utf-8') if ix>0 else '-',mult[-1],self.trait.unit[i].decode('utf-8')))
 						else: msg.append('')
@@ -597,23 +600,26 @@ class SerializableEditor(QFrame):
 		def toggleChecked(self,checked):
 			self.widgets['value'].setEnabled(not checked)
 			self.widgets['label'].setEnabled(not checked)
-		def hideWidgets(self,hide):
+		def setVisible(self,visible=None):
 			# TODO: this should not show checker if disabled etc
-			if hide:
+			if visible==None: visible=self.visible
+			self.visible=visible
+			if not visible:
 				for w in self.widgets.values():
 					if w: w.hide()
 			else:
 				for w in self.widgets.values():
-					if w: w.show()
+					if 'unit' in self.widgets and w==self.widgets['unit']: w.setVisible(self.editor.showUnits)
+					elif 'check' in self.widgets and w==self.widgets['check']: w.setVisible(self.editor.showChecks)
+					else: w.show()
 			
 			
 	class EntryGroupData:
-		def __init__(self,number,name,showChecks):
+		def __init__(self,number,name):
 			self.number=number
 			self.name=name
 			self.expander=None
 			self.entries=[]
-			self.showChecks=showChecks # initial value same as the editor initially
 			style=QtGui.QCommonStyle()
 			self.rightArrow=style.standardIcon(QtGui.QStyle.SP_ArrowRight)
 			self.downArrow =style.standardIcon(QtGui.QStyle.SP_ArrowDown)
@@ -629,13 +635,13 @@ class SerializableEditor(QFrame):
 		def setExpanderIcon(self): self.expander.setIcon(self.downArrow if self.expander.isChecked() else self.rightArrow)
 		def toggleExpander(self): 
 			self.setExpanderIcon()
-			for e in self.entries: e.hideWidgets(not self.expander.isChecked())
+			for e in self.entries: e.setVisible(self.expander.isChecked())
 			
 
 
 			
 
-	def __init__(self,ser,parent=None,ignoredAttrs=set(),showType=False,path=None,labelIsVar=True,showChecks=False):
+	def __init__(self,ser,parent=None,ignoredAttrs=set(),showType=False,path=None,labelIsVar=True,showChecks=False,showUnits=False):
 		"Construct window, *ser* is the object we want to show."
 		QtGui.QFrame.__init__(self,parent)
 		self.ser=ser
@@ -643,6 +649,7 @@ class SerializableEditor(QFrame):
 		self.showType=showType
 		self.labelIsVar=labelIsVar # show variable name; if false, docstring is used instead
 		self.showChecks=showChecks
+		self.showUnits=showUnits
 		self.hot=False
 		self.entries=[]
 		self.entryGroups=[]
@@ -718,7 +725,7 @@ class SerializableEditor(QFrame):
 			if attr in self.ignoredAttrs: continue
 
 			# this attribute starts a new attribute group
-			if trait.startGroup: self.entryGroups.append(self.EntryGroupData(number=len(self.entryGroups),name=trait.startGroup,showChecks=self.showChecks))
+			if trait.startGroup: self.entryGroups.append(self.EntryGroupData(number=len(self.entryGroups),name=trait.startGroup))
 
 			if isinstance(val,list):
 				t=self.getListTypeFromDocstring(trait)
@@ -730,13 +737,13 @@ class SerializableEditor(QFrame):
 				t=val.__class__
 				if t in _attributeGuessedTypeMap: t=_attributeGuessedTypeMap[val.__class__]
 
-			if len(self.entryGroups)==0: self.entryGroups.append(self.EntryGroupData(number=0,name=None,showChecks=self.showChecks))
+			if len(self.entryGroups)==0: self.entryGroups.append(self.EntryGroupData(number=0,name=None))
 			groupNo=len(self.entryGroups)-1
 
 			#if not match: print 'No attr match for docstring of %s.%s'%(self.ser.__class__.__name__,attr)
 
 			#logging.debug('Attr %s is of type %s'%(attr,((t[0].__name__,) if isinstance(t,tuple) else t.__name__)))
-			self.entries.append(self.EntryData(name=attr,T=t,groupNo=groupNo,doc=trait.doc,trait=trait,containingClass=klass))
+			self.entries.append(self.EntryData(name=attr,T=t,groupNo=groupNo,doc=trait.doc,trait=trait,containingClass=klass,editor=self))
 	def getDocstring(self,attr=None):
 		"If attr is *None*, return docstring of the Serializable itself"
 		if attr==None:
@@ -813,18 +820,21 @@ class SerializableEditor(QFrame):
 			if hasattr(obj,'label') and obj.label: path=obj.label
 			elif self.path: path=self.path+'.'+entry.name
 			else: path=None
-			widget=SerializableEditor(getattr(self.ser,entry.name),parent=self,showType=self.showType,path=(self.path+'.'+entry.name if self.path else None),labelIsVar=self.labelIsVar,showChecks=self.showChecks)
+			widget=SerializableEditor(getattr(self.ser,entry.name),parent=self,showType=self.showType,path=(self.path+'.'+entry.name if self.path else None),labelIsVar=self.labelIsVar,showChecks=self.showChecks,showUnits=self.showUnits)
 			widget.setFrameShape(QFrame.Box); widget.setFrameShadow(QFrame.Raised); widget.setLineWidth(1)
 			return widget
 		return None
 	def serQLabelMenu(self,widget,position):
 		menu=QMenu(self)
-		toggleLabelIsVar=menu.addAction('Show variables')
+		toggleLabelIsVar=menu.addAction('Variables')
 		toggleLabelIsVar.setCheckable(True); toggleLabelIsVar.setChecked(self.labelIsVar)
 		toggleLabelIsVar.triggered.connect(lambda: self.toggleLabelIsVar(None))
-		toggleShowChecks=menu.addAction('Show checks')
+		toggleShowChecks=menu.addAction('Checks')
 		toggleShowChecks.setCheckable(True); toggleShowChecks.setChecked(self.showChecks)
 		toggleShowChecks.triggered.connect(lambda: self.toggleShowChecks(None))
+		toggleShowUnits=menu.addAction('Units')
+		toggleShowUnits.setCheckable(True); toggleShowUnits.setChecked(self.showUnits)
+		toggleShowUnits.triggered.connect(lambda: self.toggleShowUnits(None))
 		menu.popup(self.mapToGlobal(position))
 		#print 'menu popped up at ',widget.mapToGlobal(position),' (local',position,')'
 	def getAttrLabelToolTip(self,entry):
@@ -839,7 +849,7 @@ class SerializableEditor(QFrame):
 				entry.widget.toggleLabelIsVar(self.labelIsVar)
 	def toggleShowChecks(self,val=None):
 		self.showChecks=(not self.showChecks if val==None else val)
-		for g in self.entryGroups: g.showChecks=self.showChecks # propagate down
+		#for g in self.entryGroups: g.showChecks=self.showChecks # propagate down
 		for entry in self.entries:
 			entry.widgets['check'].setVisible(self.showChecks)
 			if not entry.trait.readonly:
@@ -847,6 +857,14 @@ class SerializableEditor(QFrame):
 				entry.widgets['label'].setEnabled(True)
 			if entry.widget.__class__==SerializableEditor:
 				entry.widget.toggleShowChecks(self.showChecks)
+	def toggleShowUnits(self,val=None):
+		self.showUnits=(not self.showUnits if val==None else val)
+		print self.showUnits
+		for entry in self.entries:
+			entry.setVisible(None)
+			entry.unitChanged(forceBaseUnit=(not self.showUnits))
+			if entry.widget.__class__==SerializableEditor:
+				entry.widget.toggleShowUnits(self.showUnits)
 	def mkWidgets(self):
 		self.mkAttrEntries()
 		onlyDefaultGroups=(len(self.entryGroups)==1 and self.entryGroups[0].name==None)
@@ -898,7 +916,8 @@ class SerializableEditor(QFrame):
 						w.addItem(unit.decode('utf-8'))
 						w.activated.connect(entry.unitChanged)
 						for u,mult in alt: w.addItem(u.decode('utf-8'))
-						if unit!=pref[0]: # set preferred unit right away
+						# set preferred unit right away; when units are not shown, always use SI, however
+						if unit!=pref[0]:
 							# this is checked in c++, should never fail
 							ii=[i for i in range(len(alt)) if alt[i][0]==pref[0]][0]
 							w.setCurrentIndex(ii+1)
@@ -906,6 +925,7 @@ class SerializableEditor(QFrame):
 						w=QLabel(unit.decode('utf-8'),self)
 					unitLay.addWidget(w)
 				if unitChoice: entry.unitChanged() # postpone calling this at the very end
+				entry.widgets['unit'].setVisible(self.showUnits)
 			#if self.hasUnits and entry.widget.__class__!=SerializableEditor: entry.widgets['unit']=QLabel(u'−',self)
 			##else: entry.widgets['unit']=QLabel(u'−',self) if (self.hasUnits and entry.widget.__class__!=SerializableEditor) else QFrame() # avoid NaN widgets
 			self.entryGroups[entry.groupNo].entries.append(entry)

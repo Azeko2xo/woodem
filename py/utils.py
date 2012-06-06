@@ -214,13 +214,11 @@ def wall(position,axis,sense=0,glAB=None,fixed=True,mass=0,color=None,material=N
 	p.mask=mask
 	return p
 
-def facet(vertices,fixed=True,wire=True,color=None,highlight=False,material=None,mask=1):
+def facet(vertices,fakeVel=None,fixed=True,wire=True,color=None,highlight=False,material=None,mask=1):
 	"""Create facet with given parameters.
 
 	:param [Vector3,Vector3,Vector3] vertices: coordinates of vertices in the global coordinate system.
 	:param bool wire: if ``True``, facets are shown as skeleton; otherwise facets are filled
-	:param bool noBound: set :yref:`Body.bounded`
-	:param Vector3-or-None color: color of the facet; random color will be assigned if ``None``.
 
 	See :yref:`yade.utils.sphere`'s documentation for meaning of other parameters."""
 	p=Particle()
@@ -232,6 +230,7 @@ def facet(vertices,fixed=True,wire=True,color=None,highlight=False,material=None
 	else:
 		nodes=[_mkDemNode(pos=vertices[0]),_mkDemNode(pos=vertices[1]),_mkDemNode(pos=vertices[2])]
 	p.shape=Facet(color=color if color else random.random())
+	if fakeVel: p.shape.fakeVel=fakeVel
 	p.shape.wire=wire
 	_commonBodySetup(p,nodes,volumes=None,masses=(0,0,0),geomInertias=[Vector3(0,0,0),Vector3(0,0,0),Vector3(0,0,0)],material=material,fixed=fixed)
 	p.aspherical=False # mass and inertia are 0 anyway; fell free to change to ``True`` if needed

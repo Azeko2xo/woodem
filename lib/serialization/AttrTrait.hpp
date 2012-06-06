@@ -167,7 +167,7 @@ namespace yade{
 		AttrTrait& torqueUnit(){ unit("N·m"); altUnits({{"kN·m",1e-3},{"MN·m",1e-6}}); return *this; }
 		AttrTrait& pressureUnit(){ unit("Pa"); altUnits({{"kPa",1e-3},{"MPa",1e-6},{"GPa",1e-9}}); return *this; }
 		AttrTrait& stiffnessUnit(){ return pressureUnit(); }
-		AttrTrait& massFlowRateUnit(){ unit("kg/s"); altUnits({{"t/year",1e-3*(24*3600*365)}}); return *this; }
+		AttrTrait& massFlowRateUnit(){ unit("kg/s"); altUnits({{"t/y",1e-3*(24*3600*365)},{"Mt/y",1e-6*1e-3*(24*3600*365)}}); return *this; }
 		AttrTrait& densityUnit(){ unit("kg/m³"); altUnits({{"t/m³",1e-3},{"g/cm³",1e-3}}); return *this; }
 		AttrTrait& fractionUnit(){ unit("-"); altUnits({{"%",1e2},{"‰",1e3},{"ppm",1e6}}); return *this; }
 

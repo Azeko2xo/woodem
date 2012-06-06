@@ -82,41 +82,20 @@ bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<
 		case 7: throw logic_error("Cg2_Facet_Sphere_L3Geom: Impossible sphere-facet intersection (all points are outside the edges). (please report bug)"); // +++ (impossible)
 		default: throw logic_error("Ig2_Facet_Sphere_L3Geom: Nonsense intersection value. (please report bug)");
 	}
-	#if 0
-	//if(centralSphereMask==0 || (centralSphereMask & C->pB->mask&centralSphereMask)==0){
-	#endif
-		Vector3r normal=sC-contPt; // normal is now the contact normal (not yet normalized)
-		//cerr<<"sC="<<sC.transpose()<<", contPt="<<contPt.transpose()<<endl;
-		//cerr<<"dist="<<normal.norm()<<endl;
-		if(normal.squaredNorm()>pow(s.radius,2) && !C->isReal() && !force) { return false; }
-		Real dist=normal.norm(); normal/=dist; // normal is normalized now
-		Real uN=dist-s.radius;
-		// TODO: not yet tested!!
-		Vector3r linVel,angVel;
-		std::tie(linVel,angVel)=f.interpolatePtLinAngVel(contPt);
-		const DemData& dyn2(s.nodes[0]->getData<DemData>()); // sphere
-		// check if this will work when contact point == pseudo-position of the facet
-		handleSpheresLikeContact(C,contPt,linVel,angVel,sC,dyn2.vel,dyn2.angVel,normal,contPt,uN,0,s.radius);
-		return true;
-	#if 0
-	}else{
-		Real dist=(sC-contPt).norm();
-		Vector3r normal;
-		if(dist==0.) normal=fNormal;
-		else normal=(sC-contPt)/dist;
-		/* imitate handleSpheresLikeContact here... */
-		if(!C->geom) C->geom=make_shared<L6Geom>();
-		L6Geom& g(C->geom->cast<L6Geom>());
-		g.setInitialLocalCoords(normal);
-		// FIXME: do the same as in handleSpheresLikeContact, but without hacks!!
-		g.lens=Vector2r(s.radius,s.radius);
-		g.contA=Mathr::PI*pow(s.radius,2);
-		g.node->pos=contPt;
-		g.node->ori=Quaternionr(g.trsf);
-		g.uN=dist;
-		return true;
-	}
-	#endif
+	Vector3r normal=sC-contPt; // normal is now the contact normal (not yet normalized)
+	//cerr<<"sC="<<sC.transpose()<<", contPt="<<contPt.transpose()<<endl;
+	//cerr<<"dist="<<normal.norm()<<endl;
+	if(normal.squaredNorm()>pow(s.radius,2) && !C->isReal() && !force) { return false; }
+	Real dist=normal.norm(); normal/=dist; // normal is normalized now
+	Real uN=dist-s.radius;
+	// TODO: not yet tested!!
+	Vector3r linVel,angVel;
+	std::tie(linVel,angVel)=f.interpolatePtLinAngVel(contPt);
+	linVel+=f.fakeVel; // add fake velocity
+	const DemData& dyn2(s.nodes[0]->getData<DemData>()); // sphere
+	// check if this will work when contact point == pseudo-position of the facet
+	handleSpheresLikeContact(C,contPt,linVel,angVel,sC,dyn2.vel,dyn2.angVel,normal,contPt,uN,0,s.radius);
+	return true;
 };
 
 bool Cg2_Wall_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
