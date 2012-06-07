@@ -402,7 +402,7 @@ def plotFinalPsd():
 			<tr><td>compiled with</td><td align="right">{compiledWith}</td></tr>
 		</table>
 		'''.format(user=yade.O.scene.tags['user'],started=time.ctime(time.time()-yade.O.realtime),duration=yade.O.realtime,nCores=yade.O.numThreads,stepsPerSec=yade.O.scene.step/yade.O.realtime,engine='wooDem '+yade.config.version+'/'+yade.config.revision+(' (debug)' if yade.config.debug else ''),compiledWith=','.join(yade.config.features))
-		+'<h2>Input data</h2>'+pre.dumps(format='html',fragment=True)
+		+'<h2>Input data</h2>'+pre.dumps(format='html',fragment=True,showDoc=True)
 		+'<h2>Outputs</h2>'
 		+feedTab
 		+'\n'.join(['<h3>'+svg[0]+'</h3>'+svgFragment(open(svg[1]).read()) for svg in svgs])

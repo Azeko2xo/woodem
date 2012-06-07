@@ -23,25 +23,21 @@ def _Serializable_getAllTraits(obj):
 		k=k.__bases__[0]
 	return ret
 
-# a few attributes which make dumping a small object go crazy
-# e.g. Engine has pointer to Field, which then wants to dump all particles
-_dumpingForbidden=(yade.core.Engine.field,)
-
 htmlHead='<head><meta http-equiv="content-type" content="text/html;charset=UTF-8" /></head><body>\n'
 
-def _Serializable_dumps(obj,format,fragment=False,width=80,noMagic=False,stream=True):
+def _Serializable_dumps(obj,format,fragment=False,width=80,noMagic=False,stream=True,showDoc=False):
 	if format not in ('html','expr','pickle','genshi'): raise IOError("Unsupported string dump format %s"%format)
 	if format=='pickle':
 		return pickle.dumps(obj)
 	elif format=='expr':
 		return SerializerToExpr(maxWd=width,noMagic=noMagic)(obj)
 	elif format=='html':
-		return ('' if fragment else htmlHead)+SerializerToHtmlTable()(obj)+('' if fragment else '</body>')
+		return ('' if fragment else htmlHead)+SerializerToHtmlTable(showDoc=showDoc)(obj)+('' if fragment else '</body>')
 	elif format=='genshi':
-		return SerializeToHtmlTable()(obj,dontRender=True)
+		return SerializeToHtmlTable()(obj,dontRender=True,showDoc=showDoc)
 
-def _Serializable_dump(obj,out,format='auto',overwrite=True,fragment=False,width=80,noMagic=False):
-	'''Dump an object in specified *format*; *out* can be a string (filename) or a *file* object. Supported formats are: `auto` (auto-detected from *out* extension; raises exception when *out* is an object), `xml`, `bin`, `html`, `expr`.'''
+def _Serializable_dump(obj,out,format='auto',overwrite=True,fragment=False,width=80,noMagic=False,showDoc=False):
+	'''Dump an object in specified *format*; *out* can be a string (filename) or a *file* object. Supported formats are: `auto` (auto-detected from *out* extension; raises exception when *out* is an object), `html`, `expr`.'''
 	if format not in ('auto','html','expr','pickle','boost::serialization'): raise IOError("Unsupported dump format %s"%format)
 	hasFilename=isinstance(out,str)
 	if hasFilename:
@@ -63,21 +59,21 @@ def _Serializable_dump(obj,out,format='auto',overwrite=True,fragment=False,width
 		if hasFilename: pickle.dump(obj,open(out,'w'))
 		else: out.write(pickle.dumps(obj))
 	elif format=='expr' or format=='html': 
-		#raise NotImplementedError("format='expr' not yet implemented")
 		if hasFilename:
 			out=codecs.open(out,'w','utf-8')
 		if format=='expr':
 			out.write(SerializerToExpr(maxWd=width,noMagic=noMagic)(obj))
 		elif format=='html':
 			if not fragment: out.write(htmlHead)
-			out.write(SerializerToHtmlTable()(obj))
+			out.write(SerializerToHtmlTable(showDoc=showDoc)(obj))
 			if not fragment: out.write('</body>')
 		
 class SerializerToHtmlTableRaw:
 	padding='cellpadding="2px"'
-	def __init__(self,maxDepth=8,hideNoGui=False):
+	def __init__(self,showDoc=False,maxDepth=8,hideNoGui=False):
 		self.maxDepth=maxDepth
 		self.hideNoGui=hideNoGui
+		self.showDoc=showDoc
 	def htmlSeq(self,s,indent,insideTable):
 		ret=''
 		indent1=indent+'\t'
@@ -107,12 +103,11 @@ class SerializerToHtmlTableRaw:
 		traits=obj._getAllTraits()
 		for trait in traits:
 			if trait.hidden or (self.hideNoGui and trait.noGui) or trait.noDump: continue
-			if getattr(obj.__class__,trait.name) in _dumpingForbidden: continue
 			# start new group (additional line)
 			if trait.startGroup:
 				ret+=indent1+'<tr><td colspan="3"><i>&#9656; %s</i></td></tr>'%trait.startGroup
 			attr=getattr(obj,trait.name)
-			ret+=indent1+'<tr>'+indent2+'<td>%s</td>'%trait.name
+			ret+=indent1+'<tr>'+indent2+'<td>%s</td>'%(trait.name if not showDoc else trait.doc.decode('utf-8'))
 			# nested object
 			if isinstance(attr,yade.wrapper.Serializable):
 				ret+=indent2+'<td align="justify">'+self(attr,depth+1)+indent2+'</td>'
@@ -152,9 +147,10 @@ class SerializerToHtmlTableRaw:
 
 class SerializerToHtmlTableGenshi:
 	padding=dict(cellpadding='2px')
-	def __init__(self,maxDepth=8,hideNoGui=False):
+	def __init__(self,showDoc=False,maxDepth=8,hideNoGui=False):
 		self.maxDepth=maxDepth
 		self.hideNoGui=hideNoGui
+		self.showDoc=showDoc
 	def htmlSeq(self,s,insideTable):
 		from genshi.builder import tag
 		table=tag.table(frame='box',rules='all',width='100%',**self.padding)
@@ -180,12 +176,11 @@ class SerializerToHtmlTableGenshi:
 		traits=obj._getAllTraits()
 		for trait in traits:
 			if trait.hidden or (self.hideNoGui and trait.noGui) or trait.noDump: continue
-			if getattr(obj.__class__,trait.name) in _dumpingForbidden: continue
 			# start new group (additional line)
 			if trait.startGroup:
 				ret.append(tag.tr(tag.td(tag.i(u'▸ %s'%trait.startGroup.decode('utf-8')),colspan=3)))
 			attr=getattr(obj,trait.name)
-			tr=tag.tr(tag.td(trait.name))
+			tr=tag.tr(tag.td(trait.name if not self.showDoc else trait.doc.decode('utf-8')))
 			# nested object
 			if isinstance(attr,yade.wrapper.Serializable):
 				tr.append([tag.td(self(attr,depth+1),align='justify'),tag.td()])
