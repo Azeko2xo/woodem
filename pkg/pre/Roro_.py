@@ -36,9 +36,9 @@ def run(ui): # use inputs as argument
 	delMask= 0b00001
 	
 	de.par.append([
-		utils.wall(ymin,axis=1,sense= 1,glAB=((zmin,xmin),(zmax,xmax)),material=ui.material,mask=wallMask),
-		utils.wall(ymax,axis=1,sense=-1,glAB=((zmin,xmin),(zmax,xmax)),material=ui.material,mask=wallMask),
-		utils.wall(xmin,axis=0,sense= 1,glAB=((ymin,zmin),(ymax,zmax)),material=ui.material,mask=wallMask)
+		utils.wall(ymin,axis=1,sense= 1,visible=False,glAB=((zmin,xmin),(zmax,xmax)),material=ui.material,mask=wallMask),
+		utils.wall(ymax,axis=1,sense=-1,visible=False,glAB=((zmin,xmin),(zmax,xmax)),material=ui.material,mask=wallMask),
+		utils.wall(xmin,axis=0,sense= 1,visible=False,glAB=((ymin,zmin),(ymax,zmax)),material=ui.material,mask=wallMask)
 	])
 	for i in range(0,ui.cylNum):
 		x=i*(2*rCyl+ui.gap)
@@ -83,7 +83,7 @@ def run(ui): # use inputs as argument
 		),
 		PyRunner(factStep,'import yade.pre.Roro_; yade.pre.Roro_.watchProgress()'),
 		PyRunner(factStep,'import yade.pre.Roro_; yade.pre.Roro_.savePlotData()'),
-	]
+	]+([] if (not ui.vtkPrefix or ui.vtkFreq<=0) else [VtkExport(out=ui.vtkPrefix+s.tags['id']+'-',stepPeriod=(int)(ui.vtkFreq*ui.factStepPeriod),what=VtkExport.all)])
 	# improtant: save the preprocessor here!
 	s.any=[yade.gl.Gl1_InfCylinder(wire=True),yade.gl.Gl1_Wall(div=3)]
 	s.pre=ui
@@ -104,15 +104,16 @@ def watchProgress():
 		# first particles have just fallen over
 		# start saving apertures and reset our counters here
 		#if yade.fallOver.num>pre.steadyOver:
-		inFlux,outFlux=yade.factory.currRate,(yade.fallOver.currRate+yade.outOfDomain.currRate+sum([a.currRate for a in yade.aperture]))
-		if outFlux>pre.steadyFlowFrac*inFlux:
+		influx,efflux=yade.factory.currRate,(yade.fallOver.currRate+yade.outOfDomain.currRate+sum([a.currRate for a in yade.aperture]))
+		if efflux>pre.steadyFlowFrac*influx:
+			print efflux,'>',pre.steadyFlowFrac,'*',influx
 			yade.fallOver.clear()
 			yade.factory.clear()
 			yade.factory.maxMass=pre.cylRelLen*pre.time*pre.massFlowRate # required mass scaled to simulated part
 			for ap in yade.aperture:
 				ap.clear() # to clear overall mass, which gets counted even with save=False
 				ap.save=True
-			print 'Stabilized regime reached at step %d, counters engaged.'%yade.O.scene.step
+			print 'Stabilized regime reached (influx %g, efflux %g) at step %d, counters engaged.'%(influx,efflux,yade.O.scene.step)
 	# already in the stable regime, end simulation at some point
 	else:
 		# factory has finished generating particles
@@ -145,7 +146,8 @@ def savePlotData():
 	overRate=yade.fallOver.currRate
 	lostRate=yade.outOfDomain.currRate
 	yade.plot.addData(i=sc.step,t=sc.time,genRate=yade.factory.currRate,apRate=apRate,overRate=overRate,lostRate=lostRate,delRate=apRate+overRate+lostRate,numPar=len(yade.O.dem.par))
-	if not yade.plot.plots: yade.plot.plots={'t':('genRate','apRate','lostRate','overRate','delRate',None,'numPar')}
+	if not yade.plot.plots:
+		yade.plot.plots={'t':('genRate','apRate','lostRate','overRate','delRate',None,'numPar')}
 
 def splitPsd(xx0,yy0,splitX):
 	'''Split input *psd0* (given by *xx0* and *yy0*) at diameter (x-axis) specified by *splitX*; two PSDs are returned, one grows from splitX and has maximum value for all points x>=splitX; the second PSD is zero for all values <=splitX, then grows to the maximum value proportionally. The maximum value is the last point of psd0, thus both normalized and non-normalized input can be given. If splitX falls in the middle of *psd0* intervals, it is interpolated.'''

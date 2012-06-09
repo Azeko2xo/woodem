@@ -190,7 +190,7 @@ def sphere(center,radius,fixed=False,wire=False,color=None,highlight=False,mater
 	b.mask=mask
 	return b
 
-def wall(position,axis,sense=0,glAB=None,fixed=True,mass=0,color=None,material=None,mask=1):
+def wall(position,axis,sense=0,glAB=None,fixed=True,mass=0,color=None,material=None,visible=True,mask=1):
 	"""Return ready-made wall body.
 
 	:param float-or-Vector3-or-Node position: center of the wall. If float, it is the position along given axis, the other 2 components being zero
@@ -212,6 +212,7 @@ def wall(position,axis,sense=0,glAB=None,fixed=True,mass=0,color=None,material=N
 	_commonBodySetup(p,[node],volumes=None,masses=[mass],geomInertias=[inf*Vector3.Ones],material=material,fixed=fixed)
 	p.aspherical=False # wall never rotates anyway
 	p.mask=mask
+	p.shape.visible=visible
 	return p
 
 def facet(vertices,fakeVel=None,fixed=True,wire=True,color=None,highlight=False,material=None,mask=1):

@@ -172,6 +172,10 @@ void ParticleFactory::run(){
 	}
 	if(dynamic_pointer_cast<InsertionSortCollider>(collider)) static_pointer_cast<InsertionSortCollider>(collider)->forceInitSort=true;
 
+	// as if some time has already elapsed at the very start
+	// otherwise mass flow rate is too big since one particle during Δt exceeds it easily
+	// equivalent to not running the first time, but without time waste
+	if(stepPrev==-1 && stepPeriod>0) stepPrev=-stepPeriod; 
 	long nSteps=scene->step-this->stepPrev;
 	this->stepPrev=scene->step;
 	// to be attained in this step;
@@ -322,6 +326,7 @@ void ParticleFactory::run(){
 		}
 	};
 	Real currRateNoSmooth=stepMass/(nSteps*scene->dt);
+	//cerr<<"[mass="<<mass<<",stepGoalMass="<<stepGoalMass<<",currRateNoSmooth="<<currRateNoSmooth<<"]";
 	if(isnan(currRate)) currRate=currRateNoSmooth;
 	else currRate=(1-currRateSmooth)*currRate+currRateSmooth*currRateNoSmooth;
 }

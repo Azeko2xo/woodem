@@ -23,23 +23,24 @@ struct Roro: public Preprocessor {
 		((Real,cylLenReal,8,AttrTrait<>().lenUnit().triggerPostLoad(),"Real length of cylinders"))
 		((Real,cylLenSim,.5,AttrTrait<>().lenUnit().triggerPostLoad(),"Simulated length of cylinders"))
 		((Real,cylRelLen,,AttrTrait<>().readonly(),"Relative length of simulated cylinders"))
-		((Real,massFlowRate,1600,AttrTrait<>().massFlowRateUnit().prefUnit("Mt/y"),"Incoming mass flow rate (considering real length)"))
+		((Real,massFlowRate,/*for real length*/2500,AttrTrait<>().massFlowRateUnit().prefUnit("Mt/y"),"Incoming mass flow rate (considering real length)"))
 		((Real,time,2,AttrTrait<>().timeUnit(),"Time of the simulation (after reaching steady state)"))
-
-
 		((Real,flowVel,1.,AttrTrait<>().velUnit().cxxType("fooBar"),"Velocity of generated particles"))
 		((Real,cylDiameter,.2,AttrTrait<>().lenUnit().prefUnit("mm"),"Diameter of cylinders"))
 		((Real,inclination,30*Mathr::PI/180.,AttrTrait<>().angleUnit().prefUnit("deg"),"Inclination cylinders"))
+
+		// Advanced
 		((Real,gap,.038,AttrTrait<>().lenUnit().prefUnit("mm").startGroup("Advanced"),"Gap between cylinders"))
 		((Real,angVel,10.,AttrTrait<>().angVelUnit().prefUnit("rot/min"),"Angular velocity of cylinders [rot/sec]"))
 		((vector<Vector2r>,psd,vector<Vector2r>({Vector2r(0.02,.0),Vector2r(.03,.2),Vector2r(.04,.3),Vector2r(.05,.7)})/*set in the ctor*/,AttrTrait<>().triggerPostLoad().multiUnit().lenUnit().prefUnit("mm").fractionUnit().prefUnit("%"),"Particle size distribution of generated particles: first value is diameter, second value is cummulative fraction"))
 		((shared_ptr<FrictMat>,material,make_shared<FrictMat>(),,"Material of particles"))
 
-
+		// Estimates
 		((Real,ccaDt   ,,AttrTrait<>().readonly().timeUnit().startGroup("Estimates"),"Δt"))
 		((long,ccaSteps,,AttrTrait<>().readonly(),"number of steps"))
 		((Real,totMass ,,AttrTrait<>().readonly().massUnit(),"mass amount"))
 
+		// Tunables
 		((Vector2r,quivAmp,Vector2r(.05,.03),AttrTrait<>().lenUnit().prefUnit("mm").startGroup("Tunables"),"Cylinder quiver amplitudes (horizontal and vertical), relative to cylinder radius"))
 		((Vector3r,quivHPeriod,Vector3r(3000,5000,3),,"Horizontal quiver period (relative to Δt); assigned quasi-randomly from the given range, with z-component giving modulo divisor"))
 		((Vector3r,quivVPeriod,Vector3r(5000,11000,5),,"Vertical quiver period (relative to Δt); assigned quasi-randomly from the given range, with z-component giving modulo divisor"))
@@ -48,6 +49,8 @@ struct Roro: public Preprocessor {
 		((int,factStepPeriod,200,,"Run factory (and deleters) every *factStepPeriod* steps."))
 		((Real,pWaveSafety,.7,AttrTrait<Attr::triggerPostLoad>(),"Safety factor for critical timestep"))
 		((Real,rateSmooth,.1,,"Smoothing factor for plotting rates in factory and deleters"))
+		((Real,vtkFreq,1.,,"How often should VtkExport run, relative to *factStepPeriod*. If negative, run never."))
+		((string,vtkPrefix,"/tmp/",,"Prefix for saving VtkExport data, files will be called vtkPrefix+O.tags['id']. Don't forget trailing slash if vtkPrefix is a directory."))
 
 		, /*ctor*/
 			material->density=3200;

@@ -9,7 +9,7 @@
 YADE_PLUGIN(dem,(VtkExport));
 CREATE_LOGGER(VtkExport);
 
-void VtkExport::addTriangulatedObject(vector<Vector3r> pts, vector<Vector3i> tri, const vtkSmartPointer<vtkPoints>& vtkPts, const vtkSmartPointer<vtkCellArray>& cells){
+int VtkExport::addTriangulatedObject(vector<Vector3r> pts, vector<Vector3i> tri, const vtkSmartPointer<vtkPoints>& vtkPts, const vtkSmartPointer<vtkCellArray>& cells){
 	size_t id0=vtkPts->GetNumberOfPoints();
 	for(const auto& pt: pts) vtkPts->InsertNextPoint(pt.data());
 	for(size_t i=0; i<tri.size(); i++){
@@ -19,15 +19,18 @@ void VtkExport::addTriangulatedObject(vector<Vector3r> pts, vector<Vector3i> tri
 		}
 		cells->InsertNextCell(vtkTri);
 	}
+	return tri.size();
 };
 
 
 void VtkExport::run(){
 	DemField* dem=static_cast<DemField*>(field.get());
 
-	#define _VTK_ARR_HELPER(var,name,numComponents) auto var=vtkSmartPointer<vtkDoubleArray>::New(); var->SetNumberOfComponents(numComponents); var->SetName(name); 
-	#define _VTK_POINT_ARR(grid,var,name,numComponents) _VTK_ARR_HELPER(var,name,numComponents); grid->GetPointData()->AddArray(var);
-	#define _VTK_CELL_ARR(grid,var,name,numComponents) _VTK_ARR_HELPER(var,name,numComponents); grid->GetCellData()->AddArray(var);
+	#define _VTK_ARR_HELPER(var,name,numComponents,arrayType) auto var=vtkSmartPointer<arrayType>::New(); var->SetNumberOfComponents(numComponents); var->SetName(name); 
+	#define _VTK_POINT_ARR(grid,var,name,numComponents) _VTK_ARR_HELPER(var,name,numComponents,vtkDoubleArray); grid->GetPointData()->AddArray(var);
+	#define _VTK_POINT_INT_ARR(grid,var,name,numComponents) _VTK_ARR_HELPER(var,name,numComponents,vtkIntArray); grid->GetPointData()->AddArray(var);
+	#define _VTK_CELL_ARR(grid,var,name,numComponents) _VTK_ARR_HELPER(var,name,numComponents,vtkDoubleArray); grid->GetCellData()->AddArray(var);
+	#define _VTK_CELL_INT_ARR(grid,var,name,numComponents) _VTK_ARR_HELPER(var,name,numComponents,vtkIntArray); grid->GetCellData()->AddArray(var);
 
 	// contacts
 	auto cPoly=vtkSmartPointer<vtkPolyData>::New();
@@ -46,8 +49,9 @@ void VtkExport::run(){
 		for(size_t id=0; id<dem->particles->size(); id++){
 			const shared_ptr<Particle>& p=(*dem->particles)[id];
 			if (!p) {
-				/* must keep ids contiguous, so that position in the array corresponds to Particle::id */
-				cParPos->InsertNextPoint(NaN,NaN,NaN);
+				// must keep ids contiguous, so that position in the array corresponds to Particle::id
+				// this value is never referenced
+				cParPos->InsertNextPoint(0,0,0); // do not use NaN, vtk does not read those properly
 				continue;
 			}
 			Vector3r pos(p->shape->nodes[0]->pos);
@@ -72,8 +76,6 @@ void VtkExport::run(){
 				let us suppose that the number of interactions crossing the cell boundary is low compared
 				to total numer of interactions
 			*/
-			// how many times to add values defined on interactions, depending on how many times the interaction is saved
-			int numAddValues=1;
 			// aperiodic boundary, or interaction is inside the cell
 			vector<pair<long,long>> linePtIds; // added as vtkLine later
 			if(!scene->isPeriodic || (scene->isPeriodic && (C->cellDist==wrapCellDist[ids[1]]-wrapCellDist[ids[0]]))){
@@ -100,9 +102,14 @@ void VtkExport::run(){
 					}
 				}
 			}
-			for(const auto& _ids: linePtIds){
+			// insert contact as many times as it was created
+			for(const auto& ids: linePtIds){
 				cFn->InsertNextValue(C->phys->force[0]);
 				cMagFt->InsertNextValue(C->phys->force.tail<2>().norm());
+				auto line=vtkSmartPointer<vtkLine>::New();
+				line->GetPointIds()->SetId(0,ids.first);
+				line->GetPointIds()->SetId(1,ids.second);
+				cCells->InsertNextCell(line);
 			}
 		}
 	}
@@ -112,26 +119,24 @@ void VtkExport::run(){
 	auto sPos=vtkSmartPointer<vtkPoints>::New();
 	auto sCells=vtkSmartPointer<vtkCellArray>::New();
 	sGrid->SetPoints(sPos);
-	sGrid->SetCells(VTK_VERTEX,sCells);
 	_VTK_POINT_ARR(sGrid,sRadii,"radius",1);
 	_VTK_POINT_ARR(sGrid,sMass,"mass",1)
-	_VTK_POINT_ARR(sGrid,sId,"id",1)
-	_VTK_POINT_ARR(sGrid,sMask,"mask",1)
-	_VTK_POINT_ARR(sGrid,sClumpId,"clumpId",1)
+	_VTK_POINT_INT_ARR(sGrid,sId,"id",1)
+	_VTK_POINT_INT_ARR(sGrid,sMask,"mask",1)
+	_VTK_POINT_INT_ARR(sGrid,sClumpId,"clumpId",1)
 	_VTK_POINT_ARR(sGrid,sColor,"color",1)
 	_VTK_POINT_ARR(sGrid,sVel,"vel",3)
 	_VTK_POINT_ARR(sGrid,sAngVel,"angVel",3)
-	_VTK_POINT_ARR(sGrid,sMatId,"matId",1)
+	_VTK_POINT_INT_ARR(sGrid,sMatId,"matId",1)
 	// meshes
 	auto mGrid=vtkSmartPointer<vtkUnstructuredGrid>::New();
 	auto mPos=vtkSmartPointer<vtkPoints>::New();
 	auto mCells=vtkSmartPointer<vtkCellArray>::New();
 	mGrid->SetPoints(mPos);
-	mGrid->SetCells(VTK_TRIANGLE,mCells);
 	_VTK_CELL_ARR(mGrid,mColor,"color",1);
+	_VTK_CELL_INT_ARR(mGrid,mMatId,"matId",1);
 	_VTK_CELL_ARR(mGrid,mVel,"vel",3);
 	_VTK_CELL_ARR(mGrid,mAngVel,"angVel",3);
-	_VTK_CELL_ARR(mGrid,mMatId,"matId",3);
 
 	FOREACH(const auto& p, *dem->particles){
 		if(!p->shape) continue; // this should not happen really
@@ -149,16 +154,19 @@ void VtkExport::run(){
 			sRadii->InsertNextValue(sphere->radius);
 			const auto& dyn=sphere->nodes[0]->getData<DemData>();
 			sMass->InsertNextValue(dyn.mass);
-			sColor->InsertNextValue(sphere->color);
+			sId->InsertNextValue(p->id);
+			sMask->InsertNextValue(p->mask);
 			sClumpId->InsertNextValue(dyn.isClumped()?sphere->nodes[0]->getData<DemData>().cast<ClumpData>().clumpLinIx:-1);
+			sColor->InsertNextValue(sphere->color);
 			sVel->InsertNextTupleValue(dyn.vel.data());
 			sAngVel->InsertNextTupleValue(dyn.angVel.data());
 			sMatId->InsertNextValue(p->material->id);
 			continue;
 		}
 		// no more spheres, just meshes now
+		int nCells=0;
 		if(facet){
-			addTriangulatedObject({p->shape->nodes[0]->pos,p->shape->nodes[1]->pos,p->shape->nodes[2]->pos},{Vector3i(0,1,2)},mPos,mCells);
+			nCells=addTriangulatedObject({p->shape->nodes[0]->pos,p->shape->nodes[1]->pos,p->shape->nodes[2]->pos},{Vector3i(0,1,2)},mPos,mCells);
 		}
 		else if(wall){
 			if(isnan(wall->glAB.volume())){
@@ -180,7 +188,7 @@ void VtkExport::run(){
 			A[ax0]=B[ax0]=C[ax0]=D[ax0]=pos[ax0];
 			A[ax1]=B[ax1]=lo[0]; C[ax1]=D[ax1]=hi[0];
 			A[ax2]=C[ax2]=lo[1]; B[ax2]=D[ax2]=hi[1];
-			addTriangulatedObject({A,B,C,D},{Vector3i(0,1,4),Vector3i(0,4,3)},mPos,mCells);
+			nCells=addTriangulatedObject({A,B,C,D},{Vector3i(0,1,3),Vector3i(0,3,2)},mPos,mCells);
 		}
 		else if(infCyl){
 			if(isnan(infCyl->glAB.squaredNorm())){
@@ -191,6 +199,8 @@ void VtkExport::run(){
 			//Vector cA,cB; cA=cB=p->shape->nodes[0]->pos;
 			//cA[ax0]=infCyl->glAB[0]; cB[ax0]=infCyl->glAB[1];
 			Vector2r c2(infCyl->nodes[0]->pos[ax1],infCyl->nodes[0]->pos[ax2]);
+			AngleAxisr aa(infCyl->nodes[0]->ori);
+			Real phi0=(aa.axis()*aa.angle()).dot(Vector3r::Unit(ax0)); // current rotation
 			vector<Vector3r> pts; vector<Vector3i> tri;
 			pts.reserve(2*subdiv); tri.reserve(2*subdiv);
 			for(int i=0;i<subdiv;i++){
@@ -203,7 +213,7 @@ void VtkExport::run(){
 				// +------> φ (i)
 				tri.push_back(Vector3i(2*i,2*i+1,(i==0?2*(subdiv-1):2*i-2)));
 				tri.push_back(Vector3i(2*i+1,2*i,(i==(subdiv-1)?1:2*i+3)));
-				Real phi=i*2*M_PI/subdiv;
+				Real phi=phi0+i*2*M_PI/subdiv;
 				Vector2r c=c2+infCyl->radius*Vector2r(sin(phi),cos(phi));
 				Vector3r A,B;
 				A[ax0]=infCyl->glAB[0]; B[ax0]=infCyl->glAB[1];
@@ -211,24 +221,30 @@ void VtkExport::run(){
 				A[ax2]=B[ax2]=c[1];
 				pts.push_back(A); pts.push_back(B);
 			}
-			addTriangulatedObject(pts,tri,mPos,mCells);
+			nCells=addTriangulatedObject(pts,tri,mPos,mCells);
 		}
 		else continue; // skip unhandled shape
-
+		assert(nCells>0);
 		const auto& dyn=p->shape->nodes[0]->getData<DemData>();
-		// velocity values are erroneous for multi-nodal particles (facets), don't care now
-		mVel->InsertNextTupleValue(dyn.vel.data());
-		mAngVel->InsertNextTupleValue(dyn.angVel.data());
-		mMatId->InsertNextValue(p->material->id);
-		mColor->InsertNextValue(p->shape->color);
+		for(int i=0;i<nCells;i++){
+			mColor->InsertNextValue(p->shape->color);
+			mMatId->InsertNextValue(p->material->id);
+			// velocity values are erroneous for multi-nodal particles (facets), don't care now
+			mVel->InsertNextTupleValue(dyn.vel.data());
+			mAngVel->InsertNextTupleValue(dyn.angVel.data());
+		}
 	}
+
+	// set cells (must be called onces cells are complete)
+	sGrid->SetCells(VTK_VERTEX,sCells);
+	mGrid->SetCells(VTK_TRIANGLE,mCells);
 
 
 	vtkSmartPointer<vtkDataCompressor> compressor;
 	if(compress) compressor=vtkSmartPointer<vtkZLibDataCompressor>::New();
 
-	if(what&WHAT_CON){
-		if(!multiblock){
+	if(!multiblock){
+		if(what&WHAT_CON){
 			vtkSmartPointer<vtkXMLPolyDataWriter> writer = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
 			if(compress) writer->SetCompressor(compressor);
 			if(ascii) writer->SetDataModeToAscii();
@@ -237,9 +253,7 @@ void VtkExport::run(){
 			writer->SetInput(cPoly);
 			writer->Write();
 		}
-	}
-	if(what&WHAT_SPHERES){
-		if(!multiblock){
+		if(what&WHAT_SPHERES){
 			auto writer=vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
 			if(compress) writer->SetCompressor(compressor);
 			if(ascii) writer->SetDataModeToAscii();
@@ -248,9 +262,7 @@ void VtkExport::run(){
 			writer->SetInput(sGrid);
 			writer->Write();
 		}
-	}
-	if(what&WHAT_MESH){
-		if(!multiblock){
+		if(what&WHAT_MESH){
 			auto writer=vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
 			if(compress) writer->SetCompressor(compressor);
 			if(ascii) writer->SetDataModeToAscii();
@@ -259,9 +271,8 @@ void VtkExport::run(){
 			writer->SetInput(mGrid);
 			writer->Write();
 		}
-
-	}
-	if(multiblock){
+	} else {
+		// multiblock
 		auto multi=vtkSmartPointer<vtkMultiBlockDataSet>::New();
 		int i=0;
 		if(what&WHAT_SPHERES) multi->SetBlock(i++,sGrid);

@@ -14,6 +14,7 @@
 	#include<vtkSmartPointer.h>
 	#include<vtkFloatArray.h>
 	#include<vtkDoubleArray.h>
+	#include<vtkIntArray.h>
 	#include<vtkUnstructuredGrid.h>
 	#include<vtkPolyData.h>
 	#include<vtkXMLUnstructuredGridWriter.h>
@@ -33,7 +34,7 @@ struct VtkExport: public PeriodicEngine{
 	enum{WHAT_SPHERES=1,WHAT_MESH=2,WHAT_CON=4};
 	enum{WHAT_ALL=WHAT_SPHERES|WHAT_MESH|WHAT_CON};
 
-	static void addTriangulatedObject(vector<Vector3r> pts, vector<Vector3i> tri, const vtkSmartPointer<vtkPoints>& vtkPts, const vtkSmartPointer<vtkCellArray>& cells);
+	static int addTriangulatedObject(vector<Vector3r> pts, vector<Vector3i> tri, const vtkSmartPointer<vtkPoints>& vtkPts, const vtkSmartPointer<vtkCellArray>& cells);
 
 	void postLoad(VtkExport&){
 		if(what>WHAT_ALL || what<0) throw std::runtime_error("VtkExport.what="+to_string(what)+", but should be at most "+to_string(WHAT_ALL)+".");
