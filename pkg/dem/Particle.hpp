@@ -84,9 +84,16 @@ REGISTER_SERIALIZABLE(Particle);
 struct Impose: public Serializable{
 	virtual void velocity(const Scene*, const shared_ptr<Node>&){ throw std::runtime_error("Calling abstract Impose::velocity."); }
 	virtual void force(const Scene*, const shared_ptr<Node>&){ throw std::runtime_error("Calling abstract Impose::force."); }
-	enum{ VELOCITY=1, FORCE=2};
-	YADE_CLASS_BASE_DOC_ATTRS(Impose,Serializable,"Impose arbitrary changes in Node and DemData, right after integration of the node.",
+	enum{ NONE=0, VELOCITY=1, FORCE=2};
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Impose,Serializable,"Impose arbitrary changes in Node and DemData, right after integration of the node.",
 		((int,what,,AttrTrait<>().readonly().choice({{0,"none"},{VELOCITY,"velocity"},{FORCE,"force"},{VELOCITY|FORCE,"velocity+force"}}),"What values are to be imposed; this is set by the derived engine automatically depending on what is to be prescribed."))
+		,/*ctor*/
+		,/*py*/
+			;
+			_classObj.attr("none")=(int)NONE;
+			_classObj.attr("velocity")=(int)VELOCITY;
+			_classObj.attr("force")=(int)FORCE;
+			
 	);
 };
 REGISTER_SERIALIZABLE(Impose);

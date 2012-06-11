@@ -1,5 +1,9 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from yade import *
+from yade.core import *
+from yade.dem import *
+from miniEigen import *
 from yade import pack
 
 """Simple script to create tunnel with random dense packing of spheres.
@@ -17,15 +21,9 @@ tunnelRad=2
 rSphere=.1
 # construct spatial predicate as difference of box and cylinder:
 # (see scripts/test/pack-predicates.py for details)
-#
-# http://beta.arcig.cz/~eudoxos/yade/epydoc/yade._packPredicates.inAlignedBox-class.html
-# http://beta.arcig.cz/~eudoxos/yade/epydoc/yade._packPredicates.inCylinder-class.html
-
 pred=pack.inAlignedBox((-.5*boxSize[0],-.5*boxSize[1],0),(.5*boxSize[0],.5*boxSize[1],boxSize[2])) - pack.inCylinder((-.5*boxSize[0],0,0),(.5*boxSize[0],0,0),tunnelRad)
 # Use the predicate to generate sphere packing inside 
-#
-# http://beta.arcig.cz/~eudoxos/yade/epydoc/yade.pack-module.html#randomDensePack
-O.bodies.append(pack.randomDensePack(pred,radius=rSphere,rRelFuzz=.3,memoizeDb='/tmp/triaxPackCache.sqlite',spheresInCell=3000))
+pack.randomDensePack(pred,radius=rSphere,rRelFuzz=.3,memoizeDb='/tmp/triaxPackCache.sqlite',spheresInCell=3000).toSimulation()
 
 from yade import qt
 qt.Controller()

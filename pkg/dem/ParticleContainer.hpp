@@ -152,7 +152,7 @@ struct ParticleContainer: public Serializable{
 		};
 		py::list pyFreeIds();
 		id_t pyAppend(shared_ptr<Particle>);
-		shared_ptr<Node> pyAppendClumped(vector<shared_ptr<Particle>>);
+		shared_ptr<Node> pyAppendClumped(vector<shared_ptr<Particle>>, shared_ptr<Node> n);
 		py::list pyAppendList(vector<shared_ptr<Particle>>);
 		bool pyRemove(id_t id);
 		shared_ptr<Particle> pyGetItem(id_t id);
@@ -177,7 +177,7 @@ struct ParticleContainer: public Serializable{
 			,/*py*/
 			.def("append",&ParticleContainer::pyAppend) /* wrapper chacks if the id is not already assigned */
 			.def("append",&ParticleContainer::pyAppendList)
-			.def("appendClumped",&ParticleContainer::pyAppendClumped,"Add particles as rigid aggregate. Add resulting clump node (which is *not* a particle) to O.dem.clumps, subject to integration.")
+			.def("appendClumped",&ParticleContainer::pyAppendClumped,(py::arg("par"),py::arg("centralNode")=shared_ptr<Node>()),"Add particles as rigid aggregate. Add resulting clump node (which is *not* a particle) to O.dem.clumps, subject to integration.")
 			.def("remove",&ParticleContainer::remove) /* no wrapping needed */
 			.def("exists",&ParticleContainer::exists)
 			.def("__getitem__",&ParticleContainer::pyGetItem)

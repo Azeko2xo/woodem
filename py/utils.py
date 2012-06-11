@@ -98,15 +98,14 @@ def defaultMaterial():
 def defaultEngines(damping=0.,gravity=(0,0,-10),verletDist=-.05,noSlip=False,noBreak=False):
 	"""Return default set of engines, suitable for basic simulations during testing."""
 	return [
+		Leapfrog(damping=damping,reset=True),
 		InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb(),Bo1_Wall_Aabb(),Bo1_InfCylinder_Aabb()],label='collider'),
 		ContactLoop(
 			[Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom(),Cg2_Wall_Sphere_L6Geom(),Cg2_InfCylinder_Sphere_L6Geom()],
 			[Cp2_FrictMat_FrictPhys()],
 			[Law2_L6Geom_FrictPhys_IdealElPl(noSlip=noSlip,noBreak=noBreak)],applyForces=True
 		),
-		Gravity(gravity=gravity),
-		Leapfrog(damping=damping,reset=True)
-	]
+	]+([] if gravity==(0,0,0) else [Gravity(gravity=gravity)])
 
 def _commonBodySetup(b,nodes,volumes,geomInertias,material,masses=None,fixed=False):
 	"""Assign common body parameters."""

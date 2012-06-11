@@ -2,7 +2,7 @@
 #include<yade/pkg/dem/Particle.hpp>
 
 struct ClumpData: public DemData{
-	static shared_ptr<Node> makeClump(const vector<shared_ptr<Node>>&, bool intersecting=false);
+	static shared_ptr<Node> makeClump(const vector<shared_ptr<Node>>&, shared_ptr<Node> centralNode=shared_ptr<Node>(), bool intersecting=false);
 	static void collectFromMembers(const shared_ptr<Node>&);
 	static void applyToMembers(const shared_ptr<Node>&, bool resetForceTorque=false);
 	static void resetForceTorque(const shared_ptr<Node>&);

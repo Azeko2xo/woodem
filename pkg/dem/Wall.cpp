@@ -57,6 +57,8 @@ void In2_Wall_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Materia
 			unit1=Vector3r::Unit(ax1)*wall.glAB.sizes()[0]/div;
 			unit2=Vector3r::Unit(ax2)*wall.glAB.sizes()[1]/div;
 		}
+		glDisable(GL_LINE_SMOOTH);
 		GLUtils::Grid(A,unit1,unit2,Vector2i(div,div),/*edgeMask*/0);
+		glEnable(GL_LINE_SMOOTH);
 	}
 #endif

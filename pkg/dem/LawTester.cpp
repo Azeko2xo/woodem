@@ -4,7 +4,38 @@
 
 YADE_PLUGIN(dem,(LawTesterStage)(LawTester));
 
+CREATE_LOGGER(LawTesterStage);
 CREATE_LOGGER(LawTester);
+
+void LawTesterStage::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){
+	// go through the dict, find just values we need
+	py::list kwl=kw.items();
+	for(int i=0; i<py::len(kwl); i++){
+		py::tuple item=py::extract<py::tuple>(kwl[i]);
+		string key=py::extract<string>(item[0]);
+		if(key!="whats") continue;
+		//
+		py::object value=item[1];
+		py::extract<string> isStr(value);
+		if(!isStr.check()) continue;
+		//
+		string whatStr=isStr();
+		if(whatStr.size()!=6) yade::ValueError("LawTesterStage.whats, if given as string, must have length 6, not "+to_string(whatStr.size())+".");
+		for(int i=0;i<6;i++){
+			char w=whatStr[i];
+			if(w!='f' && w!='v' && w!='.') yade::ValueError("LawTesterStage.whats["+to_string(i)+"]: must be 'f' (force) or 'v' (velocity) or '.' (nothing prescribed). not '"+w+"'.");
+			switch(w){
+				case '.': whats[i]=Impose::NONE; break;
+				case 'v': whats[i]=Impose::VELOCITY; break;
+				case 'f': whats[i]=Impose::FORCE; break;
+				default: LOG_FATAL("?!?"); abort();
+			}
+		}
+		// remove from the original dict
+		kw[key].del();		
+	}
+};
+
 
 
 void LawTester::run(){
@@ -13,8 +44,12 @@ void LawTester::run(){
 	const shared_ptr<Particle>& pA=(*dem->particles)[ids[0]];
 	const shared_ptr<Particle>& pB=(*dem->particles)[ids[1]];
 	if(!pA->shape || pA->shape->nodes.size()!=1 || !pB->shape || pB->shape->nodes.size()!=1) throw std::runtime_error("LawTester: only mono-nodal particles are handled now.");
+	Sphere *s1=dynamic_cast<Sphere*>(pA->shape.get()), *s2=dynamic_cast<Sphere*>(pA->shape.get());
+	if(!s1 || !s2) throw std::runtime_error("Only contact of two spheres is handled for now (not "+pA->shape->getClassName()+" with "+pB->shape->getClassName()+")");
+	Real rads[]={s1->radius,s2->radius};
 	Node* nodes[2]={pA->shape->nodes[0].get(),pB->shape->nodes[0].get()};
 	DemData* dyns[2]={nodes[0]->getDataPtr<DemData>().get(),nodes[1]->getDataPtr<DemData>().get()};
+	if(!dyns[0]->isBlockedNone() || !dyns[1]->isBlockedNone()) throw std::runtime_error("LawTester: particles should have no DemData.blocked, this is handled by imposing velocities and forces directly (#"+to_string(ids[0])+": '"+dyns[0]->blocked_vec_get()+"', #"+to_string(ids[1])+": '"+dyns[1]->blocked_vec_get()+"')");
 	for(auto dyn: dyns){
 		if(!dyn->impose) dyn->impose=make_shared<Local6Dofs>();
 		else if(!dynamic_pointer_cast<Local6Dofs>(dyn->impose)) throw std::runtime_error("LawTester: DemData.impose is set, but it is not a Local6Dofs.");
@@ -54,13 +89,48 @@ void LawTester::run(){
 			DemData* dyn(dyns[i]);
 			Local6Dofs* impose(imposes[i]);
 			impose->ori=ori;
-			impose->whats=stg->whats;
+			// make copy which is modified
 			for(int ix=0;ix<6;ix++){
-				// forces are applied to both, only velocity is ditributed
-				impose->values[ix]=(impose->whats[ix]==Impose::VELOCITY)?sign*weight*stg->values[ix]:sign*stg->values[ix];
+				switch(stg->whats[ix]){
+					case Impose::FORCE:{
+						// apply force to one particle only (0 or one, whichever is closer to weight)
+						// and block corresponding velocity component of the other particle
+						bool useForceHere=((i==0&&abWeight<.5) || (i==1 && abWeight>=.5));
+						if(useForceHere){
+							impose->whats[ix]=Impose::FORCE;
+							impose->values[ix]=sign*stg->values[ix];
+						} else {
+							impose->whats[ix]=Impose::VELOCITY;
+							impose->values[ix]=0.;
+						}
+						break;
+					}
+					case Impose::VELOCITY:{
+						Real w=weight;
+						// shear is distributed antisymmetrically, so we reset the sign here
+						//if(ix==1 || ix==2) w*=sign;
+						// bending must be distributed according to radii, as to not induce shear
+						if(ix==4 || ix==5) w=(1-rads[i]/(rads[0]+rads[1]));
+						impose->whats[ix]=Impose::VELOCITY;
+						impose->values[ix]=w*sign*stg->values[ix];
+						break;
+					}
+					case Impose::NONE:{
+						impose->whats[ix]=Impose::NONE;
+						impose->values[ix]=0.;
+						break;
+					}
+					default:	
+						LOG_FATAL("?!?"); abort();
+				}
 			}
-			for(int ix:{1,2,4,5}){
-				if(impose->values[ix]!=0 && impose->whats[ix]!=0) throw std::runtime_error("Prescribing non-zero values for indices 1,2,4,5 not yet implemented (whats[i] must be 0)");
+			// componsate shear, which is perpendicular to the current normal, not mid-step normal
+			// that would lead to normal extension, which is not desirable
+			// if normal force is prescribed, it will better take care of itself, without compensations here
+			if(stg->whats[0]==Impose::VELOCITY){
+				if(stg->whats[1]==Impose::VELOCITY){
+					// TODO
+				}
 			}
 		}
 	} else {
@@ -99,9 +169,10 @@ void LawTester::run(){
 		}
 	}
 
+	GilLock lock; // lock the interpreter for this block
+	string* errCmd=nullptr; // to know where the error happened (traceback does not show that)
 	/* check the result of stg->until */ 
 	try{
-		GilLock lock; // lock the interpreter for this block
 		py::object main=py::import("__main__");
 		py::object globals=main.attr("__dict__");
 		py::dict locals;
@@ -112,22 +183,30 @@ void LawTester::run(){
 		shared_ptr<LawTester> tester(this,null_deleter());
 		shared_ptr<Scene> scene2(scene,null_deleter());
 		locals["scene"]=py::object(scene2);
+		// this will give nice erro when energy is not used
+		locals["E"]=scene->trackEnergy?py::object(scene->energy):py::object();
 		locals["tester"]=py::object(tester);
 
+		errCmd=&stg->until;
 		py::object result=py::eval(stg->until.c_str(),globals,locals);
-		bool done=py::extract<bool>(result)();
-		if(done){
-			LOG_INFO("Stage "<<stage<<" done.");
+		errCmd=nullptr;
+
+		bool isDone=py::extract<bool>(result)();
+		if(isDone){
+			LOG_INFO("Stage "<<stage<<" done at step "<<scene->step);
 			stageT0=-1;
-			if(!stg->done.empty()) py::exec(stg->done.c_str(),globals,locals);
+			if(!stg->done.empty()){
+				errCmd=&stg->done;
+				py::exec(stg->done.c_str(),globals,locals);
+				errCmd=nullptr;
+			}
 			if(stage<stages.size()-1) stage++;
 			else{ // finished
-				LOG_INFO("All stages completed, making myself dead");
-				dead=true;
+				py::exec(done.c_str(),globals,locals);
 			};
 			/* ... */
 		}
 	} catch (py::error_already_set& e){
-		throw std::runtime_error("LawTester exception:\n"+parsePythonException());
+		throw std::runtime_error("LawTester exception"+(errCmd?(" in '"+*errCmd+"'"):string(" "))+":\n"+parsePythonException_gilLocked());
 	}
 };

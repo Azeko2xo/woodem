@@ -271,7 +271,7 @@ void ParticleFactory::run(){
 					n->pos+=pos;
 				}
 			}
-			shared_ptr<Node> clump=ClumpData::makeClump(nn,/*intersection*/false);
+			shared_ptr<Node> clump=ClumpData::makeClump(nn,/*no central node pre-given*/shared_ptr<Node>(),/*intersection*/false);
 			// TODO: track energy of the shooter
 			auto& dyn=clump->getData<DemData>();
 			(*shooter)(dyn.vel,dyn.angVel);

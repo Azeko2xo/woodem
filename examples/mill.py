@@ -8,7 +8,11 @@ Physical correctness is not the focus, the geometry and similar look is.
 You can take this file as instruction on how to build parametric surfaces,
 and how to make videos as well.
 """
-from yade import pack
+from yade import *
+from yade.dem import *
+from yade.core import *
+from miniEigen import *
+from yade import pack,utils
 from numpy import linspace
 # geometry parameters
 bumpNum=20
@@ -40,40 +44,30 @@ for i in range(0,bumpNum):
 pts+=[pts[0]]
 # make the second contour, just shifted by millDp; ppts contains both
 ppts=[pts,[p+Vector3(millDp,0,0) for p in pts]]
-mill=pack.sweptPolylines2gtsSurface(ppts,threshold=.01*min(dTheta*millRad,bumpHt))#,capStart=True,capEnd=True)
-millIds=O.bodies.append(pack.gtsSurface2Facets(mill,color=(1,0,1),wire=False)) # add triangles, save their ids
+mill=pack.sweptPolylines2gtsSurface(ppts,threshold=.01*min(dTheta*millRad,bumpHt))
+millPar=pack.gtsSurface2Facets(mill,color=.5,wire=False) # add triangles, save their ids
 # make the caps less comfortably, but looking better as two triangle couples over the mill
 mrs2=millRad*sqrt(2)
 cap1,cap2=[Vector3(0,0,mrs2),Vector3(0,-mrs2,0),Vector3(0,0,-mrs2)],[Vector3(0,0,mrs2),Vector3(0,0,-mrs2),Vector3(0,mrs2,0)] # 2 triangles at every side
-for xx in -.5*millDp,.5*millDp: millIds+=O.bodies.append([utils.facet([p+Vector3(xx,0,0) for p in cap1],color=(0,0,0)),utils.facet([p+Vector3(xx,0,0) for p in cap2],color=(0,0,0))])
+for xx in -.5*millDp,.5*millDp: millPar.extend([utils.facet([p+Vector3(xx,0,0) for p in cap1],color=0),utils.facet([p+Vector3(xx,0,0) for p in cap2],color=0)])
+centralNode=Node(pos=(0,0,0))
+O.dem.par.appendClumped(millPar,centralNode=centralNode)
 
 # define domains for initial cloud of red and blue spheres
 packHt=.8*millRad # size of the area
 bboxes=[(Vector3(-.5*millDp,-.5*packHt,-.5*packHt),Vector3(.5*millDp,0,.5*packHt)),(Vector3(-.5*millDp,0,-.5*packHt),Vector3(.5*millDp,.5*packHt,.5*packHt))]
-colors=(1,0,0),(0,0,1)
+colors=.2,.7
 for i in (0,1): # red and blue spheres
 	sp=pack.SpherePack(); bb=bboxes[i]; vol=(bb[1][0]-bb[0][0])*(bb[1][1]-bb[0][1])*(bb[1][2]-bb[0][2])
 	sp.makeCloud(bb[0],bb[1],sphRad,sphRadFuzz,int(.25*vol/((4./3)*pi*sphRad**3)),False)
 	O.bodies.append([utils.sphere(s[0],s[1],color=colors[i]) for s in sp])
 
-print "Numer of grains",len(O.bodies)-len(millIds)
+O.collectNodes()
 
-O.dt=.5*utils.PWaveTimeStep()
+#print "Numer of grains",len(O.dem.par)-len(millIds)
 
-O.engines=[
-	ForceResetter(),
-	InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb()]),
-	InteractionLoop(
-		[Ig2_Sphere_Sphere_Dem3DofGeom(),Ig2_Facet_Sphere_Dem3DofGeom()],
-		[Ip2_FrictMat_FrictMat_FrictPhys()],
-		[Law2_Dem3DofGeom_FrictPhys_CundallStrack()],
-	),	
-	GravityEngine(gravity=(0,0,-50)), # gravity artificially high, to make it faster going ;-)
-	NewtonIntegrator(damping=.3),
-	RotationEngine(rotateAroundZero=True,zeroPoint=(0,0,0),rotationAxis=(1,0,0),angularVelocity=-20,ids=millIds),
-	#SnapshotEngine(iterPeriod=30,fileBase='/tmp/mill-',viewNo=0,label='snapshooter'),
-	#VTKRecorder(iterPeriod=100,recorders=['all'],fileName='/tmp/millVTK-')
-]
+O.dt=.5*utils.pWaveDt()
+O.engines=utils.defaultEngines(gravity=(0,0,-50),damping=.3)
 
 O.saveTmp()
 from yade import qt

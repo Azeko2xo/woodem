@@ -50,6 +50,9 @@ class EnergyTracker: public Serializable{
 	void setItem_py(const std::string& name, Real val){
 		int id=-1; set(val,name,id);
 	}
+	bool contains_py(const std::string& name){
+		int id=-1; findId(name,id,/*flags*/0,/*newIfNotFound*/false); return id>=0;
+	}
 	void clear(){ energies.clear(); names.clear(); flags.clear();}
 	void resetResettables(){ size_t sz=energies.size(); for(size_t id=0; id<sz; id++){ if(flags[id] & IsResettable) energies.reset(id); } }
 
@@ -70,6 +73,7 @@ class EnergyTracker: public Serializable{
 		,/*py*/
 			.def("__getitem__",&EnergyTracker::getItem_py,"Get energy value for given name.")
 			.def("__setitem__",&EnergyTracker::setItem_py,"Set energy value for given name (will create a non-resettable item, if it does not exist yet).")
+			.def("__contains__",&EnergyTracker::contains_py,"Wuery whether given key exists; used by `'key' in EnergyTracker`")
 			.def("add",&EnergyTracker::add_py,(py::arg("dE"),py::arg("name"),py::arg("reset")=false),"Accumulate energy, used from python (likely inefficient)")
 			.def("clear",&EnergyTracker::clear,"Clear all stored values.")
 			.def("keys",&EnergyTracker::keys_py,"Return defined energies.")

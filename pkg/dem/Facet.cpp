@@ -62,9 +62,11 @@ void Gl1_Facet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire
 	glColor3v(CompUtils::mapColor(f.getBaseColor()));
 
 	if(wire || wire2){
+		glDisable(GL_LINE_SMOOTH);
 		glBegin(GL_LINE_LOOP);
 			for(int i:{0,1,2}) glVertex3v(f.nodes[i]->pos);
 	    glEnd();
+		glEnable(GL_LINE_SMOOTH);
 	} else {
 		glDisable(GL_CULL_FACE); 
 		Vector3r normal=f.getNormal();

@@ -2,6 +2,8 @@
 #include<yade/pkg/dem/Particle.hpp>
 
 struct LawTesterStage: public Serializable{
+	DECLARE_LOGGER;
+	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
 	YADE_CLASS_BASE_DOC_ATTRS(LawTesterStage,Serializable,"Stage to be reached by LawTester.",
 		((Vector6r,values,Vector6r::Zero(),AttrTrait<>(),"Prescribed values during this step"))
 		((Vector6i,whats,Vector6i::Zero(),AttrTrait<>(),"Meaning of *values* components"))
@@ -29,6 +31,7 @@ struct LawTester: public Engine{
 	}
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(LawTester,Engine,"Engine for testing contact laws by prescribing various loading scenarios, which are a combination of prescribing force or velocity along given contact-local axes.",
 		((Vector2i,ids,,,"Ids of particles in contact"))
+		((string,done,"tester.dead=True",,"Python expression to run once all stages had finished."))
 		((Real,abWeight,1,,"Float, usually ∈〈0,1〉, determining on how are displacements/rotations distributed between particles (0 for A, 1 for B); intermediate values will apply respective part to each of them."))
 		((Vector6r,f,Vector6r::Zero(),AttrTrait<>().readonly(),"Force on contact, NaN if contact is broken"))
 		((Vector6r,smooF,Vector6r::Zero(),AttrTrait<>().readonly(),"Smoothed value of generalized contact forces."))

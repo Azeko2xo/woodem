@@ -3,11 +3,11 @@
 YADE_PLUGIN(dem,(ClumpData));
 CREATE_LOGGER(ClumpData);
 
-shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, bool intersecting){
+shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, shared_ptr<Node> centralNode, bool intersecting){
 	/* TODO? check that nodes are unique */
 	auto clump=make_shared<ClumpData>();
 	clump->setClump();
-	auto cNode=make_shared<Node>();
+	auto cNode=(centralNode?centralNode:make_shared<Node>());
 	cNode->setData<DemData>(clump);
 
 	size_t N=nn.size();
@@ -35,41 +35,47 @@ shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, bool i
 	for(const auto& n: nn){
 		const auto& dem=n->getData<DemData>();
 		if(dem.isClumped()) yade::RuntimeError("Node "+lexical_cast<string>(n)+": already clumped.");
-		if(dem.parCount!=1) yade::RuntimeError("Node "+lexical_cast<string>(n)+": particle count for clumped particles must be 1, not "+to_string(dem.parCount));
+		if(!dem.parCount>0) yade::RuntimeError("Node "+lexical_cast<string>(n)+": particle count for clumped particles must be > 0, not "+to_string(dem.parCount));
 		M+=dem.mass;
 		Sg+=dem.mass*n->pos;
 		Ig+=inertiaTensorTranslate(inertiaTensorRotate(dem.inertia.asDiagonal(),n->ori.conjugate()),dem.mass,-1.*n->pos);
 	}
-	assert(M>0); LOG_TRACE("M=\n"<<M<<"\nIg=\n"<<Ig<<"\nSg=\n"<<Sg);
-	// clump's centroid
-	cNode->pos=Sg/M;
-	// this will calculate translation only, since rotation is zero
-	Matrix3r Ic_orientG=inertiaTensorTranslate(Ig, -M /* negative mass means towards centroid */, cNode->pos); // inertia at clump's centroid but with world orientation
-	LOG_TRACE("Ic_orientG=\n"<<Ic_orientG);
+	if(M>0){
+		assert(M>0); LOG_TRACE("M=\n"<<M<<"\nIg=\n"<<Ig<<"\nSg=\n"<<Sg);
+		// clump's centroid
+		cNode->pos=Sg/M;
+		// this will calculate translation only, since rotation is zero
+		Matrix3r Ic_orientG=inertiaTensorTranslate(Ig, -M /* negative mass means towards centroid */, cNode->pos); // inertia at clump's centroid but with world orientation
+		LOG_TRACE("Ic_orientG=\n"<<Ic_orientG);
 
-	Ic_orientG(1,0)=Ic_orientG(0,1); Ic_orientG(2,0)=Ic_orientG(0,2); Ic_orientG(2,1)=Ic_orientG(1,2); // symmetrize
-	//TRWM3MAT(Ic_orientG);
-	Eigen::SelfAdjointEigenSolver<Matrix3r> decomposed(Ic_orientG);
-	const Matrix3r& R_g2c(decomposed.eigenvectors());
-	// has NaNs for identity matrix??
-	LOG_TRACE("R_g2c=\n"<<R_g2c);
-	// set quaternion from rotation matrix
-	cNode->ori=Quaternionr(R_g2c); cNode->ori.normalize();
-	clump->inertia=decomposed.eigenvalues();
-	clump->mass=M;
-	// this block will be removed once EigenDecomposition works for diagonal matrices
-	#if 1
-		if(isnan(R_g2c(0,0))||isnan(R_g2c(0,1))||isnan(R_g2c(0,2))||isnan(R_g2c(1,0))||isnan(R_g2c(1,1))||isnan(R_g2c(1,2))||isnan(R_g2c(2,0))||isnan(R_g2c(2,1))||isnan(R_g2c(2,2))){
-			throw std::logic_error("Clump::updateProperties: NaNs in eigen-decomposition of inertia matrix?!");
-		}
-	#endif
-	LOG_TRACE("clump->inertia="<<clump->inertia.transpose());
-	// TODO: these might be calculated from members... but complicated... - someone needs that?!
-	clump->vel=clump->angVel=Vector3r::Zero();
-	#ifdef YADE_DEBUG
-		AngleAxisr aa(cNode->ori);
-	#endif
-	LOG_TRACE("pos="<<cNode->pos.transpose()<<", ori="<<aa.axis()<<":"<<aa.angle());
+		Ic_orientG(1,0)=Ic_orientG(0,1); Ic_orientG(2,0)=Ic_orientG(0,2); Ic_orientG(2,1)=Ic_orientG(1,2); // symmetrize
+		//TRWM3MAT(Ic_orientG);
+		Eigen::SelfAdjointEigenSolver<Matrix3r> decomposed(Ic_orientG);
+		const Matrix3r& R_g2c(decomposed.eigenvectors());
+		// has NaNs for identity matrix??
+		LOG_TRACE("R_g2c=\n"<<R_g2c);
+		// set quaternion from rotation matrix
+		cNode->ori=Quaternionr(R_g2c); cNode->ori.normalize();
+		clump->inertia=decomposed.eigenvalues();
+		clump->mass=M;
+		// this block will be removed once EigenDecomposition works for diagonal matrices
+		#if 1
+			if(isnan(R_g2c(0,0))||isnan(R_g2c(0,1))||isnan(R_g2c(0,2))||isnan(R_g2c(1,0))||isnan(R_g2c(1,1))||isnan(R_g2c(1,2))||isnan(R_g2c(2,0))||isnan(R_g2c(2,1))||isnan(R_g2c(2,2))){
+				throw std::logic_error("Clump::updateProperties: NaNs in eigen-decomposition of inertia matrix?!");
+			}
+		#endif
+		LOG_TRACE("clump->inertia="<<clump->inertia.transpose());
+		// TODO: these might be calculated from members... but complicated... - someone needs that?!
+		clump->vel=clump->angVel=Vector3r::Zero();
+		#ifdef YADE_DEBUG
+			AngleAxisr aa(cNode->ori);
+		#endif
+		LOG_TRACE("pos="<<cNode->pos.transpose()<<", ori="<<aa.axis()<<":"<<aa.angle());
+	} else {
+		// nodes have no mass; in that case, centralNode is used
+		if(!centralNode) throw std::runtime_error("Clump::updateProperties: no nodes with mass, therefore centralNode must be given, of which position will be used instead");
+		throw std::runtime_error("Clump::updateProperties: massless clumps not yet implemented.");
+	}
 
 	clump->nodes.reserve(N); clump->relPos.reserve(N); clump->relOri.reserve(N);
 	for(size_t i=0; i<N; i++){
