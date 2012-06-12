@@ -121,7 +121,9 @@ public:
 	void blocked_vec_set(const std::string& dofs);
 
 	bool isBlockedNone() const { return (flags&DOF_ALL)==DOF_NONE; }
+	void setBlockedNone() { flags&=~DOF_ALL; }
 	bool isBlockedAll()  const { return (flags&DOF_ALL)==DOF_ALL; }
+	void setBlockedAll() { flags|=DOF_ALL; }
 	bool isBlockedAxisDOF(int axis, bool rot) const { return (flags & axisDOF(axis,rot)); }
 
 	// predicates and setters for clumps

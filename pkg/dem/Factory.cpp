@@ -11,9 +11,12 @@
 
 #include<yade/extra/numpy_boost.hpp>
 
-YADE_PLUGIN(dem,(ParticleGenerator)(MinMaxSphereGenerator)(PsdSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(ParticleFactory)(BoxFactory)(BoxDeleter));
+#include<boost/tuple/tuple_comparison.hpp>
+
+YADE_PLUGIN(dem,(ParticleGenerator)(MinMaxSphereGenerator)(PsdSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(ParticleFactory)(BoxFactory)(BoxDeleter)(ConveyorFactory));
 CREATE_LOGGER(PsdSphereGenerator);
 CREATE_LOGGER(ParticleFactory);
+CREATE_LOGGER(ConveyorFactory);
 CREATE_LOGGER(BoxDeleter);
 
 
@@ -404,3 +407,104 @@ py::object BoxDeleter::pyPsd(bool mass, bool cumulative, bool normalize, int num
 	}
 }
 
+
+void ConveyorFactory::sortPacking(){
+	if(radii.size()!=centers.size()) throw std::logic_error("ConveyorFactory.sortPacking: radii.size()!=centers.size()");
+	// copy arrays to structs first
+	typedef std::tuple<Vector3r,Real> CentRad;
+	vector<CentRad> vecCentRad(radii.size());
+	size_t N=radii.size();
+	for(size_t i=0;i<N;i++){
+		if(centers[i][0]<0 || centers[i][0]>=cellLen) centers[i][0]=Cell::wrapNum(centers[i][0],cellLen);
+		vecCentRad[i]=std::make_tuple(centers[i],radii[i]);
+	}
+	// sorting in reverse, so that higher coordinates come first
+	std::sort(vecCentRad.begin(),vecCentRad.end(),[](const CentRad& a, const CentRad& b)->bool{ return std::get<0>(a)[0]>std::get<0>(b)[0]; });
+	for(size_t i=0;i<N;i++){
+		std::tie(centers[i],radii[i])=vecCentRad[i];
+	}
+}
+
+void ConveyorFactory::run(){
+	DemField* dem=static_cast<DemField*>(field.get());
+	if(isnan(vel)) ValueError("ConveyorFactory.vel==NaN");
+	if(radii.empty() || radii.size()!=centers.size()) ValueError("ConveyorFactory: radii and values must be same-length and non-empty.");
+	if(barrierLayer<0){
+		Real maxRad=-Inf;
+		for(const Real& r:radii) maxRad=max(r,maxRad);
+		if(isinf(maxRad)) throw std::logic_error("ConveyorFactory.radii: infinite value?");
+		barrierLayer=maxRad*abs(barrierLayer);
+		LOG_INFO("Setting barrierLayer="<<barrierLayer);
+	}
+	for(const auto& p: barrier){
+		p->shape->nodes[0]->getData<DemData>().setBlockedNone();
+		p->shape->color=isnan(color)?Mathr::UnitRandom():color;
+	}
+	barrier.clear();
+
+	Real lenToDo;
+	if(stepPrev<0){ // first time run
+		if(startLen<=0) ValueError("ConveyorFactory.startLen must be positive or NaN (not "+to_string(startLen)+")");
+		if(!isnan(startLen)) lenToDo=startLen;
+		else lenToDo=(stepPeriod>0?stepPeriod*scene->dt*vel:scene->dt*vel);
+		//LOG_DEBUG("lenToDo="<<lenToDo<<", stepPeriod="<<stepPeriod<<", Δt="<<scene->dt<<", vel="<<vel<<", startLen="<<startLen);
+	} else {
+		lenToDo=(scene->time-virtPrev)*vel; // time elapsed since last run
+	}
+	Real stepMass=0;
+	if(isnan(lastX)) lastX=cellLen;
+	Real shift0=lenToDo-Cell::wrapNum(lastX+centers[lastGenIx][0],cellLen);
+	Real nextX;
+	int currWraps=0;
+	if(lastGenIx==centers.size()-1) currWraps=-1;
+	LOG_DEBUG("lenToDo="<<lenToDo<<", time="<<scene->time<<", virtPrev="<<virtPrev<<", vel="<<vel<<", shift0="<<shift0<<", lastGenIx="<<lastGenIx<<"/"<<centers.size()-1);
+	while(true){
+		size_t nextGenIx=lastGenIx;
+		if(nextGenIx==centers.size()-1){
+			nextGenIx=0; currWraps++;
+			LOG_DEBUG("Wrapping around periodic boundary");
+		} else {
+			nextGenIx+=1;
+		}
+		nextX=shift0+centers[nextGenIx][0]-currWraps*cellLen;
+		LOG_DEBUG("nextX="<<nextX<<", currWraps="<<currWraps);
+		if(nextX<0) break;
+		lastGenIx=nextGenIx;
+		if(nextX>lenToDo) continue; // BUG: this skips spurious particles generated and should be fixed!!
+
+		auto sphere=DemFuncs::makeSphere(radii[lastGenIx],material);
+		const auto& n=sphere->shape->nodes[0];
+		auto& dyn=n->getData<DemData>();
+		//LOG_TRACE("x="<<x<<", "<<lenToDo<<"-("<<1+currWraps<<")*"<<cellLen<<"+"<<currX);
+		n->pos=node->pos+node->ori*Vector3r(nextX,centers[lastGenIx][1],centers[lastGenIx][2]);
+		dyn.vel=node->ori*(Vector3r::UnitX()*vel);
+
+		if(nextX<barrierLayer){
+			sphere->shape->color=isnan(barrierColor)?Mathr::UnitRandom():barrierColor;
+			barrier.push_back(sphere);
+			dyn.setBlockedAll();
+		} else {
+			sphere->shape->color=isnan(color)?Mathr::UnitRandom():color;
+		}
+
+		dem->particles->insert(sphere);
+		LOG_TRACE("New sphere #"<<sphere->id<<", r="<<radii[lastGenIx]<<" at "<<n->pos.transpose());
+		#ifdef YADE_OPENGL
+			boost::mutex::scoped_lock lock(dem->nodesMutex);
+		#endif
+		dyn.linIx=dem->nodes.size();
+		dem->nodes.push_back(n);
+
+		stepMass+=dyn.mass;
+	};
+
+	lastX=Cell::wrapNum(nextX-shift0,cellLen);
+	LOG_DEBUG("----------------");
+
+	// force contact re-detection
+	//dem->contacts->dirty=true;
+
+	Real currRateNoSmooth=stepMass/(/*time*/lenToDo/vel);
+	if(isnan(currRate)) currRate=currRateNoSmooth;
+	else currRate=(1-currRateSmooth)*currRate+currRateSmooth*currRateNoSmooth;
+}

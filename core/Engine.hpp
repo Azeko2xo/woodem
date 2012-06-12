@@ -151,12 +151,16 @@ class PeriodicEngine: public GlobalEngine{
 		((Real,realPeriod,((void)"deactivated",0),,"Periodicity criterion using real (wall clock, computation, human) time (deactivated if <=0)"))
 		((long,stepPeriod,((void)"deactivated",1),,"Periodicity criterion using step number (deactivated if <= 0)"))
 		((long,nDo,((void)"deactivated",-1),,"Limit number of executions by this number (deactivated if negative)"))
+		((long,nDone,0,,"Track number of executions (cumulative) |yupdate|."))
 		((bool,initRun,true,,"Run the first time we are called as well."))
 		((Real,virtLast,NaN,,"Tracks virtual time of last run |yupdate|."))
 		((Real,realLast,NaN,,"Tracks real time of last run |yupdate|."))
-		((long,stepLast,-1,,"Tracks step number of last run |yupdate|."))
-		((long,nDone,0,,"Track number of executions (cummulative) |yupdate|.")),
-		/* this will be put inside the ctor */ realLast=getClock();
+		((long,stepLast,-1,,"Tracks step number of last run |yupdate|.")
+		)
+		((long,stepPrev,-1,AttrTrait<>().noGui(),"Number of step when we run previously (stepLast is the current step when the engine runs)"))
+		((Real,virtPrev,-1,AttrTrait<>().noGui(),"Simulation time when run previously"))
+		((Real,realPrev,-1,AttrTrait<>().noGui(),"Real time when run previously"))
+		,/*ctor*/ realLast=getClock();
 	);
 };
 REGISTER_SERIALIZABLE(PeriodicEngine);

@@ -157,6 +157,40 @@ struct BoxDeleter: public PeriodicEngine{
 };
 REGISTER_SERIALIZABLE(BoxDeleter);
 
+struct ConveyorFactory: public PeriodicEngine{
+	DECLARE_LOGGER;
+	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
+	void sortPacking();
+	void postLoad(ConveyorFactory&){
+		if(radii.size()==centers.size() && !radii.empty()) sortPacking();
+	}
+	#ifdef YADE_OPENGL
+		// void render(const GLViewInfo&){ if(!isnan(color)) GLUtils::AlignedBox(box,CompUtils::mapColor(color)); }
+	#endif
+	void run();
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ConveyorFactory,PeriodicEngine,"Factory producing infinite band of particles from packing periodic in the x-direction. (Clumps are not supported (yet?), only spheres).",
+		((shared_ptr<Material>,material,,,"Material for new particles"))
+		((Real,cellLen,,,"Length of the band cell, which is repeated periodically"))
+		((vector<Real>,radii,,AttrTrait<>().noGui().triggerPostLoad(),"Radii for the packing"))
+		((vector<Vector3r>,centers,,AttrTrait<>().noGui().triggerPostLoad(),"Centers of spheres in the packing"))
+		((size_t,lastGenIx,0,AttrTrait<>().readonly(),"Index of last-generated particles in the packing"))
+		((Real,lastX,NaN,AttrTrait<>().readonly(),"X-coordinate of last-generated particles in the packing"))
+		((Real,vel,NaN,,"Velocity of the feed"))
+		((int,mask,1,,"Mask for new particles"))
+		((Real,startLen,NaN,,"Band to be created at the very start; if NaN, only the usual starting amount is created (depending on feed velocity)"))
+		((Real,barrierColor,.2,,"Color for barrier particles (NaN for random)"))
+		((Real,color,.2,,"Color for non-barrier particles (NaN for random)"))
+		((Real,barrierLayer,-3.,,"Some length of the last part of new particles has all DoFs blocked, so that when new particles are created, there are no sudden contacts in the band; in the next step, DoFs in this layer are unblocked. If *barrierLayer* is negative, it is relative to the maximum radius in the given packing, and is automatically set to the correct value at the first run"))
+		((vector<shared_ptr<Particle>>,barrier,,AttrTrait<>().noGui(),"Particles which make up the barrier and will be unblocked in the next step."))
+		((shared_ptr<Node>,node,make_shared<Node>(),AttrTrait<>().readonly(),"Position and orientation of the factory; local x-axis is the feed direction."))
+		((Real,currRate,NaN,AttrTrait<>().readonly(),"Current value of mass flow rate"))
+		((Real,currRateSmooth,1,AttrTrait<>().noGui().range(Vector2r(0,1)),"Smoothing factor for currRate∈〈0,1〉"))
+		,/*ctor*/
+		,/*py*/
+	);
+};
+REGISTER_SERIALIZABLE(ConveyorFactory);
+
 #if 0
 struct MultiBoxDeleter: public PeriodicEngine{
 	DECLARE_LOGGER;

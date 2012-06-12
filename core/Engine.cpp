@@ -110,7 +110,10 @@ bool PeriodicEngine::isActivated(){
 		((virtPeriod>0 && virtNow-virtLast>=virtPeriod) ||
 		 (realPeriod>0 && realNow-realLast>=realPeriod) ||
 		 (stepPeriod>0 && stepNow-stepLast>=stepPeriod))){
-		realLast=realNow; virtLast=virtNow; stepLast=stepNow; nDone++;
+		realPrev=realLast; realLast=realNow;
+		virtPrev=virtLast; virtLast=virtNow;
+		stepPrev=stepLast; stepLast=stepNow;
+		nDone++;
 		return true;
 	}
 	// we run for the very first time here, initialize counters
