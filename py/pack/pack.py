@@ -458,7 +458,7 @@ def randomDensePack(predicate,radius,material=-1,dim=None,cropLayers=0,rRelFuzz=
 		O.scene.fields=[dem.DemField()]
 		O.scene.engines=[dem.ForceResetter(),dem.InsertionSortCollider([dem.Bo1_Sphere_Aabb()],verletDist=.05*radius),dem.ContactLoop([dem.Cg2_Sphere_Sphere_L6Geom()],[dem.Cp2_FrictMat_FrictPhys()],[dem.Law2_L6Geom_FrictPhys_IdealElPl()],applyForces=True),dem.Leapfrog(damping=.7,reset=False),dem.PeriIsoCompressor(charLen=2*radius,stresses=[-100e9,-1e8],maxUnbalanced=1e-2,doneHook='O.pause();',globalUpdateInt=5,keepProportions=True,label='_compressor')]
 		num=sp.makeCloud(Vector3().Zero,O.scene.cell.size0,radius,rRelFuzz,spheresInCell,True)
-		mat=dem.FrictMat(young=30e9,tanPhi=.5,poisson=.3,density=1e3,ktDivKn=.2)
+		mat=dem.FrictMat(young=30e9,tanPhi=.5,density=1e3,ktDivKn=.2)
 		for s in sp: O.dem.par.append(utils.sphere(s[0],s[1],material=mat))
 		O.dem.collectNodes()
 		O.scene.dt=.5*utils.pWaveDt()
@@ -507,11 +507,12 @@ def randomPeriPack(radius,initSize,rRelFuzz=0.0,memoizeDb=None):
 	sp=SpherePack()
 	O.scene.periodic=True
 	O.scene.cell.setBox(initSize)
-	sp.makeCloud(Vector3().Zero,O.cell.size0,radius,rRelFuzz,-1,True)
-	O.scene.engines=[dem.ForceResetter(),dem.InsertionSortCollider([dem.Bo1_Sphere_Aabb()],verletDist=.05*radius),dem.ContactLoop([dem.Cg2_Sphere_Sphere_L6Geom()],[Cp2_FrictMat_FrictPhys()],[Law2_L6Geom_FrictPhys_IdealElPl()],applyForces=True),dem.PeriIsoCompressor(charLen=2*radius,stresses=[-100e9,-1e8],maxUnbalanced=1e-2,doneHook='O.pause();',globalUpdateInt=20,keepProportions=True),dem.Leapfrog(damping=.8)]
-	mat=FrictMat(young=30e9,frictionAngle=.1,poisson=.3,density=1e3)
-	for s in sp: O.bodies.append(utils.sphere(s[0],s[1],material=mat))
-	O.scene.dt=utils.PWaveTimeStep()
+	sp.makeCloud(Vector3().Zero,O.scene.cell.size0,radius,rRelFuzz,-1,True)
+	O.scene.fields=[dem.DemField()]
+	O.scene.engines=[dem.ForceResetter(),dem.InsertionSortCollider([dem.Bo1_Sphere_Aabb()],verletDist=.05*radius),dem.ContactLoop([dem.Cg2_Sphere_Sphere_L6Geom()],[dem.Cp2_FrictMat_FrictPhys()],[dem.Law2_L6Geom_FrictPhys_IdealElPl()],applyForces=True),dem.PeriIsoCompressor(charLen=2*radius,stresses=[-100e9,-1e8],maxUnbalanced=1e-2,doneHook='O.pause();',globalUpdateInt=20,keepProportions=True),dem.Leapfrog(damping=.8)]
+	mat=dem.FrictMat(young=30e9,tanPhi=.1,ktDivKn=.3,density=1e3)
+	for s in sp: O.dem.par.append(utils.sphere(s[0],s[1],material=mat))
+	O.scene.dt=utils.pWaveDt()
 	O.timingEnabled=True
 	O.run(); O.wait()
 	ret=SpherePack()

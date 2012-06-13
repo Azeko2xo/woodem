@@ -410,6 +410,7 @@ py::object BoxDeleter::pyPsd(bool mass, bool cumulative, bool normalize, int num
 
 void ConveyorFactory::sortPacking(){
 	if(radii.size()!=centers.size()) throw std::logic_error("ConveyorFactory.sortPacking: radii.size()!=centers.size()");
+	if(!cellLen>0 /*catches NaN as well*/) ValueError("ConveyorFactor.cellLen must be positive (not "+to_string(cellLen)+")");
 	// copy arrays to structs first
 	typedef std::tuple<Vector3r,Real> CentRad;
 	vector<CentRad> vecCentRad(radii.size());
@@ -418,8 +419,8 @@ void ConveyorFactory::sortPacking(){
 		if(centers[i][0]<0 || centers[i][0]>=cellLen) centers[i][0]=Cell::wrapNum(centers[i][0],cellLen);
 		vecCentRad[i]=std::make_tuple(centers[i],radii[i]);
 	}
-	// sorting in reverse, so that higher coordinates come first
-	std::sort(vecCentRad.begin(),vecCentRad.end(),[](const CentRad& a, const CentRad& b)->bool{ return std::get<0>(a)[0]>std::get<0>(b)[0]; });
+	// sort according to the x-coordinate
+	std::sort(vecCentRad.begin(),vecCentRad.end(),[](const CentRad& a, const CentRad& b)->bool{ return std::get<0>(a)[0]<std::get<0>(b)[0]; });
 	for(size_t i=0;i<N;i++){
 		std::tie(centers[i],radii[i])=vecCentRad[i];
 	}
@@ -436,50 +437,53 @@ void ConveyorFactory::run(){
 		barrierLayer=maxRad*abs(barrierLayer);
 		LOG_INFO("Setting barrierLayer="<<barrierLayer);
 	}
-	for(const auto& p: barrier){
-		p->shape->nodes[0]->getData<DemData>().setBlockedNone();
-		p->shape->color=isnan(color)?Mathr::UnitRandom():color;
+	auto I=barrier.begin();
+	while(I!=barrier.end()){
+		const auto& p=*I;
+		if((node->ori.conjugate()*(p->shape->nodes[0]->pos-node->pos))[0]>barrierLayer){
+			p->shape->nodes[0]->getData<DemData>().setBlockedNone();
+			p->shape->color=isnan(color)?Mathr::UnitRandom():color;
+			I=barrier.erase(I); // erase and advance
+		} else {
+			I++; // just advance
+		}
 	}
-	barrier.clear();
 
 	Real lenToDo;
 	if(stepPrev<0){ // first time run
 		if(startLen<=0) ValueError("ConveyorFactory.startLen must be positive or NaN (not "+to_string(startLen)+")");
 		if(!isnan(startLen)) lenToDo=startLen;
 		else lenToDo=(stepPeriod>0?stepPeriod*scene->dt*vel:scene->dt*vel);
-		//LOG_DEBUG("lenToDo="<<lenToDo<<", stepPeriod="<<stepPeriod<<", Δt="<<scene->dt<<", vel="<<vel<<", startLen="<<startLen);
 	} else {
 		lenToDo=(scene->time-virtPrev)*vel; // time elapsed since last run
 	}
 	Real stepMass=0;
-	if(isnan(lastX)) lastX=cellLen;
-	Real shift0=lenToDo-Cell::wrapNum(lastX+centers[lastGenIx][0],cellLen);
-	Real nextX;
-	int currWraps=0;
-	if(lastGenIx==centers.size()-1) currWraps=-1;
-	LOG_DEBUG("lenToDo="<<lenToDo<<", time="<<scene->time<<", virtPrev="<<virtPrev<<", vel="<<vel<<", shift0="<<shift0<<", lastGenIx="<<lastGenIx<<"/"<<centers.size()-1);
+	//LOG_DEBUG("lenToDo="<<lenToDo<<", time="<<scene->time<<", virtPrev="<<virtPrev<<", vel="<<vel<<", shift0="<<shift0<<", lastGenIx="<<lastGenIx<<"/"<<centers.size()-1);
+	Real lenDone=0;
 	while(true){
-		size_t nextGenIx=lastGenIx;
-		if(nextGenIx==centers.size()-1){
-			nextGenIx=0; currWraps++;
-			LOG_DEBUG("Wrapping around periodic boundary");
-		} else {
-			nextGenIx+=1;
+		if(nextIx<0) nextIx=centers.size()-1;
+		Real nextX=centers[nextIx][0];
+		Real dX=lastX-nextX+(lastX<nextX?cellLen:0); // when wrapping, fix the difference
+		LOG_DEBUG("len toDo/done "<<lenToDo<<"/"<<lenDone<<", lastX="<<lastX<<", nextX="<<nextX<<", dX="<<dX<<", nextIx="<<nextIx);
+		if(isnan(abs(dX)) || isnan(abs(nextX)) || isnan(abs(lenDone)) || isnan(abs(lenToDo))) std::logic_error("ConveyorFactory: some parameters are NaN.");
+		if(lenDone+dX>lenToDo){
+			// the next sphere would not fit
+			lastX=Cell::wrapNum(lastX-(lenToDo-lenDone),cellLen); // put lastX before the next sphere
+			LOG_DEBUG("Conveyor done: next sphere "<<nextIx<<" would not fit, setting lastX="<<lastX);
+			break;
 		}
-		nextX=shift0+centers[nextGenIx][0]-currWraps*cellLen;
-		LOG_DEBUG("nextX="<<nextX<<", currWraps="<<currWraps);
-		if(nextX<0) break;
-		lastGenIx=nextGenIx;
-		if(nextX>lenToDo) continue; // BUG: this skips spurious particles generated and should be fixed!!
+		lastX=Cell::wrapNum(nextX,cellLen);
+		lenDone+=dX;
 
-		auto sphere=DemFuncs::makeSphere(radii[lastGenIx],material);
+		auto sphere=DemFuncs::makeSphere(radii[nextIx],material);
 		const auto& n=sphere->shape->nodes[0];
 		auto& dyn=n->getData<DemData>();
+		Real realSphereX=lenToDo-lenDone;
 		//LOG_TRACE("x="<<x<<", "<<lenToDo<<"-("<<1+currWraps<<")*"<<cellLen<<"+"<<currX);
-		n->pos=node->pos+node->ori*Vector3r(nextX,centers[lastGenIx][1],centers[lastGenIx][2]);
+		n->pos=node->pos+node->ori*Vector3r(realSphereX,centers[nextIx][1],centers[nextIx][2]);
 		dyn.vel=node->ori*(Vector3r::UnitX()*vel);
 
-		if(nextX<barrierLayer){
+		if(realSphereX<barrierLayer){
 			sphere->shape->color=isnan(barrierColor)?Mathr::UnitRandom():barrierColor;
 			barrier.push_back(sphere);
 			dyn.setBlockedAll();
@@ -488,7 +492,7 @@ void ConveyorFactory::run(){
 		}
 
 		dem->particles->insert(sphere);
-		LOG_TRACE("New sphere #"<<sphere->id<<", r="<<radii[lastGenIx]<<" at "<<n->pos.transpose());
+		LOG_TRACE("New sphere #"<<sphere->id<<", r="<<radii[nextIx]<<" at "<<n->pos.transpose());
 		#ifdef YADE_OPENGL
 			boost::mutex::scoped_lock lock(dem->nodesMutex);
 		#endif
@@ -496,13 +500,8 @@ void ConveyorFactory::run(){
 		dem->nodes.push_back(n);
 
 		stepMass+=dyn.mass;
+		nextIx-=1; // decrease; can go negative, handled at the beginning of the loop
 	};
-
-	lastX=Cell::wrapNum(nextX-shift0,cellLen);
-	LOG_DEBUG("----------------");
-
-	// force contact re-detection
-	//dem->contacts->dirty=true;
 
 	Real currRateNoSmooth=stepMass/(/*time*/lenToDo/vel);
 	if(isnan(currRate)) currRate=currRateNoSmooth;
