@@ -1,3 +1,4 @@
+# this script is shown at http://youtube.com/watch?w=-Q81oGxoz_s
 from yade import *
 from yade.core import *
 from yade.dem import *

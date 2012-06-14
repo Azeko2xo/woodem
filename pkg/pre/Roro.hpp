@@ -24,8 +24,10 @@ struct Roro: public Preprocessor {
 		((Real,cylLenSim,.5,AttrTrait<>().lenUnit().triggerPostLoad(),"Simulated length of cylinders"))
 		((Real,cylRelLen,,AttrTrait<>().readonly(),"Relative length of simulated cylinders"))
 		((Real,massFlowRate,/*for real length*/2500,AttrTrait<>().massFlowRateUnit().prefUnit("Mt/y"),"Incoming mass flow rate (considering real length)"))
+		((bool,conveyor,true,,"Feed particles using infinite conveyor rather than particles falling from above; see conveyorHt."))
+		((Real,conveyorHt,.2,AttrTrait<>().lenUnit(),"Height of particle layor on the conveyor (only meaningful if *conveyor* is True)"))
 		((Real,time,2,AttrTrait<>().timeUnit(),"Time of the simulation (after reaching steady state)"))
-		((Real,flowVel,1.,AttrTrait<>().velUnit().cxxType("fooBar"),"Velocity of generated particles"))
+		((Real,flowVel,1.,AttrTrait<>().velUnit().cxxType("fooBar"),"Velocity of generated particles; this value is ignored if *conveyor* is True."))
 		((Real,cylDiameter,.2,AttrTrait<>().lenUnit().prefUnit("mm"),"Diameter of cylinders"))
 		((Real,inclination,30*Mathr::PI/180.,AttrTrait<>().angleUnit().prefUnit("deg"),"Inclination cylinders"))
 
@@ -46,10 +48,10 @@ struct Roro: public Preprocessor {
 		((Vector3r,quivVPeriod,Vector3r(5000,11000,5),,"Vertical quiver period (relative to Δt); assigned quasi-randomly from the given range, with z-component giving modulo divisor"))
 		((Real,gravity,100.,AttrTrait<>().accelUnit(),"Gravity acceleration magnitude"))
 		((Real,steadyFlowFrac,.9,,"Start steady (measured) phase when efflux (fall over, apertures, out-of-domain) reaches this fraction of influx (feed)"))
-		((int,factStepPeriod,200,,"Run factory (and deleters) every *factStepPeriod* steps."))
+		((int,factStepPeriod,800,,"Run factory (and deleters) every *factStepPeriod* steps."))
 		((Real,pWaveSafety,.7,AttrTrait<Attr::triggerPostLoad>(),"Safety factor for critical timestep"))
-		((Real,rateSmooth,.1,,"Smoothing factor for plotting rates in factory and deleters"))
-		((Real,vtkFreq,1.,,"How often should VtkExport run, relative to *factStepPeriod*. If negative, run never."))
+		((Real,rateSmooth,.4,,"Smoothing factor for plotting rates in factory and deleters"))
+		((Real,vtkFreq,.25,,"How often should VtkExport run, relative to *factStepPeriod*. If negative, run never."))
 		((string,vtkPrefix,"/tmp/",,"Prefix for saving VtkExport data, files will be called vtkPrefix+O.tags['id']. Don't forget trailing slash if vtkPrefix is a directory."))
 
 		, /*ctor*/

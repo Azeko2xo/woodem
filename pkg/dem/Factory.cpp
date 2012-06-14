@@ -13,9 +13,9 @@
 
 #include<boost/tuple/tuple_comparison.hpp>
 
-YADE_PLUGIN(dem,(ParticleGenerator)(MinMaxSphereGenerator)(PsdSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(ParticleFactory)(BoxFactory)(BoxDeleter)(ConveyorFactory));
+YADE_PLUGIN(dem,(ParticleFactory)(ParticleGenerator)(MinMaxSphereGenerator)(PsdSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(RandomFactory)(BoxFactory)(BoxDeleter)(ConveyorFactory));
 CREATE_LOGGER(PsdSphereGenerator);
-CREATE_LOGGER(ParticleFactory);
+CREATE_LOGGER(RandomFactory);
 CREATE_LOGGER(ConveyorFactory);
 CREATE_LOGGER(BoxDeleter);
 
@@ -164,23 +164,24 @@ py::tuple PsdSphereGenerator::pyInputPsd(bool scale, bool cumulative, int num) c
 }
 
 
-void ParticleFactory::run(){
+void RandomFactory::run(){
 	DemField* dem=static_cast<DemField*>(field.get());
-	if(!generator) throw std::runtime_error("ParticleFactor.generator==None!");
-	if(!shooter) throw std::runtime_error("ParticleFactor.shooter==None!");
-	if(materials.empty()) throw std::runtime_error("ParticleFactory.materials is empty!");
+	if(!generator) throw std::runtime_error("RandomFactory.generator==None!");
+	if(!shooter) throw std::runtime_error("RandomFactory.shooter==None!");
+	if(materials.empty()) throw std::runtime_error("RandomFactory.materials is empty!");
 	if(!collider){
 		for(const auto& e: scene->engines){ collider=dynamic_pointer_cast<Collider>(e); if(collider) break; }
-		if(!collider) throw std::runtime_error("ParticleFactory: no Collider found within engines (needed for collisions detection)");
+		if(!collider) throw std::runtime_error("RandomFactory: no Collider found within engines (needed for collisions detection)");
 	}
 	if(dynamic_pointer_cast<InsertionSortCollider>(collider)) static_pointer_cast<InsertionSortCollider>(collider)->forceInitSort=true;
+	if(isnan(massFlowRate)) throw std::runtime_error("RandomFactory.massFlowRate must be given "+to_string(massFlowRate));
+	if(massFlowRate<=0 && maxAttempts==0) throw std::runtime_error("RandomFactory.massFlowRate<=0 (no massFlowRate prescribed), but RandomFactory.maxAttempts==0. (unlimited number of attempts); this would cause infinite loop.");
 
 	// as if some time has already elapsed at the very start
 	// otherwise mass flow rate is too big since one particle during Δt exceeds it easily
 	// equivalent to not running the first time, but without time waste
 	if(stepPrev==-1 && stepPeriod>0) stepPrev=-stepPeriod; 
-	long nSteps=scene->step-this->stepPrev;
-	this->stepPrev=scene->step;
+	long nSteps=scene->step-stepPrev;
 	// to be attained in this step;
 	stepGoalMass+=massFlowRate*scene->dt*nSteps; // stepLast==-1 if never run, which is OK
 	vector<AlignedBox3r> genBoxes; // of particles created in this step
@@ -188,7 +189,17 @@ void ParticleFactory::run(){
 	Real stepMass=0.;
 	
 
-	while(mass<stepGoalMass && (maxNum<0 || num<maxNum) && (maxMass<0 || mass<maxMass)){
+	while(true){
+		// finished forever
+		if((maxMass>0 && mass>=maxMass) || (maxNum>0 && num>maxNum)){
+			LOG_INFO("mass or number reached, making myself dead.");
+			dead=true;
+			currRate=0.;
+			return;
+		}
+		// finished in this step
+		if(massFlowRate>0 && mass>=stepGoalMass) break;
+
 		shared_ptr<Material> mat;
 		if(materials.size()==1) mat=materials[0];
 		else{ // random choice of material with equal probability
@@ -203,12 +214,13 @@ void ParticleFactory::run(){
 		while(true){
 			attempt++;
 			if(attempt>=abs(maxAttempts)){
+				if(massFlowRate<=0) goto stepDone;
 				if(maxAttempts<0){
 					LOG_INFO("maxAttempts="<<maxAttempts<<" reached, making myself dead.");
 					this->dead=true;
 					return;
 				}
-					else throw std::runtime_error("ParticleFactory.maxAttempts reached ("+lexical_cast<string>(maxAttempts)+")");
+					else throw std::runtime_error("RandomFactory.maxAttempts reached ("+lexical_cast<string>(maxAttempts)+")");
 			}	
 			pos=randomPosition(); // overridden in child classes
 			LOG_TRACE("Trying pos="<<pos.transpose());
@@ -259,7 +271,7 @@ void ParticleFactory::run(){
 		
 		Real color_=isnan(color)?Mathr::UnitRandom():color;
 		if(pee.size()>1){ // clump was generated
-			throw std::runtime_error("ParticleFactory: Clumps not yet tested properly.");
+			throw std::runtime_error("RandomFactory: Clumps not yet tested properly.");
 			vector<shared_ptr<Node>> nn;
 			for(auto& pe: pee){
 				auto& p=pe.par;
@@ -328,10 +340,9 @@ void ParticleFactory::run(){
 			#endif
 		}
 	};
-	Real currRateNoSmooth=stepMass/(nSteps*scene->dt);
-	//cerr<<"[mass="<<mass<<",stepGoalMass="<<stepGoalMass<<",currRateNoSmooth="<<currRateNoSmooth<<"]";
-	if(isnan(currRate)) currRate=currRateNoSmooth;
-	else currRate=(1-currRateSmooth)*currRate+currRateSmooth*currRateNoSmooth;
+
+	stepDone:
+	setCurrRate(stepMass/(nSteps*scene->dt));
 }
 
 void BoxDeleter::run(){
@@ -377,7 +388,6 @@ void BoxDeleter::run(){
 	Real currRateNoSmooth=stepMass/((scene->step-stepPrev)*scene->dt);
 	if(isnan(currRate)||stepPrev<0) currRate=currRateNoSmooth;
 	else currRate=(1-currRateSmooth)*currRate+currRateSmooth*currRateNoSmooth;
-	stepPrev=scene->step;
 }
 py::tuple BoxDeleter::pyDiamMass(){
 	py::list dd, mm;
@@ -461,6 +471,12 @@ void ConveyorFactory::run(){
 	//LOG_DEBUG("lenToDo="<<lenToDo<<", time="<<scene->time<<", virtPrev="<<virtPrev<<", vel="<<vel<<", shift0="<<shift0<<", lastGenIx="<<lastGenIx<<"/"<<centers.size()-1);
 	Real lenDone=0;
 	while(true){
+		// done foerver
+		if(maxMass>0 && mass>maxMass){
+			dead=true;
+			currRate=0.;
+			return;
+		}
 		if(nextIx<0) nextIx=centers.size()-1;
 		Real nextX=centers[nextIx][0];
 		Real dX=lastX-nextX+(lastX<nextX?cellLen:0); // when wrapping, fix the difference
@@ -476,6 +492,7 @@ void ConveyorFactory::run(){
 		lenDone+=dX;
 
 		auto sphere=DemFuncs::makeSphere(radii[nextIx],material);
+		sphere->mask=mask;
 		const auto& n=sphere->shape->nodes[0];
 		auto& dyn=n->getData<DemData>();
 		Real realSphereX=lenToDo-lenDone;
@@ -492,6 +509,7 @@ void ConveyorFactory::run(){
 		}
 
 		dem->particles->insert(sphere);
+		if(save) genDiamMass.push_back(Vector2r(2*radii[nextIx],dyn.mass));
 		LOG_TRACE("New sphere #"<<sphere->id<<", r="<<radii[nextIx]<<" at "<<n->pos.transpose());
 		#ifdef YADE_OPENGL
 			boost::mutex::scoped_lock lock(dem->nodesMutex);
@@ -500,10 +518,26 @@ void ConveyorFactory::run(){
 		dem->nodes.push_back(n);
 
 		stepMass+=dyn.mass;
+		mass+=dyn.mass;
 		nextIx-=1; // decrease; can go negative, handled at the beginning of the loop
 	};
 
-	Real currRateNoSmooth=stepMass/(/*time*/lenToDo/vel);
-	if(isnan(currRate)) currRate=currRateNoSmooth;
-	else currRate=(1-currRateSmooth)*currRate+currRateSmooth*currRateNoSmooth;
+	setCurrRate(stepMass/(/*time*/lenToDo/vel));
+}
+
+py::object ConveyorFactory::pyDiamMass() const {
+	py::list diam, mass;
+	for(const Vector2r& vv: genDiamMass){ diam.append(vv[0]); mass.append(vv[1]); }
+	return py::object(py::make_tuple(diam,mass));
+}
+
+py::tuple ConveyorFactory::pyPsd(bool mass, bool cumulative, bool normalize, Vector2r dRange, int num) const {
+	if(!save) throw std::runtime_error("ConveyorFactory.save must be True for calling ConveyorFactory.psd()");
+	vector<Vector2r> psd=DemFuncs::psd(genDiamMass,/*cumulative*/cumulative,/*normalize*/normalize,num,dRange,
+		/*radius getter*/[](const Vector2r& diamMass) ->Real { return diamMass[0]; },
+		/*weight getter*/[&](const Vector2r& diamMass) -> Real{ return mass?diamMass[1]:1.; }
+	);
+	py::list diameters,percentage;
+	for(const auto& dp: psd){ diameters.append(dp[0]); percentage.append(dp[1]); }
+	return py::make_tuple(diameters,percentage);
 }

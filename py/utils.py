@@ -214,7 +214,7 @@ def wall(position,axis,sense=0,glAB=None,fixed=True,mass=0,color=None,material=N
 	p.shape.visible=visible
 	return p
 
-def facet(vertices,fakeVel=None,fixed=True,wire=True,color=None,highlight=False,material=None,mask=1):
+def facet(vertices,fakeVel=None,fixed=True,wire=True,color=None,highlight=False,material=None,visible=True,mask=1):
 	"""Create facet with given parameters.
 
 	:param [Vector3,Vector3,Vector3] vertices: coordinates of vertices in the global coordinate system.
@@ -235,6 +235,7 @@ def facet(vertices,fakeVel=None,fixed=True,wire=True,color=None,highlight=False,
 	_commonBodySetup(p,nodes,volumes=None,masses=(0,0,0),geomInertias=[Vector3(0,0,0),Vector3(0,0,0),Vector3(0,0,0)],material=material,fixed=fixed)
 	p.aspherical=False # mass and inertia are 0 anyway; fell free to change to ``True`` if needed
 	p.mask=mask
+	p.shape.visible=visible
 	return p
 
 def infCylinder(position,radius,axis,glAB=None,fixed=True,mass=0,color=None,material=None,mask=1):
@@ -554,6 +555,21 @@ def xMirror(half):
 The sequence should start up and then it will wrap from y downwards (or vice versa).
 If the last point's x coord is zero, it will not be duplicated."""
 	return list(half)+[(x,-y) for x,y in reversed(half[:-1] if half[-1][0]==0 else half)]
+
+def tesselatePolyline(l,maxDist):
+	'''Return polyline tesselated so that distance between consecutive points is no more than maxDist. *l* is list of points (Vector2 or Vector3).'''
+	ret=[]
+	for i in range(len(l)-1):
+		x0,x1=l[i],l[i+1]
+		dX=x1-x0
+		dist=dX.norm()
+		if dist>maxDist:
+			nDiv=int(dist/maxDist+(1 if int(dist/maxDist)*maxDist<dist else 0))
+			for j in range(int(nDiv)): ret.append(x0+dX*(j*1./nDiv))
+		else: ret.append(x0)
+	ret.append(l[-1])
+	return ret
+
 
 #############################
 ##### deprecated functions

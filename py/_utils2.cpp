@@ -91,8 +91,8 @@ vector<shared_ptr<Contact> > createContacts(const vector<Particle::id_t>& ids1, 
 }
 
 
-Real unbalancedForce(bool useMaxForce=false){
-	Scene* scene=Omega::instance().getScene().get(); DemField* field=getDemField(scene).get();
+Real unbalancedForce(const shared_ptr<Scene>& _scene, bool useMaxForce=false){
+	Scene* scene=(_scene?_scene:Omega::instance().getScene()).get(); DemField* field=getDemField(scene).get();
 	return DemFuncs::unbalancedForce(scene,field,useMaxForce);
 }
 
@@ -191,7 +191,7 @@ BOOST_PYTHON_MODULE(_utils2){
 	py::def("muStiffnessScaling",muStiffnessScaling,(py::arg("piHat")=Mathr::PI/2,py::arg("skipFloaters")=false,py::arg("V")=-1),"Compute stiffness scaling parameter relating continuum-like stiffness with packing stiffness; see 'Particle assembly with cross-anisotropic stiffness tensor' for details. With *skipFloaters*, ignore contacts where any of the two contacting particlds has only one *real* contact (thus not contributing to the assembly stability).");
 	py::def("bestFitCompliance",bestFitCompliance,"Compute compliance based on best-fit hypothesis, using the paper [Liao1997], equations (30) and (28,31).");
 	py::def("mapColor",CompUtils::scalarOnColorScale,(py::arg("x"),py::arg("min")=0,py::arg("max")=1,py::arg("cmap")=-1),"Map scalar to color (as 3-tuple). See O.cmap, O.cmaps to set colormap globally.");
-	py::def("unbalancedForce",unbalancedForce,(py::arg("useMaxForce")=false),"Compute the ratio of mean (or maximum, if *useMaxForce*) summary force on bodies and mean force magnitude on interactions. It is an adimensional measure of staticity, which approaches zero for quasi-static states.");
+	py::def("unbalancedForce",unbalancedForce,(py::arg("scene")=shared_ptr<Scene>(),py::arg("useMaxForce")=false),"Compute the ratio of mean (or maximum, if *useMaxForce*) summary force on bodies and mean force magnitude on interactions. It is an adimensional measure of staticity, which approaches zero for quasi-static states.");
 }
 
 

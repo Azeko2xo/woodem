@@ -8,6 +8,25 @@
 	#include<yade/lib/base/CompUtils.hpp>
 #endif
 
+struct ParticleFactory: public PeriodicEngine{
+	//bool isActivated(){ return !((maxMass>0 && mass>maxMass) || (maxNum>0 && num>maxNum)); }
+	// set current smoothed mass flow rate, given unsmoothed value from the current step
+	// handles NaN values if there is no previous value
+	void setCurrRate(Real currRateNoSmooth){
+		if(isnan(currRate)||stepPrev<0) currRate=currRateNoSmooth;
+		else currRate=(1-currRateSmooth)*currRate+currRateSmooth*currRateNoSmooth;
+	}
+	YADE_CLASS_BASE_DOC_ATTRS(ParticleFactory,PeriodicEngine,"Factory generating new particles. This is an abstract base class which in itself does not generate anything, but provides some unified interface to derived classes.",
+		((Real,maxMass,-1,,"Mass at which the engine will not produce any particles (inactive if negative)"))
+		((long,maxNum,-1,,"Number of generated particles after which no more will be produced (inacitve if negative)"))
+		((Real,mass,0,,"Generated mass total"))
+		((long,num,0,,"Number of generated particles"))
+		((Real,currRate,NaN,AttrTrait<>().readonly(),"Current value of mass flow rate"))
+		((Real,currRateSmooth,1,AttrTrait<>().noGui().range(Vector2r(0,1)),"Smoothing factor for currRate ∈〈0,1〉"))
+	);
+};
+REGISTER_SERIALIZABLE(ParticleFactory);
+
 struct ParticleGenerator: public Serializable{
 	// particle and two extents sizes (bbox if p is at origin)
 	struct ParticleAndBox{ shared_ptr<Particle> par; AlignedBox3r extents; };
@@ -80,7 +99,7 @@ REGISTER_SERIALIZABLE(AlignedMinMaxShooter);
 
 struct Collider;
 
-struct ParticleFactory: public PeriodicEngine{
+struct RandomFactory: public ParticleFactory{
 	DECLARE_LOGGER;
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	virtual Vector3r randomPosition(){ throw std::runtime_error("Calling ParticleFactor.randomPosition	(abstract method); use derived classes."); }
@@ -88,12 +107,8 @@ struct ParticleFactory: public PeriodicEngine{
 	void run();
 	void pyClear(){ if(generator) generator->clear(); num=0; mass=0; stepGoalMass=0; /* do not reset stepPrev! */ }
 	shared_ptr<Collider> collider;
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ParticleFactory,PeriodicEngine,"Factory generating new particles.",
-		((Real,massFlowRate,NaN,AttrTrait<>().massFlowRateUnit(),"Mass flow rate"))
-		((Real,maxMass,-1,,"Mass at which the engine will not produce any particles (inactive if negative)"))
-		((long,maxNum,-1,,"Number of generated particles after which no more will be produced (inacitve if negative)"))
-		((Real,mass,0,,"Generated mass total"))
-		((long,num,0,,"Number of generated particles"))
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(RandomFactory,ParticleFactory,"Factory generating new particles.",
+		((Real,massFlowRate,NaN,AttrTrait<>().massFlowRateUnit(),"Mass flow rate; if zero, generate as many particles as possible, until maxAttemps is reached."))
 		((vector<shared_ptr<Material>>,materials,,,"Set of materials for new particles, randomly picked from"))
 		((shared_ptr<ParticleGenerator>,generator,,,"Particle generator instance"))
 		((shared_ptr<ParticleShooter>,shooter,,,"Particle shooter instance (assigns velocities to generated particles"))
@@ -102,25 +117,23 @@ struct ParticleFactory: public PeriodicEngine{
 		((Real,color,NaN,,"Color for new particles (NaN for random)"))
 		//
 		((Real,stepGoalMass,0,AttrTrait<Attr::readonly>(),"Mass to be attained in this step"))
-		((long,stepPrev,-1,AttrTrait<Attr::readonly>(),"Step in which we were run for the last time"))
-		((Real,currRate,NaN,AttrTrait<>().readonly(),"Current value of mass flow rate"))
-		((Real,currRateSmooth,1,AttrTrait<>().noGui().range(Vector2r(0,1)),"Smoothing factor for currRate ∈〈0,1〉"))
+		// ((long,stepPrev,-1,AttrTrait<Attr::readonly>(),"Step in which we were run for the last time"))
 		,/*ctor*/
 		,/*py*/
-			.def("clear",&ParticleFactory::pyClear)
+			.def("clear",&RandomFactory::pyClear)
 	);
 };
-REGISTER_SERIALIZABLE(ParticleFactory);
+REGISTER_SERIALIZABLE(RandomFactory);
 
-struct BoxFactory: public ParticleFactory{
+struct BoxFactory: public RandomFactory{
 	Vector3r randomPosition(){ return box.sample(); }
 	bool validateBox(const AlignedBox3r& b) { return box.contains(b); }
 	#ifdef YADE_OPENGL
-		void render(const GLViewInfo&){ if(!isnan(color)) GLUtils::AlignedBox(box,CompUtils::mapColor(color)); }
+		void render(const GLViewInfo&){ if(!isnan(glColor)) GLUtils::AlignedBox(box,CompUtils::mapColor(glColor)); }
 	#endif
-	YADE_CLASS_BASE_DOC_ATTRS(BoxFactory,ParticleFactory,"Generate particle inside axis-aligned box volume.",
+	YADE_CLASS_BASE_DOC_ATTRS(BoxFactory,RandomFactory,"Generate particle inside axis-aligned box volume.",
 		((AlignedBox3r,box,AlignedBox3r(Vector3r(NaN,NaN,NaN),Vector3r(NaN,NaN,NaN)),,"Box volume specification (lower and upper corners)"))
-		((Real,color,0,AttrTrait<>().noGui(),"Color for rendering (nan disables rendering)"))
+		((Real,glColor,0,AttrTrait<>().noGui(),"Color for rendering (nan disables rendering)"))
 	);
 };
 REGISTER_SERIALIZABLE(BoxFactory);
@@ -129,7 +142,7 @@ struct BoxDeleter: public PeriodicEngine{
 	DECLARE_LOGGER;
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	#ifdef YADE_OPENGL
-		void render(const GLViewInfo&){ if(!isnan(color)) GLUtils::AlignedBox(box,CompUtils::mapColor(color)); }
+		void render(const GLViewInfo&){ if(!isnan(glColor)) GLUtils::AlignedBox(box,CompUtils::mapColor(glColor)); }
 	#endif
 	void run();
 	py::object pyPsd(bool mass, bool cumulative, bool normalize, int num, const Vector2r& dRange, bool zip);
@@ -143,11 +156,10 @@ struct BoxDeleter: public PeriodicEngine{
 		((vector<shared_ptr<Particle>>,deleted,,AttrTrait<Attr::readonly>().noGui(),"Deleted particle's list; can be cleared with BoxDeleter.clear()"))
 		((int,num,0,AttrTrait<Attr::readonly>(),"Number of deleted particles"))
 		((Real,mass,0.,AttrTrait<Attr::readonly>(),"Total mass of deleted particles"))
-		((Real,color,0,AttrTrait<>().noGui(),"Color for rendering (NaN disables rendering)"))
+		((Real,glColor,0,AttrTrait<>().noGui(),"Color for rendering (NaN disables rendering)"))
 		//
 		((Real,currRate,NaN,AttrTrait<>().readonly(),"Current value of mass flow rate"))
 		((Real,currRateSmooth,1,AttrTrait<>().noGui().range(Vector2r(0,1)),"Smoothing factor for currRate ∈〈0,1〉"))
-		((long,stepPrev,-1,,"Step when run for the last time"))
 		,/*ctor*/
 		,/*py*/
 		.def("psd",&BoxDeleter::pyPsd,(py::arg("mass")=true,py::arg("cumulative")=true,py::arg("normalize")=false,py::arg("num")=80,py::arg("dRange")=Vector2r(NaN,NaN),py::arg("zip")=false),"Return particle size distribution of deleted particles (only useful with *save*), spaced between *dRange* (a 2-tuple of minimum and maximum radius); )")
@@ -157,7 +169,7 @@ struct BoxDeleter: public PeriodicEngine{
 };
 REGISTER_SERIALIZABLE(BoxDeleter);
 
-struct ConveyorFactory: public PeriodicEngine{
+struct ConveyorFactory: public ParticleFactory{
 	DECLARE_LOGGER;
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	void sortPacking();
@@ -169,7 +181,10 @@ struct ConveyorFactory: public PeriodicEngine{
 	#endif
 	void run();
 	vector<shared_ptr<Particle>> pyBarrier() const { return vector<shared_ptr<Particle>>(barrier.begin(),barrier.end()); }
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ConveyorFactory,PeriodicEngine,"Factory producing infinite band of particles from packing periodic in the x-direction. (Clumps are not supported (yet?), only spheres).",
+	void pyClear(){ mass=0; num=0; genDiamMass.clear(); }
+	py::object pyDiamMass() const;
+	py::tuple pyPsd(bool mass, bool cumulative, bool normalize, Vector2r dRange, int num) const;
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ConveyorFactory,ParticleFactory,"Factory producing infinite band of particles from packing periodic in the x-direction. (Clumps are not supported (yet?), only spheres).",
 		((shared_ptr<Material>,material,,,"Material for new particles"))
 		((Real,cellLen,,,"Length of the band cell, which is repeated periodically"))
 		((vector<Real>,radii,,AttrTrait<>().noGui().triggerPostLoad(),"Radii for the packing"))
@@ -180,48 +195,19 @@ struct ConveyorFactory: public PeriodicEngine{
 		((int,mask,1,,"Mask for new particles"))
 		((Real,startLen,NaN,,"Band to be created at the very start; if NaN, only the usual starting amount is created (depending on feed velocity)"))
 		((Real,barrierColor,.2,,"Color for barrier particles (NaN for random)"))
-		((Real,color,.2,,"Color for non-barrier particles (NaN for random)"))
+		((Real,color,NaN,,"Color for non-barrier particles (NaN for random)"))
 		((Real,barrierLayer,-3.,,"Some length of the last part of new particles has all DoFs blocked, so that when new particles are created, there are no sudden contacts in the band; in the next step, DoFs in this layer are unblocked. If *barrierLayer* is negative, it is relative to the maximum radius in the given packing, and is automatically set to the correct value at the first run"))
 		((list<shared_ptr<Particle>>,barrier,,AttrTrait<>().readonly().noGui(),"Particles which make up the barrier and will be unblocked once they leave barrierLayer."))
 		((shared_ptr<Node>,node,make_shared<Node>(),AttrTrait<>().readonly(),"Position and orientation of the factory; local x-axis is the feed direction."))
-		((Real,currRate,NaN,AttrTrait<>().readonly(),"Current value of mass flow rate"))
-		((Real,currRateSmooth,1,AttrTrait<>().noGui().range(Vector2r(0,1)),"Smoothing factor for currRate∈〈0,1〉"))
+
+		((vector<Vector2r>,genDiamMass,,AttrTrait<Attr::readonly>().noGui(),"List of generated diameters and masses (for making granulometry)"))
+		((bool,save,true,,"Save generated particles so that PSD can be generated afterwards"))
 		,/*ctor*/
 		,/*py*/
-			.def("barrier",&ConveyorFactory::pyBarrier);
+			.def("barrier",&ConveyorFactory::pyBarrier)
+			.def("clear",&ConveyorFactory::pyClear)
+			.def("diamMass",&ConveyorFactory::pyDiamMass,"Return 2-tuple of same-length list of diameters and masses.")
+			.def("psd",&ConveyorFactory::pyPsd,(py::arg("mass")=true,py::arg("cumulative")=true,py::arg("normalize")=false,py::arg("dRange")=Vector2r(NaN,NaN),py::arg("num")=80),"Return PSD for particles generated.")
 	);
 };
 REGISTER_SERIALIZABLE(ConveyorFactory);
-
-#if 0
-struct MultiBoxDeleter: public PeriodicEngine{
-	DECLARE_LOGGER;
-	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
-	void postLoad(MultiBoxDeleter&){
-		colors.resize(boxes.size());
-		masses.resize(boxes.size());
-		nums.resize(boxes.size());
-		deleted.resize(boxes.size());
-	}
-	int pyNum(){ return boost::accumulate(nums,0); }
-	int pyMass(){ return boost::accumulate(masses,0.); }
-	void pyClear(){ boost::fill(masses,0.); boost::fill(nums,0); for(auto& d:deleted) c.clear(); }
-	#ifdef YADE_OPENGL
-		void render(const GLViewInfo&){ for(int i=0;i<colors.size();i++) if(!isnan(color)) GLUtils::AlignedBox(box,CompUtils::mapColor(color)); }
-	#endif
-	py::object pyPsd(int boxNo, int num);
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(MultiBoxDeleter,PeriodicEngine,"Delete particles which fall inside one of the many boxes. The advantage of this engine over multiple BoxDeleters is easier setup and the possibility of reporting individual or combined PSD's",
-		((bool,save,false,"Save particles in the *deleted* list."))
-		((vector<vector<shared_ptr<Particle>>,deleted,,AttrTrait<Attr::hidden>(),"deleted particle's list; can be cleared with MultiBoxDeleter.clear()"))
-		((vector<int>,nums,,AttrTrait<Attr::readonly>(),"Number of deleted particles for each contained box"))
-		((vector<Real>,masses,,AttrTrait<Attr::readonly>(),"Mass of deleted particles for each box"))
-		((vector<Real>,colors,,AttrTrait<Attr::readonly>(),"Color for each box"))
-		,/*ctor*/
-		,/*py*/
-		.add_property("mass",&MultiBoxDeleter::pyMass)
-		.add_property("num",&MultiBoxDeleter::pyNum)
-		.def("clear",&BoxDeleter::pyClear,"Clear information about saved particles")
-		.def("psd",&BoxDeleter::pyPsd,(py::arg("boxNo")=-1,py::arg("num")=80),"Return particle size distribution of deleted particles. When no box number is provided, all boxes combined are returned")
-	)
-}
-#endif

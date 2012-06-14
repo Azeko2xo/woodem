@@ -95,10 +95,13 @@ Vector3i InsertionSortCollider::countInversions(){
 }
 
 // if(verletDist>0){ mn-=verletDist*Vector3r::Ones(); mx+=verletDist*Vector3r::Ones(); }
-vector<Particle::id_t> InsertionSortCollider::probeAabb(const Vector3r& mn, const Vector3r& mx){
+vector<Particle::id_t> InsertionSortCollider::probeAabb(const Vector3r& _mn, const Vector3r& _mx){
 	vector<Particle::id_t> ret;
 	const short ax0=0; // use the x-axis for the traversal
 	const VecBounds& v(BB[ax0]);
+	Vector3r mn,mx;
+	if(periodic){ mn=scene->cell->wrapPt(_mn); mx=scene->cell->wrapPt(_mx); }
+	else{ mn=_mn; mx=_mx; }
 #if 0
 	auto I=std::lower_bound(v.vec.begin(),v.vec.end(),mn[ax0],[](const Bounds& b, const Real& c)->bool{ return b.coord<c; } );
 	#ifdef YADE_DEBUG

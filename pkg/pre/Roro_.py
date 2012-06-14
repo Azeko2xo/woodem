@@ -9,7 +9,13 @@ import math
 from miniEigen import *
 import sys
 import cStringIO as StringIO
+import numpy
 nan=float('nan')
+
+# assure compatibility
+if not hasattr(ConveyorFactory,'generator'):
+	ConveyorFactory.generator=property(lambda x: x)
+
 
 def run(ui): # use inputs as argument
 	print 'Roro_.run()'
@@ -38,7 +44,9 @@ def run(ui): # use inputs as argument
 	de.par.append([
 		utils.wall(ymin,axis=1,sense= 1,visible=False,glAB=((zmin,xmin),(zmax,xmax)),material=ui.material,mask=wallMask),
 		utils.wall(ymax,axis=1,sense=-1,visible=False,glAB=((zmin,xmin),(zmax,xmax)),material=ui.material,mask=wallMask),
-		utils.wall(xmin,axis=0,sense= 1,visible=False,glAB=((ymin,zmin),(ymax,zmax)),material=ui.material,mask=wallMask)
+		utils.wall(xmin,axis=0,sense= 1,visible=False,glAB=((ymin,zmin),(ymax,zmax)),material=ui.material,mask=wallMask),
+		utils.wall(xmax,axis=0,sense=-1,visible=False,glAB=((ymin,zmin),(ymax,zmax)),material=ui.material,mask=wallMask),
+		utils.wall(zmin,axis=2,sense= 1,visible=False,glAB=((xmin,ymin),(xmax,ymax)),material=ui.material,mask=wallMask),
 	])
 	for i in range(0,ui.cylNum):
 		x=i*(2*rCyl+ui.gap)
@@ -55,24 +63,40 @@ def run(ui): # use inputs as argument
 			)
 		)
 		de.par.append(c)
-	A,B,C,D=(xmin,ymin,rCyl),(0,ymin,rCyl),(0,ymax,rCyl),(xmin,ymax,rCyl)
-	de.par.append([utils.facet(vertices,material=ui.material,mask=wallMask,fakeVel=(ui.flowVel*math.cos(ui.inclination),0,0)) for vertices in ((A,B,C),(C,D,A))])
+		A,B,C,D=(x,ymin,zmin),(x,ymin,-rCyl),(x,ymax,-rCyl),(x,ymax,zmin)
+		de.par.append([utils.facet(vertices,material=ui.material,mask=wallMask,visible=False) for vertices in (A,B,C),(C,D,A)])
 
-	incl=ui.inclination # is in radians
-	grav=ui.gravity
-	gravity=(grav*math.sin(incl),0,-grav*math.cos(incl))
+	inclinedGravity=(ui.gravity*math.sin(ui.inclination),0,-ui.gravity*math.cos(ui.inclination))
 	factStep=ui.factStepPeriod
-	s.engines=utils.defaultEngines(damping=.4,gravity=gravity,verletDist=.05*rMin)+[
-		# what falls beyond
-		# initially not saved
-		BoxDeleter(stepPeriod=factStep,inside=True,box=((cylX[i],ymin,zmin),(cylX[i+1],ymax,-rCyl/2.)),color=.05*i,save=False,mask=delMask,currRateSmooth=ui.rateSmooth,label='aperture[%d]'%i) for i in range(0,ui.cylNum-1)
-	]+[
-		# this one should not collect any particles at all
-		BoxDeleter(stepPeriod=factStep,box=((xmin,ymin,zmin),(xmax,ymax,zmax)),color=.9,save=False,mask=delMask,label='outOfDomain'),
-		# what falls inside
-		BoxDeleter(stepPeriod=factStep,inside=True,box=((lastCylX+rCyl,ymin,zmin),(xmax,ymax,zmax)),color=.9,save=True,mask=delMask,currRateSmooth=ui.rateSmooth,label='fallOver'),
-		# generator
-		BoxFactory(stepPeriod=factStep,box=((xmin,ymin,rCyl),(0,ymax,zmax)),color=.4,label='factory',
+
+	if ui.conveyor:
+		print 'Preparing packing for conveyor feed, be patient'
+		cellLen=15*ui.psd[-1][0]
+		cc,rr=makeBandFeedPack(dim=(cellLen,ui.cylLenSim,ui.conveyorHt),psd=ui.psd,material=ui.material,gravity=inclinedGravity,porosity=.5)
+		vol=sum([4/3.*math.pi*r**3 for r in rr])
+		conveyorVel=(ui.material.density*vol/cellLen)/(ui.massFlowRate*ui.cylRelLen)
+		print 'Feed velocity %g m/s to match feed mass %g kg/m (volume=%g m³, len=%gm, ρ=%gkg/m³) and massFlowRate %g kg/s'%(conveyorVel,ui.material.density*vol/cellLen,vol,cellLen,ui.material.density,ui.massFlowRate)
+		factory=ConveyorFactory(
+			stepPeriod=factStep,
+			material=ui.material,
+			centers=cc,radii=rr,
+			cellLen=cellLen,
+			barrierColor=.3,
+			#color=.4, # random colors
+			node=Node(pos=(xmin,0,rCyl)),
+			mask=sphMask,
+			vel=conveyorVel,
+			label='factory',
+			maxMass=-1, # not limited, until steady state is reached
+			currRateSmooth=ui.rateSmooth,
+		)
+	else:
+		conveyorVel=ui.flowVel*math.cos(ui.inclination)
+		factory=BoxFactory(
+			stepPeriod=factStep,
+			box=((xmin,ymin,rCyl),(0,ymax,zmax)),
+			glColor=.4,
+			label='factory',
 			massFlowRate=ui.massFlowRate*ui.cylRelLen, # mass flow rate for the simulated part only
 			currRateSmooth=ui.rateSmooth,
 			materials=[ui.material],
@@ -80,7 +104,23 @@ def run(ui): # use inputs as argument
 			shooter=AlignedMinMaxShooter(dir=(1,0,-.1),vRange=(ui.flowVel,ui.flowVel)),
 			mask=sphMask,
 			maxMass=-1, ## do not limit, before steady state is reached
-		),
+		)
+
+
+	A,B,C,D=(xmin,ymin,rCyl),(0,ymin,rCyl),(0,ymax,rCyl),(xmin,ymax,rCyl)
+	de.par.append([utils.facet(vertices,material=ui.material,mask=wallMask,fakeVel=(conveyorVel,0,0)) for vertices in ((A,B,C),(C,D,A))])
+
+	s.engines=utils.defaultEngines(damping=.4,gravity=inclinedGravity,verletDist=.05*rMin)+[
+		# what falls beyond
+		# initially not saved
+		BoxDeleter(stepPeriod=factStep,inside=True,box=((cylX[i],ymin,zmin),(cylX[i+1],ymax,-rCyl/2.)),glColor=.05*i,save=False,mask=delMask,currRateSmooth=ui.rateSmooth,label='aperture[%d]'%i) for i in range(0,ui.cylNum-1)
+	]+[
+		# this one should not collect any particles at all
+		BoxDeleter(stepPeriod=factStep,box=((xmin,ymin,zmin),(xmax,ymax,zmax)),glColor=.9,save=False,mask=delMask,label='outOfDomain'),
+		# what falls inside
+		BoxDeleter(stepPeriod=factStep,inside=True,box=((lastCylX+rCyl,ymin,zmin),(xmax,ymax,zmax)),glColor=.9,save=True,mask=delMask,currRateSmooth=ui.rateSmooth,label='fallOver'),
+		# generator
+		factory,
 		PyRunner(factStep,'import yade.pre.Roro_; yade.pre.Roro_.watchProgress()'),
 		PyRunner(factStep,'import yade.pre.Roro_; yade.pre.Roro_.savePlotData()'),
 	]+([] if (not ui.vtkPrefix or ui.vtkFreq<=0) else [VtkExport(out=ui.vtkPrefix+s.tags['id']+'-',stepPeriod=(int)(ui.vtkFreq*ui.factStepPeriod),what=VtkExport.all)])
@@ -91,6 +131,53 @@ def run(ui): # use inputs as argument
 	print 'Generated Rollenrost.'
 	de.collectNodes()
 	return s
+
+
+def makeBandFeedPack(dim,psd,material,gravity,porosity=.5,dontBlock=False):
+	cellSize=(dim[0],dim[1],2*dim[2])
+	sc=Scene()
+	yade.O.scene=sc
+	sc.fields=[DemField()]
+	sc.periodic=True
+	sc.cell.setBox(cellSize)
+	p=pack.sweptPolylines2gtsSurface([utils.tesselatePolyline([Vector3(x,0,cellSize[2]),Vector3(x,0,0),Vector3(x,cellSize[1],0),Vector3(x,cellSize[1],cellSize[2])],maxDist=min(cellSize[1],cellSize[2])/3.) for x in numpy.linspace(0,cellSize[0],num=4)])
+	yade.O.dem.par.append(pack.gtsSurface2Facets(p,mask=0b011))
+	sc.loneMask=0b010
+
+	mat=utils.defaultMaterial()
+	gravity=(0,0,-10)
+	massToDo=porosity*mat.density*dim[0]*dim[1]*dim[2]
+	print 'Will generate %g mass'%massToDo
+
+	sc.engines=utils.defaultEngines(gravity=gravity,damping=.7)+[
+		BoxFactory(
+			box=((.01*cellSize[0],.01*cellSize[1],.3*cellSize[2]),cellSize),
+			stepPeriod=200,
+			maxMass=massToDo,
+			massFlowRate=0,
+			maxAttempts=20,
+			generator=PsdSphereGenerator(psdPts=psd,discrete=False,mass=True),
+			materials=[mat],
+			shooter=AlignedMinMaxShooter(dir=(0,0,-1),vRange=(0,0)),
+			mask=1,
+			label='makeBandFeedFactory'
+		),
+		#PyRunner(200,'plot.addData(uf=utils.unbalancedForce(),i=O.scene.step)'),
+		PyRunner(600,'print "%g/%g mass, %d particles, unbalanced %g/.15"%(yade.makeBandFeedFactory.mass,yade.makeBandFeedFactory.maxMass,len(yade.O.dem.par),yade.utils.unbalancedForce())'),
+		PyRunner(200,'if yade.utils.unbalancedForce()<.15 and yade.makeBandFeedFactory.dead: O.pause()'),
+	]
+	sc.dt=.7*utils.spherePWaveDt(psd[0][0],mat.density,mat.young)
+	yade.O.run()
+	if dontBlock: return
+	yade.O.wait()
+	cc,rr=[],[]
+	for p in yade.O.dem.par:
+		if not type(p.shape)==Sphere: continue
+		c,r=sc.cell.canonicalizePt(p.pos),p.shape.radius
+		if c[2]+r>dim[2]: continue
+		cc.append(Vector3(c[0],c[1]-.5*dim[1],c[2])); rr.append(r)
+	return cc,rr
+
 
 def watchProgress():
 	'''initially, only the fallOver deleter saves particles; once particles arrive,
@@ -108,7 +195,7 @@ def watchProgress():
 		if efflux>pre.steadyFlowFrac*influx:
 			print efflux,'>',pre.steadyFlowFrac,'*',influx
 			yade.fallOver.clear()
-			yade.factory.clear()
+			yade.factory.clear() ## FIXME
 			yade.factory.maxMass=pre.cylRelLen*pre.time*pre.massFlowRate # required mass scaled to simulated part
 			for ap in yade.aperture:
 				ap.clear() # to clear overall mass, which gets counted even with save=False
@@ -246,12 +333,20 @@ def plotFinalPsd():
 		*3600*24*365/1000.  # in t/y
 	)
 
-	def scaledFlowPsd(x,y): return numpy.array(x),massScale*numpy.array(y)
+	def scaledFlowPsd(x,y,massFactor=1.): return numpy.array(x),massFactor*massScale*numpy.array(y)
 	def unscaledPsd(x,y): return numpy.array(x),numpy.array(y)
 
 	figs=[]
 	fig=pylab.figure()
-	inPsd=scaledFlowPsd(*yade.factory.generator.inputPsd(scale=True))
+
+	if pre.conveyor:
+		#inputPsd=[p[0] for p in pre.psd],[p[1] for p in pre.psd]
+		inPsd=scaledFlowPsd([p[0] for p in pre.psd],[p[1]*(1./pre.psd[-1][1]) for p in pre.psd],massFactor=yade.factory.mass)
+		inPsdUnscaled=unscaledPsd([p[0] for p in pre.psd],[p[1]*(1./pre.psd[-1][1]) for p in pre.psd])
+	else:
+		inPsd=scaledFlowPsd(*yade.factory.generator.inputPsd(scale=True))
+		inPsdUnscaled=unscaledPsd(*yade.factory.generator.inputPsd(scale=False))
+
 	feedPsd=scaledFlowPsd(*yade.factory.generator.psd())
 	pylab.plot(*inPsd,label='user',marker='o')
 	pylab.plot(*feedPsd,label='feed (%g Mt/y)'%(yade.factory.mass*massScale*1e-6))
@@ -293,22 +388,25 @@ def plotFinalPsd():
 	pylab.legend(loc='best')
 	figs.append(('Flow',fig))
 
+
 	feedTab=psdFeedApertureFalloverTable(
-		unscaledPsd(*yade.factory.generator.inputPsd()),
+		inPsd=inPsdUnscaled,
 		feedDM=unscaledPsd(*yade.factory.generator.diamMass()),
 		apDM=(dAper,mAper),
 		overDM=(dOver,mOver),
 		splitD=pre.gap
 	)
 
-
 	#ax=pylab.subplot(223)
 	fig=pylab.figure()
-	pylab.plot(*yade.factory.generator.inputPsd(scale=False),marker='o',label='user')
+	print inPsdUnscaled
+	print inPsd
+	pylab.plot(*inPsdUnscaled,marker='o',label='user')
 	feedPsd=unscaledPsd(*yade.factory.generator.psd(normalize=True))
-	inPsd=unscaledPsd(*yade.factory.generator.inputPsd(scale=False))
 	pylab.plot(*feedPsd,label=None)
-	smallerPsd,biggerPsd=splitPsd(*inPsd,splitX=pre.gap)
+	smallerPsd,biggerPsd=splitPsd(*inPsdUnscaled,splitX=pre.gap)
+	#print smallerPsd
+	#print biggerPsd
 	pylab.plot(*smallerPsd,marker='v',label='user <')
 	pylab.plot(*biggerPsd,marker='^',label='user >')
 
