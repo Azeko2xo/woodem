@@ -136,8 +136,9 @@ class Cell: public Serializable{
 
 	enum { HOMO_NONE=0, HOMO_POS=1, HOMO_VEL=2, HOMO_VEL_2ND=3, HOMO_GRADV2=4 };
 	#define Cell_CLASS_DESCRIPTOR \
-	/*attrs*/ \
+		/*class,base,doc*/ \
 		Cell,Serializable,"Parameters of periodic boundary conditions. Only applies if O.isPeriodic==True.", \
+		/*attrs*/ \
 		((bool,trsfUpperTriangular,false,AttrTrait<Attr::readonly>(),"Require that :yref:`Cell.trsf` is upper-triangular, to conform with the requirement of voro++ for sheared periodic cells."))\
 		/* overridden below to be modified by getters/setters because of intended side-effects */\
 		((Matrix3r,trsf,Matrix3r::Identity(),,"[overridden]")) \

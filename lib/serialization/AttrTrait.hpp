@@ -181,5 +181,30 @@ namespace yade{
 	// passing an AttrTrait object returns itself
 	template<int flags>
 	AttrTrait<flags> makeAttrTrait(const AttrTrait<flags>& at){ return at; }
+
+	struct ClassTrait{
+		string pyStr(){ return "<ClassTrait '"+_name+"' @ "+lexical_cast<string>(this)+">"; }
+		string _doc;
+		string _name;
+		string title;
+		string intro;
+		vector<string> docOther;
+		const char* getDoc() const { return _doc.c_str(); }
+		ClassTrait& doc(const string& __doc){ _doc=__doc; return *this; }
+		ClassTrait& name(const string& __name){ _name=__name; return *this; }
+		ClassTrait& section(const string& _title, const string _intro, const vector<string> _docOther){ title=_title; intro=_intro; docOther=_docOther; return *this; }
+		static void pyRegisterClass(){
+			py::class_<ClassTrait>("ClassTrait",py::no_init)
+				.def_readonly("title",&ClassTrait::title)
+				.def_readonly("intro",&ClassTrait::intro)
+				.def_readonly("docOther",&ClassTrait::docOther)
+				.def_readonly("doc",&ClassTrait::_doc)
+				.def_readonly("name",&ClassTrait::_name)
+				.def("__str__",&ClassTrait::pyStr)
+				.def("__repr__",&ClassTrait::pyStr)
+			;
+		}
+	};
+	inline ClassTrait& makeClassTrait(const string& _doc=string()){ return ClassTrait().doc(_doc); }
 };
 

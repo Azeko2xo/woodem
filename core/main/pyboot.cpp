@@ -1,4 +1,5 @@
 #include<yade/core/Omega.hpp>
+#include<yade/lib/serialization/Serializable.hpp>
 #include<yade/lib/base/Logging.hpp>
 
 #include<signal.h>
@@ -73,6 +74,10 @@ void yadeInitialize(py::list& pp, const std::string& confDir){
 		}
 	#endif
 	vector<string> ppp; for(int i=0; i<py::len(pp); i++) ppp.push_back(py::extract<string>(pp[i]));
+	//
+	cerr<<"Registering ClassTrait"<<endl;
+	yade::ClassTrait::pyRegisterClass();
+
 	Omega::instance().loadPlugins(ppp);
 }
 void yadeFinalize(){ Omega::instance().cleanupTemps(); }

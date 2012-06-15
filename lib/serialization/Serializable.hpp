@@ -182,25 +182,24 @@ template<> struct _SerializeMaybe<false>{
 #define _DEPREC_NEWNAME(x) BOOST_PP_TUPLE_ELEM(3,1,x)
 #define _DEPREC_COMMENT(x) BOOST_PP_TUPLE_ELEM(3,2,x) "" // if the argument is omited, return empty string instead of nothing
 
-#define _PY_REGISTER_CLASS_BODY(thisClass,baseClass,docString,attrs,deprec,extras) \
+#define _PY_REGISTER_CLASS_BODY(thisClass,baseClass,classTrait,attrs,deprec,extras) \
 	checkPyClassRegistersItself(#thisClass); \
 	YADE_SET_DOCSTRING_OPTS; \
-	py::class_<thisClass,shared_ptr<thisClass>,py::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,docString,/*call raw ctor even for parameterless construction*/py::no_init); \
+	py::class_<thisClass,shared_ptr<thisClass>,py::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,classTrait.getDoc(),/*call raw ctor even for parameterless construction*/py::no_init); \
 	_classObj.def("__init__",py::raw_constructor(Serializable_ctor_kwAttrs<thisClass>)); \
+	_classObj.attr("_classTrait")=classTrait.name(#thisClass); \
 	BOOST_PP_SEQ_FOR_EACH(_PYATTR_DEF,thisClass,attrs); \
 	(void) _classObj BOOST_PP_SEQ_FOR_EACH(_PYATTR_DEPREC_DEF,thisClass,deprec); \
 	(void) _classObj extras ; \
 	py::list traitList; BOOST_PP_SEQ_FOR_EACH(_PYATTR_TRAIT,thisClass,attrs); _classObj.attr("_attrTraits")=traitList;\
 	Serializable::derivedCxxClasses.push_back(py::object(_classObj));
 
-#define _YADE_CLASS_BASE_DOC_ATTRS_DEPREC_PY(thisClass,baseClass,docString,attrs,deprec,extras) \
+#define _YADE_CLASS_BASE_DOC_ATTRS_DEPREC_PY(thisClass,baseClass,classTrait,attrs,deprec,extras) \
 	_REGISTER_ATTRIBUTES_DEPREC(thisClass,baseClass,attrs,deprec) \
 	REGISTER_CLASS_AND_BASE(thisClass,baseClass) \
 	/* accessors for deprecated attributes, with warnings */ BOOST_PP_SEQ_FOR_EACH(_ACCESS_DEPREC,thisClass,deprec) \
-	/* python class registration */ virtual void pyRegisterClass() { _PY_REGISTER_CLASS_BODY(thisClass,baseClass,docString,attrs,deprec,extras); } \
+	/* python class registration */ virtual void pyRegisterClass() { _PY_REGISTER_CLASS_BODY(thisClass,baseClass,classTrait,attrs,deprec,extras); } \
 	virtual void must_use_both_YADE_CLASS_BASE_DOC_ATTRS_and_YADE_PLUGIN(); // virtual ensures v-table for all classes 
-
-// #define YADE_CLASS_BASE_DOC_ATTRS_PY(thisClass,baseClass,docString,attrs,extras) YADE_CLASS_BASE_DOC_ATTRS_DEPREC_PY(thisClass,baseClass,docString,attrs,,extras)
 
 // return "type name;", define trait type and getter
 #define _ATTR_DECL_AND_TRAIT(x,y,z) \
@@ -223,9 +222,10 @@ template<> struct _SerializeMaybe<false>{
 	static _ATTR_TRAIT_TYPE(z)& _ATTR_TRAIT_GET(z)(){ static _ATTR_TRAIT_TYPE(z) _tmp=_ATTR_TRAIT(z).static_(); return _tmp; }
 #define _STATATTR_INITIALIZE(x,thisClass,z) thisClass::_ATTR_NAM(z)=_ATTR_INI(z);
 
-#define _STATCLASS_PY_REGISTER_CLASS(thisClass,baseClass,docString,attrs)\
+#define _STATCLASS_PY_REGISTER_CLASS(thisClass,baseClass,classTrait,attrs)\
 	virtual void pyRegisterClass() { checkPyClassRegistersItself(#thisClass); initSetStaticAttributesValue(); YADE_SET_DOCSTRING_OPTS; \
-		py::class_<thisClass,shared_ptr<thisClass>,py::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,docString,/*call raw ctor even for parameterless construction*/py::no_init); _classObj.def("__init__",py::raw_constructor(Serializable_ctor_kwAttrs<thisClass>)); \
+		py::class_<thisClass,shared_ptr<thisClass>,py::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,classTrait.getDoc(),/*call raw ctor even for parameterless construction*/py::no_init); _classObj.def("__init__",py::raw_constructor(Serializable_ctor_kwAttrs<thisClass>)); \
+		_classObj.attr("_classTrait")=classTrait.name(#thisClass); \
 		BOOST_PP_SEQ_FOR_EACH(_STATATTR_PY,thisClass,attrs); \
 		py::list traitList; BOOST_PP_SEQ_FOR_EACH(_PYATTR_TRAIT_STATIC,thisClass,attrs); _classObj.attr("_attrTraits")=traitList; \
 		Serializable::derivedCxxClasses.push_back(py::object(_classObj)); \
@@ -242,10 +242,10 @@ template<> struct _SerializeMaybe<false>{
 #define YADE_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,inits,ctor,py) YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(klass,base,doc,attrs,,inits,ctor,py)
 
 // the most general
-#define YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(thisClass,baseClass,docString,attrs,deprec,inits,ctor,extras) \
+#define YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(thisClass,baseClass,classTraitSpec,attrs,deprec,inits,ctor,extras) \
 	public: BOOST_PP_SEQ_FOR_EACH(_ATTR_DECL_AND_TRAIT,~,attrs) /* attribute declarations */ \
 	thisClass() BOOST_PP_IF(BOOST_PP_SEQ_SIZE(inits attrs),:,) BOOST_PP_SEQ_FOR_EACH_I(_ATTR_MAKE_INITIALIZER,BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(inits attrs)), inits BOOST_PP_SEQ_FOR_EACH(_ATTR_MAKE_INIT_TUPLE,~,attrs)) { ctor ; } /* ctor, with initialization of defaults */ \
-	_YADE_CLASS_BASE_DOC_ATTRS_DEPREC_PY(thisClass,baseClass,docString,attrs,deprec,extras)
+	_YADE_CLASS_BASE_DOC_ATTRS_DEPREC_PY(thisClass,baseClass,makeClassTrait(classTraitSpec),attrs,deprec,extras)
 
 /** new-style macros **/
 // attrs is (type,name,init-value,docstring)
@@ -255,11 +255,11 @@ template<> struct _SerializeMaybe<false>{
 #define YAD3_CLASS_BASE_DOC_ATTRS_PY(klass,base,doc,attrs,py)           YAD3_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,,,py)
 #define YAD3_CLASS_BASE_DOC_ATTRS_CTOR_PY(klass,base,doc,attrs,ctor,py) YAD3_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,,ctor,py)
 #define YAD3_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,inits,ctor,py) YAD3_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(klass,base,doc,attrs,,inits,ctor,py)
-#define YAD3_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY2(thisClass,baseClass,docString,attrs,deprec,inits,ctor,extras) thisClass,baseClass,docString,attrs,deprec,initrs,ctor,extras
+#define YAD3_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY2(thisClass,baseClass,classTraitSpec,attrs,deprec,inits,ctor,extras) thisClass,baseClass,makeClassTrait(classTraitSpec),attrs,deprec,initrs,ctor,extras
 
 #define YAD3_CLASS_DECLARATION(allArgsTogether) _YAD3_CLASS_DECLARATION(allArgsTogether)
 
-#define _YAD3_CLASS_DECLARATION(thisClass,baseClass,docString,attrs,deprec,inits,ctor,etras) \
+#define _YAD3_CLASS_DECLARATION(thisClass,baseClass,classTraitSpec,attrs,deprec,inits,ctor,etras) \
 	/*class itself*/	REGISTER_CLASS_AND_BASE(thisClass,baseClass) \
 	/* attribute declarations*/ BOOST_PP_SEQ_FOR_EACH(_ATTR_DECL_AND_TRAIT,~,attrs) \
 	/* boost::serialization, all in header*/ _REGISTER_BOOST_SERIALIZATION_ATTRIBUTES(baseClass,attrs) public: \
@@ -274,11 +274,11 @@ template<> struct _SerializeMaybe<false>{
 
 #define YAD3_CLASS_IMPLEMENTATION(allArgsTogether) _YAD3_CLASS_IMPLEMENTATION(allArgsTogether)
 
-#define _YAD3_CLASS_IMPLEMENTATION(thisClass,baseClass,docString,attrs,deprec,init,ctor,extras) \
+#define _YAD3_CLASS_IMPLEMENTATION(thisClass,baseClass,classTraitSpec,attrs,deprec,init,ctor,extras) \
 	/*1.*/ thisClass::thisClass() BOOST_PP_IF(BOOST_PP_SEQ_SIZE(init attrs),:,) BOOST_PP_SEQ_FOR_EACH_I(_ATTR_MAKE_INITIALIZER,BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(init attrs)), init BOOST_PP_SEQ_FOR_EACH(_ATTR_MAKE_INIT_TUPLE,~,attrs)) { ctor; } \
 	/*2.*/ void thisClass::pySetAttr(const std::string& key, const py::object& value){ BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR,~,attrs); BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR_DEPREC,thisClass,deprec); baseClass::pySetAttr(key,value); } \
 	/*3.*/ py::dict thisClass::pyDict() const { py::dict ret; BOOST_PP_SEQ_FOR_EACH(_PYDICT_ATTR,~,attrs); ret.update(baseClass::pyDict()); return ret; } \
-	/*6.*/ void thisClass::pyRegisterClass() { _PY_REGISTER_CLASS_BODY(thisClass,baseClass,docString,attrs,deprec,extras); } \
+	/*6.*/ void thisClass::pyRegisterClass() { _PY_REGISTER_CLASS_BODY(thisClass,baseClass,makeClassTrait(classTraitSpec),attrs,deprec,extras); } \
 	/*7.*/ /*void thisClass::must_use_both_YADE_CLASS_BASE_DOC_ATTRS_and_YADE_PLUGIN();*/
 
 	
@@ -287,14 +287,14 @@ template<> struct _SerializeMaybe<false>{
 /** static attrs **/
 
 // for static classes (Gl1 functors, for instance)
-#define YADE_CLASS_BASE_DOC_STATICATTRS(thisClass,baseClass,docString,attrs)\
+#define YADE_CLASS_BASE_DOC_STATICATTRS(thisClass,baseClass,classTraitSpec,attrs)\
 	public: BOOST_PP_SEQ_FOR_EACH(_STATATTR_DECL_AND_TRAIT,~,attrs) /* attribute declarations */ \
 	/* no ctor */ \
 	REGISTER_CLASS_AND_BASE(thisClass,baseClass); \
 	_REGISTER_ATTRIBUTES_DEPREC(thisClass,baseClass,attrs,) \
 	/* called only at class registration, to set initial values; storage still has to be alocated in the cpp file! */ \
 	void initSetStaticAttributesValue(void){ BOOST_PP_SEQ_FOR_EACH(_STATATTR_INITIALIZE,thisClass,attrs); } \
-	_STATCLASS_PY_REGISTER_CLASS(thisClass,baseClass,docString,attrs) \
+	_STATCLASS_PY_REGISTER_CLASS(thisClass,baseClass,makeClassTrait(classTraitSpec),attrs) \
 	void must_use_both_YADE_CLASS_BASE_DOC_ATTRS_and_YADE_PLUGIN(); 
 
 
