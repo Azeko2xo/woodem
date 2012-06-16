@@ -5,7 +5,7 @@ import codecs
 import re
 
 def fixDocstring(s):
-	s=s.replace(':yref:',':ref:')
+	s=s.replace(':yref:',':obj:')
 	s=re.sub(r'(?<!\\)\$([^\$]+)(?<!\\)\$',r'\ :math:`\1`\ ',s)
 	s=re.sub(r'\\\$',r'$',s)
 	return s
