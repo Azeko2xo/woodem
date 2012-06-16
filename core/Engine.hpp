@@ -85,8 +85,8 @@ class Engine: public Object {
 		((bool,dead,false,,"If true, this engine will not run at all; can be used for making an engine temporarily deactivated and only resurrect it at a later point."))
 		((string,label,,,"Textual label for this object; must be valid python identifier, you can refer to it directly from python."))
 		// ((bool,parallelFields,false,,"Whether to run (if compiled with openMP) this engine on active fields in parallel"))
-		((shared_ptr<Field>,field,,AttrTrait<>().noGui().noDump(),"User-requested :yref:`Field` to run this engine on; if empty, fields will be searched for admissible ones; if more than one is found, exception will be raised."))
-		((bool,userAssignedField,false,AttrTrait<Attr::readonly>().noGui(),"Whether the :yref:`Engine.field` was user-assigned or automatically assigned, to know whether to update automatically."))
+		((shared_ptr<Field>,field,,AttrTrait<>().noGui().noDump(),"User-requested `yade.core.Field` to run this engine on; if empty, fields will be searched for admissible ones; if more than one is found, exception will be raised."))
+		((bool,userAssignedField,false,AttrTrait<Attr::readonly>().noGui(),"Whether the `yade.core.Engine.field` was user-assigned or automatically assigned, to know whether to update automatically."))
 		((bool,isNewObject,true,AttrTrait<Attr::hidden>(),"Flag to recognize in postLoad whether this object has just been constructed, to set userAssignedField properly (ugly...)"))
 		,/* ctor */ scene=Omega::instance().getScene().get(); ,
 		/* py */
@@ -95,14 +95,14 @@ class Engine: public Object {
 		.def_readonly("timingDeltas",&Engine::timingDeltas,"Detailed information about timing inside the Engine itself. Empty unless enabled in the source code and :yref:`O.timingEnabled<Omega.timingEnabled>`\\ ==\\ ``True``.")
 		.def("__call__",&Engine::explicitRun)
 		.def("acceptsField",&Engine::acceptsField)
-		.add_property("field",&Engine::field_get,&Engine::field_set,"Field to run this engine on; if unassigned, or set to *None*, automatic field selection is triggered. :yattrflags:`noGui` ") // yattrflags must be specified by hand, since the attribute was overridden
+		.add_property("field",&Engine::field_get,&Engine::field_set,"Field to run this engine on; if unassigned, or set to *None*, automatic field selection is triggered.")
 	);
 };
 REGISTER_SERIALIZABLE(Engine);
 
 class PartialEngine: public Engine{
-	YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(PartialEngine,Engine,"Engine affecting only particular bodies in the simulation, defined by :yref:`ids<PartialEngine.ids>`.",
-		((std::vector<int>,ids,,,":yref:`Ids<Body::id>` of bodies affected by this PartialEngine.")),
+	YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(PartialEngine,Engine,"Engine affecting only particular bodies in the simulation, defined by `ids<yade.core.PartialEngine.ids>`.",
+		((std::vector<int>,ids,,,"`ids<yade.dem.Particle.id>` of particles affected by this PartialEngine.")),
 		/*deprec*/, /*init*/, /* ctor */, /* py */
 	);
 };

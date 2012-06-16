@@ -49,7 +49,7 @@ struct Particle: public Object{
 	Vector3r& getRefPos(); void setRefPos(const Vector3r&);
 	std::vector<shared_ptr<Node> > getNodes();
 	virtual string pyStr() const { return "<Particle #"+to_string(id)+" @ "+lexical_cast<string>(this)+">"; }
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Particle,Object,"Particle in DEM",
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Particle,Object,ClassTrait().doc("Particle in DEM").section("Particle","Each particles in DEM is defined by its shape (given by multiple nodes) and other parameters.",{"Shape","Material","Bound"}),
 		((id_t,id,-1,AttrTrait<Attr::readonly>(),"Index in DemField::particles"))
 		((uint,mask,1,,"Bitmask for collision detection and other (group 1 by default)"))
 		((shared_ptr<Shape>,shape,,,"Geometrical configuration of the particle"))

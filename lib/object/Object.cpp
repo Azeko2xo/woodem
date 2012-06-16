@@ -46,6 +46,7 @@ void Object::pyRegisterClass() {
 		.def(py::self == py::self)
 		.def(py::self != py::self)
 	;
+	classObj.attr("_attrTraits")=py::list();
 	//classObj.attr("_derivedCxxClasses")=Object::derivedCxxClasses;
 }
 

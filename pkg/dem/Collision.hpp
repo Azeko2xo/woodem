@@ -8,7 +8,7 @@
 #endif
 
 class Aabb: public Bound{
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR(Aabb,Bound,"Axis-aligned bounding box, for use with :yref:`InsertionSortCollider`.",/*attrs*/
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR(Aabb,Bound,"Axis-aligned bounding box, for use with `InsertionSortCollider`.",/*attrs*/
 		((vector<Vector3r>,nodeLastPos,,AttrTrait<>(Attr::readonly).lenUnit(),"Node positions when bbox was last updated."))
 		((Real,maxD2,0,AttrTrait<>(Attr::readonly).unit("m²").noGui(),"Maximum allowed squared distance for nodal displacements (i.e. how much was the bbox enlarged last time)"))
 		,
@@ -22,14 +22,14 @@ REGISTER_SERIALIZABLE(Aabb);
 struct Gl1_Aabb: public GlBoundFunctor{
 	virtual void go(const shared_ptr<Bound>&);
 	RENDERS(Aabb);
-	YADE_CLASS_BASE_DOC(Gl1_Aabb,GlBoundFunctor,"Render Axis-aligned bounding box (:yref:`Aabb`).");
+	YADE_CLASS_BASE_DOC(Gl1_Aabb,GlBoundFunctor,"Render Axis-aligned bounding box (:ref:`AAbb`).");
 };
 REGISTER_SERIALIZABLE(Gl1_Aabb);
 #endif
 
 
 class BoundFunctor: public Functor1D</*dispatch types*/ Shape,/*return type*/ void, /*argument types*/ TYPELIST_1(const shared_ptr<Shape>&)>{
-	YADE_CLASS_BASE_DOC(BoundFunctor,Functor,"Functor for creating/updating :yref:`Body::bound`.");
+	YADE_CLASS_BASE_DOC(BoundFunctor,Functor,"Functor for creating/updating :ref:`yade.dem.Bound`.");
 };
 REGISTER_SERIALIZABLE(BoundFunctor);
 

@@ -157,19 +157,22 @@ def addAutoData():
 	 'total energy': [1.884..., 1.884...]}
 
 	.. plot::
+
 		from yade import *
+		from yade.dem import *
+		from yade.core import *
 		from yade import plot,utils
 		O.reset()
-		O.engines=[ForceResetter(),GravityEngine(gravity=(0,0,-10)),NewtonIntegrator(damping=.4,kinSplit=True),PyRunner(command='yade.plot.addAutoData()',iterPeriod=1,initRun=True)]
-		O.bodies.append(utils.sphere((0,0,0),1)); O.dt=utils.PWaveTimeStep()
+		O.dem.par.append(utils.sphere((0,0,0),1));
+		O.scene.dt=utils.pWaveDt()
+		O.scene.engines=[Gravity(gravity=(0,0,-10)),Leapfrog(damping=.4,kinSplit=True,reset=True),PyRunner(1,'yade.plot.addAutoData()')]
 		plot.resetData()
-		plot.plots={'i=O.iter':(O.energy,None,'total energy=O.energy.total()')}
-		O.trackEnergy=True
-		O.run(50,True)
+		plot.plots={'i=O.iter':(O.scene.energy,None,'total energy=O.scene.energy.total()')}
+		O.scene.trackEnergy=True
+		O.run(500,True)
 		import pylab; pylab.grid(True)
 		plot.legendLoc=('lower left','upper right')
 		plot.plot(noShow=True)
-
 
 	"""
 	def colDictUpdate(col,dic):
