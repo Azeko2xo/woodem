@@ -1,6 +1,6 @@
 #pragma once
 #include<yade/lib/multimethods/Indexable.hpp>
-#include<yade/lib/serialization/Serializable.hpp>
+#include<yade/lib/object/Object.hpp>
 #include<yade/core/Omega.hpp>
 
 namespace py=boost::python;
@@ -9,20 +9,20 @@ namespace py=boost::python;
 
 class Scene;
 
-struct Constraint: public Serializable{	
+struct Constraint: public Object{	
 	virtual void applyConstraint(Vector3r& newPos, Vector3r& newOri){};
-	YADE_CLASS_BASE_DOC_ATTRS(Constraint,Serializable,"Object defining constraint on motion of a node; this is an abstract class which is not to be used directly.",
+	YADE_CLASS_BASE_DOC_ATTRS(Constraint,Object,"Object defining constraint on motion of a node; this is an abstract class which is not to be used directly.",
 	);
 };
 REGISTER_SERIALIZABLE(Constraint);
 
-struct NodeData: public Serializable{
+struct NodeData: public Object{
 	boost::mutex lock; // used by applyForceTorque
 
 	// template to be specialized by derived classes
 	template<typename Derived> struct Index; // { BOOST_STATIC_ASSERT(false); /* template must be specialized for derived NodeData types */ };
 
-	YADE_CLASS_BASE_DOC(NodeData,Serializable,"Data associated with some node.");
+	YADE_CLASS_BASE_DOC(NodeData,Object,"Data associated with some node.");
 };
 REGISTER_SERIALIZABLE(NodeData);
 
@@ -31,14 +31,14 @@ struct GLViewInfo;
 struct Node;
 
 // object representing what should be rendered at associated node
-struct NodeGlRep: public Serializable{
+struct NodeGlRep: public Object{
 	virtual void render(const shared_ptr<Node>&, GLViewInfo*){};
-	YADE_CLASS_BASE_DOC(NodeGlRep,Serializable,"Object representing what should be rendered at associated node (abstract base class).");
+	YADE_CLASS_BASE_DOC(NodeGlRep,Object,"Object representing what should be rendered at associated node (abstract base class).");
 };
 REGISTER_SERIALIZABLE(NodeGlRep);
 
 class QglMovableObject;
-struct ScalarRange: public Serializable{
+struct ScalarRange: public Object{
 	shared_ptr<QglMovableObject> movablePtr;
 	void reset();
 	Vector3r color(Real v);
@@ -49,7 +49,7 @@ struct ScalarRange: public Serializable{
 	Real normInv(Real norm){ return mnmx[0]+norm*(mnmx[1]-mnmx[0]); } 
 	Real norm(Real v);
 	void adjust(const Real& v);
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ScalarRange,Serializable,"Store and share range of scalar values",
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ScalarRange,Object,"Store and share range of scalar values",
 		((Vector2r,mnmx,Vector2r(std::numeric_limits<Real>::infinity(),-std::numeric_limits<Real>::infinity()),,"Packed minimum and maximum values"))
 		((bool,autoAdjust,true,,"Automatically adjust range using given values."))
 		((bool,sym,false,,"Force maximum to be negative of minimum and vice versa (only with autoadjust)"))
@@ -67,7 +67,7 @@ REGISTER_SERIALIZABLE(ScalarRange);
 
 
 
-struct Node: public Serializable, public Indexable{
+struct Node: public Object, public Indexable{
 	// indexing data items
 	// allows to define non-casting accessors without paying runtime penalty for index lookup
 	enum {ST_DEM=0,ST_GL,ST_CLDEM,ST_SPARC,ST_ANCF,/*always keep last*/ST_LAST }; // assign constants to data values
@@ -101,7 +101,7 @@ struct Node: public Serializable, public Indexable{
 	template<typename NodeDataSubclass>
 	static void pySetData(const shared_ptr<Node>& n, const shared_ptr<NodeDataSubclass>& d){ n->setData<NodeDataSubclass>(d); }
 
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Node,Serializable,"A point in space, referenced by other objects.",
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Node,Object,"A point in space, referenced by other objects.",
 		((Vector3r,pos,Vector3r::Zero(),AttrTrait<>().lenUnit(),"Position in space (cartesian coordinates)."))
 		((Quaternionr,ori,Quaternionr::Identity(),,"Orientation of this node."))
 		((vector<shared_ptr<NodeData> >,data,,,"Array of data, ordered in globally consistent manner."))
@@ -116,9 +116,9 @@ struct Node: public Serializable, public Indexable{
 REGISTER_SERIALIZABLE(Node);
 
 
-struct Field: public Serializable, public Indexable{
+struct Field: public Object, public Indexable{
 	Scene* scene; // backptr to scene; must be set by Scene!
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Field,Serializable,"Spatial field described by nodes, their topology and associated values.",
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Field,Object,"Spatial field described by nodes, their topology and associated values.",
 		// ((Scene*,scene,NULL,AttrTrait<Attr::hidden>(),"Backptr to scene")) // must be set by Scene!
 		((vector<shared_ptr<Node> >,nodes,,AttrTrait<Attr::pyByRef>(),"Nodes referenced from this field."))
 		//((vector<shared_ptr<NodeData> >,nodeData,,,"Nodal data, associated to nodes with the same index."))

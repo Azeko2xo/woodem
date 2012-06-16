@@ -139,7 +139,7 @@ Other classes
 ---------------
 
 """
-	+''.join([autodocClass(k) for k in (yade.system.childClasses('Serializable')-docClasses)|set(['Serializable','TimingDeltas','Cell'])])
+	+''.join([autodocClass(k) for k in (yade.system.childClasses('Object')-docClasses)|set(['Object','TimingDeltas','Cell'])])
 	)
 
 	wrapper.close()

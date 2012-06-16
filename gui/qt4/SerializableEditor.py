@@ -6,7 +6,7 @@ from PyQt4 import QtGui
 
 from miniEigen import *
 # don't import * from yade, it would be circular import
-from yade.core import Serializable
+from yade.core import Object
 
 import re,itertools
 import logging
@@ -45,7 +45,7 @@ def serializableHref(ser,attr=None,text=None):
 	so that the href target is a valid link. In that case, only single inheritace is assumed and
 	the first class from the top defining *attr* is used.
 
-	:param ser: object of class deriving from :yref:`Serializable`, or string; if string, *attr* must be empty.
+	:param ser: object of class deriving from :yref:`Object`, or string; if string, *attr* must be empty.
 	:param attr: name of the attribute to link to; if empty, linke to the class itself is created.
 	:param text: visible text of the hyperlink; if not given, either class name or attribute name without class name (when *attr* is not given) is used.
 
@@ -654,7 +654,7 @@ class SerializableEditor(QFrame):
 		self.entries=[]
 		self.entryGroups=[]
 		self.ignoredAttrs=ignoredAttrs
-		logging.debug('New Serializable of type %s'%ser.__class__.__name__)
+		logging.debug('New Object of type %s'%ser.__class__.__name__)
 		self.setWindowTitle(str(ser))
 		self.mkWidgets()
 		self.refreshTimer=QTimer(self)
@@ -712,7 +712,7 @@ class SerializableEditor(QFrame):
 
 		# crawl class hierarchy up, ask each one for attribute traits
 		attrTraits=[]; k=self.ser.__class__
-		while k!=yade.core.Serializable:
+		while k!=yade.core.Object:
 			attrTraits=[(k,trait) for trait in k._attrTraits]+attrTraits
 			k=k.__bases__[0]
 		
@@ -745,7 +745,7 @@ class SerializableEditor(QFrame):
 			#logging.debug('Attr %s is of type %s'%(attr,((t[0].__name__,) if isinstance(t,tuple) else t.__name__)))
 			self.entries.append(self.EntryData(name=attr,T=t,groupNo=groupNo,doc=trait.doc,trait=trait,containingClass=klass,editor=self))
 	def getDocstring(self,attr=None):
-		"If attr is *None*, return docstring of the Serializable itself"
+		"If attr is *None*, return docstring of the Object itself"
 		if attr==None:
 			doc=self.ser.__class__.__doc__.decode('utf-8')
 		else:
@@ -807,7 +807,7 @@ class SerializableEditor(QFrame):
 			assert(len(entry.T)==1) # we don't handle tuples of other lenghts
 			# sequence of serializables
 			T=entry.T[0]
-			if (issubclass(T,Serializable) or T==Serializable):
+			if (issubclass(T,Object) or T==Object):
 				widget=SeqSerializable(self,getter,setter,T,path=(self.path+'.'+entry.name if self.path else None),shrink=True)
 				return widget
 			if (T in _fundamentalEditorMap):
@@ -815,7 +815,7 @@ class SerializableEditor(QFrame):
 				return widget
 			return None
 		# a serializable
-		if issubclass(entry.T,Serializable) or entry.T==Serializable:
+		if issubclass(entry.T,Object) or entry.T==Object:
 			obj=getattr(self.ser,entry.name)
 			if hasattr(obj,'label') and obj.label: path=obj.label
 			elif self.path: path=self.path+'.'+entry.name
@@ -838,7 +838,7 @@ class SerializableEditor(QFrame):
 		menu.popup(self.mapToGlobal(position))
 		#print 'menu popped up at ',widget.mapToGlobal(position),' (local',position,')'
 	def getAttrLabelToolTip(self,entry):
-		toolTip=entry.containingClass.__name__+'.<b><i>'+entry.name+'</i></b><br>'+entry.doc+('<br><small>default: %s</small>'%str(entry.trait.ini) if (entry.trait.ini and not isinstance(entry.trait.ini,Serializable)) else '')
+		toolTip=entry.containingClass.__name__+'.<b><i>'+entry.name+'</i></b><br>'+entry.doc+('<br><small>default: %s</small>'%str(entry.trait.ini) if (entry.trait.ini and not isinstance(entry.trait.ini,Object)) else '')
 		if self.labelIsVar: return serializableHref(self.ser,entry.name),toolTip
 		return entry.doc.decode('utf-8'),toolTip
 	def toggleLabelIsVar(self,val=None):
@@ -986,7 +986,7 @@ def makeSerializableLabel(ser,href=False,addr=True,boldHref=True,num=-1,count=-1
 		#import re
 		#ss=unicode(ser); m=re.match(u'<(.*)(instance at|@) (0x.*)>',ss)
 		#if m: ret+=m.group(3)+'/ 0x%x'%id(ser)
-		#else: logging.warning(u"Serializable converted to str ('%s') does not contain 'instance at 0x…'"%ss)
+		#else: logging.warning(u"Object converted to str ('%s') does not contain 'instance at 0x…'"%ss)
 		#return '%x'%id(ser)
 	return ret
 

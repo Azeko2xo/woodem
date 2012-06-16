@@ -8,7 +8,7 @@ from miniEigen import * # for recognizing the types
 
 import StringIO # cStringIO does not handle unicode, so stick with the slower one
 
-from yade.core import Serializable
+from yade.core import Object
 import yade._customConverters # to make sure they are loaded already
 
 import codecs
@@ -18,7 +18,7 @@ nan,inf=float('nan'),float('inf') # for values in expressions
 
 def _Serializable_getAllTraits(obj):
 	ret=[]; k=obj.__class__
-	while k!=yade.core.Serializable:
+	while k!=yade.core.Object:
 		ret=k._attrTraits+ret
 		k=k.__bases__[0]
 	return ret
@@ -109,10 +109,10 @@ class SerializerToHtmlTableRaw:
 			attr=getattr(obj,trait.name)
 			ret+=indent1+'<tr>'+indent2+'<td>%s</td>'%(trait.name if not showDoc else trait.doc.decode('utf-8'))
 			# nested object
-			if isinstance(attr,yade.core.Serializable):
+			if isinstance(attr,yade.core.Object):
 				ret+=indent2+'<td align="justify">'+self(attr,depth+1)+indent2+'</td>'
 			# sequence of objects (no units here)
-			elif hasattr(attr,'__len__') and len(attr)>0 and isinstance(attr[0],yade.core.Serializable):
+			elif hasattr(attr,'__len__') and len(attr)>0 and isinstance(attr[0],yade.core.Object):
 				ret+=indent2+u'<td><ol>'+''.join(['<li>'+self(o,depth+1)+'</li>' for o in attr])+'</ol></td>'
 			else:
 				#ret+=indent2+'<td align="right">'
@@ -182,10 +182,10 @@ class SerializerToHtmlTableGenshi:
 			attr=getattr(obj,trait.name)
 			tr=tag.tr(tag.td(trait.name if not self.showDoc else trait.doc.decode('utf-8')))
 			# nested object
-			if isinstance(attr,yade.core.Serializable):
+			if isinstance(attr,yade.core.Object):
 				tr.append([tag.td(self(attr,depth+1),align='justify'),tag.td()])
 			# sequence of objects (no units here)
-			elif hasattr(attr,'__len__') and len(attr)>0 and isinstance(attr[0],yade.core.Serializable):
+			elif hasattr(attr,'__len__') and len(attr)>0 and isinstance(attr[0],yade.core.Object):
 				tr.append(tag.td(tag.ol([tag.li(self(o,depth+1)) for o in attr])))
 			else:
 				if not trait.multiUnit: # the easier case
@@ -230,7 +230,7 @@ SerializerToHtmlTable=SerializerToHtmlTableGenshi
 #		ret=''
 #		ind0=level*indent
 #		ind1=(level+1)*indent
-#		if isinstance(obj,Serializable):
+#		if isinstance(obj,Object):
 #			attrs=[(trait.name,getattr(obj,trait.name)) for trait in obj._getAllTraits() if not trait.hidden]
 #			ret+='<table frame=box rules=all %s %s><th><b>%s</b></th>\n'%(self.padding,'width="100%"' if depth>0 else '',obj.__class__.name)
 #			for a in attrs:
@@ -243,7 +243,7 @@ class SerializerToExpr:
 		self.maxWd=maxWd
 		self.noMagic=noMagic
 	def __call__(self,obj,level=0):
-		if isinstance(obj,Serializable):
+		if isinstance(obj,Object):
 			attrs=[(trait.name,getattr(obj,trait.name)) for trait in obj._getAllTraits() if not (trait.hidden or trait.noDump)]
 			delims=(obj.__class__.__module__)+'.'+obj.__class__.__name__+'(',')'
 		elif isinstance(obj,dict):
@@ -326,7 +326,7 @@ def _Serializable_load(typ,inFile,format='auto'):
 		raise IOError('Input file format not detected')
 	elif format=='boost::serialization':
 		# ObjectIO takes care of detecting binary, xml, compression independently
-		return typeChecked(Serializable._boostLoad(inFile),typ)
+		return typeChecked(Object._boostLoad(inFile),typ)
 	elif format=='expr':
 		buf=codecs.open(inFile,'r','utf-8').read()
 		return typeChecked(eval(buf),typ)
@@ -344,13 +344,13 @@ def _Serializable_saveTmp(obj,name='',quiet=False):
 	yade.O.saveTmpAny(obj,name,quiet)
 	
 
-Serializable._getAllTraits=_Serializable_getAllTraits
-Serializable.dump=_Serializable_dump
-Serializable.dumps=_Serializable_dumps
-Serializable.saveTmp=_Serializable_saveTmp
-Serializable.load=classmethod(_Serializable_load)
-Serializable.loads=classmethod(_Serializable_loads)
-Serializable.loadTmp=classmethod(_Serializable_loadTmp)
+Object._getAllTraits=_Serializable_getAllTraits
+Object.dump=_Serializable_dump
+Object.dumps=_Serializable_dumps
+Object.saveTmp=_Serializable_saveTmp
+Object.load=classmethod(_Serializable_load)
+Object.loads=classmethod(_Serializable_loads)
+Object.loadTmp=classmethod(_Serializable_loadTmp)
 
 
 def _Omega_save(o,*args,**kw):

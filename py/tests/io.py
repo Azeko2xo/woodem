@@ -22,7 +22,7 @@ class TestFormatsAndDetection(unittest.TestCase):
 			out=O.tmpFilename()+ext
 			o.dump(out,format=fmt)
 			if load:
-				o2=Serializable.load(out,format='auto')
+				o2=Object.load(out,format='auto')
 				self.assert_(type(o2)==type(o))
 				o3=type(o).load(out,format='auto')
 				self.assertRaises(TypeError,lambda: yade.core.Node.load(out))
@@ -30,7 +30,7 @@ class TestFormatsAndDetection(unittest.TestCase):
 	def tryDumpLoadStr(self,fmt,load=True):
 		for o in O.scene.engines+[O.dem.par[0]]:
 			dump=o.dumps(format=fmt)
-			if load: Serializable.loads(dump,format='auto')
+			if load: Object.loads(dump,format='auto')
 	def testExpr(self):
 		'IO: expression dump/load & format detection (file+string)'
 		self.tryDumpLoad(fmt='expr')
@@ -71,6 +71,6 @@ class TestSpecialDumpMethods(unittest.TestCase):
 		O.scene.lastDump='foo'
 		self.out=O.tmpFilename()
 	def testSceneLastDump_direct(self):
-		'IO: Scene.lastSave set (Serializable._boostSave overridden)'
+		'IO: Scene.lastSave set (Object._boostSave overridden)'
 		O.scene.save(self.out)
 		self.assert_(O.scene.lastSave==self.out)

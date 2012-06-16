@@ -39,7 +39,7 @@
 #endif
 #include<locale>
 #include<boost/archive/codecvt_null.hpp>
-#include<yade/lib/serialization/ObjectIO.hpp>
+#include<yade/lib/object/ObjectIO.hpp>
 
 
 #include<numpy/ndarrayobject.h>
@@ -105,8 +105,8 @@ class pyOmega{
 	bool isRunning(){ return OMEGA.isRunning(); }
 	py::object get_filename(){ string f(OMEGA.getScene()->lastSave); if(f.size()>0) return py::object(f); return py::object();}
 
-	void saveTmpAny(shared_ptr<Serializable> obj, const string& name, bool quiet){ OMEGA.saveTmp(obj,name,quiet); }
-	shared_ptr<Serializable> loadTmpAny(const string& name){ return OMEGA.loadTmp(name); }
+	void saveTmpAny(shared_ptr<Object> obj, const string& name, bool quiet){ OMEGA.saveTmp(obj,name,quiet); }
+	shared_ptr<Object> loadTmpAny(const string& name){ return OMEGA.loadTmp(name); }
 
 	py::list lsTmp(){ py::list ret; typedef pair<std::string,string> strstr; FOREACH(const strstr& sim,OMEGA.memSavedSimulations){ string mark=sim.first; boost::algorithm::replace_first(mark,":memory:",""); ret.append(mark); } return ret; }
 
@@ -280,7 +280,7 @@ BOOST_PYTHON_MODULE(wrapper)
 ///////////// proxyless wrappers 
 	// wrapped as AttrTrait in python
 	//yade::AttrTraitBase::pyRegisterClass();
-	//Serializable().pyRegisterClass();
+	//Object().pyRegisterClass();
 
 	py::class_<TimingDeltas, shared_ptr<TimingDeltas>, boost::noncopyable >("TimingDeltas").add_property("data",&TimingDeltas::pyData,"Get timing data as list of tuples (label, execTime[nsec], execCount) (one tuple per checkpoint)").def("reset",&TimingDeltas::reset,"Reset timing information");
 

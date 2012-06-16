@@ -144,7 +144,7 @@ rst_epilog = """
 
 def customExclude(app, what, name, obj, skip, options):
 	if name=='clone':
-		if 'Serializable.clone' in str(obj): return False
+		if 'Object.clone' in str(obj): return False
 		return True
 	if hasattr(obj,'__doc__') and obj.__doc__ and ('|ydeprecated|' in obj.__doc__ or '|yhidden|' in obj.__doc__): return True
 	#if re.match(r'\b(__init__|__reduce__|__repr__|__str__)\b',name): return True
@@ -249,7 +249,7 @@ def boostFuncSignature(name,obj,removeSelf=False):
 			# grab the return value
 			try:
 				sig=') -> '+sig.split('->')[-1]
-		#if 'Serializable' in name: print 1000*'#',name
+		#if 'Object' in name: print 1000*'#',name
 			except IndexError:
 				sig=')'
 	return '('+sig,strippedDoc

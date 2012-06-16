@@ -9,10 +9,10 @@
 #include<yade/pkg/gl/Functors.hpp>
 #include<yade/pkg/gl/NodeGlRep.hpp>
 
-struct GlExtraDrawer: public Serializable{
+struct GlExtraDrawer: public Object{
 	Scene* scene;
 	virtual void render();
-	YADE_CLASS_BASE_DOC_ATTRS(GlExtraDrawer,Serializable,"Performing arbitrary OpenGL drawing commands; called from :yref:`Renderer` (see :yref:`Renderer.extraDrawers`) once regular rendering routines will have finished.\n\nThis class itself does not render anything, derived classes should override the *render* method.",
+	YADE_CLASS_BASE_DOC_ATTRS(GlExtraDrawer,Object,"Performing arbitrary OpenGL drawing commands; called from :yref:`Renderer` (see :yref:`Renderer.extraDrawers`) once regular rendering routines will have finished.\n\nThis class itself does not render anything, derived classes should override the *render* method.",
 		((bool,dead,false,,"Deactivate the object (on error/exception)."))
 	);
 };
@@ -38,7 +38,7 @@ template<> struct NodeData::Index<GlData>{enum{value=Node::ST_GL};};
 
 class SparcField;
 
-class Renderer: public Serializable{
+class Renderer: public Object{
 	static Renderer* self;
 	public:
 		static const int numClipPlanes=3;
@@ -101,15 +101,15 @@ class Renderer: public Serializable{
 		// static so that glScopedName can access it
 		// selection-related things
 		bool withNames;
-		vector<shared_ptr<Serializable> > glNamedObjects;
+		vector<shared_ptr<Object> > glNamedObjects;
 		vector<shared_ptr<Node> > glNamedNodes;
 
 		// passing >=0 to highLev causes the object the to be highlighted, regardless of whether it is selected or not
 		struct glScopedName{
 			bool highlighted;
-			glScopedName(const shared_ptr<Serializable>& s, const shared_ptr<Node>& n, int highLev=-1): highlighted(false){ init(s,n, highLev); }
+			glScopedName(const shared_ptr<Object>& s, const shared_ptr<Node>& n, int highLev=-1): highlighted(false){ init(s,n, highLev); }
 			glScopedName(const shared_ptr<Node>& n, int highLev=-1): highlighted(false){ init(n,n, highLev); }
-			void init(const shared_ptr<Serializable>& s, const shared_ptr<Node>& n, int highLev){
+			void init(const shared_ptr<Object>& s, const shared_ptr<Node>& n, int highLev){
 				Renderer* r=Renderer::self; // ugly hack, but we want to have that at all costs
 				if(!r->withNames){
 					if(highLev>=0 || s==r->selObj){ r->setLightHighlighted(highLev); highlighted=true; }
@@ -147,7 +147,7 @@ class Renderer: public Serializable{
 
 		void renderField();
 #endif
-	YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(Renderer,Serializable,"Class responsible for rendering scene on OpenGL devices.",
+	YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(Renderer,Object,"Class responsible for rendering scene on OpenGL devices.",
 		((bool,scaleOn,true,,"Whether *dispScale* has any effect or not."))
 		((Vector3r,dispScale,((void)"disable scaling",Vector3r::Ones()),,"Artificially enlarge (scale) dispalcements from bodies' :yref:`reference positions<State.refPos>` by this relative amount, so that they become better visible (independently in 3 dimensions). Disbled if (1,1,1), and also if *scaleOn* is false."))
 		((Real,rotScale,((void)"disable scaling",1.),,"Artificially enlarge (scale) rotations of bodies relative to their :yref:`reference orientation<State.refOri>`, so the they are better visible. No effect if 1, and also if *scaleOn* is false."))
@@ -164,7 +164,7 @@ class Renderer: public Serializable{
 		#endif
 		// ((int,mask,((void)"draw everything",~0),,"Bitmask for showing only bodies where ((mask & :yref:`Body::mask`)!=0)"))
 		// ((int,selId,-1,,"Id of particle that was selected by the user."))
-		((shared_ptr<Serializable>,selObj,,,"Object which was selected by the user (access only via yade.qt.selObj)."))
+		((shared_ptr<Object>,selObj,,,"Object which was selected by the user (access only via yade.qt.selObj)."))
 		((shared_ptr<Node>,selObjNode,,AttrTrait<Attr::readonly>(),"Node associated to the selected object (recenters scene on that object upon selection)"))
 		((vector<Vector3r>,clipPlanePos,vector<Vector3r>(numClipPlanes,Vector3r::Zero()),,"Position and orientation of clipping planes"))
 		((vector<Quaternionr>,clipPlaneOri,vector<Quaternionr>(numClipPlanes,Quaternionr::Identity()),,"Position and orientation of clipping planes"))

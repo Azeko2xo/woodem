@@ -13,7 +13,7 @@
 #include<boost/version.hpp>
 #include<boost/python.hpp>
 
-#include<yade/lib/serialization/ObjectIO.hpp>
+#include<yade/lib/object/ObjectIO.hpp>
 
 
 #include<cxxabi.h>
@@ -75,17 +75,17 @@ bool Omega::isInheritingFrom_recursive(const string& className, const string& ba
 }
 
 /* named temporary store */
-void Omega::saveTmp(shared_ptr<Serializable> obj, const string& name, bool quiet){
+void Omega::saveTmp(shared_ptr<Object> obj, const string& name, bool quiet){
 	if(memSavedSimulations.count(name)>0 && !quiet) LOG_INFO("Overwriting in-memory saved simulation "<<name);
 	std::ostringstream oss;
-	yade::ObjectIO::save<shared_ptr<Serializable>,boost::archive::binary_oarchive>(oss,"yade__Serializable",obj);
+	yade::ObjectIO::save<shared_ptr<Object>,boost::archive::binary_oarchive>(oss,"yade__Serializable",obj);
 	memSavedSimulations[name]=oss.str();
 }
-shared_ptr<Serializable> Omega::loadTmp(const string& name){
+shared_ptr<Object> Omega::loadTmp(const string& name){
 	if(memSavedSimulations.count(name)==0) throw std::runtime_error("No memory-saved simulation "+name);
 	std::istringstream iss(memSavedSimulations[name]);
-	auto obj=make_shared<Serializable>();
-	yade::ObjectIO::load<shared_ptr<Serializable>,boost::archive::binary_iarchive>(iss,"yade__Serializable",obj);
+	auto obj=make_shared<Object>();
+	yade::ObjectIO::load<shared_ptr<Object>,boost::archive::binary_iarchive>(iss,"yade__Serializable",obj);
 	return obj;
 }
 
@@ -121,13 +121,13 @@ void Omega::initializePlugins(const vector<std::pair<string,string> >& pluginCla
 	// http://boost.2283326.n4.nabble.com/C-sig-How-to-create-package-structure-in-single-extension-module-td2697292.html
 	py::object yadeScope=boost::python::import("yade");
 
-	typedef std::pair<std::string,shared_ptr<Serializable> > StringSerializablePair;
+	typedef std::pair<std::string,shared_ptr<Object> > StringObjectPair;
 	typedef std::pair<std::string,std::string> StringPair;
-	std::list<StringSerializablePair> pythonables;
+	std::list<StringObjectPair> pythonables;
 	FOREACH(StringPair moduleName, pluginClasses){
 		string module(moduleName.first);
 		string name(moduleName.second);
-		shared_ptr<Serializable> obj;
+		shared_ptr<Object> obj;
 		try {
 			LOG_DEBUG("Factoring class "<<name);
 			obj=ClassFactory::instance().createShared(name);
@@ -152,7 +152,7 @@ void Omega::initializePlugins(const vector<std::pair<string,string> >& pluginCla
 					throw;
 				}
 			}
-			pythonables.push_back(StringSerializablePair(module,obj));
+			pythonables.push_back(StringObjectPair(module,obj));
 		}
 		catch (std::runtime_error& e){
 			/* FIXME: this catches all errors! Some of them are not harmful, however:
@@ -161,9 +161,9 @@ void Omega::initializePlugins(const vector<std::pair<string,string> >& pluginCla
 		}
 	}
 
-	// handle Serializable specially
+	// handle Object specially
 	// py::scope _scope(pyModules["core"]);
-	// Serializable().pyRegisterClass(pyModules["core"]);
+	// Object().pyRegisterClass(pyModules["core"]);
 
 	/* python classes must be registered such that base classes come before derived ones;
 	for now, just loop until we succeed; proper solution will be to build graphs of classes
@@ -171,15 +171,15 @@ void Omega::initializePlugins(const vector<std::pair<string,string> >& pluginCla
 	for(int i=0; i<10 && pythonables.size()>0; i++){
 		if(getenv("YADE_DEBUG")) cerr<<endl<<"[[[ Round "<<i<<" ]]]: ";
 		std::list<string> done;
-		for(std::list<StringSerializablePair>::iterator I=pythonables.begin(); I!=pythonables.end(); ){
+		for(std::list<StringObjectPair>::iterator I=pythonables.begin(); I!=pythonables.end(); ){
 			const std::string& module=I->first;
-			const shared_ptr<Serializable>& s=I->second;
+			const shared_ptr<Object>& s=I->second;
 			const std::string& klass=s->getClassName();
 			try{
 				if(getenv("YADE_DEBUG")) cerr<<"{{"<<klass<<"}}";
 				py::scope _scope(pyModules[module]);
 				s->pyRegisterClass();
-				std::list<StringSerializablePair>::iterator prev=I++;
+				std::list<StringObjectPair>::iterator prev=I++;
 				pythonables.erase(prev);
 			} catch (...){
 				if(getenv("YADE_DEBUG")){ cerr<<"["<<klass<<"]"; PyErr_Print(); }

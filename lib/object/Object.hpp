@@ -12,12 +12,12 @@
 #include<yade/lib/pyutil/doc_opts.hpp>
 #include<yade/lib/pyutil/except.hpp>
 
-#include<yade/lib/factory/ClassFactory.hpp>
-#include<yade/lib/serialization/ObjectIO.hpp>
+#include<yade/lib/object/ClassFactory.hpp>
+#include<yade/lib/object/ObjectIO.hpp>
 
 #include<yade/lib/base/Math.hpp>
 
-#include<yade/lib/serialization/AttrTrait.hpp>
+#include<yade/lib/object/AttrTrait.hpp>
 
 // empty functions for ADL
 //namespace{
@@ -187,13 +187,13 @@ template<> struct _SerializeMaybe<false>{
 	YADE_SET_DOCSTRING_OPTS; \
 	auto traitPtr=make_shared<ClassTrait>(classTrait); traitPtr->name(#thisClass); \
 	py::class_<thisClass,shared_ptr<thisClass>,py::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,traitPtr->getDoc().c_str(),/*call raw ctor even for parameterless construction*/py::no_init); \
-	_classObj.def("__init__",py::raw_constructor(Serializable_ctor_kwAttrs<thisClass>)); \
+	_classObj.def("__init__",py::raw_constructor(Object_ctor_kwAttrs<thisClass>)); \
 	_classObj.attr("_classTrait")=traitPtr; \
 	BOOST_PP_SEQ_FOR_EACH(_PYATTR_DEF,thisClass,attrs); \
 	(void) _classObj BOOST_PP_SEQ_FOR_EACH(_PYATTR_DEPREC_DEF,thisClass,deprec); \
 	(void) _classObj extras ; \
 	py::list traitList; BOOST_PP_SEQ_FOR_EACH(_PYATTR_TRAIT,thisClass,attrs); _classObj.attr("_attrTraits")=traitList;\
-	Serializable::derivedCxxClasses.push_back(py::object(_classObj));
+	Object::derivedCxxClasses.push_back(py::object(_classObj));
 
 #define _YADE_CLASS_BASE_DOC_ATTRS_DEPREC_PY(thisClass,baseClass,classTrait,attrs,deprec,extras) \
 	_REGISTER_ATTRIBUTES_DEPREC(thisClass,baseClass,attrs,deprec) \
@@ -226,11 +226,11 @@ template<> struct _SerializeMaybe<false>{
 #define _STATCLASS_PY_REGISTER_CLASS(thisClass,baseClass,classTrait,attrs)\
 	virtual void pyRegisterClass() { checkPyClassRegistersItself(#thisClass); initSetStaticAttributesValue(); YADE_SET_DOCSTRING_OPTS; \
 		auto traitPtr=make_shared<ClassTrait>(classTrait); traitPtr->name(#thisClass); \
-		py::class_<thisClass,shared_ptr<thisClass>,py::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,traitPtr->getDoc().c_str(),/*call raw ctor even for parameterless construction*/py::no_init); _classObj.def("__init__",py::raw_constructor(Serializable_ctor_kwAttrs<thisClass>)); \
+		py::class_<thisClass,shared_ptr<thisClass>,py::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,traitPtr->getDoc().c_str(),/*call raw ctor even for parameterless construction*/py::no_init); _classObj.def("__init__",py::raw_constructor(Object_ctor_kwAttrs<thisClass>)); \
 		_classObj.attr("_classTrait")=traitPtr; \
 		BOOST_PP_SEQ_FOR_EACH(_STATATTR_PY,thisClass,attrs); \
 		py::list traitList; BOOST_PP_SEQ_FOR_EACH(_PYATTR_TRAIT_STATIC,thisClass,attrs); _classObj.attr("_attrTraits")=traitList; \
-		Serializable::derivedCxxClasses.push_back(py::object(_classObj)); \
+		Object::derivedCxxClasses.push_back(py::object(_classObj)); \
 	}
 
 /********************** USER MACROS START HERE ********************/
@@ -318,8 +318,9 @@ template<> struct _SerializeMaybe<false>{
 #define REGISTER_CLASS_NAME(cn) public: virtual std::string getClassName() const { return #cn; };
 #define REGISTER_BASE_CLASS_NAME(bcn) public:virtual std::vector<std::string> getBaseClassNames() const { return bcn; }
  
+namespace yade{
 
-struct Serializable: public boost::noncopyable {
+struct Object: public boost::noncopyable {
 	// http://www.boost.org/doc/libs/1_49_0/libs/smart_ptr/sp_techniques.html#static
 	struct null_deleter{void operator()(void const *)const{}};
 	static vector<py::object> derivedCxxClasses;
@@ -332,18 +333,18 @@ struct Serializable: public boost::noncopyable {
 		template <class DerivedT> const DerivedT& cast() const { return *static_cast<DerivedT*>(this); }
 		template <class DerivedT> DerivedT& cast(){ return *static_cast<DerivedT*>(this); }
 
-		static shared_ptr<Serializable> boostLoad(const string& f){ auto obj=make_shared<Serializable>(); ObjectIO::load(f,"yade__Serializable",obj); return obj; }
-		virtual void boostSave(const string& f){ shared_ptr<Serializable> thisPtr(this,null_deleter()); ObjectIO::save(f,"yade__Serializable",thisPtr); }
+		static shared_ptr<Object> boostLoad(const string& f){ auto obj=make_shared<Object>(); ObjectIO::load(f,"yade__Object",obj); return obj; }
+		virtual void boostSave(const string& f){ shared_ptr<Object> thisPtr(this,null_deleter()); ObjectIO::save(f,"yade__Object",thisPtr); }
 		//template<class DerivedT> shared_ptr<DerivedT> _cxxLoadChecked(const string& f){ auto obj=_cxxLoad(f); auto obj2=dynamic_pointer_cast<DerivedT>(obj); if(!obj2) throw std::runtime_error("Loaded type "+obj->getClassName()+" could not be cast to requested type "+DerivedT::getClassNameStatic()); }
 
-		Serializable() {};
-		virtual ~Serializable() {};
+		Object() {};
+		virtual ~Object() {};
 		// comparison of strong equality of 2 objects (by their address)
-		bool operator==(const Serializable& other) const { return this==&other; }
-		bool operator!=(const Serializable& other) const { return this!=&other; }
+		bool operator==(const Object& other) const { return this==&other; }
+		bool operator!=(const Object& other) const { return this!=&other; }
 
 		void pyUpdateAttrs(const py::dict& d);
-		//static void pyUpdateAttrs(const shared_ptr<Serializable>&, const py::dict& d);
+		//static void pyUpdateAttrs(const shared_ptr<Object>&, const py::dict& d);
 
 		virtual void pySetAttr(const std::string& key, const py::object& value){ yade::AttributeError("No such attribute: "+key+".");};
 		virtual py::dict pyDict() const { return py::dict(); }
@@ -354,14 +355,14 @@ struct Serializable: public boost::noncopyable {
 		// perform class registration; overridden in all classes
 		virtual void pyRegisterClass();
 		// perform any manipulation of arbitrary constructor arguments coming from python, manipulating them in-place;
-		// the remainder is passed to the Serializable_ctor_kwAttrs of the respective class (note: args must be empty)
+		// the remainder is passed to the Object_ctor_kwAttrs of the respective class (note: args must be empty)
 		virtual void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){ return; }
 		
 		//! string representation of this object
 		virtual std::string pyStr() const { return "<"+getClassName()+" @ "+boost::lexical_cast<string>(this)+">"; }
 
-	//REGISTER_CLASS_AND_BASE(Serializable,);
-	REGISTER_CLASS_NAME(Serializable);
+	//REGISTER_CLASS_AND_BASE(Object,);
+	REGISTER_CLASS_NAME(Object);
 	// this might disappear in the future
 	REGISTER_BASE_CLASS_NAME({});
 	std::string getBaseClassName(unsigned int i=0) const { std::vector<std::string> bases(getBaseClassNames()); return (i>=bases.size()?std::string(""):bases[i]); } 
@@ -370,11 +371,13 @@ struct Serializable: public boost::noncopyable {
 
 // helper functions
 template <typename T>
-shared_ptr<T> Serializable_ctor_kwAttrs(py::tuple& t, py::dict& d){
+shared_ptr<T> Object_ctor_kwAttrs(py::tuple& t, py::dict& d){
 	shared_ptr<T> instance=make_shared<T>();
 	instance->pyHandleCustomCtorArgs(t,d); // can change t and d in-place
-	if(py::len(t)>0) throw std::runtime_error("Zero (not "+boost::lexical_cast<string>(py::len(t))+") non-keyword constructor arguments required [in Serializable_ctor_kwAttrs; Serializable::pyHandleCustomCtorArgs might had changed it after your call].");
+	if(py::len(t)>0) throw std::runtime_error("Zero (not "+boost::lexical_cast<string>(py::len(t))+") non-keyword constructor arguments required [in Object_ctor_kwAttrs; Object::pyHandleCustomCtorArgs might had changed it after your call].");
 	if(py::len(d)>0) instance->pyUpdateAttrs(d);
 	instance->callPostLoad(); 
 	return instance;
 }
+
+}; /* namespace yade */

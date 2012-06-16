@@ -51,13 +51,13 @@
 #include<boost/serialization/map.hpp>
 #include<boost/serialization/nvp.hpp>
 
-//#include<lib/serialization/Serializable.hpp>
-class Serializable;
+namespace yade { class Object; };
+using namespace yade;
 
 
 class ClassFactory: public Singleton<ClassFactory>{
 	private:
-		typedef shared_ptr<Serializable> (*CreateSharedFnPtr)();
+		typedef shared_ptr<Object> (*CreateSharedFnPtr)();
 		// pointer to factory func
 	 	/// map class name to the pointer of argumentless function returning shared_ptr<Factorable> to that class
 		typedef std::map<std::string, CreateSharedFnPtr> factorableCreatorsMap;
@@ -67,8 +67,8 @@ class ClassFactory: public Singleton<ClassFactory>{
 		DECLARE_LOGGER;
 		// register class in the class factory
 		bool registerFactorable(const std::string& name, CreateSharedFnPtr createShared);
-		/// Create a shared pointer on a serializable class of the given name
-		shared_ptr<Serializable> createShared(const std::string& name);
+		/// Create a shared pointer of an object with given name
+		shared_ptr<Object> createShared(const std::string& name);
 		void load(const std::string& fullFileName);
 		void registerPluginClasses(const char* module, const char* fileAndClasses[]);
 		std::list<std::pair<std::string,std::string> > modulePluginClasses;
@@ -98,7 +98,7 @@ class ClassFactory: public Singleton<ClassFactory>{
 
 #define _PLUGIN_CHECK_REPEAT(x,y,z) void z::must_use_both_YADE_CLASS_BASE_DOC_ATTRS_and_YADE_PLUGIN(){}
 #define _YADE_PLUGIN_REPEAT(x,y,z) BOOST_PP_STRINGIZE(z),
-#define _YADE_FACTORY_REPEAT(x,y,z) shared_ptr<Serializable> BOOST_PP_CAT(createShared,z)(){ return shared_ptr<z>(new z); } const bool BOOST_PP_CAT(registered,z) __attribute__ ((unused))=ClassFactory::instance().registerFactorable(BOOST_PP_STRINGIZE(z),BOOST_PP_CAT(createShared,z));
+#define _YADE_FACTORY_REPEAT(x,y,z) shared_ptr<Object> BOOST_PP_CAT(createShared,z)(){ return shared_ptr<z>(new z); } const bool BOOST_PP_CAT(registered,z) __attribute__ ((unused))=ClassFactory::instance().registerFactorable(BOOST_PP_STRINGIZE(z),BOOST_PP_CAT(createShared,z));
 
 // priority 500 is greater than priority for log4cxx initialization (in core/main/pyboot.cpp); therefore lo5cxx will be initialized before plugins are registered
 #define YADE_PLUGIN0(plugins) YADE_PLUGIN(wrapper,plugins)

@@ -1,7 +1,7 @@
 // 2010 © Václav Šmilauer <eudoxos@arcig.cz>
 #pragma once
 
-#include<yade/lib/serialization/Serializable.hpp>
+#include<yade/lib/object/Object.hpp>
 #include<yade/core/Field.hpp>
 
 #include<boost/foreach.hpp>
@@ -44,7 +44,7 @@ class DemField;
 Container of particles implemented as flat std::vector. It handles parts removal and
 intelligently reallocates free ids for newly added ones.
 */
-struct ParticleContainer: public Serializable{
+struct ParticleContainer: public Object{
 	DemField* dem; // backptr to DemField, set by DemField::postLoad; do not modify!
 	typedef int id_t;
 
@@ -160,7 +160,7 @@ struct ParticleContainer: public Serializable{
 		pyIterator pyIter();
 	
 
-		YADE_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(ParticleContainer,Serializable,"Storage for DEM particles",
+		YADE_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(ParticleContainer,Object,"Storage for DEM particles",
 			((ContainerT/* = std::vector<shared_ptr<Particle> > */,parts,,AttrTrait<Attr::hidden>(),"Actual particle storage"))
 			((list<id_t>,freeIds,,AttrTrait<Attr::hidden>(),"Free particle id's"))
 			,/* init */

@@ -1,5 +1,5 @@
 #include<yade/core/Omega.hpp>
-#include<yade/lib/serialization/Serializable.hpp>
+#include<yade/lib/object/Object.hpp>
 #include<yade/lib/base/Logging.hpp>
 
 #include<signal.h>
@@ -79,7 +79,7 @@ void yadeInitialize(py::list& pp, const std::string& confDir){
 	py::scope core(py::import("yade.core"));
 	yade::ClassTrait::pyRegisterClass();
 	yade::AttrTraitBase::pyRegisterClass();
-	Serializable().pyRegisterClass();
+	Object().pyRegisterClass();
 	//
 
 

@@ -27,7 +27,7 @@ struct ParticleFactory: public PeriodicEngine{
 };
 REGISTER_SERIALIZABLE(ParticleFactory);
 
-struct ParticleGenerator: public Serializable{
+struct ParticleGenerator: public Object{
 	// particle and two extents sizes (bbox if p is at origin)
 	struct ParticleAndBox{ shared_ptr<Particle> par; AlignedBox3r extents; };
 	// return (one or multiple, for clump) particles and extents (min and max)
@@ -37,7 +37,7 @@ struct ParticleGenerator: public Serializable{
 	py::tuple pyPsd(bool mass, bool cumulative, bool normalize, Vector2r dRange, int num) const;
 	py::object pyDiamMass();
 	py::list pyCall(const shared_ptr<Material>& m){ vector<ParticleAndBox> pee=(*this)(m); py::list ret; for(const auto& pe: pee) ret.append(py::make_tuple(pe.par,pe.extents)); return ret; }
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ParticleGenerator,Serializable,"Abstract class for generating particles",
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ParticleGenerator,Object,"Abstract class for generating particles",
 		((vector<Vector2r>,genDiamMass,,AttrTrait<Attr::readonly>().noGui(),"List of generated particle's (equivalent) radii and masses (for making granulometry)"))
 		((bool,save,true,,"Save generated particles so that PSD can be generated afterwards"))
 		,/*ctor*/
@@ -77,9 +77,9 @@ struct PsdSphereGenerator: public ParticleGenerator{
 };
 REGISTER_SERIALIZABLE(PsdSphereGenerator);
 
-struct ParticleShooter: public Serializable{
+struct ParticleShooter: public Object{
 	virtual void operator()(Vector3r& vel, Vector3r& angVel){ throw std::runtime_error("Calling ParticleShooter.setVelocities (abstract method); use derived classes"); }
-	YADE_CLASS_BASE_DOC(ParticleShooter,Serializable,"Abstract class for assigning initial velocities to generated particles.");
+	YADE_CLASS_BASE_DOC(ParticleShooter,Object,"Abstract class for assigning initial velocities to generated particles.");
 };
 REGISTER_SERIALIZABLE(ParticleShooter);
 

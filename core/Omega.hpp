@@ -11,7 +11,7 @@
 #include<boost/foreach.hpp>
 
 #include<yade/lib/base/Math.hpp>
-#include<yade/lib/factory/ClassFactory.hpp>
+#include<yade/lib/object/ClassFactory.hpp>
 #include<yade/lib/base/Singleton.hpp>
 #include<yade/lib/base/Types.hpp>
 
@@ -24,7 +24,7 @@
 #endif
 
 class Scene;
-class Serializable;
+namespace yade { class Object; };
 
 namespace py=boost::python;
 
@@ -75,8 +75,8 @@ class Omega: public Singleton<Omega>{
 		void stop(); // resets the simulationLoop
 		bool isRunning();
 
-		shared_ptr<Serializable> loadTmp(const string& name);
-		void saveTmp(shared_ptr<Serializable> s, const string& name, bool quiet=false);
+		shared_ptr<Object> loadTmp(const string& name);
+		void saveTmp(shared_ptr<Object> s, const string& name, bool quiet=false);
 		#if 0
 			void loadSimulation(const string& name, bool quiet=false);
 			void saveSimulation(const string& name, bool quiet=false);

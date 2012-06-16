@@ -121,7 +121,7 @@ class SerializableEditor(QWidget):
 		QtGui.QWidget.__init__(self,parent)
 		self.ser=ser
 		self.entries=[]
-		logging.debug('New Serializable of type %s'%ser.__class__.__name__)
+		logging.debug('New Object of type %s'%ser.__class__.__name__)
 		self.setWindowTitle(str(ser))
 		self.mkWidgets()
 		self.refreshTimer=QTimer()

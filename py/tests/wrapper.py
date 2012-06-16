@@ -2,7 +2,7 @@
 # 2009 © Václav Šmilauer <eudoxos@arcig.cz>
 
 """
-This test module covers python/c++ transitions, for both classes deriving from Serializable,
+This test module covers python/c++ transitions, for both classes deriving from Object,
 but also for other classes that we wrap (like miniEigen).
 """
 
@@ -25,7 +25,7 @@ except: pass
 try: from yade.cld import *
 except: pass
 
-allClasses=system.childClasses('Serializable')
+allClasses=system.childClasses('Object')
 
 class TestObjectInstantiation(unittest.TestCase):
 	def setUp(self):

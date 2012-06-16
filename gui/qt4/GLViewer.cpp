@@ -22,7 +22,7 @@
 #include<sstream>
 #include<iomanip>
 #include<boost/algorithm/string/case_conv.hpp>
-#include<yade/lib/serialization/ObjectIO.hpp>
+#include<yade/lib/object/ObjectIO.hpp>
 #include<yade/lib/pyutil/gil.hpp>
 #include<yade/lib/base/CompUtils.hpp>
 #include<yade/lib/opengl/GLUtils.hpp>
@@ -309,7 +309,7 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 	else if(e->key()==Qt::Key_Escape){
 		if(!isManipulating()){ 
 			// reset selection
-			renderer->selObj=shared_ptr<Serializable>(); renderer->selObjNode=shared_ptr<Node>();
+			renderer->selObj=shared_ptr<Object>(); renderer->selObjNode=shared_ptr<Node>();
 			LOG_INFO("Calling onSelection with None to deselect");
 			pyRunString("import yade.qt; onSelection(None);");
 		}

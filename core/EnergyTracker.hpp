@@ -3,7 +3,7 @@
 #include<boost/foreach.hpp>
 #include<string>
 #include<yade/lib/base/openmp-accu.hpp>
-#include<yade/lib/serialization/Serializable.hpp>
+#include<yade/lib/object/Object.hpp>
 #include<yade/lib/pyutil/except.hpp>
 
 #ifndef FOREACH
@@ -12,7 +12,7 @@
 
 namespace py=boost::python;
 
-class EnergyTracker: public Serializable{
+class EnergyTracker: public Object{
 	public:
 	~EnergyTracker();
 	/* in flg, IsIncrement is a pseudo-value which doesn't do anything; is meant to increase readability of calls */
@@ -65,7 +65,7 @@ class EnergyTracker: public Serializable{
 	typedef std::map<std::string,int> mapStringInt;
 	typedef std::pair<std::string,int> pairStringInt;
 
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(EnergyTracker,Serializable,"Storage for tracing energies. Only to be used if O.traceEnergy is True.",
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(EnergyTracker,Object,"Storage for tracing energies. Only to be used if O.traceEnergy is True.",
 		((OpenMPArrayAccumulator<Real>,energies,,,"Energy values, in linear array"))
 		((mapStringInt,names,,/*no python converter for this type*/AttrTrait<Attr::hidden>(),"Associate textual name to an index in the energies array [overridden bellow].")) 
 		((vector<int>,flags,,AttrTrait<Attr::readonly>(),"Flags for respective energies; most importantly, whether the value should be reset at every step."))

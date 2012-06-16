@@ -1,6 +1,6 @@
 #pragma once
 
-#include<yade/lib/serialization/Serializable.hpp>
+#include<yade/lib/object/Object.hpp>
 #include<yade/core/Omega.hpp>
 #include<yade/core/Field.hpp>
 #include<yade/core/Timing.hpp>
@@ -22,7 +22,7 @@ class Field;
 
 namespace py=boost::python;
 
-class Engine: public Serializable {
+class Engine: public Object {
 	public:
 		// pointer to the simulation and field, set by Scene::moveToNextTimeStep
 		Scene* scene;
@@ -81,7 +81,7 @@ class Engine: public Serializable {
 
 	DECLARE_LOGGER;
 
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Engine,Serializable,"Basic execution unit of simulation, called from the simulation loop (O.engines)",
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Engine,Object,"Basic execution unit of simulation, called from the simulation loop (O.engines)",
 		((bool,dead,false,,"If true, this engine will not run at all; can be used for making an engine temporarily deactivated and only resurrect it at a later point."))
 		((string,label,,,"Textual label for this object; must be valid python identifier, you can refer to it directly from python."))
 		// ((bool,parallelFields,false,,"Whether to run (if compiled with openMP) this engine on active fields in parallel"))

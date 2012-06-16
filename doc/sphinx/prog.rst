@@ -138,7 +138,7 @@ Original header location											     Included as
 ============================================================= =========================
 ``core/Scene.hpp``														  ``<yade/core/Scene.hpp>``
 ``lib/base/Logging.hpp``												  ``<yade/lib-base/Logging.hpp>``
-``lib/serialization/Serializable.hpp``								  ``<yade/lib-serialization/Serializable.hpp>``
+``lib/serialization/Object.hpp``								  ``<yade/lib-serialization/Object.hpp>``
 ``pkg/dem/DataClass/SpherePack.hpp``                          ``<yade/pkg-dem/SpherePack.hpp>``
 ``gui/qt3/QtGUI.hpp``                                         ``<yade/gui-qt3/QtGUI.hpp>``
 ============================================================= =========================
@@ -502,7 +502,7 @@ Serialization serves to save simulation to file and restore it later. This proce
 
 This functionality is provided by 3 macros and 4 optional methods; details are provided below.
 
-``Serializable::preLoad``, ``Serializable::preSave``, ``Serializable::postLoad``, ``Serializable::postSave``
+``Object::preLoad``, ``Object::preSave``, ``Object::postLoad``, ``Object::postSave``
 	Prepare attributes before serialization (saving) or deserialization (loading) or process them after serialization or deserialization.
 	
 	See :ref:`attributeregistration`.
@@ -528,7 +528,7 @@ Attribute registration
 
 All (serializable) types in Yade are one of the following:
 
-* Type deriving from :yref:`Serializable`, which provide information on how to serialize themselves via overriding the ``Serializable::registerAttributes`` method; it declares data members that should be serialzed along with their literal names, by which they are identified. This method then invokes ``registerAttributes`` of its base class (until ``Serializable`` itself is reached); in this way, derived classes properly serialize data of their base classes.
+* Type deriving from :yref:`Object`, which provide information on how to serialize themselves via overriding the ``Object::registerAttributes`` method; it declares data members that should be serialzed along with their literal names, by which they are identified. This method then invokes ``registerAttributes`` of its base class (until ``Object`` itself is reached); in this way, derived classes properly serialize data of their base classes.
 
   This funcionality is hidden behind the macro :ref:`YADE_CLASS_BASE_DOC` used in class declaration body (header file), which takes base class and list of attributes::
 
@@ -546,7 +546,7 @@ Yade uses the excellent `boost::serialization <http://www.boost.org/doc/libs/rel
 
 .. note:: ``YADE_CLASS_BASE_DOC_ATTRS`` also generates code for attribute access from python; this will be discussed later. Since this macro serves both purposes, the consequence is that attributes that are serialized can always be accessed from python.
 
-Yade also provides callback for before/after (de) serialization, virtual functions :yref:`Serializable::preProcessAttributes` and :yref:`Serializable::postProcessAttributes`, which receive one ``bool deserializing`` argument (``true`` when deserializing, ``false`` when serializing). Their default implementation in :yref:`Serializable` doesn't do anything, but their typical use is:
+Yade also provides callback for before/after (de) serialization, virtual functions :yref:`Object::preProcessAttributes` and :yref:`Object::postProcessAttributes`, which receive one ``bool deserializing`` argument (``true`` when deserializing, ``false`` when serializing). Their default implementation in :yref:`Object` doesn't do anything, but their typical use is:
 
 * converting some non-serializable internal data structure of the class (such as multi-dimensional array, hash table, array of pointers) into a serializable one (pre-processing) and fill this non-serializable structure back after deserialization (post-processing); for instance, InteractionContainer uses these hooks to ask its concrete implementation to store its contents to a unified storage (``vector<shared_ptr<Interaction> >``) before serialization and to restore from it after deserialization.
 * precomputing non-serialized attributes from the serialized values; e.g. :yref:`Facet` computes its (local) edge normals and edge lengths from vertices' coordinates.
@@ -558,7 +558,7 @@ Class factory
 ^^^^^^^^^^^^^^
 Each serializable class must use ``REGISTER_SERIALIZABLE``, which defines function to create that class by ``ClassFactory``. ``ClassFactory`` is able to instantiate a class given its name (as string), which is necessary for deserialization.
 
-Although mostly used internally by the serialization framework, programmer can ask for a class instantiation using ``shared_ptr<Factorable> f=ClassFactory::instance().createShared("ClassName");``, casting the returned ``shared_ptr<Factorable>`` to desired type afterwards. :yref:`Serializable` itself derives from ``Factorable``, i.e. all serializable types are also factorable (It is possible that different mechanism will be in place if boost::serialization is used, though.)
+Although mostly used internally by the serialization framework, programmer can ask for a class instantiation using ``shared_ptr<Factorable> f=ClassFactory::instance().createShared("ClassName");``, casting the returned ``shared_ptr<Factorable>`` to desired type afterwards. :yref:`Object` itself derives from ``Factorable``, i.e. all serializable types are also factorable (It is possible that different mechanism will be in place if boost::serialization is used, though.)
 
 .. _plugins:
 
@@ -651,7 +651,7 @@ The macro :ref:`YADE_CLASS_BASE_DOC` introduced above is (behind the scenes) als
 
 	Yade [6]: s.dict()                       ## show dictionary of both attributes and values
 
-	## only very rarely needed; calls Serializable::postProcessAttributes(bool deserializing):
+	## only very rarely needed; calls Object::postProcessAttributes(bool deserializing):
 
 	Yade [7]: s.postProcessAttributes(False) 
 
@@ -791,7 +791,7 @@ Expected parameters are indicated by macro name components separated with unders
 
 Special python constructors
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The Python wrapper automatically create constructor that takes keyword (named) arguments corresponding to instance attributes; those attributes are set to values provided in the constructor. In some cases, more flexibility is desired (such as :yref:`InteractionLoop`, which takes 3 lists of functors). For such cases, you can override the function ``Serializable::pyHandleCustomCtorArgs``, which can arbitrarily modify the new (already existing) instance. It should modify in-place arguments given to it, as they will be passed further down to the routine which sets attribute values. In such cases, you should document the constructor::
+The Python wrapper automatically create constructor that takes keyword (named) arguments corresponding to instance attributes; those attributes are set to values provided in the constructor. In some cases, more flexibility is desired (such as :yref:`InteractionLoop`, which takes 3 lists of functors). For such cases, you can override the function ``Object::pyHandleCustomCtorArgs``, which can arbitrarily modify the new (already existing) instance. It should modify in-place arguments given to it, as they will be passed further down to the routine which sets attribute values. In such cases, you should document the constructor::
 
 	.. admonition:: Special constructor
 
@@ -845,7 +845,7 @@ The way of passing attributes given to ``YADE_CLASS_BASE_DOC_ATTRS`` in the ``at
 * ``Vector3``, ``Vector3i``, ``Vector2``, ``Vector2i``, ``Matrix3`` and ``Quaternion`` objects are passed by *reference*. For instance::
 		O.bodies[0].state.pos[0]=1.33
   will assign correct value to ``x`` component of position, without changing the other ones.
-* Yade classes (all that use ``shared_ptr`` when declared in python: all classes deriving from :yref:`Serializable` declared with ``YADE_CLASS_BASE_DOC_*``, and some others) are passed as *references* (technically speaking, they are passed by value of the ``shared_ptr``, but by virtue of its sharedness, they appear as references). For instance::
+* Yade classes (all that use ``shared_ptr`` when declared in python: all classes deriving from :yref:`Object` declared with ``YADE_CLASS_BASE_DOC_*``, and some others) are passed as *references* (technically speaking, they are passed by value of the ``shared_ptr``, but by virtue of its sharedness, they appear as references). For instance::
 		O.engines[4].damping=.3
   will change :yref:`damping<NewtonIntegrator.damping>` parameter on the original engine object, not on its copy.
 * All other types are passed by *value*. This includes, most importantly, sequence types declared in :ref:`customconverters`, such as ``std::vector<shared_ptr<Engine> >``. For this reason, ::
@@ -998,7 +998,7 @@ The top-level Indexable must use the ``REGISTER_INDEX_COUNTER`` macro, which set
 .. code-block:: c++
 
 	// derive from Indexable
-	class Shape: public Serializable, public Indexable {  
+	class Shape: public Object, public Indexable {  
 	   // never call createIndex() in the top-level Indexable ctor!
 	   /* … */
 
@@ -1723,7 +1723,7 @@ Python framework
 Wrapping c++ classes
 ---------------------
 
-Each class deriving from :yref:`Serializable` is automatically exposed to python, with access to its (registered) attributes. This is achieved via :ref:`YADE_CLASS_BASE_DOC`. All classes registered in class factory are default-constructed in ``Omega::buildDynlibDatabase``. Then, each serializable class calls ``Serializable::pyRegisterClass`` virtual method, which injects the class wrapper into (initially empty) ``yade.wrapper`` module. ``pyRegisterClass`` is defined by ``YADE_CLASS_BASE_DOC`` and knows about class, base class, docstring, attributes, which subsequently all appear in boost::python class definition.
+Each class deriving from :yref:`Object` is automatically exposed to python, with access to its (registered) attributes. This is achieved via :ref:`YADE_CLASS_BASE_DOC`. All classes registered in class factory are default-constructed in ``Omega::buildDynlibDatabase``. Then, each serializable class calls ``Object::pyRegisterClass`` virtual method, which injects the class wrapper into (initially empty) ``yade.wrapper`` module. ``pyRegisterClass`` is defined by ``YADE_CLASS_BASE_DOC`` and knows about class, base class, docstring, attributes, which subsequently all appear in boost::python class definition.
 
 Wrapped classes define special constructor taking keyword arguments corresponding to class attributes; therefore, it is the same to write:
 
@@ -1745,7 +1745,7 @@ and
 
 	Yade [3]: print f2.dict()
 
-Wrapped classes also inherit from :yref:`Serializable` several special virtual methods: :yref:`dict()<Serializable::dict>` returning all registered class attributes as dictionary (shown above), :yref:`clone()<Serializable::clone>` returning copy of instance (by copying attribute values), :yref:`updateAttrs()<Serializable::updateAttrs>` and :yref:`updateExistingAttrs()<Serializable::updateExistingAttrs>` assigning attributes from given dictionary (the former thrown for unknown attribute, the latter doesn't).
+Wrapped classes also inherit from :yref:`Object` several special virtual methods: :yref:`dict()<Object::dict>` returning all registered class attributes as dictionary (shown above), :yref:`clone()<Object::clone>` returning copy of instance (by copying attribute values), :yref:`updateAttrs()<Object::updateAttrs>` and :yref:`updateExistingAttrs()<Object::updateExistingAttrs>` assigning attributes from given dictionary (the former thrown for unknown attribute, the latter doesn't).
 
 Read-only property ``name`` wraps c++ method ``getClassName()`` returning class name as string. (Since c++ class and the wrapper class always have the same name, getting python type using ``__class__`` and its property ``__name__`` will give the same value).
 

@@ -21,7 +21,7 @@ def childClasses(base,recurse=True,includeBase=False):
 		ret2|=childClasses(bb)
 	return ret | ret2
 
-_allSerializables=[c.__name__ for c in yade.core.Serializable._derivedCxxClasses]
+_allSerializables=[c.__name__ for c in yade.core.Object._derivedCxxClasses]
 ## set of classes for which the proxies were created
 _proxiedClasses=set()
 
@@ -73,7 +73,7 @@ def cxxCtorsDict(proxyNamespace=__builtins__):
 
 	Derived classes (from these root classes) are faked by creating a callable which invokes appropriate root class constructor with the derived class parameter and passes remaining arguments to it.
 
-	Classes that are neither root nor derived are exposed via callable object that constructs a Serializable of given type and passes the parameters.
+	Classes that are neither root nor derived are exposed via callable object that constructs a Object of given type and passes the parameters.
 	"""
 	proxyNamespace={}
 
@@ -103,5 +103,5 @@ def setExitHandlers():
 # consistency check
 # if there are no serializables, then plugins were not loaded yet, probably
 if(len(_allSerializables)==0):
-	raise ImportError("No classes deriving from Serializable found; you must call yade.boot.initialize to load plugins before importing yade.system.")
+	raise ImportError("No classes deriving from Object found; you must call yade.boot.initialize to load plugins before importing yade.system.")
 

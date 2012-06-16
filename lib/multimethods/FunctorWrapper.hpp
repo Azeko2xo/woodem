@@ -9,7 +9,7 @@
 #pragma once
 
 
-#include<yade/lib/serialization/Serializable.hpp>
+#include<yade/lib/object/Object.hpp>
 
 #include<loki/Typelist.h>
 #include<loki/Functor.h>
@@ -97,7 +97,7 @@ template <
 	class ResultType, 		// type returned by multivirtual function
 	class ArgumentTypeList		// TypeList of arguments accepted by multivirtual function,
 >
-class FunctorWrapper //: public Serializable // FIXME functor shouldn't be serializable
+class FunctorWrapper //: public Object
 {
 	private : 
 		typedef Loki::FunctorImpl<ResultType, ArgumentTypeList > Impl;

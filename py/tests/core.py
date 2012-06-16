@@ -80,7 +80,7 @@ class TestIO(unittest.TestCase):
 		'I/O: All classes can be saved and loaded with boost::serialization'
 		import yade.system
 		failed=set()
-		for c in yade.system.childClasses('Serializable'):
+		for c in yade.system.childClasses('Object'):
 			O.reset()
 			try:
 				O.miscParams=[eval(c)()]

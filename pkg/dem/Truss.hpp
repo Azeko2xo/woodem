@@ -1,5 +1,5 @@
 #pragma once
-#include<yade/lib/serialization/Serializable.hpp>
+#include<yade/lib/object/Object.hpp>
 #include<yade/pkg/dem/Particle.hpp>
 #include<yade/pkg/dem/IntraForce.hpp>
 #include<yade/pkg/dem/Collision.hpp>

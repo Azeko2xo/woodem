@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include<yade/lib/serialization/Serializable.hpp>
+#include<yade/lib/object/Object.hpp>
 #include<yade/lib/multimethods/FunctorWrapper.hpp>
 #include<yade/core/Omega.hpp>
 
@@ -19,7 +19,7 @@ class TimingDeltas;
 class Scene;
 class Field;
 
-class Functor: public Serializable
+class Functor: public Object
 {
 	public: virtual vector<std::string> getFunctorTypes(){throw;}
 	shared_ptr<TimingDeltas> timingDeltas;
@@ -27,7 +27,7 @@ class Functor: public Serializable
 	Scene* scene;
 	Field* field;
 	virtual ~Functor(); // defined in Dispatcher.cpp
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Functor,Serializable,"Function-like object that is called by Dispatcher, if types of arguments match those the Functor declares to accept.",
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Functor,Object,"Function-like object that is called by Dispatcher, if types of arguments match those the Functor declares to accept.",
 		((string,label,,,"Textual label for this object; must be valid python identifier, you can refer to it directly fron python (must be a valid python identifier).")),
 		/*ctor*/ scene=Omega::instance().getScene().get() ,
 		.def_readonly("timingDeltas",&Functor::timingDeltas,"Detailed information about timing inside the Dispatcher itself. Empty unless enabled in the source code and O.timingEnabled==True.")

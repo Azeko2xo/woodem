@@ -1,15 +1,14 @@
-#include<yade/lib/factory/ClassFactory.hpp>
+#include<yade/lib/object/ClassFactory.hpp>
 #include<boost/algorithm/string/regex.hpp>
 #include<dlfcn.h>
 CREATE_LOGGER(ClassFactory);
 SINGLETON_SELF(ClassFactory);
-class Serializable;
 
 bool ClassFactory::registerFactorable(const std::string& name, CreateSharedFnPtr createShared){
 	return map.insert(factorableCreatorsMap::value_type(name,createShared)).second;
 }
 
-shared_ptr<Serializable> ClassFactory::createShared(const std::string& name){
+shared_ptr<Object> ClassFactory::createShared(const std::string& name){
 	factorableCreatorsMap::const_iterator i=map.find(name);
 	if(i==map.end()) throw std::runtime_error(("ClassFactory: Class "+name+" not known.").c_str());
 	return (i->second)();

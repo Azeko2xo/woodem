@@ -23,7 +23,7 @@ class ScalarRange;
 	class Renderer;
 #endif
 
-class Scene: public Serializable{
+class Scene: public Object{
 	public:
 		// initialize tags (author, date, time)
 		void fillDefaultTags();
@@ -67,11 +67,11 @@ class Scene: public Serializable{
 			void initCl(); // initialize OpenCL using clDev
 		#endif
 
-		// override Serializable::boostSave, to set lastSave correctly
+		// override Object::boostSave, to set lastSave correctly
 		void boostSave(const string& out);
 		void saveTmp(const string& slot, bool quiet=true);
 
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Scene,Serializable,"Object comprising the whole simulation.",
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Scene,Object,"Object comprising the whole simulation.",
 		((Real,dt,1e-8,AttrTrait<>().timeUnit(),"Current timestep for integration."))
 		((long,step,0,AttrTrait<Attr::readonly>(),"Current step number"))
 		((bool,subStepping,false,,"Whether we currently advance by one engine in every step (rather than by single run through all engines)."))
@@ -107,7 +107,7 @@ class Scene: public Serializable{
 		#if YADE_OPENGL
 			((vector<shared_ptr<ScalarRange>>,ranges,,,"Scalar ranges to be rendered on the display as colormaps"))
 		#endif
-		((vector<shared_ptr<Serializable>>,any,,,"Storage for arbitrary Serializables; meant for storing and loading static objects like Gl1_* functors to restore their parameters when scene is loaded."))
+		((vector<shared_ptr<Object>>,any,,,"Storage for arbitrary Objects; meant for storing and loading static objects like Gl1_* functors to restore their parameters when scene is loaded."))
 		((shared_ptr<Preprocessor>,pre,,AttrTrait<>().noGui(),"Preprocessor used for generating this simulation; to be only used in user scripts to query preprocessing parameters, not in c++ code."))
 
 		// ((shared_ptr<Bound>,bound,,AttrTrait<Attr::hidden>(),"Bounding box of the scene (only used for rendering and initialized if needed)."))

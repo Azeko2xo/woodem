@@ -20,7 +20,7 @@ class Impose;
 
 class ScalarRange;
 
-struct Particle: public Serializable{
+struct Particle: public Object{
 	shared_ptr<Contact> findContactWith(const shared_ptr<Particle>& other);
 	typedef ParticleContainer::id_t id_t;
 	// try unordered_map
@@ -49,7 +49,7 @@ struct Particle: public Serializable{
 	Vector3r& getRefPos(); void setRefPos(const Vector3r&);
 	std::vector<shared_ptr<Node> > getNodes();
 	virtual string pyStr() const { return "<Particle #"+to_string(id)+" @ "+lexical_cast<string>(this)+">"; }
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Particle,Serializable,"Particle in DEM",
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Particle,Object,"Particle in DEM",
 		((id_t,id,-1,AttrTrait<Attr::readonly>(),"Index in DemField::particles"))
 		((uint,mask,1,,"Bitmask for collision detection and other (group 1 by default)"))
 		((shared_ptr<Shape>,shape,,,"Geometrical configuration of the particle"))
@@ -81,11 +81,11 @@ struct Particle: public Serializable{
 };
 REGISTER_SERIALIZABLE(Particle);
 
-struct Impose: public Serializable{
+struct Impose: public Object{
 	virtual void velocity(const Scene*, const shared_ptr<Node>&){ throw std::runtime_error("Calling abstract Impose::velocity."); }
 	virtual void force(const Scene*, const shared_ptr<Node>&){ throw std::runtime_error("Calling abstract Impose::force."); }
 	enum{ NONE=0, VELOCITY=1, FORCE=2};
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Impose,Serializable,"Impose arbitrary changes in Node and DemData, right after integration of the node.",
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Impose,Object,"Impose arbitrary changes in Node and DemData, right after integration of the node.",
 		((int,what,,AttrTrait<>().readonly().choice({{0,"none"},{VELOCITY,"velocity"},{FORCE,"force"},{VELOCITY|FORCE,"velocity+force"}}),"What values are to be imposed; this is set by the derived engine automatically depending on what is to be prescribed."))
 		,/*ctor*/
 		,/*py*/
@@ -189,8 +189,8 @@ struct DemField: public Field{
 };
 REGISTER_SERIALIZABLE(DemField);
 
-class CGeom: public Serializable,public Indexable{
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(CGeom,Serializable,"Geometrical configuration of contact",
+class CGeom: public Object,public Indexable{
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(CGeom,Object,"Geometrical configuration of contact",
 		((shared_ptr<Node>,node,new Node,,"Local coordinates definition."))
 		,/*ctor*/,/*py*/YADE_PY_TOPINDEXABLE(CGeom)
 	);
@@ -198,8 +198,8 @@ class CGeom: public Serializable,public Indexable{
 };
 REGISTER_SERIALIZABLE(CGeom);
 
-class CPhys: public Serializable, public Indexable{
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(CPhys,Serializable,"Physical properties of contact.",
+class CPhys: public Object, public Indexable{
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(CPhys,Object,"Physical properties of contact.",
 		/*attrs*/
 		((Vector3r,force,Vector3r::Zero(),AttrTrait<>().forceUnit(),"Force applied on the first particle in the contact"))
 		((Vector3r,torque,Vector3r::Zero(),AttrTrait<>().torqueUnit(),"Torque applied on the first particle in the contact"))
@@ -209,15 +209,15 @@ class CPhys: public Serializable, public Indexable{
 };
 REGISTER_SERIALIZABLE(CPhys);
 
-class CData: public Serializable{
-	YADE_CLASS_BASE_DOC_ATTRS(CData,Serializable,"Optional data stored in the contact by the Law functor.",
+class CData: public Object{
+	YADE_CLASS_BASE_DOC_ATTRS(CData,Object,"Optional data stored in the contact by the Law functor.",
 		/* attrs */
 	);
 };
 REGISTER_SERIALIZABLE(CData);
 
 
-struct Contact: public Serializable{
+struct Contact: public Object{
 	bool isReal() const { return geom&&phys; }
 	bool isFresh(Scene* s){ return s->step==stepMadeReal; }
 	void swapOrder();
@@ -238,7 +238,7 @@ struct Contact: public Serializable{
 	Particle::id_t pyId2() const;
 	Vector2i pyIds() const;
 	virtual string pyStr() const { return "<Contact ##"+to_string(pyId1())+"+"+to_string(pyId2())+" @ "+lexical_cast<string>(this)+">"; }
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Contact,Serializable,"Contact in DEM",
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Contact,Object,"Contact in DEM",
 		((shared_ptr<CGeom>,geom,,AttrTrait<Attr::readonly>(),"Contact geometry"))
 		((shared_ptr<CPhys>,phys,,AttrTrait<Attr::readonly>(),"Physical properties of contact"))
 		((shared_ptr<CData>,data,,AttrTrait<Attr::readonly>(),"Optional data stored by the functor for its own use"))
@@ -259,7 +259,7 @@ struct Contact: public Serializable{
 };
 REGISTER_SERIALIZABLE(Contact);
 
-struct Shape: public Serializable, public Indexable{
+struct Shape: public Object, public Indexable{
 	virtual bool numNodesOk() const { return true; } // checks for the right number of nodes; to be used in assertions
 	// return average position of nodes, useful for rendering
 	// caller must make sure that !nodes.empty()
@@ -272,7 +272,7 @@ struct Shape: public Serializable, public Indexable{
 	bool getVisible() const { return abs(color)<=2; }
 	void setVisible(bool w){ if(getVisible()==w) return; bool hi=abs(color)>1; int sgn=(color<0?-1:1); color=sgn*((w?0:2)+getBaseColor()+(hi?1:0)); }
 	Vector3r avgNodePos();
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Shape,Serializable,"Particle geometry",
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Shape,Object,"Particle geometry",
 		((shared_ptr<Bound>,bound,,,"Bound of the particle, for use by collision detection only"))
 		((vector<shared_ptr<Node> >,nodes,,,"Nodes associated with this particle"))
 		((Real,color,Mathr::UnitRandom(),,"Normalized color for rendering; negative values render with wire (rather than solid), |color|>2 means invisible. (use *wire*, *hi* and *visible* to manipulate those)"))
@@ -286,8 +286,8 @@ struct Shape: public Serializable, public Indexable{
 };
 REGISTER_SERIALIZABLE(Shape);
 
-class Material: public Serializable, public Indexable{
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Material,Serializable,"Particle material",
+class Material: public Object, public Indexable{
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Material,Object,"Particle material",
 		((Real,density,NaN,AttrTrait<>().densityUnit(),"Density"))
 		((int,id,-1,AttrTrait<>().noGui(),"Some number identifying this material; used with MatchMaker objects, useless otherwise"))
 		,/*ctor*/,/*py*/ YADE_PY_TOPINDEXABLE(Material);
@@ -296,8 +296,8 @@ class Material: public Serializable, public Indexable{
 };
 REGISTER_SERIALIZABLE(Material);
 
-class Bound: public Serializable, public Indexable{
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Bound,Serializable,"Object bounding the associated body.",
+class Bound: public Object, public Indexable{
+	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Bound,Object,"Object bounding the associated body.",
 		// ((Vector3r,color,Vector3r(1,1,1),,"Color for rendering this object"))
 		((Vector3r,min,Vector3r(NaN,NaN,NaN),AttrTrait<Attr::noSave>().readonly().lenUnit(),"Lower corner of box containing this bound"))
 		((Vector3r,max,Vector3r(NaN,NaN,NaN),AttrTrait<Attr::noSave>().readonly().lenUnit(),"Lower corner of box containing this bound"))

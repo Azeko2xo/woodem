@@ -2,7 +2,7 @@
 #include<yade/core/Engine.hpp>
 #include<yade/core/Field.hpp>
 #include<yade/core/Timing.hpp>
-#include<yade/lib/serialization/ObjectIO.hpp>
+#include<yade/lib/object/ObjectIO.hpp>
 
 #include<yade/lib/base/Math.hpp>
 #include<boost/foreach.hpp>
@@ -113,7 +113,7 @@ shared_ptr<ScalarRange> Scene::getRange(const std::string& l) const{
 
 void Scene::boostSave(const string& out){
 	lastSave=out;
-	Serializable::boostSave(out);
+	Object::boostSave(out);
 }
 
 void Scene::saveTmp(const string& slot, bool quiet){

@@ -306,7 +306,7 @@ BOOST_PYTHON_MODULE(_customConverters){
 		VECTOR_SEQ_CONV(shared_ptr<LawTesterStage>);
 
 		VECTOR_SEQ_CONV(shared_ptr<Engine>);
-		VECTOR_SEQ_CONV(shared_ptr<Serializable>);
+		VECTOR_SEQ_CONV(shared_ptr<Object>);
 #if 0
 		VECTOR_SEQ_CONV(shared_ptr<NodeData>);
 		VECTOR_SEQ_CONV(shared_ptr<Body>);
