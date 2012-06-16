@@ -9,6 +9,7 @@ from yade import wrapper
 from yade._customConverters import *
 from yade import runtime
 from yade import config
+import yade.core
 O=wrapper.Omega()
 
 def childClasses(base,recurse=True,includeBase=False):
@@ -20,7 +21,7 @@ def childClasses(base,recurse=True,includeBase=False):
 		ret2|=childClasses(bb)
 	return ret | ret2
 
-_allSerializables=childClasses('Serializable')
+_allSerializables=[c.__name__ for c in yade.core.Serializable._derivedCxxClasses]
 ## set of classes for which the proxies were created
 _proxiedClasses=set()
 
@@ -75,12 +76,6 @@ def cxxCtorsDict(proxyNamespace=__builtins__):
 	Classes that are neither root nor derived are exposed via callable object that constructs a Serializable of given type and passes the parameters.
 	"""
 	proxyNamespace={}
-
-	import yade.wrapper
-	for c in _allSerializables:
-		try:
-			proxyNamespace[c]=yade.wrapper.__dict__[c]
-		except KeyError: pass # not registered properly
 
 	# deprecated names
 	for oldName in _deprecated.keys():

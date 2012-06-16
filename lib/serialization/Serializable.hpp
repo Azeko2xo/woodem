@@ -8,11 +8,11 @@
 #include<boost/type_traits.hpp>
 #include<boost/preprocessor.hpp>
 #include<boost/type_traits/integral_constant.hpp>
-#include<yade/lib/factory/Factorable.hpp>
 #include<yade/lib/pyutil/raw_constructor.hpp>
 #include<yade/lib/pyutil/doc_opts.hpp>
 #include<yade/lib/pyutil/except.hpp>
 
+#include<yade/lib/factory/ClassFactory.hpp>
 #include<yade/lib/serialization/ObjectIO.hpp>
 
 #include<yade/lib/base/Math.hpp>
@@ -185,9 +185,10 @@ template<> struct _SerializeMaybe<false>{
 #define _PY_REGISTER_CLASS_BODY(thisClass,baseClass,classTrait,attrs,deprec,extras) \
 	checkPyClassRegistersItself(#thisClass); \
 	YADE_SET_DOCSTRING_OPTS; \
-	py::class_<thisClass,shared_ptr<thisClass>,py::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,classTrait.getDoc(),/*call raw ctor even for parameterless construction*/py::no_init); \
+	auto traitPtr=make_shared<ClassTrait>(classTrait); traitPtr->name(#thisClass); \
+	py::class_<thisClass,shared_ptr<thisClass>,py::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,traitPtr->getDoc().c_str(),/*call raw ctor even for parameterless construction*/py::no_init); \
 	_classObj.def("__init__",py::raw_constructor(Serializable_ctor_kwAttrs<thisClass>)); \
-	_classObj.attr("_classTrait")=classTrait.name(#thisClass); \
+	_classObj.attr("_classTrait")=traitPtr; \
 	BOOST_PP_SEQ_FOR_EACH(_PYATTR_DEF,thisClass,attrs); \
 	(void) _classObj BOOST_PP_SEQ_FOR_EACH(_PYATTR_DEPREC_DEF,thisClass,deprec); \
 	(void) _classObj extras ; \
@@ -224,8 +225,9 @@ template<> struct _SerializeMaybe<false>{
 
 #define _STATCLASS_PY_REGISTER_CLASS(thisClass,baseClass,classTrait,attrs)\
 	virtual void pyRegisterClass() { checkPyClassRegistersItself(#thisClass); initSetStaticAttributesValue(); YADE_SET_DOCSTRING_OPTS; \
-		py::class_<thisClass,shared_ptr<thisClass>,py::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,classTrait.getDoc(),/*call raw ctor even for parameterless construction*/py::no_init); _classObj.def("__init__",py::raw_constructor(Serializable_ctor_kwAttrs<thisClass>)); \
-		_classObj.attr("_classTrait")=classTrait.name(#thisClass); \
+		auto traitPtr=make_shared<ClassTrait>(classTrait); traitPtr->name(#thisClass); \
+		py::class_<thisClass,shared_ptr<thisClass>,py::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,traitPtr->getDoc().c_str(),/*call raw ctor even for parameterless construction*/py::no_init); _classObj.def("__init__",py::raw_constructor(Serializable_ctor_kwAttrs<thisClass>)); \
+		_classObj.attr("_classTrait")=traitPtr; \
 		BOOST_PP_SEQ_FOR_EACH(_STATATTR_PY,thisClass,attrs); \
 		py::list traitList; BOOST_PP_SEQ_FOR_EACH(_PYATTR_TRAIT_STATIC,thisClass,attrs); _classObj.attr("_attrTraits")=traitList; \
 		Serializable::derivedCxxClasses.push_back(py::object(_classObj)); \
@@ -310,7 +312,14 @@ template<> struct _SerializeMaybe<false>{
 #endif
 
 
-struct Serializable: public Factorable, public boost::noncopyable {
+
+/* this used to be in lib/factory/Factorable.hpp */
+#define REGISTER_CLASS_AND_BASE(cn,bcn) REGISTER_CLASS_NAME(cn); REGISTER_BASE_CLASS_NAME({#bcn});
+#define REGISTER_CLASS_NAME(cn) public: virtual std::string getClassName() const { return #cn; };
+#define REGISTER_BASE_CLASS_NAME(bcn) public:virtual std::vector<std::string> getBaseClassNames() const { return bcn; }
+ 
+
+struct Serializable: public boost::noncopyable {
 	// http://www.boost.org/doc/libs/1_49_0/libs/smart_ptr/sp_techniques.html#static
 	struct null_deleter{void operator()(void const *)const{}};
 	static vector<py::object> derivedCxxClasses;
@@ -351,8 +360,12 @@ struct Serializable: public Factorable, public boost::noncopyable {
 		//! string representation of this object
 		virtual std::string pyStr() const { return "<"+getClassName()+" @ "+boost::lexical_cast<string>(this)+">"; }
 
+	//REGISTER_CLASS_AND_BASE(Serializable,);
 	REGISTER_CLASS_NAME(Serializable);
-	REGISTER_BASE_CLASS_NAME(Factorable);
+	// this might disappear in the future
+	REGISTER_BASE_CLASS_NAME({});
+	std::string getBaseClassName(unsigned int i=0) const { std::vector<std::string> bases(getBaseClassNames()); return (i>=bases.size()?std::string(""):bases[i]); } 
+	int getBaseClassNumber(){ return getBaseClassNames().size(); }
 };
 
 // helper functions

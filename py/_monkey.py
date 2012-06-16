@@ -8,7 +8,7 @@ from miniEigen import * # for recognizing the types
 
 import StringIO # cStringIO does not handle unicode, so stick with the slower one
 
-from yade.wrapper import Serializable
+from yade.core import Serializable
 import yade._customConverters # to make sure they are loaded already
 
 import codecs
@@ -18,7 +18,7 @@ nan,inf=float('nan'),float('inf') # for values in expressions
 
 def _Serializable_getAllTraits(obj):
 	ret=[]; k=obj.__class__
-	while k!=yade.wrapper.Serializable:
+	while k!=yade.core.Serializable:
 		ret=k._attrTraits+ret
 		k=k.__bases__[0]
 	return ret
@@ -109,10 +109,10 @@ class SerializerToHtmlTableRaw:
 			attr=getattr(obj,trait.name)
 			ret+=indent1+'<tr>'+indent2+'<td>%s</td>'%(trait.name if not showDoc else trait.doc.decode('utf-8'))
 			# nested object
-			if isinstance(attr,yade.wrapper.Serializable):
+			if isinstance(attr,yade.core.Serializable):
 				ret+=indent2+'<td align="justify">'+self(attr,depth+1)+indent2+'</td>'
 			# sequence of objects (no units here)
-			elif hasattr(attr,'__len__') and len(attr)>0 and isinstance(attr[0],yade.wrapper.Serializable):
+			elif hasattr(attr,'__len__') and len(attr)>0 and isinstance(attr[0],yade.core.Serializable):
 				ret+=indent2+u'<td><ol>'+''.join(['<li>'+self(o,depth+1)+'</li>' for o in attr])+'</ol></td>'
 			else:
 				#ret+=indent2+'<td align="right">'
@@ -182,10 +182,10 @@ class SerializerToHtmlTableGenshi:
 			attr=getattr(obj,trait.name)
 			tr=tag.tr(tag.td(trait.name if not self.showDoc else trait.doc.decode('utf-8')))
 			# nested object
-			if isinstance(attr,yade.wrapper.Serializable):
+			if isinstance(attr,yade.core.Serializable):
 				tr.append([tag.td(self(attr,depth+1),align='justify'),tag.td()])
 			# sequence of objects (no units here)
-			elif hasattr(attr,'__len__') and len(attr)>0 and isinstance(attr[0],yade.wrapper.Serializable):
+			elif hasattr(attr,'__len__') and len(attr)>0 and isinstance(attr[0],yade.core.Serializable):
 				tr.append(tag.td(tag.ol([tag.li(self(o,depth+1)) for o in attr])))
 			else:
 				if not trait.multiUnit: # the easier case

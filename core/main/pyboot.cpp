@@ -74,9 +74,14 @@ void yadeInitialize(py::list& pp, const std::string& confDir){
 		}
 	#endif
 	vector<string> ppp; for(int i=0; i<py::len(pp); i++) ppp.push_back(py::extract<string>(pp[i]));
-	//
-	cerr<<"Registering ClassTrait"<<endl;
+
+	// register support core classes
+	py::scope core(py::import("yade.core"));
 	yade::ClassTrait::pyRegisterClass();
+	yade::AttrTraitBase::pyRegisterClass();
+	Serializable().pyRegisterClass();
+	//
+
 
 	Omega::instance().loadPlugins(ppp);
 }

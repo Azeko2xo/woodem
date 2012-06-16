@@ -127,33 +127,32 @@ void Omega::initializePlugins(const vector<std::pair<string,string> >& pluginCla
 	FOREACH(StringPair moduleName, pluginClasses){
 		string module(moduleName.first);
 		string name(moduleName.second);
-		shared_ptr<Factorable> f;
+		shared_ptr<Serializable> obj;
 		try {
 			LOG_DEBUG("Factoring class "<<name);
-			f=ClassFactory::instance().createShared(name);
-			for(int i=0;i<f->getBaseClassNumber();i++) dynlibs[name].baseClasses.insert(f->getBaseClassName(i));
-			shared_ptr<Serializable> ser(dynamic_pointer_cast<Serializable>(f));
-			if(ser){
-				if(pyModules.find(module)==pyModules.end()){
-					#if 0
-						// create new module here!
-						py::handle<> newModule(PyModule_New(module.c_str()));
-						yadeScope.attr(module.c_str())=newModule;
-						//pyModules[module]=py::import(("yade."+module).c_str());
-						pyModules[module]=py::object(newModule);
-						pyModules[module].attr("__file__")="<synthetic>";
-						cerr<<"Synthesized new module yade."<<module<<endl;
-					#endif
-					try{
-						pyModules[module]=py::import(("yade."+module).c_str());
-					} catch (...){
-						cerr<<"Error importing module yade."<<module<<" for class "<<name;
-						boost::python::handle_exception();
-						throw;
-					}
+			obj=ClassFactory::instance().createShared(name);
+			assert(obj);
+			// needed for Omega::childClasses
+			for(int i=0;i<obj->getBaseClassNumber();i++) dynlibs[name].baseClasses.insert(obj->getBaseClassName(i));
+			if(pyModules.find(module)==pyModules.end()){
+				#if 0
+					// create new module here!
+					py::handle<> newModule(PyModule_New(module.c_str()));
+					yadeScope.attr(module.c_str())=newModule;
+					//pyModules[module]=py::import(("yade."+module).c_str());
+					pyModules[module]=py::object(newModule);
+					pyModules[module].attr("__file__")="<synthetic>";
+					cerr<<"Synthesized new module yade."<<module<<endl;
+				#endif
+				try{
+					pyModules[module]=py::import(("yade."+module).c_str());
+				} catch (...){
+					cerr<<"Error importing module yade."<<module<<" for class "<<name;
+					boost::python::handle_exception();
+					throw;
 				}
-				pythonables.push_back(StringSerializablePair(module,static_pointer_cast<Serializable>(f)));
 			}
+			pythonables.push_back(StringSerializablePair(module,obj));
 		}
 		catch (std::runtime_error& e){
 			/* FIXME: this catches all errors! Some of them are not harmful, however:

@@ -6,7 +6,7 @@ from PyQt4 import QtGui
 
 from miniEigen import *
 # don't import * from yade, it would be circular import
-from yade.wrapper import Serializable
+from yade.core import Serializable
 
 import re,itertools
 import logging
@@ -712,7 +712,7 @@ class SerializableEditor(QFrame):
 
 		# crawl class hierarchy up, ask each one for attribute traits
 		attrTraits=[]; k=self.ser.__class__
-		while k!=yade.wrapper.Serializable:
+		while k!=yade.core.Serializable:
 			attrTraits=[(k,trait) for trait in k._attrTraits]+attrTraits
 			k=k.__bases__[0]
 		

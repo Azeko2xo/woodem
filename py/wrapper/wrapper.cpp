@@ -279,8 +279,8 @@ BOOST_PYTHON_MODULE(wrapper)
 //////////////////////////////////////////////////////////////
 ///////////// proxyless wrappers 
 	// wrapped as AttrTrait in python
-	yade::AttrTraitBase::pyRegisterClass();
-	Serializable().pyRegisterClass();
+	//yade::AttrTraitBase::pyRegisterClass();
+	//Serializable().pyRegisterClass();
 
 	py::class_<TimingDeltas, shared_ptr<TimingDeltas>, boost::noncopyable >("TimingDeltas").add_property("data",&TimingDeltas::pyData,"Get timing data as list of tuples (label, execTime[nsec], execCount) (one tuple per checkpoint)").def("reset",&TimingDeltas::reset,"Reset timing information");
 

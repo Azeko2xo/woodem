@@ -189,15 +189,16 @@ namespace yade{
 		string title;
 		string intro;
 		vector<string> docOther;
-		const char* getDoc() const { return _doc.c_str(); }
-		ClassTrait& doc(const string& __doc){ _doc=__doc; return *this; }
+		string getDoc() const { return _doc; }
+		ClassTrait& doc(const string __doc){ _doc=__doc; return *this; }
 		ClassTrait& name(const string& __name){ _name=__name; return *this; }
-		ClassTrait& section(const string& _title, const string _intro, const vector<string> _docOther){ title=_title; intro=_intro; docOther=_docOther; return *this; }
+		ClassTrait& section(const string& _title, const string& _intro, const vector<string>& _docOther){ title=_title; intro=_intro; docOther=_docOther; return *this; }
 		static void pyRegisterClass(){
-			py::class_<ClassTrait>("ClassTrait",py::no_init)
+			py::class_<ClassTrait,shared_ptr<ClassTrait>>("ClassTrait",py::no_init)
 				.def_readonly("title",&ClassTrait::title)
 				.def_readonly("intro",&ClassTrait::intro)
-				.def_readonly("docOther",&ClassTrait::docOther)
+				// custom converters are needed for vector<string>
+				.add_property("docOther",py::make_getter(&ClassTrait::docOther,py::return_value_policy<py::return_by_value>())/*,py::make_setter(&ClassTrait::docOther,py::return_value_policy<py::return_by_value>())*/)
 				.def_readonly("doc",&ClassTrait::_doc)
 				.def_readonly("name",&ClassTrait::_name)
 				.def("__str__",&ClassTrait::pyStr)
@@ -205,6 +206,8 @@ namespace yade{
 			;
 		}
 	};
-	inline ClassTrait& makeClassTrait(const string& _doc=string()){ return ClassTrait().doc(_doc); }
+	inline ClassTrait makeClassTrait(){ return ClassTrait(); }
+	inline ClassTrait makeClassTrait(const string& _doc){ return ClassTrait().doc(_doc); }
+	inline ClassTrait makeClassTrait(ClassTrait& c){ return c; }
 };
 
