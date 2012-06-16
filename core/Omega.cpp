@@ -135,21 +135,25 @@ void Omega::initializePlugins(const vector<std::pair<string,string> >& pluginCla
 			// needed for Omega::childClasses
 			for(int i=0;i<obj->getBaseClassNumber();i++) dynlibs[name].baseClasses.insert(obj->getBaseClassName(i));
 			if(pyModules.find(module)==pyModules.end()){
-				#if 0
-					// create new module here!
-					py::handle<> newModule(PyModule_New(module.c_str()));
-					yadeScope.attr(module.c_str())=newModule;
-					//pyModules[module]=py::import(("yade."+module).c_str());
-					pyModules[module]=py::object(newModule);
-					pyModules[module].attr("__file__")="<synthetic>";
-					cerr<<"Synthesized new module yade."<<module<<endl;
-				#endif
 				try{
+					// module existing as file, use it
 					pyModules[module]=py::import(("yade."+module).c_str());
-				} catch (...){
-					cerr<<"Error importing module yade."<<module<<" for class "<<name;
-					boost::python::handle_exception();
-					throw;
+				} catch (py::error_already_set& e){
+					// import error, synthesize the module
+					#if 1
+						py::object newModule(py::handle<>(PyModule_New(("yade."+module).c_str())));
+						newModule.attr("__file__")="<synthetic>";
+						yadeScope.attr(module.c_str())=newModule;
+						//pyModules[module]=py::import(("yade."+module).c_str());
+						pyModules[module]=newModule;
+						// http://stackoverflow.com/questions/11063243/synethsized-submodule-from-a-import-b-ok-vs-import-a-b-error/11063494
+						py::extract<py::dict>(py::getattr(py::import("sys"),"modules"))()[("yade."+module).c_str()]=newModule;
+						LOG_DEBUG("Synthesized new module yade."<<module);
+					#else
+						cerr<<"Error importing module yade."<<module<<" for class "<<name;
+						boost::python::handle_exception();
+						throw;
+					#endif
 				}
 			}
 			pythonables.push_back(StringObjectPair(module,obj));
