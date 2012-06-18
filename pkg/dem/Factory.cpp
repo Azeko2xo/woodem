@@ -345,6 +345,20 @@ void RandomFactory::run(){
 	setCurrRate(stepMass/(nSteps*scene->dt));
 }
 
+#ifdef BOX_FACTORY_PERI
+bool BoxFactory::validatePeriodicBox(const AlignedBox3r& b) const {
+	if(periSpanMask==0) return box.contains(b);
+	// otherwise just enlarge our box in all directions
+	AlignedBox3r box2(box);
+	for(int i:{0,1,2}){
+		if(periSpanMask&(1<<i)) continue;
+		Real extra=b.sizes()[i]/2.;
+		box2.min()[i]-=extra; box2.max()[i]+=extra;
+	}
+	return box2.contains(b);
+}
+#endif
+
 void BoxDeleter::run(){
 	DemField* dem=static_cast<DemField*>(field.get());
 	Real stepMass=0.;

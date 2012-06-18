@@ -42,7 +42,7 @@ void ContactContainer::clear(){
 	dirty=true;
 }
 
-bool ContactContainer::remove(const shared_ptr<Contact>& c, bool threadSafe){
+bool ContactContainer::remove(shared_ptr<Contact> c, bool threadSafe){
 	assert(dem);
 	#if defined(YADE_OPENMP) || defined(YADE_OPENGL)
 		boost::mutex::scoped_lock lock(*manipMutex);
@@ -71,7 +71,12 @@ bool ContactContainer::remove(const shared_ptr<Contact>& c, bool threadSafe){
 	c->pA->contacts.erase(iA); c->pB->contacts.erase(iB);
 	// remove from linear view, keeping it compact
 	if(c->linIx<linView.size()-1){ // is not the last element
-		linView[c->linIx]=*linView.rbegin(); // move the last to the place of the one being removed
+		//cerr<<"linIx="<<c->linIx<<"/"<<linView.size()<<endl;
+		//if(!linView.back()) throw std::logic_error("linView.back it empty!");
+		linView[c->linIx]=linView.back(); // move the last to the place of the one being removed
+		//if(c->linIx<0) throw std::logic_error("##"+to_string(idA)+"+"+to_string(idB)+": linIx="+to_string(c->linIx)+"?!");
+		//if(!linView[c->linIx]) throw std::logic_error("No contact at linIx="+to_string(c->linIx));
+		assert(linView[c->linIx]);
 		linView[c->linIx]->linIx=c->linIx; // and update its linIx
 	}
 	linView.resize(linView.size()-1);

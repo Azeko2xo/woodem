@@ -95,34 +95,61 @@ Vector3i InsertionSortCollider::countInversions(){
 }
 
 // if(verletDist>0){ mn-=verletDist*Vector3r::Ones(); mx+=verletDist*Vector3r::Ones(); }
-vector<Particle::id_t> InsertionSortCollider::probeAabb(const Vector3r& _mn, const Vector3r& _mx){
+vector<Particle::id_t> InsertionSortCollider::probeAabb(const Vector3r& mn, const Vector3r& mx){
 	vector<Particle::id_t> ret;
 	const short ax0=0; // use the x-axis for the traversal
 	const VecBounds& v(BB[ax0]);
-	Vector3r mn,mx;
-	if(periodic){ mn=scene->cell->wrapPt(_mn); mx=scene->cell->wrapPt(_mx); }
-	else{ mn=_mn; mx=_mx; }
-#if 0
-	auto I=std::lower_bound(v.vec.begin(),v.vec.end(),mn[ax0],[](const Bounds& b, const Real& c)->bool{ return b.coord<c; } );
-	#ifdef YADE_DEBUG
-		long i=I-v.vec.begin();
-		long pi=max(0L,i-1), ppi=max(0L,i-2), ni=min((long)v.vec.size(),i+1), nni=min((long)v.vec.size(),i+2);
-		cerr<<"x="<<mn[ax0]<<":: b["<<ppi<<"]="<<v.vec[ppi].coord<<", b["<<pi<<"]="<<v.vec[pi].coord<<" || "<<v.vec[i].coord<<" || b["<<ni<<"]="<<v.vec[ni].coord<<", b["<<nni<<"]="<<v.vec[nni].coord<<endl;
-	#endif
-#endif
-	for(long i=0; i<v.size; i++){
-		const Bounds& b(v.vec[i]);
-		if(!b.flags.isMin || !b.flags.hasBB) continue;
-		if(b.coord>mx[ax0]) break;
-		long off=3*b.id;
-		//Particle::id_t id2=I->id;
-		bool overlap=
-			(mn[0]<=maxima[off+0]) && (mx[0]>=minima[off+0]) &&
-			(mn[1]<=maxima[off+1]) && (mx[1]>=minima[off+1]) &&
-			(mn[2]<=maxima[off+2]) && (mx[2]>=minima[off+2]);
-		if(overlap) ret.push_back(b.id);
+	if(!periodic){
+		#if 0
+			auto I=std::lower_bound(v.vec.begin(),v.vec.end(),mn[ax0],[](const Bounds& b, const Real& c)->bool{ return b.coord<c; } );
+			#ifdef YADE_DEBUG
+				long i=I-v.vec.begin();
+				long pi=max(0L,i-1), ppi=max(0L,i-2), ni=min((long)v.vec.size(),i+1), nni=min((long)v.vec.size(),i+2);
+				cerr<<"x="<<mn[ax0]<<":: b["<<ppi<<"]="<<v.vec[ppi].coord<<", b["<<pi<<"]="<<v.vec[pi].coord<<" || "<<v.vec[i].coord<<" || b["<<ni<<"]="<<v.vec[ni].coord<<", b["<<nni<<"]="<<v.vec[nni].coord<<endl;
+			#endif
+		#endif
+		for(long i=0; i<v.size; i++){
+			const Bounds& b(v.vec[i]);
+			if(!b.flags.isMin || !b.flags.hasBB) continue;
+			if(b.coord>mx[ax0]) break;
+			long off=3*b.id;
+			//Particle::id_t id2=I->id;
+			bool overlap=
+				(mn[0]<=maxima[off+0]) && (mx[0]>=minima[off+0]) &&
+				(mn[1]<=maxima[off+1]) && (mx[1]>=minima[off+1]) &&
+				(mn[2]<=maxima[off+2]) && (mx[2]>=minima[off+2]);
+			if(overlap) ret.push_back(b.id);
+		}
+		return ret;
+	} else {
+		// for the periodic case, go through all particles
+		// algorithmically wasteful :|
+		// copied from handleBoundInversionPeri, with adjustments
+		for(long i=0; i<v.size; i++){
+			// safely skip deleted particles to avoid spurious overlaps
+			const Bounds& b(v.vec[i]);
+			if(!b.flags.isMin || !b.flags.hasBB) continue;
+			long id1=b.id;
+			for(int axis=0; axis<3; axis++){
+				Real dim=scene->cell->getSize()[axis];
+				// find particle of which minimum when taken as period start will make the gap smaller
+				Real m1=minima[3*id1+axis],m2=mn[axis];
+				Real wMn=(cellWrapRel(m1,m2,m2+dim)<cellWrapRel(m2,m1,m1+dim)) ? m2 : m1;
+				int pmn1,pmx1,pmn2,pmx2;
+				Real mn1=cellWrap(minima[3*id1+axis],wMn,wMn+dim,pmn1), mx1=cellWrap(maxima[3*id1+axis],wMn,wMn+dim,pmx1);
+				Real mn2=cellWrap(mn[axis],wMn,wMn+dim,pmn2), mx2=cellWrap(mx[axis],wMn,wMn+dim,pmx2);
+				if(unlikely((pmn1!=pmx1) || (pmn2!=pmx2))){
+					Real span=(pmn1!=pmx1?mx1-mn1:mx2-mn2); if(span<0) span=dim-span;
+					LOG_FATAL("Particle #"<<(pmn1!=pmx1?id1:-1)<<" spans over half of the cell size "<<dim<<" (axis="<<axis<<", min="<<(pmn1!=pmx1?mn1:mn2)<<", max="<<(pmn1!=pmx1?mx1:mx2)<<", span="<<span<<")");
+					throw runtime_error(__FILE__ ": Particle larger than half of the cell size encountered.");
+				}
+				if(!(mn1<=mx2 && mx1 >= mn2)) goto noOverlap;
+			}
+			ret.push_back(id1);
+			noOverlap: ;
+		}
+		return ret;
 	}
-	return ret;
 };
 
 // STRIDE

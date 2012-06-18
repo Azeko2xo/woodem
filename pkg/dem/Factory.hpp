@@ -125,14 +125,28 @@ struct RandomFactory: public ParticleFactory{
 };
 REGISTER_SERIALIZABLE(RandomFactory);
 
+/*
+repsect periodic boundaries when this is defined; this makes configurable side of BoxFactory transparent, i.e.
+new particles can cross the boundary; note however that this is not properly supported in RandomFactory, where periodicity is not take in account when detecting overlap with particles generated within the same step
+*/
+	// #define BOX_FACTORY_PERI
 struct BoxFactory: public RandomFactory{
 	Vector3r randomPosition(){ return box.sample(); }
-	bool validateBox(const AlignedBox3r& b) { return box.contains(b); }
+	#ifdef BOX_FACTORY_PERI
+		bool validateBox(const AlignedBox3r& b) { return scene->isPeriodic?box.contains(b):validatePeriodicBox(b); }
+		bool validatePeriodicBox(const AlignedBox3r& b) const;
+	#else
+		bool validateBox(const AlignedBox3r& b) { return box.contains(b); }
+	#endif
+
 	#ifdef YADE_OPENGL
 		void render(const GLViewInfo&){ if(!isnan(glColor)) GLUtils::AlignedBox(box,CompUtils::mapColor(glColor)); }
 	#endif
 	YADE_CLASS_BASE_DOC_ATTRS(BoxFactory,RandomFactory,"Generate particle inside axis-aligned box volume.",
 		((AlignedBox3r,box,AlignedBox3r(Vector3r(NaN,NaN,NaN),Vector3r(NaN,NaN,NaN)),,"Box volume specification (lower and upper corners)"))
+		#ifdef BOX_FACTORY_PERI
+			((int,periSpanMask,0,,"When running in periodic scene, particles bboxes will be allowed to stick out of the factory in those directions (used to specify that the factory itself should be periodic along those axes). 1=x, 2=y, 4=z."))
+		#endif
 		((Real,glColor,0,AttrTrait<>().noGui(),"Color for rendering (nan disables rendering)"))
 	);
 };

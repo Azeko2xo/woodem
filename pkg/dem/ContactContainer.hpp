@@ -27,7 +27,8 @@ struct ContactContainer: public Object{
 
 	/* basic functionality */
 		bool add(const shared_ptr<Contact>& c, bool threadSafe=false);
-		bool remove(const shared_ptr<Contact>& c, bool threadSafe=false);
+		// copy of shared_ptr, so that the argument does not get deleted while being manipulated with
+		bool remove(shared_ptr<Contact> c, bool threadSafe=false);
 
 		shared_ptr<Contact> nullContactPtr; // ref to this will be returned if find finds nothing; such result may not be written to, but we want to avoid returning shared_ptr, since each find would change refcount
 		const shared_ptr<Contact>& find(ParticleContainer::id_t idA, ParticleContainer::id_t idB) const;

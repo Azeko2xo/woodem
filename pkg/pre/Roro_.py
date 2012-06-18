@@ -160,15 +160,16 @@ def makeBandFeedPack(dim,psd,material,gravity,porosity=.5,dontBlock=False):
 			materials=[mat],
 			shooter=AlignedMinMaxShooter(dir=(0,0,-1),vRange=(0,0)),
 			mask=1,
-			label='makeBandFeedFactory'
+			label='makeBandFeedFactory',
+			#periSpanMask=1, # x is periodic
 		),
 		#PyRunner(200,'plot.addData(uf=utils.unbalancedForce(),i=O.scene.step)'),
 		PyRunner(600,'print "%g/%g mass, %d particles, unbalanced %g/.15"%(yade.makeBandFeedFactory.mass,yade.makeBandFeedFactory.maxMass,len(yade.O.dem.par),yade.utils.unbalancedForce())'),
 		PyRunner(200,'if yade.utils.unbalancedForce()<.15 and yade.makeBandFeedFactory.dead: O.pause()'),
 	]
 	sc.dt=.7*utils.spherePWaveDt(psd[0][0],mat.density,mat.young)
-	yade.O.run()
 	if dontBlock: return
+	else: yade.O.run()
 	yade.O.wait()
 	cc,rr=[],[]
 	for p in yade.O.dem.par:
@@ -193,7 +194,7 @@ def watchProgress():
 		#if yade.fallOver.num>pre.steadyOver:
 		influx,efflux=yade.factory.currRate,(yade.fallOver.currRate+yade.outOfDomain.currRate+sum([a.currRate for a in yade.aperture]))
 		if efflux>pre.steadyFlowFrac*influx:
-			print efflux,'>',pre.steadyFlowFrac,'*',influx
+			#print efflux,'>',pre.steadyFlowFrac,'*',influx
 			yade.fallOver.clear()
 			yade.factory.clear() ## FIXME
 			yade.factory.maxMass=pre.cylRelLen*pre.time*pre.massFlowRate # required mass scaled to simulated part
@@ -215,7 +216,7 @@ def watchProgress():
 					print 'Saved to',out
 				else:
 					yade.plot.data=pickle.loads(scene.tags['plot.data'])
-				plotFinalPsd()
+				writeReport()
 			except:
 				import traceback
 				traceback.print_exc()
@@ -302,9 +303,48 @@ def psdFeedApertureFalloverTable(inPsd,feedDM,apDM,overDM,splitD):
 		,cellpadding='2px',frame='box',rules='all'
 	).generate().render('xhtml')
 
-	
+def efficiencyTableFigure(pre):
+	# split points
+	diams=[p[0] for p in pre.psd]
+	if pre.gap not in diams: diams.append(pre.gap)
+	diams.sort()
+	diams=diams[1:-1] # smallest and largest are meaningless (would have 0%/100% everywhere)
+	import numpy
+	# each line is for one aperture
+	# each column is for one fraction
+	data=numpy.zeros(shape=(len(yade.aperture),len(diams)))
+	for apNum,aperture in enumerate(yade.aperture):
+		xMin,xMax=aperture.box.min[0],aperture.box.max[0]
+		massTot=0.
+		for p in yade.O.dem.par:
+			# only spheres above the aperture count
+			if not isinstance(p.shape,yade.dem.Sphere) or p.pos[0]<xMin or p.pos[1]>xMax: continue
+			massTot+=p.mass
+			for i,d in enumerate(diams):
+				if 2*p.shape.radius<d: break
+				data[apNum][i]+=p.mass
+		data[apNum]/=massTot
+	from genshi.builder import tag as t
+	table=t.table(
+		[t.tr([t.th()]+[t.th('Aperture %d'%(apNum+1)) for apNum in range(len(yade.aperture))])]+
+		[t.tr([t.th('< %.4g mm'%(1e3*diams[dNum]))]+[t.td('%.1f %%'%(1e2*data[apNum][dNum]),align='right') for apNum in range(len(yade.aperture))]) for dNum in range(len(diams))]
+		,cellpadding='2px',frame='box',rules='all'
+	).generate().render('xhtml')
+	import pylab
+	fig=pylab.figure()
+	for dNum,d in enumerate(diams):
+		pylab.plot(numpy.arange(len(yade.aperture))+1,data[:,dNum],marker='o',label='< %.4g mm'%d)
+	from matplotlib.ticker import FuncFormatter
+	percent=FuncFormatter(lambda x,pos=0: '%g%%'%(100*x))
+	pylab.gca().yaxis.set_major_formatter(percent)
+	pylab.ylabel('Mass fraction')
+	pylab.xlabel('Aperture number')
+	pylab.ylim(ymin=0,ymax=1)
+	pylab.legend()
+	pylab.grid(True)
+	return table,fig
 
-def plotFinalPsd():
+def writeReport():
 	# generator parameters
 	import yade
 	import yade.pre
@@ -397,10 +437,13 @@ def plotFinalPsd():
 		splitD=pre.gap
 	)
 
+	effTab,effFig=efficiencyTableFigure(pre)
+	figs.append(('Sieving efficiency',effFig))
+
 	#ax=pylab.subplot(223)
 	fig=pylab.figure()
-	print inPsdUnscaled
-	print inPsd
+	#print inPsdUnscaled
+	#print inPsd
 	pylab.plot(*inPsdUnscaled,marker='o',label='user')
 	feedPsd=unscaledPsd(*yade.factory.generator.psd(normalize=True))
 	pylab.plot(*feedPsd,label=None)
@@ -477,11 +520,6 @@ def plotFinalPsd():
 		svgs.append((name,yade.O.tmpFilename()+'.svg'))
 		fig.savefig(svgs[-1][-1])
 		
-	#if 0: pylab.show()
-	#else:
-	#	figOut=yade.O.tmpFilename()+".svg"
-	#	fig.savefig(figOut)
-	#	os.system("xdg-open '%s' &"%figOut)
 
 	import time
 	xmlhead='''<?xml version="1.0" encoding="UTF-8"?>
@@ -504,7 +542,8 @@ def plotFinalPsd():
 		'''.format(user=yade.O.scene.tags['user'],started=time.ctime(time.time()-yade.O.realtime),duration=yade.O.realtime,nCores=yade.O.numThreads,stepsPerSec=yade.O.scene.step/yade.O.realtime,engine='wooDem '+yade.config.version+'/'+yade.config.revision+(' (debug)' if yade.config.debug else ''),compiledWith=','.join(yade.config.features))
 		+'<h2>Input data</h2>'+pre.dumps(format='html',fragment=True,showDoc=True)
 		+'<h2>Outputs</h2>'
-		+feedTab
+		+'<h3>Feed</h3>'+feedTab
+		+'<h3>Sieving</h3>'+effTab
 		+'\n'.join(['<h3>'+svg[0]+'</h3>'+svgFragment(open(svg[1]).read()) for svg in svgs])
 		+'</body></html>'
 	)
@@ -523,7 +562,10 @@ def plotFinalPsd():
 			tag.h2('Input data'),
 			pre.dumps(format='genshi'),
 			tag.h2('Tables'),
+			tag.h3('Feed'),
 			feedTab,
+			tag.h3('Sieving'),
+			effTab,
 			tag.h2('Graphs'),
 			*tuple([XMLParser(StringIO.StringIO(svgFragment(open(svg).read()))).parse() for svg in svgs])
 		)).render('xhtml')
@@ -539,6 +581,14 @@ def plotFinalPsd():
 	print 'Report written to file://'+os.path.abspath(repName)
 	#rep.write(HTMLParser(StringIO.StringIO(html),'[filename]').parse().render('xhtml',doctype='xhtml').decode('utf-8'))
 	rep.write(xmlhead+html)
+
+	# save sphere's positions
+	from yade import pack
+	sp=pack.SpherePack()
+	sp.fromSimulation()
+	packName=yade.O.scene.tags['id']+'-spheres.csv'
+	sp.save(packName)
+	print 'Particles saved to',os.path.abspath(packName)
 
 # test drive
 if __name__=='__main__':
