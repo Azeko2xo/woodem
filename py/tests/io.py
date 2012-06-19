@@ -16,9 +16,9 @@ class TestFormatsAndDetection(unittest.TestCase):
 		O.reset()
 		O.scene.fields=[DemField()]
 		O.scene.engines=utils.defaultEngines()
-		O.dem.par.append(utils.sphere((0,0,0),radius=1))
+		O.scene.dem.par.append(utils.sphere((0,0,0),radius=1))
 	def tryDumpLoad(self,fmt='auto',ext='',load=True):
-		for o in O.scene.engines+[O.dem.par[0]]:
+		for o in O.scene.engines+[O.scene.dem.par[0]]:
 			out=O.tmpFilename()+ext
 			o.dump(out,format=fmt)
 			if load:
@@ -28,7 +28,7 @@ class TestFormatsAndDetection(unittest.TestCase):
 				self.assertRaises(TypeError,lambda: yade.core.Node.load(out))
 				#if fmt=='expr': print open(out).read()
 	def tryDumpLoadStr(self,fmt,load=True):
-		for o in O.scene.engines+[O.dem.par[0]]:
+		for o in O.scene.engines+[O.scene.dem.par[0]]:
 			dump=o.dumps(format=fmt)
 			if load: Object.loads(dump,format='auto')
 	def testExpr(self):
@@ -57,10 +57,10 @@ class TestFormatsAndDetection(unittest.TestCase):
 		self.tryDumpLoad(ext='.bin.gz')
 	def testInvalidFormat(self):
 		'IO: invalid formats rejected'
-		self.assertRaises(IOError,lambda: O.dem.par[0].dumps(format='bogus'))
+		self.assertRaises(IOError,lambda: O.scene.dem.par[0].dumps(format='bogus'))
 	def testTmpStore(self):
 		'IO: temporary store loadTmp, saveTmp'
-		for o in O.scene.engines+[O.dem.par[0]]:
+		for o in O.scene.engines+[O.scene.dem.par[0]]:
 			o.saveTmp(quiet=True);
 			o.__class__.loadTmp() # discard the result, but checks type
 

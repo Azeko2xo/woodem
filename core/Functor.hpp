@@ -14,8 +14,10 @@
 #include<yade/lib/multimethods/FunctorWrapper.hpp>
 #include<yade/core/Omega.hpp>
 
+namespace yade{ 
+	class TimingDeltas;
+};
 
-class TimingDeltas;
 class Scene;
 class Field;
 

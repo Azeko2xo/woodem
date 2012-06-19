@@ -17,24 +17,24 @@ if not hasattr(ConveyorFactory,'generator'):
 	ConveyorFactory.generator=property(lambda x: x)
 
 
-def run(ui): # use inputs as argument
+def run(pre): # use inputs as argument
 	print 'Roro_.run()'
 	print 'Input parameters:'
-	print ui.dumps(format='expr',noMagic=True)
-	#print ui.dumps(format='html',fragment=True)
+	print pre.dumps(format='expr',noMagic=True)
+	#print pre.dumps(format='html',fragment=True)
 
 	s=Scene()
 	de=DemField();
 	s.fields=[de]
-	rCyl=ui.cylDiameter/2.
-	lastCylX=(ui.cylNum-1)*(ui.gap+2*rCyl)
+	rCyl=pre.cylDiameter/2.
+	lastCylX=(pre.cylNum-1)*(pre.gap+2*rCyl)
 	cylX=[]
-	ymin,ymax=-ui.cylLenSim/2.,ui.cylLenSim/2.
+	ymin,ymax=-pre.cylLenSim/2.,pre.cylLenSim/2.
 	zmin,zmax=-4*rCyl,rCyl+6*rCyl
 	xmin,xmax=-3*rCyl,lastCylX+6*rCyl
-	rMin=ui.psd[0][0]/2.
-	rMax=ui.psd[-1][0]/2.
-	s.dt=ui.pWaveSafety*utils.spherePWaveDt(rMin,ui.material.density,ui.material.young)
+	rMin=pre.psd[0][0]/2.
+	rMax=pre.psd[-1][0]/2.
+	s.dt=pre.pWaveSafety*utils.spherePWaveDt(rMin,pre.material.density,pre.material.young)
 
 	wallMask=0b00110
 	loneMask=0b00100
@@ -42,20 +42,20 @@ def run(ui): # use inputs as argument
 	delMask= 0b00001
 	
 	de.par.append([
-		utils.wall(ymin,axis=1,sense= 1,visible=False,glAB=((zmin,xmin),(zmax,xmax)),material=ui.material,mask=wallMask),
-		utils.wall(ymax,axis=1,sense=-1,visible=False,glAB=((zmin,xmin),(zmax,xmax)),material=ui.material,mask=wallMask),
-		utils.wall(xmin,axis=0,sense= 1,visible=False,glAB=((ymin,zmin),(ymax,zmax)),material=ui.material,mask=wallMask),
-		utils.wall(xmax,axis=0,sense=-1,visible=False,glAB=((ymin,zmin),(ymax,zmax)),material=ui.material,mask=wallMask),
-		utils.wall(zmin,axis=2,sense= 1,visible=False,glAB=((xmin,ymin),(xmax,ymax)),material=ui.material,mask=wallMask),
+		utils.wall(ymin,axis=1,sense= 1,visible=False,glAB=((zmin,xmin),(zmax,xmax)),mat=pre.material,mask=wallMask),
+		utils.wall(ymax,axis=1,sense=-1,visible=False,glAB=((zmin,xmin),(zmax,xmax)),mat=pre.material,mask=wallMask),
+		utils.wall(xmin,axis=0,sense= 1,visible=False,glAB=((ymin,zmin),(ymax,zmax)),mat=pre.material,mask=wallMask),
+		utils.wall(xmax,axis=0,sense=-1,visible=False,glAB=((ymin,zmin),(ymax,zmax)),mat=pre.material,mask=wallMask),
+		utils.wall(zmin,axis=2,sense= 1,visible=False,glAB=((xmin,ymin),(xmax,ymax)),mat=pre.material,mask=wallMask),
 	])
-	for i in range(0,ui.cylNum):
-		x=i*(2*rCyl+ui.gap)
+	for i in range(0,pre.cylNum):
+		x=i*(2*rCyl+pre.gap)
 		cylX.append(x)
-		c=utils.infCylinder((x,0,0),radius=rCyl,axis=1,glAB=(ymin,ymax),material=ui.material,mask=wallMask)
-		c.angVel=(0,ui.angVel,0)
-		qv,qh=ui.quivVPeriod,ui.quivHPeriod
+		c=utils.infCylinder((x,0,0),radius=rCyl,axis=1,glAB=(ymin,ymax),mat=pre.material,mask=wallMask)
+		c.angVel=(0,pre.angVel,0)
+		qv,qh=pre.quivVPeriod,pre.quivHPeriod
 		c.impose=AlignedHarmonicOscillations(
-			amps=(ui.quivAmp[0]*rCyl,nan,ui.quivAmp[1]*rCyl),
+			amps=(pre.quivAmp[0]*rCyl,nan,pre.quivAmp[1]*rCyl),
 			freqs=(
 				1./((qh[0]+(i%int(qh[2]))*(qh[1]-qh[0])/int(qh[2]))*s.dt),
 				nan,
@@ -64,21 +64,21 @@ def run(ui): # use inputs as argument
 		)
 		de.par.append(c)
 		A,B,C,D=(x,ymin,zmin),(x,ymin,-rCyl),(x,ymax,-rCyl),(x,ymax,zmin)
-		de.par.append([utils.facet(vertices,material=ui.material,mask=wallMask,visible=False) for vertices in (A,B,C),(C,D,A)])
+		de.par.append([utils.facet(vertices,mat=pre.material,mask=wallMask,visible=False) for vertices in (A,B,C),(C,D,A)])
 
-	inclinedGravity=(ui.gravity*math.sin(ui.inclination),0,-ui.gravity*math.cos(ui.inclination))
-	factStep=ui.factStepPeriod
+	inclinedGravity=(pre.gravity*math.sin(pre.inclination),0,-pre.gravity*math.cos(pre.inclination))
+	factStep=pre.factStepPeriod
 
-	if ui.conveyor:
+	if pre.conveyor:
 		print 'Preparing packing for conveyor feed, be patient'
-		cellLen=15*ui.psd[-1][0]
-		cc,rr=makeBandFeedPack(dim=(cellLen,ui.cylLenSim,ui.conveyorHt),psd=ui.psd,material=ui.material,gravity=inclinedGravity,porosity=.5)
+		cellLen=15*pre.psd[-1][0]
+		cc,rr=makeBandFeedPack(dim=(cellLen,pre.cylLenSim,pre.conveyorHt),psd=pre.psd,material=pre.material,gravity=inclinedGravity,porosity=.5)
 		vol=sum([4/3.*math.pi*r**3 for r in rr])
-		conveyorVel=(ui.material.density*vol/cellLen)/(ui.massFlowRate*ui.cylRelLen)
-		print 'Feed velocity %g m/s to match feed mass %g kg/m (volume=%g m³, len=%gm, ρ=%gkg/m³) and massFlowRate %g kg/s'%(conveyorVel,ui.material.density*vol/cellLen,vol,cellLen,ui.material.density,ui.massFlowRate)
+		conveyorVel=(pre.material.density*vol/cellLen)/(pre.massFlowRate*pre.cylRelLen)
+		print 'Feed velocity %g m/s to match feed mass %g kg/m (volume=%g m³, len=%gm, ρ=%gkg/m³) and massFlowRate %g kg/s'%(conveyorVel,pre.material.density*vol/cellLen,vol,cellLen,pre.material.density,pre.massFlowRate)
 		factory=ConveyorFactory(
 			stepPeriod=factStep,
-			material=ui.material,
+			material=pre.material,
 			centers=cc,radii=rr,
 			cellLen=cellLen,
 			barrierColor=.3,
@@ -88,46 +88,46 @@ def run(ui): # use inputs as argument
 			vel=conveyorVel,
 			label='factory',
 			maxMass=-1, # not limited, until steady state is reached
-			currRateSmooth=ui.rateSmooth,
+			currRateSmooth=pre.rateSmooth,
 		)
 	else:
-		conveyorVel=ui.flowVel*math.cos(ui.inclination)
+		conveyorVel=pre.flowVel*math.cos(pre.inclination)
 		factory=BoxFactory(
 			stepPeriod=factStep,
 			box=((xmin,ymin,rCyl),(0,ymax,zmax)),
 			glColor=.4,
 			label='factory',
-			massFlowRate=ui.massFlowRate*ui.cylRelLen, # mass flow rate for the simulated part only
-			currRateSmooth=ui.rateSmooth,
-			materials=[ui.material],
-			generator=PsdSphereGenerator(psdPts=ui.psd,discrete=False,mass=True),
-			shooter=AlignedMinMaxShooter(dir=(1,0,-.1),vRange=(ui.flowVel,ui.flowVel)),
+			massFlowRate=pre.massFlowRate*pre.cylRelLen, # mass flow rate for the simulated part only
+			currRateSmooth=pre.rateSmooth,
+			materials=[pre.material],
+			generator=PsdSphereGenerator(psdPts=pre.psd,discrete=False,mass=True),
+			shooter=AlignedMinMaxShooter(dir=(1,0,-.1),vRange=(pre.flowVel,pre.flowVel)),
 			mask=sphMask,
 			maxMass=-1, ## do not limit, before steady state is reached
 		)
 
 
 	A,B,C,D=(xmin,ymin,rCyl),(0,ymin,rCyl),(0,ymax,rCyl),(xmin,ymax,rCyl)
-	de.par.append([utils.facet(vertices,material=ui.material,mask=wallMask,fakeVel=(conveyorVel,0,0)) for vertices in ((A,B,C),(C,D,A))])
+	de.par.append([utils.facet(vertices,mat=pre.material,mask=wallMask,fakeVel=(conveyorVel,0,0)) for vertices in ((A,B,C),(C,D,A))])
 
 	s.engines=utils.defaultEngines(damping=.4,gravity=inclinedGravity,verletDist=.05*rMin)+[
 		# what falls beyond
 		# initially not saved
-		BoxDeleter(stepPeriod=factStep,inside=True,box=((cylX[i],ymin,zmin),(cylX[i+1],ymax,-rCyl/2.)),glColor=.05*i,save=False,mask=delMask,currRateSmooth=ui.rateSmooth,label='aperture[%d]'%i) for i in range(0,ui.cylNum-1)
+		BoxDeleter(stepPeriod=factStep,inside=True,box=((cylX[i],ymin,zmin),(cylX[i+1],ymax,-rCyl/2.)),glColor=.05*i,save=False,mask=delMask,currRateSmooth=pre.rateSmooth,label='aperture[%d]'%i) for i in range(0,pre.cylNum-1)
 	]+[
 		# this one should not collect any particles at all
 		BoxDeleter(stepPeriod=factStep,box=((xmin,ymin,zmin),(xmax,ymax,zmax)),glColor=.9,save=False,mask=delMask,label='outOfDomain'),
 		# what falls inside
-		BoxDeleter(stepPeriod=factStep,inside=True,box=((lastCylX+rCyl,ymin,zmin),(xmax,ymax,zmax)),glColor=.9,save=True,mask=delMask,currRateSmooth=ui.rateSmooth,label='fallOver'),
+		BoxDeleter(stepPeriod=factStep,inside=True,box=((lastCylX+rCyl,ymin,zmin),(xmax,ymax,zmax)),glColor=.9,save=True,mask=delMask,currRateSmooth=pre.rateSmooth,label='fallOver'),
 		# generator
 		factory,
-		PyRunner(factStep,'import yade.pre.Roro_; yade.pre.Roro_.watchProgress()'),
-		PyRunner(factStep,'import yade.pre.Roro_; yade.pre.Roro_.savePlotData()'),
-	]+([] if (not ui.vtkPrefix or ui.vtkFreq<=0) else [VtkExport(out=ui.vtkPrefix+s.tags['id']+'-',stepPeriod=(int)(ui.vtkFreq*ui.factStepPeriod),what=VtkExport.all)])
+		PyRunner(factStep,'import yade.pre.Roro_; yade.pre.Roro_.savePlotData(S)'),
+		PyRunner(factStep,'import yade.pre.Roro_; yade.pre.Roro_.watchProgress(S)'),
+	]+([] if (not pre.vtkPrefix or pre.vtkFreq<=0) else [VtkExport(out=pre.vtkPrefix+s.tags['id']+'-',stepPeriod=(int)(pre.vtkFreq*pre.factStepPeriod),what=VtkExport.all)])
 	# improtant: save the preprocessor here!
 	s.any=[yade.gl.Gl1_InfCylinder(wire=True),yade.gl.Gl1_Wall(div=3)]
-	s.pre=ui
-	#s.tags['preprocessor']=ui.dumps(format='pickle')
+	s.pre=pre
+	#s.tags['preprocessor']=pre.dumps(format='pickle')
 	print 'Generated Rollenrost.'
 	de.collectNodes()
 	return s
@@ -135,21 +135,19 @@ def run(ui): # use inputs as argument
 
 def makeBandFeedPack(dim,psd,material,gravity,porosity=.5,dontBlock=False):
 	cellSize=(dim[0],dim[1],2*dim[2])
-	sc=Scene()
-	yade.O.scene=sc
-	sc.fields=[DemField()]
-	sc.periodic=True
-	sc.cell.setBox(cellSize)
+	S=Scene(fields=[DemField()])
+	S.periodic=True
+	S.cell.setBox(cellSize)
 	p=pack.sweptPolylines2gtsSurface([utils.tesselatePolyline([Vector3(x,0,cellSize[2]),Vector3(x,0,0),Vector3(x,cellSize[1],0),Vector3(x,cellSize[1],cellSize[2])],maxDist=min(cellSize[1],cellSize[2])/3.) for x in numpy.linspace(0,cellSize[0],num=4)])
-	yade.O.dem.par.append(pack.gtsSurface2Facets(p,mask=0b011))
-	sc.loneMask=0b010
+	S.dem.par.append(pack.gtsSurface2Facets(p,mask=0b011))
+	S.loneMask=0b010
 
 	mat=utils.defaultMaterial()
 	gravity=(0,0,-10)
 	massToDo=porosity*mat.density*dim[0]*dim[1]*dim[2]
 	print 'Will generate %g mass'%massToDo
 
-	sc.engines=utils.defaultEngines(gravity=gravity,damping=.7)+[
+	S.engines=utils.defaultEngines(gravity=gravity,damping=.7)+[
 		BoxFactory(
 			box=((.01*cellSize[0],.01*cellSize[1],.3*cellSize[2]),cellSize),
 			stepPeriod=200,
@@ -164,29 +162,29 @@ def makeBandFeedPack(dim,psd,material,gravity,porosity=.5,dontBlock=False):
 			#periSpanMask=1, # x is periodic
 		),
 		#PyRunner(200,'plot.addData(uf=utils.unbalancedForce(),i=O.scene.step)'),
-		PyRunner(600,'print "%g/%g mass, %d particles, unbalanced %g/.15"%(yade.makeBandFeedFactory.mass,yade.makeBandFeedFactory.maxMass,len(yade.O.dem.par),yade.utils.unbalancedForce())'),
-		PyRunner(200,'if yade.utils.unbalancedForce()<.15 and yade.makeBandFeedFactory.dead: O.pause()'),
+		PyRunner(600,'print "%g/%g mass, %d particles, unbalanced %g/.15"%(yade.makeBandFeedFactory.mass,yade.makeBandFeedFactory.maxMass,len(S.dem.par),yade.utils.unbalancedForce(S))'),
+		PyRunner(200,'if yade.utils.unbalancedForce(S)<.15 and yade.makeBandFeedFactory.dead: S.stop()'),
 	]
-	sc.dt=.7*utils.spherePWaveDt(psd[0][0],mat.density,mat.young)
+	S.dt=.7*utils.spherePWaveDt(psd[0][0],mat.density,mat.young)
 	if dontBlock: return
-	else: yade.O.run()
-	yade.O.wait()
+	else: S.run()
+	S.wait()
 	cc,rr=[],[]
-	for p in yade.O.dem.par:
+	for p in S.dem.par:
 		if not type(p.shape)==Sphere: continue
-		c,r=sc.cell.canonicalizePt(p.pos),p.shape.radius
+		c,r=S.cell.canonicalizePt(p.pos),p.shape.radius
 		if c[2]+r>dim[2]: continue
 		cc.append(Vector3(c[0],c[1]-.5*dim[1],c[2])); rr.append(r)
 	return cc,rr
 
 
-def watchProgress():
+def watchProgress(S):
 	'''initially, only the fallOver deleter saves particles; once particles arrive,
 	it means we have reached some steady state; at that point, all objects (deleters,
 	factory, ... are clear()ed so that PSD's and such correspond to the steady
 	state only'''
 	import yade
-	pre=yade.O.scene.pre
+	pre=S.pre
 	# not yet saving what falls through, i.e. not in stabilized regime yet
 	if yade.aperture[0].save==False:
 		# first particles have just fallen over
@@ -201,39 +199,37 @@ def watchProgress():
 			for ap in yade.aperture:
 				ap.clear() # to clear overall mass, which gets counted even with save=False
 				ap.save=True
-			print 'Stabilized regime reached (influx %g, efflux %g) at step %d, counters engaged.'%(influx,efflux,yade.O.scene.step)
+			print 'Stabilized regime reached (influx %g, efflux %g) at step %d, counters engaged.'%(influx,efflux,S.step)
 	# already in the stable regime, end simulation at some point
 	else:
 		# factory has finished generating particles
 		if yade.factory.mass>yade.factory.maxMass:
-			scene=yade.O.scene
 			import yade.plot, pickle
 			try:
-				if not scene.lastSave.startswith('/tmp'):
-					out='/tmp/'+scene.tags['id']+'.bin.gz'
-					scene.tags['plot.data']=pickle.dumps(yade.plot.data)
-					scene.save(out)
+				if not S.lastSave.startswith('/tmp'):
+					out='/tmp/'+S.tags['id']+'.bin.gz'
+					S.tags['plot.data']=pickle.dumps(yade.plot.data)
+					S.save(out)
 					print 'Saved to',out
 				else:
-					yade.plot.data=pickle.loads(scene.tags['plot.data'])
-				writeReport()
+					yade.plot.data=pickle.loads(S.tags['plot.data'])
+				writeReport(S)
 			except:
 				import traceback
 				traceback.print_exc()
 				print 'Error during post-processing.'
 			print 'Simulation finished.'
-			yade.O.pause()
+			S.stop()
 
-def savePlotData():
+def savePlotData(S):
 	import yade
 	#if yade.aperture[0].save==False: return # not in the steady state yet
 	import yade.plot
 	# save unscaled data here!
-	sc=yade.O.scene
 	apRate=sum([a.currRate for a in yade.aperture])
 	overRate=yade.fallOver.currRate
 	lostRate=yade.outOfDomain.currRate
-	yade.plot.addData(i=sc.step,t=sc.time,genRate=yade.factory.currRate,apRate=apRate,overRate=overRate,lostRate=lostRate,delRate=apRate+overRate+lostRate,numPar=len(yade.O.dem.par))
+	yade.plot.addData(i=S.step,t=S.time,genRate=yade.factory.currRate,apRate=apRate,overRate=overRate,lostRate=lostRate,delRate=apRate+overRate+lostRate,numPar=len(S.dem.par))
 	if not yade.plot.plots:
 		yade.plot.plots={'t':('genRate','apRate','lostRate','overRate','delRate',None,'numPar')}
 
@@ -303,7 +299,7 @@ def psdFeedApertureFalloverTable(inPsd,feedDM,apDM,overDM,splitD):
 		,cellpadding='2px',frame='box',rules='all'
 	).generate().render('xhtml')
 
-def efficiencyTableFigure(pre):
+def efficiencyTableFigure(S,pre):
 	# split points
 	diams=[p[0] for p in pre.psd]
 	if pre.gap not in diams: diams.append(pre.gap)
@@ -316,12 +312,12 @@ def efficiencyTableFigure(pre):
 	for apNum,aperture in enumerate(yade.aperture):
 		xMin,xMax=aperture.box.min[0],aperture.box.max[0]
 		massTot=0.
-		for p in yade.O.dem.par:
+		for p in S.dem.par:
 			# only spheres above the aperture count
 			if not isinstance(p.shape,yade.dem.Sphere) or p.pos[0]<xMin or p.pos[1]>xMax: continue
 			massTot+=p.mass
 			for i,d in enumerate(diams):
-				if 2*p.shape.radius<d: break
+				if 2*p.shape.radius>d: continue
 				data[apNum][i]+=p.mass
 		data[apNum]/=massTot
 	from genshi.builder import tag as t
@@ -332,8 +328,8 @@ def efficiencyTableFigure(pre):
 	).generate().render('xhtml')
 	import pylab
 	fig=pylab.figure()
-	for dNum,d in enumerate(diams):
-		pylab.plot(numpy.arange(len(yade.aperture))+1,data[:,dNum],marker='o',label='< %.4g mm'%d)
+	for dNum,d in reversed(list(enumerate(diams))): # displayed from the bigger to smaller, to make legend aligned with lines
+		pylab.plot(numpy.arange(len(yade.aperture))+1,data[:,dNum],marker='o',label='< %.4g mm'%(1e3*d))
 	from matplotlib.ticker import FuncFormatter
 	percent=FuncFormatter(lambda x,pos=0: '%g%%'%(100*x))
 	pylab.gca().yaxis.set_major_formatter(percent)
@@ -344,12 +340,12 @@ def efficiencyTableFigure(pre):
 	pylab.grid(True)
 	return table,fig
 
-def writeReport():
+def writeReport(S):
 	# generator parameters
 	import yade
 	import yade.pre
-	pre=yade.O.scene.pre
-	#ui=[a for a in yade.O.scene.any if type(a)==yade.pre.Roro][0]
+	pre=S.pre
+	#pre=[a for a in yade.O.scene.any if type(a)==yade.pre.Roro][0]
 	#print 'Parameters were:'
 	#pre.dump(sys.stdout,noMagic=True,format='expr')
 
@@ -437,7 +433,7 @@ def writeReport():
 		splitD=pre.gap
 	)
 
-	effTab,effFig=efficiencyTableFigure(pre)
+	effTab,effFig=efficiencyTableFigure(S,pre)
 	figs.append(('Sieving efficiency',effFig))
 
 	#ax=pylab.subplot(223)
@@ -504,8 +500,9 @@ def writeReport():
 		pylab.plot(d['t'],massScale*numpy.array(d['lostRate']),label='(lost)')
 		pylab.plot(d['t'],massScale*numpy.array(d['overRate']),label='fallOver')
 		pylab.plot(d['t'],massScale*numpy.array(d['delRate']),label='delete')
-		pylab.axvline(x=(yade.O.scene.time-pre.time),linewidth=5,alpha=.3,ymin=0,ymax=1,color='r',label='steady')
 		pylab.ylim(ymin=0)
+		#pylab.axvline(x=(S.time-pre.time),linewidth=5,alpha=.3,ymin=0,ymax=1,color='r',label='steady')
+		pylab.axvspan(S.time-pre.time,S.time,alpha=.2,facecolor='r',label='steady')
 		pylab.legend(loc='lower left')
 		pylab.grid(True)
 		pylab.xlabel('time [s]')
@@ -539,7 +536,7 @@ def writeReport():
 			<tr><td>engine</td><td align="right">{engine}</td></tr>
 			<tr><td>compiled with</td><td align="right">{compiledWith}</td></tr>
 		</table>
-		'''.format(user=yade.O.scene.tags['user'],started=time.ctime(time.time()-yade.O.realtime),duration=yade.O.realtime,nCores=yade.O.numThreads,stepsPerSec=yade.O.scene.step/yade.O.realtime,engine='wooDem '+yade.config.version+'/'+yade.config.revision+(' (debug)' if yade.config.debug else ''),compiledWith=','.join(yade.config.features))
+		'''.format(user=S.tags['user'],started=time.ctime(time.time()-yade.O.realtime),duration=yade.O.realtime,nCores=yade.O.numThreads,stepsPerSec=S.step/yade.O.realtime,engine='wooDem '+yade.config.version+'/'+yade.config.revision+(' (debug)' if yade.config.debug else ''),compiledWith=','.join(yade.config.features))
 		+'<h2>Input data</h2>'+pre.dumps(format='html',fragment=True,showDoc=True)
 		+'<h2>Outputs</h2>'
 		+'<h3>Feed</h3>'+feedTab
@@ -555,7 +552,7 @@ def writeReport():
 				tag.tr(tag.td('started'),tag.td('%g s'%(time.ctime(time.time()-yade.O.realtime)),align='right')),
 				tag.tr(tag.td('duration'),tag.td('%g s'%(yade.O.realtime),align='right')),
 				tag.tr(tag.td('number of cores'),tag.td(str(yade.O.numThreads),align='right')),
-				tag.tr(tag.td('average speed'),tag.td('%g steps/sec'%(yade.O.scene.step/yade.O.realtime))),
+				tag.tr(tag.td('average speed'),tag.td('%g steps/sec'%(S.step/yade.O.realtime))),
 				tag.tr(tag.td('engine'),tag.td('wooDem '+yade.config.version+'/'+yade.config.revision+(' (debug)' if yade.config.debug else ''))),
 				tag.tr(tag.td('compiled with'),tag.td(', '.join(yade.config.features))),
 			),
@@ -575,7 +572,7 @@ def writeReport():
 	#from genshi.input import HTMLParser
 	#import codecs, StringIO
 	import codecs
-	repName=yade.O.scene.tags['id']+'-report.xhtml'
+	repName=S.tags['id']+'-report.xhtml'
 	rep=codecs.open(repName,'w','utf-8')
 	import os.path
 	print 'Report written to file://'+os.path.abspath(repName)
@@ -585,8 +582,8 @@ def writeReport():
 	# save sphere's positions
 	from yade import pack
 	sp=pack.SpherePack()
-	sp.fromSimulation()
-	packName=yade.O.scene.tags['id']+'-spheres.csv'
+	sp.fromSimulation(S)
+	packName=S.tags['id']+'-spheres.csv'
 	sp.save(packName)
 	print 'Particles saved to',os.path.abspath(packName)
 

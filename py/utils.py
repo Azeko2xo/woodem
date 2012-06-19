@@ -95,10 +95,10 @@ def defaultMaterial():
 	import math
 	return FrictMat(density=1e3,young=1e7,poisson=.3,ktDivKn=.2,tanPhi=math.tan(.5))
 
-def defaultEngines(damping=0.,gravity=(0,0,-10),verletDist=-.05,noSlip=False,noBreak=False):
+def defaultEngines(damping=0.,gravity=(0,0,-10),verletDist=-.05,kinSplit=False,noSlip=False,noBreak=False):
 	"""Return default set of engines, suitable for basic simulations during testing."""
 	return [
-		Leapfrog(damping=damping,reset=True),
+		Leapfrog(damping=damping,reset=True,kinSplit=kinSplit),
 		InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb(),Bo1_Wall_Aabb(),Bo1_InfCylinder_Aabb()],label='collider'),
 		ContactLoop(
 			[Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom(),Cg2_Wall_Sphere_L6Geom(),Cg2_InfCylinder_Sphere_L6Geom()],
@@ -107,15 +107,11 @@ def defaultEngines(damping=0.,gravity=(0,0,-10),verletDist=-.05,noSlip=False,noB
 		),
 	]+([] if gravity==(0,0,0) else [Gravity(gravity=gravity)])
 
-def _commonBodySetup(b,nodes,volumes,geomInertias,material,masses=None,fixed=False):
+def _commonBodySetup(b,nodes,volumes,geomInertias,mat,masses=None,fixed=False):
 	"""Assign common body parameters."""
-	#if isinstance(material,str): b.mat=O.materials[material]
-	if isinstance(material,Material): b.mat=material
-	elif callable(material): b.mat=material()
-	elif material==None:
-		if not len(O.dem.particles): b.mat=defaultMaterial()
-		else: b.mat=O.dem.particles[-1].mat
-	else: raise TypeError("The 'material' argument must be None (material of the last particle, or, if there is none, defaultMaterial), Material instance, or a callable returning Material.");
+	if isinstance(mat,Material): b.mat=mat
+	elif callable(mat): b.mat=mat()
+	else: raise TypeError("The 'mat' argument must be Material instance, or a callable returning Material.");
 	if masses and volumes: raise ValueError("Only one of masses, volumes can be given")
 	if volumes:
 		if len(nodes)!=len(volumes) or len(volumes)!=len(geomInertias): raise ValueError("nodes, volumes (or masses) and geomInertias must have same lengths.")
@@ -137,20 +133,17 @@ def _mkDemNode(**kw):
 	n=Node(**kw); n.dem=DemData() 
 	return n
 
-def sphere(center,radius,fixed=False,wire=False,color=None,highlight=False,material=None,mask=1):
+def sphere(center,radius,mat=defaultMaterial,fixed=False,wire=False,color=None,highlight=False,mask=1):
 	"""Create sphere with given parameters; mass and inertia computed automatically.
-
-	Last assigned material is used by default (*material*=-1), and utils.defaultMaterial() will be used if no material is defined at all.
 
 	:param Vector3 center: center
 	:param float radius: radius
 	:param float-or-None: particle's color as float; random color will be assigned if ``None`.
-	:param material:
-		specify :yref:`Body.material`; different types are accepted:
-			* :yref:`Material` instance: this instance will be used
+	:param mat:
+		specify :ref:`Particle.material`; different types are accepted:
+			* :ref:`Material` instance: this instance will be used
 			* callable: will be called without arguments; returned Material value will be used (Material factory object, if you like)
-			* `None`: attempt to use material of last particle in `O.dem.par`; if that fails, use the result of :yref:`utils.defaultMaterial`.
-	:param int mask: :yref:`dem.Particle.mask` for the body
+	:param int mask: :ref:`dem.Particle.mask` for the body
 
 	:return:
 		Particle instance with desired characteristics.
@@ -158,7 +151,7 @@ def sphere(center,radius,fixed=False,wire=False,color=None,highlight=False,mater
 	Instance of material can be given::
 
 		>>> from yade import utils
-		>>> s1=utils.sphere((0,0,0),1,wire=False,color=.7,material=ElastMat(young=30e9,density=2e3))
+		>>> s1=utils.sphere((0,0,0),1,wire=False,color=.7,mat=ElastMat(young=30e9,density=2e3))
 		>>> s1.shape.wire
 		False
 		>>> s1.shape.color
@@ -175,8 +168,8 @@ def sphere(center,radius,fixed=False,wire=False,color=None,highlight=False,mater
 		>>> import random
 		>>> def matFactory(): return ElastMat(young=1e10*random.random(),density=1e3+1e3*random.random())
 		...
-		>>> s2=utils.sphere([0,2,0],1,material=matFactory)
-		>>> s3=utils.sphere([1,2,0],1,material=matFactory)
+		>>> s2=utils.sphere([0,2,0],1,mat=matFactory)
+		>>> s3=utils.sphere([1,2,0],1,mat=matFactory)
 
 	"""
 	b=Particle()
@@ -184,12 +177,12 @@ def sphere(center,radius,fixed=False,wire=False,color=None,highlight=False,mater
 	b.shape.wire=wire
 	V=(4./3)*math.pi*radius**3
 	geomInert=(2./5.)*V*radius**2
-	_commonBodySetup(b,([center] if isinstance(center,Node) else [_mkDemNode(pos=center),]),volumes=[V],geomInertias=[geomInert*Vector3.Ones],material=material,fixed=fixed)
+	_commonBodySetup(b,([center] if isinstance(center,Node) else [_mkDemNode(pos=center),]),volumes=[V],geomInertias=[geomInert*Vector3.Ones],mat=mat,fixed=fixed)
 	b.aspherical=False
 	b.mask=mask
 	return b
 
-def wall(position,axis,sense=0,glAB=None,fixed=True,mass=0,color=None,material=None,visible=True,mask=1):
+def wall(position,axis,sense=0,glAB=None,fixed=True,mass=0,color=None,mat=defaultMaterial,visible=True,mask=1):
 	"""Return ready-made wall body.
 
 	:param float-or-Vector3-or-Node position: center of the wall. If float, it is the position along given axis, the other 2 components being zero
@@ -208,13 +201,13 @@ def wall(position,axis,sense=0,glAB=None,fixed=True,mass=0,color=None,material=N
 		node=position
 	else:
 		node=_mkDemNode(pos=position)
-	_commonBodySetup(p,[node],volumes=None,masses=[mass],geomInertias=[inf*Vector3.Ones],material=material,fixed=fixed)
+	_commonBodySetup(p,[node],volumes=None,masses=[mass],geomInertias=[inf*Vector3.Ones],mat=mat,fixed=fixed)
 	p.aspherical=False # wall never rotates anyway
 	p.mask=mask
 	p.shape.visible=visible
 	return p
 
-def facet(vertices,fakeVel=None,fixed=True,wire=True,color=None,highlight=False,material=None,visible=True,mask=1):
+def facet(vertices,fakeVel=None,fixed=True,wire=True,color=None,highlight=False,mat=defaultMaterial,visible=True,mask=1):
 	"""Create facet with given parameters.
 
 	:param [Vector3,Vector3,Vector3] vertices: coordinates of vertices in the global coordinate system.
@@ -232,13 +225,13 @@ def facet(vertices,fakeVel=None,fixed=True,wire=True,color=None,highlight=False,
 	p.shape=Facet(color=color if color else random.random())
 	if fakeVel: p.shape.fakeVel=fakeVel
 	p.shape.wire=wire
-	_commonBodySetup(p,nodes,volumes=None,masses=(0,0,0),geomInertias=[Vector3(0,0,0),Vector3(0,0,0),Vector3(0,0,0)],material=material,fixed=fixed)
+	_commonBodySetup(p,nodes,volumes=None,masses=(0,0,0),geomInertias=[Vector3(0,0,0),Vector3(0,0,0),Vector3(0,0,0)],mat=mat,fixed=fixed)
 	p.aspherical=False # mass and inertia are 0 anyway; fell free to change to ``True`` if needed
 	p.mask=mask
 	p.shape.visible=visible
 	return p
 
-def infCylinder(position,radius,axis,glAB=None,fixed=True,mass=0,color=None,material=None,mask=1):
+def infCylinder(position,radius,axis,glAB=None,fixed=True,mass=0,color=None,mat=defaultMaterial,mask=1):
 	"""Return a read-made infinite cylinder particle."""
 	p=Particle()
 	p.shape=InfCylinder(radius=radius,axis=axis,color=color if color else random.random())
@@ -246,7 +239,7 @@ def infCylinder(position,radius,axis,glAB=None,fixed=True,mass=0,color=None,mate
 	if(isinstance(position,Node)):
 		node=position
 	else: node=_mkDemNode(pos=position)
-	_commonBodySetup(p,[node],volumes=None,masses=[mass],geomInertias=[inf*Vector3.Ones],material=material,fixed=fixed)
+	_commonBodySetup(p,[node],volumes=None,masses=[mass],geomInertias=[inf*Vector3.Ones],mat=mat,fixed=fixed)
 	p.aspherical=False # only rotates along one axis
 	p.mask=mask
 	return p

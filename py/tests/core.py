@@ -46,12 +46,12 @@ class TestLoop(unittest.TestCase):
 		O.scene.subStepping=False
 		O.step(); self.assert_(O.scene.subStep==-1)
 		# subStep==0 inside the loop without substepping
-		O.scene.engines=[PyRunner(1,'if O.scene.subStep!=0: raise RuntimeError("O.scene.subStep!=0 inside the loop with O.scene.subStepping==False!")')]
+		O.scene.engines=[PyRunner(1,'if scene.subStep!=0: raise RuntimeError("scene.subStep!=0 inside the loop with O.scene.subStepping==False!")')]
 		O.step()
 	def testEnginesModificationInsideLoop(self):
 		'Loop: O.engines can be modified inside the loop transparently.'
 		O.scene.engines=[
-			PyRunner(stepPeriod=1,command='from yade import*; from yade.dem import *; O.scene.engines=[ForceResetter(),Gravity(),Leapfrog(reset=False)]'), # change engines here
+			PyRunner(stepPeriod=1,command='from yade import*; from yade.dem import *; scene.engines=[ForceResetter(),Gravity(),Leapfrog(reset=False)]'), # change engines here
 			ForceResetter() # useless engine
 		]
 		O.scene.subStepping=True
@@ -121,30 +121,30 @@ class TestParticles(unittest.TestCase):
 		O.reset()
 		O.scene.fields=[DemField()]
 		self.count=100
-		O.dem.par.append([utils.sphere([random.random(),random.random(),random.random()],random.random()) for i in range(0,self.count)])
+		O.scene.dem.par.append([utils.sphere([random.random(),random.random(),random.random()],random.random()) for i in range(0,self.count)])
 		random.seed()
 	def testIterate(self):
 		"Particles: Iteration"
 		counted=0
-		for b in O.dem.par: counted+=1
+		for b in O.scene.dem.par: counted+=1
 		self.assert_(counted==self.count)
 	def testLen(self):
-		"Particles: len(O.dem.par)"
-		self.assert_(len(O.dem.par)==self.count)
+		"Particles: len(O.scene.dem.par)"
+		self.assert_(len(O.scene.dem.par)==self.count)
 	def testRemove(self):
 		"Particles: acessing removed particles raises IndexError"
-		O.dem.par.remove(0)
-		self.assertRaises(IndexError,lambda: O.dem.par[0])
+		O.scene.dem.par.remove(0)
+		self.assertRaises(IndexError,lambda: O.scene.dem.par[0])
 	def testNegativeIndex(self):
 		"Particles: Negative index counts backwards (like python sequences)."
-		self.assert_(O.dem.par[-1]==O.dem.par[self.count-1])
+		self.assert_(O.scene.dem.par[-1]==O.scene.dem.par[self.count-1])
 	def testRemovedIterate(self):
 		"Particles: Iterator silently skips erased ones"
 		removed,counted=0,0
 		for i in range(0,10):
 			id=random.randint(0,self.count-1)
-			if O.dem.par.exists(id): O.dem.par.remove(id); removed+=1
-		for b in O.dem.par: counted+=1
+			if O.scene.dem.par.exists(id): O.scene.dem.par.remove(id); removed+=1
+		for b in O.scene.dem.par: counted+=1
 		self.assert_(counted==self.count-removed)
 		
 class TestMaterials(unittest.TestCase):
@@ -153,20 +153,20 @@ class TestMaterials(unittest.TestCase):
 		O.reset()
 		O.scene.fields=[DemField()]
 		mats=[FrictMat(young=1),ElastMat(young=100)]
-		O.dem.par.append([
-			utils.sphere([0,0,0],.5,material=mats[0]),
-			utils.sphere([1,1,1],.5,material=mats[0]),
-			utils.sphere([1,1,1],.5,material=mats[1])
+		O.scene.dem.par.append([
+			utils.sphere([0,0,0],.5,mat=mats[0]),
+			utils.sphere([1,1,1],.5,mat=mats[0]),
+			utils.sphere([1,1,1],.5,mat=mats[1])
 		])
 	def testShared(self):
 		"Material: shared_ptr's makes change in material immediate everywhere"
-		O.dem.par[0].mat.young=23423333
-		self.assert_(O.dem.par[0].mat.young==O.dem.par[1].mat.young)
+		O.scene.dem.par[0].mat.young=23423333
+		self.assert_(O.scene.dem.par[0].mat.young==O.scene.dem.par[1].mat.young)
 	def testSharedAfterReload(self):
 		"Material: shared_ptr's are preserved when saving/loading"
 		O.saveTmp(quiet=True); O.loadTmp(quiet=True)
-		O.dem.par[0].mat.young=9087438484
-		self.assert_(O.dem.par[0].mat.young==O.dem.par[1].mat.young)
+		O.scene.dem.par[0].mat.young=9087438484
+		self.assert_(O.scene.dem.par[0].mat.young==O.scene.dem.par[1].mat.young)
 	#def testLen(self):
 	#	"Material: len(O.materials)"
 	#	self.assert_(len(O.materials)==2)

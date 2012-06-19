@@ -91,15 +91,15 @@ class TestObjectInstantiation(unittest.TestCase):
 	def testNoSave(self):
 		'Core: Attr::noSave'
 		# update bound of the particle
-		O.scene.fields=[DemField()]
-		O.dem.par.append(utils.sphere((0,0,0),1))
-		O.dem.collectNodes()
-		O.scene.engines=[InsertionSortCollider([Bo1_Sphere_Aabb()]),Leapfrog(reset=True)]
-		O.step()
-		O.saveTmp(quiet=True)
-		mn0=Vector3(O.dem.par[0].shape.bound.min)
-		O.reload()
-		mn1=Vector3(O.dem.par[0].shape.bound.min)
+		S=Scene(fields=[DemField()])
+		S.dem.par.append(utils.sphere((0,0,0),1))
+		S.dem.collectNodes()
+		S.engines=[InsertionSortCollider([Bo1_Sphere_Aabb()]),Leapfrog(reset=True)]
+		S.one()
+		S.saveTmp(quiet=True)
+		mn0=Vector3(S.dem.par[0].shape.bound.min)
+		S=S.loadTmp()
+		mn1=Vector3(S.dem.par[0].shape.bound.min)
 		# check that the minimum is not saved
 		self.assert_(not isnan(mn0[0]))
 		self.assert_(isnan(mn1[0]))

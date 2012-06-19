@@ -24,11 +24,27 @@ class ScalarRange;
 #endif
 
 class Scene: public Object{
+		boost::mutex runMutex;
+		bool runningFlag;
+		// this will be std::atomic<bool>
+		// once libstdc++ headers are accepted by clang++
+		bool stopFlag; 
+		bool stopFlagSet(){ boost::mutex::scoped_lock l(runMutex); return stopFlag; }
+		shared_ptr<std::exception> except;
 	public:
+		// interface for python,
+		void pyRun(long steps=-1, bool wait=false);
+		void pyStop();         
+		void pyOne();         
+		void pyWait();         
+		bool running(); 
+		void backgroundLoop();
+
 		// initialize tags (author, date, time)
 		void fillDefaultTags();
 		// advance by one iteration by running all engines
-		void moveToNextTimeStep();
+		void doOneStep();
+
 		#ifdef YADE_OPENGL
 			shared_ptr<Renderer> renderer;
 		#endif
@@ -113,7 +129,7 @@ class Scene: public Object{
 		// ((shared_ptr<Bound>,bound,,AttrTrait<Attr::hidden>(),"Bounding box of the scene (only used for rendering and initialized if needed)."))
 
 		,
-		/*ctor*/ fillDefaultTags();
+		/*ctor*/ fillDefaultTags(); runningFlag=false;
 		, /* py */
 		.add_property("tags",&Scene::pyGetTags,"Arbitrary key=value associations (tags like mp3 tags: author, date, version, description etc.")
 		.add_property("cell",&Scene::pyGetCell,"Periodic space configuration (is None for aperiodic scene); set :yref:`Scene.periodic` to enable/disable periodicity")
@@ -128,11 +144,17 @@ class Scene: public Object{
 			.def("ensureCl",&Scene::ensureCl,"[for debugging] Initialize the OpenCL subsystem (this is done by engines using OpenCL, but trying to do so in advance might catch errors earlier)")
 		#endif
 		.def("saveTmp",&Scene::saveTmp,(py::arg("slot")="",py::arg("quiet")=false),"Save into a temporary slot inside Omega (loadable with O.loadTmp)")
+
+		.def("run",&Scene::pyRun,(py::args("steps")=-1,py::args("wait")=false))
+		.def("stop",&Scene::pyStop)
+		.def("one",&Scene::pyOne)
+		.def("wait",&Scene::pyWait)
+		.add_property("running",&Scene::running)
 		;
 		// define nested class
 		boost::python::scope foo(_classObj);
 		boost::python::class_<Scene::pyTagsProxy>("TagsProxy",py::init<pyTagsProxy>()).def("__getitem__",&pyTagsProxy::getItem).def("__setitem__",&pyTagsProxy::setItem).def("__delitem__",&pyTagsProxy::delItem).def("has_key",&pyTagsProxy::has_key).def("__contains__",&pyTagsProxy::has_key).def("keys",&pyTagsProxy::keys)
-	);
+		);
 	DECLARE_LOGGER;
 };
 

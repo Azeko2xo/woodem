@@ -49,6 +49,8 @@ class Engine: public Object {
 
 		void postLoad(Engine&);
 
+		void runPy(const string&);
+
 		virtual void getLabeledObjects(std::map<std::string,py::object>&){};
 		template<class T> static void handlePossiblyLabeledObject(const shared_ptr<T>& o, std::map<std::string,py::object>& m){
 			if(o->label.empty()) return;
@@ -167,7 +169,7 @@ REGISTER_SERIALIZABLE(PeriodicEngine);
 
 
 struct PyRunner: public PeriodicEngine{
-	virtual void run();
+	virtual void run(){ Engine::runPy(command); }
 	// to give command without saying 'command=...'
 	virtual bool needsField(){ return false; }
 	virtual void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d);

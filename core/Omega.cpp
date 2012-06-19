@@ -1,6 +1,5 @@
 #include<yade/core/Omega.hpp>
 #include<yade/core/Scene.hpp>
-#include<yade/core/BgThread.hpp>
 #include<yade/lib/base/Math.hpp>
 #include<yade/lib/multimethods/FunctorWrapper.hpp>
 #include<yade/lib/multimethods/Indexable.hpp>
@@ -28,7 +27,7 @@ CREATE_LOGGER(Omega);
 SINGLETON_SELF(Omega);
 
 
-Omega::Omega(): simulationLoop(&simulationFlow){
+Omega::Omega(){
 	sceneAnother=shared_ptr<Scene>(new Scene);
 	scene=shared_ptr<Scene>(new Scene);
 	startupLocalTime=boost::posix_time::microsec_clock::local_time();
@@ -36,7 +35,6 @@ Omega::Omega(): simulationLoop(&simulationFlow){
 	defaultClDev=Vector2i(-1,-1);
 }
 
-void Omega::reset(){ stop(); scene=shared_ptr<Scene>(new Scene); }
 void Omega::cleanupTemps(){ boost::filesystem::path tmpPath(tmpFileDir); boost::filesystem::remove_all(tmpPath); }
 
 const map<string,DynlibDescriptor>& Omega::getDynlibsDescriptor(){return dynlibs;}
@@ -54,18 +52,10 @@ std::string Omega::tmpFilename(){
 const shared_ptr<Scene>& Omega::getScene(){return scene;}
 void Omega::setScene(const shared_ptr<Scene>& s){ if(!s) throw std::runtime_error("Scene must not be None."); scene=s; }
 
-void Omega::stop(){ LOG_DEBUG(""); if(simulationLoop.looping())simulationLoop.stop(); }
-void Omega::step(){ simulationLoop.spawnSingleAction(); }
-void Omega::run(){ if (!simulationLoop.looping()) simulationLoop.start(); }
-void Omega::pause(){ if(simulationLoop.looping()) simulationLoop.stop(); }
-bool Omega::isRunning(){ return simulationLoop.looping(); }
-
 /* inheritance (?!!) */
-
 bool Omega::isInheritingFrom(const string& className, const string& baseClassName){
 	return (dynlibs[className].baseClasses.find(baseClassName)!=dynlibs[className].baseClasses.end());
 }
-
 bool Omega::isInheritingFrom_recursive(const string& className, const string& baseClassName){
 	if (dynlibs[className].baseClasses.find(baseClassName)!=dynlibs[className].baseClasses.end()) return true;
 	FOREACH(const string& parent,dynlibs[className].baseClasses){

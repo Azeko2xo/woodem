@@ -6,13 +6,13 @@ from yade import *
 import yade.log
 yade.log.setLevel('LawTester',yade.log.INFO)
 m=utils.defaultMaterial()
-O.scene.fields=[DemField()]
-O.dem.par.append([
-	utils.sphere((0,0,0),.5,fixed=False,wire=True,material=m),
-	utils.sphere((0,1.01,0),.5,fixed=False,wire=True,material=m)
+S=O.scene=Scene(fields=[DemField()])
+S.dem.par.append([
+	utils.sphere((0,0,0),.5,fixed=False,wire=True,mat=m),
+	utils.sphere((0,1.01,0),.5,fixed=False,wire=True,mat=m)
 ])
-O.dem.collectNodes()
-O.scene.engines=utils.defaultEngines(damping=.01,gravity=(0,0,0))+[
+S.dem.collectNodes()
+S.engines=utils.defaultEngines(damping=.01,gravity=(0,0,0))+[
 	LawTester(ids=(0,1),abWeight=.3,smooth=1e-4,stages=[
 			LawTesterStage(values=(-1,0,0,0,0,0),whats='v.....',until='bool(C)',done='print "Stage finished, at step",stage.step,", contact is",C'),
 			LawTesterStage(values=(-.01,0,0,0,0,0),whats='v.....',until='C and C.geom.uN<-1e-2',done='print "Compressed to",C.geom.uN'),
@@ -29,13 +29,13 @@ O.scene.engines=utils.defaultEngines(damping=.01,gravity=(0,0,0))+[
 		done='tester.dead=True; O.pause(); print "Everything done, making myself dead and pausing."',
 		label='tester'
 	),
-	PyRunner(60,'dd={}; dd.update(**yade.tester.fuv()); dd.update(**O.scene.energy); yade.plot.addData(i=O.scene.step,dist=(O.dem.par[0].pos-O.dem.par[1].pos).norm(),t=O.scene.time,**dd)'),
+	PyRunner(60,'dd={}; dd.update(**yade.tester.fuv()); dd.update(**O.scene.energy); yade.plot.addData(i=S.step,dist=(S.dem.par[0].pos-S.dem.par[1].pos).norm(),t=S.time,**dd)'),
 ]
-O.scene.dt=1e-3
-O.pause()
-O.scene.trackEnergy=True
+S.dt=1e-3
+#S.pause()
+S.trackEnergy=True
 plot.plots={' i':(('fErrRel_xx','k'),None,'fErrAbs_xx'),'i ':('dist',None),' i ':(O.scene.energy),'   i':('f_xx',None,'f_yy','f_zz'),'  i':('u_xx',None,'u_yy','u_zz'),'i  ':('u_yz',None,'u_zx','u_xy')}
 plot.plot()
-O.saveTmp()
-O.run()
+S.saveTmp()
+S.run()
 #O.reload()

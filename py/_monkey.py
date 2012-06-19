@@ -16,7 +16,7 @@ import pickle
 
 nan,inf=float('nan'),float('inf') # for values in expressions
 
-def _Serializable_getAllTraits(obj):
+def _Object_getAllTraits(obj):
 	ret=[]; k=obj.__class__
 	while k!=yade.core.Object:
 		ret=k._attrTraits+ret
@@ -25,7 +25,7 @@ def _Serializable_getAllTraits(obj):
 
 htmlHead='<head><meta http-equiv="content-type" content="text/html;charset=UTF-8" /></head><body>\n'
 
-def _Serializable_dumps(obj,format,fragment=False,width=80,noMagic=False,stream=True,showDoc=False):
+def _Object_dumps(obj,format,fragment=False,width=80,noMagic=False,stream=True,showDoc=False):
 	if format not in ('html','expr','pickle','genshi'): raise IOError("Unsupported string dump format %s"%format)
 	if format=='pickle':
 		return pickle.dumps(obj)
@@ -36,7 +36,7 @@ def _Serializable_dumps(obj,format,fragment=False,width=80,noMagic=False,stream=
 	elif format=='genshi':
 		return SerializeToHtmlTable()(obj,dontRender=True,showDoc=showDoc)
 
-def _Serializable_dump(obj,out,format='auto',overwrite=True,fragment=False,width=80,noMagic=False,showDoc=False):
+def _Object_dump(obj,out,format='auto',overwrite=True,fragment=False,width=80,noMagic=False,showDoc=False):
 	'''Dump an object in specified *format*; *out* can be a string (filename) or a *file* object. Supported formats are: `auto` (auto-detected from *out* extension; raises exception when *out* is an object), `html`, `expr`.'''
 	if format not in ('auto','html','expr','pickle','boost::serialization'): raise IOError("Unsupported dump format %s"%format)
 	hasFilename=isinstance(out,str)
@@ -268,7 +268,7 @@ class SerializerToExpr:
 		indent0,indent1=self.indent*level,self.indent*(level+1)
 		return magic+delims[0]+'\n'+indent1+(',\n'+indent1).join(lst)+'\n'+indent0+delims[1]+('\n' if level==0 else '')
 
-def _Serializable_loads(typ,data,format='auto'):
+def _Object_loads(typ,data,format='auto'):
 	def typeChecked(obj,type):
 		if not isinstance(obj,typ): raise TypeError('Loaded object of type '+obj.__class__.__name__+' is not a '+typ.__name__)
 		return obj
@@ -288,7 +288,7 @@ def _Serializable_loads(typ,data,format='auto'):
 	assert(False) # impossible
 
 
-def _Serializable_load(typ,inFile,format='auto'):
+def _Object_load(typ,inFile,format='auto'):
 	def typeChecked(obj,type):
 		if not isinstance(obj,typ): raise TypeError('Loaded object of type '+obj.__class__.__name__+' is not a '+typ.__name__)
 		return obj
@@ -336,21 +336,21 @@ def _Serializable_load(typ,inFile,format='auto'):
 
 
 
-def _Serializable_loadTmp(typ,name=''):
+def _Object_loadTmp(typ,name=''):
 	obj=yade.O.loadTmpAny(name)
 	if not isinstance(obj,typ): raise TypeError('Loaded object of type '+obj.__class__.__name__+' is not a '+typ.__name__)
 	return obj
-def _Serializable_saveTmp(obj,name='',quiet=False):
+def _Object_saveTmp(obj,name='',quiet=False):
 	yade.O.saveTmpAny(obj,name,quiet)
 	
 
-Object._getAllTraits=_Serializable_getAllTraits
-Object.dump=_Serializable_dump
-Object.dumps=_Serializable_dumps
-Object.saveTmp=_Serializable_saveTmp
-Object.load=classmethod(_Serializable_load)
-Object.loads=classmethod(_Serializable_loads)
-Object.loadTmp=classmethod(_Serializable_loadTmp)
+Object._getAllTraits=_Object_getAllTraits
+Object.dump=_Object_dump
+Object.dumps=_Object_dumps
+Object.saveTmp=_Object_saveTmp
+Object.load=classmethod(_Object_load)
+Object.loads=classmethod(_Object_loads)
+Object.loadTmp=classmethod(_Object_loadTmp)
 
 
 def _Omega_save(o,*args,**kw):
@@ -367,8 +367,24 @@ def _Omega_loadTmp(o,name='',quiet=None): # quiet deprecated
 def _Omega_saveTmp(o,name='',quiet=False):
 	o.scene.lastSave=':memory:'+name
 	o.scene.saveTmp(name,quiet)
+
 yade.wrapper.Omega.save=_Omega_save
 yade.wrapper.Omega.load=_Omega_load
 yade.wrapper.Omega.reload=_Omega_reload
 yade.wrapper.Omega.loadTmp=_Omega_loadTmp
 yade.wrapper.Omega.saveTmp=_Omega_saveTmp
+
+def _Omega_run(o,*args,**kw): return o.scene.run(*args,**kw)
+def _Omega_pause(o,*args,**kw): return o.scene.stop(*args,**kw)
+def _Omega_step(o,*args,**kw): return o.scene.one(*args,**kw)
+def _Omega_wait(o,*args,**kw): return o.scene.wait(*args,**kw)
+def _Omega_reset(o):
+	o.scene=yade.core.Scene()
+
+#def _Omega_running(o.,*args,**kw): return o.scene.running
+yade.wrapper.Omega.run=_Omega_run
+yade.wrapper.Omega.pause=_Omega_pause
+yade.wrapper.Omega.step=_Omega_step
+yade.wrapper.Omega.wait=_Omega_wait
+yade.wrapper.Omega.running=property(lambda o: o.scene.running)
+yade.wrapper.Omega.reset=_Omega_reset

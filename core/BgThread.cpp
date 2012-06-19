@@ -83,7 +83,7 @@ void SimulationFlow::singleAction(){
 	Scene* scene=Omega::instance().getScene().get();
 	if (!scene) throw logic_error("SimulationFlow::singleAction: no Scene object?!");
 	if(scene->subStepping) { LOG_INFO("Sub-stepping disabled when running simulation continuously."); scene->subStepping=false; }
-	scene->moveToNextTimeStep();
+	scene->doOneStep();
 	if(scene->stopAtStep>0 && scene->step==scene->stopAtStep) setTerminate(true);
 };
 

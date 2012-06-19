@@ -159,7 +159,7 @@ class AxisFlatten(Flatten):
 	def normal(self,pos,vec):
 		return vec[self.axis]
 
-def data(extractor,flattener,con=False,onlyDynamic=True,stDev=None,relThreshold=3.,perArea=0,div=(50,50),margin=(0,0),radius=1):
+def data(scene,extractor,flattener,con=False,onlyDynamic=True,stDev=None,relThreshold=3.,perArea=0,div=(50,50),margin=(0,0),radius=1):
 	"""Filter all particles/contacts, project them to 2d and extract required scalar value;
 	return either discrete array of positions and values, or smoothed data, depending on whether the stDev
 	value is specified.
@@ -189,7 +189,7 @@ def data(extractor,flattener,con=False,onlyDynamic=True,stDev=None,relThreshold=
 	from yade.dem import Sphere
 	xx,yy,dd1,dd2,rr=[],[],[],[],[]
 	nDim=0
-	objects=O.dem.con if con else O.dem.par
+	objects=scene.dem.con if con else scene.dem.par
 	for b in objects:
 		if not con and onlyDynamic and b.blocked=='xyzXYZ': continue
 		xy,d=flattener(b),extractor(b)

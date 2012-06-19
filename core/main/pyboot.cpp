@@ -1,4 +1,5 @@
 #include<yade/core/Omega.hpp>
+#include<yade/core/Timing.hpp>
 #include<yade/lib/object/Object.hpp>
 #include<yade/lib/base/Logging.hpp>
 
@@ -76,11 +77,12 @@ void yadeInitialize(py::list& pp, const std::string& confDir){
 	vector<string> ppp; for(int i=0; i<py::len(pp); i++) ppp.push_back(py::extract<string>(pp[i]));
 
 	// register support classes
-	//
 	py::scope core(py::import("yade.core"));
+
 	yade::ClassTrait::pyRegisterClass();
 	yade::AttrTraitBase::pyRegisterClass();
-	Object().pyRegisterClass();
+	yade::TimingDeltas::pyRegisterClass();
+	Object().pyRegisterClass(); // virtual method, therefore cannot be static
 
 	// this registers all other classes
 	Omega::instance().loadPlugins(ppp);

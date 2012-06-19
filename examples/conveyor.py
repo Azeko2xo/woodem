@@ -39,9 +39,8 @@ s.engines=utils.defaultEngines(damping=.2,gravity=(0,0,-10))+[
 	),
 	VtkExport(out='/tmp/conv-',what=VtkExport.spheres|VtkExport.mesh,stepPeriod=20)
 ]
-O.dem.par.append(utils.wall(-2.,axis=2,sense=1,material=mat,glAB=((-1,-3),(10,3))))
+s.dem.par.append(utils.wall(-2.,axis=2,sense=1,mat=mat,glAB=((-1,-3),(10,3))))
 # should be reverse-sorted by x
-O.saveTmp()
-#O.step()
+s.saveTmp()
 
 

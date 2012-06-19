@@ -15,10 +15,6 @@
 #include<yade/lib/base/Singleton.hpp>
 #include<yade/lib/base/Types.hpp>
 
-#include<yade/core/BgThread.hpp>
-
-
-
 #ifndef FOREACH
 # define FOREACH BOOST_FOREACH
 #endif
@@ -32,10 +28,7 @@ struct DynlibDescriptor{ set<string> baseClasses; };
 
 class Omega: public Singleton<Omega>{
 
-	ThreadRunner simulationLoop;
-	SimulationFlow simulationFlow;
-
-	map<string,DynlibDescriptor> dynlibs; // FIXME : should store that in ClassFactory ?
+	map<string,DynlibDescriptor> dynlibs; // FIXME: should store that in ClassFactory ?
 	void initializePlugins(const vector<std::pair<std::string, std::string> >& dynlibsList); 
 	
 	shared_ptr<Scene> scene;
@@ -52,7 +45,7 @@ class Omega: public Singleton<Omega>{
 	std::string tmpFileDir;
 
 	public:
-		void reset();
+		// void reset();
 		void cleanupTemps();
 		const map<string,DynlibDescriptor>& getDynlibsDescriptor();
 		void loadPlugins(vector<string> pluginFiles);
@@ -69,19 +62,9 @@ class Omega: public Singleton<Omega>{
 		* 3. Omega when substantial changes to the scene are being made (bodies being deleted, simulation loaded etc) so that GL doesn't access those and crash */
 		boost::try_mutex renderMutex;
 
-		void run();
-		void pause();
-		void step();
-		void stop(); // resets the simulationLoop
-		bool isRunning();
 
 		shared_ptr<Object> loadTmp(const string& name);
 		void saveTmp(shared_ptr<Object> s, const string& name, bool quiet=false);
-		#if 0
-			void loadSimulation(const string& name, bool quiet=false);
-			void saveSimulation(const string& name, bool quiet=false);
-			void saveTmp(const shared_ptr<Scene>& _scene, const string& slot, bool quiet);
-		#endif
 
 
 		const shared_ptr<Scene>& getScene();

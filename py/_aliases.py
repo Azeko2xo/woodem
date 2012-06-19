@@ -7,29 +7,33 @@ try:
 	dem.DemField.par=dem.DemField.particles
 	dem.DemField.con=dem.DemField.contacts
 	dem.Particle.mat=dem.Particle.material
-	Omega.dem=property(lambda o: dem.DemField.sceneGetField())
-	Omega.hasDem=property(lambda o: dem.DemField.sceneHasField)
+	core.Scene.dem=property(lambda s: dem.DemField.sceneGetField(s))
+	core.Scene.hasDem=property(lambda s: dem.DemField.sceneHasField(s))
+	def Omega_dem(o): raise ValueError("Omega.dem is no longer supported, use Scene.dem instead")
+	def Omega_hasDem(o): raise ValueError("Omega.hasDem is no longer supported, use Scene.hasDem instead")
+	Omega.dem=property(Omega_dem)
+	Omega.hasdem=property(Omega_hasDem)
 	# DemData defines those methods, which are used for transparent access to respective data field
 	core.Node.dem=property(dem.DemData._getDataOnNode,dem.DemData._setDataOnNode)
 except ImportError:
-	Omega.hasDem=lambda o: False
+	core.Scene.hasDem=lambda o: False
 
 try:
 	from yade import sparc
-	Omega.sparc=property(lambda o: sparc.SparcField.sceneGetField())
-	Omega.hasSparc=property(lambda o: sparc.SparcField.sceneHasField)
+	Scene.sparc=property(lambda s: sparc.SparcField.sceneGetField(s))
+	Scene.hasSparc=property(lambda s: sparc.SparcField.sceneHasField(s))
 	core.Node.sparc=property(sparc.SparcData._getDataOnNode,sparc.SparcData._setDataOnNode)
 except ImportError:
-	Omega.hasSparc=lambda o: False
+	core.Scene.hasSparc=lambda o: False
 
 
 try:
 	import yade.cld
-	Omega.clDem=property(lambda o: yade.cld.CLDemField.sceneGetField())
-	#Omega.hasClDem=property(lambda o: yade.clDem.CLDemField.sceneHasField)
+	core.Scene.clDem=property(lambda s: cld.CLDemField.sceneGetField(s))
+	core.Scene.hasClDem=property(lambda s: yade.clDem.CLDemField.sceneHasField(s))
 	core.Node.clDem=property(yade.cld.CLDemData._getDataOnNode,yade.cld.CLDemData._setDataOnNode)
 except ImportError:
-	Omega.hasClDem=lambda o: False
+	core.Scene.hasClDem=lambda o: False
 
 
 try:

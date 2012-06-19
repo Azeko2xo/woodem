@@ -22,6 +22,69 @@ CREATE_LOGGER(Scene);
 // should be elsewhere, probably
 bool TimingInfo::enabled=false;
 
+void Scene::pyRun(long steps, bool wait){
+	except.reset();
+	if(running()) throw std::runtime_error("Scene.run: already running");
+	{
+		boost::mutex::scoped_lock l(runMutex);
+		if(steps>0) stopAtStep=step+steps;
+		/* run really */
+		runningFlag=true;
+		stopFlag=false;
+		boost::function0<void> loop(boost::bind(&Scene::backgroundLoop,this));
+		boost::thread th(loop);
+		/* runs in separate thread now */
+	}
+	if(wait) pyWait();
+}
+
+void Scene::pyStop(){
+	if(!running()) return;
+	{boost::mutex::scoped_lock l(runMutex); stopFlag=true; }
+}
+
+void Scene::pyOne(){
+	except.reset();
+	if(running()) throw std::runtime_error("Scene.step: already running.");
+	doOneStep();
+}
+
+void Scene::pyWait(){
+	if(!running()) return;
+	timespec t1,t2; t1.tv_sec=0; t1.tv_nsec=40000000; /* 40 ms */
+	Py_BEGIN_ALLOW_THREADS;
+	while(running()) nanosleep(&t1,&t2);
+	Py_END_ALLOW_THREADS;
+	// handle possible exception: reset it and rethrow
+	if(!except) return;
+	std::exception e(*except);
+	except.reset();
+	throw e;
+}
+
+bool Scene::running(){ boost::mutex::scoped_lock l(runMutex); return runningFlag; }
+
+// this function runs in background thread
+// exception and threads don't work well, so any exception caught is
+// stored and handled in the main thread
+void Scene::backgroundLoop(){
+	try{
+		while(true){
+			if(subStepping){ LOG_INFO("Scene.run: sub-stepping disabled."); subStepping=false; }
+			doOneStep();
+			if(stopAtStep>0 && stopAtStep==step){ boost::mutex::scoped_lock l(runMutex); stopFlag=true; }
+			if(stopFlagSet()){ boost::mutex::scoped_lock l(runMutex); runningFlag=false; return; }
+		}
+	} catch(std::exception& e){
+		LOG_ERROR("Exception: "<<endl<<e.what());
+		except=make_shared<std::exception>(e);
+		{ boost::mutex::scoped_lock l(runMutex); runningFlag=false; }
+		return;
+	}
+}
+
+
+
 std::string Scene::pyTagsProxy::getItem(const std::string& key){ return scene->tags[key]; }
 void Scene::pyTagsProxy::setItem(const std::string& key,const std::string& val){ scene->tags[key]=val; }
 void Scene::pyTagsProxy::delItem(const std::string& key){ size_t i=scene->tags.erase(key); if(i==0) yade::KeyError(key); }
@@ -154,7 +217,7 @@ void Scene::postLoad(Scene&){
 
 
 
-void Scene::moveToNextTimeStep(){
+void Scene::doOneStep(){
 	if(runInternalConsistencyChecks){
 		runInternalConsistencyChecks=false;
 		// checkStateTypes();

@@ -3,6 +3,8 @@
 #include<time.h>
 #include<boost/python.hpp>
 
+namespace yade{
+
 struct TimingInfo{
 	typedef unsigned long long delta;
 	long nExec;
@@ -43,4 +45,13 @@ class TimingDeltas{
 			for(size_t i=0; i<data.size(); i++){ ret.append(boost::python::make_tuple(labels[i],data[i].nsec,data[i].nExec));}
 			return ret;
 		}
+	static void pyRegisterClass(){
+		py::class_<TimingDeltas, shared_ptr<TimingDeltas>, boost::noncopyable>("TimingDeltas")
+			.add_property("data",&TimingDeltas::pyData,"Get timing data as list of tuples (label, execTime[nsec], execCount) (one tuple per checkpoint)")
+			.def("reset",&TimingDeltas::reset,"Reset timing information")
+		;
+	}
+
+};
+
 };

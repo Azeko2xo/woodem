@@ -37,6 +37,26 @@ void Engine::field_set(const shared_ptr<Field>& f){
 	else{ field=f; userAssignedField=true; }
 }
 
+void Engine::runPy(const string& command){
+	if(command.empty()) return;
+	#if 0
+		pyRunString(command);
+	#else
+		GilLock lock;
+		try{
+			py::object global(py::import("__main__").attr("__dict__"));
+			py::dict local;
+			local["scene"]=py::object(py::ptr(scene));
+			local["S"]=py::object(py::ptr(scene));
+			local["engine"]=py::object(py::ptr(this));
+			local["field"]=py::object(field);
+			py::exec(command.c_str(),global,local);
+		} catch (py::error_already_set& e){
+			throw std::runtime_error("PyRunner exception in '"+command+"':\n"+parsePythonException_gilLocked());
+		};
+	#endif
+};
+
 
 void ParallelEngine::setField(){
 	FOREACH(vector<shared_ptr<Engine> >& grp, slaves){
@@ -46,6 +66,7 @@ void ParallelEngine::setField(){
 		}
 	}
 }
+
 
 
 void ParallelEngine::run(){
@@ -123,8 +144,6 @@ bool PeriodicEngine::isActivated(){
 	}
 	return false;
 }
-
-void PyRunner::run(){ if(command.size()>0) pyRunString(command); }
 
 void PyRunner::pyHandleCustomCtorArgs(py::tuple& t, py::dict& d){
 	bool cmdDone(false),stepDone(false);

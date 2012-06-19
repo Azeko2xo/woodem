@@ -63,47 +63,10 @@ class pyOmega{
 		assert(rb);
 	};
 
-	void mapLabeledEntitiesToVariables(){
-	};
-
-	long iter(){ return OMEGA.getScene()->step;}
-	int subStep(){ return OMEGA.getScene()->subStep; }
-	bool subStepping_get(){ return OMEGA.getScene()->subStepping; }
-	void subStepping_set(bool val){ OMEGA.getScene()->subStepping=val; }
-
-	double time(){return OMEGA.getScene()->time;}
 	double realTime(){ return OMEGA.getRealTime(); }
-	//double dt_get(){return OMEGA.getScene()->dt;}
-	//void dt_set(double dt){
-	//	Scene* scene=OMEGA.getScene().get();
-	//	scene->dt=dt;
-	//	}
-	long stopAtIter_get(){return OMEGA.getScene()->stopAtStep; }
-	void stopAtIter_set(long s){OMEGA.getScene()->stopAtStep=s; }
-
 
 	bool timingEnabled_get(){return TimingInfo::enabled;}
 	void timingEnabled_set(bool enabled){TimingInfo::enabled=enabled;}
-
-	void run(long int numIter=-1,bool doWait=false){
-		Scene* scene=OMEGA.getScene().get();
-		if(numIter>0) scene->stopAtStep=scene->step+numIter;
-		OMEGA.run();
-		// timespec t1,t2; t1.tv_sec=0; t1.tv_nsec=40000000; /* 40 ms */
-		// while(!OMEGA.isRunning()) nanosleep(&t1,&t2); // wait till we start, so that calling wait() immediately afterwards doesn't return immediately
-		LOG_DEBUG("RUN"<<((scene->stopAtStep-scene->step)>0?string(" ("+lexical_cast<string>(scene->stopAtStep-scene->step)+" to go)"):string(""))<<"!");
-		if(doWait) wait();
-	}
-	void pause(){Py_BEGIN_ALLOW_THREADS; OMEGA.pause(); Py_END_ALLOW_THREADS; LOG_DEBUG("PAUSE!");}
-	void step() { if(OMEGA.isRunning()) throw runtime_error("Called O.step() while simulation is running."); OMEGA.getScene()->moveToNextTimeStep(); /* LOG_DEBUG("STEP!"); run(1); wait(); */ }
-	void wait(){
-		if(OMEGA.isRunning()){LOG_DEBUG("WAIT!");} else return;
-		timespec t1,t2; t1.tv_sec=0; t1.tv_nsec=40000000; /* 40 ms */ Py_BEGIN_ALLOW_THREADS; while(OMEGA.isRunning()) nanosleep(&t1,&t2); Py_END_ALLOW_THREADS;
-		if(!OMEGA.simulationLoop.workerThrew) return;
-		LOG_ERROR("Simulation error encountered."); OMEGA.simulationLoop.workerThrew=false; throw OMEGA.simulationLoop.workerException;
-	}
-	bool isRunning(){ return OMEGA.isRunning(); }
-	py::object get_filename(){ string f(OMEGA.getScene()->lastSave); if(f.size()>0) return py::object(f); return py::object();}
 
 	void saveTmpAny(shared_ptr<Object> obj, const string& name, bool quiet){ OMEGA.saveTmp(obj,name,quiet); }
 	shared_ptr<Object> loadTmpAny(const string& name){ return OMEGA.loadTmp(name); }
@@ -124,8 +87,6 @@ class pyOmega{
 		return OMEGA.memSavedSimulations[":memory:"+mark];
 	}
 
-	void reset(){Py_BEGIN_ALLOW_THREADS; OMEGA.reset(); Py_END_ALLOW_THREADS; }
-	// void resetThisScene(){Py_BEGIN_ALLOW_THREADS; OMEGA.stop(); Py_END_ALLOW_THREADS; OMEGA.resetScene(); }
 	void resetTime(){ OMEGA.getScene()->step=0; OMEGA.getScene()->time=0; }
 	void switchScene(){ std::swap(OMEGA.scene,OMEGA.sceneAnother); }
 	shared_ptr<Scene> scene_get(){ return OMEGA.getScene(); }
@@ -148,8 +109,6 @@ class pyOmega{
 		return ret;
 	}
 
-	// pyTags tags_get(void){assertScene(); return pyTags(OMEGA.getScene());}
-
 	#ifdef YADE_OPENMP
 		int numThreads_get(){ return omp_get_max_threads();}
 		// void numThreads_set(int n){ int bcn=OMEGA.getScene()->forces.getNumAllocatedThreads(); if(bcn<n) LOG_WARN("ForceContainer has only "<<bcn<<" threads allocated. Changing thread number to on "<<bcn<<" instead of "<<n<<" requested."); omp_set_num_threads(min(n,bcn)); LOG_WARN("BUG: Omega().numThreads=n doesn't work as expected (number of threads is not changed globally). Set env var OMP_NUM_THREADS instead."); }
@@ -163,12 +122,6 @@ class pyOmega{
 		void defaultClDev_set(const Vector2i dev){ OMEGA.defaultClDev=dev; }
 	#endif
 	
-	// shared_ptr<Cell> cell_get(){ if(OMEGA.getScene()->isPeriodic) return OMEGA.getScene()->cell; return shared_ptr<Cell>(); }
-
-	//shared_ptr<EnergyTracker> energy_get(){ return OMEGA.getScene()->energy; }
-	//bool trackEnergy_get(void){ return OMEGA.getScene()->trackEnergy; }
-//	void trackEnergy_set(bool e){ OMEGA.getScene()->trackEnergy=e; }
-
 	void disableGdb(){
 		signal(SIGSEGV,SIG_DFL);
 		signal(SIGABRT,SIG_DFL);
@@ -230,23 +183,13 @@ BOOST_PYTHON_MODULE(wrapper)
 
 	py::class_<pyOmega>("Omega")
 		.add_property("realtime",&pyOmega::realTime,"Return clock (human world) time the simulation has been running.")
-		//.def("load",&pyOmega::load,(py::arg("file"),py::arg("quiet")=false),"Load simulation from file.")
-		//.def("reload",&pyOmega::reload,(py::arg("quiet")=false),"Reload current simulation")
-		//.def("save",&pyOmega::save,(py::arg("file"),py::arg("quiet")=false),"Save current simulation to file (should be .xml or .xml.bz2)")
-		//.def("loadTmp",&pyOmega::loadTmp,(py::arg("mark")="",py::arg("quiet")=false),"Load simulation previously stored in memory by saveTmp. *mark* optionally distinguishes multiple saved simulations")
-		//.def("saveTmp",&pyOmega::saveTmp,(py::arg("mark")="",py::arg("quiet")=false),"Save simulation to memory (disappears at shutdown), can be loaded later with loadTmp. *mark* optionally distinguishes different memory-saved simulations.")
+
 		.def("loadTmpAny",&pyOmega::loadTmpAny,(py::arg("name")=""),"Load any object from named temporary store.")
 		.def("saveTmpAny",&pyOmega::saveTmpAny,(py::arg("obj"),py::arg("name")="",py::arg("quiet")=false),"Save any object to named temporary store; *quiet* will supress warning if the name is already used.")
 		.def("lsTmp",&pyOmega::lsTmp,"Return list of all memory-saved simulations.")
 		.def("tmpToFile",&pyOmega::tmpToFile,(py::arg("mark"),py::arg("fileName")),"Save XML of :yref:`saveTmp<Omega.saveTmp>`'d simulation into *fileName*.")
 		.def("tmpToString",&pyOmega::tmpToString,(py::arg("mark")=""),"Return XML of :yref:`saveTmp<Omega.saveTmp>`'d simulation as string.")
 
-		.def("run",&pyOmega::run,(py::arg("nSteps")=-1,py::arg("wait")=false),"Run the simulation. *nSteps* how many steps to run, then stop (if positive); *wait* will cause not returning to python until simulation will have stopped.")
-		.def("pause",&pyOmega::pause,"Stop simulation execution. (May be called from within the loop, and it will stop after the current step).")
-		.def("step",&pyOmega::step,"Advance the simulation by one step. Returns after the step will have finished.")
-		.def("wait",&pyOmega::wait,"Don't return until the simulation will have been paused. (Returns immediately if not running).")
-		.add_property("running",&pyOmega::isRunning,"Whether background thread is currently running a simulation.")
-		.def("reset",&pyOmega::reset,"Reset simulations completely (including another scene!).")
 		.def("switchScene",&pyOmega::switchScene,"Switch to alternative simulation (while keeping the old one). Calling the function again switches back to the first one. Note that most variables from the first simulation will still refer to the first simulation even after the switch\n(e.g. b=O.bodies[4]; O.switchScene(); [b still refers to the body in the first simulation here])")
 		.def("resetTime",&pyOmega::resetTime,"Reset simulation time: step number, virtual and real time. (Doesn't touch anything else, including timings).")
 		.def("plugins",&pyOmega::plugins_get,"Return list of all plugins registered in the class factory.")
@@ -275,19 +218,10 @@ BOOST_PYTHON_MODULE(wrapper)
 		.def("exitNoBacktrace",&pyOmega::exitNoBacktrace,(py::arg("status")=0),"Disable SEGV handler and exit, optionally with given status number.")
 		.def("disableGdb",&pyOmega::disableGdb,"Revert SEGV and ABRT handlers to system defaults.")
 		.def("tmpFilename",&pyOmega::tmpFilename,"Return unique name of file in temporary directory which will be deleted when yade exits.")
-		;
-//////////////////////////////////////////////////////////////
-///////////// proxyless wrappers 
-	// wrapped as AttrTrait in python
-	//yade::AttrTraitBase::pyRegisterClass();
-	//Object().pyRegisterClass();
-
-	py::class_<TimingDeltas, shared_ptr<TimingDeltas>, boost::noncopyable >("TimingDeltas").add_property("data",&TimingDeltas::pyData,"Get timing data as list of tuples (label, execTime[nsec], execCount) (one tuple per checkpoint)").def("reset",&TimingDeltas::reset,"Reset timing information");
-
+	;
 
 	// http://numpy.scipy.org/numpydoc/numpy-13.html mentions this must be done in module init, otherwise we will crash
 	import_array();
-
 
 	py::scope().attr("O")=pyOmega();
 }

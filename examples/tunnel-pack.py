@@ -4,7 +4,8 @@ from yade import *
 from yade.core import *
 from yade.dem import *
 from miniEigen import *
-from yade import pack
+from yade import pack,log
+log.setLevel('PeriIsoCompressor',log.DEBUG)
 
 """Simple script to create tunnel with random dense packing of spheres.
 The tunnel is difference between an axis-aligned box and cylinder, or which
@@ -23,7 +24,7 @@ rSphere=.1
 # (see scripts/test/pack-predicates.py for details)
 pred=pack.inAlignedBox((-.5*boxSize[0],-.5*boxSize[1],0),(.5*boxSize[0],.5*boxSize[1],boxSize[2])) - pack.inCylinder((-.5*boxSize[0],0,0),(.5*boxSize[0],0,0),tunnelRad)
 # Use the predicate to generate sphere packing inside 
-pack.randomDensePack(pred,radius=rSphere,rRelFuzz=.3,memoizeDb='/tmp/triaxPackCache.sqlite',spheresInCell=3000).toSimulation()
+pack.randomDensePack(pred,radius=rSphere,rRelFuzz=.3,memoizeDb='/tmp/triaxPackCache.sqlite',spheresInCell=3000).toSimulation(O.scene)
 
 from yade import qt
 qt.Controller()

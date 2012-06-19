@@ -110,17 +110,17 @@ def addDataColumns(dd):
 		if d in data.keys(): continue
 		data[d]=[nan for i in range(numSamples)]
 
-def addAutoData():
+def addAutoData(**kw):
 	"""Add data by evaluating contents of :yref:`yade.plot.plots`. Expressions rasing exceptions will be handled gracefully, but warning is printed for each.
 	
 	>>> from yade import plot; from yade.dem import *; from yade.core import *
 	>>> from pprint import pprint
-	>>> O.reset(); O.scene.fields=[DemField()]
+	>>> S=Scene(fields=[DemField()])
 	>>> plot.resetData()
-	>>> plot.plots={'O.scene.step':('O.scene.time',None,'numParticles=len(O.dem.par)')}
-	>>> plot.addAutoData()
+	>>> plot.plots={'S.step':('S.time',None,'numParticles=len(S.dem.par)')}
+	>>> plot.addAutoData(S=S)
 	>>> pprint(plot.data)
-	{'O.scene.step': [0], 'O.scene.time': [0.0], 'numParticles': [0]}
+	{'S.step': [0], 'S.time': [0.0], 'numParticles': [0]}
 
 	Note that each item in :yref:`yade.plot.plots` can be
 
@@ -131,23 +131,21 @@ def addAutoData():
 	A simple simulation with plot can be written in the following way; note how the energy plot is specified.
 
 	>>> from yade import plot, utils
-	>>> plot.plots={'i=O.scene.step':(O.scene.energy,None,'total energy=O.scene.energy.total()')}
-	>>> # we create a simple simulation with one ball falling down
+	>>> S=Scene(fields=[DemField()])
 	>>> plot.resetData()
-	>>> O.dem.par.append(utils.sphere((0,0,0),1))
+	>>> plot.plots={'i=S.step':(S.energy,None,'total energy=S.energy.total()')}
+	>>> # we create a simple simulation with one ball falling down
+	>>> S.dem.par.append(utils.sphere((0,0,0),1,mat=utils.defaultMaterial()))
 	0
-	>>> O.dem.collectNodes() 
+	>>> S.dem.collectNodes() 
 	1
-	>>> O.scene.dt=utils.pWaveDt()
-	>>> O.scene.engines=[
-	...    ForceResetter(),
-	...    Gravity(gravity=(0,0,-10)),
-	...    Leapfrog(damping=.4,kinSplit=True),
+	>>> S.dt=utils.pWaveDt(S)
+	>>> S.engines=[ForceResetter(),Gravity(gravity=(0,0,-10)),Leapfrog(kinSplit=True,damping=.4),
 	...    # get data required by plots at every step
-	...    PyRunner(1,'yade.plot.addAutoData()')
+	...    PyRunner(1,'yade.plot.addAutoData(S=S)')
 	... ]
-	>>> O.scene.trackEnergy=True
-	>>> O.run(2,True)
+	>>> S.trackEnergy=True
+	>>> S.run(2,True)
 	>>> pprint(plot.data)   #doctest: +ELLIPSIS
 	{'grav': [0.0, -25.13...],
 	 'i': [0, 1],
@@ -162,31 +160,33 @@ def addAutoData():
 		from yade.dem import *
 		from yade.core import *
 		from yade import plot,utils
-		O.reset()
-		O.dem.par.append(utils.sphere((0,0,0),1));
-		O.scene.dt=utils.pWaveDt()
-		O.scene.engines=[Gravity(gravity=(0,0,-10)),Leapfrog(damping=.4,kinSplit=True,reset=True),PyRunner(1,'yade.plot.addAutoData()')]
+		S=Scene()
+		S.dem.par.append(utils.sphere((0,0,0),1));
+		S.dt=utils.pWaveDt(S)
+		S.engines=[Gravity(gravity=(0,0,-10)),Leapfrog(damping=.4,kinSplit=True,reset=True),PyRunner(1,'yade.plot.addAutoData(S=S)')]
 		plot.resetData()
-		plot.plots={'i=O.iter':(O.scene.energy,None,'total energy=O.scene.energy.total()')}
-		O.scene.trackEnergy=True
-		O.run(500,True)
+		plot.plots={'i=S.iter':(S.energy,None,'total energy=S.energy.total()')}
+		S.trackEnergy=True
+		S.run(500,True)
 		import pylab; pylab.grid(True)
 		plot.legendLoc=('lower left','upper right')
 		plot.plot(noShow=True)
 
 	"""
-	def colDictUpdate(col,dic):
+	def colDictUpdate(col,dic,kw):
 		'update *dic* with the value from col, which is a "expr" or "name=expr" string; all exceptions from  ``eval`` are caught and warning is printed without adding any data.'
 		name,expr=col.split('=',1) if '=' in col else (col,col)
 		try:
-			val=eval(expr)
+			val=eval(expr,kw)
 			dic.update({name:val})
 		except:
+			import traceback 
+			traceback.print_exc()
 			print 'WARN: ignoring exception raised while evaluating auto-column `'+expr+"'%s."%('' if name==expr else ' ('+name+')')
 	cols={}
 	for p in plots:
 		pp=plots[p]
-		colDictUpdate(p.strip(),cols)
+		colDictUpdate(p.strip(),cols,kw)
 		for y in tuplifyYAxis(plots[p]):
 			# imgplot specifier
 			if y==None: continue
@@ -197,7 +197,7 @@ def addAutoData():
 			#elif callable(yy):
 			#	for yyy in yy(): colDictUpdate(yyy,cols)
 			# plain value
-			else: colDictUpdate(yy,cols)
+			else: colDictUpdate(yy,cols,kw)
 	addData(cols)
 
 

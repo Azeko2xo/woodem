@@ -99,7 +99,7 @@ void PeriIsoCompressor::run(){
 			// sigmaGoal reached and packing stable
 			if(state==stresses.size()){ // no next stress to go for
 				LOG_INFO("Finished");
-				if(!doneHook.empty()){ LOG_DEBUG("Running doneHook: "<<doneHook); pyRunString(doneHook); }
+				if(!doneHook.empty()){ LOG_DEBUG("Running doneHook: "<<doneHook); runPy(doneHook); }
 			} else { LOG_INFO("Loaded to "<<sigmaGoal<<" done, going to "<<stresses[state]<<" now"); }
 		} else {
 			if((step%globalUpdateInt)==0) LOG_DEBUG("Stress="<<sigma<<", goal="<<sigmaGoal<<", unbalanced="<<currUnbalanced);

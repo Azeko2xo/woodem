@@ -32,7 +32,7 @@ env.Install('$LIBDIR/lib',[
 			'Scene.cpp',
 			'Dispatcher.cpp',
 			'Omega.cpp',
-			'BgThread.cpp',
+			#'BgThread.cpp',
 			'Preprocessor.cpp',
 			'corePlugins.cpp'
 			]
