@@ -1,6 +1,5 @@
 # encoding: utf-8
 # various monkey-patches for wrapped c++ classes
-import yade.wrapper
 import yade.core
 import yade.system
 #import yade.dem
@@ -353,38 +352,38 @@ Object.loads=classmethod(_Object_loads)
 Object.loadTmp=classmethod(_Object_loadTmp)
 
 
-def _Omega_save(o,*args,**kw):
+def _Master_save(o,*args,**kw):
 	o.scene.save(*args,**kw)
-def _Omega_load(o,*args,**kw):
+def _Master_load(o,*args,**kw):
 	o.scene=yade.core.Scene.load(*args,**kw)
-def _Omega_reload(o,quiet=None,*args,**kw): # this arg is deprecated
+def _Master_reload(o,quiet=None,*args,**kw): # this arg is deprecated
 	f=o.scene.lastSave
 	if not f: raise ValueError("Scene.lastSave is empty.")
 	if f.startswith(':memory:'): o.scene=yade.core.Scene.loadTmp(f[8:])
 	else: o.scene=yade.core.Scene.load(f,*args,**kw)
-def _Omega_loadTmp(o,name='',quiet=None): # quiet deprecated
+def _Master_loadTmp(o,name='',quiet=None): # quiet deprecated
 	o.scene=yade.core.Scene.loadTmp(name)
-def _Omega_saveTmp(o,name='',quiet=False):
+def _Master_saveTmp(o,name='',quiet=False):
 	o.scene.lastSave=':memory:'+name
 	o.scene.saveTmp(name,quiet)
 
-yade.wrapper.Omega.save=_Omega_save
-yade.wrapper.Omega.load=_Omega_load
-yade.wrapper.Omega.reload=_Omega_reload
-yade.wrapper.Omega.loadTmp=_Omega_loadTmp
-yade.wrapper.Omega.saveTmp=_Omega_saveTmp
+yade.core.Master.save=_Master_save
+yade.core.Master.load=_Master_load
+yade.core.Master.reload=_Master_reload
+yade.core.Master.loadTmp=_Master_loadTmp
+yade.core.Master.saveTmp=_Master_saveTmp
 
-def _Omega_run(o,*args,**kw): return o.scene.run(*args,**kw)
-def _Omega_pause(o,*args,**kw): return o.scene.stop(*args,**kw)
-def _Omega_step(o,*args,**kw): return o.scene.one(*args,**kw)
-def _Omega_wait(o,*args,**kw): return o.scene.wait(*args,**kw)
-def _Omega_reset(o):
+def _Master_run(o,*args,**kw): return o.scene.run(*args,**kw)
+def _Master_pause(o,*args,**kw): return o.scene.stop(*args,**kw)
+def _Master_step(o,*args,**kw): return o.scene.one(*args,**kw)
+def _Master_wait(o,*args,**kw): return o.scene.wait(*args,**kw)
+def _Master_reset(o):
 	o.scene=yade.core.Scene()
 
-#def _Omega_running(o.,*args,**kw): return o.scene.running
-yade.wrapper.Omega.run=_Omega_run
-yade.wrapper.Omega.pause=_Omega_pause
-yade.wrapper.Omega.step=_Omega_step
-yade.wrapper.Omega.wait=_Omega_wait
-yade.wrapper.Omega.running=property(lambda o: o.scene.running)
-yade.wrapper.Omega.reset=_Omega_reset
+#def _Master_running(o.,*args,**kw): return o.scene.running
+yade.core.Master.run=_Master_run
+yade.core.Master.pause=_Master_pause
+yade.core.Master.step=_Master_step
+yade.core.Master.wait=_Master_wait
+yade.core.Master.running=property(lambda o: o.scene.running)
+yade.core.Master.reset=_Master_reset

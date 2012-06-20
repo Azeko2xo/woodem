@@ -179,7 +179,7 @@ BOOST_PYTHON_MODULE(wrapper)
 	py::scope().attr("__doc__")="Wrapper for c++ internals of yade.";
 
 	YADE_SET_DOCSTRING_OPTS;
-
+# if 0
 	py::class_<pyOmega>("Omega")
 		.add_property("realtime",&pyOmega::realTime,"Return clock (human world) time the simulation has been running.")
 
@@ -222,6 +222,7 @@ BOOST_PYTHON_MODULE(wrapper)
 	// http://numpy.scipy.org/numpydoc/numpy-13.html mentions this must be done in module init, otherwise we will crash
 	import_array();
 
-	py::scope().attr("O")=pyOmega();
+	//py::scope().attr("O")=pyOmega();
+#endif
 }
 

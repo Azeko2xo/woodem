@@ -10,6 +10,7 @@ Devs: please DO NOT ADD more functions here, it is getting too crowded!
 """
 
 import math,random,doctest,geom
+import yade
 from yade import *
 from yade.wrapper import *
 from miniEigen import *
@@ -41,7 +42,7 @@ def saveVars(mark='',loadNow=True,**kw):
 	and they will be defined in the yade.params.\ *mark* module. The *loadNow* parameter calls :yref:`yade.utils.loadVars` after saving automatically.
 	"""
 	import cPickle
-	Omega().scene.tags['pickledPythonVariablesDictionary'+mark]=cPickle.dumps(kw)
+	yade.master.scene.tags['pickledPythonVariablesDictionary'+mark]=cPickle.dumps(kw)
 	if loadNow: loadVars(mark)
 
 def loadVars(mark=None):
@@ -49,7 +50,7 @@ def loadVars(mark=None):
 	If ``mark==None``, all save variables are loaded. Otherwise only those with
 	the mark passed."""
 	import cPickle, types, sys, warnings
-	scene=Omega().scene
+	scene=yade.master.scene
 	def loadOne(d,mark=None):
 		"""Load given dictionary into a synthesized module yade.params.name (or yade.params if *name* is not given). Update yade.params.__all__ as well."""
 		import yade.params
@@ -684,7 +685,7 @@ def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 
 	Assigned tags (the ``description`` column is synthesized if absent,see :yref:`yade.utils.TableParamReader`); 
 
-		s=O.scene
+		s=yade.master.scene
 		s.tags['description']=…                                      # assigns the description column; might be synthesized
 		s.tags['params']="name1=val1,name2=val2,…"                   # all explicitly assigned parameters
 		s.tags['defaultParams']="unassignedName1=defaultValue1,…"    # parameters that were left at their defaults
@@ -703,7 +704,7 @@ def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 	# dictParams is what eventually ends up in yade.params.table (default+specified values)
 	dictDefaults,dictParams,dictAssign={},{},{}
 	import os, __builtin__,re,math
-	s=Omega().scene
+	s=yade.master.scene
 	if not tableFileLine and ('YADE_BATCH' not in os.environ or os.environ['YADE_BATCH']==''):
 		if not noTableOk: raise EnvironmentError("YADE_BATCH is not defined in the environment")
 		s.tags['line']='l!'

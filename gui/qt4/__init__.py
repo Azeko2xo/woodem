@@ -165,7 +165,7 @@ class ControllerClass(QWidget,Ui_Controller):
 			elif out: newScene.save(out)
 			else: pass # only generate, don't save
 			if auto:
-				if O.running:
+				if O.scene.running:
 					import sys
 					sys.stdout.write('Stopping the current simulation...')
 					O.pause()
@@ -259,7 +259,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.dtEditUpdate=True
 	def activateControls(self):
 		hasSim=len(O.scene.engines)>0
-		running=O.running
+		running=O.scene.running
 		if hasSim:
 			self.playButton.setEnabled(not running)
 			self.pauseButton.setEnabled(running)
@@ -288,7 +288,7 @@ class ControllerClass(QWidget,Ui_Controller):
 			self.stepTimes[0]=self.stepTimes[1]; self.stepValues[0]=self.stepValues[1]
 			self.stepTimes[1]=rt; self.stepValues[1]=step;
 			self.stepPerSec=(self.stepValues[-1]-self.stepValues[-2])/(self.stepTimes[-1]-self.stepTimes[-2])
-		if not O.running: self.stepPerSec=0
+		if not O.scene.running: self.stepPerSec=0
 		stopAtStep=scene.stopAtStep
 		subStepInfo=''
 		if scene.subStepping:

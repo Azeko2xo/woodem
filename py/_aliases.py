@@ -1,5 +1,5 @@
-from yade import Omega
 from yade import core
+from yade.core import Master
 core.Field.nod=core.Field.nodes
 
 try:
@@ -9,10 +9,10 @@ try:
 	dem.Particle.mat=dem.Particle.material
 	core.Scene.dem=property(lambda s: dem.DemField.sceneGetField(s))
 	core.Scene.hasDem=property(lambda s: dem.DemField.sceneHasField(s))
-	def Omega_dem(o): raise ValueError("Omega.dem is no longer supported, use Scene.dem instead")
-	def Omega_hasDem(o): raise ValueError("Omega.hasDem is no longer supported, use Scene.hasDem instead")
-	Omega.dem=property(Omega_dem)
-	Omega.hasdem=property(Omega_hasDem)
+	def Master_dem(o): raise ValueError("Master.dem is no longer supported, use Scene.dem instead")
+	def Master_hasDem(o): raise ValueError("Master.hasDem is no longer supported, use Scene.hasDem instead")
+	core.Master.dem=property(Master_dem)
+	core.Master.hasdem=property(Master_hasDem)
 	# DemData defines those methods, which are used for transparent access to respective data field
 	core.Node.dem=property(dem.DemData._getDataOnNode,dem.DemData._setDataOnNode)
 except ImportError:

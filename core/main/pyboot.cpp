@@ -83,6 +83,7 @@ void yadeInitialize(py::list& pp, const std::string& confDir){
 	yade::AttrTraitBase::pyRegisterClass();
 	yade::TimingDeltas::pyRegisterClass();
 	Object().pyRegisterClass(); // virtual method, therefore cannot be static
+	Omega::pyRegisterClass();
 
 	// this registers all other classes
 	Omega::instance().loadPlugins(ppp);

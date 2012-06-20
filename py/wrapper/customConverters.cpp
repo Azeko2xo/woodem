@@ -45,13 +45,6 @@
 #include<yade/pkg/dem/ParticleContainer.hpp>
 #include<yade/core/MatchMaker.hpp>
 
-#if 0
-#include<yade/core/Engine.hpp>
-#include<yade/pkg/common/Dispatching.hpp>
-#include<yade/pkg/dem/SpherePack.hpp>
-#include<yade/pkg/common/KinematicEngines.hpp>
-#endif
-
 
 #ifdef YADE_OPENGL
 	#include<yade/pkg/gl/Functors.hpp>
@@ -66,6 +59,7 @@
 using namespace py; // = boost::python
 
 
+#if 0
 /* two-way se3 handling */
 struct custom_se3_to_tuple{
 	static PyObject* convert(const Se3r& se3){
@@ -97,7 +91,7 @@ struct custom_Se3r_from_seq{
 		data->convertible=storage;
 	}
 };
-
+#endif
 
 struct custom_OpenMPAccumulator_to_float{ static PyObject* convert(const OpenMPAccumulator<Real>& acc){ return incref(PyFloat_FromDouble(acc.get())); } };
 struct custom_OpenMPAccumulator_from_float{
@@ -236,7 +230,9 @@ BOOST_PYTHON_MODULE(_customConverters){
 		custom_vector_from_seq<Vector3r>(); class_<vector<Vector3r> >("vector_" "Vector3r").def(indexing::container_suite<vector<Vector3r> >()).def("__repr__",&vectorRepr<Vector3r>);
 	#endif
 
-	custom_Se3r_from_seq(); to_python_converter<Se3r,custom_se3_to_tuple>();
+	#if 0
+		custom_Se3r_from_seq(); to_python_converter<Se3r,custom_se3_to_tuple>();
+	#endif
 
 	custom_OpenMPAccumulator_from_float(); to_python_converter<OpenMPAccumulator<Real>, custom_OpenMPAccumulator_to_float>(); 
 	custom_OpenMPAccumulator_from_int(); to_python_converter<OpenMPAccumulator<int>, custom_OpenMPAccumulator_to_int>(); 
@@ -275,7 +271,9 @@ BOOST_PYTHON_MODULE(_customConverters){
 		VECTOR_SEQ_CONV(int);
 		VECTOR_SEQ_CONV(bool);
 		VECTOR_SEQ_CONV(Real);
-		VECTOR_SEQ_CONV(Se3r);
+		#if 0
+			VECTOR_SEQ_CONV(Se3r);
+		#endif
 		VECTOR_SEQ_CONV(Vector2r);
 		VECTOR_SEQ_CONV(Vector2i);
 		VECTOR_SEQ_CONV(Vector3r);

@@ -459,7 +459,7 @@ def createPlots(subPlots=True,scatterSize=60,wider=False):
 		if len(plots_p_y2)>0:
 			pylab.twinx() # create the y2 axis
 			createLines(pStrip,plots_p_y2,isY1=False,y2Exists=True)
-		if 'title' in O.scene.tags.keys(): pylab.title(O.scene.tags['title'])
+		if 'title' in yade.master.scene.tags.keys(): pylab.title(yade.master.scene.tags['title'])
 
 
 
@@ -579,7 +579,7 @@ def plot(noShow=False,subPlots=True):
 		>>> from yade import plot
 		>>> plot.resetData()
 		>>> plot.plots={'foo':('bar',)}
-		>>> somePdf=O.tmpFilename()+'.pdf'
+		>>> somePdf=yade.master.tmpFilename()+'.pdf'
 		>>> plot.plot(noShow=True).savefig(somePdf)
 		>>> import os
 		>>> os.path.exists(somePdf)

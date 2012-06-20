@@ -1,7 +1,6 @@
 #pragma once
 
 #include<yade/lib/object/Object.hpp>
-#include<yade/core/Omega.hpp>
 #include<yade/core/Field.hpp>
 #include<yade/core/Timing.hpp>
 #include<yade/lib/base/Logging.hpp>
@@ -48,6 +47,7 @@ class Engine: public Object {
 		#endif
 
 		void postLoad(Engine&);
+		void setDefaultScene();
 
 		void runPy(const string&);
 
@@ -90,7 +90,7 @@ class Engine: public Object {
 		((shared_ptr<Field>,field,,AttrTrait<>().noGui().noDump(),"User-requested `yade.core.Field` to run this engine on; if empty, fields will be searched for admissible ones; if more than one is found, exception will be raised."))
 		((bool,userAssignedField,false,AttrTrait<Attr::readonly>().noGui(),"Whether the `yade.core.Engine.field` was user-assigned or automatically assigned, to know whether to update automatically."))
 		((bool,isNewObject,true,AttrTrait<Attr::hidden>(),"Flag to recognize in postLoad whether this object has just been constructed, to set userAssignedField properly (ugly...)"))
-		,/* ctor */ scene=Omega::instance().getScene().get(); ,
+		,/* ctor */ setDefaultScene(); ,
 		/* py */
 		.add_property("execTime",&Engine::timingInfo_nsec_get,&Engine::timingInfo_nsec_set,"Cummulative time this Engine took to run (only used if :yref:`O.timingEnabled<Omega.timingEnabled>`\\ ==\\ ``True``).")
 		.add_property("execCount",&Engine::timingInfo_nExec_get,&Engine::timingInfo_nExec_set,"Cummulative count this engine was run (only used if :yref:`O.timingEnabled<Omega.timingEnabled>`\\ ==\\ ``True``).")

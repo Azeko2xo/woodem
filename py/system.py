@@ -10,11 +10,10 @@ from yade._customConverters import *
 from yade import runtime
 from yade import config
 import yade.core
-O=wrapper.Omega()
 
 def childClasses(base,recurse=True,includeBase=False):
 	"""Enumerate classes deriving from given base (as string), recursively by default. Returns set."""
-	ret=set(O.childClassesNonrecursive(base)); ret2=set();
+	ret=set(yade.master.childClassesNonrecursive(base)); ret2=set();
 	if includeBase: ret|=set([base])
 	if not recurse: return ret
 	for bb in ret:
@@ -94,8 +93,8 @@ def setExitHandlers():
 	"""Set exit handler to avoid gdb run if log4cxx crashes at exit."""
 	# avoid backtrace at regular exit, even if we crash
 	if 'log4cxx' in config.features:
-		__builtins__['quit']=wrapper.Omega().exitNoBacktrace
-		sys.exit=wrapper.Omega().exitNoBacktrace
+		__builtins__['quit']=yade.master.exitNoBacktrace
+		sys.exit=yade.master.exitNoBacktrace
 	# this seems to be not needed anymore:
 	#sys.excepthook=sys.__excepthook__ # apport on ubuntu overrides this, we don't need it
 

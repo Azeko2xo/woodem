@@ -10,6 +10,8 @@ void Engine::run(){ throw std::logic_error((getClassName()+" did not override En
 
 void Engine::explicitRun(){ scene=Omega::instance().getScene().get(); if(!field) setField(); run(); }
 
+void Engine::setDefaultScene(){ scene=Omega::instance().getScene().get(); }
+
 void Engine::setField(){
 	if(userAssignedField) return; // do nothing in this case
 	if(!needsField()) return; // no field required, do nothing

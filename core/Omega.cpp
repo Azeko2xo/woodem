@@ -222,3 +222,96 @@ void Omega::initializePlugins(const vector<std::pair<string,string> >& pluginCla
 }
 
 
+py::list Omega::pyListChildClassesNonrecursive(const string& base){
+	py::list ret;
+	for(auto& i: getClassBases()){ if(isInheritingFrom(i.first,base)) ret.append(i.first); }
+	return ret;
+}
+
+bool Omega::pyIsChildClassOf(const string& child, const string& base){
+	return (isInheritingFrom_recursive(child,base));
+}
+
+
+py::list Omega::pyLsTmp(){
+	py::list ret;
+	for(const auto& i: memSavedSimulations) ret.append(boost::algorithm::replace_first_copy(i.first,":memory:",""));
+	return ret;
+}
+
+void Omega::pyTmpToFile(const string& mark, const string& filename){
+	if(memSavedSimulations.count(":memory:"+mark)==0) throw runtime_error("No memory-saved simulation named "+mark);
+	boost::iostreams::filtering_ostream out;
+	if(boost::algorithm::ends_with(filename,".bz2")) out.push(boost::iostreams::bzip2_compressor());
+	out.push(boost::iostreams::file_sink(filename));
+	if(!out.good()) throw runtime_error("Error while opening file `"+filename+"' for writing.");
+	LOG_INFO("Saving :memory:"<<mark<<" to "<<filename);
+	out<<memSavedSimulations[":memory:"+mark];
+}
+
+std::string Omega::pyTmpToString(const string& mark){
+	if(memSavedSimulations.count(":memory:"+mark)==0) throw runtime_error("No memory-saved simulation named "+mark);
+	return memSavedSimulations[":memory:"+mark];
+}
+
+
+py::list Omega::pyLsCmap(){ py::list ret; for(const CompUtils::Colormap& cm: CompUtils::colormaps) ret.append(cm.name); return ret; }
+py::tuple Omega::pyGetCmap(){ return py::make_tuple(CompUtils::defaultCmap,CompUtils::colormaps[CompUtils::defaultCmap].name); } 
+void Omega::pySetCmap(py::object obj){
+	py::extract<int> exInt(obj);
+	py::extract<string> exStr(obj);
+	py::extract<py::tuple> exTuple(obj);
+	if(exInt.check()){
+		int i=exInt();
+		if(i<0 || i>=(int)CompUtils::colormaps.size()) yade::IndexError(boost::format("Colormap index out of range 0…%d")%(CompUtils::colormaps.size()));
+		CompUtils::defaultCmap=i;
+		return;
+	}
+	if(exStr.check()){
+		int i=-1; string s(exStr());
+		for(const CompUtils::Colormap& cm: CompUtils::colormaps){ i++; if(cm.name==s){ CompUtils::defaultCmap=i; return; } }
+		yade::KeyError("No colormap named `"+s+"'.");
+	}
+	if(exTuple.check() && py::extract<int>(exTuple()[0]).check() && py::extract<string>(exTuple()[1]).check()){
+		int i=py::extract<int>(exTuple()[0]); string s=py::extract<string>(exTuple()[1]);
+		if(i<0 || i>=(int)CompUtils::colormaps.size()) yade::IndexError(boost::format("Colormap index out of range 0…%d")%(CompUtils::colormaps.size()));
+		CompUtils::defaultCmap=i;
+		if(CompUtils::colormaps[i].name!=s) LOG_WARN("Given colormap name ignored, does not match index");
+		return;
+	}
+	yade::TypeError("cmap can be specified as int, str or (int,str)");
+}
+
+
+void termHandlerNormal(int sig){cerr<<"Yade: normal exit."<<endl; raise(SIGTERM);}
+void termHandlerError(int sig){cerr<<"Yade: error exit."<<endl; raise(SIGTERM);}
+
+void Omega::pyExitNoBacktrace(int status){
+	if(status==0) signal(SIGSEGV,termHandlerNormal); /* unset the handler that runs gdb and prints backtrace */
+	else signal(SIGSEGV,termHandlerError);
+	// try to clean our mess
+	cleanupTemps();
+	// flush all streams (so that in case we crash at exit, unflushed buffers are not lost)
+	fflush(NULL);
+	// attempt exit
+	exit(status);
+}
+
+shared_ptr<yade::Object> Omega::pyGetScene(){ return getScene(); }
+void Omega::pySetScene(const shared_ptr<Object>& s){
+	if(!s) yade::ValueError("Argument is None");
+	if(!dynamic_pointer_cast<Scene>(s)) yade::TypeError("Argument is not a Scene instance");
+	setScene(static_pointer_cast<Scene>(s));
+}
+
+
+py::object Omega::pyGetInstance(){
+	//return py::object(py::ref(Omega::getInstance()));
+	return py::object();
+}
+
+void Omega::pyReset(){
+	getScene()->pyStop();
+	setScene(make_shared<Scene>());
+}
+
