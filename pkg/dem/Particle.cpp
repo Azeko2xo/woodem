@@ -134,7 +134,7 @@ Real Particle::getEk_any(bool trans, bool rot) const {
 	Real ret=0;
 	checkNodes();
 	const DemData& dyn=shape->nodes[0]->getData<DemData>();
-	Scene* scene=Omega::instance().getScene().get();
+	Scene* scene=Master::instance().getScene().get();
 	if(trans){
 		Vector3r fluctVel=scene->isPeriodic?scene->cell->pprevFluctVel(shape->nodes[0]->pos,dyn.vel,scene->dt):dyn.vel;
 		Real Etrans=.5*(dyn.mass*(fluctVel.dot(fluctVel.transpose())));

@@ -6,7 +6,6 @@ Core functionality (Scene in c++), such as accessing bodies, materials, interact
 """
 import unittest
 import random
-from yade.wrapper import *
 from miniEigen import *
 from math import *
 from yade._customConverters import *
@@ -28,6 +27,90 @@ except: pass
 class TestInteractions(unittest.TestCase): pass
 class TestForce(unittest.TestCase): pass
 class TestTags(unittest.TestCase): pass 
+
+
+
+class TestObjectInstantiation(unittest.TestCase):
+	def setUp(self):
+		pass # no setup needed for tests here
+	def testClassCtors(self):
+		"Core: correct types are instantiated"
+		# correct instances created with Foo() syntax
+		import yade.system
+		for r in yade.system.childClasses('Object'):
+			obj=eval(r)();
+			self.assert_(obj.__class__.__name__==r,'Failed for '+r)
+	def testRootDerivedCtors_attrs_few(self):
+		"Core: class ctor's attributes"
+		# attributes passed when using the Foo(attr1=value1,attr2=value2) syntax
+		gm=Shape(color=1.); self.assert_(gm.color==1.)
+	def testDispatcherCtor(self):
+		"Core: dispatcher ctors with functors"
+		# dispatchers take list of their functors in the ctor
+		# same functors are collapsed in one
+		cld1=LawDispatcher([Law2_L6Geom_FrictPhys_IdealElPl(),Law2_L6Geom_FrictPhys_IdealElPl()]); self.assert_(len(cld1.functors)==1)
+		# two different make two different
+		cld2=LawDispatcher([Law2_L6Geom_FrictPhys_IdealElPl(),Law2_L6Geom_FrictPhys_LinEl6()]); self.assert_(len(cld2.functors)==2)
+	def testContactLoopCtor(self):
+		"Core: ContactLoop special ctor"
+		# ContactLoop takes 3 lists
+		id=ContactLoop([Cg2_Facet_Sphere_L6Geom(),Cg2_Sphere_Sphere_L6Geom()],[Cp2_FrictMat_FrictPhys()],[Law2_L6Geom_FrictPhys_IdealElPl()],)
+		self.assert_(len(id.geoDisp.functors)==2)
+		self.assert_(id.geoDisp.__class__==CGeomDispatcher)
+		self.assert_(id.phyDisp.functors[0].__class__==Cp2_FrictMat_FrictPhys)
+		self.assert_(id.lawDisp.functors[0].__class__==Law2_L6Geom_FrictPhys_IdealElPl)
+	def testParallelEngineCtor(self):
+		"Core: ParallelEngine special ctor"
+		pe=ParallelEngine([InsertionSortCollider(),[BoundDispatcher(),ForceResetter()]])
+		self.assert_(pe.slaves[0].__class__==InsertionSortCollider)
+		self.assert_(len(pe.slaves[1])==2)
+		pe.slaves=[]
+		self.assert_(len(pe.slaves)==0)
+	##		
+	## testing incorrect operations that should raise exceptions
+	##
+	def testWrongFunctorType(self):
+		"Core: dispatcher and functor type mismatch is detected"
+		# dispatchers accept only correct functors
+		self.assertRaises(TypeError,lambda: LawDispatcher([Bo1_Sphere_Aabb()]))
+	def testInvalidAttr(self):
+		'Core: invalid attribute access raises AttributeError'
+		# accessing invalid attributes raises AttributeError
+		self.assertRaises(AttributeError,lambda: Sphere(attributeThatDoesntExist=42))
+		self.assertRaises(AttributeError,lambda: Sphere().attributeThatDoesntExist)
+	##
+	## attribute flags
+	##
+	def testTriggerPostLoad(self):
+		'Core: Attr::triggerPostLoad'
+		# RadialEngine normalizes axisDir automatically
+		# anything else could be tested
+		te=RadialForce();
+		te.axisDir=(0,2,0)
+		self.assert_(te.axisDir==(0,1,0))
+	def testHidden(self):
+		'Core: Attr::hidden'
+		# hidden attributes are not wrapped in python at all
+		self.assert_(not hasattr(Contact(),'stepLastSeen'))
+	def testNoSave(self):
+		'Core: Attr::noSave'
+		# update bound of the particle
+		S=Scene(fields=[DemField()])
+		S.dem.par.append(utils.sphere((0,0,0),1))
+		S.dem.collectNodes()
+		S.engines=[InsertionSortCollider([Bo1_Sphere_Aabb()]),Leapfrog(reset=True)]
+		S.one()
+		S.saveTmp(quiet=True)
+		mn0=Vector3(S.dem.par[0].shape.bound.min)
+		S=S.loadTmp()
+		mn1=Vector3(S.dem.par[0].shape.bound.min)
+		# check that the minimum is not saved
+		self.assert_(not isnan(mn0[0]))
+		self.assert_(isnan(mn1[0]))
+	def _testReadonly(self):
+		'Core: Attr::readonly'
+		self.assertRaises(AttributeError,lambda: setattr(Particle(),'id',3))
+
 
 class TestLoop(unittest.TestCase):
 	def setUp(self):

@@ -10,7 +10,7 @@
 
 #include<boost/lexical_cast.hpp>
 
-#include<yade/core/Omega.hpp>
+#include<yade/core/Master.hpp>
 #include<yade/core/Engine.hpp>
 #include<yade/core/Functor.hpp>
 #include<yade/lib/multimethods/DynLibDispatcher.hpp>

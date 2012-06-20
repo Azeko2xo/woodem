@@ -231,7 +231,7 @@ struct Contact: public Object{
 	std::tuple<Vector3r,Vector3r,Vector3r> getForceTorqueBranch(const shared_ptr<Particle>&, int nodeI, Scene* scene);
 	// return position vector between pA and pB, taking in account PBC's; both must be uninodal
 	Vector3r dPos(const Scene* s) const;
-	Vector3r dPos_py() const{ return dPos(Omega::instance().getScene().get()); }
+	Vector3r dPos_py() const{ return dPos(Master::instance().getScene().get()); }
 	Real dist_py() const { return dPos_py().norm(); }
 	Particle::id_t pyId1() const;
 	Particle::id_t pyId2() const;

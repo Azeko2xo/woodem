@@ -21,7 +21,7 @@ env.Install('$LIBDIR/py/yade',[
 	env.AlwaysBuild(env.ScanReplace('config.py.in')),
 	env.File(env.Glob('*.py')),
 	env.File('pack/pack.py'),
-	env.SharedLibrary('wrapper',['wrapper/wrapper.cpp'],SHLIBPREFIX=''), #,LIBS=linkPlugins(['Shop','Dispatching','InteractionLoop','ParallelEngine','Clump'])),
+	#env.SharedLibrary('wrapper',['wrapper/wrapper.cpp'],SHLIBPREFIX=''), #,LIBS=linkPlugins(['Shop','Dispatching','InteractionLoop','ParallelEngine','Clump'])),
 	env.SharedLibrary('_customConverters',['wrapper/customConverters.cpp'],SHLIBPREFIX='',LIBS=env['LIBS']) #+linkPlugins(['Dispatching','MatchMaker']+(['GLDrawFunctors','OpenGLRenderer'] if 'opengl' in env['features'] else [])))
 ])
 env.Install('$LIBDIR/py/yade/tests',[

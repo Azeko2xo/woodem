@@ -2,7 +2,7 @@
 Export geometry to various formats.
 """
 # encoding: utf-8
-from yade.wrapper import *
+from yade.core import *
 
 class VTKWriter:
 	"""

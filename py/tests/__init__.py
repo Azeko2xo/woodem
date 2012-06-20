@@ -4,7 +4,7 @@
 import unittest,inspect
 
 # add any new test suites to the list here, so that they are picked up by testAll
-allTests=['wrapper','core','pbc','clump','psd','io']
+allTests=['core','pbc','clump','psd','io']
 
 # all yade modules (ugly...)
 import yade.export,yade.linterpolation,yade.log,yade.pack,yade.plot,yade.post2d,yade.timing,yade.utils,yade.ymport,yade.geom
@@ -22,7 +22,7 @@ def testModule(module):
 	(http://docs.python.org/library/unittest.html#unittest.TextTestResult)
 	for further processing.
 
-	@param module: fully-qualified module name, e.g. yade.tests.wrapper
+	@param module: fully-qualified module name, e.g. yade.tests.core
 	"""
 	suite=unittest.defaultTestLoader().loadTestsFromName(module)
 	return unittest.TextTestRunner(verbosity=2).run(suite)

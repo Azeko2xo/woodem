@@ -12,7 +12,7 @@
 
 #include<yade/lib/object/Object.hpp>
 #include<yade/lib/multimethods/FunctorWrapper.hpp>
-#include<yade/core/Omega.hpp>
+#include<yade/core/Master.hpp>
 
 namespace yade{ 
 	class TimingDeltas;
@@ -31,7 +31,7 @@ class Functor: public Object
 	virtual ~Functor(); // defined in Dispatcher.cpp
 	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Functor,Object,"Function-like object that is called by Dispatcher, if types of arguments match those the Functor declares to accept.",
 		((string,label,,,"Textual label for this object; must be valid python identifier, you can refer to it directly fron python (must be a valid python identifier).")),
-		/*ctor*/ scene=Omega::instance().getScene().get() ,
+		/*ctor*/ scene=Master::instance().getScene().get() ,
 		.def_readonly("timingDeltas",&Functor::timingDeltas,"Detailed information about timing inside the Dispatcher itself. Empty unless enabled in the source code and O.timingEnabled==True.")
 		.add_property("bases",&Functor::getFunctorTypes,"Ordered list of types (as strings) this functor accepts.")
 	);	

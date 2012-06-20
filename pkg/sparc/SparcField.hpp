@@ -80,7 +80,7 @@ struct SparcData: public NodeData{
 	Matrix3r getD() const{ return .5*(gradV+gradV.transpose()); }
 	Matrix3r getW() const{ return .5*(gradV-gradV.transpose()); }
 	Quaternionr getRotQ(const Real& dt) const;
-	Vector3r getRotVec(){ Quaternionr q(getRotQ(Omega::instance().getScene()->dt)); AngleAxisr aa(q); return aa.axis()*aa.angle(); }
+	Vector3r getRotVec(){ Quaternionr q(getRotQ(Master::instance().getScene()->dt)); AngleAxisr aa(q); return aa.axis()*aa.angle(); }
 	py::list getGFixedV(const Quaternionr& ori){ return getGFixedAny(fixedV,ori); }
 	py::list getGFixedT(const Quaternionr& ori){ return getGFixedAny(fixedT,ori); }
 	py::list getGFixedAny(const Vector3r& any, const Quaternionr& ori);

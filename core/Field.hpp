@@ -1,7 +1,7 @@
 #pragma once
 #include<yade/lib/multimethods/Indexable.hpp>
 #include<yade/lib/object/Object.hpp>
-#include<yade/core/Omega.hpp>
+#include<yade/core/Master.hpp>
 
 namespace py=boost::python;
 

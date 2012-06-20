@@ -87,7 +87,7 @@ void SnapshotEngine::run(){
 
 CREATE_LOGGER(GLViewer);
 
-GLLock::GLLock(GLViewer* _glv): boost::try_mutex::scoped_lock(Omega::instance().renderMutex), glv(_glv){
+GLLock::GLLock(GLViewer* _glv): boost::try_mutex::scoped_lock(Master::instance().renderMutex), glv(_glv){
 	glv->makeCurrent();
 }
 GLLock::~GLLock(){ glv->doneCurrent(); }
@@ -232,7 +232,7 @@ void GLViewer::startClipPlaneManipulation(int planeNo){
 void GLViewer::useDisplayParameters(size_t n, bool fromHandler){
 	/* when build without YADE_XMLSERIALIZATION, serialize to binary; otherwise, prefer xml for readability */
 	LOG_DEBUG("Loading display parameters from #"<<n);
-	vector<shared_ptr<DisplayParameters> >& dispParams=Omega::instance().getScene()->dispParams;
+	vector<shared_ptr<DisplayParameters> >& dispParams=Master::instance().getScene()->dispParams;
 	if(dispParams.size()<=(size_t)n){
 		string msg("Display parameters #"+lexical_cast<string>(n)+" don't exist (number of entries "+lexical_cast<string>(dispParams.size())+")");
 		if(fromHandler) displayMessage(msg.c_str());
@@ -257,7 +257,7 @@ void GLViewer::useDisplayParameters(size_t n, bool fromHandler){
 
 	void GLViewer::saveDisplayParameters(size_t n){
 	LOG_DEBUG("Saving display parameters to #"<<n);
-	vector<shared_ptr<DisplayParameters> >& dispParams=Omega::instance().getScene()->dispParams;
+	vector<shared_ptr<DisplayParameters> >& dispParams=Master::instance().getScene()->dispParams;
 	if(dispParams.size()<=n){while(dispParams.size()<=n) dispParams.push_back(shared_ptr<DisplayParameters>(new DisplayParameters));} assert(n<dispParams.size());
 	shared_ptr<DisplayParameters>& dp=dispParams[n];
 	std::ostringstream oglre;
@@ -275,7 +275,7 @@ void GLViewer::useDisplayParameters(size_t n, bool fromHandler){
 
 string GLViewer::getState(){
 	QString origStateFileName=stateFileName();
-	string tmpFile=Omega::instance().tmpFilename();
+	string tmpFile=Master::instance().tmpFilename();
 	setStateFileName(QString(tmpFile.c_str())); saveStateToFile(); setStateFileName(origStateFileName);
 	LOG_DEBUG("State saved to temp file "<<tmpFile);
 	// read tmp file contents and return it as string
@@ -286,7 +286,7 @@ string GLViewer::getState(){
 }
 
 void GLViewer::setState(string state){
-	string tmpFile=Omega::instance().tmpFilename();
+	string tmpFile=Master::instance().tmpFilename();
 	std::ofstream out(tmpFile.c_str());
 	if(!out.good()){ LOG_ERROR("Error opening temp file `"<<tmpFile<<"', loading aborted."); return; }
 	out<<state; out.close();
@@ -349,13 +349,13 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 	else if(e->key()==Qt::Key_C && (e->modifiers() & Qt::AltModifier)){ displayMessage("Median centering"); centerMedianQuartile(); }
 	else if(e->key()==Qt::Key_C){
 		// center around selected body
-		// if(selectedName() >= 0 && (*(Omega::instance().getScene()->bodies)).exists(selectedName())) setSceneCenter(manipulatedFrame()->position());
+		// if(selectedName() >= 0 && (*(Master::instance().getScene()->bodies)).exists(selectedName())) setSceneCenter(manipulatedFrame()->position());
 		// make all bodies visible
 		//else
 		centerScene();
 	}
 	#if 0
-		else if(e->key()==Qt::Key_D &&(e->modifiers() & Qt::AltModifier)){ /*Body::id_t id; if((id=Omega::instance().getScene()->selection)>=0){ const shared_ptr<Body>& b=Body::byId(id); b->setDynamic(!b->isDynamic()); LOG_INFO("Body #"<<id<<" now "<<(b->isDynamic()?"":"NOT")<<" dynamic"); }*/ LOG_INFO("Selection not supported!!"); }
+		else if(e->key()==Qt::Key_D &&(e->modifiers() & Qt::AltModifier)){ /*Body::id_t id; if((id=Master::instance().getScene()->selection)>=0){ const shared_ptr<Body>& b=Body::byId(id); b->setDynamic(!b->isDynamic()); LOG_INFO("Body #"<<id<<" now "<<(b->isDynamic()?"":"NOT")<<" dynamic"); }*/ LOG_INFO("Selection not supported!!"); }
 	#endif
 	else if(e->key()==Qt::Key_D) {timeDispMask+=1; if(timeDispMask>(TIME_REAL|TIME_VIRT|TIME_ITER))timeDispMask=0; }
 	else if(e->key()==Qt::Key_G) { if(e->modifiers() & Qt::ShiftModifier){ drawGrid=(drawGrid>0?0:7); return; } else drawGrid++; if(drawGrid>=8) drawGrid=0; }
@@ -431,7 +431,7 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 }
 /* Center the scene such that periodic cell is contained in the view */
 void GLViewer::centerPeriodic(){
-	Scene* scene=Omega::instance().getScene().get();
+	Scene* scene=Master::instance().getScene().get();
 	assert(scene->isPeriodic);
 	Vector3r center=.5*scene->cell->getSize();
 	Vector3r halfSize=.5*scene->cell->getSize();
@@ -450,7 +450,7 @@ void GLViewer::centerPeriodic(){
  * "central" (where most bodies is) part very small or even invisible.
  */
 void GLViewer::centerMedianQuartile(){
-	Scene* scene=Omega::instance().getScene().get();
+	Scene* scene=Master::instance().getScene().get();
 	if(scene->isPeriodic){ centerPeriodic(); return; }
 	std::vector<Real> coords[3];
 	FOREACH(const shared_ptr<Field>& f, scene->fields){
@@ -478,7 +478,7 @@ void GLViewer::centerMedianQuartile(){
 }
 
 void GLViewer::centerScene(){
-	Scene* scene=Omega::instance().getScene().get();
+	Scene* scene=Master::instance().getScene().get();
 	if (!scene) return;
 	if(scene->isPeriodic){ centerPeriodic(); return; }
 
@@ -517,7 +517,7 @@ void GLViewer::draw(bool withNames)
 		gl2psStream=fopen(nextFrameSnapshotFilename.c_str(),"wb");
 		if(!gl2psStream){ int err=errno; throw runtime_error(string("Error opening file ")+nextFrameSnapshotFilename+": "+strerror(err)); }
 		LOG_DEBUG("Start saving snapshot to "<<nextFrameSnapshotFilename);
-		size_t nBodies=Omega::instance().getScene()->bodies->size();
+		size_t nBodies=Master::instance().getScene()->bodies->size();
 		int sortAlgo=(nBodies<100 ? GL2PS_BSP_SORT : GL2PS_SIMPLE_SORT);
 		gl2psBeginPage(/*const char *title*/"Some title", /*const char *producer*/ "Yade",
 			/*GLint viewport[4]*/ NULL,
@@ -531,19 +531,19 @@ void GLViewer::draw(bool withNames)
 #endif
 
 	qglviewer::Vec vd=camera()->viewDirection(); renderer->viewDirection=Vector3r(vd[0],vd[1],vd[2]);
-	if(Omega::instance().getScene()){
+	if(Master::instance().getScene()){
 		// int selection = selectedName();
 		#if 0
-		if(selection!=-1 && (*(Omega::instance().getScene()->bodies)).exists(selection) && isMoving){
+		if(selection!=-1 && (*(Master::instance().getScene()->bodies)).exists(selection) && isMoving){
 			static int last(-1);
 			if(last == selection) // delay by one redraw, so the body will not jump into 0,0,0 coords
 			{
-				Quaternionr& q = (*(Omega::instance().getScene()->bodies))[selection]->state->ori;
-				Vector3r&    v = (*(Omega::instance().getScene()->bodies))[selection]->state->pos;
+				Quaternionr& q = (*(Master::instance().getScene()->bodies))[selection]->state->ori;
+				Vector3r&    v = (*(Master::instance().getScene()->bodies))[selection]->state->pos;
 				float v0,v1,v2; manipulatedFrame()->getPosition(v0,v1,v2);v[0]=v0;v[1]=v1;v[2]=v2;
 				double q0,q1,q2,q3; manipulatedFrame()->getOrientation(q0,q1,q2,q3);	q.x()=q0;q.y()=q1;q.z()=q2;q.w()=q3;
 			}
-			(*(Omega::instance().getScene()->bodies))[selection]->userForcedDisplacementRedrawHook();	
+			(*(Master::instance().getScene()->bodies))[selection]->userForcedDisplacementRedrawHook();	
 			last=selection;
 		}
 #endif
@@ -566,7 +566,7 @@ void GLViewer::draw(bool withNames)
 			renderer->clipPlanePos[manipulatedClipPlane]=newPos;
 			renderer->clipPlaneOri[manipulatedClipPlane]=newOri;
 		}
-		const shared_ptr<Scene>& scene=Omega::instance().getScene();
+		const shared_ptr<Scene>& scene=Master::instance().getScene();
 		scene->renderer=renderer;
 		renderer->render(scene,withNames);
 	}
@@ -601,7 +601,7 @@ void GLViewer::postSelection(const QPoint& point)
 
 
 #if 0
-	if(selection>=0 && (*(Omega::instance().getScene()->bodies)).exists(selection)){
+	if(selection>=0 && (*(Master::instance().getScene()->bodies)).exists(selection)){
 		resetManipulation();
 		/*if(Body::byId(Body::id_t(selection))->isClumpMember()){ // select clump (invisible) instead of its member
 			LOG_DEBUG("Clump member #"<<selection<<" selected, selecting clump instead.");
@@ -614,7 +614,7 @@ void GLViewer::postSelection(const QPoint& point)
 		Quaternionr& q = Body::byId(selection)->state->ori;
 		Vector3r&    v = Body::byId(selection)->state->pos;
 		manipulatedFrame()->setPositionAndOrientation(qglviewer::Vec(v[0],v[1],v[2]),qglviewer::Quaternion(q.x(),q.y(),q.z(),q.w()));
-		Omega::instance().getScene()->selection = selection;
+		Master::instance().getScene()->selection = selection;
 			PyGILState_STATE gstate;
 			gstate = PyGILState_Ensure();
 				python::object main=python::import("__main__");
@@ -729,7 +729,7 @@ void GLViewer::postDraw(){
 		}
 	}
 	
-	Scene* scene=Omega::instance().getScene().get();
+	Scene* scene=Master::instance().getScene().get();
 	#define _W3 std::setw(3)<<std::setfill('0')
 	#define _W2 std::setw(2)<<std::setfill('0')
 	if(timeDispMask!=0){
@@ -738,7 +738,7 @@ void GLViewer::postDraw(){
 		glColor3v(Vector3r(1,1,1));
 		if(timeDispMask & GLViewer::TIME_VIRT){
 			std::ostringstream oss;
-			const Real& t=Omega::instance().getScene()->time;
+			const Real& t=Master::instance().getScene()->time;
 			unsigned min=((unsigned)t/60),sec=(((unsigned)t)%60),msec=((unsigned)(1e3*t))%1000,usec=((unsigned long)(1e6*t))%1000,nsec=((unsigned long)(1e9*t))%1000;
 			if(min>0) oss<<_W2<<min<<":"<<_W2<<sec<<"."<<_W3<<msec<<"m"<<_W3<<usec<<"u"<<_W3<<nsec<<"n";
 			else if (sec>0) oss<<_W2<<sec<<"."<<_W3<<msec<<"m"<<_W3<<usec<<"u"<<_W3<<nsec<<"n";
@@ -853,7 +853,7 @@ void GLViewer::postDraw(){
 
 string GLViewer::getRealTimeString(){
 	std::ostringstream oss;
-	boost::posix_time::time_duration t=Omega::instance().getRealTime_duration();
+	boost::posix_time::time_duration t=Master::instance().getRealTime_duration();
 	unsigned d=t.hours()/24,h=t.hours()%24,m=t.minutes(),s=t.seconds();
 	oss<<"clock ";
 	if(d>0) oss<<d<<"days "<<_W2<<h<<":"<<_W2<<m<<":"<<_W2<<s;

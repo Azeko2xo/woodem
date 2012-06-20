@@ -28,7 +28,7 @@ class JobInfo():
 		self.hasXmlrpc=False
 		self.status='PENDING'
 		self.threadNum=None
-		self.plotsLastUpdate,self.plotsFile=0.,yade.Omega().tmpFilename()+'.'+yade.remote.plotImgFormat
+		self.plotsLastUpdate,self.plotsFile=0.,yade.master.tmpFilename()+'.'+yade.remote.plotImgFormat
 	def saveInfo(self):
 		log=file(self.log,'a')
 		log.write("""
@@ -543,4 +543,4 @@ if httpWait and time.time()-httpLastServe<30:
 	while time.time()-httpLastServe<30:
 		time.sleep(1)
 
-yade.Omega().exitNoBacktrace()
+yade.master.exitNoBacktrace()

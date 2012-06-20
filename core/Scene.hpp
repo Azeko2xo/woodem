@@ -143,7 +143,7 @@ class Scene: public Object{
 		#ifdef YADE_OPENCL
 			.def("ensureCl",&Scene::ensureCl,"[for debugging] Initialize the OpenCL subsystem (this is done by engines using OpenCL, but trying to do so in advance might catch errors earlier)")
 		#endif
-		.def("saveTmp",&Scene::saveTmp,(py::arg("slot")="",py::arg("quiet")=false),"Save into a temporary slot inside Omega (loadable with O.loadTmp)")
+		.def("saveTmp",&Scene::saveTmp,(py::arg("slot")="",py::arg("quiet")=false),"Save into a temporary slot inside Master (loadable with O.loadTmp)")
 
 		.def("run",&Scene::pyRun,(py::args("steps")=-1,py::args("wait")=false))
 		.def("stop",&Scene::pyStop)

@@ -15,7 +15,7 @@ void VoroField::postLoad(VoroField&){};
 
 void VoroField::updateFromDem(){
 	// get DEM field we take data from
-	Scene* scene=Omega::instance().getScene().get();
+	Scene* scene=Master::instance().getScene().get();
 	DemField* dem=NULL;
 	FOREACH(shared_ptr<Field>& f, scene->fields){
 		if(dynamic_cast<DemField*>(f.get())){
@@ -69,7 +69,7 @@ void VoroField::updateFromDem(){
 void VoroField::cellsToPov(const std::string& out){
 
 	if(!conp || !vnet) throw std::runtime_error("VoroField: Particles not inserted or tirnagulation not computed yet.");
-	Scene* scene=Omega::instance().getScene().get();
+	Scene* scene=Master::instance().getScene().get();
 	const Vector3r& size=scene->cell->getSize();
 	conp->draw_cells_pov(out.c_str(),0,size[0],0,size[1],0,size[2]);
 }

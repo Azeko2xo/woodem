@@ -1,6 +1,6 @@
 import yade.document
 # import all modules here
-from yade import utils,log,timing,pack,document,manpage,plot,post2d,runtime,ymport,WeightedAverage2d,wrapper
+from yade import utils,log,timing,pack,document,manpage,plot,post2d,runtime,ymport,WeightedAverage2d
 cxxRst,pyRst=yade.document.packageClasses('.')
 
 cxxMods='cxxMods.rst'

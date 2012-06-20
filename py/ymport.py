@@ -2,7 +2,6 @@
 Import geometry from various formats ('import' is python keyword, hence the name 'ymport').
 """
 
-from yade.wrapper import *
 from miniEigen import *
 from yade import utils
 

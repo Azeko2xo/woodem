@@ -7,7 +7,6 @@ Various computations affected by the periodic boundary conditions.
 
 import unittest
 import random,math
-from yade.wrapper import *
 from miniEigen import *
 from yade._customConverters import *
 from yade import utils

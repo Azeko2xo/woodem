@@ -21,7 +21,7 @@ shared_ptr<DemField> getDemField(Scene* scene){
 }
 
 Real pWaveDt(shared_ptr<Scene> _scene=shared_ptr<Scene>()){
-	Scene* scene=(_scene?_scene.get():Omega::instance().getScene().get());
+	Scene* scene=(_scene?_scene.get():Master::instance().getScene().get());
 	DemField* field=getDemField(scene).get();
 	Real dt=std::numeric_limits<Real>::infinity();
 	FOREACH(const shared_ptr<Particle>& b, *field->particles){
@@ -40,7 +40,7 @@ Real pWaveTimeStep(){
 }
 
 py::object boxPsd(const AlignedBox3r& box, bool mass, int num, int mask, Vector2r dRange, bool zip){
-	Scene* scene=Omega::instance().getScene().get(); DemField* field=getDemField(scene).get();
+	Scene* scene=Master::instance().getScene().get(); DemField* field=getDemField(scene).get();
 	vector<Vector2r> psd0=DemFuncs::boxPsd(scene,field,box,mass,num,mask,dRange);
 	if(zip){
 		py::list ret;
@@ -56,7 +56,7 @@ py::object boxPsd(const AlignedBox3r& box, bool mass, int num, int mask, Vector2
 vector<shared_ptr<Contact> > createContacts(const vector<Particle::id_t>& ids1, const vector<Particle::id_t>& ids2, const vector<shared_ptr<CGeomFunctor> >& cgff, const vector<shared_ptr<CPhysFunctor> >& cpff, bool force){
 	if(ids1.size()!=ids2.size()) yade::ValueError("id1 and id2 arguments must have same length.");
 	if(cgff.size()+cpff.size()>0 && cgff.size()*cpff.size()==0) yade::ValueError("Either both CGeomFunctors and CPhysFunctors must be specified, or neither of them (now: "+lexical_cast<string>(cgff.size())+", "+lexical_cast<string>(cpff.size())+")");
-	Scene* scene=Omega::instance().getScene().get(); shared_ptr<DemField> dem=getDemField(scene);
+	Scene* scene=Master::instance().getScene().get(); shared_ptr<DemField> dem=getDemField(scene);
 	shared_ptr<CGeomDispatcher> gDisp; shared_ptr<CPhysDispatcher> pDisp;
 	if(cgff.empty()){ // find dispatchers in current engines
 		FOREACH(const shared_ptr<Engine>& e, scene->engines){
@@ -92,7 +92,7 @@ vector<shared_ptr<Contact> > createContacts(const vector<Particle::id_t>& ids1, 
 
 
 Real unbalancedForce(const shared_ptr<Scene>& _scene, bool useMaxForce=false){
-	Scene* scene=(_scene?_scene:Omega::instance().getScene()).get(); DemField* field=getDemField(scene).get();
+	Scene* scene=(_scene?_scene:Master::instance().getScene()).get(); DemField* field=getDemField(scene).get();
 	return DemFuncs::unbalancedForce(scene,field,useMaxForce);
 }
 
@@ -102,7 +102,7 @@ Real unbalancedForce(const shared_ptr<Scene>& _scene, bool useMaxForce=false){
 py::tuple stressStiffnessWork(Real volume=0, bool skipMultinodal=false, const Vector6r& prevStress=(Vector6r()<<NaN,NaN,NaN,NaN,NaN,NaN).finished()){
 	Matrix6r K(Matrix6r::Zero());
 	Matrix3r stress(Matrix3r::Zero());
-	Scene* scene=Omega::instance().getScene().get(); DemField* dem=getDemField(scene).get();
+	Scene* scene=Master::instance().getScene().get(); DemField* dem=getDemField(scene).get();
 	
 	std::tie(stress,K)=DemFuncs::stressStiffness(scene,dem,skipMultinodal,volume);
 
@@ -120,7 +120,7 @@ py::tuple stressStiffnessWork(Real volume=0, bool skipMultinodal=false, const Ve
 }
 
 Real muStiffnessScaling(Real piHat=Mathr::PI/2, bool skipFloaters=false, Real V=-1){
-	Scene* scene=Omega::instance().getScene().get(); const auto& dem=getDemField(scene);
+	Scene* scene=Master::instance().getScene().get(); const auto& dem=getDemField(scene);
 	if(V<=0){
 		if(scene->isPeriodic) V=scene->cell->getVolume();
 		else yade::RuntimeError("Positive value of volume (V) must be givne for aperiodic simulations.");
@@ -144,7 +144,7 @@ Real muStiffnessScaling(Real piHat=Mathr::PI/2, bool skipFloaters=false, Real V=
 
 /* Liao1997: Stress-strain relationship for granular materials based on the hypothesis of the best fit */
 Matrix6r bestFitCompliance(){
-	Scene* scene=Omega::instance().getScene().get(); const auto& dem=getDemField(scene);
+	Scene* scene=Master::instance().getScene().get(); const auto& dem=getDemField(scene);
 	if(!scene->isPeriodic) yade::RuntimeError("Only implemented fro periodic simulations.");
 	Real V=scene->cell->getVolume();
 	// stuff data in here first

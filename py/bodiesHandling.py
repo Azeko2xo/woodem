@@ -4,7 +4,6 @@
 Miscellaneous functions, which are useful for handling bodies.
 """
 
-from yade.wrapper import *
 from miniEigen import *
 import utils,math,numpy
 

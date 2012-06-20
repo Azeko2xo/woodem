@@ -31,7 +31,7 @@ env.Install('$LIBDIR/lib',[
 			'MatchMaker.cpp',
 			'Scene.cpp',
 			'Dispatcher.cpp',
-			'Omega.cpp',
+			'Master.cpp',
 			#'BgThread.cpp',
 			'Preprocessor.cpp',
 			'corePlugins.cpp'

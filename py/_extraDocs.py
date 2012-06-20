@@ -17,7 +17,6 @@
 #
 #    to the c++ documentation.
 
-import wrapper
 from yade import core, dem
 
 # Update docstring of your class/function like this:

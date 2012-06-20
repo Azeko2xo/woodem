@@ -138,7 +138,7 @@ class Renderer: public Object{
 
 		// void renderCPhys();
 #if 0
-		void pyRender(){render(Omega::instance().getScene());}
+		void pyRender(){render(Master::instance().getScene());}
 
 		void renderDOF_ID();
 		void renderIGeom();

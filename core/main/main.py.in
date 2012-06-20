@@ -178,11 +178,11 @@ if opts.manpage:
 if opts.nice:
 	os.nice(opts.nice)
 if yade.config.debug and opts.noGdb:
-	yade.wrapper.Omega().disableGdb()
+	yade.master.disableGdb()
 if 'log4cxx' in yade.config.features and opts.verbosity:
 	yade.log.setLevel('',[yade.log.INFO,yade.log.DEBUG,yade.log.TRACE][min(opts.verbosity,2)])
 if 'opencl' in yade.config.features and opts.clDev:
-	yade.wrapper.Omega().defaultClDev=clDev
+	yade.master.defaultClDev=clDev
 
 
 # modify sys.argv in-place so that it can be handled by userSession
@@ -222,8 +222,8 @@ def userSession(qt4=False,qapp=None):
 		if sum(bool(arg0.endswith(ext)) for ext in ('.xml','.xml.bz2','.xml.gz','.yade','.yade.gz','.yade.bz2','.bin','.bin.gz','.bin.bz2','.gz'))>0:
 			if len(sys.argv)>1: raise RuntimeError('Extra arguments to saved simulation to run: '+' '.join(sys.argv[1:]))
 			sys.stderr.write("Running simulation "+arg0+'\n')
-			O=yade.wrapper.Omega(); O.load(arg0); O.run()
-			if yade.runtime.opts.exitAfter: O.wait() 
+			yade.master.scene=Scene.load(arg0); yade.master.scene.run()
+			if yade.runtime.opts.exitAfter: yade.master.scene.wait() 
 		if arg0.endswith('.py'):
 			def runScript(script):
 				sys.stderr.write("Running script "+arg0+'\n')
@@ -337,6 +337,5 @@ elif gui=='qt4':
 	#except IOError: pass # stylesheet not readable or whatever
 	userSession(qt4=True,qapp=qapp)
 
-from yade import O
-O.exitNoBacktrace()
+yade.master.exitNoBacktrace()
 

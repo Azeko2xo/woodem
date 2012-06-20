@@ -9,7 +9,6 @@ therefore kept in my "private" module here.
 They comprise notably oofem export and various CPM-related functions.
 """
 
-from yade.wrapper import *
 from math import *
 from yade._eudoxos import * ## c++ implementations
 
@@ -208,7 +207,6 @@ OutputManager tstep_all dofman_all element_all
 
 
 def oofemDirectExport(fileBase,title=None,negIds=[],posIds=[]):
-	from yade.wrapper import Omega
 	material,bodies,interactions=[],[],[]
 	o=Omega()
 	strainers=[e for e in o.engines if e.name=='UniaxialStrainer']

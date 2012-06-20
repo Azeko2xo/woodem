@@ -1,7 +1,7 @@
 #include<yade/pkg/dem/Shop.hpp>
 #include<boost/python.hpp>
 #include<yade/core/Scene.hpp>
-#include<yade/core/Omega.hpp>
+#include<yade/core/Master.hpp>
 #include<yade/pkg/dem/GenericSpheresContact.hpp>
 #include<yade/pkg/common/Facet.hpp>
 #include<yade/pkg/common/Sphere.hpp>
@@ -24,7 +24,7 @@ py::tuple aabbExtrema(Real cutoff=0.0, bool centers=false){
 	if(cutoff<0. || cutoff>1.) throw invalid_argument("Cutoff must be >=0 and <=1.");
 	Real inf=std::numeric_limits<Real>::infinity();
 	Vector3r minimum(inf,inf,inf),maximum(-inf,-inf,-inf);
-	FOREACH(const shared_ptr<Body>& b, *Omega::instance().getScene()->bodies){
+	FOREACH(const shared_ptr<Body>& b, *Master::instance().getScene()->bodies){
 		shared_ptr<Sphere> s=dynamic_pointer_cast<Sphere>(b->shape); if(!s) continue;
 		Vector3r rrr(s->radius,s->radius,s->radius);
 		minimum=minimum.cwise().min(b->state->pos-(centers?Vector3r::Zero():rrr));
@@ -38,7 +38,7 @@ py::tuple negPosExtremeIds(int axis, Real distFactor=1.1){
 	py::tuple extrema=aabbExtrema();
 	Real minCoord=py::extract<double>(extrema[0][axis])(),maxCoord=py::extract<double>(extrema[1][axis])();
 	py::list minIds,maxIds;
-	FOREACH(const shared_ptr<Body>& b, *Omega::instance().getScene()->bodies){
+	FOREACH(const shared_ptr<Body>& b, *Master::instance().getScene()->bodies){
 		shared_ptr<Sphere> s=dynamic_pointer_cast<Sphere>(b->shape); if(!s) continue;
 		if(b->state->pos[axis]-s->radius*distFactor<=minCoord) minIds.append(b->getId());
 		if(b->state->pos[axis]+s->radius*distFactor>=maxCoord) maxIds.append(b->getId());
@@ -51,7 +51,7 @@ py::tuple coordsAndDisplacements(int axis,py::tuple Aabb=py::tuple()){
 	Vector3r bbMin(Vector3r::Zero()), bbMax(Vector3r::Zero()); bool useBB=py::len(Aabb)>0;
 	if(useBB){bbMin=py::extract<Vector3r>(Aabb[0])();bbMax=py::extract<Vector3r>(Aabb[1])();}
 	py::list retCoord,retDispl;
-	FOREACH(const shared_ptr<Body>&b, *Omega::instance().getScene()->bodies){
+	FOREACH(const shared_ptr<Body>&b, *Master::instance().getScene()->bodies){
 		if(useBB && !isInBB(b->state->pos,bbMin,bbMax)) continue;
 		retCoord.append(b->state->pos[axis]);
 		retDispl.append(b->state->pos[axis]-b->state->refPos[axis]);
@@ -60,7 +60,7 @@ py::tuple coordsAndDisplacements(int axis,py::tuple Aabb=py::tuple()){
 }
 
 void setRefSe3(){
-	Scene* scene=Omega::instance().getScene().get();
+	Scene* scene=Master::instance().getScene().get();
 	FOREACH(const shared_ptr<Body>& b, *scene->bodies){
 		b->state->refPos=b->state->pos;
 		b->state->refOri=b->state->ori;
@@ -76,7 +76,7 @@ Real RayleighWaveTimeStep(){return Shop::RayleighWaveTimeStep();};
 #if 0
 Real elasticEnergyInAABB(py::tuple Aabb){
 	Vector3r bbMin=py::extract<Vector3r>(Aabb[0])(), bbMax=py::extract<Vector3r>(Aabb[1])();
-	shared_ptr<Scene> rb=Omega::instance().getScene();
+	shared_ptr<Scene> rb=Master::instance().getScene();
 	Real E=0;
 	FOREACH(const shared_ptr<Interaction>&i, *rb->interactions){
 		if(!i->phys) continue;
@@ -118,7 +118,7 @@ py::tuple interactionAnglesHistogram(int axis, int mask=0, size_t bins=20, py::t
 	Vector3r bbMin(Vector3r::Zero()), bbMax(Vector3r::Zero()); bool useBB=py::len(aabb)>0; if(useBB){bbMin=py::extract<Vector3r>(aabb[0])();bbMax=py::extract<Vector3r>(aabb[1])();}
 	Real binStep=Mathr::PI/bins; int axis2=(axis+1)%3, axis3=(axis+2)%3;
 	vector<Real> cummProj(bins,0.);
-	shared_ptr<Scene> rb=Omega::instance().getScene();
+	shared_ptr<Scene> rb=Master::instance().getScene();
 	FOREACH(const shared_ptr<Interaction>& i, *rb->interactions){
 		if(!i->isReal()) continue;
 		const shared_ptr<Body>& b1=Body::byId(i->getId1(),rb), b2=Body::byId(i->getId2(),rb);
@@ -140,7 +140,7 @@ BOOST_PYTHON_FUNCTION_OVERLOADS(interactionAnglesHistogram_overloads,interaction
 
 py::tuple bodyNumInteractionsHistogram(py::tuple aabb=py::tuple()){
 	Vector3r bbMin(Vector3r::Zero()), bbMax(Vector3r::Zero()); bool useBB=py::len(aabb)>0; if(useBB){bbMin=py::extract<Vector3r>(aabb[0])();bbMax=py::extract<Vector3r>(aabb[1])();}
-	const shared_ptr<Scene>& rb=Omega::instance().getScene();
+	const shared_ptr<Scene>& rb=Master::instance().getScene();
 	vector<int> bodyNumIntr; bodyNumIntr.resize(rb->bodies->size(),0);
 	int maxIntr=0;
 	FOREACH(const shared_ptr<Interaction>& i, *rb->interactions){
@@ -173,7 +173,7 @@ Vector3r inscribedCircleCenter(const Vector3r& v0, const Vector3r& v1, const Vec
 
 /* reset highlight of all bodies */
 void highlightNone(){
-	FOREACH(const shared_ptr<Body>& b, *Omega::instance().getScene()->bodies){
+	FOREACH(const shared_ptr<Body>& b, *Master::instance().getScene()->bodies){
 		if(!b->shape) continue;
 		b->shape->highlight=false;
 	}
@@ -190,7 +190,7 @@ void highlightNone(){
  * projected onto axis.
  */
 Real sumTorques(py::list ids, const Vector3r& axis, const Vector3r& axisPt){
-	shared_ptr<Scene> rb=Omega::instance().getScene();
+	shared_ptr<Scene> rb=Master::instance().getScene();
 	rb->forces.sync();
 	Real ret=0;
 	size_t len=py::len(ids);
@@ -210,7 +210,7 @@ Real sumTorques(py::list ids, const Vector3r& axis, const Vector3r& axisPt){
  *
  */
 Real sumForces(py::list ids, const Vector3r& direction){
-	shared_ptr<Scene> rb=Omega::instance().getScene();
+	shared_ptr<Scene> rb=Master::instance().getScene();
 	rb->forces.sync();
 	Real ret=0;
 	size_t len=py::len(ids);
@@ -226,7 +226,7 @@ Real sumForces(py::list ids, const Vector3r& direction){
    If axis is given, it will sum forces perpendicular to given axis only (not the the facet normals).
 */
 Real sumFacetNormalForces(vector<Body::id_t> ids, int axis=-1){
-	shared_ptr<Scene> rb=Omega::instance().getScene(); rb->forces.sync();
+	shared_ptr<Scene> rb=Master::instance().getScene(); rb->forces.sync();
 	Real ret=0;
 	FOREACH(const Body::id_t id, ids){
 		Facet* f=YADE_CAST<Facet*>(Body::byId(id,rb)->shape.get());
@@ -244,7 +244,7 @@ void wireSome(string filter){
 	enum{none,all,noSpheres,unknown};
 	int mode=(filter=="none"?none:(filter=="all"?all:(filter=="noSpheres"?noSpheres:unknown)));
 	if(mode==unknown) { LOG_WARN("Unknown wire filter `"<<filter<<"', using noSpheres instead."); mode=noSpheres; }
-	FOREACH(const shared_ptr<Body>& b, *Omega::instance().getScene()->bodies){
+	FOREACH(const shared_ptr<Body>& b, *Master::instance().getScene()->bodies){
 		if(!b->shape) return;
 		bool wire;
 		switch(mode){
@@ -304,7 +304,7 @@ bool pointInsidePolygon(py::tuple xy, py::object vertices){
 */
 Vector3r forcesOnPlane(const Vector3r& planePt, const Vector3r&  normal){
 	Vector3r ret(Vector3r::Zero());
-	Scene* scene=Omega::instance().getScene().get();
+	Scene* scene=Master::instance().getScene().get();
 	FOREACH(const shared_ptr<Interaction>&I, *scene->interactions){
 		if(!I->isReal()) continue;
 		NormShearPhys* nsi=dynamic_cast<NormShearPhys*>(I->phys.get());
@@ -352,7 +352,7 @@ py::object Shop__kineticEnergy(bool findMaxId=false){
 }
 #if 0
 Real maxOverlapRatio(){
-	Scene* scene=Omega::instance().getScene().get();
+	Scene* scene=Master::instance().getScene().get();
 	Real ret=-1;
 	FOREACH(const shared_ptr<Interaction> I, *scene->interactions){
 		if(!I->isReal()) continue;
@@ -367,8 +367,8 @@ Real maxOverlapRatio(){
 }
 #endif
 
-Real Shop__getPorosity(Real volume=-1){ return Shop::getPorosity(Omega::instance().getScene(),volume); }
-Real Shop__getVoxelPorosity(int resolution=200, Vector3r start=Vector3r(0,0,0),Vector3r end=Vector3r(0,0,0)){ return Shop::getVoxelPorosity(Omega::instance().getScene(),resolution,start,end); }
+Real Shop__getPorosity(Real volume=-1){ return Shop::getPorosity(Master::instance().getScene(),volume); }
+Real Shop__getVoxelPorosity(int resolution=200, Vector3r start=Vector3r(0,0,0),Vector3r end=Vector3r(0,0,0)){ return Shop::getVoxelPorosity(Master::instance().getScene(),resolution,start,end); }
 
 // Matrix3r Shop__stressTensorOfPeriodicCell(bool smallStrains=false){return Shop::stressTensorOfPeriodicCell(smallStrains);}
 py::tuple Shop__fabricTensor(bool splitTensor=false, bool revertSign=false, Real thresholdForce=NaN){return Shop::fabricTensor(splitTensor,revertSign,thresholdForce);}
@@ -377,7 +377,7 @@ py::tuple Shop__normalShearStressTensors(bool compressionPositive=false, bool sp
 py::tuple Shop__getStressLWForEachBody(bool revertSign=false){return Shop::getStressLWForEachBody(revertSign);}
 
 Real shiftBodies(py::list ids, const Vector3r& shift){
-	shared_ptr<Scene> rb=Omega::instance().getScene();
+	shared_ptr<Scene> rb=Master::instance().getScene();
 	size_t len=py::len(ids);
 	for(size_t i=0; i<len; i++){
 		const Body* b=(*rb->bodies)[py::extract<int>(ids[i])].get();

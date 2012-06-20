@@ -37,7 +37,7 @@ Matrix3r m2m(const Mat3& m){ Matrix3r ret; ret<<m[0],m[1],m[2],m[3],m[4],m[5],m[
 
 shared_ptr<clDem::Simulation> CLDemField::getSimulation(){
 	shared_ptr<CLDemField> clf;
-	for(const auto& f: Omega::instance().getScene()->fields){
+	for(const auto& f: Master::instance().getScene()->fields){
 		clf=dynamic_pointer_cast<CLDemField>(f);
 		if(clf) break;
 	}

@@ -90,8 +90,6 @@ def resetData():
 	global data
 	data={}
 
-from yade.wrapper import *
-
 def splitData():
 	"Make all plots discontinuous at this point (adds nan's to all data fields)"
 	addData({})

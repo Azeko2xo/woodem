@@ -32,8 +32,8 @@ Renderer* Renderer::self=NULL; // pointer to the only existing instance
 
 
 void Renderer::init(){
-	#define _TRY_ADD_FUNCTOR(functorT,dispatcher,className) if(Omega::instance().isInheritingFrom_recursive(className,#functorT)){ shared_ptr<functorT> f(static_pointer_cast<functorT>(Omega::instance().factorClass(className))); dispatcher.add(f); continue; }
-	for(auto& item: Omega::instance().getClassBases()){
+	#define _TRY_ADD_FUNCTOR(functorT,dispatcher,className) if(Master::instance().isInheritingFrom_recursive(className,#functorT)){ shared_ptr<functorT> f(static_pointer_cast<functorT>(Master::instance().factorClass(className))); dispatcher.add(f); continue; }
+	for(auto& item: Master::instance().getClassBases()){
 		_TRY_ADD_FUNCTOR(GlFieldFunctor,fieldDispatcher,item.first);
 		_TRY_ADD_FUNCTOR(GlShapeFunctor,shapeDispatcher,item.first);
 		_TRY_ADD_FUNCTOR(GlBoundFunctor,boundDispatcher,item.first);

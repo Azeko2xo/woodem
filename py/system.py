@@ -5,7 +5,6 @@
 Functions for accessing yade's internals; only used internally.
 """
 import sys
-from yade import wrapper
 from yade._customConverters import *
 from yade import runtime
 from yade import config

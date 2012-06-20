@@ -1,4 +1,4 @@
-#include<yade/core/Omega.hpp>
+#include<yade/core/Master.hpp>
 #include<yade/core/Timing.hpp>
 #include<yade/lib/object/Object.hpp>
 #include<yade/lib/base/Logging.hpp>
@@ -43,8 +43,8 @@
 		case SIGABRT:
 		case SIGSEGV:
 			signal(SIGSEGV,SIG_DFL); signal(SIGABRT,SIG_DFL); // prevent loops - default handlers
-			cerr<<"SIGSEGV/SIGABRT handler called; gdb batch file is `"<<Omega::instance().gdbCrashBatch<<"'"<<endl;
-			std::system((string("gdb -x ")+Omega::instance().gdbCrashBatch).c_str());
+			cerr<<"SIGSEGV/SIGABRT handler called; gdb batch file is `"<<Master::instance().gdbCrashBatch<<"'"<<endl;
+			std::system((string("gdb -x ")+Master::instance().gdbCrashBatch).c_str());
 			raise(sig); // reemit signal after exiting gdb
 			break;
 		}
@@ -56,7 +56,7 @@ void yadeInitialize(py::list& pp, const std::string& confDir){
 
 	PyEval_InitThreads();
 
-	Omega& O(Omega::instance());
+	Master& O(Master::instance());
 	O.confDir=confDir;
 	// O.initTemps();
 	#ifdef YADE_DEBUG
@@ -83,12 +83,12 @@ void yadeInitialize(py::list& pp, const std::string& confDir){
 	yade::AttrTraitBase::pyRegisterClass();
 	yade::TimingDeltas::pyRegisterClass();
 	Object().pyRegisterClass(); // virtual method, therefore cannot be static
-	Omega::pyRegisterClass();
+	Master::pyRegisterClass();
 
 	// this registers all other classes
-	Omega::instance().loadPlugins(ppp);
+	Master::instance().loadPlugins(ppp);
 }
-void yadeFinalize(){ Omega::instance().cleanupTemps(); }
+void yadeFinalize(){ Master::instance().cleanupTemps(); }
 
 BOOST_PYTHON_MODULE(boot){
 	py::scope().attr("initialize")=&yadeInitialize;

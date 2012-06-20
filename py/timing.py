@@ -6,7 +6,6 @@ See :ref:`timing` section of the programmer's manual, `wiki page <http://yade-de
 
 """
 
-from yade.wrapper import *
 from yade.core import *
 from yade.dem import *
 

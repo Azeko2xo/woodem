@@ -4,7 +4,7 @@
 Creates geometry objects from facets.
 """
 
-from yade.wrapper import *
+from yade import *
 from miniEigen import *
 import utils,math,numpy
 

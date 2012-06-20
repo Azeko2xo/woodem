@@ -12,7 +12,6 @@ Devs: please DO NOT ADD more functions here, it is getting too crowded!
 import math,random,doctest,geom
 import yade
 from yade import *
-from yade.wrapper import *
 from miniEigen import *
 
 from yade.dem import *

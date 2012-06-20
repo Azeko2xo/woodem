@@ -122,7 +122,7 @@ void Scene::ensureCl(){
 
 #ifdef YADE_OPENCL
 void Scene::initCl(){
-	Vector2i dev=(clDev[0]<0?Omega::instance().defaultClDev:clDev);
+	Vector2i dev=(clDev[0]<0?Master::instance().defaultClDev:clDev);
 	clDev=Vector2i(-1,-1); // invalidate old settings before attempting new
 	int pNum=dev[0], dNum=dev[1];
 	std::vector<cl::Platform> platforms;
@@ -182,7 +182,7 @@ void Scene::boostSave(const string& out){
 void Scene::saveTmp(const string& slot, bool quiet){
 	lastSave=":memory:"+slot;
 	shared_ptr<Scene> thisPtr(this,null_deleter());
-	Omega::instance().saveTmp(thisPtr,slot,/*quiet*/true);
+	Master::instance().saveTmp(thisPtr,slot,/*quiet*/true);
 }
 
 void Scene::postLoad(Scene&){

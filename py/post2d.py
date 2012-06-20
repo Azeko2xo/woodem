@@ -58,7 +58,6 @@ This example can be found in examples/concrete/uniax-post.py ::
  pylab.show()
 
 """
-from yade.wrapper import *
 from miniEigen import *
 
 from yade.dem import Particle,Sphere

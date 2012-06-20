@@ -2,7 +2,6 @@
 Test particle generator, that the resulting PSD curve matches the one on input.
 '''
 import unittest
-from yade.wrapper import *
 from yade.core import *
 from yade.dem import *
 from miniEigen import *

@@ -4,7 +4,6 @@ Test loading and saving yade objects in various formats
 import yade
 import unittest
 from yade import *
-from yade.wrapper import *
 from yade.core import *
 from yade.dem import *
 from yade.pre import *

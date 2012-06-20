@@ -30,7 +30,7 @@ namespace py = boost::python;
 # if 0
 Real elasticEnergyDensityInAABB(python::tuple Aabb){
 	Vector3r bbMin=tuple2vec(python::extract<python::tuple>(Aabb[0])()), bbMax=tuple2vec(python::extract<python::tuple>(Aabb[1])()); Vector3r box=bbMax-bbMin;
-	shared_ptr<Scene> rb=Omega::instance().getScene();
+	shared_ptr<Scene> rb=Master::instance().getScene();
 	Real E=0;
 	FOREACH(const shared_ptr<Interaction>&i, *rb->interactions){
 		if(!i->phys) continue;
@@ -59,7 +59,7 @@ Real elasticEnergyDensityInAABB(python::tuple Aabb){
  * The code is analogous to AxialGravityEngine and is intended to give initial motion
  * to particles subject to axial compaction to speed up the process. */
 void velocityTowardsAxis(const Vector3r& axisPoint, const Vector3r& axisDirection, Real timeToAxis, Real subtractDist=0., Real perturbation=0.1){
-	FOREACH(const shared_ptr<Body>&b, *(Omega::instance().getScene()->bodies)){
+	FOREACH(const shared_ptr<Body>&b, *(Master::instance().getScene()->bodies)){
 		if (b->state->blocked==State::DOF_ALL) continue;
 		const Vector3r& x0=b->state->pos;
 		const Vector3r& x1=axisPoint;
@@ -77,7 +77,7 @@ BOOST_PYTHON_FUNCTION_OVERLOADS(velocityTowardsAxis_overloads,velocityTowardsAxi
 // makes linker error out with monolithic build..
 #if 0
 python::dict testNumpy(){
-	Scene* scene=Omega::instance().getScene().get();
+	Scene* scene=Master::instance().getScene().get();
 	int dim1[]={scene->bodies->size()};
 	int dim2[]={scene->bodies->size(),3};
 	numpy_boost<Real,1> mass(dim1);
@@ -97,7 +97,7 @@ python::dict testNumpy(){
 #if 0
 /* Compute stress tensor on each particle */
 void particleMacroStress(void){
-	Scene* scene=Omega::instance().getScene().get();
+	Scene* scene=Master::instance().getScene().get();
 	// find interactions of each particle
 	std::vector<std::list<Body::id_t> > bIntr(scene->bodies->size());
 	FOREACH(const shared_ptr<Interaction>& i, *scene->interactions){
@@ -142,7 +142,7 @@ struct HelixInteractionLocator2d{
 	Real thetaSpan;
 	int axis;
 	HelixInteractionLocator2d(Real dH_dTheta, int _axis, Real periodStart, Real theta0, Real thetaMin, Real thetaMax): axis(_axis){
-		Scene* scene=Omega::instance().getScene().get();
+		Scene* scene=Master::instance().getScene().get();
 		Real inf=std::numeric_limits<Real>::infinity();
 		Vector2r lo=Vector2r(inf,inf), hi(-inf,-inf);
 		Real minD0(inf),maxD0(-inf);
@@ -240,7 +240,7 @@ class InteractionLocator{
 		// traverse all real interactions in the current simulation
 		// add them to points, create grid with those points
 		// store shared_ptr's to interactions in intrs separately
-		Scene* scene=Omega::instance().getScene().get();
+		Scene* scene=Master::instance().getScene().get();
 		locator=vtkPointLocator::New();
 		points=vtkPoints::New();
 		int count=0;
@@ -312,7 +312,7 @@ class InteractionLocator{
 py::tuple stressStiffness(Real volume=0){
 	Matrix6r K(Matrix6r::Zero());
 	Matrix3r stress(Matrix3r::Zero());
-	Scene* scene=Omega::instance().getScene().get();
+	Scene* scene=Master::instance().getScene().get();
 	FOREACH(const shared_ptr<Interaction>& I, *scene->interactions){
 		if(!I->isReal()) continue;
 		GenericSpheresContact* geom=YADE_CAST<GenericSpheresContact*>(I->geom.get());

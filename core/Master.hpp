@@ -29,7 +29,7 @@ using namespace yade;
 
 namespace py=boost::python;
 
-class Omega: public Singleton<Omega>{
+class Master: public Singleton<Master>{
 	map<string,set<string>> classBases; // FIXME: should store that in ClassFactory ?
 	public:
 
@@ -58,7 +58,7 @@ class Omega: public Singleton<Omega>{
 	void initializePlugins(const vector<std::pair<std::string, std::string> >& dynlibsList); 
 	
 	shared_ptr<Scene> scene;
-	shared_ptr<Scene> sceneAnother; // used for temporarily running different simulation, in Omega().switchscene()
+	shared_ptr<Scene> sceneAnother; // used for temporarily running different simulation, in Master().switchscene()
 
 	boost::posix_time::ptime startupLocalTime;
 
@@ -83,7 +83,7 @@ class Omega: public Singleton<Omega>{
 		/* Mutex for:
 		* 1. GLViewer::paintGL (deffered lock: if fails, no GL painting is done)
 		* 2. other threads that wish to manipulate GL
-		* 3. Omega when substantial changes to the scene are being made (bodies being deleted, simulation loaded etc) so that GL doesn't access those and crash */
+		* 3. Master when substantial changes to the scene are being made (bodies being deleted, simulation loaded etc) so that GL doesn't access those and crash */
 		boost::try_mutex renderMutex;
 
 
@@ -97,7 +97,7 @@ class Omega: public Singleton<Omega>{
 		py::list pyLsCmap();
 		py::tuple pyGetCmap();
 		void pySetCmap(py::object obj);
-		/* other static things exposed through Omega */
+		/* other static things exposed through Master */
 		bool timingEnabled_get(){ return TimingInfo::enabled;}
 		void timingEnabled_set(bool enabled){ TimingInfo::enabled=enabled;}
 		#ifdef YADE_OPENMP
@@ -136,10 +136,9 @@ class Omega: public Singleton<Omega>{
 
 	DECLARE_LOGGER;
 
-	Omega();
+	Master();
 
-	FRIEND_SINGLETON(Omega);
-	friend class pyOmega;
+	FRIEND_SINGLETON(Master);
 
 	#define _DEPREC_ERR(a) void err_##a(){ yade::AttributeError("O." #a " does not exist in tr2 anymore, use O.scene." #a); }
 		_DEPREC_ERR(dt);
@@ -153,48 +152,48 @@ class Omega: public Singleton<Omega>{
 
 	static py::object pyGetInstance();
 	void pyReset();
+	py::list pyPlugins();
 
 
 	static void pyRegisterClass(){
-		py::class_<Omega,boost::noncopyable>("Master",py::no_init)
-			.add_property("realtime",&Omega::getRealTime,"Return clock (human world) time the simulation has been running.")
+		py::class_<Master,boost::noncopyable>("Master",py::no_init)
+			.add_property("realtime",&Master::getRealTime,"Return clock (human world) time the simulation has been running.")
 			// tmp storage
-			.def("loadTmpAny",&Omega::loadTmp,(py::arg("name")=""),"Load any object from named temporary store.")
-			.def("saveTmpAny",&Omega::saveTmp,(py::arg("obj"),py::arg("name")="",py::arg("quiet")=false),"Save any object to named temporary store; *quiet* will supress warning if the name is already used.")
-			.def("lsTmp",&Omega::pyLsTmp,"Return list of all memory-saved simulations.")
-			.def("tmpToFile",&Omega::pyTmpToFile,(py::arg("mark"),py::arg("fileName")),"Save XML of :ref:`saveTmp`'d simulation into *fileName*.")
-			.def("tmpToString",&Omega::pyTmpToString,(py::arg("mark")=""),"Return XML of :yref:`saveTmp<Omega.saveTmp>`'d simulation as string.")
+			.def("loadTmpAny",&Master::loadTmp,(py::arg("name")=""),"Load any object from named temporary store.")
+			.def("saveTmpAny",&Master::saveTmp,(py::arg("obj"),py::arg("name")="",py::arg("quiet")=false),"Save any object to named temporary store; *quiet* will supress warning if the name is already used.")
+			.def("lsTmp",&Master::pyLsTmp,"Return list of all memory-saved simulations.")
+			.def("tmpToFile",&Master::pyTmpToFile,(py::arg("mark"),py::arg("fileName")),"Save XML of :ref:`saveTmp`'d simulation into *fileName*.")
+			.def("tmpToString",&Master::pyTmpToString,(py::arg("mark")=""),"Return XML of :yref:`saveTmp<Master.saveTmp>`'d simulation as string.")
 
-			// .def("plugins",&pyOmega::plugins_get,"Return list of all plugins registered in the class factory.")
+			.def("plugins",&Master::pyPlugins,"Return list of all plugins registered in the class factory.")
 			#ifdef YADE_OPENCL
-				.def_readwrite("defaultClDev",&Omega::defaultClDev,"Default OpenCL platform/device couple (as ints), set internally from the command-line arg.")
+				.def_readwrite("defaultClDev",&Master::defaultClDev,"Default OpenCL platform/device couple (as ints), set internally from the command-line arg.")
 			#endif
-			//.def_readwrite("scene",&Omega::scene,"Main Scene (the one which is rendered in the 3d view, for instance).")
-			.add_property("scene",&Omega::pyGetScene,&Omega::pySetScene)
-			.def("reset",&Omega::pyReset,"Set empty main scene")
+			.add_property("scene",&Master::pyGetScene,&Master::pySetScene)
+			.def("reset",&Master::pyReset,"Set empty main scene")
 
-			.add_property("cmaps",&Omega::pyLsCmap,"List available colormaps (by name)")
-			.add_property("cmap",&Omega::pyGetCmap,&Omega::pySetCmap,"Current colormap as (index,name) tuple; set by index or by name alone.")
+			.add_property("cmaps",&Master::pyLsCmap,"List available colormaps (by name)")
+			.add_property("cmap",&Master::pyGetCmap,&Master::pySetCmap,"Current colormap as (index,name) tuple; set by index or by name alone.")
 
 			// throw on deprecated attributes
-			.add_property("dt",&Omega::err_dt)
-			.add_property("engines",&Omega::err_engines)
-			.add_property("cell",&Omega::err_cell)
-			.add_property("periodic",&Omega::err_periodic)
-			.add_property("trackEnergy",&Omega::err_trackEnergy)
-			.add_property("energy",&Omega::err_energy)
-			.add_property("tags",&Omega::err_tags)
+			.add_property("dt",&Master::err_dt)
+			.add_property("engines",&Master::err_engines)
+			.add_property("cell",&Master::err_cell)
+			.add_property("periodic",&Master::err_periodic)
+			.add_property("trackEnergy",&Master::err_trackEnergy)
+			.add_property("energy",&Master::err_energy)
+			.add_property("tags",&Master::err_tags)
 	
-			.def("childClassesNonrecursive",&Omega::pyListChildClassesNonrecursive,"Return list of all classes deriving from given class, as registered in the class factory")
-			.def("isChildClassOf",&Omega::pyIsChildClassOf,"Tells whether the first class derives from the second one (both given as strings).")
+			.def("childClassesNonrecursive",&Master::pyListChildClassesNonrecursive,"Return list of all classes deriving from given class, as registered in the class factory")
+			.def("isChildClassOf",&Master::pyIsChildClassOf,"Tells whether the first class derives from the second one (both given as strings).")
 
-			.add_property("timingEnabled",&Omega::timingEnabled_get,&Omega::timingEnabled_set,"Globally enable/disable timing services (see documentation of the :yref:`timing module<yade.timing>`).")
-			.add_property("numThreads",&Omega::numThreads_get,"Get maximum number of threads openMP can use.")
+			.add_property("timingEnabled",&Master::timingEnabled_get,&Master::timingEnabled_set,"Globally enable/disable timing services (see documentation of the :yref:`timing module<yade.timing>`).")
+			.add_property("numThreads",&Master::numThreads_get,"Get maximum number of threads openMP can use.")
 
-			.def("exitNoBacktrace",&Omega::pyExitNoBacktrace,(py::arg("status")=0),"Disable SEGV handler and exit, optionally with given status number.")
-			.def("disableGdb",&Omega::pyDisableGdb,"Revert SEGV and ABRT handlers to system defaults.")
-			.def("tmpFilename",&Omega::tmpFilename,"Return unique name of file in temporary directory which will be deleted when yade exits.")
-			.add_static_property("instance",py::make_function(&Omega::instance,py::return_value_policy<py::reference_existing_object>()))
+			.def("exitNoBacktrace",&Master::pyExitNoBacktrace,(py::arg("status")=0),"Disable SEGV handler and exit, optionally with given status number.")
+			.def("disableGdb",&Master::pyDisableGdb,"Revert SEGV and ABRT handlers to system defaults.")
+			.def("tmpFilename",&Master::tmpFilename,"Return unique name of file in temporary directory which will be deleted when yade exits.")
+			.add_static_property("instance",py::make_function(&Master::instance,py::return_value_policy<py::reference_existing_object>()))
 		;
 	}
 };
@@ -202,17 +201,17 @@ class Omega: public Singleton<Omega>{
 
 /*! Function returning class name (as string) for given index and topIndexable (top-level indexable, such as Shape, Material and so on)
 This function exists solely for debugging, is quite slow: it has to traverse all classes and ask for inheritance information.
-It should be used primarily to convert indices to names in Dispatcher::dictDispatchMatrix?D; since it relies on Omega for RTTI,
+It should be used primarily to convert indices to names in Dispatcher::dictDispatchMatrix?D; since it relies on Master for RTTI,
 this code could not be in Dispatcher itself.
 s*/
 template<class topIndexable>
 std::string Dispatcher_indexToClassName(int idx){
 	boost::scoped_ptr<topIndexable> top(new topIndexable);
 	std::string topName=top->getClassName();
-	for(auto& clss: Omega::instance().getClassBases()){
-		if(Omega::instance().isInheritingFrom_recursive(clss.first,topName) || clss.first==topName){
+	for(auto& clss: Master::instance().getClassBases()){
+		if(Master::instance().isInheritingFrom_recursive(clss.first,topName) || clss.first==topName){
 			// create instance, to ask for index
-			shared_ptr<topIndexable> inst=dynamic_pointer_cast<topIndexable>(Omega::instance().factorClass(clss.first));
+			shared_ptr<topIndexable> inst=dynamic_pointer_cast<topIndexable>(Master::instance().factorClass(clss.first));
 			assert(inst);
 			if(inst->getClassIndex()<0 && inst->getClassName()!=top->getClassName()){
 				throw logic_error("Class "+inst->getClassName()+" didn't use REGISTER_CLASS_INDEX("+inst->getClassName()+","+top->getClassName()+") and/or forgot to call createIndex() in the ctor. [[ Please fix that! ]]");
