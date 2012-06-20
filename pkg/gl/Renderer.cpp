@@ -32,9 +32,8 @@ Renderer* Renderer::self=NULL; // pointer to the only existing instance
 
 
 void Renderer::init(){
-	typedef std::pair<string,DynlibDescriptor> strDldPair; // necessary as FOREACH, being macro, cannot have the "," inside the argument (preprocessor does not parse templates)
-	#define _TRY_ADD_FUNCTOR(functorT,dispatcher,className) if(Omega::instance().isInheritingFrom_recursive(className,#functorT)){ shared_ptr<functorT> f(static_pointer_cast<functorT>(ClassFactory::instance().createShared(className))); dispatcher.add(f); continue; }
-	FOREACH(const strDldPair& item, Omega::instance().getDynlibsDescriptor()){
+	#define _TRY_ADD_FUNCTOR(functorT,dispatcher,className) if(Omega::instance().isInheritingFrom_recursive(className,#functorT)){ shared_ptr<functorT> f(static_pointer_cast<functorT>(Omega::instance().factorClass(className))); dispatcher.add(f); continue; }
+	for(auto& item: Omega::instance().getClassBases()){
 		_TRY_ADD_FUNCTOR(GlFieldFunctor,fieldDispatcher,item.first);
 		_TRY_ADD_FUNCTOR(GlShapeFunctor,shapeDispatcher,item.first);
 		_TRY_ADD_FUNCTOR(GlBoundFunctor,boundDispatcher,item.first);

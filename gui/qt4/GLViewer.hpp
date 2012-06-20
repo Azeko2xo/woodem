@@ -2,7 +2,6 @@
 // © 2008 Václav Šmilauer
 #pragma once
 
-#include<yade/core/Omega.hpp>
 #include<yade/pkg/gl/Renderer.hpp>
 
 #include<QGLViewer/qglviewer.h>

@@ -55,11 +55,10 @@
 #endif
 #define _PLUGIN_CHECK_REPEAT(x,y,z) void z::must_use_both_YADE_CLASS_BASE_DOC_ATTRS_and_YADE_PLUGIN(){}
 #define _YADE_PLUGIN_REPEAT(x,y,z) BOOST_PP_STRINGIZE(z),
-#define _YADE_FACTORY_REPEAT(x,y,z) shared_ptr<Object> BOOST_PP_CAT(createShared,z)(){ return shared_ptr<z>(new z); } const bool BOOST_PP_CAT(registered,z) __attribute__ ((unused))=ClassFactory::instance().registerFactorable(BOOST_PP_STRINGIZE(z),BOOST_PP_CAT(createShared,z));
+#define _YADE_FACTORY_REPEAT(x,y,z) __attribute__((unused)) bool BOOST_PP_CAT(_registered,z)=Omega::instance().registerClassFactory(BOOST_PP_STRINGIZE(z),(Omega::FactoryFunc)([](void)->shared_ptr<yade::Object>{ return make_shared<z>(); }));
 // priority 500 is greater than priority for log4cxx initialization (in core/main/pyboot.cpp); therefore lo5cxx will be initialized before plugins are registered
-#define YADE_PLUGIN0(plugins) YADE_PLUGIN(wrapper,plugins)
 
-#define YADE_PLUGIN(module,plugins) BOOST_PP_SEQ_FOR_EACH(_YADE_FACTORY_REPEAT,~,plugins); namespace{ __attribute__((constructor)) void BOOST_PP_CAT(registerThisPluginClasses_,BOOST_PP_SEQ_HEAD(plugins)) (void){ const char* info[]={__FILE__ , BOOST_PP_SEQ_FOR_EACH(_YADE_PLUGIN_REPEAT,~,plugins) NULL}; ClassFactory::instance().registerPluginClasses(BOOST_PP_STRINGIZE(module),info);} } BOOST_PP_SEQ_FOR_EACH(_YADE_PLUGIN_BOOST_REGISTER,~,plugins) BOOST_PP_SEQ_FOR_EACH(_PLUGIN_CHECK_REPEAT,~,plugins)
+#define YADE_PLUGIN(module,plugins) BOOST_PP_SEQ_FOR_EACH(_YADE_FACTORY_REPEAT,~,plugins); namespace{ __attribute__((constructor)) void BOOST_PP_CAT(registerThisPluginClasses_,BOOST_PP_SEQ_HEAD(plugins)) (void){ const char* info[]={__FILE__ , BOOST_PP_SEQ_FOR_EACH(_YADE_PLUGIN_REPEAT,~,plugins) NULL}; Omega::instance().registerPluginClasses(BOOST_PP_STRINGIZE(module),info);} } BOOST_PP_SEQ_FOR_EACH(_YADE_PLUGIN_BOOST_REGISTER,~,plugins) BOOST_PP_SEQ_FOR_EACH(_PLUGIN_CHECK_REPEAT,~,plugins)
 
 
 

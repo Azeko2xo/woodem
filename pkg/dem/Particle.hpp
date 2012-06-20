@@ -1,6 +1,5 @@
 #pragma once
 #include<unordered_map>
-#include<yade/core/Omega.hpp>
 #include<yade/core/Field.hpp>
 #include<yade/core/Scene.hpp>
 #include<yade/core/Field-templates.hpp>

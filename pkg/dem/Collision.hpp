@@ -1,5 +1,4 @@
 #pragma once
-#include<yade/core/Omega.hpp>
 #include<yade/core/Dispatcher.hpp>
 #include<yade/pkg/dem/Particle.hpp>
 

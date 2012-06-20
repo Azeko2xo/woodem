@@ -12,9 +12,11 @@
 #include<boost/version.hpp>
 #include<boost/python.hpp>
 
+
 #include<yade/lib/object/ObjectIO.hpp>
 
 
+#include<dlfcn.h>
 #include<cxxabi.h>
 
 class RenderMutexLock: public boost::mutex::scoped_lock{
@@ -37,7 +39,7 @@ Omega::Omega(){
 
 void Omega::cleanupTemps(){ boost::filesystem::path tmpPath(tmpFileDir); boost::filesystem::remove_all(tmpPath); }
 
-const map<string,DynlibDescriptor>& Omega::getDynlibsDescriptor(){return dynlibs;}
+const map<string,set<string>>& Omega::getClassBases(){return classBases;}
 
 Real Omega::getRealTime(){ return (boost::posix_time::microsec_clock::local_time()-startupLocalTime).total_milliseconds()/1e3; }
 boost::posix_time::time_duration Omega::getRealTime_duration(){return boost::posix_time::microsec_clock::local_time()-startupLocalTime;}
@@ -54,11 +56,11 @@ void Omega::setScene(const shared_ptr<Scene>& s){ if(!s) throw std::runtime_erro
 
 /* inheritance (?!!) */
 bool Omega::isInheritingFrom(const string& className, const string& baseClassName){
-	return (dynlibs[className].baseClasses.find(baseClassName)!=dynlibs[className].baseClasses.end());
+	return (classBases[className].find(baseClassName)!=classBases[className].end());
 }
 bool Omega::isInheritingFrom_recursive(const string& className, const string& baseClassName){
-	if (dynlibs[className].baseClasses.find(baseClassName)!=dynlibs[className].baseClasses.end()) return true;
-	FOREACH(const string& parent,dynlibs[className].baseClasses){
+	if(classBases[className].find(baseClassName)!=classBases[className].end()) return true;
+	FOREACH(const string& parent,classBases[className]){
 		if(isInheritingFrom_recursive(parent,baseClassName)) return true;
 	}
 	return false;
@@ -80,12 +82,40 @@ shared_ptr<Object> Omega::loadTmp(const string& name){
 }
 
 /* PLUGINS */
+// registerFactorable
+bool Omega::registerClassFactory(const std::string& name, FactoryFunc factory){
+	classnameFactoryMap[name]=factory;
+	return true;
+}
 
-void Omega::loadPlugins(vector<string> pluginFiles){
+shared_ptr<Object> Omega::factorClass(const std::string& name){
+	auto I=classnameFactoryMap.find(name);
+	if(I==classnameFactoryMap.end()) throw std::runtime_error("Omega.factorClassByName: Class '"+name+"' not known.");
+	return (I->second)();
+}
+
+
+void Omega::registerPluginClasses(const char* module, const char* fileAndClasses[]){
+	assert(fileAndClasses[0]!=NULL); // must be file name
+	for(int i=1; fileAndClasses[i]!=NULL; i++){
+		#ifdef YADE_DEBUG
+			if(getenv("YADE_DEBUG")) cerr<<__FILE__<<":"<<__LINE__<<": Plugin "<<fileAndClasses[0]<<", class "<<module<<"."<<fileAndClasses[i]<<endl;	
+		#endif
+		modulePluginClasses.push_back({module,fileAndClasses[i]});
+	}
+}
+
+void Omega::loadPlugin(const string& plugin){
+	dlopen(plugin.c_str(),RTLD_GLOBAL | RTLD_NOW);
+ 	char* error=dlerror();
+	if(error) throw std::runtime_error((__FILE__ ": error loading plugin '"+plugin+"' (dlopen): "+error).c_str());
+}
+
+void Omega::loadPlugins(const vector<string>& pluginFiles){
 	FOREACH(const string& plugin, pluginFiles){
 		LOG_DEBUG("Loading plugin "<<plugin);
 		try {
-			ClassFactory::instance().load(plugin);
+			loadPlugin(plugin);
 		} catch (std::runtime_error& e){
 			const std::string err=e.what();
 			if(err.find(": undefined symbol: ")!=std::string::npos){
@@ -97,9 +127,9 @@ void Omega::loadPlugins(vector<string> pluginFiles){
 			throw;
 		}
 	}
-	list<std::pair<string,string> >& plugins(ClassFactory::instance().modulePluginClasses);
+	list<std::pair<string,string>>& plugins(modulePluginClasses);
 	plugins.sort(); plugins.unique();
-	initializePlugins(vector<std::pair<std::string,std::string> >(plugins.begin(),plugins.end()));
+	initializePlugins(vector<std::pair<string,string>>(plugins.begin(),plugins.end()));
 }
 
 void Omega::initializePlugins(const vector<std::pair<string,string> >& pluginClasses){	
@@ -120,10 +150,10 @@ void Omega::initializePlugins(const vector<std::pair<string,string> >& pluginCla
 		shared_ptr<Object> obj;
 		try {
 			LOG_DEBUG("Factoring class "<<name);
-			obj=ClassFactory::instance().createShared(name);
+			obj=factorClass(name);
 			assert(obj);
 			// needed for Omega::childClasses
-			for(int i=0;i<obj->getBaseClassNumber();i++) dynlibs[name].baseClasses.insert(obj->getBaseClassName(i));
+			for(int i=0;i<obj->getBaseClassNumber();i++) classBases[name].insert(obj->getBaseClassName(i));
 			if(pyModules.find(module)==pyModules.end()){
 				try{
 					// module existing as file, use it

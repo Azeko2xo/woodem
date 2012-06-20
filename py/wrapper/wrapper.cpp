@@ -94,7 +94,7 @@ class pyOmega{
 
 	py::list listChildClassesNonrecursive(const string& base){
 		py::list ret;
-		for(map<string,DynlibDescriptor>::const_iterator di=Omega::instance().getDynlibsDescriptor().begin();di!=Omega::instance().getDynlibsDescriptor().end();++di) if (Omega::instance().isInheritingFrom((*di).first,base)) ret.append(di->first);
+		for(auto& i: Omega::instance().getClassBases()){ if(Omega::instance().isInheritingFrom(i.first,base)) ret.append(i.first); }
 		return ret;
 	}
 
@@ -103,9 +103,8 @@ class pyOmega{
 	}
 
 	py::list plugins_get(){
-		const map<string,DynlibDescriptor>& plugins=Omega::instance().getDynlibsDescriptor();
-		std::pair<string,DynlibDescriptor> p; py::list ret;
-		FOREACH(p, plugins) ret.append(p.first);
+		py::list ret;
+		for(auto& i: Omega::instance().getClassBases()) ret.append(i.first);
 		return ret;
 	}
 

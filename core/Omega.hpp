@@ -12,9 +12,10 @@
 #include<boost/smart_ptr/scoped_ptr.hpp>
 
 #include<yade/lib/base/Math.hpp>
-#include<yade/lib/object/ClassFactory.hpp>
+// #include<yade/lib/object/ClassFactory.hpp>
 #include<yade/lib/base/Singleton.hpp>
 #include<yade/lib/base/Types.hpp>
+#include<yade/lib/base/Logging.hpp>
 
 #ifndef FOREACH
 # define FOREACH BOOST_FOREACH
@@ -22,14 +23,36 @@
 
 class Scene;
 namespace yade { class Object; };
+using namespace yade;
 
 namespace py=boost::python;
 
-struct DynlibDescriptor{ set<string> baseClasses; };
-
 class Omega: public Singleton<Omega>{
+	map<string,set<string>> classBases; // FIXME: should store that in ClassFactory ?
+	public:
 
-	map<string,DynlibDescriptor> dynlibs; // FIXME: should store that in ClassFactory ?
+	// pointer to factory function
+	typedef std::function<shared_ptr<yade::Object>(void)> FactoryFunc;
+	// map class name to function returning instance upcast to shared_ptr<Object>
+	std::map<std::string,FactoryFunc> classnameFactoryMap;
+
+	// add entry to classnameFactoryMap
+	bool registerClassFactory(const std::string& name, FactoryFunc factory);
+
+	// return instance for given class name
+	shared_ptr<yade::Object> factorClass(const std::string& name);
+
+	list<std::pair<string,string>> modulePluginClasses;
+
+	// called automatically, when a plugin is dlopen'd
+	void registerPluginClasses(const char* module, const char* fileAndClasses[]);
+	// dlopen given plugin
+	void loadPlugin(const string& pluginFiles);
+	// called from python, with list of plugins to be loaded
+	void loadPlugins(const vector<string>& pluginFiles);
+	// called from loadPlugins
+	// register class from plugin in python
+	// store class hierarchy for quick lookup (might be removed in the future)
 	void initializePlugins(const vector<std::pair<std::string, std::string> >& dynlibsList); 
 	
 	shared_ptr<Scene> scene;
@@ -48,8 +71,7 @@ class Omega: public Singleton<Omega>{
 	public:
 		// void reset();
 		void cleanupTemps();
-		const map<string,DynlibDescriptor>& getDynlibsDescriptor();
-		void loadPlugins(vector<string> pluginFiles);
+		const map<string,std::set<string>>& getClassBases();
 
 		bool isInheritingFrom(const string& className, const string& baseClassName );
 		bool isInheritingFrom_recursive(const string& className, const string& baseClassName );
@@ -64,8 +86,8 @@ class Omega: public Singleton<Omega>{
 		boost::try_mutex renderMutex;
 
 
-		shared_ptr<Object> loadTmp(const string& name);
-		void saveTmp(shared_ptr<Object> s, const string& name, bool quiet=false);
+		shared_ptr<yade::Object> loadTmp(const string& name);
+		void saveTmp(shared_ptr<yade::Object> s, const string& name, bool quiet=false);
 
 
 		const shared_ptr<Scene>& getScene();
@@ -98,11 +120,10 @@ template<class topIndexable>
 std::string Dispatcher_indexToClassName(int idx){
 	boost::scoped_ptr<topIndexable> top(new topIndexable);
 	std::string topName=top->getClassName();
-	typedef std::pair<string,DynlibDescriptor> classItemType;
-	FOREACH(classItemType clss, Omega::instance().getDynlibsDescriptor()){
+	for(auto& clss: Omega::instance().getClassBases()){
 		if(Omega::instance().isInheritingFrom_recursive(clss.first,topName) || clss.first==topName){
 			// create instance, to ask for index
-			shared_ptr<topIndexable> inst=dynamic_pointer_cast<topIndexable>(ClassFactory::instance().createShared(clss.first));
+			shared_ptr<topIndexable> inst=dynamic_pointer_cast<topIndexable>(Omega::instance().factorClass(clss.first));
 			assert(inst);
 			if(inst->getClassIndex()<0 && inst->getClassName()!=top->getClassName()){
 				throw logic_error("Class "+inst->getClassName()+" didn't use REGISTER_CLASS_INDEX("+inst->getClassName()+","+top->getClassName()+") and/or forgot to call createIndex() in the ctor. [[ Please fix that! ]]");

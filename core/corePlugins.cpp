@@ -1,4 +1,4 @@
-#include<yade/lib/object/ClassFactory.hpp>
+// #include<yade/lib/object/ClassFactory.hpp>
 // make core classes known to the class factory
 #if 0
 #include<yade/core/Body.hpp>
