@@ -11,8 +11,6 @@
 
 #include "Indexable.hpp"
 
-
-#include<yade/lib/object/ClassFactory.hpp>
 #include<yade/lib/object/Object.hpp>
 
 #include<loki/Functor.h>

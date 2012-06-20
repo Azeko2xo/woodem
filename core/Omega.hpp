@@ -9,6 +9,7 @@
 #include<iostream>
 #include<boost/python.hpp>
 #include<boost/foreach.hpp>
+#include<boost/smart_ptr/scoped_ptr.hpp>
 
 #include<yade/lib/base/Math.hpp>
 #include<yade/lib/object/ClassFactory.hpp>

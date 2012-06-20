@@ -1,5 +1,4 @@
 #include<yade/lib/object/ClassFactory.hpp>
-#include<boost/algorithm/string/regex.hpp>
 #include<dlfcn.h>
 CREATE_LOGGER(ClassFactory);
 SINGLETON_SELF(ClassFactory);

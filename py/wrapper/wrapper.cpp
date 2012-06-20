@@ -88,7 +88,7 @@ class pyOmega{
 	}
 
 	void resetTime(){ OMEGA.getScene()->step=0; OMEGA.getScene()->time=0; }
-	void switchScene(){ std::swap(OMEGA.scene,OMEGA.sceneAnother); }
+	//void switchScene(){ std::swap(OMEGA.scene,OMEGA.sceneAnother); }
 	shared_ptr<Scene> scene_get(){ return OMEGA.getScene(); }
 	void scene_set(const shared_ptr<Scene>& s){ OMEGA.setScene(s); }
 
@@ -190,7 +190,7 @@ BOOST_PYTHON_MODULE(wrapper)
 		.def("tmpToFile",&pyOmega::tmpToFile,(py::arg("mark"),py::arg("fileName")),"Save XML of :yref:`saveTmp<Omega.saveTmp>`'d simulation into *fileName*.")
 		.def("tmpToString",&pyOmega::tmpToString,(py::arg("mark")=""),"Return XML of :yref:`saveTmp<Omega.saveTmp>`'d simulation as string.")
 
-		.def("switchScene",&pyOmega::switchScene,"Switch to alternative simulation (while keeping the old one). Calling the function again switches back to the first one. Note that most variables from the first simulation will still refer to the first simulation even after the switch\n(e.g. b=O.bodies[4]; O.switchScene(); [b still refers to the body in the first simulation here])")
+		//.def("switchScene",&pyOmega::switchScene,"Switch to alternative simulation (while keeping the old one). Calling the function again switches back to the first one. Note that most variables from the first simulation will still refer to the first simulation even after the switch\n(e.g. b=O.bodies[4]; O.switchScene(); [b still refers to the body in the first simulation here])")
 		.def("resetTime",&pyOmega::resetTime,"Reset simulation time: step number, virtual and real time. (Doesn't touch anything else, including timings).")
 		.def("plugins",&pyOmega::plugins_get,"Return list of all plugins registered in the class factory.")
 		#ifdef YADE_OPENCL
