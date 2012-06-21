@@ -4,8 +4,8 @@
 
 #ifdef YADE_OPENGL
 
-#include<yade/lib/multimethods/FunctorWrapper.hpp>
-#include<yade/core/Dispatcher.hpp>
+#include<woo/lib/multimethods/FunctorWrapper.hpp>
+#include<woo/core/Dispatcher.hpp>
 
 
 #define RENDERS(name) public: virtual string renders() const { return #name;}; FUNCTOR1D(name);
@@ -32,7 +32,7 @@ struct GLViewInfo{
 	YADE_DISPATCHER1D_FUNCTOR_DOC_ATTRS_CTOR_PY(Klass,Functor,/*optional doc*/,/*attrs*/,/*ctor*/,/*py*/); \
 	}; REGISTER_SERIALIZABLE(Klass);
 
-#include<yade/pkg/dem/Particle.hpp>
+#include<woo/pkg/dem/Particle.hpp>
 
 GL_FUNCTOR(GlShapeFunctor,TYPELIST_4(const shared_ptr<Shape>&, /*shift*/ const Vector3r&, /*wire*/bool,const GLViewInfo&),Shape);
 GL_DISPATCHER(GlShapeDispatcher,GlShapeFunctor);
@@ -53,15 +53,15 @@ GL_FUNCTOR(GlFieldFunctor,TYPELIST_2(const shared_ptr<Field>&, GLViewInfo*),Fiel
 GL_DISPATCHER(GlFieldDispatcher,GlFieldFunctor);
 
 #if 0
-#include<yade/core/Bound.hpp>
-#include<yade/core/State.hpp>
-#include<yade/core/Shape.hpp>
-#include<yade/core/Field.hpp>
-#include<yade/core/Functor.hpp>
-#include<yade/core/Dispatcher.hpp>
-#include<yade/core/Body.hpp>
-#include<yade/core/Interaction.hpp>
-#include<yade/core/Interaction.hpp>
+#include<woo/core/Bound.hpp>
+#include<woo/core/State.hpp>
+#include<woo/core/Shape.hpp>
+#include<woo/core/Field.hpp>
+#include<woo/core/Functor.hpp>
+#include<woo/core/Dispatcher.hpp>
+#include<woo/core/Body.hpp>
+#include<woo/core/Interaction.hpp>
+#include<woo/core/Interaction.hpp>
 
 GL_FUNCTOR(GlBoundFunctor,TYPELIST_1(const shared_ptr<Bound>&),Bound);
 GL_FUNCTOR(GlCGeomFunctor,TYPELIST_5(const shared_ptr<IGeom>&, const shared_ptr<Interaction>&, const shared_ptr<Body>&, const shared_ptr<Body>&, bool),IGeom);

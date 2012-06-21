@@ -1,4 +1,4 @@
-#include<yade/pkg/dem/IdealElPl.hpp>
+#include<woo/pkg/dem/IdealElPl.hpp>
 YADE_PLUGIN(dem,(Law2_L6Geom_FrictPhys_IdealElPl)(IdealElPlData)(Law2_L6Geom_FrictPhys_LinEl6));
 
 #ifdef YADE_DEBUG

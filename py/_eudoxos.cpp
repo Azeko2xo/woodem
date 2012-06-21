@@ -1,13 +1,13 @@
 #if 0
-	#include<yade/lib/pyutil/numpy.hpp>
+	#include<woo/lib/pyutil/numpy.hpp>
 #endif
 
 #include<boost/python.hpp>
 
-#include<yade/core/Scene.hpp>
-#include<yade/pkg/dem/Shop.hpp>
-#include<yade/pkg/dem/GenericSpheresContact.hpp>
-#include<yade/pkg/common/NormShearPhys.hpp>
+#include<woo/core/Scene.hpp>
+#include<woo/pkg/dem/Shop.hpp>
+#include<woo/pkg/dem/GenericSpheresContact.hpp>
+#include<woo/pkg/common/NormShearPhys.hpp>
 
 #ifdef YADE_VTK
 	#pragma GCC diagnostic ignored "-Wdeprecated"
@@ -134,7 +134,7 @@ void particleMacroStress(void){
 #endif
 
 #if 0
-#include<yade/lib/smoothing/WeightedAverage2d.hpp>
+#include<woo/lib/smoothing/WeightedAverage2d.hpp>
 /* Fastly locate interactions within given distance from a point in 2d (projected to plane) */
 struct HelixInteractionLocator2d{
 	struct FlatInteraction{ Real r,h,theta; shared_ptr<Interaction> i; FlatInteraction(Real _r, Real _h, Real _theta, const shared_ptr<Interaction>& _i): r(_r), h(_h), theta(_theta), i(_i){}; };

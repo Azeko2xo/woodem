@@ -1,10 +1,10 @@
 #if 0
 #pragma once
 
-#include<yade/core/Field.hpp>
-#include<yade/core/Scene.hpp>
+#include<woo/core/Field.hpp>
+#include<woo/core/Scene.hpp>
 
-#include<yade/dem/Particle.hpp>
+#include<woo/dem/Particle.hpp>
 
 
 struct AncfField: public Field{

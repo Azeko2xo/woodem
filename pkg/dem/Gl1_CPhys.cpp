@@ -1,6 +1,6 @@
-#include<yade/pkg/dem/Gl1_CPhys.hpp>
-#include<yade/pkg/gl/Renderer.hpp> // for GlData
-#include<yade/lib/opengl/GLUtils.hpp>
+#include<woo/pkg/dem/Gl1_CPhys.hpp>
+#include<woo/pkg/gl/Renderer.hpp> // for GlData
+#include<woo/lib/opengl/GLUtils.hpp>
 
 YADE_PLUGIN(gl,(Gl1_CPhys));
 

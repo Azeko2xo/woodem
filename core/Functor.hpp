@@ -10,9 +10,9 @@
 
 #pragma once
 
-#include<yade/lib/object/Object.hpp>
-#include<yade/lib/multimethods/FunctorWrapper.hpp>
-#include<yade/core/Master.hpp>
+#include<woo/lib/object/Object.hpp>
+#include<woo/lib/multimethods/FunctorWrapper.hpp>
+#include<woo/core/Master.hpp>
 
 namespace yade{ 
 	class TimingDeltas;

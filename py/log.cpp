@@ -1,8 +1,8 @@
 #include<boost/python.hpp>
 #include<string>
-#include<yade/lib/base/Logging.hpp>
-#include<yade/lib/base/Types.hpp>
-#include<yade/lib/pyutil/doc_opts.hpp>
+#include<woo/lib/base/Logging.hpp>
+#include<woo/lib/base/Types.hpp>
+#include<woo/lib/pyutil/doc_opts.hpp>
 enum{ll_TRACE,ll_DEBUG,ll_INFO,ll_WARN,ll_ERROR,ll_FATAL};
 
 #ifdef YADE_LOG4CXX

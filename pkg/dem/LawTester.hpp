@@ -1,5 +1,5 @@
-#include<yade/pkg/dem/Impose.hpp>
-#include<yade/pkg/dem/Particle.hpp>
+#include<woo/pkg/dem/Impose.hpp>
+#include<woo/pkg/dem/Particle.hpp>
 
 struct LawTesterStage: public Object{
 	DECLARE_LOGGER;

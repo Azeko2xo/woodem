@@ -1,4 +1,4 @@
-#include<yade/pkg/dem/OpenCLCollider.hpp>
+#include<woo/pkg/dem/OpenCLCollider.hpp>
 #include<algorithm>
 
 YADE_PLUGIN(dem,(OpenCLCollider));

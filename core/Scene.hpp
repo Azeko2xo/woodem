@@ -1,10 +1,10 @@
 #pragma once
 
-#include<yade/core/Cell.hpp>
-#include<yade/core/Engine.hpp>
-#include<yade/core/DisplayParameters.hpp>
-#include<yade/core/EnergyTracker.hpp>
-#include<yade/core/Preprocessor.hpp>
+#include<woo/core/Cell.hpp>
+#include<woo/core/Engine.hpp>
+#include<woo/core/DisplayParameters.hpp>
+#include<woo/core/EnergyTracker.hpp>
+#include<woo/core/Preprocessor.hpp>
 
 #ifdef YADE_OPENCL
 	#define __CL_ENABLE_EXCEPTIONS

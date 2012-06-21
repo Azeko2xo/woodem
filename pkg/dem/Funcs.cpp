@@ -1,10 +1,10 @@
-#include<yade/pkg/dem/Funcs.hpp>
-#include<yade/pkg/dem/L6Geom.hpp>
-#include<yade/pkg/dem/G3Geom.hpp>
-#include<yade/pkg/dem/FrictMat.hpp>
+#include<woo/pkg/dem/Funcs.hpp>
+#include<woo/pkg/dem/L6Geom.hpp>
+#include<woo/pkg/dem/G3Geom.hpp>
+#include<woo/pkg/dem/FrictMat.hpp>
 
 #ifdef YADE_OPENGL
-	#include<yade/pkg/gl/Renderer.hpp>
+	#include<woo/pkg/gl/Renderer.hpp>
 #endif
 
 #include <boost/range/adaptor/filtered.hpp>

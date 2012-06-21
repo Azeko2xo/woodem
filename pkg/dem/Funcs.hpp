@@ -1,9 +1,9 @@
 #pragma once 
 
-#include<yade/lib/base/Math.hpp>
-#include<yade/core/Scene.hpp>
-#include<yade/pkg/dem/Particle.hpp>
-#include<yade/pkg/dem/Sphere.hpp>
+#include<woo/lib/base/Math.hpp>
+#include<woo/core/Scene.hpp>
+#include<woo/pkg/dem/Particle.hpp>
+#include<woo/pkg/dem/Sphere.hpp>
 
 struct DemFuncs{
 	DECLARE_LOGGER;

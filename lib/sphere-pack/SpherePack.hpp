@@ -14,12 +14,12 @@
 	#define FOREACH BOOST_FOREACH
 #endif
 
-#include<yade/lib/base/Logging.hpp>
-#include<yade/lib/base/Math.hpp>
+#include<woo/lib/base/Logging.hpp>
+#include<woo/lib/base/Math.hpp>
 
-#include<yade/lib/pyutil/except.hpp>
+#include<woo/lib/pyutil/except.hpp>
 
-#include<yade/lib/base/Types.hpp>
+#include<woo/lib/base/Types.hpp>
 
 /*! Class representing geometry of spherical packing, with some utility functions. */
 class SpherePack{

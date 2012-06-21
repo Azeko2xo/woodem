@@ -1,6 +1,6 @@
 // 2010 © Václav Šmilauer <eudoxos@arcig.cz>
 #pragma once
-#include<yade/lib/object/Object.hpp>
+#include<woo/lib/object/Object.hpp>
 #include<string>
 
 namespace py = boost::python;

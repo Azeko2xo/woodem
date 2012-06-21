@@ -1,7 +1,7 @@
 #pragma once
-#include<yade/core/Engine.hpp>
-#include<yade/core/Field.hpp>
-#include<yade/pkg/dem/Particle.hpp>
+#include<woo/core/Engine.hpp>
+#include<woo/core/Field.hpp>
+#include<woo/pkg/dem/Particle.hpp>
 #ifdef YADE_OPENMP
 	#include<omp.h>
 #endif

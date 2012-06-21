@@ -1,11 +1,11 @@
-#include<yade/pkg/dem/Particle.hpp>
+#include<woo/pkg/dem/Particle.hpp>
 #include<boost/range/numeric.hpp>
 #include<boost/range/algorithm/fill.hpp>
 
 
 #ifdef YADE_OPENGL
-	#include<yade/lib/opengl/GLUtils.hpp>
-	#include<yade/lib/base/CompUtils.hpp>
+	#include<woo/lib/opengl/GLUtils.hpp>
+	#include<woo/lib/base/CompUtils.hpp>
 #endif
 
 struct ParticleFactory: public PeriodicEngine{

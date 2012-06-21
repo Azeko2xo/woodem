@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include<yade/core/Field.hpp>
+#include<woo/core/Field.hpp>
 
 struct ScalarGlRep: public NodeGlRep{
 	void render(const shared_ptr<Node>&,GLViewInfo*);

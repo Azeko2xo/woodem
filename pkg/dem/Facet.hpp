@@ -1,7 +1,7 @@
 #pragma once
-#include<yade/pkg/dem/Particle.hpp>
-#include<yade/pkg/dem/Collision.hpp>
-#include<yade/pkg/dem/IntraForce.hpp>
+#include<woo/pkg/dem/Particle.hpp>
+#include<woo/pkg/dem/Collision.hpp>
+#include<woo/pkg/dem/IntraForce.hpp>
 
 struct Facet: public Shape {
 	bool numNodesOk() const { return nodes.size()==3; }
@@ -26,7 +26,7 @@ struct Bo1_Facet_Aabb: public BoundFunctor{
 REGISTER_SERIALIZABLE(Bo1_Facet_Aabb);
 
 #ifdef YADE_OPENGL
-#include<yade/pkg/gl/Functors.hpp>
+#include<woo/pkg/gl/Functors.hpp>
 struct Gl1_Facet: public GlShapeFunctor{	
 	void go(const shared_ptr<Shape>&, const Vector3r&, bool, const GLViewInfo&);
 	RENDERS(Facet);

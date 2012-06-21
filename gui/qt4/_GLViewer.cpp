@@ -1,8 +1,8 @@
 #include"GLViewer.hpp"
 #include"OpenGLManager.hpp"
 #include<boost/python.hpp>
-#include<yade/pkg/gl/Renderer.hpp>
-#include<yade/lib/pyutil/doc_opts.hpp>
+#include<woo/pkg/gl/Renderer.hpp>
+#include<woo/lib/pyutil/doc_opts.hpp>
 
 #include<QApplication>
 #include<QCloseEvent>

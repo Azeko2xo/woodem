@@ -1,12 +1,12 @@
-#include<yade/pkg/dem/L6Geom.hpp>
-#include<yade/core/Field.hpp>
-#include<yade/lib/base/CompUtils.hpp>
+#include<woo/pkg/dem/L6Geom.hpp>
+#include<woo/core/Field.hpp>
+#include<woo/lib/base/CompUtils.hpp>
 
 #include<sstream>
 
 #ifdef YADE_OPENGL
-	#include<yade/lib/opengl/OpenGLWrapper.hpp>
-	#include<yade/lib/opengl/GLUtils.hpp>
+	#include<woo/lib/opengl/OpenGLWrapper.hpp>
+	#include<woo/lib/opengl/GLUtils.hpp>
 	#include<GL/glu.h>
 #endif
 

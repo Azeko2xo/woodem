@@ -1,6 +1,6 @@
 // 2010 © Václav Šmilauer <eudoxos@arcig.cz>
 
-#include<yade/core/MatchMaker.hpp>
+#include<woo/core/MatchMaker.hpp>
 #include<boost/foreach.hpp>
 #ifndef FOREACH
 	#define FOREACH BOOST_FOREACH

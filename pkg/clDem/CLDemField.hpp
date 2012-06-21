@@ -1,9 +1,9 @@
 #pragma once
 #ifdef YADE_CLDEM
 
-#include<yade/core/Field.hpp>
-#include<yade/core/Field-templates.hpp>
-#include<yade/core/Engine.hpp>
+#include<woo/core/Field.hpp>
+#include<woo/core/Field-templates.hpp>
+#include<woo/core/Engine.hpp>
 
 // forwards
 namespace clDem{ class Simulation; class Particle; };
@@ -72,7 +72,7 @@ REGISTER_SERIALIZABLE(CLDemRun);
 
 
 #ifdef YADE_OPENGL
-#include<yade/pkg/gl/Functors.hpp>
+#include<woo/pkg/gl/Functors.hpp>
 
 struct Gl1_CLDemField: public GlFieldFunctor{
 	virtual void go(const shared_ptr<Field>&, GLViewInfo*);

@@ -1,8 +1,8 @@
 # vim: set filetype=python:
 Import('*')
 
-import yadeSCons
-yadeSCons.buildPluginLibs(env,env['buildPlugs'])
+import wooSCons
+wooSCons.buildPluginLibs(env,env['buildPlugs'])
 SConscript(dirs=['core','lib','gui','py','resources'],duplicate=0)
 
 #install preprocessor scripts

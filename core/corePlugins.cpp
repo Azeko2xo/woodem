@@ -1,30 +1,30 @@
-// #include<yade/lib/object/ClassFactory.hpp>
+// #include<woo/lib/object/ClassFactory.hpp>
 // make core classes known to the class factory
 #if 0
-#include<yade/core/Body.hpp>
-#include<yade/core/BodyContainer.hpp>
-#include<yade/core/Bound.hpp>
-#include<yade/core/FileGenerator.hpp>
-#include<yade/core/Material.hpp>
-#include<yade/core/Shape.hpp>
-#include<yade/core/State.hpp>
+#include<woo/core/Body.hpp>
+#include<woo/core/BodyContainer.hpp>
+#include<woo/core/Bound.hpp>
+#include<woo/core/FileGenerator.hpp>
+#include<woo/core/Material.hpp>
+#include<woo/core/Shape.hpp>
+#include<woo/core/State.hpp>
 #endif
 
-#include<yade/core/Cell.hpp>
-#include<yade/core/Dispatcher.hpp>
-#include<yade/core/EnergyTracker.hpp>
-#include<yade/core/Engine.hpp>
-#include<yade/core/Functor.hpp>
-#include<yade/core/DisplayParameters.hpp>
-//#include<yade/core/Interaction.hpp>
-//#include<yade/core/InteractionContainer.hpp>
+#include<woo/core/Cell.hpp>
+#include<woo/core/Dispatcher.hpp>
+#include<woo/core/EnergyTracker.hpp>
+#include<woo/core/Engine.hpp>
+#include<woo/core/Functor.hpp>
+#include<woo/core/DisplayParameters.hpp>
+//#include<woo/core/Interaction.hpp>
+//#include<woo/core/InteractionContainer.hpp>
 
 #include<boost/version.hpp>
 
 YAD3_CLASS_IMPLEMENTATION(Cell_CLASS_DESCRIPTOR)
 
 YADE_PLUGIN(core,(Cell)(Dispatcher)(EnergyTracker)(Engine)(Functor)(GlobalEngine)(ParallelEngine)(PartialEngine)(PeriodicEngine)(PyRunner)(DisplayParameters));
-#include<yade/core/Field.hpp>
+#include<woo/core/Field.hpp>
 YADE_PLUGIN(core,(Constraint)(Node)(NodeData)(Field));
 #ifdef YADE_OPENGL
 YADE_PLUGIN(gl,(NodeGlRep)(ScalarRange));

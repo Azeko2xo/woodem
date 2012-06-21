@@ -1,4 +1,4 @@
-#include<yade/lib/object/Object.hpp>
+#include<woo/lib/object/Object.hpp>
 
 #if 0
 static void Object_setAttr(py::object self, py::str name, py::object value){

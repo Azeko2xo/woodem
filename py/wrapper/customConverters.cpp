@@ -11,7 +11,7 @@
 #endif
 
 #if 0
-	#include<yade/lib/pyutil/numpy.hpp>
+	#include<woo/lib/pyutil/numpy.hpp>
 #endif
 
 #include<boost/python.hpp>
@@ -28,28 +28,28 @@
 #include<iostream>
 #include<map>
 
-#include<yade/lib/base/Types.hpp>
+#include<woo/lib/base/Types.hpp>
 
-#include<yade/lib/base/Math.hpp>
-#include<yade/lib/base/openmp-accu.hpp>
+#include<woo/lib/base/Math.hpp>
+#include<woo/lib/base/openmp-accu.hpp>
 
-#include<yade/core/Field.hpp>
-#include<yade/core/Scene.hpp>
+#include<woo/core/Field.hpp>
+#include<woo/core/Scene.hpp>
 
-#include<yade/pkg/dem/Particle.hpp>
-#include<yade/pkg/dem/ContactLoop.hpp>
-#include<yade/pkg/dem/Collision.hpp>
-#include<yade/pkg/dem/IntraForce.hpp>
-#include<yade/pkg/dem/LawTester.hpp>
+#include<woo/pkg/dem/Particle.hpp>
+#include<woo/pkg/dem/ContactLoop.hpp>
+#include<woo/pkg/dem/Collision.hpp>
+#include<woo/pkg/dem/IntraForce.hpp>
+#include<woo/pkg/dem/LawTester.hpp>
 
-#include<yade/pkg/dem/ParticleContainer.hpp>
-#include<yade/core/MatchMaker.hpp>
+#include<woo/pkg/dem/ParticleContainer.hpp>
+#include<woo/core/MatchMaker.hpp>
 
 
 #ifdef YADE_OPENGL
-	#include<yade/pkg/gl/Functors.hpp>
-	#include<yade/pkg/gl/Renderer.hpp>
-	#include<yade/pkg/gl/NodeGlRep.hpp>
+	#include<woo/pkg/gl/Functors.hpp>
+	#include<woo/pkg/gl/Renderer.hpp>
+	#include<woo/pkg/gl/NodeGlRep.hpp>
 #endif
 
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>

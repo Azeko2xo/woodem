@@ -1,5 +1,5 @@
 
-#include<yade/core/Cell.hpp>
+#include<woo/core/Cell.hpp>
 
 CREATE_LOGGER(Cell);
 

@@ -1,5 +1,5 @@
 #if 0
-#include<yade/ancf/AncfField.hpp>
+#include<woo/ancf/AncfField.hpp>
 YADE_PLUGIN(ancf,(AncfField)(AncfData)(AncfElt)(AncfBeam2n));
 
 MatrixXr AncfBeam2n::getShapeFunctionMatrix(const Vector3r& pt){

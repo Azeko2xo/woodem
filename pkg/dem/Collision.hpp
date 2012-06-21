@@ -1,9 +1,9 @@
 #pragma once
-#include<yade/core/Dispatcher.hpp>
-#include<yade/pkg/dem/Particle.hpp>
+#include<woo/core/Dispatcher.hpp>
+#include<woo/pkg/dem/Particle.hpp>
 
 #ifdef YADE_OPENGL
-#include<yade/pkg/gl/Functors.hpp>
+#include<woo/pkg/gl/Functors.hpp>
 #endif
 
 class Aabb: public Bound{

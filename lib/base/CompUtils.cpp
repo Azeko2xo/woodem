@@ -1,4 +1,4 @@
-#include<yade/lib/base/CompUtils.hpp>
+#include<woo/lib/base/CompUtils.hpp>
 #include<stdexcept>
 #include<string>
 #include<boost/lexical_cast.hpp>

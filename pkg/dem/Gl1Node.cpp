@@ -1,9 +1,9 @@
 
 
 #ifdef YADE_OPENGL
-#include<yade/pkg/dem/Gl1Node.hpp>
-#include<yade/lib/opengl/GLUtils.hpp>
-#include<yade/pkg/gl/Renderer.hpp>
+#include<woo/pkg/dem/Gl1Node.hpp>
+#include<woo/lib/opengl/GLUtils.hpp>
+#include<woo/pkg/gl/Renderer.hpp>
 
 YADE_PLUGIN(gl,(Gl1_Node));
 

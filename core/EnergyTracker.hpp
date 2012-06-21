@@ -2,9 +2,9 @@
 #include<boost/python.hpp>
 #include<boost/foreach.hpp>
 #include<string>
-#include<yade/lib/base/openmp-accu.hpp>
-#include<yade/lib/object/Object.hpp>
-#include<yade/lib/pyutil/except.hpp>
+#include<woo/lib/base/openmp-accu.hpp>
+#include<woo/lib/object/Object.hpp>
+#include<woo/lib/pyutil/except.hpp>
 
 #ifndef FOREACH
 	#define FOREACH BOOST_FOREACH

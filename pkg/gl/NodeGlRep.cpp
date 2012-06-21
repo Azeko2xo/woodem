@@ -1,12 +1,12 @@
 #ifdef YADE_OPENGL
 
-#include<yade/pkg/gl/NodeGlRep.hpp>
-#include<yade/lib/base/CompUtils.hpp>
-#include<yade/lib/opengl/OpenGLWrapper.hpp>
-#include<yade/lib/opengl/GLUtils.hpp>
-#include<yade/lib/base/CompUtils.hpp>
-#include<yade/core/Scene.hpp>
-#include<yade/pkg/gl/Renderer.hpp>
+#include<woo/pkg/gl/NodeGlRep.hpp>
+#include<woo/lib/base/CompUtils.hpp>
+#include<woo/lib/opengl/OpenGLWrapper.hpp>
+#include<woo/lib/opengl/GLUtils.hpp>
+#include<woo/lib/base/CompUtils.hpp>
+#include<woo/core/Scene.hpp>
+#include<woo/pkg/gl/Renderer.hpp>
 
 #include<GL/gle.h>
 

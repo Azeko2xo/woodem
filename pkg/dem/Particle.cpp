@@ -1,13 +1,13 @@
-#include<yade/pkg/dem/Particle.hpp>
-#include<yade/pkg/dem/ParticleContainer.hpp>
-#include<yade/pkg/dem/ContactContainer.hpp>
-#include<yade/pkg/dem/ContactLoop.hpp>
-#include<yade/lib/pyutil/except.hpp>
+#include<woo/pkg/dem/Particle.hpp>
+#include<woo/pkg/dem/ParticleContainer.hpp>
+#include<woo/pkg/dem/ContactContainer.hpp>
+#include<woo/pkg/dem/ContactLoop.hpp>
+#include<woo/lib/pyutil/except.hpp>
 
-#include<yade/pkg/dem/Clump.hpp>
+#include<woo/pkg/dem/Clump.hpp>
 
 #ifdef YADE_OPENGL
-	#include<yade/pkg/gl/Renderer.hpp>
+	#include<woo/pkg/gl/Renderer.hpp>
 #endif
 
 YADE_PLUGIN(dem,(CPhys)(CGeom)(CData)(DemField)(Particle)(DemData)(Impose)(Contact)(Shape)(Material)(Bound)(ContactContainer));

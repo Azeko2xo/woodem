@@ -1,7 +1,7 @@
-#include<yade/pkg/dem/Gravity.hpp>
-#include<yade/pkg/dem/Clump.hpp>
-#include<yade/core/Field.hpp>
-#include<yade/core/Scene.hpp>
+#include<woo/pkg/dem/Gravity.hpp>
+#include<woo/pkg/dem/Clump.hpp>
+#include<woo/core/Field.hpp>
+#include<woo/core/Scene.hpp>
 // #include<boost/regex.hpp>
 
 YADE_PLUGIN(dem,(Gravity)(AxialGravity) /* (CentralGravityEngine)(AxialGravityEngine)(HdapsGravityEngine)*/ );

@@ -1,5 +1,5 @@
 #pragma once
-#include<yade/lib/object/Object.hpp>
+#include<woo/lib/object/Object.hpp>
 
 struct Scene; 
 struct Preprocessor: public Object{

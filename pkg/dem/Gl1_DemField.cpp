@@ -1,8 +1,8 @@
 #ifdef YADE_OPENGL
-#include<yade/pkg/dem/Gl1_DemField.hpp>
-#include<yade/lib/opengl/GLUtils.hpp>
-#include<yade/pkg/gl/Renderer.hpp>
-#include<yade/lib/base/CompUtils.hpp>
+#include<woo/pkg/dem/Gl1_DemField.hpp>
+#include<woo/lib/opengl/GLUtils.hpp>
+#include<woo/pkg/gl/Renderer.hpp>
+#include<woo/lib/base/CompUtils.hpp>
 
 YADE_PLUGIN(gl,(Gl1_DemField));
 

@@ -1,7 +1,7 @@
-#include<yade/pkg/dem/CrossAnisotropy.hpp>
-#include<yade/pkg/dem/FrictMat.hpp>
-#include<yade/pkg/dem/L6Geom.hpp>
-// #include<yade/pkg/dem/ScGeom.hpp>
+#include<woo/pkg/dem/CrossAnisotropy.hpp>
+#include<woo/pkg/dem/FrictMat.hpp>
+#include<woo/pkg/dem/L6Geom.hpp>
+// #include<woo/pkg/dem/ScGeom.hpp>
 
 YADE_PLUGIN(dem,(Cp2_FrictMat_FrictPhys_CrossAnisotropic));
 
@@ -54,7 +54,7 @@ void Cp2_FrictMat_FrictPhys_CrossAnisotropic::go(const shared_ptr<Material>& b1,
 YADE_PLUGIN(gl,(GlExtra_LocalAxes));
 #endif	
 #ifdef YADE_OPENGL
-#include<yade/lib/opengl/GLUtils.hpp>
+#include<woo/lib/opengl/GLUtils.hpp>
 
 void GlExtra_LocalAxes::render(){
 	for(int ax=0; ax<3; ax++){

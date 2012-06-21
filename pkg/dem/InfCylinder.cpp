@@ -1,6 +1,6 @@
 // © 2009 Václav Šmilauer <eudoxos@arcig.cz>
-#include<yade/pkg/dem/InfCylinder.hpp>
-#include<yade/pkg/dem/ParticleContainer.hpp>
+#include<woo/pkg/dem/InfCylinder.hpp>
+#include<woo/pkg/dem/ParticleContainer.hpp>
 #include<limits>
 
 YADE_PLUGIN(dem,(InfCylinder)(Bo1_InfCylinder_Aabb));
@@ -24,10 +24,10 @@ void Bo1_InfCylinder_Aabb::go(const shared_ptr<Shape>& sh){
 }
 
 #ifdef YADE_OPENGL
-	#include<yade/lib/opengl/OpenGLWrapper.hpp>
-	#include<yade/pkg/gl/Renderer.hpp>
-	#include<yade/lib/base/CompUtils.hpp>
-	#include<yade/lib/opengl/GLUtils.hpp>
+	#include<woo/lib/opengl/OpenGLWrapper.hpp>
+	#include<woo/pkg/gl/Renderer.hpp>
+	#include<woo/lib/base/CompUtils.hpp>
+	#include<woo/lib/opengl/GLUtils.hpp>
 
 	bool Gl1_InfCylinder::wire;
 	int  Gl1_InfCylinder::slices;

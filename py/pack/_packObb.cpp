@@ -4,11 +4,11 @@
 
 #include<boost/python.hpp>
 #include<boost/foreach.hpp>
-#include<yade/lib/base/Logging.hpp>
-#include<yade/lib/base/Math.hpp>
-#include<yade/lib/pyutil/doc_opts.hpp>
+#include<woo/lib/base/Logging.hpp>
+#include<woo/lib/base/Math.hpp>
+#include<woo/lib/pyutil/doc_opts.hpp>
 
-#include<yade/lib/base/Types.hpp>
+#include<woo/lib/base/Types.hpp>
 
 #include<vector>
 #include<stdexcept>

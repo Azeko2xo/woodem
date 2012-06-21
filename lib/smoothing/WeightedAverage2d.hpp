@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include<yade/lib/base/Math.hpp>
-#include<yade/lib/base/Types.hpp>
+#include<woo/lib/base/Math.hpp>
+#include<woo/lib/base/Types.hpp>
 #include<boost/math/distributions/normal.hpp>
 
 

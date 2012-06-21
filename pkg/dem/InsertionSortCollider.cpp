@@ -1,9 +1,9 @@
 // 2009 © Václav Šmilauer <eudoxos@arcig.cz> 
 
-#include<yade/pkg/dem/InsertionSortCollider.hpp>
-#include<yade/pkg/dem/ParticleContainer.hpp>
-#include<yade/pkg/dem/Sphere.hpp>
-#include<yade/core/Scene.hpp>
+#include<woo/pkg/dem/InsertionSortCollider.hpp>
+#include<woo/pkg/dem/ParticleContainer.hpp>
+#include<woo/pkg/dem/Sphere.hpp>
+#include<woo/core/Scene.hpp>
 
 #include<algorithm>
 #include<vector>

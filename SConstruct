@@ -165,16 +165,16 @@ Help(opts.GenerateHelpText(env))
 ###########################################
 ################# BUILD DIRECTORY #########
 ###########################################
-import yadeSCons
+import wooSCons
 ## ALL generated stuff should go here - therefore we must determine it very early!!
-if not env.has_key('realVersion') or not env['realVersion']: env['realVersion']=yadeSCons.getRealVersion() or 'unknown' # unknown if nothing returned
+if not env.has_key('realVersion') or not env['realVersion']: env['realVersion']=wooSCons.getRealVersion() or 'unknown' # unknown if nothing returned
 if not env.has_key('version'): env['version']=env['realVersion']
 
 env['SUFFIX']=('-'+env['version'] if len(env['version'])>0 else '')+env['variant']
 env['SUFFIX_DBG']=env['SUFFIX']+('' if not env['debug'] else '/dbg')
-env['LIBDIR']='$PREFIX/lib/yade$SUFFIX_DBG'
-env['RESOURCEDIR']='$PREFIX/share/yade$SUFFIX'
-print "Yade version is `%s' (%s), installed files will be suffixed with `%s'."%(env['version'],env['realVersion'],env['SUFFIX'])
+env['LIBDIR']='$PREFIX/lib/woo$SUFFIX_DBG'
+env['RESOURCEDIR']='$PREFIX/share/woo$SUFFIX'
+print "Woo version is `%s' (%s), installed files will be suffixed with `%s'."%(env['version'],env['realVersion'],env['SUFFIX'])
 buildDir=os.path.abspath(env.subst('$buildPrefix/build$SUFFIX_DBG'))
 print "All intermediary files will be in `%s'."%env.subst(buildDir)
 env['buildDir']=buildDir
@@ -363,15 +363,11 @@ if not env.GetOption('clean'):
 		ok=conf.CheckLibWithHeader('CGAL','CGAL/Exact_predicates_inexact_constructions_kernel.h','c++','CGAL::Exact_predicates_inexact_constructions_kernel::Point_3();')
 		env.Append(CXXFLAGS='-frounding-math') # required by cgal, otherwise we get assertion failure at startup
 		if not ok: featureNotOK('cgal')
-	env.Append(LIBS='yade-support')
+	env.Append(LIBS='woo-support')
 
 	env.Append(CPPDEFINES=['YADE_'+f.upper().replace('-','_') for f in env['features']])
 
 	env=conf.Finish()
-
-	if os.path.exists('../brefcom-mm.hh'):
-		print "Will use full CPM model in ../brefcom-mm.hh"
-		env.Append(CPPDEFINES='YADE_CPM_FULL_MODEL_AVAILABLE')
 
 ##########################################################################################
 ############# BUILDING ###################################################################
@@ -413,7 +409,7 @@ libDirs=('extra','gui','lib','py','plugins')
 instLibDirs=[os.path.join('$LIBDIR',x) for x in libDirs]
 ## runtime library search directories; there can be up to 2 levels of libs, so we do in in quite a crude way here:
 ## FIXME: use syntax as shown here: http://www.scons.org/wiki/UsingOrigin
-relLibDirs=['../'+x for x in libDirs]+['../../'+x for x in libDirs]+[env.subst('../lib/yade$SUFFIX_DBG/lib')]
+relLibDirs=['../'+x for x in libDirs]+['../../'+x for x in libDirs]+[env.subst('../lib/woo$SUFFIX_DBG/lib')]
 runtimeLibDirs=[env.Literal('\\$$ORIGIN/'+x) for x in relLibDirs]
 
 ### PREPROCESSOR FLAGS
@@ -491,8 +487,8 @@ if not env.GetOption('clean'):
 			if not exists(d): os.makedirs(d)
 			os.symlink(relpath(link,target),link)
 
-	yadeInc=join(buildDir,'include/yade')
-	mkSymlink(yadeInc,'.')
+	wooInc=join(buildDir,'include/woo')
+	mkSymlink(wooInc,'.')
 	import glob
 	boostDir=buildDir+'/include/boost'
 	if not exists(boostDir): os.makedirs(boostDir)
@@ -543,9 +539,9 @@ env.CombineWrapper=CombineWrapper
 	
 env.Append(BUILDERS = {'Combine': env.Builder(action = SCons.Action.Action(combiner_build, "> $TARGET"),target_factory = env.fs.File,)})
 
-import yadeSCons
-allPlugs=yadeSCons.scanAllPlugins(None,feats=env['features'])
-buildPlugs=yadeSCons.getWantedPlugins(allPlugs,[],env['features'],env['chunkSize'],env['hotPlugins'].split(','))
+import wooSCons
+allPlugs=wooSCons.scanAllPlugins(None,feats=env['features'])
+buildPlugs=wooSCons.getWantedPlugins(allPlugs,[],env['features'],env['chunkSize'],env['hotPlugins'].split(','))
 def linkPlugins(plugins):
 	"""Given list of plugins we need to link to, return list of real libraries that we should link to."""
 	ret=set()
@@ -553,7 +549,7 @@ def linkPlugins(plugins):
 		if not buildPlugs.has_key(p):
 			raise RuntimeError("Plugin %s is required (backtrace shows where), but will not be built!"%p)
 		ret.add(buildPlugs[p].obj)
-	return ['core','yade-support']+list(ret)
+	return ['core','woo-support']+list(ret)
 
 env['linkPlugins']=linkPlugins
 env['buildPlugs']=buildPlugs
@@ -583,7 +579,7 @@ if not COMMAND_LINE_TARGETS:
 #### DOCUMENTATION
 # must be explicitly requested to be installed, e.g.:
 #    scons /usr/local/share/doc
-#env.Install('$PREFIX/share/doc/yade$SUFFIX-doc/',['examples','scripts','doc'])
+#env.Install('$PREFIX/share/doc/woo$SUFFIX-doc/',['examples','scripts','doc'])
 
 
 ### check if combinedFiles is different; if so, force rebuild of all of them

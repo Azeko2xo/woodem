@@ -1,25 +1,25 @@
 #ifdef YADE_CLDEM
 
-#include<yade/pkg/clDem/CLDemField.hpp>
+#include<woo/pkg/clDem/CLDemField.hpp>
 
-#include<yade/core/Scene.hpp>
+#include<woo/core/Scene.hpp>
 
 
-#include<yade/pkg/dem/Particle.hpp>
-#include<yade/pkg/dem/Sphere.hpp>
-#include<yade/pkg/dem/Wall.hpp>
-#include<yade/pkg/dem/Clump.hpp>
-#include<yade/pkg/dem/L6Geom.hpp>
-#include<yade/pkg/dem/FrictMat.hpp>
-#include<yade/pkg/dem/Gravity.hpp>
-#include<yade/pkg/dem/IdealElPl.hpp>
-#include<yade/pkg/dem/Leapfrog.hpp>
-#include<yade/pkg/dem/InsertionSortCollider.hpp>
+#include<woo/pkg/dem/Particle.hpp>
+#include<woo/pkg/dem/Sphere.hpp>
+#include<woo/pkg/dem/Wall.hpp>
+#include<woo/pkg/dem/Clump.hpp>
+#include<woo/pkg/dem/L6Geom.hpp>
+#include<woo/pkg/dem/FrictMat.hpp>
+#include<woo/pkg/dem/Gravity.hpp>
+#include<woo/pkg/dem/IdealElPl.hpp>
+#include<woo/pkg/dem/Leapfrog.hpp>
+#include<woo/pkg/dem/InsertionSortCollider.hpp>
 
 #ifdef YADE_OPENGL
-	#include<yade/lib/opengl/GLUtils.hpp>
-	#include<yade/pkg/gl/Renderer.hpp>
-	#include<yade/lib/opengl/OpenGLWrapper.hpp>
+	#include<woo/lib/opengl/GLUtils.hpp>
+	#include<woo/pkg/gl/Renderer.hpp>
+	#include<woo/lib/opengl/OpenGLWrapper.hpp>
 #endif
 
 // after all other includes, since it ambiguates many class in yade includes otherwise! 

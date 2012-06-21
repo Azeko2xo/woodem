@@ -1,9 +1,9 @@
 // © 2009 Václav Šmilauer <eudoxos@arcig.cz>
 #pragma once
-#include<yade/pkg/dem/Particle.hpp>
-#include<yade/pkg/dem/Collision.hpp>
-#include<yade/pkg/dem/FrictMat.hpp>
-#include<yade/pkg/dem/IntraForce.hpp>
+#include<woo/pkg/dem/Particle.hpp>
+#include<woo/pkg/dem/Collision.hpp>
+#include<woo/pkg/dem/FrictMat.hpp>
+#include<woo/pkg/dem/IntraForce.hpp>
 
 /*! Object representing infinite plane aligned with the coordinate system (axis-aligned wall). */
 struct InfCylinder: public Shape{
@@ -27,7 +27,7 @@ REGISTER_SERIALIZABLE(Bo1_InfCylinder_Aabb);
 
 #ifdef YADE_OPENGL
 
-#include<yade/pkg/gl/Functors.hpp>
+#include<woo/pkg/gl/Functors.hpp>
 struct Gl1_InfCylinder: public GlShapeFunctor{	
 	virtual void go(const shared_ptr<Shape>&, const Vector3r&, bool,const GLViewInfo&);
 	YADE_CLASS_BASE_DOC_STATICATTRS(Gl1_InfCylinder,GlShapeFunctor,"Renders :yref:`InfCylinder` object",

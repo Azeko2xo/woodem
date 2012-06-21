@@ -1,7 +1,7 @@
 # syntax: python
 Import('*')
 
-pyMain='$PREFIX/bin/yade$SUFFIX'
+pyMain='$PREFIX/bin/woo$SUFFIX'
 main=env.ScanReplace('main/main.py.in')
 batch=env.ScanReplace('main/yade-batch.in')
 env.AlwaysBuild(main)
@@ -16,7 +16,7 @@ if 'execCheck' in env and env['execCheck']!=os.path.abspath(env.subst(pyMain)):
 	raise RuntimeError('execCheck option (%s) does not match what is about to be installed (%s)'%(env['execCheck'],env.subst(pyMain)))
 
 env.Install('$LIBDIR/py/yade',[
-	env.SharedLibrary('boot',['main/pyboot.cpp'],SHLIBPREFIX='',LIBS=env['LIBS']+['yade-support','core'])
+	env.SharedLibrary('boot',['main/pyboot.cpp'],SHLIBPREFIX='',LIBS=env['LIBS']+['woo-support','core'])
 ])
 
 env.Install('$LIBDIR/lib',[
@@ -38,7 +38,7 @@ env.Install('$LIBDIR/lib',[
 			]
 			),
 		LIBS=env['LIBS']+[
-			'yade-support',
+			'woo-support',
 			'rt', # realtime lib, for clock_gettime 
 			]
 			,

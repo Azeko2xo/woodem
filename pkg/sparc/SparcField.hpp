@@ -6,9 +6,9 @@
 // perhaps move to features?
 #define YADE_SPARC
 
-#include<yade/core/Field.hpp>
-#include<yade/core/Scene.hpp>
-#include<yade/core/Field-templates.hpp>
+#include<woo/core/Field.hpp>
+#include<woo/core/Scene.hpp>
+#include<woo/core/Field-templates.hpp>
 
 #include<vtkPointLocator.h>
 #include<vtkIdList.h>
@@ -289,8 +289,8 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 REGISTER_SERIALIZABLE(StaticEquilibriumSolver);
 
 #ifdef YADE_OPENGL
-#include<yade/pkg/gl/NodeGlRep.hpp>
-#include<yade/pkg/gl/Functors.hpp>
+#include<woo/pkg/gl/NodeGlRep.hpp>
+#include<woo/pkg/gl/Functors.hpp>
 
 
 struct Gl1_SparcField: public GlFieldFunctor{

@@ -1,7 +1,7 @@
 #pragma once
-#include<yade/pkg/dem/FrictMat.hpp>
-#include<yade/pkg/dem/L6Geom.hpp>
-#include<yade/pkg/dem/ContactLoop.hpp>
+#include<woo/pkg/dem/FrictMat.hpp>
+#include<woo/pkg/dem/L6Geom.hpp>
+#include<woo/pkg/dem/ContactLoop.hpp>
 
 struct Law2_L6Geom_FrictPhys_IdealElPl: public LawFunctor{
 	void go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&);

@@ -1,12 +1,12 @@
-#include<yade/pkg/dem/Particle.hpp>
-#include<yade/pkg/dem/FrictMat.hpp>
-#include<yade/pkg/dem/Sphere.hpp>
-#include<yade/pkg/dem/ContactLoop.hpp>
-#include<yade/pkg/dem/L6Geom.hpp>
+#include<woo/pkg/dem/Particle.hpp>
+#include<woo/pkg/dem/FrictMat.hpp>
+#include<woo/pkg/dem/Sphere.hpp>
+#include<woo/pkg/dem/ContactLoop.hpp>
+#include<woo/pkg/dem/L6Geom.hpp>
 
-#include<yade/pkg/dem/Funcs.hpp>
+#include<woo/pkg/dem/Funcs.hpp>
 
-#include<yade/lib/base/CompUtils.hpp>
+#include<woo/lib/base/CompUtils.hpp>
 
 shared_ptr<DemField> getDemField(Scene* scene){
 	shared_ptr<DemField> ret;

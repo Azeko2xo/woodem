@@ -1,5 +1,5 @@
-#include<yade/pkg/dem/IntraForce.hpp>
-#include<yade/pkg/dem/Particle.hpp>
+#include<woo/pkg/dem/IntraForce.hpp>
+#include<woo/pkg/dem/Particle.hpp>
 #include<cstdlib>
 
 YADE_PLUGIN(dem,(IntraFunctor)(IntraForce));

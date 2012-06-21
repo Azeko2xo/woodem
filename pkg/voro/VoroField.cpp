@@ -1,7 +1,7 @@
 
-#include<yade/pkg/voro/VoroField.hpp>
-#include<yade/pkg/dem/Particle.hpp>
-#include<yade/pkg/dem/Sphere.hpp>
+#include<woo/pkg/voro/VoroField.hpp>
+#include<woo/pkg/dem/Particle.hpp>
+#include<woo/pkg/dem/Sphere.hpp>
 #include<iostream>
 
 YADE_PLUGIN(voro,(VoroField));

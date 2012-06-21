@@ -1,8 +1,8 @@
-#include<yade/core/Engine.hpp>
-#include<yade/core/Scene.hpp>
-#include<yade/core/Field.hpp>
+#include<woo/core/Engine.hpp>
+#include<woo/core/Scene.hpp>
+#include<woo/core/Field.hpp>
 
-#include<yade/lib/pyutil/gil.hpp>
+#include<woo/lib/pyutil/gil.hpp>
 
 CREATE_LOGGER(Engine);
 

@@ -1,8 +1,8 @@
 // 2009 © Václav Šmilauer <eudoxos@arcig.cz> 
 
 #pragma once
-#include<yade/pkg/dem/Collision.hpp>
-#include<yade/core/Scene.hpp>
+#include<woo/pkg/dem/Collision.hpp>
+#include<woo/core/Scene.hpp>
 
 
 /*! Periodic collider notes.

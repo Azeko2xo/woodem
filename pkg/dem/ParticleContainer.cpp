@@ -1,9 +1,9 @@
 // 2010 © Václav Šmilauer <eudoxos@arcig.cz>
 
-#include<yade/pkg/dem/ParticleContainer.hpp>
-#include<yade/pkg/dem/Particle.hpp>
-#include<yade/pkg/dem/ContactLoop.hpp>
-#include<yade/pkg/dem/Clump.hpp>
+#include<woo/pkg/dem/ParticleContainer.hpp>
+#include<woo/pkg/dem/Particle.hpp>
+#include<woo/pkg/dem/ContactLoop.hpp>
+#include<woo/pkg/dem/Clump.hpp>
 
 #ifdef YADE_OPENMP
 	#include<omp.h>

@@ -1,4 +1,4 @@
-#include<yade/core/EnergyTracker.hpp>
+#include<woo/core/EnergyTracker.hpp>
 
 Real EnergyTracker::total() const { Real ret=0; size_t sz=energies.size(); for(size_t id=0; id<sz; id++) ret+=energies.get(id); return ret; }
 Real EnergyTracker::relErr() const {

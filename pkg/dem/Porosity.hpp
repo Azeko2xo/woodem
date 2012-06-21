@@ -1,9 +1,9 @@
 #pragma once
 
-#include<yade/pkg/dem/Particle.hpp>
-#include<yade/core/Engine.hpp>
+#include<woo/pkg/dem/Particle.hpp>
+#include<woo/core/Engine.hpp>
 
-#include<yade/lib/sphere-pack/SpherePack.hpp>
+#include<woo/lib/sphere-pack/SpherePack.hpp>
 
 struct AnisoPorosityAnalyzer: public GlobalEngine {
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
@@ -41,7 +41,7 @@ REGISTER_SERIALIZABLE(AnisoPorosityAnalyzer);
 
 
 #ifdef YADE_OPENGL
-#include<yade/pkg/gl/Renderer.hpp>
+#include<woo/pkg/gl/Renderer.hpp>
 
 class GlExtra_AnisoPorosityAnalyzer: public GlExtraDrawer{
 	public:

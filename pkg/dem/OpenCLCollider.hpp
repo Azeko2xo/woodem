@@ -1,4 +1,4 @@
-#include<yade/pkg/dem/InsertionSortCollider.hpp>
+#include<woo/pkg/dem/InsertionSortCollider.hpp>
 
 class OpenCLCollider: public InsertionSortCollider{
 

@@ -1,14 +1,14 @@
 #pragma once
 
-#include<yade/lib/object/Object.hpp>
-#include<yade/core/Field.hpp>
-#include<yade/core/Timing.hpp>
-#include<yade/lib/base/Logging.hpp>
+#include<woo/lib/object/Object.hpp>
+#include<woo/core/Field.hpp>
+#include<woo/core/Timing.hpp>
+#include<woo/lib/base/Logging.hpp>
 
 #include<stdexcept>
 #include<boost/regex.hpp>
 
-#include<yade/lib/pyutil/except.hpp>
+#include<woo/lib/pyutil/except.hpp>
 
 
 #include<boost/foreach.hpp>

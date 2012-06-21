@@ -7,7 +7,7 @@
 *************************************************************************/
 
 
-#include<yade/core/Functor.hpp>
+#include<woo/core/Functor.hpp>
 Functor::~Functor(){}; // vtable
 
 #include "Dispatcher.hpp"

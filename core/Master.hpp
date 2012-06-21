@@ -11,13 +11,13 @@
 #include<boost/foreach.hpp>
 #include<boost/smart_ptr/scoped_ptr.hpp>
 
-#include<yade/lib/base/Math.hpp>
-#include<yade/lib/base/Singleton.hpp>
-#include<yade/lib/base/Types.hpp>
-#include<yade/lib/base/Logging.hpp>
-#include<yade/lib/pyutil/except.hpp>
+#include<woo/lib/base/Math.hpp>
+#include<woo/lib/base/Singleton.hpp>
+#include<woo/lib/base/Types.hpp>
+#include<woo/lib/base/Logging.hpp>
+#include<woo/lib/pyutil/except.hpp>
 
-#include<yade/core/Timing.hpp>
+#include<woo/core/Timing.hpp>
 
 #ifndef FOREACH
 # define FOREACH BOOST_FOREACH

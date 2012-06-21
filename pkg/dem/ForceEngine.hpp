@@ -1,6 +1,6 @@
 #pragma once
-#include<yade/pkg/dem/Particle.hpp>
-#include<yade/core/Engine.hpp>
+#include<woo/pkg/dem/Particle.hpp>
+#include<woo/core/Engine.hpp>
 
 struct RadialForce: public GlobalEngine {
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }

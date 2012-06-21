@@ -1,7 +1,7 @@
-#include<yade/core/Preprocessor.hpp>
-#include<yade/core/Scene.hpp>
+#include<woo/core/Preprocessor.hpp>
+#include<woo/core/Scene.hpp>
 
-#include<yade/pkg/dem/FrictMat.hpp>
+#include<woo/pkg/dem/FrictMat.hpp>
 
 struct Roro: public Preprocessor {
 	shared_ptr<Scene> operator()(){

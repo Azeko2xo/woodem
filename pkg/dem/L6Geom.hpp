@@ -1,15 +1,15 @@
 
 #pragma once
-#include<yade/pkg/dem/Particle.hpp>
-#include<yade/pkg/dem/ContactLoop.hpp>
-#include<yade/pkg/dem/Sphere.hpp>
-#include<yade/pkg/dem/Facet.hpp>
-#include<yade/pkg/dem/Truss.hpp>
-#include<yade/pkg/dem/Wall.hpp>
-#include<yade/pkg/dem/InfCylinder.hpp>
+#include<woo/pkg/dem/Particle.hpp>
+#include<woo/pkg/dem/ContactLoop.hpp>
+#include<woo/pkg/dem/Sphere.hpp>
+#include<woo/pkg/dem/Facet.hpp>
+#include<woo/pkg/dem/Truss.hpp>
+#include<woo/pkg/dem/Wall.hpp>
+#include<woo/pkg/dem/InfCylinder.hpp>
 
 #ifdef YADE_OPENGL
-	#include<yade/pkg/gl/Functors.hpp>
+	#include<woo/pkg/gl/Functors.hpp>
 #endif
 
 struct L6Geom: public CGeom{

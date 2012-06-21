@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include<yade/pkg/dem/Particle.hpp>
+#include<woo/pkg/dem/Particle.hpp>
 
 struct PeriIsoCompressor: public Engine{
 	bool acceptsFiled(Field* f){ return dynamic_cast<DemField*>(f); }

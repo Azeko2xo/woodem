@@ -1,5 +1,5 @@
-#include<yade/lib/pyutil/except.hpp>
-#include<yade/lib/pyutil/gil.hpp>
+#include<woo/lib/pyutil/except.hpp>
+#include<woo/lib/pyutil/gil.hpp>
 #include<boost/python.hpp>
 
 namespace yade{

@@ -1,5 +1,5 @@
-#include<yade/pkg/dem/Facet.hpp>
-#include<yade/lib/base/CompUtils.hpp>
+#include<woo/pkg/dem/Facet.hpp>
+#include<woo/lib/base/CompUtils.hpp>
 YADE_PLUGIN(dem,(Facet)(Bo1_Facet_Aabb));
 #ifdef YADE_OPENGL
 YADE_PLUGIN(gl,(Gl1_Facet));
@@ -50,10 +50,10 @@ void Bo1_Facet_Aabb::go(const shared_ptr<Shape>& sh){
 
 
 #ifdef YADE_OPENGL
-#include<yade/lib/opengl/OpenGLWrapper.hpp>
-#include<yade/lib/opengl/GLUtils.hpp>
-#include<yade/pkg/gl/Renderer.hpp>
-#include<yade/lib/base/CompUtils.hpp>
+#include<woo/lib/opengl/OpenGLWrapper.hpp>
+#include<woo/lib/opengl/GLUtils.hpp>
+#include<woo/pkg/gl/Renderer.hpp>
+#include<woo/lib/base/CompUtils.hpp>
 
 bool Gl1_Facet::wire;
 

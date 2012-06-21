@@ -1,6 +1,6 @@
 // © 2009 Václav Šmilauer <eudoxos@arcig.cz>
-#include<yade/pkg/dem/Wall.hpp>
-#include<yade/pkg/dem/ParticleContainer.hpp>
+#include<woo/pkg/dem/Wall.hpp>
+#include<woo/pkg/dem/ParticleContainer.hpp>
 #include<limits>
 
 YADE_PLUGIN(dem,(Wall)(Bo1_Wall_Aabb)(In2_Wall_ElastMat));
@@ -30,10 +30,10 @@ void In2_Wall_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Materia
 
 
 #ifdef YADE_OPENGL
-	#include<yade/lib/opengl/OpenGLWrapper.hpp>
-	#include<yade/pkg/gl/Renderer.hpp>
-	#include<yade/lib/base/CompUtils.hpp>
-	#include<yade/lib/opengl/GLUtils.hpp>
+	#include<woo/lib/opengl/OpenGLWrapper.hpp>
+	#include<woo/pkg/gl/Renderer.hpp>
+	#include<woo/lib/base/CompUtils.hpp>
+	#include<woo/lib/opengl/GLUtils.hpp>
 
 	int  Gl1_Wall::div=20;
 	void Gl1_Wall::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool wire2, const GLViewInfo& viewInfo){

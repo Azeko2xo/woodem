@@ -1,4 +1,4 @@
-#include<yade/pkg/dem/Truss.hpp>
+#include<woo/pkg/dem/Truss.hpp>
 YADE_PLUGIN(dem,(Truss)(Bo1_Truss_Aabb)(In2_Truss_ElastMat));
 
 void Bo1_Truss_Aabb::go(const shared_ptr<Shape>& sh){
@@ -75,9 +75,9 @@ void In2_Truss_ElastMat::go(const shared_ptr<Shape>& shape, const shared_ptr<Mat
 
 #ifdef YADE_OPENGL
 YADE_PLUGIN(gl,(Gl1_Truss));
-#include<yade/lib/opengl/OpenGLWrapper.hpp>
-#include<yade/lib/opengl/GLUtils.hpp>
-#include<yade/lib/base/CompUtils.hpp>
+#include<woo/lib/opengl/OpenGLWrapper.hpp>
+#include<woo/lib/opengl/GLUtils.hpp>
+#include<woo/lib/base/CompUtils.hpp>
 bool Gl1_Truss::wire;
 int Gl1_Truss::slices;
 int Gl1_Truss::stacks;

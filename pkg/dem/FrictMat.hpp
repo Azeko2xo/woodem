@@ -1,7 +1,7 @@
 #pragma once
-#include<yade/pkg/dem/Particle.hpp>
-#include<yade/core/MatchMaker.hpp>
-#include<yade/pkg/dem/ContactLoop.hpp>
+#include<woo/pkg/dem/Particle.hpp>
+#include<woo/core/MatchMaker.hpp>
+#include<woo/pkg/dem/ContactLoop.hpp>
 // class MatchMaker;
 
 class ElastMat: public Material{

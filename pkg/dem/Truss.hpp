@@ -1,9 +1,9 @@
 #pragma once
-#include<yade/lib/object/Object.hpp>
-#include<yade/pkg/dem/Particle.hpp>
-#include<yade/pkg/dem/IntraForce.hpp>
-#include<yade/pkg/dem/Collision.hpp>
-#include<yade/pkg/dem/FrictMat.hpp>
+#include<woo/lib/object/Object.hpp>
+#include<woo/pkg/dem/Particle.hpp>
+#include<woo/pkg/dem/IntraForce.hpp>
+#include<woo/pkg/dem/Collision.hpp>
+#include<woo/pkg/dem/FrictMat.hpp>
 
 struct Truss: public Shape{
 	bool numNodesOk() const { return nodes.size()==2; }
@@ -22,7 +22,7 @@ struct Truss: public Shape{
 REGISTER_SERIALIZABLE(Truss);
 
 #ifdef YADE_OPENGL
-#include<yade/pkg/gl/Functors.hpp>
+#include<woo/pkg/gl/Functors.hpp>
 struct Gl1_Truss: public GlShapeFunctor{
 	virtual void go(const shared_ptr<Shape>&, const Vector3r&, bool, const GLViewInfo&);
 	FUNCTOR1D(Truss);

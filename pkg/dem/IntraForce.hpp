@@ -1,7 +1,7 @@
 #pragma once
-#include<yade/pkg/dem/Particle.hpp>
-#include<yade/core/Functor.hpp>
-#include<yade/core/Dispatcher.hpp>
+#include<woo/pkg/dem/Particle.hpp>
+#include<woo/core/Functor.hpp>
+#include<woo/core/Dispatcher.hpp>
 
 class IntraFunctor: public Functor2D<
 	/*dispatch types*/ Shape,Material,

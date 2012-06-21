@@ -9,7 +9,7 @@ prefix,suffix='${runtimePREFIX}' if not os.environ.has_key('YADE_PREFIX') else o
 features,version='${features}'.split(','),'${realVersion}'
 
 ## find available builds
-nonDebugLibDir=prefix+'/lib/yade'+suffix
+nonDebugLibDir=prefix+'/lib/woo'+suffix
 debugLibDir=nonDebugLibDir+'/dbg'
 hasDebug,hasNonDebug=os.path.exists(debugLibDir+'/py/yade/__init__.py'),os.path.exists(nonDebugLibDir+'/py/yade/__init__.py')
 if hasDebug and hasNonDebug: buildsAvailable='both non-debug and debug build'
@@ -33,30 +33,30 @@ par.add_option('-v',help='Increase logging verbosity; first occurence sets defau
 	('' if 'log4cxx' in features else " (Since this build doesn't use log4cxx, this option will only have effect if repeated twice (\-vv), equivalent to setting YADE_DEBUG environment variable)"),action='count',dest='verbosity')
 par.add_option('-n',help="Run without graphical interface (equivalent to unsetting the DISPLAY environment variable)",dest='nogui',action='store_true')
 par.add_option('--generate-manpage',help="Generate man page documenting this program and exit",dest='manpage',metavar='FILE')
-par.add_option('--rebuild',help="Re-run build in the source directory, then run the updated yade with the same command line except \-\-rebuild. The build profile for this build (${profile}) and its stored parameters will be used.",dest='rebuild',action='store_true')
+par.add_option('--rebuild',help="Re-run build in the source directory, then run the updated woo with the same command line except \-\-rebuild. The build profile for this build (${profile}) and its stored parameters will be used.",dest='rebuild',action='store_true')
 par.add_option('--test',help="Run regression test suite and exit; the exists status is 0 if all tests pass, 1 if a test fails and 2 for an unspecified exception.",dest="test",action='store_true')
 par.add_option('--debug',help='Run the debug build, if available.',dest='debug',action='store_true')
 par.add_option('--checks',help='Run a series of user-defined check tests as described in ${sourceRoot}/scripts/test/checks/README',dest='checks',action='store_true')
 par.add_option('--performance',help='Starts a test to measure the productivity',dest='performance',action='store_true')
-par.add_option('--no-gdb',help='Do not show backtrace when yade crashes (only effective with \-\-debug).',dest='noGdb',action='store_true',)
-par.add_option('--in-gdb',help='Run yade inside gdb (must be in $PATH).',dest='inGdb',action='store_true')
-par.add_option('--in-pdb',help='Run yade inside pdb',dest='inPdb',action='store_true')
+par.add_option('--no-gdb',help='Do not show backtrace when Woo crashes (only effective with \-\-debug).',dest='noGdb',action='store_true',)
+par.add_option('--in-gdb',help='Run Woo inside gdb (must be in $PATH).',dest='inGdb',action='store_true')
+par.add_option('--in-pdb',help='Run Woo inside pdb',dest='inPdb',action='store_true')
 par.add_option('--in-valgrind',help='Run inside valgrind (must be in $PATH); automatically adds python ignore files',dest='inValgrind',action='store_true')
 par.disable_interspersed_args()
 
 opts,args=par.parse_args()
 
-# re-build yade so that the binary is up-to-date
+# re-build woo so that the binary is up-to-date
 if opts.rebuild:
 	import subprocess
 	# rebuild
 	sourceRoot,profile='${sourceRoot}','${profile}' # replaced at install-time
-	cmd=['scons','-Q','-C',sourceRoot,'profile=%s!'%profile,'debug=%d'%(1 if opts.debug else 0),'execCheck=%s'%(os.path.abspath(prefix+'/bin/yade'+suffix))]
-	print 'Rebuilding yade using',' '.join(cmd)
-	if subprocess.call(cmd): raise RuntimeError('Error rebuilding Yade (--rebuild).')
+	cmd=['scons','-Q','-C',sourceRoot,'profile=%s!'%profile,'debug=%d'%(1 if opts.debug else 0),'execCheck=%s'%(os.path.abspath(prefix+'/bin/woo'+suffix))]
+	print 'Rebuilding Woo using',' '.join(cmd)
+	if subprocess.call(cmd): raise RuntimeError('Error rebuilding Woo (--rebuild).')
 	# run ourselves
 	argv=[v for v in sys.argv if v!='--rebuild']
-	print 'Running yade using',' '.join(argv)
+	print 'Running Woo using',' '.join(argv)
 	sys.exit(subprocess.call(argv))
 
 # run this instance inside pdb
@@ -97,10 +97,10 @@ else:
 
 ## remove later
 ## python2.5 relative module imports workaround
-v=sys.version_info
-if v[0]==2 and v[1]<=5:
-	for submodule in ('yade','gts','yade/tests'):
-		sys.path.append(os.path.join(libDir,'py',submodule))
+#v=sys.version_info
+#if v[0]==2 and v[1]<=5:
+#	for submodule in ('yade','gts','yade/tests'):
+#		sys.path.append(os.path.join(libDir,'py',submodule))
 
 sys.path.append(os.path.join(libDir,'py'))
 

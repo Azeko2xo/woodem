@@ -1,8 +1,8 @@
 #pragma once
 #ifdef YADE_OPENGL
 
-#include<yade/pkg/dem/Particle.hpp>
-#include<yade/pkg/gl/Functors.hpp>
+#include<woo/pkg/dem/Particle.hpp>
+#include<woo/pkg/gl/Functors.hpp>
 
 class GLUquadric;
 

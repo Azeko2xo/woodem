@@ -1,5 +1,5 @@
-#include<yade/pkg/dem/Sphere.hpp>
-#include<yade/pkg/dem/ParticleContainer.hpp>
+#include<woo/pkg/dem/Sphere.hpp>
+#include<woo/pkg/dem/ParticleContainer.hpp>
 
 YADE_PLUGIN(dem,(Sphere)(Bo1_Sphere_Aabb)(In2_Sphere_ElastMat));
 
@@ -52,10 +52,10 @@ void In2_Sphere_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Mater
 #ifdef YADE_OPENGL
 YADE_PLUGIN(gl,(Gl1_Sphere));
 
-#include<yade/lib/opengl/OpenGLWrapper.hpp>
-#include<yade/lib/opengl/GLUtils.hpp>
-#include<yade/pkg/gl/Renderer.hpp>
-#include<yade/lib/base/CompUtils.hpp>
+#include<woo/lib/opengl/OpenGLWrapper.hpp>
+#include<woo/lib/opengl/GLUtils.hpp>
+#include<woo/pkg/gl/Renderer.hpp>
+#include<woo/lib/base/CompUtils.hpp>
 
 bool Gl1_Sphere::wire;
 bool Gl1_Sphere::smooth;

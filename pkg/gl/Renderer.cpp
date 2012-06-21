@@ -1,17 +1,17 @@
 #ifdef YADE_OPENGL
 
-#include<yade/pkg/gl/Renderer.hpp>
-#include<yade/lib/opengl/OpenGLWrapper.hpp>
-#include<yade/lib/opengl/GLUtils.hpp>
-#include<yade/lib/base/CompUtils.hpp>
-#include<yade/core/Timing.hpp>
-#include<yade/core/Scene.hpp>
-#include<yade/core/Field.hpp>
+#include<woo/pkg/gl/Renderer.hpp>
+#include<woo/lib/opengl/OpenGLWrapper.hpp>
+#include<woo/lib/opengl/GLUtils.hpp>
+#include<woo/lib/base/CompUtils.hpp>
+#include<woo/core/Timing.hpp>
+#include<woo/core/Scene.hpp>
+#include<woo/core/Field.hpp>
 
-#include<yade/pkg/dem/Particle.hpp>
+#include<woo/pkg/dem/Particle.hpp>
 
 
-#include<yade/pkg/sparc/SparcField.hpp>
+#include<woo/pkg/sparc/SparcField.hpp>
 
 #include <GL/glu.h>
 #include <GL/gl.h>

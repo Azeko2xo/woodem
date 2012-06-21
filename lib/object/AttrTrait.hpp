@@ -1,5 +1,5 @@
-#include<yade/lib/base/Types.hpp>
-#include<yade/lib/base/Math.hpp>
+#include<woo/lib/base/Types.hpp>
+#include<woo/lib/base/Math.hpp>
 #include<boost/python.hpp>
 
 // attribute flags

@@ -13,8 +13,8 @@ The transformation is split between "normal" part and "rotation/shear" part for 
 
 #pragma once
 
-#include<yade/lib/object/Object.hpp>
-#include<yade/lib/base/Math.hpp>
+#include<woo/lib/object/Object.hpp>
+#include<woo/lib/base/Math.hpp>
 
 class Scene;
 
@@ -158,10 +158,10 @@ class Cell: public Object{
 	/*py*/\
 		/* override some attributes above*/ \
 		.add_property("hSize",&Cell::getHSize,&Cell::setHSize,"Base cell vectors (columns of the matrix), updated at every step from :yref:`gradV<Cell.gradV>` (:yref:`trsf<Cell.trsf>` accumulates applied :yref:`gradV<Cell.gradV>` transformations). Setting *hSize* during a simulation is not supported by most contact laws, it is only meant to be used at iteration 0 before any interactions have been created.")\
-		.add_property("size",&Cell::getSize_copy,&Cell::setSize,"Current size of the cell, i.e. lengths of the 3 cell lateral vectors contained in :yref:`Cell.hSize` columns. Updated automatically at every step. Assigning a value will change the lengths of base vectors (see :yref:`Cell.hSize`), keeping their orientations unchanged.")\
+		.add_property("size",&Cell::getSize_copy,&Cell::setSize,"Current size of the cell, i.e. lengths of the 3 cell lateral vectors contained in :ref:`Cell.hSize` columns. Updated automatically at every step. Assigning a value will change the lengths of base vectors (see :ref:`Cell.hSize`), keeping their orientations unchanged.")\
 		/* useful properties*/ \
-		.add_property("trsf",&Cell::getTrsf,&Cell::setTrsf,"Current transformation matrix of the cell, obtained from time integration of :yref:`Cell.gradV`.")\
-		.def_readonly("size",&Cell::getSize_copy,"Current size of the cell, i.e. lengths of the 3 cell lateral vectors contained in :yref:`Cell.hSize` columns. Updated automatically at every step.")\
+		.add_property("trsf",&Cell::getTrsf,&Cell::setTrsf,"Current transformation matrix of the cell, obtained from time integration of :ref:`Cell.gradV`.")\
+		.def_readonly("size",&Cell::getSize_copy,"Current size of the cell, i.e. lengths of the 3 cell lateral vectors contained in :ref:`Cell.hSize` columns. Updated automatically at every step.")\
 		.add_property("volume",&Cell::getVolume,"Current volume of the cell.")\
 		/* functions */ \
 		.def("setBox",&Cell::setBox,"Set :yref:`Cell` shape to be rectangular, with dimensions along axes specified by given argument. Shorthand for assigning diagonal matrix with respective entries to :yref:`hSize<Cell.hSize>`.")\
@@ -177,7 +177,13 @@ class Cell: public Object{
 		.def_readonly("shearTrsf",&Cell::_shearTrsf,"Current skew+rot transformation (no resize)")\
 		.def_readonly("unshearTrsf",&Cell::_unshearTrsf,"Inverse of the current skew+rot transformation (no resize)")\
 		.add_property("hSize0",&Cell::getHSize0,"Value of untransformed hSize, with respect to current :yref:`trsf<Cell.trsf>` (computed as :yref:`trsf<Cell.trsf>`⁻¹ × :yref:`hSize<Cell.hSize>`.")\
-		.add_property("size0",&Cell::getSize0,"norms of columns of `hSize0` (edge lengths of the untransformed configuration)")
+		.add_property("size0",&Cell::getSize0,"norms of columns of `hSize0` (edge lengths of the untransformed configuration)") ;\
+			_classObj.attr("HomoNone")=(int)Cell::HOMO_NONE; \
+			_classObj.attr("HomoPos")=(int)Cell::HOMO_POS; \
+			_classObj.attr("HomoVel")=(int)Cell::HOMO_VEL; \
+			_classObj.attr("HomoVel2")=(int)Cell::HOMO_VEL_2ND; \
+			_classObj.attr("HomoGradV2")=(int)Cell::HOMO_GRADV2;
+
 	YAD3_CLASS_DECLARATION(Cell_CLASS_DESCRIPTOR);
 };
 REGISTER_SERIALIZABLE(Cell);

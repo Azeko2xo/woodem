@@ -2,12 +2,12 @@
 // © 2008 Václav Šmilauer <eudoxos@arcig.cz>
 #pragma once
 
-#include<yade/lib/multimethods/DynLibDispatcher.hpp>
-#include<yade/core/Dispatcher.hpp>
-#include<yade/lib/opengl/OpenGLWrapper.hpp>
+#include<woo/lib/multimethods/DynLibDispatcher.hpp>
+#include<woo/core/Dispatcher.hpp>
+#include<woo/lib/opengl/OpenGLWrapper.hpp>
 
-#include<yade/pkg/gl/Functors.hpp>
-#include<yade/pkg/gl/NodeGlRep.hpp>
+#include<woo/pkg/gl/Functors.hpp>
+#include<woo/pkg/gl/NodeGlRep.hpp>
 
 struct GlExtraDrawer: public Object{
 	Scene* scene;

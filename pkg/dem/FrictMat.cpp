@@ -1,7 +1,7 @@
-#include<yade/pkg/dem/FrictMat.hpp>
-#include<yade/core/MatchMaker.hpp>
-#include<yade/pkg/dem/L6Geom.hpp>
-#include<yade/pkg/dem/G3Geom.hpp>
+#include<woo/pkg/dem/FrictMat.hpp>
+#include<woo/core/MatchMaker.hpp>
+#include<woo/pkg/dem/L6Geom.hpp>
+#include<woo/pkg/dem/G3Geom.hpp>
 
 YADE_PLUGIN(dem,(ElastMat)(FrictMat)(FrictPhys)(Cp2_FrictMat_FrictPhys));
 

@@ -11,7 +11,7 @@
 
 #include "Indexable.hpp"
 
-#include<yade/lib/object/Object.hpp>
+#include<woo/lib/object/Object.hpp>
 
 #include<loki/Functor.h>
 #include<loki/Typelist.h>

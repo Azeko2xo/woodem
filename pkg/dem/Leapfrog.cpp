@@ -1,7 +1,7 @@
-#include<yade/pkg/dem/Leapfrog.hpp>
-#include<yade/core/Scene.hpp>
-#include<yade/pkg/dem/Particle.hpp>
-#include<yade/pkg/dem/Clump.hpp>
+#include<woo/pkg/dem/Leapfrog.hpp>
+#include<woo/core/Scene.hpp>
+#include<woo/pkg/dem/Particle.hpp>
+#include<woo/pkg/dem/Clump.hpp>
 #include<iomanip>
 
 YADE_PLUGIN(dem,(Leapfrog)(ForceResetter));

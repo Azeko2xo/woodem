@@ -12,13 +12,13 @@ from yade import utils
 
 class TestFormatsAndDetection(unittest.TestCase):
 	def setUp(self):
-		O.reset()
-		O.scene.fields=[DemField()]
-		O.scene.engines=utils.defaultEngines()
-		O.scene.dem.par.append(utils.sphere((0,0,0),radius=1))
+		yade.master.scene=S=Scene(fields=[DemField()])
+		S.engines=utils.defaultEngines()
+		S.dem.par.append(utils.sphere((0,0,0),radius=1))
 	def tryDumpLoad(self,fmt='auto',ext='',load=True):
-		for o in O.scene.engines+[O.scene.dem.par[0]]:
-			out=O.tmpFilename()+ext
+		S=yade.master.scene
+		for o in S.engines+[S.dem.par[0]]:
+			out=yade.master.tmpFilename()+ext
 			o.dump(out,format=fmt)
 			if load:
 				o2=Object.load(out,format='auto')
@@ -27,7 +27,8 @@ class TestFormatsAndDetection(unittest.TestCase):
 				self.assertRaises(TypeError,lambda: yade.core.Node.load(out))
 				#if fmt=='expr': print open(out).read()
 	def tryDumpLoadStr(self,fmt,load=True):
-		for o in O.scene.engines+[O.scene.dem.par[0]]:
+		S=yade.master.scene
+		for o in S.engines+[S.dem.par[0]]:
 			dump=o.dumps(format=fmt)
 			if load: Object.loads(dump,format='auto')
 	def testExpr(self):
@@ -56,20 +57,21 @@ class TestFormatsAndDetection(unittest.TestCase):
 		self.tryDumpLoad(ext='.bin.gz')
 	def testInvalidFormat(self):
 		'IO: invalid formats rejected'
-		self.assertRaises(IOError,lambda: O.scene.dem.par[0].dumps(format='bogus'))
+		self.assertRaises(IOError,lambda: yade.master.scene.dem.par[0].dumps(format='bogus'))
 	def testTmpStore(self):
 		'IO: temporary store loadTmp, saveTmp'
-		for o in O.scene.engines+[O.scene.dem.par[0]]:
+		S=yade.master.scene
+		for o in S.engines+[S.dem.par[0]]:
 			o.saveTmp(quiet=True);
 			o.__class__.loadTmp() # discard the result, but checks type
 
 
 class TestSpecialDumpMethods(unittest.TestCase):
 	def setUp(self):
-		O.reset()
-		O.scene.lastDump='foo'
-		self.out=O.tmpFilename()
+		yade.master.reset()
+		yade.master.scene.lastSave='foo'
+		self.out=yade.master.tmpFilename()
 	def testSceneLastDump_direct(self):
 		'IO: Scene.lastSave set (Object._boostSave overridden)'
-		O.scene.save(self.out)
-		self.assert_(O.scene.lastSave==self.out)
+		yade.master.scene.save(self.out)
+		self.assert_(yade.master.scene.lastSave==self.out)

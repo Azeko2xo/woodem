@@ -1,6 +1,6 @@
-#include<yade/pkg/dem/ContactLoop.hpp>
-#include<yade/pkg/dem/FrictMat.hpp>
-// #include<yade/pkg/dem/Cp2_FrictMat_FrictPhys.hpp>
+#include<woo/pkg/dem/ContactLoop.hpp>
+#include<woo/pkg/dem/FrictMat.hpp>
+// #include<woo/pkg/dem/Cp2_FrictMat_FrictPhys.hpp>
 
 struct Cp2_FrictMat_FrictPhys_CrossAnisotropic: CPhysFunctor {
 	virtual void go(const shared_ptr<Material>&, const shared_ptr<Material>&, const shared_ptr<Contact>&);
@@ -34,7 +34,7 @@ REGISTER_SERIALIZABLE(Cp2_FrictMat_FrictPhys_CrossAnisotropic);
 
 #if 0
 #ifdef YADE_OPENGL
-#include<yade/pkg/common/OpenGLRenderer.hpp>
+#include<woo/pkg/common/OpenGLRenderer.hpp>
 
 class GlExtra_LocalAxes: public GlExtraDrawer{
 	public:

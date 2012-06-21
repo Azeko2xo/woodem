@@ -1,10 +1,10 @@
 #ifdef YADE_VTK
-#include<yade/pkg/dem/VtkExport.hpp>
-#include<yade/pkg/dem/Sphere.hpp>
-#include<yade/pkg/dem/Facet.hpp>
-#include<yade/pkg/dem/InfCylinder.hpp>
-#include<yade/pkg/dem/Wall.hpp>
-#include<yade/pkg/dem/Clump.hpp>
+#include<woo/pkg/dem/VtkExport.hpp>
+#include<woo/pkg/dem/Sphere.hpp>
+#include<woo/pkg/dem/Facet.hpp>
+#include<woo/pkg/dem/InfCylinder.hpp>
+#include<woo/pkg/dem/Wall.hpp>
+#include<woo/pkg/dem/Clump.hpp>
 
 YADE_PLUGIN(dem,(VtkExport));
 CREATE_LOGGER(VtkExport);

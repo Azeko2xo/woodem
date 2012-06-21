@@ -149,9 +149,9 @@ def buildPluginLibs(env,plugInfo):
 			elif chunkSize==1: pass # srcs=srcs
 			else: srcs=[env.CombineWrapper('$buildDir/'+obj+'%d.cpp'%j,srcs[i:i+chunkSize]) for j,i in enumerate(range(0,len(srcs),chunkSize))]
 		#if linkStrategy!='static':
-		env.Install('$LIBDIR/plugins',env.SharedLibrary(obj,srcs,LIBS=env['LIBS']+['yade-support','core']+list(objs[obj][1])))
+		env.Install('$LIBDIR/plugins',env.SharedLibrary(obj,srcs,LIBS=env['LIBS']+['woo-support','core']+list(objs[obj][1])))
 		#else:
-		#	env.Install('$LIBDIR/plugins',env.StaticLibrary(obj,srcs,LIBS=env['LIBS']+['yade-support','core']+list(objs[obj][1])))
+		#	env.Install('$LIBDIR/plugins',env.StaticLibrary(obj,srcs,LIBS=env['LIBS']+['woo-support','core']+list(objs[obj][1])))
 	
 
 	

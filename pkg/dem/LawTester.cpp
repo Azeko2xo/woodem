@@ -1,6 +1,6 @@
-#include<yade/pkg/dem/LawTester.hpp>
-#include<yade/lib/pyutil/gil.hpp>
-#include<yade/pkg/dem/L6Geom.hpp>
+#include<woo/pkg/dem/LawTester.hpp>
+#include<woo/lib/pyutil/gil.hpp>
+#include<woo/pkg/dem/L6Geom.hpp>
 
 YADE_PLUGIN(dem,(LawTesterStage)(LawTester));
 

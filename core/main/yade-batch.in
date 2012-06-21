@@ -11,11 +11,11 @@ import os, sys, thread, time, logging, pipes, socket, xmlrpclib, re, shutil, ran
 ## replaced by scons automatically
 prefix,suffix='${runtimePREFIX}' if not os.environ.has_key('YADE_PREFIX') else os.environ['YADE_PREFIX'],'${SUFFIX}'
 # run the batch always in non-debug mode (the spawned processes do honor debuggin flag, however)
-libDir=prefix+'/lib/yade'+suffix
+libDir=prefix+'/lib/woo'+suffix
 if not os.path.exists(libDir): libDir=libDir+'/dbg' # ude debugging dir if available
-if not os.path.exists(libDir): raise RuntimeError("Yade plugin directory does not exist: "+libDir)
+if not os.path.exists(libDir): raise RuntimeError("Woo plugin directory does not exist: "+libDir)
 sys.path.append(os.path.join(libDir,'py'))
-executable=os.path.join(prefix,'bin','yade'+suffix)
+executable=os.path.join(prefix,'bin','woo'+suffix)
 ## we just need this ...
 import yade, yade.utils, yade.config, yade.remote
 
@@ -187,7 +187,7 @@ class HttpStatsServer(SocketServer.ThreadingMixIn,BaseHTTPRequestHandler):
 		return
 	def log_request(self,req): pass
 	def sendGlobal(self):
-		html='<HTML><TITLE>Yade-batch at %s overview</TITLE><BODY>\n'%(socket.gethostname())
+		html='<HTML><TITLE>Woo-batch at %s overview</TITLE><BODY>\n'%(socket.gethostname())
 		html+=globalHtmlStats()
 		html+='<TABLE border=1><tr><th>id</th><th>status</th><th>info</th><th>cores</th><th>plots</th><th>command</th></tr>\n'
 		for j in jobs: html+=j.htmlStats()+'\n'
@@ -250,7 +250,7 @@ def runJob(job):
 	else:
 		job.command=job.command.replace('[threadspec]','--threads=%d'%job.nCores); job.hrefCommand=job.hrefCommand.replace('[threadspec]','--threads=%d'%job.nCores)
 	job.exitStatus=os.system(job.command)
-	if job.exitStatus!=0 and len([l for l in open(job.log) if l.startswith('Yade: normal exit.')])>0: job.exitStatus=0
+	if job.exitStatus!=0 and len([l for l in open(job.log) if l.startswith('Woo: normal exit.')])>0: job.exitStatus=0
 	job.finished=time.time()
 	dt=job.finished-job.started;
 	job.durationSec=dt
@@ -306,7 +306,7 @@ parser.add_option('-j','--jobs',dest='maxJobs',type='int',help="Maximum number o
 parser.add_option('--job-threads',dest='defaultThreads',type='int',help="Default number of threads for one job; can be overridden by per-job with !THREADS (or !OMP_NUM_THREADS) column. Defaults to 1.",metavar='NUM',default=1)
 parser.add_option('--force-threads',action='store_true',dest='forceThreads',help='Force jobs to not use more cores than the maximum (see \-j), even if !THREADS colums specifies more.')
 parser.add_option('--log',dest='logFormat',help='Format of job log files: must contain a $, % or @, which will be replaced by script name, line number or by description column respectively (default: $.@.log)',metavar='FORMAT',default='$.@.log')
-parser.add_option('--global-log',dest='globalLog',help='Filename where to redirect output of yade-batch itself (as opposed to \-\-log); if not specified (default), stdout/stderr are used',metavar='FILE')
+parser.add_option('--global-log',dest='globalLog',help='Filename where to redirect output of woo-batch itself (as opposed to \-\-log); if not specified (default), stdout/stderr are used',metavar='FILE')
 parser.add_option('-l','--lines',dest='lineList',help='Lines of TABLE to use, in the format 2,3-5,8,11-13 (default: all available lines in TABLE)',metavar='LIST')
 parser.add_option('--nice',dest='nice',type='int',help='Nice value of spawned jobs (default: 10)',default=10)
 parser.add_option('--cpu-affinity',dest='affinity',action='store_true',help='Bind each job to specific CPU cores; cores are assigned in a quasi-random order, depending on availability at the moment the jobs is started. Each job can override this setting by setting AFFINE column.')

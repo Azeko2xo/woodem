@@ -1,6 +1,6 @@
-#include<yade/pkg/dem/Porosity.hpp>
-#include<yade/lib/base/CompUtils.hpp>
-#include<yade/pkg/dem/Sphere.hpp>
+#include<woo/pkg/dem/Porosity.hpp>
+#include<woo/lib/base/CompUtils.hpp>
+#include<woo/pkg/dem/Sphere.hpp>
 
 YADE_PLUGIN(dem,(AnisoPorosityAnalyzer));
 
@@ -145,7 +145,7 @@ void AnisoPorosityAnalyzer::run(){
 }
 
 #ifdef YADE_OPENGL
-#include<yade/lib/opengl/GLUtils.hpp>
+#include<woo/lib/opengl/GLUtils.hpp>
 
 void GlExtra_AnisoPorosityAnalyzer::render(){
 	if(analyzer && analyzer->scene!=scene) analyzer=shared_ptr<AnisoPorosityAnalyzer>();

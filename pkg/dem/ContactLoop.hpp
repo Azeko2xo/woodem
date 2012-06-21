@@ -1,9 +1,9 @@
 // 2009 © Václav Šmilauer <eudoxos@arcig.cz>
 #pragma once
-#include<yade/core/Engine.hpp>
-#include<yade/core/Functor.hpp>
-#include<yade/pkg/dem/Particle.hpp>
-#include<yade/pkg/dem/Collision.hpp>
+#include<woo/core/Engine.hpp>
+#include<woo/core/Functor.hpp>
+#include<woo/pkg/dem/Particle.hpp>
+#include<woo/pkg/dem/Collision.hpp>
 
 
 /* ***************************************** */

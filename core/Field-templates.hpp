@@ -1,7 +1,7 @@
 #pragma once
 
-#include<yade/core/Scene.hpp>
-#include<yade/core/Field.hpp>
+#include<woo/core/Scene.hpp>
+#include<woo/core/Field.hpp>
 
 template<typename FieldT> bool Field_sceneHasField(const shared_ptr<Scene>& scene)
 {

@@ -1,10 +1,10 @@
 #pragma once
 #include<unordered_map>
-#include<yade/core/Field.hpp>
-#include<yade/core/Scene.hpp>
-#include<yade/core/Field-templates.hpp>
-#include<yade/pkg/dem/ParticleContainer.hpp>
-#include<yade/pkg/dem/ContactContainer.hpp>
+#include<woo/core/Field.hpp>
+#include<woo/core/Scene.hpp>
+#include<woo/core/Field-templates.hpp>
+#include<woo/pkg/dem/ParticleContainer.hpp>
+#include<woo/pkg/dem/ContactContainer.hpp>
 
 
 // namespace yade{namespace dem{

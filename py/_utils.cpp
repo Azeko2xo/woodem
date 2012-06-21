@@ -1,12 +1,12 @@
-#include<yade/pkg/dem/Shop.hpp>
+#include<woo/pkg/dem/Shop.hpp>
 #include<boost/python.hpp>
-#include<yade/core/Scene.hpp>
-#include<yade/core/Master.hpp>
-#include<yade/pkg/dem/GenericSpheresContact.hpp>
-#include<yade/pkg/common/Facet.hpp>
-#include<yade/pkg/common/Sphere.hpp>
-#include<yade/pkg/common/NormShearPhys.hpp>
-#include<yade/lib/pyutil/doc_opts.hpp>
+#include<woo/core/Scene.hpp>
+#include<woo/core/Master.hpp>
+#include<woo/pkg/dem/GenericSpheresContact.hpp>
+#include<woo/pkg/common/Facet.hpp>
+#include<woo/pkg/common/Sphere.hpp>
+#include<woo/pkg/common/NormShearPhys.hpp>
+#include<woo/lib/pyutil/doc_opts.hpp>
 #include<cmath>
 
 #include<numpy/ndarrayobject.h>

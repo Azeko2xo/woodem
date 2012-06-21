@@ -1,7 +1,7 @@
-#include<yade/core/Master.hpp>
-#include<yade/core/Timing.hpp>
-#include<yade/lib/object/Object.hpp>
-#include<yade/lib/base/Logging.hpp>
+#include<woo/core/Master.hpp>
+#include<woo/core/Timing.hpp>
+#include<woo/lib/object/Object.hpp>
+#include<woo/lib/base/Logging.hpp>
 
 #include<signal.h>
 #include<cstdlib>

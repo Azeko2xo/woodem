@@ -1,7 +1,7 @@
-#include<yade/pkg/dem/Collision.hpp>
-#include<yade/pkg/dem/ParticleContainer.hpp>
+#include<woo/pkg/dem/Collision.hpp>
+#include<woo/pkg/dem/ParticleContainer.hpp>
 #ifdef YADE_OPENGL
-	#include<yade/lib/opengl/OpenGLWrapper.hpp>
+	#include<woo/lib/opengl/OpenGLWrapper.hpp>
 #endif
 
 YADE_PLUGIN(dem,(Aabb)(BoundFunctor)(BoundDispatcher)(Collider));

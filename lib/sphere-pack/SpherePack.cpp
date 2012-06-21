@@ -1,7 +1,7 @@
 // © 2009 Václav Šmilauer <eudoxos@arcig.cz>
 
 
-#include<yade/lib/sphere-pack/SpherePack.hpp>
+#include<woo/lib/sphere-pack/SpherePack.hpp>
 
 #include<boost/random/linear_congruential.hpp>
 #include<boost/random/uniform_real.hpp>

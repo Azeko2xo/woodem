@@ -1,9 +1,9 @@
 // 2009 © Václav Šmilauer <eudoxos@arcig.cz>
 #include<boost/python.hpp>
-#include<yade/lib/base/Logging.hpp>
-#include<yade/lib/base/Math.hpp>
-#include<yade/lib/base/Types.hpp>
-#include<yade/lib/pyutil/doc_opts.hpp>
+#include<woo/lib/base/Logging.hpp>
+#include<woo/lib/base/Math.hpp>
+#include<woo/lib/base/Types.hpp>
+#include<woo/lib/pyutil/doc_opts.hpp>
 
 namespace py=boost::python;
 #ifdef YADE_LOG4CXX

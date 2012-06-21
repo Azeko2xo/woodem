@@ -1,6 +1,6 @@
 #pragma once
-#include<yade/core/Engine.hpp>
-#include<yade/pkg/dem/Particle.hpp>
+#include<woo/core/Engine.hpp>
+#include<woo/pkg/dem/Particle.hpp>
 
 struct Gravity: public GlobalEngine{
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }

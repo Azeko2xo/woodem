@@ -1,8 +1,8 @@
-#include<yade/core/Master.hpp>
-#include<yade/core/Scene.hpp>
-#include<yade/lib/base/Math.hpp>
-#include<yade/lib/multimethods/FunctorWrapper.hpp>
-#include<yade/lib/multimethods/Indexable.hpp>
+#include<woo/core/Master.hpp>
+#include<woo/core/Scene.hpp>
+#include<woo/lib/base/Math.hpp>
+#include<woo/lib/multimethods/FunctorWrapper.hpp>
+#include<woo/lib/multimethods/Indexable.hpp>
 #include<cstdlib>
 #include<boost/filesystem/operations.hpp>
 #include<boost/filesystem/convenience.hpp>
@@ -13,7 +13,7 @@
 #include<boost/python.hpp>
 
 
-#include<yade/lib/object/ObjectIO.hpp>
+#include<woo/lib/object/ObjectIO.hpp>
 
 
 #include<dlfcn.h>

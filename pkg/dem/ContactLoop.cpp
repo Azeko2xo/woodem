@@ -1,8 +1,8 @@
-#include<yade/pkg/dem/ContactLoop.hpp>
-#include<yade/pkg/dem/ParticleContainer.hpp>
+#include<woo/pkg/dem/ContactLoop.hpp>
+#include<woo/pkg/dem/ParticleContainer.hpp>
 
 // temporary
-#include<yade/pkg/dem/G3Geom.hpp>
+#include<woo/pkg/dem/G3Geom.hpp>
 
 YADE_PLUGIN(dem,(CGeomFunctor)(CGeomDispatcher)(CPhysFunctor)(CPhysDispatcher)(LawFunctor)(LawDispatcher)(ContactLoop));
 CREATE_LOGGER(ContactLoop);

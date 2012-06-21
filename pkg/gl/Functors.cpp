@@ -1,4 +1,4 @@
-#include<yade/pkg/gl/Functors.hpp>
+#include<woo/pkg/gl/Functors.hpp>
 #ifdef YADE_OPENGL
 	YADE_PLUGIN(gl,
 		(GlShapeFunctor)(GlShapeDispatcher)

@@ -1,6 +1,6 @@
 #pragma once
 
-#include<yade/lib/base/Types.hpp>
+#include<woo/lib/base/Types.hpp>
 
 #include<boost/any.hpp>
 #include<boost/version.hpp>
@@ -8,9 +8,9 @@
 #include<boost/type_traits.hpp>
 #include<boost/preprocessor.hpp>
 #include<boost/type_traits/integral_constant.hpp>
-#include<yade/lib/pyutil/raw_constructor.hpp>
-#include<yade/lib/pyutil/doc_opts.hpp>
-#include<yade/lib/pyutil/except.hpp>
+#include<woo/lib/pyutil/raw_constructor.hpp>
+#include<woo/lib/pyutil/doc_opts.hpp>
+#include<woo/lib/pyutil/except.hpp>
 
 #include<boost/preprocessor.hpp>
 #include<boost/version.hpp>
@@ -31,10 +31,10 @@
 #include<boost/serialization/nvp.hpp>
 
 
-#include<yade/lib/object/ObjectIO.hpp>
-#include<yade/lib/base/Math.hpp>
-#include<yade/lib/base/Logging.hpp>
-#include<yade/lib/object/AttrTrait.hpp>
+#include<woo/lib/object/ObjectIO.hpp>
+#include<woo/lib/base/Math.hpp>
+#include<woo/lib/base/Logging.hpp>
+#include<woo/lib/object/AttrTrait.hpp>
 
 
 /*! Macro defining what classes can be found in this plugin -- must always be used in the respective .cpp file.

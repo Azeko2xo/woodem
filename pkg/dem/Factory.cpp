@@ -1,15 +1,15 @@
-#include<yade/pkg/dem/Factory.hpp>
-#include<yade/pkg/dem/Collision.hpp>
-#include<yade/pkg/dem/Funcs.hpp>
-#include<yade/pkg/dem/Clump.hpp>
-#include<yade/pkg/dem/Sphere.hpp>
+#include<woo/pkg/dem/Factory.hpp>
+#include<woo/pkg/dem/Collision.hpp>
+#include<woo/pkg/dem/Funcs.hpp>
+#include<woo/pkg/dem/Clump.hpp>
+#include<woo/pkg/dem/Sphere.hpp>
 
 // hack
-#include<yade/pkg/dem/InsertionSortCollider.hpp>
+#include<woo/pkg/dem/InsertionSortCollider.hpp>
 
 #include<boost/range/algorithm/lower_bound.hpp>
 
-#include<yade/extra/numpy_boost.hpp>
+#include<woo/extra/numpy_boost.hpp>
 
 #include<boost/tuple/tuple_comparison.hpp>
 

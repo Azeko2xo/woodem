@@ -2,7 +2,7 @@
 // © 2008 Václav Šmilauer
 #pragma once
 
-#include<yade/pkg/gl/Renderer.hpp>
+#include<woo/pkg/gl/Renderer.hpp>
 
 #include<QGLViewer/qglviewer.h>
 #include<QGLViewer/constraint.h>
@@ -14,7 +14,7 @@
 
 
 #if 1
-#include<yade/core/Engine.hpp>
+#include<woo/core/Engine.hpp>
 
 /*****************************************************************************
 *********************************** SnapshotEngine ***************************

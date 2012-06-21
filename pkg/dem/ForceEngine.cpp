@@ -1,4 +1,4 @@
-#include<yade/pkg/dem/ForceEngine.hpp>
+#include<woo/pkg/dem/ForceEngine.hpp>
 YADE_PLUGIN(dem,(RadialForce));
 void RadialForce::run(){
 	FOREACH(const shared_ptr<Node>& node, nodes){

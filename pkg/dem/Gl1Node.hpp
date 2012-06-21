@@ -1,7 +1,7 @@
 
 #ifdef YADE_OPENGL
-//#include<yade/pkg/dem/Particle.hpp>
-#include<yade/pkg/gl/Functors.hpp>
+//#include<woo/pkg/dem/Particle.hpp>
+#include<woo/pkg/gl/Functors.hpp>
 struct Gl1_Node: public GlNodeFunctor{
 	virtual void go(const shared_ptr<Node>&, const GLViewInfo&);
 	RENDERS(Node);

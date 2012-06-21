@@ -1,8 +1,8 @@
 // 2010 © Václav Šmilauer <eudoxos@arcig.cz>
 #pragma once
 
-#include<yade/lib/object/Object.hpp>
-#include<yade/core/Field.hpp>
+#include<woo/lib/object/Object.hpp>
+#include<woo/core/Field.hpp>
 
 #include<boost/foreach.hpp>
 #ifndef FOREACH

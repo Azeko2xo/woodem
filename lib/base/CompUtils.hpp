@@ -1,6 +1,6 @@
 #pragma once
-#include<yade/lib/base/Types.hpp>
-#include<yade/lib/base/Math.hpp>
+#include<woo/lib/base/Types.hpp>
+#include<woo/lib/base/Math.hpp>
 
 // various geometry-related trivial numerical functions
 struct CompUtils{

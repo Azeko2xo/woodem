@@ -1,12 +1,12 @@
 
 // 2009 © Václav Šmilauer <eudoxos@arcig.cz>
 
-#include<yade/core/Scene.hpp>
-#include<yade/pkg/dem/PeriIsoCompressor.hpp>
-#include<yade/pkg/dem/Particle.hpp>
-#include<yade/pkg/dem/Funcs.hpp>
-#include<yade/pkg/dem/FrictMat.hpp>
-#include<yade/lib/pyutil/gil.hpp>
+#include<woo/core/Scene.hpp>
+#include<woo/pkg/dem/PeriIsoCompressor.hpp>
+#include<woo/pkg/dem/Particle.hpp>
+#include<woo/pkg/dem/Funcs.hpp>
+#include<woo/pkg/dem/FrictMat.hpp>
+#include<woo/lib/pyutil/gil.hpp>
 
 CREATE_LOGGER(PeriIsoCompressor);
 

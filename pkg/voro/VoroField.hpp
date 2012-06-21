@@ -1,7 +1,7 @@
 #pragma once
-#include<yade/core/Field.hpp>
+#include<woo/core/Field.hpp>
 namespace voropp{
-#include<yade/lib/voro++/voro++.cc>
+#include<woo/lib/voro++/voro++.cc>
 };
 
 struct VoroField: public Field{

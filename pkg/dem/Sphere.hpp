@@ -1,8 +1,8 @@
 #pragma once
-#include<yade/pkg/dem/Particle.hpp>
-#include<yade/pkg/dem/Collision.hpp>
-#include<yade/pkg/dem/FrictMat.hpp>
-#include<yade/pkg/dem/IntraForce.hpp>
+#include<woo/pkg/dem/Particle.hpp>
+#include<woo/pkg/dem/Collision.hpp>
+#include<woo/pkg/dem/FrictMat.hpp>
+#include<woo/pkg/dem/IntraForce.hpp>
 
 // NB: workaround for https://bugs.launchpad.net/yade/+bug/528509 removed
 namespace yade{
@@ -42,7 +42,7 @@ REGISTER_SERIALIZABLE(In2_Sphere_ElastMat);
 
 
 #ifdef YADE_OPENGL
-#include<yade/pkg/gl/Functors.hpp>
+#include<woo/pkg/gl/Functors.hpp>
 class Gl1_Sphere: public GlShapeFunctor{
 		// for stripes
 		static vector<Vector3r> vertices, faces;

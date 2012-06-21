@@ -9,7 +9,7 @@
 #pragma once
 
 
-#include<yade/lib/object/Object.hpp>
+#include<woo/lib/object/Object.hpp>
 
 #include<loki/Typelist.h>
 #include<loki/Functor.h>

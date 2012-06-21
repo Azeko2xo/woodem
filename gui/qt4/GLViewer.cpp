@@ -11,9 +11,9 @@
 #include"GLViewer.hpp"
 #include"OpenGLManager.hpp"
 
-#include<yade/lib/opengl/OpenGLWrapper.hpp>
-#include<yade/core/Field.hpp>
-#include<yade/core/DisplayParameters.hpp>
+#include<woo/lib/opengl/OpenGLWrapper.hpp>
+#include<woo/core/Field.hpp>
+#include<woo/core/DisplayParameters.hpp>
 #include<boost/filesystem/operations.hpp>
 #include<boost/algorithm/string.hpp>
 #include<boost/version.hpp>
@@ -22,10 +22,10 @@
 #include<sstream>
 #include<iomanip>
 #include<boost/algorithm/string/case_conv.hpp>
-#include<yade/lib/object/ObjectIO.hpp>
-#include<yade/lib/pyutil/gil.hpp>
-#include<yade/lib/base/CompUtils.hpp>
-#include<yade/lib/opengl/GLUtils.hpp>
+#include<woo/lib/object/ObjectIO.hpp>
+#include<woo/lib/pyutil/gil.hpp>
+#include<woo/lib/base/CompUtils.hpp>
+#include<woo/lib/opengl/GLUtils.hpp>
 
 
 #include<QtGui/qevent.h>

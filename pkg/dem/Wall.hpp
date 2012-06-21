@@ -1,9 +1,9 @@
 // © 2009 Václav Šmilauer <eudoxos@arcig.cz>
 #pragma once
-#include<yade/pkg/dem/Particle.hpp>
-#include<yade/pkg/dem/Collision.hpp>
-#include<yade/pkg/dem/FrictMat.hpp>
-#include<yade/pkg/dem/IntraForce.hpp>
+#include<woo/pkg/dem/Particle.hpp>
+#include<woo/pkg/dem/Collision.hpp>
+#include<woo/pkg/dem/FrictMat.hpp>
+#include<woo/pkg/dem/IntraForce.hpp>
 
 
 
@@ -39,7 +39,7 @@ REGISTER_SERIALIZABLE(In2_Wall_ElastMat);
 
 #ifdef YADE_OPENGL
 
-#include<yade/pkg/gl/Functors.hpp>
+#include<woo/pkg/gl/Functors.hpp>
 struct Gl1_Wall: public GlShapeFunctor{	
 	virtual void go(const shared_ptr<Shape>&, const Vector3r&, bool,const GLViewInfo&);
 	YADE_CLASS_BASE_DOC_STATICATTRS(Gl1_Wall,GlShapeFunctor,"Renders :yref:`Wall` object",

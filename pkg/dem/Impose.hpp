@@ -1,5 +1,5 @@
 /* the base class, Impose, is declared in the Particle.hpp file for simplicity */
-#include<yade/pkg/dem/Particle.hpp>
+#include<woo/pkg/dem/Particle.hpp>
 
 struct HarmonicOscillation: public Impose{
 	void velocity(const Scene* scene, const shared_ptr<Node>& n){

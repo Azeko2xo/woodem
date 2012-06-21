@@ -1,7 +1,7 @@
 #ifdef YADE_SPARC
 
 #ifdef YADE_VTK
-#include<yade/pkg/sparc/SparcField.hpp>
+#include<woo/pkg/sparc/SparcField.hpp>
 
 #include<boost/preprocessor.hpp>
 #include<boost/filesystem/convenience.hpp>
@@ -722,10 +722,10 @@ Real StaticEquilibriumSolver::gradVError(const shared_ptr<Node>& n, int rPow){
 
 
 #ifdef YADE_OPENGL
-#include<yade/lib/base/CompUtils.hpp>
-#include<yade/lib/opengl/OpenGLWrapper.hpp>
-#include<yade/lib/opengl/GLUtils.hpp>
-#include<yade/pkg/gl/Renderer.hpp>
+#include<woo/lib/base/CompUtils.hpp>
+#include<woo/lib/opengl/OpenGLWrapper.hpp>
+#include<woo/lib/opengl/GLUtils.hpp>
+#include<woo/pkg/gl/Renderer.hpp>
 
 
 YADE_PLUGIN(gl,(Gl1_SparcField)(SparcConstraintGlRep));

@@ -1,8 +1,8 @@
 #pragma once
 #ifdef YADE_VTK
 
-#include<yade/core/Engine.hpp>
-#include<yade/pkg/dem/Particle.hpp>
+#include<woo/core/Engine.hpp>
+#include<woo/pkg/dem/Particle.hpp>
 
 #pragma GCC diagnostic push
 	// avoid warnings in VTK headers for using sstream
