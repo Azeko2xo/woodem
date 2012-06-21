@@ -44,7 +44,7 @@ O.bodies.append([
 O.dt=.5*utils.PWaveTimeStep()
 
 # callback for plotDataCollector
-import yade.plot as yp
+import woo.plot as yp
 def myAddPlotData():
 	yp.addData(t=O.time,F_applied=forcer.force[2],supportReaction=O.forces.f(0)[2])
 
@@ -52,7 +52,7 @@ O.saveTmp()
 
 # try open 3d view, if not running in pure console mode
 try:
-	import yade.qt
+	import woo.qt
 	yade.qt.View()
 except ImportError: pass
 

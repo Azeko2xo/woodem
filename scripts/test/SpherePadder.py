@@ -3,8 +3,8 @@
 """Simple example to show the SpherePadder usage in the built-in python interpreter of yade.
 The sample is show with qt.View() but no computation can be done."""
 
-from yade import pack
-from yade import config
+from woo import pack
+from woo import config
 
 padder=pack.SpherePadder('SpherePadder-test.msh')
 padder.setRadiusRatio(4.0,0.125)
@@ -22,6 +22,6 @@ if 'CGAL' in config.features:
 #padder.save_mgpost("mgp.out.001")
 sp=padder.asSpherePack()
 O.bodies.append([utils.sphere(s[0],s[1]) for s in sp])
-from yade import qt
+from woo import qt
 qt.View()
 

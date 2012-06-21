@@ -1,6 +1,6 @@
 O.periodic=True
 O.cell.refSize=(20,20,10)
-from yade import pack,log,timing
+from woo import pack,log,timing
 O.materials.append(FrictMat(young=30e9,density=2400))
 p=pack.SpherePack()
 p.makeCloud(Vector3().ZERO,O.cell.refSize,1,.5,700,True)
@@ -23,7 +23,7 @@ O.engines=[
 O.dt=utils.PWaveTimeStep()
 O.saveTmp()
 print O.cell.refSize
-from yade import qt; qt.Controller(); qt.View()
+from woo import qt; qt.Controller(); qt.View()
 O.run()
 O.wait()
 timing.stats()

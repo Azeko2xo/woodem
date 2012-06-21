@@ -6,8 +6,8 @@ See :ref:`timing` section of the programmer's manual, `wiki page <http://yade-de
 
 """
 
-from yade.core import *
-from yade.dem import *
+from woo.core import *
+from woo.dem import *
 
 
 def _resetEngine(e):

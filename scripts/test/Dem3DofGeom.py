@@ -28,7 +28,7 @@ O.miscParams=[
 ]
 
 try:
-	from yade import qt
+	from woo import qt
 	renderer=qt.Renderer()
 	renderer.wire=True
 	renderer.intrGeom=True

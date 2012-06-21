@@ -1,14 +1,14 @@
 '''
 Test loading and saving yade objects in various formats
 '''
-import yade
+import woo
 import unittest
-from yade import *
-from yade.core import *
-from yade.dem import *
-from yade.pre import *
+from woo import *
+from woo.core import *
+from woo.dem import *
+from woo.pre import *
 from miniEigen import *
-from yade import utils
+from woo import utils
 
 class TestFormatsAndDetection(unittest.TestCase):
 	def setUp(self):

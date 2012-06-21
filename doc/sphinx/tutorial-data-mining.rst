@@ -51,7 +51,7 @@ Labels
 .. ipython::
 
 	@suppress
-	Yade [1]: from yade import *
+	Yade [1]: from woo import *
 	
 	Yade [1]: O.engines=[
 	     ...:    NewtonIntegrator(damping=.2,label='newton')
@@ -139,7 +139,7 @@ Keeping history
 
 Yade provides the :yref:`yade.plot` module used for storing and plotting variables (plotting itself will be discussed later). Periodic storing of data is done with :yref:`PyRunner` and the :yref:`yade.plot.addData` function, for instance::
 
-	from yade import plot
+	from woo import plot
 	O.engines=[  # ...,
 		PyRunner(command='addPlotData()',realPeriod=2)                 # call the addPlotData function every 2 seconds of human time
 	]

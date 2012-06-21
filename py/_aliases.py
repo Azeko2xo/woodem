@@ -1,9 +1,9 @@
-from yade import core
-from yade.core import Master
+from woo import core
+from woo.core import Master
 core.Field.nod=core.Field.nodes
 
 try:
-	from yade import dem
+	from woo import dem
 	dem.DemField.par=dem.DemField.particles
 	dem.DemField.con=dem.DemField.contacts
 	dem.Particle.mat=dem.Particle.material
@@ -19,7 +19,7 @@ except ImportError:
 	core.Scene.hasDem=lambda o: False
 
 try:
-	from yade import sparc
+	from woo import sparc
 	Scene.sparc=property(lambda s: sparc.SparcField.sceneGetField(s))
 	Scene.hasSparc=property(lambda s: sparc.SparcField.sceneHasField(s))
 	core.Node.sparc=property(sparc.SparcData._getDataOnNode,sparc.SparcData._setDataOnNode)
@@ -28,7 +28,7 @@ except ImportError:
 
 
 try:
-	import yade.cld
+	import woo.cld
 	core.Scene.clDem=property(lambda s: cld.CLDemField.sceneGetField(s))
 	core.Scene.hasClDem=property(lambda s: yade.clDem.CLDemField.sceneHasField(s))
 	core.Node.clDem=property(yade.cld.CLDemData._getDataOnNode,yade.cld.CLDemData._setDataOnNode)
@@ -37,11 +37,11 @@ except ImportError:
 
 
 try:
-	from yade import gl
+	from woo import gl
 	core.Node.gl=property(gl.GlData._getDataOnNode,gl.GlData._setDataOnNode)
 except ImportError: pass
 
 #try:
-#	from yade import ancf
+#	from woo import ancf
 #	core.Node.ancf=property(ancf.AncfData._getDataOnNode,ancf.AncfData._setDataOnNode)
 #except ImportError: pass

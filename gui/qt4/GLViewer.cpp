@@ -82,7 +82,7 @@ void SnapshotEngine::run(){
 	}
 	snapshots.push_back(fss.str());
 	usleep((long)(msecSleep*1000));
-	if(!plot.empty()){ pyRunString("import yade.plot; yade.plot.addImgData("+plot+"='"+fss.str()+"')"); }
+	if(!plot.empty()){ pyRunString("import woo.plot; yade.plot.addImgData("+plot+"='"+fss.str()+"')"); }
 }
 
 CREATE_LOGGER(GLViewer);
@@ -311,7 +311,7 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 			// reset selection
 			renderer->selObj=shared_ptr<Object>(); renderer->selObjNode=shared_ptr<Node>();
 			LOG_INFO("Calling onSelection with None to deselect");
-			pyRunString("import yade.qt; onSelection(None);");
+			pyRunString("import woo.qt; onSelection(None);");
 		}
 		else { resetManipulation(); displayMessage("Manipulating scene."); }
 	}
@@ -589,7 +589,7 @@ void GLViewer::postSelection(const QPoint& point)
 	setSceneCenter(qglviewer::Vec(pos[0],pos[1],pos[2]));
 
 	cerr<<"Selected object #"<<selection<<" is a "<<renderer->selObj->getClassName()<<endl;
-	pyRunString("import yade.qt; onSelection(yade.qt.getSel());");
+	pyRunString("import woo.qt; onSelection(yade.qt.getSel());");
 	
 	/*
 	gilLock lock(); // needed, since we call in python API from c++ here

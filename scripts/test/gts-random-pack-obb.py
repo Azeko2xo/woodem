@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from numpy import arange
-from yade import pack
+from woo import pack
 import pylab
 # define the section shape as polygon in 2d; repeat first point at the end to close the polygon
 sq2=sqrt(2)

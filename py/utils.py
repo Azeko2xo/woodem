@@ -10,16 +10,16 @@ Devs: please DO NOT ADD more functions here, it is getting too crowded!
 """
 
 import math,random,doctest,geom
-import yade
-from yade import *
+import woo
+from woo import *
 from miniEigen import *
 
-from yade.dem import *
-from yade.core import *
+from woo.dem import *
+from woo.core import *
 
 # c++ implementations for performance reasons
-#from yade._utils import *
-from yade._utils2 import *
+#from woo._utils import *
+from woo._utils2 import *
 
 inf=float('inf')
 
@@ -28,9 +28,9 @@ def saveVars(mark='',loadNow=True,**kw):
 
 	For example, variables *a*, *b* and *c* are defined. To save them, use::
 
-		>>> from yade import utils
+		>>> from woo import utils
 		>>> utils.saveVars('something',a=1,b=2,c=3)
-		>>> from yade.params.something import *
+		>>> from woo.params.something import *
 		>>> a,b,c
 		(1, 2, 3)
 
@@ -52,7 +52,7 @@ def loadVars(mark=None):
 	scene=yade.master.scene
 	def loadOne(d,mark=None):
 		"""Load given dictionary into a synthesized module yade.params.name (or yade.params if *name* is not given). Update yade.params.__all__ as well."""
-		import yade.params
+		import woo.params
 		if mark:
 			if mark in yade.params.__dict__: warnings.warn('Overwriting yade.params.%s which already exists.'%mark)
 			modName='yade.params.'+mark
@@ -150,7 +150,7 @@ def sphere(center,radius,mat=defaultMaterial,fixed=False,wire=False,color=None,h
 
 	Instance of material can be given::
 
-		>>> from yade import utils
+		>>> from woo import utils
 		>>> s1=utils.sphere((0,0,0),1,wire=False,color=.7,mat=ElastMat(young=30e9,density=2e3))
 		>>> s1.shape.wire
 		False
@@ -363,7 +363,7 @@ def plotDirections(aabb=(),mask=0,bins=20,numHist=True,noShow=False):
 	:returns: If *noShow* is ``False``, displays the figure and returns nothing. If *noShow*, the figure object is returned without being displayed (works the same way as :yref:`yade.plot.plot`).
 	"""
 	import pylab,math
-	from yade import utils
+	from woo import utils
 	for axis in [0,1,2]:
 		d=utils.interactionAnglesHistogram(axis,mask=mask,bins=bins,aabb=aabb)
 		fc=[0,0,0]; fc[axis]=1.
@@ -468,7 +468,7 @@ def voxelPorosityTriaxial(triax,resolution=200,offset=0):
 
 	Example invocation::
 	
-		from yade import utils
+		from woo import utils
 		rAvg=0.03
 		TriaxialTest(numberOfGrains=200,radiusMean=rAvg).load()
 		O.dt=-1
@@ -578,7 +578,7 @@ def _deprecatedUtilsFunction(old,new):
 # def import_mesh_geometry(*args,**kw):
 #    "|ydeprecated|"
 #    _deprecatedUtilsFunction('import_mesh_geometry','yade.import.gmsh')
-#    import yade.ymport
+#    import woo.ymport
 #    return yade.ymport.stl(*args,**kw)
 
 

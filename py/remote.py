@@ -9,8 +9,8 @@ These classes are used internally in gui/py/PythonUI_rc.py and are not intended 
 import SocketServer,xmlrpclib,socket
 import sys,time,os,math
 
-from yade import *
-import yade.runtime
+from woo import *
+import woo.runtime
 
 useQThread=False
 "Set before using any of our classes to use QThread for background execution instead of the standard thread module. Mixing the two (in case the qt4 UI is running, for instance) does not work well."
@@ -31,7 +31,7 @@ class InfoProvider:
 		return ret
 	def plot(self):
 		try:
-			from yade import plot
+			from woo import plot
 			if len(plot.plots)==0: return None
 			fig=plot.plot(subPlots=True,noShow=True)
 			img=O.tmpFilename()+'.'+plotImgFormat

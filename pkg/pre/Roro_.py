@@ -1,10 +1,10 @@
 # encoding: utf-8
-from yade import utils,pack
-from yade.core import *
-from yade.dem import *
-from yade.pre import *
-import yade.plot
-import yade.gl
+from woo import utils,pack
+from woo.core import *
+from woo.dem import *
+from woo.pre import *
+import woo.plot
+import woo.gl
 import math
 from miniEigen import *
 import sys
@@ -121,8 +121,8 @@ def run(pre): # use inputs as argument
 		BoxDeleter(stepPeriod=factStep,inside=True,box=((lastCylX+rCyl,ymin,zmin),(xmax,ymax,zmax)),glColor=.9,save=True,mask=delMask,currRateSmooth=pre.rateSmooth,label='fallOver'),
 		# generator
 		factory,
-		PyRunner(factStep,'import yade.pre.Roro_; yade.pre.Roro_.savePlotData(S)'),
-		PyRunner(factStep,'import yade.pre.Roro_; yade.pre.Roro_.watchProgress(S)'),
+		PyRunner(factStep,'import woo.pre.Roro_; yade.pre.Roro_.savePlotData(S)'),
+		PyRunner(factStep,'import woo.pre.Roro_; yade.pre.Roro_.watchProgress(S)'),
 	]+([] if (not pre.vtkPrefix or pre.vtkFreq<=0) else [VtkExport(out=pre.vtkPrefix+s.tags['id']+'-',stepPeriod=(int)(pre.vtkFreq*pre.factStepPeriod),what=VtkExport.all)])
 	# improtant: save the preprocessor here!
 	s.any=[yade.gl.Gl1_InfCylinder(wire=True),yade.gl.Gl1_Wall(div=3)]
@@ -183,7 +183,7 @@ def watchProgress(S):
 	it means we have reached some steady state; at that point, all objects (deleters,
 	factory, ... are clear()ed so that PSD's and such correspond to the steady
 	state only'''
-	import yade
+	import woo
 	pre=S.pre
 	# not yet saving what falls through, i.e. not in stabilized regime yet
 	if yade.aperture[0].save==False:
@@ -204,7 +204,7 @@ def watchProgress(S):
 	else:
 		# factory has finished generating particles
 		if yade.factory.mass>yade.factory.maxMass:
-			import yade.plot, pickle
+			import woo.plot, pickle
 			try:
 				if not S.lastSave.startswith('/tmp'):
 					out='/tmp/'+S.tags['id']+'.bin.gz'
@@ -222,9 +222,9 @@ def watchProgress(S):
 			S.stop()
 
 def savePlotData(S):
-	import yade
+	import woo
 	#if yade.aperture[0].save==False: return # not in the steady state yet
-	import yade.plot
+	import woo.plot
 	# save unscaled data here!
 	apRate=sum([a.currRate for a in yade.aperture])
 	overRate=yade.fallOver.currRate
@@ -342,8 +342,8 @@ def efficiencyTableFigure(S,pre):
 
 def writeReport(S):
 	# generator parameters
-	import yade
-	import yade.pre
+	import woo
+	import woo.pre
 	pre=S.pre
 	#pre=[a for a in yade.O.scene.any if type(a)==yade.pre.Roro][0]
 	#print 'Parameters were:'
@@ -493,7 +493,7 @@ def writeReport(S):
 	try:
 		#ax=pylab.subplot(224)
 		fig=pylab.figure()
-		import yade.plot
+		import woo.plot
 		d=yade.plot.data
 		pylab.plot(d['t'],massScale*numpy.array(d['genRate']),label='feed')
 		pylab.plot(d['t'],massScale*numpy.array(d['apRate']),label='apertures')
@@ -580,7 +580,7 @@ def writeReport(S):
 	rep.write(xmlhead+html)
 
 	# save sphere's positions
-	from yade import pack
+	from woo import pack
 	sp=pack.SpherePack()
 	sp.fromSimulation(S)
 	packName=S.tags['id']+'-spheres.csv'
@@ -589,9 +589,9 @@ def writeReport(S):
 
 # test drive
 if __name__=='__main__':
-	import yade.pre
-	import yade.qt
-	import yade.log
+	import woo.pre
+	import woo.qt
+	import woo.log
 	#yade.log.setLevel('PsdParticleGenerator',yade.log.TRACE)
 	O.scene=yade.pre.Roro()()
 	O.timingEnabled=True

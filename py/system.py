@@ -5,10 +5,10 @@
 Functions for accessing yade's internals; only used internally.
 """
 import sys
-from yade._customConverters import *
-from yade import runtime
-from yade import config
-import yade.core
+from woo._customConverters import *
+from woo import runtime
+from woo import config
+import woo.core
 
 def childClasses(base,recurse=True,includeBase=False):
 	"""Enumerate classes deriving from given base (as string), recursively by default. Returns set."""

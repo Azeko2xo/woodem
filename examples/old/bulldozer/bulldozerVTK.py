@@ -1,12 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 ### Simpificated buldozer simulation with VTK recorder
-from yade import utils
+from woo import utils
 from numpy import linspace
 from numpy import arange
 import gts
 import itertools
-from yade import geom,pack
+from woo import geom,pack
 
 
 ###Initial Data
@@ -79,7 +79,7 @@ O.engines=[
 ]
 
 O.saveTmp()
-from yade import qt
+from woo import qt
 qt.Controller()
 qt.View()
 r=qt.Renderer()

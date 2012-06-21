@@ -1,5 +1,5 @@
-import yade
-import yade.core
+import woo
+import woo.core
 import sys
 import codecs
 import re

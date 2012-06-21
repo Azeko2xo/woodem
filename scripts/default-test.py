@@ -6,14 +6,14 @@
 # using the default SMTP settings (sendmail?) on your system
 #
 import os,time,sys
-from yade import *
-import yade.runtime,yade.system,yade.config
+from woo import *
+import woo.runtime,yade.system,yade.config
 simulFile='/tmp/yade-test-%d.xml'%(os.getpid()) # generated simulations here
 pyCmdFile='/tmp/yade-test-%d.py'%(os.getpid()) # generated script here
 msgFile='/tmp/yade-test-%d.msg'%(os.getpid()) # write message here
 runSimul="""
 # generated file
-from yade import *
+from woo import *
 simulFile='%s'; msgFile='%s'; nIter=%d;
 import time
 try:
@@ -32,7 +32,7 @@ quit()
 
 runGenerator="""
 #generated file
-from yade import *
+from woo import *
 %%s(%%s).generate('%s')
 print 'main: Yade: normal exit.'
 O.exitNoBacktrace()
@@ -89,7 +89,7 @@ if reports:
 	reportText='\n'.join([80*'#'+'\n'+r[0]+': '+r[1]+'\n'+80*'#'+'\n'+r[2] for r in reports])
 	if mailTo and mailFrom:
 		from email.mime.text import MIMEText
-		import yade.config
+		import woo.config
 		msg=MIMEText(reportText)
 		msg['Subject']="Automated crash report for Yade "+yade.config.revision+": "+",".join([r[0] for r in reports])
 		msg['From']=mailFrom

@@ -8,22 +8,22 @@ import unittest
 import random
 from miniEigen import *
 from math import *
-from yade._customConverters import *
-from yade import utils
-from yade import *
-from yade.core import *
-from yade.dem import *
-from yade.pre import *
-try: from yade.sparc import *
+from woo._customConverters import *
+from woo import utils
+from woo import *
+from woo.core import *
+from woo.dem import *
+from woo.pre import *
+try: from woo.sparc import *
 except: pass
-try: from yade.gl import *
+try: from woo.gl import *
 except: pass
-try: from yade.voro import *
+try: from woo.voro import *
 except: pass
-try: from yade.cld import *
+try: from woo.cld import *
 except: pass
 
-import yade
+import woo
 
 ## TODO tests
 class TestInteractions(unittest.TestCase): pass
@@ -38,7 +38,7 @@ class TestObjectInstantiation(unittest.TestCase):
 	def testClassCtors(self):
 		"Core: correct types are instantiated"
 		# correct instances created with Foo() syntax
-		import yade.system
+		import woo.system
 		for r in yade.system.childClasses('Object'):
 			obj=eval(r)();
 			self.assert_(obj.__class__.__name__==r,'Failed for '+r)
@@ -138,7 +138,7 @@ class TestLoop(unittest.TestCase):
 		'Loop: Scene.engines can be modified inside the loop transparently.'
 		S=yade.master.scene
 		S.engines=[
-			PyRunner(stepPeriod=1,command='from yade import*; from yade.dem import *; scene.engines=[ForceResetter(),Gravity(),Leapfrog(reset=False)]'), # change engines here
+			PyRunner(stepPeriod=1,command='from woo import*; from woo.dem import *; scene.engines=[ForceResetter(),Gravity(),Leapfrog(reset=False)]'), # change engines here
 			ForceResetter() # useless engine
 		]
 		S.subStepping=True
@@ -166,7 +166,7 @@ class TestLoop(unittest.TestCase):
 class TestIO(unittest.TestCase):
 	def testSaveAllClasses(self):
 		'I/O: All classes can be saved and loaded with boost::serialization'
-		import yade.system
+		import woo.system
 		failed=set()
 		for c in yade.system.childClasses('Object'):
 			yade.master.reset()

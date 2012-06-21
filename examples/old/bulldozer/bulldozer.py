@@ -1,12 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 ### Simpificated buldozer simulation
-from yade import utils
+from woo import utils
 from numpy import linspace
 from numpy import arange
 import gts
 import itertools
-from yade import geom,pack
+from woo import geom,pack
 
 
 ###Initial Data
@@ -58,7 +58,7 @@ for xyz in itertools.product(arange(0,numBoxes[0]),arange(0,numBoxes[1]),arange(
 		colorSph=colorsph1
 
 
-from yade import qt
+from woo import qt
 
 O.dt=2*utils.PWaveTimeStep() # We do not need now a high accuracy
 O.engines=[

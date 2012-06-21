@@ -10,7 +10,7 @@ They comprise notably oofem export and various CPM-related functions.
 """
 
 from math import *
-from yade._eudoxos import * ## c++ implementations
+from woo._eudoxos import * ## c++ implementations
 
 
 class IntrSmooth3d():
@@ -31,7 +31,7 @@ class IntrSmooth3d():
 	To get the averaged value, simply call the instance, passing central point and callable object which received interaction object and returns the desired quantity:
 
 		>>> O.reset()
-		>>> from yade import utils
+		>>> from woo import utils
 		>>> O.bodies.append([utils.sphere((0,0,0),1),utils.sphere((0,0,1.9),1)])
 		[0, 1]
 		>>> O.engines=[InteractionLoop([Ig2_Sphere_Sphere_L3Geom(),],[Ip2_FrictMat_FrictMat_FrictPhys()],[])]
@@ -48,7 +48,7 @@ class IntrSmooth3d():
 		self.stDev=stDev
 		self.relThreshold=3.
 		self.sqrt2pi=sqrt(2*pi)
-		import yade.config
+		import woo.config
 		if not 'vtk' in yade.config.features: raise RuntimeError("IntrSmooth3d is only function with VTK-enabled builds.")
 	def _ptpt2weight(self,pt0,pt1):
 		distSq=(pt0-pt1).SquaredLength()
@@ -71,7 +71,7 @@ def estimateStress(strain,cutoff=0.):
 	"""Use summed stored energy in contacts to compute macroscopic stress over the same volume, provided known strain."""
 	# E=(1/2)σεAl # global stored energy
 	# σ=EE/(.5εAl)=EE/(.5εV)
-	from yade import utils
+	from woo import utils
 	dim=utils.aabbDim(cutoff,centers=False)
 	return utils.elasticEnergy(utils.aabbExtrema(cutoff))/(.5*strain*dim[0]*dim[1]*dim[2])
 
@@ -94,7 +94,7 @@ def estimatePoissonYoung(principalAxis,stress=0,plot=False,cutoff=0.):
 		import stats
 	except ImportError:
 		raise ImportError("Unable to import stats; install the python-stats package.")
-	from yade import utils
+	from woo import utils
 	if cutoff>0: cut=utils.fractionalBox(fraction=1-cutoff)
 	for axis in [0,1,2]:
 		if cutoff>0:

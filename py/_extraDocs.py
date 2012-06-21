@@ -17,7 +17,7 @@
 #
 #    to the c++ documentation.
 
-from yade import core, dem
+from woo import core, dem
 
 # Update docstring of your class/function like this:
 #

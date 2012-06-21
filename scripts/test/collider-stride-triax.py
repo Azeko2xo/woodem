@@ -1,6 +1,6 @@
 """ Playground for tuning collider strides depending on maximum velocity. """
 
-from yade import timing,log
+from woo import timing,log
 import os.path
 loadFrom='/tmp/triax.xml'
 #if not os.path.exists(loadFrom):

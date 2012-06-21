@@ -5,9 +5,9 @@
 which can further be either filled with packing (if used as predicate) or converted
 to facets representing the surface."""
 
-from yade import pack,utils
-from yade.core import *
-from yade.dem import *
+from woo import pack,utils
+from woo.core import *
+from woo.dem import *
 import gts, os.path
 
 # coarsen the original horse if we have it
@@ -51,11 +51,11 @@ O.scene.dt=.7*utils.pWaveDt()
 O.saveTmp()
 O.timingEnabled=True
 O.scene.trackEnergy=True
-from yade import plot
+from woo import plot
 plot.plots={'i':('total',O.scene.energy.keys,)}
 def addPlotData(): plot.addData(i=O.scene.step,total=O.scene.energy.total(),**O.scene.energy)
 plot.plot()
 
-from yade import timing
-from yade import qt
+from woo import timing
+from woo import qt
 qt.View()

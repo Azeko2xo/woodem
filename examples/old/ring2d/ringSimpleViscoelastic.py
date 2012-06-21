@@ -1,8 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from yade import utils
-from yade import ymport
+from woo import utils
+from woo import ymport
 
 ## Omega
 o=Omega() 
@@ -79,7 +79,7 @@ O.dt=0.02*tc
 
 O.saveTmp('init');
 
-from yade import qt
+from woo import qt
 renderer=qt.Renderer()
 renderer.wire=True
 #qt.Controller()

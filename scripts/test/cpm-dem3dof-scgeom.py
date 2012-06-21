@@ -1,4 +1,4 @@
-from yade import plot
+from woo import plot
 
 # setup 2 interactions on 2 otherwise identical couples of spheres
 # one is handled by Law2_Dem3DofGeom_CpmPhys_Cpm and the other by Law2_ScGeom_CpmPhys_Cpm

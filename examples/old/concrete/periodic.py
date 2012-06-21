@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
 
-from yade import utils,plot,pack
+from woo import utils,plot,pack
 import time, sys, os, copy
 
 """
@@ -73,7 +73,7 @@ if not os.path.exists(packingFile):
 import cPickle as pickle
 concreteId=O.materials.append(CpmMat(young=young,frictionAngle=frictionAngle,poisson=poisson,density=4800,sigmaT=sigmaT,relDuctility=relDuctility,epsCrackOnset=epsCrackOnset,G_over_E=G_over_E,isoPrestress=isoPrestress))
 sphDict=pickle.load(open(packingFile))
-from yade import pack
+from woo import pack
 sp=pack.SpherePack()
 sp.fromList(sphDict['spheres'])
 sp.cellSize=sphDict['cell']
@@ -88,9 +88,9 @@ ax1=(axis+1)%3
 ax2=(axis+2)%3
 O.dt=dtSafety*utils.PWaveTimeStep()
 
-import yade.log
+import woo.log
 #yade.log.setLevel('PeriTriaxController',yade.log.TRACE)
-import yade.plot as yp
+import woo.plot as yp
 
 O.engines=[
 	ForceResetter(),
@@ -142,7 +142,7 @@ def initTest():
 	strainer.maxStrainRate=maxStrainRate
 	strainer.goal=goal
 	try:
-		from yade import qt
+		from woo import qt
 		renderer=qt.Renderer()
 		renderer.scaleDisplacements=True
 		renderer.displacementScale=(1000,1000,1000) if mode=='tension' else (100,100,100)

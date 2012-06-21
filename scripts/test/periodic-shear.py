@@ -34,13 +34,13 @@ rrr=yade.qt.Renderer()
 rrr.intrAllWire,rrr.bound=True,True
 #isc.watch1,isc.watch2=0,-1
 
-#from yade import log
-#import yade.qt,time
+#from woo import log
+#import woo.qt,time
 #v=yade.qt.View()
 #v.axes=True
 #v.grid=(True,True,True)
 
-from yade import log
+from woo import log
 #log.setLevel('Shop',log.TRACE)
 #log.setLevel('InsertionSortCollider',log.TRACE)
 

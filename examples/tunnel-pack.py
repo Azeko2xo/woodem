@@ -1,10 +1,10 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from yade import *
-from yade.core import *
-from yade.dem import *
+from woo import *
+from woo.core import *
+from woo.dem import *
 from miniEigen import *
-from yade import pack,log
+from woo import pack,log
 log.setLevel('PeriIsoCompressor',log.DEBUG)
 
 """Simple script to create tunnel with random dense packing of spheres.
@@ -26,6 +26,6 @@ pred=pack.inAlignedBox((-.5*boxSize[0],-.5*boxSize[1],0),(.5*boxSize[0],.5*boxSi
 # Use the predicate to generate sphere packing inside 
 pack.randomDensePack(pred,radius=rSphere,rRelFuzz=.3,memoizeDb='/tmp/triaxPackCache.sqlite',spheresInCell=3000).toSimulation(O.scene)
 
-from yade import qt
+from woo import qt
 qt.Controller()
 qt.View()

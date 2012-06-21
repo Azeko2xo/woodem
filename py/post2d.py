@@ -23,7 +23,7 @@ Example
 =======
 This example can be found in examples/concrete/uniax-post.py ::
 
- from yade import post2d
+ from woo import post2d
  import pylab # the matlab-like interface of matplotlib
 
  O.load('/tmp/uniax-tension.xml.bz2')
@@ -60,7 +60,7 @@ This example can be found in examples/concrete/uniax-post.py ::
 """
 from miniEigen import *
 
-from yade.dem import Particle,Sphere
+from woo.dem import Particle,Sphere
 
 class Flatten:
 	"""Abstract class for converting 3d point into 2d. Used by post2d.data2d."""
@@ -94,7 +94,7 @@ class HelixFlatten(Flatten):
 	def _getPos(self,b):
 		return b.refPos if self.useRef else self.scaledPos(b)
 	def __call__(self,b):
-		import yade.utils
+		import woo.utils
 		xy,theta=yade.utils.spiralProject(_getPos(b),self.dH_dTheta,self.axis,self.periodStart)
 		if theta<thetaRange[0] or theta>thetaRange[1]: return None
 		return xy
@@ -185,7 +185,7 @@ def data(scene,extractor,flattener,con=False,onlyDynamic=True,stDev=None,relThre
 	Scalar fields contain 'val' (value from *extractor*), vector fields have 'valX' and 'valY' (2 components returned by the *extractor*).
 	"""
 	from miniEigen import Vector3
-	from yade.dem import Sphere
+	from woo.dem import Sphere
 	xx,yy,dd1,dd2,rr=[],[],[],[],[]
 	nDim=0
 	objects=scene.dem.con if con else scene.dem.par
@@ -212,7 +212,7 @@ def data(scene,extractor,flattener,con=False,onlyDynamic=True,stDev=None,relThre
 		if nDim==1: return {'type':'rawScalar','x':xx,'y':yy,'val':dd1,'radii':rr,'bbox':bbox}
 		else: return {'type':'rawVector','x':xx,'y':yy,'valX':dd1,'valY':dd2,'radii':rr,'bbox':bbox}
 	
-	from yade.WeightedAverage2d import GaussAverage
+	from woo.WeightedAverage2d import GaussAverage
 	import numpy
 	lo,hi=(min(xx),min(yy)),(max(xx),max(yy))
 	llo=lo[0]-margin[0],lo[1]-margin[1]; hhi=hi[0]+margin[0],hi[1]+margin[1]

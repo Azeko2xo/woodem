@@ -15,7 +15,7 @@ if not os.path.exists(spheresFile):
 	print "Packing %s done"%spheresFile
 else: print "Packing found (%s), using it."%spheresFile
 
-from yade import timing
+from woo import timing
 O.timingEnabled=True
 
 TriaxialTest(importFilename=spheresFile,fast=fast,noFiles=True).load()

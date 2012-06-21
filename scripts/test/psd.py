@@ -4,7 +4,7 @@
 # show the difference between size-based and mass-based (≡ volume-based in our case) PSD
 #
 import matplotlib; matplotlib.rc('axes',grid=True)
-from yade import pack
+from woo import pack
 import pylab
 # PSD given as points of piecewise-linear function
 psdSizes,psdCumm=[.02,0.04,0.045,.05,.06,.08,.12],[0.,0.1,0.3,0.3,.3,.7,1.]

@@ -8,7 +8,7 @@
 # in this case there is almost no difference, but in script peri3dController_shear,
 # the cell rotation has significant effect)
 
-from yade import pack,plot,qt
+from woo import pack,plot,qt
 
 # define material
 O.materials.append(FrictMat())

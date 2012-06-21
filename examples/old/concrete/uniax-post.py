@@ -3,7 +3,7 @@
 #
 # demonstration of the yade.post2d module (see its documentation for details)
 #
-from yade import post2d
+from woo import post2d
 import pylab # the matlab-like interface of matplotlib
 
 loadFile='/tmp/uniax-tension.yade.gz'

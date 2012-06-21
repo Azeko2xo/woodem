@@ -1,17 +1,17 @@
 # encoding: utf-8
-import yade.runtime
+import woo.runtime
 if not yade.runtime.hasDisplay: raise ImportError("Connecting to DISPLAY at Yade startup failed, unable to activate the qt4 interface.")
 
 from PyQt4.QtGui import *
 from PyQt4 import QtCore
 
-from yade.qt.ui_controller import Ui_Controller
+from woo.qt.ui_controller import Ui_Controller
 
-from yade.qt.Inspector import *
-from yade import *
-import yade.system, yade.config
+from woo.qt.Inspector import *
+from woo import *
+import woo.system, yade.config
 
-from yade.qt._GLViewer import *  # imports Renderer() as well
+from woo.qt._GLViewer import *  # imports Renderer() as well
 
 maxWebWindows=1
 "Number of webkit windows that will be cycled to show help on clickable objects"
@@ -70,8 +70,8 @@ def openUrl(url):
 controller=None
 
 class ControllerClass(QWidget,Ui_Controller):
-	#from yade.gl import *
-	#from yade import gl
+	#from woo.gl import *
+	#from woo import gl
 	def __init__(self,parent=None):
 		QWidget.__init__(self)
 		self.setupUi(self)
@@ -98,7 +98,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.generatorCombo.addItem('load')
 		self.genIndexLoad=self.generatorCombo.count()-1
 	def addRenderers(self):
-		from yade import gl
+		from woo import gl
 		self.displayCombo.addItem('Renderer'); afterSep=1
 		for bc in [t for t in dir(gl) if t.endswith('Functor') ]:
 			if afterSep>0: self.displayCombo.insertSeparator(10000); afterSep=0
@@ -176,7 +176,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		finally:
 			QApplication.restoreOverrideCursor()
 	def displayComboSlot(self,dispStr):
-		from yade import gl
+		from woo import gl
 		ser=(self.renderer if dispStr=='Renderer' else eval('gl.'+str(dispStr)+'()'))
 		path='yade.qt.Renderer()' if dispStr=='Renderer' else dispStr
 		se=SerializableEditor(ser,parent=self.displayArea,ignoredAttrs=set(['label']),showType=True,path=path)
@@ -194,7 +194,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		O.save(f)
 	def reloadSlot(self):
 		self.deactivateControls()
-		from yade import plot
+		from woo import plot
 		plot.splitData()
 		O.reload()
 	## FIXME: this does not seem to work. Disabled setting dt from the gui until fixed

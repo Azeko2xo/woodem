@@ -8,7 +8,7 @@ Getting started
 .. ipython::
 	:suppress:
 
-	In [1]: from yade import *
+	In [1]: from woo import *
 
 	In [7]: O.reset()
 
@@ -208,9 +208,9 @@ Architecture overview
 .. ipython::
 	:suppress:
 
-	In [12]: from yade import *
+	In [12]: from woo import *
 
-	In [1]: from yade import utils
+	In [1]: from woo import utils
 
 	In [7]: O.reset()
 

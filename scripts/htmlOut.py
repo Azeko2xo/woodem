@@ -1,10 +1,10 @@
-from yade.core import *
+from woo.core import *
 
 import codecs
 out=codecs.open('/tmp/out.html','w','utf-8')
 out.write('<head><meta http-equiv="content-type" content="text/html;charset=UTF-8" /></head><body>')
 out.write('<h1>Preprocessor</h1>')
-import yade.pre
+import woo.pre
 rr=yade.pre.Roro()
 O.scene=rr()
 while O.dem.con.countReal()<1: O.run(100,True)

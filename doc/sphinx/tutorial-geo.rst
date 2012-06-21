@@ -15,7 +15,7 @@ Suppose we want to study the influence of :yref:`damping<NewtonIntegrator.dampin
 #. We have to make sure the script reads relevant parameters from the *parameter table*. This is done using :yref:`yade.utils.readParamsFromTable`; the parameters which are read are created as variables in the ``yade.params.table`` module::
 
    	utils.readParamsFromTable(damping=.2)      # yade.params.table.damping variable will be created
-   	from yade.params import table              # typing table.damping is easier than yade.params.table.damping
+   	from woo.params import table              # typing table.damping is easier than yade.params.table.damping
 
    Note that :yref:`yade.utils.readParamsFromTable` takes default values of its parameters, which are used if the script is not run in non-batch mode.
 
@@ -81,7 +81,7 @@ The following creates periodic cloud of spheres and compresses to achieve $\sigm
 .. ipython::
 
 	@suppress
-	Yade [1]: from yade import pack
+	Yade [1]: from woo import pack
 	
 	Yade [1]: sp=pack.SpherePack()
 

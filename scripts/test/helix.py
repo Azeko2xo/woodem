@@ -5,5 +5,5 @@ O.engines=[
 ]
 O.dt=4e-6
 O.saveTmp('initial')
-from yade import qt
+from woo import qt
 qt.Controller()

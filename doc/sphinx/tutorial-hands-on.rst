@@ -280,7 +280,7 @@ Yade objects are constructed in the following manner (this process is also calle
 .. ipython::
 
 	@suppress
-	Yade [1]: from yade import *
+	Yade [1]: from woo import *
 
 	Yade [1]: Sphere           # try also Sphere?
 	
@@ -316,7 +316,7 @@ In order to avoid such tasks, shorthand functions are defined in the :yref:`yade
 .. ipython::
 
 	@suppress
-	Yade [1]: from yade import utils
+	Yade [1]: from woo import utils
 	
 	Yade [1]: s=utils.sphere((0,0,0),radius=1)    # create sphere particle centered at (0,0,0) with radius=1
 
@@ -346,7 +346,7 @@ There are functions to generate a specific arrangement of particles in the :yref
 
 .. ipython::
 
-	Yade [1]: from yade import pack
+	Yade [1]: from woo import pack
 
 	Yade [1]: sp=pack.SpherePack()                   # create an empty cloud; SpherePack contains only geometrical information
 

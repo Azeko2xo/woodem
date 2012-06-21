@@ -10,7 +10,7 @@
 import matplotlib
 matplotlib.use('Agg') # headless backend, makes rendering plots after the simulation _much_ faster (and more reliable)
 
-from yade import qt,plot
+from woo import qt,plot
 
 simulations=[
 	('01-bouncing-sphere.py',u'Bouncing sphere',100000),

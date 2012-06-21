@@ -1,5 +1,5 @@
 # encoding: utf-8
-from yade import pack
+from woo import pack
 
 sp=pack.SpherePack()
 ## corners of the initial packing

@@ -3,7 +3,7 @@ A few spheres falling down in gravity field and one moving accross.
 Includes a clump.
 """
 
-from yade import log,timing
+from woo import log,timing
 
 #log.setLevel("InsertionSortCollider",log.DEBUG)
 O.engines=[
@@ -29,7 +29,7 @@ O.cell.refSize=(10,10,10)
 O.cell.postProcessAttributes()
 O.dt=.1*utils.PWaveTimeStep()
 O.saveTmp()
-from yade import qt
+from woo import qt
 qt.Controller()
 qt.View()
 #O.timingEnabled=True; timing.reset(); O.run(200000,True); timing.stats()

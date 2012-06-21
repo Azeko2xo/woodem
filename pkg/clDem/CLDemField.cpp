@@ -281,7 +281,7 @@ void CLDemRun::doCompare(){
 			if(!ycd.nodes[i]->hasData<CLDemData>()) _THROW_ERROR(pId<<"/"<<i<<" references node without CLDemData");
 			// get CLDemData::clIx
 			clDem::par_id_t clMemberId=ycd.nodes[i]->getData<CLDemData>().clIx;
-			// check that the node referenced from yade is the one of the particle referenced by clDem
+			// check that the node referenced from woo is the one of the particle referenced by clDem
 			if(clMemberId!=cm.id) _THROW_ERROR(pId<<"/"<<i<<": yade thinks the referenced clDem member should be "<<clMemberId<<", but clDem stores the value of "<<cm.id<<" (are clumps in the same order?)");
 			// check relative positions and orientations
 			Real relPosErr=(v2v(cm.relPos)-ycd.relPos[i]).norm()/mU;

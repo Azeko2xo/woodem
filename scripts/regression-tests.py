@@ -2,7 +2,7 @@
 Run all defined regression tests, then exit.
 Exit status is 0 on success and nonzero on failure.
 """
-import yade.tests
+import woo.tests
 try:
 	result=yade.tests.testAll()
 except:

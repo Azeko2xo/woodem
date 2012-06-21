@@ -13,8 +13,8 @@ The result is:
 http://www.access.edu.au/lsmgengeo_python_doc/current/pythonapi/html/GenGeo-module.html
 https://svn.esscc.uq.edu.au/svn/esys3/lsm/contrib/LSMGenGeo/
 """
-from yade import pack,ymport
-from yade import utils
+from woo import pack,ymport
+from woo import utils
 from math import *
 
 try:
@@ -80,7 +80,7 @@ kw={'material':0}
 O.bodies.append(ymport.gengeo(mntable,shift=[-1.0,-1.0,-1.0],scale=2.0,color=(1,1,0),**kw))
 
 try:
-	from yade import qt
+	from woo import qt
 	qt.Controller()
 	qt.View()
 except ImportError: pass

@@ -4,7 +4,7 @@
 
 # Experiment beam-like behaviour with chained cylinders + CohFrict connexions
 
-from yade import utils
+from woo import utils
 young=1.0e6
 poisson=4
 density=2.60e3 
@@ -52,7 +52,7 @@ yade.qt.View();
 
  #plot some results
 from math import *
-from yade import plot
+from woo import plot
 plot.plots={'t':('pos1',None,'vel1')}
 def history():
   	plot.addData(pos1=O.bodies[0].state.pos[1], # potential elastic energy

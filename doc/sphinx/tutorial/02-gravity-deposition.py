@@ -2,8 +2,8 @@
 # and how to control the simulation while it is running by calling
 # python functions from within the simulation loop
 
-# import yade modules that we will use below
-from yade import pack, plot
+# import woo modules that we will use below
+from woo import pack, plot
 
 # create rectangular box from facets
 O.bodies.append(utils.facetBox((.5,.5,.5),(.5,.5,.5),wallMask=31))

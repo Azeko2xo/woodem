@@ -1,5 +1,5 @@
 from numpy import arange
-from yade import pack
+from woo import pack
 import pylab
 # define the section shape as polygon in 2d; repeat first point at the end to close the polygon
 poly=((1e-2,5e-2),(5e-2,2e-2),(7e-2,-2e-2),(1e-2,-5e-2),(1e-2,5e-2))

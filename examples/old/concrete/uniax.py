@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
 
-from yade import utils,plot,pack,timing,eudoxos
+from woo import utils,plot,pack,timing,eudoxos
 import time, sys, os, copy
 
 #import matplotlib
@@ -68,7 +68,7 @@ utils.readParamsFromTable(noTableOk=True, # unknownOk=True,
 	scGeom=False
 )
 
-from yade.params.table import *
+from woo.params.table import *
 
 if 'description' in O.tags.keys(): O.tags['id']=O.tags['id']+O.tags['description']
 
@@ -126,7 +126,7 @@ def initTest():
 	else: plot.plot()
 	strainer.strainRate=abs(strainRateTension) if mode=='tension' else -abs(strainRateCompression)
 	try:
-		from yade import qt
+		from woo import qt
 		renderer=qt.Renderer()
 		renderer.dispScale=(1000,1000,1000) if mode=='tension' else (100,100,100)
 	except ImportError: pass

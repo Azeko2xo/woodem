@@ -18,7 +18,7 @@ TriaxialTest(numberOfGrains=50000,fast=fast,noFiles=True).load()
 O.run(10,True) # filter out initialization
 O.timingEnabled=True
 O.run(200,True)
-from yade import timing
+from woo import timing
 timing.stats()
 print 'ForceContainer synced %d times'%(O.bexSyncCount)
 

@@ -19,10 +19,10 @@ For examples, see
 import itertools,warnings
 from numpy import arange
 from math import sqrt
-from yade import utils
+from woo import utils
 
 from miniEigen import *
-from yade import *
+from woo import *
 
 
 ## compatibility hack for python 2.5 (21/8/2009)
@@ -52,7 +52,7 @@ from _packObb import *
 def SpherePack_fromSimulation(self,scene):
 	ur"""Reset this SpherePack object and initialize it from the current simulation; only spherical particles are taken in account. Clumps are not handled. Periodic boundary conditions are supported, but the hSize matrix must be diagonal."""
 	self.reset()
-	import yade.dem
+	import woo.dem
 	for p in scene.dem.par:
 		if p.shape.__class__!=yade.dem.Sphere: continue
 		self.add(p.pos,p.shape.radius)
@@ -67,7 +67,7 @@ def SpherePack_toSimulation(self,scene,rot=Matrix3.Identity,**kw):
 	ur"""Append spheres directly to the simulation. In addition calling :yref:`O.bodies.append<BodyContainer.append>`,
 this method also appropriately sets periodic cell information of the simulation.
 
-	>>> from yade import pack; from math import *; from yade.dem import *; from yade.core import *
+	>>> from woo import pack; from math import *; from woo.dem import *; from woo.core import *
 	>>> sp=pack.SpherePack()
 
 Create random periodic packing with 20 spheres:
@@ -111,7 +111,7 @@ The current state (even if rotated) is taken as mechanically undeformed, i.e. wi
 		scene.cell.hSize=rot*Matrix3(self.cellSize[0],0,0, 0,self.cellSize[0],0, 0,0,self.cellSize[1])
 		scene.cell.trsf=Matrix3.Identity
 
-	from yade.dem import DemField
+	from woo.dem import DemField
 	if not self.hasClumps():
 		if 'mat' not in kw.keys(): kw['mat']=utils.defaultMaterial()
 		return scene.dem.particles.append([utils.sphere(rot*c,r,**kw) for c,r in self])
@@ -190,7 +190,7 @@ class inSpace(Predicate):
 def gtsSurface2Facets(surf,shareNodes=True,**kw):
 	"""Construct facets from given GTS surface. **kw is passed to utils.facet."""
 	import gts
-	from yade.core import Node
+	from woo.core import Node
 	if not shareNodes:
 		return [utils.facet([v.coords() for v in face.vertices()],**kw) for face in surf.faces()]
 	else:
@@ -406,7 +406,7 @@ def randomDensePack(predicate,radius,mat=-1,dim=None,cropLayers=0,rRelFuzz=0.,sp
 	:return: SpherePack object with spheres, filtered by the predicate.
 	"""
 	import sqlite3, os.path, cPickle, time, sys, _packPredicates
-	from yade import log, core, dem
+	from woo import log, core, dem
 	from math import pi
 	wantPeri=(spheresInCell>0)
 	if 'inGtsSurface' in dir(_packPredicates) and type(predicate)==inGtsSurface and useOBB:
@@ -489,7 +489,7 @@ def randomPeriPack(radius,initSize,rRelFuzz=0.0,memoizeDb=None):
 	:return: SpherePack object, which also contains periodicity information.
 	"""
 	from math import pi
-	from yade import core, dem
+	from woo import core, dem
 	sp=_getMemoizedPacking(memoizeDb,radius,rRelFuzz,initSize[0],initSize[1],initSize[2],fullDim=Vector3(0,0,0),wantPeri=True,fillPeriodic=False,spheresInCell=-1,memoDbg=True)
 	if sp: return sp
 	#oldScene=O.scene
@@ -498,7 +498,7 @@ def randomPeriPack(radius,initSize,rRelFuzz=0.0,memoizeDb=None):
 	S.periodic=True
 	S.cell.setBox(initSize)
 	sp.makeCloud(Vector3().Zero,S.cell.size0,radius,rRelFuzz,-1,True)
-	from yade import log
+	from woo import log
 	log.setLevel('PeriIsoCompressor',log.DEBUG)
 	S.engines=[dem.ForceResetter(),dem.InsertionSortCollider([dem.Bo1_Sphere_Aabb()],verletDist=.05*radius),dem.ContactLoop([dem.Cg2_Sphere_Sphere_L6Geom()],[dem.Cp2_FrictMat_FrictPhys()],[dem.Law2_L6Geom_FrictPhys_IdealElPl()],applyForces=True),dem.PeriIsoCompressor(charLen=2*radius,stresses=[-100e9,-1e8],maxUnbalanced=1e-2,doneHook='print "done"; S.stop();',globalUpdateInt=20,keepProportions=True),dem.Leapfrog(damping=.8)]
 	mat=dem.FrictMat(young=30e9,tanPhi=.1,ktDivKn=.3,density=1e3)

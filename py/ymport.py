@@ -3,7 +3,7 @@ Import geometry from various formats ('import' is python keyword, hence the name
 """
 
 from miniEigen import *
-from yade import utils
+from woo import utils
 
 def textExt(fileName,format='x_y_z_r',shift=Vector3.Zero,scale=1.0,**kw):
 	"""Load sphere coordinates from file in specific format, create spheres, insert them to the simulation.
@@ -194,7 +194,7 @@ def gengeoFile(fileName="file.geo",shift=Vector3.Zero,scale=1.0,orientation=Quat
 	* https://answers.launchpad.net/esys-particle/+faq/877
 	* http://www.access.edu.au/lsmgengeo_python_doc/current/pythonapi/html/GenGeo-module.html
 	* https://svn.esscc.uq.edu.au/svn/esys3/lsm/contrib/LSMGenGeo/"""
-	from yade.utils import sphere
+	from woo.utils import sphere
 
 	infile = open(fileName,"r")
 	lines = infile.readlines()

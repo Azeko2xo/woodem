@@ -30,10 +30,10 @@ O.dt=utils.PWaveTimeStep()
 O.run()
 O.saveTmp('init')
 
-from yade import log
+from woo import log
 #log.setLevel("Ig2_Facet_Sphere_Dem3DofGeom",log.TRACE)
 if 0:
-	from yade import qt
+	from woo import qt
 	renderer=qt.Renderer()
 	renderer['Interaction_geometry']=True
 	qt.Controller()
@@ -43,7 +43,7 @@ O.loadTmp()
 
 if 0:
 	O.timingEnabled=True
-	from yade import timing
+	from woo import timing
 	for i in range(4):
 		timing.reset()
 		O.loadTmp('init')

@@ -1,8 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from yade import utils
-from yade import ymport
+from woo import utils
+from woo import ymport
 
 sphereRadius=0.05
 
@@ -60,7 +60,7 @@ o.dt=0.02*utils.PWaveTimeStep()
 
 o.saveTmp('init');
 
-from yade import qt
+from woo import qt
 renderer=qt.Renderer()
 renderer.wire=True
 #qt.Controller()

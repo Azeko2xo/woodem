@@ -484,7 +484,7 @@ Some RTTI information can be accessed from python:
 .. ipython::
 	
 	@suppress
-	Yade [1]: import yade.system
+	Yade [1]: import woo.system
 
 	Yade [2]: yade.system.childClasses('Shape')
 
@@ -1111,7 +1111,7 @@ You can list available functors of a particular type by querying child classes o
 .. ipython::
 
 	@suppress
-	Yade [1]: import yade.system
+	Yade [1]: import woo.system
 
 	Yade [2]: yade.system.childClasses('GlShapeFunctor')
 
@@ -1210,7 +1210,7 @@ Python provides rudimentary control for the logging system in ``yade.log`` modul
 
 .. ipython::
 
-	Yade [2]: from yade import log
+	Yade [2]: from woo import log
 
 	Yade [3]: log.setLevel('InsertionSortCollider',log.DEBUG)  # sets logging level of the yade.InsertionSortCollider logger
 
@@ -1245,7 +1245,7 @@ After running the simulation, ``yade.timing.stats()`` function will show table w
 
 	Yade [2]: O.engines[0].label='firstEngine'   ## labeled engines will show by labels in the stats table
 
-	Yade [2]: import yade.timing;
+	Yade [2]: import woo.timing;
 
 	Yade [2]: O.timingEnabled=True
 	
@@ -1651,7 +1651,7 @@ Startup sequence
 Yade's main program is python script in :ysrc:`core/main/main.py.in`; the build system replaces a few ``\${variables}`` in that file before copying it to its install location. It does the following:
 
 #. Process command-line options, set environment variables based on those options.
-#. Import main yade module (``import yade``), residing in :ysrc:`py/__init__.py.in`. This module locates plugins (recursive search for files ``lib*.so`` in the ``lib`` installation directory). :ysrc:`yade.boot<core/main/pyboot.cpp>` module is used to setup logging, temporary directory, … and, most importantly, loads plugins.
+#. Import main yade module (``import woo``), residing in :ysrc:`py/__init__.py.in`. This module locates plugins (recursive search for files ``lib*.so`` in the ``lib`` installation directory). :ysrc:`yade.boot<core/main/pyboot.cpp>` module is used to setup logging, temporary directory, … and, most importantly, loads plugins.
 #. Manage further actions, such as running scripts given at command line, opening :yref:`yade.qt.Controller` (if desired), launching the ``ipython`` prompt.
 
 

@@ -1,14 +1,14 @@
 # encoding: utf-8
 # various monkey-patches for wrapped c++ classes
-import yade.core
-import yade.system
-#import yade.dem
+import woo.core
+import woo.system
+#import woo.dem
 from miniEigen import * # for recognizing the types
 
 import StringIO # cStringIO does not handle unicode, so stick with the slower one
 
-from yade.core import Object
-import yade._customConverters # to make sure they are loaded already
+from woo.core import Object
+import woo._customConverters # to make sure they are loaded already
 
 import codecs
 import pickle

@@ -1,8 +1,8 @@
 # coding: utf-8
 # 2009 © Václav Šmilauer <eudoxos@arcig.cz>
 "Test and demonstrate use of PeriTriaxController."
-from yade import *
-from yade import pack,log
+from woo import *
+from woo import pack,log
 #log.setLevel('PeriTriaxController',log.DEBUG)
 #log.setLevel('Shop',log.TRACE)
 O.periodic=True
@@ -16,7 +16,7 @@ sp.toSimulation()
 
 # specify which family of geometry functors to use
 utils.readParamsFromTable(noTableOk=True,geom='sc')
-from yade.params.table import geom
+from woo.params.table import geom
 
 if geom=='sc':
 	loop=InteractionLoop([Ig2_Sphere_Sphere_ScGeom()],[Ip2_FrictMat_FrictMat_FrictPhys()],[Law2_ScGeom_FrictPhys_CundallStrack()])
@@ -37,7 +37,7 @@ O.engines=[
 ]
 O.dt=0.5*utils.PWaveTimeStep()
 try:
-	from yade import qt
+	from woo import qt
 	qt.View()
 except: pass
 
@@ -50,7 +50,7 @@ if utils.runningInBatch():
 	O.timingEnabled=True
 	O.run(300000,True)
 	O.timingEnabled
-	from yade import timing
+	from woo import timing
 	timing.stats()
 	
 

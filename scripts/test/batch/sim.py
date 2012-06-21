@@ -1,12 +1,12 @@
-from yade import *
-from yade import utils
+from woo import *
+from woo import utils
 utils.readParamsFromTable(unknownOk=True,
 	important=6,
 	unimportant='foo',
 	this=-1,
 	notInTable='notInTable'
 )
-from yade.params import table
+from woo.params import table
 print O.tags['description']
 print 'important',table.important
 print 'unimportant',table.unimportant

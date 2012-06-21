@@ -13,10 +13,10 @@
 # default values are used if not run from batch
 utils.readParamsFromTable(rMean=.05,rRelFuzz=.3,maxLoad=1e6,minLoad=1e4)
 # make rMean, rRelFuzz, maxLoad accessible directly as variables later
-from yade.params.table import *
+from woo.params.table import *
 
 # create box with free top, and ceate loose packing inside the box
-from yade import pack, plot
+from woo import pack, plot
 O.bodies.append(utils.facetBox((.5,.5,.5),(.5,.5,.5),wallMask=31))
 sp=pack.SpherePack()
 sp.makeCloud((0,0,0),(1,1,1),rMean=rMean,rRelFuzz=rRelFuzz)

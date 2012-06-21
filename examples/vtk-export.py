@@ -3,11 +3,11 @@
 """This example demonstrates GTS (http://gts.sourceforge.net/) opportunities for creating surfaces
 VTU-files are created in /tmp directory after simulation. If you open those with paraview
 (or other VTK-based) program, you can create video, make screenshots etc."""
-from yade import *
-from yade.dem import *
-from yade.core import *
+from woo import *
+from woo.dem import *
+from woo.core import *
 from numpy import linspace
-from yade import pack,qt,utils
+from woo import pack,qt,utils
 from miniEigen import *
 
 S=O.scene=Scene(fields=[DemField()])

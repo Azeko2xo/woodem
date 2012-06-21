@@ -28,7 +28,7 @@ sigmaIso=-1e5
 #matplotlib.use('Agg')
 
 # generate loose packing
-from yade import pack, qt, plot
+from woo import pack, qt, plot
 sp=pack.SpherePack()
 if 0:
 	## uniform distribution

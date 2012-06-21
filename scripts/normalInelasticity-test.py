@@ -10,7 +10,7 @@
 #No crash warranty with r2676
 
 
-from yade import plot
+from woo import plot
 
 #Def of the material which will be used
 O.materials.append(NormalInelasticMat(density=2600,young=4.0e9,poisson=.04,frictionAngle=.6,coeff_dech=3.0,label='Materiau1'))

@@ -1,5 +1,5 @@
-from yade.core import*
-from yade.dem import *
+from woo.core import*
+from woo.dem import *
 O.scene.engines=[
 	ForceResetter(),
 	InsertionSortCollider([

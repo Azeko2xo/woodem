@@ -1,8 +1,8 @@
 # coding: utf-8
 # 2011 ©Bruno Chareyre <bruno.chareyre@hmg.inpg.fr>
 "Demonstrate the compression of a periodic cell with non-trivial initial geometry."
-from yade import *
-from yade import pack,log,qt
+from woo import *
+from woo import pack,log,qt
 O.periodic=True
 
 O.cell.hSize=Matrix3(1.0, -0.15, -0.10,

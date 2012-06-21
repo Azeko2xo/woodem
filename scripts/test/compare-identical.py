@@ -23,7 +23,7 @@ stopIter=2000
 nSteps=100
 
 # quiet annoying messages
-import yade.log
+import woo.log
 yade.log.setLevel('Omega',yade.log.WARN)
 yade.log.setLevel('TriaxialCompressionEngine',yade.log.WARN)
 

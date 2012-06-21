@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # encoding: utf-8
-from yade import utils, ymport, qt, plot
+from woo import utils, ymport, qt, plot
 
-from yade import log
+from woo import log
 log.setLevel('Law2_ScGeom_WirePhys_WirePM',log.TRACE)	# must compile with debug option to get logs 
 
 ## definition of some colors for colored text output in terminal

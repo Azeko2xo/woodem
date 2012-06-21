@@ -1,9 +1,9 @@
-from yade import utils
-from yade.core import *
-from yade.dem import *
-from yade import plot
-from yade import *
-import yade.log
+from woo import utils
+from woo.core import *
+from woo.dem import *
+from woo import plot
+from woo import *
+import woo.log
 yade.log.setLevel('LawTester',yade.log.INFO)
 m=utils.defaultMaterial()
 S=O.scene=Scene(fields=[DemField()])

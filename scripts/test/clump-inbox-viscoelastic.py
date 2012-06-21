@@ -1,9 +1,9 @@
 # -*- coding: utf-8
 
-from yade import utils,pack,export,qt
+from woo import utils,pack,export,qt
 import gts,os,random,itertools
 from numpy import *
-import yade.log 
+import woo.log 
 
 #yade.log.setLevel('NewtonIntegrator',yade.log.TRACE)
 

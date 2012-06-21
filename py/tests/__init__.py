@@ -7,10 +7,10 @@ import unittest,inspect
 allTests=['core','pbc','clump','psd','io']
 
 # all yade modules (ugly...)
-import yade.export,yade.linterpolation,yade.log,yade.pack,yade.plot,yade.post2d,yade.timing,yade.utils,yade.ymport,yade.geom
+import woo.export,yade.linterpolation,yade.log,yade.pack,yade.plot,yade.post2d,yade.timing,yade.utils,yade.ymport,yade.geom
 allModules=(yade.export,yade.linterpolation,yade.log,yade.pack,yade.plot,yade.post2d,yade.timing,yade.utils,yade.ymport,yade.geom)
 try:
-	import yade.qt
+	import woo.qt
 	allModules+=(yade.qt,)
 except ImportError: pass
 

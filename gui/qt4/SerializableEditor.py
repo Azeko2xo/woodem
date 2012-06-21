@@ -5,17 +5,17 @@ from PyQt4 import QtGui
 #from PyQt4 import Qwt5
 
 from miniEigen import *
-# don't import * from yade, it would be circular import
-from yade.core import Object
+# don't import * from woo, it would be circular import
+from woo.core import Object
 
 import re,itertools
 import logging
 logging.trace=logging.debug
 logging.basicConfig(level=logging.INFO)
 #from logging import debug,info,warning,error
-#from yade import *
-import yade._customConverters, yade.core
-import yade.qt
+#from woo import *
+import woo._customConverters, yade.core
+import woo.qt
 
 seqSerializableShowType=True # show type headings in serializable sequences (takes vertical space, but makes the type hyperlinked)
 
@@ -670,9 +670,9 @@ class SerializableEditor(QFrame):
 			regexp=r'^\s*(std\s*::)?\s*vector\s*<\s*(shared_ptr\s*<\s*)?\s*(std\s*::)?\s*(?P<elemT>[a-zA-Z_][a-zA-Z0-9_]+)(\s*>)?\s*>\s*$'
 			m=re.match(regexp,T)
 			return m
-		from yade import dem
-		from yade import gl
-		from yade import core
+		from woo import dem
+		from woo import gl
+		from woo import core
 		vecMap={
 			'bool':bool,'int':int,'long':int,'Body::id_t':long,'size_t':long,
 			'Real':float,'float':float,'double':float,
@@ -1152,7 +1152,7 @@ class NewFundamentalDialog(QDialog):
 
 class NewSerializableDialog(QDialog):
 	def __init__(self,parent,baseClassName,includeBase=True):
-		import yade.system
+		import woo.system
 		QDialog.__init__(self,parent)
 		self.setWindowTitle('Create new object of type %s'%baseClassName)
 		self.layout=QVBoxLayout(self)
@@ -1176,7 +1176,7 @@ class NewSerializableDialog(QDialog):
 		self.setWindowModality(Qt.WindowModal)
 	def comboSlot(self,index):
 		item=str(self.combo.itemText(index))
-		from yade import core,dem,gl,qt
+		from woo import core,dem,gl,qt
 		self.ser=eval(item+'()',dict(sum([m.__dict__.items() for m in core,dem,gl,qt],[])))
 		self.scroll.setWidget(SerializableEditor(self.ser,self.scroll,showType=True))
 		self.scroll.show()

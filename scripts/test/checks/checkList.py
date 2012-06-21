@@ -1,6 +1,6 @@
 # encoding: utf-8
 # 2011 © Bruno Chareyre <bruno.chareyre@hmg.inpg.fr>
-import yade,math,os,sys
+import woo,math,os,sys
 
 scriptsToRun=os.listdir(checksPath)
 resultStatus = 0

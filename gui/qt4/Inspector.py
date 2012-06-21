@@ -2,13 +2,13 @@
 
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-from yade import *
-from yade.qt.SerializableEditor import *
-import yade.qt
-from yade.dem import *
-#from yade.sparc import *
-from yade.gl import *
-from yade.core import *
+from woo import *
+from woo.qt.SerializableEditor import *
+import woo.qt
+from woo.dem import *
+#from woo.sparc import *
+from woo.gl import *
+from woo.core import *
 
 
 class EngineInspector(QWidget):

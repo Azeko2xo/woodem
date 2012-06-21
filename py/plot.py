@@ -32,7 +32,7 @@ import matplotlib,os,time,math,itertools
 # see http://www.mail-archive.com/yade-dev@lists.launchpad.net/msg04320.html 
 # and https://lists.launchpad.net/yade-users/msg03289.html
 #
-import yade.runtime
+import woo.runtime
 if not yade.runtime.hasDisplay: matplotlib.use('Agg')
 
 from miniEigen import *
@@ -111,7 +111,7 @@ def addDataColumns(dd):
 def addAutoData(**kw):
 	"""Add data by evaluating contents of :yref:`yade.plot.plots`. Expressions rasing exceptions will be handled gracefully, but warning is printed for each.
 	
-	>>> from yade import plot; from yade.dem import *; from yade.core import *
+	>>> from woo import plot; from woo.dem import *; from woo.core import *
 	>>> from pprint import pprint
 	>>> S=Scene(fields=[DemField()])
 	>>> plot.resetData()
@@ -128,7 +128,7 @@ def addAutoData(**kw):
 
 	A simple simulation with plot can be written in the following way; note how the energy plot is specified.
 
-	>>> from yade import plot, utils
+	>>> from woo import plot, utils
 	>>> S=Scene(fields=[DemField()])
 	>>> plot.resetData()
 	>>> plot.plots={'i=S.step':(S.energy,None,'total energy=S.energy.total()')}
@@ -154,10 +154,10 @@ def addAutoData(**kw):
 
 	.. plot::
 
-		from yade import *
-		from yade.dem import *
-		from yade.core import *
-		from yade import plot,utils
+		from woo import *
+		from woo.dem import *
+		from woo.core import *
+		from woo import plot,utils
 		S=Scene()
 		S.dem.par.append(utils.sphere((0,0,0),1));
 		S.dt=utils.pWaveDt(S)
@@ -206,7 +206,7 @@ def addData(*d_in,**kw):
 	New data will be padded with nan's, unspecified data will be nan (nan's don't appear in graphs).
 	This way, equal length of all data is assured so that they can be plotted one against any other.
 
-	>>> from yade import plot
+	>>> from woo import plot
 	>>> from pprint import pprint
 	>>> plot.resetData()
 	>>> plot.addData(a=1)
@@ -574,7 +574,7 @@ def plot(noShow=False,subPlots=True):
 	
 	You can use 
 	
-		>>> from yade import plot
+		>>> from woo import plot
 		>>> plot.resetData()
 		>>> plot.plots={'foo':('bar',)}
 		>>> somePdf=yade.master.tmpFilename()+'.pdf'
@@ -620,7 +620,7 @@ def plot(noShow=False,subPlots=True):
 def saveDataTxt(fileName,vars=None):
 	"""Save plot data into a (optionally compressed) text file. The first line contains a comment (starting with ``#``) giving variable name for each of the columns. This format is suitable for being loaded for further processing (outside yade) with ``numpy.genfromtxt`` function, which recognizes those variable names (creating numpy array with named entries) and handles decompression transparently.
 
-	>>> from yade import plot
+	>>> from woo import plot
 	>>> from pprint import pprint
 	>>> plot.reset()
 	>>> plot.addData(a=1,b=11,c=21,d=31)  # add some data here

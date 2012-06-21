@@ -17,7 +17,7 @@ if not os.path.exists(libDir): raise RuntimeError("Woo plugin directory does not
 sys.path.append(os.path.join(libDir,'py'))
 executable=os.path.join(prefix,'bin','woo'+suffix)
 ## we just need this ...
-import yade, yade.utils, yade.config, yade.remote
+import woo, yade.utils, yade.config, yade.remote
 
 
 class JobInfo():
@@ -328,7 +328,7 @@ opts,args=parser.parse_args()
 logFormat,lineList,maxJobs,nice,executable,gnuplotOut,dryRun,httpWait,globalLog=opts.logFormat,opts.lineList,opts.maxJobs,opts.nice,opts.executable,opts.gnuplotOut,opts.dryRun,opts.httpWait,opts.globalLog
 
 if opts.manpage:
-	import yade.manpage
+	import woo.manpage
 	yade.config.metadata['short_desc']='batch system for computational platform Yade'
 	yade.config.metadata['long_desc']='Manage batches of computation jobs for the Yade platform; batches are described using text-file tables with parameters which are passed to individual runs of yade. Jobs are being run with pre-defined number of computational cores as soon as the required number of cores is available. Logs of all computations are stored in files and the batch progress can be watched online at (usually) http://localhost:9080. Unless overridden, the executable yade%s is used to run jobs.'%(suffix)
 	yade.manpage.generate_manpage(parser,yade.config.metadata,opts.manpage,section=1,seealso='yade%s (1)\n.br\nhttps://yade-dem.org/sphinx/user.html#batch-queuing-and-execution-yade-batch'%suffix)

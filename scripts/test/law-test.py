@@ -11,7 +11,7 @@
 #
 # The sphere couple is oriented randomly, but the result should always be the same.
 #
-from yade import utils,plot
+from woo import utils,plot
 import random, yade.log
 random.seed()
 #yade.log.setLevel('LawTester',yade.log.TRACE)
@@ -60,7 +60,7 @@ plot.plots={'us1':('us2',),'Fn':('Fs',),'i':('un','us1','us2'),' i':('Fs','Fn','
 plot.plot(subPlots=True)
 
 try:
-	from yade import qt
+	from woo import qt
 	qt.Controller(); v=qt.View()
 	rr=qt.Renderer()
 	rr.extraDrawers=[GlExtra_LawTester()]

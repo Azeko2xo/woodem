@@ -5,7 +5,7 @@
 # (you can also try simulation with different angles of rotation to pbtain different results.
 
 
-from yade import pack,plot,qt
+from woo import pack,plot,qt
 
 # define material
 O.materials.append(CpmMat(young=25e9,G_over_E=.2,sigmaT=3e6,epsCrackOnset=1e-4,relDuctility=30))

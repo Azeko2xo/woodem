@@ -1,7 +1,7 @@
-from yade import pack,plot
+from woo import pack,plot
 
 utils.readParamsFromTable(useL3Geom=True,nonviscDamp=0,frictAngle=0,useClumps=False,noTableOk=True)
-from yade.params import table
+from woo.params import table
 
 if 1:
 	sp=pack.SpherePack();
@@ -38,7 +38,7 @@ O.saveTmp()
 # the callable should return list of strings, plots will be updated automatically
 plot.plots={'i':[O.energy.keys,None,'total']}
 
-#from yade import timing
+#from woo import timing
 #O.timingEnabled=True
 #timing.stats()
 plot.plot(subPlots=True)

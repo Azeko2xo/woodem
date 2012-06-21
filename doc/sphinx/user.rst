@@ -82,7 +82,7 @@ CSG approach describes volume by geometric *primitives* or primitive solids (sph
 
 For instance, :yref:`hyperboloid<yade._packPredicates.inHyperboloid>` (dogbone) specimen for tension-compression test can be constructed in this way (shown at img. img-hyperboloid_)::
 
-	from yade import pack
+	from woo import pack
 
 	## construct the predicate first
 	pred=pack.inHyperboloid(centerBottom=(0,0,-.1),centerTop=(0,0,.1),radius=.05,skirt=.03)
@@ -109,7 +109,7 @@ Representing a solid by its boundary is much more flexible than CSG volumes, but
 For example, we can construct a simple funnel (:ysrc:`examples/funnel.py`, shown at img-funnel_)::
 
 	from numpy import linspace
-	from yade import pack
+	from woo import pack
 
 	# angles for points on circles
 	thetas=linspace(0,2*pi,num=16,endpoint=True)
@@ -204,7 +204,7 @@ Keyword arguments ``wire``, ``color`` and ``material`` are not declared in :yref
 
 Packing algorithms described below produce dense packings. If one needs loose packing, :yref:`yade._packSpheres.SpherePack` class provides functions for generating loose packing, via its :yref:`yade._packSpheres.SpherePack.makeCloud` method. It is used internally for generating initial configuration in dynamic algorithms. For instance::
 
-	from yade import pack
+	from woo import pack
 	sp=pack.SpherePack()
 	sp.makeCloud(minCorner=(0,0,0),maxCorner=(3,3,3),rMean=.2,rRelFuzz=.5)
 
@@ -642,7 +642,7 @@ It might be desirable to constrain motion of some particles constructed from a g
 
 Arbitrary spatial predicates introduced above can be expoited here as well::
 
-	from yade import pack
+	from woo import pack
 	pred=pack.inAlignedBox(lowerCorner,upperCorner)
 	for b in O.bodies:
 	   if b.shape.name!=Sphere: continue # skip non-spheres
@@ -745,12 +745,12 @@ Python variable lifetime is limited; in particular, if you save simulation, vari
 	Yade [5]: yade.params.ab.a
 	
 	# import like this
-	Yade [5]: from yade.params import ab
+	Yade [5]: from woo.params import ab
 
 	Yade [6]: ab.a, ab.b
 
 	# also possible
-	Yade [5]: from yade.params import *
+	Yade [5]: from woo.params import *
 
 	Yade [6]: ab.a, ab.b
 
@@ -768,7 +768,7 @@ Enumeration of variables can be tedious if they are many; creating local scope (
 		utils.saveVars('geom',loadNow=True,**locals())
 	
 	setGeomVars()
-	from yade.params.geom import *
+	from woo.params.geom import *
 	# use the variables now
 
 .. note:: Only types that can be `pickled <http://docs.python.org/library/pickle.html>`_ can be passed to :yref:`yade.utils.saveVars`.
@@ -816,7 +816,7 @@ The data are in :yref:`yade.plot.data` dictionary, which maps variable names to 
 	@suppress
 	Yade [1]: O.reset()
 
-	Yade [1]: from yade import plot
+	Yade [1]: from woo import plot
 
 	Yade [1]: plot.data
 
@@ -845,7 +845,7 @@ To record data periodically, use :yref:`PyRunner`. This will record the *z* coor
 
 	O.engines=O.engines+[PyRunner(command='myAddData()', iterPeriod=20)]
 
-	from yade import plot
+	from woo import plot
 	def myAddData():
 		b=O.bodies[1]
 		plot.addData(z1=b.state.pos[2], v1=b.state.vel.norm(), i=O.iter, t=O.time)
@@ -1109,7 +1109,7 @@ Using the authentication cookie, connection can be made::
 
 The python pseudo-prompt ``>>>`` lets you write commands to manipulate simulation in variety of ways as usual. Two things to notice:
 
-#. The new python interpreter (``>>>``) lives in a namespace separate from ``Yade [1]:`` command-line. For your convenience, ``from yade import *`` is run in the new python instance first, but local and global variables are not accessible (only builtins are).
+#. The new python interpreter (``>>>``) lives in a namespace separate from ``Yade [1]:`` command-line. For your convenience, ``from woo import *`` is run in the new python instance first, but local and global variables are not accessible (only builtins are).
 #. The (fake) ``>>>`` interpreter does not have rich interactive feature of IPython, which handles the usual command-line ``Yade [1]:``; therefore, you will have no command history, ``?`` help and so on.
 
 .. note::
@@ -1167,14 +1167,14 @@ In the simulation file, we read parameters from table, at the beginning of the s
 
 .. code-block:: python
 
-	from yade import utils
+	from woo import utils
 	utils.readParamsFromTable(
 		gravity=-9.81,
 		density=2400,
 		initialVelocity=20,
 		noTableOk=True     # use default values if not run in batch
 	)
-	from yade.params.table import *
+	from woo.params.table import *
 	print gravity, density, initialVelocity
 
 after the call to :yref:`yade.utils.readParamsFromTable`, corresponding python variables are created in the ``yade.params.table`` module and can be readily used in the script, e.g.

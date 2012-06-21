@@ -11,7 +11,7 @@ Note that GTS only moves references to surfaces around, therefore e.g. translati
 surface that is part of the union will move also the part of the united surface.
 Therefore, we use the copy() method for deep copy here.
 """
-from yade import pack,qt
+from woo import pack,qt
 import gts
 
 s1=gts.read(open('horse.coarse.gts'))
