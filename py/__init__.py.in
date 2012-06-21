@@ -5,10 +5,10 @@
 # 2. import the runtime namespace (will be populated from within c++)
 #
 
-"""Common initialization core for yade.
+"""Common initialization core for woo.
 
-This file is executed when anything is imported from yade for the first time.
-It loads yade plugins and injects c++ class constructors to the __builtins__
+This file is executed when anything is imported from woo for the first time.
+It loads woo plugins and injects c++ class constructors to the __builtins__
 (that might change in the future, though) namespace, making them available
 everywhere.
 """
@@ -69,17 +69,17 @@ import system
 deprecatedTypes=system.cxxCtorsDict()
 # insert those in the module namespace
 globals().update(deprecatedTypes)
-# declare what should be imported for "from yade import *"
+# declare what should be imported for "from woo import *"
 import core
 O=core.Master.instance
 master=core.Master.instance
-__all__=deprecatedTypes.keys()+['O','master']
+__all__=deprecatedTypes.keys()+['master']
 
 # avoids backtrace if crash at finalization (log4cxx)
 system.setExitHandlers() 
 
 
-# fake miniEigen and wrapper being in yade itself
+# fake miniEigen being in woo itself
 from miniEigen import *
 
 import _monkey # adds methods to c++ classes

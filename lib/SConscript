@@ -2,12 +2,12 @@
 Import('*')
 linkPlugins=env['linkPlugins']
 
-env.Install('$LIBDIR/lib',env.SharedLibrary('yade-support',[
-	env.Combine('yade-support.cpp',['base/Math.cpp','base/CompUtils.cpp']+
+env.Install('$LIBDIR/lib',env.SharedLibrary('woo-support',[
+	env.Combine('woo-support.cpp',['base/Math.cpp','base/CompUtils.cpp']+
 		# ['voro++/voro++.cc']+ # included directly in sources, due to templates
 		['sphere-pack/SpherePack.cpp']+
 		['multimethods/Indexable.cpp','object/Object.cpp','pyutil/gil.cpp','pyutil/except.cpp']
 		+(['opengl/GLUtils.cpp'] if 'opengl' in env['features'] else [])
 		),
-	],LIBS=['dl','m']+[l for l in env['LIBS'] if l!='yade-support']+(['glut','GL','GLU'] if 'opengl' in env['features'] else []),CXXFLAGS=env['CXXFLAGS']+['-fPIC']
+	],LIBS=['dl','m']+[l for l in env['LIBS'] if l!='woo-support']+(['glut','GL','GLU'] if 'opengl' in env['features'] else []),CXXFLAGS=env['CXXFLAGS']+['-fPIC']
 ))
