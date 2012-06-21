@@ -1,10 +1,10 @@
-#ifdef YADE_OPENGL
+#ifdef WOO_OPENGL
 #include<woo/pkg/dem/Gl1_DemField.hpp>
 #include<woo/lib/opengl/GLUtils.hpp>
 #include<woo/pkg/gl/Renderer.hpp>
 #include<woo/lib/base/CompUtils.hpp>
 
-YADE_PLUGIN(gl,(Gl1_DemField));
+WOO_PLUGIN(gl,(Gl1_DemField));
 
 unsigned int Gl1_DemField::mask;
 bool Gl1_DemField::wire;

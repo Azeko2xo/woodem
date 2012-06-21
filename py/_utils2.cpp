@@ -182,7 +182,7 @@ BOOST_PYTHON_MODULE(_utils2){
 	// http://numpy.scipy.org/numpydoc/numpy-13.html mentions this must be done in module init, otherwise we will crash
 	//import_array();
 
-	YADE_SET_DOCSTRING_OPTS;
+	WOO_SET_DOCSTRING_OPTS;
 	py::def("pWaveTimeStep",pWaveTimeStep,"Do not use, remaed to pWaveDt and will be removed.");
 	py::def("pWaveDt",pWaveDt,(py::arg("scene")=py::object()),"Get timestep accoring to the velocity of P-Wave propagation; computed from sphere radii, rigidities and masses.");
 	py::def("boxPsd",boxPsd,(py::arg("box")=AlignedBox3r(Vector3r(NaN,NaN,NaN),Vector3r(NaN,NaN,NaN)),py::arg("num")=20,py::arg("mask")=0,py::arg("dRange")=Vector2r(0.,0.),py::arg("zip")=true),"Compute Particle size distribution in given box (min,max) or in the whole simulation, if box is not specified; list of couples (diameter,passing) is returned; with *unzip*, tuple of two sequences, diameters and passing values, are returned.");

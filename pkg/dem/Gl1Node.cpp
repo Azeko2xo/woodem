@@ -1,11 +1,11 @@
 
 
-#ifdef YADE_OPENGL
+#ifdef WOO_OPENGL
 #include<woo/pkg/dem/Gl1Node.hpp>
 #include<woo/lib/opengl/GLUtils.hpp>
 #include<woo/pkg/gl/Renderer.hpp>
 
-YADE_PLUGIN(gl,(Gl1_Node));
+WOO_PLUGIN(gl,(Gl1_Node));
 
 int Gl1_Node::wd;
 Vector2i Gl1_Node::wd_range;

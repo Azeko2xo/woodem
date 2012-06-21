@@ -18,8 +18,8 @@
 #endif
 
 // this used to be feature given to scons
-#ifndef YADE_XMLSERIALIZATION
-	#define YADE_XMLSERIALIZATION
+#ifndef WOO_XMLSERIALIZATION
+	#define WOO_XMLSERIALIZATION
 #endif
 
 
@@ -61,7 +61,7 @@ struct ObjectIO{
 		out.push(boost::iostreams::file_sink(fileName));
 		if(!out.good()) throw std::runtime_error("Error opening file "+fileName+" for writing.");
 		if(isXmlFilename(fileName)){
-			#ifdef YADE_XMLSERIALIZATION
+			#ifdef WOO_XMLSERIALIZATION
 				save<T,boost::archive::xml_oarchive>(out,objectTag,object);
 			#else
 				throw std::runtime_error("Serialization to XML is not supported in this build of Yade (enable the 'xmlserialization' feature).");
@@ -78,7 +78,7 @@ struct ObjectIO{
 		in.push(boost::iostreams::file_source(fileName));
 		if(!in.good()) throw std::runtime_error("Error opening file "+fileName+" for reading.");
 		if(isXmlFilename(fileName)){
-			#ifdef YADE_XMLSERIALIZATION
+			#ifdef WOO_XMLSERIALIZATION
 				load<T,boost::archive::xml_iarchive>(in,objectTag,object);
 			#else
 				throw std::runtime_error("De-serialization from XML is not supported in this build of Yade (enable the 'xmlserialization' feature).");

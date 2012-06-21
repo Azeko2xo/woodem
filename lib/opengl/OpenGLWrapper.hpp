@@ -8,7 +8,7 @@
 
 #pragma once
 
-#ifndef YADE_OPENGL
+#ifndef WOO_OPENGL
 #error "This build doesn't support openGL. Therefore, this header must not be used."
 #endif
 

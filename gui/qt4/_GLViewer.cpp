@@ -7,7 +7,7 @@
 #include<QApplication>
 #include<QCloseEvent>
 
-#ifdef YADE_LOG4CXX
+#ifdef WOO_LOG4CXX
 log4cxx::LoggerPtr logger=log4cxx::Logger::getLogger("yade.qt4");
 #endif
 
@@ -86,7 +86,7 @@ void centerViews(void){ OpenGLManager::self->centerAllViews(); }
 shared_ptr<Renderer> getRenderer(){ return OpenGLManager::self->renderer; }
 
 BOOST_PYTHON_MODULE(_GLViewer){
-	YADE_SET_DOCSTRING_OPTS;
+	WOO_SET_DOCSTRING_OPTS;
 	
 	OpenGLManager* glm=new OpenGLManager(); // keep this singleton object forever
 	glm->emitStartTimer();

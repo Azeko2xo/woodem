@@ -46,7 +46,7 @@
 #include<woo/core/MatchMaker.hpp>
 
 
-#ifdef YADE_OPENGL
+#ifdef WOO_OPENGL
 	#include<woo/pkg/gl/Functors.hpp>
 	#include<woo/pkg/gl/Renderer.hpp>
 	#include<woo/pkg/gl/NodeGlRep.hpp>
@@ -317,7 +317,7 @@ BOOST_PYTHON_MODULE(_customConverters){
 		VECTOR_SEQ_CONV(shared_ptr<SpherePack>);
 		VECTOR_SEQ_CONV(shared_ptr<KinematicEngine>);
 #endif
-		#ifdef YADE_OPENGL
+		#ifdef WOO_OPENGL
 			VECTOR_SEQ_CONV(shared_ptr<GlShapeFunctor>);
 			VECTOR_SEQ_CONV(shared_ptr<GlNodeFunctor>);
 			VECTOR_SEQ_CONV(shared_ptr<GlBoundFunctor>);

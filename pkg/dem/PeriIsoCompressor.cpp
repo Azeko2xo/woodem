@@ -10,7 +10,7 @@
 
 CREATE_LOGGER(PeriIsoCompressor);
 
-YADE_PLUGIN(dem,(PeriIsoCompressor))
+WOO_PLUGIN(dem,(PeriIsoCompressor))
 
 void PeriIsoCompressor::avgStressIsoStiffness(const Vector3r& cellAreas, Vector3r& stress, Real& isoStiff){
 	Vector3r force(Vector3r::Zero()); Real stiff=0; long n=0;

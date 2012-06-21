@@ -9,7 +9,7 @@
 #include<vector>
 #include<boost/static_assert.hpp>
 
-YADE_PLUGIN(dem,(InsertionSortCollider));
+WOO_PLUGIN(dem,(InsertionSortCollider));
 CREATE_LOGGER(InsertionSortCollider);
 
 
@@ -62,7 +62,7 @@ void InsertionSortCollider::insertionSort(VecBounds& v, bool doCollide, int ax){
 				if(watchIds(v[j].id,viInit.id)) cerr<<"Swapping #"<<v[j].id<<"  with #"<<viInit.id<<" ("<<setprecision(80)<<v[j].coord<<">"<<setprecision(80)<<viInit.coord<<" along axis "<<v.axis<<")"<<endl;
 				if(v[j].id==viInit.id){ cerr<<"Inversion of #"<<v[j].id<<" with itself, "<<v[j].flags.isMin<<" & "<<viInit.flags.isMin<<", isGreater "<<(v[j]>viInit)<<", "<<(v[j].coord>viInit.coord)<<endl; j--; continue; }
 			#endif
-			#ifdef YADE_DEBUG
+			#ifdef WOO_DEBUG
 				stepInvs[ax]++; numInvs[ax]++;
 			#endif
 			// no collisions without bounding boxes
@@ -102,7 +102,7 @@ vector<Particle::id_t> InsertionSortCollider::probeAabb(const Vector3r& mn, cons
 	if(!periodic){
 		#if 0
 			auto I=std::lower_bound(v.vec.begin(),v.vec.end(),mn[ax0],[](const Bounds& b, const Real& c)->bool{ return b.coord<c; } );
-			#ifdef YADE_DEBUG
+			#ifdef WOO_DEBUG
 				long i=I-v.vec.begin();
 				long pi=max(0L,i-1), ppi=max(0L,i-2), ni=min((long)v.vec.size(),i+1), nni=min((long)v.vec.size(),i+2);
 				cerr<<"x="<<mn[ax0]<<":: b["<<ppi<<"]="<<v.vec[ppi].coord<<", b["<<pi<<"]="<<v.vec[pi].coord<<" || "<<v.vec[i].coord<<" || b["<<ni<<"]="<<v.vec[ni].coord<<", b["<<nni<<"]="<<v.vec[nni].coord<<endl;
@@ -476,7 +476,7 @@ void InsertionSortCollider::insertionSortPeri(VecBounds& v, bool doCollide, int 
 				}
 				#endif
 				if(likely(vi.id!=vNew.id)){
-					#ifdef YADE_DEBUG
+					#ifdef WOO_DEBUG
 						stepInvs[ax]++; numInvs[ax]++;
 					#endif
 					handleBoundInversionPeri(vi.id,vNew.id);

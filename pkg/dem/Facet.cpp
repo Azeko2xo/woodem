@@ -1,8 +1,8 @@
 #include<woo/pkg/dem/Facet.hpp>
 #include<woo/lib/base/CompUtils.hpp>
-YADE_PLUGIN(dem,(Facet)(Bo1_Facet_Aabb));
-#ifdef YADE_OPENGL
-YADE_PLUGIN(gl,(Gl1_Facet));
+WOO_PLUGIN(dem,(Facet)(Bo1_Facet_Aabb));
+#ifdef WOO_OPENGL
+WOO_PLUGIN(gl,(Gl1_Facet));
 #endif
 
 Vector3r Facet::getNormal() const {
@@ -49,7 +49,7 @@ void Bo1_Facet_Aabb::go(const shared_ptr<Shape>& sh){
 }
 
 
-#ifdef YADE_OPENGL
+#ifdef WOO_OPENGL
 #include<woo/lib/opengl/OpenGLWrapper.hpp>
 #include<woo/lib/opengl/GLUtils.hpp>
 #include<woo/pkg/gl/Renderer.hpp>
@@ -78,5 +78,5 @@ void Gl1_Facet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire
 	}
 }
 
-#endif /* YADE_OPENGL */
+#endif /* WOO_OPENGL */
 

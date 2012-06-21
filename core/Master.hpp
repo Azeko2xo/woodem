@@ -100,7 +100,7 @@ class Master: public Singleton<Master>{
 		/* other static things exposed through Master */
 		bool timingEnabled_get(){ return TimingInfo::enabled;}
 		void timingEnabled_set(bool enabled){ TimingInfo::enabled=enabled;}
-		#ifdef YADE_OPENMP
+		#ifdef WOO_OPENMP
 			int numThreads_get(){ return omp_get_max_threads();}
 		#else
 			int numThreads_get(){return 1;}
@@ -166,7 +166,7 @@ class Master: public Singleton<Master>{
 			.def("tmpToString",&Master::pyTmpToString,(py::arg("mark")=""),"Return XML of :yref:`saveTmp<Master.saveTmp>`'d simulation as string.")
 
 			.def("plugins",&Master::pyPlugins,"Return list of all plugins registered in the class factory.")
-			#ifdef YADE_OPENCL
+			#ifdef WOO_OPENCL
 				.def_readwrite("defaultClDev",&Master::defaultClDev,"Default OpenCL platform/device couple (as ints), set internally from the command-line arg.")
 			#endif
 			.add_property("scene",&Master::pyGetScene,&Master::pySetScene)

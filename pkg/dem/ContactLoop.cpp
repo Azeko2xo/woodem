@@ -4,7 +4,7 @@
 // temporary
 #include<woo/pkg/dem/G3Geom.hpp>
 
-YADE_PLUGIN(dem,(CGeomFunctor)(CGeomDispatcher)(CPhysFunctor)(CPhysDispatcher)(LawFunctor)(LawDispatcher)(ContactLoop));
+WOO_PLUGIN(dem,(CGeomFunctor)(CGeomDispatcher)(CPhysFunctor)(CPhysDispatcher)(LawFunctor)(LawDispatcher)(ContactLoop));
 CREATE_LOGGER(ContactLoop);
 
 shared_ptr<Contact> CGeomDispatcher::explicitAction(Scene* _scene, const shared_ptr<Particle>& p1, const shared_ptr<Particle>& p2, bool force){
@@ -114,7 +114,7 @@ void ContactLoop::run(){
 	const bool doStress=(evalStress && scene->isPeriodic);
 		
 	size_t size=dem.contacts->size();
-	#ifdef YADE_OPENMP
+	#ifdef WOO_OPENMP
 		#pragma omp parallel for schedule(guided)	
 	#endif
 	for(size_t i=0; i<size; i++){
@@ -186,7 +186,7 @@ void ContactLoop::run(){
 		}
 	}
 	// process removeAfterLoop
-	#ifdef YADE_OPENMP
+	#ifdef WOO_OPENMP
 		FOREACH(list<shared_ptr<Contact> >& l, removeAfterLoopRefs){
 			FOREACH(const shared_ptr<Contact>& c,l) dem.contacts->remove(c);
 			l.clear();

@@ -30,11 +30,11 @@
 
 #include<QtGui/qevent.h>
 
-#ifdef YADE_GL2PS
+#ifdef WOO_GL2PS
 #include<gl2ps.h>
 #endif
 
-YADE_PLUGIN(/*unused*/qt,(SnapshotEngine));
+WOO_PLUGIN(/*unused*/qt,(SnapshotEngine));
 
 /*****************************************************************************
 *********************************** SnapshotEngine ***************************
@@ -230,7 +230,7 @@ void GLViewer::startClipPlaneManipulation(int planeNo){
 }
 
 void GLViewer::useDisplayParameters(size_t n, bool fromHandler){
-	/* when build without YADE_XMLSERIALIZATION, serialize to binary; otherwise, prefer xml for readability */
+	/* when build without WOO_XMLSERIALIZATION, serialize to binary; otherwise, prefer xml for readability */
 	LOG_DEBUG("Loading display parameters from #"<<n);
 	vector<shared_ptr<DisplayParameters> >& dispParams=Master::instance().getScene()->dispParams;
 	if(dispParams.size()<=(size_t)n){
@@ -243,7 +243,7 @@ void GLViewer::useDisplayParameters(size_t n, bool fromHandler){
 	string val;
 	if(dp->getValue("Renderer",val)){ std::istringstream oglre(val);
 		yade::ObjectIO::load<decltype(renderer),
-			#ifdef YADE_XMLSERIALIZATION
+			#ifdef WOO_XMLSERIALIZATION
 				boost::archive::xml_iarchive
 			#else
 				boost::archive::binary_iarchive
@@ -262,7 +262,7 @@ void GLViewer::useDisplayParameters(size_t n, bool fromHandler){
 	shared_ptr<DisplayParameters>& dp=dispParams[n];
 	std::ostringstream oglre;
 	yade::ObjectIO::save<decltype(renderer),
-		#ifdef YADE_XMLSERIALIZATION
+		#ifdef WOO_XMLSERIALIZATION
 			boost::archive::xml_oarchive
 		#else
 			boost::archive::binary_oarchive
@@ -399,7 +399,7 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 		}
 	}
 	else if(e->key()==Qt::Key_Period) gridSubdivide = !gridSubdivide;
-#ifdef YADE_GL2PS
+#ifdef WOO_GL2PS
 	else if(e->key()==Qt::Key_V){
 		for(int i=0; ;i++){
 			std::ostringstream fss; fss<<"/tmp/yade-snapshot-"<<setw(4)<<setfill('0')<<i<<".pdf";
@@ -512,7 +512,7 @@ void GLViewer::centerScene(){
 
 void GLViewer::draw(bool withNames)
 {
-#ifdef YADE_GL2PS
+#ifdef WOO_GL2PS
 	if(!nextFrameSnapshotFilename.empty() && boost::algorithm::ends_with(nextFrameSnapshotFilename,".pdf")){
 		gl2psStream=fopen(nextFrameSnapshotFilename.c_str(),"wb");
 		if(!gl2psStream){ int err=errno; throw runtime_error(string("Error opening file ")+nextFrameSnapshotFilename+": "+strerror(err)); }
@@ -771,7 +771,7 @@ void GLViewer::postDraw(){
 	}
 	QGLViewer::postDraw();
 	if(!nextFrameSnapshotFilename.empty()){
-		#ifdef YADE_GL2PS
+		#ifdef WOO_GL2PS
 			if(boost::algorithm::ends_with(nextFrameSnapshotFilename,".pdf")){
 				gl2psEndPage();
 				LOG_DEBUG("Finished saving snapshot to "<<nextFrameSnapshotFilename);

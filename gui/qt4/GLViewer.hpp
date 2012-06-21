@@ -26,7 +26,7 @@ struct SnapshotEngine: public PeriodicEngine{
 	virtual void run();
 	virtual bool needsField(){ return false; }
 	virtual void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d);
-	YADE_CLASS_BASE_DOC_ATTRS(SnapshotEngine,PeriodicEngine,"Periodically save snapshots of GLView(s) as .png files. Files are named *fileBase*+*counter*+'.png' (counter is left-padded by 0s, i.e. snap00004.png).",
+	WOO_CLASS_BASE_DOC_ATTRS(SnapshotEngine,PeriodicEngine,"Periodically save snapshots of GLView(s) as .png files. Files are named *fileBase*+*counter*+'.png' (counter is left-padded by 0s, i.e. snap00004.png).",
 		((string,format,"PNG",,"Format of snapshots (one of JPEG, PNG, EPS, PS, PPM, BMP) `QGLViewer documentation <http://www.libqglviewer.com/refManual/classQGLViewer.html#abbb1add55632dced395e2f1b78ef491c>`_. File extension will be lowercased *format*. Validity of format is not checked."))
 		((string,fileBase,"",,"Basename for snapshots"))
 		((int,counter,0,AttrTrait<Attr::readonly>(),"Number that will be appended to fileBase when the next snapshot is saved (incremented at every save)."))
@@ -103,7 +103,7 @@ struct QglMovableObject: public qglviewer::MouseGrabber{
  * * Alt-1,Alt-2,... adds/removes the respective plane to bound group:
  * 	mutual positions+orientations of planes in the group are maintained when one of those planes is manipulated
  *
- * Clip plane number is 3; change YADE_RENDERER_NUM_CLIP_PLANE, complete switches "|| ..." in keyPressEvent
+ * Clip plane number is 3; change WOO_RENDERER_NUM_CLIP_PLANE, complete switches "|| ..." in keyPressEvent
  * and recompile to have more.
  */
 class GLViewer : public QGLViewer
@@ -176,7 +176,7 @@ class GLViewer : public QGLViewer
 		// if defined, snapshot will be saved to this file right after being drawn and the string will be reset.
 		// this way the caller will be notified of the frame being saved successfully.
 		string nextFrameSnapshotFilename;
-		#ifdef YADE_GL2PS
+		#ifdef WOO_GL2PS
 			// output stream for gl2ps; initialized as needed
 			FILE* gl2psStream;
 		#endif

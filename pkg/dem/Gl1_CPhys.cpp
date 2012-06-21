@@ -2,7 +2,7 @@
 #include<woo/pkg/gl/Renderer.hpp> // for GlData
 #include<woo/lib/opengl/GLUtils.hpp>
 
-YADE_PLUGIN(gl,(Gl1_CPhys));
+WOO_PLUGIN(gl,(Gl1_CPhys));
 
 GLUquadric* Gl1_CPhys::gluQuadric=NULL;
 shared_ptr<ScalarRange> Gl1_CPhys::range;

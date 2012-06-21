@@ -3,7 +3,7 @@
 #include<woo/pkg/dem/G3Geom.hpp>
 #include<woo/pkg/dem/FrictMat.hpp>
 
-#ifdef YADE_OPENGL
+#ifdef WOO_OPENGL
 	#include<woo/pkg/gl/Renderer.hpp>
 #endif
 
@@ -18,7 +18,7 @@ std::tuple</*stress*/Matrix3r,/*stiffness*/Matrix6r> DemFuncs::stressStiffness(c
 	Matrix6r K=Matrix6r::Zero();
 
 	FOREACH(const shared_ptr<Contact>& C, *dem->contacts){
-		FrictPhys* phys=YADE_CAST<FrictPhys*>(C->phys.get());
+		FrictPhys* phys=WOO_CAST<FrictPhys*>(C->phys.get());
 		if(C->pA->shape->nodes.size()!=1 || C->pB->shape->nodes.size()!=1){
 			if(skipMultinodal) continue;
 			else yade::ValueError("Particle "+lexical_cast<string>(C->pA->shape->nodes.size()!=1? C->pA->id : C->pB->id)+" has more than one node; to skip contacts with such particles, say skipMultinodal=True");
@@ -83,7 +83,7 @@ shared_ptr<Particle> DemFuncs::makeSphere(Real radius, const shared_ptr<Material
 
 	const auto& n=sphere->nodes[0];
 	n->setData<DemData>(make_shared<DemData>());
-	#ifdef YADE_OPENGL
+	#ifdef WOO_OPENGL
 		// to avoid crashes if 3renderer must resize the node's data array and reallocates it while other thread accesses those data
 		n->setData<GlData>(make_shared<GlData>());
 	#endif

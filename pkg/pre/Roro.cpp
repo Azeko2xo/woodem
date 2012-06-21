@@ -1,2 +1,2 @@
 #include<woo/pkg/pre/Roro.hpp>
-YADE_PLUGIN(pre,(Roro));
+WOO_PLUGIN(pre,(Roro));

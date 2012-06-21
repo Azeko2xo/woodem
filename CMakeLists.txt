@@ -70,9 +70,9 @@ ELSE (NOT INSTALL_PREFIX)
 ENDIF (NOT CMAKE_INSTALL_PREFIX)
 
 
-SET(YADE_LIB_PATH ${CMAKE_INSTALL_PREFIX}/lib/yade-${SUFFIX})
-SET(YADE_EXEC_PATH ${CMAKE_INSTALL_PREFIX}/bin)
-SET(YADE_PY_PATH ${YADE_LIB_PATH}/py)
+SET(WOO_LIB_PATH ${CMAKE_INSTALL_PREFIX}/lib/yade-${SUFFIX})
+SET(WOO_EXEC_PATH ${CMAKE_INSTALL_PREFIX}/bin)
+SET(WOO_PY_PATH ${WOO_LIB_PATH}/py)
 
 #"OPENMP" 
 FOREACH(FEAT "OPENGL" "VTK" "LOG4CXX" "GTS" "CGAL")
@@ -167,14 +167,14 @@ FILE(GLOB SRC_PYMODULES_COMBINED "${CMAKE_BINARY_DIR}/pyModules.*.cpp")
 #target_link_libraries(pyModules pyWrapper pyPack pyEigen _gts)
 
 # will be different for debugging builds!
-SET(YADE_LIBDIR lib/yade${YADE_SUFFIX})
+SET(WOO_LIBDIR lib/yade${WOO_SUFFIX})
 
 SET(SRC_PYGTS "py/3rd-party/pygts-0.3.1/cleanup.c;py/3rd-party/pygts-0.3.1/edge.c;py/3rd-party/pygts-0.3.1/face.c;py/3rd-party/pygts-0.3.1/object.c;py/3rd-party/pygts-0.3.1/point.c;py/3rd-party/pygts-0.3.1/pygts.c;py/3rd-party/pygts-0.3.1/segment.c;py/3rd-party/pygts-0.3.1/surface.c;py/3rd-party/pygts-0.3.1/triangle.c;py/3rd-party/pygts-0.3.1/vertex.c")
 
 
-SET(YADE_ALL_SRCS ${SRC_CORE_COMBINED};${SRC_PKG_COMBINED};${SRC_LIB_COMBINED};${SRC_PYMODULES_COMBINED};${SRC_PACK_COMBINED};${SRC_PYGTS};py/mathWrap/miniEigen.cpp)
+SET(WOO_ALL_SRCS ${SRC_CORE_COMBINED};${SRC_PKG_COMBINED};${SRC_LIB_COMBINED};${SRC_PYMODULES_COMBINED};${SRC_PACK_COMBINED};${SRC_PYGTS};py/mathWrap/miniEigen.cpp)
 
-python_add_module(yade-all "${YADE_ALL_SRCS}")
+python_add_module(yade-all "${WOO_ALL_SRCS}")
 
 IF(${GTS_FOUND})
 	#add_library(_gts STATIC py/3rd-party/pygts-0.3.1/cleanup.c;py/3rd-party/pygts-0.3.1/edge.c;py/3rd-party/pygts-0.3.1/face.c;py/3rd-party/pygts-0.3.1/object.c;py/3rd-party/pygts-0.3.1/point.c;py/3rd-party/pygts-0.3.1/pygts.c;py/3rd-party/pygts-0.3.1/segment.c;py/3rd-party/pygts-0.3.1/surface.c;py/3rd-party/pygts-0.3.1/triangle.c;py/3rd-party/pygts-0.3.1/vertex.c)
@@ -198,27 +198,27 @@ IF(${QT4_FOUND})
 ENDIF()
 
 
-install(TARGETS yade-all DESTINATION ${YADE_LIB_PATH})
+install(TARGETS yade-all DESTINATION ${WOO_LIB_PATH})
 
 FOREACH(_mod ${PY_COMPILED_MODULES})
-	install(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E create_symlink ${YADE_LIB_PATH}/libyade-all.so ${YADE_PY_PATH}/${_mod}.so)")
+	install(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E create_symlink ${WOO_LIB_PATH}/libyade-all.so ${WOO_PY_PATH}/${_mod}.so)")
 ENDFOREACH()
 
 
 # install our python scripts, keeping the hierarchy under py/
-install(DIRECTORY py/ DESTINATION ${YADE_PY_PATH}
+install(DIRECTORY py/ DESTINATION ${WOO_PY_PATH}
 	FILES_MATCHING PATTERN "*.py"
 	PATTERN "3rd-party" EXCLUDE
 )
 
 # install 3rd party python files
-install(FILES py/3rd-party/pygts-0.3.1/__init__.py DESTINATION ${YADE_LIB_PATH}/gts)
-install(FILES py/3rd-party/pygts-0.3.1/pygts.py DESTINATION ${YADE_LIB_PATH}/gts)
-install(FILES py/3rd-party/mtTkinter-0.3/mtTkinter.py DESTINATION ${YADE_LIB_PATH})
+install(FILES py/3rd-party/pygts-0.3.1/__init__.py DESTINATION ${WOO_LIB_PATH}/gts)
+install(FILES py/3rd-party/pygts-0.3.1/pygts.py DESTINATION ${WOO_LIB_PATH}/gts)
+install(FILES py/3rd-party/mtTkinter-0.3/mtTkinter.py DESTINATION ${WOO_LIB_PATH})
 
 # install the files that need to be pre-processed (FIXME: this will need to define all variables, and call them the same as they are in scons -- for compatibility)
-configure_file(core/main/yade-batch.in ${YADE_EXEC_PATH}/yade-batch-${SUFFIX})
-configure_file(core/main/main.py.in ${YADE_EXEC_PATH}/yade-${SUFFIX})
-configure_file(py/config.py.in ${YADE_PY_PATH}/yade/config.py)
+configure_file(core/main/yade-batch.in ${WOO_EXEC_PATH}/yade-batch-${SUFFIX})
+configure_file(core/main/main.py.in ${WOO_EXEC_PATH}/yade-${SUFFIX})
+configure_file(py/config.py.in ${WOO_PY_PATH}/yade/config.py)
 
 

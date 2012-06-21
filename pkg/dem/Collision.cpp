@@ -1,13 +1,13 @@
 #include<woo/pkg/dem/Collision.hpp>
 #include<woo/pkg/dem/ParticleContainer.hpp>
-#ifdef YADE_OPENGL
+#ifdef WOO_OPENGL
 	#include<woo/lib/opengl/OpenGLWrapper.hpp>
 #endif
 
-YADE_PLUGIN(dem,(Aabb)(BoundFunctor)(BoundDispatcher)(Collider));
+WOO_PLUGIN(dem,(Aabb)(BoundFunctor)(BoundDispatcher)(Collider));
 
-#ifdef YADE_OPENGL
-	YADE_PLUGIN(gl,(Gl1_Aabb))
+#ifdef WOO_OPENGL
+	WOO_PLUGIN(gl,(Gl1_Aabb))
 #endif
 
 bool Collider::mayCollide(const shared_ptr<Particle>& pA, const shared_ptr<Particle>& pB, const DemField* dem){
@@ -32,7 +32,7 @@ void BoundDispatcher::run(){
 		operator()(shape);
 		if(!shape) continue; // the functor did not create new bound
 	#if 0
-		Aabb* aabb=YADE_CAST<Aabb*>(shape->bound.get());
+		Aabb* aabb=WOO_CAST<Aabb*>(shape->bound.get());
 		Real sweep=velocityBins->bins[velocityBins->bodyBins[p->id]].maxDist;
 		aabb->min-=Vector3r(sweep,sweep,sweep);
 		aabb->max+=Vector3r(sweep,sweep,sweep);
@@ -68,7 +68,7 @@ void Collider::pyHandleCustomCtorArgs(py::tuple& t, py::dict& d){
 }
 
 
-#ifdef YADE_OPENGL
+#ifdef WOO_OPENGL
 void Gl1_Aabb::go(const shared_ptr<Bound>& bv){
 	Aabb& aabb=bv->cast<Aabb>();
 	glColor3v(Vector3r(1,1,0));

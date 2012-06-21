@@ -30,7 +30,7 @@ sources=walkSourceFiles()
 plugins=set()
 for dir,f in sources:
 	for l in open(dir+sep+f):
-		if 'YADE_PLUGIN' in l and getModule(dir) not in ('core',): plugins.add(f.split('.')[0])
+		if 'WOO_PLUGIN' in l and getModule(dir) not in ('core',): plugins.add(f.split('.')[0])
 
 maxIncludeLevel=4
 def grepCpp(path,f,level=0):
@@ -56,7 +56,7 @@ def grepCpp(path,f,level=0):
 				if m.group(1).split('.')[0] not in plugins or incBaseName==baseName:
 					linkDeps.update(grepCpp(path,m.group(1),level=level+1)[0])
 			continue
-		m=re.match('^YADE_REQUIRE_FEATURE\((.*)\).*',l)
+		m=re.match('^WOO_REQUIRE_FEATURE\((.*)\).*',l)
 		if m:
 			featureDeps.add(m.group(1))
 	return linkDeps,featureDeps

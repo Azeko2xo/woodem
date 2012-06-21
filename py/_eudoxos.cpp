@@ -9,7 +9,7 @@
 #include<woo/pkg/dem/GenericSpheresContact.hpp>
 #include<woo/pkg/common/NormShearPhys.hpp>
 
-#ifdef YADE_VTK
+#ifdef WOO_VTK
 	#pragma GCC diagnostic ignored "-Wdeprecated"
 		#include<vtkPointLocator.h>
 		#include<vtkIdList.h>
@@ -19,11 +19,11 @@
 #endif
 
 namespace py = boost::python;
-#ifdef YADE_LOG4CXX
+#ifdef WOO_LOG4CXX
 	log4cxx::LoggerPtr logger=log4cxx::Logger::getLogger("yade.eudoxos");
 #endif
 
-#ifdef YADE_CPM_FULL_MODEL_AVAILABLE
+#ifdef WOO_CPM_FULL_MODEL_AVAILABLE
 	#include"../../brefcom-mm.hh"
 #endif
 
@@ -115,8 +115,8 @@ void particleMacroStress(void){
 		FOREACH(Body::id_t id2, bIntr[id1]){
 			const shared_ptr<Interaction> i=scene->interactions->find(id1,id2);
 			assert(i);
-			Dem3DofGeom* geom=YADE_CAST<Dem3DofGeom*>(i->geom);
-			CpmPhys* phys=YADE_CAST<CpmPhys*>(i->phys);
+			Dem3DofGeom* geom=WOO_CAST<Dem3DofGeom*>(i->geom);
+			CpmPhys* phys=WOO_CAST<CpmPhys*>(i->phys);
 			Real d=(geom->se31->pos-geom->se32->pos).norm(); // current contact length
 			const Vector3r& n=geom->normal;
 			const Real& A=phys->crossSection;
@@ -189,8 +189,8 @@ struct HelixInteractionLocator2d{
 		FOREACH(const Vector2i& v, grid->circleFilter(pt,radius)){
 			FOREACH(const FlatInteraction& fi, grid->grid[v[0]][v[1]]){
 				if((pow(fi.r-pt[0],2)+pow(fi.h-pt[1],2))>radius*radius) continue; // too far
-				Dem3DofGeom* geom=YADE_CAST<Dem3DofGeom*>(fi.i->geom.get());
-				CpmPhys* phys=YADE_CAST<CpmPhys*>(fi.i->phys.get());
+				Dem3DofGeom* geom=WOO_CAST<Dem3DofGeom*>(fi.i->geom.get());
+				CpmPhys* phys=WOO_CAST<CpmPhys*>(fi.i->phys.get());
 				// transformation matrix, to rotate to the plane
 				Vector3r ax(Vector3r::Zero()); ax[axis]=1.;
 				Quaternionr q(AngleAxisr(fi.theta,ax)); q=q.conjugate();
@@ -220,7 +220,7 @@ struct HelixInteractionLocator2d{
 
 #endif
 
-#ifdef YADE_VTK
+#ifdef WOO_VTK
 
 /* Fastly locate interactions within given distance from a given point. See python docs for details. */
 class InteractionLocator{
@@ -288,7 +288,7 @@ class InteractionLocator{
 		int numIds=ids->GetNumberOfIds();
 		for(int k=0; k<numIds; k++){
 			const shared_ptr<Interaction>& I(intrs[ids->GetId(k)]);
-			GenericSpheresContact* geom=YADE_CAST<GenericSpheresContact*>(I->geom.get());
+			GenericSpheresContact* geom=WOO_CAST<GenericSpheresContact*>(I->geom.get());
 			//Real d=(geom->se31.position-geom->se32.position).norm(); // current contact length
 			Real d=geom->refR1+geom->refR2;
 			const Vector3r& n=geom->normal;
@@ -315,8 +315,8 @@ py::tuple stressStiffness(Real volume=0){
 	Scene* scene=Master::instance().getScene().get();
 	FOREACH(const shared_ptr<Interaction>& I, *scene->interactions){
 		if(!I->isReal()) continue;
-		GenericSpheresContact* geom=YADE_CAST<GenericSpheresContact*>(I->geom.get());
-		NormShearPhys* phys=YADE_CAST<NormShearPhys*>(I->phys.get());
+		GenericSpheresContact* geom=WOO_CAST<GenericSpheresContact*>(I->geom.get());
+		NormShearPhys* phys=WOO_CAST<NormShearPhys*>(I->phys.get());
 		// not clear whether this should be the reference or the current distance
 		// current: gives consistent results for same configuration with different initial state
 		State *state1=Body::byId(I->getId1())->state.get(), *state2=Body::byId(I->getId2())->state.get();
@@ -350,7 +350,7 @@ py::tuple stressStiffness(Real volume=0){
 }
 
 BOOST_PYTHON_MODULE(_eudoxos){
-	YADE_SET_DOCSTRING_OPTS;
+	WOO_SET_DOCSTRING_OPTS;
 	py::def("velocityTowardsAxis",velocityTowardsAxis,velocityTowardsAxis_overloads(py::args("axisPoint","axisDirection","timeToAxis","subtractDist","perturbation")));
 	py::def("stressStiffness",stressStiffness,py::arg("volume")=0,"Compute stress and stiffness tensors; returns tuple (stress, stiffness) in Voigt notation");
 	// def("spiralSphereStresses2d",spiralSphereStresses2d,(python::arg("dH_dTheta"),python::arg("axis")=2));
@@ -359,7 +359,7 @@ BOOST_PYTHON_MODULE(_eudoxos){
 		import_array();
 		py::def("testNumpy",testNumpy);
 	#endif
-#ifdef YADE_VTK
+#ifdef WOO_VTK
 	py::class_<InteractionLocator>("InteractionLocator","Locate all (real) interactions in space by their :yref:`contact point<Dem3DofGeom::contactPoint>`. When constructed, all real interactions are spatially indexed (uses `vtkPointLocator <http://www.vtk.org/doc/release/5.4/html/a01247.html>`_ internally). Use instance methods to use those data. \n\n.. note::\n\tData might become inconsistent with real simulation state if simulation is being run between creation of this object and spatial queries.")
 		.def("intrsAroundPt",&InteractionLocator::intrsAroundPt,((python::arg("point"),python::arg("maxDist"))),"Return list of real interactions that are not further than *maxDist* from *point*.")
 		.def("macroAroundPt",&InteractionLocator::macroAroundPt,((python::arg("point"),python::arg("maxDist"),python::arg("forceVolume")=-1)),"Return tuple of averaged stress tensor (as Matrix3), average omega and average kappa values. *forceVolume* can be used (if positive) rather than the sphere (with *maxDist* radius) volume for the computation. (This is useful if *point* and *maxDist* encompass empty space that you want to avoid.)")

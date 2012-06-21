@@ -1,4 +1,4 @@
-#ifdef YADE_CLDEM
+#ifdef WOO_CLDEM
 
 #include<woo/pkg/clDem/CLDemField.hpp>
 
@@ -16,7 +16,7 @@
 #include<woo/pkg/dem/Leapfrog.hpp>
 #include<woo/pkg/dem/InsertionSortCollider.hpp>
 
-#ifdef YADE_OPENGL
+#ifdef WOO_OPENGL
 	#include<woo/lib/opengl/GLUtils.hpp>
 	#include<woo/pkg/gl/Renderer.hpp>
 	#include<woo/lib/opengl/OpenGLWrapper.hpp>
@@ -25,10 +25,10 @@
 // after all other includes, since it ambiguates many class in yade includes otherwise! 
 #include<cl-dem0/cl/Simulation.hpp>
 
-YADE_PLUGIN(cld,(CLDemData)(CLDemField)(CLDemRun));
+WOO_PLUGIN(cld,(CLDemData)(CLDemField)(CLDemRun));
 
-#ifdef YADE_OPENGL
-	YADE_PLUGIN(gl,(Gl1_CLDemField));
+#ifdef WOO_OPENGL
+	WOO_PLUGIN(gl,(Gl1_CLDemField));
 #endif
 
 Vector3r v2v(const Vec3& v){ return Vector3r(v[0],v[1],v[2]); }
@@ -813,7 +813,7 @@ shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>
 };
 
 
-#ifdef YADE_OPENGL
+#ifdef WOO_OPENGL
 
 bool Gl1_CLDemField::parWire;
 Real Gl1_CLDemField::quality;

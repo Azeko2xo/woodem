@@ -20,7 +20,7 @@
 #include<boost/archive/xml_iarchive.hpp>
 // declare supported archive types so that we can declare the templates explcitily in headers
 // and specialize them explicitly in implementation files
-#define YADE_BOOST_ARCHIVES (boost::archive::binary_iarchive)(boost::archive::binary_oarchive)(boost::archive::xml_iarchive)(boost::archive::xml_oarchive)
+#define WOO_BOOST_ARCHIVES (boost::archive::binary_iarchive)(boost::archive::binary_oarchive)(boost::archive::xml_iarchive)(boost::archive::xml_oarchive)
 #include<boost/serialization/export.hpp> // must come after all supported archive types
 
 #include<boost/serialization/base_object.hpp>
@@ -49,16 +49,16 @@
 // the __attribute__((constructor(priority))) construct not supported before gcc 4.3
 // it will only produce warning from log4cxx if not used
 #if __GNUC__ == 4 && __GNUC_MINOR__ >=3
-	#define YADE_CTOR_PRIORITY(p) (p)
+	#define WOO_CTOR_PRIORITY(p) (p)
 #else
-	#define YADE_CTOR_PRIORITY(p)
+	#define WOO_CTOR_PRIORITY(p)
 #endif
 #define _PLUGIN_CHECK_REPEAT(x,y,z) void z::must_use_both_YADE_CLASS_BASE_DOC_ATTRS_and_YADE_PLUGIN(){}
 #define _YADE_PLUGIN_REPEAT(x,y,z) BOOST_PP_STRINGIZE(z),
 #define _YADE_FACTORY_REPEAT(x,y,z) __attribute__((unused)) bool BOOST_PP_CAT(_registered,z)=Master::instance().registerClassFactory(BOOST_PP_STRINGIZE(z),(Master::FactoryFunc)([](void)->shared_ptr<yade::Object>{ return make_shared<z>(); }));
 // priority 500 is greater than priority for log4cxx initialization (in core/main/pyboot.cpp); therefore lo5cxx will be initialized before plugins are registered
 
-#define YADE_PLUGIN(module,plugins) BOOST_PP_SEQ_FOR_EACH(_YADE_FACTORY_REPEAT,~,plugins); namespace{ __attribute__((constructor)) void BOOST_PP_CAT(registerThisPluginClasses_,BOOST_PP_SEQ_HEAD(plugins)) (void){ const char* info[]={__FILE__ , BOOST_PP_SEQ_FOR_EACH(_YADE_PLUGIN_REPEAT,~,plugins) NULL}; Master::instance().registerPluginClasses(BOOST_PP_STRINGIZE(module),info);} } BOOST_PP_SEQ_FOR_EACH(_YADE_PLUGIN_BOOST_REGISTER,~,plugins) BOOST_PP_SEQ_FOR_EACH(_PLUGIN_CHECK_REPEAT,~,plugins)
+#define WOO_PLUGIN(module,plugins) BOOST_PP_SEQ_FOR_EACH(_YADE_FACTORY_REPEAT,~,plugins); namespace{ __attribute__((constructor)) void BOOST_PP_CAT(registerThisPluginClasses_,BOOST_PP_SEQ_HEAD(plugins)) (void){ const char* info[]={__FILE__ , BOOST_PP_SEQ_FOR_EACH(_YADE_PLUGIN_REPEAT,~,plugins) NULL}; Master::instance().registerPluginClasses(BOOST_PP_STRINGIZE(module),info);} } BOOST_PP_SEQ_FOR_EACH(_YADE_PLUGIN_BOOST_REGISTER,~,plugins) BOOST_PP_SEQ_FOR_EACH(_PLUGIN_CHECK_REPEAT,~,plugins)
 
 
 
@@ -228,7 +228,7 @@ template<> struct _SerializeMaybe<false>{
 
 #define _PY_REGISTER_CLASS_BODY(thisClass,baseClass,classTrait,attrs,deprec,extras) \
 	checkPyClassRegistersItself(#thisClass); \
-	YADE_SET_DOCSTRING_OPTS; \
+	WOO_SET_DOCSTRING_OPTS; \
 	auto traitPtr=make_shared<ClassTrait>(classTrait); traitPtr->name(#thisClass); \
 	py::class_<thisClass,shared_ptr<thisClass>,py::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,traitPtr->getDoc().c_str(),/*call raw ctor even for parameterless construction*/py::no_init); \
 	_classObj.def("__init__",py::raw_constructor(Object_ctor_kwAttrs<thisClass>)); \
@@ -268,7 +268,7 @@ template<> struct _SerializeMaybe<false>{
 #define _STATATTR_INITIALIZE(x,thisClass,z) thisClass::_ATTR_NAM(z)=_ATTR_INI(z);
 
 #define _STATCLASS_PY_REGISTER_CLASS(thisClass,baseClass,classTrait,attrs)\
-	virtual void pyRegisterClass() { checkPyClassRegistersItself(#thisClass); initSetStaticAttributesValue(); YADE_SET_DOCSTRING_OPTS; \
+	virtual void pyRegisterClass() { checkPyClassRegistersItself(#thisClass); initSetStaticAttributesValue(); WOO_SET_DOCSTRING_OPTS; \
 		auto traitPtr=make_shared<ClassTrait>(classTrait); traitPtr->name(#thisClass); \
 		py::class_<thisClass,shared_ptr<thisClass>,py::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,traitPtr->getDoc().c_str(),/*call raw ctor even for parameterless construction*/py::no_init); _classObj.def("__init__",py::raw_constructor(Object_ctor_kwAttrs<thisClass>)); \
 		_classObj.attr("_classTrait")=traitPtr; \
@@ -280,15 +280,15 @@ template<> struct _SerializeMaybe<false>{
 /********************** USER MACROS START HERE ********************/
 
 // attrs is (type,name,init-value,docstring)
-#define YADE_CLASS_BASE_DOC(klass,base,doc)                             YADE_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,,,,)
-#define YADE_CLASS_BASE_DOC_ATTRS(klass,base,doc,attrs)                 YADE_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,,,)
-#define YADE_CLASS_BASE_DOC_ATTRS_CTOR(klass,base,doc,attrs,ctor)       YADE_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,,ctor,)
-#define YADE_CLASS_BASE_DOC_ATTRS_PY(klass,base,doc,attrs,py)           YADE_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,,,py)
-#define YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(klass,base,doc,attrs,ctor,py) YADE_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,,ctor,py)
-#define YADE_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,inits,ctor,py) YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(klass,base,doc,attrs,,inits,ctor,py)
+#define WOO_CLASS_BASE_DOC(klass,base,doc)                             WOO_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,,,,)
+#define WOO_CLASS_BASE_DOC_ATTRS(klass,base,doc,attrs)                 WOO_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,,,)
+#define WOO_CLASS_BASE_DOC_ATTRS_CTOR(klass,base,doc,attrs,ctor)       WOO_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,,ctor,)
+#define WOO_CLASS_BASE_DOC_ATTRS_PY(klass,base,doc,attrs,py)           WOO_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,,,py)
+#define WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(klass,base,doc,attrs,ctor,py) WOO_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,,ctor,py)
+#define WOO_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,inits,ctor,py) WOO_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(klass,base,doc,attrs,,inits,ctor,py)
 
 // the most general
-#define YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(thisClass,baseClass,classTraitSpec,attrs,deprec,inits,ctor,extras) \
+#define WOO_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(thisClass,baseClass,classTraitSpec,attrs,deprec,inits,ctor,extras) \
 	public: BOOST_PP_SEQ_FOR_EACH(_ATTR_DECL_AND_TRAIT,~,attrs) /* attribute declarations */ \
 	thisClass() BOOST_PP_IF(BOOST_PP_SEQ_SIZE(inits attrs),:,) BOOST_PP_SEQ_FOR_EACH_I(_ATTR_MAKE_INITIALIZER,BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(inits attrs)), inits BOOST_PP_SEQ_FOR_EACH(_ATTR_MAKE_INIT_TUPLE,~,attrs)) { ctor ; } /* ctor, with initialization of defaults */ \
 	_YADE_CLASS_BASE_DOC_ATTRS_DEPREC_PY(thisClass,baseClass,makeClassTrait(classTraitSpec),attrs,deprec,extras)
@@ -333,7 +333,7 @@ template<> struct _SerializeMaybe<false>{
 /** static attrs **/
 
 // for static classes (Gl1 functors, for instance)
-#define YADE_CLASS_BASE_DOC_STATICATTRS(thisClass,baseClass,classTraitSpec,attrs)\
+#define WOO_CLASS_BASE_DOC_STATICATTRS(thisClass,baseClass,classTraitSpec,attrs)\
 	public: BOOST_PP_SEQ_FOR_EACH(_STATATTR_DECL_AND_TRAIT,~,attrs) /* attribute declarations */ \
 	/* no ctor */ \
 	REGISTER_CLASS_AND_BASE(thisClass,baseClass); \

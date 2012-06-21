@@ -6,7 +6,7 @@
 
 BOOST_PYTHON_MODULE(_packSpheres){
 	py::scope().attr("__doc__")="Creation, manipulation, IO for generic sphere packings.";
-	YADE_SET_DOCSTRING_OPTS;
+	WOO_SET_DOCSTRING_OPTS;
 	py::class_<SpherePack>("SpherePack","Set of spheres represented as centers and radii. This class is returned by :yref:`yade.pack.randomDensePack`, :yref:`yade.pack.randomPeriPack` and others. The object supports iteration over spheres, as in \n\n\t>>> sp=SpherePack()\n\t>>> for center,radius in sp: print center,radius\n\n\t>>> for sphere in sp: print sphere[0],sphere[1]   ## same, but without unpacking the tuple automatically\n\n\t>>> for i in range(0,len(sp)): print sp[i][0], sp[i][1]   ## same, but accessing spheres by index\n\n\n.. admonition:: Special constructors\n\n\tConstruct from list of ``[(c1,r1),(c2,r2),…]``. To convert two same-length lists of ``centers`` and ``radii``, construct with ``zip(centers,radii)``.\n",py::init<py::optional<py::list> >(py::args("list"),"Empty constructor, optionally taking list [ ((cx,cy,cz),r), … ] for initial data." ))
 		.def("add",&SpherePack::add,"Add single sphere to packing, given center as 3-tuple and radius")
 		.def("toList",&SpherePack::toList,"Return packing data as python list.")

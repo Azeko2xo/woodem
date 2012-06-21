@@ -1,7 +1,7 @@
 #include<woo/pkg/dem/OpenCLCollider.hpp>
 #include<algorithm>
 
-YADE_PLUGIN(dem,(OpenCLCollider));
+WOO_PLUGIN(dem,(OpenCLCollider));
 
 CREATE_LOGGER(OpenCLCollider);
 
@@ -19,7 +19,7 @@ namespace Eigen{
 
 /* setup OpenCL, load kernel */
 void OpenCLCollider::postLoad(OpenCLCollider&){
-	#ifdef YADE_OPENCL
+	#ifdef WOO_OPENCL
 	if(!clSrc.empty()){
 		scene->ensureCl();
 		// compile the program
@@ -138,7 +138,7 @@ vector<Vector2i> OpenCLCollider::inversionsCPU(vector<CpuAxBound>& bb){
 	return inv;
 }
 
-#ifdef YADE_OPENCL
+#ifdef WOO_OPENCL
 /* finid initial contact set on the GPU */
 vector<Vector2i> OpenCLCollider::initSortGPU(){
 	cl::Context& context(*scene->context);
@@ -626,7 +626,7 @@ vector<Vector2i> OpenCLCollider::inversionsGPU(int ax){
 		};
 	#endif
 }
-#endif /* YADE_OPENCL */
+#endif /* WOO_OPENCL */
 
 void OpenCLCollider::sortAndCopyInversions(vector<Vector2i>(&cpuInv)[3], vector<Vector2i>(&gpuInv)[3]){
 	#pragma omp parallel for
@@ -666,7 +666,7 @@ bool OpenCLCollider::checkBoundsSorted(){
 			}
 		}
 	}
-#ifdef YADE_OPENCL
+#ifdef WOO_OPENCL
 	if(gpu){
 		for(int ax=0; ax<3; ax++){
 			for(size_t i=0; i<gpuBounds[ax].size()-1; i++){
@@ -724,10 +724,10 @@ void OpenCLCollider::run(){
 	nFullRuns++;
 	size_t N=dem->particles->size(); size_t oldN=mini[0].size();
 	bool initialize=(N!=oldN);
-	#ifdef YADE_DEBUG
+	#ifdef WOO_DEBUG
 		for(int ax:{0,1,2}){ assert(cpuBounds[ax].size()==2*oldN); assert(mini[ax].size()==oldN); assert(maxi[ax].size()==oldN); }
 	#endif
-	#ifdef YADE_OPENCL
+	#ifdef WOO_OPENCL
 		scene->ensureCl();
 	#endif
 
@@ -752,7 +752,7 @@ void OpenCLCollider::run(){
 		OCLC_CHECKPOINT("aabb");
 		if(cpu) cpuInit=initSortCPU();
 		OCLC_CHECKPOINT("initCPU");
-		#ifdef YADE_OPENCL
+		#ifdef WOO_OPENCL
 			if(gpu) gpuInit=initSortGPU();
 		#endif
 		OCLC_CHECKPOINT("initGPU");
@@ -807,7 +807,7 @@ void OpenCLCollider::run(){
 	vector<Vector2i> cpuInv[3], gpuInv[3];
 
 	OCLC_CHECKPOINT("gpuInv");
-	#ifdef YADE_OPENCL
+	#ifdef WOO_OPENCL
 	LOG_DEBUG("INVERSION");
 		if(gpu){ 
 			// bounds will be modified by the CPU, therefore GPU must be called first and the bounds buffer must not be copied back to the host!

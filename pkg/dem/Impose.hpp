@@ -11,7 +11,7 @@ struct HarmonicOscillation: public Impose{
 		else{ /*subtract projection on dir*/ vv-=vv.dot(dir)*dir; /* apply new value instead */ vv+=vMag*dir; }
 	}
 	void postLoad(HarmonicOscillation&){ dir.normalize(); }
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR(HarmonicOscillation,Impose,"Impose harmonic oscillation around initial center position, with given frequency and amplitude, by prescribing velocity.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR(HarmonicOscillation,Impose,"Impose harmonic oscillation around initial center position, with given frequency and amplitude, by prescribing velocity.",
 		((Real,freq,NaN,,"Frequence of oscillation"))
 		((Real,amp,NaN,,"Amplitude of oscillation"))
 		((Vector3r,dir,Vector3r::UnitX(),,"Direcrtion of oscillation (normalized automatically)"))
@@ -31,7 +31,7 @@ struct AlignedHarmonicOscillations: public Impose{
 			vv[ax]=amps[ax]*omega*cos(omega*scene->time);
 		}
 	}
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR(AlignedHarmonicOscillations,Impose,"Imposes three independent harmonic oscillations along global coordinate system axes.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR(AlignedHarmonicOscillations,Impose,"Imposes three independent harmonic oscillations along global coordinate system axes.",
 		((Vector3r,freqs,Vector3r(NaN,NaN,NaN),,"Frequencies for individual axes. NaN value switches that axis off, the component will not be touched"))
 		((Vector3r,amps,Vector3r::Zero(),,"Amplitudes along individual axes."))
 		,/*ctor*/ what=Impose::VELOCITY;
@@ -65,7 +65,7 @@ struct Local6Dofs: public Impose{
 	void postLoad(Local6Dofs&){
 		for(int i=0;i<6;i++) if(whats[i]!=0 && whats[i]!=Impose::FORCE && whats[i]!=Impose::VELOCITY) throw std::runtime_error("Local6Dofs.whats components must be 0, "+to_string(Impose::FORCE)+" or "+to_string(Impose::VELOCITY)+" (whats["+to_string(i)+"] invalid: "+lexical_cast<string>(whats.transpose())+")");
 	}
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR(Local6Dofs,Impose,"Impose force or velocity along all local 6 axes given by the *trsf* matrix.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR(Local6Dofs,Impose,"Impose force or velocity along all local 6 axes given by the *trsf* matrix.",
 		((Quaternionr,ori,Quaternionr::Identity(),,"Local coordinates rotation"))
 		((Vector6r,values,Vector6r::Zero(),,"Imposed values; their meaning depends on the *whats* vector"))
 		((Vector6i,whats,Vector6i::Zero(),,"Meaning of *values* components: 0 for nothing imposed (i.e. zero force), 1 for velocity, 2 for force values"))

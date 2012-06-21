@@ -5,7 +5,7 @@
 #include<woo/lib/pyutil/doc_opts.hpp>
 enum{ll_TRACE,ll_DEBUG,ll_INFO,ll_WARN,ll_ERROR,ll_FATAL};
 
-#ifdef YADE_LOG4CXX
+#ifdef WOO_LOG4CXX
 
 	log4cxx::LoggerPtr logger=log4cxx::Logger::getLogger("yade.log");
 
@@ -59,7 +59,7 @@ enum{ll_TRACE,ll_DEBUG,ll_INFO,ll_WARN,ll_ERROR,ll_FATAL};
 BOOST_PYTHON_MODULE(log){
 	py::scope().attr("__doc__") = "Access and manipulation of log4cxx loggers.";
 
-	YADE_SET_DOCSTRING_OPTS;
+	WOO_SET_DOCSTRING_OPTS;
 
 	py::def("setLevel",logSetLevel,(py::arg("logger"),py::arg("level")),"Set minimum severity *level* (constants ``TRACE``, ``DEBUG``, ``INFO``, ``WARN``, ``ERROR``, ``FATAL``) for given logger. \nLeading 'yade.' will be appended automatically to the logger name; if logger is '', the root logger 'yade' will be operated on.");
 	py::def("loadConfig",logLoadConfig,(py::arg("fileName")),"Load configuration from file (log4cxx::PropertyConfigurator::configure)");

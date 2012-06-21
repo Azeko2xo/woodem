@@ -2,10 +2,10 @@
 #include<woo/lib/base/CompUtils.hpp>
 #include<woo/pkg/dem/Sphere.hpp>
 
-YADE_PLUGIN(dem,(AnisoPorosityAnalyzer));
+WOO_PLUGIN(dem,(AnisoPorosityAnalyzer));
 
-#ifdef YADE_OPENGL
-YADE_PLUGIN(gl,(GlExtra_AnisoPorosityAnalyzer));
+#ifdef WOO_OPENGL
+WOO_PLUGIN(gl,(GlExtra_AnisoPorosityAnalyzer));
 #endif
 
 CREATE_LOGGER(AnisoPorosityAnalyzer);
@@ -19,7 +19,7 @@ Real AnisoPorosityAnalyzer::relSolid(Real theta, Real phi, Vector3r pt0, bool vi
 	size_t sz=endPts.size()/2;
 	for(size_t i=0; i<sz; i++){
 		const Vector3r A(endPts[2*i]), B(endPts[2*i+1]);
-		#ifdef YADE_DEBUG
+		#ifdef WOO_DEBUG
 			for(int j:{0,1,2}) if(A[j]<0 || A[j]>scene->cell->getSize()[j] || B[j]<0 || B[j]>scene->cell->getSize()[j]) throw std::logic_error((boost::format("Points outside periodic cell after splitting? %s %s (cell size %s)")%A.transpose()%B.transpose()%scene->cell->getSize().transpose()).str());
 		#endif
 		solid+=computeOneRay(A,B,vis);
@@ -144,7 +144,7 @@ void AnisoPorosityAnalyzer::run(){
 	throw std::runtime_error("AnisoPorosityAnalyzer::run not yet implemented.");
 }
 
-#ifdef YADE_OPENGL
+#ifdef WOO_OPENGL
 #include<woo/lib/opengl/GLUtils.hpp>
 
 void GlExtra_AnisoPorosityAnalyzer::render(){

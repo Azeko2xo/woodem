@@ -6,7 +6,7 @@
 #include<woo/core/EnergyTracker.hpp>
 #include<woo/core/Preprocessor.hpp>
 
-#ifdef YADE_OPENCL
+#ifdef WOO_OPENCL
 	#define __CL_ENABLE_EXCEPTIONS
 	#include<CL/cl.hpp>
 #endif
@@ -19,7 +19,7 @@ class Bound;
 class Field;
 class ScalarRange;
 
-#ifdef YADE_OPENGL
+#ifdef WOO_OPENGL
 	class Renderer;
 #endif
 
@@ -45,12 +45,12 @@ class Scene: public Object{
 		// advance by one iteration by running all engines
 		void doOneStep();
 
-		#ifdef YADE_OPENGL
+		#ifdef WOO_OPENGL
 			shared_ptr<Renderer> renderer;
 		#endif
 		void postLoad(Scene&);
 
-		#ifdef YADE_OPENCL
+		#ifdef WOO_OPENCL
 			shared_ptr<cl::Platform> platform;
 			shared_ptr<cl::Device> device;
 			shared_ptr<cl::Context> context;
@@ -79,7 +79,7 @@ class Scene: public Object{
 		typedef std::map<std::string,std::string> StrStrMap;
 
 		void ensureCl(); // calls initCL or throws exception if compiled without OpenCL
-		#ifdef YADE_OPENCL
+		#ifdef WOO_OPENCL
 			void initCl(); // initialize OpenCL using clDev
 		#endif
 
@@ -87,7 +87,7 @@ class Scene: public Object{
 		void boostSave(const string& out);
 		void saveTmp(const string& slot, bool quiet=true);
 
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Scene,Object,"Object comprising the whole simulation.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Scene,Object,"Object comprising the whole simulation.",
 		((Real,dt,1e-8,AttrTrait<>().timeUnit(),"Current timestep for integration."))
 		((long,step,0,AttrTrait<Attr::readonly>(),"Current step number"))
 		((bool,subStepping,false,,"Whether we currently advance by one engine in every step (rather than by single run through all engines)."))
@@ -99,7 +99,7 @@ class Scene: public Object{
 		((bool,trackEnergy,false,,"Whether energies are being tracked."))
 
 		((Vector2i,clDev,Vector2i(-1,-1),AttrTrait<Attr::triggerPostLoad>(),"OpenCL device to be used; if (-1,-1) (default), no OpenCL device will be initialized until requested. Saved simulations should thus always use the same device when re-loaded."))
-		#ifdef YADE_OPENCL
+		#ifdef WOO_OPENCL
 			((Vector2i,_clDev,Vector2i(-1,-1),AttrTrait<Attr::readonly|Attr::noSave>(),"OpenCL device which is really initialized (to detect whether clDev was changed manually to avoid spurious re-initializations from postLoad"))
 		#endif
 
@@ -120,7 +120,7 @@ class Scene: public Object{
 		((vector<shared_ptr<DisplayParameters>>,dispParams,,AttrTrait<Attr::hidden>(),"'hash maps' of display parameters (since yade::serialization had no support for maps, emulate it via vector of strings in format key=value)"))
 		((std::string,lastSave,,AttrTrait<>().noGui(),"Name under which the simulation was saved for the last time; used for reloading the simulation. Updated automatically, don't change."))
 
-		#if YADE_OPENGL
+		#if WOO_OPENGL
 			((vector<shared_ptr<ScalarRange>>,ranges,,,"Scalar ranges to be rendered on the display as colormaps"))
 		#endif
 		((vector<shared_ptr<Object>>,any,,,"Storage for arbitrary Objects; meant for storing and loading static objects like Gl1_* functors to restore their parameters when scene is loaded."))
@@ -137,10 +137,10 @@ class Scene: public Object{
 		.add_property("engines",&Scene::pyEnginesGet,&Scene::pyEnginesSet,"Engine sequence in the simulation")
 		.add_property("_currEngines",py::make_getter(&Scene::engines,py::return_value_policy<py::return_by_value>()),"Current engines, debugging only")
 		.add_property("_nextEngines",py::make_getter(&Scene::_nextEngines,py::return_value_policy<py::return_by_value>()),"Next engines, debugging only")
-		#ifdef YADE_OPENGL
+		#ifdef WOO_OPENGL
 			.def("getRange",&Scene::getRange,"Retrieve a *ScalarRange* object by its label")
 		#endif
-		#ifdef YADE_OPENCL
+		#ifdef WOO_OPENCL
 			.def("ensureCl",&Scene::ensureCl,"[for debugging] Initialize the OpenCL subsystem (this is done by engines using OpenCL, but trying to do so in advance might catch errors earlier)")
 		#endif
 		.def("saveTmp",&Scene::saveTmp,(py::arg("slot")="",py::arg("quiet")=false),"Save into a temporary slot inside Master (loadable with O.loadTmp)")

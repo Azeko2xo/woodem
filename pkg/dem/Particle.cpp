@@ -6,11 +6,11 @@
 
 #include<woo/pkg/dem/Clump.hpp>
 
-#ifdef YADE_OPENGL
+#ifdef WOO_OPENGL
 	#include<woo/pkg/gl/Renderer.hpp>
 #endif
 
-YADE_PLUGIN(dem,(CPhys)(CGeom)(CData)(DemField)(Particle)(DemData)(Impose)(Contact)(Shape)(Material)(Bound)(ContactContainer));
+WOO_PLUGIN(dem,(CPhys)(CGeom)(CData)(DemField)(Particle)(DemData)(Impose)(Contact)(Shape)(Material)(Bound)(ContactContainer));
 CREATE_LOGGER(DemField);
 
 py::dict Particle::pyContacts()const{	py::dict ret; FOREACH(MapParticleContact::value_type i,contacts) ret[i.first]=i.second; return ret;}
@@ -97,7 +97,7 @@ void Particle::setPos(const Vector3r& p){ checkNodes(false); shape->nodes[0]->po
 Quaternionr& Particle::getOri() const { checkNodes(false); return shape->nodes[0]->ori; };
 void Particle::setOri(const Quaternionr& p){ checkNodes(false); shape->nodes[0]->ori=p; }
 
-#ifdef YADE_OPENGL
+#ifdef WOO_OPENGL
 	Vector3r& Particle::getRefPos() {
 		checkNodes(false);
 		if(!shape->nodes[0]->hasData<GlData>()) setRefPos(getPos());
@@ -111,7 +111,7 @@ void Particle::setOri(const Quaternionr& p){ checkNodes(false); shape->nodes[0]-
 #else
 	Vector3r& Partial::getRefPos() const{ return Vector3r(NaN,NaN,NaN); }
 	void Particle::setRefPos(const Vector3r& p){
-		yade::RuntimeError("Particle.refPos only supported with YADE_OPENGL.");
+		yade::RuntimeError("Particle.refPos only supported with WOO_OPENGL.");
 	}
 #endif
 
@@ -249,7 +249,7 @@ void DemField::removeClump(size_t clumpLinIx){
 		// make sure that clump nodes are those which the particles have
 		assert(p && p->shape && p->shape->nodes.size()>0);
 		for(auto& n: p->shape->nodes){
-			#ifdef YADE_DEBUG
+			#ifdef WOO_DEBUG
 				if(std::find_if(cd.nodes.begin(),cd.nodes.end(),[&](const shared_ptr<Node>& a)->bool{ return(a.get()==n.get()); })==cd.nodes.end()) throw std::runtime_error("#"+to_string(cd.memberIds[i])+" should contain node at "+lexical_cast<string>(n->pos.transpose()));
 			#endif
 			n->getData<DemData>().setNoClump(); // fool the test in removeParticle

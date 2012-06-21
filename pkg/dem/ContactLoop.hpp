@@ -13,7 +13,7 @@ struct CGeomFunctor: public Functor2D<
 	/*retrun type*/    bool,
 	/*argument types*/ TYPELIST_5(const shared_ptr<Shape>&, const shared_ptr<Shape>&, const Vector3r&, const bool&, const shared_ptr<Contact>&)
 >{
-	YADE_CLASS_BASE_DOC(CGeomFunctor,Functor,"Functor for creating/updating :yref:`Contact::geom` objects.");
+	WOO_CLASS_BASE_DOC(CGeomFunctor,Functor,"Functor for creating/updating :yref:`Contact::geom` objects.");
 };
 REGISTER_SERIALIZABLE(CGeomFunctor);
 
@@ -22,7 +22,7 @@ class CPhysFunctor: public Functor2D<
 	/*retrun type*/    void,
 	/*argument types*/ TYPELIST_3(const shared_ptr<Material>&, const shared_ptr<Material>&, const shared_ptr<Contact>&)
 >{
-	YADE_CLASS_BASE_DOC(CPhysFunctor,Functor,"Functor for creating/updating :yref:`Contact::phys` objects.");
+	WOO_CLASS_BASE_DOC(CPhysFunctor,Functor,"Functor for creating/updating :yref:`Contact::phys` objects.");
 };
 REGISTER_SERIALIZABLE(CPhysFunctor);
 
@@ -32,7 +32,7 @@ class LawFunctor: public Functor2D<
 	/*return type*/    void,
 	/*argument types*/ TYPELIST_3(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&)
 >{
-	YADE_CLASS_BASE_DOC(LawFunctor,Functor,"Functor for applying constitutive laws on :yref:`contacts<Contact>`.");
+	WOO_CLASS_BASE_DOC(LawFunctor,Functor,"Functor for applying constitutive laws on :yref:`contacts<Contact>`.");
 };
 REGISTER_SERIALIZABLE(LawFunctor);
 
@@ -41,7 +41,7 @@ REGISTER_SERIALIZABLE(LawFunctor);
 struct CGeomDispatcher: public Dispatcher2D</* functor type*/ CGeomFunctor, /* autosymmetry*/ false>{
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	shared_ptr<Contact> explicitAction(Scene*, const shared_ptr<Particle>&, const shared_ptr<Particle>&, bool force);
-	YADE_DISPATCHER2D_FUNCTOR_DOC_ATTRS_CTOR_PY(CGeomDispatcher,CGeomFunctor,/* doc is optional*/,/*attrs*/,/*ctor*/,/*py*/);
+	WOO_DISPATCHER2D_FUNCTOR_DOC_ATTRS_CTOR_PY(CGeomDispatcher,CGeomFunctor,/* doc is optional*/,/*attrs*/,/*ctor*/,/*py*/);
 	DECLARE_LOGGER;
 };
 REGISTER_SERIALIZABLE(CGeomDispatcher);
@@ -49,13 +49,13 @@ REGISTER_SERIALIZABLE(CGeomDispatcher);
 struct CPhysDispatcher: public Dispatcher2D</*functor type*/ CPhysFunctor>{		
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	void explicitAction(Scene*, shared_ptr<Material>&, shared_ptr<Material>&, shared_ptr<Contact>&);
-	YADE_DISPATCHER2D_FUNCTOR_DOC_ATTRS_CTOR_PY(CPhysDispatcher,CPhysFunctor,/*doc is optional*/,/*attrs*/,/*ctor*/,/*py*/);
+	WOO_DISPATCHER2D_FUNCTOR_DOC_ATTRS_CTOR_PY(CPhysDispatcher,CPhysFunctor,/*doc is optional*/,/*attrs*/,/*ctor*/,/*py*/);
 };
 REGISTER_SERIALIZABLE(CPhysDispatcher);
 
 struct LawDispatcher: public Dispatcher2D</*functor type*/ LawFunctor, /*autosymmetry*/ false>{
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
-	YADE_DISPATCHER2D_FUNCTOR_DOC_ATTRS_CTOR_PY(LawDispatcher,LawFunctor,/*doc is optional*/,/*attrs*/,/*ctor*/,/*py*/);
+	WOO_DISPATCHER2D_FUNCTOR_DOC_ATTRS_CTOR_PY(LawDispatcher,LawFunctor,/*doc is optional*/,/*attrs*/,/*ctor*/,/*py*/);
 	DECLARE_LOGGER;
 };
 REGISTER_SERIALIZABLE(LawDispatcher);
@@ -66,7 +66,7 @@ class ContactLoop: public GlobalEngine {
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	// store interactions that should be deleted after loop in action, not later
 	DemField* dem;
-	#ifdef YADE_OPENMP
+	#ifdef WOO_OPENMP
 		vector<list<shared_ptr<Contact> > > removeAfterLoopRefs;
 		void removeAfterLoop(const shared_ptr<Contact>& c){ removeAfterLoopRefs[omp_get_thread_num()].push_back(c); }
 	#else
@@ -77,7 +77,7 @@ class ContactLoop: public GlobalEngine {
 		virtual void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d);
 		virtual void getLabeledObjects(std::map<std::string, py::object>& m);
 		virtual void run();
-		YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ContactLoop,GlobalEngine,"Loop over all contacts, possible in a parallel manner.\n\n.. admonition:: Special constructor\n\n\tConstructs from 3 lists of :yref:`Cg2<CGeomFunctor>`, :yref:`Cp2<IPhysFunctor>`, :yref:`Law<LawFunctor>` functors respectively; they will be passed to interal dispatchers.",
+		WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ContactLoop,GlobalEngine,"Loop over all contacts, possible in a parallel manner.\n\n.. admonition:: Special constructor\n\n\tConstructs from 3 lists of :yref:`Cg2<CGeomFunctor>`, :yref:`Cp2<IPhysFunctor>`, :yref:`Law<LawFunctor>` functors respectively; they will be passed to interal dispatchers.",
 			((shared_ptr<CGeomDispatcher>,geoDisp,new CGeomDispatcher,AttrTrait<Attr::readonly>(),":yref:`CGeomDispatcher` object that is used for dispatch."))
 			((shared_ptr<CPhysDispatcher>,phyDisp,new CPhysDispatcher,AttrTrait<Attr::readonly>(),":yref:`CPhysDispatcher` object used for dispatch."))
 			((shared_ptr<LawDispatcher>,lawDisp,new LawDispatcher,AttrTrait<Attr::readonly>(),":yref:`LawDispatcher` object used for dispatch."))
@@ -95,7 +95,7 @@ class ContactLoop: public GlobalEngine {
 				#ifdef IDISP_TIMING
 					timingDeltas=shared_ptr<TimingDeltas>(new TimingDeltas);
 				#endif
-				#ifdef YADE_OPENMP
+				#ifdef WOO_OPENMP
 					removeAfterLoopRefs.resize(omp_get_max_threads());
 				#endif
 			,

@@ -48,7 +48,7 @@ struct Particle: public Object{
 	Vector3r& getRefPos(); void setRefPos(const Vector3r&);
 	std::vector<shared_ptr<Node> > getNodes();
 	virtual string pyStr() const { return "<Particle #"+to_string(id)+" @ "+lexical_cast<string>(this)+">"; }
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Particle,Object,ClassTrait().doc("Particle in DEM").section("Particle","Each particles in DEM is defined by its shape (given by multiple nodes) and other parameters.",{"Shape","Material","Bound"}),
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Particle,Object,ClassTrait().doc("Particle in DEM").section("Particle","Each particles in DEM is defined by its shape (given by multiple nodes) and other parameters.",{"Shape","Material","Bound"}),
 		((id_t,id,-1,AttrTrait<Attr::readonly>(),"Index in DemField::particles"))
 		((uint,mask,1,,"Bitmask for collision detection and other (group 1 by default)"))
 		((shared_ptr<Shape>,shape,,,"Geometrical configuration of the particle"))
@@ -84,7 +84,7 @@ struct Impose: public Object{
 	virtual void velocity(const Scene*, const shared_ptr<Node>&){ throw std::runtime_error("Calling abstract Impose::velocity."); }
 	virtual void force(const Scene*, const shared_ptr<Node>&){ throw std::runtime_error("Calling abstract Impose::force."); }
 	enum{ NONE=0, VELOCITY=1, FORCE=2};
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Impose,Object,"Impose arbitrary changes in Node and DemData, right after integration of the node.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Impose,Object,"Impose arbitrary changes in Node and DemData, right after integration of the node.",
 		((int,what,,AttrTrait<>().readonly().choice({{0,"none"},{VELOCITY,"velocity"},{FORCE,"force"},{VELOCITY|FORCE,"velocity+force"}}),"What values are to be imposed; this is set by the derived engine automatically depending on what is to be prescribed."))
 		,/*ctor*/
 		,/*py*/
@@ -141,7 +141,7 @@ public:
 	void addForceTorque(const Vector3r& f, const Vector3r& t=Vector3r::Zero()){ boost::mutex::scoped_lock l(lock); force+=f; torque+=t; }
 
 	bool isAspherical() const{ return !((inertia[0]==inertia[1] && inertia[1]==inertia[2])); }
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(DemData,NodeData,"Dynamic state of node.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(DemData,NodeData,"Dynamic state of node.",
 		((Vector3r,vel,Vector3r::Zero(),AttrTrait<>().velUnit(),"Linear velocity."))
 		((Vector3r,angVel,Vector3r::Zero(),AttrTrait<>().angVelUnit(),"Angular velocity."))
 		((Real,mass,0,AttrTrait<>().massUnit(),"Associated mass."))
@@ -173,7 +173,7 @@ struct DemField: public Field{
 	//template<> bool sceneHasField<DemField>() const;
 	//template<> shared_ptr<DemField> sceneGetField<DemField>() const;
 	void postLoad(DemField&);
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(DemField,Field,"Field describing a discrete element assembly. Each body references (possibly many) nodes by their index in :yref:`Field.nodes` and :yref:`Field.nodalData`. ",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(DemField,Field,"Field describing a discrete element assembly. Each body references (possibly many) nodes by their index in :yref:`Field.nodes` and :yref:`Field.nodalData`. ",
 		((shared_ptr<ParticleContainer>,particles,make_shared<ParticleContainer>(),AttrTrait<>().pyByRef().readonly().ini(),"Particles (each particle holds its contacts, and references associated nodes)"))
 		((shared_ptr<ContactContainer>,contacts,make_shared<ContactContainer>(),AttrTrait<>().pyByRef().readonly().ini(),"Linear view on particle contacts"))
 		((vector<shared_ptr<Node>>,clumps,,AttrTrait<Attr::readonly>(),"Nodes which define clumps; only manipulated from clump-related user-routines, not directly."))
@@ -189,27 +189,27 @@ struct DemField: public Field{
 REGISTER_SERIALIZABLE(DemField);
 
 class CGeom: public Object,public Indexable{
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(CGeom,Object,"Geometrical configuration of contact",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(CGeom,Object,"Geometrical configuration of contact",
 		((shared_ptr<Node>,node,new Node,,"Local coordinates definition."))
-		,/*ctor*/,/*py*/YADE_PY_TOPINDEXABLE(CGeom)
+		,/*ctor*/,/*py*/WOO_PY_TOPINDEXABLE(CGeom)
 	);
 	REGISTER_INDEX_COUNTER(CGeom);
 };
 REGISTER_SERIALIZABLE(CGeom);
 
 class CPhys: public Object, public Indexable{
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(CPhys,Object,"Physical properties of contact.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(CPhys,Object,"Physical properties of contact.",
 		/*attrs*/
 		((Vector3r,force,Vector3r::Zero(),AttrTrait<>().forceUnit(),"Force applied on the first particle in the contact"))
 		((Vector3r,torque,Vector3r::Zero(),AttrTrait<>().torqueUnit(),"Torque applied on the first particle in the contact"))
-		,/*ctor*/ createIndex(); ,/*py*/YADE_PY_TOPINDEXABLE(CPhys)
+		,/*ctor*/ createIndex(); ,/*py*/WOO_PY_TOPINDEXABLE(CPhys)
 	);
 	REGISTER_INDEX_COUNTER(CPhys);
 };
 REGISTER_SERIALIZABLE(CPhys);
 
 class CData: public Object{
-	YADE_CLASS_BASE_DOC_ATTRS(CData,Object,"Optional data stored in the contact by the Law functor.",
+	WOO_CLASS_BASE_DOC_ATTRS(CData,Object,"Optional data stored in the contact by the Law functor.",
 		/* attrs */
 	);
 };
@@ -237,14 +237,14 @@ struct Contact: public Object{
 	Particle::id_t pyId2() const;
 	Vector2i pyIds() const;
 	virtual string pyStr() const { return "<Contact ##"+to_string(pyId1())+"+"+to_string(pyId2())+" @ "+lexical_cast<string>(this)+">"; }
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Contact,Object,"Contact in DEM",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Contact,Object,"Contact in DEM",
 		((shared_ptr<CGeom>,geom,,AttrTrait<Attr::readonly>(),"Contact geometry"))
 		((shared_ptr<CPhys>,phys,,AttrTrait<Attr::readonly>(),"Physical properties of contact"))
 		((shared_ptr<CData>,data,,AttrTrait<Attr::readonly>(),"Optional data stored by the functor for its own use"))
 		((shared_ptr<Particle>,pA,,AttrTrait<Attr::readonly>(),"First particle of the contact"))
 		((shared_ptr<Particle>,pB,,AttrTrait<Attr::readonly>(),"Second particle of the contact"))
 		((Vector3i,cellDist,Vector3i::Zero(),AttrTrait<Attr::readonly>(),"Distace in the number of periodic cells by which pB must be shifted to get to the right relative position."))
-		#ifdef YADE_OPENGL
+		#ifdef WOO_OPENGL
 			((Real,color,0,,"(Normalized) color value for this contact"))
 		#endif
 		((int,stepLastSeen,-1,AttrTrait<Attr::hidden>(),""))
@@ -271,7 +271,7 @@ struct Shape: public Object, public Indexable{
 	bool getVisible() const { return abs(color)<=2; }
 	void setVisible(bool w){ if(getVisible()==w) return; bool hi=abs(color)>1; int sgn=(color<0?-1:1); color=sgn*((w?0:2)+getBaseColor()+(hi?1:0)); }
 	Vector3r avgNodePos();
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Shape,Object,"Particle geometry",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Shape,Object,"Particle geometry",
 		((shared_ptr<Bound>,bound,,,"Bound of the particle, for use by collision detection only"))
 		((vector<shared_ptr<Node> >,nodes,,,"Nodes associated with this particle"))
 		((Real,color,Mathr::UnitRandom(),,"Normalized color for rendering; negative values render with wire (rather than solid), |color|>2 means invisible. (use *wire*, *hi* and *visible* to manipulate those)"))
@@ -279,28 +279,28 @@ struct Shape: public Object, public Indexable{
 			.add_property("wire",&Shape::getWire,&Shape::setWire)
 			.add_property("hi",&Shape::getHighlighted,&Shape::setHighlighted)
 			.add_property("visible",&Shape::getVisible,&Shape::setVisible)
-			YADE_PY_TOPINDEXABLE(Shape)
+			WOO_PY_TOPINDEXABLE(Shape)
 	);
 	REGISTER_INDEX_COUNTER(Shape);
 };
 REGISTER_SERIALIZABLE(Shape);
 
 class Material: public Object, public Indexable{
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Material,Object,"Particle material",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Material,Object,"Particle material",
 		((Real,density,NaN,AttrTrait<>().densityUnit(),"Density"))
 		((int,id,-1,AttrTrait<>().noGui(),"Some number identifying this material; used with MatchMaker objects, useless otherwise"))
-		,/*ctor*/,/*py*/ YADE_PY_TOPINDEXABLE(Material);
+		,/*ctor*/,/*py*/ WOO_PY_TOPINDEXABLE(Material);
 	);
 	REGISTER_INDEX_COUNTER(Material);
 };
 REGISTER_SERIALIZABLE(Material);
 
 class Bound: public Object, public Indexable{
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Bound,Object,"Object bounding the associated body.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Bound,Object,"Object bounding the associated body.",
 		// ((Vector3r,color,Vector3r(1,1,1),,"Color for rendering this object"))
 		((Vector3r,min,Vector3r(NaN,NaN,NaN),AttrTrait<Attr::noSave>().readonly().lenUnit(),"Lower corner of box containing this bound"))
 		((Vector3r,max,Vector3r(NaN,NaN,NaN),AttrTrait<Attr::noSave>().readonly().lenUnit(),"Lower corner of box containing this bound"))
-		,/* ctor*/,	/*py*/ YADE_PY_TOPINDEXABLE(Bound)
+		,/* ctor*/,	/*py*/ WOO_PY_TOPINDEXABLE(Bound)
 	);
 	REGISTER_INDEX_COUNTER(Bound);
 };

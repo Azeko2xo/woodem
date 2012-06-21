@@ -14,7 +14,7 @@
 #include<boost/filesystem/convenience.hpp>
 
 
-#ifdef YADE_LOG4CXX
+#ifdef WOO_LOG4CXX
 	#include<log4cxx/consoleappender.h>
 	#include<log4cxx/patternlayout.h>
 	log4cxx::LoggerPtr logger=log4cxx::Logger::getLogger("yade.boot");
@@ -32,12 +32,12 @@
 			log4cxx::BasicConfigurator::configure();
 			log4cxx::LoggerPtr localLogger=log4cxx::Logger::getLogger("yade");
 		#endif
-		localLogger->setLevel(getenv("YADE_DEBUG")?debugLevel:warnLevel);
+		localLogger->setLevel(getenv("WOO_DEBUG")?debugLevel:warnLevel);
 		LOG4CXX_DEBUG(localLogger,"Log4cxx initialized.");
 	}
 #endif
 
-#ifdef YADE_DEBUG
+#ifdef WOO_DEBUG
 	void crashHandler(int sig){
 	switch(sig){
 		case SIGABRT:
@@ -59,14 +59,14 @@ void yadeInitialize(py::list& pp, const std::string& confDir){
 	Master& O(Master::instance());
 	O.confDir=confDir;
 	// O.initTemps();
-	#ifdef YADE_DEBUG
+	#ifdef WOO_DEBUG
 		std::ofstream gdbBatch;
 		O.gdbCrashBatch=O.tmpFilename();
 		gdbBatch.open(O.gdbCrashBatch.c_str()); gdbBatch<<"attach "<<lexical_cast<string>(getpid())<<"\nset pagination off\nthread info\nthread apply all backtrace\ndetach\nquit\n"; gdbBatch.close();
 		signal(SIGABRT,crashHandler);
 		signal(SIGSEGV,crashHandler);
 	#endif
-	#ifdef YADE_LOG4CXX
+	#ifdef WOO_LOG4CXX
 		// read logging configuration from file and watch it (creates a separate thread)
 		if(boost::filesystem::exists(confDir+"/logging.conf")){
 			std::string logConf=confDir+"/logging.conf";

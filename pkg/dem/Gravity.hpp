@@ -7,7 +7,7 @@ struct Gravity: public GlobalEngine{
 	virtual void run();
 	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
 	virtual string pyStr() const { return "<Gravity ("+to_string(gravity[0])+", "+to_string(gravity[1])+", "+to_string(gravity[2])+") @ "+lexical_cast<string>(this)+">"; }
-	YADE_CLASS_BASE_DOC_ATTRS(Gravity,GlobalEngine,"Engine applying constant acceleration to all bodies.",
+	WOO_CLASS_BASE_DOC_ATTRS(Gravity,GlobalEngine,"Engine applying constant acceleration to all bodies.",
 		((Vector3r,gravity,Vector3r::Zero(),,"Acceleration [kgms⁻²]"))
 		((int,gravWorkIx,-1,AttrTrait<Attr::noSave|Attr::hidden>(),"Index for work of gravity"))
 		// ((int,mask,0,,"If mask defined, only bodies with corresponding groupMask will be affected by this engine. If 0, all bodies will be affected."))
@@ -18,7 +18,7 @@ REGISTER_SERIALIZABLE(Gravity);
 struct AxialGravity: public GlobalEngine {
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	virtual void run();
-	YADE_CLASS_BASE_DOC_ATTRS(AxialGravity,GlobalEngine,"Apply acceleration (independent of distance) directed towards an axis.",
+	WOO_CLASS_BASE_DOC_ATTRS(AxialGravity,GlobalEngine,"Apply acceleration (independent of distance) directed towards an axis.",
 		((Vector3r,axisPt,Vector3r::Zero(),,"Point through which the axis is passing."))
 		((Vector3r,axisDir,Vector3r::UnitX(),,"direction of the gravity axis (will be normalized automatically)"))
 		((Real,accel,0,,"Acceleration magnitude [kgms⁻²]"))
@@ -36,7 +36,7 @@ REGISTER_SERIALIZABLE(AxialGravity);
 class CentralGravityEngine: public FieldApplier {
 	public:
 		virtual void run();
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(CentralGravityEngine,FieldApplier,"Engine applying acceleration to all bodies, towards a central body.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(CentralGravityEngine,FieldApplier,"Engine applying acceleration to all bodies, towards a central body.",
 		((Body::id_t,centralBody,Body::ID_NONE,,"The :yref:`body<Body>` towards which all other bodies are attracted."))
 		((Real,accel,0,,"Acceleration magnitude [kgms⁻²]"))
 		((bool,reciprocal,false,,"If true, acceleration will be applied on the central body as well."))
@@ -54,7 +54,7 @@ class HdapsGravityEngine: public GravityEngine{
 	public:
 	Vector2i readSysfsFile(const std::string& name);
 	virtual void run();
-	YADE_CLASS_BASE_DOC_ATTRS(HdapsGravityEngine,GravityEngine,"Read accelerometer in Thinkpad laptops (`HDAPS <http://en.wikipedia.org/wiki/Active_hard_drive_protection>`__ and accordingly set gravity within the simulation. This code draws from `hdaps-gl <https://sourceforge.net/project/showfiles.php?group_id=138242>`__ . See :ysrc:`scripts/test/hdaps.py` for an example.",
+	WOO_CLASS_BASE_DOC_ATTRS(HdapsGravityEngine,GravityEngine,"Read accelerometer in Thinkpad laptops (`HDAPS <http://en.wikipedia.org/wiki/Active_hard_drive_protection>`__ and accordingly set gravity within the simulation. This code draws from `hdaps-gl <https://sourceforge.net/project/showfiles.php?group_id=138242>`__ . See :ysrc:`scripts/test/hdaps.py` for an example.",
 		((string,hdapsDir,"/sys/devices/platform/hdaps",,"Hdaps directory; contains ``position`` (with accelerometer readings) and ``calibration`` (zero acceleration)."))
 		((Real,msecUpdate,50,,"How often to update the reading."))
 		((int,updateThreshold,4,,"Minimum difference of reading from the file before updating gravity, to avoid jitter."))

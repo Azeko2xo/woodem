@@ -20,7 +20,7 @@ struct AnisoPorosityAnalyzer: public GlobalEngine {
 	Real computeOneRay(const Vector3r& A, const Vector3r& B, bool vis=false);
 	void initialize();
 	DECLARE_LOGGER;
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(AnisoPorosityAnalyzer,GlobalEngine,"Engine which analyzes current scene and computes directionaly porosity value by intersecting spheres with lines. The algorithm only works on periodic simulations.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(AnisoPorosityAnalyzer,GlobalEngine,"Engine which analyzes current scene and computes directionaly porosity value by intersecting spheres with lines. The algorithm only works on periodic simulations.",
 		((Matrix3r,poro,Matrix3r::Zero(),AttrTrait<Attr::readonly>(),"Store analysis result here"))
 		((int,div,10,,"Fineness of division of interval (0…1) for $u$,$v$ ∈〈0…1〉, which are used for uniform distribution over the positive octant as $\\theta=\frac{\\pi}{2}u$, $\\phi=\\acos v$ (see http://mathworld.wolfram.com/SpherePointPicking.html)"))
 		// check that data are up-to-date
@@ -40,7 +40,7 @@ struct AnisoPorosityAnalyzer: public GlobalEngine {
 REGISTER_SERIALIZABLE(AnisoPorosityAnalyzer);
 
 
-#ifdef YADE_OPENGL
+#ifdef WOO_OPENGL
 #include<woo/pkg/gl/Renderer.hpp>
 
 class GlExtra_AnisoPorosityAnalyzer: public GlExtraDrawer{
@@ -48,7 +48,7 @@ class GlExtra_AnisoPorosityAnalyzer: public GlExtraDrawer{
 	DECLARE_LOGGER;
 	virtual void render();
 	Real idColor(int id){ return (id%idMod)*1./(idMod-1); }
-	YADE_CLASS_BASE_DOC_ATTRS(GlExtra_AnisoPorosityAnalyzer,GlExtraDrawer,"Find an instance of :yref:`LawTester` and show visually its data.",
+	WOO_CLASS_BASE_DOC_ATTRS(GlExtra_AnisoPorosityAnalyzer,GlExtraDrawer,"Find an instance of :yref:`LawTester` and show visually its data.",
 		((shared_ptr<AnisoPorosityAnalyzer>,analyzer,,AttrTrait<>().noGui(),"Associated :yref:`AnisoPorosityAnalyzer` object."))
 		((int,wd,2,,"Segment line width"))
 		((Vector2i,wd_range,Vector2i(1,10),AttrTrait<>().noGui(),"Range for wd"))

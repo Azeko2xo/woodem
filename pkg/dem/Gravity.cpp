@@ -4,7 +4,7 @@
 #include<woo/core/Scene.hpp>
 // #include<boost/regex.hpp>
 
-YADE_PLUGIN(dem,(Gravity)(AxialGravity) /* (CentralGravityEngine)(AxialGravityEngine)(HdapsGravityEngine)*/ );
+WOO_PLUGIN(dem,(Gravity)(AxialGravity) /* (CentralGravityEngine)(AxialGravityEngine)(HdapsGravityEngine)*/ );
 
 void Gravity::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){
 	if(py::len(args)==1){ gravity=py::extract<Vector3r>(args[0]); args=py::tuple(); }

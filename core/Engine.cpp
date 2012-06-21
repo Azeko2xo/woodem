@@ -74,7 +74,7 @@ void ParallelEngine::setField(){
 void ParallelEngine::run(){
 	// openMP warns if the iteration variable is unsigned...
 	const int size=(int)slaves.size();
-	#ifdef YADE_OPENMP
+	#ifdef WOO_OPENMP
 		#pragma omp parallel for
 	#endif
 	for(int i=0; i<size; i++){

@@ -13,7 +13,7 @@
 
 #include<boost/tuple/tuple_comparison.hpp>
 
-YADE_PLUGIN(dem,(ParticleFactory)(ParticleGenerator)(MinMaxSphereGenerator)(PsdSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(RandomFactory)(BoxFactory)(BoxDeleter)(ConveyorFactory));
+WOO_PLUGIN(dem,(ParticleFactory)(ParticleGenerator)(MinMaxSphereGenerator)(PsdSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(RandomFactory)(BoxFactory)(BoxDeleter)(ConveyorFactory));
 CREATE_LOGGER(PsdSphereGenerator);
 CREATE_LOGGER(RandomFactory);
 CREATE_LOGGER(ConveyorFactory);
@@ -276,7 +276,7 @@ void RandomFactory::run(){
 			for(auto& pe: pee){
 				auto& p=pe.par;
 				p->mask=mask;
-				#ifdef YADE_OPENGL
+				#ifdef WOO_OPENGL
 					assert(p->shape);
 					p->shape->color=color_;
 				#endif
@@ -293,7 +293,7 @@ void RandomFactory::run(){
 			// TODO: compute initial angular momentum, since wi will (very likely) use the aspherical integrator
 			ClumpData::applyToMembers(clump,/*reset*/false); // apply velocity
 			dem->clumps.push_back(clump);
-			#ifdef YADE_OPENGL
+			#ifdef WOO_OPENGL
 				boost::mutex::scoped_lock lock(dem->nodesMutex);
 			#endif
 			dyn.linIx=dem->nodes.size();
@@ -305,7 +305,7 @@ void RandomFactory::run(){
 			auto& p=pee[0].par;
 			p->mask=mask;
 			assert(p->shape);
-			#ifdef YADE_OPENGL
+			#ifdef WOO_OPENGL
 				p->shape->color=color_;
 			#endif
 			assert(p->shape->nodes.size()==1); // if this fails, enable the block below
@@ -318,7 +318,7 @@ void RandomFactory::run(){
 			stepMass+=dyn.mass;
 			assert(node0->hasData<DemData>());
 			dem->particles->insert(p);
-			#ifdef YADE_OPENGL
+			#ifdef WOO_OPENGL
 				boost::mutex::scoped_lock lock(dem->nodesMutex);
 			#endif
 			dyn.linIx=dem->nodes.size();
@@ -525,7 +525,7 @@ void ConveyorFactory::run(){
 		dem->particles->insert(sphere);
 		if(save) genDiamMass.push_back(Vector2r(2*radii[nextIx],dyn.mass));
 		LOG_TRACE("New sphere #"<<sphere->id<<", r="<<radii[nextIx]<<" at "<<n->pos.transpose());
-		#ifdef YADE_OPENGL
+		#ifdef WOO_OPENGL
 			boost::mutex::scoped_lock lock(dem->nodesMutex);
 		#endif
 		dyn.linIx=dem->nodes.size();

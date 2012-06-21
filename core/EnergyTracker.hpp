@@ -21,7 +21,7 @@ class EnergyTracker: public Object{
 		if(id>0) return; // the caller should have checked this already
 		if(names.count(name)) id=names[name];
 		else if(newIfNotFound) {
-			#ifdef YADE_OPENMP
+			#ifdef WOO_OPENMP
 				#pragma omp critical
 			#endif
 				{ energies.resize(energies.size()+1); id=energies.size()-1; flags.resize(id+1); flags[id]=flg; names[name]=id; assert(id<(int)energies.size()); assert(id>=0); }
@@ -65,7 +65,7 @@ class EnergyTracker: public Object{
 	typedef std::map<std::string,int> mapStringInt;
 	typedef std::pair<std::string,int> pairStringInt;
 
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(EnergyTracker,Object,"Storage for tracing energies. Only to be used if O.traceEnergy is True.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(EnergyTracker,Object,"Storage for tracing energies. Only to be used if O.traceEnergy is True.",
 		((OpenMPArrayAccumulator<Real>,energies,,,"Energy values, in linear array"))
 		((mapStringInt,names,,/*no python converter for this type*/AttrTrait<Attr::hidden>(),"Associate textual name to an index in the energies array [overridden bellow].")) 
 		((vector<int>,flags,,AttrTrait<Attr::readonly>(),"Flags for respective energies; most importantly, whether the value should be reset at every step."))

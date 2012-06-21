@@ -4,7 +4,7 @@
 */
 #include<woo/pkg/dem/G3Geom.hpp>
 
-YADE_PLUGIN(dem,(G3Geom)(Cg2_Sphere_Sphere_G3Geom)(Cg2_Wall_Sphere_G3Geom)(Law2_G3Geom_FrictPhys_IdealElPl)(G3GeomCData));
+WOO_PLUGIN(dem,(G3Geom)(Cg2_Sphere_Sphere_G3Geom)(Cg2_Wall_Sphere_G3Geom)(Law2_G3Geom_FrictPhys_IdealElPl)(G3GeomCData));
 
 void G3Geom::rotateVectorWithContact(Vector3r& v){
 	assert(!isnan(orthonormalAxis.maxCoeff()) && !isnan(twistAxis.maxCoeff()));
@@ -29,7 +29,7 @@ bool Cg2_Sphere_Sphere_G3Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<
 
 	shared_ptr<G3Geom> g3g;
 	bool isNew=!C->geom;
-	if(!isNew) g3g=YADE_PTR_CAST<G3Geom>(C->geom);
+	if(!isNew) g3g=WOO_PTR_CAST<G3Geom>(C->geom);
 	else { g3g=make_shared<G3Geom>(); C->geom=g3g; }
 	Real dist=normal.norm(); normal/=dist; // normal is unit vector now
 	g3g->uN=dist-(r1+r2);
@@ -140,7 +140,7 @@ bool Cg2_Wall_Sphere_G3Geom::go(const shared_ptr<Shape>& wallSh, const shared_pt
 
 
 
-#ifdef YADE_DEBUG
+#ifdef WOO_DEBUG
 	#define _WATCH_MSG(msg) if(watched) cerr<<msg;
 #else
 	#define _WATCH_MSG(msg)
@@ -149,7 +149,7 @@ bool Cg2_Wall_Sphere_G3Geom::go(const shared_ptr<Shape>& wallSh, const shared_pt
 
 void Law2_G3Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shared_ptr<CPhys>& cp, const shared_ptr<Contact>&C){
 	G3Geom& geom=cg->cast<G3Geom>(); FrictPhys& phys=cp->cast<FrictPhys>();
-	#ifdef YADE_DEBUG
+	#ifdef WOO_DEBUG
 		bool watched=(max(C->pA->id,C->pB->id)==watch.maxCoeff() && (watch.minCoeff()<0 || min(C->pA->id,C->pB->id)==watch.minCoeff()));
 	#endif
 	_WATCH_MSG("Step "<<scene->step<<", ##"<<C->pA->id<<"+"<<C->pB->id<<": "<<endl);

@@ -1,6 +1,6 @@
-#ifdef YADE_SPARC
+#ifdef WOO_SPARC
 
-#ifdef YADE_VTK
+#ifdef WOO_VTK
 #include<woo/pkg/sparc/SparcField.hpp>
 
 #include<boost/preprocessor.hpp>
@@ -11,7 +11,7 @@ namespace bfs=boost::filesystem;
 
 using boost::format;
 
-YADE_PLUGIN(sparc,(SparcField)(SparcData)(ExplicitNodeIntegrator)(StaticEquilibriumSolver));
+WOO_PLUGIN(sparc,(SparcField)(SparcData)(ExplicitNodeIntegrator)(StaticEquilibriumSolver));
 
 void SparcField::constructLocator(){
 	locator=vtkPointLocator::New(); points=vtkPoints::New(); grid=vtkUnstructuredGrid::New(); grid->SetPoints(points); locator->SetDataSet(grid);
@@ -292,7 +292,7 @@ void ExplicitNodeIntegrator::run(){
 			dta.Tcirc=Tcirc;
 			dta.divT=divT;
 		#endif
-		#ifdef YADE_DEBUG
+		#ifdef WOO_DEBUG
 			dta.catchCrap1(nid,n);
 		#endif
 	};
@@ -307,7 +307,7 @@ void ExplicitNodeIntegrator::run(){
 		applyKinematicConstraints(n,/*disallow prescribed stress*/false);
 		dta.rho+=dt*(-dta.rho*dta.gradV.trace());
 		dta.e+=dt*(1+dta.e)*dta.gradV.trace(); // gradV.trace()==D.trace()
-		#ifdef YADE_DEBUG
+		#ifdef WOO_DEBUG
 			dta.catchCrap2(nid,n);
 		#endif
 	};
@@ -340,7 +340,7 @@ int StaticEquilibriumSolver::ResidualsFunctorBase::operator()(const VectorXr &v,
 
 void StaticEquilibriumSolver::copyLocalVelocityToNodes(const VectorXr &v) const{
 	assert(v.size()==nDofs);
-	#ifdef YADE_DEBUG
+	#ifdef WOO_DEBUG
 		if(eig_isnan(v)) throw std::runtime_error("Solver proposing nan's in velocities, vv = "+lexical_cast<string>(v.transpose()));
 	#endif
 	FOREACH(const shared_ptr<Node>& n, field->nodes){
@@ -472,7 +472,7 @@ void StaticEquilibriumSolver::epiloguePhase(const VectorXr& vel, VectorXr& error
 template<bool useNext>
 void StaticEquilibriumSolver::computeConstraintErrors(const shared_ptr<Node>& n, const Vector3r& divT, VectorXr& resid){
 	SparcData& dta(n->getData<SparcData>());
-	#ifdef YADE_DEBUG
+	#ifdef WOO_DEBUG
 		for(int i=0;i<3;i++) if(!isnan(dta.fixedV[i])&&!isnan(dta.fixedT[i])) throw std::invalid_argument((boost::format("Nid %d: both velocity and stress prescribed along local axis %d (axis %s in global space)") %dta.nid %i %(n->ori.conjugate()*(i==0?Vector3r::UnitX():(i==1?Vector3r::UnitY():Vector3r::UnitZ()))).transpose()).str());
 	#endif
 	#define _WATCH_NID(aaa) SPARC_TRACE_OUT("           "<<aaa<<endl); if(dta.nid==watch) cerr<<aaa<<endl;
@@ -721,14 +721,14 @@ Real StaticEquilibriumSolver::gradVError(const shared_ptr<Node>& n, int rPow){
 };
 
 
-#ifdef YADE_OPENGL
+#ifdef WOO_OPENGL
 #include<woo/lib/base/CompUtils.hpp>
 #include<woo/lib/opengl/OpenGLWrapper.hpp>
 #include<woo/lib/opengl/GLUtils.hpp>
 #include<woo/pkg/gl/Renderer.hpp>
 
 
-YADE_PLUGIN(gl,(Gl1_SparcField)(SparcConstraintGlRep));
+WOO_PLUGIN(gl,(Gl1_SparcField)(SparcConstraintGlRep));
 
 
 bool Gl1_SparcField::nid;
@@ -797,8 +797,8 @@ void SparcConstraintGlRep::render(const shared_ptr<Node>& node, GLViewInfo* view
 	};
 };
 
-#endif /*YADE_OPENGL*/
+#endif /*WOO_OPENGL*/
 
 
-#endif /*YADE_VTK*/
-#endif /*YADE_SPARC*/
+#endif /*WOO_VTK*/
+#endif /*WOO_SPARC*/

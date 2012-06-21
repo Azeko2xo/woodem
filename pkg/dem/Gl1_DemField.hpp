@@ -1,4 +1,4 @@
-#ifdef YADE_OPENGL
+#ifdef WOO_OPENGL
 //#include<woo/pkg/dem/Particle.hpp>
 #include<woo/pkg/gl/Functors.hpp>
 
@@ -14,7 +14,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 	void doContactNodes();
 	void doCPhys();
 	RENDERS(DemField);
-	YADE_CLASS_BASE_DOC_STATICATTRS(Gl1_DemField,GlFieldFunctor,"Render DEM field.",
+	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_DemField,GlFieldFunctor,"Render DEM field.",
 		((bool,wire,false,,"Render all bodies with wire only"))
 		// ((bool,id,false,,"Show particle id's"))
 		((bool,bound,false,,"Render particle's :yref:`Bound`"))

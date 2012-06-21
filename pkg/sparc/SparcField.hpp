@@ -1,10 +1,10 @@
 #pragma once
-#ifdef YADE_SPARC
+#ifdef WOO_SPARC
 
-#ifdef YADE_VTK
+#ifdef WOO_VTK
 
 // perhaps move to features?
-#define YADE_SPARC
+#define WOO_SPARC
 
 #include<woo/core/Field.hpp>
 #include<woo/core/Scene.hpp>
@@ -15,7 +15,7 @@
 #include<vtkUnstructuredGrid.h>
 #include<vtkPoints.h>
 
-#ifdef YADE_DEBUG
+#ifdef WOO_DEBUG
 	// uncomment to trace most calculations in files, slows down!
 	//#define DOGLEG_DEBUG
 #endif
@@ -24,7 +24,7 @@
 #include<unsupported/Eigen/MatrixFunctions>
 
 // trace many intermediate numbers in a file given by StaticEquilibriumSolver::dbgOut
-#ifdef YADE_DEBUG
+#ifdef WOO_DEBUG
 	#define SPARC_TRACE
 #endif
 
@@ -58,7 +58,7 @@ struct SparcField: public Field{
 	void updateLocator();
 
 	~SparcField(){ locator->Delete(); points->Delete(); grid->Delete(); }
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(SparcField,Field,"Field for SPARC meshfree method",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(SparcField,Field,"Field for SPARC meshfree method",
 		// ((Real,maxRadius,-1,,"Maximum radius for neighbour search (required for periodic simulations)"))
 		((bool,locDirty,true,AttrTrait<Attr::readonly>(),"Flag whether the locator is updated."))
 		((bool,showNeighbors,false,,"Whether to show neighbors in the 3d view (FIXME: should go to Gl1_SparcField, once it is created). When a node is selected, neighbors are shown nevertheless."))
@@ -87,7 +87,7 @@ struct SparcData: public NodeData{
 	void catchCrap1(int nid, const shared_ptr<Node>&);
 	void catchCrap2(int nid, const shared_ptr<Node>&);
 	// Real getDirVel(size_t i) const { return i<dirVels.size()?dirVels[i]:0.; }
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(SparcData,NodeData,"Nodal data needed for SPARC; everything is in global coordinates, except for constraints (fixedV, fixedT)",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(SparcData,NodeData,"Nodal data needed for SPARC; everything is in global coordinates, except for constraints (fixedV, fixedT)",
 		// informational
 		((Real,color,Mathr::UnitRandom(),AttrTrait<>().noGui(),"Set node color, so that rendering is more readable"))
 		((int,nid,-1,,"Node id (to locate coordinates in solution matrix)"))
@@ -166,7 +166,7 @@ struct ExplicitNodeIntegrator: public GlobalEngine {
 	virtual void run();
 	Real pointWeight(Real distSq) const;
 	enum {WEIGHT_DIST=0,WEIGHT_GAUSS,WEIGHT_SENTINEL};
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ExplicitNodeIntegrator,GlobalEngine,"Monolithic engine for explicit integration of motion of nodes in SparcField.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ExplicitNodeIntegrator,GlobalEngine,"Monolithic engine for explicit integration of motion of nodes in SparcField.",
 		((Real,E,1e6,AttrTrait<Attr::triggerPostLoad>(),"Young's modulus, for the linear elastic constitutive law"))
 		((Real,nu,0,AttrTrait<Attr::triggerPostLoad>(),"Poisson's ratio for the linear elastic constitutive law"))
 		((vector<Real>,barodesyC,vector<Real>({-1.7637,-1.0249,-0.5517,-1174.,-4175.,2218}),AttrTrait<Attr::triggerPostLoad>(),"Material constants for barodesy"))
@@ -248,7 +248,7 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 	#endif
 	enum {DBG_JAC=1,DBG_DOFERR=2,DBG_NIDERR=4};
 
-	YADE_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(StaticEquilibriumSolver,ExplicitNodeIntegrator,"Find global static equilibrium of a Sparc system.",
+	WOO_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(StaticEquilibriumSolver,ExplicitNodeIntegrator,"Find global static equilibrium of a Sparc system.",
 		((bool,substep,false,,"Whether the solver tries to find solution within one step, or does just one iteration towards the solution"))
 		((int,nIter,0,AttrTrait<Attr::readonly>(),"Indicates number of iteration of the implicit solver (within one solution step), if *substep* is True. 0 means at the beginning of next solution step; nIter is negative during the iteration step, therefore if there is interruption by an exception, it is indicated by its negative value; this makes the solver restart at the next step. Positive value indicates successful progress towards solution."))
 		((VectorXr,currV,,AttrTrait<Attr::readonly>(),"Current solution which the solver computes"))
@@ -288,7 +288,7 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 };
 REGISTER_SERIALIZABLE(StaticEquilibriumSolver);
 
-#ifdef YADE_OPENGL
+#ifdef WOO_OPENGL
 #include<woo/pkg/gl/NodeGlRep.hpp>
 #include<woo/pkg/gl/Functors.hpp>
 
@@ -299,7 +299,7 @@ struct Gl1_SparcField: public GlFieldFunctor{
 	GLViewInfo* viewInfo;
 	shared_ptr<SparcField> sparc; // used by do* methods
 	RENDERS(SparcField);
-	YADE_CLASS_BASE_DOC_STATICATTRS(Gl1_SparcField,GlFieldFunctor,"Render Sparc field.",
+	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_SparcField,GlFieldFunctor,"Render Sparc field.",
 		((bool,nid,false,,"Show node ids for Sparc models"))
 		/* attrs */
 	);
@@ -309,7 +309,7 @@ struct Gl1_SparcField: public GlFieldFunctor{
 struct SparcConstraintGlRep: public NodeGlRep{
 	void render(const shared_ptr<Node>&, GLViewInfo*);
 	void renderLabeledArrow(const Vector3r& pos, const Vector3r& vec, const Vector3r& color, Real num, bool posIsA, bool doubleHead=false);
-	YADE_CLASS_BASE_DOC_ATTRS(SparcConstraintGlRep,NodeGlRep,"Render static and kinematic constraints on Sparc nodes",
+	WOO_CLASS_BASE_DOC_ATTRS(SparcConstraintGlRep,NodeGlRep,"Render static and kinematic constraints on Sparc nodes",
 		((Vector3r,fixedV,Vector3r(NaN,NaN,NaN),,"Prescribed velocity value in local coords (nan if not prescribed)"))
 		((Vector3r,fixedT,Vector3r(NaN,NaN,NaN),,"Prescribed traction value in local coords (nan if not prescribed)"))
 		((Vector2r,vColor,Vector2r(0,.3),,"Color for rendering kinematic constraint."))
@@ -321,9 +321,9 @@ struct SparcConstraintGlRep: public NodeGlRep{
 	);
 };
 REGISTER_SERIALIZABLE(SparcConstraintGlRep);
-#endif // YADE_OPENGL
+#endif // WOO_OPENGL
 
 
-#endif // YADE_VTK
+#endif // WOO_VTK
 
-#endif // YADE_SPARC
+#endif // WOO_SPARC

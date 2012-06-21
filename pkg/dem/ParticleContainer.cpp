@@ -5,18 +5,18 @@
 #include<woo/pkg/dem/ContactLoop.hpp>
 #include<woo/pkg/dem/Clump.hpp>
 
-#ifdef YADE_OPENMP
+#ifdef WOO_OPENMP
 	#include<omp.h>
 #endif
 
-YADE_PLUGIN(dem,(ParticleContainer));
+WOO_PLUGIN(dem,(ParticleContainer));
 
 
 CREATE_LOGGER(ParticleContainer);
  
 void ParticleContainer::clear(){
 	parts.clear();
-	#ifdef YADE_SUBDOMAINS
+	#ifdef WOO_SUBDOMAINS
 		subDomains.clear();
 	#endif
 }
@@ -36,9 +36,9 @@ Particle::id_t ParticleContainer::findFreeId(){
 	return size; // all particles busy, past-the-end will cause resize
 }
 
-#ifdef YADE_SUBDOMAINS
+#ifdef WOO_SUBDOMAINS
 	Particle::id_t ParticleContainer::findFreeDomainLocalId(int subDom){
-		#ifdef YADE_OPENMP
+		#ifdef WOO_OPENMP
 			assert(subDom<(int)subDomains.size());
 			id_t max=subDomains[subDom].size();
 			// LOG_TRACE("subDom="<<subDom<<", max="<<max);
@@ -62,7 +62,7 @@ void ParticleContainer::insertAt(shared_ptr<Particle>& p, id_t id){
 	// can be an empty shared_ptr, check needed
 	if(p) p->id=id;
 	parts[id]=p;
-	#ifdef YADE_SUBDOMAINS
+	#ifdef WOO_SUBDOMAINS
 		setParticleSubdomain(p,0); // add it to subdomain #0; only effective if subdomains are set up
 	#endif
 }
@@ -73,12 +73,12 @@ Particle::id_t ParticleContainer::insert(shared_ptr<Particle>& p){
 	return id;
 }
 
-#ifdef YADE_SUBDOMAINS
+#ifdef WOO_SUBDOMAINS
 	void ParticleContainer::clearSubdomains(){ subDomains.clear(); }
 	void ParticleContainer::setupSubdomains(){ subDomains.clear(); subDomains.resize(maxSubdomains); }
 	// put given parts to 
 	bool ParticleContainer::setParticleSubdomain(const shared_ptr<Particle>& b, int subDom){
-		#ifdef YADE_OPENMP
+		#ifdef WOO_OPENMP
 			assert(b==parts[b->id]); // consistency check
 			// subdomains not used
 			if(subDomains.empty()){ b->subDomId=Particle::ID_NONE; return false; }
@@ -97,7 +97,7 @@ Particle::id_t ParticleContainer::insert(shared_ptr<Particle>& p){
 		#endif
 	}
 
-#endif /* YADE_SUBDOMAINS */
+#endif /* WOO_SUBDOMAINS */
 
 const shared_ptr<Particle>& ParticleContainer::safeGet(Particle::id_t id){
 	if(!exists(id)) throw std::invalid_argument("No such particle: #"+lexical_cast<string>(id)+".");
@@ -111,8 +111,8 @@ bool ParticleContainer::remove(Particle::id_t id){
 	// this is perhaps not necessary
 	boost::mutex::scoped_lock lock(*manipMutex);
 	freeIds.push_back(id);
-	#ifdef YADE_SUBDOMAINS
-		#ifdef YADE_OPENMP
+	#ifdef WOO_SUBDOMAINS
+		#ifdef WOO_OPENMP
 			const shared_ptr<Particle>& b=parts[id];
 			if(b->subDomId!=Particle::ID_NONE){
 				int subDom, localId;
@@ -129,7 +129,7 @@ bool ParticleContainer::remove(Particle::id_t id){
 		#else
 			assert(parts[id]->subDomId==Particle::ID_NONE); // subDomId should never be defined for OpenMP-less builds
 		#endif 
-	#endif /* YADE_SUBDOMAINS */
+	#endif /* WOO_SUBDOMAINS */
 	parts[id]=shared_ptr<Particle>();
 	// removing last element, shrink the size as much as possible
 	// extending the vector when the space is allocated is rather efficient

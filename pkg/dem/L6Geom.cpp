@@ -4,16 +4,16 @@
 
 #include<sstream>
 
-#ifdef YADE_OPENGL
+#ifdef WOO_OPENGL
 	#include<woo/lib/opengl/OpenGLWrapper.hpp>
 	#include<woo/lib/opengl/GLUtils.hpp>
 	#include<GL/glu.h>
 #endif
 
-YADE_PLUGIN(dem,(L6Geom)(Cg2_Sphere_Sphere_L6Geom)(Cg2_Facet_Sphere_L6Geom)(Cg2_Wall_Sphere_L6Geom)(Cg2_InfCylinder_Sphere_L6Geom)(Cg2_Truss_Sphere_L6Geom));
+WOO_PLUGIN(dem,(L6Geom)(Cg2_Sphere_Sphere_L6Geom)(Cg2_Facet_Sphere_L6Geom)(Cg2_Wall_Sphere_L6Geom)(Cg2_InfCylinder_Sphere_L6Geom)(Cg2_Truss_Sphere_L6Geom));
 #if 0
-#ifdef YADE_OPENGL
-	YADE_PLUGIN(gl,(Gl1_L6Geom));
+#ifdef WOO_OPENGL
+	WOO_PLUGIN(gl,(Gl1_L6Geom));
 #endif
 #endif
 
@@ -259,7 +259,7 @@ void Cg2_Sphere_Sphere_L6Geom::handleSpheresLikeContact(const shared_ptr<Contact
 			currTrsf.row(1)-=currTrsf.row(0)*currTrsf.row(1).dot(currTrsf.row(0)); // take away y projected on x, to stabilize numerically
 			currTrsf.row(1).normalize();
 			currTrsf.row(2)=currTrsf.row(0).cross(currTrsf.row(1)); // normalized automatically
-			#ifdef YADE_DEBUG
+			#ifdef WOO_DEBUG
 				if(abs(currTrsf.determinant()-1)>.05){
 					LOG_ERROR("##"<<C->pA->id<<"+"<<C->pB->id<<", |trsf|="<<currTrsf.determinant());
 					g.trsf=currTrsf;
@@ -278,7 +278,7 @@ void Cg2_Sphere_Sphere_L6Geom::handleSpheresLikeContact(const shared_ptr<Contact
 	#endif
 #endif
 
-	#ifdef YADE_DEBUG
+	#ifdef WOO_DEBUG
 		// cerr<<"Error: prevNormal="<<prevNormal<<", currNomal="<<currNormal<<endl;
 		// if(normRotVec.squaredNorm()==0) throw std::runtime_error("Normal moving too fast (changed sense during one step), motion numerically unstable?");
 	#endif
@@ -344,7 +344,7 @@ void Cg2_Sphere_Sphere_L6Geom::handleSpheresLikeContact(const shared_ptr<Contact
 };
 
 #if 0
-#if YADE_OPENGL
+#if WOO_OPENGL
 bool Gl1_L6Geom::axesLabels;
 Real Gl1_L6Geom::axesScale;
 int Gl1_L6Geom::axesWd;

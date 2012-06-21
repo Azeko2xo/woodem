@@ -51,7 +51,7 @@ void Object::pyRegisterClass() {
 }
 
 void Object::checkPyClassRegistersItself(const std::string& thisClassName) const {
-	if(getClassName()!=thisClassName) throw std::logic_error(("Class "+getClassName()+" does not register with YADE_CLASS_BASE_DOC_ATTR*, would not be accessible from python.").c_str());
+	if(getClassName()!=thisClassName) throw std::logic_error(("Class "+getClassName()+" does not register with WOO_CLASS_BASE_DOC_ATTR*, would not be accessible from python.").c_str());
 }
 
 void Object::pyUpdateAttrs(const py::dict& d){	

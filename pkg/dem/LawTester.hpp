@@ -4,7 +4,7 @@
 struct LawTesterStage: public Object{
 	DECLARE_LOGGER;
 	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
-	YADE_CLASS_BASE_DOC_ATTRS(LawTesterStage,Object,"Stage to be reached by LawTester.",
+	WOO_CLASS_BASE_DOC_ATTRS(LawTesterStage,Object,"Stage to be reached by LawTester.",
 		((Vector6r,values,Vector6r::Zero(),AttrTrait<>(),"Prescribed values during this step"))
 		((Vector6i,whats,Vector6i::Zero(),AttrTrait<>(),"Meaning of *values* components"))
 		((string,until,"",,"Stage finishes when *until* (python expression) evaluates to True. Besides receiving global variables, several local variables are passed: `C` (contact object; `None` if contact does not exist), `pA` (first particle), `pB` (second particle), `scene` (current scene object), `tester` (`LawTester` object), `stage` (`LawTesterStage` object)."))
@@ -29,7 +29,7 @@ struct LawTester: public Engine{
 		#undef _RET_ADD
 		return ret;
 	}
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(LawTester,Engine,"Engine for testing contact laws by prescribing various loading scenarios, which are a combination of prescribing force or velocity along given contact-local axes.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(LawTester,Engine,"Engine for testing contact laws by prescribing various loading scenarios, which are a combination of prescribing force or velocity along given contact-local axes.",
 		((Vector2i,ids,,,"Ids of particles in contact"))
 		((string,done,"tester.dead=True",,"Python expression to run once all stages had finished."))
 		((Real,abWeight,1,,"Float, usually ∈〈0,1〉, determining on how are displacements/rotations distributed between particles (0 for A, 1 for B); intermediate values will apply respective part to each of them."))

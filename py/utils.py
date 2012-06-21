@@ -663,7 +663,7 @@ if __name__=="__main__":
 def runningInBatch():
 	'Tell whether we are running inside the batch or separately.'
 	import os
-	return 'YADE_BATCH' in os.environ
+	return 'WOO_BATCH' in os.environ
 
 def waitIfBatch():
 	'Block the simulation if running inside a batch. Typically used at the end of script so that it does not finish prematurely in batch mode (the execution would be ended in such a case).'
@@ -704,11 +704,11 @@ def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 	dictDefaults,dictParams,dictAssign={},{},{}
 	import os, __builtin__,re,math
 	s=yade.master.scene
-	if not tableFileLine and ('YADE_BATCH' not in os.environ or os.environ['YADE_BATCH']==''):
-		if not noTableOk: raise EnvironmentError("YADE_BATCH is not defined in the environment")
+	if not tableFileLine and ('WOO_BATCH' not in os.environ or os.environ['WOO_BATCH']==''):
+		if not noTableOk: raise EnvironmentError("WOO_BATCH is not defined in the environment")
 		s.tags['line']='l!'
 	else:
-		if not tableFileLine: tableFileLine=os.environ['YADE_BATCH']
+		if not tableFileLine: tableFileLine=os.environ['WOO_BATCH']
 		env=tableFileLine.split(':')
 		tableFile,tableLine=env[0],int(env[1])
 		allTab=TableParamReader(tableFile).paramDict()

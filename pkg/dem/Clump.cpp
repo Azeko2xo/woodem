@@ -1,6 +1,6 @@
 #include<woo/pkg/dem/Clump.hpp>
 
-YADE_PLUGIN(dem,(ClumpData));
+WOO_PLUGIN(dem,(ClumpData));
 CREATE_LOGGER(ClumpData);
 
 shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, shared_ptr<Node> centralNode, bool intersecting){
@@ -67,7 +67,7 @@ shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, shared
 		LOG_TRACE("clump->inertia="<<clump->inertia.transpose());
 		// TODO: these might be calculated from members... but complicated... - someone needs that?!
 		clump->vel=clump->angVel=Vector3r::Zero();
-		#ifdef YADE_DEBUG
+		#ifdef WOO_DEBUG
 			AngleAxisr aa(cNode->ori);
 		#endif
 		LOG_TRACE("pos="<<cNode->pos.transpose()<<", ori="<<aa.axis()<<":"<<aa.angle());
@@ -84,7 +84,7 @@ shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, shared
 		clump->nodes. push_back(n);
 		clump->relPos.push_back(cNode->ori.conjugate()*(n->pos-cNode->pos));
 		clump->relOri.push_back(cNode->ori.conjugate()*n->ori);
-		#ifdef YADE_DEBUG
+		#ifdef WOO_DEBUG
 			AngleAxisr aa(*(clump->relOri.rbegin()));
 		#endif
 		LOG_TRACE("relPos="<<clump->relPos.rbegin()->transpose()<<", relOri="<<aa.axis()<<":"<<aa.angle());

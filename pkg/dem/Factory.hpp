@@ -3,7 +3,7 @@
 #include<boost/range/algorithm/fill.hpp>
 
 
-#ifdef YADE_OPENGL
+#ifdef WOO_OPENGL
 	#include<woo/lib/opengl/GLUtils.hpp>
 	#include<woo/lib/base/CompUtils.hpp>
 #endif
@@ -16,7 +16,7 @@ struct ParticleFactory: public PeriodicEngine{
 		if(isnan(currRate)||stepPrev<0) currRate=currRateNoSmooth;
 		else currRate=(1-currRateSmooth)*currRate+currRateSmooth*currRateNoSmooth;
 	}
-	YADE_CLASS_BASE_DOC_ATTRS(ParticleFactory,PeriodicEngine,"Factory generating new particles. This is an abstract base class which in itself does not generate anything, but provides some unified interface to derived classes.",
+	WOO_CLASS_BASE_DOC_ATTRS(ParticleFactory,PeriodicEngine,"Factory generating new particles. This is an abstract base class which in itself does not generate anything, but provides some unified interface to derived classes.",
 		((Real,maxMass,-1,,"Mass at which the engine will not produce any particles (inactive if negative)"))
 		((long,maxNum,-1,,"Number of generated particles after which no more will be produced (inacitve if negative)"))
 		((Real,mass,0,,"Generated mass total"))
@@ -37,7 +37,7 @@ struct ParticleGenerator: public Object{
 	py::tuple pyPsd(bool mass, bool cumulative, bool normalize, Vector2r dRange, int num) const;
 	py::object pyDiamMass();
 	py::list pyCall(const shared_ptr<Material>& m){ vector<ParticleAndBox> pee=(*this)(m); py::list ret; for(const auto& pe: pee) ret.append(py::make_tuple(pe.par,pe.extents)); return ret; }
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ParticleGenerator,Object,"Abstract class for generating particles",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ParticleGenerator,Object,"Abstract class for generating particles",
 		((vector<Vector2r>,genDiamMass,,AttrTrait<Attr::readonly>().noGui(),"List of generated particle's (equivalent) radii and masses (for making granulometry)"))
 		((bool,save,true,,"Save generated particles so that PSD can be generated afterwards"))
 		,/*ctor*/
@@ -52,7 +52,7 @@ REGISTER_SERIALIZABLE(ParticleGenerator);
 
 struct MinMaxSphereGenerator: public ParticleGenerator{
 	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m);
-	YADE_CLASS_BASE_DOC_ATTRS(MinMaxSphereGenerator,ParticleGenerator,"Generate particles with given minimum and maximum radius",
+	WOO_CLASS_BASE_DOC_ATTRS(MinMaxSphereGenerator,ParticleGenerator,"Generate particles with given minimum and maximum radius",
 		((Vector2r,dRange,Vector2r(NaN,NaN),,"Minimum and maximum radius of generated spheres"))
 	);
 };
@@ -64,7 +64,7 @@ struct PsdSphereGenerator: public ParticleGenerator{
 	void postLoad(PsdSphereGenerator&);
 	void clear(){ ParticleGenerator::clear(); weightTotal=0.; std::fill(weightPerBin.begin(),weightPerBin.end(),0.); }
 	py::tuple pyInputPsd(bool scale, bool cumulative, int num) const;
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(PsdSphereGenerator,ParticleGenerator,"Generate particles following a discrete Particle Size Distribution (PSD)",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(PsdSphereGenerator,ParticleGenerator,"Generate particles following a discrete Particle Size Distribution (PSD)",
 		((bool,discrete,true,,"The points on the PSD curve will be interpreted as the only allowed diameter values; if *false*, linear interpolation between them is assumed instead. Do not change once the generator is running."))
 		((vector<Vector2r>,psdPts,,AttrTrait<Attr::triggerPostLoad>(),"Points of the PSD curve; the first component is particle diameter [m] (not radius!), the second component is passing percentage. Both diameter and passing values must be increasing (diameters must be strictly increasing). Passing values are normalized so that the last value is 1.0 (therefore, you can enter the values in percents if you like)."))
 		((bool,mass,true,,"PSD has mass percentages; if false, number of particles percentages are assumed. Do not change once the generator is running."))
@@ -79,7 +79,7 @@ REGISTER_SERIALIZABLE(PsdSphereGenerator);
 
 struct ParticleShooter: public Object{
 	virtual void operator()(Vector3r& vel, Vector3r& angVel){ throw std::runtime_error("Calling ParticleShooter.setVelocities (abstract method); use derived classes"); }
-	YADE_CLASS_BASE_DOC(ParticleShooter,Object,"Abstract class for assigning initial velocities to generated particles.");
+	WOO_CLASS_BASE_DOC(ParticleShooter,Object,"Abstract class for assigning initial velocities to generated particles.");
 };
 REGISTER_SERIALIZABLE(ParticleShooter);
 
@@ -90,7 +90,7 @@ struct AlignedMinMaxShooter: public ParticleShooter{
 		angVel=Vector3r::Zero();
 	}
 	void postLoad(AlignedMinMaxShooter&){ dir.normalize(); }
-	YADE_CLASS_BASE_DOC_ATTRS(AlignedMinMaxShooter,ParticleShooter,"Shoot particles in one direction, with velocity magnitude constrained by vRange values",
+	WOO_CLASS_BASE_DOC_ATTRS(AlignedMinMaxShooter,ParticleShooter,"Shoot particles in one direction, with velocity magnitude constrained by vRange values",
 		((Vector3r,dir,Vector3r::UnitX(),AttrTrait<Attr::triggerPostLoad>(),"Direction (will be normalized)"))
 		((Vector2r,vRange,Vector2r(NaN,NaN),,"Minimum velocity magnitude"))
 	);
@@ -107,7 +107,7 @@ struct RandomFactory: public ParticleFactory{
 	void run();
 	void pyClear(){ if(generator) generator->clear(); num=0; mass=0; stepGoalMass=0; /* do not reset stepPrev! */ }
 	shared_ptr<Collider> collider;
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(RandomFactory,ParticleFactory,"Factory generating new particles.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(RandomFactory,ParticleFactory,"Factory generating new particles.",
 		((Real,massFlowRate,NaN,AttrTrait<>().massFlowRateUnit(),"Mass flow rate; if zero, generate as many particles as possible, until maxAttemps is reached."))
 		((vector<shared_ptr<Material>>,materials,,,"Set of materials for new particles, randomly picked from"))
 		((shared_ptr<ParticleGenerator>,generator,,,"Particle generator instance"))
@@ -139,10 +139,10 @@ struct BoxFactory: public RandomFactory{
 		bool validateBox(const AlignedBox3r& b) { return box.contains(b); }
 	#endif
 
-	#ifdef YADE_OPENGL
+	#ifdef WOO_OPENGL
 		void render(const GLViewInfo&){ if(!isnan(glColor)) GLUtils::AlignedBox(box,CompUtils::mapColor(glColor)); }
 	#endif
-	YADE_CLASS_BASE_DOC_ATTRS(BoxFactory,RandomFactory,"Generate particle inside axis-aligned box volume.",
+	WOO_CLASS_BASE_DOC_ATTRS(BoxFactory,RandomFactory,"Generate particle inside axis-aligned box volume.",
 		((AlignedBox3r,box,AlignedBox3r(Vector3r(NaN,NaN,NaN),Vector3r(NaN,NaN,NaN)),,"Box volume specification (lower and upper corners)"))
 		#ifdef BOX_FACTORY_PERI
 			((int,periSpanMask,0,,"When running in periodic scene, particles bboxes will be allowed to stick out of the factory in those directions (used to specify that the factory itself should be periodic along those axes). 1=x, 2=y, 4=z."))
@@ -155,14 +155,14 @@ REGISTER_SERIALIZABLE(BoxFactory);
 struct BoxDeleter: public PeriodicEngine{
 	DECLARE_LOGGER;
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
-	#ifdef YADE_OPENGL
+	#ifdef WOO_OPENGL
 		void render(const GLViewInfo&){ if(!isnan(glColor)) GLUtils::AlignedBox(box,CompUtils::mapColor(glColor)); }
 	#endif
 	void run();
 	py::object pyPsd(bool mass, bool cumulative, bool normalize, int num, const Vector2r& dRange, bool zip);
 	py::tuple pyDiamMass();
 	void pyClear(){ deleted.clear(); mass=0.; num=0; }
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(BoxDeleter,PeriodicEngine,"Delete particles which fall outside (or inside, if *inside* is True) given box. Deleted particles are optionally stored in the *deleted* array for later processing, if needed.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(BoxDeleter,PeriodicEngine,"Delete particles which fall outside (or inside, if *inside* is True) given box. Deleted particles are optionally stored in the *deleted* array for later processing, if needed.",
 		((AlignedBox3r,box,AlignedBox3r(Vector3r(NaN,NaN,NaN),Vector3r(NaN,NaN,NaN)),,"Box volume specification (lower and upper corners)"))
 		((int,mask,0,,"If non-zero, only particles matching the mask will be candidates for removal"))
 		((bool,inside,false,,"Delete particles which fall inside the volume rather than outside"))
@@ -190,7 +190,7 @@ struct ConveyorFactory: public ParticleFactory{
 	void postLoad(ConveyorFactory&){
 		if(radii.size()==centers.size() && !radii.empty()) sortPacking();
 	}
-	#ifdef YADE_OPENGL
+	#ifdef WOO_OPENGL
 		// void render(const GLViewInfo&){ if(!isnan(color)) GLUtils::AlignedBox(box,CompUtils::mapColor(color)); }
 	#endif
 	void run();
@@ -198,7 +198,7 @@ struct ConveyorFactory: public ParticleFactory{
 	void pyClear(){ mass=0; num=0; genDiamMass.clear(); }
 	py::object pyDiamMass() const;
 	py::tuple pyPsd(bool mass, bool cumulative, bool normalize, Vector2r dRange, int num) const;
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ConveyorFactory,ParticleFactory,"Factory producing infinite band of particles from packing periodic in the x-direction. (Clumps are not supported (yet?), only spheres).",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ConveyorFactory,ParticleFactory,"Factory producing infinite band of particles from packing periodic in the x-direction. (Clumps are not supported (yet?), only spheres).",
 		((shared_ptr<Material>,material,,,"Material for new particles"))
 		((Real,cellLen,,,"Length of the band cell, which is repeated periodically"))
 		((vector<Real>,radii,,AttrTrait<>().noGui().triggerPostLoad(),"Radii for the packing"))

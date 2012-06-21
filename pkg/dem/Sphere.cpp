@@ -1,7 +1,7 @@
 #include<woo/pkg/dem/Sphere.hpp>
 #include<woo/pkg/dem/ParticleContainer.hpp>
 
-YADE_PLUGIN(dem,(Sphere)(Bo1_Sphere_Aabb)(In2_Sphere_ElastMat));
+WOO_PLUGIN(dem,(Sphere)(Bo1_Sphere_Aabb)(In2_Sphere_ElastMat));
 
 void Bo1_Sphere_Aabb::go(const shared_ptr<Shape>& sh){
 	Sphere& s=sh->cast<Sphere>();
@@ -33,7 +33,7 @@ void In2_Sphere_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Mater
 		const shared_ptr<Contact>& C(I.second); if(!C->isReal()) continue;
 		Vector3r F,T,xc;
 		std::tie(F,T,xc)=C->getForceTorqueBranch(particle,/*nodeI*/0,scene);
-		#ifdef YADE_DEBUG
+		#ifdef WOO_DEBUG
 			bool isPA=(C->pA==particle); // int sign=(isPA?1:-1);
 			if(isnan(F[0])||isnan(F[1])||isnan(F[2])||isnan(T[0])||isnan(T[1])||isnan(T[2])){
 				std::ostringstream oss; oss<<"NaN force/torque on particle #"<<particle->id<<" from ##"<<C->pA->id<<"+"<<C->pB->id<<":\n\tF="<<F<<", T="<<T; //"\n\tlocal F="<<C->phys->force*sign<<", T="<<C->phys->torque*sign<<"\n";
@@ -49,8 +49,8 @@ void In2_Sphere_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Mater
 }
 
 
-#ifdef YADE_OPENGL
-YADE_PLUGIN(gl,(Gl1_Sphere));
+#ifdef WOO_OPENGL
+WOO_PLUGIN(gl,(Gl1_Sphere));
 
 #include<woo/lib/opengl/OpenGLWrapper.hpp>
 #include<woo/lib/opengl/GLUtils.hpp>

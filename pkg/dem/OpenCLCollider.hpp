@@ -24,7 +24,7 @@ class OpenCLCollider: public InsertionSortCollider{
 
 	vector<Vector2i> initSortCPU();
 	vector<Vector2i> inversionsCPU(vector<CpuAxBound>& bb);
-	#ifdef YADE_OPENCL
+	#ifdef WOO_OPENCL
 		vector<Vector2i> initSortGPU();
 		vector<Vector2i> inversionsGPU(int ax);
 	#endif
@@ -40,13 +40,13 @@ class OpenCLCollider: public InsertionSortCollider{
 	vector<CpuAxBound> cpuBounds[3];
 	vector<cl_float> mini[3];
 	vector<cl_float> maxi[3];
-	#ifdef YADE_OPENCL
+	#ifdef WOO_OPENCL
 		cl::Program program;
 		cl::Buffer boundBufs[3], minBuf[3], maxBuf[3], invBufs[3];
 		cl::Kernel kernels[3];
 		vector<AxBound> gpuBounds[3];
 	#endif
-	YADE_CLASS_BASE_DOC_ATTRS(OpenCLCollider,InsertionSortCollider,"Collider which prepares data structures for an OpenCL implementation of the algorithm using defined interface. The collision (bound inversion) detection can then run on the CPU (host code) or GPU (OpenCL); both can run in the same step and the results compared.",
+	WOO_CLASS_BASE_DOC_ATTRS(OpenCLCollider,InsertionSortCollider,"Collider which prepares data structures for an OpenCL implementation of the algorithm using defined interface. The collision (bound inversion) detection can then run on the CPU (host code) or GPU (OpenCL); both can run in the same step and the results compared.",
 		((bool,cpu,true,,"Run host (CPU) code for collision detection"))
 		((bool,gpu,false,,"Run OpenCL code (on the GPU presumably) for collision detection; if *cpu* is true as well, compare results"))
 		((bool,clReady,false,AttrTrait<Attr::readonly|Attr::noSave>(),"The OpenCL kernel is compiled and ready"))

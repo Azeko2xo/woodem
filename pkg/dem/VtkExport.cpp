@@ -1,4 +1,4 @@
-#ifdef YADE_VTK
+#ifdef WOO_VTK
 #include<woo/pkg/dem/VtkExport.hpp>
 #include<woo/pkg/dem/Sphere.hpp>
 #include<woo/pkg/dem/Facet.hpp>
@@ -6,7 +6,7 @@
 #include<woo/pkg/dem/Wall.hpp>
 #include<woo/pkg/dem/Clump.hpp>
 
-YADE_PLUGIN(dem,(VtkExport));
+WOO_PLUGIN(dem,(VtkExport));
 CREATE_LOGGER(VtkExport);
 
 int VtkExport::addTriangulatedObject(vector<Vector3r> pts, vector<Vector3i> tri, const vtkSmartPointer<vtkPoints>& vtkPts, const vtkSmartPointer<vtkCellArray>& cells){
@@ -293,4 +293,4 @@ void VtkExport::run(){
 };
 
 
-#endif /*YADE_VTK*/
+#endif /*WOO_VTK*/

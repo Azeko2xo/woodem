@@ -6,11 +6,11 @@ for root, dirs, files in os.walk('.'):
 		modified=False
 		new=[]
 		for l in open(root+'/'+name):
-			m=re.match('(.*)YADE_PLUGIN\(([^)]*)\)(.*)',l)
+			m=re.match('(.*)WOO_PLUGIN\(([^)]*)\)(.*)',l)
 			if m:
 				modified=True
 				plugins=''.join(['('+pl.strip()[1:-1]+')' for pl in m.group(2).split(',')])
-				new.append(m.group(1)+'YADE_PLUGIN('+plugins+')'+m.group(3))
+				new.append(m.group(1)+'WOO_PLUGIN('+plugins+')'+m.group(3))
 			else: new.append(l)
 		if modified:
 			print root+'/'+name

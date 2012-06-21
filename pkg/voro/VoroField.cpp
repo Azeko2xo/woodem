@@ -4,7 +4,7 @@
 #include<woo/pkg/dem/Sphere.hpp>
 #include<iostream>
 
-YADE_PLUGIN(voro,(VoroField));
+WOO_PLUGIN(voro,(VoroField));
 
 CREATE_LOGGER(VoroField);
 

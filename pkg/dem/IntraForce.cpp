@@ -2,7 +2,7 @@
 #include<woo/pkg/dem/Particle.hpp>
 #include<cstdlib>
 
-YADE_PLUGIN(dem,(IntraFunctor)(IntraForce));
+WOO_PLUGIN(dem,(IntraFunctor)(IntraForce));
 
 void IntraForce::run(){
 	DemField& dem=field->cast<DemField>();

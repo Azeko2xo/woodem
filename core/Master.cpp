@@ -98,8 +98,8 @@ shared_ptr<Object> Master::factorClass(const std::string& name){
 void Master::registerPluginClasses(const char* module, const char* fileAndClasses[]){
 	assert(fileAndClasses[0]!=NULL); // must be file name
 	for(int i=1; fileAndClasses[i]!=NULL; i++){
-		#ifdef YADE_DEBUG
-			if(getenv("YADE_DEBUG")) cerr<<__FILE__<<":"<<__LINE__<<": Plugin "<<fileAndClasses[0]<<", class "<<module<<"."<<fileAndClasses[i]<<endl;	
+		#ifdef WOO_DEBUG
+			if(getenv("WOO_DEBUG")) cerr<<__FILE__<<":"<<__LINE__<<": Plugin "<<fileAndClasses[0]<<", class "<<module<<"."<<fileAndClasses[i]<<endl;	
 		#endif
 		modulePluginClasses.push_back({module,fileAndClasses[i]});
 	}
@@ -191,20 +191,20 @@ void Master::initializePlugins(const vector<std::pair<string,string> >& pluginCl
 	for now, just loop until we succeed; proper solution will be to build graphs of classes
 	and traverse it from the top. It will be done once all classes are pythonable. */
 	for(int i=0; i<10 && pythonables.size()>0; i++){
-		if(getenv("YADE_DEBUG")) cerr<<endl<<"[[[ Round "<<i<<" ]]]: ";
+		if(getenv("WOO_DEBUG")) cerr<<endl<<"[[[ Round "<<i<<" ]]]: ";
 		std::list<string> done;
 		for(std::list<StringObjectPair>::iterator I=pythonables.begin(); I!=pythonables.end(); ){
 			const std::string& module=I->first;
 			const shared_ptr<Object>& s=I->second;
 			const std::string& klass=s->getClassName();
 			try{
-				if(getenv("YADE_DEBUG")) cerr<<"{{"<<klass<<"}}";
+				if(getenv("WOO_DEBUG")) cerr<<"{{"<<klass<<"}}";
 				py::scope _scope(pyModules[module]);
 				s->pyRegisterClass();
 				std::list<StringObjectPair>::iterator prev=I++;
 				pythonables.erase(prev);
 			} catch (...){
-				if(getenv("YADE_DEBUG")){ cerr<<"["<<klass<<"]"; PyErr_Print(); }
+				if(getenv("WOO_DEBUG")){ cerr<<"["<<klass<<"]"; PyErr_Print(); }
 				boost::python::handle_exception();
 				I++;
 			}
@@ -213,7 +213,7 @@ void Master::initializePlugins(const vector<std::pair<string,string> >& pluginCl
 #if 0
 	// import all known modules, this should solve crashes which happen at serialization when the module (yade.pre in particular) is not imported by hand first
 	for(const auto& m: pyModules){
-		if(getenv("YADE_DEBUG")){ cerr<<"import module yade."<<m.first<<endl; }
+		if(getenv("WOO_DEBUG")){ cerr<<"import module yade."<<m.first<<endl; }
 		py::import(("yade."+m.first).c_str());
 	}
 #endif

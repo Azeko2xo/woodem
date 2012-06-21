@@ -23,11 +23,11 @@
 
 YAD3_CLASS_IMPLEMENTATION(Cell_CLASS_DESCRIPTOR)
 
-YADE_PLUGIN(core,(Cell)(Dispatcher)(EnergyTracker)(Engine)(Functor)(GlobalEngine)(ParallelEngine)(PartialEngine)(PeriodicEngine)(PyRunner)(DisplayParameters));
+WOO_PLUGIN(core,(Cell)(Dispatcher)(EnergyTracker)(Engine)(Functor)(GlobalEngine)(ParallelEngine)(PartialEngine)(PeriodicEngine)(PyRunner)(DisplayParameters));
 #include<woo/core/Field.hpp>
-YADE_PLUGIN(core,(Constraint)(Node)(NodeData)(Field));
-#ifdef YADE_OPENGL
-YADE_PLUGIN(gl,(NodeGlRep)(ScalarRange));
+WOO_PLUGIN(core,(Constraint)(Node)(NodeData)(Field));
+#ifdef WOO_OPENGL
+WOO_PLUGIN(gl,(NodeGlRep)(ScalarRange));
 //NodeGlRep::~NodeGlRep(){}
 #endif
 

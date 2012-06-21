@@ -228,9 +228,9 @@ class DynLibDispatcher
 			// the class might not exist in memory at all, and we have to load dynamic library,
 			// so that a static variable is created and accessible)
 			shared_ptr<BaseClass1> baseClass=executor->get1DFunctorArg1();
-				// YADE_PTR_CAST<BaseClass1>(ClassFactory::instance().createShared(baseClassName));
+				// WOO_PTR_CAST<BaseClass1>(ClassFactory::instance().createShared(baseClassName));
 			// this is a strange tweak without which it won't work.
-			shared_ptr<Indexable> base = YADE_PTR_CAST<Indexable>(baseClass);
+			shared_ptr<Indexable> base = WOO_PTR_CAST<Indexable>(baseClass);
 		
 			assert(base);
 			int& index = base->getClassIndex();
@@ -253,8 +253,8 @@ class DynLibDispatcher
 		void add2DEntry(shared_ptr<Executor> executor){
 			shared_ptr<BaseClass1> baseClass1=executor->get2DFunctorArg1();
 			shared_ptr<BaseClass2> baseClass2=executor->get2DFunctorArg2();
-			shared_ptr<Indexable> base1 = YADE_PTR_CAST<Indexable>(baseClass1);
-			shared_ptr<Indexable> base2 = YADE_PTR_CAST<Indexable>(baseClass2);
+			shared_ptr<Indexable> base1 = WOO_PTR_CAST<Indexable>(baseClass1);
+			shared_ptr<Indexable> base2 = WOO_PTR_CAST<Indexable>(baseClass2);
 			
 			assert(base1);
 			assert(base2);

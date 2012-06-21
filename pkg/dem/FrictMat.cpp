@@ -3,7 +3,7 @@
 #include<woo/pkg/dem/L6Geom.hpp>
 #include<woo/pkg/dem/G3Geom.hpp>
 
-YADE_PLUGIN(dem,(ElastMat)(FrictMat)(FrictPhys)(Cp2_FrictMat_FrictPhys));
+WOO_PLUGIN(dem,(ElastMat)(FrictMat)(FrictPhys)(Cp2_FrictMat_FrictPhys));
 
 void Cp2_FrictMat_FrictPhys::go(const shared_ptr<Material>& m1, const shared_ptr<Material>& m2, const shared_ptr<Contact>& C){
 	if(C->phys) return;

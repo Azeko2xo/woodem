@@ -1,5 +1,5 @@
 #pragma once
-#ifdef YADE_VTK
+#ifdef WOO_VTK
 
 #include<woo/core/Engine.hpp>
 #include<woo/pkg/dem/Particle.hpp>
@@ -40,7 +40,7 @@ struct VtkExport: public PeriodicEngine{
 		if(what>WHAT_ALL || what<0) throw std::runtime_error("VtkExport.what="+to_string(what)+", but should be at most "+to_string(WHAT_ALL)+".");
 	}
 
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(VtkExport,PeriodicEngine,"Export DEM simulation to VTK files for post-processing.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(VtkExport,PeriodicEngine,"Export DEM simulation to VTK files for post-processing.",
 		((string,out,,,"Filename prefix to write into"))
 		((bool,compress,true,,"Compress output XML files"))
 		((bool,ascii,false,,"Store data as readable text in the XML file (sets `vtkXMLWriter <http://www.vtk.org/doc/nightly/html/classvtkXMLWriter.html>`__ data mode to ``vtkXMLWriter::Ascii``, while the default is ``Appended``"))
@@ -69,4 +69,4 @@ struct VtkExport: public PeriodicEngine{
 };
 REGISTER_SERIALIZABLE(VtkExport);
 
-#endif /*YADE_VTK*/
+#endif /*WOO_VTK*/

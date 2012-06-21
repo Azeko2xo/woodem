@@ -1,6 +1,6 @@
 #if 0
 #include<woo/ancf/AncfField.hpp>
-YADE_PLUGIN(ancf,(AncfField)(AncfData)(AncfElt)(AncfBeam2n));
+WOO_PLUGIN(ancf,(AncfField)(AncfData)(AncfElt)(AncfBeam2n));
 
 MatrixXr AncfBeam2n::getShapeFunctionMatrix(const Vector3r& pt){
 	// [Yakoub2001], (23)

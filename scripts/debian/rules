@@ -38,16 +38,16 @@ install: build
 	NO_SCONS_GET_RECENT= scons profile=deb buildPrefix=debian runtimePREFIX=/usr version=${VERSION} brief=0 chunkSize=5 jobs=1 features=openmp,vtk,gts,opengl,qt4 PREFIX=debian/yade${_VERSION}-dbg/usr variant='' optimize=0 march= debug=1 debian/yade${_VERSION}-dbg/usr/lib
 	#optimized build
 	NO_SCONS_GET_RECENT= scons profile=deb PREFIX=debian/yade${_VERSION}/usr variant='' optimize=1 debug=0
-	cd doc/sphinx; PYTHONPATH=. YADE_PREFIX=../../debian/yade${_VERSION}/usr/ ../../debian/yade${_VERSION}/usr/bin/yade${_VERSION} yadeSphinx.py; cd _build/latex; xelatex Yade.tex; xelatex Yade.tex; xelatex Yade.tex; cd ../..;
+	cd doc/sphinx; PYTHONPATH=. WOO_PREFIX=../../debian/yade${_VERSION}/usr/ ../../debian/yade${_VERSION}/usr/bin/yade${_VERSION} yadeSphinx.py; cd _build/latex; xelatex Yade.tex; xelatex Yade.tex; xelatex Yade.tex; cd ../..;
 	# generate manpages
-	YADE_PREFIX=debian/yade${_VERSION}/usr debian/yade${_VERSION}/usr/bin/yade${_VERSION} --generate-manpage yade${_VERSION}.1
-	YADE_PREFIX=debian/yade${_VERSION}/usr debian/yade${_VERSION}/usr/bin/yade${_VERSION}-batch --generate-manpage yade${_VERSION}-batch.1
+	WOO_PREFIX=debian/yade${_VERSION}/usr debian/yade${_VERSION}/usr/bin/yade${_VERSION} --generate-manpage yade${_VERSION}.1
+	WOO_PREFIX=debian/yade${_VERSION}/usr debian/yade${_VERSION}/usr/bin/yade${_VERSION}-batch --generate-manpage yade${_VERSION}-batch.1
 
 check: install
 	dh_testdir
 	dh_testroot
-	YADE_PREFIX=debian/yade${_VERSION}/usr debian/yade${_VERSION}/usr/bin/yade${_VERSION} --test
-	YADE_PREFIX=debian/yade${_VERSION}-dbg/usr debian/yade${_VERSION}/usr/bin/yade${_VERSION} --debug --test
+	WOO_PREFIX=debian/yade${_VERSION}/usr debian/yade${_VERSION}/usr/bin/yade${_VERSION} --test
+	WOO_PREFIX=debian/yade${_VERSION}-dbg/usr debian/yade${_VERSION}/usr/bin/yade${_VERSION} --debug --test
 
 binary-indep: build install 
 

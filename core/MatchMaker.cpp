@@ -6,7 +6,7 @@
 	#define FOREACH BOOST_FOREACH
 #endif
 
-YADE_PLUGIN(core,(MatchMaker));
+WOO_PLUGIN(core,(MatchMaker));
 MatchMaker::~MatchMaker(){}
 
 Real MatchMaker::operator()(int id1, int id2, Real val1, Real val2) const {

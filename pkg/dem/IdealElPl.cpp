@@ -1,7 +1,7 @@
 #include<woo/pkg/dem/IdealElPl.hpp>
-YADE_PLUGIN(dem,(Law2_L6Geom_FrictPhys_IdealElPl)(IdealElPlData)(Law2_L6Geom_FrictPhys_LinEl6));
+WOO_PLUGIN(dem,(Law2_L6Geom_FrictPhys_IdealElPl)(IdealElPlData)(Law2_L6Geom_FrictPhys_LinEl6));
 
-#ifdef YADE_DEBUG
+#ifdef WOO_DEBUG
 	#define _WATCH_MSG(msg) if(watched) cerr<<msg;
 #else
 	#define _WATCH_MSG(msg)
@@ -9,7 +9,7 @@ YADE_PLUGIN(dem,(Law2_L6Geom_FrictPhys_IdealElPl)(IdealElPlData)(Law2_L6Geom_Fri
 
 void Law2_L6Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shared_ptr<CPhys>& cp, const shared_ptr<Contact>& C){
 	const L6Geom& g(cg->cast<L6Geom>()); FrictPhys& ph(cp->cast<FrictPhys>());
-	#ifdef YADE_DEBUG
+	#ifdef WOO_DEBUG
 		bool watched=(max(C->pA->id,C->pB->id)==watch.maxCoeff() && min(C->pA->id,C->pB->id)==watch.minCoeff());
 	#endif
 	_WATCH_MSG("Step "<<scene->step<<", ##"<<C->pA->id<<"+"<<C->pB->id<<": "<<endl);

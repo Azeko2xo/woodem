@@ -11,27 +11,27 @@
 
 #include<boost/iterator/filter_iterator.hpp>
 
-#ifdef YADE_SUBDOMAINS
-	#ifdef YADE_OPENMP
-		#define YADE_PARALLEL_FOREACH_PARTICLE_BEGIN(b,particles) \
+#ifdef WOO_SUBDOMAINS
+	#ifdef WOO_OPENMP
+		#define WOO_PARALLEL_FOREACH_PARTICLE_BEGIN(b,particles) \
 			const int _numSubdomains=particles->numSubdomains(); \
 			_Pragma("omp parallel for schedule(static,1)") \
 			for(int _subDomain=0; _subDomain<_numSubdomains; _subDomain++) \
 			FOREACH(b, particles->getSubdomain(_subDomain)){
-		#define YADE_PARALLEL_FOREACH_PARTICLE_END() }
+		#define WOO_PARALLEL_FOREACH_PARTICLE_END() }
 	#else
-		#define YADE_PARALLEL_FOREACH_PARTICLE_BEGIN(b,particles) \
+		#define WOO_PARALLEL_FOREACH_PARTICLE_BEGIN(b,particles) \
 			assert(particles->numSubdomains()==1); assert(particles->getSubdomain(0).size()==particles->size()); \
 			FOREACH(b,*(particles)){
-		#define YADE_PARALLEL_FOREACH_PARTICLE_END() }
+		#define WOO_PARALLEL_FOREACH_PARTICLE_END() }
 	#endif
 #else
-	#if YADE_OPENMP
-		#define YADE_PARALLEL_FOREACH_PARTICLE_BEGIN(b_,particles) const id_t _sz(particles->size()); _Pragma("omp parallel for") for(id_t _id=0; _id<_sz; _id++){ b_((*particles)[_id]);
-		#define YADE_PARALLEL_FOREACH_PARTICLE_END() }
+	#if WOO_OPENMP
+		#define WOO_PARALLEL_FOREACH_PARTICLE_BEGIN(b_,particles) const id_t _sz(particles->size()); _Pragma("omp parallel for") for(id_t _id=0; _id<_sz; _id++){ b_((*particles)[_id]);
+		#define WOO_PARALLEL_FOREACH_PARTICLE_END() }
 	#else
-		#define YADE_PARALLEL_FOREACH_PARTICLE_BEGIN(b,particles) FOREACH(b,*(particles)){
-		#define YADE_PARALLEL_FOREACH_PARTICLE_END() }
+		#define WOO_PARALLEL_FOREACH_PARTICLE_BEGIN(b,particles) FOREACH(b,*(particles)){
+		#define WOO_PARALLEL_FOREACH_PARTICLE_END() }
 	#endif
 #endif
 
@@ -54,7 +54,7 @@ struct ParticleContainer: public Object{
 		typedef std::vector<shared_ptr<Particle> > ContainerT;
 		// ContainerT parts;
 		id_t findFreeId();
-		#ifdef YADE_SUBDOMAINS
+		#ifdef WOO_SUBDOMAINS
 			id_t findFreeDomainLocalId(int subDom);
 			// subDomain data
 			std::vector<std::vector<shared_ptr<Particle> > > subDomains;
@@ -93,7 +93,7 @@ struct ParticleContainer: public Object{
 		bool remove(id_t id);
 		
 
-		#ifdef YADE_SUBDOMAINS
+		#ifdef WOO_SUBDOMAINS
 			/* subdomain support
 				Only meaningful when using OpenMP, but we keep the interface for OpenMP-less build as well.
 				Loop over all particles can be achieved as shown below; this works for all possible scenarios:
@@ -102,7 +102,7 @@ struct ParticleContainer: public Object{
 				2. OpenMP build, but no sub-domains defined (the loop will be then sequential, over the global domain)
 				3. OpenMP build, with sub-domains; each thread will handle one sub-domain
 				
-				#ifdef YADE_OPENMP
+				#ifdef WOO_OPENMP
 					#pragma omp parallel for schedule(static)
 				#endif
 				for(int subDom=0; subDom<scene->particles->numSubdomains(); subDom++){
@@ -111,9 +111,9 @@ struct ParticleContainer: public Object{
 					}
 				}
 
-				For convenience, this is all wrapped in YADE_PARALLEL_FOREACH_BODY macro, which then works like this:
+				For convenience, this is all wrapped in WOO_PARALLEL_FOREACH_BODY macro, which then works like this:
 
-				YADE_PARALLEL_FOREACH_BODY(const shared_ptr<Particle>& b,scene->particles){
+				WOO_PARALLEL_FOREACH_BODY(const shared_ptr<Particle>& b,scene->particles){
 					if(!b) continue
 
 				}
@@ -140,7 +140,7 @@ struct ParticleContainer: public Object{
 			void setupSubdomains();
 			// add parts to a sub-domain; return false if there are no subdomains, true otherwise
 			bool setParticleSubdomain(const shared_ptr<Particle>&, int subDom);
-		#endif /* YADE_SUBDOMAINS */
+		#endif /* WOO_SUBDOMAINS */
 
 		// python access
 		class pyIterator{
@@ -160,18 +160,18 @@ struct ParticleContainer: public Object{
 		pyIterator pyIter();
 	
 
-		YADE_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(ParticleContainer,Object,"Storage for DEM particles",
+		WOO_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(ParticleContainer,Object,"Storage for DEM particles",
 			((ContainerT/* = std::vector<shared_ptr<Particle> > */,parts,,AttrTrait<Attr::hidden>(),"Actual particle storage"))
 			((list<id_t>,freeIds,,AttrTrait<Attr::hidden>(),"Free particle id's"))
 			,/* init */
-				#ifdef YADE_SUBDOMAINS
-					#ifdef YADE_OPENMP
+				#ifdef WOO_SUBDOMAINS
+					#ifdef WOO_OPENMP
 						((maxSubdomains,omp_get_max_threads()))
 					#else
 						((maxSubdomains,1))
 					#endif
 					((subDomainsLowestFree,vector<id_t>(maxSubdomains,0)))
-				#endif /* YADE_SUBDOMAINS */
+				#endif /* WOO_SUBDOMAINS */
 			,/* ctor */
 				manipMutex=new boost::mutex;
 			,/*py*/

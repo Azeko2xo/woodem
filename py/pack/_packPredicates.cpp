@@ -6,7 +6,7 @@
 #include<woo/lib/pyutil/doc_opts.hpp>
 
 namespace py=boost::python;
-#ifdef YADE_LOG4CXX
+#ifdef WOO_LOG4CXX
 	log4cxx::LoggerPtr logger=log4cxx::Logger::getLogger("yade.pack.predicates");
 #endif
 
@@ -281,7 +281,7 @@ public:
 	}
 };
 
-#ifdef YADE_GTS
+#ifdef WOO_GTS
 extern "C" {
 // HACK
 #include"../3rd-party/pygts-0.3.1/pygts.h"
@@ -339,7 +339,7 @@ public:
 
 BOOST_PYTHON_MODULE(_packPredicates){
 	py::scope().attr("__doc__")="Spatial predicates for volumes (defined analytically or by triangulation).";
-	YADE_SET_DOCSTRING_OPTS;
+	WOO_SET_DOCSTRING_OPTS;
 	// base predicate class
 	py::class_<PredicateWrap,/* necessary, as methods are pure virtual*/ boost::noncopyable>("Predicate")
 		.def("__call__",py::pure_virtual(&Predicate::operator()))
@@ -362,7 +362,7 @@ BOOST_PYTHON_MODULE(_packPredicates){
 	py::class_<inHyperboloid,py::bases<Predicate> >("inHyperboloid","Hyperboloid predicate",py::init<const Vector3r&,const Vector3r&,Real,Real>(py::args("centerBottom","centerTop","radius","skirt"),"Ctor taking centers of the lateral walls (as 3-tuples), radius at bases and skirt (middle radius)."));
 	py::class_<inEllipsoid,py::bases<Predicate> >("inEllipsoid","Ellipsoid predicate",py::init<const Vector3r&,const Vector3r&>(py::args("centerPoint","abc"),"Ctor taking center of the ellipsoid (3-tuple) and its 3 radii (3-tuple)."));
 	py::class_<notInNotch,py::bases<Predicate> >("notInNotch","Outside of infinite, rectangle-shaped notch predicate",py::init<const Vector3r&,const Vector3r&,const Vector3r&,Real>(py::args("centerPoint","edge","normal","aperture"),"Ctor taking point in the symmetry plane, vector pointing along the edge, plane normal and aperture size.\nThe side inside the notch is edge×normal.\nNormal is made perpendicular to the edge.\nAll vectors are normalized at construction time.")); 
-	#ifdef YADE_GTS
+	#ifdef WOO_GTS
 		py::class_<inGtsSurface,py::bases<Predicate> >("inGtsSurface","GTS surface predicate",py::init<py::object,py::optional<bool> >(py::args("surface","noPad"),"Ctor taking a gts.Surface() instance, which must not be modified during instance lifetime.\nThe optional noPad can disable padding (if set to True), which speeds up calls several times.\nNote: padding checks inclusion of 6 points along +- cardinal directions in the pad distance from given point, which is not exact."))
 			.add_property("surf",&inGtsSurface::surface,"The associated gts.Surface object.");
 	#endif

@@ -76,7 +76,7 @@ class Indexable{
 	virtual const int& getMaxCurrentlyUsedClassIndex() const { assert(dynamic_cast<SomeClass*>(const_cast<SomeClass*>(this))); return getMaxCurrentlyUsedIndexStatic(); } \
 	virtual void incrementMaxCurrentlyUsedClassIndex() { assert(dynamic_cast<SomeClass*>(this)); int& max = getMaxCurrentlyUsedIndexStatic(); max++; }
 
-// macro that should be passed in the 4th argument of YADE_CLASS_BASE_ATTR_PY in the top-level indexable
-#define YADE_PY_TOPINDEXABLE(className) .add_property("dispIndex",&Indexable_getClassIndex<className>,"Return class index of this instance.").def("dispHierarchy",&Indexable_getClassIndices<className>,(boost::python::arg("names")=true),"Return list of dispatch classes (from down upwards), starting with the class instance itself, top-level indexable at last. If names is true (default), return class names rather than numerical indices.")
+// macro that should be passed in the 4th argument of WOO_CLASS_BASE_ATTR_PY in the top-level indexable
+#define WOO_PY_TOPINDEXABLE(className) .add_property("dispIndex",&Indexable_getClassIndex<className>,"Return class index of this instance.").def("dispHierarchy",&Indexable_getClassIndices<className>,(boost::python::arg("names")=true),"Return list of dispatch classes (from down upwards), starting with the class instance itself, top-level indexable at last. If names is true (default), return class names rather than numerical indices.")
 
 

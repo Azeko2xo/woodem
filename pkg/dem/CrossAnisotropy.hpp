@@ -7,7 +7,7 @@ struct Cp2_FrictMat_FrictPhys_CrossAnisotropic: CPhysFunctor {
 	FUNCTOR2D(FrictMat,FrictMat);
 	void postLoad(Cp2_FrictMat_FrictPhys_CrossAnisotropic&);
 	DECLARE_LOGGER;
-	YADE_CLASS_BASE_DOC_ATTRS(Cp2_FrictMat_FrictPhys_CrossAnisotropic,CPhysFunctor,"Call :yref:`Cp2_FrictMat_FrictPhys` to create a new :yref:`FrictPhys`, but multiply resulting :yref:`normal<NormPhys.kn>` and `shear<NormShearPhys.ks>` by smooth dimensionless anisotropy distribution given by :yref:`rot<Cp2_FrictMat_FrictPhys_CrossAnisotropic.rot>` and :yref:`scale<Cp2_FrictMat_FrictPhys.scale>`.",
+	WOO_CLASS_BASE_DOC_ATTRS(Cp2_FrictMat_FrictPhys_CrossAnisotropic,CPhysFunctor,"Call :yref:`Cp2_FrictMat_FrictPhys` to create a new :yref:`FrictPhys`, but multiply resulting :yref:`normal<NormPhys.kn>` and `shear<NormShearPhys.ks>` by smooth dimensionless anisotropy distribution given by :yref:`rot<Cp2_FrictMat_FrictPhys_CrossAnisotropic.rot>` and :yref:`scale<Cp2_FrictMat_FrictPhys.scale>`.",
 		//((Real,nu2,.4,AttrTrait<Attr::readonly>(),"Minor Poisson's ratio (not really used)."))
 		// ((Vector2r,nu1_range,Vector2r(-1.,1.),,"Meaningful range for :yref:`nu1<Cp2_FrictMat_FrictPhys_CrossAnisotropic.nu1>`."))
 		((Real,E1,1e6,AttrTrait<Attr::triggerPostLoad>(),"In-plane normal modulus"))
@@ -33,14 +33,14 @@ struct Cp2_FrictMat_FrictPhys_CrossAnisotropic: CPhysFunctor {
 REGISTER_SERIALIZABLE(Cp2_FrictMat_FrictPhys_CrossAnisotropic);
 
 #if 0
-#ifdef YADE_OPENGL
+#ifdef WOO_OPENGL
 #include<woo/pkg/common/OpenGLRenderer.hpp>
 
 class GlExtra_LocalAxes: public GlExtraDrawer{
 	public:
 	//void postLoad(GlExtra_OctreeCubes&);
 	virtual void render();
-	YADE_CLASS_BASE_DOC_ATTRS(GlExtra_LocalAxes,GlExtraDrawer,"Render local coordinate system axes.",
+	WOO_CLASS_BASE_DOC_ATTRS(GlExtra_LocalAxes,GlExtraDrawer,"Render local coordinate system axes.",
 		((Vector3r,pos,Vector3r::Zero(),,"System position in global coordinates"))
 		((Quaternionr,ori,Quaternionr::Identity(),,"System orientation"))
 		//((Vector3r,color,Vector3r(1,1,1),,"Arrow and plane colors"))

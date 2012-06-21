@@ -2,7 +2,7 @@
 #include<woo/lib/pyutil/gil.hpp>
 #include<woo/pkg/dem/L6Geom.hpp>
 
-YADE_PLUGIN(dem,(LawTesterStage)(LawTester));
+WOO_PLUGIN(dem,(LawTesterStage)(LawTester));
 
 CREATE_LOGGER(LawTesterStage);
 CREATE_LOGGER(LawTester);

@@ -59,11 +59,11 @@ cp %{buildroot}%_libdir/%{name}/py/gts/_gts.so %{buildroot}%_libdir/%{name}/lib/
 
 #Generate documentation
 cd %_builddir/%{name}-%{version}/doc/sphinx
-PYTHONPATH=. YADE_PREFIX=%{buildroot}/usr %{buildroot}/usr/bin/%{name} yadeSphinx.py
+PYTHONPATH=. WOO_PREFIX=%{buildroot}/usr %{buildroot}/usr/bin/%{name} yadeSphinx.py
 cd _build/latex; xelatex Yade.tex; xelatex Yade.tex; xelatex Yade.tex;
 
-YADE_PREFIX=%{buildroot}/usr %{buildroot}/usr/bin/%{name} --generate-manpage yade-%{version}.1
-YADE_PREFIX=%{buildroot}/usr %{buildroot}/usr/bin/%{name}-batch --generate-manpage yade-%{version}-batch.1
+WOO_PREFIX=%{buildroot}/usr %{buildroot}/usr/bin/%{name} --generate-manpage yade-%{version}.1
+WOO_PREFIX=%{buildroot}/usr %{buildroot}/usr/bin/%{name}-batch --generate-manpage yade-%{version}-batch.1
 cd ../..;
 
 mkdir -p %{buildroot}%{_docdir}/%{name}
@@ -98,8 +98,8 @@ rm -rf %{_builddir}/*
 %doc %{_docdir}/%{name}/*
 
 %check
-YADE_PREFIX=%{buildroot}/usr %{buildroot}/usr/bin/%{name} --test
-YADE_PREFIX=%{buildroot}/usr %{buildroot}/usr/bin/%{name} --debug --test
+WOO_PREFIX=%{buildroot}/usr %{buildroot}/usr/bin/%{name} --test
+WOO_PREFIX=%{buildroot}/usr %{buildroot}/usr/bin/%{name} --debug --test
 
 %changelog
 * Wed Feb 23 2011 Anton Gladky <gladky.anton@gmail.com> 0.60-1

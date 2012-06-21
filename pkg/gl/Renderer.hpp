@@ -12,14 +12,14 @@
 struct GlExtraDrawer: public Object{
 	Scene* scene;
 	virtual void render();
-	YADE_CLASS_BASE_DOC_ATTRS(GlExtraDrawer,Object,"Performing arbitrary OpenGL drawing commands; called from :yref:`Renderer` (see :yref:`Renderer.extraDrawers`) once regular rendering routines will have finished.\n\nThis class itself does not render anything, derived classes should override the *render* method.",
+	WOO_CLASS_BASE_DOC_ATTRS(GlExtraDrawer,Object,"Performing arbitrary OpenGL drawing commands; called from :yref:`Renderer` (see :yref:`Renderer.extraDrawers`) once regular rendering routines will have finished.\n\nThis class itself does not render anything, derived classes should override the *render* method.",
 		((bool,dead,false,,"Deactivate the object (on error/exception)."))
 	);
 };
 REGISTER_SERIALIZABLE(GlExtraDrawer);
 
 struct GlData: public NodeData{
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(GlData,NodeData,"Nodal data used for rendering.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(GlData,NodeData,"Nodal data used for rendering.",
 		((Vector3r,refPos,Vector3r(NaN,NaN,NaN),AttrTrait<>().lenUnit(),"Reference position (for displacement scaling)"))
 		((Quaternionr,refOri,Quaternionr(NaN,NaN,NaN,NaN),,"Reference orientation (for rotation scaling)"))
 		((Vector3r,dGlPos,Vector3r(NaN,NaN,NaN),AttrTrait<>().lenUnit(),"Difference from real spatial position when rendered."))
@@ -147,7 +147,7 @@ class Renderer: public Object{
 
 		void renderField();
 #endif
-	YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(Renderer,Object,"Class responsible for rendering scene on OpenGL devices.",
+	WOO_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(Renderer,Object,"Class responsible for rendering scene on OpenGL devices.",
 		((bool,scaleOn,true,,"Whether *dispScale* has any effect or not."))
 		((Vector3r,dispScale,((void)"disable scaling",Vector3r::Ones()),,"Artificially enlarge (scale) dispalcements from bodies' :yref:`reference positions<State.refPos>` by this relative amount, so that they become better visible (independently in 3 dimensions). Disbled if (1,1,1), and also if *scaleOn* is false."))
 		((Real,rotScale,((void)"disable scaling",1.),,"Artificially enlarge (scale) rotations of bodies relative to their :yref:`reference orientation<State.refOri>`, so the they are better visible. No effect if 1, and also if *scaleOn* is false."))
@@ -159,7 +159,7 @@ class Renderer: public Object{
 		((bool,light1,true,,"Turn light 1 on."))
 		((bool,light2,true,,"Turn light 2 on."))
 		((bool,ghosts,false,,"Render objects crossing periodic cell edges by cloning them in multiple places (periodic simulations only)."))
-		#ifdef YADE_SUBDOMAINS
+		#ifdef WOO_SUBDOMAINS
 			((int,subDomMask,0,,"If non-zero, render shape only of particles that are inside respective domains - -they are counted from the left, i.e. 5 (binary 101) will show subdomains 1 and 3. If zero, render everything."))
 		#endif
 		// ((int,mask,((void)"draw everything",~0),,"Bitmask for showing only bodies where ((mask & :yref:`Body::mask`)!=0)"))

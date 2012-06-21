@@ -13,7 +13,7 @@
 
 namespace py = boost::python;
 
-#ifdef YADE_LOG4CXX
+#ifdef WOO_LOG4CXX
 	log4cxx::LoggerPtr logger=log4cxx::Logger::getLogger("yade.utils");
 #endif
 
@@ -229,7 +229,7 @@ Real sumFacetNormalForces(vector<Body::id_t> ids, int axis=-1){
 	shared_ptr<Scene> rb=Master::instance().getScene(); rb->forces.sync();
 	Real ret=0;
 	FOREACH(const Body::id_t id, ids){
-		Facet* f=YADE_CAST<Facet*>(Body::byId(id,rb)->shape.get());
+		Facet* f=WOO_CAST<Facet*>(Body::byId(id,rb)->shape.get());
 		if(axis<0) ret+=rb->forces.getForce(id).dot(f->normal);
 		else {
 			Vector3r ff=rb->forces.getForce(id); ff[axis]=0;
@@ -391,7 +391,7 @@ BOOST_PYTHON_MODULE(_utils){
 	// http://numpy.scipy.org/numpydoc/numpy-13.html mentions this must be done in module init, otherwise we will crash
 	import_array();
 
-	YADE_SET_DOCSTRING_OPTS;
+	WOO_SET_DOCSTRING_OPTS;
 
 	py::def("PWaveTimeStep",PWaveTimeStep,"Get timestep accoring to the velocity of P-Wave propagation; computed from sphere radii, rigidities and masses.");
 	py::def("RayleighWaveTimeStep",RayleighWaveTimeStep,"Determination of time step according to Rayleigh wave speed of force propagation.");

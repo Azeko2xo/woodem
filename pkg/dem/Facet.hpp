@@ -9,7 +9,7 @@ struct Facet: public Shape {
 	// return velocity which is linearly interpolated between velocities of facet nodes, and also angular velocity at that point
 	std::tuple<Vector3r,Vector3r> interpolatePtLinAngVel(const Vector3r& x) const;
 	std::tuple<Vector3r,Vector3r,Vector3r> getOuterVectors() const;
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR(Facet,Shape,"Facet (triangle in 3d) particle.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR(Facet,Shape,"Facet (triangle in 3d) particle.",
 		((Vector3r,fakeVel,Vector3r::Zero(),,"Fake velocity when computing contact, in global coordinates (for modeling moving surface modeled using static triangulation); only in-plane velocity is meaningful, but this is not enforced."))
 		/*attrs*/
 		,/*ctor*/ createIndex();
@@ -21,16 +21,16 @@ REGISTER_SERIALIZABLE(Facet);
 struct Bo1_Facet_Aabb: public BoundFunctor{
 	void go(const shared_ptr<Shape>&);
 	FUNCTOR1D(Facet);
-	YADE_CLASS_BASE_DOC(Bo1_Facet_Aabb,BoundFunctor,"Creates/updates an :yref:`Aabb` of a :yref:`Facet`.");
+	WOO_CLASS_BASE_DOC(Bo1_Facet_Aabb,BoundFunctor,"Creates/updates an :yref:`Aabb` of a :yref:`Facet`.");
 };
 REGISTER_SERIALIZABLE(Bo1_Facet_Aabb);
 
-#ifdef YADE_OPENGL
+#ifdef WOO_OPENGL
 #include<woo/pkg/gl/Functors.hpp>
 struct Gl1_Facet: public GlShapeFunctor{	
 	void go(const shared_ptr<Shape>&, const Vector3r&, bool, const GLViewInfo&);
 	RENDERS(Facet);
-	YADE_CLASS_BASE_DOC_STATICATTRS(Gl1_Facet,GlShapeFunctor,"Renders :yref:`Facet` object",
+	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Facet,GlShapeFunctor,"Renders :yref:`Facet` object",
 		((bool,wire,false,,"Only show wireframe."))
 		/*attrs*/
 	);

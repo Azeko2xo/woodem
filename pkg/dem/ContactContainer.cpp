@@ -1,7 +1,7 @@
 #include<woo/pkg/dem/ContactContainer.hpp>
 #include<woo/pkg/dem/Particle.hpp>
 
-#ifdef YADE_OPENMP
+#ifdef WOO_OPENMP
 	#include<omp.h>
 #endif
 
@@ -12,7 +12,7 @@ bool ContactContainer::IsReal::operator()(const shared_ptr<Contact>& c){ return 
 
 bool ContactContainer::add(const shared_ptr<Contact>& c, bool threadSafe){
 	assert(dem);
-	#if defined(YADE_OPENMP) || defined(YADE_OPENGL)
+	#if defined(WOO_OPENMP) || defined(WOO_OPENGL)
 		boost::mutex::scoped_lock lock(*manipMutex);
 	#endif
 	if(!threadSafe){
@@ -33,7 +33,7 @@ bool ContactContainer::add(const shared_ptr<Contact>& c, bool threadSafe){
 
 void ContactContainer::clear(){
 	assert(dem);
-	#if defined(YADE_OPENMP) || defined(YADE_OPENGL)
+	#if defined(WOO_OPENMP) || defined(WOO_OPENGL)
 		boost::mutex::scoped_lock lock(*manipMutex);
 	#endif
 	FOREACH(const shared_ptr<Particle>& p, *dem->particles) p->contacts.clear();
@@ -44,7 +44,7 @@ void ContactContainer::clear(){
 
 bool ContactContainer::remove(shared_ptr<Contact> c, bool threadSafe){
 	assert(dem);
-	#if defined(YADE_OPENMP) || defined(YADE_OPENGL)
+	#if defined(WOO_OPENMP) || defined(WOO_OPENGL)
 		boost::mutex::scoped_lock lock(*manipMutex);
 	#endif
 	Particle::id_t idA(c->pA->id), idB(c->pB->id);
@@ -105,7 +105,7 @@ bool ContactContainer::exists(ParticleContainer::id_t idA, ParticleContainer::id
 
 void ContactContainer::requestRemoval(const shared_ptr<Contact>& c, bool force){
 	c->reset(); PendingContact v={c,force};
-	#ifdef YADE_OPENMP
+	#ifdef WOO_OPENMP
 		threadsPending[omp_get_thread_num()].push_back(v);
 	#else
 		pending.push_back(v);
@@ -113,7 +113,7 @@ void ContactContainer::requestRemoval(const shared_ptr<Contact>& c, bool force){
 }
 
 void ContactContainer::clearPending(){
-	#ifdef YADE_OPENMP
+	#ifdef WOO_OPENMP
 		FOREACH(list<PendingContact>& pending, threadsPending){
 			pending.clear();
 		}
@@ -124,7 +124,7 @@ void ContactContainer::clearPending(){
 
 int ContactContainer::removeAllPending(){
 	int ret=0;
-	#ifdef YADE_OPENMP
+	#ifdef WOO_OPENMP
 		// shadow this->pendingErase by the local variable, to share code
 		FOREACH(list<PendingContact>& pending, threadsPending){
 	#endif
@@ -132,7 +132,7 @@ int ContactContainer::removeAllPending(){
 				FOREACH(const PendingContact& p, pending){ if(remove(p.contact)) ret++; }
 				pending.clear();
 			}
-	#ifdef YADE_OPENMP
+	#ifdef WOO_OPENMP
 		}
 	#endif
 	return ret;

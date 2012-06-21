@@ -7,7 +7,7 @@ namespace yade{
 
 	// void ArithmeticError(const std::string& what){ PyErr_SetString(PyExc_ArithmeticError,what.c_str()); boost::python::throw_error_already_set(); }
 	#define _DEFINE_YADE_PY_ERROR(x,y,AnyError) void AnyError(const std::string& what){ PyErr_SetString(BOOST_PP_CAT(PyExc_,AnyError),what.c_str()); boost::python::throw_error_already_set(); } void AnyError(const boost::format& f){ AnyError(f.str()); }
-	BOOST_PP_SEQ_FOR_EACH(_DEFINE_YADE_PY_ERROR,~,YADE_PYUTIL_ERRORS)
+	BOOST_PP_SEQ_FOR_EACH(_DEFINE_YADE_PY_ERROR,~,WOO_PYUTIL_ERRORS)
 	#undef _DEFINE_YADE_PY_ERROR
 	
 	// http://thejosephturner.com/blog/2011/06/15/embedding-python-in-c-applications-with-boostpython-part-2/

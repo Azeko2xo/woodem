@@ -12,7 +12,7 @@ struct PeriIsoCompressor: public Engine{
 
 	Real maxDisplPerStep;
 	void run();
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(PeriIsoCompressor,Engine,"Compress/decompress cloud of spheres by controlling periodic cell size until it reaches prescribed average stress, then moving to next stress value in given stress series.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(PeriIsoCompressor,Engine,"Compress/decompress cloud of spheres by controlling periodic cell size until it reaches prescribed average stress, then moving to next stress value in given stress series.",
 		((vector<Real>,stresses,,,"Stresses that should be reached, one after another"))
 		((Real,charLen,-1.,,"Characteristic length, should be something like mean particle diameter (default -1=invalid value))"))
 		((Real,maxSpan,-1.,,"Maximum body span in terms of bbox, to prevent periodic cell getting too small. |ycomp|"))

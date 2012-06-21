@@ -33,7 +33,7 @@ There is a number of configuration parameters; you can list all of them by ``sco
 ``debug`` [*False* (0)]
 	add debugging symbols to output, enable stack traces on crash
 ``optimize`` [*True* (1)]
-	optimize binaries (``#define NDEBUG``; assertions eliminated; ``YADE_CAST`` and ``YADE_PTR_CAST`` are static casts rather than dynamic; LOG_TRACE and LOG_DEBUG are eliminated)
+	optimize binaries (``#define NDEBUG``; assertions eliminated; ``WOO_CAST`` and ``WOO_PTR_CAST`` are static casts rather than dynamic; LOG_TRACE and LOG_DEBUG are eliminated)
 ``CPPPATH`` [``/usr/include/vtk-5.2:/usr/include/vtk-5.4``]
 	additional colon-separated paths for preprocessor (for atypical header locations). Required by some libraries, such as VTK (reflected by the default)
 ``LIBPATH`` [*(empty)*]
@@ -49,7 +49,7 @@ There is a number of configuration parameters; you can list all of them by ``sco
 ``linkStrategy`` [monolithic]
 	whether to link all plugins in one shared library (``monolithic``) or in one file per plugin (``per-class``); the first option is faster for overall builds, while the latter one makes recompilation of only part of Yade faster; granularity of monolithic build can be changed with the ``chunkSize`` parameter, which determines how many files are compiled at once.
 ``features`` [log4cxx,opengl,gts,openmp]
-	optional comma-separated features to build with (details below; each defines macro ``YADE_\$FEATURE``; available as lowercased list ``yade.config.features`` at runtime
+	optional comma-separated features to build with (details below; each defines macro ``WOO_\$FEATURE``; available as lowercased list ``yade.config.features`` at runtime
 
 
 Library detection
@@ -74,19 +74,19 @@ python
 Optional libraries (features)
 """"""""""""""""""""""""""""""
 
-The `features` parameter controls optional functionality. Each enabled feature defines preprocessor macro `YADE_FEATURE` (name uppercased) to enable selective exclude/include of parts of code. Code of which compilation depends on a particular features should use ``#ifdef YADE_FEATURE`` constructs to exclude dependent parts.
+The `features` parameter controls optional functionality. Each enabled feature defines preprocessor macro `WOO_FEATURE` (name uppercased) to enable selective exclude/include of parts of code. Code of which compilation depends on a particular features should use ``#ifdef WOO_FEATURE`` constructs to exclude dependent parts.
 
-log4cxx (YADE_LOG4CXX)
+log4cxx (WOO_LOG4CXX)
 	Enable flexible logging system (`log4cxx <http://log4cxx.apache.org>`__), which permits to assign logging levels on per-class basis; doesn't change API, only redefines `LOG_INFO` and other macros accordingly; see :ref:`log4cxx` for details.
-opengl (YADE_OPENGL)
+opengl (WOO_OPENGL)
 	Enable 3d rendering as well as the Qt3-based graphical user interface (in addition to python console).
-vtk (YADE_VTK)
+vtk (WOO_VTK)
 	Enable functionality using Visualization Toolkit (`vtk <http://www.vtk.org>`__; e.g. :yref:`VTKRecorder` exporting to files readable with ParaView).
-openmp (YADE_OPENMP)
+openmp (WOO_OPENMP)
 	Enable parallelization using OpenMP, non-intrusive shared-memory parallelization framework; it is only supported for ``g++`` > 4.0. Parallel computation leads to significant performance increase and should be enabled unless you have a special reason for not doing so (e.g. single-core machine). See :ref:`upyade-parallel` for details.
-gts (YADE_GTS)
+gts (WOO_GTS)
 	Enable functionality provided by GNU Triangulated Surface library (`gts <http://gts.sf.net>`__) and build PyGTS, its python interface; used for surface import and construction.
-cgal (YADE_CGAL)
+cgal (WOO_CGAL)
 	Enable functionality provided by Computation Geometry Algorithms Library (`cgal <http://www.cgal.org>`__); triangulation code in :yref:`MicroMacroAnalyser` and :yref:`PersistentTriangulationCollider` ses its routines.
 other
 	There might be more features added in the future. Always refer to ``scons -h`` output for possible values.
@@ -153,19 +153,19 @@ Automatic compilation
 """"""""""""""""""""""
 In the ``pkg/`` directory, situation is different. In order to maximally ease addition of modules to yade, all ``*.cpp`` files are *automatically scanned* by SCons and considered for compilation. Each file may contain multiple lines that declare features that are necessary for this file to be compiled::
 
-	YADE_REQUIRE_FEATURE(vtk);
-	YADE_REQUIRE_FEATURE(gts);
+	WOO_REQUIRE_FEATURE(vtk);
+	WOO_REQUIRE_FEATURE(gts);
 
 This file will be compiled only if *both* ``vtk`` and ``gts`` features are enabled. Depending on current feature set, only selection of plugins will be compiled.
 
 It is possible to disable compilation of a file by requiring any non-existent feature, such as::
 
-	YADE_REQUIRE_FEATURE(temporarily disabled 345uiysdijkn);
+	WOO_REQUIRE_FEATURE(temporarily disabled 345uiysdijkn);
 
-The ``YADE_REQUIRE_FEATURE`` macro expands to nothing during actual compilation.
+The ``WOO_REQUIRE_FEATURE`` macro expands to nothing during actual compilation.
 
 .. note::
-	The source scanner was written by hand and is not official part of SCons. It is fairly primitive and in particular, it doesn't interpret c preprocessor macros, except for a simple non-nested feature-checks like ``#ifdef YADE_*``/``#ifndef YADE_*`` #endif.
+	The source scanner was written by hand and is not official part of SCons. It is fairly primitive and in particular, it doesn't interpret c preprocessor macros, except for a simple non-nested feature-checks like ``#ifdef WOO_*``/``#ifndef WOO_*`` #endif.
 
 
 .. _linking:
@@ -217,14 +217,14 @@ The following rules that should be respected; documentation is treated separatel
 
   * Types should be always capitalized. Use CamelCase for composed names (``GlobalEngine``). Underscores should be used only in special cases, such as functor names.
   * Class data members and methods must not be capitalized, composed names should use use lowercased camelCase (``glutSlices``). The same applies for functions in python modules.
-  * Preprocessor macros are uppercase, separated by underscores; those that are used outside the core take (with exceptions) the form ``YADE_*``, such as :ref:`YADE_CLASS_BASE_DOC`.
+  * Preprocessor macros are uppercase, separated by underscores; those that are used outside the core take (with exceptions) the form ``WOO_*``, such as :ref:`WOO_CLASS_BASE_DOC`.
 
 * programming style
 
   * Be defensive, if it has no significant performance impact. Use assertions abundantly: they don't affect performance (in the optimized build) and make spotting error conditions much easier.
   * Use logging abundantly. Again, ``LOG_TRACE`` and ``LOG_DEBUG`` are eliminated from optimized code; unless turned on explicitly, the ouput will be suppressed even in the debug build (see below).
-  * Use ``YADE_CAST`` and ``YADE_PTR_CAST`` where you want type-check during debug builds, but fast casting in optimized build. 
-  * Initialize all class variables in the default constructor. This avoids bugs that may manifest randomly and are difficult to fix. Initializing with NaN's will help you find otherwise unitialized variable. (This is taken care of by :ref:`YADE_CLASS_BASE_DOC` macros for user classes)
+  * Use ``WOO_CAST`` and ``WOO_PTR_CAST`` where you want type-check during debug builds, but fast casting in optimized build. 
+  * Initialize all class variables in the default constructor. This avoids bugs that may manifest randomly and are difficult to fix. Initializing with NaN's will help you find otherwise unitialized variable. (This is taken care of by :ref:`WOO_CLASS_BASE_DOC` macros for user classes)
 
 
 Class naming
@@ -300,7 +300,7 @@ Most c++ classes are wrapped in Python, which provides good introspection and in
 
 Syntax of documentation is `ReST <http://docutils.sourceforge.net/rst.html`__ (reStructuredText, see `reStructuredText Primer <http://sphinx.pocoo.org/rest.html>`__). It is the same for c++ and python code.
 
-* Documentation of c++ classes exposed to python is given as 3rd argument to :ref:`YADE_CLASS_BASE_DOC` introduced below.
+* Documentation of c++ classes exposed to python is given as 3rd argument to :ref:`WOO_CLASS_BASE_DOC` introduced below.
 
 * Python classes/functions are documented using regular python docstrings. Besides explaining functionality, meaning and types of all arguments should also be documented. Short pieces of code might be very helpful. See the :yref:`yade.utils` module for an example.
 
@@ -409,7 +409,7 @@ Yade makes extensive use of shared pointers ``shared_ptr``. [#sharedptr]_ Althou
  
 .. [#sharedptr] Either ``boost::shared_ptr`` or ``tr1::shared_ptr`` is used, but it is always imported with the ``using`` statement so that unqualified ``shared_ptr`` can be used.
 
-Python defines thin wrappers for most c++ Yade classes (for all those registered with :ref:`YADE_CLASS_BASE_DOC` and several others), which can be constructed from ``shared_ptr``; in this way, Python reference counting blends with the ``shared_ptr`` reference counting model, preventing crashes due to python objects pointing to c++ objects that were destructed in the meantime.
+Python defines thin wrappers for most c++ Yade classes (for all those registered with :ref:`WOO_CLASS_BASE_DOC` and several others), which can be constructed from ``shared_ptr``; in this way, Python reference counting blends with the ``shared_ptr`` reference counting model, preventing crashes due to python objects pointing to c++ objects that were destructed in the meantime.
 
 Typecasting
 ^^^^^^^^^^^^
@@ -422,10 +422,10 @@ Frequently, pointers have to be typecast; there is choice between static and dyn
 
 To have both speed and safety, Yade provides 2 macros:
 
-``YADE_CAST``
+``WOO_CAST``
 	expands to ``static_cast`` in optimized builds and to ``dynamic_cast`` in debug builds. 
 
-``YADE_PTR_CAST``
+``WOO_PTR_CAST``
 	expands to ``static_pointer_cast`` in optimized builds and to ``dynamic_pointer_cast`` in debug builds.
 
 
@@ -471,7 +471,7 @@ Run-time type identification (RTTI)
 
 Since serialization and dispatchers need extended type and inheritance information, which is not sufficiently provided by standard RTTI. Each yade class is therefore derived from ``Factorable`` and it must use macro to override its virtual functions providing this extended RTTI:
 
-``YADE_CLASS_BASE_DOC(Foo,Bar Baz,"Docstring)`` creates the following virtual methods (mediated via the ``REGISTER_CLASS_AND_BASE`` macro, which is not user-visible and should not be used directly):
+``WOO_CLASS_BASE_DOC(Foo,Bar Baz,"Docstring)`` creates the following virtual methods (mediated via the ``REGISTER_CLASS_AND_BASE`` macro, which is not user-visible and should not be used directly):
 
 * ``std::string getClassName()`` returning class name (``Foo``) as string. (There is the ``typeid(instanceOrType).name()`` standard c++ construct, but the name returned is compiler-dependent.)
 * ``unsigned getBaseClassNumber()`` returning number of base classes (in this case, 2).
@@ -506,17 +506,17 @@ This functionality is provided by 3 macros and 4 optional methods; details are p
 	Prepare attributes before serialization (saving) or deserialization (loading) or process them after serialization or deserialization.
 	
 	See :ref:`attributeregistration`.
-``YADE_CLASS_BASE_DOC_*``
+``WOO_CLASS_BASE_DOC_*``
 	Inside the class declaration (i.e. in the ``.hpp`` file within the ``class Foo { /* … */};`` block). See :ref:`attributeregistration`.
 
-	Enumerate class attributes that should be saved and loaded; associate each attribute with its literal name, which can be used to retrieve it. See :ref:`YADE_CLASS_BASE_DOC`.                    
+	Enumerate class attributes that should be saved and loaded; associate each attribute with its literal name, which can be used to retrieve it. See :ref:`WOO_CLASS_BASE_DOC`.                    
 
 	Additionally documents the class in python, adds methods for attribute access from python, and documents each attribute.
 ``REGISTER_SERIALIZABLE``
 	In header file, but *after* the class declaration block. See :ref:`classfactory`.
 	
 	Associate literal name of the class with functions that will create its new instance (``ClassFactory``).
-``YADE_PLUGIN``
+``WOO_PLUGIN``
 	In the implementation ``.cpp`` file. See :ref:`plugins`.
 
 	Declare what classes are declared inside a particular plugin at time the plugin is being loaded (yade startup).
@@ -530,11 +530,11 @@ All (serializable) types in Yade are one of the following:
 
 * Type deriving from :yref:`Object`, which provide information on how to serialize themselves via overriding the ``Object::registerAttributes`` method; it declares data members that should be serialzed along with their literal names, by which they are identified. This method then invokes ``registerAttributes`` of its base class (until ``Object`` itself is reached); in this way, derived classes properly serialize data of their base classes.
 
-  This funcionality is hidden behind the macro :ref:`YADE_CLASS_BASE_DOC` used in class declaration body (header file), which takes base class and list of attributes::
+  This funcionality is hidden behind the macro :ref:`WOO_CLASS_BASE_DOC` used in class declaration body (header file), which takes base class and list of attributes::
 
-	YADE_CLASS_BASE_DOC_ATTRS(ThisClass,BaseClass,"class documentation",((type1,attribute1,initValue1,,"Documentation for attribute 1"))((type2,attribute2,initValue2,,"Documentation for attribute 2"));
+	WOO_CLASS_BASE_DOC_ATTRS(ThisClass,BaseClass,"class documentation",((type1,attribute1,initValue1,,"Documentation for attribute 1"))((type2,attribute2,initValue2,,"Documentation for attribute 2"));
 
-  Note that attributes are encodes in double parentheses, not separated by commas. Empty attribute list can be given simply by ``YADE_CLASS_BASE_DOC_ATTRS(ThisClass,BaseClass,"documentation",)`` (the last comma is mandatory), or by omiting ``ATTRS`` from macro name and last parameter altogether.
+  Note that attributes are encodes in double parentheses, not separated by commas. Empty attribute list can be given simply by ``WOO_CLASS_BASE_DOC_ATTRS(ThisClass,BaseClass,"documentation",)`` (the last comma is mandatory), or by omiting ``ATTRS`` from macro name and last parameter altogether.
 
 * Fundamental type: strings, various number types, booleans, ``Vector3r`` and others. Their "handlers" (serializers and deserializers) are defined in ``lib/serialization``.
 
@@ -544,7 +544,7 @@ All (serializable) types in Yade are one of the following:
 
 Yade uses the excellent `boost::serialization <http://www.boost.org/doc/libs/release/libs/serialization/>`_ library internally for serialization of data.
 
-.. note:: ``YADE_CLASS_BASE_DOC_ATTRS`` also generates code for attribute access from python; this will be discussed later. Since this macro serves both purposes, the consequence is that attributes that are serialized can always be accessed from python.
+.. note:: ``WOO_CLASS_BASE_DOC_ATTRS`` also generates code for attribute access from python; this will be discussed later. Since this macro serves both purposes, the consequence is that attributes that are serialized can always be accessed from python.
 
 Yade also provides callback for before/after (de) serialization, virtual functions :yref:`Object::preProcessAttributes` and :yref:`Object::postProcessAttributes`, which receive one ``bool deserializing`` argument (``true`` when deserializing, ``false`` when serializing). Their default implementation in :yref:`Object` doesn't do anything, but their typical use is:
 
@@ -564,16 +564,16 @@ Although mostly used internally by the serialization framework, programmer can a
 
 Plugin registration
 ^^^^^^^^^^^^^^^^^^^
-Yade loads dynamic libraries containing all its functionality at startup. ClassFactory must be taught about classes each particular file provides. ``YADE_PLUGIN`` serves this purpose and, contrary to :ref:`YADE_CLASS_BASE_DOC`, must be place in the implementation (.cpp) file. It simple enumerates classes that are provided by this file::
+Yade loads dynamic libraries containing all its functionality at startup. ClassFactory must be taught about classes each particular file provides. ``WOO_PLUGIN`` serves this purpose and, contrary to :ref:`WOO_CLASS_BASE_DOC`, must be place in the implementation (.cpp) file. It simple enumerates classes that are provided by this file::
 
-	YADE_PLUGIN((ClassFoo)(ClassBar));
+	WOO_PLUGIN((ClassFoo)(ClassBar));
 
-.. note:: You must use parentheses around the class name even if there is only one (preprocessor limitation): ``YADE_PLUGIN((classFoo));``. If there is no class in this file, do not use this macro at all.
+.. note:: You must use parentheses around the class name even if there is only one (preprocessor limitation): ``WOO_PLUGIN((classFoo));``. If there is no class in this file, do not use this macro at all.
 
 Internally, this macro creates function ``registerThisPluginClasses_`` declared specially as ``__attribute__((constructor))`` (see `GCC Function Attributes <http://gcc.gnu.org/onlinedocs/gcc/Function-Attributes.html>`_); this attributes makes the function being executed when the plugin is loaded via ``dlopen`` from ``ClassFactory::load(...)``. It registers all factorable classes from that file in the :ref:`classfactory`.
 
 .. note::
-	Classes that do not derive from ``Factorable``, such as ``Shop`` or ``SpherePack``, are not declared with ``YADE_PLUGIN``.
+	Classes that do not derive from ``Factorable``, such as ``Shop`` or ``SpherePack``, are not declared with ``WOO_PLUGIN``.
 
 ---------------
 
@@ -586,7 +586,7 @@ This is an example of a serializable class header:
 		public:
 			virtual void action();
 		// registering class and its base for the RTTI system
-		YADE_CLASS_BASE_DOC_ATTRS(GravityEngine,GlobalEngine,
+		WOO_CLASS_BASE_DOC_ATTRS(GravityEngine,GlobalEngine,
 			// documentation visible from python and generated reference documentation
 			"Homogeneous gravity field; applies gravity×mass force on all bodies.",
 			// enumerating attributes here, include documentation
@@ -604,7 +604,7 @@ and this is the implementation:
 	#include<yade/core/Scene.hpp>
 
 	// registering the plugin
-	YADE_PLUGIN((GravityEngine));
+	WOO_PLUGIN((GravityEngine));
 
 	void GravityEngine::action(){
 		/* do the work here */
@@ -632,7 +632,7 @@ and the XML looks like this:
 Python attribute access
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-The macro :ref:`YADE_CLASS_BASE_DOC` introduced above is (behind the scenes) also used to create functions for accessing attributes from Python. As already noted, set of serialized attributes and set of attributes accessible from Python are identical. Besides attribute access, these wrapper classes imitate also some functionality of regular python dictionaries:
+The macro :ref:`WOO_CLASS_BASE_DOC` introduced above is (behind the scenes) also used to create functions for accessing attributes from Python. As already noted, set of serialized attributes and set of attributes accessible from Python are identical. Besides attribute access, these wrapper classes imitate also some functionality of regular python dictionaries:
 
 .. ipython::
 	
@@ -657,23 +657,23 @@ The macro :ref:`YADE_CLASS_BASE_DOC` introduced above is (behind the scenes) als
 
 .. _YADE_CLASS_BASE_DOC:
 
-YADE_CLASS_BASE_DOC_* macro family
+WOO_CLASS_BASE_DOC_* macro family
 -----------------------------------
 
-There is several macros that hide behind them the functionality of :ref:`sphinxdocumentation`, :ref:`rtti`, :ref:`attributeregistration`, :ref:`pythonattributeaccess`, plus automatic attribute initialization and documentation. They are all defined as shorthands for base macro ``YADE_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY`` with some arguments left out. They must be placed in class declaration's body (``.hpp`` file):
+There is several macros that hide behind them the functionality of :ref:`sphinxdocumentation`, :ref:`rtti`, :ref:`attributeregistration`, :ref:`pythonattributeaccess`, plus automatic attribute initialization and documentation. They are all defined as shorthands for base macro ``WOO_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY`` with some arguments left out. They must be placed in class declaration's body (``.hpp`` file):
 
 .. code-block:: c++
 
-	#define YADE_CLASS_BASE_DOC(klass,base,doc) \
-		YADE_CLASS_BASE_DOC_ATTRS(klass,base,doc,)
-	#define YADE_CLASS_BASE_DOC_ATTRS(klass,base,doc,attrs) \
-		YADE_CLASS_BASE_DOC_ATTRS_CTOR(klass,base,doc,attrs,)
-	#define YADE_CLASS_BASE_DOC_ATTRS_CTOR(klass,base,doc,attrs,ctor) \
-		YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(klass,base,doc,attrs,ctor,)
-	#define YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(klass,base,doc,attrs,ctor,py) \
-		YADE_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,,ctor,py)
-	#define YADE_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,init,ctor,py) \
-		YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(klass,base,doc,attrs,,init,ctor,py)
+	#define WOO_CLASS_BASE_DOC(klass,base,doc) \
+		WOO_CLASS_BASE_DOC_ATTRS(klass,base,doc,)
+	#define WOO_CLASS_BASE_DOC_ATTRS(klass,base,doc,attrs) \
+		WOO_CLASS_BASE_DOC_ATTRS_CTOR(klass,base,doc,attrs,)
+	#define WOO_CLASS_BASE_DOC_ATTRS_CTOR(klass,base,doc,attrs,ctor) \
+		WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(klass,base,doc,attrs,ctor,)
+	#define WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(klass,base,doc,attrs,ctor,py) \
+		WOO_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,,ctor,py)
+	#define WOO_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,init,ctor,py) \
+		WOO_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(klass,base,doc,attrs,,init,ctor,py)
 
 
 Expected parameters are indicated by macro name components separated with underscores. Their meaning is as follows:
@@ -802,12 +802,12 @@ which then appears in the documentation similar to :yref:`InteractionLoop`.
 Static attributes
 ^^^^^^^^^^^^^^^^^^^
 
-Some classes (such as OpenGL functors) are instantiated automatically; since we want their attributes to be persistent throughout the session, they are static. To expose class with static attributes, use the ``YADE_CLASS_BASE_DOC_STATICATTRS`` macro. Attribute syntax is the same as for ``YADE_CLASS_BASE_DOC_ATTRS``: 
+Some classes (such as OpenGL functors) are instantiated automatically; since we want their attributes to be persistent throughout the session, they are static. To expose class with static attributes, use the ``WOO_CLASS_BASE_DOC_STATICATTRS`` macro. Attribute syntax is the same as for ``WOO_CLASS_BASE_DOC_ATTRS``: 
 	
 .. code-block:: c++
 
 	class SomeClass: public BaseClass{
-		YADE_CLASS_BASE_DOC_STATICATTRS(SomeClass,BaseClass,"Documentation of SomeClass",
+		WOO_CLASS_BASE_DOC_STATICATTRS(SomeClass,BaseClass,"Documentation of SomeClass",
 			((Type1,attr1,default1,"doc for attr1"))
 			((Type2,attr2,default2,"doc for attr2"))
 		);
@@ -827,7 +827,7 @@ additionally, you *have* to allocate memory for static data members in the ``.cp
 	Type1 SomeClass::attr1;
 	Type2 SomeClass::attr2;
 
-There is no way to expose class that has both static and non-static attributes using ``YADE_CLASS_BASE_*`` macros. You have to expose non-static attributes normally and wrap static attributes separately in the ``py`` parameter.
+There is no way to expose class that has both static and non-static attributes using ``WOO_CLASS_BASE_*`` macros. You have to expose non-static attributes normally and wrap static attributes separately in the ``py`` parameter.
 
 
 .. _valuereference:
@@ -840,12 +840,12 @@ When attribute is passed from c++ to python, it can be passed either as
 * value: new python object representing the original c++ object is constructed, but not bound to it; changing the python object doesn't modify the c++ object, unless explicitly assigned back to it, where inverse conversion takes place and the c++ object is replaced.
 * reference: only reference to the underlying c++ object is given back to python; modifying python object will make the c++ object modified automatically.
 
-The way of passing attributes given to ``YADE_CLASS_BASE_DOC_ATTRS`` in the ``attrs`` parameter is determined automatically in the following manner:
+The way of passing attributes given to ``WOO_CLASS_BASE_DOC_ATTRS`` in the ``attrs`` parameter is determined automatically in the following manner:
 
 * ``Vector3``, ``Vector3i``, ``Vector2``, ``Vector2i``, ``Matrix3`` and ``Quaternion`` objects are passed by *reference*. For instance::
 		O.bodies[0].state.pos[0]=1.33
   will assign correct value to ``x`` component of position, without changing the other ones.
-* Yade classes (all that use ``shared_ptr`` when declared in python: all classes deriving from :yref:`Object` declared with ``YADE_CLASS_BASE_DOC_*``, and some others) are passed as *references* (technically speaking, they are passed by value of the ``shared_ptr``, but by virtue of its sharedness, they appear as references). For instance::
+* Yade classes (all that use ``shared_ptr`` when declared in python: all classes deriving from :yref:`Object` declared with ``WOO_CLASS_BASE_DOC_*``, and some others) are passed as *references* (technically speaking, they are passed by value of the ``shared_ptr``, but by virtue of its sharedness, they appear as references). For instance::
 		O.engines[4].damping=.3
   will change :yref:`damping<NewtonIntegrator.damping>` parameter on the original engine object, not on its copy.
 * All other types are passed by *value*. This includes, most importantly, sequence types declared in :ref:`customconverters`, such as ``std::vector<shared_ptr<Engine> >``. For this reason, ::
@@ -1012,7 +1012,7 @@ Now, all derived classes (such as :yref:`Sphere` or :yref:`Facet`) use this:
 
 	class Sphere: public Shape{
 	   /* … */
-	   YADE_CLASS_BASE_DOC_ATTRS_CTOR(Sphere,Shape,"docstring",
+	   WOO_CLASS_BASE_DOC_ATTRS_CTOR(Sphere,Shape,"docstring",
 	      ((Type1,attr1,default1,"docstring1"))
 	      /* … */,
 	      // this is the CTOR argument
@@ -1099,7 +1099,7 @@ OpenGL rendering is being done also by 1D functors (dispatched for the type to b
 	         const GLViewInfo&
 	      );
 	   RENDERS(Sphere);
-	   YADE_CLASS_BASE_DOC_STATICATTRS(Gl1_Sphere,GlShapeFunctor,"docstring",
+	   WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Sphere,GlShapeFunctor,"docstring",
 	      ((Type1,staticAttr1,informativeDefault,"docstring"))
 	      /* … */
 	   );
@@ -1271,7 +1271,7 @@ Timing within engines (and functors) is based on :yref:`TimingDeltas` class. It 
 		// header file
 		class Law2_Dem3DofGeom_CpmPhys_Cpm: public LawFunctor {
 		   /* … */
-		   YADE_CLASS_BASE_DOC_ATTRS_CTOR(Law2_Dem3DofGeom_CpmPhys_Cpm,LawFunctor,"docstring",
+		   WOO_CLASS_BASE_DOC_ATTRS_CTOR(Law2_Dem3DofGeom_CpmPhys_Cpm,LawFunctor,"docstring",
 		      /* attrs */,
 		      /* constructor */
 		      timingDeltas=shared_ptr<TimingDeltas>(new TimingDeltas);
@@ -1723,7 +1723,7 @@ Python framework
 Wrapping c++ classes
 ---------------------
 
-Each class deriving from :yref:`Object` is automatically exposed to python, with access to its (registered) attributes. This is achieved via :ref:`YADE_CLASS_BASE_DOC`. All classes registered in class factory are default-constructed in ``Omega::buildDynlibDatabase``. Then, each serializable class calls ``Object::pyRegisterClass`` virtual method, which injects the class wrapper into (initially empty) ``yade.wrapper`` module. ``pyRegisterClass`` is defined by ``YADE_CLASS_BASE_DOC`` and knows about class, base class, docstring, attributes, which subsequently all appear in boost::python class definition.
+Each class deriving from :yref:`Object` is automatically exposed to python, with access to its (registered) attributes. This is achieved via :ref:`WOO_CLASS_BASE_DOC`. All classes registered in class factory are default-constructed in ``Omega::buildDynlibDatabase``. Then, each serializable class calls ``Object::pyRegisterClass`` virtual method, which injects the class wrapper into (initially empty) ``yade.wrapper`` module. ``pyRegisterClass`` is defined by ``WOO_CLASS_BASE_DOC`` and knows about class, base class, docstring, attributes, which subsequently all appear in boost::python class definition.
 
 Wrapped classes define special constructor taking keyword arguments corresponding to class attributes; therefore, it is the same to write:
 
@@ -1768,7 +1768,7 @@ Reference counting
 ------------------
 Python internally uses `reference counting <http://en.wikipedia.org/wiki/Reference_counting>`_ on all its objects, which is not visible to casual user. It has to be handled explicitly if using pure `Python/C API <http://docs.python.org/c-api/index.html>`_ with ``Py_INCREF`` and similar functions.
 
-``boost::python`` used in Yade fortunately handles reference counting internally. Additionally, it `automatically integrates <http://wiki.python.org/moin/boost.python/PointersAndSmartPointers>`_ reference counting for ``shared_ptr`` and python objects, if class ``A`` is wrapped as ``boost::python::class_<A,shared_ptr<A>>``. Since *all* Yade classes wrapped using :ref:`YADE_CLASS_BASE_DOC` are wrapped in this way, returning ``shared_ptr<…>`` objects from is the preferred way of passing objects from c++ to python.
+``boost::python`` used in Yade fortunately handles reference counting internally. Additionally, it `automatically integrates <http://wiki.python.org/moin/boost.python/PointersAndSmartPointers>`_ reference counting for ``shared_ptr`` and python objects, if class ``A`` is wrapped as ``boost::python::class_<A,shared_ptr<A>>``. Since *all* Yade classes wrapped using :ref:`WOO_CLASS_BASE_DOC` are wrapped in this way, returning ``shared_ptr<…>`` objects from is the preferred way of passing objects from c++ to python.
 
 Returning ``shared_ptr`` is much more efficient, since only one pointer is returned and reference count internally incremented. Modifying the object from python will modify the (same) object in c++ and vice versa. It also makes sure that the c++ object will not be deleted as long as it is used somewhere in python, preventing (important) source of crashes.
 
@@ -1787,7 +1787,7 @@ Other classes, including template containers such as ``std::vector`` must have t
 When an object is crossing c++/python boundary, boost::python's global "converters registry" is searched for class that can perform conversion between corresponding c++ and python types. The "converters registry" is common for the whole program instance: there is no need to register converters in each script (by importing ``_customConverters``, for instance), as that is done by yade at startup already.
 
 .. note::
-	Custom converters only work for value that are passed by value to python (not "by reference"): some attributes defined using :ref:`YADE_CLASS_BASE_DOC` are passed by value, but if you define your own, make sure that you read and understand `Why is my automatic to-python conversion not being found? <http://www.boost.org/doc/libs/1_42_0/libs/python/doc/v2/faq.html#topythonconversionfailed>`_.
+	Custom converters only work for value that are passed by value to python (not "by reference"): some attributes defined using :ref:`WOO_CLASS_BASE_DOC` are passed by value, but if you define your own, make sure that you read and understand `Why is my automatic to-python conversion not being found? <http://www.boost.org/doc/libs/1_42_0/libs/python/doc/v2/faq.html#topythonconversionfailed>`_.
 
 	In short, the default for ``def_readwrite`` and ``def_readonly`` is to return references to underlying c++ objects, which avoids performing conversion on them. For that reason, return value policy must be set to ``return_by_value`` explicitly, using slighly more complicated ``add_property`` syntax, as explained at the page referenced.
 
@@ -1828,7 +1828,7 @@ This gives you enough freedom to make your class name descriptive and intuitive.
 Renaming class attribute
 ------------------------
 
-Renaming class attribute is handled from c++ code. You have the choice of merely warning at accessing old attribute (giving the new name), or of throwing exception in addition, both with provided explanation. See ``deprec`` parameter to :ref:`YADE_CLASS_BASE_DOC` for details.
+Renaming class attribute is handled from c++ code. You have the choice of merely warning at accessing old attribute (giving the new name), or of throwing exception in addition, both with provided explanation. See ``deprec`` parameter to :ref:`WOO_CLASS_BASE_DOC` for details.
 
 Debian packaging instructions
 ==============================

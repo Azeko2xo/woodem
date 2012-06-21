@@ -80,9 +80,9 @@ Possible performance improvements & bugs
 	#define ISC_CHECKPOINT(cpt)
 #endif
 
-// #define YADE_VBINS
+// #define WOO_VBINS
 
-#ifdef YADE_VBINS
+#ifdef WOO_VBINS
 class Leapfrog;
 #endif
 
@@ -118,7 +118,7 @@ struct InsertionSortCollider: public Collider {
 		int watch1, watch2;
 		bool watchIds(Particle::id_t id1,Particle::id_t id2) const { return (watch1<0 &&(watch2==id1||watch2==id2))||(watch2<0 && (watch1==id1||watch1==id2))||(watch1==id1 && watch2==id2)||(watch1==id2 && watch2==id1); }
 	#endif
-		#ifdef YADE_VBINS
+		#ifdef WOO_VBINS
 			// we need this to find out about current maxVelocitySq
 			shared_ptr<Leapfrog> leapfrog;
 		#endif
@@ -201,7 +201,7 @@ struct InsertionSortCollider: public Collider {
 	vector<Particle::id_t> probeAabb(const Vector3r& mn, const Vector3r& mx);
 
 	virtual void run();
-	YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(InsertionSortCollider,Collider,"\
+	WOO_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(InsertionSortCollider,Collider,"\
 		Collider with O(n log(n)) complexity, using :yref:`Aabb` for bounds.\
 		\n\n\
 		At the initial step, Bodies' bounds (along sortAxis) are first std::sort'ed along one axis (sortAxis), then collided. The initial sort has :math:`O(n^2)` complexity, see `Colliders' performance <https://yade-dem.org/index.php/Colliders_performace>`_ for some information (There are scripts in examples/collider-perf for measurements). \

@@ -3,9 +3,9 @@
 #include<woo/pkg/dem/ParticleContainer.hpp>
 #include<limits>
 
-YADE_PLUGIN(dem,(InfCylinder)(Bo1_InfCylinder_Aabb));
-#ifdef YADE_OPENGL
-	YADE_PLUGIN(gl,(Gl1_InfCylinder))
+WOO_PLUGIN(dem,(InfCylinder)(Bo1_InfCylinder_Aabb));
+#ifdef WOO_OPENGL
+	WOO_PLUGIN(gl,(Gl1_InfCylinder))
 #endif
 
 void Bo1_InfCylinder_Aabb::go(const shared_ptr<Shape>& sh){
@@ -23,7 +23,7 @@ void Bo1_InfCylinder_Aabb::go(const shared_ptr<Shape>& sh){
 	return;
 }
 
-#ifdef YADE_OPENGL
+#ifdef WOO_OPENGL
 	#include<woo/lib/opengl/OpenGLWrapper.hpp>
 	#include<woo/pkg/gl/Renderer.hpp>
 	#include<woo/lib/base/CompUtils.hpp>

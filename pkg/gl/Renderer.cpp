@@ -1,4 +1,4 @@
-#ifdef YADE_OPENGL
+#ifdef WOO_OPENGL
 
 #include<woo/pkg/gl/Renderer.hpp>
 #include<woo/lib/opengl/OpenGLWrapper.hpp>
@@ -17,7 +17,7 @@
 #include <GL/gl.h>
 #include <GL/glut.h>
 
-YADE_PLUGIN(gl,(Renderer)(GlExtraDrawer)(GlData));
+WOO_PLUGIN(gl,(Renderer)(GlExtraDrawer)(GlData));
 CREATE_LOGGER(Renderer);
 
 void GlExtraDrawer::render(){ throw runtime_error("GlExtraDrawer::render called from class "+getClassName()+". (did you forget to override it in the derived class?)"); }
@@ -77,7 +77,7 @@ void Renderer::setNodeGlData(const shared_ptr<Node>& n){
 		if(isnan(gld.refOri.x())) gld.refOri=n->ori;
 		const Vector3r& pos=n->pos; const Vector3r& refPos=gld.refPos;
 		const Quaternionr& ori=n->ori; const Quaternionr& refOri=gld.refOri;
-		#ifdef YADE_SUBDOMAINS
+		#ifdef WOO_SUBDOMAINS
 			int subDom; Body::id_t localId;
 			std::tie(subDom,localId)=scene->bodies->subDomId2domNumLocalId(b->subDomId);
 			if(subDomMask!=0 && (((1<<subDom) & subDomMask)==0)) bodyDisp[id].isDisplayed=false;
@@ -261,4 +261,4 @@ void Renderer::renderRawNode(shared_ptr<Node> node){
 	// if(node->rep){ node->rep->render(node,&viewInfo); }
 }
 
-#endif /* YADE_OPENGL */
+#endif /* WOO_OPENGL */

@@ -15,7 +15,7 @@ struct ClumpData: public DemData{
 	static Matrix3r inertiaTensorRotate(const Matrix3r& I, const Quaternionr& rot);
 
 	DECLARE_LOGGER;
-	YADE_CLASS_BASE_DOC_ATTRS(ClumpData,DemData,"Data of a DEM particle which binds multiple particles together.",
+	WOO_CLASS_BASE_DOC_ATTRS(ClumpData,DemData,"Data of a DEM particle which binds multiple particles together.",
 		((vector<shared_ptr<Node>>,nodes,,AttrTrait<Attr::readonly>(),"Member nodes"))
 		((vector<Particle::id_t>,memberIds,,AttrTrait<Attr::readonly>(),"Ids of member particles (used only for deletion)"))
 		((vector<Vector3r>,relPos,,AttrTrait<Attr::readonly>(),"Relative member's positions"))

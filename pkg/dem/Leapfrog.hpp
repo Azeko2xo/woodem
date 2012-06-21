@@ -2,12 +2,12 @@
 #include<woo/core/Engine.hpp>
 #include<woo/core/Field.hpp>
 #include<woo/pkg/dem/Particle.hpp>
-#ifdef YADE_OPENMP
+#ifdef WOO_OPENMP
 	#include<omp.h>
 #endif
 struct ForceResetter: public GlobalEngine{
 	void run();
-	YADE_CLASS_BASE_DOC(ForceResetter,GlobalEngine,"Reset forces on nodes in DEM field.");
+	WOO_CLASS_BASE_DOC(ForceResetter,GlobalEngine,"Reset forces on nodes in DEM field.");
 };
 REGISTER_SERIALIZABLE(ForceResetter);
 
@@ -38,7 +38,7 @@ struct Leapfrog: public GlobalEngine {
 
 	public:
 		virtual void run();
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR(Leapfrog,GlobalEngine,"Engine integrating newtonian motion equations, using the leap-frog scheme.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR(Leapfrog,GlobalEngine,"Engine integrating newtonian motion equations, using the leap-frog scheme.",
 		// cached values
 		((Matrix3r,IpLL4h,,AttrTrait<Attr::readonly|Attr::noSave>(),"I+(nnextL+pprevL)/4"))
 		((Matrix3r,ImLL4hInv,,AttrTrait<Attr::readonly|Attr::noSave>(),"(I-(nnextL+pprevL)/4)^-1"))

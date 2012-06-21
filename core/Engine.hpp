@@ -42,7 +42,7 @@ class Engine: public Object {
 		shared_ptr<Field> field_get();
 		void field_set(const shared_ptr<Field>&);
 
-		#ifdef YADE_OPENGL
+		#ifdef WOO_OPENGL
 			virtual void render(const GLViewInfo&){};
 		#endif
 
@@ -83,7 +83,7 @@ class Engine: public Object {
 
 	DECLARE_LOGGER;
 
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(Engine,Object,"Basic execution unit of simulation, called from the simulation loop (O.engines)",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Engine,Object,"Basic execution unit of simulation, called from the simulation loop (O.engines)",
 		((bool,dead,false,,"If true, this engine will not run at all; can be used for making an engine temporarily deactivated and only resurrect it at a later point."))
 		((string,label,,,"Textual label for this object; must be valid python identifier, you can refer to it directly from python."))
 		// ((bool,parallelFields,false,,"Whether to run (if compiled with openMP) this engine on active fields in parallel"))
@@ -103,7 +103,7 @@ class Engine: public Object {
 REGISTER_SERIALIZABLE(Engine);
 
 class PartialEngine: public Engine{
-	YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(PartialEngine,Engine,"Engine affecting only particular bodies in the simulation, defined by `ids<yade.core.PartialEngine.ids>`.",
+	WOO_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(PartialEngine,Engine,"Engine affecting only particular bodies in the simulation, defined by `ids<yade.core.PartialEngine.ids>`.",
 		((std::vector<int>,ids,,,"`ids<yade.dem.Particle.id>` of particles affected by this PartialEngine.")),
 		/*deprec*/, /*init*/, /* ctor */, /* py */
 	);
@@ -112,7 +112,7 @@ REGISTER_SERIALIZABLE(PartialEngine);
 
 class GlobalEngine: public Engine{
 	public :
-	YADE_CLASS_BASE_DOC(GlobalEngine,Engine,"Engine that will generally affect the whole simulation (contrary to :yref:`PartialEngine`).");
+	WOO_CLASS_BASE_DOC(GlobalEngine,Engine,"Engine that will generally affect the whole simulation (contrary to :yref:`PartialEngine`).");
 };
 REGISTER_SERIALIZABLE(GlobalEngine);
 
@@ -129,7 +129,7 @@ class ParallelEngine: public Engine {
 	// py access
 		py::list pySlavesGet();
 		void pySlavesSet(const py::list& slaves);
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR_PY(ParallelEngine,Engine,"Engine for running other Engine in parallel.\n\n.. admonition:: Special constructor\n\nPossibly nested list of engines, where each top-level item (engine or list) will be run in parallel; nested lists will be run sequentially.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ParallelEngine,Engine,"Engine for running other Engine in parallel.\n\n.. admonition:: Special constructor\n\nPossibly nested list of engines, where each top-level item (engine or list) will be run in parallel; nested lists will be run sequentially.",
 		((slaveContainer,slaves,,AttrTrait<Attr::hidden>(),"[will be overridden]")),
 		/*ctor*/,
 		/*py*/
@@ -143,7 +143,7 @@ class PeriodicEngine: public GlobalEngine{
 	public:
 		static Real getClock(){ timeval tp; gettimeofday(&tp,NULL); return tp.tv_sec+tp.tv_usec/1e6; }
 		virtual bool isActivated();
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR(PeriodicEngine,GlobalEngine,
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR(PeriodicEngine,GlobalEngine,
 		"Run Engine::run with given fixed periodicity real time (=wall clock time, computation time), virtual time (simulation time), step number), by setting any of those criteria (virtPeriod, realPeriod, stepPeriod) to a positive value. They are all negative (inactive) by default.\n\nThe number of times this engine is activated can be limited by setting nDo>0. If the number of activations will have been already reached, no action will be called even if an active period has elapsed.\n\nIf initRun is set (true by default), the engine will run when called for the first time; otherwise it will only  start counting period (realLast etc interal variables) from that point, but without actually running, and will run only once a period has elapsed since the initial run.\n\nThis class should not be used directly; rather, derive your own engine which you want to be run periodically.\n\nDerived engines should override Engine::action(), which will be called periodically. If the derived Engine overrides also Engine::isActivated, it should also take in account return value from PeriodicEngine::isActivated, otherwise the periodicity will not be functional.\n\nExample with PyRnner, which derives from PeriodicEngine; likely to be encountered in python scripts)::\n\n\
 		\
 			PyRunner(realPeriod=5,stepPeriod=10000,command='print O.step')	\n\n\
@@ -173,7 +173,7 @@ struct PyRunner: public PeriodicEngine{
 	// to give command without saying 'command=...'
 	virtual bool needsField(){ return false; }
 	virtual void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d);
-	YADE_CLASS_BASE_DOC_ATTRS(PyRunner,PeriodicEngine,
+	WOO_CLASS_BASE_DOC_ATTRS(PyRunner,PeriodicEngine,
 		"Execute a python command periodically, with defined (and adjustable) periodicity. See :yref:`PeriodicEngine` documentation for details.\n\n.. admonition:: Special constructor\n\n*command* can be given as first unnamed string argument (``PyRunner('foo()')``), stepPeriod as unnamed integer argument (``PyRunner('foo()',100)`` or ``PyRunner(100,'foo()')``).",
 		((string,command,"",,"Command to be run by python interpreter. Not run if empty."))
 	);

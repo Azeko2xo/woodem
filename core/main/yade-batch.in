@@ -9,7 +9,7 @@ import os, sys, thread, time, logging, pipes, socket, xmlrpclib, re, shutil, ran
 #socket.setdefaulttimeout(10) 
 
 ## replaced by scons automatically
-prefix,suffix='${runtimePREFIX}' if not os.environ.has_key('YADE_PREFIX') else os.environ['YADE_PREFIX'],'${SUFFIX}'
+prefix,suffix='${runtimePREFIX}' if not os.environ.has_key('WOO_PREFIX') else os.environ['WOO_PREFIX'],'${SUFFIX}'
 # run the batch always in non-debug mode (the spawned processes do honor debuggin flag, however)
 libDir=prefix+'/lib/woo'+suffix
 if not os.path.exists(libDir): libDir=libDir+'/dbg' # ude debugging dir if available
@@ -430,8 +430,8 @@ for i,l in enumerate(useLines):
 			while logFile2+'.%d'%i in logFiles: i+=1
 			logFile2+='.%d'%i
 		logFiles.append(logFile2)
-		env='YADE_BATCH='
-		if table: env+='<a href="jobs/%d/table">%s:%d</a>'%(jobNum,table,l) # keep YADE_BATCH empty (but still defined) if running a single simulation
+		env='WOO_BATCH='
+		if table: env+='<a href="jobs/%d/table">%s:%d</a>'%(jobNum,table,l) # keep WOO_BATCH empty (but still defined) if running a single simulation
 		env+=' DISPLAY= %s '%(' '.join(envVars))
 		cmd='%s%s [threadspec] %s -x <a href="jobs/%d/script">%s</a>'%(jobExecutable,' --debug' if jobDebug else '','--nice=%s'%nice if nice!=None else '',i,script)
 		log='> <a href="jobs/%d/log">%s</a> 2>&1'%(jobNum,pipes.quote(logFile2))

@@ -1,5 +1,5 @@
 #include<woo/pkg/dem/Truss.hpp>
-YADE_PLUGIN(dem,(Truss)(Bo1_Truss_Aabb)(In2_Truss_ElastMat));
+WOO_PLUGIN(dem,(Truss)(Bo1_Truss_Aabb)(In2_Truss_ElastMat));
 
 void Bo1_Truss_Aabb::go(const shared_ptr<Shape>& sh){
 	assert(sh->numNodesOk());
@@ -73,8 +73,8 @@ void In2_Truss_ElastMat::go(const shared_ptr<Shape>& shape, const shared_ptr<Mat
 };
 
 
-#ifdef YADE_OPENGL
-YADE_PLUGIN(gl,(Gl1_Truss));
+#ifdef WOO_OPENGL
+WOO_PLUGIN(gl,(Gl1_Truss));
 #include<woo/lib/opengl/OpenGLWrapper.hpp>
 #include<woo/lib/opengl/GLUtils.hpp>
 #include<woo/lib/base/CompUtils.hpp>

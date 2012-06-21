@@ -5,7 +5,7 @@
 // class MatchMaker;
 
 class ElastMat: public Material{
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR(ElastMat,Material,"Elastic material with contact friction. See also :yref:`ElastMat`.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR(ElastMat,Material,"Elastic material with contact friction. See also :yref:`ElastMat`.",
 		((Real,young,1e9,AttrTrait<>().stiffnessUnit(),"Young's modulus"))
 		((Real,poisson,.2,,"Poisson's ratio; this value should be only used in internal force computation, not for contacts."))
 		, /*ctor*/ createIndex();
@@ -15,7 +15,7 @@ class ElastMat: public Material{
 REGISTER_SERIALIZABLE(ElastMat);
 
 class FrictMat: public ElastMat{
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR(FrictMat,ElastMat,"Elastic material with contact friction. See also :yref:`ElastMat`.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR(FrictMat,ElastMat,"Elastic material with contact friction. See also :yref:`ElastMat`.",
 		((Real,tanPhi,.5,,"Tangent of internal friction angle."))
 		((Real,ktDivKn,.2,,"Ratio of tangent and shear modulus on contact."))
 		, /*ctor*/ createIndex();
@@ -25,7 +25,7 @@ class FrictMat: public ElastMat{
 REGISTER_SERIALIZABLE(FrictMat);
 
 class FrictPhys: public CPhys{
-	YADE_CLASS_BASE_DOC_ATTRS_CTOR(FrictPhys,CPhys,"Physical parameters of contact with sliding",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR(FrictPhys,CPhys,"Physical parameters of contact with sliding",
 		((Real,tanPhi,NaN,,"Tangent of friction angle"))
 		((Real,kn,NaN,,"Normal stiffness"))
 		((Real,kt,NaN,,"Tangent stiffness"))
@@ -38,7 +38,7 @@ REGISTER_SERIALIZABLE(FrictPhys);
 struct Cp2_FrictMat_FrictPhys: public CPhysFunctor{
 	void go(const shared_ptr<Material>&, const shared_ptr<Material>&, const shared_ptr<Contact>&);
 	FUNCTOR2D(FrictMat,FrictMat);
-	YADE_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(Cp2_FrictMat_FrictPhys,CPhysFunctor,"TODO",
+	WOO_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(Cp2_FrictMat_FrictPhys,CPhysFunctor,"TODO",
 		((shared_ptr<MatchMaker>,tanPhi,,,"Instance of :yref:`MatchMaker` determining how to compute contact friction angle. If ``None``, minimum value is used."))
 		//((Real,ktDivKn,.2,,"Ratio between tangent and normal stiffness on contact."))
 		, /*deprec*/

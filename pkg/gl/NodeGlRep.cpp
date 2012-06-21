@@ -1,4 +1,4 @@
-#ifdef YADE_OPENGL
+#ifdef WOO_OPENGL
 
 #include<woo/pkg/gl/NodeGlRep.hpp>
 #include<woo/lib/base/CompUtils.hpp>
@@ -10,7 +10,7 @@
 
 #include<GL/gle.h>
 
-YADE_PLUGIN(gl,(ScalarGlRep)(VectorGlRep)(TensorGlRep)(ActReactGlRep)(CylGlRep));
+WOO_PLUGIN(gl,(ScalarGlRep)(VectorGlRep)(TensorGlRep)(ActReactGlRep)(CylGlRep));
 
 void ScalarGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
 	Vector3r color=(range?range->color(val):CompUtils::scalarOnColorScale(val,0,1));

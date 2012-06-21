@@ -8,7 +8,7 @@
 #include<boost/lexical_cast.hpp>
 #include<string>
 
-#ifdef YADE_OPENMP
+#ifdef WOO_OPENMP
 #include"omp.h"
 #include<cstdlib>
 #include<unistd.h>

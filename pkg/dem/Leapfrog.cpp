@@ -4,7 +4,7 @@
 #include<woo/pkg/dem/Clump.hpp>
 #include<iomanip>
 
-YADE_PLUGIN(dem,(Leapfrog)(ForceResetter));
+WOO_PLUGIN(dem,(Leapfrog)(ForceResetter));
 CREATE_LOGGER(Leapfrog);
 
 void ForceResetter::run(){
@@ -120,13 +120,13 @@ void Leapfrog::run(){
 
 	size_t size=dem->nodes.size();
 	const auto& nodes=dem->nodes;
-	#ifdef YADE_OPENMP
+	#ifdef WOO_OPENMP
 		#pragma omp parallel for schedule(guided)
 	#endif
 	for(size_t i=0; i<size; i++){
 		const shared_ptr<Node>& node=nodes[i];
 		if(!node->hasData<DemData>()) continue;
-		#ifdef YADE_DEBUG
+		#ifdef WOO_DEBUG
 			if(node->getData<DemData>().parCount==0 && !node->getData<DemData>().isClump()) throw std::runtime_error("Node #"+to_string(i)+" has parCount==0 and is not a clump.");
 		#endif
 		DemData& dyn(node->getData<DemData>());
@@ -227,7 +227,7 @@ void Leapfrog::run(){
 	// if(isPeriodic) prevVelGrad=scene->cell->velGrad;
 }
 
-#ifndef YADE_GRADV2
+#ifndef WOO_GRADV2
 void Leapfrog::applyPeriodicCorrections(const shared_ptr<Node>& node, const Vector3r& linAccel){
 	DemData& dyn(node->getData<DemData>());
 	if (homoDeform==Cell::HOMO_VEL || homoDeform==Cell::HOMO_VEL_2ND) {

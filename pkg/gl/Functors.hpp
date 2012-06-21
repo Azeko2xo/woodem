@@ -2,7 +2,7 @@
 // © 2006 Janek Kozicki <cosurgi@berlios.de>
 #pragma once
 
-#ifdef YADE_OPENGL
+#ifdef WOO_OPENGL
 
 #include<woo/lib/multimethods/FunctorWrapper.hpp>
 #include<woo/core/Dispatcher.hpp>
@@ -26,10 +26,10 @@ struct GLViewInfo{
 	virtual ~Klass(){};\
 	virtual string renders() const { throw std::runtime_error(#Klass ": unregistered gldraw class.\n"); };\
 	virtual void initgl(){/*WARNING: it must deal with static members, because it is called from another instance!*/};\
-	YADE_CLASS_BASE_DOC(Klass,Functor,"Abstract functor for rendering :yref:`" #renderedType "` objects."); \
+	WOO_CLASS_BASE_DOC(Klass,Functor,"Abstract functor for rendering :yref:`" #renderedType "` objects."); \
 	}; REGISTER_SERIALIZABLE(Klass); 
 #define GL_DISPATCHER(Klass,Functor) class Klass: public Dispatcher1D<Functor>{public:\
-	YADE_DISPATCHER1D_FUNCTOR_DOC_ATTRS_CTOR_PY(Klass,Functor,/*optional doc*/,/*attrs*/,/*ctor*/,/*py*/); \
+	WOO_DISPATCHER1D_FUNCTOR_DOC_ATTRS_CTOR_PY(Klass,Functor,/*optional doc*/,/*attrs*/,/*ctor*/,/*py*/); \
 	}; REGISTER_SERIALIZABLE(Klass);
 
 #include<woo/pkg/dem/Particle.hpp>
@@ -80,4 +80,4 @@ GL_DISPATCHER(GlFieldDispatcher,GlFieldFunctor);
 
 #endif
 
-#endif /* YADE_OPENGL */
+#endif /* WOO_OPENGL */

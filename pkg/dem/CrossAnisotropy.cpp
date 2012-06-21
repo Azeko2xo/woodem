@@ -3,7 +3,7 @@
 #include<woo/pkg/dem/L6Geom.hpp>
 // #include<woo/pkg/dem/ScGeom.hpp>
 
-YADE_PLUGIN(dem,(Cp2_FrictMat_FrictPhys_CrossAnisotropic));
+WOO_PLUGIN(dem,(Cp2_FrictMat_FrictPhys_CrossAnisotropic));
 
 CREATE_LOGGER(Cp2_FrictMat_FrictPhys_CrossAnisotropic);
 
@@ -50,10 +50,10 @@ void Cp2_FrictMat_FrictPhys_CrossAnisotropic::go(const shared_ptr<Material>& b1,
 }
 
 #if 0
-#if YADE_OPENGL
-YADE_PLUGIN(gl,(GlExtra_LocalAxes));
+#if WOO_OPENGL
+WOO_PLUGIN(gl,(GlExtra_LocalAxes));
 #endif	
-#ifdef YADE_OPENGL
+#ifdef WOO_OPENGL
 #include<woo/lib/opengl/GLUtils.hpp>
 
 void GlExtra_LocalAxes::render(){

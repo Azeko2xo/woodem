@@ -17,7 +17,7 @@
 
 namespace py=boost::python;
 
-YADE_PLUGIN(core,(Scene));
+WOO_PLUGIN(core,(Scene));
 CREATE_LOGGER(Scene);
 // should be elsewhere, probably
 bool TimingInfo::enabled=false;
@@ -112,7 +112,7 @@ void Scene::fillDefaultTags(){
 }
 
 void Scene::ensureCl(){
-	#ifdef YADE_OPENCL
+	#ifdef WOO_OPENCL
 		if(_clDev[0]<0) initCl(); // no device really initialized
 		return;
 	#else
@@ -120,7 +120,7 @@ void Scene::ensureCl(){
 	#endif
 }
 
-#ifdef YADE_OPENCL
+#ifdef WOO_OPENCL
 void Scene::initCl(){
 	Vector2i dev=(clDev[0]<0?Master::instance().defaultClDev:clDev);
 	clDev=Vector2i(-1,-1); // invalidate old settings before attempting new
@@ -186,7 +186,7 @@ void Scene::saveTmp(const string& slot, bool quiet){
 }
 
 void Scene::postLoad(Scene&){
-	#ifdef YADE_OPENCL
+	#ifdef WOO_OPENCL
 		// clDev is set and does not match really initialized device in _clDev
 		if(clDev[0]!=_clDev[0] || clDev[1]!=_clDev[1]) initCl();
 	#else

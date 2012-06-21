@@ -25,7 +25,7 @@ localVars=['TEMPLATE','SUBDIRS','HEADERS','SOURCES','FORMS','LEXSOURCES','YACCSO
 undefOK=['CXXPATH','CXX','CXXFLAGS','INCPATH','IDL_COMPILER']
 # internal qmake variables that may be replace with the environment ones without warning
 replaceOK=['YADECOMPILATIONPATH'] 
-discardedStatements=['^isEmpty\s*\(\s*YADE_QMAKE_PATH\s*\).*$']
+discardedStatements=['^isEmpty\s*\(\s*WOO_QMAKE_PATH\s*\).*$']
 #discardedStatements=[]
 
 targetLangType={'yade-lib-serialization-qt':'qt3','QtGUI':'qt3'}
