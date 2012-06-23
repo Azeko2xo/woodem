@@ -8,22 +8,22 @@ import unittest
 import random
 from miniEigen import *
 from math import *
-from yade._customConverters import *
-from yade import utils
-from yade import *
-from yade.core import *
-from yade.dem import *
-from yade.pre import *
-try: from yade.sparc import *
+from woo._customConverters import *
+from woo import utils
+from woo import *
+from woo.core import *
+from woo.dem import *
+from woo.pre import *
+try: from woo.sparc import *
 except: pass
-try: from yade.gl import *
+try: from woo.gl import *
 except: pass
-try: from yade.voro import *
+try: from woo.voro import *
 except: pass
-try: from yade.cld import *
+try: from woo.cld import *
 except: pass
 
-import yade
+import woo
 
 ## TODO tests
 class TestInteractions(unittest.TestCase): pass
@@ -38,8 +38,8 @@ class TestObjectInstantiation(unittest.TestCase):
 	def testClassCtors(self):
 		"Core: correct types are instantiated"
 		# correct instances created with Foo() syntax
-		import yade.system
-		for r in yade.system.childClasses('Object'):
+		import woo.system
+		for r in woo.system.childClasses('Object'):
 			obj=eval(r)();
 			self.assert_(obj.__class__.__name__==r,'Failed for '+r)
 	def testRootDerivedCtors_attrs_few(self):
@@ -116,11 +116,11 @@ class TestObjectInstantiation(unittest.TestCase):
 
 class TestLoop(unittest.TestCase):
 	def setUp(self):
-		yade.master.reset()
-		yade.master.scene.fields=[DemField()]
+		woo.master.reset()
+		woo.master.scene.fields=[DemField()]
 	def testSubstepping(self):
 		'Loop: substepping'
-		S=yade.master.scene
+		S=woo.master.scene
 		S.engines=[PyRunner(1,'pass'),PyRunner(1,'pass'),PyRunner(1,'pass')]
 		# value outside the loop
 		self.assert_(S.subStep==-1)
@@ -136,9 +136,9 @@ class TestLoop(unittest.TestCase):
 		S.one()
 	def testEnginesModificationInsideLoop(self):
 		'Loop: Scene.engines can be modified inside the loop transparently.'
-		S=yade.master.scene
+		S=woo.master.scene
 		S.engines=[
-			PyRunner(stepPeriod=1,command='from yade import*; from yade.dem import *; scene.engines=[ForceResetter(),Gravity(),Leapfrog(reset=False)]'), # change engines here
+			PyRunner(stepPeriod=1,command='from woo import*; from woo.dem import *; scene.engines=[ForceResetter(),Gravity(),Leapfrog(reset=False)]'), # change engines here
 			ForceResetter() # useless engine
 		]
 		S.subStepping=True
@@ -157,7 +157,7 @@ class TestLoop(unittest.TestCase):
 		self.assert_(len(S._currEngines)==3)
 	def testDead(self):
 		'Loop: dead engines are not run'
-		S=yade.master.scene
+		S=woo.master.scene
 		S.engines=[PyRunner(1,'pass',dead=True)]
 		S.one(); self.assert_(S.engines[0].nDone==0)
 			
@@ -166,11 +166,11 @@ class TestLoop(unittest.TestCase):
 class TestIO(unittest.TestCase):
 	def testSaveAllClasses(self):
 		'I/O: All classes can be saved and loaded with boost::serialization'
-		import yade.system
+		import woo.system
 		failed=set()
-		for c in yade.system.childClasses('Object'):
-			yade.master.reset()
-			S=yade.master.scene
+		for c in woo.system.childClasses('Object'):
+			woo.master.reset()
+			S=woo.master.scene
 			try:
 				S.iscParams=[eval(c)()]
 				S.saveTmp(quiet=True)
@@ -183,7 +183,7 @@ class TestIO(unittest.TestCase):
 # tr2 doees not define particle state (yet?)
 if 0:
 	class TestMaterialStateAssociativity(unittest.TestCase):
-		def setUp(self): yade.master.reset()
+		def setUp(self): woo.master.reset()
 		# rename back when those classes are available
 		def _testThrowsAtBadCombination(self):
 			"Material+State: throws when body has material and state that don't work together."
@@ -207,34 +207,34 @@ if 0:
 
 class TestParticles(unittest.TestCase):
 	def setUp(self):
-		yade.master.reset()
-		yade.master.scene.fields=[DemField()]
-		S=yade.master.scene
+		woo.master.reset()
+		woo.master.scene.fields=[DemField()]
+		S=woo.master.scene
 		self.count=100
 		S.dem.par.append([utils.sphere([random.random(),random.random(),random.random()],random.random()) for i in range(0,self.count)])
 		random.seed()
 	def testIterate(self):
 		"Particles: Iteration"
 		counted=0
-		S=yade.master.scene
+		S=woo.master.scene
 		for b in S.dem.par: counted+=1
 		self.assert_(counted==self.count)
 	def testLen(self):
 		"Particles: len(S.dem.par)"
-		S=yade.master.scene
+		S=woo.master.scene
 		self.assert_(len(S.dem.par)==self.count)
 	def testRemove(self):
 		"Particles: acessing removed particles raises IndexError"
-		S=yade.master.scene
+		S=woo.master.scene
 		S.dem.par.remove(0)
 		self.assertRaises(IndexError,lambda: S.dem.par[0])
 	def testNegativeIndex(self):
 		"Particles: Negative index counts backwards (like python sequences)."
-		S=yade.master.scene
+		S=woo.master.scene
 		self.assert_(S.dem.par[-1]==S.dem.par[self.count-1])
 	def testRemovedIterate(self):
 		"Particles: Iterator silently skips erased ones"
-		S=yade.master.scene
+		S=woo.master.scene
 		removed,counted=0,0
 		for i in range(0,10):
 			id=random.randint(0,self.count-1)
@@ -245,8 +245,8 @@ class TestParticles(unittest.TestCase):
 class TestMaterials(unittest.TestCase):
 	def setUp(self):
 		# common setup for all tests in this class
-		yade.master.reset()
-		S=yade.master.scene
+		woo.master.reset()
+		S=woo.master.scene
 		S.fields=[DemField()]
 		mats=[FrictMat(young=1),ElastMat(young=100)]
 		S.dem.par.append([
@@ -256,12 +256,12 @@ class TestMaterials(unittest.TestCase):
 		])
 	def testShared(self):
 		"Material: shared_ptr's makes change in material immediate everywhere"
-		S=yade.master.scene
+		S=woo.master.scene
 		S.dem.par[0].mat.young=23423333
 		self.assert_(S.dem.par[0].mat.young==S.dem.par[1].mat.young)
 	def testSharedAfterReload(self):
 		"Material: shared_ptr's are preserved when saving/loading"
-		S=yade.master.scene
+		S=woo.master.scene
 		S.saveTmp(quiet=True); S=Scene.loadTmp()
 		S.dem.par[0].mat.young=9087438484
 		self.assert_(S.dem.par[0].mat.young==S.dem.par[1].mat.young)

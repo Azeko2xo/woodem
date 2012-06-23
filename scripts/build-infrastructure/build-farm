@@ -29,7 +29,7 @@ for distrName in distributionsNames:
 if os.path.exists(defaultPath+'/cleanBzr'):
 	print "CleanBZR folder exists"
 	print "Updating to the latest bzr version"
-	os.chdir(defaultPath+'/cleanBzr/yade')
+	os.chdir(defaultPath+'/cleanBzr/woo')
 	os.system('bzr up')
 	revNo=os.popen("LC_ALL=C bzr revno 2>/dev/null").readlines()[0][:-1]
 else: 
@@ -37,8 +37,8 @@ else:
 	print "CleanBZR created"
 	print "Checking out the latest bzr version"
 	os.chdir(defaultPath+'/cleanBzr/')
-	os.system('bzr checkout lp:yade --lightweight')
-	os.chdir('yade')
+	os.system('bzr checkout lp:woo --lightweight')
+	os.chdir('woo')
 	revNo=os.popen("LC_ALL=C bzr revno 2>/dev/null").readlines()[0][:-1]
 
 os.chdir(defaultPath)
@@ -50,11 +50,11 @@ for distrName in distributionsNames:
 		shutil.rmtree(distrName)
 	os.mkdir(distrName)
 	os.chdir(distrName)
-	shutil.copytree('../cleanBzr/yade','yade')
-	os.chdir('yade')
+	shutil.copytree('../cleanBzr/woo','woo')
+	os.chdir('woo')
 	os.system('scripts/debian-prep ' + distrName)
 	os.chdir('..')
-	os.system('dpkg-source -b -I yade-'+VERSION)
+	os.system('dpkg-source -b -I woo-'+VERSION)
 	dscFile = glob.glob('*.dsc')[0]
 	for archName in distributionsArch:
 		os.mkdir(archName)

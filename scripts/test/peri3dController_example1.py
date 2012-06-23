@@ -1,7 +1,7 @@
 # peri3dController_example1.py
 # script, that explains funcionality and input parameters of Peri3dController
 
-from yade import pack, plot
+from woo import pack, plot
 
 # create some material
 O.materials.append(CpmMat(young=25e9,frictionAngle=.7,G_over_E=.2,sigmaT=3e6,epsCrackOnset=1e-4,relDuctility=30))

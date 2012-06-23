@@ -9,29 +9,29 @@ Scene construction
 Triangulated surfaces
 =====================
 
-Yade integrates with the the `GNU Triangulated Surface library <http://gts.sourceforge.net>`_, exposed in python via the 3rd party :yref:`external:gts` module. GTS provides variety of functions for surface manipulation (coarsening, tesselation, simplification, import), to be found in its documentation.
+Yade integrates with the the `GNU Triangulated Surface library <http://gts.sourceforge.net>`_, exposed in python via the 3rd party :ref:`external:gts` module. GTS provides variety of functions for surface manipulation (coarsening, tesselation, simplification, import), to be found in its documentation.
 
-GTS surfaces are geometrical objects, which can be inserted into simulation as set of particles whose :yref:`Body.shape` is of type :yref:`Facet` -- single triangulation elements. :yref:`pack.gtsSurface2Facets` can be used to convert GTS surface triangulation into list of :yref:`bodies<Body>` ready to be inserted into simulation via ``O.bodies.append``.
+GTS surfaces are geometrical objects, which can be inserted into simulation as set of particles whose :ref:`Body.shape` is of type :ref:`Facet` -- single triangulation elements. :ref:`pack.gtsSurface2Facets` can be used to convert GTS surface triangulation into list of :ref:`bodies<Body>` ready to be inserted into simulation via ``O.bodies.append``.
 
-Facet particles are created by default as non-:yref:`Body.dynamic` (they have zero inertial mass). That means that  they are fixed in space and will not move if subject to forces. You can however
+Facet particles are created by default as non-:ref:`Body.dynamic` (they have zero inertial mass). That means that  they are fixed in space and will not move if subject to forces. You can however
 
-* prescribe arbitrary movement to facets using a :yref:`PartialEngine` (such as :yref:`TranslationEngine` or :yref:`RotationEngine`);
-* assign explicitly :yref:`mass<State.mass>` and :yref:`inertia<State.inertia>` to that particle;
-* make that particle part of a clump and assign :yref:`mass<State.mass>` and :yref:`inertia<State.inertia>` of the clump itself (described below).
+* prescribe arbitrary movement to facets using a :ref:`PartialEngine` (such as :ref:`TranslationEngine` or :ref:`RotationEngine`);
+* assign explicitly :ref:`mass<State.mass>` and :ref:`inertia<State.inertia>` to that particle;
+* make that particle part of a clump and assign :ref:`mass<State.mass>` and :ref:`inertia<State.inertia>` of the clump itself (described below).
 
 .. note::
-	Facets can only (currently) interact with :yref:`spheres<Sphere>`, not with other facets, even if they are *dynamic*. Collision of 2 :yref:`facets<Facet>` will not create interaction, therefore no forces on facets.
+	Facets can only (currently) interact with :ref:`spheres<Sphere>`, not with other facets, even if they are *dynamic*. Collision of 2 :ref:`facets<Facet>` will not create interaction, therefore no forces on facets.
 
 Import
 -------
 
-Yade currently offers 3 formats for importing triangulated surfaces from external files, in the :yref:`yade.ymport` module:
+Yade currently offers 3 formats for importing triangulated surfaces from external files, in the :ref:`yade.ymport` module:
 
-:yref:`yade.ymport.gts`
+:ref:`yade.ymport.gts`
 	text file in native GTS format.
-:yref:`yade.ymport.stl`
+:ref:`yade.ymport.stl`
 	STereoLitography format, in either text or binary form; exported from `Blender <http://www.blender.org>`_, but from many CAD systems as well.
-:yref:`yade.ymport.gmsh`.
+:ref:`yade.ymport.gmsh`.
 	text file in native format for `GMSH <http://www.geuz.org/gmsh/>`_, popular open-source meshing program.
 
 If you need to manipulate surfaces before creating list of facets, you can study the :ysrc:`py/ymport.py` file where the import functions are defined. They are rather simple in most cases.
@@ -39,12 +39,12 @@ If you need to manipulate surfaces before creating list of facets, you can study
 Parametric construction
 ------------------------
 
-The :yref:`external:gts` module provides convenient way of creating surface by vertices, edges and triangles.
+The :ref:`external:gts` module provides convenient way of creating surface by vertices, edges and triangles.
 
-Frequently, though, the surface can be conveniently described as surface between polylines in space. For instance, cylinder is surface between two polygons (closed polylines). The :yref:`yade.pack.sweptPolylines2gtsSurface` offers the functionality of connecting several polylines with triangulation.
+Frequently, though, the surface can be conveniently described as surface between polylines in space. For instance, cylinder is surface between two polygons (closed polylines). The :ref:`yade.pack.sweptPolylines2gtsSurface` offers the functionality of connecting several polylines with triangulation.
 
 .. note::
-	The implementation of :yref:`yade.pack.sweptPolylines2gtsSurface` is rather simplistic: all polylines must be of the same length, and they are connected with triangles between points following their indices within each polyline (not by distance). On the other hand, points can be co-incident, if the ``threshold`` parameter is positive: degenerate triangles with vertices closer that ``threshold`` are automatically eliminated.
+	The implementation of :ref:`yade.pack.sweptPolylines2gtsSurface` is rather simplistic: all polylines must be of the same length, and they are connected with triangles between points following their indices within each polyline (not by distance). On the other hand, points can be co-incident, if the ``threshold`` parameter is positive: degenerate triangles with vertices closer that ``threshold`` are automatically eliminated.
 
 Manipulating lists efficiently (in terms of code length) requires being familiar with `list comprehensions <http://docs.python.org/tutorial/datastructures.html#list-comprehensions>`_ in python.
 
@@ -70,7 +70,7 @@ Representing a solid of an arbitrary shape by arrangement of spheres presents th
 Volume representation
 ----------------------
 
-There are 2 methods for representing exact volume of the solid in question in Yade: boundary representation and constructive solid geometry. Despite their fundamental differences, they are abstracted in Yade in the :yref:`Predicate<yade.utils._packPredicates.Predicate>` class. Predicate provides the following functionality:
+There are 2 methods for representing exact volume of the solid in question in Yade: boundary representation and constructive solid geometry. Despite their fundamental differences, they are abstracted in Yade in the :ref:`Predicate<yade.utils._packPredicates.Predicate>` class. Predicate provides the following functionality:
 
 #. defines axis-aligned bounding box for the associated solid (optionally defines oriented bounding box);
 #. can decide whether given point is inside or outside the solid; most predicates can also (exactly or approximately) tell whether the point is inside *and* satisfies some given padding distance from the represented solid boundary (so that sphere of that volume doesn't stick out of the solid).
@@ -78,11 +78,11 @@ There are 2 methods for representing exact volume of the solid in question in Ya
 Constructive Solid Geometry (CSG)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-CSG approach describes volume by geometric *primitives* or primitive solids (sphere, cylinder, box, cone, …) and boolean operations on them. Primitives defined in Yade include :yref:`inCylinder<yade._packPredicates.inCylinder>`, :yref:`inSphere<yade._packPredicates.inSphere>`, :yref:`inEllipsoid<yade._packPredicates.inEllipsoid>`, :yref:`inHyperboloid<yade._packPredicates.inHyperboloid>`, :yref:`notInNotch<yade._packPredicates.notInNotch>`.
+CSG approach describes volume by geometric *primitives* or primitive solids (sphere, cylinder, box, cone, …) and boolean operations on them. Primitives defined in Yade include :ref:`inCylinder<yade._packPredicates.inCylinder>`, :ref:`inSphere<yade._packPredicates.inSphere>`, :ref:`inEllipsoid<yade._packPredicates.inEllipsoid>`, :ref:`inHyperboloid<yade._packPredicates.inHyperboloid>`, :ref:`notInNotch<yade._packPredicates.notInNotch>`.
 
-For instance, :yref:`hyperboloid<yade._packPredicates.inHyperboloid>` (dogbone) specimen for tension-compression test can be constructed in this way (shown at img. img-hyperboloid_)::
+For instance, :ref:`hyperboloid<yade._packPredicates.inHyperboloid>` (dogbone) specimen for tension-compression test can be constructed in this way (shown at img. img-hyperboloid_)::
 
-	from yade import pack
+	from woo import pack
 
 	## construct the predicate first
 	pred=pack.inHyperboloid(centerBottom=(0,0,-.1),centerTop=(0,0,.1),radius=.05,skirt=.03)
@@ -98,18 +98,18 @@ For instance, :yref:`hyperboloid<yade._packPredicates.inHyperboloid>` (dogbone) 
 .. figure:: fig/hyperboloid.png
 	:width: 7cm
 
-	Specimen constructed with the :yref:`yade._packPredicates.inHyperboloid` predicate, packed with :yref:`yade.pack.randomDensePack`.
+	Specimen constructed with the :ref:`yade._packPredicates.inHyperboloid` predicate, packed with :ref:`yade.pack.randomDensePack`.
 
 
 Boundary representation (BREP)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Representing a solid by its boundary is much more flexible than CSG volumes, but is mostly only approximate. Yade interfaces to `GNU Triangulated Surface Library <http://gts.sourceforge.net>`_ (GTS) to import surfaces readable by GTS, but also to construct them explicitly from within simulation scripts. This makes possible parametric construction of rather complicated shapes; there are functions to create set of 3d polylines from 2d polyline (:yref:`yade.pack.revolutionSurfaceMeridians`), to triangulate surface between such set of 3d polylines (:yref:`yade.pack.sweptPolylines2gtsSurface`).
+Representing a solid by its boundary is much more flexible than CSG volumes, but is mostly only approximate. Yade interfaces to `GNU Triangulated Surface Library <http://gts.sourceforge.net>`_ (GTS) to import surfaces readable by GTS, but also to construct them explicitly from within simulation scripts. This makes possible parametric construction of rather complicated shapes; there are functions to create set of 3d polylines from 2d polyline (:ref:`yade.pack.revolutionSurfaceMeridians`), to triangulate surface between such set of 3d polylines (:ref:`yade.pack.sweptPolylines2gtsSurface`).
 
 For example, we can construct a simple funnel (:ysrc:`examples/funnel.py`, shown at img-funnel_)::
 
 	from numpy import linspace
-	from yade import pack
+	from woo import pack
 
 	# angles for points on circles
 	thetas=linspace(0,2*pi,num=16,endpoint=True)
@@ -138,8 +138,8 @@ For example, we can construct a simple funnel (:ysrc:`examples/funnel.py`, shown
 
 GTS surface objects can be used for 2 things:
 
-#. :yref:`yade.pack.gtsSurface2Facets` function can create the triangulated surface (from :yref:`Facet` particles) in the simulation itself, as shown in the funnel example. (Triangulated surface can also be imported directly from a STL file using :yref:`yade.ymport.stl`.)
-#. :yref:`yade._packPredicates.inGtsSurface` predicate can be created, using the surface as boundary representation of the enclosed volume.
+#. :ref:`yade.pack.gtsSurface2Facets` function can create the triangulated surface (from :ref:`Facet` particles) in the simulation itself, as shown in the funnel example. (Triangulated surface can also be imported directly from a STL file using :ref:`yade.ymport.stl`.)
+#. :ref:`yade._packPredicates.inGtsSurface` predicate can be created, using the surface as boundary representation of the enclosed volume.
 
 The :ysrc:`scripts/test/gts-horse.py` (img. img-horse_) shows both possibilities; first, a GTS surface is imported::
 
@@ -160,7 +160,7 @@ and then, after being translated, as base for triangulated surface in the simula
 .. figure:: fig/horse.png
 	:width: 8cm
 
-	Imported GTS surface (horse) used as packing predicate (top) and surface constructed from :yref:`facets<yade.utils.facet>` (bottom). See http://www.youtube.com/watch?v=PZVruIlUX1A for movie of this simulation.
+	Imported GTS surface (horse) used as packing predicate (top) and surface constructed from :ref:`facets<yade.utils.facet>` (bottom). See http://www.youtube.com/watch?v=PZVruIlUX1A for movie of this simulation.
 
 
 Boolean operations on predicates
@@ -168,10 +168,10 @@ Boolean operations on predicates
 
 Boolean operations on pair of predicates (noted ``A`` and ``B``) are defined:
 
-* :yref:`intersection<yade._packPredicates.PredicateIntersection>` ``A & B`` (conjunction): point must be in both predicates involved.
-* :yref:`union<yade._packPredicates.PredicateUnion>` ``A | B`` (disjunction): point must be in the first or in the second predicate.
-* :yref:`difference<yade._packPredicates.PredicateDifference>` ``A - B`` (conjunction with second predicate negated): the point must be in the first predicate and not in the second one.
-* :yref:`symmetric difference<yade._packPredicates.PredicateSymmetricDifference>` ``A ^ B`` (exclusive disjunction): point must be in exactly one of the two predicates.
+* :ref:`intersection<yade._packPredicates.PredicateIntersection>` ``A & B`` (conjunction): point must be in both predicates involved.
+* :ref:`union<yade._packPredicates.PredicateUnion>` ``A | B`` (disjunction): point must be in the first or in the second predicate.
+* :ref:`difference<yade._packPredicates.PredicateDifference>` ``A - B`` (conjunction with second predicate negated): the point must be in the first predicate and not in the second one.
+* :ref:`symmetric difference<yade._packPredicates.PredicateSymmetricDifference>` ``A ^ B`` (exclusive disjunction): point must be in exactly one of the two predicates.
 
 Composed predicates also properly define their bounding box. For example, we can take box and remove cylinder from inside, using the ``A - B`` operation (img. img-predicate-difference_)::
 
@@ -190,7 +190,7 @@ Packing algorithms
 Algorithms presented below operate on geometric spheres, defined by their center and radius. With a few exception documented below, the procedure is as follows:
 
 #. Sphere positions and radii are computed (some functions use volume predicate for this, some do not)
-#. :yref:`yade.utils.sphere` is called for each position and radius computed; it receives extra `keyword arguments <http://docs.python.org/glossary.html#term-keyword-argument>`_ of the packing function (i.e. arguments that the packing function doesn't specify in its definition; they are noted ``**kw``). Each :yref:`yade.utils.sphere` call creates actual :yref:`Body` objects with :yref:`Sphere` :yref:`shape<Shape>`. List of :yref:`Body` objects is returned.
+#. :ref:`yade.utils.sphere` is called for each position and radius computed; it receives extra `keyword arguments <http://docs.python.org/glossary.html#term-keyword-argument>`_ of the packing function (i.e. arguments that the packing function doesn't specify in its definition; they are noted ``**kw``). Each :ref:`yade.utils.sphere` call creates actual :ref:`Body` objects with :ref:`Sphere` :ref:`shape<Shape>`. List of :ref:`Body` objects is returned.
 #. List returned from the packing function can be added to simulation using ``O.bodies.append``.
 
 Taking the example of pierced box::
@@ -198,13 +198,13 @@ Taking the example of pierced box::
 	pred=pack.inAlignedBox((-2,-2,-2),(2,2,2))-pack.inCylinder((0,-2,0),(0,2,0),1)
 	spheres=pack.randomDensePack(pred,spheresInCell=2000,radius=.1,rRelFuzz=.4,wire=True,color=(0,0,1),material=1)
 
-Keyword arguments ``wire``, ``color`` and ``material`` are not declared in :yref:`yade.pack.randomDensePack`, therefore will be passed to :yref:`yade.utils.sphere`, where they are also documented. ``spheres`` is now list of :yref:`Body` objects, which we add to the simulation::
+Keyword arguments ``wire``, ``color`` and ``material`` are not declared in :ref:`yade.pack.randomDensePack`, therefore will be passed to :ref:`yade.utils.sphere`, where they are also documented. ``spheres`` is now list of :ref:`Body` objects, which we add to the simulation::
 
 	O.bodies.append(spheres)
 
-Packing algorithms described below produce dense packings. If one needs loose packing, :yref:`yade._packSpheres.SpherePack` class provides functions for generating loose packing, via its :yref:`yade._packSpheres.SpherePack.makeCloud` method. It is used internally for generating initial configuration in dynamic algorithms. For instance::
+Packing algorithms described below produce dense packings. If one needs loose packing, :ref:`yade._packSpheres.SpherePack` class provides functions for generating loose packing, via its :ref:`yade._packSpheres.SpherePack.makeCloud` method. It is used internally for generating initial configuration in dynamic algorithms. For instance::
 
-	from yade import pack
+	from woo import pack
 	sp=pack.SpherePack()
 	sp.makeCloud(minCorner=(0,0,0),maxCorner=(3,3,3),rMean=.2,rRelFuzz=.5)
 
@@ -229,7 +229,7 @@ their chief disadvantage is that radius distribution cannot be prescribed exactl
 
 Regular 
 """""""""
-Yade defines packing generators for spheres with constant radii, which can be used with volume predicates as described above. They are dense orthogonal packing (:yref:`yade.pack.regularOrtho`) and dense hexagonal packing (:yref:`yade.pack.regularHexa`). The latter creates so-called "hexagonal close packing", which achieves maximum density (http://en.wikipedia.org/wiki/Close-packing_of_spheres).
+Yade defines packing generators for spheres with constant radii, which can be used with volume predicates as described above. They are dense orthogonal packing (:ref:`yade.pack.regularOrtho`) and dense hexagonal packing (:ref:`yade.pack.regularHexa`). The latter creates so-called "hexagonal close packing", which achieves maximum density (http://en.wikipedia.org/wiki/Close-packing_of_spheres).
 
 Clear disadvantage of regular packings is that they have very strong directional preferences, which might not be an issue in some cases.
 
@@ -237,12 +237,12 @@ Irregular
 """"""""""
 Random geometric algorithms do not integrate at all with volume predicates described above; rather, they take their own boundary/volume definition, which is used during sphere positioning. On the other hand, this makes it possible for them to respect boundary in the sense of making spheres touch it at appropriate places, rather than leaving empty space in-between.
 
-:yref:`yade._packSpherePadder.SpherePadder`
-	constructs dense sphere packing based on pre-computed tetrahedron mesh; it is documented in :yref:`yade._packSpherePadder.SpherePadder` documentation; sample script is in :ysrc:`scripts/test/SpherePadder.py`. :yref:`yade._packSpherePadder.SpherePadder` does not return :yref:`Body` list as other algorithms, but a :yref:`yade._packSpheres.SpherePack` object; it can be iterated over, adding spheres to the simulation, as shown in its documentation.
+:ref:`yade._packSpherePadder.SpherePadder`
+	constructs dense sphere packing based on pre-computed tetrahedron mesh; it is documented in :ref:`yade._packSpherePadder.SpherePadder` documentation; sample script is in :ysrc:`scripts/test/SpherePadder.py`. :ref:`yade._packSpherePadder.SpherePadder` does not return :ref:`Body` list as other algorithms, but a :ref:`yade._packSpheres.SpherePack` object; it can be iterated over, adding spheres to the simulation, as shown in its documentation.
 GenGeo
 	is library (python module) for packing generation developed with `ESyS-Particle <http://www.launchpad.net/esys-particle>`_. It creates packing by random insertion of spheres with given radius range. Inserted spheres touch each other exactly and, more importantly, they also touch the boundary, if in its neighbourhood. Boundary is represented as special object of the GenGeo library (Sphere, cylinder, box, convex polyhedron, …). Therefore, GenGeo cannot be used with volume represented by yade predicates as explained above.	
 
-	Packings generated by this module can be imported directly via :yref:`yade.ymport.gengeo`, or from saved file via :yref:`yade.ymport.gengeoFile`. There is an example script :ysrc:`scripts/test/genCylLSM.py`. Full documentation for GenGeo can be found at `ESyS documentation website <http://esys.esscc.uq.edu.au/docs.html>`_.
+	Packings generated by this module can be imported directly via :ref:`yade.ymport.gengeo`, or from saved file via :ref:`yade.ymport.gengeoFile`. There is an example script :ysrc:`scripts/test/genCylLSM.py`. Full documentation for GenGeo can be found at `ESyS documentation website <http://esys.esscc.uq.edu.au/docs.html>`_.
 
 	To our knowledge, the GenGeo library is not currently packaged. It can be downloaded from current subversion repository ::
 
@@ -253,36 +253,36 @@ GenGeo
 Dynamic
 ^^^^^^^
 
-The most versatile algorithm for random dense packing is provided by :yref:`yade.pack.randomDensePack`. Initial loose packing of non-overlapping spheres is generated by randomly placing them in cuboid volume, with radii given by requested (currently only uniform) radius distribution. When no more spheres can be inserted, the packing is compressed and then uncompressed (see :ysrc:`py/pack/pack.py` for exact values of these "stresses") by running a DEM simulation; :yref:`Omega.switchScene` is used to not affect existing simulation). Finally, resulting packing is clipped using provided predicate, as explained above.
+The most versatile algorithm for random dense packing is provided by :ref:`yade.pack.randomDensePack`. Initial loose packing of non-overlapping spheres is generated by randomly placing them in cuboid volume, with radii given by requested (currently only uniform) radius distribution. When no more spheres can be inserted, the packing is compressed and then uncompressed (see :ysrc:`py/pack/pack.py` for exact values of these "stresses") by running a DEM simulation; :ref:`Omega.switchScene` is used to not affect existing simulation). Finally, resulting packing is clipped using provided predicate, as explained above.
 
 By its nature, this method might take relatively long; and there are 2 provisions to make the computation time shorter:
 
 * If number of spheres using the ``spheresInCell`` parameter is specified, only smaller specimen with *periodic* boundary is created and then repeated as to fill the predicate. This can provide high-quality packing with low regularity, depending on the ``spheresInCell`` parameter (value of several thousands is recommended).
-* Providing ``memoizeDb`` parameter will make :yref:`yade.pack.randomDensePack` first look into provided file (SQLite database) for packings with similar parameters. On success, the packing is simply read from database and returned. If there is no similar pre-existent packing, normal procedure is run, and the result is saved in the database before being returned, so that subsequent calls with same parameters will return quickly.
+* Providing ``memoizeDb`` parameter will make :ref:`yade.pack.randomDensePack` first look into provided file (SQLite database) for packings with similar parameters. On success, the packing is simply read from database and returned. If there is no similar pre-existent packing, normal procedure is run, and the result is saved in the database before being returned, so that subsequent calls with same parameters will return quickly.
 
-If you need to obtain full periodic packing (rather than packing clipped by predicate), you can use :yref:`yade.pack.randomPeriPack`.
+If you need to obtain full periodic packing (rather than packing clipped by predicate), you can use :ref:`yade.pack.randomPeriPack`.
 
-In case of specific needs, you can create packing yourself, "by hand". For instance, packing boundary can be constructed from :yref:`facets<Facet>`, letting randomly positioned spheres in space fall down under gravity.
+In case of specific needs, you can create packing yourself, "by hand". For instance, packing boundary can be constructed from :ref:`facets<Facet>`, letting randomly positioned spheres in space fall down under gravity.
 
 
 Adding particles
 ================
 
-The :yref:`BodyContainer` holds :yref:`Body` objects in the simulation; it is accessible as ``O.bodies``.
+The :ref:`BodyContainer` holds :ref:`Body` objects in the simulation; it is accessible as ``O.bodies``.
 
 Creating Body objects
 ----------------------
 
-:yref:`Body` objects are only rarely constructed by hand by their components (:yref:`Shape`, :yref:`Bound`, :yref:`State`, :yref:`Material`); instead, convenience functions :yref:`yade.utils.sphere`, :yref:`yade.utils.facet` and :yref:`yade.utils.wall` are used to create them. Using these functions also ensures better future compatibility, if internals of :yref:`Body` change in some way. These functions receive geometry of the particle and several other characteristics. See their documentation for details. If the same :yref:`Material` is used for several (or many) bodies, it can be shared by adding it in ``O.materials``, as explained below.
+:ref:`Body` objects are only rarely constructed by hand by their components (:ref:`Shape`, :ref:`Bound`, :ref:`State`, :ref:`Material`); instead, convenience functions :ref:`yade.utils.sphere`, :ref:`yade.utils.facet` and :ref:`yade.utils.wall` are used to create them. Using these functions also ensures better future compatibility, if internals of :ref:`Body` change in some way. These functions receive geometry of the particle and several other characteristics. See their documentation for details. If the same :ref:`Material` is used for several (or many) bodies, it can be shared by adding it in ``O.materials``, as explained below.
 
 Defining materials
 ------------------
 
-The ``O.materials`` object (instance of :yref:`Omega.materials`) holds defined shared materials for bodies. It only supports addition, and will typically hold only a few instance (though there is no limit).
+The ``O.materials`` object (instance of :ref:`Omega.materials`) holds defined shared materials for bodies. It only supports addition, and will typically hold only a few instance (though there is no limit).
 
-``label`` given to each material is optional, but can be passed to :yref:`yade.utils.sphere` and other functions forconstructing body. The value returned by ``O.materials.append`` is an ``id`` of the material, which can be also passed to :yref:`yade.utils.sphere` -- it is a little bit faster than using label, though not noticeable for small number of particles and perhaps less convenient.
+``label`` given to each material is optional, but can be passed to :ref:`yade.utils.sphere` and other functions forconstructing body. The value returned by ``O.materials.append`` is an ``id`` of the material, which can be also passed to :ref:`yade.utils.sphere` -- it is a little bit faster than using label, though not noticeable for small number of particles and perhaps less convenient.
 
-If no :yref:`Material` is specified when calling :yref:`yade.utils.sphere`, the *last* defined material is used; that is a convenient default. If no material is defined yet (hence there is no last material), a default material will be created using :yref:`yade.utils.defaultMaterial`; this should not happen for serious simulations, but is handy in simple scripts, where exact material properties are more or less irrelevant.
+If no :ref:`Material` is specified when calling :ref:`yade.utils.sphere`, the *last* defined material is used; that is a convenient default. If no material is defined yet (hence there is no last material), a default material will be created using :ref:`yade.utils.defaultMaterial`; this should not happen for serious simulations, but is handy in simple scripts, where exact material properties are more or less irrelevant.
 
 .. ipython::
 
@@ -338,17 +338,17 @@ As shown above, bodies are added one by one or several at the same time using th
 
 Many functions introduced in preceding sections return list of bodies which can be readily added to the simulation, including
 
-* packing generators, such as :yref:`yade.pack.randomDensePack`, :yref:`yade.pack.regularHexa`
-* surface function :yref:`yade.pack.gtsSurface2Facets`
-* import functions :yref:`yade.ymport.gmsh`, :yref:`yade.ymport.stl`, …
+* packing generators, such as :ref:`yade.pack.randomDensePack`, :ref:`yade.pack.regularHexa`
+* surface function :ref:`yade.pack.gtsSurface2Facets`
+* import functions :ref:`yade.ymport.gmsh`, :ref:`yade.ymport.stl`, …
 
-As those functions use :yref:`yade.utils.sphere` and :yref:`yade.utils.facet` internally, they accept additional argument passed to those function. In particular, material for each body is selected following the rules above (last one if not specified, by label, by index, etc.).
+As those functions use :ref:`yade.utils.sphere` and :ref:`yade.utils.facet` internally, they accept additional argument passed to those function. In particular, material for each body is selected following the rules above (last one if not specified, by label, by index, etc.).
 
 
 Clumping particles together
 ----------------------------
 
-In some cases, you might want to create rigid aggregate of individual particles (i.e. particles will retain their mutual position during simulation); a special function :yref:`BodyContainer.appendClumped` is designed for this task; for instance, we might add 2 spheres tied together:
+In some cases, you might want to create rigid aggregate of individual particles (i.e. particles will retain their mutual position during simulation); a special function :ref:`BodyContainer.appendClumped` is designed for this task; for instance, we might add 2 spheres tied together:
 
 .. ipython::
 
@@ -367,23 +367,23 @@ In some cases, you might want to create rigid aggregate of individual particles 
 	Yade [2]: O.bodies[2].isClump, O.bodies[2].clumpId
 	
 
-:yref:`appendClumped<BodyContainer.appendClumped>` returns a tuple of ``(clumpId,[memberId1,memberId2])``: clump is internally represented by a special :yref:`Body`, referenced by :yref:`clumpId<Body.clumpId>` of its members (see also  :yref:`isClump<Body.isClump>`, :yref:`isClumpMember<Body.isClumpMember>` and :yref:`isStandalone<Body.isStandalone>`).
+:ref:`appendClumped<BodyContainer.appendClumped>` returns a tuple of ``(clumpId,[memberId1,memberId2])``: clump is internally represented by a special :ref:`Body`, referenced by :ref:`clumpId<Body.clumpId>` of its members (see also  :ref:`isClump<Body.isClump>`, :ref:`isClumpMember<Body.isClumpMember>` and :ref:`isStandalone<Body.isStandalone>`).
 
 .. _creating-interactions:
 
 Creating interactions
 ======================
 
-In typical cases, interactions are created during simulations as particles collide. This is done by a :yref:`Collider` detecting approximate contact between particles and then an :yref:`IGeomFunctor` detecting exact collision.
+In typical cases, interactions are created during simulations as particles collide. This is done by a :ref:`Collider` detecting approximate contact between particles and then an :ref:`IGeomFunctor` detecting exact collision.
 
-Some material models (such as the :yref:`concrete model<Law2_Dem3DofGeom_CpmPhys_Cpm>`) rely on initial interaction network which is denser than geometrical contact of spheres: sphere's radii as "enlarged" by a dimensionless factor called *interaction radius* (or *interaction ratio*) to create this initial network. This is done typically in this way (see :ysrc:`examples/concrete/uniax.py` for an example):
+Some material models (such as the :ref:`concrete model<Law2_Dem3DofGeom_CpmPhys_Cpm>`) rely on initial interaction network which is denser than geometrical contact of spheres: sphere's radii as "enlarged" by a dimensionless factor called *interaction radius* (or *interaction ratio*) to create this initial network. This is done typically in this way (see :ysrc:`examples/concrete/uniax.py` for an example):
 
-#. Approximate collision detection is adjusted so that approximate contacts are detected also between particles within the interaction radius. This consists in setting value of :yref:`Bo1_Sphere_Aabb.aabbEnlargeFactor` to the interaction radius value.
+#. Approximate collision detection is adjusted so that approximate contacts are detected also between particles within the interaction radius. This consists in setting value of :ref:`Bo1_Sphere_Aabb.aabbEnlargeFactor` to the interaction radius value.
 
 #. The geometry functor (``Ig2``)
-   would normally say that "there is no contact" if given 2 spheres that are not in contact. Therefore, the same value as for :yref:`Bo1_Sphere_Aabb.aabbEnlargeFactor` must be given to it. (Either :yref:`Ig2_Sphere_Sphere_Dem3DofGeom.distFactor` or :yref:`Ig2_Sphere_Sphere_ScGeom.interactionDetectionFactor`, depending on the functor that is in use.
+   would normally say that "there is no contact" if given 2 spheres that are not in contact. Therefore, the same value as for :ref:`Bo1_Sphere_Aabb.aabbEnlargeFactor` must be given to it. (Either :ref:`Ig2_Sphere_Sphere_Dem3DofGeom.distFactor` or :ref:`Ig2_Sphere_Sphere_ScGeom.interactionDetectionFactor`, depending on the functor that is in use.
 
-   Note that only :yref:`Sphere` + :yref:`Sphere` interactions are supported; there is no parameter analogous to :yref:`distFactor<Ig2_Sphere_Sphere_Dem3DofGeom.distFactor>` in :yref:`Ig2_Facet_Sphere_Dem3DofGeom`. This is on purpose, since the interaction radius is meaningful in bulk material represented by sphere packing, whereas facets usually represent boundary conditions which should be exempt from this dense interaction network.
+   Note that only :ref:`Sphere` + :ref:`Sphere` interactions are supported; there is no parameter analogous to :ref:`distFactor<Ig2_Sphere_Sphere_Dem3DofGeom.distFactor>` in :ref:`Ig2_Facet_Sphere_Dem3DofGeom`. This is on purpose, since the interaction radius is meaningful in bulk material represented by sphere packing, whereas facets usually represent boundary conditions which should be exempt from this dense interaction network.
 
 #. Run one single step of the simulation so that the initial network is created.
 
@@ -428,7 +428,7 @@ In code, such scenario might look similar to this one (labeling is explained in 
 Individual interactions on demand
 ----------------------------------
 
-It is possible to create an interaction between a pair of particles independently of collision detection using :yref:`yade.utils.createInteraction`. This function looks for and uses matching ``Ig2`` and ``Ip2`` functors. Interaction will be created regardless of distance between given particles (by passing a special parameter to the ``Ig2`` functor to force creation of the interaction even without any geometrical contact). Appropriate constitutive law should be used to avoid deletion of the interaction at the next simulation step.
+It is possible to create an interaction between a pair of particles independently of collision detection using :ref:`yade.utils.createInteraction`. This function looks for and uses matching ``Ig2`` and ``Ip2`` functors. Interaction will be created regardless of distance between given particles (by passing a special parameter to the ``Ig2`` functor to force creation of the interaction even without any geometrical contact). Appropriate constitutive law should be used to avoid deletion of the interaction at the next simulation step.
 
 .. ipython::
 	
@@ -456,7 +456,7 @@ It is possible to create an interaction between a pair of particles independentl
 	# created by functors in InteractionLoop
 	Yade [2]: i.geom, i.phys
 
-This method will be rather slow if many interaction are to be created (the functor lookup will be repeated for each of them). In such case, ask on yade-dev@lists.launchpad.net to have the :yref:`yade.utils.createInteraction` function accept list of pairs id's as well.
+This method will be rather slow if many interaction are to be created (the functor lookup will be repeated for each of them). In such case, ask on yade-dev@lists.launchpad.net to have the :ref:`yade.utils.createInteraction` function accept list of pairs id's as well.
 
 Base engines
 =============
@@ -477,12 +477,12 @@ Each of these points corresponds to one or several engines::
 	   NewtonIntegrator()        # apply forces and update positions
 	]
 
-The order of engines is important. In majority of cases, you will put any additional engine after :yref:`InteractionLoop`:
+The order of engines is important. In majority of cases, you will put any additional engine after :ref:`InteractionLoop`:
 
-* if it apply force, it should come before :yref:`NewtonIntegrator`, otherwise the force will never be effective.
-* if it makes use of bodies' positions, it should also come before :yref:`NewtonIntegrator`, otherwise, positions at the next step will be used (this might not be critical in many cases, such as output for visualization with :yref:`VTKRecorder`).
+* if it apply force, it should come before :ref:`NewtonIntegrator`, otherwise the force will never be effective.
+* if it makes use of bodies' positions, it should also come before :ref:`NewtonIntegrator`, otherwise, positions at the next step will be used (this might not be critical in many cases, such as output for visualization with :ref:`VTKRecorder`).
 
-The :yref:`O.engines<Omega.engines>` sequence must be always assigned at once (the reason is in the fact that although engines themselves are passed by reference, the sequence is *copied* from c++ to Python or from Python to c++). This includes modifying an existing ``O.engines``; therefore ::
+The :ref:`O.engines<Omega.engines>` sequence must be always assigned at once (the reason is in the fact that although engines themselves are passed by reference, the sequence is *copied* from c++ to Python or from Python to c++). This includes modifying an existing ``O.engines``; therefore ::
 
 	O.engines.append(SomeEngine()) # wrong
 
@@ -501,34 +501,34 @@ In the above example, we omited functors, only writing ellipses ``...`` instead.
 
 Bo1 functors
 ^^^^^^^^^^^^
-``Bo1`` functors must be chosen depending on the collider in use; they are given directly to the collider (which internally uses :yref:`BoundDispatcher`).
+``Bo1`` functors must be chosen depending on the collider in use; they are given directly to the collider (which internally uses :ref:`BoundDispatcher`).
 
-At this moment (September 2010), the most common choice is :yref:`InsertionSortCollider`, which uses :yref:`Aabb`; functors creating :yref:`Aabb` must be used in that case. Depending on particle :yref:`shapes<Shape>` in your simulation, choose appropriate functors::
+At this moment (September 2010), the most common choice is :ref:`InsertionSortCollider`, which uses :ref:`Aabb`; functors creating :ref:`Aabb` must be used in that case. Depending on particle :ref:`shapes<Shape>` in your simulation, choose appropriate functors::
 
    O.engines=[...,
       InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb()]),
       ...
    ]
 
-Using more functors than necessary (such as :yref:`Bo1_Facet_Aabb` if there are no :yref:`facets<Facet>` in the simulation) has no performance penalty. On the other hand, missing functors for existing :yref:`shapes<Shape>` will cause those bodies to not collider with other bodies (they will freely interpenetrate).
+Using more functors than necessary (such as :ref:`Bo1_Facet_Aabb` if there are no :ref:`facets<Facet>` in the simulation) has no performance penalty. On the other hand, missing functors for existing :ref:`shapes<Shape>` will cause those bodies to not collider with other bodies (they will freely interpenetrate).
 
 There are other colliders as well, though their usage is only experimental:
 
-* :yref:`SpatialQuickSortCollider` is correctness-reference collider operating on :yref:`Aabb`; it is significantly slower than :yref:`InsertionSortCollider`.
-* :yref:`PersistentTriangulationCollider` only works on spheres; it does not use a :yref:`BoundDispatcher`, as it operates on spheres directly.
-* :yref:`FlatGridCollider` is proof-of-concept grid-based collider, which computes grid positions internally (no :yref:`BoundDispatcher` either)
+* :ref:`SpatialQuickSortCollider` is correctness-reference collider operating on :ref:`Aabb`; it is significantly slower than :ref:`InsertionSortCollider`.
+* :ref:`PersistentTriangulationCollider` only works on spheres; it does not use a :ref:`BoundDispatcher`, as it operates on spheres directly.
+* :ref:`FlatGridCollider` is proof-of-concept grid-based collider, which computes grid positions internally (no :ref:`BoundDispatcher` either)
 
 Ig2 functors
 ^^^^^^^^^^^^^
 
-``Ig2`` functor choice (all of the derive from :yref:`IGeomFunctor`) depends on 
+``Ig2`` functor choice (all of the derive from :ref:`IGeomFunctor`) depends on 
 
 #. shape combinations that should collide;
    for instance::
 
       InteractionLoop([Ig2_Sphere_Sphere_Dem3DofGeom()],[],[])
 
-   will handle collisions for :yref:`Sphere` + :yref:`Sphere`, but not for :yref:`Facet` + :yref:`Sphere` -- if that is desired, an additional functor must be used::
+   will handle collisions for :ref:`Sphere` + :ref:`Sphere`, but not for :ref:`Facet` + :ref:`Sphere` -- if that is desired, an additional functor must be used::
    
       InteractionLoop([
          Ig2_Sphere_Sphere_Dem3DofGeom(),
@@ -537,7 +537,7 @@ Ig2 functors
    
    Again, missing combination will cause given shape combinations to freely interpenetrate one another.
 
-#. :yref:`IGeom` type accepted by the ``Law2`` functor (below); it is the first part of functor's name after ``Law2`` (for instance, :yref:`Law2_Dem3DofGeom_CpmPhys_Cpm` accepts :yref:`Dem3DofGeom`). This is (for most cases) either :yref:`Dem3DofGeom` (total shear formulation) or :yref:`ScGeom` (incremental shear formulation). For :yref:`ScGeom`, the above example would simply change to::
+#. :ref:`IGeom` type accepted by the ``Law2`` functor (below); it is the first part of functor's name after ``Law2`` (for instance, :ref:`Law2_Dem3DofGeom_CpmPhys_Cpm` accepts :ref:`Dem3DofGeom`). This is (for most cases) either :ref:`Dem3DofGeom` (total shear formulation) or :ref:`ScGeom` (incremental shear formulation). For :ref:`ScGeom`, the above example would simply change to::
 
       InteractionLoop([
          Ig2_Sphere_Sphere_ScGeom(),
@@ -547,22 +547,22 @@ Ig2 functors
 Ip2 functors
 ^^^^^^^^^^^^
 
-``Ip2`` functors (deriving from :yref:`IPhysFunctor`) must be chosen depending on
+``Ip2`` functors (deriving from :ref:`IPhysFunctor`) must be chosen depending on
 
-#. :yref:`Material` combinations within the simulation. In most cases, ``Ip2`` functors handle 2 instances of the same :yref:`Material` class (such as :yref:`Ip2_FrictMat_FrictMat_FrictPhys` for 2 bodies with :yref:`FrictMat`) 
+#. :ref:`Material` combinations within the simulation. In most cases, ``Ip2`` functors handle 2 instances of the same :ref:`Material` class (such as :ref:`Ip2_FrictMat_FrictMat_FrictPhys` for 2 bodies with :ref:`FrictMat`) 
 
-#. :yref:`IPhys` accepted by the constitutive law (``Law2`` functor), which is the second part of the ``Law2`` functor's name (e.g. :yref:`Law2_ScGeom_FrictPhys_CundallStrack` accepts :yref:`FrictPhys`)
+#. :ref:`IPhys` accepted by the constitutive law (``Law2`` functor), which is the second part of the ``Law2`` functor's name (e.g. :ref:`Law2_ScGeom_FrictPhys_CundallStrack` accepts :ref:`FrictPhys`)
 
-.. note:: Unlike with ``Bo1`` and ``Ig2`` functors, unhandled combination of :yref:`Materials<Material>` is an error condition signaled by an exception.
+.. note:: Unlike with ``Bo1`` and ``Ig2`` functors, unhandled combination of :ref:`Materials<Material>` is an error condition signaled by an exception.
 
 Law2 functor(s)
 ^^^^^^^^^^^^^^^^
 
 ``Law2`` functor was the ultimate criterion for the choice of ``Ig2`` and ``Ig2`` functors; there are no restrictions on its choice in itself, as it only applies forces without creating new objects.
 
-In most simulations, only one ``Law2`` functor will be in use; it is possible, though, to have several of them, dispatched based on combination of :yref:`IGeom` and :yref:`IPhys` produced previously by ``Ig2`` and ``Ip2`` functors respectively (in turn based on combination of :yref:`Shapes<Shape>` and :yref:`Materials<Material>`).
+In most simulations, only one ``Law2`` functor will be in use; it is possible, though, to have several of them, dispatched based on combination of :ref:`IGeom` and :ref:`IPhys` produced previously by ``Ig2`` and ``Ip2`` functors respectively (in turn based on combination of :ref:`Shapes<Shape>` and :ref:`Materials<Material>`).
 
-.. note:: As in the case of ``Ip2`` functors, receiving a combination of :yref:`IGeom` and :yref:`IPhys` which is not handled by any ``Law2`` functor is an error.
+.. note:: As in the case of ``Ip2`` functors, receiving a combination of :ref:`IGeom` and :ref:`IPhys` which is not handled by any ``Law2`` functor is an error.
 
 Examples
 ^^^^^^^^
@@ -571,11 +571,11 @@ Let us give several example of the chain of created and accepted types.
 
 Basic DEM model
 ^^^^^^^^^^^^^^^^
-Suppose we want to use the :yref:`Law2_ScGeom_FrictPhys_CundallStrack` constitutive law. We see that
+Suppose we want to use the :ref:`Law2_ScGeom_FrictPhys_CundallStrack` constitutive law. We see that
 
-#. the ``Ig2`` functors must create :yref:`ScGeom`. If we have for instance :yref:`spheres<Sphere>` and :yref:`boxes<Box>` in the simulation, we will need functors accepting :yref:`Sphere` + :yref:`Sphere` and :yref:`Box` + :yref:`Sphere` combinations. We don't want interactions between boxes themselves (as a matter of fact, there is no such functor anyway). That gives us :yref:`Ig2_Sphere_Sphere_ScGeom` and :yref:`Ig2_Box_Sphere_ScGeom`.
+#. the ``Ig2`` functors must create :ref:`ScGeom`. If we have for instance :ref:`spheres<Sphere>` and :ref:`boxes<Box>` in the simulation, we will need functors accepting :ref:`Sphere` + :ref:`Sphere` and :ref:`Box` + :ref:`Sphere` combinations. We don't want interactions between boxes themselves (as a matter of fact, there is no such functor anyway). That gives us :ref:`Ig2_Sphere_Sphere_ScGeom` and :ref:`Ig2_Box_Sphere_ScGeom`.
 
-#. the ``Ip2`` functors should create :yref:`FrictPhys`. Looking at :yref:`InteractionPhysicsFunctors<IPhysFunctor>`, there is only :yref:`Ip2_FrictMat_FrictMat_FrictPhys`. That obliges us to use :yref:`FrictMat` for particles.
+#. the ``Ip2`` functors should create :ref:`FrictPhys`. Looking at :ref:`InteractionPhysicsFunctors<IPhysFunctor>`, there is only :ref:`Ip2_FrictMat_FrictMat_FrictPhys`. That obliges us to use :ref:`FrictMat` for particles.
 
 The result will be therefore::
 
@@ -587,11 +587,11 @@ The result will be therefore::
 
 Concrete model
 ^^^^^^^^^^^^^^^
-In this case, our goal is to use the :yref:`Law2_Dem3DofGeom_CpmPhys_Cpm` constitutive law.
+In this case, our goal is to use the :ref:`Law2_Dem3DofGeom_CpmPhys_Cpm` constitutive law.
 
-* We use :yref:`spheres<Sphere>` and :yref:`facets<Facet>` in the simulation, which selects ``Ig2`` functors accepting those types and producing :yref:`Dem3DofGeom`: :yref:`Ig2_Sphere_Sphere_Dem3DofGeom` and :yref:`Ig2_Facet_Sphere_Dem3DofGeom`.
+* We use :ref:`spheres<Sphere>` and :ref:`facets<Facet>` in the simulation, which selects ``Ig2`` functors accepting those types and producing :ref:`Dem3DofGeom`: :ref:`Ig2_Sphere_Sphere_Dem3DofGeom` and :ref:`Ig2_Facet_Sphere_Dem3DofGeom`.
 
-* We have to use :yref:`Material` which can be used for creating :yref:`CpmPhys`. We find that :yref:`CpmPhys` is only  created by :yref:`Ip2_CpmMat_CpmMat_CpmPhys`, which determines the choice of :yref:`CpmMat` for all particles.
+* We have to use :ref:`Material` which can be used for creating :ref:`CpmPhys`. We find that :ref:`CpmPhys` is only  created by :ref:`Ip2_CpmMat_CpmMat_CpmPhys`, which determines the choice of :ref:`CpmMat` for all particles.
 
 Therefore, we will use::
 
@@ -610,9 +610,9 @@ In most simulations, it is not desired that all particles float freely in space.
 Motion constraints
 ------------------
 
-* :yref:`Body.dynamic` determines whether a body will be moved by :yref:`NewtonIntegrator`; it is mandatory for bodies with zero mass, where applying non-zero force would result in infinite displacement.
+* :ref:`Body.dynamic` determines whether a body will be moved by :ref:`NewtonIntegrator`; it is mandatory for bodies with zero mass, where applying non-zero force would result in infinite displacement.
 
-  :yref:`Facets<Facet>` are case in the point: :yref:`yade.utils.facet` makes them non-dynamic by default, as they have zero volume and zero mass (this can be changed, by passing ``dynamic=True`` to :yref:`yade.utils.facet` or setting :yref:`Body.dynamic`; setting :yref:`State.mass` to a non-zero value must be done as well). The same is true for :yref:`yade.utils.wall`.
+  :ref:`Facets<Facet>` are case in the point: :ref:`yade.utils.facet` makes them non-dynamic by default, as they have zero volume and zero mass (this can be changed, by passing ``dynamic=True`` to :ref:`yade.utils.facet` or setting :ref:`Body.dynamic`; setting :ref:`State.mass` to a non-zero value must be done as well). The same is true for :ref:`yade.utils.wall`.
 
   Making sphere non-dynamic is achieved simply by::
 
@@ -620,7 +620,7 @@ Motion constraints
 
   .. note:: There is an open `bug #398089 <https://bugs.launchpad.net/yade/+bug/398089>`_ to define exactly what the ``dynamic`` flag does. Please read it before writing a new engine relying on this flag.
 
-* :yref:`State.blockedDOFs` permits selective blocking
+* :ref:`State.blockedDOFs` permits selective blocking
   of any of 6 degrees of freedom in global space. For instance, a sphere can be made to move only in the xy plane by saying:
 
   .. ipython::
@@ -632,7 +632,7 @@ Motion constraints
 
      Yade [1]: O.bodies[0].state.blockedDOFs=['z','rx','ry']
 
-  In contrast to :yref:`Body.dynamic`, :yref:`blockedDOFs<State.blockedDOFs>` will only block forces (and acceleration) in that direction being effective; if you prescribed linear or angular velocity, they will be applied regardless of :yref:`blockedDOFs<State.blockedDOFs>`. (This is also related to `bug #398089 <https://bugs.launchpad.net/yade/+bug/398089>`_ mentioned above)
+  In contrast to :ref:`Body.dynamic`, :ref:`blockedDOFs<State.blockedDOFs>` will only block forces (and acceleration) in that direction being effective; if you prescribed linear or angular velocity, they will be applied regardless of :ref:`blockedDOFs<State.blockedDOFs>`. (This is also related to `bug #398089 <https://bugs.launchpad.net/yade/+bug/398089>`_ mentioned above)
 
 It might be desirable to constrain motion of some particles constructed from a generated sphere packing, following some condition, such as being at the bottom of a specimen; this can be done by looping over all bodies with a conditional::
 
@@ -642,7 +642,7 @@ It might be desirable to constrain motion of some particles constructed from a g
 
 Arbitrary spatial predicates introduced above can be expoited here as well::
 
-	from yade import pack
+	from woo import pack
 	pred=pack.inAlignedBox(lowerCorner,upperCorner)
 	for b in O.bodies:
 	   if b.shape.name!=Sphere: continue # skip non-spheres
@@ -653,27 +653,27 @@ Arbitrary spatial predicates introduced above can be expoited here as well::
 Boundary controllers
 --------------------
 
-Engines deriving from :yref:`BoundaryController` impose boundary conditions during simulation, either directly, or by influencing several bodies. You are referred to their individual documentation for details, though you might find interesting in particular
+Engines deriving from :ref:`BoundaryController` impose boundary conditions during simulation, either directly, or by influencing several bodies. You are referred to their individual documentation for details, though you might find interesting in particular
 
-* :yref:`UniaxialStrainer` for applying strain along one axis at constant rate; useful for plotting strain-stress diagrams for uniaxial loading case. See :ysrc:`examples/concrete/uniax.py` for an example.
-* :yref:`TriaxialStressController` which applies prescribed stress/strain along 3 perpendicular axes on cuboid-shaped packing using 6 walls (:yref:`Box` objects) (:yref:`ThreeDTriaxialEngine` is generalized such that it allows independent value of stress along each axis)
-* :yref:`PeriTriaxController` for applying stress/strain along 3 axes independently, for simulations using periodic boundary conditions (:yref:`Cell`)
+* :ref:`UniaxialStrainer` for applying strain along one axis at constant rate; useful for plotting strain-stress diagrams for uniaxial loading case. See :ysrc:`examples/concrete/uniax.py` for an example.
+* :ref:`TriaxialStressController` which applies prescribed stress/strain along 3 perpendicular axes on cuboid-shaped packing using 6 walls (:ref:`Box` objects) (:ref:`ThreeDTriaxialEngine` is generalized such that it allows independent value of stress along each axis)
+* :ref:`PeriTriaxController` for applying stress/strain along 3 axes independently, for simulations using periodic boundary conditions (:ref:`Cell`)
 
 Field appliers
 ---------------
 
-Engines deriving from :yref:`FieldApplier` acting on all particles. The one most used is :yref:`GravityEngine` applying uniform acceleration field.
+Engines deriving from :ref:`FieldApplier` acting on all particles. The one most used is :ref:`GravityEngine` applying uniform acceleration field.
 
 Partial engines
 ---------------
 
-Engines deriving from :yref:`PartialEngine` define the :yref:`subscribedBodies<PartialEngine.subscribedBodies>` attribute determining bodies which will be affected. Several of them warrant explicit mention here:
+Engines deriving from :ref:`PartialEngine` define the :ref:`subscribedBodies<PartialEngine.subscribedBodies>` attribute determining bodies which will be affected. Several of them warrant explicit mention here:
 
-* :yref:`TranslationEngine` and :yref:`RotationEngine` for applying constant speed linear and rotational motion on subscribers. 
-* :yref:`ForceEngine` and :yref:`TorqueEngine` applying given values of force/torque on subscribed bodies at every step.
-* :yref:`StepDisplacer` for applying generalized displacement delta at every timestep; designed for precise control of motion when testing constitutive laws on 2 particles.
+* :ref:`TranslationEngine` and :ref:`RotationEngine` for applying constant speed linear and rotational motion on subscribers. 
+* :ref:`ForceEngine` and :ref:`TorqueEngine` applying given values of force/torque on subscribed bodies at every step.
+* :ref:`StepDisplacer` for applying generalized displacement delta at every timestep; designed for precise control of motion when testing constitutive laws on 2 particles.
 
-If you need an engine applying non-constant value instead, there are several interpolating engines (:yref:`InterpolatingDirectedForceEngine` for applying force with varying magnitude, :yref:`InterpolatingSpiralEngine` for applying spiral displacement with varying angular velocity and possibly others); writing a new interpolating engine is rather simple using examples of those that already exist.
+If you need an engine applying non-constant value instead, there are several interpolating engines (:ref:`InterpolatingDirectedForceEngine` for applying force with varying magnitude, :ref:`InterpolatingSpiralEngine` for applying spiral displacement with varying angular velocity and possibly others); writing a new interpolating engine is rather simple using examples of those that already exist.
 
 
 Convenience features
@@ -690,7 +690,7 @@ Engines and functors can define that ``label`` attribute. Whenever the ``O.engin
 Simulation tags
 ----------------
 
-:yref:`Omega.tags` is a dictionary (it behaves like a dictionary, although the implementation in c++ is different) mapping keys to labels. Contrary to regular python dictionaries that you could create,
+:ref:`Omega.tags` is a dictionary (it behaves like a dictionary, although the implementation in c++ is different) mapping keys to labels. Contrary to regular python dictionaries that you could create,
 
 * ``O.tags`` is *saved and loaded with simulation*;
 * ``O.tags`` has some values pre-initialized.
@@ -726,9 +726,9 @@ You can add your own tags by simply assigning value, with the restriction that t
 Saving python variables
 ------------------------
 
-Python variable lifetime is limited; in particular, if you save simulation, variables will be lost after reloading. Yade provides limited support for data persistence for this reason (internally, it uses special values of ``O.tags``). The functions in question are :yref:`yade.utils.saveVars` and :yref:`yade.utils.loadVars`. 
+Python variable lifetime is limited; in particular, if you save simulation, variables will be lost after reloading. Yade provides limited support for data persistence for this reason (internally, it uses special values of ``O.tags``). The functions in question are :ref:`yade.utils.saveVars` and :ref:`yade.utils.loadVars`. 
 
-:yref:`yade.utils.saveVars` takes dictionary (variable names and their values) and a *mark* (identification string for the variable set); it saves the dictionary inside the simulation. These variables can be re-created (after the simulation was loaded from a XML file, for instance) in the ``yade.params.``\ *mark* namespace by calling :yref:`yade.utils.loadVars` with the same identification *mark*:
+:ref:`yade.utils.saveVars` takes dictionary (variable names and their values) and a *mark* (identification string for the variable set); it saves the dictionary inside the simulation. These variables can be re-created (after the simulation was loaded from a XML file, for instance) in the ``yade.params.``\ *mark* namespace by calling :ref:`yade.utils.loadVars` with the same identification *mark*:
 
 .. ipython::
 
@@ -745,12 +745,12 @@ Python variable lifetime is limited; in particular, if you save simulation, vari
 	Yade [5]: yade.params.ab.a
 	
 	# import like this
-	Yade [5]: from yade.params import ab
+	Yade [5]: from woo.params import ab
 
 	Yade [6]: ab.a, ab.b
 
 	# also possible
-	Yade [5]: from yade.params import *
+	Yade [5]: from woo.params import *
 
 	Yade [6]: ab.a, ab.b
 
@@ -768,10 +768,10 @@ Enumeration of variables can be tedious if they are many; creating local scope (
 		utils.saveVars('geom',loadNow=True,**locals())
 	
 	setGeomVars()
-	from yade.params.geom import *
+	from woo.params.geom import *
 	# use the variables now
 
-.. note:: Only types that can be `pickled <http://docs.python.org/library/pickle.html>`_ can be passed to :yref:`yade.utils.saveVars`.
+.. note:: Only types that can be `pickled <http://docs.python.org/library/pickle.html>`_ can be passed to :ref:`yade.utils.saveVars`.
 
 
 
@@ -786,9 +786,9 @@ Tracking variables
 Running python code
 -------------------
 
-A special engine :yref:`PyRunner` can be used to periodically call python code, specified via the ``command`` parameter. Periodicity can be controlled by specifying computation time (``realPeriod``), virutal time (``virtPeriod``) or iteration number (``iterPeriod``).
+A special engine :ref:`PyRunner` can be used to periodically call python code, specified via the ``command`` parameter. Periodicity can be controlled by specifying computation time (``realPeriod``), virutal time (``virtPeriod``) or iteration number (``iterPeriod``).
 
-For instance, to print kinetic energy (using :yref:`yade.utils.kineticEnergy`) every 5 seconds, this engine will be put to ``O.engines``::
+For instance, to print kinetic energy (using :ref:`yade.utils.kineticEnergy`) every 5 seconds, this engine will be put to ``O.engines``::
 	PyRunner(command="print 'kinetic energy',utils.kineticEnergy()",realPeriod=5)
 
 For running more complex commands, it is convenient to define an external function and only call it from within the engine. Since the ``command`` is run in the script's namespace, functions defined within scripts can be called. Let us print information on interaction between bodies 0 and 1 periodically::
@@ -807,16 +807,16 @@ For running more complex commands, it is convenient to define an external functi
 
 More useful examples will be given below.
 
-The :yref:`yade.plot` module provides simple interface and storage for tracking various data. Although originally conceived for plotting only, it is widely used for tracking variables in general.
+The :ref:`yade.plot` module provides simple interface and storage for tracking various data. Although originally conceived for plotting only, it is widely used for tracking variables in general.
 
-The data are in :yref:`yade.plot.data` dictionary, which maps variable names to list of their values; the :yref:`yade.plot.addData` function is used to add them.
+The data are in :ref:`yade.plot.data` dictionary, which maps variable names to list of their values; the :ref:`yade.plot.addData` function is used to add them.
 
 .. ipython::
 
 	@suppress
 	Yade [1]: O.reset()
 
-	Yade [1]: from yade import plot
+	Yade [1]: from woo import plot
 
 	Yade [1]: plot.data
 
@@ -837,26 +837,26 @@ The data are in :yref:`yade.plot.data` dictionary, which maps variable names to 
 	# get maximum eps
 	Yade [5]: max(plot.data['eps'])
 
-New record is added to all columns at every time :yref:`yade.plot.addData` is called; this assures that lines in different columns always match. The special value ``nan`` or ``NaN`` (`Not a Number <http://en.wikipedia.org/wiki/NaN>`_) is inserted to mark the record invalid.
+New record is added to all columns at every time :ref:`yade.plot.addData` is called; this assures that lines in different columns always match. The special value ``nan`` or ``NaN`` (`Not a Number <http://en.wikipedia.org/wiki/NaN>`_) is inserted to mark the record invalid.
 
 .. note:: It is not possible to have two columns with the same name, since data are stored as a dictionary.
 
-To record data periodically, use :yref:`PyRunner`. This will record the *z* coordinate and velocity of body #1, iteration number and simulation time (every 20 iterations)::
+To record data periodically, use :ref:`PyRunner`. This will record the *z* coordinate and velocity of body #1, iteration number and simulation time (every 20 iterations)::
 
 	O.engines=O.engines+[PyRunner(command='myAddData()', iterPeriod=20)]
 
-	from yade import plot
+	from woo import plot
 	def myAddData():
 		b=O.bodies[1]
 		plot.addData(z1=b.state.pos[2], v1=b.state.vel.norm(), i=O.iter, t=O.time)
 
 .. note::
 
-	Arbitrary string can be used as column label for :yref:`yade.plot.data`. If it cannot be used as keyword name for :yref:`yade.plot.addData` (since it is a python keyword (``for``), or has spaces inside (``my funny column``), you can pass dictionary to :yref:`yade.plot.addData` instead::
+	Arbitrary string can be used as column label for :ref:`yade.plot.data`. If it cannot be used as keyword name for :ref:`yade.plot.addData` (since it is a python keyword (``for``), or has spaces inside (``my funny column``), you can pass dictionary to :ref:`yade.plot.addData` instead::
 
 		plot.addData(z=b.state.pos[2],**{'my funny column':b.state.vel.norm()})
 
-	An exception are columns having leading of trailing whitespaces. They are handled specially in :yref:`yade.plot.plots` and should not be used (see below).
+	An exception are columns having leading of trailing whitespaces. They are handled specially in :ref:`yade.plot.plots` and should not be used (see below).
 
 Labels can be conveniently used to access engines in the ``myAddData`` function::
 
@@ -866,29 +866,29 @@ Labels can be conveniently used to access engines in the ``myAddData`` function:
 	def myAddData():
 		plot.addData(sigma=strainer.stress,eps=strainer.strain)
 
-In that case, naturally, the labeled object must define attributes which are used (:yref:`UniaxialStrainer.strain` and :yref:`UniaxialStrainer.stress` in this case).
+In that case, naturally, the labeled object must define attributes which are used (:ref:`UniaxialStrainer.strain` and :ref:`UniaxialStrainer.stress` in this case).
 
 Plotting variables
 -------------------
-Above, we explained how to track variables by storing them using :yref:`yade.plot.addData`. These data can be readily used for plotting. Yade provides a simple, quick to use, plotting in the :yref:`yade.plot` module. Naturally, since direct access to underlying data is possible via :yref:`yade.plot.data`, these data can be processed in any way.
+Above, we explained how to track variables by storing them using :ref:`yade.plot.addData`. These data can be readily used for plotting. Yade provides a simple, quick to use, plotting in the :ref:`yade.plot` module. Naturally, since direct access to underlying data is possible via :ref:`yade.plot.data`, these data can be processed in any way.
 
-The :yref:`yade.plot.plots` dictionary is a simple specification of plots. Keys are x-axis variable, and values are tuple of y-axis variables, given as strings that were used for :yref:`yade.plot.addData`; each entry in the dictionary represents a separate figure::
+The :ref:`yade.plot.plots` dictionary is a simple specification of plots. Keys are x-axis variable, and values are tuple of y-axis variables, given as strings that were used for :ref:`yade.plot.addData`; each entry in the dictionary represents a separate figure::
 
 	plot.plots={
 		'i':('t',),     # plot t(i)
 		't':('z1','v1') # z1(t) and v1(t)
 	}
 
-Actual plot using data in :yref:`yade.plot.data` and plot specification of :yref:`yade.plot.plots` can be triggered by invoking the :yref:`yade.plot.plot` function.
+Actual plot using data in :ref:`yade.plot.data` and plot specification of :ref:`yade.plot.plots` can be triggered by invoking the :ref:`yade.plot.plot` function.
 
 Live updates of plots
 ^^^^^^^^^^^^^^^^^^^^^
 
 Yade features live-updates of figures during calculations. It is controlled by following settings:
 
-* :yref:`yade.plot.live` - By setting ``yade.plot.live=True`` you can watch the plot being updated while the calculations run. Set to ``False`` otherwise.
-* :yref:`yade.plot.liveInterval` - This is the interval in seconds between the plot updates.
-* :yref:`yade.plot.autozoom` - When set to ``True`` the plot will be automatically rezoomed.
+* :ref:`yade.plot.live` - By setting ``yade.plot.live=True`` you can watch the plot being updated while the calculations run. Set to ``False`` otherwise.
+* :ref:`yade.plot.liveInterval` - This is the interval in seconds between the plot updates.
+* :ref:`yade.plot.autozoom` - When set to ``True`` the plot will be automatically rezoomed.
 
 Controlling line properties
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -946,7 +946,7 @@ But this is not part of yade, but a part of matplotlib, and if you want somethin
 Multiple figures
 ^^^^^^^^^^^^^^^^^
 
-Since :yref:`yade.plot.plots` is a dictionary, multiple entries with the same key (x-axis variable) would not be possible, since they overwrite each other:
+Since :ref:`yade.plot.plots` is a dictionary, multiple entries with the same key (x-axis variable) would not be possible, since they overwrite each other:
 
 .. ipython::
 	
@@ -957,7 +957,7 @@ Since :yref:`yade.plot.plots` is a dictionary, multiple entries with the same ke
 
 	Yade [2]: plot.plots
 
-You can, however, distinguish them by prepending/appending space to the x-axis variable, which will be removed automatically when looking for the variable in :yref:`yade.plot.data` -- both $x$-axes will use the ``i`` column:
+You can, however, distinguish them by prepending/appending space to the x-axis variable, which will be removed automatically when looking for the variable in :ref:`yade.plot.data` -- both $x$-axes will use the ``i`` column:
 
 .. ipython::
 	
@@ -978,11 +978,11 @@ To avoid big range differences on the $y$ axis, it is possible to have left and 
 Exporting
 ^^^^^^^^^
 
-Plots can be exported to external files for later post-processing via that :yref:`yade.plot.saveGnuplot` function.
+Plots can be exported to external files for later post-processing via that :ref:`yade.plot.saveGnuplot` function.
 
 * Data file is saved (compressed using bzip2) separately from the gnuplot file, so any other programs can be used to process them. In particular, the ``numpy.genfromtxt`` (documented `here <http://docs.scipy.org/doc/numpy/reference/generated/numpy.genfromtxt.html>`_) can be useful to import those data back to python; the decompression happens automatically.
 
-* The gnuplot file can be run through gnuplot to produce the figure; see :yref:`yade.plot.saveGnuplot` documentation for details.
+* The gnuplot file can be run through gnuplot to produce the figure; see :ref:`yade.plot.saveGnuplot` documentation for details.
 
 
 
@@ -1003,9 +1003,9 @@ or ::
 
 causes the simulation to run 35466 iterations, then stopping.
 
-Frequently, decisions have to be made based on evolution of the simulation itself, which is not yet known. In such case, a function checking some specific condition is called periodically; if the condition is satisfied, ``O.pause`` or other functions can be called to stop the stimulation. See documentation for :yref:`Omega.run`, :yref:`Omega.pause`, :yref:`Omega.step`, :yref:`Omega.stopAtIter` for details.
+Frequently, decisions have to be made based on evolution of the simulation itself, which is not yet known. In such case, a function checking some specific condition is called periodically; if the condition is satisfied, ``O.pause`` or other functions can be called to stop the stimulation. See documentation for :ref:`Omega.run`, :ref:`Omega.pause`, :ref:`Omega.step`, :ref:`Omega.stopAtIter` for details.
 
-For simulations that seek static equilibrium, the :yref:`yade._utils.unbalancedForce` can provide a useful metrics (see its documentation for details); for a desired value of ``1e-2`` or less, for instance, we can use::
+For simulations that seek static equilibrium, the :ref:`yade._utils.unbalancedForce` can provide a useful metrics (see its documentation for details); for a desired value of ``1e-2`` or less, for instance, we can use::
 
 	
 	def checkUnbalanced():
@@ -1019,7 +1019,7 @@ For simulations that seek static equilibrium, the :yref:`yade._utils.unbalancedF
 	O.run(); O.wait()
 	# will continue after O.pause() will have been called
 
-Arbitrary functions can be periodically checked, and they can also use history of variables tracked via :yref:`yade.plot.addData`. For example, this is a simplified version of damage control in :ysrc:`examples/concrete/uniax.py`; it stops when current stress is lower than half of the peak stress::
+Arbitrary functions can be periodically checked, and they can also use history of variables tracked via :ref:`yade.plot.addData`. For example, this is a simplified version of damage control in :ysrc:`examples/concrete/uniax.py`; it stops when current stress is lower than half of the peak stress::
 
 	O.engines=[...,
 		UniaxialStrainer=(...,label='strainer'),
@@ -1048,7 +1048,7 @@ Arbitrary functions can be periodically checked, and they can also use history o
 
 Checkpoints
 ------------
-Occasionally, it is useful to revert to simulation at some past point and continue from it with different parameters. For instance, tension/compression test will use the same initial state but load it in 2 different directions. Two functions, :yref:`Omega.saveTmp` and :yref:`Omega.loadTmp` are provided for this purpose; *memory* is used as storage medium, which means that saving is faster, and also that the simulation will disappear when Yade finishes. ::
+Occasionally, it is useful to revert to simulation at some past point and continue from it with different parameters. For instance, tension/compression test will use the same initial state but load it in 2 different directions. Two functions, :ref:`Omega.saveTmp` and :ref:`Omega.loadTmp` are provided for this purpose; *memory* is used as storage medium, which means that saving is faster, and also that the simulation will disappear when Yade finishes. ::
 
 	O.saveTmp()
 	# do something
@@ -1109,7 +1109,7 @@ Using the authentication cookie, connection can be made::
 
 The python pseudo-prompt ``>>>`` lets you write commands to manipulate simulation in variety of ways as usual. Two things to notice:
 
-#. The new python interpreter (``>>>``) lives in a namespace separate from ``Yade [1]:`` command-line. For your convenience, ``from yade import *`` is run in the new python instance first, but local and global variables are not accessible (only builtins are).
+#. The new python interpreter (``>>>``) lives in a namespace separate from ``Yade [1]:`` command-line. For your convenience, ``from woo import *`` is run in the new python instance first, but local and global variables are not accessible (only builtins are).
 #. The (fake) ``>>>`` interpreter does not have rich interactive feature of IPython, which handles the usual command-line ``Yade [1]:``; therefore, you will have no command history, ``?`` help and so on.
 
 .. note::
@@ -1130,12 +1130,12 @@ Batch queuing and execution (yade-batch)
 Yade features light-weight system for running one simulation with different parameters; it handles assignment of parameter values to python variables in simulation script, scheduling jobs based on number of available and required cores and more. The whole batch consists of 2 files:
 
 simulation script
-	regular Yade script, which calls :yref:`yade.utils.readParamsFromTable` to obtain parameters from parameter table. In order to make the script runnable outside the batch, :yref:`yade.utils.readParamsFromTable` takes default values of parameters, which might be overridden from the parameter table.
+	regular Yade script, which calls :ref:`yade.utils.readParamsFromTable` to obtain parameters from parameter table. In order to make the script runnable outside the batch, :ref:`yade.utils.readParamsFromTable` takes default values of parameters, which might be overridden from the parameter table.
 	
-	:yref:`yade.utils.readParamsFromTable` knows which parameter file and which line to read by inspecting the ``PARAM_TABLE`` environment variable, set by the batch system.
+	:ref:`yade.utils.readParamsFromTable` knows which parameter file and which line to read by inspecting the ``PARAM_TABLE`` environment variable, set by the batch system.
 
 parameter table
-	simple text file, each line representing one parameter set. This file is read by :yref:`yade.utils.readParamsFromTable` (using :yref:`yade.utils.TableParamReader` class), called from simulation script, as explained above.
+	simple text file, each line representing one parameter set. This file is read by :ref:`yade.utils.readParamsFromTable` (using :ref:`yade.utils.TableParamReader` class), called from simulation script, as explained above.
 
 The batch can be run as ::
 
@@ -1167,17 +1167,17 @@ In the simulation file, we read parameters from table, at the beginning of the s
 
 .. code-block:: python
 
-	from yade import utils
+	from woo import utils
 	utils.readParamsFromTable(
 		gravity=-9.81,
 		density=2400,
 		initialVelocity=20,
 		noTableOk=True     # use default values if not run in batch
 	)
-	from yade.params.table import *
+	from woo.params.table import *
 	print gravity, density, initialVelocity
 
-after the call to :yref:`yade.utils.readParamsFromTable`, corresponding python variables are created in the ``yade.params.table`` module and can be readily used in the script, e.g.
+after the call to :ref:`yade.utils.readParamsFromTable`, corresponding python variables are created in the ``yade.params.table`` module and can be readily used in the script, e.g.
 
 .. code-block:: python
 
@@ -1227,7 +1227,7 @@ information about job status changes is being printed, until::
 
 Separating output files from jobs
 ----------------------------------
-As one might output data to external files during simulation (using classes such as :yref:`VTKRecorder`, it is important to name files in such way that they are not overwritten by next (or concurrent) job in the same batch. A special tag ``O.tags['id']`` is provided for such purposes: it is comprised of date, time and PID, which makes it always unique (e.g. ``20100413T144723p7625``); additional advantage is that alphabetical order of the ``id`` tag is also chronological.
+As one might output data to external files during simulation (using classes such as :ref:`VTKRecorder`, it is important to name files in such way that they are not overwritten by next (or concurrent) job in the same batch. A special tag ``O.tags['id']`` is provided for such purposes: it is comprised of date, time and PID, which makes it always unique (e.g. ``20100413T144723p7625``); additional advantage is that alphabetical order of the ``id`` tag is also chronological.
 
 For smaller simulations, prepending all output file names with ``O.tags['id']`` can be sufficient:
 
@@ -1266,7 +1266,7 @@ Frequently, it is desirable to obtain single figure for all jobs in the batch, f
 
 	yade-trunk --gnuplot merged.gnuplot batch.table batch.py
 
-Data are collected in usual way during the simulation (using :yref:`yade.plot.addData`) and saved to gnuplot file via :yref:`yade.plot.saveGnuplot` (it creates 2 files: gnuplot command file and compressed data file). The batch system *scans*, once the job is finished, log file for line of the form ``gnuplot [something]``. Therefore, in order to print this *magic line* we put::
+Data are collected in usual way during the simulation (using :ref:`yade.plot.addData`) and saved to gnuplot file via :ref:`yade.plot.saveGnuplot` (it creates 2 files: gnuplot command file and compressed data file). The batch system *scans*, once the job is finished, log file for line of the form ``gnuplot [something]``. Therefore, in order to print this *magic line* we put::
 
 	print 'gnuplot',plot.saveGnuplot(O.tags['id'])
 
@@ -1312,14 +1312,14 @@ There are multiple ways to produce a video of simulation:
 
 #. Capture screen output (the 3d rendering window) during the simulation − there are tools available for that (such as `Istanbul <http://live.gnome.org/Istanbul>`_ or `RecordMyDesktop <http://recordmydesktop.sourceforge.net/about.php>`_, which are also packaged for most Linux distributions).  The output is "what you see is what you get", with all the advantages and disadvantages.
 
-#. Periodic frame snapshot using :yref:`SnapshotEngine` (see :ysrc:`examples/bulldozer.py` for a full example)::
+#. Periodic frame snapshot using :ref:`SnapshotEngine` (see :ysrc:`examples/bulldozer.py` for a full example)::
    
       O.engines=[
       	#...
       	SnapshotEngine(iterPeriod=100,fileBase='/tmp/bulldozer-',viewNo=0,label='snapshooter')
       ]
 
-   which will save numbered files like ``/tmp/bulldozer-0000.png``. These files can be processed externally (with `mencoder <http://www.mplayerhq.hu>`_ and similar tools) or directly with the :yref:`yade.utils.encodeVideoFromFrames`::
+   which will save numbered files like ``/tmp/bulldozer-0000.png``. These files can be processed externally (with `mencoder <http://www.mplayerhq.hu>`_ and similar tools) or directly with the :ref:`yade.utils.encodeVideoFromFrames`::
 
       utils.encodeVideoFromFrames(snapshooter.savedSnapshots,out='/tmp/bulldozer.ogg',fps=2)
    
@@ -1333,16 +1333,16 @@ Paraview
 Saving data during the simulation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Paraview is based on the `Visualization Toolkit <http://www.vtk.org>`_, which defines formats for saving various types of data. One of them (with the ``.vtu`` extension) can be written by a special engine :yref:`VTKRecorder`. It is added to the simulation loop::
+Paraview is based on the `Visualization Toolkit <http://www.vtk.org>`_, which defines formats for saving various types of data. One of them (with the ``.vtu`` extension) can be written by a special engine :ref:`VTKRecorder`. It is added to the simulation loop::
 
 	O.engines=[
 		# ...
 		VTKRecorder(iterPeriod=100,recorders=['spheres','facets','colors'],fileName='/tmp/p1-')
 	]
 
-* :yref:`iterPeriod<PeriodicEngine.iterPeriod>` determines how often to save simulation data (besides :yref:`iterPeriod<PeriodicEngine.iterPeriod>`, you can also use :yref:`virtPeriod<PeriodicEngine.virtPeriod>` or :yref:`realPeriod<PeriodicEngine.realPeriod>`). If the period is too high (and data are saved only few times), the video will have few frames. 
-* :yref:`fileName<VTKRecorder.fileName>` is the prefix for files being saved. In this case, output files will be named ``/tmp/p1-spheres.0.vtu`` and ``/tmp/p1-facets.0.vtu``, where the number is the number of iteration; many files are created, putting them in a separate directory is advisable.
-* :yref:`recorders<VTKRecorder.recorders>` determines what data to save (see the :yref:`documentation<VTKRecorder.recorders>`)
+* :ref:`iterPeriod<PeriodicEngine.iterPeriod>` determines how often to save simulation data (besides :ref:`iterPeriod<PeriodicEngine.iterPeriod>`, you can also use :ref:`virtPeriod<PeriodicEngine.virtPeriod>` or :ref:`realPeriod<PeriodicEngine.realPeriod>`). If the period is too high (and data are saved only few times), the video will have few frames. 
+* :ref:`fileName<VTKRecorder.fileName>` is the prefix for files being saved. In this case, output files will be named ``/tmp/p1-spheres.0.vtu`` and ``/tmp/p1-facets.0.vtu``, where the number is the number of iteration; many files are created, putting them in a separate directory is advisable.
+* :ref:`recorders<VTKRecorder.recorders>` determines what data to save (see the :ref:`documentation<VTKRecorder.recorders>`)
 
 Loading data into Paraview
 ^^^^^^^^^^^^^^^^^^^^^^^^^^

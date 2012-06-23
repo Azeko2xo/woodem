@@ -1,12 +1,12 @@
 # encoding: utf-8
-from yade import pack
+from woo import pack
 
 sp=pack.SpherePack()
 ## corners of the initial packing
 mn,mx=Vector3(0,0,0),Vector3(10,10,10)
 
 # makeCloud parameters "documented" only by the argument names in the c++ signature now:
-# http://beta.arcig.cz/~eudoxos/yade/epydoc/yade._packSpheres.SpherePack-class.html#makeCloud
+# http://beta.arcig.cz/~eudoxos/woo/epydoc/woo._packSpheres.SpherePack-class.html#makeCloud
 ## box between mn and mx, avg radius .5 ± ½(.5*.2), 10k spheres (will be less, obviously), not periodic
 sp.makeCloud(mn,mx,.5,.2,10000,False)
 

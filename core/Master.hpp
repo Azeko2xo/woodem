@@ -24,8 +24,8 @@
 #endif
 
 class Scene;
-namespace yade { class Object; };
-using namespace yade;
+namespace woo { class Object; };
+using namespace woo;
 
 namespace py=boost::python;
 
@@ -34,7 +34,7 @@ class Master: public Singleton<Master>{
 	public:
 
 	// pointer to factory function
-	typedef std::function<shared_ptr<yade::Object>(void)> FactoryFunc;
+	typedef std::function<shared_ptr<woo::Object>(void)> FactoryFunc;
 	// map class name to function returning instance upcast to shared_ptr<Object>
 	std::map<std::string,FactoryFunc> classnameFactoryMap;
 
@@ -42,7 +42,7 @@ class Master: public Singleton<Master>{
 	bool registerClassFactory(const std::string& name, FactoryFunc factory);
 
 	// return instance for given class name
-	shared_ptr<yade::Object> factorClass(const std::string& name);
+	shared_ptr<woo::Object> factorClass(const std::string& name);
 
 	list<std::pair<string,string>> modulePluginClasses;
 
@@ -68,9 +68,11 @@ class Master: public Singleton<Master>{
 	boost::mutex loadingSimulationMutex;
 	boost::mutex tmpFileCounterMutex;
 	long tmpFileCounter;
+	bool termFlag;
 	std::string tmpFileDir;
 
 	public:
+		bool terminateAll(){ return termFlag; }
 		void cleanupTemps();
 		const map<string,std::set<string>>& getClassBases();
 
@@ -88,8 +90,8 @@ class Master: public Singleton<Master>{
 
 
 		/* temporary storage */
-		shared_ptr<yade::Object> loadTmp(const string& name);
-		void saveTmp(shared_ptr<yade::Object> s, const string& name, bool quiet=false);
+		shared_ptr<woo::Object> loadTmp(const string& name);
+		void saveTmp(shared_ptr<woo::Object> s, const string& name, bool quiet=false);
 		py::list pyLsTmp();
 		void pyTmpToFile(const string& mark, const string& filename);
 		std::string pyTmpToString(const string& mark);
@@ -140,7 +142,7 @@ class Master: public Singleton<Master>{
 
 	FRIEND_SINGLETON(Master);
 
-	#define _DEPREC_ERR(a) void err_##a(){ yade::AttributeError("O." #a " does not exist in tr2 anymore, use O.scene." #a); }
+	#define _DEPREC_ERR(a) void err_##a(){ woo::AttributeError("O." #a " does not exist in tr2 anymore, use O.scene." #a); }
 		_DEPREC_ERR(dt);
 		_DEPREC_ERR(engines);
 		_DEPREC_ERR(cell);
@@ -163,7 +165,7 @@ class Master: public Singleton<Master>{
 			.def("saveTmpAny",&Master::saveTmp,(py::arg("obj"),py::arg("name")="",py::arg("quiet")=false),"Save any object to named temporary store; *quiet* will supress warning if the name is already used.")
 			.def("lsTmp",&Master::pyLsTmp,"Return list of all memory-saved simulations.")
 			.def("tmpToFile",&Master::pyTmpToFile,(py::arg("mark"),py::arg("fileName")),"Save XML of :ref:`saveTmp`'d simulation into *fileName*.")
-			.def("tmpToString",&Master::pyTmpToString,(py::arg("mark")=""),"Return XML of :yref:`saveTmp<Master.saveTmp>`'d simulation as string.")
+			.def("tmpToString",&Master::pyTmpToString,(py::arg("mark")=""),"Return XML of :ref:`saveTmp<Master.saveTmp>`'d simulation as string.")
 
 			.def("plugins",&Master::pyPlugins,"Return list of all plugins registered in the class factory.")
 			#ifdef WOO_OPENCL
@@ -187,12 +189,12 @@ class Master: public Singleton<Master>{
 			.def("childClassesNonrecursive",&Master::pyListChildClassesNonrecursive,"Return list of all classes deriving from given class, as registered in the class factory")
 			.def("isChildClassOf",&Master::pyIsChildClassOf,"Tells whether the first class derives from the second one (both given as strings).")
 
-			.add_property("timingEnabled",&Master::timingEnabled_get,&Master::timingEnabled_set,"Globally enable/disable timing services (see documentation of the :yref:`timing module<yade.timing>`).")
+			.add_property("timingEnabled",&Master::timingEnabled_get,&Master::timingEnabled_set,"Globally enable/disable timing services (see documentation of the :ref:`timing module<woo.timing>`).")
 			.add_property("numThreads",&Master::numThreads_get,"Get maximum number of threads openMP can use.")
 
 			.def("exitNoBacktrace",&Master::pyExitNoBacktrace,(py::arg("status")=0),"Disable SEGV handler and exit, optionally with given status number.")
 			.def("disableGdb",&Master::pyDisableGdb,"Revert SEGV and ABRT handlers to system defaults.")
-			.def("tmpFilename",&Master::tmpFilename,"Return unique name of file in temporary directory which will be deleted when yade exits.")
+			.def("tmpFilename",&Master::tmpFilename,"Return unique name of file in temporary directory which will be deleted when woo exits.")
 			.add_static_property("instance",py::make_function(&Master::instance,py::return_value_policy<py::reference_existing_object>()))
 		;
 	}

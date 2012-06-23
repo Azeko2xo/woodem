@@ -21,7 +21,7 @@
   </property>
   <property name="windowIcon">
    <iconset resource="img.qrc">
-    <normaloff>:/img/yade-favicon.png</normaloff>:/img/yade-favicon.png</iconset>
+    <normaloff>:/img/woo-favicon.png</normaloff>:/img/woo-favicon.png</iconset>
   </property>
   <layout class="QGridLayout" name="gridLayout_3">
    <property name="margin">

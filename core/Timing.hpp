@@ -3,7 +3,7 @@
 #include<time.h>
 #include<boost/python.hpp>
 
-namespace yade{
+namespace woo{
 
 struct TimingInfo{
 	typedef unsigned long long delta;

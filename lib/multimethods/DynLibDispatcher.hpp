@@ -17,7 +17,7 @@
 #include<loki/Typelist.h>
 #include<loki/TypeManip.h>
 #include<loki/NullType.h>
-// compat with former yade's local Loki
+// compat with former woo's local Loki
 #define TYPELIST_1 LOKI_TYPELIST_1
 #define TYPELIST_2 LOKI_TYPELIST_2
 #define TYPELIST_3 LOKI_TYPELIST_3

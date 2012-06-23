@@ -11,28 +11,28 @@
 # do not generate debug package
 %define debug_package %{nil}
 
-Name: yade%{_REVISION}
-Provides: yade%{SNAPSHOT}
+Name: woo%{_REVISION}
+Provides: woo%{SNAPSHOT}
 Version: 1
 Release: a
 Summary: Platform for discrete numerical modeling
 License: GPL
 Requires: boost python libQGLViewer
 BuildRequires: qt-devel boost-devel scons libXmu libXmu-devel glut-devel ScientificPython python-devel
-Url: http://yade.wikia.com
-Source: http://download.berlios.de/yade/yade-0.11.0.tar.gz
+Url: http://woo.wikia.com
+Source: http://download.berlios.de/woo/woo-0.11.0.tar.gz
 Group: Applications/Engineering
 BuildRoot: %{_tmppath}/%{name}-buildroot
 
 %package dbg
 Summary: Platform for discrete numerical modeling, debugging version.
 Group: Applications/Engineering
-Provides: yade%{SNAPSHOT}-dbg
+Provides: woo%{SNAPSHOT}-dbg
 
 %package devel
 Summary: Platform for discrete numerical modeling, development files.
 Group: Applications/Engineering
-Provides: yade%{SNAPSHOT}-devel
+Provides: woo%{SNAPSHOT}-devel
 Requires: boost-devel python-devel qt-devel libQGLViewer-devel glut-devel
 
 %description
@@ -45,7 +45,7 @@ YADE is an Open Source GNU/GPL Software framework designed with dynamic librarie
 YADE is an Open Source GNU/GPL Software framework designed with dynamic libraries in a way that it is easy to add new numerical models for simulation. It aims to provide versatile means to perform discrete modelling. This package contains development files.
 
 %prep
-%setup -n yade-0.11.0
+%setup -n woo-0.11.0
 
 %build
 

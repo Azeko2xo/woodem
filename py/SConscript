@@ -3,7 +3,7 @@ Import('*')
 linkPlugins=env['linkPlugins']
 import os.path 
 
-env.Install('$LIBDIR/py/yade',[
+env.Install('$LIBDIR/py/woo',[
 	env.SharedLibrary('WeightedAverage2d',['WeightedAverage2d.cpp'],SHLIBPREFIX=''),
 	#env.SharedLibrary('_eudoxos',['_eudoxos.cpp'],SHLIBPREFIX='',LIBS=env['LIBS']),
 	env.SharedLibrary('log',['log.cpp'],SHLIBPREFIX=''),
@@ -24,7 +24,7 @@ env.Install('$LIBDIR/py/yade',[
 	#env.SharedLibrary('wrapper',['wrapper/wrapper.cpp'],SHLIBPREFIX=''), #,LIBS=linkPlugins(['Shop','Dispatching','InteractionLoop','ParallelEngine','Clump'])),
 	env.SharedLibrary('_customConverters',['wrapper/customConverters.cpp'],SHLIBPREFIX='',LIBS=env['LIBS']) #+linkPlugins(['Dispatching','MatchMaker']+(['GLDrawFunctors','OpenGLRenderer'] if 'opengl' in env['features'] else [])))
 ])
-env.Install('$LIBDIR/py/yade/tests',[
+env.Install('$LIBDIR/py/woo/tests',[
 	env.File(env.Glob('tests/*.py'),'tests'),
 ])
 

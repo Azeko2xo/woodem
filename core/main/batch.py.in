@@ -17,7 +17,7 @@ if not os.path.exists(libDir): raise RuntimeError("Woo plugin directory does not
 sys.path.append(os.path.join(libDir,'py'))
 executable=os.path.join(prefix,'bin','woo'+suffix)
 ## we just need this ...
-import yade, yade.utils, yade.config, yade.remote
+import woo, woo.utils, woo.config, woo.remote
 
 
 class JobInfo():
@@ -28,7 +28,7 @@ class JobInfo():
 		self.hasXmlrpc=False
 		self.status='PENDING'
 		self.threadNum=None
-		self.plotsLastUpdate,self.plotsFile=0.,yade.master.tmpFilename()+'.'+yade.remote.plotImgFormat
+		self.plotsLastUpdate,self.plotsFile=0.,woo.master.tmpFilename()+'.'+woo.remote.plotImgFormat
 	def saveInfo(self):
 		log=file(self.log,'a')
 		log.write("""
@@ -68,7 +68,7 @@ finished: %s
 		f=open(self.plotsFile,'wb')
 		f.write(img.data)
 		f.close()
-		#print yade.remote.plotImgFormat,'(%d bytes) written to %s'%(os.path.getsize(self.plotsFile),self.plotsFile)
+		#print woo.remote.plotImgFormat,'(%d bytes) written to %s'%(os.path.getsize(self.plotsFile),self.plotsFile)
 
 	def htmlStats(self):
 		ret='<tr>'
@@ -98,9 +98,9 @@ finished: %s
 				## all this mess to embed SVG; clicking on it does not work, though
 				## question posted at http://www.abclinuxu.cz/poradna/linux/show/314041
 				## see also http://www.w3schools.com/svg/svg_inhtml.asp and http://dutzend.blogspot.com/2010/04/svg-im-anklickbar-machen.html
-				#img='<object data="/jobs/%d/plots" type="%s" width="300px" alt="[plots]"/>'%(self.num,yade.remote.plotImgMimetype)
-				#img='<iframe src="/jobs/%d/plots" type="%s" width="300px" alt="[plots]"/>'%(self.num,yade.remote.plotImgMimetype)
-				#img='<embed src="/jobs/%d/plots" type="%s" width="300px" alt="[plots]"/>'%(self.num,yade.remote.plotImgMimetype)a
+				#img='<object data="/jobs/%d/plots" type="%s" width="300px" alt="[plots]"/>'%(self.num,woo.remote.plotImgMimetype)
+				#img='<iframe src="/jobs/%d/plots" type="%s" width="300px" alt="[plots]"/>'%(self.num,woo.remote.plotImgMimetype)
+				#img='<embed src="/jobs/%d/plots" type="%s" width="300px" alt="[plots]"/>'%(self.num,woo.remote.plotImgMimetype)a
 			img='<img src="/jobs/%d/plots" width="300px" alt="[plots]">'%(self.num)
 			ret+='<td><a href="/jobs/%d/plots">%s</a></td>'%(self.num,img)
 		else: ret+='<td> (no plots) </td>'
@@ -149,7 +149,7 @@ class HttpStatsServer(SocketServer.ThreadingMixIn,BaseHTTPRequestHandler):
 			if self.path=='/favicon.ico':
 				if not self.__class__.favicon:
 					import base64
-					self.__class__.favicon=base64.b64decode(yade.remote.b64favicon)
+					self.__class__.favicon=base64.b64decode(woo.remote.b64favicon)
 				self.sendHttp(self.__class__.favicon,contentType='image/vnd.microsoft.icon')
 				return
 			elif self.path=='/log' and opts.globalLog:
@@ -165,7 +165,7 @@ class HttpStatsServer(SocketServer.ThreadingMixIn,BaseHTTPRequestHandler):
 			rest=jobMatch.group(2)
 			if rest=='plots':
 				job.updatePlots() # internally checks for last update time
-				self.sendFile(job.plotsFile,contentType=yade.remote.plotImgMimetype,refresh=(0 if job.status=='DONE' else opts.refresh))
+				self.sendFile(job.plotsFile,contentType=woo.remote.plotImgMimetype,refresh=(0 if job.status=='DONE' else opts.refresh))
 			elif rest=='log':
 				if not os.path.exists(job.log):
 					self.send_error(404,self.path); return
@@ -259,7 +259,7 @@ def runJob(job):
 	job.status='DONE'
 	havePlot=False
 	if os.path.exists(job.plotsFile):
-		f=(job.log[:-3] if job.log.endswith('.log') else job.log+'.')+yade.remote.plotImgFormat
+		f=(job.log[:-3] if job.log.endswith('.log') else job.log+'.')+woo.remote.plotImgFormat
 		shutil.copy(job.plotsFile,f)
 		job.plotsFile=f
 		havePlot=True
@@ -299,9 +299,9 @@ def getNumCores():
 	if os.environ.has_key("OMP_NUM_THREADS"): return min(int(os.environ['OMP_NUM_THREADS']),nCpu)
 	return nCpu
 numCores=getNumCores()
-maxOmpThreads=numCores if 'openmp' in yade.config.features else 1
+maxOmpThreads=numCores if 'openmp' in woo.config.features else 1
 
-parser=optparse.OptionParser(usage='%prog [options] [ TABLE [SIMULATION.py] | SIMULATION.py[/nCores] [...] ]',description='%prog runs yade simulation multiple times with different parameters.\n\nSee https://yade-dem.org/sphinx/user.html#batch-queuing-and-execution-yade-batch for details.\n\nBatch can be specified either with parameter table TABLE (must not end in .py), which is either followed by exactly one SIMULATION.py (must end in .py), or contains !SCRIPT column specifying the simulation to be run. The second option is to specify multiple scripts, which can optionally have /nCores suffix to specify number of cores for that particular simulation (corresponds to !THREADS column in the parameter table), e.g. sim.py/3.')
+parser=optparse.OptionParser(usage='%prog [options] [ TABLE [SIMULATION.py] | SIMULATION.py[/nCores] [...] ]',description='%prog runs woo simulation multiple times with different parameters.\n\nSee https://yade-dem.org/sphinx/user.html#batch-queuing-and-execution-woo-batch for details.\n\nBatch can be specified either with parameter table TABLE (must not end in .py), which is either followed by exactly one SIMULATION.py (must end in .py), or contains !SCRIPT column specifying the simulation to be run. The second option is to specify multiple scripts, which can optionally have /nCores suffix to specify number of cores for that particular simulation (corresponds to !THREADS column in the parameter table), e.g. sim.py/3.')
 parser.add_option('-j','--jobs',dest='maxJobs',type='int',help="Maximum number of simultaneous threads to run (default: number of cores, further limited by OMP_NUM_THREADS if set by the environment: %d)"%numCores,metavar='NUM',default=numCores)
 parser.add_option('--job-threads',dest='defaultThreads',type='int',help="Default number of threads for one job; can be overridden by per-job with !THREADS (or !OMP_NUM_THREADS) column. Defaults to 1.",metavar='NUM',default=1)
 parser.add_option('--force-threads',action='store_true',dest='forceThreads',help='Force jobs to not use more cores than the maximum (see \-j), even if !THREADS colums specifies more.')
@@ -328,10 +328,10 @@ opts,args=parser.parse_args()
 logFormat,lineList,maxJobs,nice,executable,gnuplotOut,dryRun,httpWait,globalLog=opts.logFormat,opts.lineList,opts.maxJobs,opts.nice,opts.executable,opts.gnuplotOut,opts.dryRun,opts.httpWait,opts.globalLog
 
 if opts.manpage:
-	import yade.manpage
-	yade.config.metadata['short_desc']='batch system for computational platform Yade'
-	yade.config.metadata['long_desc']='Manage batches of computation jobs for the Yade platform; batches are described using text-file tables with parameters which are passed to individual runs of yade. Jobs are being run with pre-defined number of computational cores as soon as the required number of cores is available. Logs of all computations are stored in files and the batch progress can be watched online at (usually) http://localhost:9080. Unless overridden, the executable yade%s is used to run jobs.'%(suffix)
-	yade.manpage.generate_manpage(parser,yade.config.metadata,opts.manpage,section=1,seealso='yade%s (1)\n.br\nhttps://yade-dem.org/sphinx/user.html#batch-queuing-and-execution-yade-batch'%suffix)
+	import woo.manpage
+	woo.config.metadata['short_desc']='batch system for computational platform Yade'
+	woo.config.metadata['long_desc']='Manage batches of computation jobs for the Yade platform; batches are described using text-file tables with parameters which are passed to individual runs of woo. Jobs are being run with pre-defined number of computational cores as soon as the required number of cores is available. Logs of all computations are stored in files and the batch progress can be watched online at (usually) http://localhost:9080. Unless overridden, the executable woo%s is used to run jobs.'%(suffix)
+	woo.manpage.generate_manpage(parser,woo.config.metadata,opts.manpage,section=1,seealso='woo%s (1)\n.br\nhttps://yade-dem.org/sphinx/user.html#batch-queuing-and-execution-woo-batch'%suffix)
 	print 'Manual page %s generated.'%opts.manpage
 	sys.exit(0)
 
@@ -354,7 +354,7 @@ else:
 print "Will run simulation(s) %s using `%s', nice value %d, using max %d cores."%(scripts,executable,nice,maxJobs)
 
 if table:
-	reader=yade.utils.TableParamReader(table)
+	reader=woo.utils.TableParamReader(table)
 	params=reader.paramDict()
 	availableLines=params.keys()
 
@@ -417,7 +417,7 @@ for i,l in enumerate(useLines):
 			nCores=maxJobs
 		else:
 			logging.warning('WARNING: job #%d will use %d cores but only %d are available'%(i,nCores,maxJobs))
-		if 'openmp' not in yade.config.features and nCores>1:
+		if 'openmp' not in woo.config.features and nCores>1:
 			logging.warning('Job #%d will be uselessly run with %d threads (compiled without OpenMP support).'%(i,nCores))
 	executables.add(jobExecutable)
 	# compose command-line: build the hyper-linked variant, then strip HTML tags (ugly, but ensures consistency)
@@ -543,4 +543,4 @@ if httpWait and time.time()-httpLastServe<30:
 	while time.time()-httpLastServe<30:
 		time.sleep(1)
 
-yade.master.exitNoBacktrace()
+woo.master.exitNoBacktrace()

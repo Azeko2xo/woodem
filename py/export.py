@@ -2,7 +2,7 @@
 Export geometry to various formats.
 """
 # encoding: utf-8
-from yade.core import *
+from woo.core import *
 
 class VTKWriter:
 	"""

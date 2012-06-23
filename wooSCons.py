@@ -1,6 +1,6 @@
 
 def getRealVersion():
-	"Attempts to get yade version from RELEASE file if it exists or from bzr/svn, or from VERSION"
+	"Attempts to get woo version from RELEASE file if it exists or from bzr/svn, or from VERSION"
 	import os.path,re,os
 	if os.path.exists('RELEASE'):
 		return file('RELEASE').readline().strip()
@@ -26,7 +26,7 @@ def grepForIncludes(root,f):
 	for l in open(root+'/'+f):
 		if re.match(r'\s*#endif.*$',l): skipping=False; continue
 		if skipping: continue
-		m=re.match(r'^\s*#include\s*<yade/([^/]+/[^/]+)/(.*)>.*$',l)
+		m=re.match(r'^\s*#include\s*<woo/([^/]+/[^/]+)/(.*)>.*$',l)
 		if m:
 			incMod=m.group(1); baseName=m.group(2).split('.')[0];
 			if incMod=='core' or incMod.startswith('lib/'): continue
@@ -68,7 +68,7 @@ def scanAllPlugins(cacheFile,feats):
 						cond,feat=m.group(1),m.group(2).lower()
 						if (cond=='ifdef' and feat not in features) or (cond=='ifndef' and feat in features): skipping=True
 					if re.match(r'\s*WOO_PLUGIN\(.*',l): isPlugin=True
-					m=re.match(r'^\s*#include\s*<yade/([^/]+/[^/]+)/(.*)>.*$',l)
+					m=re.match(r'^\s*#include\s*<woo/([^/]+/[^/]+)/(.*)>.*$',l)
 					if m:
 						incMod=m.group(1); incHead=m.group(2); baseName=incHead.split('.')[0]; assert(len(incHead.split('.'))==2)
 						if incMod=='core' or incMod.startswith('lib/'): continue

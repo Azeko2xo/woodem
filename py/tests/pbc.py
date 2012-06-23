@@ -8,17 +8,17 @@ Various computations affected by the periodic boundary conditions.
 import unittest
 import random,math
 from miniEigen import *
-from yade._customConverters import *
-from yade import utils
-from yade import *
-import yade
-from yade.core import *
-from yade.dem import *
+from woo._customConverters import *
+from woo import utils
+from woo import *
+import woo
+from woo.core import *
+from woo.dem import *
 
 class TestPBC(unittest.TestCase):
 	# prefix test names with PBC: 
 	def setUp(self):
-		yade.master.scene=S=Scene(fields=[DemField()])
+		woo.master.scene=S=Scene(fields=[DemField()])
 		S.periodic=True;
 		S.cell.setBox(2.5,2.5,3)
 		self.cellDist=Vector3i(0,0,10) # how many cells away we go
@@ -35,7 +35,7 @@ class TestPBC(unittest.TestCase):
 		S.dt=0 # do not change positions with dt=0 in NewtonIntegrator, but still update velocities from velGrad
 	def testVelGrad(self):
 		'PBC: velGrad changes hSize but not hSize0, accumulates in trsf (homoDeform=Cell.HomoVel2)'
-		S=yade.master.scene
+		S=woo.master.scene
 		S.cell.homoDeform=Cell.HomoVel2
 		S.dt=1e-3
 		hSize,trsf=S.cell.hSize,Matrix3.Identity
@@ -52,7 +52,7 @@ class TestPBC(unittest.TestCase):
 			#self.assertAlmostEqual(hSize0[i],S.cell.hSize0[i])
 	def testTrsfChange(self):
 		'PBC: chaing trsf changes hSize0, but does not modify hSize'
-		S=yade.master.scene
+		S=woo.master.scene
 		S.dt=1e-2
 		S.one()
 		S.cell.trsf=Matrix3.Identity
@@ -60,16 +60,16 @@ class TestPBC(unittest.TestCase):
 			self.assertAlmostEqual(S.cell.hSize0[i],S.cell.hSize[i])
 	def testDegenerate(self):
 		"PBC: degenerate cell raises exception"
-		S=yade.master.scene
+		S=woo.master.scene
 		self.assertRaises(RuntimeError,lambda: setattr(S.cell,'hSize',Matrix3(1,0,0, 0,0,0, 0,0,1)))
 	def testSetBox(self):
 		"PBC: setBox modifies hSize correctly"
-		S=yade.master.scene
+		S=woo.master.scene
 		S.cell.setBox(2.55,11,45)
 		self.assert_(S.cell.hSize==Matrix3(2.55,0,0, 0,11,0, 0,0,45));
 	def testHomotheticResizeVel(self):
 		"PBC: homothetic cell deformation adjusts particle velocity (homoDeform==Cell.HomoVel)"
-		S=yade.master.scene
+		S=woo.master.scene
 		S.dt=1e-5
 		S.cell.homoDeform=Cell.HomoVel
 		s1=S.dem.par[1]
@@ -80,7 +80,7 @@ class TestPBC(unittest.TestCase):
 		self.assertAlmostEqual(s1.vel[2],self.initVel[2]+self.initPos[2]*S.cell.gradV[2,2])
 	def testHomotheticResizePos(self):
 		"PBC: homothetic cell deformation adjusts particle position (homoDeform==Cell.HomoPos)"
-		S=yade.master.scene
+		S=woo.master.scene
 		S.cell.homoDeform=Cell.HomoPos
 		S.one()
 		s1=S.dem.par[1]
@@ -88,7 +88,7 @@ class TestPBC(unittest.TestCase):
 		self.assertAlmostEqual(s1.pos[2],self.initPos[2]+self.initPos[2]*S.cell.gradV[2,2]*S.dt)
 	def testL6GeomIncidentVelocity(self):
 		"PBC: L6Geom incident velocity (homoDeform==Cell.HomoGradV2)"
-		S=yade.master.scene
+		S=woo.master.scene
 		S.cell.homoDeform=Cell.HomoGradV2
 		S.one()
 		S.engines=[ForceResetter(),ContactLoop([Cg2_Sphere_Sphere_L6Geom()],[Cp2_FrictMat_FrictPhys()],[Law2_L6Geom_FrictPhys_IdealElPl(noBreak=True)]),Leapfrog(reset=True)]
@@ -97,7 +97,7 @@ class TestPBC(unittest.TestCase):
 		self.assertAlmostEqual(self.initVel.norm(),i.geom.vel.norm())
 	def testL3GeomIncidentVelocity_homoPos(self):
 		"PBC: L6Geom incident velocity (homoDeform==Cell.HomoPos)"
-		S=yade.master.scene
+		S=woo.master.scene
 		S.cell.homoDeform=1; S.one()
 		S.engines=[ForceResetter(),ContactLoop([Cg2_Sphere_Sphere_L6Geom()],[Cp2_FrictMat_FrictPhys()],[Law2_L6Geom_FrictPhys_IdealElPl(noBreak=True)]),Leapfrog(reset=True)]
 		i=utils.createContacts([0],[1])[0]
@@ -106,7 +106,7 @@ class TestPBC(unittest.TestCase):
 		#self.assertAlmostEqual(self.relDist[1],1-i.geom.penetrationDepth)
 	def testKineticEnergy(self):
 		"PBC: utils.kineticEnergy considers only fluctuation velocity, not the velocity gradient (homoDeform==Cell.HomoVel2)"
-		S=yade.master.scene
+		S=woo.master.scene
 		S.cell.homoDeform=Cell.HomoVel2
 		S.one() # updates velocity with homotheticCellResize
 		# ½(mv²+ωIω)
@@ -116,7 +116,7 @@ class TestPBC(unittest.TestCase):
 		self.assertAlmostEqual(Ek,S.dem.par[1].Ekt)
 	def testKineticEnergy_homoPos(self):
 		"PBC: utils.kineticEnergy considers only fluctuation velocity, not the velocity gradient (homoDeform==Cell.HomoPos)"
-		S=yade.master.scene
+		S=woo.master.scene
 		S.cell.homoDeform=Cell.HomoPos; S.one()
 		self.assertAlmostEqual(.5*S.dem.par[1].mass*self.initVel.squaredNorm(),S.dem.par[1].Ekt)
 

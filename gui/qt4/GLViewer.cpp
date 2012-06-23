@@ -82,7 +82,7 @@ void SnapshotEngine::run(){
 	}
 	snapshots.push_back(fss.str());
 	usleep((long)(msecSleep*1000));
-	if(!plot.empty()){ pyRunString("import yade.plot; yade.plot.addImgData("+plot+"='"+fss.str()+"')"); }
+	if(!plot.empty()){ pyRunString("import woo.plot; woo.plot.addImgData("+plot+"='"+fss.str()+"')"); }
 }
 
 CREATE_LOGGER(GLViewer);
@@ -143,7 +143,7 @@ GLViewer::GLViewer(int _viewId, const shared_ptr<Renderer>& _renderer, QGLWidget
 	setKeyDescription(Qt::Key_O,"Set narrower field of view");
 	setKeyDescription(Qt::Key_P,"Set wider field of view");
 	setKeyDescription(Qt::Key_R,"Revolve around scene center");
-	setKeyDescription(Qt::Key_V,"Save PDF of the current view to /tmp/yade-snapshot-0001.pdf (whichever number is available first). (Must be compiled with the gl2ps feature.)");
+	setKeyDescription(Qt::Key_V,"Save PDF of the current view to /tmp/woo-snapshot-0001.pdf (whichever number is available first). (Must be compiled with the gl2ps feature.)");
 	#if 0
 		setKeyDescription(Qt::Key_Plus,    "Cut plane increase");
 		setKeyDescription(Qt::Key_Minus,   "Cut plane decrease");
@@ -242,7 +242,7 @@ void GLViewer::useDisplayParameters(size_t n, bool fromHandler){
 	const shared_ptr<DisplayParameters>& dp=dispParams[n];
 	string val;
 	if(dp->getValue("Renderer",val)){ std::istringstream oglre(val);
-		yade::ObjectIO::load<decltype(renderer),
+		woo::ObjectIO::load<decltype(renderer),
 			#ifdef WOO_XMLSERIALIZATION
 				boost::archive::xml_iarchive
 			#else
@@ -261,7 +261,7 @@ void GLViewer::useDisplayParameters(size_t n, bool fromHandler){
 	if(dispParams.size()<=n){while(dispParams.size()<=n) dispParams.push_back(shared_ptr<DisplayParameters>(new DisplayParameters));} assert(n<dispParams.size());
 	shared_ptr<DisplayParameters>& dp=dispParams[n];
 	std::ostringstream oglre;
-	yade::ObjectIO::save<decltype(renderer),
+	woo::ObjectIO::save<decltype(renderer),
 		#ifdef WOO_XMLSERIALIZATION
 			boost::archive::xml_oarchive
 		#else
@@ -311,7 +311,7 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 			// reset selection
 			renderer->selObj=shared_ptr<Object>(); renderer->selObjNode=shared_ptr<Node>();
 			LOG_INFO("Calling onSelection with None to deselect");
-			pyRunString("import yade.qt; onSelection(None);");
+			pyRunString("import woo.qt; onSelection(None);");
 		}
 		else { resetManipulation(); displayMessage("Manipulating scene."); }
 	}
@@ -402,7 +402,7 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 #ifdef WOO_GL2PS
 	else if(e->key()==Qt::Key_V){
 		for(int i=0; ;i++){
-			std::ostringstream fss; fss<<"/tmp/yade-snapshot-"<<setw(4)<<setfill('0')<<i<<".pdf";
+			std::ostringstream fss; fss<<"/tmp/woo-snapshot-"<<setw(4)<<setfill('0')<<i<<".pdf";
 			if(!boost::filesystem::exists(fss.str())){ nextFrameSnapshotFilename=fss.str(); break; }
 		}
 		LOG_INFO("Will save snapshot to "<<nextFrameSnapshotFilename);
@@ -589,14 +589,14 @@ void GLViewer::postSelection(const QPoint& point)
 	setSceneCenter(qglviewer::Vec(pos[0],pos[1],pos[2]));
 
 	cerr<<"Selected object #"<<selection<<" is a "<<renderer->selObj->getClassName()<<endl;
-	pyRunString("import yade.qt; onSelection(yade.qt.getSel());");
+	pyRunString("import woo.qt; onSelection(woo.qt.getSel());");
 	
 	/*
 	gilLock lock(); // needed, since we call in python API from c++ here
-	py::scope yade=py::import("yade");
+	py::scope woo=py::import("woo");
 	cerr<<"Selected "<<renderer->selObj->getClassName()<<" @ "<<lexical_cast<string>(renderer->selObj)<<endl;
-	if(!PyObject_HasAttrString(yade.ptr(),"onSelect")) return;
-	yade.attr("onSelect")(py::object(renderer->selObj));
+	if(!PyObject_HasAttrString(woo.ptr(),"onSelect")) return;
+	woo.attr("onSelect")(py::object(renderer->selObj));
 	*/
 
 

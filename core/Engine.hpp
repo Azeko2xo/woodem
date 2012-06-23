@@ -54,7 +54,7 @@ class Engine: public Object {
 		virtual void getLabeledObjects(std::map<std::string,py::object>&){};
 		template<class T> static void handlePossiblyLabeledObject(const shared_ptr<T>& o, std::map<std::string,py::object>& m){
 			if(o->label.empty()) return;
-			if(m.count(o->label)>0) yade::NameError("Duplicate object label '"+o->label+"'.");
+			if(m.count(o->label)>0) woo::NameError("Duplicate object label '"+o->label+"'.");
 			boost::smatch match;
 			if(boost::regex_search(o->label,match,boost::regex("([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\[([0-9]+)\\]"))){
 				std::string lab0=match[1];	long index=lexical_cast<long>(match[2]);
@@ -87,14 +87,14 @@ class Engine: public Object {
 		((bool,dead,false,,"If true, this engine will not run at all; can be used for making an engine temporarily deactivated and only resurrect it at a later point."))
 		((string,label,,,"Textual label for this object; must be valid python identifier, you can refer to it directly from python."))
 		// ((bool,parallelFields,false,,"Whether to run (if compiled with openMP) this engine on active fields in parallel"))
-		((shared_ptr<Field>,field,,AttrTrait<>().noGui().noDump(),"User-requested `yade.core.Field` to run this engine on; if empty, fields will be searched for admissible ones; if more than one is found, exception will be raised."))
-		((bool,userAssignedField,false,AttrTrait<Attr::readonly>().noGui(),"Whether the `yade.core.Engine.field` was user-assigned or automatically assigned, to know whether to update automatically."))
+		((shared_ptr<Field>,field,,AttrTrait<>().noGui().noDump(),"User-requested `woo.core.Field` to run this engine on; if empty, fields will be searched for admissible ones; if more than one is found, exception will be raised."))
+		((bool,userAssignedField,false,AttrTrait<Attr::readonly>().noGui(),"Whether the `woo.core.Engine.field` was user-assigned or automatically assigned, to know whether to update automatically."))
 		((bool,isNewObject,true,AttrTrait<Attr::hidden>(),"Flag to recognize in postLoad whether this object has just been constructed, to set userAssignedField properly (ugly...)"))
 		,/* ctor */ setDefaultScene(); ,
 		/* py */
-		.add_property("execTime",&Engine::timingInfo_nsec_get,&Engine::timingInfo_nsec_set,"Cummulative time this Engine took to run (only used if :yref:`O.timingEnabled<Master.timingEnabled>`\\ ==\\ ``True``).")
-		.add_property("execCount",&Engine::timingInfo_nExec_get,&Engine::timingInfo_nExec_set,"Cummulative count this engine was run (only used if :yref:`O.timingEnabled<Master.timingEnabled>`\\ ==\\ ``True``).")
-		.def_readonly("timingDeltas",&Engine::timingDeltas,"Detailed information about timing inside the Engine itself. Empty unless enabled in the source code and :yref:`O.timingEnabled<Master.timingEnabled>`\\ ==\\ ``True``.")
+		.add_property("execTime",&Engine::timingInfo_nsec_get,&Engine::timingInfo_nsec_set,"Cummulative time this Engine took to run (only used if :ref:`O.timingEnabled<Master.timingEnabled>`\\ ==\\ ``True``).")
+		.add_property("execCount",&Engine::timingInfo_nExec_get,&Engine::timingInfo_nExec_set,"Cummulative count this engine was run (only used if :ref:`O.timingEnabled<Master.timingEnabled>`\\ ==\\ ``True``).")
+		.def_readonly("timingDeltas",&Engine::timingDeltas,"Detailed information about timing inside the Engine itself. Empty unless enabled in the source code and :ref:`O.timingEnabled<Master.timingEnabled>`\\ ==\\ ``True``.")
 		.def("__call__",&Engine::explicitRun)
 		.def("acceptsField",&Engine::acceptsField)
 		.add_property("field",&Engine::field_get,&Engine::field_set,"Field to run this engine on; if unassigned, or set to *None*, automatic field selection is triggered.")
@@ -103,8 +103,8 @@ class Engine: public Object {
 REGISTER_SERIALIZABLE(Engine);
 
 class PartialEngine: public Engine{
-	WOO_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(PartialEngine,Engine,"Engine affecting only particular bodies in the simulation, defined by `ids<yade.core.PartialEngine.ids>`.",
-		((std::vector<int>,ids,,,"`ids<yade.dem.Particle.id>` of particles affected by this PartialEngine.")),
+	WOO_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(PartialEngine,Engine,"Engine affecting only particular bodies in the simulation, defined by `ids<woo.core.PartialEngine.ids>`.",
+		((std::vector<int>,ids,,,"`ids<woo.dem.Particle.id>` of particles affected by this PartialEngine.")),
 		/*deprec*/, /*init*/, /* ctor */, /* py */
 	);
 };
@@ -112,7 +112,7 @@ REGISTER_SERIALIZABLE(PartialEngine);
 
 class GlobalEngine: public Engine{
 	public :
-	WOO_CLASS_BASE_DOC(GlobalEngine,Engine,"Engine that will generally affect the whole simulation (contrary to :yref:`PartialEngine`).");
+	WOO_CLASS_BASE_DOC(GlobalEngine,Engine,"Engine that will generally affect the whole simulation (contrary to :ref:`PartialEngine`).");
 };
 REGISTER_SERIALIZABLE(GlobalEngine);
 
@@ -174,7 +174,7 @@ struct PyRunner: public PeriodicEngine{
 	virtual bool needsField(){ return false; }
 	virtual void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d);
 	WOO_CLASS_BASE_DOC_ATTRS(PyRunner,PeriodicEngine,
-		"Execute a python command periodically, with defined (and adjustable) periodicity. See :yref:`PeriodicEngine` documentation for details.\n\n.. admonition:: Special constructor\n\n*command* can be given as first unnamed string argument (``PyRunner('foo()')``), stepPeriod as unnamed integer argument (``PyRunner('foo()',100)`` or ``PyRunner(100,'foo()')``).",
+		"Execute a python command periodically, with defined (and adjustable) periodicity. See :ref:`PeriodicEngine` documentation for details.\n\n.. admonition:: Special constructor\n\n*command* can be given as first unnamed string argument (``PyRunner('foo()')``), stepPeriod as unnamed integer argument (``PyRunner('foo()',100)`` or ``PyRunner(100,'foo()')``).",
 		((string,command,"",,"Command to be run by python interpreter. Not run if empty."))
 	);
 };

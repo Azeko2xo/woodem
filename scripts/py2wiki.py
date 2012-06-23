@@ -4,7 +4,7 @@
 # 2008 © Václav Šmilauer <eudoxos@arcig.cz>
 
 """
-Import commented python source, format it for yade.wikia.com by interspersing <source> and literal text in comments.
+Import commented python source, format it for woo.wikia.com by interspersing <source> and literal text in comments.
 If given a second files (which is a c++ file), the comments will be taken from the python source,
 but the code from the c++ file.
 

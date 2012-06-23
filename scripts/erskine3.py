@@ -28,10 +28,10 @@ replaceOK=['YADECOMPILATIONPATH']
 discardedStatements=['^isEmpty\s*\(\s*WOO_QMAKE_PATH\s*\).*$']
 #discardedStatements=[]
 
-targetLangType={'yade-lib-serialization-qt':'qt3','QtGUI':'qt3'}
-# used to be yadeQt, but it was dropped...
-targetEnv={'yade-lib-serialization-qt':'env','QtGUI':'env'}
-# was: yade
+targetLangType={'woo-lib-serialization-qt':'qt3','QtGUI':'qt3'}
+# used to be wooQt, but it was dropped...
+targetEnv={'woo-lib-serialization-qt':'env','QtGUI':'env'}
+# was: woo
 defaultEnv='env'
 
 currentPro='[none]'
@@ -386,7 +386,7 @@ else:
 	toStr=str; fieldSep='';
 installable={} # hash indexed by (env,targetType)->pythonicTargetName
 instDirTargets={} # hash indexed by (env,targetDir)->str_target_spec
-installDirs={'shlib':join('$PREFIX','lib','yade$POSTFIX',string.split(scriptDir,os.sep)[-1]),'staticlib':join('$PREFIX','lib','yade$POSTFIX'),'program':join('$PREFIX','bin')}
+installDirs={'shlib':join('$PREFIX','lib','woo$POSTFIX',string.split(scriptDir,os.sep)[-1]),'staticlib':join('$PREFIX','lib','woo$POSTFIX'),'program':join('$PREFIX','bin')}
 
 print masterScriptGen(allVars,scriptDir)
 

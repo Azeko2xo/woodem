@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
 
-from yade import utils,plot,pack,timing,eudoxos
+from woo import utils,plot,pack,timing,eudoxos
 import time, sys, os, copy
 
 #import matplotlib
@@ -14,7 +14,7 @@ import time, sys, os, copy
 """
 A fairly complex script performing uniaxial tension-compression test on hyperboloid-shaped specimen.
 
-Most parameters of the model (and of the setup) can be read from table using yade-multi.
+Most parameters of the model (and of the setup) can be read from table using woo-multi.
 
 After the simulation setup, tension loading is run and stresses are periodically saved for plotting
 as well as checked for getting below the maximum value so far. This indicates failure (see stopIfDamaged
@@ -68,7 +68,7 @@ utils.readParamsFromTable(noTableOk=True, # unknownOk=True,
 	scGeom=False
 )
 
-from yade.params.table import *
+from woo.params.table import *
 
 if 'description' in O.tags.keys(): O.tags['id']=O.tags['id']+O.tags['description']
 
@@ -126,7 +126,7 @@ def initTest():
 	else: plot.plot()
 	strainer.strainRate=abs(strainRateTension) if mode=='tension' else -abs(strainRateCompression)
 	try:
-		from yade import qt
+		from woo import qt
 		renderer=qt.Renderer()
 		renderer.dispScale=(1000,1000,1000) if mode=='tension' else (100,100,100)
 	except ImportError: pass
@@ -153,8 +153,8 @@ def stopIfDamaged():
 	if abs(sigma[-1]/extremum)<minMaxRatio or abs(strainer.strain)>(5e-3 if isoPrestress==0 else 5e-2):
 		if mode=='tension' and doModes & 2: # only if compression is enabled
 			mode='compression'
-			O.save('/tmp/uniax-tension.yade.gz')
-			print "Saved /tmp/uniax-tension.yade.gz (for use with interaction-histogram.py and uniax-post.py)"
+			O.save('/tmp/uniax-tension.woo.gz')
+			print "Saved /tmp/uniax-tension.woo.gz (for use with interaction-histogram.py and uniax-post.py)"
 			print "Damaged, switching to compression... "; O.pause()
 			# important! initTest must be launched in a separate thread;
 			# otherwise O.load would wait for the iteration to finish,
@@ -172,7 +172,7 @@ def stopIfDamaged():
 			sys.exit(0)
 		
 def addPlotData():
-	yade.plot.addData({'t':O.time,'i':O.iter,'eps':strainer.strain,'sigma':strainer.avgStress+isoPrestress,
+	woo.plot.addData({'t':O.time,'i':O.iter,'eps':strainer.strain,'sigma':strainer.avgStress+isoPrestress,
 		'sigma.25':utils.forcesOnCoordPlane(coord_25,axis)[axis]/area_25+isoPrestress,
 		'sigma.50':utils.forcesOnCoordPlane(coord_50,axis)[axis]/area_50+isoPrestress,
 		'sigma.75':utils.forcesOnCoordPlane(coord_75,axis)[axis]/area_75+isoPrestress,

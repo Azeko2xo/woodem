@@ -4,7 +4,7 @@
 
 # Experiment beam-like behaviour with chained cylinders + CohFrict connexions
 
-from yade import utils
+from woo import utils
 young=1.0e6
 poisson=4
 density=2.60e3 
@@ -28,7 +28,7 @@ O.engines=[
 	## Motion equation
 	NewtonIntegrator(damping=0.15),
 	PyRunner(iterPeriod=500,command='history()'),
-	#PyRunner(iterPeriod=5000,command='if O.iter<21000 : yade.qt.center()')
+	#PyRunner(iterPeriod=5000,command='if O.iter<21000 : woo.qt.center()')
 ]
 
 #Generate a spiral
@@ -47,19 +47,19 @@ def outp(id=1):
 			return  i
 
 O.bodies[Ne-1].state.blockedDOFs='xyzXYZ'
-yade.qt.View();
+woo.qt.View();
 
 
  #plot some results
 from math import *
-from yade import plot
+from woo import plot
 plot.plots={'t':('pos1',None,'vel1')}
 def history():
   	plot.addData(pos1=O.bodies[0].state.pos[1], # potential elastic energy
 		     vel1=O.bodies[0].state.vel[1],
 		     t=O.time)
 
-#yade.qt.Renderer().bound=True
+#woo.qt.Renderer().bound=True
 plot.plot()
 O.saveTmp()
 #O.bodies[0].state.angVel=Vector3(0.05,0,0)

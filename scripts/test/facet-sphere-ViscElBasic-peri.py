@@ -3,7 +3,7 @@
 # Testing facet-sphere interaction in periodic case.
 # Pass, if the sphere is rolling from left to right through the period.
 
-from yade import utils
+from woo import utils
 
 sphereRadius=0.1
 tc=0.001# collision time 

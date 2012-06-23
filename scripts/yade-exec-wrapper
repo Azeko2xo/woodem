@@ -1,6 +1,6 @@
 #!/usr/bin/python 
-"""Get yade binary as the first argument. Run it, passing all other arguments.
-If yade succeeds or crashes at exit, return success, otherwise return the same error as yade.
+"""Get woo binary as the first argument. Run it, passing all other arguments.
+If woo succeeds or crashes at exit, return success, otherwise return the same error as woo.
 
 Purpose: run binary even if no installed in the PREFIX (using WOO_PREFIX),
 and return no error if there is only (expected) crash at exit.
@@ -18,5 +18,5 @@ p=subprocess.Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,shell=Tru
 pout=p.communicate()[0]
 retval=p.wait()
 print pout
-if retval==0 or 'Yade: normal exit.' in pout: sys.exit(0)
+if retval==0 or 'Woo: normal exit.' in pout: sys.exit(0)
 sys.exit(retval)

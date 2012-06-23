@@ -5,7 +5,7 @@ reality.
 
 Pipe the output to file and open it in browser:
 
-$ yade-trunk dispatcher-torture.py > /tmp/aa.html
+$ woo-trunk dispatcher-torture.py > /tmp/aa.html
 $ firefox /tmp/aa.html
 
 """
@@ -29,11 +29,11 @@ sys.path.append('.')
 import HTML
 outStr=''
 for D in dispatches:
-	functors=yade.system.childClasses(D.basename+'Functor')
+	functors=woo.system.childClasses(D.basename+'Functor')
 	# create dispatcher with all available functors
 	dispatcher=eval(D.basename+'Dispatcher([%s])'%(','.join(['%s()'%f for f in functors])))
 	if len(D.types)==1:
-		allDim0=list(yade.system.childClasses(D.types[0]))
+		allDim0=list(woo.system.childClasses(D.types[0]))
 		table=HTML.Table(header_row=allDim0)
 		row=[]
 		for d0 in allDim0:
@@ -46,8 +46,8 @@ for D in dispatches:
 		table.rows.append(row)
 	elif len(D.types)==2:
 		# lists of types the dispatcher accepts
-		allDim0=list(yade.system.childClasses(D.types[0]))
-		allDim1=list(yade.system.childClasses(D.types[1]))
+		allDim0=list(woo.system.childClasses(D.types[0]))
+		allDim1=list(woo.system.childClasses(D.types[1]))
 		table=HTML.Table(header_row=['']+allDim1)
 		for d0 in allDim0:
 			row=['<b>'+d0+'</b>']

@@ -2,7 +2,7 @@
 #include<woo/lib/pyutil/gil.hpp>
 #include<boost/python.hpp>
 
-namespace yade{
+namespace woo{
 	void StopIteration(){ PyErr_SetNone(PyExc_StopIteration); boost::python::throw_error_already_set(); }
 
 	// void ArithmeticError(const std::string& what){ PyErr_SetString(PyExc_ArithmeticError,what.c_str()); boost::python::throw_error_already_set(); }

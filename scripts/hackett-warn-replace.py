@@ -3,7 +3,7 @@
 # This scripts attempts to replace deprecated symbols by their new equivalents based on compiler's output log. Symbol map must be
 # given explicitly (see renamedSymbols below).
 #
-# The only command-line argument is yade's buildRoot (trunk) directory. This script further on the fact that all filenames reported
+# The only command-line argument is woo's buildRoot (trunk) directory. This script further on the fact that all filenames reported
 # in compiler's warnings are relative to the buildRoot. Therefore, you better use scons to compile, since default Makefile are recursive.
 #
 # Build log (like "scons >build.log 2>&1") is piped from standard input. It MUST be strictly sequential, i.e. no -j2 etc.
@@ -70,12 +70,12 @@ Dcount=0
 # Maps (symbol,file,line_as_reported_by_compiler) -> real_line.
 # We are not intelligent enough to do fuzzy match on line number.
 Doffsets={}
-#	{('sqRoot','include/yade/yade-lib-wm3-math/Quaternion.ipp',459):455,
-#	('sqRoot','include/yade/yade-lib-wm3-math/Vector3.ipp',270):267,
-#	('x','include/yade/yade-lib-serialization/KnownFundamentalsHandler.tpp',187):188,
-#	('y','include/yade/yade-lib-serialization/KnownFundamentalsHandler.tpp',187):190,
-#	('z','include/yade/yade-lib-serialization/KnownFundamentalsHandler.tpp',187):192,
-#	('sqRoot','include/yade/yade-lib-wm3-math/Vector2.ipp',243):241}
+#	{('sqRoot','include/woo/woo-lib-wm3-math/Quaternion.ipp',459):455,
+#	('sqRoot','include/woo/woo-lib-wm3-math/Vector3.ipp',270):267,
+#	('x','include/woo/woo-lib-serialization/KnownFundamentalsHandler.tpp',187):188,
+#	('y','include/woo/woo-lib-serialization/KnownFundamentalsHandler.tpp',187):190,
+#	('z','include/woo/woo-lib-serialization/KnownFundamentalsHandler.tpp',187):192,
+#	('sqRoot','include/woo/woo-lib-wm3-math/Vector2.ipp',243):241}
 
 unknownDeprec=set()
 
@@ -111,7 +111,7 @@ for l in sys.stdin.xreadlines():
 		f=dep.group(1)
 		line=int(dep.group(2))
 		symbol=dep.group(3)
-		if 'yade/lib-miniWm3/' in f: continue # ignore warnings in wwm3 headers themselves
+		if 'woo/lib-miniWm3/' in f: continue # ignore warnings in wwm3 headers themselves
 		# this indicates inconsistency of what symbols are marked as deprecated and what we think these are
 		if not symbol in renamedSymbols.keys():
 			#logging.error("%s:%d: Unknown symbol `%s' reported as deprecated."%(f,line,symbol))

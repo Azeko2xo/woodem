@@ -67,7 +67,7 @@ void InsertionSortCollider::insertionSort(VecBounds& v, bool doCollide, int ax){
 			#endif
 			// no collisions without bounding boxes
 			// also, do not collide particle with itself; it sometimes happens for facets aligned perpendicular to an axis, for reasons that are not very clear
-			// see https://bugs.launchpad.net/yade/+bug/669095
+			// see https://bugs.launchpad.net/woo/+bug/669095
 			if(likely(doCollide && viInitBB && v[j].flags.hasBB && (viInit.id!=v[j].id))){
 				handleBoundInversion(viInit.id,v[j].id);
 			}
@@ -468,7 +468,7 @@ void InsertionSortCollider::insertionSortPeri(VecBounds& v, bool doCollide, int 
 			if(unlikely(j==loIdx && vi.coord<0)) { vi.period-=1; vi.coord+=v.cellDim; loIdx=v.norm(loIdx+1); }
 			else if(unlikely(j1==loIdx)) { vNew.period+=1; vNew.coord-=v.cellDim; loIdx=v.norm(loIdx-1); }
 			if(likely(doCollide && viHasBB && v[j].flags.hasBB)){
-				// see https://bugs.launchpad.net/yade/+bug/669095 and similar problem in aperiodic insertionSort
+				// see https://bugs.launchpad.net/woo/+bug/669095 and similar problem in aperiodic insertionSort
 				#if 0
 				if(vi.id==vNew.id){
 					LOG_FATAL("Inversion of body's #"<<vi.id<<" boundary with its other boundary, "<<v[j].coord<<" meets "<<vi.coord);

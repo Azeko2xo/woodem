@@ -2,8 +2,8 @@
 Test particle generator, that the resulting PSD curve matches the one on input.
 '''
 import unittest
-from yade.core import *
-from yade.dem import *
+from woo.core import *
+from woo.dem import *
 from miniEigen import *
 import numpy
 

@@ -57,14 +57,14 @@ def setGravity():
 	if abs(gz)>0: print gz
 
 try:
-	from yade import qt
+	from woo import qt
 	renderer=qt.Renderer()
 	renderer['Interaction_geometry']=True
 	qt.Controller()
 except ImportError: pass
 
 if 0:
-	from yade import timing
+	from woo import timing
 	O.run(100000,True)
 	timing.stats()
 	timing.reset()

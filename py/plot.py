@@ -1,7 +1,7 @@
 # encoding: utf-8
 # 2008 © Václav Šmilauer <eudoxos@arcig.cz> 
 """
-Module containing utility functions for plotting inside yade. See :ysrc:`examples/simple-scene/simple-scene-plot.py` or :ysrc:`examples/concrete/uniax.py` for example of usage.
+Module containing utility functions for plotting inside woo. See :ysrc:`examples/simple-scene/simple-scene-plot.py` or :ysrc:`examples/concrete/uniax.py` for example of usage.
 
 """
 
@@ -15,7 +15,7 @@ import mtTkinter as Tkinter
 try:
 	import Image
 except:
-	raise ImportError("PIL (python-imaging package) must be installed to use yade.plot")
+	raise ImportError("PIL (python-imaging package) must be installed to use woo.plot")
 
 
 
@@ -29,11 +29,11 @@ import matplotlib,os,time,math,itertools
 # Agg does not require the GUI part and works without any DISPLAY active
 # just fine.
 #
-# see http://www.mail-archive.com/yade-dev@lists.launchpad.net/msg04320.html 
-# and https://lists.launchpad.net/yade-users/msg03289.html
+# see http://www.mail-archive.com/woo-dev@lists.launchpad.net/msg04320.html 
+# and https://lists.launchpad.net/woo-users/msg03289.html
 #
-import yade.runtime
-if not yade.runtime.hasDisplay: matplotlib.use('Agg')
+import woo.runtime
+if not woo.runtime.hasDisplay: matplotlib.use('Agg')
 
 from miniEigen import *
 
@@ -46,9 +46,9 @@ import pylab
 data={}
 "Global dictionary containing all data values, common for all plots, in the form {'name':[value,...],...}. Data should be added using plot.addData function. All [value,...] columns have the same length, they are padded with NaN if unspecified."
 imgData={}
-"Dictionary containing lists of strings, which have the meaning of images corresponding to respective :yref:`yade.plot.data` rows. See :yref:`yade.plot.plots` on how to plot images."
+"Dictionary containing lists of strings, which have the meaning of images corresponding to respective :ref:`woo.plot.data` rows. See :ref:`woo.plot.plots` on how to plot images."
 plots={} # dictionary x-name -> (yspec,...), where yspec is either y-name or (y-name,'line-specification')
-"dictionary x-name -> (yspec,...), where yspec is either y-name or (y-name,'line-specification'). If ``(yspec,...)`` is ``None``, then the plot has meaning of image, which will be taken from respective field of :yref:`yade.plot.imgData`."
+"dictionary x-name -> (yspec,...), where yspec is either y-name or (y-name,'line-specification'). If ``(yspec,...)`` is ``None``, then the plot has meaning of image, which will be taken from respective field of :ref:`woo.plot.imgData`."
 labels={}
 "Dictionary converting names in data to human-readable names (TeX names, for instance); if a variable is not specified, it is left untranslated."
 xylabels={}
@@ -57,7 +57,7 @@ xylabels={}
 legendLoc=('upper left','upper right')
 "Location of the y1 and y2 legends on the plot, if y2 is active."
 
-live=True if yade.runtime.hasDisplay else False
+live=True if woo.runtime.hasDisplay else False
 "Enable/disable live plot updating. Disabled by default for now, since it has a few rough edges."
 liveInterval=1
 "Interval for the live plot updating, in seconds."
@@ -70,7 +70,7 @@ axesWd=0
 current=-1
 "Point that is being tracked with a scatter point. -1 is for the last point, set to *nan* to disable."
 afterCurrentAlpha=.2
-"Color alpha value for part of lines after :yref:`yade.plot.current`, between 0 (invisible) to 1 (full color)"
+"Color alpha value for part of lines after :ref:`woo.plot.current`, between 0 (invisible) to 1 (full color)"
 scatterMarkerKw=dict(verts=[(0.,0.),(-30.,10.),(-25,0),(-30.,-10.)],marker=None)
 "Parameters for the current position marker"
 
@@ -95,7 +95,7 @@ def splitData():
 	addData({})
 
 def reverseData():
-	"""Reverse yade.plot.data order.
+	"""Reverse woo.plot.data order.
 	
 	Useful for tension-compression test, where the initial (zero) state is loaded and, to make data continuous, last part must *end* in the zero state.
 	"""
@@ -109,9 +109,9 @@ def addDataColumns(dd):
 		data[d]=[nan for i in range(numSamples)]
 
 def addAutoData(**kw):
-	"""Add data by evaluating contents of :yref:`yade.plot.plots`. Expressions rasing exceptions will be handled gracefully, but warning is printed for each.
+	"""Add data by evaluating contents of :ref:`woo.plot.plots`. Expressions rasing exceptions will be handled gracefully, but warning is printed for each.
 	
-	>>> from yade import plot; from yade.dem import *; from yade.core import *
+	>>> from woo import plot; from woo.dem import *; from woo.core import *
 	>>> from pprint import pprint
 	>>> S=Scene(fields=[DemField()])
 	>>> plot.resetData()
@@ -120,15 +120,15 @@ def addAutoData(**kw):
 	>>> pprint(plot.data)
 	{'S.step': [0], 'S.time': [0.0], 'numParticles': [0]}
 
-	Note that each item in :yref:`yade.plot.plots` can be
+	Note that each item in :ref:`woo.plot.plots` can be
 
 	* an expression to be evaluated (using the ``eval`` builtin);
 	* ``name=expression`` string, where ``name`` will appear as label in plots, and expression will be evaluated each time;
-	* a dictionary-like object -- current keys are labels of plots and current values are added to :yref:`yade.plot.data`. The contents of the dictionary can change over time, in which case new lines will be created as necessary.
+	* a dictionary-like object -- current keys are labels of plots and current values are added to :ref:`woo.plot.data`. The contents of the dictionary can change over time, in which case new lines will be created as necessary.
 
 	A simple simulation with plot can be written in the following way; note how the energy plot is specified.
 
-	>>> from yade import plot, utils
+	>>> from woo import plot, utils
 	>>> S=Scene(fields=[DemField()])
 	>>> plot.resetData()
 	>>> plot.plots={'i=S.step':(S.energy,None,'total energy=S.energy.total()')}
@@ -140,7 +140,7 @@ def addAutoData(**kw):
 	>>> S.dt=utils.pWaveDt(S)
 	>>> S.engines=[ForceResetter(),Gravity(gravity=(0,0,-10)),Leapfrog(kinSplit=True,damping=.4),
 	...    # get data required by plots at every step
-	...    PyRunner(1,'yade.plot.addAutoData(S=S)')
+	...    PyRunner(1,'woo.plot.addAutoData(S=S)')
 	... ]
 	>>> S.trackEnergy=True
 	>>> S.run(2,True)
@@ -154,16 +154,16 @@ def addAutoData(**kw):
 
 	.. plot::
 
-		from yade import *
-		from yade.dem import *
-		from yade.core import *
-		from yade import plot,utils
+		from woo import *
+		from woo.dem import *
+		from woo.core import *
+		from woo import plot,utils
 		S=Scene()
 		S.dem.par.append(utils.sphere((0,0,0),1));
 		S.dt=utils.pWaveDt(S)
-		S.engines=[Gravity(gravity=(0,0,-10)),Leapfrog(damping=.4,kinSplit=True,reset=True),PyRunner(1,'yade.plot.addAutoData(S=S)')]
+		S.engines=[Gravity(gravity=(0,0,-10)),Leapfrog(damping=.4,kinSplit=True,reset=True),PyRunner(1,'woo.plot.addAutoData(S=S)')]
 		plot.resetData()
-		plot.plots={'i=S.iter':(S.energy,None,'total energy=S.energy.total()')}
+		plot.plots={'i=S.step':(S.energy,None,'total energy=S.energy.total()')}
 		S.trackEnergy=True
 		S.run(500,True)
 		import pylab; pylab.grid(True)
@@ -200,13 +200,13 @@ def addAutoData(**kw):
 
 
 def addData(*d_in,**kw):
-	"""Add data from arguments name1=value1,name2=value2 to yade.plot.data.
+	"""Add data from arguments name1=value1,name2=value2 to woo.plot.data.
 	(the old {'name1':value1,'name2':value2} is deprecated, but still supported)
 
 	New data will be padded with nan's, unspecified data will be nan (nan's don't appear in graphs).
 	This way, equal length of all data is assured so that they can be plotted one against any other.
 
-	>>> from yade import plot
+	>>> from woo import plot
 	>>> from pprint import pprint
 	>>> plot.resetData()
 	>>> plot.addData(a=1)
@@ -418,7 +418,7 @@ def createPlots(subPlots=True,scatterSize=60,wider=False):
 				elif hasattr(ys[0],'keys'): ySpecs2+=[(yy,'') for yy in ys[0].keys()]
 				else: ySpecs2.append(ys)
 			if len(ySpecs2)==0:
-				print 'yade.plot: creating fake plot, since there are no y-data yet'
+				print 'woo.plot: creating fake plot, since there are no y-data yet'
 				line,=pylab.plot([nan],[nan])
 				line2,=pylab.plot([nan],[nan])
 				currLineRefs.append(LineRef(line,None,line2,[nan],[nan]))
@@ -448,7 +448,7 @@ def createPlots(subPlots=True,scatterSize=60,wider=False):
 				pylab.ylabel((', '.join([xlateLabel(_p[0]) for _p in ySpecs2])) if (p not in xylabels or len(xylabels[p])<3 or not xylabels[p][2]) else xylabels[p][2])
 			# if there are callable/dict ySpecs, save them inside the axes object, so that the live updater can use those
 			if yNameFuncs:
-				axes.yadeYNames,axes.yadeYFuncs,axes.yadeXName,axes.yadeLabelLoc=yNames,yNameFuncs,pStrip,labelLoc # prepend yade to avoid clashes
+				axes.wooYNames,axes.wooYFuncs,axes.wooXName,axes.wooLabelLoc=yNames,yNameFuncs,pStrip,labelLoc # prepend woo to avoid clashes
 		createLines(pStrip,plots_p_y1,isY1=True,y2Exists=len(plots_p_y2)>0)
 		if axesWd>0:
 			pylab.axhline(linewidth=axesWd,color='k')
@@ -457,7 +457,7 @@ def createPlots(subPlots=True,scatterSize=60,wider=False):
 		if len(plots_p_y2)>0:
 			pylab.twinx() # create the y2 axis
 			createLines(pStrip,plots_p_y2,isY1=False,y2Exists=True)
-		if 'title' in yade.master.scene.tags.keys(): pylab.title(yade.master.scene.tags['title'])
+		if 'title' in woo.master.scene.tags.keys(): pylab.title(woo.master.scene.tags['title'])
 
 
 
@@ -474,29 +474,29 @@ def liveUpdate(timestamp):
 			linesData.add(id(l.ydata))
 		# find callables in y specifiers, create new lines if necessary
 		for ax in axes:
-			if not hasattr(ax,'yadeYFuncs') or not ax.yadeYFuncs: continue # not defined of empty
+			if not hasattr(ax,'wooYFuncs') or not ax.wooYFuncs: continue # not defined of empty
 			yy=set();
-			for f in ax.yadeYFuncs:
+			for f in ax.wooYFuncs:
 				if callable(f): yy.update(f())
 				elif hasattr(f,'keys'): yy.update(f.keys())
-				else: raise ValueError("Internal error: ax.yadeYFuncs items must be callables or dictionary-like objects and nothing else.")
+				else: raise ValueError("Internal error: ax.wooYFuncs items must be callables or dictionary-like objects and nothing else.")
 			#print 'callables y names:',yy
-			news=yy-ax.yadeYNames
+			news=yy-ax.wooYNames
 			if not news: continue
 			for new in news:
-				ax.yadeYNames.add(new)
+				ax.wooYNames.add(new)
 				if new in data.keys() and id(data[new]) in linesData: continue # do not add when reloaded and the old lines are already there
-				print 'yade.plot: creating new line for',new
-				if not new in data.keys(): data[new]=len(data[ax.yadeXName])*[nan] # create data entry if necessary
-				#print 'data',len(data[ax.yadeXName]),len(data[new]),data[ax.yadeXName],data[new]
-				line,=ax.plot(data[ax.yadeXName],data[new],label=xlateLabel(new)) # no line specifier
+				print 'woo.plot: creating new line for',new
+				if not new in data.keys(): data[new]=len(data[ax.wooXName])*[nan] # create data entry if necessary
+				#print 'data',len(data[ax.wooXName]),len(data[new]),data[ax.wooXName],data[new]
+				line,=ax.plot(data[ax.wooXName],data[new],label=xlateLabel(new)) # no line specifier
 				line2,=ax.plot([],[],color=line.get_color(),alpha=afterCurrentAlpha)
-				scatterPt=(0 if len(data[ax.yadeXName])==0 or math.isnan(data[ax.yadeXName][current]) else data[ax.yadeXName][current]),(0 if len(data[new])==0 or math.isnan(data[new][current]) else data[new][current])
+				scatterPt=(0 if len(data[ax.wooXName])==0 or math.isnan(data[ax.wooXName][current]) else data[ax.wooXName][current]),(0 if len(data[new])==0 or math.isnan(data[new][current]) else data[new][current])
 				scatter=ax.scatter(scatterPt[0],scatterPt[1],s=60,color=line.get_color(),**scatterMarkerKw)
-				currLineRefs.append(LineRef(line,scatter,line2,data[ax.yadeXName],data[new]))
+				currLineRefs.append(LineRef(line,scatter,line2,data[ax.wooXName],data[new]))
 				ax.set_ylabel(ax.get_ylabel()+(', ' if ax.get_ylabel() else '')+xlateLabel(new))
 			# it is possible that the legend has not yet been created
-			l=ax.legend(loc=ax.yadeLabelLoc)
+			l=ax.legend(loc=ax.wooLabelLoc)
 			if hasattr(l,'draggable'): l.draggable(True)
 		if autozoom:
 			for ax in axes:
@@ -511,7 +511,7 @@ def liveUpdate(timestamp):
 		time.sleep(liveInterval)
 	
 def savePlotSequence(fileBase,stride=1,imgRatio=(5,7),title=None,titleFrames=20,lastFrames=30):
-	'''Save sequence of plots, each plot corresponding to one line in history. It is especially meant to be used for :yref:`yade.utils.makeVideo`.
+	'''Save sequence of plots, each plot corresponding to one line in history. It is especially meant to be used for :ref:`woo.utils.makeVideo`.
 
 	:param stride: only consider every stride-th line of history (default creates one frame per each line)
 	:param title: Create title frame, where lines of title are separated with newlines (``\\n``) and optional subtitle is separated from title by double newline. 
@@ -574,10 +574,10 @@ def plot(noShow=False,subPlots=True):
 	
 	You can use 
 	
-		>>> from yade import plot
+		>>> from woo import plot
 		>>> plot.resetData()
 		>>> plot.plots={'foo':('bar',)}
-		>>> somePdf=yade.master.tmpFilename()+'.pdf'
+		>>> somePdf=woo.master.tmpFilename()+'.pdf'
 		>>> plot.plot(noShow=True).savefig(somePdf)
 		>>> import os
 		>>> os.path.exists(somePdf)
@@ -595,14 +595,14 @@ def plot(noShow=False,subPlots=True):
 		warnings.warn('plot.plot not showing figure (matplotlib using headless backend?)')
 		noShow=True
 	if not noShow:
-		if not yade.runtime.hasDisplay: return # would error out with some backends, such as Agg used in batches
+		if not woo.runtime.hasDisplay: return # would error out with some backends, such as Agg used in batches
 		if live:
 			import thread
 			thread.start_new_thread(liveUpdate,(time.time(),))
 		# pylab.show() # this blocks for some reason; call show on figures directly
 		for f in figs:
 			f.show()
-			# should have fixed https://bugs.launchpad.net/yade/+bug/606220, but does not work apparently
+			# should have fixed https://bugs.launchpad.net/woo/+bug/606220, but does not work apparently
 			if 0:
 				import matplotlib.backend_bases
 				if 'CloseEvent' in dir(matplotlib.backend_bases):
@@ -618,9 +618,9 @@ def plot(noShow=False,subPlots=True):
 		else: return figs
 
 def saveDataTxt(fileName,vars=None):
-	"""Save plot data into a (optionally compressed) text file. The first line contains a comment (starting with ``#``) giving variable name for each of the columns. This format is suitable for being loaded for further processing (outside yade) with ``numpy.genfromtxt`` function, which recognizes those variable names (creating numpy array with named entries) and handles decompression transparently.
+	"""Save plot data into a (optionally compressed) text file. The first line contains a comment (starting with ``#``) giving variable name for each of the columns. This format is suitable for being loaded for further processing (outside woo) with ``numpy.genfromtxt`` function, which recognizes those variable names (creating numpy array with named entries) and handles decompression transparently.
 
-	>>> from yade import plot
+	>>> from woo import plot
 	>>> from pprint import pprint
 	>>> plot.reset()
 	>>> plot.addData(a=1,b=11,c=21,d=31)  # add some data here
@@ -636,7 +636,7 @@ def saveDataTxt(fileName,vars=None):
 	array([11, 12])
 
 	:param fileName: file to save data to; if it ends with ``.bz2`` / ``.gz``, the file will be compressed using bzip2 / gzip. 
-	:param vars: Sequence (tuple/list/set) of variable names to be saved. If ``None`` (default), all variables in :yref:`yade.plot.plot` are saved.
+	:param vars: Sequence (tuple/list/set) of variable names to be saved. If ``None`` (default), all variables in :ref:`woo.plot.plot` are saved.
 	"""
 	import bz2,gzip
 	if not vars:
@@ -673,7 +673,7 @@ def _mkTimestamp():
 	return time.strftime('_%Y%m%d_%H:%M')
 
 def saveGnuplot(baseName,term='wxt',extension=None,timestamp=False,comment=None,title=None,varData=False):
-	"""Save data added with :yref:`yade.plot.addData` into (compressed) file and create .gnuplot file that attempts to mimick plots specified with :yref:`yade.plot.plots`.
+	"""Save data added with :ref:`woo.plot.addData` into (compressed) file and create .gnuplot file that attempts to mimick plots specified with :ref:`woo.plot.plots`.
 
 :param baseName: used for creating baseName.gnuplot (command file for gnuplot), associated ``baseName.data.bz2`` (data) and output files (if applicable) in the form ``baseName.[plot number].extension``
 :param term: specify the gnuplot terminal; defaults to ``x11``, in which case gnuplot will draw persistent windows to screen and terminate; other useful terminals are ``png``, ``cairopdf`` and so on

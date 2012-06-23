@@ -2,24 +2,24 @@
 # 2009 © Václav Šmilauer <eudoxos@arcig.cz>
 
 """
-Functions for accessing yade's internals; only used internally.
+Functions for accessing woo's internals; only used internally.
 """
 import sys
-from yade._customConverters import *
-from yade import runtime
-from yade import config
-import yade.core
+from woo._customConverters import *
+from woo import runtime
+from woo import config
+import woo.core
 
 def childClasses(base,recurse=True,includeBase=False):
 	"""Enumerate classes deriving from given base (as string), recursively by default. Returns set."""
-	ret=set(yade.master.childClassesNonrecursive(base)); ret2=set();
+	ret=set(woo.master.childClassesNonrecursive(base)); ret2=set();
 	if includeBase: ret|=set([base])
 	if not recurse: return ret
 	for bb in ret:
 		ret2|=childClasses(bb)
 	return ret | ret2
 
-_allSerializables=[c.__name__ for c in yade.core.Object._derivedCxxClasses]
+_allSerializables=[c.__name__ for c in woo.core.Object._derivedCxxClasses]
 ## set of classes for which the proxies were created
 _proxiedClasses=set()
 
@@ -65,7 +65,7 @@ def updateScripts(scripts):
 
 
 def cxxCtorsDict(proxyNamespace=__builtins__):
-	"""Return dictionary of class constructors for yade's c++ types, which should be used to update a namespace.
+	"""Return dictionary of class constructors for woo's c++ types, which should be used to update a namespace.
 
 	Root classes are those that are directly wrapped by boost::python. These are only put to the dict.
 
@@ -82,8 +82,8 @@ def cxxCtorsDict(proxyNamespace=__builtins__):
 				# assert(proxyNamespace.has_key(_new))
 				self.old,self.new=_old,_new
 			def __call__(self,*args,**kw):
-				import warnings; warnings.warn("Class `%s' was renamed to (or replaced by) `%s', update your code! (you can run 'yade --update script.py' to do that automatically)"%(self.old,self.new),DeprecationWarning,stacklevel=2);
-				return yade.wrapper.__dict__[self.new](*args,**kw)
+				import warnings; warnings.warn("Class `%s' was renamed to (or replaced by) `%s', update your code! (you can run 'woo --update script.py' to do that automatically)"%(self.old,self.new),DeprecationWarning,stacklevel=2);
+				return woo.wrapper.__dict__[self.new](*args,**kw)
 		proxyNamespace[oldName]=warnWrap(oldName,_deprecated[oldName])
 	return proxyNamespace
 
@@ -92,8 +92,8 @@ def setExitHandlers():
 	"""Set exit handler to avoid gdb run if log4cxx crashes at exit."""
 	# avoid backtrace at regular exit, even if we crash
 	if 'log4cxx' in config.features:
-		__builtins__['quit']=yade.master.exitNoBacktrace
-		sys.exit=yade.master.exitNoBacktrace
+		__builtins__['quit']=woo.master.exitNoBacktrace
+		sys.exit=woo.master.exitNoBacktrace
 	# this seems to be not needed anymore:
 	#sys.excepthook=sys.__excepthook__ # apport on ubuntu overrides this, we don't need it
 
@@ -101,5 +101,5 @@ def setExitHandlers():
 # consistency check
 # if there are no serializables, then plugins were not loaded yet, probably
 if(len(_allSerializables)==0):
-	raise ImportError("No classes deriving from Object found; you must call yade.boot.initialize to load plugins before importing yade.system.")
+	raise ImportError("No classes deriving from Object found; you must call woo.boot.initialize to load plugins before importing woo.system.")
 

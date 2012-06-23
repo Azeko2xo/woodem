@@ -1,6 +1,6 @@
-from yade.core import *
-from yade.dem import *
-from yade import log
+from woo.core import *
+from woo.dem import *
+from woo import log
 #log.setLevel("PsdSphereGenerator",log.TRACE)
 doMass=True
 pp=PsdSphereGenerator(psdPts=[(.3,.2),(.4,.9),(.5,1.)],mass=doMass,discrete=True)

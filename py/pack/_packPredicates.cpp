@@ -7,7 +7,7 @@
 
 namespace py=boost::python;
 #ifdef WOO_LOG4CXX
-	log4cxx::LoggerPtr logger=log4cxx::Logger::getLogger("yade.pack.predicates");
+	log4cxx::LoggerPtr logger=log4cxx::Logger::getLogger("woo.pack.predicates");
 #endif
 
 /*
@@ -17,7 +17,7 @@ Besides the (point,pad) operator, each predicate defines aabb() method that retu
 (min,max) tuple defining minimum and maximum point of axis-aligned bounding box 
 for the predicate.
 
-These classes are primarily used for yade.pack.* functions creating packings.
+These classes are primarily used for woo.pack.* functions creating packings.
 See examples/regular-sphere-pack/regular-sphere-pack.py for an example.
 
 */

@@ -202,7 +202,7 @@ struct InsertionSortCollider: public Collider {
 
 	virtual void run();
 	WOO_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(InsertionSortCollider,Collider,"\
-		Collider with O(n log(n)) complexity, using :yref:`Aabb` for bounds.\
+		Collider with O(n log(n)) complexity, using :ref:`Aabb` for bounds.\
 		\n\n\
 		At the initial step, Bodies' bounds (along sortAxis) are first std::sort'ed along one axis (sortAxis), then collided. The initial sort has :math:`O(n^2)` complexity, see `Colliders' performance <https://yade-dem.org/index.php/Colliders_performace>`_ for some information (There are scripts in examples/collider-perf for measurements). \
 		\n\n \
@@ -216,7 +216,7 @@ struct InsertionSortCollider: public Collider {
 			\n\n \
 			#. No body can travel more than cell's distance in one step; this would mean that the simulation is numerically exploding, and it is only detected in some cases.\
 		\n\n \
-		**Stride** can be used to avoid running collider at every step by enlarging the particle's bounds, tracking their velocities and only re-run if they might have gone out of that bounds (see `Verlet list <http://en.wikipedia.org/wiki/Verlet_list>`_ for brief description and background) . This requires cooperation from :yref:`Leapfrog` as well as :yref:`BoundDispatcher`, which will be found among engines automatically (exception is thrown if they are not found).\
+		**Stride** can be used to avoid running collider at every step by enlarging the particle's bounds, tracking their velocities and only re-run if they might have gone out of that bounds (see `Verlet list <http://en.wikipedia.org/wiki/Verlet_list>`_ for brief description and background) . This requires cooperation from :ref:`Leapfrog` as well as :ref:`BoundDispatcher`, which will be found among engines automatically (exception is thrown if they are not found).\
 		\n\n \
 		If you wish to use strides, set ``verletDist`` (length by which bounds will be enlarged in all directions) to some value, e.g. 0.05 × typical particle radius. This parameter expresses the tradeoff between many potential interactions (running collider rarely, but with longer exact interaction resolution phase) and few potential interactions (running collider more frequently, but with less exact resolutions of interactions); it depends mainly on packing density and particle radius distribution.\
 		\n\n \

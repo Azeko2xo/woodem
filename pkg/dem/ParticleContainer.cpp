@@ -146,7 +146,7 @@ ParticleContainer::pyIterator::pyIterator(ParticleContainer* _pc): pc(_pc), ix(-
 shared_ptr<Particle> ParticleContainer::pyIterator::next(){
 	int sz=pc->size();
 	while(ix<sz){ ix++; if(pc->exists(ix)) return (*pc)[ix]; }
-	yade::StopIteration();
+	woo::StopIteration();
 	throw; // never reached, but makes the compiler happier
 }
 ParticleContainer::pyIterator ParticleContainer::pyIterator::iter(){ return *this; }
@@ -191,7 +191,7 @@ shared_ptr<Node> ParticleContainer::pyAppendClumped(vector<shared_ptr<Particle>>
 shared_ptr<Particle> ParticleContainer::pyGetItem(Particle::id_t id){
 	if(id<0 && id>=-(int)size()) id+=size();
 	if(exists(id)) return (*this)[id];
-	yade::IndexError("No such particle: #"+lexical_cast<string>(id)+".");
+	woo::IndexError("No such particle: #"+lexical_cast<string>(id)+".");
 	return shared_ptr<Particle>(); // make compiler happy
 }
 

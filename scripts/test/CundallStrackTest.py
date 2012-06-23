@@ -1,4 +1,4 @@
-#!/usr/local/bin/yade-trunk -x
+#!/usr/local/bin/woo-trunk -x
 # -*- coding: utf-8 -*-
 
 o=Omega() 
@@ -12,12 +12,12 @@ o.engines=[
 	NewtonIntegrator(damping = 0.01)
 ]
 
-from yade import utils
+from woo import utils
 
 o.bodies.append(utils.sphere([0,0,6],1,dynamic=True, color=[0,1,0]))
 o.bodies.append(utils.sphere([0,0,0],1,dynamic = False, color=[0,0,1]))
 o.dt=.2*utils.PWaveTimeStep()
 
-from yade import qt
+from woo import qt
 qt.Controller()
 qt.View()

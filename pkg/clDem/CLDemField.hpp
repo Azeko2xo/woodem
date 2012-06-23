@@ -8,7 +8,7 @@
 // forwards
 namespace clDem{ class Simulation; class Particle; };
 
-// namespace yade{namespace clDem{
+// namespace woo{namespace clDem{
 
 class CLDemData: public NodeData{
 public:
@@ -31,17 +31,17 @@ template<> struct NodeData::Index<CLDemData>{enum{value=Node::ST_CLDEM};};
 
 struct CLDemField: public Field{
 	static shared_ptr<Scene> clDemToYade(const shared_ptr<clDem::Simulation>& sim, int stepPeriod=-1, Real relTol=-1);
-	static shared_ptr<clDem::Simulation> yadeToClDem(const shared_ptr< ::Scene>& scene, int stepPeriod=-1, Real relTol=-1);
+	static shared_ptr<clDem::Simulation> wooToClDem(const shared_ptr< ::Scene>& scene, int stepPeriod=-1, Real relTol=-1);
 	// returns clDem::Simulation within current scene
 	static shared_ptr<clDem::Simulation> getSimulation();
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(CLDemField,Field,"Field referencing clDem simulation; it contains reference pointer clDem::Simulation. GL functions and proxy engine is defined on this field.",
 			((shared_ptr<clDem::Simulation>,sim,,,"The OpenCL simulation in question."))
 		, /* ctor */ createIndex();
 		, /* py */ // .def_readwrite("sim",&CLDemField::sim,"Simulation field to operate on")
-		.def("clDemToYade",&CLDemField::clDemToYade,(py::arg("clDemSim"),py::arg("stepPeriod")=1,py::arg("relTol")=-1),"Create yade simulation which mimics the one in *clDemSim* as close as possible. If stepPeriod>=1, prepare enginess for running and comparing them in parallel. *stepPeriod* determines how many steps of the CL simulation to launch at once. If *relTol* is greater than 0., comparison between clDem and Yade will be done at every step, with the tolerance specified.")
+		.def("clDemToYade",&CLDemField::clDemToYade,(py::arg("clDemSim"),py::arg("stepPeriod")=1,py::arg("relTol")=-1),"Create woo simulation which mimics the one in *clDemSim* as close as possible. If stepPeriod>=1, prepare enginess for running and comparing them in parallel. *stepPeriod* determines how many steps of the CL simulation to launch at once. If *relTol* is greater than 0., comparison between clDem and Yade will be done at every step, with the tolerance specified.")
 		.staticmethod("clDemToYade")
-		.def("yadeToClDem",&CLDemField::yadeToClDem,(py::arg("scene"),py::arg("stepPeriod")=-1,py::arg("relTol")=-1),"Convert yade simulation in *scene* to clDem simulation (returned object), optionally adding the clDem simulation to the yade's scene itself (if stepPeriod>=1) to be run in parallel. Positive value of *relTol* will run checks between both computations after each *stepPeriod* steps.")
-		.staticmethod("yadeToClDem")
+		.def("wooToClDem",&CLDemField::wooToClDem,(py::arg("scene"),py::arg("stepPeriod")=-1,py::arg("relTol")=-1),"Convert woo simulation in *scene* to clDem simulation (returned object), optionally adding the clDem simulation to the woo's scene itself (if stepPeriod>=1) to be run in parallel. Positive value of *relTol* will run checks between both computations after each *stepPeriod* steps.")
+		.staticmethod("wooToClDem")
 		.def("getSimulation",&CLDemField::getSimulation).staticmethod("getSimulation")
 		.def("sceneHasField",&Field_sceneHasField<CLDemField>).staticmethod("sceneHasField")
 		.def("sceneGetField",&Field_sceneGetField<CLDemField>).staticmethod("sceneGetField")
@@ -104,5 +104,5 @@ struct Gl1_CLDemField: public GlFieldFunctor{
 
 
 #endif
-// }}; /* yade::clDem */
+// }}; /* woo::clDem */
 

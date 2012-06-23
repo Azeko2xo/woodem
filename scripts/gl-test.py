@@ -11,8 +11,8 @@
 # it does in your case.
 #
 
-from yade import qt
-from yade import utils
+from woo import qt
+from woo import utils
 
 O.bodies.append(utils.box([0,0,0],[1,1,1],color=[1,0,0]))
 O.bodies.append(utils.sphere([0,2,0],1,color=[0,1,0]))

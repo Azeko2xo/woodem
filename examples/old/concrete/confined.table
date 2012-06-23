@@ -1,7 +1,7 @@
 #
-# Use this table with yade-multi like this:
+# Use this table with woo-multi like this:
 #
-#   yade-version-multi --gnuplot confined.gnuplot confined.table uniax.py
+#   woo-version-multi --gnuplot confined.gnuplot confined.table uniax.py
 #
 # and watch http://localhost:9080 while it runs
 #

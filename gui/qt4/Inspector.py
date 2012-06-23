@@ -2,20 +2,20 @@
 
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-from yade import *
-from yade.qt.SerializableEditor import *
-import yade.qt
-from yade.dem import *
-#from yade.sparc import *
-from yade.gl import *
-from yade.core import *
+from woo import *
+from woo.qt.SerializableEditor import *
+import woo.qt
+from woo.dem import *
+#from woo.sparc import *
+from woo.gl import *
+from woo.core import *
 
 
 class EngineInspector(QWidget):
 	def __init__(self,parent=None):
 		QWidget.__init__(self,parent)
 		grid=QGridLayout(self); grid.setSpacing(0); grid.setMargin(0)
-		self.serEd=SeqSerializable(parent=None,getter=lambda:O.scene.engines,setter=lambda x:setattr(O.scene,'engines',x),serType=Engine,path='O.scene.engines')
+		self.serEd=SeqSerializable(parent=None,getter=lambda:woo.master.scene.engines,setter=lambda x:setattr(woo.master.scene,'engines',x),serType=Engine,path='woo.master.scene.engines')
 		grid.addWidget(self.serEd)
 		self.setLayout(grid)
 #class MaterialsInspector(QWidget):
@@ -41,14 +41,15 @@ class CellInspector(QWidget):
 		self.refreshTimer.timeout.connect(self.refresh)
 		self.refreshTimer.start(1000)
 	def refresh(self):
-		self.periCheckBox.setChecked(O.scene.periodic)
+		S=woo.master.scene
+		self.periCheckBox.setChecked(S.periodic)
 		editor=self.scroll.widget()
-		if not O.scene.periodic and editor: self.scroll.takeWidget()
-		if (O.scene.periodic and not editor) or (editor and editor.ser!=O.scene.cell):
-			self.scroll.setWidget(SerializableEditor(O.scene.cell,parent=self,showType=True,path='O.scene.cell'))
+		if not S.periodic and editor: self.scroll.takeWidget()
+		if (S.periodic and not editor) or (editor and editor.ser!=S.cell):
+			self.scroll.setWidget(SerializableEditor(S.cell,parent=self,showType=True,path='woo.master.cell'))
 	def update(self):
 		self.scroll.takeWidget() # do this before changing periodicity, otherwise the SerializableEditor will raise exception about None object
-		O.scene.periodic=self.periCheckBox.isChecked()
+		S.periodic=self.periCheckBox.isChecked()
 		self.refresh()
 		
 	
@@ -72,7 +73,7 @@ def getBodyIdFromLabel(label):
 class BodyInspector(QWidget):
 	def __init__(self,bodyId=-1,parent=None,bodyLinkCallback=None,intrLinkCallback=None):
 		QWidget.__init__(self,parent)
-		v=yade.qt.views()
+		v=woo.qt.views()
 		self.bodyId=bodyId
 		if bodyId<0 and len(v)>0 and v[0].selection>0: self.bodyId=v[0].selection
 		self.idGlSync=self.bodyId
@@ -124,7 +125,8 @@ class BodyInspector(QWidget):
 		self.gotoBodySlot()
 	def displayForces(self):
 		if self.bodyId<0: return
-		b=O.dem.par[self.bodyId]
+		S=woo.master.scene
+		b=S.dem.par[self.bodyId]
 		if not b.shape: noshow='no shape'
 		elif len(b.shape.nodes)==0: noshow='no nodes'
 		elif len(b.shape.nodes)>1: noshow='multinodal'
@@ -150,8 +152,8 @@ class BodyInspector(QWidget):
 			except IndexError:pass
 	def tryShowBody(self):
 		try:
-			b=O.dem.par[self.bodyId]
-			self.serEd=SerializableEditor(b,showType=True,parent=self,path='O.dem.par[%d]'%self.bodyId)
+			b=woo.master.scene.dem.par[self.bodyId]
+			self.serEd=SerializableEditor(b,showType=True,parent=self,path='woo.master.scene.dem.par[%d]'%self.bodyId)
 		except IndexError:
 			self.serEd=QFrame(self)
 			self.bodyId=-1
@@ -178,15 +180,16 @@ class BodyInspector(QWidget):
 			self.ii.show()
 		else: self.intrLinkCallback(ids)
 	def refreshEvent(self):
-		try: O.dem.par[self.bodyId]
+		S=woo.master.scene
+		try: S.dem.par[self.bodyId]
 		except: self.bodyId=-1 # invalidate deleted body
 		# no body shown yet, try to get the first one...
-		if self.bodyId<0 and len(O.dem.par)>0:
+		if self.bodyId<0 and len(S.dem.par)>0:
 			try:
 				print 'SET ZERO'
-				b=O.dem.par[0]; self.bodyIdBox.setValue(0)
+				b=S.dem.par[0]; self.bodyIdBox.setValue(0)
 			except IndexError: pass
-		v=yade.qt.views()
+		v=woo.qt.views()
 		if len(v)>0 and v[0].selection!=self.bodyId:
 			if self.idGlSync==self.bodyId: # changed in the viewer, reset ourselves
 				self.bodyId=self.idGlSync=v[0].selection; self.changeIdSlot(self.bodyId)
@@ -194,16 +197,16 @@ class BodyInspector(QWidget):
 			else: v[0].selection=self.idGlSync=self.bodyId # changed here, set in the viewer
 		meId=self.bodyIdBox.value(); pos=self.intrWithCombo.currentIndex()
 		try:
-			meLabel=makeBodyLabel(O.dem.par[meId])
+			meLabel=makeBodyLabel(S.dem.par[meId])
 		except IndexError: meLabel=u'…'
 		self.plusLabel.setText(' '.join(meLabel.split()[1:])+'  <b>+</b>') # do not repeat the id
-		self.bodyIdBox.setMaximum(len(O.dem.par)-1)
-		try: others=O.dem.par[meId].con
+		self.bodyIdBox.setMaximum(len(S.dem.par)-1)
+		try: others=S.dem.par[meId].con
 		except IndexError: others=[]
 		#(i.id1 if i.id1!=meId else i.id2) for i in O.interactions.withBody(self.bodyIdBox.value()) if i.isReal]
 		others.sort()
 		self.intrWithCombo.clear()
-		self.intrWithCombo.addItems([makeBodyLabel(O.dem.par[i]) for i in others])
+		self.intrWithCombo.addItems([makeBodyLabel(S.dem.par[i]) for i in others])
 		if pos>self.intrWithCombo.count() or pos<0: pos=0
 		self.intrWithCombo.setCurrentIndex(pos);
 		other=self.intrWithCombo.itemText(pos)
@@ -247,15 +250,16 @@ class InteractionInspector(QWidget):
 		if self.ids: self.setupInteraction()
 	def setupInteraction(self):
 		'Change view; called whenever the interaction to be displayed changes'
+		S=woo.master.scene
 		try:
 			if self.ids==None: raise IndexError() # to be caught right away
-			intr=O.dem.con[self.ids] # also might raise IndexError, if the contact is dead
+			intr=S.dem.con[self.ids] # also might raise IndexError, if the contact is dead
 			if not intr: raise IndexError()
 			self.intrLinIxBox.setValue(intr.linIx)
-			self.serEd=SerializableEditor(intr,showType=True,parent=self.scroll,path='O.dem.con[%d,%d]'%(self.ids[0],self.ids[1]))
+			self.serEd=SerializableEditor(intr,showType=True,parent=self.scroll,path='woo.master.scene.dem.con[%d,%d]'%(self.ids[0],self.ids[1]))
 			self.scroll.setWidget(self.serEd)
-			self.gotoId1Button.setText('#'+makeBodyLabel(O.dem.par[self.ids[0]]))
-			self.gotoId2Button.setText('#'+makeBodyLabel(O.dem.par[self.ids[1]]))
+			self.gotoId1Button.setText('#'+makeBodyLabel(S.dem.par[self.ids[0]]))
+			self.gotoId2Button.setText('#'+makeBodyLabel(S.dem.par[self.ids[1]]))
 			self.setWindowTitle('Contact #%d + #%d'%(self.ids[0],self.ids[1]))
 		except (IndexError,):
 			if self.ids:  # reset view (there was an interaction)
@@ -267,25 +271,27 @@ class InteractionInspector(QWidget):
 		if self.bodyLinkCallback: self.bodyLinkCallback(bodyId)
 		else: self.bi=BodyInspector(bodyId); self.bi.show()
 	def setLinIxSlot(self,linIx):
+		S=woo.master.scene
 		try:
-			C=O.dem.con[linIx]
+			C=S.dem.con[linIx]
 			self.ids=C.id1,C.id2
 			self.setupInteraction()
 		except IndexError: pass
 	def gotoId1Slot(self): self.gotoId(self.ids[0])
 	def gotoId2Slot(self): self.gotoId(self.ids[1])
 	def refreshEvent(self):
-		self.intrLinIxBox.setMaximum(len(O.dem.con)-1)
+		S=woo.master.scene
+		self.intrLinIxBox.setMaximum(len(S.dem.con)-1)
 		# no ids yet -- try getting the first interaction, if it exists
 		if not self.ids:
 			try:
-				i=O.dem.con[0]
+				i=S.dem.con[0]
 				self.ids=i.id1,i.id2
 				self.setupInteraction()
 				return
 			except IndexError: return # no interaction exists at all
 		try: # try to fetch the contact we have
-			c=O.dem.con[self.ids[0],self.ids[1]]
+			c=S.dem.con[self.ids[0],self.ids[1]]
 			self.intrLinIxBox.setValue(c.linIx) # update linIx, it can change asynchronously
 		except (IndexError,AttributeError):
 			self.ids=None
@@ -293,10 +299,11 @@ class InteractionInspector(QWidget):
 			
 class SimulationInspector(QWidget):
 	def __init__(self,parent=None):
+		S=woo.master.scene
 		QWidget.__init__(self,parent)
 		self.setWindowTitle("Simulation Inspection")
 		self.tabWidget=QTabWidget(self)
-		demField=O.dem if O.hasDem() else None
+		demField=S.dem if S.hasDem else None
 		self.engineInspector=EngineInspector(parent=None)
 		self.bodyInspector=BodyInspector(parent=None,intrLinkCallback=self.changeIntrIds) if demField else None
 		self.intrInspector=InteractionInspector(parent=None,bodyLinkCallback=self.changeBodyId) if demField else None
@@ -306,10 +313,10 @@ class SimulationInspector(QWidget):
 			if widget: self.tabWidget.addTab(widget,name)
 
 		# add fields
-		for i,f in enumerate(O.scene.fields):
-			path='O.scene.fields[%d]'%i
-			if O.hasDem() and f==O.dem: path='O.dem'
-			if O.hasSparc() and f==O.sparc: path='O.sparc'
+		for i,f in enumerate(S.fields):
+			path='woo.master.scene.fields[%d]'%i
+			if S.hasDem and f==S.dem: path='woo.master.scene.dem'
+			#if S.hasSparc and f==S.sparc: path='woo.master.scene.sparc'
 			self.tabWidget.addTab(SerializableEditor(f,parent=None,path=path,showType=True),'%d. '%i+path)
 		grid=QGridLayout(self); grid.setSpacing(0); grid.setMargin(0)
 		grid.addWidget(self.tabWidget)

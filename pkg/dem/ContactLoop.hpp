@@ -13,7 +13,7 @@ struct CGeomFunctor: public Functor2D<
 	/*retrun type*/    bool,
 	/*argument types*/ TYPELIST_5(const shared_ptr<Shape>&, const shared_ptr<Shape>&, const Vector3r&, const bool&, const shared_ptr<Contact>&)
 >{
-	WOO_CLASS_BASE_DOC(CGeomFunctor,Functor,"Functor for creating/updating :yref:`Contact::geom` objects.");
+	WOO_CLASS_BASE_DOC(CGeomFunctor,Functor,"Functor for creating/updating :ref:`Contact::geom` objects.");
 };
 REGISTER_SERIALIZABLE(CGeomFunctor);
 
@@ -22,7 +22,7 @@ class CPhysFunctor: public Functor2D<
 	/*retrun type*/    void,
 	/*argument types*/ TYPELIST_3(const shared_ptr<Material>&, const shared_ptr<Material>&, const shared_ptr<Contact>&)
 >{
-	WOO_CLASS_BASE_DOC(CPhysFunctor,Functor,"Functor for creating/updating :yref:`Contact::phys` objects.");
+	WOO_CLASS_BASE_DOC(CPhysFunctor,Functor,"Functor for creating/updating :ref:`Contact::phys` objects.");
 };
 REGISTER_SERIALIZABLE(CPhysFunctor);
 
@@ -32,7 +32,7 @@ class LawFunctor: public Functor2D<
 	/*return type*/    void,
 	/*argument types*/ TYPELIST_3(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&)
 >{
-	WOO_CLASS_BASE_DOC(LawFunctor,Functor,"Functor for applying constitutive laws on :yref:`contacts<Contact>`.");
+	WOO_CLASS_BASE_DOC(LawFunctor,Functor,"Functor for applying constitutive laws on :ref:`contacts<Contact>`.");
 };
 REGISTER_SERIALIZABLE(LawFunctor);
 
@@ -77,10 +77,10 @@ class ContactLoop: public GlobalEngine {
 		virtual void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d);
 		virtual void getLabeledObjects(std::map<std::string, py::object>& m);
 		virtual void run();
-		WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ContactLoop,GlobalEngine,"Loop over all contacts, possible in a parallel manner.\n\n.. admonition:: Special constructor\n\n\tConstructs from 3 lists of :yref:`Cg2<CGeomFunctor>`, :yref:`Cp2<IPhysFunctor>`, :yref:`Law<LawFunctor>` functors respectively; they will be passed to interal dispatchers.",
-			((shared_ptr<CGeomDispatcher>,geoDisp,new CGeomDispatcher,AttrTrait<Attr::readonly>(),":yref:`CGeomDispatcher` object that is used for dispatch."))
-			((shared_ptr<CPhysDispatcher>,phyDisp,new CPhysDispatcher,AttrTrait<Attr::readonly>(),":yref:`CPhysDispatcher` object used for dispatch."))
-			((shared_ptr<LawDispatcher>,lawDisp,new LawDispatcher,AttrTrait<Attr::readonly>(),":yref:`LawDispatcher` object used for dispatch."))
+		WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ContactLoop,GlobalEngine,"Loop over all contacts, possible in a parallel manner.\n\n.. admonition:: Special constructor\n\n\tConstructs from 3 lists of :ref:`Cg2<CGeomFunctor>`, :ref:`Cp2<IPhysFunctor>`, :ref:`Law<LawFunctor>` functors respectively; they will be passed to interal dispatchers.",
+			((shared_ptr<CGeomDispatcher>,geoDisp,new CGeomDispatcher,AttrTrait<Attr::readonly>(),":ref:`CGeomDispatcher` object that is used for dispatch."))
+			((shared_ptr<CPhysDispatcher>,phyDisp,new CPhysDispatcher,AttrTrait<Attr::readonly>(),":ref:`CPhysDispatcher` object used for dispatch."))
+			((shared_ptr<LawDispatcher>,lawDisp,new LawDispatcher,AttrTrait<Attr::readonly>(),":ref:`LawDispatcher` object used for dispatch."))
 			((bool,alreadyWarnedNoCollider,false,,"Keep track of whether the user was already warned about missing collider."))
 			((bool,evalStress,false,,"Evaluate stress tensor, in periodic simluations; if energy tracking is enabled, increments *gradV* energy."))
 			((bool,applyForces,true,,"Apply forces directly; this avoids IntraForce engine, but will silently skip muyltinodal particles."))

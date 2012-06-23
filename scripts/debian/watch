@@ -1,3 +1,3 @@
 version=3
-http://launchpad.net/yade/+download http://launchpad.net/yade/trunk/.*/yade-(.+).tar.bz2
+http://launchpad.net/woo/+download http://launchpad.net/woo/trunk/.*/woo-(.+).tar.bz2
 

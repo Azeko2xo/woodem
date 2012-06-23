@@ -100,6 +100,7 @@ REGISTER_SERIALIZABLE(AlignedMinMaxShooter);
 struct Collider;
 
 struct RandomFactory: public ParticleFactory{
+	#define WOO_FACTORY_SPHERES_ONLY
 	DECLARE_LOGGER;
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	virtual Vector3r randomPosition(){ throw std::runtime_error("Calling ParticleFactor.randomPosition	(abstract method); use derived classes."); }

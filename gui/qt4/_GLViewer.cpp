@@ -8,7 +8,7 @@
 #include<QCloseEvent>
 
 #ifdef WOO_LOG4CXX
-log4cxx::LoggerPtr logger=log4cxx::Logger::getLogger("yade.qt4");
+log4cxx::LoggerPtr logger=log4cxx::Logger::getLogger("woo.qt4");
 #endif
 
 namespace py=boost::python;
@@ -98,9 +98,9 @@ BOOST_PYTHON_MODULE(_GLViewer){
 
 	py::def("View",createView,"Create a new 3d view.");
 	py::def("center",centerViews,"Center all views.");
-	py::def("views",getAllViews,"Return list of all open :yref:`yade.qt.GLViewer` objects");
+	py::def("views",getAllViews,"Return list of all open :ref:`woo.qt.GLViewer` objects");
 	
-	py::def("Renderer",&getRenderer,"Return the active :yref:`Renderer` object.");
+	py::def("Renderer",&getRenderer,"Return the active :ref:`Renderer` object.");
 
 	py::class_<pyGLViewer>("GLViewer",py::no_init)
 		.add_property("upVector",&pyGLViewer::get_upVector,&pyGLViewer::set_upVector,"Vector that will be shown oriented up on the screen.")
@@ -120,7 +120,7 @@ BOOST_PYTHON_MODULE(_GLViewer){
 		.def("fitSphere",&pyGLViewer::fitSphere,(py::arg("center"),py::arg("radius")),"Adjust scene bounds so that sphere given by *center* and *radius* fits in.")
 		.def("showEntireScene",&pyGLViewer::showEntireScene)
 		.def("center",&pyGLViewer::center,(py::arg("median")=true),"Center view. View is centered either so that all bodies fit inside (*median*=False), or so that 75\% of bodies fit inside (*median*=True).")
-		.def("saveState",&pyGLViewer::saveDisplayParameters,(py::arg("slot")),"Save display parameters into numbered memory slot. Saves state for both :yref:`GLViewer<yade._qt.GLViewer>` and associated :yref:`Renderer`.")
+		.def("saveState",&pyGLViewer::saveDisplayParameters,(py::arg("slot")),"Save display parameters into numbered memory slot. Saves state for both :ref:`GLViewer<woo._qt.GLViewer>` and associated :ref:`Renderer`.")
 		.def("loadState",&pyGLViewer::useDisplayParameters,(py::arg("slot")),"Load display parameters from slot saved previously into, identified by its number.")
 		.def("__repr__",&pyGLViewer::pyStr).def("__str__",&pyGLViewer::pyStr)
 		.def("close",&pyGLViewer::close)

@@ -41,7 +41,7 @@ void SpherePack::fromList(const py::list& l){
 		const py::tuple& t=py::extract<py::tuple>(l[i]);
 		py::extract<Vector3r> vec(t[0]);
 		if(vec.check()) { pack.push_back(Sph(vec(),py::extract<double>(t[1]),(py::len(t)>2?py::extract<int>(t[2]):-1))); continue; }
-		yade::TypeError("List elements must be (Vector3, float) or (Vector3, float, int)!");
+		woo::TypeError("List elements must be (Vector3, float) or (Vector3, float, int)!");
 	}
 };
 

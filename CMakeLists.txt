@@ -1,10 +1,10 @@
-# cmake build file for yade
-# the way to build yade
+# cmake build file for woo
+# the way to build woo
 # 1. gather all source files in chunks (using COMBINE_SOURCES) that will be compiled together
 #    (otherwise each source file would be compiled separately, which is too slow)
 #    Unlike in scons compilations, also python modules are gathered in chunks.
-# 2. create yade-all library that is compiled from all the chunks
-# 3. Create symlinks pointing to yade-all for all python modules we want to create
+# 2. create woo-all library that is compiled from all the chunks
+# 3. Create symlinks pointing to woo-all for all python modules we want to create
 #    (this will have to be 
 #
 #
@@ -70,7 +70,7 @@ ELSE (NOT INSTALL_PREFIX)
 ENDIF (NOT CMAKE_INSTALL_PREFIX)
 
 
-SET(WOO_LIB_PATH ${CMAKE_INSTALL_PREFIX}/lib/yade-${SUFFIX})
+SET(WOO_LIB_PATH ${CMAKE_INSTALL_PREFIX}/lib/woo-${SUFFIX})
 SET(WOO_EXEC_PATH ${CMAKE_INSTALL_PREFIX}/bin)
 SET(WOO_PY_PATH ${WOO_LIB_PATH}/py)
 
@@ -86,8 +86,8 @@ PRINT_DISABLED_FEATURES()
 
 # this is only a temporary hack, headers should be installed in the build-dir directly
 # perhaps there is a proper way, have to ask
-if(NOT EXISTS "${CMAKE_BINARY_DIR}/yade")
-	EXECUTE_PROCESS(COMMAND ln -s ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR}/yade)
+if(NOT EXISTS "${CMAKE_BINARY_DIR}/woo")
+	EXECUTE_PROCESS(COMMAND ln -s ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR}/woo)
 endif()
 INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR})
 
@@ -159,7 +159,7 @@ SET(SRC_PACK ${CMAKE_SOURCE_DIR}/py/pack/_packPredicates.cpp;${CMAKE_SOURCE_DIR}
 COMBINE_SOURCES(${CMAKE_BINARY_DIR}/pyPack "${SRC_PACK}" 100)
 SET(SRC_PACK_COMBINED "${CMAKE_BINARY_DIR}/pyPack.0.cpp")
 #add_library(pyPack STATIC ${CMAKE_BINARY_DIR}/pyPack.0.cpp)
-#add_library(pyWrapper STATIC py/wrapper/yadeWrapper.cpp)
+#add_library(pyWrapper STATIC py/wrapper/wooWrapper.cpp)
 
 COMBINE_SOURCES(${CMAKE_BINARY_DIR}/pyModules "${SRC_PYMODULES}" 100)
 FILE(GLOB SRC_PYMODULES_COMBINED "${CMAKE_BINARY_DIR}/pyModules.*.cpp")
@@ -167,14 +167,14 @@ FILE(GLOB SRC_PYMODULES_COMBINED "${CMAKE_BINARY_DIR}/pyModules.*.cpp")
 #target_link_libraries(pyModules pyWrapper pyPack pyEigen _gts)
 
 # will be different for debugging builds!
-SET(WOO_LIBDIR lib/yade${WOO_SUFFIX})
+SET(WOO_LIBDIR lib/woo${WOO_SUFFIX})
 
 SET(SRC_PYGTS "py/3rd-party/pygts-0.3.1/cleanup.c;py/3rd-party/pygts-0.3.1/edge.c;py/3rd-party/pygts-0.3.1/face.c;py/3rd-party/pygts-0.3.1/object.c;py/3rd-party/pygts-0.3.1/point.c;py/3rd-party/pygts-0.3.1/pygts.c;py/3rd-party/pygts-0.3.1/segment.c;py/3rd-party/pygts-0.3.1/surface.c;py/3rd-party/pygts-0.3.1/triangle.c;py/3rd-party/pygts-0.3.1/vertex.c")
 
 
 SET(WOO_ALL_SRCS ${SRC_CORE_COMBINED};${SRC_PKG_COMBINED};${SRC_LIB_COMBINED};${SRC_PYMODULES_COMBINED};${SRC_PACK_COMBINED};${SRC_PYGTS};py/mathWrap/miniEigen.cpp)
 
-python_add_module(yade-all "${WOO_ALL_SRCS}")
+python_add_module(woo-all "${WOO_ALL_SRCS}")
 
 IF(${GTS_FOUND})
 	#add_library(_gts STATIC py/3rd-party/pygts-0.3.1/cleanup.c;py/3rd-party/pygts-0.3.1/edge.c;py/3rd-party/pygts-0.3.1/face.c;py/3rd-party/pygts-0.3.1/object.c;py/3rd-party/pygts-0.3.1/point.c;py/3rd-party/pygts-0.3.1/pygts.c;py/3rd-party/pygts-0.3.1/segment.c;py/3rd-party/pygts-0.3.1/surface.c;py/3rd-party/pygts-0.3.1/triangle.c;py/3rd-party/pygts-0.3.1/vertex.c)
@@ -185,23 +185,23 @@ IF(${GTS_FOUND})
 	#	PROPERTIES COMPILE_FLAGS "-Wno-all"
 	#	COMPILE_DEFINES -DPYGTS_HAS_NUMPY )
 	FOREACH(_libname ${GTS_LIBRARIES})
-		target_link_libraries(yade-all ${_libname})
+		target_link_libraries(woo-all ${_libname})
 	ENDFOREACH()
 ENDIF()
 
 ## add_library(pyEigen STATIC py/mathWrap/miniEigen.cpp)
 
 
-SET(PY_COMPILED_MODULES mathWrap;gts/_gts;yade/boot;yade/log;yade/wrapper;yade/_customConverters;yade/_eudoxos;yade/_packPredicates;yade/_packSpheres;yade/_packObb;yade/_utils;yade/WeightedAverage2d) # ;yade/_packSpherePadder
+SET(PY_COMPILED_MODULES mathWrap;gts/_gts;woo/boot;woo/log;woo/wrapper;woo/_customConverters;woo/_eudoxos;woo/_packPredicates;woo/_packSpheres;woo/_packObb;woo/_utils;woo/WeightedAverage2d) # ;woo/_packSpherePadder
 IF(${QT4_FOUND})
-	SET(PY_COMPILED_MODULES ${PY_COMPILED_MODULES};yade/qt/_GLViewer)
+	SET(PY_COMPILED_MODULES ${PY_COMPILED_MODULES};woo/qt/_GLViewer)
 ENDIF()
 
 
-install(TARGETS yade-all DESTINATION ${WOO_LIB_PATH})
+install(TARGETS woo-all DESTINATION ${WOO_LIB_PATH})
 
 FOREACH(_mod ${PY_COMPILED_MODULES})
-	install(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E create_symlink ${WOO_LIB_PATH}/libyade-all.so ${WOO_PY_PATH}/${_mod}.so)")
+	install(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E create_symlink ${WOO_LIB_PATH}/libwoo-all.so ${WOO_PY_PATH}/${_mod}.so)")
 ENDFOREACH()
 
 
@@ -217,8 +217,8 @@ install(FILES py/3rd-party/pygts-0.3.1/pygts.py DESTINATION ${WOO_LIB_PATH}/gts)
 install(FILES py/3rd-party/mtTkinter-0.3/mtTkinter.py DESTINATION ${WOO_LIB_PATH})
 
 # install the files that need to be pre-processed (FIXME: this will need to define all variables, and call them the same as they are in scons -- for compatibility)
-configure_file(core/main/yade-batch.in ${WOO_EXEC_PATH}/yade-batch-${SUFFIX})
-configure_file(core/main/main.py.in ${WOO_EXEC_PATH}/yade-${SUFFIX})
-configure_file(py/config.py.in ${WOO_PY_PATH}/yade/config.py)
+configure_file(core/main/woo-batch.in ${WOO_EXEC_PATH}/woo-batch-${SUFFIX})
+configure_file(core/main/main.py.in ${WOO_EXEC_PATH}/woo-${SUFFIX})
+configure_file(py/config.py.in ${WOO_PY_PATH}/woo/config.py)
 
 

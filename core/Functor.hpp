@@ -14,7 +14,7 @@
 #include<woo/lib/multimethods/FunctorWrapper.hpp>
 #include<woo/core/Master.hpp>
 
-namespace yade{ 
+namespace woo{ 
 	class TimingDeltas;
 };
 

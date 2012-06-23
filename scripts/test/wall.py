@@ -1,7 +1,7 @@
 """
 Show basic wall functionality (infinite axis-aligned planes).
 """
-from yade import utils
+from woo import utils
 O.materials.append(FrictMat(young=30e9,density=1000,poisson=.2,frictionAngle=.5)
 O.bodies.append([
 	utils.wall(1,axis=2,sense=-1),
@@ -13,7 +13,7 @@ O.bodies.append([
 ])
 Gl1_Wall(div=10)
 
-from yade import qt
+from woo import qt
 qt.Controller()
 qt.View()
 
@@ -34,7 +34,7 @@ O.dt=utils.PWaveTimeStep()
 O.save('/tmp/a.xml')
 O.saveTmp()
 
-from yade import log
+from woo import log
 log.setLevel('Ig2_Wall_Sphere_Dem3DofGeom',log.TRACE)
 
 O.run()

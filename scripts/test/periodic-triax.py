@@ -1,8 +1,8 @@
 # coding: utf-8
 # 2009 © Václav Šmilauer <eudoxos@arcig.cz>
 "Test and demonstrate use of PeriTriaxController."
-from yade import *
-from yade import pack,log,qt
+from woo import *
+from woo import pack,log,qt
 log.setLevel('PeriTriaxController',log.TRACE)
 O.periodic=True
 O.cell.refSize=(.1,.1,.1)

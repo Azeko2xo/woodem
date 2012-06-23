@@ -1,3 +1,3 @@
-"Module storing parametr values, used by :yref:`yade.utils.saveVars`, :yref:`yade.utils.saveVars`, :yref:`yade.utils.readParamsFromTable`."
+"Module storing parametr values, used by :ref:`woo.utils.saveVars`, :ref:`woo.utils.saveVars`, :ref:`woo.utils.readParamsFromTable`."
 # initially empty
 __all__=[]

@@ -1,7 +1,7 @@
-In this directory are placed scripts that help managing yade project.
+In this directory are placed scripts that help managing woo project.
 
 
-Due to many changes in yade directory structure and design many of those
+Due to many changes in woo directory structure and design many of those
 scripts no longer work, and need some modifications or can be deleted.
 I can't test everything now, but I don't want to delete them (even though
 they will be in subversion history). 
@@ -9,14 +9,14 @@ So working scripts are in this directory, all other scripts are in
 directory 'untested'
 
 Olivier: if you test any of those scripts from 'untested', please move
-it back to yade-scripts. After some time we will delete obsolete
+it back to woo-scripts. After some time we will delete obsolete
 scripts from 'untested'.
 
                                                      / Janek /
 
 
 usually scripts should be invoked from different directory than
-trunk/yade-scripts
+trunk/woo-scripts
 
 
 TESTED SCRIPTS:
@@ -31,7 +31,7 @@ svndiff num1 num2 : prints svn diff between revisions num1 and num2. useful in
 
 makeFlat          : invoke from trunk/
                     make symlinks of all source files (.cpp, .tpp, .h, .c, .ipp)
-		    in yade-flat.
+		    in woo-flat.
 rmFlast	          : invoke from trunk/
                     this script cleans after makeFlat script
 		    

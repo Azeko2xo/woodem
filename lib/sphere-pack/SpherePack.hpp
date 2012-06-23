@@ -134,7 +134,7 @@ public:
 		_iterator(const SpherePack& _sPack): sPack(_sPack), pos(0){}
 		_iterator iter(){ return *this;}
 		py::tuple next(){
-			if(pos==sPack.pack.size()){ yade::StopIteration(); }
+			if(pos==sPack.pack.size()){ woo::StopIteration(); }
 			return sPack.pack[pos++].asTupleNoClump();
 		}
 	};

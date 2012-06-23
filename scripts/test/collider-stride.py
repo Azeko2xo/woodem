@@ -21,7 +21,7 @@ O.engines=[
 	NewtonIntegrator(damping=0)
 ]
 
-from yade import timing,qt,log
+from woo import timing,qt,log
 try:
 	renderer=qt.Renderer()
 	renderer['Body_bounding_volume']=True

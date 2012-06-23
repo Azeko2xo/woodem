@@ -10,7 +10,7 @@
 #No crash warranty with r2676
 
 
-from yade import plot
+from woo import plot
 
 #Def of the material which will be used
 O.materials.append(NormalInelasticMat(density=2600,young=4.0e9,poisson=.04,frictionAngle=.6,coeff_dech=3.0,label='Materiau1'))
@@ -61,7 +61,7 @@ def defData():
 print 'Beginning of normal loading'
 O.dt=1e-5
 
-yade.qt.View()
+woo.qt.View()
 O.run(2,True) #cycles "for free", so that the interaction between spheres will be defined (with his physics and so on)
 O.engines=O.engines+[PyRunner(iterPeriod=1,command='defData()')]
 

@@ -3,7 +3,7 @@ vim:syntax=changelog
 2010-12-01 Václav Šmilauer <eu@doxos.eu> revision around bzr bzr2540
 	
 	* RELEASE 0.6:
-		 - https://launchpad.net/yade/trunk/0.60
+		 - https://launchpad.net/woo/trunk/0.60
 
 	* major changes since 0.5:
 		- use boost::serialization (faster, more reliable), use eigen instead of Wm3 (better supported, more flexible)
@@ -18,12 +18,12 @@ vim:syntax=changelog
 2010-04-20 Václav Šmilauer <eudoxos@arcig.cz> revision around bzr2150
 
 	* RELEASE: 0.5
-		- https://launchpad.net/yade/+milestone/0.5
+		- https://launchpad.net/woo/+milestone/0.5
 
 	* overall:
-		- yade main is now a python script, the c++ part is imported
+		- woo main is now a python script, the c++ part is imported
 		- many classes renamed for the sake of consistency, while mostly keeping backward compatibility for scripts
-		- all classes (deriving from Serializable) are automatically exposed in python via automatically constructed wrappers, with full attribute access (https://bugs.launchpad.net/yade/+bug/544857)
+		- all classes (deriving from Serializable) are automatically exposed in python via automatically constructed wrappers, with full attribute access (https://bugs.launchpad.net/woo/+bug/544857)
 		- lot of old code removed (to be found in attic/)
 
 	* functionality:
@@ -33,7 +33,7 @@ vim:syntax=changelog
 		- VTKRecorder saves to VTK-compatible XML files; allows to use Paraview for post-processing
 		- NewtonIntegrator features integration of rotation of non-spherical bodies
 		- callback functionality for interaction and body loop (InteractionDispatchers and NewtonIntegrator) (not yet fully done)
-		- body and interaction containers devirtualized (https://blueprints.launchpad.net/yade/+spec/devirtualize-containers)
+		- body and interaction containers devirtualized (https://blueprints.launchpad.net/woo/+spec/devirtualize-containers)
 
 	* documentation:
 		- New website https://www.yade-dem.org
@@ -48,15 +48,15 @@ vim:syntax=changelog
 
 	* overall: 
 		- fix many crashers, including synchronization with openGL, GUI and python
-		- generate documentation for both python and c++ classes/functions automatically (http://yade.wikia.com/wiki/Reference_documentation)
-		- move away from SVN repository at berlios.de to bzr at http://www.launchpad.net/yade; bug tracking and other launchpad features are being used; mailing lists migrated to launchpad
+		- generate documentation for both python and c++ classes/functions automatically (http://woo.wikia.com/wiki/Reference_documentation)
+		- move away from SVN repository at berlios.de to bzr at http://www.launchpad.net/woo; bug tracking and other launchpad features are being used; mailing lists migrated to launchpad
 
 	* functionality enhancements (apart from performance-oriented changes):
 		- Facets (arbitrary triangulation elements) interacting with spheres, allowing to triangulate any surface
 		- support for GTS-compatible triangulated surfaces both as predicates and facet-triangulated simulation elements
 		- non-incremental sphere-sphere and sphere-facet contact geometry classes (Dem3DofGeom)
 		- ConstitutiveLawDispatcher, for having multiple constitutive laws operating on different interactions
-		- schedule to run multiple jobs at time, with different parameters (yade-multi, http://yade.wikia.com/wiki/ScriptParametricStudy)
+		- schedule to run multiple jobs at time, with different parameters (woo-multi, http://woo.wikia.com/wiki/ScriptParametricStudy)
 		- added PhysicalParameters::blockedDOFs
 		- periodic boundary conditions
 		- interaction logic cleaned up
@@ -65,34 +65,34 @@ vim:syntax=changelog
 		- infrastructure for regression tests
 
 	* performance:
-		- consistent openMP support throughout the code (InteractionDispatchers, NewtonsDampedLaw, BexContainer) (http://yade.wikia.com/wiki/Performance_Tuning#openMP)
-		- InsertionSortCollider (PersistentSAPCollide removed) (http://yade.wikia.com/wiki/Colliders_performace)
-		- InteractionDispatchers that reduce number of loops over interactions to one (http://yade.wikia.com/wiki/Performance_Tuning#InteractionDispatchers)
-		- new fast container for interactions (InteractionVecMap) (http://yade.wikia.com/wiki/Performance_Tuning#Containers)
-		- caching dispatchers, avoiding repetitive multivirtual call resolution (http://yade.wikia.com/wiki/Performance_Tuning#Dispatcher_cache)
-		- runtime profiling information (http://yade.wikia.com/wiki/Speed_profiling_using_TimingInfo_and_TimingDeltas_classes)
-		- avoid running collision detection at every step (http://yade.wikia.com/wiki/Insertion_Sort_Collider_Stride)
+		- consistent openMP support throughout the code (InteractionDispatchers, NewtonsDampedLaw, BexContainer) (http://woo.wikia.com/wiki/Performance_Tuning#openMP)
+		- InsertionSortCollider (PersistentSAPCollide removed) (http://woo.wikia.com/wiki/Colliders_performace)
+		- InteractionDispatchers that reduce number of loops over interactions to one (http://woo.wikia.com/wiki/Performance_Tuning#InteractionDispatchers)
+		- new fast container for interactions (InteractionVecMap) (http://woo.wikia.com/wiki/Performance_Tuning#Containers)
+		- caching dispatchers, avoiding repetitive multivirtual call resolution (http://woo.wikia.com/wiki/Performance_Tuning#Dispatcher_cache)
+		- runtime profiling information (http://woo.wikia.com/wiki/Speed_profiling_using_TimingInfo_and_TimingDeltas_classes)
+		- avoid running collision detection at every step (http://woo.wikia.com/wiki/Insertion_Sort_Collider_Stride)
 		- vector and quaternion classes are wrapped in python automatically (faster, avoids hand-written wrappers)
 		- removed many python proxy classes, resulting in big speedup of python (e.g. 40 × for some operations)
 
 	* building:
-		- yade can be optionally with one single plugin containing all packages. Speeds up full compilation considerably and reduces binary size several times.
+		- woo can be optionally with one single plugin containing all packages. Speeds up full compilation considerably and reduces binary size several times.
 		- files in pkg/* are picked up automatically by the build system, including linking flags
 		- do not install headers, only plugins
-		- fix debian-package builds and document the procedure (http://yade.wikia.com/wiki/DebianPackages), special package for docs
+		- fix debian-package builds and document the procedure (http://woo.wikia.com/wiki/DebianPackages), special package for docs
 		- fix all (or most) compile-time warnings
 		- create new top-level py/ directory for python
 
 	* python:
 		- use natural syntax for class instance construction with attributes
-		- run telnet server to make yade accessible while running (from localhost only)
+		- run telnet server to make woo accessible while running (from localhost only)
 		- save any python variables within the XML file, which will be resurrected next time (utils.saveVars, utils.loadVars)
 		- support saving simulation to memory temporarily
 		- functions from creating video from simulation (via snapshots, either during simulation or in the player)
 
 	* Documentation:
-		- Structurized content added http://yade.wikia.com/wiki/Structurized_content
-		- FAQ start to implement http://yade.wikia.com/wiki/FAQ
+		- Structurized content added http://woo.wikia.com/wiki/Structurized_content
+		- FAQ start to implement http://woo.wikia.com/wiki/FAQ
 
 
 2008-08-20 Janek Kozicki <cosurgi@gmail.com> revision 1579
@@ -123,13 +123,13 @@ vim:syntax=changelog
 		  modifying, inspecting, running, recording data), some parts
 		  of the UI (setting view, configuring renderer); see
 		  scripts/simple-scene.py to get started
-		  (http://yade.wikia.com/wiki/SimpleSceneTutorial)
+		  (http://woo.wikia.com/wiki/SimpleSceneTutorial)
 
 		- Much enhanced simulation recorder and player, saving
 		  optionally to a single file (sqlite database), the ability to
 		  create video from simulation with one command (may be done
 		  offscreen as well): scripts/simple-scene-player.py,
-		  http://yade.wikia.com/wiki/New:Making_videos
+		  http://woo.wikia.com/wiki/New:Making_videos
 
 	* Graphical Viewer:
 

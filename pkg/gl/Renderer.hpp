@@ -12,7 +12,7 @@
 struct GlExtraDrawer: public Object{
 	Scene* scene;
 	virtual void render();
-	WOO_CLASS_BASE_DOC_ATTRS(GlExtraDrawer,Object,"Performing arbitrary OpenGL drawing commands; called from :yref:`Renderer` (see :yref:`Renderer.extraDrawers`) once regular rendering routines will have finished.\n\nThis class itself does not render anything, derived classes should override the *render* method.",
+	WOO_CLASS_BASE_DOC_ATTRS(GlExtraDrawer,Object,"Performing arbitrary OpenGL drawing commands; called from :ref:`Renderer` (see :ref:`Renderer.extraDrawers`) once regular rendering routines will have finished.\n\nThis class itself does not render anything, derived classes should override the *render* method.",
 		((bool,dead,false,,"Deactivate the object (on error/exception)."))
 	);
 };
@@ -134,7 +134,7 @@ class Renderer: public Object{
 
 		void renderRawNode(shared_ptr<Node>);
 
-		void pyInitError(py::tuple, py::dict){ throw std::runtime_error("yade.gl.Renderer() may not be instantiated directly, use yade.qt.Renderer() to get the current instance."); }
+		void pyInitError(py::tuple, py::dict){ throw std::runtime_error("woo.gl.Renderer() may not be instantiated directly, use woo.qt.Renderer() to get the current instance."); }
 
 		// void renderCPhys();
 #if 0
@@ -149,8 +149,8 @@ class Renderer: public Object{
 #endif
 	WOO_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(Renderer,Object,"Class responsible for rendering scene on OpenGL devices.",
 		((bool,scaleOn,true,,"Whether *dispScale* has any effect or not."))
-		((Vector3r,dispScale,((void)"disable scaling",Vector3r::Ones()),,"Artificially enlarge (scale) dispalcements from bodies' :yref:`reference positions<State.refPos>` by this relative amount, so that they become better visible (independently in 3 dimensions). Disbled if (1,1,1), and also if *scaleOn* is false."))
-		((Real,rotScale,((void)"disable scaling",1.),,"Artificially enlarge (scale) rotations of bodies relative to their :yref:`reference orientation<State.refOri>`, so the they are better visible. No effect if 1, and also if *scaleOn* is false."))
+		((Vector3r,dispScale,((void)"disable scaling",Vector3r::Ones()),,"Artificially enlarge (scale) dispalcements from bodies' :ref:`reference positions<State.refPos>` by this relative amount, so that they become better visible (independently in 3 dimensions). Disbled if (1,1,1), and also if *scaleOn* is false."))
+		((Real,rotScale,((void)"disable scaling",1.),,"Artificially enlarge (scale) rotations of bodies relative to their :ref:`reference orientation<State.refOri>`, so the they are better visible. No effect if 1, and also if *scaleOn* is false."))
 		((Vector3r,lightPos,Vector3r(75,130,0),,"Position of OpenGL light source in the scene."))
 		((Vector3r,light2Pos,Vector3r(-130,75,30),,"Position of secondary OpenGL light source in the scene."))
 		((Vector3r,lightColor,Vector3r(0.6,0.6,0.6),,"Per-color intensity of primary light (RGB)."))
@@ -162,18 +162,18 @@ class Renderer: public Object{
 		#ifdef WOO_SUBDOMAINS
 			((int,subDomMask,0,,"If non-zero, render shape only of particles that are inside respective domains - -they are counted from the left, i.e. 5 (binary 101) will show subdomains 1 and 3. If zero, render everything."))
 		#endif
-		// ((int,mask,((void)"draw everything",~0),,"Bitmask for showing only bodies where ((mask & :yref:`Body::mask`)!=0)"))
+		// ((int,mask,((void)"draw everything",~0),,"Bitmask for showing only bodies where ((mask & :ref:`Body::mask`)!=0)"))
 		// ((int,selId,-1,,"Id of particle that was selected by the user."))
-		((shared_ptr<Object>,selObj,,,"Object which was selected by the user (access only via yade.qt.selObj)."))
+		((shared_ptr<Object>,selObj,,,"Object which was selected by the user (access only via woo.qt.selObj)."))
 		((shared_ptr<Node>,selObjNode,,AttrTrait<Attr::readonly>(),"Node associated to the selected object (recenters scene on that object upon selection)"))
 		((vector<Vector3r>,clipPlanePos,vector<Vector3r>(numClipPlanes,Vector3r::Zero()),,"Position and orientation of clipping planes"))
 		((vector<Quaternionr>,clipPlaneOri,vector<Quaternionr>(numClipPlanes,Quaternionr::Identity()),,"Position and orientation of clipping planes"))
 		((vector<bool>,clipPlaneActive,vector<bool>(numClipPlanes,false),,"Activate/deactivate respective clipping planes"))
-		((vector<shared_ptr<GlExtraDrawer> >,extraDrawers,,,"Additional rendering components (:yref:`GlExtraDrawer`)."))
+		((vector<shared_ptr<GlExtraDrawer> >,extraDrawers,,,"Additional rendering components (:ref:`GlExtraDrawer`)."))
 		((bool,engines,true,,"Call engine's rendering functions (if defined)"))
 		,/*deprec*/
 		,/*init*/
-		,/*ctor*/ if(self && initDone) throw std::runtime_error("yade.gl.Renderer() is already constructed, use yade.qt.Renderer() to retrieve the instance."); self=this;
+		,/*ctor*/ if(self && initDone) throw std::runtime_error("woo.gl.Renderer() is already constructed, use woo.qt.Renderer() to retrieve the instance."); self=this;
 		,/*py*/
 		//.def("render",&Renderer::pyRender,"Render the scene in the current OpenGL context.")
 		.def_readonly("shapeDispatcher",&Renderer::shapeDispatcher)

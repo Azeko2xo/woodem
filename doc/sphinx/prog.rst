@@ -81,13 +81,13 @@ log4cxx (WOO_LOG4CXX)
 opengl (WOO_OPENGL)
 	Enable 3d rendering as well as the Qt3-based graphical user interface (in addition to python console).
 vtk (WOO_VTK)
-	Enable functionality using Visualization Toolkit (`vtk <http://www.vtk.org>`__; e.g. :yref:`VTKRecorder` exporting to files readable with ParaView).
+	Enable functionality using Visualization Toolkit (`vtk <http://www.vtk.org>`__; e.g. :ref:`VTKRecorder` exporting to files readable with ParaView).
 openmp (WOO_OPENMP)
 	Enable parallelization using OpenMP, non-intrusive shared-memory parallelization framework; it is only supported for ``g++`` > 4.0. Parallel computation leads to significant performance increase and should be enabled unless you have a special reason for not doing so (e.g. single-core machine). See :ref:`upyade-parallel` for details.
 gts (WOO_GTS)
 	Enable functionality provided by GNU Triangulated Surface library (`gts <http://gts.sf.net>`__) and build PyGTS, its python interface; used for surface import and construction.
 cgal (WOO_CGAL)
-	Enable functionality provided by Computation Geometry Algorithms Library (`cgal <http://www.cgal.org>`__); triangulation code in :yref:`MicroMacroAnalyser` and :yref:`PersistentTriangulationCollider` ses its routines.
+	Enable functionality provided by Computation Geometry Algorithms Library (`cgal <http://www.cgal.org>`__); triangulation code in :ref:`MicroMacroAnalyser` and :ref:`PersistentTriangulationCollider` ses its routines.
 other
 	There might be more features added in the future. Always refer to ``scons -h`` output for possible values.
 
@@ -233,7 +233,7 @@ Class naming
 Although for historial reasons the naming scheme is not completely consistent, these rules should be obeyed especially when adding a new class.
 
 GlobalEngines and PartialEngines
-	GlobalEngines should be named in a way suggesting that it is a performer of certain action (like :yref:`ForceResetter`, :yref:`InsertionSortCollider`, :yref:`Recorder`); if this is not appropriate, append the ``Engine`` to the characteristics (:yref:`GravityEngine`). :yref:`PartialEngines<PartialEngine>` have no special naming convention different from :yref:`GlobalEngines<GlobalEngine>`.
+	GlobalEngines should be named in a way suggesting that it is a performer of certain action (like :ref:`ForceResetter`, :ref:`InsertionSortCollider`, :ref:`Recorder`); if this is not appropriate, append the ``Engine`` to the characteristics (:ref:`GravityEngine`). :ref:`PartialEngines<PartialEngine>` have no special naming convention different from :ref:`GlobalEngines<GlobalEngine>`.
 
 Dispatchers
 	Names of all dispatchers end in ``Dispatcher``. The name is composed of type it creates or, in case it doesn't create any objects, its main characteristics. Currently, the following dispatchers [#opengldispatchers]_ are defined:
@@ -243,14 +243,14 @@ Dispatchers
 	========================== ================ ====================== ============== ===================== ===============
 	dispatcher                 arity            dispatch types         created type   functor type          functor prefix
 	========================== ================ ====================== ============== ===================== ===============
-	:yref:`BoundDispatcher`    1                :yref:`Shape`          :yref:`Bound`  :yref:`BoundFunctor`  ``Bo1``
-	:yref:`IGeomDispatcher`    2 (symetric)     2 × :yref:`Shape`      :yref:`IGeom`  :yref:`IGeomFunctor`  ``Ig2``
-	:yref:`IPhysDispatcher`    2 (symetric)     2 × :yref:`Material`   :yref:`IPhys`  :yref:`IPhysFunctor`  ``Ip2``
-	:yref:`LawDispatcher`      2 (asymetric)    :yref:`IGeom`          *(none)*       :yref:`LawFunctor`    ``Law2``
-	                                            :yref:`IPhys`
+	:ref:`BoundDispatcher`    1                :ref:`Shape`          :ref:`Bound`  :ref:`BoundFunctor`  ``Bo1``
+	:ref:`IGeomDispatcher`    2 (symetric)     2 × :ref:`Shape`      :ref:`IGeom`  :ref:`IGeomFunctor`  ``Ig2``
+	:ref:`IPhysDispatcher`    2 (symetric)     2 × :ref:`Material`   :ref:`IPhys`  :ref:`IPhysFunctor`  ``Ip2``
+	:ref:`LawDispatcher`      2 (asymetric)    :ref:`IGeom`          *(none)*       :ref:`LawFunctor`    ``Law2``
+	                                            :ref:`IPhys`
 	========================== ================ ====================== ============== ===================== ===============
 
-	Respective abstract functors for each dispatchers are :yref:`BoundFunctor`, :yref:`IGeomFunctor`, :yref:`IPhysFunctor` and :yref:`LawFunctor`.
+	Respective abstract functors for each dispatchers are :ref:`BoundFunctor`, :ref:`IGeomFunctor`, :ref:`IPhysFunctor` and :ref:`LawFunctor`.
 
 Functors
 	Functor name is composed of 3 parts, separated by underscore.
@@ -261,9 +261,9 @@ Functors
 
 	To give a few examples:
 
-	* :yref:`Bo1_Sphere_Aabb` is a :yref:`BoundFunctor` which is called for :yref:`Sphere`, creating an instance of :yref:`Aabb`.
-	* :yref:`Ig2_Facet_Sphere_Dem3DofGeom` is binary functor called for :yref:`Facet` and :yref:`Sphere`, creating and instace of :yref:`Dem3DofGeom`.
-	* :yref:`Law2_Dem3DofGeom_CpmPhys_Cpm` is binary functor (:yref:`LawFunctor`) called for types :yref:`Dem3Dof (Geom)<Dem3DofGeom>` and :yref:`CpmPhys`.
+	* :ref:`Bo1_Sphere_Aabb` is a :ref:`BoundFunctor` which is called for :ref:`Sphere`, creating an instance of :ref:`Aabb`.
+	* :ref:`Ig2_Facet_Sphere_Dem3DofGeom` is binary functor called for :ref:`Facet` and :ref:`Sphere`, creating and instace of :ref:`Dem3DofGeom`.
+	* :ref:`Law2_Dem3DofGeom_CpmPhys_Cpm` is binary functor (:ref:`LawFunctor`) called for types :ref:`Dem3Dof (Geom)<Dem3DofGeom>` and :ref:`CpmPhys`.
 
 .. [#opengldispatchers] Not considering OpenGL dispatchers, which might be replaced by regular virtual functions in the future.
 
@@ -302,24 +302,24 @@ Syntax of documentation is `ReST <http://docutils.sourceforge.net/rst.html`__ (r
 
 * Documentation of c++ classes exposed to python is given as 3rd argument to :ref:`WOO_CLASS_BASE_DOC` introduced below.
 
-* Python classes/functions are documented using regular python docstrings. Besides explaining functionality, meaning and types of all arguments should also be documented. Short pieces of code might be very helpful. See the :yref:`yade.utils` module for an example.
+* Python classes/functions are documented using regular python docstrings. Besides explaining functionality, meaning and types of all arguments should also be documented. Short pieces of code might be very helpful. See the :ref:`yade.utils` module for an example.
 
 
 In addition to standard ReST syntax, yade provides several shorthand macros:
 
-``:yref:``
+``:ref:``
 	creates hyperlink to referenced term, for instance::
 		
-		:yref:`CpmMat`
+		:ref:`CpmMat`
 	
-	becomes :yref:`CpmMat`; link name and target can be different::
+	becomes :ref:`CpmMat`; link name and target can be different::
 
-		:yref:`Material used in the CPM model<CpmMat>`
+		:ref:`Material used in the CPM model<CpmMat>`
 
-	yielding :yref:`Material used in the CPM model<CpmMat>`.
+	yielding :ref:`Material used in the CPM model<CpmMat>`.
 
 ``:ysrc:``
-	creates hyperlink to file within the source tree (to its latest version in the repository), for instance :ysrc:`core/Cell.hpp`. Just like with `:yref:`, alternate text can be used with ::
+	creates hyperlink to file within the source tree (to its latest version in the repository), for instance :ysrc:`core/Cell.hpp`. Just like with `:ref:`, alternate text can be used with ::
 	
 		:ysrc:`Link text<target/file>`
 		
@@ -441,7 +441,7 @@ Yade uses the `Eigen <http://eigen.tuxfamily.org>`_ library for computations. It
 	* ``Quaternionr``
 	* ``Matrix3r``
 
-Yade additionally defines a class named :yref:`Se3r`, which contains spatial position (``Vector3r Se3r::position``) and orientation (``Quaternionr Se3r::orientation``), since they are frequently used one with another, and it is convenient to pass them as single parameter to functions.
+Yade additionally defines a class named :ref:`Se3r`, which contains spatial position (``Vector3r Se3r::position``) and orientation (``Quaternionr Se3r::orientation``), since they are frequently used one with another, and it is convenient to pass them as single parameter to functions.
 
 .. [#real] Historically, it was thought that Yade could be also run with single precision based on build-time parameter; it turned out however that the impact on numerical stability was such disastrous that this option is not available now. There is, however, ``QUAD_PRECISION`` parameter to scons, which will make ``Real`` a typedef for ``long double`` (extended precision; quad precision in the proper sense on IA64 processors); this option is experimental and is unlikely to be used in near future, though.
 
@@ -484,7 +484,7 @@ Some RTTI information can be accessed from python:
 .. ipython::
 	
 	@suppress
-	Yade [1]: import yade.system
+	Yade [1]: import woo.system
 
 	Yade [2]: yade.system.childClasses('Shape')
 
@@ -528,7 +528,7 @@ Attribute registration
 
 All (serializable) types in Yade are one of the following:
 
-* Type deriving from :yref:`Object`, which provide information on how to serialize themselves via overriding the ``Object::registerAttributes`` method; it declares data members that should be serialzed along with their literal names, by which they are identified. This method then invokes ``registerAttributes`` of its base class (until ``Object`` itself is reached); in this way, derived classes properly serialize data of their base classes.
+* Type deriving from :ref:`Object`, which provide information on how to serialize themselves via overriding the ``Object::registerAttributes`` method; it declares data members that should be serialzed along with their literal names, by which they are identified. This method then invokes ``registerAttributes`` of its base class (until ``Object`` itself is reached); in this way, derived classes properly serialize data of their base classes.
 
   This funcionality is hidden behind the macro :ref:`WOO_CLASS_BASE_DOC` used in class declaration body (header file), which takes base class and list of attributes::
 
@@ -546,10 +546,10 @@ Yade uses the excellent `boost::serialization <http://www.boost.org/doc/libs/rel
 
 .. note:: ``WOO_CLASS_BASE_DOC_ATTRS`` also generates code for attribute access from python; this will be discussed later. Since this macro serves both purposes, the consequence is that attributes that are serialized can always be accessed from python.
 
-Yade also provides callback for before/after (de) serialization, virtual functions :yref:`Object::preProcessAttributes` and :yref:`Object::postProcessAttributes`, which receive one ``bool deserializing`` argument (``true`` when deserializing, ``false`` when serializing). Their default implementation in :yref:`Object` doesn't do anything, but their typical use is:
+Yade also provides callback for before/after (de) serialization, virtual functions :ref:`Object::preProcessAttributes` and :ref:`Object::postProcessAttributes`, which receive one ``bool deserializing`` argument (``true`` when deserializing, ``false`` when serializing). Their default implementation in :ref:`Object` doesn't do anything, but their typical use is:
 
 * converting some non-serializable internal data structure of the class (such as multi-dimensional array, hash table, array of pointers) into a serializable one (pre-processing) and fill this non-serializable structure back after deserialization (post-processing); for instance, InteractionContainer uses these hooks to ask its concrete implementation to store its contents to a unified storage (``vector<shared_ptr<Interaction> >``) before serialization and to restore from it after deserialization.
-* precomputing non-serialized attributes from the serialized values; e.g. :yref:`Facet` computes its (local) edge normals and edge lengths from vertices' coordinates.
+* precomputing non-serialized attributes from the serialized values; e.g. :ref:`Facet` computes its (local) edge normals and edge lengths from vertices' coordinates.
 
 
 .. _classfactory:
@@ -558,7 +558,7 @@ Class factory
 ^^^^^^^^^^^^^^
 Each serializable class must use ``REGISTER_SERIALIZABLE``, which defines function to create that class by ``ClassFactory``. ``ClassFactory`` is able to instantiate a class given its name (as string), which is necessary for deserialization.
 
-Although mostly used internally by the serialization framework, programmer can ask for a class instantiation using ``shared_ptr<Factorable> f=ClassFactory::instance().createShared("ClassName");``, casting the returned ``shared_ptr<Factorable>`` to desired type afterwards. :yref:`Object` itself derives from ``Factorable``, i.e. all serializable types are also factorable (It is possible that different mechanism will be in place if boost::serialization is used, though.)
+Although mostly used internally by the serialization framework, programmer can ask for a class instantiation using ``shared_ptr<Factorable> f=ClassFactory::instance().createShared("ClassName");``, casting the returned ``shared_ptr<Factorable>`` to desired type afterwards. :ref:`Object` itself derives from ``Factorable``, i.e. all serializable types are also factorable (It is possible that different mechanism will be in place if boost::serialization is used, though.)
 
 .. _plugins:
 
@@ -683,7 +683,7 @@ Expected parameters are indicated by macro name components separated with unders
 ``base``
 	(unquoted) name of the base class (used for RTTI and python)
 ``doc``
-	docstring of this class, written in the ReST syntax. This docstring will appear in generated documentation (such as :yref:`CpmMat`). It can be as long as necessary, but sequences interpreted by c++ compiler must be properly escaped (therefore some backslashes must be doubled, like in :math:`\sigma=\epsilon E`::
+	docstring of this class, written in the ReST syntax. This docstring will appear in generated documentation (such as :ref:`CpmMat`). It can be as long as necessary, but sequences interpreted by c++ compiler must be properly escaped (therefore some backslashes must be doubled, like in :math:`\sigma=\epsilon E`::
 	
 		":math:`\\sigma=\\epsilon E"
 		
@@ -726,7 +726,7 @@ Expected parameters are indicated by macro name components separated with unders
 
 			((Real,dmgTau,((void)"deactivated if negative",-1),,"Characteristic time for normal viscosity. [s]"))
 
-		leading to :yref:`CpmMat::dmgTau`.
+		leading to :ref:`CpmMat::dmgTau`.
 
 		The attribute is registered via ``boost::python::add_property`` specifying ``return_by_value`` policy rather than ``return_internal_reference``, which is the default when using ``def_readwrite``. The reason is that we need to honor custom converters for those values; see note in :ref:`customconverters` for details.
 
@@ -791,13 +791,13 @@ Expected parameters are indicated by macro name components separated with unders
 
 Special python constructors
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The Python wrapper automatically create constructor that takes keyword (named) arguments corresponding to instance attributes; those attributes are set to values provided in the constructor. In some cases, more flexibility is desired (such as :yref:`InteractionLoop`, which takes 3 lists of functors). For such cases, you can override the function ``Object::pyHandleCustomCtorArgs``, which can arbitrarily modify the new (already existing) instance. It should modify in-place arguments given to it, as they will be passed further down to the routine which sets attribute values. In such cases, you should document the constructor::
+The Python wrapper automatically create constructor that takes keyword (named) arguments corresponding to instance attributes; those attributes are set to values provided in the constructor. In some cases, more flexibility is desired (such as :ref:`InteractionLoop`, which takes 3 lists of functors). For such cases, you can override the function ``Object::pyHandleCustomCtorArgs``, which can arbitrarily modify the new (already existing) instance. It should modify in-place arguments given to it, as they will be passed further down to the routine which sets attribute values. In such cases, you should document the constructor::
 
 	.. admonition:: Special constructor
 
 		Constructs from lists of …
 
-which then appears in the documentation similar to :yref:`InteractionLoop`.
+which then appears in the documentation similar to :ref:`InteractionLoop`.
 
 Static attributes
 ^^^^^^^^^^^^^^^^^^^
@@ -845,9 +845,9 @@ The way of passing attributes given to ``WOO_CLASS_BASE_DOC_ATTRS`` in the ``att
 * ``Vector3``, ``Vector3i``, ``Vector2``, ``Vector2i``, ``Matrix3`` and ``Quaternion`` objects are passed by *reference*. For instance::
 		O.bodies[0].state.pos[0]=1.33
   will assign correct value to ``x`` component of position, without changing the other ones.
-* Yade classes (all that use ``shared_ptr`` when declared in python: all classes deriving from :yref:`Object` declared with ``WOO_CLASS_BASE_DOC_*``, and some others) are passed as *references* (technically speaking, they are passed by value of the ``shared_ptr``, but by virtue of its sharedness, they appear as references). For instance::
+* Yade classes (all that use ``shared_ptr`` when declared in python: all classes deriving from :ref:`Object` declared with ``WOO_CLASS_BASE_DOC_*``, and some others) are passed as *references* (technically speaking, they are passed by value of the ``shared_ptr``, but by virtue of its sharedness, they appear as references). For instance::
 		O.engines[4].damping=.3
-  will change :yref:`damping<NewtonIntegrator.damping>` parameter on the original engine object, not on its copy.
+  will change :ref:`damping<NewtonIntegrator.damping>` parameter on the original engine object, not on its copy.
 * All other types are passed by *value*. This includes, most importantly, sequence types declared in :ref:`customconverters`, such as ``std::vector<shared_ptr<Engine> >``. For this reason, ::
 		O.engines[4]=NewtonIntegrator()
   will *not* work as expected; it will replace 5th element of a *copy* of the sequence, and this change will not propagate back to c++.
@@ -859,13 +859,13 @@ The way of passing attributes given to ``WOO_CLASS_BASE_DOC_ATTRS`` in the ``att
 
 Multiple dispatch
 ------------------
-Multiple dispatch is generalization of virtual methods: a :yref:`Dispatcher` decides based on type(s) of its argument(s) which of its :yref:`Functors<Functor>` to call. Numer of arguments (currently 1 or 2) determines *arity* of the dispatcher (and of the functor): unary or binary. For example:
+Multiple dispatch is generalization of virtual methods: a :ref:`Dispatcher` decides based on type(s) of its argument(s) which of its :ref:`Functors<Functor>` to call. Numer of arguments (currently 1 or 2) determines *arity* of the dispatcher (and of the functor): unary or binary. For example:
 
 .. code-block:: python
 
 	InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb()])
 
-creates :yref:`InsertionSortCollider`, which internally contains :yref:`Collider.boundDispatcher`, a :yref:`BoundDispatcher` (a :yref:`Dispatcher`), with 2 functors; they receive ``Sphere`` or ``Facet`` instances and create ``Aabb``. This code would look like this in c++:
+creates :ref:`InsertionSortCollider`, which internally contains :ref:`Collider.boundDispatcher`, a :ref:`BoundDispatcher` (a :ref:`Dispatcher`), with 2 functors; they receive ``Sphere`` or ``Facet`` instances and create ``Aabb``. This code would look like this in c++:
 
 .. code-block:: c++
 
@@ -878,7 +878,7 @@ There are currenly 4 predefined dispatchers (see `dispatcher-names`_) and corres
 Example: IGeomDispatcher
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Let's take (the most complicated perhaps) :yref:`IGeomDispatcher`. :yref:`IGeomFunctor`, which is dispatched based on types of 2 :yref:`Shape` instances (a :yref:`Functor`), takes a number of arguments and returns bool. The functor "call" is always provided by its overridden ``Functor::go`` method; it always receives the dispatched instances as first argument(s) (2 × ``const shared_ptr<Shape>&``) and a number of other arguments it needs:
+Let's take (the most complicated perhaps) :ref:`IGeomDispatcher`. :ref:`IGeomFunctor`, which is dispatched based on types of 2 :ref:`Shape` instances (a :ref:`Functor`), takes a number of arguments and returns bool. The functor "call" is always provided by its overridden ``Functor::go`` method; it always receives the dispatched instances as first argument(s) (2 × ``const shared_ptr<Shape>&``) and a number of other arguments it needs:
 
 .. code-block:: c++
 
@@ -973,7 +973,7 @@ The dispatcher doesn't always have functors that exactly match the actual types 
 
 If no functor is able to accept given types (first condition violated) or multiple functors have the same distance (in condition 2), an exception is thrown.
 
-This resolution mechanism makes it possible, for instance, to have a hierarchy of :yref:`Dem3DofGeom` classes (for different combination of shapes: :yref:`Dem3DofGeom_SphereSphere`, :yref:`Dem3DofGeom_FacetSphere`, :yref:`Dem3DofGeom_WallSphere`), but only provide a :yref:`LawFunctor` accepting ``Dem3DofGeom``, rather than having different laws for each shape combination.
+This resolution mechanism makes it possible, for instance, to have a hierarchy of :ref:`Dem3DofGeom` classes (for different combination of shapes: :ref:`Dem3DofGeom_SphereSphere`, :ref:`Dem3DofGeom_FacetSphere`, :ref:`Dem3DofGeom_WallSphere`), but only provide a :ref:`LawFunctor` accepting ``Dem3DofGeom``, rather than having different laws for each shape combination.
 
 .. note:: Performance implications of dispatch resolution are relatively low. The dispatcher lookup is only done once, and uses fast lookup matrix (1D or 2D); then, the functor found for this type(s) is cached within the ``Interaction`` (or ``Body``) instance. Thus, regular functor call costs the same as dereferencing pointer and calling virtual method. There is `blueprint <https://blueprints.launchpad.net/yade/+spec/devirtualize-functor-calls>`_ to avoid virtual function call as well.
 
@@ -982,18 +982,18 @@ This resolution mechanism makes it possible, for instance, to have a hierarchy o
 Indexing dispatch types
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Classes entering the dispatch mechanism must provide for fast identification of themselves and of their parent class. [#rttiindex]_ This is called class indexing and all such classes derive from :yref:`Indexable`. There are ``top-level`` Indexables (types that the dispatchers accept) and each derived class registers its index related to this top-level Indexable. Currently, there are:
+Classes entering the dispatch mechanism must provide for fast identification of themselves and of their parent class. [#rttiindex]_ This is called class indexing and all such classes derive from :ref:`Indexable`. There are ``top-level`` Indexables (types that the dispatchers accept) and each derived class registers its index related to this top-level Indexable. Currently, there are:
 
 ==================== ===========================
 Top-level Indexable  used by
 ==================== ===========================
-:yref:`Shape`        :yref:`BoundFunctor`, :yref:`IGeomDispatcher`
-:yref:`Material`     :yref:`IPhysDispatcher`
-:yref:`IPhys`        :yref:`LawDispatcher`
-:yref:`IGeom`        :yref:`LawDispatcher`
+:ref:`Shape`        :ref:`BoundFunctor`, :ref:`IGeomDispatcher`
+:ref:`Material`     :ref:`IPhysDispatcher`
+:ref:`IPhys`        :ref:`LawDispatcher`
+:ref:`IGeom`        :ref:`LawDispatcher`
 ==================== ===========================
 
-The top-level Indexable must use the ``REGISTER_INDEX_COUNTER`` macro, which sets up the machinery for identifying types of derived classes; they must then use the ``REGISTER_CLASS_INDEX`` macro *and* call ``createIndex()`` in their constructor. For instance, taking the :yref:`Shape` class (which is a top-level Indexable):
+The top-level Indexable must use the ``REGISTER_INDEX_COUNTER`` macro, which sets up the machinery for identifying types of derived classes; they must then use the ``REGISTER_CLASS_INDEX`` macro *and* call ``createIndex()`` in their constructor. For instance, taking the :ref:`Shape` class (which is a top-level Indexable):
 
 .. code-block:: c++
 
@@ -1006,7 +1006,7 @@ The top-level Indexable must use the ``REGISTER_INDEX_COUNTER`` macro, which set
 	   REGISTER_INDEX_COUNTER(Shape);
 	};
 
-Now, all derived classes (such as :yref:`Sphere` or :yref:`Facet`) use this:
+Now, all derived classes (such as :ref:`Sphere` or :ref:`Facet`) use this:
 
 .. code-block:: c++
 
@@ -1111,7 +1111,7 @@ You can list available functors of a particular type by querying child classes o
 .. ipython::
 
 	@suppress
-	Yade [1]: import yade.system
+	Yade [1]: import woo.system
 
 	Yade [2]: yade.system.childClasses('GlShapeFunctor')
 
@@ -1126,7 +1126,7 @@ Yade was originally not designed with parallel computation in mind, but rather w
 There is parallelism at 3 levels:
 
 * Computation, interaction (python, GUI) and rendering threads are separate. This is done via regular threads (boost::threads) and is not related to OpenMP.
-* :yref:`ParallelEngine` can run multiple engine groups (which are themselves run serially) in parallel; it rarely finds use in regular simulations, but it could be used for example when coupling with an independent expensive computation:
+* :ref:`ParallelEngine` can run multiple engine groups (which are themselves run serially) in parallel; it rarely finds use in regular simulations, but it could be used for example when coupling with an independent expensive computation:
 
 	.. code-block:: python
 
@@ -1139,7 +1139,7 @@ There is parallelism at 3 levels:
 	``Engine2`` will be run after ``Engine1``, but in parallel with ``Engine3``.
 
 	.. warning:: It is your reponsibility to avoid concurrent access to data when using ParallelEngine. Make sure you understand *very well* what the engines run in parallel do.
-* Parallelism inside Engines. Some loops over bodies or interactions are parallelized (notably :yref:`InteractionLoop` and :yref:`NewtonIntegrator`, which are treated in detail later (FIXME: link)):
+* Parallelism inside Engines. Some loops over bodies or interactions are parallelized (notably :ref:`InteractionLoop` and :ref:`NewtonIntegrator`, which are treated in detail later (FIXME: link)):
 
 	.. code-block:: c++
 
@@ -1158,7 +1158,7 @@ Maximum number of OpenMP threads is determined by the ``OMP_NUM_THREADS`` enviro
 At places which are susceptible of being accessed concurrently from multiple threads, Yade provides some mutual exclusion mechanisms, discussed elsewhere (FIXME):
 
 * simultaneously writeable container for :ref:`ForceContainer`,
-* mutex for :yref:`Body::state`.
+* mutex for :ref:`Body::state`.
 
 .. _logging:
 
@@ -1210,7 +1210,7 @@ Python provides rudimentary control for the logging system in ``yade.log`` modul
 
 .. ipython::
 
-	Yade [2]: from yade import log
+	Yade [2]: from woo import log
 
 	Yade [3]: log.setLevel('InsertionSortCollider',log.DEBUG)  # sets logging level of the yade.InsertionSortCollider logger
 
@@ -1245,7 +1245,7 @@ After running the simulation, ``yade.timing.stats()`` function will show table w
 
 	Yade [2]: O.engines[0].label='firstEngine'   ## labeled engines will show by labels in the stats table
 
-	Yade [2]: import yade.timing;
+	Yade [2]: import woo.timing;
 
 	Yade [2]: O.timingEnabled=True
 	
@@ -1260,11 +1260,11 @@ Exec count and time can be accessed and manipulated through ``Engine::timingInfo
 In-engine and in-functor timing
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Timing within engines (and functors) is based on :yref:`TimingDeltas` class. It is made for timing loops (functors' loop is in their respective dispatcher) and stores cummulatively time differences between *checkpoints*.
+Timing within engines (and functors) is based on :ref:`TimingDeltas` class. It is made for timing loops (functors' loop is in their respective dispatcher) and stores cummulatively time differences between *checkpoints*.
 
 .. note:: Fine timing with ``TimingDeltas`` will only work if timing is enabled globally (see previous section). The code would still run, but giving zero times and exec counts.
 
-#. Engine::timingDeltas must point to an instance of :yref:`TimingDeltas` (prefferably instantiate :yref:`TimingDeltas` in the constructor):
+#. Engine::timingDeltas must point to an instance of :ref:`TimingDeltas` (prefferably instantiate :ref:`TimingDeltas` in the constructor):
 
 	.. code-block:: c++
 		
@@ -1324,7 +1324,7 @@ The output might look like this (note that functors are nested inside dispatcher
 	"damageChecker"                       9               3272μs              0.00%      
 	TOTAL                                            102077490μs            100.00%      
 
-.. warning:: Do not use :yref:`TimingDeltas` in parallel sections, results might not be meaningful. In particular, avoid timing functors inside :yref:`InteractionLoop` when running with multiple OpenMP threads.
+.. warning:: Do not use :ref:`TimingDeltas` in parallel sections, results might not be meaningful. In particular, avoid timing functors inside :ref:`InteractionLoop` when running with multiple OpenMP threads.
 
 ``TimingDeltas`` data are accessible from Python as list of (*label*,*time*,*count*) tuples, one tuple representing each checkpoint:
 
@@ -1344,26 +1344,26 @@ The overhead of the coarser, per-engine timing, is very small. For simulations w
 
 .. TriaxialTest(numberOfGrains=800).load(); O.saveTmp(); import time; O.timingEnabled=True; t0=time.time(); O.run(2000,True); print(time.time()-t0); O.loadTmp(); O.timingEnabled=False; t0=time.time(); O.run(2000,True); print (time.time()-t0)
 
-The finer :yref:`TimingDeltas` timing can have major performance impact and should be only used during debugging and performance-tuning phase. The parts that are file-timed will take disproportionally longer time that the rest of engine; in the output presented above, :yref:`LawDispatcher` takes almost ⅔ of total simulation time in average, but the number would be twice of thrice lower typically (note that each checkpoint was timed almost 5 million times in this particular case).
+The finer :ref:`TimingDeltas` timing can have major performance impact and should be only used during debugging and performance-tuning phase. The parts that are file-timed will take disproportionally longer time that the rest of engine; in the output presented above, :ref:`LawDispatcher` takes almost ⅔ of total simulation time in average, but the number would be twice of thrice lower typically (note that each checkpoint was timed almost 5 million times in this particular case).
 
 
 OpenGL Rendering
 -----------------
 Yade provides 3d rendering based on `QGLViewer <http://www.libqglviewer.com>`__. It is not meant to be full-featured rendering and post-processing, but rather a way to quickly check that scene is as intended or that simulation behaves sanely. 
 
-.. note:: Although 3d rendering runs in a separate thread, it has performance impact on the computation itself, since interaction container requires mutual exclusion for interaction creation/deletion. The ``InteractionContainer::drawloopmutex`` is either held by the renderer (:yref:`OpenGLRenderingEngine`) or by the insertion/deletion routine. 
+.. note:: Although 3d rendering runs in a separate thread, it has performance impact on the computation itself, since interaction container requires mutual exclusion for interaction creation/deletion. The ``InteractionContainer::drawloopmutex`` is either held by the renderer (:ref:`OpenGLRenderingEngine`) or by the insertion/deletion routine. 
 
 .. warning:: There are 2 possible causes of crash, which are not prevented because of serious performance penalty that would result:
 
-	#. access to :yref:`BodyContainer`, in particular deleting bodies from simulation; this is a rare operation, though.
+	#. access to :ref:`BodyContainer`, in particular deleting bodies from simulation; this is a rare operation, though.
 	#. deleting Interaction::phys or Interaction::geom.
 
-Renderable entities (:yref:`Shape`, :yref:`State`, :yref:`Bound`, :yref:`IGeom`, :yref:`IPhys`) have their associated `OpenGL functors`_. An entity is rendered if
+Renderable entities (:ref:`Shape`, :ref:`State`, :ref:`Bound`, :ref:`IGeom`, :ref:`IPhys`) have their associated `OpenGL functors`_. An entity is rendered if
 
-#. Rendering such entities is enabled by appropriate attribute in :yref:`OpenGLRenderingEngine`
+#. Rendering such entities is enabled by appropriate attribute in :ref:`OpenGLRenderingEngine`
 #. Functor for that particular entity type is found via the :ref:`dispatch mechanism<multiple-dispatch>`.
 
-``Gl1_*`` functors operating on Body's attributes (:yref:`Shape`, :yref:`State`, :yref:`Bound`) are called with the OpenGL context translated and rotated according to :yref:`State::pos` and :yref:`State::ori`. Interaction functors work in global coordinates.
+``Gl1_*`` functors operating on Body's attributes (:ref:`Shape`, :ref:`State`, :ref:`Bound`) are called with the OpenGL context translated and rotated according to :ref:`State::pos` and :ref:`State::ori`. Interaction functors work in global coordinates.
 
 
 
@@ -1381,14 +1381,14 @@ Scene
 ``Scene`` is the object containing the whole simulation. Although multiple scenes can be present in the memory, only one of them is active. Saving and loading (serializing and deserializing) the ``Scene`` object should make the simulation run from the point where it left off. 
 
 .. note::
-	All :yref:`Engines<Engine>` and functors have interally a ``Scene* scene`` pointer which is updated regularly by engine/functor callers; this ensures that the current scene can be accessed from within user code.
+	All :ref:`Engines<Engine>` and functors have interally a ``Scene* scene`` pointer which is updated regularly by engine/functor callers; this ensures that the current scene can be accessed from within user code.
 
 	For outside functions (such as those called from python, or static functions in ``Shop``), you can use ``Omega::instance().getScene()`` to retrieve a ``shared_ptr<Scene>`` of the current scene.
 
 Body container
 ---------------
-Body container is linear storage of bodies. Each body in the simulation has its unique :yref:`id<Body::id>`, under which it must be found in the :yref:`BodyContainer`. Body that is not yet part of the simulation typically has id equal to invalid value ``Body::ID_NONE``, and will have its ``id`` assigned upon insertion into the container. 
-The requirements on :yref:`BodyContainer` are
+Body container is linear storage of bodies. Each body in the simulation has its unique :ref:`id<Body::id>`, under which it must be found in the :ref:`BodyContainer`. Body that is not yet part of the simulation typically has id equal to invalid value ``Body::ID_NONE``, and will have its ``id`` assigned upon insertion into the container. 
+The requirements on :ref:`BodyContainer` are
 
 * O(1) access to elements,
 * linear-addressability (0…n indexability),
@@ -1403,7 +1403,7 @@ The requirements on :yref:`BodyContainer` are
 Insertion/deletion
 ^^^^^^^^^^^^^^^^^^
 
-Body insertion is typically used in :yref:`FileGenerator`'s:
+Body insertion is typically used in :ref:`FileGenerator`'s:
 
 .. code-block:: c++
 
@@ -1501,7 +1501,7 @@ As with BodyContainer, iteration over interactions should use the ``FOREACH`` ma
 	   /* … */
 	}
 
-Again, note the usage const reference for ``i``. The check ``if(!i->isReal())`` filters away interactions that exist only *potentially*, i.e. there is only :yref:`Bound` overlap of the two bodies, but not (yet) overlap of bodies themselves. The ``i->isReal()`` function is equivalent to ``i->geom && i->phys``. Details are again explained in :ref:`interaction-flow`.
+Again, note the usage const reference for ``i``. The check ``if(!i->isReal())`` filters away interactions that exist only *potentially*, i.e. there is only :ref:`Bound` overlap of the two bodies, but not (yet) overlap of bodies themselves. The ``i->isReal()`` function is equivalent to ``i->geom && i->phys``. Details are again explained in :ref:`interaction-flow`.
 
 In some cases, such as OpenMP-loops requiring integral index (OpenMP >= 3.0 allows parallelization using random-access iterator as well), you need to iterate over interaction indices instead:
 
@@ -1520,13 +1520,13 @@ In some cases, such as OpenMP-loops requiring integral index (OpenMP >= 3.0 allo
 ForceContainer
 --------------
 
-:yref:`ForceContainer` holds "generalized forces", i.e. forces, torques, (explicit) dispalcements and rotations for each body.
+:ref:`ForceContainer` holds "generalized forces", i.e. forces, torques, (explicit) dispalcements and rotations for each body.
 
 During each computation step, there are typically 3 phases pertaining to forces:
 
-#. Resetting forces to zero (usually done by the :yref:`ForceResetter` engine)
-#. Incrementing forces from parallel sections (solving interactions -- from :yref:`LawFunctor`)
-#. Reading absolute force values sequentially for each body: forces applied from different interactions are summed together to give overall force applied on that body (:yref:`NewtonIntegrator`, but also various other engine that read forces)
+#. Resetting forces to zero (usually done by the :ref:`ForceResetter` engine)
+#. Incrementing forces from parallel sections (solving interactions -- from :ref:`LawFunctor`)
+#. Reading absolute force values sequentially for each body: forces applied from different interactions are summed together to give overall force applied on that body (:ref:`NewtonIntegrator`, but also various other engine that read forces)
 
 This scenario leads to special design, which allows fast parallel write access:
 
@@ -1571,10 +1571,10 @@ Creating and removing interactions is a rather delicate topic and number of comp
 Terminologically, we distinguish
 
 potential interactions,
-	having neither :yref:`geometry<Interaction::geom>` nor :yref:`physics<Interaction::phys>`. :yref:`Interaction.isReal` can be used to query the status (``Interaction::isReal()`` in c++).
+	having neither :ref:`geometry<Interaction::geom>` nor :ref:`physics<Interaction::phys>`. :ref:`Interaction.isReal` can be used to query the status (``Interaction::isReal()`` in c++).
 
 real interactions,
-	having both :yref:`geometry<Interaction::geom>` and :yref:`physics<Interaction::phys>`. Below, we shall discuss the possibility of interactions that only have geometry but no physics.
+	having both :ref:`geometry<Interaction::geom>` and :ref:`physics<Interaction::phys>`. Below, we shall discuss the possibility of interactions that only have geometry but no physics.
 
 During each step in the simulation, the following operations are performed on interactions in a typical simulation:
 
@@ -1582,30 +1582,30 @@ During each step in the simulation, the following operations are performed on in
 
 	* clumps may not enter interactions (only their members can)
 	* clump members may not interact if they belong to the same clump
-	* bitwise AND on both bodies' :yref:`masks<Body::groupMask>` must be non-zero (i.e. there must be at least one bit set in common)
+	* bitwise AND on both bodies' :ref:`masks<Body::groupMask>` must be non-zero (i.e. there must be at least one bit set in common)
 
 #. Collider erases interactions that were requested for being erased (see below).
 
-#. :yref:`InteractionLoop` (via :yref:`IGeomDispatcher`) calls appropriate :yref:`IGeomFunctor` based on :yref:`Shape` combination of both bodies, if such functor exists. For real interactions, the functor updates associated :yref:`IGeom`. For potential interactions, the functor returns
+#. :ref:`InteractionLoop` (via :ref:`IGeomDispatcher`) calls appropriate :ref:`IGeomFunctor` based on :ref:`Shape` combination of both bodies, if such functor exists. For real interactions, the functor updates associated :ref:`IGeom`. For potential interactions, the functor returns
 
 	``false``
 		if there is no geometrical overlap, and the interaction will stillremain potential-only
 	``true``
-		if there is geometrical overlap; the functor will have created an :yref:`IGeom` in such case.
+		if there is geometrical overlap; the functor will have created an :ref:`IGeom` in such case.
 	
 	.. note ::
-		For *real* interactions, the functor *must* return ``true``, even if there is no more spatial overlap between bodies. If you wish to delete an interaction without geometrical overlap, you have to do this in the :yref:`LawFunctor`.
+		For *real* interactions, the functor *must* return ``true``, even if there is no more spatial overlap between bodies. If you wish to delete an interaction without geometrical overlap, you have to do this in the :ref:`LawFunctor`.
 		
-		This behavior is deliberate, since different :yref:`laws<LawFunctor>` have different requirements, though ideally using relatively small number of generally useful :yref:`geometry functors<IGeomFunctor>`.
+		This behavior is deliberate, since different :ref:`laws<LawFunctor>` have different requirements, though ideally using relatively small number of generally useful :ref:`geometry functors<IGeomFunctor>`.
 
 	.. note::
-		If there is no functor suitable to handle given combination of :yref:`shapes<Shape>`, the interaction will be left in potential state, without raising any error.
+		If there is no functor suitable to handle given combination of :ref:`shapes<Shape>`, the interaction will be left in potential state, without raising any error.
 
-#. For real interactions (already existing or jsut created in last step), :yref:`InteractionLoop` (via :yref:`IPhysDispatcher`) calls appropriate :yref:`IPhysFunctor` based on :yref:`Material` combination of both bodies. The functor *must* update (or create, if it doesn't exist yet) associated :yref:`IPhys` instance. It is an error if no suitable functor is found, and an exception will be thrown.
+#. For real interactions (already existing or jsut created in last step), :ref:`InteractionLoop` (via :ref:`IPhysDispatcher`) calls appropriate :ref:`IPhysFunctor` based on :ref:`Material` combination of both bodies. The functor *must* update (or create, if it doesn't exist yet) associated :ref:`IPhys` instance. It is an error if no suitable functor is found, and an exception will be thrown.
 
-#. For real interactions, :yref:`InteractionLoop` (via :yref:`LawDispatcher`) calls appropriate :yref:`LawFunctor` based on combintation of :yref:`IGeom` and :yref:`IPhys` of the interaction. Again, it is an error if no functor capable of handling it is found.
+#. For real interactions, :ref:`InteractionLoop` (via :ref:`LawDispatcher`) calls appropriate :ref:`LawFunctor` based on combintation of :ref:`IGeom` and :ref:`IPhys` of the interaction. Again, it is an error if no functor capable of handling it is found.
 
-#. :yref:`LawDispatcher` can decide that an interaction should be removed (such as if bodies get too far apart for non-cohesive laws; or in case of complete damage for damage models). This is done by calling
+#. :ref:`LawDispatcher` can decide that an interaction should be removed (such as if bodies get too far apart for non-cohesive laws; or in case of complete damage for damage models). This is done by calling
 
 	.. code-block:: c++
 
@@ -1616,20 +1616,20 @@ During each step in the simulation, the following operations are performed on in
 
 Creating interactions explicitly
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Interactions may still be created explicitly with :yref:`yade.utils.createInteraction`, without any spatial requirements. This function searches current engines for dispatchers and uses them. :yref:`IGeomFunctor` is called with the ``force`` parameter, obliging it to return ``true`` even if there is no spatial overlap.
+Interactions may still be created explicitly with :ref:`yade.utils.createInteraction`, without any spatial requirements. This function searches current engines for dispatchers and uses them. :ref:`IGeomFunctor` is called with the ``force`` parameter, obliging it to return ``true`` even if there is no spatial overlap.
 
 
 Associating Material and State types
 ------------------------------------
 
-Some models keep extra :yref:`state<State>` information in the :yref:`Body.state` object, therefore requiring strict association of a :yref:`Material` with a certain :yref:`State` (for instance, :yref:`CpmMat` is associated to :yref:`CpmState` and this combination is supposed by engines such as :yref:`CpmStateUpdater`).
+Some models keep extra :ref:`state<State>` information in the :ref:`Body.state` object, therefore requiring strict association of a :ref:`Material` with a certain :ref:`State` (for instance, :ref:`CpmMat` is associated to :ref:`CpmState` and this combination is supposed by engines such as :ref:`CpmStateUpdater`).
 
-If a :yref:`Material` has such a requirement, it must override 2 virtual methods:
+If a :ref:`Material` has such a requirement, it must override 2 virtual methods:
 
-#. :yref:`Material.newAssocState`, which returns a new :yref:`State` object of the corresponding type. The default implementation returns :yref:`State` itself. 
-#. :yref:`Material.stateTypeOk`, which checks whether a given :yref:`State` object is of the corresponding type (this check is run at the beginning of the simulation for all particles).
+#. :ref:`Material.newAssocState`, which returns a new :ref:`State` object of the corresponding type. The default implementation returns :ref:`State` itself. 
+#. :ref:`Material.stateTypeOk`, which checks whether a given :ref:`State` object is of the corresponding type (this check is run at the beginning of the simulation for all particles).
 
-In c++, the code looks like this (for :yref:`CpmMat`):
+In c++, the code looks like this (for :ref:`CpmMat`):
 
 .. code-block:: c++
 
@@ -1640,7 +1640,7 @@ In c++, the code looks like this (for :yref:`CpmMat`):
 	   /* ... */
 	};
 
-This allows to construct :yref:`Body` objects from functions such as :yref:`yade.utils.sphere` only by knowing the requires :yref:`Material` type, enforcing the expectation of the model implementor.
+This allows to construct :ref:`Body` objects from functions such as :ref:`yade.utils.sphere` only by knowing the requires :ref:`Material` type, enforcing the expectation of the model implementor.
 
 
 Runtime structure
@@ -1651,8 +1651,8 @@ Startup sequence
 Yade's main program is python script in :ysrc:`core/main/main.py.in`; the build system replaces a few ``\${variables}`` in that file before copying it to its install location. It does the following:
 
 #. Process command-line options, set environment variables based on those options.
-#. Import main yade module (``import yade``), residing in :ysrc:`py/__init__.py.in`. This module locates plugins (recursive search for files ``lib*.so`` in the ``lib`` installation directory). :ysrc:`yade.boot<core/main/pyboot.cpp>` module is used to setup logging, temporary directory, … and, most importantly, loads plugins.
-#. Manage further actions, such as running scripts given at command line, opening :yref:`yade.qt.Controller` (if desired), launching the ``ipython`` prompt.
+#. Import main yade module (``import woo``), residing in :ysrc:`py/__init__.py.in`. This module locates plugins (recursive search for files ``lib*.so`` in the ``lib`` installation directory). :ysrc:`yade.boot<core/main/pyboot.cpp>` module is used to setup logging, temporary directory, … and, most importantly, loads plugins.
+#. Manage further actions, such as running scripts given at command line, opening :ref:`yade.qt.Controller` (if desired), launching the ``ipython`` prompt.
 
 
 Singletons 
@@ -1670,25 +1670,25 @@ There are 3 singletons:
 
 Omega
 ^^^^^^
-The :yref:`Omega` class handles all simulation-related functionality: loading/saving, running, pausing. 
+The :ref:`Omega` class handles all simulation-related functionality: loading/saving, running, pausing. 
 
-In python, the wrapper class to the singleton is instantiated [#oinst]_ as global variable ``O``. For convenience, :yref:`Omega` is used as proxy for scene's attribute: although multiple ``Scene`` objects may be instantiated in c++, it is always the current scene that :yref:`Omega` represents.
+In python, the wrapper class to the singleton is instantiated [#oinst]_ as global variable ``O``. For convenience, :ref:`Omega` is used as proxy for scene's attribute: although multiple ``Scene`` objects may be instantiated in c++, it is always the current scene that :ref:`Omega` represents.
 
-The correspondence of data is literal: :yref:`Omega.materials` corresponds to ``Scene::materials`` of the current scene; likewise for :yref:`materials<Omega.materials>`, :yref:`bodies<Omega.bodies>`, :yref:`interactions<Omega.interactions>`, :yref:`tags<Omega.tags>`, :yref:`cell<Omega.cell>`, :yref:`engines<Omega.engines>`, :yref:`initializers<Omega.initializers>`, :yref:`miscParams<Omega.miscParams>`.
+The correspondence of data is literal: :ref:`Omega.materials` corresponds to ``Scene::materials`` of the current scene; likewise for :ref:`materials<Omega.materials>`, :ref:`bodies<Omega.bodies>`, :ref:`interactions<Omega.interactions>`, :ref:`tags<Omega.tags>`, :ref:`cell<Omega.cell>`, :ref:`engines<Omega.engines>`, :ref:`initializers<Omega.initializers>`, :ref:`miscParams<Omega.miscParams>`.
 
 To give an overview of (some) variables:
 
 ======================== ===================================
 Python                   c++
 ======================== ===================================
-:yref:`Omega.iter`       ``Scene::iter``
-:yref:`Omega.dt`         ``Scene::dt``
-:yref:`Omega.time`       ``Scene::time``
-:yref:`Omega.realtime`   ``Omega::getRealTime()``
-:yref:`Omega.stopAtIter` ``Scene::stopAtIter``
+:ref:`Omega.iter`       ``Scene::iter``
+:ref:`Omega.dt`         ``Scene::dt``
+:ref:`Omega.time`       ``Scene::time``
+:ref:`Omega.realtime`   ``Omega::getRealTime()``
+:ref:`Omega.stopAtIter` ``Scene::stopAtIter``
 ======================== ===================================
 
-``Omega`` in c++ contains pointer to the current scene (``Omega::scene``, retrieved by ``Omega::instance().getScene()``). Using :yref:`Omega.switchScene`, it is possible to swap this pointer with ``Omega::sceneAnother``, a completely independent simulation. This can be useful for example (and this motivated this functionality) if while constructing simulation, another simulation has to be run to dynamically generate (i.e. by running simulation) packing of spheres. 
+``Omega`` in c++ contains pointer to the current scene (``Omega::scene``, retrieved by ``Omega::instance().getScene()``). Using :ref:`Omega.switchScene`, it is possible to swap this pointer with ``Omega::sceneAnother``, a completely independent simulation. This can be useful for example (and this motivated this functionality) if while constructing simulation, another simulation has to be run to dynamically generate (i.e. by running simulation) packing of spheres. 
 
 .. rubric:: Footnotes
 
@@ -1697,22 +1697,22 @@ Python                   c++
 Engine loop
 ------------
 
-Running simulation consists in looping over :yref:`Engines<Engine>` and calling them in sequence. This loop is defined in ``Scene::moveToNextTimeStep`` function in :ysrc:`core/Scene.cpp<core/Scene.cpp#L73>`. Before the loop starts, :yref:`O.initializers<Omega.initializers>` are called; they are only run once. The engine loop does the following in each iteration over :yref:`O.engines<Omega.engines>`:
+Running simulation consists in looping over :ref:`Engines<Engine>` and calling them in sequence. This loop is defined in ``Scene::moveToNextTimeStep`` function in :ysrc:`core/Scene.cpp<core/Scene.cpp#L73>`. Before the loop starts, :ref:`O.initializers<Omega.initializers>` are called; they are only run once. The engine loop does the following in each iteration over :ref:`O.engines<Omega.engines>`:
 
 #. set ``Engine::scene`` pointer to point to the current ``Scene``.
 #. Call ``Engine::isActivated()``; if it returns ``false``, the engine is skipped.
 #. Call ``Engine::action()``
-#. If :yref:`O.timingEnabled<Omega.timingEnabled>`, increment :yref:`Engine::execTime` by the difference from the last time reading (either after the previous engine was run, or immediately before the loop started, if this engine comes first). Increment :yref:`Engine::execCount` by 1.
+#. If :ref:`O.timingEnabled<Omega.timingEnabled>`, increment :ref:`Engine::execTime` by the difference from the last time reading (either after the previous engine was run, or immediately before the loop started, if this engine comes first). Increment :ref:`Engine::execCount` by 1.
 
-After engines are processed, :yref:`virtual time<Omega.time>` is incremented by :yref:`timestep<Omega.dt>` and :yref:`iteraction number<Omega.iter>` is incremented by 1.
+After engines are processed, :ref:`virtual time<Omega.time>` is incremented by :ref:`timestep<Omega.dt>` and :ref:`iteraction number<Omega.iter>` is incremented by 1.
 
 
 Background execution
 ^^^^^^^^^^^^^^^^^^^^^
 
-The engine loop is (normally) executed in background thread (handled by :ysrc:`SimulationFlow<core/SimulationFlow.hpp>` class), leaving forground thread free to manage user interaction or running python script. The background thread is managed by :yref:`O.run()<Omega.run>` and :yref:`O.pause()<Omega.pause>` commands. Foreground thread can be blocked until the loop finishes using :yref:`O.wait()<Omega.wait>`.
+The engine loop is (normally) executed in background thread (handled by :ysrc:`SimulationFlow<core/SimulationFlow.hpp>` class), leaving forground thread free to manage user interaction or running python script. The background thread is managed by :ref:`O.run()<Omega.run>` and :ref:`O.pause()<Omega.pause>` commands. Foreground thread can be blocked until the loop finishes using :ref:`O.wait()<Omega.wait>`.
 
-Single iteration can be run without spawning additional thread using :yref:`O.step()<Omega.step>`.
+Single iteration can be run without spawning additional thread using :ref:`O.step()<Omega.step>`.
 
 
 
@@ -1723,7 +1723,7 @@ Python framework
 Wrapping c++ classes
 ---------------------
 
-Each class deriving from :yref:`Object` is automatically exposed to python, with access to its (registered) attributes. This is achieved via :ref:`WOO_CLASS_BASE_DOC`. All classes registered in class factory are default-constructed in ``Omega::buildDynlibDatabase``. Then, each serializable class calls ``Object::pyRegisterClass`` virtual method, which injects the class wrapper into (initially empty) ``yade.wrapper`` module. ``pyRegisterClass`` is defined by ``WOO_CLASS_BASE_DOC`` and knows about class, base class, docstring, attributes, which subsequently all appear in boost::python class definition.
+Each class deriving from :ref:`Object` is automatically exposed to python, with access to its (registered) attributes. This is achieved via :ref:`WOO_CLASS_BASE_DOC`. All classes registered in class factory are default-constructed in ``Omega::buildDynlibDatabase``. Then, each serializable class calls ``Object::pyRegisterClass`` virtual method, which injects the class wrapper into (initially empty) ``yade.wrapper`` module. ``pyRegisterClass`` is defined by ``WOO_CLASS_BASE_DOC`` and knows about class, base class, docstring, attributes, which subsequently all appear in boost::python class definition.
 
 Wrapped classes define special constructor taking keyword arguments corresponding to class attributes; therefore, it is the same to write:
 
@@ -1745,7 +1745,7 @@ and
 
 	Yade [3]: print f2.dict()
 
-Wrapped classes also inherit from :yref:`Object` several special virtual methods: :yref:`dict()<Object::dict>` returning all registered class attributes as dictionary (shown above), :yref:`clone()<Object::clone>` returning copy of instance (by copying attribute values), :yref:`updateAttrs()<Object::updateAttrs>` and :yref:`updateExistingAttrs()<Object::updateExistingAttrs>` assigning attributes from given dictionary (the former thrown for unknown attribute, the latter doesn't).
+Wrapped classes also inherit from :ref:`Object` several special virtual methods: :ref:`dict()<Object::dict>` returning all registered class attributes as dictionary (shown above), :ref:`clone()<Object::clone>` returning copy of instance (by copying attribute values), :ref:`updateAttrs()<Object::updateAttrs>` and :ref:`updateExistingAttrs()<Object::updateExistingAttrs>` assigning attributes from given dictionary (the former thrown for unknown attribute, the latter doesn't).
 
 Read-only property ``name`` wraps c++ method ``getClassName()`` returning class name as string. (Since c++ class and the wrapper class always have the same name, getting python type using ``__class__`` and its property ``__name__`` will give the same value).
 
@@ -1759,7 +1759,7 @@ Read-only property ``name`` wraps c++ method ``getClassName()`` returning class 
 Subclassing c++ types in python
 --------------------------------
 
-In some (rare) cases, it can be useful to derive new class from wrapped c++ type in pure python. This is done in the :ref:`yade.pack` module: :yref:`Predicate<yade._packPredicates.Predicate>` is c++ base class; from this class, several c++ classes are derived (such as :yref:`inGtsSurface<yade._packPredicates.Predicate>`), but also python classes (such as the trivial :yref:`inSpace<yade.pack.inSpace>` predicate). ``inSpace`` derives from python class ``Predicate``; it is, however, not direct wrapper of the c++ ``Predicate`` class, since virtual methods would not work.
+In some (rare) cases, it can be useful to derive new class from wrapped c++ type in pure python. This is done in the :ref:`yade.pack` module: :ref:`Predicate<yade._packPredicates.Predicate>` is c++ base class; from this class, several c++ classes are derived (such as :ref:`inGtsSurface<yade._packPredicates.Predicate>`), but also python classes (such as the trivial :ref:`inSpace<yade.pack.inSpace>` predicate). ``inSpace`` derives from python class ``Predicate``; it is, however, not direct wrapper of the c++ ``Predicate`` class, since virtual methods would not work.
 
 ``boost::python`` provides special ``boost::python::wrapper`` template for such cases, where each overridable virtual method has to be declared explicitly, requesting python override of that method, if present. See `Overridable virtual functions <http://wiki.python.org/moin/boost.python/OverridableVirtualFunctions>`_ for more details.
 

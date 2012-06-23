@@ -28,7 +28,7 @@ void In2_Truss_ElastMat::go(const shared_ptr<Shape>& shape, const shared_ptr<Mat
 	const Vector3r axUnit=AB/len;
 	if(isnan(t.l0)){
 		if(setL0) t.l0=len;
-		else yade::ValueError(("#"+lexical_cast<string>(particle->id)+": Truss.l0==NaN (set In2_Truss_ElastMat.setL0=True to initialize this value automatically."));
+		else woo::ValueError(("#"+lexical_cast<string>(particle->id)+": Truss.l0==NaN (set In2_Truss_ElastMat.setL0=True to initialize this value automatically."));
 	}
 	FOREACH(const Particle::MapParticleContact::value_type& I,particle->contacts){
 		const shared_ptr<Contact>& C(I.second); if(!C->isReal()) continue;

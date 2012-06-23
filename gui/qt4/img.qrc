@@ -1,6 +1,6 @@
 <RCC>
   <qresource prefix="img">
-    <file>yade-favicon.png</file>
+    <file>woo-favicon.png</file>
     <file>XYZ.png</file>
     <file>YZX.png</file>
     <file>ZXY.png</file>

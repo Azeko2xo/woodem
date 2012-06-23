@@ -16,7 +16,7 @@
 O.periodic=True
 O.cell.refSize=(2,2,2)
 
-from yade import pack,plot
+from woo import pack,plot
 
 # the "if 0:" block will be never executed, therefore the "else:" block will be
 # to use cloud instead of regular packing, change to "if 1:" or something similar

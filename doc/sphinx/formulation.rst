@@ -22,14 +22,14 @@ Collision detection
 Generalities
 -------------
 
-Exact computation of collision configuration between two particles can be relatively expensive (for instance between :yref:`Sphere` and :yref:`Facet`). Taking a general pair of bodies $i$ and $j$ and their ``exact'' (In the sense of precision admissible by numerical implementation.) spatial predicates (called :yref:`Shape` in Yade) represented by point sets $P_i$, $P_j$ the detection generally proceeds in 2 passes:
+Exact computation of collision configuration between two particles can be relatively expensive (for instance between :ref:`Sphere` and :ref:`Facet`). Taking a general pair of bodies $i$ and $j$ and their ``exact'' (In the sense of precision admissible by numerical implementation.) spatial predicates (called :ref:`Shape` in Yade) represented by point sets $P_i$, $P_j$ the detection generally proceeds in 2 passes:
 
 #. fast collision detection using approximate predicate $\tilde P_i$ and $\tilde P_j$; they are pre-constructed in such a way as to abstract away individual features of $P_i$ and $P_j$ and satisfy the condition
 
    .. math:: \forall {\bf x}\in R^3: x\in P_i\Rightarrow x\in \tilde P_i
      :label: eq-bounding-predicate
 
-   (likewise for $P_j$). The approximate predicate is called ``bounding volume'' (:yref:`Bound` in Yade) since it bounds any particle's volume from outside (by virtue of the implication). It follows that $(P_i \cap  P_j)\neq\emptyset \Rightarrow (\tilde P_i \cap  \tilde P_j)\neq\emptyset$ and, by applying *modus tollens*,
+   (likewise for $P_j$). The approximate predicate is called ``bounding volume'' (:ref:`Bound` in Yade) since it bounds any particle's volume from outside (by virtue of the implication). It follows that $(P_i \cap  P_j)\neq\emptyset \Rightarrow (\tilde P_i \cap  \tilde P_j)\neq\emptyset$ and, by applying *modus tollens*,
 
    .. math:: \bigl(\tilde P_i \cap \tilde P_j\bigr)=\emptyset\Rightarrow\bigl( P_i \cap  P_j \bigr)=\emptyset
      :label: eq-collide-exclude
@@ -69,9 +69,9 @@ On a finer level, it is common to enlarge $\tilde P_i$ predicates in such a way 
 
 Sweep and prune
 ----------------
-Let us describe in detail the sweep and prune algorithm used for collision detection in Yade (class :yref:`InsertionSortCollider`). Axis-aligned bounding boxes (:yref:`Aabb`) are used as $\tilde P_i$; each :yref:`Aabb` is given by lower and upper corner $\in R^3$ (in the following, $\tilde P_i^{x0}$, $\tilde P_i^{x1}$ are minimum/maximum coordinates of $\tilde P_i$ along the $x$-axis and so on). Construction of :yref:`Aabb` from various particle :yref:`Shape`'s (such as :yref:`Sphere`, :yref:`Facet`, :yref:`Wall`) is straightforward, handled by appropriate classes deriving form :yref:`BoundFunctor` (:yref:`Bo1_Sphere_Aabb`, :yref:`Bo1_Facet_Aabb`, …).
+Let us describe in detail the sweep and prune algorithm used for collision detection in Yade (class :ref:`InsertionSortCollider`). Axis-aligned bounding boxes (:ref:`Aabb`) are used as $\tilde P_i$; each :ref:`Aabb` is given by lower and upper corner $\in R^3$ (in the following, $\tilde P_i^{x0}$, $\tilde P_i^{x1}$ are minimum/maximum coordinates of $\tilde P_i$ along the $x$-axis and so on). Construction of :ref:`Aabb` from various particle :ref:`Shape`'s (such as :ref:`Sphere`, :ref:`Facet`, :ref:`Wall`) is straightforward, handled by appropriate classes deriving form :ref:`BoundFunctor` (:ref:`Bo1_Sphere_Aabb`, :ref:`Bo1_Facet_Aabb`, …).
 			
-Presence of overlap of two :yref:`Aabb`'s can be determined from conjunction of separate overlaps of intervals along each axis (`fig-sweep-and-prune`_):
+Presence of overlap of two :ref:`Aabb`'s can be determined from conjunction of separate overlaps of intervals along each axis (`fig-sweep-and-prune`_):
 
 .. math:: \left(\tilde P_i \cap  \tilde P_j\right)\neq\emptyset \Leftrightarrow \bigwedge_{w\in\{x,y,z\}}\left[\left(\left(\tilde P_i^{w0},\tilde P_i^{w1}\right) \cap \left(\tilde P_j^{w0},\tilde P_j^{w1}\right)\right)\neq\emptyset\right]
 
@@ -80,15 +80,15 @@ where $(a,b)$ denotes interval in $R$.
 .. _fig-sweep-and-prune:
 .. figure:: fig/sweep-and-prune.*
 
-   Sweep and prune algorithm (shown in 2D), where :yref:`Aabb` of each sphere is represented by minimum and maximum value along each axis. Spatial overlap of :yref:`Aabb`'s is present if they overlap along all axes. In this case, $\tilde P_1\cap\tilde P_2\neq\emptyset$ (but note that $P_1\cap P_2=\emptyset$) and $\tilde P_2 \cap\tilde P_3\neq\emptyset$.}
+   Sweep and prune algorithm (shown in 2D), where :ref:`Aabb` of each sphere is represented by minimum and maximum value along each axis. Spatial overlap of :ref:`Aabb`'s is present if they overlap along all axes. In this case, $\tilde P_1\cap\tilde P_2\neq\emptyset$ (but note that $P_1\cap P_2=\emptyset$) and $\tilde P_2 \cap\tilde P_3\neq\emptyset$.}
 
 The collider keeps 3 separate lists (arrays) $L_w$ for each axis $w\in\{x,y,z\}$
 
 .. math:: L_w=\bigcup_{i} \left\{\tilde P_i^{w0}, \tilde P_i^{w1} \right\}
 
-where $i$ traverses all particles. $L_w$ arrays (sorted sets) contain respective coordinates of minimum and maximum corners for each :yref:`Aabb` (we call these coordinates *bound* in the following); besides bound, each of list elements further carries ``id`` referring to particle it belongs to, and a flag whether it is lower or upper bound.
+where $i$ traverses all particles. $L_w$ arrays (sorted sets) contain respective coordinates of minimum and maximum corners for each :ref:`Aabb` (we call these coordinates *bound* in the following); besides bound, each of list elements further carries ``id`` referring to particle it belongs to, and a flag whether it is lower or upper bound.
 
-In the initial step, all lists are sorted (using quicksort, average $\bigO{n\log n}$) and one axis is used to create initial interactions: the range between lower and upper bound for each body is traversed, while bounds in-between indicate potential :yref:`Aabb` overlaps which must be checked on the remaining axes as well.
+In the initial step, all lists are sorted (using quicksort, average $\bigO{n\log n}$) and one axis is used to create initial interactions: the range between lower and upper bound for each body is traversed, while bounds in-between indicate potential :ref:`Aabb` overlaps which must be checked on the remaining axes as well.
 
 At each successive step, lists are already pre-sorted. Inversions occur where a particle's coordinate has just crossed another particle's coordinate; this number is limited by numerical stability of simulation and its physical meaning (giving spatio-temporal coherence to the algorithm). The insertion sort algorithm swaps neighboring elements if they are inverted, and has complexity between \bigO{n} and \bigO{n^2}, for pre-sorted and unsorted lists respectively. For our purposes, we need only to handle inversions, which by nature of the sort algorithm are detected inside the sort loop. An inversion might signify: 
 
@@ -144,7 +144,7 @@ All elements having been traversed, the sequence is now sorted.
 				
 It is obvious that if the initial sequence were sorted, elements only would have to be traversed without any inversion to handle (that happens in $\mathcal{O}(n)$ time).
 
-For each inversion during the sort in simulation, the function that investigates change in :yref:`Aabb` overlap is invoked, creating or deleting interactions.
+For each inversion during the sort in simulation, the function that investigates change in :ref:`Aabb` overlap is invoked, creating or deleting interactions.
 				
 The periodic variant of the sort algorithm is described in :ref:`sect-periodic-insertion-sort`, along with other periodic-boundary related topics.
 
@@ -153,7 +153,7 @@ Optimization with Verlet distances
 
 As noted above, [Verlet1967]_ explored the possibility of running the collision detection only sparsely by enlarging predicates $\tilde P_i$.
 				
-In Yade, this is achieved by enlarging :yref:`Aabb` of particles by fixed relative length in all dimensions $\Delta L$ (:yref:`InsertionSortCollider.sweepLength`). Suppose the collider run last time at step $m$ and the current step is $n$. :yref:`NewtonIntegrator` tracks maximum distance traversed by particles (via maximum velocity magnitudes $\curr{v_{\rm max}}=\max |\curr{\dot{u}_i}|$ in each step, with the initial cummulative distance $L_{\rm max}=0$,
+In Yade, this is achieved by enlarging :ref:`Aabb` of particles by fixed relative length in all dimensions $\Delta L$ (:ref:`InsertionSortCollider.sweepLength`). Suppose the collider run last time at step $m$ and the current step is $n$. :ref:`NewtonIntegrator` tracks maximum distance traversed by particles (via maximum velocity magnitudes $\curr{v_{\rm max}}=\max |\curr{\dot{u}_i}|$ in each step, with the initial cummulative distance $L_{\rm max}=0$,
 
 .. math:: \curr{L_{\rm max}}&=\prev{L_{\rm max}}+\curr{v_{\rm max}}\curr{\Dt}
   :label: eq-verlet-l0
@@ -165,7 +165,7 @@ triggering the collider re-run as soon as
 
 The disadvantage of this approach is that even one fast particle determines $\curr{v_{\rm max}}$.
 
-A solution is to track maxima per particle groups. The possibility of tracking each particle separately (that is what `ESyS-Particle <http://www.launchpad.net/esys-particle>`_ does) seemed to us too fine-grained. Instead, we assign particles to $b_n$ (:yref:`InsertionSortCollider.nBins`) *velocity bins* based on their current velocity magnitude. The bins' limit values are geometrical with the coefficient $b_c>1$ (:yref:`InsertionSortCollider.binCoeff`), the maximum velocity being the current global velocity maximum $\curr{v_{\rm max}}$ (with some constraints on its change rate, to avoid large oscillations); for bin $i\in\{0,\dots,b_n\}$ and particle $j$:
+A solution is to track maxima per particle groups. The possibility of tracking each particle separately (that is what `ESyS-Particle <http://www.launchpad.net/esys-particle>`_ does) seemed to us too fine-grained. Instead, we assign particles to $b_n$ (:ref:`InsertionSortCollider.nBins`) *velocity bins* based on their current velocity magnitude. The bins' limit values are geometrical with the coefficient $b_c>1$ (:ref:`InsertionSortCollider.binCoeff`), the maximum velocity being the current global velocity maximum $\curr{v_{\rm max}}$ (with some constraints on its change rate, to avoid large oscillations); for bin $i\in\{0,\dots,b_n\}$ and particle $j$:
 
 .. math:: \curr{v_{\rm max}} b_c^{-(i+1)}\leq |\curr{\dot{u}_j}| < v_{\rm max} b_c^{-i}.
 
@@ -173,14 +173,14 @@ A solution is to track maxima per particle groups. The possibility of tracking e
 
 Particles in high-speed oscillatory motion could be put into a slow bin if they happen to be at the point where their instantaneous speed is low, causing the necessity of early collider re-run. This is avoided by allowing particles to only go slower by one bin rather than several at once.
 
-Results of using Verlet distance depend highly on the nature of simulation and choice of parameters :yref:`InsertionSortCollider.nBins` and :yref:`InsertionSortColldier.binCoeff`. The binning algorithm was specifically designed for simulating local fracture of larger concrete specimen; in that way, only particles in the fracturing zone, with greater velocities, had the :yref:`Aabb`'s enlarged, without affecting quasi-still particles outside of this zone. In such cases, up to 50% overall computation time savings were observed, collider being run every ≈100 steps in average.
+Results of using Verlet distance depend highly on the nature of simulation and choice of parameters :ref:`InsertionSortCollider.nBins` and :ref:`InsertionSortColldier.binCoeff`. The binning algorithm was specifically designed for simulating local fracture of larger concrete specimen; in that way, only particles in the fracturing zone, with greater velocities, had the :ref:`Aabb`'s enlarged, without affecting quasi-still particles outside of this zone. In such cases, up to 50% overall computation time savings were observed, collider being run every ≈100 steps in average.
 
 
 Creating interaction between particles
 ================================================
-Collision detection described above is only approximate. Exact collision detection depends on the geometry of individual particles and is handled separately. In Yade terminology, the :yref:`Collider` creates only *potential* interactions; potential interactions are evaluated exactly using specialized algorithms for collision of two spheres or other combinations. Exact collision detection must be run at every timestep since it is at every step that particles can change their mutual position (the collider is only run sometimes if the Verlet distance optimization is in use). Some exact collision detection algorithms are described in :ref:`sect-strain-evaluation`; in Yade, they are implemented in classes deriving from :yref:`IGeomFunctor` (prefixed with ``Ig2``).
+Collision detection described above is only approximate. Exact collision detection depends on the geometry of individual particles and is handled separately. In Yade terminology, the :ref:`Collider` creates only *potential* interactions; potential interactions are evaluated exactly using specialized algorithms for collision of two spheres or other combinations. Exact collision detection must be run at every timestep since it is at every step that particles can change their mutual position (the collider is only run sometimes if the Verlet distance optimization is in use). Some exact collision detection algorithms are described in :ref:`sect-strain-evaluation`; in Yade, they are implemented in classes deriving from :ref:`IGeomFunctor` (prefixed with ``Ig2``).
 		
-Besides detection of geometrical overlap (which corresponds to :yref:`IGeom` in Yade), there are also non-geometrical properties of the interaction to be determined (:yref:`IPhys`). In Yade, they are computed for every new interaction by calling a functor deriving from :yref:`IPhysFunctor` (prefixed with ``Ip2``) which accepts the given combination of :yref:`Material` types of both particles.
+Besides detection of geometrical overlap (which corresponds to :ref:`IGeom` in Yade), there are also non-geometrical properties of the interaction to be determined (:ref:`IPhys`). In Yade, they are computed for every new interaction by calling a functor deriving from :ref:`IPhysFunctor` (prefixed with ``Ip2``) which accepts the given combination of :ref:`Material` types of both particles.
 
 Stiffnesses
 -----------
@@ -213,15 +213,15 @@ Let us define distance $l=l_1+l_2$, where $l_i$ are distances between contact po
 		K_N&=\frac{E_1 \tilde l_1 E_2 \tilde l_2}{E_1\tilde l_1+E_2\tilde l_2}
 	\end{align*}
 
-The most used class computing interaction properties :yref:`Ip2_FrictMat_FrictMat_FrictPhys` uses $\tilde l_i=2r_i$.
+The most used class computing interaction properties :ref:`Ip2_FrictMat_FrictMat_FrictPhys` uses $\tilde l_i=2r_i$.
 				
-Some formulations define an equivalent cross-section $A_{\rm eq}$, which in that case appears in the $\tilde l_i$ term as $K_i=E_i\tilde l_i=E_i\frac{A_{\rm eq}}{l_i}$. Such is the case for the concrete model (:yref:`Ip2_CpmMat_CpmMat_CpmPhys`), where $A_{\rm eq}=\min(r_1,r_2)$.
+Some formulations define an equivalent cross-section $A_{\rm eq}$, which in that case appears in the $\tilde l_i$ term as $K_i=E_i\tilde l_i=E_i\frac{A_{\rm eq}}{l_i}$. Such is the case for the concrete model (:ref:`Ip2_CpmMat_CpmMat_CpmPhys`), where $A_{\rm eq}=\min(r_1,r_2)$.
 				
 For reasons given above, no pretense about equality of particle-level $E_i$ and macroscopic modulus $E$ should be made. Some formulations, such as [Hentz2003]_, introduce parameters to match them numerically. This is not appropriate, in our opinion, since it binds those values to particular features of the sphere arrangement that was used for calibration.
 
 Other parameters
 ----------------
-Non-elastic parameters differ for various material models. Usually, though, they are averaged from the particles' material properties, if it makes sense. For instance, :yref:`Ip2_CpmMat_CpmMat_CpmPhys` averages most quantities, while :yref:`Ip2_FrictMat_FrictMat_FrictPhys` computes internal friction angle as $\phi=\min(\phi_1,\phi_2)$ to avoid friction with bodies that are frictionless.
+Non-elastic parameters differ for various material models. Usually, though, they are averaged from the particles' material properties, if it makes sense. For instance, :ref:`Ip2_CpmMat_CpmMat_CpmPhys` averages most quantities, while :ref:`Ip2_FrictMat_FrictMat_FrictPhys` computes internal friction angle as $\phi=\min(\phi_1,\phi_2)$ to avoid friction with bodies that are frictionless.
 
 .. _sect-strain-evaluation:
 
@@ -265,11 +265,11 @@ Distances $d_1$ and $d_2$ define reduced (or expanded) radii of spheres; geometr
 .. math:: d_0&\leq R_I(r_1+r_2).
 	:label: eq-strain-interaction-radius
 
-The value of $R_I$ directly influences the average number of interactions per sphere (percolation), which for some models is necessary in order to achieve realistic results. In such cases, :yref:`Aabb` (or $\tilde P_i$ predicates in general) must be enlarged accordingly (:yref:`Bo1_Sphere_Aabb.aabbEnlargeFactor`).
+The value of $R_I$ directly influences the average number of interactions per sphere (percolation), which for some models is necessary in order to achieve realistic results. In such cases, :ref:`Aabb` (or $\tilde P_i$ predicates in general) must be enlarged accordingly (:ref:`Bo1_Sphere_Aabb.aabbEnlargeFactor`).
 
 Contact cross-section
 """""""""""""""""""""
-Some constitutive laws are formulated with strains and stresses (:yref:`Law2_Dem3DofGeom_CpmPhys_Cpm`, the concrete model described later, for instance); in that case, equivalent cross-section of the contact must be introduced for the sake of dimensionality. The exact definition is rather arbitrary; the CPM model (:yref:`Ip2_CpmMat_CpmMat_CpmPhys`) uses the relation
+Some constitutive laws are formulated with strains and stresses (:ref:`Law2_Dem3DofGeom_CpmPhys_Cpm`, the concrete model described later, for instance); in that case, equivalent cross-section of the contact must be introduced for the sake of dimensionality. The exact definition is rather arbitrary; the CPM model (:ref:`Ip2_CpmMat_CpmMat_CpmPhys`) uses the relation
 
 .. math:: A_{\rm eq}=\pi\min(r_1,r_2)^2
 	:label: eq-strain-crosssection
@@ -315,7 +315,7 @@ For massively compressive simulations, it might be beneficial to use the logarit
 		\frac{|\currC_2-\currC_1|}{d_0}-1 & \hbox{otherwise.}
 	\end{cases}
 
-Such definition, however, has the disadvantage of effectively increasing rigidity (up to infinity) of contacts, requiring $\Dt$ to be adjusted, lest the simulation becomes unstable. Such dynamic adjustment is possible using a stiffness-based time-stepper (:yref:`GlobalStiffnessTimeStepper` in Yade).
+Such definition, however, has the disadvantage of effectively increasing rigidity (up to infinity) of contacts, requiring $\Dt$ to be adjusted, lest the simulation becomes unstable. Such dynamic adjustment is possible using a stiffness-based time-stepper (:ref:`GlobalStiffnessTimeStepper` in Yade).
 
 Shear strain
 -------------
@@ -332,7 +332,7 @@ Geometrical meaning of shear strain is shown in `fig-shear-2d`_.
 
 Incremental algorithm
 ^^^^^^^^^^^^^^^^^^^^^
-The incremental algorithm is widely used in DEM codes and is described frequently ([Luding2008]_, [Alonso2004]_). Yade implements this algorithm in the :yref:`ScGeom` class. At each step, shear displacement $\uT$ is updated; the update increment can be decomposed in 2 parts: motion of the interaction (i.e. $\vec{C}$ and $\vec{n}$) in global space and mutual motion of spheres.
+The incremental algorithm is widely used in DEM codes and is described frequently ([Luding2008]_, [Alonso2004]_). Yade implements this algorithm in the :ref:`ScGeom` class. At each step, shear displacement $\uT$ is updated; the update increment can be decomposed in 2 parts: motion of the interaction (i.e. $\vec{C}$ and $\vec{n}$) in global space and mutual motion of spheres.
 
 #. Contact moves dues to changes of the spheres' positions $\vec{C}_1$ and $\vec{C}_2$, which updates current $\currC$ and $\currn$ as per :eq:`eq-contact-point` and :eq:`eq-contact-normal`. $\prevuT$ is perpendicular to the contact plane at the previous step $\prevn$ and must be updated so that $\prevuT+(\Delta\uT)=\curruT\perp\currn$; this is done by perpendicular projection to the plane first (which might decrease $|\uT|$) and adding what corresponds to spatial rotation of the interaction instead:
   
@@ -426,18 +426,18 @@ When using material law with plasticity in shear, it may be necessary to limit m
 
 	Shear plastic slip for two spheres.
 
-This algorithm is straightforwardly modified to facet-sphere interactions. In Yade, it is implemented by :yref:`Dem3DofGeom` and related classes.
+This algorithm is straightforwardly modified to facet-sphere interactions. In Yade, it is implemented by :ref:`Dem3DofGeom` and related classes.
 
 .. _sect-formulation-stress-cundall:
 Stress evaluation (example)
 ===========================
 Once strain on a contact is computed, it can be used to compute stresses/forces acting on both spheres.
 
-The constitutive law presented here is the most usual DEM formulation, originally proposed by Cundall. While the strain evaluation will be similar to algorithms described in the previous section regardless of stress evaluation, stress evaluation itself depends on the nature of the material being modeled. The constitutive law presented here is the most simple non-cohesive elastic case with dry friction, which Yade implements in :yref:`Law2_Dem3DofGeom_FrictPhys_Basic` (all constitutive laws derive from base class :yref:`LawFunctor`).
+The constitutive law presented here is the most usual DEM formulation, originally proposed by Cundall. While the strain evaluation will be similar to algorithms described in the previous section regardless of stress evaluation, stress evaluation itself depends on the nature of the material being modeled. The constitutive law presented here is the most simple non-cohesive elastic case with dry friction, which Yade implements in :ref:`Law2_Dem3DofGeom_FrictPhys_Basic` (all constitutive laws derive from base class :ref:`LawFunctor`).
 		
 In DEM generally, some constitutive laws are expressed using strains and stresses while others prefer displacement/force formulation. The law described here falls in the latter category.
 
-When new contact is established (discussed in :ref:`sect-simulation-loop`) it has its properties (:yref:`IPhys`) computed from :yref:`Materials<Material>` associated with both particles. In the simple case of frictional material :yref:`FrictMat`, :yref:`Ip2_FrictMat_FrictMat_FrictPhys` creates a new :yref:`FrictPhys` instance, which defines normal stiffness $K_N$, shear stiffness $K_T$ and friction angle $\phi$.
+When new contact is established (discussed in :ref:`sect-simulation-loop`) it has its properties (:ref:`IPhys`) computed from :ref:`Materials<Material>` associated with both particles. In the simple case of frictional material :ref:`FrictMat`, :ref:`Ip2_FrictMat_FrictMat_FrictPhys` creates a new :ref:`FrictPhys` instance, which defines normal stiffness $K_N$, shear stiffness $K_T$ and friction angle $\phi$.
 
 At each step, given normal and shear displacements $u_N$, $\uT$, normal and shear forces are computed (if $u_N>0$, the contact is deleted without generating any forces):
 
@@ -476,7 +476,7 @@ Each particle accumulates generalized forces (forces and torques) from the conta
 
 The customary leapfrog scheme (also known as the Verlet scheme) is used, with some adjustments for rotation of non-spherical particles, as explained below. The "leapfrog" name comes from the fact that even derivatives of position/orientation are known at on-step points, whereas odd derivatives are known at mid-step points. Let us recall that we use $\prev{a}$, $\curr{a}$, $\next{a}$ for on-step values of $a$ at $t-\Dt$, $t$ and $t+\Dt$ respectively; and $\pprev{a}$, $\nnext{a}$ for mid-step values of $a$ at $t-\Dt/2$, $t+\Dt/2$.
 		
-Described integration algorithms are implemented in the :yref:`NewtonIntegrator` class in Yade.
+Described integration algorithms are implemented in the :ref:`NewtonIntegrator` class in Yade.
 
 Position
 ----------
@@ -613,7 +613,7 @@ Clumps (rigid aggregates)
 -------------------------
 DEM simulations frequently make use of rigid aggregates of particles to model complex shapes [Price2007]_ called *clumps*, typically composed of many spheres. Dynamic properties of clumps are computed from the properties of its members: the clump's mass $m_c$ is summed over members, the inertia tensor $\mathbf{I}_c$ with respect to the clump's centroid is computed using the parallel axes theorem; local axes are oriented such that they are principal and inertia tensor is diagonal and clump's orientation is changed to compensate rotation of the local system, as to not change the clump members' positions in global space. Initial positions and orientations of all clump members in local coordinate system are stored.
 
-In Yade (class :yref:`Clump`), clump members behave as stand-alone particles during simulation for purposes of collision detection and contact resolution, except that they have no contacts created among themselves within one clump. It is at the stage of motion integration that they are treated specially. Instead of integrating each of them separately, forces/torques on those particles $\vec{F}_i$, $\vec{T}_i$ are converted to forces/torques on the clump itself. Let us denote $r_i$ relative position of each particle with regards to clump's centroid, in global orientation. Then summary force and torque on the clump are
+In Yade (class :ref:`Clump`), clump members behave as stand-alone particles during simulation for purposes of collision detection and contact resolution, except that they have no contacts created among themselves within one clump. It is at the stage of motion integration that they are treated specially. Instead of integrating each of them separately, forces/torques on those particles $\vec{F}_i$, $\vec{T}_i$ are converted to forces/torques on the clump itself. Let us denote $r_i$ relative position of each particle with regards to clump's centroid, in global orientation. Then summary force and torque on the clump are
 
 .. math::
 	:nowrap:
@@ -627,7 +627,7 @@ Motion of the clump is then integrated, using aspherical rotation integration. A
 
 Numerical damping
 -----------------
-In simulations of quasi-static phenomena, it it desirable to dissipate kinetic energy of particles. Since most constitutive laws (including :yref:`Law_ScGeom_FrictPhys_Basic` shown above, :ref:`sect-formulation-stress-cundall`) do not include velocity-based damping (such as one in [Addetta2001]_), it is possible to use artificial numerical damping. The formulation is described in [Pfc3dManual30]_, although our version is slightly adapted. The basic idea is to decrease forces which increase the particle velocities and vice versa by $(\Delta F)_d$, comparing the current acceleration sense and particle velocity sense. This is done by component, which makes the damping scheme clearly non-physical, as it is not invariant with respect to coordinate system rotation; on the other hand, it is very easy to compute. Cundall proposed the form (we omit particle indices $i$ since it applies to all of them separately):
+In simulations of quasi-static phenomena, it it desirable to dissipate kinetic energy of particles. Since most constitutive laws (including :ref:`Law_ScGeom_FrictPhys_Basic` shown above, :ref:`sect-formulation-stress-cundall`) do not include velocity-based damping (such as one in [Addetta2001]_), it is possible to use artificial numerical damping. The formulation is described in [Pfc3dManual30]_, although our version is slightly adapted. The basic idea is to decrease forces which increase the particle velocities and vice versa by $(\Delta F)_d$, comparing the current acceleration sense and particle velocity sense. This is done by component, which makes the damping scheme clearly non-physical, as it is not invariant with respect to coordinate system rotation; on the other hand, it is very easy to compute. Cundall proposed the form (we omit particle indices $i$ since it applies to all of them separately):
 
 .. math:: \frac{(\Delta \vec{F})_{dw}}{\vec{F}_w}=-\lambda_d\sign(\vec{F}_w\pprev{\dot{\vec{u}}}_{w}),\quad w\in\{x,y,z\}
 
@@ -646,7 +646,7 @@ In Yade, we use the adapted form
 
 where we replaced the previous mid-step velocity $\pprev{\dot{u}}$ by its on-step estimate in parentheses. This is to avoid locked-in forces that appear if the velocity changes its sign due to force application at each step, i.e. when the particle in question oscillates around the position of equilibrium with $2\Dt$ period.
 
-In Yade, damping :eq:`eq-damping-yade` is implemented in the :yref:`NewtonIntegrator` engine; the damping coefficient $\lambda_d$ is :yref:`NewtonIntegrator.damping`.
+In Yade, damping :eq:`eq-damping-yade` is implemented in the :ref:`NewtonIntegrator` engine; the damping coefficient $\lambda_d$ is :ref:`NewtonIntegrator.damping`.
 
 .. _sect-formulation-dt:
 Stability considerations
@@ -723,7 +723,7 @@ In DEM simulations, per-particle stiffness $\vec{K}_{ij}$ is determined from the
 	
 	\vec{K}_{ij}=\sum_k (K_{Nk}-K_{Tk})\vec{n}_{i}\vec{n}_{j}+K_{Tk}=\sum_j K_{Nk}\left((1-\xi)\vec{n}_{i}\vec{n}_{j}+\xi\right)
 
-with $i$ and $j\in\{x,y,z\}$. Equations :eq:`eq-dtcr-axes` and :eq:`eq-dtcr-particle-stiffness` determine $\Dtcr$ in a simulation. A similar approach generalized to all 6 DOFs is implemented by the :yref:`GlobalStiffnessTimeStepper` engine in Yade. The derivation of generalized stiffness including rotational terms is very similar but not developped here, for simplicity. For full reference, see "PFC3D - Theoretical Background".
+with $i$ and $j\in\{x,y,z\}$. Equations :eq:`eq-dtcr-axes` and :eq:`eq-dtcr-particle-stiffness` determine $\Dtcr$ in a simulation. A similar approach generalized to all 6 DOFs is implemented by the :ref:`GlobalStiffnessTimeStepper` engine in Yade. The derivation of generalized stiffness including rotational terms is very similar but not developped here, for simplicity. For full reference, see "PFC3D - Theoretical Background".
 					
 Note that for computation efficiency reasons, eigenvalues of the stiffness matrices are not computed. They are only approximated assuming than DOF's are uncoupled, and using diagonal terms of $K.M^{-1}$. They give good approximates in typical mechanical systems.
 
@@ -736,7 +736,7 @@ Estimation of $\Dtcr$ by wave propagation speed
 		
 Estimating timestep in absence of interactions is based on the connection between interaction stiffnesses and the particle's properties. Note that in this section, symbols $E$ and $\rho$ refer exceptionally to Young's modulus and density of *particles*, not of macroscopic arrangement.
 			 
-In Yade, particles have associated :yref:`Material` which defines density $\rho$ (:yref:`Material.density`), and also may define (in :yref:`ElastMat` and derived classes) particle's "Young's modulus" $E$ (:yref:`ElastMat.young`). $\rho$ is used when particle's mass $m$ is initially computed from its $\rho$, while $E$ is taken in account when creating new interaction between particles, affecting stiffness $K_N$. Knowing $m$ and $K_N$, we can estimate :eq:`eq-dtcr-particle-stiffness` for each particle; we obviously neglect 
+In Yade, particles have associated :ref:`Material` which defines density $\rho$ (:ref:`Material.density`), and also may define (in :ref:`ElastMat` and derived classes) particle's "Young's modulus" $E$ (:ref:`ElastMat.young`). $\rho$ is used when particle's mass $m$ is initially computed from its $\rho$, while $E$ is taken in account when creating new interaction between particles, affecting stiffness $K_N$. Knowing $m$ and $K_N$, we can estimate :eq:`eq-dtcr-particle-stiffness` for each particle; we obviously neglect 
 
 * number of interactions per particle $N_i$; for a "reasonable" radius distribution, however, there is a geometrically imposed upper limit (6 for a packing of spheres with equal radii, for instance);
 * the exact relationship the between particles' rigidities $E_i$, $E_j$, supposing only that $K_N$ is somehow proportional to them.
@@ -747,11 +747,11 @@ By defining $E$ and $\rho$, particles have continuum-like quantities. Explicit i
 
 For our purposes, we define $E$ and $\rho$ for each particle separately; $l_{\rm min}$ can be replaced by the sphere's radius $R_i$; technically, $l_{\rm min}=2R_i$ could be used, but because of possible interactions of spheres and facets (which have zero thickness), we consider $l_{\rm min}=R_i$ instead. Then
 
-.. FIXME Why not by sphere's diameter instead? We could say it is because :yref:`Sphere`-:yref:`Facet` interaction which has half length?
+.. FIXME Why not by sphere's diameter instead? We could say it is because :ref:`Sphere`-:ref:`Facet` interaction which has half length?
 
 .. math:: \Dtcr^{(p)}=\min_i R_i \sqrt{\frac{\rho_i}{E_i}}.
 
-This algorithm is implemented in the :yref:`yade.utils.PWaveTimeStep` function.
+This algorithm is implemented in the :ref:`yade.utils.PWaveTimeStep` function.
 	
 Let us compare this result to :eq:`eq-dtcr-global`; this necessitates making several simplifying hypotheses:
 
@@ -767,7 +767,7 @@ Let us compare this result to :eq:`eq-dtcr-global`; this necessitates making sev
 
      K_N=E\pi'R',
 
-  where $\pi'$ is some constant depending on the algorithm in use\footnote{For example, $\pi'=\pi/2$ in the concrete particle model (:yref:`Ip2_CpmMat_CpmMat_CpmPhys`), while $\pi'=2$ in the classical DEM model (:yref:`Ip2_FrictMat_FrictMat_FrictPhys`) as implemented in Yade.} and $R'$ is half-distance between spheres in contact, equal to $R$ for the case of interaction radius $R_I=1$. If $R_I=1$ (and $R'\equiv R$ by consequence), all interactions will have the same stiffness $K_N$. In other cases, we will consider $K_N$ as the average stiffness computed from average $R'$ (see below).
+  where $\pi'$ is some constant depending on the algorithm in use\footnote{For example, $\pi'=\pi/2$ in the concrete particle model (:ref:`Ip2_CpmMat_CpmMat_CpmPhys`), while $\pi'=2$ in the classical DEM model (:ref:`Ip2_FrictMat_FrictMat_FrictPhys`) as implemented in Yade.} and $R'$ is half-distance between spheres in contact, equal to $R$ for the case of interaction radius $R_I=1$. If $R_I=1$ (and $R'\equiv R$ by consequence), all interactions will have the same stiffness $K_N$. In other cases, we will consider $K_N$ as the average stiffness computed from average $R'$ (see below).
 
 As all particles have the same parameters, we drop the $i$ index in the following formulas.
 	
@@ -817,7 +817,7 @@ Concrete particle model
    showing significant overestimation by the p-wave algorithm.
                   
 Non-cohesive dry friction model
-   is the basic model proposed by Cundall explained in \ref{sect-formulation-stress-cundall}. Supposing almost-constant sphere radius $R$ and rather dense packing, each sphere will have $N=6$ interactions on average (that corresponds to maximally dense packing of spheres with a constant radius). If we use the :yref:`Ip2_FrictMat_FrictMat_FrictPhys` class, we have $\pi'=2$, as $K_N=E2R$; we again use $\xi=0.2$ (for lack of a more significant value). In this case, we obtain the result
+   is the basic model proposed by Cundall explained in \ref{sect-formulation-stress-cundall}. Supposing almost-constant sphere radius $R$ and rather dense packing, each sphere will have $N=6$ interactions on average (that corresponds to maximally dense packing of spheres with a constant radius). If we use the :ref:`Ip2_FrictMat_FrictMat_FrictPhys` class, we have $\pi'=2$, as $K_N=E2R$; we again use $\xi=0.2$ (for lack of a more significant value). In this case, we obtain the result
 
    .. math:: \frac{\Dtcr^{(p)}}{\Dtcr}=2\sqrt{\frac{6(1-2\cdot0.2)}{\pi/2}}=3.02
 
@@ -831,28 +831,28 @@ Let us note at this place that not only $\Dtcr$ assuring numerical stability of 
 
 .. 	http://books.google.cz/books?id=_KTsjCZtt_EC&lpg=PP1&ots=nK0B4wui2F&dq=stability%20analysis&pg=PR5#v=onepage&q&f=false
 
-..			The leap-frog integration scheme assumes constant $\Dt$. Although this is typically the case, and even dynamic time-stepping techniques such as :yref:`GlobalStiffnessTimeStepper` change $\Dt$ infrequently, big changes in timestep could destabilize the integration [Skeel1993]_.
+..			The leap-frog integration scheme assumes constant $\Dt$. Although this is typically the case, and even dynamic time-stepping techniques such as :ref:`GlobalStiffnessTimeStepper` change $\Dt$ infrequently, big changes in timestep could destabilize the integration [Skeel1993]_.
 
 Periodic boundary conditions
 ============================
-While most DEM simulations happen in $R^3$ space, it is frequently useful to avoid boundary effects by using periodic space instead. In order to satisfy periodicity conditions, periodic space is created by repetition of parallelepiped-shaped cell. In Yade, periodic space is implemented in the :yref:`Cell` class. The geometry of the cell in the reference coordinates system is defined by three edges of the parallepiped. The corresponding base vectors are stored in the columns of matrix $\mat{H}$ (:yref:`Cell.hSize`).
+While most DEM simulations happen in $R^3$ space, it is frequently useful to avoid boundary effects by using periodic space instead. In order to satisfy periodicity conditions, periodic space is created by repetition of parallelepiped-shaped cell. In Yade, periodic space is implemented in the :ref:`Cell` class. The geometry of the cell in the reference coordinates system is defined by three edges of the parallepiped. The corresponding base vectors are stored in the columns of matrix $\mat{H}$ (:ref:`Cell.hSize`).
 
 The initial $\mat{H}$ can be explicitely defined as a 3x3 matrix at the begining of the simulation. There are no restricitions on the possible shapes: any parallelepiped is accepted as the initial cell.
-If the base vectors are axis-aligned, defining only their sizes can be more convenient than defining the full $\mat{H}$ matrix; in that case it is enough to define the norms of columns in $\mat{H}$ (see :yref:`Cell.size`).
+If the base vectors are axis-aligned, defining only their sizes can be more convenient than defining the full $\mat{H}$ matrix; in that case it is enough to define the norms of columns in $\mat{H}$ (see :ref:`Cell.size`).
 
-After the definition of the initial cell's geometry, $\mat{H}$ should generally not be modified by direct assignment. Instead, its deformation rate will be defined via the velocity gradient :yref:`Cell.velGrad` described below. It is the only variable that let the period deformation be correctly accounted for in constitutive laws and Newton integrator (:yref:`NewtonIntegrator`).
+After the definition of the initial cell's geometry, $\mat{H}$ should generally not be modified by direct assignment. Instead, its deformation rate will be defined via the velocity gradient :ref:`Cell.velGrad` described below. It is the only variable that let the period deformation be correctly accounted for in constitutive laws and Newton integrator (:ref:`NewtonIntegrator`).
 
 Deformations handling
 ---------------------
-The deformation of the cell over time is defined via a matrix representing the gradient of an homogeneous velocity field $\nabla \vec{v}$ (:yref:`Cell.velGrad`). This gradient represents arbitrary combinations of rotations and stretches. It can be imposed externaly or updated by :yref:`boundary controllers <BoundaryController>` (see :yref:`PeriTriaxController` or :yref:`Peri3dController`) in order to reach target strain values or to maintain some prescribed stress.
+The deformation of the cell over time is defined via a matrix representing the gradient of an homogeneous velocity field $\nabla \vec{v}$ (:ref:`Cell.velGrad`). This gradient represents arbitrary combinations of rotations and stretches. It can be imposed externaly or updated by :ref:`boundary controllers <BoundaryController>` (see :ref:`PeriTriaxController` or :ref:`Peri3dController`) in order to reach target strain values or to maintain some prescribed stress.
 
-The velocity gradient is integrated automatically over time, and the cumulated transformation is reflected in the transformation matrix $\mat{F}$ (:yref:`Cell.trsf`) and the current shape of the cell $\mat{H}$. The per-step transformation update reads (it is similar for $\mat{H}$), with $I$ the identity matrix:
+The velocity gradient is integrated automatically over time, and the cumulated transformation is reflected in the transformation matrix $\mat{F}$ (:ref:`Cell.trsf`) and the current shape of the cell $\mat{H}$. The per-step transformation update reads (it is similar for $\mat{H}$), with $I$ the identity matrix:
 
 .. math:: \next{\mat{F}}=(I+\nabla \vec{v} \Dt)\curr{\mat{F}}.
 
 $\mat{F}$ can be set back to identity at any point in simulations, in order to define the current state as reference for strains definition in boundary controllers. It will have no effect on $\mat{H}$.
 
-Along with the automatic integration of cell transformation, there is an option to homothetically displace all particles so that $\nabla \vec{v}$ is applied over the whole simulation (enabled via :yref:`Cell.homoDeform`). This avoids all boundary effects coming from change of the velocity gradient.
+Along with the automatic integration of cell transformation, there is an option to homothetically displace all particles so that $\nabla \vec{v}$ is applied over the whole simulation (enabled via :ref:`Cell.homoDeform`). This avoids all boundary effects coming from change of the velocity gradient.
 
 Collision detection in periodic cell
 ------------------------------------
@@ -863,33 +863,33 @@ In usual implementations, particle positions are forced to be inside the cell by
 
 Approximate collision detection
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Pass 1 collision detection (based on sweep and prune algorithm, sect.~\ref{sect-sweep-and-prune}) operates on axis-aligned bounding boxes (:yref:`Aabb`) of particles. During the collision detection phase, bounds of all :yref:`Aabb's<Aabb>` are wrapped inside the cell in the first step. At subsequent runs, every bound remembers by how many cells it was initially shifted from coordinate given by the :yref:`Aabb` and uses this offset repeatedly as it is being updated from :yref:`Aabb` during particle's motion. Bounds are sorted using the periodic insertion sort algorithm (sect.~\ref{sect-periodic-insertion-sort}), which tracks periodic cell boundary $||$.
+Pass 1 collision detection (based on sweep and prune algorithm, sect.~\ref{sect-sweep-and-prune}) operates on axis-aligned bounding boxes (:ref:`Aabb`) of particles. During the collision detection phase, bounds of all :ref:`Aabb's<Aabb>` are wrapped inside the cell in the first step. At subsequent runs, every bound remembers by how many cells it was initially shifted from coordinate given by the :ref:`Aabb` and uses this offset repeatedly as it is being updated from :ref:`Aabb` during particle's motion. Bounds are sorted using the periodic insertion sort algorithm (sect.~\ref{sect-periodic-insertion-sort}), which tracks periodic cell boundary $||$.
 
-Upon inversion of two :yref:`Aabb`'s, their collision along all three axes is checked, wrapping real coordinates inside the cell for that purpose.
+Upon inversion of two :ref:`Aabb`'s, their collision along all three axes is checked, wrapping real coordinates inside the cell for that purpose.
 
 This algorithm detects collisions as if all particles were inside the cell but without the need of constructing "ghost particles" (to represent periodic image of a particle which enters the cell from the other side) or changing the particle's positions.
 
-It is required by the implementation (and partly by the algorithm itself) that particles do not span more than half of the current cell size along any axis; the reason is that otherwise two (or more) contacts between both particles could appear, on each side. Since Yade identifies contacts by :yref:`Body.id` of both bodies, they would not be distinguishable.
+It is required by the implementation (and partly by the algorithm itself) that particles do not span more than half of the current cell size along any axis; the reason is that otherwise two (or more) contacts between both particles could appear, on each side. Since Yade identifies contacts by :ref:`Body.id` of both bodies, they would not be distinguishable.
 
-In presence of shear, the sweep-and-prune collider could not sort bounds independently along three axes: collision along $x$ axis depends on the mutual position of particles on the $y$ axis. Therefore, bounding boxes *are expressed in transformed coordinates* which are perpendicular in the sense of collision detection. This requires some extra computation: :yref:`Aabb` of sphere in transformed coordinates will no longer be cube, but cuboid, as the sphere itself will appear as ellipsoid after transformation. Inversely, the sphere in simulation space will have a parallelepiped bounding "box", which is cuboid around the ellipsoid in transformed axes (the :yref:`Aabb` has axes aligned with transformed cell basis). This is shown in fig. `fig-cell-shear-aabb`_.
+In presence of shear, the sweep-and-prune collider could not sort bounds independently along three axes: collision along $x$ axis depends on the mutual position of particles on the $y$ axis. Therefore, bounding boxes *are expressed in transformed coordinates* which are perpendicular in the sense of collision detection. This requires some extra computation: :ref:`Aabb` of sphere in transformed coordinates will no longer be cube, but cuboid, as the sphere itself will appear as ellipsoid after transformation. Inversely, the sphere in simulation space will have a parallelepiped bounding "box", which is cuboid around the ellipsoid in transformed axes (the :ref:`Aabb` has axes aligned with transformed cell basis). This is shown in fig. `fig-cell-shear-aabb`_.
 
-The restriction of a single particle not spanning more than half of the transformed axis becomes stringent as :yref:`Aabb` is enlarged due to shear. Considering :yref:`Aabb` of a sphere with radius $r$ in the cell where $x'\equiv x$, $z'\equiv z$, but $\angle(y,y')=\phi$, the $x$-span of the :yref:`Aabb` will be multiplied by $1/\cos\phi$. For the infinite shear $\phi\to\pi/2$, which can be desirable to simulate, we have $1/\cos\phi \to \infty$. Fortunately, this limitation can be easily circumvented by realizing the quasi-identity of all periodic cells which, if repeated in space, create the same grid with their corners: the periodic cell can be flipped, keeping all particle interactions intact, as shown in fig. `fig-cell-flip`_. It only necessitates adjusting the :yref:`Interaction.cellDist` of interactions and re-initialization of the collider (``Collider::invalidatePersistentData``). Cell flipping is implemented in the :yref:`yade.utils.flipCell` function.
+The restriction of a single particle not spanning more than half of the transformed axis becomes stringent as :ref:`Aabb` is enlarged due to shear. Considering :ref:`Aabb` of a sphere with radius $r$ in the cell where $x'\equiv x$, $z'\equiv z$, but $\angle(y,y')=\phi$, the $x$-span of the :ref:`Aabb` will be multiplied by $1/\cos\phi$. For the infinite shear $\phi\to\pi/2$, which can be desirable to simulate, we have $1/\cos\phi \to \infty$. Fortunately, this limitation can be easily circumvented by realizing the quasi-identity of all periodic cells which, if repeated in space, create the same grid with their corners: the periodic cell can be flipped, keeping all particle interactions intact, as shown in fig. `fig-cell-flip`_. It only necessitates adjusting the :ref:`Interaction.cellDist` of interactions and re-initialization of the collider (``Collider::invalidatePersistentData``). Cell flipping is implemented in the :ref:`yade.utils.flipCell` function.
 
 .. _fig-cell-flip:
 .. figure:: fig/cell-flip.*
 	
-	Flipping cell (:yref:`yade.utils.flipCell`) to avoid infinite stretch of the bounding boxes' spans with growing $\phi$. Cell flip does not affect interactions from the point of view of the simulation. The periodic arrangement on the left is the same as the one on the right, only the cell is situated differently between identical grid points of repetition; at the same time $|\phi_2|<|\phi_1|$ and sphere bounding box's $x$-span stretched by $1/\cos\phi$ becomes smaller. Flipping can be repeated, making effective infinite shear possible.
+	Flipping cell (:ref:`yade.utils.flipCell`) to avoid infinite stretch of the bounding boxes' spans with growing $\phi$. Cell flip does not affect interactions from the point of view of the simulation. The periodic arrangement on the left is the same as the one on the right, only the cell is situated differently between identical grid points of repetition; at the same time $|\phi_2|<|\phi_1|$ and sphere bounding box's $x$-span stretched by $1/\cos\phi$ becomes smaller. Flipping can be repeated, making effective infinite shear possible.
 
-This algorithm is implemented in :yref:`InsertionSortCollider` and is used whenever simulation is periodic (:yref:`Omega.isPeriodic`); individual :yref:`BoundFunctor's<BoundFunctor>` are responsible for computing sheared :yref:`Aabb's<Aabb>`; currently it is implemented for spheres and facets (in :yref:`Bo1_Sphere_Aabb` and :yref:`Bo1_Facet_Aabb` respectively).
+This algorithm is implemented in :ref:`InsertionSortCollider` and is used whenever simulation is periodic (:ref:`Omega.isPeriodic`); individual :ref:`BoundFunctor's<BoundFunctor>` are responsible for computing sheared :ref:`Aabb's<Aabb>`; currently it is implemented for spheres and facets (in :ref:`Bo1_Sphere_Aabb` and :ref:`Bo1_Facet_Aabb` respectively).
 
 .. _fig-cell-shear-aabb:
 .. figure:: fig/cell-shear-aabb.pdf
    
-   Constructing axis-aligned bounding box (:yref:`Aabb`) of a sphere in simulation space coordinates (without periodic cell -- left) and transformed cell coordinates (right), where collision detection axes $x'$, $y'$ are not identical with simulation space axes $x$, $y$. Bounds' projection to axes is shown by orange lines.
+   Constructing axis-aligned bounding box (:ref:`Aabb`) of a sphere in simulation space coordinates (without periodic cell -- left) and transformed cell coordinates (right), where collision detection axes $x'$, $y'$ are not identical with simulation space axes $x$, $y$. Bounds' projection to axes is shown by orange lines.
 
 Exact collision detection
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-When the collider detects approximate contact (on the :yref:`Aabb` level) and the contact does not yet exist, it creates *potential* contact, which is subsequently checked by exact collision algorithms (depending on the combination of :yref:`Shapes<Shape>`). Since particles can interact over many periodic cells (recall we never change their positions in simulation space), the collider embeds the relative cell coordinate of particles in the interaction itself (:yref:`Interaction.cellDist`) as an *integer* vector $c$. Multiplying current cell size $\mat{T}\vec{s}$ by $c$ component-wise, we obtain particle offset $\Delta \vec{x}$ in aperiodic $R^3$; this value is passed (from :yref:`InteractionLoop`) to the functor computing exact collision (:yref:`IGeomFunctor`), which adds it to the position of the particle :yref:`Interaction.id2`.
+When the collider detects approximate contact (on the :ref:`Aabb` level) and the contact does not yet exist, it creates *potential* contact, which is subsequently checked by exact collision algorithms (depending on the combination of :ref:`Shapes<Shape>`). Since particles can interact over many periodic cells (recall we never change their positions in simulation space), the collider embeds the relative cell coordinate of particles in the interaction itself (:ref:`Interaction.cellDist`) as an *integer* vector $c$. Multiplying current cell size $\mat{T}\vec{s}$ by $c$ component-wise, we obtain particle offset $\Delta \vec{x}$ in aperiodic $R^3$; this value is passed (from :ref:`InteractionLoop`) to the functor computing exact collision (:ref:`IGeomFunctor`), which adds it to the position of the particle :ref:`Interaction.id2`.
 
 By storing the integral offset $c$, $\Delta\vec{x}$ automatically updates as cell parameters change.
 
@@ -898,9 +898,9 @@ Periodic insertion sort algorithm
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The extension of sweep and prune algorithm (described in :ref:`sect-sweep-and-prune`) to periodic boundary conditions is non-trivial. Its cornerstone is a periodic variant of the insertion sort algorithm, which involves keeping track of the "period" of each boundary; e.g. taking period $\langle 0,10)$, then $8_1\equiv-2_2<2_2$ (subscript indicating period). Doing so efficiently (without shuffling data in memory around as bound wraps from one period to another) requires moving period boundary rather than bounds themselves and making the comparison work transparently at the edge of the container.
 
-This algorithm was also extended to handle non-orthogonal periodic :yref:`Cell` boundaries by working in transformed rather than Cartesian coordinates; this modifies computation of :yref:`Aabb` from Cartesian coordinates in which bodies are positioned (treated in detail in :ref:`sect-cell-approx-collision`).
+This algorithm was also extended to handle non-orthogonal periodic :ref:`Cell` boundaries by working in transformed rather than Cartesian coordinates; this modifies computation of :ref:`Aabb` from Cartesian coordinates in which bodies are positioned (treated in detail in :ref:`sect-cell-approx-collision`).
 
-The sort algorithm is tracking :yref:`Aabb` extrema along all axes. At the collider's initialization, each value is assigned an integral period, i.e. its distance from the cell's interior expressed in the cell's dimension along its respective axis, and is wrapped to a value inside the cell. We put the period number in subscript.
+The sort algorithm is tracking :ref:`Aabb` extrema along all axes. At the collider's initialization, each value is assigned an integral period, i.e. its distance from the cell's interior expressed in the cell's dimension along its respective axis, and is wrapped to a value inside the cell. We put the period number in subscript.
 				
 Let us give an example of coordinate sequence along $x$ axis (in a real case, the number of elements would be even, as there is maximum and minimum value couple for each particle; this demonstration only shows the sorting algorithm, however.)
 
@@ -1011,7 +1011,7 @@ As forces generated by interactions are assigned to bodies in quasi-random order
 				
 Numerical damping influence
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The effect of summation order can be significantly amplified by the usage of a *discontinuous* damping function in :yref:`NewtonIntegrator` given in :eq:`eq-damping-yade` as
+The effect of summation order can be significantly amplified by the usage of a *discontinuous* damping function in :ref:`NewtonIntegrator` given in :eq:`eq-damping-yade` as
 
 .. math:: \frac{(\Delta\vec{F})_{dw}}{\vec{F}_w}=-\lambda_d\sign\vec{F}_w\left(\pprev{\dot{u}}_w+\frac{\curr{\ddot{\vec{u}}}_w\Dt}{2}\right).
 

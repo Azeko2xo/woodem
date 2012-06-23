@@ -4,7 +4,7 @@
 Creates geometry objects from facets.
 """
 
-from yade import *
+from woo import *
 from miniEigen import *
 import utils,math,numpy
 
@@ -18,7 +18,7 @@ def facetBox(center,extents,orientation=Quaternion.Identity,wallMask=63,**kw):
 	:param Vector3 extents: lengths of the box sides
 	:param Quaternion orientation: orientation of the box
 	:param bitmask wallMask: determines which walls will be created, in the order -x (1), +x (2), -y (4), +y (8), -z (16), +z (32). The numbers are ANDed; the default 63 means to create all walls
-	:param **kw: (unused keyword arguments) passed to :yref:`yade.utils.facet`
+	:param **kw: (unused keyword arguments) passed to :ref:`woo.utils.facet`
 	:returns: list of facets forming the box
 	"""
 

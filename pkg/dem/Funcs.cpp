@@ -21,7 +21,7 @@ std::tuple</*stress*/Matrix3r,/*stiffness*/Matrix6r> DemFuncs::stressStiffness(c
 		FrictPhys* phys=WOO_CAST<FrictPhys*>(C->phys.get());
 		if(C->pA->shape->nodes.size()!=1 || C->pB->shape->nodes.size()!=1){
 			if(skipMultinodal) continue;
-			else yade::ValueError("Particle "+lexical_cast<string>(C->pA->shape->nodes.size()!=1? C->pA->id : C->pB->id)+" has more than one node; to skip contacts with such particles, say skipMultinodal=True");
+			else woo::ValueError("Particle "+lexical_cast<string>(C->pA->shape->nodes.size()!=1? C->pA->id : C->pB->id)+" has more than one node; to skip contacts with such particles, say skipMultinodal=True");
 		}
 		// use current distance here
 		const Real d0=(C->pB->shape->nodes[0]->pos-C->pA->shape->nodes[0]->pos+(scene->isPeriodic?scene->cell->intrShiftPos(C->cellDist):Vector3r::Zero())).norm();
@@ -48,7 +48,7 @@ std::tuple</*stress*/Matrix3r,/*stiffness*/Matrix6r> DemFuncs::stressStiffness(c
 	for(int p=0;p<6;p++)for(int q=p+1;q<6;q++) K(q,p)=K(p,q); // symmetrize
 	if(volume<=0){
 		if(scene->isPeriodic) volume=scene->cell->getVolume();
-		else yade::ValueError("Positive volume value must be given for aperiodic simulations.");
+		else woo::ValueError("Positive volume value must be given for aperiodic simulations.");
 	}
 	stress/=volume; K/=volume;
 	return std::make_tuple(stress,K);
@@ -101,7 +101,7 @@ shared_ptr<Particle> DemFuncs::makeSphere(Real radius, const shared_ptr<Material
 vector<Vector2r> DemFuncs::boxPsd(const Scene* scene, const DemField* dem, const AlignedBox3r& box, bool mass, int num, int mask, Vector2r rRange){
 	bool haveBox=!isnan(box.min()[0]) && !isnan(box.max()[0]);
 	return psd(
-		*dem->particles|boost::adaptors::filtered([&](const shared_ptr<Particle>&p){ return p && p->shape && p->shape->nodes.size()==1 && (mask?(p->mask&mask):true) && (bool)(dynamic_pointer_cast<yade::Sphere>(p->shape)) && (haveBox?box.contains(p->shape->nodes[0]->pos):true); }),
+		*dem->particles|boost::adaptors::filtered([&](const shared_ptr<Particle>&p){ return p && p->shape && p->shape->nodes.size()==1 && (mask?(p->mask&mask):true) && (bool)(dynamic_pointer_cast<woo::Sphere>(p->shape)) && (haveBox?box.contains(p->shape->nodes[0]->pos):true); }),
 		/*cumulative*/true,/*normalize*/true,
 		num,
 		rRange,
@@ -115,7 +115,7 @@ vector<Vector2r> DemFuncs::psd(const vector<shared_ptr<Particle>>& pp, int num, 
 	if(isnan(rRange[0]) || isnan(rRange[1]) || rRange[0]<0 || rRange[1]<=0 || rRange[0]>=rRange[1]){
 		rRange=Vector2r(Inf,-Inf);
 		for(const shared_ptr<Particle>& p: pp){
-			if(!p || !p->shape || !dynamic_pointer_cast<yade::Sphere>(p->shape)) continue;
+			if(!p || !p->shape || !dynamic_pointer_cast<woo::Sphere>(p->shape)) continue;
 			Real r=p->shape->cast<Sphere>().radius;
 			if(r<rRange[0]) rRange[0]=r;
 			if(r>rRange[1]) rRange[1]=r;
@@ -125,7 +125,7 @@ vector<Vector2r> DemFuncs::psd(const vector<shared_ptr<Particle>>& pp, int num, 
 	vector<Vector2r> ret(num,Vector2r::Zero());
 	size_t nPar=0;
 	for(const shared_ptr<Particle>& p: pp){
-		if(!p || !p->shape || !dynamic_pointer_cast<yade::Sphere>(p->shape)) continue;
+		if(!p || !p->shape || !dynamic_pointer_cast<woo::Sphere>(p->shape)) continue;
 		Real r=p->shape->cast<Sphere>().radius;
 		if(r>rRange[1]) continue;
 		nPar++;

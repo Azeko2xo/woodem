@@ -1,6 +1,6 @@
 # encoding: utf-8
 """
-Compile-time configuration for yade.
+Compile-time configuration for woo.
 
 Template file is processed by scons to create the actual configuration at build-time.
 """
@@ -8,9 +8,9 @@ import os,datetime,os.path
 prefix='${runtimePREFIX}' if not os.environ.has_key('WOO_PREFIX') else os.environ['WOO_PREFIX']
 suffix='${SUFFIX}'
 debug=bool(${debug})
-libDir=os.path.abspath(prefix+'/lib/yade$SUFFIX'+('/dbg' if debug else ''))
-resourceDir=os.path.abspath(prefix+'/share/yade$SUFFIX')
-confDir=os.environ['HOME']+'/.yade$SUFFIX'
+libDir=os.path.abspath(prefix+'/lib/woo$SUFFIX'+('/dbg' if debug else ''))
+resourceDir=os.path.abspath(prefix+'/share/woo$SUFFIX')
+confDir=os.environ['HOME']+'/.woo$SUFFIX'
 libstdcxx='${libstdcxx}'
 features='${features}'.split(',')
 revision='${realVersion}'
@@ -23,12 +23,12 @@ buildCmdLine=${buildCmdLine}
 # project metadata
 metadata=dict(
 	short_desc='open-source platform for dynamic computations%s'%(' (debugging version)' if debug else ''),
-	long_desc='Extensible open-source framework for discrete numerical models, focused on Discrete Element Method. The computation parts are written in c++ using flexible object model, allowing independent implementation of new alogrithms and interfaces. Python is used for rapid and concise scene construction, simulation control, postprocessing and debugging.\n\n\n\nSee http://www.yade-dem.org/ for documentation and http://www.launchpad.net/yade for the project itself.\n\nThis is version %s with features %s.'%(version,','.join(features)),
+	long_desc='Extensible open-source framework for discrete numerical models, focused on Discrete Element Method. The computation parts are written in c++ using flexible object model, allowing independent implementation of new alogrithms and interfaces. Python is used for rapid and concise scene construction, simulation control, postprocessing and debugging.\n\n\n\nSee http://www.yade-dem.org/ for documentation and http://www.launchpad.net/woo for the project itself.\n\nThis is version %s with features %s.'%(version,','.join(features)),
 	author='Yade Developers Team',
 	website='http://www.yade-dem.org',
-	author_contact='http://www.launchpad.net/~yade-dev',
-	mailinglist='yade-users@lists.launchpad.net',
-	bugtracker='http://bugs.launchpad.net/yade',
+	author_contact='http://www.launchpad.net/~woo-dev',
+	mailinglist='woo-users@lists.launchpad.net',
+	bugtracker='http://bugs.launchpad.net/woo',
 	copyright='© 2003--%s'%(datetime.date.today().year),
 	license='''This program is free software; you can redistribute it and/or modify 
 it under the terms of the GNU General Public License as published 

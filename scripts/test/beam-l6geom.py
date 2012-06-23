@@ -23,7 +23,7 @@ O.engines=[
 O.saveTmp()
 
 try:
-	from yade import qt
+	from woo import qt
 	v=qt.View(); v.axes=True
 	v.viewDir=Vector3(-0.888,-0.2,-0.4144)
 	v.eyePosition=Vector3(18.16,8.235,5.12)

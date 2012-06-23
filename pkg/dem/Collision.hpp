@@ -28,7 +28,7 @@ REGISTER_SERIALIZABLE(Gl1_Aabb);
 
 
 class BoundFunctor: public Functor1D</*dispatch types*/ Shape,/*return type*/ void, /*argument types*/ TYPELIST_1(const shared_ptr<Shape>&)>{
-	WOO_CLASS_BASE_DOC(BoundFunctor,Functor,"Functor for creating/updating :ref:`yade.dem.Bound`.");
+	WOO_CLASS_BASE_DOC(BoundFunctor,Functor,"Functor for creating/updating :ref:`woo.dem.Bound`.");
 };
 REGISTER_SERIALIZABLE(BoundFunctor);
 
@@ -61,8 +61,8 @@ class Collider: public GlobalEngine{
 		virtual void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d);
 
 	virtual void getLabeledObjects(std::map<std::string,py::object>& m);
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Collider,GlobalEngine,"Abstract class for finding spatial collisions between bodies. \n\n.. admonition:: Special constructor\n\n\tDerived colliders (unless they override ``pyHandleCustomCtorArgs``) can be given list of :yref:`BoundFunctors <BoundFunctor>` which is used to initialize the internal :yref:`boundDispatcher <Collider.boundDispatcher>` instance.",
-		((shared_ptr<BoundDispatcher>,boundDispatcher,new BoundDispatcher,AttrTrait<Attr::readonly>(),":yref:`BoundDispatcher` object that is used for creating :yref:`bounds <Body.bound>` on collider's request as necessary."))
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Collider,GlobalEngine,"Abstract class for finding spatial collisions between bodies. \n\n.. admonition:: Special constructor\n\n\tDerived colliders (unless they override ``pyHandleCustomCtorArgs``) can be given list of :ref:`BoundFunctors <BoundFunctor>` which is used to initialize the internal :ref:`boundDispatcher <Collider.boundDispatcher>` instance.",
+		((shared_ptr<BoundDispatcher>,boundDispatcher,new BoundDispatcher,AttrTrait<Attr::readonly>(),":ref:`BoundDispatcher` object that is used for creating :ref:`bounds <Body.bound>` on collider's request as necessary."))
 		,/*ctor*/
 		,/*py*/ .def("probeAabb",&Collider::probeAabb,(py::arg("mn"),py::arg("mx")),"Return list of particles intersected by axis-aligned box with given corners")
 	);

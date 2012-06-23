@@ -3,7 +3,7 @@ Import('*')
 
 pyMain='$PREFIX/bin/woo$SUFFIX'
 main=env.ScanReplace('main/main.py.in')
-batch=env.ScanReplace('main/yade-batch.in')
+batch=env.ScanReplace('main/batch.py.in')
 env.AlwaysBuild(main)
 env.AlwaysBuild(batch)
 env.InstallAs(pyMain,main)
@@ -15,15 +15,13 @@ import os.path
 if 'execCheck' in env and env['execCheck']!=os.path.abspath(env.subst(pyMain)):
 	raise RuntimeError('execCheck option (%s) does not match what is about to be installed (%s)'%(env['execCheck'],env.subst(pyMain)))
 
-env.Install('$LIBDIR/py/yade',[
+env.Install('$LIBDIR/py/woo',[
 	env.SharedLibrary('boot',['main/pyboot.cpp'],SHLIBPREFIX='',LIBS=env['LIBS']+['woo-support','core'])
 ])
 
 env.Install('$LIBDIR/lib',[
 	env.SharedLibrary('core',
 		env.Combine('core.cpp',[
-			#'Body.cpp',
-			#'BodyContainer.cpp',
 			'Cell.cpp', 
 			'EnergyTracker.cpp',
 			'Engine.cpp',
@@ -32,7 +30,6 @@ env.Install('$LIBDIR/lib',[
 			'Scene.cpp',
 			'Dispatcher.cpp',
 			'Master.cpp',
-			#'BgThread.cpp',
 			'Preprocessor.cpp',
 			'corePlugins.cpp'
 			]

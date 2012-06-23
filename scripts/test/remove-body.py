@@ -34,7 +34,7 @@ for i in range(0,100): addRandomSphere()
 O.dt=1e-4
 #O.run()
 O.saveTmp('init')
-from yade import qt
+from woo import qt
 qt.Controller()
 qt.View()
 if 1:

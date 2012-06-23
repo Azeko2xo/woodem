@@ -3,7 +3,7 @@ Import geometry from various formats ('import' is python keyword, hence the name
 """
 
 from miniEigen import *
-from yade import utils
+from woo import utils
 
 def textExt(fileName,format='x_y_z_r',shift=Vector3.Zero,scale=1.0,**kw):
 	"""Load sphere coordinates from file in specific format, create spheres, insert them to the simulation.
@@ -17,7 +17,7 @@ def textExt(fileName,format='x_y_z_r',shift=Vector3.Zero,scale=1.0,**kw):
 		`scale`: float
 			factor scales the given data.
 		`**kw`: (unused keyword arguments)
-				is passed to :yref:`yade.utils.sphere`
+				is passed to :ref:`woo.utils.sphere`
 	:Returns: list of spheres.
 	Lines starting with # are skipped
 	"""
@@ -55,7 +55,7 @@ def text(fileName,shift=Vector3.Zero,scale=1.0,**kw):
 		`scale`: float
 			factor scales the given data.
 		`**kw`: (unused keyword arguments)
-				is passed to :yref:`yade.utils.sphere`
+				is passed to :ref:`woo.utils.sphere`
 	:Returns: list of spheres.
 	Lines starting with # are skipped
 	"""
@@ -89,14 +89,14 @@ def gts(meshfile,shift=(0,0,0),scale=1.0,**kw):
 		`scale`: float
 			factor scales the given data.
 		`**kw`: (unused keyword arguments)
-				is passed to :yref:`yade.utils.facet`
+				is passed to :ref:`woo.utils.facet`
 	:Returns: list of facets.
 	"""
-	import gts,yade.pack
+	import gts,woo.pack
 	surf=gts.read(open(meshfile))
 	surf.scale(scale)
 	surf.translate(shift) 
-	yade.pack.gtsSurface2Facets(surf,**kw)
+	woo.pack.gtsSurface2Facets(surf,**kw)
 
 def gmsh(meshfile="file.mesh",shift=Vector3.Zero,scale=1.0,orientation=Quaternion.Identity,**kw):
 	""" Imports geometry from mesh file and creates facets.
@@ -109,7 +109,7 @@ def gmsh(meshfile="file.mesh",shift=Vector3.Zero,scale=1.0,orientation=Quaternio
 		`orientation`: quaternion
 			orientation of the imported mesh
 		`**kw`: (unused keyword arguments)
-				is passed to :yref:`yade.utils.facet`
+				is passed to :ref:`woo.utils.facet`
 	:Returns: list of facets forming the specimen.
 	
 	mesh files can be easily created with `GMSH <http://www.geuz.org/gmsh/>`_.
@@ -182,7 +182,7 @@ def gengeoFile(fileName="file.geo",shift=Vector3.Zero,scale=1.0,orientation=Quat
 		`orientation`: quaternion
 			orientation of the imported geometry
 		`**kw`: (unused keyword arguments)
-				is passed to :yref:`yade.utils.sphere`
+				is passed to :ref:`woo.utils.sphere`
 	:Returns: list of spheres.
 	
 	LSMGenGeo library allows to create pack of spheres
@@ -194,7 +194,7 @@ def gengeoFile(fileName="file.geo",shift=Vector3.Zero,scale=1.0,orientation=Quat
 	* https://answers.launchpad.net/esys-particle/+faq/877
 	* http://www.access.edu.au/lsmgengeo_python_doc/current/pythonapi/html/GenGeo-module.html
 	* https://svn.esscc.uq.edu.au/svn/esys3/lsm/contrib/LSMGenGeo/"""
-	from yade.utils import sphere
+	from woo.utils import sphere
 
 	infile = open(fileName,"r")
 	lines = infile.readlines()
@@ -219,7 +219,7 @@ def gengeo(mntable,shift=Vector3.Zero,scale=1.0,**kw):
 		`scale`: float
 			factor scales the given data.
 		`**kw`: (unused keyword arguments)
-				is passed to :yref:`yade.utils.sphere`
+				is passed to :ref:`woo.utils.sphere`
 	
 	LSMGenGeo library allows to create pack of spheres
 	with given [Rmin:Rmax] with null stress inside the specimen.

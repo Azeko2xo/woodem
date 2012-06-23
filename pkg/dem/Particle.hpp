@@ -7,7 +7,7 @@
 #include<woo/pkg/dem/ContactContainer.hpp>
 
 
-// namespace yade{namespace dem{
+// namespace woo{namespace dem{
 
 class Particle;
 class Contact;
@@ -173,7 +173,7 @@ struct DemField: public Field{
 	//template<> bool sceneHasField<DemField>() const;
 	//template<> shared_ptr<DemField> sceneGetField<DemField>() const;
 	void postLoad(DemField&);
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(DemField,Field,"Field describing a discrete element assembly. Each body references (possibly many) nodes by their index in :yref:`Field.nodes` and :yref:`Field.nodalData`. ",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(DemField,Field,"Field describing a discrete element assembly. Each body references (possibly many) nodes by their index in :ref:`Field.nodes` and :ref:`Field.nodalData`. ",
 		((shared_ptr<ParticleContainer>,particles,make_shared<ParticleContainer>(),AttrTrait<>().pyByRef().readonly().ini(),"Particles (each particle holds its contacts, and references associated nodes)"))
 		((shared_ptr<ContactContainer>,contacts,make_shared<ContactContainer>(),AttrTrait<>().pyByRef().readonly().ini(),"Linear view on particle contacts"))
 		((vector<shared_ptr<Node>>,clumps,,AttrTrait<Attr::readonly>(),"Nodes which define clumps; only manipulated from clump-related user-routines, not directly."))
@@ -307,5 +307,5 @@ class Bound: public Object, public Indexable{
 REGISTER_SERIALIZABLE(Bound);
 
 
-// }}; /* yade::dem */
+// }}; /* woo::dem */
 

@@ -1,9 +1,9 @@
 # this script is shown at http://youtube.com/watch?w=-Q81oGxoz_s
-from yade import *
-from yade.core import *
-from yade.dem import *
+from woo import *
+from woo.core import *
+from woo.dem import *
 from math import *
-from yade import log,utils,pack
+from woo import log,utils,pack
 from miniEigen import *
 log.setLevel('ConveyorFactory',log.TRACE)
 if 0:

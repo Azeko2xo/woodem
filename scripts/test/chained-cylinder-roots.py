@@ -4,7 +4,7 @@
 
 # Experiment beam-like behaviour with chained cylinders + CohFrict connexions
 
-from yade import utils,pack
+from woo import utils,pack
 import math
 
 young=4.0e6

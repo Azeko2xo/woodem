@@ -1,15 +1,15 @@
 #
 # grab latest trunk, try building packages for various distributions
-# see http://yade.wikia.com/wiki/DebianPackages for configuration of the pbuilder environment
+# see http://woo.wikia.com/wiki/DebianPackages for configuration of the pbuilder environment
 #
 set -x
-TMP=/tmp/pbuild-yade-$$
+TMP=/tmp/pbuild-woo-$$
 mkdir $TMP
 cd $TMP
-bzr checkout --lightweight lp:yade trunk
+bzr checkout --lightweight lp:woo trunk
 cd trunk; scripts/debian-prep jaunty; cd .. # distro not important here
 dpkg-source -b -I trunk
-DSC=yade-`cat trunk/VERSION`_1.dsc
+DSC=woo-`cat trunk/VERSION`_1.dsc
 for DIST in lenny squeeze hardy jaunty karmic; do
 	echo ============================================= TESTING $DIST ===================================
 	echo ===============================================================================================

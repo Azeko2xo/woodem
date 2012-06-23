@@ -6,19 +6,19 @@ Various computations affected by the periodic boundary conditions.
 import unittest
 import random
 from miniEigen import *
-from yade._customConverters import *
-from yade import utils
-from yade import *
-from yade.dem import *
-from yade.core import *
+from woo._customConverters import *
+from woo import utils
+from woo import *
+from woo.dem import *
+from woo.core import *
 from math import *
-import yade
+import woo
 
 class TestSimpleClump(unittest.TestCase):
 	"Test things on a simple clump composed of 2 spheres."
 	def setUp(self):
-		yade.master.reset()
-		yade.master.scene=S=Scene(fields=[DemField()])
+		woo.master.reset()
+		woo.master.scene=S=Scene(fields=[DemField()])
 		r1,r2,p0,p1=1,.5,Vector3.Zero,Vector3(0,0,3)
 		S.dem.par.appendClumped([
 			utils.sphere(p0,r1),
@@ -28,7 +28,7 @@ class TestSimpleClump(unittest.TestCase):
 		#O.dem.clumps.clear()
 	def testConsistency(self):
 		"Clump: ids and flags consistency"
-		S=yade.master.scene
+		S=woo.master.scene
 		b1,b2,bC=[S.dem.nodes[i] for i in (0,1,2)]
 		#self.assertEqual(b1.clumpId,bC.id)
 		#self.assertEqual(b2.clumpId,bC.id)
@@ -40,7 +40,7 @@ class TestSimpleClump(unittest.TestCase):
 		self.assert_(b2.dem.clumped)
 	def testStaticProperties(self):
 		"Clump: mass, centroid, intertia"
-		S=yade.master.scene
+		S=woo.master.scene
 		b1,b2,bC=[S.dem.nodes[i] for i in (0,1,2)]
 		# mass
 		self.assertEqual(bC.dem.mass,b1.dem.mass+b2.dem.mass)
@@ -61,7 +61,7 @@ class TestSimpleClump(unittest.TestCase):
 		#self.assertAlmostEqual
 	def testVelocity(self):
 		"Clump: velocities of member assigned by Leapfrog"
-		S=yade.master.scene
+		S=woo.master.scene
 		b1,b2,bC=[S.dem.nodes[i] for i in (0,1,2)]
 		S.dt=0
 		#print bC.dem.vel,bC.dem.angVel

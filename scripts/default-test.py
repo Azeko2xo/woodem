@@ -1,19 +1,19 @@
-#!/usr/local/bin/yade-trunk
+#!/usr/local/bin/woo-trunk
 # coding=UTF-8
-# this must be run inside yade
+# this must be run inside woo
 #
 # pass 'mail:sender@somewhere.org,recipient@elsewhere.com' as an argument so that the crash report is e-mailed 
 # using the default SMTP settings (sendmail?) on your system
 #
 import os,time,sys
-from yade import *
-import yade.runtime,yade.system,yade.config
-simulFile='/tmp/yade-test-%d.xml'%(os.getpid()) # generated simulations here
-pyCmdFile='/tmp/yade-test-%d.py'%(os.getpid()) # generated script here
-msgFile='/tmp/yade-test-%d.msg'%(os.getpid()) # write message here
+from woo import *
+import woo.runtime,woo.system,woo.config
+simulFile='/tmp/woo-test-%d.xml'%(os.getpid()) # generated simulations here
+pyCmdFile='/tmp/woo-test-%d.py'%(os.getpid()) # generated script here
+msgFile='/tmp/woo-test-%d.msg'%(os.getpid()) # write message here
 runSimul="""
 # generated file
-from yade import *
+from woo import *
 simulFile='%s'; msgFile='%s'; nIter=%d;
 import time
 try:
@@ -32,7 +32,7 @@ quit()
 
 runGenerator="""
 #generated file
-from yade import *
+from woo import *
 %%s(%%s).generate('%s')
 print 'main: Yade: normal exit.'
 O.exitNoBacktrace()
@@ -41,10 +41,10 @@ quit()
 
 
 def crashProofRun(cmd,quiet=True):
-	import subprocess,os,os.path,yade.runtime
+	import subprocess,os,os.path,woo.runtime
 	f=open(pyCmdFile,'w'); f.write(cmd); f.close(); 
 	if os.path.exists(msgFile): os.remove(msgFile)
-	p=subprocess.Popen([sys.executable,pyCmdFile],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,env=dict(os.environ,**{'PYTHONPATH':os.path.join(yade.config.prefix,'lib','yade'+yade.config.suffix,'py'),'DISPLAY':''}))
+	p=subprocess.Popen([sys.executable,pyCmdFile],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,env=dict(os.environ,**{'PYTHONPATH':os.path.join(woo.config.prefix,'lib','woo'+woo.config.suffix,'py'),'DISPLAY':''}))
 	pout=p.communicate()[0]
 	retval=p.wait()
 	if not quiet: print pout
@@ -64,7 +64,7 @@ genParams={
 	#'USCTGen':{'spheresFile':'examples/small.sdec.xyz'}
 }
 
-for pp in yade.system.childClasses('FileGenerator'):
+for pp in woo.system.childClasses('FileGenerator'):
 	if pp in broken:
 		summary.append(pp,'skipped (broken)','');
 	params='' if pp not in genParams else (","+",".join(["%s=%s"%(k,repr(genParams[pp][k])) for k in genParams[pp]]))
@@ -84,17 +84,17 @@ for f in simulFile,msgFile,pyCmdFile:
 # handle crash reports, if any
 if reports:
 	mailFrom,mailTo=None,None
-	for a in yade.runtime.argv:
+	for a in woo.runtime.argv:
 		if 'mail:' in a: mailFrom,mailTo=a.replace('mail:','').split(',')
 	reportText='\n'.join([80*'#'+'\n'+r[0]+': '+r[1]+'\n'+80*'#'+'\n'+r[2] for r in reports])
 	if mailTo and mailFrom:
 		from email.mime.text import MIMEText
-		import yade.config
+		import woo.config
 		msg=MIMEText(reportText)
-		msg['Subject']="Automated crash report for Yade "+yade.config.revision+": "+",".join([r[0] for r in reports])
+		msg['Subject']="Automated crash report for Yade "+woo.config.revision+": "+",".join([r[0] for r in reports])
 		msg['From']=mailFrom
 		msg['To']=mailTo
-		msg['Reply-To']='yade-dev@lists.launchpad.net'
+		msg['Reply-To']='woo-dev@lists.launchpad.net'
 		import smtplib
 		s=smtplib.SMTP()
 		s.connect()

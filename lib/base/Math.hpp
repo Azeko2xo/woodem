@@ -156,7 +156,7 @@ bool MatrixXr_pseudoInverse(const MatrixXr &a, MatrixXr &a_pinv, double epsilon=
 
 
 /*
- * Extra yade math functions and classes
+ * Extra woo math functions and classes
  */
 
 

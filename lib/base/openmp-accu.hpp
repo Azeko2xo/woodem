@@ -84,7 +84,7 @@ template<typename T>
 class OpenMPAccumulator{
 		// in the ctor, assume 64 bytes (arbitrary, but safe) if sysconf does not report anything meaningful
 		// that might happen on newer proc models not yet reported by sysconf (?)
-		// e.g. https://lists.launchpad.net/yade-dev/msg06294.html
+		// e.g. https://lists.launchpad.net/woo-dev/msg06294.html
 		// where zero was reported, leading to FPU exception at startup
 		int CLS; // cache line size
 		int nThreads;

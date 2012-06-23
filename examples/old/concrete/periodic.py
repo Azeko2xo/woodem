@@ -2,13 +2,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
 
-from yade import utils,plot,pack
+from woo import utils,plot,pack
 import time, sys, os, copy
 
 """
 A fairly complex script performing uniaxial tension-compression test on hyperboloid-shaped specimen.
 
-Most parameters of the model (and of the setup) can be read from table using yade-multi.
+Most parameters of the model (and of the setup) can be read from table using woo-multi.
 
 After the simulation setup, tension loading is run and stresses are periodically saved for plotting
 as well as checked for getting below the maximum value so far. This indicates failure (see stopIfDamaged
@@ -73,7 +73,7 @@ if not os.path.exists(packingFile):
 import cPickle as pickle
 concreteId=O.materials.append(CpmMat(young=young,frictionAngle=frictionAngle,poisson=poisson,density=4800,sigmaT=sigmaT,relDuctility=relDuctility,epsCrackOnset=epsCrackOnset,G_over_E=G_over_E,isoPrestress=isoPrestress))
 sphDict=pickle.load(open(packingFile))
-from yade import pack
+from woo import pack
 sp=pack.SpherePack()
 sp.fromList(sphDict['spheres'])
 sp.cellSize=sphDict['cell']
@@ -88,9 +88,9 @@ ax1=(axis+1)%3
 ax2=(axis+2)%3
 O.dt=dtSafety*utils.PWaveTimeStep()
 
-import yade.log
-#yade.log.setLevel('PeriTriaxController',yade.log.TRACE)
-import yade.plot as yp
+import woo.log
+#woo.log.setLevel('PeriTriaxController',woo.log.TRACE)
+import woo.plot as yp
 
 O.engines=[
 	ForceResetter(),
@@ -142,7 +142,7 @@ def initTest():
 	strainer.maxStrainRate=maxStrainRate
 	strainer.goal=goal
 	try:
-		from yade import qt
+		from woo import qt
 		renderer=qt.Renderer()
 		renderer.scaleDisplacements=True
 		renderer.displacementScale=(1000,1000,1000) if mode=='tension' else (100,100,100)
@@ -186,7 +186,7 @@ def stopIfDamaged():
 			sys.exit(0)
 		
 def addPlotData():
-	yade.plot.addData(t=O.time,i=O.iter,eps=strainer.strain[axis],eps_=strainer.strain[axis],sigma=strainer.stress[axis]+isoPrestress,eps1=strainer.strain[ax1],eps2=strainer.strain[ax2],sig1=strainer.stress[ax1],sig2=strainer.stress[ax2],relResid=updater.avgRelResidual)
+	woo.plot.addData(t=O.time,i=O.iter,eps=strainer.strain[axis],eps_=strainer.strain[axis],sigma=strainer.stress[axis]+isoPrestress,eps1=strainer.strain[ax1],eps2=strainer.strain[ax2],sig1=strainer.stress[ax1],sig2=strainer.stress[ax2],relResid=updater.avgRelResidual)
 
 initTest()
 utils.waitIfBatch()

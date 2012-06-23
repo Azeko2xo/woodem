@@ -1,5 +1,5 @@
-import yade.log
-yade.log.setLevel('FacetTopologyAnalyzer',yade.log.TRACE)
+import woo.log
+woo.log.setLevel('FacetTopologyAnalyzer',woo.log.TRACE)
 
 # Note: FacetTopologyAnalyzer is normally run as an initializer;
 # it is only for testing sake that it is in O.engines here.

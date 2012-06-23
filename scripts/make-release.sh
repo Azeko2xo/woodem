@@ -7,7 +7,7 @@ MYPWD=`/bin/pwd`
 MYSUBDIR=${MYPWD##*/}
 MYPARENT=${MYPWD%/*}
 #echo $MYPWD $MYPARENT $MYSUBDIR
-cd $MYPARENT; mv $MYSUBDIR yade-$RELEASE; tar c yade-$RELEASE | bzip2 > yade-$RELEASE.tar.bz2; mv yade-$RELEASE $MYSUBDIR; cd $MYSUBDIR
+cd $MYPARENT; mv $MYSUBDIR woo-$RELEASE; tar c woo-$RELEASE | bzip2 > woo-$RELEASE.tar.bz2; mv woo-$RELEASE $MYSUBDIR; cd $MYSUBDIR
 rm RELEASE
-ls -l ../yade-$RELEASE.tar.bz2
+ls -l ../woo-$RELEASE.tar.bz2
 echo "All done, bye."

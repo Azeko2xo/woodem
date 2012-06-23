@@ -1,5 +1,5 @@
 
-from yade import geom,utils,log
+from woo import geom,utils,log
 
 shotsId,steelId=O.materials.append([
 	FrictMat(young=50e9,density=6000,poisson=.2,label='shots'),
@@ -40,9 +40,9 @@ O.engines=[
 O.dt=utils.SpherePWaveTimeStep(factory.rMin,O.materials[factory.materialId].density,O.materials[factory.materialId].young)
 O.saveTmp()
 #O.timingEnabled=True
-from yade import timing
+from woo import timing
 try:
-	from yade import qt
+	from woo import qt
 	# setup 3d view
 	v=qt.View()
 	v.upVector=(0,0,1); v.viewDir=(-1,0,-.3); v.center(median=False)

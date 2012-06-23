@@ -2,7 +2,7 @@
 #
 # Thanks to logilab for this code.
 #
-# Copied from the logilab.common.optik_ext module (GPL-licensed) and modified for yade.
+# Copied from the logilab.common.optik_ext module (GPL-licensed) and modified for woo.
 #
 
 import optparse,time

@@ -90,9 +90,9 @@ void ParallelEngine::run(){
 
 void ParallelEngine::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){
 	if(py::len(args)==0) return;
-	if(py::len(args)>1) yade::TypeError("ParallelEngine takes 0 or 1 non-keyword arguments ("+boost::lexical_cast<string>(py::len(args))+" given)");
+	if(py::len(args)>1) woo::TypeError("ParallelEngine takes 0 or 1 non-keyword arguments ("+boost::lexical_cast<string>(py::len(args))+" given)");
 	py::extract<py::list> listEx(args[0]);
-	if(!listEx.check()) yade::TypeError("ParallelEngine: non-keyword argument must be a list");
+	if(!listEx.check()) woo::TypeError("ParallelEngine: non-keyword argument must be a list");
 	pySlavesSet(listEx());
 	args=py::tuple();
 }
@@ -105,7 +105,7 @@ void ParallelEngine::pySlavesSet(const py::list& slaves2){
 		if (serialGroup.check()){ slaves.push_back(serialGroup()); continue; }
 		py::extract<shared_ptr<Engine> > serialAlone(slaves2[i]);
 		if (serialAlone.check()){ vector<shared_ptr<Engine> > aloneWrap; aloneWrap.push_back(serialAlone()); slaves.push_back(aloneWrap); continue; }
-		yade::TypeError("List elements must be either (a) sequences of engines to be executed one after another (b) individual engines.");
+		woo::TypeError("List elements must be either (a) sequences of engines to be executed one after another (b) individual engines.");
 	}
 }
 

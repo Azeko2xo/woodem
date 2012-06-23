@@ -25,10 +25,10 @@
 #   Boston, MA 02111-1307, USA.
 
 
-# added by eudoxos 29.1.2011, fixes https://bugs.launchpad.net/yade/+bug/668329
+# added by eudoxos 29.1.2011, fixes https://bugs.launchpad.net/woo/+bug/668329
 ## force decimal separator to be always . (decimal point), not , (decimal comma) -- unless LC_ALL is set, then we are stuck
 ## this was reason for bogus gts imports
-## adding to yade main does not solve the problem for some reason
+## adding to woo main does not solve the problem for some reason
 import locale
 locale.setlocale(locale.LC_NUMERIC,'C')
 

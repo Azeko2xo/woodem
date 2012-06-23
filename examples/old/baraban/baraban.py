@@ -13,7 +13,7 @@ es = 0.3
 params=utils.getViscoelasticFromSpheresInteraction(tc,en,es)
 facetMat=O.materials.append(ViscElMat(frictionAngle=frictionAngle,**params)) # **params sets kn, cn, ks, cs
 sphereMat=O.materials.append(ViscElMat(density=Density,frictionAngle=frictionAngle,**params))
-from yade import ymport
+from woo import ymport
 fctIds=O.bodies.append(ymport.stl('baraban.stl',color=(1,0,0),material=facetMat))
 ## Spheres
 sphereRadius = 0.2
@@ -56,7 +56,7 @@ O.engines=[
 	RotationEngine(ids=fctIds,rotationAxis=[0,0,1],rotateAroundZero=True,angularVelocity=0.5)
 ]
 
-from yade import qt
+from woo import qt
 qt.View()
 #O.saveTmp()
 #O.run()

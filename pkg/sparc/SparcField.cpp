@@ -142,7 +142,7 @@ Vector3r ExplicitNodeIntegrator::computeDivT(const shared_ptr<Node>& n) const {
 			rhs[r]*=weights[r];
 		}
 		A[l]=relPosInv*rhs;
-		if(eig_isnan(A[l])) yade::ValueError(format("Node %d at %s has NaNs in A[%i]=%s")% midDta.nid % n->pos.transpose() % l % A[l].transpose());
+		if(eig_isnan(A[l])) woo::ValueError(format("Node %d at %s has NaNs in A[%i]=%s")% midDta.nid % n->pos.transpose() % l % A[l].transpose());
 	};
 	#ifdef SPARC_INSPECT
 		/* non-const ref*/ SparcData& midDta2=n->getData<SparcData>();
@@ -215,9 +215,9 @@ void ExplicitNodeIntegrator::postLoad(ExplicitNodeIntegrator&){
 	// update stiffness matrix
 	C<<(Matrix3r()<<1-nu,nu,nu, nu,1-nu,nu, nu,nu,1-nu).finished(),Matrix3r::Zero(),Matrix3r::Zero(),Matrix3r(((1-2*nu)/2.)*Matrix3r::Identity());
 	C*=E/((1+nu)*(1-2*nu));
-	if(matModel<0 || matModel>MAT_SENTINEL) yade::ValueError(boost::format("matModel must be in range 0..%d")%(MAT_SENTINEL-1));
-	if(weightFunc<0 || weightFunc>=WEIGHT_SENTINEL) yade::ValueError(boost::format("weightFunc must be in range 0..%d")%(WEIGHT_SENTINEL-1));
-	if(barodesyC.size()!=6) yade::ValueError(boost::format("barodesyC must have exactly 6 values (%d given)")%barodesyC.size());
+	if(matModel<0 || matModel>MAT_SENTINEL) woo::ValueError(boost::format("matModel must be in range 0..%d")%(MAT_SENTINEL-1));
+	if(weightFunc<0 || weightFunc>=WEIGHT_SENTINEL) woo::ValueError(boost::format("weightFunc must be in range 0..%d")%(WEIGHT_SENTINEL-1));
+	if(barodesyC.size()!=6) woo::ValueError(boost::format("barodesyC must have exactly 6 values (%d given)")%barodesyC.size());
 	if(rPow>0) LOG_WARN("Positive value of ExplicitNodeIntegrator.rPow: makes weight increasing with distance, ARE YOU NUTS?!");
 }
 
@@ -538,7 +538,7 @@ void StaticEquilibriumSolver::integrateStateVariables(){
 #if 0
 VectorXr StaticEquilibriumSolver::compResid(const VectorXr& vv){
 	bool useNext=vv.size()>0;
-	if(useNext && (size_t)vv.size()!=nDofs) yade::ValueError("len(vv) must be equal to number of nDofs ("+lexical_cast<string>(nDofs)+"), or empty for only evaluating current residuals.");
+	if(useNext && (size_t)vv.size()!=nDofs) woo::ValueError("len(vv) must be equal to number of nDofs ("+lexical_cast<string>(nDofs)+"), or empty for only evaluating current residuals.");
 	mff=static_cast<SparcField*>(field.get());
 	mff->updateLocator();
 	assignDofs();

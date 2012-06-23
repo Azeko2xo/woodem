@@ -1,10 +1,10 @@
 This example tests performance of InsertionSortCollider (with and without stride) and
-SpatialQuickSortCollider and was basis for http://yade.wikia.com/wiki/Colliders_performace,
+SpatialQuickSortCollider and was basis for http://woo.wikia.com/wiki/Colliders_performace,
 which features now-removed PersistentSAPCollider as well.
 
 To run the test, say:
 
- yade-trunk-multi perf.table perf.py
+ woo-trunk-multi perf.table perf.py
 
 It will take time to finish. To collet results and get graphs from the generated log files, say
 

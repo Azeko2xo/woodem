@@ -9,12 +9,12 @@ See :ref:`periodic-triaxial-test`
 Clumps
 ------
 
-:yref:`Clump`; see :ref:`periodic-triaxial-test`
+:ref:`Clump`; see :ref:`periodic-triaxial-test`
 
 Testing laws
 ------------
 
-:yref:`LawTester`, :ysrc:`scripts/test/law-test.py`
+:ref:`LawTester`, :ysrc:`scripts/test/law-test.py`
 
 New law
 -------
@@ -26,7 +26,7 @@ Visualization
 
 See the example :ref:`3d-postprocessing`
 
-* :yref:`VTKRecorder` & `Paraview <http://www.paraview.org>`__
-* :yref:`yade.qt.SnapshotEngine`
+* :ref:`VTKRecorder` & `Paraview <http://www.paraview.org>`__
+* :ref:`yade.qt.SnapshotEngine`
 
 

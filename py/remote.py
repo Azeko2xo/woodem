@@ -1,7 +1,7 @@
 # encoding: utf-8
 # 2008-2009 © Václav Šmilauer <eudoxos@arcig.cz>
 """
-Remote connections to yade: authenticated python command-line over telnet and anonymous socket for getting some read-only information about current simulation.
+Remote connections to woo: authenticated python command-line over telnet and anonymous socket for getting some read-only information about current simulation.
 
 These classes are used internally in gui/py/PythonUI_rc.py and are not intended for direct use.
 """
@@ -9,8 +9,8 @@ These classes are used internally in gui/py/PythonUI_rc.py and are not intended 
 import SocketServer,xmlrpclib,socket
 import sys,time,os,math
 
-from yade import *
-import yade.runtime
+from woo import *
+import woo.runtime
 
 useQThread=False
 "Set before using any of our classes to use QThread for background execution instead of the standard thread module. Mixing the two (in case the qt4 UI is running, for instance) does not work well."
@@ -18,23 +18,24 @@ useQThread=False
 plotImgFormat,plotImgMimetype='png','image/png'
 #plotImgFormat,plotImgMimetype='svg','image/svg+xml'
 
-# yade 16x16 favicon, encoded with base64
+# woo 16x16 favicon, encoded with base64
 b64favicon='AAABAAEAEBAAAAAAAABoBQAAFgAAACgAAAAQAAAAIAAAAAEACAAAAAAAQAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAA////AAiD7wCjjY8AAGhoAAwMwwBuVO0AY1RWAJG+4QAHpKMAHiRTAD88vQDW0t0AQp7XAHBwtAAMvf8ANWx0AIKK5QABycgAqZ/AADc1iwA6Oe0AM09QABskJQA+dNoAXWt/AAhAPwAAhYMApp3nAMm+/ABYWM0Avr7IAG+v5gBdS6wAint9AAdFXwApKdoAgGvnAIGBwwCjoaMANSssAEpERQByZGYAiaTmAJiQ1AAhPDkASkjfAAa0tgAGrO4APE2OABNdXgBlZdwAuqvVAA8qPAAAt9YAcmrKAF5etwAvL8YAUUm+ADNiYQAAl5QAWlrqAMPF2wCCd60ATTzNAGdPwQATc+sABjJbABKS9QCsruEAfn7VADFAQACWleUAAnV0ADea5ACIgPIAc3PfAGZk8QAVFLgAjITZAFllxAAMjpAAkpPGAFI6uwAZQ0QAZ1fXABcuSACnotkACFRaAFNT2wAIuusACI39AFpbqwAAqqwAZmbMAFFMTAB6d8YArq3SAAsuMQAApJkA0cfeAAqxqwC6t9YAN2FwAJV6gQBdXdgAhHThAFJSxQBDNucAV1FUAEQzuQB6e+AADaGrAFpOzwBkZL0AAI6PAD8+xwBIR8IAXl7iAMa88wAMMz0AAZyeAJGO2gAFvbQAcnDDAF9ezQCenesASj/FAFFR4wAJqKoAz8/bAAJ6egAWJ0UAg36wAFdX1gC7u9AAAKKiAGdrxwCDg9UAqKjcAAanmgAdQEAAYWLYAF1SUwBPTboAzcH+AAOBgQAQde8AV1fIAGNjuAAEt7kAAHFzAAGamgAFoKMAxbv3AJCQ1wCCbuYABrG0AAJqagCnpdoA0NDZAAajpAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATpA/IRNTQR5FoAAAAAAAADl0f25AVWpQGAoGnHcAAABrfDo3cSwMK0KEkSWaAAAABQtgZldPPkpEVjRoAAAAAHJ1fWF6bEMCkzUAAwAAAAA4JopcLksjWw94AAAAAAAAlR+CTE0cWDBaYiIAAAAAAA5SRiQVFDyMZUkoAAAAAACUXoZZSBEAewChMgcAAAAAi5+OaWQIAACSAIMWAAAAAG+AM4kNcGMtjZgvl20AAACbdh0gNl0AjyqeAAkaAAAAh4VnlhIEXycAKXOZgRcAAH4ZAIgbRwAAAABUeZ1RAAA9MRA7AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/AAAABwAAAAcAAAAPAAAALwAAAD8AAAAfAAAAHwAAAo8AAANPAAAABwAAAicAAACDAAAjwwAAD/8AAP//AAA='
 
 bgThreads=[] # needed to keep background threads alive
 
 class InfoProvider:
 	def basicInfo(self):
-		s=yade.master.scene
-		ret=dict(step=s.step,dt=s.dt,stopAtStep=s.stopAtStep,time=s.time,id=s.tags['id'] if s.tags.has_key('id') else None,threads=os.environ['OMP_NUM_THREADS'] if os.environ.has_key('OMP_NUM_THREADS') else '0',numBodies=(len(O.scene.dem.par) if O.scene.hasDem() else -1),numIntrs=(len(O.scene.dem.con) if O.scene.hasDem() else -1))
+		S=woo.master.scene
+		ret=dict(step=S.step,dt=S.dt,stopAtStep=S.stopAtStep,time=S.time,id=S.tags['id'] if S.tags.has_key('id') else None,threads=os.environ['OMP_NUM_THREADS'] if os.environ.has_key('OMP_NUM_THREADS') else '0',numBodies=(len(S.dem.par) if S.hasDem else -1),numIntrs=(len(S.dem.con) if S.hasDem else -1))
 		sys.stdout.flush(); sys.stderr.flush()
 		return ret
 	def plot(self):
 		try:
-			from yade import plot
+			from woo import plot
+			S=woo.master.scene
 			if len(plot.plots)==0: return None
 			fig=plot.plot(subPlots=True,noShow=True)
-			img=O.tmpFilename()+'.'+plotImgFormat
+			img=woo.master.tmpFilename()+'.'+plotImgFormat
 			sqrtFigs=math.sqrt(len(plot.plots))
 			fig.set_size_inches(5*sqrtFigs,7*sqrtFigs)
 			fig.savefig(img)
@@ -140,7 +141,7 @@ class GenericTCPServer:
 				self.server=SocketServer.ThreadingTCPServer((host,tryPort),handler)
 				self.port=tryPort
 				if cookie:
-					self.server.cookie=''.join([i for i in random.sample('yadesucks',6)])
+					self.server.cookie=''.join([i for i in random.sample('woosucks',6)])
 					self.server.authenticated=[]
 					sys.stderr.write(title+" on %s:%d, auth cookie `%s'\n"%(host if host else 'localhost',self.port,self.server.cookie))
 				else:
@@ -161,11 +162,11 @@ def runServers():
 
 	The info socket provides read-only access to several simulation parameters
 	at runtime. Each connection receives pickled dictionary with those values.
-	This socket is primarily used by yade-multi batch scheduler.
+	This socket is primarily used by woo-multi batch scheduler.
 	"""
-	srv=GenericTCPServer(handler=yade.remote.PythonConsoleSocketEmulator,title='TCP python prompt',cookie=True,minPort=9000)
-	yade.runtime.cookie=srv.server.cookie
-	#info=GenericTCPServer(handler=yade.remote.InfoSocketProvider,title='TCP info provider',cookie=False,minPort=21000)
+	srv=GenericTCPServer(handler=woo.remote.PythonConsoleSocketEmulator,title='TCP python prompt',cookie=True,minPort=9000)
+	woo.runtime.cookie=srv.server.cookie
+	#info=GenericTCPServer(handler=woo.remote.InfoSocketProvider,title='TCP info provider',cookie=False,minPort=21000)
 	## XMPRPC server for general information:
 	if 1:
 		from SimpleXMLRPCServer import SimpleXMLRPCServer

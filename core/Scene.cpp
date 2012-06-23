@@ -70,6 +70,7 @@ bool Scene::running(){ boost::mutex::scoped_lock l(runMutex); return runningFlag
 void Scene::backgroundLoop(){
 	try{
 		while(true){
+			boost::this_thread::interruption_point();
 			if(subStepping){ LOG_INFO("Scene.run: sub-stepping disabled."); subStepping=false; }
 			doOneStep();
 			if(stopAtStep>0 && stopAtStep==step){ boost::mutex::scoped_lock l(runMutex); stopFlag=true; }
@@ -87,9 +88,11 @@ void Scene::backgroundLoop(){
 
 std::string Scene::pyTagsProxy::getItem(const std::string& key){ return scene->tags[key]; }
 void Scene::pyTagsProxy::setItem(const std::string& key,const std::string& val){ scene->tags[key]=val; }
-void Scene::pyTagsProxy::delItem(const std::string& key){ size_t i=scene->tags.erase(key); if(i==0) yade::KeyError(key); }
+void Scene::pyTagsProxy::delItem(const std::string& key){ size_t i=scene->tags.erase(key); if(i==0) woo::KeyError(key); }
 py::list Scene::pyTagsProxy::keys(){ py::list ret; FOREACH(Scene::StrStrMap::value_type i, scene->tags) ret.append(i.first); return ret; }
 bool Scene::pyTagsProxy::has_key(const std::string& key){ return scene->tags.count(key)>0; }
+
+void Scene::pyTagsProxy::update(const pyTagsProxy& b){ for(const auto& i: b.scene->tags) scene->tags[i.first]=i.second; }
 
 void Scene::fillDefaultTags(){
 	// fill default tags
@@ -108,7 +111,7 @@ void Scene::fillDefaultTags(){
 	tags["id"]=id;
 	tags["d.id"]=id;
 	tags["id.d"]=id;
-	// tags.push_back("revision="+py::extract<string>(py::import("yade.config").attr("revision"))());;
+	// tags.push_back("revision="+py::extract<string>(py::import("woo.config").attr("revision"))());;
 }
 
 void Scene::ensureCl(){
@@ -205,14 +208,14 @@ void Scene::postLoad(Scene&){
 		Engine::handlePossiblyLabeledObject(e,m);
 		e->getLabeledObjects(m);
 	}
-	py::scope yadeScope(py::import("yade"));
-	// py::scope foo(yadeScope);
+	py::scope wooScope(py::import("woo"));
+	// py::scope foo(wooScope);
 	FOREACH(StrObjMap::value_type& v, m){
 		// cout<<"Label: "<<v.first<<endl;
-		yadeScope.attr(v.first.c_str())=v.second;
+		wooScope.attr(v.first.c_str())=v.second;
 	}
 	// delete labels which are no longer used
-	// py::delattr(yadeScope,name);
+	// py::delattr(wooScope,name);
 }
 
 

@@ -1,14 +1,14 @@
 # encoding: utf-8
 # various monkey-patches for wrapped c++ classes
-import yade.core
-import yade.system
-#import yade.dem
+import woo.core
+import woo.system
+#import woo.dem
 from miniEigen import * # for recognizing the types
 
 import StringIO # cStringIO does not handle unicode, so stick with the slower one
 
-from yade.core import Object
-import yade._customConverters # to make sure they are loaded already
+from woo.core import Object
+import woo._customConverters # to make sure they are loaded already
 
 import codecs
 import pickle
@@ -17,7 +17,7 @@ nan,inf=float('nan'),float('inf') # for values in expressions
 
 def _Object_getAllTraits(obj):
 	ret=[]; k=obj.__class__
-	while k!=yade.core.Object:
+	while k!=woo.core.Object:
 		ret=k._attrTraits+ret
 		k=k.__bases__[0]
 	return ret
@@ -108,10 +108,10 @@ class SerializerToHtmlTableRaw:
 			attr=getattr(obj,trait.name)
 			ret+=indent1+'<tr>'+indent2+'<td>%s</td>'%(trait.name if not showDoc else trait.doc.decode('utf-8'))
 			# nested object
-			if isinstance(attr,yade.core.Object):
+			if isinstance(attr,woo.core.Object):
 				ret+=indent2+'<td align="justify">'+self(attr,depth+1)+indent2+'</td>'
 			# sequence of objects (no units here)
-			elif hasattr(attr,'__len__') and len(attr)>0 and isinstance(attr[0],yade.core.Object):
+			elif hasattr(attr,'__len__') and len(attr)>0 and isinstance(attr[0],woo.core.Object):
 				ret+=indent2+u'<td><ol>'+''.join(['<li>'+self(o,depth+1)+'</li>' for o in attr])+'</ol></td>'
 			else:
 				#ret+=indent2+'<td align="right">'
@@ -181,10 +181,10 @@ class SerializerToHtmlTableGenshi:
 			attr=getattr(obj,trait.name)
 			tr=tag.tr(tag.td(trait.name if not self.showDoc else trait.doc.decode('utf-8')))
 			# nested object
-			if isinstance(attr,yade.core.Object):
+			if isinstance(attr,woo.core.Object):
 				tr.append([tag.td(self(attr,depth+1),align='justify'),tag.td()])
 			# sequence of objects (no units here)
-			elif hasattr(attr,'__len__') and len(attr)>0 and isinstance(attr[0],yade.core.Object):
+			elif hasattr(attr,'__len__') and len(attr)>0 and isinstance(attr[0],woo.core.Object):
 				tr.append(tag.td(tag.ol([tag.li(self(o,depth+1)) for o in attr])))
 			else:
 				if not trait.multiUnit: # the easier case
@@ -262,7 +262,7 @@ class SerializerToExpr:
 			return repr(obj)
 		lst=[(((attr[0]+'=') if attr[0] else '')+self(attr[1],level+1)) for attr in attrs]
 		oneLiner=(sum([len(l) for l in lst])+self.indentLen<=self.maxWd or self.maxWd<=0 or type(obj) in self.unbreakableTypes)
-		magic=('##yade-expression##\n' if not self.noMagic and level==0 else '')
+		magic=('##woo-expression##\n' if not self.noMagic and level==0 else '')
 		if oneLiner: return magic+delims[0]+', '.join(lst)+delims[1]
 		indent0,indent1=self.indent*level,self.indent*(level+1)
 		return magic+delims[0]+'\n'+indent1+(',\n'+indent1).join(lst)+'\n'+indent0+delims[1]+('\n' if level==0 else '')
@@ -273,7 +273,7 @@ def _Object_loads(typ,data,format='auto'):
 		return obj
 	if format not in ('auto','pickle','expr'): raise ValueError('Invalid format %s'%format)
 	elif format=='auto':
-		if data.startswith('##yade-expression##'): format='expr'
+		if data.startswith('##woo-expression##'): format='expr'
 		else: # try pickle
 			try:
 				return typeChecked(pickle.loads(data),typ)
@@ -312,7 +312,7 @@ def _Object_load(typ,inFile,format='auto'):
 			format='boost::serialization'
 		elif head.startswith('<?xml version="1.0"'):
 			format='boost::serialization'
-		elif head.startswith('##yade-expression##'):
+		elif head.startswith('##woo-expression##'):
 			format='expr'
 		else:
 			try: # test pickling by trying to load
@@ -336,11 +336,11 @@ def _Object_load(typ,inFile,format='auto'):
 
 
 def _Object_loadTmp(typ,name=''):
-	obj=yade.O.loadTmpAny(name)
+	obj=woo.O.loadTmpAny(name)
 	if not isinstance(obj,typ): raise TypeError('Loaded object of type '+obj.__class__.__name__+' is not a '+typ.__name__)
 	return obj
 def _Object_saveTmp(obj,name='',quiet=False):
-	yade.O.saveTmpAny(obj,name,quiet)
+	woo.O.saveTmpAny(obj,name,quiet)
 	
 
 Object._getAllTraits=_Object_getAllTraits
@@ -355,35 +355,35 @@ Object.loadTmp=classmethod(_Object_loadTmp)
 def _Master_save(o,*args,**kw):
 	o.scene.save(*args,**kw)
 def _Master_load(o,*args,**kw):
-	o.scene=yade.core.Scene.load(*args,**kw)
+	o.scene=woo.core.Scene.load(*args,**kw)
 def _Master_reload(o,quiet=None,*args,**kw): # this arg is deprecated
 	f=o.scene.lastSave
 	if not f: raise ValueError("Scene.lastSave is empty.")
-	if f.startswith(':memory:'): o.scene=yade.core.Scene.loadTmp(f[8:])
-	else: o.scene=yade.core.Scene.load(f,*args,**kw)
+	if f.startswith(':memory:'): o.scene=woo.core.Scene.loadTmp(f[8:])
+	else: o.scene=woo.core.Scene.load(f,*args,**kw)
 def _Master_loadTmp(o,name='',quiet=None): # quiet deprecated
-	o.scene=yade.core.Scene.loadTmp(name)
+	o.scene=woo.core.Scene.loadTmp(name)
 def _Master_saveTmp(o,name='',quiet=False):
 	o.scene.lastSave=':memory:'+name
 	o.scene.saveTmp(name,quiet)
 
-yade.core.Master.save=_Master_save
-yade.core.Master.load=_Master_load
-yade.core.Master.reload=_Master_reload
-yade.core.Master.loadTmp=_Master_loadTmp
-yade.core.Master.saveTmp=_Master_saveTmp
+woo.core.Master.save=_Master_save
+woo.core.Master.load=_Master_load
+woo.core.Master.reload=_Master_reload
+woo.core.Master.loadTmp=_Master_loadTmp
+woo.core.Master.saveTmp=_Master_saveTmp
 
 def _Master_run(o,*args,**kw): return o.scene.run(*args,**kw)
 def _Master_pause(o,*args,**kw): return o.scene.stop(*args,**kw)
 def _Master_step(o,*args,**kw): return o.scene.one(*args,**kw)
 def _Master_wait(o,*args,**kw): return o.scene.wait(*args,**kw)
 def _Master_reset(o):
-	o.scene=yade.core.Scene()
+	o.scene=woo.core.Scene()
 
 #def _Master_running(o.,*args,**kw): return o.scene.running
-yade.core.Master.run=_Master_run
-yade.core.Master.pause=_Master_pause
-yade.core.Master.step=_Master_step
-yade.core.Master.wait=_Master_wait
-yade.core.Master.running=property(lambda o: o.scene.running)
-yade.core.Master.reset=_Master_reset
+woo.core.Master.run=_Master_run
+woo.core.Master.pause=_Master_pause
+woo.core.Master.step=_Master_step
+woo.core.Master.wait=_Master_wait
+woo.core.Master.running=property(lambda o: o.scene.running)
+woo.core.Master.reset=_Master_reset

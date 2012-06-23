@@ -21,7 +21,7 @@ REGISTER_SERIALIZABLE(Facet);
 struct Bo1_Facet_Aabb: public BoundFunctor{
 	void go(const shared_ptr<Shape>&);
 	FUNCTOR1D(Facet);
-	WOO_CLASS_BASE_DOC(Bo1_Facet_Aabb,BoundFunctor,"Creates/updates an :yref:`Aabb` of a :yref:`Facet`.");
+	WOO_CLASS_BASE_DOC(Bo1_Facet_Aabb,BoundFunctor,"Creates/updates an :ref:`Aabb` of a :ref:`Facet`.");
 };
 REGISTER_SERIALIZABLE(Bo1_Facet_Aabb);
 
@@ -30,7 +30,7 @@ REGISTER_SERIALIZABLE(Bo1_Facet_Aabb);
 struct Gl1_Facet: public GlShapeFunctor{	
 	void go(const shared_ptr<Shape>&, const Vector3r&, bool, const GLViewInfo&);
 	RENDERS(Facet);
-	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Facet,GlShapeFunctor,"Renders :yref:`Facet` object",
+	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Facet,GlShapeFunctor,"Renders :ref:`Facet` object",
 		((bool,wire,false,,"Only show wireframe."))
 		/*attrs*/
 	);

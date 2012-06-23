@@ -1,9 +1,9 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from yade import utils
+from woo import utils
 import random
-from yade import ymport
+from woo import ymport
 
 ## PhysicalParameters 
 
@@ -72,7 +72,7 @@ import sys,time
 print "Start simulation: " + mesh
 nbIter=10000
 
-from yade import qt
+from woo import qt
 qt.View()
 
 O.stopAtIter=nbIter

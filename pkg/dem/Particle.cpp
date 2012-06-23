@@ -47,7 +47,7 @@ Particle::id_t Contact::pyId2() const { return pB->id; }
 Vector2i Contact::pyIds() const { return Vector2i(min(pA->id,pB->id),max(pA->id,pB->id)); }
 
 void Particle::checkNodes(bool dyn, bool checkOne) const {
-	if(!shape || (checkOne  && shape->nodes.size()!=1) || (dyn && !shape->nodes[0]->hasData<DemData>())) yade::AttributeError("Particle #"+lexical_cast<string>(id)+" has no Shape"+(checkOne?string(", or the shape has no/multiple nodes")+string(!dyn?".":", or node.dem is None."):string(".")));
+	if(!shape || (checkOne  && shape->nodes.size()!=1) || (dyn && !shape->nodes[0]->hasData<DemData>())) woo::AttributeError("Particle #"+lexical_cast<string>(id)+" has no Shape"+(checkOne?string(", or the shape has no/multiple nodes")+string(!dyn?".":", or node.dem is None."):string(".")));
 }
 
 Vector3r Shape::avgNodePos(){
@@ -111,7 +111,7 @@ void Particle::setOri(const Quaternionr& p){ checkNodes(false); shape->nodes[0]-
 #else
 	Vector3r& Partial::getRefPos() const{ return Vector3r(NaN,NaN,NaN); }
 	void Particle::setRefPos(const Vector3r& p){
-		yade::RuntimeError("Particle.refPos only supported with WOO_OPENGL.");
+		woo::RuntimeError("Particle.refPos only supported with WOO_OPENGL.");
 	}
 #endif
 

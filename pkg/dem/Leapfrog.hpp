@@ -49,9 +49,9 @@ struct Leapfrog: public GlobalEngine {
 		((bool,reset,false,,"Reset forces immediately after applying them."))
 		((bool,_forceResetChecked,false,AttrTrait<>().noGui(),"Whether we already issued a warning for forces being (probably) not reset"))
 		// ((Matrix3r,prevVelGrad,Matrix3r::Zero(),AttrTrait<Attr::readonly>(),"Previous value of velocity gradient, to detect its changes"))
-		// ((bool,exactAsphericalRot,true,,"Enable more exact body rotation integrator for :yref:`aspherical bodies<Body.aspherical>` *only*, using formulation from [Allen1989]_, pg. 89."))
+		// ((bool,exactAsphericalRot,true,,"Enable more exact body rotation integrator for :ref:`aspherical bodies<Body.aspherical>` *only*, using formulation from [Allen1989]_, pg. 89."))
 		// energy tracking
-		((int,nonviscDampIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index of the energy dissipated using the non-viscous damping (:yref:`damping<Leapfrog.damping>`)."))
+		((int,nonviscDampIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index of the energy dissipated using the non-viscous damping (:ref:`damping<Leapfrog.damping>`)."))
 		((bool,kinSplit,false,,"Whether to separately track translational and rotational kinetic energy."))
 		((Real,maxVelocitySq,NaN,AttrTrait<Attr::readonly>(),"store square of max. velocity, for informative purposes; computed again at every step."))
 

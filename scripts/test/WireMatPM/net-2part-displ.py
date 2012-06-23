@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # encoding: utf-8
-from yade import utils, ymport, qt, plot
+from woo import utils, ymport, qt, plot
 
 ## definition of some colors for colored text output in terminal
 BLUE = '\033[94m'

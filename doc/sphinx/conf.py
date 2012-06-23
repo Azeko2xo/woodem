@@ -45,7 +45,7 @@ else: raise RuntimeError("Must have either 'latex' or 'html' on the command line
 
 
 def yaderef_role(role,rawtext,text,lineno,inliner,options={},content=[]):
-	"Handle the :yref:`` role, by making hyperlink to yade.wrapper.*. It supports :yref:`Link text<link target>` syntax, like usual hyperlinking roles."
+	"Handle the :ref:`` role, by making hyperlink to yade.wrapper.*. It supports :ref:`Link text<link target>` syntax, like usual hyperlinking roles."
 	id=rawtext.split(':',2)[2][1:-1]
 	txt=id; explicitText=False
 	m=re.match('(.*)\s*<(.*)>\s*',id)
@@ -66,7 +66,7 @@ def yadesrc_role(role,rawtext,lineno,inliner,options={},content=[]):
 		txt,id=m.group(1),m.group(2)
 	return [nodes.reference(rawtext,docutils.utils.unescape(txt),refuri='http://bazaar.launchpad.net/~yade-dev/yade/trunk/%s/head%%3A/%s'%('files' if txt.endswith('/') else 'annotate',id))],[] ### **options should be passed to nodes.reference as well
 
-# map modules to their html (rst) filenames. Used for sub-modules, where e.g. SpherePack is yade._packSphere.SpherePack, but is documented from yade.pack.rst
+# map modules to their html (rst) filenames. Used for sub-modules, where e.g. SpherePack is yade._packSphere.SpherePack, but is documented from woo.pack.rst
 moduleMap={
 	'yade._packPredicates':'yade.pack',
 	'yade._packSpherePadder':'yade.pack',
@@ -355,7 +355,7 @@ import sys, os
 import re
 sys.path.append(os.path.abspath('.'))
 
-import yade.config
+import woo.config
 
 if 1:
 	import ipython_directive as id

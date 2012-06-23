@@ -108,7 +108,7 @@ class AttrEditor_ListStr(AttrEditor,QPlainTextEdit):
 
 
 class SerializableEditor(QWidget):
-	"Class displaying and modifying serializable attributes of a yade object."
+	"Class displaying and modifying serializable attributes of a woo object."
 	import collections
 	import logging
 	# each attribute has one entry associated with itself

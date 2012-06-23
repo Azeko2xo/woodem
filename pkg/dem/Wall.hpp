@@ -23,7 +23,7 @@ REGISTER_SERIALIZABLE(Wall);
 struct Bo1_Wall_Aabb: public BoundFunctor{
 	virtual void go(const shared_ptr<Shape>&);
 	FUNCTOR1D(Wall);
-	WOO_CLASS_BASE_DOC(Bo1_Wall_Aabb,BoundFunctor,"Creates/updates an :yref:`Aabb` of a :yref:`Wall`");
+	WOO_CLASS_BASE_DOC(Bo1_Wall_Aabb,BoundFunctor,"Creates/updates an :ref:`Aabb` of a :ref:`Wall`");
 };
 REGISTER_SERIALIZABLE(Bo1_Wall_Aabb);
 
@@ -42,7 +42,7 @@ REGISTER_SERIALIZABLE(In2_Wall_ElastMat);
 #include<woo/pkg/gl/Functors.hpp>
 struct Gl1_Wall: public GlShapeFunctor{	
 	virtual void go(const shared_ptr<Shape>&, const Vector3r&, bool,const GLViewInfo&);
-	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Wall,GlShapeFunctor,"Renders :yref:`Wall` object",
+	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Wall,GlShapeFunctor,"Renders :ref:`Wall` object",
 		((int,div,20,,"Number of divisions of the wall inside visible scene part."))
 	);
 	RENDERS(Wall);

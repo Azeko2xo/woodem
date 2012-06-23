@@ -22,7 +22,7 @@
 	#include<woo/lib/opengl/OpenGLWrapper.hpp>
 #endif
 
-// after all other includes, since it ambiguates many class in yade includes otherwise! 
+// after all other includes, since it ambiguates many class in woo includes otherwise! 
 #include<cl-dem0/cl/Simulation.hpp>
 
 WOO_PLUGIN(cld,(CLDemData)(CLDemField)(CLDemRun));
@@ -63,10 +63,10 @@ bool CLDemField::renderingBbox(Vector3r& mn, Vector3r& mx){
 }
 
 void CLDemField::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){
-	if(py::len(args)>1) yade::TypeError("CLDemField takes at most 1 non-keyword arguments ("+lexical_cast<string>(py::len(args))+" given)");
+	if(py::len(args)>1) woo::TypeError("CLDemField takes at most 1 non-keyword arguments ("+lexical_cast<string>(py::len(args))+" given)");
 	if(py::len(args)==0) return;
 	py::extract<shared_ptr<clDem::Simulation>> ex(args[0]);
-	if(!ex.check()) yade::TypeError("CLDemField: non-keyword arg must be a clDem.Simulation instance.");
+	if(!ex.check()) woo::TypeError("CLDemField: non-keyword arg must be a clDem.Simulation instance.");
 	sim=ex();
 	args=py::tuple();
 }
@@ -84,7 +84,7 @@ void CLDemRun::run(){
 	if(!sim) throw std::runtime_error("No CLDemField.sim! (beware: it is not saved automatically)");
 	// at the very first run, run one step exactly
 	// so that the modular arithmetics works
-	// when we compare with yade at the end of the step (below)
+	// when we compare with woo at the end of the step (below)
 	// (at the end of 0th step, 1 step has been run already, etc)
 	if(scene->step==0){
 		LOG_WARN("Running first step");
@@ -96,7 +96,7 @@ void CLDemRun::run(){
 		}
 	}
 	else{
-		// in case timestep was adjusted in yade
+		// in case timestep was adjusted in woo
 		if(sim->scene.dt!=scene->dt){
 			LOG_WARN("Setting clDem Δt="<<sim->scene.dt);
 			sim->scene.dt=scene->dt;
@@ -172,7 +172,7 @@ void CLDemRun::doCompare(){
 
 	/* compare particles */
 	FOREACH(const shared_ptr< ::Particle> yp, *dem->particles){
-		// no particles in yade and clDem
+		// no particles in woo and clDem
 		::Particle::id_t yId=yp->id;
 		if(!yp->shape || yp->shape->nodes.empty() || !yp->shape->nodes[0]->hasData<CLDemData>()) _THROW_ERROR("#"<<yId<<": no CLDemData with clDem id information.");
 		clDem::par_id_t clId=yp->shape->nodes[0]->getData<CLDemData>().clIx;
@@ -180,7 +180,7 @@ void CLDemRun::doCompare(){
 		const clDem::Particle& cp(sim->par[clId]);
 		int shapeT=clDem::par_shapeT_get(&cp);
 		if(shapeT==Shape_None) _THROW_ERROR(pId<<": not in clDem");
-		if(shapeT==Shape_Clump) _THROW_ERROR(pId<<": yade::Particle associated with clump clDem::Particle");
+		if(shapeT==Shape_Clump) _THROW_ERROR(pId<<": woo::Particle associated with clump clDem::Particle");
 
 		shared_ptr<Node> yn; /* must be set by shapeT handlers! */
 
@@ -199,7 +199,7 @@ void CLDemRun::doCompare(){
 			case clDem::Mat_ElastMat:{
 				if(!dynamic_pointer_cast< ::FrictMat>(yp->material)) _THROW_ERROR(pId<<": material mismatch ElastMat/"<<typeid(*(yp->material)).name());
 				const ::FrictMat& ym(yp->material->cast< ::FrictMat>());
-				if(!isinf(ym.tanPhi)) _THROW_ERROR(pId<<": yade::FrictMat::tanPhi="<<ym.tanPhi<<" should be infinity to represent frictionless clDem::ElastMat");
+				if(!isinf(ym.tanPhi)) _THROW_ERROR(pId<<": woo::FrictMat::tanPhi="<<ym.tanPhi<<" should be infinity to represent frictionless clDem::ElastMat");
 				const clDem::ElastMat& cm(sim->scene.materials[matId].mat.elast);
 				if(ym.density!=cm.density) _THROW_ERROR(pId<<": density differs "<<cm.density<<"/"<<ym.density);
 				if(ym.young!=cm.young) _THROW_ERROR(pId<<": young differes "<<cm.young<<"/"<<ym.young);
@@ -223,8 +223,8 @@ void CLDemRun::doCompare(){
 		switch(shapeT){
 			case Shape_Sphere:{
 				yn=yp->shape->nodes[0];
-				if(!dynamic_pointer_cast<yade::Sphere>(yp->shape)) _THROW_ERROR(pId<<": shape mismatch Sphere/"<<typeid(*(yp->shape)).name());
-				const yade::Sphere& ys(yp->shape->cast<yade::Sphere>());
+				if(!dynamic_pointer_cast<woo::Sphere>(yp->shape)) _THROW_ERROR(pId<<": shape mismatch Sphere/"<<typeid(*(yp->shape)).name());
+				const woo::Sphere& ys(yp->shape->cast<woo::Sphere>());
 				if(ys.radius!=cp.shape.sphere.radius) _THROW_ERROR(pId<<": spheres radius "<<cp.shape.sphere.radius<<"/"<<ys.radius);
 				break;
 			}
@@ -263,7 +263,7 @@ void CLDemRun::doCompare(){
 		const clDem::Particle& cp(sim->par[clId]);
 		int shapeT=clDem::par_shapeT_get(&cp);
 		if(shapeT==Shape_None) _THROW_ERROR(pId<<": not in clDem");
-		if(shapeT!=Shape_Clump) _THROW_ERROR(pId<<": yade's clump associated with a regular clDem::Particle (shapeT="<<shapeT<<")");
+		if(shapeT!=Shape_Clump) _THROW_ERROR(pId<<": woo's clump associated with a regular clDem::Particle (shapeT="<<shapeT<<")");
 
 		if(!yn->hasData<DemData>() || !dynamic_pointer_cast<ClumpData>(yn->getDataPtr<DemData>())) _THROW_ERROR(pId<<": does not have associated ClumpData instance");
 		const ::ClumpData& ycd(yn->getData<DemData>().cast<ClumpData>());
@@ -281,8 +281,8 @@ void CLDemRun::doCompare(){
 			if(!ycd.nodes[i]->hasData<CLDemData>()) _THROW_ERROR(pId<<"/"<<i<<" references node without CLDemData");
 			// get CLDemData::clIx
 			clDem::par_id_t clMemberId=ycd.nodes[i]->getData<CLDemData>().clIx;
-			// check that the node referenced from yade is the one of the particle referenced by clDem
-			if(clMemberId!=cm.id) _THROW_ERROR(pId<<"/"<<i<<": yade thinks the referenced clDem member should be "<<clMemberId<<", but clDem stores the value of "<<cm.id<<" (are clumps in the same order?)");
+			// check that the node referenced from woo is the one of the particle referenced by clDem
+			if(clMemberId!=cm.id) _THROW_ERROR(pId<<"/"<<i<<": woo thinks the referenced clDem member should be "<<clMemberId<<", but clDem stores the value of "<<cm.id<<" (are clumps in the same order?)");
 			// check relative positions and orientations
 			Real relPosErr=(v2v(cm.relPos)-ycd.relPos[i]).norm()/mU;
 			AngleAxisr caa(q2q(cm.relOri)), yaa(ycd.relOri[i]);
@@ -301,13 +301,13 @@ void CLDemRun::doCompare(){
 		if(cc.ids.s0<0) continue; // invalid contact
 		string cId="##"+lexical_cast<string>(cc.ids.s0)+"+"+lexical_cast<string>(cc.ids.s1);
 		const shared_ptr< ::Contact>& yc(dem->contacts->find(cc.ids.s0,cc.ids.s1));
-		if(!yc){ _THROW_ERROR(cId<<": not in yade"); continue; }
+		if(!yc){ _THROW_ERROR(cId<<": not in woo"); continue; }
 		int geomT=clDem::con_geomT_get(&cc);
 		int physT=clDem::con_physT_get(&cc);
 		if(!yc->geom && geomT!=clDem::Geom_None) _THROW_ERROR(cId<<": only has geom in clDem");
-		if( yc->geom && geomT==clDem::Geom_None) _THROW_ERROR(cId<<": only has geom in yade"); 
+		if( yc->geom && geomT==clDem::Geom_None) _THROW_ERROR(cId<<": only has geom in woo"); 
 		if(!yc->phys && physT!=clDem::Phys_None) _THROW_ERROR(cId<<": only has phys in clDem");
-		if( yc->phys && physT==clDem::Phys_None) _THROW_ERROR(cId<<": only has phys in yade"); 
+		if( yc->phys && physT==clDem::Phys_None) _THROW_ERROR(cId<<": only has phys in woo"); 
 		if(!yc->geom || !yc->phys) continue;
 		Real posErr=(v2v(cc.pos)-yc->geom->node->pos).norm();
 		_CHK_ERR(cId,posErr,cc.pos,yc->geom->node->pos);
@@ -341,7 +341,7 @@ void CLDemRun::doCompare(){
 				Real kNErr=abs(cc.phys.norm.kN-yp.kn)/(NU/mU);
 				_CHK_ERR(cId,kNErr,cc.phys.norm.kN,yp.kn);
 				// kT not checked
-				if(!isinf(yp.tanPhi)) _THROW_ERROR(cId<<": yade::FrictMat::tanPhi="<<yp.tanPhi<<" should be infinity to represent frictionless clDem::NormPhys");
+				if(!isinf(yp.tanPhi)) _THROW_ERROR(cId<<": woo::FrictMat::tanPhi="<<yp.tanPhi<<" should be infinity to represent frictionless clDem::NormPhys");
 				break;
 			}
 			case(clDem::Phys_FrictPhys):{
@@ -403,7 +403,7 @@ void CLDemRun::doCompare(){
 
 
 /* convert simulation from Yade to clDem, optionally add engines running the clDem simulation alongside */
-shared_ptr<clDem::Simulation> CLDemField::yadeToClDem(const shared_ptr< ::Scene>& scene, int stepPeriod, Real relTol){
+shared_ptr<clDem::Simulation> CLDemField::wooToClDem(const shared_ptr< ::Scene>& scene, int stepPeriod, Real relTol){
 	auto sim=make_shared<clDem::Simulation>();
 	shared_ptr<DemField> dem;
 	for(const auto& f: scene->fields){ dem=dynamic_pointer_cast<DemField>(f); if(dem) break; }
@@ -420,7 +420,7 @@ shared_ptr<clDem::Simulation> CLDemField::yadeToClDem(const shared_ptr< ::Scene>
 	sim->trackEnergy=scene->trackEnergy;
 	sim->scene.loneGroups=dem->loneMask;
 
-	std::map< ::Material*,int> ymm; // yade materials, mapping to clDem material numbers
+	std::map< ::Material*,int> ymm; // woo materials, mapping to clDem material numbers
 	for(const auto& yp: *dem->particles){
 		ymm.insert(std::make_pair(yp->material.get(),ymm.size())); // this makes sure materials are numbered consecutively
 	}
@@ -451,7 +451,7 @@ shared_ptr<clDem::Simulation> CLDemField::yadeToClDem(const shared_ptr< ::Scene>
 		par_matId_set(&cp,ymm[yp->material.get()]);
 		par_groups_set(&cp,yp->mask);
 
-		auto ysphere=dynamic_pointer_cast<yade::Sphere>(yp->shape);
+		auto ysphere=dynamic_pointer_cast<woo::Sphere>(yp->shape);
 		auto ywall=dynamic_pointer_cast< ::Wall>(yp->shape);
 		bool monoNodal=true;
 		if(ysphere){
@@ -630,7 +630,7 @@ shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>
 	if(mmatT==clDem::Mat_None) throw std::runtime_error("No materials defined.");
 
 	// create engines
-	// yade first
+	// woo first
 	auto grav=make_shared<Gravity>();
 	grav->gravity=v2v(sim->scene.gravity);
 	auto integrator=make_shared<Leapfrog>();
@@ -684,8 +684,8 @@ shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>
 		clDemRun,
 	};
 
-	std::vector<clDem::par_id_t> yadeIds; // ids of particles in yade
-	yadeIds.resize(sim->par.size(),-1);
+	std::vector<clDem::par_id_t> wooIds; // ids of particles in woo
+	wooIds.resize(sim->par.size(),-1);
 	// particles
 	for(size_t i=0; i<sim->par.size(); i++){
 		const clDem::Particle& cp=sim->par[i];
@@ -711,7 +711,7 @@ shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>
 				break;
 			}
 			case Shape_Sphere:{
-				auto ys=make_shared<yade::Sphere>();
+				auto ys=make_shared<woo::Sphere>();
 				ys->radius=cp.shape.sphere.radius;
 				yp->shape=ys;
 				break;
@@ -760,7 +760,7 @@ shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>
 				if(par_clumped_get(&cp)) dyn.setClumped();
 				int dofs=par_dofs_get(&cp);
 				for(int i=0; i<6; i++){
-					// clDem defines free dofs, yade defines blocked dofs
+					// clDem defines free dofs, woo defines blocked dofs
 					if(!(dofs&clDem::dof_axis(i%3,i/3))) dyn.flags|=::DemData::axisDOF(i%3,i/3);
 				}
 				node->setData<CLDemData>(make_shared<CLDemData>());
@@ -771,7 +771,7 @@ shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>
 			yp->shape->color=(par_dofs_get(&cp)==0?.5:.3);
 			yp->shape->setWire(true);
 			yp->mask=par_groups_get(&cp);
-			yadeIds[i]=dem->particles->insert(yp);
+			wooIds[i]=dem->particles->insert(yp);
 		}
 	}
 	// real/"real" contacts
@@ -781,7 +781,7 @@ shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>
 		if(clDem::con_geomT_get(&c)!=Geom_None) throw std::runtime_error(cId+": pre-existing geom not handled yet.");
 		if(clDem::con_physT_get(&c)!=Phys_None) throw std::runtime_error(cId+": pre-existing phys not handled yet.");
 		auto yc=make_shared< ::Contact>();
-		::Particle::id_t idA=yadeIds[c.ids.s0], idB=yadeIds[c.ids.s1];
+		::Particle::id_t idA=wooIds[c.ids.s0], idB=wooIds[c.ids.s1];
 		assert(idA>=0 && idA<(long)dem->particles->size());
 		assert(idB>=0 && idB<(long)dem->particles->size());
 		yc->pA=(*dem->particles)[idA];
@@ -796,7 +796,7 @@ shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>
 			string cId="pot##"+lexical_cast<string>(ids.s0)+"+"+lexical_cast<string>(ids.s1);
 			auto yc=make_shared< ::Contact>();
 			if(ids.s0<0) continue;
-			::Particle::id_t idA=yadeIds[ids.s0], idB=yadeIds[ids.s1];
+			::Particle::id_t idA=wooIds[ids.s0], idB=wooIds[ids.s1];
 			assert(idA>=0 && idA<(long)dem->particles->size());
 			assert(idB>=0 && idB<(long)dem->particles->size());
 			yc->pA=(*dem->particles)[idA];

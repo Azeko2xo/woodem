@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from yade import pack,ymport,export,log,geom,bodiesHandling
+from woo import pack,ymport,export,log,geom,bodiesHandling
 import math
 
 """ This script demonstrates how to use 2 components of creating packings:
@@ -104,7 +104,7 @@ vibrationRotationPlate = O.bodies.append(geom.facetBox((-15,5,-5),(2,2,2),wallMa
 O.bodies.append(utils.wall((0,0,-10),axis=2))
 
 try:
-	from yade import qt
+	from woo import qt
 	qt.Controller()
 	qt.View()
 except ImportError: pass
@@ -136,6 +136,6 @@ O.dt=utils.PWaveTimeStep()
 O.saveTmp()
 O.timingEnabled=True
 #O.run(10000,True)
-#from yade import timing
+#from woo import timing
 #timing.stats()
 #quit()

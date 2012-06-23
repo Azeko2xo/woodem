@@ -2,13 +2,13 @@
 Run all defined regression tests, then exit.
 Exit status is 0 on success and nonzero on failure.
 """
-import yade.tests
+import woo.tests
 try:
-	result=yade.tests.testAll()
+	result=woo.tests.testAll()
 except:
 	print "*********************** UNEXPECTED EXCEPTION WHILE RUNNING TESTS ******************"
 	print "******************",sys.exc_info()[0]
-	print "****************** Please report bug at http://bugs.launchpad.net/yade providing the following traceback:"
+	print "****************** Please report bug at http://bugs.launchpad.net/woo providing the following traceback:"
 	import traceback
 	traceback.print_exc()
 	print "***************************************** Thank you *******************************"

@@ -1,10 +1,10 @@
-from yade import utils
-from yade.core import *
-from yade.dem import *
-from yade import plot
-from yade import *
-import yade.log
-yade.log.setLevel('LawTester',yade.log.INFO)
+from woo import utils
+from woo.core import *
+from woo.dem import *
+from woo import plot
+from woo import *
+import woo.log
+woo.log.setLevel('LawTester',woo.log.INFO)
 m=utils.defaultMaterial()
 S=O.scene=Scene(fields=[DemField()])
 S.dem.par.append([
@@ -29,7 +29,7 @@ S.engines=utils.defaultEngines(damping=.01,gravity=(0,0,0))+[
 		done='tester.dead=True; O.pause(); print "Everything done, making myself dead and pausing."',
 		label='tester'
 	),
-	PyRunner(60,'dd={}; dd.update(**yade.tester.fuv()); dd.update(**O.scene.energy); yade.plot.addData(i=S.step,dist=(S.dem.par[0].pos-S.dem.par[1].pos).norm(),t=S.time,**dd)'),
+	PyRunner(60,'dd={}; dd.update(**woo.tester.fuv()); dd.update(**O.scene.energy); woo.plot.addData(i=S.step,dist=(S.dem.par[0].pos-S.dem.par[1].pos).norm(),t=S.time,**dd)'),
 ]
 S.dt=1e-3
 #S.pause()

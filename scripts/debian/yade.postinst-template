@@ -1,5 +1,5 @@
 #!/bin/sh
-# postinst script for yade
+# postinst script for woo
 #
 # see: dh_installdeb(1)
 
@@ -20,7 +20,7 @@ set -e
 
 case "$1" in
     configure)
-	 	update-alternatives --install /usr/bin/yade yade /usr/bin/yade@_VERSION@ @PRIORITY@ --slave /usr/bin/yade-batch yade-batch /usr/bin/yade@_VERSION@-batch --slave /usr/share/man/man1/yade.1 yade.1 /usr/share/man/man1/yade@_VERSION@.1 --slave /usr/share/man/man1/yade-batch.1 yade-batch.1 /usr/share/man/man1/yade@_VERSION@-batch.1
+	 	update-alternatives --install /usr/bin/woo woo /usr/bin/woo@_VERSION@ @PRIORITY@ --slave /usr/bin/woo-batch woo-batch /usr/bin/woo@_VERSION@-batch --slave /usr/share/man/man1/woo.1 woo.1 /usr/share/man/man1/woo@_VERSION@.1 --slave /usr/share/man/man1/woo-batch.1 woo-batch.1 /usr/share/man/man1/woo@_VERSION@-batch.1
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

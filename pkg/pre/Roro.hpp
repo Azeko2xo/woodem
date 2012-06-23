@@ -5,7 +5,7 @@
 
 struct Roro: public Preprocessor {
 	shared_ptr<Scene> operator()(){
-		auto pre=py::import("yade.pre.Roro_");
+		auto pre=py::import("woo.pre.Roro_");
 		return py::call<shared_ptr<Scene>>(py::getattr(pre,"run").ptr(),boost::ref(*this));
 	}
 	void postLoad(Roro&){
@@ -51,8 +51,9 @@ struct Roro: public Preprocessor {
 		((int,factStepPeriod,800,,"Run factory (and deleters) every *factStepPeriod* steps."))
 		((Real,pWaveSafety,.7,AttrTrait<Attr::triggerPostLoad>(),"Safety factor for critical timestep"))
 		((Real,rateSmooth,.4,,"Smoothing factor for plotting rates in factory and deleters"))
-		((Real,vtkFreq,.25,,"How often should VtkExport run, relative to *factStepPeriod*. If negative, run never."))
+		((int,vtkFreq,4,,"How often should VtkExport run, relative to *factStepPeriod*. If negative, run never."))
 		((string,vtkPrefix,"/tmp/",,"Prefix for saving VtkExport data, files will be called vtkPrefix+O.tags['id']. Don't forget trailing slash if vtkPrefix is a directory."))
+		((string,feedCacheDir,".",,"Directory where to store pre-generated feed packings"))
 
 		, /*ctor*/
 			material->density=3200;

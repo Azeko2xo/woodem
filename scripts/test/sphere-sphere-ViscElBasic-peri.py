@@ -3,7 +3,7 @@
 # Testing sphere-sphere interaction in periodic case.
 # Pass, if the spheres moves along the X axis, interacting through the period.
 
-from yade import utils
+from woo import utils
 
 sphereRadius=0.1
 tc=0.001# collision time 

@@ -11,7 +11,7 @@ of post2d.data.
 Flatteners
 ==========
 Instance of classes that convert 3d (model) coordinates to 2d (plot) coordinates. Their interface is
-defined by the :yref:`yade.post2d.Flatten` class (``__call__``, ``planar``, ``normal``).
+defined by the :ref:`woo.post2d.Flatten` class (``__call__``, ``planar``, ``normal``).
 
 Extractors
 ==========
@@ -23,7 +23,7 @@ Example
 =======
 This example can be found in examples/concrete/uniax-post.py ::
 
- from yade import post2d
+ from woo import post2d
  import pylab # the matlab-like interface of matplotlib
 
  O.load('/tmp/uniax-tension.xml.bz2')
@@ -60,14 +60,14 @@ This example can be found in examples/concrete/uniax-post.py ::
 """
 from miniEigen import *
 
-from yade.dem import Particle,Sphere
+from woo.dem import Particle,Sphere
 
 class Flatten:
 	"""Abstract class for converting 3d point into 2d. Used by post2d.data2d."""
 	def __init__(self,dispScale=1.):
 		self.dispScale=dispScale
 	def __call__(self,b):
-		"Given a :yref:`Body` / :yref:`Interaction` instance, should return either 2d coordinates as a 2-tuple, or None if the Body should be discarded." 
+		"Given a :ref:`Body` / :ref:`Interaction` instance, should return either 2d coordinates as a 2-tuple, or None if the Body should be discarded." 
 		pass
 	def planar(self,pos,vec):
 		"Given position and vector value, project the vector value to the flat plane and return its 2 in-plane components."
@@ -94,8 +94,8 @@ class HelixFlatten(Flatten):
 	def _getPos(self,b):
 		return b.refPos if self.useRef else self.scaledPos(b)
 	def __call__(self,b):
-		import yade.utils
-		xy,theta=yade.utils.spiralProject(_getPos(b),self.dH_dTheta,self.axis,self.periodStart)
+		import woo.utils
+		xy,theta=woo.utils.spiralProject(_getPos(b),self.dH_dTheta,self.axis,self.periodStart)
 		if theta<thetaRange[0] or theta>thetaRange[1]: return None
 		return xy
 	def planar(self,b,vec):
@@ -166,8 +166,8 @@ def data(scene,extractor,flattener,con=False,onlyDynamic=True,stDev=None,relThre
 	The ``con`` parameter determines whether we operate on particles or contacts;
 	the extractor provided should expect to receive body/interaction.
 
-	:param callable extractor: receives :yref:`Body` (or :yref:`Interaction`, if ``con`` is ``True``) instance, should return scalar, a 2-tuple (vector fields) or None (to skip that body/interaction)
-	:param callable flattener: :yref:`yade.post2d.Flatten` instance, receiving body/interaction, returns its 2d coordinates or ``None`` (to skip that body/interaction)
+	:param callable extractor: receives :ref:`Body` (or :ref:`Interaction`, if ``con`` is ``True``) instance, should return scalar, a 2-tuple (vector fields) or None (to skip that body/interaction)
+	:param callable flattener: :ref:`woo.post2d.Flatten` instance, receiving body/interaction, returns its 2d coordinates or ``None`` (to skip that body/interaction)
 	:param bool con: operate on contacts rather than particles
 	:param bool onlyDynamic: skip all non-dynamic particles
 	:param float/None stDev: standard deviation for averaging, enables smoothing; ``None`` (default) means raw mode, where discrete points are returned
@@ -185,7 +185,7 @@ def data(scene,extractor,flattener,con=False,onlyDynamic=True,stDev=None,relThre
 	Scalar fields contain 'val' (value from *extractor*), vector fields have 'valX' and 'valY' (2 components returned by the *extractor*).
 	"""
 	from miniEigen import Vector3
-	from yade.dem import Sphere
+	from woo.dem import Sphere
 	xx,yy,dd1,dd2,rr=[],[],[],[],[]
 	nDim=0
 	objects=scene.dem.con if con else scene.dem.par
@@ -212,7 +212,7 @@ def data(scene,extractor,flattener,con=False,onlyDynamic=True,stDev=None,relThre
 		if nDim==1: return {'type':'rawScalar','x':xx,'y':yy,'val':dd1,'radii':rr,'bbox':bbox}
 		else: return {'type':'rawVector','x':xx,'y':yy,'valX':dd1,'valY':dd2,'radii':rr,'bbox':bbox}
 	
-	from yade.WeightedAverage2d import GaussAverage
+	from woo.WeightedAverage2d import GaussAverage
 	import numpy
 	lo,hi=(min(xx),min(yy)),(max(xx),max(yy))
 	llo=lo[0]-margin[0],lo[1]-margin[1]; hhi=hi[0]+margin[0],hi[1]+margin[1]
@@ -257,7 +257,7 @@ def plot(data,axes=None,alpha=.5,clabel=True,cbar=False,aspect='equal',**kw):
 	For vector data (raw or smooth), plot quiver (vector field), with arrows colored by the magnitude.
 
 	:param axes: matplotlib.axes\ instance where the figure will be plotted; if None, will be created from scratch.
-	:param data: value returned by :yref:`yade.post2d.data`
+	:param data: value returned by :ref:`woo.post2d.data`
 	:param bool clabel: show contour labels (smooth mode only), or annotate cells with numbers inside (with perArea==2)
 	:param bool cbar: show colorbar (equivalent to calling pylab.colorbar(mappable) on the returned mappable)
 

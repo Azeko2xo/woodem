@@ -1,12 +1,12 @@
-Name:           yade-0.60
+Name:           woo-0.60
 Version:        0.60  
 Release:        1%{?dist}
 Summary:        Platform for discrete element modeling
 
 Group:          Applications/Engineering
 License:        GPLv2
-URL:            https://launchpad.net/yade
-Source0:        http://launchpad.net/yade/trunk/0.60/+download/yade-0.60.1.tar.bz2
+URL:            https://launchpad.net/woo
+Source0:        http://launchpad.net/woo/trunk/0.60/+download/woo-0.60.1.tar.bz2
 patch0:         exclude-rpath-patch-060
 patch1:         disable-info.patch
 BuildRoot:      %{_tmppath}/%{name}-%{version}
@@ -30,7 +30,7 @@ simulation control, postprocessing and debugging.
 %package dbg
 Summary: Debug Yade version
 %description dbg
-This package contains debug-libraries for yade
+This package contains debug-libraries for woo
 
 %package doc
 Summary: Documentation for Yade
@@ -59,11 +59,11 @@ cp %{buildroot}%_libdir/%{name}/py/gts/_gts.so %{buildroot}%_libdir/%{name}/lib/
 
 #Generate documentation
 cd %_builddir/%{name}-%{version}/doc/sphinx
-PYTHONPATH=. WOO_PREFIX=%{buildroot}/usr %{buildroot}/usr/bin/%{name} yadeSphinx.py
+PYTHONPATH=. WOO_PREFIX=%{buildroot}/usr %{buildroot}/usr/bin/%{name} wooSphinx.py
 cd _build/latex; xelatex Yade.tex; xelatex Yade.tex; xelatex Yade.tex;
 
-WOO_PREFIX=%{buildroot}/usr %{buildroot}/usr/bin/%{name} --generate-manpage yade-%{version}.1
-WOO_PREFIX=%{buildroot}/usr %{buildroot}/usr/bin/%{name}-batch --generate-manpage yade-%{version}-batch.1
+WOO_PREFIX=%{buildroot}/usr %{buildroot}/usr/bin/%{name} --generate-manpage woo-%{version}.1
+WOO_PREFIX=%{buildroot}/usr %{buildroot}/usr/bin/%{name}-batch --generate-manpage woo-%{version}-batch.1
 cd ../..;
 
 mkdir -p %{buildroot}%{_docdir}/%{name}
@@ -71,8 +71,8 @@ mkdir -p %{buildroot}%{_mandir}/man1
 mv %_builddir/%{name}-%{version}/doc/sphinx/_build/html %{buildroot}%{_docdir}/%{name}
 mv %_builddir/%{name}-%{version}/doc/sphinx/_build/latex/Yade.pdf %{buildroot}%{_docdir}/%{name}
 mv %_builddir/%{name}-%{version}/examples %{buildroot}%{_docdir}/%{name}
-mv %_builddir/%{name}-%{version}/doc/sphinx/_build/latex/yade-%{version}.1 %{buildroot}%{_mandir}/man1/
-mv %_builddir/%{name}-%{version}/doc/sphinx/_build/latex/yade-%{version}-batch.1 %{buildroot}%{_mandir}/man1/
+mv %_builddir/%{name}-%{version}/doc/sphinx/_build/latex/woo-%{version}.1 %{buildroot}%{_mandir}/man1/
+mv %_builddir/%{name}-%{version}/doc/sphinx/_build/latex/woo-%{version}-batch.1 %{buildroot}%{_mandir}/man1/
 
 %clean
 rm -rf %{buildroot}

@@ -1,4 +1,4 @@
-from yade.pack import *
+from woo.pack import *
 s1=inSphere((0,0,0),1)
 s2=inSphere((0,0,1),1)
 # construct using explicit composition

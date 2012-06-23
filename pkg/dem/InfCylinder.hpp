@@ -21,7 +21,7 @@ REGISTER_SERIALIZABLE(InfCylinder);
 struct Bo1_InfCylinder_Aabb: public BoundFunctor{
 	virtual void go(const shared_ptr<Shape>&);
 	FUNCTOR1D(InfCylinder);
-	WOO_CLASS_BASE_DOC(Bo1_InfCylinder_Aabb,BoundFunctor,"Creates/updates an :yref:`Aabb` of a :yref:`InfCylinder`");
+	WOO_CLASS_BASE_DOC(Bo1_InfCylinder_Aabb,BoundFunctor,"Creates/updates an :ref:`Aabb` of a :ref:`InfCylinder`");
 };
 REGISTER_SERIALIZABLE(Bo1_InfCylinder_Aabb);
 
@@ -30,7 +30,7 @@ REGISTER_SERIALIZABLE(Bo1_InfCylinder_Aabb);
 #include<woo/pkg/gl/Functors.hpp>
 struct Gl1_InfCylinder: public GlShapeFunctor{	
 	virtual void go(const shared_ptr<Shape>&, const Vector3r&, bool,const GLViewInfo&);
-	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_InfCylinder,GlShapeFunctor,"Renders :yref:`InfCylinder` object",
+	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_InfCylinder,GlShapeFunctor,"Renders :ref:`InfCylinder` object",
 		((bool,wire,false,,"Render Cylinders with wireframe"))
 		((int,slices,12,,"Number of circumferential division of circular sections"))
 		((int,stacks,20,,"Number of rings on the cylinder inside the visible scene part."))

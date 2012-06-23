@@ -2,7 +2,7 @@
 Type=Application
 Name=Yade @VERSION@
 GenericName=Yade
-Exec=/usr/bin/yade@_VERSION@
-Icon=/usr/share/pixmaps/yade@_VERSION@_32x32.xpm
+Exec=/usr/bin/woo@_VERSION@
+Icon=/usr/share/pixmaps/woo@_VERSION@_32x32.xpm
 Terminal=true
 Categories=Education;Physics;Science;

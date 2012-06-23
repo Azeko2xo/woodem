@@ -22,19 +22,19 @@
 +++ core/main/main.py.in	2011-02-12 21:11:07 +0000
 @@ -11,6 +11,16 @@
  ## find available builds
- nonDebugLibDir=prefix+'/lib/yade'+suffix
+ nonDebugLibDir=prefix+'/lib/woo'+suffix
  debugLibDir=nonDebugLibDir+'/dbg'
 +
 +try:
 +	os.environ["LD_LIBRARY_PATH"] 
 +except KeyError:
 +	#UGLY!!! Need to change it.
-+	os.environ["LD_LIBRARY_PATH"] = nonDebugLibDir  + "/lib:" + nonDebugLibDir  + "/plugins:" + nonDebugLibDir  + "/py:" + nonDebugLibDir  + "/py/gts:" + nonDebugLibDir  + "/py/yade/:" + nonDebugLibDir  + "/py/yade/qt" + debugLibDir  + "/lib:" + debugLibDir  + "/plugins:" + debugLibDir  + "/py:" + debugLibDir  + "/py/gts:" + debugLibDir  + "/py/yade/:" + debugLibDir  + "/py/yade/qt"
++	os.environ["LD_LIBRARY_PATH"] = nonDebugLibDir  + "/lib:" + nonDebugLibDir  + "/plugins:" + nonDebugLibDir  + "/py:" + nonDebugLibDir  + "/py/gts:" + nonDebugLibDir  + "/py/woo/:" + nonDebugLibDir  + "/py/woo/qt" + debugLibDir  + "/lib:" + debugLibDir  + "/plugins:" + debugLibDir  + "/py:" + debugLibDir  + "/py/gts:" + debugLibDir  + "/py/woo/:" + debugLibDir  + "/py/woo/qt"
 +	os.execve(sys.argv[0], sys.argv, os.environ)
 +
 +
 +
- hasDebug,hasNonDebug=os.path.exists(debugLibDir+'/py/yade/__init__.py'),os.path.exists(nonDebugLibDir+'/py/yade/__init__.py')
+ hasDebug,hasNonDebug=os.path.exists(debugLibDir+'/py/woo/__init__.py'),os.path.exists(nonDebugLibDir+'/py/woo/__init__.py')
  if hasDebug and hasNonDebug: buildsAvailable='both non-debug and debug build'
  elif hasDebug and not hasNonDebug: buildsAvailable='debug build only'
 

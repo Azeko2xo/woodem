@@ -31,10 +31,10 @@ _VERSION='-'+VERSION #used in templates
 
 # rename a current folder and create orig.tar.gz
 curName = os.path.basename(os.path.abspath(''))
-newName = 'yade-%s' % (VERSION)
+newName = 'woo-%s' % (VERSION)
 os.rename (('../'+curName), '../'+newName)
 shutil.rmtree('.bzr')
-os.system(('tar -czf ../yade-%s_%s.orig.tar.gz ../'+os.path.basename(os.path.abspath(''))+'/')%(VERSION,VERSION))
+os.system(('tar -czf ../woo-%s_%s.orig.tar.gz ../'+os.path.basename(os.path.abspath(''))+'/')%(VERSION,VERSION))
 shutil.copytree('scripts/debian','./debian')
 
 
@@ -45,28 +45,28 @@ def copyReplace(f1,f2):
 	for l in open(f1):
 		ff2.write(re.sub(r'@([^@]*)@',lambda m: str(eval(m.group(1))),l))
 for f1,f2 in [
-	('yade.postinst-template','yade-%s.postinst'%VERSION),
-	('yade.desktop-template','yade-%s.desktop'%VERSION),
-	('yade.docs-template','yade-%s.docs'%VERSION),
-	('yade.examples-template','yade-%s.examples'%VERSION),
-	('yade.install-template','yade-%s.install'%VERSION),
-	('yade.menu-template','yade-%s.menu'%VERSION),
-	('yade-doc.doc-base-template','yade-%s-doc.doc-base'%VERSION),
-	('yade-doc.docs-template','yade-%s-doc.docs'%VERSION),
+	('woo.postinst-template','woo-%s.postinst'%VERSION),
+	('woo.desktop-template','woo-%s.desktop'%VERSION),
+	('woo.docs-template','woo-%s.docs'%VERSION),
+	('woo.examples-template','woo-%s.examples'%VERSION),
+	('woo.install-template','woo-%s.install'%VERSION),
+	('woo.menu-template','woo-%s.menu'%VERSION),
+	('woo-doc.doc-base-template','woo-%s-doc.doc-base'%VERSION),
+	('woo-doc.docs-template','woo-%s-doc.docs'%VERSION),
 	('control-template','control')]:
 		copyReplace('debian/'+f1,'debian/'+f2)
-os.system('cp debian/yade16x16.xpm debian/yade-%s_16x16.xpm'%VERSION)
-os.system('cp debian/yade32x32.xpm debian/yade-%s_32x32.xpm'%VERSION)
+os.system('cp debian/woo16x16.xpm debian/woo-%s_16x16.xpm'%VERSION)
+os.system('cp debian/woo32x32.xpm debian/woo-%s_32x32.xpm'%VERSION)
 
 
-# package is yade-0.50, but with UPDATE .1, it is version 0.50.1
+# package is woo-0.50, but with UPDATE .1, it is version 0.50.1
 
 # write debian/changelog
 try:
 	open('debian/changelog','w').write(
-	'''yade-%s (%s-1) %s; urgency=low
+	'''woo-%s (%s-1) %s; urgency=low
 
-  * Automatic debian changelog entry for yade-%s
+  * Automatic debian changelog entry for woo-%s
 
  -- %s <%s>  %s
 '''%(VERSION,VERSION,DISTRIBUTION,VERSION,os.environ['DEBFULLNAME'],os.environ['DEBEMAIL'],time.strftime("%a, %d %b %Y %H:%M:%S +0000",time.gmtime())))

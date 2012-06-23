@@ -3,7 +3,7 @@
 
 # Script to test the contact damping in HM (both in the normal and shear direction)
 
-from yade import utils
+from woo import utils
 
 #__________________________________________________________________
 # Geometry sphere and box
@@ -54,14 +54,14 @@ O.dt=.2*utils.PWaveTimeStep()
 O.saveTmp('init')
 
 #__________________________________________________________________
-from yade import qt
+from woo import qt
 qt.View()
 qt.Controller()
 
 #__________________________________________________________________
 # plot some results
 from math import *
-from yade import plot
+from woo import plot
 
 plot.labels=dict(Fn='$Normal\,force$',un='$Overlapping$',time='$Time$',time_='$Time$',Fs='$Shear\,force$',t='$Time$')
 plot.plots={'time':('un',),'time_':('Fn',),'t':('Fs')}

@@ -38,7 +38,7 @@ void OpenCLCollider::postLoad(OpenCLCollider&){
 		clReady=false;
 	}
 	#else
-		if(gpu){ gpu=false; throw std::runtime_error("OpenCLCollider.gpu==True but yade was compiled without the 'opencl' fefeature."); }
+		if(gpu){ gpu=false; throw std::runtime_error("OpenCLCollider.gpu==True but woo was compiled without the 'opencl' fefeature."); }
 	#endif
 }
 

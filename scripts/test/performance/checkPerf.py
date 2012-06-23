@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-from yade import utils,pack,export,geom,timing,bodiesHandling
+from woo import utils,pack,export,geom,timing,bodiesHandling
 import time,numpy
 	
 radRAD=[23.658,				#5000 elements

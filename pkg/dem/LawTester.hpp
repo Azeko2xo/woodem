@@ -52,7 +52,7 @@ struct LawTester: public Engine{
 		((vector<shared_ptr<LawTesterStage>>,stages,,,"Stages to be reached during the testing"))
 		((int,maxStageSteps,100000,AttrTrait<>().noGui(),"Throw error if stage takes this much steps"))
 		,/*ctor*/
-		,/*py*/ .def("fuv",&LawTester::pyFuv,"Return python dictionary containing f,u,v,smooF,smooU,smooU; useful for plotting with `yade.plot.addData(**tester.dict())`")
+		,/*py*/ .def("fuv",&LawTester::pyFuv,"Return python dictionary containing f,u,v,smooF,smooU,smooU; useful for plotting with `woo.plot.addData(**tester.dict())`")
 	);
 };
 REGISTER_SERIALIZABLE(LawTester);

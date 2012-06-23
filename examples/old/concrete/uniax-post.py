@@ -1,12 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 #
-# demonstration of the yade.post2d module (see its documentation for details)
+# demonstration of the woo.post2d module (see its documentation for details)
 #
-from yade import post2d
+from woo import post2d
 import pylab # the matlab-like interface of matplotlib
 
-loadFile='/tmp/uniax-tension.yade.gz'
+loadFile='/tmp/uniax-tension.woo.gz'
 if not os.path.exists(loadFile): raise RuntimeError("Run uniax.py first so that %s is created"%loadFile)
 O.load(loadFile)
 

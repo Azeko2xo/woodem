@@ -17,8 +17,8 @@ struct Gl1_DemField: public GlFieldFunctor{
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_DemField,GlFieldFunctor,"Render DEM field.",
 		((bool,wire,false,,"Render all bodies with wire only"))
 		// ((bool,id,false,,"Show particle id's"))
-		((bool,bound,false,,"Render particle's :yref:`Bound`"))
-		((bool,shape,true,,"Render particle's :yref:`Shape`"))
+		((bool,bound,false,,"Render particle's :ref:`Bound`"))
+		((bool,shape,true,,"Render particle's :ref:`Shape`"))
 		((bool,nodes,false,,"Render DEM nodes"))
 		((int,cNodes,-1,,"Render contact's nodes (-1=nothing, 0=rep only, 2=line between particles, 2=nodes, 3=both"))
 		((Vector2i,cNodes_range,Vector2i(-1,3),AttrTrait<>().noGui(),"Range for cNodes"))

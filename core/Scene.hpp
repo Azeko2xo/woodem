@@ -39,6 +39,7 @@ class Scene: public Object{
 		void pyWait();         
 		bool running(); 
 		void backgroundLoop();
+		~Scene(){ pyStop(); }
 
 		// initialize tags (author, date, time)
 		void fillDefaultTags();
@@ -72,6 +73,7 @@ class Scene: public Object{
 			void delItem(const std::string& key);
 			boost::python::list keys();
 			bool has_key(const std::string& key);
+			void update(const pyTagsProxy& b);
 		};
 		pyTagsProxy pyGetTags(){ return pyTagsProxy(this); }
 		shared_ptr<Cell> pyGetCell(){ return (isPeriodic?cell:shared_ptr<Cell>()); }
@@ -117,7 +119,7 @@ class Scene: public Object{
 		((shared_ptr<EnergyTracker>,energy,new EnergyTracker,AttrTrait<Attr::readonly>(),"Energy values, if energy tracking is enabled."))
 		((vector<shared_ptr<Field>>,fields,,AttrTrait<Attr::triggerPostLoad>(),"Defined simulation fields."))
 		((shared_ptr<Cell>,cell,new Cell,AttrTrait<Attr::hidden>(),"Information on periodicity; only should be used if Scene::isPeriodic."))
-		((vector<shared_ptr<DisplayParameters>>,dispParams,,AttrTrait<Attr::hidden>(),"'hash maps' of display parameters (since yade::serialization had no support for maps, emulate it via vector of strings in format key=value)"))
+		((vector<shared_ptr<DisplayParameters>>,dispParams,,AttrTrait<Attr::hidden>(),"'hash maps' of display parameters (since woo::serialization had no support for maps, emulate it via vector of strings in format key=value)"))
 		((std::string,lastSave,,AttrTrait<>().noGui(),"Name under which the simulation was saved for the last time; used for reloading the simulation. Updated automatically, don't change."))
 
 		#if WOO_OPENGL
@@ -132,7 +134,7 @@ class Scene: public Object{
 		/*ctor*/ fillDefaultTags(); runningFlag=false;
 		, /* py */
 		.add_property("tags",&Scene::pyGetTags,"Arbitrary key=value associations (tags like mp3 tags: author, date, version, description etc.")
-		.add_property("cell",&Scene::pyGetCell,"Periodic space configuration (is None for aperiodic scene); set :yref:`Scene.periodic` to enable/disable periodicity")
+		.add_property("cell",&Scene::pyGetCell,"Periodic space configuration (is None for aperiodic scene); set :ref:`Scene.periodic` to enable/disable periodicity")
 		.def_readwrite("periodic",&Scene::isPeriodic,"Set whether the scene is periodic or not")
 		.add_property("engines",&Scene::pyEnginesGet,&Scene::pyEnginesSet,"Engine sequence in the simulation")
 		.add_property("_currEngines",py::make_getter(&Scene::engines,py::return_value_policy<py::return_by_value>()),"Current engines, debugging only")
@@ -153,7 +155,7 @@ class Scene: public Object{
 		;
 		// define nested class
 		boost::python::scope foo(_classObj);
-		boost::python::class_<Scene::pyTagsProxy>("TagsProxy",py::init<pyTagsProxy>()).def("__getitem__",&pyTagsProxy::getItem).def("__setitem__",&pyTagsProxy::setItem).def("__delitem__",&pyTagsProxy::delItem).def("has_key",&pyTagsProxy::has_key).def("__contains__",&pyTagsProxy::has_key).def("keys",&pyTagsProxy::keys)
+		boost::python::class_<Scene::pyTagsProxy>("TagsProxy",py::init<pyTagsProxy>()).def("__getitem__",&pyTagsProxy::getItem).def("__setitem__",&pyTagsProxy::setItem).def("__delitem__",&pyTagsProxy::delItem).def("has_key",&pyTagsProxy::has_key).def("__contains__",&pyTagsProxy::has_key).def("keys",&pyTagsProxy::keys).def("update",&pyTagsProxy::update)
 		);
 	DECLARE_LOGGER;
 };

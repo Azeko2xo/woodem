@@ -17,7 +17,7 @@
 #ifdef WOO_LOG4CXX
 	#include<log4cxx/consoleappender.h>
 	#include<log4cxx/patternlayout.h>
-	log4cxx::LoggerPtr logger=log4cxx::Logger::getLogger("yade.boot");
+	log4cxx::LoggerPtr logger=log4cxx::Logger::getLogger("woo.boot");
 	/* Initialize log4dcxx automatically when the library is loaded. */
 	__attribute__((constructor)) void initLog4cxx() {
 		#ifdef LOG4CXX_TRACE
@@ -25,12 +25,12 @@
 			// LOG4CXX_STR: http://old.nabble.com/Link-error-when-using-Layout-on-MS-Windows-td20906802.html
 			log4cxx::LayoutPtr layout(new log4cxx::PatternLayout(LOG4CXX_STR("%-5r %-5p %-10c %m%n")));
 			log4cxx::AppenderPtr appender(new log4cxx::ConsoleAppender(layout));
-			log4cxx::LoggerPtr localLogger=log4cxx::Logger::getLogger("yade");
+			log4cxx::LoggerPtr localLogger=log4cxx::Logger::getLogger("woo");
 			localLogger->addAppender(appender);
 		#else // log4cxx 0.9
 			log4cxx::LevelPtr debugLevel=log4cxx::Level::DEBUG, infoLevel=log4cxx::Level::INFO, warnLevel=log4cxx::Level::WARN;
 			log4cxx::BasicConfigurator::configure();
-			log4cxx::LoggerPtr localLogger=log4cxx::Logger::getLogger("yade");
+			log4cxx::LoggerPtr localLogger=log4cxx::Logger::getLogger("woo");
 		#endif
 		localLogger->setLevel(getenv("WOO_DEBUG")?debugLevel:warnLevel);
 		LOG4CXX_DEBUG(localLogger,"Log4cxx initialized.");
@@ -51,8 +51,8 @@
 	}		
 #endif
 
-/* Initialize yade, loading given plugins */
-void yadeInitialize(py::list& pp, const std::string& confDir){
+/* Initialize woo, loading given plugins */
+void wooInitialize(py::list& pp, const std::string& confDir){
 
 	PyEval_InitThreads();
 
@@ -77,20 +77,20 @@ void yadeInitialize(py::list& pp, const std::string& confDir){
 	vector<string> ppp; for(int i=0; i<py::len(pp); i++) ppp.push_back(py::extract<string>(pp[i]));
 
 	// register support classes
-	py::scope core(py::import("yade.core"));
+	py::scope core(py::import("woo.core"));
 
-	yade::ClassTrait::pyRegisterClass();
-	yade::AttrTraitBase::pyRegisterClass();
-	yade::TimingDeltas::pyRegisterClass();
+	woo::ClassTrait::pyRegisterClass();
+	woo::AttrTraitBase::pyRegisterClass();
+	woo::TimingDeltas::pyRegisterClass();
 	Object().pyRegisterClass(); // virtual method, therefore cannot be static
 	Master::pyRegisterClass();
 
 	// this registers all other classes
 	Master::instance().loadPlugins(ppp);
 }
-void yadeFinalize(){ Master::instance().cleanupTemps(); }
+void wooFinalize(){ Master::instance().cleanupTemps(); }
 
 BOOST_PYTHON_MODULE(boot){
-	py::scope().attr("initialize")=&yadeInitialize;
-	py::scope().attr("finalize")=&yadeFinalize; //,"Finalize yade (only to be used internally).")
+	py::scope().attr("initialize")=&wooInitialize;
+	py::scope().attr("finalize")=&wooFinalize; //,"Finalize woo (only to be used internally).")
 }

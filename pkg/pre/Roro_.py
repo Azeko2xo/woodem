@@ -1,11 +1,12 @@
 # encoding: utf-8
-from yade import utils,pack
-from yade.core import *
-from yade.dem import *
-from yade.pre import *
-import yade.plot
-import yade.gl
+from woo import utils,pack
+from woo.core import *
+from woo.dem import *
+from woo.pre import *
+import woo.plot
+import woo.gl
 import math
+import os.path
 from miniEigen import *
 import sys
 import cStringIO as StringIO
@@ -72,9 +73,9 @@ def run(pre): # use inputs as argument
 	if pre.conveyor:
 		print 'Preparing packing for conveyor feed, be patient'
 		cellLen=15*pre.psd[-1][0]
-		cc,rr=makeBandFeedPack(dim=(cellLen,pre.cylLenSim,pre.conveyorHt),psd=pre.psd,material=pre.material,gravity=inclinedGravity,porosity=.5)
+		cc,rr=makeBandFeedPack(dim=(cellLen,pre.cylLenSim,pre.conveyorHt),psd=pre.psd,mat=pre.material,gravity=inclinedGravity,porosity=.5,memoizeDir=pre.feedCacheDir)
 		vol=sum([4/3.*math.pi*r**3 for r in rr])
-		conveyorVel=(pre.material.density*vol/cellLen)/(pre.massFlowRate*pre.cylRelLen)
+		conveyorVel=(pre.massFlowRate*pre.cylRelLen)/(pre.material.density*vol/cellLen)
 		print 'Feed velocity %g m/s to match feed mass %g kg/m (volume=%g m³, len=%gm, ρ=%gkg/m³) and massFlowRate %g kg/s'%(conveyorVel,pre.material.density*vol/cellLen,vol,cellLen,pre.material.density,pre.massFlowRate)
 		factory=ConveyorFactory(
 			stepPeriod=factStep,
@@ -121,11 +122,11 @@ def run(pre): # use inputs as argument
 		BoxDeleter(stepPeriod=factStep,inside=True,box=((lastCylX+rCyl,ymin,zmin),(xmax,ymax,zmax)),glColor=.9,save=True,mask=delMask,currRateSmooth=pre.rateSmooth,label='fallOver'),
 		# generator
 		factory,
-		PyRunner(factStep,'import yade.pre.Roro_; yade.pre.Roro_.savePlotData(S)'),
-		PyRunner(factStep,'import yade.pre.Roro_; yade.pre.Roro_.watchProgress(S)'),
-	]+([] if (not pre.vtkPrefix or pre.vtkFreq<=0) else [VtkExport(out=pre.vtkPrefix+s.tags['id']+'-',stepPeriod=(int)(pre.vtkFreq*pre.factStepPeriod),what=VtkExport.all)])
+		PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.savePlotData(S)'),
+		PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.watchProgress(S)'),
+	]+([] if (not pre.vtkPrefix or pre.vtkFreq<=0) else [VtkExport(out=pre.vtkPrefix+s.tags['id.d']+'-',stepPeriod=pre.vtkFreq*pre.factStepPeriod,what=VtkExport.all)])
 	# improtant: save the preprocessor here!
-	s.any=[yade.gl.Gl1_InfCylinder(wire=True),yade.gl.Gl1_Wall(div=3)]
+	s.any=[woo.gl.Gl1_InfCylinder(wire=True),woo.gl.Gl1_Wall(div=3)]
 	s.pre=pre
 	#s.tags['preprocessor']=pre.dumps(format='pickle')
 	print 'Generated Rollenrost.'
@@ -133,8 +134,20 @@ def run(pre): # use inputs as argument
 	return s
 
 
-def makeBandFeedPack(dim,psd,material,gravity,porosity=.5,dontBlock=False):
+def makeBandFeedPack(dim,psd,mat,gravity,porosity=.5,dontBlock=False,memoizeDir=None):
 	cellSize=(dim[0],dim[1],2*dim[2])
+	print 'cell size',cellSize,'target height',dim[2]
+	if memoizeDir:
+		params=str(dim)+str(cellSize)+str(psd)+mat.dumps(format='expr')+str(Gravity)+str(porosity)
+		import hashlib
+		paramHash=hashlib.sha1(params).hexdigest()
+		memoizeFile=memoizeDir+'/'+paramHash+'.bandfeed'
+		print 'Memoize file is ',memoizeFile
+		if os.path.exists(memoizeDir+'/'+paramHash+'.bandfeed'):
+			print 'Returning memoized result'
+			sp=pack.SpherePack()
+			sp.load(memoizeFile)
+			return zip(*sp)
 	S=Scene(fields=[DemField()])
 	S.periodic=True
 	S.cell.setBox(cellSize)
@@ -142,8 +155,6 @@ def makeBandFeedPack(dim,psd,material,gravity,porosity=.5,dontBlock=False):
 	S.dem.par.append(pack.gtsSurface2Facets(p,mask=0b011))
 	S.loneMask=0b010
 
-	mat=utils.defaultMaterial()
-	gravity=(0,0,-10)
 	massToDo=porosity*mat.density*dim[0]*dim[1]*dim[2]
 	print 'Will generate %g mass'%massToDo
 
@@ -162,11 +173,11 @@ def makeBandFeedPack(dim,psd,material,gravity,porosity=.5,dontBlock=False):
 			#periSpanMask=1, # x is periodic
 		),
 		#PyRunner(200,'plot.addData(uf=utils.unbalancedForce(),i=O.scene.step)'),
-		PyRunner(600,'print "%g/%g mass, %d particles, unbalanced %g/.15"%(yade.makeBandFeedFactory.mass,yade.makeBandFeedFactory.maxMass,len(S.dem.par),yade.utils.unbalancedForce(S))'),
-		PyRunner(200,'if yade.utils.unbalancedForce(S)<.15 and yade.makeBandFeedFactory.dead: S.stop()'),
+		PyRunner(600,'print "%g/%g mass, %d particles, unbalanced %g/.15"%(woo.makeBandFeedFactory.mass,woo.makeBandFeedFactory.maxMass,len(S.dem.par),woo.utils.unbalancedForce(S))'),
+		PyRunner(200,'if woo.utils.unbalancedForce(S)<.15 and woo.makeBandFeedFactory.dead: S.stop()'),
 	]
 	S.dt=.7*utils.spherePWaveDt(psd[0][0],mat.density,mat.young)
-	if dontBlock: return
+	if dontBlock: return S
 	else: S.run()
 	S.wait()
 	cc,rr=[],[]
@@ -175,6 +186,11 @@ def makeBandFeedPack(dim,psd,material,gravity,porosity=.5,dontBlock=False):
 		c,r=S.cell.canonicalizePt(p.pos),p.shape.radius
 		if c[2]+r>dim[2]: continue
 		cc.append(Vector3(c[0],c[1]-.5*dim[1],c[2])); rr.append(r)
+	if memoizeDir:
+		sp=pack.SpherePack()
+		for c,r in zip(cc,rr): sp.add(c,r)
+		print 'Saving to',memoizeFile
+		sp.save(memoizeFile)
 	return cc,rr
 
 
@@ -183,36 +199,37 @@ def watchProgress(S):
 	it means we have reached some steady state; at that point, all objects (deleters,
 	factory, ... are clear()ed so that PSD's and such correspond to the steady
 	state only'''
-	import yade
+	import woo
 	pre=S.pre
 	# not yet saving what falls through, i.e. not in stabilized regime yet
-	if yade.aperture[0].save==False:
+	if woo.aperture[0].save==False:
 		# first particles have just fallen over
 		# start saving apertures and reset our counters here
-		#if yade.fallOver.num>pre.steadyOver:
-		influx,efflux=yade.factory.currRate,(yade.fallOver.currRate+yade.outOfDomain.currRate+sum([a.currRate for a in yade.aperture]))
+		#if woo.fallOver.num>pre.steadyOver:
+		influx,efflux=woo.factory.currRate,(woo.fallOver.currRate+woo.outOfDomain.currRate+sum([a.currRate for a in woo.aperture]))
 		if efflux>pre.steadyFlowFrac*influx:
 			#print efflux,'>',pre.steadyFlowFrac,'*',influx
-			yade.fallOver.clear()
-			yade.factory.clear() ## FIXME
-			yade.factory.maxMass=pre.cylRelLen*pre.time*pre.massFlowRate # required mass scaled to simulated part
-			for ap in yade.aperture:
+			woo.fallOver.clear()
+			woo.factory.clear() ## FIXME
+			woo.factory.maxMass=pre.cylRelLen*pre.time*pre.massFlowRate # required mass scaled to simulated part
+			for ap in woo.aperture:
 				ap.clear() # to clear overall mass, which gets counted even with save=False
 				ap.save=True
 			print 'Stabilized regime reached (influx %g, efflux %g) at step %d, counters engaged.'%(influx,efflux,S.step)
 	# already in the stable regime, end simulation at some point
 	else:
 		# factory has finished generating particles
-		if yade.factory.mass>yade.factory.maxMass:
-			import yade.plot, pickle
+		if woo.factory.mass>woo.factory.maxMass:
+			print 'All mass generated at step %d (mass %g/%g), ending.'%(S.step,woo.factory.mass,woo.factory.maxMass)
+			import woo.plot, pickle
 			try:
 				if not S.lastSave.startswith('/tmp'):
-					out='/tmp/'+S.tags['id']+'.bin.gz'
-					S.tags['plot.data']=pickle.dumps(yade.plot.data)
+					out='/tmp/'+S.tags['id.d']+'.bin.gz'
+					S.tags['plot.data']=pickle.dumps(woo.plot.data)
 					S.save(out)
 					print 'Saved to',out
 				else:
-					yade.plot.data=pickle.loads(S.tags['plot.data'])
+					woo.plot.data=pickle.loads(S.tags['plot.data'])
 				writeReport(S)
 			except:
 				import traceback
@@ -222,16 +239,16 @@ def watchProgress(S):
 			S.stop()
 
 def savePlotData(S):
-	import yade
-	#if yade.aperture[0].save==False: return # not in the steady state yet
-	import yade.plot
+	import woo
+	#if woo.aperture[0].save==False: return # not in the steady state yet
+	import woo.plot
 	# save unscaled data here!
-	apRate=sum([a.currRate for a in yade.aperture])
-	overRate=yade.fallOver.currRate
-	lostRate=yade.outOfDomain.currRate
-	yade.plot.addData(i=S.step,t=S.time,genRate=yade.factory.currRate,apRate=apRate,overRate=overRate,lostRate=lostRate,delRate=apRate+overRate+lostRate,numPar=len(S.dem.par))
-	if not yade.plot.plots:
-		yade.plot.plots={'t':('genRate','apRate','lostRate','overRate','delRate',None,'numPar')}
+	apRate=sum([a.currRate for a in woo.aperture])
+	overRate=woo.fallOver.currRate
+	lostRate=woo.outOfDomain.currRate
+	woo.plot.addData(i=S.step,t=S.time,genRate=woo.factory.currRate,apRate=apRate,overRate=overRate,lostRate=lostRate,delRate=apRate+overRate+lostRate,numPar=len(S.dem.par))
+	if not woo.plot.plots:
+		woo.plot.plots={'t':('genRate','apRate','lostRate','overRate','delRate',None,'numPar')}
 
 def splitPsd(xx0,yy0,splitX):
 	'''Split input *psd0* (given by *xx0* and *yy0*) at diameter (x-axis) specified by *splitX*; two PSDs are returned, one grows from splitX and has maximum value for all points x>=splitX; the second PSD is zero for all values <=splitX, then grows to the maximum value proportionally. The maximum value is the last point of psd0, thus both normalized and non-normalized input can be given. If splitX falls in the middle of *psd0* intervals, it is interpolated.'''
@@ -308,13 +325,13 @@ def efficiencyTableFigure(S,pre):
 	import numpy
 	# each line is for one aperture
 	# each column is for one fraction
-	data=numpy.zeros(shape=(len(yade.aperture),len(diams)))
-	for apNum,aperture in enumerate(yade.aperture):
+	data=numpy.zeros(shape=(len(woo.aperture),len(diams)))
+	for apNum,aperture in enumerate(woo.aperture):
 		xMin,xMax=aperture.box.min[0],aperture.box.max[0]
 		massTot=0.
 		for p in S.dem.par:
 			# only spheres above the aperture count
-			if not isinstance(p.shape,yade.dem.Sphere) or p.pos[0]<xMin or p.pos[1]>xMax: continue
+			if not isinstance(p.shape,woo.dem.Sphere) or p.pos[0]<xMin or p.pos[1]>xMax: continue
 			massTot+=p.mass
 			for i,d in enumerate(diams):
 				if 2*p.shape.radius>d: continue
@@ -322,14 +339,14 @@ def efficiencyTableFigure(S,pre):
 		data[apNum]/=massTot
 	from genshi.builder import tag as t
 	table=t.table(
-		[t.tr([t.th()]+[t.th('Aperture %d'%(apNum+1)) for apNum in range(len(yade.aperture))])]+
-		[t.tr([t.th('< %.4g mm'%(1e3*diams[dNum]))]+[t.td('%.1f %%'%(1e2*data[apNum][dNum]),align='right') for apNum in range(len(yade.aperture))]) for dNum in range(len(diams))]
+		[t.tr([t.th()]+[t.th('Aperture %d'%(apNum+1)) for apNum in range(len(woo.aperture))])]+
+		[t.tr([t.th('< %.4g mm'%(1e3*diams[dNum]))]+[t.td('%.1f %%'%(1e2*data[apNum][dNum]),align='right') for apNum in range(len(woo.aperture))]) for dNum in range(len(diams))]
 		,cellpadding='2px',frame='box',rules='all'
 	).generate().render('xhtml')
 	import pylab
 	fig=pylab.figure()
 	for dNum,d in reversed(list(enumerate(diams))): # displayed from the bigger to smaller, to make legend aligned with lines
-		pylab.plot(numpy.arange(len(yade.aperture))+1,data[:,dNum],marker='o',label='< %.4g mm'%(1e3*d))
+		pylab.plot(numpy.arange(len(woo.aperture))+1,data[:,dNum],marker='o',label='< %.4g mm'%(1e3*d))
 	from matplotlib.ticker import FuncFormatter
 	percent=FuncFormatter(lambda x,pos=0: '%g%%'%(100*x))
 	pylab.gca().yaxis.set_major_formatter(percent)
@@ -342,10 +359,10 @@ def efficiencyTableFigure(S,pre):
 
 def writeReport(S):
 	# generator parameters
-	import yade
-	import yade.pre
+	import woo
+	import woo.pre
 	pre=S.pre
-	#pre=[a for a in yade.O.scene.any if type(a)==yade.pre.Roro][0]
+	#pre=[a for a in woo.O.scene.any if type(a)==woo.pre.Roro][0]
 	#print 'Parameters were:'
 	#pre.dump(sys.stdout,noMagic=True,format='expr')
 
@@ -377,21 +394,21 @@ def writeReport(S):
 
 	if pre.conveyor:
 		#inputPsd=[p[0] for p in pre.psd],[p[1] for p in pre.psd]
-		inPsd=scaledFlowPsd([p[0] for p in pre.psd],[p[1]*(1./pre.psd[-1][1]) for p in pre.psd],massFactor=yade.factory.mass)
+		inPsd=scaledFlowPsd([p[0] for p in pre.psd],[p[1]*(1./pre.psd[-1][1]) for p in pre.psd],massFactor=woo.factory.mass)
 		inPsdUnscaled=unscaledPsd([p[0] for p in pre.psd],[p[1]*(1./pre.psd[-1][1]) for p in pre.psd])
 	else:
-		inPsd=scaledFlowPsd(*yade.factory.generator.inputPsd(scale=True))
-		inPsdUnscaled=unscaledPsd(*yade.factory.generator.inputPsd(scale=False))
+		inPsd=scaledFlowPsd(*woo.factory.generator.inputPsd(scale=True))
+		inPsdUnscaled=unscaledPsd(*woo.factory.generator.inputPsd(scale=False))
 
-	feedPsd=scaledFlowPsd(*yade.factory.generator.psd())
+	feedPsd=scaledFlowPsd(*woo.factory.generator.psd())
 	pylab.plot(*inPsd,label='user',marker='o')
-	pylab.plot(*feedPsd,label='feed (%g Mt/y)'%(yade.factory.mass*massScale*1e-6))
-	overPsd=scaledFlowPsd(*yade.fallOver.psd())
-	pylab.plot(*overPsd,label='fall over (%.3g Mt/y)'%(yade.fallOver.mass*massScale*1e-6))
-	for i in range(0,len(yade.aperture)):
+	pylab.plot(*feedPsd,label='feed (%g Mt/y)'%(woo.factory.mass*massScale*1e-6))
+	overPsd=scaledFlowPsd(*woo.fallOver.psd())
+	pylab.plot(*overPsd,label='fall over (%.3g Mt/y)'%(woo.fallOver.mass*massScale*1e-6))
+	for i in range(0,len(woo.aperture)):
 		try:
-			apPsd=scaledFlowPsd(*yade.aperture[i].psd())
-			pylab.plot(*apPsd,label='aperture %d (%.3g Mt/y)'%(i,yade.aperture[i].mass*massScale*1e-6))
+			apPsd=scaledFlowPsd(*woo.aperture[i].psd())
+			pylab.plot(*apPsd,label='aperture %d (%.3g Mt/y)'%(i,woo.aperture[i].mass*massScale*1e-6))
 		except ValueError: pass
 	pylab.axvline(x=pre.gap,linewidth=5,alpha=.3,ymin=0,ymax=1,color='g',label='gap')
 	pylab.grid(True)
@@ -404,16 +421,16 @@ def writeReport(S):
 
 	#ax=pylab.subplot(222)
 	fig=pylab.figure()
-	dOver,mOver=scaledFlowPsd(*yade.fallOver.diamMass())
+	dOver,mOver=scaledFlowPsd(*woo.fallOver.diamMass())
 	dAper,mAper=numpy.array([]),numpy.array([])
-	for a in yade.aperture:
+	for a in woo.aperture:
 		try:
 			d,m=scaledFlowPsd(*a.diamMass())
 			dAper=numpy.hstack([dAper,d]); mAper=numpy.hstack([mAper,m])
 		except ValueError: pass
 	hh=pylab.hist([dOver,dAper],weights=[mOver,mAper],bins=20,histtype='barstacked',label=['fallOver','apertures'])
 	flowBins=hh[1]
-	feedD,feedM=scaledFlowPsd(*yade.factory.generator.diamMass())
+	feedD,feedM=scaledFlowPsd(*woo.factory.generator.diamMass())
 	pylab.plot(.5*(flowBins[1:]+flowBins[:-1]),numpy.histogram(feedD,weights=feedM,bins=flowBins)[0],label='feed',alpha=.3,linewidth=2,marker='o')
 	pylab.axvline(x=pre.gap,linewidth=5,alpha=.3,ymin=0,ymax=1,color='g',label='gap')
 	pylab.grid(True)
@@ -427,7 +444,7 @@ def writeReport(S):
 
 	feedTab=psdFeedApertureFalloverTable(
 		inPsd=inPsdUnscaled,
-		feedDM=unscaledPsd(*yade.factory.generator.diamMass()),
+		feedDM=unscaledPsd(*woo.factory.generator.diamMass()),
 		apDM=(dAper,mAper),
 		overDM=(dOver,mOver),
 		splitD=pre.gap
@@ -441,7 +458,7 @@ def writeReport(S):
 	#print inPsdUnscaled
 	#print inPsd
 	pylab.plot(*inPsdUnscaled,marker='o',label='user')
-	feedPsd=unscaledPsd(*yade.factory.generator.psd(normalize=True))
+	feedPsd=unscaledPsd(*woo.factory.generator.psd(normalize=True))
 	pylab.plot(*feedPsd,label=None)
 	smallerPsd,biggerPsd=splitPsd(*inPsdUnscaled,splitX=pre.gap)
 	#print smallerPsd
@@ -450,7 +467,7 @@ def writeReport(S):
 	pylab.plot(*biggerPsd,marker='^',label='user >')
 
 	splitD=pre.gap
-	feedD,feedM=unscaledPsd(*yade.factory.generator.diamMass())
+	feedD,feedM=unscaledPsd(*woo.factory.generator.diamMass())
 	feedHist,feedBins=numpy.histogram(feedD,weights=feedM,bins=60)
 	feedHist/=feedHist.sum()
 	binMids=feedBins[1:] #.5*(feedBins[1:]+feedBins[:-1])
@@ -465,7 +482,7 @@ def writeReport(S):
 
 	pylab.axvline(x=pre.gap,linewidth=5,alpha=.3,ymin=0,ymax=1,color='g',label='gap')
 	if 0:
-		n,bins,patches=pylab.hist(dAper,weights=mAper/sum([ap.mass for ap in yade.aperture]),histtype='step',label='apertures',normed=True,bins=60,cumulative=True,linewidth=2)
+		n,bins,patches=pylab.hist(dAper,weights=mAper/sum([ap.mass for ap in woo.aperture]),histtype='step',label='apertures',normed=True,bins=60,cumulative=True,linewidth=2)
 		patches[0].set_xy(patches[0].get_xy()[:-1])
 		n,bins,patches=pylab.hist(dOver,weights=mOver,normed=True,bins=60,cumulative=True,histtype='step',label='fallOver',linewidth=2)
 		patches[0].set_xy(patches[0].get_xy()[:-1])
@@ -476,7 +493,7 @@ def writeReport(S):
 		overHist/=overHist.sum()
 		pylab.plot(binMids,apHist.cumsum(),label='apertures',linewidth=3)
 		pylab.plot(binMids,overHist.cumsum(),label='fall over',linewidth=3)
-	#for a in yade.aperture:
+	#for a in woo.aperture:
 	#	print a.mass,sum([dm[1] for dm in a.diamMass()]),'|',len(a.deleted),a.num
 	pylab.ylim(ymin=-.05,ymax=1.05)
 
@@ -493,8 +510,8 @@ def writeReport(S):
 	try:
 		#ax=pylab.subplot(224)
 		fig=pylab.figure()
-		import yade.plot
-		d=yade.plot.data
+		import woo.plot
+		d=woo.plot.data
 		pylab.plot(d['t'],massScale*numpy.array(d['genRate']),label='feed')
 		pylab.plot(d['t'],massScale*numpy.array(d['apRate']),label='apertures')
 		pylab.plot(d['t'],massScale*numpy.array(d['lostRate']),label='(lost)')
@@ -509,12 +526,12 @@ def writeReport(S):
 		pylab.ylabel('mass rate [t/y]')
 		figs.append(('Regime',fig))
 	except KeyError:
-		print 'No yade.plot plots done due to lack of data'
+		print 'No woo.plot plots done due to lack of data'
 		# after loading no data are recovered
 
 	svgs=[]
 	for name,fig in figs:
-		svgs.append((name,yade.O.tmpFilename()+'.svg'))
+		svgs.append((name,woo.O.tmpFilename()+'.svg'))
 		fig.savefig(svgs[-1][-1])
 		
 
@@ -536,7 +553,7 @@ def writeReport(S):
 			<tr><td>engine</td><td align="right">{engine}</td></tr>
 			<tr><td>compiled with</td><td align="right">{compiledWith}</td></tr>
 		</table>
-		'''.format(user=S.tags['user'],started=time.ctime(time.time()-yade.O.realtime),duration=yade.O.realtime,nCores=yade.O.numThreads,stepsPerSec=S.step/yade.O.realtime,engine='wooDem '+yade.config.version+'/'+yade.config.revision+(' (debug)' if yade.config.debug else ''),compiledWith=','.join(yade.config.features))
+		'''.format(user=S.tags['user'],started=time.ctime(time.time()-woo.O.realtime),duration=woo.O.realtime,nCores=woo.O.numThreads,stepsPerSec=S.step/woo.O.realtime,engine='wooDem '+woo.config.version+'/'+woo.config.revision+(' (debug)' if woo.config.debug else ''),compiledWith=','.join(woo.config.features))
 		+'<h2>Input data</h2>'+pre.dumps(format='html',fragment=True,showDoc=True)
 		+'<h2>Outputs</h2>'
 		+'<h3>Feed</h3>'+feedTab
@@ -549,12 +566,12 @@ def writeReport(S):
 			tag.h1('Report for Roller screen simulation'),
 			tag.h2('General'),
 			tag.table(
-				tag.tr(tag.td('started'),tag.td('%g s'%(time.ctime(time.time()-yade.O.realtime)),align='right')),
-				tag.tr(tag.td('duration'),tag.td('%g s'%(yade.O.realtime),align='right')),
-				tag.tr(tag.td('number of cores'),tag.td(str(yade.O.numThreads),align='right')),
-				tag.tr(tag.td('average speed'),tag.td('%g steps/sec'%(S.step/yade.O.realtime))),
-				tag.tr(tag.td('engine'),tag.td('wooDem '+yade.config.version+'/'+yade.config.revision+(' (debug)' if yade.config.debug else ''))),
-				tag.tr(tag.td('compiled with'),tag.td(', '.join(yade.config.features))),
+				tag.tr(tag.td('started'),tag.td('%g s'%(time.ctime(time.time()-woo.O.realtime)),align='right')),
+				tag.tr(tag.td('duration'),tag.td('%g s'%(woo.O.realtime),align='right')),
+				tag.tr(tag.td('number of cores'),tag.td(str(woo.O.numThreads),align='right')),
+				tag.tr(tag.td('average speed'),tag.td('%g steps/sec'%(S.step/woo.O.realtime))),
+				tag.tr(tag.td('engine'),tag.td('wooDem '+woo.config.version+'/'+woo.config.revision+(' (debug)' if woo.config.debug else ''))),
+				tag.tr(tag.td('compiled with'),tag.td(', '.join(woo.config.features))),
 			),
 			tag.h2('Input data'),
 			pre.dumps(format='genshi'),
@@ -568,35 +585,44 @@ def writeReport(S):
 		)).render('xhtml')
 
 	# to play with that afterwards
-	yade.html=html
+	woo.html=html
 	#from genshi.input import HTMLParser
 	#import codecs, StringIO
 	import codecs
-	repName=S.tags['id']+'-report.xhtml'
-	rep=codecs.open(repName,'w','utf-8')
+	repName=S.tags['id.d']+'-report.xhtml'
+	rep=codecs.open(repName,'w','utf-8','replace')
 	import os.path
-	print 'Report written to file://'+os.path.abspath(repName)
+	print 'Writing report to file://'+os.path.abspath(repName)
 	#rep.write(HTMLParser(StringIO.StringIO(html),'[filename]').parse().render('xhtml',doctype='xhtml').decode('utf-8'))
-	rep.write(xmlhead+html)
+	s=xmlhead+html
+	#s=s.replace('\xe2\x88\x92','-')
+	try:
+		rep.write(s)
+	except UnicodeDecodeError as e:
+		print e.start,e.end
+		print s[max(0,e.start-20):min(e.end+20,len(s))]
+		raise e
+		
+		
 
 	# save sphere's positions
-	from yade import pack
+	from woo import pack
 	sp=pack.SpherePack()
 	sp.fromSimulation(S)
-	packName=S.tags['id']+'-spheres.csv'
+	packName=S.tags['id.d']+'-spheres.csv'
 	sp.save(packName)
 	print 'Particles saved to',os.path.abspath(packName)
 
 # test drive
 if __name__=='__main__':
-	import yade.pre
-	import yade.qt
-	import yade.log
-	#yade.log.setLevel('PsdParticleGenerator',yade.log.TRACE)
-	O.scene=yade.pre.Roro()()
+	import woo.pre
+	import woo.qt
+	import woo.log
+	#woo.log.setLevel('PsdParticleGenerator',woo.log.TRACE)
+	O.scene=woo.pre.Roro()()
 	O.timingEnabled=True
 	O.saveTmp()
 	#O.scene.saveTmp()
-	yade.qt.View()
+	woo.qt.View()
 	O.run()
 

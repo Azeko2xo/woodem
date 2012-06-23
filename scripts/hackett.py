@@ -6,7 +6,7 @@
 #
 
 #
-# This script was used (once) to convert deprecated (bastardized) version of wm3 in yade to the official version
+# This script was used (once) to convert deprecated (bastardized) version of wm3 in woo to the official version
 # Arguments to provide are explained below.
 # Many things are hardcoded, don't ever try to use it without reading the source throughly.
 # You have been warned.
@@ -15,10 +15,10 @@
 #
 # since the tags files must contain prototypes: I ran
 #  ctags-exuberant --extra=+q --c++-kinds=+pf --language-force=c++ *
-# in wm3's Foundation/Math directory as well as in yade-lib-wm3-math
+# in wm3's Foundation/Math directory as well as in woo-lib-wm3-math
 #
 # To perform the actual conversion, I did
-#  ./hackett.py tags-ok tags-bastard ~/yade/trunk/yade-libs/yade-lib-wm3-math/src/yade-lib-wm3-math
+#  ./hackett.py tags-ok tags-bastard ~/woo/trunk/woo-libs/woo-lib-wm3-math/src/woo-lib-wm3-math
 # where tags-ok and tags-bastard are symlinked from their respective directories
 #
 

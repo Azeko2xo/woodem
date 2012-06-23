@@ -1,8 +1,8 @@
 Format: http://dep.debian.net/deps/dep5/
-Source: https://launchpad.net/yade
+Source: https://launchpad.net/woo
 
 Files: *
-Copyright: 2004-2011 Yade developers <yade-dev@lists.launchpad.net>
+Copyright: 2004-2011 Yade developers <woo-dev@lists.launchpad.net>
            Václav Šmilauer <eudoxos@arcig.cz>
            Olivier Galizzi <olivier.galizzi@imag.fr>
            Janek Kozicki <janek@kozicki.pl>

@@ -12,7 +12,7 @@
 #
 # Run the batch using
 #
-# $ yade-trunk-multi --gnuplot=d3d-scg.gnuplot dem3dof-scgeom.table uniax.py
+# $ woo-trunk-multi --gnuplot=d3d-scg.gnuplot dem3dof-scgeom.table uniax.py
 #
 scGeom	dtSafety
 False	.8

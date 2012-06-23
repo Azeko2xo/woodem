@@ -1,17 +1,17 @@
 # encoding: utf-8
-import yade.runtime
-if not yade.runtime.hasDisplay: raise ImportError("Connecting to DISPLAY at Yade startup failed, unable to activate the qt4 interface.")
+import woo.runtime
+if not woo.runtime.hasDisplay: raise ImportError("Connecting to DISPLAY at Yade startup failed, unable to activate the qt4 interface.")
 
 from PyQt4.QtGui import *
 from PyQt4 import QtCore
 
-from yade.qt.ui_controller import Ui_Controller
+from woo.qt.ui_controller import Ui_Controller
 
-from yade.qt.Inspector import *
-from yade import *
-import yade.system, yade.config
+from woo.qt.Inspector import *
+from woo import *
+import woo.system, woo.config
 
-from yade.qt._GLViewer import *  # imports Renderer() as well
+from woo.qt._GLViewer import *  # imports Renderer() as well
 
 maxWebWindows=1
 "Number of webkit windows that will be cycled to show help on clickable objects"
@@ -23,8 +23,8 @@ sphinxOnlineDocPath='https://www.yade-dem.org/sphinx/'
 
 import os.path
 # find if we have docs installed locally from package
-sphinxLocalDocPath=yade.config.prefix+'/share/doc/yade'+yade.config.suffix+'/html/'
-sphinxBuildDocPath=yade.config.sourceRoot+'/doc/sphinx/_build/html/'
+sphinxLocalDocPath=woo.config.prefix+'/share/doc/woo'+woo.config.suffix+'/html/'
+sphinxBuildDocPath=woo.config.sourceRoot+'/doc/sphinx/_build/html/'
 # we prefer the packaged documentation for this version, if installed
 if   os.path.exists(sphinxLocalDocPath+'/index.html'): sphinxPrefix='file://'+sphinxLocalDocPath
 # otherwise look for documentation generated in the source tree
@@ -32,7 +32,7 @@ elif  os.path.exists(sphinxBuildDocPath+'/index.html'): sphinxPrefix='file://'+s
 # fallback to online docs
 else: sphinxPrefix=sphinxOnlineDocPath
 
-sphinxDocWrapperPage=sphinxPrefix+'/yade.wrapper.html'
+sphinxDocWrapperPage=sphinxPrefix+'/woo.wrapper.html'
 
 
 ## object selection
@@ -70,8 +70,8 @@ def openUrl(url):
 controller=None
 
 class ControllerClass(QWidget,Ui_Controller):
-	#from yade.gl import *
-	#from yade import gl
+	#from woo.gl import *
+	#from woo import gl
 	def __init__(self,parent=None):
 		QWidget.__init__(self)
 		self.setupUi(self)
@@ -92,17 +92,17 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.dtEdit.setEnabled(False)
 		# show off with this one as well now
 	def addPreprocessors(self):
-		for c in yade.system.childClasses('Preprocessor'):
+		for c in woo.system.childClasses('Preprocessor'):
 			self.generatorCombo.addItem(c)
 		self.generatorCombo.insertSeparator(self.generatorCombo.count())
 		self.generatorCombo.addItem('load')
 		self.genIndexLoad=self.generatorCombo.count()-1
 	def addRenderers(self):
-		from yade import gl
+		from woo import gl
 		self.displayCombo.addItem('Renderer'); afterSep=1
 		for bc in [t for t in dir(gl) if t.endswith('Functor') ]:
 			if afterSep>0: self.displayCombo.insertSeparator(10000); afterSep=0
-			for c in yade.system.childClasses(bc) | set([bc]):
+			for c in woo.system.childClasses(bc) | set([bc]):
 				try:
 					inst=eval('gl.'+c+'()');
 					if len(set(inst.dict().keys())-set(['label']))>0:
@@ -128,7 +128,7 @@ class ControllerClass(QWidget,Ui_Controller):
 			self.generatorCombo.setItemText(self.genIndexLoad,'%s'%f)
 		else:
 			if self.genIndexLoad>=0: self.generatorCombo.setItemText(self.genIndexLoad,'load')
-			self.generator=eval('yade.pre.'+str(genStr)+'()')
+			self.generator=eval('woo.pre.'+str(genStr)+'()')
 		if self.generator:
 			se=SerializableEditor(self.generator,parent=self.generatorArea,showType=True,labelIsVar=False,showChecks=True,showUnits=True) # TODO
 			self.generatorArea.setWidget(se)
@@ -165,38 +165,38 @@ class ControllerClass(QWidget,Ui_Controller):
 			elif out: newScene.save(out)
 			else: pass # only generate, don't save
 			if auto:
-				if O.scene.running:
+				if woo.master.scene.running:
 					import sys
 					sys.stdout.write('Stopping the current simulation...')
-					O.pause()
+					woo.master.scene.stop()
 					print ' ok'
-				O.scene=newScene
+				woo.master.scene=newScene
 				controller.setTabActive('simulation')
 		except: raise
 		finally:
 			QApplication.restoreOverrideCursor()
 	def displayComboSlot(self,dispStr):
-		from yade import gl
+		from woo import gl
 		ser=(self.renderer if dispStr=='Renderer' else eval('gl.'+str(dispStr)+'()'))
-		path='yade.qt.Renderer()' if dispStr=='Renderer' else dispStr
+		path='woo.qt.Renderer()' if dispStr=='Renderer' else dispStr
 		se=SerializableEditor(ser,parent=self.displayArea,ignoredAttrs=set(['label']),showType=True,path=path)
 		self.displayArea.setWidget(se)
 	def loadSlot(self):
-		f=QFileDialog.getOpenFileName(self,'Load simulation','','Yade simulations (*.xml *.xml.bz2 *.xml.gz *.yade *.yade.gz *.yade.bz2);; *.*')
+		f=QFileDialog.getOpenFileName(self,'Load simulation','','Yade simulations (*.xml *.xml.bz2 *.xml.gz *.woo *.woo.gz *.woo.bz2);; *.*')
 		f=str(f)
 		if not f: return # cancelled
 		self.deactivateControls()
-		O.load(f)
+		woo.master.scene=Scene.load(f)
 	def saveSlot(self):
-		f=QFileDialog.getSaveFileName(self,'Save simulation','','Yade simulations (*.xml *.xml.bz2 *.xml.gz *.yade *.yade.gz *.yade.bz2);; *.*')
+		f=QFileDialog.getSaveFileName(self,'Save simulation','','Yade simulations (*.xml *.xml.bz2 *.xml.gz *.woo *.woo.gz *.woo.bz2);; *.*')
 		f=str(f)
 		if not f: return # cancelled
-		O.save(f)
+		woo.master.scene.save(f)
 	def reloadSlot(self):
 		self.deactivateControls()
-		from yade import plot
+		from woo import plot
 		plot.splitData()
-		O.reload()
+		woo.master.reload()
 	## FIXME: this does not seem to work. Disabled setting dt from the gui until fixed
 	def dtEditNoupdateSlot(self):
 		#print 'dt not refreshed'
@@ -205,21 +205,21 @@ class ControllerClass(QWidget,Ui_Controller):
 		#print 'dt refreshed'
 		try:
 			t=float(self.dtEdit.text())
-			O.scene.dt=t
+			woo.master.scene.dt=t
 		except ValueError: pass
-		self.dtEdit.setText(str(O.scene.dt))
+		self.dtEdit.setText(str(woo.master.scene.dt))
 		self.dtEditUpdate=True
-	def playSlot(self):	O.run()
-	def pauseSlot(self): O.pause()
+	def playSlot(self):	woo.master.scene.run()
+	def pauseSlot(self): woo.master.scene.stop()
 	def stepSlot(self):
-		if self.multiStepSpinBox.value()==1 or O.scene.subStepping: O.step()
+		S=woo.master.scene
+		if self.multiStepSpinBox.value()==1 or S.subStepping: S.one()
 		else:
-			O.run() # don't block with multistep
-			O.scene.stopAtStep=O.scene.step+self.multiStepSpinBox.value()
-			#O.run(self.multiStepSpinBox.value(),True) # wait and block until done
+			S.run() # don't block with multistep
+			S.stopAtStep=S.step+self.multiStepSpinBox.value()
 	def subStepSlot(self,value):
 		self.multiStepSpinBox.setEnabled(not bool(value))
-		O.scene.subStepping=bool(value)
+		woo.master.scene.subStepping=bool(value)
 	def show3dSlot(self, show):
 		vv=views()
 		assert(len(vv) in (0,1))
@@ -258,12 +258,13 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.dtEdit.setEnabled(False)
 		self.dtEditUpdate=True
 	def activateControls(self):
-		hasSim=len(O.scene.engines)>0
-		running=O.scene.running
+		S=woo.master.scene
+		hasSim=len(S.engines)>0
+		running=S.running
 		if hasSim:
 			self.playButton.setEnabled(not running)
 			self.pauseButton.setEnabled(running)
-			self.reloadButton.setEnabled(O.scene.lastSave is not None)
+			self.reloadButton.setEnabled(S.lastSave is not None)
 			self.stepButton.setEnabled(not running)
 			self.subStepCheckbox.setEnabled(not running)
 		else:
@@ -275,12 +276,12 @@ class ControllerClass(QWidget,Ui_Controller):
 		## FIXME: dt editing broken, never enable editable
 		#self.dtEdit.setEnabled(True)
 		self.dtEdit.setEnabled(False)
-		fn=O.scene.lastSave
+		fn=S.lastSave
 		self.fileLabel.setText(fn if fn else '<i>[no file]</i>')
 
 	def refreshValues(self):
-		scene=O.scene
-		rt=int(O.realtime); t=scene.time; step=scene.step;
+		scene=woo.master.scene
+		rt=int(woo.master.realtime); t=scene.time; step=scene.step;
 		assert(len(self.stepTimes)==len(self.stepValues))
 		if len(self.stepTimes)==0: self.stepTimes.append(rt); self.stepValues.append(step); self.stepPerSec=0 # update always for the first time
 		elif rt-self.stepTimes[-1]>self.stepPerSecTimeout: # update after a timeout
@@ -288,16 +289,16 @@ class ControllerClass(QWidget,Ui_Controller):
 			self.stepTimes[0]=self.stepTimes[1]; self.stepValues[0]=self.stepValues[1]
 			self.stepTimes[1]=rt; self.stepValues[1]=step;
 			self.stepPerSec=(self.stepValues[-1]-self.stepValues[-2])/(self.stepTimes[-1]-self.stepTimes[-2])
-		if not O.scene.running: self.stepPerSec=0
+		if not scene.running: self.stepPerSec=0
 		stopAtStep=scene.stopAtStep
 		subStepInfo=''
 		if scene.subStepping:
 			subStep=scene.subStep
 			if subStep==-1: subStepInfo=u'→ <i>prologue</i>'
-			elif subStep>=0 and subStep<len(O.scene.engines):
+			elif subStep>=0 and subStep<len(scene.engines):
 				e=scene.engines[subStep]; subStepInfo=u'→ %s'%(e.label if e.label else e.__class__.__name__)
 			elif subStep==len(scene.engines): subStepInfo=u'→ <i>epilogue</i>'
-			else: raise RuntimeError("Invalid O.scene.subStep value %d, should be ∈{-1,…,len(o.engines)}"%subStep)
+			else: raise RuntimeError("Invalid scene.subStep value %d, should be ∈{-1,…,len(o.engines)}"%subStep)
 			subStepInfo="<br><small>sub %d/%d [%s]</small>"%(subStep,len(scene.engines),subStepInfo)
 		self.subStepCheckbox.setChecked(scene.subStepping) # might have been changed async
 		if stopAtStep<=step:

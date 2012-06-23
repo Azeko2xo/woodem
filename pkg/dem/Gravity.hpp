@@ -37,7 +37,7 @@ class CentralGravityEngine: public FieldApplier {
 	public:
 		virtual void run();
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(CentralGravityEngine,FieldApplier,"Engine applying acceleration to all bodies, towards a central body.",
-		((Body::id_t,centralBody,Body::ID_NONE,,"The :yref:`body<Body>` towards which all other bodies are attracted."))
+		((Body::id_t,centralBody,Body::ID_NONE,,"The :ref:`body<Body>` towards which all other bodies are attracted."))
 		((Real,accel,0,,"Acceleration magnitude [kgms⁻²]"))
 		((bool,reciprocal,false,,"If true, acceleration will be applied on the central body as well."))
 		((int,mask,0,,"If mask defined, only bodies with corresponding groupMask will be affected by this engine. If 0, all bodies will be affected."))

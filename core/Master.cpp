@@ -33,7 +33,7 @@ Master::Master(){
 	sceneAnother=shared_ptr<Scene>(new Scene);
 	scene=shared_ptr<Scene>(new Scene);
 	startupLocalTime=boost::posix_time::microsec_clock::local_time();
-	char dirTemplate[]="/tmp/yade-XXXXXX"; tmpFileDir=mkdtemp(dirTemplate); tmpFileCounter=0;
+	char dirTemplate[]="/tmp/woo-XXXXXX"; tmpFileDir=mkdtemp(dirTemplate); tmpFileCounter=0;
 	defaultClDev=Vector2i(-1,-1);
 }
 
@@ -70,14 +70,14 @@ bool Master::isInheritingFrom_recursive(const string& className, const string& b
 void Master::saveTmp(shared_ptr<Object> obj, const string& name, bool quiet){
 	if(memSavedSimulations.count(name)>0 && !quiet) LOG_INFO("Overwriting in-memory saved simulation "<<name);
 	std::ostringstream oss;
-	yade::ObjectIO::save<shared_ptr<Object>,boost::archive::binary_oarchive>(oss,"yade__Serializable",obj);
+	woo::ObjectIO::save<shared_ptr<Object>,boost::archive::binary_oarchive>(oss,"woo__Serializable",obj);
 	memSavedSimulations[name]=oss.str();
 }
 shared_ptr<Object> Master::loadTmp(const string& name){
 	if(memSavedSimulations.count(name)==0) throw std::runtime_error("No memory-saved simulation "+name);
 	std::istringstream iss(memSavedSimulations[name]);
 	auto obj=make_shared<Object>();
-	yade::ObjectIO::load<shared_ptr<Object>,boost::archive::binary_iarchive>(iss,"yade__Serializable",obj);
+	woo::ObjectIO::load<shared_ptr<Object>,boost::archive::binary_iarchive>(iss,"woo__Serializable",obj);
 	return obj;
 }
 
@@ -137,7 +137,7 @@ void Master::initializePlugins(const vector<std::pair<string,string> >& pluginCl
 	std::map<std::string,py::object> pyModules;
 
 	// http://boost.2283326.n4.nabble.com/C-sig-How-to-create-package-structure-in-single-extension-module-td2697292.html
-	py::object yadeScope=boost::python::import("yade");
+	py::object wooScope=boost::python::import("woo");
 
 	typedef std::pair<std::string,shared_ptr<Object> > StringObjectPair;
 	typedef std::pair<std::string,std::string> StringPair;
@@ -155,20 +155,20 @@ void Master::initializePlugins(const vector<std::pair<string,string> >& pluginCl
 			if(pyModules.find(module)==pyModules.end()){
 				try{
 					// module existing as file, use it
-					pyModules[module]=py::import(("yade."+module).c_str());
+					pyModules[module]=py::import(("woo."+module).c_str());
 				} catch (py::error_already_set& e){
 					// import error, synthesize the module
 					#if 1
-						py::object newModule(py::handle<>(PyModule_New(("yade."+module).c_str())));
+						py::object newModule(py::handle<>(PyModule_New(("woo."+module).c_str())));
 						newModule.attr("__file__")="<synthetic>";
-						yadeScope.attr(module.c_str())=newModule;
-						//pyModules[module]=py::import(("yade."+module).c_str());
+						wooScope.attr(module.c_str())=newModule;
+						//pyModules[module]=py::import(("woo."+module).c_str());
 						pyModules[module]=newModule;
 						// http://stackoverflow.com/questions/11063243/synethsized-submodule-from-a-import-b-ok-vs-import-a-b-error/11063494
-						py::extract<py::dict>(py::getattr(py::import("sys"),"modules"))()[("yade."+module).c_str()]=newModule;
-						LOG_DEBUG("Synthesized new module yade."<<module);
+						py::extract<py::dict>(py::getattr(py::import("sys"),"modules"))()[("woo."+module).c_str()]=newModule;
+						LOG_DEBUG("Synthesized new module woo."<<module);
 					#else
-						cerr<<"Error importing module yade."<<module<<" for class "<<name;
+						cerr<<"Error importing module woo."<<module<<" for class "<<name;
 						boost::python::handle_exception();
 						throw;
 					#endif
@@ -211,10 +211,10 @@ void Master::initializePlugins(const vector<std::pair<string,string> >& pluginCl
 		}
 	}
 #if 0
-	// import all known modules, this should solve crashes which happen at serialization when the module (yade.pre in particular) is not imported by hand first
+	// import all known modules, this should solve crashes which happen at serialization when the module (woo.pre in particular) is not imported by hand first
 	for(const auto& m: pyModules){
-		if(getenv("WOO_DEBUG")){ cerr<<"import module yade."<<m.first<<endl; }
-		py::import(("yade."+m.first).c_str());
+		if(getenv("WOO_DEBUG")){ cerr<<"import module woo."<<m.first<<endl; }
+		py::import(("woo."+m.first).c_str());
 	}
 #endif
 }
@@ -261,28 +261,28 @@ void Master::pySetCmap(py::object obj){
 	py::extract<py::tuple> exTuple(obj);
 	if(exInt.check()){
 		int i=exInt();
-		if(i<0 || i>=(int)CompUtils::colormaps.size()) yade::IndexError(boost::format("Colormap index out of range 0…%d")%(CompUtils::colormaps.size()));
+		if(i<0 || i>=(int)CompUtils::colormaps.size()) woo::IndexError(boost::format("Colormap index out of range 0…%d")%(CompUtils::colormaps.size()));
 		CompUtils::defaultCmap=i;
 		return;
 	}
 	if(exStr.check()){
 		int i=-1; string s(exStr());
 		for(const CompUtils::Colormap& cm: CompUtils::colormaps){ i++; if(cm.name==s){ CompUtils::defaultCmap=i; return; } }
-		yade::KeyError("No colormap named `"+s+"'.");
+		woo::KeyError("No colormap named `"+s+"'.");
 	}
 	if(exTuple.check() && py::extract<int>(exTuple()[0]).check() && py::extract<string>(exTuple()[1]).check()){
 		int i=py::extract<int>(exTuple()[0]); string s=py::extract<string>(exTuple()[1]);
-		if(i<0 || i>=(int)CompUtils::colormaps.size()) yade::IndexError(boost::format("Colormap index out of range 0…%d")%(CompUtils::colormaps.size()));
+		if(i<0 || i>=(int)CompUtils::colormaps.size()) woo::IndexError(boost::format("Colormap index out of range 0…%d")%(CompUtils::colormaps.size()));
 		CompUtils::defaultCmap=i;
 		if(CompUtils::colormaps[i].name!=s) LOG_WARN("Given colormap name ignored, does not match index");
 		return;
 	}
-	yade::TypeError("cmap can be specified as int, str or (int,str)");
+	woo::TypeError("cmap can be specified as int, str or (int,str)");
 }
 
 
-void termHandlerNormal(int sig){cerr<<"Yade: normal exit."<<endl; raise(SIGTERM);}
-void termHandlerError(int sig){cerr<<"Yade: error exit."<<endl; raise(SIGTERM);}
+void termHandlerNormal(int sig){cerr<<"Woo: normal exit."<<endl; raise(SIGTERM);}
+void termHandlerError(int sig){cerr<<"Woo: error exit."<<endl; raise(SIGTERM);}
 
 void Master::pyExitNoBacktrace(int status){
 	if(status==0) signal(SIGSEGV,termHandlerNormal); /* unset the handler that runs gdb and prints backtrace */
@@ -295,10 +295,10 @@ void Master::pyExitNoBacktrace(int status){
 	exit(status);
 }
 
-shared_ptr<yade::Object> Master::pyGetScene(){ return getScene(); }
+shared_ptr<woo::Object> Master::pyGetScene(){ return getScene(); }
 void Master::pySetScene(const shared_ptr<Object>& s){
-	if(!s) yade::ValueError("Argument is None");
-	if(!dynamic_pointer_cast<Scene>(s)) yade::TypeError("Argument is not a Scene instance");
+	if(!s) woo::ValueError("Argument is None");
+	if(!dynamic_pointer_cast<Scene>(s)) woo::TypeError("Argument is not a Scene instance");
 	setScene(static_pointer_cast<Scene>(s));
 }
 

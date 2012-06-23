@@ -41,7 +41,7 @@ O.engines=[
 	RotationEngine(ids=[facetId],rotationAxis=[0,0,1],rotateAroundZero=True,angularVelocity=0.1)
 ]
 
-from yade import qt
+from woo import qt
 qt.View()
 O.saveTmp()
 #O.run()

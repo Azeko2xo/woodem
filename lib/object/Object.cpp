@@ -8,11 +8,11 @@ static void Object_setAttr(py::object self, py::str name, py::object value){
 #endif
 	{ py::setattr(self,name,value); return; }
 #if 0
-	yade::AttributeError(("Class "+py::extract<std::string>(py::getattr(py::getattr(self,"__class__"),"__name__"))()+" does not have attribute "+py::extract<std::string>(name)()+".").c_str());
+	woo::AttributeError(("Class "+py::extract<std::string>(py::getattr(py::getattr(self,"__class__"),"__name__"))()+" does not have attribute "+py::extract<std::string>(name)()+".").c_str());
 #endif
 }
 #endif
-namespace yade {
+namespace woo {
 
 vector<py::object> Object::derivedCxxClasses;
 py::list Object::getDerivedCxxClasses(){ py::list ret; for(py::object c: derivedCxxClasses) ret.append(c); return ret; }

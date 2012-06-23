@@ -5,7 +5,7 @@
 #
 # This is the master build file for scons (http://www.scons.org). It is experimental, though it build very well for me. Prequisities for running are having scons installed (debian & family: package scons)
 #
-# Type "scons -h" for yade-specific options and "scons -H" for scons' options. Note that yade options will be remembered (saved in scons.config) so that you need to specify them only for the first time. Like this, for example:
+# Type "scons -h" for woo-specific options and "scons -H" for scons' options. Note that Woo options will be remembered (saved in scons.config) so that you need to specify them only for the first time. Like this, for example:
 #
 #	scons -j2 brief=1 debug=0 optimize=1 profile=1 exclude=extra,lattice,snow
 #
@@ -13,7 +13,7 @@
 #
 # Scons will do preparatory steps (generating SConscript files from .pro files, creating local include directory and symlinking all headers from there, ...), compile files and install them.
 #
-# To clean the build, run `scons -c'. Please note that it will also _uninstall_ yade from $PREFIX!
+# To clean the build, run `scons -c'. Please note that it will also _uninstall_ Woo from $PREFIX!
 #
 # TODO:
 #  1. [REMOVED] [DONE] retrieve target list and append install targets dynamically;
@@ -103,7 +103,7 @@ opts.AddVariables(
 	('buildPrefix','Where to create build-[version][variant] directory for intermediary files','..'),
 	('hotPlugins','Files (without the .cpp extension) that will be compiled separately even in the monolithic build (use for those that you modify frequently); comma-separated.',''),
 	('chunkSize','Maximum files to compile in one translation unit when building plugins. (unlimited if <= 0, per-file linkage is used if 1)',7,None,int),
-	('version','Yade version (if not specified, guess will be attempted)',None),
+	('version','Woo version (if not specified, guess will be attempted)',None),
 	('realVersion','Revision (usually bzr revision); guessed automatically unless specified',None),
 	('CPPPATH', 'Additional paths for the C preprocessor (colon-separated)','/usr/include/vtk-5.6:/usr/include/eigen3:/usr/include/vtk'), # hardy has vtk-5.0
 	('LIBPATH','Additional paths for the linker (colon-separated)',None),
@@ -114,7 +114,7 @@ opts.AddVariables(
 	('CXXFLAGS','Additional compiler flags for compilation (like -march=core2).',None,None,Split),
 	('march','Architecture to use with -march=... when optimizing','native',None,None),
 	('execCheck','Name of the main script that should be installed; if the current one differs, an error is raised (do not use directly, only intended for --rebuild',None),
-	('defThreads','No longer used, specify -j each time yade is run (defaults to 1 now)',-1),
+	('defThreads','No longer used, specify -j each time Woo is run (defaults to 1 now)',-1),
 	#('SHLINK','Linker for shared objects','g++'),
 	#('SHCCFLAGS','Additional compiler flags for linking (for plugins).',None,None,Split),
 	('EXTRA_SHLINKFLAGS','Additional compiler flags for linking (for plugins).',None,None,Split),

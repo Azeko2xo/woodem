@@ -11,7 +11,7 @@
  *
  * All of user macros should come in 2 flavors, depending on whether we use log4cxx or not (backward compatibility).
  * The default is not to use it, unless the preprocessor macro WOO_LOG4CXX is defined. In that case, you want to #include
- * yade-core/logging.h and link with log4cxx.
+ * woo-core/logging.h and link with log4cxx.
  *
  * TODO:
  * 1. [done] for optimized builds, at least debugging macros should become no-ops
@@ -20,7 +20,7 @@
  * For more information, see http://logging.apache.org/log4cxx/, especially the part on configuration files, that allow
  * very flexibe, runtime and fine-grained output redirections, filtering etc.
  *
- * Yade has the logging config file by default in ~/.yade-$VERSION/logging.conf.
+ * Yade has the logging config file by default in ~/.woo-$VERSION/logging.conf.
  *
  */
 
@@ -52,7 +52,7 @@
 #	define LOG_FATAL(msg) {LOG4CXX_FATAL(logger, _LOG_HEAD<<msg);}
 
 #	define DECLARE_LOGGER public: static log4cxx::LoggerPtr logger
-#	define CREATE_LOGGER(classname) log4cxx::LoggerPtr classname::logger = log4cxx::Logger::getLogger("yade." #classname)
+#	define CREATE_LOGGER(classname) log4cxx::LoggerPtr classname::logger = log4cxx::Logger::getLogger("woo." #classname)
 
 #else
 

@@ -1,11 +1,11 @@
 # -*- coding: utf-8
 
-from yade import utils,pack,export,qt
+from woo import utils,pack,export,qt
 import gts,os,random,itertools
 from numpy import *
-import yade.log 
+import woo.log 
 
-#yade.log.setLevel('NewtonIntegrator',yade.log.TRACE)
+#woo.log.setLevel('NewtonIntegrator',woo.log.TRACE)
 
 # Parameters
 tc=0.001# collision time 
@@ -70,7 +70,7 @@ O.engines=[
 	#VTKRecorder(virtPeriod=0.01,fileName='/tmp/',recorders=['spheres','velocity','facets'])
 ]
 
-from yade import qt
+from woo import qt
 qt.View()
 O.saveTmp()
 

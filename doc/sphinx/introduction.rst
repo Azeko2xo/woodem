@@ -8,7 +8,7 @@ Getting started
 .. ipython::
 	:suppress:
 
-	In [1]: from yade import *
+	In [1]: from woo import *
 
 	In [7]: O.reset()
 
@@ -79,7 +79,7 @@ There is more command-line options than just ``-x``, run ``yade -h`` to see all 
 
 Creating simulation
 --------------------
-To create simulation, one can either use a specialized class of type :yref:`FileGenerator` to create full scene, possibly receiving some parameters. Generators are written in c++ and their role is limited to well-defined scenarios. For instance, to create triaxial test scene:
+To create simulation, one can either use a specialized class of type :ref:`FileGenerator` to create full scene, possibly receiving some parameters. Generators are written in c++ and their role is limited to well-defined scenarios. For instance, to create triaxial test scene:
 
 .. ipython::
 
@@ -208,9 +208,9 @@ Architecture overview
 .. ipython::
 	:suppress:
 
-	In [12]: from yade import *
+	In [12]: from woo import *
 
-	In [1]: from yade import utils
+	In [1]: from woo import utils
 
 	In [7]: O.reset()
 
@@ -221,7 +221,7 @@ Data and functions
 
 To assure flexibility of software design, yade makes clear distinction of 2 families of classes: *data* components and *functional* components. The former only store data without providing functionality, while the latter define functions operating on the data. In programming, this is known as *visitor* pattern (as functional components "visit" the data, without being bound to them explicitly).
 
-Entire simulation, i.e. both data and functions, are stored in a single ``Scene`` object. It is accessible through the :yref:`Omega` class in python (a singleton), which is by default stored in the ``O`` global variable:
+Entire simulation, i.e. both data and functions, are stored in a single ``Scene`` object. It is accessible through the :ref:`Omega` class in python (a singleton), which is by default stored in the ``O`` global variable:
 
 .. ipython::
 
@@ -237,26 +237,26 @@ Data components
 Bodies
 """""""
 
-Yade simulation (class ``Scene``, but hidden inside :yref:`Omega` in Python) is represented by :yref:`Bodies<Body>`, their :yref:`Interactions<Interaction>` and resultant generalized :yref:`forces<Omega.forces>` (all stored internally in special containers).
+Yade simulation (class ``Scene``, but hidden inside :ref:`Omega` in Python) is represented by :ref:`Bodies<Body>`, their :ref:`Interactions<Interaction>` and resultant generalized :ref:`forces<Omega.forces>` (all stored internally in special containers).
 
-Each :yref:`Body` comprises the following:
+Each :ref:`Body` comprises the following:
 
-:yref:`Shape`
-	represents particle's geometry (neutral with regards to its spatial orientation), such as :yref:`Sphere`, :yref:`Facet` or inifinite :yref:`Wall`; it usually does not change during simulation.
-:yref:`Material`
+:ref:`Shape`
+	represents particle's geometry (neutral with regards to its spatial orientation), such as :ref:`Sphere`, :ref:`Facet` or inifinite :ref:`Wall`; it usually does not change during simulation.
+:ref:`Material`
 	stores characteristics pertaining to mechanical behavior, such as Young's modulus or density, which are independent on particle's shape and dimensions; usually constant, might be shared amongst multiple bodies.
-:yref:`State`
-	contains state variable variables, in particular spatial :yref:`position<State::pos>` and :yref:`orientation<State::ori>`, :yref:`linear<State::vel>` and :yref:`angular<State::angVel>` velocity, :yref:`linear<State::accel>` and :yref:`angular<State::angAccel>` accelerator; it is updated by the :yref:`integrator<NewtonIntegrator>` at every step.
+:ref:`State`
+	contains state variable variables, in particular spatial :ref:`position<State::pos>` and :ref:`orientation<State::ori>`, :ref:`linear<State::vel>` and :ref:`angular<State::angVel>` velocity, :ref:`linear<State::accel>` and :ref:`angular<State::angAccel>` accelerator; it is updated by the :ref:`integrator<NewtonIntegrator>` at every step.
 
-	Derived classes can hold additional data, e.g. :yref:`averaged damage<Cpm::normDmg>`.
-:yref:`Bound`
-	is used for approximate ("pass 1") contact detection; updated as necessary following body's motion. Currently, :yref:`Aabb` is used most often as :yref:`Bound`. Some bodies may have no :yref:`Bound`, in which case they are exempt from contact detection.
+	Derived classes can hold additional data, e.g. :ref:`averaged damage<Cpm::normDmg>`.
+:ref:`Bound`
+	is used for approximate ("pass 1") contact detection; updated as necessary following body's motion. Currently, :ref:`Aabb` is used most often as :ref:`Bound`. Some bodies may have no :ref:`Bound`, in which case they are exempt from contact detection.
 
-(In addition to these 4 components, bodies have several more minor data associated, such as :yref:`Body::id` or :yref:`Body::mask`.)
+(In addition to these 4 components, bodies have several more minor data associated, such as :ref:`Body::id` or :ref:`Body::mask`.)
 
-All these four properties can be of different types, derived from their respective base types. Yade frequently makes decisions about computation based on those types: :yref:`Sphere` + :yref:`Sphere` collision has to be treated differently than :yref:`Facet` + :yref:`Sphere` collision. Objects making those decisions are called :yref:`Dispatcher`'s and are essential to understand Yade's functioning; they are discussed below. 
+All these four properties can be of different types, derived from their respective base types. Yade frequently makes decisions about computation based on those types: :ref:`Sphere` + :ref:`Sphere` collision has to be treated differently than :ref:`Facet` + :ref:`Sphere` collision. Objects making those decisions are called :ref:`Dispatcher`'s and are essential to understand Yade's functioning; they are discussed below. 
 
-Explicitly assigning all 4 properties to each particle by hand would be not practical; there are utility functions defined to create them with all necessary ingredients. For example, we can create sphere particle using :yref:`yade.utils.sphere`:
+Explicitly assigning all 4 properties to each particle by hand would be not practical; there are utility functions defined to create them with all necessary ingredients. For example, we can create sphere particle using :ref:`yade.utils.sphere`:
 
 .. ipython::
 	
@@ -269,7 +269,7 @@ Explicitly assigning all 4 properties to each particle by hand would be not prac
    In [7]: s.shape.radius
 
 
-We see that a sphere with material of type :yref:`FrictMat` (default, unless you provide another :yref:`Material`) and bounding volume of type :yref:`Aabb` (axis-aligned bounding box) was created. Its position is at origin and its radius is 1.0. Finally, this object can be inserted into the simulation; and we can insert yet one sphere as well.
+We see that a sphere with material of type :ref:`FrictMat` (default, unless you provide another :ref:`Material`) and bounding volume of type :ref:`Aabb` (axis-aligned bounding box) was created. Its position is at origin and its radius is 1.0. Finally, this object can be inserted into the simulation; and we can insert yet one sphere as well.
 
 .. ipython::
 
@@ -279,9 +279,9 @@ We see that a sphere with material of type :yref:`FrictMat` (default, unless you
 	In [2]: O.bodies.append(utils.sphere([0,0,2],.5))
 	1
 
-In each case, return value is :yref:`Body.id` of the body inserted. 
+In each case, return value is :ref:`Body.id` of the body inserted. 
 
-Since till now the simulation was empty, its id is 0 for the first sphere and 1 for the second one. Saving the id value is not necessary, unless you want access this particular body later; it is remembered internally in :yref:`Body` itself. You can address bodies by their id:
+Since till now the simulation was empty, its id is 0 for the first sphere and 1 for the second one. Saving the id value is not necessary, unless you want access this particular body later; it is remembered internally in :ref:`Body` itself. You can address bodies by their id:
 
 .. ipython::
 
@@ -311,14 +311,14 @@ Bodies can be iterated over using standard python iteration syntax:
 Interactions
 """""""""""""""
 
-:yref:`Interactions<Interaction>` are always between pair of bodies; usually, they are created by the collider based on spatial proximity; they can, however, be created explicitly and exist independently of distance. Each interaction has 2 components:
+:ref:`Interactions<Interaction>` are always between pair of bodies; usually, they are created by the collider based on spatial proximity; they can, however, be created explicitly and exist independently of distance. Each interaction has 2 components:
 
-:yref:`IGeom`
+:ref:`IGeom`
 	holding geometrical configuration of the two particles in collision; it is updated automatically as the particles in question move and can be queried for various geometrical characteristics, such as penetration distance or shear strain.
 	
-	Based on combination of types of :yref:`Shapes<Shape>` of the particles, there might be different storage requirements; for that reason, a number of derived classes exists, e.g. for representing geometry of contact between :yref:`Sphere+Sphere<Dem3DofGeom_SphereSphere>`, :yref:`Facet+Sphere<Dem3DofGeom_FacetSphere>` etc.
-:yref:`IPhys`
-	representing non-geometrical features of the interaction; some are computed from :yref:`Materials<Material>` of the particles in contact using some averaging algorithm (such as contact stiffness from Young's moduli of particles), others might be internal variables like damage.
+	Based on combination of types of :ref:`Shapes<Shape>` of the particles, there might be different storage requirements; for that reason, a number of derived classes exists, e.g. for representing geometry of contact between :ref:`Sphere+Sphere<Dem3DofGeom_SphereSphere>`, :ref:`Facet+Sphere<Dem3DofGeom_FacetSphere>` etc.
+:ref:`IPhys`
+	representing non-geometrical features of the interaction; some are computed from :ref:`Materials<Material>` of the particles in contact using some averaging algorithm (such as contact stiffness from Young's moduli of particles), others might be internal variables like damage.
 
 Suppose now interactions have been already created. We can access them by the id pair:
 
@@ -392,14 +392,14 @@ In a typical DEM simulation, the following sequence is run repeatedly:
 
 	Typical simulation loop; each step begins at body-cented bit at 11 o'clock, continues with interaction bit, force application bit, miscillanea and ends with time update.
 
-Each of these actions is represented by an :yref:`Engine<Engine>`, functional element of simulation. The sequence of engines is called *simulation loop*.
+Each of these actions is represented by an :ref:`Engine<Engine>`, functional element of simulation. The sequence of engines is called *simulation loop*.
 
 .. _sect-simulation-loop:
 
 Engines
 """""""""
 
-Simulation loop, shown at img. img-yade-iter-loop_, can be described as follows in Python (details will be explained later); each of the ``O.engine`` items is instance of a type deriving from :yref:`Engine`:
+Simulation loop, shown at img. img-yade-iter-loop_, can be described as follows in Python (details will be explained later); each of the ``O.engine`` items is instance of a type deriving from :ref:`Engine`:
 
 .. code-block:: python
  
@@ -422,27 +422,27 @@ Simulation loop, shown at img. img-yade-iter-loop_, can be described as follows 
 
 There are 3 fundamental types of Engines:
 
-:yref:`GlobalEngines<GlobalEngine>`
-	operating on the whole simulation (e.g. :yref:`GravityEngine` looping over all bodies and applying force based on their mass)
+:ref:`GlobalEngines<GlobalEngine>`
+	operating on the whole simulation (e.g. :ref:`GravityEngine` looping over all bodies and applying force based on their mass)
 
-:yref:`PartialEngine<PartialEngine>`
-	operating only on some pre-selected bodies (e.g. :yref:`ForceEngine` applying constant force to some bodies)
+:ref:`PartialEngine<PartialEngine>`
+	operating only on some pre-selected bodies (e.g. :ref:`ForceEngine` applying constant force to some bodies)
 
-:yref:`Dispatchers<Dispatcher>`
-	do not perform any computation themselves; they merely call other functions, represented by function objects, :yref:`Functors<Functor>`. Each functor is specialized, able to handle certain object types, and will be dispatched if such obejct is treated by the dispatcher. 
+:ref:`Dispatchers<Dispatcher>`
+	do not perform any computation themselves; they merely call other functions, represented by function objects, :ref:`Functors<Functor>`. Each functor is specialized, able to handle certain object types, and will be dispatched if such obejct is treated by the dispatcher. 
 
 .. _dispatchers-and-functors:
 
 Dispatchers and functors
 """""""""""""""""""""""""
 
-For approximate collision detection (pass 1), we want to compute :yref:`bounds<Body::bound>` for all :yref:`bodies<Body>` in the simulation; suppose we want bound of type :yref:`axis-aligned bounding box`. Since the exact algorithm is different depending on particular :yref:`shape<Body::shape>`, we need to provide functors for handling all specific cases. The line::
+For approximate collision detection (pass 1), we want to compute :ref:`bounds<Body::bound>` for all :ref:`bodies<Body>` in the simulation; suppose we want bound of type :ref:`axis-aligned bounding box`. Since the exact algorithm is different depending on particular :ref:`shape<Body::shape>`, we need to provide functors for handling all specific cases. The line::
 
 	InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb()])
 
-creates :yref:`InsertionSortCollider` (it internally uses :yref:`BoundDispatcher`, but that is a detail). It traverses all bodies and will, based on :yref:`shape<Shape>` type of each :yref:`body<Body>`, dispatch one of the functors to create/update :yref:`bound<Bound>` for that particular body. In the case shown, it has 2 functors, one handling :yref:`spheres<Sphere>`, another :yref:`facets<Facet>`. 
+creates :ref:`InsertionSortCollider` (it internally uses :ref:`BoundDispatcher`, but that is a detail). It traverses all bodies and will, based on :ref:`shape<Shape>` type of each :ref:`body<Body>`, dispatch one of the functors to create/update :ref:`bound<Bound>` for that particular body. In the case shown, it has 2 functors, one handling :ref:`spheres<Sphere>`, another :ref:`facets<Facet>`. 
 	
-The name is composed from several parts: ``Bo`` (functor creating :yref:`Bound`), which accepts ``1`` type :yref:`Sphere` and creates an :yref:`Aabb` (axis-aligned bounding box; it is derived from :yref:`Bound`). The :yref:`Aabb` objects are used by :yref:`InsertionSortCollider` itself. All ``Bo1`` functors derive from :yref:`BoundFunctor`.
+The name is composed from several parts: ``Bo`` (functor creating :ref:`Bound`), which accepts ``1`` type :ref:`Sphere` and creates an :ref:`Aabb` (axis-aligned bounding box; it is derived from :ref:`Bound`). The :ref:`Aabb` objects are used by :ref:`InsertionSortCollider` itself. All ``Bo1`` functors derive from :ref:`BoundFunctor`.
 
 The next part, reading
 
@@ -454,26 +454,26 @@ The next part, reading
 		[Law2_Dem3Dof_Elastic_Elastic()],
 	),
 
-hides 3 internal dispatchers within the :yref:`InteractionLoop` engine; they all operate on interactions and are, for performance reasons, put together:
+hides 3 internal dispatchers within the :ref:`InteractionLoop` engine; they all operate on interactions and are, for performance reasons, put together:
 
-:yref:`IGeomDispatcher`
-	uses the first set of functors (``Ig2``), which are dispatched based on combination of ``2`` :yref:`Shapes<Shapes>` objects. Dispatched functor resolves exact collision configuration and creates :yref:`IGeom<Interaction::geom>` (whence ``Ig`` in the name) associated with the interaction, if there is collision. The functor might as well fail on approximate interactions, indicating there is no real contact between the bodies, even if they did overlap in the approximate collision detection.
+:ref:`IGeomDispatcher`
+	uses the first set of functors (``Ig2``), which are dispatched based on combination of ``2`` :ref:`Shapes<Shapes>` objects. Dispatched functor resolves exact collision configuration and creates :ref:`IGeom<Interaction::geom>` (whence ``Ig`` in the name) associated with the interaction, if there is collision. The functor might as well fail on approximate interactions, indicating there is no real contact between the bodies, even if they did overlap in the approximate collision detection.
 
-	#. The first functor, :yref:`Ig2_Sphere_Sphere_Dem3DofGeom`, is called on interaction of 2 :yref:`Spheres<Sphere>` and creates :yref:`Dem3DofGeom` instance, if appropriate.
+	#. The first functor, :ref:`Ig2_Sphere_Sphere_Dem3DofGeom`, is called on interaction of 2 :ref:`Spheres<Sphere>` and creates :ref:`Dem3DofGeom` instance, if appropriate.
 
-	#. The second functor, :yref:`Ig2_Facet_Sphere_Dem3DofGeom`, is called for interaction of :yref:`Facet` with :yref:`Sphere` and might create (again) a :yref:`Dem3DofGeom` instance.
+	#. The second functor, :ref:`Ig2_Facet_Sphere_Dem3DofGeom`, is called for interaction of :ref:`Facet` with :ref:`Sphere` and might create (again) a :ref:`Dem3DofGeom` instance.
 
-	All ``Ig2`` functors derive from :yref:`IGeomFunctor` (they are documented at the same place).
+	All ``Ig2`` functors derive from :ref:`IGeomFunctor` (they are documented at the same place).
 
-:yref:`IPhysDispatcher`
-	dispatches to the second set of functors based on combination of ``2`` :yref:`Materials<Material>`; these functors return return :yref:`IPhys` instance (the ``Ip`` prefix). In our case, there is only 1 functor used, :yref:`Ip2_FrictMat_FrictMat_FrictPhys`, which create :yref:`FrictPhys` from 2 :yref:`FrictMat's<FrictMat>`.
+:ref:`IPhysDispatcher`
+	dispatches to the second set of functors based on combination of ``2`` :ref:`Materials<Material>`; these functors return return :ref:`IPhys` instance (the ``Ip`` prefix). In our case, there is only 1 functor used, :ref:`Ip2_FrictMat_FrictMat_FrictPhys`, which create :ref:`FrictPhys` from 2 :ref:`FrictMat's<FrictMat>`.
 	
-	``Ip2`` functors are derived from :yref:`IPhysFunctor`.
+	``Ip2`` functors are derived from :ref:`IPhysFunctor`.
 
-:yref:`LawDispatcher`
-	dispatches to the third set of functors, based on combinations of :yref:`IGeom` and :yref:`IPhys` (wherefore ``2`` in their name again) of each particular interaction, created by preceding functors. The ``Law2`` functors represent "constitutive law"; they resolve the interaction by computing forces on the interacting bodies (repulsion, attraction, shear forces, …) or otherwise update interaction state variables.
+:ref:`LawDispatcher`
+	dispatches to the third set of functors, based on combinations of :ref:`IGeom` and :ref:`IPhys` (wherefore ``2`` in their name again) of each particular interaction, created by preceding functors. The ``Law2`` functors represent "constitutive law"; they resolve the interaction by computing forces on the interacting bodies (repulsion, attraction, shear forces, …) or otherwise update interaction state variables.
 
-	``Law2`` functors all inherit from :yref:`LawFunctor`.
+	``Law2`` functors all inherit from :ref:`LawFunctor`.
 
 There is chain of types produced by earlier functors and accepted by later ones; the user is responsible to satisfy type requirement (see img. img-dispatch-loop_). An exception (with explanation) is raised in the contrary case.
 
@@ -481,5 +481,5 @@ There is chain of types produced by earlier functors and accepted by later ones;
 .. figure:: fig/dispatch-loop.*
 	:width: 13cm
 
-	Chain of functors producing and accepting certain types. In the case shown, the ``Ig2`` functors produce :yref:`Dem3DofGeom` instances from all handled :yref:`Shape` combinations; the ``Ig2`` functor produces :yref:`FrictMat`. The constitutive law functor ``Law2`` accepts the combination of types produced. Note that the types are stated in the functor's class names.
+	Chain of functors producing and accepting certain types. In the case shown, the ``Ig2`` functors produce :ref:`Dem3DofGeom` instances from all handled :ref:`Shape` combinations; the ``Ig2`` functor produces :ref:`FrictMat`. The constitutive law functor ``Law2`` accepts the combination of types produced. Note that the types are stated in the functor's class names.
 

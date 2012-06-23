@@ -8,8 +8,8 @@
 #NB : the run of the script is paused at each plot window (so that there is time to observe it). Type "Return" in the Yade terminal to resume
 
 
-from yade import plot
-from yade.pack import *
+from woo import plot
+from woo.pack import *
 
 
 O=Omega() 
@@ -52,7 +52,7 @@ O.bodies.append([leftBox,lowBox,rightBox,upBox,behindBox,inFrontBox])
 #ListSph=randomDensePack(pred,radius=0.002,rRelFuzz=0.15,memoDbg=True,memoizeDb=memoizeDb,spheresInCell=100)
 #O.bodies.append(ListSph)
 
-sp=yade._packSpheres.SpherePack()
+sp=woo._packSpheres.SpherePack()
 sp.makeCloud(Vector3(0,0.0,-width/2.0),Vector3(length,height,width/2.0),rMean,.15)
 O.bodies.append([utils.sphere(s[0],s[1]) for s in sp])
 
@@ -82,7 +82,7 @@ def defData():
 fy=O.forces.f(3)[1] # The fy above exists only as a label in plot.data
 
 
-from yade import qt
+from woo import qt
 qt.View()
 #O.save("SimpleShearReady.xml")
 #O.saveTmp("InitialState")
@@ -90,7 +90,7 @@ qt.View()
 
 #---- Compression ----
 O.engines = O.engines+[KinemCTDEngine(compSpeed=0.5,sigma_save=(),temoin_save=(),targetSigma=4000.0,LOG=False)]
-#from yade import log
+#from woo import log
 #log.setLevel("KinemCTDEngine",log.TRACE)
 #log.setLevel('',log.TRACE)
 O.dt=.4*utils.PWaveTimeStep()

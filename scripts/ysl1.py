@@ -3,9 +3,9 @@
 
 
 # 1. Move all files (.*)/([^/]*)/src/\2/(.*)$ -> \1/\3 using svn
-# 2. Rename all directories named yade-([a-z]+)-([a-z]+) -> \2 using svn
+# 2. Rename all directories named woo-([a-z]+)-([a-z]+) -> \2 using svn
 
-action=['*/src/*','*/src','yade-*-*','pkg-*/*/*/*'][3]
+action=['*/src/*','*/src','woo-*-*','pkg-*/*/*/*'][3]
 import re,os
 #import pysvn
 #client = pysvn.Client()
@@ -13,7 +13,7 @@ import re,os
 dd=open('/tmp/d','w')
 emptyDirs=[]
 for root, dirs, files in os.walk('..'):
-	for d in ('.svn','yade-flat','include'):
+	for d in ('.svn','woo-flat','include'):
 		try: dirs.remove(d)
 		except ValueError: pass
 	for d in dirs:	emptyDirs.append(d)
@@ -33,8 +33,8 @@ for root, dirs, files in os.walk('..'):
 				#client.move(rootf.newFile)
 				os.system('svn move %s %s'%(rootf,newFile))
 				#print rootf,newFile
-		elif action=='yade-*-*':
-			m=re.match(r'(.*)/yade-([a-z]+)-([a-z-]+)$',rootf)
+		elif action=='woo-*-*':
+			m=re.match(r'(.*)/woo-([a-z]+)-([a-z-]+)$',rootf)
 			if m:
 				newDir=m.group(1)+'/'+m.group(3)
 				if m.group(3)=='dem-simulator': newDir=m.group(1)+'/spherical-dem-simulator'

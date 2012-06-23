@@ -27,15 +27,15 @@ shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, shared
 
 	/* clumps with more than one particle */
 
-	if(intersecting) yade::NotImplementedError("Self-intersecting clumps not yet implemented.");
+	if(intersecting) woo::NotImplementedError("Self-intersecting clumps not yet implemented.");
 	double M=0; // mass
 	Vector3r Sg=Vector3r::Zero(); // static moment, for getting clump's centroid
 	Matrix3r Ig=Matrix3r::Zero(); // tensors of inertia; is upper triangular
 	// first loop: compute clump's centroid and principal orientation
 	for(const auto& n: nn){
 		const auto& dem=n->getData<DemData>();
-		if(dem.isClumped()) yade::RuntimeError("Node "+lexical_cast<string>(n)+": already clumped.");
-		if(!dem.parCount>0) yade::RuntimeError("Node "+lexical_cast<string>(n)+": particle count for clumped particles must be > 0, not "+to_string(dem.parCount));
+		if(dem.isClumped()) woo::RuntimeError("Node "+lexical_cast<string>(n)+": already clumped.");
+		if(!dem.parCount>0) woo::RuntimeError("Node "+lexical_cast<string>(n)+": particle count for clumped particles must be > 0, not "+to_string(dem.parCount));
 		M+=dem.mass;
 		Sg+=dem.mass*n->pos;
 		Ig+=inertiaTensorTranslate(inertiaTensorRotate(dem.inertia.asDiagonal(),n->ori.conjugate()),dem.mass,-1.*n->pos);

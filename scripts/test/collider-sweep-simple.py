@@ -15,9 +15,9 @@ O.engines=[
 collider['sweepLength'],collider['nBins'],collider['binCoeff']=.5,2,2
 O.dt=8e-2*utils.PWaveTimeStep()
 O.saveTmp()
-from yade import timing
+from woo import timing
 O.timingEnabled=True
-from yade import qt
+from woo import qt
 r=qt.Renderer()
 r['Body_bounding_volume']=True
 v=qt.View(); qt.Controller()

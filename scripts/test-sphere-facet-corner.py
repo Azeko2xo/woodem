@@ -1,6 +1,6 @@
 # -*- encoding=utf-8 -*-
 
-from yade import utils
+from woo import utils
 
 ## PhysicalParameters 
 Young = 7e6
@@ -28,7 +28,7 @@ O.dt=5e-6
 O.saveTmp()
 
 try:
-	from yade import qt
+	from woo import qt
 	renderer=qt.Renderer()
 	renderer['Body_wire']=True
 	renderer['Interaction_physics']=True

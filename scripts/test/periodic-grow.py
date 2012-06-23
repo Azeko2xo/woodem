@@ -1,7 +1,7 @@
 """Script that shrinks the periodic cell progressively.
 It prints strain and average stress (computed from total volume force)
 once in a while."""
-from yade import log,timing
+from woo import log,timing
 log.setLevel("InsertionSortCollider",log.TRACE)
 O.engines=[
 	ForceResetter(),
@@ -22,7 +22,7 @@ O.periodic=True
 O.cell.refSize=(cubeSize,cubeSize,cubeSize)
 O.dt=utils.PWaveTimeStep()
 O.saveTmp()
-from yade import qt
+from woo import qt
 qt.Controller(); qt.View()
 O.run(200,True)
 rate=-1e-3*cubeSize/(O.dt*200)*Matrix3.Identity

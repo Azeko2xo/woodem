@@ -23,7 +23,7 @@
 #endif
 
 
-namespace yade{
+namespace woo{
 /* Utility template functions for (de)serializing objects using boost::serialization from/to streams or files.
 
 	Includes boost::math::nonfinite_num_{put,get} for gracefully handling nan's and inf's.

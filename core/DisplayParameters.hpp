@@ -5,10 +5,10 @@
  
 /* Class for storing set of display parameters.
  *
- * The interface sort of emulates map string->string (which is not handled by yade-serialization).
+ * The interface sort of emulates map string->string (which is not handled by woo-serialization).
  *
  * The "keys" (called displayTypes) are intended to be "OpenGLRenderer" or "GLViewer" (and perhaps other).
- * The "values" are intended to be XML representation of display parameters, obtained either by yade-serialization
+ * The "values" are intended to be XML representation of display parameters, obtained either by woo-serialization
  * with OpenGLRenderer and saveStateToStream with QGLViewer (and GLViewer).
  *
  */

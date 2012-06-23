@@ -1,18 +1,18 @@
-import yade
-import yade.core
+import woo
+import woo.core
 import sys
 import codecs
 import re
 
 def fixDocstring(s):
-	s=s.replace(':yref:',':obj:')
+	s=s.replace(':ref:',':obj:')
 	s=re.sub(r'(?<!\\)\$([^\$]+)(?<!\\)\$',r'\ :math:`\1`\ ',s)
 	s=re.sub(r'\\\$',r'$',s)
 	return s
 
 def packageClasses(outDir='/tmp'):
 	'''Generate documentation of packages in the Restructured Text format. Each package is written to file called *out*/.`woo.[package].rst` and list of files created is returned.'''
-	allClasses=yade.core.Object._derivedCxxClasses+[yade.core.Object]
+	allClasses=woo.core.Object._derivedCxxClasses+[woo.core.Object]
 	# create class tree; top-level nodes are packages
 	# each level of child nodes is section in the documentation, as requested by ClassTraits of each class
 	modules=set()
@@ -48,8 +48,8 @@ def packageClasses(outDir='/tmp'):
 				out.write('\n')
 	outPy=[]
 	otherMods=[m for m in sys.modules if (
-		m.startswith('yade.')
-		and not m.startswith('yade._')
+		m.startswith('woo.')
+		and not m.startswith('woo._')
 		and m not in modules
 		and sys.modules[m]
 		and m==sys.modules[m].__name__)]

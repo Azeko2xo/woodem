@@ -21,12 +21,12 @@ else:
 	O.bodies.append(utils.sphere([0,0,.6],.5))
 O.dt=1e-4
 O.saveTmp('init')
-import yade.log
-#yade.log.setLevel("InsertionSortCollider",yade.log.TRACE);
+import woo.log
+#woo.log.setLevel("InsertionSortCollider",woo.log.TRACE);
 # compare 2 colliders:
 if 0:
 	O.timingEnabled=True
-	from yade import timing
+	from woo import timing
 	for collider in InsertionSortCollider(),PersistentSAPCollider(haveDistantTransient=True):
 		for i in range(2):
 			O.loadTmp('init')

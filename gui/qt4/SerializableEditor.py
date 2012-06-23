@@ -5,17 +5,17 @@ from PyQt4 import QtGui
 #from PyQt4 import Qwt5
 
 from miniEigen import *
-# don't import * from yade, it would be circular import
-from yade.core import Object
+# don't import * from woo, it would be circular import
+from woo.core import Object
 
 import re,itertools
 import logging
 logging.trace=logging.debug
 logging.basicConfig(level=logging.INFO)
 #from logging import debug,info,warning,error
-#from yade import *
-import yade._customConverters, yade.core
-import yade.qt
+#from woo import *
+import woo._customConverters, woo.core
+import woo.qt
 
 seqSerializableShowType=True # show type headings in serializable sequences (takes vertical space, but makes the type hyperlinked)
 
@@ -36,8 +36,8 @@ def makeWrapperHref(text,className,attr=None,static=False):
 	:param attr: attribute to link to. If given, must exist directly in given *className*; if not given or empty, link to the class itself is created and *attr* is ignored.
 	:return: HTML with the hyperref.
 	"""
-	if not static: return '<a href="%s#yade.wrapper.%s%s">%s</a>'%(yade.qt.sphinxDocWrapperPage,className,(('.'+attr) if attr else ''),text)
-	else:          return '<a href="%s#ystaticattr-%s.%s">%s</a>'%(yade.qt.sphinxDocWrapperPage,className,attr,text)
+	if not static: return '<a href="%s#woo.wrapper.%s%s">%s</a>'%(woo.qt.sphinxDocWrapperPage,className,(('.'+attr) if attr else ''),text)
+	else:          return '<a href="%s#ystaticattr-%s.%s">%s</a>'%(woo.qt.sphinxDocWrapperPage,className,attr,text)
 
 def serializableHref(ser,attr=None,text=None):
 	"""Return HTML href to a *ser* optionally to the attribute *attr*.
@@ -45,7 +45,7 @@ def serializableHref(ser,attr=None,text=None):
 	so that the href target is a valid link. In that case, only single inheritace is assumed and
 	the first class from the top defining *attr* is used.
 
-	:param ser: object of class deriving from :yref:`Object`, or string; if string, *attr* must be empty.
+	:param ser: object of class deriving from :ref:`Object`, or string; if string, *attr* must be empty.
 	:param attr: name of the attribute to link to; if empty, linke to the class itself is created.
 	:param text: visible text of the hyperlink; if not given, either class name or attribute name without class name (when *attr* is not given) is used.
 
@@ -531,17 +531,17 @@ _fundamentalInitValues={bool:True,str:'',int:0,float:0.0,Quaternion:Quaternion.I
 
 _fundamentalSpecialEditors={
 	# FIXME: re-eanble once fixed
-	#id(yade.dem.DemData.flags):AttrEditor_DemData_flags,
+	#id(woo.dem.DemData.flags):AttrEditor_DemData_flags,
 }
 
-_attributeGuessedTypeMap={yade._customConverters.NodeList:(yade.core.Node,), }
+_attributeGuessedTypeMap={woo._customConverters.NodeList:(woo.core.Node,), }
 
 class SerQLabel(QLabel):
 	def __init__(self,parent,label,tooltip,path,elide=False):
 		QLabel.__init__(self,parent)
 		self.path=path
 		self.setTextToolTip(label,tooltip,elide=elide)
-		self.linkActivated.connect(yade.qt.openUrl)
+		self.linkActivated.connect(woo.qt.openUrl)
 	def setTextToolTip(self,label,tooltip,elide=False):
 		if elide: label=self.fontMetrics().elidedText(label,Qt.ElideRight,2*self.width())
 		self.setText(label)
@@ -558,7 +558,7 @@ class SerQLabel(QLabel):
 		event.accept()
 
 class SerializableEditor(QFrame):
-	"Class displaying and modifying serializable attributes of a yade object."
+	"Class displaying and modifying serializable attributes of a woo object."
 	import collections
 	import logging
 	# each attribute has one entry associated with itself
@@ -645,7 +645,7 @@ class SerializableEditor(QFrame):
 		"Construct window, *ser* is the object we want to show."
 		QtGui.QFrame.__init__(self,parent)
 		self.ser=ser
-		self.path=('yade.'+ser.label if (hasattr(ser,'label') and ser.label) else path)
+		self.path=('woo.'+ser.label if (hasattr(ser,'label') and ser.label) else path)
 		self.showType=showType
 		self.labelIsVar=labelIsVar # show variable name; if false, docstring is used instead
 		self.showChecks=showChecks
@@ -670,9 +670,9 @@ class SerializableEditor(QFrame):
 			regexp=r'^\s*(std\s*::)?\s*vector\s*<\s*(shared_ptr\s*<\s*)?\s*(std\s*::)?\s*(?P<elemT>[a-zA-Z_][a-zA-Z0-9_]+)(\s*>)?\s*>\s*$'
 			m=re.match(regexp,T)
 			return m
-		from yade import dem
-		from yade import gl
-		from yade import core
+		from woo import dem
+		from woo import gl
+		from woo import core
 		vecMap={
 			'bool':bool,'int':int,'long':int,'Body::id_t':long,'size_t':long,
 			'Real':float,'float':float,'double':float,
@@ -712,7 +712,7 @@ class SerializableEditor(QFrame):
 
 		# crawl class hierarchy up, ask each one for attribute traits
 		attrTraits=[]; k=self.ser.__class__
-		while k!=yade.core.Object:
+		while k!=woo.core.Object:
 			attrTraits=[(k,trait) for trait in k._attrTraits]+attrTraits
 			k=k.__bases__[0]
 		
@@ -754,7 +754,7 @@ class SerializableEditor(QFrame):
 				logging.error('Attr %s.%s has no trait?'%(self.ser.__class__,attr))
 				doc='[no documentation found]'
 			else: doc=tt[0]
-		doc=re.sub(':yref:`([^`]*)`','\\1',doc)
+		doc=re.sub(':ref:`([^`]*)`','\\1',doc)
 		import textwrap
 		wrapper=textwrap.TextWrapper(replace_whitespace=False)
 		return wrapper.fill(textwrap.dedent(doc))
@@ -871,7 +871,7 @@ class SerializableEditor(QFrame):
 		gridCols={'check':0,'label':1,'value':2,'unit':3}
 		if self.showType: # create type label
 			lab=SerQLabel(self,makeSerializableLabel(self.ser,addr=True,href=True),tooltip=self.getDocstring(),path=self.path)
-			lab.setFrameShape(QFrame.Box); lab.setFrameShadow(QFrame.Sunken); lab.setLineWidth(2); lab.setAlignment(Qt.AlignHCenter); lab.linkActivated.connect(yade.qt.openUrl)
+			lab.setFrameShape(QFrame.Box); lab.setFrameShadow(QFrame.Sunken); lab.setLineWidth(2); lab.setAlignment(Qt.AlignHCenter); lab.linkActivated.connect(woo.qt.openUrl)
 			## attach context menu to the label
 			lab.setContextMenuPolicy(Qt.CustomContextMenu)
 			lab.customContextMenuRequested.connect(lambda pos: self.serQLabelMenu(lab,pos))
@@ -1152,12 +1152,12 @@ class NewFundamentalDialog(QDialog):
 
 class NewSerializableDialog(QDialog):
 	def __init__(self,parent,baseClassName,includeBase=True):
-		import yade.system
+		import woo.system
 		QDialog.__init__(self,parent)
 		self.setWindowTitle('Create new object of type %s'%baseClassName)
 		self.layout=QVBoxLayout(self)
 		self.combo=QComboBox(self)
-		childs=list(yade.system.childClasses(baseClassName,includeBase=False)); childs.sort()
+		childs=list(woo.system.childClasses(baseClassName,includeBase=False)); childs.sort()
 		if includeBase:
 			self.combo.addItem(baseClassName)
 			self.combo.insertSeparator(1000)
@@ -1176,7 +1176,7 @@ class NewSerializableDialog(QDialog):
 		self.setWindowModality(Qt.WindowModal)
 	def comboSlot(self,index):
 		item=str(self.combo.itemText(index))
-		from yade import core,dem,gl,qt
+		from woo import core,dem,gl,qt
 		self.ser=eval(item+'()',dict(sum([m.__dict__.items() for m in core,dem,gl,qt],[])))
 		self.scroll.setWidget(SerializableEditor(self.ser,self.scroll,showType=True))
 		self.scroll.show()

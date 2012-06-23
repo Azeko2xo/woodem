@@ -8,11 +8,11 @@ Physical correctness is not the focus, the geometry and similar look is.
 You can take this file as instruction on how to build parametric surfaces,
 and how to make videos as well.
 """
-from yade import *
-from yade.dem import *
-from yade.core import *
+from woo import *
+from woo.dem import *
+from woo.core import *
 from miniEigen import *
-from yade import pack,utils
+from woo import pack,utils
 from numpy import linspace
 # geometry parameters
 bumpNum=20
@@ -70,7 +70,7 @@ O.dt=.5*utils.pWaveDt()
 O.engines=utils.defaultEngines(gravity=(0,0,-50),damping=.3)
 
 O.saveTmp()
-from yade import qt
+from woo import qt
 v=qt.View()
 v.eyePosition=(3,.8,.96); v.upVector=(-.4,-.4,.8); v.viewDir=(-.9,-.25,-.3); v.axes=True; v.sceneRadius=1.9
 #O.run(20000); O.wait()

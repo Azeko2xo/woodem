@@ -20,10 +20,10 @@ void LawTesterStage::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){
 		if(!isStr.check()) continue;
 		//
 		string whatStr=isStr();
-		if(whatStr.size()!=6) yade::ValueError("LawTesterStage.whats, if given as string, must have length 6, not "+to_string(whatStr.size())+".");
+		if(whatStr.size()!=6) woo::ValueError("LawTesterStage.whats, if given as string, must have length 6, not "+to_string(whatStr.size())+".");
 		for(int i=0;i<6;i++){
 			char w=whatStr[i];
-			if(w!='f' && w!='v' && w!='.') yade::ValueError("LawTesterStage.whats["+to_string(i)+"]: must be 'f' (force) or 'v' (velocity) or '.' (nothing prescribed). not '"+w+"'.");
+			if(w!='f' && w!='v' && w!='.') woo::ValueError("LawTesterStage.whats["+to_string(i)+"]: must be 'f' (force) or 'v' (velocity) or '.' (nothing prescribed). not '"+w+"'.");
 			switch(w){
 				case '.': whats[i]=Impose::NONE; break;
 				case 'v': whats[i]=Impose::VELOCITY; break;

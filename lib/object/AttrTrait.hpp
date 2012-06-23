@@ -3,7 +3,7 @@
 #include<boost/python.hpp>
 
 // attribute flags
-namespace yade{
+namespace woo{
 	#define ATTR_FLAGS_VALUES noSave=1, readonly=2, triggerPostLoad=4, hidden=8, noResize=16, noGui=32, pyByRef=64, static_=128, multiUnit=256, noDump=512
 	// this will disappear later
 	namespace Attr { enum flags { ATTR_FLAGS_VALUES }; }
@@ -14,7 +14,7 @@ namespace yade{
 	// derived classes only hide compile-time options
 	// and contain named-param accessors, to retain the template type when chained
 	struct AttrTraitBase /*:boost::noncopyable*/{
-		// keep in sync with py/wrapper/yadeWrapper.cpp !
+		// keep in sync with py/wrapper/wooWrapper.cpp !
 		enum class Flags { ATTR_FLAGS_VALUES };
 		// do not access those directly; public for convenience when accessed from python
 		int _flags;

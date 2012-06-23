@@ -13,12 +13,12 @@
 BASEDIR='.'
 VERSION='trunk'
 sudo aptitude install scons libqt3-mt-dev qt3-dev-tools freeglut3-dev libboost-date-time-dev libboost-filesystem-dev libboost-thread-dev libboost-regex-dev fakeroot dpkg-dev build-essential g++ libboost-iostreams-dev liblog4cxx10-dev python-dev libboost-python-dev ipython python-matplotlib libsqlite3-dev python-numeric python-tk gnuplot doxygen python-pygraphviz python-epydoc libgts-dev
-bzr checkout lp:yade
+bzr checkout lp:woo
 mkdir $BASEDIR/build
 mkdir $BASEDIR/build/data
-cd $BASEDIR/yade
+cd $BASEDIR/woo
 scons PREFIX=$BASEDIR/../build optimize=1 -j2 features=log4cxx,python,opengl,gts,openmp version=$VERSION linkStrategy=monolithic
 scons doc
 cd doc
-$BASEDIR/../../build/bin/yade-$VERSION yade-epydoc.py
+$BASEDIR/../../build/bin/woo-$VERSION woo-epydoc.py
 

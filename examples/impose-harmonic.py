@@ -1,6 +1,6 @@
-from yade import utils,pack
-from yade.dem import *
-from yade.core import *
+from woo import utils,pack
+from woo.dem import *
+from woo.core import *
 
 O.scene=S=Scene(fields=[DemField()])
 mat=utils.defaultMaterial()
@@ -24,6 +24,6 @@ for i,x in enumerate((-2,0,2,4,6,8,10.5,12,14)):
 S.dem.collectNodes()
 S.saveTmp()
 
-from yade import gl
+from woo import gl
 gl.Gl1_Wall.div=10
 gl.Gl1_InfCylinder.wire=True

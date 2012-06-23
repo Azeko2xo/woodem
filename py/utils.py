@@ -1,6 +1,6 @@
 # encoding: utf-8
 #
-# utility functions for yade
+# utility functions for woo
 #
 # 2008-2009 © Václav Šmilauer <eudoxos@arcig.cz>
 
@@ -10,16 +10,16 @@ Devs: please DO NOT ADD more functions here, it is getting too crowded!
 """
 
 import math,random,doctest,geom
-import yade
-from yade import *
+import woo
+from woo import *
 from miniEigen import *
 
-from yade.dem import *
-from yade.core import *
+from woo.dem import *
+from woo.core import *
 
 # c++ implementations for performance reasons
-#from yade._utils import *
-from yade._utils2 import *
+#from woo._utils import *
+from woo._utils2 import *
 
 inf=float('inf')
 
@@ -28,9 +28,9 @@ def saveVars(mark='',loadNow=True,**kw):
 
 	For example, variables *a*, *b* and *c* are defined. To save them, use::
 
-		>>> from yade import utils
+		>>> from woo import utils
 		>>> utils.saveVars('something',a=1,b=2,c=3)
-		>>> from yade.params.something import *
+		>>> from woo.params.something import *
 		>>> a,b,c
 		(1, 2, 3)
 
@@ -38,33 +38,33 @@ def saveVars(mark='',loadNow=True,**kw):
 
 		>>> utils.loadVars('something')
 
-	and they will be defined in the yade.params.\ *mark* module. The *loadNow* parameter calls :yref:`yade.utils.loadVars` after saving automatically.
+	and they will be defined in the woo.params.\ *mark* module. The *loadNow* parameter calls :ref:`woo.utils.loadVars` after saving automatically.
 	"""
 	import cPickle
-	yade.master.scene.tags['pickledPythonVariablesDictionary'+mark]=cPickle.dumps(kw)
+	woo.master.scene.tags['pickledPythonVariablesDictionary'+mark]=cPickle.dumps(kw)
 	if loadNow: loadVars(mark)
 
 def loadVars(mark=None):
-	"""Load variables from :yref:`yade.utils.saveVars`, which are saved inside the simulation.
+	"""Load variables from :ref:`woo.utils.saveVars`, which are saved inside the simulation.
 	If ``mark==None``, all save variables are loaded. Otherwise only those with
 	the mark passed."""
 	import cPickle, types, sys, warnings
-	scene=yade.master.scene
+	scene=woo.master.scene
 	def loadOne(d,mark=None):
-		"""Load given dictionary into a synthesized module yade.params.name (or yade.params if *name* is not given). Update yade.params.__all__ as well."""
-		import yade.params
+		"""Load given dictionary into a synthesized module woo.params.name (or woo.params if *name* is not given). Update woo.params.__all__ as well."""
+		import woo.params
 		if mark:
-			if mark in yade.params.__dict__: warnings.warn('Overwriting yade.params.%s which already exists.'%mark)
-			modName='yade.params.'+mark
+			if mark in woo.params.__dict__: warnings.warn('Overwriting woo.params.%s which already exists.'%mark)
+			modName='woo.params.'+mark
 			mod=types.ModuleType(modName)
 			mod.__dict__.update(d)
 			mod.__all__=list(d.keys()) # otherwise params starting with underscore would not be imported
 			sys.modules[modName]=mod
-			yade.params.__all__.append(mark)
-			yade.params.__dict__[mark]=mod
+			woo.params.__all__.append(mark)
+			woo.params.__dict__[mark]=mod
 		else:
-			yade.params.__all__+=list(d.keys())
-			yade.params.__dict__.update(d)
+			woo.params.__all__+=list(d.keys())
+			woo.params.__dict__.update(d)
 	if mark!=None:
 		d=cPickle.loads(scene.tags['pickledPythonVariablesDictionary'+mark])
 		loadOne(d,mark)
@@ -75,7 +75,7 @@ def loadVars(mark=None):
 
 def spherePWaveDt(radius,density,young):
 	r"""Compute P-wave critical timestep for a single (presumably representative) sphere, using formula for P-Wave propagation speed $\Delta t_{c}=\frac{r}{\sqrt{E/\rho}}$.
-	If you want to compute minimum critical timestep for all spheres in the simulation, use :yref:`yade.utils.PWaveTimeStep` instead.
+	If you want to compute minimum critical timestep for all spheres in the simulation, use :ref:`woo.utils.PWaveTimeStep` instead.
 
 	>>> spherePWaveDt(1e-3,2400,30e9)
 	2.8284271247461903e-07
@@ -88,7 +88,7 @@ def spherePWaveDt(radius,density,young):
 #	return Vector3(random.random(),random.random(),random.random())
 
 def defaultMaterial():
-	"""Return default material, when creating bodies with :yref:`yade.utils.sphere` and friends, material is unspecified and there is no previous particle yet. By default, this function returns::
+	"""Return default material, when creating bodies with :ref:`woo.utils.sphere` and friends, material is unspecified and there is no previous particle yet. By default, this function returns::
 
 		FrictMat(density=1e3,young=1e7,poisson=.3,ktDivKn=.2,tanPhi=tan(.5))
 	"""
@@ -150,7 +150,7 @@ def sphere(center,radius,mat=defaultMaterial,fixed=False,wire=False,color=None,h
 
 	Instance of material can be given::
 
-		>>> from yade import utils
+		>>> from woo import utils
 		>>> s1=utils.sphere((0,0,0),1,wire=False,color=.7,mat=ElastMat(young=30e9,density=2e3))
 		>>> s1.shape.wire
 		False
@@ -160,7 +160,7 @@ def sphere(center,radius,mat=defaultMaterial,fixed=False,wire=False,color=None,h
 		2000.0
 
 	Finally, material can be a callable object (taking no arguments), which returns a Material instance.
-	Use this if you don't call this function directly (for instance, through yade.pack.randomDensePack), passing
+	Use this if you don't call this function directly (for instance, through woo.pack.randomDensePack), passing
 	only 1 *material* parameter, but you don't want material to be shared.
 
 	For instance, randomized material properties can be created like this:
@@ -187,9 +187,9 @@ def wall(position,axis,sense=0,glAB=None,fixed=True,mass=0,color=None,mat=defaul
 
 	:param float-or-Vector3-or-Node position: center of the wall. If float, it is the position along given axis, the other 2 components being zero
 	:param ∈{0,1,2} axis: orientation of the wall normal (0,1,2) for x,y,z (sc. planes yz, xz, xy)
-	:param ∈{-1,0,1} sense: sense in which to interact (0: both, -1: negative, +1: positive; see :yref:`Wall`)
+	:param ∈{-1,0,1} sense: sense in which to interact (0: both, -1: negative, +1: positive; see :ref:`Wall`)
 
-	See :yref:`yade.utils.sphere`'s documentation for meaning of other parameters."""
+	See :ref:`woo.utils.sphere`'s documentation for meaning of other parameters."""
 	p=Particle()
 	p.shape=Wall(sense=sense,axis=axis,color=color if color else random.random())
 	if glAB: p.shape.glAB=glAB
@@ -213,7 +213,7 @@ def facet(vertices,fakeVel=None,fixed=True,wire=True,color=None,highlight=False,
 	:param [Vector3,Vector3,Vector3] vertices: coordinates of vertices in the global coordinate system.
 	:param bool wire: if ``True``, facets are shown as skeleton; otherwise facets are filled
 
-	See :yref:`yade.utils.sphere`'s documentation for meaning of other parameters."""
+	See :ref:`woo.utils.sphere`'s documentation for meaning of other parameters."""
 	p=Particle()
 	nodes=[]
 	if isinstance(vertices[0],Node):
@@ -295,7 +295,7 @@ def aabbExtrema2d(pts):
 def perpendicularArea(axis):
 	"""Return area perpendicular to given axis (0=x,1=y,2=z) generated by bodies
 	for which the function consider returns True (defaults to returning True always)
-	and which is of the type :yref:`Sphere`.
+	and which is of the type :ref:`Sphere`.
 	"""
 	ext=aabbExtrema()
 	other=((axis+1)%3,(axis+2)%3)
@@ -310,7 +310,7 @@ def fractionalBox(fraction=1.,minMax=None):
 
 
 def randomizeColors(onlyDynamic=False):
-	"""Assign random colors to :yref:`Shape::color`.
+	"""Assign random colors to :ref:`Shape::color`.
 
 	If onlyDynamic is true, only dynamic bodies will have the color changed.
 	"""
@@ -360,10 +360,10 @@ def plotDirections(aabb=(),mask=0,bins=20,numHist=True,noShow=False):
 	"""Plot 3 histograms for distribution of interaction directions, in yz,xz and xy planes and
 	(optional but default) histogram of number of interactions per body.
 
-	:returns: If *noShow* is ``False``, displays the figure and returns nothing. If *noShow*, the figure object is returned without being displayed (works the same way as :yref:`yade.plot.plot`).
+	:returns: If *noShow* is ``False``, displays the figure and returns nothing. If *noShow*, the figure object is returned without being displayed (works the same way as :ref:`woo.plot.plot`).
 	"""
 	import pylab,math
-	from yade import utils
+	from woo import utils
 	for axis in [0,1,2]:
 		d=utils.interactionAnglesHistogram(axis,mask=mask,bins=bins,aabb=aabb)
 		fc=[0,0,0]; fc[axis]=1.
@@ -433,7 +433,7 @@ def uniaxialTestFeatures(filename=None,areaSections=10,axis=-1,**kw):
 :return: dictionary with keys ``negIds``, ``posIds``, ``axis``, ``area``.
 
 .. warning::
-	The function :yref:`yade.utils.approxSectionArea` uses convex hull algorithm to find the area, but the implementation is reported to be *buggy* (bot works in some cases). Always check this number, or fix the convex hull algorithm (it is documented in the source, see :ysrc:`py/_utils.cpp`).
+	The function :ref:`woo.utils.approxSectionArea` uses convex hull algorithm to find the area, but the implementation is reported to be *buggy* (bot works in some cases). Always check this number, or fix the convex hull algorithm (it is documented in the source, see :ysrc:`py/_utils.cpp`).
 
 	"""
 	if filename: ids=spheresFromFile(filename,**kw)
@@ -451,7 +451,7 @@ def voxelPorosityTriaxial(triax,resolution=200,offset=0):
 	"""
 	Calculate the porosity of a sample, given the TriaxialCompressionEngine.
 
-	A function :yref:`yade.utils.voxelPorosity` is invoked, with the volume of a box enclosed by TriaxialCompressionEngine walls.
+	A function :ref:`woo.utils.voxelPorosity` is invoked, with the volume of a box enclosed by TriaxialCompressionEngine walls.
 	The additional parameter offset allows using a smaller volume inside the box, where each side of the volume is at offset distance
 	from the walls. By this way it is possible to find a more precise porosity of the sample, since at walls' contact the porosity is usually reduced.
 	
@@ -468,7 +468,7 @@ def voxelPorosityTriaxial(triax,resolution=200,offset=0):
 
 	Example invocation::
 	
-		from yade import utils
+		from woo import utils
 		rAvg=0.03
 		TriaxialTest(numberOfGrains=200,radiusMean=rAvg).load()
 		O.dt=-1
@@ -577,9 +577,9 @@ def _deprecatedUtilsFunction(old,new):
 #
 # def import_mesh_geometry(*args,**kw):
 #    "|ydeprecated|"
-#    _deprecatedUtilsFunction('import_mesh_geometry','yade.import.gmsh')
-#    import yade.ymport
-#    return yade.ymport.stl(*args,**kw)
+#    _deprecatedUtilsFunction('import_mesh_geometry','woo.import.gmsh')
+#    import woo.ymport
+#    return woo.ymport.stl(*args,**kw)
 
 
 class TableParamReader():
@@ -599,7 +599,7 @@ Empty lines within the file are ignored (although counted); ``#`` starts comment
 
 A special value ``=`` can be used instead of parameter value; value from the previous non-empty line will be used instead (works recursively).
 
-This class is used by :yref:`yade.utils.readParamsFromTable`.
+This class is used by :ref:`woo.utils.readParamsFromTable`.
 	"""
 	def __init__(self,file):
 		"Setup the reader class, read data into memory."
@@ -667,7 +667,7 @@ def runningInBatch():
 
 def waitIfBatch():
 	'Block the simulation if running inside a batch. Typically used at the end of script so that it does not finish prematurely in batch mode (the execution would be ended in such a case).'
-	if runningInBatch(): O.wait()
+	if runningInBatch(): woo.master.scene.wait()
 
 def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 	"""
@@ -682,16 +682,16 @@ def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 		val2  val2  … # 2nd
 		…
 
-	Assigned tags (the ``description`` column is synthesized if absent,see :yref:`yade.utils.TableParamReader`); 
+	Assigned tags (the ``description`` column is synthesized if absent,see :ref:`woo.utils.TableParamReader`); 
 
-		s=yade.master.scene
+		s=woo.master.scene
 		s.tags['description']=…                                      # assigns the description column; might be synthesized
 		s.tags['params']="name1=val1,name2=val2,…"                   # all explicitly assigned parameters
 		s.tags['defaultParams']="unassignedName1=defaultValue1,…"    # parameters that were left at their defaults
 		s.tags['d.id']=s.tags['id']+'.'+s.tags['description']
 		s.tags['id.d']=s.tags['description']+'.'+s.tags['id']
 
-	All parameters (default as well as settable) are saved using :yref:`yade.utils.saveVars`\ ``('table')``.
+	All parameters (default as well as settable) are saved using :ref:`woo.utils.saveVars`\ ``('table')``.
 
 	:param tableFile: text file (with one value per blank-separated columns)
 	:param int tableLine: number of line where to get the values from
@@ -700,10 +700,10 @@ def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 	:return: number of assigned parameters
 	"""
 	tagsParams=[]
-	# dictParams is what eventually ends up in yade.params.table (default+specified values)
+	# dictParams is what eventually ends up in woo.params.table (default+specified values)
 	dictDefaults,dictParams,dictAssign={},{},{}
 	import os, __builtin__,re,math
-	s=yade.master.scene
+	s=woo.master.scene
 	if not tableFileLine and ('WOO_BATCH' not in os.environ or os.environ['WOO_BATCH']==''):
 		if not noTableOk: raise EnvironmentError("WOO_BATCH is not defined in the environment")
 		s.tags['line']='l!'

@@ -55,7 +55,7 @@
 #endif
 #define _PLUGIN_CHECK_REPEAT(x,y,z) void z::must_use_both_YADE_CLASS_BASE_DOC_ATTRS_and_YADE_PLUGIN(){}
 #define _YADE_PLUGIN_REPEAT(x,y,z) BOOST_PP_STRINGIZE(z),
-#define _YADE_FACTORY_REPEAT(x,y,z) __attribute__((unused)) bool BOOST_PP_CAT(_registered,z)=Master::instance().registerClassFactory(BOOST_PP_STRINGIZE(z),(Master::FactoryFunc)([](void)->shared_ptr<yade::Object>{ return make_shared<z>(); }));
+#define _YADE_FACTORY_REPEAT(x,y,z) __attribute__((unused)) bool BOOST_PP_CAT(_registered,z)=Master::instance().registerClassFactory(BOOST_PP_STRINGIZE(z),(Master::FactoryFunc)([](void)->shared_ptr<woo::Object>{ return make_shared<z>(); }));
 // priority 500 is greater than priority for log4cxx initialization (in core/main/pyboot.cpp); therefore lo5cxx will be initialized before plugins are registered
 
 #define WOO_PLUGIN(module,plugins) BOOST_PP_SEQ_FOR_EACH(_YADE_FACTORY_REPEAT,~,plugins); namespace{ __attribute__((constructor)) void BOOST_PP_CAT(registerThisPluginClasses_,BOOST_PP_SEQ_HEAD(plugins)) (void){ const char* info[]={__FILE__ , BOOST_PP_SEQ_FOR_EACH(_YADE_PLUGIN_REPEAT,~,plugins) NULL}; Master::instance().registerPluginClasses(BOOST_PP_STRINGIZE(module),info);} } BOOST_PP_SEQ_FOR_EACH(_YADE_PLUGIN_BOOST_REGISTER,~,plugins) BOOST_PP_SEQ_FOR_EACH(_PLUGIN_CHECK_REPEAT,~,plugins)
@@ -69,10 +69,10 @@
 	template<typename T>	void preSave(T&){}; template<typename T> void postSave(T&){}
 //};
 
-using namespace yade;
+using namespace woo;
 
 // see:
-//		https://bugs.launchpad.net/yade/+bug/539562
+//		https://bugs.launchpad.net/woo/+bug/539562
 // 	http://www.boost.org/doc/libs/1_42_0/libs/python/doc/v2/faq.html#topythonconversionfailed
 // for reason why the original def_readwrite will not work:
 // #define _PYATTR_DEF(x,thisClass,z) .def_readwrite(BOOST_PP_STRINGIZE(BOOST_PP_TUPLE_ELEM(2,0,z)),&thisClass::BOOST_PP_TUPLE_ELEM(2,0,z),BOOST_PP_TUPLE_ELEM(2,1,z))
@@ -82,7 +82,7 @@ using namespace yade;
 // O.bodies.pos[1].state.vel[2]=0 
 // returning value would only change copy of velocity, without propagating back to the original
 //
-// see http://www.mail-archive.com/yade-dev@lists.launchpad.net/msg03406.html
+// see http://www.mail-archive.com/woo-dev@lists.launchpad.net/msg03406.html
 //
 // note that for sequences (like vector<> etc), values are returned; but in case of 
 // vector of shared_ptr's, things inside are still shared, so
@@ -93,7 +93,7 @@ using namespace yade;
 //
 // see http://www.boost.org/doc/libs/1_42_0/libs/type_traits/doc/html/boost_typetraits/background.html
 // about how this works
-namespace yade{
+namespace woo{
 	// by default, do not return reference; return value instead
 	template<typename T> struct py_wrap_ref: public boost::false_type{};
 	// specialize for types that should be returned as references
@@ -114,7 +114,7 @@ namespace yade{
 };
 
 // ADL only works within the same namespace
-// this duplicate is for classes that are not in yade:: namespace (yet)
+// this duplicate is for classes that are not in woo:: namespace (yet)
 template<class C, typename T, T C::*A>
 void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<"make_setter_postLoad called"<<endl; */ instance.callPostLoad(); /* postLoad(instance); */ }
 #define _DEF_READWRITE_BY_VALUE(thisClass,attr,doc) add_property(/*attr name*/BOOST_PP_STRINGIZE(attr),/*read access*/py::make_getter(&thisClass::attr,py::return_value_policy<py::return_by_value>()),/*write access*/py::make_setter(&thisClass::attr,py::return_value_policy<py::return_by_value>()),/*docstring*/doc)
@@ -123,10 +123,10 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 #define _DEF_READONLY_BY_VALUE(thisClass,attr,doc) add_property(/*attr name*/BOOST_PP_STRINGIZE(attr),/*read access*/py::make_getter(&thisClass::attr,py::return_value_policy<py::return_by_value>()),/*docstring*/doc)
 /* Huh, add_static_property does not support doc argument (add_property does); if so, use add_property for now at least... */
 #define _DEF_READWRITE_BY_VALUE_STATIC(thisClass,attr,doc)  _DEF_READWRITE_BY_VALUE(thisClass,attr,doc)
-// the conditional yade::py_wrap_ref should be eliminated by compiler at compile-time, as it depends only on types, not their values
+// the conditional woo::py_wrap_ref should be eliminated by compiler at compile-time, as it depends only on types, not their values
 // most of this could be written with templates, including flags (ints can be template args)
 #define _DEF_READWRITE_CUSTOM(thisClass,attr) if(!(_ATTR_FLG(attr).isHidden())){ \
-	bool _ro(_ATTR_FLG(attr).isReadonly()), _post(_ATTR_FLG(attr).isTriggerPostLoad()), _ref(yade::py_wrap_ref<decltype(thisClass::_ATTR_NAM(attr))>::value || (_ATTR_FLG(attr).isPyByRef())); \
+	bool _ro(_ATTR_FLG(attr).isReadonly()), _post(_ATTR_FLG(attr).isTriggerPostLoad()), _ref(woo::py_wrap_ref<decltype(thisClass::_ATTR_NAM(attr))>::value || (_ATTR_FLG(attr).isPyByRef())); \
 	std::string docStr(_ATTR_DOC(attr)); /*docStr+=" :yattrflags:`"+boost::lexical_cast<string>(_ATTR_FLG(attr))+"` ";*/ \
 	if      ( _ref && !_ro && !_post) _classObj.def_readwrite(_ATTR_NAM_STR(attr),&thisClass::_ATTR_NAM(attr),docStr.c_str()); \
 	else if ( _ref && !_ro &&  _post) _classObj.add_property(_ATTR_NAM_STR(attr),py::make_getter(&thisClass::_ATTR_NAM(attr)),make_setter_postLoad<thisClass,decltype(thisClass::_ATTR_NAM(attr)),&thisClass::_ATTR_NAM(attr)>,docStr.c_str()); \
@@ -134,10 +134,10 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 	else if (!_ref && !_ro && !_post) _classObj._DEF_READWRITE_BY_VALUE(thisClass,_ATTR_NAM(attr),docStr.c_str()); \
 	else if (!_ref && !_ro &&  _post) _classObj._DEF_READWRITE_BY_VALUE_POSTLOAD(thisClass,_ATTR_NAM(attr),docStr.c_str()); \
 	else if (!_ref &&  _ro)           _classObj._DEF_READONLY_BY_VALUE(thisClass,_ATTR_NAM(attr),docStr.c_str()); \
-	if(_ro && _post) std::cerr<<"WARN: " BOOST_PP_STRINGIZE(thisClass) "::" _ATTR_NAM_STR(attr) " with the yade::Attr::readonly flag also uselessly sets yade::Attr::triggerPostLoad."<<std::endl; \
+	if(_ro && _post) std::cerr<<"WARN: " BOOST_PP_STRINGIZE(thisClass) "::" _ATTR_NAM_STR(attr) " with the woo::Attr::readonly flag also uselessly sets woo::Attr::triggerPostLoad."<<std::endl; \
 }
 
-#define _DEF_READWRITE_CUSTOM_STATIC(thisClass,attr,doc) { /* if(yade::py_wrap_ref<decltype(thisClass::attr)>::value)*/ _classObj.def_readwrite(BOOST_PP_STRINGIZE(attr),&thisClass::attr,doc); /* else _classObj._DEF_READWRITE_BY_VALUE_STATIC(thisClass,attr,doc);*/ }
+#define _DEF_READWRITE_CUSTOM_STATIC(thisClass,attr,doc) { /* if(woo::py_wrap_ref<decltype(thisClass::attr)>::value)*/ _classObj.def_readwrite(BOOST_PP_STRINGIZE(attr),&thisClass::attr,doc); /* else _classObj._DEF_READWRITE_BY_VALUE_STATIC(thisClass,attr,doc);*/ }
 
 
 
@@ -146,7 +146,7 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 #if !defined(__GNUG__) || (defined(__GNUG__) && (__GNUC__ > 4 || (__GNUC__==4 && __GNUC_MINOR__ > 3)))
 	// gcc > 4.3 && non-gcc compilers
 	#define _PYSET_ATTR_DEPREC(x,thisClass,z) if(key==BOOST_PP_STRINGIZE(_DEPREC_OLDNAME(z))){ _DEPREC_WARN(thisClass,z); _DEPREC_NEWNAME(z)=py::extract<decltype(_DEPREC_NEWNAME(z))>(value); return; }
-	#define _PYATTR_DEPREC_DEF(x,thisClass,z) .add_property(BOOST_PP_STRINGIZE(_DEPREC_OLDNAME(z)),&thisClass::BOOST_PP_CAT(_getDeprec_,_DEPREC_OLDNAME(z)),&thisClass::BOOST_PP_CAT(_setDeprec_,_DEPREC_OLDNAME(z)),"|ydeprecated| alias for :yref:`" BOOST_PP_STRINGIZE(_DEPREC_NEWNAME(z)) "<" BOOST_PP_STRINGIZE(thisClass) "." BOOST_PP_STRINGIZE(_DEPREC_NEWNAME(z)) ">` (" _DEPREC_COMMENT(z) ")")
+	#define _PYATTR_DEPREC_DEF(x,thisClass,z) .add_property(BOOST_PP_STRINGIZE(_DEPREC_OLDNAME(z)),&thisClass::BOOST_PP_CAT(_getDeprec_,_DEPREC_OLDNAME(z)),&thisClass::BOOST_PP_CAT(_setDeprec_,_DEPREC_OLDNAME(z)),"|ydeprecated| alias for :ref:`" BOOST_PP_STRINGIZE(_DEPREC_NEWNAME(z)) "<" BOOST_PP_STRINGIZE(thisClass) "." BOOST_PP_STRINGIZE(_DEPREC_NEWNAME(z)) ">` (" _DEPREC_COMMENT(z) ")")
 	#define _PYHASKEY_ATTR_DEPREC(x,thisClass,z) if(key==BOOST_PP_STRINGIZE(_DEPREC_OLDNAME(z))) return true;
 	/* accessors functions ussing warning */
 	#define _ACCESS_DEPREC(x,thisClass,z) /*getter*/ decltype(_DEPREC_NEWNAME(z)) BOOST_PP_CAT(_getDeprec_,_DEPREC_OLDNAME(z))(){_DEPREC_WARN(thisClass,z); return _DEPREC_NEWNAME(z); } /*setter*/ void BOOST_PP_CAT(_setDeprec_,_DEPREC_OLDNAME(z))(const decltype(_DEPREC_NEWNAME(z))& val){_DEPREC_WARN(thisClass,z); _DEPREC_NEWNAME(z)=val; }
@@ -166,7 +166,7 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 #define _PYATTR_TRAIT(x,y,z)        traitList.append(py::ptr(static_cast<AttrTraitBase*>(&_ATTR_TRAIT_GET(z)())));
 #define _PYATTR_TRAIT_STATIC(x,y,z) traitList.append(py::ptr(static_cast<AttrTraitBase*>(&_ATTR_TRAIT_GET(z)()))); // static_() already set in trait definition
 #define _PYHASKEY_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) return true;
-#define _PYDICT_ATTR(x,y,z) if(!(_ATTR_FLG(z).isHidden()) && !(_ATTR_FLG(z).isNoSave()) && !(_ATTR_FLG(z).isNoDump())){ /*if(_ATTR_FLG(z) & yade::Attr::pyByRef) ret[_ATTR_NAM_STR(z)]=py::object(boost::ref(_ATTR_NAM(z))); else */  ret[_ATTR_NAM_STR(z)]=py::object(_ATTR_NAM(z)); }
+#define _PYDICT_ATTR(x,y,z) if(!(_ATTR_FLG(z).isHidden()) && !(_ATTR_FLG(z).isNoSave()) && !(_ATTR_FLG(z).isNoDump())){ /*if(_ATTR_FLG(z) & woo::Attr::pyByRef) ret[_ATTR_NAM_STR(z)]=py::object(boost::ref(_ATTR_NAM(z))); else */  ret[_ATTR_NAM_STR(z)]=py::object(_ATTR_NAM(z)); }
 
 // static switch for noSave attributes via templates
 template<bool noSave> struct _SerializeMaybe{};
@@ -178,7 +178,7 @@ template<> struct _SerializeMaybe<false>{
 	template<class ArchiveT, typename T>
 	static void serialize(ArchiveT& ar, T&, const char* name){ /* do nothing */ }
 };
-#define _REGISTER_BOOST_SERIALIZATION_ATTRIBUTES_REPEAT(x,y,z) _SerializeMaybe<!(_ATTR_TRAIT_TYPE(z)::compileFlags & yade::Attr::noSave)>::serialize(ar,_ATTR_NAM(z), BOOST_PP_STRINGIZE(_ATTR_NAM(z)));
+#define _REGISTER_BOOST_SERIALIZATION_ATTRIBUTES_REPEAT(x,y,z) _SerializeMaybe<!(_ATTR_TRAIT_TYPE(z)::compileFlags & woo::Attr::noSave)>::serialize(ar,_ATTR_NAM(z), BOOST_PP_STRINGIZE(_ATTR_NAM(z)));
 
 #define _REGISTER_BOOST_SERIALIZATION_ATTRIBUTES(baseClass,attrs) \
 	friend class boost::serialization::access; \
@@ -347,7 +347,7 @@ template<> struct _SerializeMaybe<false>{
 // used only in some exceptional cases, might disappear in the future
 #define REGISTER_ATTRIBUTES(baseClass,attrs) _REGISTER_ATTRIBUTES_DEPREC(_SOME_CLASS,baseClass,BOOST_PP_SEQ_FOR_EACH(_ATTR_NAME_ADD_DUMMY_FIELDS,~,attrs),)
 
-// see https://bugs.launchpad.net/yade/+bug/666876
+// see https://bugs.launchpad.net/woo/+bug/666876
 // we have to change things at a few other places as well
 #if BOOST_VERSION>=104200
 	#define REGISTER_SERIALIZABLE(name) BOOST_CLASS_EXPORT_KEY(name);
@@ -362,7 +362,7 @@ template<> struct _SerializeMaybe<false>{
 #define REGISTER_CLASS_NAME(cn) public: virtual std::string getClassName() const { return #cn; };
 #define REGISTER_BASE_CLASS_NAME(bcn) public:virtual std::vector<std::string> getBaseClassNames() const { return bcn; }
  
-namespace yade{
+namespace woo{
 
 struct Object: public boost::noncopyable {
 	// http://www.boost.org/doc/libs/1_49_0/libs/smart_ptr/sp_techniques.html#static
@@ -377,8 +377,8 @@ struct Object: public boost::noncopyable {
 		template <class DerivedT> const DerivedT& cast() const { return *static_cast<DerivedT*>(this); }
 		template <class DerivedT> DerivedT& cast(){ return *static_cast<DerivedT*>(this); }
 
-		static shared_ptr<Object> boostLoad(const string& f){ auto obj=make_shared<Object>(); ObjectIO::load(f,"yade__Object",obj); return obj; }
-		virtual void boostSave(const string& f){ shared_ptr<Object> thisPtr(this,null_deleter()); ObjectIO::save(f,"yade__Object",thisPtr); }
+		static shared_ptr<Object> boostLoad(const string& f){ auto obj=make_shared<Object>(); ObjectIO::load(f,"woo__Object",obj); return obj; }
+		virtual void boostSave(const string& f){ shared_ptr<Object> thisPtr(this,null_deleter()); ObjectIO::save(f,"woo__Object",thisPtr); }
 		//template<class DerivedT> shared_ptr<DerivedT> _cxxLoadChecked(const string& f){ auto obj=_cxxLoad(f); auto obj2=dynamic_pointer_cast<DerivedT>(obj); if(!obj2) throw std::runtime_error("Loaded type "+obj->getClassName()+" could not be cast to requested type "+DerivedT::getClassNameStatic()); }
 
 		Object() {};
@@ -390,7 +390,7 @@ struct Object: public boost::noncopyable {
 		void pyUpdateAttrs(const py::dict& d);
 		//static void pyUpdateAttrs(const shared_ptr<Object>&, const py::dict& d);
 
-		virtual void pySetAttr(const std::string& key, const py::object& value){ yade::AttributeError("No such attribute: "+key+".");};
+		virtual void pySetAttr(const std::string& key, const py::object& value){ woo::AttributeError("No such attribute: "+key+".");};
 		virtual py::dict pyDict() const { return py::dict(); }
 		virtual void callPostLoad(void){ postLoad(*this); }
 		// check whether the class registers itself or whether it calls virtual function of some base class;
@@ -424,4 +424,4 @@ shared_ptr<T> Object_ctor_kwAttrs(py::tuple& t, py::dict& d){
 	return instance;
 }
 
-}; /* namespace yade */
+}; /* namespace woo */

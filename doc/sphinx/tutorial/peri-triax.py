@@ -1,4 +1,4 @@
-from yade import pack,plot
+from woo import pack,plot
 sp=pack.SpherePack()
 rMean=.05
 sp.makeCloud((0,0,0),(1,1,1),rMean=rMean,periodic=True)

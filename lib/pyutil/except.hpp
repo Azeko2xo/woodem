@@ -4,7 +4,7 @@
 #include<boost/preprocessor.hpp>
 #include<boost/format.hpp>
 
-namespace yade{
+namespace woo{
 	void StopIteration();
 	#define WOO_PYUTIL_ERRORS (ArithmeticError)(AttributeError)(IndexError)(KeyError)(NameError)(NotImplementedError)(RuntimeError)(TypeError)(ValueError)
 	#define _DECLARE_YADE_PY_ERROR(x,y,err) void err(const std::string&); void err(const boost::format& f);

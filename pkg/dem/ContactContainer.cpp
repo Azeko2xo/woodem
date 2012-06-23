@@ -164,7 +164,7 @@ ContactContainer::pyIterator::pyIterator(ContactContainer* _cc): cc(_cc), ix(0){
 shared_ptr<Contact> ContactContainer::pyIterator::next(){
 	int sz=(int)cc->size();
 	while(ix<sz && !(*cc)[ix]->isReal()) ix++;
-	if(ix>=sz) yade::StopIteration();
+	if(ix>=sz) woo::StopIteration();
 	return (*cc)[ix++];
 }
 ContactContainer::pyIterator ContactContainer::pyIterator::iter(){ return *this; }
