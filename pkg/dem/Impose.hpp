@@ -1,4 +1,5 @@
 /* the base class, Impose, is declared in the Particle.hpp file for simplicity */
+#pragma once
 #include<woo/pkg/dem/Particle.hpp>
 
 struct HarmonicOscillation: public Impose{
