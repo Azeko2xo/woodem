@@ -711,8 +711,8 @@ id
 	Unique identifier of this Yade instance (or of the instance which created a loaded simulation). It is composed of date, time and process number. Useful if you run simulations in parallel and want to avoid overwriting each other's outputs; embed ``O.tags['id']`` in output filenames (either as directory name, or as part of the file's name itself) to avoid it. This is explained in :ref:`batch-output-separate` in detail.
 isoTime
 	Time when simulation was created (with second resolution).
-d.id, id.d
-	Simulation description and id joined by period (and vice-versa). Description is used in batch jobs; in non-batch jobs, these tags are identical to id.
+tid, idt
+	Simulation title and id joined by period (and vice-versa). Title is used in batch jobs; in non-batch jobs, these tags are identical to id.
 
 You can add your own tags by simply assigning value, with the restriction that the left-hand side object must be a string and must not contain ``=``.
 
@@ -1150,7 +1150,7 @@ This example is found in :ysrc:`scripts/batch.table` and :ysrc:`scripts/batch.py
 
 Suppsoe we want to study influence of parameters *density* and *initialVelocity* on position of a sphere falling on fixed box. We create parameter table like this::
 
- description density initialVelocity # first non-empty line are column headings
+ title density initialVelocity # first non-empty line are column headings
  reference   2400    10
  hi_v           =    20              # = to use value from previous line
  lo_v           =     5
@@ -1161,7 +1161,7 @@ Suppsoe we want to study influence of parameters *density* and *initialVelocity*
  hi_rho_v       =    20
  hi_rh0_lo_v    =     5
 
-Each line give one combination of these 2 parameters and assigns (which is optional) a *description* of this simulation.
+Each line give one combination of these 2 parameters and assigns (which is optional) a *title* of this simulation.
 
 In the simulation file, we read parameters from table, at the beginning of the script; each parameter has default value, which is used if not specified in the parameters file:
 
@@ -1289,7 +1289,7 @@ At the end, the batch system knows about all gnuplot files and tries to merge th
 .. _img-yade-multi-gnuplot-merged:
 .. figure:: fig/yade-multi-gnuplot-merged.*
 
-	Merged figure from all jobs in the batch. Note that labels are prepended by job description to make lines distinguishable.
+	Merged figure from all jobs in the batch. Note that labels are prepended by job title to make lines distinguishable.
 
 HTTP overview
 --------------

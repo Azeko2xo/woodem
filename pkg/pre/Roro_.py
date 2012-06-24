@@ -76,7 +76,7 @@ def run(pre): # use inputs as argument
 		cc,rr=makeBandFeedPack(dim=(cellLen,pre.cylLenSim,pre.conveyorHt),psd=pre.psd,mat=pre.material,gravity=inclinedGravity,porosity=.5,memoizeDir=pre.feedCacheDir)
 		vol=sum([4/3.*math.pi*r**3 for r in rr])
 		conveyorVel=(pre.massFlowRate*pre.cylRelLen)/(pre.material.density*vol/cellLen)
-		print 'Feed velocity %g m/s to match feed mass %g kg/m (volume=%g m³, len=%gm, ρ=%gkg/m³) and massFlowRate %g kg/s'%(conveyorVel,pre.material.density*vol/cellLen,vol,cellLen,pre.material.density,pre.massFlowRate)
+		print 'Feed velocity %g m/s to match feed mass %g kg/m (volume=%g m³, len=%gm, ρ=%gkg/m³) and massFlowRate %g kg/s (%g kg/s over real width)'%(conveyorVel,pre.material.density*vol/cellLen,vol,cellLen,pre.material.density,pre.massFlowRate*pre.cylRelLen,pre.massFlowRate)
 		factory=ConveyorFactory(
 			stepPeriod=factStep,
 			material=pre.material,
@@ -124,7 +124,7 @@ def run(pre): # use inputs as argument
 		factory,
 		PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.savePlotData(S)'),
 		PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.watchProgress(S)'),
-	]+([] if (not pre.vtkPrefix or pre.vtkFreq<=0) else [VtkExport(out=pre.vtkPrefix+s.tags['id.d']+'-',stepPeriod=pre.vtkFreq*pre.factStepPeriod,what=VtkExport.all)])
+	]+([] if (not pre.vtkPrefix or pre.vtkFreq<=0) else [VtkExport(out=pre.vtkPrefix.format(**dict(s.tags)),stepPeriod=pre.vtkFreq*pre.factStepPeriod,what=VtkExport.all)])
 	# improtant: save the preprocessor here!
 	s.any=[woo.gl.Gl1_InfCylinder(wire=True),woo.gl.Gl1_Wall(div=3)]
 	s.pre=pre
@@ -211,25 +211,30 @@ def watchProgress(S):
 			#print efflux,'>',pre.steadyFlowFrac,'*',influx
 			woo.fallOver.clear()
 			woo.factory.clear() ## FIXME
-			woo.factory.maxMass=pre.cylRelLen*pre.time*pre.massFlowRate # required mass scaled to simulated part
+			woo.factory.maxMass=pre.time*pre.cylRelLen*pre.massFlowRate # required mass scaled to simulated part
 			for ap in woo.aperture:
 				ap.clear() # to clear overall mass, which gets counted even with save=False
 				ap.save=True
-			print 'Stabilized regime reached (influx %g, efflux %g) at step %d, counters engaged.'%(influx,efflux,S.step)
+			print 'Stabilized regime reached (influx %g, efflux %g) at step %d (t=%gs), counters engaged.'%(influx,efflux,S.step,S.time)
+			#out='/tmp/steady-'+S.tags['id.d']+'.bin.gz'
+			out=S.pre.saveFmt.format(stage='steady',S=S,**(dict(S.tags)))
+			S.save(out)
+			print 'Saved to',out
 	# already in the stable regime, end simulation at some point
 	else:
 		# factory has finished generating particles
 		if woo.factory.mass>woo.factory.maxMass:
-			print 'All mass generated at step %d (mass %g/%g), ending.'%(S.step,woo.factory.mass,woo.factory.maxMass)
+			print 'All mass generated at step %d (t=%gs, mass %g/%g), ending.'%(S.step,S.time,woo.factory.mass,woo.factory.maxMass)
 			import woo.plot, pickle
 			try:
-				if not S.lastSave.startswith('/tmp'):
-					out='/tmp/'+S.tags['id.d']+'.bin.gz'
+				out=S.pre.saveFmt.format(stage='done',S=S,**(dict(S.tags)))
+				if S.lastSave==out:
+					woo.plot.data=pickle.loads(S.tags['plot.data'])
+					print 'Reloaded plot data'
+				else:
 					S.tags['plot.data']=pickle.dumps(woo.plot.data)
 					S.save(out)
-					print 'Saved to',out
-				else:
-					woo.plot.data=pickle.loads(S.tags['plot.data'])
+					print 'Saved (incl. plot.data) to',out
 				writeReport(S)
 			except:
 				import traceback
@@ -353,7 +358,8 @@ def efficiencyTableFigure(S,pre):
 	pylab.ylabel('Mass fraction')
 	pylab.xlabel('Aperture number')
 	pylab.ylim(ymin=0,ymax=1)
-	pylab.legend()
+	l=pylab.legend()
+	l.get_frame().set_alpha(.6)
 	pylab.grid(True)
 	return table,fig
 
@@ -379,6 +385,8 @@ def writeReport(S):
 	percent=FuncFormatter(lambda x,pos=0: '%g%%'%(100*x))
 	milimeter=FuncFormatter(lambda x,pos=0: '%3g'%(1000*x))
 	megaUnit=FuncFormatter(lambda x,pos=0: '%3g'%(1e-6*x))
+
+	legendAlpha=.6
 
 	# should this be scaled to t/year as well?
 	massScale=(
@@ -412,7 +420,8 @@ def writeReport(S):
 		except ValueError: pass
 	pylab.axvline(x=pre.gap,linewidth=5,alpha=.3,ymin=0,ymax=1,color='g',label='gap')
 	pylab.grid(True)
-	pylab.legend(loc='best')
+	leg=pylab.legend(loc='best')
+	leg.get_frame().set_alpha(legendAlpha)
 	pylab.gca().xaxis.set_major_formatter(milimeter)
 	pylab.gca().yaxis.set_major_formatter(megaUnit)
 	pylab.xlabel('diameter [mm]')
@@ -438,7 +447,8 @@ def writeReport(S):
 	pylab.gca().yaxis.set_major_formatter(megaUnit)
 	pylab.xlabel('particle diameter [mm]')
 	pylab.ylabel('flow [Mt/y]')
-	pylab.legend(loc='best')
+	leg=pylab.legend(loc='best')
+	leg.get_frame().set_alpha(legendAlpha)
 	figs.append(('Flow',fig))
 
 
@@ -504,7 +514,8 @@ def writeReport(S):
 	pylab.xlabel('diameter [mm]')
 	pylab.gca().yaxis.set_major_formatter(percent)
 	pylab.ylabel('mass fraction')
-	pylab.legend(loc='best')
+	leg=pylab.legend(loc='best')
+	leg.get_frame().set_alpha(legendAlpha)
 	figs.append(('Efficiency',fig))
 
 	try:
@@ -512,6 +523,7 @@ def writeReport(S):
 		fig=pylab.figure()
 		import woo.plot
 		d=woo.plot.data
+		d['genRate'][-1]=d['genRate'][-2] # replace trailing 0 by the last-but-one value
 		pylab.plot(d['t'],massScale*numpy.array(d['genRate']),label='feed')
 		pylab.plot(d['t'],massScale*numpy.array(d['apRate']),label='apertures')
 		pylab.plot(d['t'],massScale*numpy.array(d['lostRate']),label='(lost)')
@@ -520,13 +532,14 @@ def writeReport(S):
 		pylab.ylim(ymin=0)
 		#pylab.axvline(x=(S.time-pre.time),linewidth=5,alpha=.3,ymin=0,ymax=1,color='r',label='steady')
 		pylab.axvspan(S.time-pre.time,S.time,alpha=.2,facecolor='r',label='steady')
-		pylab.legend(loc='lower left')
+		leg=pylab.legend(loc='lower left')
+		leg.get_frame().set_alpha(legendAlpha)
 		pylab.grid(True)
 		pylab.xlabel('time [s]')
 		pylab.ylabel('mass rate [t/y]')
 		figs.append(('Regime',fig))
-	except KeyError:
-		print 'No woo.plot plots done due to lack of data'
+	except KeyError as e:
+		print 'No woo.plot plots done due to lack of data:',str(e)
 		# after loading no data are recovered
 
 	svgs=[]
@@ -545,6 +558,8 @@ def writeReport(S):
 		<h1>Report for Roller screen simulation</h1>
 		<h2>General</h2>
 		<table>
+			<tr><td>title</td><td align="right">{title}</td></tr>
+			<tr><td>id</td><td align="right">{id}</td></tr>
 			<tr><td>operator</td><td align="right">{user}</td></tr>
 			<tr><td>started</td><td align="right">{started}</td></tr>
 			<tr><td>duration</td><td align="right">{duration:g} s</td></tr>
@@ -553,7 +568,7 @@ def writeReport(S):
 			<tr><td>engine</td><td align="right">{engine}</td></tr>
 			<tr><td>compiled with</td><td align="right">{compiledWith}</td></tr>
 		</table>
-		'''.format(user=S.tags['user'],started=time.ctime(time.time()-woo.O.realtime),duration=woo.O.realtime,nCores=woo.O.numThreads,stepsPerSec=S.step/woo.O.realtime,engine='wooDem '+woo.config.version+'/'+woo.config.revision+(' (debug)' if woo.config.debug else ''),compiledWith=','.join(woo.config.features))
+		'''.format(title=(S.tags['title'] if S.tags['title'] else '<i>[none]</i>'),id=S.tags['id'],user=S.tags['user'],started=time.ctime(time.time()-woo.O.realtime),duration=woo.O.realtime,nCores=woo.O.numThreads,stepsPerSec=S.step/woo.O.realtime,engine='wooDem '+woo.config.version+'/'+woo.config.revision+(' (debug)' if woo.config.debug else ''),compiledWith=','.join(woo.config.features))
 		+'<h2>Input data</h2>'+pre.dumps(format='html',fragment=True,showDoc=True)
 		+'<h2>Outputs</h2>'
 		+'<h3>Feed</h3>'+feedTab
@@ -589,7 +604,7 @@ def writeReport(S):
 	#from genshi.input import HTMLParser
 	#import codecs, StringIO
 	import codecs
-	repName=S.tags['id.d']+'-report.xhtml'
+	repName=S.pre.reportFmt.format(S=S,**(dict(S.tags)))
 	rep=codecs.open(repName,'w','utf-8','replace')
 	import os.path
 	print 'Writing report to file://'+os.path.abspath(repName)
@@ -619,10 +634,9 @@ if __name__=='__main__':
 	import woo.qt
 	import woo.log
 	#woo.log.setLevel('PsdParticleGenerator',woo.log.TRACE)
-	O.scene=woo.pre.Roro()()
-	O.timingEnabled=True
-	O.saveTmp()
-	#O.scene.saveTmp()
+	woo.master.scene=S=woo.pre.Roro()()
+	S.timingEnabled=True
+	S.saveTmp()
 	woo.qt.View()
-	O.run()
+	S.run()
 

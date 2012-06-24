@@ -58,8 +58,10 @@ struct ObjectIO{
 		boost::iostreams::filtering_ostream out;
 		if(boost::algorithm::ends_with(fileName,".bz2")) out.push(boost::iostreams::bzip2_compressor());
 		if(boost::algorithm::ends_with(fileName,".gz")) out.push(boost::iostreams::gzip_compressor());
-		out.push(boost::iostreams::file_sink(fileName));
-		if(!out.good()) throw std::runtime_error("Error opening file "+fileName+" for writing.");
+		boost::iostreams::file_sink outSink(fileName);
+		if(!outSink.is_open()) throw std::runtime_error("Error opening file "+fileName+" for writing.");
+		out.push(outSink);
+		if(!out.good()) throw std::logic_error("boost::iostreams::filtering_ostream.good() failed (but "+fileName+" is open for writing)?");
 		if(isXmlFilename(fileName)){
 			#ifdef WOO_XMLSERIALIZATION
 				save<T,boost::archive::xml_oarchive>(out,objectTag,object);
@@ -75,8 +77,10 @@ struct ObjectIO{
 		boost::iostreams::filtering_istream in;
 		if(boost::algorithm::ends_with(fileName,".bz2")) in.push(boost::iostreams::bzip2_decompressor());
 		if(boost::algorithm::ends_with(fileName,".gz")) in.push(boost::iostreams::gzip_decompressor());
-		in.push(boost::iostreams::file_source(fileName));
-		if(!in.good()) throw std::runtime_error("Error opening file "+fileName+" for reading.");
+		boost::iostreams::file_source inSource(fileName);
+		if(!inSource.is_open()) throw std::runtime_error("Error opening file "+fileName+" for reading.");
+		in.push(inSource);
+		if(!in.good()) throw std::logic_error("boost::iostreams::filtering_istream::good() failed (but "+fileName+" is open for reading)?");
 		if(isXmlFilename(fileName)){
 			#ifdef WOO_XMLSERIALIZATION
 				load<T,boost::archive::xml_iarchive>(in,objectTag,object);

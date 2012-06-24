@@ -50,9 +50,11 @@ struct Roro: public Preprocessor {
 		((Real,steadyFlowFrac,.9,,"Start steady (measured) phase when efflux (fall over, apertures, out-of-domain) reaches this fraction of influx (feed)"))
 		((int,factStepPeriod,800,,"Run factory (and deleters) every *factStepPeriod* steps."))
 		((Real,pWaveSafety,.7,AttrTrait<Attr::triggerPostLoad>(),"Safety factor for critical timestep"))
-		((Real,rateSmooth,.4,,"Smoothing factor for plotting rates in factory and deleters"))
+		((Real,rateSmooth,.2,,"Smoothing factor for plotting rates in factory and deleters"))
 		((int,vtkFreq,4,,"How often should VtkExport run, relative to *factStepPeriod*. If negative, run never."))
-		((string,vtkPrefix,"/tmp/",,"Prefix for saving VtkExport data, files will be called vtkPrefix+O.tags['id']. Don't forget trailing slash if vtkPrefix is a directory."))
+		((string,vtkPrefix,"/tmp/{tid}-",,"Prefix for saving VtkExport data; formatted with ``format()`` providing :ref:`Scene.tags` as keys."))
+		((string,saveFmt,"/tmp/{tid}-{stage}.bin.gz",,"Savefile format; keys are :ref:`Scene.tags` and additionally ``{stage}`` will be replaced by 'init', 'steady' and 'done'."))
+		((string,reportFmt,"/tmp/{tid}.xhtml",,"Report output format (Scene.tags can be used)."))
 		((string,feedCacheDir,".",,"Directory where to store pre-generated feed packings"))
 
 		, /*ctor*/

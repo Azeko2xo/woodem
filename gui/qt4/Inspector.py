@@ -52,7 +52,13 @@ class CellInspector(QWidget):
 		S.periodic=self.periCheckBox.isChecked()
 		self.refresh()
 		
-	
+class SceneInspector(QWidget):
+	def __init__(self,parent=None):
+		QWidget.__init__(self,parent)
+		grid=QGridLayout(self); grid.setSpacing(0); grid.setMargin(0)
+		self.serEd=SerializableEditor(woo.master.scene,parent=self,showType=False,path='woo.master.scene')
+		grid.addWidget(self.serEd)
+		self.setLayout(grid)
 
 def makeBodyLabel(b):
 	ret=unicode(b.id)+u' '
@@ -308,8 +314,9 @@ class SimulationInspector(QWidget):
 		self.bodyInspector=BodyInspector(parent=None,intrLinkCallback=self.changeIntrIds) if demField else None
 		self.intrInspector=InteractionInspector(parent=None,bodyLinkCallback=self.changeBodyId) if demField else None
 		self.cellInspector=CellInspector(parent=None)
+		self.sceneInspector=SceneInspector(parent=None)
 
-		for i,name,widget in [(0,'Engines',self.engineInspector),(1,'Particles',self.bodyInspector),(2,'Contacts',self.intrInspector),(3,'Cell',self.cellInspector)]:
+		for i,name,widget in [(0,'Engines',self.engineInspector),(1,'Particles',self.bodyInspector),(2,'Contacts',self.intrInspector),(3,'Cell',self.cellInspector),(4,'Scene',self.sceneInspector)]:
 			if widget: self.tabWidget.addTab(widget,name)
 
 		# add fields

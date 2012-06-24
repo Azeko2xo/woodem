@@ -457,6 +457,19 @@ py::object BoxDeleter::pyPsd(bool mass, bool cumulative, bool normalize, int num
 }
 
 
+void ConveyorFactory::postLoad(ConveyorFactory&){
+	if(radii.size()==centers.size() && !radii.empty()){
+		sortPacking();
+	}
+	if(!radii.empty() && material){
+		Real vol=0; for(const Real& r: radii) vol+=(4./3.)*Mathr::PI*pow(r,3);
+		avgRate=(vol*material->density/cellLen)*vel; // (kg/m)*(m/s)→kg/s
+	} else {
+		avgRate=NaN;
+	}
+}
+
+
 void ConveyorFactory::sortPacking(){
 	if(radii.size()!=centers.size()) throw std::logic_error("ConveyorFactory.sortPacking: radii.size()!=centers.size()");
 	if(!cellLen>0 /*catches NaN as well*/) ValueError("ConveyorFactor.cellLen must be positive (not "+to_string(cellLen)+")");
@@ -518,7 +531,7 @@ void ConveyorFactory::run(){
 		}
 		if(nextIx<0) nextIx=centers.size()-1;
 		Real nextX=centers[nextIx][0];
-		Real dX=lastX-nextX+((lastX<nextX && nextIx==centers.size()-1)?cellLen:0); // when wrapping, fix the difference
+		Real dX=lastX-nextX+((lastX<nextX && (nextIx==(int)centers.size()-1))?cellLen:0); // when wrapping, fix the difference
 		LOG_DEBUG("len toDo/done "<<lenToDo<<"/"<<lenDone<<", lastX="<<lastX<<", nextX="<<nextX<<", dX="<<dX<<", nextIx="<<nextIx);
 		if(isnan(abs(dX)) || isnan(abs(nextX)) || isnan(abs(lenDone)) || isnan(abs(lenToDo))) std::logic_error("ConveyorFactory: some parameters are NaN.");
 		if(lenDone+dX>lenToDo){

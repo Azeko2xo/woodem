@@ -57,6 +57,9 @@ xylabels={}
 legendLoc=('upper left','upper right')
 "Location of the y1 and y2 legends on the plot, if y2 is active."
 
+legendAlpha=.6
+'Transparency of legend frames in plots'
+
 live=True if woo.runtime.hasDisplay else False
 "Enable/disable live plot updating. Disabled by default for now, since it has a few rough edges."
 liveInterval=1
@@ -436,6 +439,7 @@ def createPlots(subPlots=True,scatterSize=60,wider=False):
 			axes=line.get_axes()
 			labelLoc=(legendLoc[0 if isY1 else 1] if y2Exists>0 else 'best')
 			l=pylab.legend(loc=labelLoc)
+			l.get_frame().set_alpha(legendAlpha)
 			if hasattr(l,'draggable'): l.draggable(True)
 			if scientific:
 				pylab.ticklabel_format(style='sci',scilimits=(0,0),axis='both')
@@ -497,6 +501,7 @@ def liveUpdate(timestamp):
 				ax.set_ylabel(ax.get_ylabel()+(', ' if ax.get_ylabel() else '')+xlateLabel(new))
 			# it is possible that the legend has not yet been created
 			l=ax.legend(loc=ax.wooLabelLoc)
+			l.get_frame().set_alpha(legendAlpha)
 			if hasattr(l,'draggable'): l.draggable(True)
 		if autozoom:
 			for ax in axes:

@@ -250,6 +250,7 @@ def runJob(job):
 	else:
 		job.command=job.command.replace('[threadspec]','--threads=%d'%job.nCores); job.hrefCommand=job.hrefCommand.replace('[threadspec]','--threads=%d'%job.nCores)
 	job.exitStatus=os.system(job.command)
+	print '#%d system exit status %d'%(job.num,job.exitStatus)
 	if job.exitStatus!=0 and len([l for l in open(job.log) if l.startswith('Woo: normal exit.')])>0: job.exitStatus=0
 	job.finished=time.time()
 	dt=job.finished-job.started;
@@ -305,7 +306,7 @@ parser=optparse.OptionParser(usage='%prog [options] [ TABLE [SIMULATION.py] | SI
 parser.add_option('-j','--jobs',dest='maxJobs',type='int',help="Maximum number of simultaneous threads to run (default: number of cores, further limited by OMP_NUM_THREADS if set by the environment: %d)"%numCores,metavar='NUM',default=numCores)
 parser.add_option('--job-threads',dest='defaultThreads',type='int',help="Default number of threads for one job; can be overridden by per-job with !THREADS (or !OMP_NUM_THREADS) column. Defaults to 1.",metavar='NUM',default=1)
 parser.add_option('--force-threads',action='store_true',dest='forceThreads',help='Force jobs to not use more cores than the maximum (see \-j), even if !THREADS colums specifies more.')
-parser.add_option('--log',dest='logFormat',help='Format of job log files: must contain a $, % or @, which will be replaced by script name, line number or by description column respectively (default: $.@.log)',metavar='FORMAT',default='$.@.log')
+parser.add_option('--log',dest='logFormat',help='Format of job log files: must contain a $, % or @, which will be replaced by script name, line number or by title column respectively (default: $.@.log)',metavar='FORMAT',default='$.@.log')
 parser.add_option('--global-log',dest='globalLog',help='Filename where to redirect output of woo-batch itself (as opposed to \-\-log); if not specified (default), stdout/stderr are used',metavar='FILE')
 parser.add_option('-l','--lines',dest='lineList',help='Lines of TABLE to use, in the format 2,3-5,8,11-13 (default: all available lines in TABLE)',metavar='LIST')
 parser.add_option('--nice',dest='nice',type='int',help='Nice value of spawned jobs (default: 10)',default=10)
@@ -373,7 +374,7 @@ if table:
 			if l not in availableLines: logging.warn('Skipping unavailable line %d that was requested from the command line.'%l)
 			else: useLines+=[l]
 	else: useLines=availableLines
-	print "Will use lines ",', '.join([str(i)+' (%s)'%params[i]['description'] for i in useLines])+'.'
+	print "Will use lines ",', '.join([str(i)+' (%s)'%params[i]['title'] for i in useLines])+'.'
 else:
 	print "Running %d stand-alone simulation(s) in batch mode."%(len(scripts))
 	useLines=[]
@@ -381,7 +382,7 @@ else:
 	for i,s in enumerate(scripts):
 		fakeLineNo=-i-1
 		useLines.append(fakeLineNo)
-		params[fakeLineNo]={'description':'default','!SCRIPT':s}
+		params[fakeLineNo]={'title':'default','!SCRIPT':s}
 		# fix script and set threads if script.py/num
 		m=re.match('(.*)(/[0-9]+)$',s)
 		if m:
@@ -410,7 +411,7 @@ for i,l in enumerate(useLines):
 		else: envVars+=['%s=%s'%(head[1:],values[l][col])]
 	if not script:
 		raise ValueError('When only batch table is given without script to run, it must contain !SCRIPT column with simulation to be run.')
-	logFile=logFormat.replace('$',script).replace('%',str(l)).replace('@',params[l]['description'])
+	logFile=logFormat.replace('$',script).replace('%',str(l)).replace('@',params[l]['title'])
 	if nCores>maxJobs:
 		if opts.forceThreads:
 			logging.info('Forcing job #%d to use only %d cores (max available) instead of %d requested'%(i,maxJobs,nCores))
@@ -437,7 +438,7 @@ for i,l in enumerate(useLines):
 		log='> <a href="jobs/%d/log">%s</a> 2>&1'%(jobNum,pipes.quote(logFile2))
 		hrefCmd=env+cmd+log
 		fullCmd=re.sub('(<a href="[^">]+">|</a>)','',hrefCmd)
-		desc=params[l]['description']
+		desc=params[l]['title']
 		if '!SCRIPT' in params[l].keys(): desc=script+'.'+desc # prepend filename if script is specified explicitly
 		if opts.timing>0: desc+='[%d]'%j
 		jobs.append(JobInfo(jobNum,desc,fullCmd,hrefCmd,logFile2,nCores,script=script,table=table,lineNo=l,affinity=jobAffinity))
@@ -525,7 +526,7 @@ else:
 			if l.startswith('plot'):
 				# attempt to parse the plot line
 				ll=l.split(' ',1)[1][:-1] # rest of the line, without newline
-				# replace title 'something' with title 'description: something'
+				# replace title 'something' with title 'title': something'
 				ll,nn=re.subn(r'title\s+[\'"]([^\'"]*)[\'"]',r'title "'+job.id+r': \1"',ll)
 				if nn==0:
 					logging.error("Plot line in "+job.plot+" not parsed (skipping): "+ll)

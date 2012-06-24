@@ -1,4 +1,4 @@
-!OMP_NUM_THREADS fast description
+!OMP_NUM_THREADS fast title
 1 False ser1
 2 False ser2
 3 False ser3

@@ -588,8 +588,8 @@ class TableParamReader():
 Each parameter is represented by one column, each parameter set by one line. Colums are separated by blanks (no quoting).
 
 First non-empty line contains column titles (without quotes).
-You may use special column named 'description' to describe this parameter set;
-if such colum is absent, description will be built by concatenating column names and corresponding values (``param1=34,param2=12.22,param4=foo``)
+You may use special column named 'title' to describe this parameter set;
+if such colum is absent, title will be built by concatenating column names and corresponding values (``param1=34,param2=12.22,param4=foo``)
 
 * from columns ending in ``!`` (the ``!`` is not included in the column name)
 * from all columns, if no columns end in ``!``.
@@ -609,9 +609,9 @@ This class is used by :ref:`woo.utils.readParamsFromTable`.
 		# usable lines are those that contain something else than just spaces
 		usableLines=[i for i in range(len(ll)) if not re.match(r'^\s*(#.*)?$',ll[i])]
 		headings=ll[usableLines[0]].split()
-		# use all values of which heading has ! after its name to build up the description string
+		# use all values of which heading has ! after its name to build up the title string
 		# if there are none, use all columns
-		if not 'description' in headings:
+		if not 'title' in headings:
 			bangHeads=[h[:-1] for h in headings if h[-1]=='!'] or headings
 			headings=[(h[:-1] if h[-1]=='!' else h) for h in headings]
 		usableLines=usableLines[1:] # and remove headinds from usableLines
@@ -632,17 +632,17 @@ This class is used by :ref:`woo.utils.readParamsFromTable`.
 						raise RuntimeError("The = specifier on line %d refers to nonexistent value on previous line?"%l)
 		#import pprint; pprint.pprint(headings); pprint.pprint(values)
 		# add descriptions, but if they repeat, append line number as well
-		if not 'description' in headings:
+		if not 'title' in headings:
 			descs=set()
 			for l in lines:
 				dd=','.join(head.replace('!','')+'='+('%g'%values[head] if isinstance(values[l][head],float) else str(values[l][head])) for head in bangHeads if values[l][head].strip()!='-').replace("'",'').replace('"','')
 				if dd in descs: dd+='__line=%d__'%l
-				values[l]['description']=dd
+				values[l]['title']=dd
 				descs.add(dd)
 		self.values=values
 
 	def paramDict(self):
-		"""Return dictionary containing data from file given to constructor. Keys are line numbers (which might be non-contiguous and refer to real line numbers that one can see in text editors), values are dictionaries mapping parameter names to their values given in the file. The special value '=' has already been interpreted, ``!`` (bangs) (if any) were already removed from column titles, ``description`` column has already been added (if absent)."""
+		"""Return dictionary containing data from file given to constructor. Keys are line numbers (which might be non-contiguous and refer to real line numbers that one can see in text editors), values are dictionaries mapping parameter names to their values given in the file. The special value '=' has already been interpreted, ``!`` (bangs) (if any) were already removed from column titles, ``title`` column has already been added (if absent)."""
 		return self.values
 
 if __name__=="__main__":
@@ -682,14 +682,14 @@ def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 		val2  val2  … # 2nd
 		…
 
-	Assigned tags (the ``description`` column is synthesized if absent,see :ref:`woo.utils.TableParamReader`); 
+	Assigned tags (the ``title`` column is synthesized if absent,see :ref:`woo.utils.TableParamReader`); 
 
 		s=woo.master.scene
-		s.tags['description']=…                                      # assigns the description column; might be synthesized
+		s.tags['title']=…                                      # assigns the title column; might be synthesized
 		s.tags['params']="name1=val1,name2=val2,…"                   # all explicitly assigned parameters
 		s.tags['defaultParams']="unassignedName1=defaultValue1,…"    # parameters that were left at their defaults
-		s.tags['d.id']=s.tags['id']+'.'+s.tags['description']
-		s.tags['id.d']=s.tags['description']+'.'+s.tags['id']
+		s.tags['d.id']=s.tags['id']+'.'+s.tags['title']
+		s.tags['id.d']=s.tags['title']+'.'+s.tags['id']
 
 	All parameters (default as well as settable) are saved using :ref:`woo.utils.saveVars`\ ``('table')``.
 
@@ -715,12 +715,12 @@ def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 		if not allTab.has_key(tableLine): raise RuntimeError("Table %s doesn't contain valid line number %d"%(tableFile,tableLine))
 		vv=allTab[tableLine]
 		s.tags['line']='l%d'%tableLine
-		s.tags['description']=vv['description']
-		s.tags['id.d']=s.tags['id']+'.'+s.tags['description']; s.tags['d.id']=s.tags['description']+'.'+s.tags['id']
+		s.tags['title']=vv['title']
+		s.tags['idt']=s.tags['id']+'.'+s.tags['title']; s.tags['tid']=s.tags['title']+'.'+s.tags['id']
 		# assign values specified in the table to python vars
-		# !something cols are skipped, those are env vars we don't treat at all (they are contained in description, though)
+		# !something cols are skipped, those are env vars we don't treat at all (they are contained in title, though)
 		for col in vv.keys():
-			if col=='description' or col[0]=='!': continue
+			if col=='title' or col[0]=='!': continue
 			if col not in kw.keys() and (not unknownOk): raise NameError("Parameter `%s' has no default value assigned"%col)
 			if vv[col]=='*': vv[col]=kw[col] # use default value for * in the table
 			elif vv[col]=='-': continue # skip this column

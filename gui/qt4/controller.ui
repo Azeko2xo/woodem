@@ -17,10 +17,10 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>Yade</string>
+   <string>Woo</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="img.qrc">
+   <iconset>
     <normaloff>:/img/woo-favicon.png</normaloff>:/img/woo-favicon.png</iconset>
   </property>
   <layout class="QGridLayout" name="gridLayout_3">

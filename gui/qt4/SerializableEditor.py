@@ -1049,31 +1049,35 @@ class SeqSerializableComboBox(QFrame):
 	def serLabel(self,ser,i=-1):
 		return ('' if i<0 else str(i)+'. ')+str(ser)[1:-1].replace('instance at ','')
 	def refreshEvent(self,forceIx=-1):
-		currSeq=self.getter()
-		comboEnabled=self.combo.isEnabled()
-		if comboEnabled and len(currSeq)==0: self.comboIndexSlot(-1) # force refresh, otherwise would not happen from the initially empty state
-		ix,cnt=self.combo.currentIndex(),self.combo.count()
-		# serializable currently being edited (which can be absent) or the one of which index is forced
-		ser=(self.seqEdit.ser if self.seqEdit else None) if forceIx<0 else currSeq[forceIx] 
-		if comboEnabled and len(currSeq)==cnt and (ix<0 or ser==currSeq[ix]): return
-		if not comboEnabled and len(currSeq)==0: return
-		logging.debug(self.serType.__name__+' rebuilding list from scratch')
-		self.combo.clear()
-		if len(currSeq)>0:
-			prevIx=-1
-			for i,s in enumerate(currSeq):
-				self.combo.addItem(makeSerializableLabel(s,num=i,count=len(currSeq),addr=False))
-				if s==ser: prevIx=i
-			if forceIx>=0: newIx=forceIx # force the index (used from newSlot to make the new element active)
-			elif prevIx>=0: newIx=prevIx # if found what was active before, use it
-			elif ix>=0: newIx=ix         # otherwise use the previous index (e.g. after deletion)
-			else: newIx=0                  # fallback to 0
-			logging.debug('%s setting index %d'%(self.serType.__name__,newIx))
-			self.combo.setCurrentIndex(newIx)
-		else:
-			logging.debug('%s EMPTY, setting index 0'%(self.serType.__name__))
-			self.combo.setCurrentIndex(-1)
-		self.killButton.setEnabled(len(currSeq)>0)
+		try:
+			currSeq=self.getter()
+			comboEnabled=self.combo.isEnabled()
+			if comboEnabled and len(currSeq)==0: self.comboIndexSlot(-1) # force refresh, otherwise would not happen from the initially empty state
+			ix,cnt=self.combo.currentIndex(),self.combo.count()
+			# serializable currently being edited (which can be absent) or the one of which index is forced
+			ser=(self.seqEdit.ser if self.seqEdit else None) if forceIx<0 else currSeq[forceIx] 
+			if comboEnabled and len(currSeq)==cnt and (ix<0 or ser==currSeq[ix]): return
+			if not comboEnabled and len(currSeq)==0: return
+			logging.debug(self.serType.__name__+' rebuilding list from scratch')
+			self.combo.clear()
+			if len(currSeq)>0:
+				prevIx=-1
+				for i,s in enumerate(currSeq):
+					self.combo.addItem(makeSerializableLabel(s,num=i,count=len(currSeq),addr=False))
+					if s==ser: prevIx=i
+				if forceIx>=0: newIx=forceIx # force the index (used from newSlot to make the new element active)
+				elif prevIx>=0: newIx=prevIx # if found what was active before, use it
+				elif ix>=0: newIx=ix         # otherwise use the previous index (e.g. after deletion)
+				else: newIx=0                  # fallback to 0
+				logging.debug('%s setting index %d'%(self.serType.__name__,newIx))
+				self.combo.setCurrentIndex(newIx)
+			else:
+				logging.debug('%s EMPTY, setting index 0'%(self.serType.__name__))
+				self.combo.setCurrentIndex(-1)
+			self.killButton.setEnabled(len(currSeq)>0)
+		except RuntimeError as e:
+			print 'Error refreshing sequence (path %s), ignored.'%self.path
+			
 	def newSlot(self):
 		print 'newSlot called'
 		if self.newDialog:

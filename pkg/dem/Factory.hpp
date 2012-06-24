@@ -174,7 +174,7 @@ struct BoxDeleter: public PeriodicEngine{
 		((Real,glColor,0,AttrTrait<>().noGui(),"Color for rendering (NaN disables rendering)"))
 		//
 		((Real,currRate,NaN,AttrTrait<>().readonly(),"Current value of mass flow rate"))
-		((Real,currRateSmooth,1,AttrTrait<>().noGui().range(Vector2r(0,1)),"Smoothing factor for currRate ∈〈0,1〉"))
+		((Real,currRateSmooth,1,AttrTrait<>().range(Vector2r(0,1)),"Smoothing factor for currRate ∈〈0,1〉"))
 		,/*ctor*/
 		,/*py*/
 		.def("psd",&BoxDeleter::pyPsd,(py::arg("mass")=true,py::arg("cumulative")=true,py::arg("normalize")=false,py::arg("num")=80,py::arg("dRange")=Vector2r(NaN,NaN),py::arg("zip")=false),"Return particle size distribution of deleted particles (only useful with *save*), spaced between *dRange* (a 2-tuple of minimum and maximum radius); )")
@@ -188,9 +188,7 @@ struct ConveyorFactory: public ParticleFactory{
 	DECLARE_LOGGER;
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	void sortPacking();
-	void postLoad(ConveyorFactory&){
-		if(radii.size()==centers.size() && !radii.empty()) sortPacking();
-	}
+	void postLoad(ConveyorFactory&);
 	#ifdef WOO_OPENGL
 		// void render(const GLViewInfo&){ if(!isnan(color)) GLUtils::AlignedBox(box,CompUtils::mapColor(color)); }
 	#endif
@@ -214,6 +212,7 @@ struct ConveyorFactory: public ParticleFactory{
 		((Real,barrierLayer,-3.,,"Some length of the last part of new particles has all DoFs blocked, so that when new particles are created, there are no sudden contacts in the band; in the next step, DoFs in this layer are unblocked. If *barrierLayer* is negative, it is relative to the maximum radius in the given packing, and is automatically set to the correct value at the first run"))
 		((list<shared_ptr<Particle>>,barrier,,AttrTrait<>().readonly().noGui(),"Particles which make up the barrier and will be unblocked once they leave barrierLayer."))
 		((shared_ptr<Node>,node,make_shared<Node>(),AttrTrait<>().readonly(),"Position and orientation of the factory; local x-axis is the feed direction."))
+		((Real,avgRate,NaN,AttrTrait<>().readonly(),"Average feed rate (computed from :ref:`material` density, packing and  and :ref:`vel`"))
 
 		((vector<Vector2r>,genDiamMass,,AttrTrait<Attr::readonly>().noGui(),"List of generated diameters and masses (for making granulometry)"))
 		((bool,save,true,,"Save generated particles so that PSD can be generated afterwards"))

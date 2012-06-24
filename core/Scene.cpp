@@ -109,8 +109,10 @@ void Scene::fillDefaultTags(){
 	tags["isoTime"]=boost::posix_time::to_iso_string(boost::posix_time::second_clock::local_time());
 	string id=boost::posix_time::to_iso_string(boost::posix_time::second_clock::local_time())+"p"+lexical_cast<string>(getpid());
 	tags["id"]=id;
-	tags["d.id"]=id;
-	tags["id.d"]=id;
+	// no title, use empty
+	tags["title"]="";
+	tags["idt"]=tags["tid"]=id;
+	//tags["d.id"]=tags["id.d"]=tags["d_id"]=tags["id_d"]=id;
 	// tags.push_back("revision="+py::extract<string>(py::import("woo.config").attr("revision"))());;
 }
 
