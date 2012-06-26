@@ -1,3 +1,5 @@
+#ifdef YADE_OPENCL
+
 #include<woo/pkg/dem/OpenCLCollider.hpp>
 #include<algorithm>
 
@@ -833,3 +835,5 @@ void OpenCLCollider::run(){
 	OCLC_CHECKPOINT("handleInversions");
 	modifyContactsFromInversions(cpu?cpuInv:gpuInv);
 }
+
+#endif

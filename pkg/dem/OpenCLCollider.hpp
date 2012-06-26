@@ -1,3 +1,6 @@
+#pragma once
+#ifdef YADE_OPENCL
+
 #include<woo/pkg/dem/InsertionSortCollider.hpp>
 
 class OpenCLCollider: public InsertionSortCollider{
@@ -65,3 +68,5 @@ class OpenCLCollider: public InsertionSortCollider{
 	);
 };
 REGISTER_SERIALIZABLE(OpenCLCollider);
+
+#endif
