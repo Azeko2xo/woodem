@@ -67,8 +67,11 @@ if env['profile']=='': env['profile']='default'
 optsFile='scons.profile-'+env['profile']
 profile=env['profile']
 print '@@@ Using profile',profile,'('+optsFile+') @@@'
-
-opts=Variables(optsFile)
+if not os.path.exists(optsFile):
+	print '@@@ Will create new profile file',optsFile
+	opts=Variables()
+else:
+	opts=Variables(optsFile)
 ## compatibility hack again
 if 'AddVariables' not in dir(opts): opts.AddVariables=opts.AddOptions
 
@@ -105,7 +108,7 @@ opts.AddVariables(
 	('chunkSize','Maximum files to compile in one translation unit when building plugins. (unlimited if <= 0, per-file linkage is used if 1)',7,None,int),
 	('version','Woo version (if not specified, guess will be attempted)',None),
 	('realVersion','Revision (usually bzr revision); guessed automatically unless specified',None),
-	('CPPPATH', 'Additional paths for the C preprocessor (colon-separated)','/usr/include/vtk-5.6:/usr/include/eigen3:/usr/include/vtk'), # hardy has vtk-5.0
+	('CPPPATH', 'Additional paths for the C preprocessor (colon-separated)','/usr/include/vtk-5.8:/usr/include/eigen3:/usr/include/vtk'), # hardy has vtk-5.0
 	('LIBPATH','Additional paths for the linker (colon-separated)',None),
 	('libstdcxx','Specify libstdc++ location by hand (opened dynamically at startup), usually not needed',None),
 	('QT4DIR','Directory where Qt4 is installed','/usr/share/qt4'),
