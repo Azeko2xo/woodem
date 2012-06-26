@@ -84,7 +84,7 @@ exclude_patterns = []
 pygments_style = 'sphinx'
 
 # A list of ignored prefixes for module index sorting.
-#modindex_common_prefix = []
+modindex_common_prefix = ['woo.']
 
 
 # -- Options for HTML output ---------------------------------------------------
@@ -241,4 +241,4 @@ texinfo_documents = [
 # How to display URL addresses: 'footnote', 'no', or 'inline'.
 #texinfo_show_urls = 'footnote'
 
-graphviz_output_format='svg'
+graphviz_output_format='png'
