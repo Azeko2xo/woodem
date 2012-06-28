@@ -1200,6 +1200,7 @@ class SeqFundamentalEditor(QFrame):
 		self.formFrame=QFrame(self); self.formFrame.setLayout(self.form)
 		self.layout.addWidget(self.formFrame)
 		self.setLayout(self.layout)
+		self.convSpec=None # cache value of unit conversions, for rows being added
 		# SerializableEditor API compat
 		self.hot=False
 		self.rebuild()
@@ -1213,7 +1214,7 @@ class SeqFundamentalEditor(QFrame):
 		if len(seq)==0: index=-1
 		field=self.form.itemAt(index,QFormLayout.LabelRole).widget() if index>=0 else None
 		menu=QMenu(self)
-		actNew,actKill,actUp,actDown=[menu.addAction(name) for name in (u'☘ New',u'☠ Remove',u'↑ Up',u'↓ Down')]
+		actNew,actKill,actUp,actDown,actImport=[menu.addAction(name) for name in (u'☘ New',u'☠ Remove',u'↑ Up',u'↓ Down',u'↵ Text import')]
 		if index<0: [a.setEnabled(False) for a in actKill,actUp,actDown]
 		if index==len(seq)-1: actDown.setEnabled(False)
 		if index==0: actUp.setEnabled(False)
@@ -1225,6 +1226,7 @@ class SeqFundamentalEditor(QFrame):
 			actKill.triggered.connect(lambda: self.killSlot(index))
 			actUp.triggered.connect(lambda: self.upSlot(index))
 			actDown.triggered.connect(lambda: self.downSlot(index))
+			actImport.triggered.connect(lambda: self.importSlot(index))
 			# this does not work...?!
 			#menu.destroyed.connect(lambda: field.setStyleSheet('QWidget { background : none }'))
 		else: # this is the old code which returns immediately; don't use it anymore
@@ -1293,6 +1295,24 @@ class SeqFundamentalEditor(QFrame):
 		assert(i<len(seq)-1);
 		curr,nxt=seq[i:i+2]; seq[i],seq[i+1]=nxt,curr; self.setter(seq)
 		self.refreshEvent(forceIx=i+1)
+	def importSlot(self,i):
+		raise NotImplementedError("Importing sequences not yet implemented")
+		importables={Vector3:(float,3),Vector2:(float,2),Vector6:(float,6),Vector2i:(int,2),Vector2i:(int,3),Vector6i:(int,6),Matrix3:(float,9),float:(float,1),int:(int,1)}
+		if self.itemType not in importables: raise NotImplementedError("Type %s is not text-importable"%(self.itemType.__name__))
+		elementType,lineLen=importables[self.itemType]
+		print 'Will import lines with %d items of type %s'%(lineLen,elementType)
+		# get txt through dialogue
+		seq=[]
+		for i,ll in enumerate(txt.split('\n')):
+			l=ll[:-1].split()
+			if len(l)==0: continue # skip empty lines
+			if len(l)!=lineLen: raise ValueError("Line %d has %d elements (should have %d)"%(i,len(l),lineLen))
+			seq.append(tuple([elementType(eval(val)) for val in l]))
+		print 'Imported sequence',seq
+		self.setter(seq)
+		self.refreshEvent(forceIx=0)
+
+
 	def rebuild(self):
 		currSeq=self.getter()
 		#print 'aaa',len(currSeq)
@@ -1329,6 +1349,7 @@ class SeqFundamentalEditor(QFrame):
 			widget=Klass(self,ItemGetter(self.getter,i),ItemSetter(self.getter,self.setter,i)) #proxy,'value')
 			self.form.insertRow(i,'%d. '%i,widget)
 			logging.debug('added item %d %s'%(i,str(widget)))
+			if self.convSpec: widget.multiplierChanged(self.convSpec)
 		if len(currSeq)==0: self.form.insertRow(0,'<i>empty</i>',QLabel('<i>(right-click for menu)</i>'))
 		logging.debug('rebuilt, will refresh now')
 		self.refreshEvent(dontRebuild=True) # avoid infinite recursion it the length would change meanwhile
@@ -1349,6 +1370,7 @@ class SeqFundamentalEditor(QFrame):
 	def refresh(self): pass # SerializableEditor API
 	# propagate multiplier change to children
 	def multiplierChanged(self,convSpec):
+		self.convSpec=convSpec # cache value should new rows be created
 		for row in range(self.form.count()/2):
 			w=self.form.itemAt(row,QFormLayout.FieldRole).widget()
 			w.multiplier=self.multiplier
