@@ -117,6 +117,22 @@ namespace woo{
 // this duplicate is for classes that are not in woo:: namespace (yet)
 template<class C, typename T, T C::*A>
 void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<"make_setter_postLoad called"<<endl; */ instance.callPostLoad(); /* postLoad(instance); */ }
+
+// for static postLoad, use static if via templates
+// so that the function does not have to be declared everywhere
+template<bool noSave> struct _setter_postLoadStaticMaybe{};
+template<> struct _setter_postLoadStaticMaybe<true>{
+	template<class C, typename T, T* A>
+	static void setter(const T& val){ *A=val; C::postLoadStatic(); }
+};
+template<> struct _setter_postLoadStaticMaybe<false>{
+	template<class C, typename T, T* A>
+	static void setter(const T& val){ *A=val; }
+};
+
+//template<class C, typename T, T *A>
+//void make_setter_postLoad_static(const T& val){ *A=val; C::postLoadStatic(); }
+
 #define _DEF_READWRITE_BY_VALUE(thisClass,attr,doc) add_property(/*attr name*/BOOST_PP_STRINGIZE(attr),/*read access*/py::make_getter(&thisClass::attr,py::return_value_policy<py::return_by_value>()),/*write access*/py::make_setter(&thisClass::attr,py::return_value_policy<py::return_by_value>()),/*docstring*/doc)
 // not sure if this is correct: the getter works by value, the setter by reference (the default)...?
 #define _DEF_READWRITE_BY_VALUE_POSTLOAD(thisClass,attr,doc) add_property(/*attr name*/BOOST_PP_STRINGIZE(attr),/*read access*/py::make_getter(&thisClass::attr,py::return_value_policy<py::return_by_value>()),/*write access*/ make_setter_postLoad<thisClass,decltype(thisClass::attr),&thisClass::attr>,/*docstring*/doc)
@@ -127,17 +143,31 @@ void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<
 // most of this could be written with templates, including flags (ints can be template args)
 #define _DEF_READWRITE_CUSTOM(thisClass,attr) if(!(_ATTR_FLG(attr).isHidden())){ \
 	bool _ro(_ATTR_FLG(attr).isReadonly()), _post(_ATTR_FLG(attr).isTriggerPostLoad()), _ref(woo::py_wrap_ref<decltype(thisClass::_ATTR_NAM(attr))>::value || (_ATTR_FLG(attr).isPyByRef())); \
-	std::string docStr(_ATTR_DOC(attr)); /*docStr+=" :yattrflags:`"+boost::lexical_cast<string>(_ATTR_FLG(attr))+"` ";*/ \
+	std::string docStr(_ATTR_DOC(attr)); \
 	if      ( _ref && !_ro && !_post) _classObj.def_readwrite(_ATTR_NAM_STR(attr),&thisClass::_ATTR_NAM(attr),docStr.c_str()); \
 	else if ( _ref && !_ro &&  _post) _classObj.add_property(_ATTR_NAM_STR(attr),py::make_getter(&thisClass::_ATTR_NAM(attr)),make_setter_postLoad<thisClass,decltype(thisClass::_ATTR_NAM(attr)),&thisClass::_ATTR_NAM(attr)>,docStr.c_str()); \
 	else if ( _ref &&  _ro)           _classObj.def_readonly(_ATTR_NAM_STR(attr),&thisClass::_ATTR_NAM(attr),docStr.c_str()); \
 	else if (!_ref && !_ro && !_post) _classObj._DEF_READWRITE_BY_VALUE(thisClass,_ATTR_NAM(attr),docStr.c_str()); \
 	else if (!_ref && !_ro &&  _post) _classObj._DEF_READWRITE_BY_VALUE_POSTLOAD(thisClass,_ATTR_NAM(attr),docStr.c_str()); \
 	else if (!_ref &&  _ro)           _classObj._DEF_READONLY_BY_VALUE(thisClass,_ATTR_NAM(attr),docStr.c_str()); \
-	if(_ro && _post) std::cerr<<"WARN: " BOOST_PP_STRINGIZE(thisClass) "::" _ATTR_NAM_STR(attr) " with the woo::Attr::readonly flag also uselessly sets woo::Attr::triggerPostLoad."<<std::endl; \
+	if(_ro && _post) cerr<<"WARN: " BOOST_PP_STRINGIZE(thisClass) "::" _ATTR_NAM_STR(attr) " with the woo::Attr::readonly flag also uselessly sets woo::Attr::triggerPostLoad."<<endl; \
 }
 
-#define _DEF_READWRITE_CUSTOM_STATIC(thisClass,attr,doc) { /* if(woo::py_wrap_ref<decltype(thisClass::attr)>::value)*/ _classObj.def_readwrite(BOOST_PP_STRINGIZE(attr),&thisClass::attr,doc); /* else _classObj._DEF_READWRITE_BY_VALUE_STATIC(thisClass,attr,doc);*/ }
+#define _DEF_READWRITE_CUSTOM_STATIC(thisClass,attr) if(!(_ATTR_FLG(attr).isHidden())){ \
+	bool _ro(_ATTR_FLG(attr).isReadonly()), _ref(woo::py_wrap_ref<decltype(thisClass::_ATTR_NAM(attr))>::value || (_ATTR_FLG(attr).isPyByRef())); \
+	constexpr bool _post=!!(_ATTR_TRAIT_TYPE(attr)::compileFlags & woo::Attr::triggerPostLoad); \
+	if      ( _ro) _classObj.add_static_property(_ATTR_NAM_STR(attr),py::make_getter(thisClass::_ATTR_NAM(attr))); \
+	else if (!_ro) _classObj.add_static_property(_ATTR_NAM_STR(attr),py::make_getter(thisClass::_ATTR_NAM(attr)),/*setter*/_setter_postLoadStaticMaybe<_post>::setter<thisClass,decltype(thisClass::_ATTR_NAM(attr)),&thisClass::_ATTR_NAM(attr)>); \
+}
+/*
+	if      ( !_ro && !_post) _classObj.def_readwrite(_ATTR_NAM_STR(attr),&thisClass::_ATTR_NAM(attr),docStr.c_str()); 
+	else if (  _ro && !_post) _classObj.def_readonly(_ATTR_NAM_STR(attr),&thisClass::_ATTR_NAM(attr),docStr.c_str());
+	else if ( _post) _classObj.add_static_property(_ATTR_NAM_STR(attr),py::make_getter(&thisClass::_ATTR_NAM(attr)),make_setter_postLoad_static<thisClass,decltype(thisClass::_ATTR_NAM(attr)),&thisClass::_ATTR_NAM(attr)>);
+	if ( _ro && _post) cerr<<"WARN: " BOOST_PP_STRINGIZE(thisClass) "::" _ATTR_NAM_STR(attr) " with the woo::Attr::readonly flag also uselessly sets woo::attr::triggerPostLoad."<<endl;
+*/
+
+//if (classObj.add_static_property(_ATTR_NAM_STR(attr),py::make_getter(&thisClass::_ATTR_NAM(attr)),make_setter_postLoad<thisClass,decltype(thisClass::_Attr_Nam(attr)),&thisClass::_ATTR_NAM(attr)>,docStr.c_str())
+// /* if(woo::py_wrap_ref<decltype(thisClass::attr)>::value)*/ _classObj.def_readwrite(BOOST_PP_STRINGIZE(attr),&thisClass::attr,doc); /* else _classObj._DEF_READWRITE_BY_VALUE_STATIC(thisClass,attr,doc);*/ }
 
 
 
@@ -201,7 +231,7 @@ template<> struct _SerializeMaybe<false>{
 
 
 // print warning about deprecated attribute; thisClass is type name, not string
-#define _DEPREC_WARN(thisClass,deprec)  std::cerr<<"WARN: "<<getClassName()<<"."<<BOOST_PP_STRINGIZE(_DEPREC_OLDNAME(deprec))<<" is deprecated, use "<<BOOST_PP_STRINGIZE(thisClass)<<"."<<BOOST_PP_STRINGIZE(_DEPREC_NEWNAME(deprec))<<" instead. "; if(_DEPREC_COMMENT(deprec)){ if(std::string(_DEPREC_COMMENT(deprec))[0]=='!'){ std::cerr<<endl; throw std::invalid_argument(BOOST_PP_STRINGIZE(thisClass) "." BOOST_PP_STRINGIZE(_DEPREC_OLDNAME(deprec)) " is deprecated; throwing exception requested. Reason: " _DEPREC_COMMENT(deprec));} else std::cerr<<"("<<_DEPREC_COMMENT(deprec)<<")"; } std::cerr<<std::endl;
+#define _DEPREC_WARN(thisClass,deprec)  std::cerr<<"WARN: "<<getClassName()<<"."<<BOOST_PP_STRINGIZE(_DEPREC_OLDNAME(deprec))<<" is deprecated, use "<<BOOST_PP_STRINGIZE(thisClass)<<"."<<BOOST_PP_STRINGIZE(_DEPREC_NEWNAME(deprec))<<" instead. "; if(_DEPREC_COMMENT(deprec)){ if(std::string(_DEPREC_COMMENT(deprec))[0]=='!'){ cerr<<endl; throw std::invalid_argument(BOOST_PP_STRINGIZE(thisClass) "." BOOST_PP_STRINGIZE(_DEPREC_OLDNAME(deprec)) " is deprecated; throwing exception requested. Reason: " _DEPREC_COMMENT(deprec));} else std::cerr<<"("<<_DEPREC_COMMENT(deprec)<<")"; } std::cerr<<endl;
 
 // getters for individual fields
 #define _ATTR_TYP(s) BOOST_PP_TUPLE_ELEM(5,0,s)
@@ -259,8 +289,8 @@ template<> struct _SerializeMaybe<false>{
 
 
 
-#define _STAT_NONSTAT_ATTR_PY(thisClass,attr,doc) _DEF_READWRITE_CUSTOM_STATIC(thisClass,attr,doc) /* _DEF_READWRITE_CUSTOM(thisClass,attr,doc) */ /* duplicate static and non-static attributes do not work (they apparently trigger to-python converter being added; for now, make then non-static, that's it. */
-#define _STATATTR_PY(x,thisClass,z) _STAT_NONSTAT_ATTR_PY(thisClass,_ATTR_NAM(z),/*docstring*/_ATTR_DOC(z))
+/* _DEF_READWRITE_CUSTOM(thisClass,attr,doc) */ /* duplicate static and non-static attributes do not work (they apparently trigger to-python converter being added; for now, make then non-static, that's it. */
+#define _STATATTR_PY(x,thisClass,z) _DEF_READWRITE_CUSTOM_STATIC(thisClass,z)
 #define _STATATTR_DECL_AND_TRAIT(x,y,z) \
 	static _ATTR_TYP(z) _ATTR_NAM(z); \
 	typedef std::remove_reference<decltype(_ATTR_TRAIT(z))>::type _ATTR_TRAIT_TYPE(z); \

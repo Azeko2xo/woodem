@@ -1,11 +1,14 @@
 #ifdef WOO_OPENGL
 #include<woo/pkg/dem/Gl1_DemField.hpp>
+#include<woo/pkg/dem/Sphere.hpp>
 #include<woo/lib/opengl/GLUtils.hpp>
 #include<woo/pkg/gl/Renderer.hpp>
 #include<woo/lib/base/CompUtils.hpp>
 
 WOO_PLUGIN(gl,(Gl1_DemField));
+CREATE_LOGGER(Gl1_DemField);
 
+bool Gl1_DemField::doPostLoad;
 unsigned int Gl1_DemField::mask;
 bool Gl1_DemField::wire;
 bool Gl1_DemField::bound;
@@ -15,6 +18,56 @@ int Gl1_DemField::cNodes;
 Vector2i Gl1_DemField::cNodes_range;
 bool Gl1_DemField::cPhys;
 bool Gl1_DemField::potWire;
+int Gl1_DemField::colorBy;
+shared_ptr<ScalarRange> Gl1_DemField::colorRange;
+int Gl1_DemField::glyph;
+Real Gl1_DemField::glyphRelSz;
+shared_ptr<ScalarRange> Gl1_DemField::glyphRange;
+
+void Gl1_DemField::postLoad(Gl1_DemField&){
+	if(!colorRange) colorRange=make_shared<ScalarRange>();
+	if(!glyphRange) glyphRange=make_shared<ScalarRange>();
+	// find color range by label, remove it if necessary
+	int ci=-1, gi=-1;
+	for(size_t i=0; i<scene->ranges.size(); i++){
+		if(scene->ranges[i].get()==colorRange.get()) ci=(int)i;
+		if(scene->ranges[i].get()==glyphRange.get()) gi=(int)i;
+	}
+	//LOG_WARN("ci="<<ci<<", gi="<<gi);
+	// remove range from scene if there is one and should not be
+	if(colorBy==COLOR_NONE && ci>=0){ 
+		scene->ranges.erase(scene->ranges.begin()+ci);
+		if(gi>ci) gi--; // moved down
+	}
+	// with GLYPH_KEEP, keep the range there as well
+	if((/*glyph==GLYPH_KEEP ||*/ glyph==GLYPH_NONE) && gi>=0){
+		scene->ranges.erase(scene->ranges.begin()+gi);
+	}
+	// add range if there is none and should be
+	if(colorBy!=COLOR_NONE && ci<0){ 
+		//LOG_WARN("Adding colorBy ScalarRange "<<colorRange<<" to scene @ "<<scene);
+		scene->ranges.push_back(colorRange); 
+	}
+	if(glyph!=GLYPH_KEEP && glyph!=GLYPH_NONE && gi<0){
+		//LOG_WARN("Adding glyph ScalarRange "<<glyphRange.get()<<" to scene @ "<<scene);
+		scene->ranges.push_back(glyphRange);
+	}
+	glyphRange->reset();
+	colorRange->reset();
+	switch(colorBy){
+		case COLOR_NONE: colorRange->label="[none]";  break;
+		case COLOR_RADIUS: colorRange->label="radius"; break;
+		case COLOR_VEL: colorRange->label="|vel|"; break;
+		default: LOG_ERROR("Unknown value Gl1_DemField.colorBy="<<colorBy<<" (ignored)??");
+	}
+	switch(glyph){
+		case GLYPH_KEEP: break; // do nothing
+		case GLYPH_NONE: glyphRange->label="[none]"; break;
+		case GLYPH_FORCE: glyphRange->label="force"; break;
+		case GLYPH_VEL: glyphRange->label="velocity"; break;
+		default: LOG_ERROR("Unknown value Gl1_DemField.glyph="<<glyph<<" (ignored)??");
+	};
+}
 
 void Gl1_DemField::doBound(){
 	rrr->boundDispatcher.scene=scene; rrr->boundDispatcher.updateScenePtr();
@@ -39,41 +92,67 @@ void Gl1_DemField::doShape(){
 	// instead of const shared_ptr&, get proper shared_ptr;
 	// Less efficient in terms of performance, since memory has to be written (not measured, though),
 	// but it is still better than crashes if the body gets deleted meanwile.
-	FOREACH(shared_ptr<Particle> b, *dem->particles){
-		if(!b->shape || b->shape->nodes.empty()) continue;
-		if(mask!=0 && !(b->mask&mask)) continue;
-		const shared_ptr<Shape>& sh=b->shape;
-		if(!sh->getVisible()) continue;
+	FOREACH(shared_ptr<Particle> p, *dem->particles){
+		if(!p->shape || p->shape->nodes.empty()) continue;
+		if(mask!=0 && !(p->mask&mask)) continue;
+		const shared_ptr<Shape>& sh=p->shape;
 
-		//if(!bodyDisp[b->getId()].isDisplayed) continue;
-		//Vector3r pos=bodyDisp[b->getId()].pos;
-		//Quaternionr ori=bodyDisp[b->getId()].ori;
+		//if(!bodyDisp[p->getId()].isDisplayed) continue;
+		//Vector3r pos=bodyDisp[p->getId()].pos;
+		//Quaternionr ori=bodyDisp[p->getId()].ori;
 		//Vector3r pos=sh->nodes[0].pos;
 		//Quaternionr ori=sh->nodes[0].ori;
-		//if(!b->shape || !((b->getGroupMask()&mask) || b->getGroupMask()==0)) continue;
+		//if(!p->shape || !((p->getGroupMask()&mask) || p->getGroupMask()==0)) continue;
 
 		// int selId=(dynamic_pointer_cast<Particle>(selObj)?static_pointer_cast<Particle>(selObj)->id:-1);
 
 		// sets highlighted color, if the particle is selected
 		// last optional arg can be used to provide additional highlight conditions (unused for now)
-		Renderer::glScopedName name(b,b->shape->nodes[0]);
-		// bool highlight=(b->id==selId || (b->clumpId>=0 && b->clumpId==selId) || b->shape->highlight);
+		Renderer::glScopedName name(p,p->shape->nodes[0]);
+		// bool highlight=(p->id==selId || (p->clumpId>=0 && p->clumpId==selId) || p->shape->highlight);
 
-		FOREACH(const shared_ptr<Node>& n,b->shape->nodes) rrr->setNodeGlData(n);
+		FOREACH(const shared_ptr<Node>& n,p->shape->nodes) rrr->setNodeGlData(n);
+
+		switch(colorBy){
+			case COLOR_RADIUS: p->shape->color=dynamic_pointer_cast<Sphere>(p->shape)?colorRange->norm(p->shape->cast<Sphere>().radius):0.; break;
+			case COLOR_VEL: p->shape->color=colorRange->norm(p->shape->nodes[0]->getData<DemData>().vel.norm()); break;
+			case COLOR_NONE: ;
+			default: ;
+		}
+
+		for(const auto& n: p->shape->nodes){
+			// prepare rep types
+			// vector values
+			if(glyph==GLYPH_VEL || glyph==GLYPH_FORCE){
+				if(!n->rep || !dynamic_pointer_cast<VectorGlRep>(n->rep)) n->rep=make_shared<VectorGlRep>();
+				auto& vec=n->rep->cast<VectorGlRep>();
+				vec.range=glyphRange;
+				vec.relSz=glyphRelSz;
+			}
+			switch(glyph){
+				case GLYPH_KEEP: break; // keep whatever is there
+				case GLYPH_NONE: n->rep.reset(); break; // no rep
+				case GLYPH_VEL: n->rep->cast<VectorGlRep>().val=n->getData<DemData>().vel; break;
+				case GLYPH_FORCE: n->rep->cast<VectorGlRep>().val=n->getData<DemData>().force; break;
+				default: ;
+			}
+		}
 
 		glPushMatrix();
-			rrr->shapeDispatcher(b->shape,/*shift*/Vector3r::Zero(),wire||sh->getWire(),*viewInfo);
+			rrr->shapeDispatcher(p->shape,/*shift*/Vector3r::Zero(),wire||sh->getWire(),*viewInfo);
 		glPopMatrix();
 
+		if(!sh->getVisible()) continue;
+
 		if(name.highlighted){
-			const Vector3r& p=sh->nodes[0]->pos;
-			if(!sh->bound || wire || sh->getWire()) GLUtils::GLDrawInt(b->id,p);
+			const Vector3r& pos=sh->nodes[0]->pos;
+			if(!sh->bound || wire || sh->getWire()) GLUtils::GLDrawInt(p->id,pos);
 			else {
 				// move the label towards the camera by the bounding box so that it is not hidden inside the body
 				const Vector3r& mn=sh->bound->min; const Vector3r& mx=sh->bound->max;
-				Vector3r ext(rrr->viewDirection[0]>0?p[0]-mn[0]:p[0]-mx[0],rrr->viewDirection[1]>0?p[1]-mn[1]:p[1]-mx[1],rrr->viewDirection[2]>0?p[2]-mn[2]:p[2]-mx[2]); // signed extents towards the camera
+				Vector3r ext(rrr->viewDirection[0]>0?pos[0]-mn[0]:pos[0]-mx[0],rrr->viewDirection[1]>0?pos[1]-mn[1]:pos[1]-mx[1],rrr->viewDirection[2]>0?pos[2]-mn[2]:pos[2]-mx[2]); // signed extents towards the camera
 				Vector3r dr=-1.01*(rrr->viewDirection.dot(ext)*rrr->viewDirection);
-				GLUtils::GLDrawInt(b->id,p+dr,Vector3r::Ones());
+				GLUtils::GLDrawInt(p->id,pos+dr,Vector3r::Ones());
 			}
 		}
 		// if the body goes over the cell margin, draw it in positions where the bbox overlaps with the cell in wire
@@ -98,7 +177,7 @@ void Gl1_DemField::doShape(){
 					Vector3r pt=scene->cell->shearPt(pos2);
 					// if(pointClipped(pt)) continue;
 					glPushMatrix();
-						rrr->shapeDispatcher(b->shape,/*shift*/pt-pos,/*wire*/true,*viewInfo);
+						rrr->shapeDispatcher(p->shape,/*shift*/pt-pos,/*wire*/true,*viewInfo);
 					glPopMatrix();
 				}
 			}
@@ -191,6 +270,9 @@ void Gl1_DemField::go(const shared_ptr<Field>& demField, GLViewInfo* _viewInfo){
 	rrr=_viewInfo->renderer;
 	dem=static_pointer_cast<DemField>(demField);
 	viewInfo=_viewInfo;
+
+	if(doPostLoad) postLoad(*this);
+	doPostLoad=false;
 
 	if(shape) doShape();
 	if(bound) doBound();
