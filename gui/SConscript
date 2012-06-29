@@ -8,6 +8,7 @@ if 'qt4' in env['features']:
 		env.File('qt4/ui_controller.py'),
 		env.File('qt4/SerializableEditor.py'),
 		env.File('qt4/Inspector.py'),
+		env.File('qt4/ExceptionDialog.py'),
 		env.File('qt4/__init__.py'),
 		# +linkPlugins(['PeriodicEngines']) # for SnapshotEngine
 		env.SharedLibrary('_GLViewer',['qt4/GLViewer.cpp','qt4/_GLViewer.cpp','qt4/OpenGLManager.cpp'],SHLIBPREFIX='',LIBS=env['LIBS']+[env['QGLVIEWER_LIB']],RPATH=env['RPATH']+[env.Literal('\\$$ORIGIN/../../../gui')])

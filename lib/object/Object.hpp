@@ -297,12 +297,13 @@ template<> struct _SerializeMaybe<false>{
 	static _ATTR_TRAIT_TYPE(z)& _ATTR_TRAIT_GET(z)(){ static _ATTR_TRAIT_TYPE(z) _tmp=_ATTR_TRAIT(z).static_(); return _tmp; }
 #define _STATATTR_INITIALIZE(x,thisClass,z) thisClass::_ATTR_NAM(z)=_ATTR_INI(z);
 
-#define _STATCLASS_PY_REGISTER_CLASS(thisClass,baseClass,classTrait,attrs)\
+#define _STATCLASS_PY_REGISTER_CLASS(thisClass,baseClass,classTrait,attrs,pyExtra)\
 	virtual void pyRegisterClass() { checkPyClassRegistersItself(#thisClass); initSetStaticAttributesValue(); WOO_SET_DOCSTRING_OPTS; \
 		auto traitPtr=make_shared<ClassTrait>(classTrait); traitPtr->name(#thisClass); \
 		py::class_<thisClass,shared_ptr<thisClass>,py::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,traitPtr->getDoc().c_str(),/*call raw ctor even for parameterless construction*/py::no_init); _classObj.def("__init__",py::raw_constructor(Object_ctor_kwAttrs<thisClass>)); \
 		_classObj.attr("_classTrait")=traitPtr; \
 		BOOST_PP_SEQ_FOR_EACH(_STATATTR_PY,thisClass,attrs); \
+		(void) _classObj pyExtra ;\
 		py::list traitList; BOOST_PP_SEQ_FOR_EACH(_PYATTR_TRAIT_STATIC,thisClass,attrs); _classObj.attr("_attrTraits")=traitList; \
 		Object::derivedCxxClasses.push_back(py::object(_classObj)); \
 	}
@@ -363,15 +364,18 @@ template<> struct _SerializeMaybe<false>{
 /** static attrs **/
 
 // for static classes (Gl1 functors, for instance)
-#define WOO_CLASS_BASE_DOC_STATICATTRS(thisClass,baseClass,classTraitSpec,attrs)\
+#define WOO_CLASS_BASE_DOC_STATICATTRS_PY(thisClass,baseClass,classTraitSpec,attrs,pyExtra)\
 	public: BOOST_PP_SEQ_FOR_EACH(_STATATTR_DECL_AND_TRAIT,~,attrs) /* attribute declarations */ \
 	/* no ctor */ \
 	REGISTER_CLASS_AND_BASE(thisClass,baseClass); \
 	_REGISTER_ATTRIBUTES_DEPREC(thisClass,baseClass,attrs,) \
 	/* called only at class registration, to set initial values; storage still has to be alocated in the cpp file! */ \
 	void initSetStaticAttributesValue(void){ BOOST_PP_SEQ_FOR_EACH(_STATATTR_INITIALIZE,thisClass,attrs); } \
-	_STATCLASS_PY_REGISTER_CLASS(thisClass,baseClass,makeClassTrait(classTraitSpec),attrs) \
+	_STATCLASS_PY_REGISTER_CLASS(thisClass,baseClass,makeClassTrait(classTraitSpec),attrs,pyExtra) \
 	void must_use_both_YADE_CLASS_BASE_DOC_ATTRS_and_YADE_PLUGIN(); 
+#define WOO_CLASS_BASE_DOC_STATICATTRS(thisClass,baseClass,classTraitSpec,attrs) \
+	WOO_CLASS_BASE_DOC_STATICATTRS_PY(thisClass,baseClass,classTraitSpec,attrs,)
+
 
 
 // used only in some exceptional cases, might disappear in the future

@@ -46,7 +46,7 @@ REGISTER_SERIALIZABLE(SnapshotEngine);
 // mostly copied from
 // http://www.libqglviewer.com/refManual/classqglviewer_1_1MouseGrabber.html#_details
 struct QglMovableObject: public qglviewer::MouseGrabber{
-	QglMovableObject(int x0, int y0): qglviewer::MouseGrabber(), pos(x0,y0), moved(false), reset(false){}
+	QglMovableObject(int x0, int y0): qglviewer::MouseGrabber(), pos(x0,y0), moved(false), reset(false), flipped(false), dL(0){}
 	void checkIfGrabsMouse(int x, int y, const qglviewer::Camera* const){
 		QPoint relPos(QPoint(x,y)-pos);
 		bool isInside=(relPos.x()>=0 && relPos.y()>=0 && relPos.x()<=dim.x() && relPos.y()<=dim.y());
@@ -59,6 +59,12 @@ struct QglMovableObject: public qglviewer::MouseGrabber{
 		} else {
 			prevPos=e->pos(); moved=true;
 		}
+	}
+	void wheelEvent(QWheelEvent* const e, qglviewer::Camera* const camera){
+		//QPoint numDeg=e->angleDelta()/8.; // qt5
+		int dist=e->delta();
+		dL=dist;
+		e->accept();
 	}
    void mouseMoveEvent(QMouseEvent* const e, qglviewer::Camera* const camera){
 		if(!moved) return;
@@ -81,7 +87,8 @@ struct QglMovableObject: public qglviewer::MouseGrabber{
 	#endif
 	 QPoint pos, prevPos;
 	 QPoint dim;
-	 bool moved, reset;
+	 bool moved, reset, flipped;
+	 int dL;
 };
 
 

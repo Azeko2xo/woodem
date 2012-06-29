@@ -49,6 +49,7 @@ class CellInspector(QWidget):
 			self.scroll.setWidget(SerializableEditor(S.cell,parent=self,showType=True,path='woo.master.cell'))
 	def update(self):
 		self.scroll.takeWidget() # do this before changing periodicity, otherwise the SerializableEditor will raise exception about None object
+		S=woo.master.scene
 		S.periodic=self.periCheckBox.isChecked()
 		self.refresh()
 		

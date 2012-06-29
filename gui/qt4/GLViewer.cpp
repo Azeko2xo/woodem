@@ -799,11 +799,10 @@ void GLViewer::postDraw(){
 	}
 	if(scene->ranges.size()>0){
 		glDisable(GL_LIGHTING);
-		const int nDiv=20; 
+		const int pixDiv=50; // show number every 50 px approximately
 		const int scaleWd=20; // width in pixels
-		const Real relHt=.8; 
-		int ht0=relHt*height();
-		int yDef=((1-relHt)/2.)*height(); // default y position, if current is not valid
+		const int nDiv=20; // draw colorline with this many segments (for gradients)
+		int yDef=.2*height(); // default y position, if current is not valid
 		glLineWidth(scaleWd);
 		for(size_t i=0; i<scene->ranges.size(); i++){
 			ScalarRange& range(*scene->ranges[i]);
@@ -811,37 +810,74 @@ void GLViewer::postDraw(){
 			int xDef=width()-50-i*70; /* 70px / scale horizontally */ // default x position, if current not valid
 			if(!range.movablePtr){ range.movablePtr=make_shared<QglMovableObject>(xDef,yDef);  }
 			QglMovableObject& mov(*range.movablePtr);
+			// reset flag from the UI
 			if(mov.reset){ mov.reset=false; range.reset(); continue; }
+			// length was changed (mouse wheel), do it here
+			if(mov.dL!=0){
+				// dL is 120 for one wheel "tick"
+				//cerr<<"length was "<<range.length<<", dL="<<mov.dL<<endl;
+				if(range.length>0) range.length=max(50.,range.length-mov.dL*.4);
+				if(range.length<0) range.length=min(-.05,range.length-mov.dL*5e-4);
+				mov.dL=0;
+				//cerr<<"new length "<<range.length<<endl;
+			}
 			// adjust if off-screen
-			if(mov.pos.x()<0 || mov.pos.y()<0 || mov.pos.x()>width() || mov.pos.y()>(height()-/*leave 20px on the lower edge*/20)){ mov.pos.setX(xDef); mov.pos.setY(yDef); cerr<<"$"; }
-			int ht=ht0; // perhaps adjust in the future, if scales might have different heights
+			bool flipped=false;
+			if(mov.pos.x()<10 || mov.pos.x()>width()-20){ 
+				if(range.landscape){ flipped=true; range.landscape=false; }
+				if(mov.pos.x()<10) mov.pos.setX(10);
+				else mov.pos.setX(width()-20);
+			}
+			if(mov.pos.y()<10 || mov.pos.y()>height()-20){
+				if(!range.landscape && !flipped){ flipped=true; range.landscape=true; }
+				if(mov.pos.y()<10) mov.pos.setY(10);
+				else mov.pos.setY(height()-20);
+			}
+			//if(mov.pos.x()<0 || mov.pos.y()<0 || mov.pos.x()>width() || mov.pos.y()>(height()-/*leave 20px on the lower edge*/20)){ mov.pos.setX(xDef); mov.pos.setY(yDef); cerr<<"$"; }
+			// 
+			// adjust if too long/short
+			if(range.length<0) CompUtils::clamp(range.length,-.9,-.1);
+			else CompUtils::clamp(range.length,height()*.1,height()*.9);
+			// length in pixels
+			int ht=int(range.length<0?abs((!range.landscape?height():width())*range.length):range.length); 
 			int yStep=ht/nDiv;
 			// update dimensions of the grabber object
-			mov.dim=QPoint(scaleWd,ht);
-			int y0=mov.pos.y(); // upper edge y-position
-			int x=mov.pos.x()+scaleWd/2; // upper-edge center x-position
-			range.dispPos=Vector2i(x,y0); // for loading & saving
+			int y0, x;
+			if(!range.landscape){
+				mov.dim=QPoint(scaleWd,ht);
+				y0=mov.pos.y(); // upper edge y-position
+				x=mov.pos.x()+scaleWd/2; // upper-edge center x-position
+				range.dispPos=Vector2i(x,y0); // for loading & saving
+			} else {
+				mov.dim=QPoint(ht,scaleWd);
+				y0=mov.pos.x();
+				x=mov.pos.y()+scaleWd/2;
+				range.dispPos=Vector2i(y0,x);
+			}
 			startScreenCoordinatesSystem();
 			glBegin(GL_LINE_STRIP);
 				for(int j=0; j<=nDiv; j++){
 					glColor3v(CompUtils::mapColor((nDiv-j)*(1./nDiv),range.cmap));
-					glVertex2f(x,y0+yStep*j);
+					if(!range.landscape) glVertex2f(x,y0+yStep*j);
+					else glVertex2f(y0+yStep*j,x);
 				};
 			glEnd();
 			stopScreenCoordinatesSystem();
 			// show some numbers
-			int nNum=int(relHt*height())/100; // every 100px approx
+			int nNum=max(1,ht/100); // label every 100px approx, but at least start and end will be labeled
 			for(int j=0; j<=nNum; j++){
 				// static void GLDrawText(const std::string& txt, const Vector3r& pos, const Vector3r& color=Vector3r(1,1,1), bool center=false, void* font=NULL, const Vector3r& bgColor=Vector3r(-1,-1,-1));
 				startScreenCoordinatesSystem();
-					Vector3r pos=Vector3r(x,y0+((nNum-j)*ht/nNum)-6/*lower baseline*/,0.);
-					GLUtils::GLDrawText((boost::format("%.2g")%range.normInv(j*1./nNum)).str(),pos,/*color*/Vector3r::Ones(),/*center*/true,/*font*/(j>0&&j<nNum)?NULL:GLUT_BITMAP_9_BY_15,Vector3r::Zero());
+					Real yy=y0+((nNum-j)*ht/nNum);
+					Vector3r pos=!range.landscape?Vector3r(x,yy-6/*lower baseline*/,0):Vector3r(yy,x-5/*lower baseline*/,0);
+					GLUtils::GLDrawText((boost::format("%.2g")%range.normInv(j*1./nNum)).str(),pos,/*color*/Vector3r::Ones(),/*center*/true,/*font*/(j>0&&j<nNum)?NULL:GLUT_BITMAP_9_BY_15,/*bgColor*/Vector3r::Zero(),/*shiftIfNeg*/false);
 				stopScreenCoordinatesSystem();
 			}
 			// show label, if any
 			if(!range.label.empty()){
 				startScreenCoordinatesSystem();
-					GLUtils::GLDrawText(range.label,Vector3r(x,y0-20,0),/*color*/Vector3r::Ones(),/*center*/true,/*font*/GLUT_BITMAP_9_BY_15,Vector3r::Zero());
+					Vector3r pos=!range.landscape?Vector3r(x,y0-20,0):Vector3r(y0+ht/2,x-25,0);
+					GLUtils::GLDrawText(range.label,pos,/*color*/Vector3r::Ones(),/*center*/true,/*font*/GLUT_BITMAP_9_BY_15,Vector3r::Zero(),/*shiftIfNeg*/true);
 				stopScreenCoordinatesSystem();
 			}
 		}

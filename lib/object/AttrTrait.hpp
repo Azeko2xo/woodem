@@ -4,7 +4,7 @@
 
 // attribute flags
 namespace woo{
-	#define ATTR_FLAGS_VALUES noSave=1, readonly=2, triggerPostLoad=4, hidden=8, noResize=16, noGui=32, pyByRef=64, static_=128, multiUnit=256, noDump=512
+	#define ATTR_FLAGS_VALUES noSave=1, readonly=2, triggerPostLoad=4, hidden=8, noResize=16, noGui=32, pyByRef=64, static_=128, multiUnit=256, noDump=512, activeLabel=1024
 	// this will disappear later
 	namespace Attr { enum flags { ATTR_FLAGS_VALUES }; }
 	// prohibit copies, only references should be passed around
@@ -41,6 +41,7 @@ namespace woo{
 			ATTR_FLAG_DO(static_,isStatic)
 			ATTR_FLAG_DO(multiUnit,isMultiUnit)
 			ATTR_FLAG_DO(noDump,isNoDump)
+			ATTR_FLAG_DO(activeLabel,isActiveLabel)
 		#undef ATTR_FLAG_DO
 		py::object pyGetIni()const{ return _ini(); }
 		py::object pyGetRange()const{ return _range(); }
@@ -68,6 +69,7 @@ namespace woo{
 				.add_property("static",&AttrTraitBase::isStatic)
 				.add_property("multiUnit",&AttrTraitBase::isMultiUnit)
 				.add_property("noDump",&AttrTraitBase::isNoDump)
+				.add_property("activeLabel",&AttrTraitBase::isActiveLabel)
 				.def_readonly("_flags",&AttrTraitBase::_flags)
 				// non-flag attributes
 				.def_readonly("doc",&AttrTraitBase::_doc)
@@ -106,6 +108,7 @@ namespace woo{
 			ATTR_FLAG_DO(static_,isStatic)
 			ATTR_FLAG_DO(multiUnit,isMultiUnit)
 			ATTR_FLAG_DO(noDump,isNoDump)
+			ATTR_FLAG_DO(activeLabel,isActiveLabel)
 		#undef ATTR_FLAG_DO
 		AttrTrait& name(const string& s){ _name=s; return *this; }
 		AttrTrait& doc(const string& s){ _doc=s; return *this; }
@@ -189,6 +192,7 @@ namespace woo{
 		string title;
 		string intro;
 		vector<string> docOther;
+
 		string getDoc() const { return _doc; }
 		ClassTrait& doc(const string __doc){ _doc=__doc; return *this; }
 		ClassTrait& name(const string& __name){ _name=__name; return *this; }

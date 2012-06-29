@@ -104,12 +104,14 @@ void GLUtils::QGLViewer::drawArrow(const Vector3r& from, const Vector3r& to, flo
 	glPopMatrix();
 }
 
-void GLUtils::GLDrawText(const std::string& txt, const Vector3r& pos, const Vector3r& color, bool center, void* font, const Vector3r& bgColor){
+void GLUtils::GLDrawText(const std::string& txt, const Vector3r& pos, const Vector3r& color, bool center, void* font, const Vector3r& bgColor, bool shiftIfNeg){
 	font=font?font:GLUT_BITMAP_8_BY_13;
 	Vector2i xyOff=center?Vector2i(-glutBitmapLength(font,(unsigned char*)txt.c_str())/2,glutBitmapHeight(font)/2):Vector2i::Zero();
 	glPushMatrix();
 	glPushAttrib(GL_ALL_ATTRIB_BITS);
-		glTranslatev(pos);
+		// glut will drop any text which starts at negative coordinate; compensate for that here optionally
+		if(!shiftIfNeg || ((pos[0]+xyOff[0]>0) && (pos[1]+xyOff[1]>0))) glTranslatev(pos);
+		else{ glTranslatev(Vector3r(max(pos[0],-1.*xyOff[0]),max(pos[1],-1.*xyOff[1]),pos[2])); }
 	 	// copied from http://libqglviewer.sourcearchive.com/documentation/2.3.1-3/qglviewer_8cpp-source.html
       glDisable(GL_LIGHTING);
       glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

@@ -225,7 +225,7 @@ class AttrEditor_FloatRange(AttrEditor,QFrame):
 	def __init__(self,parent,getter,setter): 
 		AttrEditor.__init__(self,getter,setter)
 		QFrame.__init__(self,parent)
-		curr,(mn,mx)=multipliedGetter()
+		curr,(mn,mx)=self.multipliedGetter()
 		self.slider,self.edit=QSlider(self),QLineEdit(str(curr))
 		self.grid=QHBoxLayout(self); self.grid.setSpacing(0); self.grid.setMargin(0)
 		self.grid.addWidget(self.edit); self.grid.addWidget(self.slider)
@@ -244,11 +244,11 @@ class AttrEditor_FloatRange(AttrEditor,QFrame):
 			curr*=self.multiplier(curr); mn*=self.multiplier; mx*=self.multiplier
 		return curr,(mn,mx)
 	def refresh(self):
-		curr,(mn,mx)=multipliedGetter()
+		curr,(mn,mx)=self.multipliedGetter()
 		self.edit.setTextStable('%g'%curr)
 		self.slider.setValue(int(self.sliDiv*((1.*curr-mn)/(1.*mx-mn))))
 	def updateFromText(self):
-		curr,(mn,mx)=multipliedGetter()
+		curr,(mn,mx)=self.multipliedGetter()
 		try:
 			value=float(self.edit.text())
 			self.slider.setValue(int(self.sliDiv*((1.*value-mn)/(1.*mx-mn))))
@@ -536,6 +536,15 @@ _fundamentalSpecialEditors={
 
 _attributeGuessedTypeMap={woo._customConverters.NodeList:(woo.core.Node,), }
 
+def hasActiveLabel(s):
+	if not hasattr(s,'label') or not  s.label: return False
+	#and len([1 for t in s._attrTraits if t.activeLabel])>0
+	k=s.__class__
+	while k!=woo.core.Object:
+		if len([1 for t in k._attrTraits if t.activeLabel])>0: return True
+		k=k.__bases__[0]
+	return False
+
 class SerQLabel(QLabel):
 	def __init__(self,parent,label,tooltip,path,elide=False):
 		QLabel.__init__(self,parent)
@@ -636,16 +645,14 @@ class SerializableEditor(QFrame):
 		def toggleExpander(self): 
 			self.setExpanderIcon()
 			for e in self.entries: e.setVisible(self.expander.isChecked())
-			
 
-
-			
 
 	def __init__(self,ser,parent=None,ignoredAttrs=set(),showType=False,path=None,labelIsVar=True,showChecks=False,showUnits=False):
 		"Construct window, *ser* is the object we want to show."
 		QtGui.QFrame.__init__(self,parent)
 		self.ser=ser
-		self.path=('woo.'+ser.label if (hasattr(ser,'label') and ser.label) else path)
+		# set path or use label, if active (allows 'label' attributes which don't imply automatic python variables of that name)
+		self.path=('woo.'+ser.label if hasActiveLabel(ser) else path)
 		self.showType=showType
 		self.labelIsVar=labelIsVar # show variable name; if false, docstring is used instead
 		self.showChecks=showChecks
@@ -817,9 +824,6 @@ class SerializableEditor(QFrame):
 		# a serializable
 		if issubclass(entry.T,Object) or entry.T==Object:
 			obj=getattr(self.ser,entry.name)
-			if hasattr(obj,'label') and obj.label: path=obj.label
-			elif self.path: path=self.path+'.'+entry.name
-			else: path=None
 			widget=SerializableEditor(getattr(self.ser,entry.name),parent=self,showType=self.showType,path=(self.path+'.'+entry.name if self.path else None),labelIsVar=self.labelIsVar,showChecks=self.showChecks,showUnits=self.showUnits)
 			widget.setFrameShape(QFrame.Box); widget.setFrameShadow(QFrame.Raised); widget.setLineWidth(1)
 			return widget
@@ -979,7 +983,7 @@ def makeSerializableLabel(ser,href=False,addr=True,boldHref=True,num=-1,count=-1
 		else: ret+=u'%d. '%num
 	if href: ret+=(u' <b>' if boldHref else u' ')+serializableHref(ser)+(u'</b> ' if boldHref else u' ')
 	else: ret+=ser.__class__.__name__+' '
-	if hasattr(ser,'label') and ser.label: ret+=u' “'+unicode(ser.label)+u'”'
+	if hasActiveLabel(ser): ret+=u' “'+unicode(ser.label)+u'”'
 	# do not show address if there is a label already
 	elif addr and ser!=None:
 		ret+='0x%x'%ser._cxxAddr

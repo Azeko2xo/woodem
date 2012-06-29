@@ -25,6 +25,7 @@ Real Gl1_DemField::glyphRelSz;
 shared_ptr<ScalarRange> Gl1_DemField::glyphRange;
 
 void Gl1_DemField::postLoad(Gl1_DemField&){
+	_lastScene=scene;
 	if(!colorRange) colorRange=make_shared<ScalarRange>();
 	if(!glyphRange) glyphRange=make_shared<ScalarRange>();
 	// find color range by label, remove it if necessary
@@ -271,8 +272,9 @@ void Gl1_DemField::go(const shared_ptr<Field>& demField, GLViewInfo* _viewInfo){
 	dem=static_pointer_cast<DemField>(demField);
 	viewInfo=_viewInfo;
 
-	if(doPostLoad) postLoad(*this);
+	if(doPostLoad || _lastScene!=scene) postLoad(*this);
 	doPostLoad=false;
+
 
 	if(shape) doShape();
 	if(bound) doBound();

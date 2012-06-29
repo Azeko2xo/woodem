@@ -45,7 +45,7 @@ struct GLUtils{
 		GLUtils::GLDrawText(boost::lexical_cast<std::string>(i),pos,color);
 	}
 
-	static void GLDrawText(const std::string& txt, const Vector3r& pos, const Vector3r& color=Vector3r(1,1,1), bool center=false, void* font=NULL, const Vector3r& bgColor=Vector3r(-1,-1,-1));
+	static void GLDrawText(const std::string& txt, const Vector3r& pos, const Vector3r& color=Vector3r(1,1,1), bool center=false, void* font=NULL, const Vector3r& bgColor=Vector3r(-1,-1,-1), bool shiftIfNeg=false);
 
 	static void setLocalCoords(const Vector3r& pos, const Quaternionr& ori){
 		AngleAxisr aa(ori);

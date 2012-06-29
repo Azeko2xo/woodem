@@ -13,7 +13,7 @@ void ScalarRange::adjust(const Real& v){
 
 Real ScalarRange::norm(Real v){
 	if(autoAdjust) adjust(v);
-	return (v-mnmx[0])/(mnmx[1]-mnmx[0]);
+	return CompUtils::clamped((v-mnmx[0])/(mnmx[1]-mnmx[0]),0,1);
 };
 
 Vector3r ScalarRange::color(Real v){

@@ -125,12 +125,15 @@ def run(pre): # use inputs as argument
 		PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.savePlotData(S)'),
 		PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.watchProgress(S)'),
 	]+([] if (not pre.vtkPrefix or pre.vtkFreq<=0) else [VtkExport(out=pre.vtkPrefix.format(**dict(s.tags)),stepPeriod=pre.vtkFreq*pre.factStepPeriod,what=VtkExport.all)])
+	s.any=[woo.gl.Gl1_InfCylinder(wire=True),woo.gl.Gl1_Wall(div=1),woo.gl.Gl1_DemField(glyph=woo.gl.Gl1_DemField.glyphVel)]
 	# improtant: save the preprocessor here!
-	s.any=[woo.gl.Gl1_InfCylinder(wire=True),woo.gl.Gl1_Wall(div=3)]
 	s.pre=pre
 	#s.tags['preprocessor']=pre.dumps(format='pickle')
 	print 'Generated Rollenrost.'
 	de.collectNodes()
+
+	woo.plot.reset()
+
 	return s
 
 
@@ -253,7 +256,7 @@ def savePlotData(S):
 	lostRate=woo.outOfDomain.currRate
 	woo.plot.addData(i=S.step,t=S.time,genRate=woo.factory.currRate,apRate=apRate,overRate=overRate,lostRate=lostRate,delRate=apRate+overRate+lostRate,numPar=len(S.dem.par))
 	if not woo.plot.plots:
-		woo.plot.plots={'t':('genRate','apRate','lostRate','overRate','delRate',None,'numPar')}
+		woo.plot.plots={'t':('genRate','apRate','lostRate','overRate','delRate',None,('numPar','g--'))}
 
 def splitPsd(xx0,yy0,splitX):
 	'''Split input *psd0* (given by *xx0* and *yy0*) at diameter (x-axis) specified by *splitX*; two PSDs are returned, one grows from splitX and has maximum value for all points x>=splitX; the second PSD is zero for all values <=splitX, then grows to the maximum value proportionally. The maximum value is the last point of psd0, thus both normalized and non-normalized input can be given. If splitX falls in the middle of *psd0* intervals, it is interpolated.'''

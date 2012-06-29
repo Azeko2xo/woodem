@@ -191,10 +191,9 @@ if 'opencl' in woo.config.features and opts.clDev:
 	woo.master.defaultClDev=clDev
 
 
-# FIXME: should be re-enabled again
 ## modify sys.argv in-place so that it can be handled by userSession
-##sys.argv=woo.runtime.argv=args
-##woo.runtime.origArgv=sys.argv[:]
+woo.runtime.origArgv=sys.argv[:]
+sys.argv=woo.runtime.argv=args
 woo.runtime.opts=opts
 
 # Run the check tests listed in scripts/test/checks/checkList.py

@@ -13,6 +13,8 @@ import woo.system, woo.config
 
 from woo.qt._GLViewer import *  # imports Renderer() as well
 
+from ExceptionDialog import *
+
 maxWebWindows=1
 "Number of webkit windows that will be cycled to show help on clickable objects"
 webWindows=[] 
@@ -171,7 +173,10 @@ class ControllerClass(QWidget,Ui_Controller):
 					print ' ok'
 				woo.master.scene=newScene
 				controller.setTabActive('simulation')
-		except: raise
+		except Exception as e:
+			import traceback
+			traceback.print_exc()
+			showExceptionDialog(self,e)
 		finally:
 			QApplication.restoreOverrideCursor()
 	def displayComboSlot(self,dispStr):

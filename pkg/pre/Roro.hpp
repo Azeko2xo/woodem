@@ -19,7 +19,7 @@ struct Roro: public Preprocessor {
 		}
 	}
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(Roro,Preprocessor,"Preprocessor for the Rollenrost simulation.",
-		((int, cylNum,6,AttrTrait<>().range(Vector2i(4,30)).startGroup("Basic"),"Number of cylinders"))
+		((int, cylNum,6,AttrTrait<>()/*.range(Vector2i(4,30))*/.startGroup("Basic"),"Number of cylinders"))
 		((Real,cylLenReal,8,AttrTrait<>().lenUnit().triggerPostLoad(),"Real length of cylinders"))
 		((Real,cylLenSim,.5,AttrTrait<>().lenUnit().triggerPostLoad(),"Simulated length of cylinders"))
 		((Real,cylRelLen,,AttrTrait<>().readonly(),"Relative length of simulated cylinders"))
