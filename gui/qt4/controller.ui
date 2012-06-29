@@ -39,7 +39,7 @@
       </sizepolicy>
      </property>
      <property name="currentIndex">
-      <number>2</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
@@ -79,6 +79,9 @@
                <height>0</height>
               </size>
              </property>
+             <property name="toolTip">
+              <string>Load saved simulation</string>
+             </property>
              <property name="text">
               <string>Load</string>
              </property>
@@ -101,6 +104,9 @@
                <height>0</height>
               </size>
              </property>
+             <property name="toolTip">
+              <string>Save current stimulation</string>
+             </property>
              <property name="text">
               <string>Save</string>
              </property>
@@ -108,6 +114,9 @@
            </item>
            <item>
             <widget class="QPushButton" name="inspectButton">
+             <property name="toolTip">
+              <string>Loook at all simulation objects</string>
+             </property>
              <property name="text">
               <string>Inspect</string>
              </property>
@@ -149,7 +158,7 @@
            <item row="2" column="0">
             <widget class="QLabel" name="label_7">
              <property name="text">
-              <string>virt</string>
+              <string>time</string>
              </property>
             </widget>
            </item>
@@ -262,6 +271,9 @@
                  <pointsize>18</pointsize>
                 </font>
                </property>
+               <property name="toolTip">
+                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Run simulation&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+               </property>
                <property name="text">
                 <string>▶</string>
                </property>
@@ -294,6 +306,9 @@
                 <font>
                  <pointsize>18</pointsize>
                 </font>
+               </property>
+               <property name="toolTip">
+                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Stop simulation&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                </property>
                <property name="text">
                 <string>▮▮</string>
@@ -337,6 +352,9 @@
                    <pointsize>12</pointsize>
                   </font>
                  </property>
+                 <property name="toolTip">
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Step through simulation&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                 </property>
                  <property name="text">
                   <string>▶▮</string>
                  </property>
@@ -359,6 +377,9 @@
                    <pointsize>7</pointsize>
                   </font>
                  </property>
+                 <property name="toolTip">
+                  <string>Step through individual engines rather then whole timesteps</string>
+                 </property>
                  <property name="text">
                   <string>sub</string>
                  </property>
@@ -366,6 +387,9 @@
                </item>
                <item>
                 <widget class="QSpinBox" name="multiStepSpinBox">
+                 <property name="toolTip">
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Number of steps for stepping&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                 </property>
                  <property name="minimum">
                   <number>1</number>
                  </property>
@@ -391,6 +415,9 @@
                 <font>
                  <pointsize>22</pointsize>
                 </font>
+               </property>
+               <property name="toolTip">
+                <string>Reload simulation from last saved location</string>
                </property>
                <property name="text">
                 <string>↻</string>
@@ -532,8 +559,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>98</width>
-            <height>28</height>
+            <width>442</width>
+            <height>482</height>
            </rect>
           </property>
          </widget>

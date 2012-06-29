@@ -1214,7 +1214,7 @@ class SeqFundamentalEditor(QFrame):
 		if len(seq)==0: index=-1
 		field=self.form.itemAt(index,QFormLayout.LabelRole).widget() if index>=0 else None
 		menu=QMenu(self)
-		actNew,actKill,actUp,actDown,actImport=[menu.addAction(name) for name in (u'☘ New',u'☠ Remove',u'↑ Up',u'↓ Down',u'↵ Text import')]
+		actNew,actKill,actUp,actDown,actFromClip=[menu.addAction(name) for name in (u'☘ New',u'☠ Remove',u'↑ Up',u'↓ Down',u'↵ From clipboard')]
 		if index<0: [a.setEnabled(False) for a in actKill,actUp,actDown]
 		if index==len(seq)-1: actDown.setEnabled(False)
 		if index==0: actUp.setEnabled(False)
@@ -1226,7 +1226,7 @@ class SeqFundamentalEditor(QFrame):
 			actKill.triggered.connect(lambda: self.killSlot(index))
 			actUp.triggered.connect(lambda: self.upSlot(index))
 			actDown.triggered.connect(lambda: self.downSlot(index))
-			actImport.triggered.connect(lambda: self.importSlot(index))
+			actFromClip.triggered.connect(lambda: self.fromClipSlot(index))
 			# this does not work...?!
 			#menu.destroyed.connect(lambda: field.setStyleSheet('QWidget { background : none }'))
 		else: # this is the old code which returns immediately; don't use it anymore
@@ -1275,7 +1275,9 @@ class SeqFundamentalEditor(QFrame):
 		seq.insert(i,_fundamentalInitValues.get(self.itemType,self.itemType()))
 		self.setter(seq)
 		self.rebuild()
-		if len(seq)>0: self.form.itemAt(i,QFormLayout.FieldRole).widget().setFocus()
+		if len(seq)>0:
+			item=self.form.itemAt(i,QFormLayout.FieldRole)
+			if item: item.widget().setFocus()
 	def killSlot(self,i):
 		seq=self.getter();
 		if i<0: return
@@ -1295,23 +1297,26 @@ class SeqFundamentalEditor(QFrame):
 		assert(i<len(seq)-1);
 		curr,nxt=seq[i:i+2]; seq[i],seq[i+1]=nxt,curr; self.setter(seq)
 		self.refreshEvent(forceIx=i+1)
-	def importSlot(self,i):
-		raise NotImplementedError("Importing sequences not yet implemented")
+	def fromClipSlot(self,i):
+		#raise NotImplementedError("Importing sequences not yet implemented")
 		importables={Vector3:(float,3),Vector2:(float,2),Vector6:(float,6),Vector2i:(int,2),Vector2i:(int,3),Vector6i:(int,6),Matrix3:(float,9),float:(float,1),int:(int,1)}
 		if self.itemType not in importables: raise NotImplementedError("Type %s is not text-importable"%(self.itemType.__name__))
 		elementType,lineLen=importables[self.itemType]
 		print 'Will import lines with %d items of type %s'%(lineLen,elementType)
-		# get txt through dialogue
+		# get txt from clipboard
+		cb=QApplication.clipboard()
+		txt=str(cb.text())
+		print 'Got text from clipboard:\n',txt
 		seq=[]
 		for i,ll in enumerate(txt.split('\n')):
-			l=ll[:-1].split()
+			l=ll.split()
 			if len(l)==0: continue # skip empty lines
 			if len(l)!=lineLen: raise ValueError("Line %d has %d elements (should have %d)"%(i,len(l),lineLen))
+			print 'Line tuple is',tuple([val for val in l])
 			seq.append(tuple([elementType(eval(val)) for val in l]))
 		print 'Imported sequence',seq
 		self.setter(seq)
 		self.refreshEvent(forceIx=0)
-
 
 	def rebuild(self):
 		currSeq=self.getter()

@@ -20,7 +20,6 @@ webWindows=[]
 sphinxOnlineDocPath='https://www.yade-dem.org/sphinx/'
 "Base URL for the documentation. Packaged versions should change to the local installation directory."
 
-
 import os.path
 # find if we have docs installed locally from package
 sphinxLocalDocPath=woo.config.prefix+'/share/doc/woo'+woo.config.suffix+'/html/'
@@ -182,16 +181,18 @@ class ControllerClass(QWidget,Ui_Controller):
 		se=SerializableEditor(ser,parent=self.displayArea,ignoredAttrs=set(['label']),showType=True,path=path)
 		self.displayArea.setWidget(se)
 	def loadSlot(self):
-		f=QFileDialog.getOpenFileName(self,'Load simulation','','Yade simulations (*.xml *.xml.bz2 *.xml.gz *.woo *.woo.gz *.woo.bz2);; *.*')
+		f=QFileDialog.getOpenFileName(self,'Load simulation','')
 		f=str(f)
 		if not f: return # cancelled
 		self.deactivateControls()
 		woo.master.scene=Scene.load(f)
 	def saveSlot(self):
-		f=QFileDialog.getSaveFileName(self,'Save simulation','','Yade simulations (*.xml *.xml.bz2 *.xml.gz *.woo *.woo.gz *.woo.bz2);; *.*')
+		f=QFileDialog.getSaveFileName(self,'Save simulation','')
 		f=str(f)
 		if not f: return # cancelled
 		woo.master.scene.save(f)
+		import os.path
+		assert os.path.exists(f),"File '%s' does not exist after saving?"%f
 	def reloadSlot(self):
 		self.deactivateControls()
 		from woo import plot
