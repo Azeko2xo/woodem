@@ -152,7 +152,7 @@ class AttrEditor_Float(AttrEditor,QLineEdit):
 		except ValueError: self.refresh()
 	def multiplierChanged(self,convSpec):
 		if isinstance(self.multiplier,tuple): raise RuntimeError("Float cannot have multiple units.")
-		if self.multiplier: self.setToolTip(QString.fromUtf8(u'Converting %s (× %g)'%(convSpec,self.multiplier)))
+		if self.multiplier: self.setToolTip(u'Converting %s (× %g)'%(convSpec,self.multiplier))
 		else: self.setToolTip('')
 		self.refresh()
 
@@ -1201,6 +1201,7 @@ class SeqFundamentalEditor(QFrame):
 		self.layout.addWidget(self.formFrame)
 		self.setLayout(self.layout)
 		self.convSpec=None # cache value of unit conversions, for rows being added
+		self.multiplier=None
 		# SerializableEditor API compat
 		self.hot=False
 		self.rebuild()
@@ -1317,7 +1318,6 @@ class SeqFundamentalEditor(QFrame):
 		print 'Imported sequence',seq
 		self.setter(seq)
 		self.refreshEvent(forceIx=0)
-
 	def rebuild(self):
 		currSeq=self.getter()
 		#print 'aaa',len(currSeq)
@@ -1354,7 +1354,10 @@ class SeqFundamentalEditor(QFrame):
 			widget=Klass(self,ItemGetter(self.getter,i),ItemSetter(self.getter,self.setter,i)) #proxy,'value')
 			self.form.insertRow(i,'%d. '%i,widget)
 			logging.debug('added item %d %s'%(i,str(widget)))
-			if self.convSpec: widget.multiplierChanged(self.convSpec)
+			# set units correctly
+			if self.multiplier:
+				widget.multiplier=self.multiplier
+				widget.multiplierChanged(self.convSpec)
 		if len(currSeq)==0: self.form.insertRow(0,'<i>empty</i>',QLabel('<i>(right-click for menu)</i>'))
 		logging.debug('rebuilt, will refresh now')
 		self.refreshEvent(dontRebuild=True) # avoid infinite recursion it the length would change meanwhile
@@ -1376,6 +1379,7 @@ class SeqFundamentalEditor(QFrame):
 	# propagate multiplier change to children
 	def multiplierChanged(self,convSpec):
 		self.convSpec=convSpec # cache value should new rows be created
+		self.setToolTip(convSpec)
 		for row in range(self.form.count()/2):
 			w=self.form.itemAt(row,QFormLayout.FieldRole).widget()
 			w.multiplier=self.multiplier
