@@ -173,8 +173,10 @@ GLViewer::GLViewer(int _viewId, const shared_ptr<Renderer>& _renderer, QGLWidget
 	setMouseTracking(true);
 
 	// set initial orientation, z up
-	camera()->setViewDirection(qglviewer::Vec(-1,0,0));
-	camera()->setUpVector(qglviewer::Vec(0,0,1));
+	Vector3r &u(renderer->iniUp), &v(renderer->iniViewDir);
+	qglviewer::Vec up(u[0],u[1],u[2]), vDir(v[0],v[1],v[2]);
+	camera()->setViewDirection(vDir);
+	camera()->setUpVector(up);
 	centerMedianQuartile();
 
 	//connect(&GLGlobals::redrawTimer,SIGNAL(timeout()),this,SLOT(updateGL()));
@@ -270,7 +272,7 @@ void GLViewer::useDisplayParameters(size_t n, bool fromHandler){
 			>(oglre,"renderer",renderer);	
 	dp->setValue("Renderer",oglre.str());
 	dp->setValue("GLViewer",GLViewer::getState());
-	displayMessage("Saved view configuration ot #"+lexical_cast<string>(n));
+	displayMessage("Saved view configuration to #"+lexical_cast<string>(n));
 }
 
 string GLViewer::getState(){
@@ -347,7 +349,7 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 	}
 	/* letters alphabetically */
 	else if(e->key()==Qt::Key_C && (e->modifiers() & Qt::AltModifier)){ displayMessage("Median centering"); centerMedianQuartile(); }
-	else if(e->key()==Qt::Key_C){
+	else if(e->key()==Qt::Key_C && /*Ctrl-C is handled by qglviewer*/ !(e->modifiers() & Qt::ControlModifier)){
 		// center around selected body
 		// if(selectedName() >= 0 && (*(Master::instance().getScene()->bodies)).exists(selectedName())) setSceneCenter(manipulatedFrame()->position());
 		// make all bodies visible
@@ -408,24 +410,6 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 		LOG_INFO("Will save snapshot to "<<nextFrameSnapshotFilename);
 	}
 #endif
-#if 0
-	else if( e->key()==Qt::Key_Plus ){
-			cut_plane = std::min(1.0, cut_plane + std::pow(10.0,(double)cut_plane_delta));
-			static_cast<YadeCamera*>(camera())->setCuttingDistance(cut_plane);
-			displayMessage("Cut plane: "+lexical_cast<std::string>(cut_plane));
-	}else if( e->key()==Qt::Key_Minus ){
-			cut_plane = std::max(0.0, cut_plane - std::pow(10.0,(double)cut_plane_delta));
-			static_cast<YadeCamera*>(camera())->setCuttingDistance(cut_plane);
-			displayMessage("Cut plane: "+lexical_cast<std::string>(cut_plane));
-	}else if( e->key()==Qt::Key_Slash ){
-			cut_plane_delta -= 1;
-			displayMessage("Cut plane increment: 1e"+(cut_plane_delta>0?std::string("+"):std::string(""))+lexical_cast<std::string>(cut_plane_delta));
-	}else if( e->key()==Qt::Key_Asterisk ){
-			cut_plane_delta = std::min(1+cut_plane_delta,-1);
-			displayMessage("Cut plane increment: 1e"+(cut_plane_delta>0?std::string("+"):std::string(""))+lexical_cast<std::string>(cut_plane_delta));
-	}
-#endif
-
 	else if(e->key()!=Qt::Key_Escape && e->key()!=Qt::Key_Space) QGLViewer::keyPressEvent(e);
 	updateGL();
 }

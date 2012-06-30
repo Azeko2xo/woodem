@@ -125,12 +125,25 @@ def run(pre): # use inputs as argument
 		PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.savePlotData(S)'),
 		PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.watchProgress(S)'),
 	]+([] if (not pre.vtkPrefix or pre.vtkFreq<=0) else [VtkExport(out=pre.vtkPrefix.format(**dict(s.tags)),stepPeriod=pre.vtkFreq*pre.factStepPeriod,what=VtkExport.all)])
-	s.any=[woo.gl.Gl1_InfCylinder(wire=True),woo.gl.Gl1_Wall(div=1),woo.gl.Gl1_DemField(glyph=woo.gl.Gl1_DemField.glyphVel)]
 	# improtant: save the preprocessor here!
 	s.pre=pre
-	#s.tags['preprocessor']=pre.dumps(format='pickle')
-	print 'Generated Rollenrost.'
 	de.collectNodes()
+
+	# when running with gui, set initial view setup
+	try:
+		print 'setting view parameters'
+		import woo.qt
+		rr=woo.qt.Renderer()
+		rr.iniUp=(0,0,1)
+		rr.iniViewDir=(0,1,0)
+		print rr.iniUp
+		print rr.iniViewDir
+	except ImportError: pass
+	# set other display options and save them (static attributes)
+	s.any=[woo.gl.Gl1_InfCylinder(wire=True),woo.gl.Gl1_Wall(div=1),woo.gl.Gl1_DemField(glyph=woo.gl.Gl1_DemField.glyphVel)]
+
+	print 'Generated Rollenrost.'
+
 
 	woo.plot.reset()
 

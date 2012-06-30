@@ -171,6 +171,8 @@ class Renderer: public Object{
 		((vector<bool>,clipPlaneActive,vector<bool>(numClipPlanes,false),,"Activate/deactivate respective clipping planes"))
 		((vector<shared_ptr<GlExtraDrawer> >,extraDrawers,,,"Additional rendering components (:ref:`GlExtraDrawer`)."))
 		((bool,engines,true,,"Call engine's rendering functions (if defined)"))
+		((Vector3r,iniUp,Vector3r(0,0,1),,"Up vector of new views"))
+		((Vector3r,iniViewDir,Vector3r(-1,0,0),,"View direction of new views"))
 		,/*deprec*/
 		,/*init*/
 		,/*ctor*/ if(self && initDone) throw std::runtime_error("woo.gl.Renderer() is already constructed, use woo.qt.Renderer() to retrieve the instance."); self=this;
