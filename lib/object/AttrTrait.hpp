@@ -2,6 +2,7 @@
 
 #include<woo/lib/base/Types.hpp>
 #include<woo/lib/base/Math.hpp>
+#include<woo/lib/base/CompUtils.hpp>
 #include<boost/python.hpp>
 
 // attribute flags
@@ -175,6 +176,7 @@ namespace woo{
 		AttrTrait& massFlowRateUnit(){ unit("kg/s"); altUnits({{"t/y",1e-3*(24*3600*365)},{"Mt/y",1e-6*1e-3*(24*3600*365)}}); return *this; }
 		AttrTrait& densityUnit(){ unit("kg/m³"); altUnits({{"t/m³",1e-3},{"g/cm³",1e-3}}); return *this; }
 		AttrTrait& fractionUnit(){ unit("-"); altUnits({{"%",1e2},{"‰",1e3},{"ppm",1e6}}); return *this; }
+		AttrTrait& colormapChoice(){ vector<pair<int,string>> pairs({{-1,"[default] (-1)"}}); for(size_t i=0; i<CompUtils::colormaps.size(); i++) pairs.push_back({i,CompUtils::colormaps[i].name+" ("+to_string(i)+")"}); return choice(pairs); }
 
 
 	};

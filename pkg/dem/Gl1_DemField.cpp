@@ -119,10 +119,10 @@ void Gl1_DemField::doShape(){
 		FOREACH(const shared_ptr<Node>& n,p->shape->nodes) rrr->setNodeGlData(n,updateRefPos);
 
 		switch(colorBy){
-			case COLOR_RADIUS: p->shape->color=dynamic_pointer_cast<Sphere>(p->shape)?colorRange->norm(p->shape->cast<Sphere>().radius):0.; break;
-			case COLOR_VEL: p->shape->color=colorRange->norm(n0->getData<DemData>().vel.norm()); break;
-			case COLOR_DISPLACEMENT: p->shape->color=colorRange->norm((n0->pos-n0->getData<GlData>().refPos).norm()); break;
-			case COLOR_ROTATION: p->shape->color=colorRange->norm(AngleAxisr(n0->ori.conjugate()*n0->getData<GlData>().refOri).angle()); break;
+			case COLOR_RADIUS: p->shape->setBaseColor(dynamic_pointer_cast<Sphere>(p->shape)?colorRange->norm(p->shape->cast<Sphere>().radius):0.); break;
+			case COLOR_VEL: p->shape->setBaseColor(colorRange->norm(n0->getData<DemData>().vel.norm())); break;
+			case COLOR_DISPLACEMENT: p->shape->setBaseColor(colorRange->norm((n0->pos-n0->getData<GlData>().refPos).norm())); break;
+			case COLOR_ROTATION: p->shape->setBaseColor(colorRange->norm(AngleAxisr(n0->ori.conjugate()*n0->getData<GlData>().refOri).angle())); break;
 			case COLOR_NONE: ;
 			default: ;
 		}

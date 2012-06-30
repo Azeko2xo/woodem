@@ -264,6 +264,7 @@ struct Shape: public Object, public Indexable{
 	// caller must make sure that !nodes.empty()
 	Real getSignedBaseColor(){ return color-trunc(color); }
 	Real getBaseColor(){ return abs(color)-trunc(abs(color)); }
+	void setBaseColor(Real c){ if(isnan(c)) return; color=trunc(color)+(color<0?-1:1)*CompUtils::clamped(c,0,1); }
 	bool getWire() const { return color<0; }
 	void setWire(bool w){ color=(w?-1:1)*abs(color); }
 	bool getHighlighted() const { return abs(color)>=1 && abs(color)<2; }
