@@ -83,6 +83,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.addRenderers()
 		global controller
 		controller=self
+		self.setWindowTitle('Woo ('+woo.config.prettyVersion(lead=True)+(', debug' if woo.config.debug else '')+')')
 		self.refreshTimer=QtCore.QTimer()
 		self.refreshTimer.timeout.connect(self.refreshEvent)
 		self.refreshTimer.start(200)
@@ -124,9 +125,11 @@ class ControllerClass(QWidget,Ui_Controller):
 		ix=self.generatorCombo.currentIndex()
 		if ix==self.genIndexLoad:
 			f=str(QFileDialog.getOpenFileName(self,'Load preprocessor from','.'))
-			if not f: self.generator=None
-			self.generator=Preprocessor.load(f)
-			self.generatorCombo.setItemText(self.genIndexLoad,'%s'%f)
+			if not f:
+				self.generator=None
+			else:
+				self.generator=Preprocessor.load(f)
+				self.generatorCombo.setItemText(self.genIndexLoad,'%s'%f)
 		else:
 			if self.genIndexLoad>=0: self.generatorCombo.setItemText(self.genIndexLoad,'load')
 			self.generator=eval('woo.pre.'+str(genStr)+'()')

@@ -19,6 +19,9 @@ sourceRoot='${sourceRoot}'
 buildProfile=${buildProfile}
 buildCmdLine=${buildCmdLine}
 
+def prettyVersion(lead=True):
+	if version: return ('ver. ' if lead else '')+version
+	if revision.startswith('bzr'): return ('rev. ' if lead else '')+revision[3:]
 
 # project metadata
 metadata=dict(
