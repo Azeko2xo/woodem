@@ -1,3 +1,5 @@
+#pragma once
+
 #include<woo/pkg/dem/Impose.hpp>
 #include<woo/pkg/dem/Particle.hpp>
 

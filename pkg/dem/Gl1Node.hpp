@@ -1,3 +1,4 @@
+#pragma once
 
 #ifdef WOO_OPENGL
 //#include<woo/pkg/dem/Particle.hpp>

@@ -1,3 +1,5 @@
+#pragma once 
+
 #include<woo/core/Preprocessor.hpp>
 #include<woo/core/Scene.hpp>
 

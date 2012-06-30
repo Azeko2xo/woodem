@@ -1,3 +1,4 @@
+#pragma once
 #include<woo/pkg/dem/Particle.hpp>
 #include<boost/range/numeric.hpp>
 #include<boost/range/algorithm/fill.hpp>

@@ -1,3 +1,5 @@
+#pragma once
+
 #include<woo/lib/base/Types.hpp>
 #include<woo/lib/base/Math.hpp>
 #include<boost/python.hpp>

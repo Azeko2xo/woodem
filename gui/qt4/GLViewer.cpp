@@ -783,7 +783,7 @@ void GLViewer::postDraw(){
 	}
 	if(scene->ranges.size()>0){
 		glDisable(GL_LIGHTING);
-		const int pixDiv=50; // show number every 50 px approximately
+		const int pixDiv=100; // show number every 100 px approximately
 		const int scaleWd=20; // width in pixels
 		const int nDiv=20; // draw colorline with this many segments (for gradients)
 		int yDef=.2*height(); // default y position, if current is not valid
@@ -807,17 +807,16 @@ void GLViewer::postDraw(){
 			}
 			// adjust if off-screen
 			bool flipped=false;
-			if(mov.pos.x()<10 || mov.pos.x()>width()-20){ 
+			if(mov.pos.x()<10 || mov.pos.x()>width()-10-scaleWd){ 
 				if(range.landscape){ flipped=true; range.landscape=false; }
 				if(mov.pos.x()<10) mov.pos.setX(10);
-				else mov.pos.setX(width()-20);
+				else mov.pos.setX(width()-10-scaleWd);
 			}
-			if(mov.pos.y()<10 || mov.pos.y()>height()-20){
+			if(mov.pos.y()<10 || mov.pos.y()>height()-10-scaleWd){
 				if(!range.landscape && !flipped){ flipped=true; range.landscape=true; }
 				if(mov.pos.y()<10) mov.pos.setY(10);
-				else mov.pos.setY(height()-20);
+				else mov.pos.setY(height()-10-scaleWd);
 			}
-			//if(mov.pos.x()<0 || mov.pos.y()<0 || mov.pos.x()>width() || mov.pos.y()>(height()-/*leave 20px on the lower edge*/20)){ mov.pos.setX(xDef); mov.pos.setY(yDef); cerr<<"$"; }
 			// 
 			// adjust if too long/short
 			if(range.length<0) CompUtils::clamp(range.length,-.9,-.1);
@@ -843,16 +842,16 @@ void GLViewer::postDraw(){
 				for(int j=0; j<=nDiv; j++){
 					glColor3v(CompUtils::mapColor((nDiv-j)*(1./nDiv),range.cmap));
 					if(!range.landscape) glVertex2f(x,y0+yStep*j);
-					else glVertex2f(y0+yStep*j,x);
+					else glVertex2f(y0+(ht-yStep*j),x);
 				};
 			glEnd();
 			stopScreenCoordinatesSystem();
 			// show some numbers
-			int nNum=max(1,ht/100); // label every 100px approx, but at least start and end will be labeled
+			int nNum=max(1,ht/pixDiv); // label every pixDiv approx, but at least start and end will be labeled
 			for(int j=0; j<=nNum; j++){
 				// static void GLDrawText(const std::string& txt, const Vector3r& pos, const Vector3r& color=Vector3r(1,1,1), bool center=false, void* font=NULL, const Vector3r& bgColor=Vector3r(-1,-1,-1));
 				startScreenCoordinatesSystem();
-					Real yy=y0+((nNum-j)*ht/nNum);
+					Real yy=y0+((!range.landscape?nNum-j:j)*ht/nNum);
 					Vector3r pos=!range.landscape?Vector3r(x,yy-6/*lower baseline*/,0):Vector3r(yy,x-5/*lower baseline*/,0);
 					GLUtils::GLDrawText((boost::format("%.2g")%range.normInv(j*1./nNum)).str(),pos,/*color*/Vector3r::Ones(),/*center*/true,/*font*/(j>0&&j<nNum)?NULL:GLUT_BITMAP_9_BY_15,/*bgColor*/Vector3r::Zero(),/*shiftIfNeg*/false);
 				stopScreenCoordinatesSystem();

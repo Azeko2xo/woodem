@@ -60,43 +60,40 @@ bool Renderer::pointClipped(const Vector3r& p){
 }
 
 
-void Renderer::setNodeGlData(const shared_ptr<Node>& n){
+/* this function is called from field renderers for all field nodes */
+void Renderer::setNodeGlData(const shared_ptr<Node>& n, bool updateRefPos){
 	bool scaleRotations=(rotScale!=1.0 && scaleOn);
 	bool scaleDisplacements=(dispScale!=Vector3r::Ones() && scaleOn);
 	const bool isPeriodic=scene->isPeriodic;
 
-	// FOREACH(const shared_ptr<Node>& n, nn){
-
-		if(!n->hasData<GlData>()) n->setData<GlData>(make_shared<GlData>());
-		GlData& gld=n->getData<GlData>();
-		// inside the cell if periodic, same as pos otherwise
-		Vector3r cellPos=(!isPeriodic ? n->pos : scene->cell->canonicalizePt(n->pos,gld.dCellDist)); 
-		bool rendered=!pointClipped(cellPos);
-		if(!rendered){ gld.dGlPos=Vector3r(NaN,NaN,NaN); return; }
-		if(isnan(gld.refPos[0])) gld.refPos=n->pos;
-		if(isnan(gld.refOri.x())) gld.refOri=n->ori;
-		const Vector3r& pos=n->pos; const Vector3r& refPos=gld.refPos;
-		const Quaternionr& ori=n->ori; const Quaternionr& refOri=gld.refOri;
-		#ifdef WOO_SUBDOMAINS
-			int subDom; Body::id_t localId;
-			std::tie(subDom,localId)=scene->bodies->subDomId2domNumLocalId(b->subDomId);
-			if(subDomMask!=0 && (((1<<subDom) & subDomMask)==0)) bodyDisp[id].isDisplayed=false;
-		#endif
-		// if no scaling and no periodic, return quickly
-		if(!(scaleDisplacements||scaleRotations||isPeriodic)){ gld.dGlPos=Vector3r::Zero(); gld.dGlOri=Quaternionr::Identity(); return; }
-		// apply scaling
-		gld.dGlPos=cellPos-n->pos;
-		// add scaled translation to the point of reference
-		if(scaleDisplacements) gld.dGlPos+=((dispScale-Vector3r::Ones()).array()*Vector3r(pos-refPos).array()).matrix(); 
-		if(!scaleRotations) gld.dGlOri=Quaternionr::Identity();
-		else{
-			Quaternionr relRot=refOri.conjugate()*ori;
-			AngleAxisr aa(relRot);
-			aa.angle()*=rotScale;
-			gld.dGlOri=Quaternionr(aa);
-		}
-
-	// }
+	if(!n->hasData<GlData>()) n->setData<GlData>(make_shared<GlData>());
+	GlData& gld=n->getData<GlData>();
+	// inside the cell if periodic, same as pos otherwise
+	Vector3r cellPos=(!isPeriodic ? n->pos : scene->cell->canonicalizePt(n->pos,gld.dCellDist)); 
+	bool rendered=!pointClipped(cellPos);
+	if(!rendered){ gld.dGlPos=Vector3r(NaN,NaN,NaN); return; }
+	if(updateRefPos || isnan(gld.refPos[0])) gld.refPos=n->pos;
+	if(updateRefPos || isnan(gld.refOri.x())) gld.refOri=n->ori;
+	const Vector3r& pos=n->pos; const Vector3r& refPos=gld.refPos;
+	const Quaternionr& ori=n->ori; const Quaternionr& refOri=gld.refOri;
+	#ifdef WOO_SUBDOMAINS
+		int subDom; Body::id_t localId;
+		std::tie(subDom,localId)=scene->bodies->subDomId2domNumLocalId(b->subDomId);
+		if(subDomMask!=0 && (((1<<subDom) & subDomMask)==0)) bodyDisp[id].isDisplayed=false;
+	#endif
+	// if no scaling and no periodic, return quickly
+	if(!(scaleDisplacements||scaleRotations||isPeriodic)){ gld.dGlPos=Vector3r::Zero(); gld.dGlOri=Quaternionr::Identity(); return; }
+	// apply scaling
+	gld.dGlPos=cellPos-n->pos;
+	// add scaled translation to the point of reference
+	if(scaleDisplacements) gld.dGlPos+=((dispScale-Vector3r::Ones()).array()*Vector3r(pos-refPos).array()).matrix(); 
+	if(!scaleRotations) gld.dGlOri=Quaternionr::Identity();
+	else{
+		Quaternionr relRot=refOri.conjugate()*ori;
+		AngleAxisr aa(relRot);
+		aa.angle()*=rotScale;
+		gld.dGlOri=Quaternionr(aa);
+	}
 }
 
 // draw periodic cell, if active

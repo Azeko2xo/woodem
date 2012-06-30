@@ -237,8 +237,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		else:
 			if len(vv)>0: vv[0].close()
 	def setReferenceSlot(self):
-		# sets reference periodic cell as well
-		utils.setRefSe3()
+		woo.gl.Gl1_DemField.updateRefPos=True
 	def centerSlot(self):
 		for v in views(): v.center()
 	def setViewAxes(self,dir,up):

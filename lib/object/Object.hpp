@@ -154,7 +154,7 @@ template<> struct _setter_postLoadStaticMaybe<false>{
 }
 
 #define _DEF_READWRITE_CUSTOM_STATIC(thisClass,attr) if(!(_ATTR_FLG(attr).isHidden())){ \
-	bool _ro(_ATTR_FLG(attr).isReadonly()), _ref(woo::py_wrap_ref<decltype(thisClass::_ATTR_NAM(attr))>::value || (_ATTR_FLG(attr).isPyByRef())); \
+	bool _ro(_ATTR_FLG(attr).isReadonly()) /*, _ref(woo::py_wrap_ref<decltype(thisClass::_ATTR_NAM(attr))>::value || (_ATTR_FLG(attr).isPyByRef()))*/; \
 	constexpr bool _post=!!(_ATTR_TRAIT_TYPE(attr)::compileFlags & woo::Attr::triggerPostLoad); \
 	if      ( _ro) _classObj.add_static_property(_ATTR_NAM_STR(attr),py::make_getter(thisClass::_ATTR_NAM(attr))); \
 	else if (!_ro) _classObj.add_static_property(_ATTR_NAM_STR(attr),py::make_getter(thisClass::_ATTR_NAM(attr)),/*setter*/_setter_postLoadStaticMaybe<_post>::setter<thisClass,decltype(thisClass::_ATTR_NAM(attr)),&thisClass::_ATTR_NAM(attr)>); \

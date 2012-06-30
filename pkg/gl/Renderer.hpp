@@ -130,7 +130,7 @@ class Renderer: public Object{
 		void initgl();
 		void render(const shared_ptr<Scene>& scene, bool withNames);
 
-		void setNodeGlData(const shared_ptr<Node>& n);
+		void setNodeGlData(const shared_ptr<Node>& n, bool updateRefPos=false);
 
 		void renderRawNode(shared_ptr<Node>);
 

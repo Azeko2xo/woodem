@@ -23,6 +23,7 @@ shared_ptr<ScalarRange> Gl1_DemField::colorRange;
 int Gl1_DemField::glyph;
 Real Gl1_DemField::glyphRelSz;
 shared_ptr<ScalarRange> Gl1_DemField::glyphRange;
+bool Gl1_DemField::updateRefPos;
 
 void Gl1_DemField::postLoad(Gl1_DemField&){
 	_lastScene=scene;
@@ -59,6 +60,8 @@ void Gl1_DemField::postLoad(Gl1_DemField&){
 		case COLOR_NONE: colorRange->label="[none]";  break;
 		case COLOR_RADIUS: colorRange->label="radius"; break;
 		case COLOR_VEL: colorRange->label="|vel|"; break;
+		case COLOR_DISPLACEMENT: colorRange->label="displacement"; break;
+		case COLOR_ROTATION: colorRange->label="rotation"; break;
 		default: LOG_ERROR("Unknown value Gl1_DemField.colorBy="<<colorBy<<" (ignored)??");
 	}
 	switch(glyph){
@@ -109,14 +112,17 @@ void Gl1_DemField::doShape(){
 
 		// sets highlighted color, if the particle is selected
 		// last optional arg can be used to provide additional highlight conditions (unused for now)
-		Renderer::glScopedName name(p,p->shape->nodes[0]);
+		const shared_ptr<Node>& n0=p->shape->nodes[0];
+		Renderer::glScopedName name(p,n0);
 		// bool highlight=(p->id==selId || (p->clumpId>=0 && p->clumpId==selId) || p->shape->highlight);
 
-		FOREACH(const shared_ptr<Node>& n,p->shape->nodes) rrr->setNodeGlData(n);
+		FOREACH(const shared_ptr<Node>& n,p->shape->nodes) rrr->setNodeGlData(n,updateRefPos);
 
 		switch(colorBy){
 			case COLOR_RADIUS: p->shape->color=dynamic_pointer_cast<Sphere>(p->shape)?colorRange->norm(p->shape->cast<Sphere>().radius):0.; break;
-			case COLOR_VEL: p->shape->color=colorRange->norm(p->shape->nodes[0]->getData<DemData>().vel.norm()); break;
+			case COLOR_VEL: p->shape->color=colorRange->norm(n0->getData<DemData>().vel.norm()); break;
+			case COLOR_DISPLACEMENT: p->shape->color=colorRange->norm((n0->pos-n0->getData<GlData>().refPos).norm()); break;
+			case COLOR_ROTATION: p->shape->color=colorRange->norm(AngleAxisr(n0->ori.conjugate()*n0->getData<GlData>().refOri).angle()); break;
 			case COLOR_NONE: ;
 			default: ;
 		}
@@ -191,7 +197,7 @@ void Gl1_DemField::doNodes(){
 
 	rrr->nodeDispatcher.scene=scene; rrr->nodeDispatcher.updateScenePtr();
 	FOREACH(shared_ptr<Node> node, dem->nodes){
-		rrr->setNodeGlData(node);
+		rrr->setNodeGlData(node,updateRefPos);
 		if(!nodes && !node->rep) continue;
 		Renderer::glScopedName name(node);
 		if(nodes){ rrr->renderRawNode(node); }
@@ -210,7 +216,7 @@ void Gl1_DemField::doContactNodes(){
 			shared_ptr<CGeom> geom=C->geom;
 			if(!geom) continue;
 			shared_ptr<Node> node=geom->node;
-			rrr->setNodeGlData(node);
+			rrr->setNodeGlData(node,updateRefPos);
 			if(!(cNodes>=0) && !node->rep) continue;
 			Renderer::glScopedName name(C,node);
 			if(cNodes>0){ // cNodes>0: show something else than just the GlRep
@@ -275,12 +281,15 @@ void Gl1_DemField::go(const shared_ptr<Field>& demField, GLViewInfo* _viewInfo){
 	if(doPostLoad || _lastScene!=scene) postLoad(*this);
 	doPostLoad=false;
 
+	if(updateRefPos && (colorBy==COLOR_DISPLACEMENT || colorBy==COLOR_ROTATION)) colorRange->reset();
+
 
 	if(shape) doShape();
 	if(bound) doBound();
 	doNodes();
 	doContactNodes();
 	if(cPhys) doCPhys();
+	updateRefPos=false;
 };
 
 #endif

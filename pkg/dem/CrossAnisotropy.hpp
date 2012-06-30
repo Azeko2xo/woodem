@@ -1,3 +1,4 @@
+#pragma once
 #include<woo/pkg/dem/ContactLoop.hpp>
 #include<woo/pkg/dem/FrictMat.hpp>
 // #include<woo/pkg/dem/Cp2_FrictMat_FrictPhys.hpp>
