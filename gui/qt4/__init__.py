@@ -99,7 +99,7 @@ class ControllerClass(QWidget,Ui_Controller):
 			self.generatorCombo.addItem(c)
 		self.generatorCombo.insertSeparator(self.generatorCombo.count())
 		# currently crashes...?
-		self.generatorCombo.addItem('current simulation [might crash!]')
+		self.generatorCombo.addItem('current simulation')
 		self.genIndexCurr=self.generatorCombo.count()-1
 		self.generatorCombo.addItem('load from file')
 		self.genIndexLoad=self.generatorCombo.count()-1
@@ -136,7 +136,10 @@ class ControllerClass(QWidget,Ui_Controller):
 				self.generator=Preprocessor.load(f)
 				self.generatorCombo.setItemText(self.genIndexLoad,'%s'%f)
 		elif ix==self.genIndexCurr:
-			self.generator=woo.master.scene.pre
+			saveName='_generatorComboSlot'
+			# force deep-copy by saving and loading again, to avoid bug #88
+			woo.master.scene.pre.saveTmp(saveName,quiet=True)
+			self.generator=woo.core.Preprocessor.loadTmp(saveName) 
 			if not self.generator:
 				self.generatorArea.setWidget(QLabel('<i>No preprocessor in Scene.pre</i>'))
 		else:

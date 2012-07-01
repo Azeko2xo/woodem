@@ -1335,6 +1335,7 @@ class SeqFundamentalEditor(QFrame):
 			import traceback
 			traceback.print_exc()
 			showExceptionDialog(self,e)
+			return
 		self.setter(seq)
 		self.refreshEvent(forceIx=0)
 	def rebuild(self):
