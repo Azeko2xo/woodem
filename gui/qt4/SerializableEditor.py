@@ -17,6 +17,9 @@ logging.basicConfig(level=logging.INFO)
 import woo._customConverters, woo.core
 import woo.qt
 
+
+from ExceptionDialog import *
+
 seqSerializableShowType=True # show type headings in serializable sequences (takes vertical space, but makes the type hyperlinked)
 
 # BUG: cursor is moved to the beginnign of the input field even if it has focus
@@ -1304,22 +1307,34 @@ class SeqFundamentalEditor(QFrame):
 		self.refreshEvent(forceIx=i+1)
 	def fromClipSlot(self,i):
 		#raise NotImplementedError("Importing sequences not yet implemented")
-		importables={Vector3:(float,3),Vector2:(float,2),Vector6:(float,6),Vector2i:(int,2),Vector2i:(int,3),Vector6i:(int,6),Matrix3:(float,9),float:(float,1),int:(int,1)}
-		if self.itemType not in importables: raise NotImplementedError("Type %s is not text-importable"%(self.itemType.__name__))
-		elementType,lineLen=importables[self.itemType]
-		print 'Will import lines with %d items of type %s'%(lineLen,elementType)
-		# get txt from clipboard
-		cb=QApplication.clipboard()
-		txt=str(cb.text())
-		print 'Got text from clipboard:\n',txt
-		seq=[]
-		for i,ll in enumerate(txt.split('\n')):
-			l=ll.split()
-			if len(l)==0: continue # skip empty lines
-			if len(l)!=lineLen: raise ValueError("Line %d has %d elements (should have %d)"%(i,len(l),lineLen))
-			print 'Line tuple is',tuple([val for val in l])
-			seq.append(tuple([elementType(eval(val)) for val in l]))
-		print 'Imported sequence',seq
+		try:
+			importables={Vector3:(float,3),Vector2:(float,2),Vector6:(float,6),Vector2i:(int,2),Vector2i:(int,3),Vector6i:(int,6),Matrix3:(float,9),float:(float,1),int:(int,1)}
+			if self.itemType not in importables: raise NotImplementedError("Type %s is not text-importable"%(self.itemType.__name__))
+			elementType,lineLen=importables[self.itemType]
+			print 'Will import lines with %d items of type %s'%(lineLen,elementType)
+			# get txt from clipboard
+			cb=QApplication.clipboard()
+			txt=str(cb.text())
+			print 'Got text from clipboard:\n',txt
+			# handle unit conversions here
+			if self.multiplier:
+				if isinstance(self.multiplier,tuple): mult=1./self.multiplier
+				else: mult=[1./self.multiplier]*lineLen
+				print 'Input will be scaled by',mult,' to match selected units'
+			else: mult=[1.]*lineLen
+			#
+			seq=[]
+			for i,ll in enumerate(txt.split('\n')):
+				l=ll.split()
+				if len(l)==0: continue # skip empty lines
+				if len(l)!=lineLen: raise ValueError("Line %d has %d elements (should have %d)"%(i,len(l),lineLen))
+				print 'Line tuple is',tuple([val for val in l])
+				seq.append(tuple([elementType(eval(val))*mult[i] for i,val in enumerate(l)]))
+			print 'Imported sequence',seq
+		except Exception as e:
+			import traceback
+			traceback.print_exc()
+			showExceptionDialog(self,e)
 		self.setter(seq)
 		self.refreshEvent(forceIx=0)
 	def rebuild(self):
@@ -1386,6 +1401,7 @@ class SeqFundamentalEditor(QFrame):
 		self.setToolTip(convSpec)
 		for row in range(self.form.count()/2):
 			w=self.form.itemAt(row,QFormLayout.FieldRole).widget()
+			if isinstance(w,QLabel): continue # label that the sequence is empty
 			w.multiplier=self.multiplier
 			w.multiplierChanged(convSpec)
 	

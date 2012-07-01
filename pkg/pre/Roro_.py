@@ -11,6 +11,7 @@ from miniEigen import *
 import sys
 import cStringIO as StringIO
 import numpy
+import pprint
 nan=float('nan')
 
 # assure compatibility
@@ -20,27 +21,44 @@ if not hasattr(ConveyorFactory,'generator'):
 
 def run(pre): # use inputs as argument
 	print 'Roro_.run()'
-	print 'Input parameters:'
-	print pre.dumps(format='expr',noMagic=True)
+	#print 'Input parameters:'
+	#print pre.dumps(format='expr',noMagic=True)
 	#print pre.dumps(format='html',fragment=True)
 
 	s=Scene()
-	de=DemField();
+	de=DemField()
 	s.fields=[de]
-	rCyl=pre.cylDiameter/2.
-	lastCylX=(pre.cylNum-1)*(pre.gap+2*rCyl)
-	cylX=[]
+
+	if pre.gap<0: raise ValueError("Roro.gap must be positive (are cylinders overlapping?)")
+	# generate cylinder coordinates, or use those given by the user
+	if pre.cylXzd:
+		cylXzd=pre.cylXzd
+	else:
+		cylXzd=[]
+		dCyl=pre.cylDiameter
+		xz0=(0,-dCyl/2) # first cylinder is right below the feed end at (0,0)
+		for i in range(0,pre.cylNum):
+			dist=i*(dCyl+pre.gap) # distance from the first cylinder's center
+			cylXzd.append(Vector3(xz0[0]+math.cos(pre.inclination)*dist,xz0[1]-math.sin(pre.inclination)*dist,dCyl))
+	cylXMax=max([xzd[0] for xzd in cylXzd])
+	cylZMin=min([xzd[1] for xzd in cylXzd])
+	cylDMax=max([xzd[2] for xzd in cylXzd])
+	print 'Cylinder coordinates and diameters:'
+	pprint.pprint(cylXzd)
+
+	# define simulation domain
 	ymin,ymax=-pre.cylLenSim/2.,pre.cylLenSim/2.
-	zmin,zmax=-4*rCyl,rCyl+6*rCyl
-	xmin,xmax=-3*rCyl,lastCylX+6*rCyl
+	zmin,zmax=cylZMin-2*cylDMax,max(4*cylDMax,4*pre.conveyorHt)
+	xmin,xmax=-3*cylDMax,cylXzd[-1][0]+3*cylDMax
 	rMin=pre.psd[0][0]/2.
 	rMax=pre.psd[-1][0]/2.
 	s.dt=pre.pWaveSafety*utils.spherePWaveDt(rMin,pre.material.density,pre.material.young)
 
+	# particle masks
 	wallMask=0b00110
-	loneMask=0b00100
+	loneMask=0b00100 # particles with this mask don't interact with each other
 	sphMask= 0b00011
-	delMask= 0b00001
+	delMask= 0b00001 # particles which might be deleted by deleters
 	
 	de.par.append([
 		utils.wall(ymin,axis=1,sense= 1,visible=False,glAB=((zmin,xmin),(zmax,xmax)),mat=pre.material,mask=wallMask),
@@ -49,14 +67,13 @@ def run(pre): # use inputs as argument
 		utils.wall(xmax,axis=0,sense=-1,visible=False,glAB=((ymin,zmin),(ymax,zmax)),mat=pre.material,mask=wallMask),
 		utils.wall(zmin,axis=2,sense= 1,visible=False,glAB=((xmin,ymin),(xmax,ymax)),mat=pre.material,mask=wallMask),
 	])
-	for i in range(0,pre.cylNum):
-		x=i*(2*rCyl+pre.gap)
-		cylX.append(x)
-		c=utils.infCylinder((x,0,0),radius=rCyl,axis=1,glAB=(ymin,ymax),mat=pre.material,mask=wallMask)
+	for i,xzd in enumerate(cylXzd):
+		x,z,d=xzd
+		c=utils.infCylinder((x,0,z),radius=d/2.,axis=1,glAB=(ymin,ymax),mat=pre.material,mask=wallMask)
 		c.angVel=(0,pre.angVel,0)
 		qv,qh=pre.quivVPeriod,pre.quivHPeriod
 		c.impose=AlignedHarmonicOscillations(
-			amps=(pre.quivAmp[0]*rCyl,nan,pre.quivAmp[1]*rCyl),
+			amps=(pre.quivAmp[0]*d/2.,nan,pre.quivAmp[1]*d/2.),
 			freqs=(
 				1./((qh[0]+(i%int(qh[2]))*(qh[1]-qh[0])/int(qh[2]))*s.dt),
 				nan,
@@ -64,16 +81,15 @@ def run(pre): # use inputs as argument
 			)
 		)
 		de.par.append(c)
-		A,B,C,D=(x,ymin,zmin),(x,ymin,-rCyl),(x,ymax,-rCyl),(x,ymax,zmin)
+		A,B,C,D=(x,ymin,zmin),(x,ymin,z-d/2.),(x,ymax,z-d/2.),(x,ymax,zmin)
 		de.par.append([utils.facet(vertices,mat=pre.material,mask=wallMask,visible=False) for vertices in (A,B,C),(C,D,A)])
 
-	inclinedGravity=(pre.gravity*math.sin(pre.inclination),0,-pre.gravity*math.cos(pre.inclination))
 	factStep=pre.factStepPeriod
 
 	if pre.conveyor:
 		print 'Preparing packing for conveyor feed, be patient'
 		cellLen=15*pre.psd[-1][0]
-		cc,rr=makeBandFeedPack(dim=(cellLen,pre.cylLenSim,pre.conveyorHt),psd=pre.psd,mat=pre.material,gravity=inclinedGravity,porosity=.5,memoizeDir=pre.feedCacheDir)
+		cc,rr=makeBandFeedPack(dim=(cellLen,pre.cylLenSim,pre.conveyorHt),psd=pre.psd,mat=pre.material,gravity=(0,0,-pre.gravity),porosity=.7,memoizeDir=pre.feedCacheDir)
 		vol=sum([4/3.*math.pi*r**3 for r in rr])
 		conveyorVel=(pre.massFlowRate*pre.cylRelLen)/(pre.material.density*vol/cellLen)
 		print 'Feed velocity %g m/s to match feed mass %g kg/m (volume=%g m³, len=%gm, ρ=%gkg/m³) and massFlowRate %g kg/s (%g kg/s over real width)'%(conveyorVel,pre.material.density*vol/cellLen,vol,cellLen,pre.material.density,pre.massFlowRate*pre.cylRelLen,pre.massFlowRate)
@@ -84,7 +100,7 @@ def run(pre): # use inputs as argument
 			cellLen=cellLen,
 			barrierColor=.3,
 			#color=.4, # random colors
-			node=Node(pos=(xmin,0,rCyl)),
+			node=Node(pos=(xmin,0,0)),
 			mask=sphMask,
 			vel=conveyorVel,
 			label='factory',
@@ -92,34 +108,34 @@ def run(pre): # use inputs as argument
 			currRateSmooth=pre.rateSmooth,
 		)
 	else:
-		conveyorVel=pre.flowVel*math.cos(pre.inclination)
+		conveyorVel=pre.flowVel
 		factory=BoxFactory(
 			stepPeriod=factStep,
-			box=((xmin,ymin,rCyl),(0,ymax,zmax)),
+			box=((xmin,ymin,0),(0,ymax,zmax)),
 			glColor=.4,
 			label='factory',
 			massFlowRate=pre.massFlowRate*pre.cylRelLen, # mass flow rate for the simulated part only
 			currRateSmooth=pre.rateSmooth,
 			materials=[pre.material],
 			generator=PsdSphereGenerator(psdPts=pre.psd,discrete=False,mass=True),
-			shooter=AlignedMinMaxShooter(dir=(1,0,-.1),vRange=(pre.flowVel,pre.flowVel)),
+			shooter=AlignedMinMaxShooter(dir=Quaternion((0,1,0),pre.inclination)*(1,0,-.1),vRange=(pre.flowVel,pre.flowVel)),
 			mask=sphMask,
 			maxMass=-1, ## do not limit, before steady state is reached
 		)
 
 
-	A,B,C,D=(xmin,ymin,rCyl),(0,ymin,rCyl),(0,ymax,rCyl),(xmin,ymax,rCyl)
+	A,B,C,D=(xmin,ymin,0),(0,ymin,0),(0,ymax,0),(xmin,ymax,0)
 	de.par.append([utils.facet(vertices,mat=pre.material,mask=wallMask,fakeVel=(conveyorVel,0,0)) for vertices in ((A,B,C),(C,D,A))])
 
-	s.engines=utils.defaultEngines(damping=.4,gravity=inclinedGravity,verletDist=.05*rMin)+[
+	s.engines=utils.defaultEngines(damping=.4,gravity=(0,0,-pre.gravity),verletDist=.05*rMin)+[
 		# what falls beyond
 		# initially not saved
-		BoxDeleter(stepPeriod=factStep,inside=True,box=((cylX[i],ymin,zmin),(cylX[i+1],ymax,-rCyl/2.)),glColor=.05*i,save=False,mask=delMask,currRateSmooth=pre.rateSmooth,label='aperture[%d]'%i) for i in range(0,pre.cylNum-1)
+		BoxDeleter(stepPeriod=factStep,inside=True,box=((cylXzd[i][0],ymin,zmin),(cylXzd[i+1][0],ymax,min(cylXzd[i][1]-cylXzd[i][2]/2.,cylXzd[i+1][1]-cylXzd[i+1][2]/2.))),glColor=.05*i,save=False,mask=delMask,currRateSmooth=pre.rateSmooth,label='aperture[%d]'%i) for i in range(0,len(cylXzd)-1)
 	]+[
 		# this one should not collect any particles at all
 		BoxDeleter(stepPeriod=factStep,box=((xmin,ymin,zmin),(xmax,ymax,zmax)),glColor=.9,save=False,mask=delMask,label='outOfDomain'),
 		# what falls inside
-		BoxDeleter(stepPeriod=factStep,inside=True,box=((lastCylX+rCyl,ymin,zmin),(xmax,ymax,zmax)),glColor=.9,save=True,mask=delMask,currRateSmooth=pre.rateSmooth,label='fallOver'),
+		BoxDeleter(stepPeriod=factStep,inside=True,box=((cylXzd[-1][0]+cylXzd[-1][2]/2.,ymin,zmin),(xmax,ymax,zmax)),glColor=.9,save=True,mask=delMask,currRateSmooth=pre.rateSmooth,label='fallOver'),
 		# generator
 		factory,
 		PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.savePlotData(S)'),
@@ -142,14 +158,13 @@ def run(pre): # use inputs as argument
 
 	print 'Generated Rollenrost.'
 
-
 	woo.plot.reset()
 
 	return s
 
 
 def makeBandFeedPack(dim,psd,mat,gravity,porosity=.5,dontBlock=False,memoizeDir=None):
-	cellSize=(dim[0],dim[1],2*dim[2])
+	cellSize=(dim[0],dim[1],(1+2*porosity)*dim[2])
 	print 'cell size',cellSize,'target height',dim[2]
 	if memoizeDir:
 		params=str(dim)+str(cellSize)+str(psd)+mat.dumps(format='expr')+str(Gravity)+str(porosity)

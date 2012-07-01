@@ -79,6 +79,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.generator=None # updated automatically
 		self.renderer=Renderer() # only hold one instance, managed by OpenGLManager
 		self.genIndexLoad=-1
+		self.genIndexCurr=-1
 		self.addPreprocessors()
 		self.addRenderers()
 		global controller
@@ -97,7 +98,10 @@ class ControllerClass(QWidget,Ui_Controller):
 		for c in woo.system.childClasses('Preprocessor'):
 			self.generatorCombo.addItem(c)
 		self.generatorCombo.insertSeparator(self.generatorCombo.count())
-		self.generatorCombo.addItem('load')
+		# currently crashes...?
+		self.generatorCombo.addItem('current simulation [might crash!]')
+		self.genIndexCurr=self.generatorCombo.count()-1
+		self.generatorCombo.addItem('load from file')
 		self.genIndexLoad=self.generatorCombo.count()-1
 	def addRenderers(self):
 		from woo import gl
@@ -127,17 +131,22 @@ class ControllerClass(QWidget,Ui_Controller):
 			f=str(QFileDialog.getOpenFileName(self,'Load preprocessor from','.'))
 			if not f:
 				self.generator=None
+				self.generatorArea.setWidget(QLabel('<i>No preprocessor loaded</i>'))
 			else:
 				self.generator=Preprocessor.load(f)
 				self.generatorCombo.setItemText(self.genIndexLoad,'%s'%f)
+		elif ix==self.genIndexCurr:
+			self.generator=woo.master.scene.pre
+			if not self.generator:
+				self.generatorArea.setWidget(QLabel('<i>No preprocessor in Scene.pre</i>'))
 		else:
 			if self.genIndexLoad>=0: self.generatorCombo.setItemText(self.genIndexLoad,'load')
 			self.generator=eval('woo.pre.'+str(genStr)+'()')
 		if self.generator:
 			se=SerializableEditor(self.generator,parent=self.generatorArea,showType=True,labelIsVar=False,showChecks=True,showUnits=True) # TODO
 			self.generatorArea.setWidget(se)
-		else:
-			self.generatorArea.setWidget(QFrame(self))
+		#else:
+		#	self.generatorArea.setWidget(QFrame(self))
 	def pythonComboSlot(self,cmd):
 		try:
 			code=compile(str(cmd),'<UI entry>','exec')
