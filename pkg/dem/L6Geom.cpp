@@ -57,6 +57,8 @@ bool Cg2_Sphere_Sphere_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<
 
 };
 
+CREATE_LOGGER(Cg2_Facet_Sphere_L6Geom);
+
 bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
 	const Facet& f=sh1->cast<Facet>(); const Sphere& s=sh2->cast<Sphere>();
 	const Vector3r& sC=s.nodes[0]->pos+shift2;
@@ -86,17 +88,33 @@ bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<
 	//cerr<<"sC="<<sC.transpose()<<", contPt="<<contPt.transpose()<<endl;
 	//cerr<<"dist="<<normal.norm()<<endl;
 	if(normal.squaredNorm()>pow(s.radius,2) && !C->isReal() && !force) { return false; }
-	Real dist=normal.norm(); normal/=dist; // normal is normalized now
+	Real dist=normal.norm();
+	#define CATCH_NAN_FACET
+	#ifdef CATCH_NAN_FACET
+		if(dist==0) LOG_FATAL("dist==0.0 between Facet #"<<C->pA->id<<" @ "<<f.nodes[0]->pos.transpose()<<", "<<f.nodes[1]->pos.transpose()<<", "<<f.nodes[2]->pos.transpose()<<" and Sphere #"<<C->pB->id<<" @ "<<s.nodes[0]->pos.transpose()<<", r="<<s.radius);
+		normal/=dist; // normal is normalized now
+	#else
+		// this tries to handle that
+		if(dist==0) normal/=dist; // normal is normalized now
+		// zero distance (sphere's center sitting exactly on the facet):
+		// use previous normal, or just unitX for new contacts (arbitrary, sorry)
+		else normal=(C->geom?C->geom->node->ori*Vector3r::UnitX():Vector3r::UnitX());
+	#endif
 	Real uN=dist-s.radius;
 	// TODO: not yet tested!!
 	Vector3r linVel,angVel;
 	std::tie(linVel,angVel)=f.interpolatePtLinAngVel(contPt);
+	#ifdef CATCH_NAN_FACET
+		if(isnan(linVel[0])||isnan(linVel[1])||isnan(linVel[2])||isnan(angVel[0])||isnan(angVel[1])||isnan(angVel[2])) LOG_FATAL("NaN in interpolated facet velocity: linVel="<<linVel.transpose()<<", angVel="<<angVel.transpose()<<", contPt="<<contPt.transpose()<<"; particles Facet #"<<C->pA->id<<" @ "<<f.nodes[0]->pos.transpose()<<", "<<f.nodes[1]->pos.transpose()<<", "<<f.nodes[2]->pos.transpose()<<" and Sphere #"<<C->pB->id<<" @ "<<s.nodes[0]->pos.transpose()<<", r="<<s.radius)
+	#endif
 	linVel+=f.fakeVel; // add fake velocity
 	const DemData& dyn2(s.nodes[0]->getData<DemData>()); // sphere
 	// check if this will work when contact point == pseudo-position of the facet
 	handleSpheresLikeContact(C,contPt,linVel,angVel,sC,dyn2.vel,dyn2.angVel,normal,contPt,uN,0,s.radius);
 	return true;
 };
+
+CREATE_LOGGER(Cg2_Wall_Sphere_L6Geom);
 
 bool Cg2_Wall_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
 	if(scene->isPeriodic) throw std::logic_error("Cg2_Wall_Sphere_L3Geom does not handle periodic boundary conditions.");
@@ -125,6 +143,8 @@ bool Cg2_Wall_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<S
 	return true;
 };
 
+CREATE_LOGGER(Cg2_InfCylinder_Sphere_L6Geom);
+
 bool Cg2_InfCylinder_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
 	if(scene->isPeriodic) throw std::logic_error("Cg2_InfCylinder_Sphere_L3Geom does not handle periodic boundary conditions.");
 	const InfCylinder& cyl=sh1->cast<InfCylinder>(); const Sphere& sphere=sh2->cast<Sphere>();
@@ -136,6 +156,11 @@ bool Cg2_InfCylinder_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const share
 	relPos[ax]=0.;
 	if(!C->isReal() && relPos.squaredNorm()>pow(cylRad+sphRad,2) && !force){ return false; }
 	Real dist=relPos.norm();
+	#ifdef CATCH_NAN_FACET
+		if(dist==0.) LOG_FATAL("dist==0.0 between InfCylinder #"<<C->pA->id<<" @ "<<cyl.nodes[0]->pos.transpose()<<", r="<<cylRad<<" and Sphere #"<<C->pB->id<<" @ "<<sphere.nodes[0]->pos.transpose()<<", r="<<sphere.radius);
+	#else
+		#error You forgot to implement dist==0 handler with InfCylinder
+	#endif
 	Real uN=dist-(cylRad+sphRad);
 	Vector3r normal=relPos/dist;
 	Vector3r cylPosAx=cylPos; cylPosAx[ax]=sphPos[ax]; // projected
