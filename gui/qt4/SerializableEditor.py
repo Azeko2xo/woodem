@@ -1318,7 +1318,7 @@ class SeqFundamentalEditor(QFrame):
 			print 'Got text from clipboard:\n',txt
 			# handle unit conversions here
 			if self.multiplier:
-				if isinstance(self.multiplier,tuple): mult=1./self.multiplier
+				if isinstance(self.multiplier,tuple): mult=[1./m for m in self.multiplier]
 				else: mult=[1./self.multiplier]*lineLen
 				print 'Input will be scaled by',mult,' to match selected units'
 			else: mult=[1.]*lineLen

@@ -157,6 +157,10 @@ def run(pre): # use inputs as argument
 	s.any=[woo.gl.Gl1_InfCylinder(wire=True),woo.gl.Gl1_Wall(div=1),woo.gl.Gl1_DemField(glyph=woo.gl.Gl1_DemField.glyphVel)]
 
 	print 'Generated Rollenrost.'
+	out=pre.saveFmt.format(stage='init',S=s,**(dict(s.tags)))
+	s.save(out)
+	print 'Saved initial simulation also to ',out
+
 
 	woo.plot.reset()
 

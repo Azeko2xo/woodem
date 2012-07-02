@@ -806,23 +806,32 @@ void GLViewer::postDraw(){
 				//cerr<<"new length "<<range.length<<endl;
 			}
 			// adjust if off-screen
+
+			// adjust if too long/short
+			// first value of ht, before adjustments
+			int ht=int(range.length<0?abs((!range.landscape?height():width())*range.length):range.length); 
+
 			bool flipped=false;
-			if(mov.pos.x()<10 || mov.pos.x()>width()-10-scaleWd){ 
+			if(mov.pos.x()<10 || mov.pos.x()>width()-10-(range.landscape?ht:scaleWd)){ 
 				if(range.landscape){ flipped=true; range.landscape=false; }
 				if(mov.pos.x()<10) mov.pos.setX(10);
-				else mov.pos.setX(width()-10-scaleWd);
+				// 20 instead of 10 avoids orientation-change loop
+				else mov.pos.setX(width()-10-(range.landscape?ht:scaleWd));
 			}
-			if(mov.pos.y()<10 || mov.pos.y()>height()-10-scaleWd){
-				if(!range.landscape && !flipped){ flipped=true; range.landscape=true; }
+			if(mov.pos.y()<10 || mov.pos.y()>height()-10-(range.landscape?scaleWd:ht)){
+				if(!range.landscape && !flipped){
+					flipped=true; range.landscape=true;
+					if(mov.pos.x()>width()-10-ht) mov.pos.setX(width()-20-ht);
+				}
 				if(mov.pos.y()<10) mov.pos.setY(10);
-				else mov.pos.setY(height()-10-scaleWd);
+				else mov.pos.setY(height()-10-(range.landscape?scaleWd:ht));
 			}
 			// 
 			// adjust if too long/short
-			if(range.length<0) CompUtils::clamp(range.length,-.9,-.1);
-			else CompUtils::clamp(range.length,height()*.1,height()*.9);
-			// length in pixels
-			int ht=int(range.length<0?abs((!range.landscape?height():width())*range.length):range.length); 
+			if(range.length<0) CompUtils::clamp(range.length,-.8,-.1);
+			else CompUtils::clamp(range.length,height()*.1,height()*.8);
+			// length in pixels (second value, after adjustments)
+			ht=int(range.length<0?abs((!range.landscape?height():width())*range.length):range.length); 
 			int yStep=ht/nDiv;
 			// update dimensions of the grabber object
 			int y0, x;
