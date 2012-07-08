@@ -59,7 +59,7 @@ bool Gl1_Facet::wire;
 
 void Gl1_Facet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire2, const GLViewInfo&){   
 	Facet& f=sh->cast<Facet>();
-	glColor3v(CompUtils::mapColor(f.getBaseColor()));
+	//glColor3v(CompUtils::mapColor(f.getBaseColor()));
 
 	if(wire || wire2){
 		glDisable(GL_LINE_SMOOTH);

@@ -49,7 +49,7 @@ void Bo1_InfCylinder_Aabb::go(const shared_ptr<Shape>& sh){
 			B[cyl.axis]=cyl.nodes[0]->pos[cyl.axis]+cyl.glAB[1];
 		}
 		glDisable(GL_LINE_SMOOTH);
-		GLUtils::Cylinder(A,B,cyl.radius,CompUtils::mapColor(shape->getBaseColor()),/*wire*/wire||wire2,/*caps*/false,/*rad2*/-1,slices);
+		GLUtils::Cylinder(A,B,cyl.radius,/*keep current color*/Vector3r(NaN,NaN,NaN),/*wire*/wire||wire2,/*caps*/false,/*rad2*/-1,slices);
 		glEnable(GL_LINE_SMOOTH);
 	}
 #endif

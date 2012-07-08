@@ -6,6 +6,7 @@
 struct Law2_L6Geom_FrictPhys_IdealElPl: public LawFunctor{
 	void go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&);
 	FUNCTOR2D(L6Geom,FrictPhys);
+	DECLARE_LOGGER;
 	WOO_CLASS_BASE_DOC_ATTRS(Law2_L6Geom_FrictPhys_IdealElPl,LawFunctor,"Ideally elastic-plastic behavior.",
 		((bool,iniEqlb,false,,"Consider the intial distance as equilibrium distance (saved in contact data, subtracted from L6Geom.uN); enabling during simulation will only affect newly created contacts; disabling will affect all contacts."))
 		((bool,noSlip,false,,"Disable plastic slipping"))

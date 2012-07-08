@@ -25,15 +25,16 @@ if not os.path.exists('horse.coarse.gts'):
 
 surf=gts.read(open('horse.coarse.gts'))
 
+S=woo.master.scene
 if surf.is_closed():
 	pred=pack.inGtsSurface(surf)
 	aabb=pred.aabb()
 	dim0=aabb[1][0]-aabb[0][0]; radius=dim0/40. # get some characteristic dimension, use it for radius
-	O.dem.par.append(pack.regularHexa(pred,radius=radius,gap=radius/4.))
+	S.dem.par.append(pack.regularHexa(pred,radius=radius,gap=radius/4.))
 	surf.translate(0,0,-(aabb[1][2]-aabb[0][2])) # move surface down so that facets are underneath the falling spheres
-O.dem.par.append(pack.gtsSurface2Facets(surf,wire=True))
+S.dem.par.append(pack.gtsSurface2Facets(surf,wire=True))
 
-O.scene.engines=[
+S.engines=[
 	ForceResetter(),
 	InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb()],label='collider'),
 	ContactLoop(
@@ -44,16 +45,16 @@ O.scene.engines=[
 	IntraForce([In2_Sphere_ElastMat()]),
 	Gravity(gravity=(0,0,-5000)),
 	Leapfrog(damping=.1),
-	PyRunner(2000,'timing.stats(); O.pause();'),
+	PyRunner(2000,'timing.stats(); S.pause();'),
 	PyRunner(10,'addPlotData()')
 ]
-O.scene.dt=.7*utils.pWaveDt()
-O.saveTmp()
-O.timingEnabled=True
-O.scene.trackEnergy=True
+S.dt=.7*utils.pWaveDt()
+S.saveTmp()
+woo.master.timingEnabled=True
+S.trackEnergy=True
 from woo import plot
-plot.plots={'i':('total',O.scene.energy.keys,)}
-def addPlotData(): plot.addData(i=O.scene.step,total=O.scene.energy.total(),**O.scene.energy)
+plot.plots={'i':('total',S.energy.keys,)}
+def addPlotData(): plot.addData(i=S.step,total=S.energy.total(),**S.energy)
 plot.plot()
 
 from woo import timing

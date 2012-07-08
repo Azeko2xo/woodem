@@ -324,6 +324,7 @@ parser.add_option('--refresh',type='int',dest='refresh',help='Refresh rate of au
 parser.add_option('--timing',type='int',dest='timing',default=0,metavar='COUNT',help='Repeat each job COUNT times, and output a simple table with average/variance/minimum/maximum job duration; used for measuring how various parameters affect execution time. Jobs can override the global value with the !COUNT column.')
 parser.add_option('--timing-output',type='str',metavar='FILE',dest='timingOut',default=None,help='With \-\-timing, save measured durations to FILE, instead of writing to standard output.')
 parser.add_option('--randomize',action='store_true',dest='randomize',help='Randomize job order (within constraints given by assigned cores).')
+parser.add_option('--no-table',action='store_true',dest='notable',help='Treat all command-line argument as simulations to be run, either python scripts or saved simulations.')
 #parser.add_option('--serial',action='store_true',dest='serial',default=False,help='Run all jobs serially, even if there are free cores
 opts,args=parser.parse_args()
 logFormat,lineList,maxJobs,nice,executable,gnuplotOut,dryRun,httpWait,globalLog=opts.logFormat,opts.lineList,opts.maxJobs,opts.nice,opts.executable,opts.gnuplotOut,opts.dryRun,opts.httpWait,opts.globalLog
@@ -341,7 +342,7 @@ if globalLog:
 	sys.stderr=open(globalLog,"w")
 	sys.stdout=sys.stderr
 
-if len([1 for a in args if re.match('.*\.py(/[0-9]+)?',a)])==len(args) and len(args)!=0:
+if len([1 for a in args if re.match('.*\.py(/[0-9]+)?',a)])==len(args) and len(args)!=0 or opts.notable:
 	# if all args end in .py, they are simulations that we will run
 	table=None; scripts=args
 elif len(args)==2:

@@ -10,9 +10,6 @@
 
 #include<woo/pkg/dem/Particle.hpp>
 
-
-#include<woo/pkg/sparc/SparcField.hpp>
-
 #include <GL/glu.h>
 #include <GL/gl.h>
 #include <GL/glut.h>

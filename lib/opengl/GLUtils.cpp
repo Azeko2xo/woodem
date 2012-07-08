@@ -30,7 +30,7 @@ void GLUtils::Parallelepiped(const Vector3r& a, const Vector3r& b, const Vector3
 
 void GLUtils::AlignedBox(const AlignedBox3r& box, const Vector3r& color){
 	glPushMatrix();
-		glColor3v(color);
+		if(!isnan(color[0])) glColor3v(color);
 		glTranslatev(box.center().eval());
 		glScalev(Vector3r(box.max()-box.min()));
 		glDisable(GL_LINE_SMOOTH);
@@ -51,7 +51,7 @@ void GLUtils::Cylinder(const Vector3r& a, const Vector3r& b, Real rad1, const Ve
 		Quaternionr q(Quaternionr().setFromTwoVectors(Vector3r(0,0,1),(b-a)/dist /* normalized */));
 		// using Transform with OpenGL: http://eigen.tuxfamily.org/dox/TutorialGeometry.html
 		glMultMatrixd(Eigen::Affine3d(q).data());
-		glColor3v(color);
+		if(!isnan(color[0]))	glColor3v(color);
 		gluQuadricDrawStyle(gluQuadric,wire?GLU_LINE:GLU_FILL);
 		if(stacks<0) stacks=max(1,(int)(dist/(rad1*(-stacks/10.))+.5));
 		gluCylinder(gluQuadric,rad1,rad2,dist,slices,stacks);

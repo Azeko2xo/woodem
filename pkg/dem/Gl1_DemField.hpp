@@ -29,7 +29,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 		((bool,bound,false,,"Render particle's :ref:`Bound`"))
 		((bool,shape,true,,"Render particle's :ref:`Shape`"))
 		((bool,nodes,false,,"Render DEM nodes"))
-		((int,cNodes,-1,,"Render contact's nodes (-1=nothing, 0=rep only, 2=line between particles, 2=nodes, 3=both"))
+		((int,cNodes,-1,AttrTrait<>().choice({{-1,"nothing"},{0,"Node.rep"},{1,"Node.rep + line"},{2,"Node.rep + Node"},{3,"Node.rep + Node + line"}}),"Render contact's nodes"))
 		((Vector2i,cNodes_range,Vector2i(-1,3),AttrTrait<>().noGui(),"Range for cNodes"))
 		((bool,potWire,false,,"Render potential contacts as line between particles"))
 		((bool,cPhys,false,,"Render contact's nodes"))

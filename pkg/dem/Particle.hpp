@@ -149,7 +149,7 @@ public:
 		((Vector3r,force,Vector3r::Zero(),AttrTrait<>().forceUnit(),"Applied force"))
 		((Vector3r,torque,Vector3r::Zero(),AttrTrait<>().torqueUnit(),"Applied torque"))
 		((Vector3r,angMom,Vector3r::Zero(),AttrTrait<>().angMomUnit(),"Angular momentum (used with the aspherical integrator)"))
-		((unsigned,flags,0,AttrTrait<Attr::readonly>(),"Bit flags storing blocked DOFs, clump status"))
+		((unsigned,flags,0,AttrTrait<Attr::readonly>().bits({"block x","block y","block z","block rot x","block rot y","block rot z","clumped","clump","energy skip"}),"Bit flags storing blocked DOFs, clump status"))
 		((long,linIx,-1,AttrTrait<>().hidden(),"Index within O.dem.nodes (for efficient removal)"))
 		((int,parCount,0,AttrTrait<>().noGui(),"Number of particles associated with this node (to know whether a node should be deleted when a particle is)"))
 		((shared_ptr<Impose>,impose,,,"Impose arbitrary velocity, angular velocity, ... on the node; the functor is called from Leapfrog, after new position and velocity have been computed."))

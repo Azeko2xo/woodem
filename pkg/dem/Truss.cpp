@@ -87,7 +87,7 @@ void Gl1_Truss::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool w
 	const Truss& t(shape->cast<Truss>());
 	assert(t.numNodesOk());
 	Vector3r color;
-	if(!colorStress) color=CompUtils::mapColor(shape->color);
+	if(!colorStress) color=Vector3r(NaN,NaN,NaN); // keep current
 	else {
 		stressRange[0]=min(stressRange[0],t.axialStress);
 		stressRange[1]=max(stressRange[1],t.axialStress);

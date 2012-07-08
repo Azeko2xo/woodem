@@ -32,15 +32,14 @@ seqSerializableShowType=True # show type headings in serializable sequences (tak
 #
 #
 
-def makeWrapperHref(text,className,attr=None,static=False):
+def makeWrapperHref(text,klass,attr=None,static=False):
 	"""Create clickable HTML hyperlink to a Yade class or its attribute.
 	
-	:param className: name of the class to link to.
-	:param attr: attribute to link to. If given, must exist directly in given *className*; if not given or empty, link to the class itself is created and *attr* is ignored.
+	:param klass: class object.
+	:param attr: attribute to link to. If given, must exist directly in given *klass*; if not given or empty, link to the class itself is created and *attr* is ignored.
 	:return: HTML with the hyperref.
 	"""
-	if not static: return '<a href="%s#woo.wrapper.%s%s">%s</a>'%(woo.qt.sphinxDocWrapperPage,className,(('.'+attr) if attr else ''),text)
-	else:          return '<a href="%s#ystaticattr-%s.%s">%s</a>'%(woo.qt.sphinxDocWrapperPage,className,attr,text)
+	return '<a href="{sphinxPrefix}/{module}.html#{module}.{klass}{dotAttr}">{text}</a>'.format(sphinxPrefix=woo.qt.sphinxPrefix,module=klass.__module__,klass=klass.__name__,dotAttr=(('.'+attr) if attr else ''),text=text)
 
 def serializableHref(ser,attr=None,text=None):
 	"""Return HTML href to a *ser* optionally to the attribute *attr*.
@@ -55,9 +54,9 @@ def serializableHref(ser,attr=None,text=None):
 	:returns: HTML with the hyperref.
 	"""
 	# klass is a class name given as string
-	if isinstance(ser,str):
-		if attr: raise InvalidArgument("When *ser* is a string, *attr* must be empty (only class link can be created)")
-		return makeWrapperHref(text if text else ser,ser)
+	#if isinstance(ser,str):
+	#	if attr: raise InvalidArgument("When *ser* is a string, *attr* must be empty (only class link can be created)")
+	#	return makeWrapperHref(text if text else ser,ser)
 	# klass is a type object
 	if attr:
 		klass=ser.__class__
@@ -66,7 +65,7 @@ def serializableHref(ser,attr=None,text=None):
 	else:
 		klass=ser.__class__
 		if not text: text=klass.__name__
-	return makeWrapperHref(text,klass.__name__,attr,static=(attr and getattr(klass,attr,None)==getattr(ser,attr)))
+	return makeWrapperHref(text,klass,attr,static=(attr and getattr(klass,attr,None)==getattr(ser,attr)))
 
 # HACK: extend the QLineEdit class
 # set text but preserve cursor position
@@ -319,6 +318,37 @@ class AttrEditor_Choice(AttrEditor,QFrame):
 			self.combo.setItemText(i,str(val))
 		self.refresh()
 
+class AttrEditor_Bits(AttrEditor,QFrame):
+	checkersPerRow=3
+	def __init__(self,parent,getter,setter):
+		AttrEditor.__init__(self,getter,setter)
+		QFrame.__init__(self,parent)
+		curr,self.bits=getter()
+		if len(self.bits)<1: raise RuntimeError("There are 0 bits for this attribute?")
+		self.checkers=[]
+		self.value=0 # current value of checkboxes
+		self.grid=QGridLayout(self); self.grid.setSpacing(0); self.grid.setMargin(0)
+		for i,b in enumerate(self.bits):
+			w=QCheckBox(self)
+			w.setText(b)
+			w.clicked.connect(self.update)
+			self.checkers.append(w)
+			self.grid.addWidget(w,i//self.checkersPerRow,i%self.checkersPerRow)
+	def refresh(self):
+		curr,bits=self.getter()
+		if curr==self.value: return
+		if curr>=2**len(self.checkers): raise RuntimeError("Value %d exceeds maximum value %d (=2^%d-1) representable by the UI bitfield"%(curr,2**len(self.checkers)-1,len(self.checkers))) 
+		self.value=curr
+		for bit,w in enumerate(self.checkers):
+			b=curr&(1<<bit)
+			if b!=w.isChecked(): w.setChecked(b)
+	def update(self):
+		val=0
+		for bit,w in enumerate(self.checkers):
+			if w.isChecked(): val|=(1<<bit)
+		self.trySetter(val)
+	def setFocus(self): self.checkers[0].setFocus()
+
 		
 
 
@@ -353,57 +383,6 @@ class AttrEditor_Se3(AttrEditor,QFrame):
 		qq=Quaternion(Vector3(q[0],q[1],q[2]),q[3]); qq.normalize() # from axis-angle
 		self.trySetter((v,qq)) 
 	def setFocus(self): self.grid.itemAtPosition(0,0).widget().setFocus()
-
-class AttrEditor_flagArray(AttrEditor,QFrame):
-	def __init__(self,parent,getter,setter,labels):
-		AttrEditor.__init__(self,getter,setter)
-		QFrame.__init__(self,parent)
-		self.labels=labels
-		self.dim=len(labels),max([len(l) for l in labels])
-		self.grid=QGridLayout(self); self.grid.setSpacing(0); self.grid.setMargin(0)
-		for r in range(len(self.labels)):
-			for c in range(len(self.labels[r])):
-				if self.labels[r][c]==None: continue
-				w=QCheckBox()
-				w.setText(self.labels[r][c])
-				self.grid.addWidget(w,r,c)
-				w.clicked.connect(self.update)
-	def refresh(self):
-		val=self.getter()
-		#print self.getter, val
-		for r in range(len(val)):
-			for c in range(len(val[r])):
-				if val[r][c]==None: continue
-				self.grid.itemAtPosition(r,c).widget().setChecked(val[r][c])
-	def update(self):
-		ret=[]
-		for r in range(len(self.labels)):
-			ret.append([])
-			for c in range(len(self.labels[r])):
-				ret[r].append(None if self.labels[r][c]==None else self.grid.itemAtPosition(r,c).widget().isChecked())
-		self.setter(ret)
-	def setFocus(self): self.grid.itemAtPosition(0,0).widget().setFocus()
-
-# FIXME: broken
-class AttrEditor_DemData_flags(AttrEditor_flagArray):
-	# getter: gets from cxx and returns as array of bools
-	# setter: receives bools from widgets, sets cxx value
-	def boolSetter(self,bb): # grab bools from widgets, call self.setter with bools given as string
-		assert(len(bb)==1 and len(bb[0])==6)
-		ss=''.join(['xyzXYZ'[i] for i in range(6) if bb[0][i]])
-		self.realSetter(ss)
-	def boolGetter(self):
-		ss=self.realGetter() #
-		return [[('xyzXYZ'[i] in ss) for i in range(6)]]
-	def __init__(self,parent,getter,setter):
-		AttrEditor_flagArray.__init__(self,parent,getter=self.boolGetter,setter=self.boolSetter,labels=[['x','y','z','X','Y','Z']])
-		self.realSetter=setter
-		self.realGetter=getter
-
-#class AttrEditor_MatriX2(AttrEditor,QTableWidget):
-#	def __init__(self,parent,getter,setter,rows,cols,idxConverter):
-#		AttrEditor.__init__(self,getter,setter)
-#		QTableWidget.__init__(self,parent)
 
 
 class AttrEditor_MatrixX(AttrEditor,QFrame):
@@ -799,6 +778,9 @@ class SerializableEditor(QFrame):
 	def handleChoices(self,widgetKlass,getter,setter,entry):
 		choice=entry.trait.choice
 		return AttrEditor_Choice, lambda: (getattr(self.ser,entry.name),choice),lambda x: setattr(self.ser,entry.name,x)
+	def handleBits(self,widgetKlass,getter,setter,entry):
+		bits=entry.trait.bits
+		return AttrEditor_Bits, lambda: (getattr(self.ser,entry.name),bits),lambda x: setattr(self.ser,entry.name,x)
 		
 	def mkWidget(self,entry):
 		if not entry.T: return None
@@ -807,6 +789,7 @@ class SerializableEditor(QFrame):
 		getter,setter=lambda: getattr(self.ser,entry.name), lambda x: setattr(self.ser,entry.name,x)
 		if entry.trait.range: Klass,getter,setter=self.handleRanges(Klass,getter,setter,entry)
 		elif entry.trait.choice: Klass,getter,setter=self.handleChoices(Klass,getter,setter,entry)
+		elif entry.trait.bits: Klass,getter,setter=self.handleBits(Klass,getter,setter,entry)
 		if Klass:
 			widget=Klass(self,getter=getter,setter=setter)
 			widget.setFocusPolicy(Qt.StrongFocus)
@@ -1342,7 +1325,7 @@ class SeqFundamentalEditor(QFrame):
 		currSeq=self.getter()
 		#print 'aaa',len(currSeq)
 		# clear everything
-		rows=self.form.count()/2
+		rows=self.form.count()//2
 		for row in range(rows):
 			logging.trace('counts',self.form.rowCount(),self.form.count())
 			for wi in self.form.itemAt(row,QFormLayout.FieldRole),self.form.itemAt(row,QFormLayout.LabelRole):
@@ -1384,7 +1367,7 @@ class SeqFundamentalEditor(QFrame):
 	def refreshEvent(self,dontRebuild=False,forceIx=-1):
 		currSeq=self.getter()
 		#print 'bbb',len(currSeq)
-		if len(currSeq)!=self.form.count()/2: #rowCount():
+		if len(currSeq)!=self.form.count()//2: #rowCount():
 			if dontRebuild: return # length changed behind our back, just pretend nothing happened and update next time instead
 			self.rebuild()
 			currSeq=self.getter()
@@ -1400,7 +1383,7 @@ class SeqFundamentalEditor(QFrame):
 	def multiplierChanged(self,convSpec):
 		self.convSpec=convSpec # cache value should new rows be created
 		self.setToolTip(convSpec)
-		for row in range(self.form.count()/2):
+		for row in range(self.form.count()//2):
 			w=self.form.itemAt(row,QFormLayout.FieldRole).widget()
 			if isinstance(w,QLabel): continue # label that the sequence is empty
 			w.multiplier=self.multiplier

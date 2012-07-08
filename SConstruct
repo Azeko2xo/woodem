@@ -1,4 +1,4 @@
-#!/usr/bin/scon
+#!/usr/bin/scons
 # coding: UTF-8
 # vim:syntax=python:
 

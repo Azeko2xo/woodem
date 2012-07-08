@@ -7,6 +7,8 @@ WOO_PLUGIN(dem,(Law2_L6Geom_FrictPhys_IdealElPl)(IdealElPlData)(Law2_L6Geom_Fric
 	#define _WATCH_MSG(msg)
 #endif
 
+CREATE_LOGGER(Law2_L6Geom_FrictPhys_IdealElPl);
+
 void Law2_L6Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shared_ptr<CPhys>& cp, const shared_ptr<Contact>& C){
 	const L6Geom& g(cg->cast<L6Geom>()); FrictPhys& ph(cp->cast<FrictPhys>());
 	#ifdef WOO_DEBUG
@@ -62,8 +64,9 @@ void Law2_L6Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shar
 	}
 	if(unlikely(scene->trackEnergy)){ scene->energy->add(0.5*(pow(ph.force[0],2)/ph.kn+Ft.squaredNorm()/ph.kt),"elast",elastPotIx,EnergyTracker::IsResettable); }
 	if(isnan(ph.force[0]) || isnan(ph.force[1]) || isnan(ph.force[2])){
-		cerr<<"step "<<scene->step<<": ##"<<C->pA->id<<"+"<<C->pB->id<<" have NaN force!"<<endl;
-		throw std::runtime_error("NaN force in contact?!");
+		LOG_FATAL("##"<<C->pA->id<<"+"<<C->pB->id<<" ("<<C->pA->shape->getClassName()<<"+"<<C->pB->shape->getClassName()<<") has NaN force!");
+		LOG_FATAL("    uN="<<uN<<", velT="<<velT.transpose()<<", F="<<ph.force.transpose()<<"; maxFt="<<maxFt<<"; kn="<<ph.kn<<", kt="<<ph.kt);
+		throw std::runtime_error("NaN force in contact (message above)?!");
 	}
 };
 

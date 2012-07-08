@@ -57,7 +57,7 @@ void Gl1_DemField::postLoad(Gl1_DemField&){
 	glyphRange->reset();
 	colorRange->reset();
 	switch(colorBy){
-		case COLOR_NONE: colorRange->label="[none]";  break;
+		case COLOR_NONE: colorRange->label="[none]"; colorRange->mnmx=Vector2r(0,1);  break;
 		case COLOR_RADIUS: colorRange->label="radius"; break;
 		case COLOR_VEL: colorRange->label="|vel|"; break;
 		case COLOR_DISPLACEMENT: colorRange->label="displacement"; break;
@@ -118,13 +118,21 @@ void Gl1_DemField::doShape(){
 
 		FOREACH(const shared_ptr<Node>& n,p->shape->nodes) rrr->setNodeGlData(n,updateRefPos);
 
+		Vector3r parColor;
 		switch(colorBy){
-			case COLOR_RADIUS: p->shape->setBaseColor(dynamic_pointer_cast<Sphere>(p->shape)?colorRange->norm(p->shape->cast<Sphere>().radius):0.); break;
-			case COLOR_VEL: p->shape->setBaseColor(colorRange->norm(n0->getData<DemData>().vel.norm())); break;
-			case COLOR_DISPLACEMENT: p->shape->setBaseColor(colorRange->norm((n0->pos-n0->getData<GlData>().refPos).norm())); break;
-			case COLOR_ROTATION: p->shape->setBaseColor(colorRange->norm(AngleAxisr(n0->ori.conjugate()*n0->getData<GlData>().refOri).angle())); break;
-			case COLOR_NONE: ;
-			default: ;
+				case COLOR_RADIUS: parColor=(dynamic_pointer_cast<Sphere>(p->shape)?colorRange->color(p->shape->cast<Sphere>().radius):Vector3r(NaN,NaN,NaN)); break;
+				case COLOR_VEL: parColor=colorRange->color(n0->getData<DemData>().vel.norm()); break;
+				case COLOR_DISPLACEMENT: parColor=colorRange->color((n0->pos-n0->getData<GlData>().refPos).norm()); break;
+				case COLOR_ROTATION: parColor=colorRange->color(AngleAxisr(n0->ori.conjugate()*n0->getData<GlData>().refOri).angle()); break;
+				case COLOR_NONE: parColor=colorRange->color(p->shape->color); break;
+			#if 0
+				case COLOR_RADIUS: p->shape->setBaseColor(dynamic_pointer_cast<Sphere>(p->shape)?colorRange->norm(p->shape->cast<Sphere>().radius):0.); break;
+				case COLOR_VEL: p->shape->setBaseColor(colorRange->norm(n0->getData<DemData>().vel.norm())); break;
+				case COLOR_DISPLACEMENT: p->shape->setBaseColor(colorRange->norm((n0->pos-n0->getData<GlData>().refPos).norm())); break;
+				case COLOR_ROTATION: p->shape->setBaseColor(colorRange->norm(AngleAxisr(n0->ori.conjugate()*n0->getData<GlData>().refOri).angle())); break;
+				case COLOR_NONE: ;
+			#endif
+			default: parColor=Vector3r(NaN,NaN,NaN);
 		}
 
 		for(const auto& n: p->shape->nodes){
@@ -146,6 +154,7 @@ void Gl1_DemField::doShape(){
 		}
 
 		glPushMatrix();
+			glColor3v(parColor);
 			rrr->shapeDispatcher(p->shape,/*shift*/Vector3r::Zero(),wire||sh->getWire(),*viewInfo);
 		glPopMatrix();
 

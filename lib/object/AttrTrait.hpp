@@ -27,11 +27,12 @@ namespace woo{
 		vector<pair<string,Real>> _prefUnit;
 		vector<vector<pair<string,Real>>> _altUnits;
 		// avoid throwing exceptions when not initialized, just return None
-		AttrTraitBase(): _flags(0)              { _ini=_range=_choice=[]()->py::object{ return py::object(); }; }
-		AttrTraitBase(int flags): _flags(flags) { _ini=_range=_choice=[]()->py::object{ return py::object(); }; }
+		AttrTraitBase(): _flags(0)              { _ini=_range=_choice=_bits=[]()->py::object{ return py::object(); }; }
+		AttrTraitBase(int flags): _flags(flags) { _ini=_range=_choice=_bits=[]()->py::object{ return py::object(); }; }
 		std::function<py::object()> _ini;
 		std::function<py::object()> _range;
 		std::function<py::object()> _choice;
+		std::function<py::object()> _bits;
 		// getters (setters below, to return the same reference type)
 		#define ATTR_FLAG_DO(flag,isFlag) bool isFlag() const { return _flags&(int)Flags::flag; }
 			ATTR_FLAG_DO(noSave,isNoSave)
@@ -49,6 +50,7 @@ namespace woo{
 		py::object pyGetIni()const{ return _ini(); }
 		py::object pyGetRange()const{ return _range(); }
 		py::object pyGetChoice()const{ return _choice(); }
+		py::object pyGetBits()const{ return _bits(); }
 		py::object pyUnit(){ return py::object(_unit); }
 		py::object pyPrefUnit(){
 			// return base unit if preferred not specified
@@ -85,6 +87,7 @@ namespace woo{
 				.add_property("ini",&AttrTraitBase::pyGetIni)
 				.add_property("range",&AttrTraitBase::pyGetRange)
 				.add_property("choice",&AttrTraitBase::pyGetChoice)
+				.add_property("bits",&AttrTraitBase::pyGetBits)
 				.def("__str__",&AttrTraitBase::pyStr)
 				.def("__repr__",&AttrTraitBase::pyStr)
 			;
@@ -155,8 +158,14 @@ namespace woo{
 		AttrTrait& range(const Vector2i& t){ _range=std::function<py::object()>([=]()->py::object{ return py::object(t);} ); return *this; }
 		AttrTrait& range(const Vector2r& t){ _range=std::function<py::object()>([=]()->py::object{ return py::object(t);} ); return *this; }
 
+		// choice from integer values
 		AttrTrait& choice(const vector<int>& t){ _choice=std::function<py::object()>([=]()->py::object{ return py::object(t);} ); return *this; }
+		// choice from integer values, represented by descriptions
 		AttrTrait& choice(const vector<pair<int,string>>& t){ _choice=std::function<py::object()>([=]()->py::object{ return py::object(t);} ); return *this; }
+		// bitmask where each bit is represented by a string (given from the left)
+		AttrTrait& bits(const vector<string>& t){ _bits=std::function<py::object()>([=]()->py::object{ return py::object(t);} ); return *this; }
+		// bitmask where each bit-group (size given by the int) is represented by given string (if 1, it is a simple bool, otherwise strings should be 2**i in number, so that e.g. 2 bits have 4 corresponding values which are bits 00, 01, 10, 11 respectively
+		// AttrTrait& bits(const vector<pair<int,vector<string>>>& t){ _bits=std::function<py::object()>([=]()->py::object{ return py::object(t);} ); return *this; }
 		// shorthands for common units
 		AttrTrait& angleUnit(){ unit("rad"); altUnits({{"deg",180/Mathr::PI}}); return *this; }
 		AttrTrait& timeUnit(){ unit("s"); altUnits({{"ms",1e3},{"μs",1e6},{"day",1./(60*60*24)},{"year",1./(60*60*24*365)}}); return *this; }

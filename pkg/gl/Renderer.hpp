@@ -91,8 +91,6 @@ class Renderer: public Object{
 	public :
 		// updated after every call to render
 		shared_ptr<Scene> scene;
-		shared_ptr<DemField> dem;
-		shared_ptr<SparcField> sparc;
 
 		// GL selection amangement
 		// in selection mode, put rendered obejcts one after another into an array
@@ -136,17 +134,6 @@ class Renderer: public Object{
 
 		void pyInitError(py::tuple, py::dict){ throw std::runtime_error("woo.gl.Renderer() may not be instantiated directly, use woo.qt.Renderer() to get the current instance."); }
 
-		// void renderCPhys();
-#if 0
-		void pyRender(){render(Master::instance().getScene());}
-
-		void renderDOF_ID();
-		void renderIGeom();
-		// called also to render selectable entitites;
-		void renderAllInteractionsWire();
-
-		void renderField();
-#endif
 	WOO_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(Renderer,Object,"Class responsible for rendering scene on OpenGL devices.",
 		((bool,scaleOn,true,,"Whether *dispScale* has any effect or not."))
 		((Vector3r,dispScale,((void)"disable scaling",Vector3r::Ones()),,"Artificially enlarge (scale) dispalcements from bodies' :ref:`reference positions<State.refPos>` by this relative amount, so that they become better visible (independently in 3 dimensions). Disbled if (1,1,1), and also if *scaleOn* is false."))

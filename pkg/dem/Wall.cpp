@@ -40,7 +40,7 @@ void In2_Wall_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Materia
 		const Wall& wall=shape->cast<Wall>();
 		int ax0=wall.axis,ax1=(wall.axis+1)%3,ax2=(wall.axis+2)%3;
 		const Vector3r& pos(wall.nodes[0]->pos);
-		glColor3v(CompUtils::mapColor(shape->getBaseColor()));
+		//glColor3v(CompUtils::mapColor(shape->getBaseColor()));
 		glLineWidth(1);
 		assert(wall.nodes.size()==1);
 		// corner of the drawn plane is at the edge of the visible scene, except for the axis sense, which is in the wall plane

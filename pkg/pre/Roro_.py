@@ -153,6 +153,7 @@ def run(pre): # use inputs as argument
 		rr.iniUp=(0,0,1)
 		rr.iniViewDir=(0,1,0)
 	except ImportError: pass
+	import woo.gl # if the previous import fails, this is needed (?!)
 	# set other display options and save them (static attributes)
 	s.any=[woo.gl.Gl1_InfCylinder(wire=True),woo.gl.Gl1_Wall(div=1),woo.gl.Gl1_DemField(glyph=woo.gl.Gl1_DemField.glyphVel)]
 

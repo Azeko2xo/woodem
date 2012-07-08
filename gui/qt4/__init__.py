@@ -15,17 +15,18 @@ from woo.qt._GLViewer import *  # imports Renderer() as well
 
 from ExceptionDialog import *
 
-maxWebWindows=1
-"Number of webkit windows that will be cycled to show help on clickable objects"
-webWindows=[] 
-"holds instances of QtWebKit windows; clicking an url will open it in the window that was the least recently updated"
-sphinxOnlineDocPath='https://www.yade-dem.org/sphinx/'
+#maxWebWindows=1
+#"Number of webkit windows that will be cycled to show help on clickable objects"
+#"holds instances of QtWebKit windows; clicking an url will open it in the window that was the least recently updated"
+#webWindows=[] 
+#webController=None
+sphinxOnlineDocPath='https://www.woodem.org/doc/'
 "Base URL for the documentation. Packaged versions should change to the local installation directory."
 
 import os.path
 # find if we have docs installed locally from package
 sphinxLocalDocPath=woo.config.prefix+'/share/doc/woo'+woo.config.suffix+'/html/'
-sphinxBuildDocPath=woo.config.sourceRoot+'/doc/sphinx/_build/html/'
+sphinxBuildDocPath=woo.config.sourceRoot+'/doc/sphinx2/build/html/'
 # we prefer the packaged documentation for this version, if installed
 if   os.path.exists(sphinxLocalDocPath+'/index.html'): sphinxPrefix='file://'+sphinxLocalDocPath
 # otherwise look for documentation generated in the source tree
@@ -33,7 +34,7 @@ elif  os.path.exists(sphinxBuildDocPath+'/index.html'): sphinxPrefix='file://'+s
 # fallback to online docs
 else: sphinxPrefix=sphinxOnlineDocPath
 
-sphinxDocWrapperPage=sphinxPrefix+'/woo.wrapper.html'
+#sphinxDocWrapperPage=sphinxPrefix+'/woo.wrapper.html'
 
 
 ## object selection
@@ -43,6 +44,14 @@ def getSel(): return Renderer().selObj
 
 
 def openUrl(url):
+	import webbrowser
+	webbrowser.open(url)
+	#global webController
+	#if not webController: webController=webbrowser.get()
+	#webController.open(url)
+	return
+
+	# old version
 	from PyQt4 import QtWebKit
 	global maxWebWindows,webWindows
 	reuseLast=False
@@ -197,7 +206,7 @@ class ControllerClass(QWidget,Ui_Controller):
 	def displayComboSlot(self,dispStr):
 		from woo import gl
 		ser=(self.renderer if dispStr=='Renderer' else eval('gl.'+str(dispStr)+'()'))
-		path='woo.qt.Renderer()' if dispStr=='Renderer' else dispStr
+		path='woo.qt.Renderer()' if dispStr=='Renderer' else 'woo.gl.'+dispStr
 		se=SerializableEditor(ser,parent=self.displayArea,ignoredAttrs=set(['label']),showType=True,path=path)
 		self.displayArea.setWidget(se)
 	def loadSlot(self):

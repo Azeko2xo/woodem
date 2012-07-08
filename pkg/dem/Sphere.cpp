@@ -83,7 +83,7 @@ void Gl1_Sphere::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool 
 	if(quality>10) quality=10; // insane setting can quickly kill the GPU
 
 	Real r=shape->cast<Sphere>().radius*scale;
-	glColor3v(CompUtils::mapColor(shape->getBaseColor()));
+	//glColor3v(CompUtils::mapColor(shape->getBaseColor()));
 	if (wire || wire2){ glLineWidth(1.);
 		if(!smooth) glDisable(GL_LINE_SMOOTH);
 		glutWireSphere(r,quality*glutSlices,quality*glutStacks);
