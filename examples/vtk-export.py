@@ -10,7 +10,7 @@ from numpy import linspace
 from woo import pack,qt,utils
 from miniEigen import *
 
-S=O.scene=Scene(fields=[DemField()])
+S=woo.master.scene=Scene(fields=[DemField()])
 
 thetas=linspace(0,2*pi,num=16,endpoint=True)
 meridians=pack.revolutionSurfaceMeridians([[(3+rad*sin(th),10*rad+rad*cos(th)) for th in thetas] for rad in linspace(1,2,num=10)],linspace(0,pi,num=10))
@@ -26,5 +26,5 @@ S.dt=utils.pWaveDt(S)
 
 qt.Controller()
 qt.View()
-O.saveTmp()
-O.run(8500)
+S.saveTmp()
+S.run(8500)

@@ -8,7 +8,7 @@
 #include<woo/core/Scene.hpp>
 #include<woo/core/Field.hpp>
 
-#include<woo/pkg/dem/Particle.hpp>
+// #include<woo/pkg/dem/Particle.hpp>
 
 #include <GL/glu.h>
 #include <GL/gl.h>
@@ -19,13 +19,44 @@ CREATE_LOGGER(Renderer);
 
 void GlExtraDrawer::render(){ throw runtime_error("GlExtraDrawer::render called from class "+getClassName()+". (did you forget to override it in the derived class?)"); }
 
+vector<Vector3r> Renderer::clipPlaneNormals;
 bool Renderer::initDone=false;
+Vector3r Renderer::viewDirection; // updated from GLViewer regularly
+GLViewInfo Renderer::viewInfo; // update from GLView regularly
+Vector3r Renderer::highlightEmission0;
+Vector3r Renderer::highlightEmission1;
 const int Renderer::numClipPlanes;
 
-Renderer* Renderer::self=NULL; // pointer to the only existing instance
+GlFieldDispatcher Renderer::fieldDispatcher;
+GlShapeDispatcher Renderer::shapeDispatcher;
+GlBoundDispatcher Renderer::boundDispatcher;
+GlNodeDispatcher Renderer::nodeDispatcher;
+GlCPhysDispatcher Renderer::cPhysDispatcher;
+shared_ptr<Scene> Renderer::scene;
+bool Renderer::withNames;
+vector<shared_ptr<Object>> Renderer::glNamedObjects;
+vector<shared_ptr<Node>> Renderer::glNamedNodes;
 
-
-
+bool Renderer::scaleOn;
+Vector3r Renderer::dispScale;
+Real Renderer::rotScale;
+Vector3r Renderer::lightPos;
+Vector3r Renderer::light2Pos;
+Vector3r Renderer::lightColor;
+Vector3r Renderer::light2Color;
+Vector3r Renderer::bgColor;
+bool Renderer::light1;
+bool Renderer::light2;
+bool Renderer::ghosts;
+shared_ptr<Object> Renderer::selObj;
+shared_ptr<Node> Renderer::selObjNode;
+vector<Vector3r> Renderer::clipPlanePos;
+vector<Quaternionr> Renderer::clipPlaneOri;
+vector<bool> Renderer::clipPlaneActive;
+vector<shared_ptr<GlExtraDrawer>> Renderer::extraDrawers;
+bool Renderer::engines;
+Vector3r Renderer::iniUp;
+Vector3r Renderer::iniViewDir;
 
 
 void Renderer::init(){
@@ -73,11 +104,6 @@ void Renderer::setNodeGlData(const shared_ptr<Node>& n, bool updateRefPos){
 	if(updateRefPos || isnan(gld.refOri.x())) gld.refOri=n->ori;
 	const Vector3r& pos=n->pos; const Vector3r& refPos=gld.refPos;
 	const Quaternionr& ori=n->ori; const Quaternionr& refOri=gld.refOri;
-	#ifdef WOO_SUBDOMAINS
-		int subDom; Body::id_t localId;
-		std::tie(subDom,localId)=scene->bodies->subDomId2domNumLocalId(b->subDomId);
-		if(subDomMask!=0 && (((1<<subDom) & subDomMask)==0)) bodyDisp[id].isDisplayed=false;
-	#endif
 	// if no scaling and no periodic, return quickly
 	if(!(scaleDisplacements||scaleRotations||isPeriodic)){ gld.dGlPos=Vector3r::Zero(); gld.dGlOri=Quaternionr::Identity(); return; }
 	// apply scaling
@@ -195,7 +221,6 @@ void Renderer::setLighting(){
 void Renderer::render(const shared_ptr<Scene>& _scene, bool _withNames){
 	if(!initDone) init();
 	assert(initDone);
-	self=this; // HACK: in case someone creates a new instance in the meantime...
 
 	withNames=_withNames; // used in many methods
 	if(withNames) glNamedObjects.clear();
@@ -203,7 +228,6 @@ void Renderer::render(const shared_ptr<Scene>& _scene, bool _withNames){
 	scene=_scene;
 	// smuggle scene and ourselves into GLViewInfo for use with GlRep and field functors
 	viewInfo.scene=scene.get();
-	viewInfo.renderer=this;
 
 	setClippingPlanes();
 	setLighting();

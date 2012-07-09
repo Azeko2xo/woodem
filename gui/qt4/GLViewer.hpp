@@ -27,14 +27,15 @@ struct SnapshotEngine: public PeriodicEngine{
 	virtual bool needsField(){ return false; }
 	virtual void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d);
 	WOO_CLASS_BASE_DOC_ATTRS(SnapshotEngine,PeriodicEngine,"Periodically save snapshots of GLView(s) as .png files. Files are named *fileBase*+*counter*+'.png' (counter is left-padded by 0s, i.e. snap00004.png).",
-		((string,format,"PNG",,"Format of snapshots (one of JPEG, PNG, EPS, PS, PPM, BMP) `QGLViewer documentation <http://www.libqglviewer.com/refManual/classQGLViewer.html#abbb1add55632dced395e2f1b78ef491c>`_. File extension will be lowercased *format*. Validity of format is not checked."))
 		((string,fileBase,"",,"Basename for snapshots"))
+		((string,format,"PNG",AttrTrait<>().choice({"JPEG","PNG","EPS","PS","PPM","BMP"}),"Format of snapshots (one of JPEG, PNG, EPS, PS, PPM, BMP) `QGLViewer documentation <http://www.libqglviewer.com/refManual/classQGLViewer.html#abbb1add55632dced395e2f1b78ef491c>`_. File extension will be lowercased *format*. Validity of format is not checked."))
 		((int,counter,0,AttrTrait<Attr::readonly>(),"Number that will be appended to fileBase when the next snapshot is saved (incremented at every save)."))
-		((bool,ignoreErrors,true,,"Only report errors instead of throwing exceptions, in case of timeouts."))
-		((vector<string>,snapshots,,,"Files that have been created so far"))
+		((string,plot,,,"Name of field in :ref:`woo.plot.imgData` to which taken snapshots will be appended automatically."))
+		((vector<string>,snapshots,,AttrTrait<>().startGroup("Saved files").readonly(),"Files that have been created so far"))
+		((bool,ignoreErrors,true,AttrTrait<>().startGroup("Error handling"),"Only report errors instead of throwing exceptions, in case of timeouts."))
 		((int,msecSleep,0,,"number of msec to sleep after snapshot (to prevent 3d hw problems) [ms]"))
 		((Real,deadTimeout,3,,"Timeout for 3d operations (opening new view, saving snapshot); after timing out, throw exception (or only report error if *ignoreErrors*) and make myself :ref:`dead<Engine.dead>`. [s]"))
-		((string,plot,,,"Name of field in :ref:`woo.plot.imgData` to which taken snapshots will be appended automatically."))
+		((bool,tryOpenView,false,,"Attempt to open new view if there is none; this is very unreliable (off by default)."))
 	);
 	DECLARE_LOGGER;
 };
@@ -46,7 +47,7 @@ REGISTER_SERIALIZABLE(SnapshotEngine);
 // mostly copied from
 // http://www.libqglviewer.com/refManual/classqglviewer_1_1MouseGrabber.html#_details
 struct QglMovableObject: public qglviewer::MouseGrabber{
-	QglMovableObject(int x0, int y0): qglviewer::MouseGrabber(), pos(x0,y0), moved(false), reset(false), flipped(false), dL(0){}
+	QglMovableObject(int x0, int y0): qglviewer::MouseGrabber(), pos(x0,y0), moved(false), reset(false), dL(0){}
 	void checkIfGrabsMouse(int x, int y, const qglviewer::Camera* const){
 		QPoint relPos(QPoint(x,y)-pos);
 		bool isInside=(relPos.x()>=0 && relPos.y()>=0 && relPos.x()<=dim.x() && relPos.y()<=dim.y());
@@ -87,7 +88,7 @@ struct QglMovableObject: public qglviewer::MouseGrabber{
 	#endif
 	 QPoint pos, prevPos;
 	 QPoint dim;
-	 bool moved, reset, flipped;
+	 bool moved, reset;
 	 int dL;
 };
 
@@ -118,11 +119,7 @@ class GLViewer : public QGLViewer
 	Q_OBJECT 
 	
 	friend class QGLThread;
-	protected:
-		shared_ptr<Renderer> renderer;
-
 	private:
-
 		Vector2i prevSize; // used to move scales accordingly
 
 		bool			isMoving;
@@ -146,7 +143,7 @@ class GLViewer : public QGLViewer
 		int timeDispMask;
 		enum{TIME_REAL=1,TIME_VIRT=2,TIME_ITER=4};
 
-		GLViewer(int viewId, const shared_ptr<Renderer>& renderer, QGLWidget* shareWidget=0);
+		GLViewer(int viewId, QGLWidget* shareWidget=0);
 		virtual ~GLViewer();
 		#if 0
 			virtual void paintGL();

@@ -154,10 +154,12 @@ template<> struct _setter_postLoadStaticMaybe<false>{
 }
 
 #define _DEF_READWRITE_CUSTOM_STATIC(thisClass,attr) if(!(_ATTR_FLG(attr).isHidden())){ \
-	bool _ro(_ATTR_FLG(attr).isReadonly()) /*, _ref(woo::py_wrap_ref<decltype(thisClass::_ATTR_NAM(attr))>::value || (_ATTR_FLG(attr).isPyByRef()))*/; \
+	bool _ro(_ATTR_FLG(attr).isReadonly()), _ref(woo::py_wrap_ref<decltype(thisClass::_ATTR_NAM(attr))>::value || (_ATTR_FLG(attr).isPyByRef())); \
 	constexpr bool _post=!!(_ATTR_TRAIT_TYPE(attr)::compileFlags & woo::Attr::triggerPostLoad); \
-	if      ( _ro) _classObj.add_static_property(_ATTR_NAM_STR(attr),py::make_getter(thisClass::_ATTR_NAM(attr))); \
-	else if (!_ro) _classObj.add_static_property(_ATTR_NAM_STR(attr),py::make_getter(thisClass::_ATTR_NAM(attr)),/*setter*/_setter_postLoadStaticMaybe<_post>::setter<thisClass,decltype(thisClass::_ATTR_NAM(attr)),&thisClass::_ATTR_NAM(attr)>); \
+	if      ( _ref &&  _ro) _classObj.add_static_property(_ATTR_NAM_STR(attr),py::make_getter(thisClass::_ATTR_NAM(attr))); \
+	else if ( _ref && !_ro) _classObj.add_static_property(_ATTR_NAM_STR(attr),py::make_getter(thisClass::_ATTR_NAM(attr)),/*setter*/_setter_postLoadStaticMaybe<_post>::setter<thisClass,decltype(thisClass::_ATTR_NAM(attr)),&thisClass::_ATTR_NAM(attr)>); \
+	else if (!_ref && _ro) _classObj.add_static_property(_ATTR_NAM_STR(attr),py::make_getter(thisClass::_ATTR_NAM(attr),py::return_value_policy<py::return_by_value>())); \
+	else if (!_ref &&!_ro) _classObj.add_static_property(_ATTR_NAM_STR(attr),py::make_getter(thisClass::_ATTR_NAM(attr),py::return_value_policy<py::return_by_value>()),/*setter*/_setter_postLoadStaticMaybe<_post>::setter<thisClass,decltype(thisClass::_ATTR_NAM(attr)),&thisClass::_ATTR_NAM(attr)>); \
 }
 /*
 	if      ( !_ro && !_post) _classObj.def_readwrite(_ATTR_NAM_STR(attr),&thisClass::_ATTR_NAM(attr),docStr.c_str()); 
@@ -248,8 +250,6 @@ template<> struct _SerializeMaybe<false>{
 #define _ATTR_TYP_STR(s) BOOST_PP_STRINGIZE(_ATTR_TYP(s))
 #define _ATTR_NAM_STR(s) BOOST_PP_STRINGIZE(_ATTR_NAM(s))
 #define _ATTR_INI_STR(s) BOOST_PP_STRINGIZE(_ATTR_INI(s))
-// embed default and type values in the docstring (must keep the same size and ordering)
-#define _ATTRS_EMBED_INI_TYP_IN_DOC(x,y,z) (( _ATTR_TYP(z) , _ATTR_NAM(z) , _ATTR_INI(z), _ATTR_FLG(z), _ATTR_DOC(z) " :ydefault:`" _ATTR_INI_STR(z) "`" " :yattrtype:`" _ATTR_TYP_STR(z) "`" ))
 
 // deprecated specification getters
 #define _DEPREC_OLDNAME(x) BOOST_PP_TUPLE_ELEM(3,0,x)
@@ -295,7 +295,7 @@ template<> struct _SerializeMaybe<false>{
 	static _ATTR_TYP(z) _ATTR_NAM(z); \
 	typedef std::remove_reference<decltype(_ATTR_TRAIT(z))>::type _ATTR_TRAIT_TYPE(z); \
 	static _ATTR_TRAIT_TYPE(z)& _ATTR_TRAIT_GET(z)(){ static _ATTR_TRAIT_TYPE(z) _tmp=_ATTR_TRAIT(z).static_(); return _tmp; }
-#define _STATATTR_INITIALIZE(x,thisClass,z) thisClass::_ATTR_NAM(z)=_ATTR_INI(z);
+#define _STATATTR_INITIALIZE(x,thisClass,z) thisClass::_ATTR_NAM(z)=_ATTR_TYP(z)(_ATTR_INI(z));
 
 #define _STATCLASS_PY_REGISTER_CLASS(thisClass,baseClass,classTrait,attrs,pyExtra)\
 	virtual void pyRegisterClass() { checkPyClassRegistersItself(#thisClass); initSetStaticAttributesValue(); WOO_SET_DOCSTRING_OPTS; \

@@ -439,8 +439,9 @@ def createPlots(subPlots=True,scatterSize=60,wider=False):
 			axes=line.get_axes()
 			labelLoc=(legendLoc[0 if isY1 else 1] if y2Exists>0 else 'best')
 			l=pylab.legend(loc=labelLoc)
-			l.get_frame().set_alpha(legendAlpha)
-			if hasattr(l,'draggable'): l.draggable(True)
+			if l:
+				l.get_frame().set_alpha(legendAlpha)
+				if hasattr(l,'draggable'): l.draggable(True)
 			if scientific:
 				pylab.ticklabel_format(style='sci',scilimits=(0,0),axis='both')
 				# fixes scientific exponent placement for y2: https://sourceforge.net/mailarchive/forum.php?thread_name=20101223174750.GD28779%40ykcyc&forum_name=matplotlib-users
@@ -501,8 +502,9 @@ def liveUpdate(timestamp):
 				ax.set_ylabel(ax.get_ylabel()+(', ' if ax.get_ylabel() else '')+xlateLabel(new))
 			# it is possible that the legend has not yet been created
 			l=ax.legend(loc=ax.wooLabelLoc)
-			l.get_frame().set_alpha(legendAlpha)
-			if hasattr(l,'draggable'): l.draggable(True)
+			if l:
+				l.get_frame().set_alpha(legendAlpha)
+				if hasattr(l,'draggable'): l.draggable(True)
 		if autozoom:
 			for ax in axes:
 				try:

@@ -4,7 +4,6 @@ from woo.core import *
 from woo.dem import *
 from woo.pre import *
 import woo.plot
-import woo.gl
 import math
 import os.path
 from miniEigen import *
@@ -148,14 +147,15 @@ def run(pre): # use inputs as argument
 	# when running with gui, set initial view setup
 	# the import fails if headless
 	try:
-		import woo.qt
-		rr=woo.qt.Renderer()
-		rr.iniUp=(0,0,1)
-		rr.iniViewDir=(0,1,0)
+		import woo.gl
+		# set other display options and save them (static attributes)
+		s.any=[
+			woo.gl.Renderer(iniUp=(0,0,1),iniViewDir=(0,1,0)),
+			woo.gl.Gl1_DemField(glyph=woo.gl.Gl1_DemField.glyphVel),
+			woo.gl.Gl1_InfCylinder(wire=True),
+			woo.gl.Gl1_Wall(div=1),
+		]
 	except ImportError: pass
-	import woo.gl # if the previous import fails, this is needed (?!)
-	# set other display options and save them (static attributes)
-	s.any=[woo.gl.Gl1_InfCylinder(wire=True),woo.gl.Gl1_Wall(div=1),woo.gl.Gl1_DemField(glyph=woo.gl.Gl1_DemField.glyphVel)]
 
 	print 'Generated Rollenrost.'
 	out=pre.saveFmt.format(stage='init',S=s,**(dict(s.tags)))

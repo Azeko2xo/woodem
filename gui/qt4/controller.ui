@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>448</width>
+    <width>469</width>
     <height>544</height>
    </rect>
   </property>
@@ -39,7 +39,7 @@
       </sizepolicy>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>3</number>
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
@@ -559,7 +559,7 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>442</width>
+            <width>463</width>
             <height>482</height>
            </rect>
           </property>
@@ -761,63 +761,99 @@
      </widget>
      <widget class="QWidget" name="tab_3">
       <attribute name="title">
-       <string>Python</string>
+       <string>Movie</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_8">
        <item row="0" column="0">
         <layout class="QVBoxLayout" name="verticalLayout_4">
          <item>
-          <widget class="QComboBox" name="pythonCombo">
-           <property name="font">
-            <font>
-             <family>Monospace</family>
-            </font>
-           </property>
-           <property name="cursor">
-            <cursorShape>IBeamCursor</cursorShape>
-           </property>
-           <property name="focusPolicy">
-            <enum>Qt::StrongFocus</enum>
-           </property>
-           <property name="autoFillBackground">
-            <bool>false</bool>
-           </property>
-           <property name="editable">
+          <layout class="QHBoxLayout" name="horizontalLayout_8">
+           <item>
+            <widget class="QCheckBox" name="movieCheckbox">
+             <property name="text">
+              <string>Take snapshots</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <widget class="QScrollArea" name="movieArea">
+           <property name="widgetResizable">
             <bool>true</bool>
            </property>
-           <property name="insertPolicy">
-            <enum>QComboBox::InsertAtTop</enum>
+           <widget class="QWidget" name="movieAreaWidget">
+            <property name="geometry">
+             <rect>
+              <x>0</x>
+              <y>0</y>
+              <width>443</width>
+              <height>424</height>
+             </rect>
+            </property>
+           </widget>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item row="1" column="0">
+        <layout class="QHBoxLayout" name="horizontalLayout_7">
+         <item>
+          <widget class="QSpinBox" name="movieBitrateSpinbox">
+           <property name="minimum">
+            <number>500</number>
            </property>
-           <property name="minimumContentsLength">
+           <property name="maximum">
+            <number>15000</number>
+           </property>
+           <property name="singleStep">
+            <number>500</number>
+           </property>
+           <property name="value">
+            <number>6000</number>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_4">
+           <property name="text">
+            <string>kbps</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QSpinBox" name="movieFpsSpinbox">
+           <property name="minimum">
             <number>1</number>
            </property>
-           <property name="duplicatesEnabled">
-            <bool>false</bool>
+           <property name="maximum">
+            <number>75</number>
+           </property>
+           <property name="value">
+            <number>25</number>
            </property>
           </widget>
          </item>
          <item>
           <widget class="QLabel" name="label">
            <property name="text">
-            <string>&lt;i&gt;(Output appears in the terminal)&lt;/i&gt;</string>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            <string>fps</string>
            </property>
           </widget>
          </item>
          <item>
-          <spacer name="verticalSpacer">
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
+          <widget class="QLineEdit" name="movieFileEdit">
+           <property name="text">
+            <string notr="true">/tmp/out.mpeg4</string>
            </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>40</height>
-            </size>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="movieButton">
+           <property name="text">
+            <string>Save</string>
            </property>
-          </spacer>
+          </widget>
          </item>
         </layout>
        </item>
@@ -838,8 +874,8 @@
    <slot>loadSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>93</x>
-     <y>64</y>
+     <x>95</x>
+     <y>60</y>
     </hint>
     <hint type="destinationlabel">
      <x>284</x>
@@ -854,7 +890,7 @@
    <slot>saveSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>184</x>
+     <x>291</x>
      <y>64</y>
     </hint>
     <hint type="destinationlabel">
@@ -870,7 +906,7 @@
    <slot>dtEditedSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>198</x>
+     <x>150</x>
      <y>179</y>
     </hint>
     <hint type="destinationlabel">
@@ -886,8 +922,8 @@
    <slot>playSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>146</x>
-     <y>341</y>
+     <x>114</x>
+     <y>312</y>
     </hint>
     <hint type="destinationlabel">
      <x>3</x>
@@ -902,8 +938,8 @@
    <slot>pauseSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>403</x>
-     <y>341</y>
+     <x>358</x>
+     <y>312</y>
     </hint>
     <hint type="destinationlabel">
      <x>284</x>
@@ -918,8 +954,8 @@
    <slot>setReferenceSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>273</x>
-     <y>458</y>
+     <x>260</x>
+     <y>478</y>
     </hint>
     <hint type="destinationlabel">
      <x>5</x>
@@ -934,8 +970,8 @@
    <slot>centerSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>409</x>
-     <y>458</y>
+     <x>413</x>
+     <y>478</y>
     </hint>
     <hint type="destinationlabel">
      <x>284</x>
@@ -950,8 +986,8 @@
    <slot>xyzSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>102</x>
-     <y>514</y>
+     <x>108</x>
+     <y>532</y>
     </hint>
     <hint type="destinationlabel">
      <x>0</x>
@@ -966,8 +1002,8 @@
    <slot>yzxSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>273</x>
-     <y>514</y>
+     <x>260</x>
+     <y>532</y>
     </hint>
     <hint type="destinationlabel">
      <x>243</x>
@@ -982,8 +1018,8 @@
    <slot>zxySlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>409</x>
-     <y>514</y>
+     <x>413</x>
+     <y>532</y>
     </hint>
     <hint type="destinationlabel">
      <x>284</x>
@@ -998,7 +1034,7 @@
    <slot>dtEditNoupdateSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>198</x>
+     <x>150</x>
      <y>179</y>
     </hint>
     <hint type="destinationlabel">
@@ -1014,7 +1050,7 @@
    <slot>dtEditNoupdateSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>198</x>
+     <x>150</x>
      <y>179</y>
     </hint>
     <hint type="destinationlabel">
@@ -1030,7 +1066,7 @@
    <slot>generatorComboSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>105</x>
+     <x>103</x>
      <y>59</y>
     </hint>
     <hint type="destinationlabel">
@@ -1056,29 +1092,13 @@
    </hints>
   </connection>
   <connection>
-   <sender>pythonCombo</sender>
-   <signal>activated(QString)</signal>
-   <receiver>Controller</receiver>
-   <slot>pythonComboSlot()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>107</x>
-     <y>66</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>284</x>
-     <y>68</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>inspectButton</sender>
    <signal>clicked()</signal>
    <receiver>Controller</receiver>
    <slot>inspectSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>409</x>
+     <x>459</x>
      <y>64</y>
     </hint>
     <hint type="destinationlabel">
@@ -1094,8 +1114,8 @@
    <slot>reloadSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>403</x>
-     <y>417</y>
+     <x>262</x>
+     <y>394</y>
     </hint>
     <hint type="destinationlabel">
      <x>284</x>
@@ -1111,7 +1131,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>100</x>
-     <y>416</y>
+     <y>395</y>
     </hint>
     <hint type="destinationlabel">
      <x>6</x>
@@ -1127,7 +1147,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>161</x>
-     <y>375</y>
+     <y>391</y>
     </hint>
     <hint type="destinationlabel">
      <x>0</x>
@@ -1142,8 +1162,8 @@
    <slot>show3dSlot(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>60</x>
-     <y>458</y>
+     <x>78</x>
+     <y>478</y>
     </hint>
     <hint type="destinationlabel">
      <x>0</x>
@@ -1158,8 +1178,8 @@
    <slot>dtEditedSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>163</x>
-     <y>166</y>
+     <x>150</x>
+     <y>179</y>
     </hint>
     <hint type="destinationlabel">
      <x>145</x>
@@ -1174,8 +1194,8 @@
    <slot>generateSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>461</x>
-     <y>595</y>
+     <x>464</x>
+     <y>539</y>
     </hint>
     <hint type="destinationlabel">
      <x>284</x>
@@ -1190,12 +1210,44 @@
    <slot>genSaveParamsSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>419</x>
-     <y>46</y>
+     <x>464</x>
+     <y>59</y>
     </hint>
     <hint type="destinationlabel">
      <x>232</x>
      <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>movieCheckbox</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>Controller</receiver>
+   <slot>movieCheckboxToggled()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>108</x>
+     <y>60</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>451</x>
+     <y>174</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>movieButton</sender>
+   <signal>clicked()</signal>
+   <receiver>Controller</receiver>
+   <slot>movieButtonClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>426</x>
+     <y>521</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>472</x>
+     <y>519</y>
     </hint>
    </hints>
   </connection>
@@ -1225,5 +1277,7 @@
   <slot>subStepSlot()</slot>
   <slot>show3dSlot(bool)</slot>
   <slot>genSaveParamsSlot()</slot>
+  <slot>movieCheckboxToggled()</slot>
+  <slot>movieButtonClicked()</slot>
  </slots>
 </ui>

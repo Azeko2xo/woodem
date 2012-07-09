@@ -83,8 +83,6 @@ pyGLViewer createView(){
 py::list getAllViews(){ py::list ret; FOREACH(const shared_ptr<GLViewer>& v, OpenGLManager::self->views){ if(v) ret.append(pyGLViewer(v->viewId)); } return ret; };
 void centerViews(void){ OpenGLManager::self->centerAllViews(); }
 
-shared_ptr<Renderer> getRenderer(){ return OpenGLManager::self->renderer; }
-
 BOOST_PYTHON_MODULE(_GLViewer){
 	WOO_SET_DOCSTRING_OPTS;
 	
@@ -100,8 +98,6 @@ BOOST_PYTHON_MODULE(_GLViewer){
 	py::def("center",centerViews,"Center all views.");
 	py::def("views",getAllViews,"Return list of all open :ref:`woo.qt.GLViewer` objects");
 	
-	py::def("Renderer",&getRenderer,"Return the active :ref:`Renderer` object.");
-
 	py::class_<pyGLViewer>("GLViewer",py::no_init)
 		.add_property("upVector",&pyGLViewer::get_upVector,&pyGLViewer::set_upVector,"Vector that will be shown oriented up on the screen.")
 		.add_property("lookAt",&pyGLViewer::get_lookAt,&pyGLViewer::set_lookAt,"Point at which camera is directed.")
@@ -115,7 +111,6 @@ BOOST_PYTHON_MODULE(_GLViewer){
 		.add_property("ortho",&pyGLViewer::get_orthographic,&pyGLViewer::set_orthographic,"Whether orthographic projection is used; if false, use perspective projection.")
 		.add_property("screenSize",&pyGLViewer::get_screenSize,&pyGLViewer::set_screenSize,"Size of the viewer's window, in scree pixels")
 		.add_property("timeDisp",&pyGLViewer::get_timeDisp,&pyGLViewer::set_timeDisp,"Time displayed on in the vindow; is a string composed of characters *r*, *v*, *i* standing respectively for real time, virtual time, iteration number.")
-		// .add_property("bgColor",&pyGLViewer::get_bgColor,&pyGLViewer::set_bgColor) // useless: Renderer::Background_color is used via openGL directly, bypassing QGLViewer background property
 		.def("fitAABB",&pyGLViewer::fitAABB,(py::arg("mn"),py::arg("mx")),"Adjust scene bounds so that Axis-aligned bounding box given by its lower and upper corners *mn*, *mx* fits in.")
 		.def("fitSphere",&pyGLViewer::fitSphere,(py::arg("center"),py::arg("radius")),"Adjust scene bounds so that sphere given by *center* and *radius* fits in.")
 		.def("showEntireScene",&pyGLViewer::showEntireScene)

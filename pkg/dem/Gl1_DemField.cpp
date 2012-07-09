@@ -60,6 +60,7 @@ void Gl1_DemField::postLoad(Gl1_DemField&){
 		case COLOR_NONE: colorRange->label="[none]"; colorRange->mnmx=Vector2r(0,1);  break;
 		case COLOR_RADIUS: colorRange->label="radius"; break;
 		case COLOR_VEL: colorRange->label="|vel|"; break;
+		case COLOR_MASS: colorRange->label="mass"; break;
 		case COLOR_DISPLACEMENT: colorRange->label="displacement"; break;
 		case COLOR_ROTATION: colorRange->label="rotation"; break;
 		default: LOG_ERROR("Unknown value Gl1_DemField.colorBy="<<colorBy<<" (ignored)??");
@@ -74,12 +75,12 @@ void Gl1_DemField::postLoad(Gl1_DemField&){
 }
 
 void Gl1_DemField::doBound(){
-	rrr->boundDispatcher.scene=scene; rrr->boundDispatcher.updateScenePtr();
+	Renderer::boundDispatcher.scene=scene; Renderer::boundDispatcher.updateScenePtr();
 	boost::mutex::scoped_lock lock(*dem->particles->manipMutex);
 	FOREACH(const shared_ptr<Particle>& b, *dem->particles){
 		if(!b->shape || !b->shape->bound) continue;
 		if(mask!=0 && !(b->mask&mask)) continue;
-		glPushMatrix(); rrr->boundDispatcher(b->shape->bound); glPopMatrix();
+		glPushMatrix(); Renderer::boundDispatcher(b->shape->bound); glPopMatrix();
 	}
 }
 
@@ -90,7 +91,7 @@ void Gl1_DemField::doBound(){
 // http://glprogramming.com/red/chapter13.html
 
 void Gl1_DemField::doShape(){
-	rrr->shapeDispatcher.scene=scene; rrr->shapeDispatcher.updateScenePtr();
+	Renderer::shapeDispatcher.scene=scene; Renderer::shapeDispatcher.updateScenePtr();
 	boost::mutex::scoped_lock lock(*dem->particles->manipMutex);
 
 	// instead of const shared_ptr&, get proper shared_ptr;
@@ -116,12 +117,13 @@ void Gl1_DemField::doShape(){
 		Renderer::glScopedName name(p,n0);
 		// bool highlight=(p->id==selId || (p->clumpId>=0 && p->clumpId==selId) || p->shape->highlight);
 
-		FOREACH(const shared_ptr<Node>& n,p->shape->nodes) rrr->setNodeGlData(n,updateRefPos);
+		FOREACH(const shared_ptr<Node>& n,p->shape->nodes) Renderer::setNodeGlData(n,updateRefPos);
 
 		Vector3r parColor;
 		switch(colorBy){
 				case COLOR_RADIUS: parColor=(dynamic_pointer_cast<Sphere>(p->shape)?colorRange->color(p->shape->cast<Sphere>().radius):Vector3r(NaN,NaN,NaN)); break;
 				case COLOR_VEL: parColor=colorRange->color(n0->getData<DemData>().vel.norm()); break;
+				case COLOR_MASS: parColor=colorRange->color(n0->getData<DemData>().mass); break;
 				case COLOR_DISPLACEMENT: parColor=colorRange->color((n0->pos-n0->getData<GlData>().refPos).norm()); break;
 				case COLOR_ROTATION: parColor=colorRange->color(AngleAxisr(n0->ori.conjugate()*n0->getData<GlData>().refOri).angle()); break;
 				case COLOR_NONE: parColor=colorRange->color(p->shape->color); break;
@@ -155,7 +157,7 @@ void Gl1_DemField::doShape(){
 
 		glPushMatrix();
 			glColor3v(parColor);
-			rrr->shapeDispatcher(p->shape,/*shift*/Vector3r::Zero(),wire||sh->getWire(),*viewInfo);
+			Renderer::shapeDispatcher(p->shape,/*shift*/Vector3r::Zero(),wire||sh->getWire(),*viewInfo);
 		glPopMatrix();
 
 		if(!sh->getVisible()) continue;
@@ -166,14 +168,14 @@ void Gl1_DemField::doShape(){
 			else {
 				// move the label towards the camera by the bounding box so that it is not hidden inside the body
 				const Vector3r& mn=sh->bound->min; const Vector3r& mx=sh->bound->max;
-				Vector3r ext(rrr->viewDirection[0]>0?pos[0]-mn[0]:pos[0]-mx[0],rrr->viewDirection[1]>0?pos[1]-mn[1]:pos[1]-mx[1],rrr->viewDirection[2]>0?pos[2]-mn[2]:pos[2]-mx[2]); // signed extents towards the camera
-				Vector3r dr=-1.01*(rrr->viewDirection.dot(ext)*rrr->viewDirection);
+				Vector3r ext(Renderer::viewDirection[0]>0?pos[0]-mn[0]:pos[0]-mx[0],Renderer::viewDirection[1]>0?pos[1]-mn[1]:pos[1]-mx[1],Renderer::viewDirection[2]>0?pos[2]-mn[2]:pos[2]-mx[2]); // signed extents towards the camera
+				Vector3r dr=-1.01*(Renderer::viewDirection.dot(ext)*Renderer::viewDirection);
 				GLUtils::GLDrawInt(p->id,pos+dr,Vector3r::Ones());
 			}
 		}
 		// if the body goes over the cell margin, draw it in positions where the bbox overlaps with the cell in wire
 		// precondition: pos is inside the cell.
-		if(sh->bound && scene->isPeriodic && rrr->ghosts){
+		if(sh->bound && scene->isPeriodic && Renderer::ghosts){
 			const Vector3r& cellSize(scene->cell->getSize());
 			//Vector3r pos=scene->cell->unshearPt(.5*(sh->bound->min+sh->bound->max)); // middle of bbox, remove the shear component
 			Vector3r pos=.5*(sh->bound->min+sh->bound->max); // middle of bbox, in sheared coords already
@@ -193,7 +195,7 @@ void Gl1_DemField::doShape(){
 					Vector3r pt=scene->cell->shearPt(pos2);
 					// if(pointClipped(pt)) continue;
 					glPushMatrix();
-						rrr->shapeDispatcher(p->shape,/*shift*/pt-pos,/*wire*/true,*viewInfo);
+						Renderer::shapeDispatcher(p->shape,/*shift*/pt-pos,/*wire*/true,*viewInfo);
 					glPopMatrix();
 				}
 			}
@@ -204,12 +206,12 @@ void Gl1_DemField::doShape(){
 void Gl1_DemField::doNodes(){
 	boost::mutex::scoped_lock lock(dem->nodesMutex);
 
-	rrr->nodeDispatcher.scene=scene; rrr->nodeDispatcher.updateScenePtr();
+	Renderer::nodeDispatcher.scene=scene; Renderer::nodeDispatcher.updateScenePtr();
 	FOREACH(shared_ptr<Node> node, dem->nodes){
-		rrr->setNodeGlData(node,updateRefPos);
+		Renderer::setNodeGlData(node,updateRefPos);
 		if(!nodes && !node->rep) continue;
 		Renderer::glScopedName name(node);
-		if(nodes){ rrr->renderRawNode(node); }
+		if(nodes){ Renderer::renderRawNode(node); }
 		if(node->rep){ node->rep->render(node,viewInfo); }
 	}
 	// contact nodes
@@ -217,7 +219,7 @@ void Gl1_DemField::doNodes(){
 
 
 void Gl1_DemField::doContactNodes(){
-	rrr->nodeDispatcher.scene=scene; rrr->nodeDispatcher.updateScenePtr();
+	Renderer::nodeDispatcher.scene=scene; Renderer::nodeDispatcher.updateScenePtr();
 	boost::mutex::scoped_lock lock(*dem->contacts->manipMutex);
 	for(size_t i=0; i<dem->contacts->size(); i++){
 		const shared_ptr<Contact>& C((*dem->contacts)[i]);
@@ -225,7 +227,7 @@ void Gl1_DemField::doContactNodes(){
 			shared_ptr<CGeom> geom=C->geom;
 			if(!geom) continue;
 			shared_ptr<Node> node=geom->node;
-			rrr->setNodeGlData(node,updateRefPos);
+			Renderer::setNodeGlData(node,updateRefPos);
 			if(!(cNodes>=0) && !node->rep) continue;
 			Renderer::glScopedName name(C,node);
 			if(cNodes>0){ // cNodes>0: show something else than just the GlRep
@@ -243,7 +245,7 @@ void Gl1_DemField::doContactNodes(){
 					GLUtils::GLDrawLine(x[0],x[1],color);
 					GLUtils::GLDrawLine(x[0],x[2],color);
 				}
-				if(cNodes & 2) rrr->renderRawNode(node);
+				if(cNodes & 2) Renderer::renderRawNode(node);
 			}
 			if(node->rep){ node->rep->render(node,viewInfo); }
 		} else {
@@ -259,7 +261,7 @@ void Gl1_DemField::doContactNodes(){
 
 
 void Gl1_DemField::doCPhys(){
-	rrr->cPhysDispatcher.scene=scene; rrr->cPhysDispatcher.updateScenePtr();
+	Renderer::cPhysDispatcher.scene=scene; Renderer::cPhysDispatcher.updateScenePtr();
 	boost::mutex::scoped_lock lock(*dem->contacts->manipMutex);
 	FOREACH(const shared_ptr<Contact>& C, *dem->contacts){
 		#if 1
@@ -274,7 +276,7 @@ void Gl1_DemField::doCPhys(){
 		//assert(C->pA->shape->nodes.size()>0); assert(C->pB->shape->nodes.size()>0);
 		if(!geom || !phys) continue;
 		// glScopedName name(C,geom->node);
-		rrr->cPhysDispatcher(phys,C,*viewInfo);
+		Renderer::cPhysDispatcher(phys,C,*viewInfo);
 	}
 }
 
@@ -283,7 +285,6 @@ void Gl1_DemField::doCPhys(){
 
 
 void Gl1_DemField::go(const shared_ptr<Field>& demField, GLViewInfo* _viewInfo){
-	rrr=_viewInfo->renderer;
 	dem=static_pointer_cast<DemField>(demField);
 	viewInfo=_viewInfo;
 

@@ -34,63 +34,41 @@ struct GlData: public NodeData{
 REGISTER_SERIALIZABLE(GlData);
 template<> struct NodeData::Index<GlData>{enum{value=Node::ST_GL};};
 
-
-
-class SparcField;
-
 class Renderer: public Object{
-	static Renderer* self;
 	public:
 		static const int numClipPlanes=3;
 
-		bool pointClipped(const Vector3r& p);
-		vector<Vector3r> clipPlaneNormals;
-		// void setBodiesDispInfo();
+		static bool pointClipped(const Vector3r& p);
+		static vector<Vector3r> clipPlaneNormals;
 		static bool initDone;
-		Vector3r viewDirection; // updated from GLViewer regularly
-		GLViewInfo viewInfo; // update from GLView regularly
-		Vector3r highlightEmission0;
-		Vector3r highlightEmission1;
+		static Vector3r viewDirection; // updated from GLViewer regularly
+		static GLViewInfo viewInfo; // update from GLView regularly
+		static Vector3r highlightEmission0;
+		static Vector3r highlightEmission1;
 
 		// normalized saw signal with given periodicity, with values ∈ 〈0,1〉 */
-		Real normSaw(Real t, Real period){ Real xi=(t-period*((int)(t/period)))/period; /* normalized value, (0-1〉 */ return (xi<.5?2*xi:2-2*xi); }
-		Real normSquare(Real t, Real period){ Real xi=(t-period*((int)(t/period)))/period; /* normalized value, (0-1〉 */ return (xi<.5?0:1); }
+		static Real normSaw(Real t, Real period){ Real xi=(t-period*((int)(t/period)))/period; /* normalized value, (0-1〉 */ return (xi<.5?2*xi:2-2*xi); }
+		static Real normSquare(Real t, Real period){ Real xi=(t-period*((int)(t/period)))/period; /* normalized value, (0-1〉 */ return (xi<.5?0:1); }
 
-		void drawPeriodicCell();
+		static void drawPeriodicCell();
 
-		// void setBodiesRefSe3();
-
-	#if 0
-		struct BodyDisp{
-			Vector3r pos;
-			Quaternionr ori;
-			bool isDisplayed;
-		};
-		//! display data for individual bodies
-		vector<BodyDisp> bodyDisp;
-	#endif
 	private:
-		void resetSpecularEmission();
-		void setLighting();
-		void setClippingPlanes();
+		static void resetSpecularEmission();
+		static void setLighting();
+		static void setClippingPlanes();
 
 	public:
 		// used from within field functors
 		// should be moved inside those functors themselves instead
-		GlFieldDispatcher fieldDispatcher;
-		GlShapeDispatcher shapeDispatcher;
-		GlBoundDispatcher boundDispatcher;
-		GlNodeDispatcher nodeDispatcher;
-		GlCPhysDispatcher cPhysDispatcher;
-	#if 0
-		GlCPhysDispatcher physDispatcher;
-		// GlStateDispatcher stateDispatcher;
-	#endif
-		DECLARE_LOGGER;
-
-	public :
+		static GlFieldDispatcher fieldDispatcher;
+		static GlShapeDispatcher shapeDispatcher;
+		static GlBoundDispatcher boundDispatcher;
+		static GlNodeDispatcher nodeDispatcher;
+		static GlCPhysDispatcher cPhysDispatcher;
+	DECLARE_LOGGER;
+	public:
 		// updated after every call to render
-		shared_ptr<Scene> scene;
+		static shared_ptr<Scene> scene;
 
 		// GL selection amangement
 		// in selection mode, put rendered obejcts one after another into an array
@@ -98,9 +76,9 @@ class Renderer: public Object{
 
 		// static so that glScopedName can access it
 		// selection-related things
-		bool withNames;
-		vector<shared_ptr<Object> > glNamedObjects;
-		vector<shared_ptr<Node> > glNamedNodes;
+		static bool withNames;
+		static vector<shared_ptr<Object>> glNamedObjects;
+		static vector<shared_ptr<Node>> glNamedNodes;
 
 		// passing >=0 to highLev causes the object the to be highlighted, regardless of whether it is selected or not
 		struct glScopedName{
@@ -108,69 +86,58 @@ class Renderer: public Object{
 			glScopedName(const shared_ptr<Object>& s, const shared_ptr<Node>& n, int highLev=-1): highlighted(false){ init(s,n, highLev); }
 			glScopedName(const shared_ptr<Node>& n, int highLev=-1): highlighted(false){ init(n,n, highLev); }
 			void init(const shared_ptr<Object>& s, const shared_ptr<Node>& n, int highLev){
-				Renderer* r=Renderer::self; // ugly hack, but we want to have that at all costs
-				if(!r->withNames){
-					if(highLev>=0 || s==r->selObj){ r->setLightHighlighted(highLev); highlighted=true; }
-					else { r->setLightUnhighlighted(); highlighted=false; }
+				if(!Renderer::withNames){
+					if(highLev>=0 || s.get()==Renderer::selObj.get()){ Renderer::setLightHighlighted(highLev); highlighted=true; }
+					else { Renderer::setLightUnhighlighted(); highlighted=false; }
 				} else {
-					r->glNamedObjects.push_back(s);
-					r->glNamedNodes.push_back(n);
-					::glPushName(r->glNamedObjects.size()-1);
+					Renderer::glNamedObjects.push_back(s);
+					Renderer::glNamedNodes.push_back(n);
+					::glPushName(Renderer::glNamedObjects.size()-1);
 				}
 			};
 			~glScopedName(){ glPopName(); }
 		};
 
-		void setLightHighlighted(int highLev=0);
-		void setLightUnhighlighted();
+		static void setLightHighlighted(int highLev=0);
+		static void setLightUnhighlighted();
 
-		void init();
-		void initgl();
-		void render(const shared_ptr<Scene>& scene, bool withNames);
+		static void init();
+		static void initgl();
+		static void render(const shared_ptr<Scene>& scene, bool withNames);
 
-		void setNodeGlData(const shared_ptr<Node>& n, bool updateRefPos=false);
+		static void setNodeGlData(const shared_ptr<Node>& n, bool updateRefPos=false);
 
-		void renderRawNode(shared_ptr<Node>);
+		static void renderRawNode(shared_ptr<Node>);
 
-		void pyInitError(py::tuple, py::dict){ throw std::runtime_error("woo.gl.Renderer() may not be instantiated directly, use woo.qt.Renderer() to get the current instance."); }
+		// static void pyInitError(py::tuple, py::dict){ throw std::runtime_error("woo.gl.Renderer() may not be instantiated directly, use woo.qt.Renderer() to get the current instance."); }
 
-	WOO_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(Renderer,Object,"Class responsible for rendering scene on OpenGL devices.",
+	WOO_CLASS_BASE_DOC_STATICATTRS_PY(Renderer,Object,"Class responsible for rendering scene on OpenGL devices.",
 		((bool,scaleOn,true,,"Whether *dispScale* has any effect or not."))
 		((Vector3r,dispScale,((void)"disable scaling",Vector3r::Ones()),,"Artificially enlarge (scale) dispalcements from bodies' :ref:`reference positions<State.refPos>` by this relative amount, so that they become better visible (independently in 3 dimensions). Disbled if (1,1,1), and also if *scaleOn* is false."))
 		((Real,rotScale,((void)"disable scaling",1.),,"Artificially enlarge (scale) rotations of bodies relative to their :ref:`reference orientation<State.refOri>`, so the they are better visible. No effect if 1, and also if *scaleOn* is false."))
 		((Vector3r,lightPos,Vector3r(75,130,0),,"Position of OpenGL light source in the scene."))
 		((Vector3r,light2Pos,Vector3r(-130,75,30),,"Position of secondary OpenGL light source in the scene."))
-		((Vector3r,lightColor,Vector3r(0.6,0.6,0.6),,"Per-color intensity of primary light (RGB)."))
-		((Vector3r,light2Color,Vector3r(0.5,0.5,0.1),,"Per-color intensity of secondary light (RGB)."))
-		((Vector3r,bgColor,Vector3r(.2,.2,.2),,"Color of the background canvas (RGB)"))
+		((Vector3r,lightColor,Vector3r(0.6,0.6,0.6),AttrTrait<>().rgbColor(),"Per-color intensity of primary light (RGB)."))
+		((Vector3r,light2Color,Vector3r(0.5,0.5,0.1),AttrTrait<>().rgbColor(),"Per-color intensity of secondary light (RGB)."))
+		((Vector3r,bgColor,Vector3r(.2,.2,.2),AttrTrait<>().rgbColor(),"Color of the background canvas (RGB)"))
 		((bool,light1,true,,"Turn light 1 on."))
 		((bool,light2,true,,"Turn light 2 on."))
 		((bool,ghosts,false,,"Render objects crossing periodic cell edges by cloning them in multiple places (periodic simulations only)."))
-		#ifdef WOO_SUBDOMAINS
-			((int,subDomMask,0,,"If non-zero, render shape only of particles that are inside respective domains - -they are counted from the left, i.e. 5 (binary 101) will show subdomains 1 and 3. If zero, render everything."))
-		#endif
-		// ((int,mask,((void)"draw everything",~0),,"Bitmask for showing only bodies where ((mask & :ref:`Body::mask`)!=0)"))
-		// ((int,selId,-1,,"Id of particle that was selected by the user."))
 		((shared_ptr<Object>,selObj,,,"Object which was selected by the user (access only via woo.qt.selObj)."))
 		((shared_ptr<Node>,selObjNode,,AttrTrait<Attr::readonly>(),"Node associated to the selected object (recenters scene on that object upon selection)"))
 		((vector<Vector3r>,clipPlanePos,vector<Vector3r>(numClipPlanes,Vector3r::Zero()),,"Position and orientation of clipping planes"))
 		((vector<Quaternionr>,clipPlaneOri,vector<Quaternionr>(numClipPlanes,Quaternionr::Identity()),,"Position and orientation of clipping planes"))
 		((vector<bool>,clipPlaneActive,vector<bool>(numClipPlanes,false),,"Activate/deactivate respective clipping planes"))
-		((vector<shared_ptr<GlExtraDrawer> >,extraDrawers,,,"Additional rendering components (:ref:`GlExtraDrawer`)."))
+		((vector<shared_ptr<GlExtraDrawer>>,extraDrawers,,,"Additional rendering components (:ref:`GlExtraDrawer`)."))
 		((bool,engines,true,,"Call engine's rendering functions (if defined)"))
 		((Vector3r,iniUp,Vector3r(0,0,1),,"Up vector of new views"))
 		((Vector3r,iniViewDir,Vector3r(-1,0,0),,"View direction of new views"))
-		,/*deprec*/
-		,/*init*/
-		,/*ctor*/ if(self && initDone) throw std::runtime_error("woo.gl.Renderer() is already constructed, use woo.qt.Renderer() to retrieve the instance."); self=this;
 		,/*py*/
 		//.def("render",&Renderer::pyRender,"Render the scene in the current OpenGL context.")
 		.def_readonly("shapeDispatcher",&Renderer::shapeDispatcher)
 		.def_readonly("boundDispatcher",&Renderer::boundDispatcher)
 		.def_readonly("nodeDispatcher",&Renderer::nodeDispatcher)
 		.def_readonly("cPhysDispatcher",&Renderer::cPhysDispatcher)
-
-		// .def("__init__",py::make_constructor(&Renderer::pyInitError)) // does not seem to be called :-(
 	);
 };
 REGISTER_SERIALIZABLE(Renderer);

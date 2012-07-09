@@ -56,12 +56,19 @@ void SnapshotEngine::pyHandleCustomCtorArgs(py::tuple& t, py::dict& d){
 void SnapshotEngine::run(){
 	if(!OpenGLManager::self) throw logic_error("No OpenGLManager instance?!");
 	if(OpenGLManager::self->views.size()==0){
-		int viewNo=OpenGLManager::self->waitForNewView(deadTimeout);
-		if(viewNo<0){
-			if(!ignoreErrors) throw runtime_error("SnapshotEngine: Timeout waiting for new 3d view.");
-			else {
-				LOG_WARN("Making myself Engine::dead, as I can not live without a 3d view (timeout)."); dead=true; return;
+		if(tryOpenView){
+			int viewNo=OpenGLManager::self->waitForNewView(deadTimeout);
+			if(viewNo<0){
+				if(!ignoreErrors) throw runtime_error("SnapshotEngine: Timeout waiting for new 3d view.");
+				else {
+					LOG_WARN("Making myself Engine::dead, as I can not live without a 3d view (timeout)."); dead=true; return;
+				}
 			}
+		} else {
+			static bool warnedNoView=false;
+			if(!warnedNoView) LOG_WARN("No 3d view, snapshot not taken (warn once)");
+			warnedNoView=true;
+			return;
 		}
 	}
 	const shared_ptr<GLViewer>& glv=OpenGLManager::self->views[0];
@@ -101,7 +108,7 @@ void GLViewer::closeEvent(QCloseEvent *e){
 	e->accept();
 }
 
-GLViewer::GLViewer(int _viewId, const shared_ptr<Renderer>& _renderer, QGLWidget* shareWidget): QGLViewer(/*parent*/(QWidget*)NULL,shareWidget), renderer(_renderer), viewId(_viewId) {
+GLViewer::GLViewer(int _viewId, QGLWidget* shareWidget): QGLViewer(/*parent*/(QWidget*)NULL,shareWidget), viewId(_viewId) {
 	isMoving=false;
 	drawGrid=0;
 	drawScale=true;
@@ -173,7 +180,7 @@ GLViewer::GLViewer(int _viewId, const shared_ptr<Renderer>& _renderer, QGLWidget
 	setMouseTracking(true);
 
 	// set initial orientation, z up
-	Vector3r &u(renderer->iniUp), &v(renderer->iniViewDir);
+	Vector3r &u(Renderer::iniUp), &v(Renderer::iniViewDir);
 	qglviewer::Vec up(u[0],u[1],u[2]), vDir(v[0],v[1],v[2]);
 	camera()->setViewDirection(vDir);
 	camera()->setUpVector(up);
@@ -221,11 +228,11 @@ void GLViewer::resetManipulation(){
 }
 
 void GLViewer::startClipPlaneManipulation(int planeNo){
-	assert(planeNo<renderer->numClipPlanes);
+	assert(planeNo<Renderer::numClipPlanes);
 	resetManipulation();
 	mouseMovesManipulatedFrame(xyPlaneConstraint.get());
 	manipulatedClipPlane=planeNo;
-	const Vector3r& pos(renderer->clipPlanePos[planeNo]); const Quaternionr& ori(renderer->clipPlaneOri[planeNo]);
+	const Vector3r& pos(Renderer::clipPlanePos[planeNo]); const Quaternionr& ori(Renderer::clipPlaneOri[planeNo]);
 	manipulatedFrame()->setPositionAndOrientation(qglviewer::Vec(pos[0],pos[1],pos[2]),qglviewer::Quaternion(ori.x(),ori.y(),ori.z(),ori.w()));
 	string grp=strBoundGroup();
 	displayMessage("Manipulating clip plane #"+lexical_cast<string>(planeNo+1)+(grp.empty()?grp:" (bound planes:"+grp+")"));
@@ -243,33 +250,36 @@ void GLViewer::useDisplayParameters(size_t n, bool fromHandler){
 	}
 	const shared_ptr<DisplayParameters>& dp=dispParams[n];
 	string val;
-	if(dp->getValue("Renderer",val)){ std::istringstream oglre(val);
-		woo::ObjectIO::load<decltype(renderer),
+	if(dp->getValue("Renderer",val)){
+		std::istringstream oglre(val);
+		Renderer rendererDummyInstance;
+		woo::ObjectIO::load<Renderer,
 			#ifdef WOO_XMLSERIALIZATION
 				boost::archive::xml_iarchive
 			#else
 				boost::archive::binary_iarchive
 		#endif
-		>(oglre,"renderer",renderer);
+		>(oglre,"renderer",rendererDummyInstance);
 	}
 	else { LOG_WARN("Renderer configuration not found in display parameters, skipped.");}
 	if(dp->getValue("GLViewer",val)){ GLViewer::setState(val); displayMessage("Loaded view configuration #"+lexical_cast<string>(n)); }
 	else { LOG_WARN("GLViewer configuration not found in display parameters, skipped."); }
 	}
 
-	void GLViewer::saveDisplayParameters(size_t n){
+void GLViewer::saveDisplayParameters(size_t n){
 	LOG_DEBUG("Saving display parameters to #"<<n);
 	vector<shared_ptr<DisplayParameters> >& dispParams=Master::instance().getScene()->dispParams;
 	if(dispParams.size()<=n){while(dispParams.size()<=n) dispParams.push_back(shared_ptr<DisplayParameters>(new DisplayParameters));} assert(n<dispParams.size());
 	shared_ptr<DisplayParameters>& dp=dispParams[n];
 	std::ostringstream oglre;
-	woo::ObjectIO::save<decltype(renderer),
+	Renderer rendererDummyInstance;
+	woo::ObjectIO::save<Renderer,
 		#ifdef WOO_XMLSERIALIZATION
 			boost::archive::xml_oarchive
 		#else
 			boost::archive::binary_oarchive
 		#endif
-			>(oglre,"renderer",renderer);	
+			>(oglre,"renderer",rendererDummyInstance);	
 	dp->setValue("Renderer",oglre.str());
 	dp->setValue("GLViewer",GLViewer::getState());
 	displayMessage("Saved view configuration to #"+lexical_cast<string>(n));
@@ -304,40 +314,40 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 	if(false){}
 	/* special keys: Escape and Space */
 	else if(e->key()==Qt::Key_A){ toggleAxisIsDrawn(); return; }
-	else if(e->key()==Qt::Key_S){ renderer->scaleOn=!renderer->scaleOn;
-		displayMessage("Scaling is "+(renderer->scaleOn?string("on (displacements ")+lexical_cast<string>(renderer->dispScale.transpose())+", rotations "+lexical_cast<string>(renderer->rotScale)+")":string("off")));
+	else if(e->key()==Qt::Key_S){ Renderer::scaleOn=!Renderer::scaleOn;
+		displayMessage("Scaling is "+(Renderer::scaleOn?string("on (displacements ")+lexical_cast<string>(Renderer::dispScale.transpose())+", rotations "+lexical_cast<string>(Renderer::rotScale)+")":string("off")));
 		return;
 	}
 	else if(e->key()==Qt::Key_Escape){
 		if(!isManipulating()){ 
 			// reset selection
-			renderer->selObj=shared_ptr<Object>(); renderer->selObjNode=shared_ptr<Node>();
+			Renderer::selObj=shared_ptr<Object>(); Renderer::selObjNode=shared_ptr<Node>();
 			LOG_INFO("Calling onSelection with None to deselect");
 			pyRunString("import woo.qt; onSelection(None);");
 		}
 		else { resetManipulation(); displayMessage("Manipulating scene."); }
 	}
 	else if(e->key()==Qt::Key_Space){
-		if(manipulatedClipPlane>=0) {displayMessage("Clip plane #"+lexical_cast<string>(manipulatedClipPlane+1)+(renderer->clipPlaneActive[manipulatedClipPlane]?" de":" ")+"activated"); renderer->clipPlaneActive[manipulatedClipPlane]=!renderer->clipPlaneActive[manipulatedClipPlane]; }
+		if(manipulatedClipPlane>=0) {displayMessage("Clip plane #"+lexical_cast<string>(manipulatedClipPlane+1)+(Renderer::clipPlaneActive[manipulatedClipPlane]?" de":" ")+"activated"); Renderer::clipPlaneActive[manipulatedClipPlane]=!Renderer::clipPlaneActive[manipulatedClipPlane]; }
 		else{ centerMedianQuartile(); }
 	}
 	/* function keys */
 	else if(e->key()==Qt::Key_F1 || e->key()==Qt::Key_F2 || e->key()==Qt::Key_F3 /* || ... */ ){
 		int n=0; if(e->key()==Qt::Key_F1) n=1; else if(e->key()==Qt::Key_F2) n=2; else if(e->key()==Qt::Key_F3) n=3; assert(n>0); int planeId=n-1;
-		if(planeId>=renderer->numClipPlanes) return;
+		if(planeId>=Renderer::numClipPlanes) return;
 		if(planeId!=manipulatedClipPlane) startClipPlaneManipulation(planeId);
 	}
 	/* numbers */
 	else if(e->key()==Qt::Key_0 && (e->modifiers() & Qt::AltModifier)) { boundClipPlanes.clear(); displayMessage("Cleared bound planes group.");}
 	else if(e->key()==Qt::Key_1 || e->key()==Qt::Key_2 || e->key()==Qt::Key_3 /* || ... */ ){
 		int n=0; if(e->key()==Qt::Key_1) n=1; else if(e->key()==Qt::Key_2) n=2; else if(e->key()==Qt::Key_3) n=3; assert(n>0); int planeId=n-1;
-		if(planeId>=renderer->numClipPlanes) return; // no such clipping plane
+		if(planeId>=Renderer::numClipPlanes) return; // no such clipping plane
 		if(e->modifiers() & Qt::AltModifier){
 			if(boundClipPlanes.count(planeId)==0) {boundClipPlanes.insert(planeId); displayMessage("Added plane #"+lexical_cast<string>(planeId+1)+" to the bound group: "+strBoundGroup());}
 			else {boundClipPlanes.erase(planeId); displayMessage("Removed plane #"+lexical_cast<string>(planeId+1)+" from the bound group: "+strBoundGroup());}
 		}
 		else if(manipulatedClipPlane>=0 && manipulatedClipPlane!=planeId) {
-			const Quaternionr& o=renderer->clipPlaneOri[planeId];
+			const Quaternionr& o=Renderer::clipPlaneOri[planeId];
 			manipulatedFrame()->setOrientation(qglviewer::Quaternion(o.x(),o.y(),o.z(),o.w()));
 			displayMessage("Copied orientation from plane #1");
 		}
@@ -369,9 +379,9 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 	else if(e->key()==Qt::Key_O) camera()->setFieldOfView(camera()->fieldOfView()*0.9);
 	else if(e->key()==Qt::Key_P) camera()->setFieldOfView(camera()->fieldOfView()*1.1);
 	else if(e->key()==Qt::Key_R){ // reverse the clipping plane; revolve around scene center if no clipping plane selected
-		if(manipulatedClipPlane>=0 && manipulatedClipPlane<renderer->numClipPlanes){
-			/* here, we must update both manipulatedFrame orientation and renderer->clipPlaneOri in the same way */
-			Quaternionr& ori=renderer->clipPlaneOri[manipulatedClipPlane];
+		if(manipulatedClipPlane>=0 && manipulatedClipPlane<Renderer::numClipPlanes){
+			/* here, we must update both manipulatedFrame orientation and Renderer::clipPlaneOri in the same way */
+			Quaternionr& ori=Renderer::clipPlaneOri[manipulatedClipPlane];
 			ori=Quaternionr(AngleAxisr(Mathr::PI,Vector3r(0,1,0)))*ori; 
 			manipulatedFrame()->setOrientation(qglviewer::Quaternion(qglviewer::Vec(0,1,0),Mathr::PI)*manipulatedFrame()->orientation());
 			displayMessage("Plane #"+lexical_cast<string>(manipulatedClipPlane+1)+" reversed.");
@@ -514,7 +524,7 @@ void GLViewer::draw(bool withNames)
 	}
 #endif
 
-	qglviewer::Vec vd=camera()->viewDirection(); renderer->viewDirection=Vector3r(vd[0],vd[1],vd[2]);
+	qglviewer::Vec vd=camera()->viewDirection(); Renderer::viewDirection=Vector3r(vd[0],vd[1],vd[2]);
 	if(Master::instance().getScene()){
 		// int selection = selectedName();
 		#if 0
@@ -532,27 +542,26 @@ void GLViewer::draw(bool withNames)
 		}
 #endif
 		if(manipulatedClipPlane>=0){
-			assert(manipulatedClipPlane<renderer->numClipPlanes);
+			assert(manipulatedClipPlane<Renderer::numClipPlanes);
 			float v0,v1,v2; manipulatedFrame()->getPosition(v0,v1,v2);
 			double q0,q1,q2,q3; manipulatedFrame()->getOrientation(q0,q1,q2,q3);
 			Vector3r newPos(v0,v1,v2); Quaternionr newOri(q0,q1,q2,q3);
-			const Vector3r& oldPos(renderer->clipPlanePos[manipulatedClipPlane]);
-			const Quaternionr& oldOri(renderer->clipPlaneOri[manipulatedClipPlane]);
+			const Vector3r& oldPos(Renderer::clipPlanePos[manipulatedClipPlane]);
+			const Quaternionr& oldOri(Renderer::clipPlaneOri[manipulatedClipPlane]);
 			FOREACH(int planeId, boundClipPlanes){
-				if(planeId>=renderer->numClipPlanes || !renderer->clipPlaneActive[planeId] || planeId==manipulatedClipPlane) continue;
-				Vector3r& boundPos(renderer->clipPlanePos[planeId]); Quaternionr& boundOri(renderer->clipPlaneOri[planeId]);
+				if(planeId>=Renderer::numClipPlanes || !Renderer::clipPlaneActive[planeId] || planeId==manipulatedClipPlane) continue;
+				Vector3r& boundPos(Renderer::clipPlanePos[planeId]); Quaternionr& boundOri(Renderer::clipPlaneOri[planeId]);
 				Quaternionr relOrient=oldOri.conjugate()*boundOri; relOrient.normalize();
 				Vector3r relPos=oldOri.conjugate()*(boundPos-oldPos);
 				boundPos=newPos+newOri*relPos;
 				boundOri=newOri*relOrient;
 				boundOri.normalize();
 			}
-			renderer->clipPlanePos[manipulatedClipPlane]=newPos;
-			renderer->clipPlaneOri[manipulatedClipPlane]=newOri;
+			Renderer::clipPlanePos[manipulatedClipPlane]=newPos;
+			Renderer::clipPlaneOri[manipulatedClipPlane]=newOri;
 		}
 		const shared_ptr<Scene>& scene=Master::instance().getScene();
-		scene->renderer=renderer;
-		renderer->render(scene,withNames);
+		Renderer::render(scene,withNames);
 	}
 }
 
@@ -563,56 +572,25 @@ void GLViewer::postSelection(const QPoint& point)
 	LOG_DEBUG("Selection is "<<selectedName());
 	cerr<<"Selection is "<<selectedName()<<endl;
 	int selection=selectedName();
-	if(selection<0 || selection>=(int)renderer->glNamedObjects.size()) return;
+	if(selection<0 || selection>=(int)Renderer::glNamedObjects.size()) return;
 
-	renderer->selObj=renderer->glNamedObjects[selection];
-	renderer->selObjNode=renderer->glNamedNodes[selection];
-	renderer->glNamedObjects.clear(); renderer->glNamedNodes.clear();
-	Vector3r pos=renderer->selObjNode->pos;
-	if(renderer->scene->isPeriodic) pos=renderer->scene->cell->canonicalizePt(pos);
+	Renderer::selObj=Renderer::glNamedObjects[selection];
+	Renderer::selObjNode=Renderer::glNamedNodes[selection];
+	Renderer::glNamedObjects.clear(); Renderer::glNamedNodes.clear();
+	Vector3r pos=Renderer::selObjNode->pos;
+	if(Renderer::scene->isPeriodic) pos=Renderer::scene->cell->canonicalizePt(pos);
 	setSceneCenter(qglviewer::Vec(pos[0],pos[1],pos[2]));
 
-	cerr<<"Selected object #"<<selection<<" is a "<<renderer->selObj->getClassName()<<endl;
+	cerr<<"Selected object #"<<selection<<" is a "<<Renderer::selObj->getClassName()<<endl;
 	pyRunString("import woo.qt; onSelection(woo.qt.getSel());");
 	
 	/*
 	gilLock lock(); // needed, since we call in python API from c++ here
 	py::scope woo=py::import("woo");
-	cerr<<"Selected "<<renderer->selObj->getClassName()<<" @ "<<lexical_cast<string>(renderer->selObj)<<endl;
+	cerr<<"Selected "<<Renderer::selObj->getClassName()<<" @ "<<lexical_cast<string>(Renderer::selObj)<<endl;
 	if(!PyObject_HasAttrString(woo.ptr(),"onSelect")) return;
-	woo.attr("onSelect")(py::object(renderer->selObj));
+	woo.attr("onSelect")(py::object(Renderer::selObj));
 	*/
-
-
-#if 0
-	if(selection>=0 && (*(Master::instance().getScene()->bodies)).exists(selection)){
-		resetManipulation();
-		/*if(Body::byId(Body::id_t(selection))->isClumpMember()){ // select clump (invisible) instead of its member
-			LOG_DEBUG("Clump member #"<<selection<<" selected, selecting clump instead.");
-			selection=Body::byId(Body::id_t(selection))->clumpId;
-		}
-		LOG_DEBUG("New selection "<<selection);
-		displayMessage("Selected body #"+lexical_cast<string>(selection)+(Body::byId(selection)->isClump()?" (clump)":""));
-		*/
-		setSelectedName(selection);
-		Quaternionr& q = Body::byId(selection)->state->ori;
-		Vector3r&    v = Body::byId(selection)->state->pos;
-		manipulatedFrame()->setPositionAndOrientation(qglviewer::Vec(v[0],v[1],v[2]),qglviewer::Quaternion(q.x(),q.y(),q.z(),q.w()));
-		Master::instance().getScene()->selection = selection;
-			PyGILState_STATE gstate;
-			gstate = PyGILState_Ensure();
-				python::object main=python::import("__main__");
-				python::object global=main.attr("__dict__");
-				// the try/catch block must be properly nested inside PyGILState_Ensure and PyGILState_Release
-				try{
-					python::eval(string("onBodySelect("+lexical_cast<string>(selection)+")").c_str(),global,global);
-				} catch (python::error_already_set const &) {
-					LOG_DEBUG("unable to call onBodySelect. Not defined?");
-				}
-			PyGILState_Release(gstate);
-			// see https://svn.boost.org/trac/boost/ticket/2781 for exception handling
-	}
-#endif
 }
 
 // maybe new object will be selected.
@@ -633,9 +611,9 @@ float GLViewer::displayedSceneRadius(){
 void GLViewer::postDraw(){
 	Real wholeDiameter=QGLViewer::camera()->sceneRadius()*2;
 
-	renderer->viewInfo.sceneRadius=QGLViewer::camera()->sceneRadius();
+	Renderer::viewInfo.sceneRadius=QGLViewer::camera()->sceneRadius();
 	qglviewer::Vec c=QGLViewer::camera()->sceneCenter();
-	renderer->viewInfo.sceneCenter=Vector3r(c[0],c[1],c[2]);
+	Renderer::viewInfo.sceneCenter=Vector3r(c[0],c[1],c[2]);
 
 	Real dispDiameter=min(wholeDiameter,max((Real)displayedSceneRadius()*2,wholeDiameter/1e3)); // limit to avoid drawing 1e5 lines with big zoom level
 	//qglviewer::Vec center=QGLViewer::camera()->sceneCenter();
@@ -696,16 +674,16 @@ void GLViewer::postDraw(){
 	// cutting planes (should be moved to Renderer perhaps?)
 	// only painted if one of those is being manipulated
 	if(manipulatedClipPlane>=0){
-		for(int planeId=0; planeId<renderer->numClipPlanes; planeId++){
-			if(!renderer->clipPlaneActive[planeId] && planeId!=manipulatedClipPlane) continue;
+		for(int planeId=0; planeId<Renderer::numClipPlanes; planeId++){
+			if(!Renderer::clipPlaneActive[planeId] && planeId!=manipulatedClipPlane) continue;
 			glPushMatrix();
-				const Vector3r& pos=renderer->clipPlanePos[planeId];
-				const Quaternionr& ori=renderer->clipPlaneOri[planeId];
+				const Vector3r& pos=Renderer::clipPlanePos[planeId];
+				const Quaternionr& ori=Renderer::clipPlaneOri[planeId];
 				AngleAxisr aa(ori);	
 				glTranslatef(pos[0],pos[1],pos[2]);
 				glRotated(aa.angle()*Mathr::RAD_TO_DEG,aa.axis()[0],aa.axis()[1],aa.axis()[2]);
 				Real cff=1;
-				if(!renderer->clipPlaneActive[planeId]) cff=.4;
+				if(!Renderer::clipPlaneActive[planeId]) cff=.4;
 				glColor3f(max((Real)0.,cff*cos(planeId)),max((Real)0.,cff*sin(planeId)),planeId==manipulatedClipPlane); // variable colors
 				QGLViewer::drawGrid(realSize,2*nSegments);
 				drawArrow(wholeDiameter/6);
@@ -752,22 +730,6 @@ void GLViewer::postDraw(){
 			QGLViewer::drawText(x,y,oss.str().c_str());
 			y-=lineHt;
 		}
-	}
-	QGLViewer::postDraw();
-	if(!nextFrameSnapshotFilename.empty()){
-		#ifdef WOO_GL2PS
-			if(boost::algorithm::ends_with(nextFrameSnapshotFilename,".pdf")){
-				gl2psEndPage();
-				LOG_DEBUG("Finished saving snapshot to "<<nextFrameSnapshotFilename);
-				fclose(gl2psStream);
-			} else
-	#endif
-		{
-			// save the snapshot
-			saveSnapshot(QString(nextFrameSnapshotFilename.c_str()),/*overwrite*/ true);
-		}
-		// notify the caller that it is done already (probably not an atomic op :-|, though)
-		nextFrameSnapshotFilename.clear();
 	}
 
 #if 1
@@ -877,6 +839,23 @@ void GLViewer::postDraw(){
 		glEnable(GL_LIGHTING);
 	};
 #endif
+
+	QGLViewer::postDraw();
+	if(!nextFrameSnapshotFilename.empty()){
+		#ifdef WOO_GL2PS
+			if(boost::algorithm::ends_with(nextFrameSnapshotFilename,".pdf")){
+				gl2psEndPage();
+				LOG_DEBUG("Finished saving snapshot to "<<nextFrameSnapshotFilename);
+				fclose(gl2psStream);
+			} else
+	#endif
+		{
+			// save the snapshot
+			saveSnapshot(QString(nextFrameSnapshotFilename.c_str()),/*overwrite*/ true);
+		}
+		// notify the caller that it is done already (probably not an atomic op :-|, though)
+		nextFrameSnapshotFilename.clear();
+	}
 }
 
 string GLViewer::getRealTimeString(){
@@ -927,15 +906,15 @@ void GLViewer::wheelEvent(QWheelEvent* event){
 	last_user_event = boost::posix_time::second_clock::local_time();
 
 	if(manipulatedClipPlane<0){ QGLViewer::wheelEvent(event); return; }
-	assert(manipulatedClipPlane<renderer->numClipPlanes);
+	assert(manipulatedClipPlane<Renderer::numClipPlanes);
 	float distStep=1e-3*sceneRadius();
 	//const float wheelSensitivityCoef = 8E-4f;
 	//Vec trans(0.0, 0.0, -event->delta()*wheelSensitivity()*wheelSensitivityCoef*(camera->position()-position()).norm());
 	float dist=event->delta()*manipulatedFrame()->wheelSensitivity()*distStep;
-	Vector3r normal=renderer->clipPlaneOri[manipulatedClipPlane]*Vector3r(0,0,1);
+	Vector3r normal=Renderer::clipPlaneOri[manipulatedClipPlane]*Vector3r(0,0,1);
 	qglviewer::Vec newPos=manipulatedFrame()->position()+qglviewer::Vec(normal[0],normal[1],normal[2])*dist;
 	manipulatedFrame()->setPosition(newPos);
-	renderer->clipPlanePos[manipulatedClipPlane]=Vector3r(newPos[0],newPos[1],newPos[2]);
+	Renderer::clipPlanePos[manipulatedClipPlane]=Vector3r(newPos[0],newPos[1],newPos[2]);
 	updateGL();
 	/* in draw, bound cutting planes will be moved as well */
 }

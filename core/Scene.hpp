@@ -19,10 +19,6 @@ class Bound;
 class Field;
 class ScalarRange;
 
-#ifdef WOO_OPENGL
-	class Renderer;
-#endif
-
 class Scene: public Object{
 		boost::mutex runMutex;
 		bool runningFlag;
@@ -46,9 +42,6 @@ class Scene: public Object{
 		// advance by one iteration by running all engines
 		void doOneStep();
 
-		#ifdef WOO_OPENGL
-			shared_ptr<Renderer> renderer;
-		#endif
 		void postLoad(Scene&);
 
 		#ifdef WOO_OPENCL

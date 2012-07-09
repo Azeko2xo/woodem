@@ -7,8 +7,7 @@ OpenGLManager* OpenGLManager::self=NULL;
 OpenGLManager::OpenGLManager(QObject* parent): QObject(parent){
 	if(self) throw runtime_error("OpenGLManager instance already exists, uses OpenGLManager::self to retrieve it.");
 	self=this;
-	renderer=shared_ptr<Renderer>(new Renderer);
-	renderer->init();
+	Renderer::init();
 	connect(this,SIGNAL(createView()),this,SLOT(createViewSlot()));
 	connect(this,SIGNAL(resizeView(int,int,int)),this,SLOT(resizeViewSlot(int,int,int)));
 	connect(this,SIGNAL(closeView(int)),this,SLOT(closeViewSlot(int)));
@@ -28,7 +27,7 @@ void OpenGLManager::timerEvent(QTimerEvent* event){
 void OpenGLManager::createViewSlot(){
 	boost::mutex::scoped_lock lock(viewsMutex);
 	if(views.size()==0){
-		views.push_back(shared_ptr<GLViewer>(new GLViewer(0,renderer,/*shareWidget*/(QGLWidget*)0)));
+		views.push_back(shared_ptr<GLViewer>(new GLViewer(0,/*shareWidget*/(QGLWidget*)0)));
 	} else {
 		throw runtime_error("Secondary views not supported");
 		//views.push_back(shared_ptr<GLViewer>(new GLViewer(views.size(),renderer,views[0].get())));

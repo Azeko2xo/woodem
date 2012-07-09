@@ -24,7 +24,7 @@ rSphere=.1
 # (see scripts/test/pack-predicates.py for details)
 pred=pack.inAlignedBox((-.5*boxSize[0],-.5*boxSize[1],0),(.5*boxSize[0],.5*boxSize[1],boxSize[2])) - pack.inCylinder((-.5*boxSize[0],0,0),(.5*boxSize[0],0,0),tunnelRad)
 # Use the predicate to generate sphere packing inside 
-pack.randomDensePack(pred,radius=rSphere,rRelFuzz=.3,memoizeDb='/tmp/triaxPackCache.sqlite',spheresInCell=3000).toSimulation(O.scene)
+pack.randomDensePack(pred,radius=rSphere,rRelFuzz=.3,memoizeDb='/tmp/triaxPackCache.sqlite',spheresInCell=3000).toSimulation(woo.master.scene)
 
 from woo import qt
 qt.Controller()

@@ -349,7 +349,49 @@ class AttrEditor_Bits(AttrEditor,QFrame):
 		self.trySetter(val)
 	def setFocus(self): self.checkers[0].setFocus()
 
-		
+class AttrEditor_RgbColor(AttrEditor,QFrame):
+	def __init__(self,parent,getter,setter):
+		AttrEditor.__init__(self,getter,setter)
+		QFrame.__init__(self,parent)
+		self.grid=QGridLayout(self); self.grid.setSpacing(0); self.grid.setMargin(0)
+		self.butt=QPushButton()
+		self.butt.clicked.connect(self.dialogShow)
+		self.rgbWidgets=[]
+		self.grid.addWidget(self.butt,0,0)
+		self.dialog=None
+		for i in (0,1,2):
+			w=QLineEdit('')
+			self.grid.addWidget(w,0,i+1)
+			w.textEdited.connect(self.isHot)
+			w.selectionChanged.connect(self.isHot)
+			w.editingFinished.connect(self.update)
+			self.rgbWidgets.append(w)
+	def to256c(self,f): return min(255,max(0,int(f*256)))
+	def to256(self,v): return (self.to256c(v[0]),self.to256c(v[1]),self.to256c(v[2]))
+	def to256str(self,v,sep=','): return sep.join([str(self.to256c(v[0])),str(self.to256c(v[1])),str(self.to256c(v[2]))])
+	def dialogShow(self):
+		rgb=self.getter()
+		self.dialog=QColorDialog(self)
+		self.dialog.setCurrentColor(QColor(*self.to256(rgb)))
+		self.dialog.setOptions(QColorDialog.NoButtons)
+		self.dialog.currentColorChanged.connect(self.dialogChanged)
+		self.dialog.show()
+	def dialogChanged(self):
+		rgba=self.dialog.currentColor().getRgb()
+		self.setter(Vector3(*rgba[0:3])/256)
+		self.refresh()
+	def refresh(self):
+		rgb=self.getter()
+		for i in (0,1,2):
+			self.rgbWidgets[i].setTextStable(str(rgb[i]))
+		self.butt.setStyleSheet('QPushButton { background-color: rgb(%s) }'%(self.to256str(rgb)))
+	def update(self):
+		try:
+			rgb=Vector3([float(self.rgbWidgets[i].text()) for i in (0,1,2)])
+		except ValueError: self.refresh()
+		self.trySetter(rgb)
+	
+
 
 
 class AttrEditor_Se3(AttrEditor,QFrame):
@@ -510,11 +552,6 @@ class Se3FakeType: pass
 
 _fundamentalEditorMap={bool:AttrEditor_Bool,str:AttrEditor_Str,int:AttrEditor_Int,float:AttrEditor_Float,Quaternion:AttrEditor_Quaternion,Vector2:AttrEditor_Vector2,Vector3:AttrEditor_Vector3,Vector6:AttrEditor_Vector6,Matrix3:AttrEditor_Matrix3,Vector6i:AttrEditor_Vector6i,Vector3i:AttrEditor_Vector3i,Vector2i:AttrEditor_Vector2i,MatrixX:AttrEditor_MatrixXX,VectorX:AttrEditor_VectorX,Se3FakeType:AttrEditor_Se3,AlignedBox3:AttrEditor_AlignedBox3,AlignedBox2:AttrEditor_AlignedBox2}
 _fundamentalInitValues={bool:True,str:'',int:0,float:0.0,Quaternion:Quaternion.Identity,Vector3:Vector3.Zero,Matrix3:Matrix3.Zero,Vector6:Vector6.Zero,Vector6i:Vector6i.Zero,Vector3i:Vector3i.Zero,Vector2i:Vector2i.Zero,Vector2:Vector2.Zero,Se3FakeType:(Vector3.Zero,Quaternion.Identity),AlignedBox3:(Vector3.Zero,Vector3.Zero),AlignedBox2:(Vector2.Zero,Vector2.Zero),MatrixX:MatrixX(),VectorX:VectorX()}
-
-_fundamentalSpecialEditors={
-	# FIXME: re-eanble once fixed
-	#id(woo.dem.DemData.flags):AttrEditor_DemData_flags,
-}
 
 _attributeGuessedTypeMap={woo._customConverters.NodeList:(woo.core.Node,), }
 
@@ -708,7 +745,11 @@ class SerializableEditor(QFrame):
 		for klass,trait in attrTraits:
 			if trait.hidden or trait.noGui: continue
 			attr=trait.name
-			val=getattr(self.ser,attr) # get the value using serattt, as it might be different from what the dictionary provides (e.g. Body.blockedDOFs)
+			try:
+				val=getattr(self.ser,attr) # get the value using serattt, as it might be different from what the dictionary provides (e.g. Body.blockedDOFs)
+			except TypeError: # no conversion possible
+				logging.error("To-python conversion failed for %s.%s!"%(self.ser.__class__.__name__,trait.name))
+				continue
 			t=None
 			doc=trait.doc
 			if attr in self.ignoredAttrs: continue
@@ -781,15 +822,18 @@ class SerializableEditor(QFrame):
 	def handleBits(self,widgetKlass,getter,setter,entry):
 		bits=entry.trait.bits
 		return AttrEditor_Bits, lambda: (getattr(self.ser,entry.name),bits),lambda x: setattr(self.ser,entry.name,x)
+	def handleRgbColor(self,widgetKlass,getter,setter,entry):
+		return AttrEditor_RgbColor, getter, setter
 		
 	def mkWidget(self,entry):
 		if not entry.T: return None
 		# single fundamental object
-		Klass=_fundamentalEditorMap.get(entry.T,None) if entry.propertyId() not in _fundamentalSpecialEditors else _fundamentalSpecialEditors[entry.propertyId()]
+		Klass=_fundamentalEditorMap.get(entry.T,None)
 		getter,setter=lambda: getattr(self.ser,entry.name), lambda x: setattr(self.ser,entry.name,x)
 		if entry.trait.range: Klass,getter,setter=self.handleRanges(Klass,getter,setter,entry)
 		elif entry.trait.choice: Klass,getter,setter=self.handleChoices(Klass,getter,setter,entry)
 		elif entry.trait.bits: Klass,getter,setter=self.handleBits(Klass,getter,setter,entry)
+		elif entry.trait.rgbColor: Klass,getter,setter=self.handleRgbColor(Klass,getter,setter,entry)
 		if Klass:
 			widget=Klass(self,getter=getter,setter=setter)
 			widget.setFocusPolicy(Qt.StrongFocus)
@@ -1373,9 +1417,10 @@ class SeqFundamentalEditor(QFrame):
 			currSeq=self.getter()
 		for i in range(len(currSeq)):
 			item=self.form.itemAt(i,QFormLayout.FieldRole)
-			logging.trace('got item #%d %s'%(i,str(item.widget())))
+			if not item: continue # some error condition, oh well
 			widget=item.widget()
-			if not widget.hot:
+			logging.trace('got item #%d %s'%(i,str(widget)))
+			if hasattr(widget,'hot') and not widget.hot: # it can be a QLabel as well
 				widget.refresh()
 			if forceIx>=0 and forceIx==i: widget.setFocus()
 	def refresh(self): pass # SerializableEditor API

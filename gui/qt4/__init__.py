@@ -11,7 +11,7 @@ from woo.qt.Inspector import *
 from woo import *
 import woo.system, woo.config
 
-from woo.qt._GLViewer import *  # imports Renderer() as well
+from woo.qt._GLViewer import *
 
 from ExceptionDialog import *
 
@@ -38,7 +38,7 @@ else: sphinxPrefix=sphinxOnlineDocPath
 
 
 ## object selection
-def getSel(): return Renderer().selObj
+def getSel(): return woo.gl.Renderer.selObj
 
 
 
@@ -91,6 +91,8 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.genIndexCurr=-1
 		self.addPreprocessors()
 		self.addRenderers()
+		self.movieButton.setEnabled(False)
+		self.movieScene=None
 		global controller
 		controller=self
 		self.setWindowTitle('Woo ('+woo.config.prettyVersion(lead=True)+(', debug' if woo.config.debug else '')+')')
@@ -159,13 +161,13 @@ class ControllerClass(QWidget,Ui_Controller):
 			self.generatorArea.setWidget(se)
 		#else:
 		#	self.generatorArea.setWidget(QFrame(self))
-	def pythonComboSlot(self,cmd):
-		try:
-			code=compile(str(cmd),'<UI entry>','exec')
-			exec code in globals()
-		except:
-			import traceback
-			traceback.print_exc()
+	#def pythonComboSlot(self,cmd):
+	#	try:
+	#		code=compile(str(cmd),'<UI entry>','exec')
+	#		exec code in globals()
+	#	except:
+	#		import traceback
+	#		traceback.print_exc()
 	def genSaveParamsSlot(self):
 		if 0:
 			formats=[('expr','Text, loadable (*.expr)'),('pickle','Pickle, loadable (*.pickle)'),('xml','XML (loadable)'),('HTML (write-only)','html')]
@@ -203,10 +205,37 @@ class ControllerClass(QWidget,Ui_Controller):
 			showExceptionDialog(self,e)
 		finally:
 			QApplication.restoreOverrideCursor()
+	def movieCheckboxToggled(self,isOn):
+		if isOn:
+			# add SnapshotEngine to the current scene
+			S=self.movieScene=woo.master.scene
+			snap=woo.qt.SnapshotEngine(label='_snapshooter',fileBase=woo.master.tmpFilename(),stepPeriod=100,realPeriod=.5,ignoreErrors=False)
+			S.engines=S.engines+[snap]
+			se=SerializableEditor(snap,parent=self.movieArea,showType=True)
+			self.movieArea.setWidget(se)
+			# open new view if there is none			
+			if len(views())==0: View()
+			self.movieButton.setEnabled(True)
+		else:
+			self.movieScene=None
+			if hasattr(woo,'_snapshooter'): del woo._snapshooter
+			woo.master.scene.engines=[e for e in woo.master.scene.engines if type(e)!=woo.qt.SnapshotEngine]
+			self.movieButton.setEnabled(False)
+	def movieButtonClicked(self):
+		if not hasattr(woo,'_snapshooter'):
+			print 'No woo._snapshooter, no movie will be created'
+			return
+		out=self.movieFileEdit.text()
+		woo.utils.makeVideo(woo._snapshooter.snapshots,out=out,fps=self.movieFpsSpinbox.value(),kbps=self.movieBitrateSpinbox.value())
+		import os.path
+		url='file://'+os.path.abspath(out)
+		print 'Video saved to',url
+		import webbrowser
+		webbrowser.open(url)
 	def displayComboSlot(self,dispStr):
 		from woo import gl
 		ser=(self.renderer if dispStr=='Renderer' else eval('gl.'+str(dispStr)+'()'))
-		path='woo.qt.Renderer()' if dispStr=='Renderer' else 'woo.gl.'+dispStr
+		path='woo.gl.'+dispStr
 		se=SerializableEditor(ser,parent=self.displayArea,ignoredAttrs=set(['label']),showType=True,path=path)
 		self.displayArea.setWidget(se)
 	def loadSlot(self):
@@ -348,6 +377,11 @@ class ControllerClass(QWidget,Ui_Controller):
 		##if self.dtEditUpdate:
 		self.dtEdit.setText(str(scene.dt))
 		self.show3dButton.setChecked(len(views())>0)
+		##
+		if self.movieScene:
+			if self.movieScene!=woo.master.scene:
+				self.movieCheckboxToggled(True) # as if it was clicked now
+
 		
 def Generator():
 	global controller
