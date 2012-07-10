@@ -230,26 +230,30 @@ bool Master::pyIsChildClassOf(const string& child, const string& base){
 	return (isInheritingFrom_recursive(child,base));
 }
 
+void Master::rmTmp(const string& name){
+	if(memSavedSimulations.count(name)==0) throw runtime_error("No memory-saved object named "+name);
+	memSavedSimulations.erase(name);
+}
 
 py::list Master::pyLsTmp(){
 	py::list ret;
-	for(const auto& i: memSavedSimulations) ret.append(boost::algorithm::replace_first_copy(i.first,":memory:",""));
+	for(const auto& i: memSavedSimulations) ret.append(i.first);
 	return ret;
 }
 
 void Master::pyTmpToFile(const string& mark, const string& filename){
-	if(memSavedSimulations.count(":memory:"+mark)==0) throw runtime_error("No memory-saved simulation named "+mark);
+	if(memSavedSimulations.count(mark)==0) throw runtime_error("No memory-saved simulation named "+mark);
 	boost::iostreams::filtering_ostream out;
 	if(boost::algorithm::ends_with(filename,".bz2")) out.push(boost::iostreams::bzip2_compressor());
 	out.push(boost::iostreams::file_sink(filename));
 	if(!out.good()) throw runtime_error("Error while opening file `"+filename+"' for writing.");
-	LOG_INFO("Saving :memory:"<<mark<<" to "<<filename);
-	out<<memSavedSimulations[":memory:"+mark];
+	LOG_INFO("Saving memory-stored '"<<mark<<"' to file "<<filename);
+	out<<memSavedSimulations[mark];
 }
 
 std::string Master::pyTmpToString(const string& mark){
-	if(memSavedSimulations.count(":memory:"+mark)==0) throw runtime_error("No memory-saved simulation named "+mark);
-	return memSavedSimulations[":memory:"+mark];
+	if(memSavedSimulations.count(mark)==0) throw runtime_error("No memory-saved simulation named "+mark);
+	return memSavedSimulations[mark];
 }
 
 

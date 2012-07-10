@@ -147,10 +147,8 @@ class ControllerClass(QWidget,Ui_Controller):
 				self.generator=Preprocessor.load(f)
 				self.generatorCombo.setItemText(self.genIndexLoad,'%s'%f)
 		elif ix==self.genIndexCurr:
-			saveName='_generatorComboSlot'
-			# force deep-copy by saving and loading again, to avoid bug #88
-			woo.master.scene.pre.saveTmp(saveName,quiet=True)
-			self.generator=woo.core.Preprocessor.loadTmp(saveName) 
+			# force deep-copy, to avoid bug #88
+			self.generator=woo.master.scene.pre.deepcopy()
 			if not self.generator:
 				self.generatorArea.setWidget(QLabel('<i>No preprocessor in Scene.pre</i>'))
 		else:

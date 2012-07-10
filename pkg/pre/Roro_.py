@@ -141,7 +141,7 @@ def run(pre): # use inputs as argument
 		PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.watchProgress(S)'),
 	]+([] if (not pre.vtkPrefix or pre.vtkFreq<=0) else [VtkExport(out=pre.vtkPrefix.format(**dict(s.tags)),stepPeriod=pre.vtkFreq*pre.factStepPeriod,what=VtkExport.all)])
 	# improtant: save the preprocessor here!
-	s.pre=pre
+	s.pre=pre.deepcopy() # avoids bug http://gpu.doxos.eu/trac/ticket/81, which might get triggered here
 	de.collectNodes()
 
 	# when running with gui, set initial view setup

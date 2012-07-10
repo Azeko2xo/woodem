@@ -336,17 +336,30 @@ def _Object_load(typ,inFile,format='auto'):
 
 
 def _Object_loadTmp(typ,name=''):
-	obj=woo.O.loadTmpAny(name)
+	obj=woo.master.loadTmpAny(name)
 	if not isinstance(obj,typ): raise TypeError('Loaded object of type '+obj.__class__.__name__+' is not a '+typ.__name__)
 	return obj
 def _Object_saveTmp(obj,name='',quiet=False):
-	woo.O.saveTmpAny(obj,name,quiet)
+	woo.master.saveTmpAny(obj,name,quiet)
+def _Object_deepcopy(obj):
+	'Make object deepcopy by serializing to memory and deserializing.'
+	prefix='_deepcopy'
+	tmps=woo.master.lsTmp()
+	# FIXME: possible race condition here?
+	i=0
+	while prefix+'%d'%i in tmps: i+=1
+	name=prefix+'%d'%i
+	obj.saveTmp(name)
+	ret=Object.loadTmp(name)
+	woo.master.rmTmp(name)
+	return ret
 	
 
 Object._getAllTraits=_Object_getAllTraits
 Object.dump=_Object_dump
 Object.dumps=_Object_dumps
 Object.saveTmp=_Object_saveTmp
+Object.deepcopy=_Object_deepcopy
 Object.load=classmethod(_Object_load)
 Object.loads=classmethod(_Object_loads)
 Object.loadTmp=classmethod(_Object_loadTmp)

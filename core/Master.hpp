@@ -92,6 +92,7 @@ class Master: public Singleton<Master>{
 		/* temporary storage */
 		shared_ptr<woo::Object> loadTmp(const string& name);
 		void saveTmp(shared_ptr<woo::Object> s, const string& name, bool quiet=false);
+		void rmTmp(const string& name);
 		py::list pyLsTmp();
 		void pyTmpToFile(const string& mark, const string& filename);
 		std::string pyTmpToString(const string& mark);
@@ -164,6 +165,7 @@ class Master: public Singleton<Master>{
 			.def("loadTmpAny",&Master::loadTmp,(py::arg("name")=""),"Load any object from named temporary store.")
 			.def("saveTmpAny",&Master::saveTmp,(py::arg("obj"),py::arg("name")="",py::arg("quiet")=false),"Save any object to named temporary store; *quiet* will supress warning if the name is already used.")
 			.def("lsTmp",&Master::pyLsTmp,"Return list of all memory-saved simulations.")
+			.def("rmTmp",&Master::rmTmp,py::arg("name"),"Remove memory-saved simulation.")
 			.def("tmpToFile",&Master::pyTmpToFile,(py::arg("mark"),py::arg("fileName")),"Save XML of :ref:`saveTmp`'d simulation into *fileName*.")
 			.def("tmpToString",&Master::pyTmpToString,(py::arg("mark")=""),"Return XML of :ref:`saveTmp<Master.saveTmp>`'d simulation as string.")
 

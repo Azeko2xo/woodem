@@ -59,11 +59,18 @@ class TestFormatsAndDetection(unittest.TestCase):
 		'IO: invalid formats rejected'
 		self.assertRaises(IOError,lambda: woo.master.scene.dem.par[0].dumps(format='bogus'))
 	def testTmpStore(self):
-		'IO: temporary store loadTmp, saveTmp'
+		'IO: temporary store (loadTmp, saveTmp)'
 		S=woo.master.scene
 		for o in S.engines+[S.dem.par[0]]:
 			o.saveTmp(quiet=True);
 			o.__class__.loadTmp() # discard the result, but checks type
+	def testDeepcopy(self):
+		'IO: temporary store (Object.deepcopy)'
+		S=woo.master.scene
+		for o in S.engines+[S.dem.par[0]]:
+			o2=o.deepcopy()
+			self.assert_(type(o)==type(o2))
+			self.assert_(id(o)!=id(o2))
 
 
 class TestSpecialDumpMethods(unittest.TestCase):

@@ -71,7 +71,7 @@ void Renderer::init(){
 	clipPlaneNormals.resize(numClipPlanes);
 	static bool glutInitDone=false;
 	if(!glutInitDone){
-		char* argv[]={};
+		char* argv[]={NULL};
 		int argc=0;
 		glutInit(&argc,argv);
 		//glutInitDisplayMode(GLUT_DOUBLE);
