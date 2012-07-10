@@ -3,6 +3,7 @@
 #include<woo/core/Field.hpp>
 #include<woo/core/Timing.hpp>
 #include<woo/lib/object/ObjectIO.hpp>
+#include<woo/lib/pyutil/gil.hpp>
 
 #include<woo/lib/base/Math.hpp>
 #include<boost/foreach.hpp>
@@ -210,6 +211,7 @@ void Scene::postLoad(Scene&){
 		Engine::handlePossiblyLabeledObject(e,m);
 		e->getLabeledObjects(m);
 	}
+	GilLock gilLock;
 	py::scope wooScope(py::import("woo"));
 	// py::scope foo(wooScope);
 	FOREACH(StrObjMap::value_type& v, m){

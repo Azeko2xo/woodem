@@ -9,6 +9,7 @@
 #include<boost/regex.hpp>
 
 #include<woo/lib/pyutil/except.hpp>
+#include<woo/lib/pyutil/gil.hpp>
 
 
 #include<boost/foreach.hpp>
@@ -54,24 +55,27 @@ class Engine: public Object {
 		virtual void getLabeledObjects(std::map<std::string,py::object>&){};
 		template<class T> static void handlePossiblyLabeledObject(const shared_ptr<T>& o, std::map<std::string,py::object>& m){
 			if(o->label.empty()) return;
+			GilLock gilLock; // is this needed?
 			if(m.count(o->label)>0) woo::NameError("Duplicate object label '"+o->label+"'.");
 			boost::smatch match;
-			if(boost::regex_search(o->label,match,boost::regex("([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\[([0-9]+)\\]"))){
+			if(boost::regex_match(o->label,match,boost::regex("([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\[([0-9]+)\\]"))){
 				std::string lab0=match[1];	long index=lexical_cast<long>(match[2]);
-				// cerr<<"Label "<<o->label<<" matches list regex: "<<lab0<<" @ "<<index<<endl;
+				//cerr<<"Label "<<o->label<<" matches list regex: "<<lab0<<" @ "<<index<<endl;
 				if(m.find(lab0)!=m.end()){
-					if(!py::extract<py::list>(m[lab0]).check()) throw std::runtime_error("Label "+o->label+" is subscripted, but and already existing label "+lab0+" is not a list!");
-					// cerr<<"Using existing list with length "<<py::len(py::extract<py::list>(m[lab0]))<<endl;
+					if(!py::extract<py::list>(m[lab0]).check()) woo::NameError("Label "+o->label+" is subscripted, but and already existing label "+lab0+" is not a list!");
+					//cerr<<"Using existing list with length "<<py::len(py::extract<py::list>(m[lab0]))<<endl;
 				} else {
+					//cerr<<"Creating empty list"<<endl;
 					m[lab0]=py::list();
 				}
 				py::list lst=py::extract<py::list>(m[lab0]);
+				//cerr<<"Adding empty objects to reach index "<<index;
 				while(py::len(lst)<index+1) lst.append(py::object());
-				if(!py::object(lst[index]).is_none()) throw std::runtime_error("Labeled object "+lab0+"["+to_string(index)+"] already assigned!");
+				if(!py::object(lst[index]).is_none()) woo::NameError("Labeled object "+lab0+"["+to_string(index)+"] already assigned!");
 				lst[index]=py::object(o);
-			} else {
+			} else if(boost::regex_match(o->label,match,boost::regex("[a-zA-Z_][a-zA-Z0-9_]*"))){
 				m[o->label]=py::object(o);
-			}
+			} else woo::NameError("Object label '"+o->label+"' is not a valid python identifier name.");
 		}
 	private:
 		// py access funcs	

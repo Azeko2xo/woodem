@@ -440,6 +440,11 @@ if env['PGO']=='use': env.Append(CXXFLAGS=['-fprofile-use'],LINKFLAGS=['-fprofil
 if 'clang' in env['CXX']:
 	print 'Looks like we use clang, adding some flags to avoid warning flood.'
 	env.Append(CXXFLAGS=['-Wno-unused-variable','-Wno-mismatched-tags','-Wno-constant-logical-operand','-Qunused-arguments','-Wno-empty-body','-Wno-self-assign'])
+if 'g++' in env['CXX']:
+	ver=os.popen('LC_ALL=C '+env['CXX']+' --version').readlines()[0].split()[-1]
+	if ver.startswith('4.6'):
+		print 'Using gcc 4.6, adding -pedantic to avoid ICE at string initializer_list (http://gcc.gnu.org/bugzilla/show_bug.cgi?id=50478)'
+		env.Append(CXXFLAGS='-pedantic')
 
 
 ### LINKER

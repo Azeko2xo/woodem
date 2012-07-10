@@ -20,7 +20,7 @@ from ExceptionDialog import *
 #"holds instances of QtWebKit windows; clicking an url will open it in the window that was the least recently updated"
 #webWindows=[] 
 #webController=None
-sphinxOnlineDocPath='https://www.woodem.org/doc/'
+sphinxOnlineDocPath='http://www.woodem.eu/doc/'
 "Base URL for the documentation. Packaged versions should change to the local installation directory."
 
 import os.path
@@ -218,6 +218,7 @@ class ControllerClass(QWidget,Ui_Controller):
 			self.movieScene=None
 			if hasattr(woo,'_snapshooter'): del woo._snapshooter
 			woo.master.scene.engines=[e for e in woo.master.scene.engines if type(e)!=woo.qt.SnapshotEngine]
+			self.movieArea.setWidget(QFrame())
 			self.movieButton.setEnabled(False)
 	def movieButtonClicked(self):
 		if not hasattr(woo,'_snapshooter'):

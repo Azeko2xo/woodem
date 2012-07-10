@@ -109,9 +109,25 @@ class TestObjectInstantiation(unittest.TestCase):
 		# check that the minimum is not saved
 		self.assert_(not isnan(mn0[0]))
 		self.assert_(isnan(mn1[0]))
-	def _testReadonly(self):
+	def testReadonly(self):
 		'Core: Attr::readonly'
 		self.assertRaises(AttributeError,lambda: setattr(Particle(),'id',3))
+
+	def testShared(self):
+		"Core: shared_ptr really shared"
+		m=woo.utils.defaultMaterial()
+		s1,s2=woo.utils.sphere((0,0,0),1,mat=m),woo.utils.sphere((0,0,0),2,mat=m)
+		s1.mat.young=2342333
+		self.assert_(s1.mat.young==s2.mat.young)
+	def testSharedAfterReload(self):
+		"Core: shared_ptr preserved when saving/loading"
+		S=Scene(fields=[DemField()])
+		m=woo.utils.defaultMaterial()
+		S.dem.par.append([woo.utils.sphere((0,0,0),1,mat=m),woo.utils.sphere((0,0,0),2,mat=m)])
+		S.saveTmp(quiet=True); S=Scene.loadTmp()
+		S.dem.par[0].mat.young=9087438484
+		self.assert_(S.dem.par[0].mat.young==S.dem.par[1].mat.young)
+
 
 
 class TestLoop(unittest.TestCase):
@@ -160,6 +176,24 @@ class TestLoop(unittest.TestCase):
 		S=woo.master.scene
 		S.engines=[PyRunner(1,'pass',dead=True)]
 		S.one(); self.assert_(S.engines[0].nDone==0)
+	def testLabels(self):
+		'Loop: engine/functor labels (plain and array)'
+		S=woo.master.scene
+		self.assertRaises(NameError,lambda: setattr(S,'engines',[PyRunner(label='this is not a valid identifier name')]))
+		self.assertRaises(NameError,lambda: setattr(S,'engines',[PyRunner(label='foo'),PyRunner(label='foo[1]')]))
+		cloop=ContactLoop([Cg2_Facet_Sphere_L6Geom(label='cg2fs'),Cg2_Sphere_Sphere_L6Geom(label='cg2ss')],[Cp2_FrictMat_FrictPhys(label='cp2ff')],[Law2_L6Geom_FrictPhys_IdealElPl(label='law2elpl')],)
+		S.engines=[PyRunner(label='foo'),PyRunner(label='bar[2]'),PyRunner(label='bar [0]'),cloop]
+		self.assert_(type(woo.bar)==list)
+		self.assert_(woo.foo==S.engines[0])
+		self.assert_(woo.bar[0]==S.engines[2])
+		self.assert_(woo.bar[1]==None)
+		self.assert_(woo.bar[2]==S.engines[1])
+		self.assert_(type(woo.cg2fs)==Cg2_Facet_Sphere_L6Geom)
+
+		
+		
+
+
 			
 
 
@@ -241,43 +275,3 @@ class TestParticles(unittest.TestCase):
 			if S.dem.par.exists(id): S.dem.par.remove(id); removed+=1
 		for b in S.dem.par: counted+=1
 		self.assert_(counted==self.count-removed)
-		
-class TestMaterials(unittest.TestCase):
-	def setUp(self):
-		# common setup for all tests in this class
-		woo.master.reset()
-		S=woo.master.scene
-		S.fields=[DemField()]
-		mats=[FrictMat(young=1),ElastMat(young=100)]
-		S.dem.par.append([
-			utils.sphere([0,0,0],.5,mat=mats[0]),
-			utils.sphere([1,1,1],.5,mat=mats[0]),
-			utils.sphere([1,1,1],.5,mat=mats[1])
-		])
-	def testShared(self):
-		"Material: shared_ptr's makes change in material immediate everywhere"
-		S=woo.master.scene
-		S.dem.par[0].mat.young=23423333
-		self.assert_(S.dem.par[0].mat.young==S.dem.par[1].mat.young)
-	def testSharedAfterReload(self):
-		"Material: shared_ptr's are preserved when saving/loading"
-		S=woo.master.scene
-		S.saveTmp(quiet=True); S=Scene.loadTmp()
-		S.dem.par[0].mat.young=9087438484
-		self.assert_(S.dem.par[0].mat.young==S.dem.par[1].mat.young)
-	#def testLen(self):
-	#	"Material: len(O.materials)"
-	#	self.assert_(len(O.materials)==2)
-	#def testNegativeIndex(self):
-	#	"Material: negative index counts backwards."
-	#	self.assert_(O.materials[-1]==O.materials[1])
-	#def testIterate(self):
-	#	"Material: iteration over O.materials"
-	#	counted=0
-	#	for m in O.materials: counted+=1
-	#	self.assert_(counted==len(O.materials))
-	#def testAccess(self):
-	#	"Material: find by index or label; KeyError raised for invalid label."
-	#	self.assertRaises(KeyError,lambda: O.materials['nonexistent label'])
-	#	self.assert_(O.materials['materialZero']==O.materials[0])
-

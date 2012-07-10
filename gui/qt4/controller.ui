@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>469</width>
+    <width>480</width>
     <height>544</height>
    </rect>
   </property>
@@ -559,8 +559,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>463</width>
-            <height>482</height>
+            <width>98</width>
+            <height>28</height>
            </rect>
           </property>
          </widget>
@@ -761,7 +761,7 @@
      </widget>
      <widget class="QWidget" name="tab_3">
       <attribute name="title">
-       <string>Movie</string>
+       <string>Video</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_8">
        <item row="0" column="0">
@@ -770,6 +770,9 @@
           <layout class="QHBoxLayout" name="horizontalLayout_8">
            <item>
             <widget class="QCheckBox" name="movieCheckbox">
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Take snapshots of simulation periodically; use stepPeriod/iterPeriod/realPeriod to set frequency of snapshots.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
              <property name="text">
               <string>Take snapshots</string>
              </property>
@@ -787,7 +790,7 @@
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>443</width>
+              <width>454</width>
               <height>424</height>
              </rect>
             </property>
@@ -816,6 +819,9 @@
          </item>
          <item>
           <widget class="QLabel" name="label_4">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Bitrate of the resulting movie; it is proportional to quality and resulting file size.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
            <property name="text">
             <string>kbps</string>
            </property>
@@ -836,6 +842,9 @@
          </item>
          <item>
           <widget class="QLabel" name="label">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Frames per second&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
            <property name="text">
             <string>fps</string>
            </property>
@@ -843,6 +852,9 @@
          </item>
          <item>
           <widget class="QLineEdit" name="movieFileEdit">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Output file name&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
            <property name="text">
             <string notr="true">/tmp/out.mpeg4</string>
            </property>
@@ -851,7 +863,7 @@
          <item>
           <widget class="QPushButton" name="movieButton">
            <property name="text">
-            <string>Save</string>
+            <string>Make video</string>
            </property>
           </widget>
          </item>
