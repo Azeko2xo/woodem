@@ -37,10 +37,11 @@ par.add_option('-R','--rebuild',help="Re-run build in the source directory, then
 par.add_option('--test',help="Run regression test suite and exit; the exists status is 0 if all tests pass, 1 if a test fails and 2 for an unspecified exception.",dest="test",action='store_true')
 par.add_option('-D','--debug',help='Run the debug build, if available.',dest='debug',action='store_true')
 par.add_option('--checks',help='Run a series of user-defined check tests as described in ${sourceRoot}/scripts/test/checks/README',dest='checks',action='store_true')
-par.add_option('--performance',help='Starts a test to measure the productivity',dest='performance',action='store_true')
+#par.add_option('--performance',help='Starts a test to measure the productivity',dest='performance',action='store_true')
 par.add_option('--no-gdb',help='Do not show backtrace when Woo crashes (only effective with \-\-debug).',dest='noGdb',action='store_true',)
 par.add_option('--in-gdb',help='Run Woo inside gdb (must be in $PATH).',dest='inGdb',action='store_true')
 par.add_option('--in-pdb',help='Run Woo inside pdb',dest='inPdb',action='store_true')
+par.add_option('--no-soft-render',help='Use hardware rendring regardless of hardware; by default, if Intel GPU is the only GPU (determined from `lspci | grep VGA`), LIBGL_ALWAYS_SOFTWARE=1 is set automatically to avoig GPU freeze',dest='noSoftRender',action='store_true')
 par.add_option('--in-valgrind',help='Run inside valgrind (must be in $PATH); automatically adds python ignore files',dest='inValgrind',action='store_true')
 par.disable_interspersed_args()
 
@@ -162,6 +163,17 @@ if opts.clDev:
 	except (IndexError, ValueError, AssertionError):
 		raise ValueError('Invalid --cl-dev specification %s, should an integer (platform), or a comma-separated couple (platform,device) of integers'%opts.clDev)
 
+# autodotect soft rendering
+if opts.noSoftRender:
+	pass # use hw rendering (the default)
+else:
+	# parse lspci output
+	vgas=os.popen("LC_ALL=C lspci | grep VGA").readlines()
+	if len(vgas)==1 and 'Intel' in vgas[0]:
+		print 'Intel GPU detected, setting LIBGL_ALWAYS_SOFTWARE=1\n\t(use --no-soft-render to disable)'
+		os.environ['LIBGL_ALWAYS_SOFTWARE']='1'
+
+
 sys.stderr.write('Welcome to Woo '+version+'%s\n'%(' (debug build)' if opts.debug else ''))
 
 # initialization and c++ plugins import
@@ -202,10 +214,10 @@ if opts.checks:
 	checksPath='${sourceRoot}'+'/scripts/test/checks' # replaced at install-time
 	execfile(checksPath+'/checkList.py')
 
-# Run performance check test
-if opts.performance:
-	checksPath='${sourceRoot}'+'/scripts/test/performance'
-	execfile(checksPath+'/checkPerf.py')
+## Run performance check test
+#if opts.performance:
+#	checksPath='${sourceRoot}'+'/scripts/test/performance'
+#	execfile(checksPath+'/checkPerf.py')
 
 # be helpful when not overridden
 def onSelection(o):
