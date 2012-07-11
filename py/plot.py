@@ -545,6 +545,7 @@ def savePlotSequence(fileBase,stride=1,imgRatio=(5,7),title=None,titleFrames=20,
 		out=fileBase+'-%03d.png'%i
 		pylab.gcf().savefig(out)
 		ret.append(out)
+		sys.stderr.write('[%d]')
 	if len(ret)==0: raise RuntimeError("No images created?!")
 	if title:
 		titleImgName=fileBase+'-title.png'

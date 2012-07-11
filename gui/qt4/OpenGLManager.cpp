@@ -8,6 +8,7 @@ OpenGLManager::OpenGLManager(QObject* parent): QObject(parent){
 	if(self) throw runtime_error("OpenGLManager instance already exists, uses OpenGLManager::self to retrieve it.");
 	self=this;
 	Renderer::init();
+	viewsMutexMissed=0;
 	connect(this,SIGNAL(createView()),this,SLOT(createViewSlot()));
 	connect(this,SIGNAL(resizeView(int,int,int)),this,SLOT(resizeViewSlot(int,int,int)));
 	connect(this,SIGNAL(closeView(int)),this,SLOT(closeViewSlot(int)));
@@ -15,6 +16,7 @@ OpenGLManager::OpenGLManager(QObject* parent): QObject(parent){
 }
 
 void OpenGLManager::timerEvent(QTimerEvent* event){
+#if 0
 	//cerr<<".";
 	boost::mutex::scoped_lock lock(viewsMutex);
 	// when sharing the 0th view widget, it should be enough to update the primary view only
@@ -22,6 +24,21 @@ void OpenGLManager::timerEvent(QTimerEvent* event){
 	#if 1
 		FOREACH(const shared_ptr<GLViewer>& view, views){ if(view) view->updateGL(); }
 	#endif
+#else
+	// this implementation makes the GL idle on subsequent timers, if the rednering took longer than one timer shot
+	// as many tim ers as the waiting took are the idle
+	// this should improve ipython-responsivity under heavy GL loads
+	boost::mutex::scoped_try_lock lock(viewsMutex);
+	if(lock.owns_lock()){
+		if(viewsMutexMissed>1) viewsMutexMissed-=1;
+		else{
+			viewsMutexMissed=0;
+			for(const auto& view: views){ if(view) view->updateGL(); }
+		}
+	} else {
+		viewsMutexMissed+=1;
+	}
+#endif
 }
 
 void OpenGLManager::createViewSlot(){

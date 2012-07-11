@@ -40,4 +40,5 @@ class OpenGLManager: public QObject{
 		void centerAllViews();
 	private:
 		boost::mutex viewsMutex;
+		int viewsMutexMissed;
 };

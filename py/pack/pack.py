@@ -93,7 +93,7 @@ Periodic properties are transferred to the simulation correctly, including rotat
 	>>> scene.cell.size
 	Vector3(5,5,5)
 	>>> scene.cell.hSize
-	Matrix3(3.53553,-3.53553,0, 3.53553,3.53553,0, 0,0,5)
+	Matrix3(3.5355339059327373,-3.5355339059327378,0, 3.5355339059327378,3.5355339059327373,0, 0,0,5)
 
 The current state (even if rotated) is taken as mechanically undeformed, i.e. with identity transformation:
 
