@@ -87,7 +87,8 @@ finished: %s
 				ret+='<br/><font size="1"><nobr>%s finishes</nobr></font><br/>'%finishTime
 			else: ret+='<nobr>step %d</nobr>'%(info['step'])
 			if runningTime!=0: ret+='<br/><nobr>avg %g/sec</nobr>'%(info['step']/runningTime)
-			ret+='<br/><nobr>%d bodies</nobr><br/><nobr>%d intrs</nobr>'%(info['numBodies'],info['numIntrs'])
+			ret+='<br/><nobr>%d particles</nobr><br/><nobr>%d contacts</nobr>'%(info['numBodies'],info['numIntrs'])
+			if info['title']: ret+='<br/>title <i>%s</i>'%info['title']
 			ret+='</td>'
 		else:
 			ret+='<td> (no info) </td>'

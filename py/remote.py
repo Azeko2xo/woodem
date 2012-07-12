@@ -26,7 +26,7 @@ bgThreads=[] # needed to keep background threads alive
 class InfoProvider:
 	def basicInfo(self):
 		S=woo.master.scene
-		ret=dict(step=S.step,dt=S.dt,stopAtStep=S.stopAtStep,time=S.time,id=S.tags['id'] if S.tags.has_key('id') else None,threads=os.environ['OMP_NUM_THREADS'] if os.environ.has_key('OMP_NUM_THREADS') else '0',numBodies=(len(S.dem.par) if S.hasDem else -1),numIntrs=(len(S.dem.con) if S.hasDem else -1))
+		ret=dict(step=S.step,dt=S.dt,stopAtStep=S.stopAtStep,time=S.time,id=S.tags['id'] if 'id' in S.tags else None,title=S.tags['title'] if 'title' in S.tags else None,threads=woo.master.numThreads,numBodies=(len(S.dem.par) if S.hasDem else -1),numIntrs=(len(S.dem.con) if S.hasDem else -1))
 		sys.stdout.flush(); sys.stderr.flush()
 		return ret
 	def plot(self):

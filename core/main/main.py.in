@@ -228,7 +228,7 @@ from math import *
 def userSession(qt4=False,qapp=None,qtConsole=False):
 	# prepare nice namespace for users
 	import woo, woo.runtime
-	import sys
+	import sys, traceback
 	# start non-blocking qt4 app here; need to ask on the mailing list on how to make it functional
 	# with ipython >0.11, start the even loop early (impossible with 0.10, which is thread-based)
 	# http://mail.scipy.org/pipermail/ipython-user/2011-July/007931.html mentions this
@@ -238,23 +238,40 @@ def userSession(qt4=False,qapp=None,qtConsole=False):
 	if len(sys.argv)>0:
 		arg0=sys.argv[0]
 		if qt4: woo.qt.Controller();
-		if sum(bool(arg0.endswith(ext)) for ext in ('.xml','.xml.bz2','.xml.gz','.woo','.woo.gz','.woo.bz2','.bin','.bin.gz','.bin.bz2','.gz'))>0:
-			if len(sys.argv)>1: raise RuntimeError('Extra arguments to saved simulation to run: '+' '.join(sys.argv[1:]))
-			sys.stderr.write("Running simulation "+arg0+'\n')
-			woo.master.scene=woo.core.Scene.load(arg0); woo.master.scene.run()
-			if woo.runtime.opts.exitAfter: woo.master.scene.wait() 
 		if arg0.endswith('.py'):
+			# the script is reponsible for consuming all other arguments
 			def runScript(script):
 				sys.stderr.write("Running script "+arg0+'\n')
 				try:
 					execfile(script,globals())
 				except SystemExit: raise
 				except: # all other exceptions
-					import traceback
 					traceback.print_exc()
 					if woo.runtime.opts.exitAfter: sys.exit(1)
 				if woo.runtime.opts.exitAfter: sys.exit(0)
 			runScript(arg0)
+		else:
+			if len(sys.argv)>1: raise RuntimeError('Extra arguments to file to load: '+' '.join(sys.argv[1:]))
+			# attempt to load this file
+			try:
+				obj=woo.core.Object.load(arg0)
+			except:
+				traceback.print_exc()
+				print 'Error loading file (wrong format?)',arg0
+				sys.exit(1)
+			if isinstance(obj,woo.core.Scene):
+				sys.stderr.write("Running simulation "+arg0+'\n')
+				woo.master.scene=obj; woo.master.scene.run()
+				if woo.runtime.opts.exitAfter: woo.master.scene.wait() 
+			elif isinstance(obj,woo.core.Preprocessor):
+				sys.stderr.write("Using preprocessor "+arg0+'\n')
+				import woo.utils
+				woo.master.scene=woo.utils.runPreprocessorWithBatch(obj)
+				woo.master.scene.run() # run the new simulation
+				if woo.runtime.opts.exitAfter: woo.master.scene.wait() 
+			else:
+				print 'ERROR: Object loaded from "%s" is a %s (must be Scene or a Preprocessor)'%(arg0,type(obj).__name__)
+				sys.exit(1)
 	if opts.commands:
 		exec(opts.commands) in globals()
 	if woo.runtime.opts.exitAfter: sys.exit(0)

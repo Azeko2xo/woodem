@@ -697,11 +697,11 @@ def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 	:param int tableLine: number of line where to get the values from
 	:param bool noTableOk: if False, raise exception if the file cannot be open; use default values otherwise
 	:param bool unknownOk: do not raise exception if unknown column name is found in the file, and assign it as well
-	:return: number of assigned parameters
+	:return: dictionary with all parameters
 	"""
 	tagsParams=[]
 	# dictParams is what eventually ends up in woo.params.table (default+specified values)
-	dictDefaults,dictParams,dictAssign={},{},{}
+	dictDefaults,dictParams={},{}
 	import os, __builtin__,re,math
 	s=woo.master.scene
 	if not tableFileLine and ('WOO_BATCH' not in os.environ or os.environ['WOO_BATCH']==''):
@@ -737,5 +737,39 @@ def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 	s.tags['params']=",".join(tagsParams)
 	dictParams.update(dictDefaults)
 	saveVars('table',loadNow=True,**dictParams)
-	return len(tagsParams)
+	return dictParams
+	#return len(tagsParams)
+
+def runPreprocessorWithBatch(pre):
+	def nestedSetattr(obj,attr,val):
+		attrs=attr.split(".")
+		for i in attrs[:-1]:
+			obj=getattr(obj,i)
+		setattr(obj,attrs[-1],val)
+
+	# just run preprocessor in this case
+	if not runningInBatch(): return pre()
+
+	import os
+	tableFileLine=os.environ['WOO_BATCH']
+	env=tableFileLine.split(':')
+	tableFile,tableLine=env[0],int(env[1])
+	allTab=TableParamReader(tableFile).paramDict()
+	if not tableLine in allTab: raise RuntimeError("Table %s doesn't contain valid line number %d"%(tableFile,tableLine))
+	vv=allTab[tableLine]
+
+	# set preprocessor parameters first
+	for name,val in vv.items():
+		if name=='title': continue
+		if val in ('*','-'): continue
+		nestedSetattr(pre,name,eval(val,math.__dict__))
+	# run preprocessor
+	S=pre()
+	# set tags from batch
+	S.tags['line']='l%d'%tableLine
+	S.tags['title']=vv['title']
+	S.tags['idt']=S.tags['id']+'.'+S.tags['title'];
+	S.tags['tid']=S.tags['title']+'.'+S.tags['id']
+	return S
+
 
