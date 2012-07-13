@@ -250,7 +250,13 @@ void Cg2_Sphere_Sphere_L6Geom::handleSpheresLikeContact(const shared_ptr<Contact
 	// normal rotation vector, between last steps
 	Vector3r normRotVec=prevNormal.cross(currNormal);
 	Vector3r midNormal=(approxMask&APPROX_NO_MID_NORMAL) ? prevNormal : .5*(prevNormal+currNormal);
-	if(!(approxMask&APPROX_NO_RENORM_MID_NORMAL) && !(approxMask&APPROX_NO_MID_NORMAL)) midNormal.normalize(); // normalize only if used and if requested via approxMask
+	/* this can happen in exceptional cases (normal gets inverted by motion,
+		i.e. when sphere is pushed through a facet;
+		this situation is physically meaningless, so there is no physically correct result really;
+		it would cause NaN in midNormal.normalize(), which we want need to avoid
+	*/
+	if(midNormal.norm()==0) midNormal=currNormal; 
+	else if(!(approxMask&APPROX_NO_RENORM_MID_NORMAL) && !(approxMask&APPROX_NO_MID_NORMAL)) midNormal.normalize(); // normalize only if used and if requested via approxMask
 	Vector3r normTwistVec=midNormal*dt*.5*midNormal.dot(angVel1+angVel2);
 
 	// compute current transformation, by updating previous axes
