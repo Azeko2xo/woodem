@@ -1,8 +1,9 @@
 <RCC>
   <qresource prefix="img">
-    <file>woo-favicon.png</file>
+    <file>yade-favicon.png</file>
     <file>XYZ.png</file>
     <file>YZX.png</file>
     <file>ZXY.png</file>
+    <file>woodem-logo.png</file>
   </qresource>
 </RCC>
