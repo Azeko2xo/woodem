@@ -55,6 +55,7 @@ struct Roro: public Preprocessor {
 		((string,reportFmt,"/tmp/{tid}.xhtml",AttrTrait<>().startGroup("Outputs"),"Report output format (Scene.tags can be used)."))
 		((string,feedCacheDir,".",,"Directory where to store pre-generated feed packings"))
 		((string,saveFmt,"/tmp/{tid}-{stage}.bin.gz",,"Savefile format; keys are :ref:`Scene.tags` and additionally ``{stage}`` will be replaced by 'init', 'steady' and 'done'."))
+		((int,backupSaveTime,1800,,"How often to save backup of the simulation (0 or negative to disable)"))
 		((int,vtkFreq,4,AttrTrait<>(),"How often should VtkExport run, relative to *factStepPeriod*. If negative, run never."))
 		((string,vtkPrefix,"/tmp/{tid}-",,"Prefix for saving VtkExport data; formatted with ``format()`` providing :ref:`Scene.tags` as keys."))
 

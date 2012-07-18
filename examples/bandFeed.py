@@ -16,8 +16,8 @@ S=woo.master.scene=woo.pre.Roro_.makeBandFeedPack(dim=(.2,.4,.2),
 	mat=mat,gravity=(0,0,-10),porosity=.5,dontBlock=True
 )
 S.saveTmp()
-for i in range(0,100):
-	print i
-	S.run(2000,True)
-	
+#for i in range(0,100):
+#	print i
+#	S.run(2000,True)
+#	
 

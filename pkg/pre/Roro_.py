@@ -133,9 +133,11 @@ def run(pre): # use inputs as argument
 	###
 	### walls and cylinders
 	###		
+	sideWallMat=pre.material.deepcopy()
+	sideWallMat.tanPhi=0.0
 	de.par.append([
-		utils.wall(ymin,axis=1,sense= 1,visible=False,glAB=((zmin,xmin),(zmax,xmax)),mat=pre.material,mask=wallMask),
-		utils.wall(ymax,axis=1,sense=-1,visible=False,glAB=((zmin,xmin),(zmax,xmax)),mat=pre.material,mask=wallMask),
+		utils.wall(ymin,axis=1,sense= 1,visible=False,glAB=((zmin,xmin),(zmax,xmax)),mat=sideWallMat,mask=wallMask),
+		utils.wall(ymax,axis=1,sense=-1,visible=False,glAB=((zmin,xmin),(zmax,xmax)),mat=sideWallMat,mask=wallMask),
 		utils.wall(xmin,axis=0,sense= 1,visible=False,glAB=((ymin,zmin),(ymax,zmax)),mat=pre.material,mask=wallMask),
 		utils.wall(xmax,axis=0,sense=-1,visible=False,glAB=((ymin,zmin),(ymax,zmax)),mat=pre.material,mask=wallMask),
 		utils.wall(zmin,axis=2,sense= 1,visible=False,glAB=((xmin,ymin),(xmax,ymax)),mat=pre.material,mask=wallMask),
@@ -160,7 +162,7 @@ def run(pre): # use inputs as argument
 	### engines
 	###
 
-	s.engines=utils.defaultEngines(damping=.4,gravity=(0,0,-pre.gravity),verletDist=.05*rMin)+[
+	s.engines=utils.defaultEngines(damping=0.05,gravity=(0,0,-pre.gravity),verletDist=.05*rMin)+[
 		# what falls beyond
 		# initially not saved
 		BoxDeleter(stepPeriod=factStep,inside=True,box=((cylXzd[i][0],ymin,zmin),(cylXzd[i+1][0],ymax,min(cylXzd[i][1]-cylXzd[i][2]/2.,cylXzd[i+1][1]-cylXzd[i+1][2]/2.))),glColor=.05*i,save=False,mask=delMask,currRateSmooth=pre.rateSmooth,label='aperture[%d]'%i) for i in range(0,len(cylXzd)-1)
@@ -173,15 +175,21 @@ def run(pre): # use inputs as argument
 		factory,
 		PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.savePlotData(S)'),
 		PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.watchProgress(S)'),
-	]+([] if (not pre.vtkPrefix or pre.vtkFreq<=0) else [VtkExport(out=pre.vtkPrefix.format(**dict(s.tags)),stepPeriod=pre.vtkFreq*pre.factStepPeriod,what=VtkExport.all)])
+	]+(
+		[] if (not pre.vtkPrefix or pre.vtkFreq<=0) else [VtkExport(out=pre.vtkPrefix.format(**dict(s.tags)),stepPeriod=pre.vtkFreq*pre.factStepPeriod,what=VtkExport.all)]
+	)+(
+		[] if pre.backupSaveTime<=0 else [PyRunner(realPeriod=pre.backupSaveTime,stepPeriod=-1,command='S.save(S.pre.saveFmt.format(stage="backup-%06d"%(S.step),S=S,**(dict(S.tags))))')]
+	)
+
 	# improtant: save the preprocessor here!
 	s.pre=pre.deepcopy() # avoids bug http://gpu.doxos.eu/trac/ticket/81, which might get triggered here
 	de.collectNodes()
 
 	if pre.mass:
+		import woo
 		for a in woo.aperture: a.save=True
 		woo.factory.save=True
-		woo.factory.maxMass=pre.mass
+		woo.factory.maxMass=pre.mass*pre.cylRelLen
 
 	# when running with gui, set initial view setup
 	# the import fails if headless
@@ -232,7 +240,11 @@ def makeBandFeedPack(dim,psd,mat,gravity,porosity=.5,dontBlock=False,memoizeDir=
 	massToDo=porosity*mat.density*dim[0]*dim[1]*dim[2]
 	print 'Will generate %g mass'%massToDo
 
-	S.engines=utils.defaultEngines(gravity=gravity,damping=.7)+[
+	## FIXME: decrease friction angle to help stabilization
+	mat0,mat=mat,mat.deepcopy()
+	mat.tanPhi=min(.2,mat0.tanPhi)
+
+	S.engines=utils.defaultEngines(gravity=gravity,damping=.3)+[
 		BoxFactory(
 			box=((.01*cellSize[0],.01*cellSize[1],.3*cellSize[2]),cellSize),
 			stepPeriod=200,
@@ -492,13 +504,8 @@ def writeReport(S):
 	figs=[]
 	fig=pylab.figure()
 
-	if pre.conveyor:
-		#inputPsd=[p[0] for p in pre.psd],[p[1] for p in pre.psd]
-		inPsd=scaledFlowPsd([p[0] for p in pre.psd],[p[1]*(1./pre.psd[-1][1]) for p in pre.psd],massFactor=woo.factory.mass)
-		inPsdUnscaled=unscaledPsd([p[0] for p in pre.psd],[p[1]*(1./pre.psd[-1][1]) for p in pre.psd])
-	else:
-		inPsd=scaledFlowPsd(*woo.factory.generator.inputPsd(scale=True))
-		inPsdUnscaled=unscaledPsd(*woo.factory.generator.inputPsd(scale=False))
+	inPsd=scaledFlowPsd([p[0] for p in pre.psd],[p[1]*(1./pre.psd[-1][1]) for p in pre.psd],massFactor=woo.factory.mass)
+	inPsdUnscaled=unscaledPsd([p[0] for p in pre.psd],[p[1]*(1./pre.psd[-1][1]) for p in pre.psd])
 
 	feedPsd=scaledFlowPsd(*woo.factory.generator.psd())
 	pylab.plot(*inPsd,label='user',marker='o')
