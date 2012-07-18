@@ -18,6 +18,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 
 	enum{COLOR_NONE=0,COLOR_RADIUS,COLOR_VEL,COLOR_MASS,COLOR_DISPLACEMENT,COLOR_ROTATION};
 	enum{GLYPH_KEEP=0,GLYPH_NONE,GLYPH_FORCE,GLYPH_VEL};
+	enum{CNODE_NONE=0,CNODE_GLREP=1,CNODE_LINE=2,CNODE_NODE=4,CNODE_POTLINE=8};
 	RENDERS(DemField);
 	DECLARE_LOGGER;
 	Scene* _lastScene; // to detect changes; never acessed as pointer
@@ -28,9 +29,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 		((bool,bound,false,,"Render particle's :ref:`Bound`"))
 		((bool,shape,true,,"Render particle's :ref:`Shape`"))
 		((bool,nodes,false,,"Render DEM nodes"))
-		((int,cNodes,-1,AttrTrait<>().choice({{-1,"nothing"},{0,"Node.rep"},{1,"Node.rep + line"},{2,"Node.rep + Node"},{3,"Node.rep + Node + line"}}),"Render contact's nodes"))
-		((Vector2i,cNodes_range,Vector2i(-1,3),AttrTrait<>().noGui(),"Range for cNodes"))
-		((bool,potWire,false,,"Render potential contacts as line between particles"))
+		((int,cNode,CNODE_NONE,AttrTrait<>().bits({"GlRep","line","node","pot. line"}),"What should be shown for contact nodes"))
 		((bool,cPhys,false,,"Render contact's nodes"))
 		((int,glyph,0,AttrTrait<Attr::triggerPostLoad>().choice({{GLYPH_KEEP,"keep"},{GLYPH_NONE,"none"},{GLYPH_FORCE,"force"},{GLYPH_VEL,"velocity"}}),"Show glyphs on particles by setting :ref:`GlData` on their nodes."))
 		((Real,glyphRelSz,.2,,"Maximum glyph size relative to scene radius"))
@@ -56,6 +55,11 @@ struct Gl1_DemField: public GlFieldFunctor{
 			_classObj.attr("colorVel")=(int)Gl1_DemField::COLOR_VEL;
 			_classObj.attr("colorDisplacement")=(int)Gl1_DemField::COLOR_DISPLACEMENT;
 			_classObj.attr("colorRotation")=(int)Gl1_DemField::COLOR_ROTATION;
+			_classObj.attr("cNodeNone")=(int)Gl1_DemField::CNODE_NONE;
+			_classObj.attr("cNodeGlRep")=(int)Gl1_DemField::CNODE_GLREP;
+			_classObj.attr("cNodeLine")=(int)Gl1_DemField::CNODE_LINE;
+			_classObj.attr("cNodeNode")=(int)Gl1_DemField::CNODE_NODE;
+			_classObj.attr("cNodePotLine")=(int)Gl1_DemField::CNODE_POTLINE;
 	);
 };
 REGISTER_SERIALIZABLE(Gl1_DemField);

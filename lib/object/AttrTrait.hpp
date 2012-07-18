@@ -146,12 +146,15 @@ namespace woo{
 			_prefUnit[_unit.size()-1]={s,mult};
 			return *this;
 		}
-		AttrTrait& altUnits(const vector<pair<string,Real>>& m){
+		AttrTrait& altUnits(const vector<pair<string,Real>>& m, bool clearPrevious=false){
 			if(_unit.empty() && !isMultiUnit()){
 				cerr<<"ERROR: Set AttrTrait.unit() before AttrTrait.altUnits()."<<endl;
 				abort();
 			}
-			_altUnits[_unit.size()-1]=m; return *this;
+			auto& alt(_altUnits[_unit.size()-1]);
+			if(clearPrevious) alt=m;
+			else alt.insert(alt.end(),m.begin(),m.end());
+			return *this;
 		}
 		AttrTrait& startGroup(const string& s){ _startGroup=s; return *this; }
 

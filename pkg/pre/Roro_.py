@@ -17,6 +17,10 @@ nan=float('nan')
 if not hasattr(ConveyorFactory,'generator'):
 	ConveyorFactory.generator=property(lambda x: x)
 
+def ySpannedFacets(xx,yy,zz,**kw):
+	A,B,C,D=(xx[0],yy[0],zz[0]),(xx[1],yy[0],zz[1]),(xx[0],yy[1],zz[0]),(xx[1],yy[1],zz[1])
+	return [utils.facet(vertices,**kw) for vertices in (A,B,C),(C,B,D)]
+
 
 def run(pre): # use inputs as argument
 	print 'Roro_.run()'
@@ -28,14 +32,19 @@ def run(pre): # use inputs as argument
 	de=DemField()
 	s.fields=[de]
 
+	if pre.variant not in ('plain','customer1'): raise ValueError("Roro.variant must be one of 'plain', 'customer1' (not '%s')"%pre.variant)
 	if pre.gap<0: raise ValueError("Roro.gap must be positive (are cylinders overlapping?)")
+	if (pre.time>0 and pre.mass>0) or (pre.time<=0 and pre.mass<=0): raise ValueError("Exactly one of Roro.time or Roro.mass must be positive.")
+	
 	# generate cylinder coordinates, or use those given by the user
 	if pre.cylXzd:
+		if pre.variant!='plain': raise ValueError("Roro.cylXzd can be given as coordinates only with Roro.variant 'plain' (not '%s')."%pre.variant)
 		cylXzd=pre.cylXzd
 	else:
 		cylXzd=[]
 		dCyl=pre.cylDiameter
 		xz0=(0,-dCyl/2) # first cylinder is right below the feed end at (0,0)
+		if pre.variant=='customer1': xz0=(0,0)
 		for i in range(0,pre.cylNum):
 			dist=i*(dCyl+pre.gap) # distance from the first cylinder's center
 			cylXzd.append(Vector3(xz0[0]+math.cos(pre.inclination)*dist,xz0[1]-math.sin(pre.inclination)*dist,dCyl))
@@ -45,10 +54,6 @@ def run(pre): # use inputs as argument
 	print 'Cylinder coordinates and diameters:'
 	pprint.pprint(cylXzd)
 
-	# define simulation domain
-	ymin,ymax=-pre.cylLenSim/2.,pre.cylLenSim/2.
-	zmin,zmax=cylZMin-2*cylDMax,max(4*cylDMax,4*pre.conveyorHt)
-	xmin,xmax=-3*cylDMax,cylXzd[-1][0]+3*cylDMax
 	rMin=pre.psd[0][0]/2.
 	rMax=pre.psd[-1][0]/2.
 	s.dt=pre.pWaveSafety*utils.spherePWaveDt(rMin,pre.material.density,pre.material.young)
@@ -59,6 +64,75 @@ def run(pre): # use inputs as argument
 	sphMask= 0b00011
 	delMask= 0b00001 # particles which might be deleted by deleters
 	
+	###
+	### conveyor feed
+	###
+	print 'Preparing packing for conveyor feed, be patient'
+	cellLen=15*pre.psd[-1][0]
+	cc,rr=makeBandFeedPack(dim=(cellLen,pre.cylLenSim,pre.conveyorHt),psd=pre.psd,mat=pre.material,gravity=(0,0,-pre.gravity),porosity=.7,memoizeDir=pre.feedCacheDir)
+	vol=sum([4/3.*math.pi*r**3 for r in rr])
+	conveyorVel=(pre.massFlowRate*pre.cylRelLen)/(pre.material.density*vol/cellLen)
+	print 'Feed velocity %g m/s to match feed mass %g kg/m (volume=%g m³, len=%gm, ρ=%gkg/m³) and massFlowRate %g kg/s (%g kg/s over real width)'%(conveyorVel,pre.material.density*vol/cellLen,vol,cellLen,pre.material.density,pre.massFlowRate*pre.cylRelLen,pre.massFlowRate)
+
+	ymin,ymax=-pre.cylLenSim/2.,pre.cylLenSim/2.
+	if pre.variant=='plain':
+		# define simulation domain
+		zmin,zmax=cylZMin-2*cylDMax,max(4*cylDMax,4*pre.conveyorHt)
+		xmin,xmax=-3*cylDMax,cylXzd[-1][0]+3*cylDMax
+		factoryNode=Node(pos=(xmin,0,0))
+
+		de.par.append(ySpannedFacets((xmin,0),(ymin,ymax),(0,0),mat=pre.material,mask=wallMask,fakeVel=(conveyorVel,0,0)))
+	elif pre.variant=='customer1':
+		# F                E is cylinder top; D is feed conveyor start, |D-E|=10cm
+		# ____ E           cylinder radius 4cm, centered at D=C-(0,4cm)
+		#   (_)  C         B-C vertical, |B-C|=27cm; C is at the leftmost point of the cylinder
+		# D   |  
+		#     |            |A-B|=28cm
+		#   B ^-_          A-B in inclined by 27° more than the screen
+		#        ^-_  A    cylinder below touched at point A
+		#          ( )      centered at (0,0)
+		#
+		A=cylXzd[0][2]*.5*Vector2(math.sin(pre.inclination),math.cos(pre.inclination))
+		abAngle=pre.inclination+math.radians(27)
+		abLen=0.28
+		B=A+abLen*Vector2(-math.cos(abAngle),math.sin(abAngle))
+		upCylRad=0.04
+		C=B+Vector2(0,0.27)
+		D=C+Vector2(-upCylRad,0)
+		E=D+Vector2(0,upCylRad)
+		F=E+Vector2(-.1,0)
+		for i in 'ABCDEF': print i,eval(i)
+		yy=(ymin,ymax)
+		kw=dict(mat=pre.material,mask=wallMask)
+		de.par.append(ySpannedFacets((A[0],B[0]),yy,(A[1],B[1]),**kw)+ySpannedFacets((B[0],C[0]),yy,(B[1],C[1]),**kw)+ySpannedFacets((E[0],F[0]),yy,(E[1],F[1]),**kw))
+		feedCyl=utils.infCylinder((D[0],0,D[1]),radius=upCylRad,axis=1,glAB=yy,**kw)
+		feedCyl.angVel=Vector3(0,conveyorVel/upCylRad,0)
+		de.par.append(feedCyl)
+
+		zmin,zmax=cylZMin-2*cylDMax,F[1]+3*pre.conveyorHt
+		xmin,xmax=F[0],cylXzd[-1][0]+3*cylDMax
+		factoryNode=Node(pos=(F[0],0,F[1]+rMax))
+	else: assert False
+
+	factStep=pre.factStepPeriod
+	factory=ConveyorFactory(
+		stepPeriod=factStep,
+		material=pre.material,
+		centers=cc,radii=rr,
+		cellLen=cellLen,
+		barrierColor=.3,
+		#color=.4, # random colors
+		node=factoryNode,
+		mask=sphMask,
+		vel=conveyorVel,
+		label='factory',
+		maxMass=-1, # not limited, until steady state is reached
+		currRateSmooth=pre.rateSmooth,
+	)
+
+	###
+	### walls and cylinders
+	###		
 	de.par.append([
 		utils.wall(ymin,axis=1,sense= 1,visible=False,glAB=((zmin,xmin),(zmax,xmax)),mat=pre.material,mask=wallMask),
 		utils.wall(ymax,axis=1,sense=-1,visible=False,glAB=((zmin,xmin),(zmax,xmax)),mat=pre.material,mask=wallMask),
@@ -80,51 +154,11 @@ def run(pre): # use inputs as argument
 			)
 		)
 		de.par.append(c)
-		A,B,C,D=(x,ymin,zmin),(x,ymin,z-d/2.),(x,ymax,z-d/2.),(x,ymax,zmin)
-		de.par.append([utils.facet(vertices,mat=pre.material,mask=wallMask,visible=False) for vertices in (A,B,C),(C,D,A)])
+		de.par.append(ySpannedFacets((x,x),(ymin,ymax),(zmin,z-d/2.),mat=pre.material,mask=wallMask,visible=False))
 
-	factStep=pre.factStepPeriod
-
-	if pre.conveyor:
-		print 'Preparing packing for conveyor feed, be patient'
-		cellLen=15*pre.psd[-1][0]
-		cc,rr=makeBandFeedPack(dim=(cellLen,pre.cylLenSim,pre.conveyorHt),psd=pre.psd,mat=pre.material,gravity=(0,0,-pre.gravity),porosity=.7,memoizeDir=pre.feedCacheDir)
-		vol=sum([4/3.*math.pi*r**3 for r in rr])
-		conveyorVel=(pre.massFlowRate*pre.cylRelLen)/(pre.material.density*vol/cellLen)
-		print 'Feed velocity %g m/s to match feed mass %g kg/m (volume=%g m³, len=%gm, ρ=%gkg/m³) and massFlowRate %g kg/s (%g kg/s over real width)'%(conveyorVel,pre.material.density*vol/cellLen,vol,cellLen,pre.material.density,pre.massFlowRate*pre.cylRelLen,pre.massFlowRate)
-		factory=ConveyorFactory(
-			stepPeriod=factStep,
-			material=pre.material,
-			centers=cc,radii=rr,
-			cellLen=cellLen,
-			barrierColor=.3,
-			#color=.4, # random colors
-			node=Node(pos=(xmin,0,0)),
-			mask=sphMask,
-			vel=conveyorVel,
-			label='factory',
-			maxMass=-1, # not limited, until steady state is reached
-			currRateSmooth=pre.rateSmooth,
-		)
-	else:
-		conveyorVel=pre.flowVel
-		factory=BoxFactory(
-			stepPeriod=factStep,
-			box=((xmin,ymin,0),(0,ymax,zmax)),
-			glColor=.4,
-			label='factory',
-			massFlowRate=pre.massFlowRate*pre.cylRelLen, # mass flow rate for the simulated part only
-			currRateSmooth=pre.rateSmooth,
-			materials=[pre.material],
-			generator=PsdSphereGenerator(psdPts=pre.psd,discrete=False,mass=True),
-			shooter=AlignedMinMaxShooter(dir=Quaternion((0,1,0),pre.inclination)*(1,0,-.1),vRange=(pre.flowVel,pre.flowVel)),
-			mask=sphMask,
-			maxMass=-1, ## do not limit, before steady state is reached
-		)
-
-
-	A,B,C,D=(xmin,ymin,0),(0,ymin,0),(0,ymax,0),(xmin,ymax,0)
-	de.par.append([utils.facet(vertices,mat=pre.material,mask=wallMask,fakeVel=(conveyorVel,0,0)) for vertices in ((A,B,C),(C,D,A))])
+	###
+	### engines
+	###
 
 	s.engines=utils.defaultEngines(damping=.4,gravity=(0,0,-pre.gravity),verletDist=.05*rMin)+[
 		# what falls beyond
@@ -144,6 +178,11 @@ def run(pre): # use inputs as argument
 	s.pre=pre.deepcopy() # avoids bug http://gpu.doxos.eu/trac/ticket/81, which might get triggered here
 	de.collectNodes()
 
+	if pre.mass:
+		for a in woo.aperture: a.save=True
+		woo.factory.save=True
+		woo.factory.maxMass=pre.mass
+
 	# when running with gui, set initial view setup
 	# the import fails if headless
 	try:
@@ -151,7 +190,8 @@ def run(pre): # use inputs as argument
 		# set other display options and save them (static attributes)
 		s.any=[
 			woo.gl.Renderer(iniUp=(0,0,1),iniViewDir=(0,1,0)),
-			woo.gl.Gl1_DemField(glyph=woo.gl.Gl1_DemField.glyphVel),
+			#woo.gl.Gl1_DemField(glyph=woo.gl.Gl1_DemField.glyphVel),
+			woo.gl.Gl1_DemField(colorBy=woo.gl.Gl1_DemField.colorVel),
 			woo.gl.Gl1_InfCylinder(wire=True),
 			woo.gl.Gl1_Wall(div=1),
 		]
@@ -235,47 +275,65 @@ def watchProgress(S):
 	state only'''
 	import woo
 	pre=S.pre
-	# not yet saving what falls through, i.e. not in stabilized regime yet
-	if woo.aperture[0].save==False:
-		# first particles have just fallen over
-		# start saving apertures and reset our counters here
-		#if woo.fallOver.num>pre.steadyOver:
-		influx,efflux=woo.factory.currRate,(woo.fallOver.currRate+woo.outOfDomain.currRate+sum([a.currRate for a in woo.aperture]))
-		if efflux>pre.steadyFlowFrac*influx:
-			#print efflux,'>',pre.steadyFlowFrac,'*',influx
-			woo.fallOver.clear()
-			woo.factory.clear() ## FIXME
-			woo.factory.maxMass=pre.time*pre.cylRelLen*pre.massFlowRate # required mass scaled to simulated part
-			for ap in woo.aperture:
-				ap.clear() # to clear overall mass, which gets counted even with save=False
-				ap.save=True
-			print 'Stabilized regime reached (influx %g, efflux %g) at step %d (t=%gs), counters engaged.'%(influx,efflux,S.step,S.time)
-			#out='/tmp/steady-'+S.tags['id.d']+'.bin.gz'
-			out=S.pre.saveFmt.format(stage='steady',S=S,**(dict(S.tags)))
-			S.save(out)
-			print 'Saved to',out
-	# already in the stable regime, end simulation at some point
-	else:
-		# factory has finished generating particles
-		if woo.factory.mass>woo.factory.maxMass:
-			print 'All mass generated at step %d (t=%gs, mass %g/%g), ending.'%(S.step,S.time,woo.factory.mass,woo.factory.maxMass)
-			import woo.plot, pickle
-			try:
-				out=S.pre.saveFmt.format(stage='done',S=S,**(dict(S.tags)))
-				if S.lastSave==out:
-					woo.plot.data=pickle.loads(S.tags['plot.data'])
-					print 'Reloaded plot data'
-				else:
-					S.tags['plot.data']=pickle.dumps(woo.plot.data)
-					S.save(out)
-					print 'Saved (incl. plot.data) to',out
-				writeReport(S)
-			except:
-				import traceback
-				traceback.print_exc()
-				print 'Error during post-processing.'
-			print 'Simulation finished.'
-			S.stop()
+	## wait for steady state, then simulate pre.time time of steady state
+	if pre.time>0:
+		assert pre.mass<=0
+		# not yet saving what falls through, i.e. not in stabilized regime yet
+		if woo.aperture[0].save==False:
+			# first particles have just fallen over
+			# start saving apertures and reset our counters here
+			#if woo.fallOver.num>pre.steadyOver:
+			influx,efflux=woo.factory.currRate,(woo.fallOver.currRate+woo.outOfDomain.currRate+sum([a.currRate for a in woo.aperture]))
+			if efflux>pre.steadyFlowFrac*influx:
+				#print efflux,'>',pre.steadyFlowFrac,'*',influx
+				woo.fallOver.clear()
+				woo.factory.clear() ## FIXME
+				woo.factory.maxMass=pre.time*pre.cylRelLen*pre.massFlowRate # required mass scaled to simulated part
+				for ap in woo.aperture:
+					ap.clear() # to clear overall mass, which gets counted even with save=False
+					ap.save=True
+				print 'Stabilized regime reached (influx %g, efflux %g) at step %d (t=%gs), counters engaged.'%(influx,efflux,S.step,S.time)
+				#out='/tmp/steady-'+S.tags['id.d']+'.bin.gz'
+				out=S.pre.saveFmt.format(stage='steady',S=S,**(dict(S.tags)))
+				S.save(out)
+				print 'Saved to',out
+		# already in the stable regime, end simulation at some point
+		else:
+			# factory has finished generating particles
+			if woo.factory.mass>woo.factory.maxMass:
+				print 'All mass generated at step %d (t=%gs, mass %g/%g), ending.'%(S.step,S.time,woo.factory.mass,woo.factory.maxMass)
+				import woo.plot, pickle
+				try:
+					out=S.pre.saveFmt.format(stage='done',S=S,**(dict(S.tags)))
+					if S.lastSave==out:
+						woo.plot.data=pickle.loads(S.tags['plot.data'])
+						print 'Reloaded plot data'
+					else:
+						S.tags['plot.data']=pickle.dumps(woo.plot.data)
+						S.save(out)
+						print 'Saved (incl. plot.data) to',out
+					writeReport(S)
+				except:
+					import traceback
+					traceback.print_exc()
+					print 'Error during post-processing.'
+				print 'Simulation finished.'
+				S.stop()
+	elif pre.mass>0:
+		assert pre.time<=0
+		## after the mass is reached, continue for some time (say 20% of the simulation up to now), then finish
+		if woo.factory.mass>=woo.factory.maxMass:
+			m=sum([n.dem.mass for n in S.dem.nodes])
+			if m<pre.residueMassFrac*woo.factory.maxMass:
+				try:
+					writeReport(S)
+				except:
+					import traceback
+					traceback.print_exc()
+					print 'Error during post-processing.'
+				print 'Simulation finished.'
+				S.stop()
+	else: assert False
 
 def savePlotData(S):
 	import woo
@@ -285,9 +343,9 @@ def savePlotData(S):
 	apRate=sum([a.currRate for a in woo.aperture])
 	overRate=woo.fallOver.currRate
 	lostRate=woo.outOfDomain.currRate
-	woo.plot.addData(i=S.step,t=S.time,genRate=woo.factory.currRate,apRate=apRate,overRate=overRate,lostRate=lostRate,delRate=apRate+overRate+lostRate,numPar=len(S.dem.par))
+	woo.plot.addData(i=S.step,t=S.time,genRate=woo.factory.currRate,apRate=apRate,overRate=overRate,lostRate=lostRate,delRate=apRate+overRate+lostRate,numPar=len(S.dem.par),genMass=woo.factory.mass)
 	if not woo.plot.plots:
-		woo.plot.plots={'t':('genRate','apRate','lostRate','overRate','delRate',None,('numPar','g--'))}
+		woo.plot.plots={'t':('genRate','apRate','lostRate','overRate','delRate',None,('numPar','g--')),'t ':('genMass')}
 
 def splitPsd(xx0,yy0,splitX):
 	'''Split input *psd0* (given by *xx0* and *yy0*) at diameter (x-axis) specified by *splitX*; two PSDs are returned, one grows from splitX and has maximum value for all points x>=splitX; the second PSD is zero for all values <=splitX, then grows to the maximum value proportionally. The maximum value is the last point of psd0, thus both normalized and non-normalized input can be given. If splitX falls in the middle of *psd0* intervals, it is interpolated.'''

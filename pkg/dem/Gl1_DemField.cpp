@@ -14,10 +14,8 @@ bool Gl1_DemField::wire;
 bool Gl1_DemField::bound;
 bool Gl1_DemField::shape;
 bool Gl1_DemField::nodes;
-int Gl1_DemField::cNodes;
-Vector2i Gl1_DemField::cNodes_range;
+int Gl1_DemField::cNode;
 bool Gl1_DemField::cPhys;
-bool Gl1_DemField::potWire;
 int Gl1_DemField::colorBy;
 shared_ptr<ScalarRange> Gl1_DemField::colorRange;
 int Gl1_DemField::glyph;
@@ -219,6 +217,7 @@ void Gl1_DemField::doNodes(){
 
 
 void Gl1_DemField::doContactNodes(){
+	if(cNode==CNODE_NONE) return;
 	Renderer::nodeDispatcher.scene=scene; Renderer::nodeDispatcher.updateScenePtr();
 	boost::mutex::scoped_lock lock(*dem->contacts->manipMutex);
 	for(size_t i=0; i<dem->contacts->size(); i++){
@@ -228,28 +227,25 @@ void Gl1_DemField::doContactNodes(){
 			if(!geom) continue;
 			shared_ptr<Node> node=geom->node;
 			Renderer::setNodeGlData(node,updateRefPos);
-			if(!(cNodes>=0) && !node->rep) continue;
 			Renderer::glScopedName name(C,node);
-			if(cNodes>0){ // cNodes>0: show something else than just the GlRep
-				if(cNodes & 1){ // connect node by lines with particle's positions
-					assert(C->pA->shape && C->pB->shape);
-					assert(C->pA->shape->nodes.size()>0); assert(C->pB->shape->nodes.size()>0);
-					Vector3r x[3]={node->pos,C->pA->shape->avgNodePos(),C->pB->shape->avgNodePos()};
-					if(scene->isPeriodic){
-						Vector3i cellDist;
-						x[0]=scene->cell->canonicalizePt(x[0],cellDist);
-						x[1]+=scene->cell->intrShiftPos(-cellDist);
-						x[2]+=scene->cell->intrShiftPos(-cellDist+C->cellDist);
-					}
-					Vector3r color=CompUtils::mapColor(C->color);
-					GLUtils::GLDrawLine(x[0],x[1],color);
-					GLUtils::GLDrawLine(x[0],x[2],color);
+			if((cNode & CNODE_GLREP) && node->rep){ node->rep->render(node,viewInfo); }
+			if(cNode & CNODE_LINE){
+				assert(C->pA->shape && C->pB->shape);
+				assert(C->pA->shape->nodes.size()>0); assert(C->pB->shape->nodes.size()>0);
+				Vector3r x[3]={node->pos,C->pA->shape->avgNodePos(),C->pB->shape->avgNodePos()};
+				if(scene->isPeriodic){
+					Vector3i cellDist;
+					x[0]=scene->cell->canonicalizePt(x[0],cellDist);
+					x[1]+=scene->cell->intrShiftPos(-cellDist);
+					x[2]+=scene->cell->intrShiftPos(-cellDist+C->cellDist);
 				}
-				if(cNodes & 2) Renderer::renderRawNode(node);
+				Vector3r color=CompUtils::mapColor(C->color);
+				GLUtils::GLDrawLine(x[0],x[1],color);
+				GLUtils::GLDrawLine(x[0],x[2],color);
 			}
-			if(node->rep){ node->rep->render(node,viewInfo); }
+			if(cNode & CNODE_NODE) Renderer::renderRawNode(node);
 		} else {
-			if(!potWire) continue;
+			if(!(cNode & CNODE_POTLINE)) continue;
 			assert(C->pA->shape && C->pB->shape);
 			assert(C->pA->shape->nodes.size()>0); assert(C->pB->shape->nodes.size()>0);
 			Vector3r x[2]={C->pA->shape->avgNodePos(),C->pB->shape->avgNodePos()};

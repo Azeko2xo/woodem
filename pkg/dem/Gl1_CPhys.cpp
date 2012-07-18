@@ -21,10 +21,10 @@ void Gl1_CPhys::go(const shared_ptr<CPhys>& cp, const shared_ptr<Contact>& C, co
 	if(isnan(fn)) return;
 	if((signFilter>0 && fn<0) || (signFilter<0 && fn>0)) return;
 	range->norm(fn); // adjust range, return value discarded
-	Real r=relMaxRad*viewInfo.sceneRadius*(abs(fn)/(max(abs(range->mnmx[0]),abs(range->mnmx[1]))));
+	Real r=relMaxRad*viewInfo.sceneRadius*min(1.,(abs(fn)/(max(abs(range->mnmx[0]),abs(range->mnmx[1])))));
 	if(r<viewInfo.sceneRadius*1e-4 || isnan(r)) return;
 	Vector3r color=shearColor?shearRange->color(Vector2r(cp->force[1],cp->force[2]).norm()):range->color(fn);
-	Vector3r A=C->pA->shape->avgNodePos(), B=C->pB->shape->avgNodePos()+((scene->isPeriodic)?(scene->cell->intrShiftPos(C->cellDist)):Vector3r::Zero());
+	Vector3r A=(dynamic_pointer_cast<Sphere>(C->pA->shape)?C->pA->shape->nodes[0]->pos:C->geom->node->pos), B=C->pB->shape->avgNodePos()+((scene->isPeriodic)?(scene->cell->intrShiftPos(C->cellDist)):Vector3r::Zero());
 	if(C->pA->shape->nodes[0]->hasData<GlData>() && C->pB->shape->nodes[0]->hasData<GlData>()){
 		const GlData &glA=C->pA->shape->nodes[0]->getData<GlData>(), &glB=C->pB->shape->nodes[0]->getData<GlData>();
 		A+=glA.dGlPos; B+=glB.dGlPos;

@@ -31,16 +31,15 @@ struct Roro: public Preprocessor {
 		((Real,cylLenSim,.5,AttrTrait<>().lenUnit().triggerPostLoad(),"Simulated length of cylinders"))
 		((Real,cylRelLen,,AttrTrait<>().readonly(),"Relative length of simulated cylinders"))
 		((Real,massFlowRate,/*for real length*/2500,AttrTrait<>().massFlowRateUnit().prefUnit("Mt/y"),"Incoming mass flow rate (considering real length)"))
-		((bool,conveyor,true,AttrTrait<>().noGui(),"Feed particles using infinite conveyor rather than particles falling from above; see conveyorHt."))
 		((Real,conveyorHt,.2,AttrTrait<>().lenUnit(),"Height of particle layor on the conveyor (only meaningful if *conveyor* is True)"))
-		((Real,time,2,AttrTrait<>().timeUnit(),"Time of the simulation (after reaching steady state)"))
-		((Real,flowVel,1.,AttrTrait<>().velUnit().cxxType("fooBar"),"Velocity of generated particles; this value is ignored if *conveyor* is True."))
+		((Real,time,2,AttrTrait<>().timeUnit(),"Time of the simulation (after reaching steady state); if non-positive, don't wait for steady state, use *mass* instead."))
+		((Real,mass,0,AttrTrait<>().timeUnit(),"Total feed mass; if non-positive, don't limit generated mass, simulate *time* of steady state instead"))
 
 		// Cylinders
 		((vector<Vector3r>,cylXzd,,AttrTrait<>().startGroup("Cylinders").triggerPostLoad().lenUnit().prefUnit("mm"),"Coordinates and diameters of cylinders. If empty, *cylNum*, *cylDiameter*, *inclination* and *gap* are used to compute coordinates automatically"))
 		((Real,angVel,10.,AttrTrait<>().angVelUnit().prefUnit("rot/min"),"Angular velocity of cylinders [rot/sec]"))
 		((int, cylNum,6,AttrTrait<>()/*.range(Vector2i(4,30))*/,"Number of cylinders (only used when cylXzd is empty)"))
-		((Real,cylDiameter,.2,AttrTrait<>().lenUnit().prefUnit("mm"),"Diameter of cylinders (only used when cylXzd is empty)"))
+		((Real,cylDiameter,.2,AttrTrait<>().lenUnit().altUnits({{"in",1/0.0254}}).prefUnit("mm"),"Diameter of cylinders (only used when cylXzd is empty)"))
 		((Real,inclination,30*Mathr::PI/180.,AttrTrait<>().angleUnit().prefUnit("deg"),"Inclination of cylinder plane (only used when cylXzd is empty)"))
 		((Real,gap,.038,AttrTrait<>().lenUnit().prefUnit("mm"),"Gap between cylinders (computed automatically if cylXzd is given)"))
 
@@ -62,11 +61,14 @@ struct Roro: public Preprocessor {
 		// Tunables
 		((int,factStepPeriod,800,AttrTrait<>().startGroup("Tunables"),"Run factory (and deleters) every *factStepPeriod* steps."))
 		((Real,pWaveSafety,.7,AttrTrait<Attr::triggerPostLoad>(),"Safety factor for critical timestep"))
+		((string,variant,"plain",AttrTrait<>().choice({"plain","customer1","[do not use]"}) /*AttrTrait<>().choice({"plain","customer1"})*/,"Geometry of the feed and possibly other specific details"))
+		// ((string,format,"PNG",AttrTrait<>().choice({"JPEG","PNG","EPS","PS","PPM","BMP"}),""))
 		((Real,gravity,100.,AttrTrait<>().accelUnit(),"Gravity acceleration magnitude"))
 		((Vector2r,quivAmp,Vector2r(.05,.03),AttrTrait<>().lenUnit().prefUnit("mm"),"Cylinder quiver amplitudes (horizontal and vertical), relative to cylinder radius"))
 		((Vector3r,quivHPeriod,Vector3r(3000,5000,3),,"Horizontal quiver period (relative to Δt); assigned quasi-randomly from the given range, with z-component giving modulo divisor"))
 		((Vector3r,quivVPeriod,Vector3r(5000,11000,5),,"Vertical quiver period (relative to Δt); assigned quasi-randomly from the given range, with z-component giving modulo divisor"))
-		((Real,steadyFlowFrac,1.,,"Start steady (measured) phase when efflux (fall over, apertures, out-of-domain) reaches this fraction of influx (feed)"))
+		((Real,steadyFlowFrac,1.,,"Start steady (measured) phase when efflux (fall over, apertures, out-of-domain) reaches this fraction of influx (feed); only used when *time* is given"))
+		((Real,residueMassFrac,.05,,"Fraction of mass which is allowed to remain in the simulation, if *mass* is given"))
 		((Real,rateSmooth,.2,,"Smoothing factor for plotting rates in factory and deleters"))
 
 
