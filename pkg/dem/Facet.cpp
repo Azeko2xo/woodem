@@ -31,19 +31,22 @@ void Bo1_Facet_Aabb::go(const shared_ptr<Shape>& sh){
 	Facet& f=sh->cast<Facet>();
 	if(!f.bound){ f.bound=make_shared<Aabb>(); }
 	Aabb& aabb=f.bound->cast<Aabb>();
+	const Vector3r halfThickVec=Vector3r::Constant(f.halfThick);
 	if(!scene->isPeriodic){
-		aabb.min=aabb.max=f.nodes[0]->pos;
+		aabb.min=f.nodes[0]->pos-halfThickVec;
+		aabb.max=f.nodes[0]->pos+halfThickVec;
 		for(int i:{1,2}){
-			aabb.min=aabb.min.array().min(f.nodes[i]->pos.array()).matrix();
-			aabb.max=aabb.max.array().max(f.nodes[i]->pos.array()).matrix();
+			aabb.min=aabb.min.array().min((f.nodes[i]->pos-halfThickVec).array()).matrix();
+			aabb.max=aabb.max.array().max((f.nodes[i]->pos+halfThickVec).array()).matrix();
 		}
 	} else {
 		// periodic cell: unshear everything
-		aabb.min=aabb.max=scene->cell->unshearPt(f.nodes[0]->pos);
+		aabb.min=scene->cell->unshearPt(f.nodes[0]->pos)-halfThickVec;
+		aabb.max=scene->cell->unshearPt(f.nodes[0]->pos)+halfThickVec;
 		for(int i:{1,2}){
 			Vector3r v=scene->cell->unshearPt(f.nodes[i]->pos);
-			aabb.min=aabb.min.array().min(v.array()).matrix();
-			aabb.max=aabb.max.array().max(v.array()).matrix();
+			aabb.min=aabb.min.array().min((v-halfThickVec).array()).matrix();
+			aabb.max=aabb.max.array().max((v+halfThickVec).array()).matrix();
 		}
 	}
 }
@@ -59,21 +62,35 @@ bool Gl1_Facet::wire;
 
 void Gl1_Facet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire2, const GLViewInfo&){   
 	Facet& f=sh->cast<Facet>();
-	//glColor3v(CompUtils::mapColor(f.getBaseColor()));
 
 	if(wire || wire2){
 		glDisable(GL_LINE_SMOOTH);
-		glBegin(GL_LINE_LOOP);
-			for(int i:{0,1,2}) glVertex3v(f.nodes[i]->pos);
-	    glEnd();
+		if(f.halfThick==0){
+			glBegin(GL_LINE_LOOP);
+				for(int i:{0,1,2}) glVertex3v(f.nodes[i]->pos);
+		   glEnd();
+		} else {
+			Vector3r normal=f.getNormal();
+			for(int j:{-1,1}){
+				glBegin(GL_LINE_LOOP);
+					for(int i:{0,1,2}) glVertex3v((f.nodes[i]->pos+j*normal*f.halfThick).eval());
+				glEnd();
+			}
+		}
 		glEnable(GL_LINE_SMOOTH);
 	} else {
 		glDisable(GL_CULL_FACE); 
 		Vector3r normal=f.getNormal();
 		glBegin(GL_TRIANGLES);
-			 // this makes every triangle different WRT the light direction; important for shading
+			// this makes every triangle different WRT the light direction; important for shading
 			glNormal3v(normal);
-			for(int i:{0,1,2}) glVertex3v(f.nodes[i]->pos);
+			if(f.halfThick==0){
+				for(int i:{0,1,2}) glVertex3v(f.nodes[i]->pos);
+			} else {
+				for(int j:{-1,1}){
+					for(int i:{0,1,2}) glVertex3v((f.nodes[i]->pos+j*normal*f.halfThick).eval());
+				}
+			}
 		glEnd();
 	}
 }

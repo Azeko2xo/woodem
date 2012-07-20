@@ -56,7 +56,7 @@ struct Roro: public Preprocessor {
 		((string,feedCacheDir,".",,"Directory where to store pre-generated feed packings"))
 		((string,saveFmt,"/tmp/{tid}-{stage}.bin.gz",,"Savefile format; keys are :ref:`Scene.tags` and additionally ``{stage}`` will be replaced by 'init', 'steady' and 'done'."))
 		((int,backupSaveTime,1800,,"How often to save backup of the simulation (0 or negative to disable)"))
-		((int,vtkFreq,4,AttrTrait<>(),"How often should VtkExport run, relative to *factStepPeriod*. If negative, run never."))
+		((Real,vtkFreq,4,AttrTrait<>(),"How often should VtkExport run, relative to *factStepPeriod*. If negative, run never."))
 		((string,vtkPrefix,"/tmp/{tid}-",,"Prefix for saving VtkExport data; formatted with ``format()`` providing :ref:`Scene.tags` as keys."))
 
 		// Tunables
@@ -71,7 +71,7 @@ struct Roro: public Preprocessor {
 		((Real,steadyFlowFrac,1.,,"Start steady (measured) phase when efflux (fall over, apertures, out-of-domain) reaches this fraction of influx (feed); only used when *time* is given"))
 		((Real,residueMassFrac,.05,,"Fraction of mass which is allowed to remain in the simulation, if *mass* is given"))
 		((Real,rateSmooth,.2,,"Smoothing factor for plotting rates in factory and deleters"))
-
+		((Real,normPlastCoeff,1e3,,"Dimensionless normal plasticity coefficient :ref:`Law_L6Geom_FrictPhys_Pellet`; non-positive value disables normal plasticity."))
 
 		, /*ctor*/
 			material->density=3200;

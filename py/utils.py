@@ -95,7 +95,7 @@ def defaultMaterial():
 	import math
 	return FrictMat(density=1e3,young=1e7,poisson=.3,ktDivKn=.2,tanPhi=math.tan(.5))
 
-def defaultEngines(damping=0.,gravity=(0,0,-10),verletDist=-.05,kinSplit=False,noSlip=False,noBreak=False):
+def defaultEngines(damping=0.,gravity=(0,0,-10),verletDist=-.05,kinSplit=False,noSlip=False,noBreak=False,law=None):
 	"""Return default set of engines, suitable for basic simulations during testing."""
 	return [
 		Leapfrog(damping=damping,reset=True,kinSplit=kinSplit),
@@ -103,7 +103,7 @@ def defaultEngines(damping=0.,gravity=(0,0,-10),verletDist=-.05,kinSplit=False,n
 		ContactLoop(
 			[Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom(),Cg2_Wall_Sphere_L6Geom(),Cg2_InfCylinder_Sphere_L6Geom()],
 			[Cp2_FrictMat_FrictPhys()],
-			[Law2_L6Geom_FrictPhys_IdealElPl(noSlip=noSlip,noBreak=noBreak)],applyForces=True
+			[law if law else Law2_L6Geom_FrictPhys_IdealElPl(noSlip=noSlip,noBreak=noBreak)],applyForces=True
 		),
 	]+([] if gravity==(0,0,0) else [Gravity(gravity=gravity)])
 
@@ -207,7 +207,7 @@ def wall(position,axis,sense=0,glAB=None,fixed=True,mass=0,color=None,mat=defaul
 	p.shape.visible=visible
 	return p
 
-def facet(vertices,fakeVel=None,fixed=True,wire=True,color=None,highlight=False,mat=defaultMaterial,visible=True,mask=1):
+def facet(vertices,fakeVel=None,halfThick=0.,fixed=True,wire=True,color=None,highlight=False,mat=defaultMaterial,visible=True,mask=1):
 	"""Create facet with given parameters.
 
 	:param [Vector3,Vector3,Vector3] vertices: coordinates of vertices in the global coordinate system.
@@ -222,7 +222,7 @@ def facet(vertices,fakeVel=None,fixed=True,wire=True,color=None,highlight=False,
 			if not n.dem: n.dem=DemData()
 	else:
 		nodes=[_mkDemNode(pos=vertices[0]),_mkDemNode(pos=vertices[1]),_mkDemNode(pos=vertices[2])]
-	p.shape=Facet(color=color if color else random.random())
+	p.shape=Facet(color=color if color else random.random(),halfThick=halfThick)
 	if fakeVel: p.shape.fakeVel=fakeVel
 	p.shape.wire=wire
 	_commonBodySetup(p,nodes,volumes=None,masses=(0,0,0),geomInertias=[Vector3(0,0,0),Vector3(0,0,0),Vector3(0,0,0)],mat=mat,fixed=fixed)

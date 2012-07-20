@@ -74,6 +74,8 @@ def run(pre): # use inputs as argument
 	conveyorVel=(pre.massFlowRate*pre.cylRelLen)/(pre.material.density*vol/cellLen)
 	print 'Feed velocity %g m/s to match feed mass %g kg/m (volume=%g m³, len=%gm, ρ=%gkg/m³) and massFlowRate %g kg/s (%g kg/s over real width)'%(conveyorVel,pre.material.density*vol/cellLen,vol,cellLen,pre.material.density,pre.massFlowRate*pre.cylRelLen,pre.massFlowRate)
 
+	facetHalfThick=2*rMin
+
 	ymin,ymax=-pre.cylLenSim/2.,pre.cylLenSim/2.
 	if pre.variant=='plain':
 		# define simulation domain
@@ -81,7 +83,7 @@ def run(pre): # use inputs as argument
 		xmin,xmax=-3*cylDMax,cylXzd[-1][0]+3*cylDMax
 		factoryNode=Node(pos=(xmin,0,0))
 
-		de.par.append(ySpannedFacets((xmin,0),(ymin,ymax),(0,0),mat=pre.material,mask=wallMask,fakeVel=(conveyorVel,0,0)))
+		de.par.append(ySpannedFacets((xmin,0),(ymin,ymax),(0,0),mat=pre.material,mask=wallMask,fakeVel=(conveyorVel,0,0),halfThick=facetHalfThick))
 	elif pre.variant=='customer1':
 		# F                E is cylinder top; D is feed conveyor start, |D-E|=10cm
 		# ____ E           cylinder radius 4cm, centered at D=C-(0,4cm)
@@ -103,15 +105,16 @@ def run(pre): # use inputs as argument
 		F=E+Vector2(-.1,0)
 		for i in 'ABCDEF': print i,eval(i)
 		yy=(ymin,ymax)
-		kw=dict(mat=pre.material,mask=wallMask)
+		kw=dict(mat=pre.material,mask=wallMask,halfThick=facetHalfThick)
 		de.par.append(ySpannedFacets((A[0],B[0]),yy,(A[1],B[1]),**kw)+ySpannedFacets((B[0],C[0]),yy,(B[1],C[1]),**kw)+ySpannedFacets((E[0],F[0]),yy,(E[1],F[1]),**kw))
+		del kw['halfThick']
 		feedCyl=utils.infCylinder((D[0],0,D[1]),radius=upCylRad,axis=1,glAB=yy,**kw)
 		feedCyl.angVel=Vector3(0,conveyorVel/upCylRad,0)
 		de.par.append(feedCyl)
 
 		zmin,zmax=cylZMin-2*cylDMax,F[1]+3*pre.conveyorHt
 		xmin,xmax=F[0],cylXzd[-1][0]+3*cylDMax
-		factoryNode=Node(pos=(F[0],0,F[1]+rMax))
+		factoryNode=Node(pos=(F[0]+rMax,0,F[1]+facetHalfThick))
 	else: assert False
 
 	factStep=pre.factStepPeriod
@@ -156,13 +159,15 @@ def run(pre): # use inputs as argument
 			)
 		)
 		de.par.append(c)
-		de.par.append(ySpannedFacets((x,x),(ymin,ymax),(zmin,z-d/2.),mat=pre.material,mask=wallMask,visible=False))
+		de.par.append(ySpannedFacets((x,x),(ymin,ymax),(zmin,z-d/2.),mat=pre.material,mask=wallMask,visible=False,halfThick=facetHalfThick))
 
 	###
 	### engines
 	###
 
-	s.engines=utils.defaultEngines(damping=0.05,gravity=(0,0,-pre.gravity),verletDist=.05*rMin)+[
+	s.engines=utils.defaultEngines(damping=0.,gravity=(0,0,-pre.gravity),verletDist=.05*rMin,
+			law=Law2_L6Geom_FrictPhys_Pellet(alpha=pre.normPlastCoeff,plastSplit=True)
+		)+[
 		# what falls beyond
 		# initially not saved
 		BoxDeleter(stepPeriod=factStep,inside=True,box=((cylXzd[i][0],ymin,zmin),(cylXzd[i+1][0],ymax,min(cylXzd[i][1]-cylXzd[i][2]/2.,cylXzd[i+1][1]-cylXzd[i+1][2]/2.))),glColor=.05*i,save=False,mask=delMask,currRateSmooth=pre.rateSmooth,label='aperture[%d]'%i) for i in range(0,len(cylXzd)-1)
@@ -176,7 +181,8 @@ def run(pre): # use inputs as argument
 		PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.savePlotData(S)'),
 		PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.watchProgress(S)'),
 	]+(
-		[] if (not pre.vtkPrefix or pre.vtkFreq<=0) else [VtkExport(out=pre.vtkPrefix.format(**dict(s.tags)),stepPeriod=pre.vtkFreq*pre.factStepPeriod,what=VtkExport.all)]
+		# FIXME: revert subdiv=48 to default (16)
+		[] if (not pre.vtkPrefix or pre.vtkFreq<=0) else [VtkExport(out=pre.vtkPrefix.format(**dict(s.tags)),stepPeriod=int(pre.vtkFreq*pre.factStepPeriod),what=VtkExport.all,subdiv=48)]
 	)+(
 		[] if pre.backupSaveTime<=0 else [PyRunner(realPeriod=pre.backupSaveTime,stepPeriod=-1,command='S.save(S.pre.saveFmt.format(stage="backup-%06d"%(S.step),S=S,**(dict(S.tags))))')]
 	)
@@ -205,11 +211,13 @@ def run(pre): # use inputs as argument
 		]
 	except ImportError: pass
 
+	## Remove later, not neede for real simulations
+	s.trackEnergy=True
+
 	print 'Generated Rollenrost.'
 	out=pre.saveFmt.format(stage='init',S=s,**(dict(s.tags)))
 	s.save(out)
 	print 'Saved initial simulation also to ',out
-
 
 	woo.plot.reset()
 
@@ -355,9 +363,12 @@ def savePlotData(S):
 	apRate=sum([a.currRate for a in woo.aperture])
 	overRate=woo.fallOver.currRate
 	lostRate=woo.outOfDomain.currRate
-	woo.plot.addData(i=S.step,t=S.time,genRate=woo.factory.currRate,apRate=apRate,overRate=overRate,lostRate=lostRate,delRate=apRate+overRate+lostRate,numPar=len(S.dem.par),genMass=woo.factory.mass)
+	energy={}
+	if S.trackEnergy: energy.update(ERelErr=S.energy.relErr() if S.step>200 else float('nan'),**S.energy)
+	woo.plot.addData(i=S.step,t=S.time,genRate=woo.factory.currRate,apRate=apRate,overRate=overRate,lostRate=lostRate,delRate=apRate+overRate+lostRate,numPar=len(S.dem.par),genMass=woo.factory.mass,**energy)
 	if not woo.plot.plots:
 		woo.plot.plots={'t':('genRate','apRate','lostRate','overRate','delRate',None,('numPar','g--')),'t ':('genMass')}
+		if S.trackEnergy: woo.plot.plots.update({'  t':(S.energy,None,('ERelErr','g--'))})
 
 def splitPsd(xx0,yy0,splitX):
 	'''Split input *psd0* (given by *xx0* and *yy0*) at diameter (x-axis) specified by *splitX*; two PSDs are returned, one grows from splitX and has maximum value for all points x>=splitX; the second PSD is zero for all values <=splitX, then grows to the maximum value proportionally. The maximum value is the last point of psd0, thus both normalized and non-normalized input can be given. If splitX falls in the middle of *psd0* intervals, it is interpolated.'''
@@ -637,7 +648,7 @@ def writeReport(S):
 		pylab.xlabel('time [s]')
 		pylab.ylabel('mass rate [t/y]')
 		figs.append(('Regime',fig))
-	except KeyError as e:
+	except (KeyError,IndexError) as e:
 		print 'No woo.plot plots done due to lack of data:',str(e)
 		# after loading no data are recovered
 
@@ -709,7 +720,7 @@ def writeReport(S):
 	print 'Writing report to file://'+os.path.abspath(repName)
 	#rep.write(HTMLParser(StringIO.StringIO(html),'[filename]').parse().render('xhtml',doctype='xhtml').decode('utf-8'))
 	s=xmlhead+html
-	#s=s.replace('\xe2\x88\x92','-')
+	s=s.replace('\xe2\x88\x92','-')
 	try:
 		rep.write(s)
 	except UnicodeDecodeError as e:

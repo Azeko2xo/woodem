@@ -65,7 +65,7 @@ bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<
 	Vector3r fNormal=f.getNormal();
 	Real planeDist=(sC-f.nodes[0]->pos).dot(fNormal);
 	// cerr<<"planeDist="<<planeDist<<endl;
-	if(abs(planeDist)>s.radius && !C->isReal() && !force) return false;
+	if(abs(planeDist)>(s.radius+f.halfThick) && !C->isReal() && !force) return false;
 	Vector3r fC=sC-planeDist*fNormal; // sphere's center projected to facet's plane
 	Vector3r outVec[3];
 	std::tie(outVec[0],outVec[1],outVec[2])=f.getOuterVectors();
@@ -87,7 +87,7 @@ bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<
 	Vector3r normal=sC-contPt; // normal is now the contact normal (not yet normalized)
 	//cerr<<"sC="<<sC.transpose()<<", contPt="<<contPt.transpose()<<endl;
 	//cerr<<"dist="<<normal.norm()<<endl;
-	if(normal.squaredNorm()>pow(s.radius,2) && !C->isReal() && !force) { return false; }
+	if(normal.squaredNorm()>pow(s.radius+f.halfThick,2) && !C->isReal() && !force) { return false; }
 	Real dist=normal.norm();
 	#define CATCH_NAN_FACET
 	#ifdef CATCH_NAN_FACET
@@ -95,12 +95,13 @@ bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<
 		normal/=dist; // normal is normalized now
 	#else
 		// this tries to handle that
-		if(dist==0) normal/=dist; // normal is normalized now
+		if(dist!=0) normal/=dist; // normal is normalized now
 		// zero distance (sphere's center sitting exactly on the facet):
 		// use previous normal, or just unitX for new contacts (arbitrary, sorry)
 		else normal=(C->geom?C->geom->node->ori*Vector3r::UnitX():Vector3r::UnitX());
 	#endif
-	Real uN=dist-s.radius;
+	if(f.halfThick>0) contPt+=normal*f.halfThick;
+	Real uN=dist-s.radius-f.halfThick;
 	// TODO: not yet tested!!
 	Vector3r linVel,angVel;
 	std::tie(linVel,angVel)=f.interpolatePtLinAngVel(contPt);
@@ -110,7 +111,7 @@ bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<
 	linVel+=f.fakeVel; // add fake velocity
 	const DemData& dyn2(s.nodes[0]->getData<DemData>()); // sphere
 	// check if this will work when contact point == pseudo-position of the facet
-	handleSpheresLikeContact(C,contPt,linVel,angVel,sC,dyn2.vel,dyn2.angVel,normal,contPt,uN,0,s.radius);
+	handleSpheresLikeContact(C,contPt,linVel,angVel,sC,dyn2.vel,dyn2.angVel,normal,contPt,uN,f.halfThick,s.radius);
 	return true;
 };
 

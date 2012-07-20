@@ -11,6 +11,7 @@ struct Facet: public Shape {
 	std::tuple<Vector3r,Vector3r,Vector3r> getOuterVectors() const;
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(Facet,Shape,"Facet (triangle in 3d) particle.",
 		((Vector3r,fakeVel,Vector3r::Zero(),,"Fake velocity when computing contact, in global coordinates (for modeling moving surface modeled using static triangulation); only in-plane velocity is meaningful, but this is not enforced."))
+		((Real,halfThick,0.,,"Geometric thickness (added in all directions)"))
 		/*attrs*/
 		,/*ctor*/ createIndex();
 	);

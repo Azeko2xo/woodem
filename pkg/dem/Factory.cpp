@@ -527,6 +527,12 @@ void ConveyorFactory::run(){
 		if(maxMass>0 && mass>maxMass){
 			dead=true;
 			currRate=0.;
+			/* remove particles from the barrier */
+			for(const auto& p: barrier){
+				p->shape->nodes[0]->getData<DemData>().setBlockedNone();
+				p->shape->color=isnan(color)?Mathr::UnitRandom():color;
+			}
+			barrier.clear();
 			return;
 		}
 		if(nextIx<0) nextIx=centers.size()-1;
