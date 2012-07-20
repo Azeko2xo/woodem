@@ -42,10 +42,9 @@ S.engines=[
 		[Cp2_FrictMat_FrictPhys()],
 		[Law2_L6Geom_FrictPhys_IdealElPl()],
 	),
-	IntraForce([In2_Sphere_ElastMat()]),
 	Gravity(gravity=(0,0,-5000)),
 	Leapfrog(damping=.1),
-	PyRunner(2000,'timing.stats(); S.pause();'),
+	PyRunner(2000,'timing.stats(); S.stop();'),
 	PyRunner(10,'addPlotData()')
 ]
 S.dt=.7*utils.pWaveDt()

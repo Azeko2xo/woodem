@@ -1,6 +1,7 @@
 #include<woo/pkg/dem/Gl1_CPhys.hpp>
 #include<woo/pkg/gl/Renderer.hpp> // for GlData
 #include<woo/lib/opengl/GLUtils.hpp>
+#include<woo/pkg/dem/Sphere.hpp>
 
 WOO_PLUGIN(gl,(Gl1_CPhys));
 

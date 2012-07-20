@@ -893,7 +893,7 @@ class SerializableEditor(QFrame):
 				entry.widget.toggleShowChecks(self.showChecks)
 	def toggleShowUnits(self,val=None):
 		self.showUnits=(not self.showUnits if val==None else val)
-		print self.showUnits
+		#print self.showUnits
 		for entry in self.entries:
 			entry.setVisible(None)
 			entry.unitChanged(forceBaseUnit=(not self.showUnits))

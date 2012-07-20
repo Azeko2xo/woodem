@@ -12,6 +12,7 @@ Contents:
    :maxdepth: 4
 
    cxxMods.rst
+   externalMods.rst
 
 
 

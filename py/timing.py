@@ -21,7 +21,8 @@ def _resetEngine(e):
 
 def reset():
 	"Zero all timing data."
-	for e in O.scene.engines: _resetEngine(e)
+	S=woo.master.scene
+	for e in S.engines: _resetEngine(e)
 
 _statCols={'label':40,'count':20,'time':20,'relTime':20}
 _maxLev=3
@@ -95,7 +96,9 @@ def stats():
 		TOTAL                                             102077490μs          100.00%      
 
 	"""
+	import woo
+	S=woo.master.scene
 	print 'Name'.ljust(_statCols['label'])+' '+'Count'.rjust(_statCols['count'])+' '+'Time'.rjust(_statCols['time'])+' '+'Rel. time'.rjust(_statCols['relTime'])
 	print '-'*(sum([_statCols[k] for k in _statCols])+len(_statCols)-1)
-	_engines_stats(O.scene.engines,sum([e.execTime for e in O.scene.engines]),0)
+	_engines_stats(S.engines,sum([e.execTime for e in S.engines]),0)
 	print
