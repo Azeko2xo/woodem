@@ -224,11 +224,11 @@ def run(pre): # use inputs as argument
 	return s
 
 
-def makeBandFeedPack(dim,psd,mat,gravity,porosity=.5,dontBlock=False,memoizeDir=None):
+def makeBandFeedPack(dim,psd,mat,gravity,damping=.3,porosity=.5,goal=.15,dontBlock=False,memoizeDir=None):
 	cellSize=(dim[0],dim[1],(1+2*porosity)*dim[2])
 	print 'cell size',cellSize,'target height',dim[2]
 	if memoizeDir:
-		params=str(dim)+str(cellSize)+str(psd)+mat.dumps(format='expr')+str(Gravity)+str(porosity)
+		params=str(dim)+str(cellSize)+str(psd)+str(goal)+str(damping)+mat.dumps(format='expr')+str(gravity)+str(porosity)
 		import hashlib
 		paramHash=hashlib.sha1(params).hexdigest()
 		memoizeFile=memoizeDir+'/'+paramHash+'.bandfeed'
@@ -252,7 +252,7 @@ def makeBandFeedPack(dim,psd,mat,gravity,porosity=.5,dontBlock=False,memoizeDir=
 	mat0,mat=mat,mat.deepcopy()
 	mat.tanPhi=min(.2,mat0.tanPhi)
 
-	S.engines=utils.defaultEngines(gravity=gravity,damping=.3)+[
+	S.engines=utils.defaultEngines(gravity=gravity,damping=damping)+[
 		BoxFactory(
 			box=((.01*cellSize[0],.01*cellSize[1],.3*cellSize[2]),cellSize),
 			stepPeriod=200,
@@ -267,8 +267,8 @@ def makeBandFeedPack(dim,psd,mat,gravity,porosity=.5,dontBlock=False,memoizeDir=
 			#periSpanMask=1, # x is periodic
 		),
 		#PyRunner(200,'plot.addData(uf=utils.unbalancedForce(),i=O.scene.step)'),
-		PyRunner(600,'print "%g/%g mass, %d particles, unbalanced %g/.15"%(woo.makeBandFeedFactory.mass,woo.makeBandFeedFactory.maxMass,len(S.dem.par),woo.utils.unbalancedForce(S))'),
-		PyRunner(200,'if woo.utils.unbalancedForce(S)<.15 and woo.makeBandFeedFactory.dead: S.stop()'),
+		PyRunner(600,'print "%g/%g mass, %d particles, unbalanced %g/'+str(goal)+'"%(woo.makeBandFeedFactory.mass,woo.makeBandFeedFactory.maxMass,len(S.dem.par),woo.utils.unbalancedForce(S))'),
+		PyRunner(200,'if woo.utils.unbalancedForce(S)<'+str(goal)+' and woo.makeBandFeedFactory.dead: S.stop()'),
 	]
 	S.dt=.7*utils.spherePWaveDt(psd[0][0],mat.density,mat.young)
 	if dontBlock: return S
