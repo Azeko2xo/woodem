@@ -3,7 +3,7 @@
 #include<woo/core/Preprocessor.hpp>
 #include<woo/core/Scene.hpp>
 
-#include<woo/pkg/dem/FrictMat.hpp>
+#include<woo/pkg/dem/Pellet.hpp>
 
 struct Roro: public Preprocessor {
 	shared_ptr<Scene> operator()(){
@@ -44,7 +44,8 @@ struct Roro: public Preprocessor {
 		((Real,gap,.038,AttrTrait<>().lenUnit().prefUnit("mm"),"Gap between cylinders (computed automatically if cylXzd is given)"))
 
 		((vector<Vector2r>,psd,vector<Vector2r>({Vector2r(0.02,.0),Vector2r(.03,.2),Vector2r(.04,.3),Vector2r(.05,.7)})/*set in the ctor*/,AttrTrait<>().startGroup("Pellets").triggerPostLoad().multiUnit().lenUnit().prefUnit("mm").fractionUnit().prefUnit("%"),"Particle size distribution of generated particles: first value is diameter, second value is cummulative fraction"))
-		((shared_ptr<FrictMat>,material,make_shared<FrictMat>(),,"Material of particles"))
+		((shared_ptr<PelletMat>,material,make_shared<PelletMat>(),,"Material of particles"))
+		((shared_ptr<PelletMat>,cylMaterial,,,"Material of cylinders (if not given, material for particles is used for cylinders)"))
 
 		// Estimates
 		((Real,ccaDt   ,,AttrTrait<>().readonly().timeUnit().startGroup("Estimates"),"Δt"))
@@ -64,7 +65,7 @@ struct Roro: public Preprocessor {
 		((Real,pWaveSafety,.7,AttrTrait<Attr::triggerPostLoad>(),"Safety factor for critical timestep"))
 		((string,variant,"plain",AttrTrait<>().choice({"plain","customer1","[do not use]"}) /*AttrTrait<>().choice({"plain","customer1"})*/,"Geometry of the feed and possibly other specific details"))
 		// ((string,format,"PNG",AttrTrait<>().choice({"JPEG","PNG","EPS","PS","PPM","BMP"}),""))
-		((Real,gravity,100.,AttrTrait<>().accelUnit(),"Gravity acceleration magnitude"))
+		((Real,gravity,10.,AttrTrait<>().accelUnit(),"Gravity acceleration magnitude"))
 		((Vector2r,quivAmp,Vector2r(.05,.03),AttrTrait<>().lenUnit().prefUnit("mm"),"Cylinder quiver amplitudes (horizontal and vertical), relative to cylinder radius"))
 		((Vector3r,quivHPeriod,Vector3r(3000,5000,3),,"Horizontal quiver period (relative to Δt); assigned quasi-randomly from the given range, with z-component giving modulo divisor"))
 		((Vector3r,quivVPeriod,Vector3r(5000,11000,5),,"Vertical quiver period (relative to Δt); assigned quasi-randomly from the given range, with z-component giving modulo divisor"))
@@ -78,6 +79,8 @@ struct Roro: public Preprocessor {
 			material->cast<FrictMat>().young=1e7;
 			material->cast<FrictMat>().ktDivKn=.2;
 			material->cast<FrictMat>().tanPhi=tan(.5);
+			material->cast<PelletMat>().normPlastCoeff=50;
+			material->cast<PelletMat>().kaDivKn=0.;
 	);
 };
 REGISTER_SERIALIZABLE(Roro);

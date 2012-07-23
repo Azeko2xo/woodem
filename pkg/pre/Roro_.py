@@ -17,7 +17,13 @@ nan=float('nan')
 if not hasattr(ConveyorFactory,'generator'):
 	ConveyorFactory.generator=property(lambda x: x)
 
-def ySpannedFacets(xx,yy,zz,**kw):
+def ySpannedFacets(xx,yy,zz,shift=True,halfThick=0.,**kw):
+	if halfThick!=0.:
+		if shift:
+			A,B=Vector2(xx[0],zz[0]),Vector2(xx[1],zz[1])
+			dx,dz=Vector2(-(B[1]-A[1]),B[0]-A[0]).normalized()*halfThick
+			xx,zz=[x+dx for x in xx],[z+dz for z in zz]
+		kw['halfThick']=halfThick # copy arg
 	A,B,C,D=(xx[0],yy[0],zz[0]),(xx[1],yy[0],zz[1]),(xx[0],yy[1],zz[0]),(xx[1],yy[1],zz[1])
 	return [utils.facet(vertices,**kw) for vertices in (A,B,C),(C,B,D)]
 
@@ -35,6 +41,14 @@ def run(pre): # use inputs as argument
 	if pre.variant not in ('plain','customer1'): raise ValueError("Roro.variant must be one of 'plain', 'customer1' (not '%s')"%pre.variant)
 	if pre.gap<0: raise ValueError("Roro.gap must be positive (are cylinders overlapping?)")
 	if (pre.time>0 and pre.mass>0) or (pre.time<=0 and pre.mass<=0): raise ValueError("Exactly one of Roro.time or Roro.mass must be positive.")
+
+	if not pre.cylMaterial: pre.cylMaterial=pre.material.deepcopy()
+	pre.material.id=0
+	pre.cylMaterial.id=1
+	sideWallMat=pre.cylMaterial.deepcopy()
+	sideWallMat.id=2
+	sideWallMat.tanPhi=0.0
+
 	
 	# generate cylinder coordinates, or use those given by the user
 	if pre.cylXzd:
@@ -63,6 +77,7 @@ def run(pre): # use inputs as argument
 	loneMask=0b00100 # particles with this mask don't interact with each other
 	sphMask= 0b00011
 	delMask= 0b00001 # particles which might be deleted by deleters
+	s.loneMask=loneMask
 	
 	###
 	### conveyor feed
@@ -74,7 +89,7 @@ def run(pre): # use inputs as argument
 	conveyorVel=(pre.massFlowRate*pre.cylRelLen)/(pre.material.density*vol/cellLen)
 	print 'Feed velocity %g m/s to match feed mass %g kg/m (volume=%g m³, len=%gm, ρ=%gkg/m³) and massFlowRate %g kg/s (%g kg/s over real width)'%(conveyorVel,pre.material.density*vol/cellLen,vol,cellLen,pre.material.density,pre.massFlowRate*pre.cylRelLen,pre.massFlowRate)
 
-	facetHalfThick=2*rMin
+	facetHalfThick=4*rMin
 
 	ymin,ymax=-pre.cylLenSim/2.,pre.cylLenSim/2.
 	if pre.variant=='plain':
@@ -83,7 +98,7 @@ def run(pre): # use inputs as argument
 		xmin,xmax=-3*cylDMax,cylXzd[-1][0]+3*cylDMax
 		factoryNode=Node(pos=(xmin,0,0))
 
-		de.par.append(ySpannedFacets((xmin,0),(ymin,ymax),(0,0),mat=pre.material,mask=wallMask,fakeVel=(conveyorVel,0,0),halfThick=facetHalfThick))
+		de.par.append(ySpannedFacets((xmin,0),(ymin,ymax),(-facetHalfThick,-facetHalfThick),mat=pre.cylMaterial,mask=wallMask,fakeVel=(conveyorVel,0,0),halfThick=facetHalfThick))
 	elif pre.variant=='customer1':
 		# F                E is cylinder top; D is feed conveyor start, |D-E|=10cm
 		# ____ E           cylinder radius 4cm, centered at D=C-(0,4cm)
@@ -105,8 +120,8 @@ def run(pre): # use inputs as argument
 		F=E+Vector2(-.1,0)
 		for i in 'ABCDEF': print i,eval(i)
 		yy=(ymin,ymax)
-		kw=dict(mat=pre.material,mask=wallMask,halfThick=facetHalfThick)
-		de.par.append(ySpannedFacets((A[0],B[0]),yy,(A[1],B[1]),**kw)+ySpannedFacets((B[0],C[0]),yy,(B[1],C[1]),**kw)+ySpannedFacets((E[0],F[0]),yy,(E[1],F[1]),**kw))
+		kw=dict(mat=pre.cylMaterial,mask=wallMask,halfThick=facetHalfThick)
+		de.par.append(ySpannedFacets((A[0],B[0]),yy,(A[1],B[1]),**kw)+ySpannedFacets((B[0],C[0]),yy,(B[1],C[1]),**kw)+ySpannedFacets((E[0],F[0]),yy,(E[1],F[1]),fakeVel=(conveyorVel,0,0),**kw))
 		del kw['halfThick']
 		feedCyl=utils.infCylinder((D[0],0,D[1]),radius=upCylRad,axis=1,glAB=yy,**kw)
 		feedCyl.angVel=Vector3(0,conveyorVel/upCylRad,0)
@@ -114,7 +129,7 @@ def run(pre): # use inputs as argument
 
 		zmin,zmax=cylZMin-2*cylDMax,F[1]+3*pre.conveyorHt
 		xmin,xmax=F[0],cylXzd[-1][0]+3*cylDMax
-		factoryNode=Node(pos=(F[0]+rMax,0,F[1]+facetHalfThick))
+		factoryNode=Node(pos=(F[0]+rMax,0,F[1]))
 	else: assert False
 
 	factStep=pre.factStepPeriod
@@ -136,18 +151,16 @@ def run(pre): # use inputs as argument
 	###
 	### walls and cylinders
 	###		
-	sideWallMat=pre.material.deepcopy()
-	sideWallMat.tanPhi=0.0
 	de.par.append([
 		utils.wall(ymin,axis=1,sense= 1,visible=False,glAB=((zmin,xmin),(zmax,xmax)),mat=sideWallMat,mask=wallMask),
 		utils.wall(ymax,axis=1,sense=-1,visible=False,glAB=((zmin,xmin),(zmax,xmax)),mat=sideWallMat,mask=wallMask),
-		utils.wall(xmin,axis=0,sense= 1,visible=False,glAB=((ymin,zmin),(ymax,zmax)),mat=pre.material,mask=wallMask),
-		utils.wall(xmax,axis=0,sense=-1,visible=False,glAB=((ymin,zmin),(ymax,zmax)),mat=pre.material,mask=wallMask),
-		utils.wall(zmin,axis=2,sense= 1,visible=False,glAB=((xmin,ymin),(xmax,ymax)),mat=pre.material,mask=wallMask),
+		utils.wall(xmin,axis=0,sense= 1,visible=False,glAB=((ymin,zmin),(ymax,zmax)),mat=sideWallMat,mask=wallMask),
+		utils.wall(xmax,axis=0,sense=-1,visible=False,glAB=((ymin,zmin),(ymax,zmax)),mat=sideWallMat,mask=wallMask),
+		utils.wall(zmin,axis=2,sense= 1,visible=False,glAB=((xmin,ymin),(xmax,ymax)),mat=sideWallMat,mask=wallMask),
 	])
 	for i,xzd in enumerate(cylXzd):
 		x,z,d=xzd
-		c=utils.infCylinder((x,0,z),radius=d/2.,axis=1,glAB=(ymin,ymax),mat=pre.material,mask=wallMask)
+		c=utils.infCylinder((x,0,z),radius=d/2.,axis=1,glAB=(ymin,ymax),mat=pre.cylMaterial,mask=wallMask)
 		c.angVel=(0,pre.angVel,0)
 		qv,qh=pre.quivVPeriod,pre.quivHPeriod
 		c.impose=AlignedHarmonicOscillations(
@@ -159,14 +172,15 @@ def run(pre): # use inputs as argument
 			)
 		)
 		de.par.append(c)
-		de.par.append(ySpannedFacets((x,x),(ymin,ymax),(zmin,z-d/2.),mat=pre.material,mask=wallMask,visible=False,halfThick=facetHalfThick))
+		de.par.append(ySpannedFacets((x,x),(ymin,ymax),(zmin,z-d/2.-facetHalfThick),shift=False,mat=pre.cylMaterial,mask=wallMask,visible=False,halfThick=facetHalfThick))
 
 	###
 	### engines
 	###
 
 	s.engines=utils.defaultEngines(damping=0.,gravity=(0,0,-pre.gravity),verletDist=.05*rMin,
-			law=Law2_L6Geom_FrictPhys_Pellet(alpha=pre.normPlastCoeff,plastSplit=True)
+			cp2=Cp2_PelletMat_PelletPhys(),
+			law=Law2_L6Geom_PelletPhys_Pellet(plastSplit=True)
 		)+[
 		# what falls beyond
 		# initially not saved
@@ -212,7 +226,7 @@ def run(pre): # use inputs as argument
 	except ImportError: pass
 
 	## Remove later, not neede for real simulations
-	s.trackEnergy=True
+	# s.trackEnergy=True
 
 	print 'Generated Rollenrost.'
 	out=pre.saveFmt.format(stage='init',S=s,**(dict(s.tags)))
@@ -363,11 +377,19 @@ def savePlotData(S):
 	apRate=sum([a.currRate for a in woo.aperture])
 	overRate=woo.fallOver.currRate
 	lostRate=woo.outOfDomain.currRate
-	energy={}
-	if S.trackEnergy: energy.update(ERelErr=S.energy.relErr() if S.step>200 else float('nan'),**S.energy)
-	woo.plot.addData(i=S.step,t=S.time,genRate=woo.factory.currRate,apRate=apRate,overRate=overRate,lostRate=lostRate,delRate=apRate+overRate+lostRate,numPar=len(S.dem.par),genMass=woo.factory.mass,**energy)
+	gapMultiples=(.9,1.,1.1,1.2,1.3)
+	eff=[(u'%g×gap=%g'%(gapMult,gapMult*S.pre.gap)) for gapMult in gapMultiples]
+	otherData={}
+	if woo.fallOver.num>100:
+		for i,gapMult in enumerate(gapMultiples):
+			dd=S.pre.gap*gapMult
+			mUnderProduct=sum([dm[1] for dm in zip(*woo.fallOver.diamMass()) if dm[0]<dd])
+			mUnderAperture=sum([sum([dm[1] for dm in zip(*ap.diamMass()) if dm[0]<dd]) for ap in woo.aperture])
+			otherData[eff[i]]=mUnderAperture/(mUnderAperture+mUnderProduct)
+	if S.trackEnergy: otherData.update(ERelErr=S.energy.relErr() if S.step>200 else float('nan'),**S.energy)
+	woo.plot.addData(i=S.step,t=S.time,genRate=woo.factory.currRate,apRate=apRate,overRate=overRate,lostRate=lostRate,delRate=apRate+overRate+lostRate,numPar=len(S.dem.par),genMass=woo.factory.mass,**otherData)
 	if not woo.plot.plots:
-		woo.plot.plots={'t':('genRate','apRate','lostRate','overRate','delRate',None,('numPar','g--')),'t ':('genMass')}
+		woo.plot.plots={'t':('genRate','apRate','lostRate','overRate','delRate',None,('numPar','g--')),'t ':('genMass'),' t':eff}
 		if S.trackEnergy: woo.plot.plots.update({'  t':(S.energy,None,('ERelErr','g--'))})
 
 def splitPsd(xx0,yy0,splitX):
@@ -488,7 +510,11 @@ def writeReport(S):
 	#pre.dump(sys.stdout,noMagic=True,format='expr')
 
 	import matplotlib.pyplot as pyplot
-	pyplot.switch_backend('Agg')
+	try:
+		import woo.qt
+	except ImportError:
+		# no display, use Agg backend
+		pyplot.switch_backend('Agg')
 
 	#import matplotlib
 	#matplotlib.use('Agg')

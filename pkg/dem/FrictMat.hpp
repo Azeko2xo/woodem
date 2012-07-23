@@ -7,7 +7,7 @@
 class ElastMat: public Material{
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(ElastMat,Material,"Elastic material with contact friction. See also :ref:`ElastMat`.",
 		((Real,young,1e9,AttrTrait<>().stiffnessUnit(),"Young's modulus"))
-		((Real,poisson,.2,,"Poisson's ratio; this value should be only used in internal force computation, not for contacts."))
+		// ((Real,poisson,.2,,"Poisson's ratio; this value should be only used in internal force computation, not for contacts."))
 		, /*ctor*/ createIndex();
 	);
 	REGISTER_CLASS_INDEX(ElastMat,Material);
@@ -37,6 +37,7 @@ REGISTER_SERIALIZABLE(FrictPhys);
 
 struct Cp2_FrictMat_FrictPhys: public CPhysFunctor{
 	void go(const shared_ptr<Material>&, const shared_ptr<Material>&, const shared_ptr<Contact>&);
+	void updateFrictPhys(FrictMat& m1, FrictMat& m2, FrictPhys& ph, const shared_ptr<Contact>& C);
 	FUNCTOR2D(FrictMat,FrictMat);
 	WOO_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(Cp2_FrictMat_FrictPhys,CPhysFunctor,"TODO",
 		((shared_ptr<MatchMaker>,tanPhi,,,"Instance of :ref:`MatchMaker` determining how to compute contact friction angle. If ``None``, minimum value is used."))

@@ -1,12 +1,24 @@
 #include<woo/pkg/dem/Pellet.hpp>
-WOO_PLUGIN(dem,(Law2_L6Geom_FrictPhys_Pellet)(PelletCData));
+WOO_PLUGIN(dem,(PelletMat)(PelletPhys)(Cp2_PelletMat_PelletPhys)(Law2_L6Geom_PelletPhys_Pellet)(PelletCData));
 
-// TODO: energy tracking
+void Cp2_PelletMat_PelletPhys::go(const shared_ptr<Material>& m1, const shared_ptr<Material>& m2, const shared_ptr<Contact>& C){
+	if(!C->phys) C->phys=make_shared<PelletPhys>();
+	auto& mat1=m1->cast<PelletMat>(); auto& mat2=m2->cast<PelletMat>();
+	auto& ph=C->phys->cast<PelletPhys>();
+	Cp2_FrictMat_FrictPhys::updateFrictPhys(mat1,mat2,ph,C);
+	ph.normPlastCoeff=.5*(max(0.,mat1.normPlastCoeff)+max(0.,mat2.normPlastCoeff));
+	ph.ka=min(max(0.,mat1.kaDivKn),max(0.,mat2.kaDivKn))*ph.kn;
+}
 
-CREATE_LOGGER(Law2_L6Geom_FrictPhys_Pellet);
 
-void Law2_L6Geom_FrictPhys_Pellet::go(const shared_ptr<CGeom>& cg, const shared_ptr<CPhys>& cp, const shared_ptr<Contact>& C){
-	const L6Geom& g(cg->cast<L6Geom>()); FrictPhys& ph(cp->cast<FrictPhys>());
+
+// FIXME: energy tracking does not consider adhesion and the integration is very bad (forward trapezoid)
+// leading to 20% of energy erro in some cases
+
+CREATE_LOGGER(Law2_L6Geom_PelletPhys_Pellet);
+
+void Law2_L6Geom_PelletPhys_Pellet::go(const shared_ptr<CGeom>& cg, const shared_ptr<CPhys>& cp, const shared_ptr<Contact>& C){
+	const L6Geom& g(cg->cast<L6Geom>()); PelletPhys& ph(cp->cast<PelletPhys>());
 	if(C->isFresh(scene)) C->data=make_shared<PelletCData>();
 	assert(C->data && dynamic_pointer_cast<PelletCData>(C->data));
 	// break contact
@@ -16,24 +28,26 @@ void Law2_L6Geom_FrictPhys_Pellet::go(const shared_ptr<CGeom>& cg, const shared_
 	Real d0=g.lens.sum();
 	Real& Fn(ph.force[0]); Eigen::Map<Vector2r> Ft(&ph.force[1]);
 	Real& uNPl(C->data->cast<PelletCData>().uNPl);
-	if(alpha<=0) uNPl=0.;
+	if(ph.normPlastCoeff<=0) uNPl=0.;
 	const Vector2r velT(g.vel[1],g.vel[2]);
 
 	ph.torque=Vector3r::Zero();
 	
 	// normal force
 	Fn=ph.kn*(g.uN-uNPl); // trial force
-	if(alpha>0){ // normal plasticity activated
-		if(Fn>0) Fn=0;
-		else{
-			Real Fy=yieldForce(g.uN,ph.kn,d0);
+	if(ph.normPlastCoeff>0){ // normal plasticity activated
+		if(Fn>0){
+			if(ph.ka<=0) Fn=0;
+			else{ Fn=min(Fn,adhesionForce(g.uN,uNPl,ph.ka)); assert(Fn>0); }
+		} else {
+			Real Fy=yieldForce(g.uN,d0,ph.kn,ph.normPlastCoeff);
 			// normal plastic slip
 			if(Fn<Fy){
 				Real uNPl0=uNPl; // neede when tracking energy
 				uNPl=g.uN-Fy/ph.kn;
 				if(unlikely(scene->trackEnergy)){
 					// backwards trapezoid integration
-					Real Fy0=Fy+yieldForceDerivative(g.uN,ph.kn,d0)*(uNPl0-uNPl);
+					Real Fy0=Fy+yieldForceDerivative(g.uN,d0,ph.kn,ph.normPlastCoeff)*(uNPl0-uNPl);
 					Real dissip=.5*abs(Fy0+Fy)*abs(uNPl-uNPl0);
 					scene->energy->add(dissip,plastSplit?"normPlast":"plast",plastSplit?normPlastIx:plastIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate);
 				}

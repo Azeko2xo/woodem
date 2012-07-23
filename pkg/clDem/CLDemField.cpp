@@ -607,7 +607,7 @@ shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>
 				fm->density=cmat.mat.elast.density;
 				fm->young=cmat.mat.elast.young;
 				fm->tanPhi=Inf; // no friction
-				fm->poisson=NaN; // meaningless
+				//fm->poisson=NaN; // meaningless
 				ymats[i]=fm;
 				break;
 			}
@@ -620,7 +620,7 @@ shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>
 				fm->young=cmat.mat.frict.young;
 				fm->ktDivKn=cmat.mat.frict.ktDivKn;
 				fm->tanPhi=cmat.mat.frict.tanPhi;
-				fm->poisson=NaN; // meaningless
+				//fm->poisson=NaN; // meaningless
 				ymats[i]=fm;
 				break;
 			}

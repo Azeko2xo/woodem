@@ -16,13 +16,17 @@ struct Gl1_DemField: public GlFieldFunctor{
 	static void postLoadStatic(){ doPostLoad=true; }
 	void postLoad(Gl1_DemField&);
 
-	enum{COLOR_NONE=0,COLOR_RADIUS,COLOR_VEL,COLOR_MASS,COLOR_DISPLACEMENT,COLOR_ROTATION};
+	enum{COLOR_NONE=0,COLOR_RADIUS,COLOR_VEL,COLOR_MASS,COLOR_DISPLACEMENT,COLOR_ROTATION,COLOR_MAT_ID,COLOR_MAT_PTR};
 	enum{GLYPH_KEEP=0,GLYPH_NONE,GLYPH_FORCE,GLYPH_VEL};
 	enum{CNODE_NONE=0,CNODE_GLREP=1,CNODE_LINE=2,CNODE_NODE=4,CNODE_POTLINE=8};
 	RENDERS(DemField);
 	DECLARE_LOGGER;
 	Scene* _lastScene; // to detect changes; never acessed as pointer
 	WOO_CLASS_BASE_DOC_STATICATTRS_PY(Gl1_DemField,GlFieldFunctor,"Render DEM field.",
+		((int,colorBy,COLOR_NONE,AttrTrait<Attr::triggerPostLoad>().choice({{COLOR_NONE,"nothing"},{COLOR_RADIUS,"radius"},{COLOR_VEL,"velocity"},{COLOR_MASS,"mass"},{COLOR_DISPLACEMENT,"displacement"},{COLOR_ROTATION,"rotation"},{COLOR_MAT_ID,"material id"},{COLOR_MAT_PTR,"material pointer"}}),"Color particles by"))
+		((int,glyph,0,AttrTrait<Attr::triggerPostLoad>().choice({{GLYPH_KEEP,"keep"},{GLYPH_NONE,"none"},{GLYPH_FORCE,"force"},{GLYPH_VEL,"velocity"}}),"Show glyphs on particles by setting :ref:`GlData` on their nodes."))
+		((shared_ptr<ScalarRange>,colorRange,make_shared<ScalarRange>(),AttrTrait<>().readonly(),"Range for particle colors"))
+		((shared_ptr<ScalarRange>,glyphRange,make_shared<ScalarRange>(),AttrTrait<>().readonly(),"Range for glyph colors"))
 		((bool,doPostLoad,false,AttrTrait<>().hidden(),"Run initialization routine when called next time (set from postLoadStatic)"))
 		((bool,wire,false,,"Render all bodies with wire only"))
 		// ((bool,id,false,,"Show particle id's"))
@@ -31,11 +35,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 		((bool,nodes,false,,"Render DEM nodes"))
 		((int,cNode,CNODE_NONE,AttrTrait<>().bits({"GlRep","line","node","pot. line"}),"What should be shown for contact nodes"))
 		((bool,cPhys,false,,"Render contact's nodes"))
-		((int,glyph,0,AttrTrait<Attr::triggerPostLoad>().choice({{GLYPH_KEEP,"keep"},{GLYPH_NONE,"none"},{GLYPH_FORCE,"force"},{GLYPH_VEL,"velocity"}}),"Show glyphs on particles by setting :ref:`GlData` on their nodes."))
 		((Real,glyphRelSz,.2,,"Maximum glyph size relative to scene radius"))
-		((shared_ptr<ScalarRange>,glyphRange,make_shared<ScalarRange>(),AttrTrait<>().readonly(),"Range for glyph colors"))
-		((int,colorBy,COLOR_NONE,AttrTrait<Attr::triggerPostLoad>().choice({{COLOR_NONE,"nothing"},{COLOR_RADIUS,"radius"},{COLOR_VEL,"velocity"},{COLOR_MASS,"mass"},{COLOR_DISPLACEMENT,"displacement"},{COLOR_ROTATION,"rotation"}}),"Color particles by"))
-		((shared_ptr<ScalarRange>,colorRange,make_shared<ScalarRange>(),AttrTrait<>().readonly(),"Range for particle colors"))
 		((bool,updateRefPos,false,,"Update reference positions of all nodes in the next step"))
 		 /*
 		((int,wd,1,,"Local axes line width in pixels"))
@@ -55,6 +55,8 @@ struct Gl1_DemField: public GlFieldFunctor{
 			_classObj.attr("colorVel")=(int)Gl1_DemField::COLOR_VEL;
 			_classObj.attr("colorDisplacement")=(int)Gl1_DemField::COLOR_DISPLACEMENT;
 			_classObj.attr("colorRotation")=(int)Gl1_DemField::COLOR_ROTATION;
+			_classObj.attr("colorMatId")=(int)Gl1_DemField::COLOR_MAT_ID;
+			_classObj.attr("colorMatPtr")=(int)Gl1_DemField::COLOR_MAT_PTR;
 			_classObj.attr("cNodeNone")=(int)Gl1_DemField::CNODE_NONE;
 			_classObj.attr("cNodeGlRep")=(int)Gl1_DemField::CNODE_GLREP;
 			_classObj.attr("cNodeLine")=(int)Gl1_DemField::CNODE_LINE;

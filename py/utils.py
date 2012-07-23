@@ -90,19 +90,19 @@ def spherePWaveDt(radius,density,young):
 def defaultMaterial():
 	"""Return default material, when creating bodies with :ref:`woo.utils.sphere` and friends, material is unspecified and there is no previous particle yet. By default, this function returns::
 
-		FrictMat(density=1e3,young=1e7,poisson=.3,ktDivKn=.2,tanPhi=tan(.5))
+		FrictMat(density=1e3,young=1e7,ktDivKn=.2,tanPhi=tan(.5))
 	"""
 	import math
-	return FrictMat(density=1e3,young=1e7,poisson=.3,ktDivKn=.2,tanPhi=math.tan(.5))
+	return FrictMat(density=1e3,young=1e7,ktDivKn=.2,tanPhi=math.tan(.5))
 
-def defaultEngines(damping=0.,gravity=(0,0,-10),verletDist=-.05,kinSplit=False,noSlip=False,noBreak=False,law=None):
+def defaultEngines(damping=0.,gravity=(0,0,-10),verletDist=-.05,kinSplit=False,noSlip=False,noBreak=False,cp2=None,law=None):
 	"""Return default set of engines, suitable for basic simulations during testing."""
 	return [
 		Leapfrog(damping=damping,reset=True,kinSplit=kinSplit),
 		InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb(),Bo1_Wall_Aabb(),Bo1_InfCylinder_Aabb()],label='collider'),
 		ContactLoop(
 			[Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom(),Cg2_Wall_Sphere_L6Geom(),Cg2_InfCylinder_Sphere_L6Geom()],
-			[Cp2_FrictMat_FrictPhys()],
+			[cp2 if cp2 else Cp2_FrictMat_FrictPhys()],
 			[law if law else Law2_L6Geom_FrictPhys_IdealElPl(noSlip=noSlip,noBreak=noBreak)],applyForces=True
 		),
 	]+([] if gravity==(0,0,0) else [Gravity(gravity=gravity)])

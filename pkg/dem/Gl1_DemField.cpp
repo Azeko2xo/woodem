@@ -1,6 +1,8 @@
 #ifdef WOO_OPENGL
 #include<woo/pkg/dem/Gl1_DemField.hpp>
 #include<woo/pkg/dem/Sphere.hpp>
+#include<woo/pkg/dem/InfCylinder.hpp>
+#include<woo/pkg/dem/Wall.hpp>
 #include<woo/lib/opengl/GLUtils.hpp>
 #include<woo/pkg/gl/Renderer.hpp>
 #include<woo/lib/base/CompUtils.hpp>
@@ -61,6 +63,8 @@ void Gl1_DemField::postLoad(Gl1_DemField&){
 		case COLOR_MASS: colorRange->label="mass"; break;
 		case COLOR_DISPLACEMENT: colorRange->label="displacement"; break;
 		case COLOR_ROTATION: colorRange->label="rotation"; break;
+		case COLOR_MAT_ID: colorRange->label="material id"; break;
+		case COLOR_MAT_PTR: colorRange->label="material ptr"; break;
 		default: LOG_ERROR("Unknown value Gl1_DemField.colorBy="<<colorBy<<" (ignored)??");
 	}
 	switch(glyph){
@@ -124,14 +128,9 @@ void Gl1_DemField::doShape(){
 				case COLOR_MASS: parColor=colorRange->color(n0->getData<DemData>().mass); break;
 				case COLOR_DISPLACEMENT: parColor=colorRange->color((n0->pos-n0->getData<GlData>().refPos).norm()); break;
 				case COLOR_ROTATION: parColor=colorRange->color(AngleAxisr(n0->ori.conjugate()*n0->getData<GlData>().refOri).angle()); break;
+				case COLOR_MAT_ID: parColor=colorRange->color(p->material->id); break;
+				case COLOR_MAT_PTR: parColor=colorRange->color((size_t)p->material.get()); break;
 				case COLOR_NONE: parColor=colorRange->color(p->shape->color); break;
-			#if 0
-				case COLOR_RADIUS: p->shape->setBaseColor(dynamic_pointer_cast<Sphere>(p->shape)?colorRange->norm(p->shape->cast<Sphere>().radius):0.); break;
-				case COLOR_VEL: p->shape->setBaseColor(colorRange->norm(n0->getData<DemData>().vel.norm())); break;
-				case COLOR_DISPLACEMENT: p->shape->setBaseColor(colorRange->norm((n0->pos-n0->getData<GlData>().refPos).norm())); break;
-				case COLOR_ROTATION: p->shape->setBaseColor(colorRange->norm(AngleAxisr(n0->ori.conjugate()*n0->getData<GlData>().refOri).angle())); break;
-				case COLOR_NONE: ;
-			#endif
 			default: parColor=Vector3r(NaN,NaN,NaN);
 		}
 
@@ -240,7 +239,7 @@ void Gl1_DemField::doContactNodes(){
 					x[2]+=scene->cell->intrShiftPos(-cellDist+C->cellDist);
 				}
 				Vector3r color=CompUtils::mapColor(C->color);
-				GLUtils::GLDrawLine(x[0],x[1],color);
+				if(dynamic_pointer_cast<Sphere>(C->pA->shape)) GLUtils::GLDrawLine(x[0],x[1],color);
 				GLUtils::GLDrawLine(x[0],x[2],color);
 			}
 			if(cNode & CNODE_NODE) Renderer::renderRawNode(node);
@@ -248,9 +247,14 @@ void Gl1_DemField::doContactNodes(){
 			if(!(cNode & CNODE_POTLINE)) continue;
 			assert(C->pA->shape && C->pB->shape);
 			assert(C->pA->shape->nodes.size()>0); assert(C->pB->shape->nodes.size()>0);
-			Vector3r x[2]={C->pA->shape->avgNodePos(),C->pB->shape->avgNodePos()};
-			if(scene->isPeriodic){ x[1]+=scene->cell->intrShiftPos(C->cellDist); }
-			GLUtils::GLDrawLine(x[0],x[1],.5*CompUtils::mapColor(C->color));
+			Vector3r A;
+			Vector3r B=C->pB->shape->avgNodePos();
+			if(dynamic_pointer_cast<Sphere>(C->pA->shape)) A=C->pA->shape->nodes[0]->pos;
+			else if(dynamic_pointer_cast<Wall>(C->pA->shape)){ A=C->pA->shape->nodes[0]->pos; int ax=C->pA->shape->cast<Wall>().axis; A[(ax+1)%3]=B[(ax+1)%3]; A[(ax+2)%3]=B[(ax+2)%3]; }
+			else if(dynamic_pointer_cast<InfCylinder>(C->pA->shape)){ A=C->pA->shape->nodes[0]->pos; int ax=C->pA->shape->cast<InfCylinder>().axis; A[ax]=B[ax]; }
+			else A=C->pA->shape->avgNodePos();
+			if(scene->isPeriodic){ B+=scene->cell->intrShiftPos(C->cellDist); }
+			GLUtils::GLDrawLine(A,B,.5*CompUtils::mapColor(C->color));
 		}
 	}
 }
