@@ -98,7 +98,7 @@ def run(pre): # use inputs as argument
 		xmin,xmax=-3*cylDMax,cylXzd[-1][0]+3*cylDMax
 		factoryNode=Node(pos=(xmin,0,0))
 
-		de.par.append(ySpannedFacets((xmin,0),(ymin,ymax),(-facetHalfThick,-facetHalfThick),mat=pre.cylMaterial,mask=wallMask,fakeVel=(conveyorVel,0,0),halfThick=facetHalfThick))
+		de.par.append(ySpannedFacets((0,xmin),(ymin,ymax),(0,0),mat=pre.cylMaterial,mask=wallMask,fakeVel=(conveyorVel,0,0),halfThick=facetHalfThick))
 	elif pre.variant=='customer1':
 		# F                E is cylinder top; D is feed conveyor start, |D-E|=10cm
 		# ____ E           cylinder radius 4cm, centered at D=C-(0,4cm)
@@ -166,14 +166,15 @@ def run(pre): # use inputs as argument
 		c=utils.infCylinder((x,0,z),radius=d/2.,axis=1,glAB=(ymin,ymax),mat=pre.cylMaterial,mask=wallMask)
 		c.angVel=(0,pre.angVel,0)
 		qv,qh=pre.quivVPeriod,pre.quivHPeriod
-		c.impose=AlignedHarmonicOscillations(
-			amps=(pre.quivAmp[0]*d/2.,nan,pre.quivAmp[1]*d/2.),
-			freqs=(
-				1./((qh[0]+(i%int(qh[2]))*(qh[1]-qh[0])/int(qh[2]))*s.dt),
-				nan,
-				1./((qv[0]+(i%int(qv[2]))*(qv[1]-qv[0])/int(qv[2]))*s.dt)
+		if pre.quivAmp.norm()>0:
+			c.impose=AlignedHarmonicOscillations(
+				amps=(pre.quivAmp[0]*d/2.,nan,pre.quivAmp[1]*d/2.),
+				freqs=(
+					1./((qh[0]+(i%int(qh[2]))*(qh[1]-qh[0])/int(qh[2]))*s.dt),
+					nan,
+					1./((qv[0]+(i%int(qv[2]))*(qv[1]-qv[0])/int(qv[2]))*s.dt)
+				)
 			)
-		)
 		de.par.append(c)
 
 	###

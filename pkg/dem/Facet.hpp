@@ -9,6 +9,7 @@ struct Facet: public Shape {
 	// return velocity which is linearly interpolated between velocities of facet nodes, and also angular velocity at that point
 	std::tuple<Vector3r,Vector3r> interpolatePtLinAngVel(const Vector3r& x) const;
 	std::tuple<Vector3r,Vector3r,Vector3r> getOuterVectors() const;
+	vector<Vector3r> outerEdgeNormals() const;
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Facet,Shape,"Facet (triangle in 3d) particle.",
 		((Vector3r,fakeVel,Vector3r::Zero(),,"Fake velocity when computing contact, in global coordinates (for modeling moving surface modeled using static triangulation); only in-plane velocity is meaningful, but this is not enforced."))
 		((Real,halfThick,0.,,"Geometric thickness (added in all directions)"))
@@ -16,6 +17,7 @@ struct Facet: public Shape {
 		,/*ctor*/ createIndex();
 		,/*py*/
 			.def("getNormal",&Facet::getNormal,"Return normal vector of the facet")
+			.def("outerEdgeNormals",&Facet::outerEdgeNormals,"Return outer edge normal vectors")
 	);
 	REGISTER_CLASS_INDEX(Facet,Shape);
 };

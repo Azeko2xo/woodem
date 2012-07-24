@@ -17,6 +17,12 @@ std::tuple<Vector3r,Vector3r,Vector3r> Facet::getOuterVectors() const {
 	return std::make_tuple((nodes[1]->pos-nodes[0]->pos).cross(nn),(nodes[2]->pos-nodes[1]->pos).cross(nn),(nodes[0]->pos-nodes[2]->pos).cross(nn));
 }
 
+vector<Vector3r> Facet::outerEdgeNormals() const{
+	auto o=getOuterVectors();
+	return {std::get<0>(o).normalized(),std::get<1>(o).normalized(),std::get<2>(o).normalized()};
+}
+
+
 std::tuple<Vector3r,Vector3r> Facet::interpolatePtLinAngVel(const Vector3r& x) const {
 	assert(numNodesOk());
 	Vector3r a=CompUtils::facetBarycentrics(x,nodes[0]->pos,nodes[1]->pos,nodes[2]->pos);
@@ -58,6 +64,25 @@ void Bo1_Facet_Aabb::go(const shared_ptr<Shape>& sh){
 #include<woo/pkg/gl/Renderer.hpp>
 #include<woo/lib/base/CompUtils.hpp>
 
+void halfCylinder(const Vector3r& A, const Vector3r& B, Real radius, const Vector3r& normal, const Vector3r& color, bool wire, int slices=12, int stacks=1){
+	if(wire) glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+	Vector3r planar=normal.cross(B-A).normalized();
+	if(!isnan(color[0]))	glColor3v(color);
+	slices=max(1,slices/2); stacks=max(1,stacks);
+	auto makePt=[&](int sl, int st)->Vector3r{ return A+(B-A)*st*1./stacks+normal*radius*sin(sl*1./slices*M_PI)+planar*radius*cos(sl*1./slices*M_PI); };
+	for(int stack=0; stack<=stacks; stack++){
+		glBegin(GL_QUAD_STRIP);
+			for(int slice=0; slice<=slices; slice++){
+				glVertex3v(makePt(slice,stack));
+				glVertex3v(makePt(slice,stack+1));
+				glVertex3v(makePt(slice+1,stack));
+				glVertex3v(makePt(slice+1,stack+1));
+			}
+		glEnd();
+	}
+	if(wire) glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+}
+
 bool Gl1_Facet::wire;
 
 void Gl1_Facet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire2, const GLViewInfo&){   
@@ -76,22 +101,39 @@ void Gl1_Facet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire
 					for(int i:{0,1,2}) glVertex3v((f.nodes[i]->pos+j*normal*f.halfThick).eval());
 				glEnd();
 			}
+			#if 0
+				auto o=f.getOuterVectors();
+				Vector3r outer[3]={std::get<0>(o),std::get<1>(o),std::get<2>(o)};
+				for(int i:{0,1,2}) halfCylinder(f.nodes[i]->pos,f.nodes[(i+1)%3]->pos,f.halfThick,outer[i].normalized(),Vector3r(NaN,NaN,NaN),12,1);
+			#else
+				for(int i:{0,1,2}){
+					GLUtils::Cylinder(f.nodes[i]->pos,f.nodes[(i+1)%3]->pos,f.halfThick,Vector3r(NaN,NaN,NaN),/*wire*/true,/*caps*/false,f.halfThick,12,1);
+					//glutWireSphere(r,quality*glutSlices,quality*glutStacks);
+				}
+			#endif
 		}
 		glEnable(GL_LINE_SMOOTH);
 	} else {
 		glDisable(GL_CULL_FACE); 
 		Vector3r normal=f.getNormal();
-		glBegin(GL_TRIANGLES);
 			// this makes every triangle different WRT the light direction; important for shading
 			glNormal3v(normal);
 			if(f.halfThick==0){
-				for(int i:{0,1,2}) glVertex3v(f.nodes[i]->pos);
+				glBegin(GL_TRIANGLES);
+					for(int i:{0,1,2}) glVertex3v(f.nodes[i]->pos);
+				glEnd();
 			} else {
-				for(int j:{-1,1}){
-					for(int i:{0,1,2}) glVertex3v((f.nodes[i]->pos+j*normal*f.halfThick).eval());
-				}
+				glBegin(GL_TRIANGLES);
+					for(int j:{-1,1}){
+						for(int i:{0,1,2}) glVertex3v((f.nodes[i]->pos+j*normal*f.halfThick).eval());
+					}
+				glEnd();
+				#if 0
+					// draw half-cylinder
+				#else
+					for(int i:{0,1,2}) GLUtils::Cylinder(f.nodes[i]->pos,f.nodes[(i+1)%3]->pos,f.halfThick,Vector3r(NaN,NaN,NaN),/*wire*/false,/*caps*/false,f.halfThick,12,1);
+				#endif
 			}
-		glEnd();
 	}
 }
 
