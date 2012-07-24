@@ -11,6 +11,7 @@
 #include<woo/lib/pyutil/raw_constructor.hpp>
 #include<woo/lib/pyutil/doc_opts.hpp>
 #include<woo/lib/pyutil/except.hpp>
+#include<woo/lib/pyutil/pickle.hpp>
 
 #include<boost/preprocessor.hpp>
 #include<boost/version.hpp>
