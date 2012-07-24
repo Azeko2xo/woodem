@@ -116,7 +116,7 @@ def addAutoData(**kw):
 	
 	>>> from woo import plot; from woo.dem import *; from woo.core import *
 	>>> from pprint import pprint
-	>>> S=Scene(fields=[DemField()])
+	>>> S=Scene(fields=[DemField(gravity=(0,0,-10))])
 	>>> plot.resetData()
 	>>> plot.plots={'S.step':('S.time',None,'numParticles=len(S.dem.par)')}
 	>>> plot.addAutoData(S=S)
@@ -132,7 +132,7 @@ def addAutoData(**kw):
 	A simple simulation with plot can be written in the following way; note how the energy plot is specified.
 
 	>>> from woo import plot, utils
-	>>> S=Scene(fields=[DemField()])
+	>>> S=Scene(fields=[DemField(gravity=(0,0,-10))])
 	>>> plot.resetData()
 	>>> plot.plots={'i=S.step':(S.energy,None,'total energy=S.energy.total()')}
 	>>> # we create a simple simulation with one ball falling down
@@ -141,7 +141,7 @@ def addAutoData(**kw):
 	>>> S.dem.collectNodes() 
 	1
 	>>> S.dt=utils.pWaveDt(S)
-	>>> S.engines=[ForceResetter(),Gravity(gravity=(0,0,-10)),Leapfrog(kinSplit=True,damping=.4),
+	>>> S.engines=[ForceResetter(),Leapfrog(kinSplit=True,damping=.4),
 	...    # get data required by plots at every step
 	...    PyRunner(1,'woo.plot.addAutoData(S=S)')
 	... ]

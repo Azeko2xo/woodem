@@ -6,6 +6,7 @@
 	#include<omp.h>
 #endif
 struct ForceResetter: public GlobalEngine{
+	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	void run();
 	WOO_CLASS_BASE_DOC(ForceResetter,GlobalEngine,"Reset forces on nodes in DEM field.");
 };
@@ -24,8 +25,11 @@ struct Leapfrog: public GlobalEngine {
 	// compute linear and angular acceleration, respecting DemData::blocked
 	Vector3r computeAccel(const Vector3r& force, const Real& mass, /* for passing blocked DoFs */const DemData& dyn);
 	Vector3r computeAngAccel(const Vector3r& torque, const Vector3r& inertia, const DemData& dyn);
-	void doKineticEnergy(const shared_ptr<Node>&, const Vector3r& pprevFluctVel, const Vector3r& pprevFluctAngVel, const Vector3r& linAccel, const Vector3r& angAccel);
+	// energy tracking
 	void doDampingDissipation(const shared_ptr<Node>&);
+	void doGravityWork(const DemData& dyn, const DemField& dem);
+	void doKineticEnergy(const shared_ptr<Node>&, const Vector3r& pprevFluctVel, const Vector3r& pprevFluctAngVel, const Vector3r& linAccel, const Vector3r& angAccel);
+
 	// whether the cell has changed from the previous step
 	int homoDeform; // updated from scene at every call; -1 for aperiodic simulations, otherwise equal to scene->cell->homoDeform
 	Real dt; // updated from scene at every call
@@ -55,6 +59,7 @@ struct Leapfrog: public GlobalEngine {
 		((bool,kinSplit,false,,"Whether to separately track translational and rotational kinetic energy."))
 		((Real,maxVelocitySq,NaN,AttrTrait<Attr::readonly>(),"store square of max. velocity, for informative purposes; computed again at every step."))
 
+		((int,gravWorkIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for gravity work"))
 		((int,kinEnergyIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for kinetic energy in scene->energies."))
 		((int,kinEnergyTransIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for translational kinetic energy in scene->energies."))
 		((int,kinEnergyRotIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for rotational kinetic energy in scene->energies."))

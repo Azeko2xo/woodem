@@ -45,9 +45,9 @@ struct Law2_L6Geom_PelletPhys_Pellet: public LawFunctor{
 		//((Real,alpha,-1.,,"$\\alpha$  coefficient in the yield function; if negative, compressive plasticity is deactivated. This coefficient is dimensionless."))
 		//((Real,kADivKn,.1,,"Ratio kA/kN (for adhesion); if non-positive, adhesion is disabled"))
 		((bool,plastSplit,false,,"Track energy dissipated in normal and tangential sliding separately"))
-		((int,plastIx,-1,AttrTrait<Attr::noSave|Attr::hidden>(),"Index of plastically dissipated energy"))
+		((int,plastIx,-1,AttrTrait<>(),"Index of plastically dissipated energy"))
 		((int,normPlastIx,-1,AttrTrait<Attr::noSave|Attr::hidden>(),"Index of plastically dissipated energy in the normal sense"))
-		((int,elastPotIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for elastic potential energy"))
+		((int,elastPotIx,-1,AttrTrait<Attr::noSave|Attr::hidden>(),"Index for elastic potential energy"))
 		, /*py*/
 			.def("yieldForce",&Law2_L6Geom_PelletPhys_Pellet::yieldForce,(py::arg("uN"),py::arg("d0"),py::arg("kN"),py::arg("alpha")),"Return yield force for :ref:`alpha` and given parameters.")
 			.def("yieldForceDerivative",&Law2_L6Geom_PelletPhys_Pellet::yieldForceDerivative,(py::arg("uN"),py::arg("d0"),py::arg("kN"),py::arg("alpha")),"Return yield force derivative for given parameters.")

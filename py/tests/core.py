@@ -154,7 +154,7 @@ class TestLoop(unittest.TestCase):
 		'Loop: Scene.engines can be modified inside the loop transparently.'
 		S=woo.master.scene
 		S.engines=[
-			PyRunner(stepPeriod=1,command='from woo import*; from woo.dem import *; scene.engines=[ForceResetter(),Gravity(),Leapfrog(reset=False)]'), # change engines here
+			PyRunner(stepPeriod=1,command='from woo import*; from woo.dem import *; scene.engines=[ForceResetter(),ForceResetter(),Leapfrog(reset=False)]'), # change engines here
 			ForceResetter() # useless engine
 		]
 		S.subStepping=True

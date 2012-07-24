@@ -95,8 +95,9 @@ def defaultMaterial():
 	import math
 	return FrictMat(density=1e3,young=1e7,ktDivKn=.2,tanPhi=math.tan(.5))
 
-def defaultEngines(damping=0.,gravity=(0,0,-10),verletDist=-.05,kinSplit=False,noSlip=False,noBreak=False,cp2=None,law=None):
+def defaultEngines(damping=0.,gravity=None,verletDist=-.05,kinSplit=False,noSlip=False,noBreak=False,cp2=None,law=None):
 	"""Return default set of engines, suitable for basic simulations during testing."""
+	if gravity: raise ValueError("gravity MUST NOT be specified anymore, set DemField.gravity=... instead.")
 	return [
 		Leapfrog(damping=damping,reset=True,kinSplit=kinSplit),
 		InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb(),Bo1_Wall_Aabb(),Bo1_InfCylinder_Aabb()],label='collider'),
@@ -105,7 +106,7 @@ def defaultEngines(damping=0.,gravity=(0,0,-10),verletDist=-.05,kinSplit=False,n
 			[cp2 if cp2 else Cp2_FrictMat_FrictPhys()],
 			[law if law else Law2_L6Geom_FrictPhys_IdealElPl(noSlip=noSlip,noBreak=noBreak)],applyForces=True
 		),
-	]+([] if gravity==(0,0,0) else [Gravity(gravity=gravity)])
+	]
 
 def _commonBodySetup(b,nodes,volumes,geomInertias,mat,masses=None,fixed=False):
 	"""Assign common body parameters."""

@@ -104,7 +104,7 @@ void ClumpData::collectFromMembers(const shared_ptr<Node>& node){
 	}
 }
 
-void ClumpData::applyToMembers(const shared_ptr<Node>& node, bool reset){
+void ClumpData::applyToMembers(const shared_ptr<Node>& node, bool reset, const Vector3r& gravity){
 	ClumpData& clump=node->getData<DemData>().cast<ClumpData>();
 	const Vector3r& clumpPos(node->pos); const Quaternionr& clumpOri(node->ori);
 	assert(clump.nodes.size()==clump.relPos.size()); assert(clump.nodes.size()==clump.relOri.size());
@@ -115,15 +115,19 @@ void ClumpData::applyToMembers(const shared_ptr<Node>& node, bool reset){
 		n->ori=clumpOri*clump.relOri[i];
 		nDyn.vel=clump.vel+clump.angVel.cross(n->pos-clumpPos);
 		nDyn.angVel=clump.angVel;
-		if(reset) nDyn.force=nDyn.torque=Vector3r::Zero();
+		if(reset){
+			nDyn.force=gravity*nDyn.mass;
+			nDyn.torque=Vector3r::Zero();
+		}
 	}
 }
 
-void ClumpData::resetForceTorque(const shared_ptr<Node>& node){
+void ClumpData::resetForceTorque(const shared_ptr<Node>& node, const Vector3r& gravity){
 	ClumpData& clump=node->getData<DemData>().cast<ClumpData>();
 	for(size_t i=0; i<clump.nodes.size(); i++){
 		DemData& nDyn(clump.nodes[i]->getData<DemData>());
-		nDyn.force=nDyn.torque=Vector3r::Zero();
+		nDyn.force=gravity*nDyn.mass;
+		nDyn.torque=Vector3r::Zero();
 	}
 }
 

@@ -118,7 +118,7 @@ def run(pre): # use inputs as argument
 		D=C+Vector2(-upCylRad,0)
 		E=D+Vector2(0,upCylRad)
 		F=E+Vector2(-.1,0)
-		for i in 'ABCDEF': print i,eval(i)
+		#for i in 'ABCDEF': print i,eval(i)
 		yy=(ymin,ymax)
 		kw=dict(mat=pre.cylMaterial,mask=wallMask,halfThick=facetHalfThick)
 		de.par.append(ySpannedFacets((A[0],B[0]),yy,(A[1],B[1]),**kw)+ySpannedFacets((B[0],C[0]),yy,(B[1],C[1]),**kw)+ySpannedFacets((E[0],F[0]),yy,(E[1],F[1]),fakeVel=(conveyorVel,0,0),**kw))
@@ -130,6 +130,9 @@ def run(pre): # use inputs as argument
 		zmin,zmax=cylZMin-2*cylDMax,F[1]+3*pre.conveyorHt
 		xmin,xmax=F[0],cylXzd[-1][0]+3*cylDMax
 		factoryNode=Node(pos=(F[0]+rMax,0,F[1]))
+		
+		if not pre.buckets: pre.buckets=[4,5,5,5]
+
 	else: assert False
 
 	factStep=pre.factStepPeriod
@@ -172,20 +175,44 @@ def run(pre): # use inputs as argument
 			)
 		)
 		de.par.append(c)
+
+	###
+	### buckets
+	###
+	bucketDeleters=[]
+	barriersAt=[0] # barriers between buckets, indices are cylinder numbers
+	if not pre.buckets: pre.buckets=[1]*(len(cylXzd)-1) # one bucket for each gap
+	if sum(pre.buckets)<(len(cylXzd)-1):
+		print 'Buckets not reaching to the end of the screen, adding extra bucket'
+		pre.buckets=pre.buckets+[len(cylXzd)-1-sum(pre.buckets)]
+	bucketStart=0 # cylinder index where the current bucket starts
+	for i,bucketWidth in enumerate(pre.buckets):
+		if bucketStart>=(len(cylXzd)-1):
+			print 'Buckets beyond cylinders specified, some will be discarded'
+			break
+		x,z,d=cylXzd[i]
+		bucketEnd=bucketStart+bucketWidth # cylinder index where the current bucket ends
+		if bucketEnd>=len(cylXzd):
+			print 'Bucket width beyond cylinders, will be narrowed.'
+			bucketEnd=len(cylXzd)-1
+		barriersAt.append(bucketEnd)
+		xzd0,xzd1=cylXzd[bucketStart],cylXzd[bucketEnd]
+		# initially don't save deleted particles
+		bucketDeleters.append(BoxDeleter(stepPeriod=factStep,inside=True,box=((xzd0[0],ymin,zmin),(xzd1[0],ymax,min(xzd0[1]-xzd0[2]/2.,xzd1[1]-xzd1[2]/2.))),glColor=.05*i,save=False,mask=delMask,currRateSmooth=pre.rateSmooth,label='aperture[%d]'%i))
+		bucketStart=bucketEnd
+	# bucket barriers
+	for cylI in barriersAt:
+		x,z,d=cylXzd[cylI]
 		de.par.append(ySpannedFacets((x,x),(ymin,ymax),(zmin,z-d/2.-facetHalfThick),shift=False,mat=pre.cylMaterial,mask=wallMask,visible=False,halfThick=facetHalfThick))
 
 	###
 	### engines
 	###
-
-	s.engines=utils.defaultEngines(damping=0.,gravity=(0,0,-pre.gravity),verletDist=.05*rMin,
+	s.dem.gravity=(0,0,-pre.gravity)
+	s.engines=utils.defaultEngines(damping=0.,verletDist=.05*rMin,
 			cp2=Cp2_PelletMat_PelletPhys(),
 			law=Law2_L6Geom_PelletPhys_Pellet(plastSplit=True)
-		)+[
-		# what falls beyond
-		# initially not saved
-		BoxDeleter(stepPeriod=factStep,inside=True,box=((cylXzd[i][0],ymin,zmin),(cylXzd[i+1][0],ymax,min(cylXzd[i][1]-cylXzd[i][2]/2.,cylXzd[i+1][1]-cylXzd[i+1][2]/2.))),glColor=.05*i,save=False,mask=delMask,currRateSmooth=pre.rateSmooth,label='aperture[%d]'%i) for i in range(0,len(cylXzd)-1)
-	]+[
+		)+bucketDeleters+[
 		# this one should not collect any particles at all
 		BoxDeleter(stepPeriod=factStep,box=((xmin,ymin,zmin),(xmax,ymax,zmax)),glColor=.9,save=False,mask=delMask,label='outOfDomain'),
 		# what falls inside
@@ -252,7 +279,7 @@ def makeBandFeedPack(dim,psd,mat,gravity,damping=.3,porosity=.5,goal=.15,dontBlo
 			sp=pack.SpherePack()
 			sp.load(memoizeFile)
 			return zip(*sp)
-	S=Scene(fields=[DemField()])
+	S=Scene(fields=[DemField(gravity=gravity)])
 	S.periodic=True
 	S.cell.setBox(cellSize)
 	p=pack.sweptPolylines2gtsSurface([utils.tesselatePolyline([Vector3(x,0,cellSize[2]),Vector3(x,0,0),Vector3(x,cellSize[1],0),Vector3(x,cellSize[1],cellSize[2])],maxDist=min(cellSize[1],cellSize[2])/3.) for x in numpy.linspace(0,cellSize[0],num=4)])
@@ -266,7 +293,7 @@ def makeBandFeedPack(dim,psd,mat,gravity,damping=.3,porosity=.5,goal=.15,dontBlo
 	mat0,mat=mat,mat.deepcopy()
 	mat.tanPhi=min(.2,mat0.tanPhi)
 
-	S.engines=utils.defaultEngines(gravity=gravity,damping=damping)+[
+	S.engines=utils.defaultEngines(damping=damping)+[
 		BoxFactory(
 			box=((.01*cellSize[0],.01*cellSize[1],.3*cellSize[2]),cellSize),
 			stepPeriod=200,
@@ -327,7 +354,6 @@ def watchProgress(S):
 					ap.clear() # to clear overall mass, which gets counted even with save=False
 					ap.save=True
 				print 'Stabilized regime reached (influx %g, efflux %g) at step %d (t=%gs), counters engaged.'%(influx,efflux,S.step,S.time)
-				#out='/tmp/steady-'+S.tags['id.d']+'.bin.gz'
 				out=S.pre.saveFmt.format(stage='steady',S=S,**(dict(S.tags)))
 				S.save(out)
 				print 'Saved to',out
@@ -357,8 +383,9 @@ def watchProgress(S):
 		assert pre.time<=0
 		## after the mass is reached, continue for some time (say 20% of the simulation up to now), then finish
 		if woo.factory.mass>=woo.factory.maxMass:
-			m=sum([n.dem.mass for n in S.dem.nodes])
-			if m<pre.residueMassFrac*woo.factory.maxMass:
+			delRate=sum([a.currRate for a in woo.aperture+[woo.fallOver]])
+			if delRate<pre.residueFlowFrac*pre.cylRelLen*pre.massFlowRate: # feed flow rate scaled to simulated width
+				print 'Delete rate dropped under %g×%g kg/s, ending simulation.'%(pre.residueFlowFrac,pre.massFlowRate)
 				try:
 					writeReport(S)
 				except:
@@ -377,12 +404,12 @@ def savePlotData(S):
 	apRate=sum([a.currRate for a in woo.aperture])
 	overRate=woo.fallOver.currRate
 	lostRate=woo.outOfDomain.currRate
-	gapMultiples=(.9,1.,1.1,1.2,1.3)
-	eff=[(u'%g×gap=%g'%(gapMult,gapMult*S.pre.gap)) for gapMult in gapMultiples]
+	# keep in sync in report-generating routine (looks up data based on this!)
+	eff=[(u'%g×gap=%g'%(gapFrac,gapFrac*S.pre.gap)) for gapFrac in S.pre.efficiencyGapFrac]
 	otherData={}
 	if woo.fallOver.num>100:
-		for i,gapMult in enumerate(gapMultiples):
-			dd=S.pre.gap*gapMult
+		for i,gapFrac in enumerate(S.pre.efficiencyGapFrac):
+			dd=S.pre.gap*gapFrac
 			mUnderProduct=sum([dm[1] for dm in zip(*woo.fallOver.diamMass()) if dm[0]<dd])
 			mUnderAperture=sum([sum([dm[1] for dm in zip(*ap.diamMass()) if dm[0]<dd]) for ap in woo.aperture])
 			otherData[eff[i]]=mUnderAperture/(mUnderAperture+mUnderProduct)
@@ -531,7 +558,7 @@ def writeReport(S):
 
 	# should this be scaled to t/year as well?
 	massScale=(
-		(1./pre.cylRelLen)*(1./pre.time) # in kg/sec
+		(1./pre.cylRelLen)*(1./S.time) # in kg/sec
 		*3600*24*365/1000.  # in t/y
 	)
 
@@ -596,8 +623,27 @@ def writeReport(S):
 		splitD=pre.gap
 	)
 
-	effTab,effFig=efficiencyTableFigure(S,pre)
-	figs.append(('Sieving efficiency',effFig))
+	# steady state was measured
+	if pre.time>0:
+		effTab,effFig=efficiencyTableFigure(S,pre)
+		figs.append(('Sieving efficiency',effFig))
+	# non-steady state was simulated
+	if pre.mass: 
+		effTab=None # must be assigned
+		# must be kept in sync with labels in savePlotData
+		effDataLabels=[(u'%g×gap=%g'%(gapFrac,gapFrac*S.pre.gap)) for gapFrac in S.pre.efficiencyGapFrac]
+		fig=pylab.figure()
+		pylab.grid(True)
+		for eff in effDataLabels:
+			pylab.plot(woo.plot.data['t'],woo.plot.data[eff],label=eff)
+			pylab.xlabel('time [s]')
+			pylab.ylabel('relative efficiency')
+			pylab.gca().yaxis.set_major_formatter(percent)
+		leg=pylab.legend(loc='best')
+		leg.get_frame().set_alpha(legendAlpha)
+		figs.append(('Sieving efficiency',fig))
+	
+		
 
 	#ax=pylab.subplot(223)
 	fig=pylab.figure()
@@ -667,7 +713,7 @@ def writeReport(S):
 		pylab.plot(d['t'],massScale*numpy.array(d['delRate']),label='delete')
 		pylab.ylim(ymin=0)
 		#pylab.axvline(x=(S.time-pre.time),linewidth=5,alpha=.3,ymin=0,ymax=1,color='r',label='steady')
-		pylab.axvspan(S.time-pre.time,S.time,alpha=.2,facecolor='r',label='steady')
+		if pre.time>0:	pylab.axvspan(S.time-pre.time,S.time,alpha=.2,facecolor='r',label='steady')
 		leg=pylab.legend(loc='lower left')
 		leg.get_frame().set_alpha(legendAlpha)
 		pylab.grid(True)
@@ -708,7 +754,7 @@ def writeReport(S):
 		+'<h2>Input data</h2>'+pre.dumps(format='html',fragment=True,showDoc=True)
 		+'<h2>Outputs</h2>'
 		+'<h3>Feed</h3>'+feedTab
-		+'<h3>Sieving</h3>'+effTab
+		+(('<h3>Sieving</h3>'+effTab) if effTab else '')
 		+'\n'.join(['<h3>'+svg[0]+'</h3>'+svgFragment(open(svg[1]).read()) for svg in svgs])
 		+'</body></html>'
 	)
@@ -746,7 +792,8 @@ def writeReport(S):
 	print 'Writing report to file://'+os.path.abspath(repName)
 	#rep.write(HTMLParser(StringIO.StringIO(html),'[filename]').parse().render('xhtml',doctype='xhtml').decode('utf-8'))
 	s=xmlhead+html
-	s=s.replace('\xe2\x88\x92','-')
+	s=s.replace('\xe2\x88\x92','-') # long minus
+	s=s.replace('\xc3\x97','x') # × multiplicator
 	try:
 		rep.write(s)
 	except UnicodeDecodeError as e:

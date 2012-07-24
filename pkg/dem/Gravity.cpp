@@ -13,6 +13,16 @@ void Gravity::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){
 void Gravity::run(){
 	const bool trackEnergy(unlikely(scene->trackEnergy));
 	const Real dt(scene->dt);
+	LOG_WARN("\n"
+	"#######################################################################################\n"
+	"* woo.dem.Gravity() should not be used anymore\n"
+	"  set woo.dem.DemField.gravity to acceleration value instead.\n"
+	"* woo.utils.defaultEngines(gravity=...) is adding woo.dem.Gravity() automatically\n"
+	"  that is perhaps your case?\n"
+	"* I am setting DemField.gravity=("<<gravity.transpose()<<") now and make myself Engine.dead.\n"
+	"  This will not be fixed automatically for long, therefore\n\n"
+	"     !!! FIX YOUR CODE !!!\n\n"
+	"#######################################################################################\n");
 	FOREACH(const shared_ptr<Node>& n, field->nodes){
 		//if(mask!=0 && (b->groupMask & mask)==0) continue;
 		//scene->forces.addForce(b->getId(),gravity*b->state->mass);
@@ -42,6 +52,9 @@ void Gravity::run(){
 			scene->energy->add(e,"grav",gravWorkIx,EnergyTracker::IsIncrement);
 		}
 	}
+	// FIX HERE
+	field->cast<DemField>().gravity=gravity;
+	this->dead=true;
 }
 
 void AxialGravity::run(){

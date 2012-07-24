@@ -57,9 +57,9 @@ struct Local6Dofs: public Impose{
 				}
 			}
 			if(!velocity&&(whats[i]&Impose::FORCE)){
-				/* force is always set to zero before impose is being called, therefore we can only add the contribution */
-				if(i<3){ dyn.force +=ori.conjugate()*(values[i]*Vector3r::Unit(i)); }
-				else   { dyn.torque+=ori.conjugate()*(values[i]*Vector3r::Unit(i%3)); }
+				// set absolute value, cancel anything set previously (such as gravity)
+				if(i<3){ dyn.force =ori.conjugate()*(values[i]*Vector3r::Unit(i)); }
+				else   { dyn.torque=ori.conjugate()*(values[i]*Vector3r::Unit(i%3)); }
 			}
 		}
 	}

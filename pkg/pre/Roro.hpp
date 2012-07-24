@@ -70,9 +70,12 @@ struct Roro: public Preprocessor {
 		((Vector3r,quivHPeriod,Vector3r(3000,5000,3),,"Horizontal quiver period (relative to Δt); assigned quasi-randomly from the given range, with z-component giving modulo divisor"))
 		((Vector3r,quivVPeriod,Vector3r(5000,11000,5),,"Vertical quiver period (relative to Δt); assigned quasi-randomly from the given range, with z-component giving modulo divisor"))
 		((Real,steadyFlowFrac,1.,,"Start steady (measured) phase when efflux (fall over, apertures, out-of-domain) reaches this fraction of influx (feed); only used when *time* is given"))
-		((Real,residueMassFrac,.05,,"Fraction of mass which is allowed to remain in the simulation, if *mass* is given"))
+		((Real,residueFlowFrac,.02,,"Stop simulation once delete rate drops below this fraction of the original feed rate (after the requested :ref:`mass` has been generated); only used when *mass* is given."))
 		((Real,rateSmooth,.2,,"Smoothing factor for plotting rates in factory and deleters"))
 		((Real,normPlastCoeff,1e3,,"Dimensionless normal plasticity coefficient :ref:`Law_L6Geom_FrictPhys_Pellet`; non-positive value disables normal plasticity."))
+		((vector<int>,buckets,,,"Collect particles from several apertures together; each numer specifies how much apertures is taken; invalid values (past the number of cylinders) are simply ignored"))
+		((vector<Real>,efficiencyGapFrac,vector<Real>({.9,1.,1.1,1.2,1.3}),,"Diameters relative to :ref:`gap` for which the sieving efficiency is determined."))
+
 
 		, /*ctor*/
 			material->density=3200;

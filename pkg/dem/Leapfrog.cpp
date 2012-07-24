@@ -8,11 +8,14 @@ WOO_PLUGIN(dem,(Leapfrog)(ForceResetter));
 CREATE_LOGGER(Leapfrog);
 
 void ForceResetter::run(){
+	const auto& dem=field->cast<DemField>();
+	bool hasGravity(dem.gravity!=Vector3r::Zero());
 	FOREACH(const shared_ptr<Node>& n, field->nodes){
 		DemData& dyn=n->getData<DemData>();
-		dyn.force=dyn.torque=Vector3r::Zero();
+		dyn.force=hasGravity?(dem.gravity*dyn.mass).eval():Vector3r::Zero();
+		dyn.torque=Vector3r::Zero();
 		if(dyn.impose && (dyn.impose->what & Impose::FORCE)) dyn.impose->force(scene,n);
-		if(n->getData<DemData>().isClump()) ClumpData::resetForceTorque(n);
+		if(n->getData<DemData>().isClump()) ClumpData::resetForceTorque(n,dem.gravity);
 	}
 }
 
@@ -38,6 +41,9 @@ Vector3r Leapfrog::computeAngAccel(const Vector3r& torque, const Vector3r& inert
 	return ret;
 }
 
+
+
+
 void Leapfrog::doDampingDissipation(const shared_ptr<Node>& node){
 	const DemData& dyn(node->getData<DemData>());
 	if(dyn.isEnergySkip()) return;
@@ -49,6 +55,15 @@ void Leapfrog::doDampingDissipation(const shared_ptr<Node>& node){
 		+ dyn.angVel.array().abs().matrix().dot(dyn.torque.array().abs().matrix())*damping*scene->dt
 		,"nonviscDamp",nonviscDampIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate
 	);
+}
+
+
+void Leapfrog::doGravityWork(const DemData& dyn, const DemField& dem){
+	/* evaluated using mid-step values */
+	Real gr=0;
+	if(dyn.isBlockedNone()) gr=-dem.gravity.dot(dyn.vel)*dyn.mass*dt;
+	else { for(int ax:{0,1,2}){ if(!(dyn.isBlockedAxisDOF(ax,false))) gr-=dem.gravity[ax]*dyn.vel[ax]*dyn.mass*dt; } }
+	scene->energy->add(gr,"grav",gravWorkIx,EnergyTracker::IsIncrement);
 }
 
 void Leapfrog::doKineticEnergy(const shared_ptr<Node>& node, const Vector3r& pprevFluctVel, const Vector3r& pprevFluctAngVel, const Vector3r& linAccel, const Vector3r& angAccel){
@@ -110,6 +125,7 @@ void Leapfrog::run(){
 
 	DemField* dem=dynamic_cast<DemField*>(field.get());
 	assert(dem);
+	bool hasGravity(dem->gravity!=Vector3r::Zero());
 
 	/* temporary hack */
 	if(dem->nodes.empty()){
@@ -139,7 +155,11 @@ void Leapfrog::run(){
 		Vector3r& f=dyn.force;
 		Vector3r& t=dyn.torque;
 
-		if(unlikely(reallyTrackEnergy) && (damping!=0.)) doDampingDissipation(node);
+		if(unlikely(reallyTrackEnergy)){
+			if(damping!=0.) doDampingDissipation(node);
+			if(hasGravity) doGravityWork(dyn,*dem);
+		}
+			
 
 		// fluctuation velocity does not contain meanfield velocity in periodic boundaries
 		// in aperiodic boundaries, it is equal to absolute velocity
@@ -214,7 +234,8 @@ void Leapfrog::run(){
 		}
 
 		if(reset){
-			dyn.force=dyn.torque=Vector3r::Zero();
+			dyn.force=hasGravity?(dyn.mass*dem->gravity).eval():Vector3r::Zero();
+			dyn.torque=Vector3r::Zero();
 			if(dyn.impose && (dyn.impose->what & Impose::FORCE)) dyn.impose->force(scene,node);
 		}
 
@@ -222,7 +243,7 @@ void Leapfrog::run(){
 		if(dyn.impose && (dyn.impose->what & Impose::VELOCITY)) dyn.impose->velocity(scene,node);
 
 		// for clumps, update positions/orientations of members as well
-		if(isClump) ClumpData::applyToMembers(node,/*resetForceTorque*/reset);
+		if(isClump) ClumpData::applyToMembers(node,/*resetForceTorque*/reset,dem->gravity);
 	}
 	// if(isPeriodic) prevVelGrad=scene->cell->velGrad;
 }
