@@ -34,9 +34,11 @@ REGISTER_SERIALIZABLE(Bo1_Facet_Aabb);
 #include<woo/pkg/gl/Functors.hpp>
 struct Gl1_Facet: public GlShapeFunctor{	
 	void go(const shared_ptr<Shape>&, const Vector3r&, bool, const GLViewInfo&);
+	void drawEdges(const Facet& f, const Vector3r& facetNormal, bool wire);
 	RENDERS(Facet);
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Facet,GlShapeFunctor,"Renders :ref:`Facet` object",
 		((bool,wire,false,,"Only show wireframe."))
+		((int,slices,8,,"Number of half-cylinder subdivision for rounded edges with halfThick>=0 (for whole circle); if smaller than 4, rounded edges are not drawn."))
 		/*attrs*/
 	);
 };

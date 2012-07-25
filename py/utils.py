@@ -232,11 +232,12 @@ def facet(vertices,fakeVel=None,halfThick=0.,fixed=True,wire=True,color=None,hig
 	p.shape.visible=visible
 	return p
 
-def infCylinder(position,radius,axis,glAB=None,fixed=True,mass=0,color=None,mat=defaultMaterial,mask=1):
+def infCylinder(position,radius,axis,glAB=None,fixed=True,mass=0,color=None,wire=False,mat=defaultMaterial,mask=1):
 	"""Return a read-made infinite cylinder particle."""
 	p=Particle()
 	p.shape=InfCylinder(radius=radius,axis=axis,color=color if color else random.random())
 	if glAB: p.shape.glAB=glAB
+	p.shape.wire=wire
 	if(isinstance(position,Node)):
 		node=position
 	else: node=_mkDemNode(pos=position)

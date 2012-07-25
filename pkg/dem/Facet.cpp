@@ -64,26 +64,81 @@ void Bo1_Facet_Aabb::go(const shared_ptr<Shape>& sh){
 #include<woo/pkg/gl/Renderer.hpp>
 #include<woo/lib/base/CompUtils.hpp>
 
-void halfCylinder(const Vector3r& A, const Vector3r& B, Real radius, const Vector3r& normal, const Vector3r& color, bool wire, int slices=12, int stacks=1){
+void halfCylinder(const Vector3r& A, const Vector3r& B, Real radius, const Vector3r& upVec, const Vector3r& color, bool wire, int slices=12, int stacks=1, Real connectorAngle=0.){
 	if(wire) glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
-	Vector3r planar=normal.cross(B-A).normalized();
 	if(!isnan(color[0]))	glColor3v(color);
-	slices=max(1,slices/2); stacks=max(1,stacks);
-	auto makePt=[&](int sl, int st)->Vector3r{ return A+(B-A)*st*1./stacks+normal*radius*sin(sl*1./slices*M_PI)+planar*radius*cos(sl*1./slices*M_PI); };
-	for(int stack=0; stack<=stacks; stack++){
-		glBegin(GL_QUAD_STRIP);
-			for(int slice=0; slice<=slices; slice++){
-				glVertex3v(makePt(slice,stack));
-				glVertex3v(makePt(slice,stack+1));
-				glVertex3v(makePt(slice+1,stack));
-				glVertex3v(makePt(slice+1,stack+1));
+	Real len=(B-A).norm();
+	Vector3r axis=(B-A)/len;
+	Matrix3r T; T.col(0)=axis; T.col(1)=upVec.cross(axis); T.col(2)=upVec;
+	glPushMatrix();
+		GLUtils::setLocalCoords(A,Quaternionr(T));
+		slices=max(1,slices/2); stacks=max(1,stacks);
+		auto makeNormCoords=[&](int sl, int st)->Vector3r{ return Vector3r((st*1./stacks),-sin(sl*1./slices*M_PI),-cos(sl*1./slices*M_PI)); };
+		for(int stack=0; stack<stacks; stack++){
+			glBegin(GL_QUAD_STRIP);
+				for(int slice=0; slice<=slices; slice++){
+					for(int dStack:{0,1}){
+						Vector3r nc=makeNormCoords(slice,stack+dStack);
+						if(!wire) glNormal3v(Vector3r(0,nc[1],nc[2]));
+						glVertex3v(nc.cwiseProduct(Vector3r(len,radius,radius)).eval());
+					}
+				}
+			glEnd();
+		}
+		// sphere wedge connector
+		if(connectorAngle!=0){
+			glTranslatev(Vector3r(len,0,0)); // move to the far end
+			stacks=slices; // what were slices for cylinder are stacks for the sphere
+			slices=stacks*(abs(connectorAngle)/M_PI); // compute slices to make the sphere round as te 
+			auto makeNormCoords=[&](int sl, int st)->Vector3r{ return Vector3r(sin(sl*1./slices*connectorAngle)*sin(st*1./stacks*M_PI),-cos(-sl*1./slices*connectorAngle)*sin(st*1./stacks*M_PI),-cos(st*1./stacks*M_PI)); };
+			for(int slice=0; slice<slices; slice++){
+				glBegin(GL_QUAD_STRIP);
+					for(int stack=0; stack<=stacks; stack++){
+						for(int dSlice:{0,1}){
+							Vector3r nc=makeNormCoords(slice+dSlice,stack);
+							if(!wire) glNormal3v(nc);
+							glVertex3v((radius*nc).eval());
+						}
+					}
+				glEnd();
 			}
-		glEnd();
-	}
+		}
+	glPopMatrix();
 	if(wire) glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
 }
 
 bool Gl1_Facet::wire;
+int Gl1_Facet::slices;
+
+void Gl1_Facet::drawEdges(const Facet& f, const Vector3r& facetNormal, bool wire){
+	if(slices>=4){
+		// draw half-cylinders and caps
+		Vector3r edges[]={(f.nodes[1]->pos-f.nodes[0]->pos).normalized(),(f.nodes[2]->pos-f.nodes[1]->pos).normalized(),(f.nodes[0]->pos-f.nodes[2]->pos).normalized()};
+		for(int i:{0,1,2}){
+			const Vector3r& A(f.nodes[i]->pos), B(f.nodes[(i+1)%3]->pos);
+			halfCylinder(A,B,f.halfThick,facetNormal,Vector3r(NaN,NaN,NaN),wire,slices,1,acos(edges[(i)%3].dot(edges[(i+1)%3])));
+		}
+	}else{
+		// just the edges
+		Vector3r dz=f.halfThick*facetNormal;
+		if(wire){
+			const Vector3r &A(f.nodes[0]->pos), &B(f.nodes[1]->pos), &C(f.nodes[2]->pos);
+			Vector3r vv[]={A+dz,B+dz,C+dz,A+dz,A-dz,B-dz,B+dz,B-dz,C-dz,C+dz,C-dz,A-dz};
+			glBegin(GL_LINE_LOOP);
+				for(const auto& v: vv) glVertex3v(v);
+			glEnd();
+		} else {
+			glBegin(GL_QUADS);
+				for(int edge:{0,1,2}){
+					const Vector3r &A(f.nodes[edge]->pos), &B(f.nodes[(edge+1)%3]->pos);
+					glNormal3v((B-A).cross(facetNormal).normalized());
+					Vector3r vv[]={A-dz,A+dz,B+dz,B-dz};
+					for(const Vector3r& v: vv) glVertex3v(v);
+				}
+			glEnd();
+		}
+	}
+}
 
 void Gl1_Facet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire2, const GLViewInfo&){   
 	Facet& f=sh->cast<Facet>();
@@ -95,45 +150,29 @@ void Gl1_Facet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire
 				for(int i:{0,1,2}) glVertex3v(f.nodes[i]->pos);
 		   glEnd();
 		} else {
-			Vector3r normal=f.getNormal();
-			for(int j:{-1,1}){
-				glBegin(GL_LINE_LOOP);
-					for(int i:{0,1,2}) glVertex3v((f.nodes[i]->pos+j*normal*f.halfThick).eval());
-				glEnd();
-			}
-			#if 0
-				auto o=f.getOuterVectors();
-				Vector3r outer[3]={std::get<0>(o),std::get<1>(o),std::get<2>(o)};
-				for(int i:{0,1,2}) halfCylinder(f.nodes[i]->pos,f.nodes[(i+1)%3]->pos,f.halfThick,outer[i].normalized(),Vector3r(NaN,NaN,NaN),12,1);
-			#else
-				for(int i:{0,1,2}){
-					GLUtils::Cylinder(f.nodes[i]->pos,f.nodes[(i+1)%3]->pos,f.halfThick,Vector3r(NaN,NaN,NaN),/*wire*/true,/*caps*/false,f.halfThick,12,1);
-					//glutWireSphere(r,quality*glutSlices,quality*glutStacks);
-				}
-			#endif
+			// draw noting inside, just the boundary
+			drawEdges(f,f.getNormal(),true);
 		}
 		glEnable(GL_LINE_SMOOTH);
 	} else {
-		glDisable(GL_CULL_FACE); 
 		Vector3r normal=f.getNormal();
-			// this makes every triangle different WRT the light direction; important for shading
-			glNormal3v(normal);
-			if(f.halfThick==0){
-				glBegin(GL_TRIANGLES);
-					for(int i:{0,1,2}) glVertex3v(f.nodes[i]->pos);
-				glEnd();
-			} else {
-				glBegin(GL_TRIANGLES);
-					for(int j:{-1,1}){
-						for(int i:{0,1,2}) glVertex3v((f.nodes[i]->pos+j*normal*f.halfThick).eval());
-					}
-				glEnd();
-				#if 0
-					// draw half-cylinder
-				#else
-					for(int i:{0,1,2}) GLUtils::Cylinder(f.nodes[i]->pos,f.nodes[(i+1)%3]->pos,f.halfThick,Vector3r(NaN,NaN,NaN),/*wire*/false,/*caps*/false,f.halfThick,12,1);
-				#endif
-			}
+		// this makes every triangle different WRT the light direction; important for shading
+		if(f.halfThick==0){
+			glDisable(GL_CULL_FACE); 
+			glBegin(GL_TRIANGLES);
+				glNormal3v(normal);
+				for(int i:{0,1,2}) glVertex3v(f.nodes[i]->pos);
+			glEnd();
+		} else {
+			glDisable(GL_CULL_FACE); 
+			glBegin(GL_TRIANGLES);
+				glNormal3v(normal);
+				for(int i:{0,1,2}) glVertex3v((f.nodes[i]->pos+1*normal*f.halfThick).eval());
+				glNormal3v((-normal).eval());
+				for(int i:{0,2,1}) glVertex3v((f.nodes[i]->pos-1*normal*f.halfThick).eval());
+			glEnd();
+			drawEdges(f,normal,false);
+		}
 	}
 }
 

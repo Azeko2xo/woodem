@@ -166,7 +166,18 @@ void VtkExport::run(){
 		// no more spheres, just meshes now
 		int nCells=0;
 		if(facet){
-			nCells=addTriangulatedObject({p->shape->nodes[0]->pos,p->shape->nodes[1]->pos,p->shape->nodes[2]->pos},{Vector3i(0,1,2)},mPos,mCells);
+			if(facet->halfThick==0.){
+				nCells=addTriangulatedObject({p->shape->nodes[0]->pos,p->shape->nodes[1]->pos,p->shape->nodes[2]->pos},{Vector3i(0,1,2)},mPos,mCells);
+			} else {
+				const Vector3r &A(facet->nodes[0]->pos), &B(facet->nodes[1]->pos), &C(facet->nodes[2]->pos);
+				const Vector3r dz=facet->getNormal()*facet->halfThick;
+				nCells=addTriangulatedObject({A+dz,B+dz,C+dz,A-dz,B-dz,C-dz},{
+					Vector3i(0,1,2),Vector3i(3,4,5),
+					Vector3i(0,1,3),Vector3i(3,1,4),
+					Vector3i(1,2,4),Vector3i(4,2,5),
+					Vector3i(2,0,5),Vector3i(5,0,3),
+				},mPos,mCells);
+			}
 		}
 		else if(wall){
 			if(isnan(wall->glAB.volume())){

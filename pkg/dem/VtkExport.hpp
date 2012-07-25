@@ -48,9 +48,9 @@ struct VtkExport: public PeriodicEngine{
 		((int,mask,0,,"If non-zero, only particles matching the mask will be exported."))
 		((int,what,WHAT_ALL,AttrTrait<>().triggerPostLoad(),"Select data to be saved (e.g. VtkExport.spheres|VtkExport.mesh, or use VtkExport.all for everything)"))
 		((bool,sphereSphereOnly,false,,"Only export contacts between two spheres (not sphere+facet and such)"))
-		((int,subdiv,16,AttrTrait<>().noGui(),"Subdivision fineness for circular objects (such as cylinders)."))
 		((bool,infError,true,,"Raise exception for infinite objects which don't have the glAB attribute set properly"))
 		((bool,skipInvisible,true,,"Skip invisible particles"))
+		((int,subdiv,16,AttrTrait<>().noGui(),"Subdivision fineness for circular objects (such as cylinders).\n\n.. note:: :ref:`Facet` objects with non-zero :ref:`halfThick<Facet.halfThick>` are rendered without rounded edges (they are closed flat)."))
 		,/*ctor*/
 		initRun=false; // do not run at the very first step
 		,/*py*/
