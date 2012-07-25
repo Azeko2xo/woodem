@@ -8,6 +8,7 @@ to facets representing the surface."""
 from woo import pack,utils
 from woo.core import *
 from woo.dem import *
+import woo.gl
 import gts, os.path
 
 # coarsen the original horse if we have it
@@ -44,7 +45,8 @@ S.engines=[
 	),
 	Leapfrog(damping=.1),
 	PyRunner(2000,'timing.stats(); S.stop();'),
-	PyRunner(10,'addPlotData()')
+	PyRunner(10,'addPlotData()'),
+	woo.gl.Tracer(stepPeriod=20,num=32,compress=2,compSkip=4)
 ]
 S.dem.gravity=(0,0,-5000)
 S.dt=.7*utils.pWaveDt()

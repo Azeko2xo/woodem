@@ -581,6 +581,8 @@ void ConveyorFactory::run(){
 	};
 
 	setCurrRate(stepMass/(/*time*/lenToDo/vel));
+
+	dem->contacts->dirty=true; // re-initialize the collider
 }
 
 py::object ConveyorFactory::pyDiamMass() const {

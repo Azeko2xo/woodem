@@ -314,9 +314,16 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 	if(false){}
 	/* special keys: Escape and Space */
 	else if(e->key()==Qt::Key_A){ toggleAxisIsDrawn(); return; }
-	else if(e->key()==Qt::Key_S){ Renderer::scaleOn=!Renderer::scaleOn;
-		displayMessage("Scaling is "+(Renderer::scaleOn?string("on (displacements ")+lexical_cast<string>(Renderer::dispScale.transpose())+", rotations "+lexical_cast<string>(Renderer::rotScale)+")":string("off")));
-		return;
+	else if(e->key()==Qt::Key_S){
+		if(e->modifiers() & Qt::AltModifier){
+			LOG_INFO("Saving QGLViewer state to /tmp/qglviewerState.xml");
+			setStateFileName("/tmp/qglviewerState.xml"); saveStateToFile(); setStateFileName(QString::null);
+			// return;
+		} else {
+			Renderer::scaleOn=!Renderer::scaleOn;
+			displayMessage("Scaling is "+(Renderer::scaleOn?string("on (displacements ")+lexical_cast<string>(Renderer::dispScale.transpose())+", rotations "+lexical_cast<string>(Renderer::rotScale)+")":string("off")));
+			return;
+		}
 	}
 	else if(e->key()==Qt::Key_Escape){
 		if(!isManipulating()){ 
@@ -389,10 +396,6 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 		else {
 			camera()->setRevolveAroundPoint(sceneCenter());
 		}
-	}
-	else if(e->key()==Qt::Key_S){
-		LOG_INFO("Saving QGLViewer state to /tmp/qglviewerState.xml");
-		setStateFileName("/tmp/qglviewerState.xml"); saveStateToFile(); setStateFileName(QString::null);
 	}
 	else if(e->key()==Qt::Key_X || e->key()==Qt::Key_Y || e->key()==Qt::Key_Z){
 		int axisIdx=(e->key()==Qt::Key_X?0:(e->key()==Qt::Key_Y?1:2));
@@ -528,19 +531,19 @@ void GLViewer::draw(bool withNames)
 	if(Master::instance().getScene()){
 		// int selection = selectedName();
 		#if 0
-		if(selection!=-1 && (*(Master::instance().getScene()->bodies)).exists(selection) && isMoving){
-			static int last(-1);
-			if(last == selection) // delay by one redraw, so the body will not jump into 0,0,0 coords
-			{
-				Quaternionr& q = (*(Master::instance().getScene()->bodies))[selection]->state->ori;
-				Vector3r&    v = (*(Master::instance().getScene()->bodies))[selection]->state->pos;
-				float v0,v1,v2; manipulatedFrame()->getPosition(v0,v1,v2);v[0]=v0;v[1]=v1;v[2]=v2;
-				double q0,q1,q2,q3; manipulatedFrame()->getOrientation(q0,q1,q2,q3);	q.x()=q0;q.y()=q1;q.z()=q2;q.w()=q3;
+			if(selection!=-1 && (*(Master::instance().getScene()->bodies)).exists(selection) && isMoving){
+				static int last(-1);
+				if(last == selection) // delay by one redraw, so the body will not jump into 0,0,0 coords
+				{
+					Quaternionr& q = (*(Master::instance().getScene()->bodies))[selection]->state->ori;
+					Vector3r&    v = (*(Master::instance().getScene()->bodies))[selection]->state->pos;
+					float v0,v1,v2; manipulatedFrame()->getPosition(v0,v1,v2);v[0]=v0;v[1]=v1;v[2]=v2;
+					double q0,q1,q2,q3; manipulatedFrame()->getOrientation(q0,q1,q2,q3);	q.x()=q0;q.y()=q1;q.z()=q2;q.w()=q3;
+				}
+				(*(Master::instance().getScene()->bodies))[selection]->userForcedDisplacementRedrawHook();	
+				last=selection;
 			}
-			(*(Master::instance().getScene()->bodies))[selection]->userForcedDisplacementRedrawHook();	
-			last=selection;
-		}
-#endif
+		#endif
 		if(manipulatedClipPlane>=0){
 			assert(manipulatedClipPlane<Renderer::numClipPlanes);
 			float v0,v1,v2; manipulatedFrame()->getPosition(v0,v1,v2);
@@ -575,6 +578,7 @@ void GLViewer::postSelection(const QPoint& point)
 	if(selection<0 || selection>=(int)Renderer::glNamedObjects.size()) return;
 
 	Renderer::selObj=Renderer::glNamedObjects[selection];
+	auto prevSelNode=Renderer::selObjNode;
 	Renderer::selObjNode=Renderer::glNamedNodes[selection];
 	Renderer::glNamedObjects.clear(); Renderer::glNamedNodes.clear();
 	Vector3r pos=Renderer::selObjNode->pos;
@@ -582,15 +586,13 @@ void GLViewer::postSelection(const QPoint& point)
 	setSceneCenter(qglviewer::Vec(pos[0],pos[1],pos[2]));
 
 	cerr<<"Selected object #"<<selection<<" is a "<<Renderer::selObj->getClassName()<<endl;
+	cerr<<"\tat"<<Renderer::selObjNode->pos.transpose()<<endl;
+	if(prevSelNode){
+		Vector3r dPos=Renderer::selObjNode->pos-prevSelNode->pos;
+		cerr<<"\tdistance from previous "<<dPos.norm()<<" (dx="<<dPos.transpose()<<")"<<endl;
+		displayMessage("distance "+to_string(dPos.norm()));
+	}
 	pyRunString("import woo.qt; onSelection(woo.qt.getSel());");
-	
-	/*
-	gilLock lock(); // needed, since we call in python API from c++ here
-	py::scope woo=py::import("woo");
-	cerr<<"Selected "<<Renderer::selObj->getClassName()<<" @ "<<lexical_cast<string>(Renderer::selObj)<<endl;
-	if(!PyObject_HasAttrString(woo.ptr(),"onSelect")) return;
-	woo.attr("onSelect")(py::object(Renderer::selObj));
-	*/
 }
 
 // maybe new object will be selected.

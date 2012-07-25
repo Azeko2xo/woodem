@@ -3,6 +3,7 @@
 #include<woo/pkg/dem/Sphere.hpp>
 #include<woo/pkg/dem/InfCylinder.hpp>
 #include<woo/pkg/dem/Wall.hpp>
+#include<woo/pkg/dem/Tracer.hpp>
 #include<woo/lib/opengl/GLUtils.hpp>
 #include<woo/pkg/gl/Renderer.hpp>
 #include<woo/lib/base/CompUtils.hpp>
@@ -16,6 +17,8 @@ bool Gl1_DemField::wire;
 bool Gl1_DemField::bound;
 bool Gl1_DemField::shape;
 bool Gl1_DemField::nodes;
+bool Gl1_DemField::trace;
+bool Gl1_DemField::_hadTrace;
 int Gl1_DemField::cNode;
 bool Gl1_DemField::cPhys;
 int Gl1_DemField::colorBy;
@@ -74,6 +77,26 @@ void Gl1_DemField::postLoad(Gl1_DemField&){
 		case GLYPH_VEL: glyphRange->label="velocity"; break;
 		default: LOG_ERROR("Unknown value Gl1_DemField.glyph="<<glyph<<" (ignored)??");
 	};
+
+	if(trace || _hadTrace){
+		/** trace engine **/
+		int traceIx=-1;
+		Scene* s=Master::instance().getScene().get();
+		for(int i=0; i<s->engines.size(); i++){
+			const auto& e=s->engines[i];
+			if(dynamic_pointer_cast<Tracer>(e)){ traceIx=i; break; }
+		}
+		if(trace && traceIx<0){
+			LOG_ERROR("woo.dem.Tracer must be added to engines manually; not disabling/enabling from here!");
+			trace=false;
+			_hadTrace=false;
+		} else {
+			if(traceIx>=0){
+				s->engines[traceIx]->dead=!trace;
+			}
+			_hadTrace=true;
+		}
+	}
 }
 
 void Gl1_DemField::doBound(){

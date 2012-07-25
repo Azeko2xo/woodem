@@ -222,6 +222,7 @@ def run(pre): # use inputs as argument
 		factory,
 		PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.savePlotData(S)'),
 		PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.watchProgress(S)'),
+		Tracer(stepPeriod=20,num=100,compress=2,compSkip=4,dead=True)
 	]+(
 		# FIXME: revert subdiv=48 to default (16)
 		[] if (not pre.vtkPrefix or pre.vtkFreq<=0) else [VtkExport(out=pre.vtkPrefix.format(**dict(s.tags)),stepPeriod=int(pre.vtkFreq*pre.factStepPeriod),what=VtkExport.all,subdiv=48)]
