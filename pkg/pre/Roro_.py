@@ -199,7 +199,7 @@ def run(pre): # use inputs as argument
 		barriersAt.append(bucketEnd)
 		xzd0,xzd1=cylXzd[bucketStart],cylXzd[bucketEnd]
 		# initially don't save deleted particles
-		bucketDeleters.append(BoxDeleter(stepPeriod=factStep,inside=True,box=((xzd0[0],ymin,zmin),(xzd1[0],ymax,min(xzd0[1]-xzd0[2]/2.,xzd1[1]-xzd1[2]/2.))),glColor=.05*i,save=False,mask=delMask,currRateSmooth=pre.rateSmooth,label='aperture[%d]'%i))
+		bucketDeleters.append(BoxDeleter(stepPeriod=factStep,inside=True,box=((xzd0[0],ymin,zmin),(xzd1[0],ymax,min(xzd0[1]-xzd0[2]/2.,xzd1[1]-xzd1[2]/2.))),glColor=.05*i,save=False,mask=delMask,currRateSmooth=pre.rateSmooth,label='bucket[%d]'%i))
 		bucketStart=bucketEnd
 	# bucket barriers
 	for cylI in barriersAt:
@@ -222,7 +222,7 @@ def run(pre): # use inputs as argument
 		factory,
 		PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.savePlotData(S)'),
 		PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.watchProgress(S)'),
-		Tracer(stepPeriod=20,num=100,compress=2,compSkip=4,dead=True)
+		Tracer(stepPeriod=20,num=100,compress=2,compSkip=4,dead=True,scalar=Tracer.scalarRadius)
 	]+(
 		# FIXME: revert subdiv=48 to default (16)
 		[] if (not pre.vtkPrefix or pre.vtkFreq<=0) else [VtkExport(out=pre.vtkPrefix.format(**dict(s.tags)),stepPeriod=int(pre.vtkFreq*pre.factStepPeriod),what=VtkExport.all,subdiv=48)]
@@ -236,7 +236,7 @@ def run(pre): # use inputs as argument
 
 	if pre.mass:
 		import woo
-		for a in woo.aperture: a.save=True
+		for a in woo.bucket: a.save=True
 		woo.factory.save=True
 		woo.factory.maxMass=pre.mass*pre.cylRelLen
 
@@ -338,21 +338,33 @@ def watchProgress(S):
 	state only'''
 	import woo
 	pre=S.pre
+
+	def saveWithPlotData(S):
+		import woo.plot, pickle
+		out=S.pre.saveFmt.format(stage='done',S=S,**(dict(S.tags)))
+		if S.lastSave==out:
+			woo.plot.data=pickle.loads(S.tags['plot.data'])
+			print 'Reloaded plot data'
+		else:
+			S.tags['plot.data']=pickle.dumps(woo.plot.data)
+			S.save(out)
+			print 'Saved (incl. plot.data) to',out
+
 	## wait for steady state, then simulate pre.time time of steady state
 	if pre.time>0:
 		assert pre.mass<=0
 		# not yet saving what falls through, i.e. not in stabilized regime yet
-		if woo.aperture[0].save==False:
+		if woo.bucket[0].save==False:
 			# first particles have just fallen over
-			# start saving apertures and reset our counters here
+			# start saving buckets and reset our counters here
 			#if woo.fallOver.num>pre.steadyOver:
-			influx,efflux=woo.factory.currRate,(woo.fallOver.currRate+woo.outOfDomain.currRate+sum([a.currRate for a in woo.aperture]))
+			influx,efflux=woo.factory.currRate,(woo.fallOver.currRate+woo.outOfDomain.currRate+sum([a.currRate for a in woo.bucket]))
 			if efflux>pre.steadyFlowFrac*influx:
 				#print efflux,'>',pre.steadyFlowFrac,'*',influx
 				woo.fallOver.clear()
 				woo.factory.clear() ## FIXME
 				woo.factory.maxMass=pre.time*pre.cylRelLen*pre.massFlowRate # required mass scaled to simulated part
-				for ap in woo.aperture:
+				for ap in woo.bucket:
 					ap.clear() # to clear overall mass, which gets counted even with save=False
 					ap.save=True
 				print 'Stabilized regime reached (influx %g, efflux %g) at step %d (t=%gs), counters engaged.'%(influx,efflux,S.step,S.time)
@@ -364,16 +376,8 @@ def watchProgress(S):
 			# factory has finished generating particles
 			if woo.factory.mass>woo.factory.maxMass:
 				print 'All mass generated at step %d (t=%gs, mass %g/%g), ending.'%(S.step,S.time,woo.factory.mass,woo.factory.maxMass)
-				import woo.plot, pickle
 				try:
-					out=S.pre.saveFmt.format(stage='done',S=S,**(dict(S.tags)))
-					if S.lastSave==out:
-						woo.plot.data=pickle.loads(S.tags['plot.data'])
-						print 'Reloaded plot data'
-					else:
-						S.tags['plot.data']=pickle.dumps(woo.plot.data)
-						S.save(out)
-						print 'Saved (incl. plot.data) to',out
+					saveWithPlotData(S)
 					writeReport(S)
 				except:
 					import traceback
@@ -385,10 +389,11 @@ def watchProgress(S):
 		assert pre.time<=0
 		## after the mass is reached, continue for some time (say 20% of the simulation up to now), then finish
 		if woo.factory.mass>=woo.factory.maxMass:
-			delRate=sum([a.currRate for a in woo.aperture+[woo.fallOver]])
+			delRate=sum([a.currRate for a in woo.bucket+[woo.fallOver]])
 			if delRate<pre.residueFlowFrac*pre.cylRelLen*pre.massFlowRate: # feed flow rate scaled to simulated width
 				print 'Delete rate dropped under %g×%g kg/s, ending simulation.'%(pre.residueFlowFrac,pre.massFlowRate)
 				try:
+					saveWithPlotData(S)
 					writeReport(S)
 				except:
 					import traceback
@@ -400,10 +405,10 @@ def watchProgress(S):
 
 def savePlotData(S):
 	import woo
-	#if woo.aperture[0].save==False: return # not in the steady state yet
+	#if woo.bucket[0].save==False: return # not in the steady state yet
 	import woo.plot
 	# save unscaled data here!
-	apRate=sum([a.currRate for a in woo.aperture])
+	bucketRate=sum([a.currRate for a in woo.bucket])
 	overRate=woo.fallOver.currRate
 	lostRate=woo.outOfDomain.currRate
 	# keep in sync in report-generating routine (looks up data based on this!)
@@ -413,12 +418,12 @@ def savePlotData(S):
 		for i,gapFrac in enumerate(S.pre.efficiencyGapFrac):
 			dd=S.pre.gap*gapFrac
 			mUnderProduct=sum([dm[1] for dm in zip(*woo.fallOver.diamMass()) if dm[0]<dd])
-			mUnderAperture=sum([sum([dm[1] for dm in zip(*ap.diamMass()) if dm[0]<dd]) for ap in woo.aperture])
-			otherData[eff[i]]=mUnderAperture/(mUnderAperture+mUnderProduct)
+			mUnderBucket=sum([sum([dm[1] for dm in zip(*buck.diamMass()) if dm[0]<dd]) for buck in woo.bucket])
+			otherData[eff[i]]=mUnderBucket/(mUnderBucket+mUnderProduct)
 	if S.trackEnergy: otherData.update(ERelErr=S.energy.relErr() if S.step>200 else float('nan'),**S.energy)
-	woo.plot.addData(i=S.step,t=S.time,genRate=woo.factory.currRate,apRate=apRate,overRate=overRate,lostRate=lostRate,delRate=apRate+overRate+lostRate,numPar=len(S.dem.par),genMass=woo.factory.mass,**otherData)
+	woo.plot.addData(i=S.step,t=S.time,genRate=woo.factory.currRate,bucketRate=bucketRate,overRate=overRate,lostRate=lostRate,delRate=bucketRate+overRate+lostRate,numPar=len(S.dem.par),genMass=woo.factory.mass,**otherData)
 	if not woo.plot.plots:
-		woo.plot.plots={'t':('genRate','apRate','lostRate','overRate','delRate',None,('numPar','g--')),'t ':('genMass'),' t':eff}
+		woo.plot.plots={'t':('genRate','bucketRate','lostRate','overRate','delRate',None,('numPar','g--')),'t ':('genMass'),' t':eff}
 		if S.trackEnergy: woo.plot.plots.update({'  t':(S.energy,None,('ERelErr','g--'))})
 
 def splitPsd(xx0,yy0,splitX):
@@ -447,7 +452,7 @@ def splitPsd(xx0,yy0,splitX):
 def svgFragment(data):
 	return data[data.find('<svg '):]
 
-def psdFeedApertureFalloverTable(inPsd,feedDM,apDM,overDM,splitD):
+def psdFeedBucketFalloverTable(inPsd,feedDM,bucketDM,overDM,splitD):
 	import collections, numpy
 	TabLine=collections.namedtuple('TabLine','dMin dMax dAvg inFrac feedFrac feedSmallFrac feedBigFrac overFrac')
 	feedD,feedM=feedDM
@@ -487,6 +492,33 @@ def psdFeedApertureFalloverTable(inPsd,feedDM,apDM,overDM,splitD):
 		,cellpadding='2px',frame='box',rules='all'
 	).generate().render('xhtml')
 
+def bucketPsdTable(S,massName,massScale,massUnit):
+	psdSplits=[df[0] for df in S.pre.psd]
+	buckMasses=[]
+	for buck in woo.bucket:
+		mm=[]
+		for i in range(len(psdSplits)-1):
+			dmdm=zip(*buck.diamMass())
+			mm.append(sum([dm[1] for dm in dmdm if (dm[0]>=psdSplits[i] and dm[0]<psdSplits[i+1])]))
+		buckMasses.append(mm)
+		print buck.mass,sum(mm)
+	from genshi.builder import tag as t
+	tab=t.table(
+		t.tr(t.th('diameter',t.br,'[mm]'),*tuple([t.th('bucket %d'%i,t.br,'[mass %]',colspan=2) for i in range(len(woo.bucket))])),
+		cellpadding='2px',frame='box',rules='all'
+	)
+	dScale=1e3 # m to mm
+	for i in range(len(psdSplits)-1):
+		tr=t.tr(t.td('%g-%g'%(dScale*psdSplits[i],dScale*psdSplits[i+1])))
+		for bm in buckMasses:
+			bMass=sum(bm)
+			tr.append(t.td('%.4g'%(100*bm[i]/bMass),align='right'))
+			tr.append(t.td('%.4g'%(100*sum(bm[:i+1])/bMass),align='right'))
+		tab.append(tr)
+	tab.append(t.tr(t.th('%s [%s]'%(massName,massUnit)),*tuple([t.th('%g'%(sum(bm)*massScale),colspan=2) for bm in buckMasses])))
+	return tab.generate().render('xhtml')
+
+
 def efficiencyTableFigure(S,pre):
 	# split points
 	diams=[p[0] for p in pre.psd]
@@ -494,14 +526,14 @@ def efficiencyTableFigure(S,pre):
 	diams.sort()
 	diams=diams[1:-1] # smallest and largest are meaningless (would have 0%/100% everywhere)
 	import numpy
-	# each line is for one aperture
+	# each line is for one bucket
 	# each column is for one fraction
-	data=numpy.zeros(shape=(len(woo.aperture),len(diams)))
-	for apNum,aperture in enumerate(woo.aperture):
-		xMin,xMax=aperture.box.min[0],aperture.box.max[0]
+	data=numpy.zeros(shape=(len(woo.bucket),len(diams)))
+	for apNum,bucket in enumerate(woo.bucket):
+		xMin,xMax=bucket.box.min[0],bucket.box.max[0]
 		massTot=0.
 		for p in S.dem.par:
-			# only spheres above the aperture count
+			# only spheres above the bucket count
 			if not isinstance(p.shape,woo.dem.Sphere) or p.pos[0]<xMin or p.pos[1]>xMax: continue
 			massTot+=p.mass
 			for i,d in enumerate(diams):
@@ -510,19 +542,19 @@ def efficiencyTableFigure(S,pre):
 		data[apNum]/=massTot
 	from genshi.builder import tag as t
 	table=t.table(
-		[t.tr([t.th()]+[t.th('Aperture %d'%(apNum+1)) for apNum in range(len(woo.aperture))])]+
-		[t.tr([t.th('< %.4g mm'%(1e3*diams[dNum]))]+[t.td('%.1f %%'%(1e2*data[apNum][dNum]),align='right') for apNum in range(len(woo.aperture))]) for dNum in range(len(diams))]
+		[t.tr([t.th()]+[t.th('Bucket %d'%(apNum+1)) for apNum in range(len(woo.bucket))])]+
+		[t.tr([t.th('< %.4g mm'%(1e3*diams[dNum]))]+[t.td('%.1f %%'%(1e2*data[apNum][dNum]),align='right') for apNum in range(len(woo.bucket))]) for dNum in range(len(diams))]
 		,cellpadding='2px',frame='box',rules='all'
 	).generate().render('xhtml')
 	import pylab
 	fig=pylab.figure()
 	for dNum,d in reversed(list(enumerate(diams))): # displayed from the bigger to smaller, to make legend aligned with lines
-		pylab.plot(numpy.arange(len(woo.aperture))+1,data[:,dNum],marker='o',label='< %.4g mm'%(1e3*d))
+		pylab.plot(numpy.arange(len(woo.bucket))+1,data[:,dNum],marker='o',label='< %.4g mm'%(1e3*d))
 	from matplotlib.ticker import FuncFormatter
 	percent=FuncFormatter(lambda x,pos=0: '%g%%'%(100*x))
 	pylab.gca().yaxis.set_major_formatter(percent)
 	pylab.ylabel('Mass fraction')
-	pylab.xlabel('Aperture number')
+	pylab.xlabel('Bucket number')
 	pylab.ylim(ymin=0,ymax=1)
 	l=pylab.legend()
 	l.get_frame().set_alpha(.6)
@@ -554,15 +586,26 @@ def writeReport(S):
 	from matplotlib.ticker import FuncFormatter
 	percent=FuncFormatter(lambda x,pos=0: '%g%%'%(100*x))
 	milimeter=FuncFormatter(lambda x,pos=0: '%3g'%(1000*x))
-	megaUnit=FuncFormatter(lambda x,pos=0: '%3g'%(1e-6*x))
 
 	legendAlpha=.6
 
 	# should this be scaled to t/year as well?
-	massScale=(
-		(1./pre.cylRelLen)*(1./S.time) # in kg/sec
-		*3600*24*365/1000.  # in t/y
-	)
+	# steady regime
+	if pre.time>0: 
+		massScale=(
+			(1./pre.cylRelLen)*(1./S.time) # in kg/sec
+			*3600*24*365/1000.  # in t/y
+			*1e-6 # in Mt/y
+		)
+		massUnit='Mt/y'
+		massName='flow'
+		massFormatter=FuncFormatter(lambda x,pos=0: '%3g'%(1e-6*x))
+	else:
+		# mass-based simulation
+		massScale=(1./pre.cylRelLen) # in kg
+		massUnit='kg'
+		massName='mass'
+		massFormatter=None
 
 	def scaledFlowPsd(x,y,massFactor=1.): return numpy.array(x),massFactor*massScale*numpy.array(y)
 	def unscaledPsd(x,y): return numpy.array(x),numpy.array(y)
@@ -575,52 +618,52 @@ def writeReport(S):
 
 	feedPsd=scaledFlowPsd(*woo.factory.generator.psd())
 	pylab.plot(*inPsd,label='user',marker='o')
-	pylab.plot(*feedPsd,label='feed (%g Mt/y)'%(woo.factory.mass*massScale*1e-6))
+	pylab.plot(*feedPsd,label='feed (%g %s)'%(woo.factory.mass*massScale,massUnit))
 	overPsd=scaledFlowPsd(*woo.fallOver.psd())
-	pylab.plot(*overPsd,label='fall over (%.3g Mt/y)'%(woo.fallOver.mass*massScale*1e-6))
-	for i in range(0,len(woo.aperture)):
+	pylab.plot(*overPsd,label='fall over (%.3g %s)'%(woo.fallOver.mass*massScale,massUnit))
+	for i in range(0,len(woo.bucket)):
 		try:
-			apPsd=scaledFlowPsd(*woo.aperture[i].psd())
-			pylab.plot(*apPsd,label='aperture %d (%.3g Mt/y)'%(i,woo.aperture[i].mass*massScale*1e-6))
+			apPsd=scaledFlowPsd(*woo.bucket[i].psd())
+			pylab.plot(*apPsd,label='bucket %d (%.3g %s)'%(i,woo.bucket[i].mass*massScale,massUnit))
 		except ValueError: pass
 	pylab.axvline(x=pre.gap,linewidth=5,alpha=.3,ymin=0,ymax=1,color='g',label='gap')
 	pylab.grid(True)
 	leg=pylab.legend(loc='best')
 	leg.get_frame().set_alpha(legendAlpha)
 	pylab.gca().xaxis.set_major_formatter(milimeter)
-	pylab.gca().yaxis.set_major_formatter(megaUnit)
+	if massFormatter: pylab.gca().yaxis.set_major_formatter(massFormatter)
 	pylab.xlabel('diameter [mm]')
-	pylab.ylabel('cumulative flow [Mt/y]')
-	figs.append(('Cumulative flow',fig))
+	pylab.ylabel('cumulative %s [%s]'%(massName,massUnit))
+	figs.append(('Cumulative %s'%massName,fig))
 
 	#ax=pylab.subplot(222)
 	fig=pylab.figure()
 	dOver,mOver=scaledFlowPsd(*woo.fallOver.diamMass())
-	dAper,mAper=numpy.array([]),numpy.array([])
-	for a in woo.aperture:
+	dBuckets,mBuckets=numpy.array([]),numpy.array([])
+	for a in woo.bucket:
 		try:
 			d,m=scaledFlowPsd(*a.diamMass())
-			dAper=numpy.hstack([dAper,d]); mAper=numpy.hstack([mAper,m])
+			dBuckets=numpy.hstack([dBuckets,d]); mBuckets=numpy.hstack([mBuckets,m])
 		except ValueError: pass
-	hh=pylab.hist([dOver,dAper],weights=[mOver,mAper],bins=20,histtype='barstacked',label=['fallOver','apertures'])
+	hh=pylab.hist([dOver,dBuckets],weights=[mOver,mBuckets],bins=20,histtype='barstacked',label=['fallOver','buckets'])
 	flowBins=hh[1]
 	feedD,feedM=scaledFlowPsd(*woo.factory.generator.diamMass())
 	pylab.plot(.5*(flowBins[1:]+flowBins[:-1]),numpy.histogram(feedD,weights=feedM,bins=flowBins)[0],label='feed',alpha=.3,linewidth=2,marker='o')
 	pylab.axvline(x=pre.gap,linewidth=5,alpha=.3,ymin=0,ymax=1,color='g',label='gap')
 	pylab.grid(True)
 	pylab.gca().xaxis.set_major_formatter(milimeter)
-	pylab.gca().yaxis.set_major_formatter(megaUnit)
+	if massFormatter: pylab.gca().yaxis.set_major_formatter(massFormatter)
 	pylab.xlabel('particle diameter [mm]')
-	pylab.ylabel('flow [Mt/y]')
+	pylab.ylabel('%s [%s]'%(massName,massUnit))
 	leg=pylab.legend(loc='best')
 	leg.get_frame().set_alpha(legendAlpha)
-	figs.append(('Flow',fig))
+	figs.append((massName.capitalize(),fig))
 
 
-	feedTab=psdFeedApertureFalloverTable(
+	feedTab=psdFeedBucketFalloverTable(
 		inPsd=inPsdUnscaled,
 		feedDM=unscaledPsd(*woo.factory.generator.diamMass()),
-		apDM=(dAper,mAper),
+		bucketDM=(dBuckets,mBuckets),
 		overDM=(dOver,mOver),
 		splitD=pre.gap
 	)
@@ -675,20 +718,12 @@ def writeReport(S):
 	feedD=feedPsd[0]
 
 	pylab.axvline(x=pre.gap,linewidth=5,alpha=.3,ymin=0,ymax=1,color='g',label='gap')
-	if 0:
-		n,bins,patches=pylab.hist(dAper,weights=mAper/sum([ap.mass for ap in woo.aperture]),histtype='step',label='apertures',normed=True,bins=60,cumulative=True,linewidth=2)
-		patches[0].set_xy(patches[0].get_xy()[:-1])
-		n,bins,patches=pylab.hist(dOver,weights=mOver,normed=True,bins=60,cumulative=True,histtype='step',label='fallOver',linewidth=2)
-		patches[0].set_xy(patches[0].get_xy()[:-1])
-	else:
-		apHist,apBins=numpy.histogram(dAper,weights=mAper,bins=feedBins)
-		apHist/=apHist.sum()
-		overHist,overBins=numpy.histogram(dOver,weights=mOver,bins=feedBins)
-		overHist/=overHist.sum()
-		pylab.plot(binMids,apHist.cumsum(),label='apertures',linewidth=3)
-		pylab.plot(binMids,overHist.cumsum(),label='fall over',linewidth=3)
-	#for a in woo.aperture:
-	#	print a.mass,sum([dm[1] for dm in a.diamMass()]),'|',len(a.deleted),a.num
+	buckHist,buckBins=numpy.histogram(dBuckets,weights=mBuckets,bins=feedBins)
+	buckHist/=buckHist.sum()
+	overHist,overBins=numpy.histogram(dOver,weights=mOver,bins=feedBins)
+	overHist/=overHist.sum()
+	pylab.plot(binMids,buckHist.cumsum(),label='buckets',linewidth=3)
+	pylab.plot(binMids,overHist.cumsum(),label='fall over',linewidth=3)
 	pylab.ylim(ymin=-.05,ymax=1.05)
 
 	#print 'smaller',smallerPsd
@@ -702,14 +737,37 @@ def writeReport(S):
 	leg.get_frame().set_alpha(legendAlpha)
 	figs.append(('Efficiency',fig))
 
+
+	# per-bucket PSD
+	if 1:
+		fig=pylab.figure()
+		for i,buck in enumerate(woo.bucket):
+			dm=buck.diamMass()
+			h,bins=numpy.histogram(dm[0],weights=dm[1],bins=50)
+			h/=h.sum()
+			#h=pylab.hist(dm[0],bins=40,weights=dm[1],normed=True,histtype='step',label='bucket %d'%i,linewidth=2)
+			pylab.plot(bins,[0]+list(h.cumsum()),label='bucket %d'%i,linewidth=2)
+		#pylab.plot(binMids,h.cumsum(),label='bucket %d'%i,linewidth=2)
+		pylab.ylim(ymin=-.05,ymax=1.05)
+		pylab.grid(True)
+		pylab.gca().xaxis.set_major_formatter(milimeter)
+		pylab.xlabel('diameter [mm]')
+		pylab.gca().yaxis.set_major_formatter(percent)
+		pylab.ylabel('mass fraction')
+		pylab.axvline(x=pre.gap,linewidth=5,alpha=.3,ymin=0,ymax=1,color='g',label='gap')
+		leg=pylab.legend(loc='best')
+		leg.get_frame().set_alpha(legendAlpha)
+		figs.append(('Per-bucket PSD',fig))
+
 	try:
 		#ax=pylab.subplot(224)
 		fig=pylab.figure()
 		import woo.plot
 		d=woo.plot.data
-		d['genRate'][-1]=d['genRate'][-2] # replace trailing 0 by the last-but-one value
+		if S.pre.time>0:
+			d['genRate'][-1]=d['genRate'][-2] # replace trailing 0 by the last-but-one value
 		pylab.plot(d['t'],massScale*numpy.array(d['genRate']),label='feed')
-		pylab.plot(d['t'],massScale*numpy.array(d['apRate']),label='apertures')
+		pylab.plot(d['t'],massScale*numpy.array(d['bucketRate']),label='buckets')
 		pylab.plot(d['t'],massScale*numpy.array(d['lostRate']),label='(lost)')
 		pylab.plot(d['t'],massScale*numpy.array(d['overRate']),label='fallOver')
 		pylab.plot(d['t'],massScale*numpy.array(d['delRate']),label='delete')
@@ -757,31 +815,10 @@ def writeReport(S):
 		+'<h2>Outputs</h2>'
 		+'<h3>Feed</h3>'+feedTab
 		+(('<h3>Sieving</h3>'+effTab) if effTab else '')
+		+'<h3>Bucket PSD</h3>'+bucketPsdTable(S,massName=massName,massUnit=massUnit,massScale=massScale)
 		+'\n'.join(['<h3>'+svg[0]+'</h3>'+svgFragment(open(svg[1]).read()) for svg in svgs])
 		+'</body></html>'
 	)
-	if 0: # pure genshi version; probably does not work
-		html=(tag.head(tag.title('Report for Roller screen simulation')),tag.body(
-			tag.h1('Report for Roller screen simulation'),
-			tag.h2('General'),
-			tag.table(
-				tag.tr(tag.td('started'),tag.td('%g s'%(time.ctime(time.time()-woo.O.realtime)),align='right')),
-				tag.tr(tag.td('duration'),tag.td('%g s'%(woo.O.realtime),align='right')),
-				tag.tr(tag.td('number of cores'),tag.td(str(woo.O.numThreads),align='right')),
-				tag.tr(tag.td('average speed'),tag.td('%g steps/sec'%(S.step/woo.O.realtime))),
-				tag.tr(tag.td('engine'),tag.td('wooDem '+woo.config.version+'/'+woo.config.revision+(' (debug)' if woo.config.debug else ''))),
-				tag.tr(tag.td('compiled with'),tag.td(', '.join(woo.config.features))),
-			),
-			tag.h2('Input data'),
-			pre.dumps(format='genshi'),
-			tag.h2('Tables'),
-			tag.h3('Feed'),
-			feedTab,
-			tag.h3('Sieving'),
-			effTab,
-			tag.h2('Graphs'),
-			*tuple([XMLParser(StringIO.StringIO(svgFragment(open(svg).read()))).parse() for svg in svgs])
-		)).render('xhtml')
 
 	# to play with that afterwards
 	woo.html=html

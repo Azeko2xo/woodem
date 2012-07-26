@@ -28,6 +28,8 @@ struct Gl1_DemField: public GlFieldFunctor{
 		((shared_ptr<ScalarRange>,colorRange,make_shared<ScalarRange>(),AttrTrait<>().readonly(),"Range for particle colors"))
 		((shared_ptr<ScalarRange>,glyphRange,make_shared<ScalarRange>(),AttrTrait<>().readonly(),"Range for glyph colors"))
 		((bool,doPostLoad,false,AttrTrait<>().hidden(),"Run initialization routine when called next time (set from postLoadStatic)"))
+		((bool,colorSpheresOnly,true,,"If :ref:`colorBy` is active, use automatic color for spheres only; for non-spheres, use :ref:`nonSphereColor`"))
+		((Vector3r,nonSphereColor,Vector3r(.3,.3,.3),AttrTrait<>().rgbColor(),"Color to use for non-spherical particles when :ref:`colorBy` is not :ref:`colorNone`."))
 		((bool,wire,false,,"Render all bodies with wire only"))
 		// ((bool,id,false,,"Show particle id's"))
 		((bool,bound,false,,"Render particle's :ref:`Bound`"))

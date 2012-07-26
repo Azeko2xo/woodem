@@ -22,6 +22,8 @@ bool Gl1_DemField::_hadTrace;
 int Gl1_DemField::cNode;
 bool Gl1_DemField::cPhys;
 int Gl1_DemField::colorBy;
+bool Gl1_DemField::colorSpheresOnly;
+Vector3r Gl1_DemField::nonSphereColor;
 shared_ptr<ScalarRange> Gl1_DemField::colorRange;
 int Gl1_DemField::glyph;
 Real Gl1_DemField::glyphRelSz;
@@ -144,9 +146,14 @@ void Gl1_DemField::doShape(){
 
 		FOREACH(const shared_ptr<Node>& n,p->shape->nodes) Renderer::setNodeGlData(n,updateRefPos);
 
+
 		Vector3r parColor;
-		switch(colorBy){
-				case COLOR_RADIUS: parColor=(dynamic_pointer_cast<Sphere>(p->shape)?colorRange->color(p->shape->cast<Sphere>().radius):Vector3r(NaN,NaN,NaN)); break;
+		bool isSphere;
+		if(colorSpheresOnly || COLOR_RADIUS) isSphere=dynamic_pointer_cast<Sphere>(p->shape);
+		if(!isSphere && colorSpheresOnly) parColor=nonSphereColor;
+		else{
+			switch(colorBy){
+				case COLOR_RADIUS: parColor=isSphere?colorRange->color(p->shape->cast<Sphere>().radius):nonSphereColor; break;
 				case COLOR_VEL: parColor=colorRange->color(n0->getData<DemData>().vel.norm()); break;
 				case COLOR_MASS: parColor=colorRange->color(n0->getData<DemData>().mass); break;
 				case COLOR_DISPLACEMENT: parColor=colorRange->color((n0->pos-n0->getData<GlData>().refPos).norm()); break;
@@ -154,7 +161,8 @@ void Gl1_DemField::doShape(){
 				case COLOR_MAT_ID: parColor=colorRange->color(p->material->id); break;
 				case COLOR_MAT_PTR: parColor=colorRange->color((size_t)p->material.get()); break;
 				case COLOR_NONE: parColor=colorRange->color(p->shape->color); break;
-			default: parColor=Vector3r(NaN,NaN,NaN);
+				default: parColor=Vector3r(NaN,NaN,NaN);
+			}
 		}
 
 		for(const auto& n: p->shape->nodes){

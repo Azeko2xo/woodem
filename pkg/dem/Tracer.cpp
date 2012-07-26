@@ -12,15 +12,17 @@ void TraceGlRep::compress(int ratio){
 	int skip=(Tracer::compSkip<0?ratio:Tracer::compSkip);
 	for(i=0; ratio*i+skip<pts.size(); i++){
 		pts[i]=pts[ratio*i+skip];
+		scalars[i]=scalars[ratio*i+skip];
 	}
 	writeIx=i;
 }
-void TraceGlRep::addPoint(const Vector3r& p){
+void TraceGlRep::addPoint(const Vector3r& p, const Real& scalar){
 	if(flags&FLAG_MINDIST){
 		size_t lastIx=(writeIx>0?writeIx-1:pts.size());
 		if((p-pts[lastIx]).norm()<Tracer::minDist) return;
 	}
 	pts[writeIx]=p;
+	scalars[writeIx]=scalar;
 	if(flags&FLAG_COMPRESS){
 		if(writeIx>=pts.size()-1) compress(Tracer::compress);
 		else writeIx+=1;
@@ -45,7 +47,13 @@ void TraceGlRep::render(const shared_ptr<Node>& n, GLViewInfo*){
 				relColor=i*1./pts.size();
 			}
 			if(!isnan(pts[ix][0])){
-				glColor3v(Tracer::lineColor->color(relColor));
+				if(isnan(scalars[ix])){
+					// if there is no scalar and no scalar should be saved, color by history position
+					if(Tracer::scalar==Tracer::SCALAR_NONE) glColor3v(Tracer::lineColor->color((flags&FLAG_COMPRESS ? i*1./writeIx : i*1./pts.size())));
+					// if other scalars are saved, use noneColor to not destroy Tracer::lineColor range by auto-adjusting to bogus
+					else glColor3v(Tracer::noneColor);
+				}
+				else glColor3v(Tracer::lineColor->color(scalars[ix]));
 				glVertex3v(pts[ix]);
 			}
 		}
@@ -55,8 +63,10 @@ void TraceGlRep::render(const shared_ptr<Node>& n, GLViewInfo*){
 Vector2i Tracer::modulo;
 Vector2r Tracer::rRange;
 int Tracer::num;
+int Tracer::scalar;
 int Tracer::compress;
 int Tracer::compSkip;
+Vector3r Tracer::noneColor;
 Real Tracer::minDist;
 bool Tracer::reset;
 shared_ptr<ScalarRange> Tracer::lineColor;
@@ -80,11 +90,25 @@ void Tracer::run(){
 				if(!n->rep || !dynamic_pointer_cast<TraceGlRep>(n->rep)){
 					n->rep=make_shared<TraceGlRep>();
 					n->rep->cast<TraceGlRep>().pts.resize(num,Vector3r(NaN,NaN,NaN));
+					n->rep->cast<TraceGlRep>().scalars.resize(num,NaN);
 					if(compress>0) n->rep->cast<TraceGlRep>().flags|=TraceGlRep::FLAG_COMPRESS;
 					if(minDist>0) n->rep->cast<TraceGlRep>().flags|=TraceGlRep::FLAG_MINDIST;
 				}
 				TraceGlRep& tr(n->rep->cast<TraceGlRep>());
-				tr.addPoint(n->pos);
+				Real sc;
+				switch(scalar){
+					case SCALAR_VEL: sc=n->getData<DemData>().vel.norm(); break;
+					case SCALAR_ACCEL:{
+						Real m=n->getData<DemData>().mass;
+						if(m>0) sc=n->getData<DemData>().force.norm()/m;
+						else sc=NaN;
+						break;
+					}
+					case SCALAR_RADIUS: sc=(dynamic_pointer_cast<Sphere>(p->shape)?p->shape->cast<Sphere>().radius:NaN); break;
+					case SCALAR_TIME: sc=scene->time; break;
+					default: sc=NaN;
+				}
+				tr.addPoint(n->pos,sc);
 			}
 		}
 	}

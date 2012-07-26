@@ -8,7 +8,7 @@ from miniEigen import *
 # don't import * from woo, it would be circular import
 from woo.core import Object
 
-import re,itertools
+import re,itertools,math
 import logging
 logging.trace=logging.debug
 logging.basicConfig(level=logging.INFO)
@@ -366,7 +366,8 @@ class AttrEditor_RgbColor(AttrEditor,QFrame):
 			w.selectionChanged.connect(self.isHot)
 			w.editingFinished.connect(self.update)
 			self.rgbWidgets.append(w)
-	def to256c(self,f): return min(255,max(0,int(f*256)))
+	def to256c(self,f):
+		return min(255,max(0,int(f*256))) if not math.isnan(f) else 0
 	def to256(self,v): return (self.to256c(v[0]),self.to256c(v[1]),self.to256c(v[2]))
 	def to256str(self,v,sep=','): return sep.join([str(self.to256c(v[0])),str(self.to256c(v[1])),str(self.to256c(v[2]))])
 	def dialogShow(self):

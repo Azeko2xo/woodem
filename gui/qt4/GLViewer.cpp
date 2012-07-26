@@ -590,7 +590,9 @@ void GLViewer::postSelection(const QPoint& point)
 	if(prevSelNode){
 		Vector3r dPos=Renderer::selObjNode->pos-prevSelNode->pos;
 		cerr<<"\tdistance from previous "<<dPos.norm()<<" (dx="<<dPos.transpose()<<")"<<endl;
-		displayMessage("distance "+to_string(dPos.norm()));
+		qglviewer::Vec vd0=camera()->viewDirection();
+		Vector3r vd(vd0[0],vd0[1],vd0[2]);
+		displayMessage("distance "+to_string(dPos.norm())+" ("+to_string((dPos-vd*dPos.dot(vd)).norm())+" view perp.)",/*delay*/6000);
 	}
 	pyRunString("import woo.qt; onSelection(woo.qt.getSel());");
 }

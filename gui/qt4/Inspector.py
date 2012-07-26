@@ -162,15 +162,21 @@ class BodyInspector(QWidget):
 			b=woo.master.scene.dem.par[self.bodyId]
 			self.serEd=SerializableEditor(b,showType=True,parent=self,path='woo.master.scene.dem.par[%d]'%self.bodyId)
 		except IndexError:
+			if self.bodyIdBox.hasFocus(): return False
 			self.serEd=QFrame(self)
 			self.bodyId=-1
 		self.scroll.setWidget(self.serEd)
+		return True
 	def changeIdSlot(self,newId):
 		self.bodyIdBox.setValue(newId);
 		self.bodyIdSlot()
 	def bodyIdSlot(self):
+		if not self.tryShowBody():
+			self.bodyIdBox.setStyleSheet('QWidget { background: red }')
+			return # we still have focus, don't attempt to change
+		else:
+			self.bodyIdBox.setStyleSheet('QWidget { background: none }')
 		self.bodyId=self.bodyIdBox.value()
-		self.tryShowBody()
 		self.setWindowTitle('Particle #%d'%self.bodyId)
 		self.refreshEvent()
 	def gotoBodySlot(self):

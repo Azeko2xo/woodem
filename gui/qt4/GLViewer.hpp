@@ -151,7 +151,7 @@ class GLViewer : public QGLViewer
 		virtual void draw(){ draw(/*withNames*/false); }
 		virtual void drawWithNames(){ draw(/*withNames*/true); }
 		virtual void draw(bool withNames);
-		void displayMessage(const std::string& s){ QGLViewer::displayMessage(QString(s.c_str()));}
+		void displayMessage(const std::string& s, int delay=2000){ QGLViewer::displayMessage(QString(s.c_str()),delay);}
 		void centerScene();
 		void centerPeriodic();
 		void mouseMovesCamera();
