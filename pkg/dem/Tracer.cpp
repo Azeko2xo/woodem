@@ -98,10 +98,10 @@ void Tracer::run(){
 				Real sc;
 				switch(scalar){
 					case SCALAR_VEL: sc=n->getData<DemData>().vel.norm(); break;
-					case SCALAR_ACCEL:{
-						Real m=n->getData<DemData>().mass;
-						if(m>0) sc=n->getData<DemData>().force.norm()/m;
-						else sc=NaN;
+					case SCALAR_SIGNED_ACCEL:{
+						const auto& dyn=n->getData<DemData>();
+						if(dyn.mass==0) sc=NaN;
+						else sc=(dyn.vel.dot(dyn.force)>0?1:-1)*dyn.force.norm()/dyn.mass;
 						break;
 					}
 					case SCALAR_RADIUS: sc=(dynamic_pointer_cast<Sphere>(p->shape)?p->shape->cast<Sphere>().radius:NaN); break;
@@ -111,6 +111,13 @@ void Tracer::run(){
 				tr.addPoint(n->pos,sc);
 			}
 		}
+	}
+	switch(scalar){
+		case SCALAR_NONE: lineColor->label="[index]"; break;
+		case SCALAR_TIME: lineColor->label="time"; break;
+		case SCALAR_VEL: lineColor->label="|vel|"; break;
+		case SCALAR_SIGNED_ACCEL: lineColor->label="signed |accel|"; break;
+		case SCALAR_RADIUS: lineColor->label="radius"; break;
 	}
 	reset=false;
 }

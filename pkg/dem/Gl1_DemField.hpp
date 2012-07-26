@@ -33,7 +33,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 		((bool,wire,false,,"Render all bodies with wire only"))
 		// ((bool,id,false,,"Show particle id's"))
 		((bool,bound,false,,"Render particle's :ref:`Bound`"))
-		((bool,shape,true,,"Render particle's :ref:`Shape`"))
+		((bool,shape,true,AttrTrait<Attr::triggerPostLoad>(),"Render particle's :ref:`Shape`"))
 		((bool,trace,false,AttrTrait<Attr::triggerPostLoad>(),"Render trace of particle's motion (parameters in the Trace engine, which will be automatically added to the simulation)"))
 		((bool,_hadTrace,false,AttrTrait<>().hidden(),"Whether tracing was enabled previously"))
 		((bool,nodes,false,,"Render DEM nodes"))

@@ -42,7 +42,7 @@ void Gl1_DemField::postLoad(Gl1_DemField&){
 	}
 	//LOG_WARN("ci="<<ci<<", gi="<<gi);
 	// remove range from scene if there is one and should not be
-	if(colorBy==COLOR_NONE && ci>=0){ 
+	if((colorBy==COLOR_NONE||!shape) && ci>=0){ 
 		scene->ranges.erase(scene->ranges.begin()+ci);
 		if(gi>ci) gi--; // moved down
 	}
@@ -51,7 +51,7 @@ void Gl1_DemField::postLoad(Gl1_DemField&){
 		scene->ranges.erase(scene->ranges.begin()+gi);
 	}
 	// add range if there is none and should be
-	if(colorBy!=COLOR_NONE && ci<0){ 
+	if(shape && colorBy!=COLOR_NONE && ci<0){ 
 		//LOG_WARN("Adding colorBy ScalarRange "<<colorRange<<" to scene @ "<<scene);
 		scene->ranges.push_back(colorRange); 
 	}
@@ -95,6 +95,12 @@ void Gl1_DemField::postLoad(Gl1_DemField&){
 		} else {
 			if(traceIx>=0){
 				s->engines[traceIx]->dead=!trace;
+				int range=-1;
+				for(size_t i=0; i<scene->ranges.size(); i++){
+					if(scene->ranges[i].get()==Tracer::lineColor.get()) range=(int)i;
+				}
+				if(range<0 && trace) scene->ranges.push_back(Tracer::lineColor); 
+				if(range>=0 && !trace) scene->ranges.erase(scene->ranges.begin()+range); 
 			}
 			_hadTrace=true;
 		}
