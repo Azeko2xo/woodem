@@ -79,34 +79,6 @@ void Gl1_DemField::postLoad(Gl1_DemField&){
 		case GLYPH_VEL: glyphRange->label="velocity"; break;
 		default: LOG_ERROR("Unknown value Gl1_DemField.glyph="<<glyph<<" (ignored)??");
 	};
-
-#if 0
-	if(trace || _hadTrace){
-		/** trace engine **/
-		int traceIx=-1;
-		Scene* s=Master::instance().getScene().get();
-		for(int i=0; i<s->engines.size(); i++){
-			const auto& e=s->engines[i];
-			if(dynamic_pointer_cast<Tracer>(e)){ traceIx=i; break; }
-		}
-		if(trace && traceIx<0){
-			LOG_ERROR("woo.dem.Tracer must be added to engines manually; not disabling/enabling from here!");
-			trace=false;
-			_hadTrace=false;
-		} else {
-			if(traceIx>=0){
-				s->engines[traceIx]->dead=!trace;
-				int range=-1;
-				for(size_t i=0; i<scene->ranges.size(); i++){
-					if(scene->ranges[i].get()==Tracer::lineColor.get()) range=(int)i;
-				}
-				if(range<0 && trace) scene->ranges.push_back(Tracer::lineColor); 
-				if(range>=0 && !trace) scene->ranges.erase(scene->ranges.begin()+range); 
-			}
-			_hadTrace=true;
-		}
-	}
-#endif
 }
 
 void Gl1_DemField::doBound(){
@@ -137,15 +109,6 @@ void Gl1_DemField::doShape(){
 		if(mask!=0 && !(p->mask&mask)) continue;
 		const shared_ptr<Shape>& sh=p->shape;
 
-		//if(!bodyDisp[p->getId()].isDisplayed) continue;
-		//Vector3r pos=bodyDisp[p->getId()].pos;
-		//Quaternionr ori=bodyDisp[p->getId()].ori;
-		//Vector3r pos=sh->nodes[0].pos;
-		//Quaternionr ori=sh->nodes[0].ori;
-		//if(!p->shape || !((p->getGroupMask()&mask) || p->getGroupMask()==0)) continue;
-
-		// int selId=(dynamic_pointer_cast<Particle>(selObj)?static_pointer_cast<Particle>(selObj)->id:-1);
-
 		// sets highlighted color, if the particle is selected
 		// last optional arg can be used to provide additional highlight conditions (unused for now)
 		const shared_ptr<Node>& n0=p->shape->nodes[0];
@@ -170,24 +133,6 @@ void Gl1_DemField::doShape(){
 				case COLOR_MAT_PTR: parColor=colorRange->color((size_t)p->material.get()); break;
 				case COLOR_NONE: parColor=colorRange->color(p->shape->color); break;
 				default: parColor=Vector3r(NaN,NaN,NaN);
-			}
-		}
-
-		for(const auto& n: p->shape->nodes){
-			// prepare rep types
-			// vector values
-			if(glyph==GLYPH_VEL || glyph==GLYPH_FORCE){
-				if(!n->rep || !dynamic_pointer_cast<VectorGlRep>(n->rep)) n->rep=make_shared<VectorGlRep>();
-				auto& vec=n->rep->cast<VectorGlRep>();
-				vec.range=glyphRange;
-				vec.relSz=glyphRelSz;
-			}
-			switch(glyph){
-				case GLYPH_KEEP: break; // keep whatever is there
-				case GLYPH_NONE: n->rep.reset(); break; // no rep
-				case GLYPH_VEL: n->rep->cast<VectorGlRep>().val=n->getData<DemData>().vel; break;
-				case GLYPH_FORCE: n->rep->cast<VectorGlRep>().val=n->getData<DemData>().force; break;
-				default: ;
 			}
 		}
 
@@ -243,14 +188,33 @@ void Gl1_DemField::doNodes(){
 	boost::mutex::scoped_lock lock(dem->nodesMutex);
 
 	Renderer::nodeDispatcher.scene=scene; Renderer::nodeDispatcher.updateScenePtr();
-	FOREACH(shared_ptr<Node> node, dem->nodes){
-		Renderer::setNodeGlData(node,updateRefPos);
-		if(!nodes && !node->rep) continue;
-		Renderer::glScopedName name(node);
-		if(nodes){ Renderer::renderRawNode(node); }
-		if(node->rep){ node->rep->render(node,viewInfo); }
+	FOREACH(shared_ptr<Node> n, dem->nodes){
+		Renderer::setNodeGlData(n,updateRefPos);
+
+		if(glyph!=GLYPH_KEEP){
+			// prepare rep types
+			// vector values
+			if(glyph==GLYPH_VEL || glyph==GLYPH_FORCE){
+				if(!n->rep || !dynamic_pointer_cast<VectorGlRep>(n->rep)){ n->rep=make_shared<VectorGlRep>(); }
+				auto& vec=n->rep->cast<VectorGlRep>();
+				vec.range=glyphRange;
+				vec.relSz=glyphRelSz;
+			}
+			switch(glyph){
+				case GLYPH_NONE: n->rep.reset(); break; // no rep
+				case GLYPH_VEL: n->rep->cast<VectorGlRep>().val=n->getData<DemData>().vel; break;
+				case GLYPH_FORCE: n->rep->cast<VectorGlRep>().val=n->getData<DemData>().force; break;
+				case GLYPH_KEEP:
+				default: ;
+			}
+		}
+
+		if(!nodes && !n->rep) continue;
+
+		Renderer::glScopedName name(n);
+		if(nodes){ Renderer::renderRawNode(n); }
+		if(n->rep){ n->rep->render(n,viewInfo); }
 	}
-	// contact nodes
 }
 
 

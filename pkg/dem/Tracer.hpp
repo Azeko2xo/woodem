@@ -34,10 +34,12 @@ struct Tracer: public PeriodicEngine{
 		((Real,minDist,0,,"Only add new point when last point is at least minDist away, or no point exists at all."))
 		//((bool,reset,false,,"Reset traces at the next step"))
 		((int,scalar,SCALAR_NONE,AttrTrait<>().choice({{SCALAR_NONE,"none"},{SCALAR_TIME,"time"},{SCALAR_VEL,"|vel|"},{SCALAR_SIGNED_ACCEL,"signed |accel|"},{SCALAR_RADIUS,"radius"}}),"Scalars associated with history points (determine line color)"))
-		((shared_ptr<ScalarRange>,lineColor,make_shared<ScalarRange>(),,"Color range for coloring the trace line"))
+		((int,lastScalar,SCALAR_NONE,AttrTrait<>().hidden(),"Keep track of last scalar value"))
+		((shared_ptr<ScalarRange>,lineColor,make_shared<ScalarRange>(),AttrTrait<>().readonly(),"Color range for coloring the trace line"))
 		((Vector2i,modulo,Vector2i(0,0),,"Only add trace to points which with ordinal number ``(i+modulo[1])%modulo[0]==0``."))
 		((Vector2r,rRange,Vector2r(0,0),,"If non-zero, only show traces of spheres of which radius falls into this range."))
 		((Vector3r,noneColor,Vector3r(.3,.3,.3),AttrTrait<>().rgbColor(),"Color for traces without scalars, when scalars are saved (e.g. for non-spheres when radius is saved"))
+		((bool,glSmooth,false,,"Render traced lines with GL_LINE_SMOOTH"))
 		, /*py*/
 			.def("resetNodesRep",&Tracer::resetNodesRep,(py::arg("setupEmpty")=false),"Reset :ref:`Node.rep` on all :ref:`Dem.Field.nodes`. With *setupEmpty*, create new instances of :ref:`TraceGlRep`.")
 			;

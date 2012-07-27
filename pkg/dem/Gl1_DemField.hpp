@@ -34,19 +34,11 @@ struct Gl1_DemField: public GlFieldFunctor{
 		// ((bool,id,false,,"Show particle id's"))
 		((bool,bound,false,,"Render particle's :ref:`Bound`"))
 		((bool,shape,true,AttrTrait<Attr::triggerPostLoad>(),"Render particle's :ref:`Shape`"))
-		//((bool,trace,false,AttrTrait<Attr::triggerPostLoad>(),"Render trace of particle's motion (parameters in the Trace engine, which will be automatically added to the simulation)"))
-		//((bool,_hadTrace,false,AttrTrait<>().hidden(),"Whether tracing was enabled previously"))
 		((bool,nodes,false,,"Render DEM nodes"))
 		((int,cNode,CNODE_NONE,AttrTrait<>().bits({"GlRep","line","node","pot. line"}),"What should be shown for contact nodes"))
 		((bool,cPhys,false,,"Render contact's nodes"))
 		((Real,glyphRelSz,.2,,"Maximum glyph size relative to scene radius"))
 		((bool,updateRefPos,false,,"Update reference positions of all nodes in the next step"))
-		 /*
-		((int,wd,1,,"Local axes line width in pixels"))
-		((Vector2i,wd_range,Vector2i(0,5),AttrTrait<>().noGui(),"Range for width"))
-		((Real,len,.05,,"Relative local axes line length in pixels, relative to scene radius; if non-positive, only points are drawn"))
-		((Vector2r,len_range,Vector2r(0.,.1),AttrTrait<>().noGui(),"Range for len"))
-		*/
 		((uint,mask,0,,"Only shapes/bounds of particles with this mask will be displayed; if 0, all particles are shown"))
 		, /*py*/
 			;

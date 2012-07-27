@@ -10,7 +10,7 @@ WOO_PLUGIN(dem,(Tracer));
 void TraceGlRep::compress(int ratio){
 	int i;
 	int skip=(Tracer::compSkip<0?ratio:Tracer::compSkip);
-	for(i=0; ratio*i+skip<pts.size(); i++){
+	for(i=0; ratio*i+skip<(int)pts.size(); i++){
 		pts[i]=pts[ratio*i+skip];
 		scalars[i]=scalars[ratio*i+skip];
 	}
@@ -33,7 +33,8 @@ void TraceGlRep::addPoint(const Vector3r& p, const Real& scalar){
 
 void TraceGlRep::render(const shared_ptr<Node>& n, GLViewInfo*){
 	if(isHidden()) return;
-	glDisable(GL_LINE_SMOOTH);
+	if(!Tracer::glSmooth) glDisable(GL_LINE_SMOOTH);
+	else glEnable(GL_LINE_SMOOTH);
 	glBegin(GL_LINE_STRIP);
 		for(size_t i=0; i<pts.size(); i++){
 			size_t ix; Real relColor;
@@ -70,11 +71,12 @@ Vector2i Tracer::modulo;
 Vector2r Tracer::rRange;
 int Tracer::num;
 int Tracer::scalar;
+int Tracer::lastScalar;
 int Tracer::compress;
 int Tracer::compSkip;
+bool Tracer::glSmooth;
 Vector3r Tracer::noneColor;
 Real Tracer::minDist;
-//bool Tracer::reset;
 shared_ptr<ScalarRange> Tracer::lineColor;
 
 void Tracer::resetNodesRep(bool setupEmpty){
@@ -94,8 +96,18 @@ void Tracer::resetNodesRep(bool setupEmpty){
 }
 
 void Tracer::run(){
-	//if(reset) resetNodesRep();
-	//reset=false;
+	if(scalar!=lastScalar){
+		resetNodesRep(/*setup empty*/true);
+		lastScalar=scalar;
+		lineColor->reset();
+	}
+	switch(scalar){
+		case SCALAR_NONE: lineColor->label="[index]"; break;
+		case SCALAR_TIME: lineColor->label="time"; break;
+		case SCALAR_VEL: lineColor->label="|vel|"; break;
+		case SCALAR_SIGNED_ACCEL: lineColor->label="signed |accel|"; break;
+		case SCALAR_RADIUS: lineColor->label="radius"; break;
+	}
 	auto& dem=field->cast<DemField>();
 	for(const auto& p: *dem.particles){
 		for(const auto& n: p->shape->nodes){
@@ -113,9 +125,9 @@ void Tracer::run(){
 			if(!hidden && rRange.maxCoeff()>0){
 				if(dynamic_pointer_cast<Sphere>(p->shape)){
 					Real r=p->shape->cast<Sphere>().radius;
-					hidden=(r>=rRange[0] && r<rRange[1]);
+					hidden=((rRange[0]>0 && r<rRange[0]) || (rRange[1]>0 && r>rRange[1]));
 				} else {
-					hidden=true; // hide non-spheres
+					hidden=true; // hide traces of non-spheres
 				}
 			}
 			if(tr.isHidden()!=hidden) tr.setHidden(hidden);
@@ -135,12 +147,4 @@ void Tracer::run(){
 			tr.addPoint(n->pos,sc);
 		}
 	}
-	switch(scalar){
-		case SCALAR_NONE: lineColor->label="[index]"; break;
-		case SCALAR_TIME: lineColor->label="time"; break;
-		case SCALAR_VEL: lineColor->label="|vel|"; break;
-		case SCALAR_SIGNED_ACCEL: lineColor->label="signed |accel|"; break;
-		case SCALAR_RADIUS: lineColor->label="radius"; break;
-	}
-	//reset=false;
 }
