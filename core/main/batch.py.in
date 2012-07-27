@@ -4,7 +4,7 @@
 # vim: syntax=python
 # portions © 2008 Václav Šmilauer <eudoxos@arcig.cz>
 
-import os, sys, thread, time, logging, pipes, socket, xmlrpclib, re, shutil, random
+import os, sys, thread, time, logging, pipes, socket, xmlrpclib, re, shutil, random, os.path
 
 #socket.setdefaulttimeout(10) 
 
@@ -309,7 +309,7 @@ parser=optparse.OptionParser(usage='%prog [options] [ TABLE [SIMULATION.py] | SI
 parser.add_option('-j','--jobs',dest='maxJobs',type='int',help="Maximum number of simultaneous threads to run (default: number of cores, further limited by OMP_NUM_THREADS if set by the environment: %d)"%numCores,metavar='NUM',default=numCores)
 parser.add_option('--job-threads',dest='defaultThreads',type='int',help="Default number of threads for one job; can be overridden by per-job with !THREADS (or !OMP_NUM_THREADS) column. Defaults to 1.",metavar='NUM',default=1)
 parser.add_option('--force-threads',action='store_true',dest='forceThreads',help='Force jobs to not use more cores than the maximum (see \-j), even if !THREADS colums specifies more.')
-parser.add_option('--log',dest='logFormat',help='Format of job log files: must contain a $, % or @, which will be replaced by script name, line number or by title column respectively (default: $.@.log)',metavar='FORMAT',default='$.@.log')
+parser.add_option('--log',dest='logFormat',help='Format of job log files: must contain a $, % or @, which will be replaced by script name, line number or by title column respectively. Directory for logs will be created automatically. (default: logs/$.@.log)',metavar='FORMAT',default='logs/$.@.log')
 parser.add_option('--global-log',dest='globalLog',help='Filename where to redirect output of woo-batch itself (as opposed to \-\-log); if not specified (default), stdout/stderr are used',metavar='FILE')
 parser.add_option('-l','--lines',dest='lineList',help='Lines of TABLE to use, in the format 2,3-5,8,11-13 (default: all available lines in TABLE)',metavar='LIST')
 parser.add_option('--nice',dest='nice',type='int',help='Nice value of spawned jobs (default: 10)',default=10)
@@ -415,7 +415,7 @@ for i,l in enumerate(useLines):
 		else: envVars+=['%s=%s'%(head[1:],values[l][col])]
 	if not script:
 		raise ValueError('When only batch table is given without script to run, it must contain !SCRIPT column with simulation to be run.')
-	logFile=logFormat.replace('$',script).replace('%',str(l)).replace('@',params[l]['title'])
+	logFile=logFormat.replace('$',script).replace('%',str(l)).replace('@',params[l]['title'].replace('/','_'))
 	if nCores>maxJobs:
 		if opts.forceThreads:
 			logging.info('Forcing job #%d to use only %d cores (max available) instead of %d requested'%(i,maxJobs,nCores))
@@ -429,6 +429,10 @@ for i,l in enumerate(useLines):
 	for j in range(0,opts.timing if opts.timing>0 else 1):
 		jobNum=len(jobs)
 		logFile2=logFile+('.%d'%j if opts.timing>0 else '')
+		logDir=os.path.dirname(logFile2)
+		if logDir and not os.path.exists(logDir):
+			logging.warning("WARNING: creating log directory '%s'"%(logDir))
+			os.makedirs(logDir)
 		# append numbers to log file if it already exists, to prevent overwriting
 		if logFile2 in logFiles:
 			i=0;

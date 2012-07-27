@@ -213,17 +213,23 @@ void VtkExport::run(){
 			AngleAxisr aa(infCyl->nodes[0]->ori);
 			Real phi0=(aa.axis()*aa.angle()).dot(Vector3r::Unit(ax0)); // current rotation
 			vector<Vector3r> pts; vector<Vector3i> tri;
-			pts.reserve(2*subdiv); tri.reserve(2*subdiv);
+			pts.reserve(2*subdiv+(cylCaps?2:0)); tri.reserve((cylCaps?3:2)*subdiv);
+			// centers have indices after points at circumference, and are added after the loop
+			int centA=2*subdiv, centB=2*subdiv+1;
 			for(int i=0;i<subdiv;i++){
 				// triangle strip around cylinder
 				//
+				//           J   K    
 				// ax    1---3---5...
 				// ^     | / | / |...
 				// |     0---2---4...
-				// |
+				// |     L   M
+				// |      i=^^^  
 				// +------> φ (i)
-				tri.push_back(Vector3i(2*i,2*i+1,(i==0?2*(subdiv-1):2*i-2)));
-				tri.push_back(Vector3i(2*i+1,2*i,(i==(subdiv-1)?1:2*i+3)));
+				int J=2*i+1, K=(i==(subdiv-1))?1:2*i+3, L=(i==0)?2*(subdiv-1):2*i-2, M=2*i;
+				tri.push_back(Vector3i(M,J,L));
+				tri.push_back(Vector3i(J,M,K));
+				if(cylCaps){ tri.push_back(Vector3i(M,L,centA)); tri.push_back(Vector3i(J,K,centB)); }
 				Real phi=phi0+i*2*M_PI/subdiv;
 				Vector2r c=c2+infCyl->radius*Vector2r(sin(phi),cos(phi));
 				Vector3r A,B;
@@ -231,6 +237,13 @@ void VtkExport::run(){
 				A[ax1]=B[ax1]=c[0];
 				A[ax2]=B[ax2]=c[1];
 				pts.push_back(A); pts.push_back(B);
+			}
+			if(cylCaps){
+				Vector3r cA, cB;
+				cA[ax0]=infCyl->glAB[0]; cB[ax0]=infCyl->glAB[1];
+				cA[ax1]=cB[ax1]=c2[0];
+				cA[ax2]=cB[ax2]=c2[1];
+				pts.push_back(cA); pts.push_back(cB);
 			}
 			nCells=addTriangulatedObject(pts,tri,mPos,mCells);
 		}

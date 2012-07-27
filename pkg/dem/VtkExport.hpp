@@ -51,6 +51,7 @@ struct VtkExport: public PeriodicEngine{
 		((bool,infError,true,,"Raise exception for infinite objects which don't have the glAB attribute set properly"))
 		((bool,skipInvisible,true,,"Skip invisible particles"))
 		((int,subdiv,16,AttrTrait<>().noGui(),"Subdivision fineness for circular objects (such as cylinders).\n\n.. note:: :ref:`Facet` objects with non-zero :ref:`halfThick<Facet.halfThick>` are rendered without rounded edges (they are closed flat)."))
+		((bool,cylCaps,true,,"Render caps of :ref:`InfCylinder` (at :ref:`InfCylinder.glAB`)."))
 		,/*ctor*/
 		initRun=false; // do not run at the very first step
 		,/*py*/
