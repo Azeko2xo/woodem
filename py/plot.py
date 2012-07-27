@@ -403,7 +403,7 @@ def createPlots(subPlots=True,scatterSize=60,wider=False):
 			if len(data.keys())==0 or len(data[data.keys()[0]])==0: # no data at all yet, do not add garbage NaNs
 				for m in missing: data[m]=[]
 			else:
-				print 'Missing columns in plot.data, adding NaN: ',','.join(list(missing))
+				print 'Missing columns in plot.data, adding NaN: ',u','.join(list(missing))
 				addDataColumns(missing)
 		def createLines(pStrip,ySpecs,isY1=True,y2Exists=False):
 			'''Create data lines from specifications; this code is common for y1 and y2 axes;

@@ -46,6 +46,7 @@ struct Roro: public Preprocessor {
 		((vector<Vector2r>,psd,vector<Vector2r>({Vector2r(0.005,.0),Vector2r(.01,.2),Vector2r(.02,1.)})/*set in the ctor*/,AttrTrait<>().startGroup("Pellets").triggerPostLoad().multiUnit().lenUnit().prefUnit("mm").fractionUnit().prefUnit("%"),"Particle size distribution of generated particles: first value is diameter, second value is cummulative fraction"))
 		((shared_ptr<PelletMat>,material,make_shared<PelletMat>(),,"Material of particles"))
 		((shared_ptr<PelletMat>,cylMaterial,,,"Material of cylinders (if not given, material for particles is used for cylinders)"))
+		((shared_ptr<PelletMat>,plateMaterial,,,"Material of plates (if not given, material for cylinders is used for cylinders)"))
 
 		// Estimates
 		((Real,ccaDt   ,,AttrTrait<>().readonly().timeUnit().startGroup("Estimates"),"Δt"))

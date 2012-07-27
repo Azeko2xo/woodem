@@ -577,6 +577,7 @@ void ConveyorFactory::run(){
 
 		stepMass+=dyn.mass;
 		mass+=dyn.mass;
+		num+=1;
 		nextIx-=1; // decrease; can go negative, handled at the beginning of the loop
 	};
 

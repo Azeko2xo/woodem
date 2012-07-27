@@ -24,6 +24,7 @@ struct ParticleFactory: public PeriodicEngine{
 		((long,num,0,,"Number of generated particles"))
 		((Real,currRate,NaN,AttrTrait<>().readonly(),"Current value of mass flow rate"))
 		((Real,currRateSmooth,1,AttrTrait<>().noGui().range(Vector2r(0,1)),"Smoothing factor for currRate ∈〈0,1〉"))
+		((Real,glColor,0,AttrTrait<>().noGui(),"Color for rendering (nan disables rendering)"))
 	);
 };
 REGISTER_SERIALIZABLE(ParticleFactory);
@@ -149,7 +150,6 @@ struct BoxFactory: public RandomFactory{
 		#ifdef BOX_FACTORY_PERI
 			((int,periSpanMask,0,,"When running in periodic scene, particles bboxes will be allowed to stick out of the factory in those directions (used to specify that the factory itself should be periodic along those axes). 1=x, 2=y, 4=z."))
 		#endif
-		((Real,glColor,0,AttrTrait<>().noGui(),"Color for rendering (nan disables rendering)"))
 	);
 };
 REGISTER_SERIALIZABLE(BoxFactory);
@@ -158,7 +158,12 @@ struct BoxDeleter: public PeriodicEngine{
 	DECLARE_LOGGER;
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	#ifdef WOO_OPENGL
-		void render(const GLViewInfo&){ if(!isnan(glColor)) GLUtils::AlignedBox(box,CompUtils::mapColor(glColor)); }
+		void render(const GLViewInfo&){
+			if(isnan(glColor)) return;
+			GLUtils::AlignedBox(box,CompUtils::mapColor(glColor));
+			std::ostringstream oss; oss.precision(4); oss<<mass;
+			GLUtils::GLDrawText(oss.str(),box.center(),CompUtils::mapColor(glColor));
+		}
 	#endif
 	void run();
 	py::object pyPsd(bool mass, bool cumulative, bool normalize, int num, const Vector2r& dRange, bool zip);
@@ -191,7 +196,12 @@ struct ConveyorFactory: public ParticleFactory{
 	void sortPacking();
 	void postLoad(ConveyorFactory&);
 	#ifdef WOO_OPENGL
-		// void render(const GLViewInfo&){ if(!isnan(color)) GLUtils::AlignedBox(box,CompUtils::mapColor(color)); }
+		void render(const GLViewInfo&){
+			if(isnan(glColor)) return;
+			std::ostringstream oss; oss.precision(4); oss<<mass;
+			if(maxMass>0){ oss<<"/"; oss.precision(4); oss<<maxMass; }
+			GLUtils::GLDrawText(oss.str(),node->pos,CompUtils::mapColor(glColor));
+		}
 	#endif
 	void run();
 	vector<shared_ptr<Particle>> pyBarrier() const { return vector<shared_ptr<Particle>>(barrier.begin(),barrier.end()); }

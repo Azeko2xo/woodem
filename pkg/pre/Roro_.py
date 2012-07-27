@@ -43,11 +43,13 @@ def run(pre): # use inputs as argument
 	if (pre.time>0 and pre.mass>0) or (pre.time<=0 and pre.mass<=0): raise ValueError("Exactly one of Roro.time or Roro.mass must be positive.")
 
 	if not pre.cylMaterial: pre.cylMaterial=pre.material.deepcopy()
+	if not pre.plateMaterial: pre.plateMaterial=pre.cylMaterial.deepcopy()
 	pre.material.id=0
 	pre.cylMaterial.id=1
-	sideWallMat=pre.cylMaterial.deepcopy()
-	sideWallMat.id=2
+	pre.plateMaterial.id=2
+	sideWallMat=pre.plateMaterial.deepcopy()
 	sideWallMat.tanPhi=0.0
+	sideWallMat.id=3
 
 	
 	# generate cylinder coordinates, or use those given by the user
@@ -98,19 +100,20 @@ def run(pre): # use inputs as argument
 		xmin,xmax=-3*cylDMax,cylXzd[-1][0]+3*cylDMax
 		factoryNode=Node(pos=(xmin,0,0))
 
-		de.par.append(ySpannedFacets((0,xmin),(ymin,ymax),(0,0),mat=pre.cylMaterial,mask=wallMask,fakeVel=(conveyorVel,0,0),halfThick=facetHalfThick))
+		de.par.append(ySpannedFacets((0,xmin),(ymin,ymax),(0,0),mat=pre.plateMaterial,mask=wallMask,fakeVel=(conveyorVel,0,0),halfThick=facetHalfThick))
 	elif pre.variant=='customer1':
 		# F                E is cylinder top; D is feed conveyor start, |D-E|=10cm
 		# ____ E           cylinder radius 4cm, centered at D=C-(0,4cm)
 		#   (_)  C         B-C vertical, |B-C|=27cm; C is at the leftmost point of the cylinder
 		# D   |  
 		#     |            |A-B|=28cm
-		#   B ^-_          A-B in inclined by 27° more than the screen
+		#   B ^-_          A-B in inclined by 19° more than the screen
 		#        ^-_  A    cylinder below touched at point A
 		#          ( )      centered at (0,0)
 		#
 		A=cylXzd[0][2]*.5*Vector2(math.sin(pre.inclination),math.cos(pre.inclination))
-		abAngle=pre.inclination+math.radians(27)
+		A+=(0,5e-3) # move 5mm above
+		abAngle=pre.inclination+math.radians(19)
 		abLen=0.28
 		B=A+abLen*Vector2(-math.cos(abAngle),math.sin(abAngle))
 		upCylRad=0.04
@@ -120,7 +123,7 @@ def run(pre): # use inputs as argument
 		F=E+Vector2(-.1,0)
 		#for i in 'ABCDEF': print i,eval(i)
 		yy=(ymin,ymax)
-		kw=dict(mat=pre.cylMaterial,mask=wallMask,halfThick=facetHalfThick)
+		kw=dict(mat=pre.plateMaterial,mask=wallMask,halfThick=facetHalfThick)
 		de.par.append(ySpannedFacets((A[0],B[0]),yy,(A[1],B[1]),**kw)+ySpannedFacets((B[0],C[0]),yy,(B[1],C[1]),**kw)+ySpannedFacets((E[0],F[0]),yy,(E[1],F[1]),fakeVel=(conveyorVel,0,0),**kw))
 		del kw['halfThick']
 		feedCyl=utils.infCylinder((D[0],0,D[1]),radius=upCylRad,axis=1,glAB=yy,**kw)
@@ -142,6 +145,7 @@ def run(pre): # use inputs as argument
 		centers=cc,radii=rr,
 		cellLen=cellLen,
 		barrierColor=.3,
+		glColor=.5,
 		#color=.4, # random colors
 		node=factoryNode,
 		mask=sphMask,
@@ -199,7 +203,7 @@ def run(pre): # use inputs as argument
 		barriersAt.append(bucketEnd)
 		xzd0,xzd1=cylXzd[bucketStart],cylXzd[bucketEnd]
 		# initially don't save deleted particles
-		bucketDeleters.append(BoxDeleter(stepPeriod=factStep,inside=True,box=((xzd0[0],ymin,zmin),(xzd1[0],ymax,min(xzd0[1]-xzd0[2]/2.,xzd1[1]-xzd1[2]/2.))),glColor=.05*i,save=False,mask=delMask,currRateSmooth=pre.rateSmooth,label='bucket[%d]'%i))
+		bucketDeleters.append(BoxDeleter(stepPeriod=factStep,inside=True,box=((xzd0[0],ymin,zmin),(xzd1[0],ymax,min(xzd0[1]-xzd0[2]/2.,xzd1[1]-xzd1[2]/2.))),glColor=.5+(i*.5/len(pre.buckets)),save=False,mask=delMask,currRateSmooth=pre.rateSmooth,label='bucket[%d]'%i))
 		bucketStart=bucketEnd
 	# bucket barriers
 	for cylI in barriersAt:
@@ -492,19 +496,19 @@ def psdFeedBucketFalloverTable(inPsd,feedDM,bucketDM,overDM,splitD):
 		,cellpadding='2px',frame='box',rules='all'
 	).generate().render('xhtml')
 
-def bucketPsdTable(S,massName,massScale,massUnit):
+def bucketPsdTable(S,massName,massScale,massUnit,massBasedPsd=True):
 	psdSplits=[df[0] for df in S.pre.psd]
 	buckMasses=[]
 	for buck in woo.bucket:
 		mm=[]
 		for i in range(len(psdSplits)-1):
 			dmdm=zip(*buck.diamMass())
-			mm.append(sum([dm[1] for dm in dmdm if (dm[0]>=psdSplits[i] and dm[0]<psdSplits[i+1])]))
+			mm.append(sum([(dm[1] if massBasedPsd else 1.) for dm in dmdm if (dm[0]>=psdSplits[i] and dm[0]<psdSplits[i+1])]))
 		buckMasses.append(mm)
 		print buck.mass,sum(mm)
 	from genshi.builder import tag as t
 	tab=t.table(
-		t.tr(t.th('diameter',t.br,'[mm]'),*tuple([t.th('bucket %d'%i,t.br,'[mass %]',colspan=2) for i in range(len(woo.bucket))])),
+		t.tr(t.th('diameter',t.br,'[mm]'),*tuple([t.th('bucket %d'%i,t.br,'[%s %%]'%massName,colspan=2) for i in range(len(woo.bucket))])),
 		cellpadding='2px',frame='box',rules='all'
 	)
 	dScale=1e3 # m to mm
@@ -515,7 +519,10 @@ def bucketPsdTable(S,massName,massScale,massUnit):
 			tr.append(t.td('%.4g'%(100*bm[i]/bMass),align='right'))
 			tr.append(t.td('%.4g'%(100*sum(bm[:i+1])/bMass),align='right'))
 		tab.append(tr)
-	tab.append(t.tr(t.th('%s [%s]'%(massName,massUnit)),*tuple([t.th('%g'%(sum(bm)*massScale),colspan=2) for bm in buckMasses])))
+	bucketsTotal=sum([sum(bm) for bm in buckMasses])*massScale
+	feedTotal=(woo.factory.mass if massBasedPsd else woo.factory.num)*massScale
+	tab.append(t.tr(t.th('%s [%s]'%(massName,massUnit),rowspan=2),*tuple([t.th('%g'%(sum(bm)*massScale),colspan=2) for bm in buckMasses])))
+	tab.append(t.tr(t.th('%g / %g = %.4g%%'%(bucketsTotal,feedTotal,bucketsTotal*100./feedTotal),colspan=2*len(buckMasses))))
 	return tab.generate().render('xhtml')
 
 
@@ -815,7 +822,9 @@ def writeReport(S):
 		+'<h2>Outputs</h2>'
 		+'<h3>Feed</h3>'+feedTab
 		+(('<h3>Sieving</h3>'+effTab) if effTab else '')
-		+'<h3>Bucket PSD</h3>'+bucketPsdTable(S,massName=massName,massUnit=massUnit,massScale=massScale)
+		+'<h3>Bucket PSD</h3>'
+			+'<h4>Mass-based</h4>'+bucketPsdTable(S,massName=massName,massUnit=massUnit,massScale=massScale,massBasedPsd=True)
+			+'<h4>Number-based</h4>'+bucketPsdTable(S,massName='number',massUnit='',massScale=massScale,massBasedPsd=False)
 		+'\n'.join(['<h3>'+svg[0]+'</h3>'+svgFragment(open(svg[1]).read()) for svg in svgs])
 		+'</body></html>'
 	)
