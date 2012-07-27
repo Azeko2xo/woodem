@@ -232,6 +232,8 @@ def runHttpStatsServer():
 			server=HTTPServer(('',port),HttpStatsServer)
 			import thread; thread.start_new_thread(server.serve_forever,())
 			print "http://localhost:%d shows batch summary"%port
+			import webbrowser
+			webbrowser.open('http://localhost:%d'%port)
 			break
 		except socket.error:
 			port+=1
