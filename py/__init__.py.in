@@ -83,6 +83,8 @@ system.setExitHandlers()
 from miniEigen import *
 
 import _monkey # adds methods to c++ classes
+import _units 
+unit=_units.makeUnitsDict()
 
 # out-of-class docstrings for some classes
 try: import _extraDocs

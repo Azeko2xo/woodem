@@ -32,6 +32,8 @@ struct Node;
 
 // object representing what should be rendered at associated node
 struct NodeGlRep: public Object{
+	//boost::mutex lock; // for rendering
+	//void safeRender(const shared_ptr<Node>& n, GLViewInfo* glvi){ boost::mutex::scoped_lock l(lock); render(n,glvi); }
 	virtual void render(const shared_ptr<Node>&, GLViewInfo*){};
 	WOO_CLASS_BASE_DOC(NodeGlRep,Object,"Object representing what should be rendered at associated node (abstract base class).");
 };
@@ -70,6 +72,7 @@ REGISTER_SERIALIZABLE(ScalarRange);
 
 
 struct Node: public Object, public Indexable{
+
 	// indexing data items
 	// allows to define non-casting accessors without paying runtime penalty for index lookup
 	enum {ST_DEM=0,ST_GL,ST_CLDEM,ST_SPARC,ST_ANCF,/*always keep last*/ST_LAST }; // assign constants to data values

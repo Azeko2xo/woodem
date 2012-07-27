@@ -3,7 +3,7 @@
 #include<woo/pkg/dem/Sphere.hpp>
 #include<woo/pkg/dem/InfCylinder.hpp>
 #include<woo/pkg/dem/Wall.hpp>
-#include<woo/pkg/dem/Tracer.hpp>
+//#include<woo/pkg/dem/Tracer.hpp>
 #include<woo/lib/opengl/GLUtils.hpp>
 #include<woo/pkg/gl/Renderer.hpp>
 #include<woo/lib/base/CompUtils.hpp>
@@ -17,8 +17,8 @@ bool Gl1_DemField::wire;
 bool Gl1_DemField::bound;
 bool Gl1_DemField::shape;
 bool Gl1_DemField::nodes;
-bool Gl1_DemField::trace;
-bool Gl1_DemField::_hadTrace;
+//bool Gl1_DemField::trace;
+//bool Gl1_DemField::_hadTrace;
 int Gl1_DemField::cNode;
 bool Gl1_DemField::cPhys;
 int Gl1_DemField::colorBy;
@@ -80,6 +80,7 @@ void Gl1_DemField::postLoad(Gl1_DemField&){
 		default: LOG_ERROR("Unknown value Gl1_DemField.glyph="<<glyph<<" (ignored)??");
 	};
 
+#if 0
 	if(trace || _hadTrace){
 		/** trace engine **/
 		int traceIx=-1;
@@ -105,6 +106,7 @@ void Gl1_DemField::postLoad(Gl1_DemField&){
 			_hadTrace=true;
 		}
 	}
+#endif
 }
 
 void Gl1_DemField::doBound(){

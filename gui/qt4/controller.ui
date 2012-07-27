@@ -7,11 +7,11 @@
     <x>0</x>
     <y>0</y>
     <width>480</width>
-    <height>462</height>
+    <height>484</height>
    </rect>
   </property>
   <property name="sizePolicy">
-   <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
+   <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
@@ -20,7 +20,7 @@
    <string>Woo</string>
   </property>
   <property name="windowIcon">
-   <iconset>
+   <iconset resource="img.qrc">
     <normaloff>:/img/woodem-logo.png</normaloff>:/img/woodem-logo.png</iconset>
   </property>
   <layout class="QGridLayout" name="gridLayout_3">
@@ -39,7 +39,7 @@
       </sizepolicy>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>4</number>
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
@@ -515,78 +515,9 @@
             </widget>
            </item>
            <item row="0" column="2">
-            <widget class="QPushButton" name="centerButton">
+            <widget class="QPushButton" name="plotButton">
              <property name="text">
-              <string>Center</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QPushButton" name="xyzButton">
-             <property name="minimumSize">
-              <size>
-               <width>48</width>
-               <height>48</height>
-              </size>
-             </property>
-             <property name="text">
-              <string/>
-             </property>
-             <property name="icon">
-              <iconset resource="img.qrc">
-               <normaloff>:/img/XYZ.png</normaloff>:/img/XYZ.png</iconset>
-             </property>
-             <property name="iconSize">
-              <size>
-               <width>40</width>
-               <height>40</height>
-              </size>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1">
-            <widget class="QPushButton" name="yzxButton">
-             <property name="minimumSize">
-              <size>
-               <width>48</width>
-               <height>48</height>
-              </size>
-             </property>
-             <property name="text">
-              <string/>
-             </property>
-             <property name="icon">
-              <iconset resource="img.qrc">
-               <normaloff>:/img/YZX.png</normaloff>:/img/YZX.png</iconset>
-             </property>
-             <property name="iconSize">
-              <size>
-               <width>40</width>
-               <height>40</height>
-              </size>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="2">
-            <widget class="QPushButton" name="zxyButton">
-             <property name="minimumSize">
-              <size>
-               <width>48</width>
-               <height>48</height>
-              </size>
-             </property>
-             <property name="text">
-              <string/>
-             </property>
-             <property name="icon">
-              <iconset resource="img.qrc">
-               <normaloff>:/img/ZXY.png</normaloff>:/img/ZXY.png</iconset>
-             </property>
-             <property name="iconSize">
-              <size>
-               <width>40</width>
-               <height>40</height>
-              </size>
+              <string>Show plot</string>
              </property>
             </widget>
            </item>
@@ -620,8 +551,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>98</width>
-            <height>28</height>
+            <width>474</width>
+            <height>422</height>
            </rect>
           </property>
          </widget>
@@ -851,8 +782,8 @@
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>98</width>
-              <height>28</height>
+              <width>454</width>
+              <height>364</height>
              </rect>
             </property>
            </widget>
@@ -929,6 +860,63 @@
           </widget>
          </item>
         </layout>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_5">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>1</horstretch>
+        <verstretch>1</verstretch>
+       </sizepolicy>
+      </property>
+      <attribute name="title">
+       <string>Trace</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_10">
+       <item row="0" column="0">
+        <layout class="QHBoxLayout" name="horizontalLayout_9">
+         <item>
+          <widget class="QCheckBox" name="traceChecbox">
+           <property name="text">
+            <string>Trace particles</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="resetTraceButton">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="text">
+            <string>Reset</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item row="1" column="0">
+        <widget class="QScrollArea" name="tracerArea">
+         <property name="widgetResizable">
+          <bool>true</bool>
+         </property>
+         <widget class="QWidget" name="scrollAreaWidgetContents">
+          <property name="geometry">
+           <rect>
+            <x>0</x>
+            <y>0</y>
+            <width>456</width>
+            <height>396</height>
+           </rect>
+          </property>
+         </widget>
+        </widget>
        </item>
       </layout>
      </widget>
@@ -1027,8 +1015,8 @@
    <slot>setReferenceSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>260</x>
-     <y>478</y>
+     <x>314</x>
+     <y>474</y>
     </hint>
     <hint type="destinationlabel">
      <x>5</x>
@@ -1037,62 +1025,14 @@
    </hints>
   </connection>
   <connection>
-   <sender>centerButton</sender>
+   <sender>plotButton</sender>
    <signal>clicked()</signal>
    <receiver>Controller</receiver>
-   <slot>centerSlot()</slot>
+   <slot>plotSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>413</x>
-     <y>478</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>284</x>
-     <y>469</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>xyzButton</sender>
-   <signal>clicked()</signal>
-   <receiver>Controller</receiver>
-   <slot>xyzSlot()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>108</x>
-     <y>532</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>0</x>
-     <y>469</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>yzxButton</sender>
-   <signal>clicked()</signal>
-   <receiver>Controller</receiver>
-   <slot>yzxSlot()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>260</x>
-     <y>532</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>243</x>
-     <y>469</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>zxyButton</sender>
-   <signal>clicked()</signal>
-   <receiver>Controller</receiver>
-   <slot>zxySlot()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>413</x>
-     <y>532</y>
+     <x>470</x>
+     <y>474</y>
     </hint>
     <hint type="destinationlabel">
      <x>284</x>
@@ -1220,7 +1160,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>161</x>
-     <y>391</y>
+     <y>376</y>
     </hint>
     <hint type="destinationlabel">
      <x>0</x>
@@ -1235,8 +1175,8 @@
    <slot>show3dSlot(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>78</x>
-     <y>478</y>
+     <x>87</x>
+     <y>474</y>
     </hint>
     <hint type="destinationlabel">
      <x>0</x>
@@ -1267,8 +1207,8 @@
    <slot>generateSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>464</x>
-     <y>539</y>
+     <x>475</x>
+     <y>479</y>
     </hint>
     <hint type="destinationlabel">
      <x>284</x>
@@ -1315,12 +1255,44 @@
    <slot>movieButtonClicked()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>426</x>
-     <y>521</y>
+     <x>467</x>
+     <y>471</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
-     <y>519</y>
+     <y>483</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>resetTraceButton</sender>
+   <signal>clicked()</signal>
+   <receiver>Controller</receiver>
+   <slot>resetTraceClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>432</x>
+     <y>60</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>481</x>
+     <y>80</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>traceChecbox</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>Controller</receiver>
+   <slot>traceCheckboxToggled()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>88</x>
+     <y>49</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-4</x>
+     <y>140</y>
     </hint>
    </hints>
   </connection>
@@ -1333,7 +1305,7 @@
   <slot>pauseSlot()</slot>
   <slot>stepSlot()</slot>
   <slot>setReferenceSlot()</slot>
-  <slot>centerSlot()</slot>
+  <slot>plotSlot()</slot>
   <slot>dtFixedSlot()</slot>
   <slot>dtDynSlot()</slot>
   <slot>dtEditedSlot()</slot>
@@ -1352,5 +1324,7 @@
   <slot>genSaveParamsSlot()</slot>
   <slot>movieCheckboxToggled()</slot>
   <slot>movieButtonClicked()</slot>
+  <slot>resetTraceClicked()</slot>
+  <slot>traceCheckboxToggled()</slot>
  </slots>
 </ui>

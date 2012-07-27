@@ -98,7 +98,7 @@ struct Impose: public Object{
 REGISTER_SERIALIZABLE(Impose);
 
 class DemData: public NodeData{
-	boost::mutex lock; // used by applyForceTorque
+	// boost::mutex lock; // used by applyForceTorque
 public:
 	// bits for flags
 	enum {

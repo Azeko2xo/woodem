@@ -32,6 +32,7 @@ void TraceGlRep::addPoint(const Vector3r& p, const Real& scalar){
 }
 
 void TraceGlRep::render(const shared_ptr<Node>& n, GLViewInfo*){
+	if(isHidden()) return;
 	glDisable(GL_LINE_SMOOTH);
 	glBegin(GL_LINE_STRIP);
 		for(size_t i=0; i<pts.size(); i++){
@@ -60,6 +61,11 @@ void TraceGlRep::render(const shared_ptr<Node>& n, GLViewInfo*){
 	glEnd();
 }
 
+void TraceGlRep::resize(size_t size){
+	pts.resize(size,Vector3r(NaN,NaN,NaN));
+	scalars.resize(size,NaN);
+}
+
 Vector2i Tracer::modulo;
 Vector2r Tracer::rRange;
 int Tracer::num;
@@ -68,48 +74,65 @@ int Tracer::compress;
 int Tracer::compSkip;
 Vector3r Tracer::noneColor;
 Real Tracer::minDist;
-bool Tracer::reset;
+//bool Tracer::reset;
 shared_ptr<ScalarRange> Tracer::lineColor;
 
+void Tracer::resetNodesRep(bool setupEmpty){
+	auto& dem=field->cast<DemField>();
+	boost::mutex::scoped_lock lock(dem.nodesMutex);
+	for(const auto& p: *dem.particles){
+		for(const auto& n: p->shape->nodes){
+			n->rep.reset();
+			if(setupEmpty){
+				n->rep=make_shared<TraceGlRep>();
+				auto& tr=n->rep->cast<TraceGlRep>();
+				tr.resize(num);
+				tr.flags=(compress>0?TraceGlRep::FLAG_COMPRESS:0) | (minDist>0?TraceGlRep::FLAG_MINDIST:0);
+			}
+		}
+	}
+}
+
 void Tracer::run(){
+	//if(reset) resetNodesRep();
+	//reset=false;
 	auto& dem=field->cast<DemField>();
 	for(const auto& p: *dem.particles){
-		size_t i=p->id;
-		// delete from all
-		bool doReset=reset;
-		if(!doReset && modulo[0]>0 && (i+modulo[1])%modulo[0]!=0) doReset=true;
-		if(!doReset && rRange.maxCoeff()>0
-			&& (!dynamic_pointer_cast<Sphere>(p->shape)
-				|| (rRange[0]>0 && p->shape->cast<Sphere>().radius<rRange[0])
-				|| (rRange[1]>0 && p->shape->cast<Sphere>().radius>rRange[1]))
-		) doReset=true;
-		if(doReset){
-			for(const auto& n: p->shape->nodes) n->rep.reset();
-		} else {
-			for(const auto& n: p->shape->nodes){
-				if(!n->rep || !dynamic_pointer_cast<TraceGlRep>(n->rep)){
-					n->rep=make_shared<TraceGlRep>();
-					n->rep->cast<TraceGlRep>().pts.resize(num,Vector3r(NaN,NaN,NaN));
-					n->rep->cast<TraceGlRep>().scalars.resize(num,NaN);
-					if(compress>0) n->rep->cast<TraceGlRep>().flags|=TraceGlRep::FLAG_COMPRESS;
-					if(minDist>0) n->rep->cast<TraceGlRep>().flags|=TraceGlRep::FLAG_MINDIST;
-				}
-				TraceGlRep& tr(n->rep->cast<TraceGlRep>());
-				Real sc;
-				switch(scalar){
-					case SCALAR_VEL: sc=n->getData<DemData>().vel.norm(); break;
-					case SCALAR_SIGNED_ACCEL:{
-						const auto& dyn=n->getData<DemData>();
-						if(dyn.mass==0) sc=NaN;
-						else sc=(dyn.vel.dot(dyn.force)>0?1:-1)*dyn.force.norm()/dyn.mass;
-						break;
-					}
-					case SCALAR_RADIUS: sc=(dynamic_pointer_cast<Sphere>(p->shape)?p->shape->cast<Sphere>().radius:NaN); break;
-					case SCALAR_TIME: sc=scene->time; break;
-					default: sc=NaN;
-				}
-				tr.addPoint(n->pos,sc);
+		for(const auto& n: p->shape->nodes){
+			// node added
+			if(!n->rep || !dynamic_pointer_cast<TraceGlRep>(n->rep)){
+				boost::mutex::scoped_lock lock(dem.nodesMutex);
+				n->rep=make_shared<TraceGlRep>();
+				auto& tr=n->rep->cast<TraceGlRep>();
+				tr.resize(num);
+				tr.flags=(compress>0?TraceGlRep::FLAG_COMPRESS:0) | (minDist>0?TraceGlRep::FLAG_MINDIST:0);
 			}
+			auto& tr=n->rep->cast<TraceGlRep>();
+			bool hidden=false;
+			if(modulo[0]>0 && (p->id+modulo[1])%modulo[0]!=0) hidden=true;
+			if(!hidden && rRange.maxCoeff()>0){
+				if(dynamic_pointer_cast<Sphere>(p->shape)){
+					Real r=p->shape->cast<Sphere>().radius;
+					hidden=(r>=rRange[0] && r<rRange[1]);
+				} else {
+					hidden=true; // hide non-spheres
+				}
+			}
+			if(tr.isHidden()!=hidden) tr.setHidden(hidden);
+			Real sc;
+			switch(scalar){
+				case SCALAR_VEL: sc=n->getData<DemData>().vel.norm(); break;
+				case SCALAR_SIGNED_ACCEL:{
+					const auto& dyn=n->getData<DemData>();
+					if(dyn.mass==0) sc=NaN;
+					else sc=(dyn.vel.dot(dyn.force)>0?1:-1)*dyn.force.norm()/dyn.mass;
+					break;
+				}
+				case SCALAR_RADIUS: sc=(dynamic_pointer_cast<Sphere>(p->shape)?p->shape->cast<Sphere>().radius:NaN); break;
+				case SCALAR_TIME: sc=scene->time; break;
+				default: sc=NaN;
+			}
+			tr.addPoint(n->pos,sc);
 		}
 	}
 	switch(scalar){
@@ -119,5 +142,5 @@ void Tracer::run(){
 		case SCALAR_SIGNED_ACCEL: lineColor->label="signed |accel|"; break;
 		case SCALAR_RADIUS: lineColor->label="radius"; break;
 	}
-	reset=false;
+	//reset=false;
 }

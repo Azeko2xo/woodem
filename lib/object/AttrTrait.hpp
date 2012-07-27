@@ -182,7 +182,7 @@ namespace woo{
 		AttrTrait& velUnit(){ unit("m/s"); altUnits({{"km/h",1e-3*3600}}); return *this; }
 		AttrTrait& accelUnit(){ unit("m/s²"); return *this; }
 		AttrTrait& massUnit(){ unit("kg"); altUnits({{"g",1e3},{"t",1e-3}}); return *this; }
-		AttrTrait& angVelUnit(){ unit("rad/s"); altUnits({{"rot/s",1./Mathr::PI},{"rot/min",60.*(1./Mathr::PI)}}); return *this; }
+		AttrTrait& angVelUnit(){ unit("rad/s"); altUnits({{"rot/s",1/(2*Mathr::PI)},{"rot/min",60.*(1./(2*Mathr::PI))}}); return *this; }
 		AttrTrait& angMomUnit(){ unit("N·m·s"); return *this; }
 		AttrTrait& inertiaUnit(){ unit("kg·m²"); return *this; }
 		AttrTrait& forceUnit(){ unit("N"); altUnits({{"kN",1e-3},{"MN",1e-6}}); return *this; }

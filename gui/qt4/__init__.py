@@ -231,6 +231,28 @@ class ControllerClass(QWidget,Ui_Controller):
 		print 'Video saved to',url
 		import webbrowser
 		webbrowser.open(url)
+	def resetTraceClicked(self):
+		if not hasattr(woo,'_tracer'):
+			print 'No woo._tracer, will not reset'
+			return
+		woo._tracer.resetNodesRep(setupEmpty=True)
+	def traceCheckboxToggled(self,isOn):
+		S=woo.master.scene
+		if isOn:
+			tracer=woo.dem.Tracer(label='_tracer',stepPeriod=100,realPeriod=.2)
+			S.engines=S.engines+[tracer]
+			S.ranges=S.ranges+[woo.dem.Tracer.lineColor]
+			self.tracerArea.setWidget(SerializableEditor(tracer,parent=self.tracerArea,showType=True))
+			self.resetTraceButton.setEnabled(True)
+		else:
+			woo._tracer.dead=True
+			woo._tracer.resetNodesRep(setupEmpty=False)
+			S.engines=[e for e in S.engines if type(e)!=woo.dem.Tracer]
+			S.ranges=[r for r in S.ranges if r!=woo.dem.Tracer.lineColor]
+			if hasattr(woo,'_tracer'): del woo._tracer
+			self.tracerArea.setWidget(QFrame())
+			self.resetTraceButton.setEnabled(False)
+		
 	def displayComboSlot(self,dispStr):
 		from woo import gl
 		ser=(self.renderer if dispStr=='Renderer' else eval('gl.'+str(dispStr)+'()'))
@@ -287,18 +309,9 @@ class ControllerClass(QWidget,Ui_Controller):
 			if len(vv)>0: vv[0].close()
 	def setReferenceSlot(self):
 		woo.gl.Gl1_DemField.updateRefPos=True
-	def centerSlot(self):
-		for v in views(): v.center()
-	def setViewAxes(self,dir,up):
-		try:
-			v=views()[0]
-			v.viewDir=dir
-			v.upVector=up
-			v.center()
-		except IndexError: pass
-	def xyzSlot(self): self.setViewAxes((0,0,-1),(0,1,0))
-	def yzxSlot(self): self.setViewAxes((-1,0,0),(0,0,1))
-	def zxySlot(self): self.setViewAxes((0,-1,0),(1,0,0))
+	def plotSlot(self):
+		import woo.plot
+		woo.plot.plot()
 	def refreshEvent(self):
 		self.refreshValues()
 		self.activateControls()
@@ -315,6 +328,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.dtEdit.setEnabled(False)
 		self.dtEditUpdate=True
 	def activateControls(self):
+		import woo.plot
 		S=woo.master.scene
 		hasSim=len(S.engines)>0
 		running=S.running
@@ -335,6 +349,10 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.dtEdit.setEnabled(False)
 		fn=S.lastSave
 		self.fileLabel.setText(fn if fn else '<i>[no file]</i>')
+
+		#
+		#
+		self.plotButton.setEnabled(len(woo.plot.plots)>0)
 
 	def refreshValues(self):
 		scene=woo.master.scene
