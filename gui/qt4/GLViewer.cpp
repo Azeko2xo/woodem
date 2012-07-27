@@ -573,7 +573,7 @@ void GLViewer::draw(bool withNames)
 void GLViewer::postSelection(const QPoint& point) 
 {
 	LOG_DEBUG("Selection is "<<selectedName());
-	cerr<<"Selection is "<<selectedName()<<endl;
+	//cerr<<"Selection is "<<selectedName()<<endl;
 	int selection=selectedName();
 	if(selection<0 || selection>=(int)Renderer::glNamedObjects.size()) return;
 
@@ -585,7 +585,11 @@ void GLViewer::postSelection(const QPoint& point)
 	if(Renderer::scene->isPeriodic) pos=Renderer::scene->cell->canonicalizePt(pos);
 	setSceneCenter(qglviewer::Vec(pos[0],pos[1],pos[2]));
 
-	cerr<<"Selected object #"<<selection<<" is a "<<Renderer::selObj->getClassName()<<endl;
+	{
+		//cerr<<"Selected object #"<<selection<<" is a "<<Renderer::selObj->getClassName()<<endl;
+		GilLock lock;
+		cerr<<"Selected "<<py::extract<string>(py::str(py::object(Renderer::selObj)))()<<endl;
+	}
 	cerr<<"\tat"<<Renderer::selObjNode->pos.transpose()<<endl;
 	if(prevSelNode){
 		Vector3r dPos=Renderer::selObjNode->pos-prevSelNode->pos;
