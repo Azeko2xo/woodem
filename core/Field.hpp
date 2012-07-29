@@ -51,11 +51,13 @@ struct ScalarRange: public Object{
 	Real normInv(Real norm){ return mnmx[0]+norm*(mnmx[1]-mnmx[0]); } 
 	Real norm(Real v);
 	void adjust(const Real& v);
+	// called only when mnmx is manipulated
+	void postLoad(const ScalarRange&){ if(isOk()) autoAdjust=false; }
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ScalarRange,Object,"Store and share range of scalar values",
-		((Vector2r,mnmx,Vector2r(std::numeric_limits<Real>::infinity(),-std::numeric_limits<Real>::infinity()),,"Packed minimum and maximum values"))
+		((Vector2r,mnmx,Vector2r(std::numeric_limits<Real>::infinity(),-std::numeric_limits<Real>::infinity()),AttrTrait<Attr::triggerPostLoad>(),"Packed minimum and maximum values; adjusting from python sets :ref:`autoAdjust` to false automatically."))
 		((bool,autoAdjust,true,,"Automatically adjust range using given values."))
 		((bool,sym,false,,"Force maximum to be negative of minimum and vice versa (only with autoadjust)"))
-		((Vector2i,dispPos,Vector2i(-1000,-1000),,"Where is this range displayed on the OpenGL canvas; initially out of range, will be reset automatically."))
+		((Vector2i,dispPos,Vector2i(-1000,-1000),AttrTrait<>().noGui(),"Where is this range displayed on the OpenGL canvas; initially out of range, will be reset automatically."))
 		((Real,length,-.5,AttrTrait<>().noGui(),"Length on the display; if negative, it is fractional relative to view width/height"))
 		((bool,landscape,false,AttrTrait<>().noGui(),"Make the range display with landscape orientation"))
 		((std::string,label,,,"Short name of this range."))

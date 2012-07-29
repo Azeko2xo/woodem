@@ -249,6 +249,7 @@ def run(pre): # use inputs as argument
 	try:
 		import woo.gl
 		# set other display options and save them (static attributes)
+		woo.gl.Gl1_DemField.colorRanges[woo.gl.Gl1_DemField.colorVel].range=(0,.5)
 		s.any=[
 			woo.gl.Renderer(iniUp=(0,0,1),iniViewDir=(0,1,0)),
 			#woo.gl.Gl1_DemField(glyph=woo.gl.Gl1_DemField.glyphVel),

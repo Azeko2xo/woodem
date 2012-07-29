@@ -591,11 +591,13 @@ class SerializableEditor(QFrame):
 	import collections
 	import logging
 	# each attribute has one entry associated with itself
+
 	class EntryData:
 		def __init__(self,name,T,doc,groupNo,trait,containingClass,editor):
 			self.name,self.T,self.doc,self.trait,self.groupNo,self.containingClass=name,T,doc,trait,groupNo,containingClass
 			self.widget=None
 			self.visible=True
+			self.gridAndRow=(None,-1)
 			self.widgets={} #{'label':None,'value':None,'unit':None}
 			self.editor=editor
 		def propertyId(self):
@@ -671,8 +673,10 @@ class SerializableEditor(QFrame):
 		"Construct window, *ser* is the object we want to show."
 		QtGui.QFrame.__init__(self,parent)
 		self.ser=ser
+		#where do widgets go in the grid
+		self.gridCols={'check':0,'label':1,'value':2,'unit':3}
 		# set path or use label, if active (allows 'label' attributes which don't imply automatic python variables of that name)
-		self.path=('woo.'+ser.label if hasActiveLabel(ser) else path)
+		self.path=('woo.'+ser.label if ser!=None and hasActiveLabel(ser) else path)
 		self.showType=showType
 		self.labelIsVar=labelIsVar # show variable name; if false, docstring is used instead
 		self.showChecks=showChecks
@@ -681,12 +685,20 @@ class SerializableEditor(QFrame):
 		self.entries=[]
 		self.entryGroups=[]
 		self.ignoredAttrs=ignoredAttrs
+		if self.ser==None:
+			logging.debug('New None Object')
+			# show None
+			lay=QGridLayout(self); lay.setContentsMargins(2,2,2,2); lay.setVerticalSpacing(0)
+			lab=QLabel('<b>None</b>'); lab.setFrameShape(QFrame.Box); lab.setFrameShadow(QFrame.Sunken); lab.setLineWidth(2); lab.setAlignment(Qt.AlignHCenter);
+			if self.showType: lay.addWidget(lab,0,0,1,-1)
+			return # no timers, nothing will change at all
 		logging.debug('New Object of type %s'%ser.__class__.__name__)
 		self.setWindowTitle(str(ser))
 		self.mkWidgets()
 		self.refreshTimer=QTimer(self)
 		self.refreshTimer.timeout.connect(self.refreshEvent)
 		self.refreshTimer.start(500)
+
 	def getListTypeFromDocstring(self,trait):
 		"Guess type of array from parsing trait.cxxType. Ugly but works."
 		def vecTest(T,cxxT):
@@ -729,13 +741,6 @@ class SerializableEditor(QFrame):
 		return None
 	def mkAttrEntries(self):
 		if self.ser==None: return
-		#try:
-		#	d=self.ser.dict()
-		#except TypeError:
-		#	logging.error('TypeError when getting attributes of '+str(self.ser)+',skipping. ')
-		#	import traceback
-		#	traceback.print_exc()
-		#attrs=self.ser.yattrs(); # do not sort here, since we need separators
 
 		# crawl class hierarchy up, ask each one for attribute traits
 		attrTraits=[]; k=self.ser.__class__
@@ -764,21 +769,23 @@ class SerializableEditor(QFrame):
 				#if not t: raise RuntimeError('Unable to guess type of '+str(self.ser)+'.'+attr)
 			# hack for Se3, which is returned as (Vector3,Quaternion) in python
 			elif isinstance(val,tuple) and len(val)==2 and val[0].__class__==Vector3 and val[1].__class__==Quaternion: t=Se3FakeType
-			else:
-				t=val.__class__
-				if t in _attributeGuessedTypeMap: t=_attributeGuessedTypeMap[val.__class__]
+			elif val==None: t=Object
+			elif val.__class__ in _attributeGuessedTypeMap: t=_attributeGuessedTypeMap[val.__class__]
+			else: t=val.__class__
 
 			if len(self.entryGroups)==0: self.entryGroups.append(self.EntryGroupData(number=0,name=None))
 			groupNo=len(self.entryGroups)-1
 
 			#if not match: print 'No attr match for docstring of %s.%s'%(self.ser.__class__.__name__,attr)
-
 			#logging.debug('Attr %s is of type %s'%(attr,((t[0].__name__,) if isinstance(t,tuple) else t.__name__)))
 			self.entries.append(self.EntryData(name=attr,T=t,groupNo=groupNo,doc=trait.doc,trait=trait,containingClass=klass,editor=self))
 	def getDocstring(self,attr=None):
 		"If attr is *None*, return docstring of the Object itself"
 		if attr==None:
-			doc=self.ser.__class__.__doc__.decode('utf-8')
+			if self.ser.__class__.__doc__!=None: doc=self.ser.__class__.__doc__.decode('utf-8')
+			else:
+				logging.error('Class %s __doc__ is None?'%self.ser.__class__.__name__)
+				return None
 		else:
 			tt=[t.doc for t in self.ser.__class__._attrTraits if t.name==attr]
 			if not tt:
@@ -789,22 +796,6 @@ class SerializableEditor(QFrame):
 		import textwrap
 		wrapper=textwrap.TextWrapper(replace_whitespace=False)
 		return wrapper.fill(textwrap.dedent(doc))
-	def getStaticAttrDocstring(self,attr,raw=False):
-		ret=''; c=self.ser.__class__
-		while hasattr(c,attr) and hasattr(c.__base__,attr): c=c.__base__
-		doc=c.__doc__
-		head='.. ystaticattr:: %s.%s('%(c.__name__,attr)
-		start=doc.find(head)
-		#print 'Found',attr,'at',start,'in docstring',doc
-		if start<0: return '[no documentation found]'
-		end=doc.find('.. ystaticattr:: ',start+len(head)) # start at the end of last match; returns -1 if not found
-		#print 'Attribute',attr,'returning:\n',doc[start+len(head)-1:end]
-		doc=doc[start+len(head):end]
-		if raw: return doc
-		meta=re.compile('^.*:yattrflags:`\s*[0-9]+\s*`',re.MULTILINE|re.DOTALL)
-		doc=re.sub(meta,'',doc).strip()
-		return doc
-		
 
 	def handleRanges(self,widgetKlass,getter,setter,entry):
 		rg=entry.trait.range
@@ -827,7 +818,9 @@ class SerializableEditor(QFrame):
 		return AttrEditor_RgbColor, getter, setter
 		
 	def mkWidget(self,entry):
-		if not entry.T: return None
+		if not entry.T:
+			#print 'return None for %s.%s'%(self.ser.__class__.__name__,entry.name)
+			return None
 		# single fundamental object
 		Klass=_fundamentalEditorMap.get(entry.T,None)
 		getter,setter=lambda: getattr(self.ser,entry.name), lambda x: setattr(self.ser,entry.name,x)
@@ -852,9 +845,10 @@ class SerializableEditor(QFrame):
 				widget=SeqFundamentalEditor(self,getter,setter,T)
 				return widget
 			return None
-		# a serializable
+		# a woo.Object
 		if issubclass(entry.T,Object) or entry.T==Object:
 			obj=getattr(self.ser,entry.name)
+			# should handle the case of obj==None as well
 			widget=SerializableEditor(getattr(self.ser,entry.name),parent=self,showType=self.showType,path=(self.path+'.'+entry.name if self.path else None),labelIsVar=self.labelIsVar,showChecks=self.showChecks,showUnits=self.showUnits)
 			widget.setFrameShape(QFrame.Box); widget.setFrameShadow(QFrame.Raised); widget.setLineWidth(1)
 			return widget
@@ -903,7 +897,6 @@ class SerializableEditor(QFrame):
 	def mkWidgets(self):
 		self.mkAttrEntries()
 		onlyDefaultGroups=(len(self.entryGroups)==1 and self.entryGroups[0].name==None)
-		gridCols={'check':0,'label':1,'value':2,'unit':3}
 		if self.showType: # create type label
 			lab=SerQLabel(self,makeSerializableLabel(self.ser,addr=True,href=True),tooltip=self.getDocstring(),path=self.path)
 			lab.setFrameShape(QFrame.Box); lab.setFrameShadow(QFrame.Sunken); lab.setLineWidth(2); lab.setAlignment(Qt.AlignHCenter); lab.linkActivated.connect(woo.qt.openUrl)
@@ -922,9 +915,10 @@ class SerializableEditor(QFrame):
 		self.hasUnits=sum([1 for e in self.entries if e.trait.unit])
 		maxLabelWd=0.
 		for entry in self.entries:
-			entry.widget=self.mkWidget(entry)
-			entry.widgets['value']=entry.widget # for code compat
-			if not entry.widgets['value']: entry.widgets['value']=QFrame() # avoid None widgets
+			w=self.mkWidget(entry)
+			if w!=None: entry.widget=entry.widgets['value']=w
+			#entry.widgets['value']=entry.widget # for code compat
+			#if not entry.widgets['value']: entry.widgets['value']=entry.widget=QFrame() # avoid None widgets
 			objPath=(self.path+'.'+entry.name) if self.path else None
 			labelText,labelTooltip=self.getAttrLabelToolTip(entry)
 			label=SerQLabel(self,labelText,tooltip=labelTooltip,path=objPath,elide=not self.labelIsVar)
@@ -973,16 +967,17 @@ class SerializableEditor(QFrame):
 			for i,entry in enumerate(g.entries):
 				try:
 					row=lay.rowCount()
-					lay.addWidget(entry.widgets['check'],row,gridCols['check'],1,1)
-					lay.addWidget(entry.widgets['label'],row,gridCols['label'],1,1)
+					entry.gridAndRow=lay,row
+					lay.addWidget(entry.widgets['check'],row,self.gridCols['check'],1,1)
+					lay.addWidget(entry.widgets['label'],row,self.gridCols['label'],1,1)
 					entry.widgets['check'].setFocusPolicy(Qt.ClickFocus)
 					# entry.widgets['label'].setFocusPolicy(Qt.NoFocus) # default
 					maxLabelWd=max(maxLabelWd,entry.widgets['label'].width())
 					if 'value' in entry.widgets:
-						lay.addWidget(entry.widgets['value'],row,gridCols['value'])
+						lay.addWidget(entry.widgets['value'],row,self.gridCols['value'])
 						# entry.widgets['value'].setFocusPolicy(Qt.StrongFocus) # default
 					if 'unit' in entry.widgets:
-						lay.addWidget(entry.widgets['unit'],row,gridCols['unit'])
+						lay.addWidget(entry.widgets['unit'],row,self.gridCols['unit'])
 						entry.widgets['unit'].setFocusPolicy(Qt.ClickFocus) # skip when keyboard-navigating
 					lay.setRowStretch(row,2)
 					for w in entry.widgets['label'],: # entry.widgets['value']:
@@ -994,17 +989,25 @@ class SerializableEditor(QFrame):
 					traceback.print_exc()
 		# close all groups except the first one			
 		for g in self.entryGroups[1:]: g.toggleExpander()
-		lay.setColumnMinimumWidth(gridCols['label'],maxLabelWd)
+		lay.setColumnMinimumWidth(self.gridCols['label'],maxLabelWd)
 		lay.addWidget(QFrame(self),lay.rowCount(),0,1,-1) # expander at the very end
 		lay.setRowStretch(lay.rowCount()-1,10000)
-		lay.setColumnStretch(gridCols['check'],-1)
-		lay.setColumnStretch(gridCols['label'],2)
-		lay.setColumnStretch(gridCols['value'],8)
-		lay.setColumnStretch(gridCols['unit'],0)
+		lay.setColumnStretch(self.gridCols['check'],-1)
+		lay.setColumnStretch(self.gridCols['label'],2)
+		lay.setColumnStretch(self.gridCols['value'],8)
+		lay.setColumnStretch(self.gridCols['unit'],0)
 		self.refreshEvent()
 	def refreshEvent(self):
 		for e in self.entries:
-			if e.widget and not e.widget.hot: e.widget.refresh()
+			if e.widget and not e.widget.hot:
+				# if there is a new instance of Object, we need to make new widget and replace the old one completely
+				if type(e.widget)==SerializableEditor and e.widget.ser!=getattr(self.ser,e.name):
+					#print 'New SerializableEditor for ',self.ser,e.name
+					e.widget.hide()
+					e.widget=e.widgets['value']=self.mkWidget(e)
+					grid,row=e.gridAndRow
+					grid.addWidget(e.widget,row,self.gridCols['value'])
+				e.widget.refresh()
 	def refresh(self): pass
 
 def makeSerializableLabel(ser,href=False,addr=True,boldHref=True,num=-1,count=-1):
@@ -1018,11 +1021,6 @@ def makeSerializableLabel(ser,href=False,addr=True,boldHref=True,num=-1,count=-1
 	# do not show address if there is a label already
 	elif addr and ser!=None:
 		ret+='0x%x'%ser._cxxAddr
-		#import re
-		#ss=unicode(ser); m=re.match(u'<(.*)(instance at|@) (0x.*)>',ss)
-		#if m: ret+=m.group(3)+'/ 0x%x'%id(ser)
-		#else: logging.warning(u"Object converted to str ('%s') does not contain 'instance at 0x…'"%ss)
-		#return '%x'%id(ser)
 	return ret
 
 class SeqSerializableComboBox(QFrame):

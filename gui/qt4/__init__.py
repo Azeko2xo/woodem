@@ -117,7 +117,8 @@ class ControllerClass(QWidget,Ui_Controller):
 	def addRenderers(self):
 		from woo import gl
 		self.displayCombo.addItem('Renderer'); afterSep=1
-		for bc in [t for t in dir(gl) if t.endswith('Functor') ]:
+		# put GlFieldFunctor at the beginning artificially
+		for bc in ['GlFieldFunctor']+[t for t in dir(gl) if t.endswith('Functor') and t!='GlFieldFunctor']:
 			if afterSep>0: self.displayCombo.insertSeparator(10000); afterSep=0
 			for c in woo.system.childClasses(bc) | set([bc]):
 				try:
@@ -244,6 +245,7 @@ class ControllerClass(QWidget,Ui_Controller):
 			S.ranges=S.ranges+[woo.dem.Tracer.lineColor]
 			self.tracerArea.setWidget(SerializableEditor(tracer,parent=self.tracerArea,showType=True))
 			self.resetTraceButton.setEnabled(True)
+			woo.gl.Gl1_DemField.glyph=woo.gl.Gl1_DemField.glyphKeep
 		else:
 			woo._tracer.dead=True
 			woo._tracer.resetNodesRep(setupEmpty=False)

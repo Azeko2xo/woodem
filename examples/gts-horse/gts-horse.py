@@ -46,7 +46,6 @@ S.engines=[
 	Leapfrog(damping=.1),
 	PyRunner(2000,'timing.stats(); S.stop();'),
 	PyRunner(10,'addPlotData()'),
-	Tracer(stepPeriod=20,num=32,compress=2,compSkip=4)
 ]
 S.dem.gravity=(0,0,-5000)
 S.dt=.7*utils.pWaveDt()

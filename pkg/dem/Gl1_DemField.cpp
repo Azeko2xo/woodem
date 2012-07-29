@@ -22,63 +22,80 @@ bool Gl1_DemField::nodes;
 int Gl1_DemField::cNode;
 bool Gl1_DemField::cPhys;
 int Gl1_DemField::colorBy;
+int Gl1_DemField::prevColorBy;
 bool Gl1_DemField::colorSpheresOnly;
 Vector3r Gl1_DemField::nonSphereColor;
 shared_ptr<ScalarRange> Gl1_DemField::colorRange;
+vector<shared_ptr<ScalarRange>> Gl1_DemField::colorRanges;
 int Gl1_DemField::glyph;
+int Gl1_DemField::prevGlyph;
 Real Gl1_DemField::glyphRelSz;
 shared_ptr<ScalarRange> Gl1_DemField::glyphRange;
+vector<shared_ptr<ScalarRange>> Gl1_DemField::glyphRanges;
 bool Gl1_DemField::updateRefPos;
 
-void Gl1_DemField::postLoad(Gl1_DemField&){
+/*
+	Replace, remove or add a range from the scene;
+	prev is previous range
+	curr is desired range
+*/
+void Gl1_DemField::setSceneRange(Scene* scene, const shared_ptr<ScalarRange>& prev, const shared_ptr<ScalarRange>& curr){
+	if(prev.get()==curr.get()) return; // no change need, do nothing
+	int ix=-1;
+	if(prev){
+		for(size_t i=0; i<scene->ranges.size(); i++){
+			if(scene->ranges[i].get()==prev.get()){ ix=i; break; }
+		}
+	}
+	if(curr){
+		if(ix>=0) scene->ranges[ix]=curr;
+		else scene->ranges.push_back(curr);
+	} else {
+		if(ix>=0) scene->ranges.erase(scene->ranges.begin()+ix);
+	}
+}
+
+void Gl1_DemField::initAllRanges(){
+	for(int i=0; i<COLOR_SENTINEL; i++){
+		auto r=make_shared<ScalarRange>();
+		colorRanges.push_back(r);
+		switch(i){
+			case COLOR_SHAPE:	 		 r->label="Shape.color"; break;
+			case COLOR_RADIUS:       r->label="radius"; break;
+			case COLOR_VEL:          r->label="|vel|"; break;
+			case COLOR_MASS:         r->label="mass"; break;
+			case COLOR_DISPLACEMENT: r->label="displacement"; break;
+			case COLOR_ROTATION:     r->label="rotation"; break;
+			case COLOR_MAT_ID:       r->label="material id"; break;
+			case COLOR_MAT_PTR:      r->label="material ptr"; break;
+		};
+	}
+	colorRange=colorRanges[colorBy];
+
+	for(int i=0; i<GLYPH_SENTINEL; i++){
+		if(i==GLYPH_NONE || i==GLYPH_KEEP){
+			glyphRanges.push_back(shared_ptr<ScalarRange>());
+			continue;
+		}
+		auto r=make_shared<ScalarRange>();
+		glyphRanges.push_back(r);
+		switch(i){
+			case GLYPH_FORCE: r->label="force"; break;
+			case GLYPH_VEL:   r->label="velocity"; break;
+		}
+	}
+	glyphRange=glyphRanges[glyph];
+}
+
+void Gl1_DemField::postLoad2(){
+	colorRange=colorRanges[colorBy];
+	glyphRange=glyphRanges[glyph];
+	bool force=(_lastScene!=scene); // prevColorBy, prevGlyph related to other scene, they don't count therefore
 	_lastScene=scene;
-	if(!colorRange) colorRange=make_shared<ScalarRange>();
-	if(!glyphRange) glyphRange=make_shared<ScalarRange>();
-	// find color range by label, remove it if necessary
-	int ci=-1, gi=-1;
-	for(size_t i=0; i<scene->ranges.size(); i++){
-		if(scene->ranges[i].get()==colorRange.get()) ci=(int)i;
-		if(scene->ranges[i].get()==glyphRange.get()) gi=(int)i;
-	}
-	//LOG_WARN("ci="<<ci<<", gi="<<gi);
-	// remove range from scene if there is one and should not be
-	if((colorBy==COLOR_NONE||!shape) && ci>=0){ 
-		scene->ranges.erase(scene->ranges.begin()+ci);
-		if(gi>ci) gi--; // moved down
-	}
-	// with GLYPH_KEEP, keep the range there as well
-	if((/*glyph==GLYPH_KEEP ||*/ glyph==GLYPH_NONE) && gi>=0){
-		scene->ranges.erase(scene->ranges.begin()+gi);
-	}
-	// add range if there is none and should be
-	if(shape && colorBy!=COLOR_NONE && ci<0){ 
-		//LOG_WARN("Adding colorBy ScalarRange "<<colorRange<<" to scene @ "<<scene);
-		scene->ranges.push_back(colorRange); 
-	}
-	if(glyph!=GLYPH_KEEP && glyph!=GLYPH_NONE && gi<0){
-		//LOG_WARN("Adding glyph ScalarRange "<<glyphRange.get()<<" to scene @ "<<scene);
-		scene->ranges.push_back(glyphRange);
-	}
-	glyphRange->reset();
-	colorRange->reset();
-	switch(colorBy){
-		case COLOR_NONE: colorRange->label="[none]"; colorRange->mnmx=Vector2r(0,1);  break;
-		case COLOR_RADIUS: colorRange->label="radius"; break;
-		case COLOR_VEL: colorRange->label="|vel|"; break;
-		case COLOR_MASS: colorRange->label="mass"; break;
-		case COLOR_DISPLACEMENT: colorRange->label="displacement"; break;
-		case COLOR_ROTATION: colorRange->label="rotation"; break;
-		case COLOR_MAT_ID: colorRange->label="material id"; break;
-		case COLOR_MAT_PTR: colorRange->label="material ptr"; break;
-		default: LOG_ERROR("Unknown value Gl1_DemField.colorBy="<<colorBy<<" (ignored)??");
-	}
-	switch(glyph){
-		case GLYPH_KEEP: break; // do nothing
-		case GLYPH_NONE: glyphRange->label="[none]"; break;
-		case GLYPH_FORCE: glyphRange->label="force"; break;
-		case GLYPH_VEL: glyphRange->label="velocity"; break;
-		default: LOG_ERROR("Unknown value Gl1_DemField.glyph="<<glyph<<" (ignored)??");
-	};
+	setSceneRange(scene,(force?shared_ptr<ScalarRange>():colorRanges[prevColorBy]),colorRanges[colorBy]);
+	setSceneRange(scene,(force?shared_ptr<ScalarRange>():glyphRanges[prevGlyph]),glyphRanges[glyph]);
+	prevColorBy=colorBy;
+	prevGlyph=glyph;
 }
 
 void Gl1_DemField::doBound(){
@@ -131,7 +148,7 @@ void Gl1_DemField::doShape(){
 				case COLOR_ROTATION: parColor=colorRange->color(AngleAxisr(n0->ori.conjugate()*n0->getData<GlData>().refOri).angle()); break;
 				case COLOR_MAT_ID: parColor=colorRange->color(p->material->id); break;
 				case COLOR_MAT_PTR: parColor=colorRange->color((size_t)p->material.get()); break;
-				case COLOR_NONE: parColor=colorRange->color(p->shape->color); break;
+				case COLOR_SHAPE: parColor=colorRange->color(p->shape->color); break;
 				default: parColor=Vector3r(NaN,NaN,NaN);
 			}
 		}
@@ -291,7 +308,7 @@ void Gl1_DemField::go(const shared_ptr<Field>& demField, GLViewInfo* _viewInfo){
 	dem=static_pointer_cast<DemField>(demField);
 	viewInfo=_viewInfo;
 
-	if(doPostLoad || _lastScene!=scene) postLoad(*this);
+	if(doPostLoad || _lastScene!=scene) postLoad2();
 	doPostLoad=false;
 
 	if(updateRefPos && (colorBy==COLOR_DISPLACEMENT || colorBy==COLOR_ROTATION)) colorRange->reset();
