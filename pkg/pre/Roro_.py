@@ -38,7 +38,7 @@ def run(pre): # use inputs as argument
 	de=DemField()
 	s.fields=[de]
 
-	if pre.variant not in ('plain','customer1'): raise ValueError("Roro.variant must be one of 'plain', 'customer1' (not '%s')"%pre.variant)
+	if pre.variant not in ('plain','customer1','customer2'): raise ValueError("Roro.variant must be one of 'plain', 'customer1' (not '%s')"%pre.variant)
 	if pre.gap<0: raise ValueError("Roro.gap must be positive (are cylinders overlapping?)")
 	if (pre.time>0 and pre.mass>0) or (pre.time<=0 and pre.mass<=0): raise ValueError("Exactly one of Roro.time or Roro.mass must be positive.")
 
@@ -54,7 +54,7 @@ def run(pre): # use inputs as argument
 	
 	# generate cylinder coordinates, or use those given by the user
 	if pre.cylXzd:
-		if pre.variant!='plain': raise ValueError("Roro.cylXzd can be given as coordinates only with Roro.variant 'plain' (not '%s')."%pre.variant)
+		if pre.variant not in ('plain','customer2'): raise ValueError("Roro.cylXzd can be given as coordinates only with Roro.variant 'plain' (not '%s')."%pre.variant)
 		cylXzd=pre.cylXzd
 	else:
 		cylXzd=[]
@@ -136,6 +136,35 @@ def run(pre): # use inputs as argument
 		
 		if not pre.buckets: pre.buckets=[4,5,5,5]
 
+	elif pre.variant=='customer2':
+		#               
+		# A        ___  B    B tangent of AB atop big cyl, A feed start
+		#  __----^^ (+)  C   big cyl centerl C=(-.15,-.3)
+		#            \   D   under big cyl
+      #             \
+		#              \ E   above first cyl
+		#             (+)   (0,0) first cylinder
+		bigCylR=.18
+		angleAB=math.radians(8)
+		E=Vector2(0,0)+Vector2(0,.5*pre.cylXzd[0][2])
+		C=Vector2(0,0)+Vector2(-.15,+.3)
+		D=C+Vector2(0,-bigCylR)
+		B=C+bigCylR*Vector2(-math.sin(angleAB),math.cos(angleAB))
+		A=B+Vector2(-.2*bigCylR,-.2*bigCylR*math.tan(angleAB))
+
+		yy=(ymin,ymax)
+		kw=dict(mat=pre.plateMaterial,mask=wallMask,halfThick=facetHalfThick)
+		de.par.append(ySpannedFacets((E[0],D[0]),yy,(E[1],D[1]),**kw)+ySpannedFacets((B[0],A[0]),yy,(B[1],A[1]),fakeVel=(math.sin(angleAB)*conveyorVel,0,math.cos(angleAB)*conveyorVel),**kw))
+		del kw['halfThick']
+		feedCyl=utils.infCylinder((C[0],0,C[1]),radius=bigCylR,axis=1,glAB=yy,**kw)
+		feedCyl.angVel=Vector3(0,conveyorVel/bigCylR,0)
+		de.par.append(feedCyl)
+		zmin,zmax=cylZMin-2*cylDMax,B[1]+3*pre.conveyorHt
+		xmin,xmax=min(A[0]-pre.conveyorHt*math.sin(angleAB)-rMax,B[0]-bigCylR),cylXzd[-1][0]+3*cylDMax
+		factoryNode=Node(pos=(A[0],0,A[1]),ori=Quaternion((0,1,0),-angleAB))
+
+		if not pre.buckets: pre.buckets=[len(cylXzd)]
+
 	else: assert False
 
 	factStep=pre.factStepPeriod
@@ -162,8 +191,8 @@ def run(pre): # use inputs as argument
 		utils.wall(ymin,axis=1,sense= 1,visible=False,glAB=((zmin,xmin),(zmax,xmax)),mat=sideWallMat,mask=wallMask),
 		utils.wall(ymax,axis=1,sense=-1,visible=False,glAB=((zmin,xmin),(zmax,xmax)),mat=sideWallMat,mask=wallMask),
 		utils.wall(xmin,axis=0,sense= 1,visible=False,glAB=((ymin,zmin),(ymax,zmax)),mat=sideWallMat,mask=wallMask),
-		utils.wall(xmax,axis=0,sense=-1,visible=False,glAB=((ymin,zmin),(ymax,zmax)),mat=sideWallMat,mask=wallMask),
-		utils.wall(zmin,axis=2,sense= 1,visible=False,glAB=((xmin,ymin),(xmax,ymax)),mat=sideWallMat,mask=wallMask),
+		utils.wall(xmax-4*rMax,axis=0,sense=-1,visible=False,glAB=((ymin,zmin),(ymax,zmax)),mat=sideWallMat,mask=wallMask),
+		utils.wall(zmin+4*rMax,axis=2,sense= 1,visible=False,glAB=((xmin,ymin),(xmax,ymax)),mat=sideWallMat,mask=wallMask),
 	])
 	for i,xzd in enumerate(cylXzd):
 		x,z,d=xzd
@@ -428,7 +457,7 @@ def savePlotData(S):
 	if S.trackEnergy: otherData.update(ERelErr=S.energy.relErr() if S.step>200 else float('nan'),**S.energy)
 	woo.plot.addData(i=S.step,t=S.time,genRate=woo.factory.currRate,bucketRate=bucketRate,overRate=overRate,lostRate=lostRate,delRate=bucketRate+overRate+lostRate,numPar=len(S.dem.par),genMass=woo.factory.mass,**otherData)
 	if not woo.plot.plots:
-		woo.plot.plots={'t':('genRate','bucketRate','lostRate','overRate','delRate',None,('numPar','g--')),'t ':('genMass'),' t':eff}
+		woo.plot.plots={'t':('genRate','bucketRate','lostRate','overRate','delRate',None,('numPar','g--')),' t':eff}
 		if S.trackEnergy: woo.plot.plots.update({'  t':(S.energy,None,('ERelErr','g--'))})
 
 def splitPsd(xx0,yy0,splitX):

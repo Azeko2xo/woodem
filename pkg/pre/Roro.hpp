@@ -20,11 +20,13 @@ struct Roro: public Preprocessor {
 		} else {
 			ccaDt=NaN; ccaSteps=-1;
 		}
-		// compute gap if cylinder coordinates are given directly
-		if(cylXzd.size()>1){
-			gap=Inf;
-			for(size_t i=0;i<cylXzd.size()-1;i++) gap=min(gap,(Vector2r(cylXzd[i][0],cylXzd[i][1])-Vector2r(cylXzd[i+1][0],cylXzd[i+1][1])).norm()-cylXzd[i][2]/2.-cylXzd[i][2]/2.);
-		}
+		#if 0
+			// compute gap if cylinder coordinates are given directly
+			if(cylXzd.size()>1){
+				gap=Inf;
+				for(size_t i=0;i<cylXzd.size()-1;i++) gap=min(gap,(Vector2r(cylXzd[i][0],cylXzd[i][1])-Vector2r(cylXzd[i+1][0],cylXzd[i+1][1])).norm()-cylXzd[i][2]/2.-cylXzd[i][2]/2.);
+			}
+		#endif
 	}
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(Roro,Preprocessor,"Preprocessor for the Rollenrost simulation.",
 		((Real,cylLenReal,2,AttrTrait<>().lenUnit().triggerPostLoad().startGroup("General"),"Real length of cylinders"))
@@ -64,8 +66,7 @@ struct Roro: public Preprocessor {
 		// Tunables
 		((int,factStepPeriod,800,AttrTrait<>().startGroup("Tunables"),"Run factory (and deleters) every *factStepPeriod* steps."))
 		((Real,pWaveSafety,.7,AttrTrait<Attr::triggerPostLoad>(),"Safety factor for critical timestep"))
-		((string,variant,"plain",AttrTrait<>().choice({"plain","customer1","[do not use]"}) /*AttrTrait<>().choice({"plain","customer1"})*/,"Geometry of the feed and possibly other specific details"))
-		// ((string,format,"PNG",AttrTrait<>().choice({"JPEG","PNG","EPS","PS","PPM","BMP"}),""))
+		((string,variant,"plain",AttrTrait<>().choice({"plain","customer1","customer2"}),"Geometry of the feed and possibly other specific details"))
 		((Real,gravity,10.,AttrTrait<>().accelUnit(),"Gravity acceleration magnitude"))
 		((Vector2r,quivAmp,Vector2r(.0,.0),AttrTrait<>().lenUnit().prefUnit("mm"),"Cylinder quiver amplitudes (horizontal and vertical), relative to cylinder radius"))
 		((Vector3r,quivHPeriod,Vector3r(3000,5000,3),,"Horizontal quiver period (relative to Δt); assigned quasi-randomly from the given range, with z-component giving modulo divisor"))

@@ -309,8 +309,6 @@ class ControllerClass(QWidget,Ui_Controller):
 			if len(vv)==0: View()
 		else:
 			if len(vv)>0: vv[0].close()
-	def setReferenceSlot(self):
-		woo.gl.Gl1_DemField.updateRefPos=True
 	def plotSlot(self):
 		import woo.plot
 		woo.plot.plot()

@@ -39,7 +39,7 @@
       </sizepolicy>
      </property>
      <property name="currentIndex">
-      <number>4</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
@@ -508,13 +508,6 @@
             </widget>
            </item>
            <item row="0" column="1">
-            <widget class="QPushButton" name="referenceButton">
-             <property name="text">
-              <string>Reference</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="2">
             <widget class="QPushButton" name="plotButton">
              <property name="text">
               <string>Show plot</string>
@@ -1009,22 +1002,6 @@
    </hints>
   </connection>
   <connection>
-   <sender>referenceButton</sender>
-   <signal>clicked()</signal>
-   <receiver>Controller</receiver>
-   <slot>setReferenceSlot()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>314</x>
-     <y>474</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>5</x>
-     <y>469</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>plotButton</sender>
    <signal>clicked()</signal>
    <receiver>Controller</receiver>
@@ -1304,14 +1281,10 @@
   <slot>playSlot()</slot>
   <slot>pauseSlot()</slot>
   <slot>stepSlot()</slot>
-  <slot>setReferenceSlot()</slot>
   <slot>plotSlot()</slot>
   <slot>dtFixedSlot()</slot>
   <slot>dtDynSlot()</slot>
   <slot>dtEditedSlot()</slot>
-  <slot>xyzSlot()</slot>
-  <slot>yzxSlot()</slot>
-  <slot>zxySlot()</slot>
   <slot>generateSlot()</slot>
   <slot>dtEditNoupdateSlot()</slot>
   <slot>generatorComboSlot()</slot>

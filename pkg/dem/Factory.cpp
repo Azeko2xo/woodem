@@ -584,6 +584,11 @@ void ConveyorFactory::run(){
 	setCurrRate(stepMass/(/*time*/lenToDo/vel));
 
 	dem->contacts->dirty=true; // re-initialize the collider
+	#if 1
+		for(const auto& e: scene->engines){
+			if(dynamic_pointer_cast<InsertionSortCollider>(e)){ e->cast<InsertionSortCollider>().forceInitSort=true; break; }
+		}
+	#endif
 }
 
 py::object ConveyorFactory::pyDiamMass() const {
