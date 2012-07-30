@@ -90,11 +90,12 @@ void Gl1_DemField::initAllRanges(){
 void Gl1_DemField::postLoad2(){
 	colorRange=colorRanges[colorBy];
 	glyphRange=glyphRanges[glyph];
-	bool force=(_lastScene!=scene); // prevColorBy, prevGlyph related to other scene, they don't count therefore
+	bool noPrev=(_lastScene!=scene); // prevColorBy, prevGlyph related to other scene, they don't count therefore
+	bool noColor=(!shape || colorBy==COLOR_SHAPE);
 	_lastScene=scene;
-	setSceneRange(scene,(force?shared_ptr<ScalarRange>():colorRanges[prevColorBy]),colorRanges[colorBy]);
-	setSceneRange(scene,(force?shared_ptr<ScalarRange>():glyphRanges[prevGlyph]),glyphRanges[glyph]);
-	prevColorBy=colorBy;
+	setSceneRange(scene,((noPrev||prevColorBy<0)?shared_ptr<ScalarRange>():colorRanges[prevColorBy]),noColor?shared_ptr<ScalarRange>():colorRanges[colorBy]);
+	setSceneRange(scene,((noPrev||prevGlyph<0)  ?shared_ptr<ScalarRange>():glyphRanges[prevGlyph]),glyphRanges[glyph]);
+	prevColorBy=noColor?-1:colorBy;
 	prevGlyph=glyph;
 }
 
@@ -310,9 +311,6 @@ void Gl1_DemField::go(const shared_ptr<Field>& demField, GLViewInfo* _viewInfo){
 
 	if(doPostLoad || _lastScene!=scene) postLoad2();
 	doPostLoad=false;
-
-	if(updateRefPos && (colorBy==COLOR_DISPLACEMENT || colorBy==COLOR_ROTATION)) colorRange->reset();
-
 
 	if(shape) doShape();
 	if(bound) doBound();

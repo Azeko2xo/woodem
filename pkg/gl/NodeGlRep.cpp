@@ -43,7 +43,7 @@ void VectorGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
 	Vector3r color=(range?range->color(valNorm):CompUtils::scalarOnColorScale(valNorm,0,1));
 	Real mxNorm=(range?range->mnmx[1]:1);
 	Real len=relSz*viewInfo->sceneRadius;
-	if(!isnan(scaleExp)) len*=pow(valNorm/mxNorm,scaleExp);
+	if(!isnan(scaleExp)) len*=pow(min(1.,valNorm/mxNorm),scaleExp);
 	Vector3r pos=node->pos+(node->hasData<GlData>()?node->getData<GlData>().dGlPos:Vector3r::Zero());
 	glColor3v(color);
 	GLUtils::GLDrawArrow(pos,pos+len*(val/valNorm),color);
