@@ -31,7 +31,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 	Scene* _lastScene; // to detect changes; never acessed as pointer
 	WOO_CLASS_BASE_DOC_STATICATTRS_CTOR_PY(Gl1_DemField,GlFieldFunctor,"Render DEM field.",
 		((bool,shape,true,AttrTrait<Attr::triggerPostLoad>().startGroup("Shape"),"Render particle's :ref:`Shape`"))
-		((int,colorBy,COLOR_SHAPE,AttrTrait<Attr::triggerPostLoad>().choice({{COLOR_SHAPE,"Shape.color"},{COLOR_RADIUS,"radius"},{COLOR_VEL,"velocity"},{COLOR_MASS,"mass"},{COLOR_DISPLACEMENT,"displacement"},{COLOR_ROTATION,"rotation"},{COLOR_MAT_ID,"material id"},{COLOR_MAT_PTR,"material pointer"}}),"Color particles by"))
+		((int,colorBy,COLOR_SHAPE,AttrTrait<Attr::triggerPostLoad>().choice({{COLOR_SHAPE,"Shape.color"},{COLOR_RADIUS,"radius"},{COLOR_VEL,"velocity"},{COLOR_MASS,"mass"},{COLOR_DISPLACEMENT,"displacement"},{COLOR_ROTATION,"rotation"},{COLOR_MAT_ID,"material id"},{COLOR_MAT_PTR,"material pointer"}}).buttons({"Reference now","self.updateRefPos=True","use current positions and orientations as reference for showing displacement/rotation"},/*showBefore*/false),"Color particles by"))
 		((bool,wire,false,,"Render all shapes with wire only"))
 		((bool,colorSpheresOnly,true,,"If :ref:`colorBy` is active, use automatic color for spheres only; for non-spheres, use :ref:`nonSphereColor`"))
 		((Vector3r,nonSphereColor,Vector3r(.3,.3,.3),AttrTrait<>().rgbColor(),"Color to use for non-spherical particles when :ref:`colorBy` is not :ref:`colorShape`."))

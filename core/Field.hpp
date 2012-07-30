@@ -54,7 +54,7 @@ struct ScalarRange: public Object{
 	// called only when mnmx is manipulated
 	void postLoad(const ScalarRange&){ if(isOk()) autoAdjust=false; }
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ScalarRange,Object,"Store and share range of scalar values",
-		((Vector2r,mnmx,Vector2r(std::numeric_limits<Real>::infinity(),-std::numeric_limits<Real>::infinity()),AttrTrait<Attr::triggerPostLoad>(),"Packed minimum and maximum values; adjusting from python sets :ref:`autoAdjust` to false automatically."))
+		((Vector2r,mnmx,Vector2r(std::numeric_limits<Real>::infinity(),-std::numeric_limits<Real>::infinity()),AttrTrait<Attr::triggerPostLoad>().buttons({"Reset","self.reset()","Re-initialize range"}),"Packed minimum and maximum values; adjusting from python sets :ref:`autoAdjust` to false automatically."))
 		((bool,autoAdjust,true,,"Automatically adjust range using given values."))
 		((bool,sym,false,,"Force maximum to be negative of minimum and vice versa (only with autoadjust)"))
 		((Vector2i,dispPos,Vector2i(-1000,-1000),AttrTrait<>().noGui(),"Where is this range displayed on the OpenGL canvas; initially out of range, will be reset automatically."))

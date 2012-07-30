@@ -14,7 +14,7 @@ logging.trace=logging.debug
 logging.basicConfig(level=logging.INFO)
 #from logging import debug,info,warning,error
 #from woo import *
-import woo._customConverters, woo.core
+import woo._customConverters, woo.core, woo.utils
 import woo.qt
 
 
@@ -31,6 +31,33 @@ seqSerializableShowType=True # show type headings in serializable sequences (tak
 # if True or w.hasFocus(): w.home(False)
 #
 #
+
+colormapIconSize=(50,20)
+
+def makeColormapIcons():
+	ret=[]
+	for cmap in range(len(woo.master.cmaps)):
+		wd,ht=colormapIconSize
+		img=QtGui.QImage(wd,ht,QtGui.QImage.Format_RGB32)
+		for col in range(wd):
+			c=255*woo.utils.mapColor(col*1./wd,cmap=cmap)
+			#c=(0,0,0)
+			cc=QtGui.qRgb(int(c[0]),int(c[1]),int(c[2]))
+			for row in range(ht):
+				img.setPixel(col,row,cc)
+		ret.append(QtGui.QIcon(QtGui.QPixmap.fromImage(img)))
+	return ret
+
+# construct colormap icons, for later use
+# use this proxy function so that makeColormapIcons is not called at import time
+# since that leads to crash (qt is not fully initialized yet)
+_colormapIcons=[]
+def getColormapIcons():
+	global _colormapIcons
+	if not _colormapIcons: _colormapIcons=makeColormapIcons()
+	return _colormapIcons
+
+
 
 def makeWrapperHref(text,klass,attr=None,static=False):
 	"""Create clickable HTML hyperlink to a Yade class or its attribute.
@@ -291,6 +318,11 @@ class AttrEditor_Choice(AttrEditor,QFrame):
 		if choices[0].__class__==tuple and len(choices[0])!=2: raise ValueError("Choice must be either single items or 2-tuples of code-value,display-value")
 		for c in choices:
 			self.combo.addItem(str(c if self.justValues else c[1])) 
+		### COLORMAP!!
+		if len(choices)==len(woo.master.cmaps)+1: # +1 for [default] (-1)
+			for i in range(len(choices)):
+				self.combo.setItemIcon(i,getColormapIcons()[(i-1) if i>0 else woo.master.cmap[0]])
+			self.combo.setIconSize(QSize(colormapIconSize[0],colormapIconSize[1]))
 		self.grid=QGridLayout(self); self.grid.setSpacing(0); self.grid.setMargin(0)
 		self.grid.addWidget(self.combo,0,0)
 		self.combo.activated.connect(self.update)
@@ -763,6 +795,7 @@ class SerializableEditor(QFrame):
 			# this attribute starts a new attribute group
 			if trait.startGroup: self.entryGroups.append(self.EntryGroupData(number=len(self.entryGroups),name=trait.startGroup))
 
+			# determine entry type
 			if isinstance(val,list):
 				t=self.getListTypeFromDocstring(trait)
 				if not t and len(val)==0: t=(val[0].__class__,) # 1-tuple is list of the contained type
@@ -955,6 +988,23 @@ class SerializableEditor(QFrame):
 					unitLay.addWidget(w)
 				if unitChoice: entry.unitChanged() # postpone calling this at the very end
 				entry.widgets['unit'].setVisible(self.showUnits)
+			if entry.trait.buttons:
+				bb=entry.trait.buttons[0]
+				for i in range(0,len(bb),3):
+					b=QPushButton(bb[i],self)
+					l=QLabel(self.fontMetrics().elidedText(' '+bb[i+2],Qt.ElideRight,100))
+					b.setToolTip('<code>'+bb[i+1]+'</code>')
+					b.setStyleSheet('QPushButton {text-align: left; padding-left:5px; }')
+					b.setFocusPolicy(Qt.NoFocus)
+					l.setToolTip(bb[i+2])
+					def callButton(cmd):
+						exec cmd in globals(),dict(self=self.ser)
+					# first arg (foo) used by the dispatch
+					# cmd=bb[i+1] binds the current value bb[i+1]
+					b.clicked.connect(lambda foo,cmd=bb[i+1]: callButton(cmd)) 
+					entry.widgets['buttons-%d'%(i/3)]=b
+					entry.widgets['buttonLabels-%d'%(i/3)]=l 
+				#print 'Buttons',entry.trait.name,entry.trait.buttons,entry.widgets
 			#if self.hasUnits and entry.widget.__class__!=SerializableEditor: entry.widgets['unit']=QLabel(u'−',self)
 			##else: entry.widgets['unit']=QLabel(u'−',self) if (self.hasUnits and entry.widget.__class__!=SerializableEditor) else QFrame() # avoid NaN widgets
 			self.entryGroups[entry.groupNo].entries.append(entry)
@@ -966,6 +1016,15 @@ class SerializableEditor(QFrame):
 				lay.setRowStretch(lay.rowCount()-1,-1)
 			for i,entry in enumerate(g.entries):
 				try:
+					def addButtonsNow():
+						bb,ll=sorted([k for k in entry.widgets.keys() if k.startswith('buttons-')]),sorted([k for k in entry.widgets.keys() if k.startswith('buttonLabels-')])
+						for b,l in zip(bb,ll):
+							row=lay.rowCount()
+							lay.addWidget(entry.widgets[b],row,self.gridCols['value'],1,1)
+							lay.addWidget(entry.widgets[l],row,self.gridCols['label'],1,1)
+							entry.widgets[l].setStyleSheet('background: palette(%s); '%('Base' if row%2 else 'AlternateBase'))
+					# add buttons before
+					if entry.trait.buttons and entry.trait.buttons[1]==True: addButtonsNow()
 					row=lay.rowCount()
 					entry.gridAndRow=lay,row
 					lay.addWidget(entry.widgets['check'],row,self.gridCols['check'],1,1)
@@ -982,7 +1041,9 @@ class SerializableEditor(QFrame):
 					lay.setRowStretch(row,2)
 					for w in entry.widgets['label'],: # entry.widgets['value']:
 						if not w or w.__class__==SerializableEditor: continue # nested editor not modified
-						w.setStyleSheet('background: palette(%s); '%('Base' if i%2 else 'AlternateBase'))
+						w.setStyleSheet('background: palette(%s); '%('Base' if row%2 else 'AlternateBase'))
+					# add buttons after
+					if entry.trait.buttons and entry.trait.buttons[1]==False: addButtonsNow()
 				except RuntimeError:
 					print 'ERROR while creating widget for entry %s (%s)'%(entry.name,objPath)
 					import traceback

@@ -118,7 +118,7 @@ class Renderer: public Object{
 		((Vector3r,iniUp,Vector3r(0,0,1),,"Up vector of new views"))
 		((Vector3r,iniViewDir,Vector3r(-1,0,0),,"View direction of new views"))
 
-		((bool,scaleOn,false,AttrTrait<>().startGroup("Scaling"),"Whether *dispScale* has any effect or not."))
+		((bool,scaleOn,false,AttrTrait<>().startGroup("Scaling").buttons({"Reference now","woo.gl.Gl1_DemField.updateRefPos=True","use current positions and orientations as reference for scaling displacement/rotation."},/*showBefore*/false),"Whether *dispScale* has any effect or not."))
 		((Vector3r,dispScale,((void)"disable scaling",Vector3r::Ones()),,"Artificially enlarge (scale) dispalcements from bodies' :ref:`reference positions<State.refPos>` by this relative amount, so that they become better visible (independently in 3 dimensions). Disbled if (1,1,1), and also if *scaleOn* is false."))
 		((Real,rotScale,((void)"disable scaling",1.),,"Artificially enlarge (scale) rotations of bodies relative to their :ref:`reference orientation<State.refOri>`, so the they are better visible. No effect if 1, and also if *scaleOn* is false."))
 
