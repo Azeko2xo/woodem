@@ -51,6 +51,21 @@ void Law2_L6Geom_PelletPhys_Pellet::go(const shared_ptr<CGeom>& cg, const shared
 					Real dissip=.5*abs(Fy0+Fy)*abs(uNPl-uNPl0);
 					scene->energy->add(dissip,plastSplit?"normPlast":"plast",plastSplit?normPlastIx:plastIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate);
 				}
+				if(thinningFactor>0){
+					Real dRad=thinningFactor*(uNPl0-uNPl);
+					for(const auto& p:{C->pA,C->pB}){
+						if(!dynamic_cast<Sphere*>(p->shape.get())) continue;
+						auto& s=p->shape->cast<Sphere>();
+						//Real r0=(C->geom->cast<L6Geom>().lens[p.get()==C->pA.get()?0:1]);
+						Real r0=cbrt(3*s.nodes[0]->getData<DemData>().mass/(4*Mathr::PI*p->material->density));
+						Real rMin=r0*rMinFrac;
+						if(s.radius<=rMin) continue;
+						boost::mutex::scoped_lock lock(s.nodes[0]->getData<DemData>().lock);
+						// cerr<<"#"<<p->id<<": radius "<<s.radius<<" -> "<<s.radius-dRad<<endl;
+						s.radius=max(rMin,s.radius-dRad);
+						s.color=CompUtils::clamped(1-(s.radius-rMin)/(r0-rMin),0,1);
+					}
+				}
 				Fn=Fy;
 			}
 			// in the elastic regime, Fn is trial force already

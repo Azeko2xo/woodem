@@ -42,6 +42,8 @@ struct Law2_L6Geom_PelletPhys_Pellet: public LawFunctor{
 	"If $F_N_^T<0$ (compression) and $F_N^T<F_N^y$, we update plastic displacement to $u_N^{\\rm pl}=u_N-F_N^y/k_N$ and set $F_N=F_N^y$; otherwise (elastic regime), $F_N=F_N^T$ is used.\n\n"
 	"If $F_N^T\\geq0$, we evaluate adhesion function $h(u_N)=-k_A u_N^{\\rm pl}-4\\frac{-k_A}{u_N^{\\rm pl}}\\left(u_N-\\frac{u_N^{\\rm pl}}{2}\\right)^2$ and set $F_N=\\min(F_N^T,h(u_N))$. The function $h$ is parabolic, is zero for $u_N\\in\\{u_N^{\\rm pl},0\\}$ and reaches its maximum for $h\\left(u_N=\\frac{u_N^{\\rm pl}}{2}\\right)=-k_A u_N^{\\rm pl}$, where $k_A$ is the adhesion modulus (positive value), computed from :ref:`kaDivKn`."
 	,
+		((Real,thinningFactor,0,,"The amount of reducing particle radius, relative to plastic deformation increment (non-positive to disable thinning)"))
+		((Real,rMinFrac,.7,,"Minimum radius reachable with sphere thinning at plastic deformation"))
 		//((Real,alpha,-1.,,"$\\alpha$  coefficient in the yield function; if negative, compressive plasticity is deactivated. This coefficient is dimensionless."))
 		//((Real,kADivKn,.1,,"Ratio kA/kN (for adhesion); if non-positive, adhesion is disabled"))
 		((bool,plastSplit,false,,"Track energy dissipated in normal and tangential sliding separately"))

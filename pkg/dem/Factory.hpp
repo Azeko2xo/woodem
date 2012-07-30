@@ -174,6 +174,7 @@ struct BoxDeleter: public PeriodicEngine{
 		((int,mask,0,,"If non-zero, only particles matching the mask will be candidates for removal"))
 		((bool,inside,false,,"Delete particles which fall inside the volume rather than outside"))
 		((bool,save,false,,"Save particles which are deleted in the *deleted* list"))
+		((bool,recoverRadius,false,,"Recover radius of Spheres by computing it back from particle's mass and its material density (used when radius is changed due to radius thinning (in Law2_L6Geom_PelletPhys_Pellet.thinningFactor)."))
 		((vector<shared_ptr<Particle>>,deleted,,AttrTrait<Attr::readonly>().noGui(),"Deleted particle's list; can be cleared with BoxDeleter.clear()"))
 		((int,num,0,AttrTrait<Attr::readonly>(),"Number of deleted particles"))
 		((Real,mass,0.,AttrTrait<Attr::readonly>(),"Total mass of deleted particles"))

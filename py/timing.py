@@ -21,6 +21,7 @@ def _resetEngine(e):
 
 def reset():
 	"Zero all timing data."
+	import woo
 	S=woo.master.scene
 	for e in S.engines: _resetEngine(e)
 

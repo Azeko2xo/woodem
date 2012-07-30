@@ -174,6 +174,7 @@ def run(pre): # use inputs as argument
 		centers=cc,radii=rr,
 		cellLen=cellLen,
 		barrierColor=.3,
+		color=0,
 		glColor=.5,
 		#color=.4, # random colors
 		node=factoryNode,
@@ -211,6 +212,16 @@ def run(pre): # use inputs as argument
 		de.par.append(c)
 
 	###
+	### PLASTIC THINNING
+	###
+	if pre.thinningCoeffs[0]>0:
+		thinningFactor,rMinFrac=pre.thinningCoeffs
+		recoverRadius=True
+	else:
+		thinningFactor,rMinFrac=-1,1.
+		recoverRadius=False
+
+	###
 	### buckets
 	###
 	bucketDeleters=[]
@@ -232,7 +243,7 @@ def run(pre): # use inputs as argument
 		barriersAt.append(bucketEnd)
 		xzd0,xzd1=cylXzd[bucketStart],cylXzd[bucketEnd]
 		# initially don't save deleted particles
-		bucketDeleters.append(BoxDeleter(stepPeriod=factStep,inside=True,box=((xzd0[0],ymin,zmin),(xzd1[0],ymax,min(xzd0[1]-xzd0[2]/2.,xzd1[1]-xzd1[2]/2.))),glColor=.5+(i*.5/len(pre.buckets)),save=False,mask=delMask,currRateSmooth=pre.rateSmooth,label='bucket[%d]'%i))
+		bucketDeleters.append(BoxDeleter(stepPeriod=factStep,inside=True,box=((xzd0[0],ymin,zmin),(xzd1[0],ymax,min(xzd0[1]-xzd0[2]/2.,xzd1[1]-xzd1[2]/2.))),glColor=.5+(i*.5/len(pre.buckets)),save=False,mask=delMask,currRateSmooth=pre.rateSmooth,recoverRadius=recoverRadius,label='bucket[%d]'%i))
 		bucketStart=bucketEnd
 	# bucket barriers
 	for cylI in barriersAt:
@@ -245,12 +256,12 @@ def run(pre): # use inputs as argument
 	s.dem.gravity=(0,0,-pre.gravity)
 	s.engines=utils.defaultEngines(damping=0.,verletDist=.05*rMin,
 			cp2=Cp2_PelletMat_PelletPhys(),
-			law=Law2_L6Geom_PelletPhys_Pellet(plastSplit=True)
+			law=Law2_L6Geom_PelletPhys_Pellet(plastSplit=True,thinningFactor=thinningFactor,rMinFrac=rMinFrac)
 		)+bucketDeleters+[
 		# this one should not collect any particles at all
 		BoxDeleter(stepPeriod=factStep,box=((xmin,ymin,zmin),(xmax,ymax,zmax)),glColor=.9,save=False,mask=delMask,label='outOfDomain'),
 		# what falls inside
-		BoxDeleter(stepPeriod=factStep,inside=True,box=((cylXzd[-1][0]+cylXzd[-1][2]/2.,ymin,zmin),(xmax,ymax,zmax)),glColor=.9,save=True,mask=delMask,currRateSmooth=pre.rateSmooth,label='fallOver'),
+		BoxDeleter(stepPeriod=factStep,inside=True,box=((cylXzd[-1][0]+cylXzd[-1][2]/2.,ymin,zmin),(xmax,ymax,zmax)),glColor=.9,save=True,mask=delMask,currRateSmooth=pre.rateSmooth,recoverRadius=recoverRadius,label='fallOver'),
 		# generator
 		factory,
 		PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.savePlotData(S)'),

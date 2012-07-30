@@ -400,6 +400,10 @@ void BoxDeleter::run(){
 		num++;
 		mass+=m;
 		stepMass+=m;
+		if(recoverRadius && dynamic_cast<Sphere*>(p->shape.get())){
+			auto& s=p->shape->cast<Sphere>();
+			s.radius=cbrt(3*m/(4*Mathr::PI*p->material->density));
+		}
 		// FIXME: compute energy that disappeared
 		dem->removeParticle(i);
 		//dem->particles.remove(i);

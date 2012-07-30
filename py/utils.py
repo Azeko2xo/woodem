@@ -764,14 +764,14 @@ def runPreprocessorWithBatch(pre):
 	for name,val in vv.items():
 		if name=='title': continue
 		if val in ('*','-'): continue
-		nestedSetattr(pre,name,eval(val,math.__dict__))
+		nestedSetattr(pre,name,eval(val,globals()))
 	# run preprocessor
 	S=pre()
 	# set tags from batch
 	S.tags['line']='l%d'%tableLine
 	S.tags['title']=vv['title']
-	S.tags['idt']=S.tags['id']+'.'+S.tags['title'];
-	S.tags['tid']=S.tags['title']+'.'+S.tags['id']
+	S.tags['idt']=(S.tags['id']+'.'+S.tags['title']).replace('/','_')
+	S.tags['tid']=(S.tags['title']+'.'+S.tags['id']).replace('/','_')
 	return S
 
 
