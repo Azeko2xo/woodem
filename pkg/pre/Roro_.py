@@ -61,6 +61,7 @@ def run(pre): # use inputs as argument
 		dCyl=pre.cylDiameter
 		xz0=(0,-dCyl/2) # first cylinder is right below the feed end at (0,0)
 		if pre.variant=='customer1': xz0=(0,0)
+		elif pre.variant=='customer2': xz0=(0,0)
 		for i in range(0,pre.cylNum):
 			dist=i*(dCyl+pre.gap) # distance from the first cylinder's center
 			cylXzd.append(Vector3(xz0[0]+math.cos(pre.inclination)*dist,xz0[1]-math.sin(pre.inclination)*dist,dCyl))
@@ -146,7 +147,7 @@ def run(pre): # use inputs as argument
 		#             (+)   (0,0) first cylinder
 		bigCylR=.18
 		angleAB=math.radians(8)
-		E=Vector2(0,0)+Vector2(0,.5*pre.cylXzd[0][2])
+		E=Vector2(0,0)+Vector2(0,.5*cylXzd[0][2])
 		C=Vector2(0,0)+Vector2(-.15,+.3)
 		D=C+Vector2(0,-bigCylR)
 		B=C+bigCylR*Vector2(-math.sin(angleAB),math.cos(angleAB))
@@ -671,8 +672,8 @@ def writeReport(S):
 	pylab.plot(*overPsd,label='fall over (%.3g %s)'%(woo.fallOver.mass*massScale,massUnit))
 	for i in range(0,len(woo.bucket)):
 		try:
-			apPsd=scaledFlowPsd(*woo.bucket[i].psd())
-			pylab.plot(*apPsd,label='bucket %d (%.3g %s)'%(i,woo.bucket[i].mass*massScale,massUnit))
+			bucketPsd=scaledFlowPsd(*woo.bucket[i].psd())
+			pylab.plot(*bucketPsd,label='bucket %d (%.3g %s)'%(i,woo.bucket[i].mass*massScale,massUnit))
 		except ValueError: pass
 	pylab.axvline(x=pre.gap,linewidth=5,alpha=.3,ymin=0,ymax=1,color='g',label='gap')
 	pylab.grid(True)
@@ -706,6 +707,26 @@ def writeReport(S):
 	leg=pylab.legend(loc='best')
 	leg.get_frame().set_alpha(legendAlpha)
 	figs.append((massName.capitalize(),fig))
+
+	##
+	## PSD derivatives
+	##
+	fig=pylab.figure()
+	for dd,mm,label in ((dOver,mOver,'oversize'),(dBuckets,mBuckets,'undersize')):
+		from numpy import diff
+		yPsd,xPsd=numpy.histogram(dd,weights=mm,bins=30)
+		yPsd=1e-3*yPsd.cumsum()
+		xMidPsd=.5*(xPsd[1:]+xPsd[:-1])
+		pylab.plot(xMidPsd[:-1],diff(yPsd)/diff(xMidPsd),label=label,linewidth=3)
+	pylab.grid(True)
+	pylab.gca().xaxis.set_major_formatter(milimeter)
+	pylab.axvline(x=pre.gap,linewidth=5,alpha=.3,ymin=0,ymax=1,color='g',label='gap')
+	pylab.xlabel('particle diameter [mm]')
+	pylab.ylabel('PSD derivative [%s/mm]'%(massUnit))
+	leg=pylab.legend(loc='best')
+	leg.get_frame().set_alpha(legendAlpha)
+	figs.append(('Derivative PSD',fig))
+
 
 
 	feedTab=psdFeedBucketFalloverTable(

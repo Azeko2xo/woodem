@@ -913,7 +913,7 @@ class SerializableEditor(QFrame):
 		self.showChecks=(not self.showChecks if val==None else val)
 		#for g in self.entryGroups: g.showChecks=self.showChecks # propagate down
 		for entry in self.entries:
-			entry.widgets['check'].setVisible(self.showChecks)
+			if entry.visible: entry.widgets['check'].setVisible(self.showChecks)
 			if not entry.trait.readonly:
 				if 'value' in entry.widgets: entry.widgets['value'].setEnabled(True)
 				entry.widgets['label'].setEnabled(True)
