@@ -51,8 +51,9 @@ void Law2_L6Geom_PelletPhys_Pellet::go(const shared_ptr<CGeom>& cg, const shared
 					Real dissip=.5*abs(Fy0+Fy)*abs(uNPl-uNPl0);
 					scene->energy->add(dissip,plastSplit?"normPlast":"plast",plastSplit?normPlastIx:plastIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate);
 				}
-				if(thinningFactor>0){
-					Real dRad=thinningFactor*(uNPl0-uNPl);
+				if(thinningFactor>0 && rMinFrac<1.){
+					const Vector2r bendVel(g.angVel[1],g.angVel[2]);
+					Real dRad=thinningFactor*(uNPl0-uNPl)*(scene->dt*bendVel.norm());
 					for(const auto& p:{C->pA,C->pB}){
 						if(!dynamic_cast<Sphere*>(p->shape.get())) continue;
 						auto& s=p->shape->cast<Sphere>();
@@ -60,9 +61,11 @@ void Law2_L6Geom_PelletPhys_Pellet::go(const shared_ptr<CGeom>& cg, const shared
 						Real r0=cbrt(3*s.nodes[0]->getData<DemData>().mass/(4*Mathr::PI*p->material->density));
 						Real rMin=r0*rMinFrac;
 						if(s.radius<=rMin) continue;
+						// 0..1 norm between rMin and r0
+						Real r01=(s.radius-rMin)/(r0-rMin); 
 						boost::mutex::scoped_lock lock(s.nodes[0]->getData<DemData>().lock);
 						// cerr<<"#"<<p->id<<": radius "<<s.radius<<" -> "<<s.radius-dRad<<endl;
-						s.radius=max(rMin,s.radius-dRad);
+						s.radius=max(rMin,s.radius-dRad*r01);
 						s.color=CompUtils::clamped(1-(s.radius-rMin)/(r0-rMin),0,1);
 					}
 				}

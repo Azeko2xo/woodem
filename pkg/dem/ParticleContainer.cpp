@@ -105,6 +105,19 @@ const shared_ptr<Particle>& ParticleContainer::safeGet(Particle::id_t id){
 }
 
 
+bool ParticleContainer::pyRemove(Particle::id_t id){
+	if(!exists(id)) return false;
+	dem->removeParticle(id);
+	return true;
+}
+
+py::list ParticleContainer::pyRemoveList(vector<id_t> ids){
+	py::list ret;
+	for(auto& id: ids) ret.append(pyRemove(id));
+	return ret;
+}
+
+
 
 bool ParticleContainer::remove(Particle::id_t id){
 	if(!exists(id)) return false;

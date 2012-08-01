@@ -143,7 +143,14 @@ struct BoxFactory: public RandomFactory{
 	#endif
 
 	#ifdef WOO_OPENGL
-		void render(const GLViewInfo&){ if(!isnan(glColor)) GLUtils::AlignedBox(box,CompUtils::mapColor(glColor)); }
+		void render(const GLViewInfo&){
+			if(isnan(glColor)) return;
+			GLUtils::AlignedBox(box,CompUtils::mapColor(glColor));
+			std::ostringstream oss; oss.precision(4); oss<<mass;
+			if(maxMass>0){ oss<<"/"; oss.precision(4); oss<<maxMass; }
+			if(!isnan(currRate)){ oss.precision(3); oss<<" ("<<currRate<<")"; }
+			GLUtils::GLDrawText(oss.str(),box.center(),CompUtils::mapColor(glColor));
+		}
 	#endif
 	WOO_CLASS_BASE_DOC_ATTRS(BoxFactory,RandomFactory,"Generate particle inside axis-aligned box volume.",
 		((AlignedBox3r,box,AlignedBox3r(Vector3r(NaN,NaN,NaN),Vector3r(NaN,NaN,NaN)),,"Box volume specification (lower and upper corners)"))
@@ -162,6 +169,7 @@ struct BoxDeleter: public PeriodicEngine{
 			if(isnan(glColor)) return;
 			GLUtils::AlignedBox(box,CompUtils::mapColor(glColor));
 			std::ostringstream oss; oss.precision(4); oss<<mass;
+			if(!isnan(currRate)){ oss.precision(3); oss<<" ("<<currRate<<")"; }
 			GLUtils::GLDrawText(oss.str(),box.center(),CompUtils::mapColor(glColor));
 		}
 	#endif
@@ -201,6 +209,7 @@ struct ConveyorFactory: public ParticleFactory{
 			if(isnan(glColor)) return;
 			std::ostringstream oss; oss.precision(4); oss<<mass;
 			if(maxMass>0){ oss<<"/"; oss.precision(4); oss<<maxMass; }
+			if(!isnan(currRate)){ oss.precision(3); oss<<" ("<<currRate<<")"; }
 			GLUtils::GLDrawText(oss.str(),node->pos,CompUtils::mapColor(glColor));
 		}
 	#endif

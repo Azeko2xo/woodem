@@ -266,7 +266,7 @@ def userSession(qt4=False,qapp=None,qtConsole=False):
 			elif isinstance(obj,woo.core.Preprocessor):
 				sys.stderr.write("Using preprocessor "+arg0+'\n')
 				import woo.utils
-				woo.master.scene=woo.utils.runPreprocessorWithBatch(obj)
+				woo.master.scene=woo.utils.runPreprocessorWithBatch(obj,arg0)
 				woo.master.scene.run() # run the new simulation
 				if woo.runtime.opts.exitAfter: woo.master.scene.wait() 
 			else:

@@ -82,6 +82,9 @@ class Scene: public Object{
 		void boostSave(const string& out);
 		void saveTmp(const string& slot, bool quiet=true);
 
+		// expand {tagName} in given string
+		string expandTags(const string& s) const;
+
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Scene,Object,"Object comprising the whole simulation.",
 		((Real,dt,1e-8,AttrTrait<>().timeUnit(),"Current timestep for integration."))
 		((long,step,0,AttrTrait<Attr::readonly>(),"Current step number"))

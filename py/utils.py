@@ -742,7 +742,7 @@ def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 	return dictParams
 	#return len(tagsParams)
 
-def runPreprocessorWithBatch(pre):
+def runPreprocessorWithBatch(pre,preFile=None):
 	def nestedSetattr(obj,attr,val):
 		attrs=attr.split(".")
 		for i in attrs[:-1]:
@@ -754,22 +754,27 @@ def runPreprocessorWithBatch(pre):
 
 	import os
 	tableFileLine=os.environ['WOO_BATCH']
-	env=tableFileLine.split(':')
-	tableFile,tableLine=env[0],int(env[1])
-	allTab=TableParamReader(tableFile).paramDict()
-	if not tableLine in allTab: raise RuntimeError("Table %s doesn't contain valid line number %d"%(tableFile,tableLine))
-	vv=allTab[tableLine]
+	if tableFileLine:
+		env=tableFileLine.split(':')
+		tableFile,tableLine=env[0],int(env[1])
+		allTab=TableParamReader(tableFile).paramDict()
+		if not tableLine in allTab: raise RuntimeError("Table %s doesn't contain valid line number %d"%(tableFile,tableLine))
+		vv=allTab[tableLine]
 
-	# set preprocessor parameters first
-	for name,val in vv.items():
-		if name=='title': continue
-		if val in ('*','-'): continue
-		nestedSetattr(pre,name,eval(val,globals()))
+		# set preprocessor parameters first
+		for name,val in vv.items():
+			if name=='title': continue
+			if val in ('*','-'): continue
+			nestedSetattr(pre,name,eval(val,globals()))
 	# run preprocessor
 	S=pre()
 	# set tags from batch
-	S.tags['line']='l%d'%tableLine
-	S.tags['title']=vv['title']
+	if tableFileLine:
+		S.tags['line']='l%d'%tableLine
+		S.tags['title']=vv['title']
+	else:
+		S.tags['line']='default'
+		S.tags['title']=preFile if preFile else '[no file]'
 	S.tags['idt']=(S.tags['id']+'.'+S.tags['title']).replace('/','_')
 	S.tags['tid']=(S.tags['title']+'.'+S.tags['id']).replace('/','_')
 	return S

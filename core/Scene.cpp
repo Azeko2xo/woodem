@@ -117,6 +117,17 @@ void Scene::fillDefaultTags(){
 	// tags.push_back("revision="+py::extract<string>(py::import("woo.config").attr("revision"))());;
 }
 
+
+string Scene::expandTags(const string& s) const{
+	// nothing to expand, just return
+	if(s.find("{")==string::npos) return s;
+	string s2(s);
+	for(auto& keyVal: tags){
+		boost::algorithm::replace_all(s2,"{"+keyVal.first+"}",keyVal.second);
+	}
+	return s2;
+}
+
 void Scene::ensureCl(){
 	#ifdef WOO_OPENCL
 		if(_clDev[0]<0) initCl(); // no device really initialized

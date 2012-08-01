@@ -25,6 +25,7 @@ int VtkExport::addTriangulatedObject(vector<Vector3r> pts, vector<Vector3i> tri,
 
 void VtkExport::run(){
 	DemField* dem=static_cast<DemField*>(field.get());
+	out=scene->expandTags(out);
 
 	#define _VTK_ARR_HELPER(var,name,numComponents,arrayType) auto var=vtkSmartPointer<arrayType>::New(); var->SetNumberOfComponents(numComponents); var->SetName(name); 
 	#define _VTK_POINT_ARR(grid,var,name,numComponents) _VTK_ARR_HELPER(var,name,numComponents,vtkDoubleArray); grid->GetPointData()->AddArray(var);

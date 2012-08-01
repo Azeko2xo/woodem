@@ -107,6 +107,7 @@ void Tracer::run(){
 		case SCALAR_VEL: lineColor->label="|vel|"; break;
 		case SCALAR_SIGNED_ACCEL: lineColor->label="signed |accel|"; break;
 		case SCALAR_RADIUS: lineColor->label="radius"; break;
+		case SCALAR_SHAPE_COLOR: lineColor->label="Shape.color"; break;
 	}
 	auto& dem=field->cast<DemField>();
 	for(const auto& p: *dem.particles){
@@ -141,6 +142,7 @@ void Tracer::run(){
 					break;
 				}
 				case SCALAR_RADIUS: sc=(dynamic_pointer_cast<Sphere>(p->shape)?p->shape->cast<Sphere>().radius:NaN); break;
+				case SCALAR_SHAPE_COLOR: sc=p->shape->color; break;
 				case SCALAR_TIME: sc=scene->time; break;
 				default: sc=NaN;
 			}

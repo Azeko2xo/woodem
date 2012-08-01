@@ -35,7 +35,7 @@ struct Roro: public Preprocessor {
 		((Real,massFlowRate,/*for real length*/100,AttrTrait<>().massFlowRateUnit().prefUnit("t/h"),"Incoming mass flow rate (considering real length)"))
 		((Real,conveyorHt,.05,AttrTrait<>().lenUnit(),"Height of particle layor on the conveyor"))
 		((Real,time,2,AttrTrait<>().timeUnit(),"Time of the simulation (after reaching steady state); if non-positive, don't wait for steady state, use *mass* instead."))
-		((Real,mass,0,AttrTrait<>().timeUnit(),"Total feed mass; if non-positive, don't limit generated mass, simulate *time* of steady state instead"))
+		((Real,mass,0,AttrTrait<>().massUnit(),"Total feed mass; if non-positive, don't limit generated mass, simulate *time* of steady state instead"))
 
 		// Cylinders
 		((vector<Vector3r>,cylXzd,,AttrTrait<>().startGroup("Cylinders").triggerPostLoad().lenUnit().prefUnit("mm"),"Coordinates and diameters of cylinders. If empty, *cylNum*, *cylDiameter*, *inclination* and *gap* are used to compute coordinates automatically"))

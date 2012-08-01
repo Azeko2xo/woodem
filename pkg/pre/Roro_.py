@@ -13,10 +13,6 @@ import numpy
 import pprint
 nan=float('nan')
 
-# assure compatibility
-if not hasattr(ConveyorFactory,'generator'):
-	ConveyorFactory.generator=property(lambda x: x)
-
 def ySpannedFacets(xx,yy,zz,shift=True,halfThick=0.,**kw):
 	if halfThick!=0.:
 		if shift:
@@ -270,7 +266,7 @@ def run(pre): # use inputs as argument
 		Tracer(stepPeriod=20,num=100,compress=2,compSkip=4,dead=True,scalar=Tracer.scalarRadius)
 	]+(
 		# FIXME: revert subdiv=48 to default (16)
-		[] if (not pre.vtkPrefix or pre.vtkFreq<=0) else [VtkExport(out=pre.vtkPrefix.format(**dict(s.tags)),stepPeriod=int(pre.vtkFreq*pre.factStepPeriod),what=VtkExport.all,subdiv=48)]
+		[] if (not pre.vtkPrefix or pre.vtkFreq<=0) else [VtkExport(out=pre.vtkPrefix,stepPeriod=int(pre.vtkFreq*pre.factStepPeriod),what=VtkExport.all,subdiv=48)]
 	)+(
 		[] if pre.backupSaveTime<=0 else [PyRunner(realPeriod=pre.backupSaveTime,stepPeriod=-1,command='S.save(S.pre.saveFmt.format(stage="backup-%06d"%(S.step),S=S,**(dict(S.tags))))')]
 	)
@@ -665,7 +661,7 @@ def writeReport(S):
 	inPsd=scaledFlowPsd([p[0] for p in pre.psd],[p[1]*(1./pre.psd[-1][1]) for p in pre.psd],massFactor=woo.factory.mass)
 	inPsdUnscaled=unscaledPsd([p[0] for p in pre.psd],[p[1]*(1./pre.psd[-1][1]) for p in pre.psd])
 
-	feedPsd=scaledFlowPsd(*woo.factory.generator.psd())
+	feedPsd=scaledFlowPsd(*woo.factory.psd())
 	pylab.plot(*inPsd,label='user',marker='o')
 	pylab.plot(*feedPsd,label='feed (%g %s)'%(woo.factory.mass*massScale,massUnit))
 	overPsd=scaledFlowPsd(*woo.fallOver.psd())
@@ -696,7 +692,7 @@ def writeReport(S):
 		except ValueError: pass
 	hh=pylab.hist([dOver,dBuckets],weights=[mOver,mBuckets],bins=20,histtype='barstacked',label=['fallOver','buckets'])
 	flowBins=hh[1]
-	feedD,feedM=scaledFlowPsd(*woo.factory.generator.diamMass())
+	feedD,feedM=scaledFlowPsd(*woo.factory.diamMass())
 	pylab.plot(.5*(flowBins[1:]+flowBins[:-1]),numpy.histogram(feedD,weights=feedM,bins=flowBins)[0],label='feed',alpha=.3,linewidth=2,marker='o')
 	pylab.axvline(x=pre.gap,linewidth=5,alpha=.3,ymin=0,ymax=1,color='g',label='gap')
 	pylab.grid(True)
@@ -731,7 +727,7 @@ def writeReport(S):
 
 	feedTab=psdFeedBucketFalloverTable(
 		inPsd=inPsdUnscaled,
-		feedDM=unscaledPsd(*woo.factory.generator.diamMass()),
+		feedDM=unscaledPsd(*woo.factory.diamMass()),
 		bucketDM=(dBuckets,mBuckets),
 		overDM=(dOver,mOver),
 		splitD=pre.gap
@@ -764,7 +760,7 @@ def writeReport(S):
 	#print inPsdUnscaled
 	#print inPsd
 	pylab.plot(*inPsdUnscaled,marker='o',label='user')
-	feedPsd=unscaledPsd(*woo.factory.generator.psd(normalize=True))
+	feedPsd=unscaledPsd(*woo.factory.psd(normalize=True))
 	pylab.plot(*feedPsd,label=None)
 	smallerPsd,biggerPsd=splitPsd(*inPsdUnscaled,splitX=pre.gap)
 	#print smallerPsd
@@ -773,7 +769,7 @@ def writeReport(S):
 	pylab.plot(*biggerPsd,marker='^',label='user >')
 
 	splitD=pre.gap
-	feedD,feedM=unscaledPsd(*woo.factory.generator.diamMass())
+	feedD,feedM=unscaledPsd(*woo.factory.diamMass())
 	feedHist,feedBins=numpy.histogram(feedD,weights=feedM,bins=60)
 	feedHist/=feedHist.sum()
 	binMids=feedBins[1:] #.5*(feedBins[1:]+feedBins[:-1])

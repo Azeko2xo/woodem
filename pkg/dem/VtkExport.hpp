@@ -41,7 +41,7 @@ struct VtkExport: public PeriodicEngine{
 	}
 
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(VtkExport,PeriodicEngine,"Export DEM simulation to VTK files for post-processing.",
-		((string,out,,,"Filename prefix to write into"))
+		((string,out,,,"Filename prefix to write into; :ref:`Scene.tags` written as {tagName} are expanded at the first run."))
 		((bool,compress,true,,"Compress output XML files"))
 		((bool,ascii,false,,"Store data as readable text in the XML file (sets `vtkXMLWriter <http://www.vtk.org/doc/nightly/html/classvtkXMLWriter.html>`__ data mode to ``vtkXMLWriter::Ascii``, while the default is ``Appended``"))
 		((bool,multiblock,false,,"Write to multi-block VTK files, rather than separate files; currently borken, do not use."))
