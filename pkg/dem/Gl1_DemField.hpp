@@ -23,7 +23,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 
 	void postLoad2();
 
-	enum{COLOR_SHAPE=0,COLOR_RADIUS,COLOR_VEL,COLOR_MASS,COLOR_DISPLACEMENT,COLOR_ROTATION,COLOR_MAT_ID,COLOR_MAT_PTR,/*last*/COLOR_SENTINEL};
+	enum{COLOR_SHAPE=0,COLOR_RADIUS,COLOR_VEL,COLOR_ANGVEL,COLOR_MASS,COLOR_DISPLACEMENT,COLOR_ROTATION,COLOR_REFPOS_COORD,COLOR_MAT_ID,/*last*/COLOR_SENTINEL};
 	enum{GLYPH_KEEP=0,GLYPH_NONE,GLYPH_FORCE,GLYPH_VEL,/*last*/GLYPH_SENTINEL};
 	enum{CNODE_NONE=0,CNODE_GLREP=1,CNODE_LINE=2,CNODE_NODE=4,CNODE_POTLINE=8};
 	RENDERS(DemField);
@@ -31,7 +31,18 @@ struct Gl1_DemField: public GlFieldFunctor{
 	Scene* _lastScene; // to detect changes; never acessed as pointer
 	WOO_CLASS_BASE_DOC_STATICATTRS_CTOR_PY(Gl1_DemField,GlFieldFunctor,"Render DEM field.",
 		((bool,shape,true,AttrTrait<Attr::triggerPostLoad>().startGroup("Shape"),"Render particle's :ref:`Shape`"))
-		((int,colorBy,COLOR_SHAPE,AttrTrait<Attr::triggerPostLoad>().choice({{COLOR_SHAPE,"Shape.color"},{COLOR_RADIUS,"radius"},{COLOR_VEL,"velocity"},{COLOR_MASS,"mass"},{COLOR_DISPLACEMENT,"displacement"},{COLOR_ROTATION,"rotation"},{COLOR_MAT_ID,"material id"},{COLOR_MAT_PTR,"material pointer"}}).buttons({"Reference now","self.updateRefPos=True","use current positions and orientations as reference for showing displacement/rotation"},/*showBefore*/false),"Color particles by"))
+		((int,colorBy,COLOR_SHAPE,AttrTrait<Attr::triggerPostLoad>().choice({
+			{COLOR_SHAPE,"Shape.color"},
+			{COLOR_RADIUS,"radius"},
+			{COLOR_VEL,"|velocity|"},
+			{COLOR_ANGVEL,"|angular velocity|"},
+			{COLOR_MASS,"mass"},
+			{COLOR_DISPLACEMENT,"ref. displacement"},
+			{COLOR_ROTATION,"ref. rotation"},
+			{COLOR_REFPOS_COORD,"refpos coordinate"},
+			{COLOR_MAT_ID,"material id"},
+		}).buttons({"Reference now","self.updateRefPos=True","use current positions and orientations as reference for showing displacement/rotation"},/*showBefore*/false),"Color particles by"))
+		((int,refAxis,2,AttrTrait<>().choice({{0,"x"},{1,"y"},{2,"z"}}),"Axis for colorRefPosCoord"))
 		((bool,wire,false,,"Render all shapes with wire only"))
 		((bool,colorSpheresOnly,true,,"If :ref:`colorBy` is active, use automatic color for spheres only; for non-spheres, use :ref:`nonSphereColor`"))
 		((Vector3r,nonSphereColor,Vector3r(.3,.3,.3),AttrTrait<>().rgbColor(),"Color to use for non-spherical particles when :ref:`colorBy` is not :ref:`colorShape`."))
@@ -65,10 +76,11 @@ struct Gl1_DemField: public GlFieldFunctor{
 			_classObj.attr("colorShape")=(int)Gl1_DemField::COLOR_SHAPE;
 			_classObj.attr("colorRadius")=(int)Gl1_DemField::COLOR_RADIUS;
 			_classObj.attr("colorVel")=(int)Gl1_DemField::COLOR_VEL;
+			_classObj.attr("colorAngVel")=(int)Gl1_DemField::COLOR_ANGVEL;
 			_classObj.attr("colorDisplacement")=(int)Gl1_DemField::COLOR_DISPLACEMENT;
 			_classObj.attr("colorRotation")=(int)Gl1_DemField::COLOR_ROTATION;
+			_classObj.attr("colorRefPosCoord")=(int)Gl1_DemField::COLOR_REFPOS_COORD;
 			_classObj.attr("colorMatId")=(int)Gl1_DemField::COLOR_MAT_ID;
-			_classObj.attr("colorMatPtr")=(int)Gl1_DemField::COLOR_MAT_PTR;
 			_classObj.attr("cNodeNone")=(int)Gl1_DemField::CNODE_NONE;
 			_classObj.attr("cNodeGlRep")=(int)Gl1_DemField::CNODE_GLREP;
 			_classObj.attr("cNodeLine")=(int)Gl1_DemField::CNODE_LINE;

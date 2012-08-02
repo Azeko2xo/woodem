@@ -606,6 +606,34 @@ def efficiencyTableFigure(S,pre):
 	pylab.grid(True)
 	return table,fig
 
+
+def xhtmlReportHead(S,headline):
+	import time
+	xmlhead='''<?xml version="1.0" encoding="UTF-8"?>
+	<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> 
+	<html xmlns="http://www.w3.org/1999/xhtml" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	'''
+	# <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
+	html=('''<head><title>{headline}</title></head><body>
+		<h1>Report for Roller screen simulation</h1>
+		<h2>General</h2>
+		<table>
+			<tr><td>title</td><td align="right">{title}</td></tr>
+			<tr><td>id</td><td align="right">{id}</td></tr>
+			<tr><td>operator</td><td align="right">{user}</td></tr>
+			<tr><td>started</td><td align="right">{started}</td></tr>
+			<tr><td>duration</td><td align="right">{duration:g} s</td></tr>
+			<tr><td>number of cores used</td><td align="right">{nCores}</td></tr>
+			<tr><td>average speed</td><td align="right">{stepsPerSec:g} steps/sec</td></tr>
+			<tr><td>engine</td><td align="right">{engine}</td></tr>
+			<tr><td>compiled with</td><td align="right">{compiledWith}</td></tr>
+		</table>
+		'''.format(headline=headline,title=(S.tags['title'] if S.tags['title'] else '<i>[none]</i>'),id=S.tags['id'],user=S.tags['user'].decode('utf-8'),started=time.ctime(time.time()-woo.O.realtime),duration=woo.O.realtime,nCores=woo.O.numThreads,stepsPerSec=S.step/woo.O.realtime,engine='wooDem '+woo.config.version+'/'+woo.config.revision+(' (debug)' if woo.config.debug else ''),compiledWith=','.join(woo.config.features))
+		+'<h2>Input data</h2>'+S.pre.dumps(format='html',fragment=True,showDoc=True)
+	)
+	return xmlhead+html
+
+
 def writeReport(S):
 	# generator parameters
 	import woo
@@ -855,29 +883,8 @@ def writeReport(S):
 		fig.savefig(svgs[-1][-1])
 		
 
-	import time
-	xmlhead='''<?xml version="1.0" encoding="UTF-8"?>
-	<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> 
-	<html xmlns="http://www.w3.org/1999/xhtml" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-	'''
-	# <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
-	html=('''<head><title>Report for Roller screen simulation</title></head><body>
-		<h1>Report for Roller screen simulation</h1>
-		<h2>General</h2>
-		<table>
-			<tr><td>title</td><td align="right">{title}</td></tr>
-			<tr><td>id</td><td align="right">{id}</td></tr>
-			<tr><td>operator</td><td align="right">{user}</td></tr>
-			<tr><td>started</td><td align="right">{started}</td></tr>
-			<tr><td>duration</td><td align="right">{duration:g} s</td></tr>
-			<tr><td>number of cores used</td><td align="right">{nCores}</td></tr>
-			<tr><td>average speed</td><td align="right">{stepsPerSec:g} steps/sec</td></tr>
-			<tr><td>engine</td><td align="right">{engine}</td></tr>
-			<tr><td>compiled with</td><td align="right">{compiledWith}</td></tr>
-		</table>
-		'''.format(title=(S.tags['title'] if S.tags['title'] else '<i>[none]</i>'),id=S.tags['id'],user=S.tags['user'].decode('utf-8'),started=time.ctime(time.time()-woo.O.realtime),duration=woo.O.realtime,nCores=woo.O.numThreads,stepsPerSec=S.step/woo.O.realtime,engine='wooDem '+woo.config.version+'/'+woo.config.revision+(' (debug)' if woo.config.debug else ''),compiledWith=','.join(woo.config.features))
-		+'<h2>Input data</h2>'+pre.dumps(format='html',fragment=True,showDoc=True)
-		+'<h2>Outputs</h2>'
+	html=xhtmlReportHead(S,'Report for Roller screen simulation')+(
+		'<h2>Outputs</h2>'
 		+'<h3>Feed</h3>'+feedTab
 		+(('<h3>Sieving</h3>'+effTab) if effTab else '')
 		+'<h3>Bucket PSD</h3>'
@@ -897,7 +904,7 @@ def writeReport(S):
 	import os.path
 	print 'Writing report to file://'+os.path.abspath(repName)
 	#rep.write(HTMLParser(StringIO.StringIO(html),'[filename]').parse().render('xhtml',doctype='xhtml').decode('utf-8'))
-	s=xmlhead+html
+	s=html
 	s=s.replace('\xe2\x88\x92','-') # long minus
 	s=s.replace('\xc3\x97','x') # × multiplicator
 	try:
