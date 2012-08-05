@@ -201,6 +201,7 @@ def saveSpheres():
 	import woo
 	S=woo.master.scene
 	if type(S.pre)!=woo.pre.BinSeg: raise RuntimeError("Current Scene.pre is not a BinSeg.")
+	if len(woo.qt.views())>0: woo.qt.views()[0].close()
 	f=str(QFileDialog.getSaveFileName(None,'Save spheres to','.'))
 	if not f: return
 	import woo.pack
@@ -208,6 +209,36 @@ def saveSpheres():
 	sp.fromSimulation(S)
 	sp.save(f)
 	print 'Spheres saved to',f
+
+def feedHolesPsdTable(S,massScale=1.):
+	psdSplits=[df[0] for df in S.pre.psd]
+	feedHolesMasses=[]
+	for ddmm in (woo.feed.generator.diamMass(),woo.bucket[0].diamMass(),woo.bucket[1].diamMass()):
+		mm=[]
+		for i in range(len(psdSplits)-1):
+			dmdm=zip(*ddmm)
+			mm.append(sum([dm[1]*massScale for dm in zip(*ddmm) if (dm[0]>=psdSplits[i] and dm[0]<psdSplits[i+1])]))
+		feedHolesMasses.append(mm)
+		#print buck.mass,sum(mm)
+	colNames=['feed','hole 1','hole 2']
+	from genshi.builder import tag as t
+	tab=t.table(
+		t.tr(t.th('diameter',t.br,'[mm]'),*tuple([t.th(colName,t.br,'[mass %]',colspan=2) for colName in colNames])),
+		cellpadding='2px',frame='box',rules='all'
+	)
+	dScale=1e3 # m to mm
+	for i in range(len(psdSplits)-1):
+		tr=t.tr(t.td('%g-%g'%(dScale*psdSplits[i],dScale*psdSplits[i+1])))
+		for bm in feedHolesMasses:
+			bMass=sum(bm)
+			tr.append(t.td('%.4g'%(100*bm[i]/bMass),align='right'))
+			tr.append(t.td('%.4g'%(100*sum(bm[:i+1])/bMass),align='right'))
+		tab.append(tr)
+	colTotals=sum([sum(bm) for bm in feedHolesMasses])
+	tab.append(t.tr(t.th('mass [kg]',rowspan=2),*tuple([t.th('%.4g'%sum(bm),colspan=2) for bm in feedHolesMasses])))
+	tab.append(t.tr(*tuple([t.td('%.3g %%'%(sum(bm)/sum(feedHolesMasses[0])),colspan=2,align='right') for bm in feedHolesMasses])))
+	return tab.generate().render('xhtml')
+
 
 def finishSimulation():	
 	import woo
@@ -288,6 +319,7 @@ def finishSimulation():
 	import woo.pre.Roro_
 	print 'Writing report to file://'+os.path.abspath(repName)
 	s=woo.pre.Roro_.xhtmlReportHead(S,'Report for BinSeg simulation')
+	s+='<h2>Mass</h2>'+feedHolesPsdTable(S,massScale=massScale)
 
 	svgs=[]
 	for name,fig in figs:

@@ -615,7 +615,7 @@ def xhtmlReportHead(S,headline):
 	'''
 	# <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
 	html=('''<head><title>{headline}</title></head><body>
-		<h1>Report for Roller screen simulation</h1>
+		<h1>{headline}</h1>
 		<h2>General</h2>
 		<table>
 			<tr><td>title</td><td align="right">{title}</td></tr>

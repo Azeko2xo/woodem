@@ -58,7 +58,7 @@ class Gl1_Sphere: public GlShapeFunctor{
 	public:
 		virtual void go(const shared_ptr<Shape>&, const Vector3r&, bool,const GLViewInfo&);
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Sphere,GlShapeFunctor,"Renders :ref:`Sphere` object",
-		((Real,quality,1.0,,"Change discretization level of spheres. quality>1  for better image quality, at the price of more cpu/gpu usage, 0<quality<1 for faster rendering. If mono-color sphres are displayed (:ref:`Gl1_Sphere::stripes=False), quality mutiplies :ref:`Gl1_Sphere::glutSlices` and :ref:`Gl1_Sphere::glutStacks`. If striped spheres are displayed (:ref:`Gl1_Sphere::stripes=True), only integer increments are meaningfull : quality=1 and quality=1.9 will give the same result, quality=2 will give finer result."))
+		((Real,quality,1.0,AttrTrait<>().range(Vector2r(0,8)),"Change discretization level of spheres. quality>1  for better image quality, at the price of more cpu/gpu usage, 0<quality<1 for faster rendering. If mono-color sphres are displayed (:ref:`Gl1_Sphere::stripes=False), quality mutiplies :ref:`Gl1_Sphere::glutSlices` and :ref:`Gl1_Sphere::glutStacks`. If striped spheres are displayed (:ref:`Gl1_Sphere::stripes=True), only integer increments are meaningfull : quality=1 and quality=1.9 will give the same result, quality=2 will give finer result."))
 		((bool,wire,false,,"Only show wireframe (controlled by ``glutSlices`` and ``glutStacks``."))
 		((bool,smooth,false,,"Render lines smooth (it makes them thicker and less clear if there are many spheres.)"))
 		((Real,scale,1.,,"Scale sphere radii"))

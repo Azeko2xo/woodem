@@ -28,7 +28,7 @@ Vector3r Gl1_DemField::nonSphereColor;
 shared_ptr<ScalarRange> Gl1_DemField::colorRange;
 vector<shared_ptr<ScalarRange>> Gl1_DemField::colorRanges;
 int Gl1_DemField::glyph;
-int Gl1_DemField::refAxis;
+int Gl1_DemField::vecAxis;
 int Gl1_DemField::prevGlyph;
 Real Gl1_DemField::glyphRelSz;
 shared_ptr<ScalarRange> Gl1_DemField::glyphRange;
@@ -63,12 +63,12 @@ void Gl1_DemField::initAllRanges(){
 		switch(i){
 			case COLOR_SHAPE:	 		 r->label="Shape.color"; break;
 			case COLOR_RADIUS:       r->label="radius"; break;
-			case COLOR_VEL:          r->label="|vel|"; break;
-			case COLOR_ANGVEL:       r->label="|angVel|"; break;
+			case COLOR_VEL:          r->label="vel"; break;
+			case COLOR_ANGVEL:       r->label="angVel"; break;
 			case COLOR_MASS:         r->label="mass"; break;
 			case COLOR_DISPLACEMENT: r->label="displacement"; break;
 			case COLOR_ROTATION:     r->label="rotation"; break;
-			case COLOR_REFPOS_COORD: r->label="refpos coord"; break;
+			case COLOR_REFPOS: r->label="ref. pos"; break;
 			case COLOR_MAT_ID:       r->label="material id"; break;
 		};
 	}
@@ -143,13 +143,18 @@ void Gl1_DemField::doShape(){
 		if(colorSpheresOnly || COLOR_RADIUS) isSphere=dynamic_pointer_cast<Sphere>(p->shape);
 		if(!isSphere && colorSpheresOnly) parColor=nonSphereColor;
 		else{
+			auto vecNormXyz=[&](const Vector3r& v)->Real{ if(vecAxis<0||vecAxis>2) return v.norm(); return v[vecAxis]; };
 			switch(colorBy){
 				case COLOR_RADIUS: parColor=isSphere?colorRange->color(p->shape->cast<Sphere>().radius):nonSphereColor; break;
-				case COLOR_VEL: parColor=colorRange->color(n0->getData<DemData>().vel.norm()); break;
+				case COLOR_VEL: parColor=colorRange->color(vecNormXyz(n0->getData<DemData>().vel)); break;
 				case COLOR_MASS: parColor=colorRange->color(n0->getData<DemData>().mass); break;
-				case COLOR_DISPLACEMENT: parColor=colorRange->color((n0->pos-n0->getData<GlData>().refPos).norm()); break;
-				case COLOR_ROTATION: parColor=colorRange->color(AngleAxisr(n0->ori.conjugate()*n0->getData<GlData>().refOri).angle()); break;
-				case COLOR_REFPOS_COORD: parColor=colorRange->color(n0->getData<GlData>().refPos[min(max(refAxis,0),2)]); break;
+				case COLOR_DISPLACEMENT: parColor=colorRange->color(vecNormXyz(n0->pos-n0->getData<GlData>().refPos)); break;
+				case COLOR_ROTATION: {
+					AngleAxisr aa(n0->ori.conjugate()*n0->getData<GlData>().refOri);
+					parColor=colorRange->color((vecAxis<0||vecAxis>2)?aa.angle():(aa.angle()*aa.axis())[vecAxis]);
+					break;
+				}
+				case COLOR_REFPOS: parColor=colorRange->color(vecNormXyz(n0->getData<GlData>().refPos)); break;
 				case COLOR_MAT_ID: parColor=colorRange->color(p->material->id); break;
 				case COLOR_SHAPE: parColor=colorRange->color(p->shape->color); break;
 				default: parColor=Vector3r(NaN,NaN,NaN);
