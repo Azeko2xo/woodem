@@ -390,7 +390,6 @@ class ControllerClass(QWidget,Ui_Controller):
 			sp=QSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding); sp.setVerticalStretch(40)
 			self.customArea.setSizePolicy(sp)
 			self.simPageLayout.addWidget(self.customArea,row,col)
-			self.customArea.setStyleSheet('QFrame { background-image: url(woodem-logo.png); background-position: middle; background-repeat: none; }')
 			#print 'New QScrollArea created'
 			if S.uiBuild:
 				import __main__
