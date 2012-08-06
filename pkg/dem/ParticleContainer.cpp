@@ -209,3 +209,42 @@ shared_ptr<Particle> ParticleContainer::pyGetItem(Particle::id_t id){
 }
 
 ParticleContainer::pyIterator ParticleContainer::pyIter(){ return ParticleContainer::pyIterator(this); }
+
+void ParticleContainer::pyRemask(vector<id_t> ids, int mask, bool visible, bool removeContacts, bool removeOverlapping){
+	for(id_t id: ids){
+		if(!exists(id)) woo::IndexError("No such particle: #"+to_string(id)+".");
+		const auto& p=(*this)[id];
+		p->mask=mask;
+		p->shape->setVisible(visible);
+		if(removeContacts){
+			list<id_t> ids2;
+			for(const auto& c: p->contacts){
+				id_t id2(c.first);
+				assert(exists(id2));
+				if(!Collider::mayCollide(p,(*this)[id2],dem)) ids2.push_back(id2);
+			}
+			for(auto id2: ids2){ assert(dem->contacts->find(id,id2)); dem->contacts->remove(dem->contacts->find(id,id2)); }
+		}
+	}
+	// traverse all other particles, check bbox overlaps
+	if(removeOverlapping){
+		list<id_t> toRemove;
+		for(const auto& p2: *this){
+			//if(!p2->shape || !p2->shape->bound){  cerr<<"-- #"<<p2->id<<" has no shape/bound."<<endl; continue; }
+			AlignedBox3r b2(p2->shape->bound->min,p2->shape->bound->max);
+			for(id_t id: ids){
+				const auto& p=(*this)[id];
+				//if(!p->shape || !p->shape->bound){ cerr<<"@@ #"<<id<<" has no shape/bound."<<endl; continue; }
+				AlignedBox3r b1(p->shape->bound->min,p->shape->bound->max);
+				//cerr<<"distance ##"<<id<<"+"<<p2->id<<" is "<<b1.exteriorDistance(b2)<<endl;
+				if(b1.exteriorDistance(b2)<=0 && Collider::mayCollide(p2,p,dem)) toRemove.push_back(p2->id);
+			}
+		}
+		for(auto id: toRemove){
+			// cerr<<"Removing #"<<id<<endl;
+			if(exists(id)) dem->removeParticle(id);
+		}
+		dem->contacts->dirty=true;
+	}
+}
+

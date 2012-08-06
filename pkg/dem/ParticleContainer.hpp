@@ -159,6 +159,10 @@ struct ParticleContainer: public Object{
 		shared_ptr<Particle> pyGetItem(id_t id);
 		size_t pyLen();
 		pyIterator pyIter();
+
+		void pyRemask(vector<id_t> ids, int mask, bool visible, bool removeContacts, bool removeOverlapping);
+		void pyDisappear(vector<id_t> ids, int mask){ pyRemask(ids,mask,/*visible*/false,/*removeContacts*/true,/*removeOverlapping*/false); }
+		void pyReappear(vector<id_t> ids, int mask, bool removeOverlapping=false){ pyRemask(ids,mask,/*visible*/true,/*removeContacts*/false,/*removeOverlapping*/removeOverlapping); }
 	
 
 		WOO_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(ParticleContainer,Object,"Storage for DEM particles",
@@ -187,6 +191,10 @@ struct ParticleContainer: public Object{
 			.def("clear",&ParticleContainer::clear)
 			.def("__iter__",&ParticleContainer::pyIter)
 			.def("_freeIds",&ParticleContainer::pyFreeIds)
+			// remasking
+			.def("remask",&ParticleContainer::pyRemask,(py::arg("ids"),py::arg("mask"),py::arg("visible"),py::arg("removeContacts"),py::arg("removeOverlapping")),"Change particle mask and visibility; optionally remove contacts, which would no longer exist due to mask change; or remove particles, which would newly overlap with the particle. See also :ref:`disappear` and :ref:`reappear`.")
+			.def("disappear",&ParticleContainer::pyDisappear,(py::arg("ids"),py::arg("mask")),"Remask particle (so that it does not have contacts with other particles), remove contacts, which would no longer exist and make it invisible. Shorthand for calling ``remask(ids,mask,visible=False,removeContacts=True)``")
+			.def("reappear",&ParticleContainer::pyReappear,(py::arg("ids"),py::arg("mask"),py::arg("removeOverlapping")=false),"Remask particle, remove particles, which would overlap with newly-appeared particle (if ``removeOverlapping`` is ``True``), make it visible again. Shorthand for ``remask(ids,mask,visible=True,removeContacts=False)``")
 			// define nested iterator class here; ugly: abuses _classObj from the macro definition (implementation detail)
 			; boost::python::scope foo(_classObj);
 			boost::python::class_<ParticleContainer::pyIterator>("iterator",py::init<pyIterator>()).def("__iter__",&pyIterator::iter).def("next",&pyIterator::next);

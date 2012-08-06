@@ -19,9 +19,10 @@ struct BinSeg: public Preprocessor {
 
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(BinSeg,Preprocessor,"Preprocessor for the bin segregation simulation.",
 		((Vector3r,size,Vector3r(1,1,.2),AttrTrait<>().lenUnit().prefUnit("mm").startGroup("Geometry").buttons({
-			"Open hole 1","import woo.pre.BinSeg_; woo.pre.BinSeg_.openHole(1)","Open first (left) hole",
-			"Open hole 2","import woo.pre.BinSeg_; woo.pre.BinSeg_.openHole(2)","Open second (right) hole",
-			"Open both holes","import woo.pre.BinSeg_; woo.pre.BinSeg_.openHole(1); woo.pre.BinSeg_.openHole(2)","Open both holes",
+			"Toggle hole 1","import woo.pre.BinSeg_; woo.pre.BinSeg_.toggleHole(1)","Open/close first (left) hole",
+			"Toggle hole 2","import woo.pre.BinSeg_; woo.pre.BinSeg_.toggleHole(2)","Open/close second (right) hole",
+			"Toggle both holes","import woo.pre.BinSeg_; woo.pre.BinSeg_.toggleHole(1); woo.pre.BinSeg_.toggleHole(2)","Open/close both holes",
+			"Start/stop feed","import woo; woo.feed.dead=not woo.feed.dead","Start/stop feed",
 			"Save spheres","import woo.pre.BinSeg_; woo.pre.BinSeg_.saveSpheres()","Save spheres to file",
 			"Finish simulation","import woo.pre.BinSeg_; woo.pre.BinSeg_.finishSimulation()","End simulation, write report",
 			}),"Size of the bin: width, height and depth (thickness)"))
@@ -57,24 +58,10 @@ struct BinSeg: public Preprocessor {
 		((Real,rateSmooth,.2,,"Smoothing factor for plotting rates in factory and deleters"))
 		((int,factStep,200,,"Interval at which particle factory and deleters are run"))
 
+		// internal variables for saving state in simulation
 		((vector<Particle::id_t>,hole1ids,,AttrTrait<>().noGui(),"Ids of hole 1 particles (for later removal)"))
 		((vector<Particle::id_t>,hole2ids,,AttrTrait<>().noGui(),"Ids of hole 2 particles (for later removal)"))
-
-#if 0
-		// Tunables
-		((int,factStepPeriod,800,AttrTrait<>().startGroup("Tunables"),"Run factory (and deleters) every *factStepPeriod* steps."))
-		((string,variant,"plain",AttrTrait<>().choice({"plain","customer1","customer2"}),"Geometry of the feed and possibly other specific details"))
-		((Vector2r,quivAmp,Vector2r(.0,.0),AttrTrait<>().lenUnit().prefUnit("mm"),"Cylinder quiver amplitudes (horizontal and vertical), relative to cylinder radius"))
-		((Vector3r,quivHPeriod,Vector3r(3000,5000,3),,"Horizontal quiver period (relative to Δt); assigned quasi-randomly from the given range, with z-component giving modulo divisor"))
-		((Vector3r,quivVPeriod,Vector3r(5000,11000,5),,"Vertical quiver period (relative to Δt); assigned quasi-randomly from the given range, with z-component giving modulo divisor"))
-		((Real,steadyFlowFrac,1.,,"Start steady (measured) phase when efflux (fall over, apertures, out-of-domain) reaches this fraction of influx (feed); only used when *time* is given"))
-		((Real,residueFlowFrac,.02,,"Stop simulation once delete rate drops below this fraction of the original feed rate (after the requested :ref:`mass` has been generated); only used when *mass* is given."))
-		((Real,normPlastCoeff,1e3,,"Dimensionless normal plasticity coefficient :ref:`Law_L6Geom_FrictPhys_Pellet`; non-positive value disables normal plasticity."))
-		((Vector2r,thinningCoeffs,Vector2r(0,.8),,"Parameters for plastic thinning: first component is :ref:`Law2_L6Geom_PelletPhys_Pellet.thinningFactor`, the other is :ref:`Law2_L6Geom_PelletPhys_Pellet.rMinFrac`."))
-		((vector<int>,buckets,,,"Collect particles from several apertures together; each numer specifies how much apertures is taken; invalid values (past the number of cylinders) are simply ignored"))
-		((vector<Real>,efficiencyGapFrac,vector<Real>({.9,1.,1.1,1.2,1.3}),,"Diameters relative to :ref:`gap` for which the sieving efficiency is determined."))
-#endif
-
+		((int,holeMask,,AttrTrait<>().noGui().noDump(),"Mask of hole particles (used for ParticleContainer.reappear)"))
 		, /*ctor*/
 			material->density=3200;
 			material->cast<FrictMat>().young=1e5;

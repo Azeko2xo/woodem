@@ -85,6 +85,18 @@ void Scene::backgroundLoop(){
 	}
 }
 
+void Scene::PausedContextManager::__enter__(){
+	while(!lock.timed_lock(boost::posix_time::seconds(10))){
+		LOG_WARN("Waiting for lock for 10 seconds; deadlocked? (Scene.paused() must not be called from within the engine loop, through PyRunner or otherwise.");
+	}
+	LOG_DEBUG("Scene.paused(): locked");
+}
+// exception information are not used, but we need to accept those args
+void Scene::PausedContextManager::__exit__(py::object exc_type, py::object exc_value, py::object traceback){
+	lock.unlock();
+	LOG_DEBUG("Scene.paused(): unlocked");
+}
+
 
 
 std::string Scene::pyTagsProxy::getItem(const std::string& key){ return scene->tags[key]; }
@@ -236,6 +248,8 @@ void Scene::postLoad(Scene&){
 
 
 void Scene::doOneStep(){
+	boost::timed_mutex::scoped_lock lock(engineLoopMutex);
+
 	if(runInternalConsistencyChecks){
 		runInternalConsistencyChecks=false;
 		// checkStateTypes();

@@ -51,7 +51,7 @@ class Collider: public GlobalEngine{
 		Tell whether given bodies may interact, for other than spatial reasons.
 		
 		Concrete collider implementations should call this function if the bodies are in potential interaction geometrically. */
-		bool mayCollide(const shared_ptr<Particle>&, const shared_ptr<Particle>&, const DemField*);
+		static bool mayCollide(const shared_ptr<Particle>&, const shared_ptr<Particle>&, const DemField*);
 		/*!
 		Invalidate all persistent data (if the collider has any), forcing reinitialization at next run.
 		The default implementation does nothing, colliders should override it if it is applicable.

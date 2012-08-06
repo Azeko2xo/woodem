@@ -128,7 +128,7 @@ void Leapfrog::run(){
 	bool hasGravity(dem->gravity!=Vector3r::Zero());
 
 	/* temporary hack */
-	if(dem->nodes.empty()){
+	if(dem->nodes.empty() && !dontCollect){
 		int i=dem->collectNodes();
 		LOG_WARN("No DEM nodes were defined, "<<i<<" nodes were collected from particles.");
 	}

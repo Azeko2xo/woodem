@@ -189,7 +189,20 @@ class TestLoop(unittest.TestCase):
 		self.assert_(woo.bar[1]==None)
 		self.assert_(woo.bar[2]==S.engines[1])
 		self.assert_(type(woo.cg2fs)==Cg2_Facet_Sphere_L6Geom)
-
+	def testPausedContext(self):
+		'Loop: "with Scene.paused()" context manager'
+		import time
+		S=woo.master.scene
+		S.engines=[]
+		S.run()
+		with S.paused():
+			i=S.step
+			time.sleep(.1)
+			self.assert_(i==S.step) # check there was no advance during those .1 secs
+			self.assert_(S.running) # running should return true nevertheless
+		time.sleep(.1)
+		self.assert_(i<S.step) # check we run during those .1 secs again
+		S.stop()
 		
 		
 

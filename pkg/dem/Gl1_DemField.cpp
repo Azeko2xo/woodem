@@ -137,6 +137,8 @@ void Gl1_DemField::doShape(){
 
 		FOREACH(const shared_ptr<Node>& n,p->shape->nodes) Renderer::setNodeGlData(n,updateRefPos);
 
+		if(!sh->getVisible()) continue;
+
 
 		Vector3r parColor;
 		bool isSphere;
@@ -156,7 +158,7 @@ void Gl1_DemField::doShape(){
 				}
 				case COLOR_REFPOS: parColor=colorRange->color(vecNormXyz(n0->getData<GlData>().refPos)); break;
 				case COLOR_MAT_ID: parColor=colorRange->color(p->material->id); break;
-				case COLOR_SHAPE: parColor=colorRange->color(p->shape->color); break;
+				case COLOR_SHAPE: parColor=colorRange->color(p->shape->getBaseColor()); break;
 				default: parColor=Vector3r(NaN,NaN,NaN);
 			}
 		}
@@ -166,7 +168,6 @@ void Gl1_DemField::doShape(){
 			Renderer::shapeDispatcher(p->shape,/*shift*/Vector3r::Zero(),wire||sh->getWire(),*viewInfo);
 		glPopMatrix();
 
-		if(!sh->getVisible()) continue;
 
 		if(name.highlighted){
 			const Vector3r& pos=sh->nodes[0]->pos;

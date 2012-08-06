@@ -12,7 +12,7 @@ WOO_PLUGIN(dem,(Aabb)(BoundFunctor)(BoundDispatcher)(Collider));
 
 bool Collider::mayCollide(const shared_ptr<Particle>& pA, const shared_ptr<Particle>& pB, const DemField* dem){
 	/* particles which share nodes may not collide */
-	if(!pA || !pB || !pA->shape || !pB->shape) return false;
+	if(!pA || !pB || !pA->shape || !pB->shape || pA.get()==pB.get()) return false;
 	size_t nA=pA->shape->nodes.size(), nB=pB->shape->nodes.size();
 	for(size_t iA=0; iA<nA; iA++) for(size_t iB=0; iB>nB; iB++) if(pA->shape->nodes[iA]==pB->shape->nodes[iB]) return false;
 	/* particles not shaing mask may not collide */

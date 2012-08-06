@@ -76,7 +76,7 @@ def run(pre): # use inputs as argument
 	loneMask=0b00100 # particles with this mask don't interact with each other
 	sphMask= 0b00011
 	delMask= 0b00001 # particles which might be deleted by deleters
-	s.loneMask=loneMask
+	s.dem.loneMask=loneMask
 	
 	###
 	### conveyor feed
@@ -328,7 +328,7 @@ def makeBandFeedPack(dim,psd,mat,gravity,damping=.3,porosity=.5,goal=.15,dontBlo
 	S.cell.setBox(cellSize)
 	p=pack.sweptPolylines2gtsSurface([utils.tesselatePolyline([Vector3(x,0,cellSize[2]),Vector3(x,0,0),Vector3(x,cellSize[1],0),Vector3(x,cellSize[1],cellSize[2])],maxDist=min(cellSize[1],cellSize[2])/3.) for x in numpy.linspace(0,cellSize[0],num=4)])
 	S.dem.par.append(pack.gtsSurface2Facets(p,mask=0b011))
-	S.loneMask=0b010
+	S.dem.loneMask=0b010
 
 	massToDo=porosity*mat.density*dim[0]*dim[1]*dim[2]
 	print 'Will generate %g mass'%massToDo
@@ -614,7 +614,7 @@ def xhtmlReportHead(S,headline):
 	<html xmlns="http://www.w3.org/1999/xhtml" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 	'''
 	# <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
-	html=('''<head><title>{headline}</title></head><body>
+	html=(u'''<head><title>{headline}</title></head><body>
 		<h1>{headline}</h1>
 		<h2>General</h2>
 		<table>

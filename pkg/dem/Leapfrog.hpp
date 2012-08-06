@@ -58,6 +58,7 @@ struct Leapfrog: public GlobalEngine {
 		((int,nonviscDampIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index of the energy dissipated using the non-viscous damping (:ref:`damping<Leapfrog.damping>`)."))
 		((bool,kinSplit,false,,"Whether to separately track translational and rotational kinetic energy."))
 		((Real,maxVelocitySq,NaN,AttrTrait<Attr::readonly>(),"store square of max. velocity, for informative purposes; computed again at every step."))
+		((bool,dontCollect,false,AttrTrait<>().noGui(),"Don't attempt to collect DEM nodes when there are none in the first step."))
 
 		((int,gravWorkIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for gravity work"))
 		((int,kinEnergyIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for kinetic energy in scene->energies."))

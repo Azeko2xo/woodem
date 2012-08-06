@@ -481,7 +481,7 @@ void GLViewer::centerScene(){
 
 	LOG_INFO("Select with shift, press 'm' to move.");
 	Vector3r min,max;	
-	min=scene->loHint; max=scene->hiHint;
+	min=scene->boxHint.min(); max=scene->boxHint.max();
 	bool hasNan=(isnan(min[0])||isnan(min[1])||isnan(min[2])||isnan(max[0])||isnan(max[1])||isnan(max[2]));
 	Real minDim=std::min(max[0]-min[0],std::min(max[1]-min[1],max[2]-min[2]));
 	if(minDim<=0 || hasNan){

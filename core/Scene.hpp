@@ -20,6 +20,7 @@ class Field;
 class ScalarRange;
 
 class Scene: public Object{
+		// this is managed by methods of Scene exclusively
 		boost::mutex runMutex;
 		bool runningFlag;
 		// this will be std::atomic<bool>
@@ -78,6 +79,26 @@ class Scene: public Object{
 			void initCl(); // initialize OpenCL using clDev
 		#endif
 
+		/*
+			engineLoopMutex synchronizes access to particles/engines/contacts between
+			* simulation itself (at the beginning of Scene::doOneStep) and
+			* user access from python via Scene.paused() context manager
+			PausedContextManager obtains the lock (warns every few seconds that the lock was not yet
+			obtained, for diagnosis of deadlock) in __enter__ and releases it in __exit__.
+		*/
+		boost::timed_mutex engineLoopMutex;
+		struct PausedContextManager{
+			boost::timed_mutex::scoped_lock lock;
+			// stores reference to mutex, but does not lock it yet
+			PausedContextManager(Scene* scene): lock(boost::timed_mutex::scoped_lock(scene->engineLoopMutex,boost::defer_lock)){}
+			void __enter__();
+			void __exit__(py::object exc_type, py::object exc_value, py::object traceback);
+			static void pyRegisterClass(){
+				py::class_<PausedContextManager,boost::noncopyable>("PausedContextManager",py::no_init).def("__enter__",&PausedContextManager::__enter__).def("__exit__",&PausedContextManager::__exit__);
+			}
+		};
+		PausedContextManager* pyPaused(){ return new PausedContextManager(this); }
+
 		// override Object::boostSave, to set lastSave correctly
 		void boostSave(const string& out);
 		void saveTmp(const string& slot, bool quiet=true);
@@ -101,15 +122,16 @@ class Scene: public Object{
 			((Vector2i,_clDev,Vector2i(-1,-1),AttrTrait<Attr::readonly|Attr::noSave>(),"OpenCL device which is really initialized (to detect whether clDev was changed manually to avoid spurious re-initializations from postLoad"))
 		#endif
 
-		((Vector3r,loHint,Vector3r(-1,-1,-1),,"Lower corner, for rendering purposes"))
-		((Vector3r,hiHint,Vector3r(1,1,1),,"Upper corner, for rendering purposes"))
+		((AlignedBox3r,boxHint,AlignedBox3r(Vector3r(-1,-1,-1),Vector3r(1,1,1)),,"Hint for displaying the scene, if it cannot be determined otherwise.."))
 
 		((bool,runInternalConsistencyChecks,true,AttrTrait<Attr::hidden>(),"Run internal consistency check, right before the very first simulation step."))
 
 		((StrStrMap,tags,,AttrTrait<Attr::hidden>(),"Arbitrary key=value associations (tags like mp3 tags: author, date, version, description etc.)"))
 
+		((string,uiBuild,"",,"Command to run when a new main-panel UI should be built for this scene (called when the Controller is opened with this simulation, or the simulation is new to the controller)."))
+
 		((vector<shared_ptr<Engine>>,engines,,AttrTrait<Attr::hidden|Attr::triggerPostLoad>(),"Engines sequence in the simulation."))
-		((vector<shared_ptr<Engine>>,_nextEngines,,AttrTrait<Attr::hidden>(),"Engines to be used from the next step on; is returned transparently by O.engines if in the middle of the loop (controlled by subStep>=0)."))
+		((vector<shared_ptr<Engine>>,_nextEngines,,AttrTrait<Attr::hidden>(),"Engines to be used from the next step on; is returned transparently by S.engines if in the middle of the loop (controlled by subStep>=0)."))
 		((shared_ptr<EnergyTracker>,energy,new EnergyTracker,AttrTrait<Attr::readonly>().noGui(),"Energy values, if energy tracking is enabled."))
 		((vector<shared_ptr<Field>>,fields,,AttrTrait<Attr::triggerPostLoad>().noGui(),"Defined simulation fields."))
 		((shared_ptr<Cell>,cell,new Cell,AttrTrait<Attr::hidden>(),"Information on periodicity; only should be used if Scene::isPeriodic."))
@@ -146,10 +168,12 @@ class Scene: public Object{
 		.def("one",&Scene::pyOne)
 		.def("wait",&Scene::pyWait)
 		.add_property("running",&Scene::running)
+		.def("paused",&Scene::pyPaused,py::return_value_policy<py::manage_new_object>())
 		;
 		// define nested class
-		boost::python::scope foo(_classObj);
-		boost::python::class_<Scene::pyTagsProxy>("TagsProxy",py::init<pyTagsProxy>()).def("__getitem__",&pyTagsProxy::getItem).def("__setitem__",&pyTagsProxy::setItem).def("__delitem__",&pyTagsProxy::delItem).def("has_key",&pyTagsProxy::has_key).def("__contains__",&pyTagsProxy::has_key).def("keys",&pyTagsProxy::keys).def("update",&pyTagsProxy::update)
+		py::scope foo(_classObj);
+		py::class_<Scene::pyTagsProxy>("TagsProxy",py::init<pyTagsProxy>()).def("__getitem__",&pyTagsProxy::getItem).def("__setitem__",&pyTagsProxy::setItem).def("__delitem__",&pyTagsProxy::delItem).def("has_key",&pyTagsProxy::has_key).def("__contains__",&pyTagsProxy::has_key).def("keys",&pyTagsProxy::keys).def("update",&pyTagsProxy::update);
+		Scene::PausedContextManager::pyRegisterClass();
 		);
 	DECLARE_LOGGER;
 };

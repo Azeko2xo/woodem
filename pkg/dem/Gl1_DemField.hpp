@@ -34,15 +34,15 @@ struct Gl1_DemField: public GlFieldFunctor{
 		((int,colorBy,COLOR_SHAPE,AttrTrait<Attr::triggerPostLoad>().choice({
 			{COLOR_SHAPE,"Shape.color"},
 			{COLOR_RADIUS,"radius"},
-			{COLOR_VEL,"|velocity|"},
-			{COLOR_ANGVEL,"|angular velocity|"},
+			{COLOR_VEL,"velocity"},
+			{COLOR_ANGVEL,"angular velocity"},
 			{COLOR_MASS,"mass"},
 			{COLOR_DISPLACEMENT,"ref. displacement"},
 			{COLOR_ROTATION,"ref. rotation"},
 			{COLOR_REFPOS,"refpos coordinate"},
 			{COLOR_MAT_ID,"material id"},
 		}).buttons({"Reference now","self.updateRefPos=True","use current positions and orientations as reference for showing displacement/rotation"},/*showBefore*/false),"Color particles by"))
-		((int,vecAxis,-1,AttrTrait<>().choice({{-1,"maginute"},{0,"x"},{1,"y"},{2,"z"}}),"Axis for colorRefPosCoord"))
+		((int,vecAxis,-1,AttrTrait<>().choice({{-1,"norm"},{0,"x"},{1,"y"},{2,"z"}}),"Axis for colorRefPosCoord"))
 		((bool,wire,false,,"Render all shapes with wire only"))
 		((bool,colorSpheresOnly,true,,"If :ref:`colorBy` is active, use automatic color for spheres only; for non-spheres, use :ref:`nonSphereColor`"))
 		((Vector3r,nonSphereColor,Vector3r(.3,.3,.3),AttrTrait<>().rgbColor(),"Color to use for non-spherical particles when :ref:`colorBy` is not :ref:`colorShape`."))

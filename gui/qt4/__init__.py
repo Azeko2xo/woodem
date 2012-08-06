@@ -92,7 +92,10 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.addPreprocessors()
 		self.addRenderers()
 		self.movieButton.setEnabled(False)
-		self.movieScene=None
+		self.lastScene=None
+		self.movieActive=False
+		self.tracerActive=False
+		self.inspector=None
 		global controller
 		controller=self
 		self.setWindowTitle('Woo ('+woo.config.prettyVersion(lead=True)+(', debug' if woo.config.debug else '')+')')
@@ -102,8 +105,6 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.stepLabel=self.iterLabel # name change
 		self.stepPerSecTimeout=1 # how often to recompute the number of steps per second
 		self.stepTimes,self.stepValues,self.stepPerSec=[],[],0 # arrays to keep track of the simulation speed
-		self.dtEditUpdate=True # to avoid updating while being edited
-		self.dtEdit.setEnabled(False)
 		# show off with this one as well now
 	def addPreprocessors(self):
 		for c in woo.system.childClasses('Preprocessor'):
@@ -127,8 +128,12 @@ class ControllerClass(QWidget,Ui_Controller):
 						self.displayCombo.addItem(c); afterSep+=1
 				except (NameError,AttributeError): pass # functo which is not defined
 	def inspectSlot(self):
-		self.inspector=SimulationInspector(parent=None)
-		self.inspector.show()
+		if not self.inspector:
+			self.inspector=SimulationInspector(parent=None)
+			self.inspector.show()
+		else:
+			#self.inspector.hide()
+			self.inspector=None
 	def setTabActive(self,what):
 		if what=='simulation': ix=0
 		elif what=='display': ix=1
@@ -158,15 +163,6 @@ class ControllerClass(QWidget,Ui_Controller):
 		if self.generator:
 			se=SerializableEditor(self.generator,parent=self.generatorArea,showType=True,labelIsVar=False,showChecks=True,showUnits=True) # TODO
 			self.generatorArea.setWidget(se)
-		#else:
-		#	self.generatorArea.setWidget(QFrame(self))
-	#def pythonComboSlot(self,cmd):
-	#	try:
-	#		code=compile(str(cmd),'<UI entry>','exec')
-	#		exec code in globals()
-	#	except:
-	#		import traceback
-	#		traceback.print_exc()
 	def genSaveParamsSlot(self):
 		if 0:
 			formats=[('expr','Text, loadable (*.expr)'),('pickle','Pickle, loadable (*.pickle)'),('xml','XML (loadable)'),('HTML (write-only)','html')]
@@ -205,9 +201,9 @@ class ControllerClass(QWidget,Ui_Controller):
 		finally:
 			QApplication.restoreOverrideCursor()
 	def movieCheckboxToggled(self,isOn):
+		S=self.lastScene=woo.master.scene
 		if isOn:
 			# add SnapshotEngine to the current scene
-			S=self.movieScene=woo.master.scene
 			snap=woo.qt.SnapshotEngine(label='_snapshooter',fileBase=woo.master.tmpFilename(),stepPeriod=100,realPeriod=.5,ignoreErrors=False)
 			S.engines=S.engines+[snap]
 			se=SerializableEditor(snap,parent=self.movieArea,showType=True)
@@ -215,12 +211,13 @@ class ControllerClass(QWidget,Ui_Controller):
 			# open new view if there is none			
 			if len(views())==0: View()
 			self.movieButton.setEnabled(True)
+			self.movieActive=True
 		else:
-			self.movieScene=None
 			if hasattr(woo,'_snapshooter'): del woo._snapshooter
-			woo.master.scene.engines=[e for e in woo.master.scene.engines if type(e)!=woo.qt.SnapshotEngine]
+			woo.master.scene.engines=[e for e in S.engines if type(e)!=woo.qt.SnapshotEngine]
 			self.movieArea.setWidget(QFrame())
 			self.movieButton.setEnabled(False)
+			self.movieActive=False
 	def movieButtonClicked(self):
 		if not hasattr(woo,'_snapshooter'):
 			print 'No woo._snapshooter, no movie will be created'
@@ -238,7 +235,7 @@ class ControllerClass(QWidget,Ui_Controller):
 			return
 		woo._tracer.resetNodesRep(setupEmpty=True)
 	def traceCheckboxToggled(self,isOn):
-		S=woo.master.scene
+		S=self.lastScene=woo.master.scene
 		if isOn:
 			tracer=woo.dem.Tracer(label='_tracer',stepPeriod=100,realPeriod=.2)
 			S.engines=S.engines+[tracer]
@@ -246,14 +243,16 @@ class ControllerClass(QWidget,Ui_Controller):
 			self.tracerArea.setWidget(SerializableEditor(tracer,parent=self.tracerArea,showType=True))
 			self.resetTraceButton.setEnabled(True)
 			woo.gl.Gl1_DemField.glyph=woo.gl.Gl1_DemField.glyphKeep
+			self.tracerActive=True
 		else:
-			woo._tracer.dead=True
-			woo._tracer.resetNodesRep(setupEmpty=False)
+			if hasattr(woo,'_tracer'):
+				woo._tracer.resetNodesRep(setupEmpty=False)
+				del woo._tracer
 			S.engines=[e for e in S.engines if type(e)!=woo.dem.Tracer]
 			S.ranges=[r for r in S.ranges if r!=woo.dem.Tracer.lineColor]
-			if hasattr(woo,'_tracer'): del woo._tracer
 			self.tracerArea.setWidget(QFrame())
 			self.resetTraceButton.setEnabled(False)
+			self.tracerActive=False
 		
 	def displayComboSlot(self,dispStr):
 		from woo import gl
@@ -279,18 +278,6 @@ class ControllerClass(QWidget,Ui_Controller):
 		from woo import plot
 		plot.splitData()
 		woo.master.reload()
-	## FIXME: this does not seem to work. Disabled setting dt from the gui until fixed
-	def dtEditNoupdateSlot(self):
-		#print 'dt not refreshed'
-		self.dtEditUpdate=False
-	def dtEditedSlot(self):
-		#print 'dt refreshed'
-		try:
-			t=float(self.dtEdit.text())
-			woo.master.scene.dt=t
-		except ValueError: pass
-		self.dtEdit.setText(str(woo.master.scene.dt))
-		self.dtEditUpdate=True
 	def playSlot(self):	woo.master.scene.run()
 	def pauseSlot(self): woo.master.scene.stop()
 	def stepSlot(self):
@@ -325,8 +312,6 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.stepButton.setEnabled(False)
 		self.subStepCheckbox.setEnabled(False)
 		self.reloadButton.setEnabled(False)
-		self.dtEdit.setEnabled(False)
-		self.dtEditUpdate=True
 	def activateControls(self):
 		import woo.plot
 		S=woo.master.scene
@@ -344,19 +329,16 @@ class ControllerClass(QWidget,Ui_Controller):
 			self.reloadButton.setEnabled(False)
 			self.stepButton.setEnabled(False)
 			self.subStepCheckbox.setEnabled(False)
-		## FIXME: dt editing broken, never enable editable
-		#self.dtEdit.setEnabled(True)
-		self.dtEdit.setEnabled(False)
 		fn=S.lastSave
-		self.fileLabel.setText(fn if fn else '<i>[no file]</i>')
+		self.fileLabel.setText(fn if fn else '[no file]')
 
 		#
 		#
 		self.plotButton.setEnabled(len(woo.plot.plots)>0)
 
 	def refreshValues(self):
-		scene=woo.master.scene
-		rt=int(woo.master.realtime); t=scene.time; step=scene.step;
+		S=woo.master.scene
+		rt=int(woo.master.realtime); t=S.time; step=S.step;
 		assert(len(self.stepTimes)==len(self.stepValues))
 		if len(self.stepTimes)==0: self.stepTimes.append(rt); self.stepValues.append(step); self.stepPerSec=0 # update always for the first time
 		elif rt-self.stepTimes[-1]>self.stepPerSecTimeout: # update after a timeout
@@ -364,18 +346,18 @@ class ControllerClass(QWidget,Ui_Controller):
 			self.stepTimes[0]=self.stepTimes[1]; self.stepValues[0]=self.stepValues[1]
 			self.stepTimes[1]=rt; self.stepValues[1]=step;
 			self.stepPerSec=(self.stepValues[-1]-self.stepValues[-2])/(self.stepTimes[-1]-self.stepTimes[-2])
-		if not scene.running: self.stepPerSec=0
-		stopAtStep=scene.stopAtStep
+		if not S.running: self.stepPerSec=0
+		stopAtStep=S.stopAtStep
 		subStepInfo=''
-		if scene.subStepping:
-			subStep=scene.subStep
+		if S.subStepping:
+			subStep=S.subStep
 			if subStep==-1: subStepInfo=u'→ <i>prologue</i>'
-			elif subStep>=0 and subStep<len(scene.engines):
-				e=scene.engines[subStep]; subStepInfo=u'→ %s'%(e.label if e.label else e.__class__.__name__)
-			elif subStep==len(scene.engines): subStepInfo=u'→ <i>epilogue</i>'
-			else: raise RuntimeError("Invalid scene.subStep value %d, should be ∈{-1,…,len(o.engines)}"%subStep)
-			subStepInfo="<br><small>sub %d/%d [%s]</small>"%(subStep,len(scene.engines),subStepInfo)
-		self.subStepCheckbox.setChecked(scene.subStepping) # might have been changed async
+			elif subStep>=0 and subStep<len(S.engines):
+				e=S.engines[subStep]; subStepInfo=u'→ %s'%(e.label if e.label else e.__class__.__name__)
+			elif subStep==len(S.engines): subStepInfo=u'→ <i>epilogue</i>'
+			else: raise RuntimeError("Invalid S.subStep value %d, should be ∈{-1,…,len(o.engines)}"%subStep)
+			subStepInfo="<br><small>sub %d/%d [%s]</small>"%(subStep,len(S.engines),subStepInfo)
+		self.subStepCheckbox.setChecked(S.subStepping) # might have been changed async
 		if stopAtStep<=step:
 			self.realTimeLabel.setText('%02d:%02d:%02d'%(rt//3600,(rt%3600)//60,rt%60))
 			self.stepLabel.setText('#%ld, %.1f/s %s'%(step,self.stepPerSec,subStepInfo))
@@ -385,19 +367,35 @@ class ControllerClass(QWidget,Ui_Controller):
 				eta='(ETA %02d:%02d:%02d)'%(e//3600,e//60,e%60)
 			else: eta=u'(ETA −)'
 			self.realTimeLabel.setText('%02d:%02d:%02d %s'%(rt//3600,rt//60,rt%60,eta))
-			self.stepLabel.setText('#%ld / %ld, %.1f/s %s'%(scene.step,stopAtStep,self.stepPerSec,subStepInfo))
+			self.stepLabel.setText('#%ld / %ld, %.1f/s %s'%(S.step,stopAtStep,self.stepPerSec,subStepInfo))
 		if t!=float('inf') and t!=float('nan'):
 			s=int(t); ms=int(t*1000)%1000; us=int(t*1000000)%1000; ns=int(t*1000000000)%1000
 			self.virtTimeLabel.setText(u'%03ds%03dm%03dμ%03dn'%(s,ms,us,ns))
 		else: self.virtTimeLabel.setText(u'[ ∞ ] ?!')
-		## FIXME:
-		##if self.dtEditUpdate:
-		self.dtEdit.setText(str(scene.dt))
+		self.dtLabel.setText(str(S.dt))
 		self.show3dButton.setChecked(len(views())>0)
+		self.inspectButton.setChecked(self.inspector!=None)
 		##
-		if self.movieScene:
-			if self.movieScene!=woo.master.scene:
-				self.movieCheckboxToggled(True) # as if it was clicked now
+		if self.lastScene!=S:
+			# set movie and trace using last state
+			self.movieCheckboxToggled(self.movieActive)
+			self.traceCheckboxToggled(self.tracerActive)
+			#
+			#
+			ix=self.simPageLayout.indexOf(self.customArea)
+			row,col,rows,cols=self.simPageLayout.getItemPosition(ix) # find position, so that we know where to place the next one
+			self.simPageLayout.removeWidget(self.customArea)
+			self.customArea.setParent(None)
+			self.customArea=QScrollArea()
+			sp=QSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding); sp.setVerticalStretch(40)
+			self.customArea.setSizePolicy(sp)
+			self.simPageLayout.addWidget(self.customArea,row,col)
+			self.customArea.setStyleSheet('QFrame { background-image: url(woodem-logo.png); background-position: middle; background-repeat: none; }')
+			#print 'New QScrollArea created'
+			if S.uiBuild:
+				import __main__
+				glob=globals(); glob.update(__main__.__dict__)
+				exec S.uiBuild in glob, {'S':S,'area':self.customArea}
 
 		
 def Generator():

@@ -95,11 +95,11 @@ def defaultMaterial():
 	import math
 	return FrictMat(density=1e3,young=1e7,ktDivKn=.2,tanPhi=math.tan(.5))
 
-def defaultEngines(damping=0.,gravity=None,verletDist=-.05,kinSplit=False,noSlip=False,noBreak=False,cp2=None,law=None):
+def defaultEngines(damping=0.,gravity=None,verletDist=-.05,kinSplit=False,dontCollect=False,noSlip=False,noBreak=False,cp2=None,law=None):
 	"""Return default set of engines, suitable for basic simulations during testing."""
 	if gravity: raise ValueError("gravity MUST NOT be specified anymore, set DemField.gravity=... instead.")
 	return [
-		Leapfrog(damping=damping,reset=True,kinSplit=kinSplit),
+		Leapfrog(damping=damping,reset=True,kinSplit=kinSplit,dontCollect=dontCollect),
 		InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb(),Bo1_Wall_Aabb(),Bo1_InfCylinder_Aabb()],label='collider'),
 		ContactLoop(
 			[Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom(),Cg2_Wall_Sphere_L6Geom(),Cg2_InfCylinder_Sphere_L6Geom()],

@@ -14,7 +14,7 @@ import pprint
 nan=float('nan')
 
 from PyQt4.QtGui import *
-from PyQt4 import QtCore
+from PyQt4.QtCore import *
 
 
 def yRectPlate(xz0,xz1,yy,shift=True,halfThick=0.,**kw):
@@ -38,7 +38,10 @@ def run(pre):
 	loneMask=0b00100 # particles with this mask don't interact with each other
 	sphMask= 0b00011
 	delMask= 0b00001 # particles which might be deleted by deleters
-	S.loneMask=loneMask
+	S.dem.loneMask=loneMask
+
+	pre.holeMask=wallMask
+
 
 	wd,ht,dp=pre.size
 
@@ -120,7 +123,7 @@ def run(pre):
 		sp.toSimulation(S,mat=pre.material,mask=sphMask)
 
 
-	S.engines=utils.defaultEngines(damping=pre.damping)+[
+	S.engines=utils.defaultEngines(damping=pre.damping,dontCollect=True)+[
 		BoxFactory(
 			box=((J[0],ymin,J[1]),(I[0],ymax,I[1]+(I[0]-J[0]))),
 			stepPeriod=pre.factStep,
@@ -158,12 +161,14 @@ def run(pre):
 
 	S.pre=pre.deepcopy()
 
+	S.uiBuild='import woo.pre; woo.pre.BinSeg_.uiBuild(S,area)'
+
 	try:
 		import woo.gl
 		S.any=[
 			woo.gl.Renderer(iniUp=(0,0,1),iniViewDir=(0,1,0)),
 			woo.gl.Gl1_DemField(colorBy=woo.gl.Gl1_DemField.colorDisplacement),
-			woo.gl.Gl1_Wall(div=5),
+			woo.gl.Gl1_Wall(div=1),
 		]
 
 	except ImportError: pass
@@ -180,22 +185,26 @@ def savePlotData(S):
 		#if S.trackEnergy: woo.plot.plots.update({'  t':(S.energy,None,('ERelErr','g--'))})
 
 
+def holeOpen(i,S):
+	assert i in (1,2)
+	return S.dem.par[(S.pre.hole1ids if i==1 else S.pre.hole2ids)[0]].mask==S.dem.loneMask
 
-def openHole(i):
+def toggleHole(i):
 	import woo
 	if i not in (1,2): raise ValueError("Hole number must be 0 or 1.")
 	S=woo.master.scene
 	if type(S.pre)!=woo.pre.BinSeg: raise RuntimeError("Current Scene.pre is not a BinSeg.")
 	ids=(S.pre.hole1ids if i==1 else S.pre.hole2ids)
-	if len(ids)==0: raise RuntimeError("Hole already open.")
-	assert len(ids)==2 and type(S.dem.par[ids[0]].shape)==woo.dem.Facet and type(S.dem.par[ids[1]].shape)==woo.dem.Facet
-	if i==1: S.pre.hole1ids=[]
-	else: S.pre.hole2ids=[]
-	running=S.running
-	S.stop(); S.wait()
-	# stop to assure particles are not being accessed
-	S.dem.par.remove(ids)
-	if running: S.run()
+	holeOpen=S.dem.par[ids[0]].mask==S.dem.loneMask
+	with S.paused():
+		if holeOpen:
+			#print 'Closing hole ',i
+			S.dem.par.reappear(ids,mask=S.pre.holeMask,removeOverlapping=True)
+		else:
+			#print 'Opening hole ',i
+			S.dem.par.disappear(ids,mask=S.dem.loneMask)
+		#for i in ids:
+		#	print '#%d:\n\t%s\n\tmask:%d\n\tcon:%s'%(i,'visible' if S.dem.par[i].shape.visible else 'invisible',S.dem.par[i].mask,str(S.dem.par[i].con))
 
 def saveSpheres():
 	import woo
@@ -230,13 +239,16 @@ def feedHolesPsdTable(S,massScale=1.):
 	for i in range(len(psdSplits)-1):
 		tr=t.tr(t.td('%g-%g'%(dScale*psdSplits[i],dScale*psdSplits[i+1])))
 		for bm in feedHolesMasses:
-			bMass=sum(bm)
-			tr.append(t.td('%.4g'%(100*bm[i]/bMass),align='right'))
-			tr.append(t.td('%.4g'%(100*sum(bm[:i+1])/bMass),align='right'))
+			bMass=sum(bm) # if it is zero, don't error on integer division by zero
+			if bMass>0:
+				tr.append(t.td('%.4g'%(100*bm[i]/bMass),align='right'))
+				tr.append(t.td('%.4g'%(100*sum(bm[:i+1])/bMass),align='right'))
+			else:
+				tr.append(t.td('-',align='center',colspan=2))
 		tab.append(tr)
 	colTotals=sum([sum(bm) for bm in feedHolesMasses])
 	tab.append(t.tr(t.th('mass [kg]',rowspan=2),*tuple([t.th('%.4g'%sum(bm),colspan=2) for bm in feedHolesMasses])))
-	tab.append(t.tr(*tuple([t.td('%.3g %%'%(sum(bm)/sum(feedHolesMasses[0])),colspan=2,align='right') for bm in feedHolesMasses])))
+	tab.append(t.tr(*tuple([t.td('%.3g %%'%(sum(bm)*100./sum(feedHolesMasses[0])),colspan=2,align='right') for bm in feedHolesMasses])))
 	return tab.generate().render('xhtml')
 
 
@@ -262,6 +274,7 @@ def finishSimulation():
 	if 1:
 		fig=pylab.figure()
 		for i,buck in enumerate(woo.bucket):
+			if buck.num==0: continue # bucket empty
 			dm=buck.diamMass()
 			h,bins=numpy.histogram(dm[0],weights=dm[1],bins=50)
 			h/=h.sum()
@@ -280,8 +293,8 @@ def finishSimulation():
 	if 1:
 		fig=pylab.figure()
 		pylab.plot(*woo.feed.generator.psd(cumulative=False,normalize=False,num=20),label='feed')
-		pylab.plot(*woo.bucket[0].psd(cumulative=False,normalize=False,num=20),label='hole 1')
-		pylab.plot(*woo.bucket[1].psd(cumulative=False,normalize=False,num=20),label='hole 2')
+		if woo.bucket[0].num: pylab.plot(*woo.bucket[0].psd(cumulative=False,normalize=False,num=20),label='hole 1')
+		if woo.bucket[1].num: pylab.plot(*woo.bucket[1].psd(cumulative=False,normalize=False,num=20),label='hole 2')
 		pylab.grid(True)
 		pylab.gca().xaxis.set_major_formatter(milimeter)
 		pylab.xlabel('diameter [mm]')
@@ -332,8 +345,8 @@ def finishSimulation():
 
 
 
-	s=s.replace('\xe2\x88\x92','-') # long minus
-	s=s.replace('\xc3\x97','x') # × multiplicator
+	s=s.replace(u'\xe2\x88\x92','-') # long minus
+	s=s.replace(u'\xc3\x97','x') # × multiplicator
 	try:
 		rep.write(s)
 	except UnicodeDecodeError as e:
@@ -341,11 +354,75 @@ def finishSimulation():
 		print s[max(0,e.start-20):min(e.end+20,len(s))]
 		raise e
 
+	return os.path.abspath(repName)
 
 
-	
+def uiRefresh(grid,S,area):
+	grid.feedButt.setChecked(not woo.feed.dead)
+	grid.feedButt.setText('Start feed' if woo.feed.dead else 'Stop feed')
+	areOpen=[None,holeOpen(1,S),holeOpen(2,S)]
+	for butt,i in (grid.h1butt,1),(grid.h2butt,2):
+		butt.setChecked(areOpen[i])
+		butt.setText('Close %d'%i if areOpen[i] else 'Open %d'%i)
+	if areOpen[1]==areOpen[2]:
+		op=areOpen[1]
+		grid.h12butt.setChecked(op)
+		grid.h12butt.setText('Close 1+2' if op else 'Open 1+2')
+		grid.h12butt.setEnabled(True)
+	else:
+		grid.h12butt.setText('one closed, one open')
+		grid.h12butt.setEnabled(False)
 
+def holeClicked(S,i,grid):
+	import woo
+	assert i in (1,2); assert type(S.pre)==woo.pre.BinSeg
+	ids=(S.pre.hole1ids if i==1 else S.pre.hole2ids)
+	op=holeOpen(i,S)
+	with S.paused():
+		if op:
+			#print 'Closing hole ',i
+			S.dem.par.reappear(ids,mask=S.pre.holeMask,removeOverlapping=True)
+		else:
+			#print 'Opening hole ',i
+			S.dem.par.disappear(ids,mask=S.dem.loneMask)
+def hole12Clicked(S,grid):
+	holeClicked(S,1,grid)
+	holeClicked(S,2,grid)
+def feedToggled(S,checked):
+	import woo
+	woo.feed.dead=not checked
+def reportClicked(S,grid):
+	rep=finishSimulation()
+	import webbrowser
+	webbrowser.open(rep)
 
+def uiBuild(S,area):
+	grid=QGridLayout(area); grid.setSpacing(0); grid.setMargin(0)
+	f=QPushButton('Stop feed')
+	s=QPushButton('Save spheres')
+	h1=QPushButton('Open 1')
+	h2=QPushButton('Open 2')
+	h12=QPushButton('Open 1+2')
+	r=QPushButton('Report')
+	for b in (f,h1,h2,h12): b.setCheckable(True)
+	f.toggled.connect(lambda checked: feedToggled(S,checked))
+	h1.clicked.connect(lambda: holeClicked(S,1,grid))
+	h2.clicked.connect(lambda: holeClicked(S,2,grid))
+	h12.clicked.connect(lambda: hole12Clicked(S,grid))
+	s.clicked.connect(lambda: saveSpheres())
+	r.clicked.connect(lambda: reportClicked(S,grid))
+	grid.feedButt=f
+	grid.h1butt,grid.h2butt,grid.h12butt=h1,h2,h12
+	grid.addWidget(f,0,2)
+	grid.addWidget(s,1,1)
+	grid.addWidget(h1,2,0)
+	grid.addWidget(h2,2,2)
+	grid.addWidget(h12,3,0,1,3)
+	grid.addWidget(r,4,1)
+	grid.refreshTimer=QTimer(grid)
+	grid.refreshTimer.timeout.connect(lambda: uiRefresh(grid,S,area))
+	grid.refreshTimer.start(500)
+	#grid.addWidget(QLabel('Hi there!'))
 	
 
 	

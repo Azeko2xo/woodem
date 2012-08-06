@@ -16,14 +16,9 @@ OpenGLManager::OpenGLManager(QObject* parent): QObject(parent){
 }
 
 void OpenGLManager::timerEvent(QTimerEvent* event){
-#if 0
-	//cerr<<".";
+#if 1
 	boost::mutex::scoped_lock lock(viewsMutex);
-	// when sharing the 0th view widget, it should be enough to update the primary view only
-	//if(views.size()>0) views[0]->updateGL();
-	#if 1
-		FOREACH(const shared_ptr<GLViewer>& view, views){ if(view) view->updateGL(); }
-	#endif
+	for(const auto& view: views){ if(view) view->updateGL(); }
 #else
 	// this implementation makes the GL idle on subsequent timers, if the rednering took longer than one timer shot
 	// as many tim ers as the waiting took are the idle
