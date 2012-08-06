@@ -391,6 +391,13 @@ def hole12Clicked(S,grid):
 def feedToggled(S,checked):
 	import woo
 	woo.feed.dead=not checked
+	# HACK: since the engine was dead for a long time,
+	# it would attempt to catch up now and generate all the mass
+	# at once, which would exhaust its attempts for sure
+	# therefore, make it think it has just run now
+	# by setting stepLast
+	if not woo.feed.dead:
+		woo.feed.stepLast=S.step
 def reportClicked(S,grid):
 	rep=finishSimulation()
 	import webbrowser
