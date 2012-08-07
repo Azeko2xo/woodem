@@ -1,4 +1,6 @@
 import sys,re
+
+# ncView colormaps 
 for f in sys.argv[1:]:
 	cm=' '.join([l.strip() for l in open(f).readlines()])
 	m=re.match(r'.*static\s+int\s+cmap_(?P<name>\w+)\s*\[\]\s*=\s*{(?P<nums>[^}]*)};.*',cm)

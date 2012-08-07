@@ -156,6 +156,8 @@ def run(pre):
 		for i,box in enumerate([((xmin,ymin,zmin),(L[0],ymax,0)),((L[0],ymin,zmin),(xmax,ymax,0))])
 	]
 
+	S.dem.collectNodes()
+
 
 	S.dt=pre.pWaveSafety*utils.spherePWaveDt(pre.psd[0][0]/2.,pre.material.density,pre.material.young)
 

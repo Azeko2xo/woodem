@@ -8,7 +8,9 @@ using std::min; using std::max;
 int CompUtils::defaultCmap=18; // corresponds to 'jet' in Colormap-data.ipp
 
 const vector<CompUtils::Colormap> CompUtils::colormaps={
-	#include"Colormap-data.ipp"
+	#include"Colormap-data.ncView.ipp"
+	// ,
+	// #include"Colormap-data.matplotlib.ipp"
 };
 
 Vector3r CompUtils::mapColor(Real normalizedColor, int cmap){
