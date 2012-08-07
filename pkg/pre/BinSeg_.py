@@ -13,8 +13,19 @@ import numpy
 import pprint
 nan=float('nan')
 
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+try:
+	from PyQt4.QtGui import *
+	from PyQt4.QtCore import *
+except ImportError: pass
+
+# http://www.mail-archive.com/matplotlib-users@lists.sourceforge.net/msg05474.html
+from matplotlib.ticker import FuncFormatter
+percent=FuncFormatter(lambda x,pos=0: '%g%%'%(100*x))
+milimeter=FuncFormatter(lambda x,pos=0: '%3g'%(1000*x))
+# transparency of figure legends
+legendAlpha=.6
+
+
 
 
 def yRectPlate(xz0,xz1,yy,shift=True,halfThick=0.,**kw):
@@ -253,6 +264,28 @@ def feedHolesPsdTable(S,massScale=1.):
 	tab.append(t.tr(*tuple([t.td('%.3g %%'%(sum(bm)*100./sum(feedHolesMasses[0])),colspan=2,align='right') for bm in feedHolesMasses])))
 	return tab.generate().render('xhtml')
 
+def feedHolesPsdFigure():
+	import pylab
+	fig=pylab.figure()
+	for i,buck in enumerate(woo.bucket):
+		if buck.num<=1: continue # bucket empty, or just one particle (range would be automatically -.4 to +.4 around that single particle)
+		dm=buck.diamMass()
+		h,bins=numpy.histogram(dm[0],weights=dm[1],bins=50)
+		h/=h.sum()
+		pylab.plot(bins,[0]+list(h.cumsum()),label='hole %d'%(i+1),linewidth=2)
+	if woo.feed.num>1:
+		pylab.plot(*woo.feed.generator.psd(normalize=True),label='feed',linewidth=2)
+
+	pylab.ylim(ymin=-.05,ymax=1.05)
+	pylab.grid(True)
+	pylab.gca().xaxis.set_major_formatter(milimeter)
+	pylab.xlabel('diameter [mm]')
+	pylab.gca().yaxis.set_major_formatter(percent)
+	pylab.ylabel('mass fraction')
+	leg=pylab.legend(loc='best')
+	leg.get_frame().set_alpha(legendAlpha)
+	return fig
+
 
 def finishSimulation():	
 	import woo
@@ -260,41 +293,18 @@ def finishSimulation():
 	S=woo.master.scene
 	S.stop(); S.wait()
 	massScale=2 if S.pre.halfDp else 1.
-	legendAlpha=.6
 
 	figs=[]
-
-	# http://www.mail-archive.com/matplotlib-users@lists.sourceforge.net/msg05474.html
-	from matplotlib.ticker import FuncFormatter
-	percent=FuncFormatter(lambda x,pos=0: '%g%%'%(100*x))
-	milimeter=FuncFormatter(lambda x,pos=0: '%3g'%(1000*x))
 
 
 	# per-bucket PSD
 	def scaledFlowPsd(x,y): return numpy.array(x),massScale*numpy.array(y)
 
 	if 1:
-		fig=pylab.figure()
-		for i,buck in enumerate(woo.bucket):
-			if buck.num==0: continue # bucket empty
-			dm=buck.diamMass()
-			h,bins=numpy.histogram(dm[0],weights=dm[1],bins=50)
-			h/=h.sum()
-			pylab.plot(bins,[0]+list(h.cumsum()),label='hole %d'%(i+1),linewidth=2)
-		pylab.plot(*woo.feed.generator.psd(normalize=True),label='feed',linewidth=2)
-
-		pylab.ylim(ymin=-.05,ymax=1.05)
-		pylab.grid(True)
-		pylab.gca().xaxis.set_major_formatter(milimeter)
-		pylab.xlabel('diameter [mm]')
-		pylab.gca().yaxis.set_major_formatter(percent)
-		pylab.ylabel('mass fraction')
-		leg=pylab.legend(loc='best')
-		leg.get_frame().set_alpha(legendAlpha)
-		figs.append(('Per-hole PSD',fig))
+		figs.append(('Per-hole PSD',feedHolesPsdFigure()))
 	if 1:
 		fig=pylab.figure()
-		pylab.plot(*woo.feed.generator.psd(cumulative=False,normalize=False,num=20),label='feed')
+		if woo.feed.num: pylab.plot(*woo.feed.generator.psd(cumulative=False,normalize=False,num=20),label='feed')
 		if woo.bucket[0].num: pylab.plot(*woo.bucket[0].psd(cumulative=False,normalize=False,num=20),label='hole 1')
 		if woo.bucket[1].num: pylab.plot(*woo.bucket[1].psd(cumulative=False,normalize=False,num=20),label='hole 2')
 		pylab.grid(True)
@@ -413,12 +423,14 @@ def uiBuild(S,area):
 	h2=QPushButton('Open 2')
 	h12=QPushButton('Open 1+2')
 	r=QPushButton('Report')
+	psd=QPushButton('PSD')
 	for b in (f,h1,h2,h12): b.setCheckable(True)
 	f.toggled.connect(lambda checked: feedToggled(S,checked))
 	h1.clicked.connect(lambda: holeClicked(S,1,grid))
 	h2.clicked.connect(lambda: holeClicked(S,2,grid))
 	h12.clicked.connect(lambda: hole12Clicked(S,grid))
 	s.clicked.connect(lambda: saveSpheres())
+	psd.clicked.connect(lambda: feedHolesPsdFigure().show())
 	r.clicked.connect(lambda: reportClicked(S,grid))
 	grid.feedButt=f
 	grid.h1butt,grid.h2butt,grid.h12butt=h1,h2,h12
@@ -427,7 +439,8 @@ def uiBuild(S,area):
 	grid.addWidget(h1,2,0)
 	grid.addWidget(h2,2,2)
 	grid.addWidget(h12,3,0,1,3)
-	grid.addWidget(r,4,1)
+	grid.addWidget(psd,4,1)
+	grid.addWidget(r,5,1)
 	grid.refreshTimer=QTimer(grid)
 	grid.refreshTimer.timeout.connect(lambda: uiRefresh(grid,S,area))
 	grid.refreshTimer.start(500)
