@@ -178,6 +178,9 @@ void RandomFactory::run(){
 	if(dynamic_pointer_cast<InsertionSortCollider>(collider)) static_pointer_cast<InsertionSortCollider>(collider)->forceInitSort=true;
 	if(isnan(massFlowRate)) throw std::runtime_error("RandomFactory.massFlowRate must be given "+to_string(massFlowRate));
 	if(massFlowRate<=0 && maxAttempts==0) throw std::runtime_error("RandomFactory.massFlowRate<=0 (no massFlowRate prescribed), but RandomFactory.maxAttempts==0. (unlimited number of attempts); this would cause infinite loop.");
+	if(maxAttempts<0){
+		std::runtime_error("RandomFactory.maxAttempts must be non-negative. Negative value, leading to meaking engine dead, is achieved by setting atMaxAttempts=RandomFactory.maxAttDead now.");
+	}
 
 	// as if some time has already elapsed at the very start
 	// otherwise mass flow rate is too big since one particle during Δt exceeds it easily
@@ -226,14 +229,19 @@ void RandomFactory::run(){
 		int attempt=-1;
 		while(true){
 			attempt++;
-			if(attempt>=abs(maxAttempts)){
+			if(attempt>=maxAttempts){
 				if(massFlowRate<=0) goto stepDone;
-				if(maxAttempts<0){
-					LOG_INFO("maxAttempts="<<maxAttempts<<" reached, making myself dead.");
-					this->dead=true;
-					return;
+				switch(atMaxAttempts){
+					case MAXATT_ERROR: throw std::runtime_error("RandomFactory.maxAttempts reached ("+lexical_cast<string>(maxAttempts)+")"); break;
+					case MAXATT_DEAD:{
+						LOG_INFO("maxAttempts="<<maxAttempts<<" reached, making myself dead.");
+						this->dead=true;
+						return;
+					}
+					case MAXATT_WARN: LOG_WARN("maxAttempts "<<maxAttempts<<" reached before required mass amount was generated; continuing, since maxAttemptsError==False"); break;
+					case MAXATT_SILENT: break;
+					default: woo::ValueError("Invalid value of RandomFactory.atMaxAttempts="+to_string(atMaxAttempts)+".");
 				}
-					else throw std::runtime_error("RandomFactory.maxAttempts reached ("+lexical_cast<string>(maxAttempts)+")");
 			}	
 			pos=randomPosition(); // overridden in child classes
 			LOG_TRACE("Trying pos="<<pos.transpose());

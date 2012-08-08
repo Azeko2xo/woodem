@@ -56,7 +56,8 @@ struct BinSeg: public Preprocessor {
 		((Real,damping,.4,,"Non-viscous damping coefficient"))
 		((Real,pWaveSafety,.7,AttrTrait<Attr::triggerPostLoad>(),"Safety factor for critical timestep"))
 		((Real,rateSmooth,.2,,"Smoothing factor for plotting rates in factory and deleters"))
-		((int,factStep,200,,"Interval at which particle factory and deleters are run"))
+		((Real,feedAdjustCoeff,.3,,"Coefficient for adjusting feed rate"))
+		((int,factStep,100,,"Interval at which particle factory and deleters are run"))
 
 		// internal variables for saving state in simulation
 		((vector<Particle::id_t>,hole1ids,,AttrTrait<>().noGui(),"Ids of hole 1 particles (for later removal)"))

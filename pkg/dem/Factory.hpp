@@ -110,12 +110,14 @@ struct RandomFactory: public ParticleFactory{
 	void run();
 	void pyClear(){ if(generator) generator->clear(); num=0; mass=0; stepGoalMass=0; /* do not reset stepPrev! */ }
 	shared_ptr<Collider> collider;
+	enum{MAXATT_ERROR=0,MAXATT_DEAD,MAXATT_WARN,MAXATT_SILENT};
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(RandomFactory,ParticleFactory,"Factory generating new particles.",
 		((Real,massFlowRate,NaN,AttrTrait<>().massFlowRateUnit(),"Mass flow rate; if zero, generate as many particles as possible, until maxAttemps is reached."))
 		((vector<shared_ptr<Material>>,materials,,,"Set of materials for new particles, randomly picked from"))
 		((shared_ptr<ParticleGenerator>,generator,,,"Particle generator instance"))
 		((shared_ptr<ParticleShooter>,shooter,,,"Particle shooter instance (assigns velocities to generated particles"))
-		((int,maxAttempts,5000,,"Maximum attempts to position a new particle randomly. If 0, no limit is imposed. If negative, the engine will be made *dead* after reaching the number, but without raising an exception."))
+		((int,maxAttempts,5000,,"Maximum attempts to position a new particle randomly. If 0, no limit is imposed. When reached, :ref:`atMaxAttempts` determines, what will be done."))
+		((int,atMaxAttempts,MAXATT_ERROR,AttrTrait<>().choice({{MAXATT_ERROR,"error"},{MAXATT_DEAD,"dead"},{MAXATT_WARN,"warn"},{MAXATT_SILENT,"silent"}}),"What to do when maxAttempts is reached."))
 		((int,mask,1,,"Groupmask for new particles"))
 		((Real,color,NaN,,"Color for new particles (NaN for random)"))
 		//
@@ -123,7 +125,11 @@ struct RandomFactory: public ParticleFactory{
 		// ((long,stepPrev,-1,AttrTrait<Attr::readonly>(),"Step in which we were run for the last time"))
 		,/*ctor*/
 		,/*py*/
-			.def("clear",&RandomFactory::pyClear)
+			.def("clear",&RandomFactory::pyClear);
+			_classObj.attr("maxAttError")=(int)MAXATT_ERROR;
+			_classObj.attr("maxAttDead")=(int)MAXATT_DEAD;
+			_classObj.attr("maxAttWarn")=(int)MAXATT_WARN;
+			_classObj.attr("maxAttSilent")=(int)MAXATT_SILENT;
 	);
 };
 REGISTER_SERIALIZABLE(RandomFactory);

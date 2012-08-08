@@ -135,25 +135,6 @@ def run(pre):
 
 
 	S.engines=utils.defaultEngines(damping=pre.damping,dontCollect=True)+[
-		BoxFactory(
-			box=((J[0],ymin,J[1]),(I[0],ymax,I[1]+(I[0]-J[0]))),
-			stepPeriod=pre.factStep,
-			maxMass=-1,
-			massFlowRate=pre.feedRate,
-			glColor=.8,
-			maxAttempts=100,
-			generator=PsdSphereGenerator(psdPts=pre.psd,discrete=False,mass=True),
-			materials=[pre.material],
-			shooter=AlignedMinMaxShooter(dir=(0,0,-1),vRange=(0,0)),
-			currRateSmooth=pre.rateSmooth,
-			mask=sphMask,
-			label='feed',
-		),
-		#PyRunner(200,'plot.addData(uf=utils.unbalancedForce(),i=O.scene.step)'),
-		#PyRunner(600,'print "%g/%g mass, %d particles, unbalanced %g/'+str(goal)+'"%(woo.makeBandFeedFactory.mass,woo.makeBandFeedFactory.maxMass,len(S.dem.par),woo.utils.unbalancedForce(S))'),
-		#PyRunner(200,'if woo.utils.unbalancedForce(S)<'+str(goal)+' and woo.makeBandFeedFactory.dead: S.stop()'),
-		PyRunner(pre.factStep,'import woo.pre.BinSeg_; woo.pre.BinSeg_.savePlotData(S)'),
-	]+[
 		BoxDeleter(
 			stepPeriod=pre.factStep,
 			inside=True,
@@ -165,6 +146,26 @@ def run(pre):
 			label='bucket[%d]'%i
 		)
 		for i,box in enumerate([((xmin,ymin,zmin),(L[0],ymax,0)),((L[0],ymin,zmin),(xmax,ymax,0))])
+	]+[
+		BoxFactory(
+			box=((J[0],ymin,J[1]),(I[0],ymax,I[1]+(I[0]-J[0]))),
+			stepPeriod=pre.factStep,
+			maxMass=-1,
+			massFlowRate=pre.feedRate,
+			glColor=.8,
+			maxAttempts=100,
+			atMaxAttempts=BoxFactory.maxAttError,
+			generator=PsdSphereGenerator(psdPts=pre.psd,discrete=False,mass=True),
+			materials=[pre.material],
+			shooter=AlignedMinMaxShooter(dir=(0,0,-1),vRange=(0,0)),
+			currRateSmooth=pre.rateSmooth,
+			mask=sphMask,
+			label='feed',
+		),
+		PyRunner(pre.factStep,'import woo.pre.BinSeg_; woo.pre.BinSeg_.adjustFeedRate(S)',label='feedAdjuster',dead=True),
+		#PyRunner(600,'print "%g/%g mass, %d particles, unbalanced %g/'+str(goal)+'"%(woo.makeBandFeedFactory.mass,woo.makeBandFeedFactory.maxMass,len(S.dem.par),woo.utils.unbalancedForce(S))'),
+		#PyRunner(200,'if woo.utils.unbalancedForce(S)<'+str(goal)+' and woo.makeBandFeedFactory.dead: S.stop()'),
+		PyRunner(pre.factStep,'import woo.pre.BinSeg_; woo.pre.BinSeg_.savePlotData(S)'),
 	]
 
 	S.dem.collectNodes()
@@ -196,6 +197,15 @@ def savePlotData(S):
 	if not woo.plot.plots:
 		woo.plot.plots={'t':('feedRate','hole1rate','hole2rate','holeRate')}
 		#if S.trackEnergy: woo.plot.plots.update({'  t':(S.energy,None,('ERelErr','g--'))})
+
+def adjustFeedRate(S):
+	'Change feed massFlowRate so that it comes close to holes deletion rate'
+	import woo
+	fr=woo.feed.currRate
+	br=sum([b.currRate for b in woo.bucket])
+	woo.feed.massFlowRate=fr+S.pre.feedAdjustCoeff*(br-fr)
+	print 'New feed rate %g (old %g, hole rate %g)'%(woo.feed.massFlowRate,fr,br)
+
 
 
 def holeOpen(i,S):
@@ -400,7 +410,7 @@ def holeClicked(S,i,grid):
 def hole12Clicked(S,grid):
 	holeClicked(S,1,grid)
 	holeClicked(S,2,grid)
-def feedToggled(S,checked):
+def feedToggled(S,checked,grid):
 	import woo
 	woo.feed.dead=not checked
 	# HACK: since the engine was dead for a long time,
@@ -410,14 +420,25 @@ def feedToggled(S,checked):
 	# by setting stepLast
 	if not woo.feed.dead:
 		woo.feed.stepLast=S.step
+	grid.adjCheckbox.setEnabled(not woo.feed.dead)
 def reportClicked(S,grid):
 	rep=finishSimulation()
 	import webbrowser
 	webbrowser.open(rep)
+def autoAdjustChanged(S,grid,state):
+	import woo
+	if state==0:
+		# stop auto-adjust
+		woo.feedAdjuster.dead=True
+		woo.feed.atMaxAttempts=woo.dem.BoxFactory.maxAttError
+	else:
+		woo.feedAdjuster.dead=False
+		woo.feed.atMaxAttempts=woo.dem.BoxFactory.maxAttWarn
 
 def uiBuild(S,area):
 	grid=QGridLayout(area); grid.setSpacing(0); grid.setMargin(0)
 	f=QPushButton('Stop feed')
+	adj=QCheckBox('Auto-adjust rate')
 	s=QPushButton('Save spheres')
 	h1=QPushButton('Open 1')
 	h2=QPushButton('Open 2')
@@ -425,15 +446,18 @@ def uiBuild(S,area):
 	r=QPushButton('Report')
 	psd=QPushButton('PSD')
 	for b in (f,h1,h2,h12): b.setCheckable(True)
-	f.toggled.connect(lambda checked: feedToggled(S,checked))
+	f.toggled.connect(lambda checked: feedToggled(S,checked,grid))
 	h1.clicked.connect(lambda: holeClicked(S,1,grid))
 	h2.clicked.connect(lambda: holeClicked(S,2,grid))
 	h12.clicked.connect(lambda: hole12Clicked(S,grid))
 	s.clicked.connect(lambda: saveSpheres())
 	psd.clicked.connect(lambda: feedHolesPsdFigure().show())
 	r.clicked.connect(lambda: reportClicked(S,grid))
+	adj.stateChanged.connect(lambda state: autoAdjustChanged(S,grid,state))
 	grid.feedButt=f
+	grid.adjCheckbox=adj
 	grid.h1butt,grid.h2butt,grid.h12butt=h1,h2,h12
+	grid.addWidget(adj,0,1)
 	grid.addWidget(f,0,2)
 	grid.addWidget(s,1,1)
 	grid.addWidget(h1,2,0)
