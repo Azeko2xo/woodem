@@ -86,9 +86,16 @@ void Scene::backgroundLoop(){
 }
 
 void Scene::PausedContextManager::__enter__(){
-	while(!lock.timed_lock(boost::posix_time::seconds(10))){
-		LOG_WARN("Waiting for lock for 10 seconds; deadlocked? (Scene.paused() must not be called from within the engine loop, through PyRunner or otherwise.");
-	}
+	// since this function is called from python, other python threads must be allowed to run explicitly
+	// otherwise, if the engine thread would be in python code (in PyRunner, for instance),
+	// it would not be allowed to be run, therefore the step would not finish and the engine thread would
+	// not release the lock, and we would get deadlocked.
+	// TODO: store thread id when Scene.run() is called, and check that we are not being called from the bg thread
+	Py_BEGIN_ALLOW_THREADS;
+		while(!lock.timed_lock(boost::posix_time::seconds(10))){
+			LOG_WARN("Waiting for lock for 10 seconds; deadlocked? (Scene.paused() must not be called from within the engine loop, through PyRunner or otherwise.");
+		}
+	Py_END_ALLOW_THREADS;
 	LOG_DEBUG("Scene.paused(): locked");
 }
 // exception information are not used, but we need to accept those args
