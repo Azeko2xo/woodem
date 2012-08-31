@@ -65,6 +65,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 
 		((bool,doPostLoad,false,AttrTrait<>().hidden(),"Run initialization routine when called next time (set from postLoadStatic)"))
 		((bool,updateRefPos,false,,"Update reference positions of all nodes in the next step"))
+		((int,guiEvery,100,,"Process GUI events once every *guiEvery* objects are painted, to keep the ui responsive. Set to 0 to make rendering blocking."))
 		, /*ctor*/
 			initAllRanges();
 		, /*py*/

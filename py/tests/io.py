@@ -35,6 +35,10 @@ class TestFormatsAndDetection(unittest.TestCase):
 		'IO: expression dump/load & format detection (file+string)'
 		self.tryDumpLoad(fmt='expr')
 		self.tryDumpLoadStr(fmt='expr')
+	def testJson(self):
+		'IO: JSON dump/load & format detection (file+string)'
+		self.tryDumpLoad(fmt='json')
+		self.tryDumpLoadStr(fmt='json')
 	def testHtml(self):
 		'IO: HTML dump (file+string)'
 		self.tryDumpLoad(fmt='html',load=False)

@@ -174,7 +174,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		else:
 			f=str(QFileDialog.getSaveFileName(self,'Save preprocessor parameters','.'))
 			if not f: return
-			self.generator.dump(f,format='expr')
+			self.generator.dump(f,format='json' if f.endswith('.json') else 'expr')
 	def generateSlot(self):
 		try:
 			QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)

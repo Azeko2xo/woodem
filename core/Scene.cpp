@@ -35,6 +35,7 @@ void Scene::pyRun(long steps, bool wait){
 		boost::function0<void> loop(boost::bind(&Scene::backgroundLoop,this));
 		boost::thread th(loop);
 		/* runs in separate thread now */
+		bgThreadId=th.get_id();
 	}
 	if(wait) pyWait();
 }
@@ -90,12 +91,20 @@ void Scene::PausedContextManager::__enter__(){
 	// otherwise, if the engine thread would be in python code (in PyRunner, for instance),
 	// it would not be allowed to be run, therefore the step would not finish and the engine thread would
 	// not release the lock, and we would get deadlocked.
-	// TODO: store thread id when Scene.run() is called, and check that we are not being called from the bg thread
+
+	// this fails to detect when called from within engine with S.step() rather than S.run()
+	if(boost::this_thread::get_id()==bgThreadId) throw std::runtime_error("Scene.paused() may not be called from the engine thread!");
+	#ifdef WOO_LOOP_MUTEX_HELP
+		engineLoopMutexWaiting=true;
+	#endif
 	Py_BEGIN_ALLOW_THREADS;
 		while(!lock.timed_lock(boost::posix_time::seconds(10))){
 			LOG_WARN("Waiting for lock for 10 seconds; deadlocked? (Scene.paused() must not be called from within the engine loop, through PyRunner or otherwise.");
 		}
 	Py_END_ALLOW_THREADS;
+	#ifdef WOO_LOOP_MUTEX_HELP
+		engineLoopMutexWaiting=false;
+	#endif
 	LOG_DEBUG("Scene.paused(): locked");
 }
 // exception information are not used, but we need to accept those args
@@ -134,6 +143,10 @@ void Scene::fillDefaultTags(){
 	tags["idt"]=tags["tid"]=id;
 	//tags["d.id"]=tags["id.d"]=tags["d_id"]=tags["id_d"]=id;
 	// tags.push_back("revision="+py::extract<string>(py::import("woo.config").attr("revision"))());;
+	#ifdef WOO_LOOP_MUTEX_HELP
+		// initialize that somewhere
+		engineLoopMutexWaiting=false;	
+	#endif
 }
 
 
@@ -255,6 +268,13 @@ void Scene::postLoad(Scene&){
 
 
 void Scene::doOneStep(){
+	#ifdef WOO_LOOP_MUTEX_HELP
+		// add some daly to help the other thread locking the mutex; will be removed once 
+		if(engineLoopMutexWaiting){
+			timespec t1,t2; t1.tv_sec=0; t1.tv_nsec=100000000; /* 100 ms */
+			nanosleep(&t1,&t2);
+		}
+	#endif
 	boost::timed_mutex::scoped_lock lock(engineLoopMutex);
 
 	if(runInternalConsistencyChecks){

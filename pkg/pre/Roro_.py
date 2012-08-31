@@ -905,8 +905,8 @@ def writeReport(S):
 	print 'Writing report to file://'+os.path.abspath(repName)
 	#rep.write(HTMLParser(StringIO.StringIO(html),'[filename]').parse().render('xhtml',doctype='xhtml').decode('utf-8'))
 	s=html
-	s=s.replace('\xe2\x88\x92','-') # long minus
-	s=s.replace('\xc3\x97','x') # × multiplicator
+	s=s.replace(u'\xe2\x88\x92','-') # long minus
+	s=s.replace(u'\xc3\x97','x') # × multiplicator
 	try:
 		rep.write(s)
 	except UnicodeDecodeError as e:

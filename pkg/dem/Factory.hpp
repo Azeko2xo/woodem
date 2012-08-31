@@ -154,7 +154,7 @@ struct BoxFactory: public RandomFactory{
 			GLUtils::AlignedBox(box,CompUtils::mapColor(glColor));
 			std::ostringstream oss; oss.precision(4); oss<<mass;
 			if(maxMass>0){ oss<<"/"; oss.precision(4); oss<<maxMass; }
-			if(!isnan(currRate)){ oss.precision(3); oss<<" ("<<currRate<<")"; }
+			if(!isnan(currRate)){ oss.precision(3); oss<<"\n("<<currRate<<")"; }
 			GLUtils::GLDrawText(oss.str(),box.center(),CompUtils::mapColor(glColor));
 		}
 	#endif
@@ -175,7 +175,7 @@ struct BoxDeleter: public PeriodicEngine{
 			if(isnan(glColor)) return;
 			GLUtils::AlignedBox(box,CompUtils::mapColor(glColor));
 			std::ostringstream oss; oss.precision(4); oss<<mass;
-			if(!isnan(currRate)){ oss.precision(3); oss<<" ("<<currRate<<")"; }
+			if(!isnan(currRate)){ oss.precision(3); oss<<"\n("<<currRate<<")"; }
 			GLUtils::GLDrawText(oss.str(),box.center(),CompUtils::mapColor(glColor));
 		}
 	#endif

@@ -45,6 +45,11 @@ Vector3r CompUtils::inscribedCircleCenter(const Vector3r& v0, const Vector3r& v1
 	return v0+((v2-v0)*(v1-v0).norm()+(v1-v0)*(v2-v0).norm())/((v1-v0).norm()+(v2-v1).norm()+(v0-v2).norm());
 }
 
+Real CompUtils::segmentPlaneIntersection(const Vector3r& A, const Vector3r& B, const Vector3r& pt, const Vector3r& normal){
+	// http://paulbourke.net/geometry/planeline/
+	return normal.dot(pt-A)/normal.dot(pt-B);
+}
+
 int CompUtils::lineSphereIntersection(const Vector3r& A, const Vector3r& u, const Vector3r& C, Real r, Real& t0, Real& t1, Real relTol){
 	// http://en.wikipedia.org/wiki/Line%E2%80%93sphere_intersection
 	// ray goes through origin, therefore we move sphere relative to A

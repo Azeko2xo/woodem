@@ -23,6 +23,7 @@ class Scene: public Object{
 		// this is managed by methods of Scene exclusively
 		boost::mutex runMutex;
 		bool runningFlag;
+		boost::thread::id bgThreadId;
 		// this will be std::atomic<bool>
 		// once libstdc++ headers are accepted by clang++
 		bool stopFlag; 
@@ -86,11 +87,27 @@ class Scene: public Object{
 			PausedContextManager obtains the lock (warns every few seconds that the lock was not yet
 			obtained, for diagnosis of deadlock) in __enter__ and releases it in __exit__.
 		*/
+
+		// workaround; will be removed once
+		// http://stackoverflow.com/questions/12203769/boosttimed-mutex-guarantee-of-acquiring-the-lock-when-other-thread-unlocks-i
+		// is solved
+		#define WOO_LOOP_MUTEX_HELP
+		#ifdef WOO_LOOP_MUTEX_HELP
+			bool engineLoopMutexWaiting;
+		#endif
 		boost::timed_mutex engineLoopMutex;
 		struct PausedContextManager{
 			boost::timed_mutex::scoped_lock lock;
+			boost::thread::id bgThreadId;
+			#ifdef WOO_LOOP_MUTEX_HELP
+				bool& engineLoopMutexWaiting;
+			#endif
 			// stores reference to mutex, but does not lock it yet
-			PausedContextManager(Scene* scene): lock(boost::timed_mutex::scoped_lock(scene->engineLoopMutex,boost::defer_lock)){}
+			PausedContextManager(Scene* scene): lock(boost::timed_mutex::scoped_lock(scene->engineLoopMutex,boost::defer_lock)), bgThreadId(scene->bgThreadId)
+				#ifdef WOO_LOOP_MUTEX_HELP
+					, engineLoopMutexWaiting(scene->engineLoopMutexWaiting)
+				#endif
+			{}
 			void __enter__();
 			void __exit__(py::object exc_type, py::object exc_value, py::object traceback);
 			static void pyRegisterClass(){
