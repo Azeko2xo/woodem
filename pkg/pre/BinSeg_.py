@@ -271,7 +271,7 @@ def feedHolesPsdTable(S,massScale=1.):
 	colTotals=sum([sum(bm) for bm in feedHolesMasses])
 	tab.append(t.tr(t.th('mass [kg]',rowspan=2),*tuple([t.th('%.4g'%sum(bm),colspan=2) for bm in feedHolesMasses])))
 	tab.append(t.tr(*tuple([t.td('%.3g %%'%(sum(bm)*100./sum(feedHolesMasses[0])),colspan=2,align='right') for bm in feedHolesMasses])))
-	return tab.generate().render('xhtml')
+	return unicode(tab.generate().render('xhtml'))
 
 def feedHolesPsdFigure():
 	import pylab
@@ -347,7 +347,7 @@ def finishSimulation():
 
 
 	import codecs
-	repName=S.pre.reportFmt.format(S=S,**(dict(S.tags)))
+	repName=unicode(S.pre.reportFmt).format(S=S,**(dict(S.tags)))
 	rep=codecs.open(repName,'w','utf-8','replace')
 	import os.path
 	import woo.pre.Roro_
@@ -359,7 +359,7 @@ def finishSimulation():
 	for name,fig in figs:
 		svgs.append((name,woo.O.tmpFilename()+'.svg'))
 		fig.savefig(svgs[-1][-1])
-	s+='\n'.join(['<h2>'+svg[0]+'</h2>'+woo.pre.Roro_.svgFragment(open(svg[1]).read()) for svg in svgs])
+	s+='\n'.join(['<h2>'+svg[0]+'</h2>'+woo.pre.Roro_.svgFileFragment(svg[1]) for svg in svgs])
 
 	s+='</body></html>'
 

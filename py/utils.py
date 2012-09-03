@@ -5,8 +5,6 @@
 # 2008-2009 © Václav Šmilauer <eudoxos@arcig.cz>
 
 """Heap of functions that don't (yet) fit anywhere else.
-
-Devs: please DO NOT ADD more functions here, it is getting too crowded!
 """
 
 import math,random,doctest,geom
@@ -66,7 +64,7 @@ def loadVars(mark=None):
 			woo.params.__all__+=list(d.keys())
 			woo.params.__dict__.update(d)
 	if mark!=None:
-		d=cPickle.loads(scene.tags['pickledPythonVariablesDictionary'+mark])
+		d=cPickle.loads(str(scene.tags['pickledPythonVariablesDictionary'+mark]))
 		loadOne(d,mark)
 	else: # load everything one by one
 		for m in scene.tags.keys():
@@ -420,86 +418,6 @@ def vmData():
 	l=_procStatus('VmData'); ll=l.split(); assert(ll[2]=='kB')
 	return int(ll[1])
 
-def uniaxialTestFeatures(filename=None,areaSections=10,axis=-1,**kw):
-	"""Get some data about the current packing useful for uniaxial test:
-
-#. Find the dimensions that is the longest (uniaxial loading axis)
-
-#. Find the minimum cross-section area of the specimen by examining several (areaSections) sections perpendicular to axis, computing area of the convex hull for each one. This will work also for non-prismatic specimen.
-
-#. Find the bodies that are on the negative/positive boundary, to which the straining condition should be applied.
-
-:param filename: if given, spheres will be loaded from this file (ASCII format); if not, current simulation will be used.
-:param float areaSection: number of section that will be used to estimate cross-section
-:param ∈{0,1,2} axis: if given, force strained axis, rather than computing it from predominant length
-:return: dictionary with keys ``negIds``, ``posIds``, ``axis``, ``area``.
-
-.. warning::
-	The function :ref:`woo.utils.approxSectionArea` uses convex hull algorithm to find the area, but the implementation is reported to be *buggy* (bot works in some cases). Always check this number, or fix the convex hull algorithm (it is documented in the source, see :ysrc:`py/_utils.cpp`).
-
-	"""
-	if filename: ids=spheresFromFile(filename,**kw)
-	else: ids=[b.id for b in O.bodies]
-	mm,mx=aabbExtrema()
-	dim=aabbDim();
-	if axis<0: axis=list(dim).index(max(dim)) # list(dim) for compat with python 2.5 which didn't have index defined for tuples yet (appeared in 2.6 first)
-	assert(axis in (0,1,2))
-	import numpy
-	areas=[approxSectionArea(coord,axis) for coord in numpy.linspace(mm[axis],mx[axis],num=10)[1:-1]]
-	negIds,posIds=negPosExtremeIds(axis=axis,distFactor=2.2)
-	return {'negIds':negIds,'posIds':posIds,'axis':axis,'area':min(areas)}
-
-def voxelPorosityTriaxial(triax,resolution=200,offset=0):
-	"""
-	Calculate the porosity of a sample, given the TriaxialCompressionEngine.
-
-	A function :ref:`woo.utils.voxelPorosity` is invoked, with the volume of a box enclosed by TriaxialCompressionEngine walls.
-	The additional parameter offset allows using a smaller volume inside the box, where each side of the volume is at offset distance
-	from the walls. By this way it is possible to find a more precise porosity of the sample, since at walls' contact the porosity is usually reduced.
-	
-	A recommended value of offset is bigger or equal to the average radius of spheres inside.
-	
-	The value of resolution depends on size of spheres used. It can be calibrated by invoking voxelPorosityTriaxial with offset=0 and
-	comparing the result with TriaxialCompressionEngine.porosity. After calibration, the offset can be set to radius, or a bigger value, to get
-	the result.
-	
-	:param triax: the TriaxialCompressionEngine handle
-	:param resolution: voxel grid resolution
-	:param offset: offset distance
-	:return: the porosity of the sample inside given volume
-
-	Example invocation::
-	
-		from woo import utils
-		rAvg=0.03
-		TriaxialTest(numberOfGrains=200,radiusMean=rAvg).load()
-		O.dt=-1
-		O.run(1000)
-		O.engines[4].porosity
-		0.44007807740143889
-		utils.voxelPorosityTriaxial(O.engines[4],200,0)
-		0.44055412500000002
-		utils.voxelPorosityTriaxial(O.engines[4],200,rAvg)
-		0.36798199999999998
-	"""
-	p_bottom	= O.bodies[triax.wall_bottom_id].state.se3[0]
-	p_top		= O.bodies[triax.wall_top_id   ].state.se3[0]
-	p_left		= O.bodies[triax.wall_left_id  ].state.se3[0]
-	p_right		= O.bodies[triax.wall_right_id ].state.se3[0]
-	p_front		= O.bodies[triax.wall_front_id ].state.se3[0]
-	p_back		= O.bodies[triax.wall_back_id  ].state.se3[0]
-	th              = (triax.thickness)*0.5+offset
-	x_0             = p_left  [0] + th
-	x_1             = p_right [0] - th
-	y_0             = p_bottom[1] + th
-	y_1             = p_top   [1] - th
-	z_0             = p_back  [2] + th
-	z_1             = p_front [2] - th
-	a=Vector3(x_0,y_0,z_0)
-	b=Vector3(x_1,y_1,z_1)
-	return voxelPorosity(resolution,a,b)
-
-
 def trackPerfomance(updateTime=5):
 	"""
 	Track perfomance of a simulation. (Experimental)
@@ -583,200 +501,18 @@ def _deprecatedUtilsFunction(old,new):
 #    import woo.ymport
 #    return woo.ymport.stl(*args,**kw)
 
-
-class TableParamReader():
-	"""Class for reading simulation parameters from text file.
-
-Each parameter is represented by one column, each parameter set by one line. Colums are separated by blanks (no quoting).
-
-First non-empty line contains column titles (without quotes).
-You may use special column named 'title' to describe this parameter set;
-if such colum is absent, title will be built by concatenating column names and corresponding values (``param1=34,param2=12.22,param4=foo``)
-
-* from columns ending in ``!`` (the ``!`` is not included in the column name)
-* from all columns, if no columns end in ``!``.
-* columns containing literal - (minus) will be ignored
-
-Empty lines within the file are ignored (although counted); ``#`` starts comment till the end of line. Number of blank-separated columns must be the same for all non-empty lines.
-
-A special value ``=`` can be used instead of parameter value; value from the previous non-empty line will be used instead (works recursively).
-
-This class is used by :ref:`woo.utils.readParamsFromTable`.
-	"""
-	def __init__(self,file):
-		"Setup the reader class, read data into memory."
-		import re
-		# read file in memory, remove newlines and comments; the [''] makes lines 1-indexed
-		ll=[re.sub('\s*#.*','',l[:-1]) for l in ['']+open(file,'r').readlines()]
-		# usable lines are those that contain something else than just spaces
-		usableLines=[i for i in range(len(ll)) if not re.match(r'^\s*(#.*)?$',ll[i])]
-		headings=ll[usableLines[0]].split()
-		# use all values of which heading has ! after its name to build up the title string
-		# if there are none, use all columns
-		if not 'title' in headings:
-			bangHeads=[h[:-1] for h in headings if h[-1]=='!'] or headings
-			headings=[(h[:-1] if h[-1]=='!' else h) for h in headings]
-		usableLines=usableLines[1:] # and remove headinds from usableLines
-		values={}
-		for l in usableLines:
-			val={}
-			for i in range(len(headings)):
-				val[headings[i]]=ll[l].split()[i]
-			values[l]=val
-		lines=values.keys(); lines.sort()
-		# replace '=' by previous value of the parameter
-		for i,l in enumerate(lines):
-			for j in values[l].keys():
-				if values[l][j]=='=':
-					try:
-						values[l][j]=values[lines[i-1]][j]
-					except IndexError,KeyError:
-						raise RuntimeError("The = specifier on line %d refers to nonexistent value on previous line?"%l)
-		#import pprint; pprint.pprint(headings); pprint.pprint(values)
-		# add descriptions, but if they repeat, append line number as well
-		if not 'title' in headings:
-			descs=set()
-			for l in lines:
-				dd=','.join(head.replace('!','')+'='+('%g'%values[head] if isinstance(values[l][head],float) else str(values[l][head])) for head in bangHeads if values[l][head].strip()!='-').replace("'",'').replace('"','')
-				if dd in descs: dd+='__line=%d__'%l
-				values[l]['title']=dd
-				descs.add(dd)
-		self.values=values
-
-	def paramDict(self):
-		"""Return dictionary containing data from file given to constructor. Keys are line numbers (which might be non-contiguous and refer to real line numbers that one can see in text editors), values are dictionaries mapping parameter names to their values given in the file. The special value '=' has already been interpreted, ``!`` (bangs) (if any) were already removed from column titles, ``title`` column has already been added (if absent)."""
-		return self.values
-
-if __name__=="__main__":
-	tryTable="""head1 important2! !OMP_NUM_THREADS! abcd
-	1 1.1 1.2 1.3
-	'a' 'b' 'c' 'd'  ### comment
-
-	# empty line
-	1 = = g
-"""
-	file='/tmp/try-tbl.txt'
-	f=open(file,'w')
-	f.write(tryTable)
-	f.close()
-	from pprint import *
-	pprint(TableParamReader(file).paramDict())
+import woo.batch
 
 def runningInBatch():
-	'Tell whether we are running inside the batch or separately.'
-	import os
-	return 'WOO_BATCH' in os.environ
-
+	_deprecatedUtilsFunction('runningInBatch','woo.batch.inBatch')
+	return woo.batch.inBatch()
 def waitIfBatch():
-	'Block the simulation if running inside a batch. Typically used at the end of script so that it does not finish prematurely in batch mode (the execution would be ended in such a case).'
-	if runningInBatch(): woo.master.scene.wait()
-
-def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
-	"""
-	Read parameters from a file and assign them to __builtin__ variables.
-
-	The format of the file is as follows (commens starting with # and empty lines allowed)::
-
-		# commented lines allowed anywhere
-		name1 name2 … # first non-blank line are column headings
-					# empty line is OK, with or without comment
-		val1  val2  … # 1st parameter set
-		val2  val2  … # 2nd
-		…
-
-	Assigned tags (the ``title`` column is synthesized if absent,see :ref:`woo.utils.TableParamReader`); 
-
-		s=woo.master.scene
-		s.tags['title']=…                                      # assigns the title column; might be synthesized
-		s.tags['params']="name1=val1,name2=val2,…"                   # all explicitly assigned parameters
-		s.tags['defaultParams']="unassignedName1=defaultValue1,…"    # parameters that were left at their defaults
-		s.tags['d.id']=s.tags['id']+'.'+s.tags['title']
-		s.tags['id.d']=s.tags['title']+'.'+s.tags['id']
-
-	All parameters (default as well as settable) are saved using :ref:`woo.utils.saveVars`\ ``('table')``.
-
-	:param tableFile: text file (with one value per blank-separated columns)
-	:param int tableLine: number of line where to get the values from
-	:param bool noTableOk: if False, raise exception if the file cannot be open; use default values otherwise
-	:param bool unknownOk: do not raise exception if unknown column name is found in the file, and assign it as well
-	:return: dictionary with all parameters
-	"""
-	tagsParams=[]
-	# dictParams is what eventually ends up in woo.params.table (default+specified values)
-	dictDefaults,dictParams={},{}
-	import os, __builtin__,re,math
-	s=woo.master.scene
-	if not tableFileLine and ('WOO_BATCH' not in os.environ or os.environ['WOO_BATCH']==''):
-		if not noTableOk: raise EnvironmentError("WOO_BATCH is not defined in the environment")
-		s.tags['line']='l!'
-	else:
-		if not tableFileLine: tableFileLine=os.environ['WOO_BATCH']
-		env=tableFileLine.split(':')
-		tableFile,tableLine=env[0],int(env[1])
-		allTab=TableParamReader(tableFile).paramDict()
-		if not allTab.has_key(tableLine): raise RuntimeError("Table %s doesn't contain valid line number %d"%(tableFile,tableLine))
-		vv=allTab[tableLine]
-		s.tags['line']='l%d'%tableLine
-		s.tags['title']=vv['title']
-		s.tags['idt']=s.tags['id']+'.'+s.tags['title']; s.tags['tid']=s.tags['title']+'.'+s.tags['id']
-		# assign values specified in the table to python vars
-		# !something cols are skipped, those are env vars we don't treat at all (they are contained in title, though)
-		for col in vv.keys():
-			if col=='title' or col[0]=='!': continue
-			if col not in kw.keys() and (not unknownOk): raise NameError("Parameter `%s' has no default value assigned"%col)
-			if vv[col]=='*': vv[col]=kw[col] # use default value for * in the table
-			elif vv[col]=='-': continue # skip this column
-			elif col in kw.keys(): kw.pop(col) # remove the var from kw, so that it contains only those that were default at the end of this loop
-			#print 'ASSIGN',col,vv[col]
-			tagsParams+=['%s=%s'%(col,vv[col])];
-			dictParams[col]=eval(vv[col],math.__dict__)
-	# assign remaining (default) keys to python vars
-	defaults=[]
-	for k in kw.keys():
-		dictDefaults[k]=kw[k]
-		defaults+=["%s=%s"%(k,kw[k])];
-	s.tags['defaultParams']=",".join(defaults)
-	s.tags['params']=",".join(tagsParams)
-	dictParams.update(dictDefaults)
-	saveVars('table',loadNow=True,**dictParams)
-	return dictParams
-	#return len(tagsParams)
-
-def runPreprocessorWithBatch(pre,preFile=None):
-	def nestedSetattr(obj,attr,val):
-		attrs=attr.split(".")
-		for i in attrs[:-1]:
-			obj=getattr(obj,i)
-		setattr(obj,attrs[-1],val)
-
-	# just run preprocessor in this case
-	if not runningInBatch(): return pre()
-
-	import os
-	tableFileLine=os.environ['WOO_BATCH']
-	if tableFileLine:
-		env=tableFileLine.split(':')
-		tableFile,tableLine=env[0],int(env[1])
-		allTab=TableParamReader(tableFile).paramDict()
-		if not tableLine in allTab: raise RuntimeError("Table %s doesn't contain valid line number %d"%(tableFile,tableLine))
-		vv=allTab[tableLine]
-
-		# set preprocessor parameters first
-		for name,val in vv.items():
-			if name=='title': continue
-			if val in ('*','-'): continue
-			nestedSetattr(pre,name,eval(val,globals()))
-	# run preprocessor
-	S=pre()
-	# set tags from batch
-	if tableFileLine:
-		S.tags['line']='l%d'%tableLine
-		S.tags['title']=vv['title']
-	else:
-		S.tags['line']='default'
-		S.tags['title']=preFile if preFile else '[no file]'
-	S.tags['idt']=(S.tags['id']+'.'+S.tags['title']).replace('/','_')
-	S.tags['tid']=(S.tags['title']+'.'+S.tags['id']).replace('/','_')
-	return S
-
+	_deprecatedUtilsFunction('waitIfBatch','woo.batch.wait')
+	return woo.batch.wait()
+def readParamsFromTable(*args,**kw):
+	_deprecatedUtilsFunction('readParamsFromTable','woo.batch.readParamsFromTable')
+	return woo.batch.readParamsFromTable(*args,**kw)
+def runPreprocessorInBatch(*args,**kw):
+	_deprecatedUtilsFunction('runPreprocessorInBatch','woo.batch.runPreprocessor')
+	return woo.batch.runPreprocessor(*args,**kw)
 

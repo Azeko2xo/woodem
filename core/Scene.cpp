@@ -113,12 +113,17 @@ void Scene::PausedContextManager::__exit__(py::object exc_type, py::object exc_v
 	LOG_DEBUG("Scene.paused(): unlocked");
 }
 
-
+//py::object Scene::pyTagsProxy::unicodeFromStr(const string& s){
+//	return py::object(py::handle<>(PyUnicode_FromString(s.c_str())));
+//}
 
 std::string Scene::pyTagsProxy::getItem(const std::string& key){ return scene->tags[key]; }
-void Scene::pyTagsProxy::setItem(const std::string& key,const std::string& val){ scene->tags[key]=val; }
+void Scene::pyTagsProxy::setItem(const std::string& key, const string& val){ scene->tags[key]=val;
+}
 void Scene::pyTagsProxy::delItem(const std::string& key){ size_t i=scene->tags.erase(key); if(i==0) woo::KeyError(key); }
-py::list Scene::pyTagsProxy::keys(){ py::list ret; FOREACH(Scene::StrStrMap::value_type i, scene->tags) ret.append(i.first); return ret; }
+py::list Scene::pyTagsProxy::keys(){ py::list ret; for(const auto& kv: scene->tags) ret.append(kv.first); return ret; }
+py::list Scene::pyTagsProxy::values(){ py::list ret; for(const auto& kv: scene->tags) ret.append(kv.second); return ret; }
+py::list Scene::pyTagsProxy::items(){ py::list ret; for(const auto& kv: scene->tags) ret.append(py::make_tuple(kv.first,kv.second)); return ret; }
 bool Scene::pyTagsProxy::has_key(const std::string& key){ return scene->tags.count(key)>0; }
 
 void Scene::pyTagsProxy::update(const pyTagsProxy& b){ for(const auto& i: b.scene->tags) scene->tags[i.first]=i.second; }
@@ -132,9 +137,9 @@ void Scene::fillDefaultTags(){
 	// a few default tags
 	// the standard GECOS format is Real Name,,, - first comma and after will be discarded
 	string gecos(pw->pw_gecos); size_t p=gecos.find(","); if(p!=string::npos) boost::algorithm::erase_tail(gecos,gecos.size()-p);
-	// no need to remove non-ascii anymore
-	// for(size_t i=0;i<gecos.size();i++){gecos2.push_back(((unsigned char)gecos[i])<128 ? gecos[i] : '?'); }
-	tags["user"]=gecos+" ("+string(pw->pw_name)+"@"+hostname+")";
+	string gecos2;
+	for(size_t i=0;i<gecos.size();i++){ gecos2.push_back(((unsigned char)gecos[i])<128 ? gecos[i] : '_'); }
+	tags["user"]=gecos2+" ("+string(pw->pw_name)+"@"+hostname+")";
 	tags["isoTime"]=boost::posix_time::to_iso_string(boost::posix_time::second_clock::local_time());
 	string id=boost::posix_time::to_iso_string(boost::posix_time::second_clock::local_time())+"p"+lexical_cast<string>(getpid());
 	tags["id"]=id;

@@ -385,7 +385,7 @@ def watchProgress(S):
 		import woo.plot, pickle
 		out=S.pre.saveFmt.format(stage='done',S=S,**(dict(S.tags)))
 		if S.lastSave==out:
-			woo.plot.data=pickle.loads(S.tags['plot.data'])
+			woo.plot.data=pickle.loads(str(S.tags['plot.data']))
 			print 'Reloaded plot data'
 		else:
 			S.tags['plot.data']=pickle.dumps(woo.plot.data)
@@ -491,7 +491,9 @@ def splitPsd(xx0,yy0,splitX):
 		xx2.append(xx0[i]); yy2.append(bigTrsf(yy0[i]))
 	return (xx1,yy1),(xx2,yy2)
 
-def svgFragment(data):
+def svgFileFragment(filename):
+	import codecs
+	data=codecs.open(filename,encoding='utf-8').read()
 	return data[data.find('<svg '):]
 
 def psdFeedBucketFalloverTable(inPsd,feedDM,bucketDM,overDM,splitD):
@@ -518,7 +520,7 @@ def psdFeedBucketFalloverTable(inPsd,feedDM,bucketDM,overDM,splitD):
 	for i in range(0,len(inHist)):
 		tab.append(TabLine(dMin=edges[i],dMax=edges[i+1],dAvg=.5*(edges[i]+edges[i+1]),inFrac=inHist[i],feedFrac=feedHist[i],feedSmallFrac=feedSmallHist[i],feedBigFrac=feedBigHist[i],overFrac=overHist[i]))
 	from genshi.builder import tag as t
-	return t.table(
+	return unicode(t.table(
 		t.tr(
 			t.th('Diameter',t.br,'[mm]'),t.th('Average',t.br,'[mm]'),t.th('user input',t.br,'[mass %]',colspan=2),t.th('feed',t.br,'[mass %]',colspan=2),t.th('feed < %g mm'%(dScale*splitD),t.br,'[mass %]',colspan=2),t.th('feed > %g mm'%(dScale*splitD),t.br,'[mass %]',colspan=2),t.th('fall over',t.br,'[mass %]',colspan=2),align='center'
 		),
@@ -532,7 +534,7 @@ def psdFeedBucketFalloverTable(inPsd,feedDM,bucketDM,overDM,splitD):
 			align='right'
 		) for i,tt in enumerate(tab)])
 		,cellpadding='2px',frame='box',rules='all'
-	).generate().render('xhtml')
+	).generate().render('xhtml'))
 
 def bucketPsdTable(S,massName,massScale,massUnit,massBasedPsd=True):
 	psdSplits=[df[0] for df in S.pre.psd]
@@ -561,7 +563,7 @@ def bucketPsdTable(S,massName,massScale,massUnit,massBasedPsd=True):
 	feedTotal=(woo.factory.mass if massBasedPsd else woo.factory.num)*massScale
 	tab.append(t.tr(t.th('%s [%s]'%(massName,massUnit),rowspan=2),*tuple([t.th('%g'%(sum(bm)*massScale),colspan=2) for bm in buckMasses])))
 	tab.append(t.tr(t.th('%g / %g = %.4g%%'%(bucketsTotal,feedTotal,bucketsTotal*100./feedTotal),colspan=2*len(buckMasses))))
-	return tab.generate().render('xhtml')
+	return unicode(tab.generate().render('xhtml'))
 
 
 def efficiencyTableFigure(S,pre):
@@ -586,11 +588,11 @@ def efficiencyTableFigure(S,pre):
 				data[apNum][i]+=p.mass
 		data[apNum]/=massTot
 	from genshi.builder import tag as t
-	table=t.table(
+	table=unicode(t.table(
 		[t.tr([t.th()]+[t.th('Bucket %d'%(apNum+1)) for apNum in range(len(woo.bucket))])]+
 		[t.tr([t.th('< %.4g mm'%(1e3*diams[dNum]))]+[t.td('%.1f %%'%(1e2*data[apNum][dNum]),align='right') for apNum in range(len(woo.bucket))]) for dNum in range(len(diams))]
 		,cellpadding='2px',frame='box',rules='all'
-	).generate().render('xhtml')
+	).generate().render('xhtml'))
 	import pylab
 	fig=pylab.figure()
 	for dNum,d in reversed(list(enumerate(diams))): # displayed from the bigger to smaller, to make legend aligned with lines
@@ -882,7 +884,7 @@ def writeReport(S):
 		svgs.append((name,woo.O.tmpFilename()+'.svg'))
 		fig.savefig(svgs[-1][-1])
 		
-
+	import codecs
 	html=xhtmlReportHead(S,'Report for Roller screen simulation')+(
 		'<h2>Outputs</h2>'
 		+'<h3>Feed</h3>'+feedTab
@@ -890,31 +892,30 @@ def writeReport(S):
 		+'<h3>Bucket PSD</h3>'
 			+'<h4>Mass-based</h4>'+bucketPsdTable(S,massName=massName,massUnit=massUnit,massScale=massScale,massBasedPsd=True)
 			+'<h4>Number-based</h4>'+bucketPsdTable(S,massName='number',massUnit='',massScale=massScale,massBasedPsd=False)
-		+'\n'.join(['<h3>'+svg[0]+'</h3>'+svgFragment(open(svg[1]).read()) for svg in svgs])
+		+u'\n'.join([u'<h3>'+svg[0]+u'</h3>'+svgFileFragment(svg[1]) for svg in svgs])
 		+'</body></html>'
 	)
 
 	# to play with that afterwards
 	woo.html=html
-	#from genshi.input import HTMLParser
-	#import codecs, StringIO
-	import codecs
-	repName=S.pre.reportFmt.format(S=S,**(dict(S.tags)))
+	repName=os.path.abspath(S.pre.reportFmt.format(S=S,**(dict(S.tags))))
 	rep=codecs.open(repName,'w','utf-8','replace')
 	import os.path
-	print 'Writing report to file://'+os.path.abspath(repName)
+	print 'Writing report to file://'+repName
 	#rep.write(HTMLParser(StringIO.StringIO(html),'[filename]').parse().render('xhtml',doctype='xhtml').decode('utf-8'))
 	s=html
-	s=s.replace(u'\xe2\x88\x92','-') # long minus
-	s=s.replace(u'\xc3\x97','x') # × multiplicator
+	#s=s.replace(u'\xe2\x88\x92','-') # long minus
+	#s=s.replace(u'\xc3\x97','x') # × multiplicator
 	try:
 		rep.write(s)
 	except UnicodeDecodeError as e:
 		print e.start,e.end
 		print s[max(0,e.start-20):min(e.end+20,len(s))]
 		raise e
-		
-		
+
+	# write results to the db
+	#if woo.batch.inBatch():
+	woo.batch.writeResults(defaultDb='RoRo.sqlite',simulationName='RoRo',material=S.pre.material,report=repName)
 
 	# save sphere's positions
 	from woo import pack

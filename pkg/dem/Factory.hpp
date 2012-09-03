@@ -215,7 +215,7 @@ struct ConveyorFactory: public ParticleFactory{
 			if(isnan(glColor)) return;
 			std::ostringstream oss; oss.precision(4); oss<<mass;
 			if(maxMass>0){ oss<<"/"; oss.precision(4); oss<<maxMass; }
-			if(!isnan(currRate)){ oss.precision(3); oss<<" ("<<currRate<<")"; }
+			if(!isnan(currRate)){ oss.precision(3); oss<<"\n("<<currRate<<")"; }
 			GLUtils::GLDrawText(oss.str(),node->pos,CompUtils::mapColor(glColor));
 		}
 	#endif

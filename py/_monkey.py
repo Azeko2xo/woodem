@@ -275,8 +275,8 @@ class SerializerToExpr:
 		return magic+delims[0]+'\n'+indent1+(',\n'+indent1).join(lst)+'\n'+indent0+delims[1]+('\n' if level==0 else '')
 
 # roughly following http://www.doughellmann.com/PyMOTW/json/, thanks!
-class WooJSONEncoder(json.JSONEncoder,indent=3,sort_keys=True):
-	def __init__(self):
+class WooJSONEncoder(json.JSONEncoder):
+	def __init__(self,indent=3,sort_keys=True):
 		json.JSONEncoder.__init__(self,sort_keys=sort_keys,indent=indent)
 	def default(self,obj):
 		# Woo objects
@@ -295,6 +295,7 @@ class WooJSONEncoder(json.JSONEncoder,indent=3,sort_keys=True):
 		# other types, handled by the json module natively
 		else:
 			return super(WooJSONEncoder,self).default(obj)
+
 class WooJSONDecoder(json.JSONDecoder):
 	def __init__(self):
 		json.JSONDecoder.__init__(self,object_hook=self.dictToObject)
@@ -304,6 +305,8 @@ class WooJSONDecoder(json.JSONDecoder):
 			__import__(klass.rsplit('.',1)[0]) # in case the module has not been imported yet
 			return eval(klass)(**dict((key.encode('ascii'),value.encode('ascii') if isinstance(value,unicode) else value) for key,value in d.items()))
 		else: return d
+# inject into the core namespace, so that it can be used elsewhere as well
+woo.core.WooJSONEncoder=WooJSONEncoder
 
 def _Object_loads(typ,data,format='auto'):
 	def typeChecked(obj,type):
