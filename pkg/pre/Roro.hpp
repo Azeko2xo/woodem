@@ -44,6 +44,7 @@ struct Roro: public Preprocessor {
 		((Real,cylDiameter,.085,AttrTrait<>().lenUnit().altUnits({{"in",1/0.0254}}).prefUnit("mm"),"Diameter of cylinders (only used when cylXzd is empty)"))
 		((Real,inclination,15*Mathr::PI/180.,AttrTrait<>().angleUnit().prefUnit("deg"),"Inclination of cylinder plane (only used when cylXzd is empty)"))
 		((Real,gap,.01,AttrTrait<>().lenUnit().prefUnit("mm"),"Gap between cylinders (computed automatically if cylXzd is given)"))
+		((vector<Real>,gaps,,AttrTrait<>().lenUnit().prefUnit("mm"),"Variable gaps between cylinders; if given, the value of *gap* and *cylNum* is not used for creating cylinder coordinates"))
 
 		((vector<Vector2r>,psd,vector<Vector2r>({Vector2r(0.005,.0),Vector2r(.01,.2),Vector2r(.02,1.)})/*set in the ctor*/,AttrTrait<>().startGroup("Pellets").triggerPostLoad().multiUnit().lenUnit().prefUnit("mm").fractionUnit().prefUnit("%"),"Particle size distribution of generated particles: first value is diameter, second value is cummulative fraction"))
 		((shared_ptr<PelletMat>,material,make_shared<PelletMat>(),,"Material of particles"))
@@ -62,6 +63,7 @@ struct Roro: public Preprocessor {
 		((int,backupSaveTime,1800,,"How often to save backup of the simulation (0 or negative to disable)"))
 		((Real,vtkFreq,4,AttrTrait<>(),"How often should VtkExport run, relative to *factStepPeriod*. If negative, run never."))
 		((string,vtkPrefix,"/tmp/{tid}-",,"Prefix for saving VtkExport data; formatted with ``format()`` providing :ref:`Scene.tags` as keys."))
+		((vector<string>,reportHooks,,AttrTrait<>().noGui(),"Python expressions returning a 3-tuple with 1. raw HTML to be included in the report, 2. list of (figureName,matplotlibFigure) to be included in figures, 3. dictionary to be added to the 'custom' dict saved in the database."))
 
 		// Tunables
 		((int,factStepPeriod,800,AttrTrait<>().startGroup("Tunables"),"Run factory (and deleters) every *factStepPeriod* steps."))

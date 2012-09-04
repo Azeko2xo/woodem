@@ -20,6 +20,7 @@ def writeResults(defaultDb='woo-results.sqlite',**kw):
 	else:
 		table,line,db='',-1,defaultDb
 	newDb=not os.path.exists(db)
+	print 'Writing results to the database %s (%s)'%(db,'new' if newDb else 'existing')
 	conn=sqlite3.connect(db,detect_types=sqlite3.PARSE_DECLTYPES)
 	if newDb:
 		c=conn.cursor()

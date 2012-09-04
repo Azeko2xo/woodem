@@ -23,7 +23,6 @@ def ySpannedFacets(xx,yy,zz,shift=True,halfThick=0.,**kw):
 	A,B,C,D=(xx[0],yy[0],zz[0]),(xx[1],yy[0],zz[1]),(xx[0],yy[1],zz[0]),(xx[1],yy[1],zz[1])
 	return [utils.facet(vertices,**kw) for vertices in (A,B,C),(C,B,D)]
 
-
 def run(pre): # use inputs as argument
 	print 'Roro_.run()'
 	#print 'Input parameters:'
@@ -34,7 +33,7 @@ def run(pre): # use inputs as argument
 	de=DemField()
 	s.fields=[de]
 
-	if pre.variant not in ('plain','customer1','customer2'): raise ValueError("Roro.variant must be one of 'plain', 'customer1' (not '%s')"%pre.variant)
+	if pre.variant not in ('plain','customer1','customer2'): raise ValueError("Roro.variant must be one of 'plain', 'customer1', 'customer2' (not '%s')"%pre.variant)
 	if pre.gap<0: raise ValueError("Roro.gap must be positive (are cylinders overlapping?)")
 	if (pre.time>0 and pre.mass>0) or (pre.time<=0 and pre.mass<=0): raise ValueError("Exactly one of Roro.time or Roro.mass must be positive.")
 
@@ -50,7 +49,7 @@ def run(pre): # use inputs as argument
 	
 	# generate cylinder coordinates, or use those given by the user
 	if pre.cylXzd:
-		if pre.variant not in ('plain','customer2'): raise ValueError("Roro.cylXzd can be given as coordinates only with Roro.variant 'plain' (not '%s')."%pre.variant)
+		if pre.variant not in ('plain','customer2'): raise ValueError("Roro.cylXzd can be given as coordinates only with Roro.variant 'plain'/'customer2' (not '%s')."%pre.variant)
 		cylXzd=pre.cylXzd
 	else:
 		cylXzd=[]
@@ -58,8 +57,9 @@ def run(pre): # use inputs as argument
 		xz0=(0,-dCyl/2) # first cylinder is right below the feed end at (0,0)
 		if pre.variant=='customer1': xz0=(0,0)
 		elif pre.variant=='customer2': xz0=(0,0)
-		for i in range(0,pre.cylNum):
-			dist=i*(dCyl+pre.gap) # distance from the first cylinder's center
+		for i in range(0,max(pre.cylNum,len(pre.gaps)+1)):
+			if pre.gaps: dist=i*dCyl+sum(pre.gaps[:i])
+			else: dist=i*(dCyl+pre.gap) # distance from the first cylinder's center
 			cylXzd.append(Vector3(xz0[0]+math.cos(pre.inclination)*dist,xz0[1]-math.sin(pre.inclination)*dist,dCyl))
 	cylXMax=max([xzd[0] for xzd in cylXzd])
 	cylZMin=min([xzd[1] for xzd in cylXzd])
@@ -147,7 +147,7 @@ def run(pre): # use inputs as argument
 		C=Vector2(0,0)+Vector2(-.15,+.3)
 		D=C+Vector2(0,-bigCylR)
 		B=C+bigCylR*Vector2(-math.sin(angleAB),math.cos(angleAB))
-		A=B+Vector2(-.2*bigCylR,-.2*bigCylR*math.tan(angleAB))
+		A=B+Vector2(-.4*bigCylR,-.4*bigCylR*math.tan(angleAB))
 
 		yy=(ymin,ymax)
 		kw=dict(mat=pre.plateMaterial,mask=wallMask,halfThick=facetHalfThick)
@@ -461,7 +461,8 @@ def savePlotData(S):
 			dd=S.pre.gap*gapFrac
 			mUnderProduct=sum([dm[1] for dm in zip(*woo.fallOver.diamMass()) if dm[0]<dd])
 			mUnderBucket=sum([sum([dm[1] for dm in zip(*buck.diamMass()) if dm[0]<dd]) for buck in woo.bucket])
-			otherData[eff[i]]=mUnderBucket/(mUnderBucket+mUnderProduct)
+			if mUnderBucket+mUnderProduct!=0: # avoid zero division
+				otherData[eff[i]]=mUnderBucket/(mUnderBucket+mUnderProduct)
 	if S.trackEnergy: otherData.update(ERelErr=S.energy.relErr() if S.step>200 else float('nan'),**S.energy)
 	woo.plot.addData(i=S.step,t=S.time,genRate=woo.factory.currRate,bucketRate=bucketRate,overRate=overRate,lostRate=lostRate,delRate=bucketRate+overRate+lostRate,numPar=len(S.dem.par),genMass=woo.factory.mass,**otherData)
 	if not woo.plot.plots:
@@ -608,6 +609,13 @@ def efficiencyTableFigure(S,pre):
 	pylab.grid(True)
 	return table,fig
 
+def bucketEfficiencyExtra(name,buck,feed,dMin,dMax):
+	## per-bucket efficiency relative to gap size
+	mFeedFrac=1.*sum([dm[1] for dm in zip(*feed.diamMass()) if dm[0]>dMin and dm[0]<dMax])
+	print 'Fraction %g-%g in feed: %g kg'%(dMin*1e3,dMax*1e3,mFeedFrac)
+	mBucketFrac=1.*sum([dm[1] for dm in zip(*bucket.diamMass()) if dm[0]>dMin and dm[0]<dMax])
+	print 'Fraction %g-%g in %s: %g kg'%(dMin*1e3,dMax*1e3,name,mBucketFrac)
+	return '',[],dict(name=mBucketFrac/mFeedFrac)
 
 def xhtmlReportHead(S,headline):
 	import time
@@ -782,8 +790,6 @@ def writeReport(S):
 		leg=pylab.legend(loc='best')
 		leg.get_frame().set_alpha(legendAlpha)
 		figs.append(('Sieving efficiency',fig))
-	
-		
 
 	#ax=pylab.subplot(223)
 	fig=pylab.figure()
@@ -879,8 +885,16 @@ def writeReport(S):
 		print 'No woo.plot plots done due to lack of data:',str(e)
 		# after loading no data are recovered
 
+	# custom report hooks
+	extraHtml,extraFigs,extraResults='',[],{}
+	for hook in pre.reportHooks:
+		html,figs,res=eval(hook,globals(),dict(S=S))
+		extraHtml+=html
+		extraFigs+=figs
+		extraResults.update(res)
+
 	svgs=[]
-	for name,fig in figs:
+	for name,fig in figs+extraFigs:
 		svgs.append((name,woo.O.tmpFilename()+'.svg'))
 		fig.savefig(svgs[-1][-1])
 		
@@ -892,6 +906,7 @@ def writeReport(S):
 		+'<h3>Bucket PSD</h3>'
 			+'<h4>Mass-based</h4>'+bucketPsdTable(S,massName=massName,massUnit=massUnit,massScale=massScale,massBasedPsd=True)
 			+'<h4>Number-based</h4>'+bucketPsdTable(S,massName='number',massUnit='',massScale=massScale,massBasedPsd=False)
+		+extraHtml
 		+u'\n'.join([u'<h3>'+svg[0]+u'</h3>'+svgFileFragment(svg[1]) for svg in svgs])
 		+'</body></html>'
 	)
@@ -914,8 +929,7 @@ def writeReport(S):
 		raise e
 
 	# write results to the db
-	#if woo.batch.inBatch():
-	woo.batch.writeResults(defaultDb='RoRo.sqlite',simulationName='RoRo',material=S.pre.material,report=repName)
+	woo.batch.writeResults(defaultDb='RoRo.sqlite',simulationName='RoRo',material=S.pre.material,report=repName,bucketEfficiencies=bucketEfficiencies,saveFile=os.path.abspath(S.lastSave),**extraResults)
 
 	# save sphere's positions
 	from woo import pack

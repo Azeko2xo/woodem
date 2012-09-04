@@ -392,18 +392,23 @@ def createPlots(subPlots=True,scatterSize=60,wider=False):
 		plots_p=[addPointTypeSpecifier(o) for o in tuplifyYAxis(plots[p])]
 		plots_p_y1,plots_p_y2=[],[]; y1=True
 		missing=set() # missing data columns
-		if pStrip not in data.keys(): missing.add(pStrip)
+		if pStrip not in data.keys(): missing.add(pStrip.decode('utf-8','ignore'))
 		for d in plots_p:
 			if d[0]==None:
 				y1=False; continue
 			if y1: plots_p_y1.append(d)
 			else: plots_p_y2.append(d)
-			if d[0] not in data.keys() and not callable(d[0]) and not hasattr(d[0],'keys'): missing.add(d[0])
+			try:
+				if d[0] not in data.keys() and not callable(d[0]) and not hasattr(d[0],'keys'): missing.add(d[0])
+			except UnicodeEncodeError: pass
 		if missing:
 			if len(data.keys())==0 or len(data[data.keys()[0]])==0: # no data at all yet, do not add garbage NaNs
 				for m in missing: data[m]=[]
 			else:
-				print 'Missing columns in plot.data, adding NaN: ',u','.join(list(missing))
+				# FIXME: this should be handled properly!!!
+				try:
+					print 'Missing columns in plot.data, adding NaN: ',u','.join(list(missing))
+				except UnicodeEncodeError: pass
 				addDataColumns(missing)
 		def createLines(pStrip,ySpecs,isY1=True,y2Exists=False):
 			'''Create data lines from specifications; this code is common for y1 and y2 axes;
