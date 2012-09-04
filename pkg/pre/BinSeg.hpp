@@ -18,18 +18,19 @@ struct BinSeg: public Preprocessor {
 	}
 
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(BinSeg,Preprocessor,"Preprocessor for the bin segregation simulation.",
-		((Vector3r,size,Vector3r(1,1,.2),AttrTrait<>().lenUnit().prefUnit("mm").startGroup("Geometry").buttons({
+		((Vector3r,size,Vector3r(1,1,.2),AttrTrait<>().lenUnit().prefUnit("mm").startGroup("Geometry")
+			/*.buttons({
 			"Toggle hole 1","import woo.pre.BinSeg_; woo.pre.BinSeg_.toggleHole(1)","Open/close first (left) hole",
 			"Toggle hole 2","import woo.pre.BinSeg_; woo.pre.BinSeg_.toggleHole(2)","Open/close second (right) hole",
 			"Toggle both holes","import woo.pre.BinSeg_; woo.pre.BinSeg_.toggleHole(1); woo.pre.BinSeg_.toggleHole(2)","Open/close both holes",
 			"Start/stop feed","import woo; woo.feed.dead=not woo.feed.dead","Start/stop feed",
 			"Save spheres","import woo.pre.BinSeg_; woo.pre.BinSeg_.saveSpheres()","Save spheres to file",
 			"Finish simulation","import woo.pre.BinSeg_; woo.pre.BinSeg_.finishSimulation()","End simulation, write report",
-			}),"Size of the bin: width, height and depth (thickness)"))
-		((Vector2r,hole1,Vector2r(.1,.1),AttrTrait<>().lenUnit().prefUnit("mm"),"Distance from the left wall and width of the first hole"))
-		((Vector2r,hole2,Vector2r(.25,.1),AttrTrait<>().lenUnit().prefUnit("mm"),"Distance from the right wall and width of the second hole"))
+			})*/,"Size of the bin: width, height and depth (thickness)"))
+		((Vector2r,hole1,Vector2r(.1,.08),AttrTrait<>().lenUnit().prefUnit("mm"),"Distance from the left wall and width of the first hole"))
+		((Vector2r,hole2,Vector2r(.25,.08),AttrTrait<>().lenUnit().prefUnit("mm"),"Distance from the right wall and width of the second hole"))
 		((Real,holeLedge,.03,AttrTrait<>().lenUnit().prefUnit("mm"),"Distance between front wall and hole, and backwall and hole"))
-		((Vector2r,feedPos,Vector2r(.1,.1),AttrTrait<>().lenUnit().prefUnit("mm"),"Distance of the feed from the right wall and its width"))
+		((Vector2r,feedPos,Vector2r(.1,.15),AttrTrait<>().lenUnit().prefUnit("mm"),"Distance of the feed from the right wall and its width"))
 		((Real,halfThick,0.,AttrTrait<>().lenUnit().prefUnit("mm"),"Half-thickenss of boundary plates; all dimensions are given as inner sizes (including hole widths), there is no influence of halfThick on geometry"))
 		((bool,halfDp,true,,"Only simulate half of the bin, by putting frictionless wall in the middle"))
 

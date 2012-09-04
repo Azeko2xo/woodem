@@ -18,7 +18,7 @@ class PsdSphereGeneratorTest(unittest.TestCase):
 	def testMassContinuous(self):
 		'PSD: continuous mass-based generator'
 		self.gen.mass=True; self.gen.discrete=False
-		self.checkOk(relDeltaInt=.03)
+		self.checkOk(relDeltaInt=.03,relDeltaD=.1)
 	def testNumDiscrete(self):
 		'PSD: discrete number-based generator'
 		self.gen.mass=False; self.gen.discrete=True

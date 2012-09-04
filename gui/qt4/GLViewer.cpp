@@ -646,15 +646,23 @@ void GLViewer::postDraw(){
 	
 	// scale
 	if(drawScale){
-		Real segmentSize=scaleStep;
+		Real segmentSize=10*scaleStep; // we divide every time in the loop
 		qglviewer::Vec screenDxDy[3]; // dx,dy for x,y,z scale segments
 		int extremalDxDy[2]={0,0};
-		for(int axis=0; axis<3; axis++){
-			qglviewer::Vec delta(0,0,0); delta[axis]=segmentSize;
-			qglviewer::Vec center=displayedSceneCenter();
-			screenDxDy[axis]=camera()->projectedCoordinatesOf(center+delta)-camera()->projectedCoordinatesOf(center);
-			for(int xy=0;xy<2;xy++)extremalDxDy[xy]=(axis>0 ? min(extremalDxDy[xy],(int)screenDxDy[axis][xy]) : screenDxDy[axis][xy]);
-		}
+		qglviewer::Vec center=displayedSceneCenter();
+		Real maxSqLen;
+		// repeate until the scale is no bigger than 100px
+		do{
+			maxSqLen=0.;
+			segmentSize/=10;
+			for(int axis=0; axis<3; axis++){
+				qglviewer::Vec delta(0,0,0); delta[axis]=segmentSize;
+				screenDxDy[axis]=camera()->projectedCoordinatesOf(center+delta)-camera()->projectedCoordinatesOf(center);
+				for(int xy=0;xy<2;xy++)extremalDxDy[xy]=(axis>0 ? min(extremalDxDy[xy],(int)screenDxDy[axis][xy]) : screenDxDy[axis][xy]);
+				maxSqLen=max(maxSqLen,1.*screenDxDy[axis].squaredNorm());
+			}
+		} while(maxSqLen>1e4);
+
 		//LOG_DEBUG("Screen offsets for axes: "<<" x("<<screenDxDy[0][0]<<","<<screenDxDy[0][1]<<") y("<<screenDxDy[1][0]<<","<<screenDxDy[1][1]<<") z("<<screenDxDy[2][0]<<","<<screenDxDy[2][1]<<")");
 		int margin=10; // screen pixels
 		int scaleCenter[2]; scaleCenter[0]=abs(extremalDxDy[0])+margin; scaleCenter[1]=abs(extremalDxDy[1])+margin;
@@ -673,7 +681,7 @@ void GLViewer::postDraw(){
 				glEnd();
 			}
 			glLineWidth(1.);
-			QGLViewer::drawText(scaleCenter[0],scaleCenter[1],QString().sprintf("%.3g",(double)scaleStep));
+			QGLViewer::drawText(scaleCenter[0],scaleCenter[1],QString().sprintf("%.3g",(double)segmentSize));
 			glEnable(GL_DEPTH_TEST);
 			glEnable(GL_LIGHTING);
 		stopScreenCoordinatesSystem();

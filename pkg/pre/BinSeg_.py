@@ -229,9 +229,8 @@ def toggleHole(i):
 		#for i in ids:
 		#	print '#%d:\n\t%s\n\tmask:%d\n\tcon:%s'%(i,'visible' if S.dem.par[i].shape.visible else 'invisible',S.dem.par[i].mask,str(S.dem.par[i].con))
 
-def saveSpheres():
+def saveSpheres(S):
 	import woo
-	S=woo.master.scene
 	if type(S.pre)!=woo.pre.BinSeg: raise RuntimeError("Current Scene.pre is not a BinSeg.")
 	if len(woo.qt.views())>0: woo.qt.views()[0].close()
 	f=str(QFileDialog.getSaveFileName(None,'Save spheres to','.'))
@@ -272,7 +271,7 @@ def feedHolesPsdTable(S,massScale=1.):
 	colTotals=sum([sum(bm) for bm in feedHolesMasses])
 	tab.append(t.tr(t.th('mass [kg]',rowspan=2),*tuple([t.th('%.4g'%sum(bm),colspan=2) for bm in feedHolesMasses])))
 	tab.append(t.tr(*tuple([t.td('%.3g %%'%(sum(bm)*100./sum(feedHolesMasses[0])),colspan=2,align='right') for bm in feedHolesMasses])))
-	return tab.generate().render('xhtml')
+	return unicode(tab.generate().render('xhtml'))
 
 def feedHolesPsdFigure():
 	import pylab
@@ -348,7 +347,7 @@ def finishSimulation():
 
 
 	import codecs
-	repName=S.pre.reportFmt.format(S=S,**(dict(S.tags)))
+	repName=unicode(S.pre.reportFmt).format(S=S,**(dict(S.tags)))
 	rep=codecs.open(repName,'w','utf-8','replace')
 	import os.path
 	import woo.pre.Roro_
@@ -360,7 +359,7 @@ def finishSimulation():
 	for name,fig in figs:
 		svgs.append((name,woo.O.tmpFilename()+'.svg'))
 		fig.savefig(svgs[-1][-1])
-	s+='\n'.join(['<h2>'+svg[0]+'</h2>'+woo.pre.Roro_.svgFragment(open(svg[1]).read()) for svg in svgs])
+	s+='\n'.join(['<h2>'+svg[0]+'</h2>'+woo.pre.Roro_.svgFileFragment(svg[1]) for svg in svgs])
 
 	s+='</body></html>'
 
@@ -407,6 +406,14 @@ def holeClicked(S,i,grid):
 		else:
 			#print 'Opening hole ',i
 			S.dem.par.disappear(ids,mask=S.dem.loneMask)
+	#if not holeOpen(0,S) and not holeOpen(1,S) and not woo.feedAdjuster.dead:
+	#	autoAdjustChanged(S,grid,0)
+def resetCounters(S):
+	import woo
+	with S.paused():
+		for b in woo.bucket: b.clear()
+		woo.feed.clear()
+
 def hole12Clicked(S,grid):
 	holeClicked(S,1,grid)
 	holeClicked(S,2,grid)
@@ -444,13 +451,15 @@ def uiBuild(S,area):
 	h2=QPushButton('Open 2')
 	h12=QPushButton('Open 1+2')
 	r=QPushButton('Report')
+	reset=QPushButton('Reset counters')
 	psd=QPushButton('PSD')
 	for b in (f,h1,h2,h12): b.setCheckable(True)
 	f.toggled.connect(lambda checked: feedToggled(S,checked,grid))
 	h1.clicked.connect(lambda: holeClicked(S,1,grid))
 	h2.clicked.connect(lambda: holeClicked(S,2,grid))
 	h12.clicked.connect(lambda: hole12Clicked(S,grid))
-	s.clicked.connect(lambda: saveSpheres())
+	s.clicked.connect(lambda: saveSpheres(S))
+	reset.clicked.connect(lambda: resetCounters(S))
 	psd.clicked.connect(lambda: feedHolesPsdFigure().show())
 	r.clicked.connect(lambda: reportClicked(S,grid))
 	adj.stateChanged.connect(lambda state: autoAdjustChanged(S,grid,state))
@@ -463,6 +472,7 @@ def uiBuild(S,area):
 	grid.addWidget(h1,2,0)
 	grid.addWidget(h2,2,2)
 	grid.addWidget(h12,3,0,1,3)
+	grid.addWidget(reset,4,0)
 	grid.addWidget(psd,4,1)
 	grid.addWidget(r,5,1)
 	grid.refreshTimer=QTimer(grid)

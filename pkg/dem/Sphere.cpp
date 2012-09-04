@@ -90,12 +90,17 @@ void Gl1_Sphere::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool 
 		if(!smooth) glEnable(GL_LINE_SMOOTH); // re-enable
 	}
 	else {
+		glEnable(GL_LIGHTING);
+		glShadeModel(GL_SMOOTH);
+		glutSolidSphere(r,quality*glutSlices,quality*glutStacks);
+	#if 0
 		//Check if quality has been modified or if previous lists are invalidated (e.g. by creating a new qt view), then regenerate lists
 		bool somethingChanged = (abs(quality-prevQuality)>0.001 || glIsList(glStripedSphereList)!=GL_TRUE);
 		if (somethingChanged) {initStripedGlList(); initGlutGlList(); prevQuality=quality;}
 		glScalef(r,r,r);
 		if(stripes) glCallList(glStripedSphereList);
 		else glCallList(glGlutSphereList);
+	#endif
 	}
 	return;
 }

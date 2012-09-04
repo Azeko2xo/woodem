@@ -1,6 +1,8 @@
 #include"GLUtils.hpp"
 #include<GL/glu.h>
 #include<GL/freeglut_ext.h>
+#include<boost/algorithm/string/split.hpp>
+#include<boost/algorithm/string/classification.hpp>
 
 void GLUtils::Grid(const Vector3r& pos, const Vector3r& unitX, const Vector3r& unitY, const Vector2i& size, int edgeMask){
 	//glPushAttrib(GL_ALL_ATTRIB_BITS);

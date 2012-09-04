@@ -12,6 +12,8 @@ import woo._customConverters # to make sure they are loaded already
 
 import codecs
 import pickle
+import json
+import miniEigen
 
 nan,inf=float('nan'),float('inf') # for values in expressions
 
@@ -25,9 +27,11 @@ def _Object_getAllTraits(obj):
 htmlHead='<head><meta http-equiv="content-type" content="text/html;charset=UTF-8" /></head><body>\n'
 
 def _Object_dumps(obj,format,fragment=False,width=80,noMagic=False,stream=True,showDoc=False):
-	if format not in ('html','expr','pickle','genshi'): raise IOError("Unsupported string dump format %s"%format)
+	if format not in ('html','expr','json','pickle','genshi'): raise IOError("Unsupported string dump format %s"%format)
 	if format=='pickle':
 		return pickle.dumps(obj)
+	elif format=='json':
+		return WooJSONEncoder().encode(obj)
 	elif format=='expr':
 		return SerializerToExpr(maxWd=width,noMagic=noMagic)(obj)
 	elif format=='html':
@@ -37,7 +41,7 @@ def _Object_dumps(obj,format,fragment=False,width=80,noMagic=False,stream=True,s
 
 def _Object_dump(obj,out,format='auto',overwrite=True,fragment=False,width=80,noMagic=False,showDoc=False):
 	'''Dump an object in specified *format*; *out* can be a string (filename) or a *file* object. Supported formats are: `auto` (auto-detected from *out* extension; raises exception when *out* is an object), `html`, `expr`.'''
-	if format not in ('auto','html','expr','pickle','boost::serialization'): raise IOError("Unsupported dump format %s"%format)
+	if format not in ('auto','html','json','expr','pickle','boost::serialization'): raise IOError("Unsupported dump format %s"%format)
 	hasFilename=isinstance(out,str)
 	if hasFilename:
 		import os.path
@@ -47,6 +51,7 @@ def _Object_dump(obj,out,format='auto',overwrite=True,fragment=False,width=80,no
 		if not isinstance(out,str): raise IOError("format='auto' is only possible when a fileName is given.")
 		if out.endswith('.html'): format='html'
 		if sum([out.endswith(ext) for ext in ('.pickle','pickle.gz','pickle.bz2')]): format='pickle'
+		if sum([out.endswith(ext) for ext in ('.json','json.gz','json.bz2')]): format='json'
 		if sum([out.endswith(ext) for ext in ('.xml','.xml.gz','.xml.bz2','.bin','.gz','.bz2')]): format='boost::serialization'
 		else: IOError("Output format not deduced for filename '%s'"%out)
 	if format in ('boost::serialization',) and not hasFilename: raise IOError("format='boost::serialization' needs filename.")
@@ -57,11 +62,13 @@ def _Object_dump(obj,out,format='auto',overwrite=True,fragment=False,width=80,no
 	elif format=='pickle':
 		if hasFilename: pickle.dump(obj,open(out,'w'))
 		else: out.write(pickle.dumps(obj))
-	elif format=='expr' or format=='html': 
+	elif format in ('expr','html','json'): 
 		if hasFilename:
 			out=codecs.open(out,'w','utf-8')
 		if format=='expr':
 			out.write(SerializerToExpr(maxWd=width,noMagic=noMagic)(obj))
+		elif format=='json':
+			out.write(WooJSONEncoder().encode(obj))
 		elif format=='html':
 			if not fragment: out.write(htmlHead)
 			out.write(SerializerToHtmlTable(showDoc=showDoc)(obj))
@@ -257,7 +264,7 @@ class SerializerToExpr:
 		elif sum([isinstance(obj,T) for T in (tuple,Vector2i,Vector2,Vector3i,Vector3)])>0:
 			attrs=[(None,obj[i]) for i in range(len(obj))]
 			delims='(',')'
-		# don't know what to do, use repr (unhandled or primite types
+		# don't know what to do, use repr (unhandled or primive types)
 		else:
 			return repr(obj)
 		lst=[(((attr[0]+'=') if attr[0] else '')+self(attr[1],level+1)) for attr in attrs]
@@ -267,23 +274,62 @@ class SerializerToExpr:
 		indent0,indent1=self.indent*level,self.indent*(level+1)
 		return magic+delims[0]+'\n'+indent1+(',\n'+indent1).join(lst)+'\n'+indent0+delims[1]+('\n' if level==0 else '')
 
+# roughly following http://www.doughellmann.com/PyMOTW/json/, thanks!
+class WooJSONEncoder(json.JSONEncoder):
+	def __init__(self,indent=3,sort_keys=True):
+		json.JSONEncoder.__init__(self,sort_keys=sort_keys,indent=indent)
+	def default(self,obj):
+		# Woo objects
+		if isinstance(obj,woo.core.Object):
+			d={'__class__':obj.__class__.__module__+'.'+obj.__class__.__name__}
+			# assign woo attributes
+			d.update(dict([(trait.name,getattr(obj,trait.name)) for trait in obj._getAllTraits() if not (trait.hidden or trait.noDump)]))
+			return d
+		# vectors, matrices: those can be assigned from tuples
+		elif obj.__class__.__module__=='woo._customConverters':
+			if hasattr(obj,'__len__'): return list(obj)
+			else: raise TypeError("Unhandled type for JSON: "+obj.__class__.__module__+'.'+obj.__class__.__name__)
+		elif obj.__class__.__module__=='miniEigen':
+			if isinstance(obj,miniEigen.Quaternion): return obj.toAxisAngle()
+			else: return tuple(obj[i] for i in range(len(obj)))
+		# other types, handled by the json module natively
+		else:
+			return super(WooJSONEncoder,self).default(obj)
+
+class WooJSONDecoder(json.JSONDecoder):
+	def __init__(self):
+		json.JSONDecoder.__init__(self,object_hook=self.dictToObject)
+	def dictToObject(self,d):
+		if '__class__' in d:
+			klass=d.pop('__class__')
+			__import__(klass.rsplit('.',1)[0]) # in case the module has not been imported yet
+			return eval(klass)(**dict((key.encode('ascii'),value.encode('ascii') if isinstance(value,unicode) else value) for key,value in d.items()))
+		else: return d
+# inject into the core namespace, so that it can be used elsewhere as well
+woo.core.WooJSONEncoder=WooJSONEncoder
+
 def _Object_loads(typ,data,format='auto'):
 	def typeChecked(obj,type):
 		if not isinstance(obj,typ): raise TypeError('Loaded object of type '+obj.__class__.__name__+' is not a '+typ.__name__)
 		return obj
-	if format not in ('auto','pickle','expr'): raise ValueError('Invalid format %s'%format)
+	if format not in ('auto','pickle','expr','json'): raise ValueError('Invalid format %s'%format)
 	elif format=='auto':
 		if data.startswith('##woo-expression##'): format='expr'
-		else: # try pickle
-			try:
-				return typeChecked(pickle.loads(data),typ)
+		else:
+			# try pickle
+			try: return typeChecked(pickle.loads(data),typ)
 			except (IOError,KeyError): pass
+			# try json
+			try: return typeChecked(WooJSONDecoder().decode(data),typ)
+			except (IOError,ValueError,KeyError): pass
 	if format=='auto': IOError("Format detection failed on data: "%data)
 	## format detected now
 	if format=='expr':
 		return typeChecked(eval(data),typ)
 	elif format=='pickle':
 		return typeChecked(pickle.loads(data,typ))
+	elif format=='json':
+		return typeChecked(WooJSONDecoder().decode(data),typ)
 	assert(False) # impossible
 
 
@@ -291,7 +337,7 @@ def _Object_load(typ,inFile,format='auto'):
 	def typeChecked(obj,type):
 		if not isinstance(obj,typ): raise TypeError('Loaded object of type '+obj.__class__.__name__+' is not a '+typ.__name__)
 		return obj
-	validFormats=('auto','boost::serialization','expr','pickle')
+	validFormats=('auto','boost::serialization','expr','pickle','json')
 	if format not in validFormats: raise ValueError('format must be one of '+', '.join(validFormats)+'.')
 	if format=='auto':
 		format=None
@@ -315,12 +361,14 @@ def _Object_load(typ,inFile,format='auto'):
 		elif head.startswith('##woo-expression##'):
 			format='expr'
 		else:
-			try: # test pickling by trying to load
-				return typeChecked(pickle.load(open(inFile)),typ) # open again to seek to the beginning
+			# test pickling by trying to load
+			try: return typeChecked(pickle.load(open(inFile)),typ) # open again to seek to the beginning
 			except (IOError,KeyError): pass
+			try: return typeChecked(WooJSONDecoder().decode(open(inFile).read()),typ)
+			except (IOError,ValueError): pass
 		if not format: raise RuntimeError('File format detection failed on %s (head: %s)'%(inFile,''.join(["\\x%02x"%ord(x) for x in head])))
 	if format not in validFormats: raise RuntimeError("format='%s'??"%format)
-	assert(format in validFormats)
+	assert format in validFormats
 	if format==None:
 		raise IOError('Input file format not detected')
 	elif format=='boost::serialization':
@@ -331,6 +379,8 @@ def _Object_load(typ,inFile,format='auto'):
 		return typeChecked(eval(buf),typ)
 	elif format=='pickle':
 		return typeChecked(pickle.load(open(inFile)),typ)
+	elif format=='json':
+		return typeChecked(WooJSONDecoder().decode(open(inFile).read()),typ)
 	assert(False)
 
 

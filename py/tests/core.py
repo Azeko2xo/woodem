@@ -32,6 +32,19 @@ class TestTags(unittest.TestCase): pass
 
 
 
+class TestScene(unittest.TestCase):
+	def setUp(self):
+		self.scene=woo.core.Scene()
+	#def _testTags(self):
+	#	'Core: Scene.tags are str (not unicode) objects'
+	#	S=self.scene
+	#	S.tags['str']='asdfasd'
+	#	S.tags['uni']=u'→ Σ'
+	#	self.assert_(type(S.tags['str']==unicode))
+	#	def tagError(S): S.tags['error']=234
+	#	self.assert_(type(S.tags['uni']==unicode))
+	#	self.assertRaises(TypeError,lambda: tagError(S))
+
 class TestObjectInstantiation(unittest.TestCase):
 	def setUp(self):
 		pass # no setup needed for tests here
@@ -204,12 +217,6 @@ class TestLoop(unittest.TestCase):
 		self.assert_(i<S.step) # check we run during those .1 secs again
 		S.stop()
 		
-		
-
-
-			
-
-
 class TestIO(unittest.TestCase):
 	def testSaveAllClasses(self):
 		'I/O: All classes can be saved and loaded with boost::serialization'

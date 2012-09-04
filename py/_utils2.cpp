@@ -177,6 +177,20 @@ Matrix6r bestFitCompliance(){
 	return H;
 };
 
+vector<Vector3r> facetsPlaneIntersectionSegments(vector<shared_ptr<Particle>> facets, Vector3r pt, Vector3r normal){
+	vector<Vector3r> ret;
+	for(const auto& p: facets){
+		if(!p->shape || p->shape->nodes.size()!=3) woo::TypeError("Particle.shape must have 3 nodes (Facet), #"+to_string(p->id));
+		assert(p->shape->nodes.size()==3);
+		for(int i:{0,1,2}){
+			const Vector3r& A(p->shape->nodes[i]->pos), B(p->shape->nodes[(i+1)%3]->pos);
+			Real u=CompUtils::segmentPlaneIntersection(A,B,pt,normal);
+			if(u>0 && u<1) ret.push_back(A+u*(B-A));
+		}
+	}
+	return ret;
+};
+
 
 BOOST_PYTHON_MODULE(_utils2){
 	// http://numpy.scipy.org/numpydoc/numpy-13.html mentions this must be done in module init, otherwise we will crash
@@ -192,6 +206,7 @@ BOOST_PYTHON_MODULE(_utils2){
 	py::def("bestFitCompliance",bestFitCompliance,"Compute compliance based on best-fit hypothesis, using the paper [Liao1997], equations (30) and (28,31).");
 	py::def("mapColor",CompUtils::scalarOnColorScale,(py::arg("x"),py::arg("min")=0,py::arg("max")=1,py::arg("cmap")=-1),"Map scalar to color (as 3-tuple). See :ref:`woo.core.Master.cmap`, :ref:`woo.core.Master.cmaps` to set colormap globally.");
 	py::def("unbalancedForce",unbalancedForce,(py::arg("scene")=shared_ptr<Scene>(),py::arg("useMaxForce")=false),"Compute the ratio of mean (or maximum, if *useMaxForce*) summary force on bodies and mean force magnitude on interactions. It is an adimensional measure of staticity, which approaches zero for quasi-static states.");
+	py::def("facetsPlaneIntersectionSegments",facetsPlaneIntersectionSegments,(py::arg("facets"),py::arg("pt"),py::arg("normal")),"Return list of points, where consecutive pairs are segment where *facets* were intersecting plane given by *pt* and *normal*.");
 }
 
 

@@ -938,7 +938,7 @@ void Gl1_CLDemField::go(const shared_ptr<Field>& field, GLViewInfo* _viewInfo){
 	glEnable(GL_LINE_SMOOTH);
 };
 
-#endif
+#endif /* WOO_OPENGL */
 
-#endif
+#endif /* WOO_CLDEM */
 

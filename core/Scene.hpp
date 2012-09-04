@@ -23,6 +23,7 @@ class Scene: public Object{
 		// this is managed by methods of Scene exclusively
 		boost::mutex runMutex;
 		bool runningFlag;
+		boost::thread::id bgThreadId;
 		// this will be std::atomic<bool>
 		// once libstdc++ headers are accepted by clang++
 		bool stopFlag; 
@@ -65,7 +66,9 @@ class Scene: public Object{
 			std::string getItem(const std::string& key);
 			void setItem(const std::string& key, const std::string& value);
 			void delItem(const std::string& key);
-			boost::python::list keys();
+			py::list keys();
+			py::list items();
+			py::list values();
 			bool has_key(const std::string& key);
 			void update(const pyTagsProxy& b);
 		};
@@ -86,11 +89,27 @@ class Scene: public Object{
 			PausedContextManager obtains the lock (warns every few seconds that the lock was not yet
 			obtained, for diagnosis of deadlock) in __enter__ and releases it in __exit__.
 		*/
+
+		// workaround; will be removed once
+		// http://stackoverflow.com/questions/12203769/boosttimed-mutex-guarantee-of-acquiring-the-lock-when-other-thread-unlocks-i
+		// is solved
+		#define WOO_LOOP_MUTEX_HELP
+		#ifdef WOO_LOOP_MUTEX_HELP
+			bool engineLoopMutexWaiting;
+		#endif
 		boost::timed_mutex engineLoopMutex;
 		struct PausedContextManager{
 			boost::timed_mutex::scoped_lock lock;
+			boost::thread::id bgThreadId;
+			#ifdef WOO_LOOP_MUTEX_HELP
+				bool& engineLoopMutexWaiting;
+			#endif
 			// stores reference to mutex, but does not lock it yet
-			PausedContextManager(Scene* scene): lock(boost::timed_mutex::scoped_lock(scene->engineLoopMutex,boost::defer_lock)){}
+			PausedContextManager(Scene* scene): lock(boost::timed_mutex::scoped_lock(scene->engineLoopMutex,boost::defer_lock)), bgThreadId(scene->bgThreadId)
+				#ifdef WOO_LOOP_MUTEX_HELP
+					, engineLoopMutexWaiting(scene->engineLoopMutexWaiting)
+				#endif
+			{}
 			void __enter__();
 			void __exit__(py::object exc_type, py::object exc_value, py::object traceback);
 			static void pyRegisterClass(){
@@ -172,7 +191,7 @@ class Scene: public Object{
 		;
 		// define nested class
 		py::scope foo(_classObj);
-		py::class_<Scene::pyTagsProxy>("TagsProxy",py::init<pyTagsProxy>()).def("__getitem__",&pyTagsProxy::getItem).def("__setitem__",&pyTagsProxy::setItem).def("__delitem__",&pyTagsProxy::delItem).def("has_key",&pyTagsProxy::has_key).def("__contains__",&pyTagsProxy::has_key).def("keys",&pyTagsProxy::keys).def("update",&pyTagsProxy::update);
+		py::class_<Scene::pyTagsProxy>("TagsProxy",py::init<pyTagsProxy>()).def("__getitem__",&pyTagsProxy::getItem).def("__setitem__",&pyTagsProxy::setItem).def("__delitem__",&pyTagsProxy::delItem).def("has_key",&pyTagsProxy::has_key).def("__contains__",&pyTagsProxy::has_key).def("keys",&pyTagsProxy::keys).def("update",&pyTagsProxy::update).def("items",&pyTagsProxy::items).def("values",&pyTagsProxy::values);
 		Scene::PausedContextManager::pyRegisterClass();
 		);
 	DECLARE_LOGGER;

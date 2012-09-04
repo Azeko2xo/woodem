@@ -210,7 +210,7 @@ void Renderer::setLighting(){
 	// not sctrictly lighting related
 	glEnable(GL_BLEND);
 	glEnable(GL_LINE_SMOOTH);
-	glEnable(GL_POLYGON_SMOOTH);
+	//glEnable(GL_POLYGON_SMOOTH);
 	glShadeModel(GL_SMOOTH);
 	glEnable(GL_RESCALE_NORMAL);
 	// important for rendering text, to avoid repetivie glDisable(GL_TEXTURE_2D) ... glEnable(GL_TEXTURE_2D)

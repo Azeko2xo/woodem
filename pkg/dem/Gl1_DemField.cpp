@@ -8,6 +8,14 @@
 #include<woo/pkg/gl/Renderer.hpp>
 #include<woo/lib/base/CompUtils.hpp>
 
+#ifdef WOO_QT4
+	#include<QCoreApplication>
+	// http://stackoverflow.com/questions/12201823/ipython-and-qt4-c-qcoreapplicationprocessevents-blocks
+	#define PROCESS_GUI_EVENTS_SOMETIMES // { static int _i=0; if(guiEvery>0 && _i++>guiEvery){ _i=0; /*QCoreApplication::processEvents();*/ QCoreApplication::sendPostedEvents(); } }
+#else
+	#define PROCESS_GUI_EVENTS_SOMETIMES
+#endif
+
 WOO_PLUGIN(gl,(Gl1_DemField));
 CREATE_LOGGER(Gl1_DemField);
 
@@ -34,6 +42,7 @@ Real Gl1_DemField::glyphRelSz;
 shared_ptr<ScalarRange> Gl1_DemField::glyphRange;
 vector<shared_ptr<ScalarRange>> Gl1_DemField::glyphRanges;
 bool Gl1_DemField::updateRefPos;
+int Gl1_DemField::guiEvery;
 
 /*
 	Replace, remove or add a range from the scene;
@@ -105,6 +114,7 @@ void Gl1_DemField::doBound(){
 	Renderer::boundDispatcher.scene=scene; Renderer::boundDispatcher.updateScenePtr();
 	boost::mutex::scoped_lock lock(*dem->particles->manipMutex);
 	FOREACH(const shared_ptr<Particle>& b, *dem->particles){
+		// PROCESS_GUI_EVENTS_SOMETIMES; // rendering bounds is usually fast
 		if(!b->shape || !b->shape->bound) continue;
 		if(mask!=0 && !(b->mask&mask)) continue;
 		glPushMatrix(); Renderer::boundDispatcher(b->shape->bound); glPopMatrix();
@@ -125,6 +135,8 @@ void Gl1_DemField::doShape(){
 	// Less efficient in terms of performance, since memory has to be written (not measured, though),
 	// but it is still better than crashes if the body gets deleted meanwile.
 	FOREACH(shared_ptr<Particle> p, *dem->particles){
+		PROCESS_GUI_EVENTS_SOMETIMES;
+
 		if(!p->shape || p->shape->nodes.empty()) continue;
 		if(mask!=0 && !(p->mask&mask)) continue;
 		const shared_ptr<Shape>& sh=p->shape;
@@ -215,6 +227,8 @@ void Gl1_DemField::doNodes(){
 
 	Renderer::nodeDispatcher.scene=scene; Renderer::nodeDispatcher.updateScenePtr();
 	FOREACH(shared_ptr<Node> n, dem->nodes){
+		PROCESS_GUI_EVENTS_SOMETIMES;
+
 		Renderer::setNodeGlData(n,updateRefPos);
 
 		if(glyph!=GLYPH_KEEP){
@@ -249,6 +263,7 @@ void Gl1_DemField::doContactNodes(){
 	Renderer::nodeDispatcher.scene=scene; Renderer::nodeDispatcher.updateScenePtr();
 	boost::mutex::scoped_lock lock(*dem->contacts->manipMutex);
 	for(size_t i=0; i<dem->contacts->size(); i++){
+		PROCESS_GUI_EVENTS_SOMETIMES;
 		const shared_ptr<Contact>& C((*dem->contacts)[i]);
 		if(C->isReal()){
 			shared_ptr<CGeom> geom=C->geom;
@@ -293,6 +308,7 @@ void Gl1_DemField::doCPhys(){
 	Renderer::cPhysDispatcher.scene=scene; Renderer::cPhysDispatcher.updateScenePtr();
 	boost::mutex::scoped_lock lock(*dem->contacts->manipMutex);
 	FOREACH(const shared_ptr<Contact>& C, *dem->contacts){
+		PROCESS_GUI_EVENTS_SOMETIMES;
 		#if 1
 			shared_ptr<CGeom> geom(C->geom);
 			shared_ptr<CPhys> phys(C->phys);
