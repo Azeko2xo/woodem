@@ -153,6 +153,9 @@ class SerializerToHtmlTableRaw:
 
 class SerializerToHtmlTableGenshi:
 	padding=dict(cellpadding='2px')
+	splitStrSeq=1
+	splitIntSeq=5
+	splitFloatSeq=5
 	def __init__(self,showDoc=False,maxDepth=8,hideNoGui=False):
 		self.maxDepth=maxDepth
 		self.hideNoGui=hideNoGui
@@ -168,9 +171,24 @@ class SerializerToHtmlTableGenshi:
 					tr.append(tag.td('%g'%s[r][c] if isinstance(s[r][c],float) else str(s[r][c]),align='right',width='%g%%'%(100./len(s[0])-1.)))
 				table.append(tr)
 			return table
+		splitLen=0
+		if len(s)>1:
+			if isinstance(s[0],int): splitLen=self.splitIntSeq
+			elif isinstance(s[0],str): splitLen=self.splitStrSeq
+			elif isinstance(s[0],float): splitLen=self.splitFloatSeq
 		# 1d array
-		ret=table if not insideTable else []
-		for e in s: ret.append(tag.td('%g'%e if isinstance(e,float) else str(e),align='right',width='%g%%'%(100./len(s)-1.)))
+		if splitLen==0 or len(s)<splitLen:
+			ret=table if not insideTable else []
+			for e in s: ret.append(tag.td('%g'%e if isinstance(e,float) else str(e),align='right',width='%g%%'%(100./len(s)-1.)))
+		# 1d array, but with lines broken
+		else:
+			ret=table
+			for i,e in enumerate(s):
+				if i%splitLen==0:
+					tr=tag.tr()
+				tr.append(tag.td('%g'%e if isinstance(e,float) else str(e),align='right',width='%g%%'%(100./splitLen-1.)))
+				# last in the line, or last overall
+				if i%splitLen==(splitLen-1) or i==len(s)-1: table.append(tr)
 		return ret
 	def __call__(self,obj,depth=0,dontRender=False):
 		from genshi.builder import tag
@@ -227,19 +245,6 @@ class SerializerToHtmlTableGenshi:
 
 SerializerToHtmlTable=SerializerToHtmlTableGenshi
 
-
-#class SerializerToHTML2:
-#	unbreakableTypes=(Vector2i,Vector2,Vector3i,Vector3)
-#	indent='\t'
-#	def __init__(self,indent='\t',maxWd=120): pass
-#	def __call__(self,obj,level=0):
-#		ret=''
-#		ind0=level*indent
-#		ind1=(level+1)*indent
-#		if isinstance(obj,Object):
-#			attrs=[(trait.name,getattr(obj,trait.name)) for trait in obj._getAllTraits() if not trait.hidden]
-#			ret+='<table frame=box rules=all %s %s><th><b>%s</b></th>\n'%(self.padding,'width="100%"' if depth>0 else '',obj.__class__.name)
-#			for a in attrs:
 
 class SerializerToExpr:
 	unbreakableTypes=(Vector2i,Vector2,Vector3i,Vector3)

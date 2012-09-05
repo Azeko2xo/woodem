@@ -312,7 +312,7 @@ parser.add_option('--force-threads',action='store_true',dest='forceThreads',help
 parser.add_option('--log',dest='logFormat',help='Format of job log files: must contain a $, % or @, which will be replaced by script name, line number or by title column respectively. Directory for logs will be created automatically. (default: logs/$.@.log)',metavar='FORMAT',default='logs/$.@.log')
 parser.add_option('--global-log',dest='globalLog',help='Filename where to redirect output of woo-batch itself (as opposed to \-\-log); if not specified (default), stdout/stderr are used',metavar='FILE')
 parser.add_option('-l','--lines',dest='lineList',help='Lines of TABLE to use, in the format 2,3-5,8,11-13 (default: all available lines in TABLE)',metavar='LIST')
-parser.add_option('--results',dest='resultsDb',help='File (SQLite database) where simulation should store its results (such as input/output files and some data); the default is to use {tableName}.results, if there is param table, otherwise (re)use batch.results.',default=None)
+parser.add_option('--results',dest='resultsDb',help='File (SQLite database) where simulation should store its results (such as input/output files and some data); the default is to use {tableName}.results, if there is param table, otherwise (re)use batch.results.sqlite (stripping .batch)',default=None)
 parser.add_option('--nice',dest='nice',type='int',help='Nice value of spawned jobs (default: 10)',default=10)
 parser.add_option('--cpu-affinity',dest='affinity',action='store_true',help='Bind each job to specific CPU cores; cores are assigned in a quasi-random order, depending on availability at the moment the jobs is started. Each job can override this setting by setting AFFINE column.')
 parser.add_option('--executable',dest='executable',help='Name of the program to run (default: %s). Jobs can override with !EXEC column.'%executable,default=executable,metavar='FILE')
@@ -335,16 +335,27 @@ logFormat,lineList,maxJobs,nice,executable,gnuplotOut,dryRun,httpWait,globalLog=
 
 if opts.manpage:
 	import woo.manpage
-	woo.config.metadata['short_desc']='batch system for computational platform Yade'
-	woo.config.metadata['long_desc']='Manage batches of computation jobs for the Yade platform; batches are described using text-file tables with parameters which are passed to individual runs of woo. Jobs are being run with pre-defined number of computational cores as soon as the required number of cores is available. Logs of all computations are stored in files and the batch progress can be watched online at (usually) http://localhost:9080. Unless overridden, the executable woo%s is used to run jobs.'%(suffix)
-	woo.manpage.generate_manpage(parser,woo.config.metadata,opts.manpage,section=1,seealso='woo%s (1)\n.br\nhttps://yade-dem.org/sphinx/user.html#batch-queuing-and-execution-woo-batch'%suffix)
+	woo.config.metadata['short_desc']='batch system for computational platform Woo'
+	woo.config.metadata['long_desc']='Manage batches of computation jobs for the Woo platform; batches are described using text-file tables with parameters which are passed to individual runs of woo. Jobs are being run with pre-defined number of computational cores as soon as the required number of cores is available. Logs of all computations are stored in files and the batch progress can be watched online at (usually) http://localhost:9080. Unless overridden, the executable woo%s is used to run jobs.'%(suffix)
+	woo.manpage.generate_manpage(parser,woo.config.metadata,opts.manpage,section=1,seealso='woo%s (1)\n.br\nhttps://yade-dem.org/sphinx/user.html#batch-queuing-and-execution-yade-batch'%suffix)
 	print 'Manual page %s generated.'%opts.manpage
 	sys.exit(0)
 
+
+tailProcess=None
+def runTailProcess(globalLog):
+	import subprocess
+	tailProcess=subprocess.call(["tail","--line=+0","-f",globalLog])
 if globalLog:
 	print 'Redirecting all output to',globalLog
-	sys.stderr=open(globalLog,"w")
+	# if not deleted, tail detects truncation and outputs multiple times
+	if os.path.exists(globalLog): os.remove(globalLog) 
+	sys.stderr=open(globalLog,"wb")
+	sys.stderr.truncate()
 	sys.stdout=sys.stderr
+	# try to run tee in separate thread
+	import thread
+	thread.start_new_thread(runTailProcess,(globalLog,))
 
 if len([1 for a in args if re.match('.*\.py(/[0-9]+)?',a)])==len(args) and len(args)!=0 or opts.notable:
 	# if all args end in .py, they are simulations that we will run
@@ -397,7 +408,7 @@ jobs=[]
 executables=set()
 logFiles=[]
 if opts.resultsDb==None:
-	resultsDb='%s.results'%table if table else 'batch.results'
+	resultsDb='%s.results'%re.sub('\.(batch|table)$','',table) if table else 'batch.results'
 else: resultsDb=opts.resultsDb
 print 'Results database is',os.path.abspath(resultsDb)
 
@@ -558,4 +569,5 @@ if httpWait and time.time()-httpLastServe<30:
 	while time.time()-httpLastServe<30:
 		time.sleep(1)
 
+if tailProcess: tailProcess.terminate()
 woo.master.exitNoBacktrace()

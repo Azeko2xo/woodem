@@ -61,7 +61,7 @@ legendAlpha=.6
 'Transparency of legend frames in plots'
 
 live=True if woo.runtime.hasDisplay else False
-"Enable/disable live plot updating. Disabled by default for now, since it has a few rough edges."
+"Enable/disable live plot updating. Disabled without display (useless)."
 liveInterval=1
 "Interval for the live plot updating, in seconds."
 autozoom=True

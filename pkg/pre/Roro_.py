@@ -224,7 +224,12 @@ def run(pre): # use inputs as argument
 	bucketDeleters=[]
 	barriersAt=[0] # barriers between buckets, indices are cylinder numbers
 	if not pre.buckets: pre.buckets=[1]*(len(cylXzd)-1) # one bucket for each gap
-	if sum(pre.buckets)<(len(cylXzd)-1):
+	# non-positive indices count from the end
+	else:
+		bb=[]
+		for b in pre.buckets: bb.append(b if b>0 else len(cylXzd)+b-bb[-1])
+		pre.buckets=bb
+	if sum(pre.buckets)<(len(cylXzd)-1): # no negative index, going till the end automatically
 		print 'Buckets not reaching to the end of the screen, adding extra bucket'
 		pre.buckets=pre.buckets+[len(cylXzd)-1-sum(pre.buckets)]
 	bucketStart=0 # cylinder index where the current bucket starts
@@ -235,7 +240,7 @@ def run(pre): # use inputs as argument
 		x,z,d=cylXzd[i]
 		bucketEnd=bucketStart+bucketWidth # cylinder index where the current bucket ends
 		if bucketEnd>=len(cylXzd):
-			print 'Bucket width beyond cylinders, will be narrowed.'
+			print 'Bucket width %d beyond cylinders, will be narrowed to %d.'%(bucketWidth,len(cylXzd)-bucketStart-1)
 			bucketEnd=len(cylXzd)-1
 		barriersAt.append(bucketEnd)
 		xzd0,xzd1=cylXzd[bucketStart],cylXzd[bucketEnd]
