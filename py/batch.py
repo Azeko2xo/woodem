@@ -58,12 +58,14 @@ def writeResults(defaultDb='woo-results.sqlite',**kw):
 
 
 
-def dbToCsv(db,out=None,dialect='excel',rows=False,ignored=('plotData','tags'),sortFirst=('title','batchtable','batchTableLine','finished','sceneId'),selector='SELECT * FROM batch ORDER BY title'):
+def dbToSpread(db,out=None,dialect='excel',rows=False,ignored=('plotData','tags'),sortFirst=('title','batchtable','batchTableLine','finished','sceneId'),selector='SELECT * FROM batch ORDER BY title'):
 	'''
 	Select simulation results (using *selector*) stored in batch database *db*, flatten data for each simulation,
-	and dump the data in the CSV format (using *dialect*: 'excel' or 'excel-tab') into file *out* (standard output
+	and dump the data in the CSV format (using *dialect*: 'excel', 'excel-tab', 'xls') into file *out* (standard output
 	if not given). If *rows*, every simulation is saved into one row of the CSV file (i.e. attributes are in columns),
 	otherwise each simulation corresponds to one column and each attribute is in one row.
+	
+	If *out* ends with '.xls', the 'xls' dialect is forced regardless of the value given. The 'xls' format will refuse to write to standard output (*out* must be given).
 
 	*ignored* fields are used to exclude large data from the dump: either database column of that name, or any attribute
 	of that name. Attributes are flattened and path separated with '.'.
@@ -126,17 +128,34 @@ def dbToCsv(db,out=None,dialect='excel',rows=False,ignored=('plotData','tags'),s
 			field=fields0[fieldsLower.index(sf)] # get the case-sensitive one
 			fields=[field]+[f for f in fields if f!=field] # rearrange
 
-	outt=(open(out,'w') if out else sys.stdout)
-	if rows:
-		# one attribute per column
-		writer=csv.DictWriter(outt,fieldnames=fields,dialect=dialect)
-		writer.writeheader()
-		for i in range(0,len(allData[fields[0]])):
-			writer.writerow(dict([(k,allData[k][i]) for k in allData.keys()]))
+	if dialect.lower()=='xls' or (out and out.endswith('.xls')):
+		# http://scienceoss.com/write-excel-files-with-python-using-xlwt/
+		import xlwt
+		wbk=xlwt.Workbook('utf-8')
+		sheet=wbk.add_sheet(db)
+		# normal and transposed setters
+		if row: setCell=lambda r,c,data: sheet.write(c,r,data)
+		else: setCell=lambda r,c,data: sheet.write(r,c,data)
+		for col,field in enumerate(fields):
+			# headers
+			setCell(0,col,field)
+			# data
+			for row,val in enumerate(allData[field]):
+				setCell(row+1,col,val)
+		wbk.save(out)
 	else:
-		# one attribute per row
-		writer=csv.writer(outt,dialect=dialect)
-		for a in fields: writer.writerow([a]+allData[a])
+		outt=(open(out,'w') if out else sys.stdout)
+		# write into CSV
+		if rows:
+			# one attribute per column
+			writer=csv.DictWriter(outt,fieldnames=fields,dialect=dialect)
+			writer.writeheader()
+			for i in range(0,len(allData[fields[0]])):
+				writer.writerow(dict([(k,allData[k][i]) for k in allData.keys()]))
+		else:
+			# one attribute per row
+			writer=csv.writer(outt,dialect=dialect)
+			for a in fields: writer.writerow([a]+allData[a])
 
 	
 
