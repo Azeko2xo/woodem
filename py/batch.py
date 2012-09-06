@@ -58,7 +58,7 @@ def writeResults(defaultDb='woo-results.sqlite',**kw):
 
 
 
-def dbToCsv(db,out=None,dialect='excel-tab',rows=False,ignored=('plotData','tags'),sortFirst=('title','batchtable','batchTableLine','finished','sceneId'),selector='SELECT * FROM batch ORDER BY title'):
+def dbToCsv(db,out=None,dialect='excel',rows=False,ignored=('plotData','tags'),sortFirst=('title','batchtable','batchTableLine','finished','sceneId'),selector='SELECT * FROM batch ORDER BY title'):
 	'''
 	Select simulation results (using *selector*) stored in batch database *db*, flatten data for each simulation,
 	and dump the data in the CSV format (using *dialect*: 'excel' or 'excel-tab') into file *out* (standard output
