@@ -55,6 +55,89 @@ def writeResults(defaultDb='woo-results.sqlite',**kw):
 			woo.core.WooJSONEncoder(indent=None).encode(kw) # custom
 		)
 		conn.execute('insert into batch values (?,?,?,?,?, ?,?,?,?,?, ?)',values)
+
+
+
+def dbToCsv(db,out=None,dialect='excel-tab',rows=False,ignored=('plotData','tags'),sortFirst=('title','batchtable','batchTableLine','finished','sceneId'),selector='SELECT * FROM batch ORDER BY title'):
+	'''
+	Select simulation results (using *selector*) stored in batch database *db*, flatten data for each simulation,
+	and dump the data in the CSV format (using *dialect*: 'excel' or 'excel-tab') into file *out* (standard output
+	if not given). If *rows*, every simulation is saved into one row of the CSV file (i.e. attributes are in columns),
+	otherwise each simulation corresponds to one column and each attribute is in one row.
+
+	*ignored* fields are used to exclude large data from the dump: either database column of that name, or any attribute
+	of that name. Attributes are flattened and path separated with '.'.
+
+	Fields are sorted in their natural order (i.e. alphabetically, but respecting numbers), with *sortFirst* fields coming at the beginning.
+	'''
+
+	def flatten(obj,path='',sep='.',ret=None):
+		'''Flatten possibly nested structure of dictionaries and lists (such as data decoded from JSON).
+		Returns dictionary, where each object is denoted by its path, paths being separated by *sep*.
+		Unicode strings are encoded to utf-8 strings (with encoding errors ignored) so that the result
+		can be written with the csv module.
+		
+		Adapted from http://stackoverflow.com/questions/8477550/flattening-a-list-of-dicts-of-lists-of-dicts-etc-of-unknown-depth-in-python-n .
+		'''
+		if ret is None: ret={}
+		if isinstance(obj,list):
+			for i,item in enumerate(obj): flatten(item,(path+sep if path else '')+str(i),ret=ret)
+		elif isinstance(obj,dict):
+			for key,value in obj.items(): flatten(value,(path+sep if path else '')+str(key),ret=ret)
+		else:
+			ret[path]=(obj.encode('utf-8','ignore') if isinstance(obj,unicode) else obj)
+		return ret
+
+	def natural_key(string_):
+		'''Return key for natural sorting (recognizing consecutive numerals as numbers):
+		http://www.codinghorror.com/blog/archives/001018.html
+		http://stackoverflow.com/a/3033342/761090
+		'''
+		import re
+		return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_)]
+
+	import sqlite3,json,sys,csv
+	allData={}
+	# lowercase
+	ignored=[i.lower() for i in ignored]
+	sortFirst=[sf.lower() for sf in sortFirst]
+	# open db and get rows
+	conn=sqlite3.connect(db,detect_types=sqlite3.PARSE_DECLTYPES)
+	conn.row_factory=sqlite3.Row
+	for i,row in enumerate(conn.execute(selector)):
+		rowDict={}
+		for key in row.keys():
+			if key.lower() in ignored: continue
+			val=row[key]
+			# decode val from json, if it fails, leave it alone
+			try: val=json.loads(val)
+			except: pass
+			rowDict[key]=val
+		flat=flatten(rowDict)
+		for key,val in flat.items():
+			if key.lower() in ignored: continue
+			if key not in allData: allData[key]=[None]*i+[val]
+			else: allData[key].append(val)
+	fields=sorted(allData.keys(),key=natural_key)
+	# apply sortFirst
+	fieldsLower=[f.lower() for f in fields]; fields0=fields[:] # these two have always same order
+	for sf in reversed(sortFirst): # reverse so that the order of sortFirst is respected
+		if sf in fieldsLower: # lowercased name should be put to the front
+			field=fields0[fieldsLower.index(sf)] # get the case-sensitive one
+			fields=[field]+[f for f in fields if f!=field] # rearrange
+
+	outt=(open(out,'w') if out else sys.stdout)
+	if rows:
+		# one attribute per column
+		writer=csv.DictWriter(outt,fieldnames=fields,dialect=dialect)
+		writer.writeheader()
+		for i in range(0,len(allData[fields[0]])):
+			writer.writerow(dict([(k,allData[k][i]) for k in allData.keys()]))
+	else:
+		# one attribute per row
+		writer=csv.writer(outt,dialect=dialect)
+		for a in fields: writer.writerow([a]+allData[a])
+
 	
 
 def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):

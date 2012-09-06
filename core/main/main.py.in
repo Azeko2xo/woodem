@@ -238,7 +238,10 @@ def userSession(qt4=False,qapp=None,qtConsole=False):
 					traceback.print_exc()
 					if woo.runtime.opts.exitAfter: sys.exit(1)
 				if woo.runtime.opts.exitAfter: sys.exit(0)
+			global opts
+			__opts=opts
 			runScript(arg0)
+			opts=__opts # in case the script uses opts as well :| (ugly)
 		else:
 			if len(sys.argv)>1: raise RuntimeError('Extra arguments to file to load: '+' '.join(sys.argv[1:]))
 			# attempt to load this file
