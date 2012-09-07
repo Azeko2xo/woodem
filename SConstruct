@@ -284,7 +284,7 @@ def CheckBoost(context):
 
 def CheckPythonModules(context):
 	context.Message("Checking for required python modules... ")
-	mods=[('IPython','ipython'),('numpy','python-numpy'),('matplotlib','python-matplotlib'),('Xlib','python-xlib'),('genshi','python-genshi'),('xlwt','python-xlwt')]
+	mods=[('IPython','ipython'),('numpy','python-numpy'),('matplotlib','python-matplotlib'),('Xlib','python-xlib'),('genshi','python-genshi'),('xlwt','python-xlwt'),('xlrd','python-xlrd')]
 	if 'qt4' in context.env['features']: mods.append(('PyQt4.QtGui','python-qt4'))
 	failed=[]
 	for m,pkg in mods:

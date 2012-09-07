@@ -8,7 +8,7 @@ def inBatch():
 	import os
 	return 'WOO_BATCH' in os.environ
 
-def writeResults(defaultDb='woo-results.sqlite',**kw):
+def writeResults(defaultDb='woo-results.sqlite',syncXls=True,**kw):
 	# increase every time the db format changes, to avoid errors
 	formatVersion=1
 	import woo
@@ -55,6 +55,11 @@ def writeResults(defaultDb='woo-results.sqlite',**kw):
 			woo.core.WooJSONEncoder(indent=None).encode(kw) # custom
 		)
 		conn.execute('insert into batch values (?,?,?,?,?, ?,?,?,?,?, ?)',values)
+	if syncXls:
+		xls='%s.xls'%re.sub('\.sqlite$','',db)
+		dbToSpread(db,out=xls,dialect='xls')
+
+
 
 
 
@@ -120,6 +125,7 @@ def dbToSpread(db,out=None,dialect='excel',rows=False,ignored=('plotData','tags'
 			if key.lower() in ignored: continue
 			if key not in allData: allData[key]=[None]*i+[val]
 			else: allData[key].append(val)
+	conn.close() # don't occupy the db longer than necessary
 	fields=sorted(allData.keys(),key=natural_key)
 	# apply sortFirst
 	fieldsLower=[f.lower() for f in fields]; fields0=fields[:] # these two have always same order
@@ -217,7 +223,8 @@ def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 			elif col in kw.keys(): kw.pop(col) # remove the var from kw, so that it contains only those that were default at the end of this loop
 			#print 'ASSIGN',col,vv[col]
 			tagsParams+=['%s=%s'%(col,vv[col])];
-			dictParams[col]=eval(vv[col],math.__dict__)
+			# when reading from XLS, data might be numbers; use eval only for strings, otherwise use the thing itself
+			dictParams[col]=eval(vv[col],math.__dict__) if type(vv[col]) in (str,unicode) else vv[col]
 	# assign remaining (default) keys to python vars
 	defaults=[]
 	for k in kw.keys():
@@ -254,7 +261,7 @@ def runPreprocessor(pre,preFile=None):
 		# set preprocessor parameters first
 		for name,val in vv.items():
 			if name=='title': continue
-			if val in ('*','-'): continue
+			if val in ('*','-',''): continue
 			nestedSetattr(pre,name,eval(val,globals(),dict(woo=woo))) # woo.unit
 	# run preprocessor
 	S=pre()
@@ -291,38 +298,78 @@ This class is used by :ref:`woo.utils.readParamsFromTable`.
 	def __init__(self,file):
 		"Setup the reader class, read data into memory."
 		import re
-		# read file in memory, remove newlines and comments; the [''] makes lines 1-indexed
-		ll=[re.sub('\s*#.*','',l[:-1]) for l in ['']+open(file,'r').readlines()]
-		# usable lines are those that contain something else than just spaces
-		usableLines=[i for i in range(len(ll)) if not re.match(r'^\s*(#.*)?$',ll[i])]
-		headings=ll[usableLines[0]].split()
-		# use all values of which heading has ! after its name to build up the title string
-		# if there are none, use all columns
-		if not 'title' in headings:
-			bangHeads=[h[:-1] for h in headings if h[-1]=='!'] or headings
-			headings=[(h[:-1] if h[-1]=='!' else h) for h in headings]
-		usableLines=usableLines[1:] # and remove headinds from usableLines
-		values={}
-		for l in usableLines:
-			val={}
-			for i in range(len(headings)):
-				val[headings[i]]=ll[l].split()[i]
-			values[l]=val
-		lines=values.keys(); lines.sort()
+		if file.lower().endswith('.xls'):
+			import xlrd
+			xls=xlrd.open_workbook(file)
+			sheet=xls.sheet_by_index(0)
+			maxCol=0
+			rows=[] # rows actually containing data (filled in the loop)
+			for row in range(sheet.nrows):
+				# find first non-empty and non-comment cell
+				lastDataCol=-1
+				for col in range(sheet.ncols):
+					c=sheet.cell(row,col)
+					empty=(c.ctype in (xlrd.XL_CELL_EMPTY,xlrd.XL_CELL_BLANK) or (c.ctype==xlrd.XL_CELL_TEXT and c.value.strip()==''))
+					comment=(c.ctype==xlrd.XL_CELL_TEXT and re.match(r'^\s*(#.*)?$',c.value)) 
+					if comment: break # comment cancels all remaining cells on the line
+					if not empty: lastDataCol=col
+				if lastDataCol>=0:
+					rows.append(row)
+					maxCol=lastDataCol
+			# rows and cols with data
+			cols=range(maxCol+1)
+			#print 'maxCol=%d,cols=%s'%(maxCol,cols)
+			# iterate through cells, define rawHeadings, headings, values
+			rawHeadings=[sheet.cell(rows[0],c).value for c in cols]
+			headings=[(h[:-1] if (h and h[-1]=='!') else h) for h in rawHeadings] # without trailing bangs
+			values={}
+			for r in rows[1:]:
+				values[r]=dict([(headings[c],sheet.cell(r,c).value) for c in cols])
+		else:
+			# text file, space separated
+			# read file in memory, remove newlines and comments; the [''] makes lines 1-indexed
+			ll=[re.sub('\s*#.*','',l[:-1]) for l in ['']+open(file,'r').readlines()]
+			# usable lines are those that contain something else than just spaces
+			usableLines=[i for i in range(len(ll)) if not re.match(r'^\s*(#.*)?$',ll[i])]
+			rawHeadings=ll[usableLines[0]].split()
+			headings=[(h[:-1] if h[-1]=='!' else h) for h in rawHeadings] # copy of headings without trailing bangs (if any)
+			# use all values of which heading has ! after its name to build up the title string
+			# if there are none, use all columns
+			usableLines=usableLines[1:] # and remove headindgs from usableLines
+			values={}
+			for l in usableLines:
+				val={}
+				for i in range(len(headings)):
+					val[headings[i]]=ll[l].split()[i]
+				values[l]=val
+		#
+		# each format has to define the following:
+		#   values={lineNumber:{key:val,key:val,...],...} # keys are column headings
+		#   rawHeadings=['col1title!','col2title',...]    # as in the file
+		#   headings=['col1title','col2title',...]        # with trailing bangs removed
+		#
+
 		# replace '=' by previous value of the parameter
+		lines=values.keys(); lines.sort()
 		for i,l in enumerate(lines):
 			for j in values[l].keys():
 				if values[l][j]=='=':
 					try:
 						values[l][j]=values[lines[i-1]][j]
 					except IndexError,KeyError:
-						raise RuntimeError("The = specifier on line %d refers to nonexistent value on previous line?"%l)
-		#import pprint; pprint.pprint(headings); pprint.pprint(values)
+						raise ValueError("The = specifier for '%s' on line %d, refers to nonexistent value on previous line?"%(j,l))
 		# add descriptions, but if they repeat, append line number as well
 		if not 'title' in headings:
+			bangHeads=[h[:-1] for h in rawHeadings if (h and h[-1]=='!')] or headings
 			descs=set()
 			for l in lines:
-				dd=','.join(head.replace('!','')+'='+('%g'%values[head] if isinstance(values[l][head],float) else str(values[l][head])) for head in bangHeads if values[l][head].strip()!='-').replace("'",'').replace('"','')
+				ddd=[]
+				for head in bangHeads:
+					val=values[l][head]
+					if type(val) in (str,unicode) and val.strip() in ('','-','*'): continue # default value used
+					ddd.append(head.replace('!','')+'='+('%g'%val if isinstance(val,float) else str(val)))
+				dd=','.join(ddd).replace("'",'').replace('"','')
+				#dd=','.join(head.replace('!','')+'='+('%g'%values[head] if isinstance(values[l][head],float) else str(values[l][head])) for head in bangHeads if (values[l][head].strip()!='-').replace("'",'').replace('"','')
 				if dd in descs: dd+='__line=%d__'%l
 				values[l]['title']=dd
 				descs.add(dd)
@@ -333,19 +380,34 @@ This class is used by :ref:`woo.utils.readParamsFromTable`.
 		return self.values
 
 if __name__=="__main__":
-	tryTable="""head1 important2! !OMP_NUM_THREADS! abcd
-	1 1.1 1.2 1.3
-	'a' 'b' 'c' 'd'  ### comment
+	## TODO: move this to doctest
+	tryData=[
+		['head1','important2!','!OMP_NUM_THREADS!','abcd'],
+		[1,1.1,1.2,1.3,],
+		['a','b','c','d','###','comment'],
+		['# empty line'],
+		[1,'=','=','g']
+	]
+	tryFile='/tmp/try-tbl'
 
-	# empty line
-	1 = = g
-"""
-	file='/tmp/try-tbl.txt'
-	f=open(file,'w')
-	f.write(tryTable)
-	f.close()
+	# write text
+	f1=tryFile+'.txt'
+	txt=open(f1,'w')
+	for ll in tryData: txt.write(' '.join([str(l) for l in ll])+'\n')
+	txt.close()
+
+	# write xls
+	import xlwt,itertools
+	f2=tryFile+'.xls'
+	xls=xlwt.Workbook(); sheet=xls.add_sheet('test')
+	for r in range(len(tryData)):
+		for c in range(len(tryData[r])):
+			sheet.write(r,c,tryData[r][c])
+	xls.save(f2)
+
 	from pprint import *
-	pprint(TableParamReader(file).paramDict())
+	pprint(TableParamReader(f1).paramDict())
+	pprint(TableParamReader(f2).paramDict())
 
 
 
