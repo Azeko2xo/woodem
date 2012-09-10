@@ -58,6 +58,7 @@ def writeResults(defaultDb='woo-results.sqlite',syncXls=True,**kw):
 	if syncXls:
 		import re
 		xls='%s.xls'%re.sub('\.sqlite$','',db)
+		print 'Converting %s to file://%s'%(db,os.path.abspath(xls))
 		dbToSpread(db,out=xls,dialect='xls')
 
 
@@ -137,32 +138,48 @@ def dbToSpread(db,out=None,dialect='excel',rows=False,ignored=('plotData','tags'
 
 	if dialect.lower()=='xls' or (out and out.endswith('.xls')):
 		# http://scienceoss.com/write-excel-files-with-python-using-xlwt/
+		# http://www.youlikeprogramming.com/2011/04/examples-generating-excel-documents-using-pythons-xlwt/
 		import xlwt
 		wbk=xlwt.Workbook('utf-8')
 		sheet=wbk.add_sheet(db)
+		# cell styling 
+		import datetime
+		datetimeStyle=xlwt.XFStyle()
+		datetimeStyle.num_format_str='yyyy-mm-dd_hh:mm:ss' # http://office.microsoft.com/en-us/excel-help/number-format-codes-HP005198679.aspx
+		styleDict={datetime.datetime:datetimeStyle} # add styles for other custom types here
+		# header style
+		font=xlwt.Font()
+		font.bold=True
+		headStyle=xlwt.XFStyle()
+		headStyle.font=font
 		# normal and transposed setters
-		if row: setCell=lambda r,c,data: sheet.write(c,r,data)
-		else: setCell=lambda r,c,data: sheet.write(r,c,data)
+		if row: setCell=lambda r,c,data,style: sheet.write(c,r,data,style)
+		else: setCell=lambda r,c,data,style: sheet.write(r,c,data)
 		for col,field in enumerate(fields):
 			# headers
-			setCell(0,col,field)
+			setCell(0,col,field,headStyle)
 			# data
 			for row,val in enumerate(allData[field]):
-				setCell(row+1,col,val)
+				setCell(row+1,col,val,styleDict.get(type(val),xlwt.Style.default_style))
 		wbk.save(out)
 	else:
 		outt=(open(out,'w') if out else sys.stdout)
+		import datetime
+		def asStr(x):
+			'Customize string conversions for some types'
+			if type(x)==datetime.datetime: return x.strftime('%Y-%m-%d_%H:%M:%S') # as ISO, but without microseconds
+			return x
 		# write into CSV
 		if rows:
 			# one attribute per column
 			writer=csv.DictWriter(outt,fieldnames=fields,dialect=dialect)
 			writer.writeheader()
 			for i in range(0,len(allData[fields[0]])):
-				writer.writerow(dict([(k,allData[k][i]) for k in allData.keys()]))
+				writer.writerow(dict([(k,asStr(allData[k][i])) for k in allData.keys()]))
 		else:
 			# one attribute per row
 			writer=csv.writer(outt,dialect=dialect)
-			for a in fields: writer.writerow([a]+allData[a])
+			for a in fields: writer.writerow([a]+[asStr(b) for b in allData[a]])
 
 	
 
