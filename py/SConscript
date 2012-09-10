@@ -27,6 +27,9 @@ env.Install('$LIBDIR/py/woo',[
 env.Install('$LIBDIR/py/woo/tests',[
 	env.File(env.Glob('tests/*.py'),'tests'),
 ])
+env.Install('$LIBDIR/py/woo/_monkey',[
+	env.File(env.Glob('_monkey/*.py'),'_monkey'),
+])
 
 # 3rd party modules:
 # ==================

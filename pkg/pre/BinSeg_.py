@@ -175,6 +175,9 @@ def run(pre):
 
 	S.pre=pre.deepcopy()
 
+	S.plot.plots={'t':('feedRate','hole1rate','hole2rate','holeRate')}
+	if S.trackEnergy: S.plot.plots.update({'  t':(S.energy,None,('ERelErr','g--'))})
+
 	S.uiBuild='import woo.pre; woo.pre.BinSeg_.uiBuild(S,area)'
 
 	try:
@@ -193,10 +196,7 @@ def run(pre):
 def savePlotData(S):
 	import woo
 	import woo.plot
-	woo.plot.addData(i=S.step,t=S.time,feedRate=woo.feed.currRate,hole1rate=woo.bucket[0].currRate,hole2rate=woo.bucket[1].currRate,numPar=len(S.dem.par),holeRate=sum([woo.bucket[i].currRate for i in (0,1)]))
-	if not woo.plot.plots:
-		woo.plot.plots={'t':('feedRate','hole1rate','hole2rate','holeRate')}
-		#if S.trackEnergy: woo.plot.plots.update({'  t':(S.energy,None,('ERelErr','g--'))})
+	S.plot.addData(i=S.step,t=S.time,feedRate=woo.feed.currRate,hole1rate=woo.bucket[0].currRate,hole2rate=woo.bucket[1].currRate,numPar=len(S.dem.par),holeRate=sum([woo.bucket[i].currRate for i in (0,1)]))
 
 def adjustFeedRate(S):
 	'Change feed massFlowRate so that it comes close to holes deletion rate'
@@ -330,7 +330,7 @@ def finishSimulation():
 		import pylab
 		fig=pylab.figure()
 		import woo.plot
-		d=woo.plot.data
+		d=S.plot.data
 		pylab.plot(d['t'],massScale*numpy.array(d['feedRate']),label='feed')
 		pylab.plot(d['t'],massScale*numpy.array(d['hole1rate']),label='hole1')
 		pylab.plot(d['t'],massScale*numpy.array(d['hole2rate']),label='hole2')

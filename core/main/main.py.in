@@ -355,6 +355,7 @@ woo.remote.runServers()
 # for scripts
 from woo import *
 from math import *
+import woo.plot # monkey-patches, which require woo.runtime.hasDisplay (hence not importable from _monkey :/)
 
 if gui==None:
 	userSession()

@@ -4,6 +4,7 @@
 #include<woo/core/Engine.hpp>
 #include<woo/core/DisplayParameters.hpp>
 #include<woo/core/EnergyTracker.hpp>
+#include<woo/core/Plot.hpp>
 #include<woo/core/Preprocessor.hpp>
 
 #ifdef WOO_OPENCL
@@ -162,6 +163,9 @@ class Scene: public Object{
 		#endif
 		((vector<shared_ptr<Object>>,any,,,"Storage for arbitrary Objects; meant for storing and loading static objects like Gl1_* functors to restore their parameters when scene is loaded."))
 		((shared_ptr<Preprocessor>,pre,,AttrTrait<>().noGui(),"Preprocessor used for generating this simulation; to be only used in user scripts to query preprocessing parameters, not in c++ code."))
+
+		// postLoad checks the new value is not None
+		((shared_ptr<Plot>,plot,make_shared<Plot>(),AttrTrait<Attr::triggerPostLoad>().noGui(),"Data and settings for plots."))
 
 		// ((shared_ptr<Bound>,bound,,AttrTrait<Attr::hidden>(),"Bounding box of the scene (only used for rendering and initialized if needed)."))
 

@@ -50,8 +50,8 @@ def writeResults(defaultDb='woo-results.sqlite',syncXls=True,**kw):
 			S.tags['title'], # title
 			S.pre.dumps(format='json'), # pre
 			json.dumps(d2), # tags
-			json.dumps(woo.plot.data), # plotData
-			json.dumps(woo.plot.plots), # plots
+			json.dumps(S.plot.data), # plotData
+			json.dumps(S.plot.plots), # plots
 			woo.core.WooJSONEncoder(indent=None).encode(kw) # custom
 		)
 		conn.execute('insert into batch values (?,?,?,?,?, ?,?,?,?,?, ?)',values)

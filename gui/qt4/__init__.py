@@ -275,9 +275,13 @@ class ControllerClass(QWidget,Ui_Controller):
 		assert os.path.exists(f),"File '%s' does not exist after saving?"%f
 	def reloadSlot(self):
 		self.deactivateControls()
-		from woo import plot
-		plot.splitData()
+		p=woo.master.scene.plot
+		p.splitData()
+		woo.master.scene.stop()
 		woo.master.reload()
+		# assign including previous data
+		# this should perhaps not be the default?
+		woo.master.scene.plot=p 
 	def playSlot(self):	woo.master.scene.run()
 	def pauseSlot(self): woo.master.scene.stop()
 	def stepSlot(self):
@@ -297,8 +301,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		else:
 			if len(vv)>0: vv[0].close()
 	def plotSlot(self):
-		import woo.plot
-		woo.plot.plot()
+		woo.master.scene.plot.plot()
 	def refreshEvent(self):
 		self.refreshValues()
 		self.activateControls()
@@ -313,7 +316,6 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.subStepCheckbox.setEnabled(False)
 		self.reloadButton.setEnabled(False)
 	def activateControls(self):
-		import woo.plot
 		S=woo.master.scene
 		hasSim=len(S.engines)>0
 		running=S.running
@@ -334,7 +336,7 @@ class ControllerClass(QWidget,Ui_Controller):
 
 		#
 		#
-		self.plotButton.setEnabled(len(woo.plot.plots)>0)
+		self.plotButton.setEnabled(len(S.plot.plots)>0)
 
 	def refreshValues(self):
 		S=woo.master.scene

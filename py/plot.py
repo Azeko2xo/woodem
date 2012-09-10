@@ -1,12 +1,11 @@
 # encoding: utf-8
 # 2008 © Václav Šmilauer <eudoxos@arcig.cz> 
 """
-Module containing utility functions for plotting inside woo. See :ysrc:`examples/simple-scene/simple-scene-plot.py` or :ysrc:`examples/concrete/uniax.py` for example of usage.
-
+Module containing utility functions for plotting inside woo. Most functionality is exposed through :ref:`woo.core.Plot`, however
 """
 
 ## all exported names
-__all__=['data','plots','labels','live','liveInterval','autozoom','plot','reset','resetData','splitData','reverseData','addData','addAutoData','saveGnuplot','saveDataTxt','savePlotSequence']
+__all__=['live','liveInterval','autozoom','legendAlpha','scientific','scatterMarkerKw']
 
 # multi-threaded support for Tk
 # safe to import even if Tk will not be used
@@ -34,42 +33,38 @@ import matplotlib,os,time,math,itertools
 #
 import woo.runtime
 if not woo.runtime.hasDisplay: matplotlib.use('Agg')
-
+else:
+	#matplotlib.use('TkAgg')
+	#matplotlib.use('GTKAgg')
+	matplotlib.use('Qt4Agg')
 from miniEigen import *
 
-#matplotlib.use('TkAgg')
-#matplotlib.use('GTKAgg')
-##matplotlib.use('QtAgg')
 matplotlib.rc('axes',grid=True) # put grid in all figures
 import pylab
 
-data={}
-"Global dictionary containing all data values, common for all plots, in the form {'name':[value,...],...}. Data should be added using plot.addData function. All [value,...] columns have the same length, they are padded with NaN if unspecified."
-imgData={}
-"Dictionary containing lists of strings, which have the meaning of images corresponding to respective :ref:`woo.plot.data` rows. See :ref:`woo.plot.plots` on how to plot images."
-plots={} # dictionary x-name -> (yspec,...), where yspec is either y-name or (y-name,'line-specification')
-"dictionary x-name -> (yspec,...), where yspec is either y-name or (y-name,'line-specification'). If ``(yspec,...)`` is ``None``, then the plot has meaning of image, which will be taken from respective field of :ref:`woo.plot.imgData`."
-labels={}
-"Dictionary converting names in data to human-readable names (TeX names, for instance); if a variable is not specified, it is left untranslated."
-xylabels={}
-"Dictionary of 2-tuples specifying (xlabel,ylabel) for respective plots; if either of them is None, the default auto-generated title is used."
+# simulation-specific bits moved to woo.core.Plot
+# so that they are saved and reloaded with Scene automatically
+#data,imgData,plots,labels,xylabels,legendLoc,axesWd=[getattr(woo.master.scene.plot,a) for a in  ('data','imgData','plots','labels','xylabels','legendLoc','axesWd')]
 
-legendLoc=('upper left','upper right')
-"Location of the y1 and y2 legends on the plot, if y2 is active."
+def checkObsolete():
+	import warnings
+	obsolete=('data','imgData','plots','labels','xylabels','legendLoc','axesWd')
+	for o in obsolete:
+		if o in globals(): warnings.warn("woo.plot.%s is obsolete, use Scene.plot.%s instead!"%o)
 
-legendAlpha=.6
-'Transparency of legend frames in plots'
-
+#
+# those remain module-global objects
+#
 live=True if woo.runtime.hasDisplay else False
 "Enable/disable live plot updating. Disabled without display (useless)."
-liveInterval=1
+liveInterval=.5
 "Interval for the live plot updating, in seconds."
 autozoom=True
 "Enable/disable automatic plot rezooming after data update."
+legendAlpha=.6
+'Transparency of legend frames in plots'
 scientific=True if hasattr(pylab,'ticklabel_format') else False  ## safe default for older matplotlib versions
 "Use scientific notation for axes ticks."
-axesWd=0
-"Linewidth (in points) to make *x* and *y* axes better visible; not activated if non-positive."
 current=-1
 "Point that is being tracked with a scatter point. -1 is for the last point, set to *nan* to disable."
 afterCurrentAlpha=.2
@@ -77,53 +72,51 @@ afterCurrentAlpha=.2
 scatterMarkerKw=dict(verts=[(0.,0.),(-30.,10.),(-25,0),(-30.,-10.)],marker=None)
 "Parameters for the current position marker"
 
-
 componentSeparator='_'
 componentSuffixes={Vector2:{0:'x',1:'y'},Vector3:{0:'x',1:'y',2:'z'},Vector2i:{0:'x',1:'y'},Vector3i:{0:'x',1:'y',2:'z'},Vector6:{0:'xx',1:'yy',2:'zz',3:'yz',4:'zx',5:'xy'},Matrix3:{(0,0):'xx',(1,1):'yy',(2,2):'zz',(0,1):'xy',(1,0):'yx',(0,2):'xz',(2,0):'zx',(1,2):'yz',(2,1):'zy'}}
 # if a type with entry in componentSuffixes is given in addData, columns for individual components are synthesized using indices and suffixes given for each type, e.g. foo=Vector3r(1,2,3) will result in columns foox=1,fooy=2,fooz=3
 
-def reset():
+
+
+def Scene_plot_reset(P):
 	"Reset all plot-related variables (data, plots, labels)"
-	global data, plots, labels # plotLines
-	data={}; plots={}; imgData={} # plotLines={};
+	P.data,P.plots,P.imgData={},{},{}
 	pylab.close('all')
 
-def resetData():
+def Scene_plot_resetData(P):
 	"Reset all plot data; keep plots and labels intact."
-	global data
-	data={}
+	P.data={}
 
-def splitData():
+def Scene_plot_splitData(P):
 	"Make all plots discontinuous at this point (adds nan's to all data fields)"
-	addData({})
+	P.addData({})
 
-def reverseData():
-	"""Reverse woo.plot.data order.
+def Scene_plot_reverseData(P):
+	"""Reverse woo.core.Plot.data order.
 	
 	Useful for tension-compression test, where the initial (zero) state is loaded and, to make data continuous, last part must *end* in the zero state.
 	"""
-	for k in data: data[k].reverse()
+	for k in P.data: P.data[k].reverse()
 
-def addDataColumns(dd):
+def addDataColumns(data,dd):
 	'''Add new columns with NaN data, without adding anything to other columns. Does nothing for columns that already exist'''
 	numSamples=len(data[data.keys()[0]]) if len(data)>0 else 0
 	for d in dd:
 		if d in data.keys(): continue
 		data[d]=[nan for i in range(numSamples)]
 
-def addAutoData(**kw):
-	"""Add data by evaluating contents of :ref:`woo.plot.plots`. Expressions rasing exceptions will be handled gracefully, but warning is printed for each.
+def Scene_autoPlotData(S,**kw):
+	"""Add data by evaluating contents of :ref:`Plot.plots`. Expressions rasing exceptions will be handled gracefully, but warning is printed for each.
 	
 	>>> from woo import plot; from woo.dem import *; from woo.core import *
 	>>> from pprint import pprint
 	>>> S=Scene(fields=[DemField(gravity=(0,0,-10))])
-	>>> plot.resetData()
-	>>> plot.plots={'S.step':('S.time',None,'numParticles=len(S.dem.par)')}
-	>>> plot.addAutoData(S=S)
-	>>> pprint(plot.data)
+	>>> S.plot.plots={'S.step':('S.time',None,'numParticles=len(S.dem.par)')}
+	>>> S.autoPlotData()
+	>>> pprint(S.plot.data)
 	{'S.step': [0], 'S.time': [0.0], 'numParticles': [0]}
 
-	Note that each item in :ref:`woo.plot.plots` can be
+	Note that each item in :ref:`Plot.plots` can be
 
 	* an expression to be evaluated (using the ``eval`` builtin);
 	* ``name=expression`` string, where ``name`` will appear as label in plots, and expression will be evaluated each time;
@@ -133,8 +126,7 @@ def addAutoData(**kw):
 
 	>>> from woo import plot, utils
 	>>> S=Scene(fields=[DemField(gravity=(0,0,-10))])
-	>>> plot.resetData()
-	>>> plot.plots={'i=S.step':(S.energy,None,'total energy=S.energy.total()')}
+	>>> S.plot.plots={'i=S.step':(S.energy,None,'total energy=S.energy.total()')}
 	>>> # we create a simple simulation with one ball falling down
 	>>> S.dem.par.append(utils.sphere((0,0,0),1,mat=utils.defaultMaterial()))
 	0
@@ -143,11 +135,11 @@ def addAutoData(**kw):
 	>>> S.dt=utils.pWaveDt(S)
 	>>> S.engines=[ForceResetter(),Leapfrog(kinSplit=True,damping=.4),
 	...    # get data required by plots at every step
-	...    PyRunner(1,'woo.plot.addAutoData(S=S)')
+	...    PyRunner(1,'S.autoPlotData()')
 	... ]
 	>>> S.trackEnergy=True
 	>>> S.run(2,True)
-	>>> pprint(plot.data)   #doctest: +ELLIPSIS
+	>>> pprint(S.plot.data)   #doctest: +ELLIPSIS
 	{'grav': [0.0, -25.13...],
 	 'i': [0, 1],
 	 'kinRot': [0.0, 0.0],
@@ -161,16 +153,15 @@ def addAutoData(**kw):
 		from woo.dem import *
 		from woo.core import *
 		from woo import plot,utils
-		S=Scene()
+		S=Scene(fields=[DemField(gravity=(0,0,-10)])
 		S.dem.par.append(utils.sphere((0,0,0),1));
 		S.dt=utils.pWaveDt(S)
-		S.engines=[Gravity(gravity=(0,0,-10)),Leapfrog(damping=.4,kinSplit=True,reset=True),PyRunner(1,'woo.plot.addAutoData(S=S)')]
-		plot.resetData()
-		plot.plots={'i=S.step':(S.energy,None,'total energy=S.energy.total()')}
+		S.engines=[Leapfrog(damping=.4,kinSplit=True,reset=True),PyRunner(S.autoPlotData()')]
+		S.plot.plots={'i=S.step':(S.energy,None,'total energy=S.energy.total()')}
 		S.trackEnergy=True
 		S.run(500,True)
 		import pylab; pylab.grid(True)
-		plot.legendLoc=('lower left','upper right')
+		S.plot.legendLoc=('lower left','upper right')
 		plot.plot(noShow=True)
 
 	"""
@@ -184,7 +175,10 @@ def addAutoData(**kw):
 			import traceback 
 			traceback.print_exc()
 			print 'WARN: ignoring exception raised while evaluating auto-column `'+expr+"'%s."%('' if name==expr else ' ('+name+')')
+			
 	cols={}
+	data,imgData,plots=S.plot.data,S.plot.imgData,S.plot.plots
+	kw.update(S=S)
 	for p in plots:
 		pp=plots[p]
 		colDictUpdate(p.strip(),cols,kw)
@@ -199,30 +193,30 @@ def addAutoData(**kw):
 			#	for yyy in yy(): colDictUpdate(yyy,cols)
 			# plain value
 			else: colDictUpdate(yy,cols,kw)
-	addData(cols)
+	S.plot.addData(cols)
 
 
-def addData(*d_in,**kw):
+def Scene_plot_addData(P,*d_in,**kw):
 	"""Add data from arguments name1=value1,name2=value2 to woo.plot.data.
 	(the old {'name1':value1,'name2':value2} is deprecated, but still supported)
 
 	New data will be padded with nan's, unspecified data will be nan (nan's don't appear in graphs).
 	This way, equal length of all data is assured so that they can be plotted one against any other.
 
-	>>> from woo import plot
+	>>> S=woo.master.scene
 	>>> from pprint import pprint
-	>>> plot.resetData()
-	>>> plot.addData(a=1)
-	>>> plot.addData(b=2)
-	>>> plot.addData(a=3,b=4)
-	>>> pprint(plot.data)
+	>>> S.plot.resetData()
+	>>> S.plot.addData(a=1)
+	>>> S.plot.addData(b=2)
+	>>> S.plot.addData(a=3,b=4)
+	>>> pprint(S.plot.data)
 	{'a': [1, nan, 3], 'b': [nan, 2, 4]}
 
 	Some sequence types can be given to addData; they will be saved in synthesized columns for individual components.
 
-	>>> plot.resetData()
-	>>> plot.addData(c=Vector3(5,6,7),d=Matrix3(8,9,10, 11,12,13, 14,15,16))
-	>>> pprint(plot.data)
+	>>> S.plot.resetData()
+	>>> S.plot.addData(c=Vector3(5,6,7),d=Matrix3(8,9,10, 11,12,13, 14,15,16))
+	>>> pprint(S.plot.data)
  	{'c_x': [5.0],
 	 'c_y': [6.0],
 	 'c_z': [7.0],
@@ -237,6 +231,7 @@ def addData(*d_in,**kw):
 	 'd_zz': [16.0]}
 
 	"""
+	data,imgData=P.data,P.imgData
 	import numpy
 	if len(data)>0: numSamples=len(data[data.keys()[0]])
 	else: numSamples=0
@@ -263,7 +258,9 @@ def addData(*d_in,**kw):
 	#numpy.array([nan for i in range(numSamples)])
 	#numpy.append(data[name],[d[name]],1)
 
-def addImgData(**kw):
+def Scene_plot_addImgData(P,**kw):
+	##S
+	data,imgData=P.data,P.imgData
 	for k in kw:
 		if k not in imgData: imgData[k]=[]
 	# align imgData with data
@@ -301,22 +298,21 @@ def tuplifyYAxis(pp):
 	"""convert one variable to a 1-tuple"""
 	if type(pp) in [tuple,list]: return pp
 	else: return (pp,)
-def xlateLabel(l):
+def xlateLabel(l,labels):
 	"Return translated label; return l itself if not in the labels dict."
-	global labels
 	if l in labels.keys(): return labels[l]
 	else: return l
 
 class LineRef:
 	"""Holds reference to plot line and to original data arrays (which change during the simulation),
 	and updates the actual line using those data upon request."""
-	def __init__(self,line,scatter,line2,xdata,ydata,dataName=None):
-		self.line,self.scatter,self.line2,self.xdata,self.ydata,self.dataName=line,scatter,line2,xdata,ydata,dataName
+	def __init__(self,line,scatter,line2,xdata,ydata,imgData=None,dataName=None):
+		self.line,self.scatter,self.line2,self.xdata,self.ydata,self.imgData,self.dataName=line,scatter,line2,xdata,ydata,imgData,dataName
 	def update(self):
 		if isinstance(self.line,matplotlib.image.AxesImage):
 			# image name
 			try:
-				if len(self.xdata)==0 and self.dataName: self.xdata=imgData[self.dataName]  # empty list reference an empty singleton, not the list we want; adjust here
+				if len(self.xdata)==0 and self.dataName: self.xdata=self.imgData[self.dataName]  # empty list reference an empty singleton, not the list we want; adjust here
 				if self.xdata[current]==None: img=Image.new('RGBA',(1,1),(0,0,0,0))
 				else: img=Image.open(self.xdata[current])
 				self.line.set_data(img)
@@ -362,15 +358,17 @@ class LineRef:
 					except IndexError: pass
 			except TypeError: pass # this happens at i386 with empty data, saying TypeError: buffer is too small for requested array
 
-currLineRefs=[]
 liveTimeStamp=0 # timestamp when live update was started, so that the old thread knows to stop if that changes
 nan=float('nan')
 
-def createPlots(subPlots=True,scatterSize=60,wider=False):
-	global currLineRefs
-	figs=set([l.line.get_axes().get_figure() for l in currLineRefs]) # get all current figures
-	for f in figs: pylab.close(f) # close those
-	currLineRefs=[] # remove older plots (breaks live updates of windows that are still open)
+def createPlots(P,subPlots=True,scatterSize=60,wider=False):
+	import logging
+	data,imgData,plots,labels,xylabels,legendLoc,axesWd=P.data,P.imgData,P.plots,P.labels,P.xylabels,P.legendLoc,P.axesWd
+	if P.currLineRefs:
+		logging.info('Closing existing figures')
+		figs=set([l.line.get_axes().get_figure() for l in P.currLineRefs]) # get all current figures
+		for f in figs: pylab.close(f) # close those
+	P.currLineRefs=[]
 	if len(plots)==0: return # nothing to plot
 	if subPlots:
 		# compute number of rows and colums for plots we have
@@ -386,7 +384,7 @@ def createPlots(subPlots=True,scatterSize=60,wider=False):
 			if len(imgData[pStrip])==0 or imgData[pStrip][-1]==None: img=Image.new('RGBA',(1,1),(0,0,0,0))
 			else: img=Image.open(imgData[pStrip][-1])
 			img=pylab.imshow(img,origin='lower')
-			currLineRefs.append(LineRef(img,None,None,imgData[pStrip],None,pStrip))
+			P.currLineRefs.append(LineRef(line=img,scatter=None,line2=None,xdata=imgData[pStrip],ydata=None,imgData=imgData,dataName=pStrip))
 			pylab.gca().set_axis_off()
 			continue
 		plots_p=[addPointTypeSpecifier(o) for o in tuplifyYAxis(plots[p])]
@@ -409,7 +407,7 @@ def createPlots(subPlots=True,scatterSize=60,wider=False):
 				try:
 					print 'Missing columns in plot.data, adding NaN: ',u','.join(list(missing))
 				except UnicodeEncodeError: pass
-				addDataColumns(missing)
+				addDataColumns(data,missing)
 		def createLines(pStrip,ySpecs,isY1=True,y2Exists=False):
 			'''Create data lines from specifications; this code is common for y1 and y2 axes;
 			it handles y-data specified as callables, which might create additional lines when updated with liveUpdate.
@@ -429,18 +427,18 @@ def createPlots(subPlots=True,scatterSize=60,wider=False):
 				print 'woo.plot: creating fake plot, since there are no y-data yet'
 				line,=pylab.plot([nan],[nan])
 				line2,=pylab.plot([nan],[nan])
-				currLineRefs.append(LineRef(line,None,line2,[nan],[nan]))
+				P.currLineRefs.append(LineRef(line=line,scatter=None,line2=line2,xdata=[nan],ydata=[nan]))
 			# set different color series for y1 and y2 so that they are recognizable
 			if pylab.rcParams.has_key('axes.color_cycle'): pylab.rcParams['axes.color_cycle']='b,g,r,c,m,y,k' if not isY1 else 'm,y,k,b,g,r,c'
 			for d in ySpecs2:
 				yNames.add(d)
-				line,=pylab.plot(data[pStrip],data[d[0]],d[1],label=xlateLabel(d[0]))
+				line,=pylab.plot(data[pStrip],data[d[0]],d[1],label=xlateLabel(d[0],P.labels))
 				line2,=pylab.plot([],[],d[1],color=line.get_color(),alpha=afterCurrentAlpha)
 				# use (0,0) if there are no data yet
 				scatterPt=[0,0] if len(data[pStrip])==0 else (data[pStrip][current],data[d[0]][current])
 				# if current value is NaN, use zero instead
 				scatter=pylab.scatter(scatterPt[0] if not math.isnan(scatterPt[0]) else 0,scatterPt[1] if not math.isnan(scatterPt[1]) else 0,s=scatterSize,color=line.get_color(),**scatterMarkerKw)
-				currLineRefs.append(LineRef(line,scatter,line2,data[pStrip],data[d[0]]))
+				P.currLineRefs.append(LineRef(line=line,scatter=scatter,line2=line2,xdata=data[pStrip],ydata=data[d[0]]))
 			axes=line.get_axes()
 			labelLoc=(legendLoc[0 if isY1 else 1] if y2Exists>0 else 'best')
 			l=pylab.legend(loc=labelLoc)
@@ -452,10 +450,10 @@ def createPlots(subPlots=True,scatterSize=60,wider=False):
 				# fixes scientific exponent placement for y2: https://sourceforge.net/mailarchive/forum.php?thread_name=20101223174750.GD28779%40ykcyc&forum_name=matplotlib-users
 				if not isY1: axes.yaxis.set_offset_position('right')
 			if isY1:
-				pylab.ylabel((', '.join([xlateLabel(_p[0]) for _p in ySpecs2])) if p not in xylabels or not xylabels[p][1] else xylabels[p][1])
-				pylab.xlabel(xlateLabel(pStrip) if (p not in xylabels or not xylabels[p][0]) else xylabels[p][0])
+				pylab.ylabel((', '.join([xlateLabel(_p[0],P.labels) for _p in ySpecs2])) if p not in xylabels or not xylabels[p][1] else xylabels[p][1])
+				pylab.xlabel(xlateLabel(pStrip,P.labels) if (p not in xylabels or not xylabels[p][0]) else xylabels[p][0])
 			else:
-				pylab.ylabel((', '.join([xlateLabel(_p[0]) for _p in ySpecs2])) if (p not in xylabels or len(xylabels[p])<3 or not xylabels[p][2]) else xylabels[p][2])
+				pylab.ylabel((', '.join([xlateLabel(_p[0],P.labels) for _p in ySpecs2])) if (p not in xylabels or len(xylabels[p])<3 or not xylabels[p][2]) else xylabels[p][2])
 			# if there are callable/dict ySpecs, save them inside the axes object, so that the live updater can use those
 			if yNameFuncs:
 				axes.wooYNames,axes.wooYFuncs,axes.wooXName,axes.wooLabelLoc=yNames,yNameFuncs,pStrip,labelLoc # prepend woo to avoid clashes
@@ -467,17 +465,23 @@ def createPlots(subPlots=True,scatterSize=60,wider=False):
 		if len(plots_p_y2)>0:
 			pylab.twinx() # create the y2 axis
 			createLines(pStrip,plots_p_y2,isY1=False,y2Exists=True)
-		if 'title' in woo.master.scene.tags.keys(): pylab.title(woo.master.scene.tags['title'])
+		### scene is not directly accessible from here, do it like this:
+		S=woo.master.scene
+		if S.plot==P:
+			if 'title' in S.tags: pylab.title(S.tags['title'])
 
 
 
-def liveUpdate(timestamp):
+def liveUpdate(P,timestamp):
 	global liveTimeStamp
 	liveTimeStamp=timestamp
+	import sys
 	while True:
-		if not live or liveTimeStamp!=timestamp: return
+		if not live or liveTimeStamp!=timestamp:
+			return
 		figs,axes,linesData=set(),set(),set()
-		for l in currLineRefs:
+		data=P.data
+		for l in P.currLineRefs:
 			l.update()
 			figs.add(l.line.get_figure())
 			axes.add(l.line.get_axes())
@@ -499,12 +503,12 @@ def liveUpdate(timestamp):
 				print 'woo.plot: creating new line for',new
 				if not new in data.keys(): data[new]=len(data[ax.wooXName])*[nan] # create data entry if necessary
 				#print 'data',len(data[ax.wooXName]),len(data[new]),data[ax.wooXName],data[new]
-				line,=ax.plot(data[ax.wooXName],data[new],label=xlateLabel(new)) # no line specifier
+				line,=ax.plot(data[ax.wooXName],data[new],label=xlateLabel(new,P.labels)) # no line specifier
 				line2,=ax.plot([],[],color=line.get_color(),alpha=afterCurrentAlpha)
 				scatterPt=(0 if len(data[ax.wooXName])==0 or math.isnan(data[ax.wooXName][current]) else data[ax.wooXName][current]),(0 if len(data[new])==0 or math.isnan(data[new][current]) else data[new][current])
 				scatter=ax.scatter(scatterPt[0],scatterPt[1],s=60,color=line.get_color(),**scatterMarkerKw)
-				currLineRefs.append(LineRef(line,scatter,line2,data[ax.wooXName],data[new]))
-				ax.set_ylabel(ax.get_ylabel()+(', ' if ax.get_ylabel() else '')+xlateLabel(new))
+				P.currLineRefs.append(LineRef(line=line,scatter=scatter,line2=line2,xdata=data[ax.wooXName],ydata=data[new]))
+				ax.set_ylabel(ax.get_ylabel()+(', ' if ax.get_ylabel() else '')+xlateLabel(new,P.labels))
 			# it is possible that the legend has not yet been created
 			l=ax.legend(loc=ax.wooLabelLoc)
 			if l:
@@ -517,12 +521,15 @@ def liveUpdate(timestamp):
 					ax.autoscale_view()
 				except RuntimeError: pass # happens if data are being updated and have not the same dimension at the very moment
 		for fig in figs:
+			#sys.stderr.write('*')
 			try:
 				fig.canvas.draw()
 			except RuntimeError: pass # happens here too
+		#sys.stderr.write('(')
 		time.sleep(liveInterval)
+		#sys.stderr.write(')')
 	
-def savePlotSequence(fileBase,stride=1,imgRatio=(5,7),title=None,titleFrames=20,lastFrames=30):
+def savePlotSequence(P,fileBase,stride=1,imgRatio=(5,7),title=None,titleFrames=20,lastFrames=30):
 	'''Save sequence of plots, each plot corresponding to one line in history. It is especially meant to be used for :ref:`woo.utils.makeVideo`.
 
 	:param stride: only consider every stride-th line of history (default creates one frame per each line)
@@ -531,7 +538,8 @@ def savePlotSequence(fileBase,stride=1,imgRatio=(5,7),title=None,titleFrames=20,
 	:param int lastFrames: Repeat the last frame this number of times, so that the movie does not end abruptly.
 	:return: List of filenames with consecutive frames.
 	'''
-	createPlots(subPlots=True,scatterSize=60,wider=True)
+	data,imgData,plots=P.data,P.imgData,P.plots
+	createPlots(P,subPlots=True,scatterSize=60,wider=True)
 	sqrtFigs=math.sqrt(len(plots))
 	pylab.gcf().set_size_inches(8*sqrtFigs,5*sqrtFigs) # better readable
 	pylab.subplots_adjust(left=.05,right=.95,bottom=.05,top=.95) # make it more compact
@@ -541,12 +549,12 @@ def savePlotSequence(fileBase,stride=1,imgRatio=(5,7),title=None,titleFrames=20,
 	#if not data.keys(): raise ValueError("plot.data is empty.")
 	pltLen=max(len(data[data.keys()[0]]) if data else 0,len(imgData[imgData.keys()[0]]) if imgData else 0)
 	if pltLen==0: raise ValueError("Both plot.data and plot.imgData are empty.")
-	global current, currLineRefs
+	global current
 	ret=[]
 	print 'Saving %d plot frames, it can take a while...'%(pltLen)
 	for i,n in enumerate(range(0,pltLen,stride)):
 		current=n
-		for l in currLineRefs: l.update()
+		for l in P.currLineRefs: l.update()
 		out=fileBase+'-%03d.png'%i
 		pylab.gcf().savefig(out)
 		ret.append(out)
@@ -582,17 +590,17 @@ def createTitleFrame(out,size,title):
 	
 
 
-def plot(noShow=False,subPlots=True):
+def Scene_plot_plot(P,noShow=False,subPlots=True):
 	"""Do the actual plot, which is either shown on screen (and nothing is returned: if *noShow* is ``False``) or, if *noShow* is ``True``, returned as matplotlib's Figure object or list of them.
 	
 	You can use 
 	
-		>>> from woo import plot
-		>>> plot.resetData()
-		>>> plot.plots={'foo':('bar',)}
+		>>> import woo,woo.core,os
+		>>> S=woo.core.Scene()
+		>>> S.plot.plots={'foo':('bar',)}
+		>>> S.plot.addData(foo=1,bar=2)
 		>>> somePdf=woo.master.tmpFilename()+'.pdf'
-		>>> plot.plot(noShow=True).savefig(somePdf)
-		>>> import os
+		>>> S.plot.plot(noShow=True).savefig(somePdf)
 		>>> os.path.exists(somePdf)
 		True
 		
@@ -600,47 +608,48 @@ def plot(noShow=False,subPlots=True):
 
 	.. note:: For backwards compatibility reasons, *noShow* option will return list of figures for multiple figures but a single figure (rather than list with 1 element) if there is only 1 figure.
 	"""
-	createPlots(subPlots=subPlots)
-	global currLineRefs
-	figs=set([l.line.get_axes().get_figure() for l in currLineRefs])
+	createPlots(P,subPlots=subPlots)
+	figs=set([l.line.get_axes().get_figure() for l in P.currLineRefs])
 	if not hasattr(list(figs)[0],'show') and not noShow:
 		import warnings
 		warnings.warn('plot.plot not showing figure (matplotlib using headless backend?)')
 		noShow=True
 	if not noShow:
 		if not woo.runtime.hasDisplay: return # would error out with some backends, such as Agg used in batches
-		if live:
-			import thread
-			thread.start_new_thread(liveUpdate,(time.time(),))
-		# pylab.show() # this blocks for some reason; call show on figures directly
-		for f in figs:
-			f.show()
-			# should have fixed https://bugs.launchpad.net/woo/+bug/606220, but does not work apparently
-			if 0:
-				import matplotlib.backend_bases
-				if 'CloseEvent' in dir(matplotlib.backend_bases):
-					def closeFigureCallback(event):
-						ff=event.canvas.figure
-						# remove closed axes from our update list
-						global currLineRefs
-						currLineRefs=[l for l in currLineRefs if l.line.get_axes().get_figure()!=ff] 
-					f.canvas.mpl_connect('close_event',closeFigureCallback)
+		if 1:
+			if live:
+				import threading
+				t=threading.Thread(target=liveUpdate,args=(P,time.time()))
+				t.daemon=True
+				t.start()
+			# pylab.show() # this blocks for some reason; call show on figures directly
+			for f in figs:
+				f.show()
+				# should have fixed https://bugs.launchpad.net/woo/+bug/606220, but does not work apparently
+				if 0:
+					import matplotlib.backend_bases
+					if 'CloseEvent' in dir(matplotlib.backend_bases):
+						def closeFigureCallback(event):
+							ff=event.canvas.figure
+							# remove closed axes from our update list
+							P.currLineRefs=[l for l in P.currLineRefs if l.line.get_axes().get_figure()!=ff] 
+						f.canvas.mpl_connect('close_event',closeFigureCallback)
 	else:
-		figs=list(set([l.line.get_axes().get_figure() for l in currLineRefs]))
+		figs=list(set([l.line.get_axes().get_figure() for l in P.currLineRefs]))
 		if len(figs)==1: return figs[0]
 		else: return figs
 
-def saveDataTxt(fileName,vars=None):
+def Scene_plot_saveDataTxt(P,fileName,vars=None):
 	"""Save plot data into a (optionally compressed) text file. The first line contains a comment (starting with ``#``) giving variable name for each of the columns. This format is suitable for being loaded for further processing (outside woo) with ``numpy.genfromtxt`` function, which recognizes those variable names (creating numpy array with named entries) and handles decompression transparently.
 
-	>>> from woo import plot
+	>>> import woo.core
 	>>> from pprint import pprint
-	>>> plot.reset()
-	>>> plot.addData(a=1,b=11,c=21,d=31)  # add some data here
-	>>> plot.addData(a=2,b=12,c=22,d=32)
-	>>> pprint(plot.data)
+	>>> S=woo.core.Scene()
+	>>> S.plot.addData(a=1,b=11,c=21,d=31)  # add some data here
+	>>> S.plot.addData(a=2,b=12,c=22,d=32)
+	>>> pprint(S.plot.data)
 	{'a': [1, 2], 'b': [11, 12], 'c': [21, 22], 'd': [31, 32]}
-	>>> plot.saveDataTxt('/tmp/dataFile.txt.bz2',vars=('a','b','c'))
+	>>> S.plot.saveDataTxt('/tmp/dataFile.txt.bz2',vars=('a','b','c'))
 	>>> import numpy
 	>>> d=numpy.genfromtxt('/tmp/dataFile.txt.bz2',dtype=None,names=True)
 	>>> d['a']
@@ -652,6 +661,7 @@ def saveDataTxt(fileName,vars=None):
 	:param vars: Sequence (tuple/list/set) of variable names to be saved. If ``None`` (default), all variables in :ref:`woo.plot.plot` are saved.
 	"""
 	import bz2,gzip
+	data=P.data
 	if not vars:
 		vars=data.keys(); vars.sort()
 	if fileName.endswith('.bz2'): f=bz2.BZ2File(fileName,'w')
@@ -685,7 +695,7 @@ def _mkTimestamp():
 	import time
 	return time.strftime('_%Y%m%d_%H:%M')
 
-def saveGnuplot(baseName,term='wxt',extension=None,timestamp=False,comment=None,title=None,varData=False):
+def Scene_plot_saveGnuplot(baseName,term='wxt',extension=None,timestamp=False,comment=None,title=None,varData=False):
 	"""Save data added with :ref:`woo.plot.addData` into (compressed) file and create .gnuplot file that attempts to mimick plots specified with :ref:`woo.plot.plots`.
 
 :param baseName: used for creating baseName.gnuplot (command file for gnuplot), associated ``baseName.data.bz2`` (data) and output files (if applicable) in the form ``baseName.[plot number].extension``
@@ -697,6 +707,7 @@ def saveGnuplot(baseName,term='wxt',extension=None,timestamp=False,comment=None,
 
 :return: name of the gnuplot file created.
 	"""
+	data,imgData,plots,labels,xylabels=P.data,P.imgData,P.plots,P.labels,P.xylabels
 	if len(data.keys())==0: raise RuntimeError("No data for plotting were saved.")
 	if timestamp: baseName+=_mkTimestamp()
 	baseNameNoPath=baseName.split('/')[-1]
@@ -716,7 +727,7 @@ def saveGnuplot(baseName,term='wxt',extension=None,timestamp=False,comment=None,
 		plots_p=[addPointTypeSpecifier(o) for o in tuplifyYAxis(plots[p])]
 		if term in ['wxt','x11']: fPlot.write("set term %s %d persist\n"%(term,i))
 		else: fPlot.write("set term %s; set output '%s.%d.%s'\n"%(term,baseNameNoPath,i,extension))
-		fPlot.write("set xlabel '%s'\n"%xlateLabel(p))
+		fPlot.write("set xlabel '%s'\n"%xlateLabel(p,labels))
 		fPlot.write("set grid\n")
 		fPlot.write("set datafile missing 'nan'\n")
 		if title: fPlot.write("set title '%s'\n"%title)
@@ -734,14 +745,54 @@ def saveGnuplot(baseName,term='wxt',extension=None,timestamp=False,comment=None,
 				y1=False; continue
 			if y1: plots_y1.append(d)
 			else: plots_y2.append(d)
-		fPlot.write("set ylabel '%s'\n"%(','.join([xlateLabel(_p[0]) for _p in plots_y1]))) 
+		fPlot.write("set ylabel '%s'\n"%(','.join([xlateLabel(_p[0],labels) for _p in plots_y1]))) 
 		if len(plots_y2)>0:
-			fPlot.write("set y2label '%s'\n"%(','.join([xlateLabel(_p[0]) for _p in plots_y2])))
+			fPlot.write("set y2label '%s'\n"%(','.join([xlateLabel(_p[0],labels) for _p in plots_y2])))
 			fPlot.write("set y2tics\n")
 		ppp=[]
-		for pp in plots_y1: ppp.append(" %s using %d:%d title '← %s(%s)' with lines"%(dataFile,vars.index(pStrip)+1,vars.index(pp[0])+1,xlateLabel(pp[0]),xlateLabel(pStrip),))
-		for pp in plots_y2: ppp.append(" %s using %d:%d title '%s(%s) →' with lines axes x1y2"%(dataFile,vars.index(pStrip)+1,vars.index(pp[0])+1,xlateLabel(pp[0]),xlateLabel(pStrip),))
+		for pp in plots_y1: ppp.append(" %s using %d:%d title '← %s(%s)' with lines"%(dataFile,vars.index(pStrip)+1,vars.index(pp[0])+1,xlateLabel(pp[0],labels),xlateLabel(pStrip,labels),))
+		for pp in plots_y2: ppp.append(" %s using %d:%d title '%s(%s) →' with lines axes x1y2"%(dataFile,vars.index(pStrip)+1,vars.index(pp[0])+1,xlateLabel(pp[0],labels),xlateLabel(pStrip,labels),))
 		fPlot.write("plot "+",".join(ppp)+"\n")
 		i+=1
 	fPlot.close()
 	return baseName+'.gnuplot'
+
+
+def _deprecPlotFunc(old,func,new=None,takesScene=False,*args,**kw):
+	"Wrapper for deprecated functions, example below."
+	import warnings
+	if not new: new=old
+	warnings.warn('Function plot.%s is deprecated, use %s.%s instead.'%(old,('Scene' if takesScene else 'Scene.plot'),new),stacklevel=3,category=DeprecationWarning)
+	S=woo.master.scene
+	if takesScene: return func(S,*args,**kw)
+	else: return func(S.plot,*args,**kw)
+
+#
+# DEPRECATED functions, will be removed at some point!
+#
+def reset(): _deprecPlotFunc('reset',Scene_plot_reset)
+def resetData(): _deprecPlotFunc('resetData',Scene_plot_resetData)
+def splitData(): _deprecPlotFunc('splitData',Scene_plot_splitData)
+def reverseData(): _deprecPlotFunc('reverseData',Scene_plot_reverseData)
+def addAutoData(): _deprecPlotFunc('addAutoData',Scene_autoPlotData,new='autoPlotData',takesScene=True)
+def addData(): _deprecPlotFunc('addData',Scene_plot_addData)
+def addImgData(): _deprecPlotFunc('addImgData',Scene_plot_addImgData)
+def saveGnuplot(): _deprecPlotFunc('saveGnuplot',Scene_plot_saveGnuplot)
+def saveDataTxt(): _deprecPlotFunc('saveDataTxt',Scene_plot_saveDataTxt)
+def plot(): _deprecPlotFunc('plot',Scene_plot_plot)
+
+# called at startup from  from woo._monkey.plot
+def defMonkeyMethods():
+	import woo.core
+	woo.core.Plot.reset=Scene_plot_reset
+	woo.core.Plot.resetData=Scene_plot_resetData
+	woo.core.Plot.splitData=Scene_plot_splitData
+	woo.core.Plot.reverseData=Scene_plot_reverseData
+	woo.core.Scene.autoPlotData=Scene_autoPlotData
+	woo.core.Plot.addData=Scene_plot_addData
+	woo.core.Plot.addImgData=Scene_plot_addImgData
+	woo.core.Plot.saveGnuplot=Scene_plot_saveGnuplot
+	woo.core.Plot.saveDataTxt=Scene_plot_saveDataTxt
+	woo.core.Plot.plot=Scene_plot_plot
+
+defMonkeyMethods()

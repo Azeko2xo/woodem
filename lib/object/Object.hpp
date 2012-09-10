@@ -176,7 +176,7 @@ template<> struct _setter_postLoadStaticMaybe<false>{
 
 // macros for deprecated attribute access
 // gcc<=4.3 is not able to compile this code; we will just not generate any code for deprecated attributes in such case
-#if !defined(__GNUG__) || (defined(__GNUG__) && (__GNUC__ > 4 || (__GNUC__==4 && __GNUC_MINOR__ > 3)))
+#if (defined(__clang__) || !defined(__GNUG__)) || ((defined(__GNUG__) && (__GNUC__ > 4 || (__GNUC__==4 && __GNUC_MINOR__ > 3))))
 	// gcc > 4.3 && non-gcc compilers
 	#define _PYSET_ATTR_DEPREC(x,thisClass,z) if(key==BOOST_PP_STRINGIZE(_DEPREC_OLDNAME(z))){ _DEPREC_WARN(thisClass,z); _DEPREC_NEWNAME(z)=py::extract<decltype(_DEPREC_NEWNAME(z))>(value); return; }
 	#define _PYATTR_DEPREC_DEF(x,thisClass,z) .add_property(BOOST_PP_STRINGIZE(_DEPREC_OLDNAME(z)),&thisClass::BOOST_PP_CAT(_getDeprec_,_DEPREC_OLDNAME(z)),&thisClass::BOOST_PP_CAT(_setDeprec_,_DEPREC_OLDNAME(z)),"|ydeprecated| alias for :ref:`" BOOST_PP_STRINGIZE(_DEPREC_NEWNAME(z)) "<" BOOST_PP_STRINGIZE(thisClass) "." BOOST_PP_STRINGIZE(_DEPREC_NEWNAME(z)) ">` (" _DEPREC_COMMENT(z) ")")

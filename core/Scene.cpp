@@ -246,6 +246,11 @@ void Scene::postLoad(Scene&){
 	#else
 		if(clDev[0]>=0) ensureCl(); // only throws
 	#endif
+	if(!plot){
+		LOG_WARN("Scene.plot==None is disallowed, assigning woo.core.Plot().");
+		plot=make_shared<Plot>();
+	}
+
 	//
 	// assign fields to engines
 	FOREACH(const shared_ptr<Engine>& e, engines){

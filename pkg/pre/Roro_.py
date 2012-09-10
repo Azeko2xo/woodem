@@ -309,8 +309,6 @@ def run(pre): # use inputs as argument
 	s.save(out)
 	print 'Saved initial simulation also to ',out
 
-	woo.plot.reset()
-
 	return s
 
 
@@ -389,13 +387,9 @@ def watchProgress(S):
 	def saveWithPlotData(S):
 		import woo.plot, pickle
 		out=S.pre.saveFmt.format(stage='done',S=S,**(dict(S.tags)))
-		if S.lastSave==out:
-			woo.plot.data=pickle.loads(str(S.tags['plot.data']))
-			print 'Reloaded plot data'
-		else:
-			S.tags['plot.data']=pickle.dumps(woo.plot.data)
+		if S.lastSave!=out:
 			S.save(out)
-			print 'Saved (incl. plot.data) to',out
+			print 'Saved to',out
 
 	## wait for steady state, then simulate pre.time time of steady state
 	if pre.time>0:
@@ -469,10 +463,10 @@ def savePlotData(S):
 			if mUnderBucket+mUnderProduct!=0: # avoid zero division
 				otherData[eff[i]]=mUnderBucket/(mUnderBucket+mUnderProduct)
 	if S.trackEnergy: otherData.update(ERelErr=S.energy.relErr() if S.step>200 else float('nan'),**S.energy)
-	woo.plot.addData(i=S.step,t=S.time,genRate=woo.factory.currRate,bucketRate=bucketRate,overRate=overRate,lostRate=lostRate,delRate=bucketRate+overRate+lostRate,numPar=len(S.dem.par),genMass=woo.factory.mass,**otherData)
-	if not woo.plot.plots:
-		woo.plot.plots={'t':('genRate','bucketRate','lostRate','overRate','delRate',None,('numPar','g--')),' t':eff}
-		if S.trackEnergy: woo.plot.plots.update({'  t':(S.energy,None,('ERelErr','g--'))})
+	S.plot.addData(i=S.step,t=S.time,genRate=woo.factory.currRate,bucketRate=bucketRate,overRate=overRate,lostRate=lostRate,delRate=bucketRate+overRate+lostRate,numPar=len(S.dem.par),genMass=woo.factory.mass,**otherData)
+	if not S.plot.plots:
+		S.plot.plots={'t':('genRate','bucketRate','lostRate','overRate','delRate',None,('numPar','g--')),' t':eff}
+		if S.trackEnergy: S.plot.plots.update({'  t':(S.energy,None,('ERelErr','g--'))})
 
 def splitPsd(xx0,yy0,splitX):
 	'''Split input *psd0* (given by *xx0* and *yy0*) at diameter (x-axis) specified by *splitX*; two PSDs are returned, one grows from splitX and has maximum value for all points x>=splitX; the second PSD is zero for all values <=splitX, then grows to the maximum value proportionally. The maximum value is the last point of psd0, thus both normalized and non-normalized input can be given. If splitX falls in the middle of *psd0* intervals, it is interpolated.'''
@@ -791,7 +785,7 @@ def writeReport(S):
 		fig=pylab.figure()
 		pylab.grid(True)
 		for eff in effDataLabels:
-			pylab.plot(woo.plot.data['t'],woo.plot.data[eff],label=eff)
+			pylab.plot(S.plot.data['t'],S.plot.data[eff],label=eff)
 			pylab.xlabel('time [s]')
 			pylab.ylabel('relative efficiency')
 			pylab.gca().yaxis.set_major_formatter(percent)
@@ -872,7 +866,7 @@ def writeReport(S):
 		#ax=pylab.subplot(224)
 		fig=pylab.figure()
 		import woo.plot
-		d=woo.plot.data
+		d=S.plot.data
 		if S.pre.time>0:
 			d['genRate'][-1]=d['genRate'][-2] # replace trailing 0 by the last-but-one value
 		pylab.plot(d['t'],massScale*numpy.array(d['genRate']),label='feed')

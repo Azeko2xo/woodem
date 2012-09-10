@@ -45,7 +45,7 @@ S.engines=[
 	),
 	Leapfrog(damping=.1),
 	PyRunner(2000,'timing.stats(); S.stop();'),
-	PyRunner(10,'addPlotData()'),
+	PyRunner(10,'S.plot.addData(i=S.step,total=S.energy.total(),**S.energy)'),
 ]
 S.dem.gravity=(0,0,-5000)
 S.dt=.7*utils.pWaveDt()
@@ -53,9 +53,8 @@ S.saveTmp()
 woo.master.timingEnabled=True
 S.trackEnergy=True
 from woo import plot
-plot.plots={'i':('total',S.energy.keys,)}
-def addPlotData(): plot.addData(i=S.step,total=S.energy.total(),**S.energy)
-plot.plot()
+S.plot.plots={'i':('total',S.energy.keys,)}
+S.plot.plot()
 
 from woo import timing
 from woo import qt
