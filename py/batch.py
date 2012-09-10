@@ -56,6 +56,7 @@ def writeResults(defaultDb='woo-results.sqlite',syncXls=True,**kw):
 		)
 		conn.execute('insert into batch values (?,?,?,?,?, ?,?,?,?,?, ?)',values)
 	if syncXls:
+		import re
 		xls='%s.xls'%re.sub('\.sqlite$','',db)
 		dbToSpread(db,out=xls,dialect='xls')
 
@@ -277,7 +278,7 @@ def runPreprocessor(pre,preFile=None):
 	return S
 
 class TableParamReader():
-	"""Class for reading simulation parameters from text file.
+	r"""Class for reading simulation parameters from text file.
 
 Each parameter is represented by one column, each parameter set by one line. Colums are separated by blanks (no quoting).
 
@@ -294,6 +295,65 @@ Empty lines within the file are ignored (although counted); ``#`` starts comment
 A special value ``=`` can be used instead of parameter value; value from the previous non-empty line will be used instead (works recursively).
 
 This class is used by :ref:`woo.utils.readParamsFromTable`.
+
+>>> tryData=[
+... 	['head1','important2!','!OMP_NUM_THREADS!','abcd'],
+... 	[1,1.1,1.2,1.3,],
+... 	['a','b','c','d','###','comment'],
+... 	['# empty line'],
+... 	[1,'=','=','g']
+... ]
+>>> import woo
+>>> tryFile=woo.master.tmpFilename()
+>>> # write text
+>>> f1=tryFile+'.txt'
+>>> txt=open(f1,'w')
+>>> for ll in tryData: txt.write(' '.join([str(l) for l in ll])+'\n')
+>>> txt.close()
+>>> 
+>>> # write xls
+>>> import xlwt,itertools
+>>> f2=tryFile+'.xls'
+>>> xls=xlwt.Workbook(); sheet=xls.add_sheet('test')
+>>> for r in range(len(tryData)):
+... 	for c in range(len(tryData[r])):
+... 		sheet.write(r,c,tryData[r][c])
+>>> xls.save(f2)
+>>> 
+>>> from pprint import *
+>>> pprint(TableParamReader(f1).paramDict())
+{2: {'!OMP_NUM_THREADS': '1.2',
+     'abcd': '1.3',
+     'head1': '1',
+     'important2': '1.1',
+     'title': 'important2=1.1,OMP_NUM_THREADS=1.2'},
+ 3: {'!OMP_NUM_THREADS': 'c',
+     'abcd': 'd',
+     'head1': 'a',
+     'important2': 'b',
+     'title': 'important2=b,OMP_NUM_THREADS=c'},
+ 5: {'!OMP_NUM_THREADS': 'c',
+     'abcd': 'g',
+     'head1': '1',
+     'important2': 'b',
+     'title': 'important2=b,OMP_NUM_THREADS=c__line=5__'}}
+>>> pprint(TableParamReader(f2).paramDict())
+{1: {u'!OMP_NUM_THREADS': 1.2,
+     u'abcd': 1.3,
+     u'head1': 1.0,
+     u'important2': 1.1,
+     'title': u'important2=1.1,OMP_NUM_THREADS=1.2'},
+ 2: {u'!OMP_NUM_THREADS': u'c',
+     u'abcd': u'd',
+     u'head1': u'a',
+     u'important2': u'b',
+     'title': u'important2=b,OMP_NUM_THREADS=c'},
+ 4: {u'!OMP_NUM_THREADS': u'c',
+     u'abcd': u'g',
+     u'head1': 1.0,
+     u'important2': u'b',
+     'title': u'important2=b,OMP_NUM_THREADS=c__line=4__'}}
+
 	"""
 	def __init__(self,file):
 		"Setup the reader class, read data into memory."
@@ -380,7 +440,7 @@ This class is used by :ref:`woo.utils.readParamsFromTable`.
 		return self.values
 
 if __name__=="__main__":
-	## TODO: move this to doctest
+	## this is now in the doctest as well
 	tryData=[
 		['head1','important2!','!OMP_NUM_THREADS!','abcd'],
 		[1,1.1,1.2,1.3,],
