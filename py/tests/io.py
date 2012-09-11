@@ -75,6 +75,23 @@ class TestFormatsAndDetection(unittest.TestCase):
 			o2=o.deepcopy()
 			self.assert_(type(o)==type(o2))
 			self.assert_(id(o)!=id(o2))
+	def testExprSpecialComments(self):
+		'IO: special comments #: inside expr dumps'
+		expr='''
+#: import os
+#: g=[]		
+#: for i in range(3):
+#:   g.append((i+1)*os.getpid())
+woo.dem.DemField(
+	gravity=g
+)
+'''
+		field=woo.dem.DemField.loads(expr,format='expr')
+		import os
+		self.assert_(field.gravity[0]==os.getpid())
+		self.assert_(field.gravity[1]==2*os.getpid())
+		self.assert_(field.gravity[2]==3*os.getpid())
+
 
 
 class TestSpecialDumpMethods(unittest.TestCase):

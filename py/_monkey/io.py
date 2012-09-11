@@ -17,7 +17,7 @@ import miniEigen
 
 nan,inf=float('nan'),float('inf') # for values in expressions
 
-def _Object_getAllTraits(obj):
+def Object_getAllTraits(obj):
 	ret=[]; k=obj.__class__
 	while k!=woo.core.Object:
 		ret=k._attrTraits+ret
@@ -26,7 +26,7 @@ def _Object_getAllTraits(obj):
 
 htmlHead='<head><meta http-equiv="content-type" content="text/html;charset=UTF-8" /></head><body>\n'
 
-def _Object_dumps(obj,format,fragment=False,width=80,noMagic=False,stream=True,showDoc=False):
+def Object_dumps(obj,format,fragment=False,width=80,noMagic=False,stream=True,showDoc=False):
 	if format not in ('html','expr','json','pickle','genshi'): raise IOError("Unsupported string dump format %s"%format)
 	if format=='pickle':
 		return pickle.dumps(obj)
@@ -39,7 +39,7 @@ def _Object_dumps(obj,format,fragment=False,width=80,noMagic=False,stream=True,s
 	elif format=='genshi':
 		return SerializeToHtmlTable()(obj,dontRender=True,showDoc=showDoc)
 
-def _Object_dump(obj,out,format='auto',overwrite=True,fragment=False,width=80,noMagic=False,showDoc=False):
+def Object_dump(obj,out,format='auto',overwrite=True,fragment=False,width=80,noMagic=False,showDoc=False):
 	'''Dump an object in specified *format*; *out* can be a string (filename) or a *file* object. Supported formats are: `auto` (auto-detected from *out* extension; raises exception when *out* is an object), `html`, `expr`.'''
 	if format not in ('auto','html','json','expr','pickle','boost::serialization'): raise IOError("Unsupported dump format %s"%format)
 	hasFilename=isinstance(out,str)
@@ -313,7 +313,13 @@ class WooJSONDecoder(json.JSONDecoder):
 # inject into the core namespace, so that it can be used elsewhere as well
 woo.core.WooJSONEncoder=WooJSONEncoder
 
-def _Object_loads(typ,data,format='auto'):
+def wooExprEval(e):
+	import woo,math,textwrap
+	# exec all lines starting with #: as a piece of code
+	exec (textwrap.dedent('\n'.join([l[2:] for l in e.split('\n') if l.startswith('#:')])))
+	return eval(e)
+
+def Object_loads(typ,data,format='auto'):
 	def typeChecked(obj,type):
 		if not isinstance(obj,typ): raise TypeError('Loaded object of type '+obj.__class__.__name__+' is not a '+typ.__name__)
 		return obj
@@ -330,7 +336,7 @@ def _Object_loads(typ,data,format='auto'):
 	if format=='auto': IOError("Format detection failed on data: "%data)
 	## format detected now
 	if format=='expr':
-		return typeChecked(eval(data),typ)
+		return typeChecked(wooExprEval(data),typ)
 	elif format=='pickle':
 		return typeChecked(pickle.loads(data,typ))
 	elif format=='json':
@@ -338,7 +344,7 @@ def _Object_loads(typ,data,format='auto'):
 	assert(False) # impossible
 
 
-def _Object_load(typ,inFile,format='auto'):
+def Object_load(typ,inFile,format='auto'):
 	def typeChecked(obj,type):
 		if not isinstance(obj,typ): raise TypeError('Loaded object of type '+obj.__class__.__name__+' is not a '+typ.__name__)
 		return obj
@@ -381,7 +387,7 @@ def _Object_load(typ,inFile,format='auto'):
 		return typeChecked(Object._boostLoad(inFile),typ)
 	elif format=='expr':
 		buf=codecs.open(inFile,'r','utf-8').read()
-		return typeChecked(eval(buf),typ)
+		return typeChecked(wooExprEval(buf),typ)
 	elif format=='pickle':
 		return typeChecked(pickle.load(open(inFile)),typ)
 	elif format=='json':
@@ -390,13 +396,13 @@ def _Object_load(typ,inFile,format='auto'):
 
 
 
-def _Object_loadTmp(typ,name=''):
+def Object_loadTmp(typ,name=''):
 	obj=woo.master.loadTmpAny(name)
 	if not isinstance(obj,typ): raise TypeError('Loaded object of type '+obj.__class__.__name__+' is not a '+typ.__name__)
 	return obj
-def _Object_saveTmp(obj,name='',quiet=False):
+def Object_saveTmp(obj,name='',quiet=False):
 	woo.master.saveTmpAny(obj,name,quiet)
-def _Object_deepcopy(obj):
+def Object_deepcopy(obj):
 	'Make object deepcopy by serializing to memory and deserializing.'
 	prefix='_deepcopy'
 	tmps=woo.master.lsTmp()
@@ -410,48 +416,47 @@ def _Object_deepcopy(obj):
 	return ret
 	
 
-Object._getAllTraits=_Object_getAllTraits
-Object.dump=_Object_dump
-Object.dumps=_Object_dumps
-Object.saveTmp=_Object_saveTmp
-Object.deepcopy=_Object_deepcopy
-Object.load=classmethod(_Object_load)
-Object.loads=classmethod(_Object_loads)
-Object.loadTmp=classmethod(_Object_loadTmp)
+Object._getAllTraits=Object_getAllTraits
+Object.dump=Object_dump
+Object.dumps=Object_dumps
+Object.saveTmp=Object_saveTmp
+Object.deepcopy=Object_deepcopy
+Object.load=classmethod(Object_load)
+Object.loads=classmethod(Object_loads)
+Object.loadTmp=classmethod(Object_loadTmp)
 
 
-def _Master_save(o,*args,**kw):
+def Master_save(o,*args,**kw):
 	o.scene.save(*args,**kw)
-def _Master_load(o,*args,**kw):
+def Master_load(o,*args,**kw):
 	o.scene=woo.core.Scene.load(*args,**kw)
-def _Master_reload(o,quiet=None,*args,**kw): # this arg is deprecated
+def Master_reload(o,quiet=None,*args,**kw): # this arg is deprecated
 	f=o.scene.lastSave
 	if not f: raise ValueError("Scene.lastSave is empty.")
 	if f.startswith(':memory:'): o.scene=woo.core.Scene.loadTmp(f[8:])
 	else: o.scene=woo.core.Scene.load(f,*args,**kw)
-def _Master_loadTmp(o,name='',quiet=None): # quiet deprecated
+def Master_loadTmp(o,name='',quiet=None): # quiet deprecated
 	o.scene=woo.core.Scene.loadTmp(name)
-def _Master_saveTmp(o,name='',quiet=False):
+def Master_saveTmp(o,name='',quiet=False):
 	o.scene.lastSave=':memory:'+name
 	o.scene.saveTmp(name,quiet)
 
-woo.core.Master.save=_Master_save
-woo.core.Master.load=_Master_load
-woo.core.Master.reload=_Master_reload
-woo.core.Master.loadTmp=_Master_loadTmp
-woo.core.Master.saveTmp=_Master_saveTmp
+woo.core.Master.save=Master_save
+woo.core.Master.load=Master_load
+woo.core.Master.reload=Master_reload
+woo.core.Master.loadTmp=Master_loadTmp
+woo.core.Master.saveTmp=Master_saveTmp
 
-def _Master_run(o,*args,**kw): return o.scene.run(*args,**kw)
-def _Master_pause(o,*args,**kw): return o.scene.stop(*args,**kw)
-def _Master_step(o,*args,**kw): return o.scene.one(*args,**kw)
-def _Master_wait(o,*args,**kw): return o.scene.wait(*args,**kw)
-def _Master_reset(o):
-	o.scene=woo.core.Scene()
+def Master_run(o,*args,**kw): return o.scene.run(*args,**kw)
+def Master_pause(o,*args,**kw): return o.scene.stop(*args,**kw)
+def Master_step(o,*args,**kw): return o.scene.one(*args,**kw)
+def Master_wait(o,*args,**kw): return o.scene.wait(*args,**kw)
+def Master_reset(o): o.scene=woo.core.Scene()
 
-#def _Master_running(o.,*args,**kw): return o.scene.running
-woo.core.Master.run=_Master_run
-woo.core.Master.pause=_Master_pause
-woo.core.Master.step=_Master_step
-woo.core.Master.wait=_Master_wait
+#def Master_running(o.,*args,**kw): return o.scene.running
+woo.core.Master.run=Master_run
+woo.core.Master.pause=Master_pause
+woo.core.Master.step=Master_step
+woo.core.Master.wait=Master_wait
 woo.core.Master.running=property(lambda o: o.scene.running)
-woo.core.Master.reset=_Master_reset
+woo.core.Master.reset=Master_reset
