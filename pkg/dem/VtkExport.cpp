@@ -167,17 +167,76 @@ void VtkExport::run(){
 		// no more spheres, just meshes now
 		int nCells=0;
 		if(facet){
+			const Vector3r &A(facet->nodes[0]->pos), &B(facet->nodes[1]->pos), &C(facet->nodes[2]->pos);
 			if(facet->halfThick==0.){
-				nCells=addTriangulatedObject({p->shape->nodes[0]->pos,p->shape->nodes[1]->pos,p->shape->nodes[2]->pos},{Vector3i(0,1,2)},mPos,mCells);
+				nCells=addTriangulatedObject({A,B,C},{Vector3i(0,1,2)},mPos,mCells);
 			} else {
-				const Vector3r &A(facet->nodes[0]->pos), &B(facet->nodes[1]->pos), &C(facet->nodes[2]->pos);
+				int fDiv=max(0,thickFacetDiv>=0?thickFacetDiv:subdiv);
 				const Vector3r dz=facet->getNormal()*facet->halfThick;
-				nCells=addTriangulatedObject({A+dz,B+dz,C+dz,A-dz,B-dz,C-dz},{
-					Vector3i(0,1,2),Vector3i(3,4,5),
-					Vector3i(0,1,3),Vector3i(3,1,4),
-					Vector3i(1,2,4),Vector3i(4,2,5),
-					Vector3i(2,0,5),Vector3i(5,0,3),
-				},mPos,mCells);
+				if(fDiv<=1){
+					// fDiv==0: open edges; fDiv==1: closed edges
+					vector<Vector3i> pts=(fDiv==0?vector<Vector3i>({Vector3i(0,1,2),Vector3i(3,4,5)}):vector<Vector3i>({
+						Vector3i(0,1,2),Vector3i(3,4,5),
+						Vector3i(0,1,3),Vector3i(3,1,4),
+						Vector3i(1,2,4),Vector3i(4,2,5),
+						Vector3i(2,0,5),Vector3i(5,0,3),
+					}));
+					nCells=addTriangulatedObject({A+dz,B+dz,C+dz,A-dz,B-dz,C-dz},pts,mPos,mCells);
+				} else {
+					// with rounded edges
+					vector<Vector3r> vertices={A+dz,B+dz,C+dz,A-dz,B-dz,C-dz};
+					vector<Vector3i> pts={Vector3i(0,1,2),Vector3i(3,4,5)}; // connectivity data
+					Vector3r fNorm=facet->getNormal();
+					const Real& rad=facet->halfThick;
+					for(int edge:{0,1,2}){
+						const Vector3r& K(facet->nodes[edge]->pos);
+						const Vector3r& L(facet->nodes[(edge+1)%3]->pos);
+						const Vector3r& M(facet->nodes[(edge+2)%3]->pos);
+						Vector3r KL=(L-K).normalized(), LM=(M-L).normalized();
+						Real capAngle=acos(KL.dot(LM));
+						int capDiv=max(1.,round(fDiv*(capAngle/Mathr::PI)));
+						Real capStep=capAngle/capDiv;
+						// edge plus subsequent cap
+						for(int edgePos=-1; edgePos<=capDiv; edgePos++){
+							// arc center
+							const Vector3r C(edgePos==-1?K:L);
+							// vector in arc plane, normal to fNorm
+							Vector3r arcPlane=KL.cross(fNorm);
+							// rotate when on the cap
+							if(edgePos>0) arcPlane=AngleAxisr(capStep*edgePos,fNorm)*arcPlane;
+							// define vertices
+							int v0=vertices.size();
+							for(int i=1;i<fDiv;i++){
+								Real phi=i*(Mathr::PI/fDiv);
+								vertices.push_back(C+rad*cos(phi)*fNorm+rad*sin(phi)*arcPlane);
+							}
+							// connect vertices with the next arc
+							for(int i=0;i<fDiv;i++){
+								int a=v0+i-1; int b=a+(fDiv-1);
+								// on the last arc -- connect to beginning
+								if(edgePos==capDiv && edge==2){ b=6+i-1; }
+								int c=a+1; int d=b+1;
+								// upper piece
+								if(i==0){
+									if(edgePos==-1){ a=edge; b=(edge+1)%3; }
+									else a=b=(edge+1)%3; // upper cap triangle
+								}
+								// lower piece
+								if(i==fDiv-1){
+									if(edgePos==-1){ c=edge+3; d=(edge+1)%3+3; }
+									else c=d=((edge+1)%3)+3; // lower cap triangle
+								}
+								if(a==b) pts.push_back(Vector3i(a,c,d));
+								else if(c==d) pts.push_back(Vector3i(a,c,b));
+								else{
+									pts.push_back(Vector3i(a,c,b));
+									pts.push_back(Vector3i(b,c,d));
+								}
+							}
+						}
+					}
+					nCells=addTriangulatedObject(vertices,pts,mPos,mCells);
+				}
 			}
 		}
 		else if(wall){
