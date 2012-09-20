@@ -373,7 +373,9 @@ void VtkExport::run(){
 
 	#undef _VTK_ARR_HELPER
 	#undef _VTK_POINT_ARR
+	#undef _VTK_POINT_INT_ARR
 	#undef _VTK_CELL_ARR
+	#undef _VTK_CELL_INT_ARR
 };
 
 

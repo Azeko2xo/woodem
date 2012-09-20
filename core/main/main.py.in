@@ -27,6 +27,7 @@ par.add_option('-j','--threads',help='Number of OpenMP threads to run; defaults 
 par.add_option('--cores',help='Set number of OpenMP threads (as \-\-threads) and in addition set affinity of threads to the cores given.',dest='cores',type='string')
 par.add_option('--cl-dev',help='Numerical couple (comma-separated) givin OpenCL platform/device indices. This is machine-dependent value',dest='clDev')
 par.add_option('--update',help='Update deprecated class names in given script(s) using text search & replace. Changed files will be backed up with ~ suffix. Exit when done without running any simulation.',dest='updateScripts',action='store_true')
+par.add_option('--paused',help='When proprocessor or simulation is given on the command-line, don\'t run it automatically (default)',action='store_true')
 par.add_option('--nice',help='Increase nice level (i.e. decrease priority) by given number.',dest='nice',type='int')
 par.add_option('-x',help='Exit when the script finishes',dest='exitAfter',action='store_true')
 par.add_option('-v',help='Increase logging verbosity; first occurence sets default logging level to info, second to debug, third to trace.'+
@@ -253,17 +254,17 @@ def userSession(qt4=False,qapp=None,qtConsole=False):
 				sys.exit(1)
 			if isinstance(obj,woo.core.Scene):
 				sys.stderr.write("Running simulation "+arg0+'\n')
-				woo.master.scene=obj; woo.master.scene.run()
-				if woo.runtime.opts.exitAfter: woo.master.scene.wait() 
+				woo.master.scene=obj
 			elif isinstance(obj,woo.core.Preprocessor):
 				sys.stderr.write("Using preprocessor "+arg0+'\n')
 				import woo.batch
 				woo.master.scene=woo.batch.runPreprocessor(obj,arg0)
-				woo.master.scene.run() # run the new simulation
-				if woo.runtime.opts.exitAfter: woo.master.scene.wait() 
 			else:
 				print 'ERROR: Object loaded from "%s" is a %s (must be Scene or a Preprocessor)'%(arg0,type(obj).__name__)
 				sys.exit(1)
+			if not opts.paused:
+				woo.master.scene.run() # run the new simulation
+				if woo.runtime.opts.exitAfter: woo.master.scene.wait() 
 	if opts.commands:
 		exec(opts.commands) in globals()
 	if woo.runtime.opts.exitAfter: sys.exit(0)

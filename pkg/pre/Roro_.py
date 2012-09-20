@@ -83,7 +83,7 @@ def run(pre): # use inputs as argument
 	###
 	print 'Preparing packing for conveyor feed, be patient'
 	cellLen=15*pre.psd[-1][0]
-	cc,rr=makeBandFeedPack(dim=(cellLen,pre.cylLenSim,pre.conveyorHt),psd=pre.psd,mat=pre.material,gravity=(0,0,-pre.gravity),porosity=.7,memoizeDir=pre.feedCacheDir)
+	cc,rr=makeBandFeedPack(dim=(cellLen,pre.cylLenSim,pre.conveyorHt),excessWd=(30*rMax,15*rMax),psd=pre.psd,mat=pre.material,gravity=(0,0,-pre.gravity),porosity=.7,damping=.3,memoizeDir=pre.feedCacheDir)
 	vol=sum([4/3.*math.pi*r**3 for r in rr])
 	conveyorVel=(pre.massFlowRate*pre.cylRelLen)/(pre.material.density*vol/cellLen)
 	print 'Feed velocity %g m/s to match feed mass %g kg/m (volume=%g m³, len=%gm, ρ=%gkg/m³) and massFlowRate %g kg/s (%g kg/s over real width)'%(conveyorVel,pre.material.density*vol/cellLen,vol,cellLen,pre.material.density,pre.massFlowRate*pre.cylRelLen,pre.massFlowRate)
@@ -312,7 +312,18 @@ def run(pre): # use inputs as argument
 	return s
 
 
-def makeBandFeedPack(dim,psd,mat,gravity,damping=.3,porosity=.5,goal=.15,dontBlock=False,memoizeDir=None):
+def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,goal=.15,dontBlock=False,memoizeDir=None):
+	dim=list(dim) # make modifiable in case of excess width
+	retWd=dim[1]
+	repeatCell=[0]
+	# too wide band is created by repeating narrower one
+	if excessWd:
+		if dim[1]>excessWd[0]:
+			print 'makeBandFeedPack: excess with %g>%g, using %g with packing repeated'%(dim[1],excessWd[0],excessWd[1])
+			retWd=dim[1]
+			dim[1]=excessWd[1]
+			nCopy=int(retWd/dim[1])+1
+			repeatCell=range(-nCopy,nCopy+1)
 	cellSize=(dim[0],dim[1],(1+2*porosity)*dim[2])
 	print 'cell size',cellSize,'target height',dim[2]
 	if memoizeDir:
@@ -365,9 +376,10 @@ def makeBandFeedPack(dim,psd,mat,gravity,damping=.3,porosity=.5,goal=.15,dontBlo
 	cc,rr=[],[]
 	for p in S.dem.par:
 		if not type(p.shape)==Sphere: continue
-		c,r=S.cell.canonicalizePt(p.pos),p.shape.radius
-		if c[2]+r>dim[2]: continue
-		cc.append(Vector3(c[0],c[1]-.5*dim[1],c[2])); rr.append(r)
+		for rep in repeatCell:
+			c,r=S.cell.canonicalizePt(p.pos)+dim[1]*(rep-.5)*Vector3.UnitY,p.shape.radius
+			if abs(c[1]+r)>.5*retWd or c[2]+r>dim[2]: continue
+			cc.append(Vector3(c[0],c[1],c[2])); rr.append(r)
 	if memoizeDir:
 		sp=pack.SpherePack()
 		for c,r in zip(cc,rr): sp.add(c,r)

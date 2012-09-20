@@ -436,7 +436,9 @@ void BoxDeleter::run(){
 		}
 		keepClump: ;
 	}
-	Real currRateNoSmooth=stepMass/((scene->step-stepPrev)*scene->dt);
+	// use the whole stepPeriod for the first time (might be residuum from previous packing), if specified
+	// otherwise the rate might be artificially high at the beginning
+	Real currRateNoSmooth=stepMass/(((stepPrev<0 && stepPeriod>0?stepPeriod:scene->step-stepPrev))*scene->dt); 
 	if(isnan(currRate)||stepPrev<0) currRate=currRateNoSmooth;
 	else currRate=(1-currRateSmooth)*currRate+currRateSmooth*currRateNoSmooth;
 }

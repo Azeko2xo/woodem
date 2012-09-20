@@ -401,7 +401,7 @@ template<> struct _SerializeMaybe<false>{
  
 namespace woo{
 
-struct Object: public boost::noncopyable {
+struct Object: public boost::noncopyable /*, public boost::enable_shared_from_this<Object>*/ {
 	// http://www.boost.org/doc/libs/1_49_0/libs/smart_ptr/sp_techniques.html#static
 	struct null_deleter{void operator()(void const *)const{}};
 	static vector<py::object> derivedCxxClasses;

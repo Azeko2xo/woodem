@@ -130,8 +130,13 @@ def run(pre):
 	if pre.loadSpheresFrom:
 		import woo.pack
 		sp=woo.pack.SpherePack()
+		print 'Loading spheres from',pre.loadSpheresFrom
 		sp.load(pre.loadSpheresFrom)
 		sp.toSimulation(S,mat=pre.material,mask=sphMask)
+		## open holes if initial spheres are loaded
+		print 'Opening both holes as spheres were loaded externally'
+		S.dem.par.disappear(pre.hole1ids+pre.hole2ids,mask=S.dem.loneMask)
+
 
 
 	S.engines=utils.defaultEngines(damping=pre.damping,dontCollect=True)+[
@@ -186,6 +191,7 @@ def run(pre):
 			woo.gl.Renderer(iniUp=(0,0,1),iniViewDir=(0,1,0)),
 			woo.gl.Gl1_DemField(colorBy=woo.gl.Gl1_DemField.colorDisplacement),
 			woo.gl.Gl1_Wall(div=1),
+			woo.gl.Gl1_Sphere(quality=.4)
 		]
 
 	except ImportError: pass
@@ -203,8 +209,12 @@ def adjustFeedRate(S):
 	import woo
 	fr=woo.feed.currRate
 	br=sum([b.currRate for b in woo.bucket])
-	woo.feed.massFlowRate=fr+S.pre.feedAdjustCoeff*(br-fr)
-	print 'New feed rate %g (old %g, hole rate %g)'%(woo.feed.massFlowRate,fr,br)
+	newRate=fr+S.pre.feedAdjustCoeff*(br-fr)
+	if not math.isnan(newRate):
+		woo.feed.massFlowRate=newRate
+		print 'New feed rate %g (old %g, hole rate %g)'%(woo.feed.massFlowRate,fr,br)
+	else:
+		print 'No feed rate computed (nan), keeping old %g'%(woo.feed.massFlowRate)
 
 
 
