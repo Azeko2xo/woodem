@@ -169,7 +169,6 @@ py::tuple PsdSphereGenerator::pyInputPsd(bool scale, bool cumulative, int num) c
 void RandomFactory::run(){
 	DemField* dem=static_cast<DemField*>(field.get());
 	if(!generator) throw std::runtime_error("RandomFactory.generator==None!");
-	if(!shooter) throw std::runtime_error("RandomFactory.shooter==None!");
 	if(materials.empty()) throw std::runtime_error("RandomFactory.materials is empty!");
 	if(!collider){
 		for(const auto& e: scene->engines){ collider=dynamic_pointer_cast<Collider>(e); if(collider) break; }
@@ -246,7 +245,6 @@ void RandomFactory::run(){
 			pos=randomPosition(); // overridden in child classes
 			LOG_TRACE("Trying pos="<<pos.transpose());
 			for(const auto& pe: pee){
-				bool overlap=false;
 				// make translated copy
 				AlignedBox3r peBox(pe.extents); peBox.translate(pos); 
 				// box is not entirely within the factory shape
@@ -266,6 +264,7 @@ void RandomFactory::run(){
 					spheres.pack.push_back(SpherePack::Sph(pos,r));
 				#else
 					// see intersection with existing particles
+					bool overlap=false;
 					vector<Particle::id_t> ids=collider->probeAabb(peBox.min(),peBox.max());
 					for(const auto& id: ids){
 						LOG_TRACE("Collider reports intersection with #"<<id);
@@ -322,7 +321,7 @@ void RandomFactory::run(){
 			shared_ptr<Node> clump=ClumpData::makeClump(nn,/*no central node pre-given*/shared_ptr<Node>(),/*intersection*/false);
 			// TODO: track energy of the shooter
 			auto& dyn=clump->getData<DemData>();
-			(*shooter)(dyn.vel,dyn.angVel);
+			if(shooter) (*shooter)(dyn.vel,dyn.angVel);
 			// TODO: compute initial angular momentum, since wi will (very likely) use the aspherical integrator
 			ClumpData::applyToMembers(clump,/*reset*/false); // apply velocity
 			dem->clumps.push_back(clump);
@@ -346,7 +345,7 @@ void RandomFactory::run(){
 			assert(node0->pos==Vector3r::Zero());
 			node0->pos+=pos;
 			auto& dyn=node0->getData<DemData>();
-			(*shooter)(dyn.vel,dyn.angVel);
+			if(shooter) (*shooter)(dyn.vel,dyn.angVel);
 			mass+=dyn.mass;
 			stepMass+=dyn.mass;
 			assert(node0->hasData<DemData>());
@@ -360,7 +359,7 @@ void RandomFactory::run(){
 			#if 0
 				// TODO: track energy of the shooter
 				Vector3r vel,angVel;
-				shooter(dyn.vel,dyn.angVel);
+				if(shooter) shooter(dyn.vel,dyn.angVel);
 				// in case the particle is multinodal, apply the same to all nodes
 				for(const auto& n: p.shape->nodes){
 					auto& dyn=n->getData<DemData>();
@@ -477,6 +476,9 @@ void ConveyorFactory::postLoad(ConveyorFactory&){
 	}
 	if(!radii.empty() && material){
 		Real vol=0; for(const Real& r: radii) vol+=(4./3.)*Mathr::PI*pow(r,3);
+		if(!isnan(prescribedRate)){
+			vel=prescribedRate/(vol*material->density/cellLen);
+		}
 		avgRate=(vol*material->density/cellLen)*vel; // (kg/m)*(m/s)→kg/s
 	} else {
 		avgRate=NaN;
@@ -531,10 +533,11 @@ void ConveyorFactory::run(){
 		if(!isnan(startLen)) lenToDo=startLen;
 		else lenToDo=(stepPeriod>0?stepPeriod*scene->dt*vel:scene->dt*vel);
 	} else {
-		lenToDo=(scene->time-virtPrev)*vel; // time elapsed since last run
+		if(!isnan(virtPrev)) lenToDo=(scene->time-virtPrev)*vel; // time elapsed since last run
+		else lenToDo=scene->dt*vel*(stepPeriod>0?stepPeriod:1);
 	}
 	Real stepMass=0;
-	//LOG_DEBUG("lenToDo="<<lenToDo<<", time="<<scene->time<<", virtPrev="<<virtPrev<<", vel="<<vel<<", shift0="<<shift0<<", lastGenIx="<<lastGenIx<<"/"<<centers.size()-1);
+	LOG_DEBUG("lenToDo="<<lenToDo<<", time="<<scene->time<<", virtPrev="<<virtPrev<<", vel="<<vel);
 	Real lenDone=0;
 	while(true){
 		// done foerver

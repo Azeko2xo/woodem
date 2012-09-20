@@ -91,6 +91,7 @@ public:
 	// periodic repetition
 	void cellRepeat(Vector3i count);
 	void cellFill(Vector3r volume);
+	void canonicalize();
 
 	// spatial characteristics
 	Vector3r dim() const {Vector3r mn,mx; aabb(mn,mx); return mx-mn;}
@@ -120,11 +121,9 @@ public:
 		if(cellSize!=Vector3r::Zero()){ LOG_WARN("Periodicity reset when rotating periodic packing (non-zero cellSize="<<cellSize<<")"); cellSize=Vector3r::Zero(); }
 		FOREACH(Sph& s, pack) s.c=rot*s.c;
 	}
-	void scale(Real scale);
-	#if 0
-		void shrinkMaxRelOverlap(Real maxRelOverlap);
-		Real maxRelOverlap();
-	#endif
+	void scale(Real scale, bool keepRadius=false);
+	Real maxRelOverlap();
+	void makeOverlapFree(){ scale(maxRelOverlap()+1,/*keepRadius*/true); }
 
 	// iteration 
 	size_t len() const{ return pack.size(); }

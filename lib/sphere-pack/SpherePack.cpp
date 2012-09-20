@@ -531,6 +531,16 @@ int SpherePack::addShadows(){
 	return ret;
 }
 
+void SpherePack::canonicalize(){
+	if(cellSize==Vector3r::Zero()) throw std::runtime_error("SpherePack.canonicalize: only meaningful on periodic packings");
+	if(hasClumps()) throw std::runtime_error("SpherePack.canonicalize: does not work in presence of clumps");
+	for(Sph& s: pack){
+		for(int i:{0,1,2}) s.c[i]=cellWrapRel(s.c[i],0,cellSize[i]);
+	}
+}
+
+
+
 int SpherePack::removeShadows(){
 	int ret=0;
 	for(long i=(long)pack.size(); i>=0; i--){
@@ -539,9 +549,35 @@ int SpherePack::removeShadows(){
 	return ret;
 };
 
-void SpherePack::scale(Real scale){
+void SpherePack::scale(Real scale, bool keepRadius){
 	bool periodic=(cellSize!=Vector3r::Zero());
 	Vector3r mid=periodic?Vector3r::Zero():midPt();
 	cellSize*=scale;
-	FOREACH(Sph& s, pack){ s.c=scale*(s.c-mid)+mid; s.r*=abs(scale); }
+	FOREACH(Sph& s, pack){
+		s.c=scale*(s.c-mid)+mid;
+		if(!keepRadius) s.r*=abs(scale);
+	}
+}
+
+Real SpherePack::maxRelOverlap(){
+	/*
+	For current distance d₀ and overlap z=r₁+r₂-d₀, determine scaling coeff s=(1+relOverlap) such that d₀s=r₁+r₂ (i.e. scaling packing by s will result in no overlap).
+	With s=z/d₀,  we have d₀s=d₀(z/d₀+1)=z+d₀ which is r₁+r₂.
+	Therefore this function returns max(z/d₀)=max((r₁+r₂-d₀)/d₀).
+	*/
+	size_t sz=pack.size();
+	bool peri=(cellSize!=Vector3r::Zero());
+	Real ret=0.;
+	if(peri) addShadows();
+	for(size_t i=0; i<sz; i++){
+		for(size_t j=i+1; j<sz; j++){
+			const Sph &s1=pack[i]; const Sph& s2=pack[j];
+			if((s1.c-s2.c).squaredNorm()>pow(s1.r+s2.r,2)) continue;
+			// TODO: handle periodic conditions better
+			Real dist=(s1.c-s2.c).norm();
+			ret=max(ret,(s1.r+s2.r-dist)/dist);
+		}
+	}
+	if(peri) removeShadows();
+	return ret;
 }

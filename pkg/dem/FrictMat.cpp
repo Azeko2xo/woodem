@@ -14,7 +14,7 @@ void Cp2_FrictMat_FrictPhys::go(const shared_ptr<Material>& m1, const shared_ptr
 
 void Cp2_FrictMat_FrictPhys::updateFrictPhys(FrictMat& mat1, FrictMat& mat2, FrictPhys& ph, const shared_ptr<Contact>& C){
 	// fast variant, for L6Geom only
-	#if 0
+	#if 1
 		assert(dynamic_cast<L6Geom*>(C->geom.get()));
 		const auto& l6g=C->geom->cast<L6Geom>();
 		Real l0=l6g.lens[0],l1=l6g.lens[1], A=l6g.contA;

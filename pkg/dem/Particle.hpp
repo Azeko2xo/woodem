@@ -166,6 +166,7 @@ template<> struct NodeData::Index<DemData>{enum{value=Node::ST_DEM};};
 struct DemField: public Field{
 	DECLARE_LOGGER;
 	int collectNodes();
+	void clearDead(){ deadNodes.clear(); }
 	void removeParticle(Particle::id_t id);
 	void removeClump(size_t id);
 	boost::mutex nodesMutex; // sync adding nodes with the renderer, which might otherwise crash
@@ -179,9 +180,12 @@ struct DemField: public Field{
 		((vector<shared_ptr<Node>>,clumps,,AttrTrait<Attr::readonly>(),"Nodes which define clumps; only manipulated from clump-related user-routines, not directly."))
 		((int,loneMask,0,,"Particle groups which have bits in loneMask in common (i.e. (A.mask & B.mask & loneMask)!=0) will not have contacts between themselves"))
 		((Vector3r,gravity,Vector3r::Zero(),,"Constant gravity acceleration"))
+		((bool,saveDeadNodes,false,AttrTrait<>().buttons({"Clear dead nodes","self.clearDead()",""}),"Save unused nodes of deleted particles, which would be otherwise removed (useful for displaying traces of deleted particles)."))
+		((vector<shared_ptr<Node>>,deadNodes,,AttrTrait<Attr::readonly|Attr::noSave>().noGui(),"List of nodes belonging to deleted particles; only used if :ref:`saveDeadNodes` is `True`"))
 		, /* ctor */ createIndex(); postLoad(*this); /* to make sure pointers are OK */
 		, /*py*/
 		.def("collectNodes",&DemField::collectNodes,"Collect nodes from all particles and clumps and insert them to nodes defined for this field. Nodes are not added multiple times, even if they are referenced from different particles / clumps.")
+		.def("clearDead",&DemField::clearDead)
 		.def("sceneHasField",&Field_sceneHasField<DemField>).staticmethod("sceneHasField")
 		.def("sceneGetField",&Field_sceneGetField<DemField>).staticmethod("sceneGetField")
 	);

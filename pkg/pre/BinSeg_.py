@@ -26,6 +26,72 @@ milimeter=FuncFormatter(lambda x,pos=0: '%3g'%(1000*x))
 legendAlpha=.6
 
 
+def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,dontBlock=False,memoizeDir=None):
+	if memoizeDir:
+		params=str(dim)+str(psd)+str(goal)+str(damping)+str(porosity)+str(lenAxis)
+		import hashlib
+		paramHash=hashlib.sha1(params).hexdigest()
+		memoizeFile=memoizeDir+'/'+paramHash+'.perifeed'
+		print 'Memoize file is ',memoizeFile
+		if os.path.exists(memoizeDir+'/'+paramHash+'.perifeed'):
+			print 'Returning memoized result'
+			sp=pack.SpherePack()
+			sp.load(memoizeFile)
+			return zip(*sp)+[sp.cellSize[lenAxis],]
+	p3=porosity**(1/3.)
+	rMax=psd[-1][0]
+	minSize=rMax*5
+	cellSize=Vector3(max(dim[0]*p3,minSize),max(dim[1]*p3,minSize),max(dim[2]*p3,minSize))
+	print 'dimension',dim
+	print 'initial cell size',cellSize
+	print 'psd=',psd
+	S=Scene(fields=[DemField()])
+	S.periodic=True
+	S.cell.setBox(cellSize)
+	S.engines=[
+		InsertionSortCollider([Bo1_Sphere_Aabb()]),
+		BoxFactory(
+			box=((0,0,0),cellSize),
+			maxMass=-1,
+			massFlowRate=0,
+			maxAttempts=5000,
+			generator=PsdSphereGenerator(psdPts=psd,discrete=False,mass=True),
+			materials=[FrictMat(density=1e3,young=1e7,ktDivKn=.2,tanPhi=math.tan(.5))],
+			shooter=None,
+			mask=1,
+		)
+	]
+	S.one()
+	print 'Created %d particles'%(len(S.dem.par))
+	S.dt=.9*utils.pWaveDt(S)
+	S.engines=[
+		woo.dem.PeriIsoCompressor(charLen=2*psd[-1][0],stresses=[-1e8,-1e6],maxUnbalanced=goal,doneHook='print "done"; S.stop();',globalUpdateInt=1,keepProportions=True)
+	]+utils.defaultEngines(damping=damping)
+	if dontBlock: return S
+	S.run(); S.wait()
+	sp=woo.pack.SpherePack()
+	sp.fromSimulation(S)
+	print 'Packing size is',sp.cellSize
+	sp.makeOverlapFree()
+	print 'Loose packing size is',sp.cellSize
+	sp.canonicalize()
+	cc,rr=[],[]
+	inf=float('inf')
+	boxMin=Vector3(0,0,0);
+	boxMax=dim
+	boxMin[lenAxis]=-inf
+	boxMax[lenAxis]=inf
+	box=AlignedBox3(boxMin,boxMax)
+	for c,r in sp:
+		if c not in box: continue
+		cc.append(c); rr.append(r)
+	if memoizeDir:
+		sp2=pack.SpherePack()
+		sp2.fromList(cc,rr)
+		sp2.cellSize=sp.cellSize
+		print 'Saving to',memoizeFile
+		sp2.save(memoizeFile)
+	return cc,rr,sp.cellSize[lenAxis]
 
 
 def yRectPlate(xz0,xz1,yy,shift=True,halfThick=0.,**kw):
@@ -126,18 +192,58 @@ def run(pre):
 		utils.wall((xmax,0,0),sense=-1,axis=0,mat=pre.wallMaterial,mask=wallMask,glAB=((ymin,zmin),(ymax,zmax))),
 	])
 
+	rMax=pre.psd[-1][0]
+
 	## initial spheres
 	if pre.loadSpheresFrom:
 		import woo.pack
 		sp=woo.pack.SpherePack()
 		print 'Loading spheres from',pre.loadSpheresFrom
 		sp.load(pre.loadSpheresFrom)
-		sp.toSimulation(S,mat=pre.material,mask=sphMask)
+		# http://stackoverflow.com/a/312464/761090
+		def chunks(l, n):
+			'Yield successive n-sized chunks from l.'
+			for i in xrange(0,len(l),n): yield l[i:i+n]
+		if pre.deadTriangles:
+			spAlive=woo.pack.SpherePack()
+			spFixed=woo.pack.SpherePack()
+			for c,r in sp:
+				what=0
+				for t in chunks(pre.deadTriangles,3):
+					sd=utils.outerTri2Dist(Vector2(c[0],c[2]),t[0],t[1],t[2])
+					if sd>.5*rMax: what=max(what,0) # live
+					elif sd>0: what=max(what,1) # edge
+					else: what=max(what,2) # dead
+				if what==0: spAlive.add(c,r) # live
+				elif what==1: spFixed.add(c,r) # edge
+				else: continue # dead
+			spFixed.toSimulation(S,mat=pre.material,mask=sphMask,fixed=True,color=-.5)
+		else: spAlive=sp
+		spAlive.toSimulation(S,mat=pre.material,mask=sphMask)
 		## open holes if initial spheres are loaded
 		print 'Opening both holes as spheres were loaded externally'
 		S.dem.par.disappear(pre.hole1ids+pre.hole2ids,mask=S.dem.loneMask)
 
 
+	cc,rr,cellLen=makePeriodicFeedPack([20*rMax,(ymax-ymin-2*rMax),pre.feedPos[1]],lenAxis=0,psd=pre.psd,memoizeDir='.')
+	factoryNode=Node(pos=(.5*(J[0]+I[0]),ymin+rMax,J[1]),ori=Quaternion((0,1,0),math.pi/2.)) # local x-axis is downwards
+	#cc,rr=makeBandFeedPack(dim=(20*rMax,,pre.cylLenSim,pre.conveyorHt),excessWd=(30*rMax,15*rMax),psd=pre.psd,mat=pre.material,gravity=(0,0,-pre.gravity),porosity=.7,damping=.3,memoizeDir=pre.feedCacheDir)
+	factory=ConveyorFactory(
+		stepPeriod=pre.factStep,
+		material=pre.material,
+		centers=cc,radii=rr,
+		cellLen=cellLen,
+		barrierColor=0,
+		color=float('nan'),
+		glColor=.5,
+		#color=.4, # random colors
+		node=factoryNode,
+		mask=sphMask,
+		prescribedRate=pre.feedRate,
+		label='feed',
+		maxMass=-1, # unlimited
+		currRateSmooth=pre.rateSmooth,
+	)
 
 	S.engines=utils.defaultEngines(damping=pre.damping,dontCollect=True)+[
 		BoxDeleter(
@@ -152,21 +258,22 @@ def run(pre):
 		)
 		for i,box in enumerate([((xmin,ymin,zmin),(L[0],ymax,0)),((L[0],ymin,zmin),(xmax,ymax,0))])
 	]+[
-		BoxFactory(
-			box=((J[0],ymin,J[1]),(I[0],ymax,I[1]+(I[0]-J[0]))),
-			stepPeriod=pre.factStep,
-			maxMass=-1,
-			massFlowRate=pre.feedRate,
-			glColor=.8,
-			maxAttempts=100,
-			atMaxAttempts=BoxFactory.maxAttError,
-			generator=PsdSphereGenerator(psdPts=pre.psd,discrete=False,mass=True),
-			materials=[pre.material],
-			shooter=AlignedMinMaxShooter(dir=(0,0,-1),vRange=(0,0)),
-			currRateSmooth=pre.rateSmooth,
-			mask=sphMask,
-			label='feed',
-		),
+		#BoxFactory(
+		#	box=((J[0],ymin,J[1]),(I[0],ymax,I[1]+(I[0]-J[0]))),
+		#	stepPeriod=pre.factStep,
+		#	maxMass=-1,
+		#	massFlowRate=pre.feedRate,
+		#	glColor=.8,
+		#	maxAttempts=100,
+		#	atMaxAttempts=BoxFactory.maxAttError,
+		#	generator=PsdSphereGenerator(psdPts=pre.psd,discrete=False,mass=True),
+		#	materials=[pre.material],
+		#	shooter=AlignedMinMaxShooter(dir=(0,0,-1),vRange=(0,0)),
+		#	currRateSmooth=pre.rateSmooth,
+		#	mask=sphMask,
+		#	label='feed',
+		#),
+		factory,
 		PyRunner(pre.factStep,'import woo.pre.BinSeg_; woo.pre.BinSeg_.adjustFeedRate(S)',label='feedAdjuster',dead=True),
 		#PyRunner(600,'print "%g/%g mass, %d particles, unbalanced %g/'+str(goal)+'"%(woo.makeBandFeedFactory.mass,woo.makeBandFeedFactory.maxMass,len(S.dem.par),woo.utils.unbalancedForce(S))'),
 		#PyRunner(200,'if woo.utils.unbalancedForce(S)<'+str(goal)+' and woo.makeBandFeedFactory.dead: S.stop()'),
@@ -211,10 +318,10 @@ def adjustFeedRate(S):
 	br=sum([b.currRate for b in woo.bucket])
 	newRate=fr+S.pre.feedAdjustCoeff*(br-fr)
 	if not math.isnan(newRate):
-		woo.feed.massFlowRate=newRate
-		print 'New feed rate %g (old %g, hole rate %g)'%(woo.feed.massFlowRate,fr,br)
+		woo.feed.prescribedRate=newRate
+		print 'New feed rate %g (old %g, hole rate %g)'%(woo.feed.prescribedRate,fr,br)
 	else:
-		print 'No feed rate computed (nan), keeping old %g'%(woo.feed.massFlowRate)
+		print 'No feed rate computed (nan), keeping old %g'%(woo.feed.prescribedRate)
 
 
 
@@ -254,7 +361,7 @@ def saveSpheres(S):
 def feedHolesPsdTable(S,massScale=1.):
 	psdSplits=[df[0] for df in S.pre.psd]
 	feedHolesMasses=[]
-	for ddmm in (woo.feed.generator.diamMass(),woo.bucket[0].diamMass(),woo.bucket[1].diamMass()):
+	for ddmm in (woo.feed.diamMass(),woo.bucket[0].diamMass(),woo.bucket[1].diamMass()):
 		mm=[]
 		for i in range(len(psdSplits)-1):
 			dmdm=zip(*ddmm)
@@ -283,24 +390,24 @@ def feedHolesPsdTable(S,massScale=1.):
 	tab.append(t.tr(*tuple([t.td('%.3g %%'%(sum(bm)*100./sum(feedHolesMasses[0])),colspan=2,align='right') for bm in feedHolesMasses])))
 	return unicode(tab.generate().render('xhtml'))
 
-def feedHolesPsdFigure():
+def feedHolesPsdFigure(massBased=False):
 	import pylab
 	fig=pylab.figure()
 	for i,buck in enumerate(woo.bucket):
 		if buck.num<=1: continue # bucket empty, or just one particle (range would be automatically -.4 to +.4 around that single particle)
 		dm=buck.diamMass()
-		h,bins=numpy.histogram(dm[0],weights=dm[1],bins=50)
-		h/=h.sum()
+		h,bins=numpy.histogram(dm[0],weights=(dm[1] if massBased else len(dm[0])*[1.]),bins=50)
+		h/=1.*h.sum()
 		pylab.plot(bins,[0]+list(h.cumsum()),label='hole %d'%(i+1),linewidth=2)
 	if woo.feed.num>1:
-		pylab.plot(*woo.feed.generator.psd(normalize=True),label='feed',linewidth=2)
+		pylab.plot(*woo.feed.psd(normalize=True,mass=massBased),label='feed',linewidth=2)
 
 	pylab.ylim(ymin=-.05,ymax=1.05)
 	pylab.grid(True)
 	pylab.gca().xaxis.set_major_formatter(milimeter)
 	pylab.xlabel('diameter [mm]')
 	pylab.gca().yaxis.set_major_formatter(percent)
-	pylab.ylabel('mass fraction')
+	pylab.ylabel(('mass' if massBased else 'COUNT')+' fraction')
 	leg=pylab.legend(loc='best')
 	leg.get_frame().set_alpha(legendAlpha)
 	return fig
@@ -323,7 +430,7 @@ def finishSimulation():
 		figs.append(('Per-hole PSD',feedHolesPsdFigure()))
 	if 1:
 		fig=pylab.figure()
-		if woo.feed.num: pylab.plot(*woo.feed.generator.psd(cumulative=False,normalize=False,num=20),label='feed')
+		if woo.feed.num: pylab.plot(*woo.feed.psd(cumulative=False,normalize=False,num=20),label='feed')
 		if woo.bucket[0].num: pylab.plot(*woo.bucket[0].psd(cumulative=False,normalize=False,num=20),label='hole 1')
 		if woo.bucket[1].num: pylab.plot(*woo.bucket[1].psd(cumulative=False,normalize=False,num=20),label='hole 2')
 		pylab.grid(True)
@@ -462,7 +569,8 @@ def uiBuild(S,area):
 	h12=QPushButton('Open 1+2')
 	r=QPushButton('Report')
 	reset=QPushButton('Reset counters')
-	psd=QPushButton('PSD')
+	psd=QPushButton('PSD (mass)')
+	psdCount=QPushButton('PSD (count)')
 	for b in (f,h1,h2,h12): b.setCheckable(True)
 	f.toggled.connect(lambda checked: feedToggled(S,checked,grid))
 	h1.clicked.connect(lambda: holeClicked(S,1,grid))
@@ -470,7 +578,8 @@ def uiBuild(S,area):
 	h12.clicked.connect(lambda: hole12Clicked(S,grid))
 	s.clicked.connect(lambda: saveSpheres(S))
 	reset.clicked.connect(lambda: resetCounters(S))
-	psd.clicked.connect(lambda: feedHolesPsdFigure().show())
+	psd.clicked.connect(lambda: feedHolesPsdFigure(True).show())
+	psdCount.clicked.connect(lambda: feedHolesPsdFigure(False).show())
 	r.clicked.connect(lambda: reportClicked(S,grid))
 	adj.stateChanged.connect(lambda state: autoAdjustChanged(S,grid,state))
 	grid.feedButt=f
@@ -484,6 +593,7 @@ def uiBuild(S,area):
 	grid.addWidget(h12,3,0,1,3)
 	grid.addWidget(reset,4,0)
 	grid.addWidget(psd,4,1)
+	grid.addWidget(psdCount,4,2)
 	grid.addWidget(r,5,1)
 	grid.refreshTimer=QTimer(grid)
 	grid.refreshTimer.timeout.connect(lambda: uiRefresh(grid,S,area))

@@ -763,7 +763,7 @@ void GLViewer::postDraw(){
 		glDisable(GL_LIGHTING);
 		const int pixDiv=100; // show number every 100 px approximately
 		const int scaleWd=20; // width in pixels
-		const int nDiv=20; // draw colorline with this many segments (for gradients)
+		const int nDiv=60; // draw colorline with this many segments (for gradients)
 		int yDef=.2*height(); // default y position, if current is not valid
 		glLineWidth(scaleWd);
 		for(size_t i=0; i<scene->ranges.size(); i++){

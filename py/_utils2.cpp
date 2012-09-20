@@ -191,6 +191,21 @@ vector<Vector3r> facetsPlaneIntersectionSegments(vector<shared_ptr<Particle>> fa
 	return ret;
 };
 
+Real outerTri2Dist(const Vector2r& pt, const Vector2r& A, const Vector2r& B, const Vector2r& C){
+	Vector3r abc[]={Vector3r(A[0],A[1],0),Vector3r(B[0],B[1],0),Vector3r(C[0],C[1],0)};
+	Vector3r P=Vector3r(pt[0],pt[1],0);
+	Real minDist=Inf;
+	bool inside=true;
+	for(int i:{0,1,2}){
+		Vector3r& M(abc[i]), N(abc[(i+1)%3]);
+		Vector3r Q=CompUtils::closestSegmentPt(P,M,N);
+		Real dist=(P-Q).norm();
+		inside=inside && ((N-M).cross(P-M))[2]>0;
+		if(minDist>dist) minDist=dist;
+	};
+	return minDist*(inside?-1:1);
+}
+
 
 BOOST_PYTHON_MODULE(_utils2){
 	// http://numpy.scipy.org/numpydoc/numpy-13.html mentions this must be done in module init, otherwise we will crash
@@ -207,6 +222,7 @@ BOOST_PYTHON_MODULE(_utils2){
 	py::def("mapColor",CompUtils::scalarOnColorScale,(py::arg("x"),py::arg("min")=0,py::arg("max")=1,py::arg("cmap")=-1),"Map scalar to color (as 3-tuple). See :ref:`woo.core.Master.cmap`, :ref:`woo.core.Master.cmaps` to set colormap globally.");
 	py::def("unbalancedForce",unbalancedForce,(py::arg("scene")=shared_ptr<Scene>(),py::arg("useMaxForce")=false),"Compute the ratio of mean (or maximum, if *useMaxForce*) summary force on bodies and mean force magnitude on interactions. It is an adimensional measure of staticity, which approaches zero for quasi-static states.");
 	py::def("facetsPlaneIntersectionSegments",facetsPlaneIntersectionSegments,(py::arg("facets"),py::arg("pt"),py::arg("normal")),"Return list of points, where consecutive pairs are segment where *facets* were intersecting plane given by *pt* and *normal*.");
+	py::def("outerTri2Dist",outerTri2Dist,(py::arg("pt"),py::arg("A"),py::arg("B"),py::arg("C")),"Return signed distance of point *pt* in triangle A,B,C. The result is distance of point *pt* to the closest point on triangle A,B,C. The distance is negative is *pt* is inside, 0 if exactly on the triangle and positive outside. Signedness supposes that A,B,C are given anti-clockwise; otherwise, the sign will be reversed");
 }
 
 

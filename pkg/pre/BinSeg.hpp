@@ -59,6 +59,7 @@ struct BinSeg: public Preprocessor {
 		((Real,rateSmooth,.2,,"Smoothing factor for plotting rates in factory and deleters"))
 		((Real,feedAdjustCoeff,.3,,"Coefficient for adjusting feed rate"))
 		((int,factStep,100,,"Interval at which particle factory and deleters are run"))
+		((vector<Vector2r>,deadTriangles,,,"Triangles given as sequence of points in the xz plane, where spheres will be removed from *loadSpheres* from. 2*rMax from the edge, they will be created as fixed-position"))
 
 		// internal variables for saving state in simulation
 		((vector<Particle::id_t>,hole1ids,,AttrTrait<>().noGui(),"Ids of hole 1 particles (for later removal)"))

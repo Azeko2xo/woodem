@@ -222,11 +222,11 @@ void Gl1_DemField::doShape(){
 	}
 }
 
-void Gl1_DemField::doNodes(){
+void Gl1_DemField::doNodes(const vector<shared_ptr<Node>>& nodeContainer){
 	boost::mutex::scoped_lock lock(dem->nodesMutex);
 
 	Renderer::nodeDispatcher.scene=scene; Renderer::nodeDispatcher.updateScenePtr();
-	FOREACH(shared_ptr<Node> n, dem->nodes){
+	FOREACH(shared_ptr<Node> n, nodeContainer){
 		PROCESS_GUI_EVENTS_SOMETIMES;
 
 		Renderer::setNodeGlData(n,updateRefPos);
@@ -338,7 +338,8 @@ void Gl1_DemField::go(const shared_ptr<Field>& demField, GLViewInfo* _viewInfo){
 
 	if(shape) doShape();
 	if(bound) doBound();
-	doNodes();
+	doNodes(dem->nodes);
+	if(!dem->deadNodes.empty()) doNodes(dem->deadNodes);
 	doContactNodes();
 	if(cPhys) doCPhys();
 	updateRefPos=false;

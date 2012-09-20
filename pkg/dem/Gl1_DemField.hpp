@@ -10,7 +10,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 	shared_ptr<DemField> dem; // used by do* methods
 	void doShape();
 	void doBound();
-	void doNodes();
+	void doNodes(const vector<shared_ptr<Node>>& nodeContainer);
 	void doContactNodes();
 	void doCPhys();
 	static void postLoadStatic(){

@@ -221,6 +221,7 @@ void DemField::removeParticle(Particle::id_t id){
 			if(nodes[dyn.linIx].get()!=n.get()) throw std::runtime_error("Node in #"+to_string(id)+" has invalid linIx entry!");
 			LOG_DEBUG("Removing #"<<id<<" / DemField::nodes["<<dyn.linIx<<"]"<<" (not used anymore)");
 			boost::mutex::scoped_lock lock(nodesMutex);
+			if(saveDeadNodes) deadNodes.push_back(nodes[dyn.linIx]);
 			(*nodes.rbegin())->getData<DemData>().linIx=dyn.linIx;
 			nodes[dyn.linIx]=*nodes.rbegin(); // move the last node to the current position
 			nodes.resize(nodes.size()-1);
