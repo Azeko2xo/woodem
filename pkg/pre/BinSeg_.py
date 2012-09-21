@@ -211,7 +211,7 @@ def run(pre):
 				what=0
 				for t in chunks(pre.deadTriangles,3):
 					sd=utils.outerTri2Dist(Vector2(c[0],c[2]),t[0],t[1],t[2])
-					if sd>.5*rMax: what=max(what,0) # live
+					if sd>pre.deadFixedRel*rMax: what=max(what,0) # live
 					elif sd>0: what=max(what,1) # edge
 					else: what=max(what,2) # dead
 				if what==0: spAlive.add(c,r) # live
@@ -221,13 +221,18 @@ def run(pre):
 		else: spAlive=sp
 		spAlive.toSimulation(S,mat=pre.material,mask=sphMask)
 		## open holes if initial spheres are loaded
-		print 'Opening both holes as spheres were loaded externally'
+		print 'Opening both holes and enabling rate auto-adjusting as spheres were loaded externally'
 		S.dem.par.disappear(pre.hole1ids+pre.hole2ids,mask=S.dem.loneMask)
-
 
 	cc,rr,cellLen=makePeriodicFeedPack([20*rMax,(ymax-ymin-2*rMax),pre.feedPos[1]],lenAxis=0,psd=pre.psd,memoizeDir=pre.feedCacheDir)
 	factoryNode=Node(pos=(.5*(J[0]+I[0]),ymin+rMax,J[1]),ori=Quaternion((0,1,0),math.pi/2.)) # local x-axis is downwards
-	#cc,rr=makeBandFeedPack(dim=(20*rMax,,pre.cylLenSim,pre.conveyorHt),excessWd=(30*rMax,15*rMax),psd=pre.psd,mat=pre.material,gravity=(0,0,-pre.gravity),porosity=.7,damping=.3,memoizeDir=pre.feedCacheDir)
+
+	# compute relative maxMass (don't write back to the preprocessor?)
+	if pre.maxMass<0:
+		maxMass=-pre.maxMass*sum([p.mass for p in S.dem.par if type(p.shape)==Sphere])
+		print 'Using maxMass=%g kg (preprocessor specified relative value of %g)'%(maxMass,pre.maxMass)
+	else: maxMass=pre.maxMass
+	#		
 	factory=ConveyorFactory(
 		stepPeriod=pre.factStep,
 		material=pre.material,
@@ -241,7 +246,7 @@ def run(pre):
 		mask=sphMask,
 		prescribedRate=pre.feedRate,
 		label='feed',
-		maxMass=-1, # unlimited
+		maxMass=maxMass,
 		currRateSmooth=pre.rateSmooth,
 	)
 
@@ -259,14 +264,15 @@ def run(pre):
 		for i,box in enumerate([((xmin,ymin,zmin),(L[0],ymax,0)),((L[0],ymin,zmin),(xmax,ymax,0))])
 	]+[
 		factory,
-		PyRunner(pre.factStep,'import woo.pre.BinSeg_; woo.pre.BinSeg_.adjustFeedRate(S)',label='feedAdjuster',dead=True),
+		PyRunner(pre.factStep,'import woo.pre.BinSeg_; woo.pre.BinSeg_.adjustFeedRate(S)',label='feedAdjuster',dead=(not pre.loadSpheresFrom)),
 		#PyRunner(600,'print "%g/%g mass, %d particles, unbalanced %g/'+str(goal)+'"%(woo.makeBandFeedFactory.mass,woo.makeBandFeedFactory.maxMass,len(S.dem.par),woo.utils.unbalancedForce(S))'),
 		#PyRunner(200,'if woo.utils.unbalancedForce(S)<'+str(goal)+' and woo.makeBandFeedFactory.dead: S.stop()'),
 		PyRunner(pre.factStep,'import woo.pre.BinSeg_; woo.pre.BinSeg_.savePlotData(S)'),
+		PyRunner(pre.factStep,'import woo.pre.BinSeg_; woo.pre.BinSeg_.watchProgress(S)'),
 	#]+( # VTK
 	#	[] if (not pre.vtkPrefix or pre.vtkFreq<=0) else [VtkExport(out=pre.vtkPrefix,stepPeriod=int(pre.vtkFreq*pre.factStepPeriod),what=VtkExport.all,subdiv=16)]
 	]+( # backups
-		[] if pre.backupSaveTime<=0 else [PyRunner(realPeriod=pre.backupSaveTime,stepPeriod=-1,command='S.save(S.pre.saveFmt.format(stage="backup-%06d"%(S.step),S=S,**(dict(S.tags))))')]
+		[] if pre.backupSaveTime<=0 else [PyRunner(realPeriod=pre.backupSaveTime,initRun=False,stepPeriod=-1,command='S.save(S.pre.saveFmt.format(stage="backup-%06d"%(S.step),S=S,**(dict(S.tags))))')]
 	)
 
 
@@ -277,16 +283,22 @@ def run(pre):
 
 	S.pre=pre.deepcopy()
 
-	S.plot.plots={'t':('feedRate','hole1rate','hole2rate','holeRate')}
+	S.plot.plots={'t':('feedRate','hole1rate','hole2rate','holeRate',None,'feedMass')}
 	if S.trackEnergy: S.plot.plots.update({'  t':(S.energy,None,('ERelErr','g--'))})
 
-	S.uiBuild='import woo.pre; woo.pre.BinSeg_.uiBuild(S,area)'
+	S.uiBuild='import woo.pre.BinSeg_; woo.pre.BinSeg_.uiBuild(S,area)'
 
 	try:
 		import woo.gl
+		crg=woo.gl.Gl1_DemField.colorRanges[woo.gl.Gl1_DemField.colorDisplacement]
+		crg.autoAdjust=False
+		crg.mnmx=(0,1*rMax)
+		grg=woo.gl.Gl1_DemField.glyphRanges[woo.gl.Gl1_DemField.glyphVel]
+		grg.autoAdjust=False
+		grg.mnmx=(0,1e-2*rMax/S.dt)
 		S.any=[
 			woo.gl.Renderer(iniUp=(0,0,1),iniViewDir=(0,1,0)),
-			woo.gl.Gl1_DemField(colorBy=woo.gl.Gl1_DemField.colorDisplacement),
+			woo.gl.Gl1_DemField(colorBy=woo.gl.Gl1_DemField.colorDisplacement,glyphRelSz=.05),
 			woo.gl.Gl1_Wall(div=1),
 			woo.gl.Gl1_Sphere(quality=.4)
 		]
@@ -299,10 +311,11 @@ def run(pre):
 
 	return S
 
+	
 def savePlotData(S):
 	import woo
 	import woo.plot
-	S.plot.addData(i=S.step,t=S.time,feedRate=woo.feed.currRate,hole1rate=woo.bucket[0].currRate,hole2rate=woo.bucket[1].currRate,numPar=len(S.dem.par),holeRate=sum([woo.bucket[i].currRate for i in (0,1)]))
+	S.plot.addData(i=S.step,t=S.time,feedMass=woo.feed.mass,feedRate=woo.feed.currRate,hole1rate=woo.bucket[0].currRate,hole2rate=woo.bucket[1].currRate,numPar=len(S.dem.par),holeRate=sum([woo.bucket[i].currRate for i in (0,1)]))
 
 def adjustFeedRate(S):
 	'Change feed massFlowRate so that it comes close to holes deletion rate'
@@ -314,7 +327,7 @@ def adjustFeedRate(S):
 		woo.feed.prescribedRate=newRate
 		print 'New feed rate %g (old %g, hole rate %g)'%(woo.feed.prescribedRate,fr,br)
 	else:
-		print 'No feed rate computed (nan), keeping old %g'%(woo.feed.prescribedRate)
+		print 'No feed rate computed (nan), keeping previous %g'%(woo.feed.prescribedRate)
 
 
 
@@ -387,7 +400,7 @@ def feedHolesPsdTable(S,massScale=1.):
 	tab.append(t.tr(*tuple([t.td('%.3g %%'%(sum(bm)*100./sum(feedHolesMasses[0])),colspan=2,align='right') for bm in feedHolesMasses])))
 	return unicode(tab.generate().render('xhtml'))
 
-def feedHolesPsdFigure(massBased=False):
+def feedHolesPsdFigure(massBased=True):
 	import pylab
 	fig=pylab.figure()
 	for i,buck in enumerate(woo.bucket):
@@ -410,15 +423,27 @@ def feedHolesPsdFigure(massBased=False):
 	return fig
 
 
-def finishSimulation():	
+def watchProgress(S):
+	import woo
+	# not yet finished
+	if woo.feed.maxMass<0 or woo.feed.mass<woo.feed.maxMass: return
+	# exit here
+	out=S.pre.saveFmt.format(stage='done',S=S,**(dict(S.tags)))
+	if S.lastSave!=out:
+		S.save(out)
+		print 'Saved to',out
+	repName,extraResults=writeReport()
+	woo.batch.writeResults(defaultDb='BinSeg.sqlite',simulationName='BinSeg',material=S.pre.material,report=repName,saveFile=os.path.abspath(S.lastSave),**extraResults)
+	S.stop()
+
+
+def writeReport():	
 	import woo
 	import numpy,pylab
 	S=woo.master.scene
-	S.stop(); S.wait()
 	massScale=2 if S.pre.halfDp else 1.
 
 	figs=[]
-
 
 	# per-bucket PSD
 	def scaledFlowPsd(x,y): return numpy.array(x),massScale*numpy.array(y)
@@ -459,6 +484,13 @@ def finishSimulation():
 	except (KeyError,IndexError) as e:
 		print 'No woo.plot plots done due to lack of data:',str(e)
 
+	extraResults={}
+	for name,obj in ('Hole1',woo.bucket[0]),('Hole2',woo.bucket[1]),('Feed',woo.feed):
+		extraResults['dAverage'+name]=numpy.average(obj.diamMass()[0])
+		extraResults['dMedian'+name]=numpy.median(obj.diamMass()[0])
+		extraResults['mass'+name]=obj.mass
+	pprint.pprint(extraResults)
+
 
 	import codecs
 	repName=unicode(S.pre.reportFmt).format(S=S,**(dict(S.tags)))
@@ -477,9 +509,6 @@ def finishSimulation():
 
 	s+='</body></html>'
 
-
-
-
 	s=s.replace(u'\xe2\x88\x92','-') # long minus
 	s=s.replace(u'\xc3\x97','x') # × multiplicator
 	try:
@@ -489,7 +518,7 @@ def finishSimulation():
 		print s[max(0,e.start-20):min(e.end+20,len(s))]
 		raise e
 
-	return os.path.abspath(repName)
+	return os.path.abspath(repName),extraResults
 
 
 def uiRefresh(grid,S,area):
@@ -543,7 +572,8 @@ def feedToggled(S,checked,grid):
 		woo.feed.stepLast=S.step
 	grid.adjCheckbox.setEnabled(not woo.feed.dead)
 def reportClicked(S,grid):
-	rep=finishSimulation()
+	with S.paused():
+		rep=writeReport()[0]
 	import webbrowser
 	webbrowser.open(rep)
 def autoAdjustChanged(S,grid,state):
@@ -551,10 +581,8 @@ def autoAdjustChanged(S,grid,state):
 	if state==0:
 		# stop auto-adjust
 		woo.feedAdjuster.dead=True
-		woo.feed.atMaxAttempts=woo.dem.BoxFactory.maxAttError
 	else:
 		woo.feedAdjuster.dead=False
-		woo.feed.atMaxAttempts=woo.dem.BoxFactory.maxAttWarn
 
 def uiBuild(S,area):
 	grid=QGridLayout(area); grid.setSpacing(0); grid.setMargin(0)

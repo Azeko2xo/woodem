@@ -229,7 +229,7 @@ def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 		if not allTab.has_key(tableLine): raise RuntimeError("Table %s doesn't contain valid line number %d"%(tableFile,tableLine))
 		vv=allTab[tableLine]
 		s.tags['line']='l%d'%tableLine
-		s.tags['title']=vv['title']
+		s.tags['title']=str(vv['title'])
 		s.tags['idt']=s.tags['id']+'.'+s.tags['title']; s.tags['tid']=s.tags['title']+'.'+s.tags['id']
 		# assign values specified in the table to python vars
 		# !something cols are skipped, those are env vars we don't treat at all (they are contained in title, though)
@@ -286,10 +286,10 @@ def runPreprocessor(pre,preFile=None):
 	# set tags from batch
 	if tableFileLine:
 		S.tags['line']='l%d'%tableLine
-		S.tags['title']=vv['title']
+		S.tags['title']=str(vv['title'])
 	else:
 		S.tags['line']='default'
-		S.tags['title']=preFile if preFile else '[no file]'
+		S.tags['title']=str(preFile if preFile else '[no file]')
 	S.tags['idt']=(S.tags['id']+'.'+S.tags['title']).replace('/','_')
 	S.tags['tid']=(S.tags['title']+'.'+S.tags['id']).replace('/','_')
 	return S

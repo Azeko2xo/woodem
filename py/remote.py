@@ -33,10 +33,10 @@ class InfoProvider:
 		try:
 			from woo import plot
 			S=woo.master.scene
-			if len(plot.plots)==0: return None
-			fig=plot.plot(subPlots=True,noShow=True)
+			if len(S.plot.plots)==0: return None
+			fig=S.plot.plot(subPlots=True,noShow=True)
 			img=woo.master.tmpFilename()+'.'+plotImgFormat
-			sqrtFigs=math.sqrt(len(plot.plots))
+			sqrtFigs=math.sqrt(len(S.plot.plots))
 			fig.set_size_inches(5*sqrtFigs,7*sqrtFigs)
 			fig.savefig(img)
 			f=open(img,'rb'); data=f.read(); f.close(); os.remove(img)

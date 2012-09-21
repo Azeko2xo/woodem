@@ -18,8 +18,8 @@ struct ParticleFactory: public PeriodicEngine{
 		else currRate=(1-currRateSmooth)*currRate+currRateSmooth*currRateNoSmooth;
 	}
 	WOO_CLASS_BASE_DOC_ATTRS(ParticleFactory,PeriodicEngine,"Factory generating new particles. This is an abstract base class which in itself does not generate anything, but provides some unified interface to derived classes.",
-		((Real,maxMass,-1,,"Mass at which the engine will not produce any particles (inactive if negative)"))
-		((long,maxNum,-1,,"Number of generated particles after which no more will be produced (inacitve if negative)"))
+		((Real,maxMass,-1,,"Mass at which the engine will not produce any particles (inactive if not positive)"))
+		((long,maxNum,-1,,"Number of generated particles after which no more will be produced (inactive if not positive)"))
 		((Real,mass,0,,"Generated mass total"))
 		((long,num,0,,"Number of generated particles"))
 		((Real,currRate,NaN,AttrTrait<>().readonly(),"Current value of mass flow rate"))

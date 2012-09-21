@@ -183,7 +183,8 @@ class HttpStatsServer(SocketServer.ThreadingMixIn,BaseHTTPRequestHandler):
 				self.sendPygmentizedFile(job.script,linenostep=5)
 			elif rest=='table':
 				if not job.table: return
-				self.sendPygmentizedFile(job.table,hl_lines=[job.lineNo],linenostep=1)
+				if job.table.endswith('.xls'): self.sendFile(job.table,contentType='application/vnd.ms-excel')
+				else: self.sendPygmentizedFile(job.table,hl_lines=[job.lineNo],linenostep=1)
 			else: self.send_error(404,self.path)
 		return
 	def log_request(self,req): pass
