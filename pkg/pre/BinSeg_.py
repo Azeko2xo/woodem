@@ -156,7 +156,7 @@ def run(pre):
 	H=G+(0,ht)
 	I=H-(pre.feedPos[0],0)
 	J=I-(pre.feedPos[1],0)
-	K=.5*(D+E)-Vector2(0,-pre.halfThick)
+	K=.5*(D+E)-Vector2(0,pre.halfThick)
 	L=K-(0,2*pre.hole1[1])
 
 	feedHt=pre.feedPos[1]
@@ -225,7 +225,7 @@ def run(pre):
 		S.dem.par.disappear(pre.hole1ids+pre.hole2ids,mask=S.dem.loneMask)
 
 
-	cc,rr,cellLen=makePeriodicFeedPack([20*rMax,(ymax-ymin-2*rMax),pre.feedPos[1]],lenAxis=0,psd=pre.psd,memoizeDir='.')
+	cc,rr,cellLen=makePeriodicFeedPack([20*rMax,(ymax-ymin-2*rMax),pre.feedPos[1]],lenAxis=0,psd=pre.psd,memoizeDir=pre.feedCacheDir)
 	factoryNode=Node(pos=(.5*(J[0]+I[0]),ymin+rMax,J[1]),ori=Quaternion((0,1,0),math.pi/2.)) # local x-axis is downwards
 	#cc,rr=makeBandFeedPack(dim=(20*rMax,,pre.cylLenSim,pre.conveyorHt),excessWd=(30*rMax,15*rMax),psd=pre.psd,mat=pre.material,gravity=(0,0,-pre.gravity),porosity=.7,damping=.3,memoizeDir=pre.feedCacheDir)
 	factory=ConveyorFactory(
@@ -258,27 +258,17 @@ def run(pre):
 		)
 		for i,box in enumerate([((xmin,ymin,zmin),(L[0],ymax,0)),((L[0],ymin,zmin),(xmax,ymax,0))])
 	]+[
-		#BoxFactory(
-		#	box=((J[0],ymin,J[1]),(I[0],ymax,I[1]+(I[0]-J[0]))),
-		#	stepPeriod=pre.factStep,
-		#	maxMass=-1,
-		#	massFlowRate=pre.feedRate,
-		#	glColor=.8,
-		#	maxAttempts=100,
-		#	atMaxAttempts=BoxFactory.maxAttError,
-		#	generator=PsdSphereGenerator(psdPts=pre.psd,discrete=False,mass=True),
-		#	materials=[pre.material],
-		#	shooter=AlignedMinMaxShooter(dir=(0,0,-1),vRange=(0,0)),
-		#	currRateSmooth=pre.rateSmooth,
-		#	mask=sphMask,
-		#	label='feed',
-		#),
 		factory,
 		PyRunner(pre.factStep,'import woo.pre.BinSeg_; woo.pre.BinSeg_.adjustFeedRate(S)',label='feedAdjuster',dead=True),
 		#PyRunner(600,'print "%g/%g mass, %d particles, unbalanced %g/'+str(goal)+'"%(woo.makeBandFeedFactory.mass,woo.makeBandFeedFactory.maxMass,len(S.dem.par),woo.utils.unbalancedForce(S))'),
 		#PyRunner(200,'if woo.utils.unbalancedForce(S)<'+str(goal)+' and woo.makeBandFeedFactory.dead: S.stop()'),
 		PyRunner(pre.factStep,'import woo.pre.BinSeg_; woo.pre.BinSeg_.savePlotData(S)'),
-	]
+	#]+( # VTK
+	#	[] if (not pre.vtkPrefix or pre.vtkFreq<=0) else [VtkExport(out=pre.vtkPrefix,stepPeriod=int(pre.vtkFreq*pre.factStepPeriod),what=VtkExport.all,subdiv=16)]
+	]+( # backups
+		[] if pre.backupSaveTime<=0 else [PyRunner(realPeriod=pre.backupSaveTime,stepPeriod=-1,command='S.save(S.pre.saveFmt.format(stage="backup-%06d"%(S.step),S=S,**(dict(S.tags))))')]
+	)
+
 
 	S.dem.collectNodes()
 
@@ -303,6 +293,9 @@ def run(pre):
 
 	except ImportError: pass
 
+	out=pre.saveFmt.format(stage='init',S=S,**(dict(S.tags)))
+	S.save(out)
+	print 'Saved initial simulation also to ',out
 
 	return S
 
@@ -352,11 +345,15 @@ def saveSpheres(S):
 	if len(woo.qt.views())>0: woo.qt.views()[0].close()
 	f=str(QFileDialog.getSaveFileName(None,'Save spheres to','.'))
 	if not f: return
+	# find maximum contact z-coordinate (top of the heap)
+	maxZ=max([c.geom.node.pos[2] for c in S.dem.con])
 	import woo.pack
 	sp=woo.pack.SpherePack()
-	sp.fromSimulation(S)
+	for p in S.dem.par:
+		if type(p.shape)!=woo.dem.Sphere or p.pos[2]>maxZ: continue
+		sp.add(p.pos,p.shape.radius)
 	sp.save(f)
-	print 'Spheres saved to',f
+	print 'Spheres (with z<%g) saved to %s'%(maxZ,f)
 
 def feedHolesPsdTable(S,massScale=1.):
 	psdSplits=[df[0] for df in S.pre.psd]
