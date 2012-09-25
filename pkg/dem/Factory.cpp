@@ -33,7 +33,7 @@ py::tuple ParticleGenerator::pyPsd(bool mass, bool cumulative, bool normalize, V
 	return py::make_tuple(diameters,percentage);
 }
 
-py::object ParticleGenerator::pyDiamMass(){
+py::object ParticleGenerator::pyDiamMass() const {
 	#if 1
 		py::list diam, mass;
 		for(const Vector2r& vv: genDiamMass){ diam.append(vv[0]); mass.append(vv[1]); }
@@ -47,6 +47,14 @@ py::object ParticleGenerator::pyDiamMass(){
 		return py::object(py::handle<>(py::borrowed(o)));
 	#endif
 }
+
+Real ParticleGenerator::pyMassOfDiam(Real min, Real max) const{
+	Real ret=0.;
+	for(const Vector2r& vv: genDiamMass){
+		if(vv[0]>=min && vv[0]<=max) ret+=vv[1];
+	}
+	return ret;
+};
 
 vector<ParticleGenerator::ParticleAndBox>
 MinMaxSphereGenerator::operator()(const shared_ptr<Material>&mat){
@@ -441,7 +449,7 @@ void BoxDeleter::run(){
 	if(isnan(currRate)||stepPrev<0) currRate=currRateNoSmooth;
 	else currRate=(1-currRateSmooth)*currRate+currRateSmooth*currRateNoSmooth;
 }
-py::tuple BoxDeleter::pyDiamMass(){
+py::tuple BoxDeleter::pyDiamMass() const {
 	py::list dd, mm;
 	for(const auto& del: deleted){
 		if(!del || !del->shape || del->shape->nodes.size()!=1 || !dynamic_pointer_cast<Sphere>(del->shape)) continue;
@@ -450,6 +458,16 @@ py::tuple BoxDeleter::pyDiamMass(){
 		dd.append(d); mm.append(m);
 	}
 	return py::make_tuple(dd,mm);
+}
+
+Real BoxDeleter::pyMassOfDiam(Real min, Real max) const {
+	Real ret=0.;
+	for(const auto& del: deleted){
+		if(!del || !del->shape || del->shape->nodes.size()!=1 || !dynamic_pointer_cast<Sphere>(del->shape)) continue;
+		Real d=2*del->shape->cast<Sphere>().radius;
+		if(d>=min && d<=max) ret+= del->shape->nodes[0]->getData<DemData>().mass;
+	}
+	return ret;
 }
 
 py::object BoxDeleter::pyPsd(bool mass, bool cumulative, bool normalize, int num, const Vector2r& dRange, bool zip){
@@ -613,6 +631,15 @@ py::object ConveyorFactory::pyDiamMass() const {
 	for(const Vector2r& vv: genDiamMass){ diam.append(vv[0]); mass.append(vv[1]); }
 	return py::object(py::make_tuple(diam,mass));
 }
+
+Real ConveyorFactory::pyMassOfDiam(Real min, Real max) const {
+	Real ret=0.;
+	for(const Vector2r& vv: genDiamMass){
+		if(vv[0]>=min && vv[0]<=max) ret+=vv[1];
+	}
+	return ret;
+}
+
 
 py::tuple ConveyorFactory::pyPsd(bool mass, bool cumulative, bool normalize, Vector2r dRange, int num) const {
 	if(!save) throw std::runtime_error("ConveyorFactory.save must be True for calling ConveyorFactory.psd()");

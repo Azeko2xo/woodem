@@ -409,7 +409,7 @@ jobs=[]
 executables=set()
 logFiles=[]
 if opts.resultsDb==None:
-	resultsDb='%s.results'%re.sub('\.(batch|table)$','',table) if table else 'batch.results'
+	resultsDb='%s.results'%re.sub('\.(batch|table|xls)$','',table) if table else 'batch.results'
 else: resultsDb=opts.resultsDb
 print 'Results database is',os.path.abspath(resultsDb)
 

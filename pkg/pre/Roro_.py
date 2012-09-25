@@ -64,7 +64,7 @@ def run(pre): # use inputs as argument
 	cylXMax=max([xzd[0] for xzd in cylXzd])
 	cylZMin=min([xzd[1] for xzd in cylXzd])
 	cylDMax=max([xzd[2] for xzd in cylXzd])
-	print 'Cylinder coordinates and diameters:'
+	print 'Cylinder coordinates and diameters (%d cylinders):'%len(cylXzd)
 	pprint.pprint(cylXzd)
 
 	rMin=pre.psd[0][0]/2.
@@ -312,6 +312,7 @@ def run(pre): # use inputs as argument
 
 
 def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,goal=.15,dontBlock=False,memoizeDir=None):
+	print 'woo.pre.Roro_.makeBandFeedPack(dim=%s,psd=%s,mat=%s,gravity=%s,excessWd=%s,damping=%s,dontBlock=True)'%(repr(dim),repr(psd),mat.dumps(format='expr',width=-1,noMagic=True),repr(gravity),repr(excessWd),repr(damping))
 	dim=list(dim) # make modifiable in case of excess width
 	retWd=dim[1]
 	repeatCell=[0]
@@ -365,7 +366,8 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 			#periSpanMask=1, # x is periodic
 		),
 		#PyRunner(200,'plot.addData(uf=utils.unbalancedForce(),i=O.scene.step)'),
-		PyRunner(600,'print "%g/%g mass, %d particles, unbalanced %g/'+str(goal)+'"%(woo.makeBandFeedFactory.mass,woo.makeBandFeedFactory.maxMass,len(S.dem.par),woo.utils.unbalancedForce(S))'),
+		PyRunner(300,'print "%g/%g mass, %d particles, unbalanced %g/'+str(goal)+'"%(woo.makeBandFeedFactory.mass,woo.makeBandFeedFactory.maxMass,len(S.dem.par),woo.utils.unbalancedForce(S))'),
+		PyRunner(300,'if woo.makeBandFeedFactory.mass>=woo.makeBandFeedFactory.maxMass: S.engines[0].damping=1.5*%g'%damping),
 		PyRunner(200,'if woo.utils.unbalancedForce(S)<'+str(goal)+' and woo.makeBandFeedFactory.dead: S.stop()'),
 	]
 	S.dt=.7*utils.spherePWaveDt(psd[0][0],mat.density,mat.young)
@@ -628,6 +630,15 @@ def bucketEfficiencyExtra(name,buck,feed,dMin,dMax):
 	print 'Efficiency for %g-%g (%s): %g%% (%gkg/%gkg)'%(dMin*1e3,dMax*1e3,name,100.*mBucketFrac/mFeedFrac,mBucketFrac,mFeedFrac)
 	return '',[],{name:mBucketFrac/mFeedFrac}
 
+def finesRemoval_productRecovery_extras(S,fineD,prodD):
+	buckDm=sum([[dm for dm in zip(*buck.diamMass())] for buck in woo.bucket],[])
+	# fine particles in buckets and in product
+	buckFines,prodFines=sum([buck.massOfDiam(max=fineD) for buck in woo.bucket]),woo.fallOver.massOfDiam(max=fineD)
+	# product-sized particles in buckets and in product
+	buckProd,prodProd=sum([buck.massOfDiam(min=prodD) for buck in woo.bucket]),woo.fallOver.massOfDiam(min=prodD)
+	return '',[],dict(finesRemovalEff=buckFines/(buckFines+prodFines),productRecoveryEff=prodProd/(buckProd+prodProd))
+
+
 def xhtmlReportHead(S,headline):
 	import time
 	xmlhead='''<?xml version="1.0" encoding="UTF-8"?>
@@ -761,10 +772,14 @@ def writeReport(S):
 	fig=pylab.figure()
 	for dd,mm,label in ((dOver,mOver,'oversize'),(dBuckets,mBuckets,'undersize')):
 		from numpy import diff
-		yPsd,xPsd=numpy.histogram(dd,weights=mm,bins=30)
+		from matplotlib.mlab import movavg
+		yPsd,xPsd=numpy.histogram(dd,weights=mm,bins=25)
 		yPsd=1e-3*yPsd.cumsum()
 		xMidPsd=.5*(xPsd[1:]+xPsd[:-1])
-		pylab.plot(xMidPsd[:-1],diff(yPsd)/diff(xMidPsd),label=label,linewidth=3)
+		pylab.plot(xMidPsd[1:-1],movavg(diff(yPsd)/diff(xMidPsd),2),label=label,linewidth=3)
+		#print 'Derivative PSD '+label
+		#print '\t',xMidPsd[1:-1]
+		#print '\t',movavg(diff(yPsd)/diff(xMidPsd),2)
 	pylab.grid(True)
 	pylab.gca().xaxis.set_major_formatter(milimeter)
 	pylab.axvline(x=pre.gap,linewidth=5,alpha=.3,ymin=0,ymax=1,color='g',label='gap')
@@ -773,7 +788,7 @@ def writeReport(S):
 	leg=pylab.legend(loc='best')
 	leg.get_frame().set_alpha(legendAlpha)
 	figs.append(('Derivative PSD',fig))
-
+	
 
 
 	feedTab=psdFeedBucketFalloverTable(
@@ -946,12 +961,13 @@ def writeReport(S):
 	woo.batch.writeResults(defaultDb='RoRo.sqlite',simulationName='RoRo',material=S.pre.material,report=repName,saveFile=os.path.abspath(S.lastSave),**extraResults)
 
 	# save sphere's positions
-	from woo import pack
-	sp=pack.SpherePack()
-	sp.fromSimulation(S)
-	packName=S.tags['id.d']+'-spheres.csv'
-	sp.save(packName)
-	print 'Particles saved to',os.path.abspath(packName)
+	if 0:
+		from woo import pack
+		sp=pack.SpherePack()
+		sp.fromSimulation(S)
+		packName=S.tags['id.d']+'-spheres.csv'
+		sp.save(packName)
+		print 'Particles saved to',os.path.abspath(packName)
 
 # test drive
 if __name__=='__main__':
