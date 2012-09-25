@@ -151,7 +151,7 @@ def run(pre):
 	C=B+(pre.hole1[0]-pre.halfThick,0)
 	D=C+(pre.hole1[1]+2*pre.halfThick,0)
 	G=Vector2(wd,0)
-	F=G-(pre.hole2[0]+pre.halfThick,0)
+	F=G-(pre.hole2[0]-pre.halfThick,0)
 	E=F-(pre.hole2[1]+2*pre.halfThick,0)
 	H=G+(0,ht)
 	I=H-(pre.feedPos[0],0)
@@ -250,7 +250,7 @@ def run(pre):
 		currRateSmooth=pre.rateSmooth,
 	)
 
-	S.engines=utils.defaultEngines(damping=pre.damping,dontCollect=True)+[
+	S.engines=utils.defaultEngines(damping=pre.damping,dontCollect=True,verletDist=pre.psd[0][0]*.1)+[
 		BoxDeleter(
 			stepPeriod=pre.factStep,
 			inside=True,
@@ -268,7 +268,7 @@ def run(pre):
 		#PyRunner(600,'print "%g/%g mass, %d particles, unbalanced %g/'+str(goal)+'"%(woo.makeBandFeedFactory.mass,woo.makeBandFeedFactory.maxMass,len(S.dem.par),woo.utils.unbalancedForce(S))'),
 		#PyRunner(200,'if woo.utils.unbalancedForce(S)<'+str(goal)+' and woo.makeBandFeedFactory.dead: S.stop()'),
 		PyRunner(pre.factStep,'import woo.pre.BinSeg_; woo.pre.BinSeg_.savePlotData(S)'),
-		PyRunner(pre.factStep,'import woo.pre.BinSeg_; woo.pre.BinSeg_.watchProgress(S)'),
+		PyRunner(pre.factStep,'import woo.pre.BinSeg_; woo.pre.BinSeg_.watchProgress(S)',initRun=False),
 	#]+( # VTK
 	#	[] if (not pre.vtkPrefix or pre.vtkFreq<=0) else [VtkExport(out=pre.vtkPrefix,stepPeriod=int(pre.vtkFreq*pre.factStepPeriod),what=VtkExport.all,subdiv=16)]
 	]+( # backups
@@ -400,6 +400,44 @@ def feedHolesPsdTable(S,massScale=1.):
 	tab.append(t.tr(*tuple([t.td('%.3g %%'%(sum(bm)*100./sum(feedHolesMasses[0])),colspan=2,align='right') for bm in feedHolesMasses])))
 	return unicode(tab.generate().render('xhtml'))
 
+def velocityFieldPlots(S,nameBase):
+	import woo
+	from woo import post2d
+	flattener=post2d.AxisFlatten(useRef=False,axis=1,swapAxes=True)
+	maxVel=.05
+	exVel=lambda p: p.vel if p.vel.norm()<=maxVel else p.vel/(p.vel.norm()/maxVel)
+	exVelNorm=lambda p: exVel(p).norm()
+	def plotBin(S,**kw):
+		from matplotlib.lines import Line2D
+		import woo.utils
+		P=S.pre
+		for A,B in (
+			(Vector2(0,P.size[1]),Vector2(0,0)),
+			(Vector2(0,0),Vector2(P.hole1[0],0)),
+			(Vector2(P.hole1[0]+P.hole1[1],0),Vector2(P.size[0]-P.hole2[0]-P.hole2[1],0)),
+			(Vector2(P.size[0]-P.hole2[0],0),Vector2(P.size[0],0)),
+			(Vector2(P.size[0],0),Vector2(P.size[0],P.size[1])),
+		):
+			pylab.gca().add_line(Line2D((A[0],B[0]),(A[1],B[1]),solid_capstyle='butt',**kw))
+	import pylab
+	fVRaw=pylab.figure()
+	post2d.plot(post2d.data(S,exVel,flattener),alpha=.3,minlength=.1,cmap='jet')
+	plotBin(S,linewidth=8,color='k')
+	fV2=pylab.figure()
+	post2d.plot(post2d.data(S,exVel,flattener,stDev=.5*S.pre.psd[0][0],div=(80,80)),minlength=.4,cmap='jet')
+	plotBin(S,linewidth=8,color='k')
+	fV1=pylab.figure()
+	post2d.plot(post2d.data(S,exVelNorm,flattener,stDev=.5*S.pre.psd[0][0],div=(80,80)),cmap='jet')
+	plotBin(S,linewidth=8,color='k')
+	outs=[]
+	for name,fig in [('particle-velocity',fVRaw),('smooth-velocity',fV2),('smooth-velocity-norm',fV1)]:
+		out=nameBase+'.%s.png'%name
+		fig.savefig(out)
+		outs.append(out)
+	return outs
+	
+
+
 def feedHolesPsdFigure(massBased=True):
 	import pylab
 	fig=pylab.figure()
@@ -426,7 +464,7 @@ def feedHolesPsdFigure(massBased=True):
 def watchProgress(S):
 	import woo
 	# not yet finished
-	if woo.feed.maxMass<0 or woo.feed.mass<woo.feed.maxMass: return
+	if (not woo.feed.maxMass>0) or woo.feed.mass<woo.feed.maxMass: return
 	# exit here
 	out=S.pre.saveFmt.format(stage='done',S=S,**(dict(S.tags)))
 	if S.lastSave!=out:
@@ -464,7 +502,6 @@ def writeReport():
 		leg.get_frame().set_alpha(legendAlpha)
 		figs.append(('PSD',fig))
 
-
 	try:
 		import pylab
 		fig=pylab.figure()
@@ -485,6 +522,9 @@ def writeReport():
 		print 'No woo.plot plots done due to lack of data:',str(e)
 
 	extraResults={}
+	import re
+	plotBase=unicode(re.sub('(\.xhtml)$','',S.pre.reportFmt)).format(S=S,**(dict(S.tags)))
+	extraResults['velocityFieldPlots']=velocityFieldPlots(S,plotBase)
 	for name,obj in ('Hole1',woo.bucket[0]),('Hole2',woo.bucket[1]),('Feed',woo.feed):
 		extraResults['dAverage'+name]=numpy.average(obj.diamMass()[0])
 		extraResults['dMedian'+name]=numpy.median(obj.diamMass()[0])

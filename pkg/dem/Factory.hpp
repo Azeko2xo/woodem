@@ -37,7 +37,8 @@ struct ParticleGenerator: public Object{
 	virtual vector<ParticleAndBox> operator()(const shared_ptr<Material>& m){ throw std::runtime_error("Calling ParticleGenerator.operator() (abstract method); use derived classes."); }
 	virtual void clear(){ genDiamMass.clear(); }
 	py::tuple pyPsd(bool mass, bool cumulative, bool normalize, Vector2r dRange, int num) const;
-	py::object pyDiamMass();
+	py::object pyDiamMass() const;
+	Real pyMassOfDiam(Real min, Real max) const;
 	py::list pyCall(const shared_ptr<Material>& m){ vector<ParticleAndBox> pee=(*this)(m); py::list ret; for(const auto& pe: pee) ret.append(py::make_tuple(pe.par,pe.extents)); return ret; }
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ParticleGenerator,Object,"Abstract class for generating particles",
 		((vector<Vector2r>,genDiamMass,,AttrTrait<Attr::readonly>().noGui(),"List of generated particle's (equivalent) radii and masses (for making granulometry)"))
@@ -46,6 +47,7 @@ struct ParticleGenerator: public Object{
 		,/*py*/
 			.def("psd",&ParticleGenerator::pyPsd,(py::arg("mass")=true,py::arg("cumulative")=true,py::arg("normalize")=false,py::arg("dRange")=Vector2r(NaN,NaN),py::arg("num")=80),"Return PSD for particles generated.")
 			.def("diamMass",&ParticleGenerator::pyDiamMass,"Return tuple of 2 arrays, diameters and masses.")
+			.def("massOfDiam",&ParticleGenerator::pyMassOfDiam,(py::arg("min")=0,py::arg("max")=Inf),"Return mass of particles of which diameters are between *min* and *max*.")
 			.def("clear",&ParticleGenerator::clear,"Clear stored data about generated particles; only subsequently generated particles will be considered in the PSD.")
 			.def("__call__",&ParticleGenerator::pyCall,"Call the generation routine, returning one particle (at origin) and its bounding-box when at origin. Useful for debugging.")
 	);
@@ -181,7 +183,8 @@ struct BoxDeleter: public PeriodicEngine{
 	#endif
 	void run();
 	py::object pyPsd(bool mass, bool cumulative, bool normalize, int num, const Vector2r& dRange, bool zip);
-	py::tuple pyDiamMass();
+	py::tuple pyDiamMass() const;
+	Real pyMassOfDiam(Real min, Real max) const ;
 	void pyClear(){ deleted.clear(); mass=0.; num=0; }
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(BoxDeleter,PeriodicEngine,"Delete particles which fall outside (or inside, if *inside* is True) given box. Deleted particles are optionally stored in the *deleted* array for later processing, if needed.",
 		((AlignedBox3r,box,AlignedBox3r(Vector3r(NaN,NaN,NaN),Vector3r(NaN,NaN,NaN)),,"Box volume specification (lower and upper corners)"))
@@ -201,6 +204,7 @@ struct BoxDeleter: public PeriodicEngine{
 		.def("psd",&BoxDeleter::pyPsd,(py::arg("mass")=true,py::arg("cumulative")=true,py::arg("normalize")=false,py::arg("num")=80,py::arg("dRange")=Vector2r(NaN,NaN),py::arg("zip")=false),"Return particle size distribution of deleted particles (only useful with *save*), spaced between *dRange* (a 2-tuple of minimum and maximum radius); )")
 		.def("clear",&BoxDeleter::pyClear,"Clear information about saved particles (particle list, if saved, mass and number)")
 		.def("diamMass",&BoxDeleter::pyDiamMass,"Return 2-tuple of same-length list of diameters and masses.")
+		.def("massOfDiam",&BoxDeleter::pyMassOfDiam,(py::arg("min")=0,py::arg("max")=Inf),"Return mass of particles of which diameters are between *min* and *max*.")
 	);
 };
 REGISTER_SERIALIZABLE(BoxDeleter);
@@ -223,6 +227,7 @@ struct ConveyorFactory: public ParticleFactory{
 	vector<shared_ptr<Particle>> pyBarrier() const { return vector<shared_ptr<Particle>>(barrier.begin(),barrier.end()); }
 	void pyClear(){ mass=0; num=0; genDiamMass.clear(); }
 	py::object pyDiamMass() const;
+	Real pyMassOfDiam(Real min, Real max) const ;
 	py::tuple pyPsd(bool mass, bool cumulative, bool normalize, Vector2r dRange, int num) const;
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ConveyorFactory,ParticleFactory,"Factory producing infinite band of particles from packing periodic in the x-direction. (Clumps are not supported (yet?), only spheres).",
 		((shared_ptr<Material>,material,,,"Material for new particles"))
@@ -249,6 +254,7 @@ struct ConveyorFactory: public ParticleFactory{
 			.def("barrier",&ConveyorFactory::pyBarrier)
 			.def("clear",&ConveyorFactory::pyClear)
 			.def("diamMass",&ConveyorFactory::pyDiamMass,"Return 2-tuple of same-length list of diameters and masses.")
+			.def("massOfDiam",&BoxDeleter::pyMassOfDiam,(py::arg("min")=0,py::arg("max")=Inf),"Return mass of particles of which diameters are between *min* and *max*.")
 			.def("psd",&ConveyorFactory::pyPsd,(py::arg("mass")=true,py::arg("cumulative")=true,py::arg("normalize")=false,py::arg("dRange")=Vector2r(NaN,NaN),py::arg("num")=80),"Return PSD for particles generated.")
 	);
 };

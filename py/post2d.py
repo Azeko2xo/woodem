@@ -74,7 +74,7 @@ class Flatten:
 	def normal(self,pos,vec):
 		"Given position and vector value, return lenght of the vector normal to the flat plane."
 	def scaledPos(self,p):
-		if self.dispScale==1: return state.pos
+		if self.dispScale==1: return p.pos
 		else: return p.refPos+self.dispScale*(p.pos-p.refPos)
 
 class HelixFlatten(Flatten):
@@ -141,7 +141,7 @@ class CylinderFlatten(Flatten):
 		
 
 class AxisFlatten(Flatten):
-	def __init__(self,useRef=False,axis=2,dispScale=1.):
+	def __init__(self,useRef=False,axis=2,swapAxes=False,dispScale=1.):
 		"""
 		:param bool useRef: use reference positions rather than actual positions (only meaningful when operating on Particles)
 		:param {0,1,2}	axis: axis normal to the plane; the return value will be simply position with this component dropped.
@@ -149,6 +149,7 @@ class AxisFlatten(Flatten):
 		if axis not in (0,1,2): raise IndexError("axis must be one of 0,1,2 (not %d)"%axis)
 		self.useRef,self.axis=useRef,axis
 		self.ax1,self.ax2=(self.axis+1)%3,(self.axis+2)%3
+		if swapAxes: self.ax1,self.ax2=self.ax2,self.ax1
 		Flatten.__init__(self,dispScale)
 	def __call__(self,b):
 		p=((b.refPos if self.useRef else self.scaledPos(b)) if isinstance(b,Particle) else b.geom.node.pos)
@@ -190,7 +191,7 @@ def data(scene,extractor,flattener,con=False,onlyDynamic=True,stDev=None,relThre
 	nDim=0
 	objects=scene.dem.con if con else scene.dem.par
 	for b in objects:
-		if not con and onlyDynamic and b.blocked=='xyzXYZ': continue
+		if not con and (len(b.shape.nodes)!=1 or (onlyDynamic and b.blocked=='xyzXYZ')): continue
 		xy,d=flattener(b),extractor(b)
 		if xy==None or d==None: continue
 		if nDim==0: nDim=1 if isinstance(d,float) else 2
@@ -247,7 +248,7 @@ def data(scene,extractor,flattener,con=False,onlyDynamic=True,stDev=None,relThre
 	if nDim==1: return {'type':'smoothScalar','x':xxx,'y':yyy,'val':ddd,'bbox':(llo,hhi),'perArea':perArea,'grid':ga} 
 	else: return {'type':'smoothVector','x':xxx,'y':yyy,'valX':ddd,'valY':ddd2,'bbox':(llo,hhi),'grid':ga,'grid2':ga2}
 	
-def plot(data,axes=None,alpha=.5,clabel=True,cbar=False,aspect='equal',**kw):
+def plot(data,axes=None,alpha=.5,clabel=True,cbar=False,rawVecColorRadius=True,aspect='equal',**kw):
 	"""Given output from post2d.data, plot the scalar as discrete or smooth plot.
 
 	For raw discrete data, plot filled circles with radii of particles, colored by the scalar value.
@@ -260,6 +261,7 @@ def plot(data,axes=None,alpha=.5,clabel=True,cbar=False,aspect='equal',**kw):
 	:param data: value returned by :ref:`woo.post2d.data`
 	:param bool clabel: show contour labels (smooth mode only), or annotate cells with numbers inside (with perArea==2)
 	:param bool cbar: show colorbar (equivalent to calling pylab.colorbar(mappable) on the returned mappable)
+	:param rawVecColorRadius: if True, use radius associated with each point to color arrows in raw quiver plot.
 
 	:return: tuple of ``(axes,mappable)``; mappable can be used in further calls to pylab.colorbar.
 	"""
@@ -299,7 +301,8 @@ def plot(data,axes=None,alpha=.5,clabel=True,cbar=False,aspect='equal',**kw):
 		import numpy
 		loHi=data['bbox']
 		valX,valY=numpy.array(data['valX']),numpy.array(data['valY']) # rawVector data are plain python lists
-		scalars=numpy.sqrt(valX**2+valY**2)
+		if data['type']=='rawVector' and rawVecColorRadius: scalars=numpy.array(data['radii'])
+		else: scalars=numpy.sqrt(valX**2+valY**2) # use vector magnitudes
 		# numpy.sqrt computes element-wise sqrt
 		quiv=axes.quiver(data['x'],data['y'],data['valX'],data['valY'],scalars,**kw)
 		#axes.update_datalim(loHi)
