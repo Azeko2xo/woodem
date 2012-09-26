@@ -698,19 +698,23 @@ def writeReport(S):
 	# steady regime
 	if pre.time>0: 
 		massScale=(
-			(1./pre.cylRelLen)*(1./S.time) # in kg/sec
-			*3600*24*365/1000.  # in t/y
-			*1e-6 # in Mt/y
+			(1./pre.cylRelLen)*(1./pre.time) # in kg/sec
+			*3600*1e-3 # in t/h
+			#*3600*24*365/1000.  # in t/y
+			#*1e-6 # in Mt/y
 		)
-		massUnit='Mt/y'
+		massUnit='t/h'
 		massName='flow'
-		massFormatter=FuncFormatter(lambda x,pos=0: '%3g'%(1e-6*x))
+		massFormatter=FuncFormatter(lambda x,pos=0: '%3g\n$%3g/m$'%(x,x/pre.cylLenReal))
 	else:
-		# mass-based simulation
+		# mass-based simulation (from beginning till the end)
 		massScale=(1./pre.cylRelLen) # in kg
 		massUnit='kg'
 		massName='mass'
 		massFormatter=None
+	rateScale=(1./pre.cylRelLen)*3600*1e-3 # in t/h
+	rateUnit='t/h'
+	rateFormatter=FuncFormatter(lambda x,pos=0: '%3g\n$%3g/m$'%(x,x/pre.cylLenReal))
 
 	def scaledFlowPsd(x,y,massFactor=1.): return numpy.array(x),massFactor*massScale*numpy.array(y)
 	def unscaledPsd(x,y): return numpy.array(x),numpy.array(y)
@@ -895,11 +899,11 @@ def writeReport(S):
 		d=S.plot.data
 		if S.pre.time>0:
 			d['genRate'][-1]=d['genRate'][-2] # replace trailing 0 by the last-but-one value
-		pylab.plot(d['t'],massScale*numpy.array(d['genRate']),label='feed')
-		pylab.plot(d['t'],massScale*numpy.array(d['bucketRate']),label='buckets')
-		pylab.plot(d['t'],massScale*numpy.array(d['lostRate']),label='(lost)')
-		pylab.plot(d['t'],massScale*numpy.array(d['overRate']),label='fallOver')
-		pylab.plot(d['t'],massScale*numpy.array(d['delRate']),label='delete')
+		pylab.plot(d['t'],rateScale*numpy.array(d['genRate']),label='feed')
+		pylab.plot(d['t'],rateScale*numpy.array(d['bucketRate']),label='buckets')
+		pylab.plot(d['t'],rateScale*numpy.array(d['lostRate']),label='(lost)')
+		pylab.plot(d['t'],rateScale*numpy.array(d['overRate']),label='fallOver')
+		pylab.plot(d['t'],rateScale*numpy.array(d['delRate']),label='delete')
 		pylab.ylim(ymin=0)
 		#pylab.axvline(x=(S.time-pre.time),linewidth=5,alpha=.3,ymin=0,ymax=1,color='r',label='steady')
 		if pre.time>0:	pylab.axvspan(S.time-pre.time,S.time,alpha=.2,facecolor='r',label='steady')
@@ -907,7 +911,8 @@ def writeReport(S):
 		leg.get_frame().set_alpha(legendAlpha)
 		pylab.grid(True)
 		pylab.xlabel('time [s]')
-		pylab.ylabel('mass rate [t/y]')
+		pylab.ylabel('mass rate [%s]'%rateUnit)
+		pylab.gca().yaxis.set_major_formatter(rateFormatter)
 		figs.append(('Regime',fig))
 	except (KeyError,IndexError) as e:
 		print 'No woo.plot plots done due to lack of data:',str(e)
@@ -922,9 +927,15 @@ def writeReport(S):
 		extraResults.update(rr)
 	print 'Extra results from reportHooks:',extraResults
 
+	repName=os.path.abspath(S.pre.reportFmt.format(S=S,**(dict(S.tags))))
+	import re
+	repExtra=re.sub('\.xhtml$','',repName)
 	svgs=[]
-	for name,fig in figs+extraFigs:
-		svgs.append((name,woo.O.tmpFilename()+'.svg'))
+	for ff in figs+extraFigs:
+		if len(ff)==2: ff=(ff[0],ff[1],'svg')
+		name,fig,extension=ff
+		fname=repExtra+'.'+re.sub('[-()\[\] ]','_',name)+'.'+extension
+		svgs.append((name,fname))
 		fig.savefig(svgs[-1][-1])
 		
 	import codecs
@@ -936,13 +947,15 @@ def writeReport(S):
 			+'<h4>Mass-based</h4>'+bucketPsdTable(S,massName=massName,massUnit=massUnit,massScale=massScale,massBasedPsd=True)
 			+'<h4>Number-based</h4>'+bucketPsdTable(S,massName='number',massUnit='',massScale=massScale,massBasedPsd=False)
 		+extraHtml
-		+u'\n'.join([u'<h3>'+svg[0]+u'</h3>'+svgFileFragment(svg[1]) for svg in svgs])
+		+u'\n'.join([u'<h3>'+svg[0]+u'</h3>'+
+			# svgFileFragment(svg[1])  # images inline
+			'<img src="%s" alt="%s"/>'%(os.path.basename(svg[1]),svg[0]) # external images, in the same directory
+		for svg in svgs])
 		+'</body></html>'
 	)
 
 	# to play with that afterwards
 	woo.html=html
-	repName=os.path.abspath(S.pre.reportFmt.format(S=S,**(dict(S.tags))))
 	rep=codecs.open(repName,'w','utf-8','replace')
 	import os.path
 	print 'Writing report to file://'+repName
