@@ -70,6 +70,7 @@ print '@@@ Using profile',profile,'('+optsFile+') @@@'
 if not os.path.exists(optsFile):
 	print '@@@ Will create new profile file',optsFile
 	opts=Variables()
+	opts.Save(optsFile,env)
 else:
 	opts=Variables(optsFile)
 ## compatibility hack again
