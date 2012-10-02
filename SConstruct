@@ -116,6 +116,7 @@ opts.AddVariables(
 	('PATH','Path (not imported automatically from the shell) (colon-separated)',None),
 	('CXX','The c++ compiler','g++'),
 	('CXXFLAGS','Additional compiler flags for compilation (like -march=core2).',None,None,Split),
+	('LIBS','Additional libs to link to (like python2.6 for cygwin)',None,None,Split),
 	('march','Architecture to use with -march=... when optimizing','native',None,None),
 	('execCheck','Name of the main script that should be installed; if the current one differs, an error is raised (do not use directly, only intended for --rebuild',None),
 	('defThreads','No longer used, specify -j each time Woo is run (defaults to 1 now)',-1),
@@ -248,7 +249,7 @@ def CheckPython(context):
 		#FIXME: once caught, exception disappears along with the actual message of what happened...
 		import distutils.sysconfig as ds
 		context.env.Append(CPPPATH=ds.get_python_inc(),LIBS=ds.get_config_var('LIBS').split() if ds.get_config_var('LIBS') else None)
-		context.env.Append(LINKFLAGS=ds.get_config_var('LINKFORSHARED').split()+ds.get_config_var('BLDLIBRARY').split())
+		context.env.Append(LINKFLAGS=ds.get_config_var('LINKFORSHARED').split(),LIBS=ds.get_config_var('BLDLIBRARY').split())
 		ret=context.TryLink('#include<Python.h>\nint main(int argc, char **argv){Py_Initialize(); Py_Finalize();}\n','.cpp')
 		if not ret: raise RuntimeError
 	except (ImportError,RuntimeError,ds.DistutilsPlatformError):
