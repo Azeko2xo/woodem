@@ -2,8 +2,8 @@
 Import('*')
 
 pyMain='$PREFIX/bin/woo$SUFFIX'
-main=env.ScanReplace('main/main.py.in')
-batch=env.ScanReplace('main/batch.py.in')
+main=env.ScanReplace('#/core/main/main.py.in')
+batch=env.ScanReplace('#/core/main/batch.py.in')
 env.AlwaysBuild(main)
 env.AlwaysBuild(batch)
 env.InstallAs(pyMain,main)
@@ -16,22 +16,22 @@ if 'execCheck' in env and env['execCheck']!=os.path.abspath(env.subst(pyMain)):
 	raise RuntimeError('execCheck option (%s) does not match what is about to be installed (%s)'%(env['execCheck'],env.subst(pyMain)))
 
 env.Install('$LIBDIR/py/woo',[
-	env.SharedLibrary('boot',['main/pyboot.cpp'],SHLIBPREFIX='',LIBS=env['LIBS']+['woo-support','core'])
+	env.SharedLibrary('boot',['#/core/main/pyboot.cpp'],SHLIBPREFIX='',LIBS=env['LIBS']+['woo-support','core'])
 ])
 
 env.Install('$LIBDIR/lib',[
 	env.SharedLibrary('core',
 		env.Combine('core.cpp',[
-			'Cell.cpp', 
-			'EnergyTracker.cpp',
-			'Engine.cpp',
-			'Field.cpp',
-			'MatchMaker.cpp',
-			'Scene.cpp',
-			'Dispatcher.cpp',
-			'Master.cpp',
-			'Preprocessor.cpp',
-			'corePlugins.cpp'
+			'#/core/EnergyTracker.cpp',
+			'#/core/Cell.cpp', 
+			'#/core/Engine.cpp',
+			'#/core/Field.cpp',
+			'#/core/MatchMaker.cpp',
+			'#/core/Scene.cpp',
+			'#/core/Dispatcher.cpp',
+			'#/core/Master.cpp',
+			'#/core/Preprocessor.cpp',
+			'#/core/corePlugins.cpp'
 			]
 			),
 		LIBS=env['LIBS']+[

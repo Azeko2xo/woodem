@@ -3,11 +3,11 @@ Import('*')
 linkPlugins=env['linkPlugins']
 
 env.Install('$LIBDIR/lib',env.SharedLibrary('woo-support',[
-	env.Combine('woo-support.cpp',['base/Math.cpp','base/CompUtils.cpp']+
+	env.Combine('woo-support.cpp',['#/lib/base/Math.cpp','#/lib/base/CompUtils.cpp']+
 		# ['voro++/voro++.cc']+ # included directly in sources, due to templates
-		['sphere-pack/SpherePack.cpp']+
-		['multimethods/Indexable.cpp','object/Object.cpp','pyutil/gil.cpp','pyutil/except.cpp','pyutil/pickle.cpp']
-		+(['opengl/GLUtils.cpp'] if 'opengl' in env['features'] else [])
+		['#/lib/sphere-pack/SpherePack.cpp']+
+		['#/lib/multimethods/Indexable.cpp','#/lib/object/Object.cpp','#/lib/pyutil/gil.cpp','#/lib/pyutil/except.cpp','#/lib/pyutil/pickle.cpp']
+		+(['#/lib/opengl/GLUtils.cpp'] if 'opengl' in env['features'] else [])
 		),
 	],LIBS=['dl','m']+[l for l in env['LIBS'] if l!='woo-support']+(['glut','GL','GLU'] if 'opengl' in env['features'] else []),CXXFLAGS=env['CXXFLAGS']+['-fPIC']
 ))
