@@ -36,12 +36,12 @@ using boost::make_shared;
 #include<iostream>
 #include<stdexcept>
 #include<tuple>
+#include<cmath>
 using std::vector;
 using std::map;
 using std::set;
 using std::list;
 using std::string;
-using std::to_string;
 using std::cerr;
 using std::cout;
 using std::endl;
@@ -53,6 +53,16 @@ using std::logic_error;
 using std::max;
 using std::min;
 using std::abs;
+using std::isnan;
+using std::isinf;
+// FIXME: this is not a very reliable way to detect presence of to_string
+// gcc built without --enable-c99 does not support to_string (checked with 4.7.1)
+// so we just emulate that thing with lexical_cast
+#if defined(__GNUC__) && !defined(_GLIBCXX_USE_C99)
+	template<typename T> string to_string(const T& t){ return lexical_cast<string>(t); }
+#else
+	using std::to_string;
+#endif
 
 typedef unsigned int uint;
 typedef unsigned long ulong;

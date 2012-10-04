@@ -44,8 +44,14 @@ struct Particle: public Object{
 	py::list pyCon() const;
 	py::list pyTacts() const;
 	std::string getBlocked() const; void setBlocked(const std::string&);
-	// getRefPos creates refPos if it does not exist, and initializes to current pos
-	Vector3r& getRefPos(); void setRefPos(const Vector3r&);
+	#ifdef WOO_OPENGL
+		// getRefPos creates refPos if it does not exist, and initializes to current pos
+		Vector3r& getRefPos();
+	#else
+		// returns NaN,NaN,NaN
+		Vector3r getRefPos() const;
+	#endif
+	void setRefPos(const Vector3r&);
 	std::vector<shared_ptr<Node> > getNodes();
 	virtual string pyStr() const { return "<Particle #"+to_string(id)+" @ "+lexical_cast<string>(this)+">"; }
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Particle,Object,ClassTrait().doc("Particle in DEM").section("Particle","Each particles in DEM is defined by its shape (given by multiple nodes) and other parameters.",{"Shape","Material","Bound"}),
@@ -62,7 +68,11 @@ struct Particle: public Object{
 			.add_property("con",&Particle::pyCon)
 			.add_property("tacts",&Particle::pyTacts)
 		.add_property("pos",py::make_function(&Particle::getPos,py::return_internal_reference<>()),py::make_function(&Particle::setPos))
-		.add_property("refPos",py::make_function(&Particle::getRefPos,py::return_internal_reference<>()),py::make_function(&Particle::setRefPos))
+		.add_property("refPos",py::make_function(&Particle::getRefPos
+			#ifdef WOO_OPENGL
+				,py::return_internal_reference<>()
+			#endif
+			),py::make_function(&Particle::setRefPos))
 		.add_property("ori",py::make_function(&Particle::getOri,py::return_internal_reference<>()),py::make_function(&Particle::setOri))
 		.add_property("vel",py::make_function(&Particle::getVel,py::return_internal_reference<>()),py::make_function(&Particle::setVel))
 		.add_property("angVel",py::make_function(&Particle::getAngVel,py::return_internal_reference<>()),py::make_function(&Particle::setAngVel))

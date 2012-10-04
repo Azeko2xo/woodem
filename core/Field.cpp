@@ -1,6 +1,7 @@
 #include<woo/core/Field.hpp>
 #include<woo/lib/base/CompUtils.hpp>
 
+#ifdef WOO_OPENGL
 void ScalarRange::reset(){
 	mnmx=Vector2r(std::numeric_limits<Real>::infinity(),-std::numeric_limits<Real>::infinity());
 	autoAdjust=true;
@@ -20,6 +21,8 @@ Vector3r ScalarRange::color(Real v){
 	if(autoAdjust) adjust(v);
 	return CompUtils::scalarOnColorScale(v,mnmx[0],mnmx[1],cmap);
 }
+
+#endif
 
 
 bool Field::renderingBbox(Vector3r& min, Vector3r& max){

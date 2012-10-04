@@ -222,11 +222,12 @@ void Scene::pyEnginesSet(const vector<shared_ptr<Engine> >& e){
 	postLoad(*this);
 }
 
-
+#ifdef WOO_OPENGL
 shared_ptr<ScalarRange> Scene::getRange(const std::string& l) const{
 	FOREACH(const shared_ptr<ScalarRange>& r, ranges) if(r->label==l) return r;
 	throw std::runtime_error("No range labeled `"+l+"'.");
 }
+#endif
 
 void Scene::boostSave(const string& out){
 	lastSave=out;

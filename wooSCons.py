@@ -142,7 +142,7 @@ def buildPluginLibs(env,plugInfo):
 		objs[p.obj][0].add(p.src)
 		objs[p.obj][1].update(p.libs)
 	for obj in objs.keys():
-		srcs=list(objs[obj][0])
+		srcs=['#/'+o for o in objs[obj][0]]
 		if len(srcs)>1:
 			if len(srcs)<chunkSize or chunkSize<=0: srcs=env.CombineWrapper('$buildDir/'+obj+'.cpp',srcs)
 			# thanks to http://stackoverflow.com/questions/312443/how-do-you-split-a-list-into-evenly-sized-chunks-in-python :

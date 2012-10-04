@@ -16,6 +16,22 @@
 #include<stdexcept>
 #include<iostream>
 
+// Storage of data is aligned to cache line size, no false sharing should occur (but some space is wasted, OTOH)
+// This will currently not compile for non-POSIX systems, as we use sysconf and posix_memalign.
+
+// assume 64 bytes (arbitrary, but safe) if sysconf does not report anything meaningful
+// that might happen on newer proc models not yet reported by sysconf (?)
+// e.g. https://lists.launchpad.net/woo-dev/msg06294.html
+// where zero was reported, leading to FPU exception at startup
+
+#ifdef _SC_LEVEL1_DCACHE_LINESIZE
+	// Linux
+	#define _WOO_L1_CACHE_LINESIZE (sysconf(_SC_LEVEL1_DCACHE_LINESIZE)>0 ? sysconf(_SC_LEVEL1_DCACHE_LINESIZE) : 64)
+#else
+	#define _WOO_L1_CACHE_LINESIZE 64
+#endif
+
+
 // O(1) access container which stores data in contiguous chunks of memory
 // each chunk belonging to one thread
 template<typename T>
@@ -28,8 +44,8 @@ class OpenMPArrayAccumulator{
 	size_t nCL; // current number of allocated cache lines
 	int nCL_for_N(size_t n){ return n/perCL+(n%perCL==0 ? 0 : 1); } // return number of cache lines to allocate for given number of elements
 	public:
-		OpenMPArrayAccumulator()        : CLS(sysconf(_SC_LEVEL1_DCACHE_LINESIZE)>0 ? sysconf(_SC_LEVEL1_DCACHE_LINESIZE) : 64), nThreads(omp_get_max_threads()), perCL(CLS/sizeof(T)), chunks(nThreads,NULL), sz(0), nCL(0) { }
-		OpenMPArrayAccumulator(size_t n): CLS(sysconf(_SC_LEVEL1_DCACHE_LINESIZE)>0 ? sysconf(_SC_LEVEL1_DCACHE_LINESIZE) : 64), nThreads(omp_get_max_threads()), perCL(CLS/sizeof(T)), chunks(nThreads,NULL), sz(0), nCL(0) { resize(n); }
+		OpenMPArrayAccumulator()        : CLS(_WOO_L1_CACHE_LINESIZE), nThreads(omp_get_max_threads()), perCL(CLS/sizeof(T)), chunks(nThreads,NULL), sz(0), nCL(0) { }
+		OpenMPArrayAccumulator(size_t n): CLS(_WOO_L1_CACHE_LINESIZE), nThreads(omp_get_max_threads()), perCL(CLS/sizeof(T)), chunks(nThreads,NULL), sz(0), nCL(0) { resize(n); }
 		// change number of elements
 		void resize(size_t n){
 			if(n==sz) return; // nothing to do
@@ -76,23 +92,16 @@ class OpenMPArrayAccumulator{
 #. Get value using implicit conversion to T (in non-parallel sections only)
 #. Reset value by calling reset() (in non-parallel sections only)
 
-Storage of data is aligned to cache line size, no false sharing should occur (but some space is wasted, OTOH)
-This will currently not compile for non-POSIX systems, as we use sysconf and posix_memalign.
-
 */
 template<typename T>
 class OpenMPAccumulator{
-		// in the ctor, assume 64 bytes (arbitrary, but safe) if sysconf does not report anything meaningful
-		// that might happen on newer proc models not yet reported by sysconf (?)
-		// e.g. https://lists.launchpad.net/woo-dev/msg06294.html
-		// where zero was reported, leading to FPU exception at startup
 		int CLS; // cache line size
 		int nThreads;
 		int eSize; // size of an element, computed from cache line size and sizeof(T)
 		char* data; // use void* rather than T*, since with T* the pointer arithmetics has sizeof(T) as unit, which is confusing; char* takes one byte
 	public:
 	// initialize storage with _zeroValue, depending on muber of threads
-	OpenMPAccumulator(): CLS(sysconf(_SC_LEVEL1_DCACHE_LINESIZE)>0 ? sysconf(_SC_LEVEL1_DCACHE_LINESIZE) : 64), nThreads(omp_get_max_threads()), eSize(CLS*(sizeof(T)/CLS+(sizeof(T)%CLS==0 ? 0 :1))) {
+	OpenMPAccumulator(): CLS(_WOO_L1_CACHE_LINESIZE), nThreads(omp_get_max_threads()), eSize(CLS*(sizeof(T)/CLS+(sizeof(T)%CLS==0 ? 0 :1))) {
 		int succ=posix_memalign(/*where allocated*/(void**)&data,/*alignment*/CLS,/*size*/ nThreads*eSize);
 		if(succ!=0) throw std::runtime_error("OpenMPAccumulator: posix_memalign failed to allocate memory.");
 		reset();

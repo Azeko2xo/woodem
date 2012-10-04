@@ -1,3 +1,6 @@
+
+#ifdef WOO_OPENGL
+
 #include<woo/pkg/dem/Gl1_CPhys.hpp>
 #include<woo/pkg/gl/Renderer.hpp> // for GlData
 #include<woo/lib/opengl/GLUtils.hpp>
@@ -38,3 +41,4 @@ void Gl1_CPhys::go(const shared_ptr<CPhys>& cp, const shared_ptr<Contact>& C, co
 	// cerr<<"["<<r<<"]";
 	GLUtils::Cylinder(A,B,r,color,/*wire*/false,/*caps*/false,/*rad2*/-1,slices);
 }
+#endif /* WOO_OPENGL */

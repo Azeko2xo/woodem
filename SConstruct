@@ -451,9 +451,11 @@ if 'g++' in env['CXX']:
 
 ### LINKER
 ## libs for all plugins
-env.Append(LIBS=[],SHLINKFLAGS=['-rdynamic'])
+# -rdynamic only works for ELF targets
+if sys.platform not in ('cygwin','win32'):
+	env.Append(LIBS=[],SHLINKFLAGS=['-rdynamic'],LINKFLAGS=['-rdynamic'])
+	env.Append(LINKFLAGS=['-Wl,-z,origin'])
 if 'EXTRA_SHLINKFLAGS' in env: env.Append(SHLINKFLAGS=env['EXTRA_SHLINKFLAGS'])
-env.Append(LINKFLAGS=['-rdynamic','-Wl,-z,origin'])
 
 ## newer scons (?) does not pass SHCCFLAGS when linking with g++
 #env['SHCXXFLAGS']=env['SHCCFLAGS']

@@ -59,7 +59,9 @@ class Scene: public Object{
 
 		std::vector<shared_ptr<Engine> > pyEnginesGet();
 		void pyEnginesSet(const std::vector<shared_ptr<Engine> >&);
-		shared_ptr<ScalarRange> getRange(const std::string& l) const;
+		#ifdef WOO_OPENGL
+			shared_ptr<ScalarRange> getRange(const std::string& l) const;
+		#endif
 		
 		struct pyTagsProxy{
 			Scene* scene;

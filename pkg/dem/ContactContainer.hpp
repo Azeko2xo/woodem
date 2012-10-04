@@ -23,7 +23,11 @@ struct ContactContainer: public Object{
 		DemField* dem; // backptr to DemField, set by DemField::postLoad; do not modify!
 		ParticleContainer* particles;
 
-		~ContactContainer(){ delete manipMutex; }
+		~ContactContainer(){
+			#if defined(WOO_OPENMP) || defined(WOO_OPENGL)
+				delete manipMutex;
+			#endif
+		}
 
 	/* basic functionality */
 		bool add(const shared_ptr<Contact>& c, bool threadSafe=false);
@@ -108,7 +112,9 @@ struct ContactContainer: public Object{
 		#endif
 
 		, /*ctor*/
-			manipMutex=new boost::mutex;
+			#if defined(WOO_OPENMP) || defined(WOO_OPENGL)
+				manipMutex=new boost::mutex;
+			#endif
 		, /* py */
 		.def("clear",&ContactContainer::clear)
 		.def("__len__",&ContactContainer::size)

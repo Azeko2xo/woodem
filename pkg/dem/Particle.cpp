@@ -109,7 +109,7 @@ void Particle::setOri(const Quaternionr& p){ checkNodes(false); shape->nodes[0]-
 		shape->nodes[0]->getData<GlData>().refPos=p;
 	}
 #else
-	Vector3r& Partial::getRefPos() const{ return Vector3r(NaN,NaN,NaN); }
+	Vector3r Particle::getRefPos() const { return Vector3r(NaN,NaN,NaN); }
 	void Particle::setRefPos(const Vector3r& p){
 		woo::RuntimeError("Particle.refPos only supported with WOO_OPENGL.");
 	}
