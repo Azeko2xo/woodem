@@ -53,8 +53,9 @@ using std::logic_error;
 using std::max;
 using std::min;
 using std::abs;
-using std::isnan;
-using std::isinf;
+//using std::isnan;
+//using std::isinf;
+
 // FIXME: this is not a very reliable way to detect presence of to_string
 // gcc built without --enable-c99 does not support to_string (checked with 4.7.1)
 // so we just emulate that thing with lexical_cast
