@@ -249,7 +249,11 @@ def CheckPython(context):
 		#FIXME: once caught, exception disappears along with the actual message of what happened...
 		import distutils.sysconfig as ds
 		context.env.Append(CPPPATH=ds.get_python_inc(),LIBS=ds.get_config_var('LIBS').split() if ds.get_config_var('LIBS') else None)
-		context.env.Append(LINKFLAGS=ds.get_config_var('LINKFORSHARED').split(),LIBS=ds.get_config_var('BLDLIBRARY').split())
+		# FIXME: there is an inconsistency between cygwin and linux here?!
+		if sys.platform=='cygwin':
+			context.env.Append(LINKFLAGS=ds.get_config_var('LINKFORSHARED').split(),LIBS=ds.get_config_var('BLDLIBRARY').split())
+		else:
+			context.env.Append(LINKFLAGS=ds.get_config_var('LINKFORSHARED').split()+ds.get_config_var('BLDLIBRARY').split())
 		ret=context.TryLink('#include<Python.h>\nint main(int argc, char **argv){Py_Initialize(); Py_Finalize();}\n','.cpp')
 		if not ret: raise RuntimeError
 	except (ImportError,RuntimeError,ds.DistutilsPlatformError):
@@ -586,12 +590,6 @@ if not COMMAND_LINE_TARGETS:
 			if ff not in toInstall and not ff.endswith('.pyo') and not ff.endswith('.pyc') and not os.path.islink(ff) and not os.path.basename(ff).startswith('.nfs'):
 				print "Deleting extra plugin", ff
 				os.remove(ff)
-
-#################################################################################
-#### DOCUMENTATION
-# must be explicitly requested to be installed, e.g.:
-#    scons /usr/local/share/doc
-#env.Install('$PREFIX/share/doc/woo$SUFFIX-doc/',['examples','scripts','doc'])
 
 
 ### check if combinedFiles is different; if so, force rebuild of all of them
