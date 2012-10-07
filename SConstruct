@@ -513,10 +513,6 @@ if not env.GetOption('clean'):
 		clDir=buildDir+'/include/CL'
 		if not exists(clDir): os.makedirs(clDir)
 		mkSymlink(clDir+'/cl.hpp','extra/cl.hpp_local')
-	# this is not used, should be removed perhaps?!
-	#mkSymlink(boostDir+'/python','py/3rd-party/boost-python-indexing-suite-v2-noSymlinkHeaders')
-	mkSymlink(buildDir+'/include/indexing_suite','py/3rd-party/boost-python-indexing-suite-v2-noSymlinkHeaders')
-	mkSymlink(boostDir+'/math','extra/floating_point_utilities_v3/boost/math')
 	env.Default(env.Alias('install',['$PREFIX/bin','$PREFIX/lib','$PREFIX/share'])) # build and install everything that should go to instDirs, which are $PREFIX/{bin,lib} (uses scons' Install)
 
 env.Export('env');

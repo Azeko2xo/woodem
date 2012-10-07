@@ -170,13 +170,6 @@ struct VectorPickle: py::pickle_suite{
 
 
 BOOST_PYTHON_MODULE(_customConverters){
-
-	// syntax ??
-	//   http://language-binding.net/pyplusplus/documentation/indexing_suite_v2.html.html#container_proxy
-	//   http://www.mail-archive.com/cplusplus-sig@python.org/msg00862.html
-	//class_<indexing::container_proxy<vector<string> >,bases<class_<vector<string> > > >("vecStr").def(indexing::container_suite<indexing::container_proxy<vector<string> > >());
-	//class_<vector<string> >("vecStr").def(indexing::container_suite<vector<string> >());
-
 	#if 0
 		custom_vector_from_seq<string>(); class_<vector<string> >("vector_" "string").def(indexing::container_suite<vector<string> >()).def("__repr__",&vectorRepr<string>);
 		custom_vector_from_seq<int>(); class_<vector<int> >("vector_" "int").def(indexing::container_suite<vector<int> >()).def("__repr__",&vectorRepr<int>);

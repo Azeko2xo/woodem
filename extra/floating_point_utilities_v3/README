@@ -1,7 +1,0 @@
-Graceful handling of nan and inf in iostream
-
-Proposed for boost::math, included in boost since version 1.48
-
-Downloaded from: http://www.boostpro.com/vault/index.php?action=downloadfile&filename=floating_point_utilities_v3.zip&directory=Math%20-%20Numerics&
-
-stripped of documentation

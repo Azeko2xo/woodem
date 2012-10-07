@@ -11,8 +11,7 @@
 #include<boost/algorithm/string.hpp>
 #include<boost/version.hpp>
 #if BOOST_VERSION<104800
-	// local copy
-	#include<boost/math/nonfinite_num_facets.hpp>
+	#error You need boost >= 1.48 for boost/math/special_functions/nonfinite_num_facets.hpp . Woo does not provide its own copy since rev. 3048, you might need to revert back, or upgrade your boost installation. [boost version should have been checked by the configure script already?]
 #else
 	#include<boost/math/special_functions/nonfinite_num_facets.hpp>
 #endif
