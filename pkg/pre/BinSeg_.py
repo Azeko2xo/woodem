@@ -230,8 +230,6 @@ def run(pre):
 	# compute relative startStopMass
 	initMass=sum([p.mass for p in S.dem.par if type(p.shape)==Sphere])
 	pre.startStopMass=[(m if m>0 else (initMass*abs(m) if m<0 else 0)) for m in pre.startStopMass] 
-	if pre.startStopMass[0]>0:
-		if pre.startStopMass<=pre.startStopMass[1]: raise ValueError('startStopMass must be increasing, not %s'%str(pre.startStopMass))
 	#
 	# _counterState can be:
 	#    1. 'noStartStop' when no maxMass is given at all
@@ -266,6 +264,7 @@ def run(pre):
 		label='feed',
 		maxMass=initMaxMass,
 		currRateSmooth=pre.rateSmooth,
+		zeroRateAtStop=False
 	)
 
 	S.engines=utils.defaultEngines(damping=pre.damping,dontCollect=True,verletDist=pre.psd[0][0]*.1)+[

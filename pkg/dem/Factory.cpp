@@ -217,7 +217,7 @@ void RandomFactory::run(){
 		if((maxMass>0 && mass>=maxMass) || (maxNum>0 && num>maxNum)){
 			LOG_INFO("mass or number reached, making myself dead.");
 			dead=true;
-			currRate=0.;
+			if(zeroRateAtStop) currRate=0.;
 			return;
 		}
 		// finished in this step
@@ -561,7 +561,7 @@ void ConveyorFactory::run(){
 		// done foerver
 		if(maxMass>0 && mass>maxMass){
 			dead=true;
-			currRate=0.;
+			if(zeroRateAtStop) currRate=0.;
 			/* remove particles from the barrier */
 			for(const auto& p: barrier){
 				p->shape->nodes[0]->getData<DemData>().setBlockedNone();

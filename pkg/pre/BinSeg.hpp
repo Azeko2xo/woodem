@@ -31,7 +31,7 @@ struct BinSeg: public Preprocessor {
 		((Real,feedRate,1.,,"Feed rate"))
 		((shared_ptr<FrictMat>,wallMaterial,,,"Material of walls (if not given, material for particles is used)"))
 		((string,loadSpheresFrom,"",,"Load initial packing from file (format x,y,z,radius)"))
-		((Vector2r,startStopMass,Vector2r(NaN,NaN),,"Mass for starting and stopping PSD measuring. Once the first mass is reached, PSD counters are engaged; once the second value is reached, report is generated and simulation saved and stopped. The first component (in absolute value) must be smaller than the second one. Negative values are relative to initial total particles mass. 0 or NaN deactivates each limit."))
+		((Vector2r,startStopMass,Vector2r(NaN,NaN),,"Mass for starting and stopping PSD measuring. Once the first mass is reached, PSD counters are engaged; once the second value is reached, report is generated and simulation saved and stopped. Negative values are relative to initial total particles mass. 0 or NaN deactivates; both limits must be active or both inactive."))
 
 		// Estimates
 		((Real,ccaDt   ,,AttrTrait<>().readonly().timeUnit().startGroup("Estimates"),"Δt"))
