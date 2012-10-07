@@ -227,12 +227,30 @@ def run(pre):
 	cc,rr,cellLen=makePeriodicFeedPack([20*rMax,(ymax-ymin-2*rMax),pre.feedPos[1]],lenAxis=0,psd=pre.psd,memoizeDir=pre.feedCacheDir)
 	factoryNode=Node(pos=(.5*(J[0]+I[0]),ymin+rMax,J[1]),ori=Quaternion((0,1,0),math.pi/2.)) # local x-axis is downwards
 
-	# compute relative maxMass (don't write back to the preprocessor?)
-	if pre.maxMass<0:
-		maxMass=-pre.maxMass*sum([p.mass for p in S.dem.par if type(p.shape)==Sphere])
-		print 'Using maxMass=%g kg (preprocessor specified relative value of %g)'%(maxMass,pre.maxMass)
-	else: maxMass=pre.maxMass
-	#		
+	# compute relative startStopMass
+	initMass=sum([p.mass for p in S.dem.par if type(p.shape)==Sphere])
+	pre.startStopMass=[(m if m>0 else (initMass*abs(m) if m<0 else 0)) for m in pre.startStopMass] 
+	if pre.startStopMass[0]>0:
+		if pre.startStopMass<=pre.startStopMass[1]: raise ValueError('startStopMass must be increasing, not %s'%str(pre.startStopMass))
+	#
+	# _counterState can be:
+	#    1. 'noStartStop' when no maxMass is given at all
+	#    2. 'waitStartMass' between 0 and startMass
+	#    3. 'waitStopMass' between startMass and stopMass
+	#
+	S.tags['_counterState']='noStartStop' # no state at all
+	initMaxMass=-1 # no limit by default
+	if pre.startStopMass[0]==0:
+		if pre.startStopMass[1]>0:
+			S.tags['_counterState']='waitStopMass'
+			initMaxMass=pre.startStopMass[1]
+	else:
+		S.tags['_counterState']='waitStartMass'
+		initMaxMass=pre.startStopMass[0]
+
+	print 'Using startStopMass ',pre.startStopMass
+	print '    _counterState is',S.tags['_counterState']
+
 	factory=ConveyorFactory(
 		stepPeriod=pre.factStep,
 		material=pre.material,
@@ -246,7 +264,7 @@ def run(pre):
 		mask=sphMask,
 		prescribedRate=pre.feedRate,
 		label='feed',
-		maxMass=maxMass,
+		maxMass=initMaxMass,
 		currRateSmooth=pre.rateSmooth,
 	)
 
@@ -265,8 +283,6 @@ def run(pre):
 	]+[
 		factory,
 		PyRunner(pre.factStep,'import woo.pre.BinSeg_; woo.pre.BinSeg_.adjustFeedRate(S)',label='feedAdjuster',dead=(not pre.loadSpheresFrom)),
-		#PyRunner(600,'print "%g/%g mass, %d particles, unbalanced %g/'+str(goal)+'"%(woo.makeBandFeedFactory.mass,woo.makeBandFeedFactory.maxMass,len(S.dem.par),woo.utils.unbalancedForce(S))'),
-		#PyRunner(200,'if woo.utils.unbalancedForce(S)<'+str(goal)+' and woo.makeBandFeedFactory.dead: S.stop()'),
 		PyRunner(pre.factStep,'import woo.pre.BinSeg_; woo.pre.BinSeg_.savePlotData(S)'),
 		PyRunner(pre.factStep,'import woo.pre.BinSeg_; woo.pre.BinSeg_.watchProgress(S)',initRun=False),
 	#]+( # VTK
@@ -464,15 +480,31 @@ def feedHolesPsdFigure(massBased=True):
 def watchProgress(S):
 	import woo
 	# not yet finished
-	if (not woo.feed.maxMass>0) or woo.feed.mass<woo.feed.maxMass: return
-	# exit here
-	out=S.pre.saveFmt.format(stage='done',S=S,**(dict(S.tags)))
-	if S.lastSave!=out:
-		S.save(out)
-		print 'Saved to',out
-	repName,extraResults=writeReport()
-	woo.batch.writeResults(defaultDb='BinSeg.sqlite',simulationName='BinSeg',material=S.pre.material,report=repName,saveFile=os.path.abspath(S.lastSave),**extraResults)
-	S.stop()
+	if S.tags['_counterState']=='noStartStop': return
+	# this is currently enforced
+	assert woo.feed.maxMass>0
+	# stage not yet finished
+	if woo.feed.mass<woo.feed.maxMass: return
+	if S.tags['_counterState']=='waitStartMass':
+		# reset buckets and feed
+		for b in woo.bucket: b.clear()
+		woo.feed.clear()
+		woo.feed.dead=False
+		# set new mass limit and wait for it
+		woo.feed.maxMass=S.pre.startStopMass[1]
+		S.tags['_counterState']='waitStopMass'
+		print 'pre.startStopMass[0]=%g reached, counters engaged; mass to do is %g'%(S.pre.startStopMass[0],S.pre.startStopMass[1])
+	elif S.tags['_counterState']=='waitStopMass':
+		# exit here
+		out=S.pre.saveFmt.format(stage='done',S=S,**(dict(S.tags)))
+		if S.lastSave!=out:
+			S.save(out)
+			print 'Saved to',out
+		repName,extraResults=writeReport()
+		woo.batch.writeResults(defaultDb='BinSeg.sqlite',simulationName='BinSeg',material=S.pre.material,report=repName,saveFile=os.path.abspath(S.lastSave),**extraResults)
+		S.stop()
+	else:
+		raise RuntimeError('Unknown value of S.tags["_counterState"]='+S.tags['_counterState'])
 
 
 def writeReport():	
