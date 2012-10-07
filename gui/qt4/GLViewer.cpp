@@ -34,7 +34,7 @@
 #include<gl2ps.h>
 #endif
 
-WOO_PLUGIN(/*unused*/qt,(SnapshotEngine));
+WOO_PLUGIN(_qt,(SnapshotEngine));
 
 /*****************************************************************************
 *********************************** SnapshotEngine ***************************

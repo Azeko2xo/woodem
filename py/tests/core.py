@@ -22,6 +22,8 @@ try: from woo.voro import *
 except: pass
 try: from woo.cld import *
 except: pass
+try: from woo.qt import *
+except: pass
 
 import woo
 

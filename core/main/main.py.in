@@ -103,13 +103,6 @@ else:
 		print 'WARNING: non-debug build not available, running with --debug instead (try --rebuild to get the non-debug build).'
 	libDir=nonDebugLibDir
 
-## remove later
-## python2.5 relative module imports workaround
-#v=sys.version_info
-#if v[0]==2 and v[1]<=5:
-#	for submodule in ('woo','gts','woo/tests'):
-#		sys.path.append(os.path.join(libDir,'py',submodule))
-
 sys.path.append(os.path.join(libDir,'py'))
 
 # run regression test suite and exit
@@ -175,6 +168,10 @@ else:
 
 
 sys.stderr.write('Welcome to Woo '+version+'%s\n'%(' (debug build)' if opts.debug else ''))
+
+
+import wooOptions
+wooOptions.forceNoGui=opts.nogui
 
 # initialization and c++ plugins import
 import woo
@@ -322,31 +319,10 @@ warnings.filterwarnings('ignore',category=DeprecationWarning,module='IPython.uti
 warnings.filterwarnings('ignore',category=DeprecationWarning,module='Xlib')
 
 
-## run userSession in a way corresponding to the features we use:
-gui=None
-woo.runtime.hasDisplay=False # this is the default initialized in the module, anyway
-if 'qt4' in features: gui='qt4'
-if opts.nogui: gui=None
-if gui:
-	import Xlib.display
-	# PyQt4's QApplication does exit(1) if it is unable to connect to the display
-	# we however want to handle this gracefully, therefore
-	# we test the connection with bare xlib first, which merely raises DisplayError
-	try:
-		# contrary to display.Display, _BaseDisplay does not check for extensions and that avoids spurious message "Xlib.protocol.request.QueryExtension" (bug?)
-		Xlib.display._BaseDisplay();
-		woo.runtime.hasDisplay=True
-	except: 
-		# usually Xlib.error.DisplayError, but there can be Xlib.error.XauthError etc as well
-		# let's just pretend any exception means the display would not work
-		gui=None
-
-if gui=='qt4':
-	# API compatibility for PySide vs. PyQt
-	# must be called before PyQt4 is ever imported
-	if woo.runtime.ipython_version>=11:
-		import IPython.external.qt
-		IPython.external.qt.prepare_pyqt4()
+#
+# select gui to use
+#
+gui=None if (opts.nogui or not woo.runtime.hasDisplay) else 'qt4'
 
 # run remote access things, before actually starting the user session
 from woo import remote
@@ -357,6 +333,7 @@ woo.remote.runServers()
 from woo import *
 from math import *
 import woo.plot # monkey-patches, which require woo.runtime.hasDisplay (hence not importable from _monkey :/)
+
 
 if gui==None:
 	userSession()

@@ -17,7 +17,7 @@
 #ifdef WOO_LOG4CXX
 	#include<log4cxx/consoleappender.h>
 	#include<log4cxx/patternlayout.h>
-	log4cxx::LoggerPtr logger=log4cxx::Logger::getLogger("woo.boot");
+	static log4cxx::LoggerPtr logger=log4cxx::Logger::getLogger("woo.boot");
 	/* Initialize log4dcxx automatically when the library is loaded. */
 	__attribute__((constructor)) void initLog4cxx() {
 		#ifdef LOG4CXX_TRACE

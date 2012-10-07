@@ -8,4 +8,4 @@ debian/changelog
 debian/control
 .kdev4/yade.kdev4
 yade.kdev4
-
+doc/sphinx2

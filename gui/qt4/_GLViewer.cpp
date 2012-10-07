@@ -8,7 +8,7 @@
 #include<QCloseEvent>
 
 #ifdef WOO_LOG4CXX
-log4cxx::LoggerPtr logger=log4cxx::Logger::getLogger("woo.qt4");
+static log4cxx::LoggerPtr logger=log4cxx::Logger::getLogger("woo.qt4");
 #endif
 
 namespace py=boost::python;
@@ -89,7 +89,7 @@ BOOST_PYTHON_MODULE(_GLViewer){
 	OpenGLManager* glm=new OpenGLManager(); // keep this singleton object forever
 	glm->emitStartTimer();
 
-#if 1
+#if 0
 	// HACK: register SnapshotEngine here
 	SnapshotEngine se; se.pyRegisterClass();
 #endif

@@ -58,41 +58,6 @@
 
 using namespace py; // = boost::python
 
-
-#if 0
-/* two-way se3 handling */
-struct custom_se3_to_tuple{
-	static PyObject* convert(const Se3r& se3){
-		py::tuple ret=py::make_tuple(se3.position,se3.orientation);
-		return incref(ret.ptr());
-	}
-};
-struct custom_Se3r_from_seq{
-	custom_Se3r_from_seq(){
-		 converter::registry::push_back(&convertible,&construct,type_id<Se3r>());
-	}
-	static void* convertible(PyObject* obj_ptr){
-		 if(!PySequence_Check(obj_ptr)) return 0;
-		 if(PySequence_Size(obj_ptr)!=2 && PySequence_Size(obj_ptr)!=7) return 0;
-		 return obj_ptr;
-	}
-	static void construct(PyObject* obj_ptr, converter::rvalue_from_python_stage1_data* data){
-		void* storage=((converter::rvalue_from_python_storage<Se3r>*)(data))->storage.bytes;
-		new (storage) Se3r; Se3r* se3=(Se3r*)storage;
-		if(PySequence_Size(obj_ptr)==2){ // from vector and quaternion
-			se3->position=extract<Vector3r>(PySequence_GetItem(obj_ptr,0));
-			se3->orientation=extract<Quaternionr>(PySequence_GetItem(obj_ptr,1));
-		} else if(PySequence_Size(obj_ptr)==7){ // 3 vector components, 3 axis components, angle
-			se3->position=Vector3r(extract<Real>(PySequence_GetItem(obj_ptr,0)),extract<Real>(PySequence_GetItem(obj_ptr,1)),extract<Real>(PySequence_GetItem(obj_ptr,2)));
-			Vector3r axis=Vector3r(extract<Real>(PySequence_GetItem(obj_ptr,3)),extract<Real>(PySequence_GetItem(obj_ptr,4)),extract<Real>(PySequence_GetItem(obj_ptr,5)));
-			Real angle=extract<Real>(PySequence_GetItem(obj_ptr,6));
-			se3->orientation=Quaternionr(AngleAxisr(angle,axis));
-		} else throw std::logic_error(__FILE__ ": First, the sequence size for Se3r object was 2 or 7, but now is not? (programming error, please report!");
-		data->convertible=storage;
-	}
-};
-#endif
-
 struct custom_OpenMPAccumulator_to_float{ static PyObject* convert(const OpenMPAccumulator<Real>& acc){ return incref(PyFloat_FromDouble(acc.get())); } };
 struct custom_OpenMPAccumulator_from_float{
 	custom_OpenMPAccumulator_from_float(){  converter::registry::push_back(&convertible,&construct,type_id<OpenMPAccumulator<Real> >()); }
@@ -196,16 +161,6 @@ struct custom_numpyBoost_to_py{
 };
 #endif
 
-#if 0
-template<typename T>
-string vectorRepr(const vector<T>& v){ string ret("["); for(size_t i=0; i<v.size(); i++) { if(i>0) ret+=","; ret+=lexical_cast<string>(v[i]); } return ret+"]"; }
-template<>
-string vectorRepr(const vector<string>& v){ string ret("["); for(size_t i=0; i<v.size(); i++) { if(i>0) ret+=","; ret+="'"+lexical_cast<string>(v[i])+"'"; } return ret+"]"; }
-
-// is not picked up?
-bool operator<(const Vector3r& a, const Vector3r& b){ return a[0]<b[0]; }
-#endif
-
 // this defines getstate and setstate methods to support pickling on linear sequences (should work for std::list as well)
 template<class T>
 struct VectorPickle: py::pickle_suite{
@@ -228,10 +183,6 @@ BOOST_PYTHON_MODULE(_customConverters){
 		custom_vector_from_seq<Real>(); class_<vector<Real> >("vector_" "Real").def(indexing::container_suite<vector<Real> >()).def("__repr__",&vectorRepr<Real>);
 		// this needs operator< for Vector3r (defined above, but not picked up for some reason)
 		custom_vector_from_seq<Vector3r>(); class_<vector<Vector3r> >("vector_" "Vector3r").def(indexing::container_suite<vector<Vector3r> >()).def("__repr__",&vectorRepr<Vector3r>);
-	#endif
-
-	#if 0
-		custom_Se3r_from_seq(); to_python_converter<Se3r,custom_se3_to_tuple>();
 	#endif
 
 	custom_OpenMPAccumulator_from_float(); to_python_converter<OpenMPAccumulator<Real>, custom_OpenMPAccumulator_to_float>(); 
@@ -305,28 +256,16 @@ BOOST_PYTHON_MODULE(_customConverters){
 
 		VECTOR_SEQ_CONV(shared_ptr<Engine>);
 		VECTOR_SEQ_CONV(shared_ptr<Object>);
-#if 0
-		VECTOR_SEQ_CONV(shared_ptr<NodeData>);
-		VECTOR_SEQ_CONV(shared_ptr<Body>);
-		VECTOR_SEQ_CONV(shared_ptr<Material>);
-		VECTOR_SEQ_CONV(shared_ptr<Interaction>);
-		VECTOR_SEQ_CONV(shared_ptr<BoundFunctor>);
-		VECTOR_SEQ_CONV(shared_ptr<IGeomFunctor>);
-		VECTOR_SEQ_CONV(shared_ptr<IPhysFunctor>);
-		VECTOR_SEQ_CONV(shared_ptr<LawFunctor>);
-		VECTOR_SEQ_CONV(shared_ptr<SpherePack>);
-		VECTOR_SEQ_CONV(shared_ptr<KinematicEngine>);
-#endif
 		#ifdef WOO_OPENGL
 			VECTOR_SEQ_CONV(shared_ptr<GlShapeFunctor>);
 			VECTOR_SEQ_CONV(shared_ptr<GlNodeFunctor>);
 			VECTOR_SEQ_CONV(shared_ptr<GlBoundFunctor>);
 			VECTOR_SEQ_CONV(shared_ptr<GlExtraDrawer>);
 			VECTOR_SEQ_CONV(shared_ptr<GlCPhysFunctor>);
+			VECTOR_SEQ_CONV(shared_ptr<GlFieldFunctor>);
 		#if 0
 			VECTOR_SEQ_CONV(shared_ptr<GlStateFunctor>);
 			VECTOR_SEQ_CONV(shared_ptr<GlCGeomFunctor>);
-			VECTOR_SEQ_CONV(shared_ptr<GlFieldFunctor>);
 		#endif
 		#endif
 	#undef VECTOR_SEQ_CONV

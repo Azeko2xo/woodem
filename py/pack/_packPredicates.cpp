@@ -7,7 +7,7 @@
 
 namespace py=boost::python;
 #ifdef WOO_LOG4CXX
-	log4cxx::LoggerPtr logger=log4cxx::Logger::getLogger("woo.pack.predicates");
+	static log4cxx::LoggerPtr logger=log4cxx::Logger::getLogger("woo.pack.predicates");
 #endif
 
 /*

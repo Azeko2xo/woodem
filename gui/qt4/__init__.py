@@ -1,9 +1,14 @@
 # encoding: utf-8
+
+# signal import error witout display
 import woo.runtime
-if not woo.runtime.hasDisplay: raise ImportError("Connecting to DISPLAY at Yade startup failed, unable to activate the qt4 interface.")
+if not woo.runtime.hasDisplay:
+	raise ImportError("Connecting to DISPLAY at Yade startup failed, unable to activate the qt4 interface.")
 
 from PyQt4.QtGui import *
 from PyQt4 import QtCore
+
+from woo._qt import *
 
 from woo.qt.ui_controller import Ui_Controller
 

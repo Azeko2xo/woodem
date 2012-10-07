@@ -1,3 +1,4 @@
+#ifdef WOO_OPENGL
 #include"GLUtils.hpp"
 #include<GL/glu.h>
 #include<GL/freeglut_ext.h>
@@ -136,4 +137,4 @@ void GLUtils::GLDrawText(const std::string& txt, const Vector3r& pos, const Vect
 	glPopAttrib();
 	glPopMatrix();
 }
-
+#endif

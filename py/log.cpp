@@ -7,7 +7,7 @@ enum{ll_TRACE,ll_DEBUG,ll_INFO,ll_WARN,ll_ERROR,ll_FATAL};
 
 #ifdef WOO_LOG4CXX
 
-	log4cxx::LoggerPtr logger=log4cxx::Logger::getLogger("woo.log");
+	static log4cxx::LoggerPtr logger=log4cxx::Logger::getLogger("woo.log");
 
 	#include<log4cxx/logmanager.h>
 

@@ -181,7 +181,9 @@ void ContactLoop::run(){
 			#endif
 			Vector3r branch=(C->pB->shape->nodes[0]->pos-C->pA->shape->nodes[0]->pos+scene->cell->intrShiftPos(C->cellDist));
 			Vector3r F=C->geom->node->ori.conjugate()*C->phys->force; // force in global coords
-			#pragma omp critical
+			#ifdef WOO_OPENMP
+				#pragma omp critical
+			#endif
 			stress.noalias()+=F*branch.transpose();
 		}
 	}

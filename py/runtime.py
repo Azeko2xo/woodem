@@ -2,7 +2,7 @@
 """Runtime variables, populated at woo startup."""
 # default value
 hasDisplay=False 
-
+ipython_version=0
 
 # find out about which ipython version we use -- 0.10* and 0.11 are supported, but they have different internals
 import IPython

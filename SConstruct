@@ -120,6 +120,7 @@ opts.AddVariables(
 	('march','Architecture to use with -march=... when optimizing','native',None,None),
 	('execCheck','Name of the main script that should be installed; if the current one differs, an error is raised (do not use directly, only intended for --rebuild',None),
 	('defThreads','No longer used, specify -j each time Woo is run (defaults to 1 now)',-1),
+	BoolVariable('lto','Use link-time optimization',0),
 	#('SHLINK','Linker for shared objects','g++'),
 	#('SHCCFLAGS','Additional compiler flags for linking (for plugins).',None,None,Split),
 	('EXTRA_SHLINKFLAGS','Additional compiler flags for linking (for plugins).',None,None,Split),
@@ -170,9 +171,20 @@ Help(opts.GenerateHelpText(env))
 ###########################################
 ################# BUILD DIRECTORY #########
 ###########################################
-import wooSCons
+def getRealWooVersion():
+	"Attempts to get woo version from RELEASE file if it exists or from bzr/svn, or from VERSION"
+	import os.path,re,os
+	if os.path.exists('RELEASE'):
+		return file('RELEASE').readline().strip()
+	if os.path.exists('.bzr'):
+		for l in os.popen("LC_ALL=C bzr revno 2>/dev/null").readlines():
+			return 'bzr'+l[:-1]
+	if os.path.exists('VERSION'):
+		return file('VERSION').readline().strip()
+	return None
+
 ## ALL generated stuff should go here - therefore we must determine it very early!!
-if not env.has_key('realVersion') or not env['realVersion']: env['realVersion']=wooSCons.getRealVersion() or 'unknown' # unknown if nothing returned
+if not env.has_key('realVersion') or not env['realVersion']: env['realVersion']=getRealWooVersion() or 'unknown' # unknown if nothing returned
 if not env.has_key('version'): env['version']=env['realVersion']
 
 env['SUFFIX']=('-'+env['version'] if len(env['version'])>0 else '')+env['variant']
@@ -234,7 +246,7 @@ def CheckLibStdCxx(context):
 		return l
 	ret=os.popen(context.env['CXX']+' -print-file-name=libstdc++.so.6').readlines()[0][:-1]
 	if ret[0]!='/':
-		context.Result('Relative path "%s" was given by compiler %s, must specify libstdcxx=.. explicitly.'%(ret,context.env['CXX']))
+		context.Result('Relative path "%s" was given by compiler %s, you must specify libstdcxx=.. explicitly.'%(ret,context.env['CXX']))
 		Exit(1)
 	ret=os.path.abspath(ret) # removes .. in the path returned by g++
 	context.env['libstdcxx']=ret
@@ -261,6 +273,20 @@ def CheckPython(context):
 		context.Result('error')
 		return False
 	context.Result('ok'); return True
+
+def EnsureBoostVersion(context,version):
+	context.Message('Checking that boost version is >= %d '%version)
+	ret=context.TryCompile("""
+		#include <boost/version.hpp>
+		#if BOOST_VERSION < %d
+			#error Installed boost is too old!
+		#endif
+		// int main() { return 0; }
+    """%version,'.cpp')
+	if ret: context.Result('yes')
+	else: context.Result('no')
+	return ret
+	#os.popen('echo BOOST_VERSION | "%s" -E - -include boost/version.hpp | tail -n1'%context.env['CXX'])
 
 def CheckBoost(context):
 	context.Message('Checking boost libraries... ')
@@ -304,7 +330,7 @@ def CheckPythonModules(context):
 	
 
 if not env.GetOption('clean'):
-	conf=env.Configure(custom_tests={'CheckLibStdCxx':CheckLibStdCxx,'CheckCXX':CheckCXX,'CheckBoost':CheckBoost,'CheckPython':CheckPython,'CheckPythonModules':CheckPythonModules}, # 'CheckQt':CheckQt
+	conf=env.Configure(custom_tests={'CheckLibStdCxx':CheckLibStdCxx,'CheckCXX':CheckCXX,'EnsureBoostVersion':EnsureBoostVersion,'CheckBoost':CheckBoost,'CheckPython':CheckPython,'CheckPythonModules':CheckPythonModules}, # 'CheckQt':CheckQt
 		conf_dir='$buildDir/.sconf_temp',log_file='$buildDir/config.log'
 	)
 	ok=True
@@ -316,6 +342,7 @@ if not env.GetOption('clean'):
 	ok&=conf.CheckLibWithHeader('pthread','pthread.h','c','pthread_exit(NULL);',autoadd=1)
 	ok&=(conf.CheckPython() and conf.CheckCXXHeader(['Python.h','numpy/ndarrayobject.h'],'<>'))
 	ok&=conf.CheckPythonModules()
+	ok&=conf.EnsureBoostVersion(14800)
 	ok&=conf.CheckBoost()
 	env['haveForeach']=conf.CheckCXXHeader('boost/foreach.hpp','<>')
 	if not env['haveForeach']: print "(OK, local version will be used instead)"
@@ -372,7 +399,7 @@ if not env.GetOption('clean'):
 		ok=conf.CheckLibWithHeader('CGAL','CGAL/Exact_predicates_inexact_constructions_kernel.h','c++','CGAL::Exact_predicates_inexact_constructions_kernel::Point_3();')
 		env.Append(CXXFLAGS='-frounding-math') # required by cgal, otherwise we get assertion failure at startup
 		if not ok: featureNotOK('cgal')
-	env.Append(LIBS='woo-support')
+	#env.Append(LIBS='woo-support')
 
 	env.Append(CPPDEFINES=['WOO_'+f.upper().replace('-','_') for f in env['features']])
 
@@ -412,15 +439,6 @@ else:
 ### DIRECTORIES
 ## PREFIX must be absolute path. Why?!
 env['PREFIX']=os.path.abspath(env['PREFIX'])
-
-libDirs=('extra','gui','lib','py','plugins')
-# where are we going to be installed... pkg/dem becomes pkg-dem
-instLibDirs=[os.path.join('$LIBDIR',x) for x in libDirs]
-## runtime library search directories; there can be up to 2 levels of libs, so we do in in quite a crude way here:
-## FIXME: use syntax as shown here: http://www.scons.org/wiki/UsingOrigin
-relLibDirs=['../'+x for x in libDirs]+['../../'+x for x in libDirs]+[env.subst('../lib/woo$SUFFIX_DBG/lib')]
-runtimeLibDirs=[env.Literal('\\$$ORIGIN/'+x) for x in relLibDirs]
-
 ### PREPROCESSOR FLAGS
 if env['QUAD_PRECISION']: env.Append(CPPDEFINES='QUAD_PRECISION')
 
@@ -437,6 +455,11 @@ if env['optimize']:
 else:
 	env.Append(CPPDEFINES=[('WOO_CAST','dynamic_cast'),('WOO_PTR_CAST','dynamic_pointer_cast')])
 
+if env['lto']:
+	env.Append(CXXFLAGS='-flto',CFLAGS='-flto')
+	if 'clang' in env['CXX']: env.Append(SHLINKFLAGS='-use-gold-plugin')
+	else: env.Append(SHLINKFLAGS='-fuse-linker-plugin')
+
 if env['gprof']: env.Append(CXXFLAGS=['-pg'],LINKFLAGS=['-pg'],SHLINKFLAGS=['-pg'])
 env.Prepend(CXXFLAGS=['-pipe','-Wall'])
 
@@ -452,25 +475,8 @@ if 'g++' in env['CXX']:
 		print 'Using gcc 4.6, adding -pedantic to avoid ICE at string initializer_list (http://gcc.gnu.org/bugzilla/show_bug.cgi?id=50478)'
 		env.Append(CXXFLAGS='-pedantic')
 
-
-### LINKER
-## libs for all plugins
-# -rdynamic only works for ELF targets
-if sys.platform not in ('cygwin','win32'):
-	env.Append(LIBS=[],SHLINKFLAGS=['-rdynamic'],LINKFLAGS=['-rdynamic'])
-	env.Append(LINKFLAGS=['-Wl,-z,origin'])
 if 'EXTRA_SHLINKFLAGS' in env: env.Append(SHLINKFLAGS=env['EXTRA_SHLINKFLAGS'])
-
-## newer scons (?) does not pass SHCCFLAGS when linking with g++
-#env['SHCXXFLAGS']=env['SHCCFLAGS']
-
 if not env['debug']: env.Append(SHLINKFLAGS=['-Wl,--strip-all'])
-
-# makes dynamic library loading easier (no LD_LIBRARY_PATH) and perhaps faster
-env.Append(RPATH=runtimeLibDirs)
-# find already compiled but not yet installed libraries for linking
-env.Append(LIBPATH=instLibDirs) # this is if we link to libs that are installed, which is the case now
-
 
 def relpath(pf,pt):
 	"""Returns relative path from pf (path from) to pt (path to) as string.
@@ -486,12 +492,7 @@ def relpath(pf,pt):
 # Should be cleaned up.
 
 if not env.GetOption('clean'):
-	# how to make that executed automatically??! For now, run always.
-	#env.AddPreAction(installAlias,installHeaders)
 	from os.path import join,split,isabs,isdir,exists,lexists,islink,isfile,sep,dirname
-	#installHeaders() # install to buildDir always
-	#if 0: # do not install headers
-	#	installHeaders(env.subst('$PREFIX')) # install to $PREFIX if specifically requested: like "scons /usr/local/include"
 	def mkSymlink(link,target):
 		if exists(link) and not islink(link):
 			import shutil
@@ -508,12 +509,11 @@ if not env.GetOption('clean'):
 	import glob
 	boostDir=buildDir+'/include/boost'
 	if not exists(boostDir): os.makedirs(boostDir)
-	if not env['haveForeach']:
-		mkSymlink(boostDir+'/foreach.hpp','extra/foreach.hpp_local')
 	if 'opencl' in env['features'] and not env['haveClHpp']:
 		clDir=buildDir+'/include/CL'
 		if not exists(clDir): os.makedirs(clDir)
 		mkSymlink(clDir+'/cl.hpp','extra/cl.hpp_local')
+	# this is not used, should be removed perhaps?!
 	#mkSymlink(boostDir+'/python','py/3rd-party/boost-python-indexing-suite-v2-noSymlinkHeaders')
 	mkSymlink(buildDir+'/include/indexing_suite','py/3rd-party/boost-python-indexing-suite-v2-noSymlinkHeaders')
 	mkSymlink(boostDir+'/math','extra/floating_point_utilities_v3/boost/math')
@@ -555,20 +555,6 @@ env.CombineWrapper=CombineWrapper
 	
 env.Append(BUILDERS = {'Combine': env.Builder(action = SCons.Action.Action(combiner_build, "> $TARGET"),target_factory = env.fs.File,)})
 
-import wooSCons
-allPlugs=wooSCons.scanAllPlugins(None,feats=env['features'])
-buildPlugs=wooSCons.getWantedPlugins(allPlugs,[],env['features'],env['chunkSize'],env['hotPlugins'].split(','))
-def linkPlugins(plugins):
-	"""Given list of plugins we need to link to, return list of real libraries that we should link to."""
-	ret=set()
-	for p in plugins:
-		if not buildPlugs.has_key(p):
-			raise RuntimeError("Plugin %s is required (backtrace shows where), but will not be built!"%p)
-		ret.add(buildPlugs[p].obj)
-	return ['core','woo-support']+list(ret)
-
-env['linkPlugins']=linkPlugins
-env['buildPlugs']=buildPlugs
 
 # read top-level SConscript file. It is used only so that variant_dir is set. This file reads all necessary SConscripts
 env.SConscript(dirs=['.'],variant_dir=buildDir,duplicate=0)
@@ -588,6 +574,8 @@ if not COMMAND_LINE_TARGETS:
 			ff=os.path.join(root,f)
 			# do not delete python-optimized files and symbolic links (lib_gts__python-module.so, for instance)
 			if ff not in toInstall and not ff.endswith('.pyo') and not ff.endswith('.pyc') and not os.path.islink(ff) and not os.path.basename(ff).startswith('.nfs'):
+				# HACK
+				if 'libEverything.so' in ff: continue
 				print "Deleting extra plugin", ff
 				os.remove(ff)
 

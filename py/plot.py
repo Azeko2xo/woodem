@@ -7,9 +7,8 @@ Module containing utility functions for plotting inside woo. Most functionality 
 ## all exported names
 __all__=['live','liveInterval','autozoom','legendAlpha','scientific','scatterMarkerKw']
 
-# multi-threaded support for Tk
-# safe to import even if Tk will not be used
-import mtTkinter as Tkinter
+
+	
 
 try:
 	import Image
@@ -34,9 +33,16 @@ import matplotlib,os,time,math,itertools
 import woo.runtime
 if not woo.runtime.hasDisplay: matplotlib.use('Agg')
 else:
-	#matplotlib.use('TkAgg')
-	#matplotlib.use('GTKAgg')
 	matplotlib.use('Qt4Agg')
+	# matplotlib.use('GTKAgg')
+	# there is probably no reason to support TkAgg anymore, but keep this for the future perhaps...
+	if 0:
+		# multi-threaded support for Tk; safe to import even if Tk will not be used
+		# live plots are dysfunctional anyway (dye to the qt4 gui?) so this can be safely removed later
+		try: import mtTkinter as Tkinter
+		except ImportError:
+			print 'mtTkinter not imported, but TkAgg backend for matplotlib is used; live plots will be broken, don\'t complain'
+		matplotlib.use('TkAgg')
 from miniEigen import *
 
 matplotlib.rc('axes',grid=True) # put grid in all figures

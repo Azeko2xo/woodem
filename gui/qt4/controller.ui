@@ -21,7 +21,7 @@
   </property>
   <property name="windowIcon">
    <iconset resource="img.qrc">
-    <normaloff>:/img/woodem-logo.png</normaloff>:/img/woodem-logo.png</iconset>
+    <normaloff>:/img/woodem-logo.svg</normaloff>:/img/woodem-logo.svg</iconset>
   </property>
   <layout class="QGridLayout" name="gridLayout_3">
    <property name="margin">

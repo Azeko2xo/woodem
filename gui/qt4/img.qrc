@@ -1,6 +1,5 @@
 <RCC>
   <qresource prefix="img">
-    <file>yade-favicon.png</file>
-    <file>woodem-logo.png</file>
+    <file>woodem-logo.svg</file>
   </qresource>
 </RCC>

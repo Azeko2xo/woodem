@@ -13,6 +13,38 @@ It loads woo plugins and injects c++ class constructors to the __builtins__
 everywhere.
 """
 
+
+#
+# import options
+#
+import wooOptions
+import woo.runtime
+# detect if $DISPLAY is usable unless forbidden
+if not wooOptions.forceNoGui:
+	import Xlib.display
+	# PyQt4's QApplication does exit(1) if it is unable to connect to the display
+	# we however want to handle this gracefully, therefore
+	# we test the connection with bare xlib first, which merely raises DisplayError
+	try:
+		# contrary to display.Display, _BaseDisplay does not check for extensions and that avoids spurious message "Xlib.protocol.request.QueryExtension" (bug?)
+		Xlib.display._BaseDisplay();
+		woo.runtime.hasDisplay=True
+	except: 
+		# usually Xlib.error.DisplayError, but there can be Xlib.error.XauthError etc as well
+		# let's just pretend any exception means the display would not work
+		pass
+
+# API compatibility for PySide vs. PyQt
+# must be called before PyQt4 is ever imported
+# don't do that if someone imported PyQt4/PySide already
+# it would lead to crash
+import sys
+if woo.runtime.hasDisplay and ('PyQt4' not in sys.modules) and ('PySide' not in sys.modules):
+	if woo.runtime.ipython_version>=11:
+		import IPython.external.qt
+		IPython.external.qt.prepare_pyqt4()
+
+
 import ctypes,sys
 try:
 	import dl
@@ -37,7 +69,7 @@ ctypes.cdll.LoadLibrary(libstdcxx)
 
 # find plugin directory
 import os,os.path
-import config
+from . import config
 # find plugins recursively
 plugins=[]
 # might add followlinks=True to os.walk, for python>=2.6
@@ -60,6 +92,17 @@ warnings.simplefilter('default')
 
 # import eigen before plugins because of its converters, so that default args to python methods can use Vector3r etc
 import miniEigen
+
+
+
+
+
+#
+# import known woo modules which could be synthesized and overwritten by accident otherwise
+#
+#import woo.qt
+
+
 
 # c++ initialization code
 import boot

@@ -157,21 +157,15 @@ void Master::initializePlugins(const vector<std::pair<string,string> >& pluginCl
 					// module existing as file, use it
 					pyModules[module]=py::import(("woo."+module).c_str());
 				} catch (py::error_already_set& e){
-					// import error, synthesize the module
-					#if 1
-						py::object newModule(py::handle<>(PyModule_New(("woo."+module).c_str())));
-						newModule.attr("__file__")="<synthetic>";
-						wooScope.attr(module.c_str())=newModule;
-						//pyModules[module]=py::import(("woo."+module).c_str());
-						pyModules[module]=newModule;
-						// http://stackoverflow.com/questions/11063243/synethsized-submodule-from-a-import-b-ok-vs-import-a-b-error/11063494
-						py::extract<py::dict>(py::getattr(py::import("sys"),"modules"))()[("woo."+module).c_str()]=newModule;
-						LOG_DEBUG("Synthesized new module woo."<<module);
-					#else
-						cerr<<"Error importing module woo."<<module<<" for class "<<name;
-						boost::python::handle_exception();
-						throw;
-					#endif
+					if(getenv("WOO_DEBUG")) PyErr_Print(); //boost::python::handle_exception();
+					py::object newModule(py::handle<>(PyModule_New(("woo."+module).c_str())));
+					newModule.attr("__file__")="<synthetic>";
+					wooScope.attr(module.c_str())=newModule;
+					//pyModules[module]=py::import(("woo."+module).c_str());
+					pyModules[module]=newModule;
+					// http://stackoverflow.com/questions/11063243/synethsized-submodule-from-a-import-b-ok-vs-import-a-b-error/11063494
+					py::extract<py::dict>(py::getattr(py::import("sys"),"modules"))()[("woo."+module).c_str()]=newModule;
+					LOG_INFO("Synthesized new module woo."<<module);
 				}
 			}
 			pythonables.push_back(StringObjectPair(module,obj));
