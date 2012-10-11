@@ -4,6 +4,7 @@
 #include<woo/lib/base/Math.hpp>
 #include<woo/lib/base/Types.hpp>
 #include<woo/lib/pyutil/doc_opts.hpp>
+#include<woo/core/Master.hpp>
 
 namespace py=boost::python;
 #ifdef WOO_LOG4CXX
@@ -337,6 +338,7 @@ public:
 
 #endif
 
+WOO_PYTHON_MODULE(_packPredicates);
 BOOST_PYTHON_MODULE(_packPredicates){
 	py::scope().attr("__doc__")="Spatial predicates for volumes (defined analytically or by triangulation).";
 	WOO_SET_DOCSTRING_OPTS;

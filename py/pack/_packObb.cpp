@@ -10,6 +10,8 @@
 
 #include<woo/lib/base/Types.hpp>
 
+#include<woo/core/Master.hpp>
+
 #include<vector>
 #include<stdexcept>
 #ifndef FOREACH
@@ -71,6 +73,7 @@ py::tuple bestFitOBB_py(const py::tuple& _pts){
 	return py::make_tuple(center,halfSize,rot);
 }
 
+WOO_PYTHON_MODULE(_packObb);
 BOOST_PYTHON_MODULE(_packObb){
 	WOO_SET_DOCSTRING_OPTS;
 	py::scope().attr("__doc__")="Computation of oriented bounding box for cloud of points.";

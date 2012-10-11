@@ -1,4 +1,5 @@
 #include<woo/lib/smoothing/WeightedAverage2d.hpp>
+#include<woo/core/Master.hpp>
 
 /* Tell whether point is inside polygon
  *
@@ -14,6 +15,7 @@ bool pyGaussAverage::pointInsidePolygon(const Vector2r& pt, const vector<Vector2
 	return inside;
 }
 
+WOO_PYTHON_MODULE(WeightedAverage2d);
 BOOST_PYTHON_MODULE(WeightedAverage2d)
 {
 	py::scope().attr("__doc__")="Smoothing (2d gauss-weighted average) for postprocessing scalars in 2d.";

@@ -16,6 +16,7 @@
 #include<woo/lib/base/Types.hpp>
 #include<woo/lib/base/Logging.hpp>
 #include<woo/lib/pyutil/except.hpp>
+#include<woo/lib/object/Object.hpp>
 
 #include<woo/core/Timing.hpp>
 
@@ -24,23 +25,21 @@
 #endif
 
 class Scene;
-namespace woo { class Object; };
+//namespace woo { class Object; };
 using namespace woo;
 
 namespace py=boost::python;
 
 class Master: public Singleton<Master>{
-	map<string,set<string>> classBases; // FIXME: should store that in ClassFactory ?
+	map<string,set<string>> classBases;
 	public:
 
 	// pointer to factory function
 	typedef std::function<shared_ptr<woo::Object>(void)> FactoryFunc;
 	// map class name to function returning instance upcast to shared_ptr<Object>
 	std::map<std::string,FactoryFunc> classnameFactoryMap;
-
 	// add entry to classnameFactoryMap
 	bool registerClassFactory(const std::string& name, FactoryFunc factory);
-
 	// return instance for given class name
 	shared_ptr<woo::Object> factorClass(const std::string& name);
 
@@ -56,6 +55,14 @@ class Master: public Singleton<Master>{
 	// register class from plugin in python
 	// store class hierarchy for quick lookup (might be removed in the future)
 	void initializePlugins(const vector<std::pair<std::string, std::string> >& dynlibsList); 
+
+	// compiled python modules
+	list<string> compiledPyModules;
+	py::list pyCompiledPyModules(void){ py::list ret; for(const auto& s: compiledPyModules) ret.append(s); return ret; }
+	// full module name should be given: woo.*
+	void registerCompiledPyModule(const char* mod){ compiledPyModules.push_back(mod); }
+	#define WOO_PYTHON_MODULE(mod) namespace{ __attribute__((constructor)) void _registerThisCompiledPyModule(void){ Master::instance().registerCompiledPyModule("woo." #mod); } }
+
 	
 	shared_ptr<Scene> scene;
 	shared_ptr<Scene> sceneAnother; // used for temporarily running different simulation, in Master().switchscene()
@@ -193,6 +200,7 @@ class Master: public Singleton<Master>{
 
 			.add_property("timingEnabled",&Master::timingEnabled_get,&Master::timingEnabled_set,"Globally enable/disable timing services (see documentation of the :ref:`timing module<woo.timing>`).")
 			.add_property("numThreads",&Master::numThreads_get,"Get maximum number of threads openMP can use.")
+			.add_property("compiledPyModules",&Master::pyCompiledPyModules) // we might not use to-python converters, since _customConverters have not yet been imported
 
 			.def("exitNoBacktrace",&Master::pyExitNoBacktrace,(py::arg("status")=0),"Disable SEGV handler and exit, optionally with given status number.")
 			.def("disableGdb",&Master::pyDisableGdb,"Revert SEGV and ABRT handlers to system defaults.")

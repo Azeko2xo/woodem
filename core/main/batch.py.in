@@ -14,7 +14,7 @@ prefix,suffix='${runtimePREFIX}' if not os.environ.has_key('WOO_PREFIX') else os
 libDir=prefix+'/lib/woo'+suffix
 if not os.path.exists(libDir): libDir=libDir+'/dbg' # ude debugging dir if available
 if not os.path.exists(libDir): raise RuntimeError("Woo plugin directory does not exist: "+libDir)
-sys.path.append(os.path.join(libDir,'py'))
+sys.path.append(libDir)
 executable=os.path.join(prefix,'bin','woo'+suffix)
 ## we just need this ...
 import woo, woo.batch, woo.config, woo.remote

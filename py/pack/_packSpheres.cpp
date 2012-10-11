@@ -3,7 +3,9 @@
 #include<woo/lib/sphere-pack/SpherePack.hpp>
 #include<woo/lib/pyutil/doc_opts.hpp>
 #include<woo/lib/base/Math.hpp>
+#include<woo/core/Master.hpp>
 
+WOO_PYTHON_MODULE(_packSpheres);
 BOOST_PYTHON_MODULE(_packSpheres){
 	py::scope().attr("__doc__")="Creation, manipulation, IO for generic sphere packings.";
 	WOO_SET_DOCSTRING_OPTS;

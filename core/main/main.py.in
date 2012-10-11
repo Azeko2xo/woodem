@@ -11,12 +11,12 @@ features,version='${features}'.split(','),'${realVersion}'
 ## find available builds
 nonDebugLibDir=prefix+'/lib/woo'+suffix
 debugLibDir=nonDebugLibDir+'/dbg'
-hasDebug,hasNonDebug=os.path.exists(debugLibDir+'/py/woo/__init__.py'),os.path.exists(nonDebugLibDir+'/py/woo/__init__.py')
+hasDebug,hasNonDebug=os.path.exists(debugLibDir+'/woo/__init__.py'),os.path.exists(nonDebugLibDir+'/woo/__init__.py')
 if hasDebug and hasNonDebug: buildsAvailable='both non-debug and debug build'
 elif hasDebug and not hasNonDebug: buildsAvailable='debug build only'
 elif not hasDebug and hasNonDebug: buildsAvailable='non-debug build only'
 else:
-	raise RuntimeError('Neither non-debug nor debug build found! ('+nonDebugLibDir+'/py/woo/__init__.py, '+debugLibDir+'/py/woo/__init__.py)')
+	raise RuntimeError('Neither non-debug nor debug build found! ('+nonDebugLibDir+'/woo/__init__.py, '+debugLibDir+'/woo/__init__.py)')
 
 
 # handle command-line options first
@@ -79,8 +79,9 @@ if opts.inGdb:
 	args=["'"+arg.replace("'",r"\'")+"'" for arg in sys.argv if arg!='--in-gdb']
 	gdbBatch.write('set pagination off\nrun '+' '.join(args)+'\n')
 	gdbBatch.flush()
-	print 'Spawning: gdb -x '+gdbBatch.name+' ${pyExecutable}'
-	sys.exit(subprocess.call(['gdb','-x',gdbBatch.name,'${pyExecutable}']))
+	if opts.debug:
+		print 'Spawning: gdb -x '+gdbBatch.name+' ${pyExecutable}'
+	sys.exit(subprocess.call(['gdb']+([] if opts.debug else ['-batch-silent'])+['-x',gdbBatch.name,'${pyExecutable}']))
 
 if opts.inValgrind:
 	import subprocess,urllib,os.path
@@ -103,7 +104,7 @@ else:
 		print 'WARNING: non-debug build not available, running with --debug instead (try --rebuild to get the non-debug build).'
 	libDir=nonDebugLibDir
 
-sys.path.append(os.path.join(libDir,'py'))
+sys.path.append(libDir)
 
 # run regression test suite and exit
 if opts.test:
@@ -272,7 +273,7 @@ def userSession(qt4=False,qapp=None,qtConsole=False):
 		prompt_in2='    .\D.: ',
 		prompt_out=" -> [\#]: ",
 		separate_in='',separate_out='',separate_out2='',
-		#execfile=[prefix+'/lib/woo'+suffix+'/py/woo/ipython.py'],
+		#execfile=[prefix+'/lib/woo'+suffix+'/woo/ipython.py'],
 		readline_parse_and_bind=[
 			'tab: complete',
 			# only with the gui; the escape codes might not work on non-linux terminals.

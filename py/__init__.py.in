@@ -44,47 +44,49 @@ if woo.runtime.hasDisplay and ('PyQt4' not in sys.modules) and ('PySide' not in 
 		import IPython.external.qt
 		IPython.external.qt.prepare_pyqt4()
 
+if 1:
+	import ctypes,sys
+	try:
+		import dl
+	except ImportError:
+		import DLFCN as dl
+	if False: # not eval('${mono}'):
+		# see file:///usr/share/doc/python2.6/html/library/sys.html#sys.setdlopenflags
+		# and various web posts on the topic, e.g.
+		# * http://gcc.gnu.org/faq.html#dso
+		# * http://www.code-muse.com/blog/?p=58
+		# * http://wiki.python.org/moin/boost.python/CrossExtensionModuleDependencies
+		sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL)
+	else: sys.setdlopenflags(dl.RTLD_NOW)
 
-import ctypes,sys
-try:
-	import dl
-except ImportError:
-	import DLFCN as dl
-if True: # not eval('${mono}'):
-	# see file:///usr/share/doc/python2.6/html/library/sys.html#sys.setdlopenflags
-	# and various web posts on the topic, e.g.
-	# * http://gcc.gnu.org/faq.html#dso
-	# * http://www.code-muse.com/blog/?p=58
-	# * http://wiki.python.org/moin/boost.python/CrossExtensionModuleDependencies
-	sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL)
-else: sys.setdlopenflags(dl.RTLD_NOW)
-
-# important: initialize c++ by importing libstdc++ directly
-# see http://www.abclinuxu.cz/poradna/programovani/show/286322
-# https://bugs.launchpad.net/bugs/490744
-libstdcxx='${libstdcxx}' # substituted by scons
-ctypes.cdll.LoadLibrary(libstdcxx)
-#
-# now ready for c++ imports
+	# important: initialize c++ by importing libstdc++ directly
+	# see http://www.abclinuxu.cz/poradna/programovani/show/286322
+	# https://bugs.launchpad.net/bugs/490744
+	libstdcxx='${libstdcxx}' # substituted by scons
+	ctypes.cdll.LoadLibrary(libstdcxx)
+	#
+	# now ready for c++ imports
 
 # find plugin directory
 import os,os.path
 from . import config
 # find plugins recursively
-plugins=[]
-# might add followlinks=True to os.walk, for python>=2.6
-for root,dirs,files in os.walk(config.libDir):
-	# skip any directory named 'dbg' in the non-debug build
-	if 'dbg' in dirs: dirs.remove('dbg')
-	for f in files:
-		# ouch, ugly!
-		#if not config.debug and '/dbg/' in root: continue
-		if not (f.startswith('lib') and f.endswith('.so')): continue
-		plugin=os.path.join(config.libDir,root,f)
-		plugins.append(plugin)
-if 'WOO_DEBUG' in os.environ:
-	print 'The following plugins will be loaded:'
-	for p in plugins: print '\t'+p
+plugins=[config.libDir+'/woo/_cxxInternal.so']
+
+if 0:
+	# might add followlinks=True to os.walk, for python>=2.6
+	for root,dirs,files in os.walk(config.libDir):
+		# skip any directory named 'dbg' in the non-debug build
+		if 'dbg' in dirs: dirs.remove('dbg')
+		for f in files:
+			# ouch, ugly!
+			#if not config.debug and '/dbg/' in root: continue
+			if not (f.startswith('lib') and f.endswith('.so')): continue
+			plugin=os.path.join(config.libDir,root,f)
+			plugins.append(plugin)
+	if 'WOO_DEBUG' in os.environ:
+		print 'The following plugins will be loaded:'
+		for p in plugins: print '\t'+p
 
 # enable warnings which are normally invisible, such as DeprecationWarning
 import warnings
@@ -94,29 +96,72 @@ warnings.simplefilter('default')
 import miniEigen
 
 
-
-
-
-#
-# import known woo modules which could be synthesized and overwritten by accident otherwise
-#
-#import woo.qt
-
-
-
 # c++ initialization code
-import boot
-boot.initialize(plugins,config.confDir)
-import system
+from . import _cxxInternal
+_cxxInternal.initialize(plugins,config.confDir)
+
+from . import core
+master=core.Master.instance
+#
+# create compiled python modules
+#
+if len(plugins)==0: raise RuntimeError('No plugins for woo found?!')
+if len(plugins)>1:
+	raise RuntimeError("Multiple-plugin builds are no longer supported (plugins are %s)"%(', '.join(plugins)))
+# BROKEN until http://bugs.python.org/issue16194 is fixed
+if 0:
+	import imp
+	for mod in master.compiledPyModules:
+		print 'Loading compiled module',mod,'from',plugins[0]
+		# this inserts the module to sys.modules automatically
+		imp.load_dynamic(mod,plugins[0])
+# WORKAROUND: create temporary symlinks
+# this is UGLY and will probably not work on Windows!!
+else:
+	allSubmodules=[]
+	compiledModDir=woo.master.tmpFilename() # this will be a directory
+	import os
+	os.mkdir(compiledModDir)
+	sys.path.append(compiledModDir)
+	# move _customConverters to the start, so that imports reyling on respective converters don't fail
+	cpm=master.compiledPyModules
+	cc='woo._customConverters'
+	assert cc in cpm
+	## HACK: import _gts this way until it gets separated
+	cpm=[cc]+[m for m in cpm if m!=cc]+['_gts']
+	# run imports now
+	for mod in cpm:
+		modpath=mod.split('.') 
+		linkName=os.path.join(compiledModDir,modpath[-1])+'.so' # use just the last part to avoid hierarchy
+		os.symlink(os.path.abspath(plugins[0]),linkName)
+		print 'Loading compiled module',mod,'from symlink',linkName
+		sys.modules[mod]=__import__(modpath[-1])
+		#__allSubmodules.append(modpath[1])
+		if len(modpath)==1: pass # nothing to do, adding to sys.modules is enough
+		elif len(modpath)==2: # subdmodule must be added to module
+			globals()[modpath[1]]=sys.modules[mod]
+			allSubmodules.append(modpath[1])
+		elif len(modpath)==3: # must be added to module and submodule
+			allSubmodules.append(modpath[1])
+			setattr(__import__('.'.join(modpath[:2])),modpath[2],sys.modules[mod])
+		else:
+			raise RuntimeError('Module %s does not have 2 or 3 path items and will not be imported properly.'%mod)
+	## HACK: gts in-tree
+	#import woo.gts
+	#sys.modules['gts']=woo.gts
+
+			
+		
+
+import _customConverters
+
+from . import system
 # create proxies for deprecated classes
 deprecatedTypes=system.cxxCtorsDict()
 # insert those in the module namespace
 globals().update(deprecatedTypes)
 # declare what should be imported for "from woo import *"
-import core
-O=core.Master.instance
-master=core.Master.instance
-__all__=deprecatedTypes.keys()+['master']
+__all__=deprecatedTypes.keys()+['master']+allSubmodules
 
 # avoids backtrace if crash at finalization (log4cxx)
 system.setExitHandlers() 

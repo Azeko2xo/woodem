@@ -207,6 +207,7 @@ Real outerTri2Dist(const Vector2r& pt, const Vector2r& A, const Vector2r& B, con
 }
 
 
+WOO_PYTHON_MODULE(_utils2);
 BOOST_PYTHON_MODULE(_utils2){
 	// http://numpy.scipy.org/numpydoc/numpy-13.html mentions this must be done in module init, otherwise we will crash
 	//import_array();

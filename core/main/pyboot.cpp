@@ -90,7 +90,8 @@ void wooInitialize(py::list& pp, const std::string& confDir){
 }
 void wooFinalize(){ Master::instance().cleanupTemps(); }
 
-BOOST_PYTHON_MODULE(boot){
+WOO_PYTHON_MODULE(_cxxInternal);
+BOOST_PYTHON_MODULE(_cxxInternal){
 	py::scope().attr("initialize")=&wooInitialize;
 	py::scope().attr("finalize")=&wooFinalize; //,"Finalize woo (only to be used internally).")
 }

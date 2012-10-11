@@ -291,7 +291,7 @@ class WooJSONEncoder(json.JSONEncoder):
 			d.update(dict([(trait.name,getattr(obj,trait.name)) for trait in obj._getAllTraits() if not (trait.hidden or trait.noDump)]))
 			return d
 		# vectors, matrices: those can be assigned from tuples
-		elif obj.__class__.__module__=='woo._customConverters':
+		elif obj.__class__.__module__=='woo._customConverters' or obj.__class__.__module__=='_customConverters':
 			if hasattr(obj,'__len__'): return list(obj)
 			else: raise TypeError("Unhandled type for JSON: "+obj.__class__.__module__+'.'+obj.__class__.__name__)
 		elif obj.__class__.__module__=='miniEigen':

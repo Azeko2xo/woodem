@@ -16,7 +16,7 @@ from woo.qt.Inspector import *
 from woo import *
 import woo.system, woo.config
 
-from woo.qt._GLViewer import *
+from woo._qt._GLViewer import *
 
 from ExceptionDialog import *
 

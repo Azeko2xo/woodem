@@ -5,7 +5,7 @@ import os.path
 
 pyModules=[]
 pyObjects=[]
-pySharedObject='$LIBDIR/libEverything.so'
+pySharedObject='$LIBDIR/woo/_cxxInternal.so'
 
 # we need relative paths here, to keep buildDir
 pkgSrcs=[os.path.relpath(str(s),env.Dir('#').abspath) for s in env.Glob('pkg/*.cpp')+env.Glob('pkg/*/*.cpp')+env.Glob('pkg/*/*/*.cpp')]
@@ -52,7 +52,7 @@ if 'qt4' in env['features']:
 if 'gts' in env['features']:
 	pyModules.append('gts._gts')
 	pyObjects+=[env.SharedObject(f) for f in env.Glob('py/3rd-party/pygts-0.3.1/*.c')]
-	env.Install('$LIBDIR/py/gts',[
+	env.Install('$LIBDIR/gts',[
 		env.File('py/3rd-party/pygts-0.3.1/__init__.py'),
 		env.File('py/3rd-party/pygts-0.3.1/pygts.py')
 	])
@@ -62,18 +62,9 @@ if 'gts' in env['features']:
 #
 env.Install(
 env.SharedLibrary(pySharedObject,pyObjects,
+	SHLIBPREFIX='',
 	LIBS=['dl','m','rt']+[l for l in env['LIBS'] if l!='woo-support']+(['glut','GL','GLU']+[env['QGLVIEWER_LIB']] if 'opengl' in env['features'] else []),CXXFLAGS=env['CXXFLAGS']+['-fPIC']
 ))
-#
-# link python modules
-#
-for name in pyModules:
-	# link python module
-	f='$LIBDIR/py/'+'/'.join(name.split('.'))+'.so'
-	rp=os.path.relpath(pySharedObject,os.path.dirname(f))
-	ff=env.subst(f)
-	if os.path.exists(ff) and os.path.islink(ff) and os.path.realpath(ff)==os.path.realpath(env.subst(pySharedObject)): continue
-	env.Command(f,pySharedObject,'ln -s -f "%s" $TARGET'%rp)
 
 #
 # SCRIPTS HERE
@@ -88,28 +79,28 @@ env.InstallAs(pyMain+'-batch',batch)
 env.AddPostAction(pyMain,Chmod(pyMain,0755))
 env.AddPostAction(pyMain+'-batch',Chmod(pyMain+'-batch',0755))
 
-env.Install('$LIBDIR/py','core/main/wooOptions.py')
+env.Install('$LIBDIR','core/main/wooOptions.py')
 ## for --rebuild
 if 'execCheck' in env and env['execCheck']!=os.path.abspath(env.subst(pyMain)):
 	raise RuntimeError('execCheck option (%s) does not match what is about to be installed (%s)'%(env['execCheck'],env.subst(pyMain)))
 
 #install preprocessor scripts
-env.Install('$LIBDIR/py/woo/pre',
+env.Install('$LIBDIR/woo/pre',
 	env.File(env.Glob('pkg/pre/*.py'),'pkg/pre'),
 )
 
-env.Install('$LIBDIR/py/woo',[
+env.Install('$LIBDIR/woo',[
 	env.AlwaysBuild(env.ScanReplace('#/py/__init__.py.in')),
 	env.AlwaysBuild(env.ScanReplace('#/py/config.py.in')),
 	env.File(env.Glob('#/py/*.py')),
 	env.File('#py/pack/pack.py'),
 ])
-env.Install('$LIBDIR/py/woo/tests',[env.File(env.Glob('#/py/tests/*.py'),'tests'),])
-env.Install('$LIBDIR/py/woo/_monkey',[env.File(env.Glob('#/py/_monkey/*.py'),'_monkey')])
+env.Install('$LIBDIR/woo/tests',[env.File(env.Glob('#/py/tests/*.py'),'tests'),])
+env.Install('$LIBDIR/woo/_monkey',[env.File(env.Glob('#/py/_monkey/*.py'),'_monkey')])
 
 
 if 'qt4' in env['features']:
-	env.Install('$LIBDIR/py/woo/qt',[
+	env.Install('$LIBDIR/woo/qt',[
 		env.File('gui/qt4/img_rc.py'),
 		env.File('gui/qt4/ui_controller.py'),
 		env.File('gui/qt4/SerializableEditor.py'),

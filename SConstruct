@@ -571,7 +571,7 @@ if not COMMAND_LINE_TARGETS:
 			# do not delete python-optimized files and symbolic links (lib_gts__python-module.so, for instance)
 			if ff not in toInstall and not ff.endswith('.pyo') and not ff.endswith('.pyc') and not os.path.islink(ff) and not os.path.basename(ff).startswith('.nfs'):
 				# HACK
-				if 'libEverything.so' in ff: continue
+				if ff.endswith('/_cxxInternal.so'): continue
 				print "Deleting extra plugin", ff
 				os.remove(ff)
 

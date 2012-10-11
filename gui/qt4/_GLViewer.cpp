@@ -83,6 +83,7 @@ pyGLViewer createView(){
 py::list getAllViews(){ py::list ret; FOREACH(const shared_ptr<GLViewer>& v, OpenGLManager::self->views){ if(v) ret.append(pyGLViewer(v->viewId)); } return ret; };
 void centerViews(void){ OpenGLManager::self->centerAllViews(); }
 
+WOO_PYTHON_MODULE(_qt._GLViewer);
 BOOST_PYTHON_MODULE(_GLViewer){
 	WOO_SET_DOCSTRING_OPTS;
 	

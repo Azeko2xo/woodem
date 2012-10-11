@@ -168,8 +168,9 @@ struct VectorPickle: py::pickle_suite{
 	static void setstate(T& tt, py::list state){ tt.clear(); for(int i=0;i<py::len(state);i++) tt.push_back(py::extract<typename T::value_type>(state[i])); }
 };
 
-
+WOO_PYTHON_MODULE(_customConverters);
 BOOST_PYTHON_MODULE(_customConverters){
+	cerr<<"Running initialization code for woo._customConverters"<<endl;
 	#if 0
 		custom_vector_from_seq<string>(); class_<vector<string> >("vector_" "string").def(indexing::container_suite<vector<string> >()).def("__repr__",&vectorRepr<string>);
 		custom_vector_from_seq<int>(); class_<vector<int> >("vector_" "int").def(indexing::container_suite<vector<int> >()).def("__repr__",&vectorRepr<int>);

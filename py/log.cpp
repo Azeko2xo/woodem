@@ -3,6 +3,7 @@
 #include<woo/lib/base/Logging.hpp>
 #include<woo/lib/base/Types.hpp>
 #include<woo/lib/pyutil/doc_opts.hpp>
+#include<woo/core/Master.hpp>
 enum{ll_TRACE,ll_DEBUG,ll_INFO,ll_WARN,ll_ERROR,ll_FATAL};
 
 #ifdef WOO_LOG4CXX
@@ -56,6 +57,7 @@ enum{ll_TRACE,ll_DEBUG,ll_INFO,ll_WARN,ll_ERROR,ll_FATAL};
 	}
 #endif
 
+WOO_PYTHON_MODULE(log);
 BOOST_PYTHON_MODULE(log){
 	py::scope().attr("__doc__") = "Access and manipulation of log4cxx loggers.";
 
