@@ -677,6 +677,7 @@ def uiBuild(S,area):
 	psd.clicked.connect(lambda: feedHolesPsdFigure(True).show())
 	psdCount.clicked.connect(lambda: feedHolesPsdFigure(False).show())
 	r.clicked.connect(lambda: reportClicked(S,grid))
+	adj.setChecked(not woo.feedAdjuster.dead)
 	adj.stateChanged.connect(lambda state: autoAdjustChanged(S,grid,state))
 	grid.feedButt=f
 	grid.adjCheckbox=adj
