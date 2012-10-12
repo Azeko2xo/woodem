@@ -14,10 +14,11 @@
 
 
 #include<woo/lib/object/ObjectIO.hpp>
+#include<woo/core/Timing.hpp>
 
 
-#include<dlfcn.h>
-#include<cxxabi.h>
+//#include<dlfcn.h>
+//#include<cxxabi.h>
 
 class RenderMutexLock: public boost::mutex::scoped_lock{
 	public:
@@ -105,44 +106,24 @@ void Master::registerPluginClasses(const char* module, const char* fileAndClasse
 	}
 }
 
-void Master::loadPlugin(const string& plugin){
-	dlopen(plugin.c_str(),RTLD_GLOBAL | RTLD_NOW);
- 	char* error=dlerror();
-	if(error) throw std::runtime_error((__FILE__ ": error loading plugin '"+plugin+"' (dlopen): "+error).c_str());
-}
+void Master::pyRegisterAllClasses(){	
+	// register support classes
+	py::scope core(py::import("woo.core"));
+		this->pyRegisterClass();
+		woo::ClassTrait::pyRegisterClass();
+		woo::AttrTraitBase::pyRegisterClass();
+		woo::TimingDeltas::pyRegisterClass();
+		Object().pyRegisterClass(); // virtual method, therefore cannot be static
 
-void Master::loadPlugins(const vector<string>& pluginFiles){
-	FOREACH(const string& plugin, pluginFiles){
-		LOG_DEBUG("Loading plugin "<<plugin);
-		try {
-			loadPlugin(plugin);
-		} catch (std::runtime_error& e){
-			const std::string err=e.what();
-			if(err.find(": undefined symbol: ")!=std::string::npos){
-				size_t pos=err.rfind(":");	assert(pos!=std::string::npos); std::string sym(err,pos+2); //2 removes ": " from the beginning
-				int status=0; char* demangled_sym=abi::__cxa_demangle(sym.c_str(),0,0,&status);
-				LOG_FATAL(plugin<<": undefined symbol `"<<demangled_sym<<"'"); LOG_FATAL(plugin<<": "<<err); LOG_FATAL("Bailing out.");
-			}
-			else { LOG_FATAL(plugin<<": "<<err<<" ."); /* leave space to not to confuse c++filt */ LOG_FATAL("Bailing out."); }
-			throw;
-		}
-	}
-	list<std::pair<string,string>>& plugins(modulePluginClasses);
-	plugins.sort(); plugins.unique();
-	initializePlugins(vector<std::pair<string,string>>(plugins.begin(),plugins.end()));
-}
-
-void Master::initializePlugins(const vector<std::pair<string,string> >& pluginClasses){	
-	LOG_DEBUG("called with "<<pluginClasses.size()<<" plugin classes.");
+	LOG_DEBUG("called with "<<modulePluginClasses.size()<<" module+class pairs.");
 	std::map<std::string,py::object> pyModules;
-
 	// http://boost.2283326.n4.nabble.com/C-sig-How-to-create-package-structure-in-single-extension-module-td2697292.html
 	py::object wooScope=boost::python::import("woo");
 
 	typedef std::pair<std::string,shared_ptr<Object> > StringObjectPair;
 	typedef std::pair<std::string,std::string> StringPair;
 	std::list<StringObjectPair> pythonables;
-	FOREACH(StringPair moduleName, pluginClasses){
+	FOREACH(StringPair moduleName, modulePluginClasses){
 		string module(moduleName.first);
 		string name(moduleName.second);
 		shared_ptr<Object> obj;

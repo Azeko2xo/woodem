@@ -52,17 +52,17 @@
 #endif
 
 /* Initialize woo, loading given plugins */
-void wooInitialize(py::list& pp, const std::string& confDir){
+void wooInitialize(const std::string& confDir){
 
 	PyEval_InitThreads();
 
-	Master& O(Master::instance());
-	O.confDir=confDir;
-	// O.initTemps();
+	Master& master(Master::instance());
+	master.confDir=confDir;
+	// master.initTemps();
 	#ifdef WOO_DEBUG
 		std::ofstream gdbBatch;
-		O.gdbCrashBatch=O.tmpFilename();
-		gdbBatch.open(O.gdbCrashBatch.c_str()); gdbBatch<<"attach "<<lexical_cast<string>(getpid())<<"\nset pagination off\nthread info\nthread apply all backtrace\ndetach\nquit\n"; gdbBatch.close();
+		master.gdbCrashBatch=master.tmpFilename();
+		gdbBatch.open(master.gdbCrashBatch.c_str()); gdbBatch<<"attach "<<lexical_cast<string>(getpid())<<"\nset pagination off\nthread info\nthread apply all backtrace\ndetach\nquit\n"; gdbBatch.close();
 		signal(SIGABRT,crashHandler);
 		signal(SIGSEGV,crashHandler);
 	#endif
@@ -74,19 +74,10 @@ void wooInitialize(py::list& pp, const std::string& confDir){
 			LOG_INFO("Loaded "<<logConf);
 		}
 	#endif
-	vector<string> ppp; for(int i=0; i<py::len(pp); i++) ppp.push_back(py::extract<string>(pp[i]));
+	//vector<string> ppp; for(int i=0; i<py::len(pp); i++) ppp.push_back(py::extract<string>(pp[i]));
 
-	// register support classes
-	py::scope core(py::import("woo.core"));
-
-	woo::ClassTrait::pyRegisterClass();
-	woo::AttrTraitBase::pyRegisterClass();
-	woo::TimingDeltas::pyRegisterClass();
-	Object().pyRegisterClass(); // virtual method, therefore cannot be static
-	Master::pyRegisterClass();
-
-	// this registers all other classes
-	Master::instance().loadPlugins(ppp);
+	// register all python classes here
+	master.pyRegisterAllClasses();
 }
 void wooFinalize(){ Master::instance().cleanupTemps(); }
 

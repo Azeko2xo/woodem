@@ -70,23 +70,6 @@ if 1:
 # find plugin directory
 import os,os.path
 from . import config
-# find plugins recursively
-plugins=[config.libDir+'/woo/_cxxInternal.so']
-
-if 0:
-	# might add followlinks=True to os.walk, for python>=2.6
-	for root,dirs,files in os.walk(config.libDir):
-		# skip any directory named 'dbg' in the non-debug build
-		if 'dbg' in dirs: dirs.remove('dbg')
-		for f in files:
-			# ouch, ugly!
-			#if not config.debug and '/dbg/' in root: continue
-			if not (f.startswith('lib') and f.endswith('.so')): continue
-			plugin=os.path.join(config.libDir,root,f)
-			plugins.append(plugin)
-	if 'WOO_DEBUG' in os.environ:
-		print 'The following plugins will be loaded:'
-		for p in plugins: print '\t'+p
 
 # enable warnings which are normally invisible, such as DeprecationWarning
 import warnings
@@ -97,30 +80,26 @@ try: # backwards-compat for miniEigen (new is minieigen)
 	sys.modules['minieigen']=miniEigen
 	warnings.warn("'miniEigen' was imported and aliased to the new name 'minieigen' (update your installation to use 'minieigen' only).")
 except ImportError: pass
+
 # import eigen before plugins because of its converters, so that default args to python methods can use Vector3r etc
-
 import minieigen
-
 
 # c++ initialization code
 from . import _cxxInternal
-_cxxInternal.initialize(plugins,config.confDir)
+_cxxInternal.initialize(config.confDir)
+cxxInternalFile=_cxxInternal.__file__
 
 from . import core
 master=core.Master.instance
 #
 # create compiled python modules
 #
-if len(plugins)==0: raise RuntimeError('No plugins for woo found?!')
-if len(plugins)>1:
-	raise RuntimeError("Multiple-plugin builds are no longer supported (plugins are %s)"%(', '.join(plugins)))
-# BROKEN until http://bugs.python.org/issue16194 is fixed
 if 0:
 	import imp
 	for mod in master.compiledPyModules:
 		print 'Loading compiled module',mod,'from',plugins[0]
 		# this inserts the module to sys.modules automatically
-		imp.load_dynamic(mod,plugins[0])
+		imp.load_dynamic(mod,cxxInternalFile)
 # WORKAROUND: create temporary symlinks
 # this is UGLY and will probably not work on Windows!!
 else:
@@ -130,16 +109,17 @@ else:
 	os.mkdir(compiledModDir)
 	sys.path.append(compiledModDir)
 	# move _customConverters to the start, so that imports reyling on respective converters don't fail
+	# remove woo._cxxInternal since it is imported already
 	cpm=master.compiledPyModules
 	cc='woo._customConverters'
 	assert cc in cpm
 	## HACK: import _gts this way until it gets separated
-	cpm=[cc]+[m for m in cpm if m!=cc]+['_gts']
+	cpm=[cc]+[m for m in cpm if m!=cc and m!='woo._cxxInternal']+['_gts']
 	# run imports now
 	for mod in cpm:
 		modpath=mod.split('.') 
 		linkName=os.path.join(compiledModDir,modpath[-1])+'.so' # use just the last part to avoid hierarchy
-		os.symlink(os.path.abspath(plugins[0]),linkName)
+		os.symlink(os.path.abspath(cxxInternalFile),linkName)
 		if 'WOO_DEBUG' in os.environ: print 'Loading compiled module',mod,'from symlink',linkName
 		sys.modules[mod]=__import__(modpath[-1])
 		#__allSubmodules.append(modpath[1])

@@ -47,14 +47,9 @@ class Master: public Singleton<Master>{
 
 	// called automatically, when a plugin is dlopen'd
 	void registerPluginClasses(const char* module, const char* fileAndClasses[]);
-	// dlopen given plugin
-	void loadPlugin(const string& pluginFiles);
-	// called from python, with list of plugins to be loaded
-	void loadPlugins(const vector<string>& pluginFiles);
-	// called from loadPlugins
 	// register class from plugin in python
 	// store class hierarchy for quick lookup (might be removed in the future)
-	void initializePlugins(const vector<std::pair<std::string, std::string> >& dynlibsList); 
+	void pyRegisterAllClasses(); 
 
 	// compiled python modules
 	list<string> compiledPyModules;
