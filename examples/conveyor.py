@@ -4,7 +4,7 @@ from woo.core import *
 from woo.dem import *
 from math import *
 from woo import log,utils,pack
-from miniEigen import *
+from minieigen import *
 log.setLevel('ConveyorFactory',log.TRACE)
 if 0:
 	# quasi-packing here

@@ -36,21 +36,16 @@ pyObjects.append(
 	)
 )
 
-pyModules.append('woo.boot')
 pyObjects.append(env.SharedObject('boot',['core/main/pyboot.cpp']))
-
 pyObjects.append(env.SharedObject('core',env.Combine('core.cpp',env.Glob('core/*.cpp'))))
 
 
 pyObjects+=[env.SharedObject(f) for f in env.Glob('py/*.cpp')+env.Glob('py/*/*.cpp')]
-pyModules+=['woo.WeightedAverage2d','woo.log','woo._utils2','woo._packPredicates','woo._packSpheres','woo._packObb','woo._customConverters']
 
 if 'qt4' in env['features']:
-	pyModules.append('woo.qt._GLViewer')
 	pyObjects+=['gui/qt4/GLViewer.cpp','gui/qt4/_GLViewer.cpp','gui/qt4/OpenGLManager.cpp']
 
 if 'gts' in env['features']:
-	pyModules.append('gts._gts')
 	pyObjects+=[env.SharedObject(f) for f in env.Glob('py/3rd-party/pygts-0.3.1/*.c')]
 	env.Install('$LIBDIR/gts',[
 		env.File('py/3rd-party/pygts-0.3.1/__init__.py'),

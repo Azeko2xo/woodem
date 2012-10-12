@@ -3,7 +3,7 @@
 from woo import *
 from woo.core import *
 from woo.dem import *
-from miniEigen import *
+from minieigen import *
 from woo import pack,log
 log.setLevel('PeriIsoCompressor',log.DEBUG)
 

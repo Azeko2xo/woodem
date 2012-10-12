@@ -1,6 +1,6 @@
 from __future__ import division
 from woo import *
-from miniEigen import *
+from minieigen import *
 from woo.dem import *
 from woo.core import *
 from woo import utils,pack,plot

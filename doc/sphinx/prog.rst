@@ -447,7 +447,7 @@ Yade additionally defines a class named :ref:`Se3r`, which contains spatial posi
 
 Eigen provides full rich linear algebra functionality. Some code firther uses the [cgal]_ library for computational geometry.
 
-In Python, basic numeric types are wrapped and imported from the ``miniEigen`` module; the types drop the ``r`` type qualifier at the end, the syntax is otherwise similar. ``Se3r`` is not wrapped at all, only converted automatically, rarely as it is needed, from/to a ``(Vector3,Quaternion)`` tuple/list.
+In Python, basic numeric types are wrapped and imported from the ``minieigen`` module; the types drop the ``r`` type qualifier at the end, the syntax is otherwise similar. ``Se3r`` is not wrapped at all, only converted automatically, rarely as it is needed, from/to a ``(Vector3,Quaternion)`` tuple/list.
 
 .. ipython::
 

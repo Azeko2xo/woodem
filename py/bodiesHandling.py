@@ -4,7 +4,7 @@
 Miscellaneous functions, which are useful for handling bodies.
 """
 
-from miniEigen import *
+from minieigen import *
 import utils,math,numpy
 
 #spheresPackDimensions==================================================

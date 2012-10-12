@@ -1,7 +1,7 @@
 import woo.document
 # import all modules here
 from woo import utils,log,timing,pack,document,manpage,plot,post2d,runtime,ymport,WeightedAverage2d
-import miniEigen
+import minieigen
 cxxRst,pyRst=woo.document.packageClasses('.')
 
 cxxMods='cxxMods.rst'

@@ -4,7 +4,7 @@ from PyQt4.QtGui import *
 from PyQt4 import QtGui
 #from PyQt4 import Qwt5
 
-from miniEigen import *
+from minieigen import *
 # don't import * from woo, it would be circular import
 from woo.core import Object
 

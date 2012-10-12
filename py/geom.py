@@ -5,7 +5,7 @@ Creates geometry objects from facets.
 """
 
 from woo import *
-from miniEigen import *
+from minieigen import *
 import utils,math,numpy
 
 #facetBox===============================================================

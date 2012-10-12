@@ -10,7 +10,7 @@
 import math,random,doctest,geom
 import woo
 from woo import *
-from miniEigen import *
+from minieigen import *
 
 from woo.dem import *
 from woo.core import *

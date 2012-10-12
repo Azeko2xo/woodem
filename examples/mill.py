@@ -11,7 +11,7 @@ and how to make videos as well.
 from woo import *
 from woo.dem import *
 from woo.core import *
-from miniEigen import *
+from minieigen import *
 from woo import pack,utils
 from numpy import linspace
 # geometry parameters

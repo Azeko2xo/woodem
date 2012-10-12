@@ -6,7 +6,7 @@ from woo.pre import *
 import woo.plot
 import math
 import os.path
-from miniEigen import *
+from minieigen import *
 import sys
 import cStringIO as StringIO
 import numpy

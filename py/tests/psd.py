@@ -4,7 +4,7 @@ Test particle generator, that the resulting PSD curve matches the one on input.
 import unittest
 from woo.core import *
 from woo.dem import *
-from miniEigen import *
+from minieigen import *
 import numpy
 
 class PsdSphereGeneratorTest(unittest.TestCase):

@@ -6,7 +6,7 @@ Core functionality (Scene in c++), such as accessing bodies, materials, interact
 """
 import unittest
 import random
-from miniEigen import *
+from minieigen import *
 from math import *
 from woo._customConverters import *
 from woo import utils

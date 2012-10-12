@@ -3,7 +3,7 @@
 import woo.core
 import woo.system
 #import woo.dem
-from miniEigen import * # for recognizing the types
+from minieigen import * # for recognizing the types
 
 import StringIO # cStringIO does not handle unicode, so stick with the slower one
 
@@ -13,7 +13,7 @@ import woo._customConverters # to make sure they are loaded already
 import codecs
 import pickle
 import json
-import miniEigen
+import minieigen
 
 nan,inf=float('nan'),float('inf') # for values in expressions
 
@@ -294,8 +294,8 @@ class WooJSONEncoder(json.JSONEncoder):
 		elif obj.__class__.__module__=='woo._customConverters' or obj.__class__.__module__=='_customConverters':
 			if hasattr(obj,'__len__'): return list(obj)
 			else: raise TypeError("Unhandled type for JSON: "+obj.__class__.__module__+'.'+obj.__class__.__name__)
-		elif obj.__class__.__module__=='miniEigen':
-			if isinstance(obj,miniEigen.Quaternion): return obj.toAxisAngle()
+		elif obj.__class__.__module__ in ('minieigen','miniEigen'):
+			if isinstance(obj,minieigen.Quaternion): return obj.toAxisAngle()
 			else: return tuple(obj[i] for i in range(len(obj)))
 		# other types, handled by the json module natively
 		else:

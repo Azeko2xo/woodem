@@ -21,7 +21,7 @@ from numpy import arange
 from math import sqrt
 from woo import utils
 
-from miniEigen import *
+from minieigen import *
 from woo import *
 
 

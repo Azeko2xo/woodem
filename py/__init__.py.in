@@ -92,8 +92,14 @@ if 0:
 import warnings
 warnings.simplefilter('default')
 
+try: # backwards-compat for miniEigen (new is minieigen)
+	import miniEigen
+	sys.modules['minieigen']=miniEigen
+	warnings.warn("'miniEigen' was imported and aliased to the new name 'minieigen' (update your installation to use 'minieigen' only).")
+except ImportError: pass
 # import eigen before plugins because of its converters, so that default args to python methods can use Vector3r etc
-import miniEigen
+
+import minieigen
 
 
 # c++ initialization code
@@ -134,7 +140,7 @@ else:
 		modpath=mod.split('.') 
 		linkName=os.path.join(compiledModDir,modpath[-1])+'.so' # use just the last part to avoid hierarchy
 		os.symlink(os.path.abspath(plugins[0]),linkName)
-		print 'Loading compiled module',mod,'from symlink',linkName
+		if 'WOO_DEBUG' in os.environ: print 'Loading compiled module',mod,'from symlink',linkName
 		sys.modules[mod]=__import__(modpath[-1])
 		#__allSubmodules.append(modpath[1])
 		if len(modpath)==1: pass # nothing to do, adding to sys.modules is enough
@@ -168,7 +174,7 @@ system.setExitHandlers()
 
 
 # fake miniEigen being in woo itself
-from miniEigen import *
+from minieigen import *
 
 import _monkey # adds methods to c++ classes
 import _units 
@@ -191,5 +197,5 @@ except AttributeError:
 ## DON'T DO THIS:
 # import a few "important" modules along with *
 #import utils # some others?
-# __all__+=[]+dir(miniEigen)+dir(wrapper)
+# __all__+=[]+dir(minieigen)+dir(wrapper)
 

@@ -8,7 +8,7 @@ from woo.dem import *
 from woo.core import *
 from numpy import linspace
 from woo import pack,qt,utils
-from miniEigen import *
+from minieigen import *
 
 S=woo.master.scene=Scene(fields=[DemField()])
 

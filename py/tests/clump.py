@@ -5,7 +5,7 @@ Various computations affected by the periodic boundary conditions.
 
 import unittest
 import random
-from miniEigen import *
+from minieigen import *
 from woo._customConverters import *
 from woo import utils
 from woo import *

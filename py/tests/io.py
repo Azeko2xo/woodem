@@ -7,7 +7,7 @@ from woo import *
 from woo.core import *
 from woo.dem import *
 from woo.pre import *
-from miniEigen import *
+from minieigen import *
 from woo import utils
 
 class TestFormatsAndDetection(unittest.TestCase):

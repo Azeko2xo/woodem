@@ -43,7 +43,7 @@ else:
 		except ImportError:
 			print 'mtTkinter not imported, but TkAgg backend for matplotlib is used; live plots will be broken, don\'t complain'
 		matplotlib.use('TkAgg')
-from miniEigen import *
+from minieigen import *
 
 matplotlib.rc('axes',grid=True) # put grid in all figures
 import pylab

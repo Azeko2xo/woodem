@@ -2,7 +2,7 @@
 Import geometry from various formats ('import' is python keyword, hence the name 'ymport').
 """
 
-from miniEigen import *
+from minieigen import *
 from woo import utils
 
 def textExt(fileName,format='x_y_z_r',shift=Vector3.Zero,scale=1.0,**kw):

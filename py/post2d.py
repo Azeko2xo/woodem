@@ -58,7 +58,7 @@ This example can be found in examples/concrete/uniax-post.py ::
  pylab.show()
 
 """
-from miniEigen import *
+from minieigen import *
 
 from woo.dem import Particle,Sphere
 
@@ -185,7 +185,7 @@ def data(scene,extractor,flattener,con=False,onlyDynamic=True,stDev=None,relThre
 	
 	Scalar fields contain 'val' (value from *extractor*), vector fields have 'valX' and 'valY' (2 components returned by the *extractor*).
 	"""
-	from miniEigen import Vector3
+	from minieigen import Vector3
 	from woo.dem import Sphere
 	xx,yy,dd1,dd2,rr=[],[],[],[],[]
 	nDim=0
