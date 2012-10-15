@@ -18,11 +18,12 @@ struct BinSeg: public Preprocessor {
 	}
 
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(BinSeg,Preprocessor,"Preprocessor for the bin segregation simulation.",
-		((Vector3r,size,Vector3r(1,1,.2),AttrTrait<>().lenUnit().prefUnit("mm").startGroup("Geometry"),"Size of the bin: width, height and depth (thickness)"))
-		((Vector2r,hole1,Vector2r(.1,.08),AttrTrait<>().lenUnit().prefUnit("mm"),"Distance from the left wall and width of the first hole"))
-		((Vector2r,hole2,Vector2r(.25,.08),AttrTrait<>().lenUnit().prefUnit("mm"),"Distance from the right wall and width of the second hole"))
+		((Vector3r,size,Vector3r(1,1,.2),AttrTrait<>().lenUnit().prefUnit("mm").startGroup("Geometry"),"Size of the bin: width, height and depth (thickness). Width is real horizontal dimension of the bin. Height is height of the left boundary (which is different from the right one, if :ref:`inclination` is non-zero)."))
+		((Real,inclination,0,AttrTrait<>().angleUnit().prefUnit("deg"),"Inclination of the bottom of the bin. Positive angle makes the right hole higher than the left one."))
+		((Vector2r,hole1,Vector2r(.1,.08),AttrTrait<>().lenUnit().prefUnit("mm"),"Distance from the left wall and width of the first hole. Lengths are measured in the bottom (possibly inclined) plane."))
+		((Vector2r,hole2,Vector2r(.25,.08),AttrTrait<>().lenUnit().prefUnit("mm"),"Distance from the right wall and width of the second hole. Lengths are measured in the bottom (possibly inclined) plane."))
 		((Real,holeLedge,.03,AttrTrait<>().lenUnit().prefUnit("mm"),"Distance between front wall and hole, and backwall and hole"))
-		((Vector2r,feedPos,Vector2r(.1,.15),AttrTrait<>().lenUnit().prefUnit("mm"),"Distance of the feed from the right wall and its width"))
+		((Vector2r,feedPos,Vector2r(.1,.15),AttrTrait<>().lenUnit().prefUnit("mm"),"Distance of the feed from the right wall and its width (vertical lengths)"))
 		((Real,halfThick,0.,AttrTrait<>().lenUnit().prefUnit("mm"),"Half-thickenss of boundary plates; all dimensions are given as inner sizes (including hole widths), there is no influence of halfThick on geometry"))
 		((bool,halfDp,true,,"Only simulate half of the bin, by putting frictionless wall in the middle"))
 

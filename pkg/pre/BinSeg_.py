@@ -120,7 +120,6 @@ def run(pre):
 	pre.holeMask=wallMask
 
 
-	wd,ht,dp=pre.size
 
 	#
 	#
@@ -146,18 +145,24 @@ def run(pre):
    #                                       + L
 	#                                        
 	#
+	# to account for inclination, +x is botVec (bottomVec), |botVec|==1.
+	#
+	wd,ht,dp=pre.size
 	B=Vector2(0,0)
+	botVec=Vector2(math.cos(pre.inclination),math.sin(pre.inclination)) # unit vector
+	botUpVec=Vector2(-math.sin(pre.inclination),math.cos(pre.inclination))
+	cosIncl=math.cos(pre.inclination) # scaling factor for horizontal lengths
 	A=B+(0,ht)
-	C=B+(pre.hole1[0]-pre.halfThick,0)
-	D=C+(pre.hole1[1]+2*pre.halfThick,0)
-	G=Vector2(wd,0)
-	F=G-(pre.hole2[0]-pre.halfThick,0)
-	E=F-(pre.hole2[1]+2*pre.halfThick,0)
-	H=G+(0,ht)
+	C=B+botVec*(pre.hole1[0]-pre.halfThick)
+	D=C+botVec*(pre.hole1[1]+2*pre.halfThick)
+	G=B+botVec*(wd/cosIncl) # oblique length correspondingly longer
+	F=G-botVec*(pre.hole2[0]-pre.halfThick)
+	E=F-botVec*(pre.hole2[1]+2*pre.halfThick)
+	H=A+(wd,0)
 	I=H-(pre.feedPos[0],0)
 	J=I-(pre.feedPos[1],0)
-	K=.5*(D+E)-Vector2(0,pre.halfThick)
-	L=K-(0,2*pre.hole1[1])
+	K=.5*(D+E)-pre.halfThick*botUpVec
+	L=Vector2(K[0],min(B[1],G[1]))-(0,2*pre.hole1[1])
 
 	feedHt=pre.feedPos[1]
 
@@ -278,7 +283,7 @@ def run(pre):
 			currRateSmooth=pre.rateSmooth,
 			label='bucket[%d]'%i
 		)
-		for i,box in enumerate([((xmin,ymin,zmin),(L[0],ymax,0)),((L[0],ymin,zmin),(xmax,ymax,0))])
+		for i,box in enumerate([((xmin,ymin,zmin),(L[0],ymax,min(B[1],K[1]))),((L[0],ymin,zmin),(xmax,ymax,min(K[1],G[1])))])
 	]+[
 		factory,
 		PyRunner(pre.factStep,'import woo.pre.BinSeg_; woo.pre.BinSeg_.adjustFeedRate(S)',label='feedAdjuster',dead=(not pre.loadSpheresFrom)),

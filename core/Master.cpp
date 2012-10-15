@@ -185,13 +185,6 @@ void Master::pyRegisterAllClasses(){
 			}
 		}
 	}
-#if 0
-	// import all known modules, this should solve crashes which happen at serialization when the module (woo.pre in particular) is not imported by hand first
-	for(const auto& m: pyModules){
-		if(getenv("WOO_DEBUG")){ cerr<<"import module woo."<<m.first<<endl; }
-		py::import(("woo."+m.first).c_str());
-	}
-#endif
 }
 
 
