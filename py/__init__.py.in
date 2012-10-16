@@ -13,38 +13,38 @@ It loads woo plugins and injects c++ class constructors to the __builtins__
 everywhere.
 """
 
-
-#
-# import options
-#
 import wooOptions
-import woo.runtime
-# detect if $DISPLAY is usable unless forbidden
-if not wooOptions.forceNoGui:
-	import Xlib.display
-	# PyQt4's QApplication does exit(1) if it is unable to connect to the display
-	# we however want to handle this gracefully, therefore
-	# we test the connection with bare xlib first, which merely raises DisplayError
-	try:
-		# contrary to display.Display, _BaseDisplay does not check for extensions and that avoids spurious message "Xlib.protocol.request.QueryExtension" (bug?)
-		Xlib.display._BaseDisplay();
-		woo.runtime.hasDisplay=True
-	except: 
-		# usually Xlib.error.DisplayError, but there can be Xlib.error.XauthError etc as well
-		# let's just pretend any exception means the display would not work
-		pass
+from . import config
+import warnings
+import sys,os,os.path
 
-# API compatibility for PySide vs. PyQt
-# must be called before PyQt4 is ever imported
-# don't do that if someone imported PyQt4/PySide already
-# it would lead to crash
-import sys
-if woo.runtime.hasDisplay and ('PyQt4' not in sys.modules) and ('PySide' not in sys.modules):
-	if woo.runtime.ipython_version>=11:
-		import IPython.external.qt
-		IPython.external.qt.prepare_pyqt4()
+if 'openmp' in config.features:
+	if wooOptions.ompCores:
+		cc=wooOptions.ompCores
+		if wooOptions.ompThreads!=len(cc) and wooOptions.ompThreads>0:
+			warnings.warn('ompThreads==%d ignored, using %d since ompCores are specified.'%(wooOptions.ompThreads,len(cc)))
+			wooOptions.ompThreads=len(cc)
+		os.environ['GOMP_CPU_AFFINITY']=' '.join([str(cc[0])]+[str(c) for c in cc])
+		os.environ['OMP_NUM_THREADS']=str(len(cc))
+	elif wooOptions.ompThreads>1:
+		os.environ['OMP_NUM_THREADS']=str(wooOptions.ompThreads)
+else:
+	if wooOptions.ompCores or wooOptions.ompThreads: warnings.warn('--threads and --cores ignored, since compiled without OpenMP')
+#
+# QUIRKS
+#
+if wooOptions.quirks & wooOptions.quirkIntel:
+	import os
+	vgas=os.popen("LC_ALL=C lspci | grep VGA").readlines()
+	if len(vgas)==1 and 'Intel' in vgas[0]:
+		print 'Intel GPU detected, setting LIBGL_ALWAYS_SOFTWARE=1\n\t(use --no-soft-render to disable)'
+		os.environ['LIBGL_ALWAYS_SOFTWARE']='1'
 
-if 1:
+
+
+
+# it seems that this is no longer needed
+if 0:
 	import ctypes,sys
 	try:
 		import dl
@@ -67,10 +67,6 @@ if 1:
 	#
 	# now ready for c++ imports
 
-# find plugin directory
-import os,os.path
-from . import config
-
 # enable warnings which are normally invisible, such as DeprecationWarning
 import warnings
 warnings.simplefilter('default')
@@ -85,12 +81,37 @@ except ImportError: pass
 import minieigen
 
 # c++ initialization code
-from . import _cxxInternal
+if not wooOptions.debug:
+	try: from . import _cxxInternal
+	except ImportError:
+		try:
+			from . import _cxxInternal_debug as _cxxInternal
+			woo.modules['woo._cxxInternal']=_cxxInteral
+			warnings.warn('Non-debug flavor of Woo was not found, using debug one!')
+		except ImportError:
+			warnings.warn('FATAL: Neither non-debug nor debug variant of Woo was found!')
+			sys.exit(1)
+else:
+	try:
+		from . import _cxxInternal_debug as _cxxInternal
+		sys.modules['woo._cxxInternal']=_cxxInternal
+	except ImportError:
+		try:
+			from . import _cxxInteral
+			warnings.warn('Debug flavor of Woo was not found, using non-debug one!')
+		except ImportError:
+			warnings.warn('FATAL: Neither non-debug nor debug variant of Woo was found!')
+			sys.exit(1)
+
+from . import config
+config.debug=('woo._cxxInternal_debug' in sys.modules)
+
 _cxxInternal.initialize(config.confDir)
 cxxInternalFile=_cxxInternal.__file__
 
 from . import core
 master=core.Master.instance
+
 #
 # create compiled python modules
 #
@@ -104,8 +125,8 @@ if 0:
 # this is UGLY and will probably not work on Windows!!
 else:
 	allSubmodules=[]
-	compiledModDir=woo.master.tmpFilename() # this will be a directory
-	import os
+	compiledModDir=master.tmpFilename() # this will be a directory
+	import os,sys
 	os.mkdir(compiledModDir)
 	sys.path.append(compiledModDir)
 	# move _customConverters to the start, so that imports reyling on respective converters don't fail
@@ -136,8 +157,17 @@ else:
 	#import woo.gts
 	#sys.modules['gts']=woo.gts
 
-			
-		
+if wooOptions.clDev:
+	if 'opencl' in config.features:
+		if wooOptions.clDev:
+			try:
+				clDev=[int(a) for a in wooOptions.clDev.split(',')]
+				if len(clDev)==1: clDev.append(-1) # default device
+				if not len(clDev) in (1,2): raise ValueError()
+			except (IndexError, ValueError, AssertionError):
+				raise ValueError('Invalid --cl-dev specification %s, should an integer (platform), or a comma-separated couple (platform,device) of integers'%opts.clDev)
+			master.clDev=clDev
+	else: warnings.warn("--cl-dev ignored, since compiled without OpenCL.")
 
 import _customConverters
 

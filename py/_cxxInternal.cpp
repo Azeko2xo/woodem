@@ -81,8 +81,14 @@ void wooInitialize(const std::string& confDir){
 }
 void wooFinalize(){ Master::instance().cleanupTemps(); }
 
-WOO_PYTHON_MODULE(_cxxInternal);
-BOOST_PYTHON_MODULE(_cxxInternal){
+// NB: this module does NOT use WOO_PYTHON_MODULE, since the file is really called _cxxInternal.so
+// and is a real real python module
+#ifdef WOO_DEBUG
+	BOOST_PYTHON_MODULE(_cxxInternal_debug)
+#else
+	BOOST_PYTHON_MODULE(_cxxInternal)
+#endif
+{
 	py::scope().attr("initialize")=&wooInitialize;
 	py::scope().attr("finalize")=&wooFinalize; //,"Finalize woo (only to be used internally).")
 }

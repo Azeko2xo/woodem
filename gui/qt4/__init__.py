@@ -1,10 +1,69 @@
 # encoding: utf-8
 
 # signal import error witout display
-import woo.runtime
-if not woo.runtime.hasDisplay:
-	raise ImportError("Connecting to DISPLAY at Yade startup failed, unable to activate the qt4 interface.")
+if 1:
+	import wooOptions
+	import woo.runtime
+	if wooOptions.forceNoGui:
+		woo.runtime.hasDisplay=False
+		raise ImportError("Woo was started with the -n switch; woo.qt4 insterface will not be enabled.")
+	import Xlib.display
+	# PyQt4's QApplication does exit(1) if it is unable to connect to the display
+	# we however want to handle this gracefully, therefore
+	# we test the connection with bare xlib first, which merely raises DisplayError
+	try:
+		# contrary to display.Display, _BaseDisplay does not check for extensions and that avoids spurious message "Xlib.protocol.request.QueryExtension" (bug?)
+		Xlib.display._BaseDisplay();
+		woo.runtime.hasDisplay=True
+	except: 
+		# usually Xlib.error.DisplayError, but there can be Xlib.error.XauthError etc as well
+		# let's just pretend any exception means the display would not work
+		woo.runtime.hasDisplay=False
+		print 'DISPLAY not reachable'
+		raise ImportError("Connecting to $DISPLAY failed, unable to activate the woo.qt4 interface.")
 
+#import woo.runtime
+#if not woo.runtime.hasDisplay:
+
+useQtConsole=False # does not work yet
+wooQApp=None
+if 1:
+	# API compatibility for PySide vs. PyQt
+	# must be called before PyQt4 is ever imported
+	# don't do that if someone imported PyQt4/PySide already
+	# it would lead to crash
+	import sys
+	if woo.runtime.hasDisplay and ('PyQt4' not in sys.modules) and ('PySide' not in sys.modules):
+		if woo.runtime.ipython_version>=11:
+			import IPython.external.qt
+			IPython.external.qt.prepare_pyqt4()
+
+if 1: # initialize QApplication
+	if woo.runtime.ipython_version==10:
+		wooQApp=QtGui.QApplication(sys.argv)
+	elif useQtConsole:
+		from IPython.frontend.qt.console.qtconsoleapp import IPythonQtConsoleApp
+		wooQApp=IPythonQtConsoleApp()
+		wooQApp.initialize()
+	else:
+		# create an instance of InteractiveShell before the inputhook is created
+		# see http://stackoverflow.com/questions/9872517/how-to-embed-ipython-0-12-so-that-it-inherits-namespace-of-the-caller for details
+		# fixes http://gpu.doxos.eu/trac/ticket/40
+		from IPython.frontend.terminal.embed import InteractiveShellEmbed
+		from IPython.config.configurable import MultipleInstanceError
+		try: ipshell=InteractiveShellEmbed.instance()
+		except MultipleInstanceError:
+			print 'Already running inside ipython, not embedding new instance.'
+		# keep the qapp object referenced, otherwise 0.11 will die with "QWidget: Must construct QApplication before a QPaintDevice
+		# see also http://ipython.org/ipython-doc/dev/interactive/qtconsole.html#qt-and-the-qtconsole
+		import IPython.lib.inputhook #guisupport
+		wooQApp=IPython.lib.inputhook.enable_gui(gui='qt4')
+		#from IPython.lib.guisupport import start_event_loop_qt4
+		#start_event_loop_qt4(wooQApp)
+	#try:
+	#	wooQApp.setStyleSheet(open(woo.config.resourceDir+'/qmc2-black-0.10.qss').read())
+	#except IOError: pass # stylesheet not readable or whatever
+	
 from PyQt4.QtGui import *
 from PyQt4 import QtCore
 
@@ -44,8 +103,6 @@ else: sphinxPrefix=sphinxOnlineDocPath
 
 ## object selection
 def getSel(): return woo.gl.Renderer.selObj
-
-
 
 
 def openUrl(url):

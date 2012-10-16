@@ -5,7 +5,7 @@ import os.path
 
 pyModules=[]
 pyObjects=[]
-pySharedObject='$LIBDIR/woo/_cxxInternal.so'
+pySharedObject='$LIBDIR/woo/_cxxInternal%s.so'%('_debug' if env['debug'] else '')
 
 # we need relative paths here, to keep buildDir
 pkgSrcs=[os.path.relpath(str(s),env.Dir('#').abspath) for s in env.Glob('pkg/*.cpp')+env.Glob('pkg/*/*.cpp')+env.Glob('pkg/*/*/*.cpp')]
@@ -36,9 +36,7 @@ pyObjects.append(
 	)
 )
 
-pyObjects.append(env.SharedObject('boot',['core/main/pyboot.cpp']))
 pyObjects.append(env.SharedObject('core',env.Combine('core.cpp',env.Glob('core/*.cpp'))))
-
 
 pyObjects+=[env.SharedObject(f) for f in env.Glob('py/*.cpp')+env.Glob('py/*/*.cpp')]
 
@@ -58,7 +56,7 @@ if 'gts' in env['features']:
 env.Install(
 env.SharedLibrary(pySharedObject,pyObjects,
 	SHLIBPREFIX='',
-	LIBS=['dl','m','rt']+[l for l in env['LIBS'] if l!='woo-support']+(['glut','GL','GLU']+[env['QGLVIEWER_LIB']] if 'opengl' in env['features'] else []),CXXFLAGS=env['CXXFLAGS']+['-fPIC']
+	LIBS=['dl','m','rt']+env['LIBS']+(['glut','GL','GLU']+[env['QGLVIEWER_LIB']] if 'opengl' in env['features'] else []),CXXFLAGS=env['CXXFLAGS']+['-fPIC']
 ))
 
 #
@@ -85,13 +83,13 @@ env.Install('$LIBDIR/woo/pre',
 )
 
 env.Install('$LIBDIR/woo',[
-	env.AlwaysBuild(env.ScanReplace('#/py/__init__.py.in')),
-	env.AlwaysBuild(env.ScanReplace('#/py/config.py.in')),
-	env.File(env.Glob('#/py/*.py')),
-	env.File('#py/pack/pack.py'),
+	env.AlwaysBuild(env.ScanReplace('py/__init__.py.in')),
+	env.AlwaysBuild(env.ScanReplace('py/config.py.in')),
+	env.File(env.Glob('py/*.py')),
+	env.File('py/pack/pack.py'),
 ])
-env.Install('$LIBDIR/woo/tests',[env.File(env.Glob('#/py/tests/*.py'),'tests'),])
-env.Install('$LIBDIR/woo/_monkey',[env.File(env.Glob('#/py/_monkey/*.py'),'_monkey')])
+env.Install('$LIBDIR/woo/tests',[env.File(env.Glob('py/tests/*.py'),'tests'),])
+env.Install('$LIBDIR/woo/_monkey',[env.File(env.Glob('py/_monkey/*.py'),'_monkey')])
 
 
 if 'qt4' in env['features']:

@@ -27,14 +27,34 @@ def testModule(module):
 	suite=unittest.defaultTestLoader().loadTestsFromName(module)
 	return unittest.TextTestRunner(verbosity=2).run(suite)
 
-def testAll():
-	"""Run all tests defined in all woo.tests.* modules and return
-	TestResult object for further examination."""
+def testAll(sysExit=False):
+	"""Run all tests defined in all woo.tests.* modules. Return
+	TestResult object for further examination. If *sysExit* is true, call sys.exit
+	with status 0 (all tests passed), 1 (some tests failed),
+	2 (an exception was raised).
+	"""
 	suite=unittest.defaultTestLoader.loadTestsFromNames(allTestsFQ)
-	import doctest
+	import doctest, sys
 	for mod in allModules:
 		suite.addTest(doctest.DocTestSuite(mod))
-	return unittest.TextTestRunner(verbosity=2).run(suite)
+	try:
+		result=unittest.TextTestRunner(verbosity=2).run(suite)
+		if not sysExit: return result
+		if result.wasSuccessful():
+			print '*** ALL TESTS PASSED ***'
+			sys.exit(0)
+		else:
+			print 20*'*'+' SOME TESTS FAILED '+20*'*'
+			sys.exit(1)
+	except:
+		print 20*'*'+' UNEXPECTED EXCEPTION WHILE RUNNING TESTS '+20*'*'
+		print 20*'*'+' '+str(sys.exc_info()[0])
+		print 20*'*'+" Please report bug to bugs@woodem.eu providing the following traceback:"
+		import traceback; traceback.print_exc()
+		print 20*'*'+' Thank you '+20*'*'
+		if sysExit: sys.exit(2)
+		raise
+
 
 	
 

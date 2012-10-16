@@ -189,7 +189,7 @@ if not env.has_key('version'): env['version']=env['realVersion']
 
 env['SUFFIX']=('-'+env['version'] if len(env['version'])>0 else '')+env['variant']
 env['SUFFIX_DBG']=env['SUFFIX']+('' if not env['debug'] else '/dbg')
-env['LIBDIR']='$PREFIX/lib/woo$SUFFIX_DBG'
+env['LIBDIR']='$PREFIX/lib/woo$SUFFIX'
 env['RESOURCEDIR']='$PREFIX/share/woo$SUFFIX'
 print "Woo version is `%s' (%s), installed files will be suffixed with `%s'."%(env['version'],env['realVersion'],env['SUFFIX'])
 buildDir=os.path.abspath(env.subst('$buildPrefix/build$SUFFIX_DBG'))
@@ -571,7 +571,7 @@ if not COMMAND_LINE_TARGETS:
 			# do not delete python-optimized files and symbolic links (lib_gts__python-module.so, for instance)
 			if ff not in toInstall and not ff.endswith('.pyo') and not ff.endswith('.pyc') and not os.path.islink(ff) and not os.path.basename(ff).startswith('.nfs'):
 				# HACK
-				if ff.endswith('/_cxxInternal.so'): continue
+				if ff.endswith('/_cxxInternal.so') or ff.endswith('_cxxInternal_debug.so'): continue
 				print "Deleting extra plugin", ff
 				os.remove(ff)
 

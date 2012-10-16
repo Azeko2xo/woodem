@@ -5,3 +5,51 @@
 # see http://bytes.com/topic/python/answers/42887-how-pass-parameter-when-importing-module
 #
 forceNoGui=False
+ompThreads=0
+ompCores=[]
+flavor=''
+debug=False
+clDev=None
+quirks=3
+quirkIntel,quirkFirePro=1,2
+
+def useKnownArgs(argv):
+	global forceNoGui,ompThreads,ompCores,flavor,debug,clDev,quirks
+
+	import argparse
+	par=argparse.ArgumentParser(prog='wooOptions module')
+	par.add_argument('-n',help="Run without graphical interface (equivalent to unsetting the DISPLAY environment variable)",dest='nogui',action='store_true')
+	par.add_argument('-j','--threads',help='Number of OpenMP threads to run; defaults to 1. Equivalent to setting OMP_NUM_THREADS environment variable.',dest='threads',type=int)
+	par.add_argument('--cores',help='Set number of OpenMP threads (as --threads) and in addition set affinity of threads to the cores given.',dest='cores')
+	par.add_argument('-D','--debug',help='Run the debug build, if available.',dest='debug',action='store_true')
+	par.add_argument('--cl-dev',help='Numerical couple (comma-separated) givin OpenCL platform/device indices. This is machine-dependent value.',dest='clDev')
+	par.add_argument('--quirks',help='Bitmask for workarounds for broken configurations; all quirks are enabled by default. 1: set LIBGL_ALWAYS_SOFTWARE=1 for Intel GPUs (determined from `lspci | grep VGA`) (avoids GPU freeze), 2: set --in-gdb when on AMD FirePro GPUs to avoid crash in fglrx.so',dest='quirks',type=int,default=3)
+
+	opts,unhandled=par.parse_known_args(argv)
+
+
+	if opts.nogui: forceNoGui=True
+	if opts.cores:
+		if opts.threads: warnings.warn('--threads ignored, since --cores specified.')
+		try:
+			ompCores=[int(i) for i in opts.cores.split(',')]
+		except ValueError:
+			raise ValueError('Invalid --cores specification %s, should be a comma-separated list of non-negative integers'%opts.cores)
+		ompThreads=len(cores)
+	if opts.threads:
+		ompThreads=opts.threads
+	if opts.debug:
+		debug=True
+	if opts.clDev:
+		clDev=opts.clDev
+	quirks=opts.quirks
+
+#os.environ['GOMP_CPU_AFFINITY']=' '.join([str(cores[0])]+[str(c) for c in cores])
+#os.environ['OMP_NUM_THREADS']=str(len(cores))
+#elif opts.threads: os.environ['OMP_NUM_THREADS']=str(opts.threads)
+#else: os.environ['OMP_NUM_THREADS']='1'
+
+
+
+
+

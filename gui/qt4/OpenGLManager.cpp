@@ -7,7 +7,7 @@ OpenGLManager* OpenGLManager::self=NULL;
 OpenGLManager::OpenGLManager(QObject* parent): QObject(parent){
 	if(self) throw runtime_error("OpenGLManager instance already exists, uses OpenGLManager::self to retrieve it.");
 	self=this;
-	Renderer::init();
+	// Renderer::init(); called automatically when Renderer::render() is called for the first time
 	viewsMutexMissed=0;
 	connect(this,SIGNAL(createView()),this,SLOT(createViewSlot()));
 	connect(this,SIGNAL(resizeView(int,int,int)),this,SLOT(resizeViewSlot(int,int,int)));
