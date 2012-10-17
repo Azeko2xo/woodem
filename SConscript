@@ -26,19 +26,26 @@ pyObjects+=[env.SharedObject(s) for s in pkgSrcs]
 
 SConscript(dirs=['resources'],duplicate=0)
 
-#
-# LIB (support)
-#
+## LIB
 pyObjects.append(
 	env.SharedObject('woo-support',
 		## ['voro++/voro++.cc']+ # included directly in sources, due to templates
 		env.Combine('woo-support.cpp',env.Glob('lib/*/*.cpp'))
 	)
 )
-
+## CORE
 pyObjects.append(env.SharedObject('core',env.Combine('core.cpp',env.Glob('core/*.cpp'))))
-
+## PY
 pyObjects+=[env.SharedObject(f) for f in env.Glob('py/*.cpp')+env.Glob('py/*/*.cpp')]
+## CONFIG
+pyObjects.append(env.SharedObject('config','py/config.cxx',
+	CPPDEFINES=env['CPPDEFINES']+[
+		('WOO_REVISION',env['realVersion']),
+		('WOO_VERSION',env['version']),
+		('WOO_SOURCE_ROOT',env['sourceRoot']),
+		('WOO_BUILD_PROFILE',env['profile'])
+	]
+))
 
 if 'qt4' in env['features']:
 	pyObjects+=['gui/qt4/GLViewer.cpp','gui/qt4/_GLViewer.cpp','gui/qt4/OpenGLManager.cpp']
@@ -83,8 +90,6 @@ env.Install('$LIBDIR/woo/pre',
 )
 
 env.Install('$LIBDIR/woo',[
-	env.AlwaysBuild(env.ScanReplace('py/__init__.py.in')),
-	env.AlwaysBuild(env.ScanReplace('py/config.py.in')),
 	env.File(env.Glob('py/*.py')),
 	env.File('py/pack/pack.py'),
 ])

@@ -40,32 +40,14 @@ if wooOptions.quirks & wooOptions.quirkIntel:
 		print 'Intel GPU detected, setting LIBGL_ALWAYS_SOFTWARE=1\n\t(use --no-soft-render to disable)'
 		os.environ['LIBGL_ALWAYS_SOFTWARE']='1'
 
-
-
-
-# it seems that this is no longer needed
 if 0:
-	import ctypes,sys
-	try:
-		import dl
-	except ImportError:
-		import DLFCN as dl
-	if False: # not eval('${mono}'):
-		# see file:///usr/share/doc/python2.6/html/library/sys.html#sys.setdlopenflags
-		# and various web posts on the topic, e.g.
-		# * http://gcc.gnu.org/faq.html#dso
-		# * http://www.code-muse.com/blog/?p=58
-		# * http://wiki.python.org/moin/boost.python/CrossExtensionModuleDependencies
-		sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL)
-	else: sys.setdlopenflags(dl.RTLD_NOW)
-
+	# this is no longer needed
+	import ctypes,sys,dl
 	# important: initialize c++ by importing libstdc++ directly
 	# see http://www.abclinuxu.cz/poradna/programovani/show/286322
 	# https://bugs.launchpad.net/bugs/490744
-	libstdcxx='${libstdcxx}' # substituted by scons
+	libstdcxx='${libstdcxx}'
 	ctypes.cdll.LoadLibrary(libstdcxx)
-	#
-	# now ready for c++ imports
 
 # enable warnings which are normally invisible, such as DeprecationWarning
 import warnings
@@ -103,10 +85,6 @@ else:
 			warnings.warn('FATAL: Neither non-debug nor debug variant of Woo was found!')
 			sys.exit(1)
 
-from . import config
-config.debug=('woo._cxxInternal_debug' in sys.modules)
-
-_cxxInternal.initialize(config.confDir)
 cxxInternalFile=_cxxInternal.__file__
 
 from . import core
@@ -128,7 +106,7 @@ else:
 	compiledModDir=master.tmpFilename() # this will be a directory
 	import os,sys
 	os.mkdir(compiledModDir)
-	sys.path.append(compiledModDir)
+	sys.path=[compiledModDir]+sys.path
 	# move _customConverters to the start, so that imports reyling on respective converters don't fail
 	# remove woo._cxxInternal since it is imported already
 	cpm=master.compiledPyModules
@@ -153,6 +131,7 @@ else:
 			setattr(__import__('.'.join(modpath[:2])),modpath[2],sys.modules[mod])
 		else:
 			raise RuntimeError('Module %s does not have 2 or 3 path items and will not be imported properly.'%mod)
+	sys.path=sys.path[1:]
 	## HACK: gts in-tree
 	#import woo.gts
 	#sys.modules['gts']=woo.gts

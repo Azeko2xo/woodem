@@ -38,7 +38,10 @@ Master::Master(){
 	defaultClDev=Vector2i(-1,-1);
 }
 
-void Master::cleanupTemps(){ boost::filesystem::path tmpPath(tmpFileDir); boost::filesystem::remove_all(tmpPath); }
+void Master::cleanupTemps(){
+	if(getenv("WOO_DEBUG")) cerr<<"Cleaning "<<tmpFileDir<<endl;
+	boost::filesystem::path tmpPath(tmpFileDir); boost::filesystem::remove_all(tmpPath);
+}
 
 const map<string,set<string>>& Master::getClassBases(){return classBases;}
 
@@ -260,7 +263,9 @@ void Master::pyExitNoBacktrace(int status){
 	if(status==0) signal(SIGSEGV,termHandlerNormal); /* unset the handler that runs gdb and prints backtrace */
 	else signal(SIGSEGV,termHandlerError);
 	// try to clean our mess
-	cleanupTemps();
+	//
+	// cleanupTemps(); :: called from the destructor now
+	//
 	// flush all streams (so that in case we crash at exit, unflushed buffers are not lost)
 	fflush(NULL);
 	// attempt exit

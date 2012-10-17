@@ -142,6 +142,7 @@ class Master: public Singleton<Master>{
 	DECLARE_LOGGER;
 
 	Master();
+	~Master(){ cleanupTemps(); }
 
 	FRIEND_SINGLETON(Master);
 

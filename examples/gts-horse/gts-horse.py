@@ -5,6 +5,14 @@
 which can further be either filled with packing (if used as predicate) or converted
 to facets representing the surface."""
 
+if 0:
+	import sys
+	sys.path.append('/usr/local/lib/woo')
+	import wooOptions
+	wooOptions.ompThreads=4
+	wooOptions.debug=True
+	wooOptions.forceNoGui=True
+
 from woo import pack,utils
 from woo.core import *
 from woo.dem import *
@@ -57,5 +65,7 @@ S.plot.plots={'i':('total',S.energy.keys,)}
 S.plot.plot()
 
 from woo import timing
-from woo import qt
-qt.View()
+try:
+	from woo import qt
+	qt.View()
+except ImportError: pass

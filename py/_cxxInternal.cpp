@@ -51,12 +51,34 @@
 	}		
 #endif
 
-/* Initialize woo, loading given plugins */
-void wooInitialize(const std::string& confDir){
+/* Initialize woo - load config files, register python classes, set signal handlers */
+void wooInitialize(){
 
 	PyEval_InitThreads();
 
 	Master& master(Master::instance());
+	
+	string confDir;
+	if(getenv("XDG_CONFIG_HOME")){
+		confDir=getenv("XDG_CONFIG_HOME");
+	} else {
+		if(getenv("HOME")){
+			confDir=string(getenv("HOME"))+"/.config";
+		#if 0
+			// windows stuff; not tested
+			// http://stackoverflow.com/a/4891126/761090
+			} else if(getenv("USERPROFILE")){
+				confDir=getenv("USERPROFILE");
+			} else if(getenv("HOMEDRIVE") && getenv("HOMEPATH"))
+				confDir=string(getenv("HOMEDRIVE")+getenv("HOMEPATH");
+		#endif
+			} else {
+			LOG_WARN("Unable to determine home directory; no user-configuration will be loaded.");
+		}
+	}
+	confDir+="/woo";
+
+
 	master.confDir=confDir;
 	// master.initTemps();
 	#ifdef WOO_DEBUG
@@ -79,7 +101,6 @@ void wooInitialize(const std::string& confDir){
 	// register all python classes here
 	master.pyRegisterAllClasses();
 }
-void wooFinalize(){ Master::instance().cleanupTemps(); }
 
 // NB: this module does NOT use WOO_PYTHON_MODULE, since the file is really called _cxxInternal.so
 // and is a real real python module
@@ -89,6 +110,36 @@ void wooFinalize(){ Master::instance().cleanupTemps(); }
 	BOOST_PYTHON_MODULE(_cxxInternal)
 #endif
 {
-	py::scope().attr("initialize")=&wooInitialize;
-	py::scope().attr("finalize")=&wooFinalize; //,"Finalize woo (only to be used internally).")
+	// call automatically at module import time
+	wooInitialize();
+
+	py::list features;
+#ifdef WOO_LOG4CXX
+	features.append("log4cxx");
+#endif
+#ifdef WOO_OPENGL
+	features.append("opengl");
+#endif
+#ifdef WOO_CGAL
+	features.append("cgal");
+#endif
+#ifdef WOO_OPENCL
+	features.append("opencl");
+#endif
+#ifdef WOO_GTS
+	features.append("gts");
+#endif
+#ifdef WOO_VTK
+	features.append("vtk");
+#endif
+#ifdef WOO_GL2PS
+	features.append("gl2ps");
+#endif
+#ifdef WOO_QT4
+	features.append("qt4");
+#endif
+#ifdef WOO_CLDEM
+	features.append("cldem");
+#endif
+	py::scope().attr("features")=features;
 }

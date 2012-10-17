@@ -1,4 +1,4 @@
-#!${pyExecutable}
+#!/usr/bin/python
 # encoding: utf-8
 #
 # vim: syntax=python
@@ -8,17 +8,20 @@ import os, sys, thread, time, logging, pipes, socket, xmlrpclib, re, shutil, ran
 
 #socket.setdefaulttimeout(10) 
 
-## replaced by scons automatically
-prefix,suffix='${runtimePREFIX}' if not os.environ.has_key('WOO_PREFIX') else os.environ['WOO_PREFIX'],'${SUFFIX}'
-# run the batch always in non-debug mode (the spawned processes do honor debuggin flag, however)
-libDir=prefix+'/lib/woo'+suffix
-if not os.path.exists(libDir): libDir=libDir+'/dbg' # ude debugging dir if available
-if not os.path.exists(libDir): raise RuntimeError("Woo plugin directory does not exist: "+libDir)
-sys.path.append(libDir)
-executable=os.path.join(prefix,'bin','woo'+suffix)
-## we just need this ...
-import woo, woo.batch, woo.config, woo.remote
+# installed by scons, we need to set sys.path to import woo properly
+if not '${runtimePREFIX}'.startswith('$'):
+	## replaced by scons automatically
+	prefix,suffix='${runtimePREFIX}' if not os.environ.has_key('WOO_PREFIX') else os.environ['WOO_PREFIX'],'${SUFFIX}'
+	# run the batch always in non-debug mode (the spawned processes do honor debuggin flag, however)
+	libDir=prefix+'/lib/woo'+suffix
+	if not os.path.exists(libDir): raise RuntimeError("Woo plugin directory does not exist: "+libDir)
+	sys.path.append(libDir)
+	executable=os.path.join(prefix,'bin','woo'+suffix)
 
+import wooOptions
+wooOptions.forceNoGui=True
+wooOptions.debug=False
+import woo, woo.batch, woo.config, woo.remote
 
 class JobInfo():
 	def __init__(self,num,id,command,hrefCommand,log,nCores,script,table,lineNo,affinity):
@@ -307,32 +310,30 @@ numCores=getNumCores()
 maxOmpThreads=numCores if 'openmp' in woo.config.features else 1
 
 parser=argparse.ArgumentParser(usage=sys.argv[0]+' [options] [ TABLE [SIMULATION.py] | SIMULATION.py[/nCores] [...] ]',description=sys.argv[0]+' runs woo simulation multiple times with different parameters.\n\nSee https://yade-dem.org/sphinx/user.html#batch-queuing-and-execution-woo-batch for details.\n\nBatch can be specified either with parameter table TABLE (must not end in .py), which is either followed by exactly one SIMULATION.py (must end in .py), or contains !SCRIPT column specifying the simulation to be run. The second option is to specify multiple scripts, which can optionally have /nCores suffix to specify number of cores for that particular simulation (corresponds to !THREADS column in the parameter table), e.g. sim.py/3.')
-if 1:
-	parser.add_argument('-j','--jobs',dest='maxJobs',type=int,help="Maximum number of simultaneous threads to run (default: number of cores, further limited by OMP_NUM_THREADS if set by the environment: %d)"%numCores,metavar='NUM',default=numCores)
-	parser.add_argument('--job-threads',dest='defaultThreads',type=int,help="Default number of threads for one job; can be overridden by per-job with !THREADS (or !OMP_NUM_THREADS) column. Defaults to 1.",metavar='NUM',default=1)
-	parser.add_argument('--force-threads',action='store_true',dest='forceThreads',help='Force jobs to not use more cores than the maximum (see \-j), even if !THREADS colums specifies more.')
-if 1:
-	parser.add_argument('--log',dest='logFormat',help='Format of job log files: must contain a $, %% or @, which will be replaced by script name, line number or by title column respectively. Directory for logs will be created automatically. (default: logs/$.@.log)',metavar='FORMAT',default='logs/$.@.log')
-	parser.add_argument('--global-log',dest='globalLog',help='Filename where to redirect output of woo-batch itself (as opposed to \-\-log); if not specified (default), stdout/stderr are used',metavar='FILE')
-	parser.add_argument('-l','--lines',dest='lineList',help='Lines of TABLE to use, in the format 2,3-5,8,11-13 (default: all available lines in TABLE)',metavar='LIST')
-	parser.add_argument('--results',dest='resultsDb',help='File (SQLite database) where simulation should store its results (such as input/output files and some data); the default is to use {tableName}.results, if there is param table, otherwise (re)use batch.results.sqlite (stripping .batch)',default=None)
-	parser.add_argument('--nice',dest='nice',type=int,help='Nice value of spawned jobs (default: 10)',default=10)
-	parser.add_argument('--cpu-affinity',dest='affinity',action='store_true',help='Bind each job to specific CPU cores; cores are assigned in a quasi-random order, depending on availability at the moment the jobs is started. Each job can override this setting by setting AFFINE column.')
-	parser.add_argument('--executable',dest='executable',help='Name of the program to run (default: %s). Jobs can override with !EXEC column.'%executable,default=executable,metavar='FILE')
-	parser.add_argument('--rebuild',dest='rebuild',help='Run executable(s) with --rebuild prior to running any jobs.',default=False,action='store_true')
-	parser.add_argument('--debug',dest='debug',action='store_true',help='Run the executable with --debug. Can be overriddenn per-job with !DEBUG column.',default=False)
-	parser.add_argument('--gnuplot',dest='gnuplotOut',help='Gnuplot file where gnuplot from all jobs should be put together',default=None,metavar='FILE')
-	parser.add_argument('--dry-run',action='store_true',dest='dryRun',help='Do not actually run (useful for getting gnuplot only, for instance)',default=False)
-	parser.add_argument('--http-wait',action='store_true',dest='httpWait',help='Do not quit if still serving overview over http repeatedly',default=False)
-	parser.add_argument('--generate-manpage',help='Generate man page documenting this program and exit',dest='manpage',metavar='FILE')
-	parser.add_argument('--plot-update',type=int,dest='plotAlwaysUpdateTime',help='Interval (in seconds) at which job plots will be updated even if not requested via HTTP. Non-positive values will make the plots not being updated and saved unless requested via HTTP (see \-\-plot-timeout for controlling maximum age of those).  Plots are saved at exit under the same name as the log file, with the .log extension removed. (default: 120 seconds)',metavar='TIME',default=120)
-	parser.add_argument('--plot-timeout',type=int,dest='plotTimeout',help='Maximum age (in seconds) of plots served over HTTP; they will be updated if they are older. (default: 30 seconds)',metavar='TIME',default=30)
-	parser.add_argument('--refresh',type=int,dest='refresh',help='Refresh rate of automatically reloaded web pages (summary, logs, ...).',metavar='TIME',default=30)
-	parser.add_argument('--timing',type=int,dest='timing',default=0,metavar='COUNT',help='Repeat each job COUNT times, and output a simple table with average/variance/minimum/maximum job duration; used for measuring how various parameters affect execution time. Jobs can override the global value with the !COUNT column.')
-	parser.add_argument('--timing-output',type=str,metavar='FILE',dest='timingOut',default=None,help='With --timing, save measured durations to FILE, instead of writing to standard output.')
-	parser.add_argument('--randomize',action='store_true',dest='randomize',help='Randomize job order (within constraints given by assigned cores).')
-	parser.add_argument('--no-table',action='store_true',dest='notable',help='Treat all command-line argument as simulations to be run, either python scripts or saved simulations.')
-	parser.add_argument('simulations',nargs=argparse.REMAINDER)
+parser.add_argument('-j','--jobs',dest='maxJobs',type=int,help="Maximum number of simultaneous threads to run (default: number of cores, further limited by OMP_NUM_THREADS if set by the environment: %d)"%numCores,metavar='NUM',default=numCores)
+parser.add_argument('--job-threads',dest='defaultThreads',type=int,help="Default number of threads for one job; can be overridden by per-job with !THREADS (or !OMP_NUM_THREADS) column. Defaults to 1.",metavar='NUM',default=1)
+parser.add_argument('--force-threads',action='store_true',dest='forceThreads',help='Force jobs to not use more cores than the maximum (see \-j), even if !THREADS colums specifies more.')
+parser.add_argument('--log',dest='logFormat',help='Format of job log files: must contain a $, %% or @, which will be replaced by script name, line number or by title column respectively. Directory for logs will be created automatically. (default: logs/$.@.log)',metavar='FORMAT',default='logs/$.@.log')
+parser.add_argument('--global-log',dest='globalLog',help='Filename where to redirect output of woo-batch itself (as opposed to \-\-log); if not specified (default), stdout/stderr are used',metavar='FILE')
+parser.add_argument('-l','--lines',dest='lineList',help='Lines of TABLE to use, in the format 2,3-5,8,11-13 (default: all available lines in TABLE)',metavar='LIST')
+parser.add_argument('--results',dest='resultsDb',help='File (SQLite database) where simulation should store its results (such as input/output files and some data); the default is to use {tableName}.results, if there is param table, otherwise (re)use batch.results.sqlite (stripping .batch)',default=None)
+parser.add_argument('--nice',dest='nice',type=int,help='Nice value of spawned jobs (default: 10)',default=10)
+parser.add_argument('--cpu-affinity',dest='affinity',action='store_true',help='Bind each job to specific CPU cores; cores are assigned in a quasi-random order, depending on availability at the moment the jobs is started. Each job can override this setting by setting AFFINE column.')
+parser.add_argument('--executable',dest='executable',help='Name of the program to run (default: %s). Jobs can override with !EXEC column.'%executable,default=executable,metavar='FILE')
+parser.add_argument('--rebuild',dest='rebuild',help='Run executable(s) with --rebuild prior to running any jobs.',default=False,action='store_true')
+parser.add_argument('--debug',dest='debug',action='store_true',help='Run the executable with --debug. Can be overriddenn per-job with !DEBUG column.',default=False)
+parser.add_argument('--gnuplot',dest='gnuplotOut',help='Gnuplot file where gnuplot from all jobs should be put together',default=None,metavar='FILE')
+parser.add_argument('--dry-run',action='store_true',dest='dryRun',help='Do not actually run (useful for getting gnuplot only, for instance)',default=False)
+parser.add_argument('--http-wait',action='store_true',dest='httpWait',help='Do not quit if still serving overview over http repeatedly',default=False)
+parser.add_argument('--generate-manpage',help='Generate man page documenting this program and exit',dest='manpage',metavar='FILE')
+parser.add_argument('--plot-update',type=int,dest='plotAlwaysUpdateTime',help='Interval (in seconds) at which job plots will be updated even if not requested via HTTP. Non-positive values will make the plots not being updated and saved unless requested via HTTP (see \-\-plot-timeout for controlling maximum age of those).  Plots are saved at exit under the same name as the log file, with the .log extension removed. (default: 120 seconds)',metavar='TIME',default=120)
+parser.add_argument('--plot-timeout',type=int,dest='plotTimeout',help='Maximum age (in seconds) of plots served over HTTP; they will be updated if they are older. (default: 30 seconds)',metavar='TIME',default=30)
+parser.add_argument('--refresh',type=int,dest='refresh',help='Refresh rate of automatically reloaded web pages (summary, logs, ...).',metavar='TIME',default=30)
+parser.add_argument('--timing',type=int,dest='timing',default=0,metavar='COUNT',help='Repeat each job COUNT times, and output a simple table with average/variance/minimum/maximum job duration; used for measuring how various parameters affect execution time. Jobs can override the global value with the !COUNT column.')
+parser.add_argument('--timing-output',type=str,metavar='FILE',dest='timingOut',default=None,help='With --timing, save measured durations to FILE, instead of writing to standard output.')
+parser.add_argument('--randomize',action='store_true',dest='randomize',help='Randomize job order (within constraints given by assigned cores).')
+parser.add_argument('--no-table',action='store_true',dest='notable',help='Treat all command-line argument as simulations to be run, either python scripts or saved simulations.')
+parser.add_argument('simulations',nargs=argparse.REMAINDER)
 #parser.add_argument('--serial',action='store_true',dest='serial',default=False,help='Run all jobs serially, even if there are free cores
 opts=parser.parse_args()
 args=opts.simulations

@@ -1,27 +1,27 @@
-#!${pyExecutable}
+#!/usr/bin/python
 # encoding: utf-8
 # syntax:python
 
 import sys,os,os.path,time,re
-# get woo path (allow WOO_PREFIX to override)
-prefix,suffix='${runtimePREFIX}' if not os.environ.has_key('WOO_PREFIX') else os.environ['WOO_PREFIX'],'${SUFFIX}'
-# duplicate some items from woo.config here, so that we can increase verbosity when the c++ part is booting
-features,version='${features}'.split(','),'${realVersion}'
 
-## find available builds
-libDir=prefix+'/lib/woo'+suffix
-hasDebug,hasNonDebug=os.path.exists(libDir+'/woo/_cxxInternal.so'),os.path.exists(libDir+'/woo/_cxxInternal_debug.so')
-if hasDebug and hasNonDebug: buildsAvailable='both non-debug and debug build'
-elif hasDebug and not hasNonDebug: buildsAvailable='debug build only'
-elif not hasDebug and hasNonDebug: buildsAvailable='non-debug build only'
-else:
-	raise RuntimeError('Neither non-debug nor debug build found! ('+libDir+'/woo/_cxxInteral{,_debug}.so)')
-sys.path.append(libDir)
+# installed by scons, we need to set sys.path to import woo properly
+if not '${runtimePREFIX}'.startswith('$'):
+	# get woo path (allow WOO_PREFIX to override)
+	prefix,suffix='${runtimePREFIX}' if not os.environ.has_key('WOO_PREFIX') else os.environ['WOO_PREFIX'],'${SUFFIX}'
+	## find available builds
+	libDir=prefix+'/lib/woo'+suffix
+	hasDebug,hasNonDebug=os.path.exists(libDir+'/woo/_cxxInternal.so'),os.path.exists(libDir+'/woo/_cxxInternal_debug.so')
+	if hasDebug and hasNonDebug: buildsAvailable='both non-debug and debug build'
+	elif hasDebug and not hasNonDebug: buildsAvailable='debug build only'
+	elif not hasDebug and hasNonDebug: buildsAvailable='non-debug build only'
+	else:
+		raise RuntimeError('Neither non-debug nor debug build found! ('+libDir+'/woo/_cxxInteral{,_debug}.so)')
+	sys.path.append(libDir)
 
 # handle command-line options first
 import argparse
-par=argparse.ArgumentParser(prog=os.path.basename(sys.argv[0]),description="Woo: open-source platform for dynamic compuations. (Based on Yade, http://www.yade-dem.org, code hosted at http://www.launchpad.net/yade). This is version %s (with features %s, %s)."%(version,','.join(features),buildsAvailable))
-par.add_argument('--version',action='version',version='%s (%s; %s)'%(version,','.join(features),buildsAvailable))
+par=argparse.ArgumentParser(prog=os.path.basename(sys.argv[0]),description="Woo: open-source platform for dynamic compuations, http://woodem.eu.")
+par.add_argument('--version',action='store_true',)
 #
 # those are actually parsed by wooOptions
 #
@@ -40,8 +40,7 @@ par.add_argument('--update',help='Update deprecated class names in given script(
 par.add_argument('--paused',help='When proprocessor or simulation is given on the command-line, don\'t run it automatically (default)',action='store_true')
 par.add_argument('--nice',help='Increase nice level (i.e. decrease priority) by given number.',dest='nice',type=int)
 par.add_argument('-x',help='Exit when the script finishes',dest='exitAfter',action='store_true')
-par.add_argument('-v',help='Increase logging verbosity; first occurence sets default logging level to info, second to debug, third to trace.'+
-	('' if 'log4cxx' in features else " (Since this build doesn't use log4cxx, this option will only have effect if repeated twice (\-vv), equivalent to setting WOO_DEBUG environment variable)"),action='count',dest='verbosity')
+par.add_argument('-v',help='Increase logging verbosity; first occurence sets default logging level to info (only available if built with log4cxx), second to debug, third to trace.',action='count',dest='verbosity')
 par.add_argument('--generate-manpage',help="Generate man page documenting this program and exit",dest='manpage',metavar='FILE')
 par.add_argument('-R','--rebuild',help="Re-run build in the source directory, then run the updated woo with the same command line except --rebuild. The build profile for this build (${profile}) and its stored parameters will be used. If given twice, update from the repository will be attempted before recompilation.",dest='rebuild',action='count')
 par.add_argument('--test',help="Run regression test suite and exit; the exists status is 0 if all tests pass, 1 if a test fails and 2 for an unspecified exception.",dest="test",action='store_true')
@@ -52,27 +51,18 @@ par.add_argument('--in-pdb',help='Run Woo inside pdb',dest='inPdb',action='store
 par.add_argument('--in-valgrind',help='Run inside valgrind (must be in $PATH); automatically adds python ignore files',dest='inValgrind',action='store_true')
 par.add_argument('simulation',nargs=argparse.REMAINDER)
 #par.disable_interspersed_args()
-
 opts=par.parse_args()
 args=opts.simulation
 
 import wooOptions
 wooOptions.useKnownArgs(sys.argv)
 
-# quirks which run another process
-if wooOptions.quirks & wooOptions.quirkFirePro and not wooOptions.forceNoGui and 'DISPLAY' in os.environ:
-	vgas=os.popen("LC_ALL=C lspci | grep VGA").readlines()
-	if len(vgas)==1 and 'FirePro' in vgas[0]:
-		print 'AMD FirePro GPU detected, will run inside gdb to avoid crash in buggy fglrx.so.'
-		opts.inGdb=True
-		# disable quirk to avoid infinite loop
-		sys.argv=[sys.argv[0]]+['--quirks=%d'%(wooOptions.quirks&(~wooOptions.quirkFirePro))]+[a for a in sys.argv[1:] if not a.startswith('--quirks')]
 
-##
-##
-## OPTIONS WHICH SPAWN ANOTHER PROCESS
-##
-##
+# show version and exit
+if opts.version:
+	import woo.config
+	print '%s (%s)'%(woo.config.prettyVersion(),','.join(woo.config.features))
+	sys.exit(0)
 
 # re-build woo so that the binary is up-to-date
 if opts.rebuild:
@@ -93,6 +83,14 @@ if opts.rebuild:
 		argv=[(v.replace('R','') if re.match('^-[^-]*',v) else v) for v in sys.argv if v!='-R' and v!='-RR']
 	print 'Running Woo using',' '.join(argv)
 	sys.exit(subprocess.call(argv))
+# QUIRK running in gdb
+if wooOptions.quirks & wooOptions.quirkFirePro and (not wooOptions.forceNoGui and 'DISPLAY' in os.environ) and not opts.inGdb:
+	vgas=os.popen("LC_ALL=C lspci | grep VGA").readlines()
+	if len(vgas)==1 and 'FirePro' in vgas[0]:
+		print 'AMD FirePro GPU detected, will run inside gdb to avoid crash in buggy fglrx.so.'
+		opts.inGdb=True
+		# disable quirk to avoid infinite loop
+		sys.argv=[sys.argv[0]]+['--quirks=%d'%(wooOptions.quirks&(~wooOptions.quirkFirePro))]+[a for a in sys.argv[1:] if not a.startswith('--quirks')]
 # re-run inside gdb
 if opts.inGdb:
 	import tempfile, subprocess
@@ -101,8 +99,8 @@ if opts.inGdb:
 	gdbBatch.write('set pagination off\nrun '+' '.join(args)+'\n')
 	gdbBatch.flush()
 	if opts.debug:
-		print 'Spawning: gdb -x '+gdbBatch.name+' ${pyExecutable}'
-	sys.exit(subprocess.call(['gdb']+([] if opts.debug else ['-batch-silent'])+['-x',gdbBatch.name,'${pyExecutable}']))
+		print 'Spawning: gdb -x '+gdbBatch.name+' '+sys.executable
+	sys.exit(subprocess.call(['gdb']+([] if opts.debug else ['-batch-silent'])+['-x',gdbBatch.name,sys.executable]))
 if opts.inValgrind:
 	import subprocess,urllib,os.path
 	saveTo='/tmp/valgrind-python.supp'
@@ -111,7 +109,7 @@ if opts.inValgrind:
 		urllib.urlretrieve('http://svn.python.org/projects/python/trunk/Misc/valgrind-python.supp',saveTo)
 	else:
 		print 'Using alread-downloaded '+saveTo
-	args=['valgrind','--suppressions='+saveTo,'${pyExecutable}']+[a for a in sys.argv if a!='--in-valgrind']
+	args=['valgrind','--suppressions='+saveTo,sys.executable]+[a for a in sys.argv if a!='--in-valgrind']
 	print 'Running',' '.join(args)
 	sys.exit(subprocess.call(args))
 
@@ -129,12 +127,12 @@ if opts.test:
 #print opts.verbosity,type(opts.verbosity)
 if opts.verbosity and opts.verbosity>1: os.environ['WOO_DEBUG']='1'
 
-sys.stderr.write('Welcome to Woo '+version+'%s\n'%(' (debug build)' if opts.debug else ''))
 
 # initialization and c++ plugins import
 import woo
 # other parts we will need soon
 import woo.config
+sys.stderr.write('Welcome to Woo '+woo.config.prettyVersion()+'%s\n'%(' (debug build)' if woo.config.debug else ''))
 import woo.log
 import woo.system
 import woo.runtime

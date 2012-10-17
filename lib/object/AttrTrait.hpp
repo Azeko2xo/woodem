@@ -161,7 +161,7 @@ namespace woo{
 		}
 		AttrTrait& startGroup(const string& s){ _startGroup=s; return *this; }
 
-		template<typename T> AttrTrait& ini(const T& t){ _ini=std::function<py::object()>([=]()->py::object{ return py::object(t); }); return *this; }
+		template<typename T> AttrTrait& ini(const T t){ _ini=std::function<py::object()>([=]()->py::object{ return py::object(t); }); return *this; }
 		AttrTrait& ini(){ _ini=std::function<py::object()>([]()->py::object{ return py::object(); }); return *this; }
 
 		AttrTrait& range(const Vector2i& t){ _range=std::function<py::object()>([=]()->py::object{ return py::object(t);} ); return *this; }
