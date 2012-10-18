@@ -3,20 +3,7 @@
 # syntax:python
 
 import sys,os,os.path,time,re
-
-# installed by scons, we need to set sys.path to import woo properly
-if not '${runtimePREFIX}'.startswith('$'):
-	# get woo path (allow WOO_PREFIX to override)
-	prefix,suffix='${runtimePREFIX}' if not os.environ.has_key('WOO_PREFIX') else os.environ['WOO_PREFIX'],'${SUFFIX}'
-	## find available builds
-	libDir=prefix+'/lib/woo'+suffix
-	hasDebug,hasNonDebug=os.path.exists(libDir+'/woo/_cxxInternal.so'),os.path.exists(libDir+'/woo/_cxxInternal_debug.so')
-	if hasDebug and hasNonDebug: buildsAvailable='both non-debug and debug build'
-	elif hasDebug and not hasNonDebug: buildsAvailable='debug build only'
-	elif not hasDebug and hasNonDebug: buildsAvailable='non-debug build only'
-	else:
-		raise RuntimeError('Neither non-debug nor debug build found! ('+libDir+'/woo/_cxxInteral{,_debug}.so)')
-	sys.path.append(libDir)
+import wooOptions
 
 # handle command-line options first
 import argparse
@@ -32,6 +19,7 @@ par.add_argument('-n',help="Run without graphical interface (equivalent to unset
 par.add_argument('-D','--debug',help='Run the debug build, if available.',dest='debug',action='store_true')
 # quirks set flags in wooOptions
 par.add_argument('--quirks',help='Bitmask for workarounds for broken configurations; all quirks are enabled by default. 1: set LIBGL_ALWAYS_SOFTWARE=1 for Intel GPUs (determined from `lspci | grep VGA`) (avoids GPU freeze), 2: set --in-gdb when on AMD FirePro GPUs to avoid crash in fglrx.so',dest='quirks',type=int,default=3)
+par.add_argument('--flavor',help='Build flavor of woo to use.',type=str,default=wooOptions.flavorFromArgv0(sys.argv[0]))
 #
 # end wooOptions parse
 #
@@ -42,7 +30,7 @@ par.add_argument('--nice',help='Increase nice level (i.e. decrease priority) by 
 par.add_argument('-x',help='Exit when the script finishes',dest='exitAfter',action='store_true')
 par.add_argument('-v',help='Increase logging verbosity; first occurence sets default logging level to info (only available if built with log4cxx), second to debug, third to trace.',action='count',dest='verbosity')
 par.add_argument('--generate-manpage',help="Generate man page documenting this program and exit",dest='manpage',metavar='FILE')
-par.add_argument('-R','--rebuild',help="Re-run build in the source directory, then run the updated woo with the same command line except --rebuild. The build profile for this build (${profile}) and its stored parameters will be used. If given twice, update from the repository will be attempted before recompilation.",dest='rebuild',action='count')
+par.add_argument('-R','--rebuild',help="Re-run build in the source directory, then run the updated woo with the same command line except --rebuild. The build flavor for this build and its stored parameters will be used. If given twice, update from the repository will be attempted before recompilation.",dest='rebuild',action='count')
 par.add_argument('--test',help="Run regression test suite and exit; the exists status is 0 if all tests pass, 1 if a test fails and 2 for an unspecified exception.",dest="test",action='store_true')
 #par.add_argument('--performance',help='Starts a test to measure the productivity',dest='performance',action='store_true')
 par.add_argument('--no-gdb',help='Do not show backtrace when Woo crashes (only effective with \-\-debug).',dest='noGdb',action='store_true',)
@@ -54,7 +42,6 @@ par.add_argument('simulation',nargs=argparse.REMAINDER)
 opts=par.parse_args()
 args=opts.simulation
 
-import wooOptions
 wooOptions.useKnownArgs(sys.argv)
 
 
@@ -66,14 +53,13 @@ if opts.version:
 
 # re-build woo so that the binary is up-to-date
 if opts.rebuild:
-	import subprocess
-	sourceRoot,profile='${sourceRoot}','${profile}' # replaced at install-time
+	import subprocess, woo.config
 	if opts.rebuild>1:
-		cmd=['bzr','up',sourceRoot]
+		cmd=['bzr','up',woo.config.sourceRoot]
 		print 'Updating Woo using ',' '.join(cmd)
 		if subprocess.call(cmd): raise RuntimeError('Error updating Woo from bzr repository.')
 	# rebuild
-	cmd=['scons','-Q','-C',sourceRoot,'profile=%s!'%profile,'debug=%d'%(1 if opts.debug else 0),'execCheck=%s'%(os.path.abspath(prefix+'/bin/woo'+suffix))]
+	cmd=['scons','-Q','-C',woo.config.sourceRoot,'flavor=%s!'%woo.config.flavor,'debug=%d'%(1 if woo.config.debug else 0),'execCheck=%s'%(os.path.abspath(sys.argv[0]))]
 	print 'Rebuilding Woo using',' '.join(cmd)
 	if subprocess.call(cmd): raise RuntimeError('Error rebuilding Woo (--rebuild).')
 	# run ourselves
@@ -228,7 +214,6 @@ def userSession(qt4=False,qapp=None,qtConsole=False):
 		prompt_in2='    .\D.: ',
 		prompt_out=" -> [\#]: ",
 		separate_in='',separate_out='',separate_out2='',
-		#execfile=[prefix+'/lib/woo'+suffix+'/woo/ipython.py'],
 		readline_parse_and_bind=[
 			'tab: complete',
 			# only with the gui; the escape codes might not work on non-linux terminals.

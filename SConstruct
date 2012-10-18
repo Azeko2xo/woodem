@@ -7,7 +7,7 @@
 #
 # Type "scons -h" for woo-specific options and "scons -H" for scons' options. Note that Woo options will be remembered (saved in scons.config) so that you need to specify them only for the first time. Like this, for example:
 #
-#	scons -j2 brief=1 debug=0 optimize=1 profile=1 exclude=extra,lattice,snow
+#	scons -j2 brief=1 debug=0 optimize=1 flavor=1 exclude=extra,lattice,snow
 #
 # Next time, you can simply run "scons" or "scons -j4" (for 4-parallel builds) to rebuild targets that need it. IF YOU NEED TO READ CODE IN THIS FILE, SOMETHING IS BROKEN AND YOU SHOULD REALLY TELL ME.
 #
@@ -49,26 +49,27 @@ if 'Variables' not in dir():
 	BoolVariable,ListVariable,EnumVariable=BoolOption,ListOption,EnumOption
 
 env=Environment(tools=['default','scanreplace'],toolpath=['scripts'])
-profileFile='scons.current-profile'
+flavorFile='scons.current-flavor'
 env['sourceRoot']=os.getcwd()
 
-profOpts=Variables(profileFile)
-profOpts.Add(('profile','Config profile to use (predefined: default or ""); append ! to use it but not save for next build (in scons.current-profile)','default'))
-profOpts.Update(env)
-# multiple profiles - run them all at the same time
-# take care not to save current profile for those parallel builds
-if env['profile']=='': env['profile']='default'
-# save the profile only if the last char is not !
-saveProfile=True
-if env['profile'][-1]=='!': env['profile'],noSaveProfile=env['profile'][:-1],False
-if saveProfile: profOpts.Save(profileFile,env)
+flavorOpts=Variables(flavorFile)
+flavorOpts.Add(('flavor','Config flavor to use (predefined: default or ""); append ! to use it but not save for next build (in scons.current-flavor)','default'))
+flavorOpts.Update(env)
+# multiple flavors - run them all at the same time
+# take care not to save current flavor for those parallel builds
+# if env['flavor']=='': env['flavor']='default'
+# save the flavor only if the last char is not !
+saveFlavor=True
+if env['flavor'] and env['flavor'][-1]=='!': env['flavor'],noSaveFlavor=env['flavor'][:-1],False
+if saveFlavor: flavorOpts.Save(flavorFile,env)
 
-if env['profile']=='': env['profile']='default'
-optsFile='scons.profile-'+env['profile']
-profile=env['profile']
-print '@@@ Using profile',profile,'('+optsFile+') @@@'
+#if env['flavor']=='': env['flavor']='default'
+optsFile='scons.flavor-'+(env['flavor'] if env['flavor'] else 'default')
+flavor=env['flavor']
+env['cxxFlavor']=('_'+re.sub('[^a-zA-Z0-9_]','_',env['flavor']) if env['flavor'] else '')
+print '@@@ Using flavor',(flavor if flavor else '[none]'),'('+optsFile+') @@@'
 if not os.path.exists(optsFile):
-	print '@@@ Will create new profile file',optsFile
+	print '@@@ Will create new flavor file',optsFile
 	opts=Variables()
 	opts.Save(optsFile,env)
 else:
@@ -76,8 +77,9 @@ else:
 ## compatibility hack again
 if 'AddVariables' not in dir(opts): opts.AddVariables=opts.AddOptions
 
-# save profile file so that we know compilation flags
-env['buildProfile']=dict([(l.split('=',1)[0].strip(),eval(l.split('=',1)[1])) for l in file(optsFile)])
+# save flavor file so that we know compilation flags
+env['buildFlavor']=dict([(l.split('=',1)[0].strip(),eval(l.split('=',1)[1])) for l in file(flavorFile)])
+
 env['buildCmdLine']=sys.argv
 
 def colonSplit(x): return x.split(':')
@@ -90,12 +92,13 @@ def colonSplit(x): return x.split(':')
 #  2. lowercase options influence the building process, compiler options and the like.
 #
 
+import site
 
 opts.AddVariables(
 	### OLD: use PathOption with PathOption.PathIsDirCreate, but that doesn't exist in 0.96.1!
-	('PREFIX','Install path prefix','/usr/local'),
-	('runtimePREFIX','Runtime path prefix; DO NOT USE, inteded for packaging only.',None),
-	('variant','Build variant, will be suffixed to all files, along with version.','' if profile=='default' else '-'+profile,None,lambda x:x),
+	('LIBDIR','Install directory for python modules (the default is obtained via "import site; site.getsitepackages()[0]")',site.getsitepackages()[0]),
+	('EXECDIR','Install directory for executables','/usr/local/bin'),
+	# ('variant','Build variant, will be suffixed to all files, along with version.','-'+flavor if flavor else '',None,lambda x:x),
 	BoolVariable('debug', 'Enable debugging information',0),
 	BoolVariable('gprof','Enable profiling information for gprof',0),
 	('optimize','Turn on optimizations (-1, 0 or 1); negative value sets optimization based on debugging: not optimize with debugging and vice versa. -3 (the default) selects -O3 for non-debug and no optimization flags for debug builds',-3,None,int),
@@ -133,9 +136,7 @@ if str(env['features'])=='all':
 	print 'ERROR: using "features=all" is illegal, since it breaks feature detection at runtime (SCons limitation). Write out all features separated by commas instead. Sorry.'
 	Exit(1)
 
-if saveProfile: opts.Save(optsFile,env)
-# fix expansion in python substitution by assigning the right value if not specified
-if not env.has_key('runtimePREFIX') or not env['runtimePREFIX']: env['runtimePREFIX']=env['PREFIX']
+if saveFlavor: opts.Save(optsFile,env)
 # set optimization based on debug, if required 
 if env['optimize']<0: env['optimize']=(None if env['debug'] else -env['optimize']) 
 
@@ -187,12 +188,10 @@ def getRealWooVersion():
 if not env.has_key('realVersion') or not env['realVersion']: env['realVersion']=getRealWooVersion() or 'unknown' # unknown if nothing returned
 if not env.has_key('version'): env['version']=env['realVersion']
 
-env['SUFFIX']=('-'+env['version'] if len(env['version'])>0 else '')+env['variant']
-env['SUFFIX_DBG']=env['SUFFIX']+('' if not env['debug'] else '/dbg')
-env['LIBDIR']='$PREFIX/lib/woo$SUFFIX'
-env['RESOURCEDIR']='$PREFIX/share/woo$SUFFIX'
-print "Woo version is `%s' (%s), installed files will be suffixed with `%s'."%(env['version'],env['realVersion'],env['SUFFIX'])
-buildDir=os.path.abspath(env.subst('$buildPrefix/build$SUFFIX_DBG'))
+suffix=('-'+env['flavor'] if (env['flavor'] and env['flavor']!='default') else '')
+print "Woo version is `%s' (%s), installed files will be suffixed with `%s'."%(env['version'],env['realVersion'],suffix)
+
+buildDir=os.path.abspath(env.subst('$buildPrefix/build'+suffix+('' if not env['debug'] else '/dbg')))
 print "All intermediary files will be in `%s'."%env.subst(buildDir)
 env['buildDir']=buildDir
 # these MUST be first so that builddir's headers are read before any locally installed ones
@@ -236,20 +235,6 @@ env.Append(CPPPATH='',LIBPATH='',LIBS='',CXXFLAGS=('-std='+env['cxxstd'] if env[
 def CheckCXX(context):
 	context.Message('Checking whether c++ compiler "%s %s" works...'%(env['CXX'],' '.join(env['CXXFLAGS'])))
 	ret=context.TryLink('#include<iostream>\nint main(int argc, char**argv){std::cerr<<std::endl;return 0;}\n','.cpp')
-	context.Result(ret)
-	return ret
-def CheckLibStdCxx(context):
-	context.Message('Finding libstdc++ library... ')
-	if context.env.has_key('libstdcxx') and context.env['libstdcxx']:
-		l=context.env['libstdcxx']
-		context.Result(l+' (specified by the user)')
-		return l
-	ret=os.popen(context.env['CXX']+' -print-file-name=libstdc++.so.6').readlines()[0][:-1]
-	if ret[0]!='/':
-		context.Result('Relative path "%s" was given by compiler %s, you must specify libstdcxx=.. explicitly.'%(ret,context.env['CXX']))
-		Exit(1)
-	ret=os.path.abspath(ret) # removes .. in the path returned by g++
-	context.env['libstdcxx']=ret
 	context.Result(ret)
 	return ret
 
@@ -330,7 +315,7 @@ def CheckPythonModules(context):
 	
 
 if not env.GetOption('clean'):
-	conf=env.Configure(custom_tests={'CheckLibStdCxx':CheckLibStdCxx,'CheckCXX':CheckCXX,'EnsureBoostVersion':EnsureBoostVersion,'CheckBoost':CheckBoost,'CheckPython':CheckPython,'CheckPythonModules':CheckPythonModules}, # 'CheckQt':CheckQt
+	conf=env.Configure(custom_tests={'CheckCXX':CheckCXX,'EnsureBoostVersion':EnsureBoostVersion,'CheckBoost':CheckBoost,'CheckPython':CheckPython,'CheckPythonModules':CheckPythonModules}, # 'CheckQt':CheckQt
 		conf_dir='$buildDir/.sconf_temp',log_file='$buildDir/config.log'
 	)
 	ok=True
@@ -338,7 +323,6 @@ if not env.GetOption('clean'):
 	if not ok:
 			print "\nYour compiler is broken, no point in continuing. See `%s' for what went wrong and use the CXX/CXXFLAGS parameters to change your compiler."%(buildDir+'/config.log')
 			Exit(1)
-	conf.CheckLibStdCxx()
 	ok&=conf.CheckLibWithHeader('pthread','pthread.h','c','pthread_exit(NULL);',autoadd=1)
 	ok&=(conf.CheckPython() and conf.CheckCXXHeader(['Python.h','numpy/ndarrayobject.h'],'<>'))
 	ok&=conf.CheckPythonModules()
@@ -348,8 +332,6 @@ if not env.GetOption('clean'):
 	if not env['haveForeach']: print "(OK, local version will be used instead)"
 	ok&=conf.CheckCXXHeader('Eigen/Core')
 	ok&=conf.CheckCXXHeader('loki/NullType.h')
-	# for installable stript's shebang ( http://en.wikipedia.org/wiki/Shebang_(Unix) )
-	env['pyExecutable']=sys.executable
 
 	if not ok:
 		print "\nOne of the essential libraries above was not found, unable to continue.\n\nCheck `%s' for possible causes, note that there are options that you may need to customize:\n\n"%(buildDir+'/config.log')+opts.GenerateHelpText(env)
@@ -402,6 +384,7 @@ if not env.GetOption('clean'):
 	#env.Append(LIBS='woo-support')
 
 	env.Append(CPPDEFINES=['WOO_'+f.upper().replace('-','_') for f in env['features']])
+	env.Append(CPPDEFINES=[('WOO_CXX_FLAVOR',env['cxxFlavor'])])
 
 	env=conf.Finish()
 
@@ -436,9 +419,6 @@ if env['brief']:
 else:
 	env.Replace(INSTALLSTR='cp -f ${SOURCE} ${TARGET}')
 
-### DIRECTORIES
-## PREFIX must be absolute path. Why?!
-env['PREFIX']=os.path.abspath(env['PREFIX'])
 ### PREPROCESSOR FLAGS
 if env['QUAD_PRECISION']: env.Append(CPPDEFINES='QUAD_PRECISION')
 
@@ -513,7 +493,7 @@ if not env.GetOption('clean'):
 		clDir=buildDir+'/include/CL'
 		if not exists(clDir): os.makedirs(clDir)
 		mkSymlink(clDir+'/cl.hpp','extra/cl.hpp_local')
-	env.Default(env.Alias('install',['$PREFIX/bin','$PREFIX/lib','$PREFIX/share'])) # build and install everything that should go to instDirs, which are $PREFIX/{bin,lib} (uses scons' Install)
+	env.Default(env.Alias('install',['$EXECDIR','$LIBDIR'])) # build and install everything that should go to instDirs, which are $PREFIX/{bin,lib} (uses scons' Install)
 
 env.Export('env');
 
@@ -561,17 +541,15 @@ env.SConscript(dirs=['.'],variant_dir=buildDir,duplicate=0)
 ## to know what should be installed overall.
 if not COMMAND_LINE_TARGETS:
 	toInstall=set([str(node) for node in env.FindInstalledFiles()])
-	for root,dirs,files in os.walk(env.subst('$LIBDIR')):
+	for root,dirs,files in os.walk(env.subst('$LIBDIR/woo')):
 		# do not go inside the debug directly, plugins are different there
 		for f in files:
-			# skip debug files, if in the non-debug build
-			if not env['debug'] and '/dbg/' in root: continue
 			#print 'Considering',f
 			ff=os.path.join(root,f)
 			# do not delete python-optimized files and symbolic links (lib_gts__python-module.so, for instance)
 			if ff not in toInstall and not ff.endswith('.pyo') and not ff.endswith('.pyc') and not os.path.islink(ff) and not os.path.basename(ff).startswith('.nfs'):
 				# HACK
-				if ff.endswith('/_cxxInternal.so') or ff.endswith('_cxxInternal_debug.so'): continue
+				if os.path.basename(ff).startswith('_cxxInternal'): continue
 				print "Deleting extra plugin", ff
 				os.remove(ff)
 

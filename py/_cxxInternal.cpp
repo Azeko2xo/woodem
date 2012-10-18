@@ -12,6 +12,7 @@
 
 #include<boost/python.hpp>
 #include<boost/filesystem/convenience.hpp>
+#include<boost/preprocessor/cat.hpp>
 
 
 #ifdef WOO_LOG4CXX
@@ -102,44 +103,15 @@ void wooInitialize(){
 	master.pyRegisterAllClasses();
 }
 
-// NB: this module does NOT use WOO_PYTHON_MODULE, since the file is really called _cxxInternal.so
+// NB: this module does NOT use WOO_PYTHON_MODULE, since the file is really called _cxxInternal[_flavor][_debug].so
 // and is a real real python module
+// 
 #ifdef WOO_DEBUG
-	BOOST_PYTHON_MODULE(_cxxInternal_debug)
+	BOOST_PYTHON_MODULE(BOOST_PP_CAT(BOOST_PP_CAT(_cxxInternal,WOO_CXX_FLAVOR),_debug))
 #else
-	BOOST_PYTHON_MODULE(_cxxInternal)
+	BOOST_PYTHON_MODULE(BOOST_PP_CAT(_cxxInternal,WOO_CXX_FLAVOR))
 #endif
 {
 	// call automatically at module import time
 	wooInitialize();
-
-	py::list features;
-#ifdef WOO_LOG4CXX
-	features.append("log4cxx");
-#endif
-#ifdef WOO_OPENGL
-	features.append("opengl");
-#endif
-#ifdef WOO_CGAL
-	features.append("cgal");
-#endif
-#ifdef WOO_OPENCL
-	features.append("opencl");
-#endif
-#ifdef WOO_GTS
-	features.append("gts");
-#endif
-#ifdef WOO_VTK
-	features.append("vtk");
-#endif
-#ifdef WOO_GL2PS
-	features.append("gl2ps");
-#endif
-#ifdef WOO_QT4
-	features.append("qt4");
-#endif
-#ifdef WOO_CLDEM
-	features.append("cldem");
-#endif
-	py::scope().attr("features")=features;
 }

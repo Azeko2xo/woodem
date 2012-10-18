@@ -8,16 +8,6 @@ import os, sys, thread, time, logging, pipes, socket, xmlrpclib, re, shutil, ran
 
 #socket.setdefaulttimeout(10) 
 
-# installed by scons, we need to set sys.path to import woo properly
-if not '${runtimePREFIX}'.startswith('$'):
-	## replaced by scons automatically
-	prefix,suffix='${runtimePREFIX}' if not os.environ.has_key('WOO_PREFIX') else os.environ['WOO_PREFIX'],'${SUFFIX}'
-	# run the batch always in non-debug mode (the spawned processes do honor debuggin flag, however)
-	libDir=prefix+'/lib/woo'+suffix
-	if not os.path.exists(libDir): raise RuntimeError("Woo plugin directory does not exist: "+libDir)
-	sys.path.append(libDir)
-	executable=os.path.join(prefix,'bin','woo'+suffix)
-
 import wooOptions
 wooOptions.forceNoGui=True
 wooOptions.debug=False

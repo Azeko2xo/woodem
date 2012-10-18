@@ -1,11 +1,11 @@
 # vim: set filetype=python:
 Import('*')
 
-import os.path
+import os.path,re
 
 pyModules=[]
 pyObjects=[]
-pySharedObject='$LIBDIR/woo/_cxxInternal%s.so'%('_debug' if env['debug'] else '')
+pySharedObject='$LIBDIR/woo/_cxxInternal%s%s.so'%(env['cxxFlavor'],('_debug' if env['debug'] else ''))
 
 # we need relative paths here, to keep buildDir
 pkgSrcs=[os.path.relpath(str(s),env.Dir('#').abspath) for s in env.Glob('pkg/*.cpp')+env.Glob('pkg/*/*.cpp')+env.Glob('pkg/*/*/*.cpp')]
@@ -43,7 +43,7 @@ pyObjects.append(env.SharedObject('config','py/config.cxx',
 		('WOO_REVISION',env['realVersion']),
 		('WOO_VERSION',env['version']),
 		('WOO_SOURCE_ROOT',env['sourceRoot']),
-		('WOO_BUILD_PROFILE',env['profile'])
+		('WOO_FLAVOR',env['flavor'])
 	]
 ))
 
@@ -67,15 +67,11 @@ env.SharedLibrary(pySharedObject,pyObjects,
 ))
 
 #
-# SCRIPTS HERE
+# EXECUTABLES HERE
 #
-pyMain='$PREFIX/bin/woo$SUFFIX'
-main=env.ScanReplace('core/main/main.py.in')
-batch=env.ScanReplace('core/main/batch.py.in')
-env.AlwaysBuild(main)
-env.AlwaysBuild(batch)
-env.InstallAs(pyMain,main)
-env.InstallAs(pyMain+'-batch',batch)
+pyMain='$EXECDIR/woo'+('-'+env['flavor'] if env['flavor'] else '')
+env.InstallAs(pyMain,'core/main/main.py')
+env.InstallAs(pyMain+'-batch','core/main/batch.py')
 env.AddPostAction(pyMain,Chmod(pyMain,0755))
 env.AddPostAction(pyMain+'-batch',Chmod(pyMain+'-batch',0755))
 

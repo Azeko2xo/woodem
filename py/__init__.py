@@ -14,22 +14,21 @@ everywhere.
 """
 
 import wooOptions
-from . import config
 import warnings
-import sys,os,os.path
+import sys,os,os.path,re
 
-if 'openmp' in config.features:
-	if wooOptions.ompCores:
-		cc=wooOptions.ompCores
-		if wooOptions.ompThreads!=len(cc) and wooOptions.ompThreads>0:
-			warnings.warn('ompThreads==%d ignored, using %d since ompCores are specified.'%(wooOptions.ompThreads,len(cc)))
-			wooOptions.ompThreads=len(cc)
-		os.environ['GOMP_CPU_AFFINITY']=' '.join([str(cc[0])]+[str(c) for c in cc])
-		os.environ['OMP_NUM_THREADS']=str(len(cc))
-	elif wooOptions.ompThreads>1:
-		os.environ['OMP_NUM_THREADS']=str(wooOptions.ompThreads)
-else:
-	if wooOptions.ompCores or wooOptions.ompThreads: warnings.warn('--threads and --cores ignored, since compiled without OpenMP')
+# we cannot check for the 'openmp' feature yet, since woo.config is a compiled module
+# we set the variable as normally, but will warn below, once the compiled module is imported
+if wooOptions.ompCores:
+	cc=wooOptions.ompCores
+	if wooOptions.ompThreads!=len(cc) and wooOptions.ompThreads>0:
+		warnings.warn('ompThreads==%d ignored, using %d since ompCores are specified.'%(wooOptions.ompThreads,len(cc)))
+		wooOptions.ompThreads=len(cc)
+	os.environ['GOMP_CPU_AFFINITY']=' '.join([str(cc[0])]+[str(c) for c in cc])
+	os.environ['OMP_NUM_THREADS']=str(len(cc))
+elif wooOptions.ompThreads>1:
+	os.environ['OMP_NUM_THREADS']=str(wooOptions.ompThreads)
+
 #
 # QUIRKS
 #
@@ -63,27 +62,11 @@ except ImportError: pass
 import minieigen
 
 # c++ initialization code
-if not wooOptions.debug:
-	try: from . import _cxxInternal
-	except ImportError:
-		try:
-			from . import _cxxInternal_debug as _cxxInternal
-			woo.modules['woo._cxxInternal']=_cxxInteral
-			warnings.warn('Non-debug flavor of Woo was not found, using debug one!')
-		except ImportError:
-			warnings.warn('FATAL: Neither non-debug nor debug variant of Woo was found!')
-			sys.exit(1)
-else:
-	try:
-		from . import _cxxInternal_debug as _cxxInternal
-		sys.modules['woo._cxxInternal']=_cxxInternal
-	except ImportError:
-		try:
-			from . import _cxxInteral
-			warnings.warn('Debug flavor of Woo was not found, using non-debug one!')
-		except ImportError:
-			warnings.warn('FATAL: Neither non-debug nor debug variant of Woo was found!')
-			sys.exit(1)
+cxxInternalName='_cxxInternal'
+if wooOptions.flavor: cxxInternalName+='_'+re.sub('[^a-zA-Z_]','_',wooOptions.flavor)
+if wooOptions.debug: cxxInternalName+='_debug'
+_cxxInternal=__import__('woo.'+cxxInternalName,fromlist='woo')
+sys.modules['woo._cxxInternal']=_cxxInternal
 
 cxxInternalFile=_cxxInternal.__file__
 
@@ -135,6 +118,11 @@ else:
 	## HACK: gts in-tree
 	#import woo.gts
 	#sys.modules['gts']=woo.gts
+
+
+if wooOptions.ompThreads>1 or wooOptions.ompCores:
+	warnings.warn('--threads and --cores ignored, since compiled without OpenMP.')
+
 
 if wooOptions.clDev:
 	if 'opencl' in config.features:
