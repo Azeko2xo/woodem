@@ -65,6 +65,7 @@ if saveFlavor: flavorOpts.Save(flavorFile,env)
 
 #if env['flavor']=='': env['flavor']='default'
 optsFile='scons.flavor-'+(env['flavor'] if env['flavor'] else 'default')
+if env['flavor']=='default': env['flavor']=''
 flavor=env['flavor']
 env['cxxFlavor']=('_'+re.sub('[^a-zA-Z0-9_]','_',env['flavor']) if env['flavor'] else '')
 print '@@@ Using flavor',(flavor if flavor else '[none]'),'('+optsFile+') @@@'

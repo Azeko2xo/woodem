@@ -47,12 +47,13 @@ wooOptions.useKnownArgs(sys.argv)
 
 # show version and exit
 if opts.version:
+	wooOptions.quirks=0
 	import woo.config
 	print '%s (%s)'%(woo.config.prettyVersion(),','.join(woo.config.features))
 	sys.exit(0)
-
 # re-build woo so that the binary is up-to-date
 if opts.rebuild:
+	wooOptions.quirks=0
 	import subprocess, woo.config
 	if opts.rebuild>1:
 		cmd=['bzr','up',woo.config.sourceRoot]
