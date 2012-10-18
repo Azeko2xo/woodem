@@ -46,6 +46,7 @@ def testAll(sysExit=False):
 		else:
 			print 20*'*'+' SOME TESTS FAILED '+20*'*'
 			sys.exit(1)
+	except SystemExit: raise # re-raise
 	except:
 		print 20*'*'+' UNEXPECTED EXCEPTION WHILE RUNNING TESTS '+20*'*'
 		print 20*'*'+' '+str(sys.exc_info()[0])
