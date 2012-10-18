@@ -11,7 +11,12 @@ import os, sys, thread, time, logging, pipes, socket, xmlrpclib, re, shutil, ran
 import wooOptions
 wooOptions.forceNoGui=True
 wooOptions.debug=False
+wooOptions.quirks=0
 import woo, woo.batch, woo.config, woo.remote
+
+if not sys.argv[0].endswith('-batch'): raise RuntimeError('Batch executable does not end with -batch!')
+executable=re.sub('-batch$','',sys.argv[0])
+
 
 class JobInfo():
 	def __init__(self,num,id,command,hrefCommand,log,nCores,script,table,lineNo,affinity):
@@ -110,7 +115,7 @@ def totalRunningTime():
 	return max(tt1)-min(tt0)
 
 def globalHtmlStats():
-	t0=min([j.started for j in jobs if j.started!=None])
+	t0=min([0]+[j.started for j in jobs if j.started!=None])
 	unfinished=len([j for j in jobs if j.status!='DONE'])
 	nUsedCores=sum([j.nCores for j in jobs if j.status=='RUNNING'])
 	global maxJobs
@@ -247,6 +252,7 @@ def runJob(job):
 	else:
 		job.command=job.command.replace('[threadspec]','--threads=%d'%job.nCores); job.hrefCommand=job.hrefCommand.replace('[threadspec]','--threads=%d'%job.nCores)
 	job.exitStatus=os.system(job.command)
+	#job.exitStatus=0
 	print '#%d system exit status %d'%(job.num,job.exitStatus)
 	if job.exitStatus!=0 and len([l for l in open(job.log) if l.startswith('Woo: normal exit.')])>0: job.exitStatus=0
 	job.finished=time.time()
@@ -343,7 +349,7 @@ tailProcess=None
 def runTailProcess(globalLog):
 	import subprocess
 	tailProcess=subprocess.call(["tail","--line=+0","-f",globalLog])
-if globalLog:
+if globalLog and False:
 	print 'Redirecting all output to',globalLog
 	# if not deleted, tail detects truncation and outputs multiple times
 	if os.path.exists(globalLog): os.remove(globalLog) 
@@ -467,6 +473,12 @@ for i,l in enumerate(useLines):
 
 print "Master process pid",os.getpid()
 
+# HACK: shell suspends the batch sometimes due to tty output, unclear why (both zsh and bash do that).
+#       Let's just ignore SIGTTOU here.
+import signal
+signal.signal(signal.SIGTTOU,signal.SIG_IGN)
+
+
 if opts.rebuild:
 	print "Rebuilding all active executables, since --rebuild was specified"
 	for e in executables:
@@ -479,7 +491,7 @@ if opts.rebuild:
 print "Job summary:"
 for job in jobs:
 	print '   #%d (%s%s):'%(job.num,job.id,'' if job.nCores==1 else '/%d'%job.nCores),job.command
-sys.stdout.flush()
+#sys.stdout.flush()
 
 
 httpLastServe=0

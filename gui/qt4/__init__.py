@@ -19,7 +19,6 @@ if 1:
 		# usually Xlib.error.DisplayError, but there can be Xlib.error.XauthError etc as well
 		# let's just pretend any exception means the display would not work
 		woo.runtime.hasDisplay=False
-		print 'DISPLAY not reachable'
 		raise ImportError("Connecting to $DISPLAY failed, unable to activate the woo.qt4 interface.")
 
 #import woo.runtime
