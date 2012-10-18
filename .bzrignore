@@ -1,6 +1,6 @@
 tags
-scons.current-profile
-scons.profile-*
+scons.current-flavor
+scons.flavor-*
 .project
 VERSION
 yade.1
