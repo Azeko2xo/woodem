@@ -401,7 +401,10 @@ This class is used by :ref:`woo.utils.readParamsFromTable`.
 			headings=[(h[:-1] if (h and h[-1]=='!') else h) for h in rawHeadings] # without trailing bangs
 			values={}
 			for r in rows[1:]:
-				values[r]=dict([(headings[c],sheet.cell(r,c).value) for c in cols])
+				v=sheet.cell(r,c).value
+				if type(v)==unicode: v=v.encode('ascii','ignore')
+				else: v=str(v)
+				values[r]=dict([(headings[c],v) for c in cols])
 		else:
 			# text file, space separated
 			# read file in memory, remove newlines and comments; the [''] makes lines 1-indexed
