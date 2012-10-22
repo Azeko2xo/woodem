@@ -1,6 +1,7 @@
 #include<woo/lib/pyutil/except.hpp>
 #include<woo/lib/pyutil/gil.hpp>
 #include<boost/python.hpp>
+namespace py=boost::python;
 
 namespace woo{
 	void StopIteration(){ PyErr_SetNone(PyExc_StopIteration); boost::python::throw_error_already_set(); }
@@ -37,7 +38,7 @@ namespace woo{
 			else
 				ret += std::string(": Unparseable Python error: ");
 		}
-			 if(traceback_ptr != NULL){
+		if(traceback_ptr != NULL){
 			py::handle<> h_tb(traceback_ptr);
 			py::object tb(py::import("traceback"));
 			py::object fmt_tb(tb.attr("format_tb"));

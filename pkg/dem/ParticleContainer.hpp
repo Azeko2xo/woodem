@@ -37,8 +37,8 @@
 
 namespace py=boost::python;
 
-class Particle;
-class DemField;
+struct Particle;
+struct DemField;
 
 /*
 Container of particles implemented as flat std::vector. It handles parts removal and

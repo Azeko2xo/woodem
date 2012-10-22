@@ -6,7 +6,7 @@
 */
 #if 1
 	#include<boost/serialization/singleton.hpp>
-	#define FRIEND_SINGLETON(Class) friend class Singleton<Class>;
+	#define FRIEND_SINGLETON(Class) friend struct Singleton<Class>;
 	#define SINGLETON_SELF(Class)
 	template<class T>
 	struct Singleton: public boost::serialization::singleton<T>{

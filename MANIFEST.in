@@ -1,0 +1,6 @@
+graft woo
+recursive-include lib *.cpp
+recursive-include core *.cpp
+recursive-include pkg *.cpp
+recursive-include py *.cpp
+recursive-include src *.cpp

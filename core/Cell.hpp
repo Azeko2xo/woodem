@@ -16,9 +16,9 @@ The transformation is split between "normal" part and "rotation/shear" part for 
 #include<woo/lib/object/Object.hpp>
 #include<woo/lib/base/Math.hpp>
 
-class Scene;
+struct Scene;
 
-class Cell: public Object{
+struct Cell: public Object{
 	public:
 	//! Get/set sizes of cell base vectors
 	const Vector3r& getSize() const { return _size; }

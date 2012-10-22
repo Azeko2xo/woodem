@@ -1,3 +1,5 @@
+#ifdef WOO_OPENGL
+
 #include<woo/pkg/dem/Tracer.hpp>
 #include<woo/lib/opengl/OpenGLWrapper.hpp>
 #include<woo/lib/opengl/GLUtils.hpp>
@@ -150,3 +152,4 @@ void Tracer::run(){
 		}
 	}
 }
+#endif

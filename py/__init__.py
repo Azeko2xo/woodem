@@ -14,8 +14,8 @@ everywhere.
 """
 
 import wooOptions
-import warnings
-import sys,os,os.path,re
+import warnings,traceback
+import sys,os,os.path,re,string
 
 # we cannot check for the 'openmp' feature yet, since woo.config is a compiled module
 # we set the variable as normally, but will warn below, once the compiled module is imported
@@ -49,7 +49,6 @@ if 0:
 	ctypes.cdll.LoadLibrary(libstdcxx)
 
 # enable warnings which are normally invisible, such as DeprecationWarning
-import warnings
 warnings.simplefilter('default')
 
 try: # backwards-compat for miniEigen (new is minieigen)
@@ -63,9 +62,22 @@ import minieigen
 
 # c++ initialization code
 cxxInternalName='_cxxInternal'
-if wooOptions.flavor: cxxInternalName+='_'+re.sub('[^a-zA-Z_]','_',wooOptions.flavor)
+if wooOptions.flavor: cxxInternalName+='_'+re.sub('[^a-zA-Z0-9_]','_',wooOptions.flavor)
 if wooOptions.debug: cxxInternalName+='_debug'
-_cxxInternal=__import__('woo.'+cxxInternalName,fromlist='woo')
+try:
+	_cxxInternal=__import__('woo.'+cxxInternalName,fromlist='woo')
+except ImportError:
+	print 'Error importing woo.%s (--flavor=%s).'%(cxxInternalName,wooOptions.flavor if wooOptions.flavor else ' ')
+	#traceback.print_exc()
+	import glob
+	sos=glob.glob(re.sub('__init__.py$','',__file__)+'/_cxxInternal_*.so')
+	flavs=[re.sub(r'(^.*/_cxxInternal_)(.*)(\.so$)',r'\2',so) for so in sos]
+	if sos:
+		maxFlav=max([len(flav) for flav in flavs])
+		print 'Available flavors are:'
+		for so,flav in zip(sos,flavs):
+			print '\t',string.ljust(flav,maxFlav),so
+	raise
 sys.modules['woo._cxxInternal']=_cxxInternal
 
 cxxInternalFile=_cxxInternal.__file__
@@ -121,8 +133,10 @@ else:
 
 
 if wooOptions.ompThreads>1 or wooOptions.ompCores:
-	warnings.warn('--threads and --cores ignored, since compiled without OpenMP.')
-
+	if 'openmp' not in config.features:
+		warnings.warn('--threads and --cores ignored, since compiled without OpenMP.')
+	elif master.numThreads!=wooOptions.ompThreads:
+		warnings.watn('--threads/--cores did not set number of OpenMP threads correctly (requested %d, current %d). Was OpenMP initialized in this process already?'%(wooOptions.ompThreads,master.numThreads))
 
 if wooOptions.clDev:
 	if 'opencl' in config.features:
@@ -161,13 +175,11 @@ unit=_units.makeUnitsDict()
 try: import _extraDocs
 except AttributeError:
 	print 'WARN: Error importing py/_extraDocs.py'
-	import traceback
 	traceback.print_exc()
 # attribute aliases
 try: import _aliases
 except AttributeError:
 	print 'WARN: Error importing py/_aliases.py'
-	import traceback
 	traceback.print_exc()
 
 

@@ -7,7 +7,7 @@ namespace py=boost::python;
 
 #include<boost/thread/thread.hpp>
 
-class Scene;
+struct Scene;
 
 struct Constraint: public Object{	
 	virtual void applyConstraint(Vector3r& newPos, Vector3r& newOri){};

@@ -24,7 +24,8 @@ struct TimingInfo{
  * (or use existing) TimingInfo to data. It increases its nExec by 1
  * and nsec by time elapsed since construction or last checkpoint.
  */
-class TimingDeltas{
+struct TimingDeltas{
+	private:
 		TimingInfo::delta last;
 		size_t i;
 	public:

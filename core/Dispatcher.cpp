@@ -10,7 +10,7 @@
 #include<woo/core/Functor.hpp>
 Functor::~Functor(){}; // vtable
 
-#include "Dispatcher.hpp"
+#include<woo/core/Dispatcher.hpp>
 #include<algorithm>
 #include<vector>
 

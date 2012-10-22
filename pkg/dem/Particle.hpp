@@ -9,15 +9,15 @@
 
 // namespace woo{namespace dem{
 
-class Particle;
-class Contact;
-class Material;
-class Bound;
-class Shape;
-class ParticleContainer;
-class Impose;
+struct Particle;
+struct Contact;
+struct Material;
+struct Bound;
+struct Shape;
+struct ParticleContainer;
+struct Impose;
 
-class ScalarRange;
+struct ScalarRange;
 
 struct Particle: public Object{
 	shared_ptr<Contact> findContactWith(const shared_ptr<Particle>& other);
@@ -107,7 +107,7 @@ struct Impose: public Object{
 };
 REGISTER_SERIALIZABLE(Impose);
 
-class DemData: public NodeData{
+struct DemData: public NodeData{
 	// boost::mutex lock; // used by applyForceTorque
 public:
 	// bits for flags
@@ -203,7 +203,7 @@ struct DemField: public Field{
 };
 REGISTER_SERIALIZABLE(DemField);
 
-class CGeom: public Object,public Indexable{
+struct CGeom: public Object,public Indexable{
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(CGeom,Object,"Geometrical configuration of contact",
 		((shared_ptr<Node>,node,new Node,,"Local coordinates definition."))
 		,/*ctor*/,/*py*/WOO_PY_TOPINDEXABLE(CGeom)
@@ -212,7 +212,7 @@ class CGeom: public Object,public Indexable{
 };
 REGISTER_SERIALIZABLE(CGeom);
 
-class CPhys: public Object, public Indexable{
+struct CPhys: public Object, public Indexable{
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(CPhys,Object,"Physical properties of contact.",
 		/*attrs*/
 		((Vector3r,force,Vector3r::Zero(),AttrTrait<>().forceUnit(),"Force applied on the first particle in the contact"))
@@ -223,7 +223,7 @@ class CPhys: public Object, public Indexable{
 };
 REGISTER_SERIALIZABLE(CPhys);
 
-class CData: public Object{
+struct CData: public Object{
 	WOO_CLASS_BASE_DOC_ATTRS(CData,Object,"Optional data stored in the contact by the Law functor.",
 		/* attrs */
 	);
@@ -301,7 +301,7 @@ struct Shape: public Object, public Indexable{
 };
 REGISTER_SERIALIZABLE(Shape);
 
-class Material: public Object, public Indexable{
+struct Material: public Object, public Indexable{
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Material,Object,"Particle material",
 		((Real,density,NaN,AttrTrait<>().densityUnit(),"Density"))
 		((int,id,-1,AttrTrait<>().noGui(),"Some number identifying this material; used with MatchMaker objects, useless otherwise"))
@@ -311,7 +311,7 @@ class Material: public Object, public Indexable{
 };
 REGISTER_SERIALIZABLE(Material);
 
-class Bound: public Object, public Indexable{
+struct Bound: public Object, public Indexable{
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Bound,Object,"Object bounding the associated body.",
 		// ((Vector3r,color,Vector3r(1,1,1),,"Color for rendering this object"))
 		((Vector3r,min,Vector3r(NaN,NaN,NaN),AttrTrait<Attr::noSave>().readonly().lenUnit(),"Lower corner of box containing this bound"))

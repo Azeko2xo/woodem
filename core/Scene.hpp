@@ -16,11 +16,11 @@
 #define HOST_NAME_MAX 255 
 #endif
 
-class Bound;
-class Field;
-class ScalarRange;
+struct Bound;
+struct Field;
+struct ScalarRange;
 
-class Scene: public Object{
+struct Scene: public Object{
 		// this is managed by methods of Scene exclusively
 		boost::mutex runMutex;
 		bool runningFlag;

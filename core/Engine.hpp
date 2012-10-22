@@ -17,8 +17,8 @@
 #define FOREACH BOOST_FOREACH
 #endif
 
-class Scene;
-class Field;
+struct Scene;
+struct Field;
 
 namespace py=boost::python;
 

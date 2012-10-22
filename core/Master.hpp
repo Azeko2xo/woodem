@@ -24,7 +24,7 @@
 # define FOREACH BOOST_FOREACH
 #endif
 
-class Scene;
+struct Scene;
 //namespace woo { class Object; };
 using namespace woo;
 
@@ -56,7 +56,7 @@ class Master: public Singleton<Master>{
 	py::list pyCompiledPyModules(void){ py::list ret; for(const auto& s: compiledPyModules) ret.append(s); return ret; }
 	// full module name should be given: woo.*
 	void registerCompiledPyModule(const char* mod){ compiledPyModules.push_back(mod); }
-	#define WOO_PYTHON_MODULE(mod) namespace{ __attribute__((constructor)) void _registerThisCompiledPyModule(void){ Master::instance().registerCompiledPyModule("woo." #mod); } }
+	#define WOO_PYTHON_MODULE(mod) namespace{ __attribute__((constructor)) static void _registerThisCompiledPyModule_ ## mod (void){ Master::instance().registerCompiledPyModule("woo." #mod); } }
 
 	
 	shared_ptr<Scene> scene;

@@ -4,6 +4,7 @@
 #include<vector>
 #include<iostream>
 #include<cassert>
+#include<woo/lib/base/Math.hpp>
 
 /* Linear interpolation function suitable only for sequential interpolation.
  *

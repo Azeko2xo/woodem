@@ -15,13 +15,13 @@
 #include<woo/core/Master.hpp>
 
 namespace woo{ 
-	class TimingDeltas;
+	struct TimingDeltas;
 };
 
-class Scene;
-class Field;
+struct Scene;
+struct Field;
 
-class Functor: public Object
+struct Functor: public Object
 {
 	public: virtual vector<std::string> getFunctorTypes(){throw;}
 	shared_ptr<TimingDeltas> timingDeltas;

@@ -87,7 +87,6 @@ env.Install('$LIBDIR/woo/pre',
 
 env.Install('$LIBDIR/woo',[
 	env.File(env.Glob('py/*.py')),
-	env.File('py/pack/pack.py'),
 ])
 env.Install('$LIBDIR/woo/tests',[env.File(env.Glob('py/tests/*.py'),'tests'),])
 env.Install('$LIBDIR/woo/_monkey',[env.File(env.Glob('py/_monkey/*.py'),'_monkey')])

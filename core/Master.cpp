@@ -72,7 +72,7 @@ bool Master::isInheritingFrom_recursive(const string& className, const string& b
 
 /* named temporary store */
 void Master::saveTmp(shared_ptr<Object> obj, const string& name, bool quiet){
-	if(memSavedSimulations.count(name)>0 && !quiet) LOG_INFO("Overwriting in-memory saved simulation "<<name);
+	if(memSavedSimulations.count(name)>0 && !quiet){  LOG_INFO("Overwriting in-memory saved simulation "<<name); }
 	std::ostringstream oss;
 	woo::ObjectIO::save<shared_ptr<Object>,boost::archive::binary_oarchive>(oss,"woo__Serializable",obj);
 	memSavedSimulations[name]=oss.str();

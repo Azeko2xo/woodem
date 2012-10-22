@@ -9,9 +9,9 @@
 #endif
 
 
-class DemField;
-class Contact;
-class Scene;
+struct DemField;
+struct Contact;
+struct Scene;
 
 struct ContactContainer: public Object{
 	DECLARE_LOGGER;
