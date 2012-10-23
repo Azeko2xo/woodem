@@ -58,7 +58,7 @@ void Law2_L6Geom_PelletPhys_Pellet::go(const shared_ptr<CGeom>& cg, const shared
 						if(!dynamic_cast<Sphere*>(p->shape.get())) continue;
 						auto& s=p->shape->cast<Sphere>();
 						//Real r0=(C->geom->cast<L6Geom>().lens[p.get()==C->pA.get()?0:1]);
-						Real r0=cbrt(3*s.nodes[0]->getData<DemData>().mass/(4*Mathr::PI*p->material->density));
+						Real r0=cbrt(3*s.nodes[0]->getData<DemData>().mass/(4*M_PI*p->material->density));
 						Real rMin=r0*rMinFrac;
 						if(s.radius<=rMin) continue;
 						// 0..1 norm between rMin and r0

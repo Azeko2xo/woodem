@@ -355,10 +355,10 @@ This class is used by :ref:`woo.utils.readParamsFromTable`.
      'important2': 'b',
      'title': 'important2=b,OMP_NUM_THREADS=c__line=5__'}}
 >>> pprint(TableParamReader(f2).paramDict())
-{1: {u'!OMP_NUM_THREADS': 1.2,
-     u'abcd': 1.3,
-     u'head1': 1.0,
-     u'important2': 1.1,
+{1: {u'!OMP_NUM_THREADS': '1.2',
+     u'abcd': '1.3',
+     u'head1': '1.0',
+     u'important2': '1.1',
      'title': u'important2=1.1,OMP_NUM_THREADS=1.2'},
  2: {u'!OMP_NUM_THREADS': u'c',
      u'abcd': u'd',
@@ -367,7 +367,7 @@ This class is used by :ref:`woo.utils.readParamsFromTable`.
      'title': u'important2=b,OMP_NUM_THREADS=c'},
  4: {u'!OMP_NUM_THREADS': u'c',
      u'abcd': u'g',
-     u'head1': 1.0,
+     u'head1': '1.0',
      u'important2': u'b',
      'title': u'important2=b,OMP_NUM_THREADS=c__line=4__'}}
 
@@ -401,10 +401,12 @@ This class is used by :ref:`woo.utils.readParamsFromTable`.
 			headings=[(h[:-1] if (h and h[-1]=='!') else h) for h in rawHeadings] # without trailing bangs
 			values={}
 			for r in rows[1:]:
-				v=sheet.cell(r,c).value
-				if type(v)==unicode: v=v.encode('ascii','ignore')
-				else: v=str(v)
-				values[r]=dict([(headings[c],v) for c in cols])
+				vv={}
+				for c in cols:
+					v=sheet.cell(r,c).value
+					if type(v)!=unicode: v=str(v)
+					vv[c]=v
+				values[r]=dict([(headings[c],vv[c]) for c in cols])
 		else:
 			# text file, space separated
 			# read file in memory, remove newlines and comments; the [''] makes lines 1-indexed

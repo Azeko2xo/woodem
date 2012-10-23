@@ -102,7 +102,7 @@ void PeriIsoCompressor::run(){
 				if(!doneHook.empty()){ LOG_DEBUG("Running doneHook: "<<doneHook); runPy(doneHook); }
 			} else { LOG_INFO("Loaded to "<<sigmaGoal<<" done, going to "<<stresses[state]<<" now"); }
 		} else {
-			if((step%globalUpdateInt)==0) LOG_DEBUG("Stress="<<sigma<<", goal="<<sigmaGoal<<", unbalanced="<<currUnbalanced);
+			if((step%globalUpdateInt)==0){ LOG_DEBUG("Stress="<<sigma<<", goal="<<sigmaGoal<<", unbalanced="<<currUnbalanced); }
 		}
 	}
 }

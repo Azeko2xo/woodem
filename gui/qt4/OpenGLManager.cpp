@@ -1,4 +1,5 @@
-#include"OpenGLManager.hpp"
+#ifdef WOO_OPENGL
+#include<woo/gui/qt4/OpenGLManager.hpp>
 
 CREATE_LOGGER(OpenGLManager);
 
@@ -85,3 +86,5 @@ int OpenGLManager::waitForNewView(float timeout,bool center){
 	if(center)(*views.rbegin())->centerScene();
 	return (*views.rbegin())->viewId; 
 }
+
+#endif /* WOO_OPENGL */

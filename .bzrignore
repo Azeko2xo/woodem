@@ -3,13 +3,10 @@ scons.current-flavor
 scons.flavor-*
 .project
 VERSION
-yade.1
 debian/changelog
 debian/control
-.kdev4/yade.kdev4
-yade.kdev4
 doc/sphinx2/*
+build
 dist
 MANIFEST
-woo
-src
+

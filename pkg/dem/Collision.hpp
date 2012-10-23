@@ -6,7 +6,7 @@
 #include<woo/pkg/gl/Functors.hpp>
 #endif
 
-class Aabb: public Bound{
+struct Aabb: public Bound{
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(Aabb,Bound,"Axis-aligned bounding box, for use with `InsertionSortCollider`.",/*attrs*/
 		((vector<Vector3r>,nodeLastPos,,AttrTrait<>(Attr::readonly).lenUnit(),"Node positions when bbox was last updated."))
 		((Real,maxD2,0,AttrTrait<>(Attr::readonly).unit("m²").noGui(),"Maximum allowed squared distance for nodal displacements (i.e. how much was the bbox enlarged last time)"))
@@ -27,7 +27,7 @@ REGISTER_SERIALIZABLE(Gl1_Aabb);
 #endif
 
 
-class BoundFunctor: public Functor1D</*dispatch types*/ Shape,/*return type*/ void, /*argument types*/ TYPELIST_1(const shared_ptr<Shape>&)>{
+struct BoundFunctor: public Functor1D</*dispatch types*/ Shape,/*return type*/ void, /*argument types*/ TYPELIST_1(const shared_ptr<Shape>&)>{
 	WOO_CLASS_BASE_DOC(BoundFunctor,Functor,"Functor for creating/updating :ref:`woo.dem.Bound`.");
 };
 REGISTER_SERIALIZABLE(BoundFunctor);
@@ -42,7 +42,7 @@ struct BoundDispatcher: public Dispatcher1D</* functor type*/ BoundFunctor>{
 REGISTER_SERIALIZABLE(BoundDispatcher);
 
 
-class Collider: public GlobalEngine{
+struct Collider: public GlobalEngine{
 	public:
 		/*! Probe the Aabb on particle's presence. Returns list of body ids with which there is potential overlap. */
 		virtual vector<Particle::id_t> probeAabb(const Vector3r& mn, const Vector3r& mx){throw std::runtime_error("Calling abstract Collider.probeAabb.");}

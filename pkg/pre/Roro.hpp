@@ -39,10 +39,10 @@ struct Roro: public Preprocessor {
 
 		// Cylinders
 		((vector<Vector3r>,cylXzd,,AttrTrait<>().startGroup("Cylinders").triggerPostLoad().lenUnit().prefUnit("mm"),"Coordinates and diameters of cylinders. If empty, *cylNum*, *cylDiameter*, *inclination* and *gap* are used to compute coordinates automatically"))
-		((Real,angVel,2*Mathr::PI,AttrTrait<>().angVelUnit().prefUnit("rot/min"),"Angular velocity of cylinders [rot/sec]"))
+		((Real,angVel,2*M_PI,AttrTrait<>().angVelUnit().prefUnit("rot/min"),"Angular velocity of cylinders [rot/sec]"))
 		((int, cylNum,6,AttrTrait<>()/*.range(Vector2i(4,30))*/,"Number of cylinders (only used when cylXzd is empty)"))
 		((Real,cylDiameter,.085,AttrTrait<>().lenUnit().altUnits({{"in",1/0.0254}}).prefUnit("mm"),"Diameter of cylinders (only used when cylXzd is empty)"))
-		((Real,inclination,15*Mathr::PI/180.,AttrTrait<>().angleUnit().prefUnit("deg"),"Inclination of cylinder plane (only used when cylXzd is empty)"))
+		((Real,inclination,15*M_PI/180.,AttrTrait<>().angleUnit().prefUnit("deg"),"Inclination of cylinder plane (only used when cylXzd is empty)"))
 		((Real,gap,.01,AttrTrait<>().lenUnit().prefUnit("mm"),"Gap between cylinders (computed automatically if cylXzd is given)"))
 		((vector<Real>,gaps,,AttrTrait<>().lenUnit().prefUnit("mm"),"Variable gaps between cylinders; if given, the value of *gap* and *cylNum* is not used for creating cylinder coordinates"))
 

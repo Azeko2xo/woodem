@@ -1,5 +1,7 @@
-#include"GLViewer.hpp"
-#include"OpenGLManager.hpp"
+#ifdef WOO_OPENGL
+
+#include<woo/gui/qt4/GLViewer.hpp>
+#include<woo/gui/qt4/OpenGLManager.hpp>
 #include<boost/python.hpp>
 #include<woo/pkg/gl/Renderer.hpp>
 #include<woo/lib/pyutil/doc_opts.hpp>
@@ -123,4 +125,4 @@ BOOST_PYTHON_MODULE(_GLViewer){
 		.add_property("selection",&pyGLViewer::get_selection,&pyGLViewer::set_selection)
 		;
 }
-
+#endif /* WOO_OPENGL */

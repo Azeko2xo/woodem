@@ -104,7 +104,7 @@ void TensorGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
 
 	if(circ[0][0]==0){
 		gleSetNumSides(10);
-		Real step=2*Mathr::PI/circDiv;
+		Real step=2*M_PI/circDiv;
 		for(int i=-1; i<circDiv+1; i++){
 			circ[i+1][0]=cos(i*step);
 			circ[i+1][1]=sin(i*step);
@@ -143,7 +143,7 @@ void TensorGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
 			glPushMatrix();
 				Eigen::Affine3d T=Eigen::Affine3d::Identity();
 				T.translate(pos+(j==0?1:-1)*eigVec.col(i)*torDist).rotate(Quaternionr().setFromTwoVectors(Vector3r::UnitZ(),eigVec.col(i)*(skew[i]>0?-1:1))).scale(torRad1);
-				if(j==1) T.rotate(AngleAxisr(Mathr::PI,Vector3r::UnitZ()));
+				if(j==1) T.rotate(AngleAxisr(M_PI,Vector3r::UnitZ()));
 				//GLUtils::setLocalCoords(pos+(j==0?1:-1)*eigVec.col(i)*torDist,
 				glMultMatrixd(T.data());
 				// since we scaled coords to transform unit circle coords to our radius, we will need to scale dimensions now by 1/torRad1

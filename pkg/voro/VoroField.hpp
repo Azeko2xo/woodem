@@ -1,3 +1,5 @@
+#ifdef WOO_VORO
+
 #pragma once
 #include<woo/core/Field.hpp>
 namespace voropp{
@@ -32,3 +34,5 @@ struct VoroField: public Field{
 
 };
 REGISTER_SERIALIZABLE(VoroField);
+
+#endif

@@ -104,7 +104,7 @@ public:
 	Real relDensity() const {
 		Real sphVol=0; Vector3r dd=dim();
 		FOREACH(const Sph& s, pack) sphVol+=pow(s.r,3);
-		sphVol*=(4/3.)*Mathr::PI;
+		sphVol*=(4/3.)*M_PI;
 		return sphVol/(dd[0]*dd[1]*dd[2]);
 	}
 	py::tuple psd(int bins=10, bool mass=false) const;

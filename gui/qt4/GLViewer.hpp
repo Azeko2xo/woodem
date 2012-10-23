@@ -2,6 +2,8 @@
 // © 2008 Václav Šmilauer
 #pragma once
 
+#ifdef WOO_OPENGL
+
 #include<woo/pkg/gl/Renderer.hpp>
 
 #include<QGLViewer/qglviewer.h>
@@ -228,4 +230,4 @@ class YadeCamera : public qglviewer::Camera
 		virtual void setCuttingDistance(float s){cuttingDistance=s;};
 };
 
-
+#endif /* WOO_OPENGL */

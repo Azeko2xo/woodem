@@ -285,7 +285,7 @@ public:
 #ifdef WOO_GTS
 extern "C" {
 // HACK
-#include"../3rd-party/pygts-0.3.1/pygts.h"
+#include"3rd-party/pygts-0.3.1/pygts.h"
 
 }
 /* Helper function for inGtsSurface::aabb() */

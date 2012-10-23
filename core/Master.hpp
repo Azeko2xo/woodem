@@ -10,6 +10,7 @@
 #include<boost/python.hpp>
 #include<boost/foreach.hpp>
 #include<boost/smart_ptr/scoped_ptr.hpp>
+#include<boost/preprocessor/cat.hpp>
 
 #include<woo/lib/base/Math.hpp>
 #include<woo/lib/base/Singleton.hpp>
@@ -56,7 +57,7 @@ class Master: public Singleton<Master>{
 	py::list pyCompiledPyModules(void){ py::list ret; for(const auto& s: compiledPyModules) ret.append(s); return ret; }
 	// full module name should be given: woo.*
 	void registerCompiledPyModule(const char* mod){ compiledPyModules.push_back(mod); }
-	#define WOO_PYTHON_MODULE(mod) namespace{ __attribute__((constructor)) static void _registerThisCompiledPyModule_ ## mod (void){ Master::instance().registerCompiledPyModule("woo." #mod); } }
+	#define WOO_PYTHON_MODULE(mod) namespace{ __attribute__((constructor)) void BOOST_PP_CAT(_registerThisCompiledPyModule_,__COUNTER__) (void){ Master::instance().registerCompiledPyModule("woo." #mod); } }
 
 	
 	shared_ptr<Scene> scene;

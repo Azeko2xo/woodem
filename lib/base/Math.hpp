@@ -117,32 +117,12 @@ template<typename Scalar> Quaternion<Scalar> operator+(Quaternion<Scalar> q1, co
 */
 template<typename Scalar>
 struct Math{
-	static const Scalar PI;
-	static const Scalar HALF_PI;
-	static const Scalar TWO_PI;
-	static const Scalar MAX_REAL;
-	static const Scalar DEG_TO_RAD;
-	static const Scalar RAD_TO_DEG;
-	static const Scalar EPSILON;
-	static const Scalar ZERO_TOLERANCE;
 	static Scalar Sign(Scalar f){ if(f<0) return -1; if(f>0) return 1; return 0; }
-
 	static Scalar UnitRandom(){ return ((double)rand()/((double)(RAND_MAX))); }
 	static Scalar SymmetricRandom(){ return 2.*(((double)rand())/((double)(RAND_MAX)))-1.; }
 	static Scalar FastInvCos0(Scalar fValue){ Scalar fRoot = sqrt(((Scalar)1.0)-fValue); Scalar fResult = -(Scalar)0.0187293; fResult *= fValue; fResult += (Scalar)0.0742610; fResult *= fValue; fResult -= (Scalar)0.2121144; fResult *= fValue; fResult += (Scalar)1.5707288; fResult *= fRoot; return fResult; }
 };
 typedef Math<Real> Mathr;
-
-template<> const Real Math<Real>::EPSILON = DBL_EPSILON;
-template<> const Real Math<Real>::ZERO_TOLERANCE = 1e-20;
-template<> const Real Math<Real>::MAX_REAL = DBL_MAX;
-template<> const Real Math<Real>::PI=4.0*atan(1.0);
-template<> const Real Math<Real>::TWO_PI = 2.0*Math<Real>::PI;
-template<> const Real Math<Real>::HALF_PI = 0.5*Math<Real>::PI;
-template<> const Real Math<Real>::DEG_TO_RAD = Math<Real>::PI/180.0;
-template<> const Real Math<Real>::RAD_TO_DEG = 180.0/Math<Real>::PI;
-template<> int ZeroInitializer<int>(){ return (int)0; }
-template<> Real ZeroInitializer<Real>(){ return (Real)0; }
 
 // http://stackoverflow.com/questions/1903954/is-there-a-standard-sign-function-signum-sgn-in-c-c
 template <typename T> int sgn(T val){ return (val>T(0))-(val<T(0)); }

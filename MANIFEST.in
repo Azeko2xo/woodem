@@ -1,6 +1,8 @@
-graft woo
+graft build-src-tree
 recursive-include lib *.cpp
+recursive-include lib *.ipp
 recursive-include core *.cpp
 recursive-include pkg *.cpp
 recursive-include py *.cpp
-recursive-include src *.cpp
+recursive-include gui *.cpp
+recursive-include gui *.cc

@@ -1,5 +1,8 @@
 #include<woo/lib/base/Math.hpp>
 
+template<> int ZeroInitializer<int>(){ return (int)0; }
+template<> Real ZeroInitializer<Real>(){ return (Real)0; }
+
 bool MatrixXr_pseudoInverse(const MatrixXr &a, MatrixXr &a_pinv, double epsilon){
 
 	// see : http://en.wikipedia.org/wiki/Moore-Penrose_pseudoinverse#The_general_case_and_the_SVD_method

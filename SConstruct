@@ -449,7 +449,7 @@ if env['PGO']=='use': env.Append(CXXFLAGS=['-fprofile-use'],LINKFLAGS=['-fprofil
 
 if 'clang' in env['CXX']:
 	print 'Looks like we use clang, adding some flags to avoid warning flood.'
-	env.Append(CXXFLAGS=['-Wno-unused-variable','-Wno-mismatched-tags','-Wno-constant-logical-operand','-Qunused-arguments','-Wno-empty-body','-Wno-self-assign'])
+	env.Append(CXXFLAGS=['-Qunused-arguments','-Wno-empty-body','-Wno-self-assign'])
 if 'g++' in env['CXX']:
 	ver=os.popen('LC_ALL=C '+env['CXX']+' --version').readlines()[0].split()[-1]
 	if ver.startswith('4.6'):

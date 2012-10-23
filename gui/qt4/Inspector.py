@@ -7,8 +7,10 @@ from woo.qt.SerializableEditor import *
 import woo.qt
 from woo.dem import *
 #from woo.sparc import *
-from woo.gl import *
 from woo.core import *
+
+try: from woo.gl import *
+except ImportError: pass
 
 
 class EngineInspector(QWidget):

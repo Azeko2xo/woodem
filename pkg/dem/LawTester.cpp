@@ -86,7 +86,7 @@ void LawTester::run(){
 		for(int i:{0,1}){
 			int sign=(i==0?-1:1);
 			Real weight=(i==0?1-abWeight:abWeight);
-			DemData* dyn(dyns[i]);
+			// DemData* dyn(dyns[i]);
 			Local6Dofs* impose(imposes[i]);
 			impose->ori=ori;
 			// make copy which is modified

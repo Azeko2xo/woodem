@@ -115,7 +115,13 @@ else:
 		linkName=os.path.join(compiledModDir,modpath[-1])+'.so' # use just the last part to avoid hierarchy
 		os.symlink(os.path.abspath(cxxInternalFile),linkName)
 		if 'WOO_DEBUG' in os.environ: print 'Loading compiled module',mod,'from symlink',linkName
-		sys.modules[mod]=__import__(modpath[-1])
+		try: sys.modules[mod]=__import__(modpath[-1])
+		except ImportError:
+			# compiled without GTS
+			if mod=='_gts':
+				if 'WOO_DEBUG' in os.environ: print 'Loading compiled module _gts: _gts module not compiled-in (ImportError)'
+				pass 
+			else: raise # otherwise it is serious
 		#__allSubmodules.append(modpath[1])
 		if len(modpath)==1: pass # nothing to do, adding to sys.modules is enough
 		elif len(modpath)==2: # subdmodule must be added to module

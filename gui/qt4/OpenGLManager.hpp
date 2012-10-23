@@ -1,6 +1,7 @@
 #pragma once
-//#include
-#include"GLViewer.hpp"
+#ifdef WOO_OPENGL
+
+#include<woo/gui/qt4/GLViewer.hpp>
 
 #include<QObject>
 #include<boost/thread/mutex.hpp>
@@ -42,3 +43,5 @@ class OpenGLManager: public QObject{
 		boost::mutex viewsMutex;
 		int viewsMutexMissed;
 };
+
+#endif /* WOO_OPENGL */

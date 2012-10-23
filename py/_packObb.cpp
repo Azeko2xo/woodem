@@ -37,8 +37,8 @@ void bestFitOBB(const std::vector<Vector3r>& pts, Vector3r& center, Vector3r& ha
 	Vector3r angle0(Vector3r::Zero()), angle(Vector3r::Zero());
 	Vector3r center0; Vector3r halfSize0;
 	Real bestVolume=std::numeric_limits<Real>::infinity();
-	Real sweep=Mathr::PI/4; Real steps=7.;
-	while(sweep>=Mathr::PI/180.){
+	Real sweep=M_PI/4; Real steps=7.;
+	while(sweep>=M_PI/180.){
 		bool found=false;
 		Real stepSize=sweep/steps;
 		for(Real x=angle0[0]-sweep; x<=angle0[0]+sweep; x+=stepSize){

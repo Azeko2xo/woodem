@@ -1,15 +1,9 @@
-/*************************************************************************
-*  Copyright (C) 2004 by Olivier Galizzi                                 *
-*  olivier.galizzi@imag.fr                                               *
-*  Copyright (C) 2005 by Janek Kozicki                                   *
-*  cosurgi@berlios.de                                                    *
-*                                                                        *
-*  This program is free software; it is licensed under the terms of the  *
-*  GNU General Public License v2 or later. See file LICENSE for details. *
-*************************************************************************/
+#ifdef WOO_OPENGL
+// Copyright (C) 2004 by Olivier Galizzi, Janek Kozicki                  *
+// © 2008 Václav Šmilauer
 
-#include"GLViewer.hpp"
-#include"OpenGLManager.hpp"
+#include<woo/gui/qt4/GLViewer.hpp>
+#include<woo/gui/qt4/OpenGLManager.hpp>
 
 #include<woo/lib/opengl/OpenGLWrapper.hpp>
 #include<woo/core/Field.hpp>
@@ -389,8 +383,8 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 		if(manipulatedClipPlane>=0 && manipulatedClipPlane<Renderer::numClipPlanes){
 			/* here, we must update both manipulatedFrame orientation and Renderer::clipPlaneOri in the same way */
 			Quaternionr& ori=Renderer::clipPlaneOri[manipulatedClipPlane];
-			ori=Quaternionr(AngleAxisr(Mathr::PI,Vector3r(0,1,0)))*ori; 
-			manipulatedFrame()->setOrientation(qglviewer::Quaternion(qglviewer::Vec(0,1,0),Mathr::PI)*manipulatedFrame()->orientation());
+			ori=Quaternionr(AngleAxisr(M_PI,Vector3r(0,1,0)))*ori; 
+			manipulatedFrame()->setOrientation(qglviewer::Quaternion(qglviewer::Vec(0,1,0),M_PI)*manipulatedFrame()->orientation());
 			displayMessage("Plane #"+lexical_cast<string>(manipulatedClipPlane+1)+" reversed.");
 		}
 		else {
@@ -409,7 +403,7 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 		}
 		else{ // align clipping normal plane with world axis
 			// x: (0,1,0),pi/2; y: (0,0,1),pi/2; z: (1,0,0),0
-			qglviewer::Vec axis(0,0,0); axis[(axisIdx+1)%3]=1; Real angle=axisIdx==2?0:Mathr::PI/2;
+			qglviewer::Vec axis(0,0,0); axis[(axisIdx+1)%3]=1; Real angle=axisIdx==2?0:M_PI/2;
 			manipulatedFrame()->setOrientation(qglviewer::Quaternion(axis,angle));
 		}
 	}
@@ -697,7 +691,7 @@ void GLViewer::postDraw(){
 				const Quaternionr& ori=Renderer::clipPlaneOri[planeId];
 				AngleAxisr aa(ori);	
 				glTranslatef(pos[0],pos[1],pos[2]);
-				glRotated(aa.angle()*Mathr::RAD_TO_DEG,aa.axis()[0],aa.axis()[1],aa.axis()[2]);
+				glRotated(aa.angle()*(180./M_PI),aa.axis()[0],aa.axis()[1],aa.axis()[2]);
 				Real cff=1;
 				if(!Renderer::clipPlaneActive[planeId]) cff=.4;
 				glColor3f(max((Real)0.,cff*cos(planeId)),max((Real)0.,cff*sin(planeId)),planeId==manipulatedClipPlane); // variable colors
@@ -980,4 +974,4 @@ float YadeCamera::zNear() const
   return z;
 }
 
-
+#endif

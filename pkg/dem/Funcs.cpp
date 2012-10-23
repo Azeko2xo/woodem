@@ -89,7 +89,7 @@ shared_ptr<Particle> DemFuncs::makeSphere(Real radius, const shared_ptr<Material
 	#endif
 	auto& dyn=n->getData<DemData>();
 	dyn.parCount=1;
-	dyn.mass=(4/3.)*Mathr::PI*pow(radius,3)*m->density;
+	dyn.mass=(4/3.)*M_PI*pow(radius,3)*m->density;
 	dyn.inertia=Vector3r::Ones()*(2./5.)*dyn.mass*pow(radius,2);
 
 	auto par=make_shared<Particle>();

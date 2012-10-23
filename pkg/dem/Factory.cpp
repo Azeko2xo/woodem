@@ -11,7 +11,9 @@
 
 #include<boost/range/algorithm/lower_bound.hpp>
 
-#include<woo/extra/numpy_boost.hpp>
+#if 0
+	#include<woo/extra/numpy_boost.hpp>
+#endif
 
 #include<boost/tuple/tuple_comparison.hpp>
 
@@ -309,7 +311,9 @@ void RandomFactory::run(){
 
 		num+=1;
 		
-		Real color_=isnan(color)?Mathr::UnitRandom():color;
+		#ifdef WOO_OPENGL			
+			Real color_=isnan(color)?Mathr::UnitRandom():color;
+		#endif
 		if(pee.size()>1){ // clump was generated
 			throw std::runtime_error("RandomFactory: Clumps not yet tested properly.");
 			vector<shared_ptr<Node>> nn;
@@ -417,7 +421,7 @@ void BoxDeleter::run(){
 		stepMass+=m;
 		if(recoverRadius && dynamic_cast<Sphere*>(p->shape.get())){
 			auto& s=p->shape->cast<Sphere>();
-			s.radius=cbrt(3*m/(4*Mathr::PI*p->material->density));
+			s.radius=cbrt(3*m/(4*M_PI*p->material->density));
 		}
 		// FIXME: compute energy that disappeared
 		dem->removeParticle(i);
@@ -493,7 +497,7 @@ void ConveyorFactory::postLoad(ConveyorFactory&){
 		sortPacking();
 	}
 	if(!radii.empty() && material){
-		Real vol=0; for(const Real& r: radii) vol+=(4./3.)*Mathr::PI*pow(r,3);
+		Real vol=0; for(const Real& r: radii) vol+=(4./3.)*M_PI*pow(r,3);
 		if(!isnan(prescribedRate)){
 			vel=prescribedRate/(vol*material->density/cellLen);
 		}

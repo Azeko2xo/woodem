@@ -122,7 +122,7 @@ long SpherePack::makeCloud(Vector3r mn, Vector3r mx, Real rMean, Real rRelFuzz, 
 	else if(num>0 && psdSizes.size()==0) {
 		mode=RDIST_NUM;
 		// the term (1+rRelFuzz²) comes from the mean volume for uniform distribution : Vmean = 4/3*pi*Rmean*(1+rRelFuzz²) 
-		rMean=pow(volume*(1-porosity)/(Mathr::PI*(4/3.)*(1+rRelFuzz*rRelFuzz)*num),1/3.);}
+		rMean=pow(volume*(1-porosity)/(M_PI*(4/3.)*(1+rRelFuzz*rRelFuzz)*num),1/3.);}
 	if(psdSizes.size()>0){
 		err=(mode>=0); mode=RDIST_PSD;
 		if(psdSizes.size()!=psdCumm.size()) throw std::invalid_argument(("SpherePack.makeCloud: psdSizes and psdCumm must have same dimensions ("+lexical_cast<string>(psdSizes.size())+"!="+lexical_cast<string>(psdCumm.size())).c_str());
@@ -134,7 +134,7 @@ long SpherePack::makeCloud(Vector3r mn, Vector3r mx, Real rMean, Real rRelFuzz, 
 			if(distributeMass) {
 				//psdCumm2 is first obtained by integrating the number of particles over the volumic PSD (dN/dSize = totV*(dPassing/dSize)*1/(4/3πr³)). I suspect similar reasoning behind pow3Interp, since the expressions are a bit similar. The total cumulated number will be the number of spheres in volume*(1-porosity), it is used to decide if the PSD will be scaled down. psdCumm2 is normalized below in order to fit in [0,1]. (B.C.)
 				if (i==0) psdCumm2.push_back(0);
-				else psdCumm2.push_back(psdCumm2[i-1] + 3.0*volume*(1-porosity)/Mathr::PI*(psdCumm[i]-psdCumm[i-1])/(psdSizes[i]-psdSizes[i-1])*(pow(psdSizes[i-1],-2)-pow(psdSizes[i],-2)));
+				else psdCumm2.push_back(psdCumm2[i-1] + 3.0*volume*(1-porosity)/M_PI*(psdCumm[i]-psdCumm[i-1])/(psdSizes[i]-psdSizes[i-1])*(pow(psdSizes[i-1],-2)-pow(psdSizes[i],-2)));
 			}
 			LOG_DEBUG(i<<". "<<psdRadii[i]<<", cdf="<<psdCumm[i]<<", cdf2="<<(distributeMass?lexical_cast<string>(psdCumm2[i]):string("--")));
 			// check monotonicity
@@ -301,7 +301,7 @@ long SpherePack::particleSD2(const vector<Real>& radii, const vector<Real>& pass
 
 	*/
 	for(int i=0; i<dim-1; i++){
-		M(i,i)=(4/3.)*Mathr::PI*pow(radii[i],3);
+		M(i,i)=(4/3.)*M_PI*pow(radii[i],3);
 		M(i,dim-1)=-(passing[i]-(i>0?passing[i-1]:0))/100.;
 		M(dim-1,i)=1;
 	}
@@ -311,7 +311,7 @@ long SpherePack::particleSD2(const vector<Real>& radii, const vector<Real>& pass
 	Real Vs=NumsVs[dim-1]; // total volume of solids
 	Real Vtot=Vs/(1-cloudPorosity); // total volume of cell containing the packing
 	Vector3r cellSize=pow(Vtot,1/3.)*Vector3r().Ones(); // for now, assume always cubic sample
-	Real rMean=pow(Vs/(numSph*(4/3.)*Mathr::PI),1/3.); // make rMean such that particleSD will compute the right Vs (called a bit confusingly Vtot anyway) inversely
+	Real rMean=pow(Vs/(numSph*(4/3.)*M_PI),1/3.); // make rMean such that particleSD will compute the right Vs (called a bit confusingly Vtot anyway) inversely
 	// cerr<<"Vs="<<Vs<<", Vtot="<<Vtot<<", rMean="<<rMean<<endl;
 	// cerr<<"cellSize="<<cellSize<<", rMean="<<rMean<<", numSph="<<numSph<<endl;
 	return particleSD(Vector3r::Zero(),cellSize,rMean,periodic,"",numSph,radii,passing,false);
@@ -323,12 +323,12 @@ long SpherePack::particleSD2(const vector<Real>& radii, const vector<Real>& pass
 long SpherePack::particleSD(Vector3r mn, Vector3r mx, Real rMean, bool periodic, string name, int numSph, const vector<Real>& radii, const vector<Real>& passing, bool passingIsNotPercentageButCount, int seed){
 	vector<Real> numbers;
 	if(!passingIsNotPercentageButCount){
-		Real Vtot=numSph*4./3.*Mathr::PI*pow(rMean,3.); // total volume of the packing (computed with rMean)
+		Real Vtot=numSph*4./3.*M_PI*pow(rMean,3.); // total volume of the packing (computed with rMean)
 		
 		// calculate number of spheres necessary per each radius to match the wanted psd
 		// passing has to contain increasing values
 		for (size_t i=0; i<radii.size(); i++){
-			Real volS=4./3.*Mathr::PI*pow(radii[i],3.);
+			Real volS=4./3.*M_PI*pow(radii[i],3.);
 			if (i==0) {numbers.push_back(passing[i]/100.*Vtot/volS);}
 			else {numbers.push_back((passing[i]-passing[i-1])/100.*Vtot/volS);} // 
 			cout<<"fraction #"<<i<<" ("<<passing[i]<<"%, r="<<radii[i]<<"): "<<numbers[i]<<" spheres, fraction/cloud volumes "<<volS<<"/"<<Vtot<<endl;

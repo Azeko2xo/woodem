@@ -80,13 +80,7 @@ Possible performance improvements & bugs
 	#define ISC_CHECKPOINT(cpt)
 #endif
 
-// #define WOO_VBINS
-
-#ifdef WOO_VBINS
-class Leapfrog;
-#endif
-
-class ParticleContainer;
+struct ParticleContainer;
 
 struct InsertionSortCollider: public Collider {
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
@@ -118,10 +112,6 @@ struct InsertionSortCollider: public Collider {
 		int watch1, watch2;
 		bool watchIds(Particle::id_t id1,Particle::id_t id2) const { return (watch1<0 &&(watch2==id1||watch2==id2))||(watch2<0 && (watch1==id1||watch1==id2))||(watch1==id1 && watch2==id2)||(watch1==id2 && watch2==id1); }
 	#endif
-		#ifdef WOO_VBINS
-			// we need this to find out about current maxVelocitySq
-			shared_ptr<Leapfrog> leapfrog;
-		#endif
 			// if False, no type of striding is used
 			// if True, then either verletDist XOR nBins is set
 			bool strideActive;

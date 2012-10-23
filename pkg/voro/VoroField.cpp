@@ -1,3 +1,4 @@
+#ifdef WOO_VORO
 
 #include<woo/pkg/voro/VoroField.hpp>
 #include<woo/pkg/dem/Particle.hpp>
@@ -78,3 +79,5 @@ void VoroField::particlesToPov(const std::string& out){
 	if(!conp || !vnet) throw std::runtime_error("VoroField: Particles not inserted or tirnagulation not computed yet.");
 	conp->draw_particles_pov(out.c_str());
 }
+
+#endif

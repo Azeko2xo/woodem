@@ -228,7 +228,7 @@ void Cg2_Sphere_Sphere_L6Geom::handleSpheresLikeContact(const shared_ptr<Contact
 		// this works good for distance, but breaks radius, which is used for stiffness computation and is hacked around in Cp2_FrictMat_FrictPhys
 		// perhaps separating those 2 would help, or computing A/l1, A/l2 for stiffness in Cg2 functors already would be a good idea??
 		g.lens=Vector2r(abs(r1)+uN/2,abs(r2)+uN/2); // 
-		g.contA=Mathr::PI*pow((r1>0&&r2>0)?min(r1,r2):(r1>0?r1:r2),2);
+		g.contA=M_PI*pow((r1>0&&r2>0)?min(r1,r2):(r1>0?r1:r2),2);
 		g.node->pos=contPt;
 		g.node->ori=Quaternionr(g.trsf);
 		//cerr<<"##"<<C->pA->id<<"+"<<C->pB->id<<": init trsf=\n"<<g.trsf<<endl<<"locX="<<locX<<", locY="<<locY<<", locZ="<<locZ<<"; normal="<<normal<<endl;
@@ -421,7 +421,7 @@ void Gl1_L6Geom::go(const shared_ptr<CGeom>& ig, const shared_ptr<Contact>& C, b
 	if(uPhiWd>0){
 		glLineWidth(uPhiWd);
 		if(uScale!=0) GLUtils::GLDrawLine(Vector3r::Zero(),uScale*g.relU(),Vector3r(0,1,.5));
-		if(isL6Geom && phiScale>0) GLUtils::GLDrawLine(Vector3r::Zero(),ig->cast<L6Geom>().relPhi()/Mathr::PI*rMin*phiScale,Vector3r(.8,0,1));
+		if(isL6Geom && phiScale>0) GLUtils::GLDrawLine(Vector3r::Zero(),ig->cast<L6Geom>().relPhi()/M_PI*rMin*phiScale,Vector3r(.8,0,1));
 	}
 	#endif
 	glLineWidth(1.);

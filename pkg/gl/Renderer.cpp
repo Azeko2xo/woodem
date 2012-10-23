@@ -274,7 +274,7 @@ void Renderer::renderRawNode(shared_ptr<Node> node){
 	glPushMatrix();
 		glTranslatev(x);
 		AngleAxisr aa(ori.conjugate());
-		glRotatef(aa.angle()*Mathr::RAD_TO_DEG,aa.axis()[0],aa.axis()[1],aa.axis()[2]);
+		glRotatef(aa.angle()*(180/M_PI),aa.axis()[0],aa.axis()[1],aa.axis()[2]);
 		nodeDispatcher(node,viewInfo);
 	glPopMatrix();
 	// if(node->rep){ node->rep->render(node,&viewInfo); }

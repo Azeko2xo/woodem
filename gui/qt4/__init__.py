@@ -66,7 +66,6 @@ if 1: # initialize QApplication
 from PyQt4.QtGui import *
 from PyQt4 import QtCore
 
-from woo._qt import *
 
 from woo.qt.ui_controller import Ui_Controller
 
@@ -74,7 +73,13 @@ from woo.qt.Inspector import *
 from woo import *
 import woo.system, woo.config
 
-from woo._qt._GLViewer import *
+try:
+	from woo._qt import *
+	from woo._qt._GLViewer import *
+	OpenGL=True
+except ImportError:
+	OpenGL=False
+	if 'opengl' in woo.config.features: raise RuntimeError("Woo was compiled with the 'opengl' feature, but OpenGL modules (woo._qt, woo._qt._GLViewer) could not be imported?")
 
 from ExceptionDialog import *
 
@@ -147,11 +152,12 @@ class ControllerClass(QWidget,Ui_Controller):
 		QWidget.__init__(self)
 		self.setupUi(self)
 		self.generator=None # updated automatically
-		self.renderer=Renderer() # only hold one instance, managed by OpenGLManager
+		if OpenGL:
+			self.renderer=Renderer() # only hold one instance, managed by OpenGLManager
+			self.addRenderers()
 		self.genIndexLoad=-1
 		self.genIndexCurr=-1
 		self.addPreprocessors()
-		self.addRenderers()
 		self.movieButton.setEnabled(False)
 		self.lastScene=None
 		self.movieActive=False
@@ -166,6 +172,10 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.stepLabel=self.iterLabel # name change
 		self.stepPerSecTimeout=1 # how often to recompute the number of steps per second
 		self.stepTimes,self.stepValues,self.stepPerSec=[],[],0 # arrays to keep track of the simulation speed
+		#
+		if not OpenGL:
+			self.show3dButton.setText("[no OpenGL]")
+			self.show3dButton.setEnabled(False)
 		# show off with this one as well now
 	def addPreprocessors(self):
 		for c in woo.system.childClasses('Preprocessor'):
@@ -436,13 +446,14 @@ class ControllerClass(QWidget,Ui_Controller):
 			self.virtTimeLabel.setText(u'%03ds%03dm%03dμ%03dn'%(s,ms,us,ns))
 		else: self.virtTimeLabel.setText(u'[ ∞ ] ?!')
 		self.dtLabel.setText(str(S.dt))
-		self.show3dButton.setChecked(len(views())>0)
+		if OpenGL: self.show3dButton.setChecked(len(views())>0)
 		self.inspectButton.setChecked(self.inspector!=None)
 		##
 		if self.lastScene!=S:
 			# set movie and trace using last state
-			self.movieCheckboxToggled(self.movieActive)
-			self.traceCheckboxToggled(self.tracerActive)
+			if OpenGL:
+				self.movieCheckboxToggled(self.movieActive)
+				self.traceCheckboxToggled(self.tracerActive)
 			#
 			#
 			ix=self.simPageLayout.indexOf(self.customArea)

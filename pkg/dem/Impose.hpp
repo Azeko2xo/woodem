@@ -5,7 +5,7 @@
 struct HarmonicOscillation: public Impose{
 	void velocity(const Scene* scene, const shared_ptr<Node>& n){
 		// http://en.wikipedia.org/wiki/Simple_harmonic_motion
-		Real omega=2*Mathr::PI*freq;
+		Real omega=2*M_PI*freq;
 		Real vMag=amp*omega*cos(omega*(scene->time-t0));
 		Vector3r& vv(n->getData<DemData>().vel);
 		if(!perpFree) vv=dir*vMag;
@@ -28,7 +28,7 @@ struct AlignedHarmonicOscillations: public Impose{
 		Vector3r& vv(n->getData<DemData>().vel);
 		for(int ax:{0,1,2}){
 			if(isnan(freqs[ax])||isnan(amps[ax])) continue;
-			Real omega=2*Mathr::PI*freqs[ax];
+			Real omega=2*M_PI*freqs[ax];
 			vv[ax]=amps[ax]*omega*cos(omega*scene->time);
 		}
 	}

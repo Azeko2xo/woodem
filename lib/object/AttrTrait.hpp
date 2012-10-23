@@ -180,7 +180,7 @@ namespace woo{
 		AttrTrait& buttons(const vector<string>& b, bool showBefore=true){ _buttons=std::function<py::object()>([=]()->py::object{ return py::make_tuple(py::object(b),showBefore);}); return *this; }
 
 		// shorthands for common units
-		AttrTrait& angleUnit(){ unit("rad"); altUnits({{"deg",180/Mathr::PI}}); return *this; }
+		AttrTrait& angleUnit(){ unit("rad"); altUnits({{"deg",180/M_PI}}); return *this; }
 		AttrTrait& timeUnit(){ unit("s"); altUnits({{"ms",1e3},{"μs",1e6},{"day",1./(60*60*24)},{"year",1./(60*60*24*365)}}); return *this; }
 		AttrTrait& lenUnit(){ unit("m"); altUnits({{"mm",1e3}}); return *this; }
 		AttrTrait& areaUnit(){ unit("m²"); altUnits({{"mm²",1e6}}); return *this; }
@@ -188,7 +188,7 @@ namespace woo{
 		AttrTrait& velUnit(){ unit("m/s"); altUnits({{"km/h",1e-3*3600}}); return *this; }
 		AttrTrait& accelUnit(){ unit("m/s²"); return *this; }
 		AttrTrait& massUnit(){ unit("kg"); altUnits({{"g",1e3},{"t",1e-3}}); return *this; }
-		AttrTrait& angVelUnit(){ unit("rad/s"); altUnits({{"rot/s",1/(2*Mathr::PI)},{"rot/min",60.*(1./(2*Mathr::PI))}}); return *this; }
+		AttrTrait& angVelUnit(){ unit("rad/s"); altUnits({{"rot/s",1/(2*M_PI)},{"rot/min",60.*(1./(2*M_PI))}}); return *this; }
 		AttrTrait& angMomUnit(){ unit("N·m·s"); return *this; }
 		AttrTrait& inertiaUnit(){ unit("kg·m²"); return *this; }
 		AttrTrait& forceUnit(){ unit("N"); altUnits({{"kN",1e-3},{"MN",1e-6}}); return *this; }

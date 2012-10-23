@@ -194,7 +194,7 @@ void VtkExport::run(){
 						const Vector3r& M(facet->nodes[(edge+2)%3]->pos);
 						Vector3r KL=(L-K).normalized(), LM=(M-L).normalized();
 						Real capAngle=acos(KL.dot(LM));
-						int capDiv=max(1.,round(fDiv*(capAngle/Mathr::PI)));
+						int capDiv=max(1.,round(fDiv*(capAngle/M_PI)));
 						Real capStep=capAngle/capDiv;
 						// edge plus subsequent cap
 						for(int edgePos=-1; edgePos<=capDiv; edgePos++){
@@ -207,7 +207,7 @@ void VtkExport::run(){
 							// define vertices
 							int v0=vertices.size();
 							for(int i=1;i<fDiv;i++){
-								Real phi=i*(Mathr::PI/fDiv);
+								Real phi=i*(M_PI/fDiv);
 								vertices.push_back(C+rad*cos(phi)*fNorm+rad*sin(phi)*arcPlane);
 							}
 							// connect vertices with the next arc

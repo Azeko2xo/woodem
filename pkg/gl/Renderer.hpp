@@ -34,7 +34,7 @@ struct GlData: public NodeData{
 REGISTER_SERIALIZABLE(GlData);
 template<> struct NodeData::Index<GlData>{enum{value=Node::ST_GL};};
 
-class Renderer: public Object{
+struct Renderer: public Object{
 	public:
 		static const int numClipPlanes=3;
 

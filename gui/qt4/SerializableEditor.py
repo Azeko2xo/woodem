@@ -742,7 +742,7 @@ class SerializableEditor(QFrame):
 			m=re.match(regexp,T)
 			return m
 		from woo import dem
-		from woo import gl
+		if 'opengl' in woo.config.features: from woo import gl
 		from woo import core
 		vecMap={
 			'bool':bool,'int':int,'long':int,'Body::id_t':long,'size_t':long,
@@ -764,7 +764,7 @@ class SerializableEditor(QFrame):
 		if m:
 			#print 'guessed literal type',m.group('elemT')
 			elemT=m.group('elemT')
-			for mod in gl,core,dem:
+			for mod in [dem,core]+([gl] if 'opengl' in woo.config.features else []):
 				#print dir(mod)
 				if elemT in dir(mod) and type(mod.__dict__[elemT]).__name__=='class':
 					#print 'found type %s.%s for %s'%(mod.__name__,elemT,cxxT)

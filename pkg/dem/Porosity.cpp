@@ -77,7 +77,7 @@ Real AnisoPorosityAnalyzer::computeOneRay_angles_check(Real theta, Real phi, boo
 	initialize();
 
 	// theta=azimuth, phi=elevation
-	if(theta<0 || theta>Mathr::PI/2. || phi<0 || phi>Mathr::PI/2.) throw std::invalid_argument((boost::format("AnisoPorosityAnalyzer.oneRay: value out of valid range: theta=%d (0…π/2), phi=%d (0…π/2)")%theta%phi).str());
+	if(theta<0 || theta>M_PI/2. || phi<0 || phi>M_PI/2.) throw std::invalid_argument((boost::format("AnisoPorosityAnalyzer.oneRay: value out of valid range: theta=%d (0…π/2), phi=%d (0…π/2)")%theta%phi).str());
 	// find boundary points of the cell which has given polar coords
 	const Vector3r& csz=scene->cell->getSize();
 	Real y_x=csz[1]/csz[0], tt=tan(theta);
