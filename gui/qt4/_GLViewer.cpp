@@ -1,7 +1,9 @@
 #ifdef WOO_OPENGL
 
-#include<woo/gui/qt4/GLViewer.hpp>
-#include<woo/gui/qt4/OpenGLManager.hpp>
+// use local includes, since MOC does the same
+#include"GLViewer.hpp"
+#include"OpenGLManager.hpp"
+
 #include<boost/python.hpp>
 #include<woo/pkg/gl/Renderer.hpp>
 #include<woo/lib/pyutil/doc_opts.hpp>

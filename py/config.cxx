@@ -62,5 +62,6 @@ BOOST_PYTHON_MODULE(config){
 
 	py::scope().attr("sourceRoot")=BOOST_PP_STRINGIZE(WOO_SOURCE_ROOT);
 	py::scope().attr("flavor")=BOOST_PP_STRINGIZE(WOO_FLAVOR);
+	py::scope().attr("buildDate")=__DATE__;
 
 };

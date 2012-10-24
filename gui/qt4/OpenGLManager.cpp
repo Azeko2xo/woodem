@@ -1,5 +1,6 @@
 #ifdef WOO_OPENGL
-#include<woo/gui/qt4/OpenGLManager.hpp>
+// use local includes, since MOC generated files do that as well
+#include"OpenGLManager.hpp"
 
 CREATE_LOGGER(OpenGLManager);
 

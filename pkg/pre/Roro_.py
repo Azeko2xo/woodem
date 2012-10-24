@@ -28,6 +28,7 @@ def run(pre): # use inputs as argument
 	#print 'Input parameters:'
 	#print pre.dumps(format='expr',noMagic=True)
 	#print pre.dumps(format='html',fragment=True)
+	import woo.config
 
 	s=Scene()
 	de=DemField()
@@ -268,8 +269,9 @@ def run(pre): # use inputs as argument
 		factory,
 		PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.savePlotData(S)'),
 		PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.watchProgress(S)'),
-		Tracer(stepPeriod=20,num=100,compress=2,compSkip=4,dead=True,scalar=Tracer.scalarRadius)
 	]+(
+		[Tracer(stepPeriod=20,num=100,compress=2,compSkip=4,dead=True,scalar=Tracer.scalarRadius)] if 'opengl' in woo.config.features else []
+	)+(
 		[] if (not pre.vtkPrefix or pre.vtkFreq<=0) else [VtkExport(out=pre.vtkPrefix,stepPeriod=int(pre.vtkFreq*pre.factStepPeriod),what=VtkExport.all,subdiv=16)]
 	)+(
 		[] if pre.backupSaveTime<=0 else [PyRunner(realPeriod=pre.backupSaveTime,stepPeriod=-1,command='S.save(S.pre.saveFmt.format(stage="backup-%06d"%(S.step),S=S,**(dict(S.tags))))')]

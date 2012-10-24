@@ -2,8 +2,9 @@
 // Copyright (C) 2004 by Olivier Galizzi, Janek Kozicki                  *
 // © 2008 Václav Šmilauer
 
-#include<woo/gui/qt4/GLViewer.hpp>
-#include<woo/gui/qt4/OpenGLManager.hpp>
+// use local includes, since MOC-generated files do the same
+#include"GLViewer.hpp"
+#include"OpenGLManager.hpp"
 
 #include<woo/lib/opengl/OpenGLWrapper.hpp>
 #include<woo/core/Field.hpp>

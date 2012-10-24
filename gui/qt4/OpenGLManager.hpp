@@ -1,7 +1,8 @@
 #pragma once
 #ifdef WOO_OPENGL
 
-#include<woo/gui/qt4/GLViewer.hpp>
+// use local includes, since MOC-generated files do that as well
+#include"GLViewer.hpp"
 
 #include<QObject>
 #include<boost/thread/mutex.hpp>

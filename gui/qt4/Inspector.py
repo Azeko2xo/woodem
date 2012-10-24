@@ -5,6 +5,7 @@ from PyQt4.QtGui import *
 from woo import *
 from woo.qt.SerializableEditor import *
 import woo.qt
+import woo.config
 from woo.dem import *
 #from woo.sparc import *
 from woo.core import *
@@ -82,9 +83,10 @@ def getBodyIdFromLabel(label):
 class BodyInspector(QWidget):
 	def __init__(self,bodyId=-1,parent=None,bodyLinkCallback=None,intrLinkCallback=None):
 		QWidget.__init__(self,parent)
-		v=woo.qt.views()
 		self.bodyId=bodyId
-		if bodyId<0 and len(v)>0 and v[0].selection>0: self.bodyId=v[0].selection
+		if 'opengl' in woo.config.features:
+			v=woo.qt.views()
+			if bodyId<0 and len(v)>0 and v[0].selection>0: self.bodyId=v[0].selection
 		self.idGlSync=self.bodyId
 		self.bodyLinkCallback,self.intrLinkCallback=bodyLinkCallback,intrLinkCallback
 		self.bodyIdBox=QSpinBox(self)
@@ -204,12 +206,13 @@ class BodyInspector(QWidget):
 				print 'SET ZERO'
 				b=S.dem.par[0]; self.bodyIdBox.setValue(0)
 			except IndexError: pass
-		v=woo.qt.views()
-		if len(v)>0 and v[0].selection!=self.bodyId:
-			if self.idGlSync==self.bodyId: # changed in the viewer, reset ourselves
-				self.bodyId=self.idGlSync=v[0].selection; self.changeIdSlot(self.bodyId)
-				return
-			else: v[0].selection=self.idGlSync=self.bodyId # changed here, set in the viewer
+		if 'opengl' in woo.config.features:
+			v=woo.qt.views()
+			if len(v)>0 and v[0].selection!=self.bodyId:
+				if self.idGlSync==self.bodyId: # changed in the viewer, reset ourselves
+					self.bodyId=self.idGlSync=v[0].selection; self.changeIdSlot(self.bodyId)
+					return
+				else: v[0].selection=self.idGlSync=self.bodyId # changed here, set in the viewer
 		meId=self.bodyIdBox.value(); pos=self.intrWithCombo.currentIndex()
 		try:
 			meLabel=makeBodyLabel(S.dem.par[meId])

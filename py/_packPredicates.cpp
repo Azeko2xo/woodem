@@ -282,7 +282,8 @@ public:
 	}
 };
 
-#ifdef WOO_GTS
+// this is only activated in the SCons build
+#if defined(WOO_GTS)
 extern "C" {
 // HACK
 #include"3rd-party/pygts-0.3.1/pygts.h"
