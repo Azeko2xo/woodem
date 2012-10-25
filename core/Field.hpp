@@ -39,7 +39,7 @@ struct NodeGlRep: public Object{
 };
 REGISTER_SERIALIZABLE(NodeGlRep);
 
-class QglMovableObject;
+struct QglMovableObject;
 struct ScalarRange: public Object{
 	shared_ptr<QglMovableObject> movablePtr;
 	void reset();

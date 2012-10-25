@@ -52,7 +52,7 @@ S.engines=[
 		[Law2_L6Geom_FrictPhys_IdealElPl()],
 	),
 	Leapfrog(damping=.1),
-	PyRunner(2000,'timing.stats(); S.stop();'),
+	PyRunner(2000,'import woo.timing; woo.timing.stats(); S.stop();'),
 	PyRunner(10,'S.plot.addData(i=S.step,total=S.energy.total(),**S.energy)'),
 ]
 S.dem.gravity=(0,0,-5000)

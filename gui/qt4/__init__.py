@@ -7,6 +7,10 @@ if 1:
 	if wooOptions.forceNoGui:
 		woo.runtime.hasDisplay=False
 		raise ImportError("Woo was started with the -n switch; woo.qt4 insterface will not be enabled.")
+	# ignore some warnings from Xlib
+	import warnings
+	warnings.filterwarnings('ignore',category=DeprecationWarning,module='Xlib')
+
 	import Xlib.display
 	# PyQt4's QApplication does exit(1) if it is unable to connect to the display
 	# we however want to handle this gracefully, therefore

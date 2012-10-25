@@ -201,7 +201,7 @@ void LawTester::run(){
 				py::exec(stg->done.c_str(),globals,locals);
 				errCmd=nullptr;
 			}
-			if(stage<stages.size()-1) stage++;
+			if(stage<(int)stages.size()-1) stage++;
 			else{ // finished
 				py::exec(done.c_str(),globals,locals);
 			};

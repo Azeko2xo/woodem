@@ -1,5 +1,5 @@
 # encoding: utf-8
-import setuptools # for bdist_egg
+import setuptools # for bdist_egg and console_scripts entry point
 from distutils.core import setup,Extension
 import distutils.command.install_scripts
 import distutils.command.sdist
@@ -56,7 +56,7 @@ def wooPrepareChunks():
 	global chunkSize
 	if chunkSize<0: chunkSize=10000
 	srcs=[glob('lib/*/*.cpp'),glob('core/*.cpp'),glob('py/*.cpp')+glob('py/*/*.cpp')]
-	if 'qt4' in features: srcs+=[glob('gui/qt4/*.cpp')+glob('gui/qt4/*.cc')]
+	#if 'qt4' in features: srcs+=[glob('gui/qt4/*.cpp')+glob('gui/qt4/*.cc')]
 	pkg=glob('pkg/*.cpp')+glob('pkg/*/*.cpp')+glob('pkg/*/*/*.cpp')
 	#print srcs,pkg
 	for i in range(0,len(pkg),chunkSize): srcs.append(pkg[i:i+chunkSize])
@@ -99,21 +99,9 @@ def wooPrepareQt4():
 			if status: raise RuntimeError("Error %d returned when running %s"%(status,' '.join(cmd)))
 			if not os.path.exists(fOut): RuntimeError("No output file (though exit status was zero): %s"%(' '.join(cmd)))
 
-## http://code.activestate.com/recipes/502261-python-distutils-pkg-config/
-def pkgconfig(*packages,**kw):
-	import commands
-	flag_map = {'-I': 'include_dirs', '-L': 'library_dirs', '-l': 'libraries'}
-	for token in commands.getoutput("pkg-config --libs --cflags %s" % ' '.join(packages)).split():
-		if flag_map.has_key(token[:2]):
-			kw.setdefault(flag_map.get(token[:2]), []).append(token[2:])
-		else:
-			kw.setdefault('extra_link_args',[]).append(token)
-	return kw
-
-
-# if MANIFEST.in is missing, we are being run from sdist, which has tree already prepared
+# if the following file is missing, we are being run from sdist, which has tree already prepared
 # otherwise, install headers and chunks where they should be
-if os.path.exists('MANIFEST.in'):
+if os.path.exists('examples'):
 	wooPrepareQt4()
 	wooPrepareHeaders()
 	wooPrepareChunks()
@@ -173,20 +161,14 @@ if 'vtk' in features:
 
 wooModules=['woo.'+basename(py)[:-3] for py in glob('py/*.py') if basename(py)!='__init__.py']
 
-## HACK: install executable scripts
+## HACK: 
 ## http://stackoverflow.com/a/11400431/761090
-class WooExecInstall(distutils.command.install_scripts.install_scripts):
-	def run(self):
-		distutils.command.install_scripts.install_scripts.run(self)
-		for script in self.get_outputs():
-			if basename(script)=='main.py': shutil.move(script,join(dirname(script),'woo'+execFlavor))
-			elif basename(script)=='batch.py': shutil.move(script,join(dirname(script),'woo'+execFlavor+'-batch'))
-			else: raise ValueError("WooExecInstall only handles main.py and batch.py, not %s."%script)
 class WooSdist(distutils.command.sdist.sdist):
 	def get_file_list(self):
-		wooPrepareHeaders()
-		wooPrepareChunks()
+		#wooPrepareHeaders()
+		#wooPrepareChunks()
 		return distutils.command.sdist.sdist.get_file_list(self)
+
 # compiler-specific flags, if ever needed:
 # 	http://stackoverflow.com/a/5192738/761090
 #class WooBuildExt(distutils.command.build_ext.build_ext):
@@ -230,14 +212,18 @@ setup(name='woo',
 			libraries=cxxLibs,
 			extra_link_args=linkFlags,
 		),
-		#Extension('gts._gts',	
-		#	sources=glob('py/3rd-party/gts-0.3.1/*.c'),
-		#	**pkgconfig('gts')
-		#)
 	],
-	#headers=sum([glob(pattern) for pattern in ('lib/*/*.hpp','core/*.hpp','py/*.hpp','pkg/*.hpp','pkg/*/*.hpp','pkg/*/*/*.hpp')],[]),
 	scripts=['core/main/main.py','core/main/batch.py'],
-	cmdclass={'install_scripts':WooExecInstall,'sdist':WooSdist},
+	#cmdclass={
+	#	#'install_scripts':WooExecInstall, # replaced by console_script entry point
+	#	#'sdist':WooSdist
+	#},
+	entry_points={
+		'console_scripts':[
+			'woo%s = wooMain:main'%execFlavor,
+			'woo%s-batch = wooMain:batch'%execFlavor,
+		]
+	},
 	# woo.__init__ makes symlinks to _cxxInternal
 	# see http://stackoverflow.com/a/10618900/761090
 	zip_safe=False, 

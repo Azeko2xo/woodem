@@ -359,6 +359,7 @@ if not env.GetOption('clean'):
 				env['QGLVIEWER_LIB']='libQGLViewer'
 			else: featureNotOK('qt4','Building with Qt4 implies the QGLViewer library installed (package libqglviewer-qt4-dev package in debian/ubuntu, libQGLViewer in RPM-based distributions)')
 	if 'opencl' in env['features']:
+		env.Append(CPPDEFINES=['CL_USE_DEPRECATED_OPENCL_1_1_APIS'])
 		ok=conf.CheckLibWithHeader('OpenCL','CL/cl.h','c','clGetPlatformIDs(0,NULL,NULL);',autoadd=1)
 		if not ok: featureNotOK('opencl','OpenCL headers not found. Install an OpenCL SDK, and add appropriate directory to CPPPATH, LDPATH if necessary (note: this is not a test that your computer has an OpenCL-capable device)')
 		env['haveClHpp']=conf.CheckCXXHeader('CL/cl.hpp')

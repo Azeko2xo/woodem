@@ -39,16 +39,14 @@ void TraceGlRep::render(const shared_ptr<Node>& n, GLViewInfo*){
 	else glEnable(GL_LINE_SMOOTH);
 	glBegin(GL_LINE_STRIP);
 		for(size_t i=0; i<pts.size(); i++){
-			size_t ix; Real relColor;
+			size_t ix;
 			// compressed start from the very beginning, till they reach the write position
 			if(flags&FLAG_COMPRESS){
 				ix=i;
-				relColor=i*1./writeIx;
 				if(ix>=writeIx) break;
 			// cycle through the array
 			} else {
 				ix=(writeIx+i)%pts.size();
-				relColor=i*1./pts.size();
 			}
 			if(!isnan(pts[ix][0])){
 				if(isnan(scalars[ix])){

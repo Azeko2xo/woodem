@@ -76,6 +76,7 @@ env.AddPostAction(pyMain,Chmod(pyMain,0755))
 env.AddPostAction(pyMain+'-batch',Chmod(pyMain+'-batch',0755))
 
 env.Install('$LIBDIR','core/main/wooOptions.py')
+env.Install('$LIBDIR','core/main/wooMain.py')
 ## for --rebuild
 if 'execCheck' in env and env['execCheck']!=os.path.abspath(env.subst(pyMain)):
 	raise RuntimeError('execCheck option (%s) does not match what is about to be installed (%s)'%(env['execCheck'],env.subst(pyMain)))

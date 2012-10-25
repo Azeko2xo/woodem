@@ -1,5 +1,5 @@
 #ifdef WOO_OPENGL
-#include"GLUtils.hpp"
+#include<woo/lib/opengl/GLUtils.hpp>
 #include<GL/glu.h>
 #include<GL/freeglut_ext.h>
 #include<boost/algorithm/string/split.hpp>
