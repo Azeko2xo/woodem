@@ -23,7 +23,7 @@ if not version:
 		revno=str(branch.last_revision_info()[0])
 	except:
 		revno='na'
-	version='r'+revno
+	version='0.99+r'+revno
 ## build options
 features=([] if ('CC' in os.environ and os.environ['CC'].endswith('clang')) else ['openmp'])
 features+=['qt4','vtk','opengl'] #,'opengl']
@@ -56,7 +56,7 @@ def wooPrepareChunks():
 	global chunkSize
 	if chunkSize<0: chunkSize=10000
 	srcs=[glob('lib/*/*.cpp'),glob('core/*.cpp'),glob('py/*.cpp')+glob('py/*/*.cpp')]
-	#if 'qt4' in features: srcs+=[glob('gui/qt4/*.cpp')+glob('gui/qt4/*.cc')]
+	if 'opengl' in features: srcs+=[glob('gui/qt4/*.cpp')+glob('gui/qt4/*.cc')]
 	pkg=glob('pkg/*.cpp')+glob('pkg/*/*.cpp')+glob('pkg/*/*/*.cpp')
 	#print srcs,pkg
 	for i in range(0,len(pkg),chunkSize): srcs.append(pkg[i:i+chunkSize])
@@ -161,14 +161,6 @@ if 'vtk' in features:
 
 wooModules=['woo.'+basename(py)[:-3] for py in glob('py/*.py') if basename(py)!='__init__.py']
 
-## HACK: 
-## http://stackoverflow.com/a/11400431/761090
-class WooSdist(distutils.command.sdist.sdist):
-	def get_file_list(self):
-		#wooPrepareHeaders()
-		#wooPrepareChunks()
-		return distutils.command.sdist.sdist.get_file_list(self)
-
 # compiler-specific flags, if ever needed:
 # 	http://stackoverflow.com/a/5192738/761090
 #class WooBuildExt(distutils.command.build_ext.build_ext):
@@ -202,7 +194,7 @@ setup(name='woo',
 		+(['woo.qt'] if 'qt4' in features else [])
 		+(['woo.gts'] if 'gts' in features else [])
 	),
-	py_modules=wooModules+['wooOptions'],
+	py_modules=wooModules+['wooOptions','wooMain'],
 	ext_modules=[
 		Extension('woo.'+cxxInternalModule,
 			sources=cxxSrcs,
@@ -213,11 +205,6 @@ setup(name='woo',
 			extra_link_args=linkFlags,
 		),
 	],
-	scripts=['core/main/main.py','core/main/batch.py'],
-	#cmdclass={
-	#	#'install_scripts':WooExecInstall, # replaced by console_script entry point
-	#	#'sdist':WooSdist
-	#},
 	entry_points={
 		'console_scripts':[
 			'woo%s = wooMain:main'%execFlavor,

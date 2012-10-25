@@ -19,6 +19,9 @@ BOOST_PYTHON_MODULE(config){
 		#ifdef WOO_LOG4CXX
 			features.append("log4cxx");
 		#endif
+		#ifdef WOO_OPENMP
+			features.append("openmp");
+		#endif
 		#ifdef WOO_OPENGL
 			features.append("opengl");
 		#endif

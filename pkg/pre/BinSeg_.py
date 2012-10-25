@@ -579,7 +579,7 @@ def writeReport():
 
 	svgs=[]
 	for name,fig in figs:
-		svgs.append((name,woo.O.tmpFilename()+'.svg'))
+		svgs.append((name,woo.master.tmpFilename()+'.svg'))
 		fig.savefig(svgs[-1][-1])
 	s+='\n'.join(['<h2>'+svg[0]+'</h2>'+woo.pre.Roro_.svgFileFragment(svg[1]) for svg in svgs])
 
