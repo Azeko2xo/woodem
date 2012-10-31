@@ -17,9 +17,6 @@
 
 #include<boost/preprocessor/cat.hpp>
 
-#include<boost/python.hpp>
-namespace py=boost::python;
-
 // real base class for all dispatchers (the other one are templates)
 class Dispatcher: public Engine{
 	public:

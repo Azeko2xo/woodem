@@ -2,8 +2,6 @@
 // the code written after http://www.amillionpixels.us/bestfitobb.cpp
 // which is MIT-licensed
 
-#include<boost/python.hpp>
-#include<boost/foreach.hpp>
 #include<woo/lib/base/Logging.hpp>
 #include<woo/lib/base/Math.hpp>
 #include<woo/lib/pyutil/doc_opts.hpp>

@@ -10,7 +10,6 @@
 #include<string>
 #include<stdexcept>
 
-#include<boost/python.hpp>
 #include<boost/filesystem/convenience.hpp>
 #include<boost/preprocessor/cat.hpp>
 

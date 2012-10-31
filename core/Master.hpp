@@ -11,6 +11,7 @@
 #include<boost/foreach.hpp>
 #include<boost/smart_ptr/scoped_ptr.hpp>
 #include<boost/preprocessor/cat.hpp>
+#include<boost/preprocessor/stringize.hpp>
 
 #include<woo/lib/base/Math.hpp>
 #include<woo/lib/base/Singleton.hpp>
@@ -57,7 +58,7 @@ class Master: public Singleton<Master>{
 	py::list pyCompiledPyModules(void){ py::list ret; for(const auto& s: compiledPyModules) ret.append(s); return ret; }
 	// full module name should be given: woo.*
 	void registerCompiledPyModule(const char* mod){ compiledPyModules.push_back(mod); }
-	#define WOO_PYTHON_MODULE(mod) namespace{ __attribute__((constructor)) void BOOST_PP_CAT(_registerThisCompiledPyModule_,__COUNTER__) (void){ Master::instance().registerCompiledPyModule("woo." #mod); } }
+	#define WOO_PYTHON_MODULE(mod) namespace{ __attribute__((constructor)) void BOOST_PP_CAT(_registerThisCompiledPyModule_,__COUNTER__) (void){ if(getenv("WOO_DEBUG")) cerr<<"Registering python module "<<BOOST_PP_STRINGIZE(mod)<<endl; Master::instance().registerCompiledPyModule("woo." #mod); } }
 
 	
 	shared_ptr<Scene> scene;
@@ -113,8 +114,11 @@ class Master: public Singleton<Master>{
 		#endif
 		void pyExitNoBacktrace(int status=0);
 		void pyDisableGdb(){
-			signal(SIGSEGV,SIG_DFL);
-			signal(SIGABRT,SIG_DFL);
+			// disable for native Windows builds
+			#ifndef __MINGW64__ 
+				signal(SIGSEGV,SIG_DFL);
+				signal(SIGABRT,SIG_DFL);
+			#endif
 		}
 		py::list pyListChildClassesNonrecursive(const string& base);
 		bool pyIsChildClassOf(const string& child, const string& base);

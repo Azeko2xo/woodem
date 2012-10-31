@@ -28,9 +28,14 @@ using std::invalid_argument;
 
 // seed for random numbers
 unsigned long long getNow(){
-	struct timespec ts; 
-	clock_gettime(CLOCK_MONOTONIC,&ts); 
-	return (unsigned long long)(1e9*ts.tv_sec+ts.tv_nsec);
+	#ifndef __MINGW64__
+		struct timespec ts; 
+		clock_gettime(CLOCK_MONOTONIC,&ts); 
+		return (unsigned long long)(1e9*ts.tv_sec+ts.tv_nsec);
+	#else
+		// FIXME!!
+		return 0;
+	#endif
 }
 
 

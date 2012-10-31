@@ -128,6 +128,8 @@ struct SGDA_Scalar2d: public WeightedAverage<Scalar2d,Real> {
 		weightedSupportArea=(1-2*clippedQuantile)*area;
 		
 	}
+	// avoids compiler warning for non-virtual dtor
+	virtual ~SGDA_Scalar2d(){}
 	virtual Real getWeight(const Vector2r& meanPt, const Scalar2d& e){	
 		Vector2r pos=getPosition(e);
 		Real rSq=(meanPt-pos).squaredNorm(); //pow(meanPt[0]-pos[0],2)+pow(meanPt[1]-pos[1],2);

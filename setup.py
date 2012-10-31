@@ -4,7 +4,7 @@ from distutils.core import setup,Extension
 import distutils.command.install_scripts
 import distutils.command.sdist
 import distutils.command.build_ext
-import os.path, os, shutil, re, subprocess
+import os.path, os, shutil, re, subprocess, sys
 from glob import glob
 from os.path import sep,join,basename,dirname
 
@@ -26,13 +26,18 @@ if not version:
 	version='0.99+r'+revno
 ## build options
 features=([] if ('CC' in os.environ and os.environ['CC'].endswith('clang')) else ['openmp'])
-features+=['qt4','vtk','opengl'] #,'opengl']
+features+=['qt4','vtk','opengl'] #,'opengl'] 
+##
+import sys
+if sys.platform=='win32':
+	features=[]
+##
 flavor='distutils'
 debug=False
 cxxFlavor=('_'+re.sub('[^a-zA-Z0-9_]','_',flavor) if flavor else '')
 execFlavor=('-'+flavor) if flavor else ''
 cxxInternalModule='_cxxInternal%s%s'%(cxxFlavor,'_debug' if debug else '')
-chunkSize=10
+chunkSize=(10 if sys.platform!='win32' else 1)
 hotCxx=['Factory']
 
 if 'opengl' in features and 'qt4' not in features: raise ValueError("The 'opengl' features is only meaningful in conjunction with 'qt4'.")
@@ -55,7 +60,7 @@ def wooPrepareChunks():
 	# make chunks from sources
 	global chunkSize
 	if chunkSize<0: chunkSize=10000
-	srcs=[glob('lib/*/*.cpp'),glob('core/*.cpp'),glob('py/*.cpp')+glob('py/*/*.cpp')]
+	srcs=[glob('lib/*/*.cpp'),glob('core/*.cpp')[0:4],glob('core/*.cpp')[4:],glob('py/*.cpp')+glob('py/*/*.cpp')]
 	if 'opengl' in features: srcs+=[glob('gui/qt4/*.cpp')+glob('gui/qt4/*.cc')]
 	pkg=glob('pkg/*.cpp')+glob('pkg/*/*.cpp')+glob('pkg/*/*/*.cpp')
 	#print srcs,pkg
@@ -73,7 +78,9 @@ def wooPrepareChunks():
 		if os.path.exists(pathSources): shutil.rmtree(pathSources)
 		os.mkdir(pathSources)
 		open(join(pathSources,h.hexdigest()),'w')
+		#print srcs
 		for i,src in enumerate(srcs):
+			if len(src)==0: continue
 			f=open(join(pathSources,('chunk-%02d%s.%s'%(i,'' if len(src)>1 else ('-'+basename(src[0][:-4])),'cpp'))),'w')
 			for s in src:
 				f.write('#include"../%s"\n'%s) # build-src-tree
@@ -112,8 +119,8 @@ cxxSrcs=['py/config.cxx']+glob(join(pathSources,'*.cpp'))+glob(join(pathSources,
 #
 # preprocessor, compiler, linker flags
 #
-cppDirs,cppDef,cxxFlags,linkFlags=[],[],[],[]
-cxxFlags+=['-pipe','-Wall','-fvisibility=hidden','-std=c++11']
+cppDirs,cppDef,cxxFlags,linkFlags,libDirs=[],[],[],[],[]
+cxxFlags+=['-Wall','-fvisibility=hidden','-std=c++11']
 cppDef+=[
 	('WOO_REVISION',revno),
 	('WOO_VERSION',version),
@@ -131,7 +138,7 @@ else:
 	cppDef+=[('WOO_CAST','static_cast'),('WOO_PTR_CAST','static_pointer_cast'),('NDEBUG',None)]
 	cxxFlags+=['-O2','-march=native']
 
-cxxLibs=['dl','m','rt',
+cxxLibs=['m',
 	'boost_python',
 	'boost_system',
 	'boost_thread',
@@ -140,7 +147,10 @@ cxxLibs=['dl','m','rt',
 	'boost_iostreams',
 	'boost_regex',
 	'boost_serialization'
-]
+]+([] if sys.platform=='win32' else ['rt']) # realtime clock 
+if sys.platform=='win32':
+	boostSuffix='-mgw47-mt-1_51'
+	cxxLibs=[(lib+boostSuffix if lib.startswith('boost_') else lib) for lib in cxxLibs]
 if 'openmp' in features:
 	cxxLibs.append('gomp')
 	cxxFlags.append('-fopenmp')
@@ -157,7 +167,13 @@ if 'vtk' in features:
 	if not vtks: raise ValueError("No header directory for VTK detected.")
 	elif len(vtks)>1: raise ValueError("Multiple header directories for VTK detected: "%','.join(vtks))
 	cppDirs+=[vtks[0]]
-	
+
+if sys.platform=='win32':
+	cppDirs+=[r'c:\src\boost_1_51_0',r'c:\src\eigen-3.1.1',r'c:\src\loki-0.1.7\include']
+	libDirs+=[r'c:\src\boost_1_51_0\stage\lib']
+	cxxFlags+=['-Wno-strict-aliasing','-Wno-attributes','-g0'] # warnings from other headers
+else:
+	cxxFlags+=['-pipe']
 
 wooModules=['woo.'+basename(py)[:-3] for py in glob('py/*.py') if basename(py)!='__init__.py']
 
@@ -202,6 +218,7 @@ setup(name='woo',
 			define_macros=cppDef,
 			extra_compile_args=cxxFlags,
 			libraries=cxxLibs,
+			library_dirs=libDirs,
 			extra_link_args=linkFlags,
 		),
 	],

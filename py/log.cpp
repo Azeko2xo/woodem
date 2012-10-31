@@ -1,4 +1,3 @@
-#include<boost/python.hpp>
 #include<string>
 #include<woo/lib/base/Logging.hpp>
 #include<woo/lib/base/Types.hpp>

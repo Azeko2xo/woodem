@@ -10,11 +10,14 @@
 #include<boost/date_time/posix_time/posix_time.hpp>
 #include<boost/algorithm/string.hpp>
 
+#include<boost/asio/ip/host_name.hpp>
 
-// POSIX-only
-#include<pwd.h>
-#include<unistd.h>
-#include<time.h>
+#ifndef __MINGW64__
+	// POSIX-only
+	#include<pwd.h>
+	#include<unistd.h>
+	#include<time.h>
+#endif
 
 namespace py=boost::python;
 
@@ -53,9 +56,8 @@ void Scene::pyOne(){
 
 void Scene::pyWait(){
 	if(!running()) return;
-	timespec t1,t2; t1.tv_sec=0; t1.tv_nsec=40000000; /* 40 ms */
 	Py_BEGIN_ALLOW_THREADS;
-	while(running()) nanosleep(&t1,&t2);
+		while(running()) boost::this_thread::sleep(boost::posix_time::milliseconds(40));
 	Py_END_ALLOW_THREADS;
 	// handle possible exception: reset it and rethrow
 	if(!except) return;
@@ -129,19 +131,21 @@ bool Scene::pyTagsProxy::has_key(const std::string& key){ return scene->tags.cou
 void Scene::pyTagsProxy::update(const pyTagsProxy& b){ for(const auto& i: b.scene->tags) scene->tags[i.first]=i.second; }
 
 void Scene::fillDefaultTags(){
-	// fill default tags
-	struct passwd* pw;
-	char hostname[HOST_NAME_MAX];
-	gethostname(hostname,HOST_NAME_MAX);
-	pw=getpwuid(geteuid()); if(!pw) throw runtime_error("getpwuid(geteuid()) failed!");
-	// a few default tags
-	// the standard GECOS format is Real Name,,, - first comma and after will be discarded
-	string gecos(pw->pw_gecos); size_t p=gecos.find(","); if(p!=string::npos) boost::algorithm::erase_tail(gecos,gecos.size()-p);
-	string gecos2;
-	for(size_t i=0;i<gecos.size();i++){ gecos2.push_back(((unsigned char)gecos[i])<128 ? gecos[i] : '_'); }
-	tags["user"]=gecos2+" ("+string(pw->pw_name)+"@"+hostname+")";
+	tags["user"]=
+		#ifndef __MINGW64__
+			getenv("USER")		
+		#else
+			getenv("USERNAME")
+		#endif
+		+string("@")+boost::asio::ip::host_name();
 	tags["isoTime"]=boost::posix_time::to_iso_string(boost::posix_time::second_clock::local_time());
-	string id=boost::posix_time::to_iso_string(boost::posix_time::second_clock::local_time())+"p"+lexical_cast<string>(getpid());
+	string id=boost::posix_time::to_iso_string(boost::posix_time::second_clock::local_time())+"p"+lexical_cast<string>(
+	#ifndef __MINGW64__
+		getpid()
+	#else
+		-1
+	#endif
+	);
 	tags["id"]=id;
 	// no title, use empty
 	tags["title"]="";
@@ -282,8 +286,7 @@ void Scene::doOneStep(){
 	#ifdef WOO_LOOP_MUTEX_HELP
 		// add some daly to help the other thread locking the mutex; will be removed once 
 		if(engineLoopMutexWaiting){
-			timespec t1,t2; t1.tv_sec=0; t1.tv_nsec=100000000; /* 100 ms */
-			nanosleep(&t1,&t2);
+				boost::this_thread::sleep(boost::posix_time::milliseconds(100));
 		}
 	#endif
 	boost::timed_mutex::scoped_lock lock(engineLoopMutex);

@@ -1,5 +1,4 @@
 // 2009 © Václav Šmilauer <eudoxos@arcig.cz>
-#include<boost/python.hpp>
 #include<woo/lib/base/Logging.hpp>
 #include<woo/lib/base/Math.hpp>
 #include<woo/lib/base/Types.hpp>

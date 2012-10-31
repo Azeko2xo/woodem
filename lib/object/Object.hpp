@@ -59,7 +59,7 @@
 #define _YADE_FACTORY_REPEAT(x,y,z) __attribute__((unused)) bool BOOST_PP_CAT(_registered,z)=Master::instance().registerClassFactory(BOOST_PP_STRINGIZE(z),(Master::FactoryFunc)([](void)->shared_ptr<woo::Object>{ return make_shared<z>(); }));
 // priority 500 is greater than priority for log4cxx initialization (in core/main/pyboot.cpp); therefore lo5cxx will be initialized before plugins are registered
 
-#define WOO_PLUGIN(module,plugins) BOOST_PP_SEQ_FOR_EACH(_YADE_FACTORY_REPEAT,~,plugins); namespace{ __attribute__((constructor)) void BOOST_PP_CAT(registerThisPluginClasses_,BOOST_PP_SEQ_HEAD(plugins)) (void){ const char* info[]={__FILE__ , BOOST_PP_SEQ_FOR_EACH(_YADE_PLUGIN_REPEAT,~,plugins) NULL}; Master::instance().registerPluginClasses(BOOST_PP_STRINGIZE(module),info);} } BOOST_PP_SEQ_FOR_EACH(_YADE_PLUGIN_BOOST_REGISTER,~,plugins) BOOST_PP_SEQ_FOR_EACH(_PLUGIN_CHECK_REPEAT,~,plugins)
+#define WOO_PLUGIN(module,plugins) BOOST_PP_SEQ_FOR_EACH(_YADE_FACTORY_REPEAT,~,plugins); namespace{ __attribute__((constructor)) void BOOST_PP_CAT(registerThisPluginClasses_,BOOST_PP_SEQ_HEAD(plugins)) (void){ if(getenv("WOO_DEBUG")) cerr<<"Registering classes in "<<__FILE__<<endl; const char* info[]={__FILE__ , BOOST_PP_SEQ_FOR_EACH(_YADE_PLUGIN_REPEAT,~,plugins) NULL}; Master::instance().registerPluginClasses(BOOST_PP_STRINGIZE(module),info);} } BOOST_PP_SEQ_FOR_EACH(_YADE_PLUGIN_BOOST_REGISTER,~,plugins) BOOST_PP_SEQ_FOR_EACH(_PLUGIN_CHECK_REPEAT,~,plugins)
 
 
 
@@ -407,7 +407,7 @@ struct Object: public boost::noncopyable /*, public boost::enable_shared_from_th
 	static vector<py::object> derivedCxxClasses;
 	static py::list getDerivedCxxClasses();
 	// this is only for informative purposes, hence the typecast is OK
-	long pyCxxAddr() const{ return (long)this; }
+	ptrdiff_t pyCxxAddr() const{ return (ptrdiff_t)this; }
 
 		template <class ArchiveT> void serialize(ArchiveT & ar, unsigned int version){ };
 		// lovely cast members like in eigen :-)

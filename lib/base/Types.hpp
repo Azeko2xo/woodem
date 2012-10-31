@@ -53,13 +53,18 @@ using std::logic_error;
 using std::max;
 using std::min;
 using std::abs;
-//using std::isnan;
-//using std::isinf;
+// FIXME: some compilers seem to require this
+// for now, we need it only for mingw64 builds
+#ifdef __MINGW64__
+	using std::isnan;
+	using std::isinf;
+#endif
 
-// FIXME: this is not a very reliable way to detect presence of to_string
-// gcc built without --enable-c99 does not support to_string (checked with 4.7.1)
+// workaround for http://gcc.gnu.org/bugzilla/show_bug.cgi?id=52015
+// "std::to_string does not work under MinGW"
+// reason: gcc built without --enable-c99 does not support to_string (checked with 4.7.1)
 // so we just emulate that thing with lexical_cast
-#if defined(__GNUC__) && !defined(_GLIBCXX_USE_C99)
+#if defined(__MINGW64__) || defined(__MINGW32__)
 	template<typename T> string to_string(const T& t){ return lexical_cast<string>(t); }
 #else
 	using std::to_string;

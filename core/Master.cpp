@@ -16,7 +16,6 @@
 #include<woo/lib/object/ObjectIO.hpp>
 #include<woo/core/Timing.hpp>
 
-
 //#include<dlfcn.h>
 //#include<cxxabi.h>
 
@@ -27,14 +26,19 @@ class RenderMutexLock: public boost::mutex::scoped_lock{
 };
 
 CREATE_LOGGER(Master);
-SINGLETON_SELF(Master);
 
 
 Master::Master(){
+	if(getenv("WOO_DEBUG")) cerr<<"Constructing woo::Master."<<endl;
 	sceneAnother=shared_ptr<Scene>(new Scene);
 	scene=shared_ptr<Scene>(new Scene);
 	startupLocalTime=boost::posix_time::microsec_clock::local_time();
-	char dirTemplate[]="/tmp/woo-XXXXXX"; tmpFileDir=mkdtemp(dirTemplate); tmpFileCounter=0;
+	
+	auto tmp=boost::filesystem::unique_path(boost::filesystem::temp_directory_path()/"woo-%%%%%%%%");
+	tmpFileDir=tmp.string();
+	if(!boost::filesystem::create_directory(tmp)) throw std::runtime_error("Creating temporary directory "+tmpFileDir+" failed.");
+
+	tmpFileCounter=0;
 	defaultClDev=Vector2i(-1,-1);
 }
 
@@ -255,13 +259,17 @@ void Master::pySetCmap(py::object obj){
 	woo::TypeError("cmap can be specified as int, str or (int,str)");
 }
 
-
-void termHandlerNormal(int sig){cerr<<"Woo: normal exit."<<endl; raise(SIGTERM);}
-void termHandlerError(int sig){cerr<<"Woo: error exit."<<endl; raise(SIGTERM);}
+// only used below with POSIX signal handlers
+#ifndef __MINGW64__
+	void termHandlerNormal(int sig){cerr<<"Woo: normal exit."<<endl; raise(SIGTERM);}
+	void termHandlerError(int sig){cerr<<"Woo: error exit."<<endl; raise(SIGTERM);}
+#endif
 
 void Master::pyExitNoBacktrace(int status){
-	if(status==0) signal(SIGSEGV,termHandlerNormal); /* unset the handler that runs gdb and prints backtrace */
-	else signal(SIGSEGV,termHandlerError);
+	#ifndef __MINGW64__
+		if(status==0) signal(SIGSEGV,termHandlerNormal); /* unset the handler that runs gdb and prints backtrace */
+		else signal(SIGSEGV,termHandlerError);
+	#endif
 	// try to clean our mess
 	//
 	// cleanupTemps(); :: called from the destructor now

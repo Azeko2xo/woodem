@@ -14,6 +14,8 @@
 	#include<woo/lib/pyutil/numpy.hpp>
 #endif
 
+
+#include<cmath> // workaround for http://boost.2283326.n4.nabble.com/Boost-Python-Compile-Error-s-GCC-via-MinGW-w64-tp3165793p3166760.html
 #include<boost/python.hpp>
 #include<boost/python/class.hpp>
 #include<boost/python/module.hpp>
