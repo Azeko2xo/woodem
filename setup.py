@@ -8,6 +8,26 @@ import os.path, os, shutil, re, subprocess, sys
 from glob import glob
 from os.path import sep,join,basename,dirname
 
+if 1:
+	# monkey-patch for parallel compilation
+	def parallelCCompile(self, sources, output_dir=None, macros=None, include_dirs=None, debug=0, extra_preargs=None, extra_postargs=None, depends=None):
+		# those lines are copied from distutils.ccompiler.CCompiler directly
+		macros, objects, extra_postargs, pp_opts, build = self._setup_compile(output_dir, macros, include_dirs, sources, depends, extra_postargs)
+		cc_args = self._get_cc_args(pp_opts, debug, extra_preargs)
+		# parallel code
+		N=2 # number of parallel compilations
+		import multiprocessing.pool
+		def _single_compile(obj):
+			try: src, ext = build[obj]
+			except KeyError: return
+			print obj
+			self._compile(obj, src, ext, cc_args, extra_postargs, pp_opts)
+		# convert to list, imap is evaluated on-demand
+		list(multiprocessing.pool.ThreadPool(N).imap(_single_compile,objects))
+		return objects
+	import distutils.ccompiler
+	distutils.ccompiler.CCompiler.compile=parallelCCompile
+
 pathSourceTree=join('build-src-tree')
 pathSources=join(pathSourceTree,'src')
 pathHeaders=join(pathSourceTree,'woo')
