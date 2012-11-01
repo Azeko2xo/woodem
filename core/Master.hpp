@@ -58,7 +58,7 @@ class Master: public Singleton<Master>{
 	py::list pyCompiledPyModules(void){ py::list ret; for(const auto& s: compiledPyModules) ret.append(s); return ret; }
 	// full module name should be given: woo.*
 	void registerCompiledPyModule(const char* mod){ compiledPyModules.push_back(mod); }
-	#define WOO_PYTHON_MODULE(mod) namespace{ WOO__ATTRIBUTE__CONSTRUCTOR void BOOST_PP_CAT(_registerThisCompiledPyModule_,__COUNTER__) (void){ if(getenv("WOO_DEBUG")) cerr<<"Registering python module "<<BOOST_PP_STRINGIZE(mod)<<endl; Master::instance().registerCompiledPyModule("woo." #mod); } }
+	#define WOO_PYTHON_MODULE(mod) namespace{ WOO__ATTRIBUTE__CONSTRUCTOR void BOOST_PP_CAT(_registerThisCompiledPyModule_,__COUNTER__) (void){ LOG_DEBUG_EARLY("Registering python module "<<BOOST_PP_STRINGIZE(mod)); Master::instance().registerCompiledPyModule("woo." #mod); } }
 
 	
 	shared_ptr<Scene> scene;

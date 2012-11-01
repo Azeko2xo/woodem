@@ -26,7 +26,7 @@ CREATE_LOGGER(Master);
 
 
 Master::Master(){
-	if(getenv("WOO_DEBUG")) cerr<<"Constructing woo::Master."<<endl;
+	LOG_DEBUG_EARLY("Constructing woo::Master.");
 	sceneAnother=shared_ptr<Scene>(new Scene);
 	scene=shared_ptr<Scene>(new Scene);
 	startupLocalTime=boost::posix_time::microsec_clock::local_time();
@@ -40,7 +40,7 @@ Master::Master(){
 }
 
 void Master::cleanupTemps(){
-	if(getenv("WOO_DEBUG")) cerr<<"Cleaning "<<tmpFileDir<<endl;
+	LOG_DEBUG_EARLY("Cleaning "<<tmpFileDir);
 	boost::filesystem::path tmpPath(tmpFileDir); boost::filesystem::remove_all(tmpPath);
 }
 
@@ -103,9 +103,7 @@ shared_ptr<Object> Master::factorClass(const std::string& name){
 void Master::registerPluginClasses(const char* module, const char* fileAndClasses[]){
 	assert(fileAndClasses[0]!=NULL); // must be file name
 	for(int i=1; fileAndClasses[i]!=NULL; i++){
-		#ifdef WOO_DEBUG
-			if(getenv("WOO_DEBUG")) cerr<<__FILE__<<":"<<__LINE__<<": Plugin "<<fileAndClasses[0]<<", class "<<module<<"."<<fileAndClasses[i]<<endl;	
-		#endif
+		LOG_DEBUG_EARLY("Plugin "<<fileAndClasses[0]<<", class "<<module<<"."<<fileAndClasses[i]);	
 		modulePluginClasses.push_back({module,fileAndClasses[i]});
 	}
 }
@@ -170,20 +168,20 @@ void Master::pyRegisterAllClasses(){
 	for now, just loop until we succeed; proper solution will be to build graphs of classes
 	and traverse it from the top. It will be done once all classes are pythonable. */
 	for(int i=0; i<10 && pythonables.size()>0; i++){
-		if(getenv("WOO_DEBUG")) cerr<<endl<<"[[[ Round "<<i<<" ]]]: ";
+		LOG_DEBUG_EARLY_FRAGMENT(endl<<"[[[ Round "<<i<<" ]]]: ");
 		std::list<string> done;
 		for(std::list<StringObjectPair>::iterator I=pythonables.begin(); I!=pythonables.end(); ){
 			const std::string& module=I->first;
 			const shared_ptr<Object>& s=I->second;
 			const std::string& klass=s->getClassName();
 			try{
-				if(getenv("WOO_DEBUG")) cerr<<"{{"<<klass<<"}}";
+				LOG_DEBUG_EARLY_FRAGMENT("{{"<<klass<<"}}");
 				py::scope _scope(pyModules[module]);
 				s->pyRegisterClass();
 				std::list<StringObjectPair>::iterator prev=I++;
 				pythonables.erase(prev);
 			} catch (...){
-				if(getenv("WOO_DEBUG")){ cerr<<"["<<klass<<"]"; PyErr_Print(); }
+				LOG_DEBUG_EARLY("["<<klass<<"]"); if(getenv("WOO_DEBUG")) PyErr_Print();
 				boost::python::handle_exception();
 				I++;
 			}

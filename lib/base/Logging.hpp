@@ -24,6 +24,11 @@
  *
  */
 
+#define _LOG_HEAD __FILE__ ":"<<__LINE__<<" "<<__FUNCTION__<<": "
+
+// those work even in non-debug builds (startup diagnostics)
+#define LOG_DEBUG_EARLY(msg) { if(getenv("WOO_DEBUG")) std::cerr<<"DEBUG "<<_LOG_HEAD<<msg<<std::endl; }
+#define LOG_DEBUG_EARLY_FRAGMENT(msg) { if(getenv("WOO_DEBUG")) std::cerr<<msg; }
 
 #ifdef WOO_LOG4CXX
 
@@ -32,8 +37,7 @@
 #	include<log4cxx/propertyconfigurator.h>
 #	include<log4cxx/helpers/exception.h>
 
-#	define _LOG_HEAD __FILE__":"<<__LINE__<<" "<<__FUNCTION__<<": "
-	// logger is local for every class, but if it is missing, we will use the parent's class logger automagically.
+// logger is local for every class, but if it is missing, we will use the parent's class logger automagically.
 // TRACE doesn't really exist in log4cxx 0.9.7 (does in 0.10), otput through DEBUG then
 #ifdef NDEBUG
 #	define LOG_TRACE(msg){}
@@ -59,7 +63,6 @@
 #include<iostream>
 
 #	define _POOR_MANS_LOG(level,msg) {std::cerr<<level " "<<_LOG_HEAD<<msg<<std::endl;}
-#	define _LOG_HEAD __FILE__ ":"<<__LINE__<<" "<<__FUNCTION__<<": "
 #	define LOG_TRACE(msg) // _POOR_MANS_LOG("TRACE",msg)
 #	define LOG_DEBUG(msg) // _POOR_MANS_LOG("DEBUG",msg)
 #	define LOG_INFO(msg)  // _POOR_MANS_LOG("INFO ",msg)
