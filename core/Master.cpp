@@ -16,9 +16,6 @@
 #include<woo/lib/object/ObjectIO.hpp>
 #include<woo/core/Timing.hpp>
 
-//#include<dlfcn.h>
-//#include<cxxabi.h>
-
 class RenderMutexLock: public boost::mutex::scoped_lock{
 	public:
 	RenderMutexLock(): boost::mutex::scoped_lock(Master::instance().renderMutex){/* cerr<<"Lock renderMutex"<<endl; */}
@@ -33,12 +30,12 @@ Master::Master(){
 	sceneAnother=shared_ptr<Scene>(new Scene);
 	scene=shared_ptr<Scene>(new Scene);
 	startupLocalTime=boost::posix_time::microsec_clock::local_time();
-	
+
 	auto tmp=boost::filesystem::unique_path(boost::filesystem::temp_directory_path()/"woo-%%%%%%%%");
 	tmpFileDir=tmp.string();
 	if(!boost::filesystem::create_directory(tmp)) throw std::runtime_error("Creating temporary directory "+tmpFileDir+" failed.");
-
 	tmpFileCounter=0;
+
 	defaultClDev=Vector2i(-1,-1);
 }
 

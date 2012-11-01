@@ -6,20 +6,11 @@
 #include<string>	
 #include<limits>
 
-
-#include<boost/python.hpp>
-
-#include<boost/foreach.hpp>
-#ifndef FOREACH
-	#define FOREACH BOOST_FOREACH
-#endif
-
+#include<woo/lib/base/Types.hpp>
 #include<woo/lib/base/Logging.hpp>
 #include<woo/lib/base/Math.hpp>
 
 #include<woo/lib/pyutil/except.hpp>
-
-#include<woo/lib/base/Types.hpp>
 
 /*! Class representing geometry of spherical packing, with some utility functions. */
 class SpherePack{

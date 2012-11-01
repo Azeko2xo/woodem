@@ -17,6 +17,8 @@
 	#include<pwd.h>
 	#include<unistd.h>
 	#include<time.h>
+#else
+	#include<Windows.h> // for GetCurrentProcessId
 #endif
 
 namespace py=boost::python;
@@ -143,7 +145,7 @@ void Scene::fillDefaultTags(){
 	#ifndef __MINGW64__
 		getpid()
 	#else
-		-1
+		GetCurrentProcessId()
 	#endif
 	);
 	tags["id"]=id;

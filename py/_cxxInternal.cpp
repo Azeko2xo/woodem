@@ -19,7 +19,7 @@
 	#include<log4cxx/patternlayout.h>
 	static log4cxx::LoggerPtr logger=log4cxx::Logger::getLogger("woo.boot");
 	/* Initialize log4dcxx automatically when the library is loaded. */
-	__attribute__((constructor)) void initLog4cxx() {
+	WOO__ATTRIBUTE__CONSTRUCTOR void initLog4cxx() {
 		#ifdef LOG4CXX_TRACE
 			log4cxx::LevelPtr debugLevel=log4cxx::Level::getDebug(), infoLevel=log4cxx::Level::getInfo(), warnLevel=log4cxx::Level::getWarn();
 			// LOG4CXX_STR: http://old.nabble.com/Link-error-when-using-Layout-on-MS-Windows-td20906802.html
@@ -37,7 +37,7 @@
 	}
 #endif
 
-#ifdef WOO_DEBUG
+#if defined(WOO_DEBUG) && !defined(__MINGW64__)
 	void crashHandler(int sig){
 	switch(sig){
 		case SIGABRT:
@@ -62,26 +62,23 @@ void wooInitialize(){
 	if(getenv("XDG_CONFIG_HOME")){
 		confDir=getenv("XDG_CONFIG_HOME");
 	} else {
-		if(getenv("HOME")){
-			confDir=string(getenv("HOME"))+"/.config";
-		#if 0
+		#ifndef __MINGW64__ // POSIX
+			if(getenv("HOME")) confDir=string(getenv("HOME"))+"/.config";
+		#else
 			// windows stuff; not tested
 			// http://stackoverflow.com/a/4891126/761090
-			} else if(getenv("USERPROFILE")){
-				confDir=getenv("USERPROFILE");
-			} else if(getenv("HOMEDRIVE") && getenv("HOMEPATH"))
-				confDir=string(getenv("HOMEDRIVE")+getenv("HOMEPATH");
+			if(getenv("USERPROFILE")) confDir=getenv("USERPROFILE");
+			else if(getenv("HOMEDRIVE") && getenv("HOMEPATH")) confDir=string(getenv("HOMEDRIVE"))+string(getenv("HOMEPATH"));
 		#endif
-			} else {
-			LOG_WARN("Unable to determine home directory; no user-configuration will be loaded.");
-		}
+		else LOG_WARN("Unable to determine home directory; no user-configuration will be loaded.");
 	}
+
 	confDir+="/woo";
 
 
 	master.confDir=confDir;
 	// master.initTemps();
-	#ifdef WOO_DEBUG
+	#if defined(WOO_DEBUG) && !defined(__MINGW64__)
 		std::ofstream gdbBatch;
 		master.gdbCrashBatch=master.tmpFilename();
 		gdbBatch.open(master.gdbCrashBatch.c_str()); gdbBatch<<"attach "<<lexical_cast<string>(getpid())<<"\nset pagination off\nthread info\nthread apply all backtrace\ndetach\nquit\n"; gdbBatch.close();

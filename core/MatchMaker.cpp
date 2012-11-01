@@ -1,10 +1,6 @@
 // 2010 © Václav Šmilauer <eudoxos@arcig.cz>
-
+#include<woo/core/Master.hpp>
 #include<woo/core/MatchMaker.hpp>
-#include<boost/foreach.hpp>
-#ifndef FOREACH
-	#define FOREACH BOOST_FOREACH
-#endif
 
 WOO_PLUGIN(core,(MatchMaker));
 MatchMaker::~MatchMaker(){}

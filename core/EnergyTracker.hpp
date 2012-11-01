@@ -1,14 +1,9 @@
 #pragma once
-#include<boost/python.hpp>
-#include<boost/foreach.hpp>
-#include<string>
+#include<woo/lib/base/Types.hpp>
 #include<woo/lib/base/openmp-accu.hpp>
 #include<woo/lib/object/Object.hpp>
 #include<woo/lib/pyutil/except.hpp>
 
-#ifndef FOREACH
-	#define FOREACH BOOST_FOREACH
-#endif
 
 namespace py=boost::python;
 

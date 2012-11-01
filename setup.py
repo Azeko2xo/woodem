@@ -29,15 +29,19 @@ features=([] if ('CC' in os.environ and os.environ['CC'].endswith('clang')) else
 features+=['qt4','vtk','opengl'] #,'opengl'] 
 ##
 import sys
-if sys.platform=='win32':
-	features=[]
+WIN=(sys.platform=='win32')
 ##
-flavor='distutils'
-debug=False
+if WIN:
+	features=[]
+	flavor=''
+	debug=True
+else:
+	flavor='distutils'
+	debug=False
 cxxFlavor=('_'+re.sub('[^a-zA-Z0-9_]','_',flavor) if flavor else '')
 execFlavor=('-'+flavor) if flavor else ''
 cxxInternalModule='_cxxInternal%s%s'%(cxxFlavor,'_debug' if debug else '')
-chunkSize=(10 if sys.platform!='win32' else 1)
+chunkSize=(10 if WIN else 1)
 hotCxx=['Factory']
 
 if 'opengl' in features and 'qt4' not in features: raise ValueError("The 'opengl' features is only meaningful in conjunction with 'qt4'.")
@@ -60,9 +64,11 @@ def wooPrepareChunks():
 	# make chunks from sources
 	global chunkSize
 	if chunkSize<0: chunkSize=10000
-	srcs=[glob('lib/*/*.cpp'),glob('core/*.cpp')[0:4],glob('core/*.cpp')[4:],glob('py/*.cpp')+glob('py/*/*.cpp')]
+	srcs=[glob('lib/*/*.cpp'),glob('core/*.cpp'),glob('py/*.cpp'),glob('py/*/*.cpp')]
+	if WIN: srcs=[[s] for s in sum(srcs,[]) if '_utils2.cpp' not in s]
 	if 'opengl' in features: srcs+=[glob('gui/qt4/*.cpp')+glob('gui/qt4/*.cc')]
 	pkg=glob('pkg/*.cpp')+glob('pkg/*/*.cpp')+glob('pkg/*/*/*.cpp')
+	if WIN: pkg=[]
 	#print srcs,pkg
 	for i in range(0,len(pkg),chunkSize): srcs.append(pkg[i:i+chunkSize])
 	hot=[]
@@ -132,11 +138,11 @@ cppDef+=[('WOO_'+feature.upper().replace('-','_'),None) for feature in features]
 cppDirs+=[pathSourceTree]+['/usr/include/eigen3']
 if debug:
 	cppDef+=[('WOO_DEBUG',None),('WOO_CAST','dynamic_cast'),('WOO_PTR_CAST','dynamic_pointer_cast')]
-	linkFlags+=['-Wl,--strip-all']
-	cxxFlags+=['-O0','-ggdb2']
+	cxxFlags+=['-Os','-g']
 else:
 	cppDef+=[('WOO_CAST','static_cast'),('WOO_PTR_CAST','static_pointer_cast'),('NDEBUG',None)]
-	cxxFlags+=['-O2','-march=native']
+	cxxFlags+=['-O2']+([] if WIN else ['-march=native'])
+	linkFlags+=['-Wl,--strip-all']
 
 cxxLibs=['m',
 	'boost_python',
@@ -147,8 +153,10 @@ cxxLibs=['m',
 	'boost_iostreams',
 	'boost_regex',
 	'boost_serialization'
-]+([] if sys.platform=='win32' else ['rt']) # realtime clock 
-if sys.platform=='win32':
+]+(['ws2_32'] # boost::asio::ip on Windows
+	if WIN else
+	['rt']) # realtime clock 
+if WIN:
 	boostSuffix='-mgw47-mt-1_51'
 	cxxLibs=[(lib+boostSuffix if lib.startswith('boost_') else lib) for lib in cxxLibs]
 if 'openmp' in features:
@@ -167,11 +175,14 @@ if 'vtk' in features:
 	if not vtks: raise ValueError("No header directory for VTK detected.")
 	elif len(vtks)>1: raise ValueError("Multiple header directories for VTK detected: "%','.join(vtks))
 	cppDirs+=[vtks[0]]
-
-if sys.platform=='win32':
+if WIN:
 	cppDirs+=[r'c:\src\boost_1_51_0',r'c:\src\eigen-3.1.1',r'c:\src\loki-0.1.7\include']
 	libDirs+=[r'c:\src\boost_1_51_0\stage\lib']
-	cxxFlags+=['-Wno-strict-aliasing','-Wno-attributes','-g0'] # warnings from other headers
+	cxxFlags+=['-Wno-strict-aliasing','-Wno-attributes'] # warnings from other headers # -g0 for less debugging info?
+	# see http://stackoverflow.com/questions/4702732/the-program-cant-start-because-libgcc-s-dw2-1-dll-is-missing for discussion of this
+	# does not work anyway
+	# linkFlags+=['-static-libgcc','-static-libstdc++']
+	cppDef+=[('EIGEN_DONT_VECTORIZE',None)] # this might be the cause for "Invalid access to memory location"?
 else:
 	cxxFlags+=['-pipe']
 

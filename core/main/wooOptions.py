@@ -4,11 +4,13 @@
 # in the future, it could be used to select a particular woo version, for instance
 # see http://bytes.com/topic/python/answers/42887-how-pass-parameter-when-importing-module
 #
+import sys
+
 forceNoGui=False
 ompThreads=0
 ompCores=[]
 flavor=''
-debug=False
+debug=(False if sys.platform!='win32' else True)
 clDev=None
 quirks=3
 quirkIntel,quirkFirePro=1,2
