@@ -135,11 +135,11 @@ void Scene::pyTagsProxy::update(const pyTagsProxy& b){ for(const auto& i: b.scen
 void Scene::fillDefaultTags(){
 	tags["user"]=
 		#ifndef __MINGW64__
-			getenv("USER")		
+			getenv("USER")+string("@")+boost::asio::ip::host_name();
 		#else
-			getenv("USERNAME")
+			getenv("USERNAME")+string("@[hostname lookup failed]");
 		#endif
-		+string("@")+boost::asio::ip::host_name();
+		
 	tags["isoTime"]=boost::posix_time::to_iso_string(boost::posix_time::second_clock::local_time());
 	string id=boost::posix_time::to_iso_string(boost::posix_time::second_clock::local_time())+"p"+lexical_cast<string>(
 	#ifndef __MINGW64__

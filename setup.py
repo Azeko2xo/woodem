@@ -15,7 +15,7 @@ if 1:
 		macros, objects, extra_postargs, pp_opts, build = self._setup_compile(output_dir, macros, include_dirs, sources, depends, extra_postargs)
 		cc_args = self._get_cc_args(pp_opts, debug, extra_preargs)
 		# parallel code
-		N=2 # number of parallel compilations
+		N=3 # number of parallel compilations
 		import multiprocessing.pool
 		def _single_compile(obj):
 			try: src, ext = build[obj]
@@ -85,10 +85,10 @@ def wooPrepareChunks():
 	global chunkSize
 	if chunkSize<0: chunkSize=10000
 	srcs=[glob('lib/*/*.cpp'),glob('core/*.cpp'),glob('py/*.cpp'),glob('py/*/*.cpp')]
-	if WIN: srcs=[[s] for s in sum(srcs,[]) if '_utils2.cpp' not in s]
+	#if WIN: srcs=[[s] for s in sum(srcs,[]) if '_utils2.cpp' not in s]
 	if 'opengl' in features: srcs+=[glob('gui/qt4/*.cpp')+glob('gui/qt4/*.cc')]
 	pkg=glob('pkg/*.cpp')+glob('pkg/*/*.cpp')+glob('pkg/*/*/*.cpp')
-	if WIN: pkg=[]
+	#if WIN: pkg=[]
 	#print srcs,pkg
 	for i in range(0,len(pkg),chunkSize): srcs.append(pkg[i:i+chunkSize])
 	hot=[]
@@ -158,7 +158,7 @@ cppDef+=[('WOO_'+feature.upper().replace('-','_'),None) for feature in features]
 cppDirs+=[pathSourceTree]+['/usr/include/eigen3']
 if debug:
 	cppDef+=[('WOO_DEBUG',None),('WOO_CAST','dynamic_cast'),('WOO_PTR_CAST','dynamic_pointer_cast')]
-	cxxFlags+=['-Os','-g']
+	cxxFlags+=['-g']
 else:
 	cppDef+=[('WOO_CAST','static_cast'),('WOO_PTR_CAST','static_pointer_cast'),('NDEBUG',None)]
 	cxxFlags+=['-O2']+([] if WIN else ['-march=native'])

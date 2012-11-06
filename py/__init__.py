@@ -47,6 +47,19 @@ if 0:
 	# https://bugs.launchpad.net/bugs/490744
 	libstdcxx='${libstdcxx}'
 	ctypes.cdll.LoadLibrary(libstdcxx)
+	
+if 1:
+	# http://stackoverflow.com/questions/1447575/symlinks-on-windows/4388195#4388195
+	def win_symlink(source,link_name):
+		import ctypes, os.path
+		csl=ctypes.windll.kernel32.CreateSymbolicLinkW
+		csl.argtypes=(ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_uint32)
+		csl.restype=ctypes.c_ubyte
+		flags=0
+		if source is not None and os.path.isdir(source): flags=1
+		if csl(link_name,source,flags)==0: raise ctypes.WinError()
+	if sys.platform=='win32': os.symlink=win_symlink
+			
 
 # enable warnings which are normally invisible, such as DeprecationWarning
 warnings.simplefilter('default')
@@ -88,10 +101,10 @@ master=core.Master.instance
 #
 # create compiled python modules
 #
-if 0:
+if sys.platform=='win32':
 	import imp
 	for mod in master.compiledPyModules:
-		print 'Loading compiled module',mod,'from',plugins[0]
+		print 'Loading compiled module',mod,'from',cxxInternalFile
 		# this inserts the module to sys.modules automatically
 		imp.load_dynamic(mod,cxxInternalFile)
 # WORKAROUND: create temporary symlinks
@@ -106,7 +119,7 @@ else:
 	# remove woo._cxxInternal since it is imported already
 	cpm=master.compiledPyModules
 	cc='woo._customConverters'
-	assert cc in cpm
+	#assert cc in cpm # FIXME: temporarily disabled
 	## HACK: import _gts this way until it gets separated
 	cpm=[cc]+[m for m in cpm if m!=cc and m!='woo._cxxInternal']+['_gts']
 	# run imports now

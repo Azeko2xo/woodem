@@ -59,7 +59,7 @@
 #define _YADE_FACTORY_REPEAT(x,y,z) __attribute__((unused)) bool BOOST_PP_CAT(_registered,z)=Master::instance().registerClassFactory(BOOST_PP_STRINGIZE(z),(Master::FactoryFunc)([](void)->shared_ptr<woo::Object>{ return make_shared<z>(); }));
 // priority 500 is greater than priority for log4cxx initialization (in core/main/pyboot.cpp); therefore lo5cxx will be initialized before plugins are registered
 #ifdef __MINGW64__
-	#define WOO__ATTRIBUTE__CONSTRUCTOR
+	#define WOO__ATTRIBUTE__CONSTRUCTOR __attribute__((constructor))
 #else
 	#define WOO__ATTRIBUTE__CONSTRUCTOR __attribute__((constructor))
 #endif
