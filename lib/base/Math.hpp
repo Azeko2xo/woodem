@@ -27,6 +27,17 @@
 // IMPORTANT!!
 #define EIGEN_DONT_ALIGN
 
+
+
+// BEGIN workaround for
+// * http://eigen.tuxfamily.org/bz/show_bug.cgi?id=528
+// * https://sourceforge.net/tracker/index.php?func=detail&aid=3584127&group_id=202880&atid=983354
+// (only needed with gcc <= 4.7)
+// must come before Eigen/Core is included
+#include<stdlib.h>
+#include<sys/stat.h>
+// END workaround
+
 // require eigen3
 //#define EIGEN_NO_DEBUG
 #include<Eigen/Core>
