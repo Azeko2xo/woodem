@@ -60,11 +60,11 @@ def Object_dump(obj,out,format='auto',overwrite=True,fragment=False,width=80,noM
 		if not hasFilename: raise NotImplementedError('Only serialization to files is supported with boost::serialization.') 
 		obj.save(out)
 	elif format=='pickle':
-		if hasFilename: pickle.dump(obj,open(out,'w'))
+		if hasFilename: pickle.dump(obj,open(out,'wb'))
 		else: out.write(pickle.dumps(obj))
 	elif format in ('expr','html','json'): 
 		if hasFilename:
-			out=codecs.open(out,'w','utf-8')
+			out=codecs.open(out,'wb','utf-8')
 		if format=='expr':
 			out.write(SerializerToExpr(maxWd=width,noMagic=noMagic)(obj))
 		elif format=='json':
@@ -354,14 +354,14 @@ def Object_load(typ,inFile,format='auto'):
 		format=None
 		## DO NOT use extensions to determine type, that is evil
 		# check for compression first
-		head=open(inFile).read(100)
+		head=open(inFile,'rb').read(100)
 		# we might want to pass this data to ObjectIO, which currently determines format by looking at extension
 		if head[:2]=='\x1f\x8b':
 			import gzip
-			head=gzip.open(inFile).read(100)
+			head=gzip.open(inFile,'rb').read(100)
 		elif head[:2]=='BZ':
 			import bz2
-			head=bz2.BZ2File(inFile).read(100)
+			head=bz2.BZ2File(inFile,'rb').read(100)
 		# detect real format here (head is uncompressed already)
 		# the string between nulls is 'serialization::archive'
 		# see http://stackoverflow.com/questions/10614215/magic-for-detecting-boostserialization-file
@@ -373,7 +373,7 @@ def Object_load(typ,inFile,format='auto'):
 			format='expr'
 		else:
 			# test pickling by trying to load
-			try: return typeChecked(pickle.load(open(inFile)),typ) # open again to seek to the beginning
+			try: return typeChecked(pickle.load(open(inFile,'rb')),typ) # open again to seek to the beginning
 			except (IOError,KeyError): pass
 			try: return typeChecked(WooJSONDecoder().decode(open(inFile).read()),typ)
 			except (IOError,ValueError): pass
@@ -386,12 +386,12 @@ def Object_load(typ,inFile,format='auto'):
 		# ObjectIO takes care of detecting binary, xml, compression independently
 		return typeChecked(Object._boostLoad(inFile),typ)
 	elif format=='expr':
-		buf=codecs.open(inFile,'r','utf-8').read()
+		buf=codecs.open(inFile,'rb','utf-8').read()
 		return typeChecked(wooExprEval(buf),typ)
 	elif format=='pickle':
-		return typeChecked(pickle.load(open(inFile)),typ)
+		return typeChecked(pickle.load(open(inFile,'rb')),typ)
 	elif format=='json':
-		return typeChecked(WooJSONDecoder().decode(open(inFile).read()),typ)
+		return typeChecked(WooJSONDecoder().decode(open(inFile,'rb').read()),typ)
 	assert(False)
 
 

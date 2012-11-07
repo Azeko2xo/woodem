@@ -40,8 +40,17 @@ Master::Master(){
 }
 
 void Master::cleanupTemps(){
-	LOG_DEBUG_EARLY("Cleaning "<<tmpFileDir);
-	boost::filesystem::path tmpPath(tmpFileDir); boost::filesystem::remove_all(tmpPath);
+	#ifndef __MINGW64__
+		LOG_DEBUG_EARLY("Cleaning "<<tmpFileDir);
+		boost::filesystem::path tmpPath(tmpFileDir);
+		try {
+			boost::filesystem::remove_all(tmpPath);
+		} catch (boost::filesystem::filesystem_error& e){
+			cerr<<"Failed to clean temporary directory "<<tmpFileDir<<endl;
+		}
+	#else
+		cerr<<tmpFileDir<<" not cleaned (Windows limitation), do manually later."<<endl;
+	#endif
 }
 
 const map<string,set<string>>& Master::getClassBases(){return classBases;}

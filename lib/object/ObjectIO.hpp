@@ -57,7 +57,7 @@ struct ObjectIO{
 		boost::iostreams::filtering_ostream out;
 		if(boost::algorithm::ends_with(fileName,".bz2")) out.push(boost::iostreams::bzip2_compressor());
 		if(boost::algorithm::ends_with(fileName,".gz")) out.push(boost::iostreams::gzip_compressor());
-		boost::iostreams::file_sink outSink(fileName);
+		boost::iostreams::file_sink outSink(fileName,std::ios_base::out|std::ios_base::binary);
 		if(!outSink.is_open()) throw std::runtime_error("Error opening file "+fileName+" for writing.");
 		out.push(outSink);
 		if(!out.good()) throw std::logic_error("boost::iostreams::filtering_ostream.good() failed (but "+fileName+" is open for writing)?");
@@ -76,7 +76,7 @@ struct ObjectIO{
 		boost::iostreams::filtering_istream in;
 		if(boost::algorithm::ends_with(fileName,".bz2")) in.push(boost::iostreams::bzip2_decompressor());
 		if(boost::algorithm::ends_with(fileName,".gz")) in.push(boost::iostreams::gzip_decompressor());
-		boost::iostreams::file_source inSource(fileName);
+		boost::iostreams::file_source inSource(fileName,std::ios_base::in|std::ios_base::binary);
 		if(!inSource.is_open()) throw std::runtime_error("Error opening file "+fileName+" for reading.");
 		in.push(inSource);
 		if(!in.good()) throw std::logic_error("boost::iostreams::filtering_istream::good() failed (but "+fileName+" is open for reading)?");

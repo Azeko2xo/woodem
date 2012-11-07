@@ -17,11 +17,9 @@
 #
 #    to the c++ documentation.
 
-from woo import core, dem
-
 # Update docstring of your class/function like this:
 #
-#	wrapper.YourClass.__doc__="""
+#	woo.dem.YourClass.__doc__="""
 #		This class is documented from _extraDocs.py. Yay!
 #
 #		.. note::
@@ -29,35 +27,38 @@ from woo import core, dem
 #	"""
 
 
-#wrapper.Peri3dController.__doc__=r'''
-#Class for controlling independently all 6 components of "engineering" :ref:`stress<Peri3dController.stress>` and :ref:`strain<Peri3dController.strain>` of periodic :ref:``Cell`. :ref:`goal<Peri3dController.goal>` are the goal values, while :ref:`stressMask<Peri3dController.stressMask>` determines which components prescribe stress and which prescribe strain.
-#
-#If the strain is prescribed, appropeiate strain rate is directly applied. If the stress is prescribed, the strain predictor is used: from stress values in two previous steps the value of strain rate is prescribed so as the value of stress in the next step is as close as possible to the ideal one. Current algorithm is extremly simple and probably will be changed in future, but is roboust enough and mostly works fine.
-#
-#Stress error (difference between actual and ideal stress)  is evaluated in current and previous steps ($\mathrm{d}\sigma_i,\mathrm{d}\sigma_{i-1}$. Linear extrapolation is used to estimate error in the next step
-#
-#.. math:: \mathrm{d}\sigma_{i+1}=2\mathrm{d}\sigma_i - \mathrm{d}\sigma_{i-1}
-#
-#According to this error, the strain rate is modified by :ref:`mod<Peri3dController.mod>` parameter
-#
-#.. math:: \mathrm{d}\sigma_{i+1}\left\{\begin{array}{c} >0 \rightarrow \dot{\varepsilon}_{i+1} = \dot{\varepsilon}_i - \max(\mathrm{abs}(\dot{\boldsymbol{\varepsilon}}_i))\cdot\mathrm{mod} \\ <0 \rightarrow \dot{\varepsilon}_{i+1} = \dot{\varepsilon}_i + \max(\mathrm{abs}(\dot{\boldsymbol{\varepsilon}}_i))\cdot\mathrm{mod} \end{array}\right.
-#
-#According to this fact, the prescribed stress will (almost) never have exact prescribed value, but the difference would be very small (and decreasing for increasing :ref:`nSteps<Peri3dController.nSteps>`. This approach works good if one of the dominant strain rates is prescribed. If all stresses are prescribed or if all goal strains is prescribed as zero, a good estimation is needed for the first step, therefore the compliance matrix is estimated (from user defined estimations of macroscopic material parameters :ref:`youngEstimation<Peri3dController.youngEstimation>` and :ref:`poissonEstimation<Peri3dController.poissonEstimation>`) and respective strain rates is computed form prescribed stress rates and compliance matrix (the estimation of compliance matrix could be computed autamatically avoiding user inputs of this kind).
-#
-#The simulation on rotated periodic cell is also supported. Firstly, the `polar decomposition <http://en.wikipedia.org/wiki/Polar_decomposition#Matrix_polar_decomposition>`_ is performed on cell's transformation matrix :ref:`trsf<Cell.trsf>` $\mathcal{T}=\mat{U}\mat{P}$, where $\mat{U}$ is orthogonal (unitary) matrix representing rotation and $\mat{P}$ is a positive semi-definite Hermitian matrix representing strain. A logarithm of $\mat{P}$ should be used to obtain realistic values at higher strain values (not implemented yet). A prescribed strain increment in global coordinates $\mathrm{d}t\cdot\dot{\boldsymbol{\varepsilon}}$ is properly rotated to cell's local coordinates and added to $\mat{P}$
-#
-#.. math:: \mat{P}_{i+1}=\mat{P}+\mat{U}^{\mathsf{T}}\mathrm{d}t\cdot\dot{\boldsymbol{\varepsilon}}\mat{U}
-#
-#The new value of :ref:`trsf<Cell.trsf>` is computed at $\mat{T}_{i+1}=\mat{UP}_{i+1}$. From current and next :ref:`trsf<Cell.trsf>` the cell's velocity gradient :ref:`velGrad<Cell.velGrad>` is computed (according to its definition) as
-#
-#.. math:: \mat{V} = (\mat{T}_{i+1}\mat{T}^{-1}-\mat{I})/\mathrm{d}t
-#
-#Current implementation allow user to define independent loading "path" for each prescribed component. i.e. define the prescribed value as a function of time (or :ref:`progress<Peri3dController.progress>` or steps). See :ref:`Paths<Peri3dController.xxPath>`.
-#
-#Examples :ysrc:`scripts/test/peri3dController_example1` and :ysrc:`scripts/test/peri3dController_triaxialCompression` explain usage and inputs of Peri3dController, :ysrc:`scripts/test/peri3dController_shear` is an example of using shear components and also simulation on rotatd cell.
-#'''
+try:
+	import woo.dem
 
-dem.Cg2_Sphere_Sphere_L6Geom.__doc__=r'''Functor for computing incrementally configuration of 2 :ref:`Spheres<Sphere>` stored in :ref:`L3Geom`; the configuration is positioned in global space by local origin $\vec{c}$ (contact point) and rotation matrix $\mat{T}$ (orthonormal transformation matrix), and its degrees of freedom are local displacement $\vec{u}$ (in one normal and two shear directions); with :ref:`Ig2_Sphere_Sphere_L6Geom` and :ref:`L6Geom`, there is additionally $\vec{\phi}$. The first row of $\mat{T}$, i.e. local $x$-axis, is the contact normal noted $\vec{n}$ for brevity. Additionally, quasi-constant values of $\vec{u}_0$ (and $\vec{\phi}_0$) are stored as shifted origins of $\vec{u}$ (and $\vec{\phi}$); therefore, current value of displacement is always $\curr{\vec{u}}-\vec{u}_0$.
+	#wrapper.Peri3dController.__doc__=r'''
+	#Class for controlling independently all 6 components of "engineering" :ref:`stress<Peri3dController.stress>` and :ref:`strain<Peri3dController.strain>` of periodic :ref:``Cell`. :ref:`goal<Peri3dController.goal>` are the goal values, while :ref:`stressMask<Peri3dController.stressMask>` determines which components prescribe stress and which prescribe strain.
+	#
+	#If the strain is prescribed, appropeiate strain rate is directly applied. If the stress is prescribed, the strain predictor is used: from stress values in two previous steps the value of strain rate is prescribed so as the value of stress in the next step is as close as possible to the ideal one. Current algorithm is extremly simple and probably will be changed in future, but is roboust enough and mostly works fine.
+	#
+	#Stress error (difference between actual and ideal stress)  is evaluated in current and previous steps ($\mathrm{d}\sigma_i,\mathrm{d}\sigma_{i-1}$. Linear extrapolation is used to estimate error in the next step
+	#
+	#.. math:: \mathrm{d}\sigma_{i+1}=2\mathrm{d}\sigma_i - \mathrm{d}\sigma_{i-1}
+	#
+	#According to this error, the strain rate is modified by :ref:`mod<Peri3dController.mod>` parameter
+	#
+	#.. math:: \mathrm{d}\sigma_{i+1}\left\{\begin{array}{c} >0 \rightarrow \dot{\varepsilon}_{i+1} = \dot{\varepsilon}_i - \max(\mathrm{abs}(\dot{\boldsymbol{\varepsilon}}_i))\cdot\mathrm{mod} \\ <0 \rightarrow \dot{\varepsilon}_{i+1} = \dot{\varepsilon}_i + \max(\mathrm{abs}(\dot{\boldsymbol{\varepsilon}}_i))\cdot\mathrm{mod} \end{array}\right.
+	#
+	#According to this fact, the prescribed stress will (almost) never have exact prescribed value, but the difference would be very small (and decreasing for increasing :ref:`nSteps<Peri3dController.nSteps>`. This approach works good if one of the dominant strain rates is prescribed. If all stresses are prescribed or if all goal strains is prescribed as zero, a good estimation is needed for the first step, therefore the compliance matrix is estimated (from user defined estimations of macroscopic material parameters :ref:`youngEstimation<Peri3dController.youngEstimation>` and :ref:`poissonEstimation<Peri3dController.poissonEstimation>`) and respective strain rates is computed form prescribed stress rates and compliance matrix (the estimation of compliance matrix could be computed autamatically avoiding user inputs of this kind).
+	#
+	#The simulation on rotated periodic cell is also supported. Firstly, the `polar decomposition <http://en.wikipedia.org/wiki/Polar_decomposition#Matrix_polar_decomposition>`_ is performed on cell's transformation matrix :ref:`trsf<Cell.trsf>` $\mathcal{T}=\mat{U}\mat{P}$, where $\mat{U}$ is orthogonal (unitary) matrix representing rotation and $\mat{P}$ is a positive semi-definite Hermitian matrix representing strain. A logarithm of $\mat{P}$ should be used to obtain realistic values at higher strain values (not implemented yet). A prescribed strain increment in global coordinates $\mathrm{d}t\cdot\dot{\boldsymbol{\varepsilon}}$ is properly rotated to cell's local coordinates and added to $\mat{P}$
+	#
+	#.. math:: \mat{P}_{i+1}=\mat{P}+\mat{U}^{\mathsf{T}}\mathrm{d}t\cdot\dot{\boldsymbol{\varepsilon}}\mat{U}
+	#
+	#The new value of :ref:`trsf<Cell.trsf>` is computed at $\mat{T}_{i+1}=\mat{UP}_{i+1}$. From current and next :ref:`trsf<Cell.trsf>` the cell's velocity gradient :ref:`velGrad<Cell.velGrad>` is computed (according to its definition) as
+	#
+	#.. math:: \mat{V} = (\mat{T}_{i+1}\mat{T}^{-1}-\mat{I})/\mathrm{d}t
+	#
+	#Current implementation allow user to define independent loading "path" for each prescribed component. i.e. define the prescribed value as a function of time (or :ref:`progress<Peri3dController.progress>` or steps). See :ref:`Paths<Peri3dController.xxPath>`.
+	#
+	#Examples :ysrc:`scripts/test/peri3dController_example1` and :ysrc:`scripts/test/peri3dController_triaxialCompression` explain usage and inputs of Peri3dController, :ysrc:`scripts/test/peri3dController_shear` is an example of using shear components and also simulation on rotatd cell.
+	#'''
+
+	woo.dem.Cg2_Sphere_Sphere_L6Geom.__doc__=r'''Functor for computing incrementally configuration of 2 :ref:`Spheres<Sphere>` stored in :ref:`L3Geom`; the configuration is positioned in global space by local origin $\vec{c}$ (contact point) and rotation matrix $\mat{T}$ (orthonormal transformation matrix), and its degrees of freedom are local displacement $\vec{u}$ (in one normal and two shear directions); with :ref:`Ig2_Sphere_Sphere_L6Geom` and :ref:`L6Geom`, there is additionally $\vec{\phi}$. The first row of $\mat{T}$, i.e. local $x$-axis, is the contact normal noted $\vec{n}$ for brevity. Additionally, quasi-constant values of $\vec{u}_0$ (and $\vec{\phi}_0$) are stored as shifted origins of $\vec{u}$ (and $\vec{\phi}$); therefore, current value of displacement is always $\curr{\vec{u}}-\vec{u}_0$.
 
 Suppose two spheres with radii $r_i$, positions $\vec{x}_i$, velocities $\vec{v}_i$, angular velocities $\vec{\omega}_i$.
 
@@ -129,3 +130,5 @@ If this functor is called for :ref:`L6Geom`, local rotation is updated as
 
 '''
 
+except ImportError:
+	pass # compiled without DEM

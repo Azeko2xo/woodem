@@ -53,8 +53,15 @@ class OpenMPArrayAccumulator{
 			if(nCL_new>nCL){
 				for(size_t th=0; th<nThreads; th++){
 					void* oldChunk=(void*)chunks[th];
-					int succ=posix_memalign((void**)(&chunks[th]),/*alignment*/CLS,/*size*/ nCL_new*CLS);
-					if(succ!=0) throw std::runtime_error("OpenMPArrayAccumulator: posix_memalign failed to allocate memory.");
+					#ifndef __MINGW64__
+						int succ=posix_memalign((void**)(&chunks[th]),/*alignment*/CLS,/*size*/ nCL_new*CLS);
+						if(succ!=0)
+					#else
+						// http://msdn.microsoft.com/en-us/library/8z34s9c6%28v=vs.80%29.aspx
+						chunks[th]=(T*)_aligned_malloc(/*size*/nCL_new*CLS,/*alignment*/CLS);
+						if(chunks[th]==NULL)
+					#endif
+						throw std::runtime_error("OpenMPArrayAccumulator: posix_memalign failed to allocate memory.");
 					if(oldChunk){ // initialized to NULL initially, that must not be copied and freed
 						memcpy(/*dest*/(void*)chunks[th],/*src*/oldChunk,nCL*CLS); // preserve old data
 						free(oldChunk); // deallocate old storage
@@ -102,8 +109,15 @@ class OpenMPAccumulator{
 	public:
 	// initialize storage with _zeroValue, depending on muber of threads
 	OpenMPAccumulator(): CLS(_WOO_L1_CACHE_LINESIZE), nThreads(omp_get_max_threads()), eSize(CLS*(sizeof(T)/CLS+(sizeof(T)%CLS==0 ? 0 :1))) {
-		int succ=posix_memalign(/*where allocated*/(void**)&data,/*alignment*/CLS,/*size*/ nThreads*eSize);
-		if(succ!=0) throw std::runtime_error("OpenMPAccumulator: posix_memalign failed to allocate memory.");
+		#ifndef __MINGW64__
+			int succ=posix_memalign(/*where allocated*/(void**)&data,/*alignment*/CLS,/*size*/ nThreads*eSize);
+			if(succ!=0)
+		#else
+			// http://msdn.microsoft.com/en-us/library/8z34s9c6%28v=vs.80%29.aspx
+			data=(char*)_aligned_malloc(/*size*/nThreads*eSize,/*alignment*/CLS);
+			if(data==NULL)
+		#endif
+				throw std::runtime_error("OpenMPAccumulator: posix_memalign failed to allocate memory.");
 		reset();
 	}
 	~OpenMPAccumulator() { free((void*)data); }

@@ -29,27 +29,35 @@ if wooOptions.ompCores:
 elif wooOptions.ompThreads>1:
 	os.environ['OMP_NUM_THREADS']=str(wooOptions.ompThreads)
 
+import distutils.sysconfig
+WIN=sys.platform=='win32'
+soSuffix=distutils.sysconfig.get_config_vars()['SO']
+#if WIN and 'TERM' in os.environ:
+#	# unbuffered output on windows, in case we're in a real terminal
+#	# http://stackoverflow.com/a/881751
+#	import msvcrt
+#	msvcrt.setmode(sys.stdout.fileno(),os.O_BINARY)
+	
+
 #
 # QUIRKS
 #
-if wooOptions.quirks & wooOptions.quirkIntel:
+if not WIN and (wooOptions.quirks & wooOptions.quirkIntel):
 	import os
 	vgas=os.popen("LC_ALL=C lspci | grep VGA").readlines()
 	if len(vgas)==1 and 'Intel' in vgas[0]:
 		print 'Intel GPU detected, setting LIBGL_ALWAYS_SOFTWARE=1\n\t(use --no-soft-render to disable)'
 		os.environ['LIBGL_ALWAYS_SOFTWARE']='1'
 
-if 0:
-	# this is no longer needed
-	import ctypes,sys,dl
-	# important: initialize c++ by importing libstdc++ directly
-	# see http://www.abclinuxu.cz/poradna/programovani/show/286322
-	# https://bugs.launchpad.net/bugs/490744
-	libstdcxx='${libstdcxx}'
-	ctypes.cdll.LoadLibrary(libstdcxx)
-	
-if 1:
+if WIN:
 	# http://stackoverflow.com/questions/1447575/symlinks-on-windows/4388195#4388195
+	#
+	# unfortunately symlinks are something dangerous under windows, it is a priviledge which must be granted
+	# BUT the user must NOT be in the Administrators group?!
+	# http://superuser.com/questions/124679/how-do-i-create-an-mklink-in-windows-7-home-premium-as-a-regular-user
+	# 
+	# for that reason, we use hardlinks (below), which are allowed to everybody
+	# It will break, however, if the tempdir and woo installation are not on the same partitions
 	def win_symlink(source,link_name):
 		import ctypes, os.path
 		csl=ctypes.windll.kernel32.CreateSymbolicLinkW
@@ -58,7 +66,12 @@ if 1:
 		flags=0
 		if source is not None and os.path.isdir(source): flags=1
 		if csl(link_name,source,flags)==0: raise ctypes.WinError()
-	if sys.platform=='win32': os.symlink=win_symlink
+	def win_hardlink(source,link_name):
+		import ctypes
+		csl=ctypes.windll.kernel32.CreateHardLinkW
+		csl.argtypes=(ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_void_p)
+		csl.restype=ctypes.c_ubyte
+		if csl(link_name,source,None)==0: raise ctypes.WinError()
 			
 
 # enable warnings which are normally invisible, such as DeprecationWarning
@@ -83,8 +96,8 @@ except ImportError:
 	print 'Error importing woo.%s (--flavor=%s).'%(cxxInternalName,wooOptions.flavor if wooOptions.flavor else ' ')
 	#traceback.print_exc()
 	import glob
-	sos=glob.glob(re.sub('__init__.py$','',__file__)+'/_cxxInternal_*.so')
-	flavs=[re.sub(r'(^.*/_cxxInternal_)(.*)(\.so$)',r'\2',so) for so in sos]
+	sos=glob.glob(re.sub('__init__.py$','',__file__)+'/_cxxInternal_*'+soSuffix)
+	flavs=[re.sub('(^.*/_cxxInternal_)(.*)(\\'+soSuffix+'$)',r'\2',so) for so in sos]
 	if sos:
 		maxFlav=max([len(flav) for flav in flavs])
 		print 'Available flavors are:'
@@ -101,17 +114,18 @@ master=core.Master.instance
 #
 # create compiled python modules
 #
-if sys.platform=='win32':
+if 0: 
+	# will only work when http://bugs.python.org/issue16421 is fixed (python 3.4??)
 	import imp
 	for mod in master.compiledPyModules:
 		print 'Loading compiled module',mod,'from',cxxInternalFile
 		# this inserts the module to sys.modules automatically
 		imp.load_dynamic(mod,cxxInternalFile)
 # WORKAROUND: create temporary symlinks
-# this is UGLY and will probably not work on Windows!!
 else:
 	allSubmodules=[]
 	compiledModDir=master.tmpFilename() # this will be a directory
+	#if sys.platform=='win32': compiledModDir=compiledModDir.replace('/','\\')
 	import os,sys
 	os.mkdir(compiledModDir)
 	sys.path=[compiledModDir]+sys.path
@@ -125,14 +139,21 @@ else:
 	# run imports now
 	for mod in cpm:
 		modpath=mod.split('.') 
-		linkName=os.path.join(compiledModDir,modpath[-1])+'.so' # use just the last part to avoid hierarchy
-		os.symlink(os.path.abspath(cxxInternalFile),linkName)
+		linkName=os.path.join(compiledModDir,modpath[-1])+soSuffix # use just the last part to avoid hierarchy
+		if WIN:
+			try:
+				win_hardlink(os.path.abspath(cxxInternalFile),linkName)
+			except:
+				sys.stderr.write('Creating hardlink failed. Is woo installed on the same partition as the temporary directory? (this limitation is Windows-specific)\n')
+				raise
+		else: os.symlink(os.path.abspath(cxxInternalFile),linkName)
 		if 'WOO_DEBUG' in os.environ: print 'Loading compiled module',mod,'from symlink',linkName
+		sys.stdout.flush()
 		try: sys.modules[mod]=__import__(modpath[-1])
 		except ImportError:
 			# compiled without GTS
 			if mod=='_gts':
-				if 'WOO_DEBUG' in os.environ: print 'Loading compiled module _gts: _gts module not compiled-in (ImportError)'
+				if 'WOO_DEBUG' in os.environ: print 'Loading compiled module _gts: _gts module probably not compiled-in (ImportError)'
 				pass 
 			else: raise # otherwise it is serious
 		#__allSubmodules.append(modpath[1])
@@ -149,6 +170,7 @@ else:
 	## HACK: gts in-tree
 	#import woo.gts
 	#sys.modules['gts']=woo.gts
+
 
 
 if wooOptions.ompThreads>1 or wooOptions.ompCores:

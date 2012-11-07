@@ -15,7 +15,7 @@ if 1:
 		macros, objects, extra_postargs, pp_opts, build = self._setup_compile(output_dir, macros, include_dirs, sources, depends, extra_postargs)
 		cc_args = self._get_cc_args(pp_opts, debug, extra_preargs)
 		# parallel code
-		N=3 # number of parallel compilations
+		N=5 # number of parallel compilations
 		import multiprocessing.pool
 		def _single_compile(obj):
 			try: src, ext = build[obj]
@@ -30,6 +30,7 @@ if 1:
 
 pathSourceTree=join('build-src-tree')
 pathSources=join(pathSourceTree,'src')
+pathScripts=join(pathSourceTree,'scripts')
 pathHeaders=join(pathSourceTree,'woo')
 
 ## get version info
@@ -52,7 +53,7 @@ import sys
 WIN=(sys.platform=='win32')
 ##
 if WIN:
-	features=[]
+	features=['openmp']
 	flavor=''
 	debug=True
 else:
@@ -61,7 +62,7 @@ else:
 cxxFlavor=('_'+re.sub('[^a-zA-Z0-9_]','_',flavor) if flavor else '')
 execFlavor=('-'+flavor) if flavor else ''
 cxxInternalModule='_cxxInternal%s%s'%(cxxFlavor,'_debug' if debug else '')
-chunkSize=(10 if WIN else 1)
+chunkSize=(1 if WIN else 10)
 hotCxx=['Factory']
 
 if 'opengl' in features and 'qt4' not in features: raise ValueError("The 'opengl' features is only meaningful in conjunction with 'qt4'.")
@@ -85,11 +86,13 @@ def wooPrepareChunks():
 	global chunkSize
 	if chunkSize<0: chunkSize=10000
 	srcs=[glob('lib/*/*.cpp'),glob('core/*.cpp'),glob('py/*.cpp'),glob('py/*/*.cpp')]
-	#if WIN: srcs=[[s] for s in sum(srcs,[]) if '_utils2.cpp' not in s]
+	if WIN: srcs=[[s] for s in sum(srcs,[])] # compile each file separately even amongst base files
 	if 'opengl' in features: srcs+=[glob('gui/qt4/*.cpp')+glob('gui/qt4/*.cc')]
 	pkg=glob('pkg/*.cpp')+glob('pkg/*/*.cpp')+glob('pkg/*/*/*.cpp')
-	#if WIN: pkg=[]
-	#print srcs,pkg
+	if WIN and False: # exclude all non-core files from the build, to test
+		pkg=[]
+	 	srcs=[s for s in srcs if s!=['py\\_utils2.cpp']]
+	# print srcs,pkg
 	for i in range(0,len(pkg),chunkSize): srcs.append(pkg[i:i+chunkSize])
 	hot=[]
 	for i in range(len(srcs)):
@@ -131,13 +134,21 @@ def wooPrepareQt4():
 			status=subprocess.call(cmd)
 			if status: raise RuntimeError("Error %d returned when running %s"%(status,' '.join(cmd)))
 			if not os.path.exists(fOut): RuntimeError("No output file (though exit status was zero): %s"%(' '.join(cmd)))
+def wooPrepareScripts():
+	'Generate script files with proper names'
+	if not os.path.exists(pathScripts): os.mkdir(pathScripts)
+	for suffix,func in [('','main'),('-batch','batch')]:
+		f=open(join(pathScripts,'woo'+execFlavor+suffix),'w')
+		f.write('#!python\nimport wooMain; wooMain.%s()\n'%func)
+		f.close
 
 # if the following file is missing, we are being run from sdist, which has tree already prepared
-# otherwise, install headers and chunks where they should be
+# otherwise, install headers, chunks and scripts where they should be
 if os.path.exists('examples'):
 	wooPrepareQt4()
 	wooPrepareHeaders()
 	wooPrepareChunks()
+	wooPrepareScripts()
 
 # files are in chunks
 cxxSrcs=['py/config.cxx']+glob(join(pathSources,'*.cpp'))+glob(join(pathSources,'*.c'))
@@ -146,7 +157,7 @@ cxxSrcs=['py/config.cxx']+glob(join(pathSources,'*.cpp'))+glob(join(pathSources,
 # preprocessor, compiler, linker flags
 #
 cppDirs,cppDef,cxxFlags,linkFlags,libDirs=[],[],[],[],[]
-cxxFlags+=['-Wall','-fvisibility=hidden','-std=c++11']
+cxxFlags+=['-Wall','-fvisibility=hidden','-std=c++11','-pipe']
 cppDef+=[
 	('WOO_REVISION',revno),
 	('WOO_VERSION',version),
@@ -158,7 +169,7 @@ cppDef+=[('WOO_'+feature.upper().replace('-','_'),None) for feature in features]
 cppDirs+=[pathSourceTree]+['/usr/include/eigen3']
 if debug:
 	cppDef+=[('WOO_DEBUG',None),('WOO_CAST','dynamic_cast'),('WOO_PTR_CAST','dynamic_pointer_cast')]
-	cxxFlags+=['-g']
+	cxxFlags+=(['-g'] if not WIN else [])
 else:
 	cppDef+=[('WOO_CAST','static_cast'),('WOO_PTR_CAST','static_pointer_cast'),('NDEBUG',None)]
 	cxxFlags+=['-O2']+([] if WIN else ['-march=native'])
@@ -198,13 +209,11 @@ if 'vtk' in features:
 if WIN:
 	cppDirs+=[r'c:\src\boost_1_51_0',r'c:\src\eigen-3.1.1',r'c:\src\loki-0.1.7\include']
 	libDirs+=[r'c:\src\boost_1_51_0\stage\lib']
-	cxxFlags+=['-Wno-strict-aliasing','-Wno-attributes'] # warnings from other headers # -g0 for less debugging info?
+	cxxFlags+=['-g0','-O0','-Wno-strict-aliasing','-Wno-attributes'] # warnings from other headers # -g0 for less debugging info?
 	# see http://stackoverflow.com/questions/4702732/the-program-cant-start-because-libgcc-s-dw2-1-dll-is-missing for discussion of this
 	# does not work anyway
 	# linkFlags+=['-static-libgcc','-static-libstdc++']
-	cppDef+=[('EIGEN_DONT_VECTORIZE',None)] # this might be the cause for "Invalid access to memory location"?
-else:
-	cxxFlags+=['-pipe']
+	#cppDef+=[('EIGEN_DONT_VECTORIZE',None)] # this might be the cause for "Invalid access to memory location"?
 
 wooModules=['woo.'+basename(py)[:-3] for py in glob('py/*.py') if basename(py)!='__init__.py']
 
@@ -257,8 +266,9 @@ setup(name='woo',
 		'console_scripts':[
 			'woo%s = wooMain:main'%execFlavor,
 			'woo%s-batch = wooMain:batch'%execFlavor,
-		]
+		],
 	},
+	scripts=glob(join(pathScripts,'*')),
 	# woo.__init__ makes symlinks to _cxxInternal
 	# see http://stackoverflow.com/a/10618900/761090
 	zip_safe=False, 

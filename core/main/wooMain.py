@@ -123,7 +123,13 @@ def main(sysArgv=None):
 	import woo.config
 	try:
 		import colorama
-		colorama.init()
+		# work around http://code.google.com/p/colorama/issues/detail?id=16
+		# not under Windows, or under Windows in dumb "terminal" (cmd.exe), where autodetection works
+		if sys.platform!='win32': colorama.init()
+		# windows with proper terminal emulator
+		elif 'TERM' in os.environ: colorama.init(autoreset=True,convert=False,strip=False)
+		# dumb windows terminal - no colors for our messages, but IPython prompts is colorized properly
+		else: raise ImportError() # as if we have no colorama
 		green=lambda s: colorama.Fore.GREEN+s+colorama.Fore.RESET
 	except ImportError:
 		green=lambda s: s

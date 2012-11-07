@@ -648,16 +648,17 @@ def Scene_plot_plot(P,noShow=False,subPlots=True):
 def Scene_plot_saveDataTxt(P,fileName,vars=None):
 	"""Save plot data into a (optionally compressed) text file. The first line contains a comment (starting with ``#``) giving variable name for each of the columns. This format is suitable for being loaded for further processing (outside woo) with ``numpy.genfromtxt`` function, which recognizes those variable names (creating numpy array with named entries) and handles decompression transparently.
 
-	>>> import woo.core
+	>>> import woo, woo.core
 	>>> from pprint import pprint
 	>>> S=woo.core.Scene()
 	>>> S.plot.addData(a=1,b=11,c=21,d=31)  # add some data here
 	>>> S.plot.addData(a=2,b=12,c=22,d=32)
 	>>> pprint(S.plot.data)
 	{'a': [1, 2], 'b': [11, 12], 'c': [21, 22], 'd': [31, 32]}
-	>>> S.plot.saveDataTxt('/tmp/dataFile.txt.bz2',vars=('a','b','c'))
+	>>> txt=woo.master.tmpFilename()+'.txt.bz2'
+	>>> S.plot.saveDataTxt(txt,vars=('a','b','c'))
 	>>> import numpy
-	>>> d=numpy.genfromtxt('/tmp/dataFile.txt.bz2',dtype=None,names=True)
+	>>> d=numpy.genfromtxt(txt,dtype=None,names=True)
 	>>> d['a']
 	array([1, 2])
 	>>> d['b']
@@ -670,9 +671,9 @@ def Scene_plot_saveDataTxt(P,fileName,vars=None):
 	data=P.data
 	if not vars:
 		vars=data.keys(); vars.sort()
-	if fileName.endswith('.bz2'): f=bz2.BZ2File(fileName,'w')
-	elif fileName.endswith('.gz'): f=gzip.GzipFile(fileName,'w')
-	else: f=open(fileName,'w')
+	if fileName.endswith('.bz2'): f=bz2.BZ2File(fileName,'wb')
+	elif fileName.endswith('.gz'): f=gzip.GzipFile(fileName,'wb')
+	else: f=open(fileName,'wb')
 	f.write("# "+"\t".join(vars)+"\n")
 	for i in range(len(data[vars[0]])):
 		f.write("\t".join([str(data[var][i]) for var in vars])+"\n")
