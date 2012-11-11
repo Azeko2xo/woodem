@@ -16,7 +16,8 @@ if 0:
 from woo import pack,utils
 from woo.core import *
 from woo.dem import *
-import woo.gl
+try: import woo.gl
+except: pass
 import gts, os.path
 
 # coarsen the original horse if we have it
@@ -54,6 +55,7 @@ S.engines=[
 	Leapfrog(damping=.1),
 	PyRunner(2000,'import woo.timing; woo.timing.stats(); S.stop();'),
 	PyRunner(10,'S.plot.addData(i=S.step,total=S.energy.total(),**S.energy)'),
+	PyRunner(100,'print dict(S.energy)')
 ]
 S.dem.gravity=(0,0,-5000)
 S.dt=.7*utils.pWaveDt()

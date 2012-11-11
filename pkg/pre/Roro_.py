@@ -368,9 +368,9 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 			#periSpanMask=1, # x is periodic
 		),
 		#PyRunner(200,'plot.addData(uf=utils.unbalancedForce(),i=O.scene.step)'),
-		PyRunner(300,'print "%g/%g mass, %d particles, unbalanced %g/'+str(goal)+'"%(woo.makeBandFeedFactory.mass,woo.makeBandFeedFactory.maxMass,len(S.dem.par),woo.utils.unbalancedForce(S))'),
-		PyRunner(300,'if woo.makeBandFeedFactory.mass>=woo.makeBandFeedFactory.maxMass: S.engines[0].damping=1.5*%g'%damping),
-		PyRunner(200,'if woo.utils.unbalancedForce(S)<'+str(goal)+' and woo.makeBandFeedFactory.dead: S.stop()'),
+		PyRunner(300,'import woo\nprint "%g/%g mass, %d particles, unbalanced %g/'+str(goal)+'"%(woo.makeBandFeedFactory.mass,woo.makeBandFeedFactory.maxMass,len(S.dem.par),woo.utils.unbalancedForce(S))'),
+		PyRunner(300,'import woo\nif woo.makeBandFeedFactory.mass>=woo.makeBandFeedFactory.maxMass: S.engines[0].damping=1.5*%g'%damping),
+		PyRunner(200,'import woo\nif woo.utils.unbalancedForce(S)<'+str(goal)+' and woo.makeBandFeedFactory.dead: S.stop()'),
 	]
 	S.dt=.7*utils.spherePWaveDt(psd[0][0],mat.density,mat.young)
 	if dontBlock: return S

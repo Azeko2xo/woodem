@@ -4,6 +4,7 @@
 
 #include<cmath> // workaround for http://boost.2283326.n4.nabble.com/Boost-Python-Compile-Error-s-GCC-via-MinGW-w64-tp3165793p3166760.html
 #include<boost/python.hpp>
+#include<boost/chrono/chrono.hpp>
 
 namespace woo{
 
@@ -19,8 +20,11 @@ struct TimingInfo{
 			struct timespec ts; 
 			clock_gettime(CLOCK_MONOTONIC,&ts); 
 			return delta(1e9*ts.tv_sec+ts.tv_nsec);	
-		#else 
-			throw std::runtime_error("Timing functions are supported only under Linux for now.");
+		#else
+			// TODO: check that this works reliably under both Linux and Windows
+			// then get rid of clock_gettime
+			auto now=boost::chrono::steady_clock::now();
+			return delta(boost::chrono::duration_cast<boost::chrono::nanoseconds>(now.time_since_epoch()).count());
 		#endif
 	}
 	static bool enabled;

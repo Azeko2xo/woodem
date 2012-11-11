@@ -16,6 +16,7 @@ everywhere.
 import wooOptions
 import warnings,traceback
 import sys,os,os.path,re,string
+import gts # HACK: early import of GTS to avoid "Instalid access to memory location" when imported later (?!)
 
 # we cannot check for the 'openmp' feature yet, since woo.config is a compiled module
 # we set the variable as normally, but will warn below, once the compiled module is imported
@@ -177,7 +178,7 @@ if wooOptions.ompThreads>1 or wooOptions.ompCores:
 	if 'openmp' not in config.features:
 		warnings.warn('--threads and --cores ignored, since compiled without OpenMP.')
 	elif master.numThreads!=wooOptions.ompThreads:
-		warnings.watn('--threads/--cores did not set number of OpenMP threads correctly (requested %d, current %d). Was OpenMP initialized in this process already?'%(wooOptions.ompThreads,master.numThreads))
+		warnings.warn('--threads/--cores did not set number of OpenMP threads correctly (requested %d, current %d). Was OpenMP initialized in this process already?'%(wooOptions.ompThreads,master.numThreads))
 
 if wooOptions.clDev:
 	if 'opencl' in config.features:

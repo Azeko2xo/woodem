@@ -11,19 +11,24 @@ if 1:
 	import warnings
 	warnings.filterwarnings('ignore',category=DeprecationWarning,module='Xlib')
 
-	import Xlib.display
-	# PyQt4's QApplication does exit(1) if it is unable to connect to the display
-	# we however want to handle this gracefully, therefore
-	# we test the connection with bare xlib first, which merely raises DisplayError
-	try:
-		# contrary to display.Display, _BaseDisplay does not check for extensions and that avoids spurious message "Xlib.protocol.request.QueryExtension" (bug?)
-		Xlib.display._BaseDisplay();
+	import sys
+	if sys.platform=='win32':
+		# assume display is always available at Windows
 		woo.runtime.hasDisplay=True
-	except: 
-		# usually Xlib.error.DisplayError, but there can be Xlib.error.XauthError etc as well
-		# let's just pretend any exception means the display would not work
-		woo.runtime.hasDisplay=False
-		raise ImportError("Connecting to $DISPLAY failed, unable to activate the woo.qt4 interface.")
+	else:
+		import Xlib.display
+		# PyQt4's QApplication does exit(1) if it is unable to connect to the display
+		# we however want to handle this gracefully, therefore
+		# we test the connection with bare xlib first, which merely raises DisplayError
+		try:
+			# contrary to display.Display, _BaseDisplay does not check for extensions and that avoids spurious message "Xlib.protocol.request.QueryExtension" (bug?)
+			Xlib.display._BaseDisplay();
+			woo.runtime.hasDisplay=True
+		except: 
+			# usually Xlib.error.DisplayError, but there can be Xlib.error.XauthError etc as well
+			# let's just pretend any exception means the display would not work
+			woo.runtime.hasDisplay=False
+			raise ImportError("Connecting to $DISPLAY failed, unable to activate the woo.qt4 interface.")
 
 #import woo.runtime
 #if not woo.runtime.hasDisplay:

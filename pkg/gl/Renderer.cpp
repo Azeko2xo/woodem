@@ -213,7 +213,14 @@ void Renderer::setLighting(){
 	glEnable(GL_LINE_SMOOTH);
 	//glEnable(GL_POLYGON_SMOOTH);
 	glShadeModel(GL_SMOOTH);
-	glEnable(GL_RESCALE_NORMAL);
+	#ifdef __MINGW64__ 
+		// see http://www.opengl.org/discussion_boards/showthread.php/133406-GL_RESCALE_NORMAL-in-VC
+		// why is glext.h not in mingw:
+		//    * http://sourceforge.net/projects/mingw-w64/forums/forum/723797/topic/3572810
+		glEnable(GL_NORMALIZE);
+	#else
+		glEnable(GL_RESCALE_NORMAL);
+	#endif
 	// important for rendering text, to avoid repetivie glDisable(GL_TEXTURE_2D) ... glEnable(GL_TEXTURE_2D)
 	// glBindTexture(GL_TEXTURE_2D,0);
 };

@@ -1,3 +1,4 @@
+import woo
 from woo import utils,pack
 from woo.dem import *
 from woo.core import *
@@ -24,6 +25,8 @@ for i,x in enumerate((-2,0,2,4,6,8,10.5,12,14)):
 S.dem.collectNodes()
 S.saveTmp()
 
-from woo import gl
-gl.Gl1_Wall.div=10
-gl.Gl1_InfCylinder.wire=True
+try:
+	from woo import gl
+	gl.Gl1_Wall.div=10
+	gl.Gl1_InfCylinder.wire=True
+except ImportError: pass

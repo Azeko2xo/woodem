@@ -78,7 +78,8 @@ int OpenGLManager::waitForNewView(float timeout,bool center){
 	emitCreateView();
 	float t=0;
 	while(views.size()!=origViewCount+1){
-		usleep(50000); t+=.05;
+		boost::this_thread::sleep(boost::posix_time::milliseconds(50));
+		t+=.05;
 		// wait at most 5 secs
 		if(t>=timeout) {
 			LOG_ERROR("Timeout waiting for the new view to open, giving up."); return -1;

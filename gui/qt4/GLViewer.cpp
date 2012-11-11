@@ -72,10 +72,9 @@ void SnapshotEngine::run(){
 	glv->setSnapshotFormat(QString(format.c_str()));
 	glv->nextFrameSnapshotFilename=fss.str();
 	// wait for the renderer to save the frame (will happen at next postDraw)
-	timespec t1,t2; t1.tv_sec=0; t1.tv_nsec=10000000; /* 10 ms */
 	long waiting=0;
 	while(!glv->nextFrameSnapshotFilename.empty()){
-		nanosleep(&t1,&t2); waiting++;
+		boost::this_thread::sleep(boost::posix_time::milliseconds(10)); waiting++;
 		if(((waiting) % 1000)==0) LOG_WARN("Already waiting "<<waiting/100<<"s for snapshot to be saved. Something went wrong?");
 		if(waiting/100.>deadTimeout){
 			if(ignoreErrors){ LOG_WARN("Timeout waiting for snapshot to be saved, making myself Engine::dead"); dead=true; return; }
@@ -83,7 +82,7 @@ void SnapshotEngine::run(){
 		}
 	}
 	snapshots.push_back(fss.str());
-	usleep((long)(msecSleep*1000));
+	boost::this_thread::sleep(boost::posix_time::microseconds(msecSleep));
 	if(!plot.empty()){ pyRunString("import woo.plot; woo.plot.addImgData("+plot+"='"+fss.str()+"')"); }
 }
 

@@ -375,7 +375,7 @@ def Object_load(typ,inFile,format='auto'):
 			# test pickling by trying to load
 			try: return typeChecked(pickle.load(open(inFile,'rb')),typ) # open again to seek to the beginning
 			except (IOError,KeyError): pass
-			try: return typeChecked(WooJSONDecoder().decode(open(inFile).read()),typ)
+			try: return typeChecked(WooJSONDecoder().decode(open(inFile,'rb').read()),typ)
 			except (IOError,ValueError): pass
 		if not format: raise RuntimeError('File format detection failed on %s (head: %s)'%(inFile,''.join(["\\x%02x"%ord(x) for x in head])))
 	if format not in validFormats: raise RuntimeError("format='%s'??"%format)

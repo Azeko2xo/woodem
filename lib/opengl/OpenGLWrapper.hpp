@@ -12,13 +12,14 @@
 #error "This build doesn't support openGL. Therefore, this header must not be used."
 #endif
 
+#include<woo/lib/base/Types.hpp>
 #include<woo/lib/base/Math.hpp>
 
-
-// disable temporarily
-//#include<boost/static_assert.hpp>
-//#define STATIC_ASSERT(arg) 
-
+#if defined(__MINGW64__) && !defined(WIN32_LEAN_AND_MEAN)
+	// OpenGL includes windows stuff here, get rid of namespace pollution by this
+	// see http://cibcwiki.sci.utah.edu/cibc/wiki/index.php/CIBC:Project:Windows#Quirky_macro_expansion
+	#define WIN32_LEAN_AND_MEAN
+#endif
 
 #include<GL/gl.h>
 #include<GL/glut.h>

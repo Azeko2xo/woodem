@@ -53,7 +53,7 @@ import sys
 WIN=(sys.platform=='win32')
 ##
 if WIN:
-	features=['openmp']
+	features=['openmp','vtk','qt4','opengl']
 	flavor=''
 	debug=True
 else:
@@ -123,13 +123,21 @@ def wooPrepareQt4():
 		('gui/qt4/GLViewer.hpp','gui/qt4/moc_GLViewer.cc'),
 		('gui/qt4/OpenGLManager.hpp','gui/qt4/moc_OpenGLManager.cc')
 	]
-	if 'opengl' not in features:
-		for __,out in mocInOut:
-			if os.path.exists(out): os.unlink(out) # delete files which would be useless
-		mocInOut=[]
-	for tool,opts,inOut in [('pyrcc4',[],rccInOut),('pyuic4',[],uicInOut),('moc',['-DWOO_OPENGL','-DWOO_QT4'],mocInOut)]:
+	#if 'opengl' not in features:
+	#	for __,out in mocInOut:
+	#		if os.path.exists(out): os.unlink(out) # delete files which would be useless
+	#	mocInOut=[]
+	if not WIN: pyuic4=['pyuic4']
+	else:
+		# this is ugly
+		# pyuic is a batch file, which is not runnable from mingw shell directly
+		# find the real exacutable then
+		import PyQt4.uic
+		pyuic4=['python',PyQt4.uic.__file__[:-12]+'pyuic.py']
+	for tool,opts,inOut,enabled in [(['pyrcc4'],[],rccInOut,True),(pyuic4,[],uicInOut,True),(['moc'],['-DWOO_OPENGL','-DWOO_QT4'],mocInOut,('opengl' in features))]:
+		if not enabled: continue
 		for fIn,fOut in inOut:
-			cmd=[tool]+opts+[fIn,'-o',fOut]
+			cmd=tool+opts+[fIn,'-o',fOut]
 			print ' '.join(cmd)
 			status=subprocess.call(cmd)
 			if status: raise RuntimeError("Error %d returned when running %s"%(status,' '.join(cmd)))
@@ -161,12 +169,16 @@ cxxFlags+=['-Wall','-fvisibility=hidden','-std=c++11','-pipe']
 cppDef+=[
 	('WOO_REVISION',revno),
 	('WOO_VERSION',version),
-	('WOO_SOURCE_ROOT',dirname(__file__)),
+	('WOO_SOURCE_ROOT',dirname(os.path.abspath(__file__)).replace('\\','\\\\')),
 	('WOO_FLAVOR',flavor),
 	('WOO_CXX_FLAVOR',cxxFlavor),
 ]
 cppDef+=[('WOO_'+feature.upper().replace('-','_'),None) for feature in features]
-cppDirs+=[pathSourceTree]+['/usr/include/eigen3']
+cppDirs+=[pathSourceTree]
+if not WIN:
+	cppDirs+=['/usr/include/eigen3']
+else:
+	cppDirs+=['c:/MinGW64/include']
 if debug:
 	cppDef+=[('WOO_DEBUG',None),('WOO_CAST','dynamic_cast'),('WOO_PTR_CAST','dynamic_pointer_cast')]
 	cxxFlags+=(['-g'] if not WIN else [])
@@ -183,7 +195,8 @@ cxxLibs=['m',
 	'boost_filesystem',
 	'boost_iostreams',
 	'boost_regex',
-	'boost_serialization'
+	'boost_serialization',
+	'boost_chrono',
 ]+(['ws2_32'] # boost::asio::ip on Windows
 	if WIN else
 	['rt']) # realtime clock 
@@ -194,22 +207,29 @@ if 'openmp' in features:
 	cxxLibs.append('gomp')
 	cxxFlags.append('-fopenmp')
 if 'opengl' in features:
-	cxxLibs+=['GL','GLU','glut','gle','qglviewer-qt4']
+	if WIN: cxxLibs+=['opengl32','glu32','glut','QGLViewer2']
+	else: cxxLibs+=['GL','GLU','glut','gle','qglviewer-qt4']
 	# qt4 without OpenGL is pure python and needs no additional compile options
 	if ('qt4' in features):
 		cppDef+=[('QT_CORE_LIB',None),('QT_GUI_LIB',None),('QT_OPENGL_LIB',None),('QT_SHARED',None)]
-		cppDirs+=['/usr/include/qt4']
-		cppDirs+=['/usr/include/qt4/'+component for component in ('QtCore','QtGui','QtOpenGL','QtXml')]
+		if WIN:
+			cppDirs+=['c:/MinGW64/include/'+component for component in ('QtCore','QtGui','QtOpenGL','QtXml')]
+			cxxLibs+=['QtCore4','QtGui4','QtOpenGL4','QtXml4']
+		else: cppDirs+=['/usr/include/qt4']+['/usr/include/qt4/'+component for component in ('QtCore','QtGui','QtOpenGL','QtXml')]
+		# cxxLibs+=['QtGui4','QtCore4','QtOpenGL4','
 if 'vtk' in features:
 	cxxLibs+=['vtkCommon','vtkHybrid','vtkRendering','vtkIO','vtkFiltering']
-	vtks=glob('/usr/include/vtk-*')
+	if WIN:
+		libDirs+=glob(r'c:\MinGW64\lib\vtk-*')
+		cxxLibs+=['vtksys']
+	vtks=(glob('/usr/include/vtk-*') if not WIN else glob(r'c:\MinGW64\include\vtk-*'))
 	if not vtks: raise ValueError("No header directory for VTK detected.")
 	elif len(vtks)>1: raise ValueError("Multiple header directories for VTK detected: "%','.join(vtks))
 	cppDirs+=[vtks[0]]
 if WIN:
 	cppDirs+=[r'c:\src\boost_1_51_0',r'c:\src\eigen-3.1.1',r'c:\src\loki-0.1.7\include']
 	libDirs+=[r'c:\src\boost_1_51_0\stage\lib']
-	cxxFlags+=['-g0','-O0','-Wno-strict-aliasing','-Wno-attributes'] # warnings from other headers # -g0 for less debugging info?
+	cxxFlags+=['-g0','-Os','-Wno-strict-aliasing','-Wno-attributes'] # warnings from other headers # -g0 for less debugging info?
 	# see http://stackoverflow.com/questions/4702732/the-program-cant-start-because-libgcc-s-dw2-1-dll-is-missing for discussion of this
 	# does not work anyway
 	# linkFlags+=['-static-libgcc','-static-libstdc++']
