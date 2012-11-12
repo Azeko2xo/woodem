@@ -207,7 +207,7 @@ if 'openmp' in features:
 	cxxLibs.append('gomp')
 	cxxFlags.append('-fopenmp')
 if 'opengl' in features:
-	if WIN: cxxLibs+=['opengl32','glu32','glut','QGLViewer2']
+	if WIN: cxxLibs+=['opengl32','glu32','glut','gle','QGLViewer2']
 	else: cxxLibs+=['GL','GLU','glut','gle','qglviewer-qt4']
 	# qt4 without OpenGL is pure python and needs no additional compile options
 	if ('qt4' in features):

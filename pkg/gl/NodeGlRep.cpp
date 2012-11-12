@@ -8,15 +8,9 @@
 #include<woo/core/Scene.hpp>
 #include<woo/pkg/gl/Renderer.hpp>
 
-#ifndef __MINGW64__
-	#include<GL/gle.h>
-#endif
+#include<GL/gle.h>
 
-WOO_PLUGIN(gl,(ScalarGlRep)(VectorGlRep)
-	#ifndef __MINGW64__
-		(TensorGlRep)
-	#endif
-(ActReactGlRep)(CylGlRep));
+WOO_PLUGIN(gl,(ScalarGlRep)(VectorGlRep)(TensorGlRep)(ActReactGlRep)(CylGlRep));
 
 void ScalarGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
 	Vector3r color=(range?range->color(val):CompUtils::scalarOnColorScale(val,0,1));
@@ -88,7 +82,6 @@ void ActReactGlRep::renderDoubleArrow(const Vector3r& pos, const Vector3r& arr, 
 	if(posStart){ GLUtils::GLDrawArrow(pos+offset,pos+offset+arr,color); GLUtils::GLDrawArrow(pos-offset,pos-offset-arr,color); }
 	else        { GLUtils::GLDrawArrow(pos+offset-arr,pos+offset,color); GLUtils::GLDrawArrow(pos-offset+arr,pos-offset,color); }
 }
-#ifndef __MINGW64__
 
 void TensorGlRep::postLoad(TensorGlRep&){
 	// symmetrize the tensor
@@ -162,7 +155,6 @@ void TensorGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
 	}
 }
 
-#endif
 
 void CylGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
 	Real radius=viewInfo->sceneRadius*relSz*(isnan(rad)?1:(rangeRad?rangeRad->norm(rad):1));
