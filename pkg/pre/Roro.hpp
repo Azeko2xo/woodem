@@ -27,6 +27,7 @@ struct Roro: public Preprocessor {
 				for(size_t i=0;i<cylXzd.size()-1;i++) gap=min(gap,(Vector2r(cylXzd[i][0],cylXzd[i][1])-Vector2r(cylXzd[i+1][0],cylXzd[i+1][1])).norm()-cylXzd[i][2]/2.-cylXzd[i][2]/2.);
 			}
 		#endif
+		for(auto& p:{reportFmt,feedCacheDir,saveFmt,vtkPrefix,}) Preprocessor::fixWindowsPath(p);
 	}
 	WOO_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(Roro,Preprocessor,"Preprocessor for the Rollenrost simulation.",
 		((Real,cylLenReal,2,AttrTrait<>().lenUnit().triggerPostLoad().startGroup("General"),"Real length of cylinders"))
@@ -57,12 +58,12 @@ struct Roro: public Preprocessor {
 		((Real,totMass ,,AttrTrait<>().readonly().massUnit(),"mass amount"))
 
 		// Outputs
-		((string,reportFmt,"/tmp/{tid}.xhtml",AttrTrait<>().startGroup("Outputs"),"Report output format (Scene.tags can be used)."))
-		((string,feedCacheDir,".",,"Directory where to store pre-generated feed packings"))
-		((string,saveFmt,"/tmp/{tid}-{stage}.bin.gz",,"Savefile format; keys are :ref:`Scene.tags` and additionally ``{stage}`` will be replaced by 'init', 'steady' and 'done'."))
+		((string,reportFmt,"/tmp/{tid}.xhtml",AttrTrait<>().startGroup("Outputs").triggerPostLoad(),"Report output format (Scene.tags can be used)."))
+		((string,feedCacheDir,".",AttrTrait<>().triggerPostLoad(),"Directory where to store pre-generated feed packings"))
+		((string,saveFmt,"/tmp/{tid}-{stage}.bin.gz",AttrTrait<>().triggerPostLoad(),"Savefile format; keys are :ref:`Scene.tags` and additionally ``{stage}`` will be replaced by 'init', 'steady' and 'done'."))
 		((int,backupSaveTime,1800,,"How often to save backup of the simulation (0 or negative to disable)"))
 		((Real,vtkFreq,4,AttrTrait<>(),"How often should VtkExport run, relative to *factStepPeriod*. If negative, run never."))
-		((string,vtkPrefix,"/tmp/{tid}-",,"Prefix for saving VtkExport data; formatted with ``format()`` providing :ref:`Scene.tags` as keys."))
+		((string,vtkPrefix,"/tmp/{tid}-",AttrTrait<>().triggerPostLoad(),"Prefix for saving VtkExport data; formatted with ``format()`` providing :ref:`Scene.tags` as keys."))
 		((vector<string>,reportHooks,,AttrTrait<>().noGui(),"Python expressions returning a 3-tuple with 1. raw HTML to be included in the report, 2. list of (figureName,matplotlibFigure) to be included in figures, 3. dictionary to be added to the 'custom' dict saved in the database."))
 
 		// Tunables

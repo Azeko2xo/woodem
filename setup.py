@@ -48,14 +48,18 @@ if not version:
 import sys
 WIN=(sys.platform=='win32')
 
+##
 ## build options
-features=['qt4','vtk','opengl','gts']
-if not ('CC' in os.environ and os.environ['CC'].endswith('clang')): features+=['openmp']
+##
+features=['qt4','vtk','opengl','gts','openmp']
+if 'CC' in os.environ and os.environ['CC'].endswith('clang')): features.remove('openmp')
 flavor=('' if WIN else 'distutils')
 debug=False
 chunkSize=(1 if WIN else 10)
 hotCxx=['Factory']
+##
 ## end build options
+##
 
 
 cxxFlavor=('_'+re.sub('[^a-zA-Z0-9_]','_',flavor) if flavor else '')
@@ -161,37 +165,29 @@ if os.path.exists('examples'):
 	wooPrepareHeaders()
 	wooPrepareChunks()
 	wooPrepareScripts()
-
 # files are in chunks
 cxxSrcs=['py/config.cxx']+glob(join(pathSources,'*.cpp'))+glob(join(pathSources,'*.c'))
 
-#
-# preprocessor, compiler, linker flags
-#
-cppDirs,cppDef,cxxFlags,linkFlags,libDirs=[],[],[],[],[]
-cxxFlags+=['-Wall','-fvisibility=hidden','-std=c++11','-pipe']
+###
+### preprocessor, compiler, linker flags
+###
+cppDirs,cppDef,cxxFlags,cxxLibs,linkFlags,libDirs=[],[],[],[],[],[]
+##
+## general
+##
 cppDef+=[
 	('WOO_REVISION',revno),
 	('WOO_VERSION',version),
-	('WOO_SOURCE_ROOT',dirname(os.path.abspath(__file__)).replace('\\','\\\\')),
+	('WOO_SOURCE_ROOT',dirname(os.path.abspath(__file__)).replace('\\','/')),
 	('WOO_FLAVOR',flavor),
 	('WOO_CXX_FLAVOR',cxxFlavor),
 ]
 cppDef+=[('WOO_'+feature.upper().replace('-','_'),None) for feature in features]
 cppDirs+=[pathSourceTree]
-if not WIN:
-	cppDirs+=['/usr/include/eigen3']
-else:
-	cppDirs+=['c:/MinGW64/include']
-if debug:
-	cppDef+=[('WOO_DEBUG',None),('WOO_CAST','dynamic_cast'),('WOO_PTR_CAST','dynamic_pointer_cast')]
-	cxxFlags+=(['-g'] if not WIN else [])
-else:
-	cppDef+=[('WOO_CAST','static_cast'),('WOO_PTR_CAST','static_pointer_cast'),('NDEBUG',None)]
-	cxxFlags+=['-O2']+([] if WIN else ['-march=native'])
-	linkFlags+=['-Wl,--strip-all']
 
-cxxLibs=['m',
+cxxFlags+=['-Wall','-fvisibility=hidden','-std=c++11','-pipe']
+
+cxxLibs+=['m',
 	'boost_python',
 	'boost_system',
 	'boost_thread',
@@ -200,13 +196,35 @@ cxxLibs=['m',
 	'boost_iostreams',
 	'boost_regex',
 	'boost_serialization',
-	'boost_chrono',
-]+(['ws2_32'] # boost::asio::ip on Windows
-	if WIN else
-	['rt']) # realtime clock 
+	'boost_chrono']
+##
+## Platform-specific
+##
 if WIN:
-	boostSuffix='-mgw47-mt-1_51'
-	cxxLibs=[(lib+boostSuffix if lib.startswith('boost_') else lib) for lib in cxxLibs]
+	cppDirs+=['c:/MinGW64/include','c:/MinGW64/include/eigen3','c:/MinGW64/include/boost-1_51']
+	# avoid warnings from other headers
+	# avoid hitting section limit by inlining
+	cxxFlags+=['-Wno-strict-aliasing','-Wno-attributes','-finline-functions'] 	
+	boostTag='-mgw47-mt-1_51'
+	cxxLibs=[(lib+boostTag if lib.startswith('boost_') else lib) for lib in cxxLibs]
+	cxxLibs+=['ws2_32'] # boost::asio::ip needs this (for host name lookup; not yet used)
+else:
+	cppDirs+=['/usr/include/eigen3']
+	# cxxLibs+=['rt']  # this is probably not needed anymore, since we switched to boost::chrono
+	
+##
+## Debug-specific
+##
+if debug:
+	cppDef+=[('WOO_DEBUG',None),('WOO_CAST','dynamic_cast'),('WOO_PTR_CAST','dynamic_pointer_cast')]
+	cxxFlags+=['-g']
+else:
+	cppDef+=[('WOO_CAST','static_cast'),('WOO_PTR_CAST','static_pointer_cast'),('NDEBUG',None)]
+	cxxFlags+=['-g0','-O3']+(['-march=corei7'] if WIN else ['-march=native'])
+	linkFlags+=['-Wl,--strip-all']
+##
+## Feature-specific
+##
 if 'openmp' in features:
 	cxxLibs.append('gomp')
 	cxxFlags.append('-fopenmp')
@@ -224,9 +242,9 @@ if 'opengl' in features:
 if 'vtk' in features:
 	cxxLibs+=['vtkCommon','vtkHybrid','vtkRendering','vtkIO','vtkFiltering']
 	if WIN:
-		libDirs+=glob(r'c:\MinGW64\lib\vtk-*')
+		libDirs+=glob('c:/MinGW64/lib/vtk-*')
 		cxxLibs+=['vtksys']
-	vtks=(glob('/usr/include/vtk-*') if not WIN else glob(r'c:\MinGW64\include\vtk-*'))
+	vtks=(glob('/usr/include/vtk-*') if not WIN else glob('c:/MinGW64/include/vtk-*'))
 	if not vtks: raise ValueError("No header directory for VTK detected.")
 	elif len(vtks)>1: raise ValueError("Multiple header directories for VTK detected: "%','.join(vtks))
 	cppDirs+=[vtks[0]]
@@ -235,16 +253,6 @@ if 'gts' in features:
 	cxxLibs+=['gts']+c['libraries']
 	cppDirs+=c['include_dirs']
 	libDirs+=c['library_dirs']
-
-	
-if WIN:
-	cppDirs+=[r'c:\src\boost_1_51_0',r'c:\src\eigen-3.1.1',r'c:\src\loki-0.1.7\include']
-	libDirs+=[r'c:\src\boost_1_51_0\stage\lib']
-	cxxFlags+=['-g0','-Os','-Wno-strict-aliasing','-Wno-attributes'] # warnings from other headers # -g0 for less debugging info?
-	# see http://stackoverflow.com/questions/4702732/the-program-cant-start-because-libgcc-s-dw2-1-dll-is-missing for discussion of this
-	# does not work anyway
-	# linkFlags+=['-static-libgcc','-static-libstdc++']
-	#cppDef+=[('EIGEN_DONT_VECTORIZE',None)] # this might be the cause for "Invalid access to memory location"?
 
 wooModules=['woo.'+basename(py)[:-3] for py in glob('py/*.py') if basename(py)!='__init__.py']
 
@@ -293,14 +301,16 @@ setup(name='woo',
 			extra_link_args=linkFlags,
 		),
 	],
+	# ignored under windows? http://stackoverflow.com/questions/13271085/console-scripts-entry-point-ignored
 	entry_points={
 		'console_scripts':[
 			'woo%s = wooMain:main'%execFlavor,
 			'woo%s-batch = wooMain:batch'%execFlavor,
 		],
 	},
+	# workaround for windows, instead of entry_points['sonsole_scripts']
 	scripts=glob(join(pathScripts,'*')),
-	# woo.__init__ makes symlinks to _cxxInternal
+	# woo.__init__ makes symlinks to _cxxInternal, which would not be possible if zipped
 	# see http://stackoverflow.com/a/10618900/761090
 	zip_safe=False, 
 )

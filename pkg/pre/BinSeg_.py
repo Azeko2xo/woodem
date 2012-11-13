@@ -593,6 +593,10 @@ def writeReport():
 		print e.start,e.end
 		print s[max(0,e.start-20):min(e.end+20,len(s))]
 		raise e
+		
+	if not batch.inBatch():
+		import webbrowser
+		webbrowser.open('file://'+os.path.abspath(repName),new=2) # new=2: new tab if possible
 
 	return os.path.abspath(repName),extraResults
 
