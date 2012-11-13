@@ -99,6 +99,12 @@ void wooInitialize(){
 	master.pyRegisterAllClasses();
 }
 
+#ifdef WOO_GTS
+	// this module is compiled from separate sources (in py/3rd-party/pygts)
+	// but we will register it here
+	WOO_PYTHON_MODULE(_gts);
+#endif
+
 // NB: this module does NOT use WOO_PYTHON_MODULE, since the file is really called _cxxInternal[_flavor][_debug].so
 // and is a real real python module
 // 

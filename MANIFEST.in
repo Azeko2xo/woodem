@@ -1,9 +1,12 @@
 graft build-src-tree
 recursive-include lib *.cpp
+recursive-include lib *.hpp
 recursive-include lib *.ipp
 recursive-include core *.cpp
 recursive-include pkg *.cpp
 recursive-include py *.cpp
+recursive-include py *.h
+recursive-include py *.c
 recursive-include gui *.cpp
 recursive-include gui *.cc
 recursive-include gui *.hpp

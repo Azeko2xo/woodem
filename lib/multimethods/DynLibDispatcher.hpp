@@ -9,14 +9,14 @@
 #pragma once
 
 
-#include "Indexable.hpp"
+#include<woo/lib/multimethods/Indexable.hpp>
 
 #include<woo/lib/object/Object.hpp>
 
-#include<loki/Functor.h>
-#include<loki/Typelist.h>
-#include<loki/TypeManip.h>
-#include<loki/NullType.h>
+#include<woo/lib/multimethods/loki/Functor.h>
+#include<woo/lib/multimethods/loki/Typelist.h>
+#include<woo/lib/multimethods/loki/TypeManip.h>
+#include<woo/lib/multimethods/loki/NullType.h>
 // compat with former woo's local Loki
 #define TYPELIST_1 LOKI_TYPELIST_1
 #define TYPELIST_2 LOKI_TYPELIST_2

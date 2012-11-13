@@ -725,9 +725,7 @@ static PyMethodDef gts_methods[] = {
 #ifndef PyMODINIT_FUNC	/* declarations for DLL import/export */
 #define PyMODINIT_FUNC void
 #endif
-
 PyMODINIT_FUNC
-/* this is needed when compiling with distutils? */ __attribute__((visibility("default")))
 init_gts(void) 
 {
   PyObject* m;

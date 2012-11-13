@@ -28,6 +28,7 @@
 	// Linux
 	#define _WOO_L1_CACHE_LINESIZE (sysconf(_SC_LEVEL1_DCACHE_LINESIZE)>0 ? sysconf(_SC_LEVEL1_DCACHE_LINESIZE) : 64)
 #else
+	// Windows
 	#define _WOO_L1_CACHE_LINESIZE 64
 #endif
 
@@ -61,7 +62,7 @@ class OpenMPArrayAccumulator{
 						chunks[th]=(T*)_aligned_malloc(/*size*/nCL_new*CLS,/*alignment*/CLS);
 						if(chunks[th]==NULL)
 					#endif
-						throw std::runtime_error("OpenMPArrayAccumulator: posix_memalign failed to allocate memory.");
+						throw std::runtime_error("OpenMPArrayAccumulator: _aligned_malloc/posix_memalign failed to allocate memory.");
 					if(oldChunk){ // initialized to NULL initially, that must not be copied and freed
 						memcpy(/*dest*/(void*)chunks[th],/*src*/oldChunk,nCL*CLS); // preserve old data
 						free(oldChunk); // deallocate old storage
@@ -117,7 +118,7 @@ class OpenMPAccumulator{
 			data=(char*)_aligned_malloc(/*size*/nThreads*eSize,/*alignment*/CLS);
 			if(data==NULL)
 		#endif
-				throw std::runtime_error("OpenMPAccumulator: posix_memalign failed to allocate memory.");
+				throw std::runtime_error("OpenMPAccumulator: posix_memalign/_aligned_malloc failed to allocate memory.");
 		reset();
 	}
 	~OpenMPAccumulator() { free((void*)data); }

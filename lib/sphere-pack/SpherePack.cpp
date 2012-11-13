@@ -10,6 +10,8 @@
 #include<boost/filesystem/convenience.hpp>
 #include<boost/tokenizer.hpp>
 
+#include<boost/chrono/chrono.hpp>
+
 
 #include<iostream>
 #include<fstream>
@@ -28,14 +30,7 @@ using std::invalid_argument;
 
 // seed for random numbers
 unsigned long long getNow(){
-	#ifndef __MINGW64__
-		struct timespec ts; 
-		clock_gettime(CLOCK_MONOTONIC,&ts); 
-		return (unsigned long long)(1e9*ts.tv_sec+ts.tv_nsec);
-	#else
-		// FIXME!!
-		return 0;
-	#endif
+	return boost::chrono::duration_cast<boost::chrono::nanoseconds>(boost::chrono::steady_clock::now().time_since_epoch()).count();
 }
 
 

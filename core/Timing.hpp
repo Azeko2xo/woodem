@@ -16,16 +16,8 @@ struct TimingInfo{
 	static delta getNow(bool evenIfDisabled=false)
 	{
 		if(!enabled && !evenIfDisabled) return 0L;
-		#ifndef __MINGW64__
-			struct timespec ts; 
-			clock_gettime(CLOCK_MONOTONIC,&ts); 
-			return delta(1e9*ts.tv_sec+ts.tv_nsec);	
-		#else
-			// TODO: check that this works reliably under both Linux and Windows
-			// then get rid of clock_gettime
-			auto now=boost::chrono::steady_clock::now();
-			return delta(boost::chrono::duration_cast<boost::chrono::nanoseconds>(now.time_since_epoch()).count());
-		#endif
+		auto now=boost::chrono::steady_clock::now();
+		return delta(boost::chrono::duration_cast<boost::chrono::nanoseconds>(now.time_since_epoch()).count());
 	}
 	static bool enabled;
 };

@@ -13,12 +13,13 @@
 #include<boost/asio/ip/host_name.hpp>
 
 #ifndef __MINGW64__
-	// POSIX-only
-	#include<pwd.h>
-	#include<unistd.h>
-	#include<time.h>
+	#include<unistd.h> // getpid
 #else
-	#include<Windows.h> // for GetCurrentProcessId
+	// avoid namespace pollution - perhaps handled by boost::asio already?
+	#ifndef WIN32_LEAN_AND_MEAN
+		#define WIN32_LEAN_AND_MEAN
+	#endif
+	#include<Windows.h> // GetCurrentProcessId
 #endif
 
 namespace py=boost::python;

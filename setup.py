@@ -45,25 +45,22 @@ if not version:
 	except:
 		revno='na'
 	version='0.99+r'+revno
-## build options
-features=([] if ('CC' in os.environ and os.environ['CC'].endswith('clang')) else ['openmp'])
-features+=['qt4','vtk','opengl'] #,'opengl'] 
-##
 import sys
 WIN=(sys.platform=='win32')
-##
-if WIN:
-	features=['openmp','vtk','qt4','opengl']
-	flavor=''
-	debug=True
-else:
-	flavor='distutils'
-	debug=False
+
+## build options
+features=['qt4','vtk','opengl','gts']
+if not ('CC' in os.environ and os.environ['CC'].endswith('clang')): features+=['openmp']
+flavor=('' if WIN else 'distutils')
+debug=False
+chunkSize=(1 if WIN else 10)
+hotCxx=['Factory']
+## end build options
+
+
 cxxFlavor=('_'+re.sub('[^a-zA-Z0-9_]','_',flavor) if flavor else '')
 execFlavor=('-'+flavor) if flavor else ''
 cxxInternalModule='_cxxInternal%s%s'%(cxxFlavor,'_debug' if debug else '')
-chunkSize=(1 if WIN else 10)
-hotCxx=['Factory']
 
 if 'opengl' in features and 'qt4' not in features: raise ValueError("The 'opengl' features is only meaningful in conjunction with 'qt4'.")
 
@@ -74,7 +71,7 @@ if 'opengl' in features and 'qt4' not in features: raise ValueError("The 'opengl
 def wooPrepareHeaders():
 	'Copy headers to build-src-tree/woo/ subdirectory'
 	if not os.path.exists(pathHeaders): os.makedirs(pathHeaders)
-	hpps=sum([glob(pat) for pat in ('lib/*/*.hpp','core/*.hpp','pkg/*/*.hpp','pkg/*/*.hpp')],[])
+	hpps=sum([glob(pat) for pat in ('lib/*/*.hpp','lib/multimethods/loki/*.h','core/*.hpp','pkg/*/*.hpp','pkg/*/*.hpp')],[])
 	for hpp in hpps:
 		d=join(pathHeaders,dirname(hpp))
 		if not os.path.exists(d): os.makedirs(d)
@@ -88,10 +85,8 @@ def wooPrepareChunks():
 	srcs=[glob('lib/*/*.cpp'),glob('core/*.cpp'),glob('py/*.cpp'),glob('py/*/*.cpp')]
 	if WIN: srcs=[[s] for s in sum(srcs,[])] # compile each file separately even amongst base files
 	if 'opengl' in features: srcs+=[glob('gui/qt4/*.cpp')+glob('gui/qt4/*.cc')]
+	if 'gts' in features: srcs+=[[f] for f in glob('py/3rd-party/pygts-0.3.1/*.c')]
 	pkg=glob('pkg/*.cpp')+glob('pkg/*/*.cpp')+glob('pkg/*/*/*.cpp')
-	if WIN and False: # exclude all non-core files from the build, to test
-		pkg=[]
-	 	srcs=[s for s in srcs if s!=['py\\_utils2.cpp']]
 	# print srcs,pkg
 	for i in range(0,len(pkg),chunkSize): srcs.append(pkg[i:i+chunkSize])
 	hot=[]
@@ -110,7 +105,9 @@ def wooPrepareChunks():
 		#print srcs
 		for i,src in enumerate(srcs):
 			if len(src)==0: continue
-			f=open(join(pathSources,('chunk-%02d%s.%s'%(i,'' if len(src)>1 else ('-'+basename(src[0][:-4])),'cpp'))),'w')
+			ext=('c' if src[0].split('.')[-1]=='c' else 'cpp')
+			nameNoExt='' if len(src)>1 else '-'+basename(src[0][:-len(src[0].split('.')[-1])-1])
+			f=open(join(pathSources,('chunk-%02d%s.%s'%(i,nameNoExt,ext))),'w')
 			for s in src:
 				f.write('#include"../%s"\n'%s) # build-src-tree
 def wooPrepareQt4():
@@ -123,17 +120,14 @@ def wooPrepareQt4():
 		('gui/qt4/GLViewer.hpp','gui/qt4/moc_GLViewer.cc'),
 		('gui/qt4/OpenGLManager.hpp','gui/qt4/moc_OpenGLManager.cc')
 	]
-	#if 'opengl' not in features:
-	#	for __,out in mocInOut:
-	#		if os.path.exists(out): os.unlink(out) # delete files which would be useless
-	#	mocInOut=[]
-	if not WIN: pyuic4=['pyuic4']
-	else:
+	if WIN:
 		# this is ugly
 		# pyuic is a batch file, which is not runnable from mingw shell directly
 		# find the real exacutable then
 		import PyQt4.uic
 		pyuic4=['python',PyQt4.uic.__file__[:-12]+'pyuic.py']
+	else:
+		pyuic4=['pyuic4']
 	for tool,opts,inOut,enabled in [(['pyrcc4'],[],rccInOut,True),(pyuic4,[],uicInOut,True),(['moc'],['-DWOO_OPENGL','-DWOO_QT4'],mocInOut,('opengl' in features))]:
 		if not enabled: continue
 		for fIn,fOut in inOut:
@@ -149,6 +143,16 @@ def wooPrepareScripts():
 		f=open(join(pathScripts,'woo'+execFlavor+suffix),'w')
 		f.write('#!python\nimport wooMain; wooMain.%s()\n'%func)
 		f.close
+def pkgconfig(packages):
+	flag_map={'-I':'include_dirs','-L':'library_dirs','-l':'libraries'}
+	ret={'library_dirs':[],'include_dirs':[],'libraries':[]}
+	for token in subprocess.check_output("pkg-config --libs --cflags %s"%' '.join(packages),shell=True).split():
+		if flag_map.has_key(token[:2]): ret.setdefault(flag_map.get(token[:2]),[]).append(token[2:])
+		# throw others to extra_link_args
+		else: ret.setdefault('extra_link_args',[]).append(token)
+	# remove duplicated
+	for k,v in ret.iteritems(): ret[k]=list(set(v))
+	return ret
 
 # if the following file is missing, we are being run from sdist, which has tree already prepared
 # otherwise, install headers, chunks and scripts where they should be
@@ -226,6 +230,13 @@ if 'vtk' in features:
 	if not vtks: raise ValueError("No header directory for VTK detected.")
 	elif len(vtks)>1: raise ValueError("Multiple header directories for VTK detected: "%','.join(vtks))
 	cppDirs+=[vtks[0]]
+if 'gts' in features:
+	c=pkgconfig(['gts'])
+	cxxLibs+=['gts']+c['libraries']
+	cppDirs+=c['include_dirs']
+	libDirs+=c['library_dirs']
+
+	
 if WIN:
 	cppDirs+=[r'c:\src\boost_1_51_0',r'c:\src\eigen-3.1.1',r'c:\src\loki-0.1.7\include']
 	libDirs+=[r'c:\src\boost_1_51_0\stage\lib']

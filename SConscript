@@ -51,11 +51,17 @@ if 'qt4' in env['features']:
 	pyObjects+=['gui/qt4/GLViewer.cpp','gui/qt4/_GLViewer.cpp','gui/qt4/OpenGLManager.cpp']
 
 if 'gts' in env['features']:
+	# HACK HACK HACK!!!
+	# this is VERY ugly, but we need resolve those symbols for ourselves
+	# so we basically have the same lib twice
 	pyObjects+=[env.SharedObject(f) for f in env.Glob('py/3rd-party/pygts-0.3.1/*.c')]
-	env.Install('$LIBDIR/gts',[
+	env.Install('$LIBDIR/woo/gts',[
 		env.File('py/3rd-party/pygts-0.3.1/__init__.py'),
-		env.File('py/3rd-party/pygts-0.3.1/pygts.py')
+		env.File('py/3rd-party/pygts-0.3.1/pygts.py'),
+		# this module is faked in py/__init__.py
+		# env.SharedLibrary('_gts',env.Glob('py/3rd-party/pygts-0.3.1/*.c'),SHLIBPREFIX='',LIBS=['gts'])
 	])
+
 
 #
 # install shared lib

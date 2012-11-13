@@ -53,9 +53,9 @@ using std::logic_error;
 using std::max;
 using std::min;
 using std::abs;
-// FIXME: some compilers seem to require this
-// for now, we need it only for mingw64 builds
 #ifdef __MINGW64__
+	// this would trigger bugs under Linux (math.h is included somewhere behind the scenes?)
+	// see  http://gcc.gnu.org/bugzilla/show_bug.cgi?id=48891
 	using std::isnan;
 	using std::isinf;
 #endif

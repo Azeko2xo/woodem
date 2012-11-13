@@ -16,7 +16,10 @@ everywhere.
 import wooOptions
 import warnings,traceback
 import sys,os,os.path,re,string
-import gts # HACK: early import of GTS to avoid "Instalid access to memory location" when imported later (?!)
+
+# HACK: early import of GTS to avoid "Instalid access to memory location" under Windows?
+#try: import gts
+#except ImportError: pass
 
 # we cannot check for the 'openmp' feature yet, since woo.config is a compiled module
 # we set the variable as normally, but will warn below, once the compiled module is imported
@@ -136,7 +139,7 @@ else:
 	cc='woo._customConverters'
 	#assert cc in cpm # FIXME: temporarily disabled
 	## HACK: import _gts this way until it gets separated
-	cpm=[cc]+[m for m in cpm if m!=cc and m!='woo._cxxInternal']+['_gts']
+	cpm=[cc]+[m for m in cpm if m!=cc and m!='woo._cxxInternal']
 	# run imports now
 	for mod in cpm:
 		modpath=mod.split('.') 
@@ -153,7 +156,7 @@ else:
 		try: sys.modules[mod]=__import__(modpath[-1])
 		except ImportError:
 			# compiled without GTS
-			if mod=='_gts':
+			if mod=='_gts' and False:
 				if 'WOO_DEBUG' in os.environ: print 'Loading compiled module _gts: _gts module probably not compiled-in (ImportError)'
 				pass 
 			else: raise # otherwise it is serious
@@ -167,10 +170,14 @@ else:
 			setattr(__import__('.'.join(modpath[:2])),modpath[2],sys.modules[mod])
 		else:
 			raise RuntimeError('Module %s does not have 2 or 3 path items and will not be imported properly.'%mod)
-	sys.path=sys.path[1:]
-	## HACK: gts in-tree
-	#import woo.gts
-	#sys.modules['gts']=woo.gts
+	sys.path=sys.path[1:] # remove temp dir from the path again
+
+from . import config
+if 'gts' in config.features:
+	if 'gts' in sys.modules: raise RuntimeError("Woo was compiled with woo.gts; do not import external gts module, they clash with each other.")
+	from . import gts
+	# so that it does not get imported twice
+	sys.modules['gts']=gts
 
 
 

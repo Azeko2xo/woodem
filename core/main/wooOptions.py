@@ -10,7 +10,7 @@ forceNoGui=False
 ompThreads=0
 ompCores=[]
 flavor=''
-debug=(False if sys.platform!='win32' else True)
+debug=False
 clDev=None
 quirks=3
 quirkIntel,quirkFirePro=1,2

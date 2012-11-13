@@ -283,8 +283,8 @@ def CheckBoost(context):
 		('boost_filesystem','boost/filesystem/path.hpp','boost::filesystem::path();',True),
 		('boost_iostreams','boost/iostreams/device/file.hpp','boost::iostreams::file_sink("");',True),
 		('boost_regex','boost/regex.hpp','boost::regex("");',True),
+		('boost_chrono','boost/chrono/chrono.hpp','boost::chrono::system_clock::now();',True),
 		('boost_serialization','boost/archive/archive_exception.hpp','try{} catch (const boost::archive::archive_exception& e) {};',True),
-		#('boost_program_options','boost/program_options.hpp','boost::program_options::options_description o;',True),
 		('boost_python','boost/python.hpp','boost::python::scope();',True),
 	]
 	failed=[]
@@ -332,7 +332,6 @@ if not env.GetOption('clean'):
 	env['haveForeach']=conf.CheckCXXHeader('boost/foreach.hpp','<>')
 	if not env['haveForeach']: print "(OK, local version will be used instead)"
 	ok&=conf.CheckCXXHeader('Eigen/Core')
-	ok&=conf.CheckCXXHeader('loki/NullType.h')
 
 	if not ok:
 		print "\nOne of the essential libraries above was not found, unable to continue.\n\nCheck `%s' for possible causes, note that there are options that you may need to customize:\n\n"%(buildDir+'/config.log')+opts.GenerateHelpText(env)

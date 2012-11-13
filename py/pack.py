@@ -36,8 +36,7 @@ if 'product' not in dir(itertools):
 	itertools.product=product
 
 # for now skip the import, but try in inGtsSurface constructor again, to give error if we really use it
-try:
-	import gts
+try: import gts
 except ImportError: pass
 
 # make c++ predicates available in this module
@@ -153,7 +152,7 @@ class inGtsSurface_py(Predicate):
 	def __init__(self,surf,noPad=False):
 		# call base class ctor; necessary for virtual methods to work as expected.
 		# see comments in _packPredicates.cpp for struct PredicateWrap.
-		super(inGtsSurface,self).__init__()
+		super(inGtsSurface_py,self).__init__()
 		if not surf.is_closed(): raise RuntimeError("Surface for inGtsSurface predicate must be closed.")
 		self.surf=surf
 		self.noPad=noPad
@@ -172,6 +171,9 @@ class inGtsSurface_py(Predicate):
 			return p.is_inside(self.surf)
 		pp=[gts.Point(_pt[0]-pad,_pt[1],_pt[2]),gts.Point(_pt[0]+pad,_pt[1],_pt[2]),gts.Point(_pt[0],_pt[1]-pad,_pt[2]),gts.Point(_pt[0],_pt[1]+pad,_pt[2]),gts.Point(_pt[0],_pt[1],_pt[2]-pad),gts.Point(_pt[0],_pt[1],_pt[2]+pad)]
 		return p.is_inside(self.surf) and pp[0].is_inside(self.surf) and pp[1].is_inside(self.surf) and pp[2].is_inside(self.surf) and pp[3].is_inside(self.surf) and pp[4].is_inside(self.surf) and pp[5].is_inside(self.surf)
+
+# compiled without the local GTS module
+if 'inGtsSurface' not in dir(): inGtsSurface=inGtsSurface_py
 
 class inSpace(Predicate):
 	"""Predicate returning True for any points, with infinite bounding box."""
