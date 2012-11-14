@@ -10,8 +10,6 @@
 #include<boost/date_time/posix_time/posix_time.hpp>
 #include<boost/algorithm/string.hpp>
 
-#include<boost/asio/ip/host_name.hpp>
-
 #ifndef __MINGW64__
 	#include<unistd.h> // getpid
 #else
@@ -19,7 +17,7 @@
 	#ifndef WIN32_LEAN_AND_MEAN
 		#define WIN32_LEAN_AND_MEAN
 	#endif
-	#include<Windows.h> // GetCurrentProcessId
+	#include<Windows.h> // GetCurrentProcessId, GetComputerName
 #endif
 
 namespace py=boost::python;
@@ -134,12 +132,16 @@ bool Scene::pyTagsProxy::has_key(const std::string& key){ return scene->tags.cou
 void Scene::pyTagsProxy::update(const pyTagsProxy& b){ for(const auto& i: b.scene->tags) scene->tags[i.first]=i.second; }
 
 void Scene::fillDefaultTags(){
-	tags["user"]=
-		#ifndef __MINGW64__
-			getenv("USER")+string("@")+boost::asio::ip::host_name();
-		#else
-			getenv("USERNAME")+string("@[hostname lookup failed]");
-		#endif
+	char hostname[256];
+	#ifndef __MINGW64__
+		int ret=gethostname(hostname,255);
+		tags["user"]=getenv("USER")+string("@")+string(ret==0?hostname:"[hostname lookup failed]");
+	#else
+		// http://msdn.microsoft.com/en-us/library/ms724295%28v=vs.85%29.aspx
+		int len=255;
+		int ret=GetComputerName(hostname,&len)
+		tags["user"]getenv("USERNAME")+string("@")+string(ret!=0?hostname:"[hostname lookup failed]");
+	#endif
 		
 	tags["isoTime"]=boost::posix_time::to_iso_string(boost::posix_time::second_clock::local_time());
 	string id=boost::posix_time::to_iso_string(boost::posix_time::second_clock::local_time())+"p"+lexical_cast<string>(

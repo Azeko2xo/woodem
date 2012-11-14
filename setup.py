@@ -207,7 +207,6 @@ if WIN:
 	cxxFlags+=['-Wno-strict-aliasing','-Wno-attributes','-finline-functions'] 	
 	boostTag='-mgw47-mt-1_51'
 	cxxLibs=[(lib+boostTag if lib.startswith('boost_') else lib) for lib in cxxLibs]
-	cxxLibs+=['ws2_32'] # boost::asio::ip needs this (for host name lookup; not yet used)
 else:
 	cppDirs+=['/usr/include/eigen3']
 	# cxxLibs+=['rt']  # this is probably not needed anymore, since we switched to boost::chrono

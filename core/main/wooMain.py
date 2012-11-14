@@ -268,13 +268,14 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 		readline_parse_and_bind=[
 			'tab: complete',
 			# only with the gui; the escape codes might not work on non-linux terminals.
-			# TODO: only show 3d view if compiled with OpenGL
 			]
 			+(['"\e[24~": "\C-Uwoo.qt.Controller();\C-M"']+(['"\e[23~": "\C-Uwoo.qt.View();\C-M"','"\e[21~": "\C-Uwoo.qt.Controller(), woo.qt.View();\C-M"'] if 'opengl' in woo.config.features else [])+['"\e[20~": "\C-Uwoo.qt.Generator();\C-M"'] if (qt4) else []) # F12,F11,F10,F9
 			+['"\e[19~": "\C-Uimport woo.plot; woo.plot.plot();\C-M"', #F8
 				'"\e[A": history-search-backward', '"\e[B": history-search-forward', # incremental history forward/backward
 		]
 	)
+	# shortcuts don't really work under windows, show controller directly in that case
+	if qt4 and sys.platform=='win32': woo.qt.Controller()
 
 	# show python console
 	# handle both ipython 0.10 and 0.11 (incompatible API)
@@ -603,12 +604,8 @@ finished: %s
 			sys.stdout.flush()
 	
 	
-	import sys,re,argparse,os
-	def getNumCores():
-		nCpu=len([l for l in open('/proc/cpuinfo','r') if l.find('processor')==0])
-		if os.environ.has_key("OMP_NUM_THREADS"): return min(int(os.environ['OMP_NUM_THREADS']),nCpu)
-		return nCpu
-	numCores=getNumCores()
+	import sys,re,argparse,os,multiprocessing
+	numCores=multiprocessing.cpu_count()
 	maxOmpThreads=numCores if 'openmp' in woo.config.features else 1
 	
 	parser=argparse.ArgumentParser(usage=sys.argv[0]+' [options] [ TABLE [SIMULATION.py] | SIMULATION.py[/nCores] [...] ]',description=sys.argv[0]+' runs woo simulation multiple times with different parameters.\n\nSee https://yade-dem.org/sphinx/user.html#batch-queuing-and-execution-woo-batch for details.\n\nBatch can be specified either with parameter table TABLE (must not end in .py), which is either followed by exactly one SIMULATION.py (must end in .py), or contains !SCRIPT column specifying the simulation to be run. The second option is to specify multiple scripts, which can optionally have /nCores suffix to specify number of cores for that particular simulation (corresponds to !THREADS column in the parameter table), e.g. sim.py/3.')
