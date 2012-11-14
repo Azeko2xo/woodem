@@ -1,6 +1,6 @@
 # encoding: utf-8
 import setuptools # for bdist_egg and console_scripts entry point
-from distutils.core import setup,Extension
+from setuptools import setup,Extension
 import distutils.command.install_scripts
 import distutils.command.sdist
 import distutils.command.build_ext
@@ -52,7 +52,7 @@ WIN=(sys.platform=='win32')
 ## build options
 ##
 features=['qt4','vtk','opengl','gts','openmp']
-if 'CC' in os.environ and os.environ['CC'].endswith('clang')): features.remove('openmp')
+if 'CC' in os.environ and os.environ['CC'].endswith('clang'): features.remove('openmp')
 flavor=('' if WIN else 'distutils')
 debug=False
 chunkSize=(1 if WIN else 10)

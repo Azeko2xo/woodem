@@ -15,7 +15,6 @@ struct BinSeg: public Preprocessor {
 		} else {
 			ccaDt=NaN;
 		}
-		for(auto& p:{reportFmt,feedCacheDir,saveFmt}) Preprocessor::fixWindowsPath(p);
 	}
 
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(BinSeg,Preprocessor,"Preprocessor for the bin segregation simulation.",
@@ -40,9 +39,9 @@ struct BinSeg: public Preprocessor {
 		((long,ccaSteps,,AttrTrait<>().readonly(),"number of steps"))
 
 		// Outputs
-		((string,reportFmt,"/tmp/{tid}.xhtml",AttrTrait<>().triggerPostLoad().startGroup("Outputs"),"Report output format (Scene.tags can be used)."))
-		((string,feedCacheDir,".",AttrTrait<>().triggerPostLoad(),"Directory where to store pre-generated feed packings"))
-		((string,saveFmt,"/tmp/{tid}-{stage}.bin.gz",AttrTrait<>().triggerPostLoad(),"Savefile format; keys are :ref:`Scene.tags` and additionally ``{stage}`` will be replaced by 'init', 'backup-[step]'."))
+		((string,reportFmt,"/tmp/{tid}.xhtml",AttrTrait<>().startGroup("Outputs"),"Report output format (Scene.tags can be used)."))
+		((string,feedCacheDir,".",,"Directory where to store pre-generated feed packings"))
+		((string,saveFmt,"/tmp/{tid}-{stage}.bin.gz",,"Savefile format; keys are :ref:`Scene.tags` and additionally ``{stage}`` will be replaced by 'init', 'backup-[step]'."))
 		((int,backupSaveTime,1800,,"How often to save backup of the simulation (0 or negative to disable)"))
 		//((Real,vtkFreq,4,AttrTrait<>(),"How often should VtkExport run, relative to *factStepPeriod*. If negative, run never."))
 		//((string,vtkPrefix,"/tmp/{tid}-",AttrTrait<>().triggerPostLoad(),"Prefix for saving VtkExport data; formatted with ``format()`` providing :ref:`Scene.tags` as keys."))

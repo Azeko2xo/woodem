@@ -110,6 +110,9 @@ def run(pre):
 	S=Scene(fields=[de])
 	if not pre.wallMaterial: pre.wallMaterial=pre.material
 
+	for a in ['reportFmt','feedCacheDir','saveFmt']: setattr(pre,a,utils.fixWindowsPath(getattr(pre,a)))
+
+
 	# particle masks
 	wallMask=0b00110
 	loneMask=0b00100 # particles with this mask don't interact with each other

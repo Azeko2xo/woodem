@@ -9,6 +9,7 @@
 
 import math,random,doctest,geom
 import woo
+import sys,os
 from woo import *
 from minieigen import *
 
@@ -451,17 +452,22 @@ def trackPerfomance(updateTime=5):
 	thread.start_new_thread(__track_perfomance,(updateTime))
 
 
-def NormalRestitution2DampingRate(en):
-	r"""Compute the normal damping rate as a function of the normal coefficient of restitution $e_n$. For $e_n\in\langle0,1\rangle$ damping rate equals
 
-	.. math:: -\frac{\log e_n}{\sqrt{e_n^2+\pi^2}}
+if sys.platform=='win32':
+	def fixWindowsPath(p):
+		'''On Windows, replace some well-known UNIX directories by their native equivalents,
+		so that defaults works cross-platform. Currently, the following substitutions are made:
+		1. leading `/tmp` is transformed to `%TEMP%` (or c:/temp is undefined)
+		'''
+		if p=='/tmp' or p.startswith('/tmp/'):
+			temp=os.environ.get('TEMP','c:/temp')
+			return temp+p[4:]
+		return p
+else:
+	def fixWindowsPath(p): return p
+	
+	
 
-	"""
-	if en == 0.0: return 0.999999999
-	if en == 1.0: return 0.0
-	from math import sqrt,log,pi
-	ln_en = math.log(en)
-	return (-ln_en/math.sqrt((math.pow(ln_en,2) + math.pi*math.pi)))
 
 def xMirror(half):
 	"""Mirror a sequence of 2d points around the x axis (changing sign on the y coord).

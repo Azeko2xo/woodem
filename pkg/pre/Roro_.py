@@ -38,6 +38,8 @@ def run(pre): # use inputs as argument
 	if pre.gap<0: raise ValueError("Roro.gap must be positive (are cylinders overlapping?)")
 	if (pre.time>0 and pre.mass>0) or (pre.time<=0 and pre.mass<=0): raise ValueError("Exactly one of Roro.time or Roro.mass must be positive.")
 
+	for a in ['reportFmt','feedCacheDir','saveFmt','vtkPrefix']: setattr(pre,a,utils.fixWindowsPath(getattr(pre,a)))
+
 	if not pre.cylMaterial: pre.cylMaterial=pre.material.deepcopy()
 	if not pre.plateMaterial: pre.plateMaterial=pre.cylMaterial.deepcopy()
 	pre.material.id=0
