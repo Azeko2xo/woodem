@@ -180,14 +180,19 @@ if 'gts' in config.features:
 	sys.modules['gts']=gts
 
 
-
+##
+## Warn if OpenMP threads are not what is probably expected by the user
+##
 if wooOptions.ompThreads>1 or wooOptions.ompCores:
 	if 'openmp' not in config.features:
 		warnings.warn('--threads and --cores ignored, since compiled without OpenMP.')
 	elif master.numThreads!=wooOptions.ompThreads:
 		warnings.warn('--threads/--cores did not set number of OpenMP threads correctly (requested %d, current %d). Was OpenMP initialized in this process already?'%(wooOptions.ompThreads,master.numThreads))
 elif master.numThreads>1:
-	warnings.warn('OpenMP is using %d cores without --threads/--cores being used - the default should be 1'%master.numThreads)
+	if 'OMP_NUM_THREADS' in os.environ:
+		if master.numThreads!=int(os.environ['OMP_NUM_THREADS']): warnings.warn('OMP_NUM_THREADS==%s, but woo.master.numThreads==%d'%(os.environ['OMP_NUM_THREADS'],master.numThreads))
+	else:
+		warnings.warn('OpenMP is using %d cores without --threads/--cores being used - the default should be 1'%master.numThreads)
 
 if wooOptions.clDev:
 	if 'opencl' in config.features:

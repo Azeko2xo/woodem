@@ -406,7 +406,7 @@ finished: %s
 			f=open(self.plotsFile,'wb')
 			f.write(img.data)
 			f.close()
-			#print woo.remote.plotImgFormat,'(%d bytes) written to %s'%(os.path.getsize(self.plotsFile),self.plotsFile)
+			# print woo.remote.plotImgFormat,'(%d bytes) written to %s'%(os.path.getsize(self.plotsFile),self.plotsFile)
 	
 		def htmlStats(self):
 			ret='<tr>'
@@ -543,7 +543,7 @@ finished: %s
 			self.sendHttp(f.read(),contentType='text/plain;charset=utf-8;',**headers)
 		def sendFile(self,fileName,contentType,**headers):
 			if not os.path.exists(fileName): self.send_error(404); return
-			f=open(fileName)
+			f=open(fileName,'rb')
 			self.sendHttp(f.read(),contentType=contentType,**headers)
 		def sendHttp(self,data,contentType,**headers):
 			"Send file over http, using appropriate content-type. Headers are converted to strings. The *refresh* header is handled specially: if the value is 0, it is not sent at all."
@@ -805,14 +805,7 @@ finished: %s
 				while logFile2+'.%d'%i in logFiles: i+=1
 				logFile2+='.%d'%i
 			logFiles.append(logFile2)
-			#env='WOO_BATCH='
-			#if table: env+='<a href="jobs/%d/table">%s:%d:%s</a>'%(jobNum,table,l,resultsDb) # keep WOO_BATCH empty (but still defined) if running a single simulation
-			#env+=' DISPLAY= %s '%(' '.join(envVars))
-			#cmd='%s%s [threadspec] %s -x <a href="jobs/%d/script">%s</a>'%(jobExecutable,' --debug' if jobDebug else '','--nice=%s'%nice if nice!=None else '',i,script)
-			#log='> <a href="jobs/%d/log">%s</a> 2>&1'%(jobNum,pipes.quote(logFile2))
-			#hrefCmd=env+cmd+log
 			
-			#fullCmd=re.sub('(<a href="[^">]+">|</a>)','',hrefCmd)
 			hrefCmd=fullCmd=None
 			desc=params[l]['title']
 			if '!SCRIPT' in params[l].keys(): desc=script+'.'+desc # prepend filename if script is specified explicitly
@@ -839,8 +832,8 @@ finished: %s
 	
 	print "Job summary:"
 	for job in jobs:
-		print '   #%d (%s%s):'%(job.num,job.id,'' if job.nCores==1 else '/%d'%job.nCores),job.command
-	#sys.stdout.flush()
+		print '   #{job.num} ({job.id}{cores}): WOO_BATCH={job.table}:{job.lineNo}:{job.resultsDb} {job.executable} {job.script} > {job.log}'.format(job=job,cores='' if job.nCores==1 else '/%d'%job.nCores)
+	sys.stdout.flush()
 	
 	
 	httpLastServe=0

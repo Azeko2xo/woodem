@@ -289,6 +289,8 @@ setup(name='woo',
 		+(['woo.gts'] if 'gts' in features else [])
 	),
 	py_modules=wooModules+['wooOptions','wooMain'],
+	#package_dir={'':'core/main'},
+	#py_modules=['wooMain'],
 	ext_modules=[
 		Extension('woo.'+cxxInternalModule,
 			sources=cxxSrcs,

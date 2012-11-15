@@ -40,7 +40,7 @@ class InfoProvider:
 			fig.set_size_inches(5*sqrtFigs,7*sqrtFigs)
 			fig.savefig(img)
 			f=open(img,'rb'); data=f.read(); f.close(); os.remove(img)
-			#print 'returning '+plotImgFormat
+			# print 'returning %s (%d bytes read)'%(plotImgFormat,len(data))
 			return xmlrpclib.Binary(data)
 		except:
 			print 'Error updating plots:'
