@@ -107,11 +107,10 @@ class Master: public Singleton<Master>{
 		/* other static things exposed through Master */
 		bool timingEnabled_get(){ return TimingInfo::enabled;}
 		void timingEnabled_set(bool enabled){ TimingInfo::enabled=enabled;}
-		#ifdef WOO_OPENMP
-			int numThreads_get(){ return omp_get_max_threads();}
-		#else
-			int numThreads_get(){return 1;}
-		#endif
+		
+		int numThreads_get();
+		void numThreads_set(int i);
+		
 		void pyExitNoBacktrace(int status=0);
 		void pyDisableGdb(){
 			// disable for native Windows builds
@@ -200,7 +199,7 @@ class Master: public Singleton<Master>{
 			.def("isChildClassOf",&Master::pyIsChildClassOf,"Tells whether the first class derives from the second one (both given as strings).")
 
 			.add_property("timingEnabled",&Master::timingEnabled_get,&Master::timingEnabled_set,"Globally enable/disable timing services (see documentation of the :ref:`timing module<woo.timing>`).")
-			.add_property("numThreads",&Master::numThreads_get,"Get maximum number of threads openMP can use.")
+			.add_property("numThreads",&Master::numThreads_get,&Master::numThreads_set,"Maximum number of threads openMP can use.")
 			.add_property("compiledPyModules",&Master::pyCompiledPyModules) // we might not use to-python converters, since _customConverters have not yet been imported
 
 			.def("exitNoBacktrace",&Master::pyExitNoBacktrace,(py::arg("status")=0),"Disable SEGV handler and exit, optionally with given status number.")

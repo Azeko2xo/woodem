@@ -138,9 +138,9 @@ void Scene::fillDefaultTags(){
 		tags["user"]=getenv("USER")+string("@")+string(ret==0?hostname:"[hostname lookup failed]");
 	#else
 		// http://msdn.microsoft.com/en-us/library/ms724295%28v=vs.85%29.aspx
-		int len=255;
-		int ret=GetComputerName(hostname,&len)
-		tags["user"]getenv("USERNAME")+string("@")+string(ret!=0?hostname:"[hostname lookup failed]");
+		DWORD len=255;
+		int ret=GetComputerName(hostname,&len);
+		tags["user"]=getenv("USERNAME")+string("@")+string(ret!=0?hostname:"[hostname lookup failed]");
 	#endif
 		
 	tags["isoTime"]=boost::posix_time::to_iso_string(boost::posix_time::second_clock::local_time());

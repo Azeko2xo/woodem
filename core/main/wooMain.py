@@ -312,7 +312,7 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 def batch(sysArgv=None):
 	import os, sys, thread, time, logging, pipes, socket, xmlrpclib, re, shutil, random, os.path
 	if sysArgv: sys.argv=sysArgv
-	
+		
 	#socket.setdefaulttimeout(10) 
 	
 	import wooOptions
@@ -321,19 +321,50 @@ def batch(sysArgv=None):
 	wooOptions.quirks=0
 	import woo, woo.batch, woo.config, woo.remote
 	
-	if not sys.argv[0].endswith('-batch'): raise RuntimeError('Batch executable does not end with -batch!')
-	executable=re.sub('-batch$','',sys.argv[0])
+	if not re.match('.*-batch(.bat|.py)?$', sys.argv[0]):
+		print sys.argv
+		raise RuntimeError('Batch executable does not end with -batch{,.py,.bat}')
+	executable=re.sub('-batch(|.bat|.py)?$','\\1',sys.argv[0])
 	
 	
 	class JobInfo():
-		def __init__(self,num,id,command,hrefCommand,log,nCores,script,table,lineNo,affinity):
+		def __init__(self,num,id,command,hrefCommand,log,nCores,script,table,lineNo,affinity,resultsDb,debug,executable,nice):
 			self.started,self.finished,self.duration,self.durationSec,self.exitStatus=None,None,None,None,None # duration is a string, durationSec is a number
 			self.command=command; self.hrefCommand=hrefCommand; self.num=num; self.log=log; self.id=id; self.nCores=nCores; self.cores=set(); self.infoSocket=None
-			self.script=script; self.table=table; self.lineNo=lineNo; self.affinity=affinity
+			self.script=script; self.table=table; self.lineNo=lineNo; self.affinity=affinity;
+			self.resultsDb=resultsDb; self.debug=debug; self.executable=executable; self.nice=nice
 			self.hasXmlrpc=False
 			self.status='PENDING'
 			self.threadNum=None
+			self.winBatch=None
 			self.plotsLastUpdate,self.plotsFile=0.,woo.master.tmpFilename()+'.'+woo.remote.plotImgFormat
+			self.hrefCommand='WOO_BATCH=<a href="jobs/{self.num}/table">{self.table}:{self.lineNo}:{self.resultsDb}</a> {self.executable} <a href="jobs/{self.num}/script">{self.script}</a> &gt; <a href="jobs/{self.num}/log">{self.log}</a>'.format(self=self)
+			if WIN:
+				self.hrefCommand='<a href="jobs/{self.num}/winbatch">.bat</a>: '.format(self=self)+self.hrefCommand
+		def prepareToRun(self):
+			'Assemble command to run as needed'
+			import pipes
+			if WIN:
+				self.winBatch=woo.master.tmpFilename()+'.bat'
+				batch='set OMP_NUM_THREADS=%d\n'%job.nCores
+				batch+='set WOO_BATCH={self.table}:{self.lineNo}:{self.resultsDb}\n'.format(self=self)
+				#batch+='start /B /WAIT /LOW '
+				batch+='{self.executable} -x -n {self.script} {debugFlag} > {self.log} 2>&1 \n'.format(self=self,debugFlag=('-D' if self.debug else ''))
+				sys.stderr.write(batch)
+				f=open(self.winBatch,'w')
+				f.write(batch)
+				f.close()
+				self.command=self.winBatch
+				self.hrefCommand+='<br><tt><a href="jobs/{self.num}/winbatch">{self.command}</a></tt>'.format(self=self)
+			else:
+				ompOpt,niceOpt,debugOpt='','',''
+				if self.cores: ompOpt='--cores=%s'%(','.join(str(c) for c in self.cores))
+				elif self.nCores: ompOpt='--threads=%d'%(self.nCores)
+				if self.nice: niceOpt='--nice=%d'%self.nice
+				if self.debug: debugOpt='--debug'
+				self.command='WOO_BATCH={self.table}:{self.lineNo}:{self.resultsDb} {self.executable} -x -n {ompOpt} {niceOpt} {debugOpt} {self.script} > {logFile} 2>&1'.format(self=self,ompOpt=ompOpt,niceOpt=niceOpt,debugOpt=debugOpt,logFile=pipes.quote(self.log))
+				self.hrefCommand+='<br><tt>'+self.command+'</tt>'
+			
 		def saveInfo(self):
 			log=file(self.log,'a')
 			log.write("""
@@ -349,12 +380,14 @@ finished: %s
 		def ensureXmlrpc(self):
 			'Attempt to establish xmlrpc connection to the job (if it does not exist yet). If the connection could not be established, as magic line was not found in the log, return False.'
 			if self.hasXmlrpc: return True
-			for l in open(self.log,'r'):
-				if not l.startswith('XMLRPC info provider on'): continue
-				url=l[:-1].split()[4]
-				self.xmlrpcConn=xmlrpclib.ServerProxy(url,allow_none=True)
-				self.hasXmlrpc=True
-				return True
+			try:
+				for l in open(self.log,'r'):
+					if not l.startswith('XMLRPC info provider on'): continue
+					url=l[:-1].split()[4]
+					self.xmlrpcConn=xmlrpclib.ServerProxy(url,allow_none=True)
+					self.hasXmlrpc=True
+					return True
+			except IOError: pass
 			if not self.hasXmlrpc: return False # catches the case where the magic line is not in the log yet
 		def getInfoDict(self):
 			if self.status!='RUNNING': return None
@@ -490,6 +523,9 @@ finished: %s
 					if not job.table: return
 					if job.table.endswith('.xls'): self.sendFile(job.table,contentType='application/vnd.ms-excel')
 					else: self.sendPygmentizedFile(job.table,hl_lines=[job.lineNo],linenostep=1)
+				elif rest=='winbatch':
+					if not job.winBatch: return
+					self.sendPygmentizedFile(job.winBatch)
 				else: self.send_error(404,self.path)
 			return
 		def log_request(self,req): pass
@@ -548,20 +584,23 @@ finished: %s
 	
 	
 	def runJob(job):
+		import subprocess
 		job.status='RUNNING'
+		job.prepareToRun()
 		job.started=time.time();
+		
 		print '#%d (%s%s%s) started on %s'%(job.num,job.id,'' if job.nCores==1 else '/%d'%job.nCores,(' ['+','.join([str(c) for c in job.cores])+']') if job.cores else '',time.asctime())
 		#print '#%d cores',%(job.num,job.cores)
-		if job.cores:
-			def coresReplace(s): return s.replace('[threadspec]','--cores=%s'%(','.join(str(c) for c in job.cores)))
-			job.command=coresReplace(job.command)
-			job.hrefCommand=coresReplace(job.hrefCommand)
-		else:
-			job.command=job.command.replace('[threadspec]','--threads=%d'%job.nCores); job.hrefCommand=job.hrefCommand.replace('[threadspec]','--threads=%d'%job.nCores)
-		job.exitStatus=os.system(job.command)
+		sys.stdout.flush()
+		
+		if WIN: job.exitStatus=subprocess.call(job.winBatch,shell=False)
+		else: job.exitStatus=os.system(job.command)
 		#job.exitStatus=0
 		print '#%d system exit status %d'%(job.num,job.exitStatus)
-		if job.exitStatus!=0 and len([l for l in open(job.log) if l.startswith('Woo: normal exit.')])>0: job.exitStatus=0
+		if job.exitStatus!=0:
+			try:  # fake normal exit, if crashing at the very end
+				if len([l for l in open(job.log) if l.startswith('Woo: normal exit.')])>0: job.exitStatus=0
+			except: pass
 		job.finished=time.time()
 		dt=job.finished-job.started;
 		job.durationSec=dt
@@ -647,12 +686,13 @@ finished: %s
 		print 'Manual page %s generated.'%opts.manpage
 		sys.exit(0)
 	
+	WIN=(sys.platform=='win32')
 	
 	tailProcess=None
 	def runTailProcess(globalLog):
 		import subprocess
 		tailProcess=subprocess.call(["tail","--line=+0","-f",globalLog])
-	if globalLog and False:
+	if not WIN and globalLog and False :
 		print 'Redirecting all output to',globalLog
 		# if not deleted, tail detects truncation and outputs multiple times
 		if os.path.exists(globalLog): os.remove(globalLog) 
@@ -710,6 +750,7 @@ finished: %s
 			if m:
 				params[fakeLineNo]['!SCRIPT']=m.group(1)
 				params[fakeLineNo]['!THREADS']=int(m.group(2)[1:])
+	
 	jobs=[]
 	executables=set()
 	logFiles=[]
@@ -717,6 +758,7 @@ finished: %s
 		resultsDb='%s.results'%re.sub('\.(batch|table|xls)$','',table) if table else 'batch.results'
 	else: resultsDb=opts.resultsDb
 	print 'Results database is',os.path.abspath(resultsDb)
+	
 	
 	for i,l in enumerate(useLines):
 		script=scripts[0] if len(scripts)>0 else None
@@ -756,30 +798,34 @@ finished: %s
 			if logDir and not os.path.exists(logDir):
 				logging.warning("WARNING: creating log directory '%s'"%(logDir))
 				os.makedirs(logDir)
+			if WIN: logFile2=re.sub('[<>:"|?*=,]','_',logFile2)
 			# append numbers to log file if it already exists, to prevent overwriting
 			if logFile2 in logFiles:
 				i=0;
 				while logFile2+'.%d'%i in logFiles: i+=1
 				logFile2+='.%d'%i
 			logFiles.append(logFile2)
-			env='WOO_BATCH='
-			if table: env+='<a href="jobs/%d/table">%s:%d:%s</a>'%(jobNum,table,l,resultsDb) # keep WOO_BATCH empty (but still defined) if running a single simulation
-			env+=' DISPLAY= %s '%(' '.join(envVars))
-			cmd='%s%s [threadspec] %s -x <a href="jobs/%d/script">%s</a>'%(jobExecutable,' --debug' if jobDebug else '','--nice=%s'%nice if nice!=None else '',i,script)
-			log='> <a href="jobs/%d/log">%s</a> 2>&1'%(jobNum,pipes.quote(logFile2))
-			hrefCmd=env+cmd+log
-			fullCmd=re.sub('(<a href="[^">]+">|</a>)','',hrefCmd)
+			#env='WOO_BATCH='
+			#if table: env+='<a href="jobs/%d/table">%s:%d:%s</a>'%(jobNum,table,l,resultsDb) # keep WOO_BATCH empty (but still defined) if running a single simulation
+			#env+=' DISPLAY= %s '%(' '.join(envVars))
+			#cmd='%s%s [threadspec] %s -x <a href="jobs/%d/script">%s</a>'%(jobExecutable,' --debug' if jobDebug else '','--nice=%s'%nice if nice!=None else '',i,script)
+			#log='> <a href="jobs/%d/log">%s</a> 2>&1'%(jobNum,pipes.quote(logFile2))
+			#hrefCmd=env+cmd+log
+			
+			#fullCmd=re.sub('(<a href="[^">]+">|</a>)','',hrefCmd)
+			hrefCmd=fullCmd=None
 			desc=params[l]['title']
 			if '!SCRIPT' in params[l].keys(): desc=script+'.'+desc # prepend filename if script is specified explicitly
 			if opts.timing>0: desc+='[%d]'%j
-			jobs.append(JobInfo(jobNum,desc,fullCmd,hrefCmd,logFile2,nCores,script=script,table=table,lineNo=l,affinity=jobAffinity))
+			jobs.append(JobInfo(jobNum,desc,fullCmd,hrefCmd,logFile2,nCores,script=script,table=table,lineNo=l,affinity=jobAffinity,resultsDb=resultsDb,debug=jobDebug,executable=jobExecutable,nice=nice))
 	
 	print "Master process pid",os.getpid()
 	
-	# HACK: shell suspends the batch sometimes due to tty output, unclear why (both zsh and bash do that).
-	#       Let's just ignore SIGTTOU here.
-	import signal
-	signal.signal(signal.SIGTTOU,signal.SIG_IGN)
+	if not WIN:
+		# HACK: shell suspends the batch sometimes due to tty output, unclear why (both zsh and bash do that).
+		#       Let's just ignore SIGTTOU here.
+		import signal
+		signal.signal(signal.SIGTTOU,signal.SIG_IGN)
 	
 	
 	if opts.rebuild:

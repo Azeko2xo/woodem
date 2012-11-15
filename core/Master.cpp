@@ -307,3 +307,21 @@ py::list Master::pyPlugins(){
 	for(auto& i: getClassBases()) ret.append(i.first);
 	return ret;
 }
+
+int Master::numThreads_get(){
+	#ifdef WOO_OPENMP
+		return omp_get_max_threads();
+	#else
+		return 1;
+	#endif
+}
+
+void Master::numThreads_set(int i){
+	#ifdef WOO_OPENMP
+		omp_set_num_threads(i);
+		if(i!=omp_get_max_threads()) throw std::runtime_error("woo.core.Master: numThreads set to "+to_string(i)+" but is "+to_string(i)+" (are you setting numThreads inside parallel section?)");
+	#else
+		if(i==1) return;
+		else LOG_WARN("woo.core.Master: compiled without OpenMP support, setting numThreads has no effect.");
+	#endif
+}

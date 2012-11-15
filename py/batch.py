@@ -216,7 +216,7 @@ def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 	tagsParams=[]
 	# dictParams is what eventually ends up in woo.params.table (default+specified values)
 	dictDefaults,dictParams={},{}
-	import os, __builtin__,re,math
+	import os, __builtin__,re,math,woo
 	s=woo.master.scene
 	if not tableFileLine and ('WOO_BATCH' not in os.environ or os.environ['WOO_BATCH']==''):
 		if not noTableOk: raise EnvironmentError("WOO_BATCH is not defined in the environment")
@@ -251,7 +251,8 @@ def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 	s.tags['defaultParams']=",".join(defaults)
 	s.tags['params']=",".join(tagsParams)
 	dictParams.update(dictDefaults)
-	saveVars('table',loadNow=True,**dictParams)
+	import woo.utils
+	woo.utils.saveVars('table',loadNow=True,**dictParams)
 	return dictParams
 	#return len(tagsParams)
 

@@ -1,9 +1,9 @@
 # encoding: utf-8
-import setuptools # for bdist_egg and console_scripts entry point
+#import setuptools # for bdist_egg and console_scripts entry point
 from setuptools import setup,Extension
-import distutils.command.install_scripts
-import distutils.command.sdist
-import distutils.command.build_ext
+#import distutils.command.install_scripts
+#import distutils.command.sdist
+#import distutils.command.build_ext
 import os.path, os, shutil, re, subprocess, sys
 from glob import glob
 from os.path import sep,join,basename,dirname
@@ -307,7 +307,7 @@ setup(name='woo',
 			'woo%s-batch = wooMain:batch'%execFlavor,
 		],
 	},
-	# workaround for windows, instead of entry_points['sonsole_scripts']
+	# workaround for windows, instead of entry_points['console_scripts']
 	scripts=glob(join(pathScripts,'*')),
 	# woo.__init__ makes symlinks to _cxxInternal, which would not be possible if zipped
 	# see http://stackoverflow.com/a/10618900/761090

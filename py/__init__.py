@@ -186,6 +186,8 @@ if wooOptions.ompThreads>1 or wooOptions.ompCores:
 		warnings.warn('--threads and --cores ignored, since compiled without OpenMP.')
 	elif master.numThreads!=wooOptions.ompThreads:
 		warnings.warn('--threads/--cores did not set number of OpenMP threads correctly (requested %d, current %d). Was OpenMP initialized in this process already?'%(wooOptions.ompThreads,master.numThreads))
+elif master.numThreads>1:
+	warnings.warn('OpenMP is using %d cores without --threads/--cores being used - the default should be 1'%master.numThreads)
 
 if wooOptions.clDev:
 	if 'opencl' in config.features:
