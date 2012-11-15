@@ -30,8 +30,10 @@ if wooOptions.ompCores:
 		wooOptions.ompThreads=len(cc)
 	os.environ['GOMP_CPU_AFFINITY']=' '.join([str(cc[0])]+[str(c) for c in cc])
 	os.environ['OMP_NUM_THREADS']=str(len(cc))
-elif wooOptions.ompThreads>1:
+elif wooOptions.ompThreads:
 	os.environ['OMP_NUM_THREADS']=str(wooOptions.ompThreads)
+elif 'OMP_NUM_THREADS' not in os.environ:
+	os.environ['OMP_NUM_THREADS']='1'
 
 import distutils.sysconfig
 WIN=sys.platform=='win32'

@@ -2,6 +2,26 @@
 
 __all__=['main','batch']
 
+import sys
+WIN=(sys.platform=='win32')
+	
+try:
+	import colorama
+	# work around http://code.google.com/p/colorama/issues/detail?id=16
+	# not under Windows, or under Windows in dumb "terminal" (cmd.exe), where autodetection works
+	if not WIN: colorama.init()
+	# windows with proper terminal emulator
+	elif 'TERM' in os.environ: colorama.init(autoreset=True,convert=False,strip=False)
+	# dumb windows terminal - no colors for our messages, but IPython prompts is colorized properly
+	else: raise ImportError() # as if we have no colorama
+	green=lambda s: colorama.Fore.GREEN+s+colorama.Fore.RESET
+	red=lambda s: colorama.Fore.RED+s+colorama.Fore.RESET
+	yellow=lambda s: colorama.Fore.YELLOW+s+colorama.Fore.RESET
+	bright=lambda s: colorama.Style.BRIGHT+s+colorama.Style.RESET_ALL
+except ImportError:
+	green=red=yellow=bright=lambda s: s
+
+
 def main(sysArgv=None):
 	'''Function called by the woo executable.
 	*sysArgv* (if specified) replaces sys.argv; sys.argv is used for option processing.
@@ -121,18 +141,6 @@ def main(sysArgv=None):
 	import woo
 	# other parts we will need soon
 	import woo.config
-	try:
-		import colorama
-		# work around http://code.google.com/p/colorama/issues/detail?id=16
-		# not under Windows, or under Windows in dumb "terminal" (cmd.exe), where autodetection works
-		if sys.platform!='win32': colorama.init()
-		# windows with proper terminal emulator
-		elif 'TERM' in os.environ: colorama.init(autoreset=True,convert=False,strip=False)
-		# dumb windows terminal - no colors for our messages, but IPython prompts is colorized properly
-		else: raise ImportError() # as if we have no colorama
-		green=lambda s: colorama.Fore.GREEN+s+colorama.Fore.RESET
-	except ImportError:
-		green=lambda s: s
 	sys.stderr.write(green('Welcome to Woo '+woo.config.prettyVersion()+'%s%s\n'%(' (debug build)' if woo.config.debug else '',(', flavor '+woo.config.flavor if woo.config.flavor else ''))))
 	import woo.log
 	import woo.system
@@ -149,7 +157,20 @@ def main(sysArgv=None):
 		print 'Manual page %s generated.'%opts.manpage
 		sys.exit(0)
 	if opts.nice:
-		os.nice(opts.nice)
+		if WIN:
+			try:
+				import psutil
+				if opts.nice<-10: wcl=psutil.HIGH_PRIORITY_PRIORITY_CLASS
+				elif opts.nice<0: wcl=psutil.ABOVE_NORMAL_PRIORITY_CLASS
+				elif opts.nice==0: wcl=psutil.NORMAL_PRIORITY_CLASS
+				elif opts.nice<10: wcl=psutil.BELOW_NORMAL_PRIORITY_CLASS
+				else: wcl=psutil.IDLE_PRIORITY_CLASS
+				psutil.Process(os.getpid()).nice=wcl
+			except ImportError:
+				logging.warn('Nice value %d ignored, since module psutil could not be imported (Windows only)'%opts.nice)
+		else: os.nice(opts.nice)
+
+
 	if opts.noGdb:
 		woo.master.disableGdb()
 	if 'log4cxx' in woo.config.features and opts.verbosity:
@@ -275,7 +296,7 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 		]
 	)
 	# shortcuts don't really work under windows, show controller directly in that case
-	if qt4 and sys.platform=='win32': woo.qt.Controller()
+	if qt4 and WIN: woo.qt.Controller()
 
 	# show python console
 	# handle both ipython 0.10 and 0.11 (incompatible API)
@@ -392,14 +413,17 @@ finished: %s
 		def getInfoDict(self):
 			if self.status!='RUNNING': return None
 			if not self.ensureXmlrpc(): return None
-			return self.xmlrpcConn.basicInfo()
+			try: return self.xmlrpcConn.basicInfo()
+			except: print 'Error getting simulation information via XMLRPC'
 		def updatePlots(self):
 			#global opts
 			if self.status!='RUNNING': return
 			if not self.ensureXmlrpc(): return
 			if time.time()-self.plotsLastUpdate<opts.plotTimeout: return
 			self.plotsLastUpdate=time.time()
-			img=self.xmlrpcConn.plot()
+			img=None
+			try: img=self.xmlrpcConn.plot()
+			except: print 'Error getting plot via XMLRPC'
 			if not img:
 				if os.path.exists(self.plotsFile): os.remove(self.plotsFile)
 				return
@@ -589,31 +613,31 @@ finished: %s
 		job.prepareToRun()
 		job.started=time.time();
 		
-		print '#%d (%s%s%s) started on %s'%(job.num,job.id,'' if job.nCores==1 else '/%d'%job.nCores,(' ['+','.join([str(c) for c in job.cores])+']') if job.cores else '',time.asctime())
+		print (bright(yellow('   #{job.num} ({job.id}{nCores}{cores}) started'))+' on {asctime}').format(job=job,nCores=('' if job.nCores==1 else '/%d'%job.nCores),cores=(' ['+','.join([str(c) for c in job.cores])+']') if job.cores else '',asctime=time.asctime())
 		#print '#%d cores',%(job.num,job.cores)
 		sys.stdout.flush()
 		
 		if WIN: job.exitStatus=subprocess.call(job.winBatch,shell=False)
 		else: job.exitStatus=os.system(job.command)
 		#job.exitStatus=0
-		print '#%d system exit status %d'%(job.num,job.exitStatus)
+		print '   #%d system exit status %d'%(job.num,job.exitStatus)
 		if job.exitStatus!=0:
 			try:  # fake normal exit, if crashing at the very end
 				if len([l for l in open(job.log) if l.startswith('Woo: normal exit.')])>0: job.exitStatus=0
 			except: pass
+		job.status='DONE'
 		job.finished=time.time()
 		dt=job.finished-job.started;
 		job.durationSec=dt
 		job.duration=t2hhmmss(dt)
-		strStatus='done   ' if job.exitStatus==0 else 'FAILED '
-		job.status='DONE'
+		colorize=(lambda s: bright(green(s))) if job.exitStatus==0 else (lambda s: bright(red(s)))
 		havePlot=False
 		if os.path.exists(job.plotsFile):
 			f=(job.log[:-3] if job.log.endswith('.log') else job.log+'.')+woo.remote.plotImgFormat
 			shutil.copy(job.plotsFile,f)
 			job.plotsFile=f
 			havePlot=True
-		print "#%d (%s%s) %s (exit status %d), duration %s, log %s%s"%(job.num,job.id,'' if job.nCores==1 else '/%d'%job.nCores,strStatus,job.exitStatus,job.duration,job.log,(', plot %s'%(job.plotsFile) if havePlot else ''))
+		print (colorize('   #{job.num} ({job.id}{nCores}) {strStatus}')+'(exit status {job.exitStatus}), duration {job.duration}, log {job.log}{jobPlot}').format(job=job,nCores='' if job.nCores==1 else '/%d'%job.nCores,strStatus=('done    ' if job.exitStatus==0 else 'FAILED '),jobPlot=(', plot %s'%(job.plotsFile) if havePlot else ''))
 		job.saveInfo()
 		
 	def runJobs(jobs,numCores):
@@ -685,8 +709,6 @@ finished: %s
 		woo.manpage.generate_manpage(parser,woo.config.metadata,opts.manpage,section=1,seealso='woo%s (1)\n.br\nhttps://yade-dem.org/sphinx/user.html#batch-queuing-and-execution-yade-batch'%suffix)
 		print 'Manual page %s generated.'%opts.manpage
 		sys.exit(0)
-	
-	WIN=(sys.platform=='win32')
 	
 	tailProcess=None
 	def runTailProcess(globalLog):
@@ -832,7 +854,7 @@ finished: %s
 	
 	print "Job summary:"
 	for job in jobs:
-		print '   #{job.num} ({job.id}{cores}): WOO_BATCH={job.table}:{job.lineNo}:{job.resultsDb} {job.executable} {job.script} > {job.log}'.format(job=job,cores='' if job.nCores==1 else '/%d'%job.nCores)
+		print (bright('   #{job.num} ({job.id}{cores})')+': WOO_BATCH={job.table}:{job.lineNo}:{job.resultsDb} {job.executable} {job.script} > {job.log}').format(job=job,cores='' if job.nCores==1 else '/%d'%job.nCores)
 	sys.stdout.flush()
 	
 	
