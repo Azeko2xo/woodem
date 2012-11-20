@@ -2,24 +2,42 @@
 
 __all__=['main','batch']
 
-import sys
+import sys, os
 WIN=(sys.platform=='win32')
-	
-try:
-	import colorama
-	# work around http://code.google.com/p/colorama/issues/detail?id=16
-	# not under Windows, or under Windows in dumb "terminal" (cmd.exe), where autodetection works
-	if not WIN: colorama.init()
-	# windows with proper terminal emulator
-	elif 'TERM' in os.environ: colorama.init(autoreset=True,convert=False,strip=False)
-	# dumb windows terminal - no colors for our messages, but IPython prompts is colorized properly
-	else: raise ImportError() # as if we have no colorama
-	green=lambda s: colorama.Fore.GREEN+s+colorama.Fore.RESET
-	red=lambda s: colorama.Fore.RED+s+colorama.Fore.RESET
-	yellow=lambda s: colorama.Fore.YELLOW+s+colorama.Fore.RESET
-	bright=lambda s: colorama.Style.BRIGHT+s+colorama.Style.RESET_ALL
-except ImportError:
-	green=red=yellow=bright=lambda s: s
+
+
+# pyInstaller provides its own site module, which does not define _Helper and perhaps others
+# this avoids warning from IPython about the function missing
+# TODO: report this as bug to pyInstaller
+import site
+if hasattr(sys,'frozen') and '_Helper' not in dir(site):
+	class _Helper(object):
+		def __repr__(self): return "Type help() for interactive help, or help(object) for help about object."
+		def __call__(self, *args, **kwds):
+			import pydoc; return pydoc.help(*args, **kwds)
+	site._Helper=_Helper
+
+
+
+def makeColorFuncs(colors,dumbWinColors=False):
+	try:
+		import colorama
+		# work around http://code.google.com/p/colorama/issues/detail?id=16
+		# not under Windows, or under Windows in dumb "terminal" (cmd.exe), where autodetection works
+		if not WIN: colorama.init()
+		# windows with proper terminal emulator
+		elif 'TERM' in os.environ: colorama.init(autoreset=True,convert=False,strip=False)
+		# dumb windows terminal - no colors for our messages, but IPython prompts is colorized properly
+		else:
+			if dumbWinColors: colorama.init() # used for batch output
+			else: raise ImportError # this would break ipython prompt completely
+		ret=[]
+		for c in colors:
+			if c in ('BRIGHT',): ret+=[lambda s,c=c: getattr(colorama.Style,c)+s+colorama.Style.RESET_ALL]
+			else: ret+=[lambda s,c=c: getattr(colorama.Fore,c)+s+colorama.Fore.RESET]
+		return ret
+	except ImportError:
+		return [lambda s: s]*len(colors)
 
 
 def main(sysArgv=None):
@@ -29,6 +47,8 @@ def main(sysArgv=None):
 	import sys,os,os.path,time,re
 	import wooOptions
 	if sysArgv: sys.argv=sysArgv
+	
+	green,red,yellow,bright=makeColorFuncs(['GREEN','RED','YELLOW','BRIGHT'])
 
 	# handle command-line options first
 	import argparse
@@ -49,13 +69,13 @@ def main(sysArgv=None):
 	# end wooOptions parse
 	#
 	par.add_argument('-c',help='Run these python commands after the start (use -x to exit afterwards)',dest='commands',metavar='COMMANDS')
-	par.add_argument('--update',help='Update deprecated class names in given script(s) using text search & replace. Changed files will be backed up with ~ suffix. Exit when done without running any simulation.',dest='updateScripts',action='store_true')
+	# par.add_argument('--update',help='Update deprecated class names in given script(s) using text search & replace. Changed files will be backed up with ~ suffix. Exit when done without running any simulation.',dest='updateScripts',action='store_true')
 	par.add_argument('--paused',help='When proprocessor or simulation is given on the command-line, don\'t run it automatically (default)',action='store_true')
 	par.add_argument('--nice',help='Increase nice level (i.e. decrease priority) by given number.',dest='nice',type=int)
 	par.add_argument('-x',help='Exit when the script finishes',dest='exitAfter',action='store_true')
 	par.add_argument('-v',help='Increase logging verbosity; first occurence sets default logging level to info (only available if built with log4cxx), second to debug, third to trace.',action='count',dest='verbosity')
-	par.add_argument('--generate-manpage',help="Generate man page documenting this program and exit",dest='manpage',metavar='FILE')
-	par.add_argument('-R','--rebuild',help="Re-run build in the source directory, then run the updated woo with the same command line except --rebuild. The build flavor for this build and its stored parameters will be used. If given twice, update from the repository will be attempted before recompilation.",dest='rebuild',action='count')
+	# par.add_argument('--generate-manpage',help="Generate man page documenting this program and exit",dest='manpage',metavar='FILE')
+	if not WIN: par.add_argument('-R','--rebuild',help="Re-run build in the source directory, then run the updated woo with the same command line except --rebuild. The build flavor for this build and its stored parameters will be used. If given twice, update from the repository will be attempted before recompilation.",dest='rebuild',action='count')
 	par.add_argument('--test',help="Run regression test suite and exit; the exists status is 0 if all tests pass, 1 if a test fails and 2 for an unspecified exception.",dest="test",action='store_true')
 	par.add_argument('--no-gdb',help='Do not show backtrace when Woo crashes (only effective with \-\-debug).',dest='noGdb',action='store_true',)
 	par.add_argument('--in-gdb',help='Run Woo inside gdb (must be in $PATH).',dest='inGdb',action='store_true')
@@ -74,7 +94,7 @@ def main(sysArgv=None):
 		print '%s (%s)'%(woo.config.prettyVersion(),','.join(woo.config.features))
 		sys.exit(0)
 	# re-build woo so that the binary is up-to-date
-	if opts.rebuild:
+	if not WIN and opts.rebuild:
 		wooOptions.quirks=0
 		import subprocess, woo.config
 		if opts.rebuild>1:
@@ -126,7 +146,7 @@ def main(sysArgv=None):
 	if opts.inPdb:
 		import pdb
 		pdb.set_trace()
-	# run regression test suite and exit
+	## run regression test suite and exit
 	if opts.test:
 		import woo.tests
 		woo.tests.testAll(sysExit=True)
@@ -148,14 +168,14 @@ def main(sysArgv=None):
 
 	# continue option processing
 
-	if opts.updateScripts:
-		woo.system.updateScripts(args)
-		sys.exit(0)
-	if opts.manpage:
-		import woo.manpage
-		woo.manpage.generate_manpage(par,woo.config.metadata,opts.manpage,section=1,seealso='woo%s-batch (1)'%suffix)
-		print 'Manual page %s generated.'%opts.manpage
-		sys.exit(0)
+	#if opts.updateScripts:
+	#	woo.system.updateScripts(args)
+	#	sys.exit(0)
+	#if opts.manpage:
+	#	import woo.manpage
+	# woo.manpage.generate_manpage(par,woo.config.metadata,opts.manpage,section=1,seealso='woo%s-batch (1)'%suffix)
+	#	print 'Manual page %s generated.'%opts.manpage
+	#	sys.exit(0)
 	if opts.nice:
 		if WIN:
 			try:
@@ -230,7 +250,8 @@ def main(sysArgv=None):
 def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 	# prepare nice namespace for users
 	import woo, woo.runtime, woo.config
-	import sys, traceback
+	import sys, traceback, site
+	#
 	# start non-blocking qt4 app here; need to ask on the mailing list on how to make it functional
 	# with ipython >0.11, start the even loop early (impossible with 0.10, which is thread-based)
 	# http://mail.scipy.org/pipermail/ipython-user/2011-July/007931.html mentions this
@@ -333,6 +354,8 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 def batch(sysArgv=None):
 	import os, sys, thread, time, logging, pipes, socket, xmlrpclib, re, shutil, random, os.path
 	if sysArgv: sys.argv=sysArgv
+	
+	green,red,yellow,bright=makeColorFuncs(['GREEN','RED','YELLOW','BRIGHT'],dumbWinColors=True)
 		
 	#socket.setdefaulttimeout(10) 
 	
@@ -342,10 +365,13 @@ def batch(sysArgv=None):
 	wooOptions.quirks=0
 	import woo, woo.batch, woo.config, woo.remote
 	
-	if not re.match('.*-batch(.bat|.py)?$', sys.argv[0]):
+	match=re.match(r'(.*)[_-]batch(-script\.py|.exe)?$', sys.argv[0])
+	if not match:
 		print sys.argv
-		raise RuntimeError('Batch executable does not end with -batch{,.py,.bat}')
-	executable=re.sub('-batch(|.bat|.py)?$','\\1',sys.argv[0])
+		raise RuntimeError(r'Batch executable "%s"does not match ".*[_-]batch(-script\.py)?"'%sys.argv[0])
+	executable=match.group(1)
+	print executable
+	#re.sub('-batch(|.bat|.py)?$','\\1',sys.argv[0])
 	
 	
 	class JobInfo():
@@ -537,7 +563,7 @@ finished: %s
 					## now we have to filter away the cookie
 					cookieRemoved=False; data=''
 					for l in open(job.log):
-						if not cookieRemoved and l.startswith('TCP python prompt on'):
+						if not cookieRemoved and re.match('^.*TCP python prompt on .*, auth cookie.*$',l):
 							ii=l.find('auth cookie `'); l=l[:ii+13]+'******'+l[ii+19:]; cookieRemoved=True
 						data+=l
 					self.sendHttp(data,contentType='text/plain;charset=utf-8;',refresh=(0 if job.status=='DONE' else opts.refresh))

@@ -74,10 +74,15 @@ class Master: public Singleton<Master>{
 	long tmpFileCounter;
 	bool termFlag;
 	std::string tmpFileDir;
+	
+	void cleanupTemps();
+	#ifdef __MINGW64__
+		void cleanupOldTemps();
+	#endif
 
 	public:
 		bool terminateAll(){ return termFlag; }
-		void cleanupTemps();
+		
 		const map<string,std::set<string>>& getClassBases();
 
 		bool isInheritingFrom(const string& className, const string& baseClassName );

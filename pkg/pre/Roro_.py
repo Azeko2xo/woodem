@@ -974,6 +974,8 @@ def writeReport(S):
 		print e.start,e.end
 		print s[max(0,e.start-20):min(e.end+20,len(s))]
 		raise e
+	# close before the webbrowser reads the file
+	rep.close()
 		
 	import woo.batch
 	if not woo.batch.inBatch():

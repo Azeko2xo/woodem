@@ -77,7 +77,7 @@ if WIN:
 		csl=ctypes.windll.kernel32.CreateHardLinkW
 		csl.argtypes=(ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_void_p)
 		csl.restype=ctypes.c_ubyte
-		if csl(link_name,source,None)==0: raise ctypes.WinError()
+		if csl(link_name,source,None)==0: raise IOError('Hardlinking failed (files not on the same partition?)')
 			
 
 # enable warnings which are normally invisible, such as DeprecationWarning
@@ -128,12 +128,10 @@ if 0:
 		# this inserts the module to sys.modules automatically
 		imp.load_dynamic(mod,cxxInternalFile)
 # WORKAROUND: create temporary symlinks
-else:
+def hack_loadCompiledModulesViaLinks(compiledModDir,tryInAnotherTempdir=True):
 	allSubmodules=[]
-	compiledModDir=master.tmpFilename() # this will be a directory
-	#if sys.platform=='win32': compiledModDir=compiledModDir.replace('/','\\')
 	import os,sys
-	os.mkdir(compiledModDir)
+	if not os.path.exists(compiledModDir): os.mkdir(compiledModDir)
 	sys.path=[compiledModDir]+sys.path
 	# move _customConverters to the start, so that imports reyling on respective converters don't fail
 	# remove woo._cxxInternal since it is imported already
@@ -143,15 +141,22 @@ else:
 	## HACK: import _gts this way until it gets separated
 	cpm=[cc]+[m for m in cpm if m!=cc and m!='woo._cxxInternal']
 	# run imports now
-	for mod in cpm:
+	for iMod,mod in enumerate(cpm):
 		modpath=mod.split('.') 
 		linkName=os.path.join(compiledModDir,modpath[-1])+soSuffix # use just the last part to avoid hierarchy
 		if WIN:
 			try:
 				win_hardlink(os.path.abspath(cxxInternalFile),linkName)
-			except:
-				sys.stderr.write('Creating hardlink failed. Is woo installed on the same partition as the temporary directory? (this limitation is Windows-specific)\n')
-				raise
+			except IOError:
+				if iMod==1 and tryInAnotherTempdir:
+					print 'Linking modules to tempdir failed (another partition?), trying elsewhere...'
+					sys.path=sys.path[1:] # remove failed attempt
+					tmp2=lambda ii: os.dirname(cxxInternalFile)+'/.woo-tmp-%06d'%i
+					while os.path.exists(tmp2(i)): ii+=1
+					return hack_loadCompiledModulesViaLinks(tmp2(ii),tryInAnotherTempdir=False)
+				else:
+					sys.stderr.write('Creating hardlink failed. Is woo installed on the same partition as the temporary directory? (this limitation is Windows-specific)\n')
+					raise
 		else: os.symlink(os.path.abspath(cxxInternalFile),linkName)
 		if 'WOO_DEBUG' in os.environ: print 'Loading compiled module',mod,'from symlink',linkName
 		sys.stdout.flush()
@@ -173,6 +178,10 @@ else:
 		else:
 			raise RuntimeError('Module %s does not have 2 or 3 path items and will not be imported properly.'%mod)
 	sys.path=sys.path[1:] # remove temp dir from the path again
+	return allSubmodules
+	
+allSubmodules=hack_loadCompiledModulesViaLinks(master.tmpFilename()) # this will be a directory
+
 
 from . import config
 if 'gts' in config.features:

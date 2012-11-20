@@ -47,6 +47,7 @@ if 1:
 			IPython.external.qt.prepare_pyqt4()
 
 if 1: # initialize QApplication
+	from PyQt4 import QtGui
 	if woo.runtime.ipython_version==10:
 		wooQApp=QtGui.QApplication(sys.argv)
 	elif useQtConsole:
@@ -71,6 +72,15 @@ if 1: # initialize QApplication
 	#try:
 	#	wooQApp.setStyleSheet(open(woo.config.resourceDir+'/qmc2-black-0.10.qss').read())
 	#except IOError: pass # stylesheet not readable or whatever
+	if sys.platform=='win32': 
+		# don't use ugly windows theme, try something else
+		for style in QtGui.QStyleFactory.keys():
+			# the first one will be used
+			if  style in ('Cleanlooks','Plastique'):
+				QtGui.QApplication.setStyle(QtGui.QStyleFactory.create(style))
+				QtGui.QApplication.setPalette(QtGui.QApplication.style().standardPalette())
+				break
+		
 	
 from PyQt4.QtGui import *
 from PyQt4 import QtCore

@@ -164,7 +164,7 @@ if os.path.exists('examples'):
 	wooPrepareQt4()
 	wooPrepareHeaders()
 	wooPrepareChunks()
-	wooPrepareScripts()
+	# wooPrepareScripts()
 # files are in chunks
 cxxSrcs=['py/config.cxx']+glob(join(pathSources,'*.cpp'))+glob(join(pathSources,'*.c'))
 
@@ -282,16 +282,17 @@ setup(name='woo',
 		'Intended Audience :: Science/Research',
 		'Development Status :: 4 - Beta'
 	],
-	package_dir={'woo':'py','':'core/main','woo.qt':'gui/qt4','woo.pre':'pkg/pre','woo.gts':'py/3rd-party/pygts-0.3.1'},
+	# '' must use join(...) to use native separator
+	# otherwise scripts don't get installed!
+	# http://stackoverflow.com/questions/13271085/console-scripts-entry-point-ignored
+	package_dir={'woo':'py','':join('core','main'),'woo.qt':'gui/qt4','woo.pre':'pkg/pre','woo.gts':'py/3rd-party/pygts-0.3.1'},
 	packages=(
 		['woo','woo._monkey','woo.tests','woo.pre']
 		+(['woo.qt'] if 'qt4' in features else [])
 		+(['woo.gts'] if 'gts' in features else [])
 	),
 	py_modules=wooModules+['wooOptions','wooMain'],
-	#package_dir={'':'core/main'},
-	#py_modules=['wooMain'],
-	ext_modules=[
+		ext_modules=[
 		Extension('woo.'+cxxInternalModule,
 			sources=cxxSrcs,
 			include_dirs=cppDirs,
@@ -305,12 +306,12 @@ setup(name='woo',
 	# ignored under windows? http://stackoverflow.com/questions/13271085/console-scripts-entry-point-ignored
 	entry_points={
 		'console_scripts':[
-			'woo%s = wooMain:main'%execFlavor,
-			'woo%s-batch = wooMain:batch'%execFlavor,
+			'wwoo%s = wooMain:main'%execFlavor,
+			'wwoo%s_batch = wooMain:batch'%execFlavor,
 		],
 	},
 	# workaround for windows, instead of entry_points['console_scripts']
-	scripts=glob(join(pathScripts,'*')),
+	# scripts=glob(join(pathScripts,'*')),
 	# woo.__init__ makes symlinks to _cxxInternal, which would not be possible if zipped
 	# see http://stackoverflow.com/a/10618900/761090
 	zip_safe=False, 

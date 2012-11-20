@@ -25,19 +25,48 @@ class RenderMutexLock: public boost::mutex::scoped_lock{
 CREATE_LOGGER(Master);
 
 
+
 Master::Master(){
 	LOG_DEBUG_EARLY("Constructing woo::Master.");
 	sceneAnother=shared_ptr<Scene>(new Scene);
 	scene=shared_ptr<Scene>(new Scene);
 	startupLocalTime=boost::posix_time::microsec_clock::local_time();
+	
+	#ifdef __MING64__
+		cleanupOldTemps()
+	#endif
+
 
 	auto tmp=boost::filesystem::unique_path(boost::filesystem::temp_directory_path()/"woo-%%%%%%%%");
 	tmpFileDir=tmp.string();
+	LOG_DEBUG_EARLY("Creating temp dir "<<tmpFileDir);
 	if(!boost::filesystem::create_directory(tmp)) throw std::runtime_error("Creating temporary directory "+tmpFileDir+" failed.");
 	tmpFileCounter=0;
 
 	defaultClDev=Vector2i(-1,-1);
 }
+
+#ifdef __MINGW64__
+	// mark old temp dirs with file named like this
+	#define WOO_DELETABLE_STAMP "directory-safe-to-delete-since-owner-has-terminated"
+	void Master::cleanupOldTemps(){
+		vector<boost::filesystem::path> olds;
+		for(boost::filesystem::directory_iterator I(boost::filesystem::temp_directory_path()); I!=boost::filesystem::directory_iterator(); ++I){
+			LOG_DEBUG_EARLY("Considering "<<I->path().string()<<" for removal.");
+			if(boost::filesystem::is_directory(*I) && boost::algorithm::starts_with("woo-",I->path().filename().string()) && boost::filesystem::exists((*I)/WOO_DELETABLE_STAMP)) olds.push_back(*I);
+		}
+		for(auto& old: olds){
+			try{
+				boost::filesystem::remove_all(old);
+				LOG_DEBUG_EARLY("Cleaned old temp directory "<<old);
+			}
+			catch(boost::filesystem::filesystem_error& e){
+				LOG_DEBUG_EARLY("Error cleaning old temp directory "<<old);
+			}
+		}	
+	}
+#endif
+
 
 void Master::cleanupTemps(){
 	#ifndef __MINGW64__
@@ -49,7 +78,10 @@ void Master::cleanupTemps(){
 			cerr<<"Failed to clean temporary directory "<<tmpFileDir<<endl;
 		}
 	#else
-		cerr<<tmpFileDir<<" not cleaned (Windows limitation), do manually later."<<endl;
+		// cerr<<tmpFileDir<<" not cleaned (Windows limitation), do manually later."<<endl;
+		std::ofstream stamp;
+		stamp.open((tmpFileDir+"/" WOO_DELETABLE_STAMP).c_str());
+		stamp.close();
 	#endif
 }
 
@@ -149,7 +181,10 @@ void Master::pyRegisterAllClasses(){
 					// module existing as file, use it
 					pyModules[module]=py::import(("woo."+module).c_str());
 				} catch (py::error_already_set& e){
-					if(getenv("WOO_DEBUG")) PyErr_Print(); //boost::python::handle_exception();
+					// PyErr_Print shows error and clears error indicator
+					if(getenv("WOO_DEBUG")) PyErr_Print();
+					// this only clears the the error indicator
+					else PyErr_Clear(); 
 					py::object newModule(py::handle<>(PyModule_New(("woo."+module).c_str())));
 					newModule.attr("__file__")="<synthetic>";
 					wooScope.attr(module.c_str())=newModule;
@@ -176,7 +211,8 @@ void Master::pyRegisterAllClasses(){
 	/* python classes must be registered such that base classes come before derived ones;
 	for now, just loop until we succeed; proper solution will be to build graphs of classes
 	and traverse it from the top. It will be done once all classes are pythonable. */
-	for(int i=0; i<10 && pythonables.size()>0; i++){
+	for(int i=0; i<11 && pythonables.size()>0; i++){
+		if(i==10) throw std::runtime_error("Too many attempts to register python classes. Run again with WOO_DEBUG=1 to get better diagnostics.");
 		LOG_DEBUG_EARLY_FRAGMENT(endl<<"[[[ Round "<<i<<" ]]]: ");
 		std::list<string> done;
 		for(std::list<StringObjectPair>::iterator I=pythonables.begin(); I!=pythonables.end(); ){
@@ -190,8 +226,9 @@ void Master::pyRegisterAllClasses(){
 				std::list<StringObjectPair>::iterator prev=I++;
 				pythonables.erase(prev);
 			} catch (...){
-				LOG_DEBUG_EARLY("["<<klass<<"]"); if(getenv("WOO_DEBUG")) PyErr_Print();
-				boost::python::handle_exception();
+				LOG_DEBUG_EARLY("["<<klass<<"]");
+				if(getenv("WOO_DEBUG")) PyErr_Print();
+				else PyErr_Clear();
 				I++;
 			}
 		}

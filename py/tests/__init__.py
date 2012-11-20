@@ -1,10 +1,21 @@
 # encoding: utf-8
 # 2009 © Václav Šmilauer <eudoxos@arcig.cz>
 """All defined functionality tests for woo."""
-import unittest,inspect
+import unittest, types
 
-# add any new test suites to the list here, so that they are picked up by testAll
-allTests=['core','pbc','clump','psd','io']
+# import all test suites so that they can be picked up by testAll
+# explicit imports here so that suites are packed by pyInstaller
+from . import core
+from . import pbc
+from . import clump
+from . import psd
+from . import io
+# this is ugly, but automatic
+allTests=[m for m in dir() if type(eval(m))==types.ModuleType and eval(m).__name__.startswith('woo.tests')]
+# should the above break, do it manually (but keep the imports above):
+## allTests=['core','pbc','clump','psd','io']
+
+
 
 # all woo modules (ugly...)
 import woo.export,woo.linterpolation,woo.log,woo.pack,woo.plot,woo.post2d,woo.timing,woo.utils,woo.ymport,woo.geom,woo.batch
