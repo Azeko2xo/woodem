@@ -26,6 +26,15 @@
 # define FOREACH BOOST_FOREACH
 #endif
 
+#ifdef __MING64__
+	// define to have temp dir deleted when Woo is started next time, not when it terminates
+	// this is mandatory under Windows, since it refuses to delete dir with open files
+	// (hardlinked DLLs)
+	#define WOO_DELAYED_TEMP_CLEANUP
+	// mark old temp dirs with file named like this
+	#define WOO_DELETABLE_STAMP "directory-safe-to-delete-since-owner-has-terminated"
+#endif
+
 struct Scene;
 //namespace woo { class Object; };
 using namespace woo;
@@ -76,8 +85,8 @@ class Master: public Singleton<Master>{
 	std::string tmpFileDir;
 	
 	void cleanupTemps();
-	#ifdef __MINGW64__
-		void cleanupOldTemps();
+	#ifdef WOO_DELAYED_TEMP_CLEANUP
+		void delayedCleanupTemps();
 	#endif
 
 	public:
@@ -151,7 +160,7 @@ class Master: public Singleton<Master>{
 	DECLARE_LOGGER;
 
 	Master();
-	~Master(){ cleanupTemps(); }
+	~Master();
 
 	FRIEND_SINGLETON(Master);
 

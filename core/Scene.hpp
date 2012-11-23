@@ -46,6 +46,7 @@ struct Scene: public Object{
 		void doOneStep();
 
 		void postLoad(Scene&);
+		void preSave(Scene&){ preSaveDuration=pyGetDuration(); }
 
 		#ifdef WOO_OPENCL
 			shared_ptr<cl::Platform> platform;
@@ -77,6 +78,10 @@ struct Scene: public Object{
 		};
 		pyTagsProxy pyGetTags(){ return pyTagsProxy(this); }
 		shared_ptr<Cell> pyGetCell(){ return (isPeriodic?cell:shared_ptr<Cell>()); }
+
+		boost::posix_time::ptime clock0;
+		bool clock0adjusted; // flag to adjust clock0 in postLoad only once
+		long pyGetDuration(){ return (boost::posix_time::second_clock::local_time()-clock0).total_seconds(); }
 
 		typedef std::map<std::string,std::string> StrStrMap;
 
@@ -159,6 +164,7 @@ struct Scene: public Object{
 		((shared_ptr<Cell>,cell,new Cell,AttrTrait<Attr::hidden>(),"Information on periodicity; only should be used if Scene::isPeriodic."))
 		((vector<shared_ptr<DisplayParameters>>,dispParams,,AttrTrait<Attr::hidden>().noGui(),"'hash maps' of display parameters (since woo::serialization had no support for maps, emulate it via vector of strings in format key=value)"))
 		((std::string,lastSave,,AttrTrait<>().noGui(),"Name under which the simulation was saved for the last time; used for reloading the simulation. Updated automatically, don't change."))
+		((long,preSaveDuration,,AttrTrait<Attr::readonly>().noGui(),"Wall clock duration this Scene was alive before being saved last time; this count is incremented every time the scene is saved. When Scene is loaded, it is used to construct clock0 as current_local_time - lastSecDuration."))
 
 		#if WOO_OPENGL
 			((vector<shared_ptr<ScalarRange>>,ranges,,,"Scalar ranges to be rendered on the display as colormaps"))
@@ -172,9 +178,14 @@ struct Scene: public Object{
 		// ((shared_ptr<Bound>,bound,,AttrTrait<Attr::hidden>(),"Bounding box of the scene (only used for rendering and initialized if needed)."))
 
 		,
-		/*ctor*/ fillDefaultTags(); runningFlag=false;
+		/*ctor*/
+			fillDefaultTags();
+			runningFlag=false;
+			clock0=boost::posix_time::second_clock::local_time();
+			clock0adjusted=false;
 		, /* py */
 		.add_property("tags",&Scene::pyGetTags,"Arbitrary key=value associations (tags like mp3 tags: author, date, version, description etc.")
+		.add_property("duration",&Scene::pyGetDuration,"Number of (wall clock) seconds this instance is alive (including time before being loaded from file")
 		.add_property("cell",&Scene::pyGetCell,"Periodic space configuration (is None for aperiodic scene); set :ref:`Scene.periodic` to enable/disable periodicity")
 		.def_readwrite("periodic",&Scene::isPeriodic,"Set whether the scene is periodic or not")
 		.add_property("engines",&Scene::pyEnginesGet,&Scene::pyEnginesSet,"Engine sequence in the simulation")

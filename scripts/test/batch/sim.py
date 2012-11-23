@@ -13,6 +13,7 @@ print 'unimportant',table.unimportant
 import time
 S.engines=[woo.core.PyRunner(1,'import time, sys; time.sleep(.005); sys.stderr.write(".")')]
 S.run(1000,True)
+woo.batch.writeResults(**table.__dict__)
 print 'finished'
 import sys
 sys.stdout.flush()

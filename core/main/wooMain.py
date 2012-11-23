@@ -102,7 +102,8 @@ def main(sysArgv=None):
 			print 'Updating Woo using ',' '.join(cmd)
 			if subprocess.call(cmd): raise RuntimeError('Error updating Woo from bzr repository.')
 		# rebuild
-		cmd=['scons','-Q','-C',woo.config.sourceRoot,'flavor=%s!'%woo.config.flavor,'debug=%d'%(1 if woo.config.debug else 0),'execCheck=%s'%(os.path.abspath(sys.argv[0]))]
+		# FIXME: should be use opts.debug or wooOptions.debug here??
+		cmd=['scons','-Q','-C',woo.config.sourceRoot,'flavor=%s!'%woo.config.flavor,'debug=%d'%(1 if opts.debug else 0),'execCheck=%s'%(os.path.abspath(sys.argv[0]))]
 		print 'Rebuilding Woo using',' '.join(cmd)
 		if subprocess.call(cmd): raise RuntimeError('Error rebuilding Woo (--rebuild).')
 		# run ourselves

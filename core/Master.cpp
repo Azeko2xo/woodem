@@ -32,8 +32,8 @@ Master::Master(){
 	scene=shared_ptr<Scene>(new Scene);
 	startupLocalTime=boost::posix_time::microsec_clock::local_time();
 	
-	#ifdef __MING64__
-		cleanupOldTemps()
+	#ifdef WOO_DELAYED_TEMP_CLEANUP
+		delayedCleanupTemps();
 	#endif
 
 
@@ -46,14 +46,22 @@ Master::Master(){
 	defaultClDev=Vector2i(-1,-1);
 }
 
-#ifdef __MINGW64__
-	// mark old temp dirs with file named like this
-	#define WOO_DELETABLE_STAMP "directory-safe-to-delete-since-owner-has-terminated"
-	void Master::cleanupOldTemps(){
+
+Master::~Master(){
+	cleanupTemps();
+}
+
+#ifdef WOO_DELAYED_TEMP_CLEANUP
+	void Master::delayedCleanupTemps(){
 		vector<boost::filesystem::path> olds;
+		// two loops necessary?
+		// http://stackoverflow.com/questions/13513369/is-boostfilesystemdirectory-iterator-invalidated-by-deletion
 		for(boost::filesystem::directory_iterator I(boost::filesystem::temp_directory_path()); I!=boost::filesystem::directory_iterator(); ++I){
-			LOG_DEBUG_EARLY("Considering "<<I->path().string()<<" for removal.");
-			if(boost::filesystem::is_directory(*I) && boost::algorithm::starts_with("woo-",I->path().filename().string()) && boost::filesystem::exists((*I)/WOO_DELETABLE_STAMP)) olds.push_back(*I);
+			try{
+				if(boost::filesystem::is_directory(*I) && boost::algorithm::starts_with(I->path().filename().string(),"woo-") && boost::filesystem::exists((*I)/WOO_DELETABLE_STAMP)) olds.push_back(*I);
+			} catch (boost::filesystem::filesystem_error& e){
+				LOG_DEBUG_EARLY("Temp dir "<<I->path().string()<<": error getting file information, will not delete.");			
+			}
 		}
 		for(auto& old: olds){
 			try{
@@ -69,7 +77,7 @@ Master::Master(){
 
 
 void Master::cleanupTemps(){
-	#ifndef __MINGW64__
+	#ifndef WOO_DELAYED_TEMP_CLEANUP
 		LOG_DEBUG_EARLY("Cleaning "<<tmpFileDir);
 		boost::filesystem::path tmpPath(tmpFileDir);
 		try {
@@ -78,7 +86,8 @@ void Master::cleanupTemps(){
 			cerr<<"Failed to clean temporary directory "<<tmpFileDir<<endl;
 		}
 	#else
-		// cerr<<tmpFileDir<<" not cleaned (Windows limitation), do manually later."<<endl;
+		// only mark temp for cleanup next time
+		LOG_DEBUG_EARLY("Stamping "<<tmpFileDir<<"/"<<WOO_DELETABLE_STAMP);
 		std::ofstream stamp;
 		stamp.open((tmpFileDir+"/" WOO_DELETABLE_STAMP).c_str());
 		stamp.close();
@@ -311,10 +320,6 @@ void Master::pyExitNoBacktrace(int status){
 		if(status==0) signal(SIGSEGV,termHandlerNormal); /* unset the handler that runs gdb and prints backtrace */
 		else signal(SIGSEGV,termHandlerError);
 	#endif
-	// try to clean our mess
-	//
-	// cleanupTemps(); :: called from the destructor now
-	//
 	// flush all streams (so that in case we crash at exit, unflushed buffers are not lost)
 	fflush(NULL);
 	// attempt exit

@@ -250,6 +250,10 @@ void Scene::saveTmp(const string& slot, bool quiet){
 }
 
 void Scene::postLoad(Scene&){
+	if(!clock0adjusted){
+		clock0-=boost::posix_time::seconds(preSaveDuration);
+		clock0adjusted=true;
+	}
 	#ifdef WOO_OPENCL
 		// clDev is set and does not match really initialized device in _clDev
 		if(clDev[0]!=_clDev[0] || clDev[1]!=_clDev[1]) initCl();

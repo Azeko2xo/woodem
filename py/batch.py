@@ -10,7 +10,7 @@ def inBatch():
 
 def writeResults(defaultDb='woo-results.sqlite',syncXls=True,**kw):
 	# increase every time the db format changes, to avoid errors
-	formatVersion=1
+	formatVersion=2
 	import woo
 	S=woo.master.scene
 	import os
@@ -24,7 +24,7 @@ def writeResults(defaultDb='woo-results.sqlite',syncXls=True,**kw):
 	conn=sqlite3.connect(db,detect_types=sqlite3.PARSE_DECLTYPES)
 	if newDb:
 		c=conn.cursor()
-		c.execute('create table batch (formatNumber integer, finished timestamp, batchtable text, batchTableLine integer, sceneId text, title text, pre text, tags text, plotData text, plots text, custom text)')
+		c.execute('create table batch (formatNumber integer, finished timestamp, batchtable text, batchTableLine integer, sceneId text, title text, duration integer, pre text, tags text, plotData text, plots text, custom text)')
 	else:	
 		conn.row_factory=sqlite3.Row
 		conn.execute('select * from batch')
@@ -48,13 +48,14 @@ def writeResults(defaultDb='woo-results.sqlite',syncXls=True,**kw):
 			line, # batchTableLine
 			S.tags['id'], # sceneId
 			S.tags['title'], # title
-			S.pre.dumps(format='json'), # pre
+			S.duration,
+			(S.pre.dumps(format='json') if S.pre else None), # pre
 			json.dumps(d2), # tags
 			json.dumps(S.plot.data), # plotData
 			json.dumps(S.plot.plots), # plots
 			woo.core.WooJSONEncoder(indent=None).encode(kw) # custom
 		)
-		conn.execute('insert into batch values (?,?,?,?,?, ?,?,?,?,?, ?)',values)
+		conn.execute('insert into batch values (?,?,?,?,?, ?,?,?,?,?, ?,?)',values)
 	if syncXls:
 		import re
 		xls='%s.xls'%re.sub('\.sqlite$','',db)
@@ -65,7 +66,7 @@ def writeResults(defaultDb='woo-results.sqlite',syncXls=True,**kw):
 
 
 
-def dbToSpread(db,out=None,dialect='excel',rows=False,ignored=('plotData','tags'),sortFirst=('title','batchtable','batchTableLine','finished','sceneId'),selector='SELECT * FROM batch ORDER BY title'):
+def dbToSpread(db,out=None,dialect='excel',rows=False,ignored=('plotData','tags'),sortFirst=('title','batchtable','batchTableLine','finished','sceneId','duration'),selector='SELECT * FROM batch ORDER BY title'):
 	'''
 	Select simulation results (using *selector*) stored in batch database *db*, flatten data for each simulation,
 	and dump the data in the CSV format (using *dialect*: 'excel', 'excel-tab', 'xls') into file *out* (standard output
