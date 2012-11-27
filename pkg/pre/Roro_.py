@@ -315,8 +315,8 @@ def run(pre): # use inputs as argument
 	return s
 
 
-def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,goal=.15,dontBlock=False,memoizeDir=None):
-	print 'woo.pre.Roro_.makeBandFeedPack(dim=%s,psd=%s,mat=%s,gravity=%s,excessWd=%s,damping=%s,dontBlock=True)'%(repr(dim),repr(psd),mat.dumps(format='expr',width=-1,noMagic=True),repr(gravity),repr(excessWd),repr(damping))
+def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,goal=.15,dontBlock=False,memoizeDir=None,botLine=None,leftLine=None,rightLine=None):
+	print 'woo.pre.Roro_.makeBandFeedPack(dim=%s,psd=%s,mat=%s,gravity=%s,excessWd=%s,damping=%s,dontBlock=True,botLine=%s,leftLine=%s,rightLine=%s)'%(repr(dim),repr(psd),mat.dumps(format='expr',width=-1,noMagic=True),repr(gravity),repr(excessWd),repr(damping),repr(botLine),repr(leftLine),repr(rightLine))
 	dim=list(dim) # make modifiable in case of excess width
 	retWd=dim[1]
 	repeatCell=[0]
@@ -331,7 +331,7 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 	cellSize=(dim[0],dim[1],(1+2*porosity)*dim[2])
 	print 'cell size',cellSize,'target height',dim[2]
 	if memoizeDir:
-		params=str(dim)+str(cellSize)+str(psd)+str(goal)+str(damping)+mat.dumps(format='expr')+str(gravity)+str(porosity)
+		params=str(dim)+str(cellSize)+str(psd)+str(goal)+str(damping)+mat.dumps(format='expr')+str(gravity)+str(porosity)+str(botLine)+str(leftLine)+str(rightLine)
 		import hashlib
 		paramHash=hashlib.sha1(params).hexdigest()
 		memoizeFile=memoizeDir+'/'+paramHash+'.bandfeed'
@@ -344,7 +344,15 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 	S=Scene(fields=[DemField(gravity=gravity)])
 	S.periodic=True
 	S.cell.setBox(cellSize)
-	p=pack.sweptPolylines2gtsSurface([utils.tesselatePolyline([Vector3(x,0,cellSize[2]),Vector3(x,0,0),Vector3(x,cellSize[1],0),Vector3(x,cellSize[1],cellSize[2])],maxDist=min(cellSize[1],cellSize[2])/3.) for x in numpy.linspace(0,cellSize[0],num=4)])
+	factoryBottom=.3*cellSize[2] if not botLine else max([b[1] for b in botLine]) # point above which are particles generated
+	factoryLeft=0 if not leftLine else max([l[0] for l in leftLine])
+	#print 'factoryLeft =',factoryLeft,'leftLine =',leftLine,'cellSize =',cellSize
+	factoryRight=cellSize[1] if not rightLine else min([r[0] for r in rightLine])
+	if not leftLine: leftLine=[Vector2(0,cellSize[2])]
+	if not rightLine:rightLine=[Vector2(cellSize[1],cellSize[2])]
+	if not botLine:  botLine=[Vector2(0,0),Vector2(cellSize[1],0)]
+	boundary2d=leftLine+botLine+rightLine
+	p=pack.sweptPolylines2gtsSurface([utils.tesselatePolyline([Vector3(x,yz[0],yz[1]) for yz in boundary2d],maxDist=min(cellSize[1],cellSize[2])/3.) for x in numpy.linspace(0,cellSize[0],num=4)])
 	S.dem.par.append(pack.gtsSurface2Facets(p,mask=0b011))
 	S.dem.loneMask=0b010
 
@@ -355,9 +363,10 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 	mat0,mat=mat,mat.deepcopy()
 	mat.tanPhi=min(.2,mat0.tanPhi)
 
+
 	S.engines=utils.defaultEngines(damping=damping)+[
 		BoxFactory(
-			box=((.01*cellSize[0],.01*cellSize[1],.3*cellSize[2]),cellSize),
+			box=((.01*cellSize[0],factoryLeft,factoryBottom),(cellSize[0],factoryRight,cellSize[2])),
 			stepPeriod=200,
 			maxMass=massToDo,
 			massFlowRate=0,
@@ -375,6 +384,7 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 		PyRunner(200,'import woo\nif woo.utils.unbalancedForce(S)<'+str(goal)+' and woo.makeBandFeedFactory.dead: S.stop()'),
 	]
 	S.dt=.7*utils.spherePWaveDt(psd[0][0],mat.density,mat.young)
+	print 'Factory box is',woo.makeBandFeedFactory.box
 	if dontBlock: return S
 	else: S.run()
 	S.wait()
@@ -383,7 +393,7 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 		if not type(p.shape)==Sphere: continue
 		for rep in repeatCell:
 			c,r=S.cell.canonicalizePt(p.pos)+dim[1]*(rep-.5)*Vector3.UnitY,p.shape.radius
-			if abs(c[1]+r)>.5*retWd or c[2]+r>dim[2]: continue
+			if abs(c[1])+r>.5*retWd or c[2]+r>dim[2]: continue
 			cc.append(Vector3(c[0],c[1],c[2])); rr.append(r)
 	if memoizeDir:
 		sp=pack.SpherePack()
