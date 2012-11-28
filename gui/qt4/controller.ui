@@ -39,7 +39,7 @@
       </sizepolicy>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="tabGridLayout">
       <attribute name="title">
@@ -552,8 +552,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>98</width>
-            <height>16</height>
+            <width>444</width>
+            <height>391</height>
            </rect>
           </property>
          </widget>
@@ -576,6 +576,40 @@
          </property>
          <item row="2" column="0">
           <layout class="QHBoxLayout" name="horizontalLayout_6">
+           <item>
+            <widget class="QPushButton" name="pushButton">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>30</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="baseSize">
+              <size>
+               <width>30</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="toolTip">
+              <string>Refresh list of available preprocessors</string>
+             </property>
+             <property name="text">
+              <string>↻</string>
+             </property>
+             <property name="default">
+              <bool>true</bool>
+             </property>
+             <property name="flat">
+              <bool>false</bool>
+             </property>
+            </widget>
+           </item>
            <item>
             <widget class="QComboBox" name="generatorCombo">
              <property name="sizePolicy">
@@ -806,8 +840,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>98</width>
-            <height>16</height>
+            <width>444</width>
+            <height>389</height>
            </rect>
           </property>
          </widget>
@@ -852,8 +886,8 @@
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>96</width>
-              <height>16</height>
+              <width>442</width>
+              <height>357</height>
              </rect>
             </property>
            </widget>
@@ -948,8 +982,8 @@
    <slot>loadSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>95</x>
-     <y>60</y>
+     <x>323</x>
+     <y>62</y>
     </hint>
     <hint type="destinationlabel">
      <x>284</x>
@@ -980,8 +1014,8 @@
    <slot>playSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>114</x>
-     <y>312</y>
+     <x>121</x>
+     <y>183</y>
     </hint>
     <hint type="destinationlabel">
      <x>3</x>
@@ -996,8 +1030,8 @@
    <slot>pauseSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>358</x>
-     <y>312</y>
+     <x>344</x>
+     <y>183</y>
     </hint>
     <hint type="destinationlabel">
      <x>284</x>
@@ -1012,8 +1046,8 @@
    <slot>plotSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>470</x>
-     <y>474</y>
+     <x>443</x>
+     <y>205</y>
     </hint>
     <hint type="destinationlabel">
      <x>284</x>
@@ -1060,8 +1094,8 @@
    <slot>inspectSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>459</x>
-     <y>64</y>
+     <x>443</x>
+     <y>247</y>
     </hint>
     <hint type="destinationlabel">
      <x>0</x>
@@ -1076,8 +1110,8 @@
    <slot>reloadSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>262</x>
-     <y>394</y>
+     <x>344</x>
+     <y>246</y>
     </hint>
     <hint type="destinationlabel">
      <x>284</x>
@@ -1092,8 +1126,8 @@
    <slot>stepSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>100</x>
-     <y>395</y>
+     <x>92</x>
+     <y>245</y>
     </hint>
     <hint type="destinationlabel">
      <x>6</x>
@@ -1108,8 +1142,8 @@
    <slot>subStepSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>161</x>
-     <y>376</y>
+     <x>145</x>
+     <y>212</y>
     </hint>
     <hint type="destinationlabel">
      <x>0</x>
@@ -1124,8 +1158,8 @@
    <slot>show3dSlot(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>87</x>
-     <y>474</y>
+     <x>443</x>
+     <y>162</y>
     </hint>
     <hint type="destinationlabel">
      <x>0</x>
@@ -1140,8 +1174,8 @@
    <slot>generateSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>475</x>
-     <y>479</y>
+     <x>445</x>
+     <y>448</y>
     </hint>
     <hint type="destinationlabel">
      <x>284</x>
@@ -1156,7 +1190,7 @@
    <slot>genSaveParamsSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>464</x>
+     <x>445</x>
      <y>59</y>
     </hint>
     <hint type="destinationlabel">
@@ -1172,8 +1206,8 @@
    <slot>movieCheckboxToggled()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>108</x>
-     <y>60</y>
+     <x>103</x>
+     <y>54</y>
     </hint>
     <hint type="destinationlabel">
      <x>451</x>
@@ -1188,8 +1222,8 @@
    <slot>movieButtonClicked()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>467</x>
-     <y>471</y>
+     <x>446</x>
+     <y>449</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -1204,8 +1238,8 @@
    <slot>resetTraceClicked()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>432</x>
-     <y>60</y>
+     <x>446</x>
+     <y>58</y>
     </hint>
     <hint type="destinationlabel">
      <x>481</x>
@@ -1226,6 +1260,22 @@
     <hint type="destinationlabel">
      <x>-4</x>
      <y>140</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButton</sender>
+   <signal>clicked()</signal>
+   <receiver>Controller</receiver>
+   <slot>refreshPreprocessors()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>11</x>
+     <y>50</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>453</x>
+     <y>92</y>
     </hint>
    </hints>
   </connection>
@@ -1255,5 +1305,6 @@
   <slot>movieButtonClicked()</slot>
   <slot>resetTraceClicked()</slot>
   <slot>traceCheckboxToggled()</slot>
+  <slot>refreshPreprocessors()</slot>
  </slots>
 </ui>

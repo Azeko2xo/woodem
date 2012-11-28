@@ -12,6 +12,57 @@ import numpy
 nan=float('nan')
 
 
+import woo.pyderived
+from woo.dem import PelletMat
+
+class ChutePy(woo.core.Preprocessor,woo.pyderived.PyWooObject):
+	'Python variant of the Chute preprocessor'
+	_classTraits=None
+	PAT=woo.pyderived.PyAttrTrait
+	_attrTraits=[
+		PAT(float,'massFlowRate',200,unit='t/h',startGroup='General',doc='Mass flow rate of particles transported on the conveyor'),
+		PAT(float,'convLayerHt',.2,unit='m',doc='Height of transported material'),
+		PAT(float,'time',2,unit='s',doc='Time of the simulation'),
+
+		# conveyor
+		PAT([Vector2,],'convPts',[Vector2(.2,0),Vector2(.4,.1)],unit='m',startGroup='Conveyor',doc='Half of the the conveyor cross-section; the x-axis is horizontal, the y-axis vertical. The middle point is automatically at (0,0). The conveyor is always symmetric, reflected around the +y axis. Points must be given from the middle outwards.'),
+		PAT([Vector2,],'wallPts',[Vector2(.25,.025),Vector2(.22,.15),Vector2(.3,.3)],unit='m',doc='Side wall cross-section; points are given using the same coordinates as the :ref:`bandPts`.'),
+		PAT(bool,'half',True,"Only simulate one half of the problem, by making it symmetric around the middle plane."),
+		PAT(float,'convWallLen',.5,unit='m',doc="Length of the part of the conveyor convered with wall."),
+		PAT(float,'convBareLen',.5,unit='m',doc="Length of the conveyor without wall. In this part, the conveyor shape is interpolated so that it becomes flat at the exit cylinder's top (y=0 in cross-section coordinates)"),
+		PAT(float,'exitCylDiam',.2,unit='m',doc="Diameter of the exit cylinder"),
+		PAT(float,'convSlope',math.radians(15),unit='deg',doc="Slope of the conveyor; 0=horizontal, positive = ascending."),
+
+		# particles
+		PAT([Vector2,],'psd',[Vector2(.02,0),Vector2(.03,.2),Vector2(.04,1.)],startGroup="Particles",unit=['mm','%'],doc="Particle size distribution of transported particles."),
+		PAT(PelletMat,'material',PelletMat(density=3200,young=1e5,ktDivKn=.2,tanPhi=math.tan(.5),normPlastCoeff=50,kaDivKn=0.),"Material of particles"),
+		PAT(PelletMat,'convMaterial',None,"Material of the conveyor (if not given, material of particles is used)"),
+
+		# outputs
+		PAT(str,'reportFmt',"/tmp/{tid}.xhtml",startGroup="Outputs",doc="Report output format (Scene.tags can be used)."),
+		PAT(str,'feedCacheDir',".","Directory where to store pre-generated feed packings"),
+		PAT(str,'saveFmt',"/tmp/{tid}-{stage}.bin.gz","Savefile format; keys are :ref:`Scene.tags` and additionally ``{stage}`` will be replaced by 'init', 'steady' and 'done'."),
+		PAT(int,'backupSaveTime',1800,"How often to save backup of the simulation (0 or negative to disable)"),
+		PAT(float,'vtkFreq',4,"How often should VtkExport run, relative to *factStepPeriod*. If negative, run never."),
+		PAT(str,'vtkPrefix',"/tmp/{tid}-","Prefix for saving VtkExport data; formatted with ``format()`` providing :ref:`Scene.tags` as keys."),
+		PAT([str,],'reportHooks',[],noGui=True,doc="Python expressions returning a 3-tuple with 1. raw HTML to be included in the report, 2. list of (figureName,matplotlibFigure) to be included in figures, 3. dictionary to be added to the 'custom' dict saved in the database."),
+
+		# tunables
+		PAT(int,'factStepPeriod',200,startGroup="Tunables",doc="Run factory (and deleters) every *factStepPeriod* steps."),
+		PAT(float,'pWaveSafety',.7,"Safety factor for critical timestep"),
+		PAT(float,'gravity',10.,unit='m/s²',doc="Gravity acceleration magnitude"),
+		PAT(float,'rateSmooth',.2,"Smoothing factor for plotting rates in factory and deleters"),
+	]
+	def __init__(self,**kw):
+		Preprocessor.__init__(self) ## important: http://boost.2283326.n4.nabble.com/Fwd-Passing-Python-derived-class-back-into-a-native-C-class-doesn-t-match-the-C-signature-td4034809.html
+		self.wooPyInit(ChutePy,Preprocessor,**kw)
+	def __call__(self):
+		print 100*'@'
+		import woo.pre.Chute_
+		return woo.pre.Chute_.run(self)
+
+
+
 def run(pre):
 	print 'Chute_.run()'
 	### input check
@@ -169,22 +220,18 @@ def run(pre):
 			cp2=Cp2_PelletMat_PelletPhys(),
 			law=Law2_L6Geom_PelletPhys_Pellet(plastSplit=True)
 		)+[
-		# what falls inside
-		#BoxDeleter(stepPeriod=factStep,inside=True,box=((cylXzd[-1][0]+cylXzd[-1][2]/2.,ymin,zmin),(xmax,ymax,zmax)),glColor=.9,save=True,mask=delMask,currRateSmooth=pre.rateSmooth,recoverRadius=recoverRadius,label='fallOver'),
-		# generator
 		bucket,
 		lost,
 		factory,
 		#PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.savePlotData(S)'),
 		#PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.watchProgress(S)'),
-		]
-		#]+(
-		#	[Tracer(stepPeriod=20,num=100,compress=2,compSkip=4,dead=True,scalar=Tracer.scalarRadius)] if 'opengl' in woo.config.features else []
-		#)+(
-		#	[] if (not pre.vtkPrefix or pre.vtkFreq<=0) else [VtkExport(out=pre.vtkPrefix,stepPeriod=int(pre.vtkFreq*pre.factStepPeriod),what=VtkExport.all,subdiv=16)]
-		#)+(
-		#[] if pre.backupSaveTime<=0 else [PyRunner(realPeriod=pre.backupSaveTime,stepPeriod=-1,command='S.save(S.pre.saveFmt.format(stage="backup-%06d"%(S.step),S=S,**(dict(S.tags))))')]
-		#)
+		]+(
+			[Tracer(stepPeriod=20,num=100,compress=2,compSkip=4,dead=True,scalar=Tracer.scalarRadius)] if 'opengl' in woo.config.features else []
+		)+(
+			[] if (not pre.vtkPrefix or pre.vtkFreq<=0) else [VtkExport(out=pre.vtkPrefix,stepPeriod=int(pre.vtkFreq*pre.factStepPeriod),what=VtkExport.all,subdiv=16)]
+		)+(
+			[] if pre.backupSaveTime<=0 else [PyRunner(realPeriod=pre.backupSaveTime,stepPeriod=-1,command='S.save(S.pre.saveFmt.format(stage="backup-%06d"%(S.step),S=S,**(dict(S.tags))))')]
+		)
 	
 	return S
 

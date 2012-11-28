@@ -236,7 +236,7 @@ from minieigen import *
 
 import _monkey # adds methods to c++ classes
 import _units 
-unit=_units.makeUnitsDict()
+unit=_units.unit
 
 # out-of-class docstrings for some classes
 try: import _extraDocs

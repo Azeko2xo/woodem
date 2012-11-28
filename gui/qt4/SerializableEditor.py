@@ -648,6 +648,7 @@ class SerializableEditor(QFrame):
 					w.multiplierChanged('')
 				else:
 					w.multiplier=self.trait.altUnits[0][ix-1][1]
+					# print 20*'!',self.trait.name,self.editor
 					w.multiplierChanged(u'%s × %g = %s'%(self.trait.altUnits[0][ix-1][0].decode('utf-8') if ix>0 else '',w.multiplier,self.trait.unit[0].decode('utf-8')))
 			else: # multiplier is a tuple applied to each column separately
 				mult,msg=[],[]
@@ -968,8 +969,8 @@ class SerializableEditor(QFrame):
 				entry.unitLayout=unitLay
 				unitLay.setSpacing(0); unitLay.setMargin(0)
 				entry.widgets['unit'].setLayout(unitLay)
-				assert(len(entry.trait.unit)==len(entry.trait.altUnits))
-				assert(len(entry.trait.unit)==len(entry.trait.prefUnit))
+				assert len(entry.trait.unit)==len(entry.trait.altUnits)
+				assert len(entry.trait.unit)==len(entry.trait.prefUnit)
 				unitChoice=False
 				for unit,pref,alt in zip(entry.trait.unit,entry.trait.prefUnit,entry.trait.altUnits):
 					if alt: # there are alternative units, we give choice therefore
@@ -981,6 +982,7 @@ class SerializableEditor(QFrame):
 						# set preferred unit right away; when units are not shown, always use SI, however
 						if unit!=pref[0]:
 							# this is checked in c++, should never fail
+							# print entry.trait.name,[i for i in range(len(alt)) if alt[i][0]==pref[0]]
 							ii=[i for i in range(len(alt)) if alt[i][0]==pref[0]][0]
 							w.setCurrentIndex(ii+1)
 					else:

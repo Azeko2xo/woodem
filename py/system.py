@@ -12,7 +12,9 @@ import woo.core
 
 def childClasses(base,recurse=True,includeBase=False):
 	"""Enumerate classes deriving from given base (as string), recursively by default. Returns set."""
-	ret=set(woo.master.childClassesNonrecursive(base)); ret2=set();
+	if isinstance(base,str): ret=set(woo.master.childClassesNonrecursive(base));
+	else: ret=set(base.__subclasses__())
+	ret2=set();
 	if includeBase: ret|=set([base])
 	if not recurse: return ret
 	for bb in ret:

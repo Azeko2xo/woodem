@@ -54,7 +54,7 @@
 #else
 	#define WOO_CTOR_PRIORITY(p)
 #endif
-#define _PLUGIN_CHECK_REPEAT(x,y,z) void z::must_use_both_YADE_CLASS_BASE_DOC_ATTRS_and_YADE_PLUGIN(){}
+#define _PLUGIN_CHECK_REPEAT(x,y,z) void z::must_use_both_WOO_CLASS_BASE_DOC_ATTRS_and_WOO_PLUGIN(){}
 #define _YADE_PLUGIN_REPEAT(x,y,z) BOOST_PP_STRINGIZE(z),
 #define _YADE_FACTORY_REPEAT(x,y,z) __attribute__((unused)) bool BOOST_PP_CAT(_registered,z)=Master::instance().registerClassFactory(BOOST_PP_STRINGIZE(z),(Master::FactoryFunc)([](void)->shared_ptr<woo::Object>{ return make_shared<z>(); }));
 // priority 500 is greater than priority for log4cxx initialization (in core/main/pyboot.cpp); therefore lo5cxx will be initialized before plugins are registered
@@ -276,7 +276,7 @@ template<> struct _SerializeMaybe<false>{
 	REGISTER_CLASS_AND_BASE(thisClass,baseClass) \
 	/* accessors for deprecated attributes, with warnings */ BOOST_PP_SEQ_FOR_EACH(_ACCESS_DEPREC,thisClass,deprec) \
 	/* python class registration */ virtual void pyRegisterClass() { _PY_REGISTER_CLASS_BODY(thisClass,baseClass,classTrait,attrs,deprec,extras); } \
-	virtual void must_use_both_YADE_CLASS_BASE_DOC_ATTRS_and_YADE_PLUGIN(); // virtual ensures v-table for all classes 
+	virtual void must_use_both_WOO_CLASS_BASE_DOC_ATTRS_and_WOO_PLUGIN(); // virtual ensures v-table for all classes 
 
 // return "type name;", define trait type and getter
 #define _ATTR_DECL_AND_TRAIT(x,y,z) \
@@ -349,7 +349,7 @@ template<> struct _SerializeMaybe<false>{
 	/*2. set attributes from kw ctor */ void pySetAttr(const std::string& key, const py::object& value); \
 	/*3. for pickling*/ py::dict pyDict() const; \
 	/*6. python class registration*/ virtual void pyRegisterClass(); \
-	/*7. ensures v-table; will be removed later*/virtual void must_use_both_YADE_CLASS_BASE_DOC_ATTRS_and_YADE_PLUGIN();
+	/*7. ensures v-table; will be removed later*/virtual void must_use_both_WOO_CLASS_BASE_DOC_ATTRS_and_WOO_PLUGIN();
 
 #define YAD3_CLASS_IMPLEMENTATION(allArgsTogether) _YAD3_CLASS_IMPLEMENTATION(allArgsTogether)
 
@@ -358,7 +358,7 @@ template<> struct _SerializeMaybe<false>{
 	/*2.*/ void thisClass::pySetAttr(const std::string& key, const py::object& value){ BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR,~,attrs); BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR_DEPREC,thisClass,deprec); baseClass::pySetAttr(key,value); } \
 	/*3.*/ py::dict thisClass::pyDict() const { py::dict ret; BOOST_PP_SEQ_FOR_EACH(_PYDICT_ATTR,~,attrs); ret.update(baseClass::pyDict()); return ret; } \
 	/*6.*/ void thisClass::pyRegisterClass() { _PY_REGISTER_CLASS_BODY(thisClass,baseClass,makeClassTrait(classTraitSpec),attrs,deprec,extras); } \
-	/*7.*/ /*void thisClass::must_use_both_YADE_CLASS_BASE_DOC_ATTRS_and_YADE_PLUGIN();*/
+	/*7.*/ /*void thisClass::must_use_both_WOO_CLASS_BASE_DOC_ATTRS_and_WOO_PLUGIN();*/
 
 	
 
@@ -374,7 +374,7 @@ template<> struct _SerializeMaybe<false>{
 	/* called only at class registration, to set initial values; storage still has to be alocated in the cpp file! */ \
 	void initSetStaticAttributesValue(void){ BOOST_PP_SEQ_FOR_EACH(_STATATTR_INITIALIZE,thisClass,attrs); statCtor; } \
 	_STATCLASS_PY_REGISTER_CLASS(thisClass,baseClass,makeClassTrait(classTraitSpec),attrs,pyExtra) \
-	void must_use_both_YADE_CLASS_BASE_DOC_ATTRS_and_YADE_PLUGIN(); 
+	void must_use_both_WOO_CLASS_BASE_DOC_ATTRS_and_WOO_PLUGIN(); 
 #define WOO_CLASS_BASE_DOC_STATICATTRS_PY(thisClass,baseClass,classTraitSpec,attrs,pyExtra)\
 	WOO_CLASS_BASE_DOC_STATICATTRS_CTOR_PY(thisClass,baseClass,classTraitSpec,attrs,,pyExtra)
 #define WOO_CLASS_BASE_DOC_STATICATTRS(thisClass,baseClass,classTraitSpec,attrs) \

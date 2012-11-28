@@ -176,7 +176,8 @@ class ControllerClass(QWidget,Ui_Controller):
 			self.addRenderers()
 		self.genIndexLoad=-1
 		self.genIndexCurr=-1
-		self.addPreprocessors()
+		self.refreshPreprocessors()
+		self.generatorComboSlot(None)
 		self.movieButton.setEnabled(False)
 		self.lastScene=None
 		self.movieActive=False
@@ -196,15 +197,28 @@ class ControllerClass(QWidget,Ui_Controller):
 			self.show3dButton.setText("[no OpenGL]")
 			self.show3dButton.setEnabled(False)
 		# show off with this one as well now
-	def addPreprocessors(self):
-		for c in woo.system.childClasses('Preprocessor'):
-			self.generatorCombo.addItem(c)
+	def refreshPreprocessors(self):
+		self.generatorCombo.clear()
+		self.preprocessorObjects=[]
+		# import all preprocessors
+		import pkgutil, woo.pre
+		for importer,modname,ispkg in pkgutil.iter_modules(woo.pre.__path__): __import__('woo.pre.'+modname,'woo.pre')
+		# 
+		preps=[]
+		for c in woo.system.childClasses(woo.core.Preprocessor):
+			preps.append((c.__module__,c.__name__,c))
+		preps.sort()
+		for pre in preps:
+			self.generatorCombo.addItem(pre[1]+('' if pre[0]=='woo.pre' else ' ('+pre[0]+')'))
+			self.preprocessorObjects.append(pre[2])
 		self.generatorCombo.insertSeparator(self.generatorCombo.count())
 		# currently crashes...?
 		self.generatorCombo.addItem('current simulation')
 		self.genIndexCurr=self.generatorCombo.count()-1
 		self.generatorCombo.addItem('load from file')
 		self.genIndexLoad=self.generatorCombo.count()-1
+		# refresh the view
+		self.generatorComboSlot(0)
 	def addRenderers(self):
 		from woo import gl
 		self.displayCombo.addItem('Renderer'); afterSep=1
@@ -249,7 +263,7 @@ class ControllerClass(QWidget,Ui_Controller):
 				self.generatorArea.setWidget(QLabel('<i>No preprocessor in Scene.pre</i>'))
 		else:
 			if self.genIndexLoad>=0: self.generatorCombo.setItemText(self.genIndexLoad,'load')
-			self.generator=eval('woo.pre.'+str(genStr)+'()')
+			self.generator=(self.preprocessorObjects[ix]() if ix<len(self.preprocessorObjects) else None)
 		if self.generator:
 			se=SerializableEditor(self.generator,parent=self.generatorArea,showType=True,labelIsVar=False,showChecks=True,showUnits=True) # TODO
 			self.generatorArea.setWidget(se)
@@ -273,6 +287,8 @@ class ControllerClass(QWidget,Ui_Controller):
 			auto=self.genOpenCheckbox.isChecked()
 			pre=self.generator
 			newScene=pre()
+			print newScene
+			if not isinstance(newScene,woo.core.Scene): raise RuntimeError('Preprocessor must return a Scene when called, not '+str(newScene))
 			if mem: newScene.saveTmp(out)
 			elif out: newScene.save(out)
 			else: pass # only generate, don't save

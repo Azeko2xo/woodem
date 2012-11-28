@@ -170,7 +170,7 @@ struct Scene: public Object{
 			((vector<shared_ptr<ScalarRange>>,ranges,,,"Scalar ranges to be rendered on the display as colormaps"))
 		#endif
 		((vector<shared_ptr<Object>>,any,,,"Storage for arbitrary Objects; meant for storing and loading static objects like Gl1_* functors to restore their parameters when scene is loaded."))
-		((shared_ptr<Preprocessor>,pre,,AttrTrait<>().noGui(),"Preprocessor used for generating this simulation; to be only used in user scripts to query preprocessing parameters, not in c++ code."))
+		((py::object,pre,,AttrTrait<>().noGui(),"Preprocessor used for generating this simulation; to be only used in user scripts to query preprocessing parameters, not in c++ code."))
 
 		// postLoad checks the new value is not None
 		((shared_ptr<Plot>,plot,make_shared<Plot>(),AttrTrait<Attr::triggerPostLoad>().noGui(),"Data and settings for plots."))
