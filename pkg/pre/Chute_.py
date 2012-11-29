@@ -20,7 +20,7 @@ class ChutePy(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 	_classTraits=None
 	PAT=woo.pyderived.PyAttrTrait
 	_attrTraits=[
-		PAT(float,'massFlowRate',200,unit='t/h',startGroup='General',doc='Mass flow rate of particles transported on the conveyor'),
+		PAT(float,'massFlowRate',1000*woo.unit['t/h'],unit='t/h',startGroup='General',doc='Mass flow rate of particles transported on the conveyor'),
 		PAT(float,'convLayerHt',.2,unit='m',doc='Height of transported material'),
 		PAT(float,'time',2,unit='s',doc='Time of the simulation'),
 
@@ -32,6 +32,10 @@ class ChutePy(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		PAT(float,'convBareLen',.5,unit='m',doc="Length of the conveyor without wall. In this part, the conveyor shape is interpolated so that it becomes flat at the exit cylinder's top (y=0 in cross-section coordinates)"),
 		PAT(float,'exitCylDiam',.2,unit='m',doc="Diameter of the exit cylinder"),
 		PAT(float,'convSlope',math.radians(15),unit='deg',doc="Slope of the conveyor; 0=horizontal, positive = ascending."),
+
+		# shield
+		PAT(int,'shieldType',0,choice=[(-1,'none'),(0,'cylinder')],startGroup='Shield',doc='Type of chute shield'),
+		PAT([float,],'shieldData',[-.45,-.5,1.,.02,0,math.radians(60)],'Data for constructing shield. Meaning of numbers depends on :ref:`shieldType`. For shieldType==0, those are [horizontal distance, vertical distance, radius, subdivision size, low angle from the horizontal, high angle from the horizontal'),
 
 		# particles
 		PAT([Vector2,],'psd',[Vector2(.02,0),Vector2(.03,.2),Vector2(.04,1.)],startGroup="Particles",unit=['mm','%'],doc="Particle size distribution of transported particles."),
@@ -165,20 +169,36 @@ def run(pre):
 		# take twice of what it gives
 		xmax=2*(conveyorVel*math.cos(pre.convSlope)/pre.gravity)*(conveyorVel*math.sin(pre.convSlope)+math.sqrt((conveyorVel*math.sin(pre.convSlope))**2+2*pre.gravity*(abs(zmin)+pre.convLayerHt)))
 
+	##
+	## chute shield
+	##
+	if pre.shieldType==-1: pass
+	elif pre.shieldType==0:
+		if len(pre.shieldData)!=6: raise ValueError('Cylindrical shield must provide exactly 6 shieldData values (not %d)'%len(pre.shieldData))
+		shXoff,shZoff,shRad,shDivLen,shLow,shHigh=pre.shieldData
+		shAng=shHigh-shLow
+		thetas=numpy.linspace(shLow,shHigh,num=math.ceil(shAng*shRad/shDivLen))
+		yy=numpy.linspace(ymin,ymax,num=math.ceil((ymax-ymin)/shDivLen))
+		pts=[[Vector3(shXoff,y,shZoff)+shRad*Vector3(math.cos(theta),0,math.sin(theta)) for theta in thetas] for y in yy]
+		S.dem.par.append(woo.pack.gtsSurface2Facets(woo.pack.sweptPolylines2gtsSurface(pts),mat=pre.convMaterial,mask=wallMask))
+
+
+
 	### middle wall
 	S.dem.par.append(utils.wall(2*ymax,axis=1,sense=-1,visible=False,mat=pre.convMaterial,mask=wallMask))
 	if pre.half: S.dem.par.append(utils.wall(0,axis=1,sense=1,visible=False,mat=halfWallMat,mask=wallMask))
 	else: S.dem.par.append(utils.wall(2*ymin,axis=1,sense=-1,visible=False,mat=pre.convMaterial,mask=wallMask))
 	## boundary walls
 	S.dem.par.append([
-		utils.wall(zmin+4*rMax,axis=2,sense=1,visible=False,mat=pre.convMaterial,mask=wallMask),
+		utils.wall(zmin,axis=2,sense=1,visible=False,mat=pre.convMaterial,mask=wallMask),
 		utils.wall(xmax,axis=0,sense=-1,visible=False,mat=pre.convMaterial,mask=wallMask)
 	])
 
 
+	zminmin=zmin-5*rMax
 	bucket=BoxDeleter(
 		stepPeriod=pre.factStepPeriod,
-		box=((0,ymin,zmin),(xmax,2*ymax,-pre.exitCylDiam)),
+		box=((0,ymin,zminmin),(xmax,2*ymax,-pre.exitCylDiam)),
 		glColor=.1,
 		save=True,
 		mask=delMask,
@@ -187,7 +207,7 @@ def run(pre):
 	)
 	lost=BoxDeleter(
 		stepPeriod=pre.factStepPeriod,
-		box=((xmin,ymin,zmin),(0,2*ymax,A[1])),
+		box=((xmin,ymin,zminmin),(0,2*ymax,A[1])),
 		glColor=.9,
 		save=False,
 		mask=delMask,

@@ -249,9 +249,11 @@ except AttributeError:
 	print 'WARN: Error importing py/_aliases.py'
 	traceback.print_exc()
 
-
-## DON'T DO THIS:
-# import a few "important" modules along with *
-#import utils # some others?
-# __all__+=[]+dir(minieigen)+dir(wrapper)
+try:
+	# recursive import of everything under wooLocalExtras
+	import wooLocalExtras
+	import pkgutil
+	for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
+		__import__('wooLocalExtras.'+modname,'wooLocalExtras')
+except ImportError: pass
 
