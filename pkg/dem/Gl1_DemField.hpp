@@ -23,7 +23,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 
 	void postLoad2();
 
-	enum{COLOR_SHAPE=0,COLOR_RADIUS,COLOR_VEL,COLOR_ANGVEL,COLOR_MASS,COLOR_DISPLACEMENT,COLOR_ROTATION,COLOR_REFPOS,COLOR_MAT_ID,/*last*/COLOR_SENTINEL};
+	enum{COLOR_SHAPE=0,COLOR_RADIUS,COLOR_VEL,COLOR_ANGVEL,COLOR_MASS,COLOR_DISPLACEMENT,COLOR_ROTATION,COLOR_REFPOS,COLOR_MAT_ID,COLOR_MATSTATE,/*last*/COLOR_SENTINEL};
 	enum{GLYPH_KEEP=0,GLYPH_NONE,GLYPH_FORCE,GLYPH_VEL,/*last*/GLYPH_SENTINEL};
 	enum{CNODE_NONE=0,CNODE_GLREP=1,CNODE_LINE=2,CNODE_NODE=4,CNODE_POTLINE=8};
 	RENDERS(DemField);
@@ -41,11 +41,12 @@ struct Gl1_DemField: public GlFieldFunctor{
 			{COLOR_ROTATION,"ref. rotation"},
 			{COLOR_REFPOS,"refpos coordinate"},
 			{COLOR_MAT_ID,"material id"},
+			{COLOR_MATSTATE,"Particle.matState"}
 		}).buttons({"Reference now","self.updateRefPos=True","use current positions and orientations as reference for showing displacement/rotation"},/*showBefore*/false),"Color particles by"))
 		((int,vecAxis,-1,AttrTrait<>().choice({{-1,"norm"},{0,"x"},{1,"y"},{2,"z"}}),"Axis for colorRefPosCoord"))
 		((bool,wire,false,,"Render all shapes with wire only"))
-		((bool,colorSpheresOnly,true,,"If :ref:`colorBy` is active, use automatic color for spheres only; for non-spheres, use :ref:`nonSphereColor`"))
-		((Vector3r,nonSphereColor,Vector3r(.3,.3,.3),AttrTrait<>().rgbColor(),"Color to use for non-spherical particles when :ref:`colorBy` is not :ref:`colorShape`."))
+		((bool,colorSpheresOnly,true,,"If :ref:`colorBy` is active, use automatic color for spheres only; for non-spheres, use :ref:`fallbackColor`"))
+		((Vector3r,fallbackColor,Vector3r(.3,.3,.3),AttrTrait<>().rgbColor(),"Color to use for non-spherical particles when :ref:`colorBy` is not :ref:`colorShape`."))
 		((int,prevColorBy,COLOR_SHAPE,AttrTrait<>().hidden(),"previous value of colorBy (to know which colorrange to remove from the scene)"))
 		((shared_ptr<ScalarRange>,colorRange,,AttrTrait<>().readonly(),"Range for particle colors"))
 		((vector<shared_ptr<ScalarRange>>,colorRanges,,AttrTrait<>().readonly().noGui(),"List of color ranges"))
@@ -82,6 +83,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 			_classObj.attr("colorRotation")=(int)Gl1_DemField::COLOR_ROTATION;
 			_classObj.attr("colorRefPos")=(int)Gl1_DemField::COLOR_REFPOS;
 			_classObj.attr("colorMatId")=(int)Gl1_DemField::COLOR_MAT_ID;
+			_classObj.attr("colorMatState")=(int)Gl1_DemField::COLOR_MATSTATE;
 			_classObj.attr("cNodeNone")=(int)Gl1_DemField::CNODE_NONE;
 			_classObj.attr("cNodeGlRep")=(int)Gl1_DemField::CNODE_GLREP;
 			_classObj.attr("cNodeLine")=(int)Gl1_DemField::CNODE_LINE;

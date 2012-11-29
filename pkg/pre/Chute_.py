@@ -35,7 +35,7 @@ class ChutePy(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 
 		# shield
 		PAT(int,'shieldType',0,choice=[(-1,'none'),(0,'cylinder')],startGroup='Shield',doc='Type of chute shield'),
-		PAT([float,],'shieldData',[-.45,-.5,1.,.02,0,math.radians(60)],'Data for constructing shield. Meaning of numbers depends on :ref:`shieldType`. For shieldType==0, those are [horizontal distance, vertical distance, radius, subdivision size, low angle from the horizontal, high angle from the horizontal'),
+		PAT([float,],'shieldData',[-.45,-.5,1.,.01,0,math.radians(60)],'Data for constructing shield. Meaning of numbers depends on :ref:`shieldType`. For shieldType==0, those are [horizontal distance, vertical distance, radius, subdivision size, low angle from the horizontal, high angle from the horizontal'),
 
 		# particles
 		PAT([Vector2,],'psd',[Vector2(.02,0),Vector2(.03,.2),Vector2(.04,1.)],startGroup="Particles",unit=['mm','%'],doc="Particle size distribution of transported particles."),
@@ -68,6 +68,7 @@ class ChutePy(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 
 
 def run(pre):
+	import woo.pack
 	print 'Chute_.run()'
 	### input check
 	for a in ['reportFmt','feedCacheDir','saveFmt','vtkPrefix']: setattr(pre,a,utils.fixWindowsPath(getattr(pre,a)))
@@ -180,7 +181,11 @@ def run(pre):
 		thetas=numpy.linspace(shLow,shHigh,num=math.ceil(shAng*shRad/shDivLen))
 		yy=numpy.linspace(ymin,ymax,num=math.ceil((ymax-ymin)/shDivLen))
 		pts=[[Vector3(shXoff,y,shZoff)+shRad*Vector3(math.cos(theta),0,math.sin(theta)) for theta in thetas] for y in yy]
-		S.dem.par.append(woo.pack.gtsSurface2Facets(woo.pack.sweptPolylines2gtsSurface(pts),mat=pre.convMaterial,mask=wallMask))
+		shield=pack.gtsSurface2Facets(pack.sweptPolylines2gtsSurface(pts),mat=pre.convMaterial,mask=wallMask,wire=False)
+		for par in shield: par.matState=PelletMatState() # for dissipation tracking
+		S.dem.par.append(shield)
+
+		S.trackEnergy=True
 
 
 
@@ -193,7 +198,6 @@ def run(pre):
 		utils.wall(zmin,axis=2,sense=1,visible=False,mat=pre.convMaterial,mask=wallMask),
 		utils.wall(xmax,axis=0,sense=-1,visible=False,mat=pre.convMaterial,mask=wallMask)
 	])
-
 
 	zminmin=zmin-5*rMax
 	bucket=BoxDeleter(
@@ -252,6 +256,21 @@ def run(pre):
 		)+(
 			[] if pre.backupSaveTime<=0 else [PyRunner(realPeriod=pre.backupSaveTime,stepPeriod=-1,command='S.save(S.pre.saveFmt.format(stage="backup-%06d"%(S.step),S=S,**(dict(S.tags))))')]
 		)
+
+
+	try:
+		import woo.gl
+		# set other display options and save them (static attributes)
+		#woo.gl.Gl1_DemField.colorRanges[woo.gl.Gl1_DemField.colorVel].range=(0,.5)
+		S.any=[
+			woo.gl.Renderer(iniUp=(0,0,1),iniViewDir=(0,1,0)),
+			#woo.gl.Gl1_DemField(glyph=woo.gl.Gl1_DemField.glyphVel),
+			woo.gl.Gl1_DemField(colorBy=woo.gl.Gl1_DemField.colorMatState),
+			woo.gl.Gl1_InfCylinder(wire=True),
+			woo.gl.Gl1_Wall(div=1),
+		]
+	except ImportError: pass
+	
 	
 	return S
 

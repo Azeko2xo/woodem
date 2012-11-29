@@ -12,6 +12,7 @@
 struct Particle;
 struct Contact;
 struct Material;
+struct MatState;
 struct Bound;
 struct Shape;
 struct ParticleContainer;
@@ -59,6 +60,7 @@ struct Particle: public Object{
 		((uint,mask,1,,"Bitmask for collision detection and other (group 1 by default)"))
 		((shared_ptr<Shape>,shape,,,"Geometrical configuration of the particle"))
 		((shared_ptr<Material>,material,,,"Material of the particle"))
+		((shared_ptr<MatState>,matState,,,"Material state of the particle (such as damage data and similar)"))
 		// not saved, reconstructed from DemField::postLoad
 		((MapParticleContact,contacts,,AttrTrait<Attr::noSave|Attr::hidden>(),"Contacts of this particle, indexed by id of the other particle."))
 		// ((int,flags,0,AttrTrait<Attr::hidden>(),"Various flags, only individually accesible from Python"))
@@ -106,6 +108,16 @@ struct Impose: public Object{
 	);
 };
 REGISTER_SERIALIZABLE(Impose);
+
+
+struct MatState: public Object{
+	boost::mutex lock;
+	// returns scalar for rendering purposes 
+	virtual Real getColorScalar(){ return NaN; }
+	WOO_CLASS_BASE_DOC(MatState,Object,"Holds data related to material state of each particle.");
+};
+REGISTER_SERIALIZABLE(MatState);
+
 
 struct DemData: public NodeData{
 	// boost::mutex lock; // used by applyForceTorque

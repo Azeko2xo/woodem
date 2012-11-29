@@ -135,6 +135,7 @@ void VtkExport::run(){
 	auto mCells=vtkSmartPointer<vtkCellArray>::New();
 	mGrid->SetPoints(mPos);
 	_VTK_CELL_ARR(mGrid,mColor,"color",1);
+	// _VTK_CELL_ARR(mGrid,mMatState,"matState",1);
 	_VTK_CELL_INT_ARR(mGrid,mMatId,"matId",1);
 	_VTK_CELL_ARR(mGrid,mVel,"vel",3);
 	_VTK_CELL_ARR(mGrid,mAngVel,"angVel",3);

@@ -12,6 +12,15 @@ struct PelletMat: public FrictMat{
 };
 REGISTER_SERIALIZABLE(PelletMat);
 
+struct PelletMatState: public MatState{
+	Real getColorScalar(){ return normPlast+shearPlast; }
+	WOO_CLASS_BASE_DOC_ATTRS(PelletMatState,MatState,"Hold dissipated energy data for this particles, to evaluate wear.",
+		((Real,normPlast,0,,"Plastic energy dissipated in the normal sense"))
+		((Real,shearPlast,0,,"Plastic energy dissipated in the tangential sense"))
+	);
+};
+REGISTER_SERIALIZABLE(PelletMatState);
+
 class PelletPhys: public FrictPhys{
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(PelletPhys,FrictPhys,"Physical properties of a contact of two :ref:`PelletMat`.",
 		((Real,normPlastCoeff,NaN,,"Normal plasticity coefficient."))
@@ -33,6 +42,9 @@ REGISTER_SERIALIZABLE(Cp2_PelletMat_PelletPhys);
 
 struct Law2_L6Geom_PelletPhys_Pellet: public LawFunctor{
 	void go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&);
+	enum { DISSIP_NORM_PLAST=0, DISSIP_SHEAR_PLAST=1};
+	void tryAddDissipState(int what, Real E, const shared_ptr<Contact>& C);
+
 	FUNCTOR2D(L6Geom,PelletPhys);
 	DECLARE_LOGGER;
 	static Real yieldForce          (Real uN, Real d0, Real kn, Real alpha){return (-kn*d0/alpha)*log(alpha*(-uN/d0)+1); }

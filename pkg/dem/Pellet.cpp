@@ -1,5 +1,5 @@
 #include<woo/pkg/dem/Pellet.hpp>
-WOO_PLUGIN(dem,(PelletMat)(PelletPhys)(Cp2_PelletMat_PelletPhys)(Law2_L6Geom_PelletPhys_Pellet)(PelletCData));
+WOO_PLUGIN(dem,(PelletMat)(PelletMatState)(PelletPhys)(Cp2_PelletMat_PelletPhys)(Law2_L6Geom_PelletPhys_Pellet)(PelletCData));
 
 void Cp2_PelletMat_PelletPhys::go(const shared_ptr<Material>& m1, const shared_ptr<Material>& m2, const shared_ptr<Contact>& C){
 	if(!C->phys) C->phys=make_shared<PelletPhys>();
@@ -16,6 +16,19 @@ void Cp2_PelletMat_PelletPhys::go(const shared_ptr<Material>& m1, const shared_p
 // leading to 20% of energy erro in some cases
 
 CREATE_LOGGER(Law2_L6Geom_PelletPhys_Pellet);
+
+void Law2_L6Geom_PelletPhys_Pellet::tryAddDissipState(int what, Real E, const shared_ptr<Contact>& C){
+	for(const auto& p: {C->pA, C->pB}){
+		if(!p->matState) continue;
+		assert(dynamic_cast<PelletMatState*>(p->matState.get()));
+		boost::mutex::scoped_lock l(p->matState->lock);
+		switch(what){
+			case DISSIP_NORM_PLAST: p->matState->cast<PelletMatState>().normPlast+=E/2.; break; 
+			case DISSIP_SHEAR_PLAST: p->matState->cast<PelletMatState>().shearPlast+=E/2.; break; 
+			default: LOG_FATAL("what="<<what<<"??"); throw std::logic_error("Invalid what value (programming error)");
+		}
+	}
+}
 
 void Law2_L6Geom_PelletPhys_Pellet::go(const shared_ptr<CGeom>& cg, const shared_ptr<CPhys>& cp, const shared_ptr<Contact>& C){
 	const L6Geom& g(cg->cast<L6Geom>()); PelletPhys& ph(cp->cast<PelletPhys>());
@@ -50,6 +63,7 @@ void Law2_L6Geom_PelletPhys_Pellet::go(const shared_ptr<CGeom>& cg, const shared
 					Real Fy0=Fy+yieldForceDerivative(g.uN,d0,ph.kn,ph.normPlastCoeff)*(uNPl0-uNPl);
 					Real dissip=.5*abs(Fy0+Fy)*abs(uNPl-uNPl0);
 					scene->energy->add(dissip,plastSplit?"normPlast":"plast",plastSplit?normPlastIx:plastIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate);
+					tryAddDissipState(DISSIP_NORM_PLAST,dissip,C);
 				}
 				if(thinningFactor>0 && rMinFrac<1.){
 					const Vector2r bendVel(g.angVel[1],g.angVel[2]);
@@ -85,6 +99,7 @@ void Law2_L6Geom_PelletPhys_Pellet::go(const shared_ptr<CGeom>& cg, const shared
 		if(unlikely(scene->trackEnergy)){
 			Real dissip=(.5*(FtNorm-maxFt)+maxFt)*(FtNorm-maxFt)/ph.kt;
 			scene->energy->add(dissip,"plast",plastIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate);
+			tryAddDissipState(DISSIP_SHEAR_PLAST,dissip,C);
 		}
 		Ft*=ratio;
 	}

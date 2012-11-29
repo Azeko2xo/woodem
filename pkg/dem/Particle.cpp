@@ -10,7 +10,7 @@
 	#include<woo/pkg/gl/Renderer.hpp>
 #endif
 
-WOO_PLUGIN(dem,(CPhys)(CGeom)(CData)(DemField)(Particle)(DemData)(Impose)(Contact)(Shape)(Material)(Bound)(ContactContainer));
+WOO_PLUGIN(dem,(CPhys)(CGeom)(CData)(DemField)(Particle)(MatState)(DemData)(Impose)(Contact)(Shape)(Material)(Bound)(ContactContainer));
 CREATE_LOGGER(DemField);
 
 py::dict Particle::pyContacts()const{	py::dict ret; FOREACH(MapParticleContact::value_type i,contacts) ret[i.first]=i.second; return ret;}

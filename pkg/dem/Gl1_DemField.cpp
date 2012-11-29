@@ -32,7 +32,7 @@ bool Gl1_DemField::cPhys;
 int Gl1_DemField::colorBy;
 int Gl1_DemField::prevColorBy;
 bool Gl1_DemField::colorSpheresOnly;
-Vector3r Gl1_DemField::nonSphereColor;
+Vector3r Gl1_DemField::fallbackColor;
 shared_ptr<ScalarRange> Gl1_DemField::colorRange;
 vector<shared_ptr<ScalarRange>> Gl1_DemField::colorRanges;
 int Gl1_DemField::glyph;
@@ -79,6 +79,7 @@ void Gl1_DemField::initAllRanges(){
 			case COLOR_ROTATION:     r->label="rotation"; break;
 			case COLOR_REFPOS: r->label="ref. pos"; break;
 			case COLOR_MAT_ID:       r->label="material id"; break;
+			case COLOR_MATSTATE:     r->label="matState"; break;
 		};
 	}
 	colorRange=colorRanges[colorBy];
@@ -155,11 +156,11 @@ void Gl1_DemField::doShape(){
 		Vector3r parColor;
 		bool isSphere;
 		if(colorSpheresOnly || COLOR_RADIUS) isSphere=dynamic_pointer_cast<Sphere>(p->shape);
-		if(!isSphere && colorSpheresOnly) parColor=nonSphereColor;
+		if(!isSphere && colorSpheresOnly) parColor=fallbackColor;
 		else{
 			auto vecNormXyz=[&](const Vector3r& v)->Real{ if(vecAxis<0||vecAxis>2) return v.norm(); return v[vecAxis]; };
 			switch(colorBy){
-				case COLOR_RADIUS: parColor=isSphere?colorRange->color(p->shape->cast<Sphere>().radius):nonSphereColor; break;
+				case COLOR_RADIUS: parColor=isSphere?colorRange->color(p->shape->cast<Sphere>().radius):fallbackColor; break;
 				case COLOR_VEL: parColor=colorRange->color(vecNormXyz(n0->getData<DemData>().vel)); break;
 				case COLOR_MASS: parColor=colorRange->color(n0->getData<DemData>().mass); break;
 				case COLOR_DISPLACEMENT: parColor=colorRange->color(vecNormXyz(n0->pos-n0->getData<GlData>().refPos)); break;
@@ -170,6 +171,7 @@ void Gl1_DemField::doShape(){
 				}
 				case COLOR_REFPOS: parColor=colorRange->color(vecNormXyz(n0->getData<GlData>().refPos)); break;
 				case COLOR_MAT_ID: parColor=colorRange->color(p->material->id); break;
+				case COLOR_MATSTATE: parColor=(p->matState?colorRange->color(p->matState->getColorScalar()):fallbackColor); break;
 				case COLOR_SHAPE: parColor=colorRange->color(p->shape->getBaseColor()); break;
 				default: parColor=Vector3r(NaN,NaN,NaN);
 			}
