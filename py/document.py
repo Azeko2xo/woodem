@@ -12,7 +12,19 @@ def fixDocstring(s):
 
 def packageClasses(outDir='/tmp'):
 	'''Generate documentation of packages in the Restructured Text format. Each package is written to file called *out*/.`woo.[package].rst` and list of files created is returned.'''
-	allClasses=woo.core.Object._derivedCxxClasses+[woo.core.Object]
+
+	def subImport(pkg):
+		'Import recursively all subpackages'
+		import pkgutil
+		for importer, modname, ispkg in pkgutil.iter_modules(pkg.__path__):
+			fqmodname=pkg.__name__+'.'+modname
+			print 'Importing ',
+			__import__(fqmodname,pkg.__name__)
+			if ispkg: subImport(sys.modules[fqmodname])
+	subImport(woo)
+
+	allClasses=woo.system.childClasses(woo.core.Object,recurse=True)
+	#core.Object._derivedCxxClasses+[woo.core.Object]
 	# create class tree; top-level nodes are packages
 	# each level of child nodes is section in the documentation, as requested by ClassTraits of each class
 	modules=set()

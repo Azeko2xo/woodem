@@ -265,7 +265,7 @@ def run(pre):
 		S.any=[
 			woo.gl.Renderer(iniUp=(0,0,1),iniViewDir=(0,1,0)),
 			#woo.gl.Gl1_DemField(glyph=woo.gl.Gl1_DemField.glyphVel),
-			woo.gl.Gl1_DemField(colorBy=woo.gl.Gl1_DemField.colorMatState),
+			woo.gl.Gl1_DemField(colorBy=woo.gl.Gl1_DemField.colorMatState,colorSpheresOnly=False),
 			woo.gl.Gl1_InfCylinder(wire=True),
 			woo.gl.Gl1_Wall(div=1),
 		]
