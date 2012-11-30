@@ -1,3 +1,4 @@
+#pragma once
 #include<woo/pkg/dem/FrictMat.hpp>
 #include<woo/pkg/dem/L6Geom.hpp>
 #include<woo/pkg/dem/ContactLoop.hpp>
