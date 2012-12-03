@@ -23,21 +23,21 @@ bool Gl1_DemField::doPostLoad;
 unsigned int Gl1_DemField::mask;
 bool Gl1_DemField::wire;
 bool Gl1_DemField::bound;
-bool Gl1_DemField::shape;
+int Gl1_DemField::shape;
+bool Gl1_DemField::shape2;
 bool Gl1_DemField::nodes;
 //bool Gl1_DemField::trace;
 //bool Gl1_DemField::_hadTrace;
 int Gl1_DemField::cNode;
 bool Gl1_DemField::cPhys;
 int Gl1_DemField::colorBy;
-int Gl1_DemField::prevColorBy;
-bool Gl1_DemField::colorSpheresOnly;
-Vector3r Gl1_DemField::fallbackColor;
+int Gl1_DemField::colorBy2;
+Vector3r Gl1_DemField::solidColor;
 shared_ptr<ScalarRange> Gl1_DemField::colorRange;
+shared_ptr<ScalarRange> Gl1_DemField::colorRange2;
 vector<shared_ptr<ScalarRange>> Gl1_DemField::colorRanges;
 int Gl1_DemField::glyph;
 int Gl1_DemField::vecAxis;
-int Gl1_DemField::prevGlyph;
 Real Gl1_DemField::glyphRelSz;
 shared_ptr<ScalarRange> Gl1_DemField::glyphRange;
 vector<shared_ptr<ScalarRange>> Gl1_DemField::glyphRanges;
@@ -45,23 +45,35 @@ bool Gl1_DemField::updateRefPos;
 int Gl1_DemField::guiEvery;
 
 /*
-	Replace, remove or add a range from the scene;
-	prev is previous range
-	curr is desired range
+Remove all ScalarRanges in *ours*, which are not in *used*, from the Scene.
+Add all from *used* to the Scene.
 */
-void Gl1_DemField::setSceneRange(Scene* scene, const shared_ptr<ScalarRange>& prev, const shared_ptr<ScalarRange>& curr){
-	if(prev.get()==curr.get()) return; // no change need, do nothing
-	int ix=-1;
-	if(prev){
-		for(size_t i=0; i<scene->ranges.size(); i++){
-			if(scene->ranges[i].get()==prev.get()){ ix=i; break; }
+void Gl1_DemField::setOurSceneRanges(Scene* scene, const vector<shared_ptr<ScalarRange>>& ours, const list<shared_ptr<ScalarRange>>& used){
+	list<size_t> removeIx;
+	// get indices of ranges that should be removed
+	for(size_t i=0; i<scene->ranges.size(); i++){
+		if(
+			// range is in *ours*
+			std::find_if(ours.begin(),ours.end(),[&](const shared_ptr<ScalarRange>& r){return r.get()==scene->ranges[i].get(); })!=ours.end()
+			// but not in *used*
+			&& std::find_if(used.begin(),used.end(),[&](const shared_ptr<ScalarRange>& r){ return r.get()==scene->ranges[i].get();})==used.end()
+		){
+			//cerr<<"Will remove range "<<i<<"/"<<scene->ranges.size()<<" @ "<<scene->ranges[i].get()<<endl;
+			//cerr<<"   Is at index "<<std::find_if(ours.begin(),ours.end(),[&](const shared_ptr<ScalarRange>& r){return r.get()==scene->ranges[i].get(); })-ours.begin()<<endl;
+			removeIx.push_back(i);
 		}
 	}
-	if(curr){
-		if(ix>=0) scene->ranges[ix]=curr;
-		else scene->ranges.push_back(curr);
-	} else {
-		if(ix>=0) scene->ranges.erase(scene->ranges.begin()+ix);
+	// remove ranges to be removed; iterate backwards, from higher indices
+	for(int i=removeIx.size()-1; i>=0; i--){
+		//cerr<<"Remove range "<<i<<"/"<<scene->ranges.size()<<endl;
+		scene->ranges.erase(scene->ranges.begin()+i);
+	}
+	// get ranges to be added to the scene, and add them in-place
+	for(const auto& r: used){
+		// range not in scene, add it
+		if(std::find_if(scene->ranges.begin(),scene->ranges.end(),[&](const shared_ptr<ScalarRange>& s){ return s.get()==r.get(); })==scene->ranges.end()){
+			if(r) scene->ranges.push_back(r);
+		}
 	}
 }
 
@@ -77,12 +89,13 @@ void Gl1_DemField::initAllRanges(){
 			case COLOR_MASS:         r->label="mass"; break;
 			case COLOR_DISPLACEMENT: r->label="displacement"; break;
 			case COLOR_ROTATION:     r->label="rotation"; break;
-			case COLOR_REFPOS: r->label="ref. pos"; break;
+			case COLOR_REFPOS:       r->label="ref. pos"; break;
 			case COLOR_MAT_ID:       r->label="material id"; break;
 			case COLOR_MATSTATE:     r->label="matState"; break;
 		};
 	}
 	colorRange=colorRanges[colorBy];
+	colorRange2=colorRanges[colorBy2];
 
 	for(int i=0; i<GLYPH_SENTINEL; i++){
 		if(i==GLYPH_NONE || i==GLYPH_KEEP){
@@ -101,14 +114,17 @@ void Gl1_DemField::initAllRanges(){
 
 void Gl1_DemField::postLoad2(){
 	colorRange=colorRanges[colorBy];
+	colorRange2=colorRanges[colorBy2];
 	glyphRange=glyphRanges[glyph];
-	bool noPrev=(_lastScene!=scene); // prevColorBy, prevGlyph related to other scene, they don't count therefore
-	bool noColor=(!shape || colorBy==COLOR_SHAPE);
-	_lastScene=scene;
-	setSceneRange(scene,((noPrev||prevColorBy<0)?shared_ptr<ScalarRange>():colorRanges[prevColorBy]),noColor?shared_ptr<ScalarRange>():colorRanges[colorBy]);
-	setSceneRange(scene,((noPrev||prevGlyph<0)  ?shared_ptr<ScalarRange>():glyphRanges[prevGlyph]),glyphRanges[glyph]);
-	prevColorBy=noColor?-1:colorBy;
-	prevGlyph=glyph;
+	//bool noColor=;
+	//bool noColor2=(!shape2 || colorBy2==COLOR_SHAPE || colorBy2==COLOR_SOLID || colorBy2==COLOR_INVISIBLE);
+	list<shared_ptr<ScalarRange>> usedColorRanges;
+	if(shape!=SHAPE_NONE && colorBy!=COLOR_SHAPE && colorBy!=COLOR_SOLID && colorBy!=COLOR_INVISIBLE) usedColorRanges.push_back(colorRange);
+	if(shape2 && colorBy2!=COLOR_SHAPE && colorBy2!=COLOR_SOLID && colorBy2!=COLOR_INVISIBLE) usedColorRanges.push_back(colorRange2);
+
+	setOurSceneRanges(scene,colorRanges,usedColorRanges);
+	if(glyph!=GLYPH_NONE) setOurSceneRanges(scene,glyphRanges,{glyphRange});
+	else setOurSceneRanges(scene,glyphRanges,{});
 }
 
 void Gl1_DemField::doBound(){
@@ -139,7 +155,7 @@ void Gl1_DemField::doShape(){
 		PROCESS_GUI_EVENTS_SOMETIMES;
 
 		if(!p->shape || p->shape->nodes.empty()) continue;
-		if(mask!=0 && !(p->mask&mask)) continue;
+
 		const shared_ptr<Shape>& sh=p->shape;
 
 		// sets highlighted color, if the particle is selected
@@ -152,29 +168,46 @@ void Gl1_DemField::doShape(){
 
 		if(!sh->getVisible()) continue;
 
+		bool useColor2=false;
+		bool isSphere=dynamic_pointer_cast<Sphere>(p->shape);
+
+		switch(shape){
+			case SHAPE_NONE: useColor2=true; break;
+			case SHAPE_ALL: useColor2=false; break;
+			case SHAPE_SPHERES: useColor2=!isSphere; break;
+			case SHAPE_NONSPHERES: useColor2=isSphere; break;
+			case SHAPE_MASK: useColor2=(mask!=0 && !(p->mask & mask)); break;
+			default: useColor2=true; break;  // invalid value, filter not matching
+		}
+		// additional conditions under which colorBy2 is used
+		if(false
+			|| (!isSphere && colorBy==COLOR_RADIUS )
+			|| (colorBy==COLOR_MATSTATE && !p->matState)
+		) useColor2=true;
+
+		if(!shape2 && useColor2) continue; // skip particle
 
 		Vector3r parColor;
-		bool isSphere;
-		if(colorSpheresOnly || COLOR_RADIUS) isSphere=dynamic_pointer_cast<Sphere>(p->shape);
-		if(!isSphere && colorSpheresOnly) parColor=fallbackColor;
-		else{
-			auto vecNormXyz=[&](const Vector3r& v)->Real{ if(vecAxis<0||vecAxis>2) return v.norm(); return v[vecAxis]; };
-			switch(colorBy){
-				case COLOR_RADIUS: parColor=isSphere?colorRange->color(p->shape->cast<Sphere>().radius):fallbackColor; break;
-				case COLOR_VEL: parColor=colorRange->color(vecNormXyz(n0->getData<DemData>().vel)); break;
-				case COLOR_MASS: parColor=colorRange->color(n0->getData<DemData>().mass); break;
-				case COLOR_DISPLACEMENT: parColor=colorRange->color(vecNormXyz(n0->pos-n0->getData<GlData>().refPos)); break;
-				case COLOR_ROTATION: {
-					AngleAxisr aa(n0->ori.conjugate()*n0->getData<GlData>().refOri);
-					parColor=colorRange->color((vecAxis<0||vecAxis>2)?aa.angle():(aa.angle()*aa.axis())[vecAxis]);
-					break;
-				}
-				case COLOR_REFPOS: parColor=colorRange->color(vecNormXyz(n0->getData<GlData>().refPos)); break;
-				case COLOR_MAT_ID: parColor=colorRange->color(p->material->id); break;
-				case COLOR_MATSTATE: parColor=(p->matState?colorRange->color(p->matState->getColorScalar()):fallbackColor); break;
-				case COLOR_SHAPE: parColor=colorRange->color(p->shape->getBaseColor()); break;
-				default: parColor=Vector3r(NaN,NaN,NaN);
+		
+		// choose colorRange for colorBy or colorBy2
+		const shared_ptr<ScalarRange>& CR(!useColor2?colorRange:colorRanges[colorBy2]);
+		auto vecNormXyz=[&](const Vector3r& v)->Real{ if(useColor2 || vecAxis<0||vecAxis>2) return v.norm(); return v[vecAxis]; };
+		switch(!useColor2?colorBy:colorBy2){
+			case COLOR_RADIUS: parColor=(isSphere?CR->color(p->shape->cast<Sphere>().radius):solidColor); break;
+			case COLOR_VEL: parColor=CR->color(vecNormXyz(n0->getData<DemData>().vel)); break;
+			case COLOR_MASS: parColor=CR->color(n0->getData<DemData>().mass); break;
+			case COLOR_ROTATION: {
+				AngleAxisr aa(n0->ori.conjugate()*n0->getData<GlData>().refOri);
+				parColor=CR->color((vecAxis<0||vecAxis>2)?aa.angle():(aa.angle()*aa.axis())[vecAxis]);
+				break;
 			}
+			case COLOR_REFPOS: parColor=CR->color(vecNormXyz(n0->getData<GlData>().refPos)); break;
+			case COLOR_MAT_ID: parColor=CR->color(p->material->id); break;
+			case COLOR_MATSTATE:	parColor=(p->matState?CR->color(p->matState->getColorScalar()):solidColor); break;
+			case COLOR_SHAPE: parColor=CR->color(p->shape->getBaseColor()); break;
+			case COLOR_SOLID: parColor=solidColor; break;
+			case COLOR_INVISIBLE: continue; // don't show this particle at all
+			default: parColor=Vector3r(NaN,NaN,NaN);
 		}
 
 		glPushMatrix();
@@ -336,9 +369,9 @@ void Gl1_DemField::go(const shared_ptr<Field>& demField, GLViewInfo* _viewInfo){
 	viewInfo=_viewInfo;
 
 	if(doPostLoad || _lastScene!=scene) postLoad2();
-	doPostLoad=false;
+	doPostLoad=false; _lastScene=scene;
 
-	if(shape) doShape();
+	if(shape!=SHAPE_NONE || shape2) doShape();
 	if(bound) doBound();
 	doNodes(dem->nodes);
 	if(!dem->deadNodes.empty()) doNodes(dem->deadNodes);

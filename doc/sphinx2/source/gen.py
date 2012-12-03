@@ -12,5 +12,5 @@ with open(cxxMods,'w') as f:
 	for o in pyRst: f.write('    %s\n'%o)
 import sys
 import sphinx
-sphinx.main(['','-b','html','-d','../build/doctrees','../source','../build/html'])
+sphinx.main(['','-P','-b','html','-d','../build/doctrees','../source','../build/html'])
 

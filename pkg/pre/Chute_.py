@@ -35,7 +35,7 @@ class ChutePy(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 
 		# shield
 		PAT(int,'shieldType',0,choice=[(-1,'none'),(0,'cylinder')],startGroup='Shield',doc='Type of chute shield'),
-		PAT([float,],'shieldData',[-.45,-.5,1.,.01,0,math.radians(60)],'Data for constructing shield. Meaning of numbers depends on :ref:`shieldType`. For shieldType==0, those are [horizontal distance, vertical distance, radius, subdivision size, low angle from the horizontal, high angle from the horizontal'),
+		PAT([float,],'shieldData',[-.45,-.5,1.,.01,0,math.radians(60)],hideIf='self.shieldType<0',doc='Data for constructing shield. Meaning of numbers depends on :ref:`shieldType`. For shieldType==0, those are [horizontal distance, vertical distance, radius, subdivision size, low angle from the horizontal, high angle from the horizontal'),
 
 		# particles
 		PAT([Vector2,],'psd',[Vector2(.02,0),Vector2(.03,.2),Vector2(.04,1.)],startGroup="Particles",unit=['mm','%'],doc="Particle size distribution of transported particles."),
@@ -257,15 +257,26 @@ def run(pre):
 			[] if pre.backupSaveTime<=0 else [PyRunner(realPeriod=pre.backupSaveTime,stepPeriod=-1,command='S.save(S.pre.saveFmt.format(stage="backup-%06d"%(S.step),S=S,**(dict(S.tags))))')]
 		)
 
+	#
+	# TODO: this should be user-configurable; in particular, batches don't need that at all
+	#
+	S.dem.saveDeadNodes=True
+
 
 	try:
 		import woo.gl
 		# set other display options and save them (static attributes)
 		#woo.gl.Gl1_DemField.colorRanges[woo.gl.Gl1_DemField.colorVel].range=(0,.5)
+		from woo.gl import Gl1_DemField
+		Gl1_DemField.colorRanges[Gl1_DemField.colorMatState].cmap=(woo.master.cmaps.index('helix') if 'helix' in woo.master.cmaps else -1)
 		S.any=[
 			woo.gl.Renderer(iniUp=(0,0,1),iniViewDir=(0,1,0)),
 			#woo.gl.Gl1_DemField(glyph=woo.gl.Gl1_DemField.glyphVel),
-			woo.gl.Gl1_DemField(colorBy=woo.gl.Gl1_DemField.colorMatState,colorSpheresOnly=False),
+			Gl1_DemField(
+				shape=Gl1_DemField.shapeNonSpheres,
+				colorBy=Gl1_DemField.colorMatState,
+				colorBy2=Gl1_DemField.colorVel,
+			),
 			woo.gl.Gl1_InfCylinder(wire=True),
 			woo.gl.Gl1_Wall(div=1),
 		]

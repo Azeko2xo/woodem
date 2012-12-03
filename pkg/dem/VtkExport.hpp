@@ -33,7 +33,7 @@ struct VtkExport: public PeriodicEngine{
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	void run();
 
-	enum{WHAT_SPHERES=1,WHAT_MESH=2,WHAT_CON=4};
+	enum{WHAT_SPHERES=1,WHAT_MESH=2,WHAT_CON=4 /*,WHAT_PELLET=8*/ };
 	enum{WHAT_ALL=WHAT_SPHERES|WHAT_MESH|WHAT_CON};
 
 	static int addTriangulatedObject(vector<Vector3r> pts, vector<Vector3i> tri, const vtkSmartPointer<vtkPoints>& vtkPts, const vtkSmartPointer<vtkCellArray>& cells);
@@ -55,6 +55,7 @@ struct VtkExport: public PeriodicEngine{
 		((int,subdiv,16,AttrTrait<>().noGui(),"Subdivision fineness for circular objects (such as cylinders).\n\n.. note::  are rendered without rounded edges (they are closed flat)."))
 		((int,thickFacetDiv,1,AttrTrait<>().noGui(),"Subdivision for :ref:`Facet` objects with non-zero :ref:`halfThick<Facet.halfThick>`; the value of -1 will use :ref:`subdiv`; 0 will render only faces, without edges; 1 will close the edge flat."))
 		((bool,cylCaps,true,,"Render caps of :ref:`InfCylinder` (at :ref:`InfCylinder.glAB`)."))
+		((Real,nanValue,0.,,"Use this number instead of NaN in entries, since VTK cannot read NaNs properly"))
 		,/*ctor*/
 		initRun=false; // do not run at the very first step
 		,/*py*/
@@ -69,6 +70,7 @@ struct VtkExport: public PeriodicEngine{
 			_classObj.attr("mesh")=(int)VtkExport::WHAT_MESH;
 			_classObj.attr("con")=(int)VtkExport::WHAT_CON;
 			_classObj.attr("all")=(int)VtkExport::WHAT_ALL;
+			// _classObj.attr("pellet")=(int)VtkExport::WHAT_PELLET;
 	);
 };
 REGISTER_SERIALIZABLE(VtkExport);

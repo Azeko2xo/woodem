@@ -629,6 +629,7 @@ class SerializableEditor(QFrame):
 			self.name,self.T,self.doc,self.trait,self.groupNo,self.containingClass=name,T,doc,trait,groupNo,containingClass
 			self.widget=None
 			self.visible=True
+			self.hidden=False # this overrides the "visible" attribute
 			self.gridAndRow=(None,-1)
 			self.widgets={} #{'label':None,'value':None,'unit':None}
 			self.editor=editor
@@ -664,11 +665,14 @@ class SerializableEditor(QFrame):
 		def toggleChecked(self,checked):
 			self.widgets['value'].setEnabled(not checked)
 			self.widgets['label'].setEnabled(not checked)
+		def eval_hideIf(self):
+			return self.trait.hideIf and eval(self.trait.hideIf,globals(),{'self':self.editor.ser})
 		def setVisible(self,visible=None):
-			# TODO: this should not show checker if disabled etc
 			if visible==None: visible=self.visible
 			self.visible=visible
-			if not visible:
+			# if visible, the entry can be nevertheless hidden due to hideIf
+			self.hidden=self.eval_hideIf()
+			if not self.visible or self.hidden:
 				for w in self.widgets.values():
 					if w: w.hide()
 			else:
@@ -914,7 +918,7 @@ class SerializableEditor(QFrame):
 		self.showChecks=(not self.showChecks if val==None else val)
 		#for g in self.entryGroups: g.showChecks=self.showChecks # propagate down
 		for entry in self.entries:
-			if entry.visible: entry.widgets['check'].setVisible(self.showChecks)
+			if entry.visible and not entry.hidden: entry.widgets['check'].setVisible(self.showChecks)
 			if not entry.trait.readonly:
 				if 'value' in entry.widgets: entry.widgets['value'].setEnabled(True)
 				entry.widgets['label'].setEnabled(True)
@@ -1070,6 +1074,8 @@ class SerializableEditor(QFrame):
 					e.widget=e.widgets['value']=self.mkWidget(e)
 					grid,row=e.gridAndRow
 					grid.addWidget(e.widget,row,self.gridCols['value'])
+				# visibility might change if hideIf is defined
+				if e.trait.hideIf: e.setVisible(None)
 				e.widget.refresh()
 	def refresh(self): pass
 

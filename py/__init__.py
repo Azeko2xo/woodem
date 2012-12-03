@@ -117,6 +117,7 @@ cxxInternalFile=_cxxInternal.__file__
 from . import core
 master=core.Master.instance
 
+
 #
 # create compiled python modules
 #
@@ -182,13 +183,39 @@ def hack_loadCompiledModulesViaLinks(compiledModDir,tryInAnotherTempdir=True):
 	
 allSubmodules=hack_loadCompiledModulesViaLinks(master.tmpFilename()) # this will be a directory
 
-
 from . import config
 if 'gts' in config.features:
 	if 'gts' in sys.modules: raise RuntimeError("Woo was compiled with woo.gts; do not import external gts module, they clash with each other.")
 	from . import gts
 	# so that it does not get imported twice
 	sys.modules['gts']=gts
+
+
+##
+## temps cleanup at exit
+##
+import atexit, shutil, threading, glob
+def exitCleanup(path):
+	#print 'Purging',path
+	shutil.rmtree(path)
+atexit.register(exitCleanup,master.tmpFileDir)
+## clean old temps in bg thread
+def cleanOldTemps(prefix,keep):
+	try: import psutil
+	except ImportError:
+		print 'Not cleaning old temps, since the psutil module is missing.'
+		return
+	for d in glob.glob(prefix+'/woo-tmp-*'):
+		if d==keep: continue
+		pidfile=d+'/pid'
+		if not os.path.exists(pidfile): continue
+		try:
+			pid=int(open(pidfile).readlines()[0][:-1])
+			if not psutil.pid_exists(pid):
+				print 'Purging old %s (pid=%d)'%(d,pid)
+				shutil.rmtree(d)
+		except: pass
+threading.Thread(target=cleanOldTemps,args=(os.path.dirname(master.tmpFileDir),master.tmpFileDir)).start()
 
 
 ##
@@ -216,6 +243,7 @@ if wooOptions.clDev:
 				raise ValueError('Invalid --cl-dev specification %s, should an integer (platform), or a comma-separated couple (platform,device) of integers'%opts.clDev)
 			master.clDev=clDev
 	else: warnings.warn("--cl-dev ignored, since compiled without OpenCL.")
+
 
 import _customConverters
 

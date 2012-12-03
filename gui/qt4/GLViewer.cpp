@@ -761,6 +761,7 @@ void GLViewer::postDraw(){
 		int yDef=.2*height(); // default y position, if current is not valid
 		glLineWidth(scaleWd);
 		for(size_t i=0; i<scene->ranges.size(); i++){
+			if(!scene->ranges[i]) continue;
 			ScalarRange& range(*scene->ranges[i]);
 			if(!range.isOk()) continue;
 			int xDef=width()-50-i*70; /* 70px / scale horizontally */ // default x position, if current not valid

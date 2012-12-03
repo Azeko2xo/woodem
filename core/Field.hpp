@@ -61,7 +61,7 @@ struct ScalarRange: public Object{
 		((Real,length,-.5,AttrTrait<>().noGui(),"Length on the display; if negative, it is fractional relative to view width/height"))
 		((bool,landscape,false,AttrTrait<>().noGui(),"Make the range display with landscape orientation"))
 		((std::string,label,,,"Short name of this range."))
-		((int,cmap,-1,AttrTrait<>().colormapChoice(),"Colormap index to be used; -1 means to use the default colormap (see *O.lsCmap*, *O.setCmap*)"))
+		((int,cmap,-1,AttrTrait<>().colormapChoice(),"Colormap index to be used; -1 means to use the default colormap (see *woo.master.cmaps*, *woo.master.cmap*)"))
 		, /* ctor */
 		, /* py */
 			.def("norm",&ScalarRange::norm,"Return value of the argument normalized to 0..1 range; the value is not clamped to 0..1 however: if autoAdjust is false, it can fall outside.")

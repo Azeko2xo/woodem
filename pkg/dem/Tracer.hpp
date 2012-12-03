@@ -24,7 +24,7 @@ REGISTER_SERIALIZABLE(TraceGlRep);
 
 struct Tracer: public PeriodicEngine{
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
-	void resetNodesRep(bool setupEmpty=false);
+	void resetNodesRep(bool setupEmpty=false, bool includeDead=true);
 	virtual void run();
 	enum{SCALAR_NONE=0,SCALAR_TIME,SCALAR_VEL,SCALAR_SIGNED_ACCEL,SCALAR_RADIUS,SCALAR_SHAPE_COLOR};
 	WOO_CLASS_BASE_DOC_STATICATTRS_PY(Tracer,PeriodicEngine,"Save trace of node's movement",
@@ -41,7 +41,7 @@ struct Tracer: public PeriodicEngine{
 		((Vector3r,noneColor,Vector3r(.3,.3,.3),AttrTrait<>().rgbColor(),"Color for traces without scalars, when scalars are saved (e.g. for non-spheres when radius is saved"))
 		((bool,glSmooth,false,,"Render traced lines with GL_LINE_SMOOTH"))
 		, /*py*/
-			.def("resetNodesRep",&Tracer::resetNodesRep,(py::arg("setupEmpty")=false),"Reset :ref:`Node.rep` on all :ref:`Dem.Field.nodes`. With *setupEmpty*, create new instances of :ref:`TraceGlRep`.")
+			.def("resetNodesRep",&Tracer::resetNodesRep,(py::arg("setupEmpty")=false,py::arg("includeDead")=true),"Reset :ref:`Node.rep` on all :ref:`Dem.Field.nodes`. With *setupEmpty*, create new instances of :ref:`TraceGlRep`. With *includeDead*, :ref:`Node.rep` on all :ref:`Dem.Field.deadNodes` is also cleared (new are not created, even with *setupEmpty*).")
 			;
 			_classObj.attr("scalarNone")=(int)Tracer::SCALAR_NONE;
 			_classObj.attr("scalarTime")=(int)Tracer::SCALAR_TIME;

@@ -10,6 +10,14 @@ Vector3r Facet::getNormal() const {
 	return ((nodes[1]->pos-nodes[0]->pos).cross(nodes[2]->pos-nodes[0]->pos)).normalized();
 }
 
+Real Facet::getArea() const {
+	assert(numNodesOk());
+	const Vector3r& A=nodes[0]->pos;
+	const Vector3r& B=nodes[1]->pos;
+	const Vector3r& C=nodes[2]->pos;
+	return .5*((B-A).cross(C-A)).norm();
+}
+
 std::tuple<Vector3r,Vector3r,Vector3r> Facet::getOuterVectors() const {
 	assert(numNodesOk());
 	// is not normalized

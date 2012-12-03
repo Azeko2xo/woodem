@@ -16,6 +16,16 @@
 #include<woo/lib/object/ObjectIO.hpp>
 #include<woo/core/Timing.hpp>
 
+#ifdef __MINGW64__
+	#ifndef WIN32_LEAN_AND_MEAN
+		#define WIN32_LEAN_AND_MEAN
+	#endif
+	#include<process.h>
+	int getpid(){ return _getpid(); }
+#else
+	#include<unistd.h> // for getpid
+#endif
+
 class RenderMutexLock: public boost::mutex::scoped_lock{
 	public:
 	RenderMutexLock(): boost::mutex::scoped_lock(Master::instance().renderMutex){/* cerr<<"Lock renderMutex"<<endl; */}
@@ -32,73 +42,30 @@ Master::Master(){
 	scene=shared_ptr<Scene>(new Scene);
 	startupLocalTime=boost::posix_time::microsec_clock::local_time();
 	
-	#ifdef WOO_DELAYED_TEMP_CLEANUP
-		delayedCleanupTemps();
-	#endif
 
-
-	auto tmp=boost::filesystem::unique_path(boost::filesystem::temp_directory_path()/"woo-%%%%%%%%");
+	auto tmp=boost::filesystem::unique_path(boost::filesystem::temp_directory_path()/"woo-tmp-%%%%%%%%");
 	tmpFileDir=tmp.string();
 	LOG_DEBUG_EARLY("Creating temp dir "<<tmpFileDir);
 	if(!boost::filesystem::create_directory(tmp)) throw std::runtime_error("Creating temporary directory "+tmpFileDir+" failed.");
+	// write pid file
+	std::ofstream pidfile;
+	pidfile.open((tmp/"pid").string().c_str()); pidfile<<getpid()<<endl; pidfile.close();
+
+
 	tmpFileCounter=0;
 
 	defaultClDev=Vector2i(-1,-1);
 }
 
 
-Master::~Master(){
-	cleanupTemps();
-}
-
-#ifdef WOO_DELAYED_TEMP_CLEANUP
-	void Master::delayedCleanupTemps(){
-		vector<boost::filesystem::path> olds;
-		// two loops necessary?
-		// http://stackoverflow.com/questions/13513369/is-boostfilesystemdirectory-iterator-invalidated-by-deletion
-		for(boost::filesystem::directory_iterator I(boost::filesystem::temp_directory_path()); I!=boost::filesystem::directory_iterator(); ++I){
-			try{
-				if(boost::filesystem::is_directory(*I) && boost::algorithm::starts_with(I->path().filename().string(),"woo-") && boost::filesystem::exists((*I)/WOO_DELETABLE_STAMP)) olds.push_back(*I);
-			} catch (boost::filesystem::filesystem_error& e){
-				LOG_DEBUG_EARLY("Temp dir "<<I->path().string()<<": error getting file information, will not delete.");			
-			}
-		}
-		for(auto& old: olds){
-			try{
-				boost::filesystem::remove_all(old);
-				LOG_DEBUG_EARLY("Cleaned old temp directory "<<old);
-			}
-			catch(boost::filesystem::filesystem_error& e){
-				LOG_DEBUG_EARLY("Error cleaning old temp directory "<<old);
-			}
-		}	
-	}
-#endif
-
-
-void Master::cleanupTemps(){
-	#ifndef WOO_DELAYED_TEMP_CLEANUP
-		LOG_DEBUG_EARLY("Cleaning "<<tmpFileDir);
-		boost::filesystem::path tmpPath(tmpFileDir);
-		try {
-			boost::filesystem::remove_all(tmpPath);
-		} catch (boost::filesystem::filesystem_error& e){
-			cerr<<"Failed to clean temporary directory "<<tmpFileDir<<endl;
-		}
-	#else
-		// only mark temp for cleanup next time
-		LOG_DEBUG_EARLY("Stamping "<<tmpFileDir<<"/"<<WOO_DELETABLE_STAMP);
-		std::ofstream stamp;
-		stamp.open((tmpFileDir+"/" WOO_DELETABLE_STAMP).c_str());
-		stamp.close();
-	#endif
-}
+Master::~Master(){ }
 
 const map<string,set<string>>& Master::getClassBases(){return classBases;}
 
 Real Master::getRealTime(){ return (boost::posix_time::microsec_clock::local_time()-startupLocalTime).total_milliseconds()/1e3; }
 boost::posix_time::time_duration Master::getRealTime_duration(){return boost::posix_time::microsec_clock::local_time()-startupLocalTime;}
 
+string Master::getTmpFileDir(){ return tmpFileDir; }
 
 std::string Master::tmpFilename(){
 	assert(!tmpFileDir.empty());

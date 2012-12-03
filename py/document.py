@@ -13,15 +13,26 @@ def fixDocstring(s):
 def packageClasses(outDir='/tmp'):
 	'''Generate documentation of packages in the Restructured Text format. Each package is written to file called *out*/.`woo.[package].rst` and list of files created is returned.'''
 
-	def subImport(pkg):
+	def subImport(pkg,exclude=None):
 		'Import recursively all subpackages'
 		import pkgutil
 		for importer, modname, ispkg in pkgutil.iter_modules(pkg.__path__):
 			fqmodname=pkg.__name__+'.'+modname
-			print 'Importing ',
-			__import__(fqmodname,pkg.__name__)
+			if exclude and re.match(exclude,fqmodname):
+				print 'Skipping  '+fqmodname
+				continue
+			if fqmodname not in sys.modules:
+				sys.stdout.write('Importing '+fqmodname+'... ')
+				try:
+					__import__(fqmodname,pkg.__name__)
+					print 'ok'
+				except ImportError: print '(error, ignoring)'
 			if ispkg: subImport(sys.modules[fqmodname])
-	subImport(woo)
+	subImport(woo,exclude='^woo\._cxxInternal.*$')
+	for m in woo.master.compiledPyModules:
+		if m not in sys.modules:
+			print 'Importing',m
+			__import__(m)
 
 	allClasses=woo.system.childClasses(woo.core.Object,recurse=True)
 	#core.Object._derivedCxxClasses+[woo.core.Object]

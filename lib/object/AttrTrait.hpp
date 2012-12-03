@@ -22,7 +22,7 @@ namespace woo{
 		// do not access those directly; public for convenience when accessed from python
 		int _flags;
 		int _currUnit;
-		string _doc, _name, _cxxType,_startGroup;
+		string _doc, _name, _cxxType,_startGroup, _hideIf;
 		vector<string> _unit;
 		vector<pair<string,Real>> _prefUnit;
 		vector<vector<pair<string,Real>>> _altUnits;
@@ -88,6 +88,7 @@ namespace woo{
 				.def_readonly("prefUnit",&AttrTraitBase::pyPrefUnit)
 				.add_property("altUnits",&AttrTraitBase::pyAltUnits)
 				.def_readonly("startGroup",&AttrTraitBase::_startGroup)
+				.add_property("hideIf",&AttrTraitBase::_hideIf)
 				.add_property("ini",&AttrTraitBase::pyGetIni)
 				.add_property("range",&AttrTraitBase::pyGetRange)
 				.add_property("choice",&AttrTraitBase::pyGetChoice)
@@ -160,6 +161,7 @@ namespace woo{
 			return *this;
 		}
 		AttrTrait& startGroup(const string& s){ _startGroup=s; return *this; }
+		AttrTrait& hideIf(const string& h){ _hideIf=h; return *this; }
 
 		template<typename T> AttrTrait& ini(const T t){ _ini=std::function<py::object()>([=]()->py::object{ return py::object(t); }); return *this; }
 		AttrTrait& ini(){ _ini=std::function<py::object()>([]()->py::object{ return py::object(); }); return *this; }

@@ -135,7 +135,7 @@ void VtkExport::run(){
 	auto mCells=vtkSmartPointer<vtkCellArray>::New();
 	mGrid->SetPoints(mPos);
 	_VTK_CELL_ARR(mGrid,mColor,"color",1);
-	// _VTK_CELL_ARR(mGrid,mMatState,"matState",1);
+	_VTK_CELL_ARR(mGrid,mMatState,"matState",1);
 	_VTK_CELL_INT_ARR(mGrid,mMatId,"matId",1);
 	_VTK_CELL_ARR(mGrid,mVel,"vel",3);
 	_VTK_CELL_ARR(mGrid,mAngVel,"angVel",3);
@@ -317,6 +317,12 @@ void VtkExport::run(){
 			// velocity values are erroneous for multi-nodal particles (facets), don't care now
 			mVel->InsertNextTupleValue(dyn.vel.data());
 			mAngVel->InsertNextTupleValue(dyn.angVel.data());
+			Real scalar=NaN;
+			if(p->matState){
+				scalar=p->matState->getColorScalar();
+				if(facet) scalar/=p->shape->cast<Facet>().getArea();
+			}
+			mMatState->InsertNextValue(isnan(scalar)?nanValue:scalar);
 		}
 	}
 

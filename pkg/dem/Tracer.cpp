@@ -79,7 +79,7 @@ Vector3r Tracer::noneColor;
 Real Tracer::minDist;
 shared_ptr<ScalarRange> Tracer::lineColor;
 
-void Tracer::resetNodesRep(bool setupEmpty){
+void Tracer::resetNodesRep(bool setupEmpty, bool includeDead){
 	auto& dem=field->cast<DemField>();
 	boost::mutex::scoped_lock lock(dem.nodesMutex);
 	for(const auto& p: *dem.particles){
@@ -93,11 +93,16 @@ void Tracer::resetNodesRep(bool setupEmpty){
 			}
 		}
 	}
+	if(includeDead){
+		for(const auto& n: dem.deadNodes){
+			n->rep.reset();
+		}
+	}
 }
 
 void Tracer::run(){
 	if(scalar!=lastScalar){
-		resetNodesRep(/*setup empty*/true);
+		resetNodesRep(/*setup empty*/true,/*includeDead*/false);
 		lastScalar=scalar;
 		lineColor->reset();
 	}

@@ -19,43 +19,55 @@ struct Gl1_DemField: public GlFieldFunctor{
 		doPostLoad=true;
 	}
 	static void setSceneRange(Scene* scene, const shared_ptr<ScalarRange>& prev, const shared_ptr<ScalarRange>& curr);
+	static void setOurSceneRanges(Scene* scene, const vector<shared_ptr<ScalarRange>>& ours, const list<shared_ptr<ScalarRange>>& used);
 	static void initAllRanges();
 
 	void postLoad2();
 
-	enum{COLOR_SHAPE=0,COLOR_RADIUS,COLOR_VEL,COLOR_ANGVEL,COLOR_MASS,COLOR_DISPLACEMENT,COLOR_ROTATION,COLOR_REFPOS,COLOR_MAT_ID,COLOR_MATSTATE,/*last*/COLOR_SENTINEL};
+	enum{COLOR_SOLID=0,COLOR_SHAPE,COLOR_RADIUS,COLOR_VEL,COLOR_ANGVEL,COLOR_MASS,COLOR_DISPLACEMENT,COLOR_ROTATION,COLOR_REFPOS,COLOR_MAT_ID,COLOR_MATSTATE,COLOR_INVISIBLE,/*last*/COLOR_SENTINEL};
 	enum{GLYPH_KEEP=0,GLYPH_NONE,GLYPH_FORCE,GLYPH_VEL,/*last*/GLYPH_SENTINEL};
 	enum{CNODE_NONE=0,CNODE_GLREP=1,CNODE_LINE=2,CNODE_NODE=4,CNODE_POTLINE=8};
+	enum{SHAPE_NONE=0,SHAPE_ALL,SHAPE_SPHERES,SHAPE_NONSPHERES,SHAPE_MASK};
 	RENDERS(DemField);
 	DECLARE_LOGGER;
 	Scene* _lastScene; // to detect changes; never acessed as pointer
+
+	// those are used twice, stuff them into macro
+	#define GL1_DEMFIELD_COLORBY_CHOICES \
+			{COLOR_SOLID,"solidColor"}, \
+			{COLOR_SHAPE,"Shape.color"}, \
+			{COLOR_RADIUS,"radius"}, \
+			{COLOR_VEL,"velocity"}, \
+			{COLOR_ANGVEL,"angular velocity"}, \
+			{COLOR_MASS,"mass"}, \
+			{COLOR_DISPLACEMENT,"ref. displacement"}, \
+			{COLOR_ROTATION,"ref. rotation"}, \
+			{COLOR_REFPOS,"refpos coordinate"}, \
+			{COLOR_MAT_ID,"material id"}, \
+			{COLOR_MATSTATE,"Particle.matState"}, \
+			{COLOR_INVISIBLE,"invisible"}
+
 	WOO_CLASS_BASE_DOC_STATICATTRS_CTOR_PY(Gl1_DemField,GlFieldFunctor,"Render DEM field.",
-		((bool,shape,true,AttrTrait<Attr::triggerPostLoad>().startGroup("Shape"),"Render particle's :ref:`Shape`"))
-		((int,colorBy,COLOR_SHAPE,AttrTrait<Attr::triggerPostLoad>().choice({
-			{COLOR_SHAPE,"Shape.color"},
-			{COLOR_RADIUS,"radius"},
-			{COLOR_VEL,"velocity"},
-			{COLOR_ANGVEL,"angular velocity"},
-			{COLOR_MASS,"mass"},
-			{COLOR_DISPLACEMENT,"ref. displacement"},
-			{COLOR_ROTATION,"ref. rotation"},
-			{COLOR_REFPOS,"refpos coordinate"},
-			{COLOR_MAT_ID,"material id"},
-			{COLOR_MATSTATE,"Particle.matState"}
-		}).buttons({"Reference now","self.updateRefPos=True","use current positions and orientations as reference for showing displacement/rotation"},/*showBefore*/false),"Color particles by"))
-		((int,vecAxis,-1,AttrTrait<>().choice({{-1,"norm"},{0,"x"},{1,"y"},{2,"z"}}),"Axis for colorRefPosCoord"))
+		((int,shape,SHAPE_ALL,AttrTrait<Attr::triggerPostLoad>().choice({{SHAPE_NONE,"none"},{SHAPE_ALL,"all"},{SHAPE_SPHERES,"spheres"},{SHAPE_NONSPHERES,"non-spheres"},{SHAPE_MASK,"mask"}}).startGroup("Shape"),"Render only particles matching selected filter."))
+		((uint,mask,0,,"Only shapes/bounds of particles with this group will be shown; 0 matches all particles."))
+		((bool,shape2,true,AttrTrait<Attr::triggerPostLoad>(),"Render also particles not matching :ref:`shape` (using :ref:`colorBy2`)"))
 		((bool,wire,false,,"Render all shapes with wire only"))
-		((bool,colorSpheresOnly,true,,"If :ref:`colorBy` is active, use automatic color for spheres only; for non-spheres, use :ref:`fallbackColor`"))
-		((Vector3r,fallbackColor,Vector3r(.3,.3,.3),AttrTrait<>().rgbColor(),"Color to use for non-spherical particles when :ref:`colorBy` is not :ref:`colorShape`."))
-		((int,prevColorBy,COLOR_SHAPE,AttrTrait<>().hidden(),"previous value of colorBy (to know which colorrange to remove from the scene)"))
-		((shared_ptr<ScalarRange>,colorRange,,AttrTrait<>().readonly(),"Range for particle colors"))
+
+		((int,colorBy,COLOR_SHAPE,AttrTrait<Attr::triggerPostLoad>().choice({ GL1_DEMFIELD_COLORBY_CHOICES }).buttons({"Reference now","self.updateRefPos=True","use current positions and orientations as reference for showing displacement/rotation"},/*showBefore*/false),"Color particles by"))
+		((int,vecAxis,-1,AttrTrait<>().choice({{-1,"norm"},{0,"x"},{1,"y"},{2,"z"}}).hideIf("self.colorBy in (self.colorShape, self.colorRadius, self.colorMatId, self.colorMatState)"),"Axis for colorRefPosCoord"))
+		((shared_ptr<ScalarRange>,colorRange,,AttrTrait<>().readonly(),"Range for particle colors (:ref:`colorBy`)"))
+
+		((int,colorBy2,COLOR_SOLID,AttrTrait<Attr::triggerPostLoad>().choice({ GL1_DEMFIELD_COLORBY_CHOICES }).hideIf("not self.shape2"),"Color for particles with :ref:`shape2`."))
+		((shared_ptr<ScalarRange>,colorRange2,,AttrTrait<>().readonly().hideIf("not self.shape2"),"Range for particle colors (:ref:`colorBy`)"))
+
+		((Vector3r,solidColor,Vector3r(.3,.3,.3),AttrTrait<>().rgbColor(),"Solid color for particles."))
+
 		((vector<shared_ptr<ScalarRange>>,colorRanges,,AttrTrait<>().readonly().noGui(),"List of color ranges"))
+
 		((bool,bound,false,,"Render particle's :ref:`Bound`"))
-		((uint,mask,0,,"Only shapes/bounds of particles with this mask will be displayed; if 0, all particles are shown"))
 
 		((bool,nodes,false,AttrTrait<>().startGroup("Nodes"),"Render DEM nodes"))
 		((int,glyph,GLYPH_KEEP,AttrTrait<Attr::triggerPostLoad>().choice({{GLYPH_KEEP,"keep"},{GLYPH_NONE,"none"},{GLYPH_FORCE,"force"},{GLYPH_VEL,"velocity"}}),"Show glyphs on particles by setting :ref:`GlData` on their nodes."))
-		((int,prevGlyph,GLYPH_KEEP,AttrTrait<>().hidden(),"previous value of glyph"))
 		((shared_ptr<ScalarRange>,glyphRange,,AttrTrait<>().readonly(),"Range for glyph colors"))
 		((Real,glyphRelSz,.1,,"Maximum glyph size relative to scene radius"))
 		((vector<shared_ptr<ScalarRange>>,glyphRanges,,AttrTrait<>().readonly().noGui(),"List of glyph ranges"))
@@ -75,6 +87,11 @@ struct Gl1_DemField: public GlFieldFunctor{
 			_classObj.attr("glyphNone")=(int)Gl1_DemField::GLYPH_NONE;
 			_classObj.attr("glyphForce")=(int)Gl1_DemField::GLYPH_FORCE;
 			_classObj.attr("glyphVel")=(int)Gl1_DemField::GLYPH_VEL;
+			_classObj.attr("shapeAll")=(int)Gl1_DemField::SHAPE_ALL;
+			_classObj.attr("shapeNone")=(int)Gl1_DemField::SHAPE_NONE;
+			_classObj.attr("shapeSpheres")=(int)Gl1_DemField::SHAPE_SPHERES;
+			_classObj.attr("shapeNonSpheres")=(int)Gl1_DemField::SHAPE_NONSPHERES;
+			_classObj.attr("shapeMask")=(int)Gl1_DemField::SHAPE_MASK;
 			_classObj.attr("colorShape")=(int)Gl1_DemField::COLOR_SHAPE;
 			_classObj.attr("colorRadius")=(int)Gl1_DemField::COLOR_RADIUS;
 			_classObj.attr("colorVel")=(int)Gl1_DemField::COLOR_VEL;

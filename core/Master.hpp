@@ -26,15 +26,6 @@
 # define FOREACH BOOST_FOREACH
 #endif
 
-#ifdef __MING64__
-	// define to have temp dir deleted when Woo is started next time, not when it terminates
-	// this is mandatory under Windows, since it refuses to delete dir with open files
-	// (hardlinked DLLs)
-	#define WOO_DELAYED_TEMP_CLEANUP
-	// mark old temp dirs with file named like this
-	#define WOO_DELETABLE_STAMP "directory-safe-to-delete-since-owner-has-terminated"
-#endif
-
 struct Scene;
 //namespace woo { class Object; };
 using namespace woo;
@@ -84,11 +75,6 @@ class Master: public Singleton<Master>{
 	bool termFlag;
 	std::string tmpFileDir;
 	
-	void cleanupTemps();
-	#ifdef WOO_DELAYED_TEMP_CLEANUP
-		void delayedCleanupTemps();
-	#endif
-
 	public:
 		bool terminateAll(){ return termFlag; }
 		
@@ -149,6 +135,8 @@ class Master: public Singleton<Master>{
 		void setScene(const shared_ptr<Scene>& s);
 		//! Return unique temporary filename. May be deleted by the user; if not, will be deleted at shutdown.
 		string tmpFilename();
+		string getTmpFileDir();
+		void setTmpFileDir(const string& t);
 		Real getRealTime();
 		boost::posix_time::time_duration getRealTime_duration();
 
@@ -219,6 +207,7 @@ class Master: public Singleton<Master>{
 			.def("exitNoBacktrace",&Master::pyExitNoBacktrace,(py::arg("status")=0),"Disable SEGV handler and exit, optionally with given status number.")
 			.def("disableGdb",&Master::pyDisableGdb,"Revert SEGV and ABRT handlers to system defaults.")
 			.def("tmpFilename",&Master::tmpFilename,"Return unique name of file in temporary directory which will be deleted when woo exits.")
+			.add_property("tmpFileDir",&Master::getTmpFileDir,"Directory for temporary files; created automatically at startup.")
 			.add_static_property("instance",py::make_function(&Master::instance,py::return_value_policy<py::reference_existing_object>()))
 		;
 	}

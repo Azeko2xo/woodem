@@ -12,6 +12,7 @@ class PyAttrTrait:
 			#prefUnit=None,
 			#altUnit=None,
 			startGroup=None,
+			hideIf=None,
 			range=None,
 			choice=None,
 			bits=None,
@@ -52,6 +53,7 @@ class PyAttrTrait:
 		self.noGui=noGui
 		self.rgbColor=rgbColor
 		self.startGroup=startGroup
+		self.hideIf=hideIf
 		self.range=range
 		self.choice=choice
 		self.bits=bits
