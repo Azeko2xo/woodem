@@ -5,12 +5,12 @@
 
 #include<woo/pkg/dem/Pellet.hpp>
 
-struct Roro: public Preprocessor {
+struct RoroCxx: public Preprocessor {
 	shared_ptr<Scene> operator()(){
 		auto pre=py::import("woo.pre.Roro_");
 		return py::call<shared_ptr<Scene>>(py::getattr(pre,"run").ptr(),boost::ref(*this));
 	}
-	void postLoad(Roro&){
+	void postLoad(RoroCxx&){
 		cylRelLen=cylLenSim/cylLenReal;
 		totMass=time*massFlowRate;
 		// compute estimates from psd and material
@@ -28,7 +28,7 @@ struct Roro: public Preprocessor {
 			}
 		#endif
 	}
-	WOO_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(Roro,Preprocessor,"Preprocessor for the Rollenrost simulation.",
+	WOO_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(RoroCxx,Preprocessor,"Preprocessor for the Rollenrost simulation.",
 		((Real,cylLenReal,2,AttrTrait<>().lenUnit().triggerPostLoad().startGroup("General"),"Real length of cylinders"))
 		((Real,cylLenSim,.1,AttrTrait<>().lenUnit().triggerPostLoad(),"Simulated length of cylinders"))
 		((Real,cylRelLen,,AttrTrait<>().readonly(),"Relative length of simulated cylinders"))
@@ -81,7 +81,7 @@ struct Roro: public Preprocessor {
 		((vector<Real>,efficiencyGapFrac,vector<Real>({.9,1.,1.1,1.2,1.3}),,"Diameters relative to :ref:`gap` for which the sieving efficiency is determined."))
 		((Real,__nonexistent__,,AttrTrait<Attr::noSave>().hidden(),""))
 		, /* deprec */
-			((normPlastCoeff,__nonexistent__,"normPlastCoeff is inside PelletMat now, defining RoRo.normPlastCoeff has no effect."))
+			((normPlastCoeff,__nonexistent__,"normPlastCoeff is inside PelletMat now, defining RoRoCxx.normPlastCoeff has no effect."))
 		, /* init */
 		, /*ctor*/
 			material->density=3200;
@@ -93,4 +93,4 @@ struct Roro: public Preprocessor {
 		, /* py */
 	);
 };
-REGISTER_SERIALIZABLE(Roro);
+REGISTER_SERIALIZABLE(RoroCxx);

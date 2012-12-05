@@ -46,7 +46,8 @@ void Engine::runPy(const string& command){
 	#else
 		GilLock lock;
 		try{
-			py::object global(py::import("__main__").attr("__dict__"));
+			// scripts are run in this namespace (wooMain)
+			py::object global(py::import("wooMain").attr("__dict__"));
 			py::dict local;
 			local["scene"]=py::object(py::ptr(scene));
 			local["S"]=py::object(py::ptr(scene));

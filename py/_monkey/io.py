@@ -74,83 +74,6 @@ def Object_dump(obj,out,format='auto',overwrite=True,fragment=False,width=80,noM
 			out.write(SerializerToHtmlTable(showDoc=showDoc)(obj))
 			if not fragment: out.write('</body>')
 		
-class SerializerToHtmlTableRaw:
-	padding='cellpadding="2px"'
-	def __init__(self,showDoc=False,maxDepth=8,hideNoGui=False):
-		self.maxDepth=maxDepth
-		self.hideNoGui=hideNoGui
-		self.showDoc=showDoc
-	def htmlSeq(self,s,indent,insideTable):
-		ret=''
-		indent1=indent+'\t'
-		indent2=indent1+'\t'
-		if hasattr(s[0],'__len__') and not isinstance(s[0],str): # 2d array
-			# disregard insideTable in this case
-			ret+=indent+'<table frame="box" rules="all" width="100%%" %s>'%self.padding
-			for r in range(len(s)):
-				ret+=indent1+'<tr>'
-				for c in range(len(s[0])):
-					ret+=indent2+'<td align="right" width="%g%%">'%(100./len(s[0])-1.)+('%g'%s[r][c] if isinstance(s[r][c],float) else str(s[r][c]))+'</td>'
-				ret+=indent1+'</tr>'
-			ret+=indent+'</table>'
-			return ret
-		# 1d array
-		if not insideTable: ret+=indent+'<table frame="box" rules="all" width="100%%" %s>'%self.padding
-		for e in s: ret+=indent1+'<td align="right" width="%g%%">'%(100./len(s)-1.)+('%g'%e if isinstance(e,float) else str(e))+'</td>'
-		if not insideTable: ret+=indent+'</table>'
-		return ret;
-	def __call__(self,obj,depth=0):
-		if depth>self.maxDepth: raise RuntimeError("Maximum nesting depth %d exceeded"%self.maxDepth)
-		indent0=u'\n'+u'\t'*2*depth
-		indent1=indent0+u'\t'
-		indent2=indent1+u'\t'
-		ret=indent0+'<table frame="box" rules="all" %s %s><th colspan="3" align="left"><b>%s</b></th>'%(self.padding, 'width="100%"' if depth>0 else '','.'.join(obj.__class__.__module__.split('.')[1:])+'.'+obj.__class__.__name__)
-		# get all attribute traits first
-		traits=obj._getAllTraits()
-		for trait in traits:
-			if trait.hidden or (self.hideNoGui and trait.noGui) or trait.noDump: continue
-			# start new group (additional line)
-			if trait.startGroup:
-				ret+=indent1+'<tr><td colspan="3"><i>&#9656; %s</i></td></tr>'%trait.startGroup
-			attr=getattr(obj,trait.name)
-			ret+=indent1+'<tr>'+indent2+'<td>%s</td>'%(trait.name if not showDoc else trait.doc.decode('utf-8'))
-			# nested object
-			if isinstance(attr,woo.core.Object):
-				ret+=indent2+'<td align="justify">'+self(attr,depth+1)+indent2+'</td>'
-			# sequence of objects (no units here)
-			elif hasattr(attr,'__len__') and len(attr)>0 and isinstance(attr[0],woo.core.Object):
-				ret+=indent2+u'<td><ol>'+''.join(['<li>'+self(o,depth+1)+'</li>' for o in attr])+'</ol></td>'
-			else:
-				#ret+=indent2+'<td align="right">'
-				if not trait.multiUnit: # the easier case
-					if not trait.prefUnit: unit='&mdash;'
-					else:
-						unit=trait.prefUnit[0][0].decode('utf-8')
-						# create new list, where entries are multiplied by the multiplier
-						if type(attr)==list: attr=[a*trait.prefUnit[0][1] for a in attr]
-						else: attr=attr*trait.prefUnit[0][1]
-				else: # multiple units
-					unit=[]
-					wasList=isinstance(attr,list)
-					if not wasList: attr=[attr] # handle uniformly
-					for i in range(len(attr)):
-						attr[i]=[attr[i][j]*trait.prefUnit[j][1] for j in range(len(attr[i]))]
-					for pu in trait.prefUnit:
-						unit.append(pu[0].decode('utf-8'))
-					if not wasList: attr=attr[0]
-					unit=', '.join(unit)
-				# sequence type, or something similar				
-				if hasattr(attr,'__len__') and not isinstance(attr,str):
-					if len(attr)>0:
-						ret+=indent2+'<td align="right">'
-						ret+=self.htmlSeq(attr,indent=indent2+'\t',insideTable=False)
-						ret+=indent2+'</td>'
-					else: ret+='<td align="right"><i>[empty]</i></td>'
-				else: ret+='<td align="right">%s</td>'%('%g'%attr if isinstance(attr,float) else str(attr))
-				if unit: ret+=indent2+u'<td align="right">'+unit+'</td>'
-			ret+=indent1+'</tr>'
-		return ret+indent0+'</table>'
-
 class SerializerToHtmlTableGenshi:
 	padding=dict(cellpadding='2px')
 	splitStrSeq=1
@@ -212,6 +135,9 @@ class SerializerToHtmlTableGenshi:
 			elif hasattr(attr,'__len__') and len(attr)>0 and isinstance(attr[0],woo.core.Object):
 				tr.append(tag.td(tag.ol([tag.li(self(o,depth+1)) for o in attr])))
 			else:
+				# !! make deepcopy so that the original object is not modified !!
+				import copy
+				attr=copy.deepcopy(attr)
 				if not trait.multiUnit: # the easier case
 					if not trait.prefUnit: unit=u'−'
 					else:
@@ -341,7 +267,7 @@ def Object_loads(typ,data,format='auto'):
 		return typeChecked(pickle.loads(data,typ))
 	elif format=='json':
 		return typeChecked(WooJSONDecoder().decode(data),typ)
-	assert(False) # impossible
+	assert False # impossible
 
 
 def Object_load(typ,inFile,format='auto'):
@@ -392,7 +318,7 @@ def Object_load(typ,inFile,format='auto'):
 		return typeChecked(pickle.load(open(inFile,'rb')),typ)
 	elif format=='json':
 		return typeChecked(WooJSONDecoder().decode(open(inFile,'rb').read()),typ)
-	assert(False)
+	assert False
 
 
 

@@ -25,6 +25,66 @@ milimeter=FuncFormatter(lambda x,pos=0: '%3g'%(1000*x))
 # transparency of figure legends
 legendAlpha=.6
 
+import woo.pyderived
+import woo.core
+class BinSeg(woo.core.Preprocessor,woo.pyderived.PyWooObject):
+	'Preprocessor for bin segregation simulation'
+	_classTraits=None
+	PAT=woo.pyderived.PyAttrTrait
+	_attrTraits=[
+		# geometry
+		PAT(Vector3,'size',Vector3(1,1,.2),unit='mm',startGroup="Geometry",doc="Size of the bin: width, height and depth (thickness). Width is real horizontal dimension of the bin. Height is height of the left boundary (which is different from the right one, if :ref:`inclination` is non-zero)."),
+		PAT(float,'inclination',0,unit="deg",doc="Inclination of the bottom of the bin. Positive angle makes the right hole higher than the left one."),
+		PAT(Vector2,'hole1',Vector2(.1,.08),unit='mm',doc="Distance from the left wall and width of the first hole. Lengths are measured in the bottom (possibly inclined) plane."),
+		PAT(Vector2,'hole2',Vector2(.25,.08),unit="mm",doc="Distance from the right wall and width of the second hole. Lengths are measured in the bottom (possibly inclined) plane."),
+		PAT(float,'holeLedge',.03,unit='mm',doc="Distance between front wall and hole, and backwall and hole"),
+		PAT(Vector2,'feedPos',Vector2(.1,.15),unit="mm",doc="Distance of the feed from the right wall and its width (vertical lengths)"),
+		PAT(float,'halfThick',0.,unit="mm",doc="Half-thickenss of boundary plates; all dimensions are given as inner sizes (including hole widths), there is no influence of halfThick on geometry"),
+		PAT(bool,'halfDp',True,"Only simulate half of the bin, by putting frictionless wall in the middle"),
+
+		# feed
+		PAT([Vector2,],'psd',[Vector2(0.015,.0),Vector2(.025,.2),Vector2(.03,1.)],startGroup="Feed",unit=["mm",'%'],doc="Particle size distribution of generated particles: first value is diameter, second value is cummulative fraction"),
+		PAT(woo.dem.FrictMat,'material',woo.dem.FrictMat(density=3200,young=1e5,ktDivKn=.2,tanPhi=math.tan(.5)),"Material of particles"),
+		PAT(float,'feedRate',1.,unit='kg/s',doc="Feed rate"),
+		PAT(woo.dem.FrictMat,'wallMaterial',None,"Material of walls (if not given, material for particles is used)"),
+		PAT(str,'loadSpheresFrom','',"Load initial packing from file (format x,y,z,radius)"),
+		PAT(Vector2,'startStopMass',Vector2(nan,nan),"Mass for starting and stopping PSD measuring. Once the first mass is reached, PSD counters are engaged; once the second value is reached, report is generated and simulation saved and stopped. Negative values are relative to initial total particles mass. 0 or NaN deactivates; both limits must be active or both inactive."),
+
+		# Outputs
+		PAT(str,'reportFmt',"/tmp/{tid}.xhtml",startGroup="Outputs",doc="Report output format (Scene.tags can be used)."),
+		PAT(str,'feedCacheDir',".","Directory where to store pre-generated feed packings"),
+		PAT(str,'saveFmt',"/tmp/{tid}-{stage}.bin.gz","Savefile format; keys are :ref:`Scene.tags` and additionally ``{stage}`` will be replaced by 'init', 'backup-[step]'."),
+		PAT(int,'backupSaveTime',1800,"How often to save backup of the simulation (0 or negative to disable)"),
+		#PAT(float,'vtkFreq',4,"How often should VtkExport run, relative to *factStepPeriod*. If negative, run never."),
+		#PAT(str,'vtkPrefix',"/tmp/{tid}-","Prefix for saving VtkExport data; formatted with ``format()`` providing :ref:`Scene.tags` as keys."),
+
+		# Tunables
+		PAT(float,'gravity',10.,unit='m/s²',startGroup="Tunables",doc="Gravity acceleration magnitude"),
+		PAT(float,'damping',.4,"Non-viscous damping coefficient"),
+		PAT(float,'pWaveSafety',.7,"Safety factor for critical timestep"),
+		PAT(float,'rateSmooth',.2,"Smoothing factor for plotting rates in factory and deleters"),
+		PAT(float,'feedAdjustCoeff',.3,"Coefficient for adjusting feed rate"),
+		PAT(int,'factStep',100,"Interval at which particle factory and deleters are run"),
+		PAT([Vector2,],'deadTriangles',[],"Triangles given as sequence of points in the xz plane, where spheres will be removed from *loadSpheres* from. 2*rMax from the edge, they will be created as fixed-position"),
+		PAT(float,'deadFixedRel',1.,"Thickness of fixed boundary between live and dead regions, relative to maximum radius of the PSD"),
+
+		# internal, for simulation state
+		PAT([int,],'hole1ids',[],noGui=True,doc="Ids of hole 1 particles (for later removal)"),
+		PAT([int,],'hole2ids',[],noGui=True,doc="Ids of hole 2 particles (for later removal)"),
+		PAT(int,'holeMask',0,noGui=True,noDump=True,doc="Mask of hole particles (used for ParticleContainer.reappear)"),
+	]
+	def __init__(self,**kw):
+		Preprocessor.__init__(self)
+		self.wooPyInit(BinSeg,Preprocessor,**kw)
+	def __call__(self):
+		import woo.pre.BinSeg_
+		print self.hole1ids
+		return woo.pre.BinSeg_.run(self)
+
+# put to the namespace where the c++ preprocessor used to be, for backwards compat
+woo.pre.BinSeg=BinSeg
+
+
 
 def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,dontBlock=False,memoizeDir=None):
 	if memoizeDir:

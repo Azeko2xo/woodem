@@ -802,7 +802,7 @@ void GLViewer::postDraw(){
 			// 
 			// adjust if too long/short
 			if(range.length<0) CompUtils::clamp(range.length,-.8,-.1);
-			else CompUtils::clamp(range.length,height()*.1,height()*.8);
+			else CompUtils::clamp(range.length,(!range.landscape?height():width())*.1,(!range.landscape?height():width())*.8);
 			// length in pixels (second value, after adjustments)
 			ht=int(range.length<0?abs((!range.landscape?height():width())*range.length):range.length); 
 			int yStep=ht/nDiv;

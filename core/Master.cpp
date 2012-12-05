@@ -26,6 +26,8 @@
 	#include<unistd.h> // for getpid
 #endif
 
+namespace fs=boost::filesystem;
+
 class RenderMutexLock: public boost::mutex::scoped_lock{
 	public:
 	RenderMutexLock(): boost::mutex::scoped_lock(Master::instance().renderMutex){/* cerr<<"Lock renderMutex"<<endl; */}
@@ -42,15 +44,32 @@ Master::Master(){
 	scene=shared_ptr<Scene>(new Scene);
 	startupLocalTime=boost::posix_time::microsec_clock::local_time();
 	
+	fs::path tmp; // assigned in each block
+	if(getenv("WOO_TEMP")){
+		// use WOO_TEMP_PREFIX if defined
+		// this is used on Windows, where _cxxInternal.pyd must be copied to the temp directory
+		// since it is hardlinked (not symlinked) from individual modules, hence must be on the same
+		// therefore, the tempdir must be created before _cxxInternal is imported, in python
+		// but picked up here
+		tmpFileDir=getenv("WOO_TEMP");
+		tmp=fs::path(tmpFileDir);
+		if(!fs::exists(tmp)) throw std::runtime_error("Provided temp directory WOO_TEMP="+tmpFileDir+" does not exist.");
+		LOG_DEBUG_EARLY("Using temp dir"<<getenv("WOO_TEMP"));
+	} else {
+		tmp=fs::unique_path(fs::temp_directory_path()/"woo-tmp-%%%%%%%%");
+		tmpFileDir=tmp.string();
+		LOG_DEBUG_EARLY("Creating temp dir "<<tmpFileDir);
+		if(!fs::create_directory(tmp)) throw std::runtime_error("Creating temporary directory "+tmpFileDir+" failed.");
+	}
 
-	auto tmp=boost::filesystem::unique_path(boost::filesystem::temp_directory_path()/"woo-tmp-%%%%%%%%");
-	tmpFileDir=tmp.string();
-	LOG_DEBUG_EARLY("Creating temp dir "<<tmpFileDir);
-	if(!boost::filesystem::create_directory(tmp)) throw std::runtime_error("Creating temporary directory "+tmpFileDir+" failed.");
 	// write pid file
+	// this checks, as side-effect, that we have write permissions for the temporary directory
 	std::ofstream pidfile;
-	pidfile.open((tmp/"pid").string().c_str()); pidfile<<getpid()<<endl; pidfile.close();
-
+	pidfile.open((tmp/"pid").string().c_str());
+	if(!pidfile.is_open()) throw std::runtime_error("Error opening pidfile "+(tmp/"pid").string()+" for writing.");
+	pidfile<<getpid()<<endl;
+	if(pidfile.bad()) throw std::runtime_error("Error writing to pidfile "+(tmp/"pid").string()+".");
+	pidfile.close();
 
 	tmpFileCounter=0;
 

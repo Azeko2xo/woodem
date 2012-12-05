@@ -1,12 +1,12 @@
 #encoding: utf-8
 from woo.core import *
 from minieigen import *
-import woo.qt
 
 class PyAttrTrait:
 	def __init__(self,pyType,name,ini,doc,# *,
 			unit=None,
 			noGui=False,
+			noDump=False,
 			#multiUnit=False,
 			rgbColor=False,
 			#prefUnit=None,
@@ -16,7 +16,8 @@ class PyAttrTrait:
 			range=None,
 			choice=None,
 			bits=None,
-			buttons=None
+			buttons=None,
+			altUnits=None,
 		):
 		# validity checks
 		if range:
@@ -51,6 +52,7 @@ class PyAttrTrait:
 		self.doc=doc
 		# optional args
 		self.noGui=noGui
+		self.noDump=noDump
 		self.rgbColor=rgbColor
 		self.startGroup=startGroup
 		self.hideIf=hideIf
@@ -65,17 +67,22 @@ class PyAttrTrait:
 		#
 		import woo._units
 		baseUnit=woo._units.baseUnit
-		if isinstance(unit,str): unit=[unit]
+		if isinstance(unit,str) or isinstance(unit,unicode):
+			unit=[unit]
+			if altUnits: altUnits=[altUnits]
 		if not unit:
 			self.unit=None
 			self.multiUnit=False
+			self.prefUnit=None
+			self.altUnits=None
 		elif isinstance(unit,list) or isinstance(unit,tuple):
 			self.multiUnit=(len(unit)>1)
 			self.unit=[]
 			self.altUnits=[]
 			self.prefUnit=[]
 			for u in unit:
-				if u not in baseUnit: raise ValueError('Unknown unit %s; admissible values are: '+', '.join(baseUnit.keys()))
+				# print self.name,u
+				if u not in baseUnit: raise ValueError('Unknown unit %s; admissible values are: '%u+', '.join(baseUnit.keys()))
 				base=baseUnit[u]
 				self.unit.append(base)
 				self.prefUnit.append((u,1./woo.unit[u]))
@@ -83,8 +90,15 @@ class PyAttrTrait:
 				for alt in baseUnit:
 					if baseUnit[alt]==base and alt!=base: alts.append((alt,1./woo.unit[alt]))
 				self.altUnits.append(alts)
-	def __str__(self): return '<PyAttrTrait '+name+' @ '+str(id(self))+'>'
-	def __repr__str(self): return self.__str__()
+			# user-specified alternative units
+			if altUnits:
+				if len(altUnits)!=len(self.unit): raise ValueError("altUnits must be of the same length as unit")
+				for i,au in enumerate(altUnits):
+					self.altUnits[i]+=au
+		else: raise ValueError('Unknown unit type %s (must be list, tuple, str, unicode): %s'%(type(unit).__name__,str(unit)))
+
+	def __str__(self): return '<PyAttrTrait '+self.name+' @ '+str(id(self))+'>'
+	def __repr__(self): return self.__str__()
 
 class PyWooObject:
 	'Define some c++-compatibility functions for python classes'
@@ -109,8 +123,13 @@ class PyWooObject:
 		def __setstate__(self,st):
 			#print '__setstate__ in python'
 			self.__dict__.update(st)
+		def deepcopy(self):
+			'The c++ dedepcopy uses boost::serialization, we need to use pickle'
+			import pickle
+			return pickle.loads(pickle.dumps(self))
 		derivedClass.__getstate__=__getstate__
 		derivedClass.__setstate__=__setstate__
+		derivedClass.deepcopy=deepcopy
 	
 
 # inheritance order must not change, due to us using __bases__[0] frequently
@@ -147,5 +166,7 @@ class SamplePyDerivedPreprocessor(Preprocessor,PyWooObject):
 		S.dem.collectNodes()
 		return S
 
-woo.pre.SamplePyDerivedPreprocessor=SamplePyDerivedPreprocessor
+if __name__=='__main__':
+	import woo.pre
+	woo.pre.SamplePyDerivedPreprocessor=SamplePyDerivedPreprocessor
 

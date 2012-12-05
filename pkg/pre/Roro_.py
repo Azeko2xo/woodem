@@ -13,6 +13,73 @@ import numpy
 import pprint
 nan=float('nan')
 
+
+import woo.pyderived
+class Roro(woo.core.Preprocessor,woo.pyderived.PyWooObject):
+	'Preprocessor for the Rollenrost simulation'
+	_classTraits=None
+	PAT=woo.pyderived.PyAttrTrait
+	_attrTraits=[
+		PAT(float,'cylLenReal',2,unit='m',startGroup="General",doc="Length of cylinders"),
+		PAT(float,'cylLenSim',.1,unit='m',doc="Simulated length of cylinders"), 
+		PAT(float,'cylRelLen',nan,noGui=True,doc="Relative length of simulated cylinders"), # set when called
+		PAT(float,'massFlowRate',100,unit="t/h",doc="Incoming mass flow rate (considering real length of the screen)"),
+		PAT(float,'conveyorHt',.05,unit='m',doc="Height of particle layor on the conveyor"),
+		PAT(float,'time',2,unit='s',doc="Time of the simulation (after reaching steady state); if non-positive, don't wait for steady state, use *mass* instead."),
+		PAT(float,'mass',0,unit='kg',doc="Total feed mass; if non-positive, don't limit generated mass, simulate *time* of steady state instead"),
+
+		# Cylinders
+		PAT([Vector3,],'cylXzd',[],startGroup="Cylinders",unit='mm',doc="Coordinates and diameters of cylinders. If empty, *cylNum*, *cylDiameter*, *inclination* and *gap* are used to compute coordinates automatically"),
+		PAT(float,'angVel',2*math.pi,unit='rot/min',doc="Angular velocity of cylinders"),
+		PAT(int,'cylNum',6,"Number of cylinders (only used when cylXzd is empty)"),
+		PAT(float,'cylDiameter',.085,unit='mm',altUnits=[("in",1/0.0254),],doc="Diameter of cylinders (only used when cylXzd is empty)"),
+		PAT(float,'inclination',math.radians(15),unit="deg",doc="Inclination of cylinder plane (only used when cylXzd is empty)"),
+		PAT(float,'gap',.01,unit="mm",doc="Gap between cylinders (computed automatically if cylXzd is given)"),
+		PAT([float,],'gaps',[],unit="mm",doc="Variable gaps between cylinders; if given, the value of *gap* and *cylNum* is not used for creating cylinder coordinates"),
+
+		# feed
+		PAT([Vector2,],'psd',[Vector2(0.005,.0),Vector2(.01,.2),Vector2(.02,1.)],startGroup="Pellets",unit=['mm','%'],doc="Particle size distribution of generated particles: first value is diameter, second value is cummulative fraction"),
+		PAT(woo.dem.PelletMat,'material',woo.dem.PelletMat(density=3200,young=1e5,ktDivKn=.2,tanPhi=math.tan(.5),normPlastCoeff=50,kaDivKn=0.),"Material of particles"),
+		PAT(woo.dem.PelletMat,'cylMaterial',None,"Material of cylinders (if not given, material for particles is used for cylinders)"),
+		PAT(woo.dem.PelletMat,'plateMaterial',None,"Material of plates (if not given, material for cylinders is used for cylinders)"),
+
+		# Outputs
+		PAT(str,'reportFmt',"/tmp/{tid}.xhtml",startGroup="Outputs",doc="Report output format (Scene.tags can be used)."),
+		PAT(str,'feedCacheDir',".","Directory where to store pre-generated feed packings"),
+		PAT(str,'saveFmt',"/tmp/{tid}-{stage}.bin.gz","Savefile format; keys are :ref:`Scene.tags` and additionally ``{stage}`` will be replaced by 'init', 'steady' and 'done'."),
+		PAT(int,'backupSaveTime',1800,"How often to save backup of the simulation (0 or negative to disable)"),
+		PAT(float,'vtkFreq',4,"How often should VtkExport run, relative to *factStepPeriod*. If negative, run never."),
+		PAT(str,'vtkPrefix',"/tmp/{tid}-","Prefix for saving VtkExport data; formatted with ``format()`` providing :ref:`Scene.tags` as keys."),
+		PAT([str,],'reportHooks',[],noGui=True,doc="Python expressions returning a 3-tuple with 1. raw HTML to be included in the report, 2. list of (figureName,matplotlibFigure) to be included in figures, 3. dictionary to be added to the 'custom' dict saved in the database."),
+
+		# Tunables
+		PAT(int,'factStepPeriod',800,startGroup="Tunables",doc="Run factory (and deleters) every *factStepPeriod* steps."),
+		PAT(float,'pWaveSafety',.7,"Safety factor for critical timestep"),
+		PAT(str,'variant',"plain",choice=["plain","customer1","customer2"],doc="Geometry of the feed and possibly other specific details"),
+		PAT(float,'gravity',10.,unit='m/s²',doc="Gravity acceleration magnitude"),
+		PAT(Vector2,'quivAmp',Vector2(.0,.0),unit="mm",doc="Cylinder quiver amplitudes (horizontal and vertical), relative to cylinder radius"),
+		PAT(Vector3,'quivHPeriod',Vector3(3000,5000,3),"Horizontal quiver period (relative to Δt); assigned quasi-randomly from the given range, with z-component giving modulo divisor"),
+		PAT(Vector3,'quivVPeriod',Vector3(5000,11000,5),"Vertical quiver period (relative to Δt); assigned quasi-randomly from the given range, with z-component giving modulo divisor"),
+		PAT(float,'steadyFlowFrac',1.,"Start steady (measured) phase when efflux (fall over, apertures, out-of-domain) reaches this fraction of influx (feed); only used when *time* is given"),
+		PAT(float,'residueFlowFrac',.02,"Stop simulation once delete rate drops below this fraction of the original feed rate (after the requested :ref:`mass` has been generated); only used when *mass* is given."),
+		PAT(float,'rateSmooth',.2,"Smoothing factor for plotting rates in factory and deleters"),
+		PAT(Vector2,'thinningCoeffs',Vector2(0,.8),"Parameters for plastic thinning: first component is :ref:`Law2_L6Geom_PelletPhys_Pellet.thinningFactor`, the other is :ref:`Law2_L6Geom_PelletPhys_Pellet.rMinFrac`."),
+		PAT([int,],'buckets',[],"Collect particles from several apertures together; each numer specifies how much apertures is taken; invalid values (past the number of cylinders) are simply ignored"),
+		PAT([float,],'efficiencyGapFrac',[.9,1.,1.1,1.2,1.3],"Diameters relative to :ref:`gap` for which the sieving efficiency is determined."),
+	]
+	def __init__(self,**kw):
+		Preprocessor.__init__(self)
+		self.wooPyInit(Roro,Preprocessor,**kw)
+	def __call__(self):
+		import woo.pre.Roro_
+		self.cylRelLen=self.cylLenSim/self.cylLenReal;
+		return woo.pre.Roro_.run(self)
+
+# put into namespace where the c++ preprocessor used to be
+woo.pre.Roro=Roro
+ 
+
+
 def ySpannedFacets(xx,yy,zz,shift=True,halfThick=0.,**kw):
 	if halfThick!=0.:
 		if shift:
@@ -316,6 +383,7 @@ def run(pre): # use inputs as argument
 
 
 def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,goal=.15,dontBlock=False,memoizeDir=None,botLine=None,leftLine=None,rightLine=None):
+	'''Create dense packing periodic in the +y direction, suitable for use with ConveyorFactory.'''
 	print 'woo.pre.Roro_.makeBandFeedPack(dim=%s,psd=%s,mat=%s,gravity=%s,excessWd=%s,damping=%s,dontBlock=True,botLine=%s,leftLine=%s,rightLine=%s)'%(repr(dim),repr(psd),mat.dumps(format='expr',width=-1,noMagic=True),repr(gravity),repr(excessWd),repr(damping),repr(botLine),repr(leftLine),repr(rightLine))
 	dim=list(dim) # make modifiable in case of excess width
 	retWd=dim[1]
@@ -330,7 +398,7 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 			repeatCell=range(-nCopy,nCopy+1)
 	cellSize=(dim[0],dim[1],(1+2*porosity)*dim[2])
 	print 'cell size',cellSize,'target height',dim[2]
-	if memoizeDir:
+	if memoizeDir and not dontBlock:
 		params=str(dim)+str(cellSize)+str(psd)+str(goal)+str(damping)+mat.dumps(format='expr')+str(gravity)+str(porosity)+str(botLine)+str(leftLine)+str(rightLine)
 		import hashlib
 		paramHash=hashlib.sha1(params).hexdigest()
@@ -352,7 +420,7 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 	if not rightLine:rightLine=[Vector2(cellSize[1],cellSize[2])]
 	if not botLine:  botLine=[Vector2(0,0),Vector2(cellSize[1],0)]
 	boundary2d=leftLine+botLine+rightLine
-	p=pack.sweptPolylines2gtsSurface([utils.tesselatePolyline([Vector3(x,yz[0],yz[1]) for yz in boundary2d],maxDist=min(cellSize[1],cellSize[2])/3.) for x in numpy.linspace(0,cellSize[0],num=4)])
+	p=pack.sweptPolylines2gtsSurface([utils.tesselatePolyline([Vector3(x,yz[0],yz[1]) for yz in boundary2d],maxDist=min(cellSize[0]/4.,cellSize[1]/4.,cellSize[2])/4.) for x in numpy.linspace(0,cellSize[0],num=4)])
 	S.dem.par.append(pack.gtsSurface2Facets(p,mask=0b011))
 	S.dem.loneMask=0b010
 
@@ -564,6 +632,7 @@ def psdFeedBucketFalloverTable(inPsd,feedDM,bucketDM,overDM,splitD):
 	).generate().render('xhtml'))
 
 def bucketPsdTable(S,massName,massScale,massUnit,massBasedPsd=True):
+	print 'bucketPsdTable',S.pre.psd
 	psdSplits=[df[0] for df in S.pre.psd]
 	buckMasses=[]
 	for buck in woo.bucket:
@@ -583,8 +652,11 @@ def bucketPsdTable(S,massName,massScale,massUnit,massBasedPsd=True):
 		tr=t.tr(t.td('%g-%g'%(dScale*psdSplits[i],dScale*psdSplits[i+1])))
 		for bm in buckMasses:
 			bMass=sum(bm)
-			tr.append(t.td('%.4g'%(100*bm[i]/bMass),align='right'))
-			tr.append(t.td('%.4g'%(100*sum(bm[:i+1])/bMass),align='right'))
+			try:
+				tr.append(t.td('%.4g'%(100*bm[i]/bMass),align='right'))
+				tr.append(t.td('%.4g'%(100*sum(bm[:i+1])/bMass),align='right'))
+			except ZeroDivisionError:
+				tr.append(t.td('-',align='right')); tr.append(t.td('-',align='right'))
 		tab.append(tr)
 	bucketsTotal=sum([sum(bm) for bm in buckMasses])*massScale
 	feedTotal=(woo.factory.mass if massBasedPsd else woo.factory.num)*massScale
@@ -809,7 +881,6 @@ def writeReport(S):
 	figs.append(('Derivative PSD',fig))
 	
 
-
 	feedTab=psdFeedBucketFalloverTable(
 		inPsd=inPsdUnscaled,
 		feedDM=unscaledPsd(*woo.factory.diamMass()),
@@ -952,6 +1023,8 @@ def writeReport(S):
 		fname=repExtra+'.'+re.sub('[-()\[\] ]','_',name)+'.'+extension
 		svgs.append((name,fname))
 		fig.savefig(svgs[-1][-1])
+
+	print 9,S.pre.psd
 		
 	import codecs
 	html=xhtmlReportHead(S,'Report for Roller screen simulation')+(
@@ -968,6 +1041,8 @@ def writeReport(S):
 		for svg in svgs])
 		+'</body></html>'
 	)
+
+	print 10,S.pre.psd
 
 	# to play with that afterwards
 	woo.html=html

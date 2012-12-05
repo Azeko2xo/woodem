@@ -15,31 +15,48 @@ nan=float('nan')
 import woo.pyderived
 from woo.dem import PelletMat
 
-class ChutePy(woo.core.Preprocessor,woo.pyderived.PyWooObject):
+class Chute(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 	'Python variant of the Chute preprocessor'
 	_classTraits=None
 	PAT=woo.pyderived.PyAttrTrait
+	# constants
+	shieldNone=-1
+	shieldCylinder=0
+	shieldStl=1
+	stlHideIf='self.shieldType!=self.__class__.shieldStl'
+	#
 	_attrTraits=[
-		PAT(float,'massFlowRate',1000*woo.unit['t/h'],unit='t/h',startGroup='General',doc='Mass flow rate of particles transported on the conveyor'),
+		PAT(float,'massFlowRate',2000*woo.unit['t/h'],unit='t/h',startGroup='General',doc='Mass flow rate of particles transported on the conveyor'),
 		PAT(float,'convLayerHt',.2,unit='m',doc='Height of transported material'),
 		PAT(float,'time',2,unit='s',doc='Time of the simulation'),
 
 		# conveyor
-		PAT([Vector2,],'convPts',[Vector2(.2,0),Vector2(.4,.1)],unit='m',startGroup='Conveyor',doc='Half of the the conveyor cross-section; the x-axis is horizontal, the y-axis vertical. The middle point is automatically at (0,0). The conveyor is always symmetric, reflected around the +y axis. Points must be given from the middle outwards.'),
-		PAT([Vector2,],'wallPts',[Vector2(.25,.025),Vector2(.22,.15),Vector2(.3,.3)],unit='m',doc='Side wall cross-section; points are given using the same coordinates as the :ref:`bandPts`.'),
+		PAT([Vector2,],'convPts',[Vector2(.3,0),Vector2(.6,.1)],unit='m',startGroup='Conveyor',doc='Half of the the conveyor cross-section; the x-axis is horizontal, the y-axis vertical. The middle point is automatically at (0,0). The conveyor is always symmetric, reflected around the +y axis. Points must be given from the middle outwards.'),
+		PAT([Vector2,],'wallPts',[Vector2(.35,.025),Vector2(.32,.15),Vector2(.4,.4)],unit='m',doc='Side wall cross-section; points are given using the same coordinates as the :ref:`bandPts`.'),
 		PAT(bool,'half',True,"Only simulate one half of the problem, by making it symmetric around the middle plane."),
-		PAT(float,'convWallLen',.5,unit='m',doc="Length of the part of the conveyor convered with wall."),
+		PAT(float,'convWallLen',1.,unit='m',doc="Length of the part of the conveyor convered with wall."),
 		PAT(float,'convBareLen',.5,unit='m',doc="Length of the conveyor without wall. In this part, the conveyor shape is interpolated so that it becomes flat at the exit cylinder's top (y=0 in cross-section coordinates)"),
-		PAT(float,'exitCylDiam',.2,unit='m',doc="Diameter of the exit cylinder"),
+		PAT(float,'exitCylDiam',.3,unit='m',doc="Diameter of the exit cylinder"),
 		PAT(float,'convSlope',math.radians(15),unit='deg',doc="Slope of the conveyor; 0=horizontal, positive = ascending."),
 
 		# shield
-		PAT(int,'shieldType',0,choice=[(-1,'none'),(0,'cylinder')],startGroup='Shield',doc='Type of chute shield'),
-		PAT([float,],'shieldData',[-.45,-.5,1.,.01,0,math.radians(60)],hideIf='self.shieldType<0',doc='Data for constructing shield. Meaning of numbers depends on :ref:`shieldType`. For shieldType==0, those are [horizontal distance, vertical distance, radius, subdivision size, low angle from the horizontal, high angle from the horizontal'),
+		PAT(int,'shieldType',0,choice=[(shieldNone,'none'),(shieldCylinder,'cylinder'),(shieldStl,'STL')],startGroup='Shield',doc='Type of chute shield'),
+			# cylindrical shield
+			PAT([float,],'cylShieldData',[-.25,-.5,1.,.02,0,math.radians(60)],hideIf='self.shieldType!=self.shieldCylinder',doc='Data for constructing shield. Meaning of numbers depends on :ref:`shieldType`. For shieldType==0, those are [horizontal distance, vertical distance, radius, subdivision size, low angle from the horizontal, high angle from the horizontal'),
+			# sheidl from STL
+			PAT(str,'stlShieldStl','conv1.stl',"STL file to load the shield from",hideIf=stlHideIf),
+			PAT(float,'stlScale',.01,"Scale dimensions loaded from the STL with this factor (0.01: convert cm to m)",hideIf=stlHideIf),
+			PAT(Vector3,'stlShift',Vector3(-5.13,14.,-27.1),"Move STL shield by this amount (after scaling)",unit='m',hideIf=stlHideIf),
+			PAT(AlignedBox3,'stlFeedBox',AlignedBox3((-10,-.6,-.9),(10,.6,.2)),"Box defining input feed; facets enclosed in this volume will be removed and replaced by our feed.",unit='m',hideIf=stlHideIf),
+			PAT(AlignedBox3,'stlOutBox',AlignedBox3((-.6,-.8,-2.8),(.4,-.5,-2.5)),"Box defining output feed; facets having at least one vertext in this volume will be marked as output conveyor with :ref:`stlOutVel` transport velocity.",unit='m/s',hideIf=stlHideIf),
+			PAT(Vector3,'stlOutVel',Vector3(0,2.,0),"Transport velocity of the output band",hideIf=stlHideIf),
+	
+		PAT(float,'halfThick',0.,"Half thickness of created facets (if negative, relative to minimum particle radius"),
+
 
 		# particles
-		PAT([Vector2,],'psd',[Vector2(.02,0),Vector2(.03,.2),Vector2(.04,1.)],startGroup="Particles",unit=['mm','%'],doc="Particle size distribution of transported particles."),
-		PAT(PelletMat,'material',PelletMat(density=3200,young=1e5,ktDivKn=.2,tanPhi=math.tan(.5),normPlastCoeff=50,kaDivKn=0.),"Material of particles"),
+		PAT([Vector2,],'psd',[Vector2(.03,0),Vector2(.05,.2),Vector2(.1,1.)],startGroup="Particles",unit=['mm','%'],doc="Particle size distribution of transported particles."),
+		PAT(PelletMat,'material',PelletMat(density=3200,young=1e6,ktDivKn=.2,tanPhi=math.tan(.5),normPlastCoeff=50,kaDivKn=0.),"Material of particles"),
 		PAT(PelletMat,'convMaterial',None,"Material of the conveyor (if not given, material of particles is used)"),
 
 		# outputs
@@ -52,18 +69,22 @@ class ChutePy(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		PAT([str,],'reportHooks',[],noGui=True,doc="Python expressions returning a 3-tuple with 1. raw HTML to be included in the report, 2. list of (figureName,matplotlibFigure) to be included in figures, 3. dictionary to be added to the 'custom' dict saved in the database."),
 
 		# tunables
-		PAT(int,'factStepPeriod',200,startGroup="Tunables",doc="Run factory (and deleters) every *factStepPeriod* steps."),
+		PAT(int,'factStepPeriod',50,startGroup="Tunables",doc="Run factory (and deleters) every *factStepPeriod* steps."),
 		PAT(float,'pWaveSafety',.7,"Safety factor for critical timestep"),
 		PAT(float,'gravity',10.,unit='m/s²',doc="Gravity acceleration magnitude"),
 		PAT(float,'rateSmooth',.2,"Smoothing factor for plotting rates in factory and deleters"),
+		PAT(bool,'debugBand',False,"Return scene from makeBandFeedPack rather than the CHute scene, for debugging."),
 	]
 	def __init__(self,**kw):
 		Preprocessor.__init__(self) ## important: http://boost.2283326.n4.nabble.com/Fwd-Passing-Python-derived-class-back-into-a-native-C-class-doesn-t-match-the-C-signature-td4034809.html
-		self.wooPyInit(ChutePy,Preprocessor,**kw)
+		self.wooPyInit(Chute,Preprocessor,**kw)
 	def __call__(self):
 		print 100*'@'
 		import woo.pre.Chute_
 		return woo.pre.Chute_.run(self)
+
+# make compatible with previous cxx preprocessor
+woo.pre.Chute=Chute
 
 
 
@@ -85,6 +106,7 @@ def run(pre):
 	halfWallMat=pre.convMaterial.deepcopy()
 	halfWallMat.tanPhi=0.0
 
+	if pre.shieldType!=pre.shieldCylinder: pre.half=False
 
 	wallMask=0b00110
 	loneMask=0b00100 # particles with this mask don't interact with each other
@@ -113,14 +135,18 @@ def run(pre):
 	print 'Preparing packing for conveyor feed, be patient'
 	cellLen=10*pre.psd[-1][0]
 	# excessWd=(30*rMax,15*rMax): unusable in our case, since we have walls
-	cc,rr=Roro_.makeBandFeedPack(dim=(cellLen,convWd*relWd,pre.convLayerHt),psd=pre.psd,mat=pre.material,gravity=(0,0,-pre.gravity),porosity=.7,damping=.3,memoizeDir=pre.feedCacheDir,botLine=botLineZero,leftLine=leftLineZero,rightLine=rightLineZero,dontBlock=False)
+	ccrr=Roro_.makeBandFeedPack(dim=(cellLen,convWd*relWd,pre.convLayerHt),psd=pre.psd,mat=pre.material,gravity=(0,0,-pre.gravity),porosity=.5,damping=.3,memoizeDir=pre.feedCacheDir,botLine=botLineZero,leftLine=leftLineZero,rightLine=rightLineZero,dontBlock=pre.debugBand)
+	if pre.debugBand: return ccrr # this is a Scene object
+	else: cc,rr=ccrr
+
 	# HACK: move to match conveyor position
 	if pre.half: cc=[c+.25*convWd*Vector3.UnitY for c in cc] # center the feed when feeding both halves
 	vol=sum([4/3.*math.pi*r**3 for r in rr])
 	conveyorVel=(pre.massFlowRate*relWd)/(pre.material.density*vol/cellLen)
 	print 'Feed velocity %g m/s to match feed mass %g kg/m (volume=%g m³, len=%gm, ρ=%gkg/m³) and massFlowRate %g kg/s (%g kg/s over real width)'%(conveyorVel,pre.material.density*vol/cellLen,vol,cellLen,pre.material.density,pre.massFlowRate*relWd,pre.massFlowRate)
 
-	facetHalfThick=4*rMin
+	# if pre.halfThick is relative, compute its absolute value
+	if pre.halfThick<0: pre.halfThick*=-rMin
 
 	if 1:
 		#  ^ +y in 2d, +z in 3d
@@ -173,51 +199,80 @@ def run(pre):
 	##
 	## chute shield
 	##
-	if pre.shieldType==-1: pass
-	elif pre.shieldType==0:
-		if len(pre.shieldData)!=6: raise ValueError('Cylindrical shield must provide exactly 6 shieldData values (not %d)'%len(pre.shieldData))
-		shXoff,shZoff,shRad,shDivLen,shLow,shHigh=pre.shieldData
+	if pre.shieldType==Chute.shieldNone: pass
+	elif pre.shieldType==Chute.shieldCylinder:
+		if len(pre.cylShieldData)!=6: raise ValueError('Cylindrical shield must provide exactly 6 cylShieldData values (not %d)'%len(pre.cylShieldData))
+		shXoff,shZoff,shRad,shDivLen,shLow,shHigh=pre.cylShieldData
 		shAng=shHigh-shLow
 		thetas=numpy.linspace(shLow,shHigh,num=math.ceil(shAng*shRad/shDivLen))
 		yy=numpy.linspace(ymin,ymax,num=math.ceil((ymax-ymin)/shDivLen))
 		pts=[[Vector3(shXoff,y,shZoff)+shRad*Vector3(math.cos(theta),0,math.sin(theta)) for theta in thetas] for y in yy]
-		shield=pack.gtsSurface2Facets(pack.sweptPolylines2gtsSurface(pts),mat=pre.convMaterial,mask=wallMask,wire=False)
+		shield=pack.gtsSurface2Facets(pack.sweptPolylines2gtsSurface(pts),mat=pre.convMaterial,mask=wallMask,wire=False,halfThick=pre.halfThick)
 		for par in shield: par.matState=PelletMatState() # for dissipation tracking
 		S.dem.par.append(shield)
 
-		S.trackEnergy=True
+		### middle wall
+		S.dem.par.append(utils.wall(2*ymax,axis=1,sense=-1,visible=False,mat=pre.convMaterial,mask=wallMask))
+		if pre.half: S.dem.par.append(utils.wall(0,axis=1,sense=1,visible=False,mat=halfWallMat,mask=wallMask))
+		else: S.dem.par.append(utils.wall(2*ymin,axis=1,sense=-1,visible=False,mat=pre.convMaterial,mask=wallMask))
+		## boundary walls
+		S.dem.par.append([
+			# utils.wall(zmin,axis=2,sense=1,visible=False,mat=pre.convMaterial,mask=wallMask),
+			utils.wall(xmax,axis=0,sense=-1,visible=False,mat=pre.convMaterial,mask=wallMask)
+		])
+
+		zminmin=zmin-5*rMax
+		deleters=[
+			BoxDeleter(
+				stepPeriod=pre.factStepPeriod,
+				box=((0,2*ymin,zminmin),(xmax,2*ymax,-pre.exitCylDiam)),
+				glColor=.1,
+				save=True,
+				mask=delMask,
+				label='bucket',
+				inside=True
+			),
+			BoxDeleter(
+				stepPeriod=pre.factStepPeriod,
+				box=((xmin,2*ymin,zminmin),(xmax,2*ymax,zmax)),
+				glColor=.9,
+				save=False,
+				mask=delMask,
+				label='lost',
+				inside=False
+			)
+		]
 
 
+	elif pre.shieldType==Chute.shieldStl:
+		surf=stlShieldImport(pre.stlShieldStl)
+		surf.scale(pre.stlScale,pre.stlScale,pre.stlScale)
+		surf.translate(pre.stlShift[0],pre.stlShift[1],pre.stlShift[2])
 
-	### middle wall
-	S.dem.par.append(utils.wall(2*ymax,axis=1,sense=-1,visible=False,mat=pre.convMaterial,mask=wallMask))
-	if pre.half: S.dem.par.append(utils.wall(0,axis=1,sense=1,visible=False,mat=halfWallMat,mask=wallMask))
-	else: S.dem.par.append(utils.wall(2*ymin,axis=1,sense=-1,visible=False,mat=pre.convMaterial,mask=wallMask))
-	## boundary walls
-	S.dem.par.append([
-		utils.wall(zmin,axis=2,sense=1,visible=False,mat=pre.convMaterial,mask=wallMask),
-		utils.wall(xmax,axis=0,sense=-1,visible=False,mat=pre.convMaterial,mask=wallMask)
-	])
+		tri=pack.gtsSurface2Facets(surf,mat=pre.convMaterial,mask=wallMask,wire=True,halfThick=pre.halfThick)
+		# remove feed band completely
+		tri=[t for t in tri if not sum([1 for n in t.nodes if (n.pos in pre.stlFeedBox)])]
+		for t in tri:
+			#	out band
+			if sum([1 for n in t.nodes if (n.pos in pre.stlOutBox)]):
+				t.shape.fakeVel=pre.stlOutVel
+				t.shape.wire=False
+				t.shape.color=1
+				t.matState=None
+			# box itself
+			else:
+				t.matState=woo.dem.PelletMatState()
+		bb=AlignedBox3()
+		print 'Adding %d facets'%len(tri)
+		S.dem.par.append(tri)
+		for p in S.dem.par: 
+			for n in p.nodes: bb.extend(n.pos)
+		deleters=[BoxDeleter(stepPeriod=pre.factStepPeriod,box=bb,glColor=.1,save=True,mask=delMask,label='domain',inside=False)]
+	else: raise ValueError("Unknow value for Chute.shieldType: %d"%(pre.shieldType))
 
-	zminmin=zmin-5*rMax
-	bucket=BoxDeleter(
-		stepPeriod=pre.factStepPeriod,
-		box=((0,ymin,zminmin),(xmax,2*ymax,-pre.exitCylDiam)),
-		glColor=.1,
-		save=True,
-		mask=delMask,
-		label='bucket',
-		inside=True
-	)
-	lost=BoxDeleter(
-		stepPeriod=pre.factStepPeriod,
-		box=((xmin,ymin,zminmin),(0,2*ymax,A[1])),
-		glColor=.9,
-		save=False,
-		mask=delMask,
-		label='lost',
-		inside=True
-	)
+	# for dissipation tracking
+	S.trackEnergy=True
+
 	factory=ConveyorFactory(
 		stepPeriod=pre.factStepPeriod,
 		material=pre.material,
@@ -243,10 +298,7 @@ def run(pre):
 	S.engines=utils.defaultEngines(damping=0.,verletDist=.05*rMin,
 			cp2=Cp2_PelletMat_PelletPhys(),
 			law=Law2_L6Geom_PelletPhys_Pellet(plastSplit=True)
-		)+[
-		bucket,
-		lost,
-		factory,
+		)+deleters+[factory,
 		#PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.savePlotData(S)'),
 		#PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.watchProgress(S)'),
 		]+(
@@ -288,4 +340,40 @@ def run(pre):
 
 
 
+
+
+def stlShieldImport(filename,cleanupRelSize=1e-4):
+	from minieigen import AlignedBox3
+	import gts
+	tagStack=[]
+	surf,bbox,loop=None,None,None
+	numFacets=0
+	for lineno,l in enumerate(open(filename).readlines()):
+		l=l.strip().lower()
+		if l.startswith('solid mesh'):
+			surf=gts.Surface()
+			tagStack.append('solid mesh')
+		elif l.startswith('facet'): tagStack.append('facet')
+		elif l.startswith('outer loop'):
+			tagStack.append('outer loop')
+			loop=[]
+		elif l.startswith('endloop'):
+			assert tagStack.pop()=='outer loop'
+		elif l.startswith('endfacet'):
+			assert tagStack.pop()=='facet'
+			assert len(loop)==3
+			numFacets+=1
+			surf.add(gts.Face(gts.Edge(loop[0],loop[1]),gts.Edge(loop[1],loop[2]),gts.Edge(loop[2],loop[0])))
+		elif l.startswith('endsolid mesh'):
+			assert tagStack.pop()=='solid mesh'
+			print 'Imported %d facets, bbox is'%numFacets,bbox
+			sz=(bbox.max-bbox.min).norm() # FIXME: bbox.size().norm()
+			surf.cleanup(sz*cleanupRelSize)
+		elif l.startswith('vertex '):
+			if tagStack!=['solid mesh','facet','outer loop']: raise ValueError('Structure of the STL file is unhandled at line %d: "vertex" can only appear inside ["solid mesh","facet","outer loop"] (not %s)'%(lineno,str(tagStack)))
+			pt=Vector3([float(f) for f in l.split()[1:]])
+			if bbox==None: bbox=AlignedBox3(pt,pt)
+			else: bbox.extend(pt)
+			loop.append(gts.Vertex(pt[0],pt[1],pt[2]))
+	return surf
 

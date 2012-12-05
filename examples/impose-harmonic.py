@@ -3,7 +3,7 @@ from woo import utils,pack
 from woo.dem import *
 from woo.core import *
 
-woo.master.scene=S=Scene(fields=[DemField()])
+woo.master.scene=S=Scene(fields=[DemField(gravity=(0,0,-10))])
 mat=utils.defaultMaterial()
 sp=pack.SpherePack()
 sp.makeCloud((0,0,0),(10,10,10),.4,rRelFuzz=.5)

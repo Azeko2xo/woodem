@@ -97,7 +97,20 @@ cxxInternalName='_cxxInternal'
 if wooOptions.flavor: cxxInternalName+='_'+re.sub('[^a-zA-Z0-9_]','_',wooOptions.flavor)
 if wooOptions.debug: cxxInternalName+='_debug'
 try:
-	_cxxInternal=__import__('woo.'+cxxInternalName,fromlist='woo')
+	if not WIN:
+		_cxxInternal=__import__('woo.'+cxxInternalName,fromlist='woo')
+	else:
+		## on windows, copy _cxxInternal*.pyd to the tempdir first, so that we can hardlink to it later
+		## symlinks are unusable, as they require elevated process (??)
+		## it must be copied before it gets imported, so we create tempdir ourselves
+		## and pass it via WOO_TEMP to woo::Master ctor, which will just use it
+		import tempfile, pkgutil, imp, shutil
+		tmpdir=os.environ['WOO_TEMP']=tempfile.mkdtemp(prefix='woo-tmp-')
+		loader=pkgutil.get_loader('woo.'+cxxInternalName)
+		if not loader: raise ImportError("Unable to get loader for module woo.%s"%cxxInternalName)
+		f=tmpdir+'/'+cxxInternalName+soSuffix
+		shutil.copy2(loader.filename,f)
+		_cxxInternal=imp.load_dynamic('woo._cxxInternal',f)
 except ImportError:
 	print 'Error importing woo.%s (--flavor=%s).'%(cxxInternalName,wooOptions.flavor if wooOptions.flavor else ' ')
 	#traceback.print_exc()
@@ -149,15 +162,8 @@ def hack_loadCompiledModulesViaLinks(compiledModDir,tryInAnotherTempdir=True):
 			try:
 				win_hardlink(os.path.abspath(cxxInternalFile),linkName)
 			except IOError:
-				if iMod==1 and tryInAnotherTempdir:
-					print 'Linking modules to tempdir failed (another partition?), trying elsewhere...'
-					sys.path=sys.path[1:] # remove failed attempt
-					tmp2=lambda ii: os.dirname(cxxInternalFile)+'/.woo-tmp-%06d'%i
-					while os.path.exists(tmp2(i)): ii+=1
-					return hack_loadCompiledModulesViaLinks(tmp2(ii),tryInAnotherTempdir=False)
-				else:
-					sys.stderr.write('Creating hardlink failed. Is woo installed on the same partition as the temporary directory? (this limitation is Windows-specific)\n')
-					raise
+				sys.stderr.write('Creating hardlink failed - on windows _cxxInternal.pyd is copied to the tempdir before being imported, so that hardlinks are on the same partition. What\'s happening here? If you are using FAT filesystem, you are out of luck. With NTFS, hardlinks should work. Please report this error so that it can be fixed or worked around.\n')
+				raise
 		else: os.symlink(os.path.abspath(cxxInternalFile),linkName)
 		if 'WOO_DEBUG' in os.environ: print 'Loading compiled module',mod,'from symlink',linkName
 		sys.stdout.flush()

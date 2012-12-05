@@ -4,12 +4,12 @@
 #include<woo/core/Scene.hpp>
 #include<woo/pkg/dem/FrictMat.hpp>
 
-struct BinSeg: public Preprocessor {
+struct BinSegCxx: public Preprocessor {
 	shared_ptr<Scene> operator()(){
 		auto pre=py::import("woo.pre.BinSeg_");
 		return py::call<shared_ptr<Scene>>(py::getattr(pre,"run").ptr(),boost::ref(*this));
 	}
-	void postLoad(BinSeg&){
+	void postLoad(BinSegCxx&){
 		if(!psd.empty() && material){
 			ccaDt=pWaveSafety*.5*psd[0][0]/sqrt(material->young/material->density);
 		} else {
@@ -17,7 +17,7 @@ struct BinSeg: public Preprocessor {
 		}
 	}
 
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR(BinSeg,Preprocessor,"Preprocessor for the bin segregation simulation.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR(BinSegCxx,Preprocessor,"Preprocessor for the bin segregation simulation.",
 		((Vector3r,size,Vector3r(1,1,.2),AttrTrait<>().lenUnit().prefUnit("mm").startGroup("Geometry"),"Size of the bin: width, height and depth (thickness). Width is real horizontal dimension of the bin. Height is height of the left boundary (which is different from the right one, if :ref:`inclination` is non-zero)."))
 		((Real,inclination,0,AttrTrait<>().angleUnit().prefUnit("deg"),"Inclination of the bottom of the bin. Positive angle makes the right hole higher than the left one."))
 		((Vector2r,hole1,Vector2r(.1,.08),AttrTrait<>().lenUnit().prefUnit("mm"),"Distance from the left wall and width of the first hole. Lengths are measured in the bottom (possibly inclined) plane."))
@@ -67,5 +67,5 @@ struct BinSeg: public Preprocessor {
 			material->cast<FrictMat>().tanPhi=tan(.5);
 	);
 };
-REGISTER_SERIALIZABLE(BinSeg);
+REGISTER_SERIALIZABLE(BinSegCxx);
 

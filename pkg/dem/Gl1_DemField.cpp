@@ -195,7 +195,9 @@ void Gl1_DemField::doShape(){
 		switch(!useColor2?colorBy:colorBy2){
 			case COLOR_RADIUS: parColor=(isSphere?CR->color(p->shape->cast<Sphere>().radius):solidColor); break;
 			case COLOR_VEL: parColor=CR->color(vecNormXyz(n0->getData<DemData>().vel)); break;
+			case COLOR_ANGVEL: parColor=CR->color(vecNormXyz(n0->getData<DemData>().angVel)); break;
 			case COLOR_MASS: parColor=CR->color(n0->getData<DemData>().mass); break;
+			case COLOR_DISPLACEMENT: parColor=CR->color(vecNormXyz(n0->pos-n0->getData<GlData>().refPos)); break;
 			case COLOR_ROTATION: {
 				AngleAxisr aa(n0->ori.conjugate()*n0->getData<GlData>().refOri);
 				parColor=CR->color((vecAxis<0||vecAxis>2)?aa.angle():(aa.angle()*aa.axis())[vecAxis]);
