@@ -3,9 +3,17 @@
 # they should not conflict with classes which are created in the woo.pre module
 
 # barckwards-compatibility
-try: from . import Roro_
+try:
+    from . import roro
+    Roro=roro.Roro
 except ImportError: pass
-try: from . import Chute_
+
+try:
+	from . import chute
+	Chute=chute.Chute
 except ImportError: pass
-try: from . import BinSeg_
+
+try:
+	from . import binseg
+	BinSeg=binseg.BinSeg
 except ImportError: pass

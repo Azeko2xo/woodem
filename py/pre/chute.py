@@ -2,7 +2,7 @@
 from woo import utils,pack
 from woo.core import *
 from woo.dem import *
-from woo.pre import Roro_
+from woo.pre import roro
 import woo.config
 import woo.plot
 from minieigen import *
@@ -80,17 +80,13 @@ class Chute(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		self.wooPyInit(Chute,Preprocessor,**kw)
 	def __call__(self):
 		print 100*'@'
-		import woo.pre.Chute_
-		return woo.pre.Chute_.run(self)
-
-# make compatible with previous cxx preprocessor
-woo.pre.Chute=Chute
-
+		import woo.pre.chute
+		return woo.pre.chute.run(self)
 
 
 def run(pre):
 	import woo.pack
-	print 'Chute_.run()'
+	print 'chute.run()'
 	### input check
 	for a in ['reportFmt','feedCacheDir','saveFmt','vtkPrefix']: setattr(pre,a,utils.fixWindowsPath(getattr(pre,a)))
 
@@ -135,7 +131,7 @@ def run(pre):
 	print 'Preparing packing for conveyor feed, be patient'
 	cellLen=10*pre.psd[-1][0]
 	# excessWd=(30*rMax,15*rMax): unusable in our case, since we have walls
-	ccrr=Roro_.makeBandFeedPack(dim=(cellLen,convWd*relWd,pre.convLayerHt),psd=pre.psd,mat=pre.material,gravity=(0,0,-pre.gravity),porosity=.5,damping=.3,memoizeDir=pre.feedCacheDir,botLine=botLineZero,leftLine=leftLineZero,rightLine=rightLineZero,dontBlock=pre.debugBand)
+	ccrr=roro.makeBandFeedPack(dim=(cellLen,convWd*relWd,pre.convLayerHt),psd=pre.psd,mat=pre.material,gravity=(0,0,-pre.gravity),porosity=.5,damping=.3,memoizeDir=pre.feedCacheDir,botLine=botLineZero,leftLine=leftLineZero,rightLine=rightLineZero,dontBlock=pre.debugBand)
 	if pre.debugBand: return ccrr # this is a Scene object
 	else: cc,rr=ccrr
 
@@ -299,8 +295,8 @@ def run(pre):
 			cp2=Cp2_PelletMat_PelletPhys(),
 			law=Law2_L6Geom_PelletPhys_Pellet(plastSplit=True)
 		)+deleters+[factory,
-		#PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.savePlotData(S)'),
-		#PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.watchProgress(S)'),
+		#PyRunner(factStep,'import woo.pre.roro; woo.pre.roro.savePlotData(S)'),
+		#PyRunner(factStep,'import woo.pre.roro; woo.pre.roro.watchProgress(S)'),
 		]+(
 			[Tracer(stepPeriod=20,num=100,compress=2,compSkip=4,dead=True,scalar=Tracer.scalarRadius)] if 'opengl' in woo.config.features else []
 		)+(

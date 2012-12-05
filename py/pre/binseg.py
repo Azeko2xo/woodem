@@ -77,13 +77,9 @@ class BinSeg(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		Preprocessor.__init__(self)
 		self.wooPyInit(BinSeg,Preprocessor,**kw)
 	def __call__(self):
-		import woo.pre.BinSeg_
+		import woo.pre.binseg
 		print self.hole1ids
-		return woo.pre.BinSeg_.run(self)
-
-# put to the namespace where the c++ preprocessor used to be, for backwards compat
-woo.pre.BinSeg=BinSeg
-
+		return woo.pre.binseg.run(self)
 
 
 def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,dontBlock=False,memoizeDir=None):
@@ -349,9 +345,9 @@ def run(pre):
 		for i,box in enumerate([((xmin,ymin,zmin),(L[0],ymax,min(B[1],K[1]))),((L[0],ymin,zmin),(xmax,ymax,min(K[1],G[1])))])
 	]+[
 		factory,
-		PyRunner(pre.factStep,'import woo.pre.BinSeg_; woo.pre.BinSeg_.adjustFeedRate(S)',label='feedAdjuster',dead=(not pre.loadSpheresFrom)),
-		PyRunner(pre.factStep,'import woo.pre.BinSeg_; woo.pre.BinSeg_.savePlotData(S)'),
-		PyRunner(pre.factStep,'import woo.pre.BinSeg_; woo.pre.BinSeg_.watchProgress(S)',initRun=False),
+		PyRunner(pre.factStep,'import woo.pre.binseg; woo.pre.binseg.adjustFeedRate(S)',label='feedAdjuster',dead=(not pre.loadSpheresFrom)),
+		PyRunner(pre.factStep,'import woo.pre.binseg; woo.pre.binseg.savePlotData(S)'),
+		PyRunner(pre.factStep,'import woo.pre.binseg; woo.pre.binseg.watchProgress(S)',initRun=False),
 	#]+( # VTK
 	#	[] if (not pre.vtkPrefix or pre.vtkFreq<=0) else [VtkExport(out=pre.vtkPrefix,stepPeriod=int(pre.vtkFreq*pre.factStepPeriod),what=VtkExport.all,subdiv=16)]
 	]+( # backups
@@ -369,7 +365,7 @@ def run(pre):
 	S.plot.plots={'t':('feedRate','hole1rate','hole2rate','holeRate',None,'feedMass')}
 	if S.trackEnergy: S.plot.plots.update({'  t':(S.energy,None,('ERelErr','g--'))})
 
-	S.uiBuild='import woo.pre.BinSeg_; woo.pre.BinSeg_.uiBuild(S,area)'
+	S.uiBuild='import woo.pre.binseg; woo.pre.binseg.uiBuild(S,area)'
 
 	try:
 		import woo.gl
@@ -635,16 +631,16 @@ def writeReport():
 	repName=unicode(S.pre.reportFmt).format(S=S,**(dict(S.tags)))
 	rep=codecs.open(repName,'w','utf-8','replace')
 	import os.path
-	import woo.pre.Roro_
+	import woo.pre.roro
 	print 'Writing report to file://'+os.path.abspath(repName)
-	s=woo.pre.Roro_.xhtmlReportHead(S,'Report for BinSeg simulation')
+	s=woo.pre.roro.xhtmlReportHead(S,'Report for BinSeg simulation')
 	s+='<h2>Mass</h2>'+feedHolesPsdTable(S,massScale=massScale)
 
 	svgs=[]
 	for name,fig in figs:
 		svgs.append((name,woo.master.tmpFilename()+'.svg'))
 		fig.savefig(svgs[-1][-1])
-	s+='\n'.join(['<h2>'+svg[0]+'</h2>'+woo.pre.Roro_.svgFileFragment(svg[1]) for svg in svgs])
+	s+='\n'.join(['<h2>'+svg[0]+'</h2>'+woo.pre.roro.svgFileFragment(svg[1]) for svg in svgs])
 
 	s+='</body></html>'
 

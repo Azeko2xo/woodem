@@ -285,7 +285,7 @@ setup(name='woo',
 	# '' must use join(...) to use native separator
 	# otherwise scripts don't get installed!
 	# http://stackoverflow.com/questions/13271085/console-scripts-entry-point-ignored
-	package_dir={'woo':'py','':join('core','main'),'woo.qt':'gui/qt4','woo.pre':'pkg/pre','woo.gts':'py/3rd-party/pygts-0.3.1'},
+	package_dir={'woo':'py','':join('core','main'),'woo.qt':'gui/qt4','woo.pre':'py/pre','woo.gts':'py/3rd-party/pygts-0.3.1'},
 	packages=(
 		['woo','woo._monkey','woo.tests','woo.pre']
 		+(['woo.qt'] if 'qt4' in features else [])

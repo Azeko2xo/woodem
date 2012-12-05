@@ -71,13 +71,9 @@ class Roro(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		Preprocessor.__init__(self)
 		self.wooPyInit(Roro,Preprocessor,**kw)
 	def __call__(self):
-		import woo.pre.Roro_
+		import woo.pre.roro
 		self.cylRelLen=self.cylLenSim/self.cylLenReal;
-		return woo.pre.Roro_.run(self)
-
-# put into namespace where the c++ preprocessor used to be
-woo.pre.Roro=Roro
- 
+		return woo.pre.roro.run(self)
 
 
 def ySpannedFacets(xx,yy,zz,shift=True,halfThick=0.,**kw):
@@ -91,7 +87,7 @@ def ySpannedFacets(xx,yy,zz,shift=True,halfThick=0.,**kw):
 	return [utils.facet(vertices,**kw) for vertices in (A,B,C),(C,B,D)]
 
 def run(pre): # use inputs as argument
-	print 'Roro_.run()'
+	print 'roro.run()'
 	#print 'Input parameters:'
 	#print pre.dumps(format='expr',noMagic=True)
 	#print pre.dumps(format='html',fragment=True)
@@ -336,8 +332,8 @@ def run(pre): # use inputs as argument
 		BoxDeleter(stepPeriod=factStep,inside=True,box=((cylXzd[-1][0]+cylXzd[-1][2]/2.,ymin,zmin),(xmax,ymax,zmax)),glColor=.9,save=True,mask=delMask,currRateSmooth=pre.rateSmooth,recoverRadius=recoverRadius,label='fallOver'),
 		# generator
 		factory,
-		PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.savePlotData(S)'),
-		PyRunner(factStep,'import woo.pre.Roro_; woo.pre.Roro_.watchProgress(S)'),
+		PyRunner(factStep,'import woo.pre.roro; woo.pre.roro.savePlotData(S)'),
+		PyRunner(factStep,'import woo.pre.roro; woo.pre.roro.watchProgress(S)'),
 	]+(
 		[Tracer(stepPeriod=20,num=100,compress=2,compSkip=4,dead=True,scalar=Tracer.scalarRadius)] if 'opengl' in woo.config.features else []
 	)+(
@@ -384,7 +380,7 @@ def run(pre): # use inputs as argument
 
 def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,goal=.15,dontBlock=False,memoizeDir=None,botLine=None,leftLine=None,rightLine=None):
 	'''Create dense packing periodic in the +y direction, suitable for use with ConveyorFactory.'''
-	print 'woo.pre.Roro_.makeBandFeedPack(dim=%s,psd=%s,mat=%s,gravity=%s,excessWd=%s,damping=%s,dontBlock=True,botLine=%s,leftLine=%s,rightLine=%s)'%(repr(dim),repr(psd),mat.dumps(format='expr',width=-1,noMagic=True),repr(gravity),repr(excessWd),repr(damping),repr(botLine),repr(leftLine),repr(rightLine))
+	print 'woo.pre.roro.makeBandFeedPack(dim=%s,psd=%s,mat=%s,gravity=%s,excessWd=%s,damping=%s,dontBlock=True,botLine=%s,leftLine=%s,rightLine=%s)'%(repr(dim),repr(psd),mat.dumps(format='expr',width=-1,noMagic=True),repr(gravity),repr(excessWd),repr(damping),repr(botLine),repr(leftLine),repr(rightLine))
 	dim=list(dim) # make modifiable in case of excess width
 	retWd=dim[1]
 	repeatCell=[0]

@@ -17,6 +17,7 @@
 #include<woo/core/Functor.hpp>
 #include<woo/core/DisplayParameters.hpp>
 #include<woo/core/Plot.hpp>
+#include<woo/core/Test.hpp>
 //#include<woo/core/Interaction.hpp>
 //#include<woo/core/InteractionContainer.hpp>
 
@@ -24,7 +25,7 @@
 
 YAD3_CLASS_IMPLEMENTATION(Cell_CLASS_DESCRIPTOR)
 
-WOO_PLUGIN(core,(Cell)(Dispatcher)(EnergyTracker)(Engine)(Functor)(GlobalEngine)(ParallelEngine)(PartialEngine)(PeriodicEngine)(Plot)(PyRunner)(DisplayParameters));
+WOO_PLUGIN(core,(Cell)(Dispatcher)(EnergyTracker)(Engine)(Functor)(GlobalEngine)(ParallelEngine)(PartialEngine)(PeriodicEngine)(Plot)(PyRunner)(DisplayParameters)(WooTestClass));
 #include<woo/core/Field.hpp>
 WOO_PLUGIN(core,(Constraint)(Node)(NodeData)(Field));
 #ifdef WOO_OPENGL

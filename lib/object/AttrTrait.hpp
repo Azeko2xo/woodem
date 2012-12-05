@@ -182,6 +182,8 @@ namespace woo{
 		AttrTrait& buttons(const vector<string>& b, bool showBefore=true){ _buttons=std::function<py::object()>([=]()->py::object{ return py::make_tuple(py::object(b),showBefore);}); return *this; }
 
 		// shorthands for common units
+		// each new unit MUST be added as an attribute to core/Test.hpp
+		// so that it is know to python!!
 		AttrTrait& angleUnit(){ unit("rad"); altUnits({{"deg",180/M_PI}}); return *this; }
 		AttrTrait& timeUnit(){ unit("s"); altUnits({{"ms",1e3},{"μs",1e6},{"day",1./(60*60*24)},{"year",1./(60*60*24*365)}}); return *this; }
 		AttrTrait& lenUnit(){ unit("m"); altUnits({{"mm",1e3}}); return *this; }
@@ -200,9 +202,8 @@ namespace woo{
 		AttrTrait& massFlowRateUnit(){ unit("kg/s"); altUnits({{"t/h",1e-3*3600},{"t/y",1e-3*(24*3600*365)},{"Mt/y",1e-6*1e-3*(24*3600*365)}}); return *this; }
 		AttrTrait& densityUnit(){ unit("kg/m³"); altUnits({{"t/m³",1e-3},{"g/cm³",1e-3}}); return *this; }
 		AttrTrait& fractionUnit(){ unit("-"); altUnits({{"%",1e2},{"‰",1e3},{"ppm",1e6}}); return *this; }
+
 		AttrTrait& colormapChoice(){ vector<pair<int,string>> pairs({{-1,"[default] (-1)"}}); for(size_t i=0; i<CompUtils::colormaps.size(); i++) pairs.push_back({i,CompUtils::colormaps[i].name+" ("+to_string(i)+")"}); return choice(pairs); }
-
-
 	};
 	#undef ATTR_FLAGS_VALUES
 

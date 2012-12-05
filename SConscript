@@ -87,15 +87,11 @@ env.Install('$LIBDIR','core/main/wooMain.py')
 if 'execCheck' in env and env['execCheck']!=os.path.abspath(env.subst(pyMain)):
 	raise RuntimeError('execCheck option (%s) does not match what is about to be installed (%s)'%(env['execCheck'],env.subst(pyMain)))
 
-#install preprocessor scripts
-env.Install('$LIBDIR/woo/pre',
-	env.File(env.Glob('pkg/pre/*.py'),'pkg/pre'),
-)
-
 env.Install('$LIBDIR/woo',[
 	env.File(env.Glob('py/*.py')),
 ])
 env.Install('$LIBDIR/woo/tests',[env.File(env.Glob('py/tests/*.py'),'tests'),])
+env.Install('$LIBDIR/woo/pre',[env.File(env.Glob('py/pre/*.py'),'pre'),])
 env.Install('$LIBDIR/woo/_monkey',[env.File(env.Glob('py/_monkey/*.py'),'_monkey')])
 
 
