@@ -126,10 +126,16 @@ try:
 		## and pass it via WOO_TEMP to woo::Master ctor, which will just use it
 		import tempfile, pkgutil, imp, shutil
 		tmpdir=wooOsEnviron['WOO_TEMP']=tempfile.mkdtemp(prefix='woo-tmp-')
-		loader=pkgutil.get_loader('woo.'+cxxInternalName)
-		if not loader: raise ImportError("Unable to get loader for module woo.%s"%cxxInternalName)
+		if not hasattr(sys,'frozen'):
+			loader=pkgutil.get_loader('woo.'+cxxInternalName)
+			if not loader: raise ImportError("Unable to get loader for module woo.%s"%cxxInternalName)
+			pydFile=loader.filename
+		else:
+			# frozen install should have full path in sys.argv[0]
+			pydFile=os.path.dirname(sys.argv[0])+'/woo.'+cxxInternalName+soSuffix
+			if not os.path.exists(pydFile): raise ImportError("Unable to locate loadable module for woo._cxxInternal in frozen installation: the file %s does not exist"%pydFile)
 		f=tmpdir+'/'+cxxInternalName+soSuffix
-		shutil.copy2(loader.filename,f)
+		shutil.copy2(pydFile,f)
 		_cxxInternal=imp.load_dynamic('woo._cxxInternal',f)
 		pidfile=tmpdir+'/'+'pid'
 					
@@ -312,6 +318,6 @@ try:
 	import wooLocalExtras
 	import pkgutil
 	for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
-		__import__('wooLocalExtras.'+modname,'wooLocalExtras')
+		__import__('wooLocalExtras.'+modname,fromlist='wooLocalExtras')
 except ImportError: pass
 

@@ -20,7 +20,7 @@ def Entrypoint(dist, group, name, scripts=None, pathex=None, **kw):
 	return Analysis(scripts=scripts+[script_path], pathex=pathex, **kw)
 	
 main=Entrypoint(dist='woo',group='console_scripts',name='wwoo',hookspath='.',
-	hiddenimports=['woo._cxxInternal','woo.pre.Roro_','woo.pre.BinSeg_']
+	hiddenimports=['woo._cxxInternal','woo.pre']
 )
 
 # hiddenimports already specified for main
