@@ -306,8 +306,8 @@ setup(name='woo',
 	# ignored under windows? http://stackoverflow.com/questions/13271085/console-scripts-entry-point-ignored
 	entry_points={
 		'console_scripts':[
-			'%swoo%s = wooMain:main'%('w' if WIN else ''),execFlavor),
-			'%swoo%s_batch = wooMain:batch'%('w' if WIN else ''),execFlavor),
+			'%swoo%s = wooMain:main'%('w' if WIN else '',execFlavor),
+			'%swoo%s_batch = wooMain:batch'%('w' if WIN else '',execFlavor),
 		],
 	},
 	# workaround for windows, instead of entry_points['console_scripts']

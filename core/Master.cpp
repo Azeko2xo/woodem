@@ -21,6 +21,7 @@
 		#define WIN32_LEAN_AND_MEAN
 	#endif
 	#include<process.h>
+	#include<Windows.h>
 	int getpid(){ return _getpid(); }
 #else
 	#include<unistd.h> // for getpid
@@ -36,6 +37,24 @@ class RenderMutexLock: public boost::mutex::scoped_lock{
 
 CREATE_LOGGER(Master);
 
+#ifdef __MINGW64__
+/* make sure that both sets of env vars define variable *name* the same way */
+void crtWin32EnvCheck(const char* name){
+	char win[1024]; int len=GetEnvironmentVariable(name,win,1024);
+	char* crt=getenv(name);
+	bool winDef=len>0;
+	bool crtDef=(crt!=NULL);
+	if(winDef!=crtDef){
+		cerr<<"WARN: env var "<<name<<" is "<<(winDef?"":"NOT")<<" defined in win32 but "<<(crtDef?"":"NOT")<<" defined in the CRT."<<endl;
+		return;
+	}
+	// both defined, compare value
+	if(winDef){
+		string w(win), c(crt);
+		if(w!=c) cerr<<"WARN: env var "<<name<<" is \""<<w<<"\" in win32 but \""<<c<<"\" in CRT."<<endl;
+	}
+}
+#endif
 
 
 Master::Master(){
@@ -43,6 +62,10 @@ Master::Master(){
 	sceneAnother=shared_ptr<Scene>(new Scene);
 	scene=shared_ptr<Scene>(new Scene);
 	startupLocalTime=boost::posix_time::microsec_clock::local_time();
+	#ifdef __MINGW64__
+		crtWin32EnvCheck("WOO_TEMP");
+		crtWin32EnvCheck("OMP_NUM_THREADS");
+	#endif
 	
 	fs::path tmp; // assigned in each block
 	if(getenv("WOO_TEMP")){

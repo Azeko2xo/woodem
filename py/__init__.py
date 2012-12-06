@@ -17,9 +17,28 @@ import wooOptions
 import warnings,traceback
 import sys,os,os.path,re,string
 
-# HACK: early import of GTS to avoid "Instalid access to memory location" under Windows?
-#try: import gts
-#except ImportError: pass
+WIN=sys.platform=='win32'
+
+if WIN:
+	class WooOsEnviron:
+		'''Class setting env vars via both CRT and win32 API, so that values can be read back
+		with getenv. This is needed for proper setup of OpenMP (which read OMP_NUM_THREADS).'''
+		def __setitem__(self,name,val):
+			import ctypes
+			# in windows set, value in CRT in addition to the one manipulated via win32 api
+			# http://msmvps.com/blogs/senthil/archive/2009/10/413/when-what-you-set-is-not-what-you-get-setenvironmentvariable-and-getenv.aspx
+			## use python's runtime
+			##ctypes.cdll[ctypes.util.find_msvcrt()]._putenv("%s=%s"%(name,value))
+			# call MSVCRT (unversioned) as well
+			ctypes.cdll.msvcrt._putenv("%s=%s"%(name,val))
+			os.environ[name]=val
+		def __getitem__(self,name): return os.environ[name]
+	wooOsEnviron=WooOsEnviron()
+	# this was set in wooMain (with -D, -vv etc), set again so that c++ sees it
+	if 'WOO_DEBUG' is os.environ: wooOsEnviron['WOO_DEBUG']=os.environ['WOO_DEBUG']
+else:
+	wooOsEnviron=os.environ
+	
 
 # we cannot check for the 'openmp' feature yet, since woo.config is a compiled module
 # we set the variable as normally, but will warn below, once the compiled module is imported
@@ -28,15 +47,14 @@ if wooOptions.ompCores:
 	if wooOptions.ompThreads!=len(cc) and wooOptions.ompThreads>0:
 		warnings.warn('ompThreads==%d ignored, using %d since ompCores are specified.'%(wooOptions.ompThreads,len(cc)))
 		wooOptions.ompThreads=len(cc)
-	os.environ['GOMP_CPU_AFFINITY']=' '.join([str(cc[0])]+[str(c) for c in cc])
-	os.environ['OMP_NUM_THREADS']=str(len(cc))
+	wooOsEnviron['GOMP_CPU_AFFINITY']=' '.join([str(cc[0])]+[str(c) for c in cc])
+	wooOsEnviron['OMP_NUM_THREADS']=str(len(cc))
 elif wooOptions.ompThreads:
-	os.environ['OMP_NUM_THREADS']=str(wooOptions.ompThreads)
+	wooOsEnviron['OMP_NUM_THREADS']=str(wooOptions.ompThreads)
 elif 'OMP_NUM_THREADS' not in os.environ:
-	os.environ['OMP_NUM_THREADS']='1'
-
+	wooOsEnviron['OMP_NUM_THREADS']='1'
+	
 import distutils.sysconfig
-WIN=sys.platform=='win32'
 soSuffix=distutils.sysconfig.get_config_vars()['SO']
 #if WIN and 'TERM' in os.environ:
 #	# unbuffered output on windows, in case we're in a real terminal
@@ -63,7 +81,9 @@ if WIN:
 	# http://superuser.com/questions/124679/how-do-i-create-an-mklink-in-windows-7-home-premium-as-a-regular-user
 	# 
 	# for that reason, we use hardlinks (below), which are allowed to everybody
-	# It will break, however, if the tempdir and woo installation are not on the same partitions
+	# Since this would break if files were not on the same partition, we copy _cxxInternal*.pyd
+	# to a tempdir first (see below). It will still fail on filesystems not supporting hardlinks
+	# (FAT probably)
 	def win_symlink(source,link_name):
 		import ctypes, os.path
 		csl=ctypes.windll.kernel32.CreateSymbolicLinkW
@@ -105,12 +125,14 @@ try:
 		## it must be copied before it gets imported, so we create tempdir ourselves
 		## and pass it via WOO_TEMP to woo::Master ctor, which will just use it
 		import tempfile, pkgutil, imp, shutil
-		tmpdir=os.environ['WOO_TEMP']=tempfile.mkdtemp(prefix='woo-tmp-')
+		tmpdir=wooOsEnviron['WOO_TEMP']=tempfile.mkdtemp(prefix='woo-tmp-')
 		loader=pkgutil.get_loader('woo.'+cxxInternalName)
 		if not loader: raise ImportError("Unable to get loader for module woo.%s"%cxxInternalName)
 		f=tmpdir+'/'+cxxInternalName+soSuffix
 		shutil.copy2(loader.filename,f)
 		_cxxInternal=imp.load_dynamic('woo._cxxInternal',f)
+		pidfile=tmpdir+'/'+'pid'
+					
 except ImportError:
 	print 'Error importing woo.%s (--flavor=%s).'%(cxxInternalName,wooOptions.flavor if wooOptions.flavor else ' ')
 	#traceback.print_exc()
@@ -162,7 +184,7 @@ def hack_loadCompiledModulesViaLinks(compiledModDir,tryInAnotherTempdir=True):
 			try:
 				win_hardlink(os.path.abspath(cxxInternalFile),linkName)
 			except IOError:
-				sys.stderr.write('Creating hardlink failed - on windows _cxxInternal.pyd is copied to the tempdir before being imported, so that hardlinks are on the same partition. What\'s happening here? If you are using FAT filesystem, you are out of luck. With NTFS, hardlinks should work. Please report this error so that it can be fixed or worked around.\n')
+				sys.stderr.write('Creating hardlink failed - on Windows, _cxxInternal.pyd is copied to tempdir before being imported, so that hardlinks should be on the same partition. What\'s happening here? If you are using FAT filesystem, you are out of luck. With NTFS, hardlinks should work. Please report this error so that it can be fixed or worked around.\n')
 				raise
 		else: os.symlink(os.path.abspath(cxxInternalFile),linkName)
 		if 'WOO_DEBUG' in os.environ: print 'Loading compiled module',mod,'from symlink',linkName
@@ -204,7 +226,9 @@ import atexit, shutil, threading, glob
 def exitCleanup(path):
 	#print 'Purging',path
 	shutil.rmtree(path)
-atexit.register(exitCleanup,master.tmpFileDir)
+# this would fail under windows anyway
+if not WIN:
+	atexit.register(exitCleanup,master.tmpFileDir)
 ## clean old temps in bg thread
 def cleanOldTemps(prefix,keep):
 	try: import psutil
