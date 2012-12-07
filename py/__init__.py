@@ -313,11 +313,13 @@ except AttributeError:
 	print 'WARN: Error importing py/_aliases.py'
 	traceback.print_exc()
 
-try:
-	# recursive import of everything under wooLocalExtras
-	import wooLocalExtras
-	import pkgutil
-	for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
-		__import__('wooLocalExtras.'+modname,fromlist='wooLocalExtras')
-except ImportError: pass
+# recursive import of everything under wooExtra
+import wooExtra, pkgutil
+for importer, modname, ispkg in pkgutil.iter_modules(wooExtra.__path__):
+	try:
+		__import__('wooExtra.'+modname,fromlist='wooExtra')
+		print 'Discovered wooExtra.%s'%modname
+	except ImportError:
+		raise
+		#print 'WARN: Error importing wooExtra.%s.'%modname
 

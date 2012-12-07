@@ -16,7 +16,7 @@ For examples, see
 * :ysrc:`examples/WireMatPM/wirepackings.py`
 """
 
-import itertools,warnings
+import itertools,warnings,os
 from numpy import arange
 from math import sqrt
 from woo import utils
@@ -603,3 +603,167 @@ def hexaNet( radius, cornerCoord=[0,0,0], xLength=1., yLength=0.5, mos=0.08, a=0
 			# set values for next section
 			xstart = xstart - 0.5*mos*pow(-1,i+jump)
 	return [net,lx,ly]
+
+
+
+
+def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,dontBlock=False,memoizeDir=None):
+	if memoizeDir:
+		params=str(dim)+str(psd)+str(goal)+str(damping)+str(porosity)+str(lenAxis)
+		import hashlib
+		paramHash=hashlib.sha1(params).hexdigest()
+		memoizeFile=memoizeDir+'/'+paramHash+'.perifeed'
+		print 'Memoize file is ',memoizeFile
+		if os.path.exists(memoizeDir+'/'+paramHash+'.perifeed'):
+			print 'Returning memoized result'
+			sp=SpherePack()
+			sp.load(memoizeFile)
+			return zip(*sp)+[sp.cellSize[lenAxis],]
+	p3=porosity**(1/3.)
+	rMax=psd[-1][0]
+	minSize=rMax*5
+	cellSize=Vector3(max(dim[0]*p3,minSize),max(dim[1]*p3,minSize),max(dim[2]*p3,minSize))
+	print 'dimension',dim
+	print 'initial cell size',cellSize
+	print 'psd=',psd
+	S=Scene(fields=[DemField()])
+	S.periodic=True
+	S.cell.setBox(cellSize)
+	S.engines=[
+		InsertionSortCollider([Bo1_Sphere_Aabb()]),
+		BoxFactory(
+			box=((0,0,0),cellSize),
+			maxMass=-1,
+			massFlowRate=0,
+			maxAttempts=5000,
+			generator=PsdSphereGenerator(psdPts=psd,discrete=False,mass=True),
+			materials=[FrictMat(density=1e3,young=1e7,ktDivKn=.2,tanPhi=math.tan(.5))],
+			shooter=None,
+			mask=1,
+		)
+	]
+	S.one()
+	print 'Created %d particles'%(len(S.dem.par))
+	S.dt=.9*utils.pWaveDt(S)
+	S.engines=[
+		woo.dem.PeriIsoCompressor(charLen=2*psd[-1][0],stresses=[-1e8,-1e6],maxUnbalanced=goal,doneHook='print "done"; S.stop();',globalUpdateInt=1,keepProportions=True)
+	]+utils.defaultEngines(damping=damping)
+	if dontBlock: return S
+	S.run(); S.wait()
+	sp=SpherePack()
+	sp.fromSimulation(S)
+	print 'Packing size is',sp.cellSize
+	sp.makeOverlapFree()
+	print 'Loose packing size is',sp.cellSize
+	sp.canonicalize()
+	cc,rr=[],[]
+	inf=float('inf')
+	boxMin=Vector3(0,0,0);
+	boxMax=dim
+	boxMin[lenAxis]=-inf
+	boxMax[lenAxis]=inf
+	box=AlignedBox3(boxMin,boxMax)
+	for c,r in sp:
+		if c not in box: continue
+		cc.append(c); rr.append(r)
+	if memoizeDir:
+		sp2=SpherePack()
+		sp2.fromList(cc,rr)
+		sp2.cellSize=sp.cellSize
+		print 'Saving to',memoizeFile
+		sp2.save(memoizeFile)
+	return cc,rr,sp.cellSize[lenAxis]
+
+
+
+def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,goal=.15,dontBlock=False,memoizeDir=None,botLine=None,leftLine=None,rightLine=None):
+	'''Create dense packing periodic in the +y direction, suitable for use with ConveyorFactory.'''
+	print 'woo.pre.roro.makeBandFeedPack(dim=%s,psd=%s,mat=%s,gravity=%s,excessWd=%s,damping=%s,dontBlock=True,botLine=%s,leftLine=%s,rightLine=%s)'%(repr(dim),repr(psd),mat.dumps(format='expr',width=-1,noMagic=True),repr(gravity),repr(excessWd),repr(damping),repr(botLine),repr(leftLine),repr(rightLine))
+	dim=list(dim) # make modifiable in case of excess width
+	retWd=dim[1]
+	repeatCell=[0]
+	# too wide band is created by repeating narrower one
+	if excessWd:
+		if dim[1]>excessWd[0]:
+			print 'makeBandFeedPack: excess with %g>%g, using %g with packing repeated'%(dim[1],excessWd[0],excessWd[1])
+			retWd=dim[1]
+			dim[1]=excessWd[1]
+			nCopy=int(retWd/dim[1])+1
+			repeatCell=range(-nCopy,nCopy+1)
+	cellSize=(dim[0],dim[1],(1+2*porosity)*dim[2])
+	print 'cell size',cellSize,'target height',dim[2]
+	if memoizeDir and not dontBlock:
+		params=str(dim)+str(cellSize)+str(psd)+str(goal)+str(damping)+mat.dumps(format='expr')+str(gravity)+str(porosity)+str(botLine)+str(leftLine)+str(rightLine)
+		import hashlib
+		paramHash=hashlib.sha1(params).hexdigest()
+		memoizeFile=memoizeDir+'/'+paramHash+'.bandfeed'
+		print 'Memoize file is ',memoizeFile
+		if os.path.exists(memoizeDir+'/'+paramHash+'.bandfeed'):
+			print 'Returning memoized result'
+			sp=SpherePack()
+			sp.load(memoizeFile)
+			return zip(*sp)
+	S=Scene(fields=[DemField(gravity=gravity)])
+	S.periodic=True
+	S.cell.setBox(cellSize)
+	factoryBottom=.3*cellSize[2] if not botLine else max([b[1] for b in botLine]) # point above which are particles generated
+	factoryLeft=0 if not leftLine else max([l[0] for l in leftLine])
+	#print 'factoryLeft =',factoryLeft,'leftLine =',leftLine,'cellSize =',cellSize
+	factoryRight=cellSize[1] if not rightLine else min([r[0] for r in rightLine])
+	if not leftLine: leftLine=[Vector2(0,cellSize[2])]
+	if not rightLine:rightLine=[Vector2(cellSize[1],cellSize[2])]
+	if not botLine:  botLine=[Vector2(0,0),Vector2(cellSize[1],0)]
+	boundary2d=leftLine+botLine+rightLine
+	p=pack.sweptPolylines2gtsSurface([utils.tesselatePolyline([Vector3(x,yz[0],yz[1]) for yz in boundary2d],maxDist=min(cellSize[0]/4.,cellSize[1]/4.,cellSize[2])/4.) for x in numpy.linspace(0,cellSize[0],num=4)])
+	S.dem.par.append(pack.gtsSurface2Facets(p,mask=0b011))
+	S.dem.loneMask=0b010
+
+	massToDo=porosity*mat.density*dim[0]*dim[1]*dim[2]
+	print 'Will generate %g mass'%massToDo
+
+	## FIXME: decrease friction angle to help stabilization
+	mat0,mat=mat,mat.deepcopy()
+	mat.tanPhi=min(.2,mat0.tanPhi)
+
+
+	S.engines=utils.defaultEngines(damping=damping)+[
+		BoxFactory(
+			box=((.01*cellSize[0],factoryLeft,factoryBottom),(cellSize[0],factoryRight,cellSize[2])),
+			stepPeriod=200,
+			maxMass=massToDo,
+			massFlowRate=0,
+			maxAttempts=20,
+			generator=PsdSphereGenerator(psdPts=psd,discrete=False,mass=True),
+			materials=[mat],
+			shooter=AlignedMinMaxShooter(dir=(0,0,-1),vRange=(0,0)),
+			mask=1,
+			label='makeBandFeedFactory',
+			#periSpanMask=1, # x is periodic
+		),
+		#PyRunner(200,'plot.addData(uf=utils.unbalancedForce(),i=O.scene.step)'),
+		PyRunner(300,'import woo\nprint "%g/%g mass, %d particles, unbalanced %g/'+str(goal)+'"%(woo.makeBandFeedFactory.mass,woo.makeBandFeedFactory.maxMass,len(S.dem.par),woo.utils.unbalancedForce(S))'),
+		PyRunner(300,'import woo\nif woo.makeBandFeedFactory.mass>=woo.makeBandFeedFactory.maxMass: S.engines[0].damping=1.5*%g'%damping),
+		PyRunner(200,'import woo\nif woo.utils.unbalancedForce(S)<'+str(goal)+' and woo.makeBandFeedFactory.dead: S.stop()'),
+	]
+	S.dt=.7*utils.spherePWaveDt(psd[0][0],mat.density,mat.young)
+	print 'Factory box is',woo.makeBandFeedFactory.box
+	if dontBlock: return S
+	else: S.run()
+	S.wait()
+	cc,rr=[],[]
+	for p in S.dem.par:
+		if not type(p.shape)==Sphere: continue
+		for rep in repeatCell:
+			c,r=S.cell.canonicalizePt(p.pos)+dim[1]*(rep-.5)*Vector3.UnitY,p.shape.radius
+			if abs(c[1])+r>.5*retWd or c[2]+r>dim[2]: continue
+			cc.append(Vector3(c[0],c[1],c[2])); rr.append(r)
+	if memoizeDir:
+		sp=SpherePack()
+		for c,r in zip(cc,rr): sp.add(c,r)
+		print 'Saving to',memoizeFile
+		sp.save(memoizeFile)
+	return cc,rr
+
+
+
+

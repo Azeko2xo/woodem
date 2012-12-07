@@ -87,12 +87,22 @@ env.Install('$LIBDIR','core/main/wooMain.py')
 if 'execCheck' in env and env['execCheck']!=os.path.abspath(env.subst(pyMain)):
 	raise RuntimeError('execCheck option (%s) does not match what is about to be installed (%s)'%(env['execCheck'],env.subst(pyMain)))
 
+
 env.Install('$LIBDIR/woo',[
 	env.File(env.Glob('py/*.py')),
 ])
 env.Install('$LIBDIR/woo/tests',[env.File(env.Glob('py/tests/*.py'),'tests'),])
 env.Install('$LIBDIR/woo/pre',[env.File(env.Glob('py/pre/*.py'),'pre'),])
 env.Install('$LIBDIR/woo/_monkey',[env.File(env.Glob('py/_monkey/*.py'),'_monkey')])
+# install empty wooExtra
+env.Install('$LIBDIR/wooExtra','py/wooExtra/__init__.py')
+
+# install any locally-linked extra modules
+for depth in range(0,4):
+	ff=env.Glob('wooExtra/'+'*/'*depth+'*.py')
+	for f in ff:
+		instDir=str(f).split('/')[-depth-1:-1] # get where to install
+		env.Install('$LIBDIR/wooExtra/'+'/'.join(instDir),env.File(f))
 
 
 if 'qt4' in env['features']:

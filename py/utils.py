@@ -490,6 +490,41 @@ def tesselatePolyline(l,maxDist):
 	return ret
 
 
+def xhtmlReportHead(S,headline):
+	import time, platform
+	xmlhead='''<?xml version="1.0" encoding="UTF-8"?>
+	<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> 
+	<html xmlns="http://www.w3.org/1999/xhtml" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	'''
+	# <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
+	html=(u'''<head><title>{headline}</title></head><body>
+		<h1>{headline}</h1>
+		<h2>General</h2>
+		<table>
+			<tr><td>title</td><td align="right">{title}</td></tr>
+			<tr><td>id</td><td align="right">{id}</td></tr>
+			<tr><td>operator</td><td align="right">{user}</td></tr>
+			<tr><td>started</td><td align="right">{started}</td></tr>
+			<tr><td>duration</td><td align="right">{duration:g} s</td></tr>
+			<tr><td>number of cores used</td><td align="right">{nCores}</td></tr>
+			<tr><td>average speed</td><td align="right">{stepsPerSec:g} steps/sec</td></tr>
+			<tr><td>engine</td><td align="right">{engine}</td></tr>
+			<tr><td>compiled with</td><td align="right">{compiledWith}</td></tr>
+			<tr><td>platform</td><td align="right">{platform}</td></tr>
+		</table>
+		'''.format(headline=headline,title=(S.tags['title'] if S.tags['title'] else '<i>[none]</i>'),id=S.tags['id'],user=S.tags['user'].decode('utf-8'),started=time.ctime(time.time()-woo.master.realtime),duration=woo.master.realtime,nCores=woo.master.numThreads,stepsPerSec=S.step/woo.master.realtime,engine='wooDem '+woo.config.version+'/'+woo.config.revision+(' (debug)' if woo.config.debug else ''),compiledWith=','.join(woo.config.features),platform=platform.platform().replace('-',' '))
+		+'<h2>Input data</h2>'+S.pre.dumps(format='html',fragment=True,showDoc=True)
+	)
+	return xmlhead+html
+
+def svgFileFragment(filename):
+	import codecs
+	data=codecs.open(filename,encoding='utf-8').read()
+	return data[data.find('<svg '):]
+
+
+
+
 #############################
 ##### deprecated functions
 

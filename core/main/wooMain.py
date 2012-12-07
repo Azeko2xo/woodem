@@ -96,11 +96,18 @@ def main(sysArgv=None):
 	# re-build woo so that the binary is up-to-date
 	if not WIN and opts.rebuild:
 		wooOptions.quirks=0
-		import subprocess, woo.config
+		import subprocess, woo.config, glob
 		if opts.rebuild>1:
 			cmd=['bzr','up',woo.config.sourceRoot]
 			print 'Updating Woo using ',' '.join(cmd)
 			if subprocess.call(cmd): raise RuntimeError('Error updating Woo from bzr repository.')
+			# find updatable dirs in wooExtra
+			for d in glob.glob(woo.config.sourceRoot+'/wooExtra/*')+glob.glob(woo.config.sourceRoot+'/wooExtra/*/*'):
+				dd=os.path.abspath(d)
+				if not os.path.isdir(dd): continue
+				if os.path.exists(dd+'/.bzr'):
+					print 'Updating '+dd
+					if subprocess.call(['bzr','up',dd]): raise RuntimeError('Error updating %d from bzr.')
 		# rebuild
 		# FIXME: should be use opts.debug or wooOptions.debug here??
 		cmd=['scons','-Q','-C',woo.config.sourceRoot,'flavor=%s!'%woo.config.flavor,'debug=%d'%(1 if opts.debug else 0),'execCheck=%s'%(os.path.abspath(sys.argv[0]))]
