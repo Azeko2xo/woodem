@@ -63,6 +63,7 @@ Master::Master(){
 	scene=shared_ptr<Scene>(new Scene);
 	startupLocalTime=boost::posix_time::microsec_clock::local_time();
 	#ifdef __MINGW64__
+		// check that (some) env vars set from python will work under windows.
 		crtWin32EnvCheck("WOO_TEMP");
 		crtWin32EnvCheck("OMP_NUM_THREADS");
 	#endif
