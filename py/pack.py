@@ -703,7 +703,8 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 			sp=SpherePack()
 			sp.load(memoizeFile)
 			return zip(*sp)
-	S=Scene(fields=[DemField(gravity=gravity)])
+	import woo, woo.core, woo.dem
+	S=woo.core.Scene(fields=[woo.dem.DemField(gravity=gravity)])
 	S.periodic=True
 	S.cell.setBox(cellSize)
 	factoryBottom=.3*cellSize[2] if not botLine else max([b[1] for b in botLine]) # point above which are particles generated
@@ -727,23 +728,23 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 
 
 	S.engines=utils.defaultEngines(damping=damping)+[
-		BoxFactory(
+		woo.dem.BoxFactory(
 			box=((.01*cellSize[0],factoryLeft,factoryBottom),(cellSize[0],factoryRight,cellSize[2])),
 			stepPeriod=200,
 			maxMass=massToDo,
 			massFlowRate=0,
 			maxAttempts=20,
-			generator=PsdSphereGenerator(psdPts=psd,discrete=False,mass=True),
+			generator=woo.dem.PsdSphereGenerator(psdPts=psd,discrete=False,mass=True),
 			materials=[mat],
-			shooter=AlignedMinMaxShooter(dir=(0,0,-1),vRange=(0,0)),
+			shooter=woo.dem.AlignedMinMaxShooter(dir=(0,0,-1),vRange=(0,0)),
 			mask=1,
 			label='makeBandFeedFactory',
 			#periSpanMask=1, # x is periodic
 		),
 		#PyRunner(200,'plot.addData(uf=utils.unbalancedForce(),i=O.scene.step)'),
-		PyRunner(300,'import woo\nprint "%g/%g mass, %d particles, unbalanced %g/'+str(goal)+'"%(woo.makeBandFeedFactory.mass,woo.makeBandFeedFactory.maxMass,len(S.dem.par),woo.utils.unbalancedForce(S))'),
-		PyRunner(300,'import woo\nif woo.makeBandFeedFactory.mass>=woo.makeBandFeedFactory.maxMass: S.engines[0].damping=1.5*%g'%damping),
-		PyRunner(200,'import woo\nif woo.utils.unbalancedForce(S)<'+str(goal)+' and woo.makeBandFeedFactory.dead: S.stop()'),
+		woo.core.PyRunner(300,'import woo\nprint "%g/%g mass, %d particles, unbalanced %g/'+str(goal)+'"%(woo.makeBandFeedFactory.mass,woo.makeBandFeedFactory.maxMass,len(S.dem.par),woo.utils.unbalancedForce(S))'),
+		woo.core.PyRunner(300,'import woo\nif woo.makeBandFeedFactory.mass>=woo.makeBandFeedFactory.maxMass: S.engines[0].damping=1.5*%g'%damping),
+		woo.core.PyRunner(200,'import woo\nif woo.utils.unbalancedForce(S)<'+str(goal)+' and woo.makeBandFeedFactory.dead: S.stop()'),
 	]
 	S.dt=.7*utils.spherePWaveDt(psd[0][0],mat.density,mat.young)
 	print 'Factory box is',woo.makeBandFeedFactory.box

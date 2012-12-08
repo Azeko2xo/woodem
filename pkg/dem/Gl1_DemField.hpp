@@ -55,10 +55,10 @@ struct Gl1_DemField: public GlFieldFunctor{
 
 		((int,colorBy,COLOR_SHAPE,AttrTrait<Attr::triggerPostLoad>().choice({ GL1_DEMFIELD_COLORBY_CHOICES }).buttons({"Reference now","self.updateRefPos=True","use current positions and orientations as reference for showing displacement/rotation"},/*showBefore*/false),"Color particles by"))
 		((int,vecAxis,-1,AttrTrait<>().choice({{-1,"norm"},{0,"x"},{1,"y"},{2,"z"}}).hideIf("self.colorBy in (self.colorShape, self.colorRadius, self.colorMatId, self.colorMatState)"),"Axis for colorRefPosCoord"))
-		((shared_ptr<ScalarRange>,colorRange,,AttrTrait<>().readonly().hideIf("self.colorBy in (self.colorSolid,seolf.colorInvisible)"),"Range for particle colors (:ref:`colorBy`)"))
+		((shared_ptr<ScalarRange>,colorRange,,AttrTrait<>().readonly().hideIf("self.colorBy in (self.colorSolid,self.colorInvisible)"),"Range for particle colors (:ref:`colorBy`)"))
 
 		((int,colorBy2,COLOR_SOLID,AttrTrait<Attr::triggerPostLoad>().choice({ GL1_DEMFIELD_COLORBY_CHOICES }).hideIf("not self.shape2"),"Color for particles with :ref:`shape2`."))
-		((shared_ptr<ScalarRange>,colorRange2,,AttrTrait<>().readonly().hideIf("not self.shape2 or self.colorBy2 in (self.colorSolid,self.colorInvisible"),"Range for particle colors (:ref:`colorBy`)"))
+		((shared_ptr<ScalarRange>,colorRange2,,AttrTrait<>().readonly().hideIf("not self.shape2 or self.colorBy2 in (self.colorSolid,self.colorInvisible)"),"Range for particle colors (:ref:`colorBy`)"))
 
 		((Vector3r,solidColor,Vector3r(.3,.3,.3),AttrTrait<>().rgbColor(),"Solid color for particles."))
 

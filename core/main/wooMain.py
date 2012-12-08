@@ -131,10 +131,14 @@ def main(sysArgv=None):
 	# re-run inside gdb
 	if opts.inGdb:
 		import tempfile, subprocess
-		gdbBatch=tempfile.NamedTemporaryFile()
-		args=["'"+arg.replace("'",r"\'")+"'" for arg in sys.argv if arg!='--in-gdb']
+		# windows can't open opened file, don't delete it then
+		# Linux: delete afterwards, since gdb can open it in the meantime without problem
+		gdbBatch=tempfile.NamedTemporaryFile(prefix='woo-gdb-',delete=(not WIN))
+		sep='' if WIN else "'" # gdb seems to read files differently on windows??
+		args=[sep+arg.replace("'",r"\'").replace('\\','/')+sep for arg in sys.argv if arg!='--in-gdb']
 		gdbBatch.write('set pagination off\nrun '+' '.join(args)+'\n')
-		gdbBatch.flush()
+		if WIN: gdbBatch.close()
+		else: gdbBatch.flush()  
 		if opts.debug:
 			print 'Spawning: gdb -x '+gdbBatch.name+' '+sys.executable
 		sys.exit(subprocess.call(['gdb']+([] if opts.debug else ['-batch-silent'])+['-x',gdbBatch.name,sys.executable]))

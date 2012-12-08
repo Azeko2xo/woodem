@@ -314,12 +314,18 @@ except AttributeError:
 	traceback.print_exc()
 
 # recursive import of everything under wooExtra
-import wooExtra, pkgutil
-for importer, modname, ispkg in pkgutil.iter_modules(wooExtra.__path__):
-	try:
-		__import__('wooExtra.'+modname,fromlist='wooExtra')
-		print 'Discovered wooExtra.%s'%modname
-	except ImportError:
-		raise
-		#print 'WARN: Error importing wooExtra.%s.'%modname
+try:
+	import wooExtra, pkgutil
+	for importer, modname, ispkg in pkgutil.iter_modules(wooExtra.__path__):
+		try:
+			__import__('wooExtra.'+modname,fromlist='wooExtra')
+			print 'Discovered wooExtra.%s'%modname
+		except ImportError:
+			print 'ERROR importing wooExtra.%s.'%modname
+			raise
+except ImportError:
+	# wooExtra not importable: that means no extras are installed
+	# each extra defines wooExtra as namespace package
+	# but it does not come installed with woo itself
+	pass
 

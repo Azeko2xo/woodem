@@ -291,7 +291,7 @@ setup(name='woo',
 		+(['woo.qt'] if 'qt4' in features else [])
 		+(['woo.gts'] if 'gts' in features else [])
 	),
-	py_modules=wooModules+['wooOptions','wooMain','wooExtra'],
+	py_modules=wooModules+['wooOptions','wooMain'],
 		ext_modules=[
 		Extension('woo.'+cxxInternalModule,
 			sources=cxxSrcs,
