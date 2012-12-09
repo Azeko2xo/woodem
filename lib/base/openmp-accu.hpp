@@ -32,6 +32,10 @@
 	#define _WOO_L1_CACHE_LINESIZE 64
 #endif
 
+// trace macro for windows - unable to compile woo with -g
+// due to "too many sections" problem (PE32 vs. boost::serialization templates)
+#define _MPAA_DBG(a)
+//#define _MPAA_DBG(a) cerr<<a;
 
 // O(1) access container which stores data in contiguous chunks of memory
 // each chunk belonging to one thread
@@ -51,9 +55,11 @@ class OpenMPArrayAccumulator{
 		void resize(size_t n){
 			if(n==sz) return; // nothing to do
 			size_t nCL_new=nCL_for_N(n);
+			_MPAA_DBG("OpenMPArrayAccumulator: resize "<<sz<<" -> "<<n<<" ("<<nCL<<" -> "<<nCL_new<<" lines per "<<CLS<<"b; "<<sizeof(T)<<"b/item)"<<endl);
 			if(nCL_new>nCL){
 				for(size_t th=0; th<nThreads; th++){
 					void* oldChunk=(void*)chunks[th];
+					
 					#ifndef __MINGW64__
 						int succ=posix_memalign((void**)(&chunks[th]),/*alignment*/CLS,/*size*/ nCL_new*CLS);
 						if(succ!=0)
@@ -63,20 +69,48 @@ class OpenMPArrayAccumulator{
 						if(chunks[th]==NULL)
 					#endif
 						throw std::runtime_error("OpenMPArrayAccumulator: _aligned_malloc/posix_memalign failed to allocate memory.");
+					_MPAA_DBG("\tthread "<<th<<": alloc "<<nCL_new*CLS<<"b @ "<<chunks[th]<<endl);
 					if(oldChunk){ // initialized to NULL initially, that must not be copied and freed
+						_MPAA_DBG("\tthread "<<th<<": memcpy "<<oldChunk<<" -> "<<(void*)chunks[th]<<" ("<<nCL*CLS<<"b)"<<endl);
 						memcpy(/*dest*/(void*)chunks[th],/*src*/oldChunk,nCL*CLS); // preserve old data
-						free(oldChunk); // deallocate old storage
+						_MPAA_DBG("\tthread "<<th<<": free "<<oldChunk<<" ("<<nCL*CLS<<"b)"<<endl);
+						#ifndef __MINGW64__
+							free(oldChunk); // deallocate old storage
+						#else
+							_aligned_free(oldChunk); // free is illegal with _aligned_malloc
+						#endif
 					}
 					nCL=nCL_new;
 				}
+				
 			}
 			// if nCL_new<nCL, do not deallocate memory
 			// if nCL_new==nCL, only update sz
 			// reset items that were added
-			for(size_t s=sz; s<n; s++){ for(size_t th=0; th<nThreads; th++) chunks[th][s]=ZeroInitializer<T>(); }
+			_MPAA_DBG("\tZero'ing new items: ");
+			for(size_t th=0; th<nThreads; th++){
+				_MPAA_DBG(" [th "<<th<<":");
+				for(size_t s=sz; s<n; s++){
+					_MPAA_DBG(" "<<s);
+					chunks[th][s]=ZeroInitializer<T>();
+				}
+				_MPAA_DBG("]");
+			}
+			_MPAA_DBG(endl);
 			sz=n;
 		}
-		// clear (does not deallocate storage, anyway)
+		~OpenMPArrayAccumulator(){
+			/* deallocate memory */
+			for(size_t th=0; th<nThreads; th++){
+				if(!chunks[th]) continue;
+				#ifndef __MINGW64__
+					free((void*)chunks[th]);
+				#else
+					_aligned_free((void*)chunks[th]);
+				#endif
+			}
+		}
+		// clear (deallocates storage)
 		void clear() { resize(0); }
 		// return number of elements
 		size_t size() const { return sz; }
@@ -109,7 +143,7 @@ class OpenMPAccumulator{
 		char* data; // use void* rather than T*, since with T* the pointer arithmetics has sizeof(T) as unit, which is confusing; char* takes one byte
 	public:
 	// initialize storage with _zeroValue, depending on muber of threads
-	OpenMPAccumulator(): CLS(_WOO_L1_CACHE_LINESIZE), nThreads(omp_get_max_threads()), eSize(CLS*(sizeof(T)/CLS+(sizeof(T)%CLS==0 ? 0 :1))) {
+	OpenMPAccumulator(): CLS(_WOO_L1_CACHE_LINESIZE), nThreads(omp_get_max_threads()), eSize(CLS*(sizeof(T)/CLS+(sizeof(T)%CLS==0 ? 0 :1))), data(NULL) {
 		#ifndef __MINGW64__
 			int succ=posix_memalign(/*where allocated*/(void**)&data,/*alignment*/CLS,/*size*/ nThreads*eSize);
 			if(succ!=0)
@@ -121,7 +155,14 @@ class OpenMPAccumulator{
 				throw std::runtime_error("OpenMPAccumulator: posix_memalign/_aligned_malloc failed to allocate memory.");
 		reset();
 	}
-	~OpenMPAccumulator() { free((void*)data); }
+	~OpenMPAccumulator() {
+		assert(data); // would've failed in the ctor already
+		#ifndef __MINGW64__
+			free((void*)data);
+		#else
+			_aligned_free((void*)data);
+		#endif
+	}
 	// lock-free addition
 	void operator+=(const T& val){ *((T*)(data+omp_get_thread_num()*eSize))+=val; }
 	// return summary value; must not be used concurrently

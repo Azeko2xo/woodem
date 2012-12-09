@@ -20,6 +20,7 @@ import itertools,warnings,os
 from numpy import arange
 from math import sqrt
 from woo import utils
+import numpy
 
 from minieigen import *
 from woo import *
@@ -715,8 +716,8 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 	if not rightLine:rightLine=[Vector2(cellSize[1],cellSize[2])]
 	if not botLine:  botLine=[Vector2(0,0),Vector2(cellSize[1],0)]
 	boundary2d=leftLine+botLine+rightLine
-	p=pack.sweptPolylines2gtsSurface([utils.tesselatePolyline([Vector3(x,yz[0],yz[1]) for yz in boundary2d],maxDist=min(cellSize[0]/4.,cellSize[1]/4.,cellSize[2])/4.) for x in numpy.linspace(0,cellSize[0],num=4)])
-	S.dem.par.append(pack.gtsSurface2Facets(p,mask=0b011))
+	p=sweptPolylines2gtsSurface([utils.tesselatePolyline([Vector3(x,yz[0],yz[1]) for yz in boundary2d],maxDist=min(cellSize[0]/4.,cellSize[1]/4.,cellSize[2])/4.) for x in numpy.linspace(0,cellSize[0],num=4)])
+	S.dem.par.append(gtsSurface2Facets(p,mask=0b011))
 	S.dem.loneMask=0b010
 
 	massToDo=porosity*mat.density*dim[0]*dim[1]*dim[2]
@@ -753,7 +754,7 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 	S.wait()
 	cc,rr=[],[]
 	for p in S.dem.par:
-		if not type(p.shape)==Sphere: continue
+		if not type(p.shape)==woo.dem.Sphere: continue
 		for rep in repeatCell:
 			c,r=S.cell.canonicalizePt(p.pos)+dim[1]*(rep-.5)*Vector3.UnitY,p.shape.radius
 			if abs(c[1])+r>.5*retWd or c[2]+r>dim[2]: continue

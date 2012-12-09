@@ -15,7 +15,7 @@ if 1:
 		macros, objects, extra_postargs, pp_opts, build = self._setup_compile(output_dir, macros, include_dirs, sources, depends, extra_postargs)
 		cc_args = self._get_cc_args(pp_opts, debug, extra_preargs)
 		# parallel code
-		N=5 # number of parallel compilations
+		N=4 # number of parallel compilations
 		import multiprocessing.pool
 		def _single_compile(obj):
 			try: src, ext = build[obj]
@@ -70,7 +70,7 @@ if 'opengl' in features and 'qt4' not in features: raise ValueError("The 'opengl
 
 
 #
-# isntall headers and source (in chunks)
+# install headers and source (in chunks)
 #
 def wooPrepareHeaders():
 	'Copy headers to build-src-tree/woo/ subdirectory'
@@ -209,14 +209,13 @@ if WIN:
 	cxxLibs=[(lib+boostTag if lib.startswith('boost_') else lib) for lib in cxxLibs]
 else:
 	cppDirs+=['/usr/include/eigen3']
-	# cxxLibs+=['rt']  # this is probably not needed anymore, since we switched to boost::chrono
 	
 ##
 ## Debug-specific
 ##
 if debug:
 	cppDef+=[('WOO_DEBUG',None),('WOO_CAST','dynamic_cast'),('WOO_PTR_CAST','dynamic_pointer_cast')]
-	cxxFlags+=['-g']
+	cxxFlags+=['-Os']
 else:
 	cppDef+=[('WOO_CAST','static_cast'),('WOO_PTR_CAST','static_pointer_cast'),('NDEBUG',None)]
 	cxxFlags+=['-g0','-O3']+(['-march=corei7'] if WIN else ['-march=native'])
@@ -303,15 +302,14 @@ setup(name='woo',
 			extra_link_args=linkFlags,
 		),
 	],
-	# ignored under windows? http://stackoverflow.com/questions/13271085/console-scripts-entry-point-ignored
+	# works under windows as well now
+	# http://stackoverflow.com/questions/13271085/console-scripts-entry-point-ignored
 	entry_points={
 		'console_scripts':[
 			'%swoo%s = wooMain:main'%('w' if WIN else '',execFlavor),
 			'%swoo%s_batch = wooMain:batch'%('w' if WIN else '',execFlavor),
 		],
 	},
-	# workaround for windows, instead of entry_points['console_scripts']
-	# scripts=glob(join(pathScripts,'*')),
 	# woo.__init__ makes symlinks to _cxxInternal, which would not be possible if zipped
 	# see http://stackoverflow.com/a/10618900/761090
 	zip_safe=False, 
