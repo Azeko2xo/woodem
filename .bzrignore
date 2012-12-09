@@ -6,6 +6,7 @@ VERSION
 debian/changelog
 debian/control
 doc/sphinx2/*
+wooExtra/*
 build
 dist
 MANIFEST

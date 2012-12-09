@@ -4,7 +4,10 @@
 namespace woo{
 	struct WooTestClass: public woo::Object{
 		#define _UNIT_ATTR(unitName) ((Real,unitName,0.,AttrTrait<>().unitName ## Unit(),"Variable with " #unitName "unit."))
-		WOO_CLASS_BASE_DOC_ATTRS(WooTestClass,Object,"This class serves to test various functionalities; it also includes all possible units, which thus get registered in woo",
+		py::list aaccuGetRaw();
+		void aaccuSetRaw(const vector<Real>& r);
+		void aaccuWriteThreads(size_t ix, const vector<Real>& cycleData);
+		WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(WooTestClass,Object,"This class serves to test various functionalities; it also includes all possible units, which thus get registered in woo",
 			/* enumerate all units here */
 			// ((Real,angle,0.,AttrTrait<>().angleUnit(),""))
 			_UNIT_ATTR(angle)
@@ -25,6 +28,12 @@ namespace woo{
 			_UNIT_ATTR(massFlowRate)
 			_UNIT_ATTR(density)
 			_UNIT_ATTR(fraction)
+			((OpenMPArrayAccumulator<Real>,aaccu,,AttrTrait<>().noGui(),"Test openmp array accumulator"))
+
+			,/*ctor*/
+			,/*py*/
+				.add_property("aaccuRaw",&WooTestClass::aaccuGetRaw,&WooTestClass::aaccuSetRaw,"Access OpenMPArrayAccumulator data directly. Writing resizes and sets the 0th thread value, resetting all other ones.")
+				.def("aaccuWriteThreads",&WooTestClass::aaccuWriteThreads,(py::arg("index"),py::arg("cycleData")),"Assign a single line in the array accumulator, assigning number from *cycleData* in parallel in each thread.")
 		);
 		#undef _UNIT_ATTR
 	};

@@ -236,30 +236,6 @@ class TestIO(unittest.TestCase):
 		failed=list(failed); failed.sort()
 		self.assert_(len(failed)==0,'Failed classes were: '+' '.join(failed))
 
-# tr2 doees not define particle state (yet?)
-if 0:
-	class TestMaterialStateAssociativity(unittest.TestCase):
-		def setUp(self): woo.master.reset()
-		# rename back when those classes are available
-		def _testThrowsAtBadCombination(self):
-			"Material+State: throws when body has material and state that don't work together."
-			b=Particle()
-			b.mat=CpmMat()
-			b.state=State() #should be CpmState()
-			O.bodies.append(b)
-			self.assertRaises(RuntimeError,lambda: S.one()) # throws runtime_error
-		def testThrowsAtNullState(self):
-			"Material+State: throws when body has material but NULL state."
-			b=Body()
-			b.mat=Material()
-			b.state=None # → shared_ptr<State>() by boost::python
-			O.bodies.append(b)
-			self.assertRaises(RuntimeError,lambda: S.one())
-		 #dtto	
-		def _testMaterialReturnsState(self):
-			"Material+State: CpmMat returns CpmState when asked for newAssocState"
-			self.assert_(CpmMat().newAssocState().__class__==CpmState)
-
 
 class TestParticles(unittest.TestCase):
 	def setUp(self):
@@ -297,3 +273,29 @@ class TestParticles(unittest.TestCase):
 			if S.dem.par.exists(id): S.dem.par.remove(id); removed+=1
 		for b in S.dem.par: counted+=1
 		self.assert_(counted==self.count-removed)
+
+
+class TestArrayAccu(unittest.TestCase):
+	def setUp(self):
+		self.t=woo.core.WooTestClass()
+		self.N=woo.master.numThreads
+	def testResize(self):
+		'OpenMP array accu: resizing'
+		self.assert_(len(self.t.aaccuRaw)==0) # initial zero size
+		for sz in (4,8,16,32,33):
+			self.t.aaccuRaw=[i for i in range(0,sz)]
+			r=self.t.aaccuRaw
+			for i in range(0,sz):
+				self.assert_(r[i][0]==i)  # first thread is assigned the value
+				for n in range(1,self.N): self.assert_(r[i][n]==0) # other threads are reset
+	def testPreserveResize(self):
+		'OpenMP array accu: preserve old data on resize'
+		self.t.aaccuRaw=(0,1)
+		self.t.aaccuWriteThreads(2,[2]) # write whatever to index 2: resizes, but should preserve 0,1
+		self.assert_(self.t.aaccuRaw[0][0]==0)
+		self.assert_(self.t.aaccuRaw[1][0]==1)
+	def testThreadWrite(self):
+		'OpenMP array accu: concurrent writes'
+		self.t.aaccuWriteThreads(0,[i for i in range(0,self.N)])
+		for i in range(0,self.N):
+			self.assert_(self.t.aaccuRaw[0][i]==i) # each thread has written its own index
