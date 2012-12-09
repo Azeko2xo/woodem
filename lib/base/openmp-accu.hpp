@@ -34,8 +34,8 @@
 
 // trace macro for windows - unable to compile woo with -g
 // due to "too many sections" problem (PE32 vs. boost::serialization templates)
-// #define _MPAA_DBG(a)
-#define _MPAA_DBG(a) cerr<<a;
+#define _MPAA_DBG(a)
+// #define _MPAA_DBG(a) cerr<<a;
 
 // O(1) access container which stores data in contiguous chunks of memory
 // each chunk belonging to one thread
