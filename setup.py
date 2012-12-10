@@ -15,7 +15,7 @@ if 1:
 		macros, objects, extra_postargs, pp_opts, build = self._setup_compile(output_dir, macros, include_dirs, sources, depends, extra_postargs)
 		cc_args = self._get_cc_args(pp_opts, debug, extra_preargs)
 		# parallel code
-		N=4 # number of parallel compilations
+		N=(4 if WIN else 1) # number of parallel compilations by default; keep 1 on linux for Launchpad build service
 		if 'DEB_BUILD_OPTIONS' in os.environ:
 			m=re.match(r'\bparallel=([0-9]+)\b',os.environ['DEB_BUILD_OPTIONS'])
 			N=(int(m.group(1)) if m else 1)
