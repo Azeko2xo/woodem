@@ -36,6 +36,10 @@ pathSources=join(pathSourceTree,'src')
 pathScripts=join(pathSourceTree,'scripts')
 pathHeaders=join(pathSourceTree,'woo')
 
+##
+##
+for k,v in os.environ.items(): print k,v
+
 ## get version info
 version=None
 revno=None
