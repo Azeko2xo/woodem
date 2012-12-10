@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>408</width>
-    <height>276</height>
+    <height>431</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -39,7 +39,7 @@
       </sizepolicy>
      </property>
      <property name="currentIndex">
-      <number>5</number>
+      <number>3</number>
      </property>
      <widget class="QWidget" name="tabGridLayout">
       <attribute name="title">
@@ -552,8 +552,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>98</width>
-            <height>28</height>
+            <width>402</width>
+            <height>369</height>
            </rect>
           </property>
          </widget>
@@ -806,7 +806,7 @@
        <item row="0" column="0">
         <layout class="QHBoxLayout" name="horizontalLayout_9">
          <item>
-          <widget class="QCheckBox" name="traceChecbox">
+          <widget class="QCheckBox" name="traceCheckbox">
            <property name="text">
             <string>Trace particles</string>
            </property>
@@ -840,8 +840,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>98</width>
-            <height>28</height>
+            <width>402</width>
+            <height>367</height>
            </rect>
           </property>
          </widget>
@@ -886,8 +886,8 @@
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>98</width>
-              <height>28</height>
+              <width>400</width>
+              <height>335</height>
              </rect>
             </property>
            </widget>
@@ -995,7 +995,7 @@
             <x>0</x>
             <y>0</y>
             <width>402</width>
-            <height>241</height>
+            <height>396</height>
            </rect>
           </property>
           <property name="sizePolicy">
@@ -1424,7 +1424,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>traceChecbox</sender>
+   <sender>traceCheckbox</sender>
    <signal>toggled(bool)</signal>
    <receiver>Controller</receiver>
    <slot>traceCheckboxToggled()</slot>

@@ -69,6 +69,7 @@ def main(sysArgv=None):
 	# end wooOptions parse
 	#
 	par.add_argument('-c',help='Run these python commands after the start (use -x to exit afterwards)',dest='commands',metavar='COMMANDS')
+	par.add_argument('-e',help='Evaluate this expression (instead of loading file). It should be a scene object or a preprocessor, which will be run',dest='expression',metavar='EXPR')
 	# par.add_argument('--update',help='Update deprecated class names in given script(s) using text search & replace. Changed files will be backed up with ~ suffix. Exit when done without running any simulation.',dest='updateScripts',action='store_true')
 	par.add_argument('--paused',help='When proprocessor or simulation is given on the command-line, don\'t run it automatically (default)',action='store_true')
 	par.add_argument('--nice',help='Increase nice level (i.e. decrease priority) by given number.',dest='nice',type=int)
@@ -262,7 +263,7 @@ def main(sysArgv=None):
 
 def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 	# prepare nice namespace for users
-	import woo, woo.runtime, woo.config
+	import woo, woo.runtime, woo.config, wooExtra
 	import sys, traceback, site
 	#
 	# start non-blocking qt4 app here; need to ask on the mailing list on how to make it functional
@@ -310,6 +311,11 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 			if not opts.paused:
 				woo.master.scene.run() # run the new simulation
 				if woo.runtime.opts.exitAfter: woo.master.scene.wait() 
+	if woo.runtime.opts.expression:
+		obj=eval(opts.expression)
+		if isinstance(obj,woo.core.Scene): woo.master.scene=obj
+		elif isinstance(obj,woo.core.Preprocessor): woo.master.scene=woo.batch.runPreprocessor(obj)
+		else: raise ValueError('Expression given with -e must be a Scene or a Preprocessor, not a %s'%type(obj))
 	if woo.runtime.opts.commands:
 		exec(woo.runtime.opts.commands) in globals()
 	if woo.runtime.opts.exitAfter: sys.exit(0)

@@ -181,6 +181,8 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.generatorComboSlot(None)
 		self.movieButton.setEnabled(False)
 		self.lastScene=None
+		tr=self.tracerGetEngine(woo.master.scene)
+		if not tr.dead: self.traceCheckbox.setChecked(True) # show active tracer
 		self.movieActive=False
 		self.tracerActive=False
 		self.inspector=None
@@ -354,21 +356,34 @@ class ControllerClass(QWidget,Ui_Controller):
 			print 'No woo._tracer, will not reset'
 			return
 		woo._tracer.resetNodesRep(setupEmpty=True)
+	def tracerGetEngine(self,S):
+		'Find tracer engine, return it, or return None; raise exception with multiple tracers'
+		tt=[e for e in S.engines if isinstance(e,woo.dem.Tracer)]
+		if len(tt)>1: raise RuntimeError('Multiple tracer engines in scene?')
+		if len(tt)==1: return tt[0]
+		return None
 	def traceCheckboxToggled(self,isOn):
 		S=self.lastScene=woo.master.scene
 		if isOn:
-			tracer=woo.dem.Tracer(label='_tracer',stepPeriod=100,realPeriod=.2)
-			S.engines=S.engines+[tracer]
+			# is there a tracer already?
+			tracer=self.tracerGetEngine(S)
+			if not tracer:
+				tracer=woo.dem.Tracer(label='_tracer',stepPeriod=100,realPeriod=.2)
+				S.engines=S.engines+[tracer]
+			tracer.dead=False
 			S.ranges=S.ranges+[woo.dem.Tracer.lineColor]
 			self.tracerArea.setWidget(SerializableEditor(tracer,parent=self.tracerArea,showType=True))
 			self.resetTraceButton.setEnabled(True)
 			woo.gl.Gl1_DemField.glyph=woo.gl.Gl1_DemField.glyphKeep
 			self.tracerActive=True
 		else:
-			if hasattr(woo,'_tracer'):
-				woo._tracer.resetNodesRep(setupEmpty=False)
-				del woo._tracer
-			S.engines=[e for e in S.engines if type(e)!=woo.dem.Tracer]
+			tracer=self.tracerGetEngine(S)
+			if tracer:
+				tracer.dead=True
+				#hasattr(woo,'_tracer'):
+				tracer.resetNodesRep(setupEmpty=False)
+				#del woo._tracer
+			#S.engines=[e for e in S.engines if type(e)!=woo.dem.Tracer]
 			S.ranges=[r for r in S.ranges if r!=woo.dem.Tracer.lineColor]
 			self.tracerArea.setWidget(QFrame())
 			self.resetTraceButton.setEnabled(False)
