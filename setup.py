@@ -43,6 +43,7 @@ revno=None
 if DEBIAN:
 	version=re.match(r'^[^(]* \(([^)]+)\).*$',open('debian/changelog').readlines()[0]).group(1)
 	print 'Debian version from changelog: ',version
+	revno='debian'
 if not version:
 	try:
 		# http://stackoverflow.com/questions/3630893/determining-the-bazaar-version-number-from-python-without-calling-bzr
@@ -184,7 +185,7 @@ cppDirs,cppDef,cxxFlags,cxxLibs,linkFlags,libDirs=[],[],[],[],[],[]
 cppDef+=[
 	('WOO_REVISION',revno),
 	('WOO_VERSION',version),
-	('WOO_SOURCE_ROOT',dirname(os.path.abspath(__file__)).replace('\\','/')),
+	('WOO_SOURCE_ROOT','' if DEBIAN else dirname(os.path.abspath(__file__)).replace('\\','/')),
 	('WOO_FLAVOR',flavor),
 	('WOO_CXX_FLAVOR',cxxFlavor),
 ]

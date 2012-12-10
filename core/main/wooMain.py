@@ -97,6 +97,7 @@ def main(sysArgv=None):
 	if not WIN and opts.rebuild:
 		wooOptions.quirks=0
 		import subprocess, woo.config, glob
+		if not woo.config.sourceRoot: raise RuntimeError('This build does not define woo.config.sourceRoot (packaged version?)')
 		if opts.rebuild>1:
 			cmd=['bzr','up',woo.config.sourceRoot]
 			print 'Updating Woo using ',' '.join(cmd)
