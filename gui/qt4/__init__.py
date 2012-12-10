@@ -182,7 +182,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.movieButton.setEnabled(False)
 		self.lastScene=None
 		tr=self.tracerGetEngine(woo.master.scene)
-		if not tr.dead: self.traceCheckbox.setChecked(True) # show active tracer
+		if tr and not tr.dead: self.traceCheckbox.setChecked(True) # show active tracer
 		self.movieActive=False
 		self.tracerActive=False
 		self.inspector=None
