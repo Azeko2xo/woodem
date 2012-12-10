@@ -63,6 +63,7 @@ if 'CC' in os.environ and os.environ['CC'].endswith('clang'): features.remove('o
 flavor='' #('' if WIN else 'distutils')
 debug=False
 chunkSize=(1 if WIN else 10)
+if DEBIAN: chunkSize=1 # be nice to the builder at launchpad
 hotCxx=['Factory']
 ##
 ## end build options
