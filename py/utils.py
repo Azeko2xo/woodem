@@ -503,11 +503,11 @@ def xhtmlReportHead(S,headline):
 		<table>
 			<tr><td>title</td><td align="right">{title}</td></tr>
 			<tr><td>id</td><td align="right">{id}</td></tr>
-			<tr><td>operator</td><td align="right">{user}</td></tr>
 			<tr><td>started</td><td align="right">{started}</td></tr>
 			<tr><td>duration</td><td align="right">{duration:g} s</td></tr>
-			<tr><td>number of cores used</td><td align="right">{nCores}</td></tr>
 			<tr><td>average speed</td><td align="right">{stepsPerSec:g} steps/sec</td></tr>
+			<tr><td>operator</td><td align="right">{user}</td></tr>
+			<tr><td>number of cores used</td><td align="right">{nCores}</td></tr>
 			<tr><td>engine</td><td align="right">{engine}</td></tr>
 			<tr><td>compiled with</td><td align="right">{compiledWith}</td></tr>
 			<tr><td>platform</td><td align="right">{platform}</td></tr>

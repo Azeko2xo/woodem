@@ -177,6 +177,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.genIndexLoad=-1
 		self.genIndexCurr=-1
 		self.refreshPreprocessors()
+		self.fillAboutData()
 		self.generatorComboSlot(None)
 		self.movieButton.setEnabled(False)
 		self.lastScene=None
@@ -234,6 +235,16 @@ class ControllerClass(QWidget,Ui_Controller):
 					if len(set(inst.dict().keys())-set(['label']))>0:
 						self.displayCombo.addItem(c); afterSep+=1
 				except (NameError,AttributeError): pass # functo which is not defined
+	def fillAboutData(self):	
+		import woo, woo.config, platform, textwrap
+		self.aboutDataLabel.setText('''<br><table cellpadding='2px'>
+			<tr><td>user  </td><td>{user}</td></tr>
+			<tr><td>cores  </td><td>{nCores}</td></tr>
+			<tr><td>version  </td><td>{version}</td></tr>
+			<tr><td>platform  </td><td>{platform}</td></tr>
+			<tr><td>features  </td><td>{features}</td></tr>
+		</table>
+		'''.format(user=woo.master.scene.tags['user'].decode('utf-8'),nCores=woo.master.numThreads,platform='<br>'.join(textwrap.wrap(platform.platform().replace('-',' '),40)),version=woo.config.version+'/'+woo.config.revision+(' (debug)' if woo.config.debug else ''),features=', '.join(woo.config.features)))
 	def inspectSlot(self):
 		if not self.inspector:
 			self.inspector=SimulationInspector(parent=None)
