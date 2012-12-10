@@ -8,6 +8,9 @@ import os.path, os, shutil, re, subprocess, sys
 from glob import glob
 from os.path import sep,join,basename,dirname
 
+DEBIAN='DEB_BUILD_ARCH' in os.environ
+WIN=(sys.platform=='win32')
+
 if 1:
 	# monkey-patch for parallel compilation
 	def parallelCCompile(self, sources, output_dir=None, macros=None, include_dirs=None, debug=0, extra_preargs=None, extra_postargs=None, depends=None):
@@ -15,10 +18,8 @@ if 1:
 		macros, objects, extra_postargs, pp_opts, build = self._setup_compile(output_dir, macros, include_dirs, sources, depends, extra_postargs)
 		cc_args = self._get_cc_args(pp_opts, debug, extra_preargs)
 		# parallel code
-		N=(4 if WIN else 1) # number of parallel compilations by default; keep 1 on linux for Launchpad build service
-		if 'DEB_BUILD_OPTIONS' in os.environ:
-			m=re.match(r'\bparallel=([0-9]+)\b',os.environ['DEB_BUILD_OPTIONS'])
-			N=(int(m.group(1)) if m else 1)
+		N=4 # number of parallel compilations by default
+		if DEBIAN: N=1 # be nice to build service machines
 		import multiprocessing.pool
 		def _single_compile(obj):
 			try: src, ext = build[obj]
@@ -36,13 +37,12 @@ pathSources=join(pathSourceTree,'src')
 pathScripts=join(pathSourceTree,'scripts')
 pathHeaders=join(pathSourceTree,'woo')
 
-##
-##
-for k,v in os.environ.items(): print k,v
-
 ## get version info
 version=None
 revno=None
+if DEBIAN:
+	version=re.match(r'^[^(]* \(([^)]+)\).*$',open('debian/changelog').readlines()[0]).group(1)
+	print 'Debian version from changelog: ',version
 if not version:
 	try:
 		# http://stackoverflow.com/questions/3630893/determining-the-bazaar-version-number-from-python-without-calling-bzr
@@ -52,8 +52,7 @@ if not version:
 	except:
 		revno='na'
 	version='0.99+r'+revno
-import sys
-WIN=(sys.platform=='win32')
+	
 
 ##
 ## build options

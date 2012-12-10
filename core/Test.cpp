@@ -19,7 +19,7 @@ void WooTestClass::aaccuWriteThreads(size_t ix, const vector<Real>& cycleData){
 	size_t i=0;
 	#ifdef WOO_OPENMP
 		#pragma omp parallel for
-		for(i=0; i<omp_get_num_threads(); i++)
+		for(i=0; i<(size_t)omp_get_num_threads(); i++)
 	#endif
 		{ aaccu.add(ix,cycleData[i%cycleData.size()]); }
 }
