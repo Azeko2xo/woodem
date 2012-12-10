@@ -16,6 +16,9 @@ if 1:
 		cc_args = self._get_cc_args(pp_opts, debug, extra_preargs)
 		# parallel code
 		N=4 # number of parallel compilations
+		if 'DEB_BUILD_OPTIONS' in os.environ:
+			m=re.match(r'\bparallel=([0-9]+)\b',os.environ['DEB_BUILD_OPTIONS'])
+			N=(int(m.group(1)) if m else 1)
 		import multiprocessing.pool
 		def _single_compile(obj):
 			try: src, ext = build[obj]
@@ -53,7 +56,7 @@ WIN=(sys.platform=='win32')
 ##
 features=['qt4','vtk','opengl','gts','openmp']
 if 'CC' in os.environ and os.environ['CC'].endswith('clang'): features.remove('openmp')
-flavor=('' if WIN else 'distutils')
+flavor='' #('' if WIN else 'distutils')
 debug=False
 chunkSize=(1 if WIN else 10)
 hotCxx=['Factory']
@@ -269,8 +272,21 @@ setup(name='woo',
 	author='Václav Šmilauer',
 	author_email='eu@doxos.eu',
 	url='http://www.woodem.eu',
-	description='Platform for discree dynamic compuations, especially granular mechanics.',
-	long_description='''TODO''',
+	description='Discrete dynamic compuations, especially granular mechanics.',
+	long_description='''Extesible and portable framework primarily for mechanics
+granular materials. Computation parts are written in c++ parallelized using
+OpenMP, fully accessible and modifiable from python (ipython console or
+scripts). Arbitrarily complex scene can be scripted. Qt-based user interface
+is provided, featuring flexible OpenGL display, inspection of all objects
+and runtime modification. Parametric preprocessors can be written in pure
+python, and batch system can be used to drive parametric studies. New
+material models and particle shapes can be added (in c++) without modifying
+existing classes.
+	
+Woo is an evolution of the Yade package
+(http://www.launchpad.net/yade), aiming at more flexibility, extensibility,
+tighter integration with python and user-friendliness.
+	''',
 	classifiers=[
 		'License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)',
 		'Programming Language :: C++',
