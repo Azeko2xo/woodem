@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>408</width>
+    <width>452</width>
     <height>512</height>
    </rect>
   </property>
@@ -552,8 +552,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>402</width>
-            <height>410</height>
+            <width>446</width>
+            <height>450</height>
            </rect>
           </property>
          </widget>
@@ -840,8 +840,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>402</width>
-            <height>408</height>
+            <width>446</width>
+            <height>448</height>
            </rect>
           </property>
          </widget>
@@ -886,8 +886,8 @@
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>400</width>
-              <height>376</height>
+              <width>444</width>
+              <height>414</height>
              </rect>
             </property>
            </widget>
@@ -994,7 +994,7 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>402</width>
+            <width>446</width>
             <height>477</height>
            </rect>
           </property>
@@ -1097,7 +1097,7 @@
                 </size>
                </property>
                <property name="text">
-                <string>&lt;p align=&quot;center&quot;&gt;&lt;a href=&quot;http://www.woodem.eu&quot;&gt;&lt;b&gt;WooDEM&lt;/b&gt;&lt;/a&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;© &lt;a href=&quot;mailto:woodem@doxo.eu&quot;&gt;Václav Šmilauer&lt;/span&gt;&lt;/a&gt; and others&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;License: &lt;a href=&quot;http://opensource.org/licenses/gpl-2.0.php&quot;&gt;GNU GPL v2&lt;/a&gt;&lt;/p&gt;</string>
+                <string>&lt;p align=&quot;center&quot;&gt;&amp;nbsp;&amp;nbsp;&lt;a href=&quot;http://www.woodem.eu&quot;&gt;&lt;b&gt;WooDEM&lt;/b&gt;&lt;/a&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;© &lt;a href=&quot;mailto:woodem@doxo.eu&quot;&gt;Václav Šmilauer&lt;/span&gt;&lt;/a&gt; and others&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;License: &lt;a href=&quot;http://opensource.org/licenses/gpl-2.0.php&quot;&gt;GNU GPL v2&lt;/a&gt;&lt;/p&gt;</string>
                </property>
                <property name="textFormat">
                 <enum>Qt::RichText</enum>
@@ -1145,6 +1145,12 @@
               <widget class="QLabel" name="aboutExtraLabel">
                <property name="text">
                 <string/>
+               </property>
+               <property name="openExternalLinks">
+                <bool>true</bool>
+               </property>
+               <property name="textInteractionFlags">
+                <set>Qt::LinksAccessibleByKeyboard|Qt::LinksAccessibleByMouse|Qt::TextBrowserInteraction|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
                </property>
               </widget>
              </item>
