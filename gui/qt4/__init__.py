@@ -238,15 +238,31 @@ class ControllerClass(QWidget,Ui_Controller):
 						self.displayCombo.addItem(c); afterSep+=1
 				except (NameError,AttributeError): pass # functo which is not defined
 	def fillAboutData(self):	
-		import woo, woo.config, platform, textwrap
-		self.aboutDataLabel.setText('''<br><table cellpadding='2px'>
-			<tr><td>user  </td><td>{user}</td></tr>
-			<tr><td>cores  </td><td>{nCores}</td></tr>
-			<tr><td>version  </td><td>{version}</td></tr>
-			<tr><td>platform  </td><td>{platform}</td></tr>
-			<tr><td>features  </td><td>{features}</td></tr>
+		import woo, woo.config, platform, textwrap, types, wooExtra, pkg_resources, collections
+		extras=[]
+		ExInfo=collections.namedtuple('ExInfo','name, mod, version, distributor')
+		for exName in dir(wooExtra):
+			mod=getattr(wooExtra,exName)
+			if type(mod)!=types.ModuleType: continue
+			modName=mod.__name__
+			try:
+				# this will fail with pyinstaller
+				ver=pkg_resources.get_distribution(modName).version
+			except:
+				try: ver=open(os.path.dirname(mod.__file__)+'/VERSION').readlines()[0][:-1]
+				except: ver='n/a'
+			distributor=(getattr(mod,'distributor') if hasattr(mod,'distributor') else None)
+			extras.append(ExInfo(name=exName,mod=mod,version=ver,distributor=distributor))
+		self.aboutGeneralLabel.setText('''<table cellpadding='2px'>
+			<tr><td>user</td><td>{user}</td></tr>
+			<tr><td>cores</td><td>{nCores}</td></tr>
+			<tr><td>version</td><td>{version} ({buildDate})</td></tr>
+			<tr><td>platform</td><td>{platform}</td></tr>
+			<tr><td>features</td><td>{features}</td></tr>
+			<tr><td>extras</td><td>{extraModules}</td></tr>
 		</table>
-		'''.format(user=woo.master.scene.tags['user'].decode('utf-8'),nCores=woo.master.numThreads,platform='<br>'.join(textwrap.wrap(platform.platform().replace('-',' '),40)),version=woo.config.version+'/'+woo.config.revision+(' (debug)' if woo.config.debug else ''),features=', '.join(woo.config.features)))
+		'''.format(user=woo.master.scene.tags['user'].decode('utf-8'),nCores=woo.master.numThreads,platform='<br>'.join(textwrap.wrap(platform.platform().replace('-',' '),40)),version=woo.config.version+'/'+woo.config.revision+(' (debug)' if woo.config.debug else ''),features=', '.join(woo.config.features),buildDate=woo.config.buildDate,extraModules='<br>'.join(['{e.name} ({e.version})'.format(e=e) for e in extras])))
+		self.aboutExtraLabel.setText("<table cellpadding='2px'>"+''.join(['<tr><td>wooExtra.<b>{e.name}</b><br>{e.version}</td><td>{dist}</td></tr>'.format(e=e,dist=(e.distributor if e.distributor else '-')) for e in extras])+'</table')
 	def inspectSlot(self):
 		if not self.inspector:
 			self.inspector=SimulationInspector(parent=None)
