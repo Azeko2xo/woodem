@@ -1,5 +1,6 @@
 #pragma once
 #include<woo/lib/object/Object.hpp>
+#include<woo/lib/base/openmp-accu.hpp>
 
 namespace woo{
 	struct WooTestClass: public woo::Object{

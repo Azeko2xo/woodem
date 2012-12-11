@@ -11,7 +11,7 @@ from os.path import sep,join,basename,dirname
 DEBIAN='DEB_BUILD_ARCH' in os.environ
 WIN=(sys.platform=='win32')
 
-if 1:
+if not DEBIAN: # don't do parallel at buildbot
 	# monkey-patch for parallel compilation
 	def parallelCCompile(self, sources, output_dir=None, macros=None, include_dirs=None, debug=0, extra_preargs=None, extra_postargs=None, depends=None):
 		# those lines are copied from distutils.ccompiler.CCompiler directly
@@ -19,7 +19,6 @@ if 1:
 		cc_args = self._get_cc_args(pp_opts, debug, extra_preargs)
 		# parallel code
 		N=4 # number of parallel compilations by default
-		if DEBIAN: N=1 # be nice to build service machines
 		import multiprocessing.pool
 		def _single_compile(obj):
 			try: src, ext = build[obj]
