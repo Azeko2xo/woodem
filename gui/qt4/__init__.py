@@ -237,16 +237,19 @@ class ControllerClass(QWidget,Ui_Controller):
 						self.displayCombo.addItem(c); afterSep+=1
 				except (NameError,AttributeError): pass # functo which is not defined
 	def fillAboutData(self):	
-		import woo, woo.config, platform, textwrap, types, wooExtra, pkg_resources, collections
+		import woo, woo.config, platform, textwrap, types, pkg_resources, collections
 		extras=[]
-		ExInfo=collections.namedtuple('ExInfo','name, mod, version, distributor')
-		for exName in dir(wooExtra):
-			mod=getattr(wooExtra,exName)
-			if type(mod)!=types.ModuleType: continue
-			modName=mod.__name__
-			ver=pkg_resources.get_distribution(modName).version
-			distributor=unicode(getattr(mod,'distributor') if hasattr(mod,'distributor') else u'−')
-			extras.append(ExInfo(name=exName,mod=mod,version=ver,distributor=distributor))
+		try:
+			import wooExtra
+			ExInfo=collections.namedtuple('ExInfo','name, mod, version, distributor')
+			for exName in dir(wooExtra):
+				mod=getattr(wooExtra,exName)
+				if type(mod)!=types.ModuleType: continue
+				modName=mod.__name__
+				ver=pkg_resources.get_distribution(modName).version
+				distributor=unicode(getattr(mod,'distributor') if hasattr(mod,'distributor') else u'−')
+				extras.append(ExInfo(name=exName,mod=mod,version=ver,distributor=distributor))
+		except ImportError: pass # no wooExtra modules
 		self.aboutGeneralLabel.setText('''<h4>System data</h4><table cellpadding='2px' rules='all' width='100%'>
 			<tr><td>user</td><td>{user}</td></tr>
 			<tr><td>cores</td><td>{nCores}</td></tr>

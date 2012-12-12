@@ -249,7 +249,9 @@ def main(sysArgv=None):
 
 def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 	# prepare nice namespace for users
-	import woo, woo.runtime, woo.config, wooExtra
+	import woo, woo.runtime, woo.config
+	try: import wooExtra
+	except ImportError: pass
 	import sys, traceback, site
 	#
 	# start non-blocking qt4 app here; need to ask on the mailing list on how to make it functional
