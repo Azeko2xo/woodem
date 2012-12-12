@@ -62,11 +62,13 @@ if 'CC' in os.environ and os.environ['CC'].endswith('clang'): features.remove('o
 flavor='' #('' if WIN else 'distutils')
 debug=False
 chunkSize=(1 if WIN else 10)
-if DEBIAN: chunkSize=1 # be nice to the builder at launchpad
-hotCxx=['Factory']
+hotCxx=[] # plugins to be compiled separately despite chunkSize>1
 ##
 ## end build options
 ##
+if DEBIAN:
+	chunkSize=1 # be nice to the builder at launchpad
+	features+=['noxml'] # this should cut to half RAM used by boost::serialization templates at compile-time
 
 
 cxxFlavor=('_'+re.sub('[^a-zA-Z0-9_]','_',flavor) if flavor else '')

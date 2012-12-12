@@ -17,11 +17,16 @@
 #include<boost/version.hpp>
 #include<boost/archive/binary_oarchive.hpp>
 #include<boost/archive/binary_iarchive.hpp>
-#include<boost/archive/xml_oarchive.hpp>
-#include<boost/archive/xml_iarchive.hpp>
-// declare supported archive types so that we can declare the templates explcitily in headers
-// and specialize them explicitly in implementation files
-#define WOO_BOOST_ARCHIVES (boost::archive::binary_iarchive)(boost::archive::binary_oarchive)(boost::archive::xml_iarchive)(boost::archive::xml_oarchive)
+#ifndef WOO_NOXML
+	#include<boost/archive/xml_oarchive.hpp>
+	#include<boost/archive/xml_iarchive.hpp>
+	// declare supported archive types so that we can declare the templates explcitily in headers
+	// and specialize them explicitly in implementation files
+	#define WOO_BOOST_ARCHIVES (boost::archive::binary_iarchive)(boost::archive::binary_oarchive)(boost::archive::xml_iarchive)(boost::archive::xml_oarchive)
+#else
+	#define WOO_BOOST_ARCHIVES (boost::archive::binary_iarchive)(boost::archive::binary_oarchive)
+#endif
+
 #include<boost/serialization/export.hpp> // must come after all supported archive types
 
 #include<boost/serialization/base_object.hpp>

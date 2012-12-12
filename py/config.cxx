@@ -46,6 +46,9 @@ BOOST_PYTHON_MODULE(config){
 		#ifdef WOO_CLDEM
 			features.append("cldem");
 		#endif
+		#ifdef WOO_NOXML
+			features.append("noxml");
+		#endif
 
 	py::scope().attr("features")=features;
 

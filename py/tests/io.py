@@ -47,9 +47,11 @@ class TestFormatsAndDetection(unittest.TestCase):
 		'IO: pickle dump/load & format detection (file+string)'
 		self.tryDumpLoad(fmt='pickle')
 		self.tryDumpLoadStr(fmt='pickle',load=True)
+	@unittest.skipIf('noxml' in woo.config.features,"Compiled with the 'noxml' feature")
 	def testXml(self):
 		'IO: XML save/load & format detection'
 		self.tryDumpLoad(ext='.xml')
+	@unittest.skipIf('noxml' in woo.config.features,"Compiled with the 'noxml' feature")
 	def testXmlBz2(self):
 		'IO: XML save/load (bzip2 compressed) & format detection'
 		self.tryDumpLoad(ext='.xml.bz2')

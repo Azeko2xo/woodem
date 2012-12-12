@@ -233,7 +233,7 @@ void GLViewer::startClipPlaneManipulation(int planeNo){
 }
 
 void GLViewer::useDisplayParameters(size_t n, bool fromHandler){
-	/* when build without WOO_XMLSERIALIZATION, serialize to binary; otherwise, prefer xml for readability */
+	/* when build with WOO_NOXML, serialize to binary; otherwise, prefer xml for readability */
 	LOG_DEBUG("Loading display parameters from #"<<n);
 	vector<shared_ptr<DisplayParameters> >& dispParams=Master::instance().getScene()->dispParams;
 	if(dispParams.size()<=(size_t)n){
@@ -248,10 +248,10 @@ void GLViewer::useDisplayParameters(size_t n, bool fromHandler){
 		std::istringstream oglre(val);
 		Renderer rendererDummyInstance;
 		woo::ObjectIO::load<Renderer,
-			#ifdef WOO_XMLSERIALIZATION
-				boost::archive::xml_iarchive
-			#else
+			#ifdef WOO_NOXML
 				boost::archive::binary_iarchive
+			#else
+				boost::archive::xml_iarchive
 		#endif
 		>(oglre,"renderer",rendererDummyInstance);
 	}
@@ -268,10 +268,10 @@ void GLViewer::saveDisplayParameters(size_t n){
 	std::ostringstream oglre;
 	Renderer rendererDummyInstance;
 	woo::ObjectIO::save<Renderer,
-		#ifdef WOO_XMLSERIALIZATION
-			boost::archive::xml_oarchive
-		#else
+		#ifdef WOO_NOXML
 			boost::archive::binary_oarchive
+		#else
+			boost::archive::xml_oarchive
 		#endif
 			>(oglre,"renderer",rendererDummyInstance);	
 	dp->setValue("Renderer",oglre.str());

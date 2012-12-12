@@ -16,12 +16,6 @@
 	#include<boost/math/special_functions/nonfinite_num_facets.hpp>
 #endif
 
-// this used to be feature given to scons
-#ifndef WOO_XMLSERIALIZATION
-	#define WOO_XMLSERIALIZATION
-#endif
-
-
 namespace woo{
 /* Utility template functions for (de)serializing objects using boost::serialization from/to streams or files.
 
@@ -62,10 +56,10 @@ struct ObjectIO{
 		out.push(outSink);
 		if(!out.good()) throw std::logic_error("boost::iostreams::filtering_ostream.good() failed (but "+fileName+" is open for writing)?");
 		if(isXmlFilename(fileName)){
-			#ifdef WOO_XMLSERIALIZATION
-				save<T,boost::archive::xml_oarchive>(out,objectTag,object);
+			#ifdef WOO_NOXML
+				throw std::runtime_error("Serialization to XML is not supported in this build of Woo (recompile without the 'noxml' feature).");
 			#else
-				throw std::runtime_error("Serialization to XML is not supported in this build of Yade (enable the 'xmlserialization' feature).");
+				save<T,boost::archive::xml_oarchive>(out,objectTag,object);
 			#endif
 		}
 		else save<T,boost::archive::binary_oarchive>(out,objectTag,object);
@@ -81,10 +75,10 @@ struct ObjectIO{
 		in.push(inSource);
 		if(!in.good()) throw std::logic_error("boost::iostreams::filtering_istream::good() failed (but "+fileName+" is open for reading)?");
 		if(isXmlFilename(fileName)){
-			#ifdef WOO_XMLSERIALIZATION
-				load<T,boost::archive::xml_iarchive>(in,objectTag,object);
+			#ifdef WOO_NOXML
+				throw std::runtime_error("De-serialization from XML is not supported in this build of Woo (disable the 'noxml' feature).");
 			#else
-				throw std::runtime_error("De-serialization from XML is not supported in this build of Yade (enable the 'xmlserialization' feature).");
+				load<T,boost::archive::xml_iarchive>(in,objectTag,object);
 			#endif
 		}
 		else load<T,boost::archive::binary_iarchive>(in,objectTag,object);
