@@ -8,10 +8,11 @@ import os.path, os, shutil, re, subprocess, sys
 from glob import glob
 from os.path import sep,join,basename,dirname
 
-DEBIAN='DEB_BUILD_ARCH' in os.environ
+DISTBUILD=None # set to None if building locally, or to a string when dist-building on a bot
+if 'DEB_BUILD_ARCH' in os.environ: DISTBUILD='debian'
 WIN=(sys.platform=='win32')
 
-if not DEBIAN: # don't do parallel at buildbot
+if not DISTBUILD: # don't do parallel at buildbot
 	# monkey-patch for parallel compilation
 	def parallelCCompile(self, sources, output_dir=None, macros=None, include_dirs=None, debug=0, extra_preargs=None, extra_postargs=None, depends=None):
 		# those lines are copied from distutils.ccompiler.CCompiler directly
@@ -39,11 +40,13 @@ pathHeaders=join(pathSourceTree,'woo')
 ## get version info
 version=None
 revno=None
-if DEBIAN:
+# on debian, get version from changelog
+if DISTBUILD=='debian':
 	version=re.match(r'^[^(]* \(([^)]+)\).*$',open('debian/changelog').readlines()[0]).group(1)
 	print 'Debian version from changelog: ',version
 	revno='debian'
-if not version:
+# get version from queryling local bzr repo
+if not version and os.path.exists('.bzr'):
 	try:
 		# http://stackoverflow.com/questions/3630893/determining-the-bazaar-version-number-from-python-without-calling-bzr
 		from bzrlib.branch import BzrBranch
@@ -63,10 +66,17 @@ flavor='' #('' if WIN else 'distutils')
 debug=False
 chunkSize=(1 if WIN else 10)
 hotCxx=[] # plugins to be compiled separately despite chunkSize>1
+
+## arch-specific optimizations
+march='corei7' if WIN else 'native'
+# lower, but at least some machine-specific optimizations
+# FIXME: code will fail to execute on older CPUs
+if DISTBUILD: march='core2' 
+
 ##
 ## end build options
 ##
-if DEBIAN:
+if DISTBUILD=='debian':
 	chunkSize=1 # be nice to the builder at launchpad
 	features+=['noxml'] # this should cut to half RAM used by boost::serialization templates at compile-time
 
@@ -149,13 +159,6 @@ def wooPrepareQt4():
 			status=subprocess.call(cmd)
 			if status: raise RuntimeError("Error %d returned when running %s"%(status,' '.join(cmd)))
 			if not os.path.exists(fOut): RuntimeError("No output file (though exit status was zero): %s"%(' '.join(cmd)))
-def wooPrepareScripts():
-	'Generate script files with proper names'
-	if not os.path.exists(pathScripts): os.mkdir(pathScripts)
-	for suffix,func in [('','main'),('-batch','batch')]:
-		f=open(join(pathScripts,'woo'+execFlavor+suffix),'w')
-		f.write('#!python\nimport wooMain; wooMain.%s()\n'%func)
-		f.close
 def pkgconfig(packages):
 	flag_map={'-I':'include_dirs','-L':'library_dirs','-l':'libraries'}
 	ret={'library_dirs':[],'include_dirs':[],'libraries':[]}
@@ -173,7 +176,6 @@ if os.path.exists('examples'):
 	wooPrepareQt4()
 	wooPrepareHeaders()
 	wooPrepareChunks()
-	# wooPrepareScripts()
 # files are in chunks
 cxxSrcs=['py/config.cxx']+glob(join(pathSources,'*.cpp'))+glob(join(pathSources,'*.c'))
 
@@ -187,7 +189,7 @@ cppDirs,cppDef,cxxFlags,cxxLibs,linkFlags,libDirs=[],[],[],[],[],[]
 cppDef+=[
 	('WOO_REVISION',revno),
 	('WOO_VERSION',version),
-	('WOO_SOURCE_ROOT','' if DEBIAN else dirname(os.path.abspath(__file__)).replace('\\','/')),
+	('WOO_SOURCE_ROOT','' if DISTBUILD else dirname(os.path.abspath(__file__)).replace('\\','/')),
 	('WOO_FLAVOR',flavor),
 	('WOO_CXX_FLAVOR',cxxFlavor),
 ]
@@ -227,7 +229,8 @@ if debug:
 	cxxFlags+=['-Os']
 else:
 	cppDef+=[('WOO_CAST','static_cast'),('WOO_PTR_CAST','static_pointer_cast'),('NDEBUG',None)]
-	cxxFlags+=['-g0','-O3']+(['-march=corei7'] if WIN else ['-march=native'])
+	cxxFlags+=['-g0','-O3']
+	if march: cxxFlags+=['-march=%s'%march]
 	linkFlags+=['-Wl,--strip-all']
 ##
 ## Feature-specific
