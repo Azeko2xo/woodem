@@ -5,20 +5,6 @@ __all__=['main','batch']
 import sys, os
 WIN=(sys.platform=='win32')
 
-
-# pyInstaller provides its own site module, which does not define _Helper and perhaps others
-# this avoids warning from IPython about the function missing
-# TODO: report this as bug to pyInstaller
-import site
-if hasattr(sys,'frozen') and '_Helper' not in dir(site):
-	class _Helper(object):
-		def __repr__(self): return "Type help() for interactive help, or help(object) for help about object."
-		def __call__(self, *args, **kwds):
-			import pydoc; return pydoc.help(*args, **kwds)
-	site._Helper=_Helper
-
-
-
 def makeColorFuncs(colors,dumbWinColors=False):
 	try:
 		import colorama

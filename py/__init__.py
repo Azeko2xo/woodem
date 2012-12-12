@@ -301,6 +301,8 @@ from minieigen import *
 import _monkey # adds methods to c++ classes
 import _units 
 unit=_units.unit
+# hint fo pyinstaller to freeze this module
+from . import pyderived
 
 # out-of-class docstrings for some classes
 try: import _extraDocs
@@ -315,17 +317,27 @@ except AttributeError:
 
 # recursive import of everything under wooExtra
 try:
-	import wooExtra, pkgutil
-	for importer, modname, ispkg in pkgutil.iter_modules(wooExtra.__path__):
-		try:
-			__import__('wooExtra.'+modname,fromlist='wooExtra')
-			print 'Discovered wooExtra.%s'%modname
-		except ImportError:
-			print 'ERROR importing wooExtra.%s.'%modname
-			raise
+	import wooExtra
 except ImportError:
 	# wooExtra not importable: that means no extras are installed
 	# each extra defines wooExtra as namespace package
 	# but it does not come installed with woo itself
-	pass
-
+	wooExtra=None
+# if wooExtra is present, attempt to import sub-packages
+if wooExtra:
+	import pkgutil, zipimport
+	for importer, modname, ispkg in pkgutil.iter_modules(wooExtra.__path__):
+		try:
+			m=__import__('wooExtra.'+modname,fromlist='wooExtra')
+			print 'wooExtra.%s: loaded'%modname
+			if hasattr(sys,'frozen') and not hasattr(m,'__loader__') and len(m.__path__)==1:
+				zip=m.__path__[0].split('/wooExtra/')[0].split('\\wooExtra\\')[0]
+				if not (zip.endswith('.zip') or zip.endswith('.egg')):
+					print 'wooExtra.%s: not a .zip or .egg, no __loader__ set (%s)'%(modname,zip)
+				else:
+					print 'wooExtra.%s: setting __loader__ and __file__'%modname
+					m.__loader__=zipimport.zipimporter(zip)
+					m.__file__=os.path.join(m.__path__[0],os.path.basename(m.__file__))
+		except ImportError:
+			print 'ERROR importing wooExtra.%s:'%modname
+			raise

@@ -181,8 +181,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.generatorComboSlot(None)
 		self.movieButton.setEnabled(False)
 		self.lastScene=None
-		tr=self.tracerGetEngine(woo.master.scene)
-		if tr and not tr.dead: self.traceCheckbox.setChecked(True) # show active tracer
+		self.traceCheckboxToggled(isOn=None) # detect on/off
 		self.movieActive=False
 		self.tracerActive=False
 		self.inspector=None
@@ -245,12 +244,7 @@ class ControllerClass(QWidget,Ui_Controller):
 			mod=getattr(wooExtra,exName)
 			if type(mod)!=types.ModuleType: continue
 			modName=mod.__name__
-			try:
-				# this will fail with pyinstaller
-				ver=pkg_resources.get_distribution(modName).version
-			except:
-				try: ver=open(os.path.dirname(mod.__file__)+'/VERSION').readlines()[0][:-1]
-				except: ver='n/a'
+			ver=pkg_resources.get_distribution(modName).version
 			distributor=unicode(getattr(mod,'distributor') if hasattr(mod,'distributor') else u'−')
 			extras.append(ExInfo(name=exName,mod=mod,version=ver,distributor=distributor))
 		self.aboutGeneralLabel.setText('''<h4>System data</h4><table cellpadding='2px' rules='all' width='100%'>
@@ -381,6 +375,14 @@ class ControllerClass(QWidget,Ui_Controller):
 		return None
 	def traceCheckboxToggled(self,isOn):
 		S=self.lastScene=woo.master.scene
+		# auto-detect on/off
+		if isOn==None:
+			tr=self.tracerGetEngine(woo.master.scene)
+			isOn=bool(tr and not tr.dead)
+			# will call this function again, and also set the checkbox state properly
+			self.traceCheckbox.setChecked(isOn) 
+			return 
+		# go ahead now
 		if isOn:
 			# is there a tracer already?
 			tracer=self.tracerGetEngine(S)
@@ -534,7 +536,7 @@ class ControllerClass(QWidget,Ui_Controller):
 			# set movie and trace using last state
 			if OpenGL:
 				self.movieCheckboxToggled(self.movieActive)
-				self.traceCheckboxToggled(self.tracerActive)
+				self.traceCheckboxToggled(isOn=None)
 			#
 			#
 			ix=self.simPageLayout.indexOf(self.customArea)

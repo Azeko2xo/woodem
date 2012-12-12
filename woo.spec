@@ -19,13 +19,13 @@ def Entrypoint(dist, group, name, scripts=None, pathex=None, **kw):
 		fp.close()
 	return Analysis(scripts=scripts+[script_path], pathex=pathex, **kw)
 	
-main=Entrypoint(dist='woo',group='console_scripts',name='wwoo',hookspath='.',
+main=Entrypoint(dist='woo',group='console_scripts',name='wwoo',
 	hiddenimports=['woo._cxxInternal'],
 	excludes='wooExtra',
 )
 
 # hiddenimports already specified for main
-batch=Entrypoint(dist='woo',group='console_scripts',name='wwoo_batch',hookspath='.')
+batch=Entrypoint(dist='woo',group='console_scripts',name='wwoo_batch')
 
 pyz=PYZ(main.pure)
 
