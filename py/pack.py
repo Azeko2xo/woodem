@@ -627,18 +627,19 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,dontB
 	print 'dimension',dim
 	print 'initial cell size',cellSize
 	print 'psd=',psd
-	S=Scene(fields=[DemField()])
+	import woo.core, woo.dem, math
+	S=woo.core.Scene(fields=[woo.dem.DemField()])
 	S.periodic=True
 	S.cell.setBox(cellSize)
 	S.engines=[
-		InsertionSortCollider([Bo1_Sphere_Aabb()]),
-		BoxFactory(
+		woo.dem.InsertionSortCollider([woo.dem.Bo1_Sphere_Aabb()]),
+		woo.dem.BoxFactory(
 			box=((0,0,0),cellSize),
 			maxMass=-1,
 			massFlowRate=0,
 			maxAttempts=5000,
-			generator=PsdSphereGenerator(psdPts=psd,discrete=False,mass=True),
-			materials=[FrictMat(density=1e3,young=1e7,ktDivKn=.2,tanPhi=math.tan(.5))],
+			generator=woo.dem.PsdSphereGenerator(psdPts=psd,discrete=False,mass=True),
+			materials=[woo.dem.FrictMat(density=1e3,young=1e7,ktDivKn=.2,tanPhi=math.tan(.5))],
 			shooter=None,
 			mask=1,
 		)

@@ -105,7 +105,7 @@ def main(sysArgv=None):
 		if '--rebuild' in sys.argv:
 			argv=[v for v in sys.argv if v!='--rebuild']
 		else:
-			argv=[(v.replace('R','') if re.match('^-[^-]*',v) else v) for v in sys.argv if v!='-R' and v!='-RR']
+			argv=[(v.replace('R','') if re.match('^-[a-zA-Z]*$',v) else v) for v in sys.argv if v!='-R' and v!='-RR']
 		print 'Running Woo using',' '.join(argv)
 		sys.exit(subprocess.call(argv))
 	# QUIRK running in gdb
