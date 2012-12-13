@@ -67,6 +67,21 @@ void TraceGlRep::resize(size_t size){
 	scalars.resize(size,NaN);
 }
 
+void TraceGlRep::consolidate(){
+	if(flags&FLAG_COMPRESS){
+		// compressed traces are always sequential, only discard invalid tail data
+		resize(writeIx);
+	}
+	if(writeIx==0) return; // just filled up, nothing to do
+	if(pts.size()<2) return; // strange things would happen here
+	for(size_t i=0; i<pts.size(); i++){
+		size_t j=(i+writeIx)%pts.size(); // i≠j since writeIx≠0
+		std::swap(pts[i],pts[j]);
+		std::swap(scalars[i],scalars[j]);
+	}
+	writeIx=0;
+}
+
 Vector2i Tracer::modulo;
 Vector2r Tracer::rRange;
 int Tracer::num;

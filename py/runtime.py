@@ -1,7 +1,7 @@
 # this module is populated at initialization from the c++ part of PythonUI
 """Runtime variables, populated at woo startup."""
 # default value
-hasDisplay=False 
+hasDisplay=None 
 ipython_version=0
 
 # find out about which ipython version we use -- 0.10* and 0.11 are supported, but they have different internals

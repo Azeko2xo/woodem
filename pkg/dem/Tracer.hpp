@@ -11,12 +11,18 @@ struct TraceGlRep: public NodeGlRep{
 	void setHidden(bool hidden){ if(!hidden)flags&=~FLAG_HIDDEN; else flags|=FLAG_HIDDEN; }
 	bool isHidden() const { return flags&FLAG_HIDDEN; }
 	void resize(size_t size);
+	// make pts sequential and start from 0th position
+	// only called from python if no further writing of the trace will be done
+	void consolidate(); 
 	enum{FLAG_COMPRESS=1,FLAG_MINDIST=2,FLAG_HIDDEN=4};
-	WOO_CLASS_BASE_DOC_ATTRS(TraceGlRep,NodeGlRep,"Data with node's position history; create by :ref:`Tracer`.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(TraceGlRep,NodeGlRep,"Data with node's position history; create by :ref:`Tracer`.",
 		((vector<Vector3r>,pts,,,"History points"))
 		((vector<Real>,scalars,,,"History scalars"))
 		((size_t,writeIx,0,,"Index where next data will be written"))
 		((short,flags,0,,"Flags for this instance"))
+		,/*ctor*/
+		,/*py*/
+			.def("consolidate",&TraceGlRep::consolidate,"Make :ref:`pts` sequential (normally, the data are stored as circular buffer, with next write position at :ref:`writeIx`, so that they are ordered temporally.")
 	);
 };
 REGISTER_SERIALIZABLE(TraceGlRep);

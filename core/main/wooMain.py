@@ -304,6 +304,9 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 		if isinstance(obj,woo.core.Scene): woo.master.scene=obj
 		elif isinstance(obj,woo.core.Preprocessor): woo.master.scene=woo.batch.runPreprocessor(obj)
 		else: raise ValueError('Expression given with -e must be a Scene or a Preprocessor, not a %s'%type(obj))
+		if not opts.paused:
+			woo.master.scene.run()
+			if woo.runtime.opts.exitAfter: woo.master.scene.wait()
 	if woo.runtime.opts.commands:
 		exec(woo.runtime.opts.commands) in globals()
 	if woo.runtime.opts.exitAfter: sys.exit(0)

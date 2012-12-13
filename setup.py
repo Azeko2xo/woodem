@@ -211,6 +211,8 @@ cxxLibs+=['m',
 ##
 ## Platform-specific
 ##
+if DISTBUILD:
+	cxxFlags+=['-ftime-report','-fmem-report','-fpre-ipa-mem-report','-fpost-ipa-mem-report']
 if WIN:
 	cppDirs+=['c:/MinGW64/include','c:/MinGW64/include/eigen3','c:/MinGW64/include/boost-1_51']
 	# avoid warnings from other headers

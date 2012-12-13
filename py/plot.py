@@ -30,7 +30,14 @@ import matplotlib,os,time,math,itertools
 # see http://www.mail-archive.com/woo-dev@lists.launchpad.net/msg04320.html 
 # and https://lists.launchpad.net/woo-users/msg03289.html
 #
+
+# IMPORTANT: this sets woo.runtime.hasDisplay
+try: import woo.qt
+except ImportError: pass
+
 import woo.runtime
+if woo.runtime.hasDisplay==None: # not yet set
+	raise RuntimeError('woo.plot imported before woo.runtime.hasDisplay is set. This should not really happen, please report.')
 if not woo.runtime.hasDisplay: matplotlib.use('Agg')
 else:
 	matplotlib.use('Qt4Agg')
@@ -463,6 +470,14 @@ def createPlots(P,subPlots=True,scatterSize=60,wider=False):
 			# if there are callable/dict ySpecs, save them inside the axes object, so that the live updater can use those
 			if yNameFuncs:
 				axes.wooYNames,axes.wooYFuncs,axes.wooXName,axes.wooLabelLoc=yNames,yNameFuncs,pStrip,labelLoc # prepend woo to avoid clashes
+			if 0:
+				# fix missing 'show' method; this has been fixed in matplotlib already, but we need to backport that
+				# see https://github.com/matplotlib/matplotlib/commit/15fd0ae587a57cb1d7b69546eb359085315148c8
+				# don't do that for headless backend, error there is fine
+				fig=axes.get_figure()
+				if not hasattr(fig,'show'):
+					mgr=getattr(fig.canvas,'manager')
+					if mgr: fig.show=lambda *args: mgr.window.show()
 		createLines(pStrip,plots_p_y1,isY1=True,y2Exists=len(plots_p_y2)>0)
 		if axesWd>0:
 			pylab.axhline(linewidth=axesWd,color='k')

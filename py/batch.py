@@ -8,9 +8,17 @@ def inBatch():
 	import os
 	return 'WOO_BATCH' in os.environ
 
-def writeResults(defaultDb='woo-results.sqlite',syncXls=True,**kw):
+def writeResults(defaultDb='woo-results.sqlite',syncXls=True,series=None,**kw):
+	'''
+	Write results to batch database. With *syncXls*, corresponding excel-file is re-generated.
+	Series is a dicionary of 1d arrays written to separate sheets in the XLS. If *series* is `None`
+	(default), `S.plot.data` are automatically added. All other **kw
+	arguments are serialized in the misc field, which then appears in the main XLS sheet.
+
+	All data are serialized using json so that they can be read back in a language-independent manner.
+	'''
 	# increase every time the db format changes, to avoid errors
-	formatVersion=2
+	formatVersion=3
 	import woo
 	S=woo.master.scene
 	import os
@@ -24,7 +32,7 @@ def writeResults(defaultDb='woo-results.sqlite',syncXls=True,**kw):
 	conn=sqlite3.connect(db,detect_types=sqlite3.PARSE_DECLTYPES)
 	if newDb:
 		c=conn.cursor()
-		c.execute('create table batch (formatNumber integer, finished timestamp, batchtable text, batchTableLine integer, sceneId text, title text, duration integer, pre text, tags text, plotData text, plots text, custom text)')
+		c.execute('create table batch (formatNumber integer, finished timestamp, batchtable text, batchTableLine integer, sceneId text, title text, duration integer, pre text, tags text, plots text, misc text, series text)')
 	else:	
 		conn.row_factory=sqlite3.Row
 		conn.execute('select * from batch')
@@ -36,11 +44,18 @@ def writeResults(defaultDb='woo-results.sqlite',syncXls=True,**kw):
 		import json
 		import woo.plot
 		import datetime
+		import numpy
 		import woo.core
 		# make sure keys are unicode objects (which is what json converts to!)
 		# but preserve values using a 8-bit encoding)
 		# this sort-of sucks, hopefully there is a better solution soon
 		d2=dict([(key,val.decode('iso-8859-1')) for key,val in S.tags.items()])
+		# make sure series are 1d arrays
+		if series==None:
+			series={}; series.update([('plot_'+k,v) for k,v in S.plot.data.items()])
+		for k,v in series.items():
+			if isinstance(v,numpy.ndarray): series[k]=v.tolist()
+			elif not hasattr(v,'__len__'): raise ValueError('series["%s"] not a sequence (__len__ not defined).')
 		values=(	
 			formatVersion, # formatVersion
 			datetime.datetime.now(), # finished
@@ -51,9 +66,9 @@ def writeResults(defaultDb='woo-results.sqlite',syncXls=True,**kw):
 			S.duration,
 			(S.pre.dumps(format='json') if S.pre else None), # pre
 			json.dumps(d2), # tags
-			json.dumps(S.plot.data), # plotData
 			json.dumps(S.plot.plots), # plots
-			woo.core.WooJSONEncoder(indent=None).encode(kw) # custom
+			woo.core.WooJSONEncoder(indent=None,oneway=True).encode(kw), # misc
+			json.dumps(series) # series
 		)
 		conn.execute('insert into batch values (?,?,?,?,?, ?,?,?,?,?, ?,?)',values)
 	if syncXls:
@@ -66,7 +81,7 @@ def writeResults(defaultDb='woo-results.sqlite',syncXls=True,**kw):
 
 
 
-def dbToSpread(db,out=None,dialect='excel',rows=False,ignored=('plotData','tags'),sortFirst=('title','batchtable','batchTableLine','finished','sceneId','duration'),selector='SELECT * FROM batch ORDER BY title'):
+def dbToSpread(db,out=None,dialect='excel',rows=False,series=True,ignored=('plotData','tags'),sortFirst=('title','batchtable','batchTableLine','finished','sceneId','duration'),selector='SELECT * FROM batch ORDER BY title'):
 	'''
 	Select simulation results (using *selector*) stored in batch database *db*, flatten data for each simulation,
 	and dump the data in the CSV format (using *dialect*: 'excel', 'excel-tab', 'xls') into file *out* (standard output
@@ -77,6 +92,8 @@ def dbToSpread(db,out=None,dialect='excel',rows=False,ignored=('plotData','tags'
 
 	*ignored* fields are used to exclude large data from the dump: either database column of that name, or any attribute
 	of that name. Attributes are flattened and path separated with '.'.
+
+	*series* determines whether the `series` field will be written to a separate sheet, named by the sceneId. This is only supported with the `xls` dialect and raises error otherwise (unless `series` field is empty).
 
 	Fields are sorted in their natural order (i.e. alphabetically, but respecting numbers), with *sortFirst* fields coming at the beginning.
 	'''
@@ -111,6 +128,7 @@ def dbToSpread(db,out=None,dialect='excel',rows=False,ignored=('plotData','tags'
 	# lowercase
 	ignored=[i.lower() for i in ignored]
 	sortFirst=[sf.lower() for sf in sortFirst]
+	seriesData={}
 	# open db and get rows
 	conn=sqlite3.connect(db,detect_types=sqlite3.PARSE_DECLTYPES)
 	conn.row_factory=sqlite3.Row
@@ -122,7 +140,8 @@ def dbToSpread(db,out=None,dialect='excel',rows=False,ignored=('plotData','tags'
 			# decode val from json, if it fails, leave it alone
 			try: val=json.loads(val)
 			except: pass
-			rowDict[key]=val
+			if key!='series': rowDict[key]=val
+			elif series: seriesData[row['title']+'_'+row['sceneId']]=val # set only if allowed
 		flat=flatten(rowDict)
 		for key,val in flat.items():
 			if key.lower() in ignored: continue
@@ -162,8 +181,19 @@ def dbToSpread(db,out=None,dialect='excel',rows=False,ignored=('plotData','tags'
 			# data
 			for row,val in enumerate(allData[field]):
 				setCell(row+1,col,val,styleDict.get(type(val),xlwt.Style.default_style))
+		# save data series
+		if seriesData:
+			for sheetName,dic in seriesData.items():
+				sheet=wbk.add_sheet(sheetName)
+				# perhaps write some header here
+				for col,colName in enumerate(sorted(dic.keys())):
+					sheet.write(0,col,colName,headStyle)
+					rowOffset=1 # length of header
+					for row in range(0,len(dic[colName])):
+						sheet.write(row+rowOffset,col,dic[colName][row])
 		wbk.save(out)
 	else:
+		if seriesData: raise RuntimeError('Data series can only be written with the *xls* dialect')
 		outt=(open(out,'w') if out else sys.stdout)
 		import datetime
 		def asStr(x):

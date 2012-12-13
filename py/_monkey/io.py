@@ -14,6 +14,7 @@ import codecs
 import pickle
 import json
 import minieigen
+import numpy
 
 nan,inf=float('nan'),float('inf') # for values in expressions
 
@@ -207,8 +208,10 @@ class SerializerToExpr:
 
 # roughly following http://www.doughellmann.com/PyMOTW/json/, thanks!
 class WooJSONEncoder(json.JSONEncoder):
-	def __init__(self,indent=3,sort_keys=True):
+	def __init__(self,indent=3,sort_keys=True,oneway=False):
+		'oneway: allow serialization of objects which won\'t be properly deserialized. They are: numpy.ndarray.'
 		json.JSONEncoder.__init__(self,sort_keys=sort_keys,indent=indent)
+		self.oneway=oneway
 	def default(self,obj):
 		# Woo objects
 		if isinstance(obj,woo.core.Object):
@@ -220,9 +223,17 @@ class WooJSONEncoder(json.JSONEncoder):
 		elif obj.__class__.__module__=='woo._customConverters' or obj.__class__.__module__=='_customConverters':
 			if hasattr(obj,'__len__'): return list(obj)
 			else: raise TypeError("Unhandled type for JSON: "+obj.__class__.__module__+'.'+obj.__class__.__name__)
+		# minieigen objects
 		elif obj.__class__.__module__ in ('minieigen','miniEigen'):
 			if isinstance(obj,minieigen.Quaternion): return obj.toAxisAngle()
 			else: return tuple(obj[i] for i in range(len(obj)))
+		# numpy arrays
+		elif obj.__class__==numpy.ndarray:
+			if not self.oneway: raise TypeError('numpy.ndarray can only be serialized with WooJSONEncoder(oneway=True), since deserialization will yield only dict/list, not a numpy.ndarray.')
+			# record array: dump as dict of sub-arrays (columns)
+			if obj.dtype.names: return dict([(name,obj[name].tolist()) for name in obj.dtype.names])
+			# non-record array: dump as nested list
+			return obj.tolist()
 		# other types, handled by the json module natively
 		else:
 			return super(WooJSONEncoder,self).default(obj)
@@ -231,11 +242,10 @@ class WooJSONDecoder(json.JSONDecoder):
 	def __init__(self):
 		json.JSONDecoder.__init__(self,object_hook=self.dictToObject)
 	def dictToObject(self,d):
-		if '__class__' in d:
-			klass=d.pop('__class__')
-			__import__(klass.rsplit('.',1)[0]) # in case the module has not been imported yet
-			return eval(klass)(**dict((key.encode('ascii'),value.encode('ascii') if isinstance(value,unicode) else value) for key,value in d.items()))
-		else: return d
+		if not '__class__' in d: return d # nothing we know
+		klass=d.pop('__class__')
+		__import__(klass.rsplit('.',1)[0]) # in case the module has not been imported yet
+		return eval(klass)(**dict((key.encode('ascii'),value.encode('ascii') if isinstance(value,unicode) else value) for key,value in d.items()))
 # inject into the core namespace, so that it can be used elsewhere as well
 woo.core.WooJSONEncoder=WooJSONEncoder
 
