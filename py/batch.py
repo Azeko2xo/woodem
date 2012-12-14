@@ -126,7 +126,9 @@ def dbToSpread(db,out=None,dialect='excel',rows=False,series=True,ignored=('plot
 	def fixSheetname(n):
 		# truncate the name to 31 characters, otherwise there would be exception
 		# see https://groups.google.com/forum/?fromgroups=#!topic/python-excel/QK4iJrPDSB8
-		if len(n)>25: n=u'…'+n[-23:]
+		if len(n)>30: n=u'…'+n[-29:]
+		# invald characters (is that documented somewhere?? those are the only ones I found manually)
+		n=n.replace('[','_').replace(']','_').replace('*','_')
 		return n
 
 	import sqlite3,json,sys,csv
