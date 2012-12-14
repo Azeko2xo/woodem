@@ -122,6 +122,12 @@ def dbToSpread(db,out=None,dialect='excel',rows=False,series=True,ignored=('plot
 		'''
 		import re
 		return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_)]
+	
+	def fixSheetname(n):
+		# truncate the name to 31 characters, otherwise there would be exception
+		# see https://groups.google.com/forum/?fromgroups=#!topic/python-excel/QK4iJrPDSB8
+		if len(n)>25: n=u'…'+n[-23:]
+		return n
 
 	import sqlite3,json,sys,csv
 	allData={}
@@ -161,7 +167,7 @@ def dbToSpread(db,out=None,dialect='excel',rows=False,series=True,ignored=('plot
 		# http://www.youlikeprogramming.com/2011/04/examples-generating-excel-documents-using-pythons-xlwt/
 		import xlwt
 		wbk=xlwt.Workbook('utf-8')
-		sheet=wbk.add_sheet(db)
+		sheet=wbk.add_sheet(fixSheetname(db)) # truncate if too long, see below
 		# cell styling 
 		import datetime
 		datetimeStyle=xlwt.XFStyle()
@@ -184,7 +190,7 @@ def dbToSpread(db,out=None,dialect='excel',rows=False,series=True,ignored=('plot
 		# save data series
 		if seriesData:
 			for sheetName,dic in seriesData.items():
-				sheet=wbk.add_sheet(sheetName)
+				sheet=wbk.add_sheet(fixSheetname(sheetName))
 				# perhaps write some header here
 				for col,colName in enumerate(sorted(dic.keys())):
 					sheet.write(0,col,colName,headStyle)
