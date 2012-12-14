@@ -316,20 +316,24 @@ except AttributeError:
 	traceback.print_exc()
 
 # recursive import of everything under wooExtra
-import wooExtra
-import pkgutil, zipimport
-for importer, modname, ispkg in pkgutil.iter_modules(wooExtra.__path__):
-	try:
-		m=__import__('wooExtra.'+modname,fromlist='wooExtra')
-		print 'wooExtra.%s: loaded'%modname
-		if hasattr(sys,'frozen') and not hasattr(m,'__loader__') and len(m.__path__)==1:
-			zip=m.__path__[0].split('/wooExtra/')[0].split('\\wooExtra\\')[0]
-			if not (zip.endswith('.zip') or zip.endswith('.egg')):
-				print 'wooExtra.%s: not a .zip or .egg, no __loader__ set (%s)'%(modname,zip)
-			else:
-				print 'wooExtra.%s: setting __loader__ and __file__'%modname
-				m.__loader__=zipimport.zipimporter(zip)
-				m.__file__=os.path.join(m.__path__[0],os.path.basename(m.__file__))
-	except ImportError:
-		print 'ERROR importing wooExtra.%s:'%modname
-		raise
+try:
+	import wooExtra
+	import pkgutil, zipimport
+	for importer, modname, ispkg in pkgutil.iter_modules(wooExtra.__path__):
+		try:
+			m=__import__('wooExtra.'+modname,fromlist='wooExtra')
+			print 'wooExtra.%s: loaded'%modname
+			if hasattr(sys,'frozen') and not hasattr(m,'__loader__') and len(m.__path__)==1:
+				zip=m.__path__[0].split('/wooExtra/')[0].split('\\wooExtra\\')[0]
+				if not (zip.endswith('.zip') or zip.endswith('.egg')):
+					print 'wooExtra.%s: not a .zip or .egg, no __loader__ set (%s)'%(modname,zip)
+				else:
+					print 'wooExtra.%s: setting __loader__ and __file__'%modname
+					m.__loader__=zipimport.zipimporter(zip)
+					m.__file__=os.path.join(m.__path__[0],os.path.basename(m.__file__))
+		except ImportError:
+			print 'ERROR importing wooExtra.%s:'%modname
+			raise
+except ImportError:
+	# no wooExtra packages are installed
+	pass

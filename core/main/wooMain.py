@@ -249,8 +249,10 @@ def main(sysArgv=None):
 
 def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 	# prepare nice namespace for users
-	import woo, woo.runtime, woo.config, wooExtra
+	import woo, woo.runtime, woo.config
 	import sys, traceback, site
+	try: import wooExtra
+	except: pass
 	#
 	# start non-blocking qt4 app here; need to ask on the mailing list on how to make it functional
 	# with ipython >0.11, start the even loop early (impossible with 0.10, which is thread-based)

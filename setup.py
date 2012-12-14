@@ -319,7 +319,6 @@ tighter integration with python and user-friendliness.
 		+(['woo.qt'] if 'qt4' in features else [])
 		+(['woo.gts'] if 'gts' in features else [])
 	),
-	namespace_packages=['wooExtra'], # install here (empty) so that wooExtra is always importable
 	py_modules=wooModules+['wooOptions','wooMain'],
 		ext_modules=[
 		Extension('woo.'+cxxInternalModule,
