@@ -180,10 +180,11 @@ class SerializerToExpr:
 		self.indentLen=len(indent.replace('\t',3*' '))
 		self.maxWd=maxWd
 		self.noMagic=noMagic
-	def __call__(self,obj,level=0):
+	def __call__(self,obj,level=0,neededModules=set()):
 		if isinstance(obj,Object):
 			attrs=[(trait.name,getattr(obj,trait.name)) for trait in obj._getAllTraits() if not (trait.hidden or trait.noDump)]
 			delims=(obj.__class__.__module__)+'.'+obj.__class__.__name__+'(',')'
+			neededModules.add(obj.__class__.__module__)
 		elif isinstance(obj,dict):
 			attrs=obj.items()
 			delims='{','}'
@@ -201,8 +202,13 @@ class SerializerToExpr:
 			return repr(obj)
 		lst=[(((attr[0]+'=') if attr[0] else '')+self(attr[1],level+1)) for attr in attrs]
 		oneLiner=(sum([len(l) for l in lst])+self.indentLen<=self.maxWd or self.maxWd<=0 or type(obj) in self.unbreakableTypes)
-		magic=('##woo-expression##\n' if not self.noMagic and level==0 else '')
-		if oneLiner: return magic+delims[0]+', '.join(lst)+delims[1]
+		magic=''
+		if not self.noMagic and level==0:
+			magic='##woo-expression##\n'
+			if neededModules: magic+='#: import '+','.join(neededModules)+'\n'
+			oneLiner=False
+		#magic=('##woo-expression##' if not self.noMagic and level==0 else '')
+		if oneLiner: return delims[0]+', '.join(lst)+delims[1]
 		indent0,indent1=self.indent*level,self.indent*(level+1)
 		return magic+delims[0]+'\n'+indent1+(',\n'+indent1).join(lst)+'\n'+indent0+delims[1]+('\n' if level==0 else '')
 
