@@ -248,12 +248,21 @@ class WooJSONDecoder(json.JSONDecoder):
 	def __init__(self):
 		json.JSONDecoder.__init__(self,object_hook=self.dictToObject)
 	def dictToObject(self,d):
+		import sys, woo
 		if not '__class__' in d: return d # nothing we know
 		klass=d.pop('__class__')
-		__import__(klass.rsplit('.',1)[0]) # in case the module has not been imported yet
-		return eval(klass)(**dict((key.encode('ascii'),value.encode('ascii') if isinstance(value,unicode) else value) for key,value in d.items()))
+		modPath=klass.split('.')[:-1]
+		localns={}
+		# import modules as needed so that __class__ can be eval'd
+		# stuff the uppermost module to localns
+		for i in range(len(modPath)):
+			mname='.'.join(modPath[:i+1])
+			m=__import__(mname,level=0) # absolute imports only
+			if i==0: localns[mname]=m
+		return eval(klass,globals(),localns)(**dict((key.encode('ascii'),value.encode('ascii') if isinstance(value,unicode) else value) for key,value in d.items()))
 # inject into the core namespace, so that it can be used elsewhere as well
 woo.core.WooJSONEncoder=WooJSONEncoder
+woo.core.WooJSONDecoder=WooJSONDecoder
 
 def wooExprEval(e):
 	import woo,math,textwrap

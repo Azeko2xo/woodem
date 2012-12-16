@@ -8,7 +8,7 @@ def inBatch():
 	import os
 	return 'WOO_BATCH' in os.environ
 
-def writeResults(defaultDb='woo-results.sqlite',syncXls=True,series=None,**kw):
+def writeResults(defaultDb='woo-results.sqlite',syncXls=True,series=None,postHooks=[],**kw):
 	'''
 	Write results to batch database. With *syncXls*, corresponding excel-file is re-generated.
 	Series is a dicionary of 1d arrays written to separate sheets in the XLS. If *series* is `None`
@@ -16,6 +16,10 @@ def writeResults(defaultDb='woo-results.sqlite',syncXls=True,series=None,**kw):
 	arguments are serialized in the misc field, which then appears in the main XLS sheet.
 
 	All data are serialized using json so that they can be read back in a language-independent manner.
+
+	*postHooks* is list of functions (taking a single argument - the database name) which will be called
+	once the database has been updated. They can be used in conjunction with :ref:`woo.batch.dbReadResults`
+	to write aaggregate results from all records in the database.
 	'''
 	# increase every time the db format changes, to avoid errors
 	formatVersion=3
@@ -76,9 +80,32 @@ def writeResults(defaultDb='woo-results.sqlite',syncXls=True,series=None,**kw):
 		xls='%s.xls'%re.sub('\.sqlite$','',db)
 		print 'Converting %s to file://%s'%(db,os.path.abspath(xls))
 		dbToSpread(db,out=xls,dialect='xls')
+	for ph in postHooks: ph(db)
 
-
-
+# return all series stored in the database
+def dbReadResults(db):	
+	'''Return list of dictionaries, representing database contents. Series are converted to numpy arrays for easier manipulation.'''
+	import numpy, sqlite3, json, woo.core
+	# open db and get rows
+	conn=sqlite3.connect(db,detect_types=sqlite3.PARSE_DECLTYPES)
+	conn.row_factory=sqlite3.Row
+	ret=[]
+	for i,row in enumerate(conn.execute('SELECT * FROM batch ORDER BY finished')):
+		rowDict={}
+		for key in row.keys():
+			# json-encoded fields
+			if key in ('pre','tags','plots','misc'):
+				val=woo.core.WooJSONDecoder().decode(row[key])
+			elif key=='series':
+				series=json.loads(row[key])
+				assert type(series)==dict
+				val=dict([(k,numpy.array(v)) for k,v in series.items()])
+			else:
+				val=row[key]
+			rowDict[key]=val
+		ret.append(rowDict)
+	conn.close() # don't occupy the db longer than necessary
+	return ret
 
 
 def dbToSpread(db,out=None,dialect='excel',rows=False,series=True,ignored=('plotData','tags'),sortFirst=('title','batchtable','batchTableLine','finished','sceneId','duration'),selector='SELECT * FROM batch ORDER BY title'):
