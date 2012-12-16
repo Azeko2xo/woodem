@@ -140,11 +140,7 @@ class GLViewer : public QGLViewer
 		const int viewId;
 
 		void centerMedianQuartile();
-		int 	drawGrid;
 		bool 	drawScale;
-		int timeDispMask;
-		enum{TIME_REAL=1,TIME_VIRT=2,TIME_ITER=4};
-
 		GLViewer(int viewId, QGLWidget* shareWidget=0);
 		virtual ~GLViewer();
 		#if 0

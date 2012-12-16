@@ -58,6 +58,12 @@ bool Renderer::engines;
 Vector3r Renderer::iniUp;
 Vector3r Renderer::iniViewDir;
 
+int Renderer::showTime;
+Vector3r Renderer::virtColor;
+Vector3r Renderer::realColor;
+Vector3r Renderer::stepColor;
+int Renderer::grid;
+
 
 void Renderer::init(){
 	LOG_DEBUG("Renderer::init()");

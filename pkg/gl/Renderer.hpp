@@ -111,6 +111,9 @@ struct Renderer: public Object{
 
 		// static void pyInitError(py::tuple, py::dict){ throw std::runtime_error("woo.gl.Renderer() may not be instantiated directly, use woo.qt.Renderer() to get the current instance."); }
 
+	enum{TIME_NONE=0,TIME_VIRT=1,TIME_REAL=2,TIME_STEP=4};
+	enum{TIME_ALL=TIME_VIRT|TIME_REAL|TIME_STEP};
+
 	WOO_CLASS_BASE_DOC_STATICATTRS_PY(Renderer,Object,"Class responsible for rendering scene on OpenGL devices.",
 		((bool,engines,true,,"Call engine's rendering functions (if defined)"))
 		((bool,ghosts,false,,"Render objects crossing periodic cell edges by cloning them in multiple places (periodic simulations only)."))
@@ -130,6 +133,11 @@ struct Renderer: public Object{
 		((bool,light2,true,,"Turn light 2 on."))
 		((Vector3r,light2Pos,Vector3r(-130,75,30),,"Position of secondary OpenGL light source in the scene."))
 		((Vector3r,light2Color,Vector3r(0.5,0.5,0.1),AttrTrait<>().rgbColor(),"Per-color intensity of secondary light (RGB)."))
+		((int,showTime,TIME_ALL,AttrTrait<>().bits({"virt.","real","step"}),"Control whether virtual time, real time and step number are displayed in the 3d view."))
+		((Vector3r,virtColor,Vector3r(1.,1.,1.),AttrTrait<>().rgbColor(),"Virtual time color"))
+		((Vector3r,realColor,Vector3r(0,.5,.5),AttrTrait<>().rgbColor(),"Real time color"))
+		((Vector3r,stepColor,Vector3r(0,.5,.5),AttrTrait<>().rgbColor(),"Step number color"))
+		((int,grid,0,AttrTrait<>().bits({"yz","zx","xy"}),"Show axes planes with grid"))
 
 		
 		((vector<Vector3r>,clipPlanePos,vector<Vector3r>(numClipPlanes,Vector3r::Zero()),AttrTrait<>().startGroup("Selection and clipping"),"Position and orientation of clipping planes"))
@@ -139,10 +147,14 @@ struct Renderer: public Object{
 		((shared_ptr<Node>,selObjNode,,AttrTrait<Attr::readonly>(),"Node associated to the selected object (recenters scene on that object upon selection)"))
 		,/*py*/
 		//.def("render",&Renderer::pyRender,"Render the scene in the current OpenGL context.")
-		.def_readonly("shapeDispatcher",&Renderer::shapeDispatcher)
-		.def_readonly("boundDispatcher",&Renderer::boundDispatcher)
-		.def_readonly("nodeDispatcher",&Renderer::nodeDispatcher)
-		.def_readonly("cPhysDispatcher",&Renderer::cPhysDispatcher)
+			.def_readonly("shapeDispatcher",&Renderer::shapeDispatcher)
+			.def_readonly("boundDispatcher",&Renderer::boundDispatcher)
+			.def_readonly("nodeDispatcher",&Renderer::nodeDispatcher)
+			.def_readonly("cPhysDispatcher",&Renderer::cPhysDispatcher)
+			;
+			_classObj.attr("timeVirt")=(int)Renderer::TIME_VIRT;
+			_classObj.attr("timeReal")=(int)Renderer::TIME_REAL;
+			_classObj.attr("timeStep")=(int)Renderer::TIME_STEP;
 	);
 };
 REGISTER_SERIALIZABLE(Renderer);

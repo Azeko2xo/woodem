@@ -104,9 +104,7 @@ void GLViewer::closeEvent(QCloseEvent *e){
 
 GLViewer::GLViewer(int _viewId, QGLWidget* shareWidget): QGLViewer(/*parent*/(QWidget*)NULL,shareWidget), viewId(_viewId) {
 	isMoving=false;
-	drawGrid=0;
 	drawScale=true;
-	timeDispMask=TIME_REAL|TIME_VIRT|TIME_ITER;
 	cut_plane = 0;
 	cut_plane_delta = -2;
 	gridSubdivide = false;
@@ -370,8 +368,8 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 	#if 0
 		else if(e->key()==Qt::Key_D &&(e->modifiers() & Qt::AltModifier)){ /*Body::id_t id; if((id=Master::instance().getScene()->selection)>=0){ const shared_ptr<Body>& b=Body::byId(id); b->setDynamic(!b->isDynamic()); LOG_INFO("Body #"<<id<<" now "<<(b->isDynamic()?"":"NOT")<<" dynamic"); }*/ LOG_INFO("Selection not supported!!"); }
 	#endif
-	else if(e->key()==Qt::Key_D) {timeDispMask+=1; if(timeDispMask>(TIME_REAL|TIME_VIRT|TIME_ITER))timeDispMask=0; }
-	else if(e->key()==Qt::Key_G) { if(e->modifiers() & Qt::ShiftModifier){ drawGrid=(drawGrid>0?0:7); return; } else drawGrid++; if(drawGrid>=8) drawGrid=0; }
+	else if(e->key()==Qt::Key_D) {Renderer::showTime+=1; if(Renderer::showTime>Renderer::TIME_ALL) Renderer::showTime=Renderer::TIME_NONE; }
+	else if(e->key()==Qt::Key_G) { if(e->modifiers() & Qt::ShiftModifier){ Renderer::grid=(Renderer::grid>0?0:7); return; } else Renderer::grid++; if(Renderer::grid>=8) Renderer::grid=0; }
 	else if (e->key()==Qt::Key_M && selectedName() >= 0){ 
 		if(!(isMoving=!isMoving)){displayMessage("Moving done."); mouseMovesCamera();}
 		else{ displayMessage("Moving selected object"); mouseMovesManipulatedFrame();}
@@ -626,16 +624,17 @@ void GLViewer::postDraw(){
 	//LOG_TRACE("nSegments="<<nSegments<<",gridStep="<<gridStep<<",realSize="<<realSize);
 	glPushMatrix();
 
-	nSegments *= 2; // there's an error in QGLViewer::drawGrid(), so we need to mitigate it by '* 2'
+	nSegments *= 2; // there's an error in QGLViewer::drawGrid(), fix it by '* 2'
 	// XYZ grids
 	glLineWidth(.5);
-	if(drawGrid & 1) {glColor3f(0.6,0.3,0.3); glPushMatrix(); glRotated(90.,0.,1.,0.); QGLViewer::drawGrid(realSize,nSegments); glPopMatrix();}
-	if(drawGrid & 2) {glColor3f(0.3,0.6,0.3); glPushMatrix(); glRotated(90.,1.,0.,0.); QGLViewer::drawGrid(realSize,nSegments); glPopMatrix();}
-	if(drawGrid & 4) {glColor3f(0.3,0.3,0.6); glPushMatrix(); /*glRotated(90.,0.,1.,0.);*/ QGLViewer::drawGrid(realSize,nSegments); glPopMatrix();}
+	int& grid(Renderer::grid);
+	if(grid & 1) {glColor3f(0.6,0.3,0.3); glPushMatrix(); glRotated(90.,0.,1.,0.); QGLViewer::drawGrid(realSize,nSegments); glPopMatrix();}
+	if(grid & 2) {glColor3f(0.3,0.6,0.3); glPushMatrix(); glRotated(90.,1.,0.,0.); QGLViewer::drawGrid(realSize,nSegments); glPopMatrix();}
+	if(grid & 4) {glColor3f(0.3,0.3,0.6); glPushMatrix(); /*glRotated(90.,0.,1.,0.);*/ QGLViewer::drawGrid(realSize,nSegments); glPopMatrix();}
 	if(gridSubdivide){
-		if(drawGrid & 1) {glColor3f(0.4,0.1,0.1); glPushMatrix(); glRotated(90.,0.,1.,0.); QGLViewer::drawGrid(realSize,nSegments*10); glPopMatrix();}
-		if(drawGrid & 2) {glColor3f(0.1,0.4,0.1); glPushMatrix(); glRotated(90.,1.,0.,0.); QGLViewer::drawGrid(realSize,nSegments*10); glPopMatrix();}
-		if(drawGrid & 4) {glColor3f(0.1,0.1,0.4); glPushMatrix(); /*glRotated(90.,0.,1.,0.);*/ QGLViewer::drawGrid(realSize,nSegments*10); glPopMatrix();}
+		if(grid & 1) {glColor3f(0.4,0.1,0.1); glPushMatrix(); glRotated(90.,0.,1.,0.); QGLViewer::drawGrid(realSize,nSegments*10); glPopMatrix();}
+		if(grid & 2) {glColor3f(0.1,0.4,0.1); glPushMatrix(); glRotated(90.,1.,0.,0.); QGLViewer::drawGrid(realSize,nSegments*10); glPopMatrix();}
+		if(grid & 4) {glColor3f(0.1,0.1,0.4); glPushMatrix(); /*glRotated(90.,0.,1.,0.);*/ QGLViewer::drawGrid(realSize,nSegments*10); glPopMatrix();}
 	}
 	
 	// scale
@@ -704,35 +703,46 @@ void GLViewer::postDraw(){
 	Scene* scene=Master::instance().getScene().get();
 	#define _W3 std::setw(3)<<std::setfill('0')
 	#define _W2 std::setw(2)<<std::setfill('0')
-	if(timeDispMask!=0){
+	if(Renderer::showTime!=Renderer::TIME_NONE){
 		const int lineHt=13;
 		unsigned x=10,y=height()-3-lineHt*2;
-		glColor3v(Vector3r(1,1,1));
-		if(timeDispMask & GLViewer::TIME_VIRT){
+		if(Renderer::showTime & Renderer::TIME_VIRT){
+			glColor3v(Renderer::virtColor);
 			std::ostringstream oss;
 			const Real& t=Master::instance().getScene()->time;
+			const Real& dt=Master::instance().getScene()->dt;
 			unsigned min=((unsigned)t/60),sec=(((unsigned)t)%60),msec=((unsigned)(1e3*t))%1000,usec=((unsigned long)(1e6*t))%1000,nsec=((unsigned long)(1e9*t))%1000;
-			if(min>0) oss<<_W2<<min<<":"<<_W2<<sec<<"."<<_W3<<msec<<"m"<<_W3<<usec<<"u"<<_W3<<nsec<<"n";
-			else if (sec>0) oss<<_W2<<sec<<"."<<_W3<<msec<<"m"<<_W3<<usec<<"u"<<_W3<<nsec<<"n";
-			else if (msec>0) oss<<_W3<<msec<<"m"<<_W3<<usec<<"u"<<_W3<<nsec<<"n";
-			else if (usec>0) oss<<_W3<<usec<<"u"<<_W3<<nsec<<"n";
-			else oss<<_W3<<nsec<<"ns";
+			if(t>0){
+				if(min>0) oss<<_W2<<min<<":";
+					//<<_W2<<sec<<"."<<_W3<<msec<<"m"<<_W3<<usec<<"u"<<_W3<<nsec<<"n";
+				oss<<_W2<<sec;
+				if(dt<10) oss<<"."<<_W3<<msec<<"m";
+				if(dt<1e-1) oss<<_W3<<usec<<"u";
+				if(dt<1e-4) oss<<_W3<<nsec<<"n";
+				//else if (msec>0) oss<<_W3<<msec<<"m"<<_W3<<usec<<"u"<<_W3<<nsec<<"n";
+				//else if (usec>0) oss<<_W3<<usec<<"u"<<_W3<<nsec<<"n";
+				//else oss<<_W3<<nsec<<"ns";
+			} else {
+				oss<<"0s";
+			}
 			QGLViewer::drawText(x,y,oss.str().c_str());
 			y-=lineHt;
 		}
 		glColor3v(Vector3r(0,.5,.5));
-		if(timeDispMask & GLViewer::TIME_REAL){
+		if(Renderer::showTime & Renderer::TIME_REAL){
+			glColor3v(Renderer::realColor);
 			QGLViewer::drawText(x,y,getRealTimeString().c_str() /* virtual, since player gets that from db */);
 			y-=lineHt;
 		}
-		if(timeDispMask & GLViewer::TIME_ITER){
+		if(Renderer::showTime & Renderer::TIME_STEP){
+			glColor3v(Renderer::stepColor);
 			std::ostringstream oss;
 			oss<<"#"<<scene->step;
 			if(scene->stopAtStep>scene->step) oss<<" ("<<std::setiosflags(std::ios::fixed)<<std::setw(3)<<std::setprecision(1)<<std::setfill('0')<<(100.*scene->step)/scene->stopAtStep<<"%)";
 			QGLViewer::drawText(x,y,oss.str().c_str());
 			y-=lineHt;
 		}
-		if(drawGrid){
+		if(Renderer::grid){
 			glColor3v(Vector3r(1,1,0));
 			std::ostringstream oss;
 			oss<<"grid: "<<std::setprecision(4)<<gridStep;
@@ -932,19 +942,16 @@ void GLViewer::wheelEvent(QWheelEvent* event){
 
 // cut&paste from QGLViewer::domElement documentation
 QDomElement GLViewer::domElement(const QString& name, QDomDocument& document) const{
-	QDomElement de=document.createElement("grid");
-	string val; if(drawGrid & 1) val+="x"; if(drawGrid & 2)val+="y"; if(drawGrid & 4)val+="z";
-	de.setAttribute("normals",val.c_str());
-	QDomElement de2=document.createElement("timeDisplay"); de2.setAttribute("mask",timeDispMask);
 	QDomElement res=QGLViewer::domElement(name,document);
-	res.appendChild(de);
-	res.appendChild(de2);
+	// not saving any custom attributes anymore
 	return res;
 }
 
 // cut&paste from QGLViewer::initFromDomElement documentation
 void GLViewer::initFromDOMElement(const QDomElement& element){
 	QGLViewer::initFromDOMElement(element);
+	// we don't save any custom attributes here anymore
+	#if 0
 	QDomElement child=element.firstChild().toElement();
 	while (!child.isNull()){
 		if (child.tagName()=="gridXYZ" && child.hasAttribute("normals")){
@@ -952,9 +959,9 @@ void GLViewer::initFromDOMElement(const QDomElement& element){
 			drawGrid=0;
 			if(val.find("x")!=string::npos) drawGrid+=1; if(val.find("y")!=string::npos)drawGrid+=2; if(val.find("z")!=string::npos)drawGrid+=4;
 		}
-		if(child.tagName()=="timeDisplay" && child.hasAttribute("mask")) timeDispMask=atoi(child.attribute("mask").toAscii());
 		child = child.nextSibling().toElement();
 	}
+	#endif
 }
 
 boost::posix_time::ptime GLViewer::getLastUserEvent(){return last_user_event;};
