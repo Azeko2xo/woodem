@@ -4,7 +4,14 @@
 #
 set -e -x
 # must be absolute path where pyinstaller's-generated executable is
-BINDIR=/media/eudoxos/WIN7/src/woo/dist/wwoo-win64
+if [ -d /boot ]; then
+	# linux
+	BINDIR=/media/eudoxos/WIN7/src/woo/dist/wwoo-win64
+else
+	# windows
+	BINDIR=/c/src/woo/dist/wwoo-win64
+fi
+
 REVNO=`bzr revno ..`
 DESTDIR=$BINDIR/..
 
@@ -21,15 +28,40 @@ for d in ../wooExtra/*; do
 		cp dist/*.egg $BINDIR
 	popd
 done
-pushd $BINDIR
-	makensis -DVERSION=1.0 nsis-wwoo-libs.nsh 
-	makensis -DVERSION=0.99-$REVNO nsis-wwoo-main.nsh 
-	# make installers for extra modules
-	for EGG in wooExtra.*.egg; do
-		COMPONENT=`echo $EGG | cut -f1 -d-`
-		VERSION=`echo $EGG | cut -f2 -d-`
-		makensis -DCOMPONENT=$COMPONENT -DVERSION=$VERSION nsis-wwoo-extra.nsh
-	done
-popd
+
+if [ -d /boot ]; then
+	# linux
+	echo LINUX
+	echo HOVNO!!!!!!!!!!
+	pushd $BINDIR
+		makesnsis -DVERSION=1.0 nsis-wwoo-libs.nsh 
+		makensis -DVERSION=0.99-$REVNO nsis-wwoo-main.nsh 
+		# make installers for extra modules
+		for EGG in wooExtra.*.egg; do
+			COMPONENT=`echo $EGG | cut -f1 -d-`
+			VERSION=`echo $EGG | cut -f2 -d-`
+			makensis -DCOMPONENT=$COMPONENT -DVERSION=$VERSION nsis-wwoo-extra.nsh
+		done
+	popd
+else
+	# windows is so singularly ugly
+	MAKENSIS='/c/Program Files (x86)/NSIS/makensis.exe'
+	pushd $BINDIR
+		# work around msys expanding /D: http://forums.winamp.com/showthread.php?t=253732
+		# omg
+		echo "!define VERSION 1.0" > defines.nsh
+		"$MAKENSIS" defines.nsh nsis-wwoo-libs.nsh
+		echo "!define VERSION 0.99-$REVNO" > defines.nsh
+		"$MAKENSIS" defines.nsh nsis-wwoo-main.nsh
+		for EGG in wooExtra.*.egg; do
+			COMPONENT=`echo $EGG | cut -f1 -d-`
+			VERSION=`echo $EGG | cut -f2 -d-`
+			echo "!define COMPONENT $COMPONENT" > defines.nsh
+			echo "!define VERSION $VERSION" >>defines.nsh
+			"$MAKENSIS" defines.nsh nsis-wwoo-extra.nsh
+		done
+	popd
+fi
+
 
 mv $BINDIR/*-installer.exe $DESTDIR

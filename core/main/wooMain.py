@@ -24,6 +24,12 @@ def makeColorFuncs(colors,dumbWinColors=False):
 		return ret
 	except ImportError:
 		return [lambda s: s]*len(colors)
+		
+## set ipython's directory in frozen setups
+## this should be really fixed upstream!
+if hasattr(sys,'frozen'):
+	from os.path import expanduser
+	os.environ['IPYTHONDIR']=expanduser('~/.ipython')
 
 
 def main(sysArgv=None):

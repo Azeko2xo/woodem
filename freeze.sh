@@ -5,6 +5,10 @@ ZIP7="/c/Program Files/7-Zip/7z.exe"
 ZIP7FLAGS="-m0=lzma2 -mmt=6"
 set -e -x
 
+pushd nsis
+	bash nsis-runall.sh
+popd
+
 pushd dist
 	DDIR=wwoo-win64 # frozen directory
 	#zip wwoo-r$REVNO-win64.zip -9 -i $DDIR/wwoo* $DDIR/woo*
