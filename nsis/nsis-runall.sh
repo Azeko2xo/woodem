@@ -4,7 +4,7 @@
 #
 set -e -x
 # must be absolute path where pyinstaller's-generated executable is
-BINDIR=/c/src/woo/dist/wwoo-win64
+BINDIR=/media/eudoxos/WIN7/src/woo/dist/wwoo-win64
 REVNO=`bzr revno ..`
 DESTDIR=$BINDIR/..
 

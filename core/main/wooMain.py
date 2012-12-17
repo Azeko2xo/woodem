@@ -352,7 +352,7 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 			ipconfig['banner1']=banner+'\n' # called banner1 in >=0.11, not banner as in 0.10
 			for k in ipconfig: setattr(InteractiveShellEmbed,k,ipconfig[k])
 			ipshell=InteractiveShellEmbed()
-			if woo.runtime.ipython_version==12:
+			if woo.runtime.ipython_version>=12:
 				ipshell.prompt_manager.in_template= 'Woo [\#]: '
 				ipshell.prompt_manager.in2_template='    .\D.: '
 				ipshell.prompt_manager.out_template=' -> [\#]: '

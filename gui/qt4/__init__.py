@@ -203,12 +203,14 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.generatorCombo.clear()
 		self.preprocessorObjects=[]
 		# import all preprocessors
-		import pkgutil, woo.pre
+		import pkgutil, woo.pre, sys
 		for importer,modname,ispkg in pkgutil.iter_modules(woo.pre.__path__):
 			try: __import__('woo.pre.'+modname,fromlist='woo.pre')
 			except:
-				print "(Error importing woo.pre."+modname+", ignoring.)"	
-		# 
+				# this error is spurious with frozen installs, but probably meaningful otherwise
+				# so we silently skip over when frozen
+				if not hasattr(sys,'frozen'): print "(Error importing woo.pre."+modname+", ignoring.)"	
+		#
 		preps=[]
 		for c in woo.system.childClasses(woo.core.Preprocessor):
 			preps.append((c.__module__,c.__name__,c))
