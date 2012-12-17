@@ -70,6 +70,7 @@ def main(sysArgv=None):
 	par.add_argument('--in-valgrind',help='Run inside valgrind (must be in $PATH); automatically adds python ignore files',dest='inValgrind',action='store_true')
 	par.add_argument('simulation',nargs=argparse.REMAINDER)
 	opts=par.parse_args()
+	if WIN: opts.rebuild=False # make sure it is defined
 	args=opts.simulation
 
 	wooOptions.useKnownArgs(sys.argv)
@@ -84,7 +85,7 @@ def main(sysArgv=None):
 		print '%s (%s)'%(woo.config.prettyVersion(),','.join(woo.config.features))
 		sys.exit(0)
 	# re-build woo so that the binary is up-to-date
-	if not WIN and opts.rebuild:
+	if opts.rebuild: # only possible under Linux
 		import subprocess, woo.config, glob
 		if not woo.config.sourceRoot: raise RuntimeError('This build does not define woo.config.sourceRoot (packaged version?)')
 		if opts.rebuild>1:

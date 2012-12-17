@@ -239,7 +239,7 @@ if not WIN:
 def cleanOldTemps(prefix,keep):
 	try: import psutil
 	except ImportError:
-		print 'Not cleaning old temps, since the psutil module is missing.'
+		sys.stderr.write('Not cleaning old temps, since the psutil module is missing.\n')
 		return
 	for d in glob.glob(prefix+'/woo-tmp-*'):
 		if d==keep: continue
@@ -248,7 +248,7 @@ def cleanOldTemps(prefix,keep):
 		try:
 			pid=int(open(pidfile).readlines()[0][:-1])
 			if not psutil.pid_exists(pid):
-				print 'Purging old %s (pid=%d)'%(d,pid)
+				sys.stderr.write('Purging old %s (pid=%d)\n'%(d,pid))
 				shutil.rmtree(d)
 		except: pass
 threading.Thread(target=cleanOldTemps,args=(os.path.dirname(master.tmpFileDir),master.tmpFileDir)).start()

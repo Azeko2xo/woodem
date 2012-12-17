@@ -46,6 +46,9 @@ exeBatch=EXE(pyz,
 	strip=None,
 	upx=False,
 	console=True)
+	
+import ctypes
+bits=str(ctypes.sizeof(ctypes.c_voidp)*8)
 
 coll=COLLECT(
 	exeMain,
@@ -55,5 +58,5 @@ coll=COLLECT(
 	main.datas,
 	strip=None,
 	upx=False,
-	name=os.path.join('dist', 'wwoo')
+	name=os.path.join('dist', 'wwoo-win%s'%bits)
 )
