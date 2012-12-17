@@ -74,15 +74,17 @@ def main(sysArgv=None):
 
 	wooOptions.useKnownArgs(sys.argv)
 
+	# disable quirks in those cases
+	if (opts.version or opts.inGdb or opts.test or opts.rebuild):
+		wooOptions.quirks=opts.quirks=0
+
 	# show version and exit
 	if opts.version:
-		wooOptions.quirks=0
 		import woo.config
 		print '%s (%s)'%(woo.config.prettyVersion(),','.join(woo.config.features))
 		sys.exit(0)
 	# re-build woo so that the binary is up-to-date
 	if not WIN and opts.rebuild:
-		wooOptions.quirks=0
 		import subprocess, woo.config, glob
 		if not woo.config.sourceRoot: raise RuntimeError('This build does not define woo.config.sourceRoot (packaged version?)')
 		if opts.rebuild>1:
@@ -109,7 +111,7 @@ def main(sysArgv=None):
 		print 'Running Woo using',' '.join(argv)
 		sys.exit(subprocess.call(argv))
 	# QUIRK running in gdb
-	if wooOptions.quirks & wooOptions.quirkFirePro and (not wooOptions.forceNoGui and 'DISPLAY' in os.environ) and not opts.inGdb:
+	if (wooOptions.quirks & wooOptions.quirkFirePro) and (not wooOptions.forceNoGui and 'DISPLAY' in os.environ):
 		vgas=os.popen("LC_ALL=C lspci | grep VGA").readlines()
 		if sum(['FirePro' in vga for vga in vgas]):
 			print 'AMD FirePro GPU detected, will run inside gdb to avoid crash in buggy fglrx.so.'

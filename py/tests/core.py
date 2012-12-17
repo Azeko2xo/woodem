@@ -299,3 +299,72 @@ class TestArrayAccu(unittest.TestCase):
 		self.t.aaccuWriteThreads(0,[i for i in range(0,self.N)])
 		for i in range(0,self.N):
 			self.assert_(self.t.aaccuRaw[0][i]==i) # each thread has written its own index
+
+
+class TestPyDerived(unittest.TestCase):
+	import woo.pyderived, woo.core
+	class TestPyClass(woo.core.Object,woo.pyderived.PyWooObject):
+		'Sample pure-python class integrated into woo (mainly used with preprocessors)'
+		PAT=woo.pyderived.PyAttrTrait
+		_attrTraits=[
+			PAT(float,'aF',1.,'float attr'),
+			PAT([float,],'aFF',[0.,1.,2.],'list of floats attr'),
+			PAT(Vector2,'aV2',(0.,1.),'vector2 attr'),
+			PAT([Vector2,],'aVV2',[(0.,0.),(1.,1.)],'list of vector2 attr'),
+			PAT(woo.core.Node,'aNode',woo.core.Node(pos=(1,1,1)),'node attr'),
+			PAT(woo.core.Node,'aNodeNone',None,'node attr, uninitialized'),
+			PAT([woo.core.Node,],'aNNode',[woo.core.Node(pos=(1,1,1)),woo.core.Node(pos=(2,2,2))],'List of nodes'),
+		]
+		def __init__(self,**kw):
+			woo.core.Object.__init__(self)
+			self.wooPyInit(self.__class__,woo.core.Object,**kw)
+	def setUp(self):
+		self.t=self.TestPyClass()
+	def testTraits(self):
+		'PyDerived: PyAttrTraits'
+		self.assert_(self.t._attrTraits[0].ini==1.)
+		self.assert_(self.t._attrTraits[0].pyType==float)
+	def testIniValues(self):
+		'PyDerived: attribute initialization'
+		self.assert_(self.t.aF==1.)
+		self.assert_(self.t.aFF==[0.,1.,2.])
+		self.assert_(self.t.aNodeNone==None)
+	def testAttrTypesDefault(self):
+		'PyDerived: checkAttrTypes - default'
+		try: self.t.checkAttrTypes()
+		except: self.fail("exception raised with default-initialized TestPyClass")
+	def testAttrFloat(self):
+		'PyDerived: checkAttrTypes - float'
+		self.t.aF='asd'
+		self.assertRaises(TypeError,self.t.checkAttrTypes)
+	def testAttrFFloat(self):
+		'PyDerived: checkAttrTypes - float list'
+		self.t.aFF=(1,2,'ab')
+		self.assertRaises(TypeError,self.t.checkAttrTypes)
+		self.t.aFF='ab'
+		self.assertRaises(TypeError,self.t.checkAttrTypes)
+		self.t.aFF='123' # disallow conversion from strings
+		self.assertRaises(TypeError,self.t.checkAttrTypes)
+		self.t.aFF=[(1,2,3),(4,5,6)]
+		self.assertRaises(TypeError,self.t.checkAttrTypes)
+		self.t.aFF=[]
+		self.t.aFF=Vector3(1,2,3)
+		try: self.t.checkAttrTypes()
+		except: self.fail("Vector3 not accepted for list of floats")
+		self.t.aFF=[]
+		try: self.t.checkAttrTypes()
+		except: self.fail("Empty list not accepter for list of floats")
+	def testAttrObj(self):
+		'PyDerived: checkAttrTypes - c++ object'
+		self.t.aNode=None
+		try: self.t.checkAttrTypes()
+		except: self.fail("None not accepted as woo.core.Node")
+		self.t.aNode=woo.core.Scene()
+		self.assertRaises(TypeError,self.t.checkAttrTypes)
+	def testAttrObjList(self):
+		'PyDerived: checkAttrTypes - list of c++ objects'
+		self.t.aNNode=(woo.core.Node(),woo.core.Scene())
+		self.assertRaises(TypeError,self.t.checkAttrTypes)
+		self.t.aNNode=[None,woo.core.Node()]
+		try: self.t.checkAttrTypes()
+		except: self.fail("[None,Node] not accepted for list of Nodes")

@@ -348,6 +348,8 @@ def runPreprocessor(pre,preFile=None):
 			if name=='title': continue
 			if val in ('*','-',''): continue
 			nestedSetattr(pre,name,eval(val,globals(),dict(woo=woo))) # woo.unit
+	# check types, if this is a python preprocessor
+	if hasattr(pre,'checkAttrTypes'): pre.checkAttrTypes()
 	# run preprocessor
 	S=pre()
 	# set tags from batch

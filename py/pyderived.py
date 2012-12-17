@@ -3,6 +3,14 @@ from woo.core import *
 from minieigen import *
 
 class PyAttrTrait:
+	#		
+	# fake cxxType
+	#
+	primitiveTypes={int:'int',str:'string',float:'Real',bool:'bool',
+		Vector2:'Vector2r',Vector3:'Vector3r',Vector6:'Vector6r',Matrix3:'Matrix3r',Matrix6:'Matrix6r',
+		Quaternion:'Quaternionr',Vector2i:'Vector2i',Vector3i:'Vector3i',Vector6i:'Vector6i',
+		MatrixX:'MatrixXr',VectorX:'VectorXr'
+	}
 	def __init__(self,pyType,name,ini,doc,# *,
 			unit=None,
 			noGui=False,
@@ -21,24 +29,20 @@ class PyAttrTrait:
 		):
 		# validity checks
 		if range:
-			if (pyType,type(range)) not in [(int,Vector2i),(float,Vector2)]: raise ValueError("Range must be Vector2 for floats and Vector2i for ints")
-		#		
-		# fake cxxType
-		#
-		primitiveTypes={int:'int',str:'string',float:'Real',bool:'bool',
-			Vector2:'Vector2r',Vector3:'Vector3r',Vector6:'Vector6r',Matrix3:'Matrix3r',Matrix6:'Matrix6r',
-			Quaternion:'Quaternionr',Vector2i:'Vector2i',Vector3i:'Vector3i',Vector6i:'Vector6i',
-			MatrixX:'MatrixXr',VectorX:'VectorXr'
-		}
+			if (pyType,type(range)) not in [(int,Vector2i),(float,Vector2)]: raise TypeError("Range must be Vector2 for floats and Vector2i for ints")
 		if isinstance(pyType,list):
-			if len(pyType)!=1: raise ValueError('Type must be a list of length exactly one, or a plain type')
-			if pyType[0] in primitiveTypes: self.cxxType='vector<%s>'%primitiveTypes[pyType[0]]
+			if len(pyType)!=1: raise TypeError('Type must be a list of length exactly one, or a plain type')
+			if pyType[0] in self.primitiveTypes: self.cxxType='vector<%s>'%self.primitiveTypes[pyType[0]]
 			elif isinstance(pyType[0],type): self.cxxType='vector<shared_ptr<%s>>'%(pyType[0].__name__)
-			else: raise ValueError('List element msut be a type, not a %s'%(str(pyType[0])))
+			else: raise TypeError('List element must be a type, not a %s'%(str(pyType[0])))
 			# force correct types in the sequence
-			ini=[pyType[0](i) for i in ini]
-		elif pyType in primitiveTypes:
-			self.cxxType=primitiveTypes[pyType]
+			if pyType[0] in self.primitiveTypes: ini=[pyType[0](i) for i in ini]
+			else:
+				for i,v in enumerate(ini):
+					if v==None: continue # this is OK
+					if not isinstance(v,pyType[0]): raise TypeError("%d-th initial value item must be a %s, not a %s"%(i,pyType[0],type(v)))
+		elif pyType in self.primitiveTypes:
+			self.cxxType=self.primitiveTypes[pyType]
 			ini=pyType(ini)
 		elif isinstance(pyType,type):
 			self.cxxType='shared_ptr<%s>'%pyType.__name__
@@ -96,6 +100,35 @@ class PyAttrTrait:
 				for i,au in enumerate(altUnits):
 					self.altUnits[i]+=au
 		else: raise ValueError('Unknown unit type %s (must be list, tuple, str, unicode): %s'%(type(unit).__name__,str(unit)))
+	def checkType(self,val):
+		'Check whether *val* has type compatible with declared type (pyType). Raise exception if not.'
+		def tName(T): return (T.__module__+'.' if T.__module__!='__builtin__' else '')+T.__name__
+		# sequences
+		if isinstance(self.pyType,list):
+			assert len(self.pyType)==1
+			if not hasattr(val,'__len__'): raise TypeError("Attribute {self.name} declared as sequence of {T} ({self.cxxT}), but its value {val!s} of type {valType} is not a sequence (__len__ not defined).".format(self=self,T=tName(self.pyType[0]),val=val,valType=tName(type(val))))
+			T=self.pyType[0]
+			if T in self.primitiveTypes: # check convertibility
+				for i,v in enumerate(val):
+					try:
+						if type(v) in (str,unicode) and T in (float,int): raise TypeError("Don't allow conversions from strings to numbers, since that will fail if used without conversion")
+						T(v)
+					except: raise TypeError("Attribute {self.name} declared as sequence of {T}, but {i}'th item {v!s} of type {itemType} is not convertible to {T}.".format(self=self,i=i,v=v,itemType=tName(type(v)),T=tName(T)))
+			else:
+				for i,v in enumerate(val):
+					if v==None: continue # python representation for NULL shared_ptr
+					if not isinstance(v,T): raise TypeError("Attribute {self.name} declared as a sequence of {T}, but {i}'th item {v!s} of type {itemType} is not a {T}.".format(self=self,i=i,v=v,itemType=tName(type(v)),T=tName(T)))
+		else:
+			# do the same as for sequence items; ugly code duplication
+			T=self.pyType
+			if T in self.primitiveTypes:
+				try:
+					if type(val) in (str,unicode) and T in (float,int): raise TypeError("Don't allow conversions from strings to numbers, since that will fail if used without conversion")
+					T(val)
+				except: raise TypeError("Attribute {self.name} declared as {T}, but value {val!s} of type {valType} is not convertible to {T}".format(self=self,val=val,valType=tName(type(val)),T=tName(T)))
+			else:
+				# objects
+				if val!=None and not isinstance(val,T): raise TypeError("Attribute {self.name} declared as {T}, but value {val!s} of type {valType} is not a {T}".format(self=self,val=val,valType=tName(type(val)),T=tName(T)))
 
 	def __str__(self): return '<PyAttrTrait '+self.name+' @ '+str(id(self))+'>'
 	def __repr__(self): return self.__str__()
@@ -103,7 +136,9 @@ class PyAttrTrait:
 class PyWooObject:
 	'Define some c++-compatibility functions for python classes'
 	def wooPyInit(self,derivedClass,cxxBaseClass,**kw):
-		cxxBaseClass.__init__(self) # repeat, jsut to make sure
+		'''Inject methods into derivedClass, so that it behaves like woo.core.Object,
+		for the purposes of the GUI and expression dumps'''
+		cxxBaseClass.__init__(self) # repeat, just to make sure
 		self.cxxBaseClass=cxxBaseClass
 		self.derivedClass=derivedClass
 		for a in derivedClass._attrTraits: setattr(self,a.name,a.ini)
@@ -124,12 +159,17 @@ class PyWooObject:
 			#print '__setstate__ in python'
 			self.__dict__.update(st)
 		def deepcopy(self):
-			'The c++ dedepcopy uses boost::serialization, we need to use pickle'
+			'''The c++ dedepcopy uses boost::serialization, we need to use pickle. As long as deepcopy
+			is called from python, this function gets precende over the c++ one.'''
 			import pickle
 			return pickle.loads(pickle.dumps(self))
+		def checkAttrTypes(self):
+			for a in derivedClass._attrTraits: a.checkType(getattr(self,a.name))
 		derivedClass.__getstate__=__getstate__
 		derivedClass.__setstate__=__setstate__
 		derivedClass.deepcopy=deepcopy
+		derivedClass.checkAttrTypes=checkAttrTypes
+		
 	
 
 # inheritance order must not change, due to us using __bases__[0] frequently
