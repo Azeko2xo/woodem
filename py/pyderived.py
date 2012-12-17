@@ -169,6 +169,7 @@ class PyWooObject:
 		derivedClass.__setstate__=__setstate__
 		derivedClass.deepcopy=deepcopy
 		derivedClass.checkAttrTypes=checkAttrTypes
+		self.checkAttrTypes() # call to make sure we don't carry garbage from the very start
 		
 	
 
