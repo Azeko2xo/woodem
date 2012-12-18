@@ -297,7 +297,7 @@ class ControllerClass(QWidget,Ui_Controller):
 			if self.genIndexLoad>=0: self.generatorCombo.setItemText(self.genIndexLoad,'load')
 			self.generator=(self.preprocessorObjects[ix]() if ix<len(self.preprocessorObjects) else None)
 		if self.generator:
-			se=SerializableEditor(self.generator,parent=self.generatorArea,showType=True,labelIsVar=False,showChecks=True,showUnits=True) # TODO
+			se=SerializableEditor(self.generator,parent=self.generatorArea,showType=True,labelIsVar=False,showChecks=True,showUnits=True,objManip=True) # TODO
 			self.generatorArea.setWidget(se)
 	def genSaveParamsSlot(self):
 		if 0:

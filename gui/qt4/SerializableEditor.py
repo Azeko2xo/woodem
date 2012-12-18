@@ -703,10 +703,11 @@ class SerializableEditor(QFrame):
 		def setExpanderIcon(self): self.expander.setIcon(self.downArrow if self.expander.isChecked() else self.rightArrow)
 		def toggleExpander(self): 
 			self.setExpanderIcon()
-			for e in self.entries: e.setVisible(self.expander.isChecked())
+			for e in self.entries:
+				e.setVisible(self.expander.isChecked())
 
 
-	def __init__(self,ser,parent=None,ignoredAttrs=set(),showType=False,path=None,labelIsVar=True,showChecks=False,showUnits=False):
+	def __init__(self,ser,parent=None,ignoredAttrs=set(),showType=False,path=None,labelIsVar=True,showChecks=False,showUnits=False,objManip=False):
 		"Construct window, *ser* is the object we want to show."
 		QtGui.QFrame.__init__(self,parent)
 		self.ser=ser
@@ -718,6 +719,7 @@ class SerializableEditor(QFrame):
 		self.labelIsVar=labelIsVar # show variable name; if false, docstring is used instead
 		self.showChecks=showChecks
 		self.showUnits=showUnits
+		self.objManip=objManip
 		self.hot=False
 		self.entries=[]
 		self.entryGroups=[]
@@ -805,11 +807,29 @@ class SerializableEditor(QFrame):
 				t=self.getListTypeFromDocstring(trait)
 				if not t and len(val)==0: t=(val[0].__class__,) # 1-tuple is list of the contained type
 				#if not t: raise RuntimeError('Unable to guess type of '+str(self.ser)+'.'+attr)
-			# hack for Se3, which is returned as (Vector3,Quaternion) in python
-			elif isinstance(val,tuple) and len(val)==2 and val[0].__class__==Vector3 and val[1].__class__==Quaternion: t=Se3FakeType
-			elif val==None: t=Object
 			elif val.__class__ in _attributeGuessedTypeMap: t=_attributeGuessedTypeMap[val.__class__]
-			else: t=val.__class__
+			elif val!=None: t=val.__class__
+			else:
+				# val==None, try to find which type it should be
+				# only useful if we can manipulate objects
+				if self.objManip:
+					t=None
+					wHead=self.ser.__class__.__module__+'.'+self.ser.__class__.__name__+'.'+trait.name
+					m=re.match(r'^\s*(shared_ptr\s*<)?([A-Za-z0-9_:]+)(\s*>)?\s*',trait.cxxType)
+					if m:
+						cT=m.group(2)
+						logging.debug('%s: got c++ base type: %s -> %s'%(wHead,trait.cxxType,cT))
+						klasses=[c for c in woo.system.childClasses(woo.core.Object,includeBase=True) if c.__name__==cT]
+						if len(klasses)==0: logging.warn('%s: no Python type object with name %s found (cxxType=%s)'%(wHead,cT,trait.cxxType))
+						elif len(klasses)>1: logging.warn('%s: multiple Python types with name %s found (cxxType=%s): %s'%(wHead,cT,trait.cxxType,', '.join([c.__module__+'.'+c.__name__ for c in klasses])))
+						else: t=klasses[0]
+					else:
+						logging.warn('%s: no c++ base type found for %s'%(wHead,trait.cxxType))
+					if t==None:
+						logging.warn('%s: using woo.core.Object as type'%(wHead))
+						t=Object
+				else:
+					t=Object
 
 			if len(self.entryGroups)==0: self.entryGroups.append(self.EntryGroupData(number=0,name=None))
 			groupNo=len(self.entryGroups)-1
@@ -887,7 +907,7 @@ class SerializableEditor(QFrame):
 		if issubclass(entry.T,Object) or entry.T==Object:
 			obj=getattr(self.ser,entry.name)
 			# should handle the case of obj==None as well
-			widget=SerializableEditor(getattr(self.ser,entry.name),parent=self,showType=self.showType,path=(self.path+'.'+entry.name if self.path else None),labelIsVar=self.labelIsVar,showChecks=self.showChecks,showUnits=self.showUnits)
+			widget=SerializableEditor(getattr(self.ser,entry.name),parent=self,showType=self.showType,path=(self.path+'.'+entry.name if self.path else None),labelIsVar=self.labelIsVar,showChecks=self.showChecks,showUnits=self.showUnits,objManip=self.objManip)
 			widget.setFrameShape(QFrame.Box); widget.setFrameShadow(QFrame.Raised); widget.setLineWidth(1)
 			return widget
 		return None
@@ -932,6 +952,17 @@ class SerializableEditor(QFrame):
 			entry.unitChanged(forceBaseUnit=(not self.showUnits))
 			if entry.widget.__class__==SerializableEditor:
 				entry.widget.toggleShowUnits(self.showUnits)
+	def objManipLabelMenu(self,entry,pos):
+		'context menu for creating/deleting woo.core.Object from within the editor'
+		menu=QMenu(self)
+		isNone=(getattr(self.ser,entry.name)==None)
+		do=menu.addAction(u'☘ New' if isNone else u'☠  Delete')
+		do.triggered.connect(lambda: self.doObjManip(entry,isNone))
+		menu.popup(entry.widgets['label'].mapToGlobal(pos))
+	def doObjManip(self,entry,newObj):
+		#print 'Manipulating Object',self.ser.__class__.__name__+'.'+entry.name
+		setattr(self.ser,entry.name,entry.T() if newObj else None)
+		self.refreshEvent()
 	def mkWidgets(self):
 		self.mkAttrEntries()
 		onlyDefaultGroups=(len(self.entryGroups)==1 and self.entryGroups[0].name==None)
@@ -961,6 +992,10 @@ class SerializableEditor(QFrame):
 			labelText,labelTooltip=self.getAttrLabelToolTip(entry)
 			label=SerQLabel(self,labelText,tooltip=labelTooltip,path=objPath,elide=not self.labelIsVar)
 			entry.widgets['label']=label
+			if self.objManip and isinstance(entry.widgets['value'],SerializableEditor):
+				label.setContextMenuPolicy(Qt.CustomContextMenu)
+				label.customContextMenuRequested.connect(lambda pos,entry=entry: self.objManipLabelMenu(entry,pos))
+				label.setFocusPolicy(Qt.ClickFocus)
 			entry.widgets['check']=QCheckBox('',self)
 			ch=entry.widgets['check']
 			ch.setVisible(self.showChecks)
