@@ -135,11 +135,12 @@ def dbToSpread(db,out=None,dialect='excel',rows=False,series=True,ignored=('plot
 		'''
 		if ret is None: ret={}
 		if isinstance(obj,list):
-			for i,item in enumerate(obj): flatten(item,(path+sep if path else '')+str(i),ret=ret)
+			for i,item in enumerate(obj): flatten(item,(path+sep if path else '')+unicode(i),ret=ret)
 		elif isinstance(obj,dict):
-			for key,value in obj.items(): flatten(value,(path+sep if path else '')+str(key),ret=ret)
+			for key,value in obj.items(): flatten(value,(path+sep if path else '')+unicode(key),ret=ret)
 		else:
-			ret[path]=(obj.encode('utf-8','ignore') if isinstance(obj,unicode) else obj)
+			#ret[path]=(obj.encode('utf-8','ignore') if isinstance(obj,unicode) else obj)
+			ret[path]=unicode(obj)
 		return ret
 
 	def natural_key(string_):
