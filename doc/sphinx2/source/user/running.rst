@@ -1,3 +1,5 @@
+.. _Running_Woo:
+
 ************
 Running Woo
 ************
@@ -16,15 +18,19 @@ Woo is primarily a computation program, with only optional graphical user-interf
 Options important for everyday use are the following ones:
 
 ``-j THREADS``
-    Number of CPU cores to use for computation. Woo is parallelized using `OpenMP <http://www.openmp.org>`, and by default runs on one core. Depending on hardware and the nature of simulation, reasonable value is usually around `-j4`.
+    Number of CPU cores to use for computation. Woo is parallelized using `OpenMP <http://www.openmp.org>`_, and by default runs on one core. Depending on hardware and the nature of simulation, reasonable value is usually around `-j4`. Woo must have been compiled with the ``openmp`` feature for this option to have effect.
 ``-e``
-	Evaluate given expression (should yield a :ref:`Scene` or a :ref:`Preprocessor`)
+	Evaluate given expression (should yield a :obj:`Scene <woo.core.Scene>` or a :ref:`Preprocessor <woo.core.Preprocessor>`)
 ``-n``
     Run without graphical interface.
 ``-x``
     End once the simulation (or script) finishes.
 ``--paused``
     When loading a simulation from the command line (below), don't have it run immediately.
+``-R``
+	Recompile Woo before running. Useful during development when sources are modified.
+``-RR``
+	Update sources from the repository, recompile and run.
 
 Woo takes an additional argument (existing file) coming after options. It can be
 
@@ -38,7 +44,7 @@ Once Woo starts, it shows an embedded command-prompt.
 
     Woo [1]:
 
-To get started with scripting Woo, you should get familiar with Python, for instance using `Python tutorial <http://docs.python.org/2/tutorial/>`.
+To get started with scripting Woo, you should get familiar with Python, for instance using `Python tutorial <http://docs.python.org/2/tutorial/>`_.
 
 
 Direct import
