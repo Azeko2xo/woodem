@@ -54,9 +54,9 @@ class TestObjectInstantiation(unittest.TestCase):
 		"Core: correct types are instantiated"
 		# correct instances created with Foo() syntax
 		import woo.system
-		for r in woo.system.childClasses('Object'):
-			obj=eval(r)();
-			self.assert_(obj.__class__.__name__==r,'Failed for '+r)
+		for r in woo.system.childClasses(woo.core.Object):
+			obj=r();
+			self.assert_(obj.__class__==r,'Failed for '+r.__name__)
 	def testRootDerivedCtors_attrs_few(self):
 		"Core: class ctor's attributes"
 		# attributes passed when using the Foo(attr1=value1,attr2=value2) syntax
@@ -224,15 +224,15 @@ class TestIO(unittest.TestCase):
 		'I/O: All classes can be saved and loaded with boost::serialization'
 		import woo.system
 		failed=set()
-		for c in woo.system.childClasses('Object'):
+		for c in woo.system.childClasses(woo.core.Object):
 			woo.master.reset()
 			S=woo.master.scene
 			try:
-				S.iscParams=[eval(c)()]
+				S.iscParams=[c()]
 				S.saveTmp(quiet=True)
 				S=Scene.loadTmp()
 			except (RuntimeError,ValueError):
-				failed.add(c)
+				failed.add(c.__name__)
 		failed=list(failed); failed.sort()
 		self.assert_(len(failed)==0,'Failed classes were: '+' '.join(failed))
 

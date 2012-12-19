@@ -16,7 +16,7 @@ sudo apt-get update
 
 sudo chown -R $USER: /usr/local
 
-WOODEPS="python-setuptools python-all-dev pyqt4-dev-tools libqt4-dev qt4-dev-tools libgle3-dev libqglviewer-qt4-dev libvtk5-dev libgts-dev libeigen3-dev freeglut3-dev python-xlrd python-xlwt python-numpy python-matplotlib python-qt4 python-xlib python-genshi python-psutil bzr ccache scons ipython"
+WOODEPS="python-setuptools python-all-dev pyqt4-dev-tools libqt4-dev qt4-dev-tools libgle3-dev libqglviewer-qt4-dev libvtk5-dev libgts-dev libeigen3-dev freeglut3-dev python-xlrd python-xlwt python-numpy python-matplotlib python-qt4 python-xlib python-genshi python-psutil bzr ccache scons ipython python-imaging python-minieigen binutils-gold"
 
 # extra packages are not in 12.04, but are in later releases
 if [[ "`cat /etc/issue`" != *12.04* ]]; then
@@ -51,3 +51,10 @@ done
 mkdir -p ~/woo-build
 ccache -M50G -F10000 # adjust maxima for ccache
 scons -C ~/woo flavor= features=gts,opengl,openmp,qt4,vtk jobs=4 buildPrefix=~/woo-build CPPPATH=`ls -d /usr/include/vtk-5.*`:/usr/include/eigen3 CXX='ccache g++' brief=0 debug=0
+
+## tests
+# crash at exit perhaps, should be fixed
+woo -j4 --test || true
+## test update (won't recompile, anyway)
+woo -RR -x || true 
+echo "*** Woo has been installed successfully. ***"
