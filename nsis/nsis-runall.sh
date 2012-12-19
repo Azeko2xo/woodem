@@ -31,10 +31,8 @@ done
 
 if [ -d /boot ]; then
 	# linux
-	echo LINUX
-	echo HOVNO!!!!!!!!!!
 	pushd $BINDIR
-		makesnsis -DVERSION=1.0 nsis-wwoo-libs.nsh 
+		makensis -DVERSION=1.0 nsis-wwoo-libs.nsh 
 		makensis -DVERSION=0.99-$REVNO nsis-wwoo-main.nsh 
 		# make installers for extra modules
 		for EGG in wooExtra.*.egg; do

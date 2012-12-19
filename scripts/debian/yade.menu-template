@@ -1,8 +1,0 @@
-?package(woo@_VERSION@):\
-	needs="X11"\
-	section="Applications/Science/Physics"\
-	title="Yade (@VERSION@)"\
-	command="/usr/bin/woo@_VERSION@"\
-	icon="/usr/share/pixmaps/woo@_VERSION@_32x32.xpm"\
-	icon16x16="/usr/share/pixmaps/woo@_VERSION@_16x16.xpm"\
-	icon32x32="/usr/share/pixmaps/woo@_VERSION@_32x32.xpm"

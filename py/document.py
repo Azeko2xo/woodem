@@ -39,7 +39,9 @@ def packageClasses(outDir='/tmp'):
 	# create class tree; top-level nodes are packages
 	# each level of child nodes is section in the documentation, as requested by ClassTraits of each class
 	modules=set()
-	for c in allClasses: modules.add(c.__module__)
+	for c in allClasses:
+		if c.__module__.startswith('wooExtra.'): continue # skip those
+		modules.add(c.__module__)
 	for c in allClasses:
 		if c.__doc__:
 			c.__doc__=fixDocstring(c.__doc__)
