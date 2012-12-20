@@ -6,6 +6,7 @@
 ##  COMPONENT is like wooExtra.bar
 ##
 # used to write installation directory
+!define ARP "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}-${COMPONENT}"
 InstallDir "$PROGRAMFILES\${APPNAME}"
 InstallDirRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\WooDEM-libs" "InstallLocation"
 
@@ -37,9 +38,37 @@ page license
 page directory
 Page instfiles
 
-LicenseText "This module is licensed the same as WooDEM itself. WooDEM is distributed under the term of the GNU General Public License, version 2 or later. Please refer to its text http://opensource.org/licenses/GPL-2.0 for details."
+LicenseText "You must agree to licensing terms of the software provided."
+LicenseData "license-wooExtra.rtf"
+
  
 section "install"
 	setOutPath $INSTDIR\eggs
+	IfFileExists $INSTDIR\eggs\${COMPONENT}*.egg 0 NotYetInstalled
+		MessageBox MB_OKCANCEL|MB_ICONINFORMATION "Older version of ${COMPONENT} exists and will be deleted first." IDOK +2
+			Abort
+		delete $INSTDIR\${COMPONENT}*.egg
+	NotYetInstalled:
 	File ${COMPONENT}-*.egg
+
+	# Uninstaller - See function un.onInit and section "uninstall" for configuration
+	writeUninstaller "$INSTDIR\uninstall-${COMPONENT}.exe"
+	# Registry information for add/remove programs
+	WriteRegStr HKLM "${ARP}" "DisplayName" "${APPNAME}-${COMPONENT}"
+	WriteRegStr HKLM "${ARP}" "UninstallString" "$\"$INSTDIR\uninstall-${COMPONENT}.exe$\""
+	WriteRegStr HKLM "${ARP}" "QuietUninstallString" "$\"$INSTDIR\uninstall-${COMPONENT}.exe$\" /S"
 sectionEnd
+
+function un.onInit
+	SetShellVarContext all
+	MessageBox MB_OKCANCEL "Permanantly remove ${APPNAME}-${COMPONENT}?" IDOK next
+		Abort
+	next:
+	!insertmacro VerifyUserIsAdmin
+functionEnd
+
+section "uninstall"
+	delete $INSTDIR\eggs\${COMPONENT}*.egg
+	DeleteRegKey HKLM "${ARP}"
+sectionEnd
+

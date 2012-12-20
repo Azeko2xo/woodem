@@ -33,7 +33,9 @@ page license
 page directory
 Page instfiles
 
-LicenseText "Libraries provided in this package are licensed differently. All of them are open-source licenses which allow using respective libraries with other open-source projects. They are compatible with Woo itself (distributed separately), which is released under the GNU General Public License, version 2 or later."
+LicenseText "You must agree to licensing terms of the libraries provided."
+LicenseData "licenses-libs.rtf"
+
  
 section "install"
 	setOutPath $INSTDIR
@@ -53,10 +55,14 @@ sectionEnd
  
 function un.onInit
 	SetShellVarContext all
-	IfFileExists $INSTDIR\wwoo.exe 0 PathGood
-		MessageBox MB_OK "WooDEM-main is still installed; uninstall it first."
+	IfFileExists $INSTDIR\eggs\wooExtra*.egg 0 ExtrasClean
+		MessageBox MB_OK "SOme extra modules are still installed. Uninstall them first."
 		Abort
-	PathGood:
+	ExtrasClean:
+	IfFileExists $INSTDIR\wwoo.exe 0 MainClean
+		MessageBox MB_OK "WooDEM-main is still installed. Uninstall it first."
+		Abort
+	MainClean:
 	MessageBox MB_OKCANCEL "Permanantly remove ${APPNAME}-${COMPONENT}?" IDOK next
 		Abort
 	next:
@@ -65,9 +71,10 @@ functionEnd
  
 section "uninstall"
 	# Remove files
-	delete $INSTDIR\*.pyd
-	delete $INSTDIR\*.dll
- 
+	PathGood:
+	MessageBox MB_OKCANCEL|MB_ICONINFORMATION "The entire directory with WooDEM will be deleted, files you might have created locally. Proceed?" IDOK +2
+		Abort
+	RMDir /R $INSTDIR
 	# Remove uninstaller information from the registry
 	DeleteRegKey HKLM "${ARP}"
 sectionEnd

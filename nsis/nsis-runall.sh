@@ -16,6 +16,7 @@ REVNO=`bzr revno ..`
 DESTDIR=$BINDIR/..
 
 cp *.nsh $BINDIR/
+cp *.rtf $BINDIR/
 rm -f $BINDIR/*-installer.exe
 # copy eggs to $BINDIR; they are not installed with other installers, so it is safe to have them there
 rm -f $BINDIR/wooExtra*.egg
@@ -32,7 +33,7 @@ done
 if [ -d /boot ]; then
 	# linux
 	pushd $BINDIR
-		makensis -DVERSION=1.0 nsis-wwoo-libs.nsh 
+		makensis -DVERSION=1.0a nsis-wwoo-libs.nsh 
 		makensis -DVERSION=0.99-$REVNO nsis-wwoo-main.nsh 
 		# make installers for extra modules
 		for EGG in wooExtra.*.egg; do
@@ -47,7 +48,7 @@ else
 	pushd $BINDIR
 		# work around msys expanding /D: http://forums.winamp.com/showthread.php?t=253732
 		# omg
-		echo "!define VERSION 1.0" > defines.nsh
+		echo "!define VERSION 1.0a" > defines.nsh
 		"$MAKENSIS" defines.nsh nsis-wwoo-libs.nsh
 		echo "!define VERSION 0.99-$REVNO" > defines.nsh
 		"$MAKENSIS" defines.nsh nsis-wwoo-main.nsh

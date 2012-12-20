@@ -42,7 +42,8 @@ page license
 page directory
 Page instfiles
 
-LicenseText "WooDEM is distributed under the term of the GNU General Public License, version 2 or later. Please refer to its text http://opensource.org/licenses/GPL-2.0 for details."
+LicenseText "You must agree to licensing terms of the software provided."
+LicenseData "gnu-gpl-v2.rtf"
  
 section "install"
 	setOutPath $INSTDIR
