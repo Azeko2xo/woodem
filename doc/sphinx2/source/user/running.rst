@@ -7,13 +7,12 @@ Running Woo
 Command-line options
 =====================
 
-Woo is primarily a computation program, with only optional graphical user-interface. To run woo, type ``woo`` in the terminal (use ``wwoo`` under Windows). A number of options can be specified, given using UNIX convention of ``--long-option`` or ``-s`` (short option). A help on all available options is obtained with ``woo -h``:
+Woo is primarily a computation program, with only optional graphical user-interface. To run woo, type ``woo`` in the terminal (use ``wwoo`` under Windows). A number of options can be specified, given using UNIX convention of ``--long-option`` or ``-s`` (short option). A help on all available options is obtained with ``woo -h``::
 
     usage: woo [-h] [--version] [-j THREADS] [--cores CORES] [--cl-dev CLDEV] [-n]
                [-D] [--quirks QUIRKS] [--flavor FLAVOR] [-c COMMANDS] [-e EXPR]
                [--paused] [--nice NICE] [-x] [-v] [-R] [--test] [--no-gdb]
                [--in-gdb] [--in-pdb] [--in-valgrind]
-               ...
 
 Options important for everyday use are the following ones:
 

@@ -33,13 +33,15 @@ except ImportError:
 	# use local copy
 	ext_ipython_directive='ipython_directive'
 
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.mathjax', 'sphinx.ext.viewcode', 'matplotlib.sphinxext.plot_directive', 'sphinx.ext.inheritance_diagram', ext_ipython_directive ]
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.mathjax', 'sphinx.ext.viewcode', 'matplotlib.sphinxext.plot_directive', 'sphinx.ext.inheritance_diagram', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', ext_ipython_directive ]
 
 # customize promps
 ipython_rgxin =re.compile('Woo \[(\d+)\]:\s?(.*)\s*')
 ipython_rgxout=re.compile(' -> \[(\d+)\]:\s?(.*)\s*')
 ipython_promptin ='Woo [%d:]'
 ipython_promptout=' -> [%d:]'
+
+todo_include_todos=True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

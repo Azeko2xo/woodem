@@ -10,9 +10,11 @@ def fixDocstring(s):
 	s=re.sub(r'\\\$',r'$',s)
 	return s
 
-def packageClasses(outDir='/tmp'):
-	'''Generate documentation of packages in the Restructured Text format. Each package is written to file called *out*/.`woo.[package].rst` and list of files created is returned.'''
+cxxClasses,allWooMods=set(),set()
 
+def _ensureInitialized():
+	'Fill cxxClasses and allWooMods, called automatically as needed'
+	if cxxClasses: return  # do nothing if already filled
 	def subImport(pkg,exclude=None):
 		'Import recursively all subpackages'
 		import pkgutil
@@ -28,67 +30,90 @@ def packageClasses(outDir='/tmp'):
 					print 'ok'
 				except ImportError: print '(error, ignoring)'
 			if ispkg: subImport(sys.modules[fqmodname])
-	subImport(woo,exclude='^woo\._cxxInternal.*$')
+	modExcludeRegex='^woo\.(_cxxInternal.*)(\..*|$)'
+	subImport(woo,exclude=modExcludeRegex)
+	try:
+		import wooExtra
+		subImport(wooExtra)
+	except ImportError:
+		print 'No wooExtra modules imported.'
+
 	for m in woo.master.compiledPyModules:
 		if m not in sys.modules:
 			print 'Importing',m
 			__import__(m)
 
-	allClasses=woo.system.childClasses(woo.core.Object,recurse=True)
-	#core.Object._derivedCxxClasses+[woo.core.Object]
-	# create class tree; top-level nodes are packages
-	# each level of child nodes is section in the documentation, as requested by ClassTraits of each class
-	modules=set()
-	for c in allClasses:
-		if c.__module__.startswith('wooExtra.'): continue # skip those
-		modules.add(c.__module__)
-	for c in allClasses:
-		if c.__doc__:
-			c.__doc__=fixDocstring(c.__doc__)
-	outCxx=[]
-	for mod in modules:
-		klasses=[c for c in allClasses if c.__module__==mod]
-		klasses.sort(key=lambda x: x.__name__)
-		#print klasses
-		outFile=outDir+'/%s.rst'%(mod)
-		outCxx.append(outFile)
-		out=codecs.open(outFile,'w','utf-8')
-		out.write('Module %s\n==============================\n\n'%mod)
-		out.write('.. inheritance-diagram:: %s\n\n'%mod)
-		out.write('.. module:: %s\n\n'%mod)
-		for k in klasses:
-			out.write('.. autoclass:: %s\n   :show-inheritance:\n'%k.__name__)
-			#out.write('   :members: %s\n'%(','.join([m for m in dir(k) if (not m.startswith('_') and m not in set(trait.name for trait in k._attrTraits))])))
-			out.write('   :members:\n')
-			exclude=[t.name for t in k._attrTraits]
-			if exclude:
-				out.write('   :exclude-members: %s\n\n'%(', '.join(exclude)))
-			for trait in k._attrTraits:
-				try:
-					iniStr=' (= %s)'%(repr(trait.ini))
-				except TypeError: # no converter found
-					iniStr=''
-				out.write('   .. attribute:: %s%s\n\n'%(trait.name,iniStr))
-				for l in fixDocstring(trait.doc.decode('utf-8')).split('\n'): out.write('      '+l+'\n')
-				out.write('\n')
-	outPy=[]
-	otherMods=[m for m in sys.modules if (
-		m.startswith('woo.')
-		and not m.startswith('woo._')
-		and m not in modules
-		and sys.modules[m]
-		and m==sys.modules[m].__name__)]
-	for mod in otherMods:
-		outFile=outDir+'/%s.rst'%(mod)
-		outPy.append(outFile)
-		out=open(outFile,'w')
-		out.write('Module %s\n==============================\n\n'%mod)
-		out.write('.. automodule:: %s\n   :members:\n   :undoc-members:\n\n'%mod)
+	global cxxClasses, allWooMods
+	cc=woo.system.childClasses(woo.core.Object,includeBase=True,recurse=True)
+	for c in cc:
+		if re.match(modExcludeRegex,c.__module__): continue
+		if c.__doc__: c.__doc__=fixDocstring(c.__doc__)
+		cxxClasses.add(c)
 
-	return outCxx,outPy
+	allWooMods=set([sys.modules[m] for m in sys.modules if m.startswith('woo') and sys.modules[m] and sys.modules[m].__name__==m])
 	
-		
 
+def allWooPackages(outDir='/tmp'):
+	'''Generate documentation of packages in the Restructured Text format. Each package is written to file called *out*/.`woo.[package].rst` and list of files created is returned.'''
+
+	_ensureInitialized()
+
+	modsElsewhere=set()
+	for m in allWooMods: modsElsewhere|=set(m._docInlineModules if hasattr(m,'_docInlineModules') else [])
+	# woo.foo.* modules go insides woo.foo
+	toplevMods=set([m for m in allWooMods if (m not in modsElsewhere) and len(m.__name__.split('.'))<3])
+	rsts=[]
+	print 'TOPLEVEL MODULES',[m.__name__ for m in toplevMods]
+	print 'MODULES DOCUMENTED ELSEWHERE',[m.__name__ for m in modsElsewhere]
+
+	for mod in toplevMods:
+		outFile=outDir+'/%s.rst'%(mod.__name__)
+		print 'WRITING',outFile
+		rsts.append(outFile)
+		out=codecs.open(outFile,'w','utf-8')
+		oneModuleWithSubmodules(mod,out)
+
+	return rsts
+
+def oneModuleWithSubmodules(mod,out,exclude=None,level=0):
+	global cxxClasses,allWooMods
+	_ensureInitialized()
+	if exclude==None: exclude=set() # avoid referenced empty set to be modified
+	if level>=0: out.write('Module %s\n%s\n\n'%(mod.__name__,(20+len(mod.__name__))*('=-^"'[level])))
+	out.write('.. inheritance-diagram:: %s\n\n'%mod.__name__)
+	out.write('.. module:: %s\n\n'%mod.__name__)
+	klasses=[c for c in cxxClasses if (c.__module__==mod.__name__ or (hasattr(mod,'_docInlineModules') and sys.modules[c.__module__] in mod._docInlineModules))]
+	klasses.sort(key=lambda x: x.__name__)
+	# document any c++ classes in a special way
+	for k in klasses:
+		if k in exclude: continue
+		exclude.add(k) # already-documented should not be documented again
+		out.write('.. autoclass:: %s\n   :show-inheritance:\n'%k.__name__)
+		#out.write('   :members: %s\n'%(','.join([m for m in dir(k) if (not m.startswith('_') and m not in set(trait.name for trait in k._attrTraits))])))
+		out.write('   :members:\n')
+		ex=[t.name for t in k._attrTraits]
+		if ex: out.write('   :exclude-members: %s\n\n'%(', '.join(ex)))
+		for trait in k._attrTraits:
+			try:
+				iniStr=' (= %s)'%(repr(trait.ini))
+			except TypeError: # no converter found
+				iniStr=''
+			out.write('   .. attribute:: %s%s\n\n'%(trait.name,iniStr))
+			for l in fixDocstring(trait.doc.decode('utf-8')).split('\n'): out.write('      '+l+'\n')
+			out.write('\n')
+	def writeAutoMod(mm,skip=None):
+		out.write('.. automodule:: %s\n   :members:\n   :undoc-members:\n'%(mm.__name__))
+		if skip: out.write('   :exclude-members: %s\n'%(',  '.join([e.__name__ for e in skip])))
+		out.write('\n')
+	# document the rest of the module here (don't recurse)
+	writeAutoMod(mod,skip=exclude)
+	# imported modules
+	if hasattr(mod,'_docInlineModules'):
+		# negative level will skip heading
+		for m in mod._docInlineModules: oneModuleWithSubmodules(m,out,exclude=exclude,level=-1)
+	# nested modules
+	# with nested heading
+	for m in [m for m in allWooMods if m.__name__.startswith(mod.__name__+'.') and len(mod.__name__.split('.'))+1==len(m.__name__.split('.'))]: oneModuleWithSubmodules(m,out,exclude=exclude,level=level+1)
 
 
 

@@ -2,7 +2,7 @@
 
 def wait():
 	'Block the simulation if running inside a batch. Typically used at the end of script so that it does not finish prematurely in batch mode (the execution would be ended in such a case).'
-	if runningInBatch(): woo.master.scene.wait()
+	if inBatch(): woo.master.scene.wait()
 def inBatch():
 	'Tell whether we are running inside the batch or separately.'
 	import os
@@ -195,7 +195,7 @@ def dbToSpread(db,out=None,dialect='excel',rows=False,series=True,ignored=('plot
 	if dialect.lower()=='xls' or (out and out.endswith('.xls')):
 		# http://scienceoss.com/write-excel-files-with-python-using-xlwt/
 		# http://www.youlikeprogramming.com/2011/04/examples-generating-excel-documents-using-pythons-xlwt/
-		import xlwt
+		import xlwt, urllib
 		wbk=xlwt.Workbook('utf-8')
 		sheet=wbk.add_sheet(fixSheetname(db)) # truncate if too long, see below
 		# cell styling 
@@ -208,6 +208,7 @@ def dbToSpread(db,out=None,dialect='excel',rows=False,series=True,ignored=('plot
 		font.bold=True
 		headStyle=xlwt.XFStyle()
 		headStyle.font=font
+		hrefStyle=xlwt.easyxf('font: underline single')
 		# normal and transposed setters
 		if row: setCell=lambda r,c,data,style: sheet.write(c,r,data,style)
 		else: setCell=lambda r,c,data,style: sheet.write(r,c,data)
@@ -216,7 +217,12 @@ def dbToSpread(db,out=None,dialect='excel',rows=False,series=True,ignored=('plot
 			setCell(0,col,field,headStyle)
 			# data
 			for row,val in enumerate(allData[field]):
-				setCell(row+1,col,val,styleDict.get(type(val),xlwt.Style.default_style))
+				style=styleDict.get(type(val),xlwt.Style.default_style)
+				if isinstance(val,str) or isinstance(val,unicode) and (val.startswith('file://') or val.startswith('http://') or val.startswith('https://')):
+					val=val.replace('"',"'")
+					val=xlwt.Formula('HYPERLINK("%s","%s")'%(urllib.quote(val,safe=':/'),val))
+					style=hrefStyle
+				setCell(row+1,col,val,style)
 		# save data series
 		if seriesData:
 			for sheetName,dic in seriesData.items():

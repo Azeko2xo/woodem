@@ -234,9 +234,11 @@ def main(sysArgv=None):
 		gui=None
 
 	# run remote access things, before actually starting the user session
-	from woo import remote
+	from woo import remote, batch
 	woo.remote.useQThread=(gui=='qt4')
-	woo.remote.runServers()
+	# only run XMLRPC server when in batch
+	# do not run the TCP command prompt, is probably useless now
+	woo.remote.runServers(xmlrpc=batch.inBatch(),tcpPy=False)
 
 	# for scripts
 	#from woo import *
@@ -716,7 +718,7 @@ finished: %s
 	numCores=multiprocessing.cpu_count()
 	maxOmpThreads=numCores if 'openmp' in woo.config.features else 1
 	
-	parser=argparse.ArgumentParser(usage=sys.argv[0]+' [options] [ TABLE [SIMULATION.py] | SIMULATION.py[/nCores] [...] ]',description=sys.argv[0]+' runs woo simulation multiple times with different parameters.\n\nSee https://yade-dem.org/sphinx/user.html#batch-queuing-and-execution-woo-batch for details.\n\nBatch can be specified either with parameter table TABLE (must not end in .py), which is either followed by exactly one SIMULATION.py (must end in .py), or contains !SCRIPT column specifying the simulation to be run. The second option is to specify multiple scripts, which can optionally have /nCores suffix to specify number of cores for that particular simulation (corresponds to !THREADS column in the parameter table), e.g. sim.py/3.')
+	parser=argparse.ArgumentParser(description='Woo: batch system: runs Woo simulation multiple times with different parameters.\n\nSee https://yade-dem.org/sphinx/user.html#batch-queuing-and-execution-woo-batch for details.\n\nBatch can be specified either with parameter table TABLE (must not end in .py), which is either followed by exactly one SIMULATION.py (must end in .py), or contains !SCRIPT column specifying the simulation to be run. The second option is to specify multiple scripts, which can optionally have /nCores suffix to specify number of cores for that particular simulation (corresponds to !THREADS column in the parameter table), e.g. sim.py/3.')
 	parser.add_argument('-j','--jobs',dest='maxJobs',type=int,help="Maximum number of simultaneous threads to run (default: number of cores, further limited by OMP_NUM_THREADS if set by the environment: %d)"%numCores,metavar='NUM',default=numCores)
 	parser.add_argument('--job-threads',dest='defaultThreads',type=int,help="Default number of threads for one job; can be overridden by per-job with !THREADS (or !OMP_NUM_THREADS) column. Defaults to 1.",metavar='NUM',default=1)
 	parser.add_argument('--force-threads',action='store_true',dest='forceThreads',help='Force jobs to not use more cores than the maximum (see \-j), even if !THREADS colums specifies more.')

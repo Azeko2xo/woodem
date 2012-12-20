@@ -20,6 +20,10 @@ from woo.core import *
 #from woo._utils import *
 from woo._utils2 import *
 
+
+# declare that _utils2 should be documented here
+_docInlineModules=(woo._utils2,)
+
 inf=float('inf')
 
 def saveVars(mark='',loadNow=True,**kw):

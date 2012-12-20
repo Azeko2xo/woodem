@@ -16,6 +16,7 @@ logging.basicConfig(level=logging.INFO)
 #from woo import *
 import woo._customConverters, woo.core, woo.utils
 import woo.qt
+import sys
 
 
 from ExceptionDialog import *
@@ -58,15 +59,27 @@ def getColormapIcons():
 	return _colormapIcons
 
 
+def makeSphinxHtml(k):
+	'Given a class, try to guess name of the HTML page where it is documented by Sphinx'
+	if not k.__module__.startswith('woo.'): return k.__module__
+	mod=k.__module__.split('.')[1] # sphinx does not make the hierarchy any deeper than 2
+	for start,repl in [('_pack','pack'),('_qt','qt'),('_utils','utils')]:
+		if mod.startswith(start): return 'woo.'+repl
+	return 'woo.'+mod
 
 def makeWrapperHref(text,klass,attr=None,static=False):
-	"""Create clickable HTML hyperlink to a Yade class or its attribute.
+	"""Create clickable HTML hyperlink to a Woo class or its attribute.
 	
 	:param klass: class object.
 	:param attr: attribute to link to. If given, must exist directly in given *klass*; if not given or empty, link to the class itself is created and *attr* is ignored.
 	:return: HTML with the hyperref.
 	"""
-	return '<a href="{sphinxPrefix}/{module}.html#{module}.{klass}{dotAttr}">{text}</a>'.format(sphinxPrefix=woo.qt.sphinxPrefix,module=klass.__module__,klass=klass.__name__,dotAttr=(('.'+attr) if attr else ''),text=text)
+	dotAttr=(('.'+attr) if attr else '')
+	if klass.__module__.startswith('wooExtra.'):
+		KEY=sys.modules['.'.join(klass.__module__.split('.')[:2])].KEY
+		return '<a href="http://www.woodem.eu/private/{KEY}/doc/index.html#{module}.{klass}{dotAttr}">{text}</a>'.format(KEY=KEY,module=klass.__module__,klass=klass.__name__,dotAttr=dotAttr,text=text)
+	# print klass.__module__,' -> ',makeSphinxHtml(klass)
+	return '<a href="{sphinxPrefix}/{sphinxHtml}.html#{module}.{klass}{dotAttr}">{text}</a>'.format(sphinxPrefix=woo.qt.sphinxPrefix,sphinxHtml=makeSphinxHtml(klass),module=klass.__module__,klass=klass.__name__,dotAttr=dotAttr,text=text)
 
 def serializableHref(ser,attr=None,text=None):
 	"""Return HTML href to a *ser* optionally to the attribute *attr*.

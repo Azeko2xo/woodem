@@ -7,5 +7,7 @@ User's manual
 	installation.rst
 
 	running.rst
+
+	batch.rst
 	
 	yade-diff.rst

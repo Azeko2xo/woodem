@@ -12,7 +12,7 @@ Contents:
    :maxdepth: 2
 
    user/user.rst
-   cxxMods.rst
+   wooMods.rst
    externalMods.rst
 
 

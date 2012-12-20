@@ -1,5 +1,6 @@
 # encoding: utf-8
 
+
 # signal import error witout display
 if 1:
 	import wooOptions
@@ -96,6 +97,11 @@ try:
 	from woo._qt import *
 	from woo._qt._GLViewer import *
 	OpenGL=True
+	#import woo._qt._GLViewer, woo._qt
+	#print woo
+	# document those with woo.qt
+	import _GLViewer
+	_docInlineModules=(woo._qt,_GLViewer)
 except ImportError:
 	OpenGL=False
 	if 'opengl' in woo.config.features: raise RuntimeError("Woo was compiled with the 'opengl' feature, but OpenGL modules (woo._qt, woo._qt._GLViewer) could not be imported?")

@@ -153,7 +153,7 @@ class GenericTCPServer:
 		if self.port==-1: raise RuntimeError("No free port to listen on in range %d-%d"%(minPort,maxPort))
 
 
-def runServers():
+def runServers(xmlrpc=False,tcpPy=False):
 	"""Run python telnet server and info socket. They will be run at localhost on ports 9000 (or higher if used) and 21000 (or higer if used) respectively.
 	
 	The python telnet server accepts only connection from localhost,
@@ -164,11 +164,10 @@ def runServers():
 	at runtime. Each connection receives pickled dictionary with those values.
 	This socket is primarily used by woo-multi batch scheduler.
 	"""
-	srv=GenericTCPServer(handler=woo.remote.PythonConsoleSocketEmulator,title='TCP python prompt',cookie=True,minPort=9000)
-	woo.runtime.cookie=srv.server.cookie
-	#info=GenericTCPServer(handler=woo.remote.InfoSocketProvider,title='TCP info provider',cookie=False,minPort=21000)
-	## XMPRPC server for general information:
-	if 1:
+	if tcpPy:
+		srv=GenericTCPServer(handler=woo.remote.PythonConsoleSocketEmulator,title='TCP python prompt',cookie=True,minPort=9000)
+		woo.runtime.cookie=srv.server.cookie
+	if xmlrpc:
 		from SimpleXMLRPCServer import SimpleXMLRPCServer
 		port,maxPort=21000,65535 # minimum port number
 		while port<maxPort:

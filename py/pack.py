@@ -45,6 +45,8 @@ from _packPredicates import * ## imported in randomDensePack as well
 # import SpherePack
 from _packSpheres import *
 from _packObb import *
+import woo
+_docInlineModules=(woo._packPredicates,woo._packSpheres,woo._packObb)
 
 ##
 # extend _packSphere.SpherePack c++ class by these methods
