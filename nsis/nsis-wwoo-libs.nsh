@@ -56,14 +56,14 @@ sectionEnd
 function un.onInit
 	SetShellVarContext all
 	IfFileExists $INSTDIR\eggs\wooExtra*.egg 0 ExtrasClean
-		MessageBox MB_OK "SOme extra modules are still installed. Uninstall them first."
+		MessageBox MB_OK "Some extra modules are still installed. Uninstall them first."
 		Abort
 	ExtrasClean:
 	IfFileExists $INSTDIR\wwoo.exe 0 MainClean
 		MessageBox MB_OK "WooDEM-main is still installed. Uninstall it first."
 		Abort
 	MainClean:
-	MessageBox MB_OKCANCEL "Permanantly remove ${APPNAME}-${COMPONENT}?" IDOK next
+	MessageBox MB_OKCANCEL "Permanantly remove ${APPNAME}-${COMPONENT}?" /SD IDOK IDOK next
 		Abort
 	next:
 	!insertmacro VerifyUserIsAdmin
@@ -72,7 +72,7 @@ functionEnd
 section "uninstall"
 	# Remove files
 	PathGood:
-	MessageBox MB_OKCANCEL|MB_ICONINFORMATION "The entire directory with WooDEM will be deleted, files you might have created locally. Proceed?" IDOK +2
+	MessageBox MB_OKCANCEL|MB_ICONINFORMATION "The entire directory with WooDEM will be deleted, including files you might have created locally. Proceed?" /SD IDOK IDOK +2
 		Abort
 	RMDir /R $INSTDIR
 	# Remove uninstaller information from the registry

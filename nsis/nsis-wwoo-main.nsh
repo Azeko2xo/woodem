@@ -32,7 +32,7 @@ functionEnd
 
 Function .onVerifyInstDir
 	IfFileExists $INSTDIR\python27.dll PathGood
-		MessageBox MB_OK "Must be installed into the same directory as WooDEM-libs"
+		MessageBox MB_OK "Must be installed into the same directory as WooDEM-libs" /SD IDOK
 		Abort ;
 	PathGood:
 FunctionEnd
@@ -64,7 +64,7 @@ sectionEnd
  
 function un.onInit
 	SetShellVarContext all
-	MessageBox MB_OKCANCEL "Permanantly remove ${APPNAME}-${COMPONENT}?" IDOK next
+	MessageBox MB_OKCANCEL "Permanantly remove ${APPNAME}-${COMPONENT}?" /SD IDOK IDOK next
 		Abort
 	next:
 	!insertmacro VerifyUserIsAdmin
@@ -74,6 +74,7 @@ section "uninstall"
 	# Remove files
 	delete $INSTDIR\wwoo*.*
 	delete $INSTDIR\woo.*
+	delete $INSTDIR\uninstall-${COMPONENT}.exe
 
 	# remove path again
 	${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "${INSTDIR}"

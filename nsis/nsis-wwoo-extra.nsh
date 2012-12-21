@@ -27,7 +27,7 @@ functionEnd
 
 Function .onVerifyInstDir
 	IfFileExists $INSTDIR\python27.dll PathGood
-		MessageBox MB_OK "Must be installed into the same directory as WooDEM-libs"
+		MessageBox MB_OK "Must be installed into the same directory as WooDEM-libs" /SD IDOK
 		Abort
 	PathGood:
 FunctionEnd
@@ -43,12 +43,13 @@ LicenseData "license-wooExtra.rtf"
 
  
 section "install"
-	setOutPath $INSTDIR\eggs
-	IfFileExists $INSTDIR\eggs\${COMPONENT}*.egg 0 NotYetInstalled
-		MessageBox MB_OKCANCEL|MB_ICONINFORMATION "Older version of ${COMPONENT} exists and will be deleted first." IDOK +2
+	IfFileExists $INSTDIR\eggs\${COMPONENT}-*.egg 0 doInstall
+		MessageBox MB_OKCANCEL|MB_ICONINFORMATION "Older version of ${COMPONENT} exists and will be deleted first." /SD IDOK IDOK delInstalled
 			Abort
-		delete $INSTDIR\${COMPONENT}*.egg
-	NotYetInstalled:
+		delInstalled:
+			delete $INSTDIR\${COMPONENT}-*.egg
+	doInstall:
+	setOutPath $INSTDIR\eggs
 	File ${COMPONENT}-*.egg
 
 	# Uninstaller - See function un.onInit and section "uninstall" for configuration
@@ -61,7 +62,7 @@ sectionEnd
 
 function un.onInit
 	SetShellVarContext all
-	MessageBox MB_OKCANCEL "Permanantly remove ${APPNAME}-${COMPONENT}?" IDOK next
+	MessageBox MB_OKCANCEL "Permanantly remove ${APPNAME}-${COMPONENT}?" /SD IDOK IDOK next
 		Abort
 	next:
 	!insertmacro VerifyUserIsAdmin
@@ -69,6 +70,7 @@ functionEnd
 
 section "uninstall"
 	delete $INSTDIR\eggs\${COMPONENT}*.egg
+	delete $INSTDIR\uninstall-${COMPONENT}.exe
 	DeleteRegKey HKLM "${ARP}"
 sectionEnd
 
