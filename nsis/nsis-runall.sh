@@ -50,7 +50,7 @@ else
 		# omg
 		echo "!define VERSION 1.0a" > defines.nsh
 		"$MAKENSIS" defines.nsh nsis-wwoo-libs.nsh
-		echo "!define VERSION 0.99-$REVNO" > defines.nsh
+		echo "!define VERSION 0.99-r$REVNO" > defines.nsh
 		"$MAKENSIS" defines.nsh nsis-wwoo-main.nsh
 		for EGG in wooExtra.*.egg; do
 			COMPONENT=`echo $EGG | cut -f1 -d-`

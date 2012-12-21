@@ -1,6 +1,7 @@
 #!/bin/bash
 python /c/src/pyinstaller-develop/pyinstaller.py -y woo.pyinstaller.spec
 #exit 0
+
 REVNO=`bzr revno . 2>/dev/null`
 ZIP7="/c/Program Files/7-Zip/7z.exe"
 # insane compression on 6 cores
@@ -14,7 +15,7 @@ popd
 pushd dist
 	DDIR=wwoo-win64 # frozen directory
 	#zip wwoo-r$REVNO-win64.zip -9 -i $DDIR/wwoo* $DDIR/woo*
-	"$ZIP7" a wwoo-r$REVNO-win64.7z $DDIR/wwoo* $DDIR/woo* $ZIP7FLAGS
+	"$ZIP7" a wwoo-r$REVNO-win64.7z $DDIR/wwoo* $DDIR/woo* "-X!$DDIR\\wooExtra*" $ZIP7FLAGS
 
 	# new attempt: when number is bumped manually, run compression again
 	LIBVER=1.0a
