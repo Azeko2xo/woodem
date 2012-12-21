@@ -1,5 +1,5 @@
 # mostly copied from http://nsis.sourceforge.net/A_simple_installer_with_start_menu_shortcut_and_uninstaller
-!define APPNAME "WooDEM"
+!define APPNAME "Woo"
 !define COMPONENT "main"
 #
 # VERSION must be given on the command-line
@@ -9,7 +9,7 @@
 InstallDir "$PROGRAMFILES\${APPNAME}"
 # use by default where libs are already installed
 # http://stackoverflow.com/questions/13775288/installer-adding-files-to-an-already-installed-packages-dir
-InstallDirRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\WooDEM-libs" "InstallLocation"
+InstallDirRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}-libs" "InstallLocation"
 
 SetCompressor /solid lzma
 
@@ -32,7 +32,7 @@ functionEnd
 
 Function .onVerifyInstDir
 	IfFileExists $INSTDIR\python27.dll PathGood
-		MessageBox MB_OK "Must be installed into the same directory as WooDEM-libs" /SD IDOK
+		MessageBox MB_OK "Must be installed into the same directory as ${APPNAME}-libs" /SD IDOK
 		Abort ;
 	PathGood:
 FunctionEnd

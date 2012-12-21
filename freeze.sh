@@ -1,3 +1,4 @@
+#!/bin/bash
 python /c/src/pyinstaller-develop/pyinstaller.py -y woo.pyinstaller.spec
 REVNO=`bzr revno . 2>/dev/null`
 ZIP7="/c/Program Files/7-Zip/7z.exe"
@@ -15,7 +16,7 @@ pushd dist
 	"$ZIP7" a wwoo-r$REVNO-win64.7z $DDIR/wwoo* $DDIR/woo* $ZIP7FLAGS
 
 	# new attempt: when number is bumped manually, run compression again
-	LIBVER=1
+	LIBVER=1.0a
 	LIBS="wwoo-libs-v$LIBVER-win64.7z"
 	[ -f $LIBS ] || "$ZIP7" a $LIBS $DDIR "-x!$DDIR\\wwoo*" "-x!$DDIR\\woo*" $ZIP7FLAGS
 		

@@ -1,5 +1,5 @@
 # mostly copied from http://nsis.sourceforge.net/A_simple_installer_with_start_menu_shortcut_and_uninstaller
-!define APPNAME "WooDEM"
+!define APPNAME "Woo"
 !define COMPONENT "libs"
 #
 # VERSION must be defined on the command-line
@@ -60,7 +60,7 @@ function un.onInit
 		Abort
 	ExtrasClean:
 	IfFileExists $INSTDIR\wwoo.exe 0 MainClean
-		MessageBox MB_OK "WooDEM-main is still installed. Uninstall it first."
+		MessageBox MB_OK "${APPNAME}-main is still installed. Uninstall it first."
 		Abort
 	MainClean:
 	MessageBox MB_OKCANCEL "Permanantly remove ${APPNAME}-${COMPONENT}?" /SD IDOK IDOK next
@@ -72,7 +72,7 @@ functionEnd
 section "uninstall"
 	# Remove files
 	PathGood:
-	MessageBox MB_OKCANCEL|MB_ICONINFORMATION "The entire directory with WooDEM will be deleted, including files you might have created locally. Proceed?" /SD IDOK IDOK +2
+	MessageBox MB_OKCANCEL|MB_ICONINFORMATION "The entire directory with ${APPNAME} will be deleted, including files you might have created locally. Proceed?" /SD IDOK IDOK +2
 		Abort
 	RMDir /R $INSTDIR
 	# Remove uninstaller information from the registry
