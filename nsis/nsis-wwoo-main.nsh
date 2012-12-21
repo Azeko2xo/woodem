@@ -49,7 +49,7 @@ section "install"
 	setOutPath $INSTDIR
 	file /x *.egg /x *.nsh /x *-installer.exe wwoo* woo* 
 
-	${EnvVarUpdate} $0 "PATH" "P" "HKLM" "${INSTDIR}"
+	${EnvVarUpdate} $0 "PATH" "P" "HKLM" "$\"$INSTDIR$\""
  
 	# Uninstaller - See function un.onInit and section "uninstall" for configuration
 	writeUninstaller "$INSTDIR\uninstall-${COMPONENT}.exe"
@@ -77,7 +77,7 @@ section "uninstall"
 	delete $INSTDIR\uninstall-${COMPONENT}.exe
 
 	# remove path again
-	${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "${INSTDIR}"
+	${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$\"$INSTDIR$\""
 
 	# Remove uninstaller information from the registry
 	DeleteRegKey HKLM "${ARP}"

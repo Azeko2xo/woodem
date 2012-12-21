@@ -1,5 +1,6 @@
 #!/bin/bash
 python /c/src/pyinstaller-develop/pyinstaller.py -y woo.pyinstaller.spec
+#exit 0
 REVNO=`bzr revno . 2>/dev/null`
 ZIP7="/c/Program Files/7-Zip/7z.exe"
 # insane compression on 6 cores
