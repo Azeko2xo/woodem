@@ -14,6 +14,7 @@ cxxClasses,allWooMods=set(),set()
 
 def _ensureInitialized():
 	'Fill cxxClasses and allWooMods, called automatically as needed'
+	global cxxClasses,allWooMods
 	if cxxClasses: return  # do nothing if already filled
 	def subImport(pkg,exclude=None):
 		'Import recursively all subpackages'
@@ -56,8 +57,9 @@ def _ensureInitialized():
 def allWooPackages(outDir='/tmp'):
 	'''Generate documentation of packages in the Restructured Text format. Each package is written to file called *out*/.`woo.[package].rst` and list of files created is returned.'''
 
+	global cxxClasses,allWooMods
 	_ensureInitialized()
-
+	
 	modsElsewhere=set()
 	for m in allWooMods: modsElsewhere|=set(m._docInlineModules if hasattr(m,'_docInlineModules') else [])
 	# woo.foo.* modules go insides woo.foo
