@@ -196,7 +196,17 @@ cppDef+=[
 cppDef+=[('WOO_'+feature.upper().replace('-','_'),None) for feature in features]
 cppDirs+=[pathSourceTree]
 
-cxxFlags+=['-Wall','-fvisibility=hidden','-std=c++11','-pipe']
+cxxStd='c++11'
+## this is needed for packaging on Ubuntu 12.04, where gcc 4.6 is the default
+if DISTBUILD=='debian':
+	# c++0x for gcc == 4.6
+	gccVer=subprocess.check_output(['g++','--version']).split('\n')[0].split()[-1]
+	print 'GCC version is',gccVer
+	if gccVer.startswith('4.6'):
+		cxxStd='c++0x'
+		print 'Compiling with gcc 4.6 (%s), using -std=%s'%(gccVer,cxxStd)
+
+cxxFlags+=['-Wall','-fvisibility=hidden','-std='+cxxStd,'-pipe']
 
 cxxLibs+=['m',
 	'boost_python',
