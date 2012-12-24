@@ -58,3 +58,7 @@ Woo can be used in python scripts. You only have to say ``import woo`` and every
 	 wooOptions.debug=True
 	 import woo    # initializes OpenMP to 4 threads, and uses the debug build of woo
 
+Graphical interface
+===================
+
+.. image:: fig/controller-simulation.*

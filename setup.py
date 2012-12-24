@@ -204,7 +204,8 @@ if DISTBUILD=='debian':
 	print 'GCC version is',gccVer
 	if gccVer.startswith('4.6'):
 		cxxStd='c++0x'
-		print 'Compiling with gcc 4.6 (%s), using -std=%s'%(gccVer,cxxStd)
+		print 'Compiling with gcc 4.6 (%s), using -std=%s. Adding -pedantic.'%(gccVer,cxxStd)
+		cxxFlags+=['-pedantic'] # work around for http://gcc.gnu.org/bugzilla/show_bug.cgi?id=50478
 
 cxxFlags+=['-Wall','-fvisibility=hidden','-std='+cxxStd,'-pipe']
 
