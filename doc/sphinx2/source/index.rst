@@ -1,4 +1,4 @@
-.. Woo documentation master file, created by
+. Woo documentation master file, created by
    sphinx-quickstart on Sat Jun 16 15:52:22 2012.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.

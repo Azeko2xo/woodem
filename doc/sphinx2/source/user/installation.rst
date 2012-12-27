@@ -61,8 +61,8 @@ Running woo under Windows is supported, but with some limitations:
 
 Binaries can be downloaded from `Launchpad download page <https://launchpad.net/woo/+download>`_, as follows:
 
-#. Download and run ``WooDEM-libs-*.installer.exe`` with the highest version number.
-#. Download and run ``WooDEM-main-*.installer.exe``. It must be installed into the same directory as libs (this is checked at install-time)
+#. Download and run ``Woo-libs-*.installer.exe`` with the highest version number.
+#. Download and run ``Woo-main-*.installer.exe``. It must be installed into the same directory as libs (this is checked at install-time)
 #. Download and run installers for any custom modules you may have.
 
 The installer installs the code system-wide, supports unattended installation via the `/S` switch, and the uninstaller should remove all files. There are some glitches, but we're working on improving that. Install path of Woo is added to the ``PATH`` environment variable, so the command ``wwoo`` is understood wherever you are in the filesystem.

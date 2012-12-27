@@ -303,7 +303,7 @@ class TestArrayAccu(unittest.TestCase):
 
 class TestPyDerived(unittest.TestCase):
 	import woo.pyderived, woo.core
-	class TestPyClass(woo.core.Object,woo.pyderived.PyWooObject):
+	class _TestPyClass(woo.core.Object,woo.pyderived.PyWooObject):
 		'Sample pure-python class integrated into woo (mainly used with preprocessors)'
 		PAT=woo.pyderived.PyAttrTrait
 		_attrTraits=[
@@ -319,7 +319,7 @@ class TestPyDerived(unittest.TestCase):
 			woo.core.Object.__init__(self)
 			self.wooPyInit(self.__class__,woo.core.Object,**kw)
 	def setUp(self):
-		self.t=self.TestPyClass()
+		self.t=self._TestPyClass()
 	def testTraits(self):
 		'PyDerived: PyAttrTraits'
 		self.assert_(self.t._attrTraits[0].ini==1.)
@@ -332,7 +332,7 @@ class TestPyDerived(unittest.TestCase):
 	def testAttrTypesDefault(self):
 		'PyDerived: checkAttrTypes - default'
 		try: self.t.checkAttrTypes()
-		except: self.fail("exception raised with default-initialized TestPyClass")
+		except: self.fail("exception raised with default-initialized _TestPyClass")
 	def testAttrFloat(self):
 		'PyDerived: checkAttrTypes - float'
 		self.t.aF='asd'

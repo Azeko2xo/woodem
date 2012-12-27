@@ -38,8 +38,8 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.mathjax', 
 # customize promps
 ipython_rgxin =re.compile('Woo \[(\d+)\]:\s?(.*)\s*')
 ipython_rgxout=re.compile(' -> \[(\d+)\]:\s?(.*)\s*')
-ipython_promptin ='Woo [%d:]'
-ipython_promptout=' -> [%d:]'
+ipython_promptin ='Woo [%d]:'
+ipython_promptout=' -> [%d]:'
 
 todo_include_todos=True
 
