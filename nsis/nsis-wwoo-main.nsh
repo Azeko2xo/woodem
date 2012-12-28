@@ -6,7 +6,7 @@
 #
 !define DESCRIPTION "Discrete dynamic computations (main modules)"
 !define ARP "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}-${COMPONENT}"
-InstallDir "$PROGRAMFILES\${APPNAME}"
+InstallDir "$PROGRAMFILES64\${APPNAME}"
 # use by default where libs are already installed
 # http://stackoverflow.com/questions/13775288/installer-adding-files-to-an-already-installed-packages-dir
 InstallDirRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}-libs" "InstallLocation"

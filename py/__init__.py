@@ -13,7 +13,8 @@ It loads woo plugins and injects c++ class constructors to the __builtins__
 everywhere.
 """
 
-import wooOptions
+# FIXME: rename once tested
+from wooMain import options as wooOptions
 import warnings,traceback
 import sys,os,os.path,re,string
 
@@ -45,6 +46,7 @@ else:
 if wooOptions.ompCores:
 	cc=wooOptions.ompCores
 	if wooOptions.ompThreads!=len(cc) and wooOptions.ompThreads>0:
+		print 'wooOptions.ompThreads =',str(wooOptions.ompThreads)
 		warnings.warn('ompThreads==%d ignored, using %d since ompCores are specified.'%(wooOptions.ompThreads,len(cc)))
 		wooOptions.ompThreads=len(cc)
 	wooOsEnviron['GOMP_CPU_AFFINITY']=' '.join([str(cc[0])]+[str(c) for c in cc])
@@ -52,7 +54,8 @@ if wooOptions.ompCores:
 elif wooOptions.ompThreads:
 	wooOsEnviron['OMP_NUM_THREADS']=str(wooOptions.ompThreads)
 elif 'OMP_NUM_THREADS' not in os.environ:
-	wooOsEnviron['OMP_NUM_THREADS']='1'
+	import multiprocessing
+	wooOsEnviron['OMP_NUM_THREADS']=str(min(multiprocessing.cpu_count(),4))
 	
 import distutils.sysconfig
 soSuffix=distutils.sysconfig.get_config_vars()['SO']

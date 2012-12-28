@@ -3,9 +3,8 @@
 
 # signal import error witout display
 if 1:
-	import wooOptions
-	import woo.runtime
-	if wooOptions.forceNoGui:
+	import woo.runtime, wooMain
+	if wooMain.options.forceNoGui:
 		woo.runtime.hasDisplay=False
 		raise ImportError("Woo was started with the -n switch; woo.qt4 insterface will not be enabled.")
 	# ignore some warnings from Xlib
@@ -119,7 +118,8 @@ sphinxOnlineDocPath='http://www.woodem.eu/doc/'
 import os.path
 # find if we have docs installed locally from package
 sphinxLocalDocPath=woo.config.prefix+'/share/doc/woo'+woo.config.suffix+'/html/'
-sphinxBuildDocPath=woo.config.sourceRoot+'/doc/sphinx2/build/html/'
+# FIXME: unfortunately file:// links don't seem to work with anchors, so just make this invalid
+sphinxBuildDocPath=woo.config.sourceRoot+'/doc/sphinx2/build/html/REMOVE_THIS_TO_USE_LOCAL_DOCS'
 # we prefer the packaged documentation for this version, if installed
 if   os.path.exists(sphinxLocalDocPath+'/index.html'): sphinxPrefix='file://'+sphinxLocalDocPath
 # otherwise look for documentation generated in the source tree
@@ -487,7 +487,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		if hasSim:
 			self.playButton.setEnabled(not running)
 			self.pauseButton.setEnabled(running)
-			self.reloadButton.setEnabled(S.lastSave is not None)
+			self.reloadButton.setEnabled(bool(S.lastSave))
 			self.stepButton.setEnabled(not running)
 			self.subStepCheckbox.setEnabled(not running)
 		else:
@@ -496,6 +496,7 @@ class ControllerClass(QWidget,Ui_Controller):
 			self.reloadButton.setEnabled(False)
 			self.stepButton.setEnabled(False)
 			self.subStepCheckbox.setEnabled(False)
+		self.traceCheckbox.setEnabled(S.hasDem)
 		fn=S.lastSave
 		self.fileLabel.setText(fn if fn else '[no file]')
 

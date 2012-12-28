@@ -8,7 +8,7 @@
 # used to write installation directory
 !define ARPBASE "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}"
 !define ARP "${ARPBASE}-${COMPONENT}"
-InstallDir "$PROGRAMFILES\${APPNAME}"
+InstallDir "$PROGRAMFILES64\${APPNAME}"
 
 SetCompressor /solid lzma
 

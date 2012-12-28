@@ -288,7 +288,10 @@ class AttrEditor_FloatRange(AttrEditor,QFrame):
 	def refresh(self):
 		curr,(mn,mx)=self.multipliedGetter()
 		self.edit.setTextStable('%g'%curr)
-		self.slider.setValue(int(self.sliDiv*((1.*curr-mn)/(1.*mx-mn))))
+		if not math.isnan(curr):
+			self.slider.setValue(int(self.sliDiv*((1.*curr-mn)/(1.*mx-mn))))
+			self.slider.setEnabled(True)
+		else: self.slider.setEnabled(False)
 	def updateFromText(self):
 		curr,(mn,mx)=self.multipliedGetter()
 		try:

@@ -1,4 +1,5 @@
 graft build-src-tree
+graft resources
 recursive-include lib *.cpp
 recursive-include lib *.hpp
 recursive-include lib *.ipp

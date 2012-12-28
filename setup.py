@@ -330,7 +330,8 @@ tighter integration with python and user-friendliness.
 		+(['woo.qt'] if 'qt4' in features else [])
 		+(['woo.gts'] if 'gts' in features else [])
 	),
-	py_modules=wooModules+['wooOptions','wooMain'],
+	package_data={'woo':glob('resources/*')},
+	py_modules=wooModules+['wooMain'],
 		ext_modules=[
 		Extension('woo.'+cxxInternalModule,
 			sources=cxxSrcs,

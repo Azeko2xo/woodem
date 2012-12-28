@@ -610,7 +610,7 @@ def hexaNet( radius, cornerCoord=[0,0,0], xLength=1., yLength=0.5, mos=0.08, a=0
 
 
 
-def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,dontBlock=False,memoizeDir=None):
+def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNum=-1,dontBlock=False,returnSpherePack=False,memoizeDir=None):
 	if memoizeDir:
 		params=str(dim)+str(psd)+str(goal)+str(damping)+str(porosity)+str(lenAxis)
 		import hashlib
@@ -621,6 +621,7 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,dontB
 			print 'Returning memoized result'
 			sp=SpherePack()
 			sp.load(memoizeFile)
+			if returnSpherePack: return sp
 			return zip(*sp)+[sp.cellSize[lenAxis],]
 	p3=porosity**(1/3.)
 	rMax=psd[-1][0]
@@ -638,6 +639,7 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,dontB
 		woo.dem.BoxFactory(
 			box=((0,0,0),cellSize),
 			maxMass=-1,
+			maxNum=maxNum,
 			massFlowRate=0,
 			maxAttempts=5000,
 			generator=woo.dem.PsdSphereGenerator(psdPts=psd,discrete=False,mass=True),
@@ -670,12 +672,15 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,dontB
 	for c,r in sp:
 		if c not in box: continue
 		cc.append(c); rr.append(r)
-	if memoizeDir:
+	if memoizeDir or returnSpherePack:
 		sp2=SpherePack()
 		sp2.fromList(cc,rr)
 		sp2.cellSize=sp.cellSize
-		print 'Saving to',memoizeFile
-		sp2.save(memoizeFile)
+		if memoizeDir:
+			print 'Saving to',memoizeFile
+			sp2.save(memoizeFile)
+		if returnSpherePack:
+			return sp2
 	return cc,rr,sp.cellSize[lenAxis]
 
 

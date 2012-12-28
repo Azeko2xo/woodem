@@ -48,7 +48,7 @@ if 'Variables' not in dir():
 	Variables=Options
 	BoolVariable,ListVariable,EnumVariable=BoolOption,ListOption,EnumOption
 
-env=Environment(tools=['default'])
+env=Environment(tools=['default','textfile'])
 flavorFile='scons.current-flavor'
 env['sourceRoot']=os.getcwd()
 
@@ -180,7 +180,7 @@ def getRealWooVersion():
 		return file('RELEASE').readline().strip()
 	if os.path.exists('.bzr'):
 		for l in os.popen("LC_ALL=C bzr revno 2>/dev/null").readlines():
-			return 'bzr'+l[:-1]
+			return 'r'+l[:-1]
 	if os.path.exists('VERSION'):
 		return file('VERSION').readline().strip()
 	return None

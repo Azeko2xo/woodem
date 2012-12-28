@@ -68,7 +68,7 @@ Graphical interface is entirely optional in Woo, simulations can run without it 
 
 Controller
 ----------
-The main Woo window, called :obj:`controller <woo.qt.ControllerClass>`, is brought up automatically at startup if a simulation/script is given on the command-line (under Windows, the controller is always shown at startup). The controller can be manually brought up by pressing ``F12`` in the terminal, or by typing ``woo.qt.Controller()``. The window looks like this:
+The main Woo window, called :obj:`controller <woo.qt.ControllerClass>`, is brought up automatically at startup if a simulation/script is given on the command-line (under Windows, the controller is always shown at startup). The controller can be manually brought up by pressing ``F12`` in the terminal, or by typing ``woo.qt.Controller()``. The window (when the first, *Simulation* tab, is active) looks like this:
 
 .. image:: fig/controller-simulation.*
 
@@ -85,4 +85,58 @@ D. Display controls (toggle)
 	* 2d plot window
 	* Inspector
 E. Area for simulation-specific controls, if defined (:obj:`woo.core.Scene.uiBuild`)
+
+
+Display
+--------
+
+The *Display* tab configures the 3D display. Woo dispatches OpenGL display of all objects to objects (always called ``Gl1_*``) responsible for actual drawing, which is also how this dialogue is organized.
+
+.. image:: fig/controller-display.*
+
+Note that blue object/attribute labels are active (that works generally, for any object displayed in the user interface):
+* left-click opens online documentation for that particular class/attribute.
+* mid-click will copy *path* to that object to the clipboard (if it is available), which can be then used in python.
+* each attribute has tooltip showing full documentation for that attribute; just hover over the label.
+
+:obj:`Renderer <woo.gl.Renderer>` configures global view properties -- initial orientation, displacement scaling, lighting, clipping, and which general items are displayed.
+
+:obj:`Gl1_DemField <woo.dem.Gl1_DemField>` (shown on the image) is reponsible for displaying contents of DEM simulations (:obj:`woo.dem.DemField`) -- particles, contacts between particles and so on. For instance, particles corresponding to the :obj:`shape <woo.gl.Gl1_DemField.shape>` attribute are colored using the method specified with :obj:`colorBy <woo.gl.Gl1_DemField.colorBy>`. Other particles (not matching :obj:`shape <woo.gl.Gl1_DemField.shape>`, or not able to be colored using :obj:`colorBy <woo.gl.Gl1_DemField.colorBy>`, e.g. non-spherical particle by radius) are colored using :obj:`colorBy2 <woo.gl.Gl1_DemField.colorBy2>`.
+
+Display of each particle's :obj:`shape <woo.dem.Shape>` is dispatched to :obj:`Gl1_* <woo.gl.GlShapeFunctor>` objects (e.g. :obj:`woo.gl.Gl1_Sphere`, :obj:`woo.gl.Gl1_Facet`, …), which control shape-specific options, such as display quality.
+
+
+Preprocessor
+------------
+
+Preprocessors can be set and run from the *Preprocess* tab, which can be opened directly from the terminal with ``F9`` (Linux-only).
+
+.. image:: fig/controller-preprocessor.*
+
+In the top selection, all available preprocessors are listed. Preprocessor can be modified, loaded and saved. Once you have set all parameters, the *play* button bottom right will create new simulation and switch to the *Simulation* tab automatically.
+
+Unit specifications are only representation. Technically is Woo unit-agnostic, practically, `SI units <http://en.wikipedia.org/wiki/Si_units>`_ are used everywhere.
+
+.. todo:: Link to unit documentation.
+
+
+The preprocessor can be saved for later use (it is saved, by default, as python expression)::
+
+    ##woo-expression##
+    #: import woo.pre.triax,woo.dem
+    woo.pre.triax.TriaxTest(
+    	isoStress=-10000.0,
+    	maxStrainRate=0.001,
+    	nPar=2000,
+    	mat=woo.dem.FrictMat(density=100000000.0, id=-1, young=100000.0, tanPhi=0.0, ktDivKn=0.2),
+    	tanPhi2=0.6,
+    	psd=[(0.001, 0.0), (0.002, 0.2), (0.004, 1.0)],
+    	reportFmt='/tmp/{tid}.xhtml',
+    	packCacheDir='.',
+    	saveFmt='/tmp/{tid}-{stage}.bin.gz',
+    	backupSaveTime=1800,
+    	pWaveSafety=0.7,
+    	nonViscDamp=0.4,
+    	initPoro=0.7
+    )
 

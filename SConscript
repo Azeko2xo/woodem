@@ -1,3 +1,4 @@
+# encoding: utf-8
 # vim: set filetype=python:
 Import('*')
 
@@ -24,7 +25,6 @@ else: # compile by chunks
 	pkgSrcs=[env.CombineWrapper('$buildDir/pkg-%d.cpp'%j,pkgSrcs[i:i+chunkSize]) for j,i in enumerate(range(0,len(pkgSrcs),chunkSize))]
 pyObjects+=[env.SharedObject(s) for s in pkgSrcs]
 
-SConscript(dirs=['resources'],duplicate=0)
 
 ## LIB
 pyObjects.append(
@@ -76,12 +76,11 @@ env.SharedLibrary(pySharedObject,pyObjects,
 # EXECUTABLES HERE
 #
 pyMain='$EXECDIR/woo'+('-'+env['flavor'] if env['flavor'] else '')
-env.InstallAs(pyMain,'core/main/main.py')
-env.InstallAs(pyMain+'-batch','core/main/batch.py')
+env.InstallAs(pyMain,env.Textfile('main.py','#!/usr/bin/python\nimport wooMain,sys; sys.exit(wooMain.main())\n'))
+env.InstallAs(pyMain+'-batch',env.Textfile('batch.py','#!/usr/bin/python\nimport wooMain,sys; sys.exit(wooMain.batch())\n'))
 env.AddPostAction(pyMain,Chmod(pyMain,0755))
 env.AddPostAction(pyMain+'-batch',Chmod(pyMain+'-batch',0755))
 
-env.Install('$LIBDIR','core/main/wooOptions.py')
 env.Install('$LIBDIR','core/main/wooMain.py')
 ## for --rebuild
 if 'execCheck' in env and env['execCheck']!=os.path.abspath(env.subst(pyMain)):
@@ -114,7 +113,21 @@ if 'qt4' in env['features']:
 	env.Command('gui/qt4/img_rc.py','gui/qt4/img.qrc','pyrcc4 -o $buildDir/gui/qt4/img_rc.py gui/qt4/img.qrc')
 	env.Command('gui/qt4/ui_controller.py','gui/qt4/controller.ui','pyuic4 -o $buildDir/gui/qt4/ui_controller.py gui/qt4/controller.ui')
 
+# install .egg-info so that pkg_resources work with woo when installed via scons
+# http://svn.python.org/projects/sandbox/trunk/setuptools/doc/formats.txt
+env.Install('$LIBDIR',[env.Textfile('woo.egg-info','''
+Metadata-Version: 1.1
+Name: woo
+Version: {version}
+Summary: Discrete dynamic compuations, especially granular mechanics.
+Home-page: http://www.woodem.eu
+Author: Václav Šmilauer
+Author-email: eu@doxos.eu
+'''.format(version='0.99-'+env['realVersion']))])
 
+# install data files
+# accessible through pkg_resources
+env.Install('$LIBDIR/woo/resources',[env.File(env.Glob('resources/*'))])
 
 
 

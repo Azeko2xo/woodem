@@ -1,9 +1,29 @@
 # encoding: utf-8
 
-__all__=['main','batch']
+__all__=['main','batch','options']
+
 
 import sys, os
 WIN=(sys.platform=='win32')
+
+class WooOptions(object):
+	def __init__(self):
+		self.forceNoGui=False
+		self.ompThreads=0
+		self.ompCores=[]
+		self.flavor=''
+		self.debug=False
+		self.clDev=None
+		self.quirks=3
+		self.quirkIntel=1
+		self.quirkFirePro=2
+		# no attributes can be added beyond this point
+		self._frozen=None 
+	def __setattr__(self,name,value):
+		if not hasattr(self,'_frozen') or hasattr(self,name): object.__setattr__(self,name,value)
+		else: raise AttributeError('No such attribute: '+name)
+
+options=WooOptions()
 
 def makeColorFuncs(colors,dumbWinColors=False):
 	try:
@@ -31,14 +51,24 @@ if hasattr(sys,'frozen'):
 	from os.path import expanduser
 	os.environ['IPYTHONDIR']=expanduser('~/.ipython')
 
+def flavorFromArgv0(argv0,batch=False):
+	import re
+	m=re.match('.*/woo(-[a-zA-Z_-]*|)'+('-batch' if batch else ''),argv0)
+	if m:
+		if m.group(1)=='': return ''
+		return m.group(1)[1:] # strip leading dash
+	raise ValueError('Woo flavor could not be guessed from program name: '+argv0)
+
+
 
 def main(sysArgv=None):
 	'''Function called by the woo executable.
 	*sysArgv* (if specified) replaces sys.argv; sys.argv is used for option processing.
 	'''
 	import sys,os,os.path,time,re
-	import wooOptions
 	if sysArgv: sys.argv=sysArgv
+
+	global options
 	
 	green,red,yellow,bright=makeColorFuncs(['GREEN','RED','YELLOW','BRIGHT'])
 
@@ -47,18 +77,18 @@ def main(sysArgv=None):
 	par=argparse.ArgumentParser(prog=os.path.basename(sys.argv[0]),description="Woo: open-source platform for dynamic compuations, http://woodem.eu.")
 	par.add_argument('--version',action='store_true',)
 	#
-	# those are actually parsed by wooOptions
+	# those MUST be stored in *options*
 	#
-	par.add_argument('-j','--threads',help='Number of OpenMP threads to run; defaults to 1. Equivalent to setting OMP_NUM_THREADS environment variable.',dest='threads',type=int)
+	par.add_argument('-j','--threads',help='Number of OpenMP threads to run; unset (0) by default, which means to use all available cores, but at most 4. Equivalent to setting OMP_NUM_THREADS environment variable.',dest='threads',type=int,default=0)
 	par.add_argument('--cores',help='Set number of OpenMP threads (as --threads) and in addition set affinity of threads to the cores given.',dest='cores')
 	par.add_argument('--cl-dev',help='Numerical couple (comma-separated) givin OpenCL platform/device indices. This is machine-dependent value',dest='clDev')
 	par.add_argument('-n',help="Run without graphical interface (equivalent to unsetting the DISPLAY environment variable)",dest='nogui',action='store_true')
 	par.add_argument('-D','--debug',help='Run the debug build, if available.',dest='debug',action='store_true')
-	# quirks set flags in wooOptions
+	# quirks set flags in options
 	par.add_argument('--quirks',help='Bitmask for workarounds for broken configurations; all quirks are enabled by default. 1: set LIBGL_ALWAYS_SOFTWARE=1 for Intel GPUs (determined from `lspci | grep VGA`) (avoids GPU freeze), 2: set --in-gdb when on AMD FirePro GPUs to avoid crash in fglrx.so',dest='quirks',type=int,default=3)
-	par.add_argument('--flavor',help='Build flavor of woo to use.',type=str,default=wooOptions.flavorFromArgv0(sys.argv[0]))
+	par.add_argument('--flavor',help='Build flavor of woo to use.',type=str,default=flavorFromArgv0(sys.argv[0]))
 	#
-	# end wooOptions parse
+	# end store in *options*
 	#
 	par.add_argument('-c',help='Run these python commands after the start (use -x to exit afterwards)',dest='commands',metavar='COMMANDS')
 	par.add_argument('-e',help='Evaluate this expression (instead of loading file). It should be a scene object or a preprocessor, which will be run',dest='expression',metavar='EXPR')
@@ -79,11 +109,18 @@ def main(sysArgv=None):
 	if WIN: opts.rebuild=False # make sure it is defined
 	args=opts.simulation
 
-	wooOptions.useKnownArgs(sys.argv)
+	# copy options (will be used in woo/__init__.py)
+	options.ompThreads=opts.threads
+	options.ompCores=opts.cores
+	options.clDev=opts.clDev
+	options.forceNoGui=opts.nogui
+	options.debug=opts.debug
+	options.quirks=opts.quirks
+	options.flavor=opts.flavor
 
 	# disable quirks in those cases
 	if (opts.version or opts.inGdb or opts.test or opts.rebuild):
-		wooOptions.quirks=opts.quirks=0
+		options.quirks=opts.quirks=0
 
 	# show version and exit
 	if opts.version:
@@ -106,7 +143,6 @@ def main(sysArgv=None):
 					print 'Updating '+dd
 					if subprocess.call(['bzr','up',dd]): raise RuntimeError('Error updating %d from bzr.')
 		# rebuild
-		# FIXME: should be use opts.debug or wooOptions.debug here??
 		cmd=['scons','-Q','-C',woo.config.sourceRoot,'flavor=%s!'%woo.config.flavor,'debug=%d'%(1 if opts.debug else 0),'execCheck=%s'%(os.path.abspath(sys.argv[0]))]
 		print 'Rebuilding Woo using',' '.join(cmd)
 		if subprocess.call(cmd): raise RuntimeError('Error rebuilding Woo (--rebuild).')
@@ -118,13 +154,13 @@ def main(sysArgv=None):
 		print 'Running Woo using',' '.join(argv)
 		sys.exit(subprocess.call(argv))
 	# QUIRK running in gdb
-	if (wooOptions.quirks & wooOptions.quirkFirePro) and (not wooOptions.forceNoGui and 'DISPLAY' in os.environ):
+	if (options.quirks & options.quirkFirePro) and (not options.forceNoGui and 'DISPLAY' in os.environ):
 		vgas=os.popen("LC_ALL=C lspci | grep VGA").readlines()
 		if sum(['FirePro' in vga for vga in vgas]):
 			print 'AMD FirePro GPU detected, will run inside gdb to avoid crash in buggy fglrx.so.'
 			opts.inGdb=True
 			# disable quirk to avoid infinite loop
-			sys.argv=[sys.argv[0]]+['--quirks=%d'%(wooOptions.quirks&(~wooOptions.quirkFirePro))]+[a for a in sys.argv[1:] if not a.startswith('--quirks')]
+			sys.argv=[sys.argv[0]]+['--quirks=%d'%(options.quirks&(~options.quirkFirePro))]+[a for a in sys.argv[1:] if not a.startswith('--quirks')]
 	# re-run inside gdb
 	if opts.inGdb:
 		import tempfile, subprocess
@@ -380,10 +416,10 @@ def batch(sysArgv=None):
 		
 	#socket.setdefaulttimeout(10) 
 	
-	import wooOptions
-	wooOptions.forceNoGui=True
-	wooOptions.debug=False
-	wooOptions.quirks=0
+	global options
+	options.forceNoGui=True
+	options.debug=False
+	options.quirks=0
 	import woo, woo.batch, woo.config, woo.remote
 	
 	match=re.match(r'(.*)[_-]batch(-script\.py|.exe)?$', sys.argv[0])

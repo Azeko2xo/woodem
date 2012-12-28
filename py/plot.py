@@ -410,7 +410,12 @@ def createPlots(P,subPlots=True,scatterSize=60,wider=False):
 			if y1: plots_p_y1.append(d)
 			else: plots_p_y2.append(d)
 			try:
-				if d[0] not in data.keys() and not callable(d[0]) and not hasattr(d[0],'keys'): missing.add(d[0])
+				if (
+					d[0] not in data.keys()
+					and not callable(d[0])
+					and not type(d[0])==str and d[0].endswith('()') # hack for callable as strings
+					and not hasattr(d[0],'keys')
+				): missing.add(d[0])
 			except UnicodeEncodeError: pass
 		if missing:
 			if len(data.keys())==0 or len(data[data.keys()[0]])==0: # no data at all yet, do not add garbage NaNs
@@ -423,17 +428,18 @@ def createPlots(P,subPlots=True,scatterSize=60,wider=False):
 				addDataColumns(data,missing)
 		def createLines(pStrip,ySpecs,isY1=True,y2Exists=False):
 			'''Create data lines from specifications; this code is common for y1 and y2 axes;
-			it handles y-data specified as callables, which might create additional lines when updated with liveUpdate.
+			it handles y-data specified as callables (or strings enging in '()'), which might create additional lines when updated with liveUpdate.
 			'''
 			# save the original specifications; they will be smuggled into the axes object
 			# the live updated will run yNameFuncs to see if there are new lines to be added
 			# and will add them if necessary
-			yNameFuncs=set([d[0] for d in ySpecs if callable(d[0])]) | set([d[0].keys for d in ySpecs if hasattr(d[0],'keys')])
+			yNameFuncs=set([d[0] for d in ySpecs if callable(d[0])]) | set([d[0].keys for d in ySpecs if hasattr(d[0],'keys')]) | set([eval(d[0][:-2],{'S':woo.master.scene}) for d in ySpecs if type(d[0])==str and d[0].endswith('()')])
 			yNames=set()
 			ySpecs2=[]
 			for ys in ySpecs:
 				# ys[0]() must return list of strings, which are added to ySpecs2; line specifier is synthesized by tuplifyYAxis and cannot be specified by the user
 				if callable(ys[0]): ySpecs2+=[(ret,ys[1]) for ret in ys[0]()]
+				elif type(ys[0])==str and ys[0].endswith('()'): ySpecs2+=[(ret,ys[1]) for ret in eval(ys[0][:-2],{'S':woo.master.scene})()]
 				elif hasattr(ys[0],'keys'): ySpecs2+=[(yy,'') for yy in ys[0].keys()]
 				else: ySpecs2.append(ys)
 			if len(ySpecs2)==0:
@@ -631,6 +637,9 @@ def Scene_plot_plot(P,noShow=False,subPlots=True):
 	"""
 	createPlots(P,subPlots=subPlots)
 	figs=set([l.line.get_axes().get_figure() for l in P.currLineRefs])
+	if not figs:
+		warnings.warn('Nothing to plot.')
+		return
 	if not hasattr(list(figs)[0],'show') and not noShow:
 		import warnings
 		warnings.warn('plot.plot not showing figure (matplotlib using headless backend?)')
