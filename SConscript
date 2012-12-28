@@ -127,7 +127,7 @@ Author-email: eu@doxos.eu
 
 # install data files
 # accessible through pkg_resources
-env.Install('$LIBDIR/woo/resources',[env.File(env.Glob('resources/*'))])
+env.Install('$LIBDIR/woo/resources',[env.File(env.Glob('py/resources/*'))])
 
 
 

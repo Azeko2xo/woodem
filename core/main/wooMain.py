@@ -53,10 +53,12 @@ if hasattr(sys,'frozen'):
 
 def flavorFromArgv0(argv0,batch=False):
 	import re
-	m=re.match('.*/woo(-[a-zA-Z_-]*|)'+('-batch' if batch else ''),argv0)
+	if WIN: a0=re.sub('-script.py','',argv0)
+	else: a0=argv0
+	m=re.match('(.*[/\\\\]|)(w|)woo(?P<flavor>-[a-zA-Z_-]*|)'+('[-_]batch' if batch else ''),a0)
 	if m:
-		if m.group(1)=='': return ''
-		return m.group(1)[1:] # strip leading dash
+		if m.group('flavor')=='': return ''
+		return m.group('flavor')[1:] # strip leading dash
 	raise ValueError('Woo flavor could not be guessed from program name: '+argv0)
 
 

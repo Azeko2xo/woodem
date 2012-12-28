@@ -330,7 +330,11 @@ tighter integration with python and user-friendliness.
 		+(['woo.qt'] if 'qt4' in features else [])
 		+(['woo.gts'] if 'gts' in features else [])
 	),
-	package_data={'woo':glob('resources/*')},
+	
+	# unfortunately, package_data must be in the same directory as the module
+	# they belong to; therefore, they were moved to py/resources
+	package_data={'woo':['resources/*']},
+	
 	py_modules=wooModules+['wooMain'],
 		ext_modules=[
 		Extension('woo.'+cxxInternalModule,

@@ -31,6 +31,8 @@ class FallingHorse(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		return prepareHorse(self)
 
 def prepareHorse(pre):
+	import sys
+	sys.stderr.write('Preparing horse...\n')
 	import woo.gts as gts # not sure whether this is necessary
 	import woo.pack, woo.utils, woo.core, woo
 	import pkg_resources
@@ -40,7 +42,10 @@ def prepareHorse(pre):
 	if not pre.meshMat: pre.meshMat=pre.mat.deepcopy()
 
 	# load the horse
-	surf=gts.read(open(pkg_resources.resource_filename('woo','resources/horse.coarse.gts')))
+	sys.stderr.write('Loading GTS mesh\n')
+	sys.stderr.write('Filename '+pkg_resources.resource_filename('woo','resources/horse.coarse.gts')+'\n')
+	surf=gts.read(pkg_resources.resource_stream('woo','resources/horse.coarse.gts'))
+	sys.stderr.write('Mesh loaded.\n')
 	if not surf.is_closed(): raise RuntimeError('Horse surface not closed?!')
 	pred=woo.pack.inGtsSurface(surf)
 	aabb=pred.aabb()

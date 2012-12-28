@@ -173,41 +173,45 @@ class PyWooObject:
 		
 	
 
-# inheritance order must not change, due to us using __bases__[0] frequently
-# when traversing the class hierarchy
-class SamplePyDerivedPreprocessor(Preprocessor,PyWooObject):
-	'Sample preprocessor written in pure python'
-	_classTraits=None
-	_attrTraits=[
-		PyAttrTrait(bool,'switch',True,"Some bool switch, starting group",startGroup='General'),
-		PyAttrTrait(int,'a',2,"Integer argument in python"),
-		PyAttrTrait(str,'b','whatever',"String argument in python"),
-		PyAttrTrait([Node,],'c',[],"List of nodes in python"),
-		PyAttrTrait(float,'d',.5,"Parameter with range",range=Vector2(0,.7),startGroup='Advanced'),
-		PyAttrTrait(int,'choice',2,"Param with choice",choice=[(0,'choice0'),(1,'choice1'),(2,'choice2')]),
-		PyAttrTrait(int,'flags',1,"Param with bits",bits=['bit0','bit1','bit2','bit3','bit4'],buttons=(['Clear flags','self.flags=0','Set flags to zero'],True)),
-		PyAttrTrait(int,'choice2',2,'Param with unnamed choice',choice=[0,1,2,3,4,5,6,-1]),
-		PyAttrTrait(Vector3,'color',Vector3(.2,.2,.2),"Color parameter",rgbColor=True),
-		PyAttrTrait(float,'length',1.5e-3,"Length",unit='mm'),
-	]
-	def __init__(self,**kw):
-		# construct all instance attributes
-		Preprocessor.__init__(self)
-		self.wooPyInit(SamplePyDerivedPreprocessor,Preprocessor,**kw)
-	def __call__(self):
-		import woo.core, woo.dem, woo.utils
-		S=woo.core.Scene(fields=[woo.dem.DemField()])
-		S.dem.par.append([
-			woo.utils.wall(0,axis=2,sense=1),
-			woo.utils.sphere((0,0,1),radius=.2)
-		])
-		S.dem.gravity=(0,0,-10)
-		S.dt=1e-4*woo.utils.pWaveDt(S)
-		S.engines=woo.utils.defaultEngines(damping=.01)
-		S.dem.collectNodes()
-		return S
 
 if __name__=='__main__':
+	# do not define this class when running woo normally,
+	# so that it does not show up in the preprocessor dialogue
+	
+	# inheritance order must not change, due to us using __bases__[0] frequently
+	# when traversing the class hierarchy
+	class SamplePyDerivedPreprocessor(Preprocessor,PyWooObject):
+		'Sample preprocessor written in pure python'
+		_classTraits=None
+		_attrTraits=[
+			PyAttrTrait(bool,'switch',True,"Some bool switch, starting group",startGroup='General'),
+			PyAttrTrait(int,'a',2,"Integer argument in python"),
+			PyAttrTrait(str,'b','whatever',"String argument in python"),
+			PyAttrTrait([Node,],'c',[],"List of nodes in python"),
+			PyAttrTrait(float,'d',.5,"Parameter with range",range=Vector2(0,.7),startGroup='Advanced'),
+			PyAttrTrait(int,'choice',2,"Param with choice",choice=[(0,'choice0'),(1,'choice1'),(2,'choice2')]),
+			PyAttrTrait(int,'flags',1,"Param with bits",bits=['bit0','bit1','bit2','bit3','bit4'],buttons=(['Clear flags','self.flags=0','Set flags to zero'],True)),
+			PyAttrTrait(int,'choice2',2,'Param with unnamed choice',choice=[0,1,2,3,4,5,6,-1]),
+			PyAttrTrait(Vector3,'color',Vector3(.2,.2,.2),"Color parameter",rgbColor=True),
+			PyAttrTrait(float,'length',1.5e-3,"Length",unit='mm'),
+		]
+		def __init__(self,**kw):
+			# construct all instance attributes
+			Preprocessor.__init__(self)
+			self.wooPyInit(SamplePyDerivedPreprocessor,Preprocessor,**kw)
+		def __call__(self):
+			import woo.core, woo.dem, woo.utils
+			S=woo.core.Scene(fields=[woo.dem.DemField()])
+			S.dem.par.append([
+				woo.utils.wall(0,axis=2,sense=1),
+				woo.utils.sphere((0,0,1),radius=.2)
+			])
+			S.dem.gravity=(0,0,-10)
+			S.dt=1e-4*woo.utils.pWaveDt(S)
+			S.engines=woo.utils.defaultEngines(damping=.01)
+			S.dem.collectNodes()
+			return S
+
 	import woo.pre
 	woo.pre.SamplePyDerivedPreprocessor=SamplePyDerivedPreprocessor
 
