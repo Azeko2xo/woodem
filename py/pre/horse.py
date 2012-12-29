@@ -41,8 +41,10 @@ def prepareHorse(pre):
 	if not pre.meshMat: pre.meshMat=pre.mat.deepcopy()
 
 	# load the horse
-	f=open(pkg_resources.resource_filename('woo','resources/horse.coarse.gts'),'r')
-	surf=gts.read(f)
+	# FIXME: pyinstaller should support pkg_resources on package which is frozen as well :|
+	if hasattr(sys,'frozen'): surf=gts.read(open(sys._MEIPASS+'/resources/horse.coarse.gts','r'))
+	else: surf=gts.read(pkg_resources.resource_stream('woo','resources/horse.coarse.gts'))
+	
 	if not surf.is_closed(): raise RuntimeError('Horse surface not closed?!')
 	pred=woo.pack.inGtsSurface(surf)
 	aabb=pred.aabb()

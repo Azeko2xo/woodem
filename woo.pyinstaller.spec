@@ -57,6 +57,11 @@ exeBatch=EXE(pyz,
 	upx=False,
 	console=True)
 	
+import glob, sys
+# f[3:] strips leading py/ from filename
+resources=[(f[3:],f,'DATA') for f in glob.glob('py/resources/*')]
+sys.stderr.write('RESOURCES: '+str(resources)+'\n')
+	
 import ctypes
 bits=str(ctypes.sizeof(ctypes.c_voidp)*8)
 
@@ -66,7 +71,8 @@ coll=COLLECT(
 	main.binaries,
 	main.zipfiles,
 	main.datas,
+	resources,
 	strip=None,
 	upx=False,
-	name=os.path.join('dist', 'wwoo-win%s'%bits)
+	name=os.path.join('dist', 'wwoo-win%s'%bits),
 )

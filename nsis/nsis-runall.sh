@@ -33,7 +33,7 @@ done
 if [ -d /boot ]; then
 	# linux
 	pushd $BINDIR
-		makensis -DVERSION=1.0a nsis-wwoo-libs.nsh 
+		makensis -DVERSION=1.0b nsis-wwoo-libs.nsh 
 		makensis -DVERSION=0.99-r$REVNO nsis-wwoo-main.nsh 
 		# make installers for extra modules
 		for EGG in wooExtra.*.egg; do
@@ -48,7 +48,7 @@ else
 	pushd $BINDIR
 		# work around msys expanding /D: http://forums.winamp.com/showthread.php?t=253732
 		# omg
-		echo "!define VERSION 1.0a" > defines.nsh
+		echo "!define VERSION 1.0b" > defines.nsh
 		"$MAKENSIS" defines.nsh nsis-wwoo-libs.nsh
 		echo "!define VERSION 0.99-r$REVNO" > defines.nsh
 		"$MAKENSIS" defines.nsh nsis-wwoo-main.nsh
