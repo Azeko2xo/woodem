@@ -121,18 +121,29 @@ def wooPrepareChunks():
 	# check hash
 	import hashlib; h=hashlib.new('sha1'); h.update(str(srcs))
 	# exactly the same configuration does not have to be repeated again
-	if not os.path.exists(join(pathSources,h.hexdigest())):
-		if os.path.exists(pathSources): shutil.rmtree(pathSources)
+	chunksSame=os.path.exists(join(pathSources,h.hexdigest()))
+	if not chunksSame and os.path.exists(pathSources):
+		shutil.rmtree(pathSources)
 		os.mkdir(pathSources)
 		open(join(pathSources,h.hexdigest()),'w')
-		#print srcs
-		for i,src in enumerate(srcs):
-			if len(src)==0: continue
-			ext=('c' if src[0].split('.')[-1]=='c' else 'cpp')
-			nameNoExt='' if len(src)>1 else '-'+basename(src[0][:-len(src[0].split('.')[-1])-1])
-			f=open(join(pathSources,('chunk-%02d%s.%s'%(i,nameNoExt,ext))),'w')
+	#print srcs
+	for i,src in enumerate(srcs):
+		if len(src)==0: continue
+		ext=('c' if src[0].split('.')[-1]=='c' else 'cpp')
+		nameNoExt='' if len(src)>1 else '-'+basename(src[0][:-len(src[0].split('.')[-1])-1])
+		chunkPath=join(pathSources,('chunk-%02d%s.%s'%(i,nameNoExt,ext)))
+		if not chunksSame:
+			f=open(chunkPath,'w')
 			for s in src:
 				f.write('#include"../%s"\n'%s) # build-src-tree
+		else:
+			# update timestamp to the newest include
+			if not os.path.exists(chunkPath): raise RuntimeError('Chunk configuration identical, but chunk %s not found; delete the build directory to recreate everything.'%chunkPath)
+			last=max([os.path.getmtime(s) for s in src])
+			#for s in src: print s,os.path.getmtime(s)
+			if last>os.path.getmtime(chunkPath):
+				print 'Updating timestamp of %s (%s -> %s)'%(chunkPath,os.path.getmtime(chunkPath),last+10)
+				os.utime(chunkPath,(last+10,last+10))
 def wooPrepareQt4():
 	'Generate Qt4 files (normally handled by scons); those are only neede with OpenGL'
 	global features
@@ -155,6 +166,8 @@ def wooPrepareQt4():
 		if not enabled: continue
 		for fIn,fOut in inOut:
 			cmd=tool+opts+[fIn,'-o',fOut]
+			# no need to recreate, since source is older
+			if os.path.exists(fOut) and os.path.getmtime(fIn)<os.path.getmtime(fOut): continue
 			print ' '.join(cmd)
 			status=subprocess.call(cmd)
 			if status: raise RuntimeError("Error %d returned when running %s"%(status,' '.join(cmd)))

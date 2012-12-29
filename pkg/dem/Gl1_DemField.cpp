@@ -26,6 +26,7 @@ bool Gl1_DemField::bound;
 int Gl1_DemField::shape;
 bool Gl1_DemField::shape2;
 bool Gl1_DemField::nodes;
+bool Gl1_DemField::deadNodes;
 //bool Gl1_DemField::trace;
 //bool Gl1_DemField::_hadTrace;
 int Gl1_DemField::cNode;
@@ -376,7 +377,7 @@ void Gl1_DemField::go(const shared_ptr<Field>& demField, GLViewInfo* _viewInfo){
 	if(shape!=SHAPE_NONE || shape2) doShape();
 	if(bound) doBound();
 	doNodes(dem->nodes);
-	if(!dem->deadNodes.empty()) doNodes(dem->deadNodes);
+	if(deadNodes && !dem->deadNodes.empty()) doNodes(dem->deadNodes);
 	doContactNodes();
 	if(cPhys) doCPhys();
 	updateRefPos=false;

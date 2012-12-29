@@ -70,6 +70,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 		((int,glyph,GLYPH_KEEP,AttrTrait<Attr::triggerPostLoad>().choice({{GLYPH_KEEP,"keep"},{GLYPH_NONE,"none"},{GLYPH_FORCE,"force"},{GLYPH_VEL,"velocity"}}),"Show glyphs on particles by setting :ref:`GlData` on their nodes."))
 		((shared_ptr<ScalarRange>,glyphRange,,AttrTrait<>().readonly(),"Range for glyph colors"))
 		((Real,glyphRelSz,.1,,"Maximum glyph size relative to scene radius"))
+		((bool,deadNodes,true,,"Show :obj:`DemField.deadNodes <woo.dem.DemField.deadNodes>`."))
 		((vector<shared_ptr<ScalarRange>>,glyphRanges,,AttrTrait<>().readonly().noGui(),"List of glyph ranges"))
 
 		// ((bool,id,false,,"Show particle id's"))

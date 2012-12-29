@@ -19,13 +19,23 @@ def Entrypoint(dist, group, name, scripts=None, pathex=None, **kw):
 		fp.close()
 	return Analysis(scripts=scripts+[script_path], pathex=pathex, **kw)
 	
+
+import woo.pre, pkgutil
+wooPreMods=[]
+for importer, modname, ispkg in pkgutil.iter_modules(woo.pre.__path__):
+	sys.stderr.write('ADDING PREPROCESSOR %s\n'%modname)
+	wooPreMods.append('woo.pre.'+modname)
+	
+
 main=Entrypoint(dist='woo',group='console_scripts',name='wwoo',
-	hiddenimports=['woo._cxxInternal'],
-	excludes='wooExtra',
+	hiddenimports=['woo._cxxInternal']+wooPreMods,
+	excludes=['wooExtra','Tkinter']
 )
 
 # hiddenimports already specified for main
-batch=Entrypoint(dist='woo',group='console_scripts',name='wwoo_batch')
+batch=Entrypoint(dist='woo',group='console_scripts',name='wwoo_batch',
+	excludes=['wooExtra','Tkinter']
+)
 
 pyz=PYZ(main.pure)
 

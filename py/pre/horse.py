@@ -14,7 +14,7 @@ class FallingHorse(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 	_attrTraits=[
 		_PAT(float,'radius',.002,unit='mm',doc='Radius of spheres (fill of the upper horse)'),
 		_PAT(float,'relGap',.25,doc='Gap between particles in pattern, relative to :obj:`radius`'),
-		_PAT(float,'halfThick',0.,unit='mm',doc='Half-thickness of the mesh.'),
+		_PAT(float,'halfThick',.002,unit='mm',doc='Half-thickness of the mesh.'),
 		_PAT(woo.dem.FrictMat,'mat',woo.dem.FrictMat(density=1e3,young=5e4,ktDivKn=.2,tanPhi=math.tan(.5)),'Material for falling particles'),
 		_PAT(woo.dem.FrictMat,'meshMat',None,'Material for the meshed horse; if not given, :obj:`mat` is used here as well.'),
 		_PAT(float,'damping',.2,'The value of :obj:`woo.dem.Leapfrog.damping`, for materials without internal damping'),
@@ -31,7 +31,7 @@ class FallingHorse(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		return prepareHorse(self)
 
 def prepareHorse(pre):
-	import sys
+	import sys, os
 	import woo.gts as gts # not sure whether this is necessary
 	import woo.pack, woo.utils, woo.core, woo
 	import pkg_resources
@@ -41,9 +41,8 @@ def prepareHorse(pre):
 	if not pre.meshMat: pre.meshMat=pre.mat.deepcopy()
 
 	# load the horse
-	sys.stderr.write('Loading GTS mesh... ')
-	surf=gts.read(pkg_resources.resource_stream('woo','resources/horse.coarse.gts'))
-	sys.stderr.write('done.\n')
+	f=open(pkg_resources.resource_filename('woo','resources/horse.coarse.gts'),'r')
+	surf=gts.read(f)
 	if not surf.is_closed(): raise RuntimeError('Horse surface not closed?!')
 	pred=woo.pack.inGtsSurface(surf)
 	aabb=pred.aabb()
@@ -57,7 +56,7 @@ def prepareHorse(pre):
 	surf.translate(0,0,-zSpan)
 	zMin=aabb[0][2]-(aabb[1][2]-aabb[0][2])
 	xMin,yMin,xMax,yMax=aabb[0][0]-zSpan,aabb[0][1]-zSpan,aabb[1][0]+zSpan,aabb[1][1]+zSpan
-	S.dem.par.append(woo.pack.gtsSurface2Facets(surf,wire=True,mat=pre.meshMat,halfThick=pre.halfThick))
+	S.dem.par.append(woo.pack.gtsSurface2Facets(surf,wire=False,mat=pre.meshMat,halfThick=pre.halfThick))
 	S.dem.par.append(woo.utils.wall(zMin,axis=2,sense=1,mat=pre.meshMat,glAB=((xMin,yMin),(xMax,yMax))))
 	S.dem.saveDeadNodes=True # for traces, if used
 	S.dem.collectNodes()
@@ -76,5 +75,10 @@ def prepareHorse(pre):
 	#woo.master.timingEnabled=True
 	S.dt=pre.pWaveSafety*woo.utils.pWaveDt(S)
 	S.pre=pre.deepcopy()
+	import woo.config
+	if 'opengl' in woo.config.features:
+		S.any=[
+			woo.gl.Gl1_DemField(shape=woo.gl.Gl1_DemField.shapeSpheres,colorBy=woo.gl.Gl1_DemField.colorVel,deadNodes=False)
+		]
 	return S
 
