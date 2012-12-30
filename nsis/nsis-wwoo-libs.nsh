@@ -40,7 +40,7 @@ LicenseData "licenses-libs.rtf"
 section "install"
 	setOutPath $INSTDIR
 	# don't install woo itself, and skip wooExtra's, if installed by accident
-	file /r /x wooExtra.* /x wwoo* /x woo.* /x *.nsh *
+	file /r /x wooExtra.* /x wwoo* /x woo.* /x resources /x *.nsh *
  
 	# Uninstaller - See function un.onInit and section "uninstall" for configuration
 	writeUninstaller "$INSTDIR\uninstall-${COMPONENT}.exe"
