@@ -795,6 +795,7 @@ void GLViewer::postDraw(){
 			int ht=int(range.length<0?abs((!range.landscape?height():width())*range.length):range.length); 
 
 			bool flipped=false;
+			// flip range if close to window edge
 			if(mov.pos.x()<10 || mov.pos.x()>width()-10-(range.landscape?ht:scaleWd)){ 
 				if(range.landscape){ flipped=true; range.landscape=false; }
 				if(mov.pos.x()<10) mov.pos.setX(10);
@@ -811,11 +812,11 @@ void GLViewer::postDraw(){
 			}
 			// 
 			// adjust if too long/short
-			if(range.length<0) CompUtils::clamp(range.length,-.8,-.1);
-			else CompUtils::clamp(range.length,(!range.landscape?height():width())*.1,(!range.landscape?height():width())*.8);
+			if(range.length<0) CompUtils::clamp(range.length,-.7,-.1);
+			else CompUtils::clamp(range.length,(!range.landscape?height():width())*.1,(!range.landscape?height():width())*.7);
 			// length in pixels (second value, after adjustments)
 			ht=int(range.length<0?abs((!range.landscape?height():width())*range.length):range.length); 
-			int yStep=ht/nDiv;
+			Real yStep=ht*1./nDiv;
 			// update dimensions of the grabber object
 			int y0, x;
 			if(!range.landscape){
@@ -835,16 +836,19 @@ void GLViewer::postDraw(){
 					glColor3v(CompUtils::mapColor((nDiv-j)*(1./nDiv),range.cmap));
 					if(!range.landscape) glVertex2f(x,y0+yStep*j);
 					else glVertex2f(y0+(ht-yStep*j),x);
+					//cerr<<"RG "<<i<<": lin "<<j<<": "<<(range.landscape?Vector2r(y0+(ht-yStep*j),x):Vector2r(x,y0+yStep*j))<<endl;
 				};
 			glEnd();
 			stopScreenCoordinatesSystem();
 			// show some numbers
 			int nNum=max(1,ht/pixDiv); // label every pixDiv approx, but at least start and end will be labeled
+			//cerr<<"RG "<<i<<": ht="<<ht<<" nNum="<<nNum<<" pixDiv="<<pixDiv<<" y0="<<y0<<endl;
 			for(int j=0; j<=nNum; j++){
 				// static void GLDrawText(const std::string& txt, const Vector3r& pos, const Vector3r& color=Vector3r(1,1,1), bool center=false, void* font=NULL, const Vector3r& bgColor=Vector3r(-1,-1,-1));
 				startScreenCoordinatesSystem();
-					Real yy=y0+((!range.landscape?nNum-j:j)*ht/nNum);
+					Real yy=y0+((!range.landscape?nNum-j:j)*ht*1./nNum);
 					Vector3r pos=!range.landscape?Vector3r(x,yy-6/*lower baseline*/,0):Vector3r(yy,x-5/*lower baseline*/,0);
+					//cerr<<"RG "<<i<<": num "<<j<<": "<<Vector2r(pos[0],pos[1])<<endl;
 					GLUtils::GLDrawText((boost::format("%.2g")%range.normInv(j*1./nNum)).str(),pos,/*color*/Vector3r::Ones(),/*center*/true,/*font*/(j>0&&j<nNum)?NULL:GLUT_BITMAP_9_BY_15,/*bgColor*/Vector3r::Zero(),/*shiftIfNeg*/false);
 				stopScreenCoordinatesSystem();
 			}

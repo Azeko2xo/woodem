@@ -58,7 +58,7 @@ struct ScalarRange: public Object{
 		((bool,autoAdjust,true,,"Automatically adjust range using given values."))
 		((bool,sym,false,,"Force maximum to be negative of minimum and vice versa (only with autoadjust)"))
 		((Vector2i,dispPos,Vector2i(-1000,-1000),AttrTrait<>().noGui(),"Where is this range displayed on the OpenGL canvas; initially out of range, will be reset automatically."))
-		((Real,length,-.5,AttrTrait<>().noGui(),"Length on the display; if negative, it is fractional relative to view width/height"))
+		((Real,length,200,AttrTrait<>().noGui(),"Length on the display; if negative, it is fractional relative to view width/height"))
 		((bool,landscape,false,AttrTrait<>().noGui(),"Make the range display with landscape orientation"))
 		((std::string,label,,,"Short name of this range."))
 		((int,cmap,-1,AttrTrait<>().colormapChoice(),"Colormap index to be used; -1 means to use the default colormap (see *woo.master.cmaps*, *woo.master.cmap*)"))
