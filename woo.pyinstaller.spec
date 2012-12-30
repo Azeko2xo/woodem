@@ -59,7 +59,7 @@ exeBatch=EXE(pyz,
 	
 import glob, sys
 # f[3:] strips leading py/ from filename
-resources=[(f[3:],f,'DATA') for f in glob.glob('py/resources/*')]
+resources=[(f[3:],f,'DATA') for f in glob.glob('py/data/*')]
 sys.stderr.write('RESOURCES: '+str(resources)+'\n')
 	
 import ctypes
