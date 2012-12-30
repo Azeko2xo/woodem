@@ -122,8 +122,8 @@ def wooPrepareChunks():
 	import hashlib; h=hashlib.new('sha1'); h.update(str(srcs))
 	# exactly the same configuration does not have to be repeated again
 	chunksSame=os.path.exists(join(pathSources,h.hexdigest()))
-	if not chunksSame and os.path.exists(pathSources):
-		shutil.rmtree(pathSources)
+	if not chunksSame and os.path.exists(pathSources): shutil.rmtree(pathSources)
+	if not os.path.exists(pathSources):
 		os.mkdir(pathSources)
 		open(join(pathSources,h.hexdigest()),'w')
 	#print srcs
@@ -346,7 +346,7 @@ tighter integration with python and user-friendliness.
 	
 	# unfortunately, package_data must be in the same directory as the module
 	# they belong to; therefore, they were moved to py/resources
-	package_data={'woo':['resources/*']},
+	package_data={'woo':['data/*']},
 	
 	py_modules=wooModules+['wooMain'],
 		ext_modules=[

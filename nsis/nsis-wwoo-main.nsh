@@ -47,7 +47,7 @@ LicenseData "gnu-gpl-v2.rtf"
  
 section "install"
 	setOutPath $INSTDIR
-	file /x *.egg /x *.nsh /x *-installer.exe wwoo* woo* resources\*
+	file /x *.egg /x *.nsh /x *-installer.exe wwoo* woo* data\*
 
 	${EnvVarUpdate} $0 "PATH" "P" "HKLM" "$\"$INSTDIR$\""
  
@@ -75,7 +75,7 @@ section "uninstall"
 	delete $INSTDIR\wwoo*.*
 	delete $INSTDIR\woo.*
 	delete $INSTDIR\uninstall-${COMPONENT}.exe
-	RMDir /R $INSTDIR\resources
+	RMDir /R $INSTDIR\data
 
 	# remove path again
 	${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$\"$INSTDIR$\""
