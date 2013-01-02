@@ -4,5 +4,5 @@ default:
 	rsvg -w 256 -f png --keep-aspect-ratio woodem-6.woo.svg woo-icon.256.png
 	rsvg -w 256 -f png --keep-aspect-ratio woodem-6.woo-batch.svg woo-batch-icon.256.png
 	# use 16-color palette for smaller size
-	convert -colors 16 woo-icon.256.png woo-icon.256.ico
-	convert -colors 16 woo-batch-icon.256.png woo-batch-icon.256.ico
+	convert -flatten -colors 16 woo-icon.256.png woo-icon.256.ico
+	convert -flatten -colors 16 woo-batch-icon.256.png woo-batch-icon.256.ico
