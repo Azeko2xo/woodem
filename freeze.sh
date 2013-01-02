@@ -1,16 +1,23 @@
 #!/bin/bash
 python /c/src/pyinstaller-develop/pyinstaller.py -y woo.pyinstaller.spec
-exit 0
 
-REVNO=`bzr revno . 2>/dev/null`
-ZIP7="/c/Program Files/7-Zip/7z.exe"
-# insane compression on 6 cores
-ZIP7FLAGS="-m0=lzma2 -mmt=6"
+
+exit 0
 set -e -x
 
 pushd nsis
 	bash nsis-runall.sh
 popd
+
+#
+# zipped (portable) libraries and executable
+# not really used since we have installers now
+#
+
+REVNO=`bzr revno . 2>/dev/null`
+ZIP7="/c/Program Files/7-Zip/7z.exe"
+# insane compression on 6 cores
+ZIP7FLAGS="-m0=lzma2 -mmt=6"
 
 pushd dist
 	DDIR=wwoo-win64 # frozen directory

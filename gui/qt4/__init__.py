@@ -189,6 +189,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.lastScene=None
 		self.traceCheckboxToggled(isOn=None) # detect on/off
 		self.movieActive=False
+		self.movieFileEdit.setText(woo.utils.fixWindowsPath(self.movieFileEdit.text())) # fix /tmp on windows
 		self.tracerActive=False
 		self.inspector=None
 		global controller

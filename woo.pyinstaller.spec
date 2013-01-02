@@ -43,6 +43,7 @@ exeMain=EXE(pyz,
 	main.scripts,
 	exclude_binaries=1,
 	name=os.path.join('build\\pyi.win32\\wwoo', 'wwoo.exe'),
+	icon='nsis/icons/woo-icon.256.ico',
 	debug=False,
 	strip=None,
 	upx=False,
@@ -52,6 +53,7 @@ exeBatch=EXE(pyz,
 	batch.scripts,
 	exclude_binaries=1,
 	name=os.path.join('build\\pyi.win32\\wwoo', 'wwoo_batch.exe'),
+	icon='nsis/icons/woo-batch-icon.256.ico',
 	debug=False,
 	strip=None,
 	upx=False,
@@ -61,6 +63,11 @@ import glob, sys
 # f[3:] strips leading py/ from filename
 resources=[(f[3:],f,'DATA') for f in glob.glob('py/data/*')]
 sys.stderr.write('RESOURCES: '+str(resources)+'\n')
+
+## external apps
+mencoder=r'c:\src\mplayer-svn-35712-2\mencoder.exe'
+if not os.path.exists(mencoder): raise RuntimeError("Unable to find MEncoder at "%mencoder)
+resources.append(('mencoder.exe',mencoder,'DATA'))
 	
 import ctypes
 bits=str(ctypes.sizeof(ctypes.c_voidp)*8)

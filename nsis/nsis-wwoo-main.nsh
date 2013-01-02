@@ -55,6 +55,10 @@ section "install"
 	setOutPath $INSTDIR
 
 	${EnvVarUpdate} $0 "PATH" "P" "HKLM" "$\"$INSTDIR$\""
+	
+	# Add start menu stuff
+	createDirectory "$SMPROGRAMS\Woo"
+	createShortCut "$SMPROGRAMS\Woo\woo.lnk" "$INSTDIR\wwoo.exe"
  
 	# Uninstaller - See function un.onInit and section "uninstall" for configuration
 	writeUninstaller "$INSTDIR\uninstall-${COMPONENT}.exe"
@@ -84,6 +88,10 @@ section "uninstall"
 
 	# remove path again
 	${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$\"$INSTDIR$\""
+	
+	# remove menu entries
+	Delete "$SMPROGRAMS\Woo\*.*"
+	RmDir "$SMPROGRAMS\Woo"
 
 	# Remove uninstaller information from the registry
 	DeleteRegKey HKLM "${ARP}"
