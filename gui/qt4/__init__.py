@@ -29,6 +29,7 @@ if 1:
 			# let's just pretend any exception means the display would not work
 			woo.runtime.hasDisplay=False
 			raise ImportError("Connecting to $DISPLAY failed, unable to activate the woo.qt4 interface.")
+			
 
 #import woo.runtime
 #if not woo.runtime.hasDisplay:

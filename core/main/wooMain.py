@@ -45,11 +45,13 @@ def makeColorFuncs(colors,dumbWinColors=False):
 	except ImportError:
 		return [lambda s: s]*len(colors)
 		
-## set ipython's directory in frozen setups
-## this should be really fixed upstream!
+## special setup for frozen configuration
 if hasattr(sys,'frozen'):
+	# set IPYTHON dir, if we are in read-only location
+	# reported at https://github.com/ipython/ipython/issues/2702
 	from os.path import expanduser
 	os.environ['IPYTHONDIR']=expanduser('~/.ipython')
+	
 
 def flavorFromArgv0(argv0,batch=False):
 	import re

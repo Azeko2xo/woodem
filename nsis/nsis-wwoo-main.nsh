@@ -54,7 +54,9 @@ section "install"
 
 	setOutPath $INSTDIR
 
-	${EnvVarUpdate} $0 "PATH" "P" "HKLM" "$\"$INSTDIR$\""
+	# $\ is escape sequence, don't add quotation marks, they should not be in %PATH%
+	# http://nsis.sourceforge.net/Add_uninstall_information_to_Add/Remove_Programs#Required_values
+	${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR"
 	
 	# Add start menu stuff
 	createDirectory "$SMPROGRAMS\Woo"
@@ -87,7 +89,7 @@ section "uninstall"
 	RMDir /R $INSTDIR\data
 
 	# remove path again
-	${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$\"$INSTDIR$\""
+	${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR"
 	
 	# remove menu entries
 	Delete "$SMPROGRAMS\Woo\*.*"
