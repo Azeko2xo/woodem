@@ -47,7 +47,7 @@ section "install"
 		MessageBox MB_OKCANCEL|MB_ICONINFORMATION "Older version of ${COMPONENT} exists and will be deleted first." /SD IDOK IDOK delInstalled
 			Abort
 		delInstalled:
-			delete $INSTDIR\${COMPONENT}-*.egg
+			delete $INSTDIR\eggs\${COMPONENT}-*.egg
 	doInstall:
 	setOutPath $INSTDIR\eggs
 	File ${COMPONENT}-*.egg

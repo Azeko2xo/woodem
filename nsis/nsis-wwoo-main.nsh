@@ -58,10 +58,7 @@ section "install"
 	# http://nsis.sourceforge.net/Add_uninstall_information_to_Add/Remove_Programs#Required_values
 	${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR"
 	
-	# Add start menu stuff
-	createDirectory "$SMPROGRAMS\Woo"
-	createShortCut "$SMPROGRAMS\Woo\woo.lnk" "$INSTDIR\wwoo.exe"
- 
+	
 	# Uninstaller - See function un.onInit and section "uninstall" for configuration
 	writeUninstaller "$INSTDIR\uninstall-${COMPONENT}.exe"
  
@@ -69,6 +66,13 @@ section "install"
 	WriteRegStr HKLM "${ARP}" "DisplayName" "${APPNAME}-${COMPONENT} - ${DESCRIPTION}"
 	WriteRegStr HKLM "${ARP}" "UninstallString" "$\"$INSTDIR\uninstall-${COMPONENT}.exe$\""
 	WriteRegStr HKLM "${ARP}" "QuietUninstallString" "$\"$INSTDIR\uninstall-${COMPONENT}.exe$\" /S"
+	
+	# Add start menu stuff
+	# Working directory of the executable is set via setOutPath
+	# see http://nsis.sourceforge.net/Docs/Chapter4.html#4.9.3.4
+	setOutPath "%TEMP%"
+	createDirectory "$SMPROGRAMS\Woo"
+	createShortCut "$SMPROGRAMS\Woo\woo.lnk" "$INSTDIR\wwoo.exe"
 sectionEnd
  
 # Uninstaller
