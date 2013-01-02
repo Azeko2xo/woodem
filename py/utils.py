@@ -407,9 +407,13 @@ def makeVideo(frameSpec,out,renameNotOverwrite=True,fps=24,kbps=6000,bps=None):
 		while(os.path.exists(out+"~%d"%i)): i+=1
 		os.rename(out,out+"~%d"%i); print "Output file `%s' already existed, old file renamed to `%s'"%(out,out+"~%d"%i)
 	if isinstance(frameSpec,list) or isinstance(frameSpec,tuple): frameSpec=','.join(frameSpec)
+
 	devNull='nul' if (sys.platform=='win32') else '/dev/null'
+	# mencoder normally creates divx2pass.log in the current dir, which might fail
+	# use temp file instead, explicitly
+	passLogFile=woo.master.tmpFilename()+'.log'
 	for passNo in (1,2):
-		cmd=['mencoder','mf://%s'%frameSpec,'-mf','fps=%d'%int(fps),'-ovc','lavc','-lavcopts','vbitrate=%d:vpass=%d:threads=%d:%s'%(int(kbps),passNo,woo.master.numThreads,'turbo' if passNo==1 else ''),'-o',(devNull if passNo==1 else out)]
+		cmd=['mencoder','mf://%s'%frameSpec,'-mf','fps=%d'%int(fps),'-ovc','lavc','-lavcopts','vbitrate=%d:vpass=%d:threads=%d:%s'%(int(kbps),passNo,woo.master.numThreads,'turbo' if passNo==1 else ''),'-passlogfile',passLogFile,'-o',(devNull if passNo==1 else out)]
 		print 'Pass %d:'%passNo,' '.join(cmd)
 		ret=subprocess.call(cmd)
 		if ret!=0: raise RuntimeError("Error when running mencoder.")

@@ -6,3 +6,4 @@ default:
 	# use 16-color palette for smaller size
 	convert -flatten -colors 16 woo-icon.256.png woo-icon.256.ico
 	convert -flatten -colors 16 woo-batch-icon.256.png woo-batch-icon.256.ico
+	cp woodem-6.woodem.svg ../../gui/qt4/woodem-logo.svg

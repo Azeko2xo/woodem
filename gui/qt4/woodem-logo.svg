@@ -1,18 +1,18 @@
 <?xml version="1.0"?>
-<!-- Created by MetaPost 1.504 on 2012.05.28:1921 -->
+<!-- Created by MetaPost 1.504 on 2013.01.02:1954 -->
 <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="839.0545" height="538.5809" viewBox="0 0 839.0545 538.5809">
 <!-- Original BoundingBox: -419.52725 -269.29045 419.52725 269.29045 -->
   <g transform="matrix(0.5,0.86603,-0.86603,0.5,0,0)">
-    <path d="M154.37708 72.76257L301.66992 157.8019C342.34344 181.28471,394.35245 167.34888,417.83525 126.67534C439.12372 89.80254,443.99619 43.58485,411.2561 24.6824L411.2561 24.6824" style="stroke:rgb(0%,0%,0%); stroke-width: 28.34824;stroke-linecap: round;stroke-linejoin: round;stroke-miterlimit: 10;fill: none;"></path>
+    <path d="M154.37708 72.76257L301.66992 157.8019C342.34344 181.28471,394.35245 167.34888,417.83525 126.67534C437.66676 92.32607,440.12411 48.90538,411.2561 24.6824" style="stroke:rgb(0%,0%,0%); stroke-width: 28.34824;stroke-linecap: round;stroke-linejoin: round;stroke-miterlimit: 10;fill: none;"></path>
   </g>
   <g transform="matrix(0.5,0.86603,-0.86603,0.5,0,0)">
-    <path d="M411.2561 24.6824L484.90297 67.20233C518.79767 86.7714,562.13861 75.15817,581.70767 41.26347C599.13579 11.07701,606.63855 -26.17163,580.31715 -41.36826L617.1406 -20.10829" style="stroke:rgb(0%,0%,0%); stroke-width: 28.34824;stroke-linecap: round;stroke-linejoin: round;stroke-miterlimit: 10;fill: none;"></path>
+    <path d="M411.2561 24.6824L484.90297 67.20233C518.79767 86.7714,562.13861 75.15817,581.70767 41.26347C597.92706 13.1706,603.5006 -21.91518,580.31715 -41.36826" style="stroke:rgb(0%,0%,0%); stroke-width: 28.34824;stroke-linecap: round;stroke-linejoin: round;stroke-miterlimit: 10;fill: none;"></path>
   </g>
   <g transform="matrix(-0.5,-0.86603,0.86603,-0.5,0,0)">
-    <path d="M-731.5725 530.11476L-584.27965 615.15408C-543.60611 638.63689,-491.59712 624.70105,-468.1143 584.02751C-446.82584 547.15471,-441.95337 500.93703,-474.69347 482.03459L-474.69347 482.03459" style="stroke:rgb(0%,0%,0%); stroke-width: 28.34824;stroke-linecap: round;stroke-linejoin: round;stroke-miterlimit: 10;fill: none;"></path>
+    <path d="M-731.5725 530.11476L-584.27965 615.15408C-543.60611 638.63689,-491.59712 624.70105,-468.1143 584.02751C-448.2828 549.67825,-445.82544 506.25757,-474.69347 482.03459" style="stroke:rgb(0%,0%,0%); stroke-width: 28.34824;stroke-linecap: round;stroke-linejoin: round;stroke-miterlimit: 10;fill: none;"></path>
   </g>
   <g transform="matrix(-0.5,-0.86603,0.86603,-0.5,0,0)">
-    <path d="M-474.69347 482.03459L-401.04659 524.5545C-367.15189 544.12357,-323.81094 532.51035,-304.24188 498.61566C-286.81377 468.42918,-279.311 431.18053,-305.63242 415.9839L-268.80898 437.24387" style="stroke:rgb(0%,0%,0%); stroke-width: 28.34824;stroke-linecap: round;stroke-linejoin: round;stroke-miterlimit: 10;fill: none;"></path>
+    <path d="M-474.69347 482.03459L-401.04659 524.5545C-367.15189 544.12357,-323.81094 532.51035,-304.24188 498.61566C-288.02249 470.52277,-282.44897 435.43698,-305.63242 415.9839" style="stroke:rgb(0%,0%,0%); stroke-width: 28.34824;stroke-linecap: round;stroke-linejoin: round;stroke-miterlimit: 10;fill: none;"></path>
   </g>
   <g transform="matrix(0.5,0.86603,-0.86603,0.5,0,0)">
     <path d="M344.27116 -171.09999C318.22751 -186.13626,287.27963 -190.20755,258.23393 -182.42473C229.18823 -174.64192,204.42227 -155.64209,189.386 -129.59843C174.34975 -103.55478,170.27844 -72.6069,178.06126 -43.5612C185.84407 -14.5155,204.8439 10.25044,230.88756 25.28671C256.93121 40.32298,287.87909 44.39427,316.92479 36.61145C345.97049 28.82864,370.73645 9.82881,385.77272 -16.21483C400.80899 -42.25848,404.88028 -73.20636,397.09746 -102.25206C389.31465 -131.29776,370.31482 -156.06372,344.27116 -171.09999Z" style="stroke:rgb(0%,0%,0%); stroke-width: 28.34824;stroke-linecap: round;stroke-linejoin: round;stroke-miterlimit: 10;fill: none;"></path>
