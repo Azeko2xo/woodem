@@ -210,7 +210,7 @@ def main(sysArgv=None):
 	import woo
 	# other parts we will need soon
 	import woo.config
-	sys.stderr.write(green('Welcome to Woo '+woo.config.prettyVersion()+'%s%s\n'%(' (debug build)' if woo.config.debug else '',(', flavor '+woo.config.flavor if woo.config.flavor else ''))))
+	sys.stderr.write(green('Welcome to Woo '+woo.config.prettyVersion()+'%s%s'%(' (debug build)' if woo.config.debug else '',(', flavor '+woo.config.flavor if woo.config.flavor else '')))+'\n')
 	import woo.log
 	import woo.system
 	import woo.runtime
@@ -360,7 +360,9 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 			if woo.runtime.opts.exitAfter: woo.master.scene.wait()
 	if woo.runtime.opts.commands:
 		exec(woo.runtime.opts.commands) in globals()
-	if woo.runtime.opts.exitAfter: sys.exit(0)
+	if woo.runtime.opts.exitAfter:
+		sys.stdout.write('Woo: normal exit.\n') # fake normal exit (so that batch looks fine if we crash at shutdown)
+		sys.exit(0)
 	# common ipython configuration
 	banner='[[ ^L clears screen, ^U kills line. '+', '.join(['F12 controller']+(['F11 3d view','F10 both'] if 'opengl' in woo.config.features else [])+(['F9 generator'] if (qt4) else [])+['F8 plot'])+'. ]]'
 	ipconfig=dict( # ipython options, see e.g. http://www.cv.nrao.edu/~rreid/casa/tips/ipy_user_conf.py
@@ -431,7 +433,6 @@ def batch(sysArgv=None):
 		print sys.argv
 		raise RuntimeError(r'Batch executable "%s"does not match ".*[_-]batch(-script\.py)?"'%sys.argv[0])
 	executable=match.group(1)
-	print executable
 	#re.sub('-batch(|.bat|.py)?$','\\1',sys.argv[0])
 	
 	
@@ -503,11 +504,11 @@ finished: %s
 			try: return self.xmlrpcConn.basicInfo()
 			except: print 'Error getting simulation information via XMLRPC'
 		def updatePlots(self):
-			#global opts
 			if self.status!='RUNNING': return
 			if not self.ensureXmlrpc(): return
-			if time.time()-self.plotsLastUpdate<opts.plotTimeout: return
-			self.plotsLastUpdate=time.time()
+			if time.time()-self.plotsLastUpdate<opts.plotTimeout:
+				#sys.stderr.write('[%g-%g=%g<%g]'%(time.time(),self.plotsLastUpdate,time.time()-self.plotsLastUpdate,opts.plotTimeout))
+				return
 			img=None
 			try: img=self.xmlrpcConn.plot()
 			except: print 'Error getting plot via XMLRPC'
@@ -517,6 +518,8 @@ finished: %s
 			f=open(self.plotsFile,'wb')
 			f.write(img.data)
 			f.close()
+			#sys.stderr.write('[Plot updated!]')
+			self.plotsLastUpdate=time.time()
 			# print woo.remote.plotImgFormat,'(%d bytes) written to %s'%(os.path.getsize(self.plotsFile),self.plotsFile)
 	
 		def htmlStats(self):
@@ -566,7 +569,9 @@ finished: %s
 		return max(tt1)-min(tt0)
 	
 	def globalHtmlStats():
-		t0=min([0]+[j.started for j in jobs if j.started!=None])
+		tt0=[j.started for j in jobs if j.started!=None]
+		if len(tt0)>0: t0=min(tt0)
+		else: t0=time.time()
 		unfinished=len([j for j in jobs if j.status!='DONE'])
 		nUsedCores=sum([j.nCores for j in jobs if j.status=='RUNNING'])
 		# global maxJobs
@@ -598,8 +603,8 @@ finished: %s
 			else:
 				if self.path=='/favicon.ico':
 					if not self.__class__.favicon:
-						import base64
-						self.__class__.favicon=base64.b64decode(woo.remote.b64favicon)
+						import pkg_resources
+						self.__class__.favicon=open(pkg_resources.resource_filename('woo','data/woo-favicon.ico'),'rb').read()
 					self.sendHttp(self.__class__.favicon,contentType='image/vnd.microsoft.icon')
 					return
 				elif self.path=='/log' and opts.globalLog:
@@ -706,12 +711,11 @@ finished: %s
 		
 		if WIN: job.exitStatus=subprocess.call(job.winBatch,shell=False)
 		else: job.exitStatus=os.system(job.command)
-		#job.exitStatus=0
-		print '   #%d system exit status %d'%(job.num,job.exitStatus)
 		if job.exitStatus!=0:
 			try:  # fake normal exit, if crashing at the very end
 				if len([l for l in open(job.log) if l.startswith('Woo: normal exit.')])>0: job.exitStatus=0
 			except: pass
+		if job.exitStatus!=0: print '   #%d system exit status %d'%(job.num,job.exitStatus)
 		job.status='DONE'
 		job.finished=time.time()
 		dt=job.finished-job.started;
@@ -951,7 +955,9 @@ finished: %s
 		# update plots periodically regardless of whether they are requested via HTTP
 		def updateAllPlots():
 			time.sleep(opts.plotAlwaysUpdateTime)
-			for job in jobs: job.updatePlots()
+			for job in jobs:
+				# sys.stderr('Update plots for job %s'%str(job))
+				job.updatePlots()
 		thread.start_new_thread(updateAllPlots,())
 	
 	# OK, go now
