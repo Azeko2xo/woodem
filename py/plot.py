@@ -618,7 +618,7 @@ def createTitleFrame(out,size,title):
 
 
 def Scene_plot_plot(P,noShow=False,subPlots=True):
-	"""Do the actual plot, which is either shown on screen (and nothing is returned: if *noShow* is ``False``) or, if *noShow* is ``True``, returned as matplotlib's Figure object or list of them.
+	"""Do the actual plot, which is either shown on screen (and nothing is returned: if *noShow* is ``False``) or, if *noShow* is ``True``, returned list of matplotlib's Figure objects.
 	
 	You can use 
 	
@@ -633,7 +633,6 @@ def Scene_plot_plot(P,noShow=False,subPlots=True):
 		
 	to save the figure to file automatically.
 
-	.. note:: For backwards compatibility reasons, *noShow* option will return list of figures for multiple figures but a single figure (rather than list with 1 element) if there is only 1 figure.
 	"""
 	createPlots(P,subPlots=subPlots)
 	figs=set([l.line.get_axes().get_figure() for l in P.currLineRefs])
@@ -666,8 +665,7 @@ def Scene_plot_plot(P,noShow=False,subPlots=True):
 						f.canvas.mpl_connect('close_event',closeFigureCallback)
 	else:
 		figs=list(set([l.line.get_axes().get_figure() for l in P.currLineRefs]))
-		if len(figs)==1: return figs[0]
-		else: return figs
+		return figs
 
 def Scene_plot_saveDataTxt(P,fileName,vars=None):
 	"""Save plot data into a (optionally compressed) text file. The first line contains a comment (starting with ``#``) giving variable name for each of the columns. This format is suitable for being loaded for further processing (outside woo) with ``numpy.genfromtxt`` function, which recognizes those variable names (creating numpy array with named entries) and handles decompression transparently.

@@ -38,4 +38,12 @@ Let us summarize important parameters for everyday use:
 ``--results``
 	Results from each simulation are written incrementally to an `SQLite <http://www.sqlite.org>`_ file. This file, by default, named same as the batch table, but with the ``.results`` extension, but it can be changed.
 
-.. todo:: show 
+
+Batch example
+==============
+
+Let us use the :obj:`woo.pre.horse.FallingHorse` preprocessor as the basis for our example; suppose we want to study the influence of the :obj:`pWaveSafety <woo.pre.horse.FallingHorse.pWaveSafety>` parameter, which will vary between 0.1 to 0.9. This example is shown in `examples/horse-batch <http://bazaar.launchpad.net/~eudoxos/woo/trunk/files/head:/examples/gts-horse/>`_ in the source distribution.
+
+As exaplained above, we need one file with preprocessor and one file describing how to vary preprocessor parameters.
+
+Preprocessor can be saved from the :ref:`user interface <preprocessor_gui>` as text, but any loadable format is acceptable. Text file is the easiest to be modified by hand.

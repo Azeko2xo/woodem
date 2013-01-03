@@ -301,22 +301,13 @@ system.setExitHandlers()
 # fake miniEigen being in woo itself
 from minieigen import *
 
-import _monkey # adds methods to c++ classes
+# monkey-patches
+import _monkey
+
 import _units 
-unit=_units.unit
+unit=_units.unit # allow woo.unit['mm']
 # hint fo pyinstaller to freeze this module
 from . import pyderived
-
-# out-of-class docstrings for some classes
-try: import _extraDocs
-except AttributeError:
-	print 'WARN: Error importing py/_extraDocs.py'
-	traceback.print_exc()
-# attribute aliases
-try: import _aliases
-except AttributeError:
-	print 'WARN: Error importing py/_aliases.py'
-	traceback.print_exc()
 
 # recursive import of everything under wooExtra
 try:

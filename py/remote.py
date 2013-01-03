@@ -34,7 +34,7 @@ class InfoProvider:
 			from woo import plot
 			S=woo.master.scene
 			if len(S.plot.plots)==0: return None
-			fig=S.plot.plot(subPlots=True,noShow=True)
+			fig=S.plot.plot(subPlots=True,noShow=True)[0]
 			img=woo.master.tmpFilename()+'.'+plotImgFormat
 			sqrtFigs=math.sqrt(len(S.plot.plots))
 			fig.set_size_inches(5*sqrtFigs,7*sqrtFigs)

@@ -9,10 +9,10 @@ try:
 	dem.Particle.mat=dem.Particle.material
 	core.Scene.dem=property(lambda s: dem.DemField.sceneGetField(s))
 	core.Scene.hasDem=property(lambda s: dem.DemField.sceneHasField(s))
-	def Master_dem(o): raise ValueError("Master.dem is no longer supported, use Scene.dem instead")
-	def Master_hasDem(o): raise ValueError("Master.hasDem is no longer supported, use Scene.hasDem instead")
-	core.Master.dem=property(Master_dem)
-	core.Master.hasdem=property(Master_hasDem)
+	def _Master_dem(o): raise ValueError("Master.dem is no longer supported, use Scene.dem instead")
+	def _Master_hasDem(o): raise ValueError("Master.hasDem is no longer supported, use Scene.hasDem instead")
+	core.Master.dem=property(_Master_dem)
+	core.Master.hasdem=property(_Master_hasDem)
 	# DemData defines those methods, which are used for transparent access to respective data field
 	core.Node.dem=property(dem.DemData._getDataOnNode,dem.DemData._setDataOnNode)
 except ImportError:

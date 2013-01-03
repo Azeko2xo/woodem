@@ -106,6 +106,8 @@ Note that blue object/attribute labels are active (that works generally, for any
 Display of each particle's :obj:`shape <woo.dem.Shape>` is dispatched to :obj:`Gl1_* <woo.gl.GlShapeFunctor>` objects (e.g. :obj:`woo.gl.Gl1_Sphere`, :obj:`woo.gl.Gl1_Facet`, …), which control shape-specific options, such as display quality.
 
 
+.. _preprocessor_gui:
+
 Preprocessor
 ------------
 

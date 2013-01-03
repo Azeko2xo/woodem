@@ -1,0 +1,4 @@
+##woo-expression##
+# use the default preprocessor
+#: import woo.pre.horse
+woo.pre.horse.FallingHorse()

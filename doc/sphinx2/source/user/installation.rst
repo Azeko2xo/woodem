@@ -55,14 +55,16 @@ Windows
 
 Running woo under Windows is supported, but with some limitations:
 
-#. Only 64bit systems are supported (at the moment).
+#. Only 64bit systems are supported.
 #. Compilation from source under Windows is not supported; since there is poor standardization for Windows development, the compilation process is tailored for a single insllation of development tools.
 #. The computation is about 15% slower under Windows; the cause is − probably − less efficient locking provided by the OS, and perhaps also less agressive optimization, since the compiler has to optimize for the lowest common instruction set.
 
 Binaries can be downloaded from `Launchpad download page <https://launchpad.net/woo/+download>`_, as follows:
 
-#. Download and run ``Woo-libs-*.installer.exe`` with the highest version number.
-#. Download and run ``Woo-main-*.installer.exe``. It must be installed into the same directory as libs (this is checked at install-time)
-#. Download and run installers for any custom modules you may have.
+#. Download and run ``Woo-libs-*-installer.exe`` with the highest version number.
+#. Download and run ``Woo-main-*-installer.exe``. It must be installed into the same directory as libs (this is checked at install-time)
+#. Download and run any installers for custom modules you may have (``Woo-wooExtra.*-installer.exe``)
 
-The installer installs the code system-wide, supports unattended installation via the `/S` switch, and the uninstaller should remove all files. There are some glitches, but we're working on improving that. Install path of Woo is added to the ``PATH`` environment variable, so the command ``wwoo`` is understood wherever you are in the filesystem.
+The installer installs the code system-wide, supports unattended installation via the `/S` switch, and the uninstaller should remove all files. Uninstaller for ``Woo-libs`` must be run after all other components have been uninstalled. Installation directory of Woo is added to the ``PATH`` environment variable, so the command ``wwoo`` is understood wherever you are in the filesystem.
+
+An icon is added to the start menu under ``Woo/woo``.
