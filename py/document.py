@@ -54,7 +54,7 @@ def _ensureInitialized():
 	allWooMods=set([sys.modules[m] for m in sys.modules if m.startswith('woo') and sys.modules[m] and sys.modules[m].__name__==m])
 	
 
-def allWooPackages(outDir='/tmp'):
+def allWooPackages(outDir='/tmp',skip='^(woo|wooExtra(|\..*))$'):
 	'''Generate documentation of packages in the Restructured Text format. Each package is written to file called *out*/.`woo.[package].rst` and list of files created is returned.'''
 
 	global cxxClasses,allWooMods
@@ -69,8 +69,9 @@ def allWooPackages(outDir='/tmp'):
 	print 'MODULES DOCUMENTED ELSEWHERE',[m.__name__ for m in modsElsewhere]
 
 	for mod in toplevMods:
+		if re.match(skip,mod.__name__): continue
 		outFile=outDir+'/%s.rst'%(mod.__name__)
-		print 'WRITING',outFile
+		print 'WRITING',outFile,mod.__name__
 		rsts.append(outFile)
 		out=codecs.open(outFile,'w','utf-8')
 		oneModuleWithSubmodules(mod,out)

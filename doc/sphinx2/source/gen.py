@@ -8,7 +8,10 @@ with open(wooMods,'w') as f:
 	f.write('Woo modules\n######################\n\n')
 	f.write('.. toctree::\n\n')
 	for o in sorted(rsts):
-		if re.match('(^|.*/)wooExtra(\..*)?$',o): continue
+		print 'USING',o
+		if re.match('(^|.*/)wooExtra(\..*)?$',o):
+			print '[SKIPPED]'
+			continue
 		f.write('    %s\n'%o)
 import sys
 import sphinx
@@ -42,6 +45,7 @@ master_doc = u'index'
 templates_path=['../../source/_templates'] 
 html_static_path=['../../source/_static']
 intersphinx_mapping={{'woo':('http://www.woodem.eu/doc',None)}}
+extensions=[e for e in extensions if e!='sphinx.ext.viewcode'] # don't show code in extras, stragely wooExtra.* is included, not just the one particular extra module
 		""".format(
 			version=pkg_resources.get_distribution(mName).version,
 			mName=mName,

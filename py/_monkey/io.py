@@ -1,4 +1,5 @@
 # encoding: utf-8
+'''Define IO routines for arbitrary objects.'''
 # various monkey-patches for wrapped c++ classes
 import woo.core
 import woo.system
@@ -76,6 +77,7 @@ def Object_dump(obj,out,format='auto',overwrite=True,fragment=False,width=80,noM
 			if not fragment: out.write('</body>')
 		
 class SerializerToHtmlTableGenshi:
+	'Dump given object to HTML table, using the `Genshi <http://genshi.edgewall.org>`_ templating engine; the produced serialization is XHTML-compliant. Do not use this class directly, say ``object.dump(format="html")`` instead.'
 	padding=dict(cellpadding='2px')
 	splitStrSeq=1
 	splitIntSeq=5
@@ -174,6 +176,11 @@ SerializerToHtmlTable=SerializerToHtmlTableGenshi
 
 
 class SerializerToExpr:
+	'''
+	Represent given object as python expression.
+	Do not use this class directly, say ``object.dump(format="expr")`` instead.
+	'''
+	
 	unbreakableTypes=(Vector2i,Vector2,Vector3i,Vector3)
 	def __init__(self,indent='\t',maxWd=120,noMagic=True):
 		self.indent=indent
@@ -214,6 +221,10 @@ class SerializerToExpr:
 
 # roughly following http://www.doughellmann.com/PyMOTW/json/, thanks!
 class WooJSONEncoder(json.JSONEncoder):
+	'''
+	Represent given object as JSON object.
+	Do not use this class directly, say ``object.dump(format="json")`` instead.
+	'''
 	def __init__(self,indent=3,sort_keys=True,oneway=False):
 		'oneway: allow serialization of objects which won\'t be properly deserialized. They are: numpy.ndarray.'
 		json.JSONEncoder.__init__(self,sort_keys=sort_keys,indent=indent)
@@ -245,6 +256,10 @@ class WooJSONEncoder(json.JSONEncoder):
 			return super(WooJSONEncoder,self).default(obj)
 
 class WooJSONDecoder(json.JSONDecoder):
+	'''
+	Reconstruct JSON object, possibly containing specially-denoted Woo object (:obj:`WooJSONEncoder`).
+	Do not use this class directly, say ``object.loads(format="json")`` instead.
+	'''
 	def __init__(self):
 		json.JSONDecoder.__init__(self,object_hook=self.dictToObject)
 	def dictToObject(self,d):
@@ -265,6 +280,9 @@ woo.core.WooJSONEncoder=WooJSONEncoder
 woo.core.WooJSONDecoder=WooJSONDecoder
 
 def wooExprEval(e):
+	'''
+	Evaluate expression created with :obj:`SerializerToExpr`. Comments starting with ``#:`` are executed as python code, which is in particular useful for importing necessary modules.
+	'''
 	import woo,math,textwrap
 	# exec all lines starting with #: as a piece of code
 	exec (textwrap.dedent('\n'.join([l[2:] for l in e.split('\n') if l.startswith('#:')])))

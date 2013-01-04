@@ -627,7 +627,7 @@ def Scene_plot_plot(P,noShow=False,subPlots=True):
 		>>> S.plot.plots={'foo':('bar',)}
 		>>> S.plot.addData(foo=1,bar=2)
 		>>> somePdf=woo.master.tmpFilename()+'.pdf'
-		>>> S.plot.plot(noShow=True).savefig(somePdf)
+		>>> S.plot.plot(noShow=True)[0].savefig(somePdf)
 		>>> os.path.exists(somePdf)
 		True
 		

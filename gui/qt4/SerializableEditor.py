@@ -634,11 +634,14 @@ class SerQLabel(QLabel):
 		cb.setText(self.path,mode=QClipboard.Selection) # X11 global selection buffer
 		event.accept()
 
+def _unicodeUnit(u): return (u if isinstance(u,unicode) else unicode(u,'utf-8'))
+
 class SerializableEditor(QFrame):
 	"Class displaying and modifying serializable attributes of a woo object."
 	import collections
 	import logging
 	# each attribute has one entry associated with itself
+
 
 	class EntryData:
 		def __init__(self,name,T,doc,groupNo,trait,containingClass,editor):
@@ -666,14 +669,14 @@ class SerializableEditor(QFrame):
 				else:
 					w.multiplier=self.trait.altUnits[0][ix-1][1]
 					# print 20*'!',self.trait.name,self.editor
-					w.multiplierChanged(u'%s × %g = %s'%(self.trait.altUnits[0][ix-1][0].decode('utf-8') if ix>0 else '',w.multiplier,self.trait.unit[0].decode('utf-8')))
+					w.multiplierChanged(u'%s × %g = %s'%(_unicodeUnit(self.trait.altUnits[0][ix-1][0]) if ix>0 else '',w.multiplier,_unicodeUnit(self.trait.unit[0])))
 			else: # multiplier is a tuple applied to each column separately
 				mult,msg=[],[]
 				for i in range(len(self.trait.unit)):
 					if self.trait.altUnits[i]: # not empty, there is a combo box
 						ix=c.itemAt(i).widget().currentIndex() if not forceBaseUnit else 0
 						mult.append(None if ix==0 else self.trait.altUnits[i][ix-1][1])
-						if mult[-1]!=None: msg.append(u'%s × %g = %s'%(self.trait.altUnits[i][ix-1][0].decode('utf-8') if ix>0 else '-',mult[-1],self.trait.unit[i].decode('utf-8')))
+						if mult[-1]!=None: msg.append(u'%s × %g = %s'%(_unicodeUnit(self.trait.altUnits[i][ix-1][0]) if ix>0 else '-',mult[-1],_unicodeUnit(self.trait.unit[i])))
 						else: msg.append('')
 				w=self.widgets['value']
 				w.multiplier=tuple(mult)
@@ -1031,9 +1034,9 @@ class SerializableEditor(QFrame):
 					if alt: # there are alternative units, we give choice therefore
 						unitChoice=True
 						w=QComboBox(self)
-						w.addItem(unit.decode('utf-8'))
+						w.addItem(_unicodeUnit(unit))
 						w.activated.connect(entry.unitChanged)
-						for u,mult in alt: w.addItem(u.decode('utf-8'))
+						for u,mult in alt: w.addItem(_unicodeUnit(u))
 						# set preferred unit right away; when units are not shown, always use SI, however
 						if unit!=pref[0]:
 							# this is checked in c++, should never fail
@@ -1041,7 +1044,7 @@ class SerializableEditor(QFrame):
 							ii=[i for i in range(len(alt)) if alt[i][0]==pref[0]][0]
 							w.setCurrentIndex(ii+1)
 					else:
-						w=QLabel(unit.decode('utf-8'),self)
+						w=QLabel(_unicodeUnit(unit),self)
 					unitLay.addWidget(w)
 				if unitChoice: entry.unitChanged() # postpone calling this at the very end
 				entry.widgets['unit'].setVisible(self.showUnits)

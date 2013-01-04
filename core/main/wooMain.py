@@ -24,6 +24,7 @@ class WooOptions(object):
 		else: raise AttributeError('No such attribute: '+name)
 
 options=WooOptions()
+'Hold load-time options for the compiled part of Woo. Usually modified by command-line switches, but can be used directly if Woo is imported from "pure" Python.'
 
 def makeColorFuncs(colors,dumbWinColors=False):
 	try:
@@ -66,8 +67,7 @@ def flavorFromArgv0(argv0,batch=False):
 
 
 def main(sysArgv=None):
-	'''Function called by the woo executable.
-	*sysArgv* (if specified) replaces sys.argv; sys.argv is used for option processing.
+	'''Entry point for the woo executable. *sysArgv* (if specified) replaces sys.argv, which is used for option processing.
 	'''
 	import sys,os,os.path,time,re
 	if sysArgv: sys.argv=sysArgv
@@ -415,6 +415,8 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 
 
 def batch(sysArgv=None):
+	'''Entry point for the woo-batch executable. *sysArgv* (if specified) replaces sys.argv, which is used for option processing.
+	'''
 	import os, sys, thread, time, logging, pipes, socket, xmlrpclib, re, shutil, random, os.path
 	if sysArgv: sys.argv=sysArgv
 	

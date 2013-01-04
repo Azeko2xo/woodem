@@ -1,3 +1,5 @@
+'''Define various convenience attributes, such as ``Node.dem`` for accessing DEM data of a node (equivalent to ``node->getData<DemData>()`` in c++).'''
+
 from woo import core
 from woo.core import Master
 core.Field.nod=core.Field.nodes

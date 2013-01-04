@@ -1,10 +1,8 @@
-. Woo documentation master file, created by
-   sphinx-quickstart on Sat Jun 16 15:52:22 2012.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 Welcome to Woo's documentation!
 ===============================
+
+* Code available at http://www.launchpad.net/woo
+* Contact us at `woodem@doxos.eu <mailto:woodem@doxos.eu>`_
 
 Contents:
 
@@ -13,9 +11,6 @@ Contents:
 
    user/user.rst
    wooMods.rst
-   externalMods.rst
-
-
 
 Indices and tables
 ==================

@@ -1,4 +1,6 @@
 #encoding: utf-8
+'Support subclassing c++ objects in python, with some limitations. Useful primarily for pure-python preprocessors.'
+
 from woo.core import *
 from minieigen import *
 
@@ -71,9 +73,14 @@ class PyAttrTrait:
 		#
 		import woo._units
 		baseUnit=woo._units.baseUnit
+		def _unicodeUnit(u):
+			if isinstance(u,unicode): return u
+			elif isinstance(u,str): return unicode(u,'utf-8')
+			elif isinstance(u,tuple): return (_unicodeUnit(u[0]),u[1])
+			raise ValueError(u"Unknown unit type %sfor %s"%(str(type(u)),u))
 		if isinstance(unit,str) or isinstance(unit,unicode):
-			unit=[unit]
-			if altUnits: altUnits=[altUnits]
+			unit=[_unicodeUnit(unit)]
+			if altUnits: altUnits=[[_unicodeUnit(a) for a in altUnits]]
 		if not unit:
 			self.unit=None
 			self.multiUnit=False
@@ -86,7 +93,7 @@ class PyAttrTrait:
 			self.prefUnit=[]
 			for u in unit:
 				# print self.name,u
-				if u not in baseUnit: raise ValueError('Unknown unit %s; admissible values are: '%u+', '.join(baseUnit.keys()))
+				if u not in baseUnit: raise ValueError(u'Unknown unit %s; admissible values are: '%u+', '.join(baseUnit.keys()))
 				base=baseUnit[u]
 				self.unit.append(base)
 				self.prefUnit.append((u,1./woo.unit[u]))

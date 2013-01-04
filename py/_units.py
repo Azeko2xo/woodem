@@ -1,15 +1,25 @@
-unit={}
-baseUnit={}
+'''Woo is internally unit-agnostic (using `SI units <http://en.wikipedia.org/wiki/Si_units>`_ is highly recommended). This module defines conversion multipliers for various units; values of multipliers are taken from c++ sources.
 
-def makeUnitsDicts():
+The :obj:`unit` map is exposed as ``woo.unit``, so that expressions like ``16*woo.unit['deg']`` can be used in python.
+'''
+
+unit={}
+'Map units to their respective multipliers'
+
+baseUnit={}
+'Map units to their base units (with unit multiplier)'
+
+def _makeUnitsDicts():
 	def addUnitMultiplier(name,mult):
 		global unit
+		name=unicode(name,'utf-8')
 		if name in unit:
 			if unit[name]==mult: return
 			raise ValueError('Inconsistent multipliers for unit "%s": %g, %g'%(name,unit[name],mult))
 		else: unit[name]=mult
 	def addUnitBase(name,base):
 		global baseUnit
+		name,base=unicode(name,'utf-8'),unicode(base,'utf-8')
 		if name in baseUnit:
 			if baseUnit[name]==base: return
 			raise ValueError('Inconsistent base units for unit "%s": %s, %s'%(name,baseUnit[name],base))
@@ -27,4 +37,4 @@ def makeUnitsDicts():
 				addUnitBase(u,u) #base unit maps to itself
 				for a in t.altUnits[i]: addUnitBase(a[0],u)
 
-makeUnitsDicts()
+_makeUnitsDicts()

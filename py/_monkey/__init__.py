@@ -1,6 +1,8 @@
 '''
-Extend various c++ objects by defining python methods on them.
-This module is imported automatically by woo and should not be used directly
+Extend various (python/c++) objects by new methods/properties on them, or modify existing ones.
+This approach is called `monkey patching <http://en.wikipedia.org/wiki/Monkey_patching>`_, whence the module name.
+
+This module is imported automatically by Woo at startup and should not be used directly.
 '''
 from . import io
 from . import gts

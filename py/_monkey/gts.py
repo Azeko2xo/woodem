@@ -1,4 +1,6 @@
-# reimplement the gts.read function in python, since it is stragenly broken under windows
+'''
+This module reimplements the gts.read function in python, since it is stragenly broken under windows, and replaces the original one by monkey-patching.
+'''
 
 
 def py_gts_read(f):

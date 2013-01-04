@@ -1,6 +1,6 @@
 gen:
 	rm -rf sphinx2/build/html sphinx2/build/doctrees sphinx2/build-extra
-	rm -f sphinx2/source/woo.*.rst
+	rm -f sphinx2/source/{woo,wooExtra,wooMain}.*.rst
 	cd sphinx2/source; PYTHONPATH=. woo -x -R gen.py
 	# python -c 'import webbrowser; webbrowser.open("file://${PWD}/sphinx2/build/html/index.html")'
 upload:
