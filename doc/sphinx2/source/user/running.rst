@@ -17,7 +17,7 @@ Woo is primarily a computation program, with only optional graphical user-interf
 Options important for everyday use are the following ones:
 
 ``-j THREADS``
-    Number of CPU cores to use for computation. Woo is parallelized using `OpenMP <http://www.openmp.org>`_, and by default runs on one core. Depending on hardware and the nature of simulation, reasonable value is usually around `-j4`. Woo must have been compiled with the ``openmp`` feature for this option to have effect.
+    Number of CPU cores to use for computation. Woo is parallelized using `OpenMP <http://www.openmp.org>`_, and runs on 4 cores by default (or less, if the machine has less than 4). Depending on hardware and the nature of simulation, reasonable value is usually around `-j4`. Woo must have been compiled with the ``openmp`` feature for this option to have any effect.
 ``-e``
 	Evaluate given expression (should yield a :obj:`Scene <woo.core.Scene>` or a :obj:`Preprocessor <woo.core.Preprocessor>`)
 ``-n``

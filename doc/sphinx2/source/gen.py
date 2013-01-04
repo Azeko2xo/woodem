@@ -1,13 +1,15 @@
 import woo.document
 # import all modules here
 from woo import utils,log,timing,pack,document,manpage,plot,post2d,runtime,ymport,WeightedAverage2d
-import minieigen
+import minieigen,re
 rsts=woo.document.allWooPackages('.')
 wooMods='wooMods.rst'
 with open(wooMods,'w') as f:
 	f.write('Woo modules\n######################\n\n')
 	f.write('.. toctree::\n\n')
-	for o in sorted(rsts): f.write('    %s\n'%o)
+	for o in sorted(rsts):
+		if re.match('(^|.*/)wooExtra(\..*)?$',o): continue
+		f.write('    %s\n'%o)
 import sys
 import sphinx
 sphinx.main(['','-P','-b','html','-d','../build/doctrees','../source','../build/html'])
