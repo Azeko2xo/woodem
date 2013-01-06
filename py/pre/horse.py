@@ -37,11 +37,11 @@ def prepareHorse(pre):
 	import woo.pack, woo.utils, woo.core, woo
 	import pkg_resources
 	S=woo.core.Scene(fields=[DemField()])
+	for a in ['reportFmt']: setattr(pre,a,woo.utils.fixWindowsPath(getattr(pre,a)))
 	S.pre=pre.deepcopy() # so that our manipulation does not affect input fields
 	S.dem.gravity=pre.gravity
 	if not pre.meshMat: pre.meshMat=pre.mat.deepcopy()
-	for a in ['reportFmt']: setattr(pre,a,woo.utils.fixWindowsPath(getattr(pre,a)))
-
+	
 
 	# load the horse
 	# FIXME: pyinstaller should support pkg_resources on package which is frozen as well :|
