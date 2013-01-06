@@ -99,6 +99,12 @@ Note that blue object/attribute labels are active (that works generally, for any
 * mid-click will copy *path* to that object to the clipboard (if it is available), which can be then used in python.
 * each attribute has tooltip showing full documentation for that attribute; just hover over the label.
 
+.. image:: fig/object-editor-tooltip.*
+
+For the object, attributes can be displayed either as variable names, or as their documentation, units can be enabled/disabled, and per-attribute checkboxes can be added for easy input-checking (when all values must be set):
+
+.. image:: fig/object-editor-context-menu.*
+
 :obj:`Renderer <woo.gl.Renderer>` configures global view properties -- initial orientation, displacement scaling, lighting, clipping, and which general items are displayed.
 
 :obj:`Gl1_DemField <woo.dem.Gl1_DemField>` (shown on the image) is reponsible for displaying contents of DEM simulations (:obj:`woo.dem.DemField`) -- particles, contacts between particles and so on. For instance, particles corresponding to the :obj:`shape <woo.gl.Gl1_DemField.shape>` attribute are colored using the method specified with :obj:`colorBy <woo.gl.Gl1_DemField.colorBy>`. Other particles (not matching :obj:`shape <woo.gl.Gl1_DemField.shape>`, or not able to be colored using :obj:`colorBy <woo.gl.Gl1_DemField.colorBy>`, e.g. non-spherical particle by radius) are colored using :obj:`colorBy2 <woo.gl.Gl1_DemField.colorBy2>`.

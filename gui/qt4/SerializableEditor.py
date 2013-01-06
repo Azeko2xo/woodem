@@ -132,7 +132,7 @@ class AttrEditor():
 		self.hot=hot
 		if hot: self.setStyleSheet('QWidget { background: red }')
 		else: self.setStyleSheet('QWidget { background: none }')
-	def sizeHint(self): return QSize(150,12)
+	def sizeHint(self): return QSize(100,12)
 	def trySetter(self,val):
 		try: self.setter(val)
 		except AttributeError: self.setEnabled(False)
@@ -620,7 +620,7 @@ class SerQLabel(QLabel):
 		self.setTextToolTip(label,tooltip,elide=elide)
 		self.linkActivated.connect(woo.qt.openUrl)
 	def setTextToolTip(self,label,tooltip,elide=False):
-		if elide: label=self.fontMetrics().elidedText(label,Qt.ElideRight,2*self.width())
+		if elide: label=self.fontMetrics().elidedText(label,Qt.ElideRight,1.5*self.width())
 		self.setText(label)
 		if tooltip or self.path: self.setToolTip(('<b>'+self.path+'</b><br>' if self.path else '')+(tooltip if tooltip else ''))
 		else: self.setToolTip(None)
@@ -730,6 +730,7 @@ class SerializableEditor(QFrame):
 		"Construct window, *ser* is the object we want to show."
 		QtGui.QFrame.__init__(self,parent)
 		self.ser=ser
+		self.setSizePolicy(QSizePolicy.Preferred,QSizePolicy.Expanding)
 		#where do widgets go in the grid
 		self.gridCols={'check':0,'label':1,'value':2,'unit':3}
 		# set path or use label, if active (allows 'label' attributes which don't imply automatic python variables of that name)
@@ -1111,12 +1112,13 @@ class SerializableEditor(QFrame):
 		# close all groups except the first one			
 		for g in self.entryGroups[1:]: g.toggleExpander()
 		lay.setColumnMinimumWidth(self.gridCols['label'],maxLabelWd)
+		lay.setSpacing(0)
 		lay.addWidget(QFrame(self),lay.rowCount(),0,1,-1) # expander at the very end
 		lay.setRowStretch(lay.rowCount()-1,10000)
 		lay.setColumnStretch(self.gridCols['check'],-1)
 		lay.setColumnStretch(self.gridCols['label'],2)
 		lay.setColumnStretch(self.gridCols['value'],8)
-		lay.setColumnStretch(self.gridCols['unit'],0)
+		lay.setColumnStretch(self.gridCols['unit'],-1)
 		self.refreshEvent()
 	def refreshEvent(self):
 		for e in self.entries:

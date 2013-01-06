@@ -183,6 +183,7 @@ class ControllerClass(QWidget,Ui_Controller):
 			self.addRenderers()
 		self.genIndexLoad=-1
 		self.genIndexCurr=-1
+		self.genChecks,self.genVars=False,False
 		self.refreshPreprocessors()
 		self.fillAboutData()
 		self.generatorComboSlot(None)
@@ -305,7 +306,10 @@ class ControllerClass(QWidget,Ui_Controller):
 			if self.genIndexLoad>=0: self.generatorCombo.setItemText(self.genIndexLoad,'load')
 			self.generator=(self.preprocessorObjects[ix]() if ix<len(self.preprocessorObjects) else None)
 		if self.generator:
-			se=SerializableEditor(self.generator,parent=self.generatorArea,showType=True,labelIsVar=False,showChecks=True,showUnits=True,objManip=True) # TODO
+			# keep var/check settings
+			w=self.generatorArea.widget()
+			if w and isinstance(w,SerializableEditor): self.genVars,self.genChecks=w.labelIsVar,w.showChecks
+			se=SerializableEditor(self.generator,parent=self.generatorArea,showType=True,labelIsVar=self.genVars,showChecks=self.genChecks,showUnits=True,objManip=True) # TODO
 			self.generatorArea.setWidget(se)
 	def genSaveParamsSlot(self):
 		if 0:

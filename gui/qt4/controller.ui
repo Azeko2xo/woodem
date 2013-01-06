@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>452</width>
+    <width>408</width>
     <height>512</height>
    </rect>
   </property>
@@ -39,7 +39,7 @@
       </sizepolicy>
      </property>
      <property name="currentIndex">
-      <number>5</number>
+      <number>4</number>
      </property>
      <widget class="QWidget" name="tabGridLayout">
       <attribute name="title">
@@ -552,7 +552,7 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>446</width>
+            <width>402</width>
             <height>450</height>
            </rect>
           </property>
@@ -840,7 +840,7 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>446</width>
+            <width>402</width>
             <height>448</height>
            </rect>
           </property>
@@ -886,8 +886,8 @@
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>444</width>
-              <height>414</height>
+              <width>400</width>
+              <height>416</height>
              </rect>
             </property>
            </widget>
@@ -994,7 +994,7 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>446</width>
+            <width>402</width>
             <height>477</height>
            </rect>
           </property>

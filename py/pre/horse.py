@@ -12,15 +12,15 @@ class FallingHorse(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 	_classTraits=None
 	_PAT=woo.pyderived.PyAttrTrait # less typing
 	_attrTraits=[
-		_PAT(float,'radius',.002,unit='mm',doc='Radius of spheres (fill of the upper horse)'),
+		_PAT(float,'radius',.002,unit='mm',startGroup='General',doc='Radius of spheres (fill of the upper horse)'),
 		_PAT(float,'relGap',.25,doc='Gap between particles in pattern, relative to :obj:`radius`'),
 		_PAT(float,'halfThick',.002,unit='mm',doc='Half-thickness of the mesh.'),
-		_PAT(woo.dem.FrictMat,'mat',woo.dem.FrictMat(density=1e3,young=5e4,ktDivKn=.2,tanPhi=math.tan(.5)),'Material for falling particles'),
-		_PAT(woo.dem.FrictMat,'meshMat',None,'Material for the meshed horse; if not given, :obj:`mat` is used here as well.'),
 		_PAT(float,'relEkStop',.02,'Stop when kinetic energy drops below this fraction of gravity work (and step number is greater than 100)'),
 		_PAT(float,'damping',.2,'The value of :obj:`woo.dem.Leapfrog.damping`, for materials without internal damping'),
 		_PAT(Vector3,'gravity',(0,0,-9.81),'Gravity acceleration vector'),
 		_PAT(str,'pattern','hexa',choice=['hexa','ortho'],doc='Pattern to use when filling the volume with spheres'),
+		_PAT(woo.dem.FrictMat,'mat',woo.dem.FrictMat(density=1e3,young=5e4,ktDivKn=.2,tanPhi=math.tan(.5)),startGroup='Material',doc='Material for particles'),
+		_PAT(woo.dem.FrictMat,'meshMat',None,'Material for the meshed horse; if not given, :obj:`mat` is used here as well.'),
 		_PAT(float,'pWaveSafety',.7,startGroup='Tunables',doc='Safety factor for :obj:`woo.utils.pWaveDt` estimation.'),
 		_PAT(str,'reportFmt',"/tmp/{tid}.xhtml",startGroup="Outputs",doc="Report output format; :obj:`Scene.tags <woo.core.Scene.tags>` can be used."),
 	]
