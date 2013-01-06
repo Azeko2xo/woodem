@@ -10,3 +10,4 @@ default:
 	convert -flatten -colors 16 woo-batch-icon.256.png woo-batch-icon.256.ico
 	cp woodem-6.woodem.svg ../../gui/qt4/woodem-logo.svg
 	cp woo-icon.64.ico ../../py/data/woo-favicon.ico
+	cp woo-icon.64.ico ../../doc/sphinx2/source/_static/woo-favicon.ico
