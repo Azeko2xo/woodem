@@ -66,6 +66,8 @@ section "install"
 	WriteRegStr HKLM "${ARP}" "DisplayName" "${APPNAME}-${COMPONENT} - ${DESCRIPTION}"
 	WriteRegStr HKLM "${ARP}" "UninstallString" "$\"$INSTDIR\uninstall-${COMPONENT}.exe$\""
 	WriteRegStr HKLM "${ARP}" "QuietUninstallString" "$\"$INSTDIR\uninstall-${COMPONENT}.exe$\" /S"
+	# see http://www.neowin.net/forum/topic/1055744-windows-7-disable-x-application-has-stopped-working-dialog/
+	WriteRegDWord HKLM "SOFTWARE\Microsoft\Windows\Windows Error Reporting" "DontShowUI" 1
 	
 	# Add start menu stuff
 	# Working directory of the executable is set via setOutPath
