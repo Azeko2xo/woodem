@@ -54,7 +54,7 @@ void Engine::runPy(const string& command){
 			local["engine"]=py::object(py::ptr(this));
 			local["field"]=py::object(field);
 			local["woo"]=py::import("woo");
-			local["wooExtra"]=py::import("wooExtra");
+			// local["wooExtra"]=py::import("wooExtra"); // FIXME: not always importable
 			py::exec(command.c_str(),global,local);
 		} catch (py::error_already_set& e){
 			throw std::runtime_error("PyRunner exception in '"+command+"':\n"+parsePythonException_gilLocked());
