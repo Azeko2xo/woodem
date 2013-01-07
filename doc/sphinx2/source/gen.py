@@ -1,21 +1,20 @@
 import woo.document
 # import all modules here
 from woo import utils,log,timing,pack,document,manpage,plot,post2d,runtime,ymport,WeightedAverage2d
-import minieigen,re
-rsts=woo.document.allWooPackages('.')
-wooMods='wooMods.rst'
-with open(wooMods,'w') as f:
-	f.write('Woo modules\n######################\n\n')
-	f.write('.. toctree::\n\n')
-	for o in sorted(rsts):
-		print 'USING',o
-		if re.match('(^|.*/)wooExtra(\..*)?$',o):
-			print '[SKIPPED]'
-			continue
-		f.write('    %s\n'%o)
-import sys
-import sphinx
-sphinx.main(['','-P','-b','html','-d','../build/doctrees','../source','../build/html'])
+import minieigen,re,sys,sphinx
+if not '--only-extras' in sys.argv:
+	rsts=woo.document.allWooPackages('.')
+	wooMods='wooMods.rst'
+	with open(wooMods,'w') as f:
+		f.write('Woo modules\n######################\n\n')
+		f.write('.. toctree::\n\n')
+		for o in sorted(rsts):
+			print 'USING',o
+			if re.match('(^|.*/)wooExtra(\..*)?$',o):
+				print '[SKIPPED]'
+				continue
+			f.write('    %s\n'%o)
+	sphinx.main(['','-P','-b','html','-d','../build/doctrees','../source','../build/html'])
 
 #
 # document extra modules, in separate trees
@@ -29,11 +28,16 @@ for mName in [m for m in sys.modules if m.startswith('wooExtra.') and len(m.spli
 	outName=srcDir+'/index.rst'
 	print 'WRITING OUTPUT FOR %s TO %s'%(mName,outName)
 	with open(outName,'w') as f:
+		f.write('.. note:: This page is not `documentation of Woo itself <http://www.woodem.eu/doc>`_, only of an extra module.\n\n')
 		f.write('%s module\n################################\n\n'%mName)
 		woo.document.oneModuleWithSubmodules(mod,f)
 	# copy config over
 	confName=srcDir+'/conf.py'
 	shutil.copyfile('conf.py',confName) 
+	## copy package resources to the source directory
+	for R in ('resources','data'): # future-proof :)
+		resDir=pkg_resources.resource_filename(mName,R)
+		if os.path.exists(resDir) and not os.path.exists(srcDir+'/'+R): os.symlink(resDir,srcDir+'/'+R)
 	# HACK: change some values in the config
 	with open(confName,'a') as conf:
 		conf.write("""

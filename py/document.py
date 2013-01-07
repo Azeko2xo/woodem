@@ -83,8 +83,13 @@ def oneModuleWithSubmodules(mod,out,exclude=None,level=0):
 	_ensureInitialized()
 	if exclude==None: exclude=set() # avoid referenced empty set to be modified
 	if level>=0: out.write('Module %s\n%s\n\n'%(mod.__name__,(20+len(mod.__name__))*('=-^"'[level])))
-	out.write('.. inheritance-diagram:: %s\n\n'%mod.__name__)
 	out.write('.. module:: %s\n\n'%mod.__name__)
+	# HACK: we wan't module's docstring to appear at the top, but autodocumented stuff at the bottom
+	# dump __doc__ straight to the output here, and reset it, so that automodule does not pick it up
+	if mod.__doc__:
+		out.write(mod.__doc__+'\n\n')
+		mod.__doc__=None
+	out.write('.. inheritance-diagram:: %s\n\n'%mod.__name__)
 	klasses=[c for c in cxxClasses if (c.__module__==mod.__name__ or (hasattr(mod,'_docInlineModules') and sys.modules[c.__module__] in mod._docInlineModules))]
 	klasses.sort(key=lambda x: x.__name__)
 	# document any c++ classes in a special way

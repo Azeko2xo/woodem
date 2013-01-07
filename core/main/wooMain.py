@@ -28,6 +28,12 @@ options=WooOptions()
 
 def makeColorFuncs(colors,dumbWinColors=False):
 	try:
+		import sys
+		# this was a (failed) attempt to fix ipython_console in sphinx
+		# since I though it was being broken by colorama
+		if sys.getdefaultencoding()=='utf-8' and False : 
+			sys.stderr.write(100*'@'+'NOTE: Not importing colorama, since we are probably generating documentation (sys.getdefaultencoding()=="utf-8")\n')
+			raise ImportError
 		import colorama
 		# work around http://code.google.com/p/colorama/issues/detail?id=16
 		# not under Windows, or under Windows in dumb "terminal" (cmd.exe), where autodetection works

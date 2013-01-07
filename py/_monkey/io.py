@@ -141,10 +141,11 @@ class SerializerToHtmlTableGenshi:
 				# !! make deepcopy so that the original object is not modified !!
 				import copy
 				attr=copy.deepcopy(attr)
+				def _unicodeUnit(u): return u if isinstance(u,unicode) else u.decode('utf-8')
 				if not trait.multiUnit: # the easier case
 					if not trait.prefUnit: unit=u'−'
 					else:
-						unit=trait.prefUnit[0][0].decode('utf-8')
+						unit=_unicodeUnit(trait.prefUnit[0][0])
 						# create new list, where entries are multiplied by the multiplier
 						if type(attr)==list: attr=[a*trait.prefUnit[0][1] for a in attr]
 						else: attr=attr*trait.prefUnit[0][1]
@@ -155,7 +156,7 @@ class SerializerToHtmlTableGenshi:
 					for i in range(len(attr)):
 						attr[i]=[attr[i][j]*trait.prefUnit[j][1] for j in range(len(attr[i]))]
 					for pu in trait.prefUnit:
-						unit.append(pu[0].decode('utf-8'))
+						unit.append(_unicodeUnit(pu[0]))
 					if not wasList: attr=attr[0]
 					unit=', '.join(unit)
 				# sequence type, or something similar				

@@ -9,18 +9,18 @@ The algorithms operate on particles (default) or contacts, depending on the ``co
 of post2d.data.
 
 Flatteners
-==========
+----------
 Instance of classes that convert 3d (model) coordinates to 2d (plot) coordinates. Their interface is
 defined by the :ref:`woo.post2d.Flatten` class (``__call__``, ``planar``, ``normal``).
 
 Extractors
-==========
+----------
 Callable objects returning scalar or vector value, given a body/interaction object.
 If a 3d vector is returned, Flattener.planar is called, which should return only in-plane
 components of the vector.
 
 Example
-=======
+-------
 This example can be found in examples/concrete/uniax-post.py ::
 
  from woo import post2d

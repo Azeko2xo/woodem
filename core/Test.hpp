@@ -14,6 +14,7 @@ namespace woo{
 			_UNIT_ATTR(angle)
 			_UNIT_ATTR(time)
 			_UNIT_ATTR(len)
+			((Real,length_with_inches,0.,AttrTrait<>().lenUnit().altUnits({{"in",1/0.0254}}),"Variable with length, but also showing inches in the UI"))
 			_UNIT_ATTR(area)
 			_UNIT_ATTR(vol)
 			_UNIT_ATTR(vel)

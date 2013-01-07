@@ -8,4 +8,5 @@ User's manual
 	installation.rst
 	running.rst
 	batch.rst
+	postprocess.rst
 	yade-diff.rst

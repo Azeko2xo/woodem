@@ -37,13 +37,14 @@ Woo takes an additional argument (existing file) coming after options. It can be
 #. Saved simulation (in any :ref:`supported format <serializationFormats>`), which will be loaded and run by Woo.
 #. Preprocessor, which will be run to create a new simulation, which will be run by Woo.
 
-Once Woo starts, it shows an embedded command-prompt based on `IPython <http://www.ipython.org>`_. It can be used as general-purpose python console and to inspect and modify simulations.
+Once Woo starts, it shows an embedded command-prompt based on `IPython <http://www.ipython.org>`_. It can be used as general-purpose python console and to inspect and modify simulations:
 
-.. ipython::
+.. image:: fig/woo-terminal.png
 
-    Woo [1]: 1+1
-
-	 Woo [1]: woo.master.scene.dt
+..
+	.. ipython::
+	    Woo [1]: 1+1
+		 Woo [1]: woo.master.scene.dt
 
 
 To get started with scripting Woo, you should get familiar with Python, for instance using `Python tutorial <http://docs.python.org/2/tutorial/>`_.
@@ -52,13 +53,13 @@ To get started with scripting Woo, you should get familiar with Python, for inst
 Import as python module
 ========================
 
-Woo can be used in python scripts. You only have to say ``import woo`` and everything should just work. Parameters which cannot be changed once ``woo`` is imported can be set via the ``wooOptions`` module:
+Woo can be used in python scripts. You only have to say ``import woo`` and everything should just work. Parameters which cannot be changed once ``woo`` is imported can be set via the :obj:`wooMain.options` object:
 
 .. code-block:: python
 
-    import wooOptions
-    wooOptions.ompThreads=4
-    wooOptions.debug=True
+    import wooMain
+    wooMain.options.ompThreads=4
+    wooMain.options.debug=True
     import woo    # initializes OpenMP to 4 threads, and uses the debug build of woo
 
 Graphical interface
@@ -86,31 +87,74 @@ D. Display controls (toggle)
 	* Inspector
 E. Area for simulation-specific controls, if defined (:obj:`woo.core.Scene.uiBuild`)
 
+The interface can display structured objects -- for example, unde :menuselection:`Controller --> Display` we see something like this:
 
-Display
---------
+.. image:: fig/controller-display.png
 
-The *Display* tab configures the 3D display. Woo dispatches OpenGL display of all objects to objects (always called ``Gl1_*``) responsible for actual drawing, which is also how this dialogue is organized.
+Blue object/attribute labels are always *active*:
 
-.. image:: fig/controller-display.*
-
-Note that blue object/attribute labels are active (that works generally, for any object displayed in the user interface):
-* left-click opens online documentation for that particular class/attribute.
-* mid-click will copy *path* to that object to the clipboard (if it is available), which can be then used in python.
+* *left-click* opens online documentation for that particular class/attribute.
+* *middle-click* will copy *path* to that object to the clipboard, which can be then pasted into python.
 * each attribute has tooltip showing full documentation for that attribute; just hover over the label.
 
-.. image:: fig/object-editor-tooltip.*
+.. image:: fig/object-editor-tooltip.png
 
 For the object, attributes can be displayed either as variable names, or as their documentation, units can be enabled/disabled, and per-attribute checkboxes can be added for easy input-checking (when all values must be set):
 
-.. image:: fig/object-editor-context-menu.*
+.. image:: fig/object-editor-context-menu.png
+
+3d rendering
+------------
+
+3d view
+^^^^^^^^
+
+The 3d windows is opened by clicking the "3D" button in the **D** part of the controller.
+
+.. image:: fig/controller-3d.png
+
+It is navigated with mouse similar to other 3d software:
+
+* *left drag* rotates
+* *right drag* moves
+* *middle drag* (wheel) zooms
+* *double left-click* sets view angle to the closes multiple of 45°
+* :kbd:`Alt` + *left-click* selects object (and shows distance to previous selection)
+
+Many keyboard shortcuts are defined of which the most important ones are:
+
+* :kbd:`h` shows help;
+* :kbd:`t` toggles perspective/orthographic camera;
+* :kbd:`c` centers the view around whole scene;
+* :kbd:`Alt-c` centers the view intelligently around that part of the scene where most particles are;
+* :kbd:`a` toggles display of axes;
+* :kbd:`g` displays axes grids (cycles between all possible combinations);
+* :kbd:`x`, :kbd:`X`, :kbd:`y`, :kbd:`Y`, :kbd:`z`, :kbd:`Z`: make selected axes point upwars and align the other two, i.e. show respectively the ``zx``, ``yx``, ``xy``, ``zy``, ``yz``, ``xz`` plane;
+* :kbd:`s` toggles displacement/rotations scaling (see :ref:`woo.gl.Renderer.scaleOn`);
+* :kbd:`d` selects which time information is displayed;
+* :kbd:`Ctrl-c` copies the view to clipboard, as raster image (can be pasted to documents/graphics editors).
+
+Colorscales can be manipulated using mouse:
+
+* *wheel* changes size
+* *right-draw* moves, and toggles portrait/landscape when touching the edge
+* *left-click* resets the range an sets to auto-adjust
+
+A movie from the 3d view can be made by checking the :menuselection:`Controller -> Video --> Take snapshots` first, and, when sufficient number of snapshots will have been save, clicking :menuselection:`Controller --> Video --> Make video`.
+
+Display control
+^^^^^^^^^^^^^^^^^
+
+The *Display* tab of the controller configures the 3D display. Woo dispatches OpenGL display of all objects to objects (always called ``Gl1_*``) responsible for actual drawing, which is also how this dialogue is organized.
+
+.. image:: fig/controller-display.png
+
 
 :obj:`Renderer <woo.gl.Renderer>` configures global view properties -- initial orientation, displacement scaling, lighting, clipping, and which general items are displayed.
 
 :obj:`Gl1_DemField <woo.dem.Gl1_DemField>` (shown on the image) is reponsible for displaying contents of DEM simulations (:obj:`woo.dem.DemField`) -- particles, contacts between particles and so on. For instance, particles corresponding to the :obj:`shape <woo.gl.Gl1_DemField.shape>` attribute are colored using the method specified with :obj:`colorBy <woo.gl.Gl1_DemField.colorBy>`. Other particles (not matching :obj:`shape <woo.gl.Gl1_DemField.shape>`, or not able to be colored using :obj:`colorBy <woo.gl.Gl1_DemField.colorBy>`, e.g. non-spherical particle by radius) are colored using :obj:`colorBy2 <woo.gl.Gl1_DemField.colorBy2>`.
 
 Display of each particle's :obj:`shape <woo.dem.Shape>` is dispatched to :obj:`Gl1_* <woo.gl.GlShapeFunctor>` objects (e.g. :obj:`woo.gl.Gl1_Sphere`, :obj:`woo.gl.Gl1_Facet`, …), which control shape-specific options, such as display quality.
-
 
 .. _preprocessor_gui:
 
@@ -123,28 +167,24 @@ Preprocessors can be set and run from the *Preprocess* tab, which can be opened 
 
 In the top selection, all available preprocessors are listed. Preprocessor can be modified, loaded and saved. Once you have set all parameters, the *play* button bottom right will create new simulation and switch to the *Simulation* tab automatically.
 
-Unit specifications are only representation. Technically is Woo unit-agnostic, practically, `SI units <http://en.wikipedia.org/wiki/Si_units>`_ are used everywhere.
+Unit specifications are only representation. Technically is Woo unit-agnostic, practically, `SI units <http://en.wikipedia.org/wiki/Si_units>`_ are used everywhere. See :obj:`woo._units` for details.
 
-.. todo:: Link to unit documentation.
+The preprocessor can be saved for later use; it is saved, by default, as python expression. which is human-readable and easily editable::
 
-
-The preprocessor can be saved for later use (it is saved, by default, as python expression)::
-
-    ##woo-expression##
-    #: import woo.pre.triax,woo.dem
-    woo.pre.triax.TriaxTest(
-    	isoStress=-10000.0,
-    	maxStrainRate=0.001,
-    	nPar=2000,
-    	mat=woo.dem.FrictMat(density=100000000.0, id=-1, young=100000.0, tanPhi=0.0, ktDivKn=0.2),
-    	tanPhi2=0.6,
-    	psd=[(0.001, 0.0), (0.002, 0.2), (0.004, 1.0)],
-    	reportFmt='/tmp/{tid}.xhtml',
-    	packCacheDir='.',
-    	saveFmt='/tmp/{tid}-{stage}.bin.gz',
-    	backupSaveTime=1800,
-    	pWaveSafety=0.7,
-    	nonViscDamp=0.4,
-    	initPoro=0.7
-    )
-
+	##woo-expression##
+	#: import woo.pre.horse,woo.dem
+	woo.pre.horse.FallingHorse(
+		radius=0.002,
+		relGap=0.25,
+		halfThick=0.002,
+		relEkStop=0.02,
+		damping=0.2,
+		gravity=(0.0, 0.0, -9.81),
+		pattern='hexa',
+		mat=woo.dem.FrictMat(density=1000.0, id=-1, young=50000.0, tanPhi=0.5463024898437905, ktDivKn=0.2),
+		meshMat=None,
+		pWaveSafety=0.7,
+		reportFmt='/tmp/{tid}.xhtml',
+		vtkStep=40,
+		vtkPrefix='/tmp/{tid}-'
+	)

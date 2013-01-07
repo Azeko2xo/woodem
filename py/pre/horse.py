@@ -23,6 +23,8 @@ class FallingHorse(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		_PAT(woo.dem.FrictMat,'meshMat',None,'Material for the meshed horse; if not given, :obj:`mat` is used here as well.'),
 		_PAT(float,'pWaveSafety',.7,startGroup='Tunables',doc='Safety factor for :obj:`woo.utils.pWaveDt` estimation.'),
 		_PAT(str,'reportFmt',"/tmp/{tid}.xhtml",startGroup="Outputs",doc="Report output format; :obj:`Scene.tags <woo.core.Scene.tags>` can be used."),
+		_PAT(int,'vtkStep',40,"How often should VtkExport run. If non-positive, never run the export."),
+		_PAT(str,'vtkPrefix',"/tmp/{tid}-","Prefix for saving :obj:`woo.dem.VtkExport` data; formatted with ``format()`` providing :obj:`woo.core.Scene.tags` as keys."),
 	]
 	def __init__(self,**kw):
 		woo.core.Preprocessor.__init__(self)
@@ -37,7 +39,7 @@ def prepareHorse(pre):
 	import woo.pack, woo.utils, woo.core, woo
 	import pkg_resources
 	S=woo.core.Scene(fields=[DemField()])
-	for a in ['reportFmt']: setattr(pre,a,woo.utils.fixWindowsPath(getattr(pre,a)))
+	for a in ['reportFmt','vtkPrefix']: setattr(pre,a,woo.utils.fixWindowsPath(getattr(pre,a)))
 	S.pre=pre.deepcopy() # so that our manipulation does not affect input fields
 	S.dem.gravity=pre.gravity
 	if not pre.meshMat: pre.meshMat=pre.mat.deepcopy()
@@ -75,7 +77,8 @@ def prepareHorse(pre):
 		#woo.core.PyRunner(2000,'import woo.timing; woo.timing.stats();'),
 		woo.core.PyRunner(10,'S.plot.addData(i=S.step,t=S.time,total=S.energy.total(),relErr=(S.energy.relErr() if S.step>100 else 0),**S.energy)'),
 		woo.core.PyRunner(50,'import woo.pre.horse\nif S.step>100 and S.energy["kinetic"]<S.pre.relEkStop*abs(S.energy["grav"]): woo.pre.horse.finished(S)'),
-		BoxDeleter(box=((xMin,yMin,zMin-.1*zSpan),(xMax,yMax,aabb[1][2]+.1*zSpan)),inside=False,stepPeriod=100)
+		BoxDeleter(box=((xMin,yMin,zMin-.1*zSpan),(xMax,yMax,aabb[1][2]+.1*zSpan)),inside=False,stepPeriod=100),
+		VtkExport(out=pre.vtkPrefix,stepPeriod=pre.vtkStep,what=VtkExport.all,dead=(pre.vtkStep<=0 or not pre.vtkPrefix))
 	]+([Tracer(stepPeriod=20,num=16,compress=0,compSkip=2,dead=False,scalar=Tracer.scalarVel,label='_tracer')] if 'opengl' in woo.config.features else [])
 
 	S.trackEnergy=True
@@ -94,7 +97,7 @@ def plotBatchResults(db):
 	'Hook called from woo.batch.writeResults'
 	import pylab,re,math,woo.batch,os
 	results=woo.batch.dbReadResults(db)
-	out='%s.pdf'%re.sub('\.sqlite$','',db)
+	out='%s.pdf'%re.sub('\.results$','',db)
 	fig=pylab.figure()
 	ax1=fig.add_subplot(211)
 	ax1.set_xlabel('Time [s]')
@@ -122,7 +125,7 @@ def finished(S):
 	import os,re,woo.batch,woo.utils,codecs
 	S.stop()
 	repName=os.path.abspath(S.pre.reportFmt.format(S=S,**(dict(S.tags))))
-	woo.batch.writeResults(defaultDb='horse.sqlite',series=S.plot.data,postHooks=[plotBatchResults],simulationName='horse',report='file://'+repName)
+	woo.batch.writeResults(defaultDb='horse.results',series=S.plot.data,postHooks=[plotBatchResults],simulationName='horse',report='file://'+repName)
 
 
 	# energy plot, to show how to add plot to the report
