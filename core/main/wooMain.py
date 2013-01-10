@@ -463,12 +463,12 @@ def batch(sysArgv=None):
 			import pipes
 			if WIN:
 				self.winBatch=woo.master.tmpFilename()+'.bat'
-				batch='@ECHO OFF' # don's show commands in terminal
+				batch='@ECHO OFF\n' # don's show commands in terminal
 				batch+='set OMP_NUM_THREADS=%d\n'%job.nCores
 				batch+='set WOO_BATCH={self.table}:{self.lineNo}:{self.resultsDb}\n'.format(self=self)
 				#batch+='start /B /WAIT /LOW '
 				batch+='{self.executable} -x -n {self.script} {debugFlag} > {self.log} 2>&1 \n'.format(self=self,debugFlag=('-D' if self.debug else ''))
-				sys.stderr.write(batch)
+				#sys.stderr.write(batch)
 				f=open(self.winBatch,'w')
 				f.write(batch)
 				f.close()
