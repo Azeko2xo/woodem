@@ -532,6 +532,16 @@ def svgFileFragment(filename):
 	return data[data.find('<svg '):]
 
 
+def ensureWriteableDir(d):
+	import errno, os
+	try:
+		os.makedirs(d)
+		print 'Created directory:',d
+	except OSError as e:
+		if e.errno!=errno.EEXISTS:
+			print 'ERROR: failed to create directory '+d
+			raise
+	if not os.access(d,os.W_OK): raise IOError('Directory %s not writeable.'%d)
 
 
 #############################

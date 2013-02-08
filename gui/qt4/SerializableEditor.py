@@ -913,7 +913,7 @@ class SerializableEditor(QFrame):
 			return widget
 		# sequences
 		if entry.T.__class__==tuple:
-			assert(len(entry.T)==1) # we don't handle tuples of other lenghts
+			assert len(entry.T)==1 # we don't handle tuples of other lenghts
 			# sequence of serializables
 			T=entry.T[0]
 			if (issubclass(T,Object) or T==Object):
@@ -922,6 +922,7 @@ class SerializableEditor(QFrame):
 			if (T in _fundamentalEditorMap):
 				widget=SeqFundamentalEditor(self,getter,setter,T)
 				return widget
+			print 'No widget for (%s,) in %s.%s'(T.__name__,self.ser.__class__.__name__,entry.name)
 			return None
 		# a woo.Object
 		if issubclass(entry.T,Object) or entry.T==Object:
@@ -930,6 +931,7 @@ class SerializableEditor(QFrame):
 			widget=SerializableEditor(getattr(self.ser,entry.name),parent=self,showType=self.showType,path=(self.path+'.'+entry.name if self.path else None),labelIsVar=self.labelIsVar,showChecks=self.showChecks,showUnits=self.showUnits,objManip=self.objManip)
 			widget.setFrameShape(QFrame.Box); widget.setFrameShadow(QFrame.Raised); widget.setLineWidth(1)
 			return widget
+		print 'No widget for %s in %s.%s'%(entry.T.__name__,self.ser.__class__.__name__,entry.name)
 		return None
 	def serQLabelMenu(self,widget,position):
 		menu=QMenu(self)
@@ -1006,13 +1008,14 @@ class SerializableEditor(QFrame):
 		for entry in self.entries:
 			w=self.mkWidget(entry)
 			if w!=None: entry.widget=entry.widgets['value']=w
+			# else: print 'No value widget for',self.ser.__class__.__name__+'.'+entry.name
 			#entry.widgets['value']=entry.widget # for code compat
 			#if not entry.widgets['value']: entry.widgets['value']=entry.widget=QFrame() # avoid None widgets
 			objPath=(self.path+'.'+entry.name) if self.path else None
 			labelText,labelTooltip=self.getAttrLabelToolTip(entry)
 			label=SerQLabel(self,labelText,tooltip=labelTooltip,path=objPath,elide=not self.labelIsVar)
 			entry.widgets['label']=label
-			if self.objManip and isinstance(entry.widgets['value'],SerializableEditor):
+			if self.objManip and ('value' in entry.widgets) and isinstance(entry.widgets['value'],SerializableEditor):
 				label.setContextMenuPolicy(Qt.CustomContextMenu)
 				label.customContextMenuRequested.connect(lambda pos,entry=entry: self.objManipLabelMenu(entry,pos))
 				label.setFocusPolicy(Qt.ClickFocus)

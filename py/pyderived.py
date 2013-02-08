@@ -107,22 +107,24 @@ class PyAttrTrait:
 				for i,au in enumerate(altUnits):
 					self.altUnits[i]+=au
 		else: raise ValueError('Unknown unit type %s (must be list, tuple, str, unicode): %s'%(type(unit).__name__,str(unit)))
-	def checkType(self,val):
-		'Check whether *val* has type compatible with declared type (pyType). Raise exception if not.'
+	def coerceValue(self,val):
+		'Check whether *val* has type compatible with declared type (pyType). Raise exception if not. Values converted to required types are returned (it is safe to ignore the return value).'
 		def tName(T): return (T.__module__+'.' if T.__module__!='__builtin__' else '')+T.__name__
 		# sequences
 		if isinstance(self.pyType,list):
 			assert len(self.pyType)==1
+			ret=[]
 			if not hasattr(val,'__len__'): raise TypeError("Attribute {self.name} declared as sequence of {T} ({self.cxxT}), but its value {val!s} of type {valType} is not a sequence (__len__ not defined).".format(self=self,T=tName(self.pyType[0]),val=val,valType=tName(type(val))))
 			T=self.pyType[0]
 			if T in self.primitiveTypes: # check convertibility
 				for i,v in enumerate(val):
 					try:
 						if type(v) in (str,unicode) and T in (float,int): raise TypeError("Don't allow conversions from strings to numbers, since that will fail if used without conversion")
-						T(v)
+						ret.append(T(v))
 					except: raise TypeError("Attribute {self.name} declared as sequence of {T}, but {i}'th item {v!s} of type {itemType} is not convertible to {T}.".format(self=self,i=i,v=v,itemType=tName(type(v)),T=tName(T)))
 			else:
 				for i,v in enumerate(val):
+					ret.append(v)
 					if v==None: continue # python representation for NULL shared_ptr
 					if not isinstance(v,T): raise TypeError("Attribute {self.name} declared as a sequence of {T}, but {i}'th item {v!s} of type {itemType} is not a {T}.".format(self=self,i=i,v=v,itemType=tName(type(v)),T=tName(T)))
 		else:
@@ -131,12 +133,13 @@ class PyAttrTrait:
 			if T in self.primitiveTypes:
 				try:
 					if type(val) in (str,unicode) and T in (float,int): raise TypeError("Don't allow conversions from strings to numbers, since that will fail if used without conversion")
-					T(val)
+					ret=T(val)
 				except: raise TypeError("Attribute {self.name} declared as {T}, but value {val!s} of type {valType} is not convertible to {T}".format(self=self,val=val,valType=tName(type(val)),T=tName(T)))
 			else:
 				# objects
+				ret=val
 				if val!=None and not isinstance(val,T): raise TypeError("Attribute {self.name} declared as {T}, but value {val!s} of type {valType} is not a {T}".format(self=self,val=val,valType=tName(type(val)),T=tName(T)))
-
+		return ret
 	def __str__(self): return '<PyAttrTrait '+self.name+' @ '+str(id(self))+'>'
 	def __repr__(self): return self.__str__()
 
@@ -170,13 +173,14 @@ class PyWooObject:
 			is called from python, this function gets precende over the c++ one.'''
 			import pickle
 			return pickle.loads(pickle.dumps(self))
-		def checkAttrTypes(self):
-			for a in derivedClass._attrTraits: a.checkType(getattr(self,a.name))
+		def coerceAttrValues(self):
+			'Convert all attribute values to their specified type (or derived type thereof) - e.g. 3-tuples are converted to Vector3 where Vector3 is required, ints to floats, where floats are required, etc. An exception is raised if the conversion is impossible.'
+			for a in derivedClass._attrTraits: setattr(self,a.name,a.coerceValue(getattr(self,a.name)))
 		derivedClass.__getstate__=__getstate__
 		derivedClass.__setstate__=__setstate__
 		derivedClass.deepcopy=deepcopy
-		derivedClass.checkAttrTypes=checkAttrTypes
-		self.checkAttrTypes() # call to make sure we don't carry garbage from the very start
+		derivedClass.coerceAttrValues=coerceAttrValues
+		self.coerceAttrValues() # call to make sure we don't carry garbage from the very start
 		
 	
 

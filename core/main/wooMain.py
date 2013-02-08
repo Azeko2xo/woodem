@@ -71,7 +71,6 @@ def flavorFromArgv0(argv0,batch=False):
 	raise ValueError('Woo flavor could not be guessed from program name: '+argv0)
 
 
-
 def main(sysArgv=None):
 	'''Entry point for the woo executable. *sysArgv* (if specified) replaces sys.argv, which is used for option processing.
 	'''

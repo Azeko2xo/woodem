@@ -330,41 +330,41 @@ class TestPyDerived(unittest.TestCase):
 		self.assert_(self.t.aFF==[0.,1.,2.])
 		self.assert_(self.t.aNodeNone==None)
 	def testAttrTypesDefault(self):
-		'PyDerived: checkAttrTypes - default'
-		try: self.t.checkAttrTypes()
+		'PyDerived: coerceAttrValues - default'
+		try: self.t.coerceAttrValues()
 		except: self.fail("exception raised with default-initialized _TestPyClass")
 	def testAttrFloat(self):
-		'PyDerived: checkAttrTypes - float'
+		'PyDerived: coerceAttrValues - float'
 		self.t.aF='asd'
-		self.assertRaises(TypeError,self.t.checkAttrTypes)
+		self.assertRaises(TypeError,self.t.coerceAttrValues)
 	def testAttrFFloat(self):
-		'PyDerived: checkAttrTypes - float list'
+		'PyDerived: coerceAttrValues - float list'
 		self.t.aFF=(1,2,'ab')
-		self.assertRaises(TypeError,self.t.checkAttrTypes)
+		self.assertRaises(TypeError,self.t.coerceAttrValues)
 		self.t.aFF='ab'
-		self.assertRaises(TypeError,self.t.checkAttrTypes)
+		self.assertRaises(TypeError,self.t.coerceAttrValues)
 		self.t.aFF='123' # disallow conversion from strings
-		self.assertRaises(TypeError,self.t.checkAttrTypes)
+		self.assertRaises(TypeError,self.t.coerceAttrValues)
 		self.t.aFF=[(1,2,3),(4,5,6)]
-		self.assertRaises(TypeError,self.t.checkAttrTypes)
+		self.assertRaises(TypeError,self.t.coerceAttrValues)
 		self.t.aFF=[]
 		self.t.aFF=Vector3(1,2,3)
-		try: self.t.checkAttrTypes()
+		try: self.t.coerceAttrValues()
 		except: self.fail("Vector3 not accepted for list of floats")
 		self.t.aFF=[]
-		try: self.t.checkAttrTypes()
+		try: self.t.coerceAttrValues()
 		except: self.fail("Empty list not accepter for list of floats")
 	def testAttrObj(self):
-		'PyDerived: checkAttrTypes - c++ object'
+		'PyDerived: coerceAttrValues - c++ object'
 		self.t.aNode=None
-		try: self.t.checkAttrTypes()
+		try: self.t.coerceAttrValues()
 		except: self.fail("None not accepted as woo.core.Node")
 		self.t.aNode=woo.core.Scene()
-		self.assertRaises(TypeError,self.t.checkAttrTypes)
+		self.assertRaises(TypeError,self.t.coerceAttrValues)
 	def testAttrObjList(self):
-		'PyDerived: checkAttrTypes - list of c++ objects'
+		'PyDerived: coerceAttrValues - list of c++ objects'
 		self.t.aNNode=(woo.core.Node(),woo.core.Scene())
-		self.assertRaises(TypeError,self.t.checkAttrTypes)
+		self.assertRaises(TypeError,self.t.coerceAttrValues)
 		self.t.aNNode=[None,woo.core.Node()]
-		try: self.t.checkAttrTypes()
+		try: self.t.coerceAttrValues()
 		except: self.fail("[None,Node] not accepted for list of Nodes")
