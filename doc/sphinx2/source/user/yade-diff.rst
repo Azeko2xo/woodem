@@ -8,10 +8,10 @@ Code differences
 ================
 #. Woo is a python-importable module. You can do ``import woo`` in any Python script.
 #. Written in ``c++11``.
-#. Supports additional :ref`serialization formats <serializationFormats>`, some of them human-readable.
+#. Supports additional :ref:`serialization formats <FileFormats>`, some of them human-readable.
 #. Properly organized in python modules: :obj:`woo.core`, :obj:`woo.dem` and so on.
 #. Python's standard setuptools can be used to build Woo, both under Windows and Linux.
-#. Windows installer is provided.
+#. Windows installer is provided (http://launchpad.net/woo/+download)
 
 Simulation differences
 =======================

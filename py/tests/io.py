@@ -31,6 +31,13 @@ class TestFormatsAndDetection(unittest.TestCase):
 		for o in S.engines+[S.dem.par[0]]:
 			dump=o.dumps(format=fmt)
 			if load: Object.loads(dump,format='auto')
+	def testRefuseDerivedPyObject(self):
+		'IO: python-derived objects refuse to save via boost::serialization.'
+		import woo.pre.horse
+		fh=woo.pre.horse.FallingHorse()
+		out=woo.master.tmpFilename()+'.bin.gz'
+		self.assertRaises(IOError,lambda: fh.dump(out)) # this should deted boost::serialization anyway
+		self.assertRaises(IOError,lambda: fh.dump(out,format='boost::serialization'))
 	def testStrFile(self):
 		'IO: file can be given as str'
 		out=woo.master.tmpFilename()+'.expr'

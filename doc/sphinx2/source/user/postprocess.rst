@@ -4,6 +4,8 @@
 Postprocessing
 ***************
 
+.. _Report:
+
 Report
 =======
 

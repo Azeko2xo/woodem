@@ -52,6 +52,7 @@ def Object_dump(obj,out,format='auto',overwrite=True,fragment=False,width=80,noM
 	if format=='auto':
 		if not hasFilename: raise IOError("format='auto' is only possible when a fileName is given.")
 		if out.endswith('.html'): format='html'
+		if sum([out.endswith(ext) for ext in ('.expr','expr.gz','expr.bz2')]): format='expr'
 		if sum([out.endswith(ext) for ext in ('.pickle','pickle.gz','pickle.bz2')]): format='pickle'
 		if sum([out.endswith(ext) for ext in ('.json','json.gz','json.bz2')]): format='json'
 		if sum([out.endswith(ext) for ext in ('.xml','.xml.gz','.xml.bz2','.bin','.gz','.bz2')]): format='boost::serialization'
@@ -59,7 +60,8 @@ def Object_dump(obj,out,format='auto',overwrite=True,fragment=False,width=80,noM
 	if format in ('boost::serialization',) and not hasFilename: raise IOError("format='boost::serialization' needs filename.")
 	# this will go away later
 	if format=='boost::serialization':
-		if not hasFilename: raise NotImplementedError('Only serialization to files is supported with boost::serialization.') 
+		if not hasFilename: raise NotImplementedError('Only serialization to files is supported with boost::serialization.')
+		if obj.deepcopy.__module__!='woo._monkey.io': raise IOError("boost::serialization formats can only reliably save pure-c++ objects. Given object %s seems to be derived from python. Save using some dump formats.")
 		obj.save(out)
 	elif format=='pickle':
 		if hasFilename: pickle.dump(obj,open(out,'wb'))
