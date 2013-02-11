@@ -975,15 +975,38 @@ class SerializableEditor(QFrame):
 			if entry.widget.__class__==SerializableEditor:
 				entry.widget.toggleShowUnits(self.showUnits)
 	def objManipLabelMenu(self,entry,pos):
-		'context menu for creating/deleting woo.core.Object from within the editor'
+		'context menu for creating/deleting/loading/saving woo.core.Object from within the editor'
 		menu=QMenu(self)
 		isNone=(getattr(self.ser,entry.name)==None)
-		do=menu.addAction(u'☘ New' if isNone else u'☠  Delete')
-		do.triggered.connect(lambda: self.doObjManip(entry,isNone))
+		newDel=menu.addAction(u'☘ New' if isNone else u'☠  Delete')
+		newDel.triggered.connect(lambda: self.doObjManip('newDel',entry,isNone))
+		if not isNone:
+			save=menu.addAction(u'⛁ Save (as expr)')
+			save.triggered.connect(lambda: self.doObjManip('save',entry,isNone))
+		load=menu.addAction(u'↥ Load')
+		load.triggered.connect(lambda: self.doObjManip('load',entry,isNone))
 		menu.popup(entry.widgets['label'].mapToGlobal(pos))
-	def doObjManip(self,entry,newObj):
+	def doObjManip(self,action,entry,isNone):
+		'Handle menu action from objManipLabelMenu'
 		#print 'Manipulating Object',self.ser.__class__.__name__+'.'+entry.name
-		setattr(self.ser,entry.name,entry.T() if newObj else None)
+		if action=='newDel': setattr(self.ser,entry.name,entry.T() if isNone else None)
+		elif action=='save':
+			assert not isNone
+			obj=getattr(self.ser,entry.name)
+			f=QFileDialog.getSaveFileName(self,'Save %s'%(str(obj)),'.')
+			if not f: return
+			obj.dump(f,format='expr')
+		elif action=='load':
+			f=QFileDialog.getOpenFileName(self,'Load a %s'%entry.T.__name__,'.')
+			if not f: return # no file selected
+			try:
+				obj=entry.T.load(f) # be user friendly if garbage is being loaded
+				setattr(self.ser,entry.name,obj)
+			except Exception as e:
+				import traceback
+				traceback.print_exc()
+				showExceptionDialog(self,e)
+		else: raise RuntimError('Unknown action %s for object manipulation context menu!'%action)
 		self.refreshEvent()
 	def mkWidgets(self):
 		self.mkAttrEntries()

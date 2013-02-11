@@ -42,15 +42,15 @@ def Object_dumps(obj,format,fragment=False,width=80,noMagic=False,stream=True,sh
 		return SerializeToHtmlTable()(obj,dontRender=True,showDoc=showDoc)
 
 def Object_dump(obj,out,format='auto',overwrite=True,fragment=False,width=80,noMagic=False,showDoc=False):
-	'''Dump an object in specified *format*; *out* can be a string (filename) or a *file* object. Supported formats are: `auto` (auto-detected from *out* extension; raises exception when *out* is an object), `html`, `expr`.'''
+	'''Dump an object in specified *format*; *out* can be a str/unicode (filename) or a *file* object. Supported formats are: `auto` (auto-detected from *out* extension; raises exception when *out* is an object), `html`, `expr`.'''
 	if format not in ('auto','html','json','expr','pickle','boost::serialization'): raise IOError("Unsupported dump format %s"%format)
-	hasFilename=isinstance(out,str)
+	hasFilename=(isinstance(out,str) or isinstance(out,unicode))
 	if hasFilename:
 		import os.path
 		if os.path.exists(out) and not overwrite: raise IOError("File '%s' exists (use overwrite=True)"%out)
 	#if not hasFilename and not hasattr(out,'write'): raise IOError('*out* must be filename or file-like object')
 	if format=='auto':
-		if not isinstance(out,str): raise IOError("format='auto' is only possible when a fileName is given.")
+		if not hasFilename: raise IOError("format='auto' is only possible when a fileName is given.")
 		if out.endswith('.html'): format='html'
 		if sum([out.endswith(ext) for ext in ('.pickle','pickle.gz','pickle.bz2')]): format='pickle'
 		if sum([out.endswith(ext) for ext in ('.json','json.gz','json.bz2')]): format='json'

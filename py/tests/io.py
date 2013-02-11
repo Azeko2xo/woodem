@@ -31,6 +31,14 @@ class TestFormatsAndDetection(unittest.TestCase):
 		for o in S.engines+[S.dem.par[0]]:
 			dump=o.dumps(format=fmt)
 			if load: Object.loads(dump,format='auto')
+	def testStrFile(self):
+		'IO: file can be given as str'
+		out=woo.master.tmpFilename()+'.expr'
+		woo.master.scene.dem.par[0].dump(out,format='expr')
+	def testUnicodeFile(self):
+		'IO: filename can be given as unicode'
+		out=unicode(woo.master.tmpFilename()+'.expr')
+		woo.master.scene.dem.par[0].dump(out,format='expr')
 	def testExpr(self):
 		'IO: expression dump/load & format detection (file+string)'
 		self.tryDumpLoad(fmt='expr')
