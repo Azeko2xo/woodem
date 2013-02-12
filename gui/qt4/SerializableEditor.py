@@ -187,6 +187,8 @@ class AttrEditor_Float(AttrEditor,QLineEdit):
 		if self.multiplier: v*=self.multiplier
 		self.setTextStable(str(v))
 	def update(self):
+		# when everything is deleted, don't refresh because of float('') raising ValueError
+		if self.hot and not self.text(): return
 		try:
 			v=float(self.text())
 			if self.multiplier: v/=self.multiplier
@@ -439,9 +441,37 @@ class AttrEditor_RgbColor(AttrEditor,QFrame):
 			rgb=Vector3([float(self.rgbWidgets[i].text()) for i in (0,1,2)])
 		except ValueError: self.refresh()
 		self.trySetter(rgb)
+
+class AttrEditor_FileDir(AttrEditor,QFrame):
+	def __init__(self,parent,getter,setter,isDir,isExisting):
+		AttrEditor.__init__(self,getter,setter)
+		QFrame.__init__(self,parent)
+		self.isDir,self.isExisting=isDir,isExisting
+		self.grid=QGridLayout(self); self.grid.setSpacing(0); self.grid.setMargin(0)
+		w=self.nameEdit=QLineEdit('')
+		self.grid.addWidget(w,0,0)
+		w.textEdited.connect(self.isHot)
+		w.selectionChanged.connect(self.isHot)
+		w.editingFinished.connect(self.update)
+		b=self.butt=QPushButton()
+		style=QApplication.style()
+		if isDir: b.setIcon(style.standardIcon(QStyle.SP_DirIcon))
+		else: b.setIcon(style.standardIcon(QStyle.SP_FileIcon))
+		self.butt.clicked.connect(self.dialogShow)
+		self.grid.addWidget(self.butt,0,1)
+	def dialogShow(self):
+		if self.isDir:	f=QFileDialog.getExistingDirectory(self,'Select directory')
+		elif self.isExisting: f=QFileDialog.getOpenFileName(self,'Select existing file')
+		else: f=QFileDialog.getSaveFileName(self,'Select file name',options=QFileDialog.DontConfirmOverwrite)
+		if not f: return # cancelled
+		f=str(f)
+		self.setter(f)
+	def refresh(self):
+		f=self.getter()
+		self.nameEdit.setTextStable(f)
+	def update(self):
+		self.trySetter(str(self.nameEdit.text()))
 	
-
-
 
 class AttrEditor_Se3(AttrEditor,QFrame):
 	def __init__(self,parent,getter,setter):
@@ -817,6 +847,10 @@ class SerializableEditor(QFrame):
 				continue
 			t=None
 			doc=trait.doc
+			# remove sphinx markup from docstrings
+			doc=re.sub(':[a-zA-Z0-9_-]+:`([^`]*)`',r'<i>\1</i>',doc)
+			doc=re.sub('``([^`]+)``',r'<tt>\1</tt>',doc)
+
 			if attr in self.ignoredAttrs: continue
 
 			# this attribute starts a new attribute group
@@ -856,7 +890,7 @@ class SerializableEditor(QFrame):
 
 			#if not match: print 'No attr match for docstring of %s.%s'%(self.ser.__class__.__name__,attr)
 			#logging.debug('Attr %s is of type %s'%(attr,((t[0].__name__,) if isinstance(t,tuple) else t.__name__)))
-			self.entries.append(self.EntryData(name=attr,T=t,groupNo=groupNo,doc=trait.doc,trait=trait,containingClass=klass,editor=self))
+			self.entries.append(self.EntryData(name=attr,T=t,groupNo=groupNo,doc=doc,trait=trait,containingClass=klass,editor=self))
 	def getDocstring(self,attr=None):
 		"If attr is *None*, return docstring of the Object itself"
 		if attr==None:
@@ -870,47 +904,57 @@ class SerializableEditor(QFrame):
 				logging.error('Attr %s.%s has no trait?'%(self.ser.__class__,attr))
 				doc='[no documentation found]'
 			else: doc=tt[0]
-		doc=re.sub(':ref:`([^`]*)`','\\1',doc)
+		doc=re.sub(':[a-zA-Z0-9_-]+:`([^`]*)`',r'<i>\1</i>',doc)
 		import textwrap
 		wrapper=textwrap.TextWrapper(replace_whitespace=False)
 		return wrapper.fill(textwrap.dedent(doc))
 
-	def handleRanges(self,widgetKlass,getter,setter,entry):
+	def handleRanges(self,getter,setter,entry):
 		rg=entry.trait.range
 		# return editor for given attribute; no-op, unless float with associated range attribute
 		if entry.T==float and rg and rg.__class__==Vector2:
 			# getter returns tuple value,range
 			# setter needs just the value itself
-			return AttrEditor_FloatRange,lambda: (getattr(self.ser,entry.name),rg),lambda x: setattr(self.ser,entry.name,x)
+			return AttrEditor_FloatRange(self,lambda: (getattr(self.ser,entry.name),rg),lambda x: setattr(self.ser,entry.name,x))
 		elif entry.T==int and rg and rg.__class__==Vector2i:
-			return AttrEditor_IntRange,lambda: (getattr(self.ser,entry.name),rg),lambda x: setattr(self.ser,entry.name,x)
+			return AttrEditor_IntRange(self,lambda: (getattr(self.ser,entry.name),rg),lambda x: setattr(self.ser,entry.name,x))
 		else:
 			raise RuntimeError("Invalid range object for "+self.ser.__class__.__name__+"."+entry.name+": type is "+entry.T.__name__+", range is "+str(rg)+" (of type "+rg.__class__.__name__+")")
-	def handleChoices(self,widgetKlass,getter,setter,entry):
+	def handleChoices(self,getter,setter,entry):
 		choice=entry.trait.choice
-		return AttrEditor_Choice, lambda: (getattr(self.ser,entry.name),choice),lambda x: setattr(self.ser,entry.name,x)
-	def handleBits(self,widgetKlass,getter,setter,entry):
+		return AttrEditor_Choice(self,lambda: (getattr(self.ser,entry.name),choice),lambda x: setattr(self.ser,entry.name,x))
+	def handleBits(self,getter,setter,entry):
 		bits=entry.trait.bits
-		return AttrEditor_Bits, lambda: (getattr(self.ser,entry.name),bits),lambda x: setattr(self.ser,entry.name,x)
-	def handleRgbColor(self,widgetKlass,getter,setter,entry):
-		return AttrEditor_RgbColor, getter, setter
+		return AttrEditor_Bits(self,lambda: (getattr(self.ser,entry.name),bits),lambda x: setattr(self.ser,entry.name,x))
+	def handleRgbColor(self,getter,setter,entry):
+		return AttrEditor_RgbColor(self,getter,setter)
+	def handleFileDir(self,getter,setter,entry):
+		return AttrEditor_FileDir(self,getter,setter,isDir=entry.trait.dirname,isExisting=entry.trait.existingFilename)
 		
 	def mkWidget(self,entry):
 		if not entry.T:
 			#print 'return None for %s.%s'%(self.ser.__class__.__name__,entry.name)
 			return None
+
 		# single fundamental object
-		Klass=_fundamentalEditorMap.get(entry.T,None)
+		widget=None
+		# default getter and setter
 		getter,setter=lambda: getattr(self.ser,entry.name), lambda x: setattr(self.ser,entry.name,x)
-		if entry.trait.range: Klass,getter,setter=self.handleRanges(Klass,getter,setter,entry)
-		elif entry.trait.choice: Klass,getter,setter=self.handleChoices(Klass,getter,setter,entry)
-		elif entry.trait.bits: Klass,getter,setter=self.handleBits(Klass,getter,setter,entry)
-		elif entry.trait.rgbColor: Klass,getter,setter=self.handleRgbColor(Klass,getter,setter,entry)
-		if Klass:
-			widget=Klass(self,getter=getter,setter=setter)
+		# try to find specific widget first based on traits
+		if entry.trait.range: widget=self.handleRanges(getter,setter,entry)
+		elif entry.trait.choice: widget=self.handleChoices(getter,setter,entry)
+		elif entry.trait.bits: widget=self.handleBits(getter,setter,entry)
+		elif entry.trait.rgbColor: widget=self.handleRgbColor(getter,setter,entry)
+		elif entry.trait.filename or entry.trait.existingFilename or entry.trait.dirname: widget=self.handleFileDir(getter,setter,entry)
+		# no specific widget found, try one for fundamental types
+		else:
+			Klass=_fundamentalEditorMap.get(entry.T,None)
+			if Klass: widget=Klass(self,getter=getter,setter=setter)
+		if widget:
 			widget.setFocusPolicy(Qt.StrongFocus)
 			if entry.trait.readonly: widget.setEnabled(False)
 			return widget
+
 		# sequences
 		if entry.T.__class__==tuple:
 			assert len(entry.T)==1 # we don't handle tuples of other lenghts

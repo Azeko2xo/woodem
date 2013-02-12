@@ -7,7 +7,7 @@
 
 // attribute flags
 namespace woo{
-	#define ATTR_FLAGS_VALUES noSave=1, readonly=2, triggerPostLoad=4, hidden=8, noResize=16, noGui=32, pyByRef=64, static_=128, multiUnit=256, noDump=512, activeLabel=1024, rgbColor=2048
+	#define ATTR_FLAGS_VALUES noSave=(1<<0), readonly=(1<<1), triggerPostLoad=(1<<2), hidden=(1<<3), noResize=(1<<4), noGui=(1<<5), pyByRef=(1<<6), static_=(1<<7), multiUnit=(1<<8), noDump=(1<<9), activeLabel=(1<<10), rgbColor=(1<<11), filename=(1<<12), existingFilename=(1<<13), dirname=(1<<14)
 	// this will disappear later
 	namespace Attr { enum flags { ATTR_FLAGS_VALUES }; }
 	// prohibit copies, only references should be passed around
@@ -48,6 +48,9 @@ namespace woo{
 			ATTR_FLAG_DO(noDump,isNoDump)
 			ATTR_FLAG_DO(activeLabel,isActiveLabel)
 			ATTR_FLAG_DO(rgbColor,isRgbColor)
+			ATTR_FLAG_DO(filename,isFilename)
+			ATTR_FLAG_DO(existingFilename,isExistingFilename)
+			ATTR_FLAG_DO(dirname,isDirname)
 		#undef ATTR_FLAG_DO
 		py::object pyGetIni()const{ return _ini(); }
 		py::object pyGetRange()const{ return _range(); }
@@ -79,6 +82,9 @@ namespace woo{
 				.add_property("noDump",&AttrTraitBase::isNoDump)
 				.add_property("activeLabel",&AttrTraitBase::isActiveLabel)
 				.add_property("rgbColor",&AttrTraitBase::isRgbColor)
+				.add_property("filename",&AttrTraitBase::isFilename)
+				.add_property("existingFilename",&AttrTraitBase::isExistingFilename)
+				.add_property("dirname",&AttrTraitBase::isDirname)
 				.def_readonly("_flags",&AttrTraitBase::_flags)
 				// non-flag attributes
 				.def_readonly("doc",&AttrTraitBase::_doc)
@@ -122,6 +128,9 @@ namespace woo{
 			ATTR_FLAG_DO(noDump,isNoDump)
 			ATTR_FLAG_DO(activeLabel,isActiveLabel)
 			ATTR_FLAG_DO(rgbColor,isRgbColor)
+			ATTR_FLAG_DO(filename,isFilename)
+			ATTR_FLAG_DO(existingFilename,isExistingFilename)
+			ATTR_FLAG_DO(dirname,isDirname)
 		#undef ATTR_FLAG_DO
 		AttrTrait& name(const string& s){ _name=s; return *this; }
 		AttrTrait& doc(const string& s){ _doc=s; return *this; }

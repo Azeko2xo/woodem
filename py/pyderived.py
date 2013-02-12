@@ -28,6 +28,9 @@ class PyAttrTrait:
 			bits=None,
 			buttons=None,
 			altUnits=None,
+			filename=False,
+			existingFilename=False,
+			dirname=False
 		):
 		# validity checks
 		if range:
@@ -66,6 +69,9 @@ class PyAttrTrait:
 		self.choice=choice
 		self.bits=bits
 		self.buttons=buttons
+		self.filename=filename
+		self.existingFilename=existingFilename
+		self.dirname=dirname
 		# those are unsupported in python
 		self.noSave=self.readonly=self.triggerPostLoad=self.hidden=self.noResize=self.pyByRef=self.static=self.activeLabel=False
 		# 
