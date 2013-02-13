@@ -460,9 +460,10 @@ class AttrEditor_FileDir(AttrEditor,QFrame):
 		self.butt.clicked.connect(self.dialogShow)
 		self.grid.addWidget(self.butt,0,1)
 	def dialogShow(self):
-		if self.isDir:	f=QFileDialog.getExistingDirectory(self,'Select directory')
-		elif self.isExisting: f=QFileDialog.getOpenFileName(self,'Select existing file')
-		else: f=QFileDialog.getSaveFileName(self,'Select file name',options=QFileDialog.DontConfirmOverwrite)
+		curr=self.nameEdit.text()
+		if self.isDir:	f=QFileDialog.getExistingDirectory(self,'Select directory',curr)
+		elif self.isExisting: f=QFileDialog.getOpenFileName(self,'Select existing file',curr)
+		else: f=QFileDialog.getSaveFileName(self,'Select file name',curr,options=QFileDialog.DontConfirmOverwrite)
 		if not f: return # cancelled
 		f=str(f)
 		self.setter(f)

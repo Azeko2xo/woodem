@@ -103,12 +103,14 @@ for s in env.Glob('wooExtra/*/setup.py'):
 
 if 'qt4' in env['features']:
 	env.Install('$LIBDIR/woo/qt',[
+		env.Glob('gui/qt4/*.py'),
+		# mention generated files explicitly			
 		env.File('gui/qt4/img_rc.py'),
 		env.File('gui/qt4/ui_controller.py'),
-		env.File('gui/qt4/SerializableEditor.py'),
-		env.File('gui/qt4/Inspector.py'),
-		env.File('gui/qt4/ExceptionDialog.py'),
-		env.File('gui/qt4/__init__.py'),
+		#env.File('gui/qt4/SerializableEditor.py'),
+		#env.File('gui/qt4/Inspector.py'),
+		#env.File('gui/qt4/ExceptionDialog.py'),
+		#env.File('gui/qt4/__init__.py'),
 	])
 	env.Command('gui/qt4/img_rc.py','gui/qt4/img.qrc','pyrcc4 -o $buildDir/gui/qt4/img_rc.py gui/qt4/img.qrc')
 	env.Command('gui/qt4/ui_controller.py','gui/qt4/controller.ui','pyuic4 -o $buildDir/gui/qt4/ui_controller.py gui/qt4/controller.ui')
