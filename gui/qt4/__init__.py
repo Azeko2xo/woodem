@@ -310,8 +310,8 @@ class ControllerClass(QWidget,Ui_Controller):
 		if self.generator:
 			# keep var/check settings
 			w=self.generatorArea.widget()
-			if w and isinstance(w,SerializableEditor): self.genVars,self.genChecks=w.labelIsVar,w.showChecks
-			se=SerializableEditor(self.generator,parent=self.generatorArea,showType=True,labelIsVar=self.genVars,showChecks=self.genChecks,showUnits=True,objManip=True) # TODO
+			if w and isinstance(w,ObjectEditor): self.genVars,self.genChecks=w.labelIsVar,w.showChecks
+			se=ObjectEditor(self.generator,parent=self.generatorArea,showType=True,labelIsVar=self.genVars,showChecks=self.genChecks,showUnits=True,objManip=True) # TODO
 			self.generatorArea.setWidget(se)
 	def genSaveParamsSlot(self):
 		if 0:
@@ -358,7 +358,7 @@ class ControllerClass(QWidget,Ui_Controller):
 			# add SnapshotEngine to the current scene
 			snap=woo.qt.SnapshotEngine(label='_snapshooter',fileBase=woo.master.tmpFilename(),stepPeriod=100,realPeriod=.5,ignoreErrors=False)
 			S.engines=S.engines+[snap]
-			se=SerializableEditor(snap,parent=self.movieArea,showType=True)
+			se=ObjectEditor(snap,parent=self.movieArea,showType=True)
 			self.movieArea.setWidget(se)
 			# open new view if there is none			
 			if len(views())==0: View()
@@ -410,7 +410,7 @@ class ControllerClass(QWidget,Ui_Controller):
 				S.engines=S.engines+[tracer]
 			tracer.dead=False
 			S.ranges=S.ranges+[woo.dem.Tracer.lineColor]
-			self.tracerArea.setWidget(SerializableEditor(tracer,parent=self.tracerArea,showType=True))
+			self.tracerArea.setWidget(ObjectEditor(tracer,parent=self.tracerArea,showType=True))
 			self.resetTraceButton.setEnabled(True)
 			woo.gl.Gl1_DemField.glyph=woo.gl.Gl1_DemField.glyphKeep
 			self.tracerActive=True
@@ -431,7 +431,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		from woo import gl
 		ser=(self.renderer if dispStr=='Renderer' else eval('gl.'+str(dispStr)+'()'))
 		path='woo.gl.'+dispStr
-		se=SerializableEditor(ser,parent=self.displayArea,ignoredAttrs=set(['label']),showType=True,path=path)
+		se=ObjectEditor(ser,parent=self.displayArea,ignoredAttrs=set(['label']),showType=True,path=path)
 		self.displayArea.setWidget(se)
 	def loadSlot(self):
 		f=QFileDialog.getOpenFileName(self,'Load simulation','')

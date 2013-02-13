@@ -21,7 +21,7 @@ import sys
 
 from ExceptionDialog import *
 
-seqSerializableShowType=True # show type headings in serializable sequences (takes vertical space, but makes the type hyperlinked)
+seqObjectShowType=True # show type headings in serializable sequences (takes vertical space, but makes the type hyperlinked)
 
 # BUG: cursor is moved to the beginnign of the input field even if it has focus
 #
@@ -667,7 +667,7 @@ class SerQLabel(QLabel):
 
 def _unicodeUnit(u): return (u if isinstance(u,unicode) else unicode(u,'utf-8'))
 
-class SerializableEditor(QFrame):
+class ObjectEditor(QFrame):
 	"Class displaying and modifying serializable attributes of a woo object."
 	import collections
 	import logging
@@ -962,7 +962,7 @@ class SerializableEditor(QFrame):
 			# sequence of serializables
 			T=entry.T[0]
 			if (issubclass(T,Object) or T==Object):
-				widget=SeqSerializable(self,getter,setter,T,path=(self.path+'.'+entry.name if self.path else None),shrink=True)
+				widget=SeqObject(self,getter,setter,T,path=(self.path+'.'+entry.name if self.path else None),shrink=True)
 				return widget
 			if (T in _fundamentalEditorMap):
 				widget=SeqFundamentalEditor(self,getter,setter,T)
@@ -973,7 +973,7 @@ class SerializableEditor(QFrame):
 		if issubclass(entry.T,Object) or entry.T==Object:
 			obj=getattr(self.ser,entry.name)
 			# should handle the case of obj==None as well
-			widget=SerializableEditor(getattr(self.ser,entry.name),parent=self,showType=self.showType,path=(self.path+'.'+entry.name if self.path else None),labelIsVar=self.labelIsVar,showChecks=self.showChecks,showUnits=self.showUnits,objManip=self.objManip)
+			widget=ObjectEditor(getattr(self.ser,entry.name),parent=self,showType=self.showType,path=(self.path+'.'+entry.name if self.path else None),labelIsVar=self.labelIsVar,showChecks=self.showChecks,showUnits=self.showUnits,objManip=self.objManip)
 			widget.setFrameShape(QFrame.Box); widget.setFrameShadow(QFrame.Raised); widget.setLineWidth(1)
 			return widget
 		print 'No widget for %s in %s.%s'%(entry.T.__name__,self.ser.__class__.__name__,entry.name)
@@ -999,7 +999,7 @@ class SerializableEditor(QFrame):
 		self.labelIsVar=(not self.labelIsVar if val==None else val)
 		for entry in self.entries:
 			entry.widgets['label'].setTextToolTip(*self.getAttrLabelToolTip(entry),elide=not self.labelIsVar)
-			if entry.widget.__class__==SerializableEditor:
+			if entry.widget.__class__==ObjectEditor:
 				entry.widget.toggleLabelIsVar(self.labelIsVar)
 	def toggleShowChecks(self,val=None):
 		self.showChecks=(not self.showChecks if val==None else val)
@@ -1009,7 +1009,7 @@ class SerializableEditor(QFrame):
 			if not entry.trait.readonly:
 				if 'value' in entry.widgets: entry.widgets['value'].setEnabled(True)
 				entry.widgets['label'].setEnabled(True)
-			if entry.widget.__class__==SerializableEditor:
+			if entry.widget.__class__==ObjectEditor:
 				entry.widget.toggleShowChecks(self.showChecks)
 	def toggleShowUnits(self,val=None):
 		self.showUnits=(not self.showUnits if val==None else val)
@@ -1017,7 +1017,7 @@ class SerializableEditor(QFrame):
 		for entry in self.entries:
 			entry.setVisible(None)
 			entry.unitChanged(forceBaseUnit=(not self.showUnits))
-			if entry.widget.__class__==SerializableEditor:
+			if entry.widget.__class__==ObjectEditor:
 				entry.widget.toggleShowUnits(self.showUnits)
 	def objManipLabelMenu(self,entry,pos):
 		'context menu for creating/deleting/loading/saving woo.core.Object from within the editor'
@@ -1057,7 +1057,7 @@ class SerializableEditor(QFrame):
 		self.mkAttrEntries()
 		onlyDefaultGroups=(len(self.entryGroups)==1 and self.entryGroups[0].name==None)
 		if self.showType: # create type label
-			lab=SerQLabel(self,makeSerializableLabel(self.ser,addr=True,href=True),tooltip=self.getDocstring(),path=self.path)
+			lab=SerQLabel(self,makeObjectLabel(self.ser,addr=True,href=True),tooltip=self.getDocstring(),path=self.path)
 			lab.setFrameShape(QFrame.Box); lab.setFrameShadow(QFrame.Sunken); lab.setLineWidth(2); lab.setAlignment(Qt.AlignHCenter); lab.linkActivated.connect(woo.qt.openUrl)
 			## attach context menu to the label
 			lab.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -1083,7 +1083,7 @@ class SerializableEditor(QFrame):
 			labelText,labelTooltip=self.getAttrLabelToolTip(entry)
 			label=SerQLabel(self,labelText,tooltip=labelTooltip,path=objPath,elide=not self.labelIsVar)
 			entry.widgets['label']=label
-			if self.objManip and ('value' in entry.widgets) and isinstance(entry.widgets['value'],SerializableEditor):
+			if self.objManip and ('value' in entry.widgets) and isinstance(entry.widgets['value'],ObjectEditor):
 				label.setContextMenuPolicy(Qt.CustomContextMenu)
 				label.customContextMenuRequested.connect(lambda pos,entry=entry: self.objManipLabelMenu(entry,pos))
 				label.setFocusPolicy(Qt.ClickFocus)
@@ -1137,8 +1137,8 @@ class SerializableEditor(QFrame):
 					entry.widgets['buttons-%d'%(i/3)]=b
 					entry.widgets['buttonLabels-%d'%(i/3)]=l 
 				#print 'Buttons',entry.trait.name,entry.trait.buttons,entry.widgets
-			#if self.hasUnits and entry.widget.__class__!=SerializableEditor: entry.widgets['unit']=QLabel(u'−',self)
-			##else: entry.widgets['unit']=QLabel(u'−',self) if (self.hasUnits and entry.widget.__class__!=SerializableEditor) else QFrame() # avoid NaN widgets
+			#if self.hasUnits and entry.widget.__class__!=ObjectEditor: entry.widgets['unit']=QLabel(u'−',self)
+			##else: entry.widgets['unit']=QLabel(u'−',self) if (self.hasUnits and entry.widget.__class__!=ObjectEditor) else QFrame() # avoid NaN widgets
 			self.entryGroups[entry.groupNo].entries.append(entry)
 		for i,g in enumerate(self.entryGroups):
 			hide=i>0
@@ -1172,7 +1172,7 @@ class SerializableEditor(QFrame):
 						entry.widgets['unit'].setFocusPolicy(Qt.ClickFocus) # skip when keyboard-navigating
 					lay.setRowStretch(row,2)
 					for w in entry.widgets['label'],: # entry.widgets['value']:
-						if not w or w.__class__==SerializableEditor: continue # nested editor not modified
+						if not w or w.__class__==ObjectEditor: continue # nested editor not modified
 						w.setStyleSheet('background: palette(%s); '%('Base' if row%2 else 'AlternateBase'))
 					# add buttons after
 					if entry.trait.buttons and entry.trait.buttons[1]==False: addButtonsNow()
@@ -1195,8 +1195,8 @@ class SerializableEditor(QFrame):
 		for e in self.entries:
 			if e.widget and not e.widget.hot:
 				# if there is a new instance of Object, we need to make new widget and replace the old one completely
-				if type(e.widget)==SerializableEditor and e.widget.ser!=getattr(self.ser,e.name):
-					#print 'New SerializableEditor for ',self.ser,e.name
+				if type(e.widget)==ObjectEditor and e.widget.ser!=getattr(self.ser,e.name):
+					#print 'New ObjectEditor for ',self.ser,e.name
 					e.widget.hide()
 					e.widget=e.widgets['value']=self.mkWidget(e)
 					grid,row=e.gridAndRow
@@ -1206,7 +1206,7 @@ class SerializableEditor(QFrame):
 				e.widget.refresh()
 	def refresh(self): pass
 
-def makeSerializableLabel(ser,href=False,addr=True,boldHref=True,num=-1,count=-1):
+def makeObjectLabel(ser,href=False,addr=True,boldHref=True,num=-1,count=-1):
 	ret=u''
 	if num>=0:
 		if count>=0: ret+=u'%d/%d. '%(num,count)
@@ -1219,7 +1219,7 @@ def makeSerializableLabel(ser,href=False,addr=True,boldHref=True,num=-1,count=-1
 		ret+='0x%x'%ser._cxxAddr
 	return ret
 
-class SeqSerializableComboBox(QFrame):
+class SeqObjectComboBox(QFrame):
 	def __init__(self,parent,getter,setter,serType,path=None,shrink=False):
 		QFrame.__init__(self,parent)
 		self.getter,self.setter,self.serType,self.path,self.shrink=getter,setter,serType,path,shrink
@@ -1239,7 +1239,7 @@ class SeqSerializableComboBox(QFrame):
 		self.layout.addWidget(self.scroll)
 		self.seqEdit=None # currently edited serializable
 		self.setLayout(self.layout)
-		self.hot=None # API compat with SerializableEditor
+		self.hot=None # API compat with ObjectEditor
 		self.setFrameShape(QFrame.Box); self.setFrameShadow(QFrame.Raised); self.setLineWidth(1)
 		self.newDialog=None # is set when new dialog is created, and destroyed when it returns
 		# signals
@@ -1250,7 +1250,7 @@ class SeqSerializableComboBox(QFrame):
 		self.refreshTimer=QTimer(self)
 		self.refreshTimer.timeout.connect(self.refreshEvent)
 		self.refreshTimer.start(1000) # 1s should be enough
-		#print 'SeqSerializable path is',self.path
+		#print 'SeqObject path is',self.path
 	def comboIndexSlot(self,ix): # different seq item selected
 		currSeq=self.getter();
 		if len(currSeq)==0: ix=-1
@@ -1260,7 +1260,7 @@ class SeqSerializableComboBox(QFrame):
 		self.combo.setEnabled(ix>=0)
 		if ix>=0:
 			ser=currSeq[ix]
-			self.seqEdit=SerializableEditor(ser,parent=self,showType=seqSerializableShowType,path=(self.path+'['+str(ix)+']') if self.path else None)
+			self.seqEdit=ObjectEditor(ser,parent=self,showType=seqObjectShowType,path=(self.path+'['+str(ix)+']') if self.path else None)
 			self.scroll.setWidget(self.seqEdit)
 			if self.shrink:
 				self.sizeHint=lambda: QSize(100,1000)
@@ -1292,7 +1292,7 @@ class SeqSerializableComboBox(QFrame):
 			if len(currSeq)>0:
 				prevIx=-1
 				for i,s in enumerate(currSeq):
-					self.combo.addItem(makeSerializableLabel(s,num=i,count=len(currSeq),addr=False))
+					self.combo.addItem(makeObjectLabel(s,num=i,count=len(currSeq),addr=False))
 					if s==ser: prevIx=i
 				if forceIx>=0: newIx=forceIx # force the index (used from newSlot to make the new element active)
 				elif prevIx>=0: newIx=prevIx # if found what was active before, use it
@@ -1311,14 +1311,14 @@ class SeqSerializableComboBox(QFrame):
 		print 'newSlot called'
 		if self.newDialog:
 			raise RuntimeError("newSlot called, but there is already a dialogue?")
-		self.newDialog=NewSerializableDialog(self,self.serType.__name__)
+		self.newDialog=NewObjectDialog(self,self.serType.__name__)
 		self.newDialog.show()
 		self.newDialog.accepted.connect(self.newInsertSlot)
 		self.newDialog.rejected.connect(self.newCancelledSlot)
 		#raise RuntimeError("newSlot does not work due to dialogs getting closed immediately")
 		if 0: # old code which does not work due to exec_ returning immediately (used to work?!)
 			if not dialog.exec_():
-				print 'NewSerializableDialog cancelled'
+				print 'NewObjectDialog cancelled'
 				return # cancelled
 			ser=dialog.result()
 			ix=self.combo.currentIndex()
@@ -1349,9 +1349,9 @@ class SeqSerializableComboBox(QFrame):
 		currSeq=self.getter(); assert(i<len(currSeq)-1);
 		curr,nxt=currSeq[i:i+2]; currSeq[i],currSeq[i+1]=nxt,curr; self.setter(currSeq)
 		self.refreshEvent(forceIx=i+1)
-	def refresh(self): pass # API compat with SerializableEditor
+	def refresh(self): pass # API compat with ObjectEditor
 
-SeqSerializable=SeqSerializableComboBox
+SeqObject=SeqObjectComboBox
 
 
 class NewFundamentalDialog(QDialog):
@@ -1383,7 +1383,7 @@ class NewFundamentalDialog(QDialog):
 		self.widget.update()
 		return getattr(self.fakeObj,self.attrName)
 
-class NewSerializableDialog(QDialog):
+class NewObjectDialog(QDialog):
 	def __init__(self,parent,baseClassName,includeBase=True):
 		import woo.system
 		QDialog.__init__(self,parent)
@@ -1411,7 +1411,7 @@ class NewSerializableDialog(QDialog):
 		item=str(self.combo.itemText(index))
 		from woo import core,dem,gl,qt
 		self.ser=eval(item+'()',dict(sum([m.__dict__.items() for m in core,dem,gl,qt],[])))
-		self.scroll.setWidget(SerializableEditor(self.ser,self.scroll,showType=True))
+		self.scroll.setWidget(ObjectEditor(self.ser,self.scroll,showType=True))
 		self.scroll.show()
 	def result(self): return self.ser
 	def sizeHint(self): return QSize(180,400)
@@ -1431,7 +1431,7 @@ class SeqFundamentalEditor(QFrame):
 		self.setLayout(self.layout)
 		self.convSpec=None # cache value of unit conversions, for rows being added
 		self.multiplier=None
-		# SerializableEditor API compat
+		# ObjectEditor API compat
 		self.hot=False
 		self.rebuild()
 		# periodic refresh
@@ -1618,7 +1618,7 @@ class SeqFundamentalEditor(QFrame):
 			if hasattr(widget,'hot') and not widget.hot: # it can be a QLabel as well
 				widget.refresh()
 			if forceIx>=0 and forceIx==i: widget.setFocus()
-	def refresh(self): pass # SerializableEditor API
+	def refresh(self): pass # ObjectEditor API
 	# propagate multiplier change to children
 	def multiplierChanged(self,convSpec):
 		self.convSpec=convSpec # cache value should new rows be created

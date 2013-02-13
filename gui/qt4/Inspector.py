@@ -3,7 +3,7 @@
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from woo import *
-from woo.qt.SerializableEditor import *
+from woo.qt.ObjectEditor import *
 import woo.qt
 import woo.config
 from woo.dem import *
@@ -18,14 +18,14 @@ class EngineInspector(QWidget):
 	def __init__(self,parent=None):
 		QWidget.__init__(self,parent)
 		grid=QGridLayout(self); grid.setSpacing(0); grid.setMargin(0)
-		self.serEd=SeqSerializable(parent=None,getter=lambda:woo.master.scene.engines,setter=lambda x:setattr(woo.master.scene,'engines',x),serType=Engine,path='woo.master.scene.engines')
+		self.serEd=SeqObject(parent=None,getter=lambda:woo.master.scene.engines,setter=lambda x:setattr(woo.master.scene,'engines',x),serType=Engine,path='woo.master.scene.engines')
 		grid.addWidget(self.serEd)
 		self.setLayout(grid)
 #class MaterialsInspector(QWidget):
 #	def __init__(self,parent=None):
 #		QWidget.__init__(self,parent)
 #		grid=QGridLayout(self); grid.setSpacing(0); grid.setMargin(0)
-#		self.serEd=SeqSerializable(parent=None,getter=lambda:O.materials,setter=lambda x:setattr(O,'materials',x),serType=Engine)
+#		self.serEd=SeqObject(parent=None,getter=lambda:O.materials,setter=lambda x:setattr(O,'materials',x),serType=Engine)
 #		grid.addWidget(self.serEd)
 #		self.setLayout(grid)
 
@@ -49,9 +49,9 @@ class CellInspector(QWidget):
 		editor=self.scroll.widget()
 		if not S.periodic and editor: self.scroll.takeWidget()
 		if (S.periodic and not editor) or (editor and editor.ser!=S.cell):
-			self.scroll.setWidget(SerializableEditor(S.cell,parent=self,showType=True,path='woo.master.cell'))
+			self.scroll.setWidget(ObjectEditor(S.cell,parent=self,showType=True,path='woo.master.cell'))
 	def update(self):
-		self.scroll.takeWidget() # do this before changing periodicity, otherwise the SerializableEditor will raise exception about None object
+		self.scroll.takeWidget() # do this before changing periodicity, otherwise the ObjectEditor will raise exception about None object
 		S=woo.master.scene
 		S.periodic=self.periCheckBox.isChecked()
 		self.refresh()
@@ -60,7 +60,7 @@ class SceneInspector(QWidget):
 	def __init__(self,parent=None):
 		QWidget.__init__(self,parent)
 		grid=QGridLayout(self); grid.setSpacing(0); grid.setMargin(0)
-		self.serEd=SerializableEditor(woo.master.scene,parent=self,showType=False,path='woo.master.scene')
+		self.serEd=ObjectEditor(woo.master.scene,parent=self,showType=False,path='woo.master.scene')
 		grid.addWidget(self.serEd)
 		self.setLayout(grid)
 
@@ -164,7 +164,7 @@ class BodyInspector(QWidget):
 	def tryShowBody(self):
 		try:
 			b=woo.master.scene.dem.par[self.bodyId]
-			self.serEd=SerializableEditor(b,showType=True,parent=self,path='woo.master.scene.dem.par[%d]'%self.bodyId)
+			self.serEd=ObjectEditor(b,showType=True,parent=self,path='woo.master.scene.dem.par[%d]'%self.bodyId)
 		except IndexError:
 			if self.bodyIdBox.hasFocus(): return False
 			self.serEd=QFrame(self)
@@ -274,7 +274,7 @@ class InteractionInspector(QWidget):
 			intr=S.dem.con[self.ids] # also might raise IndexError, if the contact is dead
 			if not intr: raise IndexError()
 			self.intrLinIxBox.setValue(intr.linIx)
-			self.serEd=SerializableEditor(intr,showType=True,parent=self.scroll,path='woo.master.scene.dem.con[%d,%d]'%(self.ids[0],self.ids[1]))
+			self.serEd=ObjectEditor(intr,showType=True,parent=self.scroll,path='woo.master.scene.dem.con[%d,%d]'%(self.ids[0],self.ids[1]))
 			self.scroll.setWidget(self.serEd)
 			self.gotoId1Button.setText('#'+makeBodyLabel(S.dem.par[self.ids[0]]))
 			self.gotoId2Button.setText('#'+makeBodyLabel(S.dem.par[self.ids[1]]))
@@ -336,7 +336,7 @@ class SimulationInspector(QWidget):
 			path='woo.master.scene.fields[%d]'%i
 			if S.hasDem and f==S.dem: path='woo.master.scene.dem'
 			#if S.hasSparc and f==S.sparc: path='woo.master.scene.sparc'
-			self.tabWidget.addTab(SerializableEditor(f,parent=None,path=path,showType=True),'%d. '%i+path)
+			self.tabWidget.addTab(ObjectEditor(f,parent=None,path=path,showType=True),'%d. '%i+path)
 		grid=QGridLayout(self); grid.setSpacing(0); grid.setMargin(0)
 		grid.addWidget(self.tabWidget)
 		self.setLayout(grid)
