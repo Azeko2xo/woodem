@@ -59,6 +59,13 @@ def getColormapIcons():
 	return _colormapIcons
 
 
+class WidgetUpdatesDisabled():
+	'Context manager/decorator for disabling updates of qt4 widgets temporarily'
+	def __init__(self,widget): self.widget=widget
+	def __enter__(self): self.widget.setUpdatesEnabled(False)
+	def __exit__(self,eType,eValue,eTrace): self.widget.setUpdatesEnabled(True)
+
+
 def makeSphinxHtml(k):
 	'Given a class, try to guess name of the HTML page where it is documented by Sphinx'
 	if not k.__module__.startswith('woo.'): return k.__module__
@@ -751,10 +758,12 @@ class ObjectEditor(QFrame):
 			self.setExpanderIcon()
 			return self.expander
 		def setExpanderIcon(self): self.expander.setIcon(self.downArrow if self.expander.isChecked() else self.rightArrow)
-		def toggleExpander(self): 
-			self.setExpanderIcon()
-			for e in self.entries:
-				e.setVisible(self.expander.isChecked())
+
+		def toggleExpander(self):
+			with WidgetUpdatesDisabled(self.expander.parentWidget()):
+				self.setExpanderIcon()
+				for e in self.entries:
+					e.setVisible(self.expander.isChecked())
 
 
 	def __init__(self,ser,parent=None,ignoredAttrs=set(),showType=False,path=None,labelIsVar=True,showChecks=False,showUnits=False,objManip=False):
@@ -784,7 +793,8 @@ class ObjectEditor(QFrame):
 			return # no timers, nothing will change at all
 		logging.debug('New Object of type %s'%ser.__class__.__name__)
 		self.setWindowTitle(str(ser))
-		self.mkWidgets()
+		with WidgetUpdatesDisabled(self):
+			self.mkWidgets()
 		self.refreshTimer=QTimer(self)
 		self.refreshTimer.timeout.connect(self.refreshEvent)
 		self.refreshTimer.start(500)
@@ -1002,23 +1012,25 @@ class ObjectEditor(QFrame):
 			if entry.widget.__class__==ObjectEditor:
 				entry.widget.toggleLabelIsVar(self.labelIsVar)
 	def toggleShowChecks(self,val=None):
-		self.showChecks=(not self.showChecks if val==None else val)
-		#for g in self.entryGroups: g.showChecks=self.showChecks # propagate down
-		for entry in self.entries:
-			if entry.visible and not entry.hidden: entry.widgets['check'].setVisible(self.showChecks)
-			if not entry.trait.readonly:
-				if 'value' in entry.widgets: entry.widgets['value'].setEnabled(True)
-				entry.widgets['label'].setEnabled(True)
-			if entry.widget.__class__==ObjectEditor:
-				entry.widget.toggleShowChecks(self.showChecks)
+		with WidgetUpdatesDisabled(self):
+			self.showChecks=(not self.showChecks if val==None else val)
+			#for g in self.entryGroups: g.showChecks=self.showChecks # propagate down
+			for entry in self.entries:
+				if entry.visible and not entry.hidden: entry.widgets['check'].setVisible(self.showChecks)
+				if not entry.trait.readonly:
+					if 'value' in entry.widgets: entry.widgets['value'].setEnabled(True)
+					entry.widgets['label'].setEnabled(True)
+				if entry.widget.__class__==ObjectEditor:
+					entry.widget.toggleShowChecks(self.showChecks)
 	def toggleShowUnits(self,val=None):
-		self.showUnits=(not self.showUnits if val==None else val)
-		#print self.showUnits
-		for entry in self.entries:
-			entry.setVisible(None)
-			entry.unitChanged(forceBaseUnit=(not self.showUnits))
-			if entry.widget.__class__==ObjectEditor:
-				entry.widget.toggleShowUnits(self.showUnits)
+		with WidgetUpdatesDisabled(self):
+			self.showUnits=(not self.showUnits if val==None else val)
+			#print self.showUnits
+			for entry in self.entries:
+				entry.setVisible(None)
+				entry.unitChanged(forceBaseUnit=(not self.showUnits))
+				if entry.widget.__class__==ObjectEditor:
+					entry.widget.toggleShowUnits(self.showUnits)
 	def objManipLabelMenu(self,entry,pos):
 		'context menu for creating/deleting/loading/saving woo.core.Object from within the editor'
 		menu=QMenu(self)
@@ -1094,7 +1106,7 @@ class ObjectEditor(QFrame):
 			ch.clicked.connect(entry.toggleChecked)
 			if entry.trait.unit:
 				# frame for all unit-manipulating boxes
-				entry.widgets['unit']=QFrame()
+				entry.widgets['unit']=QFrame(self)
 				unitLay=QHBoxLayout(entry.widgets['unit'])
 				entry.unitLayout=unitLay
 				unitLay.setSpacing(0); unitLay.setMargin(0)
@@ -1228,9 +1240,11 @@ class SeqObjectComboBox(QFrame):
 		topLineLayout=QHBoxLayout(topLineFrame);
 		for l in self.layout, topLineLayout: l.setSpacing(0); l.setContentsMargins(0,0,0,0)
 		topLineFrame.setLayout(topLineLayout)
-		buttons=(self.newButton,self.killButton,self.upButton,self.downButton)=[QPushButton(label,self) for label in (u'☘',u'☠',u'↑',u'↓')]
+		#labels=(u'☘',u'☠',u'↑',u'↓')
+		labels=(u'+',u'−',u'↑',u'↓')
+		buttons=(self.newButton,self.killButton,self.upButton,self.downButton)=[QPushButton(label,self) for label in labels]
 		buttonSlots=(self.newSlot,self.killSlot,self.upSlot,self.downSlot) # same order as buttons
-		for b in buttons: b.setStyleSheet('QPushButton { font-size: 15pt; }'); b.setFixedWidth(30); b.setFixedHeight(30)
+		for b in buttons: b.setStyleSheet('QPushButton { font-size: 15pt; font-weight: bold; }'); b.setFixedWidth(30); b.setFixedHeight(30)
 		self.combo=QComboBox(self)
 		self.combo.setSizeAdjustPolicy(QComboBox.AdjustToContents)
 		for w in buttons[0:2]+[self.combo,]+buttons[2:4]: topLineLayout.addWidget(w)
@@ -1308,7 +1322,7 @@ class SeqObjectComboBox(QFrame):
 			print 'Error refreshing sequence (path %s), ignored.'%self.path
 			
 	def newSlot(self):
-		print 'newSlot called'
+		# print 'newSlot called'
 		if self.newDialog:
 			raise RuntimeError("newSlot called, but there is already a dialogue?")
 		self.newDialog=NewObjectDialog(self,self.serType.__name__)
@@ -1318,7 +1332,7 @@ class SeqObjectComboBox(QFrame):
 		#raise RuntimeError("newSlot does not work due to dialogs getting closed immediately")
 		if 0: # old code which does not work due to exec_ returning immediately (used to work?!)
 			if not dialog.exec_():
-				print 'NewObjectDialog cancelled'
+				# print 'NewObjectDialog cancelled'
 				return # cancelled
 			ser=dialog.result()
 			ix=self.combo.currentIndex()
