@@ -570,25 +570,28 @@ void GLViewer::postSelection(const QPoint& point)
 	if(selection<0 || selection>=(int)Renderer::glNamedObjects.size()) return;
 
 	Renderer::selObj=Renderer::glNamedObjects[selection];
+
 	auto prevSelNode=Renderer::selObjNode;
 	Renderer::selObjNode=Renderer::glNamedNodes[selection];
 	Renderer::glNamedObjects.clear(); Renderer::glNamedNodes.clear();
-	Vector3r pos=Renderer::selObjNode->pos;
-	if(Renderer::scene->isPeriodic) pos=Renderer::scene->cell->canonicalizePt(pos);
-	setSceneCenter(qglviewer::Vec(pos[0],pos[1],pos[2]));
-
-	{
-		//cerr<<"Selected object #"<<selection<<" is a "<<Renderer::selObj->getClassName()<<endl;
-		GilLock lock;
-		cerr<<"Selected "<<py::extract<string>(py::str(py::object(Renderer::selObj)))()<<endl;
-	}
-	cerr<<"\tat"<<Renderer::selObjNode->pos.transpose()<<endl;
-	if(prevSelNode){
-		Vector3r dPos=Renderer::selObjNode->pos-prevSelNode->pos;
-		cerr<<"\tdistance from previous "<<dPos.norm()<<" (dx="<<dPos.transpose()<<")"<<endl;
-		qglviewer::Vec vd0=camera()->viewDirection();
-		Vector3r vd(vd0[0],vd0[1],vd0[2]);
-		displayMessage("distance "+to_string(dPos.norm())+" ("+to_string((dPos-vd*dPos.dot(vd)).norm())+" view perp.)",/*delay*/6000);
+	// selection Node can be None
+	if(Renderer::selObjNode){
+		Vector3r pos=Renderer::selObjNode->pos;
+		if(Renderer::scene->isPeriodic) pos=Renderer::scene->cell->canonicalizePt(pos);
+		setSceneCenter(qglviewer::Vec(pos[0],pos[1],pos[2]));
+		{
+			//cerr<<"Selected object #"<<selection<<" is a "<<Renderer::selObj->getClassName()<<endl;
+			GilLock lock;
+			cerr<<"Selected "<<py::extract<string>(py::str(py::object(Renderer::selObj)))()<<endl;
+		}
+		cerr<<"\tat"<<Renderer::selObjNode->pos.transpose()<<endl;
+		if(prevSelNode){
+			Vector3r dPos=Renderer::selObjNode->pos-prevSelNode->pos;
+			cerr<<"\tdistance from previous "<<dPos.norm()<<" (dx="<<dPos.transpose()<<")"<<endl;
+			qglviewer::Vec vd0=camera()->viewDirection();
+			Vector3r vd(vd0[0],vd0[1],vd0[2]);
+			displayMessage("distance "+to_string(dPos.norm())+" ("+to_string((dPos-vd*dPos.dot(vd)).norm())+" view perp.)",/*delay*/6000);
+		}
 	}
 	pyRunString("import woo.qt; onSelection(woo.qt.getSel());");
 }

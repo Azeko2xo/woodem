@@ -218,6 +218,11 @@ class TestLoop(unittest.TestCase):
 		time.sleep(.1)
 		self.assert_(i<S.step) # check we run during those .1 secs again
 		S.stop()
+	def testNoneEngine(self):
+		'Loop: None engine raises exception.'
+		S=woo.master.scene
+		self.assertRaises(RuntimeError,lambda: setattr(S,'engines',[ContactLoop(),None,ContactLoop()]))
+
 		
 class TestIO(unittest.TestCase):
 	def testSaveAllClasses(self):

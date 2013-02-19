@@ -267,10 +267,13 @@ void Scene::postLoad(Scene&){
 
 	//
 	// assign fields to engines
+	int i=0;
 	FOREACH(const shared_ptr<Engine>& e, engines){
+		if(!e) throw std::runtime_error("Scene.engines["+to_string(i)+"]==None (not allowed).");
 		//cerr<<e->getClassName()<<endl;
 		e->scene=this;
 		e->setField();
+		i++;
 	}
 	// manage labeled engines
 	typedef std::map<std::string,py::object> StrObjMap; StrObjMap m;
