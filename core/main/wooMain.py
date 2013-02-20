@@ -18,6 +18,8 @@ class WooOptions(object):
 		self.quirks=3
 		self.quirkIntel=1
 		self.quirkFirePro=2
+		## internal use only; ignores some import errors which will not make rebuilding as such fail
+		self.rebuilding=False 
 		# no attributes can be added beyond this point
 		self._frozen=None 
 	def __setattr__(self,name,value):
@@ -139,6 +141,7 @@ def main(sysArgv=None):
 		sys.exit(0)
 	# re-build woo so that the binary is up-to-date
 	if opts.rebuild: # only possible under Linux
+		options.rebuilding=True
 		import subprocess, woo.config, glob
 		if not woo.config.sourceRoot: raise RuntimeError('This build does not define woo.config.sourceRoot (packaged version?)')
 		if opts.rebuild>1:

@@ -311,6 +311,8 @@ from . import pyderived
 
 # recursive import of everything under wooExtra
 try:
+	# don't import at all if rebuilding (rebuild might fail)
+	if wooOptions.rebuilding: raise ImportError
 	import wooExtra
 	import pkgutil, zipimport
 	for importer, modname, ispkg in pkgutil.iter_modules(wooExtra.__path__):

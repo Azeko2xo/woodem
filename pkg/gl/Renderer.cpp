@@ -50,6 +50,7 @@ bool Renderer::light2;
 bool Renderer::ghosts;
 shared_ptr<Object> Renderer::selObj;
 shared_ptr<Node> Renderer::selObjNode;
+string Renderer::selFunc;
 vector<Vector3r> Renderer::clipPlanePos;
 vector<Quaternionr> Renderer::clipPlaneOri;
 vector<bool> Renderer::clipPlaneActive;

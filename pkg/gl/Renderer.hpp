@@ -145,6 +145,7 @@ struct Renderer: public Object{
 		((vector<bool>,clipPlaneActive,vector<bool>(numClipPlanes,false),,"Activate/deactivate respective clipping planes"))
 		((shared_ptr<Object>,selObj,,,"Object which was selected by the user (access only via woo.qt.selObj)."))
 		((shared_ptr<Node>,selObjNode,,AttrTrait<Attr::readonly>(),"Node associated to the selected object (recenters scene on that object upon selection)"))
+		((string,selFunc,"import woo.qt\nwoo.qt.onSelection",,"Python expression to be called (by textually appending '(woo.gl.Renderer.selOBj)' or '(None)') at object selection/deselection. If empty, no function will be called. Any imports must be explicitly mentioned in the string."))
 		,/*py*/
 		//.def("render",&Renderer::pyRender,"Render the scene in the current OpenGL context.")
 			.def_readonly("shapeDispatcher",&Renderer::shapeDispatcher)

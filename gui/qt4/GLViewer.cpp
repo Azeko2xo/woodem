@@ -322,7 +322,7 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 			// reset selection
 			Renderer::selObj=shared_ptr<Object>(); Renderer::selObjNode=shared_ptr<Node>();
 			LOG_INFO("Calling onSelection with None to deselect");
-			pyRunString("import woo.qt; onSelection(None);");
+			if(!Renderer::selFunc.empty()) pyRunString(Renderer::selFunc+"(None);");
 		}
 		else { resetManipulation(); displayMessage("Manipulating scene."); }
 	}
@@ -593,7 +593,7 @@ void GLViewer::postSelection(const QPoint& point)
 			displayMessage("distance "+to_string(dPos.norm())+" ("+to_string((dPos-vd*dPos.dot(vd)).norm())+" view perp.)",/*delay*/6000);
 		}
 	}
-	pyRunString("import woo.qt; onSelection(woo.qt.getSel());");
+	if(!Renderer::selFunc.empty()) pyRunString("import woo.gl\n"+Renderer::selFunc+"(woo.gl.Renderer.selObj);");
 }
 
 // maybe new object will be selected.

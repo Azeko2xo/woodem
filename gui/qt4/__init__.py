@@ -130,10 +130,9 @@ else: sphinxPrefix=sphinxOnlineDocPath
 
 #sphinxDocWrapperPage=sphinxPrefix+'/woo.wrapper.html'
 
-
-## object selection
-def getSel(): return woo.gl.Renderer.selObj
-
+def onSelection(obj):
+	print 'woo.qt.onSelection:',obj,'was selected'
+	print '   Set woo.gl.Renderer.selFunc to your own callback function.'
 
 def openUrl(url):
 	import webbrowser
