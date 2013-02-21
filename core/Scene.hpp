@@ -149,7 +149,7 @@ struct Scene: public Object{
 			((Vector2i,_clDev,Vector2i(-1,-1),AttrTrait<Attr::readonly|Attr::noSave>(),"OpenCL device which is really initialized (to detect whether clDev was changed manually to avoid spurious re-initializations from postLoad"))
 		#endif
 
-		((AlignedBox3r,boxHint,AlignedBox3r(Vector3r(-1,-1,-1),Vector3r(1,1,1)),,"Hint for displaying the scene, if it cannot be determined otherwise.."))
+		((AlignedBox3r,boxHint,AlignedBox3r(),,"Hint for displaying the scene; overrides node-based detection. Set an element to empty box to disable."))
 
 		((bool,runInternalConsistencyChecks,true,AttrTrait<Attr::hidden>(),"Run internal consistency check, right before the very first simulation step."))
 

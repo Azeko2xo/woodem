@@ -472,27 +472,21 @@ void GLViewer::centerScene(){
 	if(scene->isPeriodic){ centerPeriodic(); return; }
 
 	LOG_INFO("Select with shift, press 'm' to move.");
-	Vector3r min,max;	
-	min=scene->boxHint.min(); max=scene->boxHint.max();
-	bool hasNan=(isnan(min[0])||isnan(min[1])||isnan(min[2])||isnan(max[0])||isnan(max[1])||isnan(max[2]));
-	Real minDim=std::min(max[0]-min[0],std::min(max[1]-min[1],max[2]-min[2]));
-	if(minDim<=0 || hasNan){
-		// Aabb is not yet calculated...
-		LOG_DEBUG("scene's bound not yet calculated or has zero or nan dimension(s), attempt get that from fields (nodes)");
-		Real inf=std::numeric_limits<Real>::infinity();
-		min=Vector3r(inf,inf,inf); max=Vector3r(-inf,-inf,-inf);
-		FOREACH(const shared_ptr<Field>& f, scene->fields){
-			Vector3r a,b;
-			if(!f->renderingBbox(a,b)) return;
-			max=max.array().max(b.array()).matrix();
-			min=min.array().min(a.array()).matrix();
+	AlignedBox3r box;
+	if(!scene->boxHint.isEmpty()){
+		LOG_DEBUG("Using Scene.boxHint");
+		box=scene->boxHint;
+	} else {
+		LOG_DEBUG("Getting field bboxes...");
+		for(const auto& f: scene->fields){ box.extend(f->renderingBbox()); }
+		if(box.isEmpty()){
+			LOG_DEBUG("Fields did not provide bbox either, using (-1,-1,-1)×(1,1,1) as fallback.");
+			box=AlignedBox3r(-Vector3r::Ones(),Vector3r::Ones());
 		}
-		if(isinf(min[0])||isinf(min[1])||isinf(min[2])||isinf(max[0])||isinf(max[1])||isinf(max[2])){ LOG_DEBUG("No min/max computed from bodies either, setting cube (-1,-1,-1)×(1,1,1)"); min=-Vector3r::Ones(); max=Vector3r::Ones(); }
-	} else {LOG_DEBUG("Using scene's Aabb");}
-	LOG_DEBUG("Got scene box min="<<min<<" and max="<<max);
-	Vector3r center = (max+min)*0.5;
-	Vector3r halfSize = (max-min)*0.5;
-	float radius=std::max(halfSize[0],std::max(halfSize[1],halfSize[2])); if(radius<=0) radius=1;
+	}
+	Vector3r center=box.center();
+	Vector3r halfSize=box.sizes()*.5;
+	float radius=halfSize.maxCoeff(); if(radius<=0) radius=1;
 	LOG_DEBUG("Scene center="<<center<<", halfSize="<<halfSize<<", radius="<<radius);
 	setSceneCenter(qglviewer::Vec(center[0],center[1],center[2]));
 	setSceneRadius(radius*1.5);

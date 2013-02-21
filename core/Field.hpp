@@ -137,9 +137,9 @@ struct Field: public Object, public Indexable{
 	);
 	REGISTER_INDEX_COUNTER(Field);
 
-	// return bounding box for rendering
-	// by defalt, returns bbox of nodes, but derived fields may override this
-	virtual bool renderingBbox(Vector3r& mn, Vector3r& mx);
+	// return bounding box for this field, for the purposes of rendering
+	// by defalt, returns bbox of Field::nodes, but derived fields may override this
+	virtual AlignedBox3r renderingBbox() const;
 
 	// replaced by regular virtual function of Engine
 	#if 0

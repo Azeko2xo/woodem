@@ -191,6 +191,7 @@ struct DemField: public Field{
 	void clearDead(){ deadNodes.clear(); }
 	void removeParticle(Particle::id_t id);
 	void removeClump(size_t id);
+	AlignedBox3r renderingBbox() const; // overrides Field::renderingBbox
 	boost::mutex nodesMutex; // sync adding nodes with the renderer, which might otherwise crash
 
 	//template<> bool sceneHasField<DemField>() const;

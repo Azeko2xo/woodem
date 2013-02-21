@@ -92,7 +92,7 @@ def main(sysArgv=None):
 	# those MUST be stored in *options*
 	#
 	par.add_argument('-j','--threads',help='Number of OpenMP threads to run; unset (0) by default, which means to use all available cores, but at most 4. Equivalent to setting OMP_NUM_THREADS environment variable.',dest='threads',type=int,default=0)
-	par.add_argument('--cores',help='Set number of OpenMP threads (as --threads) and in addition set affinity of threads to the cores given.',dest='cores')
+	par.add_argument('--cores',help='Comma-separated list of cores to use - determined number of OpenMP threads and sets affinity for those threads as well.',dest='cores')
 	par.add_argument('--cl-dev',help='Numerical couple (comma-separated) givin OpenCL platform/device indices. This is machine-dependent value',dest='clDev')
 	par.add_argument('-n',help="Run without graphical interface (equivalent to unsetting the DISPLAY environment variable)",dest='nogui',action='store_true')
 	par.add_argument('-D','--debug',help='Run the debug build, if available.',dest='debug',action='store_true')
@@ -123,7 +123,12 @@ def main(sysArgv=None):
 
 	# copy options (will be used in woo/__init__.py)
 	options.ompThreads=opts.threads
-	options.ompCores=opts.cores
+	if opts.cores:
+		try:
+				options.ompCores=[int(c) for c in opts.cores.split(',')]
+		except ValueError:
+			raise ValueError('--cores must be comma-separated list of integers, e.g. --cores=0,1,2.')
+	else: options.ompCores=[]
 	options.clDev=opts.clDev
 	options.forceNoGui=opts.nogui
 	options.debug=opts.debug

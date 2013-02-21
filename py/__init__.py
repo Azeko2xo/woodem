@@ -48,7 +48,7 @@ if wooOptions.ompCores:
 	if wooOptions.ompThreads!=len(cc) and wooOptions.ompThreads>0:
 		print 'wooOptions.ompThreads =',str(wooOptions.ompThreads)
 		warnings.warn('ompThreads==%d ignored, using %d since ompCores are specified.'%(wooOptions.ompThreads,len(cc)))
-		wooOptions.ompThreads=len(cc)
+	wooOptions.ompThreads=len(cc)
 	wooOsEnviron['GOMP_CPU_AFFINITY']=' '.join([str(cc[0])]+[str(c) for c in cc])
 	wooOsEnviron['OMP_NUM_THREADS']=str(len(cc))
 elif wooOptions.ompThreads:

@@ -157,6 +157,18 @@ Vector3r Contact::dPos(const Scene* scene) const{
 	return rawDx+scene->cell->intrShiftPos(cellDist);
 }
 
+
+AlignedBox3r DemField::renderingBbox() const{
+	AlignedBox3r box;
+	for(const auto& p: *particles){
+		if(!p || !p->shape) continue;
+		for(int i=0; i<p->shape->nodes.size(); i++) box.extend(p->shape->nodes[i]->pos);
+	}
+	for(const auto& n: nodes) box.extend(n->pos);
+	return box;
+}
+
+
 void DemField::postLoad(DemField&){
 	particles->dem=this;
 	contacts->dem=this;

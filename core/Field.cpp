@@ -25,16 +25,13 @@ Vector3r ScalarRange::color(Real v){
 #endif
 
 
-bool Field::renderingBbox(Vector3r& min, Vector3r& max){
-	if(nodes.empty()) return false;
-	Real inf=std::numeric_limits<Real>::infinity();
-	min=Vector3r(inf,inf,inf); max=Vector3r(-inf,-inf,-inf);
-	FOREACH(const shared_ptr<Node>& b, nodes){
-		if(!b) continue;
-		max=max.array().max(b->pos.array()).matrix();
-		min=min.array().min(b->pos.array()).matrix();
+AlignedBox3r Field::renderingBbox() const {
+	AlignedBox3r b;
+	for(const shared_ptr<Node>& n: nodes){
+		if(!n) continue;
+		b.extend(n->pos);
 	}
-	return true;
+	return b;
 }
 
 
