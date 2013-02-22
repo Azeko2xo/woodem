@@ -4,6 +4,7 @@
 #include<woo/core/Scene.hpp>
 #include<woo/pkg/dem/Particle.hpp>
 #include<woo/pkg/dem/Sphere.hpp>
+#include<woo/pkg/dem/Facet.hpp>
 
 struct DemFuncs{
 	DECLARE_LOGGER;
@@ -48,6 +49,17 @@ struct DemFuncs{
 		return ret;
 	};
 
+	/* Create facets from STL file; scale, shift and rotation (ori) are applied in this order before
+	   creating nodes in global coordinates.
+
+		Both ASCII and binary files are supported; COLOR and MATERIAL values translate to the
+		Shape::color scalar; that means that color differences are preserved, but the rendering
+		will be different.
+
+		Threshold is distance relative to maximum bounding box size if negative; if positive, it is absolute
+		in the STL space (before scaling).
+	*/
+	static vector<shared_ptr<Particle>> importSTL(const string& filename, const shared_ptr<Material>& mat, int mask=0, Real color=0., Real scale=1., const Vector3r& shift=Vector3r::Zero(), const Quaternionr& ori=Quaternionr::Identity(), Real threshold=-1e-6);
 };
 
 

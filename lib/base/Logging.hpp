@@ -39,7 +39,7 @@
 
 // logger is local for every class, but if it is missing, we will use the parent's class logger automagically.
 // TRACE doesn't really exist in log4cxx 0.9.7 (does in 0.10), otput through DEBUG then
-#ifdef NDEBUG
+#ifndef WOO_DEBUG
 #	define LOG_TRACE(msg){}
 #	define LOG_DEBUG(msg){}
 #else

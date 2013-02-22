@@ -425,10 +425,11 @@ if env['QUAD_PRECISION']: env.Append(CPPDEFINES='QUAD_PRECISION')
 
 ### COMPILER
 if env['debug']: env.Append(CXXFLAGS='-ggdb2',CPPDEFINES=['WOO_DEBUG'])
+# NDEBUG is used in /usr/include/assert.h: when defined, asserts() are no-ops
+else: env.Append(CPPDEFINES=['NDEBUG'])
 if 'openmp' in env['features']: env.Append(CXXFLAGS='-fopenmp',LIBS='gomp',CPPDEFINES='WOO_OPENMP')
 if env['optimize']:
-	# NDEBUG is used in /usr/include/assert.h: when defined, asserts() are no-ops
-	env.Append(CXXFLAGS=['-O%d'%env['optimize']],CPPDEFINES=[('WOO_CAST','static_cast'),('WOO_PTR_CAST','static_pointer_cast'),'NDEBUG'])
+	env.Append(CXXFLAGS=['-O%d'%env['optimize']],CPPDEFINES=[('WOO_CAST','static_cast'),('WOO_PTR_CAST','static_pointer_cast')])
 	# do not state architecture if not provided
 	# used for debian packages, where 'native' would generate instructions outside the package architecture
 	# (such as SSE instructions on i386 builds, if the builder supports them)

@@ -3,6 +3,12 @@
 #include<woo/pkg/dem/G3Geom.hpp>
 #include<woo/pkg/dem/FrictMat.hpp>
 
+#include<cstdint>
+#include<iostream>
+#include<fstream>
+#include<boost/algorithm/string/predicate.hpp>
+#include<boost/detail/endian.hpp>
+
 #ifdef WOO_OPENGL
 	#include<woo/pkg/gl/Renderer.hpp>
 #endif
@@ -84,7 +90,7 @@ shared_ptr<Particle> DemFuncs::makeSphere(Real radius, const shared_ptr<Material
 	const auto& n=sphere->nodes[0];
 	n->setData<DemData>(make_shared<DemData>());
 	#ifdef WOO_OPENGL
-		// to avoid crashes if 3renderer must resize the node's data array and reallocates it while other thread accesses those data
+		// to avoid crashes if renderer must resize the node's data array and reallocates it while other thread accesses those data
 		n->setData<GlData>(make_shared<GlData>());
 	#endif
 	auto& dyn=n->getData<DemData>();
@@ -140,4 +146,135 @@ vector<Vector2r> DemFuncs::psd(const vector<shared_ptr<Particle>>& pp, int num, 
 	return ret;
 };
 #endif
+
+
+
+/*
+	The following code is based on GPL-licensed K-3d importer module from
+	https://github.com/K-3D/k3d/blob/master/modules/stl_io/mesh_reader.cpp
+
+	TODO: read color/material, convert to scalar color in Woo
+*/
+vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const shared_ptr<Material>& mat, int mask, Real color, Real scale, const Vector3r& shift, const Quaternionr& ori, Real threshold){
+	vector<shared_ptr<Particle>> ret;
+	std::ifstream in(filename,std::ios::in|std::ios::binary);
+	if(!in) throw std::runtime_error("Error opening "+filename+" for reading (STL import).");
+
+	char buffer[80]; in.read(buffer, 80); in.seekg(0, std::ios::beg);
+	bool isAscii=boost::algorithm::starts_with(buffer,"solid");
+
+	// linear array of vertices, each triplet is one face
+	// this is filled from ASCII and binary formats as intermediary representation
+	vector<Vector3r> vertices;
+	if(isAscii){
+		LOG_TRACE("STL: ascii format detected");
+		string lineBuf;
+		size_t lineNo;
+		int fVertsNum=0;  // number of vertices in this facet (for checking)
+		for(std::getline(in,lineBuf); in; getline(in,lineBuf)){
+			string tok;
+			std::istringstream line(lineBuf);
+			line>>tok;
+			if(tok=="facet"){
+				string tok2; line>>tok2;
+				if(tok2!="normal") LOG_WARN("STL: 'normal' expected after 'facet' (line "+to_string(lineNo)+")");
+				// we ignore normal values:
+				// Vector3r normal; line>>normal.x(); line>>normal.y(); line>>normal.z();
+			} else if(tok=="vertex"){
+				Vector3r p; line>>p.x(); line>>p.y(); line>>p.z();
+				vertices.push_back(p);
+				fVertsNum++;
+			} else if(tok=="endfacet"){
+				if(fVertsNum!=3){
+					LOG_WARN("STL: face has "+to_string(fVertsNum)+" vertices instead of 3, skipping face (line "+to_string(lineNo)+")");
+					vertices.resize(vertices.size()-fVertsNum);
+				}
+				fVertsNum=0;
+			}
+		}
+	} else { // binary format
+		/* make sure we're on little-endian machine, because that's what STL uses */
+		#ifdef BOOST_LITTLE_ENDIAN
+			LOG_TRACE("STL: binary format detected");
+			char header[80];
+			in.read(header,80);
+			if(boost::algorithm::contains(header,"COLOR=") || boost::algorithm::contains(header,"MATERIAL=")){
+				LOG_WARN("STL: global COLOR/MATERIAL not imported (not implemented yet).");
+			}
+			int32_t numFaces;
+			in.read(reinterpret_cast<char*>(&numFaces),sizeof(int32_t));
+			LOG_TRACE("binary STL: number of faces "<<numFaces);
+			struct bin_face{ // 50 bytes total
+				float normal[3], v[9];
+				uint16_t color;
+			};
+			// longer struct is OK (padding?), but not shorter
+			static_assert(sizeof(bin_face)>=50,"One face in the STL binary format must be at least 50 bytes long. !?");
+			vector<bin_face> faces(numFaces);
+			for(int i=0; i<numFaces; i++){
+				in.read(reinterpret_cast<char*>(&faces[i]),50);
+				const auto& f(faces[i]);
+				LOG_TRACE("binary STL: face #"<<i<<" @ "<<in.tellg()-50<<": normal ("<<f.normal[0]<<", "<<f.normal[1]<<", "<<f.normal[2]<<"), "
+					" vertex 0 ("<<f.v[0]<<", "<<f.v[1]<<", "<<f.v[2]<<"), "
+					" vertex 1 ("<<f.v[3]<<", "<<f.v[4]<<", "<<f.v[5]<<"), "
+					" vertex 2 ("<<f.v[6]<<", "<<f.v[7]<<", "<<f.v[8]<<"), "
+					" color "<<f.color
+				);
+				for(int j:{0,3,6}) vertices.push_back(Vector3r(f.v[j+0],f.v[j+1],f.v[j+2]));
+				if(f.color!=0) LOG_WARN("STL: face #"+to_string(i)+": color not imported (not implemented yet).");
+			}
+		#else
+			throw std::runtime_error("Binary STL import not supported on big-endian machines.");
+		#endif
+	}
+
+	assert(vertices.size()%3==0);
+	
+	if(threshold<0){
+		AlignedBox3r box;
+		for(const Vector3r& v: vertices) box.extend(v);
+		threshold*=-box.sizes().maxCoeff();
+	}
+
+	vector<shared_ptr<Node>> nodes;
+	for(size_t v0=0; v0<vertices.size(); v0+=3){
+		size_t vIx[3];
+		for(size_t v: {0,1,2}){
+			vIx[v]=nodes.size();
+			const Vector3r& pos(vertices[v0+v]);
+			for(size_t i=0; i<nodes.size(); i++){
+				if((pos-nodes[i]->pos).squaredNorm()<pow(threshold,2)){
+					vIx[v]=i;
+					break;
+				}
+			}
+			// create new node
+			if(vIx[v]==nodes.size()){
+				auto n=make_shared<Node>();
+				n->pos=ori*(pos*scale+shift); // change coordinate system here
+				n->setData<DemData>(make_shared<DemData>());
+				// block all DOFs
+				n->getData<DemData>().setBlockedAll();
+				#ifdef WOO_OPENGL
+					// see comment in DemFuncs::makeSphere
+					n->setData<GlData>(make_shared<GlData>());
+				#endif
+				nodes.push_back(n);
+			}
+			LOG_TRACE("STL: Face #"<<v0/3<<", node indices "<<vIx[0]<<", "<<vIx[1]<<", "<<vIx[2]<<" ("<<nodes.size()<<" nodes)");
+		}
+		// create facet
+		auto facet=make_shared<Facet>();
+		for(auto ix: vIx){
+			facet->nodes.push_back(nodes[ix]);
+			nodes[ix]->getData<DemData>().parCount++;
+		}
+		facet->color=color; // set per-face color, once this is imported form the binary STL
+		auto par=make_shared<Particle>();
+		par->shape=facet;
+		par->material=mat;
+		ret.push_back(par);
+	}
+	return ret;
+}
 
