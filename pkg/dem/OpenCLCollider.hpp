@@ -37,7 +37,7 @@ class OpenCLCollider: public InsertionSortCollider{
 	bool checkBoundsSorted();
 	void modifyContactsFromInversions(const vector<Vector2i>(&invs)[3]);
 
-	virtual void postLoad(OpenCLCollider&);
+	virtual void postLoad(OpenCLCollider&,void*);
 
 	virtual void run();
 	vector<CpuAxBound> cpuBounds[3];

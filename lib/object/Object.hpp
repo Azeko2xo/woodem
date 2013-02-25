@@ -74,7 +74,7 @@
 
 // empty functions for ADL
 //namespace{
-	template<typename T>	void preLoad(T&){}; template<typename T> void postLoad(T& obj){ /* cerr<<"Generic no-op postLoad("<<typeid(T).name()<<"&) called for "<<obj.getClassName()<<std::endl; */ }
+	template<typename T>	void preLoad(T&){}; template<typename T> void postLoad(T& obj, void* addr){ /* cerr<<"Generic no-op postLoad("<<typeid(T).name()<<"&) called for "<<obj.getClassName()<<std::endl; */ }
 	template<typename T>	void preSave(T&){}; template<typename T> void postSave(T&){}
 //};
 
@@ -125,14 +125,14 @@ namespace woo{
 // ADL only works within the same namespace
 // this duplicate is for classes that are not in woo:: namespace (yet)
 template<class C, typename T, T C::*A>
-void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<"make_setter_postLoad called"<<endl; */ instance.callPostLoad(); /* postLoad(instance); */ }
+void make_setter_postLoad(C& instance, const T& val){ instance.*A=val; /* cerr<<"make_setter_postLoad called"<<endl; */ instance.callPostLoad((void*)&(instance.*A)); /* postLoad(instance,(void*)&(instance.*A)); */ }
 
 // for static postLoad, use static if via templates
 // so that the function does not have to be declared everywhere
 template<bool noSave> struct _setter_postLoadStaticMaybe{};
 template<> struct _setter_postLoadStaticMaybe<true>{
 	template<class C, typename T, T* A>
-	static void setter(const T& val){ *A=val; C::postLoadStatic(); }
+	static void setter(const T& val){ *A=val; C::postLoadStatic((void*)&(*A)); }
 };
 template<> struct _setter_postLoadStaticMaybe<false>{
 	template<class C, typename T, T* A>
@@ -140,7 +140,7 @@ template<> struct _setter_postLoadStaticMaybe<false>{
 };
 
 //template<class C, typename T, T *A>
-//void make_setter_postLoad_static(const T& val){ *A=val; C::postLoadStatic(); }
+//void make_setter_postLoad_static(const T& val){ *A=val; C::postLoadStatic((void*)&(*A)); }
 
 #define _DEF_READWRITE_BY_VALUE(thisClass,attr,doc) add_property(/*attr name*/BOOST_PP_STRINGIZE(attr),/*read access*/py::make_getter(&thisClass::attr,py::return_value_policy<py::return_by_value>()),/*write access*/py::make_setter(&thisClass::attr,py::return_value_policy<py::return_by_value>()),/*docstring*/doc)
 // not sure if this is correct: the getter works by value, the setter by reference (the default)...?
@@ -228,13 +228,13 @@ template<> struct _SerializeMaybe<false>{
 		/* with ADL, either the generic (empty) version above or baseClass::preLoad etc will be called (compile-time resolution) */ \
 		if(ArchiveT::is_loading::value) preLoad(*this); else preSave(*this); \
 		BOOST_PP_SEQ_FOR_EACH(_REGISTER_BOOST_SERIALIZATION_ATTRIBUTES_REPEAT,~,attrs) \
-		if(ArchiveT::is_loading::value) postLoad(*this); else postSave(*this); \
+		if(ArchiveT::is_loading::value) postLoad(*this,NULL); else postSave(*this); \
 	}
 
 #define _REGISTER_ATTRIBUTES_DEPREC(thisClass,baseClass,attrs,deprec)  _REGISTER_BOOST_SERIALIZATION_ATTRIBUTES(baseClass,attrs) public: \
 	void pySetAttr(const std::string& key, const py::object& value){BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR,~,attrs); BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR_DEPREC,thisClass,deprec); baseClass::pySetAttr(key,value); } \
 	/* return dictionary of all acttributes and values; deprecated attributes omitted */ py::dict pyDict() const { py::dict ret; BOOST_PP_SEQ_FOR_EACH(_PYDICT_ATTR,~,attrs); ret.update(baseClass::pyDict()); return ret; } \
-	virtual void callPostLoad(void){ baseClass::callPostLoad(); postLoad(*this); }
+	virtual void callPostLoad(void* addr){ baseClass::callPostLoad(addr); postLoad(*this,addr); }
 
 #define _DEF_TRAIT_GETTER(x,thisClass,z) template<class Trait, > 
 #define _DEFINE_TRAIT_GETTERS(thisClass,attrs) BOOST_PP_SEQ_FOR_EACH(_DEF_TRAIT_GETTER,thisClass,attrs)
@@ -349,7 +349,7 @@ template<> struct _SerializeMaybe<false>{
 	/*class itself*/	REGISTER_CLASS_AND_BASE(thisClass,baseClass) \
 	/* attribute declarations*/ BOOST_PP_SEQ_FOR_EACH(_ATTR_DECL_AND_TRAIT,~,attrs) \
 	/* boost::serialization, all in header*/ _REGISTER_BOOST_SERIALIZATION_ATTRIBUTES(baseClass,attrs) public: \
-	/* later: call postLoad via ADL*/virtual void callPostLoad(void){ baseClass::callPostLoad(); postLoad(*this); } \
+	/* later: call postLoad via ADL*/virtual void callPostLoad(void* addr){ baseClass::callPostLoad(addr); postLoad(*this,addr); } \
 	/* accessors for deprecated attributes, with warnings */ BOOST_PP_SEQ_FOR_EACH(_ACCESS_DEPREC,thisClass,deprec) \
 	/**follow purce declarations of which implementation is handled sparately**/ \
 	/*1. ctor declaration */ thisClass();\
@@ -437,7 +437,7 @@ struct Object: public boost::noncopyable, public boost::enable_shared_from_this<
 
 		virtual void pySetAttr(const std::string& key, const py::object& value){ woo::AttributeError("No such attribute: "+key+".");};
 		virtual py::dict pyDict() const { return py::dict(); }
-		virtual void callPostLoad(void){ postLoad(*this); }
+		virtual void callPostLoad(void* addr){ postLoad(*this,addr); }
 		// check whether the class registers itself or whether it calls virtual function of some base class;
 		// that means that the class doesn't register itself properly
 		virtual void checkPyClassRegistersItself(const std::string& thisClassName) const;
@@ -465,7 +465,7 @@ shared_ptr<T> Object_ctor_kwAttrs(py::tuple& t, py::dict& d){
 	instance->pyHandleCustomCtorArgs(t,d); // can change t and d in-place
 	if(py::len(t)>0) throw std::runtime_error("Zero (not "+boost::lexical_cast<string>(py::len(t))+") non-keyword constructor arguments required [in Object_ctor_kwAttrs; Object::pyHandleCustomCtorArgs might had changed it after your call].");
 	if(py::len(d)>0) instance->pyUpdateAttrs(d);
-	instance->callPostLoad(); 
+	instance->callPostLoad(NULL); 
 	return instance;
 }
 

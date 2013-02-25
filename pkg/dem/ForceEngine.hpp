@@ -5,7 +5,7 @@
 struct RadialForce: public GlobalEngine {
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	virtual void run();
-	virtual void postLoad(RadialForce&){ axisDir.normalize(); }
+	virtual void postLoad(RadialForce&,void*){ axisDir.normalize(); }
 	WOO_CLASS_BASE_DOC_ATTRS(RadialForce,GlobalEngine,"Apply force of given magnitude directed away from spatial axis on some nodes.",
 		((vector<shared_ptr<Node>>,nodes,,,"Nodes on which the force is applied"))
 		((Vector3r,axisPt,Vector3r::Zero(),,"Point on axis"))

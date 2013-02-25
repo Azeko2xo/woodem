@@ -211,7 +211,7 @@ void ExplicitNodeIntegrator::applyKinematicConstraints(const shared_ptr<Node>& n
 };
 
 
-void ExplicitNodeIntegrator::postLoad(ExplicitNodeIntegrator&){
+void ExplicitNodeIntegrator::postLoad(ExplicitNodeIntegrator&,void*){
 	// update stiffness matrix
 	C<<(Matrix3r()<<1-nu,nu,nu, nu,1-nu,nu, nu,nu,1-nu).finished(),Matrix3r::Zero(),Matrix3r::Zero(),Matrix3r(((1-2*nu)/2.)*Matrix3r::Identity());
 	C*=E/((1+nu)*(1-2*nu));

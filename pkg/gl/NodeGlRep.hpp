@@ -41,7 +41,7 @@ REGISTER_SERIALIZABLE(ActReactGlRep);
 
 struct TensorGlRep: public NodeGlRep{
 	void render(const shared_ptr<Node>&, GLViewInfo*);
-	void postLoad(TensorGlRep&);
+	void postLoad(TensorGlRep&,void*);
 	WOO_CLASS_BASE_DOC_ATTRS(TensorGlRep,NodeGlRep,"Render tensor (given as 3x3 matrix) as its principal components.",
 		((Matrix3r,val,Matrix3r::Zero(),AttrTrait<Attr::triggerPostLoad>(),"Value to be rendered."))
 		((Matrix3r,eigVec,Matrix3r::Zero(),AttrTrait<Attr::noSave|Attr::readonly>(),"eigenvectors as columns, updated in postLoad."))
@@ -58,7 +58,7 @@ REGISTER_SERIALIZABLE(TensorGlRep);
 
 struct CylGlRep: public NodeGlRep{
 	void render(const shared_ptr<Node>&, GLViewInfo*);
-	//void postLoad(CylGlRep&);
+	//void postLoad(CylGlRep&,void*);
 	WOO_CLASS_BASE_DOC_ATTRS(CylGlRep,NodeGlRep,"Render cylinder aligned with local x-axis, with color and radius given by val (and optionally val2).",
 		((Real,rad,NaN,,"Scalar determining radius; 1 if NaN"))
 		((Real,col,NaN,,"Scalar determining color; *rad* is used if NaN."))

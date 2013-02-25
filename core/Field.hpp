@@ -52,7 +52,7 @@ struct ScalarRange: public Object{
 	Real norm(Real v);
 	void adjust(const Real& v);
 	// called only when mnmx is manipulated
-	void postLoad(const ScalarRange&){ if(isOk()) autoAdjust=false; }
+	void postLoad(const ScalarRange&,void*){ if(isOk()) autoAdjust=false; }
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ScalarRange,Object,"Store and share range of scalar values",
 		((Vector2r,mnmx,Vector2r(std::numeric_limits<Real>::infinity(),-std::numeric_limits<Real>::infinity()),AttrTrait<Attr::triggerPostLoad>().buttons({"Reset","self.reset()","Re-initialize range"}),"Packed minimum and maximum values; adjusting from python sets :ref:`autoAdjust` to false automatically."))
 		((bool,autoAdjust,true,,"Automatically adjust range using given values."))

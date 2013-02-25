@@ -22,7 +22,7 @@ struct Cell: public Object{
 	public:
 	//! Get/set sizes of cell base vectors
 	const Vector3r& getSize() const { return _size; }
-	void setSize(const Vector3r& s){for (int k=0;k<3;k++) hSize.col(k)*=s[k]/hSize.col(k).norm(); refHSize=hSize;  postLoad(*this);}
+	void setSize(const Vector3r& s){for (int k=0;k<3;k++) hSize.col(k)*=s[k]/hSize.col(k).norm(); refHSize=hSize;  postLoad(*this,NULL);}
 	//! Return copy of the current size (used only by the python wrapper)
 	Vector3r getSize_copy() const { return _size; }
 	//! return vector of consines of skew angle in yz, xz, xy planes between respective transformed base vectors
@@ -105,21 +105,21 @@ struct Cell: public Object{
 
 	// get/set current shape; setting resets trsf to identity
 	Matrix3r getHSize() const { return hSize; }
-	void setHSize(const Matrix3r& m){ hSize=refHSize=m; pprevHsize=hSize; postLoad(*this); }
+	void setHSize(const Matrix3r& m){ hSize=refHSize=m; pprevHsize=hSize; postLoad(*this,NULL); }
 	// set current transformation; has no influence on current configuration (hSize); sets display refHSize as side-effect
 	Matrix3r getTrsf() const { return trsf; }
-	void setTrsf(const Matrix3r& m){ trsf=m; postLoad(*this); }
+	void setTrsf(const Matrix3r& m){ trsf=m; postLoad(*this,NULL); }
 	// get undeformed shape
 	Matrix3r getHSize0() const { return _invTrsf*hSize; }
 	Vector3r getSize0() const { Matrix3r h0=getHSize0(); return Vector3r(h0.col(0).norm(),h0.col(1).norm(),h0.col(2).norm()); }
 	// set box shape of the cell
-	void setBox(const Vector3r& size){ setHSize(size.asDiagonal()); trsf=Matrix3r::Identity(); postLoad(*this); }
+	void setBox(const Vector3r& size){ setHSize(size.asDiagonal()); trsf=Matrix3r::Identity(); postLoad(*this,NULL); }
 	void setBox3(const Real& s0, const Real& s1, const Real& s2){ setBox(Vector3r(s0,s1,s2)); }
 	
 
 	// return current cell volume
 	Real getVolume() const {return hSize.determinant();}
-	void postLoad(Cell&){ integrateAndUpdate(0); }
+	void postLoad(Cell&, void* addr){ integrateAndUpdate(0); }
 
 	// to resolve overloads
 	Vector3r canonicalizePt_py(const Vector3r& pt) const { return canonicalizePt(pt);}

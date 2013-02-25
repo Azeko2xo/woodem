@@ -20,7 +20,7 @@ namespace Eigen{
 }
 
 /* setup OpenCL, load kernel */
-void OpenCLCollider::postLoad(OpenCLCollider&){
+void OpenCLCollider::postLoad(OpenCLCollider&,void*){
 	#ifdef WOO_OPENCL
 	if(!clSrc.empty()){
 		scene->ensureCl();

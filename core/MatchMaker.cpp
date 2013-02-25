@@ -14,7 +14,7 @@ Real MatchMaker::operator()(int id1, int id2, Real val1, Real val2) const {
 	return computeFallback(val1,val2);
 }
 
-void MatchMaker::postLoad(MatchMaker&){
+void MatchMaker::postLoad(MatchMaker&,void*){
 	if(algo=="val")      { fbPtr=&MatchMaker::fbVal; fbNeedsValues=false; }
 	else if(algo=="zero"){ fbPtr=&MatchMaker::fbZero;fbNeedsValues=false; } 
 	else if(algo=="avg") { fbPtr=&MatchMaker::fbAvg; fbNeedsValues=true;  }

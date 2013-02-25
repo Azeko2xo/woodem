@@ -162,7 +162,7 @@ struct ExplicitNodeIntegrator: public GlobalEngine {
 	Real nextPorosity(Real e, const Matrix3r& D) const { return e+scene->dt*(1+e)*D.trace(); }
 	void applyKinematicConstraints(const shared_ptr<Node>& n, bool permitFixedDivT) const;
 	Matrix6r C; // updated at every step
-	void postLoad(ExplicitNodeIntegrator&);
+	void postLoad(ExplicitNodeIntegrator&,void*);
 	virtual void run();
 	Real pointWeight(Real distSq) const;
 	enum {WEIGHT_DIST=0,WEIGHT_GAUSS,WEIGHT_SENTINEL};

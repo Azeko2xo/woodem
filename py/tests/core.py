@@ -49,6 +49,7 @@ class TestScene(unittest.TestCase):
 
 class TestObjectInstantiation(unittest.TestCase):
 	def setUp(self):
+		self.t=woo.core.WooTestClass()
 		pass # no setup needed for tests here
 	def testClassCtors(self):
 		"Core: correct types are instantiated"
@@ -95,39 +96,9 @@ class TestObjectInstantiation(unittest.TestCase):
 		# accessing invalid attributes raises AttributeError
 		self.assertRaises(AttributeError,lambda: Sphere(attributeThatDoesntExist=42))
 		self.assertRaises(AttributeError,lambda: Sphere().attributeThatDoesntExist)
-	##
-	## attribute flags
-	##
-	def testTriggerPostLoad(self):
-		'Core: Attr::triggerPostLoad'
-		# RadialEngine normalizes axisDir automatically
-		# anything else could be tested
-		te=RadialForce();
-		te.axisDir=(0,2,0)
-		self.assert_(te.axisDir==(0,1,0))
-	def testHidden(self):
-		'Core: Attr::hidden'
-		# hidden attributes are not wrapped in python at all
-		self.assert_(not hasattr(Contact(),'stepLastSeen'))
-	def testNoSave(self):
-		'Core: Attr::noSave'
-		# update bound of the particle
-		S=Scene(fields=[DemField()])
-		S.dem.par.append(utils.sphere((0,0,0),1))
-		S.dem.collectNodes()
-		S.engines=[InsertionSortCollider([Bo1_Sphere_Aabb()]),Leapfrog(reset=True)]
-		S.one()
-		S.saveTmp(quiet=True)
-		mn0=Vector3(S.dem.par[0].shape.bound.min)
-		S=S.loadTmp()
-		mn1=Vector3(S.dem.par[0].shape.bound.min)
-		# check that the minimum is not saved
-		self.assert_(not isnan(mn0[0]))
-		self.assert_(isnan(mn1[0]))
-	def testReadonly(self):
-		'Core: Attr::readonly'
-		self.assertRaises(AttributeError,lambda: setattr(Particle(),'id',3))
-
+	###
+	### shared ownership semantics
+	###
 	def testShared(self):
 		"Core: shared_ptr really shared"
 		m=woo.utils.defaultMaterial()
@@ -142,6 +113,64 @@ class TestObjectInstantiation(unittest.TestCase):
 		S.saveTmp(quiet=True); S=Scene.loadTmp()
 		S.dem.par[0].mat.young=9087438484
 		self.assert_(S.dem.par[0].mat.young==S.dem.par[1].mat.young)
+	##
+	## attribute flags
+	##
+	def testHidden0(self):
+		'Core: Attr::hidden [0]'
+		# hidden attributes are not wrapped in python at all
+		self.assert_(not hasattr(Contact(),'stepLastSeen'))
+	def testNoSave(self):
+		'Core: Attr::noSave [0]'
+		# update bound of the particle
+		S=Scene(fields=[DemField()])
+		S.dem.par.append(utils.sphere((0,0,0),1))
+		S.dem.collectNodes()
+		S.engines=[InsertionSortCollider([Bo1_Sphere_Aabb()]),Leapfrog(reset=True)]
+		S.one()
+		S.saveTmp(quiet=True)
+		mn0=Vector3(S.dem.par[0].shape.bound.min)
+		S=S.loadTmp()
+		mn1=Vector3(S.dem.par[0].shape.bound.min)
+		# check that the minimum is not saved
+		self.assert_(not isnan(mn0[0]))
+		self.assert_(isnan(mn1[0]))
+	def testReadonly0(self):
+		'Core: Attr::readonly [0]'
+		self.assertRaises(AttributeError,lambda: setattr(Particle(),'id',3))
+	def testTriggerPostLoad0(self):
+		'Core: Attr::triggerPostLoad [0]'
+		# RadialEngine normalizes axisDir automatically
+		# anything else could be tested
+		te=RadialForce();
+		te.axisDir=(0,2,0)
+		self.assert_(te.axisDir==(0,1,0))
+	def testReadonly(self):
+		'Core: Attr::readonly'
+		self.assert_(self.t.meaning42==42)
+		self.assertRaises(AttributeError,lambda: setattr(self.t,'meaning42',43))
+	def testTriggerPostLoad(self):
+		'Core: postLoad & Attr::triggerPostLoad'
+		WTC=woo.core.WooTestClass
+		# stage right after construction
+		self.assert_(self.t.postLoadStage==WTC.postLoad_ctor)
+		baz0=self.t.baz
+		self.t.foo_incBaz=1 # assign whatever, baz should be incremented
+		self.assert_(self.t.baz==baz0+1)
+		self.assert_(self.t.postLoadStage==WTC.postLoad_foo)
+		self.t.foo_incBaz=1 # again
+		self.assert_(self.t.baz==baz0+2)
+		self.t.bar_zeroBaz=1 # assign to reset baz
+		self.assert_(self.t.baz==0)
+		self.assert_(self.t.postLoadStage==WTC.postLoad_bar)
+		# assign to baz to test postLoad again
+		self.t.baz=-1
+		self.assert_(self.t.postLoadStage==WTC.postLoad_baz)
+	def testHidden(self):
+		'Core: Attr::hidden'
+		# hidden attributes are not wrapped in python at all
+		self.assert_(not hasattr(self.t,'hiddenAttribute'))
+
 
 
 

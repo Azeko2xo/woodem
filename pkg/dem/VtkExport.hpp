@@ -38,7 +38,7 @@ struct VtkExport: public PeriodicEngine{
 
 	static int addTriangulatedObject(vector<Vector3r> pts, vector<Vector3i> tri, const vtkSmartPointer<vtkPoints>& vtkPts, const vtkSmartPointer<vtkCellArray>& cells);
 
-	void postLoad(VtkExport&){
+	void postLoad(VtkExport&,void*){
 		if(what>WHAT_ALL || what<0) throw std::runtime_error("VtkExport.what="+to_string(what)+", but should be at most "+to_string(WHAT_ALL)+".");
 	}
 

@@ -66,7 +66,7 @@ REGISTER_SERIALIZABLE(MinMaxSphereGenerator);
 struct PsdSphereGenerator: public ParticleGenerator{
 	DECLARE_LOGGER;
 	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m);
-	void postLoad(PsdSphereGenerator&);
+	void postLoad(PsdSphereGenerator&,void*);
 	void clear(){ ParticleGenerator::clear(); weightTotal=0.; std::fill(weightPerBin.begin(),weightPerBin.end(),0.); }
 	py::tuple pyInputPsd(bool scale, bool cumulative, int num) const;
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(PsdSphereGenerator,ParticleGenerator,"Generate particles following a discrete Particle Size Distribution (PSD)",
@@ -94,7 +94,7 @@ struct AlignedMinMaxShooter: public ParticleShooter{
 		vel=dir*(vRange[0]+Mathr::UnitRandom()*(vRange[1]-vRange[0]));
 		angVel=Vector3r::Zero();
 	}
-	void postLoad(AlignedMinMaxShooter&){ dir.normalize(); }
+	void postLoad(AlignedMinMaxShooter&, void*){ dir.normalize(); }
 	WOO_CLASS_BASE_DOC_ATTRS(AlignedMinMaxShooter,ParticleShooter,"Shoot particles in one direction, with velocity magnitude constrained by vRange values",
 		((Vector3r,dir,Vector3r::UnitX(),AttrTrait<Attr::triggerPostLoad>(),"Direction (will be normalized)"))
 		((Vector2r,vRange,Vector2r(NaN,NaN),,"Minimum velocity magnitude"))
@@ -214,7 +214,7 @@ struct ConveyorFactory: public ParticleFactory{
 	DECLARE_LOGGER;
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	void sortPacking();
-	void postLoad(ConveyorFactory&);
+	void postLoad(ConveyorFactory&,void*);
 	#ifdef WOO_OPENGL
 		void render(const GLViewInfo&){
 			if(isnan(glColor)) return;

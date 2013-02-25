@@ -45,7 +45,7 @@ struct Scene: public Object{
 		// advance by one iteration by running all engines
 		void doOneStep();
 
-		void postLoad(Scene&);
+		void postLoad(Scene&,void*);
 		void preSave(Scene&){ preSaveDuration=pyGetDuration(); }
 
 		#ifdef WOO_OPENCL

@@ -61,7 +61,7 @@ void Object::pyUpdateAttrs(const py::dict& d){
 		string key=py::extract<string>(t[0]);
 		pySetAttr(key,t[1]);
 	}
-	callPostLoad();
+	callPostLoad(NULL);
 }
 
 };

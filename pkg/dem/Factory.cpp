@@ -69,7 +69,7 @@ MinMaxSphereGenerator::operator()(const shared_ptr<Material>&mat){
 };
 
 
-void PsdSphereGenerator::postLoad(PsdSphereGenerator&){
+void PsdSphereGenerator::postLoad(PsdSphereGenerator&,void*){
 	if(psdPts.empty()) return;
 	for(int i=0; i<(int)psdPts.size()-1; i++){
 		if(psdPts[i][0]<0 || psdPts[i][1]<0) throw std::runtime_error("PsdSphereGenerator.psdPts: negative values not allowed.");
@@ -492,7 +492,7 @@ py::object BoxDeleter::pyPsd(bool mass, bool cumulative, bool normalize, int num
 }
 
 
-void ConveyorFactory::postLoad(ConveyorFactory&){
+void ConveyorFactory::postLoad(ConveyorFactory&,void*){
 	if(radii.size()==centers.size() && !radii.empty()){
 		sortPacking();
 	}

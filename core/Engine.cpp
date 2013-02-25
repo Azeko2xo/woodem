@@ -27,7 +27,7 @@ void Engine::setField(){
 	field=accepted[0];
 }
 
-void Engine::postLoad(Engine&){
+void Engine::postLoad(Engine&, void*){
 	if(isNewObject && field){ userAssignedField=true; }
 	isNewObject=false;
 }

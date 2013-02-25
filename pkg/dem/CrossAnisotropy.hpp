@@ -6,7 +6,7 @@
 struct Cp2_FrictMat_FrictPhys_CrossAnisotropic: CPhysFunctor {
 	virtual void go(const shared_ptr<Material>&, const shared_ptr<Material>&, const shared_ptr<Contact>&);
 	FUNCTOR2D(FrictMat,FrictMat);
-	void postLoad(Cp2_FrictMat_FrictPhys_CrossAnisotropic&);
+	void postLoad(Cp2_FrictMat_FrictPhys_CrossAnisotropic&,void*);
 	DECLARE_LOGGER;
 	WOO_CLASS_BASE_DOC_ATTRS(Cp2_FrictMat_FrictPhys_CrossAnisotropic,CPhysFunctor,"Call :ref:`Cp2_FrictMat_FrictPhys` to create a new :ref:`FrictPhys`, but multiply resulting :ref:`normal<NormPhys.kn>` and `shear<NormShearPhys.ks>` by smooth dimensionless anisotropy distribution given by :ref:`rot<Cp2_FrictMat_FrictPhys_CrossAnisotropic.rot>` and :ref:`scale<Cp2_FrictMat_FrictPhys.scale>`.",
 		//((Real,nu2,.4,AttrTrait<Attr::readonly>(),"Minor Poisson's ratio (not really used)."))
@@ -39,7 +39,7 @@ REGISTER_SERIALIZABLE(Cp2_FrictMat_FrictPhys_CrossAnisotropic);
 
 class GlExtra_LocalAxes: public GlExtraDrawer{
 	public:
-	//void postLoad(GlExtra_OctreeCubes&);
+	//void postLoad(GlExtra_OctreeCubes&,void*);
 	virtual void render();
 	WOO_CLASS_BASE_DOC_ATTRS(GlExtra_LocalAxes,GlExtraDrawer,"Render local coordinate system axes.",
 		((Vector3r,pos,Vector3r::Zero(),,"System position in global coordinates"))

@@ -229,7 +229,7 @@ vector<shared_ptr<Engine> > Scene::pyEnginesGet(void){ return _nextEngines.empty
 void Scene::pyEnginesSet(const vector<shared_ptr<Engine> >& e){
 	if(subStep<0) engines=e;
 	else _nextEngines=e;
-	postLoad(*this);
+	postLoad(*this,(void*)&engines);
 }
 
 #ifdef WOO_OPENGL
@@ -249,7 +249,7 @@ void Scene::saveTmp(const string& slot, bool quiet){
 	Master::instance().saveTmp(static_pointer_cast<Scene>(shared_from_this()),slot,/*quiet*/true);
 }
 
-void Scene::postLoad(Scene&){
+void Scene::postLoad(Scene&,void*){
 	if(!clock0adjusted){
 		clock0-=boost::posix_time::seconds(preSaveDuration);
 		clock0adjusted=true;
@@ -314,7 +314,7 @@ void Scene::doOneStep(){
 	if(!_nextEngines.empty() && (subStep<0 || (subStep<=0 && !subStepping))){
 		engines=_nextEngines;
 		_nextEngines.clear();
-		postLoad(*this); // setup labels, check fields etc
+		postLoad(*this,NULL); // setup labels, check fields etc
 		// hopefully this will not break in some margin cases (subStepping with setting _nextEngines and such)
 		subStep=-1;
 	}

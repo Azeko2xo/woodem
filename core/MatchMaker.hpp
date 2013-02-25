@@ -26,10 +26,10 @@ class MatchMaker: public Object {
 	#endif 
 	public:
 		virtual ~MatchMaker();
-		MatchMaker(std::string _algo): algo(_algo){ postLoad(*this); }
-		MatchMaker(Real _val): algo("val"), val(_val){ postLoad(*this); }
+		MatchMaker(std::string _algo): algo(_algo){ postLoad(*this,NULL); }
+		MatchMaker(Real _val): algo("val"), val(_val){ postLoad(*this,NULL); }
 		Real computeFallback(Real val1, Real val2) const ;
-		void postLoad(MatchMaker&);
+		void postLoad(MatchMaker&,void*);
 		// return value looking up matches for id1+id2 (the order is arbitrary)
 		// if no match is found, use val1,val2 and algo strategy to compute new value.
 		// if no match is found and val1 or val2 are not given, throw exception

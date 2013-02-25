@@ -808,7 +808,7 @@ shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>
 	dem->collectNodes();
 
 	// set engine's fields and scene pointers
-	scene->postLoad(*scene);
+	scene->postLoad(*scene,NULL);
 	return scene;
 };
 

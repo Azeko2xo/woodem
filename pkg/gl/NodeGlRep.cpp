@@ -83,7 +83,7 @@ void ActReactGlRep::renderDoubleArrow(const Vector3r& pos, const Vector3r& arr, 
 	else        { GLUtils::GLDrawArrow(pos+offset-arr,pos+offset,color); GLUtils::GLDrawArrow(pos-offset+arr,pos-offset,color); }
 }
 
-void TensorGlRep::postLoad(TensorGlRep&){
+void TensorGlRep::postLoad(TensorGlRep&,void*){
 	// symmetrize the tensor
 	Matrix3r sym=.5*(val+val.transpose());
 

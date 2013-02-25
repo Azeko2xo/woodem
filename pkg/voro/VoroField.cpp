@@ -12,7 +12,7 @@ CREATE_LOGGER(VoroField);
 void VoroField::preSave(VoroField&){
 	LOG_WARN("VoroField: serialization not yet implemented, your data will be lost. Call VoroField.updateFromDem(...) to refresh.");
 }
-void VoroField::postLoad(VoroField&){};
+void VoroField::postLoad(VoroField&,void*){};
 
 void VoroField::updateFromDem(){
 	// get DEM field we take data from

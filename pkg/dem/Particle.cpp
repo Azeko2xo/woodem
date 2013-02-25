@@ -169,7 +169,7 @@ AlignedBox3r DemField::renderingBbox() const{
 }
 
 
-void DemField::postLoad(DemField&){
+void DemField::postLoad(DemField&,void*){
 	particles->dem=this;
 	contacts->dem=this;
 	contacts->particles=particles.get();

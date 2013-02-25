@@ -12,7 +12,7 @@ struct VoroField: public Field{
 	voropp::container_periodic_poly* conp;
 	voropp::voronoi_network* vnet;
 
-	void postLoad(VoroField&);
+	void postLoad(VoroField&,void*);
 	void preSave(VoroField&);
 
 	void cellsToPov(const std::string& out);

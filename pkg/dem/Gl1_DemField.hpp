@@ -13,7 +13,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 	void doNodes(const vector<shared_ptr<Node>>& nodeContainer);
 	void doContactNodes();
 	void doCPhys();
-	static void postLoadStatic(){
+	static void postLoadStatic(void*){
 		colorRange=colorRanges[colorBy];
 		glyphRange=glyphRanges[glyph];
 		doPostLoad=true;

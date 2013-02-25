@@ -7,7 +7,7 @@ WOO_PLUGIN(dem,(Cp2_FrictMat_FrictPhys_CrossAnisotropic));
 
 CREATE_LOGGER(Cp2_FrictMat_FrictPhys_CrossAnisotropic);
 
-void Cp2_FrictMat_FrictPhys_CrossAnisotropic::postLoad(Cp2_FrictMat_FrictPhys_CrossAnisotropic&){
+void Cp2_FrictMat_FrictPhys_CrossAnisotropic::postLoad(Cp2_FrictMat_FrictPhys_CrossAnisotropic&,void*){
 	Real a=alpha*(deg?M_PI/180.:1.), b=beta*(deg?M_PI/180.:1.);
 	xisoAxis=Vector3r(cos(a)*sin(b),-sin(a)*sin(b),cos(b));
 	recomputeIter=scene->step+1; // recompute everything at the next step

@@ -47,7 +47,7 @@ class Engine: public Object {
 			virtual void render(const GLViewInfo&){};
 		#endif
 
-		void postLoad(Engine&);
+		void postLoad(Engine&,void*);
 		void setDefaultScene();
 
 		void runPy(const string&);
