@@ -186,9 +186,9 @@ class DynLibDispatcher
 			return shared_ptr<Executor>();
 		 }
 
-		shared_ptr<Executor> getFunctor1D(shared_ptr<BaseClass1>& base1){ return getExecutor(base1); }
+		shared_ptr<Executor> getFunctor1D(const shared_ptr<BaseClass1>& base1){ return getExecutor(base1); }
 		/* Return pointer to the functor for two base classes given. Swap is true if the dispatch objects should be swapped before calling Executor::go. */
-		shared_ptr<Executor> getFunctor2D(shared_ptr<BaseClass1>& base1, shared_ptr<BaseClass2>& base2, bool& swap){
+		shared_ptr<Executor> getFunctor2D(const shared_ptr<BaseClass1>& base1, const shared_ptr<BaseClass2>& base2, bool& swap){
 			int ix1, ix2;
 			if(!locateMultivirtualFunctor2D(ix1,ix2,base1,base2)) return shared_ptr<Executor>();
 			swap=(bool)(callBacksInfo[ix1][ix2]);
@@ -310,7 +310,7 @@ class DynLibDispatcher
 			#endif
 		  }
 
-		bool locateMultivirtualFunctor1D(int& index, shared_ptr<BaseClass1>& base) {
+		bool locateMultivirtualFunctor1D(int& index, const shared_ptr<BaseClass1>& base) {
 			if(callBacks.empty()) return false;
 			index = base->getClassIndex();
 			assert( index >= 0 && (unsigned int)( index ) < callBacks.size());
@@ -341,7 +341,7 @@ class DynLibDispatcher
 			return false; // FIXME - this line should be not needed
 		}
 
-		bool locateMultivirtualFunctor2D(int& index1, int& index2, shared_ptr<BaseClass1>& base1,shared_ptr<BaseClass2>& base2) {
+		bool locateMultivirtualFunctor2D(int& index1, int& index2, const shared_ptr<BaseClass1>& base1, const shared_ptr<BaseClass2>& base2) {
 			//#define _DISP_TRACE(msg) cerr<<"@DT@"<<__LINE__<<" "<<msg<<endl;
 			#define _DISP_TRACE(msg)
 			if(callBacks.empty()) return false;

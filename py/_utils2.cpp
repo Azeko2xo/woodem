@@ -128,13 +128,14 @@ Real muStiffnessScaling(Real piHat=M_PI/2, bool skipFloaters=false, Real V=-1){
 	int N=0;
 	Real Rr2=0; // r'*r^2
 	FOREACH(const shared_ptr<Contact>& c, *dem->contacts){
-		if(!(dynamic_pointer_cast<Sphere>(c->pA->shape) && dynamic_pointer_cast<Sphere>(c->pB->shape))) continue;
+		const Particle *pA=c->leakPA(), *pB=c->leakPB();
+		if(!(dynamic_pointer_cast<Sphere>(pA->shape) && dynamic_pointer_cast<Sphere>(pB->shape))) continue;
 		if(skipFloaters && (
-			count_if(c->pA->contacts.begin(),c->pA->contacts.end(),[](const Particle::MapParticleContact::value_type& v){return v.second->isReal();})<=1 || /* smaller than one would be a grave bug*/
-			count_if(c->pB->contacts.begin(),c->pB->contacts.end(),[](const Particle::MapParticleContact::value_type& v){return v.second->isReal();})<=1
+			count_if(pA->contacts.begin(),pA->contacts.end(),[](const Particle::MapParticleContact::value_type& v){return v.second->isReal();})<=1 || /* smaller than one would be a grave bug*/
+			count_if(pB->contacts.begin(),pB->contacts.end(),[](const Particle::MapParticleContact::value_type& v){return v.second->isReal();})<=1
 		)) continue;
 		Real rr=.5*c->dPos(scene).norm(); // handles PBC
-		Real r=min(c->pA->shape->cast<Sphere>().radius,c->pB->shape->cast<Sphere>().radius);
+		Real r=min(pA->shape->cast<Sphere>().radius,pB->shape->cast<Sphere>().radius);
 		Rr2+=rr*r*r;
 		N++;
 	}
@@ -151,7 +152,8 @@ Matrix6r bestFitCompliance(){
 	struct ContData{ Real hn,hs; Vector3r l,n,s,t; };
 	vector<ContData> CC;
 	FOREACH(const shared_ptr<Contact>& c, *dem->contacts){
-		if(!(dynamic_pointer_cast<Sphere>(c->pA->shape) && dynamic_pointer_cast<Sphere>(c->pB->shape))) continue;
+		const Particle *pA=c->leakPA(), *pB=c->leakPB();
+		if(!(dynamic_pointer_cast<Sphere>(pA->shape) && dynamic_pointer_cast<Sphere>(pB->shape))) continue;
 		const Matrix3r& trsf=c->geom->cast<L6Geom>().trsf;
 		ContData cd={1/c->phys->cast<FrictPhys>().kn,1/c->phys->cast<FrictPhys>().kt,c->dPos(scene),trsf.row(0),trsf.row(1),trsf.row(2)};
 		CC.push_back(cd);

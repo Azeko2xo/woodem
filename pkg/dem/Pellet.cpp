@@ -18,7 +18,7 @@ void Cp2_PelletMat_PelletPhys::go(const shared_ptr<Material>& m1, const shared_p
 CREATE_LOGGER(Law2_L6Geom_PelletPhys_Pellet);
 
 void Law2_L6Geom_PelletPhys_Pellet::tryAddDissipState(int what, Real E, const shared_ptr<Contact>& C){
-	for(const auto& p: {C->pA, C->pB}){
+	for(const Particle* p: {C->leakPA(), C->leakPB()}){
 		if(!p->matState) continue;
 		assert(dynamic_cast<PelletMatState*>(p->matState.get()));
 		boost::mutex::scoped_lock l(p->matState->lock);
@@ -68,7 +68,7 @@ void Law2_L6Geom_PelletPhys_Pellet::go(const shared_ptr<CGeom>& cg, const shared
 				if(thinningFactor>0 && rMinFrac<1.){
 					const Vector2r bendVel(g.angVel[1],g.angVel[2]);
 					Real dRad=thinningFactor*(uNPl0-uNPl)*(scene->dt*bendVel.norm());
-					for(const auto& p:{C->pA,C->pB}){
+					for(const Particle* p:{C->leakPA(),C->leakPB()}){
 						if(!dynamic_cast<Sphere*>(p->shape.get())) continue;
 						auto& s=p->shape->cast<Sphere>();
 						//Real r0=(C->geom->cast<L6Geom>().lens[p.get()==C->pA.get()?0:1]);

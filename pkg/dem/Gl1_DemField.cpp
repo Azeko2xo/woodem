@@ -303,6 +303,7 @@ void Gl1_DemField::doContactNodes(){
 	for(size_t i=0; i<dem->contacts->size(); i++){
 		PROCESS_GUI_EVENTS_SOMETIMES;
 		const shared_ptr<Contact>& C((*dem->contacts)[i]);
+		const Particle *pA=C->leakPA(), *pB=C->leakPB();
 		if(C->isReal()){
 			shared_ptr<CGeom> geom=C->geom;
 			if(!geom) continue;
@@ -311,9 +312,9 @@ void Gl1_DemField::doContactNodes(){
 			Renderer::glScopedName name(C,node);
 			if((cNode & CNODE_GLREP) && node->rep){ node->rep->render(node,viewInfo); }
 			if(cNode & CNODE_LINE){
-				assert(C->pA->shape && C->pB->shape);
-				assert(C->pA->shape->nodes.size()>0); assert(C->pB->shape->nodes.size()>0);
-				Vector3r x[3]={node->pos,C->pA->shape->avgNodePos(),C->pB->shape->avgNodePos()};
+				assert(pA->shape && pB->shape);
+				assert(pA->shape->nodes.size()>0); assert(pB->shape->nodes.size()>0);
+				Vector3r x[3]={node->pos,pA->shape->avgNodePos(),pB->shape->avgNodePos()};
 				if(scene->isPeriodic){
 					Vector3i cellDist;
 					x[0]=scene->cell->canonicalizePt(x[0],cellDist);
@@ -321,20 +322,20 @@ void Gl1_DemField::doContactNodes(){
 					x[2]+=scene->cell->intrShiftPos(-cellDist+C->cellDist);
 				}
 				Vector3r color=CompUtils::mapColor(C->color);
-				if(dynamic_pointer_cast<Sphere>(C->pA->shape)) GLUtils::GLDrawLine(x[0],x[1],color);
+				if(dynamic_pointer_cast<Sphere>(pA->shape)) GLUtils::GLDrawLine(x[0],x[1],color);
 				GLUtils::GLDrawLine(x[0],x[2],color);
 			}
 			if(cNode & CNODE_NODE) Renderer::renderRawNode(node);
 		} else {
 			if(!(cNode & CNODE_POTLINE)) continue;
-			assert(C->pA->shape && C->pB->shape);
-			assert(C->pA->shape->nodes.size()>0); assert(C->pB->shape->nodes.size()>0);
+			assert(pA->shape && pB->shape);
+			assert(pA->shape->nodes.size()>0); assert(pB->shape->nodes.size()>0);
 			Vector3r A;
-			Vector3r B=C->pB->shape->avgNodePos();
-			if(dynamic_pointer_cast<Sphere>(C->pA->shape)) A=C->pA->shape->nodes[0]->pos;
-			else if(dynamic_pointer_cast<Wall>(C->pA->shape)){ A=C->pA->shape->nodes[0]->pos; int ax=C->pA->shape->cast<Wall>().axis; A[(ax+1)%3]=B[(ax+1)%3]; A[(ax+2)%3]=B[(ax+2)%3]; }
-			else if(dynamic_pointer_cast<InfCylinder>(C->pA->shape)){ A=C->pA->shape->nodes[0]->pos; int ax=C->pA->shape->cast<InfCylinder>().axis; A[ax]=B[ax]; }
-			else A=C->pA->shape->avgNodePos();
+			Vector3r B=pB->shape->avgNodePos();
+			if(dynamic_pointer_cast<Sphere>(pA->shape)) A=pA->shape->nodes[0]->pos;
+			else if(dynamic_pointer_cast<Wall>(pA->shape)){ A=pA->shape->nodes[0]->pos; int ax=pA->shape->cast<Wall>().axis; A[(ax+1)%3]=B[(ax+1)%3]; A[(ax+2)%3]=B[(ax+2)%3]; }
+			else if(dynamic_pointer_cast<InfCylinder>(pA->shape)){ A=pA->shape->nodes[0]->pos; int ax=pA->shape->cast<InfCylinder>().axis; A[ax]=B[ax]; }
+			else A=pA->shape->avgNodePos();
 			if(scene->isPeriodic){ B+=scene->cell->intrShiftPos(C->cellDist); }
 			GLUtils::GLDrawLine(A,B,.5*CompUtils::mapColor(C->color));
 		}
@@ -355,8 +356,8 @@ void Gl1_DemField::doCPhys(){
 			shared_ptr<CGeom>& geom(C->geom);
 			shared_ptr<CPhys>& phys(C->phys);
 		#endif
-		//assert(C->pA->shape && C->pB->shape);
-		//assert(C->pA->shape->nodes.size()>0); assert(C->pB->shape->nodes.size()>0);
+		//assert(C->leakPA()->shape && C->leakPB()->shape);
+		//assert(C->leakPA()->shape->nodes.size()>0); assert(C->leakPB()->shape->nodes.size()>0);
 		if(!geom || !phys) continue;
 		// glScopedName name(C,geom->node);
 		Renderer::cPhysDispatcher(phys,C,*viewInfo);

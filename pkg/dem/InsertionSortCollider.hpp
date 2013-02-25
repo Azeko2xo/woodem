@@ -173,7 +173,8 @@ struct InsertionSortCollider: public Collider {
 	public:
 	//! Predicate called from loop within ContactContainer::erasePending
 	bool shouldBeRemoved(const shared_ptr<Contact> &C, Scene* scene) const {
-		Particle::id_t id1=C->pA->id, id2=C->pB->id;
+		if(C->pA.expired() || C->pB.expired()) return true; //remove contact where constituent particles have been deleted
+		Particle::id_t id1=C->leakPA()->id, id2=C->leakPB()->id;
 		if(!periodic) return !spatialOverlap(id1,id2);
 		else { Vector3i periods; return !spatialOverlapPeri(id1,id2,scene,periods); }
 	}

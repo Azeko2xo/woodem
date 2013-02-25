@@ -361,7 +361,7 @@ void CLDemRun::doCompare(){
 	/* check the other way */
 	if(sim->cpuCollider){
 		FOREACH(const auto& C, *dem->contacts){
-			Vector2i ids(C->pA->id,C->pB->id);
+			Vector2i ids(C->leakPA()->id,C->leakPB()->id);
 			string cId="##"+lexical_cast<string>(ids[0])+"+"+lexical_cast<string>(ids[1]);
 			clDem::CpuCollider::ConLoc* cl=sim->cpuCollider->find(ids[0],ids[1]);
 			if(!cl) LOG_ERROR(cId<<": not in clDem");
@@ -511,7 +511,7 @@ shared_ptr<clDem::Simulation> CLDemField::wooToClDem(const shared_ptr< ::Scene>&
 	// copy existing contacts
 	FOREACH(const shared_ptr< ::Contact>& c, *dem->contacts){
 		clDem::Contact con;
-		par_id2_t ids={c->pA->id,c->pB->id};
+		par_id2_t ids={c->leakPA()->id,c->leakPB()->id};
 		con.ids=ids;
 		sim->con.push_back(con);
 	}

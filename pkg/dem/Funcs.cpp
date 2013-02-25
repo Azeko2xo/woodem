@@ -25,12 +25,13 @@ std::tuple</*stress*/Matrix3r,/*stiffness*/Matrix6r> DemFuncs::stressStiffness(c
 
 	FOREACH(const shared_ptr<Contact>& C, *dem->contacts){
 		FrictPhys* phys=WOO_CAST<FrictPhys*>(C->phys.get());
-		if(C->pA->shape->nodes.size()!=1 || C->pB->shape->nodes.size()!=1){
+		const Particle *pA=C->leakPA(), *pB=C->leakPB();
+		if(pA->shape->nodes.size()!=1 || pB->shape->nodes.size()!=1){
 			if(skipMultinodal) continue;
-			else woo::ValueError("Particle "+lexical_cast<string>(C->pA->shape->nodes.size()!=1? C->pA->id : C->pB->id)+" has more than one node; to skip contacts with such particles, say skipMultinodal=True");
+			else woo::ValueError("Particle "+lexical_cast<string>(pA->shape->nodes.size()!=1? pA->id : pB->id)+" has more than one node; to skip contacts with such particles, say skipMultinodal=True");
 		}
 		// use current distance here
-		const Real d0=(C->pB->shape->nodes[0]->pos-C->pA->shape->nodes[0]->pos+(scene->isPeriodic?scene->cell->intrShiftPos(C->cellDist):Vector3r::Zero())).norm();
+		const Real d0=(pB->shape->nodes[0]->pos-pA->shape->nodes[0]->pos+(scene->isPeriodic?scene->cell->intrShiftPos(C->cellDist):Vector3r::Zero())).norm();
 		Vector3r n=C->geom->node->ori.conjugate()*Vector3r::UnitX(); // normal in global coords
 		#if 1
 			// g3geom doesn't set local x axis properly

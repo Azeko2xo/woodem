@@ -150,9 +150,9 @@ bool Cg2_Wall_Sphere_G3Geom::go(const shared_ptr<Shape>& wallSh, const shared_pt
 void Law2_G3Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shared_ptr<CPhys>& cp, const shared_ptr<Contact>&C){
 	G3Geom& geom=cg->cast<G3Geom>(); FrictPhys& phys=cp->cast<FrictPhys>();
 	#ifdef WOO_DEBUG
-		bool watched=(max(C->pA->id,C->pB->id)==watch.maxCoeff() && (watch.minCoeff()<0 || min(C->pA->id,C->pB->id)==watch.minCoeff()));
+		bool watched=(max(C->leakPA()->id,C->leakPB()->id)==watch.maxCoeff() && (watch.minCoeff()<0 || min(C->leakPA()->id,C->leakPB()->id)==watch.minCoeff()));
 	#endif
-	_WATCH_MSG("Step "<<scene->step<<", ##"<<C->pA->id<<"+"<<C->pB->id<<": "<<endl);
+	_WATCH_MSG("Step "<<scene->step<<", ##"<<C->leakPA()->id<<"+"<<C->leakPB()->id<<": "<<endl);
 	if(geom.uN>0){
 		if(!noBreak){ _WATCH_MSG("Contact being broken."<<endl); field->cast<DemField>().contacts->requestRemoval(C); return; }
 	}

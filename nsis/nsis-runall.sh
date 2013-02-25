@@ -33,8 +33,8 @@ done
 if [ -d /boot ]; then
 	# linux
 	pushd $BINDIR
-		makensis -DVERSION=1.0c nsis-wwoo-libs.nsh 
-		makensis -DVERSION=0.99-r$REVNO nsis-wwoo-main.nsh 
+		#makensis -DVERSION=1.0c nsis-wwoo-libs.nsh 
+		#makensis -DVERSION=0.99-r$REVNO nsis-wwoo-main.nsh 
 		# make installers for extra modules
 		for EGG in wooExtra.*.egg; do
 			COMPONENT=`echo $EGG | cut -f1 -d-`

@@ -21,6 +21,7 @@ using boost::shared_ptr;
 using boost::static_pointer_cast;
 using boost::dynamic_pointer_cast;
 using boost::make_shared;
+using boost::weak_ptr;
 
 #if 0
 	#include<memory>

@@ -250,27 +250,33 @@ struct Contact: public Object{
 	void swapOrder();
 	void reset();
 	// return -1 or +1 depending on whether the particle passed to us is pA or pB
-	int forceSign(const shared_ptr<Particle>& p) const { return p==pA?1:-1; }
+	int forceSign(const shared_ptr<Particle>& p) const { return p.get()==leakPA()?1:-1; }
 	/* return force and torque in global coordinates which act at contact point C located at branch from node nodeI of particle.
 	Contact force is reversed automatically if particle==pB.
 	Force and torque at node itself are  F and branch.cross(F)+T respectively.
 	Branch takes periodicity (cellDist) in account.
 	See In2_Sphere_Elastmat::go for its use.  */
-	std::tuple<Vector3r,Vector3r,Vector3r> getForceTorqueBranch(const shared_ptr<Particle>&, int nodeI, Scene* scene);
+	std::tuple<Vector3r,Vector3r,Vector3r> getForceTorqueBranch(const shared_ptr<Particle>& p, int nodeI, Scene* scene){ return getForceTorqueBranch(p.get(),nodeI,scene); }
+	std::tuple<Vector3r,Vector3r,Vector3r> getForceTorqueBranch(const Particle*, int nodeI, Scene* scene);
 	// return position vector between pA and pB, taking in account PBC's; both must be uninodal
 	Vector3r dPos(const Scene* s) const;
-	Vector3r dPos_py() const{ return dPos(Master::instance().getScene().get()); }
+	Vector3r dPos_py() const{ if(pA.expired()||pB.expired()) return Vector3r(NaN,NaN,NaN); return dPos(Master::instance().getScene().get()); }
 	Real dist_py() const { return dPos_py().norm(); }
 	Particle::id_t pyId1() const;
 	Particle::id_t pyId2() const;
 	Vector2i pyIds() const;
 	virtual string pyStr() const { return "<Contact ##"+to_string(pyId1())+"+"+to_string(pyId2())+" @ "+lexical_cast<string>(this)+">"; }
+	// potentially unsafe pointer extraction (assert safety in debug builds only)
+	// only use when the particles are sure to exist and never return this pointer anywhere
+	// we call it "leak" to make this very explicit
+	Particle* leakPA() const { assert(!pA.expired()); return pA.lock().get(); }
+	Particle* leakPB() const { assert(!pB.expired()); return pB.lock().get(); }
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Contact,Object,"Contact in DEM",
 		((shared_ptr<CGeom>,geom,,AttrTrait<Attr::readonly>(),"Contact geometry"))
 		((shared_ptr<CPhys>,phys,,AttrTrait<Attr::readonly>(),"Physical properties of contact"))
 		((shared_ptr<CData>,data,,AttrTrait<Attr::readonly>(),"Optional data stored by the functor for its own use"))
-		((shared_ptr<Particle>,pA,,AttrTrait<Attr::readonly>(),"First particle of the contact"))
-		((shared_ptr<Particle>,pB,,AttrTrait<Attr::readonly>(),"Second particle of the contact"))
+		((weak_ptr<Particle>,pA,,AttrTrait<Attr::readonly>(),"First particle of the contact"))
+		((weak_ptr<Particle>,pB,,AttrTrait<Attr::readonly>(),"Second particle of the contact"))
 		((Vector3i,cellDist,Vector3i::Zero(),AttrTrait<Attr::readonly>(),"Distace in the number of periodic cells by which pB must be shifted to get to the right relative position."))
 		#ifdef WOO_OPENGL
 			((Real,color,0,,"(Normalized) color value for this contact"))

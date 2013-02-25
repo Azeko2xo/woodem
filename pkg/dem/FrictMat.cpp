@@ -23,10 +23,10 @@ void Cp2_FrictMat_FrictPhys::updateFrictPhys(FrictMat& mat1, FrictMat& mat2, Fri
 		L6Geom* l6g=dynamic_cast<L6Geom*>(C->geom.get());
 		if(l6g){ l0=std::abs(l6g->lens[0]); l1=std::abs(l6g->lens[1]); A=l6g->contA; }
 		else{
-			assert(dynamic_pointer_cast<Sphere>(C->pB->shape));
-			l1=std::abs(C->pB->shape->cast<Sphere>().radius);
-			if(!dynamic_pointer_cast<Sphere>(C->pA->shape)) l0=l1; // wall-sphere contact, for instance
-			else l0=std::abs(C->pA->shape->cast<Sphere>().radius);
+			assert(dynamic_pointer_cast<Sphere>(C->leakPB()->shape));
+			l1=std::abs(C->leakPB()->shape->cast<Sphere>().radius);
+			if(!dynamic_pointer_cast<Sphere>(C->leakPA()->shape)) l0=l1; // wall-sphere contact, for instance
+			else l0=std::abs(C->leakPA()->shape->cast<Sphere>().radius);
 			A=M_PI*pow(min(l0,l1),2);
 		}
 	#endif

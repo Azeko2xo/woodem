@@ -244,7 +244,7 @@ bool InsertionSortCollider::prologue_doFullRun(){
 
 	// number of particles changed
 	if((size_t)BB[0].size!=2*particles->size()) fullRun=true;
-	//redundant: if(minima.size()!=3*nBodies || maxima.size()!=3*nBodies) fullRun=true;
+	//redundant: if(minima.size()!=3*nPar || maxima.size()!=3*nPar) fullRun=true;
 
 	// periodicity changed
 	if(scene->isPeriodic != periodic){
@@ -276,30 +276,32 @@ void InsertionSortCollider::run(){
 	
 	nFullRuns++;
 
-	long nBodies=(long)particles->size();
+	long nPar=(long)particles->size();
 
 	// pre-conditions
 		// adjust storage size
 		bool doInitSort=false;
 		if(forceInitSort){ doInitSort=true; forceInitSort=false; }
-		if(BB[0].size!=2*nBodies){
+		if(BB[0].size!=2*nPar){
 			long BBsize=BB[0].size;
-			LOG_DEBUG("Resize bounds containers from "<<BBsize<<" to "<<nBodies*2<<", will std::sort.");
+			LOG_DEBUG("Resize bounds containers from "<<BBsize<<" to "<<nPar*2<<", will std::sort.");
 			// bodies deleted; clear the container completely, and do as if all bodies were added (rather slow…)
 			// future possibility: insertion sort with such operator that deleted bodies would all go to the end, then just trim bounds
-			if(2*nBodies<BBsize){ for(int i=0; i<3; i++) BB[i].vec.clear(); }
+			if(2*nPar<BBsize){ for(int i=0; i<3; i++) BB[i].vec.clear(); }
 			// more than 100 bodies was added, do initial sort again
 			// maybe: should rather depend on ratio of added bodies to those already present...?
-			if(2*nBodies-BBsize>200 || BBsize==0) doInitSort=true;
+			if(2*nPar-BBsize>200 || BBsize==0) doInitSort=true;
 			assert((BBsize%2)==0);
 			for(int i=0; i<3; i++){
-				BB[i].vec.reserve(2*nBodies);
+				BB[i].vec.reserve(2*nPar);
 				// add lower and upper bounds; coord is not important, will be updated from bb shortly
-				for(long id=BBsize/2; id<nBodies; id++){ BB[i].vec.push_back(Bounds(0,id,/*isMin=*/true)); BB[i].vec.push_back(Bounds(0,id,/*isMin=*/false)); }
+				for(long id=BBsize/2; id<nPar; id++){ BB[i].vec.push_back(Bounds(0,id,/*isMin=*/true)); BB[i].vec.push_back(Bounds(0,id,/*isMin=*/false)); }
 				BB[i].size=BB[i].vec.size();
+				assert(BB[i].size==2*nPar);
+				assert(nPar==(long)particles->size());
 			}
 		}
-		if(minima.size()!=(size_t)3*nBodies){ minima.resize(3*nBodies); maxima.resize(3*nBodies); }
+		if(minima.size()!=(size_t)3*nPar){ minima.resize(3*nPar); maxima.resize(3*nPar); }
 		assert((size_t)BB[0].size==2*particles->size());
 
 		// update periodicity
@@ -320,7 +322,7 @@ void InsertionSortCollider::run(){
 	ISC_CHECKPOINT("bound");
 
 	// copy bounds along given axis into our arrays
-		for(long i=0; i<2*nBodies; i++){
+		for(long i=0; i<2*nPar; i++){
 			for(int j=0; j<3; j++){
 				VecBounds& BBj=BB[j];
 				const Particle::id_t id=BBj[i].id;
@@ -343,7 +345,7 @@ void InsertionSortCollider::run(){
 			}	
 		}
 	// for each body, copy its minima and maxima, for quick checks of overlaps later
-	for(Particle::id_t id=0; id<nBodies; id++){
+	for(Particle::id_t id=0; id<nPar; id++){
 		BOOST_STATIC_ASSERT(sizeof(Vector3r)==3*sizeof(Real));
 		const shared_ptr<Particle>& b=(*particles)[id];
 		if(likely(b)){
@@ -388,23 +390,23 @@ void InsertionSortCollider::run(){
 			VecBounds& V=BB[sortAxis];
 			// go through potential aabb collisions, create interactions as necessary
 			if(!periodic){
-				for(long i=0; i<2*nBodies; i++){
+				for(long i=0; i<2*nPar; i++){
 					// start from the lower bound (i.e. skipping upper bounds)
 					// skip bodies without bbox, because they don't collide
 					if(unlikely(!(V[i].flags.isMin && V[i].flags.hasBB))) continue;
 					const Particle::id_t& iid=V[i].id;
 					// go up until we meet the upper bound
-					for(long j=i+1; /* handle case 2. of swapped min/max */ j<2*nBodies && V[j].id!=iid; j++){
+					for(long j=i+1; /* handle case 2. of swapped min/max */ j<2*nPar && V[j].id!=iid; j++){
 						const Particle::id_t& jid=V[j].id;
 						// take 2 of the same condition (only handle collision [min_i..max_i]+min_j, not [min_i..max_i]+min_i (symmetric)
 						if(!V[j].flags.isMin) continue;
 						/* abuse the same function here; since it does spatial overlap check first, it is OK to use it */
 						handleBoundInversion(iid,jid);
-						assert(j<2*nBodies-1);
+						assert(j<2*nPar-1);
 					}
 				}
 			} else { // periodic case: see comments above
-				for(long i=0; i<2*nBodies; i++){
+				for(long i=0; i<2*nPar; i++){
 					if(unlikely(!(V[i].flags.isMin && V[i].flags.hasBB))) continue;
 					const Particle::id_t& iid=V[i].id;
 					long cnt=0;
@@ -413,7 +415,7 @@ void InsertionSortCollider::run(){
 						const Particle::id_t& jid=V[j].id;
 						if(!V[j].flags.isMin) continue;
 						handleBoundInversionPeri(iid,jid);
-						if(cnt++>2*(long)nBodies){ LOG_FATAL("Uninterrupted loop in the initial sort?"); throw std::logic_error("loop??"); }
+						if(cnt++>2*(long)nPar){ LOG_FATAL("Uninterrupted loop in the initial sort?"); throw std::logic_error("loop??"); }
 					}
 				}
 			}

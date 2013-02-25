@@ -91,7 +91,7 @@ bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<
 	Real dist=normal.norm();
 	#define CATCH_NAN_FACET
 	#ifdef CATCH_NAN_FACET
-		if(dist==0) LOG_FATAL("dist==0.0 between Facet #"<<C->pA->id<<" @ "<<f.nodes[0]->pos.transpose()<<", "<<f.nodes[1]->pos.transpose()<<", "<<f.nodes[2]->pos.transpose()<<" and Sphere #"<<C->pB->id<<" @ "<<s.nodes[0]->pos.transpose()<<", r="<<s.radius);
+		if(dist==0) LOG_FATAL("dist==0.0 between Facet #"<<C->leakPA()->id<<" @ "<<f.nodes[0]->pos.transpose()<<", "<<f.nodes[1]->pos.transpose()<<", "<<f.nodes[2]->pos.transpose()<<" and Sphere #"<<C->leakPB()->id<<" @ "<<s.nodes[0]->pos.transpose()<<", r="<<s.radius);
 		normal/=dist; // normal is normalized now
 	#else
 		// this tries to handle that
@@ -106,7 +106,7 @@ bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<
 	Vector3r linVel,angVel;
 	std::tie(linVel,angVel)=f.interpolatePtLinAngVel(contPt);
 	#ifdef CATCH_NAN_FACET
-		if(isnan(linVel[0])||isnan(linVel[1])||isnan(linVel[2])||isnan(angVel[0])||isnan(angVel[1])||isnan(angVel[2])) LOG_FATAL("NaN in interpolated facet velocity: linVel="<<linVel.transpose()<<", angVel="<<angVel.transpose()<<", contPt="<<contPt.transpose()<<"; particles Facet #"<<C->pA->id<<" @ "<<f.nodes[0]->pos.transpose()<<", "<<f.nodes[1]->pos.transpose()<<", "<<f.nodes[2]->pos.transpose()<<" and Sphere #"<<C->pB->id<<" @ "<<s.nodes[0]->pos.transpose()<<", r="<<s.radius)
+		if(isnan(linVel[0])||isnan(linVel[1])||isnan(linVel[2])||isnan(angVel[0])||isnan(angVel[1])||isnan(angVel[2])) LOG_FATAL("NaN in interpolated facet velocity: linVel="<<linVel.transpose()<<", angVel="<<angVel.transpose()<<", contPt="<<contPt.transpose()<<"; particles Facet #"<<C->leakPA()->id<<" @ "<<f.nodes[0]->pos.transpose()<<", "<<f.nodes[1]->pos.transpose()<<", "<<f.nodes[2]->pos.transpose()<<" and Sphere #"<<C->leakPB()->id<<" @ "<<s.nodes[0]->pos.transpose()<<", r="<<s.radius)
 	#endif
 	linVel+=f.fakeVel; // add fake velocity
 	const DemData& dyn2(s.nodes[0]->getData<DemData>()); // sphere
@@ -136,7 +136,7 @@ bool Cg2_Wall_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<S
 
 	// check that the normal did not change orientation (would be abrupt here)
 	if(C->geom && C->geom->cast<L6Geom>().trsf.row(0)!=normal.transpose()){
-		throw std::logic_error((boost::format("Cg2_Wall_Sphere_L6Geom: normal changed from %s to %s in Wall+Sphere ##%d+%d (with Wall.sense=0, a particle might cross the Wall plane if Δt is too high, repulsive force to small or velocity too high.")%C->geom->cast<L6Geom>().trsf.row(0)%normal.transpose()%C->pA->id%C->pB->id).str());
+		throw std::logic_error((boost::format("Cg2_Wall_Sphere_L6Geom: normal changed from %s to %s in Wall+Sphere ##%d+%d (with Wall.sense=0, a particle might cross the Wall plane if Δt is too high, repulsive force to small or velocity too high.")%C->geom->cast<L6Geom>().trsf.row(0)%normal.transpose()%C->leakPA()->id%C->leakPB()->id).str());
 	}
 
 	const DemData& dyn1(sh1->nodes[0]->getData<DemData>());	const DemData& dyn2(sh2->nodes[0]->getData<DemData>());
@@ -158,7 +158,7 @@ bool Cg2_InfCylinder_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const share
 	if(!C->isReal() && relPos.squaredNorm()>pow(cylRad+sphRad,2) && !force){ return false; }
 	Real dist=relPos.norm();
 	#ifdef CATCH_NAN_FACET
-		if(dist==0.) LOG_FATAL("dist==0.0 between InfCylinder #"<<C->pA->id<<" @ "<<cyl.nodes[0]->pos.transpose()<<", r="<<cylRad<<" and Sphere #"<<C->pB->id<<" @ "<<sphere.nodes[0]->pos.transpose()<<", r="<<sphere.radius);
+		if(dist==0.) LOG_FATAL("dist==0.0 between InfCylinder #"<<C->leakPA()->id<<" @ "<<cyl.nodes[0]->pos.transpose()<<", r="<<cylRad<<" and Sphere #"<<C->leakPB()->id<<" @ "<<sphere.nodes[0]->pos.transpose()<<", r="<<sphere.radius);
 	#else
 		#error You forgot to implement dist==0 handler with InfCylinder
 	#endif
@@ -231,7 +231,7 @@ void Cg2_Sphere_Sphere_L6Geom::handleSpheresLikeContact(const shared_ptr<Contact
 		g.contA=M_PI*pow((r1>0&&r2>0)?min(r1,r2):(r1>0?r1:r2),2);
 		g.node->pos=contPt;
 		g.node->ori=Quaternionr(g.trsf);
-		//cerr<<"##"<<C->pA->id<<"+"<<C->pB->id<<": init trsf=\n"<<g.trsf<<endl<<"locX="<<locX<<", locY="<<locY<<", locZ="<<locZ<<"; normal="<<normal<<endl;
+		//cerr<<"##"<<C->leakPA()->id<<"+"<<C->leakPB()->id<<": init trsf=\n"<<g.trsf<<endl<<"locX="<<locX<<", locY="<<locY<<", locZ="<<locZ<<"; normal="<<normal<<endl;
 		return;
 	}
 	// update geometry
@@ -293,7 +293,7 @@ void Cg2_Sphere_Sphere_L6Geom::handleSpheresLikeContact(const shared_ptr<Contact
 			currTrsf.row(2)=currTrsf.row(0).cross(currTrsf.row(1)); // normalized automatically
 			#ifdef WOO_DEBUG
 				if(abs(currTrsf.determinant()-1)>.05){
-					LOG_ERROR("##"<<C->pA->id<<"+"<<C->pB->id<<", |trsf|="<<currTrsf.determinant());
+					LOG_ERROR("##"<<C->leakPA()->id<<"+"<<C->leakPB()->id<<", |trsf|="<<currTrsf.determinant());
 					g.trsf=currTrsf;
 					throw runtime_error("Transformation matrix far from orthonormal.");
 				}

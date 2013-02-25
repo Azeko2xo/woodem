@@ -29,11 +29,11 @@ void Contact::reset(){
 	stepMadeReal=-1;
 }
 
-std::tuple<Vector3r,Vector3r,Vector3r> Contact::getForceTorqueBranch(const shared_ptr<Particle>& particle, int nodeI, Scene* scene){
-	assert(pA==particle || pB==particle);
+std::tuple<Vector3r,Vector3r,Vector3r> Contact::getForceTorqueBranch(const Particle* particle, int nodeI, Scene* scene){
+	assert(leakPA()==particle || leakPB()==particle);
 	assert(geom && phys);
 	assert(nodeI>=0 && particle->shape && particle->shape->nodes.size()>(size_t)nodeI);
-	bool isPA=(pA==particle);
+	bool isPA=(leakPA()==particle);
 	int sign=(isPA?1:-1);
 	Vector3r F=geom->node->ori.conjugate()*phys->force*sign;
 	Vector3r T=(phys->torque==Vector3r::Zero() ? Vector3r::Zero() : geom->node->ori.conjugate()*phys->torque)*sign;
@@ -42,9 +42,9 @@ std::tuple<Vector3r,Vector3r,Vector3r> Contact::getForceTorqueBranch(const share
 }
 
 
-Particle::id_t Contact::pyId1() const { return pA->id; }
-Particle::id_t Contact::pyId2() const { return pB->id; }
-Vector2i Contact::pyIds() const { return Vector2i(min(pA->id,pB->id),max(pA->id,pB->id)); }
+Particle::id_t Contact::pyId1() const { return pA.expired()?-1:leakPA()->id; }
+Particle::id_t Contact::pyId2() const { return pB.expired()?-1:leakPB()->id; }
+Vector2i Contact::pyIds() const { Vector2i ids(pyId1(),pyId2()); return Vector2i(ids.minCoeff(),ids.maxCoeff()); }
 
 void Particle::checkNodes(bool dyn, bool checkOne) const {
 	if(!shape || (checkOne  && shape->nodes.size()!=1) || (dyn && !shape->nodes[0]->hasData<DemData>())) woo::AttributeError("Particle #"+lexical_cast<string>(id)+" has no Shape"+(checkOne?string(", or the shape has no/multiple nodes")+string(!dyn?".":", or node.dem is None."):string(".")));
@@ -151,8 +151,8 @@ Real Particle::getEk_any(bool trans, bool rot) const {
 }
 
 Vector3r Contact::dPos(const Scene* scene) const{
-	pA->checkNodes(/*dyn*/false,/*checkUninodal*/true); pB->checkNodes(false,true);
-	Vector3r rawDx=pB->shape->nodes[0]->pos-pA->shape->nodes[0]->pos;
+	leakPA()->checkNodes(/*dyn*/false,/*checkUninodal*/true); leakPB()->checkNodes(false,true);
+	Vector3r rawDx=leakPB()->shape->nodes[0]->pos-leakPA()->shape->nodes[0]->pos;
 	if(!scene->isPeriodic || cellDist==Vector3i::Zero()) return rawDx;
 	return rawDx+scene->cell->intrShiftPos(cellDist);
 }
@@ -162,7 +162,7 @@ AlignedBox3r DemField::renderingBbox() const{
 	AlignedBox3r box;
 	for(const auto& p: *particles){
 		if(!p || !p->shape) continue;
-		for(int i=0; i<p->shape->nodes.size(); i++) box.extend(p->shape->nodes[i]->pos);
+		for(size_t i=0; i<p->shape->nodes.size(); i++) box.extend(p->shape->nodes[i]->pos);
 	}
 	for(const auto& n: nodes) box.extend(n->pos);
 	return box;
@@ -176,8 +176,8 @@ void DemField::postLoad(DemField&){
 	/* recreate particle contact information */
 	for(size_t i=0; i<contacts->size(); i++){
 		const shared_ptr<Contact>& c((*contacts)[i]);
-		(*particles)[c->pA->id]->contacts[c->pB->id]=c;
-		(*particles)[c->pB->id]->contacts[c->pA->id]=c;
+		(*particles)[c->leakPA()->id]->contacts[c->leakPB()->id]=c;
+		(*particles)[c->leakPB()->id]->contacts[c->leakPA()->id]=c;
 	}
 }
 
@@ -213,7 +213,8 @@ int DemField::collectNodes(){
 
 void DemField::removeParticle(Particle::id_t id){
 	LOG_DEBUG("Removing #"<<id);
-	const auto& p((*particles)[id]);
+	// don't actually delete the particle until before returning, so that p is not dangling
+	const shared_ptr<Particle>& p((*particles)[id]);
 	for(const auto& n: p->shape->nodes){
 		if(n->getData<DemData>().isClumped()) throw std::runtime_error("#"+to_string(id)+": a node is clumped, remove the clump itself instead!");
 	}
@@ -244,7 +245,7 @@ void DemField::removeParticle(Particle::id_t id){
 		vector<shared_ptr<Contact>> cc; cc.reserve(p->contacts.size());
 		for(const auto& idCon: p->contacts) cc.push_back(idCon.second);
 		for(const auto& c: cc){
-			LOG_DEBUG("Removing #"<<id<<" / ##"<<c->pA->id<<"+"<<c->pB->id);
+			LOG_DEBUG("Removing #"<<id<<" / ##"<<c->leakPA()->id<<"+"<<c->leakPB()->id);
 			contacts->remove(c);
 		}
 	}

@@ -15,16 +15,17 @@ bool ContactContainer::add(const shared_ptr<Contact>& c, bool threadSafe){
 	#if defined(WOO_OPENMP) || defined(WOO_OPENGL)
 		boost::mutex::scoped_lock lock(*manipMutex);
 	#endif
+	Particle *pA=c->leakPA(), *pB=c->leakPB();
 	if(!threadSafe){
 		// make sure the contact does not exist yet
-		assert(c->pA->contacts.find(c->pB->id)==c->pA->contacts.end());
-		assert(c->pB->contacts.find(c->pA->id)==c->pB->contacts.end());
+		assert(pA->contacts.find(pB->id)==pA->contacts.end());
+		assert(pB->contacts.find(pA->id)==pB->contacts.end());
 	} else {
-		if(c->pA->contacts.find(c->pB->id)!=c->pA->contacts.end() || c->pB->contacts.find(c->pA->id)!=c->pB->contacts.end()) return false;
+		if(pA->contacts.find(pB->id)!=pA->contacts.end() || pB->contacts.find(pA->id)!=pB->contacts.end()) return false;
 	}
 
-	c->pA->contacts[c->pB->id]=c;
-	c->pB->contacts[c->pA->id]=c;
+	pA->contacts[pB->id]=c;
+	pB->contacts[pA->id]=c;
 	linView.push_back(c);
 	// store the index back-reference in the interaction (so that it knows how to (re)move itself)
 	c->linIx=linView.size()-1; 
@@ -47,28 +48,79 @@ bool ContactContainer::remove(shared_ptr<Contact> c, bool threadSafe){
 	#if defined(WOO_OPENMP) || defined(WOO_OPENGL)
 		boost::mutex::scoped_lock lock(*manipMutex);
 	#endif
-	Particle::id_t idA(c->pA->id), idB(c->pB->id);
-	// make sure the contact is inside the dem->particles
-	Particle::MapParticleContact::iterator iA=c->pA->contacts.find(idB), iB=c->pB->contacts.find(idA);
-	if(!threadSafe){
-		// particle deleted from engine while at the same time pending; check that the particle vanished
-		if((iA==c->pA->contacts.end() && c->pA.get()!=(*dem->particles)[idA].get()) || 
-			(iB==c->pB->contacts.end() && c->pB.get()!=(*dem->particles)[idB].get())) return false;
-		// this can happen if _contact_ were deleted directly, not by ContactLoop; but that is an error
-		if(iA==c->pA->contacts.end() || iB==c->pB->contacts.end()){
-			LOG_FATAL("Contact ##"<<idA<<"+"<<idB<<" vanished from particle!");
-			if(iA==c->pA->contacts.end()) LOG_FATAL("not in O.dem.par["<<idA<<"].con (particle exists)");
-			if(iB==c->pB->contacts.end()) LOG_FATAL("not in O.dem.par["<<idB<<"].con (particle exists)");
-			abort();
+
+	// this is the pre-weak_ptr code, keep it for reference for a while in case of troubles
+	#if 0
+		Particle::id_t idA(pA->id), idB(pB->id);
+		// make sure the contact is inside the dem->particles
+		Particle::MapParticleContact::iterator iA=pA->contacts.find(idB), iB=pB->contacts.find(idA);
+		if(!threadSafe){
+			// particle deleted from engine while at the same time pending; check that the particle vanished
+			if((iA==pA->contacts.end() && pA!=(*dem->particles)[idA].get()) || 
+				(iB==pB->contacts.end() && pB!=(*dem->particles)[idB].get())) return false;
+			// this can happen if _contact_ were deleted directly, not by ContactLoop; but that is an error
+			if(iA==pA->contacts.end() || iB==pB->contacts.end()){
+				LOG_FATAL("Contact ##"<<idA<<"+"<<idB<<" vanished from particle!");
+				if(iA==pA->contacts.end()) LOG_FATAL("not in O.dem.par["<<idA<<"].con (particle exists)");
+				if(iB==pB->contacts.end()) LOG_FATAL("not in O.dem.par["<<idB<<"].con (particle exists)");
+				abort();
+			}
+			// this is superfluous with the diagnostics above now
+			assert(iA!=pA->contacts.end()); assert(iB!=pB->contacts.end());
 		}
-		// this is superfluous with the diagnostics above now
-		assert(iA!=c->pA->contacts.end()); assert(iB!=c->pB->contacts.end());
+		else { if (iA==pA->contacts.end() || iB==pB->contacts.end()) return false; }
+		// and in the linear container, that it is the same we got, and the same we found in dem->particles
+		assert(linView.size()>c->linIx);	assert(linView[c->linIx]==c); assert(iA->second==c); assert(iB->second==c);
+		// remove from dem->particles
+		pA->contacts.erase(iA); pB->contacts.erase(iB);
+	#endif
+
+	// take ownership of particles
+	shared_ptr<Particle> pA=c->pA.lock(), pB=c->pB.lock();
+	for(const auto& p:{pA, pB}){
+		if(!p) continue; // particle vanished in the meantime
+		Particle::id_t id=p->id, id2=(p.get()==pA.get()?(pB?pB->id:-1):(pA?pA->id:-1));
+		if(id2>=0){
+			Particle::MapParticleContact::iterator iC=p->contacts.find(id2);
+			// find either nothing or the right particle
+			assert(iC==p->contacts.end() || iC->second.get()==c.get());
+			if(iC==p->contacts.end()){
+				if(!threadSafe){
+					// particle was deleted from an engine, and had pending contact at the same time
+					// check that the particle really is not in dem-particles
+					if(((long)dem->particles->size()<=id2 || p.get()!=(*dem->particles)[id2].get())) return false;
+					// if the particle is still there, but not the contact, we've a problem somewhere
+					LOG_FATAL("Contact ##"<<id<<"+"<<id2<<" vanished from particle #"<<id<<"!");
+					abort();
+				}
+				return false;
+			}
+			p->contacts.erase(iC); // remove contact from the particle's list
+		} else {
+			// damn, we have no idea what id2 is, what to do now?
+			// if the contact is still there, it is serious
+			if(linView.size()>c->linIx && linView[c->linIx].get()==c.get()){
+				throw std::logic_error("Contact @ "+lexical_cast<string>(c)+": "+to_string(id)+" + ??; contact object still in Scene.dem.con["+to_string(c->linIx)+"]. Dropping to python so that you can inspect what's going on.");
+			} else {
+				// it seems the contact is not in DemField::contacts where it should be either
+				// so let's assume it was taken care of by DemField::deleteParticle already
+				return false;
+			}
+		}
 	}
-	else { if (iA==c->pA->contacts.end() || iB==c->pB->contacts.end()) return false; }
-	// and in the linear container, that it is the same we got, and the same we found in dem->particles
-	assert(linView.size()>c->linIx);	assert(linView[c->linIx]==c); assert(iA->second==c); assert(iB->second==c);
-	// remove from dem->particles
-	c->pA->contacts.erase(iA); c->pB->contacts.erase(iB);
+	// not even a single particle survived, this would not be caught in the loop above
+	if(!pA && !pB){
+		// contact still in contacts, that is error
+		if(linView.size()>c->linIx && linView[c->linIx].get()==c.get()){
+			throw std::logic_error("Contact @ "+lexical_cast<string>(c)+": ?? + ??; contact object still in Scene.dem.con["+to_string(c->linIx)+"]. Dropping to python so that you can inspect what's going on.");
+		}
+		// if not in contacts anymore, it is OK
+		return false;
+	}
+
+	assert(linView.size()>c->linIx);
+	assert(linView[c->linIx]==c);
+
 	// remove from linear view, keeping it compact
 	if(c->linIx<linView.size()-1){ // is not the last element
 		//cerr<<"linIx="<<c->linIx<<"/"<<linView.size()<<endl;
@@ -81,6 +133,7 @@ bool ContactContainer::remove(shared_ptr<Contact> c, bool threadSafe){
 	}
 	linView.resize(linView.size()-1);
 	return true;
+
 };
 
 const shared_ptr<Contact>& ContactContainer::find(ParticleContainer::id_t idA, ParticleContainer::id_t idB) const {

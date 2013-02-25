@@ -23,10 +23,11 @@ shared_ptr<Contact> CGeomDispatcher::explicitAction(Scene* _scene, const shared_
 	C->cellDist=cellDist;
 	// FIXME: this code is more or less duplicated from ContactLoop :-(
 	bool swap=false;
-	const shared_ptr<CGeomFunctor> geoF=getFunctor2D(C->pA->shape,C->pB->shape,swap);
+	const shared_ptr<CGeomFunctor> geoF=getFunctor2D(p1->shape,p2->shape,swap);
 	if(!geoF) throw invalid_argument("IGeomDispatcher::explicitAction could not dispatch for given types ("+p1->shape->getClassName()+", "+p2->shape->getClassName()+").");
 	if(swap){C->swapOrder();}
-	bool succ=geoF->go(C->pA->shape,C->pB->shape,shift2,/*force*/true,C);
+	// possibly swapped here, don't use p1, p2 anymore
+	bool succ=geoF->go(C->leakPA()->shape,C->leakPB()->shape,shift2,/*force*/true,C);
 	if(!succ) throw logic_error("Functor "+geoF->getClassName()+"::go returned false, even if asked to force CGeom creation. Please report bug.");
 	return C;
 }
@@ -125,28 +126,29 @@ void ContactLoop::run(){
 
 		bool swap=false;
 		if(!C->isReal()){
-			const shared_ptr<CGeomFunctor> cgf=geoDisp->getFunctor2D(C->pA->shape,C->pB->shape,swap);
+			const shared_ptr<CGeomFunctor> cgf=geoDisp->getFunctor2D(C->leakPA()->shape,C->leakPB()->shape,swap);
 			if(swap){ C->swapOrder(); }
 			if(!cgf) continue;
 		}
+		Particle *pA=C->leakPA(), *pB=C->leakPB();
 		// the order is as the geometry functor expects it
-		shared_ptr<Shape>& sA(C->pA->shape); shared_ptr<Shape>& sB(C->pB->shape);
+		shared_ptr<Shape>& sA(pA->shape); shared_ptr<Shape>& sB(pB->shape);
 
 		bool geomCreated=geoDisp->operator()(sA,sB,(scene->isPeriodic?scene->cell->intrShiftPos(C->cellDist):Vector3r::Zero()),/*force*/false,C);
 		if(!geomCreated){
-			if(/* has both geo and phy */C->isReal()) LOG_ERROR("CGeomFunctor "<<geoDisp->getClassName()<<" did not update existing contact ##"<<C->pA->id<<"+"<<C->pB->id);
+			if(/* has both geo and phy */C->isReal()) LOG_ERROR("CGeomFunctor "<<geoDisp->getClassName()<<" did not update existing contact ##"<<pA->id<<"+"<<pB->id);
 			continue;
 		}
 
 		// CPhy
 		if(!C->phys) C->stepMadeReal=scene->step;
-		if(!C->phys || updatePhys) phyDisp->operator()(C->pA->material,C->pB->material,C);
+		if(!C->phys || updatePhys) phyDisp->operator()(pA->material,pB->material,C);
 
 		// CLaw
 		lawDisp->operator()(C->geom,C->phys,C);
 
 		if(applyForces && C->isReal()){
-			for(const shared_ptr<Particle>& particle:{C->pA,C->pB}){
+			for(const Particle* particle:{pA,pB}){
 				const shared_ptr<Shape>& sh(particle->shape);
 				if(!sh) continue;
 				if(sh->nodes.size()!=1){
@@ -164,9 +166,9 @@ void ContactLoop::run(){
 		// track gradV work
 		/* this is meant to avoid calling extra loop at every step, since the work must be evaluated incrementally */
 		if(doStress && /*contact law deleted the contact?*/ C->isReal()){
-			if(C->pA->shape->nodes.size()!=1 || C->pB->shape->nodes.size()!=1) throw std::runtime_error("ContactLoop.trackWork not allowed with multi-nodal particles in contact (##"+lexical_cast<string>(C->pA->id)+"+"+lexical_cast<string>(C->pB->id)+")");
+			if(pA->shape->nodes.size()!=1 || pB->shape->nodes.size()!=1) throw std::runtime_error("ContactLoop.trackWork not allowed with multi-nodal particles in contact (##"+lexical_cast<string>(pA->id)+"+"+lexical_cast<string>(pB->id)+")");
 			#if 0
-				const Real d0=(C->pB->shape->nodes[0]->pos-C->pA->shape->nodes[0]->pos+scene->cell->intrShiftPos(C->cellDist)).norm();
+				const Real d0=(pB->shape->nodes[0]->pos-pA->shape->nodes[0]->pos+scene->cell->intrShiftPos(C->cellDist)).norm();
 				Vector3r n=C->geom->node->ori.conjugate()*Vector3r::UnitX(); // normal in global coords
 				#if 1
 					// g3geom doesn't set local x axis propertly, use its internal data instead
@@ -179,7 +181,7 @@ void ContactLoop::run(){
 				#pragma omp critical
 				{ for(int i:{0,1,2}) for(int j:{0,1,2}) stress(i,j)+=d0*(fN*n[i]*n[j]+.5*(fT[i]*n[j]+fT[j]*n[i])); }
 			#endif
-			Vector3r branch=(C->pB->shape->nodes[0]->pos-C->pA->shape->nodes[0]->pos+scene->cell->intrShiftPos(C->cellDist));
+			Vector3r branch=(pB->shape->nodes[0]->pos-pA->shape->nodes[0]->pos+scene->cell->intrShiftPos(C->cellDist));
 			Vector3r F=C->geom->node->ori.conjugate()*C->phys->force; // force in global coords
 			#ifdef WOO_OPENMP
 				#pragma omp critical

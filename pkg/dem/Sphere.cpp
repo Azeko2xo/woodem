@@ -34,14 +34,15 @@ void In2_Sphere_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Mater
 		Vector3r F,T,xc;
 		std::tie(F,T,xc)=C->getForceTorqueBranch(particle,/*nodeI*/0,scene);
 		#ifdef WOO_DEBUG
-			bool isPA=(C->pA==particle); // int sign=(isPA?1:-1);
+			const Particle *pA=C->leakPA(), *pB=C->leakPB();
+			bool isPA=(pA==particle.get()); // int sign=(isPA?1:-1);
 			if(isnan(F[0])||isnan(F[1])||isnan(F[2])||isnan(T[0])||isnan(T[1])||isnan(T[2])){
-				std::ostringstream oss; oss<<"NaN force/torque on particle #"<<particle->id<<" from ##"<<C->pA->id<<"+"<<C->pB->id<<":\n\tF="<<F<<", T="<<T; //"\n\tlocal F="<<C->phys->force*sign<<", T="<<C->phys->torque*sign<<"\n";
+				std::ostringstream oss; oss<<"NaN force/torque on particle #"<<particle->id<<" from ##"<<pA->id<<"+"<<pB->id<<":\n\tF="<<F<<", T="<<T; //"\n\tlocal F="<<C->phys->force*sign<<", T="<<C->phys->torque*sign<<"\n";
 				throw std::runtime_error(oss.str().c_str());
 			}
-			if(watch.maxCoeff()==max(C->pA->id,C->pB->id) && watch.minCoeff()==min(C->pA->id,C->pB->id)){
-				cerr<<"Step "<<scene->step<<": apply ##"<<C->pA->id<<"+"<<C->pB->id<<": F="<<F.transpose()<<", T="<<T.transpose()<<endl;
-				cerr<<"\t#"<<(isPA?C->pA->id:C->pB->id)<<" @ "<<xc.transpose()<<", F="<<F.transpose()<<", T="<<(xc.cross(F)+T).transpose()<<endl;
+			if(watch.maxCoeff()==max(pA->id,pB->id) && watch.minCoeff()==min(pA->id,pB->id)){
+				cerr<<"Step "<<scene->step<<": apply ##"<<pA->id<<"+"<<pB->id<<": F="<<F.transpose()<<", T="<<T.transpose()<<endl;
+				cerr<<"\t#"<<(isPA?pA->id:pB->id)<<" @ "<<xc.transpose()<<", F="<<F.transpose()<<", T="<<(xc.cross(F)+T).transpose()<<endl;
 		}
 		#endif
 		sh->nodes[0]->getData<DemData>().addForceTorque(F,xc.cross(F)+T);

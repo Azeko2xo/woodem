@@ -64,9 +64,10 @@ void VtkExport::run(){
 			assert(cParPos->GetNumberOfPoints()==p->id+1);
 		}
 		FOREACH(const auto& C, *dem->contacts){
-			if(mask && (!(mask&C->pA->mask) || !(mask&C->pB->mask))) continue;
-			Particle::id_t ids[2]={C->pA->id,C->pB->id};
-			bool isSphere[]={dynamic_pointer_cast<Sphere>(C->pA->shape),dynamic_pointer_cast<Sphere>(C->pB->shape)};
+			const Particle *pA=C->leakPA(), *pB=C->leakPB();
+			if(mask && (!(mask&pA->mask) || !(mask&pB->mask))) continue;
+			Particle::id_t ids[2]={pA->id,pB->id};
+			bool isSphere[]={dynamic_pointer_cast<Sphere>(pA->shape),dynamic_pointer_cast<Sphere>(pB->shape)};
 			if(sphereSphereOnly && (!isSphere[0] || !isSphere[1])) continue;
 			/* For the periodic boundary conditions,
 				find out whether the interaction crosses the boundary of the periodic cell;
@@ -93,7 +94,7 @@ void VtkExport::run(){
 				// distance in cell units for shifting A away from p1; negated value is shift of B away from p2
 				for(int copy:{0,1}){ // copy contact to both sides of the periodic cell
 					// copy 0: particle A and fake (shifted) particle B, copy 1 the other way around
-					const Vector3r& p0=(copy==0?C->pA->shape->nodes[0]->pos:C->pB->shape->nodes[0]->pos);
+					const Vector3r& p0=(copy==0?pA->shape->nodes[0]->pos:pB->shape->nodes[0]->pos);
 					auto idOther=ids[(copy+1)%2];
 					Vector3r ptFake(p0+scene->cell->hSize*(wrapCellDist[idOther]-C->cellDist).cast<Real>());
 					vtkIdType idFake=cParPos->InsertNextPoint(ptFake.data());

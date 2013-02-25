@@ -21,7 +21,7 @@ void Cp2_FrictMat_FrictPhys_CrossAnisotropic::postLoad(Cp2_FrictMat_FrictPhys_Cr
 
 void Cp2_FrictMat_FrictPhys_CrossAnisotropic::go(const shared_ptr<Material>& b1, const shared_ptr<Material>& b2, const shared_ptr<Contact>& C){
 	if(C->phys && recomputeIter!=scene->step) return;
-	// if(C->phys) cerr<<"Cp2_..._CrossAnisotropic: Recreating ##"<<C->pA->id<<"+"<<C->pB->id<<endl;
+	// if(C->phys) cerr<<"Cp2_..._CrossAnisotropic: Recreating ##"<<C->leakPA()->id<<"+"<<C->leakPB()->id<<endl;
 	C->phys=shared_ptr<CPhys>(new FrictPhys); // this deletes the old CPhys, if it was there
 	FrictPhys& ph=C->phys->cast<FrictPhys>();
 	L6Geom& g=C->geom->cast<L6Geom>();
@@ -31,11 +31,12 @@ void Cp2_FrictMat_FrictPhys_CrossAnisotropic::go(const shared_ptr<Material>& b1,
 		Real A=M_PI*pow(g.getMinRefLen(),2); // contact "area"
 		Real l=g.lens[0]+g.lens[1]; // contact length
 	#else
-		if(!dynamic_cast<Sphere*>(C->pA->shape.get()) || !dynamic_cast<Sphere*>(C->pB->shape.get())){
+		const Particle *pA=C->leakPA(), *pB=C->leakPB();
+		if(!dynamic_cast<Sphere*>(pA->shape.get()) || !dynamic_cast<Sphere*>(pB->shape.get())){
 			LOG_FATAL("Cp2_FrictMat_FrictPhys_CrossAnisotropic: can be only used on spherical particles!");
 			throw std::runtime_error("Cp2_FrictMat_FrictPhys_CrossAnisotropic: can be only used on spherical particles!");
 		}
-		Real r1=C->pA->shape->cast<Sphere>().radius, r2=C->pB->shape->cast<Sphere>().radius;
+		Real r1=pA->shape->cast<Sphere>().radius, r2=pB->shape->cast<Sphere>().radius;
 		Real A=M_PI*pow(min(r1,r2),2);
 		Real l=C->dPos(scene).norm(); // handles periodicity gracefully
 	#endif
