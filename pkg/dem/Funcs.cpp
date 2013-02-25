@@ -169,9 +169,10 @@ vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const s
 	if(isAscii){
 		LOG_TRACE("STL: ascii format detected");
 		string lineBuf;
-		size_t lineNo;
+		long lineNo=-1;
 		int fVertsNum=0;  // number of vertices in this facet (for checking)
 		for(std::getline(in,lineBuf); in; getline(in,lineBuf)){
+			lineNo++;
 			string tok;
 			std::istringstream line(lineBuf);
 			line>>tok;

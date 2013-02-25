@@ -8,6 +8,7 @@
 #include<boost/type_traits.hpp>
 #include<boost/preprocessor.hpp>
 #include<boost/type_traits/integral_constant.hpp>
+#include<boost/enable_shared_from_this.hpp>
 #include<woo/lib/pyutil/raw_constructor.hpp>
 #include<woo/lib/pyutil/doc_opts.hpp>
 #include<woo/lib/pyutil/except.hpp>
@@ -407,7 +408,7 @@ template<> struct _SerializeMaybe<false>{
  
 namespace woo{
 
-struct Object: public boost::noncopyable /*, public boost::enable_shared_from_this<Object>*/ {
+struct Object: public boost::noncopyable, public boost::enable_shared_from_this<Object> {
 	// http://www.boost.org/doc/libs/1_49_0/libs/smart_ptr/sp_techniques.html#static
 	struct null_deleter{void operator()(void const *)const{}};
 	static vector<py::object> derivedCxxClasses;
@@ -421,7 +422,7 @@ struct Object: public boost::noncopyable /*, public boost::enable_shared_from_th
 		template <class DerivedT> DerivedT& cast(){ return *static_cast<DerivedT*>(this); }
 
 		static shared_ptr<Object> boostLoad(const string& f){ auto obj=make_shared<Object>(); ObjectIO::load(f,"woo__Object",obj); return obj; }
-		virtual void boostSave(const string& f){ shared_ptr<Object> thisPtr(this,null_deleter()); ObjectIO::save(f,"woo__Object",thisPtr); }
+		virtual void boostSave(const string& f){ auto sh(shared_from_this()); ObjectIO::save(f,"woo__Object",sh); }
 		//template<class DerivedT> shared_ptr<DerivedT> _cxxLoadChecked(const string& f){ auto obj=_cxxLoad(f); auto obj2=dynamic_pointer_cast<DerivedT>(obj); if(!obj2) throw std::runtime_error("Loaded type "+obj->getClassName()+" could not be cast to requested type "+DerivedT::getClassNameStatic()); }
 
 		Object() {};

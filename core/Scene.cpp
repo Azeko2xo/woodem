@@ -96,12 +96,13 @@ void Scene::PausedContextManager::__enter__(){
 	// not release the lock, and we would get deadlocked.
 
 	// this fails to detect when called from within engine with S.step() rather than S.run()
-	if(boost::this_thread::get_id()==bgThreadId) throw std::runtime_error("Scene.paused() may not be called from the engine thread!");
+	if(boost::this_thread::get_id()==scene->bgThreadId) throw std::runtime_error("Scene.paused() may not be called from the engine thread!");
 	#ifdef WOO_LOOP_MUTEX_HELP
 		engineLoopMutexWaiting=true;
 	#endif
+	// boost::timed_mutex::scoped_lock lock(scene->engineLoopMutex,boost::defer_lock());
 	Py_BEGIN_ALLOW_THREADS;
-		while(!lock.timed_lock(boost::posix_time::seconds(10))){
+		while(!scene->engineLoopMutex.timed_lock(boost::posix_time::seconds(10))){
 			LOG_WARN("Waiting for lock for 10 seconds; deadlocked? (Scene.paused() must not be called from within the engine loop, through PyRunner or otherwise.");
 		}
 	Py_END_ALLOW_THREADS;
@@ -112,7 +113,7 @@ void Scene::PausedContextManager::__enter__(){
 }
 // exception information are not used, but we need to accept those args
 void Scene::PausedContextManager::__exit__(py::object exc_type, py::object exc_value, py::object traceback){
-	lock.unlock();
+	scene->engineLoopMutex.unlock();
 	LOG_DEBUG("Scene.paused(): unlocked");
 }
 
@@ -245,8 +246,7 @@ void Scene::boostSave(const string& out){
 
 void Scene::saveTmp(const string& slot, bool quiet){
 	lastSave=":memory:"+slot;
-	shared_ptr<Scene> thisPtr(this,null_deleter());
-	Master::instance().saveTmp(thisPtr,slot,/*quiet*/true);
+	Master::instance().saveTmp(static_pointer_cast<Scene>(shared_from_this()),slot,/*quiet*/true);
 }
 
 void Scene::postLoad(Scene&){

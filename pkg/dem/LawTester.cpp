@@ -180,13 +180,10 @@ void LawTester::run(){
 		locals["pA"]=py::object(pA);
 		locals["pB"]=py::object(pB);
 		locals["stage"]=py::object(stg);
-		shared_ptr<LawTester> tester(this,null_deleter());
-		shared_ptr<Scene> scene2(scene,null_deleter());
-		locals["scene"]=py::object(scene2);
-		locals["S"]=py::object(scene2);
-		// this will give nice erro when energy is not used
+		locals["scene"]=locals["S"]=py::object(scene->shared_from_this());
+		// this will give a nice error message when energy is not used
 		locals["E"]=scene->trackEnergy?py::object(scene->energy):py::object();
-		locals["tester"]=py::object(tester);
+		locals["tester"]=py::object(this->shared_from_this());
 
 		errCmd=&stg->until;
 		py::object result=py::eval(stg->until.c_str(),globals,locals);

@@ -107,13 +107,12 @@ struct Scene: public Object{
 		#endif
 		boost::timed_mutex engineLoopMutex;
 		struct PausedContextManager{
-			boost::timed_mutex::scoped_lock lock;
-			boost::thread::id bgThreadId;
+			shared_ptr<Scene> scene;
 			#ifdef WOO_LOOP_MUTEX_HELP
 				bool& engineLoopMutexWaiting;
 			#endif
 			// stores reference to mutex, but does not lock it yet
-			PausedContextManager(Scene* scene): lock(boost::timed_mutex::scoped_lock(scene->engineLoopMutex,boost::defer_lock)), bgThreadId(scene->bgThreadId)
+			PausedContextManager(const shared_ptr<Scene>& _scene): scene(_scene)
 				#ifdef WOO_LOOP_MUTEX_HELP
 					, engineLoopMutexWaiting(scene->engineLoopMutexWaiting)
 				#endif
@@ -124,7 +123,7 @@ struct Scene: public Object{
 				py::class_<PausedContextManager,boost::noncopyable>("PausedContextManager",py::no_init).def("__enter__",&PausedContextManager::__enter__).def("__exit__",&PausedContextManager::__exit__);
 			}
 		};
-		PausedContextManager* pyPaused(){ return new PausedContextManager(this); }
+		PausedContextManager* pyPaused(){ return new PausedContextManager(static_pointer_cast<Scene>(shared_from_this())); }
 
 		// override Object::boostSave, to set lastSave correctly
 		void boostSave(const string& out);
