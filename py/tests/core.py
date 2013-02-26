@@ -348,57 +348,83 @@ class TestPyDerived(unittest.TestCase):
 			PAT(woo.core.Node,'aNode',woo.core.Node(pos=(1,1,1)),'node attr'),
 			PAT(woo.core.Node,'aNodeNone',None,'node attr, uninitialized'),
 			PAT([woo.core.Node,],'aNNode',[woo.core.Node(pos=(1,1,1)),woo.core.Node(pos=(2,2,2))],'List of nodes'),
+			PAT(float,'aF_trigger',1.,triggerPostLoad=True,doc='Float triggering postLoad, copying its value to aF'),
+			PAT(int,'postLoadCounter',0,doc='counter for postLoad (readonly). Incremented by 1 after construction, incremented by 10 when assigning to aF_trigger.')
 		]
+		def postLoad(self,I):
+			# print '_TestPyClass.postLoad(%s)'%I
+			if I==None:
+				self.postLoadCounter+=1
+			elif I==id(self.aF_trigger):
+				print 'postLoad / aF_trigger'
+				self.postLoadCounter+=10
+				self.aF=self.aF_trigger
+			else: raise RuntimeError(self.__class__.__name__+'.postLoad called with unknown attribute id %s'%I)
 		def __init__(self,**kw):
 			woo.core.Object.__init__(self)
 			self.wooPyInit(self.__class__,woo.core.Object,**kw)
 	def setUp(self):
 		self.t=self._TestPyClass()
+	def testTrigger(self):
+		'PyDerived: postLoad triggers'
+		print 'postLoadCounter after ctor:',self.t.postLoadCounter
+		self.assert_(self.t.postLoadCounter==1)
+		self.t.aF_trigger=514.
+		self.assert_(self.t.aF_trigger==514.)
+		self.assert_(self.t.aF==514.)
+		self.assert_(self.t.postLoadCounter==11)
+	def testPickle(self):
+		'PyDerived: deepcopy'
+		self.assert_(self.t.aF==1.)
+		self.assert_(self.t.aNode.pos==Vector3(1,1,1))
+		self.t.aF=2.
+		self.t.aNode.pos=Vector3(0,0,0)
+		self.assert_(self.t.aF==2.)
+		self.assert_(self.t.aNode.pos==Vector3(0,0,0))
+		# pickle needs the class to be found in the module itself
+		#    PicklingError: Can't pickle <class 'woo.tests.core._TestPyClass'>: it's not found as woo.tests.core._TestPyClass
+		globals()['_TestPyClass']=self._TestPyClass
+		t2=self.t.deepcopy()
+		self.assert_(t2.aF==2.)
+		self.assert_(t2.aNode.pos==Vector3(0,0,0))
+	def testTypeCoerceFloats(self):
+		'PyDerived: type coercion (primitive types)'
+		# numbers and number sequences			
+		self.assertRaises(TypeError,lambda:setattr(self.t,'aF','asd'))
+		self.assertRaises(TypeError,lambda:setattr(self.t,'aF','123')) # disallow conversion from strings
+		self.assertRaises(TypeError,lambda:setattr(self.t,'aFF',(1,2,'ab')))
+		self.assertRaises(TypeError,lambda:setattr(self.t,'aFF','ab'))
+		self.assertRaises(TypeError,lambda:setattr(self.t,'aFF',[(1,2,3),(4,5,6)]))
+		try: self.t.aFF=[]
+		except: self.fail("Empty list not accepter for list of floats")
+		try: self.t.aFF=Vector3(1,2,3)
+		except: self.fail("Vector3 not accepted for list of floats")
+		try: self.t.aV2=(0,1.)
+		except: self.fail("2-tuple not accepted for Vector2")
+	def testTypeCoerceObject(self):
+		'PyDerived: type coercion (woo.core.Object)'
+		# c++ objects
+		try: self.t.aNode=None
+		except: self.fail("None not accepted as woo.core.Node")
+		self.assertRaises(TypeError,lambda:setattr(self.t,'aNode',woo.core.Scene()))
+		# list of c++ objects
+		self.assertRaises(TypeError,lambda:setattr(self.t,'aNNode',(woo.core.Node(),woo.core.Scene())))
+		try: self.t.aNNode=[None,woo.core.Node()]
+		except: self.fail("[None,Node] not accepted for list of Nodes")
+	def testTypeCoerceCtor(self):
+		'PyDerived: type coercion (ctor)'
+		self.assertRaises(TypeError,lambda:self._TestPyClass(aF='abc'))
 	def testTraits(self):
 		'PyDerived: PyAttrTraits'
 		self.assert_(self.t._attrTraits[0].ini==1.)
 		self.assert_(self.t._attrTraits[0].pyType==float)
-	def testIniValues(self):
-		'PyDerived: attribute initialization'
+	def testIniDefault(self):
+		'PyDerived: default initialization'
 		self.assert_(self.t.aF==1.)
 		self.assert_(self.t.aFF==[0.,1.,2.])
 		self.assert_(self.t.aNodeNone==None)
-	def testAttrTypesDefault(self):
-		'PyDerived: coerceAttrValues - default'
-		try: self.t.coerceAttrValues()
-		except: self.fail("exception raised with default-initialized _TestPyClass")
-	def testAttrFloat(self):
-		'PyDerived: coerceAttrValues - float'
-		self.t.aF='asd'
-		self.assertRaises(TypeError,self.t.coerceAttrValues)
-	def testAttrFFloat(self):
-		'PyDerived: coerceAttrValues - float list'
-		self.t.aFF=(1,2,'ab')
-		self.assertRaises(TypeError,self.t.coerceAttrValues)
-		self.t.aFF='ab'
-		self.assertRaises(TypeError,self.t.coerceAttrValues)
-		self.t.aFF='123' # disallow conversion from strings
-		self.assertRaises(TypeError,self.t.coerceAttrValues)
-		self.t.aFF=[(1,2,3),(4,5,6)]
-		self.assertRaises(TypeError,self.t.coerceAttrValues)
-		self.t.aFF=[]
-		self.t.aFF=Vector3(1,2,3)
-		try: self.t.coerceAttrValues()
-		except: self.fail("Vector3 not accepted for list of floats")
-		self.t.aFF=[]
-		try: self.t.coerceAttrValues()
-		except: self.fail("Empty list not accepter for list of floats")
-	def testAttrObj(self):
-		'PyDerived: coerceAttrValues - c++ object'
-		self.t.aNode=None
-		try: self.t.coerceAttrValues()
-		except: self.fail("None not accepted as woo.core.Node")
-		self.t.aNode=woo.core.Scene()
-		self.assertRaises(TypeError,self.t.coerceAttrValues)
-	def testAttrObjList(self):
-		'PyDerived: coerceAttrValues - list of c++ objects'
-		self.t.aNNode=(woo.core.Node(),woo.core.Scene())
-		self.assertRaises(TypeError,self.t.coerceAttrValues)
-		self.t.aNNode=[None,woo.core.Node()]
-		try: self.t.coerceAttrValues()
-		except: self.fail("[None,Node] not accepted for list of Nodes")
+	def testIniUser(self):
+		'PyDerived: user initialization'
+		t2=self._TestPyClass(aF=2.)
+		self.assert_(t2.aF==2.)
+		self.assertRaises(AttributeError,lambda: self._TestPyClass(nonsense=123))

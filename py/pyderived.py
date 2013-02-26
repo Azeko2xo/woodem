@@ -5,6 +5,81 @@ from woo.core import *
 from minieigen import *
 
 class PyAttrTrait:
+	'''
+	Class mimicking the `AttrTrait` template in c++, to be used when deriving from :obj:`PyWooObject`, like in this example (can be found in `woo.pyderived` module's source)::
+
+		class _SamplePyDerivedPreprocessor(woo.core.Preprocessor,PyWooObject):
+			'Sample preprocessor written in pure python'
+			_attrTraits=[
+				PyAttrTrait(bool,'switch',True,"Some bool switch, starting group",startGroup='General'),
+				PyAttrTrait(int,'a',2,"Integer argument in python"),
+				PyAttrTrait(str,'b','whatever',"String argument in python"),
+				PyAttrTrait([Node,],'c',[],"List of nodes in python"),
+				PyAttrTrait(float,'d',.5,"Parameter with range",range=Vector2(0,.7),startGroup='Advanced'),
+				PyAttrTrait(int,'choice',2,"Param with choice",choice=[(0,'choice0'),(1,'choice1'),(2,'choice2')]),
+				PyAttrTrait(int,'flags',1,"Param with bits",bits=['bit0','bit1','bit2','bit3','bit4'],buttons=(['Clear flags','self.flags=0','Set flags to zero'],True)),
+				PyAttrTrait(int,'choice2',2,'Param with unnamed choice',choice=[0,1,2,3,4,5,6,-1]),
+				PyAttrTrait(Vector3,'color',Vector3(.2,.2,.2),"Color parameter",rgbColor=True),
+				PyAttrTrait(float,'length',1.5e-3,"Length",unit='mm'),
+			]
+			def __init__(self,**kw):
+				woo.core.Preprocessor.__init__(self)
+				self.wooPyInit(self.__class__,woo.core.Preprocessor,**kw)
+			def __call__(self):
+				pass
+				# ...
+
+	This class will be represented like this in the GUI:
+
+	.. image:: fig/pyderived-gui.png
+
+
+	:param pyType: python type object; can be
+
+		* primitive type (like `bool`, `float`, `Vector3`, `str`, …)
+		* sequence of primitive types, written as 1-list: `[bool,]`, `[float,]`, …
+		* :obj:`woo Object <woo.core.Object>` or any derived type (:obj:`woo.core.Node`, :obj:`woo.dem.Sphere`, …)
+		* sequence of woo objects, e.g. `[woo.core.Node,]`
+
+		When a value is assigned to the attribute, provided type must be convertible to *pyType*, otherwise `TypeError` is raised. There are some additional restrictions:
+
+		* `str` and `unicode` values will *not* be converted to `floats` and such − although python will accept `float('1.23')`
+
+	:param name: name of the attribute, given as `str`
+	:param ini: initial (default) value of the attribute
+	:param str doc: documentation for this attribute, as it appears in generated docs and tooltips in the UI
+	:param str unit: unit given as string, which is looked up in :obj:`woo.unit`; the multiplier is the ratio between *unit* and associated basic unit, which is found automatically.
+		
+		.. warning:: `unit` only determines multiplier for the GUI representation; it has no impact on the internal value used; in particular, the *ini* value is *unit-less*. If you want to give units to the initial value, say something like::
+			
+			PyAttrTrait(float,'angle',60*woo.unit['deg'],units='deg','This is some angle')
+
+	:param bool noGui: do not show this attribute in the GUI; use this for attributes which the GUI does not know how to represent (such as python objects, numpy arrays and such), to avoid warnings.
+	:param bool noDump: skip this attribute when dumping/loading this object; that means that after loading (or after a :obj:`PyWooObjects.deepcopy`), the attribute will be default-initialized.
+	:param bool rgbColor: this attribute is color in the RGB space (its type must be `Vector3`); the GUI will show color picker.
+	:param str startGroup: start new attribute group, which is represented as collapsible blocks in the GUI.
+	:param str hideIf: python expression which determines whether the GUI hide/show this attribute entry dynamically; use `self` to refer to the instance, as usual.
+	:param range: give range (`Vector2` or `Vector2i`) to this numerical (`float` or `int`) attribute − a slider will be shown in the GUI.
+	:param choice: this attribute chooses from predefined set of integer values; `choice` itself can be
+
+		* list of unnamed values, e.g. `[0,1,2,3,4]` to choose from;
+		* list of named values, e.g. `[(0,'choice0'),(1,'choice1'),(2,'choice2')]`, where the name will be displayed in the GUI, and the number will be assigned when the choice is made.
+
+	:param bits: give names for bit values which this (integer) attribute which represents; they will be shown as array of checkboxes in the GUI.
+	:param buttons: Tuple of *list* and *bool*; in the flat list of strings, where each consecutive triplet contains
+
+		 1. button label
+		 2. python expression to evaluate when the button is clicked
+		 3. label to be shown as button description in the GUI
+
+		 The bool at the end determined whether the button is created above (*True*) or below (*False*) the current attribute.
+	
+	:param filename: `str` attribute representing filename with file picker in the GUI; the file is possibly non-existent.
+	:param existingFilename: `str` attribute for existing filename, with file picker in the GUI.
+	:param dirname: `str` attribute for existing directory name, with directory picker in the GUI.
+	:param triggerPostLoad: when this attribute is being assigned to, `postLoad(id(self.attr))` will be called.
+
+	'''
 	#		
 	# fake cxxType
 	#
@@ -30,7 +105,8 @@ class PyAttrTrait:
 			altUnits=None,
 			filename=False,
 			existingFilename=False,
-			dirname=False
+			dirname=False,
+			triggerPostLoad=False,
 		):
 		# validity checks
 		if range:
@@ -72,8 +148,9 @@ class PyAttrTrait:
 		self.filename=filename
 		self.existingFilename=existingFilename
 		self.dirname=dirname
+		self.triggerPostLoad=triggerPostLoad
 		# those are unsupported in python
-		self.noSave=self.readonly=self.triggerPostLoad=self.hidden=self.noResize=self.pyByRef=self.static=self.activeLabel=False
+		self.noSave=self.readonly=self.hidden=self.noResize=self.pyByRef=self.static=self.activeLabel=False
 		# 
 		# units
 		#
@@ -150,48 +227,128 @@ class PyAttrTrait:
 	def __repr__(self): return self.__str__()
 
 class PyWooObject:
-	'Define some c++-compatibility functions for python classes'
+	'''
+	Define some c++-compatibility functions for python classes. Derived class is created as::
+		
+		class SomeClass(woo.core.Object,woo.pyderived.PyWooObject): # order of base classes important!
+			_attrTraits=[
+				# see below
+			]
+			def __init__(self,**kw):
+				woo.core.Object.__init__(self)
+				self.wooPyInit(self.__class__,woo.core.Object,**kw)		
+
+	This new class automatically obtains several features:
+
+	* dumping/loading via :obj:`woo.core.Object.dump` etc works.
+	* the GUI (:obj:`woo.qt.ObjectEditor`) will know how to present this class.
+	* documentation for this class will be generated
+	* all attributes are type-checked when assigned
+	* support for postLoad hooks (see below)
+
+	The `_attrTraits` ist a list of :obj:`PyAttrTrait`; each attribute
+	is defined via its traits, which declare its type, default value, documentation and so on -- this
+	is documented with :obj:`PyAttrTrait`.
+
+	This example shows trait definitions, and also the `triggerPostLoad` flag::
+
+		class SomeClass(woo.core.Object,woo.pyderived.PyWooObject):
+			_PAT=woo.pyderived.PyAttrTrait # alias for class name, to save typing
+			_attrTraits=[
+				_PAT(float,'aF',1.,'float attr'),
+				_PAT([float,],'aFF',[0.,1.,2.],'list of floats attr'),
+				_PAT(Vector2,'aV2',(0.,1.),'vector2 attr'),
+				_PAT([Vector2,],'aVV2',[(0.,0.),(1.,1.)],'list of vector2 attr'),
+				_PAT(woo.core.Node,'aNode',woo.core.Node(pos=(1,1,1)),'node attr'),
+				_PAT([woo.core.Node,],'aNNode',[woo.core.Node(pos=(1,1,1)),woo.core.Node(pos=(2,2,2))],'List of nodes'),
+				_PAT(float,'aF_trigger',1.,triggerPostLoad=True,doc='Float triggering postLoad'),
+			]
+			def postLoad(self,I):
+				if I==None: pass                  # called when constructed/loaded
+				elif I==id(self.aF_trigger): pass # called when aF_trigger is modified
+			def __init__(self,**kw):
+				pass
+				# ...
+
+	The `postLoad` function is called with
+	
+	* `None` when the instance has just been created (or loaded); it *shoud* be idempotent, i.e. calling `postLoad(None)` the second time should have no effect::
+
+		SomeClass()         # default-constructed; will call postLoad(None)
+		SomeClass(aF=3.)    # default-construct, assign, call postLoad(None)
+
+	* `id(self.attr)` when `self.attr` is modified; this can be used to check for some particular conditions or modify other variables::
+
+		instance=SomeClass()  # calls instance.postLoad(None)
+		instance.aF_trigger=3 # calls instance.postLoad(id(instance.aF_trigger))
+	
+	  .. note:: Pay attention to not call `postLoad` in infinite regression. 
+	
+	'''
 	def wooPyInit(self,derivedClass,cxxBaseClass,**kw):
 		'''Inject methods into derivedClass, so that it behaves like woo.core.Object,
 		for the purposes of the GUI and expression dumps'''
 		cxxBaseClass.__init__(self) # repeat, just to make sure
 		self.cxxBaseClass=cxxBaseClass
 		self.derivedClass=derivedClass
-		for a in derivedClass._attrTraits: setattr(self,a.name,a.ini)
-		for k in kw:
-			if not hasattr(self,k): raise ValueError('No such attribute: %s'%k)
-			setattr(self,k,kw[k])
+		self._attrValues={}
+		self._attrTraitsDict=dict([(trait.name,trait) for trait in derivedClass._attrTraits])
+		for trait in derivedClass._attrTraits:
+			# basic getter/setter
+			getter=(lambda self,trait=trait: self._attrValues[trait.name])
+			setter=(lambda self,val,trait=trait: self._attrValues.__setitem__(trait.name,trait.coerceValue(val)))
+			if trait.triggerPostLoad:
+				if not hasattr(derivedClass,'postLoad'): raise RuntimeError('%s.%s declared with triggerPostLoad, but %s.postLoad is not defined.'%(derivedClass.__name__,trait.name,derivedClass.__name__))
+				def triggerSetter(self,val,trait=trait):
+					self._attrValues[trait.name]=trait.coerceValue(val)
+					self.postLoad(id(self._attrValues[trait.name]))
+				setter=triggerSetter
+			setattr(derivedClass,trait.name,property(getter,setter,None,trait.doc))
+			self._attrValues[trait.name]=trait.ini
+		#print derivedClass,self._attrValues
+		if kw:
+			for k in kw:
+				if not hasattr(self,k): raise AttributeError('No such attribute: %s'%k)
+				if k in self._attrValues: self._attrValues[k]=self._attrTraitsDict[k].coerceValue(kw[k])
+				else: setattr(self,k,kw[k])
 		derivedClass.__str__=lambda o:'<%s @ %d (py)>'%(derivedClass.__name__,id(o))
 		derivedClass.__repr__=derivedClass.__str__
 		derivedClass._cxxAddr=property(lambda sefl: id(self))
 		# pickle support
 		def __getstate__(self):
 			#print '__getstate__ in python'
-			ret={}
-			for a in derivedClass._attrTraits: ret[a.name]=getattr(self,a.name)
+			ret=self._attrValues.copy()
 			ret.update(cxxBaseClass.__getstate__(self)) # get boost::python stuff as well
 			return ret
 		def __setstate__(self,st):
 			#print '__setstate__ in python'
-			self.__dict__.update(st)
+			# set managed attributes indirectly, to avoid side-effects
+			for k in st.keys():
+				if k in self._attrValues:
+					self._attrValues[k]=self._attrTraitsDict[k].coerceValue(st.pop(k))
+			# set remaining attributes using setattr
+			for k,v in st.items(): setattr(self,k,v)
+			# call postLoad as if after loading
+			if hasattr(derivedClass,'postLoad'): self.postLoad(None)
 		def deepcopy(self):
 			'''The c++ dedepcopy uses boost::serialization, we need to use pickle. As long as deepcopy
 			is called from python, this function gets precende over the c++ one.'''
 			import pickle
 			return pickle.loads(pickle.dumps(self))
-		def coerceAttrValues(self):
-			'Convert all attribute values to their specified type (or derived type thereof) - e.g. 3-tuples are converted to Vector3 where Vector3 is required, ints to floats, where floats are required, etc. An exception is raised if the conversion is impossible.'
-			for a in derivedClass._attrTraits: setattr(self,a.name,a.coerceValue(getattr(self,a.name)))
 		derivedClass.__getstate__=__getstate__
 		derivedClass.__setstate__=__setstate__
 		derivedClass.deepcopy=deepcopy
-		derivedClass.coerceAttrValues=coerceAttrValues
-		self.coerceAttrValues() # call to make sure we don't carry garbage from the very start
+		# this function is no longer needed, as each attribute checks the value at assignment time (as property)
+		# it is also evil, because it actively sets every attribute, even if its type is perfectly correct
+		#def _coerceAttrValues(self):
+		#	'Convert all attribute values to their specified type (or derived type thereof) - e.g. 3-tuples are converted to Vector3 where Vector3 is required, ints to floats, where floats are required, etc. An exception is raised if the conversion is impossible.'
+		#	for a in derivedClass._attrTraits: setattr(self,a.name,a.coerceValue(getattr(self,a.name)))
+		#derivedClass._coerceAttrValues=_coerceAttrValues
+		if hasattr(derivedClass,'postLoad'): self.postLoad(None)
 		
-	
 
 
-if __name__=='__main__':
+if __name__=='wooMain':
 	# do not define this class when running woo normally,
 	# so that it does not show up in the preprocessor dialogue
 	
@@ -211,6 +368,7 @@ if __name__=='__main__':
 			PyAttrTrait(int,'choice2',2,'Param with unnamed choice',choice=[0,1,2,3,4,5,6,-1]),
 			PyAttrTrait(Vector3,'color',Vector3(.2,.2,.2),"Color parameter",rgbColor=True),
 			PyAttrTrait(float,'length',1.5e-3,"Length",unit='mm'),
+			PyAttrTrait(str,'outDir','/tmp',dirname=True,doc='output directory'),
 		]
 		def __init__(self,**kw):
 			# construct all instance attributes
