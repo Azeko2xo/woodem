@@ -88,6 +88,25 @@ void DemData::blocked_vec_set(const std::string& dofs){
 }
 
 
+Real DemData::getEk_any(const shared_ptr<Node>& n, bool trans, bool rot, Scene* scene){
+	assert(scene!=NULL);
+	assert(n->hasData<DemData>());
+	const DemData& dyn=n->getData<DemData>();
+	Real ret=0.;
+	if(trans){
+		Vector3r fluctVel=scene->isPeriodic?scene->cell->pprevFluctVel(n->pos,dyn.vel,scene->dt):dyn.vel;
+		Real Etrans=.5*(dyn.mass*(fluctVel.dot(fluctVel.transpose())));
+		ret+=Etrans;
+	}
+	if(rot){
+		Matrix3r T(n->ori);
+		Matrix3r mI(dyn.inertia.asDiagonal());
+		Vector3r fluctAngVel=scene->isPeriodic?scene->cell->pprevFluctAngVel(dyn.angVel):dyn.angVel;
+		Real Erot=.5*fluctAngVel.transpose().dot((T.transpose()*mI*T)*fluctAngVel);	
+		ret+=Erot;
+	}
+	return ret;
+}
 
 
 vector<shared_ptr<Node> > Particle::getNodes(){ checkNodes(false,false); return shape->nodes; }
@@ -130,24 +149,10 @@ Vector3r Particle::getTorque() const { checkNodes(); return shape->nodes[0]->get
 std::string Particle::getBlocked() const { checkNodes(); return shape->nodes[0]->getData<DemData>().blocked_vec_get(); }
 void Particle::setBlocked(const std::string& s){ checkNodes(); shape->nodes[0]->getData<DemData>().blocked_vec_set(s); }
 
-Real Particle::getEk_any(bool trans, bool rot) const {
-	Real ret=0;
+Real Particle::getEk_any(bool trans, bool rot, Scene* scene) const {
 	checkNodes();
-	const DemData& dyn=shape->nodes[0]->getData<DemData>();
-	Scene* scene=Master::instance().getScene().get();
-	if(trans){
-		Vector3r fluctVel=scene->isPeriodic?scene->cell->pprevFluctVel(shape->nodes[0]->pos,dyn.vel,scene->dt):dyn.vel;
-		Real Etrans=.5*(dyn.mass*(fluctVel.dot(fluctVel.transpose())));
-		ret+=Etrans;
-	}
-	if(rot){
-		Matrix3r T(shape->nodes[0]->ori);
-		Matrix3r mI(dyn.inertia.asDiagonal());
-		Vector3r fluctAngVel=scene->isPeriodic?scene->cell->pprevFluctAngVel(dyn.angVel):dyn.angVel;
-		Real Erot=.5*fluctAngVel.transpose().dot((T.transpose()*mI*T)*fluctAngVel);	
-		ret+=Erot;
-	}
-	return ret;
+	if(!scene) scene=Master::instance().getScene().get();
+	return DemData::getEk_any(shape->nodes[0],trans,rot,scene);
 }
 
 Vector3r Contact::dPos(const Scene* scene) const{
@@ -213,12 +218,14 @@ int DemField::collectNodes(){
 
 void DemField::removeParticle(Particle::id_t id){
 	LOG_DEBUG("Removing #"<<id);
+	assert(particles->size()>id);
 	// don't actually delete the particle until before returning, so that p is not dangling
 	const shared_ptr<Particle>& p((*particles)[id]);
 	for(const auto& n: p->shape->nodes){
 		if(n->getData<DemData>().isClumped()) throw std::runtime_error("#"+to_string(id)+": a node is clumped, remove the clump itself instead!");
 	}
 	if(!p->shape || p->shape->nodes.empty()){
+		LOG_TRACE("Removing #"<<id<<" without shape or nodes");
 		particles->remove(id);
 		return;
 	}
@@ -249,6 +256,7 @@ void DemField::removeParticle(Particle::id_t id){
 			contacts->remove(c);
 		}
 	}
+	LOG_TRACE("Actually removing #"<<id<<" now");
 	particles->remove(id);
 };
 

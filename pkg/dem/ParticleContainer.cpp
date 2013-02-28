@@ -147,8 +147,8 @@ bool ParticleContainer::remove(Particle::id_t id){
 	// removing last element, shrink the size as much as possible
 	// extending the vector when the space is allocated is rather efficient
 	if((size_t)(id+1)==parts.size()){
-		while(!parts[id--]);
-		parts.resize(id+2);
+		while(id>=0 && !parts[id]) id--; // if the container is completely empty, don't go under zero
+		parts.resize(id+1); // if empty, resizes to -1+1=0
 	}
 	return true;
 }

@@ -185,7 +185,7 @@ void RandomFactory::run(){
 		if(!collider) throw std::runtime_error("RandomFactory: no Collider found within engines (needed for collisions detection)");
 	}
 	if(dynamic_pointer_cast<InsertionSortCollider>(collider)) static_pointer_cast<InsertionSortCollider>(collider)->forceInitSort=true;
-	if(isnan(massFlowRate)) throw std::runtime_error("RandomFactory.massFlowRate must be given "+to_string(massFlowRate));
+	if(isnan(massFlowRate)) throw std::runtime_error("RandomFactory.massFlowRate must be given (is "+to_string(massFlowRate)+"); if you want to generate as many particles as possible, say massFlowRate=0.");
 	if(massFlowRate<=0 && maxAttempts==0) throw std::runtime_error("RandomFactory.massFlowRate<=0 (no massFlowRate prescribed), but RandomFactory.maxAttempts==0. (unlimited number of attempts); this would cause infinite loop.");
 	if(maxAttempts<0){
 		std::runtime_error("RandomFactory.maxAttempts must be non-negative. Negative value, leading to meaking engine dead, is achieved by setting atMaxAttempts=RandomFactory.maxAttDead now.");
@@ -216,7 +216,7 @@ void RandomFactory::run(){
 
 	while(true){
 		// finished forever
-		if((maxMass>0 && mass>=maxMass) || (maxNum>0 && num>maxNum)){
+		if((maxMass>0 && mass>=maxMass) || (maxNum>0 && num>=maxNum)){
 			LOG_INFO("mass or number reached, making myself dead.");
 			dead=true;
 			if(zeroRateAtStop) currRate=0.;
@@ -310,7 +310,7 @@ void RandomFactory::run(){
 		}
 
 		num+=1;
-		
+
 		#ifdef WOO_OPENGL			
 			Real color_=isnan(color)?Mathr::UnitRandom():color;
 		#endif
@@ -331,10 +331,13 @@ void RandomFactory::run(){
 				}
 			}
 			shared_ptr<Node> clump=ClumpData::makeClump(nn,/*no central node pre-given*/shared_ptr<Node>(),/*intersection*/false);
-			// TODO: track energy of the shooter
 			auto& dyn=clump->getData<DemData>();
 			if(shooter) (*shooter)(dyn.vel,dyn.angVel);
-			// TODO: compute initial angular momentum, since wi will (very likely) use the aspherical integrator
+			if(scene->trackEnergy) scene->energy->add(-DemData::getEk_any(clump,true,true,scene),"kinFactory",kinEnergyIx,EnergyTracker::ZeroDontCreate);
+			if(dyn.angVel!=Vector3r::Zero()){
+				throw std::runtime_error("pkg/dem/RandomFactory.cpp: generated particle has non-zero angular velocity; angular momentum should be computed so that rotation integration is correct, but it was not yet implemented.");
+				// TODO: compute initial angular momentum, since we will (very likely) use the aspherical integrator
+			}
 			ClumpData::applyToMembers(clump,/*reset*/false); // apply velocity
 			dem->clumps.push_back(clump);
 			#ifdef WOO_OPENGL
@@ -358,6 +361,7 @@ void RandomFactory::run(){
 			node0->pos+=pos;
 			auto& dyn=node0->getData<DemData>();
 			if(shooter) (*shooter)(dyn.vel,dyn.angVel);
+			if(scene->trackEnergy) scene->energy->add(-DemData::getEk_any(node0,true,true,scene),"kinFactory",kinEnergyIx,EnergyTracker::ZeroDontCreate);
 			mass+=dyn.mass;
 			stepMass+=dyn.mass;
 			assert(node0->hasData<DemData>());
@@ -389,6 +393,7 @@ void RandomFactory::run(){
 	setCurrRate(stepMass/(nSteps*scene->dt));
 }
 
+
 #ifdef BOX_FACTORY_PERI
 bool BoxFactory::validatePeriodicBox(const AlignedBox3r& b) const {
 	if(periSpanMask==0) return box.contains(b);
@@ -414,7 +419,9 @@ void BoxDeleter::run(){
 		if(p->shape->nodes[0]->getData<DemData>().isClumped()) continue;
 		const Vector3r pos=p->shape->nodes[0]->pos;
 		if(inside!=box.contains(pos)) continue; // keep this particle
+		LOG_TRACE("Saving particle #"<<i<<" to deleted");
 		if(save) deleted.push_back((*dem->particles)[i]);
+		if(scene->trackEnergy) scene->energy->add(DemData::getEk_any(p->shape->nodes[0],true,true,scene),"kinDelete",kinEnergyIx,EnergyTracker::ZeroDontCreate);
 		const Real& m=p->shape->nodes[0]->getData<DemData>().mass;
 		num++;
 		mass+=m;
@@ -423,10 +430,10 @@ void BoxDeleter::run(){
 			auto& s=p->shape->cast<Sphere>();
 			s.radius=cbrt(3*m/(4*M_PI*p->material->density));
 		}
-		// FIXME: compute energy that disappeared
+		LOG_TRACE("Will delete particle #"<<i);
 		dem->removeParticle(i);
 		//dem->particles.remove(i);
-		LOG_DEBUG("Particle #"<<p<<" deleted");
+		LOG_DEBUG("Particle #"<<i<<" deleted");
 	}
 	for(size_t i=0; i<dem->clumps.size(); i++){
 		const auto& c=dem->clumps[i];
@@ -437,6 +444,7 @@ void BoxDeleter::run(){
 				const shared_ptr<Particle>& member=(*dem->particles)[memberId];
 				if(mask & !(mask&member->mask)) goto keepClump;
 			}
+			if(scene->trackEnergy) scene->energy->add(DemData::getEk_any(c,true,true,scene),"kinDelete",kinEnergyIx,EnergyTracker::ZeroDontCreate);
 			for(Particle::id_t memberId: cd.memberIds){
 				deleted.push_back((*dem->particles)[memberId]);
 			}
@@ -444,6 +452,7 @@ void BoxDeleter::run(){
 			for(const auto& n: cd.nodes){ mass+=n->getData<DemData>().mass; stepMass+=n->getData<DemData>().mass; }
 			dem->removeClump(i);
 			LOG_DEBUG("Clump #"<<i<<" deleted");
+			i--; // do this id again, might be a different clump now
 		}
 		keepClump: ;
 	}
@@ -563,7 +572,7 @@ void ConveyorFactory::run(){
 	Real lenDone=0;
 	while(true){
 		// done foerver
-		if(maxMass>0 && mass>maxMass){
+		if((maxMass>0 && mass>maxMass) || (maxNum>0 && num>=maxNum)){
 			dead=true;
 			if(zeroRateAtStop) currRate=0.;
 			/* remove particles from the barrier */
@@ -574,6 +583,7 @@ void ConveyorFactory::run(){
 			barrier.clear();
 			return;
 		}
+		LOG_TRACE("Doing next particle: mass/maxMass="<<mass<<"/"<<maxMass<<", num/maxNum"<<num<<"/"<<maxNum);
 		if(nextIx<0) nextIx=centers.size()-1;
 		Real nextX=centers[nextIx][0];
 		Real dX=lastX-nextX+((lastX<nextX && (nextIx==(int)centers.size()-1))?cellLen:0); // when wrapping, fix the difference
@@ -596,6 +606,11 @@ void ConveyorFactory::run(){
 		//LOG_TRACE("x="<<x<<", "<<lenToDo<<"-("<<1+currWraps<<")*"<<cellLen<<"+"<<currX);
 		n->pos=node->pos+node->ori*Vector3r(realSphereX,centers[nextIx][1],centers[nextIx][2]);
 		dyn.vel=node->ori*(Vector3r::UnitX()*vel);
+
+		if(scene->trackEnergy){
+			scene->energy->add(-DemData::getEk_any(n,true,/*rotation zero, don't even compute it*/false,scene),"kinFactory",kinEnergyIx,EnergyTracker::ZeroDontCreate);
+		}
+
 
 		if(realSphereX<barrierLayer){
 			sphere->shape->color=isnan(barrierColor)?Mathr::UnitRandom():barrierColor;

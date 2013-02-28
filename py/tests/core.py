@@ -294,6 +294,12 @@ class TestParticles(unittest.TestCase):
 		S=woo.master.scene
 		S.dem.par.remove(0)
 		self.assertRaises(IndexError,lambda: S.dem.par[0])
+	def testRemoveShrink(self):
+		"Particles: removing particles shrinks storage size"
+		S=woo.master.scene
+		for i in range(self.count-1,-1,-1):
+			S.dem.par.remove(i)
+			self.assert_(len(S.dem.par)==i)
 	def testNegativeIndex(self):
 		"Particles: Negative index counts backwards (like python sequences)."
 		S=woo.master.scene

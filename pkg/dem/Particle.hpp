@@ -33,7 +33,7 @@ struct Particle: public Object{
 	Vector3r& getVel() const; void setVel(const Vector3r&);
 	Vector3r& getAngVel() const; void setAngVel(const Vector3r&);
 	shared_ptr<Impose> getImpose() const; void setImpose(const shared_ptr<Impose>&);
-	Real getEk_any(bool trans, bool rot) const;
+	Real getEk_any(bool trans, bool rot, Scene* scene=NULL) const;
 	Real getEk() const {return getEk_any(true,true); }
 	Real getEk_trans() const { return getEk_any(true,false); }
 	Real getEk_rot() const {return getEk_any(false,true); }
@@ -161,6 +161,9 @@ public:
 
 	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
 	void addForceTorque(const Vector3r& f, const Vector3r& t=Vector3r::Zero()){ boost::mutex::scoped_lock l(lock); force+=f; torque+=t; }
+
+	// get kinetic energy of given node
+	static Real getEk_any(const shared_ptr<Node>& n, bool trans, bool rot, Scene* scene);
 
 	bool isAspherical() const{ return !((inertia[0]==inertia[1] && inertia[1]==inertia[2])); }
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(DemData,NodeData,"Dynamic state of node.",

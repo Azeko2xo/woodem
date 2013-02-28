@@ -221,38 +221,6 @@ template<typename Scalar> void quaterniontoGLMatrix(const Quaternion<Scalar>& q,
 }
 
 
-#if 0
-	// se3
-	template <class Scalar>
-	class Se3
-	{
-		public :
-			VECTOR3_TEMPLATE(Scalar)	position;
-			Quaternion<Scalar>	orientation;
-			Se3(){};
-			Se3(VECTOR3_TEMPLATE(Scalar) rkP, Quaternion<Scalar> qR){ position = rkP; orientation = qR; }
-			Se3(const Se3<Scalar>& s){position = s.position;orientation = s.orientation;}
-			Se3(Se3<Scalar>& a,Se3<Scalar>& b){
-				position  = b.orientation.inverse()*(a.position - b.position);  
-				orientation = b.orientation.inverse()*a.orientation;
-			}
-			Se3<Scalar> inverse(){ return Se3(-(orientation.inverse()*position), orientation.inverse());}
-			void toGLMatrix(float m[16]){ orientation.toGLMatrix(m); m[12] = position[0]; m[13] = position[1]; m[14] = position[2];}
-			VECTOR3_TEMPLATE(Scalar) operator * (const VECTOR3_TEMPLATE(Scalar)& b ){return orientation*b+position;}
-			Se3<Scalar> operator * (const Quaternion<Scalar>& b ){return Se3<Scalar>(position , orientation*b);}
-			Se3<Scalar> operator * (const Se3<Scalar>& b ){return Se3<Scalar>(orientation*b.position+position,orientation*b.orientation);}
-	};
-
-	// functions
-	template<typename Scalar> Scalar unitVectorsAngle(const VECTOR3_TEMPLATE(Scalar)& a, const VECTOR3_TEMPLATE(Scalar)& b){ return acos(a.dot(b)); }
-	// operators
-
-	/*
-	 * typedefs
-	 */
-	typedef Se3<Real> Se3r;
-#endif
-
 /*
  * Serialization of math classes
  */
@@ -270,9 +238,6 @@ BOOST_IS_BITWISE_SERIALIZABLE(Vector3i);
 BOOST_IS_BITWISE_SERIALIZABLE(Vector6r);
 BOOST_IS_BITWISE_SERIALIZABLE(Vector6i);
 BOOST_IS_BITWISE_SERIALIZABLE(Quaternionr);
-#if 0
-	BOOST_IS_BITWISE_SERIALIZABLE(Se3r);
-#endif
 BOOST_IS_BITWISE_SERIALIZABLE(Matrix3r);
 BOOST_IS_BITWISE_SERIALIZABLE(Matrix6r);
 BOOST_IS_BITWISE_SERIALIZABLE(MatrixXr);
@@ -326,14 +291,6 @@ void serialize(Archive & ar, Quaternionr & g, const unsigned int version)
 	Real &w=g.w(), &x=g.x(), &y=g.y(), &z=g.z();
 	ar & BOOST_SERIALIZATION_NVP(w) & BOOST_SERIALIZATION_NVP(x) & BOOST_SERIALIZATION_NVP(y) & BOOST_SERIALIZATION_NVP(z);
 }
-
-#if 0
-	template<class Archive>
-	void serialize(Archive & ar, Se3r & g, const unsigned int version){
-		Vector3r& position=g.position; Quaternionr& orientation=g.orientation;
-		ar & BOOST_SERIALIZATION_NVP(position) & BOOST_SERIALIZATION_NVP(orientation);
-	}
-#endif
 
 template<class Archive>
 void serialize(Archive & ar, AlignedBox2r & b, const unsigned int version){

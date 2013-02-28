@@ -122,6 +122,7 @@ struct RandomFactory: public ParticleFactory{
 		((int,maxAttempts,5000,,"Maximum attempts to position a new particle randomly. If 0, no limit is imposed. When reached, :ref:`atMaxAttempts` determines, what will be done."))
 		((int,atMaxAttempts,MAXATT_ERROR,AttrTrait<>().choice({{MAXATT_ERROR,"error"},{MAXATT_DEAD,"dead"},{MAXATT_WARN,"warn"},{MAXATT_SILENT,"silent"}}),"What to do when maxAttempts is reached."))
 		((int,mask,1,,"Groupmask for new particles"))
+		((int,kinEnergyIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for kinetic energy in scene.energy"))
 		((Real,color,NaN,,"Color for new particles (NaN for random)"))
 		//
 		((Real,stepGoalMass,0,AttrTrait<Attr::readonly>(),"Mass to be attained in this step"))
@@ -200,6 +201,7 @@ struct BoxDeleter: public PeriodicEngine{
 		//
 		((Real,currRate,NaN,AttrTrait<>().readonly(),"Current value of mass flow rate"))
 		((Real,currRateSmooth,1,AttrTrait<>().range(Vector2r(0,1)),"Smoothing factor for currRate ∈〈0,1〉"))
+		((int,kinEnergyIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for kinetic energy in scene.energy"))
 		,/*ctor*/
 		,/*py*/
 		.def("psd",&BoxDeleter::pyPsd,(py::arg("mass")=true,py::arg("cumulative")=true,py::arg("normalize")=false,py::arg("num")=80,py::arg("dRange")=Vector2r(NaN,NaN),py::arg("zip")=false),"Return particle size distribution of deleted particles (only useful with *save*), spaced between *dRange* (a 2-tuple of minimum and maximum radius); )")
@@ -247,6 +249,7 @@ struct ConveyorFactory: public ParticleFactory{
 		((list<shared_ptr<Particle>>,barrier,,AttrTrait<>().readonly().noGui(),"Particles which make up the barrier and will be unblocked once they leave barrierLayer."))
 		((shared_ptr<Node>,node,make_shared<Node>(),AttrTrait<>().readonly(),"Position and orientation of the factory; local x-axis is the feed direction."))
 		((Real,avgRate,NaN,AttrTrait<>().readonly(),"Average feed rate (computed from :ref:`material` density, packing and  and :ref:`vel`"))
+		((int,kinEnergyIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for kinetic energy in scene.energy"))
 
 		((vector<Vector2r>,genDiamMass,,AttrTrait<Attr::readonly>().noGui(),"List of generated diameters and masses (for making granulometry)"))
 		((bool,save,true,,"Save generated particles so that PSD can be generated afterwards"))

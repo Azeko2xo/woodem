@@ -139,10 +139,10 @@ struct Cell: public Object{
 		/*class,base,doc*/ \
 		Cell,Object,"Parameters of periodic boundary conditions. Only applies if O.isPeriodic==True.", \
 		/*attrs*/ \
-		((bool,trsfUpperTriangular,false,AttrTrait<Attr::readonly>(),"Require that :ref:`Cell.trsf` is upper-triangular, to conform with the requirement of voro++ for sheared periodic cells."))\
+		((bool,trsfUpperTriangular,false,AttrTrait<Attr::readonly>(),"Require that :obj:`Cell.trsf` is upper-triangular, to conform with the requirement of voro++ for sheared periodic cells."))\
 		/* overridden below to be modified by getters/setters because of intended side-effects */\
 		((Matrix3r,trsf,Matrix3r::Identity(),,"[overridden]")) \
-		((Matrix3r,refHSize,Matrix3r::Identity(),,"Reference cell configuration, only used with :ref:`OpenGLRenderer.dispScale`. Updated automatically when :ref:`hSize<Cell.hSize>` or :ref:`trsf<Cell.trsf>` is assigned directly; also modified by :ref:`woo.utils.setRefSe3` (called e.g. by the :gui:`Reference` button in the UI)."))\
+		((Matrix3r,refHSize,Matrix3r::Identity(),,"Reference cell configuration, only used with :obj:`OpenGLRenderer.dispScale`. Updated automatically when :obj:`hSize` or :obj:`trsf` is assigned directly; also modified by :obj:`woo.utils.setRefSe3` (called e.g. by the :gui:`Reference` button in the UI)."))\
 		((Matrix3r,hSize,Matrix3r::Identity(),,"[overridden below]"))\
 		((Matrix3r,pprevHsize,Matrix3r::Identity(),AttrTrait<Attr::readonly>(),"hSize at t-dt/2; used to compute velocity correction in contact with non-zero cellDist. Updated automatically."))\
 		/* normal attributes */\
@@ -150,24 +150,24 @@ struct Cell: public Object{
 		((Matrix3r,W,Matrix3r::Zero(),AttrTrait<Attr::readonly>(),"Spin tensor, computed from gradV when it is updated."))\
 		((Vector3r,spinVec,Vector3r::Zero(),AttrTrait<Attr::readonly>(),"Angular velocity vector (1/2 * dual of spin tensor W), computed from W when it is updated."))\
 		((Matrix3r,nextGradV,Matrix3r::Zero(),,"Value of gradV to be applied in the next step (that is, at t+dt/2). If any engine changes gradV, it should do it via this variable. The value propagates to gradV at the very end of each timestep, so if it is user-adjusted between steps, it will not become effective until after 1 steps. It should not be changed between Leapfrog and end of the step!"))\
-		((int,homoDeform,HOMO_GRADV2,AttrTrait<>().triggerPostLoad().choice({{HOMO_NONE,"None"},{HOMO_POS,"position only"},{HOMO_VEL,"pos & vel, 1st order"},{HOMO_VEL_2ND,"pos & vel, 2nd order"},{HOMO_GRADV2,"all, leapfrog-consistent"}}),"Deform (:ref:`gradV<Cell.gradV>`) the cell homothetically, by adjusting positions or velocities of particles. The values have the following meaning: 0: no homothetic deformation, 1: set absolute particle positions directly (when ``gradV`` is non-zero), but without changing their velocity, 2: adjust particle velocity (only when ``gradV`` changed) with Δv_i=Δ ∇v x_i. 3: as 2, but include a 2nd order term in addition -- the derivative of 1 (convective term in the velocity update)."))\
+		((int,homoDeform,HOMO_GRADV2,AttrTrait<>().triggerPostLoad().choice({{HOMO_NONE,"None"},{HOMO_POS,"position only"},{HOMO_VEL,"pos & vel, 1st order"},{HOMO_VEL_2ND,"pos & vel, 2nd order"},{HOMO_GRADV2,"all, leapfrog-consistent"}}),"Deform (:obj:`gradV`) the cell homothetically, by adjusting positions or velocities of particles. The values have the following meaning: 0: no homothetic deformation, 1: set absolute particle positions directly (when ``gradV`` is non-zero), but without changing their velocity, 2: adjust particle velocity (only when ``gradV`` changed) with Δv_i=Δ ∇v x_i. 3: as 2, but include a 2nd order term in addition -- the derivative of 1 (convective term in the velocity update)."))\
 		,\
 	/*deprec*/ ((Hsize,hSize,"conform to Yade's names convention.")),\
 	/*init*/ ,\
 	/*ctor*/ _invTrsf=Matrix3r::Identity(); integrateAndUpdate(0),\
 	/*py*/\
 		/* override some attributes above*/ \
-		.add_property("hSize",&Cell::getHSize,&Cell::setHSize,"Base cell vectors (columns of the matrix), updated at every step from :ref:`gradV<Cell.gradV>` (:ref:`trsf<Cell.trsf>` accumulates applied :ref:`gradV<Cell.gradV>` transformations). Setting *hSize* during a simulation is not supported by most contact laws, it is only meant to be used at iteration 0 before any interactions have been created.")\
-		.add_property("size",&Cell::getSize_copy,&Cell::setSize,"Current size of the cell, i.e. lengths of the 3 cell lateral vectors contained in :ref:`Cell.hSize` columns. Updated automatically at every step. Assigning a value will change the lengths of base vectors (see :ref:`Cell.hSize`), keeping their orientations unchanged.")\
+		.add_property("hSize",&Cell::getHSize,&Cell::setHSize,"Base cell vectors (columns of the matrix), updated at every step from :obj:`gradV` (:obj:`trsf` accumulates applied :obj:`gradV` transformations). Setting *hSize* during a simulation is not supported by most contact laws, it is only meant to be used at iteration 0 before any interactions have been created.")\
+		.add_property("size",&Cell::getSize_copy,&Cell::setSize,"Current size of the cell, i.e. lengths of the 3 cell lateral vectors contained in :obj:`Cell.hSize` columns. Updated automatically at every step. Assigning a value will change the lengths of base vectors (see :obj:`Cell.hSize`), keeping their orientations unchanged.")\
 		/* useful properties*/ \
-		.add_property("trsf",&Cell::getTrsf,&Cell::setTrsf,"Current transformation matrix of the cell, obtained from time integration of :ref:`Cell.gradV`.")\
-		.def_readonly("size",&Cell::getSize_copy,"Current size of the cell, i.e. lengths of the 3 cell lateral vectors contained in :ref:`Cell.hSize` columns. Updated automatically at every step.")\
+		.add_property("trsf",&Cell::getTrsf,&Cell::setTrsf,"Current transformation matrix of the cell, obtained from time integration of :obj:`Cell.gradV`.")\
+		.def_readonly("size",&Cell::getSize_copy,"Current size of the cell, i.e. lengths of the 3 cell lateral vectors contained in :obj:`Cell.hSize` columns. Updated automatically at every step.")\
 		.add_property("volume",&Cell::getVolume,"Current volume of the cell.")\
 		/* functions */ \
-		.def("setBox",&Cell::setBox,"Set :ref:`Cell` shape to be rectangular, with dimensions along axes specified by given argument. Shorthand for assigning diagonal matrix with respective entries to :ref:`hSize<Cell.hSize>`.")\
-		.def("setBox",&Cell::setBox3,"Set :ref:`Cell` shape to be rectangular, with dimensions along $x$, $y$, $z$ specified by arguments. Shorthand for assigning diagonal matrix with the respective entries to :ref:`hSize<Cell.hSize>`.")\
+		.def("setBox",&Cell::setBox,"Set :obj:`Cell` shape to be rectangular, with dimensions along axes specified by given argument. Shorthand for assigning diagonal matrix with respective entries to :obj:`hSize`.")\
+		.def("setBox",&Cell::setBox3,"Set :obj:`Cell` shape to be rectangular, with dimensions along $x$, $y$, $z$ specified by arguments. Shorthand for assigning diagonal matrix with the respective entries to :obj:`hSize`.")\
 		.add_property("velGrad",&Cell::getVelGrad,&Cell::setVelGrad)\
-		.add_property("gradV",&Cell::getGradV,&Cell::setGradV,"Velocity gradient of the transformation; used in :ref:`Leapfrog`. Values of :ref:`gradV<Cell.gradV>` accumulate in :ref:`trsf<Cell.trsf>` at every step. This is the value at t-dt/2 and should _never_ be changed directly. Engines can modify nextGradV, which will be assigned between time-steps. Humans should assign Cell.nnextGradV so that correct velocity correction is applied to all particles, in which case the given value will be effective in t+2*dt.")\
+		.add_property("gradV",&Cell::getGradV,&Cell::setGradV,"Velocity gradient of the transformation; used in :obj:`Leapfrog`. Values of :obj:`gradV` accumulate in :obj:`trsf` at every step. This is the value at t-dt/2 and should _never_ be changed directly. Engines can modify nextGradV, which will be assigned between time-steps. Humans should assign Cell.nnextGradV so that correct velocity correction is applied to all particles, in which case the given value will be effective in t+2*dt.")\
 		.def("setCurrGradV",&Cell::setCurrGradV)\
 		/* debugging only */ \
 		.def("canonicalizePt",&Cell::canonicalizePt_py,"Transform any point such that it is inside the base cell")\
@@ -176,7 +176,7 @@ struct Cell: public Object{
 		.def("wrapPt",&Cell::wrapPt_py,"Wrap point inside the reference cell, assuming the cell has no skew+rot.")\
 		.def_readonly("shearTrsf",&Cell::_shearTrsf,"Current skew+rot transformation (no resize)")\
 		.def_readonly("unshearTrsf",&Cell::_unshearTrsf,"Inverse of the current skew+rot transformation (no resize)")\
-		.add_property("hSize0",&Cell::getHSize0,"Value of untransformed hSize, with respect to current :ref:`trsf<Cell.trsf>` (computed as :ref:`trsf<Cell.trsf>`⁻¹ × :ref:`hSize<Cell.hSize>`.")\
+		.add_property("hSize0",&Cell::getHSize0,"Value of untransformed hSize, with respect to current :obj:`trsf` (computed as :obj:`trsf`⁻¹ × :obj:`hSize>`.")\
 		.add_property("size0",&Cell::getSize0,"norms of columns of `hSize0` (edge lengths of the untransformed configuration)") ;\
 			_classObj.attr("HomoNone")=(int)Cell::HOMO_NONE; \
 			_classObj.attr("HomoPos")=(int)Cell::HOMO_POS; \
