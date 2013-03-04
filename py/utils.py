@@ -500,7 +500,12 @@ def tesselatePolyline(l,maxDist):
 
 
 def xhtmlReportHead(S,headline):
-	import time, platform
+	'''
+		Return XHTML fragment for simulation report: XHTML header, title, Woo logo, configuration and preprocessor parameters. 
+
+		In order to obtain a well-formed XHTML document, don't forget to add '</body></html>'.
+	'''
+	import time, platform, pkg_resources
 	xmlhead='''<?xml version="1.0" encoding="UTF-8"?>
 	<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> 
 	<html xmlns="http://www.w3.org/1999/xhtml" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -509,11 +514,16 @@ def xhtmlReportHead(S,headline):
 	html=(u'''<head><title>{headline}</title></head><body>
 		<h1>{headline}</h1>
 		<h2>General</h2>
+		<table style="text-align: center">
+			<tr><td rowspan="3">{svgLogo}</td><td><a href="http://www.woodem.eu/">WooDEM</a></td></tr>
+			<tr><td>© <a href="mailto:woodem@doxo.eu">Václav Šmilauer</a></td></tr>
+			<tr><td>Licensed under <a href="http://opensource.org/licenses/gpl-2.0.php">GNU GPL v2</a></td></tr>
+		</table>
 		<table>
 			<tr><td>title</td><td align="right">{title}</td></tr>
 			<tr><td>id</td><td align="right">{id}</td></tr>
 			<tr><td>started</td><td align="right">{started}</td></tr>
-			<tr><td>duration</td><td align="right">{duration:g} s</td></tr>
+			<tr><td>duration</td><td align="right">{duration:g} s ({step} steps)</td></tr>
 			<tr><td>average speed</td><td align="right">{stepsPerSec:g} steps/sec</td></tr>
 			<tr><td>operator</td><td align="right">{user}</td></tr>
 			<tr><td>number of cores used</td><td align="right">{nCores}</td></tr>
@@ -521,15 +531,74 @@ def xhtmlReportHead(S,headline):
 			<tr><td>compiled with</td><td align="right">{compiledWith}</td></tr>
 			<tr><td>platform</td><td align="right">{platform}</td></tr>
 		</table>
-		'''.format(headline=headline,title=(S.tags['title'] if S.tags['title'] else '<i>[none]</i>'),id=S.tags['id'],user=S.tags['user'].decode('utf-8'),started=time.ctime(time.time()-woo.master.realtime),duration=woo.master.realtime,nCores=woo.master.numThreads,stepsPerSec=S.step/woo.master.realtime,engine='wooDem '+woo.config.version+'/'+woo.config.revision+(' (debug)' if woo.config.debug else ''),compiledWith=','.join(woo.config.features),platform=platform.platform().replace('-',' '))
+		'''.format(headline=headline,title=(S.tags['title'] if S.tags['title'] else '<i>[none]</i>'),id=S.tags['id'],user=S.tags['user'].decode('utf-8'),started=time.ctime(time.time()-woo.master.realtime),step=S.step,duration=woo.master.realtime,nCores=woo.master.numThreads,stepsPerSec=S.step/woo.master.realtime,engine='wooDem '+woo.config.version+'/'+woo.config.revision+(' (debug)' if woo.config.debug else ''),compiledWith=','.join(woo.config.features),platform=platform.platform().replace('-',' '),svgLogo=svgFileFragment(pkg_resources.resource_filename('woo','data/woodem-6.small.svg')))
 		+'<h2>Input data</h2>'+S.pre.dumps(format='html',fragment=True,showDoc=True)
 	)
 	return xmlhead+html
 
+def xhtmlReport(S,repFmt,headline,afterHead='',figures=[],figFmt='svg',svgEmbed=False,show=False):
+	'''
+	Generate XHTML report for simulation.
+
+	:param S: :obj:`Scene` object; must contain :obj:`Scene.pre`
+	:param repFmt: format for the output file; will be expanded using :obj:`Scene.tags`; it should end with `.html` or `.xhtml`.
+	:param headline: title of the report, used as XHTML title and the first `<h1>` heading.
+	:param afterHead: contents (XHTML fragment) to be added verbatim after the header (title, woo config table, preprocessor parameters)
+	:param figs: figures included in the report; they are either embedded (SVG, optionally ) or saved to files in the same directory as the report, using its name as prefix, and referenced via relative links from the XHTML. Figures are given as list of 2- or 3-tuples, where each item contains:
+	   
+		 1. name of the figure (will generate a `<h2>` heading)
+		 2. figure object (`Matplotlib <http://matplotlib.org>` figure object)
+		 3. optionally, format to save the figure to (`svg`, `png`, ...)
+
+	:param figFmt: format of figures, if the format is not specified by the figure itself
+	:param svgEmbed: don't save SVG as separate files, embed them in the report instead. 
+	:param show: open the report in browser via the webbrowser module
+	:return: (filename of the report, list of external figures)
+
+	'''
+	import codecs, re, os.path
+	repName=unicode(repFmt).format(S=S,**(dict(S.tags)))
+	rep=codecs.open(repName,'w','utf-8','replace')
+	print 'Writing report to file://'+os.path.abspath(repName)
+	s=xhtmlReportHead(S,headline)
+	s+=afterHead
+
+	repBase=re.sub('\.x?html$','',repName)
+
+	if figures: s+='<h2>Figures</h2>\n'
+	extFiles=[]
+
+	for ith,figspec in enumerate(figures):
+		if len(figspec)==2: figspec=(figspec[0],figspec[1],figFmt)
+		figName,figObj,figSuffix=figspec
+		if not figName: figName='Figure %i'%(ith+1)
+		s+='<h3>'+figName+'</h3>'
+		if figSuffix=='svg' and svgEmbed:
+			figFile=woo.master.tmpFilename()+'.'+figSuffix
+			figObj.savefig(figFile)
+			s+=svgFileFragment(figFile)
+		else: 
+			figFile=repBase+'.'+re.sub('[^a-zA-Z0-9_-]','_',figName)+'.'+figSuffix
+			figObj.savefig(figFile)
+			s+='<img src="%s" alt="%s"/>'%(os.path.basename(figFile),figName)
+			extFiles.append(os.path.abspath(figFile))
+	s+='</body></html>'
+	rep.write(s)
+	rep.close() # flushed write buffers
+	
+	if show:
+		import webbrowser
+		webbrowser.open('file://'+os.path.abspath(repName))
+	return repName,extFiles
+
+
 def svgFileFragment(filename):
-	import codecs
+	import codecs,re
 	data=codecs.open(filename,encoding='utf-8').read()
-	return data[data.find('<svg '):]
+	# returns the first match
+	for m in re.finditer(r'<svg( |$)',data,flags=re.MULTILINE): return data[m.start():]
+	raise RuntimeError('"<svg" was not found in %s'%filename)
+	
 
 
 def ensureWriteableDir(d):

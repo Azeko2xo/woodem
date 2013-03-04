@@ -9,6 +9,14 @@
 #include<boost/algorithm/string/predicate.hpp>
 #include<boost/detail/endian.hpp>
 
+#ifdef WOO_VTK
+	#include<vtkSmartPointer.h>
+	#include<vtkPoints.h>
+	#include<vtkPolyData.h>
+	#include<vtkIncrementalOctreePointLocator.h>
+	#include<vtkPointLocator.h>
+#endif
+
 #ifdef WOO_OPENGL
 	#include<woo/pkg/gl/Renderer.hpp>
 #endif
@@ -231,25 +239,59 @@ vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const s
 	}
 
 	assert(vertices.size()%3==0);
+	if(vertices.empty()) return ret;
+
+	AlignedBox3r bbox;
+	for(const Vector3r& v: vertices) bbox.extend(v);
+	threshold*=-bbox.sizes().maxCoeff();
+
+	// Incremental neighbor search from VTK fails to work, see
+	// http://stackoverflow.com/questions/15173310/removing-point-from-cloud-which-are-closer-than-threshold-distance
+	#if 0 and defined(WOO_VTK)
+		//	http://markmail.org/thread/zrfkbazg3ljed2mj clears up confucion on BuildLocator vs. InitPointInsert
+		// in short: call InitPointInsertion with empty point set, and don't call BuildLocator at all
+
+		// point locator for fast point merge lookup
+		auto locator=vtkSmartPointer<vtkPointLocator>::New(); // was vtkIncrementalOctreeLocator, but that one crashed
+		auto points=vtkSmartPointer<vtkPoints>::New();
+		auto polydata=vtkSmartPointer<vtkPolyData>::New();
+		// add the first face so that the locator can be built
+		// those points are handled specially in the loop below
+		//QQ for(int i:{0,1,2}) points->InsertNextPoint(vertices[i].data());
+		polydata->SetPoints(points);
+		locator->SetDataSet(polydata);
+		Real bounds[]={bbox.min()[0],bbox.max()[0],bbox.min()[1],bbox.max()[1],bbox.min()[2],bbox.max()[2]};
+		locator->InitPointInsertion(points,bounds);
+	#endif
+
+
 	
-	if(threshold<0){
-		AlignedBox3r box;
-		for(const Vector3r& v: vertices) box.extend(v);
-		threshold*=-box.sizes().maxCoeff();
-	}
 
 	vector<shared_ptr<Node>> nodes;
 	for(size_t v0=0; v0<vertices.size(); v0+=3){
 		size_t vIx[3];
+		__attribute__((unused)) bool isNew[3]={false,false,false};
 		for(size_t v: {0,1,2}){
-			vIx[v]=nodes.size();
+			vIx[v]=nodes.size(); // this value means the point was not found
 			const Vector3r& pos(vertices[v0+v]);
-			for(size_t i=0; i<nodes.size(); i++){
-				if((pos-nodes[i]->pos).squaredNorm()<pow(threshold,2)){
-					vIx[v]=i;
-					break;
+			#if 0 and defined(WOO_VTK)
+				// for the first face, v0==0, pretend the point was not found, so that the node is create below (without inserting additional point)
+				//QQ if(v0>0){
+					if(points->GetNumberOfPoints()>0){
+						double realDist;
+						vtkIdType id=locator->FindClosestPointWithinRadius(threshold,pos.data(),realDist);
+						if(id>=0) vIx[v]=id; // point was found
+					}
+					// if not found, keep vIx[v]==nodes.size()
+				//QQ };
+			#else
+				for(size_t i=0; i<nodes.size(); i++){
+					if((pos-nodes[i]->pos).squaredNorm()<pow(threshold,2)){
+						vIx[v]=i;
+						break;
+					}
 				}
-			}
+			#endif
 			// create new node
 			if(vIx[v]==nodes.size()){
 				auto n=make_shared<Node>();
@@ -262,9 +304,17 @@ vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const s
 					n->setData<GlData>(make_shared<GlData>());
 				#endif
 				nodes.push_back(n);
+				#if 0 and defined(WOO_VTK)
+					//QQ if(v0>0){ // don't add points for the first face, which were added to the locator above already
+						LOG_TRACE("Face #"<<v0/3<<"; new vertex "<<n->pos<<" (number of vertices: "<<points->GetNumberOfPoints()<<")");
+						__attribute__((unused)) vtkIdType id=locator->InsertNextPoint(n->pos.data());
+						assert(id==nodes.size()-1); // assure same index of node and point
+					//QQ }
+				#endif
+				isNew[v]=true;
 			}
-			LOG_TRACE("STL: Face #"<<v0/3<<", node indices "<<vIx[0]<<", "<<vIx[1]<<", "<<vIx[2]<<" ("<<nodes.size()<<" nodes)");
 		}
+		LOG_TRACE("STL: Face #"<<v0/3<<", node indices "<<vIx[0]<<(isNew[0]?"*":"")<<", "<<vIx[1]<<(isNew[1]?"*":"")<<", "<<vIx[2]<<(isNew[2]?"*":"")<<" ("<<nodes.size()<<" nodes)");
 		// create facet
 		auto facet=make_shared<Facet>();
 		for(auto ix: vIx){

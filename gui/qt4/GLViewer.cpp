@@ -70,10 +70,10 @@ void SnapshotEngine::run(){
 	std::ostringstream fss; fss<<fileBase<<std::setw(5)<<std::setfill('0')<<counter++<<"."<<boost::algorithm::to_lower_copy(format);
 	LOG_DEBUG("GL view → "<<fss.str())
 	glv->setSnapshotFormat(QString(format.c_str()));
-	glv->nextFrameSnapshotFilename=fss.str();
+	glv->nextSnapFile=fss.str();
 	// wait for the renderer to save the frame (will happen at next postDraw)
 	long waiting=0;
-	while(!glv->nextFrameSnapshotFilename.empty()){
+	while(!glv->nextSnapFile.empty()){
 		boost::this_thread::sleep(boost::posix_time::milliseconds(10)); waiting++;
 		if(((waiting) % 1000)==0) LOG_WARN("Already waiting "<<waiting/100<<"s for snapshot to be saved. Something went wrong?");
 		if(waiting/100.>deadTimeout){
@@ -408,11 +408,16 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 	else if(e->key()==Qt::Key_Period) gridSubdivide = !gridSubdivide;
 #ifdef WOO_GL2PS
 	else if(e->key()==Qt::Key_V){
-		for(int i=0; ;i++){
-			std::ostringstream fss; fss<<"/tmp/woo-snapshot-"<<setw(4)<<setfill('0')<<i<<".pdf";
-			if(!boost::filesystem::exists(fss.str())){ nextFrameSnapshotFilename=fss.str(); break; }
-		}
-		LOG_INFO("Will save snapshot to "<<nextFrameSnapshotFilename);
+		Scene* scene=Master::instance().getScene().get();
+		string out=scene->expandTags(Renderer::snapFmt);
+		if(boost::algorithm::contains(out,"{#}")){
+			for(int i=0; ;i++){
+				std::ostringstream fss; fss<<std::setw(4)<<std::setfill('0')<<i;
+				string out2=boost::algorithm::replace_all_copy(out,"{#}",fss.str());
+				if(!boost::filesystem::exists(out2)){ nextSnapFile=out2; break; }
+			}
+		} else nextSnapFile=out;
+		LOG_INFO("Will save snapshot to "<<nextSnapFile);
 	}
 #endif
 	else if(e->key()!=Qt::Key_Escape && e->key()!=Qt::Key_Space) QGLViewer::keyPressEvent(e);
@@ -496,20 +501,31 @@ void GLViewer::centerScene(){
 void GLViewer::draw(bool withNames)
 {
 #ifdef WOO_GL2PS
-	if(!nextFrameSnapshotFilename.empty() && boost::algorithm::ends_with(nextFrameSnapshotFilename,".pdf")){
-		gl2psStream=fopen(nextFrameSnapshotFilename.c_str(),"wb");
-		if(!gl2psStream){ int err=errno; throw runtime_error(string("Error opening file ")+nextFrameSnapshotFilename+": "+strerror(err)); }
-		LOG_DEBUG("Start saving snapshot to "<<nextFrameSnapshotFilename);
-		size_t nBodies=Master::instance().getScene()->bodies->size();
-		int sortAlgo=(nBodies<100 ? GL2PS_BSP_SORT : GL2PS_SIMPLE_SORT);
-		gl2psBeginPage(/*const char *title*/"Some title", /*const char *producer*/ "Yade",
-			/*GLint viewport[4]*/ NULL,
-			/*GLint format*/ GL2PS_PDF, /*GLint sort*/ sortAlgo, /*GLint options*/GL2PS_SIMPLE_LINE_OFFSET|GL2PS_USE_CURRENT_VIEWPORT|GL2PS_TIGHT_BOUNDING_BOX|GL2PS_COMPRESS|GL2PS_OCCLUSION_CULL|GL2PS_NO_BLENDING, 
-			/*GLint colormode*/ GL_RGBA, /*GLint colorsize*/0, 
-			/*GL2PSrgba *colortable*/NULL, 
-			/*GLint nr*/0, /*GLint ng*/0, /*GLint nb*/0, 
-			/*GLint buffersize*/4096*4096 /* 16MB */, /*FILE *stream*/ gl2psStream,
-			/*const char *filename*/NULL);
+	if(!nextSnapFile.empty()){
+		bool compress=false;
+		int gl2ps_format;
+		nextSnapIsGl2ps=true;
+		if(boost::algorithm::ends_with(nextSnapFile,".pdf")){ gl2ps_format=GL2PS_PDF; compress=true; }
+		else if(boost::algorithm::ends_with(nextSnapFile,".svg")){ gl2ps_format=GL2PS_SVG; }
+		else if(boost::algorithm::ends_with(nextSnapFile,".svgz")){ gl2ps_format=GL2PS_SVG; compress=true; }
+		else if(boost::algorithm::ends_with(nextSnapFile,".ps")){ gl2ps_format=GL2PS_PS; }
+		else nextSnapIsGl2ps=false;
+		if(nextSnapIsGl2ps){
+			gl2psStream=fopen(nextSnapFile.c_str(),"wb");
+			if(!gl2psStream){ int err=errno; throw runtime_error(string("Error opening file ")+nextSnapFile+": "+strerror(err)); }
+			LOG_DEBUG("gl2ps: start saving snapshot to "<<nextSnapFile);
+			//int sortAlgo=GL2PS_BSP_SORT;
+			int sortAlgo=GL2PS_SIMPLE_SORT;
+			gl2psBeginPage(/*const char *title*/"Some title", /*const char *producer*/ "Woo",
+				/*GLint viewport[4]*/ NULL,
+				/*GLint format*/ gl2ps_format, /*GLint sort*/ sortAlgo, /*GLint options*/GL2PS_SIMPLE_LINE_OFFSET|GL2PS_USE_CURRENT_VIEWPORT|GL2PS_TIGHT_BOUNDING_BOX|/*GL2PS_OCCLUSION_CULL|*/GL2PS_NO_BLENDING|(compress?GL2PS_COMPRESS:GL2PS_NONE), 
+				/*GLint colormode*/ GL_RGBA, /*GLint colorsize*/0, 
+				/*GL2PSrgba *colortable*/NULL, 
+				/*GLint nr*/0, /*GLint ng*/0, /*GLint nb*/0, 
+				/*GLint buffersize*/4096*4096 /* 16MB */, /*FILE *stream*/ gl2psStream,
+				/*const char *filename*/NULL
+			);
+		};
 	}
 #endif
 
@@ -863,20 +879,20 @@ void GLViewer::postDraw(){
 #endif
 
 	QGLViewer::postDraw();
-	if(!nextFrameSnapshotFilename.empty()){
+	if(!nextSnapFile.empty()){
 		#ifdef WOO_GL2PS
-			if(boost::algorithm::ends_with(nextFrameSnapshotFilename,".pdf")){
+			if(nextSnapIsGl2ps){
 				gl2psEndPage();
-				LOG_DEBUG("Finished saving snapshot to "<<nextFrameSnapshotFilename);
+				LOG_DEBUG("Finished saving snapshot to "<<nextSnapFile);
 				fclose(gl2psStream);
 			} else
-	#endif
+		#endif
 		{
 			// save the snapshot
-			saveSnapshot(QString(nextFrameSnapshotFilename.c_str()),/*overwrite*/ true);
+			saveSnapshot(QString(nextSnapFile.c_str()),/*overwrite*/ true);
 		}
 		// notify the caller that it is done already (probably not an atomic op :-|, though)
-		nextFrameSnapshotFilename.clear();
+		nextSnapFile.clear();
 	}
 }
 

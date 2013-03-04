@@ -26,6 +26,7 @@ GLViewInfo Renderer::viewInfo; // update from GLView regularly
 Vector3r Renderer::highlightEmission0;
 Vector3r Renderer::highlightEmission1;
 const int Renderer::numClipPlanes;
+string Renderer::snapFmt;
 
 GlFieldDispatcher Renderer::fieldDispatcher;
 GlShapeDispatcher Renderer::shapeDispatcher;
