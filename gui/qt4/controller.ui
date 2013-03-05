@@ -39,7 +39,7 @@
       </sizepolicy>
      </property>
      <property name="currentIndex">
-      <number>4</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tabGridLayout">
       <attribute name="title">
@@ -497,7 +497,7 @@
                    <string>Inspect</string>
                   </property>
                   <property name="checkable">
-                   <bool>true</bool>
+                   <bool>false</bool>
                   </property>
                  </widget>
                 </item>
@@ -552,8 +552,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>402</width>
-            <height>450</height>
+            <width>98</width>
+            <height>28</height>
            </rect>
           </property>
          </widget>
@@ -840,8 +840,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>402</width>
-            <height>448</height>
+            <width>98</width>
+            <height>28</height>
            </rect>
           </property>
          </widget>
@@ -994,8 +994,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>402</width>
-            <height>477</height>
+            <width>223</width>
+            <height>124</height>
            </rect>
           </property>
           <property name="sizePolicy">

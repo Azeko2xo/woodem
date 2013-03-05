@@ -39,7 +39,7 @@ struct Gl1_Facet: public GlShapeFunctor{
 	void drawEdges(const Facet& f, const Vector3r& facetNormal, bool wire);
 	RENDERS(Facet);
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Facet,GlShapeFunctor,"Renders :ref:`Facet` object",
-		((bool,wire,false,,"Only show wireframe."))
+		((bool,wire,false,AttrTrait<>().buttons({"All facets solid","import woo\nfor p in woo.master.scene.dem.par:\n\tif type(p.shape)==woo.dem.Facet: p.shape.wire=False\n","","All facets wire","import woo\nfor p in woo.master.scene.dem.par:\n\tif type(p.shape)==woo.dem.Facet: p.shape.wire=True\n",""}),"Only show wireframe."))
 		((int,slices,8,,"Number of half-cylinder subdivision for rounded edges with halfThick>=0 (for whole circle); if smaller than 4, rounded edges are not drawn."))
 		/*attrs*/
 	);

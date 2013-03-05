@@ -164,7 +164,7 @@ vector<Vector2r> DemFuncs::psd(const vector<shared_ptr<Particle>>& pp, int num, 
 
 	TODO: read color/material, convert to scalar color in Woo
 */
-vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const shared_ptr<Material>& mat, int mask, Real color, Real scale, const Vector3r& shift, const Quaternionr& ori, Real threshold){
+vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const shared_ptr<Material>& mat, int mask, Real color, Real scale, const Vector3r& shift, const Quaternionr& ori, Real threshold, Real maxBox){
 	vector<shared_ptr<Particle>> ret;
 	std::ifstream in(filename,std::ios::in|std::ios::binary);
 	if(!in) throw std::runtime_error("Error opening "+filename+" for reading (STL import).");
@@ -244,6 +244,37 @@ vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const s
 	AlignedBox3r bbox;
 	for(const Vector3r& v: vertices) bbox.extend(v);
 	threshold*=-bbox.sizes().maxCoeff();
+
+	// tesselate faces so that their smalles bbox dimension (in rotated & scaled space) does not exceed maxBox
+	// this is useful to avoid faces with voluminous bboxs, creating many spurious potential contacts
+	if(maxBox>0){
+		for(int i=0; i<(int)vertices.size(); i+=3){
+			AlignedBox3r b; // in resulting (simulation) space
+			for(int j:{0,1,2}) b.extend(ori*(vertices[i+j]*scale+shift));
+			if(b.sizes().minCoeff()<=maxBox) continue;
+			// too big, tesselate (in STL space)
+			vertices.reserve(vertices.size()+9); // 3 new faces will be added
+			/*         A
+			          +
+			         / \
+			        /   \
+			    CA + --- + AB
+			      / \   / \
+              /   \ /   \
+			  C + --- + --- + B
+                   BC
+
+			*/
+			Vector3r A(vertices[i]), B(vertices[i+1]), C(vertices[i+2]);  
+			Vector3r AB(.5*(A+B)), BC(.5*(B+C)), CA(.5*(C+A));
+			vertices[i+1]=AB; vertices[i+2]=CA;
+			vertices.push_back(CA); vertices.push_back(BC); vertices.push_back(C );
+			vertices.push_back(CA); vertices.push_back(AB); vertices.push_back(BC);
+			vertices.push_back(AB); vertices.push_back(B ); vertices.push_back(BC);
+
+			i-=3; // re-run on the same triangle
+		}
+	}
 
 	// Incremental neighbor search from VTK fails to work, see
 	// http://stackoverflow.com/questions/15173310/removing-point-from-cloud-which-are-closer-than-threshold-distance

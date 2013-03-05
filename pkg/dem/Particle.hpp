@@ -274,10 +274,13 @@ struct Contact: public Object{
 	// we call it "leak" to make this very explicit
 	Particle* leakPA() const { assert(!pA.expired()); return pA.lock().get(); }
 	Particle* leakPB() const { assert(!pB.expired()); return pB.lock().get(); }
+	shared_ptr<Particle> pyPA() const { return pA.lock(); }
+	shared_ptr<Particle> pyPB() const { return pB.lock(); }
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Contact,Object,"Contact in DEM",
 		((shared_ptr<CGeom>,geom,,AttrTrait<Attr::readonly>(),"Contact geometry"))
 		((shared_ptr<CPhys>,phys,,AttrTrait<Attr::readonly>(),"Physical properties of contact"))
 		((shared_ptr<CData>,data,,AttrTrait<Attr::readonly>(),"Optional data stored by the functor for its own use"))
+		// these two are overridden below because of weak_ptr
 		((weak_ptr<Particle>,pA,,AttrTrait<Attr::readonly>(),"First particle of the contact"))
 		((weak_ptr<Particle>,pB,,AttrTrait<Attr::readonly>(),"Second particle of the contact"))
 		((Vector3i,cellDist,Vector3i::Zero(),AttrTrait<Attr::readonly>(),"Distace in the number of periodic cells by which pB must be shifted to get to the right relative position."))
@@ -291,6 +294,8 @@ struct Contact: public Object{
 		, /*py*/ .add_property("id1",&Contact::pyId1).add_property("id2",&Contact::pyId2).add_property("real",&Contact::isReal).add_property("ids",&Contact::pyIds)
 		.def("dPos",&Contact::dPos_py,"Return position difference vector pB-pA, taking `Contact.cellDist` in account properly. Both particles must be uninodal, exception is raised otherwise.")
 		.def("dist",&Contact::dist_py,"Shorthand for dPos.norm().")
+		.add_property("pA",&Contact::pyPA,"First particle of the contact")
+		.add_property("pB",&Contact::pyPB,"Second particle of the contact")
 	);
 };
 REGISTER_SERIALIZABLE(Contact);

@@ -57,6 +57,7 @@ vector<Quaternionr> Renderer::clipPlaneOri;
 vector<bool> Renderer::clipPlaneActive;
 vector<shared_ptr<GlExtraDrawer>> Renderer::extraDrawers;
 bool Renderer::engines;
+bool Renderer::ranges;
 Vector3r Renderer::iniUp;
 Vector3r Renderer::iniViewDir;
 

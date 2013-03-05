@@ -767,7 +767,7 @@ void GLViewer::postDraw(){
 
 #if 1
 	/* draw colormapped ranges, on the right */
-	if(prevSize[0]!=width() || prevSize[1]!=height()){
+	if(Renderer::ranges && (prevSize[0]!=width() || prevSize[1]!=height())){
 		Vector2i curr(width(),height());
 		FOREACH(const shared_ptr<ScalarRange>& r, scene->ranges){
 			// positions normalized to window size
@@ -776,7 +776,7 @@ void GLViewer::postDraw(){
 		};
 		prevSize=curr;
 	}
-	if(scene->ranges.size()>0){
+	if(Renderer::ranges && scene->ranges.size()>0){
 		glDisable(GL_LIGHTING);
 		const int pixDiv=100; // show number every 100 px approximately
 		const int scaleWd=20; // width in pixels

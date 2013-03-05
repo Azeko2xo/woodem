@@ -1002,7 +1002,12 @@ class ObjectEditor(QFrame):
 		menu.popup(self.mapToGlobal(position))
 		#print 'menu popped up at ',widget.mapToGlobal(position),' (local',position,')'
 	def getAttrLabelToolTip(self,entry):
-		toolTip=entry.containingClass.__name__+'.<b><i>'+entry.name+'</i></b><br>'+entry.doc+('<br><small>default: %s</small>'%str(entry.trait.ini) if (entry.trait.ini and not isinstance(entry.trait.ini,Object)) else '')
+		try:
+			ini=str(entry.trait.ini) if (entry.trait.ini and not isinstance(entry.trait.ini,Object)) else ''
+		except TypeError:
+			# boost::python won't convert weak_ptr, catch it here
+			ini=''
+		toolTip=entry.containingClass.__name__+'.<b><i>'+entry.name+'</i></b><br>'+entry.doc+('<br><small>default: %s</small>'%ini)
 		if self.labelIsVar: return serializableHref(self.ser,entry.name),toolTip
 		return entry.doc.decode('utf-8'),toolTip
 	def toggleLabelIsVar(self,val=None):
