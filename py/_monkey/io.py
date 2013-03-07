@@ -39,7 +39,7 @@ def Object_dumps(obj,format,fragment=False,width=80,noMagic=False,stream=True,sh
 	elif format=='html':
 		return ('' if fragment else htmlHead)+SerializerToHtmlTable(showDoc=showDoc)(obj)+('' if fragment else '</body>')
 	elif format=='genshi':
-		return SerializeToHtmlTable()(obj,dontRender=True,showDoc=showDoc)
+		return SerializerToHtmlTable()(obj,dontRender=True,showDoc=showDoc)
 
 def Object_dump(obj,out,format='auto',overwrite=True,fragment=False,width=80,noMagic=False,showDoc=False):
 	'''Dump an object in specified *format*; *out* can be a str/unicode (filename) or a *file* object. Supported formats are: `auto` (auto-detected from *out* extension; raises exception when *out* is an object), `html`, `expr`.'''
@@ -127,7 +127,7 @@ class SerializerToHtmlTableGenshi:
 		# get all attribute traits first
 		traits=obj._getAllTraits()
 		for trait in traits:
-			if trait.hidden or (self.hideNoGui and trait.noGui) or trait.noDump: continue
+			if trait.hidden or (self.hideNoGui and trait.noGui) or trait.noDump or (trait.hideIf and eval(trait.hideIf,globals(),{'self':obj})): continue
 			# start new group (additional line)
 			if trait.startGroup:
 				ret.append(tag.tr(tag.td(tag.i(u'▸ %s'%trait.startGroup.decode('utf-8')),colspan=3)))
@@ -192,7 +192,7 @@ class SerializerToExpr:
 		self.noMagic=noMagic
 	def __call__(self,obj,level=0,neededModules=set()):
 		if isinstance(obj,Object):
-			attrs=[(trait.name,getattr(obj,trait.name)) for trait in obj._getAllTraits() if not (trait.hidden or trait.noDump)]
+			attrs=[(trait.name,getattr(obj,trait.name)) for trait in obj._getAllTraits() if not (trait.hidden or trait.noDump or (trait.hideIf and eval(trait.hideIf,globals(),{'self':obj})))]
 			delims=(obj.__class__.__module__)+'.'+obj.__class__.__name__+'(',')'
 			neededModules.add(obj.__class__.__module__)
 		elif isinstance(obj,dict):
@@ -237,7 +237,7 @@ class WooJSONEncoder(json.JSONEncoder):
 		if isinstance(obj,woo.core.Object):
 			d={'__class__':obj.__class__.__module__+'.'+obj.__class__.__name__}
 			# assign woo attributes
-			d.update(dict([(trait.name,getattr(obj,trait.name)) for trait in obj._getAllTraits() if not (trait.hidden or trait.noDump)]))
+			d.update(dict([(trait.name,getattr(obj,trait.name)) for trait in obj._getAllTraits() if not (trait.hidden or trait.noDump or (trait.hideIf and eval(trait.hideIf,globals(),{'self':obj})))]))
 			return d
 		# vectors, matrices: those can be assigned from tuples
 		elif obj.__class__.__module__=='woo._customConverters' or obj.__class__.__module__=='_customConverters':

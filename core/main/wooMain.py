@@ -77,7 +77,7 @@ def flavorFromArgv0(argv0,batch=False):
 def main(sysArgv=None):
 	'''Entry point for the woo executable. *sysArgv* (if specified) replaces sys.argv, which is used for option processing.
 	'''
-	import sys,os,os.path,time,re
+	import sys,os,os.path,time,re,logging
 	if sysArgv: sys.argv=sysArgv
 
 	global options
@@ -259,7 +259,7 @@ def main(sysArgv=None):
 	if 'log4cxx' in woo.config.features and opts.verbosity:
 		woo.log.setLevel('',[woo.log.INFO,woo.log.DEBUG,woo.log.TRACE][min(opts.verbosity,2)])
 	if 'opencl' in woo.config.features and opts.clDev:
-		woo.master.defaultClDev=clDev
+		woo.master.defaultClDev=opts.clDev
 
 
 	## modify sys.argv in-place so that it can be handled by userSession
@@ -795,7 +795,7 @@ finished: %s
 	parser.add_argument('--gnuplot',dest='gnuplotOut',help='Gnuplot file where gnuplot from all jobs should be put together',default=None,metavar='FILE')
 	parser.add_argument('--dry-run',action='store_true',dest='dryRun',help='Do not actually run (useful for getting gnuplot only, for instance)',default=False)
 	parser.add_argument('--http-wait',action='store_true',dest='httpWait',help='Do not quit if still serving overview over http repeatedly',default=False)
-	parser.add_argument('--generate-manpage',help='Generate man page documenting this program and exit',dest='manpage',metavar='FILE')
+	# parser.add_argument('--generate-manpage',help='Generate man page documenting this program and exit',dest='manpage',metavar='FILE')
 	parser.add_argument('--plot-update',type=int,dest='plotAlwaysUpdateTime',help='Interval (in seconds) at which job plots will be updated even if not requested via HTTP. Non-positive values will make the plots not being updated and saved unless requested via HTTP (see \-\-plot-timeout for controlling maximum age of those).  Plots are saved at exit under the same name as the log file, with the .log extension removed. (default: 120 seconds)',metavar='TIME',default=120)
 	parser.add_argument('--plot-timeout',type=int,dest='plotTimeout',help='Maximum age (in seconds) of plots served over HTTP; they will be updated if they are older. (default: 30 seconds)',metavar='TIME',default=30)
 	parser.add_argument('--refresh',type=int,dest='refresh',help='Refresh rate of automatically reloaded web pages (summary, logs, ...).',metavar='TIME',default=30)
@@ -810,13 +810,13 @@ finished: %s
 	
 	logFormat,lineList,maxJobs,nice,executable,gnuplotOut,dryRun,httpWait,globalLog=opts.logFormat,opts.lineList,opts.maxJobs,opts.nice,opts.executable,opts.gnuplotOut,opts.dryRun,opts.httpWait,opts.globalLog
 	
-	if opts.manpage:
-		import woo.manpage
-		woo.config.metadata['short_desc']='batch system for computational platform Woo'
-		woo.config.metadata['long_desc']='Manage batches of computation jobs for the Woo platform; batches are described using text-file tables with parameters which are passed to individual runs of woo. Jobs are being run with pre-defined number of computational cores as soon as the required number of cores is available. Logs of all computations are stored in files and the batch progress can be watched online at (usually) http://localhost:9080. Unless overridden, the executable woo%s is used to run jobs.'%(suffix)
-		woo.manpage.generate_manpage(parser,woo.config.metadata,opts.manpage,section=1,seealso='woo%s (1)\n.br\nhttps://yade-dem.org/sphinx/user.html#batch-queuing-and-execution-yade-batch'%suffix)
-		print 'Manual page %s generated.'%opts.manpage
-		sys.exit(0)
+	#if opts.manpage:
+	#	import woo.manpage
+	#	woo.config.metadata['short_desc']='batch system for computational platform Woo'
+	#	woo.config.metadata['long_desc']='Manage batches of computation jobs for the Woo platform; batches are described using text-file tables with parameters which are passed to individual runs of woo. Jobs are being run with pre-defined number of computational cores as soon as the required number of cores is available. Logs of all computations are stored in files and the batch progress can be watched online at (usually) http://localhost:9080. Unless overridden, the executable woo%s is used to run jobs.'%(suffix)
+	#	woo.manpage.generate_manpage(parser,woo.config.metadata,opts.manpage,section=1,seealso='woo%s (1)\n.br\nhttps://yade-dem.org/sphinx/user.html#batch-queuing-and-execution-yade-batch'%suffix)
+	#	print 'Manual page %s generated.'%opts.manpage
+	#	sys.exit(0)
 	
 	tailProcess=None
 	def runTailProcess(globalLog):
@@ -907,7 +907,7 @@ finished: %s
 			elif col=='!AFFINITY': jobAffinity=eval(val)
 			elif col=='!DEBUG': jobDebug=eval(val)
 			elif col=='!COUNT': jobCount=eval(val)
-			else: envVars+=['%s=%s'%(head[1:],values[l][col])]
+			else: envVars+=['%s=%s'%(col[1:],val)]
 		if not script:
 			raise ValueError('When only batch table is given without script to run, it must contain !SCRIPT column with simulation to be run.')
 		logFile=logFormat.replace('$',script).replace('%',str(l)).replace('@',params[l]['title'].replace('/','_'))

@@ -19,10 +19,11 @@ struct GlExtraDrawer: public Object{
 REGISTER_SERIALIZABLE(GlExtraDrawer);
 
 struct GlData: public NodeData{
+	bool isClipped() const { return isnan(dGlPos[0]); }
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(GlData,NodeData,"Nodal data used for rendering.",
 		((Vector3r,refPos,Vector3r(NaN,NaN,NaN),AttrTrait<>().lenUnit(),"Reference position (for displacement scaling)"))
 		((Quaternionr,refOri,Quaternionr(NaN,NaN,NaN,NaN),,"Reference orientation (for rotation scaling)"))
-		((Vector3r,dGlPos,Vector3r(NaN,NaN,NaN),AttrTrait<>().lenUnit(),"Difference from real spatial position when rendered."))
+		((Vector3r,dGlPos,Vector3r(NaN,NaN,NaN),AttrTrait<>().lenUnit(),"Difference from real spatial position when rendered. (when [0] is NaN, the node is clipped and should not be rendered at all)"))
 		((Quaternionr,dGlOri,Quaternionr(NaN,NaN,NaN,NaN),,"Difference from real spatial orientation when rendered."))
 		((Vector3i,dCellDist,Vector3i::Zero(),,"How much is canonicalized point from the real one."))
 		, /* ctor */

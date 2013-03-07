@@ -165,9 +165,14 @@ void Gl1_DemField::doShape(){
 		Renderer::glScopedName name(p,n0);
 		// bool highlight=(p->id==selId || (p->clumpId>=0 && p->clumpId==selId) || p->shape->highlight);
 
-		FOREACH(const shared_ptr<Node>& n,p->shape->nodes) Renderer::setNodeGlData(n,updateRefPos);
+		// if any of the particle's nodes is clipped, don't display it at all
+		bool clipped=false;
+		FOREACH(const shared_ptr<Node>& n,p->shape->nodes){
+			Renderer::setNodeGlData(n,updateRefPos);
+			if(n->getData<GlData>().isClipped()) clipped=true;
+		}
 
-		if(!sh->getVisible()) continue;
+		if(!sh->getVisible() || clipped) continue;
 
 		bool useColor2=false;
 		bool isSphere=dynamic_pointer_cast<Sphere>(p->shape);
@@ -268,6 +273,7 @@ void Gl1_DemField::doNodes(const vector<shared_ptr<Node>>& nodeContainer){
 		PROCESS_GUI_EVENTS_SOMETIMES;
 
 		Renderer::setNodeGlData(n,updateRefPos);
+		if(n->getData<GlData>().isClipped()) continue;
 
 		if(glyph!=GLYPH_KEEP){
 			// prepare rep types

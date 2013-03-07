@@ -151,6 +151,14 @@ class PyAttrTrait:
 		self.triggerPostLoad=triggerPostLoad
 		# those are unsupported in python
 		self.noSave=self.readonly=self.hidden=self.noResize=self.pyByRef=self.static=self.activeLabel=False
+		#
+		self.validator=None
+		if self.choice and type(self.choice[0])==str:
+			#print '%s: Choice of strings (%s)!!!!'%(self.name,str(self.choice))
+			# choice from strings
+			def validateStrChoice(self,val):
+				if val not in self.choice: raise ValueError("%s: '%s' is not an admissible value (must be one of: %s)"%(self.name,str(val),', '.join(["'%s'"%str(c) for c in self.choice])))
+			self.validator=validateStrChoice
 		# 
 		# units
 		#
@@ -190,8 +198,11 @@ class PyAttrTrait:
 				for i,au in enumerate(altUnits):
 					self.altUnits[i]+=au
 		else: raise ValueError('Unknown unit type %s (must be list, tuple, str, unicode): %s'%(type(unit).__name__,str(unit)))
+	def validate(self,val):
+		'Called when the attribute is set'
+		if self.validator: self.validator(self,val)
 	def coerceValue(self,val):
-		'Check whether *val* has type compatible with declared type (pyType). Raise exception if not. Values converted to required types are returned (it is safe to ignore the return value).'
+		'Check whether *val* has type compatible with declared type (pyType). Raise exception if not. Values converted to required types are returned (it is safe to ignore the return value). In addition, validate the (converted) value, if a validator is defined'
 		def tName(T): return (T.__module__+'.' if T.__module__!='__builtin__' else '')+T.__name__
 		# sequences
 		if isinstance(self.pyType,list):
@@ -222,6 +233,7 @@ class PyAttrTrait:
 				# objects
 				ret=val
 				if val!=None and not isinstance(val,T): raise TypeError("Attribute {self.name} declared as {T}, but value {val!s} of type {valType} is not a {T}".format(self=self,val=val,valType=tName(type(val)),T=tName(T)))
+		self.validate(ret)
 		return ret
 	def __str__(self): return '<PyAttrTrait '+self.name+' @ '+str(id(self))+'>'
 	def __repr__(self): return self.__str__()
@@ -303,7 +315,11 @@ class PyWooObject:
 					self._attrValues[trait.name]=trait.coerceValue(val)
 					self.postLoad(id(self._attrValues[trait.name]))
 				setter=triggerSetter
-			setattr(derivedClass,trait.name,property(getter,setter,None,trait.doc))
+			# chain validation and actual setting
+			def validatingSetter(self,val,trait=trait,setter=setter):
+				trait.validate(val)
+				setter(self,val)
+			setattr(derivedClass,trait.name,property(getter,validatingSetter,None,trait.doc))
 			self._attrValues[trait.name]=trait.ini
 		#print derivedClass,self._attrValues
 		if kw:
@@ -389,4 +405,9 @@ if __name__=='wooMain':
 
 	import woo.pre
 	woo.pre.SamplePyDerivedPreprocessor=SamplePyDerivedPreprocessor
+
+	t=PyAttrTrait(str,'sChoice','aa',choice=['aa','bb','cc'],doc='string choice with validation')
+	t.validate('abc')
+
+
 

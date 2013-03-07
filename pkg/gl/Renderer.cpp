@@ -109,6 +109,7 @@ void Renderer::setNodeGlData(const shared_ptr<Node>& n, bool updateRefPos){
 	// inside the cell if periodic, same as pos otherwise
 	Vector3r cellPos=(!isPeriodic ? n->pos : scene->cell->canonicalizePt(n->pos,gld.dCellDist)); 
 	bool rendered=!pointClipped(cellPos);
+	// this encodes that the node is clipped
 	if(!rendered){ gld.dGlPos=Vector3r(NaN,NaN,NaN); return; }
 	if(updateRefPos || isnan(gld.refPos[0])) gld.refPos=n->pos;
 	if(updateRefPos || isnan(gld.refOri.x())) gld.refOri=n->ori;

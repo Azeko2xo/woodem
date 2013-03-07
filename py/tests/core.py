@@ -355,7 +355,8 @@ class TestPyDerived(unittest.TestCase):
 			PAT(woo.core.Node,'aNodeNone',None,'node attr, uninitialized'),
 			PAT([woo.core.Node,],'aNNode',[woo.core.Node(pos=(1,1,1)),woo.core.Node(pos=(2,2,2))],'List of nodes'),
 			PAT(float,'aF_trigger',1.,triggerPostLoad=True,doc='Float triggering postLoad, copying its value to aF'),
-			PAT(int,'postLoadCounter',0,doc='counter for postLoad (readonly). Incremented by 1 after construction, incremented by 10 when assigning to aF_trigger.')
+			PAT(int,'postLoadCounter',0,doc='counter for postLoad (readonly). Incremented by 1 after construction, incremented by 10 when assigning to aF_trigger.'),
+			PAT(str,'sChoice','aa',choice=['aa','bb','cc'],doc='String choice attribute')
 		]
 		def postLoad(self,I):
 			# print '_TestPyClass.postLoad(%s)'%I
@@ -434,3 +435,11 @@ class TestPyDerived(unittest.TestCase):
 		t2=self._TestPyClass(aF=2.)
 		self.assert_(t2.aF==2.)
 		self.assertRaises(AttributeError,lambda: self._TestPyClass(nonsense=123))
+	def testStrValidation(self):
+		'PyDerived: string choice is validated'
+		try: self.t.sChoice='bb'
+		except: self.fail("Valid choice value not accepted as new attribute value")
+		self.assertRaises(ValueError, lambda: setattr(self.t,'sChoice','abc'))
+		self.assertRaises(ValueError, lambda: self._TestPyClass(sChoice='abc'))
+		try: self._TestPyClass(sChoice='bb')
+		except: self.fail("Valid choice value not accepted in ctor")
