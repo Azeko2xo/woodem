@@ -59,7 +59,7 @@ def writeResults(defaultDb='woo-results.sqlite',syncXls=True,series=None,postHoo
 			series={}; series.update([('plot_'+k,v) for k,v in S.plot.data.items()])
 		for k,v in series.items():
 			if isinstance(v,numpy.ndarray): series[k]=v.tolist()
-			elif not hasattr(v,'__len__'): raise ValueError('series["%s"] not a sequence (__len__ not defined).')
+			elif not hasattr(v,'__len__'): raise ValueError('series["%s"] not a sequence (__len__ not defined).'%k)
 		values=(	
 			formatVersion, # formatVersion
 			datetime.datetime.now(), # finished
