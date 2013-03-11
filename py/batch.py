@@ -83,8 +83,11 @@ def writeResults(defaultDb='woo-results.sqlite',syncXls=True,series=None,postHoo
 	for ph in postHooks: ph(db)
 
 # return all series stored in the database
-def dbReadResults(db):	
-	'''Return list of dictionaries, representing database contents. Series are converted to numpy arrays for easier manipulation.'''
+def dbReadResults(db,basicTypes=False):	
+	'''Return list of dictionaries, representing database contents.
+
+	:param basicTypes: don't reconstruct Woo objects from JSON (keep those as dicts) and don't return data series as numpy arrays.
+	'''
 	import numpy, sqlite3, json, woo.core
 	# open db and get rows
 	conn=sqlite3.connect(db,detect_types=sqlite3.PARSE_DECLTYPES)
@@ -95,18 +98,28 @@ def dbReadResults(db):
 		for key in row.keys():
 			# json-encoded fields
 			if key in ('pre','tags','plots','misc'):
-				val=woo.core.WooJSONDecoder().decode(row[key])
+				if basicTypes: val=json.loads(row[key])
+				else: val=woo.core.WooJSONDecoder().decode(row[key])
 			elif key=='series':
 				series=json.loads(row[key])
 				assert type(series)==dict
-				val=dict([(k,numpy.array(v)) for k,v in series.items()])
+				if basicTypes: val=series
+				else: val=dict([(k,numpy.array(v)) for k,v in series.items()])
 			else:
 				val=row[key]
+			if basicTypes and key=='finished': val=val.isoformat(sep='_')
 			rowDict[key]=val
 		ret.append(rowDict)
 	conn.close() # don't occupy the db longer than necessary
 	return ret
 
+def dbToJSON(db,**kw):
+	'''Return simulation database as JSON string.
+	
+	:param **kw: additional arguments passed to `json.dumps <http://docs.python.org/3/library/json.html#json.dumps>`_.
+	'''
+	import json
+	return json.dumps(dbReadResults(db,basicTypes=True),**kw)
 
 def dbToSpread(db,out=None,dialect='excel',rows=False,series=True,ignored=('plotData','tags'),sortFirst=('title','batchtable','batchTableLine','finished','sceneId','duration'),selector='SELECT * FROM batch ORDER BY title'):
 	'''
