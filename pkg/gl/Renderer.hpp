@@ -122,7 +122,7 @@ struct Renderer: public Object{
 		((vector<shared_ptr<GlExtraDrawer>>,extraDrawers,,,"Additional rendering components (:ref:`GlExtraDrawer`)."))
 		((Vector3r,iniUp,Vector3r(0,0,1),,"Up vector of new views"))
 		((Vector3r,iniViewDir,Vector3r(-1,0,0),,"View direction of new views"))
-		((string,snapFmt,"/tmp/{id}.{#}.pdf",,"Format for saving snapshots; `{tag}` sequences are expanded with Scene.tags; a special {#} tag is expanded with snapshot number (so that older ones are not overwritten), starting from 0 and zero-padded to 4 decimal palces."))
+		((string,snapFmt,"/tmp/{id}.{#}.png",AttrTrait<>().filename(),"Format for saving snapshots; `{tag}` sequences are expanded with Scene.tags; a special `{#}` tag is expanded with snapshot number (so that older ones are not overwritten), starting from 0 and zero-padded to 4 decimal palces. File format is auto-detected from extension. Supported raster formats are .png and .jpg; if compiled with the gl2ps feature, .pdf, .svg, .svg.gz formats are supported as well (though slow and rather unrealiable!)."))
 
 		((bool,scaleOn,false,AttrTrait<>().startGroup("Scaling").buttons({"Reference now","woo.gl.Gl1_DemField.updateRefPos=True","use current positions and orientations as reference for scaling displacement/rotation."},/*showBefore*/false),"Whether *dispScale* has any effect or not."))
 		((Vector3r,dispScale,((void)"disable scaling",Vector3r::Ones()),,"Artificially enlarge (scale) dispalcements from bodies' :ref:`reference positions<State.refPos>` by this relative amount, so that they become better visible (independently in 3 dimensions). Disbled if (1,1,1), and also if *scaleOn* is false."))

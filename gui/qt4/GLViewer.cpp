@@ -24,6 +24,8 @@
 
 
 #include<QtGui/qevent.h>
+#include<QtCore/qdir.h>
+#include<QtGui/qfiledialog.h>
 
 #ifdef WOO_GL2PS
 #include<gl2ps.h>
@@ -138,6 +140,8 @@ GLViewer::GLViewer(int _viewId, QGLWidget* shareWidget): QGLViewer(/*parent*/(QW
 	setKeyDescription(Qt::Key_Period,"Toggle grid subdivision by 10");
 	setKeyDescription(Qt::Key_S,"Toggle displacement and rotation scaling (Renderer.scaleOn)");
 	setKeyDescription(Qt::Key_S & Qt::AltModifier,"Save QGLViewer state to /tmp/qglviewerState.xml");
+	setKeyDescription(Qt::Key_S & Qt::ControlModifier,"Save hardcopy of the image to file.");
+	setKeyDescription(Qt::Key_C & Qt::ControlModifier,"Save hardcopy of the image to clipboard.");
 	setKeyDescription(Qt::Key_T,"Switch orthographic / perspective camera");
 	setKeyDescription(Qt::Key_O,"Set narrower field of view");
 	setKeyDescription(Qt::Key_P,"Set wider field of view");
@@ -311,6 +315,19 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 			LOG_INFO("Saving QGLViewer state to /tmp/qglviewerState.xml");
 			setStateFileName("/tmp/qglviewerState.xml"); saveStateToFile(); setStateFileName(QString::null);
 			// return;
+		} else if (e->modifiers() & Qt::ControlModifier){
+			#if 0
+				// popup save dialog
+				#ifndef WOO_GL2PS
+				   QString filters("Portable Network Graphics (*.png)");
+				#else
+				   QString filters("Portable Network Graphics (*.png);; Portable Document Format [unreliable] (*.pdf)");
+				#endif
+				// if cancelled, assigns empty string, which means no screenshot will be taken at all
+				nextSnapFile=QFileDialog::getSaveFileName(NULL,"Save screenshot",QDir::currentPath(),filters).toStdString();
+			#else
+				LOG_ERROR("Saving screenshots directly does not work (the UI freezes); use Ctrl-C to copy to clipboard and paste somewhere, or set the Renderer.snapFmt (currently "<<Renderer::snapFmt<<") and press 'v' to save to that file directly.");
+			#endif
 		} else {
 			Renderer::scaleOn=!Renderer::scaleOn;
 			displayMessage("Scaling is "+(Renderer::scaleOn?string("on (displacements ")+lexical_cast<string>(Renderer::dispScale.transpose())+", rotations "+lexical_cast<string>(Renderer::rotScale)+")":string("off")));
@@ -406,7 +423,6 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 		}
 	}
 	else if(e->key()==Qt::Key_Period) gridSubdivide = !gridSubdivide;
-#ifdef WOO_GL2PS
 	else if(e->key()==Qt::Key_V){
 		Scene* scene=Master::instance().getScene().get();
 		string out=scene->expandTags(Renderer::snapFmt);
@@ -419,7 +435,6 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 		} else nextSnapFile=out;
 		LOG_INFO("Will save snapshot to "<<nextSnapFile);
 	}
-#endif
 	else if(e->key()!=Qt::Key_Escape && e->key()!=Qt::Key_Space) QGLViewer::keyPressEvent(e);
 	updateGL();
 }
@@ -500,7 +515,6 @@ void GLViewer::centerScene(){
 
 void GLViewer::draw(bool withNames)
 {
-#ifdef WOO_GL2PS
 	if(!nextSnapFile.empty()){
 		bool compress=false;
 		int gl2ps_format;
@@ -511,23 +525,28 @@ void GLViewer::draw(bool withNames)
 		else if(boost::algorithm::ends_with(nextSnapFile,".ps")){ gl2ps_format=GL2PS_PS; }
 		else nextSnapIsGl2ps=false;
 		if(nextSnapIsGl2ps){
-			gl2psStream=fopen(nextSnapFile.c_str(),"wb");
-			if(!gl2psStream){ int err=errno; throw runtime_error(string("Error opening file ")+nextSnapFile+": "+strerror(err)); }
-			LOG_DEBUG("gl2ps: start saving snapshot to "<<nextSnapFile);
-			//int sortAlgo=GL2PS_BSP_SORT;
-			int sortAlgo=GL2PS_SIMPLE_SORT;
-			gl2psBeginPage(/*const char *title*/"Some title", /*const char *producer*/ "Woo",
-				/*GLint viewport[4]*/ NULL,
-				/*GLint format*/ gl2ps_format, /*GLint sort*/ sortAlgo, /*GLint options*/GL2PS_SIMPLE_LINE_OFFSET|GL2PS_USE_CURRENT_VIEWPORT|GL2PS_TIGHT_BOUNDING_BOX|/*GL2PS_OCCLUSION_CULL|*/GL2PS_NO_BLENDING|(compress?GL2PS_COMPRESS:GL2PS_NONE), 
-				/*GLint colormode*/ GL_RGBA, /*GLint colorsize*/0, 
-				/*GL2PSrgba *colortable*/NULL, 
-				/*GLint nr*/0, /*GLint ng*/0, /*GLint nb*/0, 
-				/*GLint buffersize*/4096*4096 /* 16MB */, /*FILE *stream*/ gl2psStream,
-				/*const char *filename*/NULL
-			);
+			#ifdef WOO_GL2PS
+				gl2psStream=fopen(nextSnapFile.c_str(),"wb");
+				if(!gl2psStream){ int err=errno; throw runtime_error(string("Error opening file ")+nextSnapFile+": "+strerror(err)); }
+				LOG_DEBUG("gl2ps: start saving snapshot to "<<nextSnapFile);
+				//int sortAlgo=GL2PS_BSP_SORT;
+				int sortAlgo=GL2PS_SIMPLE_SORT;
+				gl2psBeginPage(/*const char *title*/"Some title", /*const char *producer*/ "Woo",
+					/*GLint viewport[4]*/ NULL,
+					/*GLint format*/ gl2ps_format, /*GLint sort*/ sortAlgo, /*GLint options*/GL2PS_SIMPLE_LINE_OFFSET|GL2PS_USE_CURRENT_VIEWPORT|GL2PS_TIGHT_BOUNDING_BOX|/*GL2PS_OCCLUSION_CULL|*/GL2PS_NO_BLENDING|(compress?GL2PS_COMPRESS:GL2PS_NONE), 
+					/*GLint colormode*/ GL_RGBA, /*GLint colorsize*/0, 
+					/*GL2PSrgba *colortable*/NULL, 
+					/*GLint nr*/0, /*GLint ng*/0, /*GLint nb*/0, 
+					/*GLint buffersize*/4096*4096 /* 16MB */, /*FILE *stream*/ gl2psStream,
+					/*const char *filename*/NULL
+				);
+			#else
+				LOG_ERROR("Saving to vector formats not supported unless compiled with the gl2ps feature (was about to save to "<<nextSnapFile<<").");
+				nextSnapIsGl2ps=false;
+				nextSnapFile.clear();
+			#endif
 		};
 	}
-#endif
 
 	qglviewer::Vec vd=camera()->viewDirection(); Renderer::viewDirection=Vector3r(vd[0],vd[1],vd[2]);
 	if(Master::instance().getScene()){
@@ -891,6 +910,7 @@ void GLViewer::postDraw(){
 			// save the snapshot
 			saveSnapshot(QString(nextSnapFile.c_str()),/*overwrite*/ true);
 		}
+		displayMessage("Saved snapshot to "+nextSnapFile);
 		// notify the caller that it is done already (probably not an atomic op :-|, though)
 		nextSnapFile.clear();
 	}
