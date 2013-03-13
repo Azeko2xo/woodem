@@ -28,7 +28,7 @@
 #include<QtGui/qfiledialog.h>
 
 #ifdef WOO_GL2PS
-#include<gl2ps.h>
+	#include<gl2ps.h>
 #endif
 
 WOO_PLUGIN(_qt,(SnapshotEngine));
@@ -519,7 +519,10 @@ void GLViewer::draw(bool withNames)
 		bool compress=false;
 		int gl2ps_format;
 		nextSnapIsGl2ps=true;
-		if(boost::algorithm::ends_with(nextSnapFile,".pdf")){ gl2ps_format=GL2PS_PDF; compress=true; }
+		#ifndef WOO_GL2PS
+			const int GL2PS_PDF=0, GL2PS_SVG=0, GL2PS_PS=0; // just avoid those to be undefined below
+		#endif
+		if(boost::algorithm::ends_with(nextSnapFile,".pdf")){	gl2ps_format=GL2PS_PDF; compress=true; }
 		else if(boost::algorithm::ends_with(nextSnapFile,".svg")){ gl2ps_format=GL2PS_SVG; }
 		else if(boost::algorithm::ends_with(nextSnapFile,".svgz")){ gl2ps_format=GL2PS_SVG; compress=true; }
 		else if(boost::algorithm::ends_with(nextSnapFile,".ps")){ gl2ps_format=GL2PS_PS; }

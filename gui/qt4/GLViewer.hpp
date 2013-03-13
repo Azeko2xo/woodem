@@ -181,8 +181,8 @@ class GLViewer : public QGLViewer
 		#ifdef WOO_GL2PS
 			// output stream for gl2ps; initialized as needed
 			FILE* gl2psStream;
-			bool nextSnapIsGl2ps;
 		#endif
+		bool nextSnapIsGl2ps;
 
 		boost::posix_time::ptime getLastUserEvent();
 
