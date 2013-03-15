@@ -73,6 +73,7 @@ void SnapshotEngine::run(){
 	LOG_DEBUG("GL view → "<<fss.str())
 	glv->setSnapshotFormat(QString(format.c_str()));
 	glv->nextSnapFile=fss.str();
+	glv->nextSnapMsg=false;
 	// wait for the renderer to save the frame (will happen at next postDraw)
 	long waiting=0;
 	while(!glv->nextSnapFile.empty()){
@@ -913,9 +914,10 @@ void GLViewer::postDraw(){
 			// save the snapshot
 			saveSnapshot(QString(nextSnapFile.c_str()),/*overwrite*/ true);
 		}
-		displayMessage("Saved snapshot to "+nextSnapFile);
+		if(nextSnapMsg) displayMessage("Saved snapshot to "+nextSnapFile);
 		// notify the caller that it is done already (probably not an atomic op :-|, though)
 		nextSnapFile.clear();
+		nextSnapMsg=true; // show next message, unless disabled again
 	}
 }
 

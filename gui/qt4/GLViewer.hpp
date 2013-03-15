@@ -178,6 +178,7 @@ class GLViewer : public QGLViewer
 		// if defined, snapshot will be saved to this file right after being drawn and the string will be reset.
 		// this way the caller will be notified of the frame being saved successfully.
 		string nextSnapFile;
+		bool nextSnapMsg; // whether there will be message informing where the snapshot was saved; disabled from SnapshotEngine, and recovered after every snapshot
 		#ifdef WOO_GL2PS
 			// output stream for gl2ps; initialized as needed
 			FILE* gl2psStream;
