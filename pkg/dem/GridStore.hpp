@@ -46,7 +46,7 @@ struct GridStore: public Object{
 	*/
 
 	// ctor; allocate grid and locks (if desired)
-	GridStore(const Vector3i& ijk, int l, bool locking=true, int _mapInitSz=3, int _mutexExMod=10);
+	GridStore(const Vector3i& ijk, int l, bool locking, int _mapInitSz, int _mutexExMod);
 
 	void postLoad(GridStore&,void*);
 	
@@ -54,7 +54,7 @@ struct GridStore: public Object{
 	// set g to be same-shape grid witout mutexes and gridEx 
 	// if l is given and positive, use that value instead of the current shape[3]
 	// grid may contain garbage data!
-	void makeCompatible(shared_ptr<GridStore>& g, int l=0, bool locking=true, int _mapInitSz=-1, int _mutexExMod=-1) const;
+	void makeCompatible(shared_ptr<GridStore>& g, int l=0, bool locking=true, int _exIniSize=-1, int _exNumMaps=-1) const;
 
 	// return lock pointer for given cell
 	boost::mutex* getMutex(const Vector3i& ijk, bool mutexEx=false);
@@ -104,6 +104,7 @@ struct GridStore: public Object{
 			.def("ijk2lin",&GridStore::ijk2lin)
 			.def("exCounts",&GridStore::pyExCounts,"Return dictionary mapping ijk to number of items in the extra storage.")
 			.def("computeRelativeComplements",&GridStore::pyComputeRelativeComplements)
+			// .def("makeCompatible")
 			;
 	);
 };

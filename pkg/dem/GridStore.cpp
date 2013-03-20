@@ -7,7 +7,9 @@
 WOO_PLUGIN(dem,(GridStore));
 
 
-//GridStore::GridStore(const Vector3i& ijk, int l, bool locking, int _mapInitSz, int _mutexExMod): exIniSize(_mapInitSz), exNumMaps(_mutexExMod) {
+GridStore::GridStore(const Vector3i& _gridSize, int _cellSize, bool _locking, int _exIniSize, int _exNumMaps): gridSize(_gridSize), cellSize(_cellSize), locking(_locking), exIniSize(_exIniSize), exNumMaps(_exNumMaps){
+	postLoad(*this,NULL);
+}
 
 void GridStore::postLoad(GridStore&,void* I){
 	if(I!=NULL) throw std::logic_error("GridStore::postLoad: called after a variable was set. Which one!?");
@@ -40,7 +42,7 @@ size_t GridStore::ijk2lin(const Vector3i& ijk) const{
 }
 
 
-void GridStore::makeCompatible(shared_ptr<GridStore>& g, int l, bool locking, int _mapInitSz, int _mutexExMod) const {
+void GridStore::makeCompatible(shared_ptr<GridStore>& g, int l, bool _locking, int _exIniSize, int _exNumMaps) const {
 	auto shape=grid.shape();
 	l=l>0?l:shape[3]; // set to the real desired value of l
 	assert(l>0);
@@ -48,8 +50,8 @@ void GridStore::makeCompatible(shared_ptr<GridStore>& g, int l, bool locking, in
 	// create new grid if none or must be resized
 	// (multi_array preserves elements when resizing, which is a copy operation we don't need at all;
 	//  just create a new array from scratch in that case)
-	if(!g || shape[0]!=shape2[0] || shape[1]!=shape2[1] || shape[2]!=shape2[2] || shape2[3]!=l || g->mutexes.size()!=(locking?shape[0]*shape[1]*shape[2]+exNumMaps:0) || (_mapInitSz>0 && _mapInitSz!=exIniSize) || (_mutexExMod>0 && _mutexExMod!=exNumMaps)){
-		g=make_shared<GridStore>(Vector3i(shape[0],shape[1],shape[2]),l>0?l:shape[3],/*locking*/locking,/*exIniSize*/_mapInitSz>0?_mapInitSz:exIniSize,/*exNumMaps*/_mutexExMod>0?_mutexExMod:exNumMaps);
+	if(!g || shape[0]!=shape2[0] || shape[1]!=shape2[1] || shape[2]!=shape2[2] || shape2[3]!=l || g->mutexes.size()!=(locking?shape[0]*shape[1]*shape[2]+exNumMaps:0) || (_exIniSize>0 && _exIniSize!=exIniSize) || (_exNumMaps>0 && _exNumMaps!=exNumMaps)){
+		g=make_shared<GridStore>(Vector3i(shape[0],shape[1],shape[2]),l>0?l:shape[3],/*locking*/_locking,/*exIniSize*/_exIniSize>0?_exIniSize:exIniSize,/*exNumMaps*/_exNumMaps>0?_exNumMaps:exNumMaps);
 		return;
 	}
 	assert(shape[0]==shape2[0] && shape[1]==shape2[1] && shape[2]==shape2[2] && shape2[3]==l);
