@@ -218,7 +218,8 @@ int DemField::collectNodes(){
 
 void DemField::removeParticle(Particle::id_t id){
 	LOG_DEBUG("Removing #"<<id);
-	assert(particles->size()>id);
+	assert(id>=0);
+	assert((int)particles->size()>id);
 	// don't actually delete the particle until before returning, so that p is not dangling
 	const shared_ptr<Particle>& p((*particles)[id]);
 	for(const auto& n: p->shape->nodes){

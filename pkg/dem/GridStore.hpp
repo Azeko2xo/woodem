@@ -27,7 +27,7 @@ struct GridStore: public Object{
 	typedef boost::multi_array<id_t,4> gridT;
 	typedef std::map<Vector3i,vector<id_t>,Vector3iComparator> gridExT;
 	typedef boost::ptr_vector<boost::mutex> mutexesT;
-	gridT grid;
+	std::unique_ptr<gridT> grid;
 	vector<gridExT> gridExx;
 	mutexesT mutexes;
 
@@ -87,6 +87,7 @@ struct GridStore: public Object{
 	void pyClear(const Vector3i& ijk);
 	void pyAppend(const Vector3i& ijk, id_t id);
 	py::dict pyExCounts() const;
+	py::tuple pyRawData(const Vector3i& ijk);
 
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(GridStore,Object,"3d grid storing scalar (particles ids) in partially dense array; the grid is actually 4d (gridSize×cellSize), and each cell may contain additional items in separate mapped storage, if the cellSize is not big enough to accomodate required number of items. If instance may synchronize (with *locking*=`True`) access via per-cell mutexes (or per-map mutexes) if it is written from multiple threads. Write acces from python should be used for testing exclusively.",
 		((Vector3i,gridSize,Vector3i(1,1,1),AttrTrait<>().readonly(),"Dimension of the grid."))
@@ -103,6 +104,7 @@ struct GridStore: public Object{
 			.def("lin2ijk",&GridStore::lin2ijk)
 			.def("ijk2lin",&GridStore::ijk2lin)
 			.def("exCounts",&GridStore::pyExCounts,"Return dictionary mapping ijk to number of items in the extra storage.")
+			.def("_rawData",&GridStore::pyRawData,"Return raw data, as tuple of dense store and extra store.")
 			.def("computeRelativeComplements",&GridStore::pyComputeRelativeComplements)
 			// .def("makeCompatible")
 			;
