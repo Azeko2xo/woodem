@@ -28,10 +28,6 @@ struct GridStore: public Object{
 	typedef std::map<Vector3i,vector<id_t>,Vector3iComparator> gridExT;
 	typedef boost::ptr_vector<boost::mutex> mutexesT;
 	gridT grid;
-	// initial size of vector in the map
-	const int mapInitSz=3;
-	// use several maps so that write-access can be mutually exclusive in a finer way
-	const int mutexExMod=10;
 	vector<gridExT> gridExx;
 	mutexesT mutexes;
 
@@ -50,12 +46,15 @@ struct GridStore: public Object{
 	*/
 
 	// ctor; allocate grid and locks (if desired)
-	GridStore(const Vector3i& ijk, int l, bool locking=true);
+	GridStore(const Vector3i& ijk, int l, bool locking=true, int _mapInitSz=3, int _mutexExMod=10);
+
+	void postLoad(GridStore&,void*);
+	
 
 	// set g to be same-shape grid witout mutexes and gridEx 
 	// if l is given and positive, use that value instead of the current shape[3]
 	// grid may contain garbage data!
-	void makeCompatible(shared_ptr<GridStore>& g, int l=0, bool locking=true) const;
+	void makeCompatible(shared_ptr<GridStore>& g, int l=0, bool locking=true, int _mapInitSz=-1, int _mutexExMod=-1) const;
 
 	// return lock pointer for given cell
 	boost::mutex* getMutex(const Vector3i& ijk, bool mutexEx=false);
@@ -75,10 +74,36 @@ struct GridStore: public Object{
 	//
 	// A_B contains only elements in B but not in A
 	// B_A contains only elements in A but not in B
-	void computeRelativeComplements(GridStore& B, shared_ptr<GridStore>& A_B, shared_ptr<GridStore>& B_A);
+	void computeRelativeComplements(GridStore& B, shared_ptr<GridStore>& A_B, shared_ptr<GridStore>& B_A) const;
+	py::tuple pyComputeRelativeComplements(GridStore& B) const;
 
 	// return i-th element, from grid or gridEx depending on l
 	id_t get(const Vector3i& ijk, int l) const;
 	// return number of elements in grid+gridEx
 	size_t size(const Vector3i& ijk) const;
+
+	py::list pyGetItem(const Vector3i& ijk) const;
+	void pySetItem(const Vector3i& ijk, const vector<id_t>& ids);
+	void pyClear(const Vector3i& ijk);
+	void pyAppend(const Vector3i& ijk, id_t id);
+	py::dict pyExCounts() const;
+
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(GridStore,Object,"3d grid storing scalar (particles ids) in partially dense array; the grid is actually 4d (gridSize×cellSize), and each cell may contain additional items in separate mapped storage, if the cellSize is not big enough to accomodate required number of items. If instance may synchronize (with *locking*=`True`) access via per-cell mutexes (or per-map mutexes) if it is written from multiple threads. Write acces from python should be used for testing exclusively.",
+		((Vector3i,gridSize,Vector3i(1,1,1),AttrTrait<>().readonly(),"Dimension of the grid."))
+		((int,cellSize,4,AttrTrait<>().readonly(),"Size of the dense storage in each cell"))
+		((bool,locking,true,AttrTrait<>().readonly(),"Whether this grid locks elements on access"))
+		((int,exIniSize,4,AttrTrait<>().readonly(),"Initial size of extension vectors, and step of their growth if needed."))
+		((int,exNumMaps,10,AttrTrait<>().readonly(),"Number of maps for extra items not fitting the dense storage (it affects how fine-grained is locking for those extra elements)"))
+		, /*ctor*/
+		, /*py*/
+			.def("__getitem__",&GridStore::pyGetItem)
+			.def("__setitem__",&GridStore::pySetItem)
+			.def("append",&GridStore::pyAppend,(py::arg("ijk"),py::arg("id")),"Append new element; uses mutexes if the instance is `locking`")
+			.def("clear",&GridStore::pyClear,py::arg("ijk"),"Clear both dense and map storage for given cell; uses mutexes if the instance is :obj:`locking`.")
+			.def("lin2ijk",&GridStore::lin2ijk)
+			.def("ijk2lin",&GridStore::ijk2lin)
+			.def("exCounts",&GridStore::pyExCounts,"Return dictionary mapping ijk to number of items in the extra storage.")
+			.def("computeRelativeComplements",&GridStore::pyComputeRelativeComplements)
+			;
+	);
 };

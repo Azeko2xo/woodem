@@ -1,23 +1,31 @@
 // © 2013 Václav Šmilauer <eu@doxos.eu>
 
-#include<woo/pkg/dem/Grid.hpp>
+#include<woo/pkg/dem/GridStore.hpp>
 #include<boost/function_output_iterator.hpp>
 #include<boost/range/algorithm/set_algorithm.hpp>
 
-GridStore::GridStore(const Vector3i& ijk, int l, bool locking){
-	assert(ijk[0]>0); assert(ijk[1]>0); assert(ijk[2]>0); assert(l>0);
-	grid=gridT(boost::extents[ijk[0]][ijk[1]][ijk[2]][l+1],boost::c_storage_order());
+WOO_PLUGIN(dem,(GridStore));
+
+
+//GridStore::GridStore(const Vector3i& ijk, int l, bool locking, int _mapInitSz, int _mutexExMod): exIniSize(_mapInitSz), exNumMaps(_mutexExMod) {
+
+void GridStore::postLoad(GridStore&,void* I){
+	if(I!=NULL) throw std::logic_error("GridStore::postLoad: called after a variable was set. Which one!?");
+	if(gridSize.minCoeff()<=0) throw std::logic_error("GridStore.gridSize: all dimensions must be positive.");
+	if(cellSize<=1) throw std::logic_error("GridStore.cellSize must be greater than one.");
+	if(exNumMaps<=0) throw std::logic_error("GridStore.exNumMaps must be positive.");
+	if(exIniSize<=0) throw std::logic_error("GridStore.exIniSize must be positive.");
+	grid=gridT(boost::extents[gridSize[0]][gridSize[1]][gridSize[2]][cellSize+1],boost::c_storage_order());
 	// check that those are default-initialized (zeros)
 	assert(grid[0][0][0][0]==0);
 	assert(grid[0][0][0][1]==0);
-	gridExx.resize(mutexExMod);
+	gridExx.resize(exNumMaps);
 	if(locking){
-		size_t n=ijk[0]*ijk[1]*ijk[2];
+		size_t n=gridSize.prod();
 		mutexes.reserve(n);
 		// mutexes will be deleted automatically
-		for(size_t i=0; i<n+mutexExMod; i++) mutexes.push_back(new boost::mutex);
-
-		assert(mutexes.size()==n+mutexExMod);
+		for(size_t i=0; i<n+exNumMaps; i++) mutexes.push_back(new boost::mutex);
+		assert(mutexes.size()==n+exNumMaps);
 	}
 }
 
@@ -32,7 +40,7 @@ size_t GridStore::ijk2lin(const Vector3i& ijk) const{
 }
 
 
-void GridStore::makeCompatible(shared_ptr<GridStore>& g, int l, bool locking) const {
+void GridStore::makeCompatible(shared_ptr<GridStore>& g, int l, bool locking, int _mapInitSz, int _mutexExMod) const {
 	auto shape=grid.shape();
 	l=l>0?l:shape[3]; // set to the real desired value of l
 	assert(l>0);
@@ -40,17 +48,20 @@ void GridStore::makeCompatible(shared_ptr<GridStore>& g, int l, bool locking) co
 	// create new grid if none or must be resized
 	// (multi_array preserves elements when resizing, which is a copy operation we don't need at all;
 	//  just create a new array from scratch in that case)
-	if(!g || shape[0]!=shape2[0] || shape[1]!=shape2[1] || shape[2]!=shape2[2] || shape2[3]!=l || g->mutexes.size()!=(locking?shape[0]*shape[1]*shape[2]+mutexExMod:0)){
-		g=make_shared<GridStore>(Vector3i(shape[0],shape[1],shape[2]),l>0?l:shape[3],locking=locking);
+	if(!g || shape[0]!=shape2[0] || shape[1]!=shape2[1] || shape[2]!=shape2[2] || shape2[3]!=l || g->mutexes.size()!=(locking?shape[0]*shape[1]*shape[2]+exNumMaps:0) || (_mapInitSz>0 && _mapInitSz!=exIniSize) || (_mutexExMod>0 && _mutexExMod!=exNumMaps)){
+		g=make_shared<GridStore>(Vector3i(shape[0],shape[1],shape[2]),l>0?l:shape[3],/*locking*/locking,/*exIniSize*/_mapInitSz>0?_mapInitSz:exIniSize,/*exNumMaps*/_mutexExMod>0?_mutexExMod:exNumMaps);
 		return;
 	}
 	assert(shape[0]==shape2[0] && shape[1]==shape2[1] && shape[2]==shape2[2] && shape2[3]==l);
-	assert((!locking && g->mutexes.size()==0) || (locking && g->mutexes.size()==shape[0]*shape[1]*shape[2]+mutexExMod));
-	assert(gridExx.size()==muteExMod);
+	assert((!locking && g->mutexes.size()==0) || (locking && g->mutexes.size()==shape[0]*shape[1]*shape[2]+exNumMaps));
+	assert(gridExx.size()==exNumMaps);
 	for(auto gridEx: g->gridExx) gridEx.clear();
 }
 
 void GridStore::checkIndices(const Vector3i& ijk) const {
+	assert(grid.shape()[0]==gridSize[0]);
+	assert(grid.shape()[1]==gridSize[1]);
+	assert(grid.shape()[2]==gridSize[2]);
 	assert(ijk[0]>=0); assert(ijk[0]<grid.shape()[0]);
 	assert(ijk[1]>=0); assert(ijk[1]<grid.shape()[1]);
 	assert(ijk[2]>=0); assert(ijk[2]<grid.shape()[2]);
@@ -60,29 +71,28 @@ boost::mutex* GridStore::getMutex(const Vector3i& ijk, bool mutexEx){
 	checkIndices(ijk);
 	size_t ix=ijk2lin(ijk);
 	if(!mutexEx){
-		assert(ix<mutexes.size()-mutexExMod);
-		assert(shape[0]*shape[1]*shape[2]+mutexExMod==mutexes.size());
+		assert(ix<mutexes.size()-exNumMaps);
+		assert(shape[0]*shape[1]*shape[2]+exNumMaps==mutexes.size());
 		return &mutexes[ix];
 	} else {
-		assert(mutexExMod>0);
-		return &mutexes[mutexes.size()-(ix%mutexExMod)];
+		assert(exNumMaps>0);
+		return &mutexes[mutexes.size()-(ix%exNumMaps)];
 	}
 }
 
 const GridStore::gridExT& GridStore::getGridEx(const Vector3i& ijk) const {
 	size_t ix=ijk2lin(ijk);
-	assert(mutexExMod>0);
+	assert(exNumMaps>0);
 	assert(gridExx.size()==muteExMod);
-	return gridExx[ix%mutexExMod];
+	return gridExx[ix%exNumMaps];
 }
 
 GridStore::gridExT& GridStore::getGridEx(const Vector3i& ijk) {
 	size_t ix=ijk2lin(ijk);
-	assert(mutexExMod>0);
+	assert(exNumMaps>0);
 	assert(gridExx.size()==muteExMod);
-	return gridExx[ix%mutexExMod];
+	return gridExx[ix%exNumMaps];
 }
-
 
 void GridStore::protected_append(const Vector3i& ijk, const GridStore::id_t& id){
 	checkIndices(ijk);
@@ -101,7 +111,7 @@ void GridStore::append(const Vector3i& ijk, const GridStore::id_t& id, bool lock
 		// store in the dense part, shift by one because of size at the beginning
 		grid[i][j][k][cellSz+1]=id;
 	} else {
-		assert(mapInitSz>0);
+		assert(exIniSize>0);
 		auto& gridEx=getGridEx(ijk);
 		if(cellSz==denseSz){ 
 			// new extension vector; gridEx[ijk] default-constructs vector<id_t>
@@ -110,7 +120,7 @@ void GridStore::append(const Vector3i& ijk, const GridStore::id_t& id, bool lock
 			assert(gridEx.find(ijk)==gridEx.end());
 			vector<id_t>& ex=gridEx[ijk];
 			if(lockEx) lock.unlock();
-			ex.resize(mapInitSz);
+			ex.resize(exIniSize);
 			ex[0]=id;
 		} else {
 			// existing extension vector
@@ -120,7 +130,7 @@ void GridStore::append(const Vector3i& ijk, const GridStore::id_t& id, bool lock
 			size_t exIx=cellSz-denseSz;
 			assert(exIx>0);
 			assert(exIx<=ex.size());
-			if(exIx==ex.size()) ex.resize(exIx+mapInitSz);
+			if(exIx==ex.size()) ex.resize(exIx+exIniSize);
 			ex[exIx]=id;
 		}
 	}
@@ -130,6 +140,47 @@ void GridStore::append(const Vector3i& ijk, const GridStore::id_t& id, bool lock
 void GridStore::clear_dense(const Vector3i& ijk){
 	checkIndices(ijk);
 	grid[ijk[0]][ijk[1]][ijk[2]][0]=0;
+}
+
+void GridStore::pyAppend(const Vector3i& ijk, GridStore::id_t id) {
+	if(locking) protected_append(ijk, id);
+	else append(ijk,id);
+}
+
+void GridStore::pyClear(const Vector3i& ijk){
+	boost::mutex::scoped_lock lock(*getMutex(ijk),boost::defer_lock);
+	if(locking) lock.lock();
+	clear_dense(ijk);
+	if(locking) lock.unlock();
+	boost::mutex::scoped_lock lockEx(*getMutex(ijk,/*mutexEx*/true),boost::defer_lock);
+	if(locking) lockEx.lock();
+	auto gridEx=getGridEx(ijk);
+	auto I=gridEx.find(ijk);
+	if(I!=gridEx.end()) gridEx.erase(I);
+	if(locking) lockEx.unlock();
+}
+
+py::list GridStore::pyGetItem(const Vector3i& ijk) const {
+	size_t sz=this->size(ijk);
+	py::list ret;
+	for(int l=0; l<sz; l++) ret.append(this->get(ijk,l));
+	return ret;
+}
+
+void GridStore::pySetItem(const Vector3i& ijk, const vector<GridStore::id_t>& ids) {
+	pyClear(ijk);
+	for(id_t id: ids) pyAppend(ijk,id);
+}
+
+py::dict GridStore::pyExCounts() const {
+	py::dict ret;
+	for(const auto& gridEx: gridExx){
+		for(const auto& ijkVec: gridEx){
+			ret[ijkVec.first]=size(ijkVec.first)-cellSize;
+			assert(ijkVec.second.size()>size(ijkVec.first)-cellSize);
+		}
+	}
+	return ret;
 }
 
 GridStore::id_t GridStore::get(const Vector3i& ijk, int l) const {
@@ -156,9 +207,16 @@ size_t GridStore::size(const Vector3i& ijk) const {
 	return cellSz;
 }
 
-void GridStore::computeRelativeComplements(GridStore& B, shared_ptr<GridStore>& A_B, shared_ptr<GridStore>& B_A){
+py::tuple GridStore::pyComputeRelativeComplements(GridStore& B) const{
+	shared_ptr<GridStore> A_B, B_A;
+	computeRelativeComplements(B,A_B,B_A);
+	return py::make_tuple(A_B,B_A);
+}
+
+
+void GridStore::computeRelativeComplements(GridStore& B, shared_ptr<GridStore>& A_B, shared_ptr<GridStore>& B_A) const {
 	//throw std::runtime_error("GridStore::computeRelativeComplements: not yet implemented.");
-	GridStore& A(*this);
+	const GridStore& A(*this);
 	auto shape=grid.shape();
 	assert(A.grid.shape()[0]==B.grid.shape()[0] && A.grid.shape()[1]==B.grid.shape()[1] && A.grid.shape()[2]==B.grid.shape()[2]);
 	// use the same value of L for now
