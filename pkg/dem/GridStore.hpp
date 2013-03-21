@@ -39,6 +39,8 @@ struct GridStore: public Object{
 	Vector3i lin2ijk(size_t n) const;
 	size_t ijk2lin(const Vector3i& ijk) const;
 
+	DECLARE_LOGGER;
+
 	/*
 		the first ID is not actually ID, but the number of IDs for that cell;
 		it makes iteration faster, especially there is no lookup into the map
@@ -72,8 +74,8 @@ struct GridStore: public Object{
 	// (i.e. return grid with ids in g2 but NOT in this and vice versa)
 	// this function is internally parallelized, and needs no locking
 	//
-	// A_B contains only elements in B but not in A
-	// B_A contains only elements in A but not in B
+	// A_B contains only elements in A but not in B
+	// B_A contains only elements in B but not in A
 	void computeRelativeComplements(GridStore& B, shared_ptr<GridStore>& A_B, shared_ptr<GridStore>& B_A) const;
 	py::tuple pyComputeRelativeComplements(GridStore& B) const;
 
@@ -86,7 +88,7 @@ struct GridStore: public Object{
 	void pySetItem(const Vector3i& ijk, const vector<id_t>& ids);
 	void pyDelItem(const Vector3i& ijk);
 	void pyAppend(const Vector3i& ijk, id_t id);
-	py::dict pyExCounts() const;
+	py::dict pyCountEx() const;
 	py::tuple pyRawData(const Vector3i& ijk);
 
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(GridStore,Object,"3d grid storing scalar (particles ids) in partially dense array; the grid is actually 4d (gridSize×cellSize), and each cell may contain additional items in separate mapped storage, if the cellSize is not big enough to accomodate required number of items. If instance may synchronize (with *locking*=`True`) access via per-cell mutexes (or per-map mutexes) if it is written from multiple threads. Write acces from python should be used for testing exclusively.",
@@ -105,7 +107,7 @@ struct GridStore: public Object{
 			// .def("clear",&GridStore::pyClear,py::arg("ijk"),"Clear both dense and map storage for given cell; uses mutexes if the instance is :obj:`locking`.")
 			.def("lin2ijk",&GridStore::lin2ijk)
 			.def("ijk2lin",&GridStore::ijk2lin)
-			.def("exCounts",&GridStore::pyExCounts,"Return dictionary mapping ijk to number of items in the extra storage.")
+			.def("countEx",&GridStore::pyCountEx,"Return dictionary mapping ijk to number of items in the extra storage.")
 			.def("_rawData",&GridStore::pyRawData,"Return raw data, as tuple of dense store and extra store.")
 			.def("computeRelativeComplements",&GridStore::pyComputeRelativeComplements)
 			// .def("makeCompatible")

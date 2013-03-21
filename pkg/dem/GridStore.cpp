@@ -6,6 +6,8 @@
 
 WOO_PLUGIN(dem,(GridStore));
 
+CREATE_LOGGER(GridStore);
+
 
 GridStore::GridStore(const Vector3i& _gridSize, int _cellSize, bool _locking, int _exIniSize, int _exNumMaps): gridSize(_gridSize), cellSize(_cellSize), locking(_locking), exIniSize(_exIniSize), exNumMaps(_exNumMaps){
 	postLoad(*this,NULL);
@@ -13,6 +15,7 @@ GridStore::GridStore(const Vector3i& _gridSize, int _cellSize, bool _locking, in
 
 void GridStore::postLoad(GridStore&,void* I){
 	if(I!=NULL) throw std::logic_error("GridStore::postLoad: called after a variable was set. Which one!?");
+	if(grid) return; // everything is set up already, this is a spurious call
 	if(gridSize.minCoeff()<=0) throw std::logic_error("GridStore.gridSize: all dimensions must be positive.");
 	if(cellSize<=1) throw std::logic_error("GridStore.cellSize must be greater than one.");
 	if(exNumMaps<=0) throw std::logic_error("GridStore.exNumMaps must be positive.");
@@ -27,6 +30,7 @@ void GridStore::postLoad(GridStore&,void* I){
 		mutexes.reserve(n);
 		// mutexes will be deleted automatically
 		for(size_t i=0; i<n+exNumMaps; i++) mutexes.push_back(new boost::mutex);
+		LOG_TRACE(mutexes.size()<<" mutexes, N="<<n<<", "<<exNumMaps<<" extension maps");
 		assert(mutexes.size()==n+exNumMaps);
 	}
 }
@@ -46,16 +50,17 @@ void GridStore::makeCompatible(shared_ptr<GridStore>& g, int l, bool _locking, i
 	auto shape=grid->shape();
 	l=l>0?l:shape[3]; // set to the real desired value of l
 	assert(l>0);
-	auto shape2=g->grid->shape();
+	Vector3i gridSize2=(g?g->gridSize:Vector3i::Zero());
 	// create new grid if none or must be resized
 	// (multi_array preserves elements when resizing, which is a copy operation we don't need at all;
 	//  just create a new array from scratch in that case)
-	if(!g || shape[0]!=shape2[0] || shape[1]!=shape2[1] || shape[2]!=shape2[2] || shape2[3]!=(size_t)l || g->mutexes.size()!=(locking?shape[0]*shape[1]*shape[2]+exNumMaps:0) || (_exIniSize>0 && _exIniSize!=exIniSize) || (_exNumMaps>0 && _exNumMaps!=exNumMaps)){
+	if(!g || gridSize!=gridSize2 || g->grid->shape()[3]!=(size_t)l || g->mutexes.size()!=(size_t)(locking?gridSize.prod()+exNumMaps:0) || (_exIniSize>0 && _exIniSize!=exIniSize) || (_exNumMaps>0 && _exNumMaps!=exNumMaps)){
 		g=make_shared<GridStore>(Vector3i(shape[0],shape[1],shape[2]),l>0?l:shape[3],/*locking*/_locking,/*exIniSize*/_exIniSize>0?_exIniSize:exIniSize,/*exNumMaps*/_exNumMaps>0?_exNumMaps:exNumMaps);
 		return;
 	}
-	assert(shape[0]==shape2[0] && shape[1]==shape2[1] && shape[2]==shape2[2] && shape2[3]==(size_t)l);
-	assert((!locking && g->mutexes.size()==0) || (locking && g->mutexes.size()==shape[0]*shape[1]*shape[2]+exNumMaps));
+	assert(g);
+	assert(gridSize==g->gridSize && g->cellSize==l);
+	assert((!locking && g->mutexes.size()==0) || (locking && g->mutexes.size()==gridSize.prod()+exNumMaps));
 	assert(gridExx.size()==(size_t)exNumMaps);
 	for(auto gridEx: g->gridExx) gridEx.clear();
 }
@@ -78,7 +83,9 @@ boost::mutex* GridStore::getMutex(const Vector3i& ijk, bool mutexEx){
 		return &mutexes[ix];
 	} else {
 		assert(exNumMaps>0);
-		return &mutexes[mutexes.size()-(ix%exNumMaps)];
+		int mIx=mutexes.size()-(ix%exNumMaps)-1;
+		assert(mIx<(int)mutexes.size() && mIx>=0);
+		return &mutexes[mIx];
 	}
 }
 
@@ -176,11 +183,12 @@ void GridStore::pySetItem(const Vector3i& ijk, const vector<GridStore::id_t>& id
 	for(id_t id: ids) pyAppend(ijk,id);
 }
 
-py::dict GridStore::pyExCounts() const {
+py::dict GridStore::pyCountEx() const {
 	py::dict ret;
 	for(const auto& gridEx: gridExx){
 		for(const auto& ijkVec: gridEx){
-			ret[ijkVec.first]=(int)size(ijkVec.first)-(int)cellSize;
+			const Vector3i& ijk(ijkVec.first);
+			ret[py::make_tuple(ijk[0],ijk[1],ijk[2])]=(int)size(ijkVec.first)-(int)cellSize;
 			// FIXME: this fails?!
 			//assert(ijkVec.second.size()>=size(ijkVec.first)-cellSize+1);
 		}
@@ -190,7 +198,7 @@ py::dict GridStore::pyExCounts() const {
 
 py::tuple GridStore::pyRawData(const Vector3i& ijk){
 	py::list dense;
-	for(int l=0; l<grid->shape()[3]; l++) dense.append((*grid)[ijk[0]][ijk[1]][ijk[2]][l]);
+	for(int l=0; l<(int)grid->shape()[3]; l++) dense.append((*grid)[ijk[0]][ijk[1]][ijk[2]][l]);
 	auto& gridEx=getGridEx(ijk);
 	auto ijkVec=gridEx.find(ijk);
 	py::list extra;
