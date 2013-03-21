@@ -48,7 +48,7 @@ class TestGridStore(unittest.TestCase):
 		g1[c2]=[1,2,3]; g2[c2]=[]
 		g2[c3]=[]; g2[c3]=[1,2,3]
 		g12,g21=g1.computeRelativeComplements(g2)
-		print 'COMPL:',g12[c1],g21[c1]
+		# print 'COMPL:',g12[c1],g21[c1]
 		self.assert_(g12[c1]==[0])
 		self.assert_(g21[c1]==[2])
 		self.assert_(g12[c2]==[1,2,3])
