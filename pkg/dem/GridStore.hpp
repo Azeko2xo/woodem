@@ -84,7 +84,7 @@ struct GridStore: public Object{
 
 	py::list pyGetItem(const Vector3i& ijk) const;
 	void pySetItem(const Vector3i& ijk, const vector<id_t>& ids);
-	void pyClear(const Vector3i& ijk);
+	void pyDelItem(const Vector3i& ijk);
 	void pyAppend(const Vector3i& ijk, id_t id);
 	py::dict pyExCounts() const;
 	py::tuple pyRawData(const Vector3i& ijk);
@@ -99,8 +99,10 @@ struct GridStore: public Object{
 		, /*py*/
 			.def("__getitem__",&GridStore::pyGetItem)
 			.def("__setitem__",&GridStore::pySetItem)
+			.def("__delitem__",&GridStore::pyDelItem)
+			.def("size",&GridStore::size)
 			.def("append",&GridStore::pyAppend,(py::arg("ijk"),py::arg("id")),"Append new element; uses mutexes if the instance is `locking`")
-			.def("clear",&GridStore::pyClear,py::arg("ijk"),"Clear both dense and map storage for given cell; uses mutexes if the instance is :obj:`locking`.")
+			// .def("clear",&GridStore::pyClear,py::arg("ijk"),"Clear both dense and map storage for given cell; uses mutexes if the instance is :obj:`locking`.")
 			.def("lin2ijk",&GridStore::lin2ijk)
 			.def("ijk2lin",&GridStore::ijk2lin)
 			.def("exCounts",&GridStore::pyExCounts,"Return dictionary mapping ijk to number of items in the extra storage.")

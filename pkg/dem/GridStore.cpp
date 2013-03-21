@@ -121,9 +121,9 @@ void GridStore::append(const Vector3i& ijk, const GridStore::id_t& id, bool lock
 			if(locking) lock->lock();
 			assert(gridEx.find(ijk)==gridEx.end());
 			vector<id_t>& ex=gridEx[ijk];
-			if(locking){ lock->unlock(); delete lock; }
 			ex.resize(exIniSize);
 			ex[0]=id;
+			if(locking){ lock->unlock(); delete lock; }
 		} else {
 			// existing extension vector
 			auto lock(locking?new boost::mutex::scoped_lock(*getMutex(ijk,/*mutexEx*/true),boost::defer_lock):NULL);
@@ -131,12 +131,12 @@ void GridStore::append(const Vector3i& ijk, const GridStore::id_t& id, bool lock
 			auto exI=gridEx.find(ijk);
 			assert(exI!=gridEx.end());
 			vector<id_t>& ex(exI->second);
-			if(locking){ lock->unlock(); delete lock; }
-			size_t exIx=cellSz-denseSz;
+			size_t exIx=cellSz-denseSz; // first unused index
 			assert(exIx>0);
 			assert(exIx<=ex.size());
 			if(exIx==ex.size()) ex.resize(exIx+exIniSize);
 			ex[exIx]=id;
+			if(locking){ lock->unlock(); delete lock; }
 		}
 	}
 	cellSz++;
@@ -152,16 +152,15 @@ void GridStore::pyAppend(const Vector3i& ijk, GridStore::id_t id) {
 	else append(ijk,id);
 }
 
-void GridStore::pyClear(const Vector3i& ijk){
+void GridStore::pyDelItem(const Vector3i& ijk){
 	auto lock(locking?new boost::mutex::scoped_lock(*getMutex(ijk),boost::defer_lock):NULL);
 	if(locking) lock->lock();
 	clear_dense(ijk);
 	if(locking){ lock->unlock(); delete lock; }
 	auto lockEx(locking?new boost::mutex::scoped_lock(*getMutex(ijk,/*mutexEx*/true),boost::defer_lock):NULL);
 	if(locking) lockEx->lock();
-	auto gridEx=getGridEx(ijk);
-	auto I=gridEx.find(ijk);
-	if(I!=gridEx.end()) gridEx.erase(I);
+	auto& gridEx=getGridEx(ijk);
+	gridEx.erase(ijk);
 	if(locking){ lockEx->unlock(); delete lockEx; }
 }
 
@@ -173,7 +172,7 @@ py::list GridStore::pyGetItem(const Vector3i& ijk) const {
 }
 
 void GridStore::pySetItem(const Vector3i& ijk, const vector<GridStore::id_t>& ids) {
-	pyClear(ijk);
+	pyDelItem(ijk);
 	for(id_t id: ids) pyAppend(ijk,id);
 }
 
@@ -181,7 +180,7 @@ py::dict GridStore::pyExCounts() const {
 	py::dict ret;
 	for(const auto& gridEx: gridExx){
 		for(const auto& ijkVec: gridEx){
-			ret[ijkVec.first]=size(ijkVec.first)-cellSize;
+			ret[ijkVec.first]=(int)size(ijkVec.first)-(int)cellSize;
 			// FIXME: this fails?!
 			//assert(ijkVec.second.size()>=size(ijkVec.first)-cellSize+1);
 		}
@@ -191,7 +190,7 @@ py::dict GridStore::pyExCounts() const {
 
 py::tuple GridStore::pyRawData(const Vector3i& ijk){
 	py::list dense;
-	for(int l=0; l<cellSize; l++) dense.append((*grid)[ijk[0]][ijk[1]][ijk[2]][l]);
+	for(int l=0; l<grid->shape()[3]; l++) dense.append((*grid)[ijk[0]][ijk[1]][ijk[2]][l]);
 	auto& gridEx=getGridEx(ijk);
 	auto ijkVec=gridEx.find(ijk);
 	py::list extra;
