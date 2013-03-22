@@ -41,18 +41,22 @@ class TestGridStore(unittest.TestCase):
 	def testComplement(self):
 		'Grid: storage: complements'
 		# make insignificant parameters different
-		g1=woo.dem.GridStore(gridSize=(3,3,3),cellSize=3,locking=False,exNumMaps=4)
+		g1=woo.dem.GridStore(gridSize=(3,3,3),cellSize=2,locking=False,exNumMaps=4)
 		g2=woo.dem.GridStore(gridSize=(3,3,3),cellSize=3,locking=True,exNumMaps=2)
-		c1,c2,c3=(1,1,1),(2,2,2),(2,1,2)
-		g1[c1]=[0,1]; g2[c1]=[1,2]
-		g1[c2]=[1,2,3]; g2[c2]=[]
-		g2[c3]=[]; g2[c3]=[1,2,3]
+		c1,c2,c3,c4=(1,1,1),(2,2,2),(2,1,2),(1,2,1)
+		g1[c1]=[0,1]; g2[c1]=[1,2] # mixed scenario
+		g1[c2]=[1,2,3]; g2[c2]=[]  # b is empty (cheaper copy branch)
+		g2[c3]=[]; g2[c3]=[1,2,3]  # a is empty (cheaper copy branch)
+		g2[c4]=[]; g2[c4]=[]
 		g12,g21=g1.computeRelativeComplements(g2)
-		# print 'COMPL:',g12[c1],g21[c1]
 		self.assert_(g12[c1]==[0])
 		self.assert_(g21[c1]==[2])
 		self.assert_(g12[c2]==[1,2,3])
 		self.assert_(g21[c2]==[])
 		self.assert_(g12[c3]==[])
 		self.assert_(g21[c3]==[1,2,3])
+		self.assert_(g21[c4]==[])
+		self.assert_(g12[c4]==[])
+		# incompatible dimensions
+		self.assertRaises(RuntimeError,lambda: g1.computeRelativeComplements(woo.dem.GridStore(gridSize=(2,2,2))))
 

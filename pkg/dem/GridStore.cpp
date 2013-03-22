@@ -60,7 +60,7 @@ void GridStore::makeCompatible(shared_ptr<GridStore>& g, int l, bool _locking, i
 	}
 	assert(g);
 	assert(gridSize==g->gridSize && g->cellSize==l);
-	assert((!locking && g->mutexes.size()==0) || (locking && g->mutexes.size()==gridSize.prod()+exNumMaps));
+	assert((!locking && g->mutexes.size()==0) || (locking && (int)g->mutexes.size()==gridSize.prod()+exNumMaps));
 	assert(gridExx.size()==(size_t)exNumMaps);
 	for(auto gridEx: g->gridExx) gridEx.clear();
 }
@@ -243,8 +243,12 @@ py::tuple GridStore::pyComputeRelativeComplements(GridStore& B) const{
 void GridStore::computeRelativeComplements(GridStore& B, shared_ptr<GridStore>& A_B, shared_ptr<GridStore>& B_A) const {
 	//throw std::runtime_error("GridStore::computeRelativeComplements: not yet implemented.");
 	const GridStore& A(*this);
+	if(B.gridSize!=gridSize){
+		std::ostringstream oss; oss<<"GridStore::computeRelativeComplements: gridSize mismatch: this "<<gridSize<<", other "<<B.gridSize;
+		throw std::runtime_error(oss.str());
+	}
 	auto shape=grid->shape();
-	assert(A.grid->shape()[0]==B.grid->shape()[0] && A.grid->shape()[1]==B.grid->shape()[1] && A.grid->shape()[2]==B.grid->shape()[2]);
+	assert(A.gridSize==B.gridSize);
 	// use the same value of L for now
 	makeCompatible(A_B,/*locking*/false); makeCompatible(B_A,/*locking*/false);
 	// traverse all cells in parallel
@@ -261,11 +265,18 @@ void GridStore::computeRelativeComplements(GridStore& B, shared_ptr<GridStore>& 
 		Vector3i ijk=lin2ijk(n);
 		checkIndices(ijk);
 		A_B->clear_dense(ijk); B_A->clear_dense(ijk);
-		// uset std::set and set_difference
-		// for very small sets, just two nested loops might be faster
+		size_t sizeA=A.size(ijk), sizeB=B.size(ijk);
+		// if one of the sets is empty, just copy things quickly
+		if(sizeA==0 || sizeB==0){
+			if(sizeA!=0) for(size_t a=0; a<sizeA; a++) A_B->append(ijk,A.get(ijk,a));
+			if(sizeB!=0) for(size_t b=0; b<sizeB; b++) B_A->append(ijk,B.get(ijk,b));
+			continue;
+		}
 		#if 1
-			std::set<id_t> setA; size_t maxA=A.size(ijk); for(size_t a=0; a<maxA; a++) setA.insert(A.get(ijk,a));
-			std::set<id_t> setB; size_t maxB=B.size(ijk); for(size_t b=0; b<maxB; b++) setB.insert(B.get(ijk,b));
+			// uset std::set and set_difference
+			// TODO: for very small sets, just two nested loops might be faster (should be tried)
+			std::set<id_t> setA; for(size_t a=0; a<sizeA; a++) setA.insert(A.get(ijk,a));
+			std::set<id_t> setB; for(size_t b=0; b<sizeB; b++) setB.insert(B.get(ijk,b));
 			// push to the grid directly from within the algo,
 			// rather than storing the difference in a teporary and copying
 			// http://stackoverflow.com/a/8018943/761090
