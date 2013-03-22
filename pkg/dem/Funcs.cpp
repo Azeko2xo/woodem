@@ -125,6 +125,39 @@ vector<Vector2r> DemFuncs::boxPsd(const Scene* scene, const DemField* dem, const
 	);
 }
 
+size_t DemFuncs::reactionInPoint(const Scene* scene, const DemField* dem, int mask, const Vector3r& pt, bool multinodal, Vector3r& force, Vector3r& torque){
+	force=torque=Vector3r::Zero();
+	size_t ret=0;
+	for(const shared_ptr<Particle>& p: *dem->particles){
+		if(!(p->mask & mask) || !p->shape) continue;
+		ret++;
+		const auto& nn=p->shape->nodes;
+		for(const auto& n: nn){
+			const Vector3r& F(n->getData<DemData>().force), T(n->getData<DemData>().torque);
+			force+=F; torque+=(n->pos-pt).cross(F)+T;
+		}
+		if(multinodal && nn.size()>1){
+			// traverse contacts with other particles
+			for(const auto& idC: p->contacts){
+				const shared_ptr<Contact>& C(idC.second);
+				if(!C->isReal()) continue;
+				assert(C->geom && C->phys);
+				int forceSign=C->forceSign(p); // +1 if we are pA, -1 if pB
+				// the other particles should be mononodal
+				assert((forceSign==1?C->leakPA():C->leakPB())->shape->nodes.size()==1); 
+				// force and torque at the contact point in global coords
+				const auto& n=C->geom->node;
+				Vector3r F(n->ori.conjugate()*C->phys->force *forceSign);
+				Vector3r T(n->ori.conjugate()*C->phys->torque*forceSign);
+				force+=F;
+				torque+=(n->pos-pt).cross(F)+T;
+			}
+		}
+	}
+	return ret;
+}
+
+
 #if 0
 vector<Vector2r> DemFuncs::psd(const vector<shared_ptr<Particle>>& pp, int num, Vector2r rRange){
 	if(isnan(rRange[0]) || isnan(rRange[1]) || rRange[0]<0 || rRange[1]<=0 || rRange[0]>=rRange[1]){

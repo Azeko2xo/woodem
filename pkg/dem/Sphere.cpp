@@ -61,12 +61,11 @@ WOO_PLUGIN(gl,(Gl1_Sphere));
 bool Gl1_Sphere::wire;
 bool Gl1_Sphere::smooth;
 Real Gl1_Sphere::scale;
-Vector2r Gl1_Sphere::scale_range;
-bool Gl1_Sphere::stripes;
+//bool Gl1_Sphere::stripes;
+//bool  Gl1_Sphere::localSpecView;
 int  Gl1_Sphere::glutSlices;
 int  Gl1_Sphere::glutStacks;
 Real  Gl1_Sphere::quality;
-bool  Gl1_Sphere::localSpecView;
 vector<Vector3r> Gl1_Sphere::vertices, Gl1_Sphere::faces;
 int Gl1_Sphere::glStripedSphereList=-1;
 int Gl1_Sphere::glGlutSphereList=-1;
@@ -85,7 +84,17 @@ void Gl1_Sphere::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool 
 
 	Real r=shape->cast<Sphere>().radius*scale;
 	//glColor3v(CompUtils::mapColor(shape->getBaseColor()));
-	if (wire || wire2){ glLineWidth(1.);
+	bool doPoints=(quality<0 || (int)quality*glutSlices<2 || (int)quality*glutStacks<2);
+	if(doPoints){
+		if(smooth) glEnable(GL_POINT_SMOOTH);
+		else glDisable(GL_POINT_SMOOTH);
+		glPointSize(1.);
+		glBegin(GL_POINTS);
+			glVertex3v(Vector3r(0,0,0));
+		glEnd();
+
+	} else if (wire || wire2 ){
+		glLineWidth(1.);
 		if(!smooth) glDisable(GL_LINE_SMOOTH);
 		glutWireSphere(r,quality*glutSlices,quality*glutStacks);
 		if(!smooth) glEnable(GL_LINE_SMOOTH); // re-enable

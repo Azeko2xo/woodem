@@ -42,6 +42,7 @@ REGISTER_SERIALIZABLE(In2_Wall_ElastMat);
 #include<woo/pkg/gl/Functors.hpp>
 struct Gl1_Wall: public GlShapeFunctor{	
 	virtual void go(const shared_ptr<Shape>&, const Vector3r&, bool,const GLViewInfo&);
+	DECLARE_LOGGER;
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Wall,GlShapeFunctor,"Renders :ref:`Wall` object",
 		((int,div,20,,"Number of divisions of the wall inside visible scene part."))
 	);

@@ -34,12 +34,19 @@ void In2_Wall_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Materia
 	#include<woo/pkg/gl/Renderer.hpp>
 	#include<woo/lib/base/CompUtils.hpp>
 	#include<woo/lib/opengl/GLUtils.hpp>
+	CREATE_LOGGER(Gl1_Wall);
 
 	int  Gl1_Wall::div=20;
 	void Gl1_Wall::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool wire2, const GLViewInfo& viewInfo){
 		const Wall& wall=shape->cast<Wall>();
 		int ax0=wall.axis,ax1=(wall.axis+1)%3,ax2=(wall.axis+2)%3;
 		const Vector3r& pos(wall.nodes[0]->pos);
+		// rotate if the wall is rotated
+		if(wall.nodes[0]->ori!=Quaternionr::Identity()){
+			AngleAxisr aa(wall.nodes[0]->ori);
+			if(abs(aa.axis()[ax1])>1e-9 || abs(aa.axis()[ax2])>1e-9) LOG_ERROR("Rotation of wall does not respect its Wall.axis="<<wall.axis<<": rotated around "<<aa.axis()<<" by "<<aa.angle()<<" rad.");
+			glRotatef(aa.angle()*(180./M_PI),aa.axis()[0],aa.axis()[1],aa.axis()[2]);
+		}
 		//glColor3v(CompUtils::mapColor(shape->getBaseColor()));
 		glLineWidth(1);
 		assert(wall.nodes.size()==1);

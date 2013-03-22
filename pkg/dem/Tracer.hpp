@@ -46,6 +46,7 @@ struct Tracer: public PeriodicEngine{
 		((Vector2r,rRange,Vector2r(0,0),,"If non-zero, only show traces of spheres of which radius falls into this range."))
 		((Vector3r,noneColor,Vector3r(.3,.3,.3),AttrTrait<>().rgbColor(),"Color for traces without scalars, when scalars are saved (e.g. for non-spheres when radius is saved"))
 		((bool,glSmooth,false,,"Render traced lines with GL_LINE_SMOOTH"))
+		((int,glWidth,1,AttrTrait<>().range(Vector2i(1,10)),"Width of trace lines in pixels"))
 		, /*py*/
 			.def("resetNodesRep",&Tracer::resetNodesRep,(py::arg("setupEmpty")=false,py::arg("includeDead")=true),"Reset :ref:`Node.rep` on all :ref:`Dem.Field.nodes`. With *setupEmpty*, create new instances of :ref:`TraceGlRep`. With *includeDead*, :ref:`Node.rep` on all :ref:`Dem.Field.deadNodes` is also cleared (new are not created, even with *setupEmpty*).")
 			;

@@ -12,6 +12,13 @@ struct DemFuncs{
 	static Real unbalancedForce(const Scene* scene, const DemField* dem, bool useMaxForce);
 	static shared_ptr<Particle> makeSphere(Real radius, const shared_ptr<Material>& m);
 	static vector<Vector2r> boxPsd(const Scene* scene, const DemField* dem, const AlignedBox3r& box=AlignedBox3r(Vector3r(NaN,NaN,NaN),Vector3r(NaN,NaN,NaN)), bool mass=false, int num=20, int mask=0, Vector2r dRange=Vector2r::Zero());
+
+	// sum force and torque with regards to point pt over particles with matching mask
+	// if *multinodal* is true, get force/troque from contacts of multinodal particles
+	// (in addition to their nodal forces/torques);
+	// all those other particles should be mononodal (this is asserted (in debug builds))
+	// returns number of particles matching the mask
+	static size_t reactionInPoint(const Scene* scene, const DemField* dem, int mask, const Vector3r& pt, bool multinodal, Vector3r& force, Vector3r& torque);
 	
 	template<class IteratorRange, class DiameterGetter, class WeightGetter> /* iterate over spheres */
 	static vector<Vector2r> psd(const IteratorRange& particleRange,

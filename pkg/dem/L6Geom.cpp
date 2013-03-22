@@ -139,7 +139,7 @@ bool Cg2_Wall_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<S
 		throw std::logic_error((boost::format("Cg2_Wall_Sphere_L6Geom: normal changed from %s to %s in Wall+Sphere ##%d+%d (with Wall.sense=0, a particle might cross the Wall plane if Δt is too high, repulsive force to small or velocity too high.")%C->geom->cast<L6Geom>().trsf.row(0)%normal.transpose()%C->leakPA()->id%C->leakPB()->id).str());
 	}
 
-	const DemData& dyn1(sh1->nodes[0]->getData<DemData>());	const DemData& dyn2(sh2->nodes[0]->getData<DemData>());
+	const DemData& dyn1(wall.nodes[0]->getData<DemData>());const DemData& dyn2(sphere.nodes[0]->getData<DemData>());
 	handleSpheresLikeContact(C,wallPos,dyn1.vel,dyn1.angVel,spherePos,dyn2.vel,dyn2.angVel,normal,contPt,uN,/*r1*/-radius,radius);
 	return true;
 };

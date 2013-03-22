@@ -37,6 +37,7 @@ void TraceGlRep::render(const shared_ptr<Node>& n, GLViewInfo*){
 	if(isHidden()) return;
 	if(!Tracer::glSmooth) glDisable(GL_LINE_SMOOTH);
 	else glEnable(GL_LINE_SMOOTH);
+	glLineWidth(Tracer::glWidth);
 	glBegin(GL_LINE_STRIP);
 		for(size_t i=0; i<pts.size(); i++){
 			size_t ix;
@@ -90,6 +91,7 @@ int Tracer::lastScalar;
 int Tracer::compress;
 int Tracer::compSkip;
 bool Tracer::glSmooth;
+int Tracer::glWidth;
 Vector3r Tracer::noneColor;
 Real Tracer::minDist;
 shared_ptr<ScalarRange> Tracer::lineColor;
