@@ -227,14 +227,14 @@ void ParticleContainer::pyRemask(vector<id_t> ids, int mask, bool visible, bool 
 		}
 	}
 	// traverse all other particles, check bbox overlaps
-	if(removeOverlapping){
+	if(removeOverlapping && !parts.empty()){
 		list<id_t> toRemove;
 		for(const auto& p2: *this){
-			//if(!p2->shape || !p2->shape->bound){  cerr<<"-- #"<<p2->id<<" has no shape/bound."<<endl; continue; }
+			if(!p2->shape || !p2->shape->bound){ LOG_DEBUG("#"<<p2->id<<" has no shape/bound, skipped for overlap check."); continue; }
 			AlignedBox3r b2(p2->shape->bound->min,p2->shape->bound->max);
 			for(id_t id: ids){
 				const auto& p=(*this)[id];
-				//if(!p->shape || !p->shape->bound){ cerr<<"@@ #"<<id<<" has no shape/bound."<<endl; continue; }
+				if(!p->shape || !p->shape->bound){ LOG_DEBUG("#"<<p2->id<<" (being remasked) has no shape/bound, skipped for overlap check."); continue; }
 				AlignedBox3r b1(p->shape->bound->min,p->shape->bound->max);
 				//cerr<<"distance ##"<<id<<"+"<<p2->id<<" is "<<b1.exteriorDistance(b2)<<endl;
 				if(b1.exteriorDistance(b2)<=0 && Collider::mayCollide(p2,p,dem)) toRemove.push_back(p2->id);
