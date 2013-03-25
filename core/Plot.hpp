@@ -14,6 +14,7 @@ namespace woo{
 			((py::tuple,legendLoc,py::make_tuple("upper left","upper right"),,"Location of the y1 and y2 legends on the plot, if y2 is active."))
 			((Real,axesWd,1,,"Linewidth (in points) to make *x* and *y* axes better visible; not activated if non-positive."))
 			((py::object,currLineRefs,,AttrTrait<Attr::noSave>().noGui(),"References to axes which are being shown. Internal use only."))
+			((string,annotateFmt,"{xy[1]:.4g}",,"Format for annotations in plots; if empty, no annotation is shown; has no impact on existing plots. *xy* is 2-tuple of the current point in data space."))
 		);
 	};
 };

@@ -84,6 +84,8 @@ afterCurrentAlpha=.2
 "Color alpha value for part of lines after :ref:`woo.plot.current`, between 0 (invisible) to 1 (full color)"
 scatterMarkerKw=dict(verts=[(0.,0.),(-30.,10.),(-25,0),(-30.,-10.)],marker=None)
 "Parameters for the current position marker"
+annotateKw=dict(horizontalalignment='left',verticalalignment='upper right',fontsize=9)
+"Parameters for annotation (current value) display"
 
 componentSeparator='_'
 componentSuffixes={Vector2:{0:'x',1:'y'},Vector3:{0:'x',1:'y',2:'z'},Vector2i:{0:'x',1:'y'},Vector3i:{0:'x',1:'y',2:'z'},Vector6:{0:'xx',1:'yy',2:'zz',3:'yz',4:'zx',5:'xy'},Matrix3:{(0,0):'xx',(1,1):'yy',(2,2):'zz',(0,1):'xy',(1,0):'yx',(0,2):'xz',(2,0):'zx',(1,2):'yz',(2,1):'zy'}}
@@ -319,8 +321,8 @@ def xlateLabel(l,labels):
 class LineRef:
 	"""Holds reference to plot line and to original data arrays (which change during the simulation),
 	and updates the actual line using those data upon request."""
-	def __init__(self,line,scatter,line2,xdata,ydata,imgData=None,dataName=None):
-		self.line,self.scatter,self.line2,self.xdata,self.ydata,self.imgData,self.dataName=line,scatter,line2,xdata,ydata,imgData,dataName
+	def __init__(self,line,scatter,annotation,line2,xdata,ydata,imgData=None,dataName=None):
+		self.line,self.scatter,self.annotation,self.line2,self.xdata,self.ydata,self.imgData,self.dataName=line,scatter,annotation,line2,xdata,ydata,imgData,dataName
 	def update(self):
 		if isinstance(self.line,matplotlib.image.AxesImage):
 			# image name
@@ -369,6 +371,9 @@ class LineRef:
 						if dx<0: angle-=math.pi
 						self.scatter.set_transform(matplotlib.transforms.Affine2D().rotate(angle))
 					except IndexError: pass
+				if self.annotation:
+					self.annotation.xytext=(x,y)
+					self.annotation.set_text(self.annotation.annotateFmt.format(xy=(float(x),float(y))))
 			except TypeError: pass # this happens at i386 with empty data, saying TypeError: buffer is too small for requested array
 
 liveTimeStamp=0 # timestamp when live update was started, so that the old thread knows to stop if that changes
@@ -376,7 +381,7 @@ nan=float('nan')
 
 def createPlots(P,subPlots=True,scatterSize=60,wider=False):
 	import logging
-	data,imgData,plots,labels,xylabels,legendLoc,axesWd=P.data,P.imgData,P.plots,P.labels,P.xylabels,P.legendLoc,P.axesWd
+	data,imgData,plots,labels,xylabels,legendLoc,axesWd,annotateFmt=P.data,P.imgData,P.plots,P.labels,P.xylabels,P.legendLoc,P.axesWd,P.annotateFmt
 	if P.currLineRefs:
 		logging.info('Closing existing figures')
 		figs=set([l.line.get_axes().get_figure() for l in P.currLineRefs]) # get all current figures
@@ -397,7 +402,7 @@ def createPlots(P,subPlots=True,scatterSize=60,wider=False):
 			if len(imgData[pStrip])==0 or imgData[pStrip][-1]==None: img=Image.new('RGBA',(1,1),(0,0,0,0))
 			else: img=Image.open(imgData[pStrip][-1])
 			img=pylab.imshow(img,origin='lower')
-			P.currLineRefs.append(LineRef(line=img,scatter=None,line2=None,xdata=imgData[pStrip],ydata=None,imgData=imgData,dataName=pStrip))
+			P.currLineRefs.append(LineRef(line=img,scatter=None,annotation=None,line2=None,xdata=imgData[pStrip],ydata=None,imgData=imgData,dataName=pStrip))
 			pylab.gca().set_axis_off()
 			continue
 		plots_p=[addPointTypeSpecifier(o) for o in tuplifyYAxis(plots[p])]
@@ -446,7 +451,7 @@ def createPlots(P,subPlots=True,scatterSize=60,wider=False):
 				print 'woo.plot: creating fake plot, since there are no y-data yet'
 				line,=pylab.plot([nan],[nan])
 				line2,=pylab.plot([nan],[nan])
-				P.currLineRefs.append(LineRef(line=line,scatter=None,line2=line2,xdata=[nan],ydata=[nan]))
+				P.currLineRefs.append(LineRef(line=line,scatter=None,annotation=None,line2=line2,xdata=[nan],ydata=[nan]))
 			# set different color series for y1 and y2 so that they are recognizable
 			if pylab.rcParams.has_key('axes.color_cycle'): pylab.rcParams['axes.color_cycle']='b,g,r,c,m,y,k' if not isY1 else 'm,y,k,b,g,r,c'
 			for d in ySpecs2:
@@ -455,9 +460,14 @@ def createPlots(P,subPlots=True,scatterSize=60,wider=False):
 				line2,=pylab.plot([],[],d[1],color=line.get_color(),alpha=afterCurrentAlpha)
 				# use (0,0) if there are no data yet
 				scatterPt=[0,0] if len(data[pStrip])==0 else (data[pStrip][current],data[d[0]][current])
+				scatterPtPos=[scatterPt[0] if not math.isnan(scatterPt[0]) else 0,scatterPt[1] if not math.isnan(scatterPt[1]) else 0]
 				# if current value is NaN, use zero instead
-				scatter=pylab.scatter(scatterPt[0] if not math.isnan(scatterPt[0]) else 0,scatterPt[1] if not math.isnan(scatterPt[1]) else 0,s=scatterSize,color=line.get_color(),**scatterMarkerKw)
-				P.currLineRefs.append(LineRef(line=line,scatter=scatter,line2=line2,xdata=data[pStrip],ydata=data[d[0]]))
+				scatter=pylab.scatter(scatterPtPos[0],scatterPtPos[1],s=scatterSize,color=line.get_color(),**scatterMarkerKw)
+				if annotateFmt:
+					annotation=pylab.annotate(annotateFmt.format(xy=scatterPt),xy=scatterPtPos,color=line.get_color(),**annotateKw)
+					annotation.annotateFmt=annotateFmt
+				else: annotation=None
+				P.currLineRefs.append(LineRef(line=line,scatter=scatter,annotation=annotation,line2=line2,xdata=data[pStrip],ydata=data[d[0]]))
 			axes=line.get_axes()
 			labelLoc=(legendLoc[0 if isY1 else 1] if y2Exists>0 else 'best')
 			l=pylab.legend(loc=labelLoc)
@@ -534,7 +544,11 @@ def liveUpdate(P,timestamp):
 				line2,=ax.plot([],[],color=line.get_color(),alpha=afterCurrentAlpha)
 				scatterPt=(0 if len(data[ax.wooXName])==0 or math.isnan(data[ax.wooXName][current]) else data[ax.wooXName][current]),(0 if len(data[new])==0 or math.isnan(data[new][current]) else data[new][current])
 				scatter=ax.scatter(scatterPt[0],scatterPt[1],s=60,color=line.get_color(),**scatterMarkerKw)
-				P.currLineRefs.append(LineRef(line=line,scatter=scatter,line2=line2,xdata=data[ax.wooXName],ydata=data[new]))
+				if P.annotateFmt:
+					annotation=ax.annotate(P.annotateFmt.format(xy=scatterPt),xy=scatterPt,color=line.get_color(),**annotateKw)
+					annotation.annotateFmt=P.annotateFmt
+				else: annotation=None
+				P.currLineRefs.append(LineRef(line=line,scatter=scatter,annotation=annotation,line2=line2,xdata=data[ax.wooXName],ydata=data[new]))
 				ax.set_ylabel(ax.get_ylabel()+(', ' if ax.get_ylabel() else '')+xlateLabel(new,P.labels))
 			# it is possible that the legend has not yet been created
 			l=ax.legend(loc=ax.wooLabelLoc)
