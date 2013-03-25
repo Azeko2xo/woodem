@@ -84,7 +84,7 @@ void Gl1_Sphere::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool 
 
 	Real r=shape->cast<Sphere>().radius*scale;
 	//glColor3v(CompUtils::mapColor(shape->getBaseColor()));
-	bool doPoints=(quality<0 || (int)quality*glutSlices<2 || (int)quality*glutStacks<2);
+	bool doPoints=(quality<0 || (int)(quality*glutSlices)<2 || (int)(quality*glutStacks)<2);
 	if(doPoints){
 		if(smooth) glEnable(GL_POINT_SMOOTH);
 		else glDisable(GL_POINT_SMOOTH);
