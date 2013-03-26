@@ -110,13 +110,16 @@ namespace woo{
 		enum { compileFlags=_compileFlags };
 		AttrTrait(): AttrTraitBase(_compileFlags) { };
 		AttrTrait(int f){ _flags=f; } // for compatibility
-		//AttrTrait(const AttrTrait<_compileFlags>& other){ cerr<<"called@#$"<<endl; }
 		// setters
+		/*
+			Some flags may only be set as template argument (since they select templated code),
+			not after trait construction. Their setters are not provided below. Those are:
+			* noSave
+			* triggerPostLoad
+		*/
 		#define ATTR_FLAG_DO(flag,isFlag) AttrTrait& flag(bool val=true){ if(val) _flags|=(int)Flags::flag; else _flags&=~((int)Flags::flag); return *this; } bool isFlag() const { return _flags&(int)Flags::flag; }
 			// REMOVE later
-			//ATTR_FLAG_DO(noSave,isNoSave)
 			ATTR_FLAG_DO(readonly,isReadonly)
-			ATTR_FLAG_DO(triggerPostLoad,isTriggerPostLoad)
 			ATTR_FLAG_DO(hidden,isHidden)
 			ATTR_FLAG_DO(pyByRef,isPyByRef)
 

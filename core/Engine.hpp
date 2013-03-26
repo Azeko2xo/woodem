@@ -31,6 +31,8 @@ class Engine: public Object {
 		//! precise profiling information (timing of fragments of the engine)
 		shared_ptr<TimingDeltas> timingDeltas;
 		virtual bool isActivated() { return true; };
+		//! notify engine that dead has been changed (does nothing by default)
+		virtual void notifyDead(){};
 
 		// cycles through fields and dispatches to run(), which then does the real work
 		// by default runs the engine for accepted fields
@@ -88,7 +90,7 @@ class Engine: public Object {
 	DECLARE_LOGGER;
 
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Engine,Object,ClassTrait().doc("Basic execution unit of simulation, called from the simulation loop (O.engines)"),
-		((bool,dead,false,,"If true, this engine will not run at all; can be used for making an engine temporarily deactivated and only resurrect it at a later point."))
+		((bool,dead,false,AttrTrait<Attr::triggerPostLoad>(),"If true, this engine will not run at all; can be used for making an engine temporarily deactivated and only resurrect it at a later point."))
 		((string,label,,AttrTrait<>().activeLabel(),"Textual label for this object; must be valid python identifier, you can refer to it directly from python."))
 		// ((bool,parallelFields,false,,"Whether to run (if compiled with openMP) this engine on active fields in parallel"))
 		((shared_ptr<Field>,field,,AttrTrait<>().noGui().noDump(),"User-requested `woo.core.Field` to run this engine on; if empty, fields will be searched for admissible ones; if more than one is found, exception will be raised."))
@@ -147,6 +149,8 @@ class PeriodicEngine: public GlobalEngine{
 	public:
 		static Real getClock(){ timeval tp; gettimeofday(&tp,NULL); return tp.tv_sec+tp.tv_usec/1e6; }
 		virtual bool isActivated();
+		// set virtLast, realLast, stepLast as if we run now; don't modify nDo/nDone, though
+		void fakeRun();
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(PeriodicEngine,GlobalEngine,
 		"Run Engine::run with given fixed periodicity real time (=wall clock time, computation time), virtual time (simulation time), step number), by setting any of those criteria (virtPeriod, realPeriod, stepPeriod) to a positive value. They are all negative (inactive) by default.\n\nThe number of times this engine is activated can be limited by setting nDo>0. If the number of activations will have been already reached, no action will be called even if an active period has elapsed.\n\nIf initRun is set (true by default), the engine will run when called for the first time; otherwise it will only  start counting period (realLast etc interal variables) from that point, but without actually running, and will run only once a period has elapsed since the initial run.\n\nThis class should not be used directly; rather, derive your own engine which you want to be run periodically.\n\nDerived engines should override Engine::action(), which will be called periodically. If the derived Engine overrides also Engine::isActivated, it should also take in account return value from PeriodicEngine::isActivated, otherwise the periodicity will not be functional.\n\nExample with PyRnner, which derives from PeriodicEngine; likely to be encountered in python scripts)::\n\n\
 		\
@@ -157,11 +161,11 @@ class PeriodicEngine: public GlobalEngine{
 		((Real,realPeriod,((void)"deactivated",0),,"Periodicity criterion using real (wall clock, computation, human) time (deactivated if <=0)"))
 		((long,stepPeriod,((void)"deactivated",1),,"Periodicity criterion using step number (deactivated if <= 0)"))
 		((long,nDo,((void)"deactivated",-1),,"Limit number of executions by this number (deactivated if negative)"))
-		((long,nDone,0,,"Track number of executions (cumulative) |yupdate|."))
+		((long,nDone,0,,"Track number of executions (cumulative)."))
 		((bool,initRun,true,,"Run the first time we are called as well."))
-		((Real,virtLast,NaN,,"Tracks virtual time of last run |yupdate|."))
-		((Real,realLast,NaN,,"Tracks real time of last run |yupdate|."))
-		((long,stepLast,-1,,"Tracks step number of last run |yupdate|.")
+		((Real,virtLast,NaN,,"Tracks virtual time of last run."))
+		((Real,realLast,NaN,,"Tracks real time of last run."))
+		((long,stepLast,-1,,"Tracks step number of last run.")
 		)
 		((long,stepPrev,-1,AttrTrait<>().noGui(),"Number of step when we run previously (stepLast is the current step when the engine runs)"))
 		((Real,virtPrev,-1,AttrTrait<>().noGui(),"Simulation time when run previously"))

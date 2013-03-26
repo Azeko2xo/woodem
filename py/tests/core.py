@@ -116,12 +116,8 @@ class TestObjectInstantiation(unittest.TestCase):
 	##
 	## attribute flags
 	##
-	def testHidden0(self):
-		'Core: Attr::hidden [0]'
-		# hidden attributes are not wrapped in python at all
-		self.assert_(not hasattr(Contact(),'stepLastSeen'))
 	def testNoSave(self):
-		'Core: Attr::noSave [0]'
+		'Core: Attr::noSave'
 		# update bound of the particle
 		S=Scene(fields=[DemField()])
 		S.dem.par.append(utils.sphere((0,0,0),1))
@@ -135,16 +131,6 @@ class TestObjectInstantiation(unittest.TestCase):
 		# check that the minimum is not saved
 		self.assert_(not isnan(mn0[0]))
 		self.assert_(isnan(mn1[0]))
-	def testReadonly0(self):
-		'Core: Attr::readonly [0]'
-		self.assertRaises(AttributeError,lambda: setattr(Particle(),'id',3))
-	def testTriggerPostLoad0(self):
-		'Core: Attr::triggerPostLoad [0]'
-		# RadialEngine normalizes axisDir automatically
-		# anything else could be tested
-		te=RadialForce();
-		te.axisDir=(0,2,0)
-		self.assert_(te.axisDir==(0,1,0))
 	def testReadonly(self):
 		'Core: Attr::readonly'
 		self.assert_(self.t.meaning42==42)
@@ -170,8 +156,20 @@ class TestObjectInstantiation(unittest.TestCase):
 		'Core: Attr::hidden'
 		# hidden attributes are not wrapped in python at all
 		self.assert_(not hasattr(self.t,'hiddenAttribute'))
-
-
+	def testNotifyDead(self):
+		'Core: PeriodicEngine::notifyDead'
+		e=woo.core.WooTestPeriodicEngine()
+		self.assert_(e.deadCounter==0)
+		prev=e.deadCounter
+		e.dead=True
+		self.assert_(e.deadCounter>prev) # ideally, this should be 1, not 4 by now!!
+		prev=e.deadCounter
+		e.dead=True
+		self.assert_(e.deadCounter>prev)
+		prev=e.deadCounter
+		e.dead=False
+		self.assert_(e.deadCounter>prev)
+		
 
 
 class TestLoop(unittest.TestCase):

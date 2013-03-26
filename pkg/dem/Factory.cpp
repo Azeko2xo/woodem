@@ -535,6 +535,30 @@ void ConveyorFactory::sortPacking(){
 	}
 }
 
+void ConveyorFactory::particleLeavesBarrier(const shared_ptr<Particle>& p){
+	auto& dyn=p->shape->nodes[0]->getData<DemData>();
+	dyn.setBlockedNone();
+	p->shape->color=isnan(color)?Mathr::UnitRandom():color;
+	// assign velocity with randomized lateral components
+	if(!isnan(relLatVel) && relLatVel!=0){
+		dyn.vel=node->ori*(Vector3r(vel,(2*Mathr::UnitRandom()-1)*relLatVel*vel,(2*Mathr::UnitRandom()-1)*relLatVel*vel));
+	}
+}
+
+void ConveyorFactory::notifyDead(){
+	if(dead){
+		// we were just made dead; remove the barrier and set zero rate
+		if(zeroRateAtStop) currRate=0.;
+		/* remove particles from the barrier */
+		for(const auto& p: barrier){ particleLeavesBarrier(p); }
+		barrier.clear();
+	} else {
+		// we were made alive after being dead;
+		// adjust last runs so that we don't think we need to catch up with the whole time being dead
+		PeriodicEngine::fakeRun();
+	}
+}
+
 void ConveyorFactory::run(){
 	DemField* dem=static_cast<DemField*>(field.get());
 	if(isnan(vel)) ValueError("ConveyorFactory.vel==NaN");
@@ -550,8 +574,7 @@ void ConveyorFactory::run(){
 	while(I!=barrier.end()){
 		const auto& p=*I;
 		if((node->ori.conjugate()*(p->shape->nodes[0]->pos-node->pos))[0]>barrierLayer){
-			p->shape->nodes[0]->getData<DemData>().setBlockedNone();
-			p->shape->color=isnan(color)?Mathr::UnitRandom():color;
+			particleLeavesBarrier(p);
 			I=barrier.erase(I); // erase and advance
 		} else {
 			I++; // just advance
@@ -574,13 +597,7 @@ void ConveyorFactory::run(){
 		// done foerver
 		if((maxMass>0 && mass>maxMass) || (maxNum>0 && num>=maxNum)){
 			dead=true;
-			if(zeroRateAtStop) currRate=0.;
-			/* remove particles from the barrier */
-			for(const auto& p: barrier){
-				p->shape->nodes[0]->getData<DemData>().setBlockedNone();
-				p->shape->color=isnan(color)?Mathr::UnitRandom():color;
-			}
-			barrier.clear();
+			notifyDead();
 			return;
 		}
 		LOG_TRACE("Doing next particle: mass/maxMass="<<mass<<"/"<<maxMass<<", num/maxNum"<<num<<"/"<<maxNum);

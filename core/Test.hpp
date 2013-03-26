@@ -60,7 +60,16 @@ namespace woo{
 		);
 		#undef _UNIT_ATTR
 	};
+
+	struct WooTestPeriodicEngine: public PeriodicEngine{
+		void notifyDead(){ deadCounter++; }
+		WOO_CLASS_BASE_DOC_ATTRS(WooTestPeriodicEngine,PeriodicEngine,"Test some PeriodicEngine features.",
+			((int,deadCounter,0,,"Count how many times :obj:`dead` was assigned to."))
+		);
+	};
 };
 using woo::WooTestClass;
+using woo::WooTestPeriodicEngine;
 REGISTER_SERIALIZABLE(WooTestClass);
+REGISTER_SERIALIZABLE(WooTestPeriodicEngine);
 

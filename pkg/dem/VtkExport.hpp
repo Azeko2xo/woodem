@@ -48,7 +48,7 @@ struct VtkExport: public PeriodicEngine{
 		((bool,ascii,false,,"Store data as readable text in the XML file (sets `vtkXMLWriter <http://www.vtk.org/doc/nightly/html/classvtkXMLWriter.html>`__ data mode to ``vtkXMLWriter::Ascii``, while the default is ``Appended``"))
 		((bool,multiblock,false,,"Write to multi-block VTK files, rather than separate files; currently borken, do not use."))
 		((int,mask,0,,"If non-zero, only particles matching the mask will be exported."))
-		((int,what,WHAT_ALL,AttrTrait<>().triggerPostLoad(),"Select data to be saved (e.g. VtkExport.spheres|VtkExport.mesh, or use VtkExport.all for everything)"))
+		((int,what,WHAT_ALL,AttrTrait<Attr::triggerPostLoad>(),"Select data to be saved (e.g. VtkExport.spheres|VtkExport.mesh, or use VtkExport.all for everything)"))
 		((bool,sphereSphereOnly,false,,"Only export contacts between two spheres (not sphere+facet and such)"))
 		((bool,infError,true,,"Raise exception for infinite objects which don't have the glAB attribute set properly"))
 		((bool,skipInvisible,true,,"Skip invisible particles"))

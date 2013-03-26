@@ -217,6 +217,8 @@ struct ConveyorFactory: public ParticleFactory{
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	void sortPacking();
 	void postLoad(ConveyorFactory&,void*);
+	void notifyDead();
+	void particleLeavesBarrier(const shared_ptr<Particle>& p);
 	#ifdef WOO_OPENGL
 		void render(const GLViewInfo&){
 			if(isnan(glColor)) return;
@@ -235,12 +237,13 @@ struct ConveyorFactory: public ParticleFactory{
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ConveyorFactory,ParticleFactory,"Factory producing infinite band of particles from packing periodic in the x-direction. (Clumps are not supported (yet?), only spheres).",
 		((shared_ptr<Material>,material,,,"Material for new particles"))
 		((Real,cellLen,,,"Length of the band cell, which is repeated periodically"))
-		((vector<Real>,radii,,AttrTrait<>().noGui().triggerPostLoad(),"Radii for the packing"))
-		((vector<Vector3r>,centers,,AttrTrait<>().noGui().triggerPostLoad(),"Centers of spheres in the packing"))
+		((vector<Real>,radii,,AttrTrait<Attr::triggerPostLoad>().noGui(),"Radii for the packing"))
+		((vector<Vector3r>,centers,,AttrTrait<Attr::triggerPostLoad>().noGui(),"Centers of spheres in the packing"))
 		((int,nextIx,-1,AttrTrait<>().readonly(),"Index of last-generated particles in the packing"))
 		((Real,lastX,0,AttrTrait<>().readonly(),"X-coordinate of last-generated particles in the packing"))
 		((Real,vel,NaN,,"Velocity of the feed"))
-		((Real,prescribedRate,NaN,AttrTrait<>().triggerPostLoad(),"Prescribed average mass flow rate; if given, overwrites *vel*"))
+		((Real,prescribedRate,NaN,AttrTrait<Attr::triggerPostLoad>(),"Prescribed average mass flow rate; if given, overwrites *vel*"))
+		((Real,relLatVel,0.,,"Relative velocity components lateral to :obj:`vel` (local x-axis); both components are assigned with uniform probability from range `(-relLatVel*vel,+relLatVel*vel)`, at the moment the particle leaves the barrier layer."))
 		((int,mask,1,,"Mask for new particles"))
 		((Real,startLen,NaN,,"Band to be created at the very start; if NaN, only the usual starting amount is created (depending on feed velocity)"))
 		((Real,barrierColor,.2,,"Color for barrier particles (NaN for random)"))

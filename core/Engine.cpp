@@ -27,9 +27,14 @@ void Engine::setField(){
 	field=accepted[0];
 }
 
-void Engine::postLoad(Engine&, void*){
-	if(isNewObject && field){ userAssignedField=true; }
-	isNewObject=false;
+void Engine::postLoad(Engine&, void* addr){
+	if(addr==NULL){
+		if(isNewObject && field){ userAssignedField=true; }
+		isNewObject=false;
+	}
+	if(addr==(void*)&dead){
+		notifyDead();
+	}
 }
 
 shared_ptr<Field> Engine::field_get(){ return field; }
@@ -126,7 +131,14 @@ void ParallelEngine::getLabeledObjects(std::map<std::string,py::object>& m){
 	Engine::getLabeledObjects(m);
 };
 
-
+void PeriodicEngine::fakeRun(){
+	const Real& virtNow=scene->time;
+	Real realNow=getClock();
+	const long& stepNow=scene->step;
+	realPrev=realLast; realLast=realNow;
+	virtPrev=virtLast; virtLast=virtNow;
+	stepPrev=stepLast; stepLast=stepNow;
+}
 
 bool PeriodicEngine::isActivated(){
 	const Real& virtNow=scene->time;
