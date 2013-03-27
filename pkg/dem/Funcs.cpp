@@ -34,12 +34,16 @@ std::tuple</*stress*/Matrix3r,/*stiffness*/Matrix6r> DemFuncs::stressStiffness(c
 	FOREACH(const shared_ptr<Contact>& C, *dem->contacts){
 		FrictPhys* phys=WOO_CAST<FrictPhys*>(C->phys.get());
 		const Particle *pA=C->leakPA(), *pB=C->leakPB();
+		Vector3r posB=pB->shape->nodes[0]->pos;
+		Vector3r posA=pA->shape->nodes[0]->pos-(scene->isPeriodic?scene->cell->intrShiftPos(C->cellDist):Vector3r::Zero());
 		if(pA->shape->nodes.size()!=1 || pB->shape->nodes.size()!=1){
 			if(skipMultinodal) continue;
-			else woo::ValueError("Particle "+lexical_cast<string>(pA->shape->nodes.size()!=1? pA->id : pB->id)+" has more than one node; to skip contacts with such particles, say skipMultinodal=True");
+			//else woo::ValueError("Particle "+lexical_cast<string>(pA->shape->nodes.size()!=1? pA->id : pB->id)+" has more than one node; to skip contacts with such particles, say skipMultinodal=True");
+			if(pA->shape->nodes.size()!=1) posA=C->geom->node->pos;
+			if(pB->shape->nodes.size()!=1) posB=C->geom->node->pos;
 		}
 		// use current distance here
-		const Real d0=(pB->shape->nodes[0]->pos-pA->shape->nodes[0]->pos+(scene->isPeriodic?scene->cell->intrShiftPos(C->cellDist):Vector3r::Zero())).norm();
+		const Real d0=(posA-posB).norm();
 		Vector3r n=C->geom->node->ori.conjugate()*Vector3r::UnitX(); // normal in global coords
 		#if 1
 			// g3geom doesn't set local x axis properly
@@ -157,36 +161,24 @@ size_t DemFuncs::reactionInPoint(const Scene* scene, const DemField* dem, int ma
 	return ret;
 }
 
-
 #if 0
-vector<Vector2r> DemFuncs::psd(const vector<shared_ptr<Particle>>& pp, int num, Vector2r rRange){
-	if(isnan(rRange[0]) || isnan(rRange[1]) || rRange[0]<0 || rRange[1]<=0 || rRange[0]>=rRange[1]){
-		rRange=Vector2r(Inf,-Inf);
-		for(const shared_ptr<Particle>& p: pp){
-			if(!p || !p->shape || !dynamic_pointer_cast<woo::Sphere>(p->shape)) continue;
-			Real r=p->shape->cast<Sphere>().radius;
-			if(r<rRange[0]) rRange[0]=r;
-			if(r>rRange[1]) rRange[1]=r;
+size_t DemFuncs::radialAxialForce(const Scene* scene, const DemField* dem, int mask, Vector3r axis, bool shear, Vector2r& radAxF){
+	size_t ret=0;
+	radAxF=Vector2r::Zero();
+	axis.normalize();
+	for(const shared_ptr<Particle>& p: *dem->particles){
+		if(!(p->mask & mask) || !p->shape) continue;
+		ret++;
+		for(const auto& idC: p->contacts){
+			const shared_ptr<Contact>& C(idC.second);
+			if(!C->isReal()) continue;
+			Vector3r F=C->geom->node->ori.conjugate()*((shear?C->phys->force:Vector3r(C->phys->force[0],0,0))*C->forceSign(p));
+			Vector3r axF=F.dot(axis);
+			radAxF+=Vector2r(axF,(F-axF).norm());
 		}
-		if(isinf(rRange[0])) throw std::runtime_error("DemFuncs::boxPsd: no spherical particles?");
 	}
-	vector<Vector2r> ret(num,Vector2r::Zero());
-	size_t nPar=0;
-	for(const shared_ptr<Particle>& p: pp){
-		if(!p || !p->shape || !dynamic_pointer_cast<woo::Sphere>(p->shape)) continue;
-		Real r=p->shape->cast<Sphere>().radius;
-		if(r>rRange[1]) continue;
-		nPar++;
-		int bin=max(0,min(num-1,1+(int)((num-1)*((r-rRange[0])/(rRange[1]-rRange[0])))));
-		ret[bin][1]+=1;
-	}
-	for(int i=0;i<num;i++){
-		ret[i][0]=2*(rRange[0]+i*(rRange[1]-rRange[0])/(num-1));
-		ret[i][1]=ret[i][1]/pp.size()+(i>0?ret[i-1][1]:0.);
-	}
-	// for(int i=0; i<num; i++) ret[i][1]/=ret[num-1][1];
 	return ret;
-};
+}
 #endif
 
 

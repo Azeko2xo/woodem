@@ -19,6 +19,10 @@ struct DemFuncs{
 	// all those other particles should be mononodal (this is asserted (in debug builds))
 	// returns number of particles matching the mask
 	static size_t reactionInPoint(const Scene* scene, const DemField* dem, int mask, const Vector3r& pt, bool multinodal, Vector3r& force, Vector3r& torque);
+
+	#if 0
+		static Vector2r radialAxialForce(const Scene* scene, const DemField* dem, int mask, Vector3r axis, bool shear);
+	#endif
 	
 	template<class IteratorRange, class DiameterGetter, class WeightGetter> /* iterate over spheres */
 	static vector<Vector2r> psd(const IteratorRange& particleRange,

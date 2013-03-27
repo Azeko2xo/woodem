@@ -166,27 +166,16 @@ void ContactLoop::run(){
 		// track gradV work
 		/* this is meant to avoid calling extra loop at every step, since the work must be evaluated incrementally */
 		if(doStress && /*contact law deleted the contact?*/ C->isReal()){
-			if(pA->shape->nodes.size()!=1 || pB->shape->nodes.size()!=1) throw std::runtime_error("ContactLoop.trackWork not allowed with multi-nodal particles in contact (##"+lexical_cast<string>(pA->id)+"+"+lexical_cast<string>(pB->id)+")");
-			#if 0
-				const Real d0=(pB->shape->nodes[0]->pos-pA->shape->nodes[0]->pos+scene->cell->intrShiftPos(C->cellDist)).norm();
-				Vector3r n=C->geom->node->ori.conjugate()*Vector3r::UnitX(); // normal in global coords
-				#if 1
-					// g3geom doesn't set local x axis propertly, use its internal data instead
-					G3Geom* g3g=dynamic_cast<G3Geom*>(C->geom.get());
-					if(g3g) n=g3g->normal;
-				#endif
-				Vector3r F=C->geom->node->ori.conjugate()*C->phys->force;
-				Real fN=F.dot(n); Vector3r fT=F-n*fN;
-				// this could be done better using reductions, but those don't allow overloaded operators :-|
-				#pragma omp critical
-				{ for(int i:{0,1,2}) for(int j:{0,1,2}) stress(i,j)+=d0*(fN*n[i]*n[j]+.5*(fT[i]*n[j]+fT[j]*n[i])); }
-			#endif
-			Vector3r branch=(pB->shape->nodes[0]->pos-pA->shape->nodes[0]->pos+scene->cell->intrShiftPos(C->cellDist));
+			const auto& nnA(pA->shape->nodes); const auto& nnB(pB->shape->nodes);
+			if(nnA.size()!=1 || nnB.size()!=1) throw std::runtime_error("ContactLoop.trackWork not allowed with multi-nodal particles in contact (##"+lexical_cast<string>(pA->id)+"+"+lexical_cast<string>(pB->id)+")");
+			Vector3r branch=(nnB[0]->pos-nnA[0]->pos+scene->cell->intrShiftPos(C->cellDist));
 			Vector3r F=C->geom->node->ori.conjugate()*C->phys->force; // force in global coords
 			#ifdef WOO_OPENMP
 				#pragma omp critical
 			#endif
-			stress.noalias()+=F*branch.transpose();
+			{
+				stress.noalias()+=F*branch.transpose();
+			}
 		}
 	}
 	// process removeAfterLoop

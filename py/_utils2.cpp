@@ -214,6 +214,14 @@ py::tuple reactionInPoint(const shared_ptr<DemField>& dem, int mask, const Vecto
 	return py::make_tuple(F,T,n);
 }
 
+#if 0
+py::tuple radialAxialForce(const shared_ptr<DemField>& dem, int mask, const Vector3r& axis, bool shear){
+	Vector3r F,T;
+	size_t n=DemFuncs::radialAxialForce(dem->scene,dem.get(),mask,axis,shear);
+	return py::make_tuple(F,T,n);
+}
+#endif
+
 WOO_PYTHON_MODULE(_utils2);
 BOOST_PYTHON_MODULE(_utils2){
 	// http://numpy.scipy.org/numpydoc/numpy-13.html mentions this must be done in module init, otherwise we will crash

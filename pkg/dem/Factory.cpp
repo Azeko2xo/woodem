@@ -542,6 +542,11 @@ void ConveyorFactory::particleLeavesBarrier(const shared_ptr<Particle>& p){
 	// assign velocity with randomized lateral components
 	if(!isnan(relLatVel) && relLatVel!=0){
 		dyn.vel=node->ori*(Vector3r(vel,(2*Mathr::UnitRandom()-1)*relLatVel*vel,(2*Mathr::UnitRandom()-1)*relLatVel*vel));
+		static bool warnedEnergyIgnored=false;
+		if(scene->trackEnergy && !warnedEnergyIgnored){
+			warnedEnergyIgnored=true;
+			LOG_WARN("FIXME: ConveyorFactory.relLatVel is ignored when computing kinetic energy of new particles; energy balance will not be accurate.");
+		}
 	}
 }
 

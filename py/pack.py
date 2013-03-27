@@ -612,7 +612,8 @@ def hexaNet( radius, cornerCoord=[0,0,0], xLength=1., yLength=0.5, mos=0.08, a=0
 
 def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNum=-1,dontBlock=False,returnSpherePack=False,memoizeDir=None):
 	if memoizeDir:
-		params=str(dim)+str(psd)+str(goal)+str(damping)+str(porosity)+str(lenAxis)
+		# increase number at the end for every change in the algorithm to make old feeds incompatible
+		params=str(dim)+str(psd)+str(goal)+str(damping)+str(porosity)+str(lenAxis)+'3'
 		import hashlib
 		paramHash=hashlib.sha1(params).hexdigest()
 		memoizeFile=memoizeDir+'/'+paramHash+'.perifeed'
@@ -626,7 +627,7 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNu
 	p3=porosity**(1/3.)
 	rMax=psd[-1][0]
 	minSize=rMax*5
-	cellSize=Vector3(max(dim[0]*p3,minSize),max(dim[1]*p3,minSize),max(dim[2]*p3,minSize))
+	cellSize=Vector3(max(dim[0]/p3,minSize),max(dim[1]/p3,minSize),max(dim[2]/p3,minSize))
 	print 'dimension',dim
 	print 'initial cell size',cellSize
 	print 'psd=',psd
@@ -670,7 +671,7 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNu
 	boxMax[lenAxis]=inf
 	box=AlignedBox3(boxMin,boxMax)
 	for c,r in sp:
-		if c not in box: continue
+		if c-Vector3(r,r,r) not in box or c+Vector3(r,r,r) not in box: continue
 		cc.append(c); rr.append(r)
 	if memoizeDir or returnSpherePack:
 		sp2=SpherePack()
