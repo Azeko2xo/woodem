@@ -18,7 +18,7 @@ class CylTriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		_PAT(float,'isoStress',-1e4,unit='kPa',startGroup='General',doc='Confining stress (isotropic during compaction)'),
 		_PAT(float,'maxStrainRate',1e-3,'Maximum strain rate during the compaction phase, and during the triaxial phase in axial sense'),
 		_PAT(int,'nPar',2000,startGroup='Particles',doc='Number of particles'),
-		_PAT(woo.dem.FrictMat,'mat',FrictMat(young=1e5,ktDivKn=.2,tanPhi=0.,density=1e8),'Material of particles.'),
+		_PAT(woo.dem.FrictMat,'mat',FrictMat(young=1e6,ktDivKn=.2,tanPhi=.5,density=1e8),'Material of particles.'),
 		_PAT(woo.dem.FrictMat,'meshMat',None,'Material of boundaries; if not given, material of particles is used.'),
 		_PAT(float,'tanPhi2',.6,'If :obj:`mat` defines :obj`tanPhi <woo.dem.FrictMat.tanPhi>`, it will be changed to this value progressively after the compaction phase.'),
 		_PAT([Vector2,],'psd',[(2e-3,0),(2.5e-3,.2),(4e-3,1.)],unit=['mm','%'],doc='Particle size distribution of particles; first value is diameter, scond is cummulative mass fraction.'),
@@ -119,7 +119,7 @@ def prepareCylTriax(pre):
 	S.engines=[
 		InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb()],verletDist=-.05),
 		ContactLoop([Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom()],[Cp2_FrictMat_FrictPhys()],[Law2_L6Geom_FrictPhys_IdealElPl()],applyForces=True),
-		WeirdTriaxControl(goal=(pre.sigIso,pre.sigIso,pre.sigIso),maxStrainRate=(.2,.2,.2),relVol=math.pi*rad**2*ht/S.cell.volume,stressMask=0b0111,maxUnbalanced=0.05,mass=100*sphereMass,doneHook='import woo.pre.cylTriax; woo.pre.cylTriax.compactionDone(S)',label='triax'),
+		WeirdTriaxControl(goal=(pre.sigIso,pre.sigIso,pre.sigIso),maxStrainRate=(.005,.005,.005),relVol=math.pi*rad**2*ht/S.cell.volume,stressMask=0b0111,maxUnbalanced=0.05,mass=10.*sphereMass,doneHook='import woo.pre.cylTriax; woo.pre.cylTriax.compactionDone(S)',label='triax'),
 		woo.core.PyRunner(20,'import woo.pre.cylTriax; woo.pre.cylTriax.addPlotData(S)'),
 		Leapfrog(damping=pre.damping,reset=True),
 	]
@@ -161,14 +161,24 @@ def compactionDone(S):
 	# set the current cell configuration to be the reference one
 	S.cell.trsf=Matrix3.Identity
 	# change control type: keep constant confinement in x,y, 20% compression in z
-	t.goal=(S.pre.sigIso,S.pre.sigIso,-.5)
+	t.goal=(S.pre.sigIso,S.pre.sigIso,-1.) # use ridiculous compression value here
 	t.stressMask=0b0011 # z is strain-controlled, x,y stress-controlled
 	# allow faster deformation along x,y to better maintain stresses
-	t.maxStrainRate=(1.,1.,.1)
+	t.maxStrainRate=(1.,1.,.005)
 	# next time, call triaxFinished instead of compactionFinished
 	t.doneHook='import woo.pre.cylTriax; woo.pre.cylTriax.triaxDone(S)'
 	# do not wait for stabilization before calling triaxFinished
 	t.maxUnbalanced=10
+	S.engines=S.engines+[
+		woo.core.PyRunner(10,'import woo.pre.cylTriax; woo.pre.cylTriax.checkDone(S)')
+	]
+
+def checkDone(S):
+	return
+	szz=S.plot.data['szz']
+	if szz[-1]>.8*min(szz):
+		print 'Post-peak reached'
+		triaxDone(S)
 
 def triaxDone(S):
 	print 'Triaxial done at step',S.step

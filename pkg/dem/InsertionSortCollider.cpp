@@ -343,7 +343,9 @@ void InsertionSortCollider::run(){
 				} else { // vanished particle
 					BBj[i].flags.hasBB=false;
 					// when doing initial sort, set to -inf so that nonexistent particles don't generate inversions later
-					if(doInitSort) BBj[i].coord=-Inf;
+					// for periodic, use zero, since -Inf would make that particle move through all other every time
+					// slowing the computation down by two orders of magnitude
+					if(doInitSort) BBj[i].coord=(periodic?0:-Inf);
 					// otherwise keep the coordinate as-is, to minimize inversions
 				}
 				// if initializing periodic, shift coords & record the period into BBj[i].period
@@ -486,12 +488,12 @@ void InsertionSortCollider::insertionSortPeri(VecBounds& v, bool doCollide, int 
 				}
 				#endif
 				if(likely(vi.id!=vNew.id)){
-					#ifdef WOO_DEBUG
-						stepInvs[ax]++; numInvs[ax]++;
-					#endif
 					handleBoundInversionPeri(vi.id,vNew.id);
 				}
 			}
+			#ifdef WOO_DEBUG
+				stepInvs[ax]++; numInvs[ax]++;
+			#endif
 			j=v.norm(j-1);
 		}
 		v[v.norm(j+1)]=vi;
