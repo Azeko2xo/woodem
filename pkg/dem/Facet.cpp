@@ -30,6 +30,28 @@ vector<Vector3r> Facet::outerEdgeNormals() const{
 	return {std::get<0>(o).normalized(),std::get<1>(o).normalized(),std::get<2>(o).normalized()};
 }
 
+Vector3r Facet::getNearestPt(const Vector3r& pt) const {
+	Vector3r fNormal=getNormal();
+	Real planeDist=(pt-nodes[0]->pos).dot(fNormal);
+	Vector3r fC=pt-planeDist*fNormal; // point projected to facet's plane
+	Vector3r outVec[3];
+	std::tie(outVec[0],outVec[1],outVec[2])=getOuterVectors();
+	short w=0;
+	for(int i:{0,1,2}) w&=(outVec[i].dot(fC-nodes[i]->pos)>0?1:0)<<i;
+	Vector3r contPt;
+	switch(w){
+		case 0: return fC; // ---: inside triangle
+		case 1: return CompUtils::closestSegmentPt(fC,nodes[0]->pos,nodes[1]->pos); // +-- (n1)
+		case 2: return CompUtils::closestSegmentPt(fC,nodes[1]->pos,nodes[2]->pos); // -+- (n2)
+		case 4: return CompUtils::closestSegmentPt(fC,nodes[2]->pos,nodes[0]->pos); // --+ (n3)
+		case 3: return nodes[1]->pos; // ++- (v1)
+		case 5: return nodes[0]->pos; // +-+ (v0)
+		case 6: return nodes[2]->pos; // -++ (v2)
+		case 7: throw logic_error("Cg2_Facet_Sphere_L3Geom: Impossible sphere-facet intersection (all points are outside the edges). (please report bug)"); // +++ (impossible)
+		default: throw logic_error("Ig2_Facet_Sphere_L3Geom: Nonsense intersection value. (please report bug)");
+	}
+}
+
 
 std::tuple<Vector3r,Vector3r> Facet::interpolatePtLinAngVel(const Vector3r& x) const {
 	assert(numNodesOk());

@@ -9,6 +9,8 @@ struct Facet: public Shape {
 	// return velocity which is linearly interpolated between velocities of facet nodes, and also angular velocity at that point
 	std::tuple<Vector3r,Vector3r> interpolatePtLinAngVel(const Vector3r& x) const;
 	std::tuple<Vector3r,Vector3r,Vector3r> getOuterVectors() const;
+	// closest point on the facet
+	Vector3r getNearestPt(const Vector3r& pt) const;
 	vector<Vector3r> outerEdgeNormals() const;
 	Real getArea() const;
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Facet,Shape,"Facet (triangle in 3d) particle.",

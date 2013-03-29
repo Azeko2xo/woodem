@@ -3,6 +3,7 @@
 #include<woo/pkg/dem/Sphere.hpp>
 #include<woo/pkg/dem/InfCylinder.hpp>
 #include<woo/pkg/dem/Wall.hpp>
+#include<woo/pkg/dem/Facet.hpp>
 //#include<woo/pkg/dem/Tracer.hpp>
 #include<woo/lib/opengl/GLUtils.hpp>
 #include<woo/pkg/gl/Renderer.hpp>
@@ -341,6 +342,7 @@ void Gl1_DemField::doContactNodes(){
 			if(dynamic_pointer_cast<Sphere>(pA->shape)) A=pA->shape->nodes[0]->pos;
 			else if(dynamic_pointer_cast<Wall>(pA->shape)){ A=pA->shape->nodes[0]->pos; int ax=pA->shape->cast<Wall>().axis; A[(ax+1)%3]=B[(ax+1)%3]; A[(ax+2)%3]=B[(ax+2)%3]; }
 			else if(dynamic_pointer_cast<InfCylinder>(pA->shape)){ A=pA->shape->nodes[0]->pos; int ax=pA->shape->cast<InfCylinder>().axis; A[ax]=B[ax]; }
+			else if(dynamic_pointer_cast<Facet>(pA->shape)){ A=pA->shape->cast<Facet>().getNearestPt(B); }
 			else A=pA->shape->avgNodePos();
 			if(scene->isPeriodic){ B+=scene->cell->intrShiftPos(C->cellDist); }
 			GLUtils::GLDrawLine(A,B,.5*CompUtils::mapColor(C->color));

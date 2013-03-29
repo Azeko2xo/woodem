@@ -67,7 +67,7 @@ def flavorFromArgv0(argv0,batch=False):
 	import re
 	if WIN: a0=re.sub('-script.py','',argv0)
 	else: a0=argv0
-	m=re.match('(.*[/\\\\]|)(w|)woo(?P<flavor>-[a-zA-Z_-]*|)'+('[-_]batch' if batch else ''),a0)
+	m=re.match('(.*[/\\\\]|)(w|)woo(?P<flavor>-[a-zA-Z_0-9-]*|)'+('[-_]batch' if batch else ''),a0)
 	if m:
 		if m.group('flavor')=='': return ''
 		return m.group('flavor')[1:] # strip leading dash
@@ -365,6 +365,10 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 				woo.master.scene.run() # run the new simulation
 				if woo.runtime.opts.exitAfter: woo.master.scene.wait() 
 	if woo.runtime.opts.expression:
+		# try to be smart iporting some modules
+		import re
+		m=re.match('(woo\.pre\.[a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)\(',opts.expression)
+		if m:	__import__(m.group(1))
 		obj=eval(opts.expression)
 		if isinstance(obj,woo.core.Scene): woo.master.scene=obj
 		elif isinstance(obj,woo.core.Preprocessor): woo.master.scene=woo.batch.runPreprocessor(obj)

@@ -99,7 +99,7 @@ void PeriIsoCompressor::run(){
 			// sigmaGoal reached and packing stable
 			if(state==stresses.size()){ // no next stress to go for
 				LOG_INFO("Finished");
-				if(!doneHook.empty()){ LOG_DEBUG("Running doneHook: "<<doneHook); runPy(doneHook); }
+				if(!doneHook.empty()){ LOG_DEBUG("Running doneHook: "<<doneHook); Engine::runPy(doneHook); }
 			} else { LOG_INFO("Loaded to "<<sigmaGoal<<" done, going to "<<stresses[state]<<" now"); }
 		} else {
 			if((step%globalUpdateInt)==0){ LOG_DEBUG("Stress="<<sigma<<", goal="<<sigmaGoal<<", unbalanced="<<currUnbalanced); }
@@ -107,3 +107,74 @@ void PeriIsoCompressor::run(){
 	}
 }
 
+
+
+CREATE_LOGGER(WeirdTriaxControl);
+WOO_PLUGIN(dem,(WeirdTriaxControl))
+
+void WeirdTriaxControl::run(){
+	dem=static_cast<DemField*>(field.get());
+	if (!scene->isPeriodic){ throw runtime_error("PeriTriaxController run on aperiodic simulation."); }
+	bool doUpdate((scene->step%globUpdate)==0);
+	if(doUpdate){
+		//"Natural" strain, still correct for large deformations, used for comparison with goals
+		for (int i=0;i<3;i++) strain[i]=log(scene->cell->trsf(i,i));
+		Matrix6r stiffness;
+		std::tie(stress,stiffness)=DemFuncs::stressStiffness(scene,dem,/*skipMultinodal*/false,scene->cell->getVolume()*relVol);
+	}
+	if(isnan(mass) || mass<=0){ throw std::runtime_error("WeirdTriaxControl.mass must be positive, not "+to_string(mass)); }
+
+	bool allOk=true;
+
+	// apply condition along each axis separately (stress or strain)
+	for(int axis=0; axis<3; axis++){
+ 		Real& strain_rate=scene->cell->nextGradV(axis,axis);//strain rate on axis
+		if(stressMask & (1<<axis)){   // control stress
+			assert(mass>0);//user set
+			Real dampFactor=1-growDamping*Mathr::Sign(strain_rate*(goal[axis]-stress(axis,axis)));
+			strain_rate+=dampFactor*scene->dt*(goal[axis]-stress(axis,axis))/mass;
+			LOG_TRACE(axis<<": stress="<<stress(axis,axis)<<", goal="<<goal[axis]<<", gradV="<<strain_rate);
+		} else {
+			// control strain, see "true strain" definition here http://en.wikipedia.org/wiki/Finite_strain_theory
+			strain_rate=(exp(goal[axis]-strain[axis])-1)/scene->dt;
+			LOG_TRACE ( axis<<": strain="<<strain[axis]<<", goal="<<goal[axis]<<", cellGrow="<<strain_rate*scene->dt);
+		}
+		// limit maximum strain rate
+		if (abs(strain_rate)>maxStrainRate[axis]) strain_rate=Mathr::Sign(strain_rate)*maxStrainRate[axis];
+
+		// crude way of predicting stress, for steps when it is not computed from intrs
+		if(doUpdate) LOG_DEBUG(axis<<": cellGrow="<<strain_rate*scene->dt<<", new stress="<<stress(axis,axis)<<", new strain="<<strain[axis]);
+		// used only for temporary goal comparisons. The exact value is assigned in strainStressStiffUpdate
+		strain[axis]+=strain_rate*scene->dt;
+		// signal if condition not satisfied
+		if(stressMask&(1<<axis)){
+			Real curr=stress(axis,axis);
+			if((goal[axis]!=0 && abs((curr-goal[axis])/goal[axis])>relStressTol) || abs(curr-goal[axis])>absStressTol) allOk=false;
+		}else{
+			Real curr=strain[axis];
+			// since strain is prescribed exactly, tolerances need just to accomodate rounding issues
+			if((goal[axis]!=0 && abs((curr-goal[axis])/goal[axis])>1e-6) || abs(curr-goal[axis])>1e-6){
+				allOk=false;
+				if(doUpdate) LOG_DEBUG("Strain not OK; "<<abs(curr-goal[axis])<<">1e-6");}
+		}
+	}
+ 	for (int k=0;k<3;k++) strainRate[k]=scene->cell->nextGradV(k,k);
+	//Update energy input
+	Real dW=(scene->cell->nextGradV*stress).trace()*scene->dt*scene->cell->getVolume();
+	externalWork+=dW;
+	if(scene->trackEnergy) scene->energy->add(-dW,"gradVWork",gradVWorkIx,/*non-incremental*/false);
+	prevGrow=strainRate;
+
+	if(allOk){
+		if(doUpdate || currUnbalanced<0){
+			currUnbalanced=DemFuncs::unbalancedForce(scene,dem,/*useMaxForce*/false);
+			LOG_DEBUG("Stress/strain="<< (stressMask&1?stress(0,0):strain[0]) <<"," <<(stressMask&2?stress(1,1):strain[1])<<"," <<(stressMask&4?stress(2,2):strain[2]) <<", goal="<<goal<<", unbalanced="<<currUnbalanced );
+		}
+		if(currUnbalanced<maxUnbalanced){
+			if (!doneHook.empty()){
+				LOG_DEBUG ( "Running doneHook: "<<doneHook );
+				Engine::runPy(doneHook);
+			}
+		}
+	}
+}

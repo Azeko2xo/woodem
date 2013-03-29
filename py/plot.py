@@ -651,6 +651,7 @@ def Scene_plot_plot(P,noShow=False,subPlots=True):
 	createPlots(P,subPlots=subPlots)
 	figs=set([l.line.get_axes().get_figure() for l in P.currLineRefs])
 	if not figs:
+		import warnings
 		warnings.warn('Nothing to plot.')
 		return
 	if not hasattr(list(figs)[0],'show') and not noShow:
