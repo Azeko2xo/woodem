@@ -19,8 +19,7 @@ class CylTriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		_PAT(float,'maxStrainRate',1e-3,'Maximum strain rate during the compaction phase, and during the triaxial phase in axial sense'),
 		_PAT(int,'nPar',2000,startGroup='Particles',doc='Number of particles'),
 		_PAT(woo.dem.FrictMat,'mat',FrictMat(young=1e6,ktDivKn=.2,tanPhi=.5,density=1e8),'Material of particles.'),
-		_PAT(woo.dem.FrictMat,'meshMat',None,'Material of boundaries; if not given, material of particles is used.'),
-		_PAT(float,'tanPhi2',.6,'If :obj:`mat` defines :obj`tanPhi <woo.dem.FrictMat.tanPhi>`, it will be changed to this value progressively after the compaction phase.'),
+		_PAT(float,'meshTanPhi',float('nan'),'Angle of friction of boundary walls; if nan, use the same as for particles, otherwise particle material is copied and tanPhi changed.'),
 		_PAT([Vector2,],'psd',[(2e-3,0),(2.5e-3,.2),(4e-3,1.)],unit=['mm','%'],doc='Particle size distribution of particles; first value is diameter, scond is cummulative mass fraction.'),
 		_PAT(float,'sigIso',-50e3,unit='Pa',doc='Isotropic compaction stress, and lateral stress during the triaxial phase'),
 
@@ -36,7 +35,6 @@ class CylTriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 '''),
 		_PAT(int,'backupSaveTime',1800,doc='How often to save backup of the simulation (0 or negative to disable)'),
 		_PAT(float,'pWaveSafety',.7,startGroup='Tunables',doc='Safety factor for :obj:`woo.utils.pWaveDt` estimation.'),
-		_PAT(float,'nonViscDamp',.4,'The value of :obj:`woo.dem.Leapfrog.damping`; oinly use if the contact model used has no internal damping.'),
 		_PAT(float,'initPoro',.7,'Estimate of initial porosity, when generating loose cloud'),
 		_PAT(Vector2i,'cylDiv',(50,4),'Number of segments for cylinder (first component) and height segments (second component)'),
 		_PAT(float,'damping',.5,'Nonviscous damping'),
@@ -65,7 +63,10 @@ def prepareCylTriax(pre):
 	loneMask=0b0010
 
 	S.dem.loneMask=loneMask
-	if not pre.meshMat: pre.meshMat=pre.mat
+	if math.isnan(pre.meshTanPhi): meshMat=pre.mat
+	else:
+		meshMat=pre.mat.deepcopy()
+		meshMat.tanPhi=pre.meshTanPhi
 	S.engines=[
 		woo.dem.InsertionSortCollider([woo.dem.Bo1_Sphere_Aabb()]),
 		woo.dem.BoxFactory(
@@ -106,7 +107,7 @@ def prepareCylTriax(pre):
 			[[Vector3(xy[0],xy[1],z) for xy in xxyy] for z in numpy.linspace(bot,top,num=pre.cylDiv[1],endpoint=True)]+
 			[[Vector3(xymid[0],xymid[1],top) for xy in xxyy]],
 			threshold=rad*2*math.pi/(10.*pre.cylDiv[0])
-		),mask=meshMask,mat=pre.meshMat,fixed=True)
+		),mask=meshMask,mat=meshMat,fixed=True)
 	# add facet nodes to the simulation so that they move with the space
 	nn=set()
 	for f in ff: nn.update(set(f.shape.nodes))
@@ -133,9 +134,19 @@ def prepareCylTriax(pre):
 def addPlotData(S):
 	import woo
 	t=woo.triax
+	sxx,syy,szz=t.stress.diagonal()
+	exx,eyy,ezz=t.strain
+	p=t.stress.diagonal().sum()/3. # mean stress
+	q=szz-.5*(sxx+syy)         # deviatoric stress?!
+	qDivP=(q/p if p!=0 else float('nan'))
+	eDev=ezz-t.strain.sum()/3. # ezz-mean
+	eVol=t.strain.sum() # trace
 	S.plot.addData(unbalanced=woo.utils.unbalancedForce(),i=S.step,
-	sxx=t.stress[0,0],syy=t.stress[1,1],srr=.5*(t.stress[0,0]+t.stress[1,1]),szz=t.stress[2,2],
-	exx=t.strain[0],eyy=t.strain[1],err=.5*(t.strain[0]+t.strain[1]),ezz=t.strain[2],
+		sxx=sxx,syy=syy,srr=.5*(sxx+syy),szz=szz,
+		exx=exx,eyy=eyy,err=.5*(exx+eyy),ezz=ezz,
+		eDev=eDev,eVol=eVol,
+		p=p,q=q,qDivP=qDivP,
+		stressMask=t.stressMask, # to be able to select data recorded at the triaxial stage only
 		# save all available energy data
 		#Etot=O.energy.total()#,**O.energy
 	)
@@ -150,9 +161,6 @@ def addPlotData(S):
 			'sxx':r'$\sigma_{xx}$','syy':r'$\sigma_{yy}$','szz':r'$\sigma_{zz}$','srr':r'$\sigma_{rr}$',
 			'exx':r'$\varepsilon_{xx}$','eyy':r'$\varepsilon_{yy}$','ezz':r'$\varepsilon_{zz}$','err':r'$\varepsilon_{rr}$'
 		}
-
-
-
 
 def compactionDone(S):
 	print 'Compaction done at step',S.step
@@ -169,19 +177,49 @@ def compactionDone(S):
 	t.doneHook='import woo.pre.cylTriax; woo.pre.cylTriax.triaxDone(S)'
 	# do not wait for stabilization before calling triaxFinished
 	t.maxUnbalanced=10
-	S.engines=S.engines+[
-		woo.core.PyRunner(10,'import woo.pre.cylTriax; woo.pre.cylTriax.checkDone(S)')
-	]
 
-def checkDone(S):
-	return
-	szz=S.plot.data['szz']
-	if szz[-1]>.8*min(szz):
-		print 'Post-peak reached'
-		triaxDone(S)
+def plotBatchResults(db):
+	'Hook called from woo.batch.writeResults'
+	import pylab,re,math,woo.batch,os
+	results=woo.batch.dbReadResults(db)
+	out='%s.pdf'%re.sub('\.results$','',db)
+	fig=pylab.figure()
+	ed_qp=fig.add_subplot(221)
+	ed_qp.set_xlabel(r'$\varepsilon_d$')
+	ed_qp.set_ylabel(r'$q/p$')
+	ed_qp.grid(True)
+	ed_ev=fig.add_subplot(222)
+	ed_ev.set_xlabel(r'$\varepsilon_d$')
+	ed_ev.set_ylabel(r'$\varepsilon_v$')
+	ed_ev.grid(True)
+	p_q=fig.add_subplot(223)
+	p_q.set_xlabel(r'$p$')
+	p_q.set_ylabel(r'$q$')
+	p_q.grid(True)
+	for res in results:
+		series,pre=res['series'],res['pre']
+		title=res['title'] if res['title'] else res['sceneId']
+		mask=series['stressMask']
+		ed=series['eDev'][mask==0b011]
+		ev=series['eVol'][mask==0b011]
+		p=series['p'][mask==0b011]
+		q=series['q'][mask==0b011]
+		qDivP=series['qDivP'][mask==0b011]
+		ed_qp.plot(ed,qDivP,label=title,alpha=.6)
+		ed_ev.plot(ed,ev,label=title,alpha=.6)
+		p_q.plot(p,q,label=title,alpha=.6)
+	for ax,loc in (ed_qp,'upper right'),(ed_ev,'upper right'),(p_q,'upper left'):
+		l=ax.legend(loc=loc,labelspacing=.2,prop={'size':7})
+		l.get_frame().set_alpha(.4)
+	fig.savefig(out)
+	print 'Batch figure saved to file://%s'%os.path.abspath(out)
+
 
 def triaxDone(S):
 	print 'Triaxial done at step',S.step
 	S.stop()
+	(repName,figs)=woo.utils.xhtmlReport(S,S.pre.reportFmt,'Cylindrical triaxial test',afterHead='',figures=[(None,f) for f in S.plot.plot(noShow=True,subPlots=False)],svgEmbed=True,show=True)
+	woo.batch.writeResults(defaultDb='cylTriax.results',series=S.plot.data,postHooks=[plotBatchResults],simulationName='horse',report='file://'+repName)
+
 
 

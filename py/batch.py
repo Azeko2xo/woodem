@@ -1,5 +1,9 @@
 # encoding: utf-8
 
+# for use with globals() when reading table
+nan=float('nan')
+from math import * 
+
 def wait():
 	'Block the simulation if running inside a batch. Typically used at the end of script so that it does not finish prematurely in batch mode (the execution would be ended in such a case).'
 	if inBatch(): woo.master.scene.wait()
@@ -169,7 +173,7 @@ def dbToSpread(db,out=None,dialect='excel',rows=False,series=True,ignored=('plot
 		# see https://groups.google.com/forum/?fromgroups=#!topic/python-excel/QK4iJrPDSB8
 		if len(n)>30: n=u'…'+n[-29:]
 		# invald characters (is that documented somewhere?? those are the only ones I found manually)
-		n=n.replace('[','_').replace(']','_').replace('*','_')
+		n=n.replace('[','_').replace(']','_').replace('*','_').replace(':','_')
 		return n
 
 	import sqlite3,json,sys,csv
@@ -354,7 +358,7 @@ def runPreprocessor(pre,preFile=None):
 	if not inBatch(): return pre()
 
 	import os
-	import woo
+	import woo,math
 	tableFileLine=os.environ['WOO_BATCH']
 	if tableFileLine:
 		env=tableFileLine.split(':')
@@ -367,7 +371,7 @@ def runPreprocessor(pre,preFile=None):
 		for name,val in vv.items():
 			if name=='title': continue
 			if val in ('*','-',''): continue
-			nestedSetattr(pre,name,eval(val,globals(),dict(woo=woo))) # woo.unit
+			nestedSetattr(pre,name,eval(val,globals(),dict(woo=woo,math=math))) # woo.unit
 	# check types, if this is a python preprocessor
 	if hasattr(pre,'checkAttrTypes'): pre.checkAttrTypes()
 	# run preprocessor
