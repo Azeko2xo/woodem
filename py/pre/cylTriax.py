@@ -183,32 +183,51 @@ def plotBatchResults(db):
 	import pylab,re,math,woo.batch,os
 	results=woo.batch.dbReadResults(db)
 	out='%s.pdf'%re.sub('\.results$','',db)
-	fig=pylab.figure()
-	ed_qp=fig.add_subplot(221)
-	ed_qp.set_xlabel(r'$\varepsilon_d$')
+
+	from matplotlib.ticker import FuncFormatter
+	kiloPascal=FuncFormatter(lambda x,pos=0: '%g'%(1e-3*x))
+	percent=FuncFormatter(lambda x,pos=0: '%g'%(1e2*x))
+
+	fig=pylab.figure(figsize=(8,20))
+	ed_qp=fig.add_subplot(311)
+	ed_qp.set_xlabel(r'$\varepsilon_d$ [%]')
 	ed_qp.set_ylabel(r'$q/p$')
+	ed_qp.xaxis.set_major_formatter(percent)
 	ed_qp.grid(True)
-	ed_ev=fig.add_subplot(222)
-	ed_ev.set_xlabel(r'$\varepsilon_d$')
-	ed_ev.set_ylabel(r'$\varepsilon_v$')
+
+	ed_ev=fig.add_subplot(312)
+	ed_ev.set_xlabel(r'$\varepsilon_d$ [%]')
+	ed_ev.set_ylabel(r'$\varepsilon_v$ [%]')
+	ed_ev.xaxis.set_major_formatter(percent)
+	ed_ev.yaxis.set_major_formatter(percent)
 	ed_ev.grid(True)
-	p_q=fig.add_subplot(223)
-	p_q.set_xlabel(r'$p$')
-	p_q.set_ylabel(r'$q$')
+
+	p_q=fig.add_subplot(313)
+	p_q.set_xlabel(r'$p$ [kPa]')
+	p_q.set_ylabel(r'$q$ [kPa]')
+	p_q.xaxis.set_major_formatter(kiloPascal)
+	p_q.yaxis.set_major_formatter(kiloPascal)
 	p_q.grid(True)
+
 	for res in results:
 		series,pre=res['series'],res['pre']
 		title=res['title'] if res['title'] else res['sceneId']
 		mask=series['stressMask']
-		ed=series['eDev'][mask==0b011]
-		ev=series['eVol'][mask==0b011]
-		p=series['p'][mask==0b011]
-		q=series['q'][mask==0b011]
-		qDivP=series['qDivP'][mask==0b011]
+		# skip the very first number, since that's the transitioning step and strains are still at their old value
+		ed=series['eDev'][mask==0b011][1:]
+		ev=series['eVol'][mask==0b011][1:]
+		p=series['p'][mask==0b011][1:]
+		q=series['q'][mask==0b011][1:]
+		qDivP=series['qDivP'][mask==0b011][1:]
 		ed_qp.plot(ed,qDivP,label=title,alpha=.6)
 		ed_ev.plot(ed,ev,label=title,alpha=.6)
 		p_q.plot(p,q,label=title,alpha=.6)
-	for ax,loc in (ed_qp,'upper right'),(ed_ev,'upper right'),(p_q,'upper left'):
+	ed_qp.invert_xaxis()
+	ed_ev.invert_xaxis()
+	ed_ev.invert_yaxis()
+	p_q.invert_xaxis()
+	p_q.invert_yaxis()
+	for ax,loc in (ed_qp,'lower right'),(ed_ev,'lower right'),(p_q,'upper left'):
 		l=ax.legend(loc=loc,labelspacing=.2,prop={'size':7})
 		l.get_frame().set_alpha(.4)
 	fig.savefig(out)
@@ -218,6 +237,7 @@ def plotBatchResults(db):
 def triaxDone(S):
 	print 'Triaxial done at step',S.step
 	S.stop()
+	import woo.utils
 	(repName,figs)=woo.utils.xhtmlReport(S,S.pre.reportFmt,'Cylindrical triaxial test',afterHead='',figures=[(None,f) for f in S.plot.plot(noShow=True,subPlots=False)],svgEmbed=True,show=True)
 	woo.batch.writeResults(defaultDb='cylTriax.results',series=S.plot.data,postHooks=[plotBatchResults],simulationName='horse',report='file://'+repName)
 

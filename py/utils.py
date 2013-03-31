@@ -552,11 +552,12 @@ def xhtmlReport(S,repFmt,headline,afterHead='',figures=[],figFmt='svg',svgEmbed=
 
 	:param figFmt: format of figures, if the format is not specified by the figure itself
 	:param svgEmbed: don't save SVG as separate files, embed them in the report instead. 
-	:param show: open the report in browser via the webbrowser module
+	:param show: open the report in browser via the webbrowser module, unless running in batch.
 	:return: (filename of the report, list of external figures)
 
 	'''
 	import codecs, re, os.path
+	import woo,woo.batch
 	repName=unicode(repFmt).format(S=S,**(dict(S.tags)))
 	rep=codecs.open(repName,'w','utf-8','replace')
 	print 'Writing report to file://'+os.path.abspath(repName)
@@ -586,7 +587,7 @@ def xhtmlReport(S,repFmt,headline,afterHead='',figures=[],figFmt='svg',svgEmbed=
 	rep.write(s)
 	rep.close() # flushed write buffers
 	
-	if show:
+	if show and not woo.batch.inBatch():
 		import webbrowser
 		webbrowser.open('file://'+os.path.abspath(repName))
 	return repName,extFiles
