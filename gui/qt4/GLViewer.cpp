@@ -519,15 +519,14 @@ void GLViewer::draw(bool withNames)
 	if(!nextSnapFile.empty()){
 		bool compress=false;
 		int gl2ps_format;
-		nextSnapIsGl2ps=true;
+		nextSnapIsGl2ps=false;
 		#ifndef WOO_GL2PS
 			const int GL2PS_PDF=0, GL2PS_SVG=0, GL2PS_PS=0; // just avoid those to be undefined below
 		#endif
-		if(boost::algorithm::ends_with(nextSnapFile,".pdf")){	gl2ps_format=GL2PS_PDF; compress=true; }
-		else if(boost::algorithm::ends_with(nextSnapFile,".svg")){ gl2ps_format=GL2PS_SVG; }
-		else if(boost::algorithm::ends_with(nextSnapFile,".svgz")){ gl2ps_format=GL2PS_SVG; compress=true; }
-		else if(boost::algorithm::ends_with(nextSnapFile,".ps")){ gl2ps_format=GL2PS_PS; }
-		else nextSnapIsGl2ps=false;
+		if(boost::algorithm::ends_with(nextSnapFile,".pdf")){	gl2ps_format=GL2PS_PDF; compress=true; nextSnapIsGl2ps=true; }
+		else if(boost::algorithm::ends_with(nextSnapFile,".svg")){ gl2ps_format=GL2PS_SVG; nextSnapIsGl2ps=true; }
+		else if(boost::algorithm::ends_with(nextSnapFile,".svgz")){ gl2ps_format=GL2PS_SVG; compress=true; nextSnapIsGl2ps=true; }
+		else if(boost::algorithm::ends_with(nextSnapFile,".ps")){ gl2ps_format=GL2PS_PS;  nextSnapIsGl2ps=true; }
 		if(nextSnapIsGl2ps){
 			#ifdef WOO_GL2PS
 				gl2psStream=fopen(nextSnapFile.c_str(),"wb");
@@ -902,6 +901,7 @@ void GLViewer::postDraw(){
 #endif
 
 	QGLViewer::postDraw();
+	// FIXME: nextSnapFile can be changed independently between start of gl2ps and here!?
 	if(!nextSnapFile.empty()){
 		#ifdef WOO_GL2PS
 			if(nextSnapIsGl2ps){

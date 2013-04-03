@@ -95,6 +95,23 @@ Real DemFuncs::unbalancedForce(const Scene* scene, const DemField* dem, bool use
 	return (useMaxForce?maxF:meanF)/(sumF);
 }
 
+bool DemFuncs::particleStress(const shared_ptr<Particle>& p, Vector3r& normal, Vector3r& shear){
+	if(!p || !p->shape || p->shape->nodes.size()!=1) return false;
+	normal=shear=Vector3r::Zero();
+	for(const auto& idC: p->contacts){
+		const shared_ptr<Contact>& C(idC.second);
+		if(!C->isReal()) continue;
+		L6Geom* l6g=dynamic_cast<L6Geom*>(C->geom.get());
+		if(!l6g) continue;
+		const Vector3r& Fl=C->phys->force;
+		const Quaternionr invOri=l6g->node->ori.conjugate();
+		normal+=(1/l6g->contA)*invOri*Vector3r(Fl[0],0,0);
+		shear+=(1/l6g->contA)*invOri*Vector3r(0,Fl[1],Fl[2]);
+	}
+	return true;
+}
+
+
 shared_ptr<Particle> DemFuncs::makeSphere(Real radius, const shared_ptr<Material>& m){
 	auto sphere=make_shared<Sphere>();
 	sphere->radius=radius;

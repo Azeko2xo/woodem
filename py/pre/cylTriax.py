@@ -16,7 +16,8 @@ class CylTriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 	_attrTraits=[
 		# noGui would make startGroup being ignored
 		_PAT(float,'isoStress',-1e4,unit='kPa',startGroup='General',doc='Confining stress (isotropic during compaction)'),
-		_PAT(float,'maxStrainRate',1e-3,'Maximum strain rate during the compaction phase, and during the triaxial phase in axial sense'),
+		_PAT(float,'maxRate',1e-3,'Maximum strain rate during the compaction phase, and during the triaxial phase in axial sense (the radial sense uses 100× that value in the triaxial phase.'),
+		_PAT(float,'massFactor',10.,'Multiply real mass of particles by this number to obtain the :obj:`woo.dem.WeirdTriaxControl.mass` control parameter'),
 		_PAT(int,'nPar',2000,startGroup='Particles',doc='Number of particles'),
 		_PAT(woo.dem.FrictMat,'mat',FrictMat(young=1e6,ktDivKn=.2,tanPhi=.5,density=1e8),'Material of particles.'),
 		_PAT(float,'meshTanPhi',float('nan'),'Angle of friction of boundary walls; if nan, use the same as for particles, otherwise particle material is copied and tanPhi changed.'),
@@ -27,17 +28,19 @@ class CylTriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 
 		_PAT(str,'reportFmt',"/tmp/{tid}.xhtml",startGroup="Outputs",doc="Report output format; :obj:`Scene.tags <woo.core.Scene.tags>` can be used."),
 		_PAT(str,'packCacheDir',".","Directory where to store pre-generated feed packings; if empty, packing wil be re-generated every time."),
-		_PAT(str,'saveFmt',"/tmp/{tid}-{stage}.bin.gz",'''Savefile format; keys are :obj:`Scene.tags <woo.core.Scene.tags>`; additionally ``{stage}`` will be replaced by
-* ``init`` for stress-free but compact cloud,
-* ``iso`` after isotropic compaction,
-* ``backup-011234`` for regular backups, see :obj:`backupSaveTime`,
- 'done' at the very end.
-'''),
-		_PAT(int,'backupSaveTime',1800,doc='How often to save backup of the simulation (0 or negative to disable)'),
+		#_PAT(str,'saveFmt',"/tmp/{tid}-{stage}.bin.gz",'''Savefile format; keys are :obj:`Scene.tags <woo.core.Scene.tags>`; additionally ``{stage}`` will be replaced by
+		#* ``init`` for stress-free but compact cloud,
+		#* ``iso`` after isotropic compaction,
+		#* ``backup-011234`` for regular backups, see :obj:`backupSaveTime`,
+		# 'done' at the very end.
+		#'''),
+		#_PAT(int,'backupSaveTime',1800,doc='How often to save backup of the simulation (0 or negative to disable)'),
 		_PAT(float,'pWaveSafety',.7,startGroup='Tunables',doc='Safety factor for :obj:`woo.utils.pWaveDt` estimation.'),
-		_PAT(float,'initPoro',.7,'Estimate of initial porosity, when generating loose cloud'),
+		#_PAT(float,'initPoro',.7,'Estimate of initial porosity, when generating loose cloud'),
 		_PAT(Vector2i,'cylDiv',(50,4),'Number of segments for cylinder (first component) and height segments (second component)'),
 		_PAT(float,'damping',.5,'Nonviscous damping'),
+		_PAT(int,'vtkStep',0,'Periodicity of saving VTK exports'),
+		_PAT(str,'vtkFmt','/tmp/{title}.{id}-','Prefix for VTK exports')
 	]
 	def __init__(self,**kw):
 		woo.core.Preprocessor.__init__(self)
@@ -67,6 +70,9 @@ def prepareCylTriax(pre):
 	else:
 		meshMat=pre.mat.deepcopy()
 		meshMat.tanPhi=pre.meshTanPhi
+	# reset friction for spheres, but keep the value of tanPhi in S.pre.mat.tanPhi
+	sphMat=pre.mat.deepcopy();
+	sphMat.tanPhi=0.
 	S.engines=[
 		woo.dem.InsertionSortCollider([woo.dem.Bo1_Sphere_Aabb()]),
 		woo.dem.BoxFactory(
@@ -76,7 +82,7 @@ def prepareCylTriax(pre):
 			massFlowRate=0,
 			maxAttempts=5000,
 			generator=woo.dem.PsdSphereGenerator(psdPts=pre.psd,discrete=False,mass=True),
-			materials=[pre.mat],
+			materials=[sphMat],
 			shooter=None,
 			mask=spheMask,
 		)
@@ -120,14 +126,20 @@ def prepareCylTriax(pre):
 	S.engines=[
 		InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb()],verletDist=-.05),
 		ContactLoop([Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom()],[Cp2_FrictMat_FrictPhys()],[Law2_L6Geom_FrictPhys_IdealElPl()],applyForces=True),
-		WeirdTriaxControl(goal=(pre.sigIso,pre.sigIso,pre.sigIso),maxStrainRate=(.005,.005,.005),relVol=math.pi*rad**2*ht/S.cell.volume,stressMask=0b0111,maxUnbalanced=0.05,mass=10.*sphereMass,doneHook='import woo.pre.cylTriax; woo.pre.cylTriax.compactionDone(S)',label='triax'),
+		WeirdTriaxControl(goal=(pre.sigIso,pre.sigIso,pre.sigIso),maxStrainRate=(pre.maxRate,pre.maxRate,pre.maxRate),relVol=math.pi*rad**2*ht/S.cell.volume,stressMask=0b0111,maxUnbalanced=0.05,mass=pre.massFactor*sphereMass,doneHook='import woo.pre.cylTriax; woo.pre.cylTriax.compactionDone(S)',label='triax'),
 		woo.core.PyRunner(20,'import woo.pre.cylTriax; woo.pre.cylTriax.addPlotData(S)'),
+		VtkExport(out=pre.vtkFmt,stepPeriod=pre.vtkStep,what=VtkExport.all,dead=(pre.vtkStep<=0 or not pre.vtkFmt)),
 		Leapfrog(damping=pre.damping,reset=True),
 	]
 	S.timingEnabled=True
 	import woo.log
 	woo.log.setLevel('InsertionSortCollider',woo.log.TRACE)
 	woo.log.setLevel('WeirdTriaxControl',woo.log.TRACE)
+
+	try:
+		import woo.gl
+		S.any=[woo.gl.Renderer(dispScale=(5,5,5),rotScale=10),woo.gl.Gl1_DemField(),woo.gl.Gl1_CPhys()]
+	except ImportError: pass
 
 	return S
 
@@ -152,15 +164,37 @@ def addPlotData(S):
 	)
 	if not S.plot.plots:
 		S.plot.plots={
-			'i':('unbalanced',),'i ':('sxx','syy','srr','szz'),' i':('exx','eyy','err','ezz'),
+			'i':('unbalanced',),'i ':('sxx','syy','srr','szz'),' i':('exx','eyy','err','ezz','eVol'),
 			# energy plot
 			#' i ':(O.energy.keys,None,'Etot'),
 		}
-		S.plot.xylabels={'i ':'Stress [Pa]',' i':'Strains [-]'}
+		S.plot.xylabels={'i ':('step','Stress [Pa]',),' i':('step','Strains [-]',)}
 		S.plot.labels={
 			'sxx':r'$\sigma_{xx}$','syy':r'$\sigma_{yy}$','szz':r'$\sigma_{zz}$','srr':r'$\sigma_{rr}$',
-			'exx':r'$\varepsilon_{xx}$','eyy':r'$\varepsilon_{yy}$','ezz':r'$\varepsilon_{zz}$','err':r'$\varepsilon_{rr}$'
+			'exx':r'$\varepsilon_{xx}$','eyy':r'$\varepsilon_{yy}$','ezz':r'$\varepsilon_{zz}$','err':r'$\varepsilon_{rr}$','eVol':r'$\varepsilon_{v}$'
 		}
+
+def velocityFieldPlots(S,nameBase):
+	import woo
+	from woo import post2d
+	flattener=post2d.CylinderFlatten(useRef=False,axis=2,origin=(.5*S.cell.size[0],.5*S.cell.size[1],(.6/2.2*S.cell.size[2])))
+	#maxVel=float('inf') #5e-2
+	#exVel=lambda p: p.vel if p.vel.norm()<=maxVel else p.vel/(p.vel.norm()/maxVel)
+	exVel=lambda p: p.vel
+	exVelNorm=lambda p: exVel(p).norm()
+	import pylab
+	fVRaw=pylab.figure()
+	post2d.plot(post2d.data(S,exVel,flattener),alpha=.3,minlength=.3,cmap='jet')
+	fV2=pylab.figure()
+	post2d.plot(post2d.data(S,exVel,flattener,stDev=.5*S.pre.psd[0][0],div=(80,80)),minlength=.6,cmap='jet')
+	fV1=pylab.figure()
+	post2d.plot(post2d.data(S,exVelNorm,flattener,stDev=.5*S.pre.psd[0][0],div=(80,80)),cmap='jet')
+	outs=[]
+	for name,fig in [('particle-velocity',fVRaw),('smooth-velocity',fV2),('smooth-velocity-norm',fV1)]:
+		out=nameBase+'.%s.png'%name
+		fig.savefig(out)
+		outs.append(out)
+	return outs
 
 def compactionDone(S):
 	print 'Compaction done at step',S.step
@@ -172,11 +206,21 @@ def compactionDone(S):
 	t.goal=(S.pre.sigIso,S.pre.sigIso,-1.) # use ridiculous compression value here
 	t.stressMask=0b0011 # z is strain-controlled, x,y stress-controlled
 	# allow faster deformation along x,y to better maintain stresses
-	t.maxStrainRate=(1.,1.,.005)
+	t.maxStrainRate=(100*S.pre.maxRate,100*S.pre.maxRate,S.pre.maxRate)
 	# next time, call triaxFinished instead of compactionFinished
 	t.doneHook='import woo.pre.cylTriax; woo.pre.cylTriax.triaxDone(S)'
 	# do not wait for stabilization before calling triaxFinished
 	t.maxUnbalanced=10
+	##
+	## restore friction angle of particles
+	for p in S.dem.par:
+		if type(p.shape)!=woo.dem.Sphere: continue
+		p.mat.tanPhi=S.pre.mat.tanPhi
+		break # shared material, once is enough
+	try:
+		import woo.gl
+		woo.gl.Gl1_DemField.updateRefPos=True
+	except ImportError: pass
 
 def plotBatchResults(db):
 	'Hook called from woo.batch.writeResults'

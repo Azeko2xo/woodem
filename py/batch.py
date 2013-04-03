@@ -3,6 +3,7 @@
 # for use with globals() when reading table
 nan=float('nan')
 from math import * 
+from minieigen import *
 
 def wait():
 	'Block the simulation if running inside a batch. Typically used at the end of script so that it does not finish prematurely in batch mode (the execution would be ended in such a case).'

@@ -49,6 +49,7 @@ Vector3r Renderer::bgColor;
 bool Renderer::light1;
 bool Renderer::light2;
 bool Renderer::ghosts;
+bool Renderer::cell;
 shared_ptr<Object> Renderer::selObj;
 shared_ptr<Node> Renderer::selObjNode;
 string Renderer::selFunc;
@@ -132,11 +133,11 @@ void Renderer::setNodeGlData(const shared_ptr<Node>& n, bool updateRefPos){
 
 // draw periodic cell, if active
 void Renderer::drawPeriodicCell(){
-	if(!scene->isPeriodic) return;
+	if(!scene->isPeriodic || !cell) return;
 	glColor3v(Vector3r(1,1,0));
 	glPushMatrix();
 		const Matrix3r& hSize=scene->cell->hSize;
-		if(dispScale!=Vector3r::Ones()){
+		if(scaleOn && dispScale!=Vector3r::Ones()){
 			const Matrix3r& refHSize(scene->cell->refHSize);
 			Matrix3r scaledHSize;
 			for(int i=0; i<3; i++) scaledHSize.col(i)=refHSize.col(i)+((dispScale-Vector3r::Ones()).array()*Vector3r(hSize.col(i)-refHSize.col(i)).array()).matrix();

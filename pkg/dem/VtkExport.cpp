@@ -5,6 +5,7 @@
 #include<woo/pkg/dem/InfCylinder.hpp>
 #include<woo/pkg/dem/Wall.hpp>
 #include<woo/pkg/dem/Clump.hpp>
+#include<woo/pkg/dem/Funcs.hpp>
 
 WOO_PLUGIN(dem,(VtkExport));
 CREATE_LOGGER(VtkExport);
@@ -129,6 +130,8 @@ void VtkExport::run(){
 	_VTK_POINT_ARR(sGrid,sColor,"color",1)
 	_VTK_POINT_ARR(sGrid,sVel,"vel",3)
 	_VTK_POINT_ARR(sGrid,sAngVel,"angVel",3)
+	_VTK_CELL_ARR(sGrid,sSigT,"sigT",3);
+	_VTK_CELL_ARR(sGrid,sSigN,"sigN",3);
 	_VTK_POINT_INT_ARR(sGrid,sMatId,"matId",1)
 	// meshes
 	auto mGrid=vtkSmartPointer<vtkUnstructuredGrid>::New();
@@ -164,6 +167,11 @@ void VtkExport::run(){
 			sVel->InsertNextTupleValue(dyn.vel.data());
 			sAngVel->InsertNextTupleValue(dyn.angVel.data());
 			sMatId->InsertNextValue(p->material->id);
+			Vector3r sigT,sigN;
+			__attribute__((unused)) bool sig=DemFuncs::particleStress(p,sigT,sigN); 
+			assert(sig); // should not fail for spheres
+			sSigN->InsertNextTupleValue(sigN.data());
+			sSigT->InsertNextTupleValue(sigT.data());
 			continue;
 		}
 		// no more spheres, just meshes now

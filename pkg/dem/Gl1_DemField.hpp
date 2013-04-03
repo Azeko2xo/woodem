@@ -22,9 +22,12 @@ struct Gl1_DemField: public GlFieldFunctor{
 	static void setOurSceneRanges(Scene* scene, const vector<shared_ptr<ScalarRange>>& ours, const list<shared_ptr<ScalarRange>>& used);
 	static void initAllRanges();
 
+	Vector3r getNodeVel(const shared_ptr<Node>& n) const;
+	Vector3r getNodeAngVel(const shared_ptr<Node>& n) const;
+
 	void postLoad2();
 
-	enum{COLOR_SOLID=0,COLOR_SHAPE,COLOR_RADIUS,COLOR_VEL,COLOR_ANGVEL,COLOR_MASS,COLOR_DISPLACEMENT,COLOR_ROTATION,COLOR_REFPOS,COLOR_MAT_ID,COLOR_MATSTATE,COLOR_INVISIBLE,/*last*/COLOR_SENTINEL};
+	enum{COLOR_SOLID=0,COLOR_SHAPE,COLOR_RADIUS,COLOR_VEL,COLOR_ANGVEL,COLOR_MASS,COLOR_DISPLACEMENT,COLOR_ROTATION,COLOR_REFPOS,COLOR_MAT_ID,COLOR_MATSTATE,COLOR_SIG_N,COLOR_SIG_T,COLOR_INVISIBLE,/*last*/COLOR_SENTINEL};
 	enum{GLYPH_KEEP=0,GLYPH_NONE,GLYPH_FORCE,GLYPH_VEL,/*last*/GLYPH_SENTINEL};
 	enum{CNODE_NONE=0,CNODE_GLREP=1,CNODE_LINE=2,CNODE_NODE=4,CNODE_POTLINE=8};
 	enum{SHAPE_NONE=0,SHAPE_ALL,SHAPE_SPHERES,SHAPE_NONSPHERES,SHAPE_MASK};
@@ -45,6 +48,8 @@ struct Gl1_DemField: public GlFieldFunctor{
 			{COLOR_REFPOS,"refpos coordinate"}, \
 			{COLOR_MAT_ID,"material id"}, \
 			{COLOR_MATSTATE,"Particle.matState"}, \
+			{COLOR_SIG_N,"normal stress"}, \
+			{COLOR_SIG_T,"shear stress"}, \
 			{COLOR_INVISIBLE,"invisible"}
 
 	WOO_CLASS_BASE_DOC_STATICATTRS_CTOR_PY(Gl1_DemField,GlFieldFunctor,"Render DEM field.",
@@ -65,6 +70,8 @@ struct Gl1_DemField: public GlFieldFunctor{
 		((vector<shared_ptr<ScalarRange>>,colorRanges,,AttrTrait<>().readonly().noGui(),"List of color ranges"))
 
 		((bool,bound,false,,"Render particle's :ref:`Bound`"))
+		((bool,periodic,false,AttrTrait<>().noGui(),"Automatically shows whether the scene is periodic (to use in hideIf of :obj:`fluct`"))
+		((bool,fluct,false,AttrTrait<>().hideIf("not self.periodic or (self.colorBy not in (self.colorVel,self.colorAngVel) and self.glyph not in (self.glyphVel,))"),"With periodic boundaries, show only fluctuation components of velocity."))
 
 		((bool,nodes,false,AttrTrait<>().startGroup("Nodes"),"Render DEM nodes"))
 		((int,glyph,GLYPH_KEEP,AttrTrait<Attr::triggerPostLoad>().choice({{GLYPH_KEEP,"keep"},{GLYPH_NONE,"none"},{GLYPH_FORCE,"force"},{GLYPH_VEL,"velocity"}}),"Show glyphs on particles by setting :ref:`GlData` on their nodes."))
@@ -103,6 +110,8 @@ struct Gl1_DemField: public GlFieldFunctor{
 			_classObj.attr("colorRefPos")=(int)Gl1_DemField::COLOR_REFPOS;
 			_classObj.attr("colorMatId")=(int)Gl1_DemField::COLOR_MAT_ID;
 			_classObj.attr("colorMatState")=(int)Gl1_DemField::COLOR_MATSTATE;
+			_classObj.attr("colorSigN")=(int)Gl1_DemField::COLOR_SIG_N;
+			_classObj.attr("colorSigT")=(int)Gl1_DemField::COLOR_SIG_T;
 			_classObj.attr("colorInvisible")=(int)Gl1_DemField::COLOR_INVISIBLE;
 			_classObj.attr("cNodeNone")=(int)Gl1_DemField::CNODE_NONE;
 			_classObj.attr("cNodeGlRep")=(int)Gl1_DemField::CNODE_GLREP;

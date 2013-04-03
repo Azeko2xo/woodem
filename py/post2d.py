@@ -113,30 +113,29 @@ class CylinderFlatten(Flatten):
 	"""Class for converting 3d point to 2d based on projection onto plane from circle.
 	The y-axis in the projection corresponds to the rotation axis; the x-axis is distance form the axis.
 	"""
-	def __init__(self,useRef,axis=2,dispScale=1.):
+	def __init__(self,useRef,axis=2,origin=Vector3(0,0,0),dispScale=1.):
 		"""
 		:param useRef: (bool) use reference positions rather than actual positions
 		:param axis: axis of the cylinder, ∈{0,1,2}
 		"""
 		if axis not in (0,1,2): raise IndexError("axis must be one of 0,1,2 (not %d)"%axis)
-		self.useRef,self.axis=useRef,axis
+		self.useRef,self.axis,self.origin=useRef,axis,Vector3(origin)
 		Flatten.__init__(self,dispScale)
 	def _getPos(self,b):
-		return b.refPos if self.useRef else self.scaledPos(b)
+		return (b.refPos if self.useRef else self.scaledPos(b))-self.origin
 	def __call__(self,b):
-		p=_getPos(b)
-		pp=(p[(self.axis+1)%3],p[(self.axis+2)%3])
-		import math.sqrt
-		return math.sqrt(pp[0]**2+pp[2]**2),p[self.axis]
+		p=self._getPos(b)
+		pp=Vector2(p[(self.axis+1)%3],p[(self.axis+2)%3])
+		return pp.norm(),p[self.axis]
 	def planar(self,b,vec):
-		pos=_getPos(b)
-		from math import sqrt
-		pos[self.axis]=0; pos.Normalize()
-		return pos.Dot(vec),vec[axis]
+		pos=self._getPos(b)
+		pos[self.axis]=0;
+		pos.normalize()
+		return pos.dot(vec),vec[self.axis]
 	def normal(self,b,vec):
-		pos=_getPos(b)
+		pos=self._getPos(b)
 		ax=Vector3(0,0,0); ax[axis]=1
-		circum=ax.Cross(pos); circum.Normalize()
+		circum=ax.cross(pos).normalized();
 		return circum.Dot(vec)
 		
 

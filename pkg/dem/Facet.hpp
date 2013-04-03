@@ -6,6 +6,10 @@
 struct Facet: public Shape {
 	bool numNodesOk() const { return nodes.size()==3; }
 	Vector3r getNormal() const;
+	#ifdef WOO_OPENGL
+		Vector3r getGlNormal() const;
+		Vector3r getGlVertex(int i) const;
+	#endif
 	// return velocity which is linearly interpolated between velocities of facet nodes, and also angular velocity at that point
 	std::tuple<Vector3r,Vector3r> interpolatePtLinAngVel(const Vector3r& x) const;
 	std::tuple<Vector3r,Vector3r,Vector3r> getOuterVectors() const;
@@ -38,7 +42,8 @@ REGISTER_SERIALIZABLE(Bo1_Facet_Aabb);
 #include<woo/pkg/gl/Functors.hpp>
 struct Gl1_Facet: public GlShapeFunctor{	
 	void go(const shared_ptr<Shape>&, const Vector3r&, bool, const GLViewInfo&);
-	void drawEdges(const Facet& f, const Vector3r& facetNormal, bool wire);
+	void drawEdges(const Facet& f, const Vector3r& facetNormal, const Vector3r& shift, bool wire);
+	void glVertex(const Facet& f, int i);
 	RENDERS(Facet);
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Facet,GlShapeFunctor,"Renders :ref:`Facet` object",
 		((bool,wire,false,AttrTrait<>().buttons({"All facets solid","import woo\nfor p in woo.master.scene.dem.par:\n\tif type(p.shape)==woo.dem.Facet: p.shape.wire=False\n","","All facets wire","import woo\nfor p in woo.master.scene.dem.par:\n\tif type(p.shape)==woo.dem.Facet: p.shape.wire=True\n",""}),"Only show wireframe."))

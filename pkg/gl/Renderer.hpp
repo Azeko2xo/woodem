@@ -118,6 +118,7 @@ struct Renderer: public Object{
 	WOO_CLASS_BASE_DOC_STATICATTRS_PY(Renderer,Object,"Class responsible for rendering scene on OpenGL devices.",
 		((bool,engines,true,AttrTrait<>().startGroup("General"),"Call engine's rendering functions (if defined)"))
 		((bool,ranges,true,,"Show color scales for :obj:`Scene.ranges`"))
+		((bool,cell,true,,"Render periodic cell boundaries (periodic simulations only)"))
 		((bool,ghosts,false,,"Render objects crossing periodic cell edges by cloning them in multiple places (periodic simulations only)."))
 		((vector<shared_ptr<GlExtraDrawer>>,extraDrawers,,,"Additional rendering components (:ref:`GlExtraDrawer`)."))
 		((Vector3r,iniUp,Vector3r(0,0,1),,"Up vector of new views"))

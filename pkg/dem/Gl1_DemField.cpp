@@ -4,6 +4,7 @@
 #include<woo/pkg/dem/InfCylinder.hpp>
 #include<woo/pkg/dem/Wall.hpp>
 #include<woo/pkg/dem/Facet.hpp>
+#include<woo/pkg/dem/Funcs.hpp>
 //#include<woo/pkg/dem/Tracer.hpp>
 #include<woo/lib/opengl/GLUtils.hpp>
 #include<woo/pkg/gl/Renderer.hpp>
@@ -28,6 +29,8 @@ int Gl1_DemField::shape;
 bool Gl1_DemField::shape2;
 bool Gl1_DemField::nodes;
 bool Gl1_DemField::deadNodes;
+bool Gl1_DemField::fluct;
+bool Gl1_DemField::periodic;
 //bool Gl1_DemField::trace;
 //bool Gl1_DemField::_hadTrace;
 int Gl1_DemField::cNode;
@@ -94,6 +97,8 @@ void Gl1_DemField::initAllRanges(){
 			case COLOR_REFPOS:       r->label="ref. pos"; break;
 			case COLOR_MAT_ID:       r->label="material id"; break;
 			case COLOR_MATSTATE:     r->label="matState"; break;
+			case COLOR_SIG_N: 	    r->label="normal stress"; break;
+			case COLOR_SIG_T:    	 r->label="shear stress"; break;
 		};
 	}
 	colorRange=colorRanges[colorBy];
@@ -139,6 +144,17 @@ void Gl1_DemField::doBound(){
 		glPushMatrix(); Renderer::boundDispatcher(b->shape->bound); glPopMatrix();
 	}
 }
+
+Vector3r Gl1_DemField::getNodeVel(const shared_ptr<Node>& n) const{
+	if(!scene->isPeriodic || !fluct) return n->getData<DemData>().vel;
+	return scene->cell->pprevFluctVel(n->pos,n->getData<DemData>().vel,scene->dt);
+}
+
+Vector3r Gl1_DemField::getNodeAngVel(const shared_ptr<Node>& n) const{
+	if(!scene->isPeriodic || !fluct) return n->getData<DemData>().angVel;
+	return scene->cell->pprevFluctAngVel(n->getData<DemData>().angVel);
+}
+
 
 // this function is called for both rendering as well as
 // in the selection mode
@@ -190,6 +206,7 @@ void Gl1_DemField::doShape(){
 		if(false
 			|| (!isSphere && colorBy==COLOR_RADIUS )
 			|| (colorBy==COLOR_MATSTATE && !p->matState)
+			|| (!isSphere && (colorBy==COLOR_SIG_N || colorBy==COLOR_SIG_T))
 		) useColor2=true;
 
 		if(!shape2 && useColor2) continue; // skip particle
@@ -199,10 +216,11 @@ void Gl1_DemField::doShape(){
 		// choose colorRange for colorBy or colorBy2
 		const shared_ptr<ScalarRange>& CR(!useColor2?colorRange:colorRanges[colorBy2]);
 		auto vecNormXyz=[&](const Vector3r& v)->Real{ if(useColor2 || vecAxis<0||vecAxis>2) return v.norm(); return v[vecAxis]; };
-		switch(!useColor2?colorBy:colorBy2){
+		int cBy=(!useColor2?colorBy:colorBy2);
+		switch(cBy){
 			case COLOR_RADIUS: parColor=(isSphere?CR->color(p->shape->cast<Sphere>().radius):solidColor); break;
-			case COLOR_VEL: parColor=CR->color(vecNormXyz(n0->getData<DemData>().vel)); break;
-			case COLOR_ANGVEL: parColor=CR->color(vecNormXyz(n0->getData<DemData>().angVel)); break;
+			case COLOR_VEL: parColor=CR->color(vecNormXyz(getNodeVel(n0))); break;
+			case COLOR_ANGVEL: parColor=CR->color(vecNormXyz(getNodeAngVel(n0))); break;
 			case COLOR_MASS: parColor=CR->color(n0->getData<DemData>().mass); break;
 			case COLOR_DISPLACEMENT: parColor=CR->color(vecNormXyz(n0->pos-n0->getData<GlData>().refPos)); break;
 			case COLOR_ROTATION: {
@@ -215,6 +233,14 @@ void Gl1_DemField::doShape(){
 			case COLOR_MATSTATE:	parColor=(p->matState?CR->color(p->matState->getColorScalar()):solidColor); break;
 			case COLOR_SHAPE: parColor=CR->color(p->shape->getBaseColor()); break;
 			case COLOR_SOLID: parColor=solidColor; break;
+			case COLOR_SIG_N:
+			case COLOR_SIG_T: {
+				Vector3r sigN, sigT;
+				bool sigOk=DemFuncs::particleStress(p,sigN,sigT);
+				if(sigOk) parColor=CR->color(vecNormXyz(cBy==COLOR_SIG_N?sigN:sigT));
+				else parColor=solidColor;
+				break;
+			}
 			case COLOR_INVISIBLE: continue; // don't show this particle at all
 			default: parColor=Vector3r(NaN,NaN,NaN);
 		}
@@ -287,7 +313,7 @@ void Gl1_DemField::doNodes(const vector<shared_ptr<Node>>& nodeContainer){
 			}
 			switch(glyph){
 				case GLYPH_NONE: n->rep.reset(); break; // no rep
-				case GLYPH_VEL: n->rep->cast<VectorGlRep>().val=n->getData<DemData>().vel; break;
+				case GLYPH_VEL: n->rep->cast<VectorGlRep>().val=getNodeVel(n); break;
 				case GLYPH_FORCE: n->rep->cast<VectorGlRep>().val=n->getData<DemData>().force; break;
 				case GLYPH_KEEP:
 				default: ;
@@ -382,6 +408,8 @@ void Gl1_DemField::go(const shared_ptr<Field>& demField, GLViewInfo* _viewInfo){
 
 	if(doPostLoad || _lastScene!=scene) postLoad2();
 	doPostLoad=false; _lastScene=scene;
+	periodic=scene->isPeriodic;
+	if(updateRefPos && periodic) scene->cell->refHSize=scene->cell->hSize;
 
 	if(shape!=SHAPE_NONE || shape2) doShape();
 	if(bound) doBound();

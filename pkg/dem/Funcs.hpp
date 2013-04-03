@@ -13,6 +13,8 @@ struct DemFuncs{
 	static shared_ptr<Particle> makeSphere(Real radius, const shared_ptr<Material>& m);
 	static vector<Vector2r> boxPsd(const Scene* scene, const DemField* dem, const AlignedBox3r& box=AlignedBox3r(Vector3r(NaN,NaN,NaN),Vector3r(NaN,NaN,NaN)), bool mass=false, int num=20, int mask=0, Vector2r dRange=Vector2r::Zero());
 
+	static bool particleStress(const shared_ptr<Particle>& p, Vector3r& normal, Vector3r& shear);
+
 	// sum force and torque with regards to point pt over particles with matching mask
 	// if *multinodal* is true, get force/troque from contacts of multinodal particles
 	// (in addition to their nodal forces/torques);

@@ -393,7 +393,7 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 			# only with the gui; the escape codes might not work on non-linux terminals.
 			]
 			+(['"\e[24~": "\C-Uwoo.qt.Controller();\C-M"']+(['"\e[23~": "\C-Uwoo.qt.View();\C-M"','"\e[21~": "\C-Uwoo.qt.Controller(), woo.qt.View();\C-M"'] if 'opengl' in woo.config.features else [])+['"\e[20~": "\C-Uwoo.qt.Generator();\C-M"'] if (qt4) else []) # F12,F11,F10,F9
-			+['"\e[19~": "\C-Uimport woo.plot; woo.plot.plot();\C-M"', #F8
+			+['"\e[19~": "\C-Uwoo.master.scene.plot.plot();\C-M"', #F8
 				'"\e[A": history-search-backward', '"\e[B": history-search-forward', # incremental history forward/backward
 		]
 	)
@@ -746,9 +746,11 @@ finished: %s
 		havePlot=False
 		if os.path.exists(job.plotsFile):
 			f=(job.log[:-3] if job.log.endswith('.log') else job.log+'.')+woo.remote.plotImgFormat
-			shutil.copy(job.plotsFile,f)
-			job.plotsFile=f
-			havePlot=True
+			try:
+				shutil.copy(job.plotsFile,f)
+				job.plotsFile=f
+				havePlot=True
+			except IOError: pass # file deleted in the meantime?
 		print (colorize('   #{job.num} ({job.id}{nCores}) {strStatus}')+'(exit status {job.exitStatus}), duration {job.duration}, log {job.log}{jobPlot}').format(job=job,nCores='' if job.nCores==1 else '/%d'%job.nCores,strStatus=('done    ' if job.exitStatus==0 else 'FAILED '),jobPlot=(', plot %s'%(job.plotsFile) if havePlot else ''))
 		job.saveInfo()
 		
