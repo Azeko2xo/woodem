@@ -152,7 +152,7 @@ def addPlotData(S):
 	q=szz-.5*(sxx+syy)         # deviatoric stress?!
 	qDivP=(q/p if p!=0 else float('nan'))
 	eDev=ezz-t.strain.sum()/3. # ezz-mean
-	eVol=t.strain.sum() # trace
+	eVol=(t.strain.sum() if t.stressMask==0b0011 else float('nan')) # trace; don't save in the compression phase
 	S.plot.addData(unbalanced=woo.utils.unbalancedForce(),i=S.step,
 		sxx=sxx,syy=syy,srr=.5*(sxx+syy),szz=szz,
 		exx=exx,eyy=eyy,err=.5*(exx+eyy),ezz=ezz,
@@ -168,7 +168,7 @@ def addPlotData(S):
 			# energy plot
 			#' i ':(O.energy.keys,None,'Etot'),
 		}
-		S.plot.xylabels={'i ':('step','Stress [Pa]',),' i':('step','Strains [-]',)}
+		S.plot.xylabels={'i ':('step','Stress [Pa]',),' i':('step','Strains [-]','Strains [-]')}
 		S.plot.labels={
 			'sxx':r'$\sigma_{xx}$','syy':r'$\sigma_{yy}$','szz':r'$\sigma_{zz}$','srr':r'$\sigma_{rr}$',
 			'exx':r'$\varepsilon_{xx}$','eyy':r'$\varepsilon_{yy}$','ezz':r'$\varepsilon_{zz}$','err':r'$\varepsilon_{rr}$','eVol':r'$\varepsilon_{v}$'

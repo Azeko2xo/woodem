@@ -372,7 +372,7 @@ class LineRef:
 						self.scatter.set_transform(matplotlib.transforms.Affine2D().rotate(angle))
 					except IndexError: pass
 				if self.annotation:
-					self.annotation.xytext=(x,y)
+					self.annotation.xytext=(x if not math.isnan(x) else 0,y if not math.isnan(y) else 0)
 					self.annotation.set_text(self.annotation.annotateFmt.format(xy=(float(x),float(y))))
 			except TypeError: pass # this happens at i386 with empty data, saying TypeError: buffer is too small for requested array
 
