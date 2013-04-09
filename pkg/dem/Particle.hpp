@@ -268,6 +268,7 @@ struct Contact: public Object{
 	Particle::id_t pyId1() const;
 	Particle::id_t pyId2() const;
 	Vector2i pyIds() const;
+	void pyResetPhys(){ phys.reset(); }
 	virtual string pyStr() const { return "<Contact ##"+to_string(pyId1())+"+"+to_string(pyId2())+" @ "+lexical_cast<string>(this)+">"; }
 	// potentially unsafe pointer extraction (assert safety in debug builds only)
 	// only use when the particles are sure to exist and never return this pointer anywhere
@@ -296,6 +297,7 @@ struct Contact: public Object{
 		.def("dist",&Contact::dist_py,"Shorthand for dPos.norm().")
 		.add_property("pA",&Contact::pyPA,"First particle of the contact")
 		.add_property("pB",&Contact::pyPB,"Second particle of the contact")
+		.def("resetPhys",&Contact::pyResetPhys,"Set *phys* to *None* (to force its re-evaluation)")
 	);
 };
 REGISTER_SERIALIZABLE(Contact);

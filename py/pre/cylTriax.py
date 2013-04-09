@@ -16,15 +16,19 @@ class CylTriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 	_attrTraits=[
 		# noGui would make startGroup being ignored
 		_PAT(float,'isoStress',-1e4,unit='kPa',startGroup='General',doc='Confining stress (isotropic during compaction)'),
-		_PAT(float,'maxRate',1e-3,'Maximum strain rate during the compaction phase, and during the triaxial phase in axial sense (the radial sense uses 100× that value in the triaxial phase.'),
-		_PAT(float,'massFactor',10.,'Multiply real mass of particles by this number to obtain the :obj:`woo.dem.WeirdTriaxControl.mass` control parameter'),
+		_PAT(Vector3,'maxRates',(2e-1,5e-2,1.),'Maximum strain rates during the compaction phase (for all axes), and during the triaxial phase in axial sense and radial sense.'),
+		_PAT(float,'massFactor',.5,'Multiply real mass of particles by this number to obtain the :obj:`woo.dem.WeirdTriaxControl.mass` control parameter'),
 		_PAT(int,'nPar',2000,startGroup='Particles',doc='Number of particles'),
-		_PAT(woo.dem.FrictMat,'mat',FrictMat(young=1e6,ktDivKn=.2,tanPhi=.5,density=1e8),'Material of particles.'),
+		_PAT(woo.dem.FrictMat,'mat',FrictMat(young=1e6,ktDivKn=.2,tanPhi=.4,density=1e8),'Material of particles.'),
 		_PAT(float,'meshTanPhi',float('nan'),'Angle of friction of boundary walls; if nan, use the same as for particles, otherwise particle material is copied and tanPhi changed.'),
 		_PAT([Vector2,],'psd',[(2e-3,0),(2.5e-3,.2),(4e-3,1.)],unit=['mm','%'],doc='Particle size distribution of particles; first value is diameter, scond is cummulative mass fraction.'),
 		_PAT(float,'sigIso',-50e3,unit='Pa',doc='Isotropic compaction stress, and lateral stress during the triaxial phase'),
+		_PAT(float,'stopStrain',-.2,doc='Goal value of axial deformation in the triaxial phase'),
 
 		_PAT(Vector2,'radHt',Vector2(.02,.05),doc='Initial size of the cylinder (radius and height)'),
+
+		_PAT(woo.dem.ElastMat,'circMat',woo.dem.ElastMat(young=1e3,density=1.),'Material for circumferential trusses (simulating the membrane). If *None*, membrane will not be simulated. The membrane is only added after the compression phase.'),
+		_PAT(float,'circAvgThick',-.001,'Average thickness of circumferential membrane; if negative, relative to cylinder radius (``radHt[0]``).'),
 
 		_PAT(str,'reportFmt',"/tmp/{tid}.xhtml",startGroup="Outputs",doc="Report output format; :obj:`Scene.tags <woo.core.Scene.tags>` can be used."),
 		_PAT(str,'packCacheDir',".","Directory where to store pre-generated feed packings; if empty, packing wil be re-generated every time."),
@@ -35,9 +39,9 @@ class CylTriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		# 'done' at the very end.
 		#'''),
 		#_PAT(int,'backupSaveTime',1800,doc='How often to save backup of the simulation (0 or negative to disable)'),
-		_PAT(float,'pWaveSafety',.7,startGroup='Tunables',doc='Safety factor for :obj:`woo.utils.pWaveDt` estimation.'),
+		_PAT(float,'pWaveSafety',.1,startGroup='Tunables',doc='Safety factor for :obj:`woo.utils.pWaveDt` estimation.'),
 		#_PAT(float,'initPoro',.7,'Estimate of initial porosity, when generating loose cloud'),
-		_PAT(Vector2i,'cylDiv',(50,4),'Number of segments for cylinder (first component) and height segments (second component)'),
+		_PAT(Vector2i,'cylDiv',(50,20),'Number of segments for cylinder (first component) and height segments (second component); the second component is ignored if *circMat* is given, in which case vertical segmentation is chosen so that tiles are as close to square'),
 		_PAT(float,'damping',.5,'Nonviscous damping'),
 		_PAT(int,'vtkStep',0,'Periodicity of saving VTK exports'),
 		_PAT(str,'vtkFmt','/tmp/{title}.{id}-','Prefix for VTK exports')
@@ -59,6 +63,8 @@ def prepareCylTriax(pre):
 	xydomain=Vector2((2*margin+2)*rad,(2*margin+2)*rad)
 	xymid=.5*xydomain
 	S=woo.core.Scene(fields=[DemField()])
+	if pre.circMat:
+		pre.cylDiv[1]=int(round(pre.radHt[1]/(2*math.pi*pre.radHt[0]/pre.cylDiv[0]))) # try to be as square as possible
 	S.pre=pre.deepcopy()
 
 	meshMask=0b0011
@@ -105,28 +111,62 @@ def prepareCylTriax(pre):
 	S.cell.setBox(xydomain[0],xydomain[1],(2*margin+1)*ht)
 
 	# make cylinder
-	thetas=numpy.linspace(0,2*math.pi,num=pre.cylDiv[0],endpoint=True)
+	centrals=[woo.core.Node(pos=Vector3(xymid[0],xymid[1],bot)),woo.core.Node(pos=Vector3(xymid[0],xymid[1],top))]
+	for c in centrals:
+		c.dem=woo.dem.DemData()
+		c.dem.blocked='xyzXYZ'
+		S.dem.nodes.append(c)
+	#
+	radialForce=woo.dem.RadialForce(nodeA=centrals[0],nodeB=centrals[1],F=0.) # F will be set later
+	thetas=numpy.linspace(0,2*math.pi,num=pre.cylDiv[0],endpoint=False)
 	xxyy=[Vector2(rad*math.cos(th)+xymid[0],rad*math.sin(th)+xymid[1]) for th in thetas]
-	ff=woo.pack.gtsSurface2Facets(
-		woo.pack.sweptPolylines2gtsSurface(
-			[[Vector3(xymid[0],xymid[1],bot) for xy in xxyy]]+
-			[[Vector3(xy[0],xy[1],z) for xy in xxyy] for z in numpy.linspace(bot,top,num=pre.cylDiv[1],endpoint=True)]+
-			[[Vector3(xymid[0],xymid[1],top) for xy in xxyy]],
-			threshold=rad*2*math.pi/(10.*pre.cylDiv[0])
-		),mask=meshMask,mat=meshMat,fixed=True)
-	# add facet nodes to the simulation so that they move with the space
-	nn=set()
-	for f in ff: nn.update(set(f.shape.nodes))
-	for n in nn: S.dem.nodes.append(n)
-	# append facets as such
-	S.dem.par.append(ff)
+	zz=numpy.linspace(bot,top,num=pre.cylDiv[1],endpoint=True)
+	nnn=[[woo.core.Node(pos=Vector3(xy[0],xy[1],z)) for xy in xxyy] for z in zz]
+	for nn in nnn:
+		for n in nn:
+			n.dem=woo.dem.DemData()
+			n.dem.mass=1.*sphMat.density*(4/3.)*math.pi*(.5*pre.psd[-1][0])**3
+			n.dem.blocked='xyzXYZ' # nodes don't rotate (no inertia), and they don't move yet, either
+			n.dem.impose=radialForce
+			S.dem.nodes.append(n) # integrate motion of this node nevertheless
+	def mkPlate(nn,central):
+		for i in range(len(nn)):
+			S.dem.par.append(woo.dem.Particle(material=meshMat,shape=Facet(nodes=[nn[i],nn[(i+1)%len(nn)],central]),mask=meshMask))
+			nn[i].dem.parCount+=1
+	mkPlate(nnn[0],centrals[0])
+	mkPlate(nnn[-1],centrals[-1])
+	if pre.circAvgThick<0: pre.circAvgThick=-pre.circAvgThick*pre.radHt[0]
+	circRad=math.sqrt((top-bot)*pre.circAvgThick/(math.pi*pre.cylDiv[1]))
+	def mkAround(nnAC,nnBD):
+		for i in range(len(nnAC)):
+			A,B,C,D=nnAC[i],nnBD[i],nnAC[(i+1)%len(nnAC)],nnBD[(i+1)%len(nnBD)]
+			# facets
+			S.dem.par.append([woo.dem.Particle(material=meshMat,shape=Facet(nodes=fNodes),mask=meshMask) for fNodes in ((A,B,D),(A,D,C))])
+			A.dem.parCount+=2
+			D.dem.parCount+=2
+			B.dem.parCount+=1
+			C.dem.parCount+=1
+			# trusses
+			if pre.circMat:
+				S.dem.par.append([woo.dem.Particle(material=pre.circMat,shape=Truss(nodes=nn,l0=(nn[0].pos-nn[1].pos).norm(),radius=circRad),mask=meshMask) for nn in ((A,C),(A,B),(B,D),(A,D),(B,C))])
+				A.dem.parCount+=3
+				B.dem.parCount+=3
+				C.dem.parCount+=2
+				D.dem.parCount+=2
+
+	for i in range(0,len(nnn)-1):
+		mkAround(nnn[i],nnn[i+1])
+	for p in S.dem.par:
+		if p.shape.__class__==woo.dem.Facet: p.shape.wire=True
 
 	S.dt=pre.pWaveSafety*woo.utils.pWaveDt(S)
 	# setup engines
 	S.engines=[
-		InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb()],verletDist=-.05),
-		ContactLoop([Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom()],[Cp2_FrictMat_FrictPhys()],[Law2_L6Geom_FrictPhys_IdealElPl()],applyForces=True),
-		WeirdTriaxControl(goal=(pre.sigIso,pre.sigIso,pre.sigIso),maxStrainRate=(pre.maxRate,pre.maxRate,pre.maxRate),relVol=math.pi*rad**2*ht/S.cell.volume,stressMask=0b0111,maxUnbalanced=0.05,mass=pre.massFactor*sphereMass,doneHook='import woo.pre.cylTriax; woo.pre.cylTriax.compactionDone(S)',label='triax'),
+		InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Truss_Aabb(),Bo1_Facet_Aabb()],verletDist=-.05),
+		# Cg2_Truss_Sphere_L6Geom()
+		ContactLoop([Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom()],[Cp2_FrictMat_FrictPhys()],[Law2_L6Geom_FrictPhys_IdealElPl()],applyForces=False),
+		IntraForce([In2_Sphere_ElastMat(),In2_Truss_ElastMat()]),
+		WeirdTriaxControl(goal=(pre.sigIso,pre.sigIso,pre.sigIso),maxStrainRate=(pre.maxRates[0],pre.maxRates[0],pre.maxRates[0]),relVol=math.pi*rad**2*ht/S.cell.volume,stressMask=0b0111,maxUnbalanced=0.15,mass=pre.massFactor*sphereMass,doneHook='import woo.pre.cylTriax; woo.pre.cylTriax.compactionDone(S)',label='triax',absStressTol=1e4,relStressTol=1e-2),
 		woo.core.PyRunner(20,'import woo.pre.cylTriax; woo.pre.cylTriax.addPlotData(S)'),
 		VtkExport(out=pre.vtkFmt,stepPeriod=pre.vtkStep,what=VtkExport.all,dead=(pre.vtkStep<=0 or not pre.vtkFmt)),
 		Leapfrog(damping=pre.damping,reset=True),
@@ -203,10 +243,10 @@ def compactionDone(S):
 	# set the current cell configuration to be the reference one
 	S.cell.trsf=Matrix3.Identity
 	# change control type: keep constant confinement in x,y, 20% compression in z
-	t.goal=(S.pre.sigIso,S.pre.sigIso,-1.) # use ridiculous compression value here
+	t.goal=(S.pre.sigIso,S.pre.sigIso,S.pre.stopStrain) # use ridiculous compression value here
 	t.stressMask=0b0011 # z is strain-controlled, x,y stress-controlled
 	# allow faster deformation along x,y to better maintain stresses
-	t.maxStrainRate=(100*S.pre.maxRate,100*S.pre.maxRate,S.pre.maxRate)
+	t.maxStrainRate=(S.pre.maxRates[2],S.pre.maxRates[2],S.pre.maxRates[1])
 	# next time, call triaxFinished instead of compactionFinished
 	t.doneHook='import woo.pre.cylTriax; woo.pre.cylTriax.triaxDone(S)'
 	# do not wait for stabilization before calling triaxFinished
@@ -221,6 +261,28 @@ def compactionDone(S):
 		import woo.gl
 		woo.gl.Gl1_DemField.updateRefPos=True
 	except ImportError: pass
+	# reset contacts so that they pick up new friction angle
+	for c in S.dem.con: c.resetPhys()
+
+	if S.pre.circMat:
+		#XXX t.stressMask=0b000 # everything strain-controlled
+		#XXX t.goal=(0,0,t.goal[2]) # no cell deformation in radial sense at all
+		aabb=AlignedBox3()
+		for p in S.dem.par: aabb.extend(p.shape.nodes[0].pos)
+		size=aabb.max-aabb.min
+		cylDiam,cylHt=.5*(size[0]+size[1]),size[2]
+		cylArea=math.pi*cylDiam*cylHt
+		nodalForce=S.pre.sigIso*cylArea/(S.pre.cylDiv[0]*S.pre.cylDiv[1])
+		for p in S.dem.par:
+			t=p.shape
+			if type(t)!=woo.dem.Truss: continue
+			t.l0=(t.nodes[0].pos-t.nodes[1].pos).norm()
+			for n in t.nodes:
+				#if min(abs(n.pos[2]-aabb.min[2]),abs(n.pos[2]-aabb.max[2]))<1e-4*S.pre.radHt[1]: n.dem.blocked='zXYZ'
+				#else: n.dem.blocked='zXYZ'
+				n.dem.blocked='zXYZ'
+				#XXX n.dem.impose.F=nodalForce
+	S.save('/tmp/compact.gz')
 
 def plotBatchResults(db):
 	'Hook called from woo.batch.writeResults'

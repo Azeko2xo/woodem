@@ -1,3 +1,4 @@
+#if 0
 #include<woo/pkg/dem/ForceEngine.hpp>
 WOO_PLUGIN(dem,(RadialForce));
 void RadialForce::run(){
@@ -9,3 +10,4 @@ void RadialForce::run(){
 		dyn.addForceTorque(fNorm*radial,Vector3r::Zero());
 	}
 }
+#endif

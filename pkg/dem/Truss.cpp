@@ -94,7 +94,7 @@ void Gl1_Truss::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool w
 		color=CompUtils::scalarOnColorScale(t.axialStress,stressRange[0],stressRange[1]);
 	}
 	glShadeModel(GL_SMOOTH);
-	GLUtils::Cylinder(t.nodes[0]->pos+shift,t.nodes[1]->pos+shift,t.radius,color,t.getWire()||wire2,t.radius,/*caps*/false,slices,stacks);
+	GLUtils::Cylinder(t.nodes[0]->pos+shift,t.nodes[1]->pos+shift,t.radius,color,t.getWire()||wire2,/*caps*/false,t.radius,slices,stacks);
 	for(int end=0; end<2; end++){
 		if(!(t.caps&(end==0?Truss::CAP_A:Truss::CAP_B))) continue;
 		glPushMatrix();

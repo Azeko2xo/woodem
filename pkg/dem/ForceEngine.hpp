@@ -1,4 +1,7 @@
+// obsolete; replaced by imposed force via pkg/dem/Impose: RadialForce
 #pragma once
+#if 0
+
 #include<woo/pkg/dem/Particle.hpp>
 #include<woo/core/Engine.hpp>
 
@@ -14,3 +17,5 @@ struct RadialForce: public GlobalEngine {
 	);
 };
 REGISTER_SERIALIZABLE(RadialForce);
+
+#endif

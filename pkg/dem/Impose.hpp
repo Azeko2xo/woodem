@@ -40,6 +40,17 @@ struct AlignedHarmonicOscillations: public Impose{
 };
 REGISTER_SERIALIZABLE(AlignedHarmonicOscillations);
 
+struct RadialForce: public Impose{
+	void force(const Scene* scene, const shared_ptr<Node>& n);
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR(RadialForce,Impose,"Impose constant force towards an axis in 3d.",
+		((shared_ptr<Node>,nodeA,,,"First node defining the axis"))
+		((shared_ptr<Node>,nodeB,,,"Second node defining the axis"))
+		((Real,F,0,,"Magnitude of the force applied. Positive value means away from the axis given by *nodeA* and *nodeB*."))
+		,/*ctor*/ what=Impose::FORCE;
+	);
+};
+REGISTER_SERIALIZABLE(RadialForce);
+
 struct Local6Dofs: public Impose{
 	void velocity(const Scene* scene, const shared_ptr<Node>& n){ doImpose(scene,n,/*velocity*/true); }
 	void force(const Scene* scene, const shared_ptr<Node>& n)   { doImpose(scene,n,/*velocity*/false); }

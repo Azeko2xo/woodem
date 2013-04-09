@@ -327,7 +327,17 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 				// if cancelled, assigns empty string, which means no screenshot will be taken at all
 				nextSnapFile=QFileDialog::getSaveFileName(NULL,"Save screenshot",QDir::currentPath(),filters).toStdString();
 			#else
-				LOG_ERROR("Saving screenshots directly does not work (the UI freezes); use Ctrl-C to copy to clipboard and paste somewhere, or set the Renderer.snapFmt (currently "<<Renderer::snapFmt<<") and press 'v' to save to that file directly.");
+				Scene* scene=Master::instance().getScene().get();
+				string out=scene->expandTags(Renderer::snapFmt);
+				if(boost::algorithm::contains(out,"{#}")){
+					for(int i=0; ;i++){
+						std::ostringstream fss; fss<<std::setw(4)<<std::setfill('0')<<i;
+						string out2=boost::algorithm::replace_all_copy(out,"{#}",fss.str());
+						if(!boost::filesystem::exists(out2)){ nextSnapFile=out2; break; }
+					}
+				} else nextSnapFile=out;
+				LOG_INFO("Will save snapshot to "<<nextSnapFile);
+				// LOG_ERROR("Saving screenshots directly does not work (the UI freezes); use Ctrl-C to copy to clipboard and paste somewhere, or set the Renderer.snapFmt (currently "<<Renderer::snapFmt<<") and press 'v' to save to that file directly.");
 			#endif
 		} else {
 			Renderer::scaleOn=!Renderer::scaleOn;
@@ -424,18 +434,6 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 		}
 	}
 	else if(e->key()==Qt::Key_Period) gridSubdivide = !gridSubdivide;
-	else if(e->key()==Qt::Key_V){
-		Scene* scene=Master::instance().getScene().get();
-		string out=scene->expandTags(Renderer::snapFmt);
-		if(boost::algorithm::contains(out,"{#}")){
-			for(int i=0; ;i++){
-				std::ostringstream fss; fss<<std::setw(4)<<std::setfill('0')<<i;
-				string out2=boost::algorithm::replace_all_copy(out,"{#}",fss.str());
-				if(!boost::filesystem::exists(out2)){ nextSnapFile=out2; break; }
-			}
-		} else nextSnapFile=out;
-		LOG_INFO("Will save snapshot to "<<nextSnapFile);
-	}
 	else if(e->key()!=Qt::Key_Escape && e->key()!=Qt::Key_Space) QGLViewer::keyPressEvent(e);
 	updateGL();
 }
@@ -516,22 +514,23 @@ void GLViewer::centerScene(){
 
 void GLViewer::draw(bool withNames)
 {
-	if(!nextSnapFile.empty()){
+	_snapTo=nextSnapFile;
+	if(!_snapTo.empty()){
 		bool compress=false;
-		int gl2ps_format;
+		int gl2ps_format=-1;
 		nextSnapIsGl2ps=false;
 		#ifndef WOO_GL2PS
 			const int GL2PS_PDF=0, GL2PS_SVG=0, GL2PS_PS=0; // just avoid those to be undefined below
 		#endif
-		if(boost::algorithm::ends_with(nextSnapFile,".pdf")){	gl2ps_format=GL2PS_PDF; compress=true; nextSnapIsGl2ps=true; }
-		else if(boost::algorithm::ends_with(nextSnapFile,".svg")){ gl2ps_format=GL2PS_SVG; nextSnapIsGl2ps=true; }
-		else if(boost::algorithm::ends_with(nextSnapFile,".svgz")){ gl2ps_format=GL2PS_SVG; compress=true; nextSnapIsGl2ps=true; }
-		else if(boost::algorithm::ends_with(nextSnapFile,".ps")){ gl2ps_format=GL2PS_PS;  nextSnapIsGl2ps=true; }
+		if(boost::algorithm::ends_with(_snapTo,".pdf")){	gl2ps_format=GL2PS_PDF; compress=true; nextSnapIsGl2ps=true; }
+		else if(boost::algorithm::ends_with(_snapTo,".svg")){ gl2ps_format=GL2PS_SVG; nextSnapIsGl2ps=true; }
+		else if(boost::algorithm::ends_with(_snapTo,".svgz")){ gl2ps_format=GL2PS_SVG; compress=true; nextSnapIsGl2ps=true; }
+		else if(boost::algorithm::ends_with(_snapTo,".ps")){ gl2ps_format=GL2PS_PS;  nextSnapIsGl2ps=true; }
 		if(nextSnapIsGl2ps){
 			#ifdef WOO_GL2PS
-				gl2psStream=fopen(nextSnapFile.c_str(),"wb");
-				if(!gl2psStream){ int err=errno; throw runtime_error(string("Error opening file ")+nextSnapFile+": "+strerror(err)); }
-				LOG_DEBUG("gl2ps: start saving snapshot to "<<nextSnapFile);
+				gl2psStream=fopen(_snapTo.c_str(),"wb");
+				if(!gl2psStream){ int err=errno; throw runtime_error(string("Error opening file ")+_snapTo+": "+strerror(err)); }
+				LOG_DEBUG("gl2ps: start saving snapshot to "<<_snapTo);
 				//int sortAlgo=GL2PS_BSP_SORT;
 				int sortAlgo=GL2PS_SIMPLE_SORT;
 				gl2psBeginPage(/*const char *title*/"Some title", /*const char *producer*/ "Woo",
@@ -544,9 +543,9 @@ void GLViewer::draw(bool withNames)
 					/*const char *filename*/NULL
 				);
 			#else
-				LOG_ERROR("Saving to vector formats not supported unless compiled with the gl2ps feature (was about to save to "<<nextSnapFile<<").");
+				LOG_ERROR("Saving to vector formats not supported unless compiled with the gl2ps feature (was about to save to "<<_snapTo<<").");
 				nextSnapIsGl2ps=false;
-				nextSnapFile.clear();
+				_snapTo.clear(); nextSnapFile.clear();
 			#endif
 		};
 	}
@@ -901,22 +900,21 @@ void GLViewer::postDraw(){
 #endif
 
 	QGLViewer::postDraw();
-	// FIXME: nextSnapFile can be changed independently between start of gl2ps and here!?
-	if(!nextSnapFile.empty()){
+	if(!_snapTo.empty()){
 		#ifdef WOO_GL2PS
 			if(nextSnapIsGl2ps){
 				gl2psEndPage();
-				LOG_DEBUG("Finished saving snapshot to "<<nextSnapFile);
+				LOG_DEBUG("Finished saving snapshot to "<<_snapTo);
 				fclose(gl2psStream);
 			} else
 		#endif
 		{
 			// save the snapshot
-			saveSnapshot(QString(nextSnapFile.c_str()),/*overwrite*/ true);
+			saveSnapshot(QString(_snapTo.c_str()),/*overwrite*/ true);
 		}
-		if(nextSnapMsg) displayMessage("Saved snapshot to "+nextSnapFile);
+		if(nextSnapMsg) displayMessage("Saved snapshot to "+_snapTo);
 		// notify the caller that it is done already (probably not an atomic op :-|, though)
-		nextSnapFile.clear();
+		_snapTo.clear(); nextSnapFile.clear();
 		nextSnapMsg=true; // show next message, unless disabled again
 	}
 }
