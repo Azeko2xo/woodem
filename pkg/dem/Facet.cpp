@@ -15,6 +15,10 @@ Vector3r Facet::getNormal() const {
 	return ((nodes[1]->pos-nodes[0]->pos).cross(nodes[2]->pos-nodes[0]->pos)).normalized();
 }
 
+Vector3r Facet::getCentroid() const {
+	return (1/3.)*(nodes[0]->pos+nodes[1]->pos+nodes[2]->pos);
+}
+
 #ifdef WOO_OPENGL
 Vector3r Facet::getGlVertex(int i) const{
 	assert(i>=0 && i<=2);
@@ -186,8 +190,6 @@ void Gl1_Facet::drawEdges(const Facet& f, const Vector3r& facetNormal, const Vec
 		}
 	}
 }
-
-// glNormal
 
 void Gl1_Facet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire2, const GLViewInfo&){   
 	Facet& f=sh->cast<Facet>();
