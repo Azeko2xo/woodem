@@ -34,7 +34,7 @@ struct Node;
 struct NodeGlRep: public Object{
 	//boost::mutex lock; // for rendering
 	//void safeRender(const shared_ptr<Node>& n, GLViewInfo* glvi){ boost::mutex::scoped_lock l(lock); render(n,glvi); }
-	virtual void render(const shared_ptr<Node>&, GLViewInfo*){};
+	virtual void render(const shared_ptr<Node>&, const GLViewInfo*){};
 	WOO_CLASS_BASE_DOC(NodeGlRep,Object,"Object representing what should be rendered at associated node (abstract base class).");
 };
 REGISTER_SERIALIZABLE(NodeGlRep);

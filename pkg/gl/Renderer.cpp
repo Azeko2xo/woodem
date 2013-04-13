@@ -296,9 +296,12 @@ void Renderer::renderRawNode(shared_ptr<Node> node){
 	else{ x=(scene->isPeriodic?scene->cell->canonicalizePt(node->pos):node->pos); }
 	Quaternionr ori=(node->hasData<GlData>()?node->getData<GlData>().dGlOri:Quaternionr::Identity())*node->ori;
 	glPushMatrix();
-		glTranslatev(x);
-		AngleAxisr aa(ori.conjugate());
-		glRotatef(aa.angle()*(180/M_PI),aa.axis()[0],aa.axis()[1],aa.axis()[2]);
+		GLUtils::setLocalCoords(x,ori.conjugate());
+		#if 0
+			glTranslatev(x);
+			AngleAxisr aa(ori.conjugate());
+			glRotatef(aa.angle()*(180/M_PI),aa.axis()[0],aa.axis()[1],aa.axis()[2]);
+		#endif
 		nodeDispatcher(node,viewInfo);
 	glPopMatrix();
 	// if(node->rep){ node->rep->render(node,&viewInfo); }

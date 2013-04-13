@@ -12,7 +12,7 @@
 
 WOO_PLUGIN(gl,(ScalarGlRep)(VectorGlRep)(TensorGlRep)(ActReactGlRep)(CylGlRep));
 
-void ScalarGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
+void ScalarGlRep::render(const shared_ptr<Node>& node, const GLViewInfo* viewInfo){
 	Vector3r color=(range?range->color(val):CompUtils::scalarOnColorScale(val,0,1));
 	Vector3r pos=node->pos+(node->hasData<GlData>()?node->getData<GlData>().dGlPos:Vector3r::Zero());
 	switch(how){
@@ -38,7 +38,7 @@ void ScalarGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
 	};
 };
 
-void VectorGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
+void VectorGlRep::render(const shared_ptr<Node>& node, const GLViewInfo* viewInfo){
 	Real valNorm=val.norm();
 	Vector3r color=(range?range->color(valNorm):CompUtils::scalarOnColorScale(valNorm,0,1));
 	Real mxNorm=(range?range->mnmx[1]:1);
@@ -50,7 +50,7 @@ void VectorGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
 }
 
 
-void ActReactGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
+void ActReactGlRep::render(const shared_ptr<Node>& node, const GLViewInfo* viewInfo){
 	Real len0=relSz*viewInfo->sceneRadius;
 	Vector3r offset=relOff*viewInfo->sceneRadius*(node->ori.conjugate()*Vector3r::UnitX());
 	Vector3r pos=node->pos;
@@ -97,7 +97,7 @@ void TensorGlRep::postLoad(TensorGlRep&,void*){
 	skew=2*Vector3r(skewM(1,2),skewM(0,2),skewM(0,1));
 };
 
-void TensorGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
+void TensorGlRep::render(const shared_ptr<Node>& node, const GLViewInfo* viewInfo){
 
 	const int circDiv=20;
 	static gleDouble circ[circDiv+2][3]={};
@@ -156,7 +156,7 @@ void TensorGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
 }
 
 
-void CylGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
+void CylGlRep::render(const shared_ptr<Node>& node, const GLViewInfo* viewInfo){
 	Real radius=viewInfo->sceneRadius*relSz*(isnan(rad)?1:(rangeRad?rangeRad->norm(rad):1));
 	Real ccol=isnan(col)?0:col;
 	Vector3r color=(rangeCol?rangeCol->color(ccol):CompUtils::scalarOnColorScale(ccol,0,1));

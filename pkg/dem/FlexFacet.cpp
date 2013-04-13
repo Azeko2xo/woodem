@@ -11,20 +11,37 @@ void FlexFacet::pyUpdate(){
 void FlexFacet::setRefConf(){
 	if(!node) node=make_shared<Node>();
 	// set initial node position and orientation
-	// for now make it just arbitrary (instead of requiring e.g. y0=0)
-	node->ori=Quaternionr::FromTwoVectors(this->getNormal(),Vector3r::UnitZ());
 	node->pos=this->getCentroid();
+	// for orientation, there is a few choices which one to pick
+	enum {INI_CS_SIMPLE=0,INI_CS_NODE0_AT_X};
+	const int ini_cs=INI_CS_NODE0_AT_X;
+	//const int ini_cs=INI_CS_SIMPLE;
+	switch(ini_cs){
+		case INI_CS_SIMPLE:
+			node->ori=Quaternionr::FromTwoVectors(this->getNormal(),Vector3r::UnitZ());
+			break;
+		case INI_CS_NODE0_AT_X:{
+			Matrix3r T;
+			T.row(0)=(nodes[0]->pos-node->pos).normalized();
+			T.row(2)=this->getNormal();
+			T.row(1)=T.row(2).cross(T.row(0));
+			assert(T.row(0).dot(T.row(2))<1e-12);
+			node->ori=Quaternionr(T);
+			break;
+		}
+	};
 	// reference nodal positions
 	for(int i:{0,1,2}){
-		Vector3r nl=node->ori*nodes[i]->pos;
+		Vector3r nl=node->ori*(nodes[i]->pos-node->pos);
 		assert(nl[2]<1e-6*(max(abs(nl[0]),abs(nl[1])))); // z-coord should be zero
 		refPos.segment<2>(2*i)=nl.head<2>();
 	}
 	// reference nodal rotations
 	refRot.resize(3);
 	for(int i:{0,1,2}){
-		// facet node orientation minus vertex node orientation
-		refRot[i]=nodes[i]->ori.conjugate()*node->ori;
+		// facet node orientation minus vertex node orientation, in local frame (read backwards)
+		refRot[i]=quaternionInNodeCS(nodes[i]->ori.conjugate()*node->ori,node->ori);
+		//LOG_WARN("refRot["<<i<<"]="<<AngleAxisr(refRot[i]).angle()<<"/"<<AngleAxisr(refRot[i]).axis().transpose());
 	};
 	// set displacements to zero
 	uXy=phiXy=Vector6r::Zero();
@@ -43,9 +60,11 @@ void FlexFacet::updateNode(){
 		nxy0.segment<2>(2*i)=xy0.head<2>();
 	}
 	// compute the best fit (C.8 of the paper)
-	Real tanTheta3=(refPos[0]*nxy0[1]+refPos[2]*nxy0[3]+refPos[4]*nxy0[5]-refPos[1]*nxy0[0]-refPos[3]*nxy0[2]-refPos[5]*nxy0[4])/(refPos.dot(nxy0));
+	// split the fraction into numerator (y) and denominator (x) to get the correct quadrant
+	Real tanTheta3_y=refPos[0]*nxy0[1]+refPos[2]*nxy0[3]+refPos[4]*nxy0[5]-refPos[1]*nxy0[0]-refPos[3]*nxy0[2]-refPos[5]*nxy0[4];
+	Real tanTheta3_x=refPos.dot(nxy0);
 	// rotation to be planar, plus rotation around plane normal to the element CR frame
-	node->ori=AngleAxisr(atan(tanTheta3),Vector3r::UnitZ())*ori0;
+	node->ori=AngleAxisr(-atan2(tanTheta3_y,tanTheta3_x),Vector3r::UnitZ())*ori0;
 };
 
 void FlexFacet::computeNodalDisplacements(){
@@ -53,12 +72,13 @@ void FlexFacet::computeNodalDisplacements(){
 	// supposes node is updated already
 	for(int i:{0,1,2}){
 		Vector3r xy=node->ori*(nodes[i]->pos-node->pos);
+		//LOG_WARN("node "<<i<<": xy="<<xy);
 		assert(xy[2]<1e-6*(max(abs(xy[0]),abs(xy[1]))));
 		// displacements
 		uXy.segment<2>(2*i)=xy.head<2>()-refPos.segment<2>(2*i);
 		// rotations
-		AngleAxisr aa(refRot[i].conjugate()*(nodes[i]->ori.conjugate()*node->ori));
-		Vector3r rot=node->ori*Vector3r(aa.angle()*aa.axis()); // rotation vector in local coords
+		AngleAxisr aa(refRot[i].conjugate()*quaternionInNodeCS(nodes[i]->ori.conjugate()*node->ori,node->ori));
+		Vector3r rot=Vector3r(aa.angle()*aa.axis()); // rotation vector in local coords
 		phiXy.segment<2>(2*i)=rot.head<2>(); // drilling rotation discarded
 	}
 };
@@ -80,45 +100,60 @@ bool Gl1_FlexFacet::uSplit;
 Real Gl1_FlexFacet::relPhi;
 int Gl1_FlexFacet::phiWd;
 bool Gl1_FlexFacet::phiSplit;
+bool Gl1_FlexFacet::arrows;
 shared_ptr<ScalarRange> Gl1_FlexFacet::uRange;
 shared_ptr<ScalarRange> Gl1_FlexFacet::phiRange;
+
+void Gl1_FlexFacet::drawLocalDisplacement(const Vector2r& nodePt, const Vector2r& xy, const shared_ptr<ScalarRange>& range, bool split, char arrow, int lineWd){
+	Vector3r nodePt3(nodePt[0],nodePt[1],0);
+	if(split){
+		Vector3r p1=Vector3r(nodePt[0]+xy[0],nodePt[1],0), c1=range->color(xy[0]), p2=Vector3r(nodePt[0],nodePt[1]+xy[1],0), c2=range->color(xy[1]);
+		if(arrow==0){
+			glLineWidth(lineWd);
+			GLUtils::GLDrawLine(nodePt3,p1,c1);
+			GLUtils::GLDrawLine(nodePt3,p2,c2);
+		} else {
+			GLUtils::GLDrawArrow(nodePt3,p1,c1,/*doubled*/arrow>1);
+			GLUtils::GLDrawArrow(nodePt3,p2,c2,/*doubled*/arrow>1);
+		}
+	} else {
+		Vector3r p1=Vector3r(nodePt[0]+xy[0],nodePt[1]+xy[1],0), c1=range->color(xy.norm());
+		if(arrow==0){
+			glLineWidth(lineWd);
+			GLUtils::GLDrawLine(nodePt3,p1,c1);
+		} else {
+			GLUtils::GLDrawArrow(nodePt3,p1,c1,/*doubled*/arrow>1);
+		}
+	}
+}
+
 
 void Gl1_FlexFacet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire2, const GLViewInfo& viewInfo){
 	Gl1_Facet::go(sh,shift,/*always with wire*/true,viewInfo);
 	FlexFacet& ff=sh->cast<FlexFacet>();
 	if(!ff.hasRefConf()) return;
-	if(node) Renderer::renderRawNode(ff.node);
+	if(node){
+		Renderer::renderRawNode(ff.node);
+		if(ff.node->rep) ff.node->rep->render(ff.node,&viewInfo);
+	}
+
 	// draw everything in in local coords now
 	glPushMatrix();
-		glTranslatev(ff.node->pos);
-		glMultMatrixd(Eigen::Affine3d(Matrix3r(ff.node->ori).transpose()).data());
-		Vector3r refPt[3];
-		for(int i:{0,1,2}) refPt[i]=Vector3r(ff.refPos[2*i],ff.refPos[2*i+1],0);
+		GLUtils::setLocalCoords(ff.node->pos,ff.node->ori.conjugate());
 
 		if(refConf){
 			glColor3v(refColor);
 			glBegin(GL_LINE_LOOP);
-				for(int i:{0,1,2}) glVertex3v(refPt[i]);
+				for(int i:{0,1,2}) glVertex3v(Vector3r(ff.refPos[2*i],ff.refPos[2*i+1],0));
 			glEnd();
 		}
 		if(uScale!=0){
 			glLineWidth(uWd);
-			for(int i:{0,1,2})
-				if(!uSplit) GLUtils::GLDrawLine(refPt[i],refPt[i]+uScale*Vector3r(ff.uXy[2*i],ff.uXy[2*i+1],0),uRange->color(ff.uXy.segment<2>(2*i).norm()));
-				else{
-					GLUtils::GLDrawLine(refPt[i],refPt[i]+uScale*Vector3r(ff.uXy[2*i],0,0),uRange->color(ff.uXy[2*i]));
-					GLUtils::GLDrawLine(refPt[i],refPt[i]+uScale*Vector3r(0,ff.uXy[2*i+1],0),uRange->color(ff.uXy[2*i+1]));
-				}
+			for(int i:{0,1,2}) drawLocalDisplacement(ff.refPos.segment<2>(2*i),uScale*ff.uXy.segment<2>(2*i),uRange,uSplit,arrows?1:0,uWd);
 		}
 		if(relPhi!=0){
 			glLineWidth(phiWd);
-			for(int i:{0,1,2}){
-				if(!phiSplit) GLUtils::GLDrawLine(refPt[i],refPt[i]+relPhi*viewInfo.sceneRadius*Vector3r(ff.phiXy[2*i],ff.phiXy[2*i+1],0),phiRange->color(ff.phiXy.segment<2>(2*i).norm()));
-				else{
-					GLUtils::GLDrawLine(refPt[i],refPt[i]+relPhi*viewInfo.sceneRadius*Vector3r(ff.phiXy[2*i],0,0),phiRange->color(ff.phiXy[2*i]));
-					GLUtils::GLDrawLine(refPt[i],refPt[i]+relPhi*viewInfo.sceneRadius*Vector3r(0,ff.phiXy[2*i+1],0),phiRange->color(ff.phiXy[2*i+1]));
-				}
-			}
+			for(int i:{0,1,2}) drawLocalDisplacement(ff.refPos.segment<2>(2*i),relPhi*viewInfo.sceneRadius*ff.phiXy.segment<2>(2*i),phiRange,phiSplit,arrows?2:0,phiWd);
 		}
 	glPopMatrix();
 }

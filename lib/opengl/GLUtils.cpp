@@ -79,7 +79,7 @@ Use drawArrow(const Vec& from, const Vec& to, float radius, int nbSubdivisions) 
 ModelView matrix to place the arrow in 3D.
 
 Uses current color and does not modify the OpenGL state. */
-void GLUtils::QGLViewer::drawArrow(float length, float radius, int nbSubdivisions)
+void GLUtils::QGLViewer::drawArrow(float length, float radius, int nbSubdivisions, bool doubled)
 {
 	static GLUquadric* quadric = gluNewQuadric();
 
@@ -92,18 +92,24 @@ void GLUtils::QGLViewer::drawArrow(float length, float radius, int nbSubdivision
 	gluCylinder(quadric, radius, radius, length * (1.0 - head/coneRadiusCoef), nbSubdivisions, 1);
 	glTranslatef(0.0, 0.0, length * (1.0 - head));
 	gluCylinder(quadric, coneRadiusCoef * radius, 0.0, head * length, nbSubdivisions, 1);
-	glTranslatef(0.0, 0.0, -length * (1.0 - head));
+	if(!doubled){
+		glTranslatef(0.0, 0.0,-length*(1.0-head));
+	} else {
+		glTranslatef(0.0, 0.0,-length*(.3*head));
+		gluCylinder(quadric, coneRadiusCoef * radius, 0.0, head * length, nbSubdivisions, 1);
+		glTranslatef(0.0, 0.0,-length*(.7-head));
+	}
 }
 
 /*! Draws a 3D arrow between the 3D point \p from and the 3D point \p to, both defined in the
 current ModelView coordinates system.
 
 See drawArrow(float length, float radius, int nbSubdivisions) for details. */
-void GLUtils::QGLViewer::drawArrow(const Vector3r& from, const Vector3r& to, float radius, int nbSubdivisions)
+void GLUtils::QGLViewer::drawArrow(const Vector3r& from, const Vector3r& to, float radius, int nbSubdivisions, bool doubled)
 {
 	glPushMatrix();
 		GLUtils::setLocalCoords(from,Quaternionr().setFromTwoVectors(Vector3r(0,0,1),to-from));
-		drawArrow((to-from).norm(), radius, nbSubdivisions);
+		drawArrow((to-from).norm(), radius, nbSubdivisions, doubled);
 	glPopMatrix();
 }
 

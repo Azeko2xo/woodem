@@ -13,8 +13,8 @@
 struct GLUtils{
 	// code copied from qglviewer
 	struct QGLViewer{
-		static void drawArrow(float length=1.0f, float radius=-1.0f, int nbSubdivisions=12);
-		static void drawArrow(const Vector3r& from, const Vector3r& to, float radius=-1.0f, int nbSubdivisions=12);
+		static void drawArrow(float length=1.0f, float radius=-1.0f, int nbSubdivisions=12, bool doubled=false);
+		static void drawArrow(const Vector3r& from, const Vector3r& to, float radius=-1.0f, int nbSubdivisions=12, bool doubled=false);
 	};
 	// render wire of parallelepiped with sides given by vectors a,b,c; zero corner is at origin
 	static void Parallelepiped(const Vector3r& a, const Vector3r& b, const Vector3r& c);
@@ -27,8 +27,8 @@ struct GLUtils{
 	// draw parallelepipedic grid with lines starting at pos
 	static void Grid(const Vector3r& pos, const Vector3r& unitX, const Vector3r& unitY, const Vector2i& size, int edgeMask=15);
 
-	static void GLDrawArrow(const Vector3r& from, const Vector3r& to, const Vector3r& color=Vector3r(1,1,1)){
-		glEnable(GL_LIGHTING); glColor3v(color); QGLViewer::drawArrow(from,to);	
+	static void GLDrawArrow(const Vector3r& from, const Vector3r& to, const Vector3r& color=Vector3r(1,1,1), bool doubled=false){
+		glEnable(GL_LIGHTING); glColor3v(color); QGLViewer::drawArrow(from,to,/*radius*/-1,/*nbSubdivisions*/12,/*doubled*/doubled);	
 	}
 	static void GLDrawLine(const Vector3r& from, const Vector3r& to, const Vector3r& color=Vector3r(1,1,1), int width=-1){
 		glEnable(GL_LIGHTING); glColor3v(color);
