@@ -33,7 +33,7 @@ void TraceGlRep::addPoint(const Vector3r& p, const Real& scalar){
 	}
 }
 
-void TraceGlRep::render(const shared_ptr<Node>& n, GLViewInfo*){
+void TraceGlRep::render(const shared_ptr<Node>& n, const GLViewInfo*){
 	if(isHidden()) return;
 	if(!Tracer::glSmooth) glDisable(GL_LINE_SMOOTH);
 	else glEnable(GL_LINE_SMOOTH);

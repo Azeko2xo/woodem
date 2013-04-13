@@ -161,6 +161,7 @@ public:
 
 	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
 	void addForceTorque(const Vector3r& f, const Vector3r& t=Vector3r::Zero()){ boost::mutex::scoped_lock l(lock); force+=f; torque+=t; }
+	void addForce(const Vector3r& f){ boost::mutex::scoped_lock l(lock); force+=f; }
 
 	// get kinetic energy of given node
 	static Real getEk_any(const shared_ptr<Node>& n, bool trans, bool rot, Scene* scene);

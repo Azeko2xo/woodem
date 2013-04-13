@@ -211,7 +211,7 @@ def wall(position,axis,sense=0,glAB=None,fixed=True,mass=0,color=None,mat=defaul
 	p.shape.visible=visible
 	return p
 
-def facet(vertices,fakeVel=None,halfThick=0.,fixed=True,wire=True,color=None,highlight=False,mat=defaultMaterial,visible=True,mask=1):
+def facet(vertices,fakeVel=None,halfThick=0.,fixed=True,wire=True,color=None,highlight=False,mat=defaultMaterial,visible=True,mask=1,flex=False):
 	"""Create facet with given parameters.
 
 	:param [Vector3,Vector3,Vector3] vertices: coordinates of vertices in the global coordinate system.
@@ -226,7 +226,7 @@ def facet(vertices,fakeVel=None,halfThick=0.,fixed=True,wire=True,color=None,hig
 			if not n.dem: n.dem=DemData()
 	else:
 		nodes=[_mkDemNode(pos=vertices[0]),_mkDemNode(pos=vertices[1]),_mkDemNode(pos=vertices[2])]
-	p.shape=Facet(color=color if color else random.random(),halfThick=halfThick)
+	p.shape=(FlexFacet if flex else Facet)(color=color if color else random.random(),halfThick=halfThick)
 	if fakeVel: p.shape.fakeVel=fakeVel
 	p.shape.wire=wire
 	_commonBodySetup(p,nodes,volumes=None,masses=(0,0,0),geomInertias=[Vector3(0,0,0),Vector3(0,0,0),Vector3(0,0,0)],mat=mat,fixed=fixed)

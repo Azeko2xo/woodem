@@ -1,8 +1,8 @@
 #include<woo/pkg/dem/FlexFacet.hpp>
 
-WOO_PLUGIN(dem,(FlexFacet));
+WOO_PLUGIN(dem,(FlexFacet)(In2_FlexFacet_ElastMat));
 
-void FlexFacet::pyUpdate(){
+void FlexFacet::stepUpdate(){
 	if(!hasRefConf()) setRefConf();
 	updateNode();
 	computeNodalDisplacements();
@@ -49,7 +49,31 @@ void FlexFacet::setRefConf(){
 		drill=Vector3r::Zero();
 		currRot.resize(3);
 	#endif
+	KK.resize(0,0); // delete stiffness matrix so that it is recreated again
 };
+
+void FlexFacet::ensureStiffnessMatrix(const Real& young, const Real& nu, const Real& thickness){
+	assert(hasRefConf());
+	if(KK.size()==36) return; // 6x6 means the matrix already exists
+	// plane stress stiffness matrix
+	Matrix3r E;
+	E<<1,nu,0, nu,1,0,0,0,(1-nu)/2;
+	E*=young/(1-nu*nu);
+	// strain-displacement matrix
+	Real area=this->getArea();
+	const Real& x1(refPos[0]); const Real& y1(refPos[1]); const Real& x2(refPos[2]); const Real& y2(refPos[3]); const Real& x3(refPos[4]); const Real& y3(refPos[5]);
+	Eigen::Matrix<Real,3,6> B;
+	B<<
+		(y2-y3),0      ,(y3-y1),0      ,(y1-y2),0      ,
+		0      ,(x3-x2),0      ,(x1-x3),0      ,(x2-x1),
+		(x3-x2),(y2-y3),(x1-x3),(y3-y1),(x2-x1),(y1-y2);
+	B*=(1/(2*area));
+	Real t=(isnan(thickness)?2*this->halfThick:thickness);
+	if(/*also covers NaN*/!(t>0)) throw std::runtime_error("FlexFacet::ensureStiffnessMatrix: Facet thickness is not positive!");
+	KK.resize(6,6);
+	KK=t*area*B.transpose()*E*B;
+};
+
 
 void FlexFacet::updateNode(){
 	assert(hasRefConf());
@@ -90,6 +114,34 @@ void FlexFacet::computeNodalDisplacements(){
 		#endif
 	}
 };
+
+void In2_FlexFacet_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& particle){
+	auto& ff=sh->cast<FlexFacet>();
+	if(contacts){
+		FOREACH(const Particle::MapParticleContact::value_type& I,particle->contacts){
+			const shared_ptr<Contact>& C(I.second); if(!C->isReal()) continue;
+			Vector3r F,T,xc;
+			// TODO: this should be done more efficiently
+			for(int i:{0,1,2}){
+				std::tie(F,T,xc)=C->getForceTorqueBranch(particle,/*nodeI*/i,scene);
+				F/=3.; T/=3.;
+				ff.nodes[i]->getData<DemData>().addForceTorque(F,xc.cross(F)+T);
+			}
+		}
+	}
+	ff.stepUpdate();
+	// assemble local stiffness matrix, in case it does not exist yet
+	ff.ensureStiffnessMatrix(particle->material->cast<ElastMat>().young,nu,thickness);
+	// compute nodal forces response here
+	Vector6r nodalForces=-(ff.KK*ff.uXy).transpose();
+	//LOG_WARN("Nodal forces: "<<nodalForces);
+	// apply nodal forces
+	for(int i:{0,1,2}){
+		//LOG_WARN("    "<<i<<" global: "<<(ff.node->ori.conjugate()*Vector3r(nodalForces[2*i],nodalForces[2*i+1],0)).transpose())
+		ff.nodes[i]->getData<DemData>().addForce(ff.node->ori.conjugate()*Vector3r(nodalForces[2*i],nodalForces[2*i+1],0));
+		//LOG_WARN("    "<<i<<" written:"<<ff.nodes[i]->getData<DemData>().force);
+	}
+}
 
 #ifdef WOO_OPENGL
 

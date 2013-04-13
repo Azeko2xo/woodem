@@ -1,14 +1,17 @@
 #pragma once
 #include<woo/pkg/dem/Facet.hpp>
+#include<woo/pkg/dem/FrictMat.hpp>
 
 // #define FLEXFACET_DEBUG_ROT
 struct FlexFacet: public Facet{
 	bool hasRefConf() const { return node && refRot.size()==3; }
 	void pyReset(){ refRot.clear(); }
 	void setRefConf(); // use the current configuration as the referential one
+	void ensureStiffnessMatrix(const Real& young, const Real& nu, const Real& thickness);
 	void updateNode(); // update local coordinate system
 	void computeNodalDisplacements(); 
-	void pyUpdate();
+	// called by functors to initialize (if necessary) and update
+	void stepUpdate();
 	// transform quaternion *q* so that it is expressed in local frame given by *cs*
 	// TODO: this should be doable with quaternions only?!
 	// http://stackoverflow.com/questions/15984713/rotation-in-local-frame-expressed-as-quaternion
@@ -28,14 +31,27 @@ struct FlexFacet: public Facet{
 			((Vector3r,drill,Vector3r::Zero(),AttrTrait<>().readonly(),"Dirilling rotation (debugging only)"))
 			((vector<Quaternionr>,currRot,,AttrTrait<>().readonly(),"What would be the current value of refRot (debugging only!)"))
 		#endif
+		((MatrixXr,KK,,,"Stiffness matrix of the element (assembled when the reference configuration is set)"))
 		,/*ctor*/
 		,/*py*/
 			.def("setRefConf",&FlexFacet::setRefConf,"Set the current configuration as the reference one.")
-			.def("update",&FlexFacet::pyUpdate,"Update current configuration; create reference configuration if it does not exist.")
+			.def("update",&FlexFacet::stepUpdate,"Update current configuration; create reference configuration if it does not exist.")
 			.def("reset",&FlexFacet::pyReset,"Reset reference configuration; this forces using the current config as reference when :obj:`update` is called again.") 
 	);
 };
 REGISTER_SERIALIZABLE(FlexFacet);
+
+struct In2_FlexFacet_ElastMat: public IntraFunctor{
+	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&);
+	FUNCTOR2D(FlexFacet,ElastMat);
+	WOO_CLASS_BASE_DOC_ATTRS(In2_FlexFacet_ElastMat,IntraFunctor,"Apply contact forces and compute internal response of a :obj:`FlexFacet` (so far only the plane stress element has been implemented).",
+		((bool,contacts,true,,"Apply contact forces to facet's nodes (very simply distributed in thirds now)"))
+		((Real,nu,.25,,"Poisson's ratio used for assembling the $E$ matrix (Young's modulus is taken from :obj:`ElastMat`). Will be moved to the material class at some point."))
+		((Real,thickness,NaN,,"Thickness for CST stiffness computation; if NaN, try to use :obj:`Facet.halfThick`."))
+	);
+};
+REGISTER_SERIALIZABLE(In2_FlexFacet_ElastMat);
+
 
 #ifdef WOO_OPENGL
 #include<woo/pkg/gl/Functors.hpp>

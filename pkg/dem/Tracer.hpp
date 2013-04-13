@@ -7,7 +7,7 @@
 struct TraceGlRep: public NodeGlRep{
 	void addPoint(const Vector3r& p, const Real& scalar);
 	void compress(int ratio);
-	void render(const shared_ptr<Node>&,GLViewInfo*);
+	void render(const shared_ptr<Node>&,const GLViewInfo*);
 	void setHidden(bool hidden){ if(!hidden)flags&=~FLAG_HIDDEN; else flags|=FLAG_HIDDEN; }
 	bool isHidden() const { return flags&FLAG_HIDDEN; }
 	void resize(size_t size);
