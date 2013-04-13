@@ -1,5 +1,7 @@
 #pragma once
 #include<woo/pkg/dem/Facet.hpp>
+
+// #define FLEXFACET_DEBUG_ROT
 struct FlexFacet: public Facet{
 	bool hasRefConf() const { return node && refRot.size()==3; }
 	void pyReset(){ refRot.clear(); }
@@ -10,10 +12,11 @@ struct FlexFacet: public Facet{
 	// transform quaternion *q* so that it is expressed in local frame given by *cs*
 	// TODO: this should be doable with quaternions only?!
 	// http://stackoverflow.com/questions/15984713/rotation-in-local-frame-expressed-as-quaternion
-	Quaternionr quaternionInNodeCS(const Quaternionr& q, const Quaternionr& cs){
-		AngleAxisr aa(q);
-		return Quaternionr(AngleAxisr(aa.angle(),cs*aa.axis()));
+	Quaternionr quatDiffInNodeCS(const Quaternionr& q){
+		//AngleAxisr aa(q);
+		//return Quaternionr(AngleAxisr(aa.angle(),cs*aa.axis()));
 		//return q.conjugate()*cs;
+		return node->ori*q.conjugate();
 	}
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(FlexFacet,Facet,"Facet as triangular element, with 2 translational and 2 (or 3) rotational degrees of freedom in each node. Local coordinate system is established using `Best Fit CD Frame <http://www.colorado.edu/engineering/cas/courses.d/NFEM.d/NFEM.AppC.d/NFEM.AppC.pdf>`_ in a non-incremental manner, and in the same way, nodal displacements and rotations are computed.",
 		((shared_ptr<Node>,node,make_shared<Node>(),AttrTrait<>().readonly(),"Local coordinate system"))
@@ -21,6 +24,10 @@ struct FlexFacet: public Facet{
 		((Vector6r,refPos,Vector6r::Zero(),AttrTrait<>().readonly(),"Nodal coordinates in the local coordinate system, in the reference configuration"))
 		((Vector6r,uXy,Vector6r::Zero(),AttrTrait<>().readonly(),"Nodal displacements, stored as ux0, uy0, ux1, uy1, ux1, uy2."))
 		((Vector6r,phiXy,Vector6r::Zero(),AttrTrait<>().readonly(),"Nodal rotations, only including in-plane rotations (drilling DOF not yet implemented)"))
+		#ifdef FLEXFACET_DEBUG_ROT
+			((Vector3r,drill,Vector3r::Zero(),AttrTrait<>().readonly(),"Dirilling rotation (debugging only)"))
+			((vector<Quaternionr>,currRot,,AttrTrait<>().readonly(),"What would be the current value of refRot (debugging only!)"))
+		#endif
 		,/*ctor*/
 		,/*py*/
 			.def("setRefConf",&FlexFacet::setRefConf,"Set the current configuration as the reference one.")
@@ -34,7 +41,7 @@ REGISTER_SERIALIZABLE(FlexFacet);
 #include<woo/pkg/gl/Functors.hpp>
 struct Gl1_FlexFacet: public Gl1_Facet{	
 	void go(const shared_ptr<Shape>&, const Vector3r&, bool, const GLViewInfo&);
-	void drawLocalDisplacement(const Vector2r& nodePt, const Vector2r& xy, const shared_ptr<ScalarRange>& range, bool split, char arrow, int lineWd);
+	void drawLocalDisplacement(const Vector2r& nodePt, const Vector2r& xy, const shared_ptr<ScalarRange>& range, bool split, char arrow, int lineWd, const Real z=NaN);
 	RENDERS(FlexFacet);
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_FlexFacet,Gl1_Facet,"Renders :ref:`FlexFacet` object; :obj:`Facet` itself is rendered via :obj:`Gl1_Facet`.",
 		((bool,node,true,,"Show local frame node"))

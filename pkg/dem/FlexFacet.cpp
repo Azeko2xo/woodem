@@ -40,11 +40,15 @@ void FlexFacet::setRefConf(){
 	refRot.resize(3);
 	for(int i:{0,1,2}){
 		// facet node orientation minus vertex node orientation, in local frame (read backwards)
-		refRot[i]=quaternionInNodeCS(nodes[i]->ori.conjugate()*node->ori,node->ori);
+		refRot[i]=quatDiffInNodeCS(nodes[i]->ori);
 		//LOG_WARN("refRot["<<i<<"]="<<AngleAxisr(refRot[i]).angle()<<"/"<<AngleAxisr(refRot[i]).axis().transpose());
 	};
 	// set displacements to zero
 	uXy=phiXy=Vector6r::Zero();
+	#ifdef FLEXFACET_DEBUG_ROT
+		drill=Vector3r::Zero();
+		currRot.resize(3);
+	#endif
 };
 
 void FlexFacet::updateNode(){
@@ -77,9 +81,13 @@ void FlexFacet::computeNodalDisplacements(){
 		// displacements
 		uXy.segment<2>(2*i)=xy.head<2>()-refPos.segment<2>(2*i);
 		// rotations
-		AngleAxisr aa(refRot[i].conjugate()*quaternionInNodeCS(nodes[i]->ori.conjugate()*node->ori,node->ori));
+		AngleAxisr aa(refRot[i]*quatDiffInNodeCS(nodes[i]->ori).conjugate());
 		Vector3r rot=Vector3r(aa.angle()*aa.axis()); // rotation vector in local coords
 		phiXy.segment<2>(2*i)=rot.head<2>(); // drilling rotation discarded
+		#ifdef FLEXFACET_DEBUG_ROT
+			drill[i]=rot[2];
+			currRot[i]=quatDiffInNodeCS(nodes[i]->ori);
+		#endif
 	}
 };
 
@@ -104,7 +112,7 @@ bool Gl1_FlexFacet::arrows;
 shared_ptr<ScalarRange> Gl1_FlexFacet::uRange;
 shared_ptr<ScalarRange> Gl1_FlexFacet::phiRange;
 
-void Gl1_FlexFacet::drawLocalDisplacement(const Vector2r& nodePt, const Vector2r& xy, const shared_ptr<ScalarRange>& range, bool split, char arrow, int lineWd){
+void Gl1_FlexFacet::drawLocalDisplacement(const Vector2r& nodePt, const Vector2r& xy, const shared_ptr<ScalarRange>& range, bool split, char arrow, int lineWd, const Real z){
 	Vector3r nodePt3(nodePt[0],nodePt[1],0);
 	if(split){
 		Vector3r p1=Vector3r(nodePt[0]+xy[0],nodePt[1],0), c1=range->color(xy[0]), p2=Vector3r(nodePt[0],nodePt[1]+xy[1],0), c2=range->color(xy[1]);
@@ -125,6 +133,10 @@ void Gl1_FlexFacet::drawLocalDisplacement(const Vector2r& nodePt, const Vector2r
 			GLUtils::GLDrawArrow(nodePt3,p1,c1,/*doubled*/arrow>1);
 		}
 	}
+	if(!isnan(z)){
+		glLineWidth(lineWd);
+		GLUtils::GLDrawLine(nodePt3,Vector3r(nodePt[0],nodePt[1],z),range->color(z));
+	}
 }
 
 
@@ -135,6 +147,17 @@ void Gl1_FlexFacet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool 
 	if(node){
 		Renderer::renderRawNode(ff.node);
 		if(ff.node->rep) ff.node->rep->render(ff.node,&viewInfo);
+		#ifdef FLEXFACET_DEBUG_ROT
+			// show what FlexFacet thinks the orientation of nodes is - render those midway
+			if(ff.currRot.size()==3){
+				for(int i:{0,1,2}){
+					shared_ptr<Node> n=make_shared<Node>();
+					n->pos=ff.node->pos+.5*(ff.nodes[i]->pos-ff.node->pos);
+					n->ori=ff.currRot[i].conjugate()*ff.node->ori;
+					Renderer::renderRawNode(n);
+				}
+			}
+		#endif
 	}
 
 	// draw everything in in local coords now
@@ -153,7 +176,11 @@ void Gl1_FlexFacet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool 
 		}
 		if(relPhi!=0){
 			glLineWidth(phiWd);
-			for(int i:{0,1,2}) drawLocalDisplacement(ff.refPos.segment<2>(2*i),relPhi*viewInfo.sceneRadius*ff.phiXy.segment<2>(2*i),phiRange,phiSplit,arrows?2:0,phiWd);
+			for(int i:{0,1,2}) drawLocalDisplacement(ff.refPos.segment<2>(2*i),relPhi*viewInfo.sceneRadius*ff.phiXy.segment<2>(2*i),phiRange,phiSplit,arrows?2:0,phiWd
+				#ifdef FLEXFACET_DEBUG_ROT
+					, relPhi*viewInfo.sceneRadius*ff.drill[i] /* show the out-of-plane component */
+				#endif
+			);
 		}
 	glPopMatrix();
 }
