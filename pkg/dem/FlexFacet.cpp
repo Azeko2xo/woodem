@@ -104,7 +104,9 @@ void FlexFacet::ensureStiffnessMatrices(const Real& young, const Real& nu, const
 	Real q4=3*x23*y23/l23_2, q5=3*x31*y31/l31_2, q6=3*x12*y12/l12_2;
 	Real r4=3*pow(y23,2)/l23_2, r5=3*pow(y31,2)/l31_2, r6=3*pow(y12,2)/l12_2;
 
-	/* discard w1, w2, w3, since they are always zero in our case */
+	// even though w1, w2, w3 are always zero due to our definition of triangle plane,
+	// we need to get the corresponding nodal force, therefore cannot condense those DOFs away.
+
 	auto Hx_xi=[&](const Real& xi, const Real& eta) -> Vector9r { Vector9r ret; ret<<
 		P6*(1-2*xi)+(P5-P6)*eta,
 		q6*(1-2*xi)-(q5+q6)*eta,
