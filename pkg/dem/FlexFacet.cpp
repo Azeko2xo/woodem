@@ -2,6 +2,13 @@
 
 WOO_PLUGIN(dem,(FlexFacet)(In2_FlexFacet_ElastMat));
 
+// this should go to some shared header
+typedef Eigen::Matrix<Real,9,1> Vector9r;
+
+CREATE_LOGGER(FlexFacet);
+
+
+
 void FlexFacet::stepUpdate(){
 	if(!hasRefConf()) setRefConf();
 	updateNode();
@@ -40,7 +47,7 @@ void FlexFacet::setRefConf(){
 	refRot.resize(3);
 	for(int i:{0,1,2}){
 		// facet node orientation minus vertex node orientation, in local frame (read backwards)
-		refRot[i]=quatDiffInNodeCS(nodes[i]->ori);
+		refRot[i]=node->ori*nodes[i]->ori.conjugate();
 		//LOG_WARN("refRot["<<i<<"]="<<AngleAxisr(refRot[i]).angle()<<"/"<<AngleAxisr(refRot[i]).axis().transpose());
 	};
 	// set displacements to zero
@@ -49,29 +56,136 @@ void FlexFacet::setRefConf(){
 		drill=Vector3r::Zero();
 		currRot.resize(3);
 	#endif
-	KK.resize(0,0); // delete stiffness matrix so that it is recreated again
+	// delete stiffness matrices to force their re-creating
+	KKcst.resize(0,0); 
+	KKdkt.resize(0,0);
 };
 
-void FlexFacet::ensureStiffnessMatrix(const Real& young, const Real& nu, const Real& thickness){
+void FlexFacet::ensureStiffnessMatrices(const Real& young, const Real& nu, const Real& thickness,bool bending, const Real& bendThickness){
 	assert(hasRefConf());
-	if(KK.size()==36) return; // 6x6 means the matrix already exists
+	// do nothing if both matrices exist already
+	if(KKcst.size()==36 && (!bending || KKdkt.size()==81)) return; 
+	// check thickness
+	Real t=(isnan(thickness)?2*this->halfThick:thickness);
+	if(/*also covers NaN*/!(t>0)) throw std::runtime_error("FlexFacet::ensureStiffnessMatrices: Facet thickness is not positive!");
+
 	// plane stress stiffness matrix
 	Matrix3r E;
 	E<<1,nu,0, nu,1,0,0,0,(1-nu)/2;
-	E*=young/(1-nu*nu);
-	// strain-displacement matrix
+	E*=young/(1-pow(nu,2));
+
+	// strain-displacement matrix (CCT element)
 	Real area=this->getArea();
 	const Real& x1(refPos[0]); const Real& y1(refPos[1]); const Real& x2(refPos[2]); const Real& y2(refPos[3]); const Real& x3(refPos[4]); const Real& y3(refPos[5]);
+
 	Eigen::Matrix<Real,3,6> B;
 	B<<
 		(y2-y3),0      ,(y3-y1),0      ,(y1-y2),0      ,
 		0      ,(x3-x2),0      ,(x1-x3),0      ,(x2-x1),
 		(x3-x2),(y2-y3),(x1-x3),(y3-y1),(x2-x1),(y1-y2);
-	B*=(1/(2*area));
-	Real t=(isnan(thickness)?2*this->halfThick:thickness);
-	if(/*also covers NaN*/!(t>0)) throw std::runtime_error("FlexFacet::ensureStiffnessMatrix: Facet thickness is not positive!");
-	KK.resize(6,6);
-	KK=t*area*B.transpose()*E*B;
+	B*=1/(2*area);
+	KKcst.resize(6,6);
+	KKcst=t*area*B.transpose()*E*B;
+
+	if(!bending) return;
+
+	// strain-displacement matrix (DKT element)
+
+	Real dktT=(isnan(bendThickness)?t:bendThickness);
+	assert(!isnan(dktT));
+
+	// [Batoz,Bathe,Ho: 1980], Appendix A: Expansions for the DKT element
+	// (using the same notation)
+	Real x23=(x2-x3), x31(x3-x1), x12(x1-x2);
+	Real y23=(y2-y3), y31(y3-y1), y12(y1-y2);
+	Real l23_2=(pow(x23,2)+pow(y23,2)), l31_2=(pow(x31,2)+pow(y31,2)), l12_2=(pow(x12,2)+pow(y12,2));
+	Real P4=-6*x23/l23_2, P5=-6*x31/l31_2, P6=-6*x12/l12_2;
+	Real t4=-6*y23/l23_2, t5=-6*y31/l31_2, t6=-6*y12/l12_2;
+	Real q4=3*x23*y23/l23_2, q5=3*x31*y31/l31_2, q6=3*x12*y12/l12_2;
+	Real r4=3*pow(y23,2)/l23_2, r5=3*pow(y31,2)/l31_2, r6=3*pow(y12,2)/l12_2;
+
+	/* discard w1, w2, w3, since they are always zero in our case */
+	auto Hx_xi=[&](const Real& xi, const Real& eta) -> Vector9r { Vector9r ret; ret<<
+		P6*(1-2*xi)+(P5-P6)*eta,
+		q6*(1-2*xi)-(q5+q6)*eta,
+		-4+6*(xi+eta)+r6*(1-2*xi)-eta*(r5+r6),
+		-P6*(1-2*xi)+eta*(P4+P6),
+		q6*(1-2*xi)-eta*(q6-q4),
+		-2+6*xi+r6*(1-2*xi)+eta*(r4-r6),
+		-eta*(P5+P4),
+		eta*(q4-q5),
+		-eta*(r5-r4);
+		return ret;
+	};
+
+	auto Hy_xi=[&](const Real& xi, const Real &eta) -> Vector9r { Vector9r ret; ret<<
+		t6*(1-2*xi)+eta*(t5-t6),
+		1+r6*(1-2*xi)-eta*(r5+r6),
+		-q6*(1-2*xi)+eta*(q5+q6),
+		-t6*(1-2*xi)+eta*(t4+t6),
+		-1+r6*(1-2*xi)+eta*(r4-r6),
+		-q6*(1-2*xi)-eta*(q4-q6),
+		-eta*(t4+t5),
+		eta*(r4-r5),
+		-eta*(q4-q5);
+		return ret;
+	};
+
+	auto Hx_eta=[&](const Real& xi, const Real& eta) -> Vector9r { Vector9r ret; ret<<
+		-P5*(1-2*eta)-xi*(P6-P5),
+		q5*(1-2*eta)-xi*(q5+q6),
+		-4+6*(xi+eta)+r5*(1-2*eta)-xi*(r5+r6),
+		xi*(P4+P6),
+		xi*(q4-q6),
+		-xi*(r6-r4),
+		P5*(1-2*eta)-xi*(P4+P5),
+		q5*(1-2*eta)+xi*(q4-q5),
+		-2+6*eta+r5*(1-2*eta)+xi*(r4-r5);
+		return ret;
+	};
+
+	auto Hy_eta=[&](const Real& xi, const Real& eta) -> Vector9r { Vector9r ret; ret<<
+		-t5*(1-2*eta)-xi*(t6-t5),
+		1+r5*(1-2*eta)-xi*(r5+r6),
+		-q5*(1-2*eta)+xi*(q5+q6),
+		xi*(t4+t6),
+		xi*(r4-r6),
+		-xi*(q4-q6),
+		t5*(1-2*eta)-xi*(t4+t5),
+		-1+r5*(1-2*eta)+xi*(r4-r5),
+		-q5*(1-2*eta)-xi*(q4-q5);
+		return ret;
+	};
+
+	// return B(xi,eta) [Batoz,Bathe,Ho,1980], (30)
+	auto Bphi=[&](const Real& xi, const Real& eta) -> Eigen::Matrix<Real,3,9> {
+		Eigen::Matrix<Real,3,9> ret;
+		ret<<
+			(y31*Hx_xi(xi,eta)+y12*Hx_eta(xi,eta)).transpose(),
+			(-x31*Hy_xi(xi,eta)-x12*Hy_eta(xi,eta)).transpose(),
+			(-x31*Hx_xi(xi,eta)-x12*Hx_eta(xi,eta)+y31*Hy_xi(xi,eta)+y12*Hy_eta(xi,eta)).transpose()
+		;
+		return ret/(2*area);
+	};
+
+	// bending elasticity matrix (the same as (t^3/12)*E, E being the plane stress matrix above)
+	Matrix3r Db;
+	Db<<1,nu,0, nu,1,0, 0,0,(1-nu)/2;
+	Db*=young*pow(dktT,3)/(12*(1-pow(nu,2)));
+
+
+	// assemble the matrix here
+	KKdkt=MatrixXr::Zero(9,9);
+	KKdkt.setZero();
+	// gauss integration points and their weights
+	Vector3r xxi(.5,.5,0), eeta(0,.5,.5);
+	Real ww[]={1/3.,1/3.,1/3.};
+	for(int i:{0,1,2}){
+		for(int j:{0,1,2}){
+			auto b=Bphi(xxi[i],eeta[j]); // evaluate B at the gauss point
+			KKdkt+=(2*area*ww[j]*ww[i])*b.transpose()*Db*b;
+		}
+	}
 };
 
 
@@ -105,15 +219,25 @@ void FlexFacet::computeNodalDisplacements(){
 		// displacements
 		uXy.segment<2>(2*i)=xy.head<2>()-refPos.segment<2>(2*i);
 		// rotations
-		AngleAxisr aa(refRot[i]*quatDiffInNodeCS(nodes[i]->ori).conjugate());
+		#if 1
+					// ((nc0 * ni0')*(nc*ni')) '     
+			AngleAxisr aa(refRot[i]*(node->ori*nodes[i]->ori.conjugate()).conjugate());
+					// ni'*(nc0*ni0')*nc == ni' (ni0*nc0') ' *nc
+					// (ni'*nc)*(nc0*ni0)' = (ni'*nc)*ni0'*nc0
+		#else
+			// AngleAxisr aa((node->ori.conjugate()* refRot[i] *(nodes[i]->ori)).conjugate());
+			AngleAxisr aa((nodes[i]->ori.conjugate() * refRot[i].conjugate() * node->ori).conjugate());
+		#endif
 		Vector3r rot=Vector3r(aa.angle()*aa.axis()); // rotation vector in local coords
 		phiXy.segment<2>(2*i)=rot.head<2>(); // drilling rotation discarded
 		#ifdef FLEXFACET_DEBUG_ROT
 			drill[i]=rot[2];
-			currRot[i]=quatDiffInNodeCS(nodes[i]->ori);
+			currRot[i]=node->ori*nodes[i]->ori.conjugate();
 		#endif
 	}
 };
+
+CREATE_LOGGER(In2_FlexFacet_ElastMat);
 
 void In2_FlexFacet_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& particle){
 	auto& ff=sh->cast<FlexFacet>();
@@ -131,15 +255,31 @@ void In2_FlexFacet_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Ma
 	}
 	ff.stepUpdate();
 	// assemble local stiffness matrix, in case it does not exist yet
-	ff.ensureStiffnessMatrix(particle->material->cast<ElastMat>().young,nu,thickness);
+	ff.ensureStiffnessMatrices(particle->material->cast<ElastMat>().young,nu,thickness,/*bending*/bending,bendThickness);
 	// compute nodal forces response here
-	Vector6r nodalForces=-(ff.KK*ff.uXy).transpose();
-	//LOG_WARN("Nodal forces: "<<nodalForces);
+	Vector6r Fcst=-(ff.KKcst*ff.uXy).transpose(); 
+	Vector9r Fdkt;
+	if(bending){
+		assert(ff.KKdkt.size()==81);
+		Vector9r uDkt_;
+		uDkt_<<0,ff.phiXy.segment<2>(0),0,ff.phiXy.segment<2>(2),0,ff.phiXy.segment<2>(4);
+		Fdkt.resize(9);
+		Fdkt=-(ff.KKdkt*uDkt_).transpose();
+		#ifdef FLEXFACET_DEBUG_ROT
+			ff.uDkt=uDkt_; // debugging copy, acessible from python
+		#endif
+	} else {
+		Fdkt=Vector9r::Zero();
+	}
+	LOG_TRACE("CST: "<<Fcst.transpose())
+	LOG_TRACE("DKT: "<<Fdkt.transpose())
 	// apply nodal forces
 	for(int i:{0,1,2}){
-		//LOG_WARN("    "<<i<<" global: "<<(ff.node->ori.conjugate()*Vector3r(nodalForces[2*i],nodalForces[2*i+1],0)).transpose())
-		ff.nodes[i]->getData<DemData>().addForce(ff.node->ori.conjugate()*Vector3r(nodalForces[2*i],nodalForces[2*i+1],0));
-		//LOG_WARN("    "<<i<<" written:"<<ff.nodes[i]->getData<DemData>().force);
+		Vector3r Fl=Vector3r(Fcst[2*i],Fcst[2*i+1],-Fdkt[3*i]); // minus?!!
+		Vector3r Tl=Vector3r(Fdkt[3*i+1],Fdkt[3*i+2],0);
+		ff.nodes[i]->getData<DemData>().addForceTorque(ff.node->ori.conjugate()*Fl,ff.node->ori.conjugate()*Tl);
+		LOG_TRACE("  "<<i<<" F: "<<Fl.transpose()<<" \t| "<<ff.node->ori.conjugate()*Fl);
+		LOG_TRACE("  "<<i<<" T: "<<Tl.transpose()<<" \t| "<<ff.node->ori.conjugate()*Tl);
 	}
 }
 
@@ -154,6 +294,7 @@ WOO_PLUGIN(gl,(Gl1_FlexFacet));
 bool Gl1_FlexFacet::node;
 bool Gl1_FlexFacet::refConf;
 Vector3r Gl1_FlexFacet::refColor;
+int Gl1_FlexFacet::refWd;
 Real Gl1_FlexFacet::uScale;
 int Gl1_FlexFacet::uWd;
 bool Gl1_FlexFacet::uSplit;
@@ -197,6 +338,7 @@ void Gl1_FlexFacet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool 
 	FlexFacet& ff=sh->cast<FlexFacet>();
 	if(!ff.hasRefConf()) return;
 	if(node){
+		Renderer::setNodeGlData(ff.node,false/*set refPos only for the first time*/);
 		Renderer::renderRawNode(ff.node);
 		if(ff.node->rep) ff.node->rep->render(ff.node,&viewInfo);
 		#ifdef FLEXFACET_DEBUG_ROT
@@ -218,6 +360,7 @@ void Gl1_FlexFacet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool 
 
 		if(refConf){
 			glColor3v(refColor);
+			glLineWidth(refWd);
 			glBegin(GL_LINE_LOOP);
 				for(int i:{0,1,2}) glVertex3v(Vector3r(ff.refPos[2*i],ff.refPos[2*i+1],0));
 			glEnd();

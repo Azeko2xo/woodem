@@ -7,20 +7,12 @@ struct FlexFacet: public Facet{
 	bool hasRefConf() const { return node && refRot.size()==3; }
 	void pyReset(){ refRot.clear(); }
 	void setRefConf(); // use the current configuration as the referential one
-	void ensureStiffnessMatrix(const Real& young, const Real& nu, const Real& thickness);
+	void ensureStiffnessMatrices(const Real& young, const Real& nu, const Real& thickness, bool bending, const Real& bendThickness);
 	void updateNode(); // update local coordinate system
 	void computeNodalDisplacements(); 
 	// called by functors to initialize (if necessary) and update
 	void stepUpdate();
-	// transform quaternion *q* so that it is expressed in local frame given by *cs*
-	// TODO: this should be doable with quaternions only?!
-	// http://stackoverflow.com/questions/15984713/rotation-in-local-frame-expressed-as-quaternion
-	Quaternionr quatDiffInNodeCS(const Quaternionr& q){
-		//AngleAxisr aa(q);
-		//return Quaternionr(AngleAxisr(aa.angle(),cs*aa.axis()));
-		//return q.conjugate()*cs;
-		return node->ori*q.conjugate();
-	}
+	DECLARE_LOGGER;
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(FlexFacet,Facet,"Facet as triangular element, with 2 translational and 2 (or 3) rotational degrees of freedom in each node. Local coordinate system is established using `Best Fit CD Frame <http://www.colorado.edu/engineering/cas/courses.d/NFEM.d/NFEM.AppC.d/NFEM.AppC.pdf>`_ in a non-incremental manner, and in the same way, nodal displacements and rotations are computed.",
 		((shared_ptr<Node>,node,make_shared<Node>(),AttrTrait<>().readonly(),"Local coordinate system"))
 		((vector<Quaternionr>,refRot,,AttrTrait<>().readonly(),"Rotation applied to nodes to obtain the local coordinate system, computed in the reference configuration. If this array is empty, it means that reference configuration has not yet been evaluated."))
@@ -30,8 +22,10 @@ struct FlexFacet: public Facet{
 		#ifdef FLEXFACET_DEBUG_ROT
 			((Vector3r,drill,Vector3r::Zero(),AttrTrait<>().readonly(),"Dirilling rotation (debugging only)"))
 			((vector<Quaternionr>,currRot,,AttrTrait<>().readonly(),"What would be the current value of refRot (debugging only!)"))
+			((VectorXr,uDkt,,,"DKT displacement vector (saved for debugging only)"))
 		#endif
-		((MatrixXr,KK,,,"Stiffness matrix of the element (assembled when the reference configuration is set)"))
+		((MatrixXr,KKcst,,,"Stiffness matrix of the element (assembled from the reference configuration when needed for the first time)"))
+		((MatrixXr,KKdkt,,,"Bending stiffness matrix of the element (assembled from the reference configuration when needed for the first time)."))
 		,/*ctor*/
 		,/*py*/
 			.def("setRefConf",&FlexFacet::setRefConf,"Set the current configuration as the reference one.")
@@ -44,10 +38,13 @@ REGISTER_SERIALIZABLE(FlexFacet);
 struct In2_FlexFacet_ElastMat: public IntraFunctor{
 	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&);
 	FUNCTOR2D(FlexFacet,ElastMat);
+	DECLARE_LOGGER;
 	WOO_CLASS_BASE_DOC_ATTRS(In2_FlexFacet_ElastMat,IntraFunctor,"Apply contact forces and compute internal response of a :obj:`FlexFacet` (so far only the plane stress element has been implemented).",
-		((bool,contacts,true,,"Apply contact forces to facet's nodes (very simply distributed in thirds now)"))
+		((bool,contacts,true,,"Apply contact forces to facet's nodes (FIXME: very simply distributed in thirds now)"))
 		((Real,nu,.25,,"Poisson's ratio used for assembling the $E$ matrix (Young's modulus is taken from :obj:`ElastMat`). Will be moved to the material class at some point."))
-		((Real,thickness,NaN,,"Thickness for CST stiffness computation; if NaN, try to use :obj:`Facet.halfThick`."))
+		((Real,thickness,NaN,,"Thickness for CST stiffness computation; if NaN, try to use the double of :obj:`Facet.halfThick`."))
+		((Real,bendThickness,NaN,,"Thickness for CST stiffness computation; if NaN, use :obj:`thickness`."))
+		((bool,bending,false,,"Consider also bending stiffness of elements (DKT)"))
 	);
 };
 REGISTER_SERIALIZABLE(In2_FlexFacet_ElastMat);
@@ -63,6 +60,7 @@ struct Gl1_FlexFacet: public Gl1_Facet{
 		((bool,node,true,,"Show local frame node"))
 		((bool,refConf,true,,"Show reference configuration, rotated to the current local frame"))
 		((Vector3r,refColor,Vector3r(0,.5,0),AttrTrait<>().rgbColor(),"COlor for the reference shape"))
+		((int,refWd,1,,"Line width for the reference shape"))
 		((Real,uScale,1.,,"Scale of displacement lines (zero to disable)"))
 		((int,uWd,2,,"Width of displacement lines"))
 		((bool,uSplit,false,,"Show x and y displacement components separately"))

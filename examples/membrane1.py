@@ -48,7 +48,8 @@ else:
 	S.dem.par.append(ff)
 	S.dem.collectNodes()
 	for n in S.dem.nodes:
-		n.dem.blocked='XYZ'
+		n.dem.inertia=(1.,1.,1.)
+		n.dem.blocked=''
 		if n.pos[0] in (0,xmax) or n.pos[1] in (0,ymax): n.dem.blocked='xyzXYZ'
 		n.dem.mass=5.
 	# this would be enough without spheres
@@ -57,7 +58,7 @@ else:
 		Leapfrog(reset=True,damping=.1),
 		InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb()],verletDist=0.01),
 		ContactLoop([Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom()],[Cp2_FrictMat_FrictPhys()],[Law2_L6Geom_FrictPhys_IdealElPl()],applyForces=False), # forces are applied in IntraForce
-		IntraForce([In2_FlexFacet_ElastMat(thickness=.01),In2_Sphere_ElastMat()]),
+		IntraForce([In2_FlexFacet_ElastMat(thickness=.01,bending=False,bendThickness=.2),In2_Sphere_ElastMat()]),
 		# VtkExport(out='/tmp/membrane',stepPeriod=100,what=VtkExport.spheres|VtkExport.mesh)
 	]
 	

@@ -113,6 +113,7 @@ void Gl1_DemField::initAllRanges(){
 		glyphRanges.push_back(r);
 		switch(i){
 			case GLYPH_FORCE: r->label="force"; break;
+			case GLYPH_TORQUE: r->label="torque"; break;
 			case GLYPH_VEL:   r->label="velocity"; break;
 		}
 	}
@@ -143,6 +144,15 @@ void Gl1_DemField::doBound(){
 		if(mask!=0 && !(b->mask&mask)) continue;
 		glPushMatrix(); Renderer::boundDispatcher(b->shape->bound); glPopMatrix();
 	}
+}
+
+Vector3r Gl1_DemField::getParticleVel(const shared_ptr<Particle>& p) const {
+	assert(p->shape);
+	size_t nNodes=p->shape->nodes.size();
+	if(nNodes==1) return getNodeVel(p->shape->nodes[0]);
+	Vector3r ret=Vector3r::Zero();
+	for(const auto& n: p->shape->nodes) ret+=getNodeVel(n);
+	return ret/nNodes;
 }
 
 Vector3r Gl1_DemField::getNodeVel(const shared_ptr<Node>& n) const{
@@ -219,7 +229,7 @@ void Gl1_DemField::doShape(){
 		int cBy=(!useColor2?colorBy:colorBy2);
 		switch(cBy){
 			case COLOR_RADIUS: parColor=(isSphere?CR->color(p->shape->cast<Sphere>().radius):solidColor); break;
-			case COLOR_VEL: parColor=CR->color(vecNormXyz(getNodeVel(n0))); break;
+			case COLOR_VEL: parColor=CR->color(vecNormXyz(getParticleVel(p))); break;
 			case COLOR_ANGVEL: parColor=CR->color(vecNormXyz(getNodeAngVel(n0))); break;
 			case COLOR_MASS: parColor=CR->color(n0->getData<DemData>().mass); break;
 			case COLOR_DISPLACEMENT: parColor=CR->color(vecNormXyz(n0->pos-n0->getData<GlData>().refPos)); break;
@@ -305,7 +315,7 @@ void Gl1_DemField::doNodes(const vector<shared_ptr<Node>>& nodeContainer){
 		if(glyph!=GLYPH_KEEP){
 			// prepare rep types
 			// vector values
-			if(glyph==GLYPH_VEL || glyph==GLYPH_FORCE){
+			if(glyph==GLYPH_VEL || glyph==GLYPH_FORCE || glyph==GLYPH_TORQUE){
 				if(!n->rep || !dynamic_pointer_cast<VectorGlRep>(n->rep)){ n->rep=make_shared<VectorGlRep>(); }
 				auto& vec=n->rep->cast<VectorGlRep>();
 				vec.range=glyphRange;
@@ -315,6 +325,7 @@ void Gl1_DemField::doNodes(const vector<shared_ptr<Node>>& nodeContainer){
 				case GLYPH_NONE: n->rep.reset(); break; // no rep
 				case GLYPH_VEL: n->rep->cast<VectorGlRep>().val=getNodeVel(n); break;
 				case GLYPH_FORCE: n->rep->cast<VectorGlRep>().val=n->getData<DemData>().force; break;
+				case GLYPH_TORQUE: n->rep->cast<VectorGlRep>().val=n->getData<DemData>().torque; break;
 				case GLYPH_KEEP:
 				default: ;
 			}

@@ -222,9 +222,9 @@ GridStore::id_t GridStore::get(const Vector3i& ijk, int l) const {
 	auto ijkI=gridEx.find(ijk);
 	assert(ijkI!=gridEx.end());
 	const vector<id_t>& ex=ijkI->second;
-	size_t exIx=l-denseSz;
-	assert(exIx<ex.size() && exIx>=0);
-	return ex[exIx];
+	int exIx=l-denseSz; // int so that we detect underflow when debugging
+	assert(exIx<(int)ex.size() && (l-denseSz>=0));
+	return ex[(size_t)exIx];
 }
 
 size_t GridStore::size(const Vector3i& ijk) const {

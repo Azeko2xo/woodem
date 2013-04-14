@@ -30,7 +30,7 @@ for n in nn:
 #nn[2].dem.vel=(0,0,0)
 
 for i,n in enumerate(nn):
-	n.dem.vel=Vector3.Random()
+	#n.dem.vel=Vector3.Random()
 	n.dem.angVel=2.*(n.ori*Vector3.Unit(i))
 
 #nn[0].ori=Quaternion(Matrix3(-Vector3.UnitY,-Vector3.UnitZ,Vector3.UnitX))
