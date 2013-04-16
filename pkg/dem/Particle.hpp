@@ -125,7 +125,7 @@ public:
 	// bits for flags
 	enum {
 		DOF_NONE=0,DOF_X=1,DOF_Y=2,DOF_Z=4,DOF_RX=8,DOF_RY=16,DOF_RZ=32,
-		CLUMP_CLUMPED=64,CLUMP_CLUMP=128,ENERGY_SKIP=256
+		CLUMP_CLUMPED=64,CLUMP_CLUMP=128,ENERGY_SKIP=256,GRAVITY_SKIP=512
 	};
 	//! shorthands
 	static const unsigned DOF_ALL=DOF_X|DOF_Y|DOF_Z|DOF_RX|DOF_RY|DOF_RZ;
@@ -158,6 +158,8 @@ public:
 	// predicates and setters for skipping this node in energy calculations
 	bool isEnergySkip() const { return flags&ENERGY_SKIP; }
 	void setEnergySkip(bool skip) { if(!skip) flags&=~ENERGY_SKIP; else flags|=ENERGY_SKIP; }
+	bool isGravitySkip() const { return flags&GRAVITY_SKIP; }
+	void setGravitySkip(bool grav) { if(!grav) flags&=~GRAVITY_SKIP; else flags|=GRAVITY_SKIP; }
 
 	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
 	void addForceTorque(const Vector3r& f, const Vector3r& t=Vector3r::Zero()){ boost::mutex::scoped_lock l(lock); force+=f; torque+=t; }
@@ -175,13 +177,13 @@ public:
 		((Vector3r,force,Vector3r::Zero(),AttrTrait<>().forceUnit(),"Applied force"))
 		((Vector3r,torque,Vector3r::Zero(),AttrTrait<>().torqueUnit(),"Applied torque"))
 		((Vector3r,angMom,Vector3r::Zero(),AttrTrait<>().angMomUnit(),"Angular momentum (used with the aspherical integrator)"))
-		((unsigned,flags,0,AttrTrait<Attr::readonly>().bits({"block x","block y","block z","block rot x","block rot y","block rot z","clumped","clump","energy skip"}),"Bit flags storing blocked DOFs, clump status"))
+		((unsigned,flags,0,AttrTrait<Attr::readonly>().bits({"block x","block y","block z","block rot x","block rot y","block rot z","clumped","clump","energy skip","gravity skip"}),"Bit flags storing blocked DOFs, clump status, ..."))
 		((long,linIx,-1,AttrTrait<>().hidden(),"Index within O.dem.nodes (for efficient removal)"))
 		((int,parCount,0,AttrTrait<>().noGui(),"Number of particles associated with this node (to know whether a node should be deleted when a particle is)"))
 		((shared_ptr<Impose>,impose,,,"Impose arbitrary velocity, angular velocity, ... on the node; the functor is called from Leapfrog, after new position and velocity have been computed."))
 		, /*ctor*/
 		, /*py*/ .add_property("blocked",&DemData::blocked_vec_get,&DemData::blocked_vec_set,"Degress of freedom where linear/angular velocity will be always constant (equal to zero, or to an user-defined value), regardless of applied force/torque. String that may contain 'xyzXYZ' (translations and rotations).")
-		.add_property("clump",&DemData::isClump).add_property("clumped",&DemData::isClumped).add_property("noClump",&DemData::isNoClump).add_property("energySkip",&DemData::isEnergySkip,&DemData::setEnergySkip)
+		.add_property("clump",&DemData::isClump).add_property("clumped",&DemData::isClumped).add_property("noClump",&DemData::isNoClump).add_property("energySkip",&DemData::isEnergySkip,&DemData::setEnergySkip).add_property("gravitySkip",&DemData::isGravitySkip,&DemData::setGravitySkip)
 		.def("_getDataOnNode",&Node::pyGetData<DemData>).staticmethod("_getDataOnNode").def("_setDataOnNode",&Node::pySetData<DemData>).staticmethod("_setDataOnNode");
 	);
 };

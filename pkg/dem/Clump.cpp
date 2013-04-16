@@ -116,7 +116,7 @@ void ClumpData::applyToMembers(const shared_ptr<Node>& node, bool reset, const V
 		nDyn.vel=clump.vel+clump.angVel.cross(n->pos-clumpPos);
 		nDyn.angVel=clump.angVel;
 		if(reset){
-			nDyn.force=gravity*nDyn.mass;
+			nDyn.force=(!nDyn.isGravitySkip()?(gravity*nDyn.mass).eval():Vector3r(0,0,0));
 			nDyn.torque=Vector3r::Zero();
 		}
 	}
@@ -126,7 +126,7 @@ void ClumpData::resetForceTorque(const shared_ptr<Node>& node, const Vector3r& g
 	ClumpData& clump=node->getData<DemData>().cast<ClumpData>();
 	for(size_t i=0; i<clump.nodes.size(); i++){
 		DemData& nDyn(clump.nodes[i]->getData<DemData>());
-		nDyn.force=gravity*nDyn.mass;
+		nDyn.force=(!nDyn.isGravitySkip()?(gravity*nDyn.mass).eval():Vector3r(0,0,0));
 		nDyn.torque=Vector3r::Zero();
 	}
 }

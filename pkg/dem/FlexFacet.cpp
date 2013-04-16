@@ -200,7 +200,13 @@ void FlexFacet::updateNode(){
 	Vector6r nxy0;
 	for(int i:{0,1,2}){
 		Vector3r xy0=ori0*(nodes[i]->pos-node->pos);
-		assert(xy0[2]<1e-6*(max(abs(xy0[0]),abs(xy0[1])))); // z-coord should be zero
+		#ifdef FLEXFACET_DEBUG_ROT
+			if(xy0[2]>1e-5*(max(abs(xy0[0]),abs(xy0[1])))){
+				LOG_ERROR("z-coordinate is not zero for node "<<i<<": ori0="<<AngleAxisr(ori0).axis()<<" !"<<AngleAxisr(ori0).angle()<<", xy0="<<xy0<<", positiion in global-oriented centroid-origin CS "<<nodes[i]->pos-node->pos);
+			}
+		#else
+			assert(xy0[2]<1e-5*(max(abs(xy0[0]),abs(xy0[1])))); // z-coord should be zero
+		#endif
 		nxy0.segment<2>(2*i)=xy0.head<2>();
 	}
 	// compute the best fit (C.8 of the paper)
@@ -216,23 +222,30 @@ void FlexFacet::computeNodalDisplacements(){
 	// supposes node is updated already
 	for(int i:{0,1,2}){
 		Vector3r xy=node->ori*(nodes[i]->pos-node->pos);
-		//LOG_WARN("node "<<i<<": xy="<<xy);
-		assert(xy[2]<1e-6*(max(abs(xy[0]),abs(xy[1]))));
+		// relative tolerance of 1e-6 was too little, in some cases?!
+		#ifdef FLEXFACET_DEBUG_ROT
+			if(xy[2]>1e-5*(max(abs(xy[0]),abs(xy[1])))){
+				LOG_ERROR("local z-coordinate is not zero for node "<<i<<": node->ori="<<AngleAxisr(node->ori).axis()<<" !"<<AngleAxisr(node->ori).angle()<<", xy="<<xy<<", position in global-oriented centroid-origin CS "<<(nodes[i]->pos-node->pos).transpose());
+			}
+		#else
+			assert(xy[2]<1e-5*(max(abs(xy[0]),abs(xy[1]))));
+		#endif
 		// displacements
 		uXy.segment<2>(2*i)=xy.head<2>()-refPos.segment<2>(2*i);
 		// rotations
-		#if 1
-					// ((nc0 * ni0')*(nc*ni')) '     
-			AngleAxisr aa(refRot[i]*(node->ori*nodes[i]->ori.conjugate()).conjugate());
-					// ni'*(nc0*ni0')*nc == ni' (ni0*nc0') ' *nc
-					// (ni'*nc)*(nc0*ni0)' = (ni'*nc)*ni0'*nc0
-		#else
-			// AngleAxisr aa((node->ori.conjugate()* refRot[i] *(nodes[i]->ori)).conjugate());
-			AngleAxisr aa((nodes[i]->ori.conjugate() * refRot[i].conjugate() * node->ori).conjugate());
-		#endif
+		AngleAxisr aa(refRot[i]*(node->ori*nodes[i]->ori.conjugate()).conjugate());
+		/* aa sometimes gives angle close to 2π for rotations which are actually small and negative;
+			I posted that question at http://forum.kde.org/viewtopic.php?f=74&t=110854 .
+			Such a result is fixed by conditionally subtracting 2π:
+		*/
+		if(aa.angle()>M_PI) aa.angle()-=2*M_PI;
+		if(abs(aa.angle())>3.) LOG_WARN("FlexFacet's rotation in a node is > 3 radians, expect unstability!");
 		Vector3r rot=Vector3r(aa.angle()*aa.axis()); // rotation vector in local coords
 		phiXy.segment<2>(2*i)=rot.head<2>(); // drilling rotation discarded
 		#ifdef FLEXFACET_DEBUG_ROT
+			AngleAxisr rr(refRot[i]);
+			AngleAxisr cr(node->ori*nodes[i]->ori.conjugate());
+			LOG_TRACE("node "<<i<<"\n   refRot : "<<rr.axis()<<" !"<<rr.angle()<<"\n   currRot: "<<cr.axis()<<" !"<<cr.angle()<<"\n   diffRot: "<<aa.axis()<<" !"<<aa.angle());
 			drill[i]=rot[2];
 			currRot[i]=node->ori*nodes[i]->ori.conjugate();
 		#endif

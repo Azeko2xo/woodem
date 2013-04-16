@@ -12,7 +12,7 @@ void ForceResetter::run(){
 	bool hasGravity(dem.gravity!=Vector3r::Zero());
 	FOREACH(const shared_ptr<Node>& n, field->nodes){
 		DemData& dyn=n->getData<DemData>();
-		dyn.force=hasGravity?(dem.gravity*dyn.mass).eval():Vector3r::Zero();
+		dyn.force=(hasGravity && !dyn.isGravitySkip())?(dem.gravity*dyn.mass).eval():Vector3r::Zero();
 		dyn.torque=Vector3r::Zero();
 		if(dyn.impose && (dyn.impose->what & Impose::FORCE)) dyn.impose->force(scene,n);
 		if(n->getData<DemData>().isClump()) ClumpData::resetForceTorque(n,dem.gravity);
@@ -61,6 +61,7 @@ void Leapfrog::doDampingDissipation(const shared_ptr<Node>& node){
 void Leapfrog::doGravityWork(const DemData& dyn, const DemField& dem){
 	/* evaluated using mid-step values */
 	Real gr=0;
+	if(dyn.isGravitySkip()) return;
 	if(dyn.isBlockedNone()) gr=-dem.gravity.dot(dyn.vel)*dyn.mass*dt;
 	else { for(int ax:{0,1,2}){ if(!(dyn.isBlockedAxisDOF(ax,false))) gr-=dem.gravity[ax]*dyn.vel[ax]*dyn.mass*dt; } }
 	scene->energy->add(gr,"grav",gravWorkIx,EnergyTracker::IsIncrement);
@@ -234,7 +235,7 @@ void Leapfrog::run(){
 		}
 
 		if(reset){
-			dyn.force=hasGravity?(dyn.mass*dem->gravity).eval():Vector3r::Zero();
+			dyn.force=(hasGravity && !dyn.isGravitySkip())?(dyn.mass*dem->gravity).eval():Vector3r::Zero();
 			dyn.torque=Vector3r::Zero();
 			if(dyn.impose && (dyn.impose->what & Impose::FORCE)) dyn.impose->force(scene,node);
 		}
