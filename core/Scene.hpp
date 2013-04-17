@@ -5,6 +5,7 @@
 #include<woo/core/DisplayParameters.hpp>
 #include<woo/core/EnergyTracker.hpp>
 #include<woo/core/Plot.hpp>
+#include<woo/core/LabelMapper.hpp>
 #include<woo/core/Preprocessor.hpp>
 
 #ifdef WOO_OPENCL
@@ -153,6 +154,7 @@ struct Scene: public Object{
 		((bool,runInternalConsistencyChecks,true,AttrTrait<Attr::hidden>(),"Run internal consistency check, right before the very first simulation step."))
 
 		((StrStrMap,tags,,AttrTrait<Attr::hidden>(),"Arbitrary key=value associations (tags like mp3 tags: author, date, version, description etc.)"))
+		((shared_ptr<LabelMapper>,labels,make_shared<LabelMapper>(),AttrTrait<>().noGui().readonly(),"Atrbitrary key=object, key=list of objects, key=py::object associations which survive saving/loading. Labeled objects are automatically added to this container. This object is more conveniently accessed through the :obj:`lab` attribute, which exposes the mapping as attributes of that object rather than as a dictionary."))
 
 		((string,uiBuild,"",,"Command to run when a new main-panel UI should be built for this scene (called when the Controller is opened with this simulation, or the simulation is new to the controller)."))
 

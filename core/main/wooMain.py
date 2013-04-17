@@ -358,6 +358,7 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 				sys.stderr.write("Using preprocessor "+arg0+'\n')
 				import woo.batch
 				woo.master.scene=woo.batch.runPreprocessor(obj,arg0)
+				woo.master.scene.saveTmp()
 			else:
 				print 'ERROR: Object loaded from "%s" is a %s (must be Scene or a Preprocessor)'%(arg0,type(obj).__name__)
 				sys.exit(1)

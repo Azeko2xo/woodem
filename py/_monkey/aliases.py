@@ -4,6 +4,18 @@ from woo import core
 from woo.core import Master
 core.Field.nod=core.Field.nodes
 
+## proxy for attribute-like access to Scene.labels
+## http://stackoverflow.com/questions/16061041/proxy-class-for-accessing-other-class-items-as-attributes-getitem-infinite
+class LabelMapperProxy(object):
+	def __init__(self,scene): self.__dict__['_scene']=scene
+	def __getattr__(self,key): return self._scene.labels[key]
+	def __setattr__(self,key,val): self._scene.labels[key]=val
+	def __delattr__(self,key): del self._scene.labels[key]
+def Scene_lab(scene):
+	return LabelMapperProxy(scene)
+core.Scene.lab=property(Scene_lab)
+
+
 try:
 	from woo import dem
 	dem.DemField.par=dem.DemField.particles

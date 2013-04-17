@@ -59,11 +59,11 @@ void ContactLoop::pyHandleCustomCtorArgs(py::tuple& t, py::dict& d){
 	t=py::tuple(); // empty the args; not sure if this is OK, as there is some refcounting in raw_constructor code
 }
 
-void ContactLoop::getLabeledObjects(std::map<std::string, py::object>& m){
-	geoDisp->getLabeledObjects(m);
-	phyDisp->getLabeledObjects(m);
-	lawDisp->getLabeledObjects(m);
-	GlobalEngine::getLabeledObjects(m);
+void ContactLoop::getLabeledObjects(std::map<std::string, py::object>& m, const shared_ptr<LabelMapper>& labelMapper){
+	geoDisp->getLabeledObjects(m,labelMapper);
+	phyDisp->getLabeledObjects(m,labelMapper);
+	lawDisp->getLabeledObjects(m,labelMapper);
+	GlobalEngine::getLabeledObjects(m,labelMapper);
 }
 
 
@@ -83,7 +83,7 @@ void ContactLoop::run(){
 	if(applyForces && !_forceApplyChecked){
 		shared_ptr<IntraForce> intra;
 		for(const auto& e: scene->engines){ intra=dynamic_pointer_cast<IntraForce>(e); if(intra) break; }
-		if(intra) LOG_WARN("ContactLoop.applyForce==True (default) and IntraForce is in Scene.engines! Are you sure this is ok? Forces might be applied twice. (proceeding)");
+		if(intra && !intra->dead) LOG_WARN("ContactLoop.applyForce==True (default) and IntraForce is in Scene.engines! Are you sure this is ok? Forces might be applied twice. (proceeding)");
 		_forceApplyChecked=true;
 	}
 

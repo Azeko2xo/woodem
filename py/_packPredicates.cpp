@@ -179,6 +179,11 @@ public:
 		Vector3r mn=A.array().min(B.array()).matrix(), mx=A.array().max(B.array()).matrix();
 		return vvec2tuple((mn-radius*k).eval(),(mx+radius*k).eval());
 	}
+	string __str__() const {
+		std::ostringstream oss;
+		oss<<"<woo.pack.inCylinder @ "<<this<<", A="<<c1.transpose()<<", B="<<c2.transpose()<<", radius="<<radius<<">";
+		return oss.str();
+	}
 };
 
 /*! Oriented hyperboloid predicate (cylinder as special case).
@@ -360,7 +365,7 @@ BOOST_PYTHON_MODULE(_packPredicates){
 	py::class_<inSphere,py::bases<Predicate> >("inSphere","Sphere predicate.",py::init<const Vector3r&,Real>(py::args("center","radius"),"Ctor taking center (as a 3-tuple) and radius"));
 	py::class_<inAlignedBox,py::bases<Predicate> >("inAlignedBox","Axis-aligned box predicate",py::init<const Vector3r&,const Vector3r&>(py::args("minAABB","maxAABB"),"Ctor taking minumum and maximum points of the box (as 3-tuples)."));
 	py::class_<inParallelepiped,py::bases<Predicate> >("inParallelepiped","Parallelepiped predicate",py::init<const Vector3r&,const Vector3r&, const Vector3r&, const Vector3r&>(py::args("o","a","b","c"),"Ctor taking four points: ``o`` (for origin) and then ``a``, ``b``, ``c`` which define endpoints of 3 respective edges from ``o``."));
-	py::class_<inCylinder,py::bases<Predicate> >("inCylinder","Cylinder predicate",py::init<const Vector3r&,const Vector3r&,Real>(py::args("centerBottom","centerTop","radius"),"Ctor taking centers of the lateral walls (as 3-tuples) and radius."));
+	py::class_<inCylinder,py::bases<Predicate> >("inCylinder","Cylinder predicate",py::init<const Vector3r&,const Vector3r&,Real>(py::args("centerBottom","centerTop","radius"),"Ctor taking centers of the lateral walls (as 3-tuples) and radius.")).def("__str__",&inCylinder::__str__);
 	py::class_<inHyperboloid,py::bases<Predicate> >("inHyperboloid","Hyperboloid predicate",py::init<const Vector3r&,const Vector3r&,Real,Real>(py::args("centerBottom","centerTop","radius","skirt"),"Ctor taking centers of the lateral walls (as 3-tuples), radius at bases and skirt (middle radius)."));
 	py::class_<inEllipsoid,py::bases<Predicate> >("inEllipsoid","Ellipsoid predicate",py::init<const Vector3r&,const Vector3r&>(py::args("centerPoint","abc"),"Ctor taking center of the ellipsoid (3-tuple) and its 3 radii (3-tuple)."));
 	py::class_<notInNotch,py::bases<Predicate> >("notInNotch","Outside of infinite, rectangle-shaped notch predicate",py::init<const Vector3r&,const Vector3r&,const Vector3r&,Real>(py::args("centerPoint","edge","normal","aperture"),"Ctor taking point in the symmetry plane, vector pointing along the edge, plane normal and aperture size.\nThe side inside the notch is edge×normal.\nNormal is made perpendicular to the edge.\nAll vectors are normalized at construction time.")); 

@@ -303,6 +303,35 @@ def regularHexa(predicate,radius,gap,**kw):
 		if predicate((x,y,z),radius): ret+=[utils.sphere((x,y,z),radius=radius,**kw)]
 	return ret
 
+def randomLoosePsd(predicate,psd,mass=True,discrete=False,maxAttempts=5000,**kw):
+	'''Return loose packing based on given PSD.'''
+	import woo.dem
+	import woo.core
+	import woo.log
+	S=woo.core.Scene(fields=[woo.dem.DemField()])
+	mn,mx=predicate.aabb()
+	print predicate.aabb(),mn,mx
+	S.engines=[
+		woo.dem.InsertionSortCollider([woo.dem.Bo1_Sphere_Aabb()]),
+		woo.dem.BoxFactory(
+			box=(mn,mx),
+			maxMass=-1,
+			maxNum=-1,
+			massFlowRate=0,
+			maxAttempts=maxAttempts,
+			generator=woo.dem.PsdSphereGenerator(psdPts=psd,discrete=discrete,mass=mass),
+			materials=[woo.dem.ElastMat(density=1)], # must have some density
+			shooter=None,
+			mask=1,
+		)
+	]
+	S.one()
+	ret=[]
+	for p in S.dem.par:
+		if predicate(p.pos,p.shape.radius): ret+=[utils.sphere(p.pos,radius=p.shape.radius,**kw)]
+	return ret
+
+
 def filterSpherePack(predicate,spherePack,**kw):
 	"""Using given SpherePack instance, return spheres the satisfy predicate.
 	The packing will be recentered to match the predicate and warning is given if the predicate

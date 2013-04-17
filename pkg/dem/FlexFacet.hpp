@@ -2,9 +2,10 @@
 #include<woo/pkg/dem/Facet.hpp>
 #include<woo/pkg/dem/FrictMat.hpp>
 
-#define FLEXFACET_DEBUG_ROT
+// #define FLEXFACET_DEBUG_ROT
 struct FlexFacet: public Facet{
 	bool hasRefConf() const { return node && refRot.size()==3; }
+	bool hasBending(){ return KKdkt.size()>0; }
 	void pyReset(){ refRot.clear(); }
 	void setRefConf(); // use the current configuration as the referential one
 	void ensureStiffnessMatrices(const Real& young, const Real& nu, const Real& thickness, bool bending, const Real& bendThickness);
@@ -57,7 +58,7 @@ struct Gl1_FlexFacet: public Gl1_Facet{
 	void drawLocalDisplacement(const Vector2r& nodePt, const Vector2r& xy, const shared_ptr<ScalarRange>& range, bool split, char arrow, int lineWd, const Real z=NaN);
 	RENDERS(FlexFacet);
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_FlexFacet,Gl1_Facet,"Renders :ref:`FlexFacet` object; :obj:`Facet` itself is rendered via :obj:`Gl1_Facet`.",
-		((bool,node,true,,"Show local frame node"))
+		((bool,node,false,,"Show local frame node"))
 		((bool,refConf,true,,"Show reference configuration, rotated to the current local frame"))
 		((Vector3r,refColor,Vector3r(0,.5,0),AttrTrait<>().rgbColor(),"COlor for the reference shape"))
 		((int,refWd,1,,"Line width for the reference shape"))

@@ -278,8 +278,8 @@ void Scene::postLoad(Scene&,void*){
 	// manage labeled engines
 	typedef std::map<std::string,py::object> StrObjMap; StrObjMap m;
 	FOREACH(const shared_ptr<Engine>& e, engines){
-		Engine::handlePossiblyLabeledObject(e,m);
-		e->getLabeledObjects(m);
+		Engine::handlePossiblyLabeledObject(e,m,labels);
+		e->getLabeledObjects(m,labels);
 	}
 	GilLock gilLock;
 	py::scope wooScope(py::import("woo"));

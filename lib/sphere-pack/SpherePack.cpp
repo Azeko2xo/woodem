@@ -76,6 +76,9 @@ void SpherePack::fromFile(const string& fname) {
 	size_t lineNo=0;
 	while(std::getline(sphereFile,line,'\n')){
 		lineNo++;
+		if(boost::algorithm::starts_with(line,"##USER-DATA:: ")){
+			userData=line.substr(14,string::npos); // strip the line header
+		}
 		boost::tokenizer<boost::char_separator<char> > toks(line,boost::char_separator<char>(" \t"));
 		vector<string> tokens; FOREACH(const string& s, toks) tokens.push_back(s);
 		if(tokens.empty()) continue;
@@ -95,6 +98,10 @@ void SpherePack::toFile(const string& fname) const {
 	std::ofstream f(fname.c_str());
 	if(!f.good()) throw std::runtime_error("Unable to open file `"+fname+"'");
 	if(cellSize!=Vector3r::Zero()){ f<<"##PERIODIC:: "<<cellSize[0]<<" "<<cellSize[1]<<" "<<cellSize[2]<<std::endl; }
+	if(!userData.empty()) {
+		if(userData.find('\n')!=string::npos) throw std::runtime_error("SpherePack.userData must not contain newline.");
+		f<<"##USER-DATA:: "<<userData<<std::endl;
+	}
 	FOREACH(const Sph& s, pack){
 		if(s.clumpId>=0) throw std::invalid_argument("SpherePack with clumps cannot be (currently) exported to a text file.");
 		f<<s.c[0]<<" "<<s.c[1]<<" "<<s.c[2]<<" "<<s.r<<std::endl;

@@ -384,7 +384,7 @@ void Gl1_FlexFacet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool 
 			glLineWidth(uWd);
 			for(int i:{0,1,2}) drawLocalDisplacement(ff.refPos.segment<2>(2*i),uScale*ff.uXy.segment<2>(2*i),uRange,uSplit,arrows?1:0,uWd);
 		}
-		if(relPhi!=0){
+		if(relPhi!=0 && ff.hasBending()){
 			glLineWidth(phiWd);
 			for(int i:{0,1,2}) drawLocalDisplacement(ff.refPos.segment<2>(2*i),relPhi*viewInfo.sceneRadius*ff.phiXy.segment<2>(2*i),phiRange,phiSplit,arrows?2:0,phiWd
 				#ifdef FLEXFACET_DEBUG_ROT

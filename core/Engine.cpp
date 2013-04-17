@@ -126,9 +126,9 @@ py::list ParallelEngine::pySlavesGet(){
 	return ret;
 }
 
-void ParallelEngine::getLabeledObjects(std::map<std::string,py::object>& m){
-	FOREACH(vector<shared_ptr<Engine> >& grp, slaves) FOREACH(const shared_ptr<Engine>& e, grp) Engine::handlePossiblyLabeledObject(e,m);
-	Engine::getLabeledObjects(m);
+void ParallelEngine::getLabeledObjects(std::map<std::string,py::object>& m, const shared_ptr<LabelMapper>& labelMapper){
+	FOREACH(vector<shared_ptr<Engine> >& grp, slaves) FOREACH(const shared_ptr<Engine>& e, grp) Engine::handlePossiblyLabeledObject(e,m,labelMapper);
+	Engine::getLabeledObjects(m,labelMapper);
 };
 
 void PeriodicEngine::fakeRun(){

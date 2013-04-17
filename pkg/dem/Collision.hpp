@@ -60,7 +60,7 @@ struct Collider: public GlobalEngine{
 		// ctor with functors for the integrated BoundDispatcher
 		virtual void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d);
 
-	virtual void getLabeledObjects(std::map<std::string,py::object>& m);
+	virtual void getLabeledObjects(std::map<std::string,py::object>& m, const shared_ptr<LabelMapper>&);
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Collider,GlobalEngine,"Abstract class for finding spatial collisions between bodies. \n\n.. admonition:: Special constructor\n\n\tDerived colliders (unless they override ``pyHandleCustomCtorArgs``) can be given list of :ref:`BoundFunctors <BoundFunctor>` which is used to initialize the internal :ref:`boundDispatcher <Collider.boundDispatcher>` instance.",
 		((shared_ptr<BoundDispatcher>,boundDispatcher,new BoundDispatcher,AttrTrait<Attr::readonly>(),":ref:`BoundDispatcher` object that is used for creating :ref:`bounds <Body.bound>` on collider's request as necessary."))
 		,/*ctor*/

@@ -1,3 +1,6 @@
+#
+# TODO: S.loneGroup
+#
 from woo.core import *
 from woo.dem import *
 import woo
@@ -24,7 +27,8 @@ woo.gl.Gl1_DemField.colorBy=woo.gl.Gl1_DemField.colorVel
 S=woo.master.scene=Scene(fields=[DemField(gravity=(0,0,-30))])
 if 1:
 	import woo.pack, woo.utils, numpy
-	if 1:
+	scenario=['youtube','plain','inverse'][2]
+	if scenario=='youtube':
 		# http://www.youtube.com/watch?v=KmQWD_MfR8M
 		xmax,ymax=1,1
 		xdiv,ydiv=10,10
@@ -41,18 +45,23 @@ if 1:
 		woo.gl.Gl1_DemField.colorBy2=woo.gl.Gl1_DemField.colorVel
 		woo.gl.Gl1_DemField.colorRange2.mnmx=(0,2.)
 	else:
-		woo.gl.Renderer.dispScale=(1000,1000,1000)
+		woo.gl.Renderer.dispScale=(1000,1000,10000)
 		woo.gl.Renderer.scaleOn=True
 		woo.gl.Gl1_DemField.nodes=True
 		woo.gl.Gl1_DemField.glyphRelSz=.3
 		woo.gl.Gl1_FlexFacet.node=True
-		#f=woo.utils.facet([(0,0,0),(0,.2,0),(.2,0,0)],flex=True) #!!!
-		f=woo.utils.facet([(.2,.1,0),(0,.2,0),(0,0,0)],flex=True) 
+		## this triggers weirdness in rotation computation!! (quaternion wrapping around?!)
+		if scenario=='inverse':
+			f=woo.utils.facet([(0,0,0),(0,.2,0),(.2,0,0)],flex=True) #!!!
+			import woo.log
+			#woo.log.setLevel('In2_FlexFacet_ElastMat',woo.log.TRACE)
+			woo.log.setLevel('FlexFacet',woo.log.TRACE)
+		else: f=woo.utils.facet([(.2,.1,0),(0,.2,0),(0,0,0)],flex=True) 
 		S.dem.par.append(f)
 	S.dem.collectNodes()
 	for n in S.dem.nodes:
 		n.dem.blocked=''
-		if n.pos[0]==0 or n.pos[1]==0: n.dem.blocked='xyzXYZ'
+		if n.pos[0]==0 or (n.pos[1]==0 and scenario=='youtube'): n.dem.blocked='xyzXYZ'
 		r=.02; V=(4/3.)*pi*r**3
 		n.dem.inertia=1e3*(2/5.)*V*r**2*Vector3(1,1,1)
 		n.dem.mass=V*1e3
@@ -67,7 +76,7 @@ if 1:
 	]
 	
 	# a few spheres falling onto the mesh
-	if 1:
+	if scenario=='youtube':
 		sp=woo.pack.SpherePack()
 		sp.makeCloud((.3,.3,.1),(.7,.7,.3),rMean=.3*xmax/xdiv,rRelFuzz=.3,periodic=False)
 		sp.toSimulation(S,mat=FrictMat(young=1e6,density=3000))

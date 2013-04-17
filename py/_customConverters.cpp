@@ -153,6 +153,32 @@ struct custom_ptrMatchMaker_from_float{
 };
 
 
+// inspired by
+// https://www.maillist.unibas.ch/pipermail/openstructure-commits/Week-of-Mon-20100607/001773.html
+template <typename Container>
+class SeqStrReprVisitor : public boost::python::def_visitor<SeqStrReprVisitor<Container>> {
+	public:
+	template <class Class>
+	void visit(Class& cl) const {
+	   cl.def("__str__", &__str__);
+		cl.def("__repr__", &__str__);
+	}
+	private:
+	static string __str__(Container& cl){
+		std::ostringstream oss;
+		oss<<"[";
+ 	   bool first=true;
+		for (const auto& item: cl){
+			if(first) first=false;
+			else oss<<", ";
+			oss<<item->pyStr();
+	    }
+   	oss<<"]";
+		return oss.str();
+	}
+};
+
+
 
 #if 0
 template<typename numT, int dim>
@@ -210,7 +236,9 @@ BOOST_PYTHON_MODULE(_customConverters){
 	// supposed to be used):
 	// http://stackoverflow.com/questions/6157409/stdvector-to-boostpythonlist
 
-	py::class_<vector<shared_ptr<Node> > >("NodeList").def(py::vector_indexing_suite<vector<shared_ptr<Node> >, /*NoProxy, shared_ptr provides proxy semantics already */true>()).def_pickle(VectorPickle<vector<shared_ptr<Node>>>());
+	#define VECTOR_INDEXING_SUITE_EXPOSE(Type) py::class_<vector<shared_ptr<Type> > >(#Type "List").def(py::vector_indexing_suite<vector<shared_ptr<Type>>, /*NoProxy, shared_ptr provides proxy semantics already */true>()).def_pickle(VectorPickle<vector<shared_ptr<Type>>>()).def(SeqStrReprVisitor<vector<shared_ptr<Type>>>()); custom_vector_from_seq<shared_ptr<Type> >(); /* allow assignments vector<shared_ptr<Node> >=[list of nodes] */
+
+	//	py::class_<vector<shared_ptr<Node> > >("NodeList").def(py::vector_indexing_suite<vector<shared_ptr<Node> >, /*NoProxy, shared_ptr provides proxy semantics already */true>()).def_pickle(VectorPickle<vector<shared_ptr<Node>>>());
 
 	// register 2-way conversion between c++ vector and python homogeneous sequence (list/tuple) of corresponding type
 	#define VECTOR_SEQ_CONV(Type) custom_vector_from_seq<Type>();  to_python_converter<vector<Type>, custom_vector_to_list<Type> >();
@@ -233,8 +261,6 @@ BOOST_PYTHON_MODULE(_customConverters){
 		VECTOR_SEQ_CONV(pairIntString);
 		VECTOR_SEQ_CONV(pairStringReal);
 		VECTOR_SEQ_CONV(vecPairStringReal); // vector<vector<pair<string,Real>>>
-		// VECTOR_SEQ_CONV(shared_ptr<Node>);
-		custom_vector_from_seq<shared_ptr<Node> >(); // allow assignments vector<shared_ptr<Node> >=[list of nodes]
 		VECTOR_SEQ_CONV(shared_ptr<NodeData>);
 		VECTOR_SEQ_CONV(shared_ptr<ScalarRange>);
 		VECTOR_SEQ_CONV(shared_ptr<Field>);
@@ -250,7 +276,11 @@ BOOST_PYTHON_MODULE(_customConverters){
 		VECTOR_SEQ_CONV(shared_ptr<LawTesterStage>);
 
 		VECTOR_SEQ_CONV(shared_ptr<Engine>);
-		VECTOR_SEQ_CONV(shared_ptr<Object>);
+
+		VECTOR_INDEXING_SUITE_EXPOSE(Node);
+		VECTOR_INDEXING_SUITE_EXPOSE(Object);
+
+		//VECTOR_SEQ_CONV(shared_ptr<Object>);
 		#ifdef WOO_OPENGL
 			VECTOR_SEQ_CONV(shared_ptr<GlShapeFunctor>);
 			VECTOR_SEQ_CONV(shared_ptr<GlNodeFunctor>);

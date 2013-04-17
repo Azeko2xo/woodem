@@ -56,7 +56,7 @@ bool Collider::mayCollide(const Body* b1, const Body* b2){
 }
 #endif
 
-void Collider::getLabeledObjects(std::map<std::string,py::object>& m){ boundDispatcher->getLabeledObjects(m); GlobalEngine::getLabeledObjects(m); }
+void Collider::getLabeledObjects(std::map<std::string,py::object>& m, const shared_ptr<LabelMapper>& labelMapper){ boundDispatcher->getLabeledObjects(m,labelMapper); GlobalEngine::getLabeledObjects(m,labelMapper); }
 
 void Collider::pyHandleCustomCtorArgs(py::tuple& t, py::dict& d){
 	if(py::len(t)==0) return; // nothing to do

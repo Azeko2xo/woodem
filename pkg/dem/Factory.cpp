@@ -89,6 +89,7 @@ void PsdSphereGenerator::postLoad(PsdSphereGenerator&,void*){
 vector<ParticleGenerator::ParticleAndBox>
 PsdSphereGenerator::operator()(const shared_ptr<Material>&mat){
 	if(psdPts.empty()) throw std::runtime_error("PsdSphereGenerator.psdPts is empty.");
+	if(mass && !(mat->density>0)) throw std::runtime_error("PsdSphereGenerator: material density must be positive (not "+to_string(mat->density));
 	Real r,m;
 	shared_ptr<Particle> sphere;
 	Real maxBinDiff=-Inf; int maxBin=-1;
@@ -103,8 +104,8 @@ PsdSphereGenerator::operator()(const shared_ptr<Material>&mat){
 			if(binDiff>maxBinDiff){ maxBinDiff=binDiff; maxBin=i; }
 		}
 	}
-	assert(maxBin>=0);
 	LOG_TRACE("** maxBin="<<maxBin<<", d="<<psdPts[maxBin][0]);
+	assert(maxBin>=0);
 	if(discrete){
 		// just pick the radius found
 		r=psdPts[maxBin][0]/2.; 

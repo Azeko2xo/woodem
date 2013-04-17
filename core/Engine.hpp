@@ -2,6 +2,7 @@
 
 #include<woo/lib/object/Object.hpp>
 #include<woo/core/Field.hpp>
+#include<woo/core/LabelMapper.hpp>
 #include<woo/core/Timing.hpp>
 #include<woo/lib/base/Logging.hpp>
 
@@ -54,9 +55,10 @@ class Engine: public Object {
 
 		void runPy(const string&);
 
-		virtual void getLabeledObjects(std::map<std::string,py::object>&){};
-		template<class T> static void handlePossiblyLabeledObject(const shared_ptr<T>& o, std::map<std::string,py::object>& m){
+		virtual void getLabeledObjects(std::map<std::string,py::object>&, const shared_ptr<LabelMapper>& labelMapper){};
+		template<class T> static void handlePossiblyLabeledObject(const shared_ptr<T>& o, std::map<std::string,py::object>& m, const shared_ptr<LabelMapper>& labelMapper){
 			if(o->label.empty()) return;
+			labelMapper->__setitem__woo(o->label,o); // THIS IS THE ONLY LINE WHICH WILL REMAIN!!!
 			GilLock gilLock; // is this needed?
 			if(m.count(o->label)>0) woo::NameError("Duplicate object label '"+o->label+"'.");
 			boost::smatch match;
@@ -129,7 +131,7 @@ class ParallelEngine: public Engine {
 		virtual bool isActivated(){return true;}
 		virtual bool needsField(){ return false; }
 		virtual void setField();
-		virtual void getLabeledObjects(std::map<std::string,py::object>&);
+		virtual void getLabeledObjects(std::map<std::string,py::object>&, const shared_ptr<LabelMapper>&);
 		void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
 
 	// py access

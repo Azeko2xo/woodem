@@ -12,6 +12,7 @@ from . import psd
 from . import io
 from . import energy
 from . import grid
+from . import labels
 # this is ugly, but automatic
 allTests=[m for m in dir() if type(eval(m))==types.ModuleType and eval(m).__name__.startswith('woo.tests')]
 # should the above break, do it manually (but keep the imports above):
