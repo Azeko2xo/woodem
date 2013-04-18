@@ -41,6 +41,7 @@ int LabelMapper::labelType(const string& label, string& lab0, int& index) const 
 	if(boost::regex_match(label,match,boost::regex("([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\[([0-9]+)\\]"))){
 		lab0=match[1];
 		index=lexical_cast<long>(match[2]);
+		if(index<0) woo::ValueError("LabelMapper: label '"+lab0+"' specifies non-positive index "+to_string(index));
 		return LABEL_SEQ;
 	}
 	if(boost::regex_match(label,match,boost::regex("[a-zA-Z_][a-zA-Z0-9_]*"))){
@@ -128,7 +129,7 @@ void LabelMapper::__setitem__woo(const string& label, const shared_ptr<Object>& 
 			case IN_WOO_SEQ: ;// ok
 		};
 		auto& vec=wooSeqMap[lab0];
-		if(vec.size()<=index) vec.resize(index+1);
+		if(vec.size()<=(size_t)index) vec.resize(index+1);
 		vec[index]=o;
 	}
 }

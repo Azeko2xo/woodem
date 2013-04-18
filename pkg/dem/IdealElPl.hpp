@@ -11,6 +11,7 @@ struct Law2_L6Geom_FrictPhys_IdealElPl: public LawFunctor{
 		((bool,iniEqlb,false,,"Consider the intial distance as equilibrium distance (saved in contact data, subtracted from L6Geom.uN); enabling during simulation will only affect newly created contacts; disabling will affect all contacts."))
 		((bool,noSlip,false,,"Disable plastic slipping"))
 		((bool,noBreak,false,,"Disable removal of contacts when in tension."))
+		((bool,noFrict,false,,"Turn off friction computation, it will be always zero regardless of material parameters"))
 		((int,plastDissipIx,-1,AttrTrait<Attr::noSave|Attr::hidden>(),"Index of plastically dissipated energy"))
 		((int,elastPotIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for elastic potential energy"))
 		((int,brokenIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for energy lost in broken contacts with non-zero force"))

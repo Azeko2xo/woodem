@@ -110,7 +110,7 @@ The current state (even if rotated) is taken as mechanically undeformed, i.e. wi
 	assert(isinstance(rot,Matrix3))
 	if self.cellSize!=Vector3.Zero:
 		scene.periodic=True
-		scene.cell.hSize=rot*Matrix3(self.cellSize[0],0,0, 0,self.cellSize[0],0, 0,0,self.cellSize[1])
+		scene.cell.hSize=rot*Matrix3(self.cellSize[0],0,0, 0,self.cellSize[1],0, 0,0,self.cellSize[2])
 		scene.cell.trsf=Matrix3.Identity
 
 	from woo.dem import DemField
@@ -310,7 +310,6 @@ def randomLoosePsd(predicate,psd,mass=True,discrete=False,maxAttempts=5000,**kw)
 	import woo.log
 	S=woo.core.Scene(fields=[woo.dem.DemField()])
 	mn,mx=predicate.aabb()
-	print predicate.aabb(),mn,mx
 	S.engines=[
 		woo.dem.InsertionSortCollider([woo.dem.Bo1_Sphere_Aabb()]),
 		woo.dem.BoxFactory(

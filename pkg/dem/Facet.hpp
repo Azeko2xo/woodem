@@ -10,6 +10,7 @@ struct Facet: public Shape {
 	#ifdef WOO_OPENGL
 		Vector3r getGlNormal() const;
 		Vector3r getGlVertex(int i) const;
+		Vector3r getGlCentroid() const;
 	#endif
 	// return velocity which is linearly interpolated between velocities of facet nodes, and also angular velocity at that point
 	std::tuple<Vector3r,Vector3r> interpolatePtLinAngVel(const Vector3r& x) const;
@@ -47,9 +48,9 @@ struct Gl1_Facet: public GlShapeFunctor{
 	void glVertex(const Facet& f, int i);
 	RENDERS(Facet);
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Facet,GlShapeFunctor,"Renders :obj:`Facet` object",
-		((bool,wire,false,AttrTrait<>().buttons({"All facets solid","import woo\nfor p in woo.master.scene.dem.par:\n\tif type(p.shape)==woo.dem.Facet: p.shape.wire=False\n","","All facets wire","import woo\nfor p in woo.master.scene.dem.par:\n\tif type(p.shape)==woo.dem.Facet: p.shape.wire=True\n",""}),"Only show wireframe."))
-		((int,slices,8,,"Number of half-cylinder subdivision for rounded edges with halfThick>=0 (for whole circle); if smaller than 4, rounded edges are not drawn."))
-		/*attrs*/
+		((bool,wire,false,AttrTrait<>().buttons({"All facets solid","import woo\nfor p in woo.master.scene.dem.par:\n\tif isinstance(p.shape,woo.dem.Facet): p.shape.wire=False\n","","All facets wire","import woo\nfor p in woo.master.scene.dem.par:\n\tif isinstance(p.shape,woo.dem.Facet): p.shape.wire=True\n",""}),"Only show wireframe."))
+		((int,slices,8,AttrTrait<>().range(Vector2i(-1,16)),"Number of half-cylinder subdivision for rounded edges with halfThick>=0 (for whole circle); if smaller than 4, rounded edges are not drawn; if negative, only mid-plane is drawn."))
+		((int,wd,1,AttrTrait<>().range(Vector2i(1,20)),"Line width when drawing with wireframe (only applies to the triangle, not to rounded corners)"))
 	);
 };
 REGISTER_SERIALIZABLE(Gl1_Facet);

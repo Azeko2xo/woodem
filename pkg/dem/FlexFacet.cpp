@@ -7,8 +7,7 @@ typedef Eigen::Matrix<Real,9,1> Vector9r;
 
 CREATE_LOGGER(FlexFacet);
 
-// FIXME: gives different results (explodes, there is an error somewhere)!!!
-// #define FLEXFACET_CONDENSE_DKT
+#define FLEXFACET_CONDENSE_DKT
 
 void FlexFacet::stepUpdate(){
 	if(!hasRefConf()) setRefConf();
@@ -263,8 +262,9 @@ void FlexFacet::computeNodalDisplacements(){
 			Such a result is fixed by conditionally subtracting 2π:
 		*/
 		if(aa.angle()>M_PI) aa.angle()-=2*M_PI;
-		if(abs(aa.angle())>3.) LOG_WARN("FlexFacet's rotation in a node is > 3 radians, expect unstability!");
 		Vector3r rot=Vector3r(aa.angle()*aa.axis()); // rotation vector in local coords
+		// if(aa.angle()>3)
+		if(rot.head<2>().squaredNorm()>3*3) LOG_WARN("FlexFacet's in-plane rotation in a node is > 3 radians, expect unstability!");
 		phiXy.segment<2>(2*i)=rot.head<2>(); // drilling rotation discarded
 		#ifdef FLEXFACET_DEBUG_ROT
 			AngleAxisr rr(refRot[i]);
@@ -317,9 +317,13 @@ void In2_FlexFacet_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Ma
 	}
 	LOG_TRACE("CST: "<<Fcst.transpose())
 	LOG_TRACE("DKT: "<<Fdkt.transpose())
+	// surface load, if any
+	Real surfLoadForce=0.;
+	if(!isnan(ff.surfLoad) && ff.surfLoad!=0.){ surfLoadForce=(1/3.)*ff.getArea()*ff.surfLoad; }
 	// apply nodal forces
+	// STRANGE: signs are opposite for torques?
 	for(int i:{0,1,2}){
-		Vector3r Fl=Vector3r(Fcst[2*i],Fcst[2*i+1],-Fdkt[3*i]); // minus?!!
+		Vector3r Fl=Vector3r(Fcst[2*i],Fcst[2*i+1],-Fdkt[3*i]-surfLoadForce);
 		Vector3r Tl=Vector3r(Fdkt[3*i+1],Fdkt[3*i+2],0);
 		ff.nodes[i]->getData<DemData>().addForceTorque(ff.node->ori.conjugate()*Fl,ff.node->ori.conjugate()*Tl);
 		LOG_TRACE("  "<<i<<" F: "<<Fl.transpose()<<" \t| "<<ff.node->ori.conjugate()*Fl);
@@ -400,7 +404,23 @@ void Gl1_FlexFacet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool 
 
 	// draw everything in in local coords now
 	glPushMatrix();
-		GLUtils::setLocalCoords(ff.node->pos,ff.node->ori.conjugate());
+		if(!Renderer::scaleOn){
+			// without displacement scaling, local orientation is easy
+			GLUtils::setLocalCoords(ff.node->pos,ff.node->ori.conjugate());
+		} else {
+			/* otherwise compute scaled orientation such that
+				* +x points to the same point on the triangle (in terms of angle)
+				* +z is normal to the facet in the GL space
+			*/
+			Real phi0=atan2(ff.refPos[1],ff.refPos[0]);
+			Vector3r C=ff.getGlCentroid();
+			Matrix3r rot;
+			rot.row(2)=ff.getGlNormal();
+			rot.row(0)=(ff.getGlVertex(0)-C).normalized();
+			rot.row(1)=rot.row(2).cross(rot.row(0));
+			Quaternionr ori=AngleAxisr(phi0,Vector3r::UnitZ())*Quaternionr(rot);
+			GLUtils::setLocalCoords(C,ori.conjugate());
+		}
 
 		if(refConf){
 			glColor3v(refColor);

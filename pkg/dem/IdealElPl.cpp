@@ -38,36 +38,45 @@ void Law2_L6Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shar
 		field->cast<DemField>().contacts->requestRemoval(C); return;
 	}
 	ph.torque=Vector3r::Zero();
+
+	// normal force
 	ph.force[0]=ph.kn*uN;
-	const Vector2r velT(g.vel[1],g.vel[2]);
-	Eigen::Map<Vector2r> Ft(&ph.force[1]); // const Eigen::Map<Vector2r> velT(&g.vel[1]);
-	Ft+=scene->dt*ph.kt*velT;
-	Real maxFt=abs(ph.force[0])*ph.tanPhi; assert(maxFt>=0);
-	_WATCH_MSG("\tFn="<<ph.force[0]<<", trial Ft="<<Ft.transpose()<<" (incremented by "<<(scene->dt*ph.kt*velT).transpose()<<"), max Ft="<<maxFt<<endl);
-	if(Ft.squaredNorm()>maxFt*maxFt && !noSlip){
-		Real FtNorm=Ft.norm();
-		Real ratio=maxFt/FtNorm;
-		// do this while Ft is still the trial value
-		if(scene->trackEnergy){
-			/* in the linear displacement-force graph, compute the are sliced away by the force drop; it has the
-			1. top triangle part, .5*(Ft-Fm)*(Ft-Fm)/kt
-			2. rectangle under this triangle, Fm*(Ft-Fm)/kt
-			which gives together (.5*(Ft-Fm)+Fm)*(Ft-Fm)/kt (rectangle with top in the middle of the triangle height)
-			where Fm=maxFt and Ft=FtNorm
-			*/
-			Real dissip=(.5*(FtNorm-maxFt)+maxFt)*(FtNorm-maxFt)/ph.kt;
-			//Real dissip=(maxFt)*(FtNorm-maxFt)/ph.kt;
-			scene->energy->add(dissip,"plast",plastDissipIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate);
+
+	// tangential force
+	Eigen::Map<Vector2r> Ft(&ph.force[1]); 
+	if(noFrict){
+		Ft=Vector2r::Zero();
+	} else {
+		// const Eigen::Map<Vector2r> velT(&g.vel[1]);
+		const Vector2r velT(g.vel[1],g.vel[2]);
+		Ft+=scene->dt*ph.kt*velT;
+		Real maxFt=abs(ph.force[0])*ph.tanPhi; assert(maxFt>=0);
+		_WATCH_MSG("\tFn="<<ph.force[0]<<", trial Ft="<<Ft.transpose()<<" (incremented by "<<(scene->dt*ph.kt*velT).transpose()<<"), max Ft="<<maxFt<<endl);
+		if(Ft.squaredNorm()>maxFt*maxFt && !noSlip){
+			Real FtNorm=Ft.norm();
+			Real ratio=maxFt/FtNorm;
+			// do this while Ft is still the trial value
+			if(scene->trackEnergy){
+				/* in the linear displacement-force graph, compute the are sliced away by the force drop; it has the
+				1. top triangle part, .5*(Ft-Fm)*(Ft-Fm)/kt
+				2. rectangle under this triangle, Fm*(Ft-Fm)/kt
+				which gives together (.5*(Ft-Fm)+Fm)*(Ft-Fm)/kt (rectangle with top in the middle of the triangle height)
+				where Fm=maxFt and Ft=FtNorm
+				*/
+				Real dissip=(.5*(FtNorm-maxFt)+maxFt)*(FtNorm-maxFt)/ph.kt;
+				//Real dissip=(maxFt)*(FtNorm-maxFt)/ph.kt;
+				scene->energy->add(dissip,"plast",plastDissipIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate);
+			}
+			Ft*=ratio;
+			_WATCH_MSG("\tPlastic slip by "<<((Ft/ratio)*(1-ratio)).transpose()<<", ratio="<<ratio<<", new Ft="<<Ft.transpose()<<endl);
 		}
-		Ft*=ratio;
-		_WATCH_MSG("\tPlastic slip by "<<((Ft/ratio)*(1-ratio)).transpose()<<", ratio="<<ratio<<", new Ft="<<Ft.transpose()<<endl);
+		if(isnan(ph.force[0]) || isnan(ph.force[1]) || isnan(ph.force[2])){
+			LOG_FATAL("##"<<C->leakPA()->id<<"+"<<C->leakPB()->id<<" ("<<C->leakPA()->shape->getClassName()<<"+"<<C->leakPB()->shape->getClassName()<<") has NaN force!");
+			LOG_FATAL("    uN="<<uN<<", velT="<<velT.transpose()<<", F="<<ph.force.transpose()<<"; maxFt="<<maxFt<<"; kn="<<ph.kn<<", kt="<<ph.kt);
+			throw std::runtime_error("NaN force in contact (message above)?!");
+		}
 	}
 	if(unlikely(scene->trackEnergy)){ scene->energy->add(0.5*(pow(ph.force[0],2)/ph.kn+Ft.squaredNorm()/ph.kt),"elast",elastPotIx,EnergyTracker::IsResettable); }
-	if(isnan(ph.force[0]) || isnan(ph.force[1]) || isnan(ph.force[2])){
-		LOG_FATAL("##"<<C->leakPA()->id<<"+"<<C->leakPB()->id<<" ("<<C->leakPA()->shape->getClassName()<<"+"<<C->leakPB()->shape->getClassName()<<") has NaN force!");
-		LOG_FATAL("    uN="<<uN<<", velT="<<velT.transpose()<<", F="<<ph.force.transpose()<<"; maxFt="<<maxFt<<"; kn="<<ph.kn<<", kt="<<ph.kt);
-		throw std::runtime_error("NaN force in contact (message above)?!");
-	}
 };
 
 void Law2_L6Geom_FrictPhys_LinEl6::go(const shared_ptr<CGeom>& cg, const shared_ptr<CPhys>& cp, const shared_ptr<Contact>& C){

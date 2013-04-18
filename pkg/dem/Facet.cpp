@@ -29,6 +29,10 @@ Vector3r Facet::getGlVertex(int i) const{
 Vector3r Facet::getGlNormal() const{
 	return (getGlVertex(1)-getGlVertex(0)).cross(getGlVertex(2)-getGlVertex(0)).normalized();
 }
+
+Vector3r Facet::getGlCentroid() const{
+	return (1/3.)*(getGlVertex(0)+getGlVertex(1)+getGlVertex(2));
+}
 #endif
 
 Real Facet::getArea() const {
@@ -116,7 +120,10 @@ void Bo1_Facet_Aabb::go(const shared_ptr<Shape>& sh){
 #include<woo/lib/base/CompUtils.hpp>
 
 void halfCylinder(const Vector3r& A, const Vector3r& B, Real radius, const Vector3r& upVec, const Vector3r& color, bool wire, int slices=12, int stacks=1, Real connectorAngle=0.){
-	if(wire) glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+	if(wire) {
+		glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+		glLineWidth(1);
+	}
 	if(!isnan(color[0]))	glColor3v(color);
 	Real len=(B-A).norm();
 	Vector3r axis=(B-A)/len;
@@ -160,6 +167,7 @@ void halfCylinder(const Vector3r& A, const Vector3r& B, Real radius, const Vecto
 
 bool Gl1_Facet::wire;
 int Gl1_Facet::slices;
+int Gl1_Facet::wd;
 
 void Gl1_Facet::drawEdges(const Facet& f, const Vector3r& facetNormal, const Vector3r& shift, bool wire){
 	if(slices>=4){
@@ -175,6 +183,7 @@ void Gl1_Facet::drawEdges(const Facet& f, const Vector3r& facetNormal, const Vec
 		if(wire){
 			Vector3r A(f.getGlVertex(0)+shift), B(f.getGlVertex(1)+shift), C(f.getGlVertex(2)+shift);
 			Vector3r vv[]={A+dz,B+dz,C+dz,A+dz,A-dz,B-dz,B+dz,B-dz,C-dz,C+dz,C-dz,A-dz};
+			glLineWidth(wd);
 			glBegin(GL_LINE_LOOP);
 				for(const auto& v: vv) glVertex3v(v);
 			glEnd();
@@ -196,7 +205,8 @@ void Gl1_Facet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire
 
 	if(wire || wire2){
 		glDisable(GL_LINE_SMOOTH);
-		if(f.halfThick==0){
+		if(f.halfThick==0 || slices<0){
+			glLineWidth(wd);
 			glBegin(GL_LINE_LOOP);
 				for(int i:{0,1,2}) glVertex3v((f.getGlVertex(i)+shift).eval());
 		   glEnd();

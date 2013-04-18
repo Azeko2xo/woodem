@@ -78,6 +78,7 @@ void SpherePack::fromFile(const string& fname) {
 		lineNo++;
 		if(boost::algorithm::starts_with(line,"##USER-DATA:: ")){
 			userData=line.substr(14,string::npos); // strip the line header
+			continue;
 		}
 		boost::tokenizer<boost::char_separator<char> > toks(line,boost::char_separator<char>(" \t"));
 		vector<string> tokens; FOREACH(const string& s, toks) tokens.push_back(s);

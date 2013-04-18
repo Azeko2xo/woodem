@@ -161,7 +161,8 @@ class PeriodicEngine: public GlobalEngine{
 		will print step number every 10000 step or every 5 seconds of wall clock time, whiever comes first since it was last run.",
 		((Real,virtPeriod,((void)"deactivated",0),,"Periodicity criterion using virtual (simulation) time (deactivated if <= 0)"))
 		((Real,realPeriod,((void)"deactivated",0),,"Periodicity criterion using real (wall clock, computation, human) time (deactivated if <=0)"))
-		((long,stepPeriod,((void)"deactivated",1),,"Periodicity criterion using step number (deactivated if <= 0)"))
+		((long,stepPeriod,((void)"at every step",1),,"Periodicity criterion using step number (deactivated if <= 0)"))
+		((bool,stepModulo,true,,"If true, interpret :obj:`stepPeriod` as modulo value for :obj:`Scene.step`. This is useful to assure two engines will run within the same step regardless of when they were started. This may lead to Engine being run *earlier* than :obj:`stepPeriod` after the last run, in case :obj:`stepPeriod` is changed."))
 		((long,nDo,((void)"deactivated",-1),,"Limit number of executions by this number (deactivated if negative)"))
 		((long,nDone,0,,"Track number of executions (cumulative)."))
 		((bool,initRun,true,,"Run the first time we are called as well."))

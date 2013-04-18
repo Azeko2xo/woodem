@@ -372,7 +372,9 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 		if m:	__import__(m.group(1))
 		obj=eval(opts.expression)
 		if isinstance(obj,woo.core.Scene): woo.master.scene=obj
-		elif isinstance(obj,woo.core.Preprocessor): woo.master.scene=woo.batch.runPreprocessor(obj)
+		elif isinstance(obj,woo.core.Preprocessor):
+			woo.master.scene=woo.batch.runPreprocessor(obj)
+			woo.master.scene.saveTmp()
 		else: raise ValueError('Expression given with -e must be a Scene or a Preprocessor, not a %s'%type(obj))
 		if not opts.paused:
 			woo.master.scene.run()

@@ -147,7 +147,8 @@ bool PeriodicEngine::isActivated(){
 	if((nDo<0 || nDone<nDo) &&
 		((virtPeriod>0 && virtNow-virtLast>=virtPeriod) ||
 		 (realPeriod>0 && realNow-realLast>=realPeriod) ||
-		 (stepPeriod>0 && stepNow-stepLast>=stepPeriod))){
+		 (stepPeriod>0 && ((stepNow-stepLast>=stepPeriod) || (stepModulo && stepNow%stepPeriod==0)))
+		)){
 		realPrev=realLast; realLast=realNow;
 		virtPrev=virtLast; virtLast=virtNow;
 		stepPrev=stepLast; stepLast=stepNow;
