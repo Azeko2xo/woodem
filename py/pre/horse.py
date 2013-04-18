@@ -21,6 +21,7 @@ class FallingHorse(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		_PAT(str,'pattern','hexa',choice=['hexa','ortho'],doc='Pattern to use when filling the volume with spheres'),
 		_PAT(woo.dem.FrictMat,'mat',woo.dem.FrictMat(density=1e3,young=5e4,ktDivKn=.2,tanPhi=math.tan(.5)),startGroup='Material',doc='Material for particles'),
 		_PAT(woo.dem.FrictMat,'meshMat',None,'Material for the meshed horse; if not given, :obj:`mat` is used here as well.'),
+		_PAT(bool,'deformable',False,startGroup='Deformability',doc='Whether the meshed horse is deformable. Note that deformable horse does not track energy and disables plotting.'),
 		_PAT(float,'pWaveSafety',.7,startGroup='Tunables',doc='Safety factor for :obj:`woo.utils.pWaveDt` estimation.'),
 		_PAT(str,'reportFmt',"/tmp/{tid}.xhtml",filename=True,startGroup="Outputs",doc="Report output format; :obj:`Scene.tags <woo.core.Scene.tags>` can be used."),
 		_PAT(int,'vtkStep',40,"How often should VtkExport run. If non-positive, never run the export."),
@@ -63,27 +64,49 @@ def prepareHorse(pre):
 	surf.translate(0,0,-zSpan)
 	zMin=aabb[0][2]-(aabb[1][2]-aabb[0][2])
 	xMin,yMin,xMax,yMax=aabb[0][0]-zSpan,aabb[0][1]-zSpan,aabb[1][0]+zSpan,aabb[1][1]+zSpan
-	S.dem.par.append(woo.pack.gtsSurface2Facets(surf,wire=False,mat=pre.meshMat,halfThick=pre.halfThick))
+	S.dem.par.append(woo.pack.gtsSurface2Facets(surf,wire=False,flex=pre.deformable,mat=pre.meshMat,halfThick=pre.halfThick,fixed=(not pre.deformable)))
 	S.dem.par.append(woo.utils.wall(zMin,axis=2,sense=1,mat=pre.meshMat,glAB=((xMin,yMin),(xMax,yMax))))
 	S.dem.saveDeadNodes=True # for traces, if used
-	S.dem.collectNodes()
+	S.dem.collectNodes() # collects also mesh nodes, if deformable; good :-)
 	
 	nan=float('nan')
 
-	S.engines=woo.utils.defaultEngines(damping=pre.damping,
-		cp2=(Cp1_PelletMat_PelletPhys if isinstance(pre.mat,woo.dem.PelletMat) else None),
-		law=(Law2_L6Geom_PelletPhys_Pellet(plastSplit=True) if isinstance(pre.mat,woo.dem.PelletMat) else None)
-	)+[
-		#woo.core.PyRunner(2000,'import woo.timing; woo.timing.stats();'),
-		woo.core.PyRunner(10,'S.plot.addData(i=S.step,t=S.time,total=S.energy.total(),relErr=(S.energy.relErr() if S.step>100 else 0),**S.energy)'),
-		woo.core.PyRunner(50,'import woo.pre.horse\nif S.step>100 and S.energy["kinetic"]<S.pre.relEkStop*abs(S.energy["grav"]): woo.pre.horse.finished(S)'),
+	if not pre.deformable:
+		S.engines=woo.utils.defaultEngines(damping=pre.damping,
+			cp2=(Cp1_PelletMat_PelletPhys if isinstance(pre.mat,woo.dem.PelletMat) else None),
+			law=(Law2_L6Geom_PelletPhys_Pellet(plastSplit=True) if isinstance(pre.mat,woo.dem.PelletMat) else None)
+		)+[
+			woo.core.PyRunner(10,'S.plot.addData(i=S.step,t=S.time,total=S.energy.total(),relErr=(S.energy.relErr() if S.step>100 else 0),**S.energy)'),
+			woo.core.PyRunner(50,'import woo.pre.horse\nif S.step>100 and S.energy["kinetic"]<S.pre.relEkStop*abs(S.energy["grav"]): woo.pre.horse.finished(S)'),
+		]
+		S.trackEnergy=True
+		S.plot.plots={'i':('total','S.energy.keys()'),' t':('relErr')}
+		S.plot.data={'i':[nan],'total':[nan],'relErr':[nan]} # to make plot displayable from the very start
+	else:
+		# more complicated here
+		# go through facet's nodes, give them some mass
+		nodeM=1e-3*pre.mat.density*(4/3)*math.pi*pre.radius**3
+		nodeI=1e3*(2/5.)*nodeM*pre.radius**2
+		for p in S.dem.par:
+			if type(p.shape)!=FlexFacet: continue
+			for n in p.shape.nodes:
+				n.dem.mass=nodeM
+				n.dem.inertia=nodeI*Vector3(1,1,1)
+				n.dem.gravitySkip=True
+				#if n.pos[2]<zMin: n.dem.blocked='xyzXYZ'
+
+		S.engines=[
+			Leapfrog(reset=True,damping=pre.damping),
+			InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb(),Bo1_Wall_Aabb()],verletDist=0.01),
+			ContactLoop([Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom(),Cg2_Wall_Sphere_L6Geom()],[Cp2_FrictMat_FrictPhys()],[Law2_L6Geom_FrictPhys_IdealElPl()],applyForces=False), # forces are applied in IntraForce
+			IntraForce([In2_FlexFacet_ElastMat(bending=True,thickness=(pre.radius if pre.halfThick<=0 else float('nan'))),In2_Sphere_ElastMat()]),
+		]
+
+	S.engines=S.engines+[
 		BoxDeleter(box=((xMin,yMin,zMin-.1*zSpan),(xMax,yMax,aabb[1][2]+.1*zSpan)),inside=False,stepPeriod=100),
 		VtkExport(out=pre.vtkPrefix,stepPeriod=pre.vtkStep,what=VtkExport.all,dead=(pre.vtkStep<=0 or not pre.vtkPrefix))
-	]+([Tracer(stepPeriod=20,num=16,compress=0,compSkip=2,dead=False,scalar=Tracer.scalarVel,label='_tracer')] if 'opengl' in woo.config.features else [])
+		]+([Tracer(stepPeriod=20,num=16,compress=0,compSkip=2,dead=False,scalar=Tracer.scalarVel,label='_tracer')] if 'opengl' in woo.config.features else [])
 
-	S.trackEnergy=True
-	S.plot.plots={'i':('total','S.energy.keys()'),' t':('relErr')}
-	S.plot.data={'i':[nan],'total':[nan],'relErr':[nan]} # to make plot displayable from the very start
 	#woo.master.timingEnabled=True
 	S.dt=pre.pWaveSafety*woo.utils.pWaveDt(S)
 	import woo.config
