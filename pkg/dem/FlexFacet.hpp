@@ -13,6 +13,7 @@ struct FlexFacet: public Facet{
 	void computeNodalDisplacements(); 
 	// called by functors to initialize (if necessary) and update
 	void stepUpdate();
+	REGISTER_CLASS_INDEX(FlexFacet,Facet);
 	DECLARE_LOGGER;
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(FlexFacet,Facet,"Facet as triangular element, with 2 translational and 2 (or 3) rotational degrees of freedom in each node. Local coordinate system is established using `Best Fit CD Frame <http://www.colorado.edu/engineering/cas/courses.d/NFEM.d/NFEM.AppC.d/NFEM.AppC.pdf>`_ in a non-incremental manner, and in the same way, nodal displacements and rotations are computed.",
 		((shared_ptr<Node>,node,make_shared<Node>(),AttrTrait<>().readonly(),"Local coordinate system"))
@@ -27,7 +28,7 @@ struct FlexFacet: public Facet{
 		#endif
 		((MatrixXr,KKcst,,,"Stiffness matrix of the element (assembled from the reference configuration when needed for the first time)"))
 		((MatrixXr,KKdkt,,,"Bending stiffness matrix of the element (assembled from the reference configuration when needed for the first time)."))
-		,/*ctor*/
+		,/*ctor*/ createIndex();
 		,/*py*/
 			.def("setRefConf",&FlexFacet::setRefConf,"Set the current configuration as the reference one.")
 			.def("update",&FlexFacet::stepUpdate,"Update current configuration; create reference configuration if it does not exist.")

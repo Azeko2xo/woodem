@@ -86,8 +86,10 @@ def mkFacetCyl(aabb,cylDiv,topMat,sideMat,botMat,topMask,sideMask,botMask,topBlo
 	def mkCap(nn,central,mask,mat):
 		ret=[]
 		for i in range(len(nn)):
-			ret.append(woo.dem.Particle(material=mat,shape=FlexFacet(nodes=[nn[i],nn[(i+1)%len(nn)],central]),mask=mask))
+			ret.append(woo.dem.Particle(material=mat,shape=Facet(nodes=[nn[i],nn[(i+1)%len(nn)],central]),mask=mask))
 			nn[i].dem.parCount+=1
+			nn[(i+1)%len(nn)].dem.parCount+=1
+			central.dem.parCount+=1
 		return ret
 	retParticles+=mkCap(nnn[0],central=centrals[0],mask=botMask,mat=topMat)
 	retParticles+=mkCap(list(reversed(nnn[-1])),central=centrals[-1],mask=topMask,mat=botMat) # reverse to have normals outside
@@ -139,34 +141,7 @@ def prepareCylTriax(pre):
 	innerRad=rad-rad*(1.-math.cos(.5*2*math.pi/pre.cylDiv[0]))
 
 	
-	if 1:
-		S.dem.par.append(woo.pack.randomLoosePsd(predicate=woo.pack.inCylinder(centerBottom=(xymid[0],xymid[1],bot),centerTop=(xymid[0],xymid[1],top),radius=innerRad),psd=pre.psd,mat=sphMat))
-	else:
-		S.engines=[
-			woo.dem.InsertionSortCollider([woo.dem.Bo1_Sphere_Aabb()]),
-			woo.dem.BoxFactory(
-				box=((xymin[0],xymin[1],bot),(xymax[0],xymax[1],top)),
-				maxMass=-1,
-				maxNum=-1,
-				massFlowRate=0,
-				maxAttempts=5000,
-				generator=woo.dem.PsdSphereGenerator(psdPts=pre.psd,discrete=False,mass=True),
-				materials=[sphMat],
-				shooter=None,
-				mask=spheMask,
-			)
-		]
-		print S.engines[1].box
-		S.one()
-		print 'Created %d particles'%(len(S.dem.par))
-		# remove particles not inside the cylinder
-		out=0
-		print 'inner radius',rad,innerRad
-		for p in S.dem.par:
-			if (Vector2(p.pos[0],p.pos[1])-xymid).norm()+p.shape.radius>innerRad:
-				out+=1
-				S.dem.par.remove(p.id)
-		print 'Removed %d particles outside the cylinder'%out
+	S.dem.par.append(woo.pack.randomLoosePsd(predicate=woo.pack.inCylinder(centerBottom=(xymid[0],xymid[1],bot),centerTop=(xymid[0],xymid[1],top),radius=innerRad),psd=pre.psd,mat=sphMat))
 
 	sphereMass=sum([p.mass for p in S.dem.par])
 
@@ -189,7 +164,7 @@ def prepareCylTriax(pre):
 	S.engines=[
 		InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb()],verletDist=-.05),
 		ContactLoop([Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom()],[Cp2_FrictMat_FrictPhys()],[Law2_L6Geom_FrictPhys_IdealElPl()],applyForces=True,label='contactLoop'), 
-		IntraForce([In2_Sphere_ElastMat(),In2_FlexFacet_ElastMat(thickness=pre.psd[0][0],bending=False)],label='intraForce',dead=True), # ContactLoop applies first
+		IntraForce([In2_Sphere_ElastMat(),In2_FlexFacet_ElastMat(thickness=pre.psd[0][0],bendThickness=pre.psd[0][0],bending=True)],label='intraForce',dead=True), # ContactLoop applies first
 		WeirdTriaxControl(goal=(pre.sigIso,pre.sigIso,pre.sigIso),maxStrainRate=(pre.maxRates[0],pre.maxRates[0],pre.maxRates[0]),relVol=math.pi*rad**2*ht/S.cell.volume,stressMask=0b0111,maxUnbalanced=0.15,mass=pre.massFactor*sphereMass,doneHook='import woo.pre.cylTriax; woo.pre.cylTriax.compactionDone(S)',label='triax',absStressTol=1e4,relStressTol=1e-2),
 		woo.core.PyRunner(20,'import woo.pre.cylTriax; woo.pre.cylTriax.addPlotData(S)'),
 		VtkExport(out=pre.vtkFmt,stepPeriod=pre.vtkStep,what=VtkExport.all,dead=(pre.vtkStep<=0 or not pre.vtkFmt)),
@@ -197,12 +172,12 @@ def prepareCylTriax(pre):
 	]
 	S.timingEnabled=True
 	import woo.log
-	woo.log.setLevel('InsertionSortCollider',woo.log.TRACE)
-	woo.log.setLevel('WeirdTriaxControl',woo.log.TRACE)
+	#woo.log.setLevel('InsertionSortCollider',woo.log.TRACE)
+	#woo.log.setLevel('WeirdTriaxControl',woo.log.TRACE)
 
 	try:
 		import woo.gl
-		S.any=[woo.gl.Renderer(dispScale=(5,5,5),rotScale=10),woo.gl.Gl1_DemField(),woo.gl.Gl1_CPhys()]
+		S.any=[woo.gl.Renderer(dispScale=(5,5,5),rotScale=10),woo.gl.Gl1_DemField(),woo.gl.Gl1_CPhys(),woo.gl.Gl1_FlexFacet(phiSplit=False,phiWd=1,relPhi=.02)]
 	except ImportError: pass
 
 	return S
@@ -298,8 +273,7 @@ def compactionDone(S):
 		# supports may move in-plane, no rotation
 		if abs(n.pos[2]-top.pos[2])<tol or abs(n.pos[2]-bot.pos[2])<tol:
 			n.dem.blocked='zXYZ' 
-		else: n.dem.blocked='XYZ' # don't rotate unless we have bending at some point
-
+		else: n.dem.blocked='' # don't rotate unless we have bending at some point
 
 	S.save('/tmp/compact.gz')
 

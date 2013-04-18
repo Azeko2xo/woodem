@@ -7,7 +7,8 @@ typedef Eigen::Matrix<Real,9,1> Vector9r;
 
 CREATE_LOGGER(FlexFacet);
 
-
+// FIXME: gives different results (explodes, there is an error somewhere)!!!
+// #define FLEXFACET_CONDENSE_DKT
 
 void FlexFacet::stepUpdate(){
 	if(!hasRefConf()) setRefConf();
@@ -64,7 +65,13 @@ void FlexFacet::setRefConf(){
 void FlexFacet::ensureStiffnessMatrices(const Real& young, const Real& nu, const Real& thickness,bool bending, const Real& bendThickness){
 	assert(hasRefConf());
 	// do nothing if both matrices exist already
-	if(KKcst.size()==36 && (!bending || KKdkt.size()==81)) return; 
+	if(KKcst.size()==36 && (!bending ||
+		#ifdef FLEXFACET_CONDENSE_DKT		
+			KKdkt.size()==54
+		#else 
+			KKdkt.size()==81
+		#endif
+	)) return; 
 	// check thickness
 	Real t=(isnan(thickness)?2*this->halfThick:thickness);
 	if(/*also covers NaN*/!(t>0)) throw std::runtime_error("FlexFacet::ensureStiffnessMatrices: Facet thickness is not positive!");
@@ -177,17 +184,34 @@ void FlexFacet::ensureStiffnessMatrices(const Real& young, const Real& nu, const
 
 
 	// assemble the matrix here
-	KKdkt=MatrixXr::Zero(9,9);
-	KKdkt.setZero();
+	// KKdkt0 is 9x9, then w_i dofs are condensed away, and KKdkt is only 9x6
+	#ifdef FLEXFACET_CONDENSE_DKT
+		MatrixXr KKdkt0(9,9); KKdkt0.setZero();
+	#else
+		KKdkt.setZero(9,9);
+	#endif
 	// gauss integration points and their weights
 	Vector3r xxi(.5,.5,0), eeta(0,.5,.5);
 	Real ww[]={1/3.,1/3.,1/3.};
 	for(int i:{0,1,2}){
 		for(int j:{0,1,2}){
 			auto b=Bphi(xxi[i],eeta[j]); // evaluate B at the gauss point
-			KKdkt+=(2*area*ww[j]*ww[i])*b.transpose()*Db*b;
+			#ifdef FLEXFACET_CONDENSE_DKT
+				KKdkt0
+			#else
+				KKdkt
+			#endif
+				+=(2*area*ww[j]*ww[i])*b.transpose()*Db*b;
 		}
 	}
+	#ifdef FLEXFACET_CONDENSE_DKT
+		// extract columns [_ 1 2 _ 4 5 _ 7 8]
+		KKdkt.setZero(9,6);
+		for(int i:{0,1,2}){
+			KKdkt.col(2*i)=KKdkt0.col(3*i+1);
+			KKdkt.col(2*i+1)=KKdkt0.col(3*i+2);
+		}
+	#endif
 };
 
 
@@ -272,16 +296,21 @@ void In2_FlexFacet_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Ma
 	// assemble local stiffness matrix, in case it does not exist yet
 	ff.ensureStiffnessMatrices(particle->material->cast<ElastMat>().young,nu,thickness,/*bending*/bending,bendThickness);
 	// compute nodal forces response here
-	Vector6r Fcst=-(ff.KKcst*ff.uXy).transpose(); 
+	Vector6r Fcst=-(ff.KKcst*ff.uXy).transpose();
+
 	Vector9r Fdkt;
 	if(bending){
-		assert(ff.KKdkt.size()==81);
-		Vector9r uDkt_;
-		uDkt_<<0,ff.phiXy.segment<2>(0),0,ff.phiXy.segment<2>(2),0,ff.phiXy.segment<2>(4);
-		Fdkt.resize(9);
-		Fdkt=-(ff.KKdkt*uDkt_).transpose();
-		#ifdef FLEXFACET_DEBUG_ROT
-			ff.uDkt=uDkt_; // debugging copy, acessible from python
+		#ifdef FLEXFACET_CONDENSE_DKT
+			assert(ff.KKdkt.size()==54);
+			Fdkt=-(ff.KKdkt*ff.phiXy).transpose();
+		#else
+			assert(ff.KKdkt.size()==81);
+			Vector9r uDkt_;
+			uDkt_<<0,ff.phiXy.segment<2>(0),0,ff.phiXy.segment<2>(2),0,ff.phiXy.segment<2>(4);
+			Fdkt=-(ff.KKdkt*uDkt_).transpose();
+			#ifdef FLEXFACET_DEBUG_ROT
+				ff.uDkt=uDkt_; // debugging copy, acessible from python
+			#endif
 		#endif
 	} else {
 		Fdkt=Vector9r::Zero();
