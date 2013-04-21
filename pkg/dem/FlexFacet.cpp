@@ -323,7 +323,7 @@ void In2_FlexFacet_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Ma
 	// apply nodal forces
 	// STRANGE: signs are opposite for torques?
 	for(int i:{0,1,2}){
-		Vector3r Fl=Vector3r(Fcst[2*i],Fcst[2*i+1],-Fdkt[3*i]-surfLoadForce);
+		Vector3r Fl=Vector3r(Fcst[2*i],Fcst[2*i+1],-Fdkt[3*i]+surfLoadForce);
 		Vector3r Tl=Vector3r(Fdkt[3*i+1],Fdkt[3*i+2],0);
 		ff.nodes[i]->getData<DemData>().addForceTorque(ff.node->ori.conjugate()*Fl,ff.node->ori.conjugate()*Tl);
 		LOG_TRACE("  "<<i<<" F: "<<Fl.transpose()<<" \t| "<<ff.node->ori.conjugate()*Fl);

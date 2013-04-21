@@ -15,19 +15,18 @@ class CylTriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 	_PAT=woo.pyderived.PyAttrTrait # less typing
 	_attrTraits=[
 		# noGui would make startGroup being ignored
-		_PAT(float,'isoStress',-1e4,unit='kPa',startGroup='General',doc='Confining stress (isotropic during compaction)'),
-		_PAT(Vector3,'maxRates',(2e-1,5e-2,1.),'Maximum strain rates during the compaction phase (for all axes), and during the triaxial phase in axial sense and radial sense.'),
-		_PAT(float,'massFactor',.5,'Multiply real mass of particles by this number to obtain the :obj:`woo.dem.WeirdTriaxControl.mass` control parameter'),
-		_PAT([Vector2,],'psd',[(2e-3,0),(2.5e-3,.2),(4e-3,1.)],unit=['mm','%'],doc='Particle size distribution of particles; first value is diameter, scond is cummulative mass fraction.'),
+
+		_PAT(Vector2,'htDiam',Vector2(.05,.04),startGroup='Geometry & control',doc='Initial size of the cylinder (radius and height)'),
+		_PAT(float,'memThick',-1.0,'Membrane thickness; if negative, relative to largest particle diameter'),
+		_PAT(float,'cylDiv',40,'Number of segments for cylinder (first component)'),
 		_PAT(float,'sigIso',-500e3,unit='Pa',doc='Isotropic compaction stress, and lateral stress during the triaxial phase'),
 		_PAT(float,'stopStrain',-.2,doc='Goal value of axial deformation in the triaxial phase'),
+		_PAT(Vector3,'maxRates',(2e-1,5e-2,1.),'Maximum strain rates during the compaction phase (for all axes), and during the triaxial phase in axial sense and radial sense.'),
 
-		_PAT(Vector2,'radHt',Vector2(.02,.05),doc='Initial size of the cylinder (radius and height)'),
-
-		_PAT(woo.dem.FrictMat,'parMat',FrictMat(young=0.3e9,ktDivKn=.2,tanPhi=.4,density=1e8),'Material of particles.'),
+		_PAT(woo.dem.FrictMat,'parMat',FrictMat(young=0.3e9,ktDivKn=.2,tanPhi=.4,density=1e8),startGroup='Materials',doc='Material of particles.'),
+		_PAT([Vector2,],'psd',[(2e-3,0),(2.5e-3,.2),(4e-3,1.)],unit=['mm','%'],doc='Particle size distribution of particles; first value is diameter, scond is cummulative mass fraction.'),
 		_PAT(woo.dem.FrictMat,'memMat',FrictMat(young=1.1e6,ktDivKn=.2,tanPhi=.4,density=1e8),'Membrane material; if unspecified, particle material is used (with reduced friction during the compaction phase)'),
 		_PAT(float,'suppTanPhi',float('nan'),'Friction at supports; if NaN, the same as for particles is used. Supports use the same material as particles otherwise.'),
-		_PAT(float,'memThick',-1.0,'Membrane thickness; if negative, relative to largest particle diameter'),
 
 		#	_PAT(woo.dem.ElastMat,'circMat',woo.dem.ElastMat(young=1e3,density=1.),'Material for circumferential trusses (simulating the membrane). If *None*, membrane will not be simulated. The membrane is only added after the compression phase.'),
 		#_PAT(float,'circAvgThick',-.001,'Average thickness of circumferential membrane; if negative, relative to cylinder radius (``radHt[0]``).'),
@@ -42,7 +41,7 @@ class CylTriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		#'''),
 		#_PAT(int,'backupSaveTime',1800,doc='How often to save backup of the simulation (0 or negative to disable)'),
 		_PAT(float,'pWaveSafety',.1,startGroup='Tunables',doc='Safety factor for :obj:`woo.utils.pWaveDt` estimation.'),
-		_PAT(float,'cylDiv',40,'Number of segments for cylinder (first component)'),
+		_PAT(float,'massFactor',.5,'Multiply real mass of particles by this number to obtain the :obj:`woo.dem.WeirdTriaxControl.mass` control parameter'),
 		_PAT(float,'damping',.5,'Nonviscous damping'),
 		_PAT(float,'maxUnbalanced',.05,'Maximum unbalanced force at the end of compaction'),
 		_PAT(int,'vtkStep',0,'Periodicity of saving VTK exports'),
@@ -113,7 +112,7 @@ def mkFacetCyl(aabb,cylDiv,suppMat,sideMat,suppMask,sideMask,suppBlock,sideBlock
 def prepareCylTriax(pre):
 	import woo
 	margin=.6
-	rad,ht=pre.radHt[0],pre.radHt[1]
+	rad,ht=.5*pre.htDiam[1],pre.htDiam[0]
 	bot,top=margin*ht,(1+margin)*ht
 	xymin=Vector2(margin*rad,margin*rad)
 	xymax=Vector2((margin+2)*rad,(margin+2)*rad)
@@ -139,17 +138,20 @@ def prepareCylTriax(pre):
 	# radius minus polygonal imprecision (circle segment), minus halfThickness of the membrane
 	if pre.memThick<0: pre.memThick*=-pre.psd[-1][0]
 	innerRad=rad-rad*(1.-math.cos(.5*2*math.pi/pre.cylDiv))-.5*pre.memThick
+	S.lab.memThick=pre.memThick
 
 	if pre.packCacheDir:
 		import hashlib,os
 		compactMemoize=pre.packCacheDir+'/'+hashlib.sha1(pre.dumps(format='expr')+'ver2').hexdigest()+'.triax-compact'
 		print 'Compaction memoize file is ',compactMemoize
+	else: compactMemoize='' # no memoize file
+
 	if pre.packCacheDir and os.path.exists(compactMemoize):
 		print 'Using memoized compact state'
 		sp=woo.pack.SpherePack()
 		sp.load(compactMemoize)
 		meshAabb=eval(sp.userData)
-		S.lab.compactMemoize=None
+		S.lab.compactMemoize=None # none means we just loaded that file
 		sp.toSimulation(S,mat=S.lab.parMat)
 	else:
 		S.dem.par.append(woo.pack.randomLoosePsd(predicate=woo.pack.inCylinder(centerBottom=(xymid[0],xymid[1],bot),centerTop=(xymid[0],xymid[1],top),radius=innerRad),psd=pre.psd,mat=S.lab.parMat))
@@ -159,8 +161,8 @@ def prepareCylTriax(pre):
 	sumParMass=sum([p.mass for p in S.dem.par])
 
 	# create mesh (supports+membrane)
-	cylDivHt=int(round(pre.radHt[1]/(2*math.pi*pre.radHt[0]/pre.cylDiv))) # try to be as square as possible
-	nodeMass=(pre.radHt[1]/cylDivHt)**2*pre.memThick*pre.memMat.density # approx mass of square slab of our size
+	cylDivHt=int(round(ht/(2*math.pi*rad/pre.cylDiv))) # try to be as square as possible
+	nodeMass=(ht/cylDivHt)**2*pre.memThick*pre.memMat.density # approx mass of square slab of our size
 	nodeInertia=((3/4.)*(nodeMass/math.pi))**(5/3.)*(6/15.)*math.pi # inertial of sphere with the same mass
 	particles,nodes=mkFacetCyl(
 		aabb=meshAabb,
@@ -218,26 +220,51 @@ def addPlotData(S):
 	assert S.lab.stage in ('compact','stabilize','triax')
 	import woo
 	t=S.lab.triax
-	sxx,syy,szz=t.stress.diagonal()
-	p=t.stress.diagonal().sum()/3. # mean stress
-	q=szz-.5*(sxx+syy)         # deviatoric stress?!
+	# global stress tensor
+	sxx,syy,szz=t.stress.diagonal() 
+	# net volume, without membrane thickness
+	vol=S.lab.meshVolume.netVol 
+	# current radial stress
+	srr=.5*(sxx+syy) 
+	# mean stress
+	p=t.stress.diagonal().sum()/3.
+	# deviatoric stress
+	q=szz-.5*(sxx+syy) 
 	qDivP=(q/p if p!=0 else float('nan'))
-	vol=S.lab.meshVolume.netVol
+
+
 	if S.lab.stage in ('compact','stabilize'):
-		exx,eyy,ezz=t.strain
+		## t.strain is log(l/l0) for all components
+		exx,eyy,ezz=t.strain 
 		err=.5*(exx+eyy)
+		# volumetric strain is not defined directly, and it is not needed either		
 		eVol=float('nan')
 	else:
+		# triaxial phase:
+		# only axial strain (ezz) and volumetric strain (eVol) are known
+		#
+		# set the initial volume, if not yet done
 		if not hasattr(S.lab,'netVol0'): S.lab.netVol0=S.lab.meshVolume.netVol
-		ezz=t.strain[2] # xy components irrelevant
-		eVol=math.log(vol/S.lab.netVol0)
-		err=.5*(eVol-ezz)
-		exx=eyy=float('nan') # undefined
+		# axial strain is known; xy components irrelevant (inactive)
+		ezz=t.strain[2] 
+		# current net volume / initial net volume
+		eVol=math.log(vol/S.lab.netVol0) 
+		# radial strain
+		err=.5*(eVol-ezz) 
+		# undefined
+		exx=eyy=float('nan') 
+	# deviatoric strain
 	eDev=ezz-(1/3.)*(2*err+ezz) # FIXME: is this correct?!
 
+	surfLoad=(float('nan') if S.lab.stage=='compact' else S.lab.surfLoad)
+
+
 	S.plot.addData(unbalanced=woo.utils.unbalancedForce(),i=S.step,
-		sxx=sxx,syy=syy,srr=.5*(sxx+syy),szz=szz,
-		exx=exx,eyy=eyy,err=err,ezz=ezz,
+		sxx=sxx,syy=syy,
+		srr=.5*(sxx+syy),szz=szz,
+		surfLoad=surfLoad,
+		exx=exx,eyy=eyy,
+		err=err,ezz=ezz,
 		eDev=eDev,eVol=eVol,
 		vol=vol,
 		p=p,q=q,qDivP=qDivP,
@@ -248,28 +275,31 @@ def addPlotData(S):
 	)
 	if not S.plot.plots:
 		S.plot.plots={
-			'i':('unbalanced',),'i ':('sxx','syy','srr','szz'),' i':('exx','eyy','err','ezz','eVol'),'  i':('vol','grossVol')
+			'i':('unbalanced',),'i ':('srr','szz','surfLoad'),' i':('err','ezz','eVol'),'  i':('vol','grossVol')
 			# energy plot
 			#' i ':(O.energy.keys,None,'Etot'),
 		}
 		S.plot.xylabels={'i ':('step','Stress [Pa]',),' i':('step','Strains [-]','Strains [-]')}
 		S.plot.labels={
-			'sxx':r'$\sigma_{xx}$','syy':r'$\sigma_{yy}$','szz':r'$\sigma_{zz}$','srr':r'$\sigma_{rr}$',
+			'sxx':r'$\sigma_{xx}$','syy':r'$\sigma_{yy}$','szz':r'$\sigma_{zz}$','srr':r'$\sigma_{rr}$','surfLoad':r'$\sigma_{\rm hydro}$',
 			'exx':r'$\varepsilon_{xx}$','eyy':r'$\varepsilon_{yy}$','ezz':r'$\varepsilon_{zz}$','err':r'$\varepsilon_{rr}$','eVol':r'$\varepsilon_{v}$','vol':'net volume','grossVol':'midplane volume'
 		}
-	## already in compaction phase
-	## adjust surface load to maintain the stress tensor
-	if not S.lab.meshVolume.dead:
-		srr=.5*(sxx+syy) # current radial stress
-		surfLoad=2*S.pre.sigIso-srr # (sIso-(srr-sIso))
-		# print 'Changing surface load to ',surfLoad,', srr is',srr
+	# in the stabilization phase, adjust surface load so that stress tensor is as it should be
+	if S.lab.stage=='stabilize':
+		sl=S.lab.surfLoad-.01*(srr-S.pre.sigIso)
+		#print 'Old',S.lab.surfLoad,'new',sl,'(desired',S.pre.sigIso,'current',srr,')'
+		del S.lab.surfLoad
+		S.lab.surfLoad=sl
+		#print 'Changing surface load to ',S.lab.surfLoad,', srr is',srr
 
 		for p in S.dem.par:
-			if isinstance(p.shape,FlexFacet): p.shape.surfLoad=-surfLoad
+			if isinstance(p.shape,FlexFacet): p.shape.surfLoad=S.lab.surfLoad
 		#for n in S.dem.nodes:
 		#	n.dem.angVel*=.99
 	if S.lab.meshVolume.netVol>0:
 		S.lab.triax.relVol=S.lab.meshVolume.netVol/S.cell.volume
+	if S.lab.stage=='triax':
+		t.maxStrainRate[2]=min(t.maxStrainRate[2]+.001*S.pre.maxRates[1],S.pre.maxRates[1])
 
 def velocityFieldPlots(S,nameBase):
 	import woo
@@ -294,10 +324,27 @@ def velocityFieldPlots(S,nameBase):
 	return outs
 
 def membraneStabilized(S):
-	print 'Membrane stabilized at step',S.step
+	print 'Membrane stabilized at step',S.step,'with surface pressure',S.lab.surfLoad
 	S.lab.triax.goal=(0,0,S.pre.stopStrain)
+	S.lab.triax.stressMask=0b0000 # all strain-controlled
+	S.lab.triax.maxStrainRate=(0,0,.001*S.pre.maxRates[1])
 	S.lab.triax.maxUnbalanced=10 # don't care, just compress until done
 	S.lab.triax.doneHook='import woo.pre.cylTriax; woo.pre.cylTriax.triaxDone(S)'
+
+	# this is the real ref config now
+	S.cell.trsf=Matrix3.Identity
+	S.cell.refHSize=S.cell.hSize
+
+	try:
+		import woo.gl
+		woo.gl.Gl1_DemField.updateRefPos=True
+	except ImportError: pass
+
+	# restore friction
+	S.lab.contactLaw.noFrict=False
+	# reset contacts so that they pick up new friction angle (FIXME: this is perhaps not necessary now?!)
+	for c in S.dem.con: c.resetPhys()
+
 	del S.lab.stage # avoid warning 
 	S.lab.stage='triax'
 
@@ -309,25 +356,12 @@ def compactionDone(S):
 	# set the current cell configuration to be the reference one
 	S.cell.trsf=Matrix3.Identity
 	S.cell.refHSize=S.cell.hSize
-	# for a while, do nothing, just wait for the membrane to stabilize
 	t.maxUnbalanced=.5*S.pre.maxUnbalanced
-	t.goal=(0,0,0)
+	t.goal=(0,0,S.pre.sigIso)
 	t.doneHook='import woo.pre.cylTriax; woo.pre.cylTriax.membraneStabilized(S)'
-	t.stressMask=0b0000 # z is strain-controlled, x,y stress-controlled
+	t.stressMask=0b0100 # z is stress-controlled, xy strain-controlled
 	# allow faster deformation along x,y to better maintain stresses
-	t.maxStrainRate=(0,0,S.pre.maxRates[1])
-	# next time, call triaxFinished instead of compactionFinished
-	# do not wait for stabilization before calling triaxFinished
-	##
-	try:
-		import woo.gl
-		woo.gl.Gl1_DemField.updateRefPos=True
-	except ImportError: pass
 
-	# restore friction
-	S.lab.contactLaw.noFrict=False
-	# reset contacts so that they pick up new friction angle (FIXME: this is perhaps not necessary now?!)
-	for c in S.dem.con: c.resetPhys()
 
 	# make the membrane flexible: apply force on the membrane
 	S.lab.contactLoop.applyForces=False
@@ -340,15 +374,17 @@ def compactionDone(S):
 	for n in S.lab.cylNodes[2:]:
 		# supports may move in-plane, and also may rotate
 		if abs(n.pos[2]-top.pos[2])<tol or abs(n.pos[2]-bot.pos[2])<tol:
-			n.dem.blocked='z' ## FIXME: 'zXYZ'?
-		else: n.dem.blocked='' # don't rotate unless we have bending at some point
+			n.dem.blocked='z'
+		else: n.dem.blocked=''
 	# add surface load
+	S.lab.surfLoad=S.pre.sigIso*(1-(.5*S.lab.memThick)/(.5*S.pre.htDiam[1]))
+	print 'Initial surface load',S.lab.surfLoad
 	for p in S.dem.par:
-		if isinstance(p.shape,FlexFacet): p.shape.surfLoad=-S.pre.sigIso
+		if isinstance(p.shape,FlexFacet): p.shape.surfLoad=S.lab.surfLoad
 	# set velocity to 0 (so that when loading packing, the conditions are the same)
 	for n in S.dem.nodes: n.dem.vel=n.dem.angVel=Vector3.Zero
 
-	if S.lab.compactMemoize: # if None, don't save
+	if S.lab.compactMemoize: # if None or '', don't save
 		S.save('/tmp/compact.gz')
 		aabb=AlignedBox3()
 		for n in S.lab.cylNodes: aabb.extend(n.pos)

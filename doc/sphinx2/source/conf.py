@@ -35,13 +35,18 @@ except ImportError:
 
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.mathjax', 'sphinx.ext.viewcode', 'matplotlib.sphinxext.plot_directive', 'sphinx.ext.inheritance_diagram', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', ext_ipython_directive ]
 
-# customize promps
+# customize prompts
 ipython_rgxin =re.compile('Woo \[(\d+)\]:\s?(.*)\s*')
 ipython_rgxout=re.compile(' -> \[(\d+)\]:\s?(.*)\s*')
 ipython_promptin ='Woo [%d]:'
 ipython_promptout=' -> [%d]:'
 
 todo_include_todos=True
+
+## customize mathjax
+## hack from https://bitbucket.org/birkenfeld/sphinx/issue/969/allow-mathjax-customization-via-localjs 
+# DISABLED, does not work!
+# mathjax_path = 'MathJax_local.js' # file including MathJax from CDN plus local config, in _static
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

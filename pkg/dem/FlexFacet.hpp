@@ -20,7 +20,7 @@ struct FlexFacet: public Facet{
 		((vector<Quaternionr>,refRot,,AttrTrait<>().readonly(),"Rotation applied to nodes to obtain the local coordinate system, computed in the reference configuration. If this array is empty, it means that reference configuration has not yet been evaluated."))
 		((Vector6r,refPos,Vector6r::Zero(),AttrTrait<>().readonly(),"Nodal coordinates in the local coordinate system, in the reference configuration"))
 		((Vector6r,uXy,Vector6r::Zero(),AttrTrait<>().readonly(),"Nodal displacements, stored as ux0, uy0, ux1, uy1, ux1, uy2."))
-		((Real,surfLoad,0.,AttrTrait<>().pressureUnit(),"Normal load applied to this facet (positive in the direction of the lcoal normal); this value is multiplied by the current facet's area and equally distributed to nodes."))
+		((Real,surfLoad,0.,AttrTrait<>().pressureUnit(),"Normal load applied to this facet (positive in the direction of the local normal); this value is multiplied by the current facet's area and equally distributed to nodes."))
 		((Vector6r,phiXy,Vector6r::Zero(),AttrTrait<>().readonly(),"Nodal rotations, only including in-plane rotations (drilling DOF not yet implemented)"))
 		#ifdef FLEXFACET_DEBUG_ROT
 			((Vector3r,drill,Vector3r::Zero(),AttrTrait<>().readonly(),"Dirilling rotation (debugging only)"))
