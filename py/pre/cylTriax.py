@@ -200,7 +200,7 @@ def prepareCylTriax(pre):
 		MeshVolume(mask=S.dem.loneMask,stepPeriod=20,label='meshVolume',dead=False),  
 		woo.core.PyRunner(20,'import woo.pre.cylTriax; woo.pre.cylTriax.addPlotData(S)'),
 		VtkExport(out=pre.vtkFmt,stepPeriod=pre.vtkStep,what=VtkExport.all,dead=True,label='vtk'),
-		Leapfrog(damping=pre.damping,reset=True),
+		Leapfrog(damping=pre.damping,reset=True,label='leapfrog'),
 	]
 
 	S.lab.stage='compact'
@@ -329,6 +329,7 @@ def membraneStabilized(S):
 	S.lab.triax.stressMask=0b0000 # all strain-controlled
 	S.lab.triax.maxStrainRate=(0,0,.001*S.pre.maxRates[1])
 	S.lab.triax.maxUnbalanced=10 # don't care, just compress until done
+	S.lab.leapfrog.damping=S.pre.damping
 	S.lab.triax.doneHook='import woo.pre.cylTriax; woo.pre.cylTriax.triaxDone(S)'
 
 	# this is the real ref config now
@@ -340,10 +341,8 @@ def membraneStabilized(S):
 		woo.gl.Gl1_DemField.updateRefPos=True
 	except ImportError: pass
 
-	# restore friction
-	S.lab.contactLaw.noFrict=False
-	# reset contacts so that they pick up new friction angle (FIXME: this is perhaps not necessary now?!)
-	for c in S.dem.con: c.resetPhys()
+	# not sure if this does any good actually
+	for n in S.dem.nodes: n.dem.vel=n.dem.angVel=Vector3.Zero
 
 	del S.lab.stage # avoid warning 
 	S.lab.stage='triax'
@@ -356,7 +355,8 @@ def compactionDone(S):
 	# set the current cell configuration to be the reference one
 	S.cell.trsf=Matrix3.Identity
 	S.cell.refHSize=S.cell.hSize
-	t.maxUnbalanced=.5*S.pre.maxUnbalanced
+	t.maxUnbalanced=.1*S.pre.maxUnbalanced # need more stability for triax?
+	S.lab.leapfrog.damping=.9 # increase damping to insane values
 	t.goal=(0,0,S.pre.sigIso)
 	t.doneHook='import woo.pre.cylTriax; woo.pre.cylTriax.membraneStabilized(S)'
 	t.stressMask=0b0100 # z is stress-controlled, xy strain-controlled
@@ -384,6 +384,12 @@ def compactionDone(S):
 	# set velocity to 0 (so that when loading packing, the conditions are the same)
 	for n in S.dem.nodes: n.dem.vel=n.dem.angVel=Vector3.Zero
 
+	# restore friction: friction dissipates a lot of energy, and also creates stress decrease along +z
+	# which we want to have here, not when the membrane is already stable and the triax itself starts
+	S.lab.contactLaw.noFrict=False
+	# reset contacts so that they pick up new friction angle (FIXME: this is perhaps not necessary now?!)
+	for c in S.dem.con: c.resetPhys()
+
 	if S.lab.compactMemoize: # if None or '', don't save
 		S.save('/tmp/compact.gz')
 		aabb=AlignedBox3()
@@ -399,11 +405,11 @@ def compactionDone(S):
 
 	
 
-def plotBatchResults(db):
+def plotBatchResults(db,titleRegex=None,out=None):
 	'Hook called from woo.batch.writeResults'
 	import pylab,re,math,woo.batch,os
 	results=woo.batch.dbReadResults(db)
-	out='%s.pdf'%re.sub('\.results$','',db)
+	if out==None: out='%s.pdf'%re.sub('\.results$','',db)
 
 	from matplotlib.ticker import FuncFormatter
 	kiloPascal=FuncFormatter(lambda x,pos=0: '%g'%(1e-3*x))
@@ -430,9 +436,14 @@ def plotBatchResults(db):
 	p_q.yaxis.set_major_formatter(kiloPascal)
 	p_q.grid(True)
 
+	titlesSkipped,titlesIncluded=[],[]
 	for res in results:
 		series,pre=res['series'],res['pre']
 		title=res['title'] if res['title'] else res['sceneId']
+		if titleRegex and not re.match(titleRegex,title):
+			titlesSkipped.append(title)
+			continue
+		titlesIncluded.append(title)
 		isTriax=series['isTriax']
 		# skip the very first number, since that's the transitioning step and strains are still at their old value
 		ed=series['eDev'][isTriax==1][1:]
@@ -443,6 +454,8 @@ def plotBatchResults(db):
 		ed_qp.plot(ed,qDivP,label=title,alpha=.6)
 		ed_ev.plot(ed,ev,label=title,alpha=.6)
 		p_q.plot(p,q,label=title,alpha=.6)
+	if not titlesIncluded:
+		raise RuntimeError('No simulations in %s%s found.'%(db,(' matching %s'%titleRegex if titleRegex else '')))
 	ed_qp.invert_xaxis()
 	ed_ev.invert_xaxis()
 	ed_ev.invert_yaxis()
@@ -452,6 +465,8 @@ def plotBatchResults(db):
 		l=ax.legend(loc=loc,labelspacing=.2,prop={'size':7})
 		l.get_frame().set_alpha(.4)
 	fig.savefig(out)
+	print 'Included simulations:',', '.join(titlesIncluded)
+	if titlesSkipped: print 'Skipped simulations:',', '.join(titlesSkipped)
 	print 'Batch figure saved to file://%s'%os.path.abspath(out)
 
 
