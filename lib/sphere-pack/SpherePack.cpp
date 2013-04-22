@@ -9,6 +9,7 @@
 
 #include<boost/filesystem/convenience.hpp>
 #include<boost/tokenizer.hpp>
+#include<boost/algorithm/string.hpp>
 
 #include<boost/chrono/chrono.hpp>
 
