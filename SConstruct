@@ -430,13 +430,13 @@ if env['debug']: env.Append(CXXFLAGS='-ggdb2',CPPDEFINES=['WOO_DEBUG'])
 else: env.Append(CPPDEFINES=['NDEBUG'])
 if 'openmp' in env['features']: env.Append(CXXFLAGS='-fopenmp',LIBS='gomp',CPPDEFINES='WOO_OPENMP')
 if env['optimize']:
-	env.Append(CXXFLAGS=['-O%d'%env['optimize']],CPPDEFINES=[('WOO_CAST','static_cast'),('WOO_PTR_CAST','static_pointer_cast')])
+	env.Append(CXXFLAGS=['-O%d'%env['optimize']])
 	# do not state architecture if not provided
 	# used for debian packages, where 'native' would generate instructions outside the package architecture
 	# (such as SSE instructions on i386 builds, if the builder supports them)
 	if env.has_key('march') and env['march']: env.Append(CXXFLAGS=['-march=%s'%env['march']]),
 else:
-	env.Append(CPPDEFINES=[('WOO_CAST','dynamic_cast'),('WOO_PTR_CAST','dynamic_pointer_cast')])
+	pass
 
 if env['lto']:
 	env.Append(CXXFLAGS='-flto',CFLAGS='-flto')

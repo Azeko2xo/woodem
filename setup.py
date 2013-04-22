@@ -253,10 +253,10 @@ else:
 ## Debug-specific
 ##
 if debug:
-	cppDef+=[('WOO_DEBUG',None),('WOO_CAST','dynamic_cast'),('WOO_PTR_CAST','dynamic_pointer_cast')]
+	cppDef+=[('WOO_DEBUG',None),]
 	cxxFlags+=['-Os']
 else:
-	cppDef+=[('WOO_CAST','static_cast'),('WOO_PTR_CAST','static_pointer_cast'),('NDEBUG',None)]
+	cppDef+=[('NDEBUG',None),]
 	cxxFlags+=['-g0','-O3']
 	if march: cxxFlags+=['-march=%s'%march]
 	linkFlags+=['-Wl,--strip-all']

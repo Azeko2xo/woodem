@@ -22,6 +22,8 @@
 #include<woo/lib/base/CompUtils.hpp>
 #include<woo/lib/opengl/GLUtils.hpp>
 
+using boost::algorithm::iends_with;
+
 
 #include<QtGui/qevent.h>
 #include<QtCore/qdir.h>
@@ -520,12 +522,17 @@ void GLViewer::draw(bool withNames)
 		int gl2ps_format=-1;
 		nextSnapIsGl2ps=false;
 		#ifndef WOO_GL2PS
-			const int GL2PS_PDF=0, GL2PS_SVG=0, GL2PS_PS=0; // just avoid those to be undefined below
+			enum {GL2PS_PDF=0, GL2PS_SVG=0, GL2PS_PS=0, GL2PS_EPS=0}; // just avoid those to be undefined below
 		#endif
-		if(boost::algorithm::ends_with(_snapTo,".pdf")){	gl2ps_format=GL2PS_PDF; compress=true; nextSnapIsGl2ps=true; }
-		else if(boost::algorithm::ends_with(_snapTo,".svg")){ gl2ps_format=GL2PS_SVG; nextSnapIsGl2ps=true; }
-		else if(boost::algorithm::ends_with(_snapTo,".svgz")){ gl2ps_format=GL2PS_SVG; compress=true; nextSnapIsGl2ps=true; }
-		else if(boost::algorithm::ends_with(_snapTo,".ps")){ gl2ps_format=GL2PS_PS;  nextSnapIsGl2ps=true; }
+		// guess the format, but use gl2ps only if QGLViewer does not handle that format itself
+		if(iends_with(_snapTo,".pdf")){	gl2ps_format=GL2PS_PDF; compress=true; nextSnapIsGl2ps=true; }
+		else if(iends_with(_snapTo,".svg")){ gl2ps_format=GL2PS_SVG; nextSnapIsGl2ps=true; }
+		else if(iends_with(_snapTo,".svgz")){ gl2ps_format=GL2PS_SVG; compress=true; nextSnapIsGl2ps=true; }
+		// comment this out once VRender does not spawn extra dialogues
+		#if 1
+			else if(iends_with(_snapTo,".eps")){ gl2ps_format=GL2PS_EPS;  nextSnapIsGl2ps=true; }
+			else if(iends_with(_snapTo,".ps")){ gl2ps_format=GL2PS_PS;  nextSnapIsGl2ps=true; }
+		#endif
 		if(nextSnapIsGl2ps){
 			#ifdef WOO_GL2PS
 				gl2psStream=fopen(_snapTo.c_str(),"wb");
@@ -543,7 +550,7 @@ void GLViewer::draw(bool withNames)
 					/*const char *filename*/NULL
 				);
 			#else
-				LOG_ERROR("Saving to vector formats not supported unless compiled with the gl2ps feature (was about to save to "<<_snapTo<<").");
+				LOG_ERROR("Saving to some vector formats (PDF, SVG) not supported unless compiled with the gl2ps feature (was about to save to "<<_snapTo<<"). QGLViewer itself handles PS and EPS (try those).");
 				nextSnapIsGl2ps=false;
 				_snapTo.clear(); nextSnapFile.clear();
 			#endif
@@ -910,6 +917,23 @@ void GLViewer::postDraw(){
 		#endif
 		{
 			// save the snapshot
+			if(iends_with(_snapTo,".png")) setSnapshotFormat("PNG");
+			else if(iends_with(_snapTo,".jpg") || iends_with(_snapTo,".jpeg")) setSnapshotFormat("JPEG");
+			// using QGLViewer/VRender opens dialogues which make us freeze
+			#if 0
+				else if(iends_with(_snapTo,".eps")) setSnapshotFormat("EPS");
+				else if(iends_with(_snapTo,".ps") ) setSnapshotFormat("PS");
+				else if(iends_with(_snapTo,".xfig") || iends_with(_snapTo,".fig")) setSnapshotFormat("XFIG");
+			#endif
+			//else if(iends_with(_snapTo,".pdf")) setSnapshotFormat("PDF");
+			//else if(iends_with(_snapTo,".svg")) setSnapshotFormat("SVG");
+			else {
+				LOG_WARN("Unable to deduce raster snapshot format from filename "<<_snapTo<<", or format is not supported; using PNG.");
+				#ifdef WOO_GL2PS
+					LOG_WARN("In addition, gl2ps supports SVG, SVGZ, PDF, PS, EPS.");
+				#endif
+				setSnapshotFormat("PNG");
+			}
 			saveSnapshot(QString(_snapTo.c_str()),/*overwrite*/ true);
 		}
 		if(nextSnapMsg) displayMessage("Saved snapshot to "+_snapTo);

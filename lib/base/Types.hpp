@@ -5,6 +5,19 @@
 	#define FOREACH BOOST_FOREACH
 #endif
 
+#ifdef WOO_DEBUG
+	#define WOO_CAST dynamic_cast
+	#define WOO_PTR_CAST dynamic_pointer_cast
+#else
+	#define WOO_CAST static_cast
+	#define WOO_PTR_CAST static_pointer_cast
+#endif
+
+// prevent VTK from #including strstream which gives warning about deprecated header
+// this is documented in vtkIOStream.h
+#define VTK_EXCLUDE_STRSTREAM_HEADERS
+
+
 #include<boost/lexical_cast.hpp>
 using boost::lexical_cast;
 

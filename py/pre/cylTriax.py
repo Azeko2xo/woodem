@@ -10,42 +10,52 @@ from minieigen import *
 import numpy
 
 class CylTriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
-	'Preprocessor for cylindrical triaxial test'
+	r'''
+	Preprocessor for cylindrical triaxial test with membrane. The test is run in 3 stages:
+
+		* compression, where random loose packing of spheres is compressed to attain the $\sigma_{\rm iso}$ (:obj:`sigIso`) pressure in all directions; during this stage, the cylindrical boundary is rigid and resized along main axes (so it can become (slightly) elliptical); friction is turned off during this stage to achieve better compacity; the compaction finishes when stress level is sufficiently close to the desired one, and unbalanced force drops below :obj:`maxUnbalanced`.
+
+		* Membrane stabilization: once the compression is done, membrane around the cylinder is activated -- loaded with surface pressure and made flexible. Friction is activated at this moment. The cylinder may deform axially (stress-controlled), but lateral deformation is now due to membrane-particle interaction. This stage finished when unbalanced force drops below 1/10th of :obj:`maxUnbalanced` (the reason is that membrane motion is not considered when computing unbalanced force, only mononodal particles are). Surface pressure is adjusted so that the value of lateral stress (in terms of global stress tensor) is close to :obj:`sigIso`.
+
+		* Triaxial compression: displacement-controlled compression along the ``z`` axis, with strain rate increasing until :obj:`maxRates` is reached; the test finished when axial strain attains :obj:`stopStrain`; during the triaxial phase, lateral pressure is exerted by surface load of membrane elements.
+
+	Membrane thickness :obj:`memThick` should be set carefully. The article Molenkamp, Luger (1981): *Modelling and minimzation of membrane peneration effects in tests on granular soils* (Géotechnique 31, no. 4, pp. 471-486) discusses membrane thickness relative to maximum grain size, depending on the ratio of grain stiffness and applied stress.
+
+	Supports are from the same material as *particles*, but they may have their friction reduced (when :obj:`suppTanPhi` is given). 
+
+	.. warning:: There are (unfortunately) quite a few tunables which must be tinkered with to get the desired result (those are in the *Tunables* section: :obj:`pWaveSafety`, :obj:`massFactor`, :obj:`damping`, :obj:`maxUnbalanced`). Several factors are also hard-set in the code, hoping that they will work in different scenarios than those which were tested.
+
+	'''
 	_classTraits=None
 	_PAT=woo.pyderived.PyAttrTrait # less typing
 	_attrTraits=[
-		# noGui would make startGroup being ignored
-
-		_PAT(Vector2,'htDiam',Vector2(.05,.04),startGroup='Geometry & control',doc='Initial size of the cylinder (radius and height)'),
+		##
+		_PAT(Vector2,'htDiam',Vector2(.06,.04),startGroup='Geometry & control',doc='Initial size of the cylinder (radius and height)'),
 		_PAT(float,'memThick',-1.0,'Membrane thickness; if negative, relative to largest particle diameter'),
 		_PAT(float,'cylDiv',40,'Number of segments for cylinder (first component)'),
 		_PAT(float,'sigIso',-500e3,unit='Pa',doc='Isotropic compaction stress, and lateral stress during the triaxial phase'),
 		_PAT(float,'stopStrain',-.2,doc='Goal value of axial deformation in the triaxial phase'),
 		_PAT(Vector3,'maxRates',(2e-1,5e-2,1.),'Maximum strain rates during the compaction phase (for all axes), and during the triaxial phase in axial sense and radial sense.'),
 
+		## materials
 		_PAT(woo.dem.FrictMat,'parMat',FrictMat(young=0.3e9,ktDivKn=.2,tanPhi=.4,density=1e8),startGroup='Materials',doc='Material of particles.'),
 		_PAT([Vector2,],'psd',[(2e-3,0),(2.5e-3,.2),(4e-3,1.)],unit=['mm','%'],doc='Particle size distribution of particles; first value is diameter, scond is cummulative mass fraction.'),
 		_PAT(woo.dem.FrictMat,'memMat',FrictMat(young=1.1e6,ktDivKn=.2,tanPhi=.4,density=1e8),'Membrane material; if unspecified, particle material is used (with reduced friction during the compaction phase)'),
 		_PAT(float,'suppTanPhi',float('nan'),'Friction at supports; if NaN, the same as for particles is used. Supports use the same material as particles otherwise.'),
 
-		#	_PAT(woo.dem.ElastMat,'circMat',woo.dem.ElastMat(young=1e3,density=1.),'Material for circumferential trusses (simulating the membrane). If *None*, membrane will not be simulated. The membrane is only added after the compression phase.'),
-		#_PAT(float,'circAvgThick',-.001,'Average thickness of circumferential membrane; if negative, relative to cylinder radius (``radHt[0]``).'),
-
-		_PAT(str,'reportFmt',"/tmp/{tid}.xhtml",startGroup="Outputs",doc="Report output format; :obj:`Scene.tags <woo.core.Scene.tags>` can be used."),
-		_PAT(str,'packCacheDir',".","Directory where to store pre-generated feed packings; if empty, packing wil be re-generated every time."),
-		#_PAT(str,'saveFmt',"/tmp/{tid}-{stage}.bin.gz",'''Savefile format; keys are :obj:`Scene.tags <woo.core.Scene.tags>`; additionally ``{stage}`` will be replaced by
-		#* ``init`` for stress-free but compact cloud,
-		#* ``iso`` after isotropic compaction,
-		#* ``backup-011234`` for regular backups, see :obj:`backupSaveTime`,
-		# 'done' at the very end.
-		#'''),
+		## output
+		_PAT(str,'reportFmt',"/tmp/{tid}.xhtml",filename=True,startGroup="Outputs",doc="Report output format; :obj:`Scene.tags <woo.core.Scene.tags>` can be used."),
+		_PAT(str,'packCacheDir',".",dirname=True,doc="Directory where to store pre-generated feed packings; if empty, packing wil be re-generated every time."),
+		_PAT(str,'saveFmt',"/tmp/{tid}-{stage}.bin.gz",filename=True,doc='Savefile format; keys are :obj:`Scene.tags <woo.core.Scene.tags>`; additionally ``{stage}`` will be replaced by ``pre-triax`` after membrane stabilization (right before the triaxial compression actually starts) and ``done`` at the very end.'),
+		_PAT(int,'vtkStep',0,'Periodicity of saving VTK exports'),
+		_PAT(str,'vtkFmt','/tmp/{title}.{id}-',filename=True,doc='Prefix for VTK exports'),
 		#_PAT(int,'backupSaveTime',1800,doc='How often to save backup of the simulation (0 or negative to disable)'),
+
+		## tunables
 		_PAT(float,'pWaveSafety',.1,startGroup='Tunables',doc='Safety factor for :obj:`woo.utils.pWaveDt` estimation.'),
 		_PAT(float,'massFactor',.5,'Multiply real mass of particles by this number to obtain the :obj:`woo.dem.WeirdTriaxControl.mass` control parameter'),
 		_PAT(float,'damping',.5,'Nonviscous damping'),
 		_PAT(float,'maxUnbalanced',.05,'Maximum unbalanced force at the end of compaction'),
-		_PAT(int,'vtkStep',0,'Periodicity of saving VTK exports'),
-		_PAT(str,'vtkFmt','/tmp/{title}.{id}-','Prefix for VTK exports')
 	]
 	def __init__(self,**kw):
 		woo.core.Preprocessor.__init__(self)
@@ -119,9 +129,11 @@ def prepareCylTriax(pre):
 	xydomain=Vector2((2*margin+2)*rad,(2*margin+2)*rad)
 	xymid=.5*xydomain
 	S=woo.core.Scene(fields=[DemField()])
+	for a in ['reportFmt','packCacheDir','saveFmt','vtkFmt']: setattr(pre,a,woo.utils.fixWindowsPath(getattr(pre,a)))
 	S.pre=pre.deepcopy()
 	S.periodic=True
 	S.cell.setBox(xydomain[0],xydomain[1],(2*margin+1)*ht)
+
 
 	meshMask=0b0011
 	spheMask=0b0001
@@ -286,7 +298,7 @@ def addPlotData(S):
 		}
 	# in the stabilization phase, adjust surface load so that stress tensor is as it should be
 	if S.lab.stage=='stabilize':
-		sl=S.lab.surfLoad-.01*(srr-S.pre.sigIso)
+		sl=S.lab.surfLoad-.001*(srr-S.pre.sigIso)
 		#print 'Old',S.lab.surfLoad,'new',sl,'(desired',S.pre.sigIso,'current',srr,')'
 		del S.lab.surfLoad
 		S.lab.surfLoad=sl
@@ -346,6 +358,11 @@ def membraneStabilized(S):
 
 	del S.lab.stage # avoid warning 
 	S.lab.stage='triax'
+
+	if S.pre.saveFmt:
+		out=S.pre.saveFmt.format(stage='pre-triax',S=S,**(dict(S.tags)))
+		print 'Saving to',out
+		S.save(out)
 
 
 def compactionDone(S):
@@ -472,6 +489,10 @@ def plotBatchResults(db,titleRegex=None,out=None):
 
 def triaxDone(S):
 	print 'Triaxial done at step',S.step
+	if S.pre.saveFmt:
+		out=S.pre.saveFmt.format(stage='done',S=S,**(dict(S.tags)))
+		print 'Saving to',out
+		S.save(out)
 	S.stop()
 	import woo.utils
 	(repName,figs)=woo.utils.xhtmlReport(S,S.pre.reportFmt,'Cylindrical triaxial test',afterHead='',figures=[(None,f) for f in S.plot.plot(noShow=True,subPlots=False)],svgEmbed=True,show=True)

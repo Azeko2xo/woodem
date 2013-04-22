@@ -25,7 +25,7 @@ void FlexFacet::setRefConf(){
 	//const int ini_cs=INI_CS_SIMPLE;
 	switch(ini_cs){
 		case INI_CS_SIMPLE:
-			node->ori=Quaternionr::FromTwoVectors(this->getNormal(),Vector3r::UnitZ());
+			node->ori.setFromTwoVectors(this->getNormal(),Vector3r::UnitZ());
 			break;
 		case INI_CS_NODE0_AT_X:{
 			Matrix3r T;
@@ -84,6 +84,7 @@ void FlexFacet::ensureStiffnessMatrices(const Real& young, const Real& nu, const
 	Real area=this->getArea();
 	const Real& x1(refPos[0]); const Real& y1(refPos[1]); const Real& x2(refPos[2]); const Real& y2(refPos[3]); const Real& x3(refPos[4]); const Real& y3(refPos[5]);
 
+	// Felippa: Introduction to FEM eq. (15.17), pg. 259
 	Eigen::Matrix<Real,3,6> B;
 	B<<
 		(y2-y3),0      ,(y3-y1),0      ,(y1-y2),0      ,
@@ -219,7 +220,7 @@ void FlexFacet::updateNode(){
 	node->pos=this->getCentroid();
 	// temporary orientation, just to be planar
 	// see http://www.colorado.edu/engineering/cas/courses.d/NFEM.d/NFEM.AppC.d/NFEM.AppC.pdf
-	Quaternionr ori0=Quaternionr::FromTwoVectors(this->getNormal(),Vector3r::UnitZ());
+	Quaternionr ori0; ori0.setFromTwoVectors(this->getNormal(),Vector3r::UnitZ());
 	Vector6r nxy0;
 	for(int i:{0,1,2}){
 		Vector3r xy0=ori0*(nodes[i]->pos-node->pos);
@@ -382,7 +383,7 @@ void Gl1_FlexFacet::drawLocalDisplacement(const Vector2r& nodePt, const Vector2r
 
 
 void Gl1_FlexFacet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire2, const GLViewInfo& viewInfo){
-	Gl1_Facet::go(sh,shift,/*always with wire*/true,viewInfo);
+	Gl1_Facet::go(sh,shift,/*don't force wire rendering*/false,viewInfo);
 	FlexFacet& ff=sh->cast<FlexFacet>();
 	if(!ff.hasRefConf()) return;
 	if(node){

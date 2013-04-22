@@ -19,6 +19,10 @@ struct LabelMapper: public Object{
 	// shared_ptr<Object>& __getitem__woo(const string& label);
 	void __delitem__(const string& label);
 
+	template<typename listTuple>
+	bool sequence_check_setitem(const string& label, py::object o);
+
+
 	py::list pyKeys() const;
 	py::list pyItems() const;
 	int __len__() const;
@@ -27,7 +31,7 @@ struct LabelMapper: public Object{
 
 	static string pyAsStr(const py::object& o);
 
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(LabelMapper,Object,"Object mapping labels to :obj:`woo.Object`, lists of :obj:`woo.Object` or Python's objects.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(LabelMapper,Object,"Map labels to :obj:`woo.Object`, lists of :obj:`woo.Object` or Python's objects, while preserving reference-counting of c++ objects during save/loads. This object is exposed as :obj:`Scene.labels` (with dictionary-like access) and :obj:`Scene.lab` (with attribute access) and presents a simulation-bound persistent namespace for arbitrary objects.",
 		((StrPyMap,pyMap,,AttrTrait<>().hidden(),"Map names to python objects"))
 		((StrWooMap,wooMap,,AttrTrait<>().hidden(),"Map names to woo objects"))
 		((StrWooSeqMap,wooSeqMap,,AttrTrait<>().hidden(),"Map names to sequences of woo objects"))
@@ -40,6 +44,12 @@ struct LabelMapper: public Object{
 			.def("items",&LabelMapper::pyItems)
 			.def("keys",&LabelMapper::pyKeys)
 			.def("__len__",&LabelMapper::__len__)
+			.def("_whereIs",&LabelMapper::findWhere,"Return symbolic constant specifying where is the object with the label given stored (for testing only).");
+			;
+			_classObj.attr("nowhere")=(int)LabelMapper::NOWHERE;
+			_classObj.attr("inWoo")=(int)LabelMapper::IN_WOO;
+			_classObj.attr("inWooSeq")=(int)LabelMapper::IN_WOO_SEQ;
+			_classObj.attr("inPy")=(int)LabelMapper::IN_PY;
 	);
 };
 REGISTER_SERIALIZABLE(LabelMapper);

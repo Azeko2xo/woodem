@@ -53,37 +53,59 @@ int LabelMapper::labelType(const string& label, string& lab0, int& index) const 
 
 string LabelMapper::pyAsStr(const py::object& o){
 	std::ostringstream oss;
+	if(PyObject_HasAttrString(o.ptr(),"__repr__")){
+		py::extract<string> ex(o.attr("__repr__")()); // call __repr__
+		if(ex.check()) return ex();  // see if the result is a string (should be)
+		// if not, proceed to the dummy version below
+	}
 	oss<<"<"<<py::extract<string>(o.attr("__class__").attr("__name__"))()<<" at "<<o.ptr()<<">";
 	return oss.str();
 }
 
+template<typename listTuple>
+bool LabelMapper::sequence_check_setitem(const string& label, py::object o){
+	py::extract<listTuple> exSeq(o);
+	if(!exSeq.check()) return false;
+	listTuple seq=exSeq();
+	int isWoo=-1; // -1 is indeterminate, 0 is pure-python objects, 1 is woo objects
+	if(py::len(seq)==0) woo::ValueError("Sequence given to LabelMapper is empty.");
+	for(int i=0; i<py::len(seq); i++){
+		// None can be both empty shared_ptr<Object> or None in python, so that one is not decisive
+		if(py::object(seq[i]).is_none()) continue; 
+		py::extract<shared_ptr<Object>> exi(seq[i]);
+		if(exi.check()){
+			if(isWoo==0) woo::ValueError("Sequence given to LabelMapper mixes python objects and woo.Object's.");
+			isWoo=1;
+		} else {
+			if(isWoo==1) woo::ValueError("Sequence given to LabelMapper mixes python objects and woo.Object's.");
+			isWoo=0;
+		}
+	}
+	switch(isWoo){
+		case -1: woo::ValueError("Unable to decide whether the sequence contains python objects or woo.Object's (containing only None)."); /*compiler happy*/ return false; 
+		case 0: __setitem__py(label,o); return true;
+		case 1: {
+			vector<shared_ptr<Object>> vec; vec.reserve(py::len(seq));
+			for(int i=0; i<py::len(seq); i++) vec.push_back(py::extract<shared_ptr<Object>>(seq[i])());
+			__setitem__wooSeq(label,vec);
+			return true;
+		}
+		// unreachable
+		default: throw std::logic_error("LabelMapper::sequence_check_setitem: isWoo=="+to_string(isWoo)+"??");
+	}
+}
+
 
 void LabelMapper::__setitem__(const string& label, py::object o){
-	py::extract<py::list> exList(o);
 	py::extract<shared_ptr<Object>> exObj(o);
-	if(exList.check()){
-		py::list lst=exList();
-		bool hasWoo=false;
-		for(int i=0; i<py::len(lst); i++){
-			if(py::extract<shared_ptr<Object>>(lst[i]).check()){
-				if(i>0 && !hasWoo) woo::ValueError("List given to LabelMapper mixes python objects and woo.Object's.");
-				hasWoo=true;
-			} else {
-				if(i>0 && hasWoo) woo::ValueError("List given to LabelMapper mixes python objects and woo.Object's.");
-				hasWoo=false;
-			}
-		}
-		if(hasWoo){
-			vector<shared_ptr<Object>> vec; vec.reserve(py::len(lst));
-			for(int i=0; i<py::len(lst); i++) vec.push_back(py::extract<shared_ptr<Object>>(lst[i])());
-			__setitem__wooSeq(label,vec);
-		} else {
-			__setitem__py(label,o);
-		}
-		return;
-	}
-	if(exObj.check()) __setitem__woo(label,exObj());
-	else __setitem__py(label,o);
+	// woo objects
+	if(exObj.check()){ __setitem__woo(label,exObj()); return; }
+	// list of woo objects
+	if(sequence_check_setitem<py::list>(label,o)) return;
+	// tuple of woo objects
+	if(sequence_check_setitem<py::tuple>(label,o)) return;
+	// python object
+	__setitem__py(label,o);
 }
 
 void LabelMapper::__setitem__woo(const string& label, const shared_ptr<Object>& o){
