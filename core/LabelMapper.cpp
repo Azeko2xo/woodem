@@ -1,5 +1,8 @@
 #include<woo/core/LabelMapper.hpp>
+#include<woo/lib/pyutil/except.hpp>
+#include<woo/core/Master.hpp>
 #include<boost/regex.hpp>
+
 
 WOO_PLUGIN(core,(LabelMapper));
 CREATE_LOGGER(LabelMapper);
