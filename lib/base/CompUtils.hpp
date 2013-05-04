@@ -6,9 +6,9 @@
 struct CompUtils{
 	static void clamp(Real& x, Real a, Real b){ x=clamped(x,a,b);}
 	static Real clamped(Real x, Real a, Real b){ return x<a?a:(x>b?b:x); }
-	static Vector3r scalarOnColorScale(Real x, Real xmin, Real xmal, int cmap=-1);
+	static Vector3r scalarOnColorScale(Real x, Real xmin, Real xmal, int cmap=-1, bool reversed=false);
 	static int defaultCmap;
-	static Vector3r mapColor(Real normalizedColor, int cmap=-1); // if -1, use defaultCmap
+	static Vector3r mapColor(Real normalizedColor, int cmap=-1, bool reversed=false); // if -1, use defaultCmap
 	static Vector3r mapColor_map0(Real normalizedColor);
 	static Vector3r closestSegmentPt(const Vector3r& P, const Vector3r& A, const Vector3r& B, Real* normPos=NULL);
 	static Real segmentPlaneIntersection(const Vector3r& A, const Vector3r& B, const Vector3r& pt, const Vector3r& normal);

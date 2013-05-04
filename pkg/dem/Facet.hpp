@@ -20,7 +20,7 @@ struct Facet: public Shape {
 	vector<Vector3r> outerEdgeNormals() const;
 	Real getArea() const;
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Facet,Shape,"Facet (triangle in 3d) particle.",
-		((Vector3r,fakeVel,Vector3r::Zero(),,"Fake velocity when computing contact, in global coordinates (for modeling moving surface modeled using static triangulation); only in-plane velocity is meaningful, but this is not enforced."))
+		((Vector3r,fakeVel,Vector3r::Zero(),,"Fake velocity when computing contact, in global coordinates (for modeling moving surface modeled using static triangulation); only in-plane velocity is meaningful, but this is not enforced.\n\nIf the x-component is NaN, the meaning is special: :obj:`fakeVel` is taken as zero vector and, in addition, local in-plane facet's linear velocity at the contact is taken as zero (rather than linearly interpolated between velocity of nodes)."))
 		((Real,halfThick,0.,,"Geometric thickness (added in all directions)"))
 		/*attrs*/
 		,/*ctor*/ createIndex();

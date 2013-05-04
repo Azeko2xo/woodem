@@ -9,6 +9,13 @@ OpenGLManager* OpenGLManager::self=NULL;
 OpenGLManager::OpenGLManager(QObject* parent): QObject(parent){
 	if(self) throw runtime_error("OpenGLManager instance already exists, uses OpenGLManager::self to retrieve it.");
 	self=this;
+	// move the whole rendering thing to a different thread
+	// this should make the UI responsive regardless of how long the rendering takes
+	#if 0
+		renderThread=new QThread(); // is the thread going to be deleted later automatically?!
+		this->moveToThread(renderThread);
+		renderThread->start();
+	#endif
 	// Renderer::init(); called automatically when Renderer::render() is called for the first time
 	viewsMutexMissed=0;
 	connect(this,SIGNAL(createView()),this,SLOT(createViewSlot()));
@@ -19,7 +26,8 @@ OpenGLManager::OpenGLManager(QObject* parent): QObject(parent){
 
 void OpenGLManager::timerEvent(QTimerEvent* event){
 #if 1
-	boost::mutex::scoped_lock lock(viewsMutex);
+	boost::mutex::scoped_lock lock(viewsMutex,boost::try_to_lock);
+	if(!lock) return;
 	for(const auto& view: views){ if(view) view->updateGL(); }
 #else
 	// this implementation makes the GL idle on subsequent timers, if the rednering took longer than one timer shot

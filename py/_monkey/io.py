@@ -262,9 +262,19 @@ class WooJSONDecoder(json.JSONDecoder):
 	'''
 	Reconstruct JSON object, possibly containing specially-denoted Woo object (:obj:`WooJSONEncoder`).
 	Do not use this class directly, say ``object.loads(format="json")`` instead.
+
+	The *onError* ctor parameter determines what to do with a dictionary defining '__class__', which
+	nevertheless cannot be reconstructed properly: this happens when class attributes changed inthe meantime, or
+	the class does not exist anymore. Possible values are:
+
+	* ``error``: raise exception (default)
+	* ``warn``: log warning and return dictionary
+	* ``ignore``: just return dictionary, without any notification
 	'''
-	def __init__(self):
+	def __init__(self,onError='error'):
+		assert onError in ('error','warn','ignore')
 		json.JSONDecoder.__init__(self,object_hook=self.dictToObject)
+		self.onError=onError
 	def dictToObject(self,d):
 		import sys, woo
 		if not '__class__' in d: return d # nothing we know
@@ -277,7 +287,18 @@ class WooJSONDecoder(json.JSONDecoder):
 			mname='.'.join(modPath[:i+1])
 			m=__import__(mname,level=0) # absolute imports only
 			if i==0: localns[mname]=m
-		return eval(klass,globals(),localns)(**dict((key.encode('ascii'),value.encode('ascii') if isinstance(value,unicode) else value) for key,value in d.items()))
+		try:
+			return eval(klass,globals(),localns)(**dict((key.encode('ascii'),value.encode('ascii') if isinstance(value,unicode) else value) for key,value in d.items()))
+		except Exception as e:
+			if self.onError=='error': raise
+			elif self.onError=='warn':
+				import logging
+				if e.__class__ in (TypeError,AttributeError): reason='class definition changed?'
+				elif e.__class__==NameError: reason='class does not exist anymore?'
+				else: reason='unknown error'
+				logging.warn('%s while decoding class %s from JSON (%s), returning dictionary: %s'%(e.__class__.__name__,klass,reason,str(e)))
+			return d
+
 # inject into the core namespace, so that it can be used elsewhere as well
 woo.core.WooJSONEncoder=WooJSONEncoder
 woo.core.WooJSONDecoder=WooJSONDecoder

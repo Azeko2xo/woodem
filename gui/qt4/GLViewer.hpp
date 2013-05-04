@@ -140,7 +140,6 @@ class GLViewer : public QGLViewer
 		const int viewId;
 
 		void centerMedianQuartile();
-		bool 	drawScale;
 		GLViewer(int viewId, QGLWidget* shareWidget=0);
 		virtual ~GLViewer();
 		#if 0

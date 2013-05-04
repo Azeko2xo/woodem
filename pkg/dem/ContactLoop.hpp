@@ -84,7 +84,7 @@ class ContactLoop: public GlobalEngine {
 			((bool,alreadyWarnedNoCollider,false,,"Keep track of whether the user was already warned about missing collider."))
 			((bool,evalStress,false,,"Evaluate stress tensor, in periodic simluations; if energy tracking is enabled, increments *gradV* energy."))
 			((bool,applyForces,true,,"Apply forces directly; this avoids IntraForce engine, but will silently skip multinodal particles."))
-			((bool,updatePhys,false,,"Call :ref:`CPhysFunctor` even for contacts which already have :ref:`Contact.phys` (to reflect changes in particle's material, for exampel"))
+			((bool,updatePhys,false,,"Call :ref:`CPhysFunctor` even for contacts which already have :ref:`Contact.phys` (to reflect changes in particle's material, for example)"))
 			((bool,_forceApplyChecked,false,AttrTrait<>().noGui(),"We already warned if forces are not applied here and no IntraForce engine exists in O.scene.engines"))
 			((Matrix3r,stress,Matrix3r::Zero(),AttrTrait<Attr::readonly>(),"Stress value, used to compute *gradV*  energy if *trackWork* is True."))
 			((Real,prevVol,NaN,AttrTrait<Attr::hidden>(),"Previous value of cell volume"))

@@ -142,6 +142,8 @@ struct Renderer: public Object{
 		((Vector3r,realColor,Vector3r(0,.5,.5),AttrTrait<>().rgbColor(),"Real time color"))
 		((Vector3r,stepColor,Vector3r(0,.5,.5),AttrTrait<>().rgbColor(),"Step number color"))
 		((int,grid,0,AttrTrait<>().bits({"yz","zx","xy"}),"Show axes planes with grid"))
+		((bool,oriAxes,true,,"Show orientation axes in the 3d view (in the upper left corner)"))
+		((int,oriAxesPx,50,AttrTrait<>().range(Vector2i(10,100)),"Maximum pixel size of orientation axes in the corner."))
 
 		
 		((vector<Vector3r>,clipPlanePos,vector<Vector3r>(numClipPlanes,Vector3r::Zero()),AttrTrait<>().startGroup("Selection and clipping"),"Position and orientation of clipping planes"))

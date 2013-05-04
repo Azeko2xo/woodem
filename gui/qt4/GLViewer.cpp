@@ -109,7 +109,6 @@ void GLViewer::closeEvent(QCloseEvent *e){
 
 GLViewer::GLViewer(int _viewId, QGLWidget* shareWidget): QGLViewer(/*parent*/(QWidget*)NULL,shareWidget), viewId(_viewId) {
 	isMoving=false;
-	drawScale=true;
 	cut_plane = 0;
 	cut_plane_delta = -2;
 	gridSubdivide = false;
@@ -312,7 +311,11 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 
 	if(false){}
 	/* special keys: Escape and Space */
-	else if(e->key()==Qt::Key_A){ toggleAxisIsDrawn(); return; }
+	else if(e->key()==Qt::Key_A){
+		if(e->modifiers() & Qt::ShiftModifier){ Renderer::oriAxes=!Renderer::oriAxes; }
+		else { toggleAxisIsDrawn(); }
+		return;
+	}
 	else if(e->key()==Qt::Key_S){
 		if(e->modifiers() & Qt::AltModifier){
 			LOG_INFO("Saving QGLViewer state to /tmp/qglviewerState.xml");
@@ -679,7 +682,7 @@ void GLViewer::postDraw(){
 	}
 	
 	// scale
-	if(drawScale){
+	if(Renderer::oriAxes && Renderer::oriAxesPx>10){
 		Real segmentSize=10*scaleStep; // we divide every time in the loop
 		qglviewer::Vec screenDxDy[3]; // dx,dy for x,y,z scale segments
 		int extremalDxDy[2]={0,0};
@@ -695,7 +698,7 @@ void GLViewer::postDraw(){
 				for(int xy=0;xy<2;xy++)extremalDxDy[xy]=(axis>0 ? min(extremalDxDy[xy],(int)screenDxDy[axis][xy]) : screenDxDy[axis][xy]);
 				maxSqLen=max(maxSqLen,1.*screenDxDy[axis].squaredNorm());
 			}
-		} while(maxSqLen>1e4);
+		} while(maxSqLen>pow(Renderer::oriAxesPx,2));
 
 		//LOG_DEBUG("Screen offsets for axes: "<<" x("<<screenDxDy[0][0]<<","<<screenDxDy[0][1]<<") y("<<screenDxDy[1][0]<<","<<screenDxDy[1][1]<<") z("<<screenDxDy[2][0]<<","<<screenDxDy[2][1]<<")");
 		int margin=10; // screen pixels
@@ -814,7 +817,7 @@ void GLViewer::postDraw(){
 		for(size_t i=0; i<scene->ranges.size(); i++){
 			if(!scene->ranges[i]) continue;
 			ScalarRange& range(*scene->ranges[i]);
-			if(!range.isOk()) continue;
+			if(!range.isOk() || range.isHidden()) continue;
 			int xDef=width()-50-i*70; /* 70px / scale horizontally */ // default x position, if current not valid
 			if(!range.movablePtr){ range.movablePtr=make_shared<QglMovableObject>(xDef,yDef);  }
 			QglMovableObject& mov(*range.movablePtr);

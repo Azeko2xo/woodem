@@ -13,10 +13,11 @@ const vector<CompUtils::Colormap> CompUtils::colormaps={
 	// #include"Colormap-data.matplotlib.ipp"
 };
 
-Vector3r CompUtils::mapColor(Real normalizedColor, int cmap){
+Vector3r CompUtils::mapColor(Real normalizedColor, int cmap, bool reversed){
 	if(cmap<0 || cmap>(int)colormaps.size()) cmap=defaultCmap;
 	assert(cmap>=0 && cmap<(int)colormaps.size());
 	normalizedColor=max(0.,min(normalizedColor,1.));
+	if(reversed) normalizedColor=1-normalizedColor;
 	// throw std::invalid_argument(("Colormap number "+boost::lexical_cast<std::string>(cmap)+" is not defined.").c_str());
 	Vector3r* v=(Vector3r*)(&colormaps[cmap].rgb[3*((int)(normalizedColor*255))]);
 	return Vector3r(*v);
@@ -29,9 +30,9 @@ Vector3r CompUtils::mapColor_map0(Real xnorm){
 	return Vector3r(1,1-4.*(xnorm-.75),0);
 }
 
-Vector3r CompUtils::scalarOnColorScale(Real x, Real xmin, Real xmax, int cmap){
+Vector3r CompUtils::scalarOnColorScale(Real x, Real xmin, Real xmax, int cmap, bool reversed){
 	Real xnorm=min((Real)1.,max((x-xmin)/(xmax-xmin),(Real)0.));
-	return mapColor(xnorm,cmap);
+	return mapColor(xnorm,cmap,reversed);
 }
 
 Vector3r CompUtils::closestSegmentPt(const Vector3r& P, const Vector3r& A, const Vector3r& B, Real* normPos){

@@ -15,7 +15,7 @@ class CylTriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 
 		* compression, where random loose packing of spheres is compressed to attain the $\sigma_{\rm iso}$ (:obj:`sigIso`) pressure in all directions; during this stage, the cylindrical boundary is rigid and resized along main axes (so it can become (slightly) elliptical); friction is turned off during this stage to achieve better compacity; the compaction finishes when stress level is sufficiently close to the desired one, and unbalanced force drops below :obj:`maxUnbalanced`.
 
-		* Membrane stabilization: once the compression is done, membrane around the cylinder is activated -- loaded with surface pressure and made flexible. Friction is activated at this moment. The cylinder may deform axially (stress-controlled), but lateral deformation is now due to membrane-particle interaction. This stage finished when unbalanced force drops below 1/10th of :obj:`maxUnbalanced` (the reason is that membrane motion is not considered when computing unbalanced force, only mononodal particles are). Surface pressure is adjusted so that the value of lateral stress (in terms of global stress tensor) is close to :obj:`sigIso`.
+		* Membrane stabilization: once the compression is done, membrane around the cylinder is activated -- loaded with surface pressure and made flexible. Friction is activated at this moment. The cylinder may deform axially (stress-controlled), but lateral deformation is now due to membrane-particle interaction. This stage finished when unbalanced force drops below 1/10th of :obj:`maxUnbalanced` (the reason is that membrane motion is not considered when computing unbalanced force, only mononodal particles are). Surface pressure is adjusted so that the value of lateral stress (in terms of global stress tensor) is close to :obj:`sigIso`. At the same time, friction is increased from initial zero values
 
 		* Triaxial compression: displacement-controlled compression along the ``z`` axis, with strain rate increasing until :obj:`maxRates` is reached; the test finished when axial strain attains :obj:`stopStrain`; during the triaxial phase, lateral pressure is exerted by surface load of membrane elements.
 
@@ -35,7 +35,7 @@ class CylTriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		_PAT(float,'cylDiv',40,'Number of segments for cylinder (first component)'),
 		_PAT(float,'sigIso',-500e3,unit='Pa',doc='Isotropic compaction stress, and lateral stress during the triaxial phase'),
 		_PAT(float,'stopStrain',-.2,doc='Goal value of axial deformation in the triaxial phase'),
-		_PAT(Vector3,'maxRates',(2e-1,5e-2,1.),'Maximum strain rates during the compaction phase (for all axes), and during the triaxial phase in axial sense and radial sense.'),
+		_PAT(Vector2,'maxRates',(2e-1,1.),'Maximum strain rates during the compaction phase (for all axes), and during the triaxial phase in the axial sense.'),
 
 		## materials
 		_PAT(woo.dem.FrictMat,'parMat',FrictMat(young=0.3e9,ktDivKn=.2,tanPhi=.4,density=1e8),startGroup='Materials',doc='Material of particles.'),
@@ -95,8 +95,12 @@ def mkFacetCyl(aabb,cylDiv,suppMat,sideMat,suppMask,sideMask,suppBlock,sideBlock
 			n.dem.blocked=blocked
 	def mkCap(nn,central,mask,mat):
 		ret=[]
+		NaN=float('nan')
 		for i in range(len(nn)):
-			ret.append(woo.dem.Particle(material=mat,shape=Facet(nodes=[nn[i],nn[(i+1)%len(nn)],central]),mask=mask))
+			# with NaN in fakeVel[0], local linear (interpolated) velocity is zero even if nodes move
+			# that's what we need at supports, which stretch to the membrane's edge,
+			# but that is not any physical motion
+			ret.append(woo.dem.Particle(material=mat,shape=Facet(nodes=[nn[i],nn[(i+1)%len(nn)],central],fakeVel=Vector3(NaN,NaN,NaN)),mask=mask))
 			nn[i].dem.parCount+=1
 			nn[(i+1)%len(nn)].dem.parCount+=1
 			central.dem.parCount+=1
@@ -223,7 +227,7 @@ def prepareCylTriax(pre):
 
 	try:
 		import woo.gl
-		S.any=[woo.gl.Renderer(dispScale=(5,5,2),rotScale=0,cell=False),woo.gl.Gl1_DemField(),woo.gl.Gl1_CPhys(),woo.gl.Gl1_FlexFacet(phiSplit=False,phiWd=1,relPhi=0.,uScale=0.,slices=-1),woo.gl.Gl1_Facet(wd=2,slices=-1)]
+		S.any=[woo.gl.Renderer(dispScale=(5,5,2),rotScale=0,cell=False),woo.gl.Gl1_DemField(),woo.gl.Gl1_CPhys(),woo.gl.Gl1_FlexFacet(phiSplit=False,phiWd=1,relPhi=0.,uScale=0.,slices=-1,wire=True),woo.gl.Gl1_Facet(wd=2,slices=-1)]
 	except ImportError: pass
 
 	return S
@@ -234,6 +238,8 @@ def addPlotData(S):
 	t=S.lab.triax
 	# global stress tensor
 	sxx,syy,szz=t.stress.diagonal() 
+	dotE=S.cell.gradV.diagonal()
+	dotEMax=t.maxStrainRate
 	# net volume, without membrane thickness
 	vol=S.lab.meshVolume.netVol 
 	# current radial stress
@@ -277,39 +283,72 @@ def addPlotData(S):
 		surfLoad=surfLoad,
 		exx=exx,eyy=eyy,
 		err=err,ezz=ezz,
+		dotE=dotE,dotErr=.5*(dotE[0]+dotE[1]),
+		dotEMax=dotEMax,
+		dotEMax_z_neg=-dotEMax[2],
 		eDev=eDev,eVol=eVol,
 		vol=vol,
 		p=p,q=q,qDivP=qDivP,
 		isTriax=(1 if S.lab.stage=='triax' else 0), # to be able to filter data
 		grossVol=S.lab.meshVolume.vol,
+		parTanPhi=S.lab.parMat.tanPhi,
+		memTanPhi=S.lab.memMat.tanPhi,
+		suppTanPhi=S.lab.suppMat.tanPhi
 		# save all available energy data
 		#Etot=O.energy.total()#,**O.energy
 	)
 	if not S.plot.plots:
 		S.plot.plots={
-			'i':('unbalanced',),'i ':('srr','szz','surfLoad'),' i':('err','ezz','eVol'),'  i':('vol','grossVol')
+			'i':('unbalanced',None,'parTanPhi','memTanPhi','suppTanPhi'),'i ':('srr','szz','surfLoad'),' i':('err','ezz','eVol'),'  i':('vol','grossVol'),'i  ':('dotE_z','dotEMax_z','dotEMax_z_neg')
 			# energy plot
 			#' i ':(O.energy.keys,None,'Etot'),
 		}
 		S.plot.xylabels={'i ':('step','Stress [Pa]',),' i':('step','Strains [-]','Strains [-]')}
 		S.plot.labels={
 			'sxx':r'$\sigma_{xx}$','syy':r'$\sigma_{yy}$','szz':r'$\sigma_{zz}$','srr':r'$\sigma_{rr}$','surfLoad':r'$\sigma_{\rm hydro}$',
-			'exx':r'$\varepsilon_{xx}$','eyy':r'$\varepsilon_{yy}$','ezz':r'$\varepsilon_{zz}$','err':r'$\varepsilon_{rr}$','eVol':r'$\varepsilon_{v}$','vol':'net volume','grossVol':'midplane volume'
+			'exx':r'$\varepsilon_{xx}$','eyy':r'$\varepsilon_{yy}$','ezz':r'$\varepsilon_{zz}$','err':r'$\varepsilon_{rr}$','eVol':r'$\varepsilon_{v}$','vol':'net volume','grossVol':'midplane volume',
+			'dotE_x':r'$\dot\varepsilon_{xx}$','dotE_y':r'$\dot\varepsilon_{yy}$','dotE_z':r'$\dot\varepsilon_{zz}$','dotE_rr':r'$\dot\varepsilon_{rr}$','dotEMax_z':r'$\dot\varepsilon_{zz}^{\rm max}$','dotEMax_z_neg':r'$-\dot\varepsilon_{zz}^{\rm max}$'
 		}
-	# in the stabilization phase, adjust surface load so that stress tensor is as it should be
+
+	if S.lab.meshVolume.netVol>0:
+		S.lab.triax.relVol=S.lab.meshVolume.netVol/S.cell.volume
+
 	if S.lab.stage=='stabilize':
-		sl=S.lab.surfLoad-.001*(srr-S.pre.sigIso)
+		stable=True
+		#
+		# adjust surface load so that we approach the right value
+		#
+		sl=S.lab.surfLoad-.002*(srr-S.pre.sigIso)
 		#print 'Old',S.lab.surfLoad,'new',sl,'(desired',S.pre.sigIso,'current',srr,')'
 		del S.lab.surfLoad
 		S.lab.surfLoad=sl
 		#print 'Changing surface load to ',S.lab.surfLoad,', srr is',srr
-
 		for p in S.dem.par:
 			if isinstance(p.shape,FlexFacet): p.shape.surfLoad=S.lab.surfLoad
-		#for n in S.dem.nodes:
-		#	n.dem.angVel*=.99
-	if S.lab.meshVolume.netVol>0:
-		S.lab.triax.relVol=S.lab.meshVolume.netVol/S.cell.volume
+		## 2% tolerance on stress
+		if (srr-S.pre.sigIso)/abs(S.pre.sigIso)>2e-2: stable=False
+
+		for m,tp in [(S.lab.parMat,S.lab.parTanPhi),(S.lab.memMat,S.lab.memTanPhi),(S.lab.suppMat,S.lab.suppTanPhi)]:
+			if m.tanPhi<tp:
+				m.tanPhi=min(m.tanPhi+.002*tp,tp)
+				stable=False
+
+		# once the membrane is stabilized, decrease strain rate as well
+		if stable:
+			# decrease max strain rate along z
+			# to avoid gross oscillations
+			if t.maxStrainRate[2]>.01*S.pre.maxRates[1]:
+				t.maxStrainRate[2]=max(t.maxStrainRate[2]-.01*S.pre.maxRates[0],.01*S.pre.maxRates[1])
+				stable=False
+			## don't do this, can take forever
+			# and then wait for strain rate to drop what will be applied next
+			# we go down to 1/1000th, that's where we start during the triaxial test then...
+			# wait for strain rate to settle down
+			# if abs(S.cell.gradV[2,2])>.001*S.pre.maxRates[1]: stable=False
+
+		# green light for triax to finish
+		if stable: S.lab.triax.goal[0]=0
+
 	if S.lab.stage=='triax':
 		t.maxStrainRate[2]=min(t.maxStrainRate[2]+.001*S.pre.maxRates[1],S.pre.maxRates[1])
 
@@ -359,6 +398,9 @@ def membraneStabilized(S):
 	del S.lab.stage # avoid warning 
 	S.lab.stage='triax'
 
+	# this is no longer needed, tanPhi is constant now
+	S.lab.contactLoop.updatePhys=False
+
 	if S.pre.saveFmt:
 		out=S.pre.saveFmt.format(stage='pre-triax',S=S,**(dict(S.tags)))
 		print 'Saving to',out
@@ -373,8 +415,9 @@ def compactionDone(S):
 	S.cell.trsf=Matrix3.Identity
 	S.cell.refHSize=S.cell.hSize
 	t.maxUnbalanced=.1*S.pre.maxUnbalanced # need more stability for triax?
-	S.lab.leapfrog.damping=.9 # increase damping to insane values
-	t.goal=(0,0,S.pre.sigIso)
+	S.lab.leapfrog.damping=.7 # increase damping to a larger value
+	t.goal=(1,0,S.pre.sigIso) # this will be set to 0 once all friction angles are OK
+	t.maxStrainRate=(0,0,S.pre.maxRates[0])
 	t.doneHook='import woo.pre.cylTriax; woo.pre.cylTriax.membraneStabilized(S)'
 	t.stressMask=0b0100 # z is stress-controlled, xy strain-controlled
 	# allow faster deformation along x,y to better maintain stresses
@@ -404,8 +447,14 @@ def compactionDone(S):
 	# restore friction: friction dissipates a lot of energy, and also creates stress decrease along +z
 	# which we want to have here, not when the membrane is already stable and the triax itself starts
 	S.lab.contactLaw.noFrict=False
-	# reset contacts so that they pick up new friction angle (FIXME: this is perhaps not necessary now?!)
-	for c in S.dem.con: c.resetPhys()
+
+	S.lab.contactLoop.updatePhys=True # force updating CPhys at every step
+	# save desired values of friction angle
+	S.lab.parTanPhi=S.lab.parMat.tanPhi
+	S.lab.memTanPhi=S.lab.memMat.tanPhi
+	S.lab.suppTanPhi=S.lab.suppMat.tanPhi
+	# and set it to zero
+	S.lab.parMat.tanPhi=S.lab.memMat.tanPhi=S.lab.suppMat.tanPhi=0
 
 	if S.lab.compactMemoize: # if None or '', don't save
 		S.save('/tmp/compact.gz')
@@ -422,36 +471,45 @@ def compactionDone(S):
 
 	
 
-def plotBatchResults(db,titleRegex=None,out=None):
+def plotBatchResults(db,titleRegex=None,out=None,stressPath=True,sorter=None):
 	'Hook called from woo.batch.writeResults'
 	import pylab,re,math,woo.batch,os
 	results=woo.batch.dbReadResults(db)
+	if sorter: results=sorter(results)
 	if out==None: out='%s.pdf'%re.sub('\.results$','',db)
 
 	from matplotlib.ticker import FuncFormatter
 	kiloPascal=FuncFormatter(lambda x,pos=0: '%g'%(1e-3*x))
 	percent=FuncFormatter(lambda x,pos=0: '%g'%(1e2*x))
 
-	fig=pylab.figure(figsize=(8,20))
-	ed_qp=fig.add_subplot(311)
+	if stressPath:
+		fig1,fig2,fig3=311,312,313
+		fig=pylab.figure(figsize=(8,20))
+	else:
+		fig1,fig2=121,122
+		fig=pylab.figure(figsize=(8,4))
+		pylab.subplots_adjust(left=.1,right=.98,bottom=.15,top=.9,wspace=.2,hspace=.25)
+
+	ed_qp=fig.add_subplot(fig1)
 	ed_qp.set_xlabel(r'$\varepsilon_d$ [%]')
 	ed_qp.set_ylabel(r'$q/p$')
 	ed_qp.xaxis.set_major_formatter(percent)
 	ed_qp.grid(True)
 
-	ed_ev=fig.add_subplot(312)
+	ed_ev=fig.add_subplot(fig2)
 	ed_ev.set_xlabel(r'$\varepsilon_d$ [%]')
 	ed_ev.set_ylabel(r'$\varepsilon_v$ [%]')
 	ed_ev.xaxis.set_major_formatter(percent)
 	ed_ev.yaxis.set_major_formatter(percent)
 	ed_ev.grid(True)
 
-	p_q=fig.add_subplot(313)
-	p_q.set_xlabel(r'$p$ [kPa]')
-	p_q.set_ylabel(r'$q$ [kPa]')
-	p_q.xaxis.set_major_formatter(kiloPascal)
-	p_q.yaxis.set_major_formatter(kiloPascal)
-	p_q.grid(True)
+	if stressPath:
+		p_q=fig.add_subplot(fig3)
+		p_q.set_xlabel(r'$p$ [kPa]')
+		p_q.set_ylabel(r'$q$ [kPa]')
+		p_q.xaxis.set_major_formatter(kiloPascal)
+		p_q.yaxis.set_major_formatter(kiloPascal)
+		p_q.grid(True)
 
 	titlesSkipped,titlesIncluded=[],[]
 	for res in results:
@@ -470,15 +528,17 @@ def plotBatchResults(db,titleRegex=None,out=None):
 		qDivP=series['qDivP'][isTriax==1][1:]
 		ed_qp.plot(ed,qDivP,label=title,alpha=.6)
 		ed_ev.plot(ed,ev,label=title,alpha=.6)
-		p_q.plot(p,q,label=title,alpha=.6)
+		if stressPath:
+			p_q.plot(p,q,label=title,alpha=.6)
 	if not titlesIncluded:
 		raise RuntimeError('No simulations in %s%s found.'%(db,(' matching %s'%titleRegex if titleRegex else '')))
 	ed_qp.invert_xaxis()
 	ed_ev.invert_xaxis()
 	ed_ev.invert_yaxis()
-	p_q.invert_xaxis()
-	p_q.invert_yaxis()
-	for ax,loc in (ed_qp,'lower right'),(ed_ev,'lower right'),(p_q,'upper left'):
+	if stressPath:
+		p_q.invert_xaxis()
+		p_q.invert_yaxis()
+	for ax,loc in [(ed_qp,'lower right'),(ed_ev,'lower right')]+([(p_q,'upper left')] if stressPath else []):
 		l=ax.legend(loc=loc,labelspacing=.2,prop={'size':7})
 		l.get_frame().set_alpha(.4)
 	fig.savefig(out)

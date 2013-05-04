@@ -5,6 +5,7 @@
 #include"GLViewer.hpp"
 
 #include<QObject>
+#include<QThread>
 #include<boost/thread/mutex.hpp>
 
 /*
@@ -17,6 +18,7 @@ class OpenGLManager: public QObject{
 	public:
 		static OpenGLManager* self;
 		OpenGLManager(QObject *parent=0);
+		QThread* renderThread;
 		// manipulation must lock viewsMutex!
 		std::vector<shared_ptr<GLViewer> > views;
 		// signals are protected, emitting them is therefore wrapped with such funcs

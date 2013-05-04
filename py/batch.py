@@ -104,7 +104,7 @@ def dbReadResults(db,basicTypes=False):
 			# json-encoded fields
 			if key in ('pre','tags','plots','misc'):
 				if basicTypes: val=json.loads(row[key])
-				else: val=woo.core.WooJSONDecoder().decode(row[key])
+				else: val=woo.core.WooJSONDecoder(onError='warn').decode(row[key])
 			elif key=='series':
 				series=json.loads(row[key])
 				assert type(series)==dict

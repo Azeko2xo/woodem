@@ -67,6 +67,8 @@ Vector3r Renderer::virtColor;
 Vector3r Renderer::realColor;
 Vector3r Renderer::stepColor;
 int Renderer::grid;
+bool Renderer::oriAxes;
+int Renderer::oriAxesPx;
 
 
 void Renderer::init(){

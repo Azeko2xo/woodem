@@ -4,22 +4,22 @@
 #ifdef WOO_OPENGL
 void ScalarRange::reset(){
 	mnmx=Vector2r(std::numeric_limits<Real>::infinity(),-std::numeric_limits<Real>::infinity());
-	autoAdjust=true;
+	setAutoAdjust(true);
 }
 
 void ScalarRange::adjust(const Real& v){
-	if(sym){ if(abs(v)>max(abs(mnmx[0]),abs(mnmx[1])) || !isOk()){ mnmx[0]=-abs(v); mnmx[1]=abs(v); } }
+	if(isSymmetric()){ if(abs(v)>max(abs(mnmx[0]),abs(mnmx[1])) || !isOk()){ mnmx[0]=-abs(v); mnmx[1]=abs(v); } }
 	else {if(v<mnmx[0]) mnmx[0]=v; if(v>mnmx[1]) mnmx[1]=v; }
 }
 
 Real ScalarRange::norm(Real v){
-	if(autoAdjust) adjust(v);
+	if(isAutoAdjust()) adjust(v);
 	return CompUtils::clamped((v-mnmx[0])/(mnmx[1]-mnmx[0]),0,1);
 };
 
 Vector3r ScalarRange::color(Real v){
-	if(autoAdjust) adjust(v);
-	return CompUtils::scalarOnColorScale(v,mnmx[0],mnmx[1],cmap);
+	if(isAutoAdjust()) adjust(v);
+	return CompUtils::scalarOnColorScale(v,mnmx[0],mnmx[1],cmap,isReversed());
 }
 
 #endif

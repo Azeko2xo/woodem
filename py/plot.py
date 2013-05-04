@@ -468,7 +468,9 @@ def createPlots(P,subPlots=True,scatterSize=60,wider=False):
 				# if current value is NaN, use zero instead
 				scatter=pylab.scatter(scatterPtPos[0],scatterPtPos[1],s=scatterSize,color=line.get_color(),**scatterMarkerKw)
 				if annotateFmt:
-					annotation=pylab.annotate(annotateFmt.format(xy=scatterPt),xy=scatterPtPos,color=line.get_color(),**annotateKw)
+					if math.isnan(scatterPtPos[0]) or math.isnan(scatterPtPos[1]): text=''
+					else: text=annotateFmt.format(xy=scatterPt)
+					annotation=pylab.annotate(text,xy=scatterPtPos,color=line.get_color(),**annotateKw)
 					annotation.annotateFmt=annotateFmt
 				else: annotation=None
 				P.currLineRefs.append(LineRef(line=line,scatter=scatter,annotation=annotation,line2=line2,xdata=data[pStrip],ydata=data[d[0]]))
