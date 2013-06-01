@@ -155,7 +155,7 @@ struct custom_ptrMatchMaker_from_float{
 
 // inspired by
 // https://www.maillist.unibas.ch/pipermail/openstructure-commits/Week-of-Mon-20100607/001773.html
-template <typename Container>
+template <typename Container, bool checkNone=true>
 class SeqStrReprVisitor : public boost::python::def_visitor<SeqStrReprVisitor<Container>> {
 	public:
 	template <class Class>
@@ -171,7 +171,8 @@ class SeqStrReprVisitor : public boost::python::def_visitor<SeqStrReprVisitor<Co
 		for (const auto& item: cl){
 			if(first) first=false;
 			else oss<<", ";
-			oss<<item->pyStr();
+			if(checkNone && !item) oss<<"None";
+			else oss<<item->pyStr();
 	    }
    	oss<<"]";
 		return oss.str();

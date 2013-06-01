@@ -57,6 +57,8 @@ struct SparcField: public Field{
 	template<bool useNext=false>
 	void updateLocator();
 
+	DECLARE_LOGGER;
+
 	~SparcField(){ locator->Delete(); points->Delete(); grid->Delete(); }
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(SparcField,Field,"Field for SPARC meshfree method",
 		// ((Real,maxRadius,-1,,"Maximum radius for neighbour search (required for periodic simulations)"))
@@ -108,7 +110,7 @@ struct SparcData: public NodeData{
 		//((MatrixXr,relPosInv,,,"Relative positions' pseudo-inverse, with INTERP_KOLY."))
 		((MatrixXr,stencil,,,"Stencil matrix, with INTERP_WLS."))
 		((MatrixXr,bVec,,,"Matrix with base functions derivatives evaluated at stencil points (4 columns: 0th, x, y, z derivative)"))
-		((MatrixXr,dxDyDz,,,"Operator matrix build from bVec^T*stentcil"))
+		((MatrixXr,dxDyDz,,,"Operator matrix built from bVec^T*stentcil"))
 
 		// recomputed in each solver iteration
 		((Vector3r,locV,Vector3r::Zero(),,"Velocity in local coordinates"))
@@ -178,6 +180,8 @@ struct ExplicitNodeIntegrator: public GlobalEngine {
 	vecReal3dFunc wlsPhiDy;
 	vecReal3dFunc wlsPhiDz;
 
+	DECLARE_LOGGER;
+
 	enum {WEIGHT_DIST=0,WEIGHT_GAUSS,WEIGHT_SENTINEL};
 	enum {WLS_QUAD_XY=0,WLS_LIN_XYZ,WLS_QUAD_XYZ};
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ExplicitNodeIntegrator,GlobalEngine,"Monolithic engine for explicit integration of motion of nodes in SparcField.",
@@ -186,7 +190,7 @@ struct ExplicitNodeIntegrator: public GlobalEngine {
 		((vector<Real>,barodesyC,vector<Real>({-1.7637,-1.0249,-0.5517,-1174.,-4175.,2218}),AttrTrait<Attr::triggerPostLoad>(),"Material constants for barodesy"))
 		((Real,ec0,.8703,,"Initial void ratio"))
 		((Real,rSearch,-1,,"Radius for neighbor-search"))
-		((int,weightFunc,WEIGHT_DIST,,"Weighting function to be used (WEIGHT_DIST,WEIGHT_GAUSS)"))
+		((int,weightFunc,WEIGHT_GAUSS,,"Weighting function to be used (WEIGHT_DIST,WEIGHT_GAUSS)"))
 		((int,wlsBasis,WLS_QUAD_XY,,"Basis used for WLS interpolation: WLS_QUAD_XY, WLS_QUAD_XYZ."))
 		((int,rPow,0,,"Exponent for distance weighting ∈{0,-1,-2,…}"))
 		((Real,gaussAlpha,.6,,"Decay coefficient used with Gauss weight function."))
@@ -200,7 +204,7 @@ struct ExplicitNodeIntegrator: public GlobalEngine {
 		,/*ctor*/
 		,/*py*/
 		.def("stressRate",&ExplicitNodeIntegrator::computeStressRate,(py::arg("T"),py::arg("D"),py::arg("e")=-1)) // for debugging
-		.def_readonly("C",&ExplicitNodeIntegrator::C);
+		.def_readonly("C",&ExplicitNodeIntegrator::C).def("pointWeight",&ExplicitNodeIntegrator::pointWeight);
 
 		_classObj.attr("wGauss")=(int)WEIGHT_GAUSS;
 		_classObj.attr("wDist")=(int)WEIGHT_DIST;
