@@ -208,6 +208,9 @@ struct ExplicitNodeIntegrator: public GlobalEngine {
 
 		_classObj.attr("wGauss")=(int)WEIGHT_GAUSS;
 		_classObj.attr("wDist")=(int)WEIGHT_DIST;
+		_classObj.attr("wlsQuadXy")=(int)WLS_QUAD_XY;
+		_classObj.attr("wlsLinXyz")=(int)WLS_LIN_XYZ;
+		_classObj.attr("wlsQuadXyz")=(int)WLS_QUAD_XYZ;
 		
 		//.add_property("wDist",& [](){ return WEIGHT_DIST; })
 		// .enum_<WeightFunc>("weight").value("dist",WEIGHT_DIST).value("gauss",WEIGHT_GAUSS)
