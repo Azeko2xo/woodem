@@ -43,23 +43,20 @@ template<typename M> bool eig_all_isnan(const M&m){for(int j=0; j<m.cols(); j++)
 template<> bool eig_isnan<Vector3r>(const Vector3r& v){for(int i=0; i<v.size(); i++) if(isnan(v[i])) return true; return false; }
 template<> bool eig_isnan(const Real& r){ return isnan(r); }
 
-vector<shared_ptr<Node> > SparcField::nodesAround(const Vector3r& pt, int count, Real radius, const shared_ptr<Node>& self){
+vector<shared_ptr<Node>> SparcField::nodesAround(const Vector3r& pt, int count, Real radius, const shared_ptr<Node>& self){
 	if(!locator) throw runtime_error("SparcField::locator not initialized!");	
 	if((radius<=0 && count<=0) || (radius>0 && count>0)) throw std::invalid_argument("SparcField.nodesAround: exactly one of radius or count must be positive!");
 	vtkIdList* _ids=vtkIdList::New(); vtkIdList& ids(*_ids);;
-	if(count>0 && self) count+=1; // find self in the middle
 	if(count<=0){ locator->FindPointsWithinRadius(radius,(const double*)(&pt),&ids); }
 	else{ locator->FindClosestNPoints(count,(const double*)(&pt),&ids); }
 	int numIds=ids.GetNumberOfIds();
-	vector<shared_ptr<Node > > ret; ret.resize(numIds);
-	int j=0;
+	vector<shared_ptr<Node>> ret; ret.resize(numIds);
+	bool selfSeen=false;
 	for(int i=0; i<numIds; i++){
-		if(self && self==nodes[ids.GetId(i)]){ ret.resize(numIds-1); continue; }
-		ret[j++]=nodes[ids.GetId(i)];
+		ret.push_back(nodes[ids.GetId(i)]);
+		if(self && nodes[ids.GetId(i)].get()==self.get()) selfSeen=true;
 	};
-	if(self && j>numIds-1){
-		cerr<<"Neighbors found: "<<endl; for(int i=0; i<numIds; i++) cerr<<"\t"<<ids.GetId(i)<<": "<<nodes[ids.GetId(i)]->pos.transpose()<<" (@ "<<nodes[i].get()<<")"<<endl;
-		throw std::runtime_error(("SparcField::nodesAround asked to remove (central?) point form the result, but it was not there (me @"+lexical_cast<string>(self.get())+" pos="+lexical_cast<string>(self->pos.transpose())+", searching around "+lexical_cast<string>(pt.transpose())+")").c_str()); }
+	if(self && !selfSeen) throw std::runtime_error("SparcFields::nodesAround: central node at "+lexical_cast<string>(self->pos.transpose())+" given but not found within neighbors around "+lexical_cast<string>(pt.transpose())+".");
 	_ids->Delete();
 	return ret;
 };
@@ -70,7 +67,6 @@ void ExplicitNodeIntegrator::findNeighbors(const shared_ptr<Node>&n) const {
 	size_t prevN=dta.neighbors.size();
 	Vector3r pos(!useNext?n->pos:n->pos+dta.v*scene->dt);
 	dta.neighbors=mff->nodesAround(pos,/*count*/-1,rSearch,/*self=*/n);
-
 	// say if number of neighbors changes between steps
 	if(!useNext && prevN>0 && dta.neighbors.size()!=prevN){
 		cerr<<"Nid "<<dta.nid<<" changed number of neighbors: "<<prevN<<" → "<<dta.neighbors.size()<<endl;
@@ -94,22 +90,17 @@ Real ExplicitNodeIntegrator::pointWeight(Real distSq) const {
 }
 
 template<bool useNext>
-void ExplicitNodeIntegrator::updateNeighborsRelPos(const shared_ptr<Node>& n) const {
+void ExplicitNodeIntegrator::updateLocalInterp(const shared_ptr<Node>& n) const {
 	SparcData& dta(n->getData<SparcData>());
 	// current or next inputs
-	const vector<shared_ptr<Node>>& neighbors(useNext?dta.nextNeighbors:dta.neighbors);
-	VectorXr& weights(useNext?dta.nextWeights:dta.weights);
-	MatrixXr& relPosInv(useNext?dta.nextRelPosInv:dta.relPosInv);
-
-	int sz(neighbors.size());
-	if(sz<3) throw std::runtime_error((format("Node #%d at %s has only %d neighbors (3 is minimum)")%dta.nid%n->pos.transpose()%sz).str());
+	int sz(dta.neighbors.size());
 	MatrixXr relPos(sz,3);
-	weights=VectorXr(sz);
+	dta.weightSq=VectorXr(sz);
 	Vector3r midPos(n->pos+(useNext?Vector3r(scene->dt*dta.v):Vector3r::Zero()));
 	for(int i=0; i<sz; i++){
-		Vector3r dX=VectorXr(neighbors[i]->pos+(useNext?Vector3r(scene->dt*neighbors[i]->getData<SparcData>().v):Vector3r::Zero())-midPos);
-		weights[i]=pointWeight(dX.squaredNorm());
-		relPos.row(i)=weights[i]*dX;
+		Vector3r dX=VectorXr(dta.neighbors[i]->pos+(useNext?Vector3r(scene->dt*dta.neighbors[i]->getData<SparcData>().v):Vector3r::Zero())-midPos);
+		dta.weightSq[i]=pow(pointWeight(dX.squaredNorm()),2);
+		relPos.row(i)=dX;
 	}
 	#ifdef SPARC_INSPECT
 		if(useNext) dta.relPos=relPos;
@@ -119,56 +110,75 @@ void ExplicitNodeIntegrator::updateNeighborsRelPos(const shared_ptr<Node>& n) co
 		cerr<<"=== Relative positions for nid "<<dta.nid<<":\n"<<relPos<<endl;
 		throw std::runtime_error("NaN's in relative positions in O.sparc.nodes["+lexical_cast<string>(dta.nid)+"].sparc."+string(useNext?"nextRelPos":"relPos")+") .");
 	}
-	bool succ=MatrixXr_pseudoInverse(relPos,/*result*/relPosInv);
-	if(!succ) throw std::runtime_error("ExplicitNodeIntegrator::updateNeigbours: pseudoInverse failed.");
+	if(relPos.rows()<wlsPhi.size()) throw std::runtime_error((format("Node #%d at %s has only %d neighbors (%d is minimum, including itself)")%dta.nid%n->pos.transpose()%sz%(wlsPhi.size()-1)).str());
+	// evaluate basis functions (in wlsPhi) at all points
+	MatrixXr Phi(wlsPhi.size(),sz);
+	for(int i=0; i<sz; i++) Phi(0,i)=wlsPhi[i](relPos.row(i));
+	// compute the stencil matrix
+	auto W2=dta.weightSq.asDiagonal();
+	dta.stencil=(Phi.transpose()*W2*Phi).inverse()*Phi.transpose()*W2;
+	// basis derivatives matrix
+	dta.bVec=MatrixXr(sz,4);
+	for(int i=0; i<wlsPhi.size(); i++){
+		dta.bVec.row(i)<<wlsPhi[i](Vector3r::Zero()),wlsPhiDx[i](Vector3r::Zero()),wlsPhiDy[i](Vector3r::Zero()),wlsPhiDz[i](Vector3r::Zero());
+	}
+	dta.dxDyDz=dta.bVec.leftCols<3>().transpose()*dta.stencil;
+}
+
+void ExplicitNodeIntegrator::setWlsBasisFuncs(){
+	wlsPhi.clear(); wlsPhiDx.clear(); wlsPhiDy.clear(); wlsPhiDz.clear();
+	switch(wlsBasis){
+	#define _BASIS_FUNC(r,cont,expr) cont.push_back([](const Vector3r& x)->Real{ return expr; });
+		case WLS_QUAD_XY:{
+			BOOST_PP_SEQ_FOR_EACH(_BASIS_FUNC,wlsPhi,  (1)(x[0])(x[1])(x[0]*x[0])(x[1]*x[1])(x[0]*x[1]));
+			BOOST_PP_SEQ_FOR_EACH(_BASIS_FUNC,wlsPhiDx,(0)(1)(0)(2*x[0])(0)(x[1]));
+			BOOST_PP_SEQ_FOR_EACH(_BASIS_FUNC,wlsPhiDx,(1)(0)(0)(0)(2*x[1])(x[0]));
+			BOOST_PP_SEQ_FOR_EACH(_BASIS_FUNC,wlsPhiDx,(0)(0)(0)(0)(0)(0));
+			return;
+		}
+		case WLS_LIN_XYZ:{
+			BOOST_PP_SEQ_FOR_EACH(_BASIS_FUNC,wlsPhi,(x[0])(x[1])(x[2]));
+			BOOST_PP_SEQ_FOR_EACH(_BASIS_FUNC,wlsPhiDx,(1)(0)(0));
+			BOOST_PP_SEQ_FOR_EACH(_BASIS_FUNC,wlsPhiDy,(0)(1)(0));
+			BOOST_PP_SEQ_FOR_EACH(_BASIS_FUNC,wlsPhiDz,(0)(0)(1));
+			return;
+		}
+		case WLS_QUAD_XYZ:{
+			BOOST_PP_SEQ_FOR_EACH(_BASIS_FUNC,wlsPhi,(1)(x[0])(x[1])(x[2]) (x[0]*x[0])(x[1]*x[1])(x[2]*x[2]) (x[1]*x[2])(x[2]*x[0])(x[0]*x[1]));
+			BOOST_PP_SEQ_FOR_EACH(_BASIS_FUNC,wlsPhiDx,(0)(1)(0)(0) (2*x[0])(0)(0) (0)(x[2])(x[1]));
+			BOOST_PP_SEQ_FOR_EACH(_BASIS_FUNC,wlsPhiDy,(0)(0)(1)(0) (0)(2*x[1])(0) (x[2])(0)(x[0]));
+			BOOST_PP_SEQ_FOR_EACH(_BASIS_FUNC,wlsPhiDz,(0)(0)(0)(1) (0)(0)(2*x[2]) (x[1])(x[0])(0));
+			return;
+		}
+		#undef _BASIS_FUNC
+		default: throw std::runtime_error("ExplicitNodeIntegrator.wlsBasis has an unknown value of "+to_string(wlsBasis));
+	};
 }
 
 template<bool useNext>
 Vector3r ExplicitNodeIntegrator::computeDivT(const shared_ptr<Node>& n) const {
-	int vIx[][2]={{0,0},{1,1},{2,2},{1,2},{2,0},{0,1}}; // from voigt index to matrix indices
-	const SparcData& midDta=n->getData<SparcData>();
-	const vector<shared_ptr<Node> >& NN(useNext?midDta.nextNeighbors:midDta.neighbors);
-	const VectorXr& weights(useNext?midDta.nextWeights:midDta.weights);
-	const MatrixXr& relPosInv(useNext?midDta.nextRelPosInv:midDta.relPosInv);
-	size_t sz=NN.size();
-	Vector3r A[6];
-	for(int l:{0,1,2,3,4,5}){
-		int i=vIx[l][0], j=vIx[l][1]; // matrix indices from voigt indices
-		VectorXr rhs(sz);
-		for(size_t r=0; r<sz; r++){
-			const SparcData& nDta=NN[r]->getData<SparcData>();
-			if(useNext) rhs[r]=nDta.nextT(i,j)-midDta.nextT(i,j);
-			else rhs[r]=nDta.T(i,j)-midDta.T(i,j);
-			rhs[r]*=weights[r];
-		}
-		A[l]=relPosInv*rhs;
-		if(eig_isnan(A[l])) woo::ValueError(format("Node %d at %s has NaNs in A[%i]=%s")% midDta.nid % n->pos.transpose() % l % A[l].transpose());
-	};
-	#ifdef SPARC_INSPECT
-		/* non-const ref*/ SparcData& midDta2=n->getData<SparcData>();
-		midDta2.gradT=MatrixXr(6,3);
-		for(int l:{0,1,2,3,4,5}) midDta2.gradT.row(l)=A[l];
-	#endif
-	int vIx33[3][3]={{0,5,4},{5,1,3},{4,3,2}}; // from matrix indices to voigt
+	const SparcData& dta=n->getData<SparcData>();
+	// matrix with stress values around the point, in Voigt notation as 6 values (for symmetric tensors)
+	int vIx[][2]={{0,0},{1,1},{2,2},{1,2},{2,0},{0,1}};
+	MatrixXr T(dta.neighbors.size(),6);
+	for(int i=0; i<dta.neighbors.size(); i++){
+		const Matrix3r& nT=(useNext?dta.neighbors[i]->getData<SparcData>().nextT:dta.neighbors[i]->getData<SparcData>().T);
+		for(int j=0; j<6; j++) T(i,j)=nT(vIx[j][0],vIx[j][1]);
+	}
+	auto bxS=dta.dxDyDz.row(0), byS=dta.dxDyDz.row(1), bzS=dta.dxDyDz.row(2);
 	return Vector3r(
-		A[vIx33[0][0]][0]+A[vIx33[0][1]][1]+A[vIx33[0][2]][2],
-		A[vIx33[1][0]][0]+A[vIx33[1][1]][1]+A[vIx33[1][2]][2],
-		A[vIx33[2][0]][0]+A[vIx33[2][1]][1]+A[vIx33[2][2]][2]
+		bxS.dot(T.col(0))+byS.dot(T.col(5))+bzS.dot(T.col(4)),
+		bxS.dot(T.col(5))+byS.dot(T.col(1))+bzS.dot(T.col(3)),
+		bxS.dot(T.col(4))+byS.dot(T.col(3))+bzS.dot(T.col(2))
 	);
 }
 
 Matrix3r ExplicitNodeIntegrator::computeGradV(const shared_ptr<Node>& n) const {
-	const SparcData& midDta=n->getData<SparcData>();
-	const vector<shared_ptr<Node> >& NN(midDta.neighbors); size_t sz=NN.size();
-	MatrixXr relVels(sz,3);
-	for(size_t i=0; i<sz; i++){
-		relVels.row(i)=VectorXr(NN[i]->getData<SparcData>().v-midDta.v);
-		relVels.row(i)*=midDta.weights[i];
-	}
-	#ifdef SPARC_INSPECT
-		n->getData<SparcData>().relVels=relVels;
-	#endif
-	return midDta.relPosInv*relVels;
+	const SparcData& dta=n->getData<SparcData>();
+	const vector<shared_ptr<Node> >& NN(dta.neighbors);
+	MatrixXr vel(NN.size(),3);
+	for(size_t i=0; i<NN.size(); i++){ vel.row(i)=NN[i]->getData<SparcData>().v; }
+	return dta.dxDyDz*vel;
 }
 
 Matrix3r ExplicitNodeIntegrator::computeStressRate(const Matrix3r& inT, const Matrix3r& D, const Real e /* =-1 */) const {
@@ -195,6 +205,7 @@ Matrix3r ExplicitNodeIntegrator::computeStressRate(const Matrix3r& inT, const Ma
 		}
 	}
 	throw std::logic_error((boost::format("Unknown material model number %d (this should have been caught much earlier!)")%matModel).str());
+	#undef CC
 };
 
 void ExplicitNodeIntegrator::applyKinematicConstraints(const shared_ptr<Node>& n, bool permitFixedDivT) const {
@@ -219,6 +230,7 @@ void ExplicitNodeIntegrator::postLoad(ExplicitNodeIntegrator&,void*){
 	if(weightFunc<0 || weightFunc>=WEIGHT_SENTINEL) woo::ValueError(boost::format("weightFunc must be in range 0..%d")%(WEIGHT_SENTINEL-1));
 	if(barodesyC.size()!=6) woo::ValueError(boost::format("barodesyC must have exactly 6 values (%d given)")%barodesyC.size());
 	if(rPow>0) LOG_WARN("Positive value of ExplicitNodeIntegrator.rPow: makes weight increasing with distance, ARE YOU NUTS?!");
+	setWlsBasisFuncs();
 }
 
 #define _CATCH_CRAP(x,y,z) if(eig_isnan(z)){ throw std::runtime_error((boost::format("NaN in O.sparc.nodes[%d], attribute %s: %s\n")%nid%BOOST_PP_STRINGIZE(z)%z).str().c_str()); }
@@ -234,6 +246,8 @@ void SparcData::catchCrap1(int nid, const shared_ptr<Node>& node){
 void SparcData::catchCrap2(int nid, const shared_ptr<Node>& node){
 	BOOST_PP_SEQ_FOR_EACH(_CATCH_CRAP,~,(node->pos)(T)(v)(rho));
 };
+
+#undef _CATCH_CRAP
 
 py::list SparcData::getGFixedAny(const Vector3r& any, const Quaternionr& ori){
 	py::list ret;
@@ -280,7 +294,7 @@ void ExplicitNodeIntegrator::run(){
 	FOREACH(const shared_ptr<Node>& n, field->nodes){
 		nid++; SparcData& dta(n->getData<SparcData>());
 		findNeighbors</*useNext*/false>(n);
-		updateNeighborsRelPos</*useNext*/false>(n);
+		updateLocalInterp</*useNext*/false>(n);
 		dta.gradV=computeGradV(n);
 		Matrix3r D=dta.getD(), W=dta.getW(); // symm/antisymm decomposition of dta.gradV
 		Matrix3r Tcirc=computeStressRate(dta.T,D,dta.e);
@@ -387,11 +401,8 @@ VectorXr StaticEquilibriumSolver::computeInitialDofVelocities(bool useZero) cons
 void StaticEquilibriumSolver::prologuePhase(VectorXr& initVel){
 	mff->updateLocator</*useNext*/false>();
 	FOREACH(const shared_ptr<Node>& n, field->nodes){
-		SparcData& dta(n->getData<SparcData>());
 		findNeighbors</*useNext*/false>(n); 
-		if(neighborsOnce) dta.nextNeighbors=dta.neighbors;
-		updateNeighborsRelPos</*useNext*/false>(n);
-		if(relPosOnce){ dta.nextRelPosInv=dta.relPosInv; dta.nextWeights=dta.weights; }
+		updateLocalInterp</*useNext*/false>(n);
 	}
 	#ifdef SPARC_TRACE
 		SPARC_TRACE_OUT("Neighbor numbers: "); FOREACH(const shared_ptr<Node>& n, field->nodes) SPARC_TRACE_OUT(n->getData<SparcData>().neighbors.size()<<" "); SPARC_TRACE_OUT("\n");
@@ -406,6 +417,12 @@ void StaticEquilibriumSolver::solutionPhase(const VectorXr& trialVel, VectorXr& 
 	solutionPhase_computeResponse(trialVel);
 	solutionPhase_computeErrors(errors);
 };
+
+void StaticEquilibriumSolver::epiloguePhase(const VectorXr& vel, VectorXr& errors){
+	solutionPhase_computeResponse(vel);
+	solutionPhase_computeErrors(errors); // this is just to have the error terms consistent with the solution at the end of the step
+	integrateStateVariables();
+}
 
 void StaticEquilibriumSolver::solutionPhase_computeResponse(const VectorXr& trialVel){
 	copyLocalVelocityToNodes(trialVel);
@@ -428,7 +445,7 @@ void StaticEquilibriumSolver::solutionPhase_computeErrors(VectorXr& errors){
 	}
 	FOREACH(const shared_ptr<Node>& n, field->nodes){
 		findNeighbors</*useNext*/true>(n);
-		if(!relPosOnce) updateNeighborsRelPos</*useNext*/true>(n);
+		if(!relPosOnce) updateLocalInterp</*useNext*/true>(n);
 		// TODO: update the value really, following spin perhaps?
 		SparcData& dta=n->getData<SparcData>();
 		dta.nextOri=n->ori;  
@@ -460,12 +477,6 @@ void StaticEquilibriumSolver::solutionPhase_computeErrors(VectorXr& errors){
 	#ifdef SPARC_TRACE
 		if(dbgFlags&DBG_DOFERR) SPARC_TRACE_OUT("}"<<endl);
 	#endif
-}
-
-void StaticEquilibriumSolver::epiloguePhase(const VectorXr& vel, VectorXr& errors){
-	solutionPhase_computeResponse(vel);
-	solutionPhase_computeErrors(errors); // this is just to have the error terms consistent with the solution at the end of the step
-	integrateStateVariables();
 }
 
 // set resid in the sense of kinematic constraints, so that they are fulfilled by the static solution
@@ -734,14 +745,13 @@ WOO_PLUGIN(gl,(Gl1_SparcField)(SparcConstraintGlRep));
 bool Gl1_SparcField::nid;
 
 void Gl1_SparcField::go(const shared_ptr<Field>& sparcField, GLViewInfo* _viewInfo){
-	rrr=_viewInfo->renderer;
 	sparc=static_pointer_cast<SparcField>(sparcField);
 	viewInfo=_viewInfo;
 
 	FOREACH(const shared_ptr<Node>& n, sparc->nodes){
 		Renderer::glScopedName name(n);
-		rrr->setNodeGlData(n); // assures that GlData is defined
-		rrr->renderRawNode(n);
+		Renderer::setNodeGlData(n); // assures that GlData is defined
+		Renderer::renderRawNode(n);
 		if(n->rep){ n->rep->render(n,viewInfo); }
 		// GLUtils::GLDrawText((boost::format("%d")%n->getData<SparcData>().nid).str(),n->pos,/*color*/Vector3r(1,1,1), /*center*/true,/*font*/NULL);
 		int nnid=n->getData<SparcData>().nid;
@@ -768,7 +778,7 @@ void SparcConstraintGlRep::renderLabeledArrow(const Vector3r& pos, const Vector3
 	if(!isnan(num)) GLUtils::GLDrawNum(num,posIsA?B:A,Vector3r::Ones());
 }
 
-void SparcConstraintGlRep::render(const shared_ptr<Node>& node, GLViewInfo* viewInfo){
+void SparcConstraintGlRep::render(const shared_ptr<Node>& node, const GLViewInfo* viewInfo){
 	// if(!vRange || !tRange) return; // require ranges
 	Real len=(relSz*viewInfo->sceneRadius);
 	Vector3r pos=node->pos+(node->hasData<GlData>()?node->getData<GlData>().dGlPos:Vector3r::Zero());

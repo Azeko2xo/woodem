@@ -9,7 +9,9 @@ bool MatrixXr_pseudoInverse(const MatrixXr &a, MatrixXr &a_pinv, double epsilon)
 	if ( a.rows()<a.cols() ) return false;
 
 	// SVD
-	Eigen::JacobiSVD<MatrixXr> svdA(a); MatrixXr vSingular = svdA.singularValues();
+	Eigen::JacobiSVD<MatrixXr> svdA;
+	svdA.compute(a,Eigen::ComputeThinU|Eigen::ComputeThinV);
+	MatrixXr vSingular = svdA.singularValues();
 
 	// Build a diagonal matrix with the Inverted Singular values
 	// The pseudo inverted singular matrix is easy to compute :

@@ -15,7 +15,7 @@ class WooOptions(object):
 		self.flavor=''
 		self.debug=False
 		self.clDev=None
-		self.quirks=3
+		self.quirks=3 ### was 3, but Intel seems to work now OK
 		self.quirkIntel=1
 		self.quirkFirePro=2
 		## internal use only; ignores some import errors which will not make rebuilding as such fail
@@ -97,7 +97,7 @@ def main(sysArgv=None):
 	par.add_argument('-n',help="Run without graphical interface (equivalent to unsetting the DISPLAY environment variable)",dest='nogui',action='store_true')
 	par.add_argument('-D','--debug',help='Run the debug build, if available.',dest='debug',action='store_true')
 	# quirks set flags in options
-	par.add_argument('--quirks',help='Bitmask for workarounds for broken configurations; all quirks are enabled by default. 1: set LIBGL_ALWAYS_SOFTWARE=1 for Intel GPUs (determined from `lspci | grep VGA`) (avoids GPU freeze), 2: set --in-gdb when on AMD FirePro GPUs to avoid crash in fglrx.so',dest='quirks',type=int,default=3)
+	par.add_argument('--quirks',help='Bitmask for workarounds for broken configurations; all quirks are enabled by default. 1: set LIBGL_ALWAYS_SOFTWARE=1 for Intel GPUs (determined from `lspci | grep VGA`) (avoids GPU freeze), 2: set --in-gdb when on AMD FirePro GPUs to avoid crash in fglrx.so',dest='quirks',type=int,default=3) # , except the Intel one (seems to work properly now)
 	par.add_argument('--flavor',help='Build flavor of woo to use.',type=str,default=flavorFromArgv0(sys.argv[0]))
 	#
 	# end store in *options*

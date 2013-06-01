@@ -65,7 +65,6 @@ REGISTER_SERIALIZABLE(LawDispatcher);
 class ContactLoop: public GlobalEngine {
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	// store interactions that should be deleted after loop in action, not later
-	DemField* dem;
 	#ifdef WOO_OPENMP
 		vector<list<shared_ptr<Contact> > > removeAfterLoopRefs;
 		void removeAfterLoop(const shared_ptr<Contact>& c){ removeAfterLoopRefs[omp_get_thread_num()].push_back(c); }

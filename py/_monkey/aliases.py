@@ -34,8 +34,8 @@ except ImportError:
 
 try:
 	from woo import sparc
-	Scene.sparc=property(lambda s: sparc.SparcField.sceneGetField(s))
-	Scene.hasSparc=property(lambda s: sparc.SparcField.sceneHasField(s))
+	core.Scene.sparc=property(lambda s: sparc.SparcField.sceneGetField(s))
+	core.Scene.hasSparc=property(lambda s: sparc.SparcField.sceneHasField(s))
 	core.Node.sparc=property(sparc.SparcData._getDataOnNode,sparc.SparcData._setDataOnNode)
 except ImportError:
 	core.Scene.hasSparc=lambda o: False

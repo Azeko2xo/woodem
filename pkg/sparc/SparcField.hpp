@@ -3,8 +3,8 @@
 
 #ifdef WOO_VTK
 
-// perhaps move to features?
-#define WOO_SPARC
+// moved to features
+// #define WOO_SPARC
 
 #include<woo/core/Field.hpp>
 #include<woo/core/Scene.hpp>
@@ -104,8 +104,11 @@ struct SparcData: public NodeData{
 		// computed in prologue (once per timestep)
 		((Vector3i,dofs,Vector3i(-1,-1,-1),AttrTrait<Attr::readonly>(),"Degrees of freedom in the solution system corresponding to 3 locV components (negative for prescribed velocity, not touched by the solver)"))
 		((vector<shared_ptr<Node> >,neighbors,,AttrTrait<>().noGui(),"List of neighbours, updated internally"))
-		((VectorXr,weights,,,"Weight when distance weighting is effective"))
-		((MatrixXr,relPosInv,,,"Relative positions' pseudo-inverse"))
+		((VectorXr,weightSq,,,"Weight (its square) for distance weighting."))
+		//((MatrixXr,relPosInv,,,"Relative positions' pseudo-inverse, with INTERP_KOLY."))
+		((MatrixXr,stencil,,,"Stencil matrix, with INTERP_WLS."))
+		((MatrixXr,bVec,,,"Matrix with base functions derivatives evaluated at stencil points (4 columns: 0th, x, y, z derivative)"))
+		((MatrixXr,dxDyDz,,,"Operator matrix build from bVec^T*stentcil"))
 
 		// recomputed in each solver iteration
 		((Vector3r,locV,Vector3r::Zero(),,"Velocity in local coordinates"))
@@ -113,10 +116,12 @@ struct SparcData: public NodeData{
 		((Matrix3r,gradV,Matrix3r::Zero(),,"gradient of velocity (only used as intermediate storage)"))
 		// ((Matrix3r,Tdot,Matrix3r::Zero(),,"Jaumann Stress rate")) 
 		((Matrix3r,nextT,Matrix3r::Zero(),,"Stress in the next step")) 
+		((Quaternionr,nextOri,,,"Orientation in the next step (FIXME: not yet updated)"))
+	#if 0
 		((vector<shared_ptr<Node> >,nextNeighbors,,AttrTrait<>().noGui(),"Neighbors in the next step"))
 		((VectorXr,nextWeights,,,"Weights in t+dt/2, with positions updated as per v"))
 		((MatrixXr,nextRelPosInv,,,"Relative position's pseudoinverse in the next step"))
-		((Quaternionr,nextOri,,,"Orientation in the next step (FIXME: not yet updated)"))
+	#endif
 
 		// explicit solver
 		((Vector3r,accel,Vector3r::Zero(),,"Acceleration"))
@@ -152,7 +157,7 @@ struct ExplicitNodeIntegrator: public GlobalEngine {
 	template<bool useNext>
 	void findNeighbors(const shared_ptr<Node>& n) const;
 	template<bool useNext>
-	void updateNeighborsRelPos(const shared_ptr<Node>& n) const;
+	void updateLocalInterp(const shared_ptr<Node>& n) const;
 	template<bool useNext>
 	Vector3r computeDivT(const shared_ptr<Node>& n) const;
 
@@ -165,7 +170,16 @@ struct ExplicitNodeIntegrator: public GlobalEngine {
 	void postLoad(ExplicitNodeIntegrator&,void*);
 	virtual void run();
 	Real pointWeight(Real distSq) const;
+
+	void setWlsBasisFuncs();
+	typedef vector<std::function<Real(const Vector3r&)>> vecReal3dFunc;
+	vecReal3dFunc wlsPhi;
+	vecReal3dFunc wlsPhiDx;
+	vecReal3dFunc wlsPhiDy;
+	vecReal3dFunc wlsPhiDz;
+
 	enum {WEIGHT_DIST=0,WEIGHT_GAUSS,WEIGHT_SENTINEL};
+	enum {WLS_QUAD_XY=0,WLS_LIN_XYZ,WLS_QUAD_XYZ};
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ExplicitNodeIntegrator,GlobalEngine,"Monolithic engine for explicit integration of motion of nodes in SparcField.",
 		((Real,E,1e6,AttrTrait<Attr::triggerPostLoad>(),"Young's modulus, for the linear elastic constitutive law"))
 		((Real,nu,0,AttrTrait<Attr::triggerPostLoad>(),"Poisson's ratio for the linear elastic constitutive law"))
@@ -173,6 +187,7 @@ struct ExplicitNodeIntegrator: public GlobalEngine {
 		((Real,ec0,.8703,,"Initial void ratio"))
 		((Real,rSearch,-1,,"Radius for neighbor-search"))
 		((int,weightFunc,WEIGHT_DIST,,"Weighting function to be used (WEIGHT_DIST,WEIGHT_GAUSS)"))
+		((int,wlsBasis,WLS_QUAD_XY,,"Basis used for WLS interpolation: WLS_QUAD_XY, WLS_QUAD_XYZ."))
 		((int,rPow,0,,"Exponent for distance weighting ∈{0,-1,-2,…}"))
 		((Real,gaussAlpha,.6,,"Decay coefficient used with Gauss weight function."))
 		((bool,spinRot,false,,"Rotate particles according to spin in their location; Dofs which prescribe velocity will never be rotated (i.e. only rotation parallel with them will be allowed)."))
@@ -307,7 +322,7 @@ struct Gl1_SparcField: public GlFieldFunctor{
 
 
 struct SparcConstraintGlRep: public NodeGlRep{
-	void render(const shared_ptr<Node>&, GLViewInfo*);
+	void render(const shared_ptr<Node>&, const GLViewInfo*);
 	void renderLabeledArrow(const Vector3r& pos, const Vector3r& vec, const Vector3r& color, Real num, bool posIsA, bool doubleHead=false);
 	WOO_CLASS_BASE_DOC_ATTRS(SparcConstraintGlRep,NodeGlRep,"Render static and kinematic constraints on Sparc nodes",
 		((Vector3r,fixedV,Vector3r(NaN,NaN,NaN),,"Prescribed velocity value in local coords (nan if not prescribed)"))
