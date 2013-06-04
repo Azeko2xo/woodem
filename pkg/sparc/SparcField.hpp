@@ -51,7 +51,7 @@ struct SparcField: public Field{
 	// return nodes around x not further than radius
 	// if count is given, only count closest nodes are returned; radius is the initial radius, which will be however expanded, if insufficient number of points is found.
 	// count does not include self in this case; not finding self in the result throws an exception
-	std::vector<shared_ptr<Node> > nodesAround(const Vector3r& x, int count=-1, Real radius=-1, const shared_ptr<Node>& self=shared_ptr<Node>());
+	std::vector<shared_ptr<Node> > nodesAround(const Vector3r& x, int count=-1, Real radius=-1, const shared_ptr<Node>& self=shared_ptr<Node>(), Real* relLocPtDensity=NULL, const Vector2i& mnMxPts=Vector2i::Zero());
 	void constructLocator();
 
 	template<bool useNext=false>
@@ -63,7 +63,9 @@ struct SparcField: public Field{
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(SparcField,Field,"Field for SPARC meshfree method",
 		// ((Real,maxRadius,-1,,"Maximum radius for neighbour search (required for periodic simulations)"))
 		((bool,locDirty,true,AttrTrait<Attr::readonly>(),"Flag whether the locator is updated."))
-		((bool,showNeighbors,false,,"Whether to show neighbors in the 3d view (FIXME: should go to Gl1_SparcField, once it is created). When a node is selected, neighbors are shown nevertheless."))
+		((Vector2r,neighAdjFact,Vector2r(.5,2.),,"Factors for adjusting neighbor search range."))
+		((int,neighAdjSteps,10,,"Maximum range for adjusting neighbor search range"))
+		((int,neighRelMax,3,,"Try to keep number of neighbors below *neighRelMax* × basis dimension (which is hard minimum of neighbors)."))
 		,/*ctor*/  createIndex(); constructLocator(); 
 		,/*py*/
 			.def("nodesAround",&SparcField::nodesAround,(py::arg("pt"),py::arg("radius")=-1,py::arg("count")=-1,py::arg("ptNode")=shared_ptr<Node>()),"Return array of nodes close to given point *pt*")
@@ -93,6 +95,7 @@ struct SparcData: public NodeData{
 		// informational
 		((Real,color,Mathr::UnitRandom(),AttrTrait<>().noGui(),"Set node color, so that rendering is more readable"))
 		((int,nid,-1,,"Node id (to locate coordinates in solution matrix)"))
+		((Real,relLocPtDensity,1.,,"Local density of points, by which :obj:`ExplicitNodeIntegrator.rSearch` is multiplied; automatically adjusted so that enough neighbor points are found, and that they are not too many."))
 
 		// state variables
 		((Matrix3r,T,Matrix3r::Zero(),,"Stress"))
@@ -108,14 +111,18 @@ struct SparcData: public NodeData{
 		((vector<shared_ptr<Node> >,neighbors,,AttrTrait<>().noGui(),"List of neighbours, updated internally"))
 		((VectorXr,weightSq,,,"Weight (its square) for distance weighting."))
 		//((MatrixXr,relPosInv,,,"Relative positions' pseudo-inverse, with INTERP_KOLY."))
-		((MatrixXr,stencil,,,"Stencil matrix, with INTERP_WLS."))
-		((MatrixXr,bVec,,,"Matrix with base functions derivatives evaluated at stencil points (4 columns: 0th, x, y, z derivative)"))
+		#ifdef SPARC_INSPECT
+			((MatrixXr,stencil,,,"Stencil matrix, with INTERP_WLS."))
+			((MatrixXr,bVec,,,"Matrix with base functions derivatives evaluated at stencil points (4 columns: 0th, x, y, z derivative)"))
+		#endif
 		((MatrixXr,dxDyDz,,,"Operator matrix built from bVec^T*stentcil"))
 
 		// recomputed in each solver iteration
 		((Vector3r,locV,Vector3r::Zero(),,"Velocity in local coordinates"))
 		((Vector3r,v,Vector3r::Zero(),,"Velocity"))
 		((Matrix3r,gradV,Matrix3r::Zero(),,"gradient of velocity (only used as intermediate storage)"))
+		((Real,L11,0.,,"gradV_yy for 1d problems (cannot be computed from the interpolation)"))
+		((Real,L22,0.,,"gradV_zz for ad and 2d problems (cannot be computed from the interpolation)"))
 		// ((Matrix3r,Tdot,Matrix3r::Zero(),,"Jaumann Stress rate")) 
 		((Matrix3r,nextT,Matrix3r::Zero(),,"Stress in the next step")) 
 		((Quaternionr,nextOri,,,"Orientation in the next step (FIXME: not yet updated)"))
@@ -154,7 +161,7 @@ template<> struct NodeData::Index<SparcData>{enum{value=Node::ST_SPARC};};
 struct ExplicitNodeIntegrator: public GlobalEngine {
 	bool acceptsField(Field* f){ return dynamic_cast<SparcField*>(f); }
 
-	enum{ MAT_HOOKE=0, MAT_BARODESY_JESSE, MAT_SENTINEL /* to check max value */ };
+	enum{ MAT_ELASTIC=0, MAT_BARODESY, MAT_VISCOUS, MAT_SENTINEL /* to check max value */ };
 	SparcField* mff; // lazy to type
 	template<bool useNext>
 	void findNeighbors(const shared_ptr<Node>& n) const;
@@ -171,7 +178,7 @@ struct ExplicitNodeIntegrator: public GlobalEngine {
 	Matrix6r C; // updated at every step
 	void postLoad(ExplicitNodeIntegrator&,void*);
 	virtual void run();
-	Real pointWeight(Real distSq) const;
+	Real pointWeight(Real distSq, Real relLocPtDensity=1.) const;
 
 	void setWlsBasisFuncs();
 	typedef vector<std::function<Real(const Vector3r&)>> vecReal3dFunc;
@@ -183,7 +190,7 @@ struct ExplicitNodeIntegrator: public GlobalEngine {
 	DECLARE_LOGGER;
 
 	enum {WEIGHT_DIST=0,WEIGHT_GAUSS,WEIGHT_SENTINEL};
-	enum {WLS_QUAD_XY=0,WLS_LIN_XYZ,WLS_QUAD_XYZ};
+	enum {WLS_QUAD_X=0,WLS_CUBIC_X,WLS_QUAD_XY,WLS_LIN_XYZ,WLS_QUAD_XYZ};
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ExplicitNodeIntegrator,GlobalEngine,"Monolithic engine for explicit integration of motion of nodes in SparcField.",
 		((Real,E,1e6,AttrTrait<Attr::triggerPostLoad>(),"Young's modulus, for the linear elastic constitutive law"))
 		((Real,nu,0,AttrTrait<Attr::triggerPostLoad>(),"Poisson's ratio for the linear elastic constitutive law"))
@@ -191,7 +198,8 @@ struct ExplicitNodeIntegrator: public GlobalEngine {
 		((Real,ec0,.8703,,"Initial void ratio"))
 		((Real,rSearch,-1,,"Radius for neighbor-search"))
 		((int,weightFunc,WEIGHT_GAUSS,,"Weighting function to be used (WEIGHT_DIST,WEIGHT_GAUSS)"))
-		((int,wlsBasis,WLS_QUAD_XY,,"Basis used for WLS interpolation: WLS_QUAD_XY, WLS_QUAD_XYZ."))
+		((int,wlsBasis,WLS_QUAD_XYZ,,"Basis used for WLS interpolation."))
+		((int,dim,3,AttrTrait<Attr::readonly>(),"Dimension of the basis (set automatically)"))
 		((int,rPow,0,,"Exponent for distance weighting ∈{0,-1,-2,…}"))
 		((Real,gaussAlpha,.6,,"Decay coefficient used with Gauss weight function."))
 		((bool,spinRot,false,,"Rotate particles according to spin in their location; Dofs which prescribe velocity will never be rotated (i.e. only rotation parallel with them will be allowed)."))
@@ -201,6 +209,9 @@ struct ExplicitNodeIntegrator: public GlobalEngine {
 		((Real,damping,0,,"Numerical damping, applied by-component on acceleration"))
 		((Real,c,0,,"Viscous damping coefficient."))
 		((bool,barodesyConvertPaToKPa,true,,"Assume stresses are given in Pa, while parameters are calibrated with kPa. This divides input stress by 1000 (at the beginning of the constitutive law routine), then computes stress rate, which is multiplied by 1000."))
+		((Real,T11,NaN,,"Out-of-plane stress in the y direction; if NaN, use plane strain (only with 1d basis)."))
+		((Real,T22,NaN,,"Out-of-plane stress in the z direction; if NaN, use plane strain (only with 1d/2d basis)."))
+		((bool,symm1d,true,,"With 1d basis, suppose y-z symmetry if both perpendicular stresses are prescribed and are identical."))
 		,/*ctor*/
 		,/*py*/
 		.def("stressRate",&ExplicitNodeIntegrator::computeStressRate,(py::arg("T"),py::arg("D"),py::arg("e")=-1)) // for debugging
@@ -208,6 +219,13 @@ struct ExplicitNodeIntegrator: public GlobalEngine {
 
 		_classObj.attr("wGauss")=(int)WEIGHT_GAUSS;
 		_classObj.attr("wDist")=(int)WEIGHT_DIST;
+
+		_classObj.attr("matElastic")=(int)MAT_ELASTIC;
+		_classObj.attr("matViscous")=(int)MAT_VISCOUS;
+		_classObj.attr("matBarodesy")=(int)MAT_BARODESY;
+
+		_classObj.attr("wlsQuadX")=(int)WLS_QUAD_X;
+		_classObj.attr("wlsCubicX")=(int)WLS_CUBIC_X;
 		_classObj.attr("wlsQuadXy")=(int)WLS_QUAD_XY;
 		_classObj.attr("wlsLinXyz")=(int)WLS_LIN_XYZ;
 		_classObj.attr("wlsQuadXyz")=(int)WLS_QUAD_XYZ;
@@ -217,6 +235,76 @@ struct ExplicitNodeIntegrator: public GlobalEngine {
 	);
 };
 REGISTER_SERIALIZABLE(ExplicitNodeIntegrator);
+
+namespace NewtonSolverSpace { 
+	enum Status {
+		Running = -1,
+		JacobianNotInvertible = 0,
+		TooManyFunctionEvaluation = 1,
+		RelativeErrorTooSmall = 2,
+		AbsoluteErrorTooSmall = 3,
+		UserAsked = 4
+	};
+};
+
+template<typename FunctorType, typename Scalar=double>
+struct NewtonSolver{
+	typedef typename FunctorType::JacobianType JacobianType;
+	typedef typename FunctorType::InputType FVectorType;
+
+	NewtonSolver(FunctorType &_functor): functor(_functor) {
+		// number of function and jacobian evaluations
+		nfev=njev=iter=0;
+		fnorm=0.;
+		xtol=1e-6;
+		abstol=1e-6;
+		jacEvery=0;
+		maxfev=0;
+	};
+	int iter, nfev, njev, maxfev;
+	int jacEvery;
+	JacobianType jac;
+	JacobianType jacInv;
+	FVectorType fvec; // residuals
+	typename FVectorType::Scalar fnorm0, fnorm, xtol, abstol;
+	FunctorType functor;
+
+	NewtonSolverSpace::Status recomputeJacobian(typename FunctorType::InputType& x, int retry=0){
+		jac=MatrixXr::Zero(x.size(),x.size());
+		fvec=VectorXr::Zero(x.size());
+		if(functor.df(x,jac)<0) return NewtonSolverSpace::UserAsked;
+		njev++;
+		fnorm0=functor(x,fvec);
+		jacInv=jac.inverse();
+		if(isinf(jacInv.maxCoeff()) || isnan(jacInv.maxCoeff())){
+			typename JacobianType::Index r,c; typename JacobianType::Scalar j=jacInv.maxCoeff(&r,&c);
+			cerr<<"Maximum jacInv coeff at ("<<r<<","<<c<<") is "<<j;
+			if(retry<5) return recomputeJacobian(x,retry+1);
+			return NewtonSolverSpace::JacobianNotInvertible;
+		}
+		return NewtonSolverSpace::Running;
+	};
+	NewtonSolverSpace::Status solveNumericalDiffInit(typename FunctorType::InputType& x){
+		nfev=njev=iter=0;
+		return recomputeJacobian(x);
+	};
+	NewtonSolverSpace::Status solveNumericalDiffOneStep(typename FunctorType::InputType& x){
+		if(jacEvery>0 && (iter%jacEvery)==0) recomputeJacobian(x);
+		assert(jacInv.rows()==x.size() && jacInv.cols()==x.size());
+		fvec.resize(x.size());
+		if(functor(x,fvec)<0) return NewtonSolverSpace::UserAsked;
+		nfev++;
+		if(maxfev>0 && nfev>maxfev) return NewtonSolverSpace::TooManyFunctionEvaluation;
+		fnorm=fvec.stableNorm();
+		if(fnorm<xtol*fnorm0) return NewtonSolverSpace::RelativeErrorTooSmall;
+		if(fnorm<abstol) return NewtonSolverSpace::AbsoluteErrorTooSmall;
+		x-=jacInv*fvec; // compute new x
+		iter++; // increase iteration count
+		return NewtonSolverSpace::Running;
+	}
+};
+
+
 
 struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 	struct ResidualsFunctorBase {
@@ -236,14 +324,20 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 	};
 	// adds df() method to ResidualsFunctorBase; it is used by SolverLM (not by SolverPowell, where we use solverNumericalDiff* functions which evaluate Jacobian internally (and differently?))
 	// defines a templated forward ctor (with const refs only :-| )
-	typedef Eigen::NumericalDiff<ResidualsFunctorBase> ResidualsFunctor;
-	typedef Eigen::HybridNonLinearSolver<ResidualsFunctor> SolverPowell;
-	typedef Eigen::LevenbergMarquardt<ResidualsFunctor> SolverLM;
+	typedef Eigen::NumericalDiff<ResidualsFunctorBase,/*mode=*/Eigen::Forward /*Eigen::Central*/> ResidualsFunctor;
+	typedef Eigen::HybridNonLinearSolver<ResidualsFunctor,Real> SolverPowell;
+	typedef Eigen::LevenbergMarquardt<ResidualsFunctor,Real> SolverLM;
+	typedef NewtonSolver<ResidualsFunctor> SolverNewton;
+
+	shared_ptr<ResidualsFunctor> functor;
 	shared_ptr<SolverPowell> solverPowell;
 	shared_ptr<SolverLM> solverLM;
-	shared_ptr<ResidualsFunctor> functor;
+	shared_ptr<SolverNewton> solverNewton;
+
 	int nFactorLowered;
 	ofstream out;
+
+	DECLARE_LOGGER;
 
 	virtual void run();
 #if 0
@@ -265,46 +359,52 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 	void epiloguePhase(const VectorXr& vel, VectorXr& errors);
 		void integrateStateVariables();
 
-	#ifndef SPARC_LM
-		const bool usePowell;
-	#endif
 	enum {DBG_JAC=1,DBG_DOFERR=2,DBG_NIDERR=4};
+	enum {SOLVER_POWELL=0,SOLVER_LM,SOLVER_NEWTON};
+	enum {PROGRESS_DONE=0,PROGRESS_RUNNING,PROGRESS_ERROR};
 
 	WOO_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(StaticEquilibriumSolver,ExplicitNodeIntegrator,"Find global static equilibrium of a Sparc system.",
+		((int,solver,SOLVER_POWELL,,"Solver type: 2: Newton-Raphson (finds zero), 0: Powell (minimization) 1: Levenberg-Marquardt."))
 		((bool,substep,false,,"Whether the solver tries to find solution within one step, or does just one iteration towards the solution"))
-		((int,nIter,0,AttrTrait<Attr::readonly>(),"Indicates number of iteration of the implicit solver (within one solution step), if *substep* is True. 0 means at the beginning of next solution step; nIter is negative during the iteration step, therefore if there is interruption by an exception, it is indicated by its negative value; this makes the solver restart at the next step. Positive value indicates successful progress towards solution."))
-		((VectorXr,currV,,AttrTrait<Attr::readonly>(),"Current solution which the solver computes"))
+		((Real,dt,NaN,AttrTrait<Attr::readonly>(),"Save Scene.dt here, so that it can be se to 0 during substeps. Other engines should test if S.dt!=0 before running."))
+		((int,nIter,0,AttrTrait<Attr::readonly>(),"Number of iterations of the solver (in the last step, or in-progress iteration if substepping)"))
+		((int,progress,PROGRESS_DONE,AttrTrait<Attr::readonly>(),"Inner status of the solver (done, progress, error)"))
+		((VectorXr,currV,,AttrTrait<Attr::readonly>().noGui(),"Current solution which the solver computes"))
 		#ifdef SPARC_INSPECT
-			((VectorXr,residuals,,AttrTrait<Attr::readonly>(),"Residuals corresponding to the current solution (copy of error vector inside the solver)"))
+			((VectorXr,residuals,,AttrTrait<Attr::readonly>().noGui(),"Residuals corresponding to the current solution (copy of error vector inside the solver)"))
+			((MatrixXr,jac,,AttrTrait<Attr::readonly>().noGui(),"Jacobian matrix (if provided by the solver)"))
+			((MatrixXr,jacInv,,AttrTrait<Attr::readonly>().noGui(),"Inverted Jacobian matrix (if provided by the solver)"))
 		#endif
 		((Real,residuum,NaN,AttrTrait<Attr::readonly>(),"Norm of residuals (fnorm) as reported by the solver."))
 		((Real,solverFactor,200,,"Factor for the Dogleg method (automatically lowered in case of convergence troubles"))
 		((Real,solverXtol,-1,,"Relative tolerance of the solver; if negative, default is used."))
 		((Real,relMaxfev,10000,,"Maximum number of function evaluation in solver, relative to number of DoFs"))
+		((int,jacEvery,10,,"Recompute the Jacobian every *jacEvery* steps, when using the Newton solver"))
 		((Real,epsfcn,0.,,"Epsfcn parameter of the solver (0 = use machine precision), pg. 26 of MINPACK manual"))
 		((int,nDofs,-1,,"Number of degrees of freedom, set by renumberDoFs"))
 		((Real,charLen,1,,"Characteristic length, for making divT/T errors comensurable"))
 		((bool,relPosOnce,false,,"Only compute relative positions when initializing solver step, using initial velocities"))
 		((bool,neighborsOnce,true,,"Only compute new neighbor set in epilogue, and use it for subsequent trial solutions as well"))
 		((bool,initZero,false,,"Use zero as initial solution for DoFs where velocity is not prescribed; otherwise use velocity from previous step."))
-		#ifdef SPARC_LM
-			((bool,usePowell,true,,"Use Powell's hybrid solver (dogleg); if *False*, use Levenberg-Marquardt instead."))
-		#endif
 		#ifdef SPARC_TRACE
 			((string,dbgOut,,,"Output file where to put debug information for detecting non-determinism in the solver"))
 			((int,dbgFlags,0,,"Select what things to dump to the output file: 1: Jacobian, 2: dof residua, 4: nid residua"))
 		#endif
 		, /*init*/
-			#ifndef SPARC_LM
-				 ((solverLM,shared_ptr<SolverLM>()))((usePowell,true))
-			#endif
 		, /* ctor */
 		, /* py */
 		#if 0
 			.def("compResid",&StaticEquilibriumSolver::compResid,(py::arg("vv")=VectorXr()),"Compute residuals corresponding to either given velocities *vv*, or to the current state (if *vv* is not given or empty)")
 		#endif
 		.def("gradVError",&StaticEquilibriumSolver::gradVError,(py::arg("node"),py::arg("rPow")=0),"Compute sum of errors from local velocity linearization (i.e. sum of errors between linear velocity field and real neighbor velocities; errors are weighted according to |x-x₀|^rPow.")
-		.def_readonly("solution",&StaticEquilibriumSolver::currV)
+		.def_readonly("solution",&StaticEquilibriumSolver::currV);
+
+		_classObj.attr("solverPowell")=(int)SOLVER_POWELL;
+		_classObj.attr("solverLM")=(int)SOLVER_LM;
+		_classObj.attr("solverNewton")=(int)SOLVER_NEWTON;
+		_classObj.attr("progressDone")=(int)PROGRESS_DONE;
+		_classObj.attr("progressRunning")=(int)PROGRESS_RUNNING;
+		_classObj.attr("progressError")=(int)PROGRESS_ERROR;
 	);
 
 };
@@ -323,9 +423,13 @@ struct Gl1_SparcField: public GlFieldFunctor{
 	RENDERS(SparcField);
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_SparcField,GlFieldFunctor,"Render Sparc field.",
 		((bool,nid,false,,"Show node ids for Sparc models"))
+		((bool,neighbors,false,,"Whether to show neighbors in the 3d view (FIXME: should go to Gl1_SparcField, once it is created). When a node is selected, neighbors are shown nevertheless."))
+		((vector<int>,conn,,,"Sequence of node IDs which will be connected; every invalid id (such as -1) interrupts the line."))
+		((vector<Vector3r>,connColors,{Vector3r(0,1,0)},,"Colors for connecting lines (successive segments advance, colors are cycled through)"))
 		/* attrs */
 	);
 };
+REGISTER_SERIALIZABLE(Gl1_SparcField);
 
 
 struct SparcConstraintGlRep: public NodeGlRep{
