@@ -133,7 +133,8 @@ Real ExplicitNodeIntegrator::pointWeight(Real distSq, Real relLocPtDensity) cons
 		case WEIGHT_GAUSS: {
 			//Real w=pow(sqrt(distSq),-1); // make all points the same weight first
 			Real hSq=pow(relLocPtDensity*rSearch,2);
-			assert(distSq<=hSq); // taken care of by neighbor search algorithm already
+			//assert(distSq<=hSq); // taken care of by neighbor search algorithm already
+			if(distSq>hSq) LOG_WARN("distSq="<<distSq<<">hSq="<<hSq<<" ?: returning 0");
 			return exp(-gaussAlpha*(distSq/hSq));
 		}
 		default:
@@ -182,18 +183,20 @@ void ExplicitNodeIntegrator::updateLocalInterp(const shared_ptr<Node>& n) const 
 			bVec=MatrixXr(wlsPhi.size(),4);
 			for(size_t i=0; i<wlsPhi.size(); i++) bVec.row(i)<<wlsPhi[i](Vector3r::Zero()),wlsPhiDx[i](Vector3r::Zero()),wlsPhiDy[i](Vector3r::Zero()),wlsPhiDz[i](Vector3r::Zero());
 			dta.dxDyDz=bVec.rightCols<3>().transpose()*stencil;
+			break;
 		}
 		case 2:{
 			bVec=MatrixXr(wlsPhi.size(),3);
 			for(size_t i=0; i<wlsPhi.size(); i++) bVec.row(i)<<wlsPhi[i](Vector3r::Zero()),wlsPhiDx[i](Vector3r::Zero()),wlsPhiDy[i](Vector3r::Zero());
 			dta.dxDyDz=bVec.rightCols<2>().transpose()*stencil;
+			break;
 		}
 		case 1:{
 			bVec=MatrixXr(wlsPhi.size(),2);
 			for(size_t i=0; i<wlsPhi.size(); i++) bVec.row(i)<<wlsPhi[i](Vector3r::Zero()),wlsPhiDx[i](Vector3r::Zero());
 			dta.dxDyDz=bVec.rightCols<1>().transpose()*stencil;
+			break;
 		}
-
 	}
 	LOG_DEBUG("stencil is "<<stencil.rows()<<"×"<<stencil.cols()<<", bVec is "<<bVec.rows()<<"×"<<bVec.cols()<<", dxDyDz is "<<dta.dxDyDz.rows()<<"×"<<dta.dxDyDz.cols());
 	#ifdef SPARC_INSPECT
@@ -492,6 +495,7 @@ int StaticEquilibriumSolver::ResidualsFunctorBase::operator()(const VectorXr &v,
 	#endif
 	if(eig_isnan(v)){
 		LOG_ERROR("Solver proposing solution with NaN's, return [∞,…,∞]"); resid.setConstant(v.size(),std::numeric_limits<Real>::infinity());
+		throw std::runtime_error("Solver proposing solution with NaN's.");
 		SPARC_TRACE_SES_OUT("--- input NaN'ed v = "<<v.transpose()<<endl<<"--- !! returning "<<resid.transpose()<<endl);
 		return 0;
 	}
@@ -524,7 +528,7 @@ void StaticEquilibriumSolver::copyLocalVelocityToNodes(const VectorXr &v) const{
 				// don't move out of the space (assignDofs check local rotation is not out-of-plane)
 				dta.locV[ax]=0; 
 				if(dta.dofs[ax]>=0){ // prescribed stress
-					assert((ax==2 && !isnan(T22)) || (ax==2 &&!isnan(T11)));
+					assert((ax==1 && !isnan(T11)) || (ax==2 && !isnan(T22)));
 					if(ax==2) dta.L22=v[dta.dofs[ax]];
 					else dta.L11=v[dta.dofs[ax]];
 				} else { // prescribed zero deformation
@@ -547,9 +551,11 @@ void StaticEquilibriumSolver::assignDofs() {
 			case 2:{
 				AngleAxisr aa(n->ori);
 				if(aa.angle()>1e-8 && abs(aa.axis().dot(Vector3r::UnitZ()))<(1-1e-8)) woo::ValueError("Node "+to_string(nid)+" is rotated, but not along (0,0,1) [2d problem]!");
+				break;
 			}
-			case 1:
+			case 1:{
 				if(n->ori!=Quaternionr::Identity()) woo::ValueError("Node "+to_string(nid)+" is rotated, which is not allowed with 1d basis");
+			}
 		}
 		for(int ax:{0,1,2}){
 			if(ax<dim){
@@ -561,7 +567,7 @@ void StaticEquilibriumSolver::assignDofs() {
 				// stress prescribed along this axis, gradV is then unknown in that direction
 				if((ax==1 && !isnan(T11)) || (ax==2 && !isnan(T22))){
 					// use previous (y) dof if both lateral stresses are prescribed the same
-					if(ax==2 && T11==T22 && symm1d) dta.dofs[ax]=dof;
+					if(ax==2 && /*this also means T11 was not NaN */ T11==T22 && symm1d) dta.dofs[ax]=(dof-1);
 					else dta.dofs[ax]=dof++; // otherwise allocate a new dof for this unknown
 				}
 				else dta.dofs[ax]=-1; // strain in this direction given - no unknowns
@@ -650,10 +656,6 @@ void StaticEquilibriumSolver::solutionPhase_computeErrors(VectorXr& errors){
 	for(const shared_ptr<Node>& n: field->nodes){
 		SparcData& dta(n->getData<SparcData>());
 		Vector3r divT=computeDivT</*useNext*/true>(n);
-		// for plane stress, divT[2] is the difference between desired stress (T22)
-		// for plane strain, divT[2] is zero as per computeDivT implementation
-		if(dim<2 && !isnan(T11)) divT[1]=dta.T(1,1)-T11;
-		if(dim<3 && !isnan(T22)) divT[2]=dta.T(2,2)-T22;
 		#ifdef SPARC_TRACE
 			if(dbgFlags&DBG_DOFERR){
 				SPARC_TRACE_OUT("  -->    nid "<<dta.nid<<" (dofs "<<dta.dofs.transpose()<<"), divT="<<divT.transpose()<<", locV="<<dta.locV.transpose()<<", v="<<dta.v.transpose());
@@ -666,7 +668,7 @@ void StaticEquilibriumSolver::solutionPhase_computeErrors(VectorXr& errors){
 		#endif
 		#ifdef SPARC_TRACE
 			if(dbgFlags&DBG_DOFERR){
-				if(dbgFlags&DBG_NIDERR) SPARC_TRACE_OUT("  <--     nid "<<dta.nid<<" final residuum "<<dta.resid<<endl);
+				if(dbgFlags&DBG_NIDERR) SPARC_TRACE_OUT("         <--   final residuum "<<dta.resid<<endl);
 				else SPARC_TRACE_OUT(", err="<<dta.resid<<endl);
 			}
 		#endif
@@ -687,44 +689,50 @@ void StaticEquilibriumSolver::computeConstraintErrors(const shared_ptr<Node>& n,
 	#ifdef SPARC_INSPECT
 		dta.resid=Vector3r::Zero(); // in global coords here
 	#endif
+	if(dta.dofs.maxCoeff()<0) return; // don't bother if there are no dofs → no resid
+
 	// use current or next orientation,stress
 	Matrix3r oriTrsf(useNext?dta.nextOri:n->ori);
 	const Matrix3r& T(!useNext?dta.T:dta.nextT); 
+	Matrix3r locT=oriTrsf*T*oriTrsf.transpose();
 
 	for(int ax:{0,1,2}){
-		// prescribed velocity, does not come up in the solution
-		if(dta.dofs[ax]<0){ continue; }
-		// nothing prescribed, divT is the residual
-		if(isnan(dta.fixedT[ax])){
-			// NB: dta.divT is not the current value, that exists only with SPARC_INSPECT
-			Vector3r locDivT=oriTrsf*divT;
-			resid[dta.dofs[ax]]=charLen*locDivT[ax];
-			#ifdef SPARC_TRACE
-				if(dbgFlags&DBG_DOFERR) _WATCH_NID("\tnid "<<dta.nid<<" dof "<<dta.dofs[ax]<<": locDivT["<<ax<<"] "<<locDivT[ax]<<" (should be 0) sets resid["<<dta.dofs[ax]<<"]="<<resid[dta.dofs[ax]]);
-			#endif
+		// velocity is prescribed; if not spanned, strain is prescribed, i.e. T11/T22 are NaN
+		int dof=dta.dofs[ax];
+		if(dof<0){
+			assert((ax<dim && !isnan(dta.fixedV[ax])) || (ax>=dim && isnan((ax==1?T11:T22))));
+			continue;
 		}
-		// prescribed stress
-		else{
-			// considered global stress
-			// TODO: check that this could be perhaps written as locAxT=(T*n).dot(n) ?
-			#if 0
-				Vector3r normal=oriTrsf*Vector3r::Unit(ax); // local normal (i.e. axis) in global coords
-				Real locAxT=(T*normal).dot(normal);
-			#else
-				// current local stress
-				Matrix3r locT=oriTrsf*T*oriTrsf.transpose();
-				Real locAxT=locT(ax,ax);
-			#endif
-			// TODO end 
-			resid[dta.dofs[ax]]=-(dta.fixedT[ax]-locAxT);
+		if(ax>=dim) { // out-of-space dimension
+			Real& T__(ax==1?T11:T22); // prescribed stress along our axis
+			assert(!isnan(T__)); // it must not be NaN (i.e. prescribed L??): there would be no dof there
+			resid[dof]=-(T__-locT(ax,ax)); // difference between out-of-dimension stress and current stress
 			#ifdef SPARC_TRACE
-				if(dbgFlags&DBG_DOFERR) _WATCH_NID("\tnid "<<dta.nid<<" dof "<<dta.dofs[ax]<<": ΣT["<<ax<<",i] "<<locAxT<<" (should be "<<dta.fixedT[ax]<<") sets resid["<<dta.dofs[ax]<<"]="<<resid[dta.dofs[ax]]);
+				if(dbgFlags&DBG_DOFERR) _WATCH_NID("\tnid "<<dta.nid<<" dof "<<dof<<" (out-of-space): locT["<<ax<<","<<ax<<"]="<<locT(ax,ax)<<" (should be "<<T__<<") sets resid["<<dof<<"]="<<resid[dof]);
 			#endif
+		} else { // regular (boring) dimension
+			// nothing prescribed, divT is the residual
+			if(isnan(dta.fixedT[ax])){
+				// NB: dta.divT is not the current value, that exists only with SPARC_INSPECT
+				Vector3r locDivT=oriTrsf*divT;
+				resid[dof]=charLen*locDivT[ax];
+				#ifdef SPARC_TRACE
+					if(dbgFlags&DBG_DOFERR) _WATCH_NID("\tnid "<<dta.nid<<" dof "<<dof<<": locDivT["<<ax<<"] "<<locDivT[ax]<<" (should be 0) sets resid["<<dof<<"]="<<resid[dof]);
+				#endif
+			}
+			// prescribed stress
+			else{
+				// considered global stress
+				resid[dof]=-(dta.fixedT[ax]-locT(ax,ax));
+				#ifdef SPARC_TRACE
+					if(dbgFlags&DBG_DOFERR) _WATCH_NID("\tnid "<<dta.nid<<" dof "<<dof<<": locT["<<ax<<","<<ax<<"] "<<locT(ax,ax)<<" (should be "<<dta.fixedT[ax]<<") sets resid["<<dof<<"]="<<resid[dof]);
+				#endif
+			}
 		}
 		#ifdef SPARC_INSPECT
-			dta.resid+=oriTrsf.transpose()*Vector3r::Unit(ax)*resid[dta.dofs[ax]];
+			dta.resid+=oriTrsf.transpose()*Vector3r::Unit(ax)*resid[dof];
 		#endif
-	};
+	}
 }
 
 void StaticEquilibriumSolver::integrateStateVariables(){
@@ -817,6 +825,114 @@ template<> string solverStatus2str<StaticEquilibriumSolver::SolverNewton>(int st
 	throw std::logic_error(("solverStatus2str<NewtonSolver> called with unknown status number "+lexical_cast<string>(status)).c_str());
 }
 
+
+void StaticEquilibriumSolver::solverInit(VectorXr& currV){
+	prologuePhase(currV);
+	SPARC_TRACE_OUT("Initial DOF velocities "<<currV.transpose()<<endl);
+
+	// http://stackoverflow.com/questions/6895980/boostmake-sharedt-does-not-compile-shared-ptrtnew-t-does
+	// functor=make_shared<ResidualsFunctor>(vv.size(),vv.size(),this); 
+	functor=shared_ptr<ResidualsFunctor>(new ResidualsFunctor(nDofs,nDofs)); functor->ses=this;
+	int status;
+	switch(solver){
+		case SOLVER_POWELL:
+			solverLM.reset(); solverNewton.reset();
+			solverPowell=make_shared<SolverPowell>(*functor);
+			solverPowell->parameters.factor=solverFactor;
+			solverPowell->parameters.epsfcn=epsfcn;
+			if(solverXtol>0) solverPowell->parameters.xtol=solverXtol;
+			solverPowell->parameters.maxfev=relMaxfev*currV.size(); // this is perhaps bogus, what is exactly maxfev?
+			#ifdef SPARC_TRACE
+				// avoid uninitialized values giving false positives in text comparisons
+				solverPowell->fjac.setZero(nDofs,nDofs); solverPowell->diag.setZero(nDofs);
+			#endif
+			status=solverPowell->solveNumericalDiffInit(currV);
+			SPARC_TRACE_OUT("Initial solution norm "<<solverPowell->fnorm<<endl);
+			#ifdef SPARC_TRACE
+				solverPowell->fjac.setZero();
+			#endif
+			if(status==Eigen::HybridNonLinearSolverSpace::ImproperInputParameters) throw std::runtime_error("StaticEquilibriumSolver:: improper input parameters for the Powell dogleg solver.");
+			// solver->parameters.epsfcn=1e-6;
+			nFactorLowered=0;
+			break;
+		case SOLVER_LM:
+			solverPowell.reset(); solverNewton.reset();
+			solverLM=make_shared<SolverLM>(*functor);
+			solverLM->parameters.factor=solverFactor;
+			solverLM->parameters.maxfev=relMaxfev*currV.size(); // this is perhaps bogus, what is exactly maxfev?
+			solverLM->parameters.epsfcn=epsfcn;
+			#ifdef SPARC_TRACE
+				// avoid uninitialized values giving false positives in text comparisons
+				solverLM->fjac.setZero(nDofs,nDofs); solverLM->diag.setZero(nDofs);
+			#endif
+			status=solverLM->minimizeInit(currV);
+			SPARC_TRACE_OUT("Initial solution norm "<<solverLM->fnorm<<endl);
+			#ifdef SPARC_TRACE
+				solverLM->fjac.setZero();
+			#endif
+			if(status==Eigen::LevenbergMarquardtSpace::ImproperInputParameters) throw std::runtime_error("StaticEquilibriumSolver:: improper input parameters for the Levenberg-Marquardt solver.");
+			break;
+		case SOLVER_NEWTON:
+			solverLM.reset(); solverPowell.reset();
+			solverNewton=make_shared<SolverNewton>(*functor);
+			if(solverXtol>0) solverNewton->xtol=solverXtol;
+			solverNewton->maxfev=relMaxfev*currV.size();
+			solverNewton->jacEvery=jacEvery;
+			solverNewton->jacEigen=jacEigen;
+			solverNewton->epsScale=epsScale;
+			status=solverNewton->solveNumericalDiffInit(currV);
+			LOG_TRACE("Newton solver: initial solution has residuum "<<solverNewton->fnorm0<<" (tol. rel "<<solverNewton->xtol<<"×"<<solverNewton->fnorm0<<"="<<solverNewton->fnorm0*solverNewton->xtol<<", abs "<<solverNewton->abstol<<")");
+			#ifdef SPARC_INSPECT
+				residuals=solverNewton->fvec; residuum=solverNewton->fnorm; jac=solverNewton->jac; jacInv=solverNewton->jacInv;
+			#endif
+			if(status==NewtonSolverSpace::JacobianNotInvertible) throw std::runtime_error("StaticEquilibriumSolver (Newton): Jacobian matrix not invertible.");
+			break;
+		default:
+			throw std::logic_error("Unknown value of StaticEquilibriumSolver.solver=="+to_string(solver));
+	}
+	#if defined(SPARC_TRACE) and defined(SPARC_INSPECT)
+		if(dbgFlags&DBG_JAC){
+			SPARC_TRACE_OUT("{ Initial jacobian is "<<jac.rows()<<"×"<<jac.cols()<<":"<<endl<<jac<<endl<<"}"<<endl);
+		}
+	#endif
+}
+
+int StaticEquilibriumSolver::solverStep(VectorXr& currV){
+	int status;
+	switch(solver){
+		case SOLVER_POWELL:
+			assert(solverPowell);
+			status=solverPowell->solveNumericalDiffOneStep(currV);
+			SPARC_TRACE_OUT("Powell inner iteration "<<nIter<<endl<<"Solver proposed solution "<<currV.transpose()<<endl<<"Residuals vector "<<solverPowell->fvec.transpose()<<endl<<"Error norm "<<lexical_cast<string>(solverPowell->fnorm)<<endl);
+			LOG_TRACE("Powell inner iteration "<<nIter<<" with residuum "<<solverPowell->fnorm);
+			#ifdef SPARC_INSPECT
+				residuals=solverPowell->fvec; residuum=solverPowell->fnorm; jac=solverPowell->fjac;
+			#endif
+			break;
+		case SOLVER_LM:
+			assert(solverLM);
+			status=solverLM->minimizeOneStep(currV);
+			SPARC_TRACE_OUT("Levenberg-Marquardt inner iteration "<<nIter<<endl<<"Solver proposed solution "<<currV.transpose()<<endl<<"Residuals vector "<<solverLM->fvec.transpose()<<endl<<"Error norm "<<solverLM->fnorm<<endl);
+			LOG_TRACE("Levenberg-Marquardt inner iteration "<<nIter<<" with residuum "<<solverLM->fnorm);
+			#ifdef SPARC_INSPECT
+				residuals=solverLM->fvec; residuum=solverLM->fnorm; jac=solverLM->fjac;
+			#endif
+			break;
+		case SOLVER_NEWTON:
+			assert(solverNewton);
+			status=solverNewton->solveNumericalDiffOneStep(currV);
+			LOG_TRACE("Newton inner iteration "<<nIter<<", residuum "<<solverNewton->fnorm<<" (functor "<<solverNewton->nfev<<"×, jacobian "<<solverNewton->njev<<"×)");
+			#ifdef SPARC_INSPECT
+				residuals=solverNewton->fvec; residuum=solverNewton->fnorm; jac=solverNewton->jac; jacInv=solverNewton->jacInv;
+			#endif
+			break;
+		default:
+			throw std::logic_error("Unknown value of StaticEquilibriumSolver.solver=="+to_string(solver));
+	}
+	return status;
+}
+
+
 void StaticEquilibriumSolver::run(){
 	#ifdef SPARC_TRACE
 		if(!dbgOut.empty() && scene->step==0 && bfs::exists(dbgOut)){
@@ -828,7 +944,7 @@ void StaticEquilibriumSolver::run(){
 	#endif
 	if(!substep || (solver==SOLVER_POWELL && !solverPowell) || (solver==SOLVER_LM && !solverLM) || (solver==SOLVER_NEWTON && !solverNewton)){ /* start anew */ progress=PROGRESS_DONE; }
 	int status;
-	SPARC_TRACE_OUT("\n\n ==== Scene step "<<scene->step<<", solution iteration "<<nIter<<endl);
+	SPARC_TRACE_OUT("\n\n ==== Scene step "<<scene->step<<", solution iteration "<<((progress==PROGRESS_DONE || progress==PROGRESS_ERROR?0:nIter))<<endl);
 	// when dt>0, it means we reset scene->dt to our value; restore it now
 	if(dt>0){
 		scene->dt=dt;
@@ -837,106 +953,16 @@ void StaticEquilibriumSolver::run(){
 	if(progress==PROGRESS_DONE || progress==PROGRESS_ERROR){
 		if(progress==PROGRESS_ERROR) LOG_WARN("Previous solver step ended abnormally, restarting solver.");
 		mff=static_cast<SparcField*>(field.get());
-		nIter=-1;
-
-		prologuePhase(currV);
-
-		SPARC_TRACE_OUT("Initial DOF velocities "<<currV.transpose()<<endl);
-		// http://stackoverflow.com/questions/6895980/boostmake-sharedt-does-not-compile-shared-ptrtnew-t-does
-		// functor=make_shared<ResidualsFunctor>(vv.size(),vv.size(),this); 
-		functor=shared_ptr<ResidualsFunctor>(new ResidualsFunctor(nDofs,nDofs)); functor->ses=this;
-		switch(solver){
-			case SOLVER_POWELL:
-				solverLM.reset(); solverNewton.reset();
-				solverPowell=make_shared<SolverPowell>(*functor);
-				solverPowell->parameters.factor=solverFactor;
-				solverPowell->parameters.epsfcn=epsfcn;
-				if(solverXtol>0) solverPowell->parameters.xtol=solverXtol;
-				solverPowell->parameters.maxfev=relMaxfev*currV.size(); // this is perhaps bogus, what is exactly maxfev?
-				#ifdef SPARC_TRACE
-					// avoid uninitialized values giving false positives in text comparisons
-					solverPowell->fjac.setZero(nDofs,nDofs); solverPowell->diag.setZero(nDofs);
-				#endif
-				status=solverPowell->solveNumericalDiffInit(currV);
-				SPARC_TRACE_OUT("Initial solution norm "<<solverPowell->fnorm<<endl);
-				#ifdef SPARC_TRACE
-					solverPowell->fjac.setZero();
-				#endif
-				if(status==Eigen::HybridNonLinearSolverSpace::ImproperInputParameters) throw std::runtime_error("StaticEquilibriumSolver:: improper input parameters for the Powell dogleg solver.");
-				// solver->parameters.epsfcn=1e-6;
-				nFactorLowered=0;
-				break;
-			case SOLVER_LM:
-				solverPowell.reset(); solverNewton.reset();
-				solverLM=make_shared<SolverLM>(*functor);
-				solverLM->parameters.factor=solverFactor;
-				solverLM->parameters.maxfev=relMaxfev*currV.size(); // this is perhaps bogus, what is exactly maxfev?
-				solverLM->parameters.epsfcn=epsfcn;
-				#ifdef SPARC_TRACE
-					// avoid uninitialized values giving false positives in text comparisons
-					solverLM->fjac.setZero(nDofs,nDofs); solverLM->diag.setZero(nDofs);
-				#endif
-				status=solverLM->minimizeInit(currV);
-				SPARC_TRACE_OUT("Initial solution norm "<<solverLM->fnorm<<endl);
-				#ifdef SPARC_TRACE
-					solverLM->fjac.setZero();
-				#endif
-				if(status==Eigen::LevenbergMarquardtSpace::ImproperInputParameters) throw std::runtime_error("StaticEquilibriumSolver:: improper input parameters for the Levenberg-Marquardt solver.");
-				break;
-			case SOLVER_NEWTON:
-				solverLM.reset(); solverPowell.reset();
-				solverNewton=make_shared<SolverNewton>(*functor);
-				if(solverXtol>0) solverNewton->xtol=solverXtol;
-				solverNewton->maxfev=relMaxfev*currV.size();
-				solverNewton->jacEvery=jacEvery;
-				status=solverNewton->solveNumericalDiffInit(currV);
-				LOG_TRACE("Newton solver: initial solution has residuum "<<solverNewton->fnorm0<<" (tol. rel "<<solverNewton->xtol<<"×"<<solverNewton->fnorm0<<"="<<solverNewton->fnorm0*solverNewton->xtol<<", abs "<<solverNewton->abstol<<")");
-				#ifdef SPARC_INSPECT
-					residuals=solverNewton->fvec; residuum=solverNewton->fnorm; jac=solverNewton->jac; jacInv=solverNewton->jacInv;
-				#endif
-				if(status==NewtonSolverSpace::JacobianNotInvertible) throw std::runtime_error("StaticEquilibriumSolver (Newton): Jacobian matrix not invertible.");
-				break;
-			default:
-				throw std::logic_error("Unknown value of StaticEquilibriumSolver.solver=="+to_string(solver));
-		}
 		// intial solver setup
+		solverInit(currV);
 		nIter=0;
 	}
 
 	// solution loop
 	while(true){
-		// nIter is negative inside step to detect interruption by an exception in python
 		nIter++;
-		switch(solver){
-			case SOLVER_POWELL:
-				assert(solverPowell);
-				status=solverPowell->solveNumericalDiffOneStep(currV);
-				SPARC_TRACE_OUT("Powell inner iteration "<<nIter<<endl<<"Solver proposed solution "<<currV.transpose()<<endl<<"Residuals vector "<<solverPowell->fvec.transpose()<<endl<<"Error norm "<<lexical_cast<string>(solverPowell->fnorm)<<endl);
-				LOG_TRACE("Powell inner iteration "<<nIter<<" with residuum "<<solverPowell->fnorm);
-				#ifdef SPARC_INSPECT
-					residuals=solverPowell->fvec; residuum=solverPowell->fnorm; jac=solverPowell->fjac;
-				#endif
-				break;
-			case SOLVER_LM:
-				assert(solverLM);
-				status=solverLM->minimizeOneStep(currV);
-				SPARC_TRACE_OUT("Levenberg-Marquardt inner iteration "<<nIter<<endl<<"Solver proposed solution "<<currV.transpose()<<endl<<"Residuals vector "<<solverLM->fvec.transpose()<<endl<<"Error norm "<<solverLM->fnorm<<endl);
-				LOG_TRACE("Levenberg-Marquardt inner iteration "<<nIter<<" with residuum "<<solverLM->fnorm);
-				#ifdef SPARC_INSPECT
-					residuals=solverLM->fvec; residuum=solverLM->fnorm; jac=solverLM->fjac;
-				#endif
-				break;
-			case SOLVER_NEWTON:
-				assert(solverNewton);
-				status=solverNewton->solveNumericalDiffOneStep(currV);
-				LOG_TRACE("Newton inner iteration "<<nIter<<", residuum "<<solverNewton->fnorm<<" (functor "<<solverNewton->nfev<<"×, jacobian "<<solverNewton->njev<<"×)");
-				#ifdef SPARC_INSPECT
-					residuals=solverNewton->fvec; residuum=solverNewton->fnorm; jac=solverNewton->jac; jacInv=solverNewton->jacInv;
-				#endif
-				break;
-			default:
-				throw std::logic_error("Unknown value of StaticEquilibriumSolver.solver=="+to_string(solver));
-		}
+		// one solver step
+		status=solverStep(currV);
 		// good progress
 		if(
 			(solver==SOLVER_POWELL && status==Eigen::HybridNonLinearSolverSpace::Running)

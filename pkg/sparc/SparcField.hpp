@@ -199,7 +199,7 @@ struct ExplicitNodeIntegrator: public GlobalEngine {
 		((Real,rSearch,-1,,"Radius for neighbor-search"))
 		((int,weightFunc,WEIGHT_GAUSS,,"Weighting function to be used (WEIGHT_DIST,WEIGHT_GAUSS)"))
 		((int,wlsBasis,WLS_QUAD_XYZ,,"Basis used for WLS interpolation."))
-		((int,dim,3,AttrTrait<Attr::readonly>(),"Dimension of the basis (set automatically)"))
+		((int,dim,2,AttrTrait<Attr::readonly>(),"Dimension of the basis (set automatically)"))
 		((int,rPow,0,,"Exponent for distance weighting ∈{0,-1,-2,…}"))
 		((Real,gaussAlpha,.6,,"Decay coefficient used with Gauss weight function."))
 		((bool,spinRot,false,,"Rotate particles according to spin in their location; Dofs which prescribe velocity will never be rotated (i.e. only rotation parallel with them will be allowed)."))
@@ -216,6 +216,7 @@ struct ExplicitNodeIntegrator: public GlobalEngine {
 		,/*py*/
 		.def("stressRate",&ExplicitNodeIntegrator::computeStressRate,(py::arg("T"),py::arg("D"),py::arg("e")=-1)) // for debugging
 		.def_readonly("C",&ExplicitNodeIntegrator::C).def("pointWeight",&ExplicitNodeIntegrator::pointWeight);
+
 
 		_classObj.attr("wGauss")=(int)WEIGHT_GAUSS;
 		_classObj.attr("wDist")=(int)WEIGHT_DIST;
@@ -260,25 +261,46 @@ struct NewtonSolver{
 		abstol=1e-6;
 		jacEvery=0;
 		maxfev=0;
+		jacEigen=false;
+		epsScale=true;
 	};
 	int iter, nfev, njev, maxfev;
 	int jacEvery;
+	bool jacEigen, epsScale;
 	JacobianType jac;
 	JacobianType jacInv;
 	FVectorType fvec; // residuals
-	typename FVectorType::Scalar fnorm0, fnorm, xtol, abstol;
+	//typedef typename JacobianType::Scalar Scalar;
+	typedef typename JacobianType::Index Index;
+	Scalar fnorm0, fnorm, xtol, abstol;
 	FunctorType functor;
 
 	NewtonSolverSpace::Status recomputeJacobian(typename FunctorType::InputType& x, int retry=0){
 		jac=MatrixXr::Zero(x.size(),x.size());
 		fvec=VectorXr::Zero(x.size());
-		if(functor.df(x,jac)<0) return NewtonSolverSpace::UserAsked;
+		if(jacEigen){
+			// use numerical differentiation from eigen
+			if(functor.df(x,jac)<0) return NewtonSolverSpace::UserAsked;
+		} else {
+			// use our own routine (forward num diff)
+			if(functor(x,fvec)<0) return NewtonSolverSpace::UserAsked;
+			for(Index dof=0; dof<jac.rows(); dof++){
+				// distortion
+				Scalar dx, sqrtEps=sqrt(Eigen::NumTraits<Scalar>::epsilon());
+				if(epsScale) { dx=sqrtEps*std::abs(x[dof]); if(dx==0) dx=sqrtEps; }
+				else dx=sqrtEps;
+				FVectorType x2=x; x2[dof]+=dx;
+				FVectorType fvec2=VectorXr::Zero(jac.rows());
+				if(functor(x2,fvec2)<0) return NewtonSolverSpace::UserAsked;
+				jac.col(dof)=(fvec2-fvec).transpose()/dx;
+			}
+		}
 		njev++;
 		fnorm0=functor(x,fvec);
 		jacInv=jac.inverse();
 		if(isinf(jacInv.maxCoeff()) || isnan(jacInv.maxCoeff())){
-			typename JacobianType::Index r,c; typename JacobianType::Scalar j=jacInv.maxCoeff(&r,&c);
-			cerr<<"Maximum jacInv coeff at ("<<r<<","<<c<<") is "<<j;
+			Index r,c; Scalar j=jacInv.maxCoeff(&r,&c);
+			cerr<<"Maximum jacInv coeff at ("<<r<<","<<c<<") is "<<j<<endl;
 			if(retry<5) return recomputeJacobian(x,retry+1);
 			return NewtonSolverSpace::JacobianNotInvertible;
 		}
@@ -334,6 +356,10 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 	shared_ptr<SolverLM> solverLM;
 	shared_ptr<SolverNewton> solverNewton;
 
+	void solverInit(VectorXr& x);
+	int solverStep(VectorXr& x);
+
+
 	int nFactorLowered;
 	ofstream out;
 
@@ -359,6 +385,11 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 	void epiloguePhase(const VectorXr& vel, VectorXr& errors);
 		void integrateStateVariables();
 
+	// make those accessible form python, for debugging
+	VectorXr prologuePy(){ VectorXr ret; prologuePhase(ret); return ret; }
+	VectorXr solutionPy(const VectorXr& x){ VectorXr ret(x.size()); solutionPhase(x,ret); return ret; }
+	//VectorXr epiloguePhase(const VectorXr& x} VectorXr ret(x.size()); epiloguePhase(x,ret); return ret; }
+
 	enum {DBG_JAC=1,DBG_DOFERR=2,DBG_NIDERR=4};
 	enum {SOLVER_POWELL=0,SOLVER_LM,SOLVER_NEWTON};
 	enum {PROGRESS_DONE=0,PROGRESS_RUNNING,PROGRESS_ERROR};
@@ -380,6 +411,8 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 		((Real,solverXtol,-1,,"Relative tolerance of the solver; if negative, default is used."))
 		((Real,relMaxfev,10000,,"Maximum number of function evaluation in solver, relative to number of DoFs"))
 		((int,jacEvery,10,,"Recompute the Jacobian every *jacEvery* steps, when using the Newton solver"))
+		((bool,jacEigen,true,,"Use Eigen::NumericalDiff routines with the Newton solver; if false, use our own routine."))
+		((bool,epsScale,true,,"When using our own numerical differentiation, enable/disable scaling of distortion based on the current value."))
 		((Real,epsfcn,0.,,"Epsfcn parameter of the solver (0 = use machine precision), pg. 26 of MINPACK manual"))
 		((int,nDofs,-1,,"Number of degrees of freedom, set by renumberDoFs"))
 		((Real,charLen,1,,"Characteristic length, for making divT/T errors comensurable"))
@@ -397,7 +430,12 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 			.def("compResid",&StaticEquilibriumSolver::compResid,(py::arg("vv")=VectorXr()),"Compute residuals corresponding to either given velocities *vv*, or to the current state (if *vv* is not given or empty)")
 		#endif
 		.def("gradVError",&StaticEquilibriumSolver::gradVError,(py::arg("node"),py::arg("rPow")=0),"Compute sum of errors from local velocity linearization (i.e. sum of errors between linear velocity field and real neighbor velocities; errors are weighted according to |x-x₀|^rPow.")
-		.def_readonly("solution",&StaticEquilibriumSolver::currV);
+		//.def("solverInit",&StaticEquilibriumSolver::solverInitPy),"Initialize the solver with x0 as the initial solution.")
+		//.def("solverStep",&StaticEquilibriumSolver::solverStepPt,(py::arg("x")),"Advance the solver by one step, with the solution x as the start")
+		.def("prologue",&StaticEquilibriumSolver::prologuePy)
+		.def("solution",&StaticEquilibriumSolver::solutionPy)
+		// .def("epilogue",&StaticEquilibriumSolver::epiloguePy)
+		;
 
 		_classObj.attr("solverPowell")=(int)SOLVER_POWELL;
 		_classObj.attr("solverLM")=(int)SOLVER_LM;
@@ -405,6 +443,9 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 		_classObj.attr("progressDone")=(int)PROGRESS_DONE;
 		_classObj.attr("progressRunning")=(int)PROGRESS_RUNNING;
 		_classObj.attr("progressError")=(int)PROGRESS_ERROR;
+		_classObj.attr("dbgJac")=(int)DBG_JAC;
+		_classObj.attr("dbgDofErr")=(int)DBG_DOFERR;
+		_classObj.attr("dbgNidErr")=(int)DBG_NIDERR;
 	);
 
 };
