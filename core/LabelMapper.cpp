@@ -195,7 +195,8 @@ void LabelMapper::__setitem__py(const string& label, py::object o){
 				wooMap.erase(label);
 				break;
 			case IN_PY:
-				if(o.ptr()!=pyMap[label].ptr()) LOG_WARN("Label '"<<label<<" overwrites "<<pyAsStr(pyMap[label])<<" with "<<pyAsStr(o));
+				if(o.ptr()!=pyMap[label].ptr()) LOG_WARN("Label '"<<label<<"' overwrites "<<pyAsStr(pyMap[label])<<" with "<<pyAsStr(o));
+				pyMap.erase(label); // if only replaced later, crashes python (reference counting problem?)
 				break;
 			case IN_WOO_SEQ:
 				LOG_WARN("Label '"<<label<<"' changes type from sequence of woo.Object to pure-python object, deleting "<<wooSeqMap.find(label)->second.size()<<" items in the sequence.");

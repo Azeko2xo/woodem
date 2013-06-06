@@ -109,20 +109,19 @@ struct SparcData: public NodeData{
 		// computed in prologue (once per timestep)
 		((Vector3i,dofs,Vector3i(-1,-1,-1),AttrTrait<Attr::readonly>(),"Degrees of freedom in the solution system corresponding to 3 locV components (negative for prescribed velocity, not touched by the solver)"))
 		((vector<shared_ptr<Node> >,neighbors,,AttrTrait<>().noGui(),"List of neighbours, updated internally"))
-		((VectorXr,weightSq,,,"Weight (its square) for distance weighting."))
 		//((MatrixXr,relPosInv,,,"Relative positions' pseudo-inverse, with INTERP_KOLY."))
 		#ifdef SPARC_INSPECT
 			((MatrixXr,stencil,,,"Stencil matrix, with INTERP_WLS."))
 			((MatrixXr,bVec,,,"Matrix with base functions derivatives evaluated at stencil points (4 columns: 0th, x, y, z derivative)"))
+			((MatrixXr,weightSq,,,"Vector with squared weights of neighbor points"))
 		#endif
-		((MatrixXr,dxDyDz,,,"Operator matrix built from bVec^T*stentcil"))
+		((MatrixXr,dxDyDz,,,"Operator matrix built from bVec^T*stencil"))
 
 		// recomputed in each solver iteration
 		((Vector3r,locV,Vector3r::Zero(),,"Velocity in local coordinates"))
 		((Vector3r,v,Vector3r::Zero(),,"Velocity"))
 		((Matrix3r,gradV,Matrix3r::Zero(),,"gradient of velocity (only used as intermediate storage)"))
-		((Real,L11,0.,,"gradV_yy for 1d problems (cannot be computed from the interpolation)"))
-		((Real,L22,0.,,"gradV_zz for ad and 2d problems (cannot be computed from the interpolation)"))
+		((Vector3r,Lout,Vector3r::Zero(),,"diagonal components of gradV for degenerate space problems. Lout[0] is only used with 0d basis, Lout[1] with 0d and 1d basis, Lout[2] with 0d, 1d and 2d basis."))
 		// ((Matrix3r,Tdot,Matrix3r::Zero(),,"Jaumann Stress rate")) 
 		((Matrix3r,nextT,Matrix3r::Zero(),,"Stress in the next step")) 
 		((Quaternionr,nextOri,,,"Orientation in the next step (FIXME: not yet updated)"))
@@ -190,7 +189,7 @@ struct ExplicitNodeIntegrator: public GlobalEngine {
 	DECLARE_LOGGER;
 
 	enum {WEIGHT_DIST=0,WEIGHT_GAUSS,WEIGHT_SENTINEL};
-	enum {WLS_QUAD_X=0,WLS_CUBIC_X,WLS_QUAD_XY,WLS_LIN_XYZ,WLS_QUAD_XYZ};
+	enum {WLS_EMPTY=0,WLS_QUAD_X,WLS_CUBIC_X,WLS_LIN_XY,WLS_QUAD_XY,WLS_LIN_XYZ,WLS_QUAD_XYZ};
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ExplicitNodeIntegrator,GlobalEngine,"Monolithic engine for explicit integration of motion of nodes in SparcField.",
 		((Real,E,1e6,AttrTrait<Attr::triggerPostLoad>(),"Young's modulus, for the linear elastic constitutive law"))
 		((Real,nu,0,AttrTrait<Attr::triggerPostLoad>(),"Poisson's ratio for the linear elastic constitutive law"))
@@ -209,9 +208,8 @@ struct ExplicitNodeIntegrator: public GlobalEngine {
 		((Real,damping,0,,"Numerical damping, applied by-component on acceleration"))
 		((Real,c,0,,"Viscous damping coefficient."))
 		((bool,barodesyConvertPaToKPa,true,,"Assume stresses are given in Pa, while parameters are calibrated with kPa. This divides input stress by 1000 (at the beginning of the constitutive law routine), then computes stress rate, which is multiplied by 1000."))
-		((Real,T11,NaN,,"Out-of-plane stress in the y direction; if NaN, use plane strain (only with 1d basis)."))
-		((Real,T22,NaN,,"Out-of-plane stress in the z direction; if NaN, use plane strain (only with 1d/2d basis)."))
-		((bool,symm1d,true,,"With 1d basis, suppose y-z symmetry if both perpendicular stresses are prescribed and are identical."))
+		((Vector3r,Tout,Vector3r(NaN,NaN,NaN),,"Out-of-space stresses, for reduced spaces: Tout[0] is only used with 0d basis, Tout[1] with 0d and 1d bases, Tout[2] with 0d, 1d, 2d bases."))
+		((bool,symm01d,true,,"With 0d or 1d basis, suppose Lxx==Lyy==Lzz (shared dofs) if respective out-of-space stresses are prescribed and identical."))
 		,/*ctor*/
 		,/*py*/
 		.def("stressRate",&ExplicitNodeIntegrator::computeStressRate,(py::arg("T"),py::arg("D"),py::arg("e")=-1)) // for debugging
@@ -225,8 +223,10 @@ struct ExplicitNodeIntegrator: public GlobalEngine {
 		_classObj.attr("matViscous")=(int)MAT_VISCOUS;
 		_classObj.attr("matBarodesy")=(int)MAT_BARODESY;
 
+		_classObj.attr("wlsEmpty")=(int)WLS_EMPTY;;
 		_classObj.attr("wlsQuadX")=(int)WLS_QUAD_X;
 		_classObj.attr("wlsCubicX")=(int)WLS_CUBIC_X;
+		_classObj.attr("wlsLinXy")=(int)WLS_LIN_XY;
 		_classObj.attr("wlsQuadXy")=(int)WLS_QUAD_XY;
 		_classObj.attr("wlsLinXyz")=(int)WLS_LIN_XYZ;
 		_classObj.attr("wlsQuadXyz")=(int)WLS_QUAD_XYZ;
@@ -391,7 +391,7 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 	//VectorXr epiloguePhase(const VectorXr& x} VectorXr ret(x.size()); epiloguePhase(x,ret); return ret; }
 
 	enum {DBG_JAC=1,DBG_DOFERR=2,DBG_NIDERR=4};
-	enum {SOLVER_POWELL=0,SOLVER_LM,SOLVER_NEWTON};
+	enum {SOLVER_NONE=0,SOLVER_POWELL,SOLVER_LM,SOLVER_NEWTON};
 	enum {PROGRESS_DONE=0,PROGRESS_RUNNING,PROGRESS_ERROR};
 
 	WOO_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(StaticEquilibriumSolver,ExplicitNodeIntegrator,"Find global static equilibrium of a Sparc system.",
@@ -437,6 +437,7 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 		// .def("epilogue",&StaticEquilibriumSolver::epiloguePy)
 		;
 
+		_classObj.attr("solverNone")=(int)SOLVER_NONE;
 		_classObj.attr("solverPowell")=(int)SOLVER_POWELL;
 		_classObj.attr("solverLM")=(int)SOLVER_LM;
 		_classObj.attr("solverNewton")=(int)SOLVER_NEWTON;
@@ -463,6 +464,7 @@ struct Gl1_SparcField: public GlFieldFunctor{
 	shared_ptr<SparcField> sparc; // used by do* methods
 	RENDERS(SparcField);
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_SparcField,GlFieldFunctor,"Render Sparc field.",
+		((bool,nodes,true,,"Show local node coordinate systems"))
 		((bool,nid,false,,"Show node ids for Sparc models"))
 		((bool,neighbors,false,,"Whether to show neighbors in the 3d view (FIXME: should go to Gl1_SparcField, once it is created). When a node is selected, neighbors are shown nevertheless."))
 		((vector<int>,conn,,,"Sequence of node IDs which will be connected; every invalid id (such as -1) interrupts the line."))

@@ -111,6 +111,8 @@ vector<shared_ptr<Node>> SparcField::nodesAround(const Vector3r& pt, int count, 
 template<bool useNext>
 void ExplicitNodeIntegrator::findNeighbors(const shared_ptr<Node>&n) const {
 	SparcData& dta(n->getData<SparcData>());
+	// don't search for neighbors in 0d (useless)
+	if(dim==0){ dta.neighbors.clear(); return; }
 	size_t prevN=dta.neighbors.size();
 	Vector3r pos(!useNext?n->pos:n->pos+dta.v*scene->dt);
 	// maximum number of tries to get satisfactory number of points
@@ -145,15 +147,23 @@ Real ExplicitNodeIntegrator::pointWeight(Real distSq, Real relLocPtDensity) cons
 template<bool useNext>
 void ExplicitNodeIntegrator::updateLocalInterp(const shared_ptr<Node>& n) const {
 	SparcData& dta(n->getData<SparcData>());
+	if(dim==0){ // no interpolation at all, handle specially
+		#ifdef SPARC_INSPECT
+			dta.relPos.resize(0,0); dta.nextRelPos.resize(0,0);
+			dta.stencil.resize(0,0); dta.bVec.resize(0,0); dta.weightSq.resize(0,0);
+		#endif
+		dta.dxDyDz.resize(0,0);
+		return;
+	}
 	// current or next inputs
 	int sz(dta.neighbors.size());
 	MatrixXr relPos(sz,3);
-	dta.weightSq=VectorXr(sz);
+	VectorXr weightSq(sz);
 	Vector3r midPos(n->pos+(useNext?Vector3r(scene->dt*dta.v):Vector3r::Zero()));
 	for(int i=0; i<sz; i++){
 		if(!dta.neighbors[i]) throw std::runtime_error("Nid "+to_string(dta.nid)+", neighbor #"+to_string(i)+" is None?!");
 		Vector3r dX=VectorXr(dta.neighbors[i]->pos+(useNext?Vector3r(scene->dt*dta.neighbors[i]->getData<SparcData>().v):Vector3r::Zero())-midPos);
-		dta.weightSq[i]=pow(pointWeight(dX.squaredNorm(),dta.relLocPtDensity),2);
+		weightSq[i]=pow(pointWeight(dX.squaredNorm(),dta.relLocPtDensity),2);
 		relPos.row(i)=dX;
 		for(int d=dim; d<3; d++){
 			if(dX[d]!=0) throw std::runtime_error(to_string(d)+"-component of internodal dist ("+to_string(dta.nid)+"-"+to_string(dta.neighbors[i]->getData<SparcData>().nid)+") is nonzero ("+to_string(dX[d])+", but the basis does not span this component.");
@@ -173,7 +183,7 @@ void ExplicitNodeIntegrator::updateLocalInterp(const shared_ptr<Node>& n) const 
 	// evaluate all basis funcs in all points
 	for(int pt=0; pt<sz; pt++) for(size_t i=0; i<wlsPhi.size(); i++) Phi(pt,i)=wlsPhi[i](relPos.row(pt));
 	// compute the stencil matrix
-	auto W2=dta.weightSq.asDiagonal();
+	auto W2=weightSq.asDiagonal();
 	MatrixXr stencil=(Phi.transpose()*W2*Phi).inverse()*Phi.transpose()*W2;
 	// basis derivatives matrix, in (0,0,0) as relative position to the central point
 	MatrixXr bVec;
@@ -200,7 +210,7 @@ void ExplicitNodeIntegrator::updateLocalInterp(const shared_ptr<Node>& n) const 
 	}
 	LOG_DEBUG("stencil is "<<stencil.rows()<<"×"<<stencil.cols()<<", bVec is "<<bVec.rows()<<"×"<<bVec.cols()<<", dxDyDz is "<<dta.dxDyDz.rows()<<"×"<<dta.dxDyDz.cols());
 	#ifdef SPARC_INSPECT
-		dta.stencil=stencil; dta.bVec=bVec;
+		dta.weightSq=weightSq; dta.stencil=stencil; dta.bVec=bVec;
 	#endif
 }
 
@@ -208,6 +218,11 @@ void ExplicitNodeIntegrator::setWlsBasisFuncs(){
 	wlsPhi.clear(); wlsPhiDx.clear(); wlsPhiDy.clear(); wlsPhiDz.clear();
 	switch(wlsBasis){
 	#define _BASIS_FUNC(r,cont,expr) cont.push_back([](const Vector3r& x)->Real{ return expr; });
+		case WLS_EMPTY:{
+			LOG_INFO("Setting empty (0d) basis");
+			dim=0;
+			break;
+		}
 		case WLS_QUAD_X:{
 			LOG_INFO("Setting 2nd-order monomial basis in X");
 			BOOST_PP_SEQ_FOR_EACH(_BASIS_FUNC,wlsPhi,(1)(x[0])(x[0]*x[0]));
@@ -222,6 +237,15 @@ void ExplicitNodeIntegrator::setWlsBasisFuncs(){
 			BOOST_PP_SEQ_FOR_EACH(_BASIS_FUNC,wlsPhiDx,(0)(1)(2*x[0])(3*x[0]*x[0]));
 			dim=1;
 			assert(wlsPhi.size()==4);
+			break;
+		}
+		case WLS_LIN_XY:{
+			LOG_INFO("Setting 1st-order monomial basis in XY");
+			BOOST_PP_SEQ_FOR_EACH(_BASIS_FUNC,wlsPhi,  (1)(x[0])(x[1]));
+			BOOST_PP_SEQ_FOR_EACH(_BASIS_FUNC,wlsPhiDx,(0)(1)(0));
+			BOOST_PP_SEQ_FOR_EACH(_BASIS_FUNC,wlsPhiDy,(0)(0)(1));
+			dim=2;
+			assert(wlsPhi.size()==3);
 			break;
 		}
 		case WLS_QUAD_XY:{
@@ -301,6 +325,9 @@ Vector3r ExplicitNodeIntegrator::computeDivT(const shared_ptr<Node>& n) const {
 			}
 			return Vector3r(dta.dxDyDz.row(0).dot(T),0,0);
 		}
+		case 0:{
+			return Vector3r::Zero();
+		}
 		default: abort(); // gcc happy
 	}
 }
@@ -320,14 +347,17 @@ Matrix3r ExplicitNodeIntegrator::computeGradV(const shared_ptr<Node>& n) const {
 			for(size_t i=0; i<NN.size(); i++) vel.row(i)=NN[i]->getData<SparcData>().v.head<2>(); // x,y components only
 			Matrix3r ret=Matrix3r::Zero();
 			ret.topLeftCorner<2,2>()=dta.dxDyDz*vel;
-			ret(2,2)=dta.L22; // local gradV_z // FIXME: should only be assigned with plane stress?!
+			ret(2,2)=dta.Lout[2]; // out-of-space Lzz
 			return ret;
 		}
 		case 1:{
 			VectorXr vel(NN.size());
 			for(size_t i=0; i<NN.size(); i++) vel[i]=NN[i]->getData<SparcData>().v[0];
-			Matrix3r ret; ret<<dta.dxDyDz*vel,0,0, 0,dta.L11,0, 0,0,dta.L22;
-			return ret;
+			assert((dta.dxDyDz*vel).rows()==1 && (dta.dxDyDz*vel).cols()==1);
+			return Vector3r((dta.dxDyDz*vel)(0,0),dta.Lout[1],dta.Lout[2]).asDiagonal();
+		}
+		case 0:{
+			return dta.Lout.asDiagonal();
 		}
 		default: abort(); // gcc happy
 	};
@@ -428,6 +458,7 @@ void ExplicitNodeIntegrator::run(){
 	mff=static_cast<SparcField*>(field.get());
 	int nid=-1;
 	const Real& dt(scene->dt);
+	if(dim==0) woo::ValueError("0d space impossible with ExplicitNodeIntegrator, use StaticEquilibriumSolver).");
 	/*
 	update locator
 	loop 1: (does not update state vars x,T,v,rho; only stores values needed for update in the next loop)
@@ -527,13 +558,12 @@ void StaticEquilibriumSolver::copyLocalVelocityToNodes(const VectorXr &v) const{
 				// out of the spanned space
 				// don't move out of the space (assignDofs check local rotation is not out-of-plane)
 				dta.locV[ax]=0; 
-				if(dta.dofs[ax]>=0){ // prescribed stress
-					assert((ax==1 && !isnan(T11)) || (ax==2 && !isnan(T22)));
-					if(ax==2) dta.L22=v[dta.dofs[ax]];
-					else dta.L11=v[dta.dofs[ax]];
-				} else { // prescribed zero deformation
-					if(ax==2) dta.L22=0.; 
-					else dta.L11=0.;
+				if(dta.dofs[ax]>=0){ // prescribed stress; in that case v[dof] is L(ax,ax)
+					assert(!isnan(Tout[ax]));
+					dta.Lout[ax]=v[dta.dofs[ax]];
+				} else {
+					// in out-of-space deformation dta.Lout[ax] is prescribed, just leave that one alone
+					assert(!isnan(dta.Lout[ax]));
 				}
 			}
 		}
@@ -543,6 +573,10 @@ void StaticEquilibriumSolver::copyLocalVelocityToNodes(const VectorXr &v) const{
 
 void StaticEquilibriumSolver::assignDofs() {
 	int nid=0, dof=0;
+	// check that Tout is only prescribed where it makes sense
+	for(int ax=0; ax<dim; ax++){
+		if(!isnan(Tout[ax])) woo::ValueError("StaticEquilibriumSolver.Tout["+to_string(ax)+" must be NaN, since the space is "+to_string(dim)+"d (only out-of-space components may be assigned)");
+	}
 	for(const shared_ptr<Node>& n: field->nodes){
 		SparcData& dta=n->getData<SparcData>();
 		dta.nid=nid++;
@@ -562,12 +596,14 @@ void StaticEquilibriumSolver::assignDofs() {
 				if(!isnan(dta.fixedV[ax])) dta.dofs[ax]=-1;
 				else dta.dofs[ax]=dof++;
 			} else {
-				if(!isnan(dta.fixedV[ax])) woo::ValueError("Node "+to_string(nid)+" prescribes fixedV["+to_string(ax)+"]: not allowed in "+to_string(dim)+"d problems");
-				if(!isnan(dta.fixedT[ax])) woo::ValueError("Node "+to_string(nid)+" prescribed fixedT["+to_string(ax)+"]: not allowed in "+to_string(dim)+"d problems, use ExplicitNodeIntegrator.T11 and T22 instead (the same for all points)");
+				if(!isnan(dta.fixedV[ax])) woo::ValueError("Node "+to_string(nid)+" prescribes fixedV["+to_string(ax)+"]: not allowed in "+to_string(dim)+"d problems (would move out of basis space); use Lout in each point to prescribe diagonal gradV components.");
+				if(!isnan(dta.fixedT[ax])) woo::ValueError("Node "+to_string(nid)+" prescribed fixedT["+to_string(ax)+"]: not allowed in "+to_string(dim)+"d problems, use ExplicitNodeIntegrator.Tout (the same for all points)");
 				// stress prescribed along this axis, gradV is then unknown in that direction
-				if((ax==1 && !isnan(T11)) || (ax==2 && !isnan(T22))){
-					// use previous (y) dof if both lateral stresses are prescribed the same
-					if(ax==2 && /*this also means T11 was not NaN */ T11==T22 && symm1d) dta.dofs[ax]=(dof-1);
+				if(!isnan(Tout[ax])){
+					// recycle some of the previous dofs if Tout was the same (with symm01d only)
+					// (== checks also the previous value, as it will be false if any of the operands is NaN)
+					if(symm01d && ((ax==1 && Tout[1]==Tout[0]) || (ax==2 && Tout[2]==Tout[0]))){ assert(dta.dofs[0]>=0); dta.dofs[ax]=dta.dofs[0]; }
+					else if(symm01d && ax==2 && Tout[2]==Tout[1]) { assert(dta.dofs[1]>=0); dta.dofs[ax]=dta.dofs[1]; }
 					else dta.dofs[ax]=dof++; // otherwise allocate a new dof for this unknown
 				}
 				else dta.dofs[ax]=-1; // strain in this direction given - no unknowns
@@ -584,11 +620,11 @@ VectorXr StaticEquilibriumSolver::computeInitialDofVelocities(bool useZero) cons
 		// fixedV and zeroed are in local coords
 		for(int ax:{0,1,2}){
 			if(dta.dofs[ax]<0) continue;
-			if(ax>dim){
-				// if T11/T22 are not prescribed, then there is no unknown here at all
-				assert((ax==1 && !isnan(T11)) || (ax==2 && !isnan(T22)));
-				if((ax==1 && isnan(dta.L11)) || (ax==2 && isnan(dta.L22))) woo::ValueError("Node "+to_string(dta.nid)+": prescribed "+(ax==1?"L11":"L22")+" must not be NaN in plane stress (when stress is prescribed).");
-				ret[dta.dofs[ax]]=(ax==1?dta.L11:dta.L22);
+			if(ax>=dim){
+				// if Tout[ax] are not prescribed, then there should be no unknown here at all
+				assert(!isnan(Tout[ax]));
+				if(isnan(dta.Lout[ax])) woo::ValueError("Node "+to_string(dta.nid)+": Lout["+to_string(ax)+"] must not be NaN when out-of-space stress Tout["+to_string(ax)+"] is prescribed; the value will be changed automatically).");
+				ret[dta.dofs[ax]]=dta.Lout[ax];
 			} 
 			else if(useZero){ ret[dta.dofs[ax]]=0.; }
 			else ret[dta.dofs[ax]]=(n->ori*dta.v)[ax]; 
@@ -697,18 +733,17 @@ void StaticEquilibriumSolver::computeConstraintErrors(const shared_ptr<Node>& n,
 	Matrix3r locT=oriTrsf*T*oriTrsf.transpose();
 
 	for(int ax:{0,1,2}){
-		// velocity is prescribed; if not spanned, strain is prescribed, i.e. T11/T22 are NaN
+		// velocity is prescribed; if not spanned, strain is prescribed, i.e. Tout[ax] are NaN
 		int dof=dta.dofs[ax];
 		if(dof<0){
-			assert((ax<dim && !isnan(dta.fixedV[ax])) || (ax>=dim && isnan((ax==1?T11:T22))));
+			assert((ax<dim && !isnan(dta.fixedV[ax])) || (ax>=dim && isnan(Tout[ax])));
 			continue;
 		}
 		if(ax>=dim) { // out-of-space dimension
-			Real& T__(ax==1?T11:T22); // prescribed stress along our axis
-			assert(!isnan(T__)); // it must not be NaN (i.e. prescribed L??): there would be no dof there
-			resid[dof]=-(T__-locT(ax,ax)); // difference between out-of-dimension stress and current stress
+			assert(!isnan(Tout[ax])); // it must not be NaN (i.e. prescribed L??): there would be no dof there
+			resid[dof]=-(Tout[ax]-locT(ax,ax)); // difference between out-of-dimension stress and current stress
 			#ifdef SPARC_TRACE
-				if(dbgFlags&DBG_DOFERR) _WATCH_NID("\tnid "<<dta.nid<<" dof "<<dof<<" (out-of-space): locT["<<ax<<","<<ax<<"]="<<locT(ax,ax)<<" (should be "<<T__<<") sets resid["<<dof<<"]="<<resid[dof]);
+				if(dbgFlags&DBG_DOFERR) _WATCH_NID("\tnid "<<dta.nid<<" dof "<<dof<<" (out-of-space): locT["<<ax<<","<<ax<<"]="<<locT(ax,ax)<<" (should be "<<Tout[ax]<<") sets resid["<<dof<<"]="<<resid[dof]);
 			#endif
 		} else { // regular (boring) dimension
 			// nothing prescribed, divT is the residual
@@ -753,24 +788,6 @@ void StaticEquilibriumSolver::integrateStateVariables(){
 		n->ori=dta.nextOri;
 	}
 };
-
-#if 0
-VectorXr StaticEquilibriumSolver::compResid(const VectorXr& vv){
-	bool useNext=vv.size()>0;
-	if(useNext && (size_t)vv.size()!=nDofs) woo::ValueError("len(vv) must be equal to number of nDofs ("+lexical_cast<string>(nDofs)+"), or empty for only evaluating current residuals.");
-	mff=static_cast<SparcField*>(field.get());
-	mff->updateLocator();
-	assignDofs();
-	for(const shared_ptr<Node>& n: field->nodes) findNeighbors(n); 
-	if(vv.size()==0){
-		copyLocalVelocityToNodes(computeInitialDofVelocities(/*useCurrV*/true));
-	}
-	ResidualsFunctor functor(nDofs,nDofs,this);
-	VectorXr ret(nDofs);
-	functor(vv,ret,useNext ? ResidualsFunctor::MODE_TRIAL_V_IS_ARG : ResidualsFunctor::MODE_CURRENT_STATE);
-	return ret;
-};
-#endif
 
 template<typename Solver>
 string solverStatus2str(int status);
@@ -829,12 +846,20 @@ template<> string solverStatus2str<StaticEquilibriumSolver::SolverNewton>(int st
 void StaticEquilibriumSolver::solverInit(VectorXr& currV){
 	prologuePhase(currV);
 	SPARC_TRACE_OUT("Initial DOF velocities "<<currV.transpose()<<endl);
+	if(nDofs==0 && solver!=SOLVER_NONE){
+		LOG_WARN("Setting StaticEquilibriumSolver.solver=solverNone because of 0 dofs.");
+		solver=SOLVER_NONE;
+	}
 
 	// http://stackoverflow.com/questions/6895980/boostmake-sharedt-does-not-compile-shared-ptrtnew-t-does
 	// functor=make_shared<ResidualsFunctor>(vv.size(),vv.size(),this); 
 	functor=shared_ptr<ResidualsFunctor>(new ResidualsFunctor(nDofs,nDofs)); functor->ses=this;
 	int status;
 	switch(solver){
+		case SOLVER_NONE:
+			if(nDofs>0) throw std::runtime_error("StaticEquilibriumSolver.solver==solverNone is not admissible with nonzero number of dofs.");
+			solverPowell.reset(); solverLM.reset(); solverNewton.reset();
+			return;
 		case SOLVER_POWELL:
 			solverLM.reset(); solverNewton.reset();
 			solverPowell=make_shared<SolverPowell>(*functor);
@@ -900,6 +925,14 @@ void StaticEquilibriumSolver::solverInit(VectorXr& currV){
 int StaticEquilibriumSolver::solverStep(VectorXr& currV){
 	int status;
 	switch(solver){
+		case SOLVER_NONE:{
+			assert(currV.size()==0); VectorXr fvec; fvec.resize(0);
+			int ret=(*functor)(currV,fvec);
+			#ifdef SPARC_INSPECT
+				residuals.resize(0,0); residuum=0.; jac.resize(0,0);
+			#endif
+			return (ret>=0?0:-1);
+		}
 		case SOLVER_POWELL:
 			assert(solverPowell);
 			status=solverPowell->solveNumericalDiffOneStep(currV);
@@ -964,6 +997,7 @@ void StaticEquilibriumSolver::run(){
 		// one solver step
 		status=solverStep(currV);
 		// good progress
+		if(solver==SOLVER_NONE && status==0) goto solutionFound; // solution computed in one step; 
 		if(
 			(solver==SOLVER_POWELL && status==Eigen::HybridNonLinearSolverSpace::Running)
 			|| (solver==SOLVER_LM && status==Eigen::LevenbergMarquardtSpace::Running)
@@ -986,6 +1020,7 @@ void StaticEquilibriumSolver::run(){
 		}
 		string msg="[unhandled solver]";
 		switch(solver){
+			case SOLVER_NONE: msg="SOLVER_NONE: functor returned an error during response computation?!";
 			case SOLVER_POWELL: msg=solverStatus2str<SolverPowell>(status); break;
 			case SOLVER_LM: msg=solverStatus2str<SolverLM>(status); break;
 			case SOLVER_NEWTON: msg=solverStatus2str<SolverNewton>(status); break;
@@ -1005,6 +1040,7 @@ void StaticEquilibriumSolver::run(){
 		progress=PROGRESS_DONE;
 		// LOG_WARN("Solution found, error norm "<<solver->fnorm);
 		switch(solver){
+			case SOLVER_NONE: nIter=1; break;
 			case SOLVER_POWELL: nIter=solverPowell->iter; break; 
 			case SOLVER_LM: nIter=solverLM->iter; break;
 			case SOLVER_NEWTON: nIter=solverNewton->iter; break;
@@ -1040,6 +1076,7 @@ Real StaticEquilibriumSolver::gradVError(const shared_ptr<Node>& n, int rPow){
 WOO_PLUGIN(gl,(Gl1_SparcField)(SparcConstraintGlRep));
 
 
+bool Gl1_SparcField::nodes;
 bool Gl1_SparcField::nid;
 bool Gl1_SparcField::neighbors;
 vector<int> Gl1_SparcField::conn;
@@ -1052,7 +1089,7 @@ void Gl1_SparcField::go(const shared_ptr<Field>& sparcField, GLViewInfo* _viewIn
 	for(const shared_ptr<Node>& n: sparc->nodes){
 		Renderer::glScopedName name(n);
 		Renderer::setNodeGlData(n); // assures that GlData is defined
-		Renderer::renderRawNode(n);
+		if(nodes) Renderer::renderRawNode(n);
 		if(n->rep){ n->rep->render(n,viewInfo); }
 		// GLUtils::GLDrawText((boost::format("%d")%n->getData<SparcData>().nid).str(),n->pos,/*color*/Vector3r(1,1,1), /*center*/true,/*font*/NULL);
 		int nnid=n->getData<SparcData>().nid;
