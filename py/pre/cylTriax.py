@@ -457,7 +457,7 @@ def compactionDone(S):
 	S.lab.parMat.tanPhi=S.lab.memMat.tanPhi=S.lab.suppMat.tanPhi=0
 
 	if S.lab.compactMemoize: # if None or '', don't save
-		S.save('/tmp/compact.gz')
+		#S.save('/tmp/compact.gz')
 		aabb=AlignedBox3()
 		for n in S.lab.cylNodes: aabb.extend(n.pos)
 		sp=woo.pack.SpherePack()

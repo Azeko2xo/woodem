@@ -2,7 +2,7 @@
 python /c/src/pyinstaller-develop/pyinstaller.py -y woo.pyinstaller.spec
 
 
-exit 0
+exit 1
 set -e -x
 
 pushd nsis
