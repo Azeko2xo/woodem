@@ -11,7 +11,7 @@ struct AncfField: public Field{
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(AncfField,Field,"Field for ANCF (absolute nodal coordinate formulation) finite elements (highly experimental)",
 	);
 }
-REGISTER_SERIALIZABLE(AncfField);
+WOO_REGISTER_OBJECT(AncfField);
 
 struct AncfData: public NodeData{
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(AncfData,NodeData,"Nodal data for ANCF",
@@ -23,7 +23,7 @@ struct AncfData: public NodeData{
 		, /*py*/ .def("_getDataOnNode",&Node::pyGetData<AncfData>).staticmethod("_getDataOnNode").def("_setDataOnNode",&Node::pySetData<AncfData>).staticmethod("_setDataOnNode");
 	);
 };
-REGISTER_SERIALIZABLE(AncfData);
+WOO_REGISTER_OBJECT(AncfData);
 
 template<> struct NodeData::Index<AncfData>{enum{value=Node::ST_ANCF};};
 
@@ -35,7 +35,7 @@ struct AncfElt: public Shape{
 	);
 	REGISTER_CLASS_INDEX(AncfElt,Shape)
 };
-REGISTER_SERIALIZABLE(AncfElt);
+WOO_REGISTER_OBJECT(AncfElt);
 
 struct AncfBeam2n: public AncfElt{
 	MatrixXr getShapeFunctionMatrix(const Vector3r& pt);
@@ -46,5 +46,5 @@ struct AncfBeam2n: public AncfElt{
 	);
 	REGISTER_CLASS_INDEX(AncfBeam2n);
 };
-REGISTER_SERIALIZABLE(AncfBeam2n);
+WOO_REGISTER_OBJECT(AncfBeam2n);
 #endif

@@ -18,4 +18,4 @@ namespace woo{
 		);
 	};
 };
-REGISTER_SERIALIZABLE(woo::Plot);
+WOO_REGISTER_OBJECT(woo::Plot);

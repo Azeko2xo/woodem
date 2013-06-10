@@ -55,5 +55,5 @@ struct ConveyorFactory: public ParticleFactory{
 			.def("psd",&ConveyorFactory::pyPsd,(py::arg("mass")=true,py::arg("cumulative")=true,py::arg("normalize")=false,py::arg("dRange")=Vector2r(NaN,NaN),py::arg("num")=80),"Return PSD for particles generated.")
 	);
 };
-REGISTER_SERIALIZABLE(ConveyorFactory);
+WOO_REGISTER_OBJECT(ConveyorFactory);
 

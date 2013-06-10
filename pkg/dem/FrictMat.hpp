@@ -12,7 +12,7 @@ class ElastMat: public Material{
 	);
 	REGISTER_CLASS_INDEX(ElastMat,Material);
 };
-REGISTER_SERIALIZABLE(ElastMat);
+WOO_REGISTER_OBJECT(ElastMat);
 
 class FrictMat: public ElastMat{
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(FrictMat,ElastMat,"Elastic material with contact friction. See also :ref:`ElastMat`.",
@@ -22,7 +22,7 @@ class FrictMat: public ElastMat{
 	);
 	REGISTER_CLASS_INDEX(FrictMat,ElastMat);
 };
-REGISTER_SERIALIZABLE(FrictMat);
+WOO_REGISTER_OBJECT(FrictMat);
 
 class FrictPhys: public CPhys{
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(FrictPhys,CPhys,"Physical parameters of contact with sliding",
@@ -33,7 +33,7 @@ class FrictPhys: public CPhys{
 	);
 	REGISTER_CLASS_INDEX(FrictPhys,CPhys);
 };
-REGISTER_SERIALIZABLE(FrictPhys);
+WOO_REGISTER_OBJECT(FrictPhys);
 
 struct Cp2_FrictMat_FrictPhys: public CPhysFunctor{
 	void go(const shared_ptr<Material>&, const shared_ptr<Material>&, const shared_ptr<Contact>&);
@@ -47,6 +47,6 @@ struct Cp2_FrictMat_FrictPhys: public CPhysFunctor{
 		,/*init*/,/*ctor*/,/*py*/
 	);
 };
-REGISTER_SERIALIZABLE(Cp2_FrictMat_FrictPhys);
+WOO_REGISTER_OBJECT(Cp2_FrictMat_FrictPhys);
 
 

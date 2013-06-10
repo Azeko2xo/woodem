@@ -27,7 +27,7 @@ struct L6Geom: public CGeom{
 	);
 	REGISTER_CLASS_INDEX(L6Geom,CGeom);
 };
-REGISTER_SERIALIZABLE(L6Geom);
+WOO_REGISTER_OBJECT(L6Geom);
 
 struct Cg2_Sphere_Sphere_L6Geom: public CGeomFunctor{
 	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
@@ -54,7 +54,7 @@ struct Cg2_Sphere_Sphere_L6Geom: public CGeomFunctor{
 	DEFINE_FUNCTOR_ORDER_2D(Sphere,Sphere);
 	DECLARE_LOGGER;
 };
-REGISTER_SERIALIZABLE(Cg2_Sphere_Sphere_L6Geom);
+WOO_REGISTER_OBJECT(Cg2_Sphere_Sphere_L6Geom);
 
 struct Cg2_Facet_Sphere_L6Geom: public Cg2_Sphere_Sphere_L6Geom{
 	WOO_CLASS_BASE_DOC_ATTRS(Cg2_Facet_Sphere_L6Geom,Cg2_Sphere_Sphere_L6Geom,"Incrementally compute :ref:`L6Geom` for contact between :ref:`Facet` and :ref:`Sphere`. Uses attributes of :ref:`Cg2_Sphere_Sphere_L6Geom`.",
@@ -65,7 +65,7 @@ struct Cg2_Facet_Sphere_L6Geom: public Cg2_Sphere_Sphere_L6Geom{
 	DEFINE_FUNCTOR_ORDER_2D(Facet,Sphere);
 	DECLARE_LOGGER;
 };
-REGISTER_SERIALIZABLE(Cg2_Facet_Sphere_L6Geom);
+WOO_REGISTER_OBJECT(Cg2_Facet_Sphere_L6Geom);
 
 struct Cg2_Wall_Sphere_L6Geom: public Cg2_Sphere_Sphere_L6Geom{
 	WOO_CLASS_BASE_DOC(Cg2_Wall_Sphere_L6Geom,Cg2_Sphere_Sphere_L6Geom,"Incrementally compute :ref:`L6Geom` for contact between :ref:`Wall` and :ref:`Sphere`. Uses attributes of :ref:`Cg2_Sphere_Sphere_L6Geom`.");
@@ -75,7 +75,7 @@ struct Cg2_Wall_Sphere_L6Geom: public Cg2_Sphere_Sphere_L6Geom{
 	DEFINE_FUNCTOR_ORDER_2D(Wall,Sphere);
 	DECLARE_LOGGER;
 };
-REGISTER_SERIALIZABLE(Cg2_Wall_Sphere_L6Geom);
+WOO_REGISTER_OBJECT(Cg2_Wall_Sphere_L6Geom);
 
 struct Cg2_InfCylinder_Sphere_L6Geom: public Cg2_Sphere_Sphere_L6Geom{
 	WOO_CLASS_BASE_DOC(Cg2_InfCylinder_Sphere_L6Geom,Cg2_Sphere_Sphere_L6Geom,"Incrementally compute :ref:`L6Geom` for contact between :ref:`InfCylinder` and :ref:`Sphere`. Uses attributes of :ref:`Cg2_Sphere_Sphere_L6Geom`.");
@@ -85,7 +85,7 @@ struct Cg2_InfCylinder_Sphere_L6Geom: public Cg2_Sphere_Sphere_L6Geom{
 	DEFINE_FUNCTOR_ORDER_2D(InfCylinder,Sphere);
 	DECLARE_LOGGER;
 };
-REGISTER_SERIALIZABLE(Cg2_InfCylinder_Sphere_L6Geom);
+WOO_REGISTER_OBJECT(Cg2_InfCylinder_Sphere_L6Geom);
 
 struct Cg2_Truss_Sphere_L6Geom: public Cg2_Sphere_Sphere_L6Geom{
 	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
@@ -96,7 +96,7 @@ struct Cg2_Truss_Sphere_L6Geom: public Cg2_Sphere_Sphere_L6Geom{
 	DEFINE_FUNCTOR_ORDER_2D(Truss,Sphere);
 	DECLARE_LOGGER;
 };
-REGISTER_SERIALIZABLE(Cg2_Truss_Sphere_L6Geom);
+WOO_REGISTER_OBJECT(Cg2_Truss_Sphere_L6Geom);
 
 
 #if 0
@@ -114,6 +114,6 @@ struct Gl1_L6Geom: public GlCGeomFunctor{
 		//((Real,uScale,1.,,"Scale local displacements (:ref:`u<L3Geom.u>` - :ref:`u0<L3Geom.u0>`); 1 means the true scale, 0 disables drawing local displacements; negative values are permissible."))
 	);
 };
-REGISTER_SERIALIZABLE(Gl1_L6Geom);
+WOO_REGISTER_OBJECT(Gl1_L6Geom);
 #endif
 #endif

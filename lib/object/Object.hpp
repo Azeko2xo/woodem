@@ -395,9 +395,9 @@ template<> struct _SerializeMaybe<false>{
 // see https://bugs.launchpad.net/woo/+bug/666876
 // we have to change things at a few other places as well
 #if BOOST_VERSION>=104200
-	#define REGISTER_SERIALIZABLE(name) BOOST_CLASS_EXPORT_KEY(name);
+	#define WOO_REGISTER_OBJECT(name) BOOST_CLASS_EXPORT_KEY(name);
 #else
-	#define REGISTER_SERIALIZABLE(name) 
+	#define WOO_REGISTER_OBJECT(name) 
 #endif
 
 

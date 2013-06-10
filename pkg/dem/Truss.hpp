@@ -19,7 +19,7 @@ struct Truss: public Shape{
 	);
 	REGISTER_CLASS_INDEX(Truss,Shape);
 };
-REGISTER_SERIALIZABLE(Truss);
+WOO_REGISTER_OBJECT(Truss);
 
 #ifdef WOO_OPENGL
 #include<woo/pkg/gl/Functors.hpp>
@@ -41,7 +41,7 @@ struct Bo1_Truss_Aabb: public BoundFunctor{
 	FUNCTOR1D(Truss);
 	WOO_CLASS_BASE_DOC(Bo1_Truss_Aabb,BoundFunctor,"Compute :ref:`Aabb` of a Truss particle")
 };
-REGISTER_SERIALIZABLE(Bo1_Truss_Aabb);
+WOO_REGISTER_OBJECT(Bo1_Truss_Aabb);
 
 struct In2_Truss_ElastMat: public IntraFunctor{
 	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&);
@@ -51,4 +51,4 @@ struct In2_Truss_ElastMat: public IntraFunctor{
 		/*attrs*/
 	);
 };
-REGISTER_SERIALIZABLE(In2_Truss_ElastMat);
+WOO_REGISTER_OBJECT(In2_Truss_ElastMat);

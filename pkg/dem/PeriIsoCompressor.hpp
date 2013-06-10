@@ -35,7 +35,7 @@ struct PeriIsoCompressor: public Engine{
 	);
 	DECLARE_LOGGER;
 };
-REGISTER_SERIALIZABLE(PeriIsoCompressor);
+WOO_REGISTER_OBJECT(PeriIsoCompressor);
 
 struct WeirdTriaxControl: public Engine{
 	bool acceptsFiled(Field* f){ return dynamic_cast<DemField*>(f); }
@@ -65,4 +65,4 @@ struct WeirdTriaxControl: public Engine{
 	);
 	DECLARE_LOGGER;
 };
-REGISTER_SERIALIZABLE(WeirdTriaxControl);
+WOO_REGISTER_OBJECT(WeirdTriaxControl);

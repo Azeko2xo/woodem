@@ -10,7 +10,7 @@ class IntraFunctor: public Functor2D<
 >{
 	WOO_CLASS_BASE_DOC(IntraFunctor,Functor,"Functor appying internal forces");
 };
-REGISTER_SERIALIZABLE(IntraFunctor);
+WOO_REGISTER_OBJECT(IntraFunctor);
 
 struct IntraForce: public Dispatcher2D</* functor type*/ IntraFunctor, /* autosymmetry*/ false>{
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
@@ -18,5 +18,5 @@ struct IntraForce: public Dispatcher2D</* functor type*/ IntraFunctor, /* autosy
 	WOO_DISPATCHER2D_FUNCTOR_DOC_ATTRS_CTOR_PY(IntraForce,IntraFunctor,/* doc is optional*/,/*attrs*/,/*ctor*/,/*py*/);
 	DECLARE_LOGGER;
 };
-REGISTER_SERIALIZABLE(IntraForce);
+WOO_REGISTER_OBJECT(IntraForce);
 

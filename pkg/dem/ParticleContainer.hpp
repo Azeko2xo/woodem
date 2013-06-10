@@ -201,4 +201,4 @@ struct ParticleContainer: public Object{
 		);
 		DECLARE_LOGGER;
 };
-REGISTER_SERIALIZABLE(ParticleContainer);
+WOO_REGISTER_OBJECT(ParticleContainer);

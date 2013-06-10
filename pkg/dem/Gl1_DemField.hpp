@@ -122,5 +122,5 @@ struct Gl1_DemField: public GlFieldFunctor{
 			_classObj.attr("cNodePotLine")=(int)Gl1_DemField::CNODE_POTLINE;
 	);
 };
-REGISTER_SERIALIZABLE(Gl1_DemField);
+WOO_REGISTER_OBJECT(Gl1_DemField);
 #endif

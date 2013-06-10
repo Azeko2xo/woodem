@@ -248,4 +248,4 @@ struct InsertionSortCollider: public Collider {
 	);
 	DECLARE_LOGGER;
 };
-REGISTER_SERIALIZABLE(InsertionSortCollider);
+WOO_REGISTER_OBJECT(InsertionSortCollider);

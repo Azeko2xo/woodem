@@ -16,7 +16,7 @@ struct GlExtraDrawer: public Object{
 		((bool,dead,false,,"Deactivate the object (on error/exception)."))
 	);
 };
-REGISTER_SERIALIZABLE(GlExtraDrawer);
+WOO_REGISTER_OBJECT(GlExtraDrawer);
 
 struct GlData: public NodeData{
 	bool isClipped() const { return isnan(dGlPos[0]); }
@@ -32,7 +32,7 @@ struct GlData: public NodeData{
 
 	);
 };
-REGISTER_SERIALIZABLE(GlData);
+WOO_REGISTER_OBJECT(GlData);
 template<> struct NodeData::Index<GlData>{enum{value=Node::ST_GL};};
 
 struct Renderer: public Object{
@@ -164,4 +164,4 @@ struct Renderer: public Object{
 			_classObj.attr("timeStep")=(int)Renderer::TIME_STEP;
 	);
 };
-REGISTER_SERIALIZABLE(Renderer);
+WOO_REGISTER_OBJECT(Renderer);

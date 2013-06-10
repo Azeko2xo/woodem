@@ -16,7 +16,7 @@ namespace woo{
 		REGISTER_CLASS_INDEX(Sphere,Shape);
 	};
 };
-REGISTER_SERIALIZABLE(Sphere);
+WOO_REGISTER_OBJECT(Sphere);
 
 struct Bo1_Sphere_Aabb: public BoundFunctor{
 	void go(const shared_ptr<Shape>&);
@@ -25,7 +25,7 @@ struct Bo1_Sphere_Aabb: public BoundFunctor{
 		((Real,distFactor,((void)"deactivated",-1),,"Relative enlargement of the bounding box; deactivated if negative.\n\n.. note::\n\tThis attribute is used to create distant contacts, but is only meaningful with an :ref:`CGeomFunctor` which will not simply discard such interactions: :ref:`Cg2_Sphere_Sphere_L6Geom::distFactor` should have the same value."))
 	);
 };
-REGISTER_SERIALIZABLE(Bo1_Sphere_Aabb);
+WOO_REGISTER_OBJECT(Bo1_Sphere_Aabb);
 
 struct In2_Sphere_ElastMat: public IntraFunctor{
 	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&);
@@ -37,7 +37,7 @@ struct In2_Sphere_ElastMat: public IntraFunctor{
 		//#endif
 	);
 };
-REGISTER_SERIALIZABLE(In2_Sphere_ElastMat);
+WOO_REGISTER_OBJECT(In2_Sphere_ElastMat);
 
 
 
@@ -72,5 +72,5 @@ class Gl1_Sphere: public GlShapeFunctor{
 	);
 	RENDERS(Sphere);
 };
-REGISTER_SERIALIZABLE(Gl1_Sphere);
+WOO_REGISTER_OBJECT(Gl1_Sphere);
 #endif

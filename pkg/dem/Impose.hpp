@@ -21,7 +21,7 @@ struct HarmonicOscillation: public Impose{
 		,/*ctor*/ what=Impose::VELOCITY;
 	);
 };
-REGISTER_SERIALIZABLE(HarmonicOscillation);
+WOO_REGISTER_OBJECT(HarmonicOscillation);
 
 struct AlignedHarmonicOscillations: public Impose{
 	void velocity(const Scene* scene, const shared_ptr<Node>& n){
@@ -38,7 +38,7 @@ struct AlignedHarmonicOscillations: public Impose{
 		,/*ctor*/ what=Impose::VELOCITY;
 	);
 };
-REGISTER_SERIALIZABLE(AlignedHarmonicOscillations);
+WOO_REGISTER_OBJECT(AlignedHarmonicOscillations);
 
 struct RadialForce: public Impose{
 	void force(const Scene* scene, const shared_ptr<Node>& n);
@@ -49,7 +49,7 @@ struct RadialForce: public Impose{
 		,/*ctor*/ what=Impose::FORCE;
 	);
 };
-REGISTER_SERIALIZABLE(RadialForce);
+WOO_REGISTER_OBJECT(RadialForce);
 
 struct Local6Dofs: public Impose{
 	void velocity(const Scene* scene, const shared_ptr<Node>& n){ doImpose(scene,n,/*velocity*/true); }
@@ -84,4 +84,4 @@ struct Local6Dofs: public Impose{
 		,/*ctor*/ what=Impose::VELOCITY | Impose::FORCE;
 	);
 };
-REGISTER_SERIALIZABLE(Local6Dofs);
+WOO_REGISTER_OBJECT(Local6Dofs);

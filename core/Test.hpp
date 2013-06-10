@@ -71,6 +71,6 @@ namespace woo{
 };
 using woo::WooTestClass;
 using woo::WooTestPeriodicEngine;
-REGISTER_SERIALIZABLE(WooTestClass);
-REGISTER_SERIALIZABLE(WooTestPeriodicEngine);
+WOO_REGISTER_OBJECT(WooTestClass);
+WOO_REGISTER_OBJECT(WooTestPeriodicEngine);
 

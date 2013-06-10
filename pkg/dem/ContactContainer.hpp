@@ -132,4 +132,4 @@ struct ContactContainer: public Object{
 
 	);
 };
-REGISTER_SERIALIZABLE(ContactContainer);
+WOO_REGISTER_OBJECT(ContactContainer);

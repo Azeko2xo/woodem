@@ -19,10 +19,10 @@ struct PsdSphereGenerator: public ParticleGenerator{
 			.def("inputPsd",&PsdSphereGenerator::pyInputPsd,(py::arg("scale")=false,py::arg("cumulative")=true,py::arg("num")=80),"Return input PSD; it will be a staircase function if *discrete* is true, otherwise linearly interpolated. With *scale*, the curve is multiplied with the actually generated mass/numer of particles (depending on whether *mass* is true or false); the result should then be very similar to the psd() output with actually generated spheres. Discrete non-cumulative PSDs are handled specially: discrete distributions return skypline plot with peaks represented as plateaus of the relative width 1/*num*; continuous distributions return ideal histogram computed for relative bin with 1/*num*; thus returned histogram will match non-cummulative histogram returned by `ParticleGenerator.psd(cumulative=False)`, provided *num* is the same in both cases.")
 	);
 };
-REGISTER_SERIALIZABLE(PsdSphereGenerator);
+WOO_REGISTER_OBJECT(PsdSphereGenerator);
 
 #if 0
 struct ClumpGeomDef: public Object{
 };
-REGISTER_SERIALIZABLE(ClumpGeomDef);
+WOO_REGISTER_OBJECT(ClumpGeomDef);
 #endif

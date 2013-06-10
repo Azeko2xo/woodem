@@ -46,5 +46,5 @@ struct BoxDeleter: public PeriodicEngine{
 		.def("massOfDiam",&BoxDeleter::pyMassOfDiam,(py::arg("min")=0,py::arg("max")=Inf),"Return mass of particles of which diameters are between *min* and *max*.")
 	);
 };
-REGISTER_SERIALIZABLE(BoxDeleter);
+WOO_REGISTER_OBJECT(BoxDeleter);
 

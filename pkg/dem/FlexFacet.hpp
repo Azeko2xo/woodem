@@ -36,7 +36,7 @@ struct FlexFacet: public Facet{
 			.def("reset",&FlexFacet::pyReset,"Reset reference configuration; this forces using the current config as reference when :obj:`update` is called again.") 
 	);
 };
-REGISTER_SERIALIZABLE(FlexFacet);
+WOO_REGISTER_OBJECT(FlexFacet);
 
 struct In2_FlexFacet_ElastMat: public IntraFunctor{
 	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&);
@@ -50,7 +50,7 @@ struct In2_FlexFacet_ElastMat: public IntraFunctor{
 		((bool,bending,false,,"Consider also bending stiffness of elements (DKT)"))
 	);
 };
-REGISTER_SERIALIZABLE(In2_FlexFacet_ElastMat);
+WOO_REGISTER_OBJECT(In2_FlexFacet_ElastMat);
 
 
 #ifdef WOO_OPENGL
@@ -75,5 +75,5 @@ struct Gl1_FlexFacet: public Gl1_Facet{
 		((shared_ptr<ScalarRange>,phiRange,make_shared<ScalarRange>(),,"Range for rotations (colors only)"))
 	);
 };
-REGISTER_SERIALIZABLE(Gl1_FlexFacet);
+WOO_REGISTER_OBJECT(Gl1_FlexFacet);
 #endif

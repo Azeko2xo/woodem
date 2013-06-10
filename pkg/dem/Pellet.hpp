@@ -11,7 +11,7 @@ struct PelletMat: public FrictMat{
 	);
 	REGISTER_CLASS_INDEX(PelletMat,FrictMat);
 };
-REGISTER_SERIALIZABLE(PelletMat);
+WOO_REGISTER_OBJECT(PelletMat);
 
 struct PelletMatState: public MatState{
 	Real getColorScalar(){ return normPlast+shearPlast; }
@@ -20,7 +20,7 @@ struct PelletMatState: public MatState{
 		((Real,shearPlast,0,,"Plastic energy dissipated in the tangential sense"))
 	);
 };
-REGISTER_SERIALIZABLE(PelletMatState);
+WOO_REGISTER_OBJECT(PelletMatState);
 
 class PelletPhys: public FrictPhys{
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(PelletPhys,FrictPhys,"Physical properties of a contact of two :ref:`PelletMat`.",
@@ -30,7 +30,7 @@ class PelletPhys: public FrictPhys{
 	);
 	REGISTER_CLASS_INDEX(PelletPhys,CPhys);
 };
-REGISTER_SERIALIZABLE(PelletPhys);
+WOO_REGISTER_OBJECT(PelletPhys);
 
 struct Cp2_PelletMat_PelletPhys: public Cp2_FrictMat_FrictPhys{
 	void go(const shared_ptr<Material>&, const shared_ptr<Material>&, const shared_ptr<Contact>&);
@@ -38,7 +38,7 @@ struct Cp2_PelletMat_PelletPhys: public Cp2_FrictMat_FrictPhys{
 	WOO_CLASS_BASE_DOC(Cp2_PelletMat_PelletPhys,Cp2_FrictMat_FrictPhys,"Compute :ref:`PelletPhys` given two instances of :ref`PelletMat`. :ref:`PelletMat.normPlastCoeff` is averaged into :ref:`PelletPhys.normPlastCoeff`, while minimum of :ref:`PelletMat.kaDivKn` is taken to compute :ref:`PelletPhys.ka`."
 	);
 };
-REGISTER_SERIALIZABLE(Cp2_PelletMat_PelletPhys);
+WOO_REGISTER_OBJECT(Cp2_PelletMat_PelletPhys);
 
 
 struct Law2_L6Geom_PelletPhys_Pellet: public LawFunctor{
@@ -69,12 +69,12 @@ struct Law2_L6Geom_PelletPhys_Pellet: public LawFunctor{
 			.def("adhesionForce",&Law2_L6Geom_PelletPhys_Pellet::adhesionForce,(py::arg("uN"),py::arg("uNPl"),py::arg("ka")),"Adhesion force function $h$ evaluated with given parameters").staticmethod("adhesionForce")
 	);
 };
-REGISTER_SERIALIZABLE(Law2_L6Geom_PelletPhys_Pellet);
+WOO_REGISTER_OBJECT(Law2_L6Geom_PelletPhys_Pellet);
 
 struct PelletCData: public CData{
 	WOO_CLASS_BASE_DOC_ATTRS(PelletCData,CData,"Hold state variables for pellet contact.",
 		((Real,uNPl,0.,,"Plastic displacement on the contact."))
 	);
 };
-REGISTER_SERIALIZABLE(PelletCData);
+WOO_REGISTER_OBJECT(PelletCData);
 

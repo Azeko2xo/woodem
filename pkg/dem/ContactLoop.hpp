@@ -15,7 +15,7 @@ struct CGeomFunctor: public Functor2D<
 >{
 	WOO_CLASS_BASE_DOC(CGeomFunctor,Functor,"Functor for creating/updating :ref:`Contact::geom` objects.");
 };
-REGISTER_SERIALIZABLE(CGeomFunctor);
+WOO_REGISTER_OBJECT(CGeomFunctor);
 
 class CPhysFunctor: public Functor2D<
 	/*dispatch types*/ Material, Material,
@@ -24,7 +24,7 @@ class CPhysFunctor: public Functor2D<
 >{
 	WOO_CLASS_BASE_DOC(CPhysFunctor,Functor,"Functor for creating/updating :ref:`Contact.phys` objects.");
 };
-REGISTER_SERIALIZABLE(CPhysFunctor);
+WOO_REGISTER_OBJECT(CPhysFunctor);
 
 
 class LawFunctor: public Functor2D<
@@ -34,7 +34,7 @@ class LawFunctor: public Functor2D<
 >{
 	WOO_CLASS_BASE_DOC(LawFunctor,Functor,"Functor for applying constitutive laws on :ref:`contacts<Contact>`.");
 };
-REGISTER_SERIALIZABLE(LawFunctor);
+WOO_REGISTER_OBJECT(LawFunctor);
 
 /* ***************************************** */
 
@@ -44,21 +44,21 @@ struct CGeomDispatcher: public Dispatcher2D</* functor type*/ CGeomFunctor, /* a
 	WOO_DISPATCHER2D_FUNCTOR_DOC_ATTRS_CTOR_PY(CGeomDispatcher,CGeomFunctor,/* doc is optional*/,/*attrs*/,/*ctor*/,/*py*/);
 	DECLARE_LOGGER;
 };
-REGISTER_SERIALIZABLE(CGeomDispatcher);
+WOO_REGISTER_OBJECT(CGeomDispatcher);
 
 struct CPhysDispatcher: public Dispatcher2D</*functor type*/ CPhysFunctor>{		
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	void explicitAction(Scene*, shared_ptr<Material>&, shared_ptr<Material>&, shared_ptr<Contact>&);
 	WOO_DISPATCHER2D_FUNCTOR_DOC_ATTRS_CTOR_PY(CPhysDispatcher,CPhysFunctor,/*doc is optional*/,/*attrs*/,/*ctor*/,/*py*/);
 };
-REGISTER_SERIALIZABLE(CPhysDispatcher);
+WOO_REGISTER_OBJECT(CPhysDispatcher);
 
 struct LawDispatcher: public Dispatcher2D</*functor type*/ LawFunctor, /*autosymmetry*/ false>{
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	WOO_DISPATCHER2D_FUNCTOR_DOC_ATTRS_CTOR_PY(LawDispatcher,LawFunctor,/*doc is optional*/,/*attrs*/,/*ctor*/,/*py*/);
 	DECLARE_LOGGER;
 };
-REGISTER_SERIALIZABLE(LawDispatcher);
+WOO_REGISTER_OBJECT(LawDispatcher);
 
 
 
@@ -103,5 +103,5 @@ class ContactLoop: public GlobalEngine {
 		);
 		DECLARE_LOGGER;
 };
-REGISTER_SERIALIZABLE(ContactLoop);
+WOO_REGISTER_OBJECT(ContactLoop);
 

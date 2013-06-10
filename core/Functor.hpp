@@ -36,7 +36,7 @@ struct Functor: public Object
 		.add_property("bases",&Functor::getFunctorTypes,"Ordered list of types (as strings) this functor accepts.")
 	);	
 };
-REGISTER_SERIALIZABLE(Functor);
+WOO_REGISTER_OBJECT(Functor);
 
 
 

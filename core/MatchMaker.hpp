@@ -43,4 +43,4 @@ class MatchMaker: public Object {
 			.def("computeFallback",&MatchMaker::computeFallback,(py::arg("val1"),py::arg("val2")),"Compute algo value for *val1* and *val2*, using algorithm specified by :ref:`algo<MatchMaker.algo>`.")
 		);
 };
-REGISTER_SERIALIZABLE(MatchMaker);
+WOO_REGISTER_OBJECT(MatchMaker);

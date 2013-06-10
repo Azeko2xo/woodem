@@ -15,7 +15,7 @@ struct Aabb: public Bound{
 	);
 	REGISTER_CLASS_INDEX(Aabb,Bound);
 };
-REGISTER_SERIALIZABLE(Aabb);
+WOO_REGISTER_OBJECT(Aabb);
 
 #ifdef WOO_OPENGL
 struct Gl1_Aabb: public GlBoundFunctor{
@@ -23,14 +23,14 @@ struct Gl1_Aabb: public GlBoundFunctor{
 	RENDERS(Aabb);
 	WOO_CLASS_BASE_DOC(Gl1_Aabb,GlBoundFunctor,"Render Axis-aligned bounding box (:ref:`AAbb`).");
 };
-REGISTER_SERIALIZABLE(Gl1_Aabb);
+WOO_REGISTER_OBJECT(Gl1_Aabb);
 #endif
 
 
 struct BoundFunctor: public Functor1D</*dispatch types*/ Shape,/*return type*/ void, /*argument types*/ TYPELIST_1(const shared_ptr<Shape>&)>{
 	WOO_CLASS_BASE_DOC(BoundFunctor,Functor,"Functor for creating/updating :ref:`woo.dem.Bound`.");
 };
-REGISTER_SERIALIZABLE(BoundFunctor);
+WOO_REGISTER_OBJECT(BoundFunctor);
 
 struct BoundDispatcher: public Dispatcher1D</* functor type*/ BoundFunctor>{
 	void run();
@@ -39,7 +39,7 @@ struct BoundDispatcher: public Dispatcher1D</* functor type*/ BoundFunctor>{
 		,/*ctor*/,/*py*/
 	);
 };
-REGISTER_SERIALIZABLE(BoundDispatcher);
+WOO_REGISTER_OBJECT(BoundDispatcher);
 
 
 struct Collider: public GlobalEngine{
@@ -67,5 +67,5 @@ struct Collider: public GlobalEngine{
 		,/*py*/ .def("probeAabb",&Collider::probeAabb,(py::arg("mn"),py::arg("mx")),"Return list of particles intersected by axis-aligned box with given corners")
 	);
 };
-REGISTER_SERIALIZABLE(Collider);
+WOO_REGISTER_OBJECT(Collider);
 

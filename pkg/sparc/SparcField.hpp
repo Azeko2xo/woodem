@@ -75,7 +75,7 @@ struct SparcField: public Field{
 
 	);
 };
-REGISTER_SERIALIZABLE(SparcField);
+WOO_REGISTER_OBJECT(SparcField);
 
 #define SPARC_INSPECT
 
@@ -153,7 +153,7 @@ struct SparcData: public NodeData{
 		;
 	);
 };
-REGISTER_SERIALIZABLE(SparcData);
+WOO_REGISTER_OBJECT(SparcData);
 
 template<> struct NodeData::Index<SparcData>{enum{value=Node::ST_SPARC};};
 
@@ -235,7 +235,7 @@ struct ExplicitNodeIntegrator: public GlobalEngine {
 		// .enum_<WeightFunc>("weight").value("dist",WEIGHT_DIST).value("gauss",WEIGHT_GAUSS)
 	);
 };
-REGISTER_SERIALIZABLE(ExplicitNodeIntegrator);
+WOO_REGISTER_OBJECT(ExplicitNodeIntegrator);
 
 namespace NewtonSolverSpace { 
 	enum Status {
@@ -450,7 +450,7 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 	);
 
 };
-REGISTER_SERIALIZABLE(StaticEquilibriumSolver);
+WOO_REGISTER_OBJECT(StaticEquilibriumSolver);
 
 #ifdef WOO_OPENGL
 #include<woo/pkg/gl/NodeGlRep.hpp>
@@ -472,7 +472,7 @@ struct Gl1_SparcField: public GlFieldFunctor{
 		/* attrs */
 	);
 };
-REGISTER_SERIALIZABLE(Gl1_SparcField);
+WOO_REGISTER_OBJECT(Gl1_SparcField);
 
 
 struct SparcConstraintGlRep: public NodeGlRep{
@@ -489,7 +489,7 @@ struct SparcConstraintGlRep: public NodeGlRep{
 		((bool,num,true,,"Show numbers "))
 	);
 };
-REGISTER_SERIALIZABLE(SparcConstraintGlRep);
+WOO_REGISTER_OBJECT(SparcConstraintGlRep);
 #endif // WOO_OPENGL
 
 

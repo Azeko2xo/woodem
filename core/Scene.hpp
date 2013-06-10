@@ -215,4 +215,4 @@ struct Scene: public Object{
 	DECLARE_LOGGER;
 };
 
-REGISTER_SERIALIZABLE(Scene);
+WOO_REGISTER_OBJECT(Scene);

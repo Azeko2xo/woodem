@@ -108,7 +108,7 @@ class Engine: public Object {
 		.add_property("field",&Engine::field_get,&Engine::field_set,"Field to run this engine on; if unassigned, or set to *None*, automatic field selection is triggered.")
 	);
 };
-REGISTER_SERIALIZABLE(Engine);
+WOO_REGISTER_OBJECT(Engine);
 
 class PartialEngine: public Engine{
 	WOO_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(PartialEngine,Engine,"Engine affecting only particular bodies in the simulation, defined by `ids<woo.core.PartialEngine.ids>`.",
@@ -116,13 +116,13 @@ class PartialEngine: public Engine{
 		/*deprec*/, /*init*/, /* ctor */, /* py */
 	);
 };
-REGISTER_SERIALIZABLE(PartialEngine);
+WOO_REGISTER_OBJECT(PartialEngine);
 
 class GlobalEngine: public Engine{
 	public :
 	WOO_CLASS_BASE_DOC(GlobalEngine,Engine,"Engine that will generally affect the whole simulation (contrary to :ref:`PartialEngine`).");
 };
-REGISTER_SERIALIZABLE(GlobalEngine);
+WOO_REGISTER_OBJECT(GlobalEngine);
 
 class ParallelEngine: public Engine {
 	public:
@@ -144,7 +144,7 @@ class ParallelEngine: public Engine {
 		.add_property("slaves",&ParallelEngine::pySlavesGet,&ParallelEngine::pySlavesSet,"List of lists of Engines; each top-level group will be run in parallel with other groups, while Engines inside each group will be run sequentially, in given order.");
 	);
 };
-REGISTER_SERIALIZABLE(ParallelEngine);
+WOO_REGISTER_OBJECT(ParallelEngine);
 
 
 class PeriodicEngine: public GlobalEngine{
@@ -176,7 +176,7 @@ class PeriodicEngine: public GlobalEngine{
 		,/*ctor*/ realLast=getClock();
 	);
 };
-REGISTER_SERIALIZABLE(PeriodicEngine);
+WOO_REGISTER_OBJECT(PeriodicEngine);
 
 
 struct PyRunner: public PeriodicEngine{
@@ -189,5 +189,5 @@ struct PyRunner: public PeriodicEngine{
 		((string,command,"",,"Command to be run by python interpreter. Not run if empty."))
 	);
 };
-REGISTER_SERIALIZABLE(PyRunner);
+WOO_REGISTER_OBJECT(PyRunner);
 

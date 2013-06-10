@@ -31,14 +31,14 @@ struct Facet: public Shape {
 	);
 	REGISTER_CLASS_INDEX(Facet,Shape);
 };
-REGISTER_SERIALIZABLE(Facet);
+WOO_REGISTER_OBJECT(Facet);
 
 struct Bo1_Facet_Aabb: public BoundFunctor{
 	void go(const shared_ptr<Shape>&);
 	FUNCTOR1D(Facet);
 	WOO_CLASS_BASE_DOC(Bo1_Facet_Aabb,BoundFunctor,"Creates/updates an :ref:`Aabb` of a :ref:`Facet`.");
 };
-REGISTER_SERIALIZABLE(Bo1_Facet_Aabb);
+WOO_REGISTER_OBJECT(Bo1_Facet_Aabb);
 
 #ifdef WOO_OPENGL
 #include<woo/pkg/gl/Functors.hpp>
@@ -53,5 +53,5 @@ struct Gl1_Facet: public GlShapeFunctor{
 		((int,wd,1,AttrTrait<>().range(Vector2i(1,20)),"Line width when drawing with wireframe (only applies to the triangle, not to rounded corners)"))
 	);
 };
-REGISTER_SERIALIZABLE(Gl1_Facet);
+WOO_REGISTER_OBJECT(Gl1_Facet);
 #endif

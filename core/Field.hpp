@@ -14,7 +14,7 @@ struct Constraint: public Object{
 	WOO_CLASS_BASE_DOC_ATTRS(Constraint,Object,"Object defining constraint on motion of a node; this is an abstract class which is not to be used directly.",
 	);
 };
-REGISTER_SERIALIZABLE(Constraint);
+WOO_REGISTER_OBJECT(Constraint);
 
 struct NodeData: public Object{
 	boost::mutex lock; // used by applyForceTorque
@@ -24,7 +24,7 @@ struct NodeData: public Object{
 
 	WOO_CLASS_BASE_DOC(NodeData,Object,"Data associated with some node.");
 };
-REGISTER_SERIALIZABLE(NodeData);
+WOO_REGISTER_OBJECT(NodeData);
 
 #ifdef WOO_OPENGL
 struct GLViewInfo;
@@ -37,7 +37,7 @@ struct NodeGlRep: public Object{
 	virtual void render(const shared_ptr<Node>&, const GLViewInfo*){};
 	WOO_CLASS_BASE_DOC(NodeGlRep,Object,"Object representing what should be rendered at associated node (abstract base class).");
 };
-REGISTER_SERIALIZABLE(NodeGlRep);
+WOO_REGISTER_OBJECT(NodeGlRep);
 
 struct QglMovableObject;
 struct ScalarRange: public Object{
@@ -84,7 +84,7 @@ struct ScalarRange: public Object{
 			.add_property("hidden",&ScalarRange::isHidden,&ScalarRange::setHidden)
 	);
 };
-REGISTER_SERIALIZABLE(ScalarRange);
+WOO_REGISTER_OBJECT(ScalarRange);
 #endif
 
 
@@ -136,7 +136,7 @@ struct Node: public Object, public Indexable{
 	);
 	REGISTER_INDEX_COUNTER(Node);
 };
-REGISTER_SERIALIZABLE(Node);
+WOO_REGISTER_OBJECT(Node);
 
 
 struct Field: public Object, public Indexable{
@@ -170,4 +170,4 @@ struct Field: public Object, public Indexable{
 	};
 	#endif
 };
-REGISTER_SERIALIZABLE(Field);
+WOO_REGISTER_OBJECT(Field);

@@ -13,7 +13,7 @@ struct Gravity: public GlobalEngine{
 		// ((int,mask,0,,"If mask defined, only bodies with corresponding groupMask will be affected by this engine. If 0, all bodies will be affected."))
 	);
 };
-REGISTER_SERIALIZABLE(Gravity);
+WOO_REGISTER_OBJECT(Gravity);
 
 struct AxialGravity: public GlobalEngine {
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
@@ -25,7 +25,7 @@ struct AxialGravity: public GlobalEngine {
 		// ((int,mask,0,,"If mask defined, only bodies with corresponding groupMask will be affected by this engine. If 0, all bodies will be affected."))
 	);
 };
-REGISTER_SERIALIZABLE(AxialGravity);
+WOO_REGISTER_OBJECT(AxialGravity);
 
 #if 0
 
@@ -44,7 +44,7 @@ class CentralGravityEngine: public FieldApplier {
 		,,
 	);
 };
-REGISTER_SERIALIZABLE(CentralGravityEngine);
+WOO_REGISTER_OBJECT(CentralGravityEngine);
 
 /*! Apply acceleration (independent of distance) directed towards an axis.
  *
@@ -65,5 +65,5 @@ class HdapsGravityEngine: public GravityEngine{
 		((Vector3r,zeroGravity,Vector3r(0,0,-1),,"Gravity if the accelerometer is in flat (zero) position."))
 	);
 };
-REGISTER_SERIALIZABLE(HdapsGravityEngine);
+WOO_REGISTER_OBJECT(HdapsGravityEngine);
 #endif

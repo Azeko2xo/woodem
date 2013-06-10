@@ -73,6 +73,6 @@ struct VtkExport: public PeriodicEngine{
 			// _classObj.attr("pellet")=(int)VtkExport::WHAT_PELLET;
 	);
 };
-REGISTER_SERIALIZABLE(VtkExport);
+WOO_REGISTER_OBJECT(VtkExport);
 
 #endif /*WOO_VTK*/

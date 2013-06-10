@@ -15,7 +15,7 @@ struct LawTesterStage: public Object{
 		((Real,time,0,,"Time in this stage"))
 	);
 };
-REGISTER_SERIALIZABLE(LawTesterStage);
+WOO_REGISTER_OBJECT(LawTesterStage);
 
 struct LawTester: public Engine{
 	DECLARE_LOGGER;
@@ -57,4 +57,4 @@ struct LawTester: public Engine{
 		,/*py*/ .def("fuv",&LawTester::pyFuv,"Return python dictionary containing f,u,v,smooF,smooU,smooU; useful for plotting with `woo.plot.addData(**tester.dict())`")
 	);
 };
-REGISTER_SERIALIZABLE(LawTester);
+WOO_REGISTER_OBJECT(LawTester);

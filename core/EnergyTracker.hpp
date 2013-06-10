@@ -79,4 +79,4 @@ class EnergyTracker: public Object{
 			.add_property("_perThreadData",&EnergyTracker::perThreadData,"Contents as dictionary, where each value is tuple of individual threads' values (for debugging)")
 	)
 };
-REGISTER_SERIALIZABLE(EnergyTracker);
+WOO_REGISTER_OBJECT(EnergyTracker);

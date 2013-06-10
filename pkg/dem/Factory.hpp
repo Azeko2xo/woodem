@@ -28,7 +28,7 @@ struct ParticleFactory: public PeriodicEngine{
 		((Real,glColor,0,AttrTrait<>().noGui(),"Color for rendering (nan disables rendering)"))
 	);
 };
-REGISTER_SERIALIZABLE(ParticleFactory);
+WOO_REGISTER_OBJECT(ParticleFactory);
 
 struct ParticleGenerator: public Object{
 	// particle and two extents sizes (bbox if p is at origin)
@@ -53,7 +53,7 @@ struct ParticleGenerator: public Object{
 			.def("__call__",&ParticleGenerator::pyCall,"Call the generation routine, returning one particle (at origin) and its bounding-box when at origin. Useful for debugging.")
 	);
 };
-REGISTER_SERIALIZABLE(ParticleGenerator);
+WOO_REGISTER_OBJECT(ParticleGenerator);
 
 struct MinMaxSphereGenerator: public ParticleGenerator{
 	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m);
@@ -61,13 +61,13 @@ struct MinMaxSphereGenerator: public ParticleGenerator{
 		((Vector2r,dRange,Vector2r(NaN,NaN),,"Minimum and maximum radius of generated spheres"))
 	);
 };
-REGISTER_SERIALIZABLE(MinMaxSphereGenerator);
+WOO_REGISTER_OBJECT(MinMaxSphereGenerator);
 
 struct ParticleShooter: public Object{
 	virtual void operator()(Vector3r& vel, Vector3r& angVel){ throw std::runtime_error("Calling ParticleShooter.setVelocities (abstract method); use derived classes"); }
 	WOO_CLASS_BASE_DOC(ParticleShooter,Object,"Abstract class for assigning initial velocities to generated particles.");
 };
-REGISTER_SERIALIZABLE(ParticleShooter);
+WOO_REGISTER_OBJECT(ParticleShooter);
 
 struct AlignedMinMaxShooter: public ParticleShooter{
 	void operator()(Vector3r& vel, Vector3r& angVel){
@@ -81,7 +81,7 @@ struct AlignedMinMaxShooter: public ParticleShooter{
 		((Vector2r,vRange,Vector2r(NaN,NaN),,"Minimum velocity magnitude"))
 	);
 };
-REGISTER_SERIALIZABLE(AlignedMinMaxShooter);
+WOO_REGISTER_OBJECT(AlignedMinMaxShooter);
 
 struct Collider;
 
@@ -117,7 +117,7 @@ struct RandomFactory: public ParticleFactory{
 			_classObj.attr("maxAttSilent")=(int)MAXATT_SILENT;
 	);
 };
-REGISTER_SERIALIZABLE(RandomFactory);
+WOO_REGISTER_OBJECT(RandomFactory);
 
 /*
 repsect periodic boundaries when this is defined; this makes configurable side of BoxFactory transparent, i.e.
@@ -150,5 +150,5 @@ struct BoxFactory: public RandomFactory{
 		#endif
 	);
 };
-REGISTER_SERIALIZABLE(BoxFactory);
+WOO_REGISTER_OBJECT(BoxFactory);
 

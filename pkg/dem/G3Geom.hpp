@@ -18,7 +18,7 @@ struct G3Geom: public CGeom{
 	);
 	REGISTER_CLASS_INDEX(G3Geom,CGeom);
 };
-REGISTER_SERIALIZABLE(G3Geom);
+WOO_REGISTER_OBJECT(G3Geom);
 
 struct Cg2_Sphere_Sphere_G3Geom: public CGeomFunctor{
 	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
@@ -30,7 +30,7 @@ struct Cg2_Sphere_Sphere_G3Geom: public CGeomFunctor{
 	DEFINE_FUNCTOR_ORDER_2D(Sphere,Sphere);
 	DECLARE_LOGGER;
 };
-REGISTER_SERIALIZABLE(Cg2_Sphere_Sphere_G3Geom);
+WOO_REGISTER_OBJECT(Cg2_Sphere_Sphere_G3Geom);
 
 struct Cg2_Wall_Sphere_G3Geom: public CGeomFunctor{
 	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
@@ -40,7 +40,7 @@ struct Cg2_Wall_Sphere_G3Geom: public CGeomFunctor{
 	DEFINE_FUNCTOR_ORDER_2D(Wall,Sphere);
 	DECLARE_LOGGER;
 };
-REGISTER_SERIALIZABLE(Cg2_Wall_Sphere_G3Geom);
+WOO_REGISTER_OBJECT(Cg2_Wall_Sphere_G3Geom);
 
 
 struct G3GeomCData: public CData{
@@ -48,7 +48,7 @@ struct G3GeomCData: public CData{
 		((Vector3r,shearForce,Vector3r::Zero(),,"Shear force in global coordinates"))
 	);
 };
-REGISTER_SERIALIZABLE(G3GeomCData);
+WOO_REGISTER_OBJECT(G3GeomCData);
 
 struct Law2_G3Geom_FrictPhys_IdealElPl: public LawFunctor{
 	void go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&);
@@ -64,5 +64,5 @@ struct Law2_G3Geom_FrictPhys_IdealElPl: public LawFunctor{
 		//#endif
 	);
 };
-REGISTER_SERIALIZABLE(Law2_G3Geom_FrictPhys_IdealElPl);
+WOO_REGISTER_OBJECT(Law2_G3Geom_FrictPhys_IdealElPl);
 

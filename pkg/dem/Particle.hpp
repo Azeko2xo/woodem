@@ -89,7 +89,7 @@ struct Particle: public Object{
 		.add_property("Ekr",&Particle::getEk_rot,"Rotational kinetic energy of the particle")
 	);
 };
-REGISTER_SERIALIZABLE(Particle);
+WOO_REGISTER_OBJECT(Particle);
 
 struct Impose: public Object{
 	virtual void velocity(const Scene*, const shared_ptr<Node>&){ throw std::runtime_error("Calling abstract Impose::velocity."); }
@@ -106,7 +106,7 @@ struct Impose: public Object{
 			
 	);
 };
-REGISTER_SERIALIZABLE(Impose);
+WOO_REGISTER_OBJECT(Impose);
 
 
 struct MatState: public Object{
@@ -115,7 +115,7 @@ struct MatState: public Object{
 	virtual Real getColorScalar(){ return NaN; }
 	WOO_CLASS_BASE_DOC(MatState,Object,"Holds data related to material state of each particle.");
 };
-REGISTER_SERIALIZABLE(MatState);
+WOO_REGISTER_OBJECT(MatState);
 
 
 struct DemData: public NodeData{
@@ -186,7 +186,7 @@ public:
 		.def("_getDataOnNode",&Node::pyGetData<DemData>).staticmethod("_getDataOnNode").def("_setDataOnNode",&Node::pySetData<DemData>).staticmethod("_setDataOnNode");
 	);
 };
-REGISTER_SERIALIZABLE(DemData);
+WOO_REGISTER_OBJECT(DemData);
 
 template<> struct NodeData::Index<DemData>{enum{value=Node::ST_DEM};};
 
@@ -219,7 +219,7 @@ struct DemField: public Field{
 	);
 	REGISTER_CLASS_INDEX(DemField,Field);
 };
-REGISTER_SERIALIZABLE(DemField);
+WOO_REGISTER_OBJECT(DemField);
 
 
 struct Shape: public Object, public Indexable{
@@ -248,7 +248,7 @@ struct Shape: public Object, public Indexable{
 	);
 	REGISTER_INDEX_COUNTER(Shape);
 };
-REGISTER_SERIALIZABLE(Shape);
+WOO_REGISTER_OBJECT(Shape);
 
 struct Material: public Object, public Indexable{
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Material,Object,"Particle material",
@@ -258,7 +258,7 @@ struct Material: public Object, public Indexable{
 	);
 	REGISTER_INDEX_COUNTER(Material);
 };
-REGISTER_SERIALIZABLE(Material);
+WOO_REGISTER_OBJECT(Material);
 
 struct Bound: public Object, public Indexable{
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Bound,Object,"Object bounding the associated body.",
@@ -269,7 +269,7 @@ struct Bound: public Object, public Indexable{
 	);
 	REGISTER_INDEX_COUNTER(Bound);
 };
-REGISTER_SERIALIZABLE(Bound);
+WOO_REGISTER_OBJECT(Bound);
 
 
 /***************************************************
@@ -286,7 +286,7 @@ struct CGeom: public Object,public Indexable{
 	);
 	REGISTER_INDEX_COUNTER(CGeom);
 };
-REGISTER_SERIALIZABLE(CGeom);
+WOO_REGISTER_OBJECT(CGeom);
 
 struct CPhys: public Object, public Indexable{
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(CPhys,Object,"Physical properties of contact.",
@@ -297,14 +297,14 @@ struct CPhys: public Object, public Indexable{
 	);
 	REGISTER_INDEX_COUNTER(CPhys);
 };
-REGISTER_SERIALIZABLE(CPhys);
+WOO_REGISTER_OBJECT(CPhys);
 
 struct CData: public Object{
 	WOO_CLASS_BASE_DOC_ATTRS(CData,Object,"Optional data stored in the contact by the Law functor.",
 		/* attrs */
 	);
 };
-REGISTER_SERIALIZABLE(CData);
+WOO_REGISTER_OBJECT(CData);
 
 struct Contact: public Object{
 	bool isReal() const { return geom&&phys; }
@@ -359,7 +359,7 @@ struct Contact: public Object{
 		.def("resetPhys",&Contact::pyResetPhys,"Set *phys* to *None* (to force its re-evaluation)")
 	);
 };
-REGISTER_SERIALIZABLE(Contact);
+WOO_REGISTER_OBJECT(Contact);
 
 
 

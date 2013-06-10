@@ -21,5 +21,5 @@ class Gl1_CPhys: public GlCPhysFunctor{
 	);
 	RENDERS(CPhys);
 };
-REGISTER_SERIALIZABLE(Gl1_CPhys);
+WOO_REGISTER_OBJECT(Gl1_CPhys);
 #endif

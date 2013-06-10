@@ -16,6 +16,6 @@ struct RadialForce: public GlobalEngine {
 		((Real,fNorm,0,,"Applied force magnitude"))
 	);
 };
-REGISTER_SERIALIZABLE(RadialForce);
+WOO_REGISTER_OBJECT(RadialForce);
 
 #endif

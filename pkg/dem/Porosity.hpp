@@ -37,7 +37,7 @@ struct AnisoPorosityAnalyzer: public GlobalEngine {
 			.def("clearVis",&AnisoPorosityAnalyzer::clearVis,"Clear visualizable intersection segments")
 	);
 };
-REGISTER_SERIALIZABLE(AnisoPorosityAnalyzer);
+WOO_REGISTER_OBJECT(AnisoPorosityAnalyzer);
 
 
 #ifdef WOO_OPENGL
@@ -57,5 +57,5 @@ class GlExtra_AnisoPorosityAnalyzer: public GlExtraDrawer{
 		((int,idMod,5,,"Modulate particle id by this number to get segment color"))
 	);
 };
-REGISTER_SERIALIZABLE(GlExtra_AnisoPorosityAnalyzer);
+WOO_REGISTER_OBJECT(GlExtra_AnisoPorosityAnalyzer);
 #endif

@@ -53,4 +53,4 @@ struct LabelMapper: public Object{
 			_classObj.attr("inPy")=(int)LabelMapper::IN_PY;
 	);
 };
-REGISTER_SERIALIZABLE(LabelMapper);
+WOO_REGISTER_OBJECT(LabelMapper);

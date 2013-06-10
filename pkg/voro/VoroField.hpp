@@ -33,6 +33,6 @@ struct VoroField: public Field{
 	);
 
 };
-REGISTER_SERIALIZABLE(VoroField);
+WOO_REGISTER_OBJECT(VoroField);
 
 #endif

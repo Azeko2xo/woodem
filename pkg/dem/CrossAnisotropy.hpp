@@ -31,7 +31,7 @@ struct Cp2_FrictMat_FrictPhys_CrossAnisotropic: CPhysFunctor {
 		((int,recomputeIter,-1,,"Flag to keep track of updates of rot/scale, so that stiffnesses of existing contacts are forced to be updated."))
 	);
 };
-REGISTER_SERIALIZABLE(Cp2_FrictMat_FrictPhys_CrossAnisotropic);
+WOO_REGISTER_OBJECT(Cp2_FrictMat_FrictPhys_CrossAnisotropic);
 
 #if 0
 #ifdef WOO_OPENGL
@@ -49,7 +49,7 @@ class GlExtra_LocalAxes: public GlExtraDrawer{
 		//((Real,length,1,,"Length of axes arrows."))
 	);
 };
-REGISTER_SERIALIZABLE(GlExtra_LocalAxes);
+WOO_REGISTER_OBJECT(GlExtra_LocalAxes);
 #endif
 
 #endif

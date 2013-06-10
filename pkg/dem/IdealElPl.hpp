@@ -21,14 +21,14 @@ struct Law2_L6Geom_FrictPhys_IdealElPl: public LawFunctor{
 		//#endif
 	);
 };
-REGISTER_SERIALIZABLE(Law2_L6Geom_FrictPhys_IdealElPl);
+WOO_REGISTER_OBJECT(Law2_L6Geom_FrictPhys_IdealElPl);
 
 struct IdealElPlData: public CData{
 	WOO_CLASS_BASE_DOC_ATTRS(IdealElPlData,CData,"Hold (optional) state variables for ideally elasto-plastic contacts.",
 		((Real,uN0,0,,"Reference (equilibrium) value for uN (normal displacement)."))
 	);
 };
-REGISTER_SERIALIZABLE(IdealElPlData);
+WOO_REGISTER_OBJECT(IdealElPlData);
 
 struct Law2_L6Geom_FrictPhys_LinEl6: public LawFunctor{
 	void go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&);
@@ -38,5 +38,5 @@ struct Law2_L6Geom_FrictPhys_LinEl6: public LawFunctor{
 		((int,elastPotIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for elastic potential energy"))
 	);
 };
-REGISTER_SERIALIZABLE(Law2_L6Geom_FrictPhys_LinEl6);
+WOO_REGISTER_OBJECT(Law2_L6Geom_FrictPhys_LinEl6);
 

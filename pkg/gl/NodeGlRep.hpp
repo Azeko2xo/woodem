@@ -14,7 +14,7 @@ struct ScalarGlRep: public NodeGlRep{
 		((shared_ptr<ScalarRange>,range,,,"Extrema values for the scalar, to determine colors."))
 	);
 };
-REGISTER_SERIALIZABLE(ScalarGlRep);
+WOO_REGISTER_OBJECT(ScalarGlRep);
 
 struct VectorGlRep: public NodeGlRep{
 	void render(const shared_ptr<Node>&, const GLViewInfo*);
@@ -25,7 +25,7 @@ struct VectorGlRep: public NodeGlRep{
 		((shared_ptr<ScalarRange>,range,,,"Extrema values for vector norm, to determine colors."))
 	);
 };
-REGISTER_SERIALIZABLE(VectorGlRep);
+WOO_REGISTER_OBJECT(VectorGlRep);
 
 struct ActReactGlRep: public VectorGlRep{
 	void render(const shared_ptr<Node>&, const GLViewInfo*);
@@ -37,7 +37,7 @@ struct ActReactGlRep: public VectorGlRep{
 		((shared_ptr<ScalarRange>,shearRange,,,"Optional range for shear foces; if not defined range (for normal force) is used instead."))
 	);
 };
-REGISTER_SERIALIZABLE(ActReactGlRep);
+WOO_REGISTER_OBJECT(ActReactGlRep);
 
 struct TensorGlRep: public NodeGlRep{
 	void render(const shared_ptr<Node>&, const GLViewInfo*);
@@ -54,7 +54,7 @@ struct TensorGlRep: public NodeGlRep{
 		((shared_ptr<ScalarRange>,skewRange,,,"Extrema values for skew components"))
 	);
 };
-REGISTER_SERIALIZABLE(TensorGlRep);
+WOO_REGISTER_OBJECT(TensorGlRep);
 
 struct CylGlRep: public NodeGlRep{
 	void render(const shared_ptr<Node>&, const GLViewInfo*);

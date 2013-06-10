@@ -10,7 +10,7 @@ struct ForceResetter: public GlobalEngine{
 	void run();
 	WOO_CLASS_BASE_DOC(ForceResetter,GlobalEngine,"Reset forces on nodes in DEM field.");
 };
-REGISTER_SERIALIZABLE(ForceResetter);
+WOO_REGISTER_OBJECT(ForceResetter);
 
 struct Leapfrog: public GlobalEngine {
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
@@ -69,5 +69,5 @@ struct Leapfrog: public GlobalEngine {
 	);
 	DECLARE_LOGGER;
 };
-REGISTER_SERIALIZABLE(Leapfrog);
+WOO_REGISTER_OBJECT(Leapfrog);
 

@@ -18,14 +18,14 @@ struct Wall: public Shape{
 	);
 	REGISTER_CLASS_INDEX(Wall,Shape);
 };	
-REGISTER_SERIALIZABLE(Wall);
+WOO_REGISTER_OBJECT(Wall);
 
 struct Bo1_Wall_Aabb: public BoundFunctor{
 	virtual void go(const shared_ptr<Shape>&);
 	FUNCTOR1D(Wall);
 	WOO_CLASS_BASE_DOC(Bo1_Wall_Aabb,BoundFunctor,"Creates/updates an :ref:`Aabb` of a :ref:`Wall`");
 };
-REGISTER_SERIALIZABLE(Bo1_Wall_Aabb);
+WOO_REGISTER_OBJECT(Bo1_Wall_Aabb);
 
 struct In2_Wall_ElastMat: public IntraFunctor{
 	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&);
@@ -34,7 +34,7 @@ struct In2_Wall_ElastMat: public IntraFunctor{
 		/*attrs*/
 	);
 };
-REGISTER_SERIALIZABLE(In2_Wall_ElastMat);
+WOO_REGISTER_OBJECT(In2_Wall_ElastMat);
 
 
 #ifdef WOO_OPENGL
@@ -48,7 +48,7 @@ struct Gl1_Wall: public GlShapeFunctor{
 	);
 	RENDERS(Wall);
 };
-REGISTER_SERIALIZABLE(Gl1_Wall);
+WOO_REGISTER_OBJECT(Gl1_Wall);
 
 #endif
 

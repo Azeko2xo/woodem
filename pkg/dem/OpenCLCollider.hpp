@@ -67,6 +67,6 @@ class OpenCLCollider: public InsertionSortCollider{
 		((vector<Vector2i>,gpuInvZ,,AttrTrait<Attr::readonly>(),"Inversion found on the GPU in the last step, along Z"))
 	);
 };
-REGISTER_SERIALIZABLE(OpenCLCollider);
+WOO_REGISTER_OBJECT(OpenCLCollider);
 
 #endif

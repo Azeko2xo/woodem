@@ -41,7 +41,7 @@ struct SnapshotEngine: public PeriodicEngine{
 	);
 	DECLARE_LOGGER;
 };
-REGISTER_SERIALIZABLE(SnapshotEngine);
+WOO_REGISTER_OBJECT(SnapshotEngine);
 
 #endif
 

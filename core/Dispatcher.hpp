@@ -28,7 +28,7 @@ class Dispatcher: public Engine{
 	virtual ~Dispatcher();
 	WOO_CLASS_BASE_DOC(Dispatcher,Engine,"Engine dispatching control to its associated functors, based on types of argument it receives. This abstract base class provides no functionality in itself.")
 };
-REGISTER_SERIALIZABLE(Dispatcher);
+WOO_REGISTER_OBJECT(Dispatcher);
 
 /* Each real dispatcher derives from Dispatcher1D or Dispatcher2D (both templates), which in turn derive from Dispatcher (an Engine) and DynLibDispatcher (the dispatch logic).
 Because we need literal functor and class names for registration in python, we provide macro that creates the real dispatcher class with everything needed.

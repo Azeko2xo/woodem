@@ -11,4 +11,4 @@ struct Preprocessor: public Object{
 		.def("__call__",&Preprocessor::operator())
 	);
 };
-REGISTER_SERIALIZABLE(Preprocessor);
+WOO_REGISTER_OBJECT(Preprocessor);

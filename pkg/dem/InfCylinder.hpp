@@ -16,14 +16,14 @@ struct InfCylinder: public Shape{
 	);
 	REGISTER_CLASS_INDEX(InfCylinder,Shape);
 };	
-REGISTER_SERIALIZABLE(InfCylinder);
+WOO_REGISTER_OBJECT(InfCylinder);
 
 struct Bo1_InfCylinder_Aabb: public BoundFunctor{
 	virtual void go(const shared_ptr<Shape>&);
 	FUNCTOR1D(InfCylinder);
 	WOO_CLASS_BASE_DOC(Bo1_InfCylinder_Aabb,BoundFunctor,"Creates/updates an :ref:`Aabb` of a :ref:`InfCylinder`");
 };
-REGISTER_SERIALIZABLE(Bo1_InfCylinder_Aabb);
+WOO_REGISTER_OBJECT(Bo1_InfCylinder_Aabb);
 
 #ifdef WOO_OPENGL
 
@@ -37,7 +37,7 @@ struct Gl1_InfCylinder: public GlShapeFunctor{
 	);
 	RENDERS(InfCylinder);
 };
-REGISTER_SERIALIZABLE(Gl1_InfCylinder);
+WOO_REGISTER_OBJECT(Gl1_InfCylinder);
 
 #endif
 

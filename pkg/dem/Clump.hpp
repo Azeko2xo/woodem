@@ -23,4 +23,4 @@ struct ClumpData: public DemData{
 		((long,clumpLinIx,-1,AttrTrait<Attr::hidden>(),"Index in the O.dem.clumps array, for efficient deletion."))
 	);
 };
-REGISTER_SERIALIZABLE(ClumpData);
+WOO_REGISTER_OBJECT(ClumpData);

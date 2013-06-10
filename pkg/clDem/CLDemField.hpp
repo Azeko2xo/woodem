@@ -18,7 +18,7 @@ public:
 		, /* py */ .def("_getDataOnNode",&Node::pyGetData<CLDemData>).staticmethod("_getDataOnNode").def("_setDataOnNode",&Node::pySetData<CLDemData>).staticmethod("_setDataOnNode");
 	);
 };
-REGISTER_SERIALIZABLE(CLDemData);
+WOO_REGISTER_OBJECT(CLDemData);
 
 template<> struct NodeData::Index<CLDemData>{enum{value=Node::ST_CLDEM};};
 
@@ -51,7 +51,7 @@ struct CLDemField: public Field{
 	// get coordinates from particles, not from nodes
 	bool renderingBbox(Vector3r&, Vector3r&); 
 };
-REGISTER_SERIALIZABLE(CLDemField);
+WOO_REGISTER_OBJECT(CLDemField);
 
 struct CLDemRun: public PeriodicEngine {
 	bool acceptsField(Field* f){ return dynamic_cast<CLDemField*>(f); }
@@ -68,7 +68,7 @@ struct CLDemRun: public PeriodicEngine {
 		, /* py */
 	);
 };
-REGISTER_SERIALIZABLE(CLDemRun);
+WOO_REGISTER_OBJECT(CLDemRun);
 
 
 #ifdef WOO_OPENGL

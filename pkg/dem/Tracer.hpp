@@ -25,7 +25,7 @@ struct TraceGlRep: public NodeGlRep{
 			.def("consolidate",&TraceGlRep::consolidate,"Make :ref:`pts` sequential (normally, the data are stored as circular buffer, with next write position at :ref:`writeIx`, so that they are ordered temporally.")
 	);
 };
-REGISTER_SERIALIZABLE(TraceGlRep);
+WOO_REGISTER_OBJECT(TraceGlRep);
 
 
 struct Tracer: public PeriodicEngine{
@@ -58,6 +58,6 @@ struct Tracer: public PeriodicEngine{
 			_classObj.attr("scalarShapeColor")=(int)Tracer::SCALAR_SHAPE_COLOR;
 	);
 };
-REGISTER_SERIALIZABLE(Tracer);
+WOO_REGISTER_OBJECT(Tracer);
 
 

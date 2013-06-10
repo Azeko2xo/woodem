@@ -24,4 +24,4 @@ class DisplayParameters: public Object{
 		((std::vector<std::string>,displayTypes,,AttrTrait<Attr::hidden>(),""))
 	);
 };
-REGISTER_SERIALIZABLE(DisplayParameters);
+WOO_REGISTER_OBJECT(DisplayParameters);
