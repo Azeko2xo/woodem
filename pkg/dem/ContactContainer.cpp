@@ -6,6 +6,7 @@
 #endif
 
 CREATE_LOGGER(ContactContainer);
+WOO_PLUGIN(dem,(ContactContainer));
 
 bool ContactContainer::IsReal::operator()(shared_ptr<Contact>& c){ return c && c->isReal(); }
 bool ContactContainer::IsReal::operator()(const shared_ptr<Contact>& c){ return c && c->isReal(); }

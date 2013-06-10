@@ -1,8 +1,8 @@
 
 
 #ifdef WOO_OPENGL
-#include<woo/pkg/dem/Gl1Node.hpp>
 #include<woo/lib/opengl/GLUtils.hpp>
+#include<woo/pkg/gl/Gl1_Node.hpp>
 #include<woo/pkg/gl/Renderer.hpp>
 
 WOO_PLUGIN(gl,(Gl1_Node));

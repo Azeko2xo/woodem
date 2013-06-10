@@ -1,7 +1,7 @@
 #pragma once
 
 #ifdef WOO_OPENGL
-//#include<woo/pkg/dem/Particle.hpp>
+
 #include<woo/pkg/gl/Functors.hpp>
 struct Gl1_Node: public GlNodeFunctor{
 	virtual void go(const shared_ptr<Node>&, const GLViewInfo&);

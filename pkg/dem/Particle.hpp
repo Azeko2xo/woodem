@@ -15,7 +15,6 @@ struct Material;
 struct MatState;
 struct Bound;
 struct Shape;
-struct ParticleContainer;
 struct Impose;
 
 struct ScalarRange;
@@ -222,6 +221,64 @@ struct DemField: public Field{
 };
 REGISTER_SERIALIZABLE(DemField);
 
+
+struct Shape: public Object, public Indexable{
+	virtual bool numNodesOk() const { return true; } // checks for the right number of nodes; to be used in assertions
+	// return average position of nodes, useful for rendering
+	// caller must make sure that !nodes.empty()
+	Real getSignedBaseColor(){ return color-trunc(color); }
+	Real getBaseColor(){ return abs(color)-trunc(abs(color)); }
+	void setBaseColor(Real c){ if(isnan(c)) return; color=trunc(color)+(color<0?-1:1)*CompUtils::clamped(c,0,1); }
+	bool getWire() const { return color<0; }
+	void setWire(bool w){ color=(w?-1:1)*abs(color); }
+	bool getHighlighted() const { return abs(color)>=1 && abs(color)<2; }
+	void setHighlighted(bool h){ if(getHighlighted()==h) return; color=(color>=0?1:-1)+getSignedBaseColor(); }
+	bool getVisible() const { return abs(color)<=2; }
+	void setVisible(bool w){ if(getVisible()==w) return; bool hi=abs(color)>1; int sgn=(color<0?-1:1); color=sgn*((w?0:2)+getBaseColor()+(hi?1:0)); }
+	Vector3r avgNodePos();
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Shape,Object,"Particle geometry",
+		((shared_ptr<Bound>,bound,,,"Bound of the particle, for use by collision detection only"))
+		((vector<shared_ptr<Node> >,nodes,,,"Nodes associated with this particle"))
+		((Real,color,Mathr::UnitRandom(),,"Normalized color for rendering; negative values render with wire (rather than solid), |color|>2 means invisible. (use *wire*, *hi* and *visible* to manipulate those)"))
+		,/*ctor*/,/*py*/
+			.add_property("wire",&Shape::getWire,&Shape::setWire)
+			.add_property("hi",&Shape::getHighlighted,&Shape::setHighlighted)
+			.add_property("visible",&Shape::getVisible,&Shape::setVisible)
+			WOO_PY_TOPINDEXABLE(Shape)
+	);
+	REGISTER_INDEX_COUNTER(Shape);
+};
+REGISTER_SERIALIZABLE(Shape);
+
+struct Material: public Object, public Indexable{
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Material,Object,"Particle material",
+		((Real,density,NaN,AttrTrait<>().densityUnit(),"Density"))
+		((int,id,-1,AttrTrait<>().noGui(),"Some number identifying this material; used with MatchMaker objects, useless otherwise"))
+		,/*ctor*/,/*py*/ WOO_PY_TOPINDEXABLE(Material);
+	);
+	REGISTER_INDEX_COUNTER(Material);
+};
+REGISTER_SERIALIZABLE(Material);
+
+struct Bound: public Object, public Indexable{
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Bound,Object,"Object bounding the associated body.",
+		// ((Vector3r,color,Vector3r(1,1,1),,"Color for rendering this object"))
+		((Vector3r,min,Vector3r(NaN,NaN,NaN),AttrTrait<Attr::noSave>().readonly().lenUnit(),"Lower corner of box containing this bound"))
+		((Vector3r,max,Vector3r(NaN,NaN,NaN),AttrTrait<Attr::noSave>().readonly().lenUnit(),"Lower corner of box containing this bound"))
+		,/* ctor*/,	/*py*/ WOO_PY_TOPINDEXABLE(Bound)
+	);
+	REGISTER_INDEX_COUNTER(Bound);
+};
+REGISTER_SERIALIZABLE(Bound);
+
+
+/***************************************************
+
+                CONTACT CLASSES
+
+***************************************************/
+
+
 struct CGeom: public Object,public Indexable{
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(CGeom,Object,"Geometrical configuration of contact",
 		((shared_ptr<Node>,node,new Node,,"Local coordinates definition."))
@@ -248,7 +305,6 @@ struct CData: public Object{
 	);
 };
 REGISTER_SERIALIZABLE(CData);
-
 
 struct Contact: public Object{
 	bool isReal() const { return geom&&phys; }
@@ -305,54 +361,7 @@ struct Contact: public Object{
 };
 REGISTER_SERIALIZABLE(Contact);
 
-struct Shape: public Object, public Indexable{
-	virtual bool numNodesOk() const { return true; } // checks for the right number of nodes; to be used in assertions
-	// return average position of nodes, useful for rendering
-	// caller must make sure that !nodes.empty()
-	Real getSignedBaseColor(){ return color-trunc(color); }
-	Real getBaseColor(){ return abs(color)-trunc(abs(color)); }
-	void setBaseColor(Real c){ if(isnan(c)) return; color=trunc(color)+(color<0?-1:1)*CompUtils::clamped(c,0,1); }
-	bool getWire() const { return color<0; }
-	void setWire(bool w){ color=(w?-1:1)*abs(color); }
-	bool getHighlighted() const { return abs(color)>=1 && abs(color)<2; }
-	void setHighlighted(bool h){ if(getHighlighted()==h) return; color=(color>=0?1:-1)+getSignedBaseColor(); }
-	bool getVisible() const { return abs(color)<=2; }
-	void setVisible(bool w){ if(getVisible()==w) return; bool hi=abs(color)>1; int sgn=(color<0?-1:1); color=sgn*((w?0:2)+getBaseColor()+(hi?1:0)); }
-	Vector3r avgNodePos();
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Shape,Object,"Particle geometry",
-		((shared_ptr<Bound>,bound,,,"Bound of the particle, for use by collision detection only"))
-		((vector<shared_ptr<Node> >,nodes,,,"Nodes associated with this particle"))
-		((Real,color,Mathr::UnitRandom(),,"Normalized color for rendering; negative values render with wire (rather than solid), |color|>2 means invisible. (use *wire*, *hi* and *visible* to manipulate those)"))
-		,/*ctor*/,/*py*/
-			.add_property("wire",&Shape::getWire,&Shape::setWire)
-			.add_property("hi",&Shape::getHighlighted,&Shape::setHighlighted)
-			.add_property("visible",&Shape::getVisible,&Shape::setVisible)
-			WOO_PY_TOPINDEXABLE(Shape)
-	);
-	REGISTER_INDEX_COUNTER(Shape);
-};
-REGISTER_SERIALIZABLE(Shape);
 
-struct Material: public Object, public Indexable{
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Material,Object,"Particle material",
-		((Real,density,NaN,AttrTrait<>().densityUnit(),"Density"))
-		((int,id,-1,AttrTrait<>().noGui(),"Some number identifying this material; used with MatchMaker objects, useless otherwise"))
-		,/*ctor*/,/*py*/ WOO_PY_TOPINDEXABLE(Material);
-	);
-	REGISTER_INDEX_COUNTER(Material);
-};
-REGISTER_SERIALIZABLE(Material);
-
-struct Bound: public Object, public Indexable{
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Bound,Object,"Object bounding the associated body.",
-		// ((Vector3r,color,Vector3r(1,1,1),,"Color for rendering this object"))
-		((Vector3r,min,Vector3r(NaN,NaN,NaN),AttrTrait<Attr::noSave>().readonly().lenUnit(),"Lower corner of box containing this bound"))
-		((Vector3r,max,Vector3r(NaN,NaN,NaN),AttrTrait<Attr::noSave>().readonly().lenUnit(),"Lower corner of box containing this bound"))
-		,/* ctor*/,	/*py*/ WOO_PY_TOPINDEXABLE(Bound)
-	);
-	REGISTER_INDEX_COUNTER(Bound);
-};
-REGISTER_SERIALIZABLE(Bound);
 
 
 // }}; /* woo::dem */
