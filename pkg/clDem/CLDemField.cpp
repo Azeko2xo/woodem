@@ -719,6 +719,7 @@ shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>
 			case Shape_Clump:{
 				/* do everything here, not below */
 				vector<shared_ptr<Node>> members;
+				vector<Particle::id_t> memberIds;
 				long ix=cp.shape.clump.ix;
 				for(int ii=ix; sim->clumps[ii].id>=0; ii++){
 					long id=sim->clumps[ii].id;
@@ -727,8 +728,9 @@ shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>
 					// avoid check in CLlumpData::makeClump
 					(*dem->particles)[id]->shape->nodes[0]->getData<DemData>().setNoClump();
 					members.push_back((*dem->particles)[id]->shape->nodes[0]);
+					memberIds.push_back(id);
 				}
-				auto clump=ClumpData::makeClump(members);
+				auto clump=ClumpData::makeClump(members,memberIds);
 				clump->setData<CLDemData>(make_shared<CLDemData>());
 				clump->getData<CLDemData>().clIx=i;
 				dem->clumps.push_back(clump);

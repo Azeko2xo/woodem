@@ -43,6 +43,7 @@
 #include<woo/pkg/dem/Collision.hpp>
 #include<woo/pkg/dem/IntraForce.hpp>
 #include<woo/pkg/dem/LawTester.hpp>
+#include<woo/pkg/dem/Psd.hpp>
 
 #include<woo/pkg/dem/ParticleContainer.hpp>
 #include<woo/core/MatchMaker.hpp>
@@ -262,6 +263,8 @@ BOOST_PYTHON_MODULE(_customConverters){
 		VECTOR_SEQ_CONV(pairIntString);
 		VECTOR_SEQ_CONV(pairStringReal);
 		VECTOR_SEQ_CONV(vecPairStringReal); // vector<vector<pair<string,Real>>>
+
+		// TODO: put this macro somewhere else and use it in the PY block of the class itself
 		VECTOR_SEQ_CONV(shared_ptr<NodeData>);
 		VECTOR_SEQ_CONV(shared_ptr<ScalarRange>);
 		VECTOR_SEQ_CONV(shared_ptr<Field>);
@@ -275,6 +278,8 @@ BOOST_PYTHON_MODULE(_customConverters){
 		VECTOR_SEQ_CONV(shared_ptr<LawFunctor>);
 		VECTOR_SEQ_CONV(shared_ptr<IntraFunctor>);
 		VECTOR_SEQ_CONV(shared_ptr<LawTesterStage>);
+
+		VECTOR_SEQ_CONV(shared_ptr<ClumpDef>);
 
 		VECTOR_SEQ_CONV(shared_ptr<Engine>);
 

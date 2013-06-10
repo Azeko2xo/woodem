@@ -2,7 +2,8 @@
 #include<woo/pkg/dem/Particle.hpp>
 
 struct ClumpData: public DemData{
-	static shared_ptr<Node> makeClump(const vector<shared_ptr<Node>>&, shared_ptr<Node> centralNode=shared_ptr<Node>(), bool intersecting=false);
+	// memberIds are needed when particles are to be deleted
+	static shared_ptr<Node> makeClump(const vector<shared_ptr<Node>>& nodes, const vector<Particle::id_t>& memberIds, shared_ptr<Node> centralNode=shared_ptr<Node>(), bool intersecting=false);
 	static void collectFromMembers(const shared_ptr<Node>&);
 	static void applyToMembers(const shared_ptr<Node>&, bool resetForceTorque=false, const Vector3r& gravity=Vector3r::Zero());
 	static void resetForceTorque(const shared_ptr<Node>&, const Vector3r& gravity=Vector3r::Zero());

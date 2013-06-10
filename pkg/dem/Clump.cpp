@@ -3,10 +3,12 @@
 WOO_PLUGIN(dem,(ClumpData));
 CREATE_LOGGER(ClumpData);
 
-shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, shared_ptr<Node> centralNode, bool intersecting){
+shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, const vector<Particle::id_t>& memberIds, shared_ptr<Node> centralNode,  bool intersecting){
+	if(nn.empty() || nn.size()!=memberIds.size()) throw std::runtime_error("ClumpData::makeClump: nodes and memberIds must have the same length, and may not be empty.");
 	/* TODO? check that nodes are unique */
 	auto clump=make_shared<ClumpData>();
 	clump->setClump();
+	clump->memberIds=memberIds;
 	auto cNode=(centralNode?centralNode:make_shared<Node>());
 	cNode->setData<DemData>(clump);
 
@@ -60,17 +62,15 @@ shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, shared
 		clump->mass=M;
 		// this block will be removed once EigenDecomposition works for diagonal matrices
 		#if 1
-			if(isnan(R_g2c(0,0))||isnan(R_g2c(0,1))||isnan(R_g2c(0,2))||isnan(R_g2c(1,0))||isnan(R_g2c(1,1))||isnan(R_g2c(1,2))||isnan(R_g2c(2,0))||isnan(R_g2c(2,1))||isnan(R_g2c(2,2))){
-				throw std::logic_error("Clump::updateProperties: NaNs in eigen-decomposition of inertia matrix?!");
-			}
+			if(isnan(R_g2c.maxCoeff())) throw std::logic_error("Clump::updateProperties: NaNs in eigen-decomposition of inertia matrix?!");
 		#endif
 		LOG_TRACE("clump->inertia="<<clump->inertia.transpose());
 		// TODO: these might be calculated from members... but complicated... - someone needs that?!
 		clump->vel=clump->angVel=Vector3r::Zero();
 		#ifdef WOO_DEBUG
 			AngleAxisr aa(cNode->ori);
+			LOG_TRACE("pos="<<cNode->pos.transpose()<<", ori="<<aa.axis()<<":"<<aa.angle());
 		#endif
-		LOG_TRACE("pos="<<cNode->pos.transpose()<<", ori="<<aa.axis()<<":"<<aa.angle());
 	} else {
 		// nodes have no mass; in that case, centralNode is used
 		if(!centralNode) throw std::runtime_error("Clump::updateProperties: no nodes with mass, therefore centralNode must be given, of which position will be used instead");

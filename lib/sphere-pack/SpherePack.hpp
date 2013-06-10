@@ -47,7 +47,7 @@ public:
 	SpherePack(const py::list& l):cellSize(Vector3r::Zero()){ fromList(l); }
 	void reset(){ pack.clear(); cellSize=Vector3r::Zero(); userData.clear(); }
 	// add single sphere
-	void add(const Vector3r& c, Real r){ pack.push_back(Sph(c,r)); }
+	void add(const Vector3r& c, Real r, int clumpId=-1){ pack.push_back(Sph(c,r,clumpId)); }
 
 	// I/O
 	void fromList(const py::list& l);
@@ -90,12 +90,12 @@ public:
 	py::tuple aabb_py() const { Vector3r mn,mx; aabb(mn,mx); return py::make_tuple(mn,mx); }
 	void aabb(Vector3r& mn, Vector3r& mx) const {
 		Real inf=std::numeric_limits<Real>::infinity(); mn=Vector3r(inf,inf,inf); mx=Vector3r(-inf,-inf,-inf);
-		FOREACH(const Sph& s, pack){ Vector3r rrr(s.r,s.r,s.r); mn=mn.array().min((s.c-rrr).array()).matrix(); mx=mx.array().max((s.c+rrr).array()).matrix();}
+		for(const Sph& s: pack){ Vector3r rrr(s.r,s.r,s.r); mn=mn.array().min((s.c-rrr).array()).matrix(); mx=mx.array().max((s.c+rrr).array()).matrix();}
 	}
 	Vector3r midPt() const {Vector3r mn,mx; aabb(mn,mx); return .5*(mn+mx);}
 	Real relDensity() const {
 		Real sphVol=0; Vector3r dd=dim();
-		FOREACH(const Sph& s, pack) sphVol+=pow(s.r,3);
+		for(const Sph& s: pack) sphVol+=pow(s.r,3);
 		sphVol*=(4/3.)*M_PI;
 		return sphVol/(dd[0]*dd[1]*dd[2]);
 	}
@@ -104,14 +104,14 @@ public:
 	py::tuple getClumps() const;
 
 	// transformations
-	void translate(const Vector3r& shift){ FOREACH(Sph& s, pack) s.c+=shift; }
+	void translate(const Vector3r& shift){ for(Sph& s: pack) s.c+=shift; }
 	void rotate(const Vector3r& axis, Real angle){
 		if(cellSize!=Vector3r::Zero()) { LOG_WARN("Periodicity reset when rotating periodic packing (non-zero cellSize="<<cellSize<<")"); cellSize=Vector3r::Zero(); }
-		Vector3r mid=midPt(); Quaternionr q(AngleAxisr(angle,axis)); FOREACH(Sph& s, pack) s.c=q*(s.c-mid)+mid;
+		Vector3r mid=midPt(); Quaternionr q(AngleAxisr(angle,axis)); for(Sph& s: pack) s.c=q*(s.c-mid)+mid;
 	}
 	void rotateAroundOrigin(const Quaternionr& rot){
 		if(cellSize!=Vector3r::Zero()){ LOG_WARN("Periodicity reset when rotating periodic packing (non-zero cellSize="<<cellSize<<")"); cellSize=Vector3r::Zero(); }
-		FOREACH(Sph& s, pack) s.c=rot*s.c;
+		for(Sph& s: pack) s.c=rot*s.c;
 	}
 	void scale(Real scale, bool keepRadius=false);
 	Real maxRelOverlap();

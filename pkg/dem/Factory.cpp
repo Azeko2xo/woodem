@@ -130,7 +130,10 @@ void RandomFactory::run(){
 		while(true){
 			attempt++;
 			if(attempt>=maxAttempts){
-				if(massFlowRate<=0) goto stepDone;
+				if(massFlowRate<=0){
+					LOG_DEBUG("maxAttempts="<<maxAttempts<<" reached; since massFlowRate is not positive, we're done in this step");
+					goto stepDone;
+				}
 				switch(atMaxAttempts){
 					case MAXATT_ERROR: throw std::runtime_error("RandomFactory.maxAttempts reached ("+lexical_cast<string>(maxAttempts)+")"); break;
 					case MAXATT_DEAD:{
@@ -157,12 +160,15 @@ void RandomFactory::run(){
 					if(!peSphere) throw std::runtime_error(__FILE__ ": Only Spheres are supported in this build!");
 					Real r=peSphere->radius;
 					for(const auto& s: spheres.pack){
-						if((s.c-pos).squaredNorm()<pow(s.r+r,2)){
-							LOG_TRACE("Collision with a particle in SpherePack.");
+						// check dist && don't collide with another sphere from this clump
+						// (abuses the *num* counter for clumpId)
+						if((s.c-pos).squaredNorm()<pow(s.r+r,2) &&  s.clumpId!=num){
+							LOG_TRACE("Collision with a particle in SpherePack (a particle generated in this step).");
 							goto tryAgain;
 						}
 					}
-					spheres.pack.push_back(SpherePack::Sph(pos,r));
+					// num will be the same for all spheres within this clump (abuse the *num* counter)
+					spheres.pack.push_back(SpherePack::Sph(pos,r,/*clumpId*/num));
 				#else
 					// see intersection with existing particles
 					bool overlap=false;
@@ -206,8 +212,10 @@ void RandomFactory::run(){
 			Real color_=isnan(color)?Mathr::UnitRandom():color;
 		#endif
 		if(pee.size()>1){ // clump was generated
-			throw std::runtime_error("RandomFactory: Clumps not yet tested properly.");
+			//throw std::runtime_error("RandomFactory: Clumps not yet tested properly.");
+			LOG_WARN("Clumps not yet tested properly.");
 			vector<shared_ptr<Node>> nn;
+			vector<Particle::id_t> memberIds; memberIds.reserve(pee.size());
 			for(auto& pe: pee){
 				auto& p=pe.par;
 				p->mask=mask;
@@ -215,13 +223,14 @@ void RandomFactory::run(){
 					assert(p->shape);
 					p->shape->color=color_;
 				#endif
-				dem->particles->insert(p);
+				memberIds.push_back(dem->particles->insert(p));
+				if(p->shape->nodes.size()!=1) LOG_WARN("Adding suspicious clump containing particle with more than one node (please check, this is perhaps not tested");
 				for(const auto& n: p->shape->nodes){
 					nn.push_back(n);
 					n->pos+=pos;
 				}
 			}
-			shared_ptr<Node> clump=ClumpData::makeClump(nn,/*no central node pre-given*/shared_ptr<Node>(),/*intersection*/false);
+			shared_ptr<Node> clump=ClumpData::makeClump(nn,memberIds,/*no central node pre-given*/shared_ptr<Node>(),/*intersection*/false);
 			auto& dyn=clump->getData<DemData>();
 			if(shooter) (*shooter)(dyn.vel,dyn.angVel);
 			if(scene->trackEnergy) scene->energy->add(-DemData::getEk_any(clump,true,true,scene),"kinFactory",kinEnergyIx,EnergyTracker::ZeroDontCreate);

@@ -75,6 +75,7 @@ void SpherePack::fromFile(const string& fname) {
 	Real r=0;
 	string line;
 	size_t lineNo=0;
+	size_t nCols=0;
 	while(std::getline(sphereFile,line,'\n')){
 		lineNo++;
 		if(boost::algorithm::starts_with(line,"##USER-DATA:: ")){
@@ -89,10 +90,16 @@ void SpherePack::fromFile(const string& fname) {
 			cellSize=Vector3r(lexical_cast<Real>(tokens[1]),lexical_cast<Real>(tokens[2]),lexical_cast<Real>(tokens[3]));
 			continue;
 		}
-		if(tokens.size()!=4) throw std::invalid_argument(("Line "+lexical_cast<string>(lineNo)+" in the spheres file "+fname+" has "+lexical_cast<string>(tokens.size())+" columns (must be 4).").c_str());
+		// 4 or 5 columns, but all lines must have the same
+		// it is the clump number
+		if(tokens.size()!=4 && tokens.size()!=5) throw std::invalid_argument(fname+":"+to_string(lineNo)+": line has "+to_string(tokens.size())+" columns (must be 4 or 5).");
+		if(nCols==0) nCols=tokens.size(); // set the first time
+		if(nCols!=tokens.size()) throw std::invalid_argument(fname+":"+to_string(lineNo)+": all line must have the same number of columns (previous had "+to_string(nCols)+", this one has "+to_string(tokens.size())+")");
 		C=Vector3r(lexical_cast<Real>(tokens[0]),lexical_cast<Real>(tokens[1]),lexical_cast<Real>(tokens[2]));
 		r=lexical_cast<Real>(tokens[3]);
 		pack.push_back(Sph(C,r));
+		// if clumpId was specified, set it now
+		if(tokens.size()==5) pack.rbegin()->clumpId=lexical_cast<int>(tokens[4]);
 	}
 }
 
@@ -104,9 +111,11 @@ void SpherePack::toFile(const string& fname) const {
 		if(userData.find('\n')!=string::npos) throw std::runtime_error("SpherePack.userData must not contain newline.");
 		f<<"##USER-DATA:: "<<userData<<std::endl;
 	}
+	bool clumps=hasClumps();
 	FOREACH(const Sph& s, pack){
-		if(s.clumpId>=0) throw std::invalid_argument("SpherePack with clumps cannot be (currently) exported to a text file.");
-		f<<s.c[0]<<" "<<s.c[1]<<" "<<s.c[2]<<" "<<s.r<<std::endl;
+		f<<s.c[0]<<" "<<s.c[1]<<" "<<s.c[2]<<" "<<s.r;
+		if(clumps) f<<" "<<s.clumpId;
+		f<<std::endl;
 	}
 	f.close();
 };
@@ -495,7 +504,7 @@ long SpherePack::makeClumpCloud(const Vector3r& mn, const Vector3r& mx, const ve
 	return nGen;
 }
 
-bool SpherePack::hasClumps() const { FOREACH(const Sph& s, pack){ if(s.clumpId>=0) return true; } return false; }
+bool SpherePack::hasClumps() const { for(const Sph& s: pack){ if(s.clumpId>=0) return true; } return false; }
 
 py::tuple SpherePack::getClumps() const{
 	std::map<int,py::list> clumps;
@@ -503,12 +512,10 @@ py::tuple SpherePack::getClumps() const{
 	for(size_t i=0; i<packSize; i++){
 		const Sph& s(pack[i]);
 		if(s.clumpId<0) { standalone.append(i); continue; }
-		if(clumps.count(s.clumpId)==0) clumps[s.clumpId]=py::list();
 		clumps[s.clumpId].append(i);
 	}
 	py::list clumpList;
-	typedef std::pair<int,py::list> intListPair;
-	FOREACH(const intListPair& c, clumps) clumpList.append(c.second);
+	for(const auto& idList: clumps) clumpList.append(idList.second);
 	return py::make_tuple(standalone,clumpList); 
 }
 

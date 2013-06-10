@@ -266,7 +266,7 @@ vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const s
 			for(int i=0; i<numFaces; i++){
 				in.read(reinterpret_cast<char*>(&faces[i]),50);
 				const auto& f(faces[i]);
-				LOG_TRACE("binary STL: face #"<<i<<" @ "<<in.tellg()-50<<": normal ("<<f.normal[0]<<", "<<f.normal[1]<<", "<<f.normal[2]<<"), "
+				LOG_TRACE("binary STL: face #"<<i<<" @ "<<(int)in.tellg()-50<<": normal ("<<f.normal[0]<<", "<<f.normal[1]<<", "<<f.normal[2]<<"), "
 					" vertex 0 ("<<f.v[0]<<", "<<f.v[1]<<", "<<f.v[2]<<"), "
 					" vertex 1 ("<<f.v[3]<<", "<<f.v[4]<<", "<<f.v[5]<<"), "
 					" vertex 2 ("<<f.v[6]<<", "<<f.v[7]<<", "<<f.v[8]<<"), "

@@ -52,12 +52,27 @@ _docInlineModules=(woo._packPredicates,woo._packSpheres,woo._packObb)
 # extend _packSphere.SpherePack c++ class by these methods
 ##
 def SpherePack_fromSimulation(self,scene):
-	ur"""Reset this SpherePack object and initialize it from the current simulation; only spherical particles are taken in account. Clumps are not handled. Periodic boundary conditions are supported, but the hSize matrix must be diagonal."""
+	ur"""Reset this SpherePack object and initialize it from the current simulation; only spherical particles are taken in account. Periodic boundary conditions are supported, but the hSize matrix must be diagonal. Clumps are supported."""
 	self.reset()
 	import woo.dem
 	for p in scene.dem.par:
 		if p.shape.__class__!=woo.dem.Sphere: continue
+		if p.shape.nodes[0].dem.clumped: continue # those will be added as clumps in the next block
 		self.add(p.pos,p.shape.radius)
+	# handle clumps here
+	clumpId=0
+	for n in scene.dem.clumps:
+		someOk=False # prevent adding only a part of the clump to the packing
+		if len(n.dem.memberIds)==0: raise RuntimeError("ClumpData.memberIds has zero size (such clumps are not supported)")
+		for i in n.dem.memberIds:
+			p=scene.dem.par[i]
+			if p.shape.__class__!=woo.dem.Sphere:
+				if someOk: raise RuntimError("A clump with mixed sphere/non-sphere shapes was encountered, which is not supported by SpherePack.fromSimulation");
+				continue
+			assert p.shape.nodes[0].dem.clumped
+			self.add(p.pos,p.shape.radius,clumpId=clumpId),
+			someOk=True
+		clumpId+=1
 	if scene.periodic:
 		h=scene.cell.hSize
 		if h-h.transpose()!=Matrix3.Zero: raise RuntimeError("Only box-shaped (no shear) periodic boundary conditions can be represented with a pack.SpherePack object")
@@ -116,10 +131,11 @@ The current state (even if rotated) is taken as mechanically undeformed, i.e. wi
 	from woo.dem import DemField
 	if not self.hasClumps():
 		if 'mat' not in kw.keys(): kw['mat']=utils.defaultMaterial()
-		return scene.dem.particles.append([utils.sphere(rot*c,r,**kw) for c,r in self])
+		return scene.dem.par.append([utils.sphere(rot*c,r,**kw) for c,r in self])
 	else:
+		raise NotImplementedError("SpherePack.toSimulation does not handle clumps (yet)")
 		standalone,clumps=self.getClumps()
-		ids=scene.particles.append([utils.sphere(rot*c,r,**kw) for c,r in self]) # append all spheres first
+		ids=scene.par.append([utils.sphere(rot*c,r,**kw) for c,r in self]) # append all spheres first
 		clumpIds=[]
 		userColor='color' in kw
 		for clump in clumps:
