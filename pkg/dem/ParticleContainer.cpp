@@ -184,16 +184,15 @@ py::list ParticleContainer::pyAppendList(vector<shared_ptr<Particle>> pp){
 shared_ptr<Node> ParticleContainer::pyAppendClumped(vector<shared_ptr<Particle>> pp, shared_ptr<Node> n){
 	std::set<void*> seen;
 	vector<shared_ptr<Node>> nodes; nodes.reserve(pp.size());
-	vector<Particle::id_t> memberIds;
 	for(const auto& p:pp){
-		memberIds.push_back(pyAppend(p));
+		pyAppend(p);
 		for(const auto& n: p->shape->nodes){
 			if(seen.count((void*)n.get())!=0) continue;
 			seen.insert((void*)n.get());
 			nodes.push_back(n);
 		}
 	}
-	shared_ptr<Node> clump=ClumpData::makeClump(nodes,memberIds,n);
+	shared_ptr<Node> clump=ClumpData::makeClump(nodes,n);
 	auto& cd=clump->getData<DemData>().cast<ClumpData>();
 	cd.clumpLinIx=dem->clumps.size();
 	dem->clumps.push_back(clump);

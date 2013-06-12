@@ -215,7 +215,6 @@ void RandomFactory::run(){
 			//throw std::runtime_error("RandomFactory: Clumps not yet tested properly.");
 			LOG_WARN("Clumps not yet tested properly.");
 			vector<shared_ptr<Node>> nn;
-			vector<Particle::id_t> memberIds; memberIds.reserve(pee.size());
 			for(auto& pe: pee){
 				auto& p=pe.par;
 				p->mask=mask;
@@ -223,14 +222,13 @@ void RandomFactory::run(){
 					assert(p->shape);
 					p->shape->color=color_;
 				#endif
-				memberIds.push_back(dem->particles->insert(p));
 				if(p->shape->nodes.size()!=1) LOG_WARN("Adding suspicious clump containing particle with more than one node (please check, this is perhaps not tested");
 				for(const auto& n: p->shape->nodes){
 					nn.push_back(n);
 					n->pos+=pos;
 				}
 			}
-			shared_ptr<Node> clump=ClumpData::makeClump(nn,memberIds,/*no central node pre-given*/shared_ptr<Node>(),/*intersection*/false);
+			shared_ptr<Node> clump=ClumpData::makeClump(nn,/*no central node pre-given*/shared_ptr<Node>(),/*intersection*/false);
 			auto& dyn=clump->getData<DemData>();
 			if(shooter) (*shooter)(dyn.vel,dyn.angVel);
 			if(scene->trackEnergy) scene->energy->add(-DemData::getEk_any(clump,true,true,scene),"kinFactory",kinEnergyIx,EnergyTracker::ZeroDontCreate);

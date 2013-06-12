@@ -182,7 +182,7 @@ struct ParticleContainer: public Object{
 			,/*py*/
 			.def("append",&ParticleContainer::pyAppend) /* wrapper chacks if the id is not already assigned */
 			.def("append",&ParticleContainer::pyAppendList)
-			.def("appendClumped",&ParticleContainer::pyAppendClumped,(py::arg("par"),py::arg("centralNode")=shared_ptr<Node>()),"Add particles as rigid aggregate. Add resulting clump node (which is *not* a particle) to O.dem.clumps, subject to integration.")
+			.def("appendClumped",&ParticleContainer::pyAppendClumped,(py::arg("par"),py::arg("centralNode")=shared_ptr<Node>()),"Add particles as rigid aggregate. Add resulting clump node (which is *not* a particle) to Scene.dem.clumps, subject to integration.")
 			.def("remove",&ParticleContainer::pyRemove) 
 			.def("remove",&ParticleContainer::pyRemoveList) 
 			.def("exists",&ParticleContainer::exists)

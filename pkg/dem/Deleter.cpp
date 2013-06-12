@@ -37,13 +37,18 @@ void BoxDeleter::run(){
 		if(inside!=box.contains(c->pos)){
 			ClumpData& cd=c->getData<DemData>().cast<ClumpData>();
 			// check mask of constituents first
-			for(Particle::id_t memberId: cd.memberIds){
-				const shared_ptr<Particle>& member=(*dem->particles)[memberId];
-				if(mask & !(mask&member->mask)) goto keepClump;
+			for(const auto& n: cd.nodes){
+				for(Particle* member: n->getData<DemData>().parRef){
+					if(mask & !(mask&member->mask)) goto keepClump;
+				}
 			}
 			if(scene->trackEnergy) scene->energy->add(DemData::getEk_any(c,true,true,scene),"kinDelete",kinEnergyIx,EnergyTracker::ZeroDontCreate);
-			for(Particle::id_t memberId: cd.memberIds){
-				deleted.push_back((*dem->particles)[memberId]);
+			if(save){
+				for(const auto& n: cd.nodes){
+					for(Particle* member: n->getData<DemData>().parRef){
+						deleted.push_back(static_pointer_cast<Particle>(member->shared_from_this()));
+					}
+				}
 			}
 			num++;
 			for(const auto& n: cd.nodes){ mass+=n->getData<DemData>().mass; stepMass+=n->getData<DemData>().mass; }

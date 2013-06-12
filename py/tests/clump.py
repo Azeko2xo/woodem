@@ -24,7 +24,7 @@ class TestSimpleClump(unittest.TestCase):
 			utils.sphere(p0,r1),
 			utils.sphere(p1,r2)
 		])
-		S.dem.nodes=[S.dem.par[0].shape.nodes[0],S.dem.par[1].shape.nodes[0],S.dem.clumps[0]]
+		for n in (S.dem.par[0].shape.nodes[0],S.dem.par[1].shape.nodes[0],S.dem.clumps[0]): S.dem.nodesAppend(n);
 		#O.dem.clumps.clear()
 	def testConsistency(self):
 		"Clump: ids and flags consistency"

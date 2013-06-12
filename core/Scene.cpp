@@ -234,7 +234,7 @@ void Scene::pyEnginesSet(const vector<shared_ptr<Engine> >& e){
 
 #ifdef WOO_OPENGL
 shared_ptr<ScalarRange> Scene::getRange(const std::string& l) const{
-	FOREACH(const shared_ptr<ScalarRange>& r, ranges) if(r->label==l) return r;
+	for(const shared_ptr<ScalarRange>& r: ranges) if(r->label==l) return r;
 	throw std::runtime_error("No range labeled `"+l+"'.");
 }
 #endif
@@ -268,7 +268,7 @@ void Scene::postLoad(Scene&,void*){
 	//
 	// assign fields to engines
 	int i=0;
-	FOREACH(const shared_ptr<Engine>& e, engines){
+	for(const shared_ptr<Engine>& e: engines){
 		if(!e) throw std::runtime_error("Scene.engines["+to_string(i)+"]==None (not allowed).");
 		//cerr<<e->getClassName()<<endl;
 		e->scene=this;
@@ -277,14 +277,14 @@ void Scene::postLoad(Scene&,void*){
 	}
 	// manage labeled engines
 	typedef std::map<std::string,py::object> StrObjMap; StrObjMap m;
-	FOREACH(const shared_ptr<Engine>& e, engines){
+	for(const shared_ptr<Engine>& e: engines){
 		Engine::handlePossiblyLabeledObject(e,m,labels);
 		e->getLabeledObjects(m,labels);
 	}
 	GilLock gilLock;
 	py::scope wooScope(py::import("woo"));
 	// py::scope foo(wooScope);
-	FOREACH(StrObjMap::value_type& v, m){
+	for(StrObjMap::value_type& v: m){
 		// cout<<"Label: "<<v.first<<endl;
 		wooScope.attr(v.first.c_str())=v.second;
 	}
@@ -292,6 +292,21 @@ void Scene::postLoad(Scene&,void*){
 	// py::delattr(wooScope,name);
 }
 
+void Scene::selfTest_maybe(){
+	if((selfTestEvery<0) || (selfTestEvery>0 && (step%selfTestEvery!=0)) || (selfTestEvery==0 && step!=0)) return;
+	LOG_INFO("Running self-tests at step "<<step<<" (selfTestEvery=="<<selfTestEvery<<")");
+	for(const auto& f: fields){
+		f->scene=this;
+		if(!f) throw std::runtime_error("Scene.fields may not contain None.");
+		f->selfTest();
+	}
+	for(const auto& e: engines){
+		if(!e) throw std::runtime_error("Scene.engines may not contain None.");
+		e->scene=this;
+		if(!e->field && e->needsField()) throw std::runtime_error((getClassName()+" has no field to run on, but requires one.").c_str());
+		e->selfTest();
+	}
+};
 
 
 void Scene::doOneStep(){
@@ -318,17 +333,18 @@ void Scene::doOneStep(){
 		// hopefully this will not break in some margin cases (subStepping with setting _nextEngines and such)
 		subStep=-1;
 	}
-	FOREACH(const shared_ptr<Field>& f, fields) if(f->scene!=this) f->scene=this;
+	for(const shared_ptr<Field>& f: fields) if(f->scene!=this) f->scene=this;
 	if(likely(!subStepping && subStep<0)){
 		/* set substep to 0 during the loop, so that engines/nextEngines handler know whether we are inside the loop currently */
 		subStep=0;
 		// ** 1. ** prologue
+		selfTest_maybe();
 		if(isPeriodic) cell->integrateAndUpdate(dt);
 		if(trackEnergy) energy->resetResettables();
 		const bool TimingInfo_enabled=TimingInfo::enabled; // cache the value, so that when it is changed inside the step, the engine that was just running doesn't get bogus values
 		TimingInfo::delta last=TimingInfo::getNow(); // actually does something only if TimingInfo::enabled, no need to put the condition here
 		// ** 2. ** engines
-		FOREACH(const shared_ptr<Engine>& e, engines){
+		for(const shared_ptr<Engine>& e: engines){
 			e->scene=this;
 			if(!e->field && e->needsField()) throw std::runtime_error((getClassName()+" has no field to run on, but requires one.").c_str());
 			if(e->dead || !e->isActivated()) continue;
@@ -352,6 +368,7 @@ void Scene::doOneStep(){
 			assert(subs>=-1 && subs<=(int)engines.size());
 			// ** 1. ** prologue
 			if(subs==-1){
+				selfTest_maybe();
 				if(isPeriodic) cell->integrateAndUpdate(dt);
 				if(trackEnergy) energy->resetResettables();
 			}

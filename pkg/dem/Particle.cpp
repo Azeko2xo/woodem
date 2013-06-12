@@ -11,6 +11,8 @@
 
 WOO_PLUGIN(dem,(DemField)(Particle)(MatState)(DemData)(Impose)(Shape)(Material)(Bound));
 CREATE_LOGGER(DemField);
+CREATE_LOGGER(DemData);
+CREATE_LOGGER(Particle);
 
 py::dict Particle::pyContacts()const{	py::dict ret; FOREACH(MapParticleContact::value_type i,contacts) ret[i.first]=i.second; return ret;}
 py::list Particle::pyCon()const{ py::list ret; FOREACH(MapParticleContact::value_type i,contacts) ret.append(i.first); return ret;}
@@ -76,6 +78,36 @@ Real DemData::getEk_any(const shared_ptr<Node>& n, bool trans, bool rot, Scene* 
 		ret+=Erot;
 	}
 	return ret;
+}
+
+
+void Particle::postLoad(Particle&,void* attr){
+	if(attr==NULL){ // only do this when really deserializing
+		if(!shape) return;
+		for(const auto& n: shape->nodes){
+			if(!n->hasData<DemData>()) continue;
+			LOG_TRACE("Adding "<<this->pyStr()<<" to "<<n->pyStr()<<".dem.parRef [linIx="<<n->getData<DemData>().linIx<<"] ");
+			n->getData<DemData>().addParRef_raw(this);
+		}
+	}
+}
+
+py::list DemData::pyParRef_get(){
+	py::list ret;
+	for(const auto& p: parRef) ret.append(static_pointer_cast<Particle>(p->shared_from_this()));
+	return ret;
+}
+
+void DemData::addParRef(const shared_ptr<Particle>& p){
+	addParRef_raw(p.get());
+}
+
+void DemData::addParRef_raw(Particle* p){
+	if(std::find_if(parRef.begin(),parRef.end(),[&p](const Particle* i)->bool{ return p==i; })!=parRef.end()){
+		LOG_TRACE(p->pyStr()<<": already in parRef, skipping.");
+		return;
+	}
+	parRef.push_back(p);
 }
 
 
@@ -159,7 +191,7 @@ int DemField::collectNodes(){
 	// from particles
 	for(const auto& p: *particles){
 		if(!p || !p->shape || p->shape->nodes.empty()) continue;
-		FOREACH(const shared_ptr<Node>& n, p->shape->nodes){
+		for(const shared_ptr<Node>& n: p->shape->nodes){
 			if(seen.count((void*)n.get())!=0) continue; // node already seen
 			seen.insert((void*)n.get());
 			n->getData<DemData>().linIx=nodes.size();
@@ -179,6 +211,13 @@ int DemField::collectNodes(){
 	return added;
 }
 
+void DemField::pyNodesAppend(const shared_ptr<Node>& n){
+	if(!n) throw std::runtime_error("DemField.nodesAppend: Node to be added may not be None.");
+	if(!n->hasData<DemData>()) throw std::runtime_error("DemField.nodesAppend: Node must define Node.dem (DemData)");
+	n->getData<DemData>().linIx=nodes.size();
+	nodes.push_back(n);
+}
+
 void DemField::removeParticle(Particle::id_t id){
 	LOG_DEBUG("Removing #"<<id);
 	assert(id>=0);
@@ -195,14 +234,17 @@ void DemField::removeParticle(Particle::id_t id){
 	}
 	// remove particle's nodes, if they are no longer used
 	for(const auto& n: p->shape->nodes){
-		// decrease parCount for each node
+		// remove particle back-reference from each node
 		DemData& dyn=n->getData<DemData>();
-		if(dyn.parCount==0) throw std::runtime_error("#"+to_string(id)+" has node which has zero particle count!");
-		dyn.parCount-=1;
+		if(dyn.parRef.empty()) throw std::runtime_error("#"+to_string(id)+" has node which back-references no particle!");
+		auto I=std::find_if(dyn.parRef.begin(),dyn.parRef.end(),[&p](const Particle* w)->bool{ return w==p.get(); });
+		if(I==dyn.parRef.end()) throw std::runtime_error("#"+to_string(id)+": node does not back-reference its own particle!");
+		// remove parRef to this particle
+		dyn.parRef.erase(I); 
 		// no particle left, delete the node itself as well
-		if(dyn.parCount==0){
-			if(dyn.linIx<0) continue; // node not in O.dem.nodes
-			if(nodes[dyn.linIx].get()!=n.get()) throw std::runtime_error("Node in #"+to_string(id)+" has invalid linIx entry!");
+		if(dyn.parRef.empty()){
+			if(dyn.linIx<0) continue; // node not in DemField.nodes
+			if(dyn.linIx>nodes.size() || nodes[dyn.linIx].get()!=n.get()) throw std::runtime_error("Node in #"+to_string(id)+" has invalid linIx entry!");
 			LOG_DEBUG("Removing #"<<id<<" / DemField::nodes["<<dyn.linIx<<"]"<<" (not used anymore)");
 			boost::mutex::scoped_lock lock(nodesMutex);
 			if(saveDeadNodes) deadNodes.push_back(nodes[dyn.linIx]);
@@ -230,18 +272,21 @@ void DemField::removeClump(size_t clumpLinIx){
 	assert(dynamic_pointer_cast<ClumpData>(node->getDataPtr<DemData>()));
 	ClumpData& cd=node->getData<DemData>().cast<ClumpData>();
 	if(cd.clumpLinIx!=(long)clumpLinIx) throw std::runtime_error("Clump #"+to_string(clumpLinIx)+": clumpLinIx ("+to_string(cd.clumpLinIx)+") does not match its position ("+to_string(clumpLinIx)+")");
-	for(size_t i=0; i<cd.memberIds.size(); i++){
-		auto& p=(*particles)[cd.memberIds[i]];
-		// make sure that clump nodes are those which the particles have
-		assert(p && p->shape && p->shape->nodes.size()>0);
-		for(auto& n: p->shape->nodes){
-			#ifdef WOO_DEBUG
-				if(std::find_if(cd.nodes.begin(),cd.nodes.end(),[&](const shared_ptr<Node>& a)->bool{ return(a.get()==n.get()); })==cd.nodes.end()) throw std::runtime_error("#"+to_string(cd.memberIds[i])+" should contain node at "+lexical_cast<string>(n->pos.transpose()));
-			#endif
-			n->getData<DemData>().setNoClump(); // fool the test in removeParticle
+	std::set<Particle::id_t> delPar;
+	for(const auto& n: cd.nodes){
+		for(Particle* p: n->getData<DemData>().parRef){
+			assert(p && p->shape && p->shape->nodes.size()>0);
+			for(auto& n: p->shape->nodes){
+				#ifdef WOO_DEBUG
+					if(std::find_if(cd.nodes.begin(),cd.nodes.end(),[&n](const shared_ptr<Node>& a)->bool{ return(a.get()==n.get()); })==cd.nodes.end()) throw std::runtime_error("#"+to_string(p->id)+" should contain node at "+lexical_cast<string>(n->pos.transpose()));
+				#endif
+				n->getData<DemData>().setNoClump(); // fool the test in removeParticle
+			}
+			// collect particles in a set, in case they share nodes etc, to not delete one multiple times
+			delPar.insert(p->id);
 		}
-		removeParticle(i);
 	}
+	for(const auto& pId: delPar) removeParticle(pId);
 	// remove the clump node here
 	boost::mutex::scoped_lock lock(nodesMutex);
 	(*clumps.rbegin())->getData<DemData>().cast<ClumpData>().clumpLinIx=cd.clumpLinIx;
@@ -249,4 +294,60 @@ void DemField::removeClump(size_t clumpLinIx){
 	clumps.resize(clumps.size()-1);
 }
 
+void DemField::selfTest(){
+	// check that particle's nodes reference the particles they belong to
+	for(size_t i=0; i<particles->size(); i++){
+		const auto& p=(*particles)[i];
+		if(!p) continue;
+		if(p->id!=(Particle::id_t)i) throw std::logic_error("DemField.par["+to_string(i)+"].id="+to_string(p->id)+", should be "+to_string(i));
+		if(!p->shape) continue;
+		if(!p->shape->numNodesOk()) throw std::logic_error("DemField.par["+to_string(i)+"].shape: numNodesOk failed with "+p->shape->pyStr()+".");
+		for(size_t j=0; j<p->shape->nodes.size(); j++){
+			const auto& n=p->shape->nodes[j];
+			if(!n) throw std::logic_error("DemField.par["+to_string(p->id)+"].shape.nodes["+to_string(j)+"]=None.");
+			if(!n->hasData<DemData>()) throw std::logic_error("DemField.par["+to_string(p->id)+"].shape.nodes["+to_string(j)+"] does not define DemData.");
+			const auto& dyn=n->getData<DemData>();
+			if(std::find(dyn.parRef.begin(),dyn.parRef.end(),p.get())==dyn.parRef.end()) throw std::logic_error("DemField.par["+to_string(p->id)+"].shape.nodes["+to_string(j)+"].dem.parRef: does not back-reference the particle "+p->pyStr()+" it belongs to.");
+		}
+	}
+	// check that DemField.nodes properly keep their indices
+	for(size_t i=0; i<nodes.size(); i++){
+		const auto& n=nodes[i];
+		if(!n) throw std::logic_error("DemField.nodes["+to_string(i)+"]=None, DemField.nodes should be contiguous");
+		if(!n->hasData<DemData>()) throw std::logic_error("DemField.nodes["+to_string(i)+"] does not define DemData.");
+		const auto& dyn=n->getData<DemData>();
+		if(dyn.linIx!=(int)i) throw std::logic_error("DemField.nodes["+to_string(i)+"].dem.linIx="+to_string(dyn.linIx)+", should be "+to_string(i)+" (use DemField.nodesAppend instead of DemField.nodes.append to have linIx set automatically in python)");
+		if(dyn.isClump()){
+			if(!dynamic_pointer_cast<ClumpData>(n->getDataPtr<DemData>())) throw std::logic_error("DemField.nodes["+to_string(i)+".dem.clump=True, but does not define ClumpData.");
+		}
+		// check parRef
+		size_t j=0;
+		for(Particle* p: dyn.parRef){
+			if(!p) throw std::logic_error("DemField.nodes["+to_string(i)+"].dem.parRef["+to_string(j)+"]==NULL."); //very unlikely
+			if(!p->shape) throw std::logic_error("DemField.nodes["+to_string(i)+"].dem.parRef["+to_string(j)+"].shape=None (#"+to_string(p->id)+"): clumps may not meaningfully contain particles without shape.");
+			if(std::find_if(
+				p->shape->nodes.begin(),
+				p->shape->nodes.end(),
+				[&n](const shared_ptr<Node>& a){return a.get()==n.get();}
+			)==p->shape->nodes.end()) throw std::logic_error("DemField.nodes["+to_string(i)+"].dem.parRef["+to_string(j)+"].shape.nodes does not contain DemField.nodes["+to_string(i)+" (the node back-references the particle, but the particle does not reference the node).");
+		}
+	}
+	// check clumps reference their particles correctly, and they are flagged as clumped
+	for(size_t i=0; i<clumps.size(); i++){
+		const auto& n=clumps[i];
+		if(!n) throw std::logic_error("DemField.clumps["+to_string(i)+"]=None, DemField.clumps should be contiguous");
+		if(!n->hasData<DemData>()) throw std::logic_error("DemField.clumps["+to_string(i)+"] does not define DemData.");
+		if(!dynamic_pointer_cast<ClumpData>(n->getDataPtr<DemData>())) throw std::logic_error("DemField.nodes["+to_string(i)+"] defines DemData, but not ClumpData.");
+		const auto& cd=*static_pointer_cast<ClumpData>(n->getDataPtr<DemData>());
+		if((int)i!=cd.clumpLinIx) throw std::logic_error("DemField.clumps["+to_string(i)+"].dem.clumpLinIx="+to_string(cd.clumpLinIx)+", should be "+to_string(i)+")");
+		if(!cd.isClump()) throw std::logic_error("DemField.clumps["+to_string(i)+"].dem.clump=False, should be True");
+		for(size_t j=0; j<cd.nodes.size(); j++){
+			const auto& n=cd.nodes[j];
+			if(!n) throw std::logic_error("DemField.clumps["+to_string(i)+"].dem.nodes["+to_string(j)+"]=None.");
+			if(!n->hasData<DemData>()) throw std::logic_error("DemField.clumps["+to_string(i)+"].dem.nodes["+to_string(j)+"].dem=None.");
+			const auto& dyn=n->getData<DemData>();
+			if(!dyn.isClumped()) throw std::logic_error("DemField.clumps["+to_string(i)+"].dem.nodes["+to_string(j)+"].clumped=False, should be True.");
+		}
+	}
+}
 

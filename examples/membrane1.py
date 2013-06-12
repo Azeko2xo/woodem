@@ -17,7 +17,6 @@ if 0:
 	for n in nn:
 		n.dem=DemData(inertia=(1,1,1))
 		n.dem.blocked='xyz'
-		n.dem.parCount=1
 		rotvec=Vector3.Random()
 		n.ori=Quaternion(rotvec.norm(),rotvec.normalized())
 		n.dem.mass=1e3
@@ -26,6 +25,7 @@ if 0:
 
 	S=woo.master.scene=Scene(fields=[DemField(gravity=(0,0,0))])
 	S.dem.par.append(Particle(shape=FlexFacet(nodes=nn),material=FrictMat(young=1e6)))
+	for n in nn: n.dem.addParRef(S.dem.par[-1])
 	ff=S.dem.par[0].shape
 	ff.setRefConf() #update()
 	for n in nn: S.dem.nodes.append(n)

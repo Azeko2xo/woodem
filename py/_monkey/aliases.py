@@ -29,6 +29,10 @@ try:
 	core.Master.hasdem=property(_Master_hasDem)
 	# DemData defines those methods, which are used for transparent access to respective data field
 	core.Node.dem=property(dem.DemData._getDataOnNode,dem.DemData._setDataOnNode)
+	# this can be removed later
+	def _DemData_parCount_get(d): raise AttributeError("DemData.parCount is superceded by DemData.parRef!")
+	def _DemData_parCount_set(d): raise AttributeError("DemData.parCount is superceded by DemData.parRef!")
+	dem.DemData.parCount=property(_DemData_parCount_get,_DemData_parCount_set)
 except ImportError:
 	core.Scene.hasDem=lambda o: False
 

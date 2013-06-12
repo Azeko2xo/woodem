@@ -141,6 +141,7 @@ WOO_REGISTER_OBJECT(Node);
 
 struct Field: public Object, public Indexable{
 	Scene* scene; // backptr to scene; must be set by Scene!
+	virtual void selfTest(){};
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Field,Object,"Spatial field described by nodes, their topology and associated values.",
 		// ((Scene*,scene,NULL,AttrTrait<Attr::hidden>(),"Backptr to scene")) // must be set by Scene!
 		((vector<shared_ptr<Node> >,nodes,,AttrTrait<Attr::pyByRef>(),"Nodes referenced from this field."))
@@ -152,6 +153,7 @@ struct Field: public Object, public Indexable{
 			WOO_PY_TOPINDEXABLE(Field)
 	);
 	REGISTER_INDEX_COUNTER(Field);
+
 
 	// return bounding box for this field, for the purposes of rendering
 	// by defalt, returns bbox of Field::nodes, but derived fields may override this

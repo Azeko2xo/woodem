@@ -101,9 +101,9 @@ def mkFacetCyl(aabb,cylDiv,suppMat,sideMat,suppMask,sideMask,suppBlock,sideBlock
 			# that's what we need at supports, which stretch to the membrane's edge,
 			# but that is not any physical motion
 			ret.append(woo.dem.Particle(material=mat,shape=Facet(nodes=[nn[i],nn[(i+1)%len(nn)],central],fakeVel=Vector3(NaN,NaN,NaN)),mask=mask))
-			nn[i].dem.parCount+=1
-			nn[(i+1)%len(nn)].dem.parCount+=1
-			central.dem.parCount+=1
+			nn[i].dem.addParRef(ret[-1])
+			nn[(i+1)%len(nn)].dem.addParRef(ret[-1])
+			central.dem.addParRef(ret[-1])
 		return ret
 	retParticles+=mkCap(nnn[0],central=centrals[0],mask=suppMask,mat=suppMat)
 	retParticles+=mkCap(list(reversed(nnn[-1])),central=centrals[-1],mask=suppMask,mat=suppMat) # reverse to have normals outside
@@ -112,10 +112,8 @@ def mkFacetCyl(aabb,cylDiv,suppMat,sideMat,suppMask,sideMask,suppBlock,sideBlock
 		for i in range(len(nnAC)):
 			A,B,C,D=nnAC[i],nnBD[i],nnAC[(i+1)%len(nnAC)],nnBD[(i+1)%len(nnBD)]
 			ret+=[woo.dem.Particle(material=mat,shape=FlexFacet(nodes=fNodes,halfThick=halfThick),mask=mask) for fNodes in ((A,B,D),(A,D,C))]
-			A.dem.parCount+=2
-			D.dem.parCount+=2
-			B.dem.parCount+=1
-			C.dem.parCount+=1
+			for n in (A,B,D): n.dem.addParRef(ret[-2])
+			for n in (A,D,C): n.dem.addParRef(ret[-1])
 		return ret
 	for i in range(0,len(nnn)-1):
 		retParticles+=mkAround(nnn[i],nnn[i+1],mask=sideMask,mat=sideMat,halfThick=.5*sideThick)

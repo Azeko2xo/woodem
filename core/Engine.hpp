@@ -39,6 +39,8 @@ class Engine: public Object {
 		// by default runs the engine for accepted fields
 		virtual void run();
 
+		virtual void selfTest(){};
+
 		// virtual bool acceptsField(Field*){ cerr<<getClassName()<<"::acceptsField not overridden."<<endl; return true; }
 		virtual bool needsField(){ return true; }
 		virtual void setField();

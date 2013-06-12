@@ -16,7 +16,6 @@ nn=[Node(pos=(0,0,0)),Node(pos=(0,1,0)),Node(pos=(0,0,1))]
 for n in nn:
 	n.dem=DemData(inertia=(1,1,1))
 	n.dem.blocked='xyzXYZ'
-	n.dem.parCount=1
 	rotvec=Vector3.Random()
 	n.ori=Quaternion(rotvec.norm(),rotvec.normalized())
 
@@ -38,6 +37,8 @@ for i,n in enumerate(nn):
 
 S=woo.master.scene=Scene(fields=[DemField()])
 S.dem.par.append(Particle(shape=FlexFacet(nodes=nn),material=FrictMat()))
+for n in nn: n.dem.addParRef(S.dem.par[-1])
+
 ff=S.dem.par[0].shape
 ff.setRefConf() #update()
 for n in nn: S.dem.nodes.append(n)

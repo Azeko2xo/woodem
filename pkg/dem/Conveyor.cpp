@@ -31,26 +31,54 @@ void ConveyorFactory::postLoad(ConveyorFactory&,void*){
 
 void ConveyorFactory::sortPacking(){
 	if(radii.size()!=centers.size()) throw std::logic_error("ConveyorFactory.sortPacking: radii.size()!=centers.size()");
+	if(hasClumps() && radii.size()!=clumps.size()) throw std::logic_error("ConveyorFactory.sortPacking: clumps not empty and clumps.size()!=centers.size()");
 	if(!cellLen>0 /*catches NaN as well*/) ValueError("ConveyorFactor.cellLen must be positive (not "+to_string(cellLen)+")");
-	// copy arrays to structs first
-	typedef std::tuple<Vector3r,Real> CentRad;
-	vector<CentRad> vecCentRad(radii.size());
 	size_t N=radii.size();
-	for(size_t i=0;i<N;i++){
-		if(centers[i][0]<0 || centers[i][0]>=cellLen) centers[i][0]=Cell::wrapNum(centers[i][0],cellLen);
-		vecCentRad[i]=std::make_tuple(centers[i],radii[i]);
-	}
-	// sort according to the x-coordinate
-	std::sort(vecCentRad.begin(),vecCentRad.end(),[](const CentRad& a, const CentRad& b)->bool{ return std::get<0>(a)[0]<std::get<0>(b)[0]; });
-	for(size_t i=0;i<N;i++){
-		std::tie(centers[i],radii[i])=vecCentRad[i];
+	if(!hasClumps()){
+		// sort spheres according to their x-coordinate
+		// copy arrays to structs first
+		//typedef std::tuple<Vector3r,Real> CentRad;
+		struct CR{ Vector3r c; Real r; };
+		vector<CR> ccrr(radii.size());
+		for(size_t i=0;i<N;i++){
+			if(centers[i][0]<0 || centers[i][0]>=cellLen) centers[i][0]=Cell::wrapNum(centers[i][0],cellLen);
+			ccrr[i]=CR{centers[i],radii[i]};
+		}
+		// sort according to the x-coordinate
+		std::sort(ccrr.begin(),ccrr.end(),[](const CR& a, const CR& b)->bool{ return a.c[0]<b.c[0]; });
+		for(size_t i=0;i<N;i++){
+			centers[i]=ccrr[i].c; radii[i]=ccrr[i].r;
+		}
+	} else {
+		// sort clumps according to their minimum coordinate
+		std::map<int,Real> clumpMinX;
+		for(size_t i=0; i<N; i++){
+			int c=clumps[i]; Real x=centers[i][0];
+			auto I=clumpMinX.find(c);
+			if(I==clumpMinX.end()) clumpMinX[c]=x;
+			else clumpMinX[c]=min(I->second,x);
+		}
+		// sort structs containing original index and minx
+		// minx (or clump, if minx is the same) is the sort key, indices are what is sorted
+		struct RCCM{Real r; Vector3r c; int clump; Real minX; };
+		vector<RCCM> rccm(N);
+		for(int i=0; i<N; i++){ rccm[i]=RCCM{radii[i],centers[i],clumps[i],clumpMinX[clumps[i]]}; } 
+		// this makes sure clumps are contiguous
+		// sort them by minX, and if that is identical, by clump id (arbitrary but deterministic)
+		std::sort(rccm.begin(),rccm.end(),[](const RCCM& a, const RCCM& b)->bool{ return a.minX<b.minX || (a.minX==b.minX && a.clump<b.clump); });
+		// update our arrays
+		for(size_t i=0; i<N; i++){
+			centers[i]=rccm[i].c;
+			radii[i]=rccm[i].r;
+			clumps[i]=rccm[i].clump;
+		}
 	}
 }
 
-void ConveyorFactory::particleLeavesBarrier(const shared_ptr<Particle>& p){
-	auto& dyn=p->shape->nodes[0]->getData<DemData>();
+void ConveyorFactory::nodeLeavesBarrier(const shared_ptr<Node>& n){
+	auto& dyn=n->getData<DemData>();
 	dyn.setBlockedNone();
-	p->shape->color=isnan(color)?Mathr::UnitRandom():color;
+	(*dyn.parRef.begin())->shape->color=isnan(color)?Mathr::UnitRandom():color;
 	// assign velocity with randomized lateral components
 	if(!isnan(relLatVel) && relLatVel!=0){
 		dyn.vel=node->ori*(Vector3r(vel,(2*Mathr::UnitRandom()-1)*relLatVel*vel,(2*Mathr::UnitRandom()-1)*relLatVel*vel));
@@ -67,7 +95,7 @@ void ConveyorFactory::notifyDead(){
 		// we were just made dead; remove the barrier and set zero rate
 		if(zeroRateAtStop) currRate=0.;
 		/* remove particles from the barrier */
-		for(const auto& p: barrier){ particleLeavesBarrier(p); }
+		for(const auto& n: barrier){ nodeLeavesBarrier(n); }
 		barrier.clear();
 	} else {
 		// we were made alive after being dead;
@@ -89,9 +117,9 @@ void ConveyorFactory::run(){
 	}
 	auto I=barrier.begin();
 	while(I!=barrier.end()){
-		const auto& p=*I;
-		if((node->ori.conjugate()*(p->shape->nodes[0]->pos-node->pos))[0]>barrierLayer){
-			particleLeavesBarrier(p);
+		const auto& n=*I;
+		if((node->ori.conjugate()*(n->pos-node->pos))[0]>barrierLayer){
+			nodeLeavesBarrier(n);
 			I=barrier.erase(I); // erase and advance
 		} else {
 			I++; // just advance
@@ -148,7 +176,7 @@ void ConveyorFactory::run(){
 
 		if(realSphereX<barrierLayer){
 			sphere->shape->color=isnan(barrierColor)?Mathr::UnitRandom():barrierColor;
-			barrier.push_back(sphere);
+			barrier.push_back(n);
 			dyn.setBlockedAll();
 		} else {
 			sphere->shape->color=isnan(color)?Mathr::UnitRandom():color;
@@ -162,6 +190,31 @@ void ConveyorFactory::run(){
 		#endif
 		dyn.linIx=dem->nodes.size();
 		dem->nodes.push_back(n);
+
+		#if 0
+			// with clumps
+			shared_ptr<Node> clump=Clump::makeClump(nodes);
+			auto& cd=clump->getData<DemData>().cast<ClumpData>();
+			cd.clumpLinIx=dem->clumps.size();
+			dem->clumps.push_back(clump);
+			Real equivR=cbrt((3*cd->mass/material->density)/(4*M_PI));
+			if(save) getDiamMass.push_back(Vector2r(2*equivR,cd.mass));
+			center=clump;
+
+			///
+
+			center=(*spheres.begin());
+
+			if((node->ori.conjugate()*(center->pos-node->pos)).x()<barrierLayer){
+				Real c=isnan(barrierColor)?Mathr::UnitRandom():barrierColor;
+				for(const auto& sphere: spheres) sphere->shape->color=c;
+				barrier.push_back(center);
+				center->getData<DemData>().setBlockedAll();
+			} else {
+				Real c=isnan(color)?Mathr::UnitRandom():color;
+				for(const auto& sphere: spheres) sphere->shape->color=c;
+			}
+		#endif
 
 		stepMass+=dyn.mass;
 		mass+=dyn.mass;

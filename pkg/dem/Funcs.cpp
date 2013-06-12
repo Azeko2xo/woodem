@@ -123,14 +123,15 @@ shared_ptr<Particle> DemFuncs::makeSphere(Real radius, const shared_ptr<Material
 		// to avoid crashes if renderer must resize the node's data array and reallocates it while other thread accesses those data
 		n->setData<GlData>(make_shared<GlData>());
 	#endif
-	auto& dyn=n->getData<DemData>();
-	dyn.parCount=1;
-	dyn.mass=(4/3.)*M_PI*pow(radius,3)*m->density;
-	dyn.inertia=Vector3r::Ones()*(2./5.)*dyn.mass*pow(radius,2);
-
 	auto par=make_shared<Particle>();
 	par->shape=sphere;
 	par->material=m;
+
+	auto& dyn=n->getData<DemData>();
+	dyn.addParRef(par);
+	dyn.mass=(4/3.)*M_PI*pow(radius,3)*m->density;
+	dyn.inertia=Vector3r::Ones()*(2./5.)*dyn.mass*pow(radius,2);
+
 	return par;
 };
 
@@ -390,14 +391,14 @@ vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const s
 		LOG_TRACE("STL: Face #"<<v0/3<<", node indices "<<vIx[0]<<(isNew[0]?"*":"")<<", "<<vIx[1]<<(isNew[1]?"*":"")<<", "<<vIx[2]<<(isNew[2]?"*":"")<<" ("<<nodes.size()<<" nodes)");
 		// create facet
 		auto facet=make_shared<Facet>();
-		for(auto ix: vIx){
-			facet->nodes.push_back(nodes[ix]);
-			nodes[ix]->getData<DemData>().parCount++;
-		}
-		facet->color=color; // set per-face color, once this is imported form the binary STL
 		auto par=make_shared<Particle>();
 		par->shape=facet;
 		par->material=mat;
+		for(auto ix: vIx){
+			facet->nodes.push_back(nodes[ix]);
+			nodes[ix]->getData<DemData>().addParRef(par);
+		}
+		facet->color=color; // set per-face color, once this is imported form the binary STL
 		ret.push_back(par);
 	}
 	return ret;

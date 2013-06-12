@@ -1,4 +1,5 @@
 #pragma once
+
 #include<unordered_map>
 #include<woo/core/Field.hpp>
 #include<woo/core/Scene.hpp>
@@ -25,6 +26,8 @@ struct Particle: public Object{
 	// try unordered_map
 	typedef std::map<id_t,shared_ptr<Contact> > MapParticleContact;
 	void checkNodes(bool dyn=true, bool checkOne=true) const;
+
+	DECLARE_LOGGER;
 
 
 	Vector3r& getPos() const; void setPos(const Vector3r&);
@@ -54,6 +57,7 @@ struct Particle: public Object{
 	void setRefPos(const Vector3r&);
 	std::vector<shared_ptr<Node> > getNodes();
 	virtual string pyStr() const { return "<Particle #"+to_string(id)+" @ "+lexical_cast<string>(this)+">"; }
+	void postLoad(Particle&,void*);
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Particle,Object,ClassTrait().doc("Particle in DEM").section("Particle","Each particles in DEM is defined by its shape (given by multiple nodes) and other parameters.",{"Shape","Material","Bound"}),
 		((id_t,id,-1,AttrTrait<Attr::readonly>(),"Index in DemField::particles"))
 		((uint,mask,1,,"Bitmask for collision detection and other (group 1 by default)"))
@@ -119,8 +123,8 @@ WOO_REGISTER_OBJECT(MatState);
 
 
 struct DemData: public NodeData{
-	// boost::mutex lock; // used by applyForceTorque
 public:
+	DECLARE_LOGGER;
 	// bits for flags
 	enum {
 		DOF_NONE=0,DOF_X=1,DOF_Y=2,DOF_Z=4,DOF_RX=8,DOF_RY=16,DOF_RZ=32,
@@ -167,6 +171,17 @@ public:
 	// get kinetic energy of given node
 	static Real getEk_any(const shared_ptr<Node>& n, bool trans, bool rot, Scene* scene);
 
+	py::list pyParRef_get();
+	void addParRef(const shared_ptr<Particle>&);
+	void addParRef_raw(Particle*);
+	
+	// type for back-referencing particle which has this node;
+	// cannot be shared_ptr, as it would be circular
+	// weak_ptr was used, but it was buggy due to http://stackoverflow.com/questions/8233252/boostpython-and-weak-ptr-stuff-disappearing
+	// use raw pointer, which cannot be serialized, and set it from Particle::postLoad
+	// cross thumbs, that is quite fragile :|
+
+
 	bool isAspherical() const{ return !((inertia[0]==inertia[1] && inertia[1]==inertia[2])); }
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(DemData,NodeData,"Dynamic state of node.",
 		((Vector3r,vel,Vector3r::Zero(),AttrTrait<>().velUnit(),"Linear velocity."))
@@ -177,13 +192,15 @@ public:
 		((Vector3r,torque,Vector3r::Zero(),AttrTrait<>().torqueUnit(),"Applied torque"))
 		((Vector3r,angMom,Vector3r::Zero(),AttrTrait<>().angMomUnit(),"Angular momentum (used with the aspherical integrator)"))
 		((unsigned,flags,0,AttrTrait<Attr::readonly>().bits({"block x","block y","block z","block rot x","block rot y","block rot z","clumped","clump","energy skip","gravity skip"}),"Bit flags storing blocked DOFs, clump status, ..."))
-		((long,linIx,-1,AttrTrait<>().hidden(),"Index within O.dem.nodes (for efficient removal)"))
-		((int,parCount,0,AttrTrait<>().noGui(),"Number of particles associated with this node (to know whether a node should be deleted when a particle is)"))
+		((long,linIx,-1,AttrTrait<>().readonly().noGui(),"Index within DemField.nodes (for efficient removal)"))
+		((std::list<Particle*>,parRef,,AttrTrait<Attr::hidden|Attr::noSave>(),"Back-reference for particles using this node; this is important for knowing when a node may be deleted (no particles referenced) and such. Should be kept consistent."))
 		((shared_ptr<Impose>,impose,,,"Impose arbitrary velocity, angular velocity, ... on the node; the functor is called from Leapfrog, after new position and velocity have been computed."))
 		, /*ctor*/
 		, /*py*/ .add_property("blocked",&DemData::blocked_vec_get,&DemData::blocked_vec_set,"Degress of freedom where linear/angular velocity will be always constant (equal to zero, or to an user-defined value), regardless of applied force/torque. String that may contain 'xyzXYZ' (translations and rotations).")
 		.add_property("clump",&DemData::isClump).add_property("clumped",&DemData::isClumped).add_property("noClump",&DemData::isNoClump).add_property("energySkip",&DemData::isEnergySkip,&DemData::setEnergySkip).add_property("gravitySkip",&DemData::isGravitySkip,&DemData::setGravitySkip)
-		.def("_getDataOnNode",&Node::pyGetData<DemData>).staticmethod("_getDataOnNode").def("_setDataOnNode",&Node::pySetData<DemData>).staticmethod("_setDataOnNode");
+		.add_property("parRef",&DemData::pyParRef_get).def("addParRef",&DemData::addParRef)
+		.def("_getDataOnNode",&Node::pyGetData<DemData>).staticmethod("_getDataOnNode").def("_setDataOnNode",&Node::pySetData<DemData>).staticmethod("_setDataOnNode")
+		;
 	);
 };
 WOO_REGISTER_OBJECT(DemData);
@@ -198,6 +215,10 @@ struct DemField: public Field{
 	void removeClump(size_t id);
 	AlignedBox3r renderingBbox() const; // overrides Field::renderingBbox
 	boost::mutex nodesMutex; // sync adding nodes with the renderer, which might otherwise crash
+
+	void selfTest() override;
+
+	void pyNodesAppend(const shared_ptr<Node>& n);
 
 	//template<> bool sceneHasField<DemField>() const;
 	//template<> shared_ptr<DemField> sceneGetField<DemField>() const;
@@ -214,6 +235,7 @@ struct DemField: public Field{
 		, /*py*/
 		.def("collectNodes",&DemField::collectNodes,"Collect nodes from all particles and clumps and insert them to nodes defined for this field. Nodes are not added multiple times, even if they are referenced from different particles / clumps.")
 		.def("clearDead",&DemField::clearDead)
+		.def("nodesAppend",&DemField::pyNodesAppend,"Append given node to :obj:`nodes`, and set :obj:`DemData.linIx` to the correct value automatically.")
 		.def("sceneHasField",&Field_sceneHasField<DemField>).staticmethod("sceneHasField")
 		.def("sceneGetField",&Field_sceneGetField<DemField>).staticmethod("sceneGetField")
 	);

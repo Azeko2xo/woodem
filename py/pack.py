@@ -133,16 +133,18 @@ The current state (even if rotated) is taken as mechanically undeformed, i.e. wi
 		if 'mat' not in kw.keys(): kw['mat']=utils.defaultMaterial()
 		return scene.dem.par.append([utils.sphere(rot*c,r,**kw) for c,r in self])
 	else:
-		raise NotImplementedError("SpherePack.toSimulation does not handle clumps (yet)")
 		standalone,clumps=self.getClumps()
-		ids=scene.par.append([utils.sphere(rot*c,r,**kw) for c,r in self]) # append all spheres first
+		# append standalone
+		ids=scene.dem.par.append([utils.sphere(rot*self[i].c,self[i].r,**kw) for i in standalone])
+		# append clumps
 		clumpIds=[]
-		userColor='color' in kw
 		for clump in clumps:
-			clumpIds.append(O.bodies.clump(clump)) # clump spheres with given ids together, creating the clump object as well
-			# make all spheres within one clump a single color, unless color was specified by the user
-			if not userColor:
-				for i in clump[1:]: O.bodies[i].shape.color=O.bodies[clump[0]].shape.color
+			ids=scene.dem.par.appendClumped([utils.sphere(rot*self[i].c,self[i].r,**kw) for i in clump])
+			# make all particles within one clump same color (as the first particle),
+			# unless color was already user-specified
+			if not 'color' in kw:
+				for i in ids[1:]: scene.dem.par[i].shape.color=scene.dem.par[ids[0]].shape.color
+			clumpIds.append(ids)
 		return ids+clumpIds
 
 SpherePack.toSimulation=SpherePack_toSimulation

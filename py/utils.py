@@ -126,7 +126,7 @@ def _commonBodySetup(b,nodes,volumes,geomInertias,mat,masses=None,fixed=False):
 		b.nodes[i].dem.mass=masses[i]
 		b.nodes[i].dem.inertia=geomInertias[i]*b.mat.density
 	for i,n in enumerate(b.nodes):
-		n.dem.parCount+=1 # increase particle count
+		n.dem.addParRef(b) # increase particle count
 		if fixed: n.dem.blocked='xyzXYZ'
 		else: n.dem.blocked=''.join(['XYZ'[ax] for ax in (0,1,2) if geomInertias[i][ax]==inf]) # block rotational DOFs where inertia is infinite
 

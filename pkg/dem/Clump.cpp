@@ -3,12 +3,11 @@
 WOO_PLUGIN(dem,(ClumpData));
 CREATE_LOGGER(ClumpData);
 
-shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, const vector<Particle::id_t>& memberIds, shared_ptr<Node> centralNode,  bool intersecting){
-	if(nn.empty() || nn.size()!=memberIds.size()) throw std::runtime_error("ClumpData::makeClump: nodes and memberIds must have the same length, and may not be empty.");
+shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, shared_ptr<Node> centralNode, bool intersecting){
+	if(nn.empty()) throw std::runtime_error("ClumpData::makeClump: 0 nodes.");
 	/* TODO? check that nodes are unique */
 	auto clump=make_shared<ClumpData>();
 	clump->setClump();
-	clump->memberIds=memberIds;
 	auto cNode=(centralNode?centralNode:make_shared<Node>());
 	cNode->setData<DemData>(clump);
 
@@ -37,7 +36,7 @@ shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, const 
 	for(const auto& n: nn){
 		const auto& dem=n->getData<DemData>();
 		if(dem.isClumped()) woo::RuntimeError("Node "+lexical_cast<string>(n)+": already clumped.");
-		if(!dem.parCount>0) woo::RuntimeError("Node "+lexical_cast<string>(n)+": particle count for clumped particles must be > 0, not "+to_string(dem.parCount));
+		if(dem.parRef.empty()) woo::RuntimeError("Node "+lexical_cast<string>(n)+": back-references (demData.parRef) empty (Node does not belong to any particle)");
 		M+=dem.mass;
 		Sg+=dem.mass*n->pos;
 		Ig+=inertiaTensorTranslate(inertiaTensorRotate(dem.inertia.asDiagonal(),n->ori.conjugate()),dem.mass,-1.*n->pos);

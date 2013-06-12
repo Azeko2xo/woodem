@@ -45,6 +45,7 @@ struct Scene: public Object{
 		void fillDefaultTags();
 		// advance by one iteration by running all engines
 		void doOneStep();
+		void selfTest_maybe();
 
 		void postLoad(Scene&,void*);
 		void preSave(Scene&){ preSaveDuration=pyGetDuration(); }
@@ -143,6 +144,7 @@ struct Scene: public Object{
 
 		((bool,isPeriodic,false,/*exposed as "periodic" in python */AttrTrait<Attr::hidden>(),"Whether periodic boundary conditions are active."))
 		((bool,trackEnergy,false,,"Whether energies are being tracked."))
+		((int,selfTestEvery,0,,"Periodicity with which consistency self-tests will be run; 0 to run only in the very first step, negative to disable."))
 
 		((Vector2i,clDev,Vector2i(-1,-1),AttrTrait<Attr::triggerPostLoad>(),"OpenCL device to be used; if (-1,-1) (default), no OpenCL device will be initialized until requested. Saved simulations should thus always use the same device when re-loaded."))
 		#ifdef WOO_OPENCL
