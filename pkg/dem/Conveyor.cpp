@@ -191,31 +191,6 @@ void ConveyorFactory::run(){
 		dyn.linIx=dem->nodes.size();
 		dem->nodes.push_back(n);
 
-		#if 0
-			// with clumps
-			shared_ptr<Node> clump=Clump::makeClump(nodes);
-			auto& cd=clump->getData<DemData>().cast<ClumpData>();
-			cd.clumpLinIx=dem->clumps.size();
-			dem->clumps.push_back(clump);
-			Real equivR=cbrt((3*cd->mass/material->density)/(4*M_PI));
-			if(save) getDiamMass.push_back(Vector2r(2*equivR,cd.mass));
-			center=clump;
-
-			///
-
-			center=(*spheres.begin());
-
-			if((node->ori.conjugate()*(center->pos-node->pos)).x()<barrierLayer){
-				Real c=isnan(barrierColor)?Mathr::UnitRandom():barrierColor;
-				for(const auto& sphere: spheres) sphere->shape->color=c;
-				barrier.push_back(center);
-				center->getData<DemData>().setBlockedAll();
-			} else {
-				Real c=isnan(color)?Mathr::UnitRandom():color;
-				for(const auto& sphere: spheres) sphere->shape->color=c;
-			}
-		#endif
-
 		stepMass+=dyn.mass;
 		mass+=dyn.mass;
 		num+=1;

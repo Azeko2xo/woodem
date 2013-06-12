@@ -184,9 +184,8 @@ void DemField::postLoad(DemField&,void*){
 
 int DemField::collectNodes(){
 	std::set<void*> seen;
-	// add regular nodes and clumps
+	// ack nodes which are already there
 	for(const auto& n: nodes) seen.insert((void*)n.get());
-	//not this: for(const auto& n: clumps) seen.insert((void*)n.get());
 	int added=0;
 	// from particles
 	for(const auto& p: *particles){
@@ -199,15 +198,6 @@ int DemField::collectNodes(){
 			added++;
 		};
 	};
-	// from clumps
-	for(const auto& n: clumps){
-		if(seen.count((void*)n.get())!=0) continue; // already seen
-		seen.insert((void*)n.get());
-		assert(n->hasData<DemData>());
-		n->getData<DemData>().linIx=nodes.size();
-		nodes.push_back(n);
-		added++;
-	}
 	return added;
 }
 
@@ -244,7 +234,7 @@ void DemField::removeParticle(Particle::id_t id){
 		// no particle left, delete the node itself as well
 		if(dyn.parRef.empty()){
 			if(dyn.linIx<0) continue; // node not in DemField.nodes
-			if(dyn.linIx>nodes.size() || nodes[dyn.linIx].get()!=n.get()) throw std::runtime_error("Node in #"+to_string(id)+" has invalid linIx entry!");
+			if(dyn.linIx>(int)nodes.size() || nodes[dyn.linIx].get()!=n.get()) throw std::runtime_error("Node in #"+to_string(id)+" has invalid linIx entry!");
 			LOG_DEBUG("Removing #"<<id<<" / DemField::nodes["<<dyn.linIx<<"]"<<" (not used anymore)");
 			boost::mutex::scoped_lock lock(nodesMutex);
 			if(saveDeadNodes) deadNodes.push_back(nodes[dyn.linIx]);
@@ -266,12 +256,13 @@ void DemField::removeParticle(Particle::id_t id){
 	particles->remove(id);
 };
 
-void DemField::removeClump(size_t clumpLinIx){
-	const auto& node=clumps[clumpLinIx];
+void DemField::removeClump(size_t linIx){
+	if(linIx>nodes.size()) throw std::runtime_error("DemField.removeClump("+to_string(linIx)+"): invalid index.");
+	if(!nodes[linIx]) throw std::runtime_error("DemField.removeClump: DemField.nodes["+to_string(linIx)+"]=None.");
+	const auto& node=nodes[linIx];
 	assert(node->hasData<DemData>());
 	assert(dynamic_pointer_cast<ClumpData>(node->getDataPtr<DemData>()));
 	ClumpData& cd=node->getData<DemData>().cast<ClumpData>();
-	if(cd.clumpLinIx!=(long)clumpLinIx) throw std::runtime_error("Clump #"+to_string(clumpLinIx)+": clumpLinIx ("+to_string(cd.clumpLinIx)+") does not match its position ("+to_string(clumpLinIx)+")");
 	std::set<Particle::id_t> delPar;
 	for(const auto& n: cd.nodes){
 		for(Particle* p: n->getData<DemData>().parRef){
@@ -289,9 +280,9 @@ void DemField::removeClump(size_t clumpLinIx){
 	for(const auto& pId: delPar) removeParticle(pId);
 	// remove the clump node here
 	boost::mutex::scoped_lock lock(nodesMutex);
-	(*clumps.rbegin())->getData<DemData>().cast<ClumpData>().clumpLinIx=cd.clumpLinIx;
-	clumps[cd.clumpLinIx]=*clumps.rbegin();
-	clumps.resize(clumps.size()-1);
+	(*nodes.rbegin())->getData<DemData>().linIx=cd.linIx;
+	nodes[cd.linIx]=*nodes.rbegin();
+	nodes.resize(nodes.size()-1);
 }
 
 void DemField::selfTest(){
@@ -319,6 +310,14 @@ void DemField::selfTest(){
 		if(dyn.linIx!=(int)i) throw std::logic_error("DemField.nodes["+to_string(i)+"].dem.linIx="+to_string(dyn.linIx)+", should be "+to_string(i)+" (use DemField.nodesAppend instead of DemField.nodes.append to have linIx set automatically in python)");
 		if(dyn.isClump()){
 			if(!dynamic_pointer_cast<ClumpData>(n->getDataPtr<DemData>())) throw std::logic_error("DemField.nodes["+to_string(i)+".dem.clump=True, but does not define ClumpData.");
+			const auto& cd=*static_pointer_cast<ClumpData>(n->getDataPtr<DemData>());
+			for(size_t j=0; j<cd.nodes.size(); j++){
+				const auto& n=cd.nodes[j];
+				if(!n) throw std::logic_error("DemField.nodes["+to_string(i)+"].dem.nodes["+to_string(j)+"]=None (node is a clump).");
+				if(!n->hasData<DemData>()) throw std::logic_error("DemField.nodes["+to_string(i)+"].dem.nodes["+to_string(j)+"].dem=None (node is a clump).");
+				const auto& dyn2=n->getData<DemData>();
+				if(!dyn2.isClumped()) throw std::logic_error("DemField.nodes["+to_string(i)+"].dem.nodes["+to_string(j)+"].clumped=False, should be True (node is a clump).");
+			}
 		}
 		// check parRef
 		size_t j=0;
@@ -330,23 +329,6 @@ void DemField::selfTest(){
 				p->shape->nodes.end(),
 				[&n](const shared_ptr<Node>& a){return a.get()==n.get();}
 			)==p->shape->nodes.end()) throw std::logic_error("DemField.nodes["+to_string(i)+"].dem.parRef["+to_string(j)+"].shape.nodes does not contain DemField.nodes["+to_string(i)+" (the node back-references the particle, but the particle does not reference the node).");
-		}
-	}
-	// check clumps reference their particles correctly, and they are flagged as clumped
-	for(size_t i=0; i<clumps.size(); i++){
-		const auto& n=clumps[i];
-		if(!n) throw std::logic_error("DemField.clumps["+to_string(i)+"]=None, DemField.clumps should be contiguous");
-		if(!n->hasData<DemData>()) throw std::logic_error("DemField.clumps["+to_string(i)+"] does not define DemData.");
-		if(!dynamic_pointer_cast<ClumpData>(n->getDataPtr<DemData>())) throw std::logic_error("DemField.nodes["+to_string(i)+"] defines DemData, but not ClumpData.");
-		const auto& cd=*static_pointer_cast<ClumpData>(n->getDataPtr<DemData>());
-		if((int)i!=cd.clumpLinIx) throw std::logic_error("DemField.clumps["+to_string(i)+"].dem.clumpLinIx="+to_string(cd.clumpLinIx)+", should be "+to_string(i)+")");
-		if(!cd.isClump()) throw std::logic_error("DemField.clumps["+to_string(i)+"].dem.clump=False, should be True");
-		for(size_t j=0; j<cd.nodes.size(); j++){
-			const auto& n=cd.nodes[j];
-			if(!n) throw std::logic_error("DemField.clumps["+to_string(i)+"].dem.nodes["+to_string(j)+"]=None.");
-			if(!n->hasData<DemData>()) throw std::logic_error("DemField.clumps["+to_string(i)+"].dem.nodes["+to_string(j)+"].dem=None.");
-			const auto& dyn=n->getData<DemData>();
-			if(!dyn.isClumped()) throw std::logic_error("DemField.clumps["+to_string(i)+"].dem.nodes["+to_string(j)+"].clumped=False, should be True.");
 		}
 	}
 }

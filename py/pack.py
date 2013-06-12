@@ -61,7 +61,8 @@ def SpherePack_fromSimulation(self,scene):
 		self.add(p.pos,p.shape.radius)
 	# handle clumps here
 	clumpId=0
-	for n in scene.dem.clumps:
+	for n in scene.dem.nodes:
+		if not n.dem.clump: continue
 		someOk=False # prevent adding only a part of the clump to the packing
 		if len(n.dem.memberIds)==0: raise RuntimeError("ClumpData.memberIds has zero size (such clumps are not supported)")
 		for i in n.dem.memberIds:

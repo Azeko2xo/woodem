@@ -8,16 +8,50 @@ CREATE_LOGGER(BoxDeleter);
 void BoxDeleter::run(){
 	DemField* dem=static_cast<DemField*>(field.get());
 	Real stepMass=0.;
-	// iterate over indices so that iterators are not invalidated
-	for(size_t i=0; i<dem->particles->size(); i++){
-		const auto& p=(*dem->particles)[i];
-		if(!p || !p->shape || p->shape->nodes.size()!=1) continue;
-		if(mask & !(p->mask&mask)) continue;
-		if(p->shape->nodes[0]->getData<DemData>().isClumped()) continue;
-		const Vector3r pos=p->shape->nodes[0]->pos;
-		if(inside!=box.contains(pos)) continue; // keep this particle
-		LOG_TRACE("Saving particle #"<<i<<" to deleted");
-		if(save) deleted.push_back((*dem->particles)[i]);
+	std::set<Particle::id_t> delParIds;
+	std::set<Particle::id_t> delClumpIxs;
+	for(size_t i=0; i<dem->nodes.size(); i++){
+		const auto& n=dem->nodes[i];
+		if(inside!=box.contains(n->pos)) continue; // node inside, do nothing
+		if(!n->hasData<DemData>()) continue;
+		const auto& dyn=n->getData<DemData>();
+		// check all particles attached to this nodes
+		for(const Particle* p: dyn.parRef){
+			if(!p || !p->shape) continue;
+			if(mask && !(mask & p->mask)) continue;
+			// check that all other nodes of that particle may also be deleted
+			bool otherOk=true;
+			for(const auto& nn: p->shape->nodes){
+				// useless to check n again
+				if(nn.get()!=n.get() && !(inside!=box.contains(nn->pos))){ otherOk=false; break; }
+			}
+			if(!otherOk) continue;
+			LOG_TRACE("DemField.par["<<i<<"] marked for deletion.");
+			delParIds.insert(p->id);
+		}
+		// if this is a clump, check positions of all attached nodes, and masks of their particles
+		if(dyn.isClump()){
+			assert(dynamic_pointer_cast<ClumpData>(n->getDataPtr<DemData>()));
+			const auto& cd=n->getDataPtr<DemData>()->cast<ClumpData>();
+			for(const auto& nn: cd.nodes){
+				if(!(inside!=box.contains(nn->pos))) goto otherNotOk;
+				for(const Particle* p: nn->getData<DemData>().parRef){
+					assert(p);
+					if(mask && !(mask & p->mask)) goto otherNotOk;
+					// don't check positions of all nodes of each particles, just assume that
+					// either all nodes are in the clump
+				}
+					
+			}
+			LOG_TRACE("DemField.nodes["<<i<<"]: clump marked for deletion, with all its particles.");
+			delClumpIxs.insert(i);
+			otherNotOk: ;
+		}
+	}
+	// remove particles marked for deletion
+	for(const auto& id: delParIds){
+		const shared_ptr<Particle>& p((*dem->particles)[id]);
+		if(save) deleted.push_back(p);
 		if(scene->trackEnergy) scene->energy->add(DemData::getEk_any(p->shape->nodes[0],true,true,scene),"kinDelete",kinEnergyIx,EnergyTracker::ZeroDontCreate);
 		const Real& m=p->shape->nodes[0]->getData<DemData>().mass;
 		num++;
@@ -27,37 +61,23 @@ void BoxDeleter::run(){
 			auto& s=p->shape->cast<Sphere>();
 			s.radius=cbrt(3*m/(4*M_PI*p->material->density));
 		}
-		LOG_TRACE("Will delete particle #"<<i);
-		dem->removeParticle(i);
-		//dem->particles.remove(i);
-		LOG_DEBUG("Particle #"<<i<<" deleted");
+		LOG_TRACE("DemField.par["<<id<<"] will be deleted.");
+		dem->removeParticle(id);
+		LOG_DEBUG("DemField.par["<<id<<"] deleted.");
 	}
-	for(size_t i=0; i<dem->clumps.size(); i++){
-		const auto& c=dem->clumps[i];
-		if(inside!=box.contains(c->pos)){
-			ClumpData& cd=c->getData<DemData>().cast<ClumpData>();
-			// check mask of constituents first
-			for(const auto& n: cd.nodes){
-				for(Particle* member: n->getData<DemData>().parRef){
-					if(mask & !(mask&member->mask)) goto keepClump;
-				}
-			}
-			if(scene->trackEnergy) scene->energy->add(DemData::getEk_any(c,true,true,scene),"kinDelete",kinEnergyIx,EnergyTracker::ZeroDontCreate);
-			if(save){
-				for(const auto& n: cd.nodes){
-					for(Particle* member: n->getData<DemData>().parRef){
-						deleted.push_back(static_pointer_cast<Particle>(member->shared_from_this()));
-					}
-				}
-			}
-			num++;
-			for(const auto& n: cd.nodes){ mass+=n->getData<DemData>().mass; stepMass+=n->getData<DemData>().mass; }
-			dem->removeClump(i);
-			LOG_DEBUG("Clump #"<<i<<" deleted");
-			i--; // do this id again, might be a different clump now
-		}
-		keepClump: ;
+	for(const auto& ix: delClumpIxs){
+		const shared_ptr<Node>& n(dem->nodes[ix]);
+		if(scene->trackEnergy) scene->energy->add(DemData::getEk_any(n,true,true,scene),"kinDelete",kinEnergyIx,EnergyTracker::ZeroDontCreate);
+		Real m=n->getData<DemData>().mass;
+		num++;
+		mass+=m;
+		stepMass+=m;
+		LOG_TRACE("DemField.nodes["<<ix<<"] (clump) will be deleted, with all its particles.");
+		dem->removeClump(ix);
+		LOG_TRACE("DemField.nodes["<<ix<<"] (clump) deleted.");
 	}
+
+
 	// use the whole stepPeriod for the first time (might be residuum from previous packing), if specified
 	// otherwise the rate might be artificially high at the beginning
 	Real currRateNoSmooth=stepMass/(((stepPrev<0 && stepPeriod>0?stepPeriod:scene->step-stepPrev))*scene->dt); 

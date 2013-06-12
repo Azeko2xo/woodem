@@ -193,9 +193,8 @@ shared_ptr<Node> ParticleContainer::pyAppendClumped(vector<shared_ptr<Particle>>
 		}
 	}
 	shared_ptr<Node> clump=ClumpData::makeClump(nodes,n);
-	auto& cd=clump->getData<DemData>().cast<ClumpData>();
-	cd.clumpLinIx=dem->clumps.size();
-	dem->clumps.push_back(clump);
+	clump->getData<DemData>().linIx=dem->nodes.size();
+	dem->nodes.push_back(clump);
 	return clump;
 }
 

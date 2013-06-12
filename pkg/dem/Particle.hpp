@@ -226,14 +226,13 @@ struct DemField: public Field{
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(DemField,Field,"Field describing a discrete element assembly. Each body references (possibly many) nodes by their index in :ref:`Field.nodes` and :ref:`Field.nodalData`. ",
 		((shared_ptr<ParticleContainer>,particles,make_shared<ParticleContainer>(),AttrTrait<>().pyByRef().readonly().ini(),"Particles (each particle holds its contacts, and references associated nodes)"))
 		((shared_ptr<ContactContainer>,contacts,make_shared<ContactContainer>(),AttrTrait<>().pyByRef().readonly().ini(),"Linear view on particle contacts"))
-		((vector<shared_ptr<Node>>,clumps,,AttrTrait<Attr::readonly>(),"Nodes which define clumps; only manipulated from clump-related user-routines, not directly."))
 		((int,loneMask,0,,"Particle groups which have bits in loneMask in common (i.e. (A.mask & B.mask & loneMask)!=0) will not have contacts between themselves"))
 		((Vector3r,gravity,Vector3r::Zero(),,"Constant gravity acceleration"))
 		((bool,saveDeadNodes,false,AttrTrait<>().buttons({"Clear dead nodes","self.clearDead()",""}),"Save unused nodes of deleted particles, which would be otherwise removed (useful for displaying traces of deleted particles)."))
 		((vector<shared_ptr<Node>>,deadNodes,,AttrTrait<Attr::readonly|Attr::noSave>().noGui(),"List of nodes belonging to deleted particles; only used if :ref:`saveDeadNodes` is `True`"))
 		, /* ctor */ createIndex(); postLoad(*this,NULL); /* to make sure pointers are OK */
 		, /*py*/
-		.def("collectNodes",&DemField::collectNodes,"Collect nodes from all particles and clumps and insert them to nodes defined for this field. Nodes are not added multiple times, even if they are referenced from different particles / clumps.")
+		.def("collectNodes",&DemField::collectNodes,"Collect nodes from all particles and clumps and insert them to nodes defined for this field. Nodes are not added multiple times, even if they are referenced from different particles.")
 		.def("clearDead",&DemField::clearDead)
 		.def("nodesAppend",&DemField::pyNodesAppend,"Append given node to :obj:`nodes`, and set :obj:`DemData.linIx` to the correct value automatically.")
 		.def("sceneHasField",&Field_sceneHasField<DemField>).staticmethod("sceneHasField")

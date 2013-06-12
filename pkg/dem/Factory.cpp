@@ -237,7 +237,6 @@ void RandomFactory::run(){
 				// TODO: compute initial angular momentum, since we will (very likely) use the aspherical integrator
 			}
 			ClumpData::applyToMembers(clump,/*reset*/false); // apply velocity
-			dem->clumps.push_back(clump);
 			#ifdef WOO_OPENGL
 				boost::mutex::scoped_lock lock(dem->nodesMutex);
 			#endif

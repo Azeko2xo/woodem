@@ -19,7 +19,7 @@ struct ClumpData: public DemData{
 		((vector<shared_ptr<Node>>,nodes,,AttrTrait<Attr::readonly>(),"Member nodes"))
 		((vector<Vector3r>,relPos,,AttrTrait<Attr::readonly>(),"Relative member's positions"))
 		((vector<Quaternionr>,relOri,,AttrTrait<Attr::readonly>(),"Relative member's orientations"))
-		((long,clumpLinIx,-1,AttrTrait<Attr::hidden>(),"Index in the O.dem.clumps array, for efficient deletion."))
+		// ((long,clumpLinIx,-1,AttrTrait<Attr::hidden>(),"Index in the O.dem.clumps array, for efficient deletion."))
 	);
 };
 WOO_REGISTER_OBJECT(ClumpData);

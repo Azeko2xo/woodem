@@ -126,7 +126,7 @@ void VtkExport::run(){
 	_VTK_POINT_ARR(sGrid,sMass,"mass",1)
 	_VTK_POINT_INT_ARR(sGrid,sId,"id",1)
 	_VTK_POINT_INT_ARR(sGrid,sMask,"mask",1)
-	_VTK_POINT_INT_ARR(sGrid,sClumpId,"clumpId",1)
+	// _VTK_POINT_INT_ARR(sGrid,sClumpId,"clumpId",1)
 	_VTK_POINT_ARR(sGrid,sColor,"color",1)
 	_VTK_POINT_ARR(sGrid,sVel,"vel",3)
 	_VTK_POINT_ARR(sGrid,sAngVel,"angVel",3)
@@ -144,7 +144,7 @@ void VtkExport::run(){
 	_VTK_CELL_ARR(mGrid,mVel,"vel",3);
 	_VTK_CELL_ARR(mGrid,mAngVel,"angVel",3);
 
-	FOREACH(const auto& p, *dem->particles){
+	for(const auto& p: *dem->particles){
 		if(!p->shape) continue; // this should not happen really
 		if(mask && !(mask&p->mask)) continue;
 		if(!p->shape->getVisible() && skipInvisible) continue;
@@ -162,7 +162,7 @@ void VtkExport::run(){
 			sMass->InsertNextValue(dyn.mass);
 			sId->InsertNextValue(p->id);
 			sMask->InsertNextValue(p->mask);
-			sClumpId->InsertNextValue(dyn.isClumped()?sphere->nodes[0]->getData<DemData>().cast<ClumpData>().clumpLinIx:-1);
+			// sClumpId->InsertNextValue(dyn.isClumped()?sphere->nodes[0]->getData<DemData>().cast<ClumpData>().clumpLinIx:-1);
 			sColor->InsertNextValue(sphere->color);
 			sVel->InsertNextTupleValue(dyn.vel.data());
 			sAngVel->InsertNextTupleValue(dyn.angVel.data());

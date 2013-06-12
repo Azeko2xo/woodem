@@ -24,12 +24,12 @@ class TestSimpleClump(unittest.TestCase):
 			utils.sphere(p0,r1),
 			utils.sphere(p1,r2)
 		])
-		for n in (S.dem.par[0].shape.nodes[0],S.dem.par[1].shape.nodes[0],S.dem.clumps[0]): S.dem.nodesAppend(n);
-		#O.dem.clumps.clear()
+		for n in (S.dem.par[0].shape.nodes[0],S.dem.par[1].shape.nodes[0]): S.dem.nodesAppend(n);
+		self.bC,self.b1,self.b2=S.dem.nodes
 	def testConsistency(self):
 		"Clump: ids and flags consistency"
 		S=woo.master.scene
-		b1,b2,bC=[S.dem.nodes[i] for i in (0,1,2)]
+		b1,b2,bC=self.b1,self.b2,self.bC
 		#self.assertEqual(b1.clumpId,bC.id)
 		#self.assertEqual(b2.clumpId,bC.id)
 		#self.assertEqual(bC.clumpId,bC.id)
@@ -41,7 +41,7 @@ class TestSimpleClump(unittest.TestCase):
 	def testStaticProperties(self):
 		"Clump: mass, centroid, intertia"
 		S=woo.master.scene
-		b1,b2,bC=[S.dem.nodes[i] for i in (0,1,2)]
+		b1,b2,bC=self.b1,self.b2,self.bC
 		# mass
 		self.assertEqual(bC.dem.mass,b1.dem.mass+b2.dem.mass)
 		# centroid
@@ -62,7 +62,7 @@ class TestSimpleClump(unittest.TestCase):
 	def testVelocity(self):
 		"Clump: velocities of member assigned by Leapfrog"
 		S=woo.master.scene
-		b1,b2,bC=[S.dem.nodes[i] for i in (0,1,2)]
+		b1,b2,bC=self.b1,self.b2,self.bC
 		S.dt=0
 		#print bC.dem.vel,bC.dem.angVel
 		bC.dem.vel=(1.,.2,.4)

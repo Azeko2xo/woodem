@@ -255,45 +255,48 @@ void CLDemRun::doCompare(){
 	if(isnan(mU)) mU=1.;
 	Real NU=kgU*mU/pow(sU,2); // force unit
 	
-	// check clumps
-	FOREACH(const shared_ptr< ::Node> yn, dem->clumps){
-		if(yn->hasData<CLDemData>()) _THROW_ERROR("clump@"<<yn<<": no CLDemData with clDem id information.");
-		clDem::par_id_t clId=yn->getData<CLDemData>().clIx;
-		string pId="clump#"+lexical_cast<string>(clId)+"/@"+lexical_cast<string>(yn);
-		const clDem::Particle& cp(sim->par[clId]);
-		int shapeT=clDem::par_shapeT_get(&cp);
-		if(shapeT==Shape_None) _THROW_ERROR(pId<<": not in clDem");
-		if(shapeT!=Shape_Clump) _THROW_ERROR(pId<<": woo's clump associated with a regular clDem::Particle (shapeT="<<shapeT<<")");
 
-		if(!yn->hasData<DemData>() || !dynamic_pointer_cast<ClumpData>(yn->getDataPtr<DemData>())) _THROW_ERROR(pId<<": does not have associated ClumpData instance");
-		const ::ClumpData& ycd(yn->getData<DemData>().cast<ClumpData>());
-		long ix=cp.shape.clump.ix;
-		if(ix<0 || ix>=(long)sim->clumps.size()) _THROW_ERROR(pId<<": clump index "<<ix<<" is out of range for sim.clumps 〈0.."<<sim->clumps.size()<<")");
-		size_t cLen;
-		for(cLen=0; sim->clumps[ix+cLen].id>=0; cLen++){
-			// last element must sentinel with id<0, therefore we should never come here
-			if(ix+cLen==sim->clumps.size()-1) _THROW_ERROR(pId<<": clumps["<<ix+cLen<<"] is last element and should have id<0 (id="<<sim->clumps[ix+cLen].id<<")");
-		}
-		if(cLen!=ycd.nodes.size()) _THROW_ERROR(pId<<": clumps have different number of members "<<cLen<<"/"<<ycd.nodes.size());
-		// assume nodes/particles are in the same order
-		for(size_t i=0; i<cLen; i++){
-			const ClumpMember& cm=sim->clumps[ix+i];
-			if(!ycd.nodes[i]->hasData<CLDemData>()) _THROW_ERROR(pId<<"/"<<i<<" references node without CLDemData");
-			// get CLDemData::clIx
-			clDem::par_id_t clMemberId=ycd.nodes[i]->getData<CLDemData>().clIx;
-			// check that the node referenced from woo is the one of the particle referenced by clDem
-			if(clMemberId!=cm.id) _THROW_ERROR(pId<<"/"<<i<<": woo thinks the referenced clDem member should be "<<clMemberId<<", but clDem stores the value of "<<cm.id<<" (are clumps in the same order?)");
-			// check relative positions and orientations
-			Real relPosErr=(v2v(cm.relPos)-ycd.relPos[i]).norm()/mU;
-			AngleAxisr caa(q2q(cm.relOri)), yaa(ycd.relOri[i]);
-			Real relOriErr=(caa.axis()*caa.angle()-yaa.axis()*yaa.angle()).norm()/mU;
-			_CHK_ERR(pId<<"/"<<i,relPosErr,cm.relPos,ycd.relPos[i]);
-			_CHK_ERR(pId<<"/"<<i,relOriErr,cm.relOri,ycd.relOri[i]);
-		}
+	#if 0
+		// check clumps
+		FOREACH(const shared_ptr< ::Node> yn, dem->clumps){
+			if(yn->hasData<CLDemData>()) _THROW_ERROR("clump@"<<yn<<": no CLDemData with clDem id information.");
+			clDem::par_id_t clId=yn->getData<CLDemData>().clIx;
+			string pId="clump#"+lexical_cast<string>(clId)+"/@"+lexical_cast<string>(yn);
+			const clDem::Particle& cp(sim->par[clId]);
+			int shapeT=clDem::par_shapeT_get(&cp);
+			if(shapeT==Shape_None) _THROW_ERROR(pId<<": not in clDem");
+			if(shapeT!=Shape_Clump) _THROW_ERROR(pId<<": woo's clump associated with a regular clDem::Particle (shapeT="<<shapeT<<")");
 
-		// compare dynamic params
-		compareParticleNodeDyn(pId,cp,yn,kgU,mU,sU);
-	}
+			if(!yn->hasData<DemData>() || !dynamic_pointer_cast<ClumpData>(yn->getDataPtr<DemData>())) _THROW_ERROR(pId<<": does not have associated ClumpData instance");
+			const ::ClumpData& ycd(yn->getData<DemData>().cast<ClumpData>());
+			long ix=cp.shape.clump.ix;
+			if(ix<0 || ix>=(long)sim->clumps.size()) _THROW_ERROR(pId<<": clump index "<<ix<<" is out of range for sim.clumps 〈0.."<<sim->clumps.size()<<")");
+			size_t cLen;
+			for(cLen=0; sim->clumps[ix+cLen].id>=0; cLen++){
+				// last element must sentinel with id<0, therefore we should never come here
+				if(ix+cLen==sim->clumps.size()-1) _THROW_ERROR(pId<<": clumps["<<ix+cLen<<"] is last element and should have id<0 (id="<<sim->clumps[ix+cLen].id<<")");
+			}
+			if(cLen!=ycd.nodes.size()) _THROW_ERROR(pId<<": clumps have different number of members "<<cLen<<"/"<<ycd.nodes.size());
+			// assume nodes/particles are in the same order
+			for(size_t i=0; i<cLen; i++){
+				const ClumpMember& cm=sim->clumps[ix+i];
+				if(!ycd.nodes[i]->hasData<CLDemData>()) _THROW_ERROR(pId<<"/"<<i<<" references node without CLDemData");
+				// get CLDemData::clIx
+				clDem::par_id_t clMemberId=ycd.nodes[i]->getData<CLDemData>().clIx;
+				// check that the node referenced from woo is the one of the particle referenced by clDem
+				if(clMemberId!=cm.id) _THROW_ERROR(pId<<"/"<<i<<": woo thinks the referenced clDem member should be "<<clMemberId<<", but clDem stores the value of "<<cm.id<<" (are clumps in the same order?)");
+				// check relative positions and orientations
+				Real relPosErr=(v2v(cm.relPos)-ycd.relPos[i]).norm()/mU;
+				AngleAxisr caa(q2q(cm.relOri)), yaa(ycd.relOri[i]);
+				Real relOriErr=(caa.axis()*caa.angle()-yaa.axis()*yaa.angle()).norm()/mU;
+				_CHK_ERR(pId<<"/"<<i,relPosErr,cm.relPos,ycd.relPos[i]);
+				_CHK_ERR(pId<<"/"<<i,relOriErr,cm.relOri,ycd.relOri[i]);
+			}
+
+			// compare dynamic params
+			compareParticleNodeDyn(pId,cp,yn,kgU,mU,sU);
+		}
+	#endif
 
 
 	/* compare contacts */
@@ -495,18 +498,20 @@ shared_ptr<clDem::Simulation> CLDemField::wooToClDem(const shared_ptr< ::Scene>&
 		if(stepPeriod>0) yp->shape->setWire(true);
 	}
 
-	// create clumps
-	for(const auto& yn: dem->clumps){
-		if(!yn->hasData<DemData>() || !dynamic_pointer_cast<ClumpData>(yn->getDataPtr<DemData>())) throw std::runtime_error("clump @ 0x"+lexical_cast<string>(yn.get())+": does not have associated ClumpData instance");
-		const ::ClumpData& ycd(yn->getData<DemData>().cast<ClumpData>());
-		vector<clDem::par_id_t> cIds;
-		for(size_t i=0; i<ycd.nodes.size(); i++){
-			const auto& yn=ycd.nodes[i];
-			if(!yn->hasData<CLDemData>()) throw runtime_error("clump @0x"+lexical_cast<string>(yn.get())+"/"+lexical_cast<string>(i)+": member without CLDemData?");
-			cIds.push_back(yn->getData<CLDemData>().clIx);
+	#if 0
+		// create clumps
+		for(const auto& yn: dem->clumps){
+			if(!yn->hasData<DemData>() || !dynamic_pointer_cast<ClumpData>(yn->getDataPtr<DemData>())) throw std::runtime_error("clump @ 0x"+lexical_cast<string>(yn.get())+": does not have associated ClumpData instance");
+			const ::ClumpData& ycd(yn->getData<DemData>().cast<ClumpData>());
+			vector<clDem::par_id_t> cIds;
+			for(size_t i=0; i<ycd.nodes.size(); i++){
+				const auto& yn=ycd.nodes[i];
+				if(!yn->hasData<CLDemData>()) throw runtime_error("clump @0x"+lexical_cast<string>(yn.get())+"/"+lexical_cast<string>(i)+": member without CLDemData?");
+				cIds.push_back(yn->getData<CLDemData>().clIx);
+			}
+			sim->makeClumped(cIds);
 		}
-		sim->makeClumped(cIds);
-	}
+	#endif
 
 	// copy existing contacts
 	FOREACH(const shared_ptr< ::Contact>& c, *dem->contacts){
@@ -731,7 +736,7 @@ shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>
 				auto clump=ClumpData::makeClump(members);
 				clump->setData<CLDemData>(make_shared<CLDemData>());
 				clump->getData<CLDemData>().clIx=i;
-				dem->clumps.push_back(clump);
+				dem->nodes.push_back(clump); // ??
 				// void the particle, since there is no particle object for clump
 				// that avoids running the block below as well
 				yp.reset();

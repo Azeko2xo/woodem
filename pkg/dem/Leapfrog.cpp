@@ -150,7 +150,7 @@ void Leapfrog::run(){
 		}
 		#ifdef WOO_DEBUG
 			if(dyn.parRef.empty() && !dyn.isClump()) throw std::runtime_error("Node #"+to_string(i)+" has empty parRef and is not a clump.");
-			if(dyn.linIx!=i) throw std::logic_error("DemField.nodes["+to_string(i)+"].dem.linIx="+to_string(dyn.linIx)+", should be "+to_string(i)+".");
+			if(dyn.linIx!=(int)i) throw std::logic_error("DemField.nodes["+to_string(i)+"].dem.linIx="+to_string(dyn.linIx)+", should be "+to_string(i)+".");
 		#endif
 		// handle clumps
 		if(dyn.isClumped()) continue; // those particles are integrated via the clump's master node
