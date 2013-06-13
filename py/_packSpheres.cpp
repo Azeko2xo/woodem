@@ -9,9 +9,10 @@ WOO_PYTHON_MODULE(_packSpheres);
 BOOST_PYTHON_MODULE(_packSpheres){
 	py::scope().attr("__doc__")="Creation, manipulation, IO for generic sphere packings.";
 	WOO_SET_DOCSTRING_OPTS;
-	py::class_<SpherePack>("SpherePack","Set of spheres represented as centers and radii. This class is returned by :ref:`woo.pack.randomDensePack`, :ref:`woo.pack.randomPeriPack` and others. The object supports iteration over spheres, as in \n\n\t>>> sp=SpherePack()\n\t>>> for center,radius in sp: print center,radius\n\n\t>>> for sphere in sp: print sphere[0],sphere[1]   ## same, but without unpacking the tuple automatically\n\n\t>>> for i in range(0,len(sp)): print sp[i][0], sp[i][1]   ## same, but accessing spheres by index\n\n\n.. admonition:: Special constructors\n\n\tConstruct from list of ``[(c1,r1),(c2,r2),…]``. To convert two same-length lists of ``centers`` and ``radii``, construct with ``zip(centers,radii)``.\n",py::init<py::optional<py::list> >(py::args("list"),"Empty constructor, optionally taking list [ ((cx,cy,cz),r), … ] for initial data." ))
+	py::class_<SpherePack,shared_ptr<SpherePack>,boost::noncopyable>("SpherePack","Set of spheres represented as centers and radii. This class is returned by :ref:`woo.pack.randomDensePack`, :ref:`woo.pack.randomPeriPack` and others. The object supports iteration over spheres, as in \n\n\t>>> sp=SpherePack()\n\t>>> for center,radius in sp: print center,radius\n\n\t>>> for sphere in sp: print sphere[0],sphere[1]   ## same, but without unpacking the tuple automatically\n\n\t>>> for i in range(0,len(sp)): print sp[i][0], sp[i][1]   ## same, but accessing spheres by index\n\n\n.. admonition:: Special constructors\n\n\tConstruct from list of ``[(c1,r1),(c2,r2),…]``. To convert two same-length lists of ``centers`` and ``radii``, construct with ``zip(centers,radii)``.\n",py::init<py::optional<py::list> >(py::args("list"),"Empty constructor, optionally taking list [ ((cx,cy,cz),r), … ] for initial data." ))
 		.def("add",&SpherePack::add,(py::arg("center"),py::arg("radius"),py::arg("clumpId")=-1),"Add single sphere to packing, given center as 3-tuple and radius")
-		.def("toList",&SpherePack::toList,"Return packing data as python list.")
+		.def("toList",&SpherePack::toList,"Return packing data as [(c,r),(c,r),...].")
+		.def("toCcRr",&SpherePack::toCcRr,"Return packing data as ([c,c,...],[r,r,...]). Raises exception if there are clumps.")
 		.def("fromList",&SpherePack::fromList,"Make packing from given list, same format as for constructor. Discards current data.")
 		.def("fromList",&SpherePack::fromLists,(py::arg("centers"),py::arg("radii")),"Make packing from given list, same format as for constructor. Discards current data.")
 		.def("load",&SpherePack::fromFile,(py::arg("fileName")),"Load packing from external text file (current data will be discarded).")
@@ -28,8 +29,8 @@ BOOST_PYTHON_MODULE(_packSpheres){
 		.def("particleSD2",&SpherePack::particleSD2,(py::arg("radii"),py::arg("passing"),py::arg("numSph"),py::arg("periodic")=false,py::arg("cloudPorosity")=.8,py::arg("seed")=0),"Create random packing following the given particle size distribution (radii and volume/mass passing for each fraction) and total number of particles *numSph*. The cloud size (periodic or aperiodic) is computed from the PSD and is always cubic.")
 		.def("makeClumpCloud",&SpherePack::makeClumpCloud,(py::arg("minCorner"),py::arg("maxCorner"),py::arg("clumps"),py::arg("periodic")=false,py::arg("num")=-1),"Create random loose packing of clumps within box given by *minCorner* and *maxCorner*. Clumps are selected with equal probability. At most *num* clumps will be positioned if *num* is positive; otherwise, as many clumps as possible will be put in space, until maximum number of attempts to place a new clump randomly is attained.")
 		//
-		.def("aabb",&SpherePack::aabb_py,"Get axis-aligned bounding box coordinates, as 2 3-tuples.")
-		.def("dim",&SpherePack::dim,"Return dimensions of the packing in terms of aabb(), as a 3-tuple.")
+		.def("aabb",&SpherePack::aabb,"Get axis-aligned bounding box coordinates.")
+		.def("dim",&SpherePack::dim,"Return dimensions of the packing in terms of aabb().")
 		.def("center",&SpherePack::midPt,"Return coordinates of the bounding box center.")
 		.def_readwrite("cellSize",&SpherePack::cellSize,"Size of periodic cell; is Vector3(0,0,0) if not periodic. (Change this property only if you know what you're doing).")
 		.def_readwrite("userData",&SpherePack::userData,"Arbitrary string (not cotaining newlines) which will be saved and loaded with this object") 

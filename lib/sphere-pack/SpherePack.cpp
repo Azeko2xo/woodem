@@ -57,10 +57,18 @@ void SpherePack::fromLists(const vector<Vector3r>& centers, const vector<Real>& 
 }
 
 py::list SpherePack::toList() const {
-	py::list ret;
-	FOREACH(const Sph& s, pack) ret.append(s.asTuple());
-	return ret;
+	py::list ret; for(const Sph& s: pack) ret.append(s.asTuple()); return ret;
 };
+
+py::tuple SpherePack::toCcRr() const {
+	py::list cc, rr;
+	for(size_t i=0; i<pack.size(); i++){
+		const auto& s(pack[i]);
+		if(s.clumpId>=0) throw std::runtime_error("SpherePack.toCcRr(): Sphere "+to_string(i)+" is in clump "+to_string(i)+", refusing to lose information.");
+		cc.append(s.c); rr.append(s.r);
+	}
+	return py::make_tuple(cc,rr);
+}
 
 void SpherePack::fromFile(const string& fname) {
 	if(!boost::filesystem::exists(fname)) {
@@ -401,9 +409,6 @@ long SpherePack::makeClumpCloud(const Vector3r& mn, const Vector3r& mx, const ve
 		Real r=0;
 		FOREACH(const Sph& s, c2.pack) r=max(r,s.c.norm()+s.r);
 		boundRad.push_back(r);
-		Vector3r cMn,cMx; c2.aabb(cMn,cMx); // centered at zero now, this gives margin
-		//margins.push_back(periodic?cMx:Vector3r::Zero()); 
-		//boxMargins=boxMargins.cwise().max(cMx);
 		FOREACH(const Sph& s, c2.pack) maxR=max(maxR,s.r); // keep track of maximum sphere radius
 	}
 	std::list<ClumpInfo> clumpInfos;

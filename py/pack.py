@@ -150,6 +150,9 @@ The current state (even if rotated) is taken as mechanically undeformed, i.e. wi
 
 SpherePack.toSimulation=SpherePack_toSimulation
 
+# in c++
+SpherePack.filtered=SpherePack_filtered
+
 
 class inGtsSurface_py(Predicate):
 	"""This class was re-implemented in c++, but should stay here to serve as reference for implementing
@@ -354,15 +357,7 @@ def filterSpherePack(predicate,spherePack,**kw):
 	"""Using given SpherePack instance, return spheres the satisfy predicate.
 	The packing will be recentered to match the predicate and warning is given if the predicate
 	is larger than the packing."""
-	mn,mx=predicate.aabb()
-	dimP,centP=predicate.dim(),predicate.center()
-	dimS,centS=spherePack.dim(),spherePack.center()
-	if dimP[0]>dimS[0] or dimP[1]>dimS[1] or dimP[2]>dimS[2]: warnings.warn("Packing's dimension (%s) doesn't fully contain dimension of the predicate (%s)."%(dimS,dimP))
-	spherePack.translate(centP-centS)
-	ret=SpherePack()
-	for c,r in spherePack:
-		if predicate(c,r): ret.add(c,r)
-	return ret
+	return spherePack.filtered(predicate)
 
 def _memoizePacking(memoizeDb,sp,radius,rRelFuzz,wantPeri,fullDim):
 	if not memoizeDb: return
@@ -660,7 +655,7 @@ def hexaNet( radius, cornerCoord=[0,0,0], xLength=1., yLength=0.5, mos=0.08, a=0
 def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNum=-1,dontBlock=False,returnSpherePack=False,memoizeDir=None,clumps=None):
 	if memoizeDir:
 		# increase number at the end for every change in the algorithm to make old feeds incompatible
-		params=str(dim)+str(psd)+str(goal)+str(damping)+str(porosity)+str(lenAxis)+'3'
+		params=str(dim)+str(psd)+str(goal)+str(damping)+str(porosity)+str(lenAxis)+'4'
 		import hashlib
 		paramHash=hashlib.sha1(params).hexdigest()
 		memoizeFile=memoizeDir+'/'+paramHash+'.perifeed'
@@ -719,23 +714,25 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNu
 	boxMin[lenAxis]=-inf
 	boxMax[lenAxis]=inf
 	box=AlignedBox3(boxMin,boxMax)
-	for c,r in sp:
-		if c-Vector3(r,r,r) not in box or c+Vector3(r,r,r) not in box: continue
-		cc.append(c); rr.append(r)
+	sp2=sp.filtered(inAlignedBox(box))
+	#for c,r in sp:
+	#	if c-Vector3(r,r,r) not in box or c+Vector3(r,r,r) not in box: continue
+	#	cc.append(c); rr.append(r)
 	if memoizeDir or returnSpherePack:
-		sp2=SpherePack()
-		sp2.fromList(cc,rr)
-		sp2.cellSize=sp.cellSize
+		#sp2=SpherePack()
+		#sp2.fromList(cc,rr)
+		#sp2.cellSize=sp.cellSize
 		if memoizeDir:
 			print 'Saving to',memoizeFile
 			sp2.save(memoizeFile)
 		if returnSpherePack:
 			return sp2
-	return cc,rr,sp.cellSize[lenAxis]
+	cc,rr=sp2.toCcRr()
+	return cc,rr,sp2.cellSize[lenAxis]
 
 
 
-def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,goal=.15,dontBlock=False,memoizeDir=None,botLine=None,leftLine=None,rightLine=None,clumps=[]):
+def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,goal=.15,dontBlock=False,memoizeDir=None,botLine=None,leftLine=None,rightLine=None,clumps=[],returnSpherePack=False):
 	'''Create dense packing periodic in the +y direction, suitable for use with ConveyorFactory.'''
 	print 'woo.pre.roro.makeBandFeedPack(dim=%s,psd=%s,mat=%s,gravity=%s,excessWd=%s,damping=%s,dontBlock=True,botLine=%s,leftLine=%s,rightLine=%s,clumps=%s)'%(repr(dim),repr(psd),mat.dumps(format='expr',width=-1,noMagic=True),repr(gravity),repr(excessWd),repr(damping),repr(botLine),repr(leftLine),repr(rightLine),repr(clumps))
 	dim=list(dim) # make modifiable in case of excess width
@@ -752,7 +749,7 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 	cellSize=(dim[0],dim[1],(1+2*porosity)*dim[2])
 	print 'cell size',cellSize,'target height',dim[2]
 	if memoizeDir and not dontBlock:
-		params=str(dim)+str(cellSize)+str(psd)+str(goal)+str(damping)+mat.dumps(format='expr')+str(gravity)+str(porosity)+str(botLine)+str(leftLine)+str(rightLine)+str(clumps)
+		params=str(dim)+str(cellSize)+str(psd)+str(goal)+str(damping)+mat.dumps(format='expr')+str(gravity)+str(porosity)+str(botLine)+str(leftLine)+str(rightLine)+str(clumps)+'ver2'
 		import hashlib
 		paramHash=hashlib.sha1(params).hexdigest()
 		memoizeFile=memoizeDir+'/'+paramHash+'.bandfeed'
@@ -761,6 +758,7 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 			print 'Returning memoized result'
 			sp=SpherePack()
 			sp.load(memoizeFile)
+			if returnSpherePack: return sp
 			return zip(*sp)
 	import woo, woo.core, woo.dem
 	S=woo.core.Scene(fields=[woo.dem.DemField(gravity=gravity)])
@@ -812,19 +810,35 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 	if dontBlock: return S
 	else: S.run()
 	S.wait()
-	cc,rr=[],[]
-	for p in S.dem.par:
-		if not type(p.shape)==woo.dem.Sphere: continue
-		for rep in repeatCell:
-			c,r=S.cell.canonicalizePt(p.pos)+dim[1]*(rep-.5)*Vector3.UnitY,p.shape.radius
-			if abs(c[1])+r>.5*retWd or c[2]+r>dim[2]: continue
-			cc.append(Vector3(c[0],c[1],c[2])); rr.append(r)
-	if memoizeDir:
+	if True:
 		sp=SpherePack()
-		for c,r in zip(cc,rr): sp.add(c,r)
-		print 'Saving to',memoizeFile
-		sp.save(memoizeFile)
-	return cc,rr
+		sp.fromSimulation(S)
+		repeats=Vector3i(1,len(repeatCell),1)
+		sp.cellRepeat(repeats)
+		sp.translate(Vector3(0,dim[1]*(repeats[1]-1.5),0))
+		sp.cellSize=(0,0,0) # not periodic
+		if memoizeDir:
+			print 'Saving to',memoizeFile
+			sp.save(memoizeFile)
+		if returnSpherePack: return sp
+		return zip(*sp)
+
+	# old implementation, without SpherePack
+	# should be removed at some point (soon)
+	else:
+		cc,rr=[],[]
+		for p in S.dem.par:
+			if not type(p.shape)==woo.dem.Sphere: continue
+			for rep in repeatCell:
+				c,r=S.cell.canonicalizePt(p.pos)+dim[1]*(rep-.5)*Vector3.UnitY,p.shape.radius
+				if abs(c[1])+r>.5*retWd or c[2]+r>dim[2]: continue
+				cc.append(Vector3(c[0],c[1],c[2])); rr.append(r)
+		if memoizeDir:
+			sp=SpherePack()
+			for c,r in zip(cc,rr): sp.add(c,r)
+			print 'Saving to',memoizeFile
+			sp.save(memoizeFile)
+		return cc,rr
 
 
 

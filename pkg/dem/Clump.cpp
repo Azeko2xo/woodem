@@ -29,12 +29,13 @@ vector<shared_ptr<SphereClumpGeom>> SphereClumpGeom::fromSpherePack(const shared
 	for(auto& ci: cIx){
 		auto cg=make_shared<SphereClumpGeom>();
 		cg->div=div;
-		cg->centers.resize(ci.second.size());
-		cg->radii.resize(ci.second.size());
-		for(size_t i=0; i<ci.second.size(); i++){
-			cg->centers[i]=sp->pack[i].c;
-			cg->radii[i]=sp->pack[i].r;
+		cg->centers.clear(); cg->centers.reserve(ci.second.size());
+		cg->radii.clear();   cg->radii.reserve(ci.second.size());
+		for(const int& i: ci.second){
+			cg->centers.push_back(sp->pack[i].c);
+			cg->radii.push_back(sp->pack[i].r);
 		}
+		assert(cg->centers.size()==ci.second.size()); assert(cg->radii.size()==ci.second.size());
 		cg->recompute(div);
 		ret.push_back(cg);
 	}
@@ -117,7 +118,7 @@ std::tuple<shared_ptr<Node>,vector<shared_ptr<Particle>>> SphereClumpGeom::makeC
 	ClumpData::applyToMembers(n);
 	// set clump properties
 	assert(!isnan(volume));
-	cd->setClump();
+	cd->setClump(); assert(cd->isClump());
 	cd->mass=mat->density*volume*pow(scale,3);
 	cd->inertia=mat->density*inertia*pow(scale,5);
 	return std::make_tuple(n,par);

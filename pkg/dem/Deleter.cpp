@@ -34,12 +34,12 @@ void BoxDeleter::run(){
 			assert(dynamic_pointer_cast<ClumpData>(n->getDataPtr<DemData>()));
 			const auto& cd=n->getDataPtr<DemData>()->cast<ClumpData>();
 			for(const auto& nn: cd.nodes){
-				if(!(inside!=box.contains(nn->pos))) goto otherNotOk;
+				if(inside!=box.contains(nn->pos)) goto otherNotOk;
 				for(const Particle* p: nn->getData<DemData>().parRef){
 					assert(p);
 					if(mask && !(mask & p->mask)) goto otherNotOk;
 					// don't check positions of all nodes of each particles, just assume that
-					// either all nodes are in the clump
+					// all nodes of that particle are in the clump
 				}
 					
 			}

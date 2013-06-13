@@ -290,20 +290,20 @@ void InsertionSortCollider::run(){
 		// adjust storage size
 		bool doInitSort=false;
 		if(forceInitSort){ doInitSort=true; forceInitSort=false; }
+		assert(BB[0].size==BB[1].size); assert(BB[1].size==BB[2].size);
 		if(BB[0].size!=2*nPar){
-			long BBsize=BB[0].size;
-			LOG_DEBUG("Resize bounds containers from "<<BBsize<<" to "<<nPar*2<<", will std::sort.");
+			LOG_DEBUG("Resize bounds containers from "<<BB[0].size<<" to "<<nPar*2<<", will std::sort.");
 			// bodies deleted; clear the container completely, and do as if all bodies were added (rather slow…)
 			// future possibility: insertion sort with such operator that deleted bodies would all go to the end, then just trim bounds
-			if(2*nPar<BBsize){ for(int i=0; i<3; i++) BB[i].vec.clear(); }
+			if(2*nPar<BB[0].size){ for(int i: {0,1,2}){ BB[i].vec.clear(); BB[i].size=0; }}
 			// more than 100 bodies was added, do initial sort again
 			// maybe: should rather depend on ratio of added bodies to those already present...?
-			if(2*nPar-BBsize>200 || BBsize==0) doInitSort=true;
-			assert((BBsize%2)==0);
-			for(int i=0; i<3; i++){
+			else if(2*nPar-BB[0].size>200 || BB[0].size==0) doInitSort=true;
+			assert((BB[0].size%2)==0);
+			for(int i:{0,1,2}){
 				BB[i].vec.reserve(2*nPar);
 				// add lower and upper bounds; coord is not important, will be updated from bb shortly
-				for(long id=BBsize/2; id<nPar; id++){ BB[i].vec.push_back(Bounds(0,id,/*isMin=*/true)); BB[i].vec.push_back(Bounds(0,id,/*isMin=*/false)); }
+				for(long id=BB[i].vec.size()/2; id<nPar; id++){ BB[i].vec.push_back(Bounds(0,id,/*isMin=*/true)); BB[i].vec.push_back(Bounds(0,id,/*isMin=*/false)); }
 				BB[i].size=BB[i].vec.size();
 				assert(BB[i].size==2*nPar);
 				assert(nPar==(long)particles->size());

@@ -91,12 +91,17 @@ void ConveyorFactory::notifyDead(){
 }
 
 void ConveyorFactory::setAttachedParticlesColor(const shared_ptr<Node>& n, Real c){
+	assert(n); assert(n->hasData<DemData>());
 	auto& dyn=n->getData<DemData>();
 	if(!dyn.isClump()){
-		(*dyn.parRef.begin())->shape->color=c; // a single particle
+		// it is possible that the particle was meanwhile removed from the simulation, whence the check
+		// we can suppose the node has one single particle (unless someone abused the node meanwhile with another particle!)
+		if(!dyn.parRef.empty()) (*dyn.parRef.begin())->shape->color=c;
 	} else {
 		for(const auto& nn: dyn.cast<ClumpData>().nodes){
-			(*nn->getData<DemData>().parRef.begin())->shape->color=c;
+			assert(nn); assert(nn->hasData<DemData>());
+			auto& ddyn=n->getData<DemData>();
+			if(!ddyn.parRef.empty()) (*ddyn.parRef.begin())->shape->color=c;
 		}
 	}
 }
@@ -178,6 +183,7 @@ void ConveyorFactory::run(){
 			for(auto& sphere: spheres){
 				sphere->mask=mask;
 				dem->particles->insert(sphere);
+				LOG_TRACE("[cllump] new sphere #"<<sphere->id<<", r="<<radii[nextIx]<<" at "<<n->pos.transpose());
 			}
 		}
 

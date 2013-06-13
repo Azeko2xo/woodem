@@ -53,6 +53,7 @@ public:
 	void fromList(const py::list& l);
 	void fromLists(const vector<Vector3r>& centers, const vector<Real>& radii); // used as ctor in python
 	py::list toList() const;
+	py::tuple toCcRr() const;
 	void fromFile(const string& file);
 	void toFile(const string& file) const;
 	// void fromSimulation();
@@ -86,13 +87,13 @@ public:
 	void canonicalize();
 
 	// spatial characteristics
-	Vector3r dim() const {Vector3r mn,mx; aabb(mn,mx); return mx-mn;}
-	py::tuple aabb_py() const { Vector3r mn,mx; aabb(mn,mx); return py::make_tuple(mn,mx); }
-	void aabb(Vector3r& mn, Vector3r& mx) const {
-		Real inf=std::numeric_limits<Real>::infinity(); mn=Vector3r(inf,inf,inf); mx=Vector3r(-inf,-inf,-inf);
-		for(const Sph& s: pack){ Vector3r rrr(s.r,s.r,s.r); mn=mn.array().min((s.c-rrr).array()).matrix(); mx=mx.array().max((s.c+rrr).array()).matrix();}
+	Vector3r dim() const { return aabb().sizes();}
+	AlignedBox3r aabb() const {
+		AlignedBox3r ret;
+		for(const Sph& s: pack){ ret.extend(s.c+Vector3r::Constant(s.r)); ret.extend(s.c-Vector3r::Constant(s.r)); }
+		return ret;
 	}
-	Vector3r midPt() const {Vector3r mn,mx; aabb(mn,mx); return .5*(mn+mx);}
+	Vector3r midPt() const { return aabb().center();}
 	Real relDensity() const {
 		Real sphVol=0; Vector3r dd=dim();
 		for(const Sph& s: pack) sphVol+=pow(s.r,3);
