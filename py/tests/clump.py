@@ -75,3 +75,45 @@ class TestSimpleClump(unittest.TestCase):
 		self.assertEqual(b1.dem.angVel,bC.dem.angVel);
 		self.assertEqual(b2.dem.angVel,bC.dem.angVel);
 
+def sphereClumpPrincipalAxes(cc,rr):
+	'Return vol,pos,ori,inertia of sphere clump defined by centers and radii of spheres'
+	ii=range(len(rr))
+	Ii=[Matrix3(Vector3.Ones*((8/15.)*pi*rr[i]**5)) for i in ii]
+	Vi=[(4/3.)*pi*rr[i]**3 for i in ii]
+	V=sum(Vi)
+	Sg=sum([Vi[i]*cc[i] for i in ii],Vector3.Zero)
+	Ig=sum([Ii[i]+Vi[i]*(cc[i].dot(cc[i])*Matrix3.Identity-cc[i].outer(cc[i])) for i in ii],Matrix3.Zero)
+	pos=Sg/V
+	import numpy, numpy.linalg
+	Ic_orientG=Ig-V*(pos.dot(pos)*Matrix3.Identity-pos.outer(pos))
+	eigval,eigvec=numpy.linalg.eigh(numpy.matrix(Ic_orientG))
+	ori=Quaternion(Matrix3(*eigvec.tolist()))
+	inertia=Vector3(eigval)
+	return V,pos,ori,inertia
+
+
+class TestSphereClumpGeom(unittest.TestCase):
+	"Test geometry of clumps composed of spheres only"
+	def setUp(self):
+		# c has no self-intersections
+		self.c=SphereClumpGeom(centers=[(0,0,0),(0,0,3)],radii=(1,.5),div=-1)
+		# c2 has several identical (overlapping) spheres
+		self.c2=SphereClumpGeom(centers=[(0,0,0),(0,0,0)],radii=(1,1),div=-1)
+	def testSteiner(self):
+		"SphereClumpGeom: properties via Steiner's theorem"
+		vol,pos,ori,inertia=sphereClumpPrincipalAxes(self.c.centers,self.c.radii)
+		self.c.recompute(div=0)
+		self.assertAlmostEqual(min(inertia),min(self.c.inertia))
+		self.assertAlmostEqual(max(inertia),max(self.c.inertia))
+		for i in (0,1,2):	self.assertAlmostEqual(pos[i],self.c.pos[i])
+		self.assertAlmostEqual(vol,self.c.volume)
+	def testSampling(self):
+		"SphereClumpGeom: properties via grid sampling"
+		self.c2.recompute(div=10)
+		exactV=(4/3.)*pi*self.c.radii[0]**3
+		exactI=(8/15.)*pi*self.c.radii[0]**5
+		self.assertAlmostEqual(self.c2.volume,exactV,delta=exactV*1e-2)
+		self.assertAlmostEqual(self.c2.inertia[0],exactI,delta=exactI*2e-2)
+		#print 'volume',sum([(4/3.)*pi*self.c.radii[i]**3 for i in range(len(self.c.radii))]),self.c.volume
+		#self.assertAlmostEqual()
+

@@ -64,15 +64,14 @@ def SpherePack_fromSimulation(self,scene):
 	for n in scene.dem.nodes:
 		if not n.dem.clump: continue
 		someOk=False # prevent adding only a part of the clump to the packing
-		if len(n.dem.memberIds)==0: raise RuntimeError("ClumpData.memberIds has zero size (such clumps are not supported)")
-		for i in n.dem.memberIds:
-			p=scene.dem.par[i]
-			if p.shape.__class__!=woo.dem.Sphere:
-				if someOk: raise RuntimError("A clump with mixed sphere/non-sphere shapes was encountered, which is not supported by SpherePack.fromSimulation");
-				continue
-			assert p.shape.nodes[0].dem.clumped
-			self.add(p.pos,p.shape.radius,clumpId=clumpId),
-			someOk=True
+		for nn in n.dem.nodes: # get particles belonging to clumped nodes
+			for p in nn.dem.parRef:
+				if p.shape.__class__!=woo.dem.Sphere:
+					if someOk: raise RuntimError("A clump with mixed sphere/non-sphere shapes was encountered, which is not supported by SpherePack.fromSimulation");
+					continue
+				assert p.shape.nodes[0].dem.clumped
+				self.add(p.pos,p.shape.radius,clumpId=clumpId),
+				someOk=True
 		clumpId+=1
 	if scene.periodic:
 		h=scene.cell.hSize
@@ -136,16 +135,17 @@ The current state (even if rotated) is taken as mechanically undeformed, i.e. wi
 	else:
 		standalone,clumps=self.getClumps()
 		# append standalone
-		ids=scene.dem.par.append([utils.sphere(rot*self[i].c,self[i].r,**kw) for i in standalone])
+		ids=scene.dem.par.append([utils.sphere(rot*self[i][0],self[i][1],**kw) for i in standalone])
 		# append clumps
 		clumpIds=[]
 		for clump in clumps:
-			ids=scene.dem.par.appendClumped([utils.sphere(rot*self[i].c,self[i].r,**kw) for i in clump])
+			clumpNode=scene.dem.par.appendClumped([utils.sphere(rot*(self[i][0]),self[i][1],**kw) for i in clump])
 			# make all particles within one clump same color (as the first particle),
 			# unless color was already user-specified
+			clumpIds=[n.dem.parRef[0].id for n in clumpNode.dem.nodes] 
 			if not 'color' in kw:
-				for i in ids[1:]: scene.dem.par[i].shape.color=scene.dem.par[ids[0]].shape.color
-			clumpIds.append(ids)
+				c0=clumpNode.dem.nodes[0].dem.parRef[0].shape.color
+				for n in clumpNode.dem.nodes[1:]: n.dem.parRef[0].shape.color=c0
 		return ids+clumpIds
 
 SpherePack.toSimulation=SpherePack_toSimulation
@@ -657,7 +657,7 @@ def hexaNet( radius, cornerCoord=[0,0,0], xLength=1., yLength=0.5, mos=0.08, a=0
 
 
 
-def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNum=-1,dontBlock=False,returnSpherePack=False,memoizeDir=None):
+def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNum=-1,dontBlock=False,returnSpherePack=False,memoizeDir=None,clumps=None):
 	if memoizeDir:
 		# increase number at the end for every change in the algorithm to make old feeds incompatible
 		params=str(dim)+str(psd)+str(goal)+str(damping)+str(porosity)+str(lenAxis)+'3'
@@ -682,15 +682,17 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNu
 	S=woo.core.Scene(fields=[woo.dem.DemField()])
 	S.periodic=True
 	S.cell.setBox(cellSize)
+	if not clumps: generator=woo.dem.PsdSphereGenerator(psdPts=psd,discrete=False,mass=True)
+	else: generator=woo.dem.PsdClumpGenerator(psdPts=psd,discrete=False,mass=True,clumps=clumps)
 	S.engines=[
 		woo.dem.InsertionSortCollider([woo.dem.Bo1_Sphere_Aabb()]),
 		woo.dem.BoxFactory(
 			box=((0,0,0),cellSize),
 			maxMass=-1,
 			maxNum=maxNum,
+			generator=generator,
 			massFlowRate=0,
 			maxAttempts=5000,
-			generator=woo.dem.PsdSphereGenerator(psdPts=psd,discrete=False,mass=True),
 			materials=[woo.dem.FrictMat(density=1e3,young=1e7,ktDivKn=.2,tanPhi=math.tan(.5))],
 			shooter=None,
 			mask=1,
@@ -733,9 +735,9 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNu
 
 
 
-def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,goal=.15,dontBlock=False,memoizeDir=None,botLine=None,leftLine=None,rightLine=None):
+def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,goal=.15,dontBlock=False,memoizeDir=None,botLine=None,leftLine=None,rightLine=None,clumps=[]):
 	'''Create dense packing periodic in the +y direction, suitable for use with ConveyorFactory.'''
-	print 'woo.pre.roro.makeBandFeedPack(dim=%s,psd=%s,mat=%s,gravity=%s,excessWd=%s,damping=%s,dontBlock=True,botLine=%s,leftLine=%s,rightLine=%s)'%(repr(dim),repr(psd),mat.dumps(format='expr',width=-1,noMagic=True),repr(gravity),repr(excessWd),repr(damping),repr(botLine),repr(leftLine),repr(rightLine))
+	print 'woo.pre.roro.makeBandFeedPack(dim=%s,psd=%s,mat=%s,gravity=%s,excessWd=%s,damping=%s,dontBlock=True,botLine=%s,leftLine=%s,rightLine=%s,clumps=%s)'%(repr(dim),repr(psd),mat.dumps(format='expr',width=-1,noMagic=True),repr(gravity),repr(excessWd),repr(damping),repr(botLine),repr(leftLine),repr(rightLine),repr(clumps))
 	dim=list(dim) # make modifiable in case of excess width
 	retWd=dim[1]
 	repeatCell=[0]
@@ -750,7 +752,7 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 	cellSize=(dim[0],dim[1],(1+2*porosity)*dim[2])
 	print 'cell size',cellSize,'target height',dim[2]
 	if memoizeDir and not dontBlock:
-		params=str(dim)+str(cellSize)+str(psd)+str(goal)+str(damping)+mat.dumps(format='expr')+str(gravity)+str(porosity)+str(botLine)+str(leftLine)+str(rightLine)
+		params=str(dim)+str(cellSize)+str(psd)+str(goal)+str(damping)+mat.dumps(format='expr')+str(gravity)+str(porosity)+str(botLine)+str(leftLine)+str(rightLine)+str(clumps)
 		import hashlib
 		paramHash=hashlib.sha1(params).hexdigest()
 		memoizeFile=memoizeDir+'/'+paramHash+'.bandfeed'
@@ -783,6 +785,8 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 	mat0,mat=mat,mat.deepcopy()
 	mat.tanPhi=min(.2,mat0.tanPhi)
 
+	if not clumps: generator=woo.dem.PsdSphereGenerator(psdPts=psd,discrete=False,mass=True)
+	else: generator=woo.dem.PsdClumpGenerator(psdPts=psd,discrete=False,mass=True,clumps=clumps)
 
 	S.engines=utils.defaultEngines(damping=damping)+[
 		woo.dem.BoxFactory(
@@ -791,7 +795,7 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 			maxMass=massToDo,
 			massFlowRate=0,
 			maxAttempts=20,
-			generator=woo.dem.PsdSphereGenerator(psdPts=psd,discrete=False,mass=True),
+			generator=generator,
 			materials=[mat],
 			shooter=woo.dem.AlignedMinMaxShooter(dir=(0,0,-1),vRange=(0,0)),
 			mask=1,

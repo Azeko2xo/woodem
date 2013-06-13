@@ -1,6 +1,5 @@
 #include<woo/pkg/dem/Conveyor.hpp>
 #include<woo/pkg/dem/Factory.hpp>
-#include<woo/pkg/dem/Clump.hpp>
 #include<woo/pkg/dem/Sphere.hpp>
 #include<woo/pkg/dem/Funcs.hpp>
 
@@ -14,8 +13,19 @@ CREATE_LOGGER(ConveyorFactory);
 
 
 void ConveyorFactory::postLoad(ConveyorFactory&,void*){
-	if(radii.size()==centers.size() && !radii.empty()){
-		sortPacking();
+	if(!clumps.empty()){
+		// with clumps
+		if(radii.size()!=clumps.size() || centers.size()!=clumps.size()){
+			radii.resize(clumps.size()); centers.resize(clumps.size());
+			for(size_t i=0; i<clumps.size(); i++){
+				radii[i]=clumps[i]->equivRad;
+				centers[i]=clumps[i]->pos;
+			}
+			sortPacking();
+		}
+	} else { 
+		// no clumps
+		if(radii.size()==centers.size() && !radii.empty()) sortPacking();
 	}
 	if(!radii.empty() && material){
 		Real vol=0; for(const Real& r: radii) vol+=(4./3.)*M_PI*pow(r,3);
@@ -28,57 +38,33 @@ void ConveyorFactory::postLoad(ConveyorFactory&,void*){
 	}
 }
 
-
 void ConveyorFactory::sortPacking(){
 	if(radii.size()!=centers.size()) throw std::logic_error("ConveyorFactory.sortPacking: radii.size()!=centers.size()");
 	if(hasClumps() && radii.size()!=clumps.size()) throw std::logic_error("ConveyorFactory.sortPacking: clumps not empty and clumps.size()!=centers.size()");
 	if(!cellLen>0 /*catches NaN as well*/) ValueError("ConveyorFactor.cellLen must be positive (not "+to_string(cellLen)+")");
 	size_t N=radii.size();
-	if(!hasClumps()){
-		// sort spheres according to their x-coordinate
-		// copy arrays to structs first
-		//typedef std::tuple<Vector3r,Real> CentRad;
-		struct CR{ Vector3r c; Real r; };
-		vector<CR> ccrr(radii.size());
-		for(size_t i=0;i<N;i++){
-			if(centers[i][0]<0 || centers[i][0]>=cellLen) centers[i][0]=Cell::wrapNum(centers[i][0],cellLen);
-			ccrr[i]=CR{centers[i],radii[i]};
-		}
-		// sort according to the x-coordinate
-		std::sort(ccrr.begin(),ccrr.end(),[](const CR& a, const CR& b)->bool{ return a.c[0]<b.c[0]; });
-		for(size_t i=0;i<N;i++){
-			centers[i]=ccrr[i].c; radii[i]=ccrr[i].r;
-		}
-	} else {
-		// sort clumps according to their minimum coordinate
-		std::map<int,Real> clumpMinX;
-		for(size_t i=0; i<N; i++){
-			int c=clumps[i]; Real x=centers[i][0];
-			auto I=clumpMinX.find(c);
-			if(I==clumpMinX.end()) clumpMinX[c]=x;
-			else clumpMinX[c]=min(I->second,x);
-		}
-		// sort structs containing original index and minx
-		// minx (or clump, if minx is the same) is the sort key, indices are what is sorted
-		struct RCCM{Real r; Vector3r c; int clump; Real minX; };
-		vector<RCCM> rccm(N);
-		for(int i=0; i<N; i++){ rccm[i]=RCCM{radii[i],centers[i],clumps[i],clumpMinX[clumps[i]]}; } 
-		// this makes sure clumps are contiguous
-		// sort them by minX, and if that is identical, by clump id (arbitrary but deterministic)
-		std::sort(rccm.begin(),rccm.end(),[](const RCCM& a, const RCCM& b)->bool{ return a.minX<b.minX || (a.minX==b.minX && a.clump<b.clump); });
-		// update our arrays
-		for(size_t i=0; i<N; i++){
-			centers[i]=rccm[i].c;
-			radii[i]=rccm[i].r;
-			clumps[i]=rccm[i].clump;
-		}
+	// sort spheres according to their x-coordinate
+	// copy arrays to structs first
+	struct CRC{ Vector3r c; Real r; shared_ptr<SphereClumpGeom> clump; };
+	vector<CRC> ccrrcc(radii.size());
+	bool doClumps=hasClumps();
+	for(size_t i=0;i<N;i++){
+		if(centers[i][0]<0 || centers[i][0]>=cellLen) centers[i][0]=Cell::wrapNum(centers[i][0],cellLen);
+		ccrrcc[i]=CRC{centers[i],radii[i],doClumps?clumps[i]:shared_ptr<SphereClumpGeom>()};
+	}
+	// sort according to the x-coordinate
+	std::sort(ccrrcc.begin(),ccrrcc.end(),[](const CRC& a, const CRC& b)->bool{ return a.c[0]<b.c[0]; });
+	for(size_t i=0;i<N;i++){
+		centers[i]=ccrrcc[i].c; radii[i]=ccrrcc[i].r;
+		if(doClumps) clumps[i]=ccrrcc[i].clump;
 	}
 }
 
 void ConveyorFactory::nodeLeavesBarrier(const shared_ptr<Node>& n){
 	auto& dyn=n->getData<DemData>();
 	dyn.setBlockedNone();
-	(*dyn.parRef.begin())->shape->color=isnan(color)?Mathr::UnitRandom():color;
+	Real c=isnan(color)?Mathr::UnitRandom():color;
+	setAttachedParticlesColor(n,c);
 	// assign velocity with randomized lateral components
 	if(!isnan(relLatVel) && relLatVel!=0){
 		dyn.vel=node->ori*(Vector3r(vel,(2*Mathr::UnitRandom()-1)*relLatVel*vel,(2*Mathr::UnitRandom()-1)*relLatVel*vel));
@@ -103,6 +89,18 @@ void ConveyorFactory::notifyDead(){
 		PeriodicEngine::fakeRun();
 	}
 }
+
+void ConveyorFactory::setAttachedParticlesColor(const shared_ptr<Node>& n, Real c){
+	auto& dyn=n->getData<DemData>();
+	if(!dyn.isClump()){
+		(*dyn.parRef.begin())->shape->color=c; // a single particle
+	} else {
+		for(const auto& nn: dyn.cast<ClumpData>().nodes){
+			(*nn->getData<DemData>().parRef.begin())->shape->color=c;
+		}
+	}
+}
+
 
 void ConveyorFactory::run(){
 	DemField* dem=static_cast<DemField*>(field.get());
@@ -160,31 +158,45 @@ void ConveyorFactory::run(){
 		lastX=Cell::wrapNum(nextX,cellLen);
 		lenDone+=dX;
 
-		auto sphere=DemFuncs::makeSphere(radii[nextIx],material);
-		sphere->mask=mask;
-		const auto& n=sphere->shape->nodes[0];
-		auto& dyn=n->getData<DemData>();
 		Real realSphereX=lenToDo-lenDone;
-		//LOG_TRACE("x="<<x<<", "<<lenToDo<<"-("<<1+currWraps<<")*"<<cellLen<<"+"<<currX);
-		n->pos=node->pos+node->ori*Vector3r(realSphereX,centers[nextIx][1],centers[nextIx][2]);
-		dyn.vel=node->ori*(Vector3r::UnitX()*vel);
+		Vector3r newPos=node->pos+node->ori*Vector3r(realSphereX,centers[nextIx][1],centers[nextIx][2]);
 
+		shared_ptr<Node> n;
+		
+		if(!hasClumps()){
+			auto sphere=DemFuncs::makeSphere(radii[nextIx],material);
+			sphere->mask=mask;
+			n=sphere->shape->nodes[0];
+			//LOG_TRACE("x="<<x<<", "<<lenToDo<<"-("<<1+currWraps<<")*"<<cellLen<<"+"<<currX);
+			dem->particles->insert(sphere);
+			n->pos=newPos;
+			LOG_TRACE("New sphere #"<<sphere->id<<", r="<<radii[nextIx]<<" at "<<n->pos.transpose());
+		} else {
+			const auto& clump=clumps[nextIx];
+			vector<shared_ptr<Particle>> spheres;
+			std::tie(n,spheres)=clump->makeClump(material,/*pos*/newPos,/*ori*/Quaternionr::Identity(),/*scale*/1.);
+			for(auto& sphere: spheres){
+				sphere->mask=mask;
+				dem->particles->insert(sphere);
+			}
+		}
+
+		auto& dyn=n->getData<DemData>();
+		if(realSphereX<barrierLayer){
+			setAttachedParticlesColor(n,isnan(barrierColor)?Mathr::UnitRandom():barrierColor);
+			barrier.push_back(n);
+			dyn.setBlockedAll();
+		} else {
+			setAttachedParticlesColor(n,isnan(color)?Mathr::UnitRandom():color);
+		}
+
+		// set velocity;
+		dyn.vel=node->ori*(Vector3r::UnitX()*vel);
 		if(scene->trackEnergy){
 			scene->energy->add(-DemData::getEk_any(n,true,/*rotation zero, don't even compute it*/false,scene),"kinFactory",kinEnergyIx,EnergyTracker::ZeroDontCreate);
 		}
 
-
-		if(realSphereX<barrierLayer){
-			sphere->shape->color=isnan(barrierColor)?Mathr::UnitRandom():barrierColor;
-			barrier.push_back(n);
-			dyn.setBlockedAll();
-		} else {
-			sphere->shape->color=isnan(color)?Mathr::UnitRandom():color;
-		}
-
-		dem->particles->insert(sphere);
 		if(save) genDiamMass.push_back(Vector2r(2*radii[nextIx],dyn.mass));
-		LOG_TRACE("New sphere #"<<sphere->id<<", r="<<radii[nextIx]<<" at "<<n->pos.transpose());
 		#ifdef WOO_OPENGL
 			boost::mutex::scoped_lock lock(dem->nodesMutex);
 		#endif

@@ -78,7 +78,15 @@ std::tuple<Real,int> PsdSphereGenerator::computeNextRadiusBin(){
 void PsdSphereGenerator::saveBinMassRadius(int bin, Real m, Real r){
 	weightPerBin[bin]+=(mass?m:1.);
 	weightTotal+=(mass?m:1.);
+	lastM=(mass?m:1.);
+	lastBin=bin;
 	if(save) genDiamMass.push_back(Vector2r(2*r,m));
+}
+
+void PsdSphereGenerator::revokeLast(){
+	weightPerBin[lastBin]-=lastM;
+	weightTotal-=lastM;
+	ParticleGenerator::revokeLast(); // removes from genDiamMass, if needed
 }
 
 vector<ParticleGenerator::ParticleAndBox>
@@ -143,75 +151,61 @@ py::tuple PsdSphereGenerator::pyInputPsd(bool scale, bool cumulative, int num) c
               PsdClumpGenerator
 **********************************************/
 
-WOO_PLUGIN(dem,(ClumpDef)(PsdClumpGenerator));
+WOO_PLUGIN(dem,(PsdClumpGenerator));
 CREATE_LOGGER(PsdClumpGenerator);
-
-void ClumpDef::postLoad(ClumpDef&,void*){
-	if(centers.empty() && radii.empty() && scaleProb.empty()) return; // not initialized at all
-	if(centers.empty()) woo::ValueError("ClumpDef.centers may not be empty.");
-	if(centers.size()!=radii.size()) woo::ValueError("ClumpDef.centers and ClumpDef.radii must have the same length (not "+to_string(centers.size())+" and "+to_string(radii.size())+").");
-	// this also catches NaN
-	if(!(equivRad>0)) woo::ValueError("ClumpDef.equivRad: must be positive value (not "+to_string(equivRad)+").");
-	if(scaleProb.empty()) woo::ValueError("ClumpDef.scaleProb may not be empty.");
-	for(size_t i=1; i<scaleProb.size(); i++){
-		if(scaleProb[i-1][0]>scaleProb[i][0]) woo::ValueError("ClumpDef.scaleProb: x-components may not be decreasing ("+to_string(scaleProb[i-1][0])+">"+to_string(scaleProb[i][0])+" at indices "+to_string(i-1)+" and "+to_string(i)+").");
-	}
-};
-
 
 
 vector<ParticleGenerator::ParticleAndBox>
 PsdClumpGenerator::operator()(const shared_ptr<Material>&mat){
 	if(mass && !(mat->density>0)) woo::ValueError("PsdClumpGenerator: material density must be positive (not "+to_string(mat->density));
-	if(clumpDefs.empty()) woo::ValueError("PsdClumpGenerator.clumpDefs may not be empty.");
-	if(discrete) woo::ValueError("PsdClumpGenerator does not support discrete PSDs (yet?).");
+	if(clumps.empty()) woo::ValueError("PsdClumpGenerator.clump may not be empty.");
 	int bin; Real r;
 	std::tie(r,bin)=computeNextRadiusBin();
 	LOG_TRACE("Next radius is "<<r);
-	vector<Real> prob(clumpDefs.size()); Real probSum=0;
+	vector<Real> prob(clumps.size()); Real probSum=0;
 	// sum probabilities of all clumps, then pick one based on probability
 	
 	// sum probabilities, with interpolation for each clump
-	for(size_t i=0; i<clumpDefs.size(); i++){
-		if(!clumpDefs[i]) woo::ValueError("PsdCLumpGenerator.clumpDefs["+to_string(i)+"] is None.");
-		const ClumpDef& def(*clumpDefs[i]);
-		const auto& pf(def.scaleProb); // probability function
+	for(size_t i=0; i<clumps.size(); i++){
+		if(!clumps[i]) woo::ValueError("PsdCLumpGenerator.clumps["+to_string(i)+"] is None.");
+		const SphereClumpGeom& C(*clumps[i]);
+		const auto& pf(C.scaleProb); // probability function
 		auto I=std::lower_bound(pf.begin(),pf.end(),r,[](const Vector2r& rProb, const Real& r)->bool{ return rProb[0]<r; });
 		// before the first point: return the first value
-		if(I==pf.begin()){ prob[i]=(*pf.begin())[1]; LOG_TRACE("ClumpDef #"<<i<<": lower_bound("<<r<<") found at 0: rad="<<pf[0][0]<<", prob="<<pf[0][1]); }
+		if(I==pf.begin()){ prob[i]=(*pf.begin())[1]; LOG_TRACE("SphereClumpGeom #"<<i<<": lower_bound("<<r<<") found at 0: rad="<<pf[0][0]<<", prob="<<pf[0][1]); }
 		// beyond the last point: return the last value
-		else if(I==pf.end()){ prob[i]=(*pf.rbegin())[1]; LOG_TRACE("ClumpDef #"<<i<<": lower_bound("<<r<<") found beyond end: last rad="<<(*pf.rbegin())[0]<<", last prob="<<(*pf.rbegin())[1]); }
+		else if(I==pf.end()){ prob[i]=(*pf.rbegin())[1]; LOG_TRACE("SphereClumpGeom #"<<i<<": lower_bound("<<r<<") found beyond end: last rad="<<(*pf.rbegin())[0]<<", last prob="<<(*pf.rbegin())[1]); }
 		// somewhere in the middle; interpolate linearly
 		else {
 			const Vector2r& A=pf[I-pf.begin()-1]; const Vector2r& B=*I;
 			prob[i]=A[1]+(B[1]-A[1])*((r-A[0])/(B[0]-A[0]));
-			LOG_TRACE("ClumpDef #"<<i<<": lower_bound("<<r<<") found at index "<<(I-pf.begin())<<", interpolate rad="<<A[0]<<"…"<<A[1]<<", prob="<<A[1]<<"…"<<B[1]<<" → "<<prob[i]);
+			LOG_TRACE("SphereClumpGeom #"<<i<<": lower_bound("<<r<<") found at index "<<(I-pf.begin())<<", interpolate rad="<<A[0]<<"…"<<A[1]<<", prob="<<A[1]<<"…"<<B[1]<<" → "<<prob[i]);
 		}
 		probSum+=prob[i];
 	}
 	LOG_TRACE("Probability sum "<<probSum);
-	if(probSum==0.) throw std::runtime_error("PsdClumpGenerator: no clump had non-zero probability for radius "+to_string(r)+" (check PsdSphereGenerator.pstPts and CLumpDef.scaleProb).");
+	if(probSum==0.) throw std::runtime_error("PsdClumpGenerator: no clump had non-zero probability for radius "+to_string(r)+" (check PsdSphereGenerator.pstPts and SphereClumpGeom.scaleProb).");
 
 	// pick randomly any candidate clump in that point, based on the probability function:
 	// pick random number in 0…probSum and iterate until we get to our clump
 	Real randSum=Mathr::UnitRandom()*probSum;
 	size_t cNo; Real cSum=0.;
-	for(cNo=0; cNo<clumpDefs.size(); cNo++){
+	for(cNo=0; cNo<clumps.size(); cNo++){
 		cSum+=prob[cNo];
 		if(cSum>=randSum) break;
-		if(cNo==clumpDefs.size()-1){
-			LOG_FATAL("Random clump not selected in the loop?! randSum="<<randSum<<", cSum="<<cSum<<", probSum="<<probSum<<", size="<<clumpDefs.size());
+		if(cNo==clumps.size()-1){
+			LOG_FATAL("Random clump not selected in the loop?! randSum="<<randSum<<", cSum="<<cSum<<", probSum="<<probSum<<", size="<<clumps.size());
 			throw std::logic_error("Random clump not selected?! (information above)");
 		}
 	}
 	LOG_DEBUG("Chose clump #"<<cNo<<" for radius "<<r<<" (cumulative prob "<<cSum<<", random "<<randSum<<", total prob "<<probSum<<")");
-	assert(cNo>=0 && cNo<clumpDefs.size());
+	assert(cNo>=0 && cNo<clumps.size());
 
 	// construct the clump based on its defintion
-	const auto& def(*(clumpDefs[cNo]));
-	assert(def.equivRad>0);
-	Real scale=r/def.equivRad;
-	LOG_DEBUG("Clump will be scaled "<<scale<<"× so that its equivRad "<<def.equivRad<<" becomes "<<r);
+	const auto& C(*(clumps[cNo]));
+	assert(C.equivRad>0);
+	Real scale=r/C.equivRad;
+	LOG_DEBUG("Clump will be scaled "<<scale<<"× so that its equivRad "<<C.equivRad<<" becomes "<<r);
 
 	/* make individual spheres; the clump itself is constructed in RandomFactory (using Clump::makeClump)
 	   that means that we don't know what the exact mass is here :|
@@ -219,12 +213,15 @@ PsdClumpGenerator::operator()(const shared_ptr<Material>&mat){
 	   for now, suppose sphere never intersect (which is what Clump::makeClump supposes as well)
 	   and sum masses of constituents
 	*/
-	vector<ParticleAndBox> ret(def.centers.size());
+	vector<ParticleAndBox> ret(C.centers.size());
 	Real mass=0.;
-	for(size_t i=0; i<def.centers.size(); i++){
-		shared_ptr<Particle> sphere=DemFuncs::makeSphere(def.radii[i]*scale,mat);
-		Vector3r center=def.centers[i]*scale;
-		Vector3r halfSize=(def.radii[i]*scale)*Vector3r::Ones();
+	Quaternionr ori(AngleAxisr(Mathr::UnitRandom()*2*M_PI,Vector3r::Random().normalized()));
+	if(ori.norm()>0) ori.normalize();
+	else ori=Quaternionr::Identity(); // very unlikely that q has all zeros
+	for(size_t i=0; i<C.centers.size(); i++){
+		shared_ptr<Particle> sphere=DemFuncs::makeSphere(C.radii[i]*scale,mat);
+		Vector3r center=ori*(C.centers[i]*scale);
+		Vector3r halfSize=(C.radii[i]*scale)*Vector3r::Ones();
 		// the sphere is zero-centered by default, but now we need to change that a bit
 		sphere->shape->nodes[0]->pos=center;
 		ret[i]=ParticleAndBox{sphere,AlignedBox3r(center-halfSize,center+halfSize)};

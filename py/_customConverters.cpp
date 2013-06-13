@@ -279,7 +279,7 @@ BOOST_PYTHON_MODULE(_customConverters){
 		VECTOR_SEQ_CONV(shared_ptr<IntraFunctor>);
 		VECTOR_SEQ_CONV(shared_ptr<LawTesterStage>);
 
-		VECTOR_SEQ_CONV(shared_ptr<ClumpDef>);
+		VECTOR_SEQ_CONV(shared_ptr<SphereClumpGeom>);
 
 		VECTOR_SEQ_CONV(shared_ptr<Engine>);
 

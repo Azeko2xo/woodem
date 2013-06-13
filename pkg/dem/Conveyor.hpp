@@ -1,5 +1,6 @@
 #pragma once
 #include<woo/pkg/dem/Factory.hpp>
+#include<woo/pkg/dem/Clump.hpp>
 
 
 struct ConveyorFactory: public ParticleFactory{
@@ -9,6 +10,7 @@ struct ConveyorFactory: public ParticleFactory{
 	void postLoad(ConveyorFactory&,void*);
 	void notifyDead();
 	void nodeLeavesBarrier(const shared_ptr<Node>& p);
+	void setAttachedParticlesColor(const shared_ptr<Node>& n, Real c);
 	#ifdef WOO_OPENGL
 		void render(const GLViewInfo&){
 			if(isnan(glColor)) return;
@@ -28,9 +30,9 @@ struct ConveyorFactory: public ParticleFactory{
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ConveyorFactory,ParticleFactory,"Factory producing infinite band of particles from packing periodic in the x-direction. (Clumps are not supported (yet?), only spheres).",
 		((shared_ptr<Material>,material,,,"Material for new particles"))
 		((Real,cellLen,,,"Length of the band cell, which is repeated periodically"))
-		((vector<Real>,radii,,AttrTrait<Attr::triggerPostLoad>().noGui(),"Radii for the packing"))\
-		((vector<Vector3r>,centers,,AttrTrait<Attr::triggerPostLoad>().noGui(),"Centers of spheres in the packing"))
-		((vector<int>,clumps,,AttrTrait<Attr::triggerPostLoad>().noGui(),"CLump ids for spheres in the packing; if empty, spheres are not clumped at all"))
+		((vector<Real>,radii,,AttrTrait<Attr::triggerPostLoad>().noGui(),"Radii for the packing"))
+		((vector<Vector3r>,centers,,AttrTrait<Attr::triggerPostLoad>().noGui(),"Centers of spheres/clumps in the packing"))
+		((vector<shared_ptr<SphereClumpGeom>>,clumps,,AttrTrait<Attr::triggerPostLoad>().noGui(),"Clump geometry, corresponding to each :obj:`radii` and :obj:`centers`."))
 		((int,nextIx,-1,AttrTrait<>().readonly(),"Index of last-generated particles in the packing"))
 		((Real,lastX,0,AttrTrait<>().readonly(),"X-coordinate of last-generated particles in the packing"))
 		((Real,vel,NaN,,"Velocity of the feed"))

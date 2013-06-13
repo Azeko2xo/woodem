@@ -117,19 +117,14 @@ void RandomFactory::run(){
 		if(massFlowRate>0 && mass>=stepGoalMass) break;
 
 		shared_ptr<Material> mat;
-		if(materials.size()==1) mat=materials[0];
-		else{ // random choice of material with equal probability
-			size_t i=max(size_t(materials.size()*Mathr::UnitRandom()),materials.size()-1);;
-			mat=materials[i];
-		}
-		vector<ParticleGenerator::ParticleAndBox> pee=(*generator)(mat);
-		assert(!pee.empty());
-		LOG_TRACE("Placing "<<pee.size()<<"-sized particle; first component is a "<<pee[0].par->getClassName()<<", extents from "<<pee[0].extents.min().transpose()<<" to "<<pee[0].extents.max().transpose());
 		Vector3r pos=Vector3r::Zero();
+		vector<ParticleGenerator::ParticleAndBox> pee;
 		int attempt=-1;
 		while(true){
 			attempt++;
+			/***** too many tries, give up ******/
 			if(attempt>=maxAttempts){
+				generator->revokeLast(); // last particle could not be placed
 				if(massFlowRate<=0){
 					LOG_DEBUG("maxAttempts="<<maxAttempts<<" reached; since massFlowRate is not positive, we're done in this step");
 					goto stepDone;
@@ -145,7 +140,24 @@ void RandomFactory::run(){
 					case MAXATT_SILENT: break;
 					default: woo::ValueError("Invalid value of RandomFactory.atMaxAttempts="+to_string(atMaxAttempts)+".");
 				}
-			}	
+			}
+			/***** each maxAttempts/attPerPar, try a new particles *****/	
+			if((attempt%(maxAttempts/attemptPar))==0){
+				LOG_DEBUG("attempt "<<attempt<<": trying with a new particle.");
+				if(attempt>0) generator->revokeLast(); // if not at the beginning, revoke the last particle
+
+				// random choice of material with equal probability
+				if(materials.size()==1) mat=materials[0];
+				else{ 
+					size_t i=max(size_t(materials.size()*Mathr::UnitRandom()),materials.size()-1);;
+					mat=materials[i];
+				}
+				// generate a new particle
+				pee=(*generator)(mat);
+				assert(!pee.empty());
+				LOG_TRACE("Placing "<<pee.size()<<"-sized particle; first component is a "<<pee[0].par->getClassName()<<", extents from "<<pee[0].extents.min().transpose()<<" to "<<pee[0].extents.max().transpose());
+			}
+
 			pos=randomPosition(); // overridden in child classes
 			LOG_TRACE("Trying pos="<<pos.transpose());
 			for(const auto& pe: pee){
@@ -159,16 +171,16 @@ void RandomFactory::run(){
 				#ifdef WOO_FACTORY_SPHERES_ONLY
 					if(!peSphere) throw std::runtime_error(__FILE__ ": Only Spheres are supported in this build!");
 					Real r=peSphere->radius;
+					Vector3r subPos=peSphere->nodes[0]->pos;
 					for(const auto& s: spheres.pack){
 						// check dist && don't collide with another sphere from this clump
 						// (abuses the *num* counter for clumpId)
-						if((s.c-pos).squaredNorm()<pow(s.r+r,2) &&  s.clumpId!=num){
+						if((s.c-(pos+subPos)).squaredNorm()<pow(s.r+r,2)){
 							LOG_TRACE("Collision with a particle in SpherePack (a particle generated in this step).");
 							goto tryAgain;
 						}
 					}
-					// num will be the same for all spheres within this clump (abuse the *num* counter)
-					spheres.pack.push_back(SpherePack::Sph(pos,r,/*clumpId*/num));
+					// don't add to spheres until all particles will have been checked for overlaps (below)
 				#else
 					// see intersection with existing particles
 					bool overlap=false;
@@ -195,9 +207,17 @@ void RandomFactory::run(){
 					}
 				#endif
 			}
-			LOG_TRACE("No collision, particle will be created :-) ");
+			LOG_DEBUG("No collision (attempt "<<attempt<<"), particle will be created :-) ");
+			#ifdef WOO_FACTORY_SPHERES_ONLY
+				// num will be the same for all spheres within this clump (abuse the *num* counter)
+				for(const auto& pe: pee){
+					Vector3r subPos=pe.par->shape->nodes[0]->pos;
+					Real r=pe.par->shape->cast<Sphere>().radius;
+					spheres.pack.push_back(SpherePack::Sph((pos+subPos),r,/*clumpId*/(pee.size()==1?-1:num)));
+				}
+			#endif
 			break;
-			tryAgain: ; // reiterate
+			tryAgain: ; // try to position the same particle again
 		}
 
 		// particle was generated successfully and we have place for it
@@ -212,8 +232,7 @@ void RandomFactory::run(){
 			Real color_=isnan(color)?Mathr::UnitRandom():color;
 		#endif
 		if(pee.size()>1){ // clump was generated
-			//throw std::runtime_error("RandomFactory: Clumps not yet tested properly.");
-			LOG_WARN("Clumps not yet tested properly.");
+			//LOG_WARN("Clumps not yet tested properly.");
 			vector<shared_ptr<Node>> nn;
 			for(auto& pe: pee){
 				auto& p=pe.par;
@@ -227,6 +246,7 @@ void RandomFactory::run(){
 					nn.push_back(n);
 					n->pos+=pos;
 				}
+				dem->particles->insert(p);
 			}
 			shared_ptr<Node> clump=ClumpData::makeClump(nn,/*no central node pre-given*/shared_ptr<Node>(),/*intersection*/false);
 			auto& dyn=clump->getData<DemData>();

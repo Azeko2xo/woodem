@@ -36,6 +36,8 @@ struct ParticleGenerator: public Object{
 	// return (one or multiple, for clump) particles and extents (min and max)
 	// extents are computed for position of (0,0,0)
 	virtual vector<ParticleAndBox> operator()(const shared_ptr<Material>& m){ throw std::runtime_error("Calling ParticleGenerator.operator() (abstract method); use derived classes."); }
+	// called when the particle placement failed; the generator must revoke it and update its bookkeeping information (e.g. PSD, generated radii and diameters etc)
+	virtual void revokeLast(){ if(save && !genDiamMass.empty()) genDiamMass.resize(genDiamMass.size()-1); }
 	virtual void clear(){ genDiamMass.clear(); }
 	py::tuple pyPsd(bool mass, bool cumulative, bool normalize, Vector2r dRange, int num) const;
 	py::object pyDiamMass() const;
@@ -100,7 +102,8 @@ struct RandomFactory: public ParticleFactory{
 		((vector<shared_ptr<Material>>,materials,,,"Set of materials for new particles, randomly picked from"))
 		((shared_ptr<ParticleGenerator>,generator,,,"Particle generator instance"))
 		((shared_ptr<ParticleShooter>,shooter,,,"Particle shooter instance (assigns velocities to generated particles. If not given, particles have zero velocities initially."))
-		((int,maxAttempts,5000,,"Maximum attempts to position a new particle randomly. If 0, no limit is imposed. When reached, :ref:`atMaxAttempts` determines, what will be done."))
+		((int,maxAttempts,5000,,"Maximum attempts to position new particles randomly, without collision. If 0, no limit is imposed. When reached, :ref:`atMaxAttempts` determines, what will be done. Each particle is tried maxAttempts/maxMetaAttempts times, then a new particle is tried."))
+		((int,attemptPar,5,,"Number of trying a different particle to position (each will be tried maxAttempts/attemptPar times)"))
 		((int,atMaxAttempts,MAXATT_ERROR,AttrTrait<>().choice({{MAXATT_ERROR,"error"},{MAXATT_DEAD,"dead"},{MAXATT_WARN,"warn"},{MAXATT_SILENT,"silent"}}),"What to do when maxAttempts is reached."))
 		((int,mask,1,,"Groupmask for new particles"))
 		((int,kinEnergyIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for kinetic energy in scene.energy"))

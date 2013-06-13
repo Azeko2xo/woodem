@@ -1,6 +1,7 @@
 #pragma once
 
 #include<woo/pkg/dem/Factory.hpp>
+#include<woo/pkg/dem/Clump.hpp>
 
 struct PsdSphereGenerator: public ParticleGenerator{
 	DECLARE_LOGGER;
@@ -10,7 +11,8 @@ struct PsdSphereGenerator: public ParticleGenerator{
 	std::tuple<Real,int> computeNextRadiusBin();
 	// save bookkeeping information once the particle is generated (also used by derived classes)
 	void saveBinMassRadius(int bin, Real m, Real r);
-
+	void revokeLast() override;
+	int lastBin; Real lastM;
 
 	void clear() override { ParticleGenerator::clear(); weightTotal=0.; std::fill(weightPerBin.begin(),weightPerBin.end(),0.); }
 	py::tuple pyInputPsd(bool scale, bool cumulative, int num) const;
@@ -27,24 +29,13 @@ struct PsdSphereGenerator: public ParticleGenerator{
 };
 WOO_REGISTER_OBJECT(PsdSphereGenerator);
 
-struct ClumpDef: public Object{
-	void postLoad(ClumpDef&,void*);
-	WOO_CLASS_BASE_DOC_ATTRS(ClumpDef,Object,"Define geometry of clumps, for use with :obj:`PsdClumpGenerator`. Each clump is described by spheres it is made of (position and radius), equivalent diameter, and by piecewise-linear function determining its probability for a given diameter.",
-		((vector<Vector3r>,centers,,,"Centers of constituent spheres, in clump-local coordinates."))
-		((vector<Real>,radii,,,"Radii of constituent spheres"))
-		((Real,equivRad,NaN,,"Equivalent radius of the clump (for the purposes of the PSD)"))
-		((vector<Vector2r>,scaleProb,,,"Piecewise-linear function probability(equivRad) given as a sequence of x,y coordinates; the generator picks equivRad first, then decides randomly which clump to take, based on this probability function. Outside of the x-range, the probability has constant value of the last point."))
-	);
-};
-WOO_REGISTER_OBJECT(ClumpDef);
-
 struct PsdClumpGenerator: public PsdSphereGenerator {
 	DECLARE_LOGGER;
 	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m);
 	void clear() override { genClumpNo.clear(); /*call parent*/ PsdSphereGenerator::clear(); };
 	WOO_CLASS_BASE_DOC_ATTRS(PsdClumpGenerator,PsdSphereGenerator,"Generate clump particles following a given Particle Size Distribution (PSD).",
-		((vector<shared_ptr<ClumpDef>>,clumpDefs,,,"Sequence of clump geometry definitions; for every selected radius from the PSD, clump will be chosen based on the :obj:`ClumpDef.scaleProb` function and scaled to that radius."))
-		((vector<int>,genClumpNo,,AttrTrait<>().noGui().readonly(),"If :obj:`save` is set, keep clump numbers (indices in :obj:`clumpDefs` for each generated clump."))
+		((vector<shared_ptr<SphereClumpGeom>>,clumps,,,"Sequence of clump geometry definitions (:obj:`SphereClumpGeom`); for every selected radius from the PSD, clump will be chosen based on the :obj:`SphereClumpGeom.scaleProb` function and scaled to that radius."))
+		((vector<int>,genClumpNo,,AttrTrait<>().noGui().readonly(),"If :obj:`save` is set, keeps clump numbers (indices in :obj:`clumps` for each generated clump."))
 	);
 };
 WOO_REGISTER_OBJECT(PsdClumpGenerator);

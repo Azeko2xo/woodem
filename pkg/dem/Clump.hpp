@@ -1,5 +1,36 @@
 #pragma once
 #include<woo/pkg/dem/Particle.hpp>
+#include<woo/lib/sphere-pack/SpherePack.hpp>
+
+struct SphereClumpGeom: public Object{
+	DECLARE_LOGGER;
+	void postLoad(SphereClumpGeom&,void*);
+	void recompute(int div);
+	std::tuple<shared_ptr<Node>,vector<shared_ptr<Particle>>> makeClump(const shared_ptr<Material>&, const Vector3r& pos, const Quaternionr& ori, Real scale=1.);
+	py::tuple pyMakeClump(const shared_ptr<Material>& m, const Vector3r& p, const Quaternionr& o=Quaternionr::Identity(), Real scale=1., int mask=0){
+		const auto& tup=makeClump(m,p,o,scale); return py::make_tuple(std::get<0>(tup),std::get<1>(tup));
+	}
+	static vector<shared_ptr<SphereClumpGeom>> fromSpherePack(const shared_ptr<SpherePack>& sp, int div=5);
+	
+	WOO_CLASS_BASE_DOC_ATTRS_PY(SphereClumpGeom,Object,"Defines geometry of spherical clumps. Each clump is described by spheres it is made of (position and radius).",
+		((vector<Vector3r>,centers,,AttrTrait<Attr::triggerPostLoad>(),"Centers of constituent spheres, in clump-local coordinates."))
+		((vector<Real>,radii,,AttrTrait<Attr::triggerPostLoad>(),"Radii of constituent spheres"))
+		((vector<Vector2r>,scaleProb,,,"Used by particle generators: piecewise-linear function probability(equivRad) given as a sequence of x,y coordinates; the generator picks equivRad first, then decides randomly which clump to take, based on this probability function. Outside of the x-range, the probability has constant value of the last point."))
+		((Vector3r,pos,Vector3r::Zero(),AttrTrait<>().readonly(),"Centroid position (computed automatically)"))
+		((Quaternionr,ori,Quaternionr::Identity(),AttrTrait<>().readonly(),"Principal axes orientation (computed automatically)"))
+		((Real,volume,NaN,AttrTrait<>().readonly(),"Volume (computed automatically)"))
+		((Real,equivRad,NaN,AttrTrait<>().readonly(),"Equivalent radius of the clump (computed automatically) -- mean of radii of gyration."))
+		((Vector3r,inertia,Vector3r(NaN,NaN,NaN),AttrTrait<>().readonly(),"Inertia (with unit density)"))
+		((int,div,5,AttrTrait<Attr::triggerPostLoad>(),"Sampling grid fineness, when computing volume and other properties, relative to the smallest sphere's radius. When zero or negative, assume spheres don't intersect and use a different algorithm (Steiner's theorem)."))
+		, /* py*/
+		.def("recompute",&SphereClumpGeom::recompute,(py::arg("div")=5),"Recompute principal axes of the clump, using *div* for subdivision (see :obj:`div` for the semantics)")
+		.def("makeClump",&SphereClumpGeom::pyMakeClump,(py::arg("mat"),py::arg("pos"),py::arg("ori")=Quaternionr::Identity(),py::arg("scale")=1.,py::arg("mask")=0),"Create particles as described by this clump geometry, positioned in *pos* and rotated with *ori*. Geometry will be scaled by *scale*. Returns tuple (Node,[Particle]).")
+		.def("fromSpherePack",&SphereClumpGeom::fromSpherePack,(py::arg("pack"),py::arg("div")=5),"Return [ :obj:`SphereClumpGeom` ] which contain all clumps and spheres from given :obj:`SpherePack`.").staticmethod("fromSpherePack")
+	);
+};
+WOO_REGISTER_OBJECT(SphereClumpGeom);
+
+
 
 struct ClumpData: public DemData{
 	static shared_ptr<Node> makeClump(const vector<shared_ptr<Node>>& nodes, shared_ptr<Node> centralNode=shared_ptr<Node>(), bool intersecting=false);
@@ -14,12 +45,15 @@ struct ClumpData: public DemData{
 	//! Recalculate body's inertia tensor in rotated coordinates.
 	static Matrix3r inertiaTensorRotate(const Matrix3r& I, const Quaternionr& rot);
 
+	// compute pos, ori, inertia given mass, first and second-order momenum
+	static void computePrincipalAxes(const Real& m, const Vector3r& Sg, const Matrix3r& Ig, Vector3r& pos, Quaternionr& ori, Vector3r& inertia);
+
 	DECLARE_LOGGER;
 	WOO_CLASS_BASE_DOC_ATTRS(ClumpData,DemData,"Data of a DEM particle which binds multiple particles together.",
 		((vector<shared_ptr<Node>>,nodes,,AttrTrait<Attr::readonly>(),"Member nodes"))
 		((vector<Vector3r>,relPos,,AttrTrait<Attr::readonly>(),"Relative member's positions"))
 		((vector<Quaternionr>,relOri,,AttrTrait<Attr::readonly>(),"Relative member's orientations"))
-		// ((long,clumpLinIx,-1,AttrTrait<Attr::hidden>(),"Index in the O.dem.clumps array, for efficient deletion."))
 	);
 };
 WOO_REGISTER_OBJECT(ClumpData);
+

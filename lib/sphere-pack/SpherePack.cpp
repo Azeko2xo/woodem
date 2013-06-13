@@ -507,15 +507,21 @@ long SpherePack::makeClumpCloud(const Vector3r& mn, const Vector3r& mx, const ve
 bool SpherePack::hasClumps() const { for(const Sph& s: pack){ if(s.clumpId>=0) return true; } return false; }
 
 py::tuple SpherePack::getClumps() const{
-	std::map<int,py::list> clumps;
+	std::map<int,list<int>> clumps;
 	py::list standalone; size_t packSize=pack.size();
 	for(size_t i=0; i<packSize; i++){
 		const Sph& s(pack[i]);
 		if(s.clumpId<0) { standalone.append(i); continue; }
-		clumps[s.clumpId].append(i);
+		clumps[s.clumpId].push_back(i);
 	}
 	py::list clumpList;
-	for(const auto& idList: clumps) clumpList.append(idList.second);
+	for(const auto& idList: clumps){
+		py::list ids;
+		for(const int& id: idList.second){
+			ids.append(id);
+		}
+		clumpList.append(ids);
+	}
 	return py::make_tuple(standalone,clumpList); 
 }
 
