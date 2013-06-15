@@ -295,17 +295,22 @@ void Scene::postLoad(Scene&,void*){
 void Scene::selfTest_maybe(){
 	if((selfTestEvery<0) || (selfTestEvery>0 && (step%selfTestEvery!=0)) || (selfTestEvery==0 && step!=0)) return;
 	LOG_INFO("Running self-tests at step "<<step<<" (selfTestEvery=="<<selfTestEvery<<")");
-	for(const auto& f: fields){
-		f->scene=this;
-		if(!f) throw std::runtime_error("Scene.fields may not contain None.");
-		f->selfTest();
-	}
-	for(const auto& e: engines){
-		if(!e) throw std::runtime_error("Scene.engines may not contain None.");
-		e->scene=this;
-		if(!e->field && e->needsField()) throw std::runtime_error((getClassName()+" has no field to run on, but requires one.").c_str());
-		e->selfTest();
-	}
+	try{
+		for(const auto& f: fields){
+			f->scene=this;
+			if(!f) throw std::runtime_error("Scene.fields may not contain None.");
+			f->selfTest();
+		}
+		for(const auto& e: engines){
+			if(!e) throw std::runtime_error("Scene.engines may not contain None.");
+			e->scene=this;
+			if(!e->field && e->needsField()) throw std::runtime_error((getClassName()+" has no field to run on, but requires one.").c_str());
+			e->selfTest();
+		}
+	} catch(std::exception&) {
+		LOG_ERROR("selfTest failed (step="<<step<<", selfTestEvery="<<selfTestEvery<<").");
+		throw;
+	};
 };
 
 

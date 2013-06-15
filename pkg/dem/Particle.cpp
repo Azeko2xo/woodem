@@ -237,7 +237,7 @@ void DemField::removeParticle(Particle::id_t id){
 			if(dyn.linIx>(int)nodes.size() || nodes[dyn.linIx].get()!=n.get()) throw std::runtime_error("Node in #"+to_string(id)+" has invalid linIx entry!");
 			LOG_DEBUG("Removing #"<<id<<" / DemField::nodes["<<dyn.linIx<<"]"<<" (not used anymore)");
 			boost::mutex::scoped_lock lock(nodesMutex);
-			if(saveDeadNodes) deadNodes.push_back(nodes[dyn.linIx]);
+			if(saveDeadNodes) deadNodes.push_back(n);
 			(*nodes.rbegin())->getData<DemData>().linIx=dyn.linIx;
 			nodes[dyn.linIx]=*nodes.rbegin(); // move the last node to the current position
 			nodes.resize(nodes.size()-1);
@@ -278,6 +278,7 @@ void DemField::removeClump(size_t linIx){
 		}
 	}
 	for(const auto& pId: delPar) removeParticle(pId);
+	if(saveDeadNodes) deadNodes.push_back(node);
 	// remove the clump node here
 	boost::mutex::scoped_lock lock(nodesMutex);
 	(*nodes.rbegin())->getData<DemData>().linIx=cd.linIx;
@@ -299,6 +300,9 @@ void DemField::selfTest(){
 			if(!n->hasData<DemData>()) throw std::logic_error("DemField.par["+to_string(p->id)+"].shape.nodes["+to_string(j)+"] does not define DemData.");
 			const auto& dyn=n->getData<DemData>();
 			if(std::find(dyn.parRef.begin(),dyn.parRef.end(),p.get())==dyn.parRef.end()) throw std::logic_error("DemField.par["+to_string(p->id)+"].shape.nodes["+to_string(j)+"].dem.parRef: does not back-reference the particle "+p->pyStr()+" it belongs to.");
+			if(dyn.isClumped()){
+				if(!dyn.master.lock()) throw std::logic_error("DemField.par["+to_string(p->id)+"].shape.nodes["+to_string(j)+"].dem.master=None, but the node claims to be clumped.");
+			}
 		}
 	}
 	// check that DemField.nodes properly keep their indices
@@ -312,11 +316,13 @@ void DemField::selfTest(){
 			if(!dynamic_pointer_cast<ClumpData>(n->getDataPtr<DemData>())) throw std::logic_error("DemField.nodes["+to_string(i)+".dem.clump=True, but does not define ClumpData.");
 			const auto& cd=*static_pointer_cast<ClumpData>(n->getDataPtr<DemData>());
 			for(size_t j=0; j<cd.nodes.size(); j++){
-				const auto& n=cd.nodes[j];
-				if(!n) throw std::logic_error("DemField.nodes["+to_string(i)+"].dem.nodes["+to_string(j)+"]=None (node is a clump).");
-				if(!n->hasData<DemData>()) throw std::logic_error("DemField.nodes["+to_string(i)+"].dem.nodes["+to_string(j)+"].dem=None (node is a clump).");
-				const auto& dyn2=n->getData<DemData>();
+				const auto& nn=cd.nodes[j];
+				if(!nn) throw std::logic_error("DemField.nodes["+to_string(i)+"].dem.nodes["+to_string(j)+"]=None (node is a clump).");
+				if(!nn->hasData<DemData>()) throw std::logic_error("DemField.nodes["+to_string(i)+"].dem.nodes["+to_string(j)+"].dem=None (node is a clump).");
+				const auto& dyn2=nn->getData<DemData>();
 				if(!dyn2.isClumped()) throw std::logic_error("DemField.nodes["+to_string(i)+"].dem.nodes["+to_string(j)+"].clumped=False, should be True (node is a clump).");
+				if(!dyn2.master.lock()) throw std::logic_error("DemField.nodes["+to_string(i)+"].dem.nodes["+to_string(j)+"].master=None, but the node claims to be clumped.");
+				if(dyn2.master.lock().get()!=n.get()) throw std::logic_error("DemField.nodes["+to_string(i)+"].dem.nodes["+to_string(j)+"].master!=DemField.nodes["+to_string(i)+"].");
 			}
 		}
 		// check parRef

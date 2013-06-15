@@ -560,9 +560,32 @@ int SpherePack::addShadows(){
 
 void SpherePack::canonicalize(){
 	if(cellSize==Vector3r::Zero()) throw std::runtime_error("SpherePack.canonicalize: only meaningful on periodic packings");
-	if(hasClumps()) throw std::runtime_error("SpherePack.canonicalize: does not work in presence of clumps");
-	for(Sph& s: pack){
-		for(int i:{0,1,2}) s.c[i]=cellWrapRel(s.c[i],0,cellSize[i]);
+	if(!hasClumps()){
+		for(Sph& s: pack){
+			for(int i:{0,1,2}) s.c[i]=cellWrapRel(s.c[i],0,cellSize[i]);
+		}
+	} else {
+		// canonicalize mean positions instead
+		std::map<int,std::list<int>> cl;
+		for(size_t i=0; i<pack.size(); i++){
+			const Sph& s(pack[i]);
+			if(s.clumpId>=0) cl[s.clumpId].push_back(i);
+		}
+		// move clumps
+		for(const auto& cidId: cl){
+			// compute mean position
+			Vector3r x=Vector3r::Zero();
+			for(const auto& id: cidId.second) x+=pack[id].c;
+			x/=cidId.second.size();
+			Vector3r x2(x); 
+			for(int i:{0,1,2}) x2[i]=cellWrapRel(x2[i],0,cellSize[i]);
+			Vector3r dx=x2-x;
+			for(const auto& id: cidId.second) pack[id].c+=dx;
+		}
+		// move standalone spheres
+		for(Sph& s: pack){
+			if(s.clumpId<0){ for(int i:{0,1,2}) s.c[i]=cellWrapRel(s.c[i],0,cellSize[i]); }
+		}
 	}
 }
 

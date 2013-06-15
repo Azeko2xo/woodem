@@ -111,6 +111,7 @@ std::tuple<shared_ptr<Node>,vector<shared_ptr<Particle>>> SphereClumpGeom::makeC
 	for(size_t i=0; i<N; i++){
 		par[i]=DemFuncs::makeSphere(radii[i]*scale,mat);
 		cd->nodes[i]=par[i]->shape->nodes[0];
+		cd->nodes[i]->getData<DemData>().master=n;
 		cd->relPos[i]=(centers[i]-pos)*scale;
 		cd->relOri[i]=ori.conjugate(); // nice to set, but not really important
 	}
@@ -159,7 +160,7 @@ shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, shared
 		cNode->ori=nn[0]->ori;
 		clump->nodes.push_back(nn[0]);
 		auto& d0=nn[0]->getData<DemData>();
-		d0.setClumped();
+		d0.setClumped(cNode);
 		clump->relPos.push_back(Vector3r::Zero());
 		clump->relOri.push_back(Quaternionr::Identity());
 		clump->mass=d0.mass;
@@ -202,7 +203,7 @@ shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, shared
 			AngleAxisr aa(*(clump->relOri.rbegin()));
 		#endif
 		LOG_TRACE("relPos="<<clump->relPos.rbegin()->transpose()<<", relOri="<<aa.axis()<<":"<<aa.angle());
-		dem.setClumped();
+		dem.setClumped(cNode);
 	}
 	return cNode;
 }

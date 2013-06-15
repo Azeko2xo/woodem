@@ -762,7 +762,10 @@ shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>
 				dyn.inertia=v2v(cp.inertia);
 				dyn.force=v2v(cp.force);
 				dyn.torque=v2v(cp.torque);
-				if(par_clumped_get(&cp)) dyn.setClumped();
+				if(par_clumped_get(&cp)){
+					// dyn.setClumped();
+					throw std::runtime_error("FIXME: Clumped shapes are not handled now (clDem has no reference to the master node which is needed in Woo.");
+				}
 				int dofs=par_dofs_get(&cp);
 				for(int i=0; i<6; i++){
 					// clDem defines free dofs, woo defines blocked dofs

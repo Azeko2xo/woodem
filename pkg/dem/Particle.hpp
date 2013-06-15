@@ -154,7 +154,7 @@ public:
 	bool isClumped() const { return flags&CLUMP_CLUMPED; }
 	bool isClump()   const { return flags&CLUMP_CLUMP; }
 	bool isNoClump() const { return !isClumped() && !isClump(); }
-	void setClumped(){ flags|=CLUMP_CLUMPED; flags&=~CLUMP_CLUMP; }
+	void setClumped(const shared_ptr<Node>& _master){ master=_master; flags|=CLUMP_CLUMPED; flags&=~CLUMP_CLUMP; }
 	void setClump()  { flags|=CLUMP_CLUMP; flags&=~CLUMP_CLUMPED; }
 	void setNoClump(){ flags&=~(CLUMP_CLUMP | CLUMP_CLUMPED); }
 
@@ -174,6 +174,7 @@ public:
 	py::list pyParRef_get();
 	void addParRef(const shared_ptr<Particle>&);
 	void addParRef_raw(Particle*);
+	shared_ptr<Node> pyGetMaster(){ return master.lock(); }
 	
 	// type for back-referencing particle which has this node;
 	// cannot be shared_ptr, as it would be circular
@@ -195,9 +196,11 @@ public:
 		((long,linIx,-1,AttrTrait<>().readonly().noGui(),"Index within DemField.nodes (for efficient removal)"))
 		((std::list<Particle*>,parRef,,AttrTrait<Attr::hidden|Attr::noSave>(),"Back-reference for particles using this node; this is important for knowing when a node may be deleted (no particles referenced) and such. Should be kept consistent."))
 		((shared_ptr<Impose>,impose,,,"Impose arbitrary velocity, angular velocity, ... on the node; the functor is called from Leapfrog, after new position and velocity have been computed."))
+		((weak_ptr<Node>,master,,AttrTrait<>().hidden(),"Master node; currently only used with clumps (since this is never set from python, it is safe to use weak_ptr)."))
 		, /*ctor*/
 		, /*py*/ .add_property("blocked",&DemData::blocked_vec_get,&DemData::blocked_vec_set,"Degress of freedom where linear/angular velocity will be always constant (equal to zero, or to an user-defined value), regardless of applied force/torque. String that may contain 'xyzXYZ' (translations and rotations).")
 		.add_property("clump",&DemData::isClump).add_property("clumped",&DemData::isClumped).add_property("noClump",&DemData::isNoClump).add_property("energySkip",&DemData::isEnergySkip,&DemData::setEnergySkip).add_property("gravitySkip",&DemData::isGravitySkip,&DemData::setGravitySkip)
+		.add_property("master",&DemData::pyGetMaster)
 		.add_property("parRef",&DemData::pyParRef_get).def("addParRef",&DemData::addParRef)
 		.def("_getDataOnNode",&Node::pyGetData<DemData>).staticmethod("_getDataOnNode").def("_setDataOnNode",&Node::pySetData<DemData>).staticmethod("_setDataOnNode")
 		;

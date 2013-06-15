@@ -42,9 +42,10 @@ struct Tracer: public PeriodicEngine{
 		((int,scalar,SCALAR_NONE,AttrTrait<>().choice({{SCALAR_NONE,"none"},{SCALAR_TIME,"time"},{SCALAR_VEL,"|vel|"},{SCALAR_SIGNED_ACCEL,"signed |accel|"},{SCALAR_RADIUS,"radius"},{SCALAR_SHAPE_COLOR,"Shape.color"}}),"Scalars associated with history points (determine line color)"))
 		((int,lastScalar,SCALAR_NONE,AttrTrait<>().hidden(),"Keep track of last scalar value"))
 		((shared_ptr<ScalarRange>,lineColor,make_shared<ScalarRange>(),AttrTrait<>().readonly(),"Color range for coloring the trace line"))
-		((Vector2i,modulo,Vector2i(0,0),,"Only add trace to points which with ordinal number ``(i+modulo[1])%modulo[0]==0``."))
-		((Vector2r,rRange,Vector2r(0,0),,"If non-zero, only show traces of spheres of which radius falls into this range."))
+		((Vector2i,modulo,Vector2i(0,0),,"Only add trace to nodes with ordinal number such that ``(i+modulo[1])%modulo[0]==0``."))
+		((Vector2r,rRange,Vector2r(0,0),,"If non-zero, only show traces of spheres of which radius falls into this range. (not applicable to clumps); traces of non-spheres are not shown in this case."))
 		((Vector3r,noneColor,Vector3r(.3,.3,.3),AttrTrait<>().rgbColor(),"Color for traces without scalars, when scalars are saved (e.g. for non-spheres when radius is saved"))
+		((bool,clumps,true,,"Also make traces for clumps (for the central node, not for clumped nodes"))
 		((bool,glSmooth,false,,"Render traced lines with GL_LINE_SMOOTH"))
 		((int,glWidth,1,AttrTrait<>().range(Vector2i(1,10)),"Width of trace lines in pixels"))
 		, /*py*/

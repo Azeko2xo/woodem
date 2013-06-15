@@ -91,6 +91,7 @@ int Tracer::lastScalar;
 int Tracer::compress;
 int Tracer::compSkip;
 bool Tracer::glSmooth;
+bool Tracer::clumps;
 int Tracer::glWidth;
 Vector3r Tracer::noneColor;
 Real Tracer::minDist;
@@ -99,8 +100,9 @@ shared_ptr<ScalarRange> Tracer::lineColor;
 void Tracer::resetNodesRep(bool setupEmpty, bool includeDead){
 	auto& dem=field->cast<DemField>();
 	boost::mutex::scoped_lock lock(dem.nodesMutex);
-	for(const auto& p: *dem.particles){
-		for(const auto& n: p->shape->nodes){
+	//for(const auto& p: *dem.particles){
+	//	for(const auto& n: p->shape->nodes){
+	for(const auto& n: dem.nodes){
 			n->rep.reset();
 			if(setupEmpty){
 				n->rep=make_shared<TraceGlRep>();
@@ -109,7 +111,7 @@ void Tracer::resetNodesRep(bool setupEmpty, bool includeDead){
 				tr.flags=(compress>0?TraceGlRep::FLAG_COMPRESS:0) | (minDist>0?TraceGlRep::FLAG_MINDIST:0);
 			}
 		}
-	}
+	//}
 	if(includeDead){
 		for(const auto& n: dem.deadNodes){
 			n->rep.reset();
@@ -132,44 +134,47 @@ void Tracer::run(){
 		case SCALAR_SHAPE_COLOR: lineColor->label="Shape.color"; break;
 	}
 	auto& dem=field->cast<DemField>();
-	for(const auto& p: *dem.particles){
-		for(const auto& n: p->shape->nodes){
-			// node added
-			if(!n->rep || !dynamic_pointer_cast<TraceGlRep>(n->rep)){
-				boost::mutex::scoped_lock lock(dem.nodesMutex);
-				n->rep=make_shared<TraceGlRep>();
-				auto& tr=n->rep->cast<TraceGlRep>();
-				tr.resize(num);
-				tr.flags=(compress>0?TraceGlRep::FLAG_COMPRESS:0) | (minDist>0?TraceGlRep::FLAG_MINDIST:0);
-			}
+	size_t i=0;
+	for(auto& n: dem.nodes){
+		// node added
+		if(!n->rep || !dynamic_pointer_cast<TraceGlRep>(n->rep)){
+			boost::mutex::scoped_lock lock(dem.nodesMutex);
+			n->rep=make_shared<TraceGlRep>();
 			auto& tr=n->rep->cast<TraceGlRep>();
-			bool hidden=false;
-			if(modulo[0]>0 && (p->id+modulo[1])%modulo[0]!=0) hidden=true;
-			if(!hidden && rRange.maxCoeff()>0){
-				if(dynamic_pointer_cast<Sphere>(p->shape)){
-					Real r=p->shape->cast<Sphere>().radius;
-					hidden=((rRange[0]>0 && r<rRange[0]) || (rRange[1]>0 && r>rRange[1]));
-				} else {
-					hidden=true; // hide traces of non-spheres
-				}
-			}
-			if(tr.isHidden()!=hidden) tr.setHidden(hidden);
-			Real sc;
-			switch(scalar){
-				case SCALAR_VEL: sc=n->getData<DemData>().vel.norm(); break;
-				case SCALAR_SIGNED_ACCEL:{
-					const auto& dyn=n->getData<DemData>();
-					if(dyn.mass==0) sc=NaN;
-					else sc=(dyn.vel.dot(dyn.force)>0?1:-1)*dyn.force.norm()/dyn.mass;
-					break;
-				}
-				case SCALAR_RADIUS: sc=(dynamic_pointer_cast<Sphere>(p->shape)?p->shape->cast<Sphere>().radius:NaN); break;
-				case SCALAR_SHAPE_COLOR: sc=p->shape->color; break;
-				case SCALAR_TIME: sc=scene->time; break;
-				default: sc=NaN;
-			}
-			tr.addPoint(n->pos,sc);
+			tr.resize(num);
+			tr.flags=(compress>0?TraceGlRep::FLAG_COMPRESS:0) | (minDist>0?TraceGlRep::FLAG_MINDIST:0);
 		}
+		auto& tr=n->rep->cast<TraceGlRep>();
+		bool hasP=!n->getData<DemData>().parRef.empty();
+		const auto& pI(n->getData<DemData>().parRef.begin()); // use the iterator pI is hasP is true
+		bool hidden=false;
+		if(modulo[0]>0 && (i+modulo[1])%modulo[0]!=0) hidden=true;
+		if(n->getData<DemData>().isClump() && !clumps) hidden=true;
+		if(!hidden && rRange.maxCoeff()>0){
+			if(hasP && dynamic_pointer_cast<Sphere>((*pI)->shape)){
+				Real r=(*pI)->shape->cast<Sphere>().radius;
+				hidden=((rRange[0]>0 && r<rRange[0]) || (rRange[1]>0 && r>rRange[1]));
+			} else {
+				hidden=true; // hide traces of non-spheres
+			}
+		}
+		if(tr.isHidden()!=hidden) tr.setHidden(hidden);
+		Real sc;
+		switch(scalar){
+			case SCALAR_VEL: sc=n->getData<DemData>().vel.norm(); break;
+			case SCALAR_SIGNED_ACCEL:{
+				const auto& dyn=n->getData<DemData>();
+				if(dyn.mass==0) sc=NaN;
+				else sc=(dyn.vel.dot(dyn.force)>0?1:-1)*dyn.force.norm()/dyn.mass;
+				break;
+			}
+			case SCALAR_RADIUS: sc=((hasP&&dynamic_pointer_cast<Sphere>((*pI)->shape))?(*pI)->shape->cast<Sphere>().radius:NaN); break;
+			case SCALAR_SHAPE_COLOR: sc=(hasP?(*pI)->shape->color:NaN); break;
+			case SCALAR_TIME: sc=scene->time; break;
+			default: sc=NaN;
+		}
+		tr.addPoint(n->pos,sc);
+		i++;
 	}
 }
 #endif

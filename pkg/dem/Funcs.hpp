@@ -18,7 +18,6 @@ struct DemFuncs{
 	// sum force and torque with regards to point pt over particles with matching mask
 	// if *multinodal* is true, get force/troque from contacts of multinodal particles
 	// (in addition to their nodal forces/torques);
-	// all those other particles should be mononodal (this is asserted (in debug builds))
 	// returns number of particles matching the mask
 	static size_t reactionInPoint(const Scene* scene, const DemField* dem, int mask, const Vector3r& pt, bool multinodal, Vector3r& force, Vector3r& torque);
 

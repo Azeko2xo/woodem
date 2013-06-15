@@ -25,13 +25,8 @@ struct PeriIsoCompressor: public Engine{
 		((Real,currUnbalanced,NaN,AttrTrait<Attr::readonly>(),"Current unbalanced force (updated internally)"))
 		((Real,avgStiffness,NaN,AttrTrait<Attr::readonly>(),"Value of average stiffness (updated internally)"))
 		((Vector3r,sigma,Vector3r(NaN,NaN,NaN),AttrTrait<Attr::readonly>(),"Current value of average stress (update internally)"))
-		,
-		/*ctor*/
-			maxDisplPerStep=-1;
-		,
-		/*py*/
-			.def_readonly("currUnbalanced",&PeriIsoCompressor::currUnbalanced,"Current value of unbalanced force")
-			.def_readonly("sigma",&PeriIsoCompressor::sigma,"Current stress value")
+		, /*ctor*/ maxDisplPerStep=-1;
+		, /* py */
 	);
 	DECLARE_LOGGER;
 };

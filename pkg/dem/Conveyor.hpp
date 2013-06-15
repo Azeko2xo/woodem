@@ -33,6 +33,7 @@ struct ConveyorFactory: public ParticleFactory{
 		((vector<Real>,radii,,AttrTrait<Attr::triggerPostLoad>().noGui(),"Radii for the packing"))
 		((vector<Vector3r>,centers,,AttrTrait<Attr::triggerPostLoad>().noGui(),"Centers of spheres/clumps in the packing"))
 		((vector<shared_ptr<SphereClumpGeom>>,clumps,,AttrTrait<Attr::triggerPostLoad>().noGui(),"Clump geometry, corresponding to each :obj:`radii` and :obj:`centers`."))
+		((shared_ptr<SpherePack>,spherePack,,AttrTrait<Attr::noSave|Attr::triggerPostLoad>(),":obj:`woo.pack.SpherePack` object; when specified, :obj:`centers`, :obj:`radii` (and :obj:`clumps`, if clumps are contained) are discarded  and will be computed from this :obj:`SpherePack`. The attribute is reset afterwards."))
 		((int,nextIx,-1,AttrTrait<>().readonly(),"Index of last-generated particles in the packing"))
 		((Real,lastX,0,AttrTrait<>().readonly(),"X-coordinate of last-generated particles in the packing"))
 		((Real,vel,NaN,,"Velocity of the feed"))

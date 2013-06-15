@@ -149,7 +149,12 @@ void Gl1_DemField::doBound(){
 Vector3r Gl1_DemField::getParticleVel(const shared_ptr<Particle>& p) const {
 	assert(p->shape);
 	size_t nNodes=p->shape->nodes.size();
-	if(nNodes==1) return getNodeVel(p->shape->nodes[0]);
+	if(nNodes==1){
+		const auto& n0(p->shape->nodes[0]);
+		const auto& dyn(n0->getData<DemData>());
+		if(dyn.isClumped()) return getNodeVel(dyn.master.lock());
+		else return getNodeVel(p->shape->nodes[0]);
+	}
 	Vector3r ret=Vector3r::Zero();
 	for(const auto& n: p->shape->nodes) ret+=getNodeVel(n);
 	return ret/nNodes;
@@ -188,7 +193,8 @@ void Gl1_DemField::doShape(){
 
 		// sets highlighted color, if the particle is selected
 		// last optional arg can be used to provide additional highlight conditions (unused for now)
-		const shared_ptr<Node>& n0=p->shape->nodes[0];
+		const shared_ptr<Node>& _n0=p->shape->nodes[0];
+		const shared_ptr<Node>& n0=(_n0->getData<DemData>().isClumped()?_n0->getData<DemData>().master.lock():_n0);
 		Renderer::glScopedName name(p,n0);
 		// bool highlight=(p->id==selId || (p->clumpId>=0 && p->clumpId==selId) || p->shape->highlight);
 

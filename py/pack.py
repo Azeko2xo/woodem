@@ -653,9 +653,9 @@ def hexaNet( radius, cornerCoord=[0,0,0], xLength=1., yLength=0.5, mos=0.08, a=0
 
 
 def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNum=-1,dontBlock=False,returnSpherePack=False,memoizeDir=None,clumps=None):
-	if memoizeDir:
+	if memoizeDir and not dontBlock:
 		# increase number at the end for every change in the algorithm to make old feeds incompatible
-		params=str(dim)+str(psd)+str(goal)+str(damping)+str(porosity)+str(lenAxis)+'4'
+		params=str(dim)+str(psd)+str(goal)+str(damping)+str(porosity)+str(lenAxis)+str(clumps)+'5'
 		import hashlib
 		paramHash=hashlib.sha1(params).hexdigest()
 		memoizeFile=memoizeDir+'/'+paramHash+'.perifeed'
@@ -697,15 +697,19 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNu
 	print 'Created %d particles'%(len(S.dem.par))
 	S.dt=.9*utils.pWaveDt(S)
 	S.engines=[
-		woo.dem.PeriIsoCompressor(charLen=2*psd[-1][0],stresses=[-1e8,-1e6],maxUnbalanced=goal,doneHook='print "done"; S.stop();',globalUpdateInt=1,keepProportions=True)
+		woo.dem.PeriIsoCompressor(charLen=2*psd[-1][0],stresses=[-1e8,-1e6],maxUnbalanced=goal,doneHook='print "done"; S.stop();',globalUpdateInt=1,keepProportions=True,label='peri'),
+		woo.core.PyRunner(1,'S.plot.addData(i=S.step,unb=S.lab.peri.currUnbalanced,sig=S.lab.peri.sigma)')
 	]+utils.defaultEngines(damping=damping)
+	S.plot.plots={'i':('unb'),' i':('sig_x','sig_y','sig_z')}
 	if dontBlock: return S
 	S.run(); S.wait()
 	sp=SpherePack()
 	sp.fromSimulation(S)
 	print 'Packing size is',sp.cellSize
-	sp.makeOverlapFree()
+	if clumps: print 'Loose packing may contain overlaps when clumps are used (is not expanded).'
+	else: sp.makeOverlapFree()
 	print 'Loose packing size is',sp.cellSize
+	sp.save('/tmp/sp0')
 	sp.canonicalize()
 	cc,rr=[],[]
 	inf=float('inf')
@@ -714,7 +718,10 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNu
 	boxMin[lenAxis]=-inf
 	boxMax[lenAxis]=inf
 	box=AlignedBox3(boxMin,boxMax)
+	sp.save('/tmp/sp1')
 	sp2=sp.filtered(inAlignedBox(box))
+	print 'Box is ',box
+	sp2.save('/tmp/sp2')
 	#for c,r in sp:
 	#	if c-Vector3(r,r,r) not in box or c+Vector3(r,r,r) not in box: continue
 	#	cc.append(c); rr.append(r)

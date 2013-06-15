@@ -13,8 +13,19 @@ CREATE_LOGGER(ConveyorFactory);
 
 
 void ConveyorFactory::postLoad(ConveyorFactory&,void*){
+	if(spherePack){
+		// spherePack given
+		clumps.clear(); centers.clear(); radii.clear();
+		if(spherePack->hasClumps()) clumps=SphereClumpGeom::fromSpherePack(spherePack);
+		else{
+			centers.reserve(spherePack->pack.size()); radii.reserve(spherePack->pack.size());
+			for(const auto& s: spherePack->pack){ centers.push_back(s.c); radii.push_back(s.r); }
+		}
+		spherePack.reset();
+	}
+	// handles the case of clumps generated in the above block as well
 	if(!clumps.empty()){
-		// with clumps
+		// with clumps given explicitly
 		if(radii.size()!=clumps.size() || centers.size()!=clumps.size()){
 			radii.resize(clumps.size()); centers.resize(clumps.size());
 			for(size_t i=0; i<clumps.size(); i++){
@@ -100,7 +111,7 @@ void ConveyorFactory::setAttachedParticlesColor(const shared_ptr<Node>& n, Real 
 	} else {
 		for(const auto& nn: dyn.cast<ClumpData>().nodes){
 			assert(nn); assert(nn->hasData<DemData>());
-			auto& ddyn=n->getData<DemData>();
+			auto& ddyn=nn->getData<DemData>();
 			if(!ddyn.parRef.empty()) (*ddyn.parRef.begin())->shape->color=c;
 		}
 	}

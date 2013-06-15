@@ -165,8 +165,6 @@ size_t DemFuncs::reactionInPoint(const Scene* scene, const DemField* dem, int ma
 				if(!C->isReal()) continue;
 				assert(C->geom && C->phys);
 				int forceSign=C->forceSign(p); // +1 if we are pA, -1 if pB
-				// the other particles should be mononodal
-				assert((forceSign==1?C->leakPA():C->leakPB())->shape->nodes.size()==1); 
 				// force and torque at the contact point in global coords
 				const auto& n=C->geom->node;
 				Vector3r F(n->ori.conjugate()*C->phys->force *forceSign);

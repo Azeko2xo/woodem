@@ -26,6 +26,10 @@ class TestSimpleClump(unittest.TestCase):
 		])
 		for n in (S.dem.par[0].shape.nodes[0],S.dem.par[1].shape.nodes[0]): S.dem.nodesAppend(n);
 		self.bC,self.b1,self.b2=S.dem.nodes
+		#print 100*'#'
+		#print self.b1,self.b1.dem.master,id(self.b1.dem.master),self.b1.dem.master._cxxAddr
+		#print self.b2,self.b2.dem.master,id(self.b2.dem.master),self.b1.dem.master._cxxAddr
+		#print self.bC,id(self.bC),self.bC._cxxAddr
 	def testConsistency(self):
 		"Clump: ids and flags consistency"
 		S=woo.master.scene
@@ -38,6 +42,8 @@ class TestSimpleClump(unittest.TestCase):
 		self.assert_(bC.dem.clump)
 		self.assert_(b1.dem.clumped)
 		self.assert_(b2.dem.clumped)
+		self.assert_(b1.dem.master==bC)
+		self.assert_(b2.dem.master==bC)
 	def testStaticProperties(self):
 		"Clump: mass, centroid, intertia"
 		S=woo.master.scene
@@ -67,6 +73,7 @@ class TestSimpleClump(unittest.TestCase):
 		#print bC.dem.vel,bC.dem.angVel
 		bC.dem.vel=(1.,.2,.4)
 		bC.dem.angVel=(0,.4,.1)
+		self.assert_(self.b1.dem.master==self.bC)
 		S.engines=[Leapfrog(reset=True)]; S.one() # update velocities
 		# linear velocities
 		self.assertEqual(b1.dem.vel,bC.dem.vel+bC.dem.angVel.cross(b1.pos-bC.pos))
@@ -74,6 +81,11 @@ class TestSimpleClump(unittest.TestCase):
 		# angular velocities
 		self.assertEqual(b1.dem.angVel,bC.dem.angVel);
 		self.assertEqual(b2.dem.angVel,bC.dem.angVel);
+	def teestNoCollide(self):
+		"Clump: particles inside one clump don't collide with each other"
+		S.engines=[InsertionSortCollider([Bo1_Sphere_Aabb()])]
+		S.one()
+		self.assert_(len(S.dem.con)==0)
 
 def sphereClumpPrincipalAxes(cc,rr):
 	'Return vol,pos,ori,inertia of sphere clump defined by centers and radii of spheres'

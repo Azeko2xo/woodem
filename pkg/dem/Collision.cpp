@@ -13,8 +13,19 @@ WOO_PLUGIN(dem,(Aabb)(BoundFunctor)(BoundDispatcher)(Collider));
 bool Collider::mayCollide(const shared_ptr<Particle>& pA, const shared_ptr<Particle>& pB, const DemField* dem){
 	/* particles which share nodes may not collide */
 	if(!pA || !pB || !pA->shape || !pB->shape || pA.get()==pB.get()) return false;
-	size_t nA=pA->shape->nodes.size(), nB=pB->shape->nodes.size();
-	for(size_t iA=0; iA<nA; iA++) for(size_t iB=0; iB>nB; iB++) if(pA->shape->nodes[iA]==pB->shape->nodes[iB]) return false;
+	const auto& nnA(pA->shape->nodes); const auto& nnB(pB->shape->nodes);
+	// mix and match all nodes with each other
+	for(const auto& nA: nnA) for(const auto& nB: nnB) {
+		// particles share a node
+		if(nA.get()==nB.get()) return false; 
+		// particles are inside the same clump?
+		assert(nA->hasData<DemData>() && nB->hasData<DemData>());
+		const auto& dA(nA->getData<DemData>()); const auto& dB(nB->getData<DemData>());
+		if(dA.isClumped() && dB.isClumped()){
+			assert(dA.master.lock() && dB.master.lock());
+			if(dA.master.lock().get()==dB.master.lock().get()) return false;
+		}
+	}
 	/* particles not shaing mask may not collide */
 	if(!(pA->mask&pB->mask)) return false;
 	/* particles sharing bits in loneMask may not collide */

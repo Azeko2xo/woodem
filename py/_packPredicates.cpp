@@ -279,6 +279,7 @@ public:
 		return AlignedBox3r(Vector3r(-Inf,-Inf,-Inf),Vector3r(Inf,Inf,Inf));
 	}
 };
+
 shared_ptr<SpherePack> SpherePack_filtered(const shared_ptr<SpherePack>& sp, const shared_ptr<Predicate>& p, bool recenter=true){
 	auto ret=make_shared<SpherePack>();
 	ret->cellSize=sp->cellSize;
@@ -305,12 +306,13 @@ shared_ptr<SpherePack> SpherePack_filtered(const shared_ptr<SpherePack>& sp, con
 	std::set<int> delSph, delClump;
 	for(size_t i=0; i<N; i++){
 		if((*p)(sp->pack[i].c+off,sp->pack[i].r)) continue; // sphere is inside
-		delSph.insert(i);
 		if(sp->pack[i].clumpId>=0) delClump.insert(sp->pack[i].clumpId);
+		else delSph.insert(i);
 	}
 	for(size_t i=0; i<N; i++){
 		const int& clumpId(sp->pack[i].clumpId);
-		if(delSph.count(i)>0 || (clumpId>=0 && delClump.count(clumpId)==0)) continue; // skip this one
+		// either the sphere as such, or the whole clump was to be removed
+		if((clumpId<0 && delSph.count(i)>0) || (clumpId>=0 && delClump.count(clumpId)>0)) continue; // skip this one
 		ret->add(sp->pack[i].c+off,sp->pack[i].r,clumpId);
 	}
 	return ret;
