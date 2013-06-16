@@ -51,7 +51,7 @@ struct Collider: public GlobalEngine{
 		Tell whether given bodies may interact, for other than spatial reasons.
 		
 		Concrete collider implementations should call this function if the bodies are in potential interaction geometrically. */
-		static bool mayCollide(const shared_ptr<Particle>&, const shared_ptr<Particle>&, const DemField*);
+		static bool mayCollide(const DemField*, const shared_ptr<Particle>&, const shared_ptr<Particle>&);
 		/*!
 		Invalidate all persistent data (if the collider has any), forcing reinitialization at next run.
 		The default implementation does nothing, colliders should override it if it is applicable.
@@ -65,6 +65,7 @@ struct Collider: public GlobalEngine{
 		((shared_ptr<BoundDispatcher>,boundDispatcher,new BoundDispatcher,AttrTrait<Attr::readonly>(),":ref:`BoundDispatcher` object that is used for creating :ref:`bounds <Body.bound>` on collider's request as necessary."))
 		,/*ctor*/
 		,/*py*/ .def("probeAabb",&Collider::probeAabb,(py::arg("mn"),py::arg("mx")),"Return list of particles intersected by axis-aligned box with given corners")
+		.def("mayCollide",&Collider::mayCollide,(py::arg("dem"),py::arg("pA"),py::arg("pB")),"Predicate whether two particles in question may collide or not").staticmethod("mayCollide")
 	);
 };
 WOO_REGISTER_OBJECT(Collider);

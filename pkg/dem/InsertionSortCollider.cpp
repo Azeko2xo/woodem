@@ -38,7 +38,7 @@ void InsertionSortCollider::handleBoundInversion(Particle::id_t id1, Particle::i
 	if(overlap && !hasInter){ // second condition only for readability
 		const shared_ptr<Particle>& p1((*particles)[id1]);
 		const shared_ptr<Particle>& p2((*particles)[id2]);
-		if(!Collider::mayCollide(p1,p2,dem)) return;
+		if(!Collider::mayCollide(dem,p1,p2)) return;
 		// LOG_TRACE("Creating new interaction #"<<id1<<"+#"<<id2);
 		shared_ptr<Contact> newC=make_shared<Contact>();
 		// mimick the way clDem::Collider does the job so that results are easily comparable
@@ -522,7 +522,7 @@ void InsertionSortCollider::handleBoundInversionPeri(Particle::id_t id1, Particl
 		#endif
 		const shared_ptr<Particle>& pA((*particles)[id1]);
 		const shared_ptr<Particle>& pB((*particles)[id2]);
-		if(!Collider::mayCollide(pA,pB,dem)) return;
+		if(!Collider::mayCollide(dem,pA,pB)) return;
 		// LOG_TRACE("Creating new interaction #"<<id1<<"+#"<<id2);
 		shared_ptr<Contact> newC=make_shared<Contact>();
 		newC->pA=pA; newC->pB=pB;

@@ -218,7 +218,7 @@ void ParticleContainer::pyRemask(vector<id_t> ids, int mask, bool visible, bool 
 			for(const auto& c: p->contacts){
 				id_t id2(c.first);
 				assert(exists(id2));
-				if(!Collider::mayCollide(p,(*this)[id2],dem)) ids2.push_back(id2);
+				if(!Collider::mayCollide(dem,p,(*this)[id2])) ids2.push_back(id2);
 			}
 			for(auto id2: ids2){ assert(dem->contacts->find(id,id2)); dem->contacts->remove(dem->contacts->find(id,id2)); }
 		}
@@ -234,7 +234,7 @@ void ParticleContainer::pyRemask(vector<id_t> ids, int mask, bool visible, bool 
 				if(!p->shape || !p->shape->bound){ LOG_DEBUG("#"<<p2->id<<" (being remasked) has no shape/bound, skipped for overlap check."); continue; }
 				AlignedBox3r b1(p->shape->bound->min,p->shape->bound->max);
 				//cerr<<"distance ##"<<id<<"+"<<p2->id<<" is "<<b1.exteriorDistance(b2)<<endl;
-				if(b1.exteriorDistance(b2)<=0 && Collider::mayCollide(p2,p,dem)) toRemove.push_back(p2->id);
+				if(b1.exteriorDistance(b2)<=0 && Collider::mayCollide(dem,p2,p)) toRemove.push_back(p2->id);
 			}
 		}
 		for(auto id: toRemove){

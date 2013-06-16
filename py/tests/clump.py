@@ -81,10 +81,15 @@ class TestSimpleClump(unittest.TestCase):
 		# angular velocities
 		self.assertEqual(b1.dem.angVel,bC.dem.angVel);
 		self.assertEqual(b2.dem.angVel,bC.dem.angVel);
-	def teestNoCollide(self):
+	def testNoCollide(self):
 		"Clump: particles inside one clump don't collide with each other"
+		# use a new scene, with a different clump in this test
+		S=Scene(fields=[DemField()])
+		S.dem.par.appendClumped([utils.sphere(c,r) for c,r in [((1,0,0),1),((0,1,0),1),((0,0,1),1)]])
 		S.engines=[InsertionSortCollider([Bo1_Sphere_Aabb()])]
 		S.one()
+		for i,j in [(0,1),(1,2),(0,2)]:
+			self.assert_(not woo.dem.Collider.mayCollide(S.dem,S.dem.par[i],S.dem.par[j]))
 		self.assert_(len(S.dem.con)==0)
 
 def sphereClumpPrincipalAxes(cc,rr):

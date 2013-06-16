@@ -300,9 +300,9 @@ void DemField::selfTest(){
 			if(!n->hasData<DemData>()) throw std::logic_error("DemField.par["+to_string(p->id)+"].shape.nodes["+to_string(j)+"] does not define DemData.");
 			const auto& dyn=n->getData<DemData>();
 			if(std::find(dyn.parRef.begin(),dyn.parRef.end(),p.get())==dyn.parRef.end()) throw std::logic_error("DemField.par["+to_string(p->id)+"].shape.nodes["+to_string(j)+"].dem.parRef: does not back-reference the particle "+p->pyStr()+" it belongs to.");
-			if(dyn.isClumped()){
-				if(!dyn.master.lock()) throw std::logic_error("DemField.par["+to_string(p->id)+"].shape.nodes["+to_string(j)+"].dem.master=None, but the node claims to be clumped.");
-			}
+			// clumps
+			if(dyn.isClumped() && !dyn.master.lock()) throw std::logic_error("DemField.par["+to_string(p->id)+"].shape.nodes["+to_string(j)+"].dem.master=None, but the node claims to be clumped.");
+			if(!dyn.isClumped() && dyn.master.lock()) throw std::logic_error("DemField.par["+to_string(p->id)+"].shape.nodes["+to_string(j)+"].dem.clumped=False, but the node defines a master node (at this point, there is no other valid use of the master node except as clump; this may change in the future).");
 		}
 	}
 	// check that DemField.nodes properly keep their indices

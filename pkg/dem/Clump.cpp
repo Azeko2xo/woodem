@@ -26,6 +26,7 @@ vector<shared_ptr<SphereClumpGeom>> SphereClumpGeom::fromSpherePack(const shared
 	}
 	vector<shared_ptr<SphereClumpGeom>> ret;
 	ret.reserve(cIx.size());
+	#pragma omp parallel for
 	for(auto& ci: cIx){
 		auto cg=make_shared<SphereClumpGeom>();
 		cg->div=div;
@@ -111,7 +112,7 @@ std::tuple<shared_ptr<Node>,vector<shared_ptr<Particle>>> SphereClumpGeom::makeC
 	for(size_t i=0; i<N; i++){
 		par[i]=DemFuncs::makeSphere(radii[i]*scale,mat);
 		cd->nodes[i]=par[i]->shape->nodes[0];
-		cd->nodes[i]->getData<DemData>().master=n;
+		cd->nodes[i]->getData<DemData>().setClumped(n); // sets flag and assigned master node
 		cd->relPos[i]=(centers[i]-pos)*scale;
 		cd->relOri[i]=ori.conjugate(); // nice to set, but not really important
 	}
@@ -226,6 +227,7 @@ void ClumpData::applyToMembers(const shared_ptr<Node>& node, bool reset, const V
 	for(size_t i=0; i<clump.nodes.size(); i++){
 		const shared_ptr<Node>& n(clump.nodes[i]);
 		DemData& nDyn(n->getData<DemData>());
+		assert(nDyn->isClumped());
 		n->pos=clumpPos+clumpOri*clump.relPos[i];
 		n->ori=clumpOri*clump.relOri[i];
 		nDyn.vel=clump.vel+clump.angVel.cross(n->pos-clumpPos);

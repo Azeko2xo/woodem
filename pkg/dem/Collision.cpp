@@ -10,11 +10,15 @@ WOO_PLUGIN(dem,(Aabb)(BoundFunctor)(BoundDispatcher)(Collider));
 	WOO_PLUGIN(gl,(Gl1_Aabb))
 #endif
 
-bool Collider::mayCollide(const shared_ptr<Particle>& pA, const shared_ptr<Particle>& pB, const DemField* dem){
+bool Collider::mayCollide(const DemField* dem, const shared_ptr<Particle>& pA, const shared_ptr<Particle>& pB){
 	/* particles which share nodes may not collide */
 	if(!pA || !pB || !pA->shape || !pB->shape || pA.get()==pB.get()) return false;
+	/* particles not shaing mask may not collide */
+	if(!(pA->mask&pB->mask)) return false;
+	/* particles sharing bits in loneMask may not collide */
+	if((pA->mask&pB->mask&dem->loneMask)!=0) return false;
+	/* mix and match all nodes with each other (this may be expensive, hence after easier checks above) */
 	const auto& nnA(pA->shape->nodes); const auto& nnB(pB->shape->nodes);
-	// mix and match all nodes with each other
 	for(const auto& nA: nnA) for(const auto& nB: nnB) {
 		// particles share a node
 		if(nA.get()==nB.get()) return false; 
@@ -26,13 +30,8 @@ bool Collider::mayCollide(const shared_ptr<Particle>& pA, const shared_ptr<Parti
 			if(dA.master.lock().get()==dB.master.lock().get()) return false;
 		}
 	}
-	/* particles not shaing mask may not collide */
-	if(!(pA->mask&pB->mask)) return false;
-	/* particles sharing bits in loneMask may not collide */
-	if((pA->mask&pB->mask&dem->loneMask)!=0) return false;
 	// in other cases, do collide
 	return true;
-	
 }
 
 void BoundDispatcher::run(){
@@ -51,21 +50,6 @@ void BoundDispatcher::run(){
 	}
 }
 
-
-#if 0
-bool Collider::mayCollide(const Body* b1, const Body* b2){
-	return 
-		// might be called with deleted bodies, i.e. NULL pointers
-		(b1!=NULL && b2!=NULL) &&
-		// only collide if at least one particle is standalone or they belong to different clumps
-		(b1->isStandalone() || b2->isStandalone() || b1->clumpId!=b2->clumpId ) &&
-		 // do not collide clumps, since they are just containers, never interact
-		!b1->isClump() && !b2->isClump() &&
-		// masks must have at least 1 bit in common
-		(b1->groupMask & b2->groupMask)!=0 
-	;
-}
-#endif
 
 void Collider::getLabeledObjects(std::map<std::string,py::object>& m, const shared_ptr<LabelMapper>& labelMapper){ boundDispatcher->getLabeledObjects(m,labelMapper); GlobalEngine::getLabeledObjects(m,labelMapper); }
 
