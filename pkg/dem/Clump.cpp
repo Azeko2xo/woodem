@@ -26,7 +26,7 @@ vector<shared_ptr<SphereClumpGeom>> SphereClumpGeom::fromSpherePack(const shared
 	}
 	vector<shared_ptr<SphereClumpGeom>> ret;
 	ret.reserve(cIx.size());
-	#pragma omp parallel for
+	// TODO: parallelize this
 	for(auto& ci: cIx){
 		auto cg=make_shared<SphereClumpGeom>();
 		cg->div=div;
