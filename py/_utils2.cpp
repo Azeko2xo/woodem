@@ -29,7 +29,13 @@ Real pWaveDt(shared_ptr<Scene> _scene=shared_ptr<Scene>()){
 		const shared_ptr<ElastMat>& elMat=dynamic_pointer_cast<ElastMat>(b->material);
 		const shared_ptr<Sphere>& s=dynamic_pointer_cast<Sphere>(b->shape);
 		if(!elMat || !s) continue;
-		dt=min(dt,s->radius/sqrt(elMat->young/elMat->density));
+		const auto& n(b->shape->nodes[0]);
+		const auto& dyn(n->getData<DemData>());
+		// for clumps, the velocity is higher: the distance from the sphere center to the clump center
+		// is traversed immediately, thus we need to increase the velocity artificially
+		Real velMult=1.;
+		if(dyn.isClumped()){ assert(dyn.master); velMult+=(n->pos-dyn.master.lock()->pos).norm()/s->radius; }
+		dt=min(dt,s->radius/(velMult*sqrt(elMat->young/elMat->density)));
 	}
 	return dt;
 }

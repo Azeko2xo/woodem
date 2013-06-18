@@ -594,6 +594,7 @@ def xhtmlReport(S,repFmt,headline,afterHead='',figures=[],figFmt='svg',svgEmbed=
 
 
 def svgFileFragment(filename):
+	'Return fragment beginning with ``<svg`` till the end of given *filename*. Those data may be used for embedding SVG in other formats, such as XHTML.'
 	import codecs,re
 	data=codecs.open(filename,encoding='utf-8').read()
 	# returns the first match
@@ -603,6 +604,7 @@ def svgFileFragment(filename):
 
 
 def ensureWriteableDir(d):
+	'Make sure given directory is writeable; raise exception (IOError) if not.'
 	import errno, os
 	try:
 		os.makedirs(d)
@@ -612,6 +614,15 @@ def ensureWriteableDir(d):
 			print 'ERROR: failed to create directory '+d
 			raise
 	if not os.access(d,os.W_OK): raise IOError('Directory %s not writeable.'%d)
+
+
+def runAllPreprocessors():
+	'Run all preprocessors with default parameters, and run the very first step of their simulation.'
+	for P in woo.system.childClasses(woo.core.Preprocessor):
+		print 50*'#'+'\n'+10*' '+P.__module__+'.'+P.__name__+'\n'+50*'#'
+		S=woo.master.scene=P()()
+		S.one
+	print 20*'*'+'   ALL OK   '+20*'*'
 
 
 #############################

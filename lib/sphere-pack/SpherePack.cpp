@@ -609,7 +609,7 @@ void SpherePack::scale(Real scale, bool keepRadius){
 	}
 }
 
-Real SpherePack::maxRelOverlap(){
+Real SpherePack::maxRelOverlap(bool ignorePeri){
 	/*
 	For current distance d₀ and overlap z=r₁+r₂-d₀, determine scaling coeff s=(1+relOverlap) such that d₀s=r₁+r₂ (i.e. scaling packing by s will result in no overlap).
 	With s=z/d₀,  we have d₀s=d₀(z/d₀+1)=z+d₀ which is r₁+r₂.
@@ -618,7 +618,7 @@ Real SpherePack::maxRelOverlap(){
 	size_t sz=pack.size();
 	bool peri=(cellSize!=Vector3r::Zero());
 	Real ret=0.;
-	if(peri) addShadows();
+	if(peri && !ignorePeri) addShadows();
 	for(size_t i=0; i<sz; i++){
 		for(size_t j=i+1; j<sz; j++){
 			const Sph &s1=pack[i]; const Sph& s2=pack[j];
@@ -628,6 +628,6 @@ Real SpherePack::maxRelOverlap(){
 			ret=max(ret,(s1.r+s2.r-dist)/dist);
 		}
 	}
-	if(peri) removeShadows();
+	if(peri && !ignorePeri) removeShadows();
 	return ret;
 }

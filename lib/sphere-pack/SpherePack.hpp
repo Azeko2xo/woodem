@@ -115,8 +115,8 @@ public:
 		for(Sph& s: pack) s.c=rot*s.c;
 	}
 	void scale(Real scale, bool keepRadius=false);
-	Real maxRelOverlap();
-	void makeOverlapFree(){ scale(maxRelOverlap()+1,/*keepRadius*/true); }
+	Real maxRelOverlap(bool ignorePeri=false);
+	void makeOverlapFree(bool ignorePeri=false){ scale(maxRelOverlap(ignorePeri)+1,/*keepRadius*/true); }
 
 	// iteration 
 	size_t len() const{ return pack.size(); }

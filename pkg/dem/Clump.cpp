@@ -26,8 +26,14 @@ vector<shared_ptr<SphereClumpGeom>> SphereClumpGeom::fromSpherePack(const shared
 	}
 	vector<shared_ptr<SphereClumpGeom>> ret;
 	ret.reserve(cIx.size());
-	// TODO: parallelize this
-	for(auto& ci: cIx){
+	// store iterators in flat array so that the loop can be parallelized
+	vector<std::map<int,std::list<int>>::iterator> cIxIter; cIxIter.reserve(cIx.size());
+	for(std::map<int,std::list<int>>::iterator I=cIx.begin(); I!=cIx.end(); ++I) cIxIter.push_back(I);
+	#ifdef WOO_OPENMP
+		#pragma omp parallel for schedule(guided)
+	#endif
+	for(size_t i=0; i<cIxIter.size(); i++){
+		const auto& ci(*cIxIter[i]);
 		auto cg=make_shared<SphereClumpGeom>();
 		cg->div=div;
 		cg->centers.clear(); cg->centers.reserve(ci.second.size());
@@ -227,7 +233,7 @@ void ClumpData::applyToMembers(const shared_ptr<Node>& node, bool reset, const V
 	for(size_t i=0; i<clump.nodes.size(); i++){
 		const shared_ptr<Node>& n(clump.nodes[i]);
 		DemData& nDyn(n->getData<DemData>());
-		assert(nDyn->isClumped());
+		assert(nDyn.isClumped());
 		n->pos=clumpPos+clumpOri*clump.relPos[i];
 		n->ori=clumpOri*clump.relOri[i];
 		nDyn.vel=clump.vel+clump.angVel.cross(n->pos-clumpPos);

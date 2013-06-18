@@ -694,11 +694,13 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNu
 		)
 	]
 	S.one()
-	print 'Created %d particles'%(len(S.dem.par))
+	print u'Created %d particles, compacting…'%(len(S.dem.par))
 	S.dt=.9*utils.pWaveDt(S)
 	S.engines=[
 		woo.dem.PeriIsoCompressor(charLen=2*psd[-1][0],stresses=[-1e8,-1e6],maxUnbalanced=goal,doneHook='print "done"; S.stop();',globalUpdateInt=1,keepProportions=True,label='peri'),
-		woo.core.PyRunner(1,'S.plot.addData(i=S.step,unb=S.lab.peri.currUnbalanced,sig=S.lab.peri.sigma)')
+		# plots only useful for debugging - uncomment if needed
+		# woo.core.PyRunner(100,'S.plot.addData(i=S.step,unb=S.lab.peri.currUnbalanced,sig=S.lab.peri.sigma)'),
+		woo.core.PyRunner(100,'print S.lab.peri.stresses[S.lab.peri.state], S.lab.peri.sigma, S.lab.peri.currUnbalanced'),
 	]+utils.defaultEngines(damping=damping)
 	S.plot.plots={'i':('unb'),' i':('sig_x','sig_y','sig_z')}
 	if dontBlock: return S
@@ -706,8 +708,7 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNu
 	sp=SpherePack()
 	sp.fromSimulation(S)
 	print 'Packing size is',sp.cellSize
-	if clumps: print 'Loose packing may contain overlaps when clumps are used (is not expanded).'
-	else: sp.makeOverlapFree()
+	sp.makeOverlapFree(ignorePeri=(True if clumps else False))
 	print 'Loose packing size is',sp.cellSize
 	sp.save('/tmp/sp0')
 	sp.canonicalize()
@@ -756,7 +757,7 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 	cellSize=(dim[0],dim[1],(1+2*porosity)*dim[2])
 	print 'cell size',cellSize,'target height',dim[2]
 	if memoizeDir and not dontBlock:
-		params=str(dim)+str(cellSize)+str(psd)+str(goal)+str(damping)+mat.dumps(format='expr')+str(gravity)+str(porosity)+str(botLine)+str(leftLine)+str(rightLine)+str(clumps)+'ver2'
+		params=str(dim)+str(cellSize)+str(psd)+str(goal)+str(damping)+mat.dumps(format='expr')+str(gravity)+str(porosity)+str(botLine)+str(leftLine)+str(rightLine)+str(clumps)+'ver4'
 		import hashlib
 		paramHash=hashlib.sha1(params).hexdigest()
 		memoizeFile=memoizeDir+'/'+paramHash+'.bandfeed'
@@ -820,10 +821,12 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 	if True:
 		sp=SpherePack()
 		sp.fromSimulation(S)
+		sp.canonicalize()
 		repeats=Vector3i(1,len(repeatCell),1)
 		sp.cellRepeat(repeats)
 		sp.translate(Vector3(0,dim[1]*(repeats[1]-1.5),0))
-		sp.cellSize=(0,0,0) # not periodic
+		# only periodic along the x-axis
+		sp.cellSize[1]=sp.cellSize[2]=0
 		if memoizeDir:
 			print 'Saving to',memoizeFile
 			sp.save(memoizeFile)
