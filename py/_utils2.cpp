@@ -65,7 +65,7 @@ vector<shared_ptr<Contact> > createContacts(const vector<Particle::id_t>& ids1, 
 	Scene* scene=Master::instance().getScene().get(); shared_ptr<DemField> dem=getDemField(scene);
 	shared_ptr<CGeomDispatcher> gDisp; shared_ptr<CPhysDispatcher> pDisp;
 	if(cgff.empty()){ // find dispatchers in current engines
-		FOREACH(const shared_ptr<Engine>& e, scene->engines){
+		for(const shared_ptr<Engine>& e: scene->engines){
 			ContactLoop* cl(dynamic_cast<ContactLoop*>(e.get()));
 			if(!cl) continue;
 			gDisp=cl->geoDisp; pDisp=cl->phyDisp;
@@ -75,8 +75,8 @@ vector<shared_ptr<Contact> > createContacts(const vector<Particle::id_t>& ids1, 
 	} else { // create dispatcher objects from supplied functors
 		gDisp=shared_ptr<CGeomDispatcher>(new CGeomDispatcher);
 		pDisp=shared_ptr<CPhysDispatcher>(new CPhysDispatcher);
-		FOREACH(const shared_ptr<CGeomFunctor>& cgf, cgff) gDisp->add(cgf);
-		FOREACH(const shared_ptr<CPhysFunctor>& cpf, cpff) pDisp->add(cpf);
+		for(const shared_ptr<CGeomFunctor>& cgf: cgff) gDisp->add(cgf);
+		for(const shared_ptr<CPhysFunctor>& cpf: cpff) pDisp->add(cpf);
 	}
 	assert(gDisp && pDisp);
 	gDisp->scene=pDisp->scene=scene; gDisp->field=pDisp->field=dem; gDisp->updateScenePtr(); pDisp->updateScenePtr();

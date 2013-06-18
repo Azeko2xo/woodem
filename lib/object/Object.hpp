@@ -419,7 +419,7 @@ struct Object: public boost::noncopyable, public boost::enable_shared_from_this<
 
 		template <class ArchiveT> void serialize(ArchiveT & ar, unsigned int version){ };
 		// lovely cast members like in eigen :-)
-		template <class DerivedT> const DerivedT& cast() const { return *static_cast<DerivedT*>(this); }
+		template <class DerivedT> const DerivedT& cast() const { return *static_cast<const DerivedT*>(this); }
 		template <class DerivedT> DerivedT& cast(){ return *static_cast<DerivedT*>(this); }
 
 		static shared_ptr<Object> boostLoad(const string& f){ auto obj=make_shared<Object>(); ObjectIO::load(f,"woo__Object",obj); return obj; }

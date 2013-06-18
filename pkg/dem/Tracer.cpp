@@ -5,6 +5,7 @@
 #include<woo/lib/opengl/GLUtils.hpp>
 
 #include<woo/pkg/dem/Sphere.hpp>
+#include<woo/pkg/dem/Clump.hpp>
 
 WOO_PLUGIN(gl,(TraceGlRep));
 WOO_PLUGIN(dem,(Tracer));
@@ -145,18 +146,18 @@ void Tracer::run(){
 			tr.flags=(compress>0?TraceGlRep::FLAG_COMPRESS:0) | (minDist>0?TraceGlRep::FLAG_MINDIST:0);
 		}
 		auto& tr=n->rep->cast<TraceGlRep>();
-		bool hasP=!n->getData<DemData>().parRef.empty();
-		const auto& pI(n->getData<DemData>().parRef.begin()); // use the iterator pI is hasP is true
+		const auto& dyn(n->getData<DemData>());
+		bool hasP=!dyn.parRef.empty();
+		const auto& pI(dyn.parRef.begin()); // use the iterator pI is hasP is true
 		bool hidden=false;
+		Real radius=NaN;
 		if(modulo[0]>0 && (i+modulo[1])%modulo[0]!=0) hidden=true;
-		if(n->getData<DemData>().isClump() && !clumps) hidden=true;
-		if(!hidden && rRange.maxCoeff()>0){
-			if(hasP && dynamic_pointer_cast<Sphere>((*pI)->shape)){
-				Real r=(*pI)->shape->cast<Sphere>().radius;
-				hidden=((rRange[0]>0 && r<rRange[0]) || (rRange[1]>0 && r>rRange[1]));
-			} else {
-				hidden=true; // hide traces of non-spheres
-			}
+		if(dyn.isClump() && !clumps) hidden=true;
+		// get redius only when actually needed
+		if(!hidden && (SCALAR_RADIUS || rRange.maxCoeff()>0)){
+			if(hasP && dynamic_pointer_cast<Sphere>((*pI)->shape)) radius=(*pI)->shape->cast<Sphere>().radius;
+			else if(dyn.isClump()) radius=dyn.cast<ClumpData>().equivRad;
+			if(rRange.maxCoeff()>0) hidden=(isnan(radius) || (rRange[0]>0 && radius<rRange[0]) || (rRange[1]>0 && radius>rRange[1]));
 		}
 		if(tr.isHidden()!=hidden) tr.setHidden(hidden);
 		Real sc;
@@ -168,7 +169,7 @@ void Tracer::run(){
 				else sc=(dyn.vel.dot(dyn.force)>0?1:-1)*dyn.force.norm()/dyn.mass;
 				break;
 			}
-			case SCALAR_RADIUS: sc=((hasP&&dynamic_pointer_cast<Sphere>((*pI)->shape))?(*pI)->shape->cast<Sphere>().radius:NaN); break;
+			case SCALAR_RADIUS: sc=radius; break;
 			case SCALAR_SHAPE_COLOR: sc=(hasP?(*pI)->shape->color:NaN); break;
 			case SCALAR_TIME: sc=scene->time; break;
 			default: sc=NaN;

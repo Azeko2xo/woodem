@@ -12,10 +12,10 @@ void ForceResetter::run(){
 	bool hasGravity(dem.gravity!=Vector3r::Zero());
 	FOREACH(const shared_ptr<Node>& n, field->nodes){
 		DemData& dyn=n->getData<DemData>();
-		dyn.force=(hasGravity && !dyn.isGravitySkip())?(dem.gravity*dyn.mass).eval():Vector3r::Zero();
+		dyn.force=(dyn.isClump() && hasGravity && !dyn.isGravitySkip())?(dem.gravity*dyn.mass).eval():Vector3r::Zero();
 		dyn.torque=Vector3r::Zero();
 		if(dyn.impose && (dyn.impose->what & Impose::FORCE)) dyn.impose->force(scene,n);
-		if(n->getData<DemData>().isClump()) ClumpData::resetForceTorque(n,dem.gravity);
+		if(dyn.isClump()) ClumpData::resetForceTorque(n,dem.gravity);
 	}
 }
 
@@ -156,7 +156,7 @@ void Leapfrog::run(){
 		if(dyn.isClumped()) continue; // those particles are integrated via the clump's master node
 		bool isClump=dyn.isClump();
 		if(isClump){
-			ClumpData::collectFromMembers(node);
+			ClumpData::collectFromMembers(node,dyn.force,dyn.torque);
 		}
 		Vector3r& f=dyn.force;
 		Vector3r& t=dyn.torque;
@@ -240,7 +240,9 @@ void Leapfrog::run(){
 		}
 
 		if(reset){
-			dyn.force=(hasGravity && !dyn.isGravitySkip())?(dyn.mass*dem->gravity).eval():Vector3r::Zero();
+			// gravity is applied to clump members below (in ClumpData::applyToMembers),
+			// no need to apply to the clump itself (would end up having two gravities)
+			dyn.force=(!isClump && hasGravity && !dyn.isGravitySkip())?(dyn.mass*dem->gravity).eval():Vector3r::Zero();
 			dyn.torque=Vector3r::Zero();
 			if(dyn.impose && (dyn.impose->what & Impose::FORCE)) dyn.impose->force(scene,node);
 		}

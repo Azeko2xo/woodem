@@ -34,7 +34,10 @@ WOO_REGISTER_OBJECT(SphereClumpGeom);
 
 struct ClumpData: public DemData{
 	static shared_ptr<Node> makeClump(const vector<shared_ptr<Node>>& nodes, shared_ptr<Node> centralNode=shared_ptr<Node>(), bool intersecting=false);
-	static void collectFromMembers(const shared_ptr<Node>&);
+	// sum forces and torques from members; does not touch our data, adds to passed references F, T
+	// only the integrator should modify DemData.{force,torque} directly
+	static void collectFromMembers(const shared_ptr<Node>& node, Vector3r& F, Vector3r& T);
+	// update member's positions and velocities
 	static void applyToMembers(const shared_ptr<Node>&, bool resetForceTorque=false, const Vector3r& gravity=Vector3r::Zero());
 	static void resetForceTorque(const shared_ptr<Node>&, const Vector3r& gravity=Vector3r::Zero());
 
@@ -53,6 +56,7 @@ struct ClumpData: public DemData{
 		((vector<shared_ptr<Node>>,nodes,,AttrTrait<Attr::readonly>(),"Member nodes"))
 		((vector<Vector3r>,relPos,,AttrTrait<Attr::readonly>(),"Relative member's positions"))
 		((vector<Quaternionr>,relOri,,AttrTrait<Attr::readonly>(),"Relative member's orientations"))
+		((Real,equivRad,NaN,,"Equivalent radius, for PSD statistics (e.g. in :obj:`BoxDeleter`)."))
 	);
 };
 WOO_REGISTER_OBJECT(ClumpData);

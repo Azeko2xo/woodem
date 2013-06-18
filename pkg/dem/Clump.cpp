@@ -127,8 +127,10 @@ std::tuple<shared_ptr<Node>,vector<shared_ptr<Particle>>> SphereClumpGeom::makeC
 	// set clump properties
 	assert(!isnan(volume));
 	cd->setClump(); assert(cd->isClump());
+	// scale = length scale (but not density scale)
 	cd->mass=mat->density*volume*pow(scale,3);
 	cd->inertia=mat->density*inertia*pow(scale,5);
+	cd->equivRad=equivRad;
 	return std::make_tuple(n,par);
 }
 
@@ -172,6 +174,7 @@ shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, shared
 		clump->relOri.push_back(Quaternionr::Identity());
 		clump->mass=d0.mass;
 		clump->inertia=d0.inertia;
+		clump->equivRad=(clump->inertia.array()/clump->mass).sqrt().mean();
 		return cNode;
 	}
 
@@ -193,6 +196,7 @@ shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, shared
 	if(M>0){
 		computePrincipalAxes(M,Sg,Ig,cNode->pos,cNode->ori,clump->inertia);
 		clump->mass=M;
+		clump->equivRad=(clump->inertia.array()/clump->mass).sqrt().mean();
 	} else {
 		// nodes have no mass; in that case, centralNode is used
 		if(!centralNode) throw std::runtime_error("Clump::updateProperties: no nodes with mass, therefore centralNode must be given, of which position will be used instead");
@@ -215,14 +219,13 @@ shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, shared
 	return cNode;
 }
 
-void ClumpData::collectFromMembers(const shared_ptr<Node>& node){
+void ClumpData::collectFromMembers(const shared_ptr<Node>& node, Vector3r& F, Vector3r& T){
 	ClumpData& clump=node->getData<DemData>().cast<ClumpData>();
-	assert(clump.nodes.size()==clump.relPos.size()); assert(clump.nodes.size()==clump.relOri.size());
-	for(size_t i=0; i<clump.nodes.size(); i++){
-		const DemData& dyn=clump.nodes[i]->getData<DemData>();
-		clump.force+=dyn.force;
-		clump.torque+=dyn.torque+(clump.nodes[i]->pos-node->pos).cross(dyn.force);
-		// cerr<<"f="<<clump.force.transpose()<<", t="<<clump.torque.transpose()<<endl;
+	for(const auto& n: clump.nodes){
+		const DemData& dyn=n->getData<DemData>();
+		F+=dyn.force;
+		T+=dyn.torque+(n->pos-node->pos).cross(dyn.force);
+		// cerr<<"f="<<F.transpose()<<", t="<<T.transpose()<<endl;
 	}
 }
 

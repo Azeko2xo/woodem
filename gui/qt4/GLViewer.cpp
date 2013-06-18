@@ -625,7 +625,7 @@ void GLViewer::postSelection(const QPoint& point)
 			GilLock lock;
 			cerr<<"Selected "<<py::extract<string>(py::str(py::object(Renderer::selObj)))()<<endl;
 		}
-		cerr<<"\tat"<<Renderer::selObjNode->pos.transpose()<<endl;
+		cerr<<"\tat "<<Renderer::selObjNode->pos.transpose()<<endl;
 		if(prevSelNode){
 			Vector3r dPos=Renderer::selObjNode->pos-prevSelNode->pos;
 			cerr<<"\tdistance from previous "<<dPos.norm()<<" (dx="<<dPos.transpose()<<")"<<endl;

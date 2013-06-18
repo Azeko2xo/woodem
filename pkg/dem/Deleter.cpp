@@ -51,15 +51,16 @@ void BoxDeleter::run(){
 	// remove particles marked for deletion
 	for(const auto& id: delParIds){
 		const shared_ptr<Particle>& p((*dem->particles)[id]);
-		if(save) deleted.push_back(p);
 		if(scene->trackEnergy) scene->energy->add(DemData::getEk_any(p->shape->nodes[0],true,true,scene),"kinDelete",kinEnergyIx,EnergyTracker::ZeroDontCreate);
+		// if(save) deleted.push_back(p);
 		const Real& m=p->shape->nodes[0]->getData<DemData>().mass;
 		num++;
 		mass+=m;
 		stepMass+=m;
-		if(recoverRadius && dynamic_cast<Sphere*>(p->shape.get())){
+		if(dynamic_cast<Sphere*>(p->shape.get())){
 			auto& s=p->shape->cast<Sphere>();
-			s.radius=cbrt(3*m/(4*M_PI*p->material->density));
+			if(recoverRadius) s.radius=cbrt(3*m/(4*M_PI*p->material->density));
+			if(save) diamMass.push_back(Vector2r(2*s.radius,m));
 		}
 		LOG_TRACE("DemField.par["<<id<<"] will be deleted.");
 		dem->removeParticle(id);
@@ -72,6 +73,7 @@ void BoxDeleter::run(){
 		num++;
 		mass+=m;
 		stepMass+=m;
+		if(save) diamMass.push_back(Vector2r(2*n->getData<DemData>().cast<ClumpData>().equivRad,m));
 		LOG_TRACE("DemField.nodes["<<ix<<"] (clump) will be deleted, with all its particles.");
 		dem->removeClump(ix);
 		LOG_TRACE("DemField.nodes["<<ix<<"] (clump) deleted.");
@@ -86,30 +88,42 @@ void BoxDeleter::run(){
 }
 py::tuple BoxDeleter::pyDiamMass() const {
 	py::list dd, mm;
-	for(const auto& del: deleted){
-		if(!del || !del->shape || del->shape->nodes.size()!=1 || !dynamic_pointer_cast<Sphere>(del->shape)) continue;
-		Real d=2*del->shape->cast<Sphere>().radius;
-		Real m=del->shape->nodes[0]->getData<DemData>().mass;
-		dd.append(d); mm.append(m);
-	}
+	for(const auto& dm: diamMass){ dd.append(dm[0]); mm.append(dm[1]); }
+	#if 0
+		for(const auto& del: deleted){
+			if(!del || !del->shape || del->shape->nodes.size()!=1 || !dynamic_pointer_cast<Sphere>(del->shape)) continue;
+			Real d=2*del->shape->cast<Sphere>().radius;
+			Real m=del->shape->nodes[0]->getData<DemData>().mass;
+			dd.append(d); mm.append(m);
+		}
+	#endif
 	return py::make_tuple(dd,mm);
 }
 
 Real BoxDeleter::pyMassOfDiam(Real min, Real max) const {
 	Real ret=0.;
-	for(const auto& del: deleted){
-		if(!del || !del->shape || del->shape->nodes.size()!=1 || !dynamic_pointer_cast<Sphere>(del->shape)) continue;
-		Real d=2*del->shape->cast<Sphere>().radius;
-		if(d>=min && d<=max) ret+= del->shape->nodes[0]->getData<DemData>().mass;
+	#if 0
+		for(const auto& del: deleted){
+			if(!del || !del->shape || del->shape->nodes.size()!=1 || !dynamic_pointer_cast<Sphere>(del->shape)) continue;
+			Real d=2*del->shape->cast<Sphere>().radius;
+			if(d>=min && d<=max) ret+= del->shape->nodes[0]->getData<DemData>().mass;
+		}
+	#endif
+	for(const auto& dm: diamMass){
+		if(dm[0]>=min && dm[0]<=max) ret+=dm[1];
 	}
 	return ret;
 }
 
 py::object BoxDeleter::pyPsd(bool mass, bool cumulative, bool normalize, int num, const Vector2r& dRange, bool zip){
 	if(!save) throw std::runtime_error("BoxDeleter.save must be True for calling BoxDeleter.psd()");
-	vector<Vector2r> psd=DemFuncs::psd(deleted,cumulative,normalize,num,dRange,
-		/*radius getter*/[](const shared_ptr<Particle>&p) ->Real { return 2*p->shape->cast<Sphere>().radius; },
-		/*weight getter*/[&](const shared_ptr<Particle>&p) -> Real{ return mass?p->shape->nodes[0]->getData<DemData>().mass:1.; }
+	vector<Vector2r> psd=DemFuncs::psd(/*deleted*/diamMass,cumulative,normalize,num,dRange,
+		#if 0
+			/*diameter getter*/[](const shared_ptr<Particle>&p) ->Real { return 2*p->shape->cast<Sphere>().radius; },
+			/*weight getter*/[&](const shared_ptr<Particle>&p) -> Real{ return mass?p->shape->nodes[0]->getData<DemData>().mass:1.; }
+		#endif
+		/*diameter getter*/[](const Vector2r& dm)->Real{ return dm[0]; },
+		/*weight getter*/[&mass](const Vector2r& dm)->Real{ return mass?dm[1]:1.; }
 	);
 	if(zip){
 		py::list ret;

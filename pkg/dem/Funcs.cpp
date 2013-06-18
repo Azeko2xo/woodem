@@ -77,10 +77,17 @@ Real DemFuncs::unbalancedForce(const Scene* scene, const DemField* dem, bool use
 	// get maximum force on a body and sum of all forces (for averaging)
 	Real sumF=0,maxF=0;
 	int nb=0;
-	FOREACH(const shared_ptr<Node>& n, dem->nodes){
+	for(const shared_ptr<Node>& n: dem->nodes){
 		DemData& dyn=n->getData<DemData>();
 		if(!dyn.isBlockedNone() || dyn.isClumped()) continue;
-		Real currF=dyn.force.norm();
+		Real currF;
+		// we suppose here the clump has not yet received any forces from its members
+		// and get additional forces from particles
+		if(dyn.isClump()){ 
+			Vector3r F(dyn.force), T(Vector3r::Zero()) /*we don't care about torque*/; 
+			ClumpData::collectFromMembers(n,F,T); 
+			currF=F.norm();
+		} else currF=dyn.force.norm();
 		maxF=max(currF,maxF);
 		sumF+=currF;
 		nb++;

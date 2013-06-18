@@ -52,6 +52,10 @@ void ConveyorFactory::postLoad(ConveyorFactory&,void* attr){
 	/* this block applies in too may cases to name all attributes here;
 	   besides computing the volume, it is cheap, so do it at every postLoad to make sure it gets done
 	*/
+	// those are invalid values, change them to NaN
+	if(massRate<=0) massRate=NaN;
+	if(vel<=0) vel=NaN;
+
 	Real vol=packVol();
 	Real maxRate;
 	Real rho=(material?material->density:NaN);

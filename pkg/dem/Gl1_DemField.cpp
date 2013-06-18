@@ -1,6 +1,7 @@
 #ifdef WOO_OPENGL
 #include<woo/pkg/dem/Gl1_DemField.hpp>
 #include<woo/pkg/dem/Sphere.hpp>
+#include<woo/pkg/dem/Clump.hpp>
 #include<woo/pkg/dem/InfCylinder.hpp>
 #include<woo/pkg/dem/Wall.hpp>
 #include<woo/pkg/dem/Facet.hpp>
@@ -170,7 +171,6 @@ Vector3r Gl1_DemField::getNodeAngVel(const shared_ptr<Node>& n) const{
 	return scene->cell->pprevFluctAngVel(n->getData<DemData>().angVel);
 }
 
-
 // this function is called for both rendering as well as
 // in the selection mode
 
@@ -209,6 +209,8 @@ void Gl1_DemField::doShape(){
 
 		bool useColor2=false;
 		bool isSphere=dynamic_pointer_cast<Sphere>(p->shape);
+		Real radius=(isSphere?p->shape->cast<Sphere>().radius:NaN);
+		if(n0->getData<DemData>().isClump()) radius=n0->getData<DemData>().cast<ClumpData>().equivRad;
 
 		switch(shape){
 			case SHAPE_NONE: useColor2=true; break;
@@ -220,7 +222,7 @@ void Gl1_DemField::doShape(){
 		}
 		// additional conditions under which colorBy2 is used
 		if(false
-			|| (!isSphere && colorBy==COLOR_RADIUS )
+			|| (colorBy==COLOR_RADIUS && isnan(radius))
 			|| (colorBy==COLOR_MATSTATE && !p->matState)
 			|| (!isSphere && (colorBy==COLOR_SIG_N || colorBy==COLOR_SIG_T))
 		) useColor2=true;
@@ -234,7 +236,7 @@ void Gl1_DemField::doShape(){
 		auto vecNormXyz=[&](const Vector3r& v)->Real{ if(useColor2 || vecAxis<0||vecAxis>2) return v.norm(); return v[vecAxis]; };
 		int cBy=(!useColor2?colorBy:colorBy2);
 		switch(cBy){
-			case COLOR_RADIUS: parColor=(isSphere?CR->color(p->shape->cast<Sphere>().radius):solidColor); break;
+			case COLOR_RADIUS: parColor=(!isnan(radius)?CR->color(radius):(solidColor)); break;
 			case COLOR_VEL: parColor=CR->color(vecNormXyz(getParticleVel(p))); break;
 			case COLOR_ANGVEL: parColor=CR->color(vecNormXyz(getNodeAngVel(n0))); break;
 			case COLOR_MASS: parColor=CR->color(n0->getData<DemData>().mass); break;
