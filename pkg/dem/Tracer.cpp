@@ -6,6 +6,7 @@
 
 #include<woo/pkg/dem/Sphere.hpp>
 #include<woo/pkg/dem/Clump.hpp>
+#include<woo/pkg/gl/Renderer.hpp> // for displacement scaling
 
 WOO_PLUGIN(gl,(TraceGlRep));
 WOO_PLUGIN(dem,(Tracer));
@@ -38,6 +39,7 @@ void TraceGlRep::render(const shared_ptr<Node>& n, const GLViewInfo*){
 	if(isHidden()) return;
 	if(!Tracer::glSmooth) glDisable(GL_LINE_SMOOTH);
 	else glEnable(GL_LINE_SMOOTH);
+	bool scale=(Renderer::dispScale!=Vector3r::Ones() && Renderer::scaleOn && n->hasData<GlData>());
 	glLineWidth(Tracer::glWidth);
 	glBegin(GL_LINE_STRIP);
 		for(size_t i=0; i<pts.size(); i++){
@@ -58,7 +60,14 @@ void TraceGlRep::render(const shared_ptr<Node>& n, const GLViewInfo*){
 					else glColor3v(Tracer::noneColor);
 				}
 				else glColor3v(Tracer::lineColor->color(scalars[ix]));
-				glVertex3v(pts[ix]);
+				if(!scale) glVertex3v(pts[ix]);
+				else{
+					const auto& gl=n->getData<GlData>();
+					// don't scale if refpos is invalid
+					if(isnan(gl.refPos.maxCoeff())) glVertex3v(pts[ix]); 
+					// x+(s-1)*(x-x0)
+					else glVertex3v((pts[i]+((Renderer::dispScale-Vector3r::Ones()).array()*(pts[i]-gl.refPos).array()).matrix()).eval());
+				}
 			}
 		}
 	glEnd();
