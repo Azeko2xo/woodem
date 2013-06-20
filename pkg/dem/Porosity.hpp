@@ -5,7 +5,7 @@
 
 #include<woo/lib/sphere-pack/SpherePack.hpp>
 
-struct AnisoPorosityAnalyzer: public GlobalEngine {
+struct AnisoPorosityAnalyzer: public Engine {
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	DemField* dem;
 	SpherePack pack;
@@ -20,7 +20,7 @@ struct AnisoPorosityAnalyzer: public GlobalEngine {
 	Real computeOneRay(const Vector3r& A, const Vector3r& B, bool vis=false);
 	void initialize();
 	DECLARE_LOGGER;
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(AnisoPorosityAnalyzer,GlobalEngine,"Engine which analyzes current scene and computes directionaly porosity value by intersecting spheres with lines. The algorithm only works on periodic simulations.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(AnisoPorosityAnalyzer,Engine,"Engine which analyzes current scene and computes directionaly porosity value by intersecting spheres with lines. The algorithm only works on periodic simulations.",
 		((Matrix3r,poro,Matrix3r::Zero(),AttrTrait<Attr::readonly>(),"Store analysis result here"))
 		((int,div,10,,"Fineness of division of interval (0…1) for $u$,$v$ ∈〈0…1〉, which are used for uniform distribution over the positive octant as $\\theta=\frac{\\pi}{2}u$, $\\phi=\\acos v$ (see http://mathworld.wolfram.com/SpherePointPicking.html)"))
 		// check that data are up-to-date

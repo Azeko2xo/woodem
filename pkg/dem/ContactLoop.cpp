@@ -63,7 +63,7 @@ void ContactLoop::getLabeledObjects(std::map<std::string, py::object>& m, const 
 	geoDisp->getLabeledObjects(m,labelMapper);
 	phyDisp->getLabeledObjects(m,labelMapper);
 	lawDisp->getLabeledObjects(m,labelMapper);
-	GlobalEngine::getLabeledObjects(m,labelMapper);
+	Engine::getLabeledObjects(m,labelMapper);
 }
 
 

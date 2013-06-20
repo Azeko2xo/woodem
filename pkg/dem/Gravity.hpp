@@ -2,12 +2,12 @@
 #include<woo/core/Engine.hpp>
 #include<woo/pkg/dem/Particle.hpp>
 
-struct Gravity: public GlobalEngine{
+struct Gravity: public Engine{
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	virtual void run();
 	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
 	virtual string pyStr() const { return "<Gravity ("+to_string(gravity[0])+", "+to_string(gravity[1])+", "+to_string(gravity[2])+") @ "+lexical_cast<string>(this)+">"; }
-	WOO_CLASS_BASE_DOC_ATTRS(Gravity,GlobalEngine,"Engine applying constant acceleration to all bodies.",
+	WOO_CLASS_BASE_DOC_ATTRS(Gravity,Engine,"Engine applying constant acceleration to all bodies.",
 		((Vector3r,gravity,Vector3r::Zero(),,"Acceleration [kgms⁻²]"))
 		((int,gravWorkIx,-1,AttrTrait<Attr::noSave|Attr::hidden>(),"Index for work of gravity"))
 		// ((int,mask,0,,"If mask defined, only bodies with corresponding groupMask will be affected by this engine. If 0, all bodies will be affected."))
@@ -15,10 +15,10 @@ struct Gravity: public GlobalEngine{
 };
 WOO_REGISTER_OBJECT(Gravity);
 
-struct AxialGravity: public GlobalEngine {
+struct AxialGravity: public Engine {
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	virtual void run();
-	WOO_CLASS_BASE_DOC_ATTRS(AxialGravity,GlobalEngine,"Apply acceleration (independent of distance) directed towards an axis.",
+	WOO_CLASS_BASE_DOC_ATTRS(AxialGravity,Engine,"Apply acceleration (independent of distance) directed towards an axis.",
 		((Vector3r,axisPt,Vector3r::Zero(),,"Point through which the axis is passing."))
 		((Vector3r,axisDir,Vector3r::UnitX(),,"direction of the gravity axis (will be normalized automatically)"))
 		((Real,accel,0,,"Acceleration magnitude [kgms⁻²]"))

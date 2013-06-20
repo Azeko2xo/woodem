@@ -25,7 +25,7 @@
 
 YAD3_CLASS_IMPLEMENTATION(Cell_CLASS_DESCRIPTOR)
 
-WOO_PLUGIN(core,(Cell)(Dispatcher)(EnergyTracker)(Engine)(Functor)(GlobalEngine)(ParallelEngine)(PartialEngine)(PeriodicEngine)(Plot)(PyRunner)(DisplayParameters)(WooTestClass)(WooTestPeriodicEngine));
+WOO_PLUGIN(core,(Cell)(Dispatcher)(EnergyTracker)(Engine)(Functor)(ParallelEngine)(PeriodicEngine)(Plot)(PyRunner)(DisplayParameters)(WooTestClass)(WooTestPeriodicEngine));
 #include<woo/core/Field.hpp>
 WOO_PLUGIN(core,(Constraint)(Node)(NodeData)(Field));
 #ifdef WOO_OPENGL

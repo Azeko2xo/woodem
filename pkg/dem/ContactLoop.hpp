@@ -62,7 +62,7 @@ WOO_REGISTER_OBJECT(LawDispatcher);
 
 
 
-class ContactLoop: public GlobalEngine {
+class ContactLoop: public Engine {
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	// store interactions that should be deleted after loop in action, not later
 	#ifdef WOO_OPENMP
@@ -76,7 +76,7 @@ class ContactLoop: public GlobalEngine {
 		virtual void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d);
 		virtual void getLabeledObjects(std::map<std::string, py::object>& m, const shared_ptr<LabelMapper>&);
 		virtual void run();
-		WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ContactLoop,GlobalEngine,"Loop over all contacts, possible in a parallel manner.\n\n.. admonition:: Special constructor\n\n\tConstructs from 3 lists of :ref:`Cg2<CGeomFunctor>`, :ref:`Cp2<IPhysFunctor>`, :ref:`Law<LawFunctor>` functors respectively; they will be passed to interal dispatchers.",
+		WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ContactLoop,Engine,"Loop over all contacts, possible in a parallel manner.\n\n.. admonition:: Special constructor\n\n\tConstructs from 3 lists of :ref:`Cg2<CGeomFunctor>`, :ref:`Cp2<IPhysFunctor>`, :ref:`Law<LawFunctor>` functors respectively; they will be passed to interal dispatchers.",
 			((shared_ptr<CGeomDispatcher>,geoDisp,new CGeomDispatcher,AttrTrait<Attr::readonly>(),":ref:`CGeomDispatcher` object that is used for dispatch."))
 			((shared_ptr<CPhysDispatcher>,phyDisp,new CPhysDispatcher,AttrTrait<Attr::readonly>(),":ref:`CPhysDispatcher` object used for dispatch."))
 			((shared_ptr<LawDispatcher>,lawDisp,new LawDispatcher,AttrTrait<Attr::readonly>(),":ref:`LawDispatcher` object used for dispatch."))

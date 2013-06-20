@@ -157,7 +157,7 @@ WOO_REGISTER_OBJECT(SparcData);
 
 template<> struct NodeData::Index<SparcData>{enum{value=Node::ST_SPARC};};
 
-struct ExplicitNodeIntegrator: public GlobalEngine {
+struct ExplicitNodeIntegrator: public Engine {
 	bool acceptsField(Field* f){ return dynamic_cast<SparcField*>(f); }
 
 	enum{ MAT_ELASTIC=0, MAT_BARODESY, MAT_VISCOUS, MAT_SENTINEL /* to check max value */ };
@@ -190,7 +190,7 @@ struct ExplicitNodeIntegrator: public GlobalEngine {
 
 	enum {WEIGHT_DIST=0,WEIGHT_GAUSS,WEIGHT_SENTINEL};
 	enum {WLS_EMPTY=0,WLS_QUAD_X,WLS_CUBIC_X,WLS_LIN_XY,WLS_QUAD_XY,WLS_LIN_XYZ,WLS_QUAD_XYZ};
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ExplicitNodeIntegrator,GlobalEngine,"Monolithic engine for explicit integration of motion of nodes in SparcField.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ExplicitNodeIntegrator,Engine,"Monolithic engine for explicit integration of motion of nodes in SparcField.",
 		((Real,E,1e6,AttrTrait<Attr::triggerPostLoad>(),"Young's modulus, for the linear elastic constitutive law"))
 		((Real,nu,0,AttrTrait<Attr::triggerPostLoad>(),"Poisson's ratio for the linear elastic constitutive law"))
 		((vector<Real>,barodesyC,vector<Real>({-1.7637,-1.0249,-0.5517,-1174.,-4175.,2218}),AttrTrait<Attr::triggerPostLoad>(),"Material constants for barodesy"))

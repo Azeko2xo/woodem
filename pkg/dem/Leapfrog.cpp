@@ -12,10 +12,11 @@ void ForceResetter::run(){
 	bool hasGravity(dem.gravity!=Vector3r::Zero());
 	FOREACH(const shared_ptr<Node>& n, field->nodes){
 		DemData& dyn=n->getData<DemData>();
-		dyn.force=(dyn.isClump() && hasGravity && !dyn.isGravitySkip())?(dem.gravity*dyn.mass).eval():Vector3r::Zero();
+		dyn.force=(hasGravity && !dyn.isGravitySkip())?(dem.gravity*dyn.mass).eval():Vector3r::Zero();
 		dyn.torque=Vector3r::Zero();
 		if(dyn.impose && (dyn.impose->what & Impose::FORCE)) dyn.impose->force(scene,n);
-		if(dyn.isClump()) ClumpData::resetForceTorque(n,dem.gravity);
+		// zero gravity on clump members, already applied to the clump itself
+		if(dyn.isClump()) ClumpData::resetForceTorque(n);
 	}
 }
 
@@ -240,9 +241,8 @@ void Leapfrog::run(){
 		}
 
 		if(reset){
-			// gravity is applied to clump members below (in ClumpData::applyToMembers),
-			// no need to apply to the clump itself (would end up having two gravities)
-			dyn.force=(!isClump && hasGravity && !dyn.isGravitySkip())?(dyn.mass*dem->gravity).eval():Vector3r::Zero();
+			// apply gravity only to the clump itself (not to the nodes later, in CLumpData::applyToMembers)
+			dyn.force=(hasGravity && !dyn.isGravitySkip())?(dyn.mass*dem->gravity).eval():Vector3r::Zero();
 			dyn.torque=Vector3r::Zero();
 			if(dyn.impose && (dyn.impose->what & Impose::FORCE)) dyn.impose->force(scene,node);
 		}
@@ -251,7 +251,8 @@ void Leapfrog::run(){
 		if(dyn.impose && (dyn.impose->what & Impose::VELOCITY)) dyn.impose->velocity(scene,node);
 
 		// for clumps, update positions/orientations of members as well
-		if(isClump) ClumpData::applyToMembers(node,/*resetForceTorque*/reset,dem->gravity);
+		// (gravity already applied to the clump node itself, pass zero here! */
+		if(isClump) ClumpData::applyToMembers(node,/*resetForceTorque*/reset);
 	}
 	// if(isPeriodic) prevVelGrad=scene->cell->velGrad;
 }

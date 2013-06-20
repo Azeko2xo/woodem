@@ -325,13 +325,15 @@ def regularHexa(predicate,radius,gap,**kw):
 		if predicate((x,y,z),radius): ret+=[utils.sphere((x,y,z),radius=radius,**kw)]
 	return ret
 
-def randomLoosePsd(predicate,psd,mass=True,discrete=False,maxAttempts=5000,**kw):
+def randomLoosePsd(predicate,psd,mass=True,discrete=False,maxAttempts=5000,clumps=[],returnSpherePack=False,**kw):
 	'''Return loose packing based on given PSD.'''
 	import woo.dem
 	import woo.core
 	import woo.log
 	S=woo.core.Scene(fields=[woo.dem.DemField()])
 	mn,mx=predicate.aabb()
+	if not clumps: generator=woo.dem.PsdSphereGenerator(psdPts=psd,discrete=False,mass=True)
+	else: generator=woo.dem.PsdClumpGenerator(psdPts=psd,discrete=False,mass=True,clumps=clumps)
 	S.engines=[
 		woo.dem.InsertionSortCollider([woo.dem.Bo1_Sphere_Aabb()]),
 		woo.dem.BoxFactory(
@@ -340,17 +342,21 @@ def randomLoosePsd(predicate,psd,mass=True,discrete=False,maxAttempts=5000,**kw)
 			maxNum=-1,
 			massFlowRate=0,
 			maxAttempts=maxAttempts,
-			generator=woo.dem.PsdSphereGenerator(psdPts=psd,discrete=discrete,mass=mass),
+			generator=generator,
 			materials=[woo.dem.ElastMat(density=1)], # must have some density
 			shooter=None,
 			mask=1,
 		)
 	]
 	S.one()
-	ret=[]
-	for p in S.dem.par:
-		if predicate(p.pos,p.shape.radius): ret+=[utils.sphere(p.pos,radius=p.shape.radius,**kw)]
-	return ret
+	if not returnSpherePack: raise ValueError('returnSpherePack must be True.')
+	sp=SpherePack()
+	sp.fromSimulation(S)
+	return sp.filtered(predicate)
+	#ret=[]
+	#for p in S.dem.par:
+	#	if predicate(p.pos,p.shape.radius): ret+=[utils.sphere(p.pos,radius=p.shape.radius,**kw)]
+	#return ret
 
 
 def filterSpherePack(predicate,spherePack,**kw):

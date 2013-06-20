@@ -5,14 +5,14 @@
 #ifdef WOO_OPENMP
 	#include<omp.h>
 #endif
-struct ForceResetter: public GlobalEngine{
+struct ForceResetter: public Engine{
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	void run();
-	WOO_CLASS_BASE_DOC(ForceResetter,GlobalEngine,"Reset forces on nodes in DEM field.");
+	WOO_CLASS_BASE_DOC(ForceResetter,Engine,"Reset forces on nodes in DEM field.");
 };
 WOO_REGISTER_OBJECT(ForceResetter);
 
-struct Leapfrog: public GlobalEngine {
+struct Leapfrog: public Engine {
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 
 	void nonviscDamp1st(Vector3r& force, const Vector3r& vel);
@@ -42,7 +42,7 @@ struct Leapfrog: public GlobalEngine {
 
 	public:
 		virtual void run();
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR(Leapfrog,GlobalEngine,"Engine integrating newtonian motion equations, using the leap-frog scheme.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR(Leapfrog,Engine,"Engine integrating newtonian motion equations, using the leap-frog scheme.",
 		// cached values
 		((Matrix3r,IpLL4h,,AttrTrait<Attr::readonly|Attr::noSave>(),"I+(nnextL+pprevL)/4"))
 		((Matrix3r,ImLL4hInv,,AttrTrait<Attr::readonly|Attr::noSave>(),"(I-(nnextL+pprevL)/4)^-1"))

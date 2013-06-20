@@ -38,8 +38,8 @@ struct ClumpData: public DemData{
 	// only the integrator should modify DemData.{force,torque} directly
 	static void collectFromMembers(const shared_ptr<Node>& node, Vector3r& F, Vector3r& T);
 	// update member's positions and velocities
-	static void applyToMembers(const shared_ptr<Node>&, bool resetForceTorque=false, const Vector3r& gravity=Vector3r::Zero());
-	static void resetForceTorque(const shared_ptr<Node>&, const Vector3r& gravity=Vector3r::Zero());
+	static void applyToMembers(const shared_ptr<Node>&, bool resetForceTorque=false);
+	static void resetForceTorque(const shared_ptr<Node>&);
 
 	//! Recalculates inertia tensor of a body after translation away from (default) or towards its centroid.
 	static Matrix3r inertiaTensorTranslate(const Matrix3r& I,const Real m, const Vector3r& off);

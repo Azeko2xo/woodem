@@ -40,6 +40,7 @@ class CylTriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		## materials
 		_PAT(woo.dem.FrictMat,'parMat',FrictMat(young=0.3e9,ktDivKn=.2,tanPhi=.4,density=1e8),startGroup='Materials',doc='Material of particles.'),
 		_PAT([Vector2,],'psd',[(2e-3,0),(2.5e-3,.2),(4e-3,1.)],unit=['mm','%'],doc='Particle size distribution of particles; first value is diameter, scond is cummulative mass fraction.'),
+		_PAT([woo.dem.SphereClumpGeom],'clumps',[],"Clump definitions (if empty, use spheres, not clumps)"),
 		_PAT(woo.dem.FrictMat,'memMat',FrictMat(young=1.1e6,ktDivKn=.2,tanPhi=.4,density=1e8),'Membrane material; if unspecified, particle material is used (with reduced friction during the compaction phase)'),
 		_PAT(float,'suppTanPhi',float('nan'),'Friction at supports; if NaN, the same as for particles is used. Supports use the same material as particles otherwise.'),
 
@@ -156,7 +157,7 @@ def prepareCylTriax(pre):
 
 	if pre.packCacheDir:
 		import hashlib,os
-		compactMemoize=pre.packCacheDir+'/'+hashlib.sha1(pre.dumps(format='expr')+'ver2').hexdigest()+'.triax-compact'
+		compactMemoize=pre.packCacheDir+'/'+hashlib.sha1(pre.dumps(format='expr')+'ver3').hexdigest()+'.triax-compact'
 		print 'Compaction memoize file is ',compactMemoize
 	else: compactMemoize='' # no memoize file
 
@@ -168,7 +169,8 @@ def prepareCylTriax(pre):
 		S.lab.compactMemoize=None # none means we just loaded that file
 		sp.toSimulation(S,mat=S.lab.parMat)
 	else:
-		S.dem.par.append(woo.pack.randomLoosePsd(predicate=woo.pack.inCylinder(centerBottom=(xymid[0],xymid[1],bot),centerTop=(xymid[0],xymid[1],top),radius=innerRad),psd=pre.psd,mat=S.lab.parMat))
+		pack=woo.pack.randomLoosePsd(predicate=woo.pack.inCylinder(centerBottom=(xymid[0],xymid[1],bot),centerTop=(xymid[0],xymid[1],top),radius=innerRad),psd=pre.psd,mat=S.lab.parMat,clumps=pre.clumps,returnSpherePack=True)
+		pack.toSimulation(S)
 		meshAabb=AlignedBox3((xymin[0],xymin[1],bot),(xymax[0],xymax[1],top))
 		S.lab.compactMemoize=compactMemoize
 

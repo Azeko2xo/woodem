@@ -112,20 +112,6 @@ class Engine: public Object {
 };
 WOO_REGISTER_OBJECT(Engine);
 
-class PartialEngine: public Engine{
-	WOO_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(PartialEngine,Engine,"Engine affecting only particular bodies in the simulation, defined by `ids<woo.core.PartialEngine.ids>`.",
-		((std::vector<int>,ids,,,"`ids<woo.dem.Particle.id>` of particles affected by this PartialEngine.")),
-		/*deprec*/, /*init*/, /* ctor */, /* py */
-	);
-};
-WOO_REGISTER_OBJECT(PartialEngine);
-
-class GlobalEngine: public Engine{
-	public :
-	WOO_CLASS_BASE_DOC(GlobalEngine,Engine,"Engine that will generally affect the whole simulation (contrary to :ref:`PartialEngine`).");
-};
-WOO_REGISTER_OBJECT(GlobalEngine);
-
 class ParallelEngine: public Engine {
 	public:
 		typedef vector<vector<shared_ptr<Engine> > > slaveContainer;
@@ -149,13 +135,13 @@ class ParallelEngine: public Engine {
 WOO_REGISTER_OBJECT(ParallelEngine);
 
 
-class PeriodicEngine: public GlobalEngine{
+class PeriodicEngine: public Engine{
 	public:
 		static Real getClock(){ timeval tp; gettimeofday(&tp,NULL); return tp.tv_sec+tp.tv_usec/1e6; }
 		virtual bool isActivated();
 		// set virtLast, realLast, stepLast as if we run now; don't modify nDo/nDone, though
 		void fakeRun();
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR(PeriodicEngine,GlobalEngine,
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR(PeriodicEngine,Engine,
 		"Run Engine::run with given fixed periodicity real time (=wall clock time, computation time), virtual time (simulation time), step number), by setting any of those criteria (virtPeriod, realPeriod, stepPeriod) to a positive value. They are all negative (inactive) by default.\n\nThe number of times this engine is activated can be limited by setting nDo>0. If the number of activations will have been already reached, no action will be called even if an active period has elapsed.\n\nIf initRun is set (true by default), the engine will run when called for the first time; otherwise it will only  start counting period (realLast etc interal variables) from that point, but without actually running, and will run only once a period has elapsed since the initial run.\n\nThis class should not be used directly; rather, derive your own engine which you want to be run periodically.\n\nDerived engines should override Engine::action(), which will be called periodically. If the derived Engine overrides also Engine::isActivated, it should also take in account return value from PeriodicEngine::isActivated, otherwise the periodicity will not be functional.\n\nExample with PyRnner, which derives from PeriodicEngine; likely to be encountered in python scripts)::\n\n\
 		\
 			PyRunner(realPeriod=5,stepPeriod=10000,command='print O.step')	\n\n\
