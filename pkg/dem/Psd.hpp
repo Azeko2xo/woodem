@@ -11,10 +11,10 @@ struct PsdSphereGenerator: public ParticleGenerator{
 	std::tuple<Real,int> computeNextRadiusBin();
 	// save bookkeeping information once the particle is generated (also used by derived classes)
 	void saveBinMassRadius(int bin, Real m, Real r);
-	void revokeLast() override;
+	void revokeLast() WOO_CXX11_OVERRIDE;
 	int lastBin; Real lastM;
 
-	void clear() override { ParticleGenerator::clear(); weightTotal=0.; std::fill(weightPerBin.begin(),weightPerBin.end(),0.); }
+	void clear() WOO_CXX11_OVERRIDE { ParticleGenerator::clear(); weightTotal=0.; std::fill(weightPerBin.begin(),weightPerBin.end(),0.); }
 	py::tuple pyInputPsd(bool scale, bool cumulative, int num) const;
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(PsdSphereGenerator,ParticleGenerator,"Generate spherical particles following a given Particle Size Distribution (PSD)",
 		((bool,discrete,true,,"The points on the PSD curve will be interpreted as the only allowed diameter values; if *false*, linear interpolation between them is assumed instead. Do not change once the generator is running."))
@@ -32,7 +32,7 @@ WOO_REGISTER_OBJECT(PsdSphereGenerator);
 struct PsdClumpGenerator: public PsdSphereGenerator {
 	DECLARE_LOGGER;
 	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m);
-	void clear() override { genClumpNo.clear(); /*call parent*/ PsdSphereGenerator::clear(); };
+	void clear() WOO_CXX11_OVERRIDE { genClumpNo.clear(); /*call parent*/ PsdSphereGenerator::clear(); };
 	WOO_CLASS_BASE_DOC_ATTRS(PsdClumpGenerator,PsdSphereGenerator,"Generate clump particles following a given Particle Size Distribution (PSD).",
 		((vector<shared_ptr<SphereClumpGeom>>,clumps,,,"Sequence of clump geometry definitions (:obj:`SphereClumpGeom`); for every selected radius from the PSD, clump will be chosen based on the :obj:`SphereClumpGeom.scaleProb` function and scaled to that radius."))
 		((vector<int>,genClumpNo,,AttrTrait<>().noGui().readonly(),"If :obj:`save` is set, keeps clump numbers (indices in :obj:`clumps` for each generated clump."))

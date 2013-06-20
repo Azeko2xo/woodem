@@ -219,7 +219,7 @@ struct DemField: public Field{
 	AlignedBox3r renderingBbox() const; // overrides Field::renderingBbox
 	boost::mutex nodesMutex; // sync adding nodes with the renderer, which might otherwise crash
 
-	void selfTest() override;
+	void selfTest() WOO_CXX11_OVERRIDE;
 
 	void pyNodesAppend(const shared_ptr<Node>& n);
 

@@ -2,6 +2,7 @@
 #include<woo/pkg/dem/L6Geom.hpp>
 #include<woo/pkg/dem/G3Geom.hpp>
 #include<woo/pkg/dem/FrictMat.hpp>
+#include<woo/pkg/dem/Clump.hpp>
 
 #include<cstdint>
 #include<iostream>

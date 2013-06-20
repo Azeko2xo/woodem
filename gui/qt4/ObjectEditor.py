@@ -652,9 +652,10 @@ def hasActiveLabel(s):
 	return False
 
 class SerQLabel(QLabel):
-	def __init__(self,parent,label,tooltip,path,elide=False):
+	def __init__(self,parent,label,tooltip,path,ser=None,elide=False):
 		QLabel.__init__(self,parent)
 		self.path=path
+		self.ser=ser
 		self.setTextToolTip(label,tooltip,elide=elide)
 		self.linkActivated.connect(woo.qt.openUrl)
 	def setTextToolTip(self,label,tooltip,elide=False):
@@ -665,6 +666,11 @@ class SerQLabel(QLabel):
 	def mousePressEvent(self,event):
 		if event.button()!=Qt.MidButton:
 			event.ignore(); return
+		if self.ser and (event.modifiers() & Qt.AltModifier or event.modifiers() & Qt.ControlModifier):
+			# open this object in new window
+			se=ObjectEditor(self.ser,parent=None,showType=True,labelIsVar=True,showChecks=False,showUnits=False,objManip=True)
+			se.show()
+			return
 		if self.path==None: return # no path set
 		# middle button clicked, paste pasteText to clipboard
 		cb=QApplication.clipboard()
@@ -1074,7 +1080,7 @@ class ObjectEditor(QFrame):
 		self.mkAttrEntries()
 		onlyDefaultGroups=(len(self.entryGroups)==1 and self.entryGroups[0].name==None)
 		if self.showType: # create type label
-			lab=SerQLabel(self,makeObjectLabel(self.ser,addr=True,href=True),tooltip=self.getDocstring(),path=self.path)
+			lab=SerQLabel(self,makeObjectLabel(self.ser,addr=True,href=True),tooltip=self.getDocstring(),path=self.path,ser=self.ser)
 			lab.setFrameShape(QFrame.Box); lab.setFrameShadow(QFrame.Sunken); lab.setLineWidth(2); lab.setAlignment(Qt.AlignHCenter); lab.linkActivated.connect(woo.qt.openUrl)
 			## attach context menu to the label
 			lab.setContextMenuPolicy(Qt.CustomContextMenu)

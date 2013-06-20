@@ -86,7 +86,10 @@ using std::abs;
 
 // override keyword not supported until gcc 4.7
 #if defined(__GNUC__) && __GNUC__ == 4 && __GNUC_MINOR__ < 7
-	#define override
+	#define WOO_CXX11_OVERRIDE
+#else
+	// c++11
+	#define WOO_CXX11_OVERRIDE override
 #endif
 
 typedef unsigned int uint;

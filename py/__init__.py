@@ -318,7 +318,7 @@ try:
 	for importer, modname, ispkg in pkgutil.iter_modules(wooExtra.__path__):
 		try:
 			m=__import__('wooExtra.'+modname,fromlist='wooExtra')
-			print 'wooExtra.%s: loaded'%modname
+			sys.stderr.write('wooExtra.%s: loaded\n'%modname)
 			if hasattr(sys,'frozen') and not hasattr(m,'__loader__') and len(m.__path__)==1:
 				zip=m.__path__[0].split('/wooExtra/')[0].split('\\wooExtra\\')[0]
 				if not (zip.endswith('.zip') or zip.endswith('.egg')):
