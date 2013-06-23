@@ -196,7 +196,8 @@ def prepareCylTriax(pre):
 	# collect nodes from both facets and spheres
 	S.dem.collectNodes() 
 
-	S.dt=pre.pWaveSafety*woo.utils.pWaveDt(S)
+	S.dt=pre.pWaveSafety*woo.utils.pWaveDt(S,noClumps=True)
+	if pre.clumps: print 'WARNING: clumps used, Scene.dt might not be correct; lower CylTriaxTest.pWaveSafety (currently %g) if the simulation is unstable'%(pre.pWaveSafety)
 	# setup engines
 	S.engines=[
 		InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb()],verletDist=-.05),

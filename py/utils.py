@@ -499,24 +499,32 @@ def tesselatePolyline(l,maxDist):
 	return ret
 
 
-def xhtmlReportHead(S,headline):
+def xhtmlReportHead(S,headline,dialect='xhtml'):
 	'''
 		Return XHTML fragment for simulation report: XHTML header, title, Woo logo, configuration and preprocessor parameters. 
 
 		In order to obtain a well-formed XHTML document, don't forget to add '</body></html>'.
 	'''
 	import time, platform, pkg_resources
-	xmlhead='''<?xml version="1.0" encoding="UTF-8"?>
+	headers=dict(xhtml='''<?xml version="1.0" encoding="UTF-8"?>
 	<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> 
-	<html xmlns="http://www.w3.org/1999/xhtml" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-	'''
+	<html xmlns="http://www.w3.org/1999/xhtml" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">\n''',html5='<!DOCTYPE html><html lang="en">',html4='<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd"><html>')
+	logoBase64='<img src="data:image/png;base64,'+open(pkg_resources.resource_filename('woo','data/woo-icon.128.png')).read().encode('base64')+'" alt="Woo logo">'
+	svgLogos=dict(
+		# embedded svg
+		xhtml=svgFileFragment(pkg_resources.resource_filename('woo','data/woodem-6.small.svg')),
+		# embedded base64-encoded pngs
+		html5=logoBase64,
+		html4=logoBase64,
+	)
+	if dialect not in headers: raise ValueError("Unsupported HTML dialect '%s'; must be one of: "+', '.join(headers.keys()))
 	# <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
-	html=(u'''<head><title>{headline}</title></head><body>
+	html=(u'''<head><title>{headline}</title><meta charset="utf-8"/></head><body>
 		<h1>{headline}</h1>
 		<h2>General</h2>
 		<table style="text-align: center">
-			<tr><td rowspan="3">{svgLogo}</td><td><a href="http://www.woodem.eu/">WooDEM</a></td></tr>
-			<tr><td>© <a href="mailto:woodem@doxo.eu">Václav Šmilauer</a></td></tr>
+			<tr><td rowspan="3">{svgLogo}</td><td><a href="http://www.woodem.eu/">Woo[dem]</a></td></tr>
+			<tr><td>© <a href="mailto:vaclav.smilauer@woodem.eu">Václav Šmilauer</a></td></tr>
 			<tr><td>Licensed under <a href="http://opensource.org/licenses/gpl-2.0.php">GNU GPL v2</a></td></tr>
 		</table>
 		<table>
@@ -531,12 +539,12 @@ def xhtmlReportHead(S,headline):
 			<tr><td>compiled with</td><td align="right">{compiledWith}</td></tr>
 			<tr><td>platform</td><td align="right">{platform}</td></tr>
 		</table>
-		'''.format(headline=headline,title=(S.tags['title'] if S.tags['title'] else '<i>[none]</i>'),id=S.tags['id'],user=S.tags['user'].decode('utf-8'),started=time.ctime(time.time()-woo.master.realtime),step=S.step,duration=woo.master.realtime,nCores=woo.master.numThreads,stepsPerSec=S.step/woo.master.realtime,engine='wooDem '+woo.config.version+'/'+woo.config.revision+(' (debug)' if woo.config.debug else ''),compiledWith=','.join(woo.config.features),platform=platform.platform().replace('-',' '),svgLogo=svgFileFragment(pkg_resources.resource_filename('woo','data/woodem-6.small.svg')))
+		'''.format(headline=headline,title=(S.tags['title'] if S.tags['title'] else '<i>[none]</i>'),id=S.tags['id'],user=S.tags['user'].decode('utf-8'),started=time.ctime(time.time()-woo.master.realtime),step=S.step,duration=woo.master.realtime,nCores=woo.master.numThreads,stepsPerSec=S.step/woo.master.realtime,engine='wooDem '+woo.config.version+'/'+woo.config.revision+(' (debug)' if woo.config.debug else ''),compiledWith=','.join(woo.config.features),platform=platform.platform().replace('-',' '),svgLogo=svgLogos[dialect])
 		+'<h2>Input data</h2>'+S.pre.dumps(format='html',fragment=True,showDoc=True)
 	)
-	return xmlhead+html
+	return headers[dialect]+html
 
-def xhtmlReport(S,repFmt,headline,afterHead='',figures=[],figFmt='svg',svgEmbed=False,show=False):
+def xhtmlReport(S,repFmt,headline,afterHead='',figures=[],dialect=None,figFmt='svg',svgEmbed=False,show=False):
 	'''
 	Generate XHTML report for simulation.
 
@@ -551,17 +559,30 @@ def xhtmlReport(S,repFmt,headline,afterHead='',figures=[],figFmt='svg',svgEmbed=
 		 3. optionally, format to save the figure to (`svg`, `png`, ...)
 
 	:param figFmt: format of figures, if the format is not specified by the figure itself
+	:param dialect: one of "xhtml", "html5", "html4"; if not given (*None*), selected from file suffix (``.html`` for ``html4``, ``.xhtml`` for ``xhtml``). ``html4`` will save figures as PNG (even if something else is specified) so that the resulting file is easily importable into LibreOffice (which does not import HTML with SVG correctly now).
 	:param svgEmbed: don't save SVG as separate files, embed them in the report instead. 
 	:param show: open the report in browser via the webbrowser module, unless running in batch.
 	:return: (filename of the report, list of external figures)
 
 	'''
-	import codecs, re, os.path
+	import codecs, re, os.path, warnings
 	import woo,woo.batch
+	dialects=set(['html5','html4','xhtml'])
+	if not dialect:
+		if repFmt.endswith('.xhtml'): dialect='xhtml'
+		elif repFmt.endswith('.html'): dialect='html4'
+		else: raise ValueError("Unable to guess dialect (not given) from *repFmt* '%s' (not ending in .xhtml or .html)")
+	if dialect not in dialects: raise ValueError("Unknown dialect '%s': must be one of "+', '.join(dialects)+'.')
+	if dialect in ('html5',) and svgEmbed and figFmt=='svg':
+		svgEmbed=False
+		warnings.warn("Dialect '%s' does not support embedded SVG -- will not be embedded."%dialect)
+	if dialect in ('html4',) and not figFmt=='png':
+		figFmt='png'
+		warnings.warn("Dialect '%s' will save images as 'png', not '%s'"%(dialect,figFmt))
 	repName=unicode(repFmt).format(S=S,**(dict(S.tags)))
 	rep=codecs.open(repName,'w','utf-8','replace')
 	print 'Writing report to file://'+os.path.abspath(repName)
-	s=xhtmlReportHead(S,headline)
+	s=xhtmlReportHead(S,headline,dialect=dialect)
 	s+=afterHead
 
 	repBase=re.sub('\.x?html$','',repName)

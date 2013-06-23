@@ -352,7 +352,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		finally:
 			QApplication.restoreOverrideCursor()
 	def movieCheckboxToggled(self,isOn):
-		S=self.lastScene=woo.master.scene
+		S=woo.master.scene
 		if isOn:
 			# add SnapshotEngine to the current scene
 			snap=woo.qt.SnapshotEngine(label='_snapshooter',fileBase=woo.master.tmpFilename(),stepPeriod=100,realPeriod=.5,ignoreErrors=False)
@@ -392,7 +392,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		if len(tt)==1: return tt[0]
 		return None
 	def traceCheckboxToggled(self,isOn):
-		S=self.lastScene=woo.master.scene
+		S=woo.master.scene
 		# auto-detect on/off
 		if isOn==None:
 			tr=self.tracerGetEngine(woo.master.scene)
@@ -550,8 +550,11 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.dtLabel.setText(str(S.dt))
 		if OpenGL: self.show3dButton.setChecked(len(views())>0)
 		self.inspectButton.setChecked(self.inspector!=None)
+		import sys
+		# sys.stderr.write(str(self.lastScene)+'/'+str(S)+'\n')
 		##
 		if self.lastScene!=S:
+			self.lastScene=S
 			# set movie and trace using last state
 			if OpenGL:
 				self.movieCheckboxToggled(self.movieActive)

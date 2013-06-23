@@ -68,7 +68,7 @@ void VtkExport::run(){
 			const Particle *pA=C->leakPA(), *pB=C->leakPB();
 			if(mask && (!(mask&pA->mask) || !(mask&pB->mask))) continue;
 			Particle::id_t ids[2]={pA->id,pB->id};
-			bool isSphere[]={dynamic_pointer_cast<Sphere>(pA->shape),dynamic_pointer_cast<Sphere>(pB->shape)};
+			bool isSphere[]={(bool)dynamic_pointer_cast<Sphere>(pA->shape),(bool)dynamic_pointer_cast<Sphere>(pB->shape)};
 			if(sphereSphereOnly && (!isSphere[0] || !isSphere[1])) continue;
 			/* For the periodic boundary conditions,
 				find out whether the interaction crosses the boundary of the periodic cell;
