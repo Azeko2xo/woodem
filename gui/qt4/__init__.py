@@ -550,7 +550,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.dtLabel.setText(str(S.dt))
 		if OpenGL: self.show3dButton.setChecked(len(views())>0)
 		self.inspectButton.setChecked(self.inspector!=None)
-		import sys
+		# import sys
 		# sys.stderr.write(str(self.lastScene)+'/'+str(S)+'\n')
 		##
 		if self.lastScene!=S:
