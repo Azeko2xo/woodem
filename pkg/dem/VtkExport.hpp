@@ -42,8 +42,13 @@ struct VtkExport: public PeriodicEngine{
 		if(what>WHAT_ALL || what<0) throw std::runtime_error("VtkExport.what="+to_string(what)+", but should be at most "+to_string(WHAT_ALL)+".");
 	}
 
+	// write the VTP file for easy opening of everything
+	void writeVtp(const string&);
+
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(VtkExport,PeriodicEngine,"Export DEM simulation to VTK files for post-processing.",
-		((string,out,,,"Filename prefix to write into; :ref:`Scene.tags` written as {tagName} are expanded at the first run."))
+		((string,out,,
+			AttrTrait<>().buttons({"Open VTP in Paraview","from subprocess import call; call(['paraview',self.vtp])",""},/*showBefore*/true),
+			"Filename prefix to write into; :ref:`Scene.tags` written as {tagName} are expanded at the first run."))
 		((bool,compress,true,,"Compress output XML files"))
 		((bool,ascii,false,,"Store data as readable text in the XML file (sets `vtkXMLWriter <http://www.vtk.org/doc/nightly/html/classvtkXMLWriter.html>`__ data mode to ``vtkXMLWriter::Ascii``, while the default is ``Appended``"))
 		((bool,multiblock,false,,"Write to multi-block VTK files, rather than separate files; currently borken, do not use."))
@@ -56,6 +61,11 @@ struct VtkExport: public PeriodicEngine{
 		((int,thickFacetDiv,1,AttrTrait<>().noGui(),"Subdivision for :ref:`Facet` objects with non-zero :ref:`halfThick<Facet.halfThick>`; the value of -1 will use :ref:`subdiv`; 0 will render only faces, without edges; 1 will close the edge flat."))
 		((bool,cylCaps,true,,"Render caps of :ref:`InfCylinder` (at :ref:`InfCylinder.glAB`)."))
 		((Real,nanValue,0.,,"Use this number instead of NaN in entries, since VTK cannot read NaNs properly"))
+		((vector<vector<string>>,outFiles,,AttrTrait<>().noGui().readonly(),"Files which have been written out."))
+		((vector<Real>,outTimes,,AttrTrait<>().noGui().readonly(),"Times at which files were written."))
+		((vector<int>,outSteps,,AttrTrait<>().noGui().readonly(),"Steps at which files were written."))
+		((string,vtp,,AttrTrait<>().readonly(),"VTP file (if already written)"))
+
 		,/*ctor*/
 		initRun=false; // do not run at the very first step
 		,/*py*/

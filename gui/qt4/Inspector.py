@@ -203,8 +203,8 @@ class BodyInspector(QWidget):
 		# no body shown yet, try to get the first one...
 		if self.bodyId<0 and len(S.dem.par)>0:
 			try:
-				print 'SET ZERO'
-				b=S.dem.par[0]; self.bodyIdBox.setValue(0)
+				# print 'SET ZERO'
+				b=S.dem.par[0]; self.bodyIdBox.setValue(0); self.bodyId=0
 			except IndexError: pass
 		if 'opengl' in woo.config.features:
 			v=woo.qt.views()

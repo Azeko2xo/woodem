@@ -343,6 +343,8 @@ void VtkExport::run(){
 	vtkSmartPointer<vtkDataCompressor> compressor;
 	if(compress) compressor=vtkSmartPointer<vtkZLibDataCompressor>::New();
 
+	vector<string> outF;
+
 	if(!multiblock){
 		if(what&WHAT_CON){
 			vtkSmartPointer<vtkXMLPolyDataWriter> writer = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
@@ -352,7 +354,8 @@ void VtkExport::run(){
 			writer->SetFileName(fn.c_str());
 			writer->SetInput(cPoly);
 			writer->Write();
-		}
+			outF.push_back(fn);
+		} else outF.push_back(string());
 		if(what&WHAT_SPHERES){
 			auto writer=vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
 			if(compress) writer->SetCompressor(compressor);
@@ -361,7 +364,8 @@ void VtkExport::run(){
 			writer->SetFileName(fn.c_str());
 			writer->SetInput(sGrid);
 			writer->Write();
-		}
+			outF.push_back(fn);
+		} else outF.push_back(string());
 		if(what&WHAT_MESH){
 			auto writer=vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
 			if(compress) writer->SetCompressor(compressor);
@@ -370,7 +374,8 @@ void VtkExport::run(){
 			writer->SetFileName(fn.c_str());
 			writer->SetInput(mGrid);
 			writer->Write();
-		}
+			outF.push_back(fn);
+		} else outF.push_back(string()); // empty string
 	} else {
 		// multiblock
 		auto multi=vtkSmartPointer<vtkMultiBlockDataSet>::New();
@@ -385,7 +390,14 @@ void VtkExport::run(){
 		writer->SetFileName(fn.c_str());
 		writer->SetInput(multi);
 		writer->Write();	
+		outF.push_back(fn);
 	}
+
+	outFiles.push_back(outF);
+	outTimes.push_back(scene->time);
+	outSteps.push_back(scene->step);
+	vtp=out+".vtp";
+	writeVtp(vtp);
 
 	#undef _VTK_ARR_HELPER
 	#undef _VTK_POINT_ARR
@@ -393,6 +405,24 @@ void VtkExport::run(){
 	#undef _VTK_CELL_ARR
 	#undef _VTK_CELL_INT_ARR
 };
+
+void VtkExport::writeVtp(const string& vtpName){
+	std::ofstream o(vtpName,std::ofstream::binary);
+	o<<"<?xml version=\"1.0\"?>\n<VTKFile type=\"Collection\" version=\"0.1\">\n\t<Collection>\n";
+	int n=-1;
+	assert(outFile.size()==outTimes.size());
+	assert(outFile.size()==outSteps.size());
+	for(size_t i=0; i<outFiles.size(); i++){
+		assert(i<outTimes.size());
+		if(n<0) n=outFiles[i].size();
+		if(n!=outFiles[i].size()) throw std::logic_error("VtkExport.outFiles["+to_string(i)+": number of outputs per step mismatched (expecting "+to_string(n)+" as before, got "+to_string(outFiles[i].size()));
+		for(size_t j=0; j<n; j++){
+			o<<"\t\t<DataSet timestep=\""+to_string(outSteps[i])+"\" group=\""+to_string(j)+"\" part=\"\" file=\""+outFiles[i][j]+"\"/>\n";
+		}
+	}
+	o<<"\t</Collection>\n</VTKFile>\n";
+	o.close();
+}
 
 
 #endif /*WOO_VTK*/
