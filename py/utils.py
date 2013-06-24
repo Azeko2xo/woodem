@@ -512,7 +512,7 @@ def htmlReportHead(S,headline,dialect='xhtml'):
 	logoBase64='<img src="data:image/png;base64,'+open(pkg_resources.resource_filename('woo','data/woo-icon.128.png')).read().encode('base64')+'" alt="Woo logo">'
 	svgLogos=dict(
 		# embedded svg
-		xhtml=svgFileFragment(pkg_resources.resource_filename('woo','data/woodem-6.small.svg')),
+		xhtml=svgFileFragment(pkg_resources.resource_filename('woo','data/woodem-6.woo.svg')),
 		# embedded base64-encoded pngs
 		html5=logoBase64,
 		html4=logoBase64,

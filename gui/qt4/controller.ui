@@ -20,7 +20,7 @@
    <string>Woo</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="img.qrc">
+   <iconset>
     <normaloff>:/img/woodem-logo.svg</normaloff>:/img/woodem-logo.svg</iconset>
   </property>
   <layout class="QGridLayout" name="gridLayout_3">
@@ -39,7 +39,7 @@
       </sizepolicy>
      </property>
      <property name="currentIndex">
-      <number>4</number>
+      <number>5</number>
      </property>
      <widget class="QWidget" name="tabGridLayout">
       <attribute name="title">
@@ -840,8 +840,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>402</width>
-            <height>448</height>
+            <width>98</width>
+            <height>28</height>
            </rect>
           </property>
          </widget>
@@ -886,8 +886,8 @@
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>400</width>
-              <height>416</height>
+              <width>98</width>
+              <height>28</height>
              </rect>
             </property>
            </widget>
@@ -994,8 +994,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>223</width>
-            <height>124</height>
+            <width>402</width>
+            <height>477</height>
            </rect>
           </property>
           <property name="sizePolicy">
@@ -1037,7 +1037,7 @@
                 <bool>true</bool>
                </property>
                <property name="sizePolicy">
-                <sizepolicy hsizetype="MinimumExpanding" vsizetype="Minimum">
+                <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
                  <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
@@ -1050,7 +1050,7 @@
                </property>
                <property name="maximumSize">
                 <size>
-                 <width>150</width>
+                 <width>110</width>
                  <height>100</height>
                 </size>
                </property>
@@ -1072,7 +1072,7 @@
                 <string/>
                </property>
                <property name="pixmap">
-                <pixmap resource="img.qrc">:/img/woodem-logo.svg</pixmap>
+                <pixmap resource="img.qrc">:/img/woo-logo.svg</pixmap>
                </property>
                <property name="scaledContents">
                 <bool>true</bool>
@@ -1097,7 +1097,7 @@
                 </size>
                </property>
                <property name="text">
-                <string>&lt;p align=&quot;center&quot;&gt;&amp;nbsp;&amp;nbsp;&lt;a href=&quot;http://www.woodem.eu&quot;&gt;&lt;b&gt;WooDEM&lt;/b&gt;&lt;/a&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;© &lt;a href=&quot;mailto:woodem@doxo.eu&quot;&gt;Václav Šmilauer&lt;/span&gt;&lt;/a&gt; and others&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;License: &lt;a href=&quot;http://opensource.org/licenses/gpl-2.0.php&quot;&gt;GNU GPL v2&lt;/a&gt;&lt;/p&gt;</string>
+                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;a href=&quot;http://www.woodem.eu&quot;&gt;&lt;span style=&quot; font-weight:600; text-decoration: underline; color:#0000ff;&quot;&gt;Woo[dem]&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;© &lt;a href=&quot;mailto:vaclav.smilauer@woodem.eu&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;Václav Šmilauer&lt;/span&gt;&lt;/a&gt; and others&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;License: &lt;a href=&quot;http://opensource.org/licenses/gpl-2.0.php&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;GNU GPL v2&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                </property>
                <property name="textFormat">
                 <enum>Qt::RichText</enum>

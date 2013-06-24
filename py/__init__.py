@@ -55,7 +55,7 @@ elif wooOptions.ompThreads:
 	wooOsEnviron['OMP_NUM_THREADS']=str(wooOptions.ompThreads)
 elif 'OMP_NUM_THREADS' not in os.environ:
 	import multiprocessing
-	wooOsEnviron['OMP_NUM_THREADS']=str(min(multiprocessing.cpu_count(),4))
+	wooOsEnviron['OMP_NUM_THREADS']=str(multiprocessing.cpu_count())
 	
 import distutils.sysconfig
 soSuffix=distutils.sysconfig.get_config_vars()['SO']
