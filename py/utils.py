@@ -499,9 +499,9 @@ def tesselatePolyline(l,maxDist):
 	return ret
 
 
-def xhtmlReportHead(S,headline,dialect='xhtml'):
+def htmlReportHead(S,headline,dialect='xhtml'):
 	'''
-		Return XHTML fragment for simulation report: XHTML header, title, Woo logo, configuration and preprocessor parameters. 
+		Return (X)HTML fragment for simulation report: (X)HTML header, title, Woo logo, configuration and preprocessor parameters. 
 
 		In order to obtain a well-formed XHTML document, don't forget to add '</body></html>'.
 	'''
@@ -544,13 +544,13 @@ def xhtmlReportHead(S,headline,dialect='xhtml'):
 	)
 	return headers[dialect]+html
 
-def xhtmlReport(S,repFmt,headline,afterHead='',figures=[],dialect=None,figFmt='svg',svgEmbed=False,show=False):
+def htmlReport(S,repFmt,headline,afterHead='',figures=[],dialect=None,figFmt='svg',svgEmbed=False,show=False):
 	'''
-	Generate XHTML report for simulation.
+	Generate (X)HTML report for simulation.
 
 	:param S: :obj:`Scene` object; must contain :obj:`Scene.pre`
 	:param repFmt: format for the output file; will be expanded using :obj:`Scene.tags`; it should end with `.html` or `.xhtml`.
-	:param headline: title of the report, used as XHTML title and the first `<h1>` heading.
+	:param headline: title of the report, used as HTML title and the first `<h1>` heading.
 	:param afterHead: contents (XHTML fragment) to be added verbatim after the header (title, woo config table, preprocessor parameters)
 	:param figs: figures included in the report; they are either embedded (SVG, optionally ) or saved to files in the same directory as the report, using its name as prefix, and referenced via relative links from the XHTML. Figures are given as list of 2- or 3-tuples, where each item contains:
 	   
@@ -582,7 +582,7 @@ def xhtmlReport(S,repFmt,headline,afterHead='',figures=[],dialect=None,figFmt='s
 	repName=unicode(repFmt).format(S=S,**(dict(S.tags)))
 	rep=codecs.open(repName,'w','utf-8','replace')
 	print 'Writing report to file://'+os.path.abspath(repName)
-	s=xhtmlReportHead(S,headline,dialect=dialect)
+	s=htmlReportHead(S,headline,dialect=dialect)
 	s+=afterHead
 
 	repBase=re.sub('\.x?html$','',repName)

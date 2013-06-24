@@ -162,7 +162,7 @@ def finished(S):
 		fig.savefig(svgs[-1][1])
 
 	rep=codecs.open(repName,'w','utf-8','replace')
-	html=woo.utils.xhtmlReportHead(S,'Report for falling horse simulation')+'<h2>Figures</h2>'+(
+	html=woo.utils.htmlReportHead(S,'Report for falling horse simulation')+'<h2>Figures</h2>'+(
 		u'\n'.join(['<h3>'+svg[0]+u'</h3>'+'<img src="%s" alt="%s"/>'%(os.path.basename(svg[1]),svg[0]) for svg in svgs])
 		+'</body></html>'
 	)
