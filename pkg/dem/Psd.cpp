@@ -170,17 +170,19 @@ PsdClumpGenerator::operator()(const shared_ptr<Material>&mat){
 		if(!clumps[i]) woo::ValueError("PsdCLumpGenerator.clumps["+to_string(i)+"] is None.");
 		const SphereClumpGeom& C(*clumps[i]);
 		const auto& pf(C.scaleProb); // probability function
-		auto I=std::lower_bound(pf.begin(),pf.end(),r,[](const Vector2r& rProb, const Real& r)->bool{ return rProb[0]<r; });
-		// before the first point: return the first value
-		if(I==pf.begin()){ prob[i]=(*pf.begin())[1]; LOG_TRACE("SphereClumpGeom #"<<i<<": lower_bound("<<r<<") found at 0: rad="<<pf[0][0]<<", prob="<<pf[0][1]); }
-		// beyond the last point: return the last value
-		else if(I==pf.end()){ prob[i]=(*pf.rbegin())[1]; LOG_TRACE("SphereClumpGeom #"<<i<<": lower_bound("<<r<<") found beyond end: last rad="<<(*pf.rbegin())[0]<<", last prob="<<(*pf.rbegin())[1]); }
-		// somewhere in the middle; interpolate linearly
-		else {
-			const Vector2r& A=pf[I-pf.begin()-1]; const Vector2r& B=*I;
-			prob[i]=A[1]+(B[1]-A[1])*((r-A[0])/(B[0]-A[0]));
-			LOG_TRACE("SphereClumpGeom #"<<i<<": lower_bound("<<r<<") found at index "<<(I-pf.begin())<<", interpolate rad="<<A[0]<<"…"<<A[1]<<", prob="<<A[1]<<"…"<<B[1]<<" → "<<prob[i]);
-		}
+		if(!pf.empty()){
+			auto I=std::lower_bound(pf.begin(),pf.end(),r,[](const Vector2r& rProb, const Real& r)->bool{ return rProb[0]<r; });
+			// before the first point: return the first value
+			if(I==pf.begin()){ prob[i]=(*pf.begin())[1]; LOG_TRACE("SphereClumpGeom #"<<i<<": lower_bound("<<r<<") found at 0: rad="<<pf[0][0]<<", prob="<<pf[0][1]); }
+			// beyond the last point: return the last value
+			else if(I==pf.end()){ prob[i]=(*pf.rbegin())[1]; LOG_TRACE("SphereClumpGeom #"<<i<<": lower_bound("<<r<<") found beyond end: last rad="<<(*pf.rbegin())[0]<<", last prob="<<(*pf.rbegin())[1]); }
+			// somewhere in the middle; interpolate linearly
+			else {
+				const Vector2r& A=pf[I-pf.begin()-1]; const Vector2r& B=*I;
+				prob[i]=A[1]+(B[1]-A[1])*((r-A[0])/(B[0]-A[0]));
+				LOG_TRACE("SphereClumpGeom #"<<i<<": lower_bound("<<r<<") found at index "<<(I-pf.begin())<<", interpolate rad="<<A[0]<<"…"<<A[1]<<", prob="<<A[1]<<"…"<<B[1]<<" → "<<prob[i]);
+			}
+		} else { prob[i]=1.; }
 		probSum+=prob[i];
 	}
 	LOG_TRACE("Probability sum "<<probSum);

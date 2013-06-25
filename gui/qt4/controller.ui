@@ -20,8 +20,8 @@
    <string>Woo</string>
   </property>
   <property name="windowIcon">
-   <iconset>
-    <normaloff>:/img/woodem-logo.svg</normaloff>:/img/woodem-logo.svg</iconset>
+   <iconset resource="img.qrc">
+    <normaloff>:/img/woo-logo.svg</normaloff>:/img/woo-logo.svg</iconset>
   </property>
   <layout class="QGridLayout" name="gridLayout_3">
    <property name="margin">

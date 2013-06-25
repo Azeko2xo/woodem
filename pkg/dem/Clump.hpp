@@ -15,7 +15,7 @@ struct SphereClumpGeom: public Object{
 	WOO_CLASS_BASE_DOC_ATTRS_PY(SphereClumpGeom,Object,"Defines geometry of spherical clumps. Each clump is described by spheres it is made of (position and radius).",
 		((vector<Vector3r>,centers,,AttrTrait<Attr::triggerPostLoad>(),"Centers of constituent spheres, in clump-local coordinates."))
 		((vector<Real>,radii,,AttrTrait<Attr::triggerPostLoad>(),"Radii of constituent spheres"))
-		((vector<Vector2r>,scaleProb,,,"Used by particle generators: piecewise-linear function probability(equivRad) given as a sequence of x,y coordinates; the generator picks equivRad first, then decides randomly which clump to take, based on this probability function. Outside of the x-range, the probability has constant value of the last point."))
+		((vector<Vector2r>,scaleProb,,,"Used by particle generators: piecewise-linear function probability(equivRad) given as a sequence of x,y coordinates; the generator picks equivRad first, then decides randomly which clump to take, based on this probability function. Outside of the x-range, the probability has constant value of the last point. If empty, assume the value of 1.0 everywhere."))
 		((Vector3r,pos,Vector3r::Zero(),AttrTrait<>().readonly().noDump(),"Centroid position (computed automatically)"))
 		((Quaternionr,ori,Quaternionr::Identity(),AttrTrait<>().readonly().noDump(),"Principal axes orientation (computed automatically)"))
 		((Real,volume,NaN,AttrTrait<>().readonly().noDump(),"Volume (computed automatically)"))
