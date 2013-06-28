@@ -292,7 +292,8 @@ void DemField::selfTest(){
 		const auto& p=(*particles)[i];
 		if(!p) continue;
 		if(p->id!=(Particle::id_t)i) throw std::logic_error("DemField.par["+to_string(i)+"].id="+to_string(p->id)+", should be "+to_string(i));
-		if(!p->shape) continue;
+		if(!p->shape) throw std::runtime_error("DemField.par["+to_string(i)+"].shape=None.");
+		if(!p->material) throw std::runtime_error("DemField.par["+to_string(i)+"].material=None.");
 		if(!p->shape->numNodesOk()) throw std::logic_error("DemField.par["+to_string(i)+"].shape: numNodesOk failed with "+p->shape->pyStr()+".");
 		for(size_t j=0; j<p->shape->nodes.size(); j++){
 			const auto& n=p->shape->nodes[j];

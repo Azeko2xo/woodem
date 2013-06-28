@@ -22,7 +22,10 @@ class SpherePack{
 	}
 	Real periPtDistSq(const Vector3r& p1, const Vector3r& p2){
 		Vector3r dr;
-		for(int ax=0; ax<3; ax++) dr[ax]=min(cellWrapRel(p1[ax],p2[ax],p2[ax]+cellSize[ax]),cellWrapRel(p2[ax],p1[ax],p1[ax]+cellSize[ax]));
+		for(int ax: {0,1,2}){
+			if(cellSize[ax]>0) dr[ax]=min(cellWrapRel(p1[ax],p2[ax],p2[ax]+cellSize[ax]),cellWrapRel(p2[ax],p1[ax],p1[ax]+cellSize[ax]));
+			else dr[ax]=p2[ax]-p1[ax]; // don't care about sign
+		}
 		return dr.squaredNorm();
 	}
 	struct ClumpInfo{ int clumpId; Vector3r center; Real rad; int minId, maxId; };
@@ -64,18 +67,16 @@ public:
 	// norm holds normalized coordinate withing the piece
 	int psdGetPiece(Real x, const vector<Real>& cumm, Real& norm);
 
-	// function to generate the packing based on a given psd
-	long particleSD(Vector3r min, Vector3r max, Real rMean, bool periodic=false, string name="", int numSph=400, const vector<Real>& radii=vector<Real>(), const vector<Real>& passing=vector<Real>(),bool passingIsNotPercentageButCount=false, int seed=0);
-
-	long particleSD2(const vector<Real>& radii, const vector<Real>& passing, int numSph, bool periodic=false, Real cloudPorosity=.8, int seed=0);
-
 
 	// interpolate a variable with power distribution (exponent -3) between two margin values, given uniformly distributed x∈(0,1)
 	Real pow3Interp(Real x,Real a,Real b){ return pow(x*(pow(b,-2)-pow(a,-2))+pow(a,-2),-1./2); }
 
-	// generate packing of clumps, selected with equal probability
-	// periodic boundary is supported
-	long makeClumpCloud(const Vector3r& mn, const Vector3r& mx, const vector<shared_ptr<SpherePack> >& clumps, bool periodic=false, int num=-1);
+
+	#if 0
+		// generate packing of clumps, selected with equal probability
+		// periodic boundary is supported
+		long makeClumpCloud(const Vector3r& mn, const Vector3r& mx, const vector<shared_ptr<SpherePack> >& clumps, bool periodic=false, int num=-1);
+	#endif
 
 	// add/remove shadow spheres with periodic boundary, for spheres crossing it
 	int addShadows();
@@ -115,8 +116,8 @@ public:
 		for(Sph& s: pack) s.c=rot*s.c;
 	}
 	void scale(Real scale, bool keepRadius=false);
-	Real maxRelOverlap(bool ignorePeri=false);
-	void makeOverlapFree(bool ignorePeri=false){ scale(maxRelOverlap(ignorePeri)+1,/*keepRadius*/true); }
+	Real maxRelOverlap();
+	void makeOverlapFree(){ scale(maxRelOverlap()+1,/*keepRadius*/true); }
 
 	// iteration 
 	size_t len() const{ return pack.size(); }

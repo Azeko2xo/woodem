@@ -701,7 +701,8 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNu
 	]
 	S.one()
 	print u'Created %d particles, compacting…'%(len(S.dem.par))
-	S.dt=.9*utils.pWaveDt(S)
+	S.dt=.9*utils.pWaveDt(S,noClumps=True)
+	if clumps: warnings.warn('utils.pWaveDt called with noClumps=True (clumps ignored), the result (S.dt=%g) might be significantly off!'%S.dt)
 	S.engines=[
 		woo.dem.PeriIsoCompressor(charLen=2*psd[-1][0],stresses=[-1e8,-1e6],maxUnbalanced=goal,doneHook='print "done"; S.stop();',globalUpdateInt=1,keepProportions=True,label='peri'),
 		# plots only useful for debugging - uncomment if needed
@@ -714,10 +715,10 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNu
 	sp=SpherePack()
 	sp.fromSimulation(S)
 	print 'Packing size is',sp.cellSize
-	sp.makeOverlapFree(ignorePeri=(True if clumps else False))
+	sp.canonicalize()
+	sp.makeOverlapFree()
 	print 'Loose packing size is',sp.cellSize
 	sp.save('/tmp/sp0')
-	sp.canonicalize()
 	cc,rr=[],[]
 	inf=float('inf')
 	boxMin=Vector3(0,0,0);
@@ -738,6 +739,7 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNu
 		#sp2.cellSize=sp.cellSize
 		if memoizeDir:
 			print 'Saving to',memoizeFile
+			print len(sp2)
 			sp2.save(memoizeFile)
 		if returnSpherePack:
 			return sp2

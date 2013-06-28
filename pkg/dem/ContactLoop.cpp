@@ -140,9 +140,10 @@ void ContactLoop::run(){
 			continue;
 		}
 
-		// CPhy
+		// CPhys
 		if(!C->phys) C->stepMadeReal=scene->step;
 		if(!C->phys || updatePhys) phyDisp->operator()(pA->material,pB->material,C);
+		assert(C->phys);
 
 		// CLaw
 		lawDisp->operator()(C->geom,C->phys,C);

@@ -409,12 +409,12 @@ void VtkExport::run(){
 void VtkExport::writeVtp(const string& vtpName){
 	std::ofstream o(vtpName,std::ofstream::binary);
 	o<<"<?xml version=\"1.0\"?>\n<VTKFile type=\"Collection\" version=\"0.1\">\n\t<Collection>\n";
-	int n=-1;
-	assert(outFile.size()==outTimes.size());
-	assert(outFile.size()==outSteps.size());
+	size_t n=0;
+	assert(outFiles.size()==outTimes.size());
+	assert(outFiles.size()==outSteps.size());
 	for(size_t i=0; i<outFiles.size(); i++){
 		assert(i<outTimes.size());
-		if(n<0) n=outFiles[i].size();
+		if(i==0) n=outFiles[i].size();
 		if(n!=outFiles[i].size()) throw std::logic_error("VtkExport.outFiles["+to_string(i)+": number of outputs per step mismatched (expecting "+to_string(n)+" as before, got "+to_string(outFiles[i].size()));
 		for(size_t j=0; j<n; j++){
 			o<<"\t\t<DataSet timestep=\""+to_string(outSteps[i])+"\" group=\""+to_string(j)+"\" part=\"\" file=\""+outFiles[i][j]+"\"/>\n";

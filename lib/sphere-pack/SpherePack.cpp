@@ -299,216 +299,6 @@ py::tuple SpherePack::psd(int bins, bool mass) const {
 	return py::make_tuple(edges,cumm);
 }
 
-/* possible enhacement: proportions parameter, so that the domain is not cube, but box with sides having given proportions */
-long SpherePack::particleSD2(const vector<Real>& radii, const vector<Real>& passing, int numSph, bool periodic, Real cloudPorosity, int seed){
-	typedef Eigen::Matrix<Real,Eigen::Dynamic,Eigen::Dynamic> MatrixXr;
-	typedef Eigen::Matrix<Real,Eigen::Dynamic,1> VectorXr;
-	
-	int dim=radii.size()+1;
-	if(passing.size()!=radii.size()) throw std::invalid_argument("SpherePack.particleSD2: radii and passing must have the same length.");
-	MatrixXr M=MatrixXr::Zero(dim,dim);
-	VectorXr rhs=VectorXr::Zero(dim);
-	/*
-	
-	We know percentages for each fraction (Δpi) and their radii (ri), and want to find
-	the number of sphere for each fraction Ni and total solid volume Vs. For each fraction,
-	we know that the volume is equal to Ni*(4/3*πri³), which must be equal to Vs*Δpi (Δpi is
-	relative solid volume of the i-th fraction).
-
-	The last equation says that total number of particles (sum of fractions) is equal to N,
-	which is the total number of particles requested by the user.
-
-	   N1     N2     N3    Vs       rhs
-
-	4/3πr₁³   0      0     -Δp₁   | 0
-	  0     4/3πr₂³  0     -Δp₂   | 0
-	  0       0    4/3πr₃³ -Δp₃   | 0
-     1       1      1      0     | N
-
-	*/
-	for(int i=0; i<dim-1; i++){
-		M(i,i)=(4/3.)*M_PI*pow(radii[i],3);
-		M(i,dim-1)=-(passing[i]-(i>0?passing[i-1]:0))/100.;
-		M(dim-1,i)=1;
-	}
-	rhs[dim-1]=numSph;
-	// NumsVs=M^-1*rhs: number of spheres and volume of solids
-	VectorXr NumsVs(dim); NumsVs=M.inverse()*rhs;
-	Real Vs=NumsVs[dim-1]; // total volume of solids
-	Real Vtot=Vs/(1-cloudPorosity); // total volume of cell containing the packing
-	Vector3r cellSize=pow(Vtot,1/3.)*Vector3r().Ones(); // for now, assume always cubic sample
-	Real rMean=pow(Vs/(numSph*(4/3.)*M_PI),1/3.); // make rMean such that particleSD will compute the right Vs (called a bit confusingly Vtot anyway) inversely
-	// cerr<<"Vs="<<Vs<<", Vtot="<<Vtot<<", rMean="<<rMean<<endl;
-	// cerr<<"cellSize="<<cellSize<<", rMean="<<rMean<<", numSph="<<numSph<<endl;
-	return particleSD(Vector3r::Zero(),cellSize,rMean,periodic,"",numSph,radii,passing,false);
-};
-
-// TODO: header, python wrapper, default params
-
-// New code to include the psd giving few points of it
-long SpherePack::particleSD(Vector3r mn, Vector3r mx, Real rMean, bool periodic, string name, int numSph, const vector<Real>& radii, const vector<Real>& passing, bool passingIsNotPercentageButCount, int seed){
-	vector<Real> numbers;
-	if(!passingIsNotPercentageButCount){
-		Real Vtot=numSph*4./3.*M_PI*pow(rMean,3.); // total volume of the packing (computed with rMean)
-		
-		// calculate number of spheres necessary per each radius to match the wanted psd
-		// passing has to contain increasing values
-		for (size_t i=0; i<radii.size(); i++){
-			Real volS=4./3.*M_PI*pow(radii[i],3.);
-			if (i==0) {numbers.push_back(passing[i]/100.*Vtot/volS);}
-			else {numbers.push_back((passing[i]-passing[i-1])/100.*Vtot/volS);} // 
-			cout<<"fraction #"<<i<<" ("<<passing[i]<<"%, r="<<radii[i]<<"): "<<numbers[i]<<" spheres, fraction/cloud volumes "<<volS<<"/"<<Vtot<<endl;
-		}
-	} else {
-		FOREACH(Real p, passing) numbers.push_back(p);
-	}
-
-	static boost::minstd_rand randGen(seed!=0?seed:(int)getNow());
-	static boost::variate_generator<boost::minstd_rand&, boost::uniform_real<> > rnd(randGen, boost::uniform_real<>(0,1));
-
-	const int maxTry=1000;
-	Vector3r size=mx-mn;
-	if(periodic)(cellSize=size);
-	for (int ii=(int)radii.size()-1; ii>=0; ii--){
-		Real r=radii[ii]; // select radius
-		for(int i=0; i<numbers[ii]; i++) { // place as many spheres as required by the psd for the selected radius into the free spot
-			int t;
-			for(t=0; t<maxTry; ++t){
-				Vector3r c;
-				if(!periodic) { for(int axis=0; axis<3; axis++) c[axis]=mn[axis]+r+(size[axis]-2*r)*rnd(); }
-				else { for(int axis=0; axis<3; axis++) c[axis]=mn[axis]+size[axis]*rnd(); }
-				size_t packSize=pack.size(); bool overlap=false;
-				if(!periodic){
-					for(size_t j=0; j<packSize; j++){ if(pow(pack[j].r+r,2) >= (pack[j].c-c).squaredNorm()) { overlap=true; break; } }
-				} else {
-					for(size_t j=0; j<packSize; j++){
-						Vector3r dr;
-						for(int axis=0; axis<3; axis++) dr[axis]=min(cellWrapRel(c[axis],pack[j].c[axis],pack[j].c[axis]+size[axis]),cellWrapRel(pack[j].c[axis],c[axis],c[axis]+size[axis]));
-						if(pow(pack[j].r+r,2)>= dr.squaredNorm()){ overlap=true; break; }
-					}
-				}
-				if(!overlap) { pack.push_back(Sph(c,r)); break; }
-			}
-			if (t==maxTry) {
-				if(numbers[ii]>0) LOG_WARN("Exceeded "<<maxTry<<" tries to insert non-overlapping sphere to packing. Only "<<i<<" spheres was added, although you requested "<<numbers[ii]<<" with radius "<<radii[ii]);
-				return i;
-			}
-		}
-	}
-	return pack.size();
-}
-
-long SpherePack::makeClumpCloud(const Vector3r& mn, const Vector3r& mx, const vector<shared_ptr<SpherePack> >& _clumps, bool periodic, int num){
-	// recenter given clumps and compute their margins
-	vector<SpherePack> clumps; /* vector<Vector3r> margins; */ Vector3r boxMargins(Vector3r::Zero()); Real maxR=0;
-	vector<Real> boundRad; // squared radii of bounding sphere for each clump
-	FOREACH(const shared_ptr<SpherePack>& c, _clumps){
-		SpherePack c2(*c); 
-		c2.translate(c2.midPt()); //recenter
-		clumps.push_back(c2);
-		Real r=0;
-		FOREACH(const Sph& s, c2.pack) r=max(r,s.c.norm()+s.r);
-		boundRad.push_back(r);
-		FOREACH(const Sph& s, c2.pack) maxR=max(maxR,s.r); // keep track of maximum sphere radius
-	}
-	std::list<ClumpInfo> clumpInfos;
-	Vector3r size=mx-mn;
-	if(periodic)(cellSize=size);
-	const int maxTry=200;
-	int nGen=0; // number of clumps generated
-	// random point coordinate generator, with non-zero margins if aperiodic
-	static boost::minstd_rand randGen(getNow());
-	typedef boost::variate_generator<boost::minstd_rand&, boost::uniform_real<> > UniRandGen;
-	static UniRandGen rndX(randGen,boost::uniform_real<>(mn[0],mx[0]));
-	static UniRandGen rndY(randGen,boost::uniform_real<>(mn[1],mx[1]));
-	static UniRandGen rndZ(randGen,boost::uniform_real<>(mn[2],mx[2]));
-	static UniRandGen rndUnit(randGen,boost::uniform_real<>(0,1));
-	while(nGen<num || num<0){
-		int clumpChoice=rand()%clumps.size();
-		int tries=0;
-		while(true){ // check for tries at the end
-			Vector3r pos(rndX(),rndY(),rndZ()); // random point
-			// TODO: check this random orientation is homogeneously distributed
-			Quaternionr ori(rndUnit(),rndUnit(),rndUnit(),rndUnit()); ori.normalize();
-			// copy the packing and rotate
-			SpherePack C(clumps[clumpChoice]); C.rotateAroundOrigin(ori); C.translate(pos);
-			const Real& rad(boundRad[clumpChoice]);
-			ClumpInfo ci; // to be used later, but must be here because of goto's
-
-			// find collisions
-			// check against bounding spheres of other clumps, and only check individual spheres if there is overlap
-			if(!periodic){
-				// check overlap with box margins first
-				if((pos+rad*Vector3r::Ones()).array().max(mx.array()).matrix()!=mx || (pos-rad*Vector3r::Ones()).array().min(mn.array()).matrix()!=mn){ FOREACH(const Sph& s, C.pack) if((s.c+s.r*Vector3r::Ones()).array().max(mx.array()).matrix()!=mx || (s.c-s.r*Vector3r::Ones()).array().min(mn.array()).matrix()!=mn) goto overlap; }
-				// check overlaps with bounding spheres of other clumps
-				FOREACH(const ClumpInfo& cInfo, clumpInfos){
-					bool detailedCheck=false;
-					// check overlaps between individual spheres and bounding sphere of the other clump
-					if((pos-cInfo.center).squaredNorm()<pow(rad+cInfo.rad,2)){ FOREACH(const Sph& s, C.pack) if(pow(s.r+cInfo.rad,2)>(s.c-cInfo.center).squaredNorm()){ detailedCheck=true; break; }}
-					// check sphere-by-sphere, since bounding spheres did overlap
-					if(detailedCheck){ FOREACH(const Sph& s, C.pack) for(int id=cInfo.minId; id<=cInfo.maxId; id++) if((s.c-pack[id].c).squaredNorm()<pow(s.r+pack[id].r,2)) goto overlap;}
-				}
-			} else {
-				FOREACH(const ClumpInfo& cInfo, clumpInfos){
-					// bounding spheres overlap (in the periodic space)
-					if(periPtDistSq(pos,cInfo.center)<pow(rad+cInfo.rad,2)){
-						bool detailedCheck=false;
-						// check spheres with bounding sphere of the other clump
-						FOREACH(const Sph& s, C.pack) if(pow(s.r+cInfo.rad,2)>periPtDistSq(s.c,cInfo.center)){ detailedCheck=true; break; }
-						// check sphere-by-sphere
-						if(detailedCheck){ FOREACH(const Sph& s, C.pack) for(int id=cInfo.minId; id<=cInfo.maxId; id++) if(periPtDistSq(s.c,pack[id].c)<pow(s.r+pack[id].r,2)) goto overlap; }
-					}
-				}
-			}
-
-			#if 0
-			// crude algorithm: check all spheres against all other spheres (slow!!)
-			// use vtkPointLocator, add all existing points and check distance of r+maxRadius, then refine
-			// for periodicity, duplicate points close than boxMargins to the respective boundary
-			if(!periodic){
-				for(size_t i=0; i<C.pack.size(); i++){
-					for(size_t j=0; j<pack.size(); j++){
-						const Vector3r& c(C.pack[i].c); const Real& r(C.pack[i].r);
-						if(pow(r+pack[j].r,2)>=(c-pack[j].c).squaredNorm()) goto overlap;
-						// check that we are not over the box boundary
-						// this could be handled by adjusting the position random interval (by taking off the smallest radius in the clump)
-						// but usually the margin band is relatively small and this does not make the code as hairy 
-						if((c+r*Vector3r::Ones()).cwise().max(mx)!=mx || (c-r*Vector3r::Ones()).cwise().min(mn)!=mn) goto overlap; 
-					}
-				}
-			}else{
-				for(size_t i=0; i<C.pack.size(); i++){
-					for(size_t j=0; j<pack.size(); j++){
-						const Vector3r& c(C.pack[i].c); const Real& r(C.pack[i].r);
-						Vector3r dr;
-						for(int axis=0; axis<3; axis++) dr[axis]=min(cellWrapRel(c[axis],pack[j].c[axis],pack[j].c[axis]+size[axis]),cellWrapRel(pack[j].c[axis],c[axis],c[axis]+size[axis]));
-						if(pow(pack[j].r+r,2)>= dr.squaredNorm()) goto overlap;
-					}
-				}
-			}
-			#endif
-
-			// add the clump, if no collisions
-			/*number clumps consecutively*/ ci.clumpId=nGen; ci.center=pos; ci.rad=rad; ci.minId=pack.size(); ci.maxId=pack.size()+C.pack.size(); 
-			FOREACH(const Sph& s, C.pack){
-				pack.push_back(Sph(s.c,s.r,ci.clumpId));
-			}
-			clumpInfos.push_back(ci);
-			nGen++;
-			//cerr<<"O";
-			break; // break away from the try-loop
-
-			overlap:
-			//cerr<<".";
-			if(tries++==maxTry){ // last loop 
-				if(num>0) LOG_WARN("Exceeded "<<maxTry<<" attempts to place non-overlapping clump. Only "<<nGen<<" clumps were added, although you requested "<<num);
-				return nGen;
-			}
-		}
-	}
-	return nGen;
-}
-
 bool SpherePack::hasClumps() const { for(const Sph& s: pack){ if(s.clumpId>=0) return true; } return false; }
 
 py::tuple SpherePack::getClumps() const{
@@ -609,7 +399,7 @@ void SpherePack::scale(Real scale, bool keepRadius){
 	}
 }
 
-Real SpherePack::maxRelOverlap(bool ignorePeri){
+Real SpherePack::maxRelOverlap(){
 	/*
 	For current distance d₀ and overlap z=r₁+r₂-d₀, determine scaling coeff s=(1+relOverlap) such that d₀s=r₁+r₂ (i.e. scaling packing by s will result in no overlap).
 	With s=z/d₀,  we have d₀s=d₀(z/d₀+1)=z+d₀ which is r₁+r₂.
@@ -618,16 +408,19 @@ Real SpherePack::maxRelOverlap(bool ignorePeri){
 	size_t sz=pack.size();
 	bool peri=(cellSize!=Vector3r::Zero());
 	Real ret=0.;
-	if(peri && !ignorePeri) addShadows();
 	for(size_t i=0; i<sz; i++){
 		for(size_t j=i+1; j<sz; j++){
 			const Sph &s1=pack[i]; const Sph& s2=pack[j];
-			if((s1.c-s2.c).squaredNorm()>pow(s1.r+s2.r,2)) continue;
-			// TODO: handle periodic conditions better
-			Real dist=(s1.c-s2.c).norm();
+			// squared distance - normal or wrapped, if periodic
+			Real sqDist=peri?periPtDistSq(s1.c,s2.c):(s1.c-s2.c).squaredNorm();
+			// sphere in a clump, and within the same clump
+			if(s1.clumpId>=0 && s1.clumpId==s2.clumpId) continue;
+			// too far from each other
+			if(sqDist>pow(s1.r+s2.r,2)) continue;
+			// compute relative overlap
+			Real dist=sqrt(sqDist);
 			ret=max(ret,(s1.r+s2.r-dist)/dist);
 		}
 	}
-	if(peri && !ignorePeri) removeShadows();
 	return ret;
 }
