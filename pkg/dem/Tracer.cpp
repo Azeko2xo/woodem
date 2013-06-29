@@ -94,6 +94,7 @@ void TraceGlRep::consolidate(){
 }
 
 Vector2i Tracer::modulo;
+int Tracer::ordinalMod;
 Vector2r Tracer::rRange;
 int Tracer::num;
 int Tracer::scalar;
@@ -142,6 +143,8 @@ void Tracer::run(){
 		case SCALAR_SIGNED_ACCEL: lineColor->label="signed |accel|"; break;
 		case SCALAR_RADIUS: lineColor->label="radius"; break;
 		case SCALAR_SHAPE_COLOR: lineColor->label="Shape.color"; break;
+		case SCALAR_ORDINAL: lineColor->label="ordinal"+(ordinalMod>1?string(" % "+to_string(ordinalMod)):string());
+		break;
 	}
 	auto& dem=field->cast<DemField>();
 	size_t i=0;
@@ -181,6 +184,7 @@ void Tracer::run(){
 			case SCALAR_RADIUS: sc=radius; break;
 			case SCALAR_SHAPE_COLOR: sc=(hasP?(*pI)->shape->color:NaN); break;
 			case SCALAR_TIME: sc=scene->time; break;
+			case SCALAR_ORDINAL: sc=(i%ordinalMod); break;
 			default: sc=NaN;
 		}
 		tr.addPoint(n->pos,sc);
