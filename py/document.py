@@ -69,7 +69,9 @@ def allWooPackages(outDir='/tmp',skip='^(woo|wooExtra(|\..*))$'):
 	print 'MODULES DOCUMENTED ELSEWHERE',[m.__name__ for m in modsElsewhere]
 
 	for mod in toplevMods:
-		if re.match(skip,mod.__name__): continue
+		if re.match(skip,mod.__name__):
+			print '[SKIPPING %s]'%(mod.__name__)
+			continue
 		outFile=outDir+'/%s.rst'%(mod.__name__)
 		print 'WRITING',outFile,mod.__name__
 		rsts.append(outFile)

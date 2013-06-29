@@ -1,9 +1,10 @@
 import woo.document
 # import all modules here
 from woo import utils,log,timing,pack,document,manpage,plot,post2d,runtime,ymport,WeightedAverage2d
-import minieigen,re,sys,sphinx
+import minieigen,re,sys,sphinx,os,os.path
 if not '--only-extras' in sys.argv:
 	rsts=woo.document.allWooPackages('.')
+	print '*** RST:',rsts
 	wooMods='wooMods.rst'
 	with open(wooMods,'w') as f:
 		f.write('Woo modules\n######################\n\n')
@@ -14,7 +15,8 @@ if not '--only-extras' in sys.argv:
 				print '[SKIPPED]'
 				continue
 			f.write('    %s\n'%o)
-	sphinx.main(['','-P','-b','html','-d','../build/doctrees','../source','../build/html'])
+	if 1:
+		sphinx.main(['','-P','-b','html','-d','../build/doctrees','../source','../build/html'])
 
 #
 # document extra modules, in separate trees
@@ -37,6 +39,7 @@ for mName in [m for m in sys.modules if m.startswith('wooExtra.') and len(m.spli
 	## copy package resources to the source directory
 	for R in ('resources','data'): # future-proof :)
 		resDir=pkg_resources.resource_filename(mName,R)
+		print srcDir,resDir,R
 		if os.path.exists(resDir) and not os.path.exists(srcDir+'/'+R): os.symlink(resDir,srcDir+'/'+R)
 	# HACK: change some values in the config
 	with open(confName,'a') as conf:
@@ -55,7 +58,8 @@ extensions=[e for e in extensions if e!='sphinx.ext.viewcode'] # don't show code
 			mName=mName,
 			copyright=re.sub('<[^<]+?>','',mod.distributor.replace('<br>',', '))
 		))
-	sphinx.main(['','-P','-b','html','-d','../build-doctress',srcDir,outDir])
+	if 1:
+		sphinx.main(['','-P','-b','html','-d','../build-doctress',srcDir,outDir])
 
 		
 
