@@ -3,6 +3,13 @@
 
 WOO_PLUGIN(dem,(Sphere)(Bo1_Sphere_Aabb)(In2_Sphere_ElastMat));
 
+void woo::Sphere::updateDyn(const Real& density) const {
+	assert(numNodesOk());
+	auto& dyn=nodes[0]->getData<DemData>();
+	dyn.mass=(4/3.)*M_PI*pow(radius,3)*density;
+	dyn.inertia=Vector3r::Ones()*(2./5.)*dyn.mass*pow(radius,2);
+};
+
 void Bo1_Sphere_Aabb::go(const shared_ptr<Shape>& sh){
 	Sphere& s=sh->cast<Sphere>();
 	if(!s.bound){ s.bound=make_shared<Aabb>(); }

@@ -13,6 +13,17 @@ struct PelletMat: public FrictMat{
 };
 WOO_REGISTER_OBJECT(PelletMat);
 
+#if 0
+	struct AgglomPelletMat: public PelletMat{
+		WOO_CLASS_BASE_DOC_ATTRS_CTOR(AgglomPelletMat,PelletMat,"Pellet material with additional agglomeration parameters",
+			/*attrs*/
+			,/*ctor*/createIndex();
+		);
+		REGISTER_CLASS_INDEX(AgglomPelletMat,PelletMat);
+	};
+	WOO_REGISTER_OBJECT(AgglomPelletMat);
+#endif
+
 struct PelletMatState: public MatState{
 	Real getColorScalar(){ return normPlast+shearPlast; }
 	WOO_CLASS_BASE_DOC_ATTRS(PelletMatState,MatState,"Hold dissipated energy data for this particles, to evaluate wear.",
@@ -78,3 +89,14 @@ struct PelletCData: public CData{
 };
 WOO_REGISTER_OBJECT(PelletCData);
 
+struct PelletAgglomerator: public Engine{
+	DECLARE_LOGGER;
+	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
+	void run();
+	WOO_CLASS_BASE_DOC_ATTRS(PelletAgglomerator,Engine,"Compute agglomeration of pellets due to contact some special particles, or wearing due to impacts (only applies to particles with :obj:`PelletMat`.",
+		((vector<shared_ptr<Particle>>,agglomSrcs,,,"Sources of agglomerating mass; particles in contact with this source will have their radius increased based on their relative angular velocity."))
+		((Real,massIncPerRad,NaN,,"Increase of sphere mass per one radian of rolling (radius is increased in such way that mass increase is satisfied)."))
+		((Real,dampHalfLife,-10000,,"Half-life for rotation damping (includes both rolling and twist); if negative, relative to the (initial) :obj:`woo.core.Scene.dt`; zero deactivates damping. Half-life is $t_{1/.2}=\\frac{\\ln 2}{\\lambda}$ where $\\lambda$ is decay coefficient applied as $\\d\\omega=-\\lambda\\omega$ (see http://en.wikipedia.org/wiki/Exponential_decay for details)."))
+	);
+};
+WOO_REGISTER_OBJECT(PelletAgglomerator);

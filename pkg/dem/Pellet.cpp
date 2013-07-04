@@ -1,5 +1,5 @@
 #include<woo/pkg/dem/Pellet.hpp>
-WOO_PLUGIN(dem,(PelletMat)(PelletMatState)(PelletPhys)(Cp2_PelletMat_PelletPhys)(Law2_L6Geom_PelletPhys_Pellet)(PelletCData));
+WOO_PLUGIN(dem,(PelletMat)(PelletMatState)(PelletPhys)(Cp2_PelletMat_PelletPhys)(Law2_L6Geom_PelletPhys_Pellet)(PelletCData)(PelletAgglomerator));
 
 void Cp2_PelletMat_PelletPhys::go(const shared_ptr<Material>& m1, const shared_ptr<Material>& m2, const shared_ptr<Contact>& C){
 	if(!C->phys) C->phys=make_shared<PelletPhys>();
@@ -107,3 +107,32 @@ void Law2_L6Geom_PelletPhys_Pellet::go(const shared_ptr<CGeom>& cg, const shared
 	// elastic potential energy
 	if(unlikely(scene->trackEnergy)) scene->energy->add(0.5*(pow(Fn,2)/ph.kn+Ft.squaredNorm()/ph.kt),"elast",elastPotIx,EnergyTracker::IsResettable);
 }
+
+
+void PelletAgglomerator::run(){
+	//DemField& dem(field->cast<DemField>());
+	// loop over all source particles, and loop over all contacts of each of them
+	if(isnan(massIncPerRad)) throw std::runtime_error("PalletAgglomerator.massIncPerRad==NaN (must be specified)");
+	if(dampHalfLife<0) dampHalfLife*=-scene->dt;
+	Real lambda=(dampHalfLife==0 || isnan(dampHalfLife))?0:(log(2)/dampHalfLife);
+	for(const shared_ptr<Particle>& src: agglomSrcs){
+		for(const auto& idCon: src->contacts){
+			const shared_ptr<Contact>& c(idCon.second);
+			if(!c->isReal()) continue;
+			const Particle* other(c->leakPA()==src.get()?c->leakPB():src.get());
+			if(!dynamic_pointer_cast<Sphere>(other->shape)) continue; // other particles is not a sphere
+			Sphere& sphere=other->shape->cast<Sphere>();
+			assert(dynamic_pointer_cast<L6Geom>(c->geom));
+			// radius change
+			Vector3r localAngVel=c->geom->node->ori.conjugate()*c->geom->cast<L6Geom>().angVel;
+			Real dMass=localAngVel.tail<2>().norm()*scene->dt*massIncPerRad;
+			Real newVol=(4/3.)*M_PI*pow(sphere.radius,3)+dMass/other->material->density;
+			sphere.radius=cbrt(3*newVol/(4*M_PI));
+			sphere.updateDyn(other->material->density);
+			// rotation damping
+			if(lambda>0){
+				other->shape->nodes[0]->getData<DemData>().angVel*=(1-lambda*scene->dt);
+			}
+		}
+	}
+};

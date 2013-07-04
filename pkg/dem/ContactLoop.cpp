@@ -143,7 +143,7 @@ void ContactLoop::run(){
 		// CPhys
 		if(!C->phys) C->stepMadeReal=scene->step;
 		if(!C->phys || updatePhys) phyDisp->operator()(pA->material,pB->material,C);
-		assert(C->phys);
+		if(!C->phys) throw std::runtime_error("ContactLoop: ##"+to_string(pA->id)+"+"+to_string(pB->id)+": con Contact.phys created from materials "+pA->material->getClassName()+" and "+pB->material->getClassName()+" (a CPhysFunctor must be available for every contacting material combination).");
 
 		// CLaw
 		lawDisp->operator()(C->geom,C->phys,C);
