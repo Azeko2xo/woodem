@@ -52,7 +52,14 @@ vector<shared_ptr<SphereClumpGeom>> SphereClumpGeom::fromSpherePack(const shared
 
 
 void SphereClumpGeom::recompute(int _div){
-	if(centers.size()!=radii.size() || centers.empty()) throw std::runtime_error("SphereClumpGeom.recompute: centers and radii must have the same length (len(centers)="+to_string(centers.size())+", len(radii)="+to_string(radii.size())+"), and may not be empty.");
+	if((centers.empty() && radii.empty()) || centers.size()!=radii.size()){
+		volume=equivRad=NaN;
+		inertia=Vector3r(NaN,NaN,NaN);
+		return;
+	}
+	#if 0
+		if(centers.size()!=radii.size()) throw std::runtime_error("SphereClumpGeom.recompute: centers and radii must have the same length (len(centers)="+to_string(centers.size())+", len(radii)="+to_string(radii.size())+"), and may not be empty.");
+	#endif
 	// one single sphere: simple
 	if(centers.size()==1){
 		pos=centers[0];
