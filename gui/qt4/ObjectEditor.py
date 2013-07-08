@@ -1523,7 +1523,8 @@ class SeqFundamentalEditor(QFrame):
 			self.killSlot(self.keyFocusIndex()-1)
 			ev.accept()
 		elif ev.key()==Qt.Key_Enter or ev.key()==Qt.Key_Return:
-			self.newSlot(self.keyFocusIndex())
+			# insert after the current row
+			self.newSlot(self.keyFocusIndex()+1)
 			ev.accept();
 	def newSlot(self,i):
 		seq=self.getter();

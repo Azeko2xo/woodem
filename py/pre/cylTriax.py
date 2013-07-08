@@ -30,11 +30,11 @@ class CylTriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 	_PAT=woo.pyderived.PyAttrTrait # less typing
 	_attrTraits=[
 		##
-		_PAT(Vector2,'htDiam',Vector2(.06,.04),startGroup='Geometry & control',doc='Initial size of the cylinder (radius and height)'),
-		_PAT(float,'memThick',-1.0,'Membrane thickness; if negative, relative to largest particle diameter'),
+		_PAT(Vector2,'htDiam',Vector2(.06,.04),unit='m',startGroup='Geometry & control',doc='Initial size of the cylinder (radius and height)'),
+		_PAT(float,'memThick',-1.0,unit='m',doc='Membrane thickness; if negative, relative to largest particle diameter'),
 		_PAT(float,'cylDiv',40,'Number of segments for cylinder (first component)'),
 		_PAT(float,'sigIso',-500e3,unit='Pa',doc='Isotropic compaction stress, and lateral stress during the triaxial phase'),
-		_PAT(float,'stopStrain',-.2,doc='Goal value of axial deformation in the triaxial phase'),
+		_PAT(float,'stopStrain',-.2,unit=r'%',doc='Goal value of axial deformation in the triaxial phase'),
 		_PAT(Vector2,'maxRates',(2e-1,1.),'Maximum strain rates during the compaction phase (for all axes), and during the triaxial phase in the axial sense.'),
 
 		## materials

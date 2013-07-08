@@ -5,6 +5,11 @@ WOO_PLUGIN(dem,(ClumpData)(SphereClumpGeom));
 CREATE_LOGGER(ClumpData);
 CREATE_LOGGER(SphereClumpGeom);
 
+void SphereClumpGeom::ensureOk() const {
+	if(isOk()) return;
+	throw std::runtime_error("SphereClumpGeom: invalid values; centers and radii must have the same size, and may not be empty (len(centers)="+to_string(centers.size())+", len(radii)="+to_string(radii.size())+").");
+}
+
 void SphereClumpGeom::postLoad(SphereClumpGeom&,void* attr){
 	if(attr==NULL){
 		if(centers.size()!=radii.size()) throw std::runtime_error("SphereClumpGeom: centers and radii must have the same length (len(centers)="+to_string(centers.size())+", len(radii)="+to_string(radii.size())+").");
@@ -44,6 +49,7 @@ vector<shared_ptr<SphereClumpGeom>> SphereClumpGeom::fromSpherePack(const shared
 		}
 		assert(cg->centers.size()==ci.second.size()); assert(cg->radii.size()==ci.second.size());
 		cg->recompute(div);
+		assert(cg->isOk());
 		ret.push_back(cg);
 	}
 	return ret;
@@ -55,6 +61,8 @@ void SphereClumpGeom::recompute(int _div){
 	if((centers.empty() && radii.empty()) || centers.size()!=radii.size()){
 		volume=equivRad=NaN;
 		inertia=Vector3r(NaN,NaN,NaN);
+		pos=Vector3r::Zero();
+		ori=Quaternionr::Identity();
 		return;
 	}
 	#if 0
@@ -111,6 +119,7 @@ void SphereClumpGeom::recompute(int _div){
 }
 
 std::tuple<shared_ptr<Node>,vector<shared_ptr<Particle>>> SphereClumpGeom::makeClump(const shared_ptr<Material>& mat, const Vector3r& clumpPos, const Quaternionr& clumpOri, Real scale){
+	ensureOk();
 	assert(centers.size()==radii.size());
 	const auto N=centers.size();
 	vector<shared_ptr<Particle>> par(N);

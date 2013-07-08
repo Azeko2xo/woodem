@@ -169,6 +169,7 @@ PsdClumpGenerator::operator()(const shared_ptr<Material>&mat){
 	for(size_t i=0; i<clumps.size(); i++){
 		if(!clumps[i]) woo::ValueError("PsdCLumpGenerator.clumps["+to_string(i)+"] is None.");
 		const SphereClumpGeom& C(*clumps[i]);
+		C.ensureOk();
 		const auto& pf(C.scaleProb); // probability function
 		if(!pf.empty()){
 			auto I=std::lower_bound(pf.begin(),pf.end(),r,[](const Vector2r& rProb, const Real& r)->bool{ return rProb[0]<r; });

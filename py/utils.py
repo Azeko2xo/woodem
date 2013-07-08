@@ -499,25 +499,29 @@ def tesselatePolyline(l,maxDist):
 	return ret
 
 
-def htmlReportHead(S,headline,dialect='xhtml'):
+def htmlReportHead(S,headline,dialect='xhtml',repBase=''):
 	'''
 		Return (X)HTML fragment for simulation report: (X)HTML header, title, Woo logo, configuration and preprocessor parameters. 
 
 		In order to obtain a well-formed XHTML document, don't forget to add '</body></html>'.
 	'''
-	import time, platform, pkg_resources
+	import time, platform, pkg_resources, shutil
 	headers=dict(xhtml='''<?xml version="1.0" encoding="UTF-8"?>
 	<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> 
 	<html xmlns="http://www.w3.org/1999/xhtml" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">\n''',html5='<!DOCTYPE html><html lang="en">',html4='<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd"><html>')
-	logoBase64='<img src="data:image/png;base64,'+open(pkg_resources.resource_filename('woo','data/woo-icon.128.png')).read().encode('base64')+'" alt="Woo logo">'
+	logoSrc=pkg_resources.resource_filename('woo','data/woo-icon.128.png')
+	logoExtern='%s_wooLogo.png'%(repBase)
+	logoBase64='<img src="data:image/png;base64,'+open(logoSrc).read().encode('base64')+'" alt="Woo logo"/>'
+	logoImgExtern='<img src="%s_wooLogo.png" alt="Woo logo"/>'%(repBase)
 	svgLogos=dict(
 		# embedded svg
 		xhtml=svgFileFragment(pkg_resources.resource_filename('woo','data/woodem-6.woo.svg')),
 		# embedded base64-encoded pngs
 		html5=logoBase64,
-		html4=logoBase64,
+		html4=logoImgExtern,
 	)
 	if dialect not in headers: raise ValueError("Unsupported HTML dialect '%s'; must be one of: "+', '.join(headers.keys()))
+	if dialect=='html4': shutil.copyfile(logoSrc,logoExtern)
 	# <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
 	html=(u'''<head><title>{headline}</title><meta charset="utf-8"/></head><body>
 		<h1>{headline}</h1>
@@ -582,10 +586,10 @@ def htmlReport(S,repFmt,headline,afterHead='',figures=[],dialect=None,figFmt='sv
 	repName=unicode(repFmt).format(S=S,**(dict(S.tags)))
 	rep=codecs.open(repName,'w','utf-8','replace')
 	print 'Writing report to file://'+os.path.abspath(repName)
-	s=htmlReportHead(S,headline,dialect=dialect)
+	repBase=re.sub('\.x?html$','',repName)
+	s=htmlReportHead(S,headline,dialect=dialect,repBase=repBase)
 	s+=afterHead
 
-	repBase=re.sub('\.x?html$','',repName)
 
 	if figures: s+='<h2>Figures</h2>\n'
 	extFiles=[]

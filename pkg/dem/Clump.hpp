@@ -6,6 +6,10 @@ struct SphereClumpGeom: public Object{
 	DECLARE_LOGGER;
 	void postLoad(SphereClumpGeom&,void*);
 	void recompute(int div);
+	// this indicates that recompute failed as input data were wrong
+	bool isOk() const { return !isnan(volume); }
+	// if not isOk, raises exception
+	void ensureOk() const;
 	std::tuple<shared_ptr<Node>,vector<shared_ptr<Particle>>> makeClump(const shared_ptr<Material>&, const Vector3r& pos, const Quaternionr& ori, Real scale=1.);
 	py::tuple pyMakeClump(const shared_ptr<Material>& m, const Vector3r& p, const Quaternionr& o=Quaternionr::Identity(), Real scale=1., int mask=0){
 		const auto& tup=makeClump(m,p,o,scale); return py::make_tuple(std::get<0>(tup),std::get<1>(tup));
