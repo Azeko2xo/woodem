@@ -38,13 +38,13 @@ struct WeirdTriaxControl: public Engine{
 	void run();
 	//	void strainStressStiffUpdate();
 	WOO_CLASS_BASE_DOC_ATTRS(WeirdTriaxControl,Engine,"Engine for independently controlling stress or strain in periodic simulations.\n\n``strainStress`` contains absolute values for the controlled quantity, and ``stressMask`` determines meaning of those values (0 for strain, 1 for stress): e.g. ``( 1<<0 | 1<<2 ) = 1 | 4 = 5`` means that ``strainStress[0]`` and ``strainStress[2]`` are stress values, and ``strainStress[1]`` is strain. \n\nSee scripts/test/periodic-triax.py for a simple example.",
-		((Vector3r,goal,Vector3r::Zero(),,"Desired stress or strain values (depending on stressMask), strains defined as ``strain(i)=log(Fii)``.\n\n.. warning:: Strains are relative to the :yref:`O.cell.refSize<Cell.refSize>` (reference cell size), not the current one (e.g. at the moment when the new strain value is set)."))
+		((Vector3r,goal,Vector3r::Zero(),,"Desired stress or strain values (depending on stressMask), strains defined as ``strain(i)=log(Fii)``.\n\n.. warning:: Strains are relative to the :obj:`woo.core.Scene.cell.refSize` (reference cell size), not the current one (e.g. at the moment when the new strain value is set)."))
 		((int,stressMask,((void)"all strains",0),,"mask determining strain/stress (0/1) meaning for goal components"))
 		((Vector3r,maxStrainRate,Vector3r(1,1,1),,"Maximum strain rate of the periodic cell."))
 		((Real,maxUnbalanced,1e-4,,"maximum unbalanced force."))
 		((Real,absStressTol,1e3,,"Absolute stress tolerance"))
 		((Real,relStressTol,3e-5,,"Relative stress tolerance"))
-		((Real,growDamping,.25,,"Damping of cell resizing (0=perfect control, 1=no control at all); see also ``wallDamping`` in :yref:`TriaxialStressController`."))
+		((Real,growDamping,.25,,"Damping of cell resizing (0=perfect control, 1=no control at all)."))
 		((Real,relVol,1.,,"For stress computation, use volume of the periodic cell multiplied by this constant."))
 		((int,globUpdate,5,,"How often to recompute average stress, stiffness and unbalaced force."))
 		((string,doneHook,,,"python command to be run when the desired state is reached"))
@@ -52,7 +52,7 @@ struct WeirdTriaxControl: public Engine{
 		((Vector3r,strain,Vector3r::Zero(),,"cell strain, updated automatically"))
 		((Vector3r,strainRate,Vector3r::Zero(),,"cell strain rate, updated automatically"))
 		//((Vector3r,stiff,Vector3r::Zero(),,"average stiffness (only every globUpdate steps recomputed from interactions) |yupdate|"))
-		((Real,currUnbalanced,NaN,,"current unbalanced force (updated every globUpdate) |yupdate|"))
+		((Real,currUnbalanced,NaN,,"current unbalanced force (updated every globUpdate)"))
 		((Vector3r,prevGrow,Vector3r::Zero(),,"previous cell grow"))
 		((Real,mass,NaN,,"mass of the cell (user set); if not set, it will be computed as sum of masses of all particles."))
 		((Real,externalWork,0,,"Work input from boundary controller."))

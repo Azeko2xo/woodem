@@ -19,12 +19,12 @@ struct SphereClumpGeom: public Object{
 	WOO_CLASS_BASE_DOC_ATTRS_PY(SphereClumpGeom,Object,"Defines geometry of spherical clumps. Each clump is described by spheres it is made of (position and radius).",
 		((vector<Vector3r>,centers,,AttrTrait<Attr::triggerPostLoad>(),"Centers of constituent spheres, in clump-local coordinates."))
 		((vector<Real>,radii,,AttrTrait<Attr::triggerPostLoad>(),"Radii of constituent spheres"))
-		((vector<Vector2r>,scaleProb,,,"Used by particle generators: piecewise-linear function probability(equivRad) given as a sequence of x,y coordinates; the generator picks equivRad first, then decides randomly which clump to take, based on this probability function. Outside of the x-range, the probability has constant value of the last point. If empty, assume the value of 1.0 everywhere."))
+		((vector<Vector2r>,scaleProb,,,"Used by particle generators: piecewise-linear function probability(equivRad) given as a sequence of x,y coordinates. If not given, constant function $p(d)=1$ is assumed. See the documentation of :obj:`woo.dem.PsdClumpGenerator` for details."))
 		((Vector3r,pos,Vector3r::Zero(),AttrTrait<>().readonly().noDump(),"Centroid position (computed automatically)"))
 		((Quaternionr,ori,Quaternionr::Identity(),AttrTrait<>().readonly().noDump(),"Principal axes orientation (computed automatically)"))
-		((Real,volume,NaN,AttrTrait<>().readonly().noDump(),"Volume (computed automatically)"))
-		((Real,equivRad,NaN,AttrTrait<>().readonly().noDump(),"Equivalent radius of the clump (computed automatically) -- mean of radii of gyration."))
-		((Vector3r,inertia,Vector3r(NaN,NaN,NaN),AttrTrait<>().readonly().noDump(),"Inertia (with unit density)"))
+		((Real,volume,NaN,AttrTrait<>().readonly().noDump().volUnit(),"Volume (computed automatically)"))
+		((Real,equivRad,NaN,AttrTrait<>().readonly().noDump().lenUnit(),"Equivalent radius of the clump (computed automatically) -- mean of radii of gyration, i.e. $'\\frac{1}{3}\\sum \\sqrt{I_{ii}/V}$."))
+		((Vector3r,inertia,Vector3r(NaN,NaN,NaN),AttrTrait<>().readonly().noDump(),"Geometrical inertia (computed with unit density)"))
 		((int,div,5,AttrTrait<Attr::triggerPostLoad>().noDump(),"Sampling grid fineness, when computing volume and other properties, relative to the smallest sphere's radius. When zero or negative, assume spheres don't intersect and use a different algorithm (Steiner's theorem)."))
 		, /* py*/
 		.def("recompute",&SphereClumpGeom::recompute,(py::arg("div")=5),"Recompute principal axes of the clump, using *div* for subdivision (see :obj:`div` for the semantics)")

@@ -33,7 +33,7 @@ except ImportError:
 	# use local copy
 	ext_ipython_directive='ipython_directive'
 
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.mathjax', 'sphinx.ext.viewcode', 'matplotlib.sphinxext.plot_directive', 'sphinx.ext.inheritance_diagram', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', ext_ipython_directive ]
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.mathjax', 'sphinx.ext.viewcode', 'matplotlib.sphinxext.plot_directive', 'sphinx.ext.inheritance_diagram', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'tikz', ext_ipython_directive, ]
 
 # customize prompts
 ipython_rgxin =re.compile('Woo \[(\d+)\]:\s?(.*)\s*')
@@ -41,7 +41,14 @@ ipython_rgxout=re.compile(' -> \[(\d+)\]:\s?(.*)\s*')
 ipython_promptin ='Woo [%d]:'
 ipython_promptout=' -> [%d]:'
 
+# make graphviz determine the best size instead of hard-coded one
+# http://stackoverflow.com/a/2151808/761090
+inheritance_graph_attrs = dict(size='""')
+
 todo_include_todos=True
+
+tikz_latex_preamble=r'\usepackage{pgfplots}'
+tikz_tikzlibraries=''
 
 ## customize mathjax
 ## hack from https://bitbucket.org/birkenfeld/sphinx/issue/969/allow-mathjax-customization-via-localjs 
@@ -201,7 +208,7 @@ latex_elements = {
 #'pointsize': '10pt',
 
 # Additional stuff for the LaTeX preamble.
-#'preamble': '',
+'preamble': '\usepackage{tikz,pgfplots}',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples

@@ -117,5 +117,34 @@ If this functor is called for :ref:`L6Geom`, local rotation is updated as
 
 '''
 
+
+	woo.dem.PsdClumpGenerator.__doc__=ur'''Generate clump particles following a given Particle Size Distribution	(:obj:`psd`) and selection of :obj:`clump shapes <clumps>`, using the :obj:`woo.dem.SphereClumpGeom.scaleProb` function.
+
+For example, with ``psd=[(.1, 0), (.2, .7), (.4, 1.)]``, the PSD function (which is a `cumulative distribution function <http://en.wikipedia.org/wiki/Cumulative_distribution_function>`_) looks like
+
+.. tikz:: \begin{axis}[area style, enlarge x limits=false, xlabel=d,ylabel={\$P(D\leq d)\$}]\addplot[mark=x] coordinates { (.1, 0) (.2, .7) (.4, 1.) } \closedcycle; \end{axis}
+
+while the `probability density function <http://en.wikipedia.org/wiki/Probability_density_function>`_ is
+
+.. tikz:: \begin{axis}[xlabel=\$d\$,ylabel={\$P(d)\$},enlarge x limits=false, area style]\addplot[mark=x] coordinates { (.1,0) (.2, 6.666) (.4, 0)} \closedcycle; \end{axis}
+
+Now suppose three clumps are given with :obj:`scaleProb <woo.dem.SphereClumpGeom.scaleProb>` as::
+
+    [(.1, 1), (.3, 0)]   # for d>.3, the leftmost value (0) is used
+    [(.2, .1) ]          # value extends to both left and right with just one point
+    [(.2, 0), (.4, .6)]  # for d<.2, the rightmost value (0) is used
+
+which define the following piecewise-linear probability functions
+
+.. tikz:: \begin{axis}[xlabel=\$d\$,ylabel={scaled \$P(d)\$}]\addplot[mark=o] coordinates { (.1, 1) (.3, 0) (.4,0)}; \addplot[mark=x] coordinates { (.1, .1) (.4, .1) }; \addplot[mark=square] coordinates {(.1,0) (.2,0) (.4,.6)}; \legend{clump 1, clump 2, clump 3} \end{axis}
+
+For every diameter $d$ chosen according to the PSD, values of :obj:`scaleProb <woo.dem.SphereClumpGeom.scaleProb>` functions are found in $d$ and used to choose which clump to create. The PDF for diameter combined with clumps probabilities then gives the following probability:
+
+.. tikz:: \begin{axis}[xlabel=\$d\$,ylabel=\$P(d)\$,area style, enlarge x limits=false,stack plots=y] \addplot coordinates { (.1, 0) (.2, 6.06) (.3, 0) (.4,0)} \closedcycle; \addplot coordinates { (.1,0) (.2, .61) (.3, 0.95) (.4,0)} \closedcycle; \addplot coordinates { (.1,0) (.2,0) (.3,2.38) (.4,0) }\closedcycle; \legend{clump 1, clump 2, clump 3} \end{axis}
+
+Selected clump configuration is scaled to $d$ (using its :obj:`equivRad <woo.dem.SphereClumpGeom.equivRad>`).
+
+'''
+
 except ImportError:
 	pass # compiled without DEM
