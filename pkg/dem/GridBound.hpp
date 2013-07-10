@@ -15,7 +15,7 @@ struct GridBound: public Bound{
 		#ifdef WOO_GRID_BOUND_DEBUG
 			((vector<Vector3i>,cells,,AttrTrait<>().noGui(),"Cells touched by this particle"))
 		#endif
-			((vector<AlignedBox3r>,nodePlay,,,"Space in which respective nodes of the shapes may be without triggering new contact detection"))
+			((vector<AlignedBox3r>,nodePlay,,AttrTrait<>().readonly(),"Space in which respective nodes of the shapes may be without triggering new contact detection"))
 		,
 		/*ctor*/createIndex();
 	);

@@ -825,6 +825,7 @@ class ObjectEditor(QFrame):
 			'Real':float,'float':float,'double':float,
 			'Vector6r':Vector6,'Vector6i':Vector6i,'Vector3i':Vector3i,'Vector2r':Vector2,'Vector2i':Vector2i,
 			'Vector3r':Vector3,'Matrix3r':Matrix3,'Se3r':Se3FakeType,'Quaternionr':Quaternion,
+			'AlignedBox2r':AlignedBox2,'AlignedBox3r':AlignedBox3,
 			'string':str
 		}
 		cxxT=trait.cxxType

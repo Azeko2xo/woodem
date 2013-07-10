@@ -36,32 +36,38 @@ void Bo1_InfCylinder_Aabb::go(const shared_ptr<Shape>& sh){
 
 	void Gl1_InfCylinder::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool wire2, const GLViewInfo& viewInfo){
 		const InfCylinder& cyl=shape->cast<InfCylinder>();
+		const int& ax(cyl.axis);
 		glLineWidth(1);
 		assert(cyl.nodes.size()==1);
 		Vector3r A(Vector3r::Zero()),B(Vector3r::Zero());
 		if(isnan(cyl.glAB[0])||isnan(cyl.glAB[1])){
-			Vector3r mid=cyl.nodes[0]->pos; mid[cyl.axis]=viewInfo.sceneCenter[cyl.axis];
+			Vector3r mid=cyl.nodes[0]->pos; mid[ax]=viewInfo.sceneCenter[ax];
 			GLUtils::setLocalCoords(mid,cyl.nodes[0]->ori);
-			A[cyl.axis]=-viewInfo.sceneRadius;
-			B[cyl.axis]=+viewInfo.sceneRadius;
+			A[ax]=-viewInfo.sceneRadius;
+			B[ax]=+viewInfo.sceneRadius;
 		} else {
 			GLUtils::setLocalCoords(cyl.nodes[0]->pos,cyl.nodes[0]->ori);
-			A[cyl.axis]=cyl.nodes[0]->pos[cyl.axis]+cyl.glAB[0];
-			B[cyl.axis]=cyl.nodes[0]->pos[cyl.axis]+cyl.glAB[1];
+			A[ax]=cyl.nodes[0]->pos[ax]+cyl.glAB[0];
+			B[ax]=cyl.nodes[0]->pos[ax]+cyl.glAB[1];
 		}
 		glDisable(GL_LINE_SMOOTH);
 		GLUtils::Cylinder(A,B,cyl.radius,/*keep current color*/Vector3r(NaN,NaN,NaN),/*wire*/wire||wire2,/*caps*/false,/*rad2*/-1,slices);
 		if(spokes){
-			glBegin(GL_LINES);
-				int ax1((cyl.axis+1)%3),ax2((cyl.axis+2)%3);
-				for(int i=0; i<slices; i++){
-					Vector3r A1=A, B1=B;
-					A1[ax1]=B1[ax1]=cyl.radius*cos(i*(2.*M_PI/slices));
-					A1[ax2]=B1[ax2]=cyl.radius*sin(i*(2.*M_PI/slices));
-					glVertex3v(A); glVertex3v(A1);
-					glVertex3v(B); glVertex3v(B1);
-				}
-			glEnd();
+			int ax1((ax+1)%3),ax2((ax+2)%3);
+			for(Real axCoord:{A[ax],B[ax]}){
+				// only lines
+				glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+				glBegin(GL_TRIANGLE_FAN);
+					Vector3r v=Vector3r::Zero(); v[ax]=axCoord;
+					glVertex3v(v);
+					for(int i=0; i<=slices; i++){
+						v[ax1]=cyl.radius*cos(i*(2.*M_PI/slices));
+						v[ax2]=cyl.radius*sin(i*(2.*M_PI/slices));
+						glVertex3v(v);
+					}
+				glEnd();
+				glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+			}
 		}
 		glEnable(GL_LINE_SMOOTH);
 	}

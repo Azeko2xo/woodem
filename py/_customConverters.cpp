@@ -259,6 +259,8 @@ BOOST_PYTHON_MODULE(_customConverters){
 		VECTOR_SEQ_CONV(Vector6i);
 		VECTOR_SEQ_CONV(VectorXr);
 		VECTOR_SEQ_CONV(Matrix3r);
+		VECTOR_SEQ_CONV(AlignedBox3r);
+		VECTOR_SEQ_CONV(AlignedBox2r);
 		VECTOR_SEQ_CONV(Quaternionr);
 		VECTOR_SEQ_CONV(string);
 		VECTOR_SEQ_CONV(pairIntString);
