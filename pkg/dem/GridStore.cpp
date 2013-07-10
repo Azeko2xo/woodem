@@ -45,6 +45,14 @@ size_t GridStore::ijk2lin(const Vector3i& ijk) const{
 	return ijk[0]*shape[1]*shape[2]+ijk[1]*shape[2]+ijk[2];
 }
 
+Vector3i GridStore::sizes() const{ return Vector3i(grid->shape()[0],grid->shape()[1],grid->shape()[2]); }
+size_t GridStore::linSize() const{ return sizes().prod(); }
+
+bool GridStore::isCompatible(shared_ptr<GridStore>& other){
+	// if grid dimension matches, tht is all we need
+	if(this->sizes()!=other->sizes()) return false;
+	return true;
+}
 
 void GridStore::makeCompatible(shared_ptr<GridStore>& g, int l, bool _locking, int _exIniSize, int _exNumMaps) const {
 	auto shape=grid->shape();
@@ -255,8 +263,11 @@ void GridStore::computeRelativeComplements(GridStore& B, shared_ptr<GridStore>& 
 	// http://stackoverflow.com/questions/5572464/how-to-traverse-a-boostmulti-array - ??
 	// do it the old way :|
 	size_t N=shape[0]*shape[1]*shape[2];
-	#ifdef WOO_OPENMP
-		#pragma omp parallel for schedule(guided)	
+	// TODO: when parallelized, locking must be True and protected_append called!!
+	#if 0
+		#ifdef WOO_OPENMP
+			#pragma omp parallel for schedule(guided)	
+		#endif
 	#endif
 	for(size_t n=0; n<N; n++){
 		// static_assert(std::is_same<gridT::storage_order_type,boost::c_storage_order>::value,"Storage order of boost::multi_array is not row-major?! Code should be adjusted, as memory access pattern might be iniefficient!");

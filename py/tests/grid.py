@@ -60,3 +60,17 @@ class TestGridStore(unittest.TestCase):
 		# incompatible dimensions
 		self.assertRaises(RuntimeError,lambda: g1.computeRelativeComplements(woo.dem.GridStore(gridSize=(2,2,2))))
 
+
+class TestGridColliderBasics(unittest.TestCase):
+	def testParams(self):
+		'GridCollider: used-definable parameters'
+		gc=woo.dem.GridCollider()
+		gc.domain=((0,0,0),(1,1,1))
+		gc.minCellSize=.1
+		self.assert_(gc.dim==Vector3i(10,10,10))
+		self.assertAlmostEqual(gc.cellSize[0],.1)
+		self.assertRaises(RuntimeError,lambda: setattr(gc,'minCellSize',0))
+		gc.minCellSize=.1
+		self.assertRaises(RuntimeError,lambda: setattr(gc,'domain',((0,0,0),(0,0,0))))
+		self.assertRaises(RuntimeError,lambda: setattr(gc,'domain',((0,0,0),(-1,-1,-1))))
+		

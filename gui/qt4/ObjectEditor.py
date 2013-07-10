@@ -131,6 +131,7 @@ class AttrEditor():
 		self.hot,self.focused=False,False
 		self.multiplier=None
 		self.widget=None
+		self.readonly=False
 	def refresh(self): pass
 	def update(self): pass
 	def isHot(self,hot=True):
@@ -141,8 +142,9 @@ class AttrEditor():
 		else: self.setStyleSheet('QWidget { background: none }')
 	def sizeHint(self): return QSize(100,12)
 	def trySetter(self,val):
-		try: self.setter(val)
-		except AttributeError: self.setEnabled(False)
+		if not self.readonly:
+			try: self.setter(val)
+			except AttributeError: self.setEnabled(False)
 		self.isHot(False)
 	def multiplierChanged(self,convSpec):
 		raise RuntimeError("This widget has no multiplierChanged method defined.")

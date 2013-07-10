@@ -58,7 +58,7 @@ void Collider::pyHandleCustomCtorArgs(py::tuple& t, py::dict& d){
 	if(py::len(t)!=1) throw invalid_argument(("Collider optionally takes exactly one list of BoundFunctor's as non-keyword argument for constructor ("+lexical_cast<string>(py::len(t))+" non-keyword ards given instead)").c_str());
 	typedef std::vector<shared_ptr<BoundFunctor> > vecBound;
 	vecBound vb=py::extract<vecBound>(t[0])();
-	FOREACH(shared_ptr<BoundFunctor> bf, vb) this->boundDispatcher->add(bf);
+	for(const shared_ptr<BoundFunctor>& bf: vb) this->boundDispatcher->add(bf);
 	t=py::tuple(); // empty the args
 }
 

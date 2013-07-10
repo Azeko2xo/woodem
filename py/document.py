@@ -1,3 +1,4 @@
+# encoding: utf-8
 import woo
 import woo.core
 import sys
@@ -108,6 +109,8 @@ def oneModuleWithSubmodules(mod,out,exclude=None,level=0):
 				iniStr=' (= %s)'%(repr(trait.ini))
 			except TypeError: # no converter found
 				iniStr=''
+			if trait.startGroup:
+				out.write(u'   .. rubric:: ► %s\n\n'%(trait.startGroup))
 			out.write('   .. attribute:: %s%s\n\n'%(trait.name,iniStr))
 			for l in fixDocstring(trait.doc.decode('utf-8')).split('\n'): out.write('      '+l+'\n')
 			out.write('\n')

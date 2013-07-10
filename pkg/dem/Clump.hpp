@@ -23,7 +23,7 @@ struct SphereClumpGeom: public Object{
 		((Vector3r,pos,Vector3r::Zero(),AttrTrait<>().readonly().noDump(),"Centroid position (computed automatically)"))
 		((Quaternionr,ori,Quaternionr::Identity(),AttrTrait<>().readonly().noDump(),"Principal axes orientation (computed automatically)"))
 		((Real,volume,NaN,AttrTrait<>().readonly().noDump().volUnit(),"Volume (computed automatically)"))
-		((Real,equivRad,NaN,AttrTrait<>().readonly().noDump().lenUnit(),"Equivalent radius of the clump (computed automatically) -- mean of radii of gyration, i.e. $'\\frac{1}{3}\\sum \\sqrt{I_{ii}/V}$."))
+		((Real,equivRad,NaN,AttrTrait<>().readonly().noDump().lenUnit(),"Equivalent radius of the clump (computed automatically) -- mean of radii of gyration, i.e. $\\frac{1}{3}\\sum \\sqrt{I_{ii}/V}$."))
 		((Vector3r,inertia,Vector3r(NaN,NaN,NaN),AttrTrait<>().readonly().noDump(),"Geometrical inertia (computed with unit density)"))
 		((int,div,5,AttrTrait<Attr::triggerPostLoad>().noDump(),"Sampling grid fineness, when computing volume and other properties, relative to the smallest sphere's radius. When zero or negative, assume spheres don't intersect and use a different algorithm (Steiner's theorem)."))
 		, /* py*/

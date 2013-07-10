@@ -30,6 +30,7 @@ void Bo1_InfCylinder_Aabb::go(const shared_ptr<Shape>& sh){
 	#include<woo/lib/opengl/GLUtils.hpp>
 
 	bool Gl1_InfCylinder::wire;
+	bool Gl1_InfCylinder::spokes;
 	int  Gl1_InfCylinder::slices;
 	int  Gl1_InfCylinder::stacks;
 
@@ -50,6 +51,18 @@ void Bo1_InfCylinder_Aabb::go(const shared_ptr<Shape>& sh){
 		}
 		glDisable(GL_LINE_SMOOTH);
 		GLUtils::Cylinder(A,B,cyl.radius,/*keep current color*/Vector3r(NaN,NaN,NaN),/*wire*/wire||wire2,/*caps*/false,/*rad2*/-1,slices);
+		if(spokes){
+			glBegin(GL_LINES);
+				int ax1((cyl.axis+1)%3),ax2((cyl.axis+2)%3);
+				for(int i=0; i<slices; i++){
+					Vector3r A1=A, B1=B;
+					A1[ax1]=B1[ax1]=cyl.radius*cos(i*(2.*M_PI/slices));
+					A1[ax2]=B1[ax2]=cyl.radius*sin(i*(2.*M_PI/slices));
+					glVertex3v(A); glVertex3v(A1);
+					glVertex3v(B); glVertex3v(B1);
+				}
+			glEnd();
+		}
 		glEnable(GL_LINE_SMOOTH);
 	}
 #endif

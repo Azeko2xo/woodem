@@ -38,6 +38,8 @@ struct GridStore: public Object{
 
 	Vector3i lin2ijk(size_t n) const;
 	size_t ijk2lin(const Vector3i& ijk) const;
+	Vector3i sizes() const; 
+	size_t linSize() const;
 
 	DECLARE_LOGGER;
 
@@ -48,7 +50,7 @@ struct GridStore: public Object{
 	*/
 
 	// ctor; allocate grid and locks (if desired)
-	GridStore(const Vector3i& ijk, int l, bool locking, int _mapInitSz, int _mutexExMod);
+	GridStore(const Vector3i& ijk, int l, bool locking, int _exIniSize, int _exNumMaps);
 
 	void postLoad(GridStore&,void*);
 	
@@ -57,6 +59,7 @@ struct GridStore: public Object{
 	// if l is given and positive, use that value instead of the current shape[3]
 	// grid may contain garbage data!
 	void makeCompatible(shared_ptr<GridStore>& g, int l=0, bool locking=true, int _exIniSize=-1, int _exNumMaps=-1) const;
+	bool isCompatible(shared_ptr<GridStore>& other);
 
 	// return lock pointer for given cell
 	boost::mutex* getMutex(const Vector3i& ijk, bool mutexEx=false);
@@ -66,8 +69,9 @@ struct GridStore: public Object{
 	// thread unsafe: clear dense storage
 	void clear_dense(const Vector3i& ijk);
 	// thread unsafe: add element to the cell (in grid, or, if full, in gridEx)
+	// if *locking* is true, only writes to extended storage is locked
 	void append(const Vector3i& ijk, const id_t&, bool lockEx=false);
-	// thread safe: lock and append
+	// thread safe: lock (always) and append
 	void protected_append(const Vector3i& ijk, const id_t&);
 
 	// compute relative complements (this\B) and (B\this)

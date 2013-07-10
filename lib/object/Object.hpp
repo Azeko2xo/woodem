@@ -150,8 +150,9 @@ template<> struct _setter_postLoadStaticMaybe<false>{
 #define _DEF_READWRITE_BY_VALUE_STATIC(thisClass,attr,doc)  _DEF_READWRITE_BY_VALUE(thisClass,attr,doc)
 // the conditional woo::py_wrap_ref should be eliminated by compiler at compile-time, as it depends only on types, not their values
 // most of this could be written with templates, including flags (ints can be template args)
+// don't return _ro (readonly) by reference, since then they are effectively writeable from python (by element access)
 #define _DEF_READWRITE_CUSTOM(thisClass,attr) if(!(_ATTR_FLG(attr).isHidden())){ \
-	bool _ro(_ATTR_FLG(attr).isReadonly()), _post(_ATTR_FLG(attr).isTriggerPostLoad()), _ref(woo::py_wrap_ref<decltype(thisClass::_ATTR_NAM(attr))>::value || (_ATTR_FLG(attr).isPyByRef())); \
+	bool _ro(_ATTR_FLG(attr).isReadonly()), _post(_ATTR_FLG(attr).isTriggerPostLoad()); bool _ref(!_ro && (woo::py_wrap_ref<decltype(thisClass::_ATTR_NAM(attr))>::value || (_ATTR_FLG(attr).isPyByRef()))); \
 	std::string docStr(_ATTR_DOC(attr)); \
 	if      ( _ref && !_ro && !_post) _classObj.def_readwrite(_ATTR_NAM_STR(attr),&thisClass::_ATTR_NAM(attr),docStr.c_str()); \
 	else if ( _ref && !_ro &&  _post) _classObj.add_property(_ATTR_NAM_STR(attr),py::make_getter(&thisClass::_ATTR_NAM(attr)),make_setter_postLoad<thisClass,decltype(thisClass::_ATTR_NAM(attr)),&thisClass::_ATTR_NAM(attr)>,docStr.c_str()); \

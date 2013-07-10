@@ -2,7 +2,8 @@ Welcome to Woo's documentation!
 ===============================
 
 * Code available at http://www.launchpad.net/woo
-* Contact us at `woodem@doxos.eu <mailto:woodem@doxos.eu>`_
+* Contact us at `info@woodem.eu <mailto:info@woodem.eu>`_
+* Back to the `main website <http://woodem.eu>`_
 
 Contents:
 

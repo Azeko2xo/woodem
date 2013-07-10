@@ -32,6 +32,7 @@ struct Gl1_InfCylinder: public GlShapeFunctor{
 	virtual void go(const shared_ptr<Shape>&, const Vector3r&, bool,const GLViewInfo&);
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_InfCylinder,GlShapeFunctor,"Renders :ref:`InfCylinder` object",
 		((bool,wire,false,,"Render Cylinders with wireframe"))
+		((bool,spokes,true,,"Render spokes between the cylinder axis and edge, at the position of :obj:`InfCylinder.glAB`."))
 		((int,slices,12,,"Number of circumferential division of circular sections"))
 		((int,stacks,20,,"Number of rings on the cylinder inside the visible scene part."))
 	);

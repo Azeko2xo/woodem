@@ -41,6 +41,7 @@
 #include<woo/pkg/dem/Particle.hpp>
 #include<woo/pkg/dem/ContactLoop.hpp>
 #include<woo/pkg/dem/Collision.hpp>
+#include<woo/pkg/dem/GridBound.hpp>
 #include<woo/pkg/dem/IntraForce.hpp>
 #include<woo/pkg/dem/LawTester.hpp>
 #include<woo/pkg/dem/Psd.hpp>
@@ -273,6 +274,7 @@ BOOST_PYTHON_MODULE(_customConverters){
 		VECTOR_SEQ_CONV(shared_ptr<Material>);
 
 		VECTOR_SEQ_CONV(shared_ptr<BoundFunctor>);
+		VECTOR_SEQ_CONV(shared_ptr<GridBoundFunctor>);
 		VECTOR_SEQ_CONV(shared_ptr<CGeomFunctor>);
 		VECTOR_SEQ_CONV(shared_ptr<CPhysFunctor>);
 		VECTOR_SEQ_CONV(shared_ptr<LawFunctor>);
