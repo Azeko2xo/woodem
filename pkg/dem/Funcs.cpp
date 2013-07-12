@@ -26,6 +26,20 @@
 
 CREATE_LOGGER(DemFuncs);
 
+// to be used in Python wrappers, to get the DEM field
+shared_ptr<DemField> DemFuncs::getDemField(const Scene* scene){
+	shared_ptr<DemField> ret;
+	FOREACH(const shared_ptr<Field>& f, scene->fields){
+		if(dynamic_pointer_cast<DemField>(f)){
+			if(ret) throw std::runtime_error("Ambiguous: more than one DemField in Scene.fields.");
+			ret=static_pointer_cast<DemField>(f);
+		}
+	}
+	if(!ret) throw std::runtime_error("No DemField in Scene.fields.");
+	return ret;
+}
+
+
 std::tuple</*stress*/Matrix3r,/*stiffness*/Matrix6r> DemFuncs::stressStiffness(const Scene* scene, const DemField* dem, bool skipMultinodal, Real volume){
 	const int kron[3][3]={{1,0,0},{0,1,0},{0,0,1}}; // Kronecker delta
 
@@ -142,6 +156,21 @@ shared_ptr<Particle> DemFuncs::makeSphere(Real radius, const shared_ptr<Material
 
 	return par;
 };
+
+vector<Particle::id_t> DemFuncs::SpherePack_toSimulation_fast(const shared_ptr<SpherePack>& sp, const Scene* scene, const DemField* dem, const shared_ptr<Material>& mat, int mask, Real color){
+	vector<Particle::id_t> ret; ret.reserve(sp->pack.size());
+	if(sp->cellSize!=Vector3r::Zero()) throw std::runtime_error("PBC not supported.");
+	for(const auto& s: sp->pack){
+		if(s.clumpId>=0) throw std::runtime_error("Clumps not supported.");
+		shared_ptr<Particle> p=makeSphere(s.r,mat);
+		p->shape->nodes[0]->pos=s.c;
+		p->shape->color=(!isnan(color)?color:Mathr::UnitRandom());
+		p->mask=mask;
+		ret.push_back(dem->particles->insert(p));
+	}
+	return ret;
+}
+
 
 vector<Vector2r> DemFuncs::boxPsd(const Scene* scene, const DemField* dem, const AlignedBox3r& box, bool mass, int num, int mask, Vector2r rRange){
 	bool haveBox=!isnan(box.min()[0]) && !isnan(box.max()[0]);

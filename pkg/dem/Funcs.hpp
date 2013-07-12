@@ -5,12 +5,15 @@
 #include<woo/pkg/dem/Particle.hpp>
 #include<woo/pkg/dem/Sphere.hpp>
 #include<woo/pkg/dem/Facet.hpp>
+#include<woo/lib/sphere-pack/SpherePack.hpp>
 
 struct DemFuncs{
 	DECLARE_LOGGER;
+	static shared_ptr<DemField> getDemField(const Scene* scene);
 	static std::tuple</*stress*/Matrix3r,/*stiffness*/Matrix6r> stressStiffness(const Scene* scene, const DemField* dem, bool skipMultinodal, Real volume);
 	static Real unbalancedForce(const Scene* scene, const DemField* dem, bool useMaxForce);
 	static shared_ptr<Particle> makeSphere(Real radius, const shared_ptr<Material>& m);
+	static vector<Particle::id_t> SpherePack_toSimulation_fast(const shared_ptr<SpherePack>& sp, const Scene* scene, const DemField* dem, const shared_ptr<Material>& mat, int mask=0, Real color=NaN);
 	static vector<Vector2r> boxPsd(const Scene* scene, const DemField* dem, const AlignedBox3r& box=AlignedBox3r(Vector3r(NaN,NaN,NaN),Vector3r(NaN,NaN,NaN)), bool mass=false, int num=20, int mask=0, Vector2r dRange=Vector2r::Zero());
 
 	static bool particleStress(const shared_ptr<Particle>& p, Vector3r& normal, Vector3r& shear);
@@ -72,6 +75,7 @@ struct DemFuncs{
 		in the STL space (before scaling).
 	*/
 	static vector<shared_ptr<Particle>> importSTL(const string& filename, const shared_ptr<Material>& mat, int mask=0, Real color=0., Real scale=1., const Vector3r& shift=Vector3r::Zero(), const Quaternionr& ori=Quaternionr::Identity(), Real threshold=-1e-6, Real maxBox=0);
+
 };
 
 

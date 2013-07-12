@@ -70,6 +70,7 @@ struct ContactContainer: public Object{
 		int removeAllPending();
 		void clearPending();
 		int countReal() const;
+		Real realRatio() const;
 
 		template<class T> int removePending(const T& t, Scene* scene){
 			int ret=0;
@@ -123,6 +124,7 @@ struct ContactContainer: public Object{
 		.def("remove",&ContactContainer::requestRemoval,(py::arg("contact"),py::arg("force")=false))
 		.def("removeNonReal",&ContactContainer::removeNonReal)
 		.def("countReal",&ContactContainer::countReal)
+		.def("realRatio",&ContactContainer::realRatio)
 		.def("exists",&ContactContainer::exists)
 		.def("__iter__",&ContactContainer::pyIter)
 		// define nested iterator class here; ugly, same as in ParticleContainer

@@ -9,7 +9,7 @@ import woo.dem
 
 class TestGridStore(unittest.TestCase):
 	def setUp(self):
-		self.gs=woo.dem.GridStore(gridSize=(5,6,7),cellSize=4,locking=True,exNumMaps=4)
+		self.gs=woo.dem.GridStore(gridSize=(5,6,7),cellLen=4,locking=True,exNumMaps=4)
 		self.ijk=Vector3i(2,3,4)
 	def testEx(self):	
 		'Grid: storage: dense and extra data'
@@ -41,8 +41,8 @@ class TestGridStore(unittest.TestCase):
 	def testComplement(self):
 		'Grid: storage: complements'
 		# make insignificant parameters different
-		g1=woo.dem.GridStore(gridSize=(3,3,3),cellSize=2,locking=False,exNumMaps=4)
-		g2=woo.dem.GridStore(gridSize=(3,3,3),cellSize=3,locking=True,exNumMaps=2)
+		g1=woo.dem.GridStore(gridSize=(3,3,3),cellLen=2,locking=False,exNumMaps=4)
+		g2=woo.dem.GridStore(gridSize=(3,3,3),cellLen=3,locking=True,exNumMaps=2)
 		c1,c2,c3,c4=(1,1,1),(2,2,2),(2,1,2),(1,2,1)
 		g1[c1]=[0,1]; g2[c1]=[1,2] # mixed scenario
 		g1[c2]=[1,2,3]; g2[c2]=[]  # b is empty (cheaper copy branch)

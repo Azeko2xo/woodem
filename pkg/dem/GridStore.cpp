@@ -9,7 +9,7 @@ WOO_PLUGIN(dem,(GridStore));
 CREATE_LOGGER(GridStore);
 
 
-GridStore::GridStore(const Vector3i& _gridSize, int _cellSize, bool _locking, int _exIniSize, int _exNumMaps): gridSize(_gridSize), cellSize(_cellSize), locking(_locking), exIniSize(_exIniSize), exNumMaps(_exNumMaps){
+GridStore::GridStore(const Vector3i& _gridSize, int _cellLen, bool _locking, int _exIniSize, int _exNumMaps): gridSize(_gridSize), cellLen(_cellLen), locking(_locking), exIniSize(_exIniSize), exNumMaps(_exNumMaps){
 	postLoad(*this,NULL);
 }
 
@@ -17,10 +17,10 @@ void GridStore::postLoad(GridStore&,void* I){
 	if(I!=NULL) throw std::logic_error("GridStore::postLoad: called after a variable was set. Which one!?");
 	if(grid) return; // everything is set up already, this is a spurious call
 	if(gridSize.minCoeff()<=0) throw std::logic_error("GridStore.gridSize: all dimensions must be positive.");
-	if(cellSize<=1) throw std::logic_error("GridStore.cellSize must be greater than one.");
+	if(cellLen<=1) throw std::logic_error("GridStore.cellLen must be greater than one.");
 	if(exNumMaps<=0) throw std::logic_error("GridStore.exNumMaps must be positive.");
 	if(exIniSize<=0) throw std::logic_error("GridStore.exIniSize must be positive.");
-	grid=std::unique_ptr<gridT>(new gridT(boost::extents[gridSize[0]][gridSize[1]][gridSize[2]][cellSize+1],boost::c_storage_order()));
+	grid=std::unique_ptr<gridT>(new gridT(boost::extents[gridSize[0]][gridSize[1]][gridSize[2]][cellLen+1],boost::c_storage_order()));
 	// check that those are default-initialized (zeros)
 	assert((*grid)[0][0][0][0]==0);
 	assert((*grid)[0][0][0][1]==0);
@@ -48,9 +48,57 @@ size_t GridStore::ijk2lin(const Vector3i& ijk) const{
 Vector3i GridStore::sizes() const{ return Vector3i(grid->shape()[0],grid->shape()[1],grid->shape()[2]); }
 size_t GridStore::linSize() const{ return sizes().prod(); }
 
+bool GridStore::ijkOk(const Vector3i& ijk) const { return (ijk.array()>=0).all() && (ijk.array()<sizes().array()).all(); }
+
+
+
+Vector3i GridStore::xyz2ijk(const Vector3r& xyz) const {
+	// cast rounds down properly
+	return ((xyz-lo).array()/cellSize.array()).cast<int>().matrix();
+};
+
+Vector3r GridStore::ijk2boxMin(const Vector3i& ijk) const{
+	return lo+(ijk.cast<Real>().array()*cellSize.array()).matrix();
+}
+
+AlignedBox3r GridStore::ijk2box(const Vector3i& ijk) const{
+	AlignedBox3r ret; ret.min()=ijk2boxMin(ijk); ret.max()=ret.min()+cellSize;
+	return ret;
+};
+
+AlignedBox3r GridStore::ijk2boxShrink(const Vector3i& ijk, const Real& shrink) const{
+	AlignedBox3r box=ijk2box(ijk); Vector3r s=box.sizes();
+	box.min()=box.min()+.5*shrink*s;
+	box.max()=box.max()-.5*shrink*s;
+	return box;
+}
+
+Vector3r GridStore::xyzNearXyz(const Vector3r& xyz, const Vector3i& ijk) const{
+	AlignedBox3r box=ijk2box(ijk);
+	Vector3r ret;
+	for(int ax:{0,1,2}){
+		ret[ax]=(xyz[ax]<box.min()[ax]?box.min()[ax]:(xyz[ax]>box.max()[ax]?box.max()[ax]:xyz[ax]));
+	}
+	return ret;
+}
+
+Vector3r GridStore::xyzNearIjk(const Vector3i& from, const Vector3i& ijk) const{
+	AlignedBox3r box=ijk2box(ijk);
+	Vector3r ret;
+	for(int ax:{0,1,2}){
+		ret[ax]=(from[ax]<=ijk[ax]?box.min()[ax]:box.max()[ax]);
+	}
+	return ret;
+}
+
+
+
+
 bool GridStore::isCompatible(shared_ptr<GridStore>& other){
 	// if grid dimension matches, tht is all we need
 	if(this->sizes()!=other->sizes()) return false;
+	if(this->lo!=other->lo) return false;
+	if(this->cellSize!=other->cellSize) return false;
 	return true;
 }
 
@@ -67,11 +115,22 @@ void GridStore::makeCompatible(shared_ptr<GridStore>& g, int l, bool _locking, i
 		return;
 	}
 	assert(g);
-	assert(gridSize==g->gridSize && g->cellSize==l);
+	assert(gridSize==g->gridSize && g->cellLen==l);
 	assert((!locking && g->mutexes.size()==0) || (locking && (int)g->mutexes.size()==gridSize.prod()+exNumMaps));
 	assert(gridExx.size()==(size_t)exNumMaps);
-	for(auto gridEx: g->gridExx) gridEx.clear();
+	g->lo=lo;
+	g->cellSize=cellSize;
 }
+
+void GridStore::clear() {
+	// TODO: get id_t as a typedef from inside gridT?
+	std::memset((void*)grid->data(),0,grid->num_elements()*sizeof(id_t)); 
+	// std::fill(grid->origin(),grid->origin()+grid->num_elements(),0);
+	for(auto gridEx: gridExx) gridEx.clear();
+	#if 0
+		cerr<<"Cleared grid, sizes are: "; for(const auto& c: pyCounts()) cerr<<c<<" "; cerr<<endl;
+	#endif
+};
 
 void GridStore::checkIndices(const Vector3i& ijk) const {
 	assert(grid->shape()[0]==(size_t)gridSize[0]);
@@ -196,10 +255,21 @@ py::dict GridStore::pyCountEx() const {
 	for(const auto& gridEx: gridExx){
 		for(const auto& ijkVec: gridEx){
 			const Vector3i& ijk(ijkVec.first);
-			ret[py::make_tuple(ijk[0],ijk[1],ijk[2])]=(int)size(ijkVec.first)-(int)cellSize;
+			ret[py::make_tuple(ijk[0],ijk[1],ijk[2])]=(int)size(ijkVec.first)-(int)cellLen;
 			// FIXME: this fails?!
-			//assert(ijkVec.second.size()>=size(ijkVec.first)-cellSize+1);
+			//assert(ijkVec.second.size()>=size(ijkVec.first)-cellLen+1);
 		}
+	}
+	return ret;
+}
+
+vector<int> GridStore::pyCounts() const{
+	size_t N=linSize();
+	vector<int> ret;
+	for(size_t n=0; n<N; n++){
+		size_t cnt=size(lin2ijk(n));
+		if(ret.size()<=cnt) ret.resize(cnt+1,0);
+		ret[cnt]+=1;
 	}
 	return ret;
 }
@@ -255,14 +325,13 @@ void GridStore::computeRelativeComplements(GridStore& B, shared_ptr<GridStore>& 
 		std::ostringstream oss; oss<<"GridStore::computeRelativeComplements: gridSize mismatch: this "<<gridSize<<", other "<<B.gridSize;
 		throw std::runtime_error(oss.str());
 	}
-	auto shape=grid->shape();
 	assert(A.gridSize==B.gridSize);
 	// use the same value of L for now
 	makeCompatible(A_B,/*locking*/false); makeCompatible(B_A,/*locking*/false);
 	// traverse all cells in parallel
 	// http://stackoverflow.com/questions/5572464/how-to-traverse-a-boostmulti-array - ??
 	// do it the old way :|
-	size_t N=shape[0]*shape[1]*shape[2];
+	size_t N=linSize();
 	// TODO: when parallelized, locking must be True and protected_append called!!
 	#if 0
 		#ifdef WOO_OPENMP

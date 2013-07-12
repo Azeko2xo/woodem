@@ -4,12 +4,19 @@
 #include<woo/lib/pyutil/doc_opts.hpp>
 #include<woo/lib/base/Math.hpp>
 #include<woo/core/Master.hpp>
+#include<woo/pkg/dem/Funcs.hpp>
+
+vector<Particle::id_t> SpherePack_toSimulation_fast(const shared_ptr<SpherePack>& self, const shared_ptr<Scene>& scene, const shared_ptr<Material>& mat, int mask=0, Real color=NaN){
+	DemField* dem=(DemFuncs::getDemField(scene.get()).get());
+	return DemFuncs::SpherePack_toSimulation_fast(self,scene.get(),dem,mat,mask,color);
+}
 
 WOO_PYTHON_MODULE(_packSpheres);
 BOOST_PYTHON_MODULE(_packSpheres){
 	py::scope().attr("__doc__")="Creation, manipulation, IO for generic sphere packings.";
 	WOO_SET_DOCSTRING_OPTS;
 	py::class_<SpherePack,shared_ptr<SpherePack>,boost::noncopyable>("SpherePack","Set of spheres represented as centers and radii. This class is returned by :ref:`woo.pack.randomDensePack`, :ref:`woo.pack.randomPeriPack` and others. The object supports iteration over spheres, as in \n\n\t>>> sp=SpherePack()\n\t>>> for center,radius in sp: print center,radius\n\n\t>>> for sphere in sp: print sphere[0],sphere[1]   ## same, but without unpacking the tuple automatically\n\n\t>>> for i in range(0,len(sp)): print sp[i][0], sp[i][1]   ## same, but accessing spheres by index\n\n\n.. admonition:: Special constructors\n\n\tConstruct from list of ``[(c1,r1),(c2,r2),…]``. To convert two same-length lists of ``centers`` and ``radii``, construct with ``zip(centers,radii)``.\n",py::init<py::optional<py::list> >(py::args("list"),"Empty constructor, optionally taking list [ ((cx,cy,cz),r), … ] for initial data." ))
+		.def("toSimulation_fast",SpherePack_toSimulation_fast,(py::arg("scene"),py::arg("mat"),py::arg("mask")=1,py::arg("color")=NaN),"Create spheres from this pack in the simulation; unlike :obj:`SpherePack.toSimulation`, this method is implemented in c++ (hence rather fast) but lacks some flexibility")
 		.def("add",&SpherePack::add,(py::arg("center"),py::arg("radius"),py::arg("clumpId")=-1),"Add single sphere to packing, given center as 3-tuple and radius")
 		.def("toList",&SpherePack::toList,"Return packing data as [(c,r),(c,r),...].")
 		.def("toCcRr",&SpherePack::toCcRr,"Return packing data as ([c,c,...],[r,r,...]). Raises exception if there are clumps.")

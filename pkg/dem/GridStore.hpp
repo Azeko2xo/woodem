@@ -13,7 +13,7 @@
 	rudimentary self-tests
 	boost::serialization of multi_array perhaps (storage is guaranteed to be contiguous)?
 
-	3d grid for storing ids. Each cell stores a fixed number of ids in dense static array, and may store additional ids as necessary in several maps, mapping ijk (3d integral coordinate) to vector<id_t>. Those maps are split using modulo of the linear index so that access to those is more fin-egrained than having to lock the whole structure.
+	3d grid for storing ids. Each cell stores a fixed number of ids in dense static array, and may store additional ids as necessary in several maps, mapping ijk (3d integral coordinate) to vector<id_t>. Those maps are split using modulo of the linear index so that access to those is more fine-grained than having to lock the whole structure.
 
 	The static (dense) array stores number of items in that cell as the first element.
 
@@ -36,10 +36,30 @@ struct GridStore: public Object{
 	// non-const reference, otherwise the same
 	gridExT& getGridEx(const Vector3i& ijk);
 
+	// convert linear index to grid indices
 	Vector3i lin2ijk(size_t n) const;
+	// convert grid indices to linear index
 	size_t ijk2lin(const Vector3i& ijk) const;
+	// return 3d grid sizes (upper bound of grid indices)
 	Vector3i sizes() const; 
+	// return grid storage size (upper bound of linear index)
 	size_t linSize() const;
+	// return false if the given index is out of range
+	bool ijkOk(const Vector3i& ijk) const;
+
+	// say in which cell lies given spatial coordinate
+	// no bound checking is done, caller must assure the result makes sense
+	Vector3i xyz2ijk(const Vector3r& xyz) const;
+	// point nearest to given point *from* in cell *ijk*
+	Vector3r xyzNearXyz(const Vector3r& xyz, const Vector3i& ijk) const;
+	// point nearest to given cell *from* in cell *ijk*
+	Vector3r xyzNearIjk(const Vector3i& from, const Vector3i& ijk) const;
+	// bounding box for givendecltype(*grid)
+	AlignedBox3r ijk2box(const Vector3i& ijk) const;
+	AlignedBox3r ijk2boxShrink(const Vector3i& ijk, const Real& shrink) const;
+	// lower corner of given cell
+	Vector3r ijk2boxMin(const Vector3i& ijk) const;
+
 
 	DECLARE_LOGGER;
 
@@ -57,9 +77,12 @@ struct GridStore: public Object{
 
 	// set g to be same-shape grid witout mutexes and gridEx 
 	// if l is given and positive, use that value instead of the current shape[3]
-	// grid may contain garbage data!
+	// grid may contain garbage data, call clear() before writing in there!
 	void makeCompatible(shared_ptr<GridStore>& g, int l=0, bool locking=true, int _exIniSize=-1, int _exNumMaps=-1) const;
 	bool isCompatible(shared_ptr<GridStore>& other);
+	// clear both dense and extra storage
+	// dense storage cleared with memset, should be very fast
+	void clear();
 
 	// return lock pointer for given cell
 	boost::mutex* getMutex(const Vector3i& ijk, bool mutexEx=false);
@@ -94,13 +117,16 @@ struct GridStore: public Object{
 	void pyAppend(const Vector3i& ijk, id_t id);
 	py::dict pyCountEx() const;
 	py::tuple pyRawData(const Vector3i& ijk);
+	vector<int> pyCounts() const;
 
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(GridStore,Object,"3d grid storing scalar (particles ids) in partially dense array; the grid is actually 4d (gridSize×cellSize), and each cell may contain additional items in separate mapped storage, if the cellSize is not big enough to accomodate required number of items. If instance may synchronize (with *locking*=`True`) access via per-cell mutexes (or per-map mutexes) if it is written from multiple threads. Write acces from python should be used for testing exclusively.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(GridStore,Object,"3d grid storing scalar (particles ids) in partially dense array; the grid is actually 4d (gridSize×cellLen), and each cell may contain additional items in separate mapped storage, if the cellLen is not big enough to accomodate required number of items. If instance may synchronize (with *locking*=`True`) access via per-cell mutexes (or per-map mutexes) if it is written from multiple threads. Write acces from python should be used for testing exclusively.",
 		((Vector3i,gridSize,Vector3i(1,1,1),AttrTrait<>().readonly(),"Dimension of the grid."))
-		((int,cellSize,4,AttrTrait<>().readonly(),"Size of the dense storage in each cell"))
+		((int,cellLen,4,AttrTrait<>().readonly(),"Size of the dense storage in each cell"))
 		((bool,locking,true,AttrTrait<>().readonly(),"Whether this grid locks elements on access"))
 		((int,exIniSize,4,AttrTrait<>().readonly(),"Initial size of extension vectors, and step of their growth if needed."))
 		((int,exNumMaps,10,AttrTrait<>().readonly(),"Number of maps for extra items not fitting the dense storage (it affects how fine-grained is locking for those extra elements)"))
+		((Vector3r,lo,Vector3r(NaN,NaN,NaN),,"Lower corner of the domain."))
+		((Vector3r,cellSize,Vector3r(NaN,NaN,NaN),,"Spatial size of the grid cell."))
 		, /*ctor*/
 		, /*py*/
 			.def("__getitem__",&GridStore::pyGetItem)
@@ -108,12 +134,17 @@ struct GridStore: public Object{
 			.def("__delitem__",&GridStore::pyDelItem)
 			.def("size",&GridStore::size)
 			.def("append",&GridStore::pyAppend,(py::arg("ijk"),py::arg("id")),"Append new element; uses mutexes if the instance is `locking`")
-			// .def("clear",&GridStore::pyClear,py::arg("ijk"),"Clear both dense and map storage for given cell; uses mutexes if the instance is :obj:`locking`.")
-			.def("lin2ijk",&GridStore::lin2ijk)
-			.def("ijk2lin",&GridStore::ijk2lin)
 			.def("countEx",&GridStore::pyCountEx,"Return dictionary mapping ijk to number of items in the extra storage.")
 			.def("_rawData",&GridStore::pyRawData,"Return raw data, as tuple of dense store and extra store.")
 			.def("computeRelativeComplements",&GridStore::pyComputeRelativeComplements)
+			.def("counts",&GridStore::pyCounts,"Return array with number of cells with given number of elements: [number of cells with 0 elements, number of cells with 1 elements, ...]")
+			// .def("clear",&GridStore::pyClear,py::arg("ijk"),"Clear both dense and map storage for given cell; uses mutexes if the instance is :obj:`locking`.")
+			.def("lin2ijk",&GridStore::lin2ijk)
+			.def("ijk2lin",&GridStore::ijk2lin)
+			.def("xyz2ijk",&GridStore::xyz2ijk,"Convert spatial coordinates to cell coordinate (no bound checking is done)")
+			.def("xyzNearXyz",&GridStore::xyzNearXyz,(py::arg("from"),py::arg("ijk")),"Return point nearest to *from*(given in spatial coords) in cell *ijk* (corner, at a face, on an edge, inside)")
+			.def("xyzNearIjk",&GridStore::xyzNearIjk,(py::arg("from"),py::arg("ijk")),"Return point nearest to *from* (given in cell coords) in cell *ijk*")
+			.def("ijk2box",&GridStore::ijk2box,(py::arg("ijk")),"Box for given cell")
 			// .def("makeCompatible")
 			;
 	);

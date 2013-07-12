@@ -204,6 +204,8 @@ int ContactContainer::countReal() const{
 	return ret;
 };
 
+Real ContactContainer::realRatio() const { return countReal()*1./size(); }
+
 
 shared_ptr<Contact> ContactContainer::pyByIds(const Vector2i& ids){return find(ids[0],ids[1]); };
 

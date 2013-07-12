@@ -8,6 +8,7 @@ void GridCollider::postLoad(GridCollider&, void* attr){
 	if(!(minCellSize>0)) throw std::runtime_error("GridCollider.minCellSize: must be positive (not "+to_string(minCellSize));
 	dim=(domain.sizes()/minCellSize).cast<int>();
 	cellSize=(domain.sizes().array()/dim.cast<Real>().array()).matrix();
+	shrink=around?cellSize.minCoeff()/2.:0.;
 	if(!gridBoundDispatcher){ gridBoundDispatcher=make_shared<GridBoundDispatcher>(); }
 }
 
@@ -19,52 +20,16 @@ void GridCollider::selfTest(){
 	if(!gridBoundDispatcher) throw std::logic_error("GridCollider.gridBoundDispatcher: must not be None.");
 }
 
-Vector3i GridCollider::xyz2ijk(const Vector3r& xyz) const {
-	// cast rounds down properly
-	return ((xyz-domain.min()).array()/cellSize.array()).cast<int>().matrix();
-};
-
-Vector3r GridCollider::ijk2boxMin(const Vector3i& ijk) const{
-	return domain.min()+(ijk.cast<Real>().array()*cellSize.array()).matrix();
-}
-
-AlignedBox3r GridCollider::ijk2box(const Vector3i& ijk) const{
-	AlignedBox3r ret; ret.min()=ijk2boxMin(ijk); ret.max()=ret.min()+cellSize;
-	return ret;
-};
-
-AlignedBox3r GridCollider::ijk2boxShrink(const Vector3i& ijk, const Real& shrink) const{
-	AlignedBox3r box=ijk2box(ijk); Vector3r s=box.sizes();
-	box.min()=box.min()+.5*shrink*s;
-	box.max()=box.max()-.5*shrink*s;
-	return box;
-}
-
-Vector3r GridCollider::xyzNearXyz(const Vector3r& xyz, const Vector3i& ijk) const{
-	AlignedBox3r box=ijk2box(ijk);
-	Vector3r ret;
-	for(int ax:{0,1,2}){
-		ret[ax]=(xyz[ax]<box.min()[ax]?box.min()[ax]:(xyz[ax]>box.max()[ax]?box.max()[ax]:xyz[ax]));
-	}
-	return ret;
-}
-
-Vector3r GridCollider::xyzNearIjk(const Vector3i& from, const Vector3i& ijk) const{
-	AlignedBox3r box=ijk2box(ijk);
-	Vector3r ret;
-	for(int ax:{0,1,2}){
-		ret[ax]=(from[ax]<=ijk[ax]?box.min()[ax]:box.max()[ax]);
-	}
-	return ret;
-}
-
-bool GridCollider::tryAddNewContact(const Particle::id_t& idA, const Particle::id_t& idB){
+bool GridCollider::tryAddNewContact(const Particle::id_t& idA, const Particle::id_t& idB) const {
 	// this is rather fast, therefore do it before looking up the contact
 	const auto& pA((*dem->particles)[idA]); const auto& pB((*dem->particles)[idB]);
 	if(!Collider::mayCollide(dem,pA,pB)) return false;
 	// contact lookup
-	bool hasC=(bool)dem->contacts->find(idA,idB);
-	if(hasC) return false; // already in contact, nothing to do
+	const shared_ptr<Contact>& C=dem->contacts->find(idA,idB);
+	if(C){
+		C->stepLastSeen=scene->step; // mark contact as seen by us; unseen will be deleted by ContactLoop automatically
+		return false; // already in contact, nothing to do
+	}
 	LOG_TRACE("Creating new contact ##"<<idA<<"+"<<idB);
 	shared_ptr<Contact> newC=make_shared<Contact>();
 	// mimick the way clDem::Collider does the job so that results are easily comparable
@@ -74,42 +39,90 @@ bool GridCollider::tryAddNewContact(const Particle::id_t& idA, const Particle::i
 	return true;
 }
 
-void GridCollider::processCell(const int& what, const shared_ptr<GridStore>& gridA, const Vector3i& ijkA, const shared_ptr<GridStore>& gridB, const Vector3i& ijkB){
-	size_t aMin=0, aMax=gridA->size(ijkA);
+template<int what>
+void GridCollider::processCell(const shared_ptr<GridStore>& gridA, const Vector3i& ijkA, const shared_ptr<GridStore>& gridB, const Vector3i& ijkB) const {
+	static_assert((what==PROCESS_FULL) /* || (what==...) */,"Invalid template parameter to processCell<what>.");
+	int aMin=0, aMax=gridA->size(ijkA);
 	// if checking the same cell against itself, set bMin to -1,
 	// that will make it start from the value of (a+1) at every iteration
-	int bMin=((gridA.get()==gridB.get() && ijkA==ijkB)?-1:0); size_t bMax=gridB->size(ijkB);
+	int bMin=((gridA.get()==gridB.get() && ijkA==ijkB)?-1:0); int bMax=gridB->size(ijkB);
 	for(int a=aMin; a<aMax; a++){
-		for(size_t b=(bMin<0?a+1:0); b<bMax; b++){
+		for(int b=(bMin<0?a+1:0); b<bMax; b++){
 			Particle::id_t idA=gridA->get(ijkA,a), idB=gridB->get(ijkB,b);
 			switch(what){
 				case PROCESS_FULL: tryAddNewContact(idA,idB); break;
-				default: throw std::logic_error("GridCollider::processCell: unhandled value of *what* ("+to_string(what)+")");
 			}
 		}
 	}
 }
 
+bool GridCollider::allParticlesWithinPlay() const {
+	for(const shared_ptr<Particle>& p: *dem->particles){
+		if(!p->shape) continue;
+		if(!p->shape->bound) return false;
+		assert(dynamic_cast<GridBound*>(p->shape->bound.get()));
+		const auto& gb(p->shape->bound->cast<GridBound>());
+		if(!gb.insideNodePlay(p->shape)) return false;
+	}
+	return true;
+}
+
+void GridCollider::prepareGridCurr(){
+	// recycle to avoid re-allocations (expensive)
+	std::swap(gridPrev,gridCurr);
+	// if some parameters differ, make a new one
+	if(!gridCurr || gridCurr->sizes()!=dim || gridCurr->cellLen!=gridDense || gridCurr->exIniSize!=exIniSize || gridCurr->exNumMaps!=exNumMaps){
+		gridCurr=make_shared<GridStore>(dim,gridDense,/*locking*/true,exIniSize,exNumMaps);
+		LOG_WARN("Allocated new GridStore.");
+	} else {
+		gridCurr->clear();
+	}
+	gridCurr->lo=domain.min();
+	gridCurr->cellSize=cellSize;
+}
+
+void GridCollider::fillGridCurr(){
+	shared_ptr<GridCollider> shared_this=static_pointer_cast<GridCollider>(shared_from_this());
+	size_t nPar=dem->particles->size();
+	#ifdef WOO_OPENMP
+		#pragma omp parallel for schedule(guided)
+	#endif
+	for(size_t parId=0; parId<nPar; parId++){
+		const shared_ptr<Particle>& p((*dem->particles)[parId]);
+		if(!p || !p->shape) continue;
+		// when not in diffStep, add all particles, even if within their nodePlay boxes
+		gridBoundDispatcher->operator()(p->shape,p->id,shared_this,gridCurr,/*force*/true);
+	}
+}
+
 void GridCollider::run(){
+	#ifdef GC_TIMING
+		if(!timingDeltas) timingDeltas=make_shared<TimingDeltas>();
+		timingDeltas->start();
+	#endif
 	dem=static_cast<DemField*>(field.get());
-	// previous gridPrev is deleted automatically here
-	gridPrev=gridCurr; 
-	// create new gridCurr
-	gridCurr=make_shared<GridStore>(dim,gridDense,/*locking*/true,exIniSize,exNumMaps);
+
+	// pending contacts will be kept as potential (uselessly), as there is no way to quickly check for overlap
+	// of two particles given their ids. After the next full run, ContactLoop will remove those based on stepLastSeen.
+	dem->contacts->clearPending();
+
+	bool allOk=allParticlesWithinPlay();
+	GC_CHECKPOINT("check-play");
+	if(allOk) return;
+	dem->contacts->stepColliderLastRun=scene->step;
+
+	prepareGridCurr(); GC_CHECKPOINT("prepare-grid");
 
 	/* update grid bounding boxes */
-	shared_ptr<GridCollider> shared_this=static_pointer_cast<GridCollider>(shared_from_this());
-	if(around) shrink=around?cellSize.minCoeff()/2.:0.;
-	for(const shared_ptr<Particle>& p: *(dem->particles)){
-		assert(p);
-		if(!p->shape) continue;
-		gridBoundDispatcher->operator()(p->shape,p->id,shared_this);
-	}
+	fillGridCurr(); GC_CHECKPOINT("fill-grid");
+
+	// this is not supported yet
+	bool diffStep=(false && gridPrev && gridPrev->isCompatible(gridCurr));
+
 	/* contact search with history */
-	if(false && gridPrev && gridCurr->isCompatible(gridPrev)){
+	if(diffStep){
 		// do only relative computation of appeared/disappeared potential contacts
-		if(!gridOld) gridOld=make_shared<GridStore>();
-		if(!gridNew) gridNew=make_shared<GridStore>();
+		// gridNew, gridOld will be created if needed inside computeRelativeComplements
 		gridCurr->computeRelativeComplements(*gridPrev,gridNew,gridOld);
 	} else {
 		/* contact search without history */
@@ -122,20 +135,28 @@ void GridCollider::run(){
 				* contacts with the central cell and all cells around
 				* contacts of all cells "lower" between themselves
 			*/
-			//#ifdef WOO_OPENMP
-			//	#pragma omp parallel for
-			//#endif
-		} else {
 			#ifdef WOO_OPENMP
 				#pragma omp parallel for
 			#endif
 			for(size_t lin=0; lin<N; lin++){
 				Vector3i ijk=gridCurr->lin2ijk(lin);
+				for(const Vector3i& ijk2: {Vector3i{0,0,0},Vector3i{-1,0,0},Vector3i{0,-1,0},Vector3i{0,0,-1},Vector3i{0,-1,-1},Vector3i{-1,0,-1},Vector3i{-1,-1,0},Vector3i{-1,-1,-1}}){
+					if(!gridCurr->ijkOk(ijk2)) continue;
+					processCell<PROCESS_FULL>(gridCurr,ijk,gridCurr,ijk2);
+				}
+			}
+		} else {
+			#ifdef WOO_OPENMP
+				#pragma omp parallel for schedule(dynamic,100)
+			#endif
+			for(size_t lin=0; lin<N; lin++){
+				Vector3i ijk=gridCurr->lin2ijk(lin);
 				// check contacts between all particles in this cell
-				processCell(PROCESS_FULL,gridCurr,ijk,gridCurr,ijk);
+				processCell<PROCESS_FULL>(gridCurr,ijk,gridCurr,ijk);
 			}
 		}
 	}
+	GC_CHECKPOINT("rest");
 }
 
 #ifdef WOO_OPENGL
@@ -165,6 +186,7 @@ void GridCollider::run(){
 				}
 			}
 		glEnd();
+		if(!renderCells) return;
 
 		if(!occupancyRange){
 			occupancyRange=make_shared<ScalarRange>();
@@ -172,18 +194,18 @@ void GridCollider::run(){
 		}
 		if(gridCurr && gridCurr->sizes()==dim){
 			// show cells which are used, with some color based on the number of entries in there
-			shared_ptr<GridStore> store(gridCurr); // copy shared_ptr so that we don't crash if changed meanwhile
-			if(store){
-				Vector3i maxIjk=store->gridSize;
+			shared_ptr<GridStore> grid(gridCurr); // copy shared_ptr so that we don't crash if changed meanwhile
+			if(grid){
+				Vector3i maxIjk=grid->gridSize;
 				for(Vector3i ijk=Vector3i::Zero(); ijk[0]<maxIjk[0]; ijk[0]++){
-					if(ijk[0]>=store->gridSize[0]) break;
+					if(ijk[0]>=grid->gridSize[0]) break;
 					for(ijk[1]=0; ijk[1]<maxIjk[1]; ijk[1]++){
-						if(ijk[1]>=store->gridSize[1]) break;
+						if(ijk[1]>=grid->gridSize[1]) break;
 						for(ijk[2]=0; ijk[2]<maxIjk[2]; ijk[2]++){
-							if(ijk[2]>=store->gridSize[2]) break;
-							size_t occupancy=store->size(ijk);
+							if(ijk[2]>=grid->gridSize[2]) break;
+							size_t occupancy=grid->size(ijk);
 							if(occupancy==0) continue;
-							GLUtils::AlignedBox(ijk2boxShrink(ijk,.1),occupancyRange->color(occupancy));
+							GLUtils::AlignedBox(grid->ijk2boxShrink(ijk,.1),occupancyRange->color(occupancy));
 						}
 					}
 				}
