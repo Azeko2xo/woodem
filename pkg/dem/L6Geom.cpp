@@ -10,7 +10,7 @@
 	#include<GL/glu.h>
 #endif
 
-WOO_PLUGIN(dem,(L6Geom)(Cg2_Sphere_Sphere_L6Geom)(Cg2_Facet_Sphere_L6Geom)(Cg2_Wall_Sphere_L6Geom)(Cg2_InfCylinder_Sphere_L6Geom)(Cg2_Truss_Sphere_L6Geom));
+WOO_PLUGIN(dem,(L6Geom)(Cg2_Any_Any_L6Geom__Base)(Cg2_Sphere_Sphere_L6Geom)(Cg2_Facet_Sphere_L6Geom)(Cg2_Wall_Sphere_L6Geom)(Cg2_InfCylinder_Sphere_L6Geom)(Cg2_Truss_Sphere_L6Geom));
 #if 0
 #ifdef WOO_OPENGL
 	WOO_PLUGIN(gl,(Gl1_L6Geom));
@@ -32,7 +32,11 @@ void L6Geom::setInitialLocalCoords(const Vector3r& locX){
 
 
 
-CREATE_LOGGER(Cg2_Sphere_Sphere_L6Geom);
+
+void Cg2_Sphere_Sphere_L6Geom::setMinDist00Sq(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const shared_ptr<Contact>& C){
+	C->minDist00Sq=pow(abs(distFactor*(s1->cast<Sphere>().radius+s2->cast<Sphere>().radius)),2);
+}
+
 
 bool Cg2_Sphere_Sphere_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
 	const Real& r1=s1->cast<Sphere>().radius; const Real& r2=s2->cast<Sphere>().radius;
@@ -219,9 +223,11 @@ Generic function to compute L6Geom, used for {sphere,facet,wall}+sphere contacts
 NB. the vel2 should be given WITHOUT periodic correction due to C->cellDist, it is handled inside
 pos2 however is with periodic correction already!!
 
-
 */
-void Cg2_Sphere_Sphere_L6Geom::handleSpheresLikeContact(const shared_ptr<Contact>& C, const Vector3r& pos1, const Vector3r& vel1, const Vector3r& angVel1, const Vector3r& pos2, const Vector3r& vel2, const Vector3r& angVel2, const Vector3r& normal, const Vector3r& contPt, Real uN, Real r1, Real r2){
+
+CREATE_LOGGER(Cg2_Any_Any_L6Geom__Base);
+
+void Cg2_Any_Any_L6Geom__Base::handleSpheresLikeContact(const shared_ptr<Contact>& C, const Vector3r& pos1, const Vector3r& vel1, const Vector3r& angVel1, const Vector3r& pos2, const Vector3r& vel2, const Vector3r& angVel2, const Vector3r& normal, const Vector3r& contPt, Real uN, Real r1, Real r2){
 	// create geometry
 	if(!C->geom){
 		C->geom=make_shared<L6Geom>();

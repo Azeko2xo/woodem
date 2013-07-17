@@ -2,6 +2,8 @@
 
 template<> int ZeroInitializer<int>(){ return (int)0; }
 template<> Real ZeroInitializer<Real>(){ return (Real)0; }
+template<> unsigned long long ZeroInitializer<unsigned long long>(){ return (unsigned long long)0; }
+template<> long ZeroInitializer<long>(){ return (long)0; }
 
 bool MatrixXr_pseudoInverse(const MatrixXr &a, MatrixXr &a_pinv, double epsilon){
 

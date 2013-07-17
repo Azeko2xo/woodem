@@ -9,8 +9,7 @@ void GridBound::setNodePlay(const shared_ptr<Shape>& s, const Real& verletDist){
 	const size_t N=s->nodes.size();
 	nodePlay.resize(N);
 	for(size_t i=0; i<N; i++){
-		nodePlay[i].min()=s->nodes[i]->pos-verletDist*Vector3r::Ones();
-		nodePlay[i].max()=s->nodes[i]->pos+verletDist*Vector3r::Ones();
+		nodePlay[i]=AlignedBox3r(s->nodes[i]->pos-verletDist*Vector3r::Ones(),s->nodes[i]->pos+verletDist*Vector3r::Ones());
 	}
 };
 
@@ -29,9 +28,9 @@ bool GridBound::insideNodePlay(const shared_ptr<Shape>& s) const {
 bool Grid1_Sphere::go(const shared_ptr<Shape>& sh, const Particle::id_t& id, const shared_ptr<GridCollider>& coll, const shared_ptr<GridStore>& grid, const bool& force){
 	Sphere& s=sh->cast<Sphere>();
 	if(scene->isPeriodic) throw std::logic_error("Grid1_Sphere: PBC not handled (yet)");
-	assert(dynamic_pointer_cast<GridBound>(s.bound));
 	if(!s.bound){ s.bound=make_shared<GridBound>(); }
 	else if(!force && s.bound->cast<GridBound>().insideNodePlay(sh)) return false;
+	assert(dynamic_pointer_cast<GridBound>(s.bound));
 	GridBound& gb=s.bound->cast<GridBound>();
 	#ifdef WOO_GRID_BOUND_DEBUG
 		gb.cells.clear();
@@ -70,9 +69,9 @@ bool Grid1_Wall::go(const shared_ptr<Shape>& sh, const Particle::id_t& id, const
 	Wall& w=sh->cast<Wall>();
 	const int& ax(w.axis); int ax1=(ax+1)%3, ax2=(ax+2)%3;
 	if(scene->isPeriodic) throw std::logic_error("Grid1_Wall: PBC not handled (yet)");
-	assert(dynamic_pointer_cast<GridBound>(w.bound));
 	if(!w.bound){ w.bound=make_shared<GridBound>(); }
 	else if(!force && w.bound->cast<GridBound>().insideNodePlay(sh)) return false;
+	assert(dynamic_pointer_cast<GridBound>(w.bound));
 	GridBound& gb=w.bound->cast<GridBound>();
 	#ifdef WOO_GRID_BOUND_DEBUG
 		gb.cells.clear();
@@ -100,7 +99,7 @@ bool Grid1_Wall::go(const shared_ptr<Shape>& sh, const Particle::id_t& id, const
 		}
 	}
 	//if(!hit) return false;
-	gb.setNodePlay(sh,coll->verletDist); 
+	gb.setNodePlay(sh,verletDist); 
 	// can move as much as it wants in-plane
 	gb.nodePlay[0].min()[ax1]=gb.nodePlay[0].min()[ax2]=-Inf;
 	gb.nodePlay[0].max()[ax1]=gb.nodePlay[0].max()[ax2]=Inf;

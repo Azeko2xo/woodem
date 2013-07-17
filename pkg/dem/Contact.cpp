@@ -11,7 +11,7 @@ void Contact::swapOrder(){
 void Contact::reset(){
 	geom=shared_ptr<CGeom>();
 	phys=shared_ptr<CPhys>();
-	stepMadeReal=-1;
+	// stepCreated=-1;
 }
 
 std::tuple<Vector3r,Vector3r,Vector3r> Contact::getForceTorqueBranch(const Particle* particle, int nodeI, Scene* scene){

@@ -44,6 +44,7 @@ void InsertionSortCollider::handleBoundInversion(Particle::id_t id1, Particle::i
 		// mimick the way clDem::Collider does the job so that results are easily comparable
 		if(id1<id2){ newC->pA=p1; newC->pB=p2; }
 		else{ newC->pA=p2; newC->pB=p1; }
+		newC->stepCreated=scene->step;
 		dem->contacts->add(newC);
 		return;
 	}
@@ -530,6 +531,7 @@ void InsertionSortCollider::handleBoundInversionPeri(Particle::id_t id1, Particl
 		#ifdef PISC_DEBUG
 			if(watchIds(id1,id2)) LOG_DEBUG("Created intr #"<<id1<<"+#"<<id2<<", periods="<<periods);
 		#endif
+		newC->stepCreated=scene->step;
 		dem->contacts->add(newC);
 		return;
 	}

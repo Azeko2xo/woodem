@@ -13,6 +13,8 @@ struct CGeomFunctor: public Functor2D<
 	/*retrun type*/    bool,
 	/*argument types*/ TYPELIST_5(const shared_ptr<Shape>&, const shared_ptr<Shape>&, const Vector3r&, const bool&, const shared_ptr<Contact>&)
 >{
+	// sets minimum nodes[0] -- nodes[0] distance (only used for Sphere+Sphere)
+	virtual void setMinDist00Sq(const shared_ptr<Shape>&, const shared_ptr<Shape>&, const shared_ptr<Contact>& C){ C->minDist00Sq=-1; }
 	WOO_CLASS_BASE_DOC(CGeomFunctor,Functor,"Functor for creating/updating :ref:`Contact::geom` objects.");
 };
 WOO_REGISTER_OBJECT(CGeomFunctor);
@@ -61,17 +63,25 @@ struct LawDispatcher: public Dispatcher2D</*functor type*/ LawFunctor, /*autosym
 WOO_REGISTER_OBJECT(LawDispatcher);
 
 
+// #define CONTACTLOOP_TIMING
+
+#ifdef CONTACTLOOP_TIMING
+	#define CONTACTLOOP_CHECKPOINT(what) timingDeltas->checkpoint(__LINE__,what);
+#else
+	#define CONTACTLOOP_CHECKPOINT(what)
+#endif
 
 class ContactLoop: public Engine {
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	// store interactions that should be deleted after loop in action, not later
 	#ifdef WOO_OPENMP
-		vector<list<shared_ptr<Contact> > > removeAfterLoopRefs;
+		vector<list<shared_ptr<Contact>>> removeAfterLoopRefs;
 		void removeAfterLoop(const shared_ptr<Contact>& c){ removeAfterLoopRefs[omp_get_thread_num()].push_back(c); }
 	#else
-		list<shared_ptr<Contact> > removeAfterLoopRefs;
+		list<shared_ptr<Contact>> removeAfterLoopRefs;
 		void removeAfterLoop(const shared_ptr<Contact>& c){ removeAfterLoopRefs.push_back(c); }
 	#endif
+	void reorderContacts();
 	public:
 		virtual void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d);
 		virtual void getLabeledObjects(std::map<std::string, py::object>& m, const shared_ptr<LabelMapper>&);
@@ -85,14 +95,16 @@ class ContactLoop: public Engine {
 			((bool,applyForces,true,,"Apply forces directly; this avoids IntraForce engine, but will silently skip multinodal particles."))
 			((bool,updatePhys,false,,"Call :ref:`CPhysFunctor` even for contacts which already have :ref:`Contact.phys` (to reflect changes in particle's material, for example)"))
 			((bool,_forceApplyChecked,false,AttrTrait<>().noGui(),"We already warned if forces are not applied here and no IntraForce engine exists in O.scene.engines"))
+			((bool,dist00,true,,"Whether to apply the Contact.minDist00Sq optimization (for mesuring the speedup only)"))
 			((Matrix3r,stress,Matrix3r::Zero(),AttrTrait<Attr::readonly>(),"Stress value, used to compute *gradV*  energy if *trackWork* is True."))
+			((int,reorderEvery,200,,"Reorder contacts so that real ones are at the beginning in the linear sequence, making the OpenMP loop traversal (hopefully) less unbalanced."))
 			((Real,prevVol,NaN,AttrTrait<Attr::hidden>(),"Previous value of cell volume"))
 			//((Real,prevTrGradVStress,NaN,AttrTrait<Attr::hidden>(),"Previous value of tr(gradV*stress)"))
 			((Matrix3r,prevStress,Matrix3r::Zero(),,"Previous value of stress, used to compute mid-step stress"))
 			((int,gradVIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Cache energy index for gradV work"))
 			,
 			/*ctor*/
-				#ifdef IDISP_TIMING
+				#ifdef CONTACTLOOP_TIMING
 					timingDeltas=shared_ptr<TimingDeltas>(new TimingDeltas);
 				#endif
 				#ifdef WOO_OPENMP

@@ -11,13 +11,14 @@ S.lab.loneMask=0b010
 S.dem.loneMask=S.lab.loneMask
 woo.master.timingEnabled=True
 
-rr=.01
-cell=2*rr
+rr=.015
+cell=1.*rr
 verlet=.05*rr
 mat=woo.utils.defaultMaterial()
 
-gridCollider=GridCollider(domain=((-1,-1,-1),(2,5,4)),minCellSize=2*rr,gridBoundDispatcher=GridBoundDispatcher(functors=[Grid1_Sphere(),Grid1_Wall(movable=False)]),label='collider',verletDist=verlet)
+gridCollider=GridCollider(domain=((-1,-1,-1),(2,3,3)),minCellSize=2*rr,gridBoundDispatcher=GridBoundDispatcher(functors=[Grid1_Sphere(),Grid1_Wall(movable=False)]),label='collider',verletDist=verlet,around=False,gridDense=10)
 sortCollider=InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Wall_Aabb()],verletDist=verlet)
+
 
 
 S.engines=[
@@ -27,7 +28,8 @@ S.engines=[
 		[Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom(),Cg2_Wall_Sphere_L6Geom(),Cg2_InfCylinder_Sphere_L6Geom()],
 		[Cp2_FrictMat_FrictPhys()],
 		[Law2_L6Geom_FrictPhys_IdealElPl(noSlip=True)],
-		applyForces=True
+		applyForces=True,
+		label='contactLoop',
 	),
 	PyRunner(1000,'import woo.timing; print("step %d, %d contacts, %g%% real"%(S.step,len(S.dem.con),S.dem.con.realRatio()*100)); woo.timing.stats(); woo.timing.reset()'),
 ]
@@ -49,5 +51,4 @@ S.dem.collectNodes()
 S.dt=.5*woo.utils.pWaveDt()
 
 S.saveTmp()
-#S.run(4000,wait=True)
-#timing.stats()
+S.run(4001,wait=True)

@@ -36,6 +36,8 @@ bool GridCollider::tryAddNewContact(const Particle::id_t& idA, const Particle::i
 	if(idA<idB){ newC->pA=pA; newC->pB=pB; }
 	else{ newC->pA=pB; newC->pB=pA; }
 	dem->contacts->add(newC);
+	newC->stepCreated=scene->step;
+	newC->stepLastSeen=scene->step;
 	return true;
 }
 
@@ -124,12 +126,13 @@ void GridCollider::run(){
 		// do only relative computation of appeared/disappeared potential contacts
 		// gridNew, gridOld will be created if needed inside computeRelativeComplements
 		gridCurr->computeRelativeComplements(*gridPrev,gridNew,gridOld);
+		GC_CHECKPOINT("complements");
 	} else {
 		/* contact search without history */
 		// 
 		size_t N=gridCurr->linSize();
 		if(around){
-			throw std::runtime_error("GridCollider.around==true: not yet implemented!");
+			// throw std::runtime_error("GridCollider.around==true: not yet implemented!");
 			/* traverse the grid with 2-stride along all axes, and check for every strided cell:
 				* contacts within itself
 				* contacts with the central cell and all cells around
@@ -140,18 +143,29 @@ void GridCollider::run(){
 			#endif
 			for(size_t lin=0; lin<N; lin++){
 				Vector3i ijk=gridCurr->lin2ijk(lin);
-				for(const Vector3i& ijk2: {Vector3i{0,0,0},Vector3i{-1,0,0},Vector3i{0,-1,0},Vector3i{0,0,-1},Vector3i{0,-1,-1},Vector3i{-1,0,-1},Vector3i{-1,-1,0},Vector3i{-1,-1,-1}}){
+				for(const Vector3i& dIjk: {
+					Vector3i(0,0,0),
+					Vector3i(-1,0,0),Vector3i(0,-1,0),Vector3i(0,0,-1),
+					Vector3i(0,-1,-1),Vector3i(-1,0,-1),Vector3i(-1,-1,0),
+					// Vector3i(1,-1,-1),Vector3i(-1,1,-1),Vector3i(-1,-1,1),
+					Vector3i(-1,-1,-1)
+				}){
+					Vector3i ijk2(ijk+dIjk);
 					if(!gridCurr->ijkOk(ijk2)) continue;
+					// GC_CHECKPOINT("process-cell (around)");
 					processCell<PROCESS_FULL>(gridCurr,ijk,gridCurr,ijk2);
 				}
 			}
 		} else {
 			#ifdef WOO_OPENMP
-				#pragma omp parallel for schedule(dynamic,100)
+				#pragma omp parallel for schedule(guided,1000)
 			#endif
 			for(size_t lin=0; lin<N; lin++){
+				GC_CHECKPOINT("process-cells prologue (!around)");
 				Vector3i ijk=gridCurr->lin2ijk(lin);
 				// check contacts between all particles in this cell
+				if(gridCurr->size(ijk)<=1) continue; // avoid function call
+				GC_CHECKPOINT("process-cells call (!around)");
 				processCell<PROCESS_FULL>(gridCurr,ijk,gridCurr,ijk);
 			}
 		}

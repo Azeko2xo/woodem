@@ -95,6 +95,8 @@ using Eigen::AngleAxis; using Eigen::Quaternion;
 // template specialization will help us here
 template<typename EigenMatrix> EigenMatrix ZeroInitializer(){ return EigenMatrix::Zero(); };
 template<> int ZeroInitializer<int>();
+template<> long ZeroInitializer<long>();
+template<> unsigned long long ZeroInitializer<unsigned long long>();
 template<> Real ZeroInitializer<Real>();
 
 

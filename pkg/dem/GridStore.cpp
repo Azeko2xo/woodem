@@ -35,37 +35,6 @@ void GridStore::postLoad(GridStore&,void* I){
 	}
 }
 
-Vector3i GridStore::lin2ijk(size_t n) const{
-	const auto& shape=grid->shape();
-	return Vector3i(n/(shape[1]*shape[2]),(n%(shape[1]*shape[2]))/shape[2],(n%(shape[1]*shape[2]))%shape[2]);
-}
-
-size_t GridStore::ijk2lin(const Vector3i& ijk) const{
-	const auto& shape=grid->shape();
-	return ijk[0]*shape[1]*shape[2]+ijk[1]*shape[2]+ijk[2];
-}
-
-Vector3i GridStore::sizes() const{ return Vector3i(grid->shape()[0],grid->shape()[1],grid->shape()[2]); }
-size_t GridStore::linSize() const{ return sizes().prod(); }
-
-bool GridStore::ijkOk(const Vector3i& ijk) const { return (ijk.array()>=0).all() && (ijk.array()<sizes().array()).all(); }
-
-
-
-Vector3i GridStore::xyz2ijk(const Vector3r& xyz) const {
-	// cast rounds down properly
-	return ((xyz-lo).array()/cellSize.array()).cast<int>().matrix();
-};
-
-Vector3r GridStore::ijk2boxMin(const Vector3i& ijk) const{
-	return lo+(ijk.cast<Real>().array()*cellSize.array()).matrix();
-}
-
-AlignedBox3r GridStore::ijk2box(const Vector3i& ijk) const{
-	AlignedBox3r ret; ret.min()=ijk2boxMin(ijk); ret.max()=ret.min()+cellSize;
-	return ret;
-};
-
 AlignedBox3r GridStore::ijk2boxShrink(const Vector3i& ijk, const Real& shrink) const{
 	AlignedBox3r box=ijk2box(ijk); Vector3r s=box.sizes();
 	box.min()=box.min()+.5*shrink*s;
@@ -90,8 +59,6 @@ Vector3r GridStore::xyzNearIjk(const Vector3i& from, const Vector3i& ijk) const{
 	}
 	return ret;
 }
-
-
 
 
 bool GridStore::isCompatible(shared_ptr<GridStore>& other){
@@ -176,6 +143,8 @@ void GridStore::protected_append(const Vector3i& ijk, const GridStore::id_t& id)
 	append(ijk,id,/*lockEx*/true);
 }
 
+/* FIXME: compares against cellSz, which may change after the comparison itself;
+   must be implemented using atomic exchange or some such */
 void GridStore::append(const Vector3i& ijk, const GridStore::id_t& id, bool lockEx){
 	checkIndices(ijk);
 	const int& i(ijk[0]), &j(ijk[1]), &k(ijk[2]);
@@ -189,19 +158,16 @@ void GridStore::append(const Vector3i& ijk, const GridStore::id_t& id, bool lock
 	} else {
 		assert(exIniSize>0);
 		auto& gridEx=getGridEx(ijk);
+		auto lock(locking?new boost::mutex::scoped_lock(*getMutex(ijk,/*mutexEx*/true),boost::defer_lock):NULL);
+		if(locking) lock->lock();
 		if(cellSz==denseSz){ 
 			// new extension vector; gridEx[ijk] default-constructs vector<id_t>
-			auto lock(locking?new boost::mutex::scoped_lock(*getMutex(ijk,/*mutexEx*/true),boost::defer_lock):NULL);
-			if(locking) lock->lock();
 			assert(gridEx.find(ijk)==gridEx.end());
 			vector<id_t>& ex=gridEx[ijk];
 			ex.resize(exIniSize);
 			ex[0]=id;
-			if(locking){ lock->unlock(); delete lock; }
 		} else {
 			// existing extension vector
-			auto lock(locking?new boost::mutex::scoped_lock(*getMutex(ijk,/*mutexEx*/true),boost::defer_lock):NULL);
-			if(locking) lock->lock();
 			auto exI=gridEx.find(ijk);
 			assert(exI!=gridEx.end());
 			vector<id_t>& ex(exI->second);
@@ -210,8 +176,8 @@ void GridStore::append(const Vector3i& ijk, const GridStore::id_t& id, bool lock
 			assert(exIx<=ex.size());
 			if(exIx==ex.size()) ex.resize(exIx+exIniSize);
 			ex[exIx]=id;
-			if(locking){ lock->unlock(); delete lock; }
 		}
+		if(locking){ lock->unlock(); delete lock; }
 	}
 	cellSz++;
 }

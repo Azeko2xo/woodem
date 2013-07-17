@@ -7,7 +7,7 @@
 #define GC_TIMING
 
 #ifdef GC_TIMING
-	#define GC_CHECKPOINT(cpt) timingDeltas->checkpoint(cpt)
+	#define GC_CHECKPOINT(cpt) timingDeltas->checkpoint(__LINE__,cpt)
 #else
 	#define GC_CHECKPOINT(cpt)
 #endif
@@ -57,7 +57,7 @@ struct GridCollider: public Collider{
 		((bool,renderCells,false,,"Render cells."))
 		((shared_ptr<ScalarRange>,occupancyRange,,,"Range for coloring grids based on occupancy (automatically created)"))
 		// tunables
-		((int,gridDense,4,,"Length of dense storage for new :obj:`GridStore` objects."))
+		((int,gridDense,4,AttrTrait<>().startGroup("Tunables"),"Length of dense storage for new :obj:`GridStore` objects."))
 		((int,exIniSize,4,,":obj:`GridStore.exIniSize` for new grids."))
 		((int,exNumMaps,10,,":obj:`GridStore.exNumMaps` for new grids."))
 		, /*py*/

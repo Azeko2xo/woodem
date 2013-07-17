@@ -121,6 +121,7 @@ class OpenMPArrayAccumulator{
 		// reset one element to ZeroInitializer
 		void add(size_t ix, const T& diff){ chunks[omp_get_thread_num()][ix]+=diff; }
 		void reset(size_t ix){ set(ix,ZeroInitializer<T>()); }
+		void resetAll(){ for(size_t i=0; i<sz; i++) reset(i); }
 		// fill all memory with zeros; the caller is responsible for assuring that such value is meaningful when converted to T
 		// void memsetZero(){ for(size_t th=0; th<nThreads; th++) memset(&chunks[th],0,CLS*nCL); }
 		// get all stored data, organized first by index, then by threads; only used for debugging
@@ -190,6 +191,7 @@ class OpenMPArrayAccumulator{
 		void add (size_t ix, const T& diff){ data[ix]+=diff; }
 		void set(size_t ix, const T& val){ data[ix]=val; }
 		void reset(size_t ix){ data[ix]=ZeroInitializer<T>(); }
+		void resetAll(){ for(size_t i=0; i<data.size(); i++) reset(i); }
 		std::vector<std::vector<T> > getPerThreadData() const { std::vector<std::vector<T> > ret; for(size_t ix=0; ix<data.size(); ix++){ std::vector<T> vi; vi.push_back(data[ix]); ret.push_back(vi); } return ret; }
 };
 

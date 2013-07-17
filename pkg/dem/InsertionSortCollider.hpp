@@ -75,7 +75,7 @@ Possible performance improvements & bugs
 
 
 #ifdef ISC_TIMING
-	#define ISC_CHECKPOINT(cpt) timingDeltas->checkpoint(cpt)
+	#define ISC_CHECKPOINT(cpt) timingDeltas->checkpoint(__LINE__,cpt)
 #else
 	#define ISC_CHECKPOINT(cpt)
 #endif

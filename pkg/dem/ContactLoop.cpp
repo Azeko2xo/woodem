@@ -66,17 +66,25 @@ void ContactLoop::getLabeledObjects(std::map<std::string, py::object>& m, const 
 	Engine::getLabeledObjects(m,labelMapper);
 }
 
-
-// #define IDISP_TIMING
-
-#ifdef IDISP_TIMING
-	#define IDISP_CHECKPOINT(cpt) timingDeltas->checkpoint(cpt)
-#else
-	#define IDISP_CHECKPOINT(cpt)
-#endif
+void ContactLoop::reorderContacts(){
+	// traverse contacts, move real onces towards the beginning
+	ContactContainer& cc=*(field->cast<DemField>().contacts);
+	size_t N=cc.size();
+	size_t lowestReal=0;
+	// traverse from the end, and put to the beginning
+	for(size_t i=N-1; i>lowestReal; i--){
+		const auto& C=cc[i];
+		if(!C->isReal()) continue;
+		while(lowestReal<i && cc[lowestReal]->isReal()) lowestReal++;
+		if(lowestReal==i) return; // nothing to do, already reached the part of real contacts
+		std::swap(cc[i],cc[lowestReal]);
+		cc[i]->linIx=i;
+		cc[lowestReal]->linIx=lowestReal;
+	}
+}
 
 void ContactLoop::run(){
-	#ifdef IDISP_TIMING
+	#ifdef CONTACTLOOP_TIMING
 		timingDeltas->start();
 	#endif
 
@@ -113,40 +121,66 @@ void ContactLoop::run(){
 	bool removeUnseen=(dem.contacts->stepColliderLastRun>=0 && dem.contacts->stepColliderLastRun==scene->step);
 
 	const bool doStress=(evalStress && scene->isPeriodic);
-		
+
+	if(reorderEvery>0 && (scene->step%reorderEvery==0)) reorderContacts();
+
 	size_t size=dem.contacts->size();
+
+	CONTACTLOOP_CHECKPOINT("prologue");
+
 	#ifdef WOO_OPENMP
-		#pragma omp parallel for schedule(guided)	
+		#pragma omp parallel for schedule(guided)
 	#endif
 	for(size_t i=0; i<size; i++){
+		CONTACTLOOP_CHECKPOINT("loop-begin");
 		const shared_ptr<Contact>& C=(*dem.contacts)[i];
 
 		if(unlikely(removeUnseen && !C->isReal() && C->stepLastSeen<scene->step)) { removeAfterLoop(C); continue; }
 
-
-		bool swap=false;
-		if(!C->isReal()){
-			const shared_ptr<CGeomFunctor> cgf=geoDisp->getFunctor2D(C->leakPA()->shape,C->leakPB()->shape,swap);
-			if(swap){ C->swapOrder(); }
+		/* this block is called exactly once for every potential contact created; it should check whether shapes
+			should be swapped, and also set minDist00Sq if used (Sphere-Sphere only)
+		*/
+		if(unlikely(!C->isReal() && C->isFresh(scene))){
+			bool swap=false;
+			const shared_ptr<CGeomFunctor>& cgf=geoDisp->getFunctor2D(C->leakPA()->shape,C->leakPB()->shape,swap);
 			if(!cgf) continue;
+			if(swap){ C->swapOrder(); }
+			cgf->setMinDist00Sq(C->pA.lock()->shape,C->pB.lock()->shape,C);
+			CONTACTLOOP_CHECKPOINT("swap-check");
 		}
 		Particle *pA=C->leakPA(), *pB=C->leakPB();
+		Vector3r shift2=(scene->isPeriodic?scene->cell->intrShiftPos(C->cellDist):Vector3r::Zero());
 		// the order is as the geometry functor expects it
 		shared_ptr<Shape>& sA(pA->shape); shared_ptr<Shape>& sB(pB->shape);
 
-		bool geomCreated=geoDisp->operator()(sA,sB,(scene->isPeriodic?scene->cell->intrShiftPos(C->cellDist):Vector3r::Zero()),/*force*/false,C);
+		// if minDist00Sq is defined, we might see that there is no contact without ever calling the functor
+		// saving quite a few calls for sphere-sphere contacts
+		if(likely(dist00 && !C->isReal() && !C->isFresh(scene) && C->minDist00Sq>0 && (sA->nodes[0]->pos-(sB->nodes[0]->pos-shift2)).squaredNorm()>C->minDist00Sq)){
+			CONTACTLOOP_CHECKPOINT("dist00Sq-too-far");
+			continue;
+		}
+
+		CONTACTLOOP_CHECKPOINT("pre-geom");
+
+		bool geomCreated=geoDisp->operator()(sA,sB,shift2,/*force*/false,C);
+
+		CONTACTLOOP_CHECKPOINT("geom");
 		if(!geomCreated){
 			if(/* has both geo and phy */C->isReal()) LOG_ERROR("CGeomFunctor "<<geoDisp->getClassName()<<" did not update existing contact ##"<<pA->id<<"+"<<pB->id);
 			continue;
 		}
 
+
 		// CPhys
-		if(!C->phys) C->stepMadeReal=scene->step;
+		if(!C->phys) C->stepCreated=scene->step;
 		if(!C->phys || updatePhys) phyDisp->operator()(pA->material,pB->material,C);
 		if(!C->phys) throw std::runtime_error("ContactLoop: ##"+to_string(pA->id)+"+"+to_string(pB->id)+": con Contact.phys created from materials "+pA->material->getClassName()+" and "+pB->material->getClassName()+" (a CPhysFunctor must be available for every contacting material combination).");
 
+		CONTACTLOOP_CHECKPOINT("phys");
+
 		// CLaw
 		lawDisp->operator()(C->geom,C->phys,C);
+		CONTACTLOOP_CHECKPOINT("law");
 
 		if(applyForces && C->isReal()){
 			for(const Particle* particle:{pA,pB}){
@@ -178,15 +212,16 @@ void ContactLoop::run(){
 				stress.noalias()+=F*branch.transpose();
 			}
 		}
+		CONTACTLOOP_CHECKPOINT("force+stress");
 	}
 	// process removeAfterLoop
 	#ifdef WOO_OPENMP
-		FOREACH(list<shared_ptr<Contact> >& l, removeAfterLoopRefs){
-			FOREACH(const shared_ptr<Contact>& c,l) dem.contacts->remove(c);
+		for(list<shared_ptr<Contact>>& l: removeAfterLoopRefs){
+			for(const shared_ptr<Contact>& c: l) dem.contacts->remove(c);
 			l.clear();
 		}
 	#else
-		FOREACH(const shared_ptr<Contact>& c, removeAfterLoopRefs) dem.contacts->remove(c);
+		for(const shared_ptr<Contact>& c: removeAfterLoopRefs) dem.contacts->remove(c);
 		removeAfterLoopRefs.clear();
 	#endif
 	// compute gradVWork eventually
@@ -202,4 +237,5 @@ void ContactLoop::run(){
 		prevVol=scene->cell->getVolume();
 		prevStress=stress;
 	}
+	CONTACTLOOP_CHECKPOINT("epilogue");
 }

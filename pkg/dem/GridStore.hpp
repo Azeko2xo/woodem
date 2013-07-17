@@ -36,29 +36,34 @@ struct GridStore: public Object{
 	// non-const reference, otherwise the same
 	gridExT& getGridEx(const Vector3i& ijk);
 
+	/* inlined one-liners */
 	// convert linear index to grid indices
-	Vector3i lin2ijk(size_t n) const;
+	Vector3i lin2ijk(size_t n) const { const auto& shape=grid->shape(); return Vector3i(n/(shape[1]*shape[2]),(n%(shape[1]*shape[2]))/shape[2],(n%(shape[1]*shape[2]))%shape[2]); }
 	// convert grid indices to linear index
-	size_t ijk2lin(const Vector3i& ijk) const;
+	size_t ijk2lin(const Vector3i& ijk) const { const auto& shape=grid->shape(); return ijk[0]*shape[1]*shape[2]+ijk[1]*shape[2]+ijk[2]; }
 	// return 3d grid sizes (upper bound of grid indices)
-	Vector3i sizes() const; 
+	Vector3i sizes() const { return Vector3i(grid->shape()[0],grid->shape()[1],grid->shape()[2]); }
 	// return grid storage size (upper bound of linear index)
-	size_t linSize() const;
+	size_t linSize() const { return sizes().prod(); }
 	// return false if the given index is out of range
-	bool ijkOk(const Vector3i& ijk) const;
+	bool ijkOk(const Vector3i& ijk) const {  return (ijk.array()>=0).all() && (ijk.array()<sizes().array()).all(); }
 
 	// say in which cell lies given spatial coordinate
 	// no bound checking is done, caller must assure the result makes sense
-	Vector3i xyz2ijk(const Vector3r& xyz) const;
+	Vector3i xyz2ijk(const Vector3r& xyz) const { /* cast rounds down properly */ return ((xyz-lo).array()/cellSize.array()).cast<int>().matrix(); }
+	// bounding box for givendecltype(*grid)
+	AlignedBox3r ijk2box(const Vector3i& ijk) const { AlignedBox3r ret; ret.min()=ijk2boxMin(ijk); ret.max()=ret.min()+cellSize; return ret; }
+	// lower corner of given cell
+	Vector3r ijk2boxMin(const Vector3i& ijk) const { return lo+(ijk.cast<Real>().array()*cellSize.array()).matrix(); }
+
+	/* bigger, not inlined */
+	// bounding box shrunk by dimensionless *shrink* (relative size)
+	AlignedBox3r ijk2boxShrink(const Vector3i& ijk, const Real& shrink) const;
 	// point nearest to given point *from* in cell *ijk*
 	Vector3r xyzNearXyz(const Vector3r& xyz, const Vector3i& ijk) const;
 	// point nearest to given cell *from* in cell *ijk*
 	Vector3r xyzNearIjk(const Vector3i& from, const Vector3i& ijk) const;
-	// bounding box for givendecltype(*grid)
-	AlignedBox3r ijk2box(const Vector3i& ijk) const;
-	AlignedBox3r ijk2boxShrink(const Vector3i& ijk, const Real& shrink) const;
-	// lower corner of given cell
-	Vector3r ijk2boxMin(const Vector3i& ijk) const;
+
 
 
 	DECLARE_LOGGER;

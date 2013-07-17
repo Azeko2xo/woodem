@@ -332,7 +332,7 @@ WOO_REGISTER_OBJECT(CData);
 
 struct Contact: public Object{
 	bool isReal() const { return geom&&phys; }
-	bool isFresh(Scene* s){ return s->step==stepMadeReal; }
+	bool isFresh(Scene* s){ return s->step==stepCreated; }
 	void swapOrder();
 	void reset();
 	// return -1 or +1 depending on whether the particle passed to us is pA or pB
@@ -371,8 +371,9 @@ struct Contact: public Object{
 		#ifdef WOO_OPENGL
 			((Real,color,0,,"(Normalized) color value for this contact"))
 		#endif
+		((int,stepCreated,-1,AttrTrait<Attr::hidden>(),"Step in which this contact was created by the collider, or step in which it was made real (if geom and phys exist). This number is NOT reset by Contact::reset()."))
+		((Real,minDist00Sq,-1,AttrTrait<Attr::hidden>(),"Minimum distance between nodes[0] of both shapes so that the contact can exist. Set in ContactLoop by geometry functor once, and is used to check for possible contact without having to call the functor. If negative, not used. Currently, only Sphere-Sphere contacts use this information."))
 		((int,stepLastSeen,-1,AttrTrait<Attr::hidden>(),""))
-		((int,stepMadeReal,-1,AttrTrait<Attr::hidden>(),""))
 		((size_t,linIx,0,AttrTrait<Attr::readonly>().noGui(),"Position in the linear view (ContactContainer)"))
 		, /*ctor*/
 		, /*py*/ .add_property("id1",&Contact::pyId1).add_property("id2",&Contact::pyId2).add_property("real",&Contact::isReal).add_property("ids",&Contact::pyIds)

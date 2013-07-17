@@ -81,7 +81,7 @@ vector<shared_ptr<Contact> > createContacts(const vector<Particle::id_t>& ids1, 
 		if(force && !C) throw std::logic_error("CGeomFunctor did not create contact, although force==true");
 		if(!C) continue;
 		pDisp->explicitAction(scene,b1->material,b2->material,C);
-		C->stepMadeReal=scene->step;
+		C->stepCreated=scene->step;
 		dem->contacts->add(C);
 		ret.push_back(C);
 	}
