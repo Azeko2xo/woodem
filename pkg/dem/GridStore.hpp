@@ -64,6 +64,25 @@ struct GridStore: public Object{
 	// point nearest to given cell *from* in cell *ijk*
 	Vector3r xyzNearIjk(const Vector3i& from, const Vector3i& ijk) const;
 
+	// http://stackoverflow.com/a/7918281/761090
+	template <class T>
+	inline T my_fetch_add(T *ptr, T val) {
+		#ifdef WOO_OPENMP
+			#ifdef __GNUC__
+				return __sync_fetch_and_add(ptr, val);
+			#elif _OPENMP>=201107
+				T t;
+				#pragma omp atomic capture
+				{ t = *ptr; *ptr += val; }
+				return t;
+			#else
+				#error "This function requires gcc extensions (for __sync_fetch_and_add) or OpenMP 3.1 (for 'pragma omp atomic capture')"
+			#endif
+		#else
+			// with single thread no need to synchronize at all
+			T t=*ptr; *ptr+=val; return t;
+		#endif
+	}
 
 
 	DECLARE_LOGGER;
@@ -82,39 +101,88 @@ struct GridStore: public Object{
 
 	// set g to be same-shape grid witout mutexes and gridEx 
 	// if l is given and positive, use that value instead of the current shape[3]
-	// grid may contain garbage data, call clear() before writing in there!
+	// grid may contain garbage data in the dense part, call clear() or clear_ex()+clear_dense() before writing in there!
 	void makeCompatible(shared_ptr<GridStore>& g, int l=0, bool locking=true, int _exIniSize=-1, int _exNumMaps=-1) const;
 	bool isCompatible(shared_ptr<GridStore>& other);
 	// clear both dense and extra storage
 	// dense storage cleared with memset, should be very fast
 	void clear();
+	// clear all extra storage (length in dense stoage may contain garbage then)
+	void clear_ex(); 
 
 	// return lock pointer for given cell
-	boost::mutex* getMutex(const Vector3i& ijk, bool mutexEx=false);
-	// assert that indices are OK, no-op in optimizes build
-	void checkIndices(const Vector3i& ijk) const;
+	template<bool mutexEx>
+	boost::mutex* getMutex(const Vector3i& ijk){
+		checkIndices(ijk); size_t ix=ijk2lin(ijk);
+		if(!mutexEx){ assert(denseLock); assert(ix<(size_t)gridSize.prod()); assert(gridSize.prod()+exNumMaps==(int)mutexes.size()); return &mutexes[exNumMaps+ix];
+		} else { assert(exNumMaps>0); int mIx=ix%exNumMaps; assert(mIx<(int)mutexes.size() && mIx>=0); return &mutexes[mIx]; }
+	}
 
-	// thread unsafe: clear dense storage
+
+	// inlined, disappears in optimized builds (no-op)
+	void checkIndices(const Vector3i& ijk) const {
+		assert(grid->shape()[0]==(size_t)gridSize[0]);
+		assert(grid->shape()[1]==(size_t)gridSize[1]);
+		assert(grid->shape()[2]==(size_t)gridSize[2]);
+		assert(ijk[0]>=0); assert(ijk[0]<(int)grid->shape()[0]);
+		assert(ijk[1]>=0); assert(ijk[1]<(int)grid->shape()[1]);
+		assert(ijk[2]>=0); assert(ijk[2]<(int)grid->shape()[2]);
+	}
+
+
+	// thread safe: clear dense storage (set count to 0), don't touch extra storage
 	void clear_dense(const Vector3i& ijk);
 	// thread unsafe: add element to the cell (in grid, or, if full, in gridEx)
-	// if *locking* is true, only writes to extended storage is locked
-	void append(const Vector3i& ijk, const id_t&, bool lockEx=false);
+	// noSizeInc only used internally
+	void append(const Vector3i& ijk, const id_t&, bool noSizeInc=false);
 	// thread safe: lock (always) and append
 	void protected_append(const Vector3i& ijk, const id_t&);
 
-	// compute relative complements (this\B) and (B\this)
-	// (i.e. return grid with ids in g2 but NOT in this and vice versa)
-	// this function is internally parallelized, and needs no locking
-	//
-	// A_B contains only elements in A but not in B
-	// B_A contains only elements in B but not in A
-	void computeRelativeComplements(GridStore& B, shared_ptr<GridStore>& A_B, shared_ptr<GridStore>& B_A) const;
-	py::tuple pyComputeRelativeComplements(GridStore& B) const;
+	/* compute relative complement (B\this)≡ relative complement of this with respect to B and vice versa
+		(i.e. return grid with ids in g2 but NOT in this)
+		this function is internally parallelized, and needs no locking
+	
+		setMinSize: if positive, use trivial nested loops for finding the difference as long as both sets length is
+		smaller than setMinSize. If negative, always use std::set algorithms (may be slower)
+	
+		A_B will contain elements in B but not in A
+		B_A will contain elements in B but not in A
+	*/
+	void complements(const shared_ptr<GridStore>& B, shared_ptr<GridStore>& A_B, shared_ptr<GridStore>& B_A, const int& setMinSize=-1, const shared_ptr<TimingDeltas>& timingDeltas=shared_ptr<TimingDeltas>()) const;
+	py::tuple pyComplements(const shared_ptr<GridStore>& B, const int& setMinSize=-1) const;
+
+	/* put those get() and size() inline, since they are used rather frequently */
 
 	// return i-th element, from grid or gridEx depending on l
-	id_t get(const Vector3i& ijk, int l) const;
+	inline const id_t& get(const Vector3i& ijk, const int& l) const{
+		checkIndices(ijk); assert(l>=0);
+		const int& i(ijk[0]), &j(ijk[1]), &k(ijk[2]);
+		const int denseSz=grid->shape()[3]-1; // first item is total cell size
+		assert(l<(int)size(ijk));
+		if(l<denseSz) return (*grid)[i][j][k][l+1];
+		const auto& gridEx=getGridEx(ijk);
+		const auto& ijkI=gridEx.find(ijk);
+		if(ijkI==gridEx.end()) LOG_FATAL("ijk="<<ijk.transpose()<<", l="<<l<<", denseSz="<<denseSz);
+		assert(ijkI!=gridEx.end());
+		const vector<id_t>& ex=ijkI->second;
+		int exIx=l-denseSz; /* int so that we detect underflow when debugging */
+		assert(exIx<(int)ex.size() && (l-denseSz>=0));
+		return ex[(size_t)exIx];
+	}
+
 	// return number of elements in grid+gridEx
-	size_t size(const Vector3i& ijk) const;
+	size_t size(const Vector3i& ijk) const{
+		checkIndices(ijk);
+		const int cellSz=(*grid)[ijk[0]][ijk[1]][ijk[2]][0];
+		return cellSz;
+	}
+
+	// predicate whether given id is in a cell at ijk (traverses all elements)
+	bool contains(const Vector3i& ijk, const id_t& id) const {
+		size_t sz=size(ijk);
+		for(size_t i=0; i<sz; i++){ if(get(ijk,i)==id) return true; }
+		return false;
+	}
 
 	py::list pyGetItem(const Vector3i& ijk) const;
 	void pySetItem(const Vector3i& ijk, const vector<id_t>& ids);
@@ -124,10 +192,10 @@ struct GridStore: public Object{
 	py::tuple pyRawData(const Vector3i& ijk);
 	vector<int> pyCounts() const;
 
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(GridStore,Object,"3d grid storing scalar (particles ids) in partially dense array; the grid is actually 4d (gridSize×cellLen), and each cell may contain additional items in separate mapped storage, if the cellLen is not big enough to accomodate required number of items. If instance may synchronize (with *locking*=`True`) access via per-cell mutexes (or per-map mutexes) if it is written from multiple threads. Write acces from python should be used for testing exclusively.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(GridStore,Object,"3d grid storing scalar (particles ids) in partially dense array; the grid is actually 4d (gridSize×cellLen), and each cell may contain additional items in separate mapped storage, if the cellLen is not big enough to accomodate required number of items. Appending to cells is guarded via mutexes (with :obj:`denseLock`) optionally, appending to extra storage is mutex-protected always. Write acces from python should be used for testing exclusively.",
 		((Vector3i,gridSize,Vector3i(1,1,1),AttrTrait<>().readonly(),"Dimension of the grid."))
 		((int,cellLen,4,AttrTrait<>().readonly(),"Size of the dense storage in each cell"))
-		((bool,locking,true,AttrTrait<>().readonly(),"Whether this grid locks elements on access"))
+		((bool,denseLock,true,AttrTrait<>().readonly(),"Whether this grid supports per-cell dense storage locking for appending (must use protected_append)"))
 		((int,exIniSize,4,AttrTrait<>().readonly(),"Initial size of extension vectors, and step of their growth if needed."))
 		((int,exNumMaps,10,AttrTrait<>().readonly(),"Number of maps for extra items not fitting the dense storage (it affects how fine-grained is locking for those extra elements)"))
 		((Vector3r,lo,Vector3r(NaN,NaN,NaN),,"Lower corner of the domain."))
@@ -138,10 +206,10 @@ struct GridStore: public Object{
 			.def("__setitem__",&GridStore::pySetItem)
 			.def("__delitem__",&GridStore::pyDelItem)
 			.def("size",&GridStore::size)
-			.def("append",&GridStore::pyAppend,(py::arg("ijk"),py::arg("id")),"Append new element; uses mutexes if the instance is `locking`")
+			.def("append",&GridStore::pyAppend,(py::arg("ijk"),py::arg("id")),"Append new element; uses mutexes with :obj:`denseLock`")
 			.def("countEx",&GridStore::pyCountEx,"Return dictionary mapping ijk to number of items in the extra storage.")
 			.def("_rawData",&GridStore::pyRawData,"Return raw data, as tuple of dense store and extra store.")
-			.def("computeRelativeComplements",&GridStore::pyComputeRelativeComplements)
+			.def("complements",&GridStore::pyComplements,(py::arg("B"),py::arg("setMinSize")=-1))
 			.def("counts",&GridStore::pyCounts,"Return array with number of cells with given number of elements: [number of cells with 0 elements, number of cells with 1 elements, ...]")
 			// .def("clear",&GridStore::pyClear,py::arg("ijk"),"Clear both dense and map storage for given cell; uses mutexes if the instance is :obj:`locking`.")
 			.def("lin2ijk",&GridStore::lin2ijk)

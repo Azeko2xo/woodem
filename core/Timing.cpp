@@ -62,12 +62,12 @@ namespace woo{
 				nsec.add(index,dt);
 				// if used for the first time
 				if(labels[index].empty()){
-					// lock here to avoid double free of string
-					#pragma omp critical
-					labels[index]=label;
 					#ifdef WOO_OPENMP
 						nThreads[index]=omp_get_num_threads();	
+						// lock labels assignment to avoid double free of string
+						#pragma omp critical
 					#endif
+					labels[index]=label;
 				}
 		#ifdef WOO_OPENMP
 			} else {

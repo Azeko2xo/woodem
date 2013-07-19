@@ -20,7 +20,7 @@ void GridCollider::selfTest(){
 	if(!gridBoundDispatcher) throw std::logic_error("GridCollider.gridBoundDispatcher: must not be None.");
 }
 
-bool GridCollider::tryAddNewContact(const Particle::id_t& idA, const Particle::id_t& idB) const {
+bool GridCollider::tryAddContact(const Particle::id_t& idA, const Particle::id_t& idB) const {
 	// this is rather fast, therefore do it before looking up the contact
 	const auto& pA((*dem->particles)[idA]); const auto& pB((*dem->particles)[idB]);
 	if(!Collider::mayCollide(dem,pA,pB)) return false;
@@ -35,25 +35,33 @@ bool GridCollider::tryAddNewContact(const Particle::id_t& idA, const Particle::i
 	// mimick the way clDem::Collider does the job so that results are easily comparable
 	if(idA<idB){ newC->pA=pA; newC->pB=pB; }
 	else{ newC->pA=pB; newC->pB=pA; }
-	dem->contacts->add(newC);
 	newC->stepCreated=scene->step;
 	newC->stepLastSeen=scene->step;
+	// returns false if the contact exists (added by a different thread meanwhile)
+	return dem->contacts->add(newC,/*threadSafe*/true);
+}
+
+bool GridCollider::tryDeleteContact(const Particle::id_t& idA, const Particle::id_t& idB) const {
+	const shared_ptr<Contact>& C=dem->contacts->find(idA,idB);
+	if(!C) return false; // this should not happen at all ?!
+	if(C->isReal()) C->setNotColliding(); // contact still exists, set stepCreated to -1 (will be deleted by ContactLoop)
+	else return dem->contacts->remove(C,/*threadSafe*/true);
 	return true;
 }
 
-template<int what>
+template<bool sameGridCell, bool addContacts>
 void GridCollider::processCell(const shared_ptr<GridStore>& gridA, const Vector3i& ijkA, const shared_ptr<GridStore>& gridB, const Vector3i& ijkB) const {
-	static_assert((what==PROCESS_FULL) /* || (what==...) */,"Invalid template parameter to processCell<what>.");
-	int aMin=0, aMax=gridA->size(ijkA);
+	assert(!sameGridCell || (gridA==gridB && ijkA==ijkB));
+	const int aMin=0; const int aMax=gridA->size(ijkA);
 	// if checking the same cell against itself, set bMin to -1,
 	// that will make it start from the value of (a+1) at every iteration
-	int bMin=((gridA.get()==gridB.get() && ijkA==ijkB)?-1:0); int bMax=gridB->size(ijkB);
+	const int bMax=gridB->size(ijkB);
 	for(int a=aMin; a<aMax; a++){
-		for(int b=(bMin<0?a+1:0); b<bMax; b++){
-			Particle::id_t idA=gridA->get(ijkA,a), idB=gridB->get(ijkB,b);
-			switch(what){
-				case PROCESS_FULL: tryAddNewContact(idA,idB); break;
-			}
+		for(int b=(sameGridCell?a+1:0); b<bMax; b++){
+			const Particle::id_t& idA=gridA->get(ijkA,a); const Particle::id_t& idB=gridB->get(ijkB,b);
+			if(!sameGridCell && idA==idB) continue;
+			if(addContacts) tryAddContact(idA,idB);
+			else tryDeleteContact(idA,idB);
 		}
 	}
 }
@@ -111,66 +119,101 @@ void GridCollider::run(){
 	bool allOk=allParticlesWithinPlay();
 	GC_CHECKPOINT("check-play");
 	if(allOk) return;
-	dem->contacts->stepColliderLastRun=scene->step;
+
+	/*** FULL COLLIDER RUN ***/
 
 	prepareGridCurr(); GC_CHECKPOINT("prepare-grid");
+	bool diffStep=(useDiff && gridPrev && gridPrev->isCompatible(gridCurr));
+	
+	// with diffStep, we handle contact deletion ourselves
+	if(diffStep){ dem->contacts->stepColliderLastRun=-1; }
+	// without diffStep, ContactLoop deletes overdue contacts
+	else { dem->contacts->stepColliderLastRun=scene->step; }
 
 	/* update grid bounding boxes */
 	fillGridCurr(); GC_CHECKPOINT("fill-grid");
 
-	// this is not supported yet
-	bool diffStep=(false && gridPrev && gridPrev->isCompatible(gridCurr));
-
-	/* contact search with history */
 	if(diffStep){
-		// do only relative computation of appeared/disappeared potential contacts
-		// gridNew, gridOld will be created if needed inside computeRelativeComplements
-		gridCurr->computeRelativeComplements(*gridPrev,gridNew,gridOld);
+		/* contact search with history */
+		// do only relative computation of appeared potential contacts
+		// gridNew will be created if needed inside the complement function
+		gridPrev->complements(gridCurr,gridOld,gridNew,complSetMinSize,timingDeltas);
 		GC_CHECKPOINT("complements");
+		size_t N=gridCurr->linSize();
+		#ifdef WOO_OPENMP
+			#pragma omp parallel for schedule(static,1000)
+		#endif
+		for(size_t lin=0; lin<N; lin++){
+			GC_CHECKPOINT(": start");
+			Vector3i ijk=gridCurr->lin2ijk(lin);
+			assert(ijk==gridNew->lin2ijk(lin));
+			size_t sizeNew=gridNew->size(ijk), sizeOld=gridNew->size(ijk);
+			size_t sizePrev=gridPrev->size(ijk), sizeCurr=gridCurr->size(ijk);
+			// new-new potential contacts
+			if(sizeNew>0){
+				if(sizeNew>1) processCell</*sameGridCell*/true>(gridNew,ijk,gridNew,ijk);
+				GC_CHECKPOINT(": new+new");
+				// curr-new potential contacts
+				if(sizePrev>0) processCell</*sameGridCell*/false>(gridPrev,ijk,gridNew,ijk);
+				GC_CHECKPOINT(": prev+new");
+				// old-old delete
+			}
+			if(sizeOld>0){
+				if(sizeOld>1) processCell</*sameGridCell*/true,/*addContacts*/false>(gridOld,ijk,gridOld,ijk);
+				GC_CHECKPOINT(": old+old");
+				// old-curr delete
+				if(sizeCurr>0) processCell<true,/*addContacts*/false>(gridCurr,ijk,gridOld,ijk);
+				GC_CHECKPOINT(": curr+old");
+			}
+		}
 	} else {
 		/* contact search without history */
 		// 
 		size_t N=gridCurr->linSize();
 		if(around){
-			// throw std::runtime_error("GridCollider.around==true: not yet implemented!");
-			/* traverse the grid with 2-stride along all axes, and check for every strided cell:
-				* contacts within itself
-				* contacts with the central cell and all cells around
-				* contacts of all cells "lower" between themselves
-			*/
-			#ifdef WOO_OPENMP
-				#pragma omp parallel for
-			#endif
-			for(size_t lin=0; lin<N; lin++){
-				Vector3i ijk=gridCurr->lin2ijk(lin);
-				for(const Vector3i& dIjk: {
-					Vector3i(0,0,0),
-					Vector3i(-1,0,0),Vector3i(0,-1,0),Vector3i(0,0,-1),
-					Vector3i(0,-1,-1),Vector3i(-1,0,-1),Vector3i(-1,-1,0),
-					// Vector3i(1,-1,-1),Vector3i(-1,1,-1),Vector3i(-1,-1,1),
-					Vector3i(-1,-1,-1)
-				}){
-					Vector3i ijk2(ijk+dIjk);
-					if(!gridCurr->ijkOk(ijk2)) continue;
-					// GC_CHECKPOINT("process-cell (around)");
-					processCell<PROCESS_FULL>(gridCurr,ijk,gridCurr,ijk2);
+			throw std::runtime_error("GridCollider.around==true: implementation is broken and very likely weak performance-wise; forbidden.");
+			#if 0
+				/* traverse the grid with 2-stride along all axes, and check for every strided cell:
+					* contacts within itself
+					* contacts with the central cell and all cells around
+					* contacts of all cells "lower" between themselves
+				*/
+				#ifdef WOO_OPENMP
+					#pragma omp parallel for
+				#endif
+				for(size_t lin=0; lin<N; lin++){
+					Vector3i ijk=gridCurr->lin2ijk(lin);
+					processCell</*sameGridCell*/true>(gridCurr,ijk,gridCurr,ijk);
+					for(const Vector3i& dIjk: {
+						Vector3i(-1,0,0),Vector3i(0,-1,0),Vector3i(0,0,-1),
+						Vector3i(0,-1,-1),Vector3i(-1,0,-1),Vector3i(-1,-1,0),
+						// Vector3i(1,-1,-1),Vector3i(-1,1,-1),Vector3i(-1,-1,1),
+						Vector3i(-1,-1,-1)
+					}){
+						Vector3i ijk2(ijk+dIjk);
+						if(!gridCurr->ijkOk(ijk2)) continue;
+						// GC_CHECKPOINT("process-cell (around)");
+						processCell</*sameGridCell*/false>(gridCurr,ijk,gridCurr,ijk2);
+					}
 				}
-			}
+			#endif
 		} else {
+			GC_CHECKPOINT("pre-loop");
 			#ifdef WOO_OPENMP
-				#pragma omp parallel for schedule(guided,1000)
+				#pragma omp parallel for schedule(static,1000)
 			#endif
 			for(size_t lin=0; lin<N; lin++){
-				GC_CHECKPOINT("process-cells prologue (!around)");
+				GC_CHECKPOINT(": start");
 				Vector3i ijk=gridCurr->lin2ijk(lin);
+				// avoid useless function call
+				if(gridCurr->size(ijk)<=1){ GC_CHECKPOINT(": empty"); continue;  }
 				// check contacts between all particles in this cell
-				if(gridCurr->size(ijk)<=1) continue; // avoid function call
-				GC_CHECKPOINT("process-cells call (!around)");
-				processCell<PROCESS_FULL>(gridCurr,ijk,gridCurr,ijk);
+				processCell</*sameGridCell*/true>(gridCurr,ijk,gridCurr,ijk);
+				GC_CHECKPOINT(": curr+curr");
 			}
 		}
 	}
-	GC_CHECKPOINT("rest");
+	GC_CHECKPOINT("end");
 }
 
 #ifdef WOO_OPENGL

@@ -136,6 +136,7 @@ void ContactLoop::run(){
 		const shared_ptr<Contact>& C=(*dem.contacts)[i];
 
 		if(unlikely(removeUnseen && !C->isReal() && C->stepLastSeen<scene->step)) { removeAfterLoop(C); continue; }
+		if(!C->isReal() && !C->isColliding()){ removeAfterLoop(C); continue; }
 
 		/* this block is called exactly once for every potential contact created; it should check whether shapes
 			should be swapped, and also set minDist00Sq if used (Sphere-Sphere only)

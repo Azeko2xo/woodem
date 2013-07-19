@@ -9,7 +9,7 @@ import woo.dem
 
 class TestGridStore(unittest.TestCase):
 	def setUp(self):
-		self.gs=woo.dem.GridStore(gridSize=(5,6,7),cellLen=4,locking=True,exNumMaps=4)
+		self.gs=woo.dem.GridStore(gridSize=(5,6,7),cellLen=4,denseLock=True,exNumMaps=4)
 		self.ijk=Vector3i(2,3,4)
 	def testEx(self):	
 		'Grid: storage: dense and extra data'
@@ -41,24 +41,30 @@ class TestGridStore(unittest.TestCase):
 	def testComplement(self):
 		'Grid: storage: complements'
 		# make insignificant parameters different
-		g1=woo.dem.GridStore(gridSize=(3,3,3),cellLen=2,locking=False,exNumMaps=4)
-		g2=woo.dem.GridStore(gridSize=(3,3,3),cellLen=3,locking=True,exNumMaps=2)
+		g1=woo.dem.GridStore(gridSize=(3,3,3),cellLen=2,denseLock=False,exNumMaps=4)
+		g2=woo.dem.GridStore(gridSize=(3,3,3),cellLen=3,denseLock=True,exNumMaps=2)
 		c1,c2,c3,c4=(1,1,1),(2,2,2),(2,1,2),(1,2,1)
 		g1[c1]=[0,1]; g2[c1]=[1,2] # mixed scenario
 		g1[c2]=[1,2,3]; g2[c2]=[]  # b is empty (cheaper copy branch)
 		g2[c3]=[]; g2[c3]=[1,2,3]  # a is empty (cheaper copy branch)
 		g2[c4]=[]; g2[c4]=[]
-		g12,g21=g1.computeRelativeComplements(g2)
-		self.assert_(g12[c1]==[0])
-		self.assert_(g21[c1]==[2])
-		self.assert_(g12[c2]==[1,2,3])
-		self.assert_(g21[c2]==[])
-		self.assert_(g12[c3]==[])
-		self.assert_(g21[c3]==[1,2,3])
-		self.assert_(g21[c4]==[])
-		self.assert_(g12[c4]==[])
 		# incompatible dimensions
-		self.assertRaises(RuntimeError,lambda: g1.computeRelativeComplements(woo.dem.GridStore(gridSize=(2,2,2))))
+		self.assertRaises(RuntimeError,lambda: g1.complements(woo.dem.GridStore(gridSize=(2,2,2))))
+		# setMinSize determines when is boost::range::set_difference and when naive traversal used (presumably faster for very small sets)
+		for setMinSize in (0,1,2,3):
+			g12,g21=g1.complement(g2,setMinSize=setMinSize)
+			print setMinSize,'g1',g1[c1],g1[c2],g1[c3],g1[c4]
+			print setMinSize,'g2',g2[c1],g2[c2],g2[c3],g2[c4]
+			print setMinSize,'g12',g12[c1],g12[c2],g12[c3],g12[c4]
+			print setMinSize,'g21',g21[c1],g21[c2],g21[c3],g12[c4]
+			self.assert_(g12[c1]==[0])
+			self.assert_(g21[c1]==[2])
+			self.assert_(g12[c2]==[1,2,3])
+			self.assert_(g21[c2]==[])
+			self.assert_(g12[c3]==[])
+			self.assert_(g21[c3]==[1,2,3])
+			self.assert_(g21[c4]==[])
+			self.assert_(g12[c4]==[])
 
 
 class TestGridColliderBasics(unittest.TestCase):

@@ -332,6 +332,8 @@ WOO_REGISTER_OBJECT(CData);
 
 struct Contact: public Object{
 	bool isReal() const { return geom&&phys; }
+	bool isColliding() const { return stepCreated>=0; }
+	void setNotColliding(){ stepCreated=-1; }
 	bool isFresh(Scene* s){ return s->step==stepCreated; }
 	void swapOrder();
 	void reset();
@@ -371,7 +373,7 @@ struct Contact: public Object{
 		#ifdef WOO_OPENGL
 			((Real,color,0,,"(Normalized) color value for this contact"))
 		#endif
-		((int,stepCreated,-1,AttrTrait<Attr::hidden>(),"Step in which this contact was created by the collider, or step in which it was made real (if geom and phys exist). This number is NOT reset by Contact::reset()."))
+		((int,stepCreated,-1,AttrTrait<Attr::hidden>(),"Step in which this contact was created by the collider, or step in which it was made real (if geom and phys exist). This number is NOT reset by Contact::reset(). If negative, it means the collider does not want to keep this contact around anymore (this happens if the contact is real but there is no overlap anymore)."))
 		((Real,minDist00Sq,-1,AttrTrait<Attr::hidden>(),"Minimum distance between nodes[0] of both shapes so that the contact can exist. Set in ContactLoop by geometry functor once, and is used to check for possible contact without having to call the functor. If negative, not used. Currently, only Sphere-Sphere contacts use this information."))
 		((int,stepLastSeen,-1,AttrTrait<Attr::hidden>(),""))
 		((size_t,linIx,0,AttrTrait<Attr::readonly>().noGui(),"Position in the linear view (ContactContainer)"))

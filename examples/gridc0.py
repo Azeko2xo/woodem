@@ -11,12 +11,12 @@ S.lab.loneMask=0b010
 S.dem.loneMask=S.lab.loneMask
 woo.master.timingEnabled=True
 
-rr=.015
-cell=1.*rr
-verlet=.05*rr
+rr=.008
+cell=.5*rr
+verlet=.1*rr
 mat=woo.utils.defaultMaterial()
 
-gridCollider=GridCollider(domain=((-1,-1,-1),(2,3,3)),minCellSize=2*rr,gridBoundDispatcher=GridBoundDispatcher(functors=[Grid1_Sphere(),Grid1_Wall(movable=False)]),label='collider',verletDist=verlet,around=False,gridDense=10)
+gridCollider=GridCollider(domain=((-1,-1,-1),(2,3,3)),minCellSize=2*rr,gridBoundDispatcher=GridBoundDispatcher(functors=[Grid1_Sphere(),Grid1_Wall(movable=False)]),label='collider',verletDist=verlet,gridDense=4,exIniSize=3,complSetMinSize=3,useDiff=('diff' in sys.argv))
 sortCollider=InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Wall_Aabb()],verletDist=verlet)
 
 
@@ -51,4 +51,4 @@ S.dem.collectNodes()
 S.dt=.5*woo.utils.pWaveDt()
 
 S.saveTmp()
-S.run(4001,wait=True)
+S.run(3001,wait=True)

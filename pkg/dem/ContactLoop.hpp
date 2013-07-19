@@ -1,4 +1,4 @@
-// 2009 © Václav Šmilauer <eudoxos@arcig.cz>
+// 2009 © Václav Šmilauer <eu@doxos.eu>
 #pragma once
 #include<woo/core/Engine.hpp>
 #include<woo/core/Functor.hpp>
@@ -63,7 +63,7 @@ struct LawDispatcher: public Dispatcher2D</*functor type*/ LawFunctor, /*autosym
 WOO_REGISTER_OBJECT(LawDispatcher);
 
 
-// #define CONTACTLOOP_TIMING
+#define CONTACTLOOP_TIMING
 
 #ifdef CONTACTLOOP_TIMING
 	#define CONTACTLOOP_CHECKPOINT(what) timingDeltas->checkpoint(__LINE__,what);
