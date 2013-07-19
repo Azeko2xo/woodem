@@ -105,6 +105,9 @@ void GridCollider::prepareGridCurr(){
 void GridCollider::fillGridCurr(){
 	shared_ptr<GridCollider> shared_this=static_pointer_cast<GridCollider>(shared_from_this());
 	size_t nPar=dem->particles->size();
+	boundDispatcher->scene=scene;
+	boundDispatcher->field=field;
+	boundDispatcher->updateScenePtr();
 	#ifdef WOO_OPENMP
 		#pragma omp parallel for schedule(guided)
 	#endif

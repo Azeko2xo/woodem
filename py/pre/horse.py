@@ -112,8 +112,8 @@ def prepareHorse(pre):
 		c=S.lab.collider
 		zMax=max([p.shape.nodes[0].pos[2] for p in S.dem.par])
 		c.domain=((xMin,yMin,zMin-.01*zSpan),(xMax,yMax,zMax))
-		c.minCellSize=radius
-		c.verletDist=.4*radius
+		c.minCellSize=2*pre.radius
+		c.verletDist=.5*pre.radius
 
 	S.engines=S.engines+[
 		BoxDeleter(box=((xMin,yMin,zMin-.1*zSpan),(xMax,yMax,aabb[1][2]+.1*zSpan)),inside=False,stepPeriod=100),
