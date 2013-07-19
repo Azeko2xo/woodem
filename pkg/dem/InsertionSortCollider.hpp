@@ -180,8 +180,6 @@ struct InsertionSortCollider: public Collider {
 	}
 	virtual bool isActivated();
 
-
-
 	// force reinitialization at next run
 	virtual void invalidatePersistentData(){ for(int i=0; i<3; i++){ BB[i].vec.clear(); BB[i].size=0; }}
 	// initial setup (reused in derived classes)
@@ -190,6 +188,9 @@ struct InsertionSortCollider: public Collider {
 	bool updateBboxes_doFullRun();
 
 	vector<Particle::id_t> probeAabb(const Vector3r& mn, const Vector3r& mx);
+
+	void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d) WOO_CXX11_OVERRIDE;
+	void getLabeledObjects(std::map<std::string,py::object>& m, const shared_ptr<LabelMapper>&) WOO_CXX11_OVERRIDE;
 
 	virtual void run();
 	WOO_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(InsertionSortCollider,Collider,"\
@@ -222,6 +223,7 @@ struct InsertionSortCollider: public Collider {
 		((int,numReinit,0,AttrTrait<Attr::readonly>(),"Cumulative number of bound array re-initialization."))
 		((Vector3i,stepInvs,Vector3i::Zero(),,"Number of inversions in insertion sort in the last step; always zero in the non-debug builds"))
 		((Vector3i,numInvs,Vector3i::Zero(),,"Cumulative number of inversions in insertion sort; always zero in the non-debug builds"))
+		((shared_ptr<BoundDispatcher>,boundDispatcher,make_shared<BoundDispatcher>(),AttrTrait<Attr::readonly>(),":ref:`BoundDispatcher` object that is used for creating :ref:`bounds <Body.bound>` on collider's request as necessary."))
 		, /*deprec*/
 		, /* init */
 		,

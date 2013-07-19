@@ -4,7 +4,7 @@
 #include<woo/pkg/dem/GridBound.hpp>
 
 // #define this macro to enable timing within this engine
-#define GC_TIMING
+// #define GC_TIMING
 
 #ifdef GC_TIMING
 	#define GC_CHECKPOINT(cpt) timingDeltas->checkpoint(__LINE__,cpt)
@@ -37,8 +37,12 @@ struct GridCollider: public Collider{
 	bool allParticlesWithinPlay() const;
 	void prepareGridCurr();
 	void fillGridCurr();
-	
 
+	void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d) WOO_CXX11_OVERRIDE;
+	void getLabeledObjects(std::map<std::string,py::object>& m, const shared_ptr<LabelMapper>&) WOO_CXX11_OVERRIDE;
+
+	// forces reinitialization
+	void invalidatePersistentData() WOO_CXX11_OVERRIDE { gridPrev.reset(); }
 
 	WOO_CLASS_BASE_DOC_ATTRS_PY(GridCollider,Collider,"Grid-based collider.",
 		// grid definition
@@ -55,17 +59,18 @@ struct GridCollider: public Collider{
 		// rendering
 		((Vector3r,color,Vector3r(1,1,0),AttrTrait<>().rgbColor().startGroup("Rendering"),"Color for rendering the domain"))
 		((bool,renderCells,false,,"Render cells."))
+		((int,minOccup,0,,"Minimum occupancy for cell to be rendered (zero cells are never rendered)."))
 		((shared_ptr<ScalarRange>,occupancyRange,,,"Range for coloring grids based on occupancy (automatically created)"))
 		// tunables
-		((int,gridDense,4,AttrTrait<>().startGroup("Tunables"),"Length of dense storage for new :obj:`GridStore` objects."))
-		((int,exIniSize,4,,":obj:`GridStore.exIniSize` for new grids."))
-		((int,exNumMaps,10,,":obj:`GridStore.exNumMaps` for new grids."))
+		((int,gridDense,6,AttrTrait<>().startGroup("Tunables"),"Length of dense storage for new :obj:`GridStore` objects."))
+		((int,exIniSize,6,,":obj:`GridStore.exIniSize` for new grids."))
+		((int,exNumMaps,100,,":obj:`GridStore.exNumMaps` for new grids."))
 		((int,complSetMinSize,-1,,"The value of *setMinSize* when calling :obj:`GridStore.computeRelativeComplements`."))
 		((bool,useDiff,true,,"Create new contacts based on set complement of :obj:`gridPrev` with respect to :obj:`gridCurr` if both contain meaningful data and are compatible; if false, always traverse *gridCurr* and try adding all possible contacts (this should be much slower)"))
 		((bool,around,false,AttrTrait<Attr::triggerPostLoad>(),"If frue, particle in every cell is checked with particles in all cells around; this makes the grid storage substantially less loaded, as all particles can be shrunk by one half of the cell size.\n\n.. warning:: this feature is broken and will raise exception if enabled; the trade-off is not good, since many more cells need to be checked around every cell, and many more potential contacts are created."))
 		((Real,shrink,0,AttrTrait<Attr::readonly>().noGui(),"The amount of shrinking for each particle (half of the minimum cell size if *around* is true, zero otherwise."))
 		((Real,verletDist,0,AttrTrait<>().lenUnit(),"Length by which particle size is enalrged, to avoid running the collider at every timestep."))
-		((shared_ptr<GridBoundDispatcher>,gridBoundDispatcher,,,"Dispatches :obj:`GridBound` creation to :obj:`GridBoundFuctor` based on :obj:`Shape` type."))
+		((shared_ptr<GridBoundDispatcher>,boundDispatcher,make_shared<GridBoundDispatcher>(),,"Dispatches :obj:`GridBound` creation to :obj:`GridBoundFuctor` based on :obj:`Shape` type."))
 		, /*py*/
 	);
 };

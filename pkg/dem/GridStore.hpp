@@ -55,6 +55,7 @@ struct GridStore: public Object{
 	AlignedBox3r ijk2box(const Vector3i& ijk) const { AlignedBox3r ret; ret.min()=ijk2boxMin(ijk); ret.max()=ret.min()+cellSize; return ret; }
 	// lower corner of given cell
 	Vector3r ijk2boxMin(const Vector3i& ijk) const { return lo+(ijk.cast<Real>().array()*cellSize.array()).matrix(); }
+	Vector3r ijk2boxMiddle(const Vector3i& ijk) const { return lo+((ijk.cast<Real>()+.5*Vector3r::Ones()).array()*cellSize.array()).matrix(); }
 
 	/* bigger, not inlined */
 	// bounding box shrunk by dimensionless *shrink* (relative size)

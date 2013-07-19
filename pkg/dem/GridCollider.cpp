@@ -3,13 +3,24 @@
 WOO_PLUGIN(dem,(GridCollider));
 CREATE_LOGGER(GridCollider);
 
+void GridCollider::pyHandleCustomCtorArgs(py::tuple& t, py::dict& d){
+	if(py::len(t)==0) return; // nothing to do
+	if(py::len(t)!=1) throw invalid_argument("GridCollider optionally takes exactly one list of GridBoundFunctor's as non-keyword argument for constructor ("+to_string(py::len(t))+" non-keyword ards given instead)");
+	if(!boundDispatcher) boundDispatcher=make_shared<GridBoundDispatcher>();
+	vector<shared_ptr<GridBoundFunctor>> vf=py::extract<vector<shared_ptr<GridBoundFunctor>>>((t[0]))();
+	for(const auto& f: vf) boundDispatcher->add(f);
+	t=py::tuple(); // empty the args
+}
+
+void GridCollider::getLabeledObjects(std::map<std::string,py::object>& m, const shared_ptr<LabelMapper>& labelMapper){ if(boundDispatcher) boundDispatcher->getLabeledObjects(m,labelMapper); Engine::getLabeledObjects(m,labelMapper); }
+
 void GridCollider::postLoad(GridCollider&, void* attr){
 	if(domain.isEmpty() || domain.volume()==0) throw std::runtime_error("GridCollider.domain: may not be empty.");
 	if(!(minCellSize>0)) throw std::runtime_error("GridCollider.minCellSize: must be positive (not "+to_string(minCellSize));
 	dim=(domain.sizes()/minCellSize).cast<int>();
 	cellSize=(domain.sizes().array()/dim.cast<Real>().array()).matrix();
 	shrink=around?cellSize.minCoeff()/2.:0.;
-	if(!gridBoundDispatcher){ gridBoundDispatcher=make_shared<GridBoundDispatcher>(); }
+	if(!boundDispatcher){ boundDispatcher=make_shared<GridBoundDispatcher>(); }
 }
 
 void GridCollider::selfTest(){
@@ -17,7 +28,7 @@ void GridCollider::selfTest(){
 	if(!(minCellSize>0)) throw std::runtime_error("GridCollider.minCellSize: must be positive (not "+to_string(minCellSize));
 	if(dim.minCoeff()<=0) throw std::logic_error("GridCollider.dim: all components must be positive.");
 	if(!(cellSize.minCoeff()>0)) throw std::logic_error("GridCollider.cellSize: all components must be positive.");
-	if(!gridBoundDispatcher) throw std::logic_error("GridCollider.gridBoundDispatcher: must not be None.");
+	if(!boundDispatcher) throw std::logic_error("GridCollider.boundDispatcher: must not be None.");
 }
 
 bool GridCollider::tryAddContact(const Particle::id_t& idA, const Particle::id_t& idB) const {
@@ -101,7 +112,7 @@ void GridCollider::fillGridCurr(){
 		const shared_ptr<Particle>& p((*dem->particles)[parId]);
 		if(!p || !p->shape) continue;
 		// when not in diffStep, add all particles, even if within their nodePlay boxes
-		gridBoundDispatcher->operator()(p->shape,p->id,shared_this,gridCurr,/*force*/true);
+		boundDispatcher->operator()(p->shape,p->id,shared_this,gridCurr);
 	}
 }
 
@@ -117,6 +128,8 @@ void GridCollider::run(){
 	dem->contacts->clearPending();
 
 	bool allOk=allParticlesWithinPlay();
+	// if dirty, clear the dirty flag and do a full run
+	if(dem->contacts->dirty){ allOk=false; dem->contacts->dirty=false; }
 	GC_CHECKPOINT("check-play");
 	if(allOk) return;
 
@@ -261,7 +274,7 @@ void GridCollider::run(){
 						for(ijk[2]=0; ijk[2]<maxIjk[2]; ijk[2]++){
 							if(ijk[2]>=grid->gridSize[2]) break;
 							size_t occupancy=grid->size(ijk);
-							if(occupancy==0) continue;
+							if(occupancy==0 || occupancy<minOccup) continue;
 							GLUtils::AlignedBox(grid->ijk2boxShrink(ijk,.1),occupancyRange->color(occupancy));
 						}
 					}

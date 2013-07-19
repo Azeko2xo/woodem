@@ -72,8 +72,8 @@ Vector3r Facet::getNearestPt(const Vector3r& pt) const {
 		case 3: return nodes[1]->pos; // ++- (v1)
 		case 5: return nodes[0]->pos; // +-+ (v0)
 		case 6: return nodes[2]->pos; // -++ (v2)
-		case 7: throw logic_error("Cg2_Facet_Sphere_L3Geom: Impossible sphere-facet intersection (all points are outside the edges). (please report bug)"); // +++ (impossible)
-		default: throw logic_error("Ig2_Facet_Sphere_L3Geom: Nonsense intersection value. (please report bug)");
+		case 7: throw logic_error("Facet::getNearestPt: Impossible sphere-facet intersection (all points are outside the edges). (please report bug)"); // +++ (impossible)
+		default: throw logic_error("Facet::getNearestPt: Nonsense intersection value. (please report bug)");
 	}
 }
 

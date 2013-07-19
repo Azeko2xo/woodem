@@ -63,7 +63,7 @@ struct LawDispatcher: public Dispatcher2D</*functor type*/ LawFunctor, /*autosym
 WOO_REGISTER_OBJECT(LawDispatcher);
 
 
-#define CONTACTLOOP_TIMING
+// #define CONTACTLOOP_TIMING
 
 #ifdef CONTACTLOOP_TIMING
 	#define CONTACTLOOP_CHECKPOINT(what) timingDeltas->checkpoint(__LINE__,what);
@@ -97,7 +97,7 @@ class ContactLoop: public Engine {
 			((bool,_forceApplyChecked,false,AttrTrait<>().noGui(),"We already warned if forces are not applied here and no IntraForce engine exists in O.scene.engines"))
 			((bool,dist00,true,,"Whether to apply the Contact.minDist00Sq optimization (for mesuring the speedup only)"))
 			((Matrix3r,stress,Matrix3r::Zero(),AttrTrait<Attr::readonly>(),"Stress value, used to compute *gradV*  energy if *trackWork* is True."))
-			((int,reorderEvery,200,,"Reorder contacts so that real ones are at the beginning in the linear sequence, making the OpenMP loop traversal (hopefully) less unbalanced."))
+			((int,reorderEvery,1000,,"Reorder contacts so that real ones are at the beginning in the linear sequence, making the OpenMP loop traversal (hopefully) less unbalanced."))
 			((Real,prevVol,NaN,AttrTrait<Attr::hidden>(),"Previous value of cell volume"))
 			//((Real,prevTrGradVStress,NaN,AttrTrait<Attr::hidden>(),"Previous value of tr(gradV*stress)"))
 			((Matrix3r,prevStress,Matrix3r::Zero(),,"Previous value of stress, used to compute mid-step stress"))

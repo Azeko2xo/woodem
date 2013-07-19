@@ -5,19 +5,14 @@ WOO_PLUGIN(dem,(ClumpData)(SphereClumpGeom));
 CREATE_LOGGER(ClumpData);
 CREATE_LOGGER(SphereClumpGeom);
 
-void SphereClumpGeom::ensureOk() const {
-	if(isOk()) return;
-	throw std::runtime_error("SphereClumpGeom: invalid values; centers and radii must have the same size, and may not be empty (len(centers)="+to_string(centers.size())+", len(radii)="+to_string(radii.size())+").");
-}
-
 void SphereClumpGeom::postLoad(SphereClumpGeom&,void* attr){
 	if(attr==NULL){
 		if(centers.size()!=radii.size()) throw std::runtime_error("SphereClumpGeom: centers and radii must have the same length (len(centers)="+to_string(centers.size())+", len(radii)="+to_string(radii.size())+").");
 		// valid data, and volume has not been computed yet
 		if(!centers.empty() && isnan(volume)) recompute(div);
 	} else {
-		// centers/radii/div changed, recompute
-		recompute(div);
+		// centers/radii/div changed, try to recompute
+		recompute(div,/*failOk*/true,/*fastOnly*/true);
 	}
 }
 
@@ -57,16 +52,12 @@ vector<shared_ptr<SphereClumpGeom>> SphereClumpGeom::fromSpherePack(const shared
 
 
 
-void SphereClumpGeom::recompute(int _div){
+void SphereClumpGeom::recompute(int _div, bool failOk, bool fastOnly){
 	if((centers.empty() && radii.empty()) || centers.size()!=radii.size()){
-		volume=equivRad=NaN;
-		inertia=Vector3r(NaN,NaN,NaN);
-		pos=Vector3r::Zero();
-		ori=Quaternionr::Identity();
-		return;
+		if(failOk) { makeInvalid(); return;}
+		throw std::runtime_error("SphereClumpGeom.recompute: centers and radii must have the same length (len(centers)="+to_string(centers.size())+", len(radii)="+to_string(radii.size())+"), and may not be empty.");
 	}
 	#if 0
-		if(centers.size()!=radii.size()) throw std::runtime_error("SphereClumpGeom.recompute: centers and radii must have the same length (len(centers)="+to_string(centers.size())+", len(radii)="+to_string(radii.size())+"), and may not be empty.");
 	#endif
 	// one single sphere: simple
 	if(centers.size()==1){
@@ -97,7 +88,15 @@ void SphereClumpGeom::recompute(int _div){
 			aabb.extend(centers[i]-Vector3r::Constant(radii[i]));
 			rMin=min(rMin,radii[i]);
 		}
+		if(rMin<=0){
+			if(failOk){ makeInvalid(); return; }
+			throw std::runtime_error("SphereClumpGeom.recompute: minimum radius must be positive (not "+to_string(rMin)+")");
+		}
 		Real dx=rMin/_div; Real dv=pow(dx,3);
+		long nCellsApprox=(aabb.sizes()/dx).prod();
+		 // don't compute anything, it would take too long
+		if(fastOnly && nCellsApprox>1e5){ makeInvalid(); return; }
+		if(nCellsApprox>1e8) LOG_WARN("SphereClumpGeom: space grid has "<<nCellsApprox<<" cells, computing inertia can take a long time.");
 		Vector3r x;
 		for(x.x()=aabb.min().x()+dx/2.; x.x()<aabb.max().x(); x.x()+=dx){
 			for(x.y()=aabb.min().y()+dx/2.; x.y()<aabb.max().y(); x.y()+=dx){

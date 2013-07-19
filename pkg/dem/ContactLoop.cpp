@@ -70,6 +70,7 @@ void ContactLoop::reorderContacts(){
 	// traverse contacts, move real onces towards the beginning
 	ContactContainer& cc=*(field->cast<DemField>().contacts);
 	size_t N=cc.size();
+	if(N<2) return;
 	size_t lowestReal=0;
 	// traverse from the end, and put to the beginning
 	for(size_t i=N-1; i>lowestReal; i--){
@@ -136,7 +137,7 @@ void ContactLoop::run(){
 		const shared_ptr<Contact>& C=(*dem.contacts)[i];
 
 		if(unlikely(removeUnseen && !C->isReal() && C->stepLastSeen<scene->step)) { removeAfterLoop(C); continue; }
-		if(!C->isReal() && !C->isColliding()){ removeAfterLoop(C); continue; }
+		if(unlikely(!C->isReal() && !C->isColliding())){ removeAfterLoop(C); continue; }
 
 		/* this block is called exactly once for every potential contact created; it should check whether shapes
 			should be swapped, and also set minDist00Sq if used (Sphere-Sphere only)
@@ -156,7 +157,7 @@ void ContactLoop::run(){
 
 		// if minDist00Sq is defined, we might see that there is no contact without ever calling the functor
 		// saving quite a few calls for sphere-sphere contacts
-		if(likely(dist00 && !C->isReal() && !C->isFresh(scene) && C->minDist00Sq>0 && (sA->nodes[0]->pos-(sB->nodes[0]->pos-shift2)).squaredNorm()>C->minDist00Sq)){
+		if(likely(dist00 && !C->isReal() && !C->isFresh(scene) && C->minDist00Sq>0 && (sA->nodes[0]->pos-(sB->nodes[0]->pos+shift2)).squaredNorm()>C->minDist00Sq)){
 			CONTACTLOOP_CHECKPOINT("dist00Sq-too-far");
 			continue;
 		}

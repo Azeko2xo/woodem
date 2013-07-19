@@ -633,3 +633,17 @@ py::object InsertionSortCollider::dbgInfo(){
 	py::dict ret;
 	return ret;
 }
+
+
+void InsertionSortCollider::pyHandleCustomCtorArgs(py::tuple& t, py::dict& d){
+	if(py::len(t)==0) return; // nothing to do
+	if(py::len(t)!=1) throw invalid_argument(("Collider optionally takes exactly one list of BoundFunctor's as non-keyword argument for constructor ("+lexical_cast<string>(py::len(t))+" non-keyword ards given instead)").c_str());
+	if(py::len(t)!=1) throw invalid_argument("GridCollider optionally takes exactly one list of GridBoundFunctor's as non-keyword argument for constructor ("+to_string(py::len(t))+" non-keyword ards given instead)");
+	if(!boundDispatcher) boundDispatcher=make_shared<BoundDispatcher>();
+	vector<shared_ptr<BoundFunctor>> vf=py::extract<vector<shared_ptr<BoundFunctor>>>((t[0]))();
+	for(const auto& f: vf) boundDispatcher->add(f);
+	t=py::tuple(); // empty the args
+}
+
+void InsertionSortCollider::getLabeledObjects(std::map<std::string,py::object>& m, const shared_ptr<LabelMapper>& labelMapper){ if(boundDispatcher) boundDispatcher->getLabeledObjects(m,labelMapper); Engine::getLabeledObjects(m,labelMapper); }
+

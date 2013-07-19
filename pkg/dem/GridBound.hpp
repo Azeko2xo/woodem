@@ -33,9 +33,7 @@ struct Gl1_GridBound: public GlBoundFunctor{
 WOO_REGISTER_OBJECT(Gl1_GridBound);
 #endif
 
-// TODO: remove the force param if it won't be ever used (i.e. always true)
-// does not have to return bool in that case, either
-struct GridBoundFunctor: public Functor1D</*dispatch types*/ Shape,/*return type*/ bool, /*argument types*/ TYPELIST_5(const shared_ptr<Shape>&, const Particle::id_t&, const shared_ptr<GridCollider>&, const shared_ptr<GridStore>&, const bool&)>{
+struct GridBoundFunctor: public Functor1D</*dispatch types*/ Shape,/*return type*/ void, /*argument types*/ TYPELIST_4(const shared_ptr<Shape>&, const Particle::id_t&, const shared_ptr<GridCollider>&, const shared_ptr<GridStore>&)>{
 	WOO_CLASS_BASE_DOC(GridBoundFunctor,Functor,"Functor for creating/updating :obj:`woo.dem.GridBound`.");
 };
 WOO_REGISTER_OBJECT(GridBoundFunctor);
@@ -52,7 +50,7 @@ WOO_REGISTER_OBJECT(GridBoundDispatcher);
 
 #include<woo/pkg/dem/Sphere.hpp>
 struct Grid1_Sphere: public GridBoundFunctor{
-	bool go(const shared_ptr<Shape>&, const Particle::id_t&, const shared_ptr<GridCollider>&, const shared_ptr<GridStore>&, const bool& force);
+	void go(const shared_ptr<Shape>&, const Particle::id_t&, const shared_ptr<GridCollider>&, const shared_ptr<GridStore>&) WOO_CXX11_OVERRIDE;
 	FUNCTOR1D(Sphere);
 	WOO_CLASS_BASE_DOC_ATTRS(Grid1_Sphere,GridBoundFunctor,"Functor filling :obj:`GridStore` from :obj:`Sphere`, used with :obj:`GridCollider`.",
 		((Real,distFactor,((void)"deactivated",-1),,"Relative enlargement of the bounding box; deactivated if negative."))
@@ -62,7 +60,7 @@ WOO_REGISTER_OBJECT(Grid1_Sphere);
 
 #include<woo/pkg/dem/Wall.hpp>
 struct Grid1_Wall: public GridBoundFunctor{
-	bool go(const shared_ptr<Shape>&, const Particle::id_t&, const shared_ptr<GridCollider>&, const shared_ptr<GridStore>&, const bool& force);
+	void go(const shared_ptr<Shape>&, const Particle::id_t&, const shared_ptr<GridCollider>&, const shared_ptr<GridStore>&) WOO_CXX11_OVERRIDE;
 	FUNCTOR1D(Wall);
 	WOO_CLASS_BASE_DOC_ATTRS(Grid1_Wall,GridBoundFunctor,"Functor filling :obj:`GridStore` from :obj:`Wall`, used with :obj:`GridCollider`.",
 		((bool,movable,false,,"Set to allow movable walls (with grid enlarged by :obj:`GridCollider.verletDist`. If false and a movable wall is encountered, an exception is raised."))
@@ -70,4 +68,23 @@ struct Grid1_Wall: public GridBoundFunctor{
 };
 WOO_REGISTER_OBJECT(Grid1_Wall);
 
+#include<woo/pkg/dem/InfCylinder.hpp>
+struct Grid1_InfCylinder: public GridBoundFunctor{
+	void go(const shared_ptr<Shape>&, const Particle::id_t&, const shared_ptr<GridCollider>&, const shared_ptr<GridStore>&) WOO_CXX11_OVERRIDE;
+	FUNCTOR1D(InfCylinder);
+	WOO_CLASS_BASE_DOC_ATTRS(Grid1_InfCylinder,GridBoundFunctor,"Functor filling :obj:`GridStore` from :obj:`InfCylinder`, used with :obj:`GridCollider`.",
+		((bool,movable,false,,"Set to allow movable cylinders (with grid enlarged by :obj:`GridCollider.verletDist`. If false and a moving cylinder is encountered, an exception is raised."))
+	);
+};
+WOO_REGISTER_OBJECT(Grid1_InfCylinder);
 
+
+#include<woo/pkg/dem/Facet.hpp>
+struct Grid1_Facet: public GridBoundFunctor{
+	void go(const shared_ptr<Shape>&, const Particle::id_t&, const shared_ptr<GridCollider>&, const shared_ptr<GridStore>&) WOO_CXX11_OVERRIDE;
+	FUNCTOR1D(Facet);
+	WOO_CLASS_BASE_DOC_ATTRS(Grid1_Facet,GridBoundFunctor,"Functor filling :obj:`GridStore` from :obj:`Facet`, used with :obj:`GridCollider`.",
+		((bool,movable,false,,"Set to allow movable facets (with grid enlarged by :obj:`GridCollider.verletDist`. If false and a moving facet is encountered, an exception is raised."))
+	);
+};
+WOO_REGISTER_OBJECT(Grid1_Facet);

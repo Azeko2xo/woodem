@@ -26,6 +26,7 @@ class FallingHorse(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		_PAT(str,'reportFmt',"/tmp/{tid}.xhtml",filename=True,startGroup="Outputs",doc="Report output format; :obj:`Scene.tags <woo.core.Scene.tags>` can be used."),
 		_PAT(int,'vtkStep',40,"How often should VtkExport run. If non-positive, never run the export."),
 		_PAT(str,'vtkPrefix',"/tmp/{tid}-",filename=True,doc="Prefix for saving :obj:`woo.dem.VtkExport` data; formatted with ``format()`` providing :obj:`woo.core.Scene.tags` as keys."),
+		_PAT(bool,'grid',False,'Use grid collider (experimental)'),
 	]
 	def __init__(self,**kw):
 		woo.core.Preprocessor.__init__(self)
@@ -60,7 +61,7 @@ def prepareHorse(pre):
 	else: raise ValueError('FallingHorse.pattern must be one of hexa, ortho (not %s)'%pre.pattern)
 	S.dem.par.append(packer(pred,radius=pre.radius,gap=pre.relGap*pre.radius,mat=pre.mat))
 	# meshed horse below
-	xSpan,ySpan,zSpan=aabb[1][0]-aabb[0][0],aabb[1][1]-aabb[0][1],aabb[1][2]-aabb[0][2]
+	xSpan,ySpan,zSpan=aabb.sizes() # aabb[1][0]-aabb[0][0],aabb[1][1]-aabb[0][1],aabb[1][2]-aabb[0][2]
 	surf.translate(0,0,-zSpan)
 	zMin=aabb[0][2]-(aabb[1][2]-aabb[0][2])
 	xMin,yMin,xMax,yMax=aabb[0][0]-zSpan,aabb[0][1]-zSpan,aabb[1][0]+zSpan,aabb[1][1]+zSpan
@@ -71,10 +72,15 @@ def prepareHorse(pre):
 	
 	nan=float('nan')
 
+
+	if not pre.grid: collider=InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb(),Bo1_Wall_Aabb()],verletDist=0.01)
+	else: collider=GridCollider([Grid1_Sphere(),Grid1_Facet(),Grid1_Wall()],label='collider')
+
 	if not pre.deformable:
 		S.engines=woo.utils.defaultEngines(damping=pre.damping,
 			cp2=(Cp1_PelletMat_PelletPhys if isinstance(pre.mat,woo.dem.PelletMat) else None),
-			law=(Law2_L6Geom_PelletPhys_Pellet(plastSplit=True) if isinstance(pre.mat,woo.dem.PelletMat) else None)
+			law=(Law2_L6Geom_PelletPhys_Pellet(plastSplit=True) if isinstance(pre.mat,woo.dem.PelletMat) else None),
+			grid=pre.grid
 		)+[
 			woo.core.PyRunner(10,'S.plot.addData(i=S.step,t=S.time,total=S.energy.total(),relErr=(S.energy.relErr() if S.step>100 else 0),**S.energy)'),
 			woo.core.PyRunner(50,'import woo.pre.horse\nif S.step>100 and S.energy["kinetic"]<S.pre.relEkStop*abs(S.energy["grav"]): woo.pre.horse.finished(S)'),
@@ -97,10 +103,17 @@ def prepareHorse(pre):
 
 		S.engines=[
 			Leapfrog(reset=True,damping=pre.damping),
-			InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb(),Bo1_Wall_Aabb()],verletDist=0.01),
+			collider,
 			ContactLoop([Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom(),Cg2_Wall_Sphere_L6Geom()],[Cp2_FrictMat_FrictPhys()],[Law2_L6Geom_FrictPhys_IdealElPl()],applyForces=False), # forces are applied in IntraForce
 			IntraForce([In2_FlexFacet_ElastMat(bending=True,thickness=(pre.radius if pre.halfThick<=0 else float('nan'))),In2_Sphere_ElastMat()]),
 		]
+
+	if pre.grid:
+		c=S.lab.collider
+		zMax=max([p.shape.nodes[0].pos[2] for p in S.dem.par])
+		c.domain=((xMin,yMin,zMin-.01*zSpan),(xMax,yMax,zMax))
+		c.minCellSize=radius
+		c.verletDist=.4*radius
 
 	S.engines=S.engines+[
 		BoxDeleter(box=((xMin,yMin,zMin-.1*zSpan),(xMax,yMax,aabb[1][2]+.1*zSpan)),inside=False,stepPeriod=100),

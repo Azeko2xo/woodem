@@ -263,12 +263,12 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.aboutGeneralLabel.setText('''<h4>System data</h4><table cellpadding='2px' rules='all' width='100%'>
 			<tr><td>user</td><td>{user}</td></tr>
 			<tr><td>cores</td><td>{nCores}</td></tr>
-			<tr><td>version</td><td>{version} ({buildDate})</td></tr>
+			<tr><td>version</td><td>{version} ({buildDate}{flavor})</td></tr>
 			<tr><td>platform</td><td>{platform}</td></tr>
 			<tr><td>features&nbsp;</td><td>{features}</td></tr>
 			<tr><td>extras</td><td>{extraModules}</td></tr>
 		</table>
-		'''.format(user=woo.master.scene.tags['user'].decode('utf-8'),nCores=woo.master.numThreads,platform='<br>'.join(textwrap.wrap(platform.platform().replace('-',' '),40)),version=woo.config.version+'/'+woo.config.revision+(' (debug)' if woo.config.debug else ''),features=', '.join(woo.config.features),buildDate=woo.config.buildDate,extraModules='<br>'.join(['{e.name} ({e.version})'.format(e=e) for e in extras])))
+		'''.format(user=woo.master.scene.tags['user'].decode('utf-8'),nCores=woo.master.numThreads,platform='<br>'.join(textwrap.wrap(platform.platform().replace('-',' '),40)),version=woo.config.version+'/'+woo.config.revision+(' (debug)' if woo.config.debug else ''),features=', '.join(woo.config.features),buildDate=woo.config.buildDate,flavor=((', flavor "'+woo.config.flavor+'"') if woo.config.flavor else ''),extraModules='<br>'.join(['{e.name} ({e.version})'.format(e=e) for e in extras])))
 		if extras:
 			self.aboutExtraLabel.setText(u"<h4>Extra modules</h4><table cellpadding='10px' width='100%'>"+u''.join([u'<tr><td>wooExtra.<b>{e.name}&nbsp;</b><br>{e.version}</td><td>{e.distributor}</td></tr>'.format(e=e) for e in extras])+'</table')
 	def inspectSlot(self):

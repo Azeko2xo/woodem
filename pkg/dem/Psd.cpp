@@ -168,7 +168,7 @@ PsdClumpGenerator::operator()(const shared_ptr<Material>&mat){
 	// sum probabilities, with interpolation for each clump
 	for(size_t i=0; i<clumps.size(); i++){
 		if(!clumps[i]) woo::ValueError("PsdCLumpGenerator.clumps["+to_string(i)+"] is None.");
-		const SphereClumpGeom& C(*clumps[i]);
+		SphereClumpGeom& C(*clumps[i]);
 		C.ensureOk();
 		const auto& pf(C.scaleProb); // probability function
 		if(!pf.empty()){

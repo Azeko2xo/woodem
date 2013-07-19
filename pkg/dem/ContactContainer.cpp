@@ -180,10 +180,10 @@ int ContactContainer::removeAllPending(){
 	int ret=0;
 	#ifdef WOO_OPENMP
 		// shadow this->pendingErase by the local variable, to share code
-		FOREACH(list<PendingContact>& pending, threadsPending){
+		for(list<PendingContact>& pending: threadsPending){
 	#endif
 			if(!pending.empty()){
-				FOREACH(const PendingContact& p, pending){ if(remove(p.contact)) ret++; }
+				for(const PendingContact& p: pending){ if(remove(p.contact)) ret++; }
 				pending.clear();
 			}
 	#ifdef WOO_OPENMP
@@ -194,8 +194,8 @@ int ContactContainer::removeAllPending(){
 
 void ContactContainer::removeNonReal(){
 	std::list<shared_ptr<Contact> > cc;
-	FOREACH(const shared_ptr<Contact>& c, linView){ if(!c->isReal()) cc.push_back(c); }
-	FOREACH(const shared_ptr<Contact>& c, cc){ this->remove(c); }
+	for(const shared_ptr<Contact>& c: linView){ if(!c->isReal()) cc.push_back(c); }
+	for(const shared_ptr<Contact>& c: cc){ this->remove(c); }
 }
 
 int ContactContainer::countReal() const{

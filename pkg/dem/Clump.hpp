@@ -5,11 +5,11 @@
 struct SphereClumpGeom: public Object{
 	DECLARE_LOGGER;
 	void postLoad(SphereClumpGeom&,void*);
-	void recompute(int div);
-	// this indicates that recompute failed as input data were wrong
+	// may fail when called from postLoad, but not from ensureOk()
+	void recompute(int div, bool failOk=false, bool fastOnly=false);
+	void makeInvalid(){ volume=equivRad=NaN; inertia=Vector3r(NaN,NaN,NaN); pos=Vector3r::Zero(); ori=Quaternionr::Identity(); }
 	bool isOk() const { return !isnan(volume); }
-	// if not isOk, raises exception
-	void ensureOk() const;
+	void ensureOk() { if(!isOk()) recompute(div,/*failOk*/false); }
 	std::tuple<shared_ptr<Node>,vector<shared_ptr<Particle>>> makeClump(const shared_ptr<Material>&, const Vector3r& pos, const Quaternionr& ori, Real scale=1.);
 	py::tuple pyMakeClump(const shared_ptr<Material>& m, const Vector3r& p, const Quaternionr& o=Quaternionr::Identity(), Real scale=1., int mask=0){
 		const auto& tup=makeClump(m,p,o,scale); return py::make_tuple(std::get<0>(tup),std::get<1>(tup));
@@ -27,7 +27,7 @@ struct SphereClumpGeom: public Object{
 		((Vector3r,inertia,Vector3r(NaN,NaN,NaN),AttrTrait<>().readonly().noDump(),"Geometrical inertia (computed with unit density)"))
 		((int,div,5,AttrTrait<Attr::triggerPostLoad>().noDump(),"Sampling grid fineness, when computing volume and other properties, relative to the smallest sphere's radius. When zero or negative, assume spheres don't intersect and use a different algorithm (Steiner's theorem)."))
 		, /* py*/
-		.def("recompute",&SphereClumpGeom::recompute,(py::arg("div")=5),"Recompute principal axes of the clump, using *div* for subdivision (see :obj:`div` for the semantics)")
+		.def("recompute",&SphereClumpGeom::recompute,(py::arg("div")=5,py::arg("failOk")=false,py::arg("fastOnly")=false),"Recompute principal axes of the clump, using *div* for subdivision (see :obj:`div` for the semantics). *failOk* (silently return in case of invalid data) and *fastOnly* (return if there is lots of cells in subdivision) are only to be used internally.")
 		.def("makeClump",&SphereClumpGeom::pyMakeClump,(py::arg("mat"),py::arg("pos"),py::arg("ori")=Quaternionr::Identity(),py::arg("scale")=1.,py::arg("mask")=0),"Create particles as described by this clump geometry, positioned in *pos* and rotated with *ori*. Geometry will be scaled by *scale*. Returns tuple (Node,[Particle]).")
 		.def("fromSpherePack",&SphereClumpGeom::fromSpherePack,(py::arg("pack"),py::arg("div")=5),"Return [ :obj:`SphereClumpGeom` ] which contain all clumps and spheres from given :obj:`SpherePack`.").staticmethod("fromSpherePack")
 	);

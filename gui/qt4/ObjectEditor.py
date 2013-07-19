@@ -782,7 +782,7 @@ class ObjectEditor(QFrame):
 		#where do widgets go in the grid
 		self.gridCols={'check':0,'label':1,'value':2,'unit':3}
 		# set path or use label, if active (allows 'label' attributes which don't imply automatic python variables of that name)
-		self.path=('woo.'+ser.label if ser!=None and hasActiveLabel(ser) else path)
+		self.path=('woo.master.scene.lab.'+ser.label if ser!=None and hasActiveLabel(ser) else path)
 		self.showType=showType
 		self.labelIsVar=labelIsVar # show variable name; if false, docstring is used instead
 		self.showChecks=showChecks
@@ -1228,7 +1228,7 @@ class ObjectEditor(QFrame):
 					grid,row=e.gridAndRow
 					grid.addWidget(e.widget,row,self.gridCols['value'])
 				# visibility might change if hideIf is defined
-				if e.trait.hideIf: e.setVisible(None)
+				if e.trait.hideIf or not e.visible: e.setVisible(None)
 				e.widget.refresh()
 	def refresh(self): pass
 
