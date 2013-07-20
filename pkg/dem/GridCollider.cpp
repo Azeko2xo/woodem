@@ -276,7 +276,7 @@ void GridCollider::run(){
 						if(ijk[1]>=grid->gridSize[1]) break;
 						for(ijk[2]=0; ijk[2]<maxIjk[2]; ijk[2]++){
 							if(ijk[2]>=grid->gridSize[2]) break;
-							size_t occupancy=grid->size(ijk);
+							int occupancy=grid->size(ijk);
 							if(occupancy==0 || occupancy<minOccup) continue;
 							GLUtils::AlignedBox(grid->ijk2boxShrink(ijk,.1),occupancyRange->color(occupancy));
 						}
