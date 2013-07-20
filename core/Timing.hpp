@@ -4,7 +4,9 @@
 #include<cmath> // workaround for http://boost.2283326.n4.nabble.com/Boost-Python-Compile-Error-s-GCC-via-MinGW-w64-tp3165793p3166760.html
 #include<boost/python.hpp>
 #include<boost/chrono/chrono.hpp>
+#include<boost/thread/mutex.hpp>
 
+#include<woo/lib/base/Types.hpp>
 #include<woo/lib/base/openmp-accu.hpp>
 
 namespace woo{

@@ -1,12 +1,9 @@
 #!/bin/bash
-python /c/src/pyinstaller-develop/pyinstaller.py -y woo.pyinstaller.spec
-
-
-exit 1
 set -e -x
-
+python setup.py install
+python /c/src/pyinstaller-develop/pyinstaller.py -y woo.pyinstaller.spec
 pushd nsis
-	bash nsis-runall.sh
+	bash nsis-runall.sh -w -e
 popd
 
 #
