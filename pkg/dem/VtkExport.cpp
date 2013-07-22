@@ -328,7 +328,7 @@ void VtkExport::run(){
 			mAngVel->InsertNextTupleValue(dyn.angVel.data());
 			Real scalar=NaN;
 			if(p->matState){
-				scalar=p->matState->getColorScalar();
+				scalar=p->matState->getScalarColor(0,scene->step);
 				if(facet) scalar/=p->shape->cast<Facet>().getArea();
 			}
 			mMatState->InsertNextValue(isnan(scalar)?nanValue:scalar);

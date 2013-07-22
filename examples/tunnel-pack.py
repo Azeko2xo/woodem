@@ -5,6 +5,7 @@ from woo.core import *
 from woo.dem import *
 from minieigen import *
 from woo import pack,log
+import woo
 log.setLevel('PeriIsoCompressor',log.DEBUG)
 
 """Simple script to create tunnel with random dense packing of spheres.

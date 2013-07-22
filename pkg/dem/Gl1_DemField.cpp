@@ -37,6 +37,7 @@ bool Gl1_DemField::periodic;
 int Gl1_DemField::cNode;
 bool Gl1_DemField::cPhys;
 int Gl1_DemField::colorBy;
+int Gl1_DemField::matStateIx;
 int Gl1_DemField::colorBy2;
 Vector3r Gl1_DemField::solidColor;
 shared_ptr<ScalarRange> Gl1_DemField::colorRange;
@@ -97,7 +98,7 @@ void Gl1_DemField::initAllRanges(){
 			case COLOR_ROTATION:     r->label="rotation"; break;
 			case COLOR_REFPOS:       r->label="ref. pos"; break;
 			case COLOR_MAT_ID:       r->label="material id"; break;
-			case COLOR_MATSTATE:     r->label="matState"; break;
+			case COLOR_MATSTATE:     r->label=""; break; // can only be filled from MatState::getScalarName(matStateIx)
 			case COLOR_SIG_N: 	    r->label="normal stress"; break;
 			case COLOR_SIG_T:    	 r->label="shear stress"; break;
 		};
@@ -130,6 +131,9 @@ void Gl1_DemField::postLoad2(){
 	list<shared_ptr<ScalarRange>> usedColorRanges;
 	if(shape!=SHAPE_NONE && colorBy!=COLOR_SHAPE && colorBy!=COLOR_SOLID && colorBy!=COLOR_INVISIBLE) usedColorRanges.push_back(colorRange);
 	if(shape2 && colorBy2!=COLOR_SHAPE && colorBy2!=COLOR_SOLID && colorBy2!=COLOR_INVISIBLE) usedColorRanges.push_back(colorRange2);
+	// set to empty value so that it gets filled later
+	if(colorBy==COLOR_MATSTATE) colorRange->label="";
+	if(colorBy2==COLOR_MATSTATE) colorRange2->label="";
 
 	setOurSceneRanges(scene,colorRanges,usedColorRanges);
 	if(glyph!=GLYPH_NONE) setOurSceneRanges(scene,glyphRanges,{glyphRange});
@@ -248,7 +252,12 @@ void Gl1_DemField::doShape(){
 			}
 			case COLOR_REFPOS: parColor=CR->color(vecNormXyz(n0->getData<GlData>().refPos)); break;
 			case COLOR_MAT_ID: parColor=CR->color(p->material->id); break;
-			case COLOR_MATSTATE:	parColor=(p->matState?CR->color(p->matState->getColorScalar()):solidColor); break;
+			case COLOR_MATSTATE:{
+				if(CR->label.empty() && p->matState) CR->label=p->matState->getScalarName(matStateIx);
+				Real sc=(p->matState?p->matState->getScalarColor(matStateIx,scene->step):NaN);
+				parColor=isnan(sc)?solidColor:CR->color(sc);
+				break;
+			}
 			case COLOR_SHAPE: parColor=CR->color(p->shape->getBaseColor()); break;
 			case COLOR_SOLID: parColor=solidColor; break;
 			case COLOR_SIG_N:

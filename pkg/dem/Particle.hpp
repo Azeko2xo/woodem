@@ -116,8 +116,11 @@ WOO_REGISTER_OBJECT(Impose);
 struct MatState: public Object{
 	boost::mutex lock;
 	// returns scalar for rendering purposes 
-	virtual Real getColorScalar(){ return NaN; }
-	WOO_CLASS_BASE_DOC(MatState,Object,"Holds data related to material state of each particle.");
+	virtual Real getScalarColor(int index, const long& step){ return NaN; }
+	virtual string getScalarName(int index){ return ""; }
+	WOO_CLASS_BASE_DOC_ATTRS(MatState,Object,"Holds data related to material state of each particle.",
+		((long,stepUpdated,-1,,":obj:`woo.core.Scene.step` in which this object was updated for the last time."))
+	);
 };
 WOO_REGISTER_OBJECT(MatState);
 

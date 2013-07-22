@@ -33,6 +33,11 @@ except ImportError:
 	# use local copy
 	ext_ipython_directive='ipython_directive'
 
+try:
+	import cloud_sptheme
+except ImportError:
+	raise ImportError("Shphinx cloud theme is not importable; install it using 'easy_install cloud_sptheme'.")
+
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.mathjax', 'sphinx.ext.viewcode', 'matplotlib.sphinxext.plot_directive', 'sphinx.ext.inheritance_diagram', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'tikz', ext_ipython_directive, ]
 
 # customize prompts
@@ -122,7 +127,13 @@ modindex_common_prefix = ['woo.']
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'pyramid'
+if 0:
+	html_theme = 'pyramid'
+else:
+	import cloud_sptheme
+	html_theme='cloud'
+	html_theme_path=[cloud_sptheme.get_theme_dir()]
+	html_theme_options={'roottarget':'index'}
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the

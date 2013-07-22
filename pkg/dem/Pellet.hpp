@@ -25,10 +25,25 @@ WOO_REGISTER_OBJECT(PelletMat);
 #endif
 
 struct PelletMatState: public MatState{
-	Real getColorScalar(){ return normPlast+shearPlast; }
+	string getScalarName(int index) WOO_CXX11_OVERRIDE {
+		switch(index){
+			case 0: return "normal+shear dissipation";
+			case 1: return "agglom. rate [kg/s]";
+			default: return "";
+		}
+	}
+	Real getScalarColor(int index, const long& step) WOO_CXX11_OVERRIDE {
+		switch(index){
+			case 0: return normPlast+shearPlast;
+			// invalid value if not yet updated in this step
+			case 1: return (step<0||stepUpdated==step)?agglomRate:0.; 
+			default: return NaN;	
+		}
+	}
 	WOO_CLASS_BASE_DOC_ATTRS(PelletMatState,MatState,"Hold dissipated energy data for this particles, to evaluate wear.",
 		((Real,normPlast,0,,"Plastic energy dissipated in the normal sense"))
 		((Real,shearPlast,0,,"Plastic energy dissipated in the tangential sense"))
+		((Real,agglomRate,NaN,,"Agglomeration speed"))
 	);
 };
 WOO_REGISTER_OBJECT(PelletMatState);

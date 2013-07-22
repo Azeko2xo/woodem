@@ -81,6 +81,36 @@ def allWooPackages(outDir='/tmp',skip='^(woo|wooExtra(|\..*))$'):
 
 	return rsts
 
+def makeTraitInfo(trait):
+	ret=[]
+	if trait.static: ret.append('static')
+	if hasattr(trait,'pyType'):
+		if isinstance(trait.pyType,list): ret.append('type: ['+trait.pyType[0].__name__+", …]")
+		else: ret.append('type: '+trait.pyType.__name__)
+	else: ret.append('type: '+trait.cxxType)
+	if trait.unit:
+		if len(trait.unit)==1: ret.append('unit: '+unicode(trait.unit[0]))
+		else: ret.append(u'units: ['+u','.join(u for u in trait.unit)+u']')
+	if trait.prefUnit and trait.unit[0]!=trait.prefUnit[0][0]:
+		if len(trait.unit)==1: ret.append('preferred unit: '+unicode(trait.prefUnit[0][0]))
+		else: ret.append('preferred units: ['+u','.join(u[0] for u in trait.prefUnit)+']')
+	if trait.range: ret.append(u'range: %g−%g'%(trait.range[0],trait.range[1]))
+	if trait.noGui: ret.append('not shown in the UI')
+	if trait.noDump: ret.append('not dumped')
+	if trait.noSave: ret.append('not saved')
+	if trait.hidden: ret.append('not accessible from python')
+	if trait.readonly: ret.append('read-only in python')
+	if trait.choice:
+		if isinstance(trait.choice[0],tuple): ret.append('choices: '+', '.join('%d = %s'%(c[0],c[1]) for c in trait.choice))
+		else: ret.append('choices: '+', '.join(str(c) for c in trait.choice))
+	if trait.filename: ret.append('filename')
+	if trait.existingFilename: ret.append('existing filename')
+	if trait.dirname: ret.append('directory name')
+
+	return ', '.join(ret)
+	
+
+
 def oneModuleWithSubmodules(mod,out,exclude=None,level=0):
 	global cxxClasses,allWooMods
 	_ensureInitialized()
@@ -113,6 +143,8 @@ def oneModuleWithSubmodules(mod,out,exclude=None,level=0):
 				out.write(u'   .. rubric:: ► %s\n\n'%(trait.startGroup))
 			out.write('   .. attribute:: %s%s\n\n'%(trait.name,iniStr))
 			for l in fixDocstring(trait.doc.decode('utf-8')).split('\n'): out.write('      '+l+'\n')
+			traitInfo=makeTraitInfo(trait)
+			if traitInfo: out.write(u'\n      ['+traitInfo+']\n')
 			out.write('\n')
 	def writeAutoMod(mm,skip=None):
 		out.write('.. automodule:: %s\n   :members:\n   :undoc-members:\n'%(mm.__name__))

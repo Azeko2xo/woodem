@@ -22,9 +22,11 @@ void Law2_L6Geom_PelletPhys_Pellet::tryAddDissipState(int what, Real E, const sh
 		if(!p->matState) continue;
 		assert(dynamic_cast<PelletMatState*>(p->matState.get()));
 		boost::mutex::scoped_lock l(p->matState->lock);
+		auto& pms=p->matState->cast<PelletMatState>();
+		pms.stepUpdated=scene->step;
 		switch(what){
-			case DISSIP_NORM_PLAST: p->matState->cast<PelletMatState>().normPlast+=E/2.; break; 
-			case DISSIP_SHEAR_PLAST: p->matState->cast<PelletMatState>().shearPlast+=E/2.; break; 
+			case DISSIP_NORM_PLAST: pms.normPlast+=E/2.; break; 
+			case DISSIP_SHEAR_PLAST: pms.shearPlast+=E/2.; break; 
 			default: LOG_FATAL("what="<<what<<"??"); throw std::logic_error("Invalid what value (programming error)");
 		}
 	}
@@ -119,7 +121,7 @@ void PelletAgglomerator::run(){
 		for(const auto& idCon: src->contacts){
 			const shared_ptr<Contact>& c(idCon.second);
 			if(!c->isReal()) continue;
-			const Particle* other(c->leakPA()==src.get()?c->leakPB():src.get());
+			Particle* other(c->leakPA()==src.get()?c->leakPB():src.get());
 			if(!dynamic_pointer_cast<Sphere>(other->shape)) continue; // other particles is not a sphere
 			Sphere& sphere=other->shape->cast<Sphere>();
 			assert(dynamic_pointer_cast<L6Geom>(c->geom));
@@ -129,6 +131,11 @@ void PelletAgglomerator::run(){
 			Real newVol=(4/3.)*M_PI*pow(sphere.radius,3)+dMass/other->material->density;
 			sphere.radius=cbrt(3*newVol/(4*M_PI));
 			sphere.updateDyn(other->material->density);
+			if(!other->matState) other->matState=make_shared<PelletMatState>();
+			assert(dynamic_pointer_cast<PelletMatState>(other->matState));
+			auto& pms=other->matState->cast<PelletMatState>();
+			if(pms.stepUpdated!=scene->step){ pms.agglomRate=0.; pms.stepUpdated=scene->step; } // reset value
+			pms.agglomRate+=dMass/scene->dt;
 			// rotation damping
 			if(lambda>0){
 				other->shape->nodes[0]->getData<DemData>().angVel*=(1-lambda*scene->dt);
