@@ -13,10 +13,11 @@ struct Gl1_DemField: public GlFieldFunctor{
 	void doNodes(const vector<shared_ptr<Node>>& nodeContainer);
 	void doContactNodes();
 	void doCPhys();
-	static void postLoadStatic(void*){
+	static void postLoadStatic(void* attr){
 		colorRange=colorRanges[colorBy];
 		glyphRange=glyphRanges[glyph];
 		doPostLoad=true;
+		if(attr==&matStateIx) colorRanges[COLOR_MATSTATE]->reset();
 	}
 	static void setSceneRange(Scene* scene, const shared_ptr<ScalarRange>& prev, const shared_ptr<ScalarRange>& curr);
 	static void setOurSceneRanges(Scene* scene, const vector<shared_ptr<ScalarRange>>& ours, const list<shared_ptr<ScalarRange>>& used);
