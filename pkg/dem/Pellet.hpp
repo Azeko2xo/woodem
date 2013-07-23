@@ -32,11 +32,11 @@ struct PelletMatState: public MatState{
 			default: return "";
 		}
 	}
-	Real getScalarColor(int index, const long& step) WOO_CXX11_OVERRIDE {
+	Real getScalar(int index, const long& step, const Real& smooth=0) WOO_CXX11_OVERRIDE {
 		switch(index){
 			case 0: return normPlast+shearPlast;
 			// invalid value if not yet updated in this step
-			case 1: return (step<0||stepUpdated==step)?agglomRate:0.; 
+			case 1: return (step<0||smooth<=0)?agglomRate:pow(smooth,step-stepUpdated)*agglomRate;
 			default: return NaN;	
 		}
 	}

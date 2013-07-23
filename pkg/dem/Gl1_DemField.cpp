@@ -38,6 +38,7 @@ int Gl1_DemField::cNode;
 bool Gl1_DemField::cPhys;
 int Gl1_DemField::colorBy;
 int Gl1_DemField::matStateIx;
+Real Gl1_DemField::matStateSmooth;
 int Gl1_DemField::colorBy2;
 Vector3r Gl1_DemField::solidColor;
 shared_ptr<ScalarRange> Gl1_DemField::colorRange;
@@ -254,7 +255,7 @@ void Gl1_DemField::doShape(){
 			case COLOR_MAT_ID: parColor=CR->color(p->material->id); break;
 			case COLOR_MATSTATE:{
 				if(CR->label.empty() && p->matState) CR->label=p->matState->getScalarName(matStateIx);
-				Real sc=(p->matState?p->matState->getScalarColor(matStateIx,scene->step):NaN);
+				Real sc=(p->matState?p->matState->getScalar(matStateIx,scene->step,matStateSmooth):NaN);
 				parColor=isnan(sc)?solidColor:CR->color(sc);
 				break;
 			}

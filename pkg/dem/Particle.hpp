@@ -116,10 +116,13 @@ WOO_REGISTER_OBJECT(Impose);
 struct MatState: public Object{
 	boost::mutex lock;
 	// returns scalar for rendering purposes 
-	virtual Real getScalarColor(int index, const long& step){ return NaN; }
+	virtual Real getScalar(int index, const long& step, const Real& smooth=0){ return NaN; }
 	virtual string getScalarName(int index){ return ""; }
-	WOO_CLASS_BASE_DOC_ATTRS(MatState,Object,"Holds data related to material state of each particle.",
+	WOO_CLASS_BASE_DOC_ATTRS_PY(MatState,Object,"Holds data related to material state of each particle.",
 		((long,stepUpdated,-1,,":obj:`woo.core.Scene.step` in which this object was updated for the last time."))
+		,/*py*/
+		.def("getScalar",&MatState::getScalar,(py::arg("index"),py::arg("step")=-1,py::arg("smooth")=0),"Return scalar value given its numerical index. *step* is used to check whether data are up-to-date, smooth (if positive) is used to smooth out old data (usually using exponential decay function)")
+		.def("getScalarName",&MatState::getScalarName,py::arg("index"),"Return name of scalar at given index (human-readable description)")
 	);
 };
 WOO_REGISTER_OBJECT(MatState);

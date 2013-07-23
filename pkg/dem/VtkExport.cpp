@@ -328,7 +328,7 @@ void VtkExport::run(){
 			mAngVel->InsertNextTupleValue(dyn.angVel.data());
 			Real scalar=NaN;
 			if(p->matState){
-				scalar=p->matState->getScalarColor(0,scene->step);
+				scalar=p->matState->getScalar(0,scene->step);
 				if(facet) scalar/=p->shape->cast<Facet>().getArea();
 			}
 			mMatState->InsertNextValue(isnan(scalar)?nanValue:scalar);
@@ -396,8 +396,8 @@ void VtkExport::run(){
 	outFiles.push_back(outF);
 	outTimes.push_back(scene->time);
 	outSteps.push_back(scene->step);
-	vtp=out+".vtp";
-	writeVtp(vtp);
+	pvd=out+".pvd";
+	writePvd(pvd);
 
 	#undef _VTK_ARR_HELPER
 	#undef _VTK_POINT_ARR
@@ -406,8 +406,8 @@ void VtkExport::run(){
 	#undef _VTK_CELL_INT_ARR
 };
 
-void VtkExport::writeVtp(const string& vtpName){
-	std::ofstream o(vtpName,std::ofstream::binary);
+void VtkExport::writePvd(const string& pvdName){
+	std::ofstream o(pvdName,std::ofstream::binary);
 	o<<"<?xml version=\"1.0\"?>\n<VTKFile type=\"Collection\" version=\"0.1\">\n\t<Collection>\n";
 	size_t n=0;
 	assert(outFiles.size()==outTimes.size());
