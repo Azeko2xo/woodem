@@ -210,7 +210,7 @@ struct Scene: public Object{
 		.def("wait",&Scene::pyWait)
 		.add_property("running",&Scene::running)
 		.def("paused",&Scene::pyPaused,py::return_value_policy<py::manage_new_object>())
-		.def("selfTest",&Scene::pySelfTest,"Run self-tests (they are usually run automatically with, see :obj:`selfTestEvery`.")
+		.def("selfTest",&Scene::pySelfTest,"Run self-tests (they are usually run automatically with, see :obj:`selfTestEvery`).")
 		;
 		// define nested class
 		py::scope foo(_classObj);

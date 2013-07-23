@@ -101,16 +101,6 @@ class TestSceneLabels(unittest.TestCase):
 		# should not emit warning
 		self.S.lab.if_overwriting_this_causes_warning_it_is_a_bug=4
 
-		
-
-	#def testAutoLabelOld(self):
-	#	'LabelMapper: labeled engines are added automatically to woo.*; this will disappear in the future.'
-	#	import woo
-	#	ee=woo.core.PyRunner(label='abc')
-	#	self.S.engines=[ee]
-	#	self.assert_(hasattr(woo,'abc'))
-	#	self.assert_(woo.abc==ee)
-
 	def testEngineLabels(self):
 		'LabelMapper: engine/functor labels (mix of older tests)'
 		S=self.S
