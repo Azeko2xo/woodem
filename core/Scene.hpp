@@ -45,7 +45,9 @@ struct Scene: public Object{
 		void fillDefaultTags();
 		// advance by one iteration by running all engines
 		void doOneStep();
-		void selfTest_maybe();
+		// force: run regardless of step number, otherwise only when selfTestEvery is favorable
+		void selfTest_maybe(bool force=false);
+		void pySelfTest(){ selfTest_maybe(/*force*/true); }
 
 		void postLoad(Scene&,void*);
 		void preSave(Scene&){ preSaveDuration=pyGetDuration(); }
@@ -208,6 +210,7 @@ struct Scene: public Object{
 		.def("wait",&Scene::pyWait)
 		.add_property("running",&Scene::running)
 		.def("paused",&Scene::pyPaused,py::return_value_policy<py::manage_new_object>())
+		.def("selfTest",&Scene::pySelfTest,"Run self-tests (they are usually run automatically with, see :obj:`selfTestEvery`.")
 		;
 		// define nested class
 		py::scope foo(_classObj);

@@ -32,7 +32,8 @@ struct DemFuncs{
 	static vector<Vector2r> psd(const IteratorRange& particleRange,
 		bool cumulative, bool normalize, int num, Vector2r dRange,
 		DiameterGetter diameterGetter,
-		WeightGetter weightGetter
+		WeightGetter weightGetter,
+		bool emptyOk=false
 	){
 		/* determine dRange if not given */
 		if(isnan(dRange[0]) || isnan(dRange[1]) || dRange[0]<0 || dRange[1]<=0 || dRange[0]>=dRange[1]){
@@ -42,7 +43,10 @@ struct DemFuncs{
 				if(d<dRange[0]) dRange[0]=d;
 				if(d>dRange[1]) dRange[1]=d;
 			}
-			if(isinf(dRange[0])) throw std::runtime_error("DemFuncs::psd: no spherical particles?");
+			if(isinf(dRange[0])){
+				if(!emptyOk) throw std::runtime_error("DemFuncs::psd: no spherical particles?");
+				else return vector<Vector2r>{Vector2r::Zero(),Vector2r::Zero()};
+			}
 		}
 		/* put particles in bins */
 		vector<Vector2r> ret(num,Vector2r::Zero());

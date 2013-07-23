@@ -7,6 +7,7 @@
 // NB: workaround for https://bugs.launchpad.net/woo/+bug/528509 removed
 namespace woo{
 	struct Sphere: public Shape{
+		void selfTest(const shared_ptr<Particle>&) WOO_CXX11_OVERRIDE;
 		bool numNodesOk() const { return nodes.size()==1; }
 		// update dynamic properties (mass, intertia) of the sphere based on current radius
 		void updateDyn(const Real& density) const;

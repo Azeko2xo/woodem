@@ -3,6 +3,11 @@
 
 WOO_PLUGIN(dem,(Sphere)(Bo1_Sphere_Aabb)(In2_Sphere_ElastMat));
 
+void woo::Sphere::selfTest(const shared_ptr<Particle>& p){
+	if(radius<=0) throw std::runtime_error("Sphere #"+to_string(p->id)+": radius must be positive (not "+to_string(radius)+")");
+	if(!numNodesOk()) throw std::runtime_error("Sphere #"+to_string(p->id)+": numNodesOk() failed (has "+to_string(nodes.size())+" nodes)");
+}
+
 void woo::Sphere::updateDyn(const Real& density) const {
 	assert(numNodesOk());
 	auto& dyn=nodes[0]->getData<DemData>();

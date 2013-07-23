@@ -10,6 +10,12 @@ WOO_PLUGIN(dem,(Facet)(Bo1_Facet_Aabb));
 	WOO_PLUGIN(gl,(Gl1_Facet));
 #endif
 
+void Facet::selfTest(const shared_ptr<Particle>& p){
+	if(!numNodesOk()) throw std::runtime_error("Facet #"+to_string(p->id)+": numNodesOk() failed (has "+to_string(nodes.size())+" nodes)");
+	for(int i:{0,1,2}) if((nodes[i]->pos-nodes[(i+1)%3]->pos).squaredNorm()==0) throw std::runtime_error("Facet #"+to_string(p->id)+": nodes "+to_string(i)+" and "+to_string((i+1)%3)+" are coincident.");
+}
+
+
 Vector3r Facet::getNormal() const {
 	assert(numNodesOk());
 	return ((nodes[1]->pos-nodes[0]->pos).cross(nodes[2]->pos-nodes[0]->pos)).normalized();

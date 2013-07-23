@@ -422,18 +422,20 @@ def createPlots(P,subPlots=True,scatterSize=60,wider=False):
 				if (
 					d[0] not in data.keys()
 					and not callable(d[0])
-					and not type(d[0])==str and d[0].endswith('()') # hack for callable as strings
+					and not (type(d[0]) in (str,unicode) and d[0].endswith('()')) # hack for callable as strings
 					and not hasattr(d[0],'keys')
-				): missing.add(d[0])
-			except UnicodeEncodeError: pass
+				):
+					missing.add(d[0])
+			except UnicodeEncodeError:
+				import warnings
+				warnings.error('UnicodeDecodeError when processing data set '+repr(d[0]))
 		if missing:
 			if len(data.keys())==0 or len(data[data.keys()[0]])==0: # no data at all yet, do not add garbage NaNs
 				for m in missing: data[m]=[]
 			else:
-				# FIXME: this should be handled properly!!!
-				try:
-					print 'Missing columns in plot.data, adding NaN: ',u','.join(list(missing))
-				except UnicodeEncodeError: pass
+				#try:
+				print 'Missing columns in plot.data, adding NaN: ',u','.join(list(missing))
+				#except UnicodeEncodeError: pass
 				addDataColumns(data,missing)
 		def createLines(pStrip,ySpecs,isY1=True,y2Exists=False):
 			'''Create data lines from specifications; this code is common for y1 and y2 axes;

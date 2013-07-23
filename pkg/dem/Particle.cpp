@@ -22,6 +22,11 @@ void Particle::checkNodes(bool dyn, bool checkOne) const {
 	if(!shape || (checkOne  && shape->nodes.size()!=1) || (dyn && !shape->nodes[0]->hasData<DemData>())) woo::AttributeError("Particle #"+lexical_cast<string>(id)+" has no Shape"+(checkOne?string(", or the shape has no/multiple nodes")+string(!dyn?".":", or node.dem is None."):string(".")));
 }
 
+void Particle::selfTest(){
+	if(shape) shape->selfTest(static_pointer_cast<Particle>(shared_from_this()));
+	// test other things here as necessary
+}
+
 Vector3r Shape::avgNodePos(){
 	assert(!nodes.empty());
 	size_t sz=nodes.size();
@@ -295,6 +300,7 @@ void DemField::selfTest(){
 		if(!p->shape) throw std::runtime_error("DemField.par["+to_string(i)+"].shape=None.");
 		if(!p->material) throw std::runtime_error("DemField.par["+to_string(i)+"].material=None.");
 		if(!p->shape->numNodesOk()) throw std::logic_error("DemField.par["+to_string(i)+"].shape: numNodesOk failed with "+p->shape->pyStr()+".");
+		p->selfTest();
 		for(size_t j=0; j<p->shape->nodes.size(); j++){
 			const auto& n=p->shape->nodes[j];
 			if(!n) throw std::logic_error("DemField.par["+to_string(p->id)+"].shape.nodes["+to_string(j)+"]=None.");

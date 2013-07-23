@@ -39,7 +39,7 @@ struct GridCollider: public Collider{
 	void fillGridCurr();
 
 	void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d) WOO_CXX11_OVERRIDE;
-	void getLabeledObjects(std::map<std::string,py::object>& m, const shared_ptr<LabelMapper>&) WOO_CXX11_OVERRIDE;
+	void getLabeledObjects(const shared_ptr<LabelMapper>&) WOO_CXX11_OVERRIDE;
 
 	// forces reinitialization
 	void invalidatePersistentData() WOO_CXX11_OVERRIDE { gridPrev.reset(); }

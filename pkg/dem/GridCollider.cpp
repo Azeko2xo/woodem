@@ -12,7 +12,7 @@ void GridCollider::pyHandleCustomCtorArgs(py::tuple& t, py::dict& d){
 	t=py::tuple(); // empty the args
 }
 
-void GridCollider::getLabeledObjects(std::map<std::string,py::object>& m, const shared_ptr<LabelMapper>& labelMapper){ if(boundDispatcher) boundDispatcher->getLabeledObjects(m,labelMapper); Engine::getLabeledObjects(m,labelMapper); }
+void GridCollider::getLabeledObjects(const shared_ptr<LabelMapper>& labelMapper){ if(boundDispatcher) boundDispatcher->getLabeledObjects(labelMapper); Engine::getLabeledObjects(labelMapper); }
 
 void GridCollider::postLoad(GridCollider&, void* attr){
 	if(domain.isEmpty() || domain.volume()==0) throw std::runtime_error("GridCollider.domain: may not be empty.");

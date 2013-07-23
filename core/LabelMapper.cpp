@@ -2,20 +2,22 @@
 #include<woo/lib/pyutil/except.hpp>
 #include<woo/core/Master.hpp>
 #include<boost/regex.hpp>
+#include<boost/algorithm/string.hpp>
 
 
 WOO_PLUGIN(core,(LabelMapper));
 CREATE_LOGGER(LabelMapper);
 
-int LabelMapper::findWhere(const string& label) const {
+int LabelMapper::whereIs(const string& label) const {
 	if(pyMap.find(label)!=pyMap.end()) return IN_PY;
 	if(wooMap.find(label)!=wooMap.end()) return IN_WOO;
 	if(wooSeqMap.find(label)!=wooSeqMap.end()) return IN_WOO_SEQ;
+	if(modSet.count(label)>0) return IN_MOD;
 	return NOWHERE;
 }
 
 bool LabelMapper::__contains__(const string& label) const {
-	return findWhere(label)!=NOWHERE;
+	return whereIs(label)!=NOWHERE;
 }
 
 py::list LabelMapper::pyKeys() const{
@@ -38,19 +40,36 @@ py::list LabelMapper::pyItems() const{
 	return ret;
 }
 
+void LabelMapper::ensureUsedModsOk(const string& label){
+	// no submodules in there
+	if(label.find(".")==string::npos) return;
+	vector<string> mods; boost::split(mods,label,boost::is_any_of("."));
+	string mod;
+	// don't check the very last item, that's nod module anymore
+	for(size_t i=0; i<mods.size()-1; i++){
+		const string& t(mods[i]);
+		mod+=(mod.empty()?"":".")+t; // a.b.c
+		int where=whereIs(mod);
+		if(where==NOWHERE) woo::NameError("Label '"+label+"' requires non-existent pseudo-module '"+mod+"' (use LabelMapper._newModule to create it).");
+		if(where!=IN_MOD) woo::NameError("Label '"+label+"' requires pseudo-module '"+mod+"', but this name is already used by another object.");
+		// everything ok, do nothing
+	}
+}
 
 int LabelMapper::labelType(const string& label, string& lab0, int& index) const {
 	boost::smatch match;
-	if(boost::regex_match(label,match,boost::regex("([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\[([0-9]+)\\]"))){
+	// may not end with .[]
+	if(boost::regex_match(label,match,boost::regex("([a-zA-Z_][.a-zA-Z0-9_][a-zA-Z0-9_]*)\\s*\\[([0-9]+)\\]"))){
 		lab0=match[1];
 		index=lexical_cast<long>(match[2]);
 		if(index<0) woo::ValueError("LabelMapper: label '"+lab0+"' specifies non-positive index "+to_string(index));
 		return LABEL_SEQ;
 	}
-	if(boost::regex_match(label,match,boost::regex("[a-zA-Z_][a-zA-Z0-9_]*"))){
+	// may not end with .
+	if(boost::regex_match(label,match,boost::regex("[a-zA-Z_][.a-zA-Z0-9_]*[a-zA-Z0-9_]*"))){
 		return LABEL_PLAIN;
 	}
-	woo::NameError("LabelMapper: label '"+label+" is not a valid python identifier name.");
+	woo::NameError("LabelMapper: label '"+label+"' is not a valid python identifier name.");
 	return -1; // unreachable
 }
 
@@ -101,6 +120,7 @@ bool LabelMapper::sequence_check_setitem(const string& label, py::object o){
 
 void LabelMapper::__setitem__(const string& label, py::object o){
 	py::extract<shared_ptr<Object>> exObj(o);
+	ensureUsedModsOk(label);
 	// woo objects
 	if(exObj.check()){ __setitem__woo(label,exObj()); return; }
 	// list of woo objects
@@ -114,13 +134,15 @@ void LabelMapper::__setitem__(const string& label, py::object o){
 void LabelMapper::__setitem__woo(const string& label, const shared_ptr<Object>& o){
 	string lab0=label; int index; 
 	int type=labelType(label,lab0,index);
-	int where=findWhere(label);
+	int where=whereIs(label);
+	if(where==IN_MOD) woo::NameError("Label '"+label+"' is a pseudo-module (cannot be overwritten).");
+	bool writable(writables.count(label));
 	if(type==LABEL_PLAIN){
 		switch(where){
 			case IN_WOO:
 				assert(wooMap.find(label)!=wooMap.end());
 				assert(type==LABEL_PLAIN); // such a label should not have been created at all
-				if(wooMap[label].get()!=o.get()){
+				if(wooMap[label].get()!=o.get() && !writable){
 					LOG_WARN("Label '"<<label<<"' overwrites "<<wooMap[label]->pyStr()<<" with "<<o->pyStr());
 				}
 				break;
@@ -140,7 +162,7 @@ void LabelMapper::__setitem__woo(const string& label, const shared_ptr<Object>& 
 		wooMap[label]=o;
 	} else {
 		assert(type==LABEL_SEQ);
-		where=findWhere(lab0); // find base label again
+		where=whereIs(lab0); // find base label again
 		switch(where){
 			case IN_WOO:
 				LOG_WARN("Sequence label '"<<lab0<<"["<<index<<"]' creates a new sequence, deleting '"<<lab0<<"' with "<<wooMap[lab0]->pyStr());
@@ -163,7 +185,9 @@ void LabelMapper::__setitem__wooSeq(const string& label, const vector<shared_ptr
 	string lab0=label; int index; 
 	int type=labelType(label,lab0,index);
 	if(type==LABEL_SEQ) woo::NameError("Subscripted label '"+label+"' may not be assigned a sequence of woo.Objects!");
-	int where=findWhere(label);
+	int where=whereIs(label);
+	if(where==IN_MOD) woo::NameError("Label '"+label+"' is a pseudo-module (cannot be overwritten).");
+	bool writable(writables.count(label));
 	string old;
 	switch(where){
 		case IN_WOO:
@@ -179,14 +203,16 @@ void LabelMapper::__setitem__wooSeq(const string& label, const vector<shared_ptr
 			wooSeqMap.erase(label);
 			break;
 	};
-	if(where!=NOWHERE) LOG_WARN("Label '"<<label<<"' overwrites "<<old<<" with a new sequence of "<<oo.size()<<" woo.Object's.");
+	if(where!=NOWHERE && (!writable || where!=IN_WOO_SEQ)) LOG_WARN("Label '"<<label<<"' overwrites "<<old<<" with a new sequence of "<<oo.size()<<" woo.Object's.");
 	wooSeqMap[label]=oo;
 };
 
 void LabelMapper::__setitem__py(const string& label, py::object o){
 	string lab0=label; int index; 
 	int type=labelType(label,lab0,index);
-	int where=findWhere(label);
+	int where=whereIs(label);
+	if(where==IN_MOD) woo::NameError("Label '"+label+"' is a pseudo-module (cannot be overwritten).");
+	bool writable(writables.count(label));
 	assert(!py::extract<woo::Object>(o).check());
 	if(type==LABEL_PLAIN){
 		switch(where){
@@ -195,7 +221,7 @@ void LabelMapper::__setitem__py(const string& label, py::object o){
 				wooMap.erase(label);
 				break;
 			case IN_PY:
-				if(o.ptr()!=pyMap[label].ptr()) LOG_WARN("Label '"<<label<<"' overwrites "<<pyAsStr(pyMap[label])<<" with "<<pyAsStr(o));
+				if(o.ptr()!=pyMap[label].ptr() && !writable) LOG_WARN("Label '"<<label<<"' overwrites "<<pyAsStr(pyMap[label])<<" with "<<pyAsStr(o));
 				pyMap.erase(label); // if only replaced later, crashes python (reference counting problem?)
 				break;
 			case IN_WOO_SEQ:
@@ -206,7 +232,7 @@ void LabelMapper::__setitem__py(const string& label, py::object o){
 		pyMap[label]=o;
 	} else {
 		assert(type==LABEL_SEQ);
-		where=findWhere(lab0); // find base label again
+		where=whereIs(lab0); // find base label again
 		switch(where){
 			case IN_WOO:
 				LOG_WARN("Sequence label '"<<lab0<<"["<<index<<"]' overwrites '"<<lab0<<"' containing "<<wooMap[lab0]->pyStr()<<" with a new python list");
@@ -229,15 +255,16 @@ void LabelMapper::__setitem__py(const string& label, py::object o){
 		py::list lst=py::extract<py::list>(pyMap[lab0])();
 		// extend the list so that it is long enough
 		while(py::len(lst)<index+1) lst.append(py::object());
-		if(!py::object(lst[index]).is_none()) LOG_WARN("Label '"<<lab0<<"["<<index<<"]' overwrites old item "<<pyAsStr(lst[index])<<" with "<<pyAsStr(o));
+		if(!py::object(lst[index]).is_none() && !writable) LOG_WARN("Label '"<<lab0<<"["<<index<<"]' overwrites old item "<<pyAsStr(lst[index])<<" with "<<pyAsStr(o));
 		lst[index]=o;
 	}
 }
 
 py::object LabelMapper::__getitem__(const string& label){
-	int where=findWhere(label);
+	int where=whereIs(label);
 	switch(where){
 		case NOWHERE: woo::NameError("No such label: '"+label+"'"); break;
+		case IN_MOD: woo::ValueError("Label '"+label+"' is a pseudo-module and cannot be obtained directly.");
 		case IN_WOO: return py::object(wooMap[label]); break;
 		case IN_PY: return pyMap[label]; break;
 		case IN_WOO_SEQ: return py::object(wooSeqMap[label]); break; // should convert to list automatically
@@ -246,11 +273,64 @@ py::object LabelMapper::__getitem__(const string& label){
 }
 
 void LabelMapper::__delitem__(const string& label){
-	int where=findWhere(label);
+	int where=whereIs(label);
 	switch(where){
 		case NOWHERE: woo::NameError("No such label: '"+label+"'"); break;
+		case IN_MOD: modSet.erase(label); break;
 		case IN_WOO: wooMap.erase(label); break;
 		case IN_PY: pyMap.erase(label); break;
 		case IN_WOO_SEQ: wooSeqMap.erase(label); break;
 	};
 }
+
+
+void LabelMapper::setWritable(const string& label, bool writable){
+	int where=whereIs(label);
+	switch(where){
+		case IN_WOO:
+		case IN_PY:
+		case IN_WOO_SEQ:{
+			if(writable) writables.insert(label);
+			else writables.erase(label);
+			break;
+		}
+		case IN_MOD:  woo::ValueError("Label '"+label+"' cannot be made writable: is a (pseudo) module.");
+		case NOWHERE: woo::NameError("No such label: '"+label+"'");
+	}
+}
+
+bool LabelMapper::isWritable(const string& label) const{
+	if(whereIs(label)==NOWHERE) woo::NameError("No such label: '"+label+"'");
+	return writables.count(label)>0;
+}
+
+void LabelMapper::newModule(const string& label){
+	string mod; vector<string> mm;
+	boost::algorithm::split(mm,label,boost::is_any_of("."));
+	// mod is "", "foo", "foo.bar", "foo.bar.baz" etc.
+	for(size_t i=0; i<mm.size(); i++){
+		const auto& m=mm[i];
+		mod+=(mod.empty()?"":".")+m;
+		int where=whereIs(mod);
+		// existing parent module is OK
+		if(where==IN_MOD && i<mm.size()-1) continue; 
+		// something else having the same name as parent module is not OK
+		if(where!=NOWHERE) woo::ValueError("Label '"+mod+"' already exists.");
+		cerr<<"modSet.insert('"<<mod<<"');"<<endl;
+		modSet.insert(mod);
+	}
+}
+
+py::list LabelMapper::__dir__(const string& prefix) const {
+	std::set<string> allKeys, kk;
+	for(auto& kv: wooMap) allKeys.insert(kv.first);
+	for(auto& kv: wooSeqMap) allKeys.insert(kv.first);
+	for(auto& kv: pyMap) allKeys.insert(kv.first);
+	for(auto& k: modSet) allKeys.insert(k);
+	// filter only those matching prefix
+	for(auto& k: allKeys){ if(boost::starts_with(k,prefix) && k.substr(prefix.size()).find(".")==string::npos) kk.insert(k); }
+	py::list ret;
+	for(auto& k: kk) ret.append(k);
+	return ret;
+}
+

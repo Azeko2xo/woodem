@@ -275,26 +275,17 @@ void Scene::postLoad(Scene&,void*){
 		e->setField();
 		i++;
 	}
+	// TODO: this can be removed, as labels should be saved just fine
 	// manage labeled engines
-	typedef std::map<std::string,py::object> StrObjMap; StrObjMap m;
 	for(const shared_ptr<Engine>& e: engines){
-		Engine::handlePossiblyLabeledObject(e,m,labels);
-		e->getLabeledObjects(m,labels);
+		Engine::handlePossiblyLabeledObject(e,labels);
+		e->getLabeledObjects(labels);
 	}
-	GilLock gilLock;
-	py::scope wooScope(py::import("woo"));
-	// py::scope foo(wooScope);
-	for(StrObjMap::value_type& v: m){
-		// cout<<"Label: "<<v.first<<endl;
-		wooScope.attr(v.first.c_str())=v.second;
-	}
-	// delete labels which are no longer used
-	// py::delattr(wooScope,name);
 }
 
-void Scene::selfTest_maybe(){
-	if((selfTestEvery<0) || (selfTestEvery>0 && (step%selfTestEvery!=0)) || (selfTestEvery==0 && step!=0)) return;
-	LOG_INFO("Running self-tests at step "<<step<<" (selfTestEvery=="<<selfTestEvery<<")");
+void Scene::selfTest_maybe(bool force){
+	if(!force && ((selfTestEvery<0) || (selfTestEvery>0 && (step%selfTestEvery!=0)) || (selfTestEvery==0 && step!=0))) return;
+	LOG_INFO("Running self-tests at step "<<step<<" (selfTestEvery=="<<selfTestEvery<<", force="<<force<<")");
 	try{
 		for(const auto& f: fields){
 			f->scene=this;
@@ -308,7 +299,7 @@ void Scene::selfTest_maybe(){
 			e->selfTest();
 		}
 	} catch(std::exception&) {
-		LOG_ERROR("selfTest failed (step="<<step<<", selfTestEvery="<<selfTestEvery<<").");
+		if(!force) LOG_ERROR("selfTest failed (step="<<step<<", selfTestEvery="<<selfTestEvery<<", force="<<force<<").");
 		throw;
 	};
 };

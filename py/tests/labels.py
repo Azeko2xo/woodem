@@ -10,7 +10,7 @@ import woo.dem
 class TestSceneLabels(unittest.TestCase):
 	'Test :obj:`LabelMapper` and related functionality.'
 	def setUp(self):
-		self.S=woo.core.Scene()
+		self.S=woo.core.Scene(fields=[woo.dem.DemField()])
 	def testAccess(self):
 		'LabelMapper: access'
 		self.S.labels['abc']=123
@@ -72,11 +72,57 @@ class TestSceneLabels(unittest.TestCase):
 		self.S.engines=[ee]
 		self.assert_(self.S.lab.abc==ee)
 		self.assert_(self.S.labels._whereIs('abc')==woo.core.LabelMapper.inWoo)
-	def testAutoLabelOld(self):
-		'LabelMapper: labeled engines are added automatically to woo.*; this will disappear in the future.'
-		import woo
-		ee=woo.core.PyRunner(label='abc')
-		self.S.engines=[ee]
-		self.assert_(hasattr(woo,'abc'))
-		self.assert_(woo.abc==ee)
+	def testPseudoModules(self):
+		'LabelMapper: pseudo-modules'
+		S=self.S
+		# using name which does not exist yet
+		self.assertRaises(NameError,lambda: S.lab.abc)
+		# using name which does not exist yet as pseudo-module
+		self.assertRaises(NameError,lambda: setattr(S.lab,'abc.defg',1))
+		S.lab._newModule('abc')
+		self.assert_(S.lab._whereIs('abc')==woo.core.LabelMapper.inMod)
+		S.lab.abc.a1=1
+		# fail using method on proxyed pseudo-module
+		self.assertRaises(AttributeError, lambda: S.lab.abc._newModule('a1')) 
+		#self.assertRaises(ValueError, lambda: S.lab._newModule('abc.a1'))
+		# fail when recreating existing module
+		self.assertRaises(ValueError, lambda: S.lab._newModule('abc'))
+		# nested
+		S.lab._newModule('foo.bar')
+		print 'where is foo.bar?:',S.lab._whereIs('foo.bar')
+		self.assert_(S.lab._whereIs('foo')==woo.core.LabelMapper.inMod)
+		#self.assert_(S.lab._whereIs('foo.bar')==woo.core.LabelMapper.inMod)
+		S.lab.foo.bar.bb=1
+		print 'KEYS:',S.labels.keys()
+		self.assert_(S.lab.foo.bar.bb==1)
+	def testWritable(self):
+		self.S.lab.if_overwriting_this_causes_warning_it_is_a_bug=3
+		self.S.lab._setWritable('if_overwriting_this_causes_warning_it_is_a_bug')
+		# should not emit warning
+		self.S.lab.if_overwriting_this_causes_warning_it_is_a_bug=4
+
+		
+
+	#def testAutoLabelOld(self):
+	#	'LabelMapper: labeled engines are added automatically to woo.*; this will disappear in the future.'
+	#	import woo
+	#	ee=woo.core.PyRunner(label='abc')
+	#	self.S.engines=[ee]
+	#	self.assert_(hasattr(woo,'abc'))
+	#	self.assert_(woo.abc==ee)
+
+	def testEngineLabels(self):
+		'LabelMapper: engine/functor labels (mix of older tests)'
+		S=self.S
+		self.assertRaises(NameError,lambda: setattr(S,'engines',[woo.core.PyRunner(label='this is not a valid identifier name')]))
+		#self.assertRaises(NameError,lambda: setattr(S,'engines',[PyRunner(label='foo'),PyRunner(label='foo[1]')]))
+		cloop=woo.dem.ContactLoop([woo.dem.Cg2_Facet_Sphere_L6Geom(label='cg2fs'),woo.dem.Cg2_Sphere_Sphere_L6Geom(label='cg2ss')],[woo.dem.Cp2_FrictMat_FrictPhys(label='cp2ff')],[woo.dem.Law2_L6Geom_FrictPhys_IdealElPl(label='law2elpl')],)
+		S.engines=[woo.core.PyRunner(label='foo'),woo.core.PyRunner(label='bar[2]'),woo.core.PyRunner(label='bar [0]'),cloop]
+		# print S.lab.bar,type(S.lab.bar)
+		self.assert_(hasattr(type(S.lab.bar),'__len__'))
+		self.assert_(S.lab.foo==S.engines[0])
+		self.assert_(S.lab.bar[0]==S.engines[2])
+		self.assert_(S.lab.bar[1]==None)
+		self.assert_(S.lab.bar[2]==S.engines[1])
+		self.assert_(type(S.lab.cg2fs)==woo.dem.Cg2_Facet_Sphere_L6Geom)
 

@@ -57,31 +57,10 @@ class Engine: public Object {
 
 		void runPy(const string&);
 
-		virtual void getLabeledObjects(std::map<std::string,py::object>&, const shared_ptr<LabelMapper>& labelMapper){};
-		template<class T> static void handlePossiblyLabeledObject(const shared_ptr<T>& o, std::map<std::string,py::object>& m, const shared_ptr<LabelMapper>& labelMapper){
+		virtual void getLabeledObjects(const shared_ptr<LabelMapper>& labelMapper){};
+		template<class T> static void handlePossiblyLabeledObject(const shared_ptr<T>& o, const shared_ptr<LabelMapper>& labelMapper){
 			if(o->label.empty()) return;
-			labelMapper->__setitem__woo(o->label,o); // THIS IS THE ONLY LINE WHICH WILL REMAIN!!!
-			GilLock gilLock; // is this needed?
-			if(m.count(o->label)>0) woo::NameError("Duplicate object label '"+o->label+"'.");
-			boost::smatch match;
-			if(boost::regex_match(o->label,match,boost::regex("([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\[([0-9]+)\\]"))){
-				std::string lab0=match[1];	long index=lexical_cast<long>(match[2]);
-				//cerr<<"Label "<<o->label<<" matches list regex: "<<lab0<<" @ "<<index<<endl;
-				if(m.find(lab0)!=m.end()){
-					if(!py::extract<py::list>(m[lab0]).check()) woo::NameError("Label "+o->label+" is subscripted, but and already existing label "+lab0+" is not a list!");
-					//cerr<<"Using existing list with length "<<py::len(py::extract<py::list>(m[lab0]))<<endl;
-				} else {
-					//cerr<<"Creating empty list"<<endl;
-					m[lab0]=py::list();
-				}
-				py::list lst=py::extract<py::list>(m[lab0]);
-				//cerr<<"Adding empty objects to reach index "<<index;
-				while(py::len(lst)<index+1) lst.append(py::object());
-				if(!py::object(lst[index]).is_none()) woo::NameError("Labeled object "+lab0+"["+to_string(index)+"] already assigned!");
-				lst[index]=py::object(o);
-			} else if(boost::regex_match(o->label,match,boost::regex("[a-zA-Z_][a-zA-Z0-9_]*"))){
-				m[o->label]=py::object(o);
-			} else woo::NameError("Object label '"+o->label+"' is not a valid python identifier name.");
+			labelMapper->__setitem__woo(o->label,o);
 		}
 	private:
 		// py access funcs	
@@ -119,7 +98,7 @@ class ParallelEngine: public Engine {
 		virtual bool isActivated(){return true;}
 		virtual bool needsField(){ return false; }
 		virtual void setField();
-		virtual void getLabeledObjects(std::map<std::string,py::object>&, const shared_ptr<LabelMapper>&);
+		virtual void getLabeledObjects(const shared_ptr<LabelMapper>&);
 		void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
 
 	// py access

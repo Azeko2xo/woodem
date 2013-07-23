@@ -26,6 +26,7 @@ struct Particle: public Object{
 	// try unordered_map
 	typedef std::map<id_t,shared_ptr<Contact> > MapParticleContact;
 	void checkNodes(bool dyn=true, bool checkOne=true) const;
+	void selfTest();
 
 	DECLARE_LOGGER;
 
@@ -254,6 +255,8 @@ WOO_REGISTER_OBJECT(DemField);
 
 struct Shape: public Object, public Indexable{
 	virtual bool numNodesOk() const { return true; } // checks for the right number of nodes; to be used in assertions
+	// this will be called from DemField::selfTest for each particle
+	virtual void selfTest(const shared_ptr<Particle>& p){};
 	// return average position of nodes, useful for rendering
 	// caller must make sure that !nodes.empty()
 	Real getSignedBaseColor(){ return color-trunc(color); }

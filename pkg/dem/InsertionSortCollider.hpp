@@ -190,7 +190,7 @@ struct InsertionSortCollider: public Collider {
 	vector<Particle::id_t> probeAabb(const Vector3r& mn, const Vector3r& mx);
 
 	void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d) WOO_CXX11_OVERRIDE;
-	void getLabeledObjects(std::map<std::string,py::object>& m, const shared_ptr<LabelMapper>&) WOO_CXX11_OVERRIDE;
+	void getLabeledObjects(const shared_ptr<LabelMapper>&) WOO_CXX11_OVERRIDE;
 
 	virtual void run();
 	WOO_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(InsertionSortCollider,Collider,"\

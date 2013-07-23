@@ -7,12 +7,26 @@ core.Field.nod=core.Field.nodes
 ## proxy for attribute-like access to Scene.labels
 ## http://stackoverflow.com/questions/16061041/proxy-class-for-accessing-other-class-items-as-attributes-getitem-infinite
 class LabelMapperProxy(object):
-	def __init__(self,scene): self.__dict__['_scene']=scene
-	def __getattr__(self,key): return self._scene.labels[key]
-	def __setattr__(self,key,val): self._scene.labels[key]=val
-	def __delattr__(self,key): del self._scene.labels[key]
+	'Proxy for attribute-like access to :obj:`woo.core.LabelMapper`.'
+	def __init__(self,mapper,prefix=''): self.__dict__['_mapper'],self.__dict__['_prefix']=mapper,prefix
+	def __getattr__(self,key):
+		# some mapper method was requested
+		if key=='__dir__': return lambda: self._mapper.__dir__(self._prefix)
+		if key.startswith('_'):
+			if self._prefix: raise AttributeError('Attributes/methods starting with _ must be obtained from root LabelMappr or proxy (this instance has prefix "'+self._prefix+'")')
+			else: return getattr(self._mapper,key)
+		# submodule requested, return proxy with new prefix
+		if self._mapper._whereIs(self._prefix+key)==core.LabelMapper.inMod:
+			return LabelMapperProxy(self._mapper,prefix=self._prefix+key+'.')
+		# return object
+		return self._mapper[self._prefix+key]
+	def __setattr__(self,key,val): self._mapper[self._prefix+key]=val
+	def __delattr__(self,key): del self._mapper[self._prefix+key]
+	# def __dir__(self): return self._mapper.__dir__(prefix=self._prefix)
+	# def __len__(self): return self._mapper.__len__(prefix=self._prefix)
+	# def _newModule(self,mod): return self._mapper._newModule(self._prefix+mod)
 def Scene_lab(scene):
-	return LabelMapperProxy(scene)
+	return LabelMapperProxy(scene.labels,prefix='')
 core.Scene.lab=property(Scene_lab)
 
 

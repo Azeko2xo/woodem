@@ -5,6 +5,7 @@
 
 struct Facet: public Shape {
 	bool numNodesOk() const { return nodes.size()==3; }
+	void selfTest(const shared_ptr<Particle>&) WOO_CXX11_OVERRIDE;
 	Vector3r getNormal() const;
 	Vector3r getCentroid() const;
 	#ifdef WOO_OPENGL

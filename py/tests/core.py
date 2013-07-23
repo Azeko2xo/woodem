@@ -218,19 +218,6 @@ class TestLoop(unittest.TestCase):
 		S=woo.master.scene
 		S.engines=[PyRunner(1,'pass',dead=True)]
 		S.one(); self.assert_(S.engines[0].nDone==0)
-	def testLabels(self):
-		'Loop: engine/functor labels (plain and array)'
-		S=woo.master.scene
-		self.assertRaises(NameError,lambda: setattr(S,'engines',[PyRunner(label='this is not a valid identifier name')]))
-		self.assertRaises(NameError,lambda: setattr(S,'engines',[PyRunner(label='foo'),PyRunner(label='foo[1]')]))
-		cloop=ContactLoop([Cg2_Facet_Sphere_L6Geom(label='cg2fs'),Cg2_Sphere_Sphere_L6Geom(label='cg2ss')],[Cp2_FrictMat_FrictPhys(label='cp2ff')],[Law2_L6Geom_FrictPhys_IdealElPl(label='law2elpl')],)
-		S.engines=[PyRunner(label='foo'),PyRunner(label='bar[2]'),PyRunner(label='bar [0]'),cloop]
-		self.assert_(type(woo.bar)==list)
-		self.assert_(woo.foo==S.engines[0])
-		self.assert_(woo.bar[0]==S.engines[2])
-		self.assert_(woo.bar[1]==None)
-		self.assert_(woo.bar[2]==S.engines[1])
-		self.assert_(type(woo.cg2fs)==Cg2_Facet_Sphere_L6Geom)
 	def testPausedContext(self):
 		'Loop: "with Scene.paused()" context manager'
 		import time

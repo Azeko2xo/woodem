@@ -645,5 +645,5 @@ void InsertionSortCollider::pyHandleCustomCtorArgs(py::tuple& t, py::dict& d){
 	t=py::tuple(); // empty the args
 }
 
-void InsertionSortCollider::getLabeledObjects(std::map<std::string,py::object>& m, const shared_ptr<LabelMapper>& labelMapper){ if(boundDispatcher) boundDispatcher->getLabeledObjects(m,labelMapper); Engine::getLabeledObjects(m,labelMapper); }
+void InsertionSortCollider::getLabeledObjects(const shared_ptr<LabelMapper>& labelMapper){ if(boundDispatcher) boundDispatcher->getLabeledObjects(labelMapper); Engine::getLabeledObjects(labelMapper); }
 

@@ -39,14 +39,14 @@ Because we need literal functor and class names for registration in python, we p
 
 #define _YADE_DIM_DISPATCHER_FUNCTOR_DOC_ATTRS_CTOR_PY(Dim,DispatcherT,FunctorT,doc,attrs,ctor,ppy) \
 	typedef FunctorT FunctorType; \
-	void updateScenePtr(){ FOREACH(shared_ptr<FunctorT> f, functors){ f->scene=scene; f->field=field.get(); }} \
-	void postLoad(DispatcherT&, void* addr){ clearMatrix(); FOREACH(shared_ptr<FunctorT> f, functors) add(static_pointer_cast<FunctorT>(f)); } \
+	void updateScenePtr(){ for(const shared_ptr<FunctorT>& f: functors){ f->scene=scene; f->field=field.get(); }} \
+	void postLoad(DispatcherT&, void* addr){ clearMatrix(); for(shared_ptr<FunctorT> f: functors) add(static_pointer_cast<FunctorT>(f)); } \
 	virtual void add(FunctorT* f){ add(shared_ptr<FunctorT>(f)); } \
-	virtual void add(shared_ptr<FunctorT> f){ bool dupe=false; string fn=f->getClassName(); FOREACH(const shared_ptr<FunctorT>& f, functors) { if(fn==f->getClassName()) dupe=true; } if(!dupe) functors.push_back(f); addFunctor(f); } \
+	virtual void add(shared_ptr<FunctorT> f){ bool dupe=false; string fn=f->getClassName(); for(const shared_ptr<FunctorT>& f: functors) { if(fn==f->getClassName()) dupe=true; } if(!dupe) functors.push_back(f); addFunctor(f); } \
 	BOOST_PP_CAT(_YADE_DISPATCHER,BOOST_PP_CAT(Dim,D_FUNCTOR_ADD))(FunctorT,f) \
-	py::list functors_get(void) const { py::list ret; FOREACH(const shared_ptr<FunctorT>& f, functors){ ret.append(f); } return ret; } \
-	virtual void getLabeledObjects(std::map<std::string,py::object>& m, const shared_ptr<LabelMapper>& labelMapper){ FOREACH(const shared_ptr<FunctorT>& f, functors){ Engine::handlePossiblyLabeledObject(f,m,labelMapper); } } \
-	void functors_set(const vector<shared_ptr<FunctorT> >& ff){ functors.clear(); FOREACH(const shared_ptr<FunctorT>& f, ff) add(f); postLoad(*this,NULL); } \
+	py::list functors_get(void) const { py::list ret; for(const shared_ptr<FunctorT>& f: functors){ ret.append(f); } return ret; } \
+	virtual void getLabeledObjects(const shared_ptr<LabelMapper>& labelMapper){ for(const shared_ptr<FunctorT>& f: functors){ Engine::handlePossiblyLabeledObject(f,labelMapper); } } \
+	void functors_set(const vector<shared_ptr<FunctorT> >& ff){ functors.clear(); for(const shared_ptr<FunctorT>& f: ff) add(f); postLoad(*this,NULL); } \
 	void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d){ if(py::len(t)==0)return; if(py::len(t)!=1) throw invalid_argument("Exactly one list of " BOOST_PP_STRINGIZE(FunctorT) " must be given."); typedef std::vector<shared_ptr<FunctorT> > vecF; vecF vf=py::extract<vecF>(t[0])(); functors_set(vf); t=py::tuple(); } \
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(DispatcherT,Dispatcher,"Dispatcher calling :ref:`functors<" BOOST_PP_STRINGIZE(FunctorT) ">` based on received argument type(s).\n\n" doc, \
 		((vector<shared_ptr<FunctorT> >,functors,,,"Functors active in the dispatch mechanism [overridden below].")) /*additional attrs*/ attrs, \
@@ -63,14 +63,14 @@ Because we need literal functor and class names for registration in python, we p
 template<typename DispatcherT>
 std::vector<shared_ptr<typename DispatcherT::functorType> > Dispatcher_functors_get(shared_ptr<DispatcherT> self){
 	std::vector<shared_ptr<typename DispatcherT::functorType> > ret;
-	FOREACH(const shared_ptr<Functor>& functor, self->functors){ shared_ptr<typename DispatcherT::functorType> functorRightType(dynamic_pointer_cast<typename DispatcherT::functorType>(functor)); if(!functorRightType) throw logic_error("Internal error: Dispatcher of type "+self->getClassName()+" did not contain Functor of the required type "+typeid(typename DispatcherT::functorType).name()+"?"); ret.push_back(functorRightType); }
+	for(const shared_ptr<Functor>& functor: self->functors){ shared_ptr<typename DispatcherT::functorType> functorRightType(dynamic_pointer_cast<typename DispatcherT::functorType>(functor)); if(!functorRightType) throw logic_error("Internal error: Dispatcher of type "+self->getClassName()+" did not contain Functor of the required type "+typeid(typename DispatcherT::functorType).name()+"?"); ret.push_back(functorRightType); }
 	return ret;
 }
 
 template<typename DispatcherT>
 void Dispatcher_functors_set(shared_ptr<DispatcherT> self, std::vector<shared_ptr<typename DispatcherT::functorType> > functors){
 	self->clear();
-	FOREACH(const shared_ptr<typename DispatcherT::functorType>& item, functors) self->add(item);
+	for(const shared_ptr<typename DispatcherT::functorType>& item: functors) self->add(item);
 }
 
 // Dispatcher is not a template, hence converting this into a real constructor would be complicated; keep it separated, at least for now...
@@ -108,7 +108,7 @@ class Dispatcher1D : public Dispatcher,
 		shared_ptr<FunctorType> getFunctor(shared_ptr<baseClass> arg){ return dispatcherBase::getExecutor(arg); }
 		py::dict dump(bool convertIndicesToNames){
 			py::dict ret;
-			FOREACH(const DynLibDispatcher_Item1D& item, dispatcherBase::dataDispatchMatrix1D()){
+			for(const DynLibDispatcher_Item1D& item: dispatcherBase::dataDispatchMatrix1D()){
 				if(convertIndicesToNames){
 					string arg1=Dispatcher_indexToClassName<argType1>(item.ix1);
 					ret[py::make_tuple(arg1)]=item.functorName;
@@ -159,7 +159,7 @@ class Dispatcher2D : public Dispatcher,
 		shared_ptr<FunctorType> getFunctor(shared_ptr<baseClass1> arg1, shared_ptr<baseClass2> arg2){ return dispatcherBase::getExecutor(arg1,arg2); }
 		py::dict dump(bool convertIndicesToNames){
 			py::dict ret;
-			FOREACH(const DynLibDispatcher_Item2D& item, dispatcherBase::dataDispatchMatrix2D()){
+			for(const DynLibDispatcher_Item2D& item: dispatcherBase::dataDispatchMatrix2D()){
 				if(convertIndicesToNames){
 					string arg1=Dispatcher_indexToClassName<argType1>(item.ix1), arg2=Dispatcher_indexToClassName<argType2>(item.ix2);
 					ret[py::make_tuple(arg1,arg2)]=item.functorName;

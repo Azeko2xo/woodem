@@ -69,8 +69,8 @@ void Engine::runPy(const string& command){
 
 
 void ParallelEngine::setField(){
-	FOREACH(vector<shared_ptr<Engine> >& grp, slaves){
-		FOREACH(const shared_ptr<Engine>& e, grp){
+	for(vector<shared_ptr<Engine>>& grp: slaves){
+		for(const shared_ptr<Engine>& e: grp){
 			e->scene=scene;
 			e->setField();
 		}
@@ -87,7 +87,7 @@ void ParallelEngine::run(){
 	#endif
 	for(int i=0; i<size; i++){
 		// run every slave group sequentially
-		FOREACH(const shared_ptr<Engine>& e, slaves[i]) {
+		for(const shared_ptr<Engine>& e: slaves[i]){
 			//cerr<<"["<<omp_get_thread_num()<<":"<<e->getClassName()<<"]";
 			e->scene=scene;
 			if(!e->field && e->needsField()) throw std::runtime_error((getClassName()+" has no field to run on, but requires one.").c_str());
@@ -119,16 +119,16 @@ void ParallelEngine::pySlavesSet(const py::list& slaves2){
 
 py::list ParallelEngine::pySlavesGet(){
 	py::list ret;
-	FOREACH(vector<shared_ptr<Engine > >& grp, slaves){
+	for(vector<shared_ptr<Engine>>& grp: slaves){
 		if(grp.size()==1) ret.append(py::object(grp[0]));
 		else ret.append(py::object(grp));
 	}
 	return ret;
 }
 
-void ParallelEngine::getLabeledObjects(std::map<std::string,py::object>& m, const shared_ptr<LabelMapper>& labelMapper){
-	FOREACH(vector<shared_ptr<Engine> >& grp, slaves) FOREACH(const shared_ptr<Engine>& e, grp) Engine::handlePossiblyLabeledObject(e,m,labelMapper);
-	Engine::getLabeledObjects(m,labelMapper);
+void ParallelEngine::getLabeledObjects(const shared_ptr<LabelMapper>& labelMapper){
+	for(vector<shared_ptr<Engine> >& grp: slaves) for(const shared_ptr<Engine>& e: grp) Engine::handlePossiblyLabeledObject(e,labelMapper);
+	Engine::getLabeledObjects(labelMapper);
 };
 
 void PeriodicEngine::fakeRun(){

@@ -53,17 +53,17 @@ void ContactLoop::pyHandleCustomCtorArgs(py::tuple& t, py::dict& d){
 	vecGeom vg=py::extract<vecGeom>(t[0])();
 	vecPhys vp=py::extract<vecPhys>(t[1])();
 	vecLaw vl=py::extract<vecLaw>(t[2])();
-	FOREACH(shared_ptr<CGeomFunctor> gf, vg) this->geoDisp->add(gf);
-	FOREACH(shared_ptr<CPhysFunctor> pf, vp) this->phyDisp->add(pf);
-	FOREACH(shared_ptr<LawFunctor> cf, vl)   this->lawDisp->add(cf);
+	for(shared_ptr<CGeomFunctor> gf: vg) this->geoDisp->add(gf);
+	for(shared_ptr<CPhysFunctor> pf: vp) this->phyDisp->add(pf);
+	for(shared_ptr<LawFunctor> cf: vl)   this->lawDisp->add(cf);
 	t=py::tuple(); // empty the args; not sure if this is OK, as there is some refcounting in raw_constructor code
 }
 
-void ContactLoop::getLabeledObjects(std::map<std::string, py::object>& m, const shared_ptr<LabelMapper>& labelMapper){
-	geoDisp->getLabeledObjects(m,labelMapper);
-	phyDisp->getLabeledObjects(m,labelMapper);
-	lawDisp->getLabeledObjects(m,labelMapper);
-	Engine::getLabeledObjects(m,labelMapper);
+void ContactLoop::getLabeledObjects(const shared_ptr<LabelMapper>& labelMapper){
+	geoDisp->getLabeledObjects(labelMapper);
+	phyDisp->getLabeledObjects(labelMapper);
+	lawDisp->getLabeledObjects(labelMapper);
+	Engine::getLabeledObjects(labelMapper);
 }
 
 void ContactLoop::reorderContacts(){
