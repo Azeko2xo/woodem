@@ -24,13 +24,13 @@ struct BoxDeleter: public PeriodicEngine{
 	py::tuple pyDiamMass() const;
 	Real pyMassOfDiam(Real min, Real max) const ;
 	void pyClear(){ diamMass.clear(); mass=0.; num=0; }
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(BoxDeleter,PeriodicEngine,"Delete particles which fall outside (or inside, if *inside* is True) given box. Deleted particles are optionally stored in the *diamMass* array for later processing, if needed.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(BoxDeleter,PeriodicEngine,"Delete/mark particles which fall outside (or inside, if *inside* is True) given box. Deleted/mark particles are optionally stored in the *diamMass* array for later processing, if needed.\n\nParticle are deleted when :obj:`markMask` is 0, otherwise they are only marked with :obj:`markMask` and not deleted.",
+		((uint,markMask,0,,"When non-zero, switch to marking mode -- particles of which :obj:`Particle.mask` does not comtain :obj:`mark` (i.e. ``(mask&mark)!=mark``) have :obj:`mark` bit-added to :obj:`Particle.mask` (this can happen only once for each particle); particles are not deleted, but their diameter/mass added to :obj:`diamMass` if :obj:`save` is True."))
 		((AlignedBox3r,box,AlignedBox3r(Vector3r(NaN,NaN,NaN),Vector3r(NaN,NaN,NaN)),,"Box volume specification (lower and upper corners)"))
-		((int,mask,0,,"If non-zero, only particles matching the mask will be candidates for removal"))
+		((uint,mask,0,,"If non-zero, only particles matching the mask will be candidates for removal"))
 		((bool,inside,false,,"Delete particles which fall inside the volume rather than outside"))
 		((bool,save,false,,"Save particles which are deleted in the *deleted* list"))
 		((bool,recoverRadius,false,,"Recover radius of Spheres by computing it back from particle's mass and its material density (used when radius is changed due to radius thinning (in Law2_L6Geom_PelletPhys_Pellet.thinningFactor)."))
-		/* ((vector<shared_ptr<Particle>>,deleted,,AttrTrait<Attr::readonly>().noGui(),"Deleted particle's list; can be cleared with BoxDeleter.clear()")) */
 		((vector<Vector2r>,diamMass,,AttrTrait<>().noGui().readonly(),"Radii and masses of deleted particles; not accessible from python."))
 		((int,num,0,AttrTrait<Attr::readonly>(),"Number of deleted particles"))
 		((Real,mass,0.,AttrTrait<Attr::readonly>(),"Total mass of deleted particles"))

@@ -27,7 +27,7 @@ class PsdSphereGeneratorTest(unittest.TestCase):
 		'PSD: continuous number-based generator'
 		self.gen.mass=False; self.gen.discrete=False
 		self.checkOk()
-	def checkOk(self,relDeltaInt=.01,relDeltaD=.04):
+	def checkOk(self,relDeltaInt=.02,relDeltaD=.04):
 		for i in range(10000): self.gen(self.mat)
 		iPsd=self.gen.inputPsd(scale=True)
 		iPsdNcum=self.gen.inputPsd(scale=True,cumulative=False,num=150)

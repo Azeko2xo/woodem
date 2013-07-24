@@ -89,11 +89,9 @@ class TestSceneLabels(unittest.TestCase):
 		self.assertRaises(ValueError, lambda: S.lab._newModule('abc'))
 		# nested
 		S.lab._newModule('foo.bar')
-		print 'where is foo.bar?:',S.lab._whereIs('foo.bar')
 		self.assert_(S.lab._whereIs('foo')==woo.core.LabelMapper.inMod)
 		#self.assert_(S.lab._whereIs('foo.bar')==woo.core.LabelMapper.inMod)
 		S.lab.foo.bar.bb=1
-		print 'KEYS:',S.labels.keys()
 		self.assert_(S.lab.foo.bar.bb==1)
 	def testWritable(self):
 		self.S.lab.if_overwriting_this_causes_warning_it_is_a_bug=3
