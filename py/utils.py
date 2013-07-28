@@ -583,8 +583,8 @@ def htmlReport(S,repFmt,headline,afterHead='',figures=[],dialect=None,figFmt='sv
 		svgEmbed=False
 		warnings.warn("Dialect '%s' does not support embedded SVG -- will not be embedded."%dialect)
 	if dialect in ('html4',) and not figFmt=='png':
-		figFmt='png'
 		warnings.warn("Dialect '%s' will save images as 'png', not '%s'"%(dialect,figFmt))
+		figFmt='png'
 	repName=unicode(repFmt).format(S=S,**(dict(S.tags)))
 	rep=codecs.open(repName,'w','utf-8','replace')
 	print 'Writing report to file://'+os.path.abspath(repName)
@@ -613,7 +613,17 @@ def htmlReport(S,repFmt,headline,afterHead='',figures=[],dialect=None,figFmt='sv
 	s+='</body></html>'
 	rep.write(s)
 	rep.close() # flushed write buffers
-	
+
+	# attempt conversion to ODT
+	if 1:
+		def convertToOdt(html,odt):
+			import subprocess
+			ret=subprocess.call(['abiword','--to=ODT','--to-name='+odt,html])
+			if ret==0: print 'Report converted to ODT via Abiword: file://'+os.path.abspath(odt)
+			else: print 'Report conversion to ODT failed (Abiword not installed?), ignoring.'
+		import threading
+		threading.Thread(target=convertToOdt,args=(repName,repBase+'.odt')).start()
+				
 	if show and not woo.batch.inBatch():
 		import webbrowser
 		webbrowser.open('file://'+os.path.abspath(repName))
