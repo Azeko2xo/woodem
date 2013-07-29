@@ -159,7 +159,7 @@ def main(sysArgv=None):
 				if not os.path.isdir(dd): continue
 				if os.path.exists(dd+'/.bzr'):
 					print 'Updating '+dd
-					if subprocess.call(['bzr','up',dd]): raise RuntimeError('Error updating %d from bzr.')
+					if subprocess.call(['bzr','up',dd]): raise RuntimeError('Error updating %d from bzr.'%(dd))
 		# rebuild
 		cmd=['scons','-Q','-C',woo.config.sourceRoot,'flavor=%s!'%woo.config.flavor,'debug=%d'%(1 if opts.debug else 0),'execCheck=%s'%(os.path.abspath(sys.argv[0]))]
 		print 'Rebuilding Woo using',' '.join(cmd)
