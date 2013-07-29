@@ -74,7 +74,7 @@ def makeSphinxHtml(k):
 		if mod.startswith(start): return 'woo.'+repl
 	return 'woo.'+mod
 
-def makeWrapperHref(text,klass,attr=None,static=False):
+def makeClassAttrDocHref(text,klass,attr=None,static=False):
 	"""Create clickable HTML hyperlink to a Woo class or its attribute.
 	
 	:param klass: class object.
@@ -88,7 +88,7 @@ def makeWrapperHref(text,klass,attr=None,static=False):
 	# print klass.__module__,' -> ',makeSphinxHtml(klass)
 	return '<a href="{sphinxPrefix}/{sphinxHtml}.html#{module}.{klass}{dotAttr}">{text}</a>'.format(sphinxPrefix=woo.qt.sphinxPrefix,sphinxHtml=makeSphinxHtml(klass),module=klass.__module__,klass=klass.__name__,dotAttr=dotAttr,text=text)
 
-def serializableHref(ser,attr=None,text=None):
+def makeObjectHref(ser,attr=None,text=None):
 	"""Return HTML href to a *ser* optionally to the attribute *attr*.
 	The class hierarchy is crawled upwards to find out in which parent class is *attr* defined,
 	so that the href target is a valid link. In that case, only single inheritace is assumed and
@@ -103,7 +103,7 @@ def serializableHref(ser,attr=None,text=None):
 	# klass is a class name given as string
 	#if isinstance(ser,str):
 	#	if attr: raise InvalidArgument("When *ser* is a string, *attr* must be empty (only class link can be created)")
-	#	return makeWrapperHref(text if text else ser,ser)
+	#	return makeClassAttrDocHref(text if text else ser,ser)
 	# klass is a type object
 	if attr:
 		klass=ser.__class__
@@ -112,7 +112,7 @@ def serializableHref(ser,attr=None,text=None):
 	else:
 		klass=ser.__class__
 		if not text: text=klass.__name__
-	return makeWrapperHref(text,klass,attr,static=(attr and getattr(klass,attr,None)==getattr(ser,attr)))
+	return makeClassAttrDocHref(text,klass,attr,static=(attr and getattr(klass,attr,None)==getattr(ser,attr)))
 
 # HACK: extend the QLineEdit class
 # set text but preserve cursor position
@@ -1017,7 +1017,7 @@ class ObjectEditor(QFrame):
 			# boost::python won't convert weak_ptr, catch it here
 			ini=''
 		toolTip=entry.containingClass.__name__+'.<b><i>'+entry.name+'</i></b><br>'+entry.doc+('<br><small>default: %s</small>'%ini)
-		if self.labelIsVar: return serializableHref(self.ser,entry.name),toolTip
+		if self.labelIsVar: return makeObjectHref(self.ser,entry.name),toolTip
 		return entry.doc.decode('utf-8'),toolTip
 	def toggleLabelIsVar(self,val=None):
 		self.labelIsVar=(not self.labelIsVar if val==None else val)
@@ -1237,7 +1237,7 @@ def makeObjectLabel(ser,href=False,addr=True,boldHref=True,num=-1,count=-1):
 	if num>=0:
 		if count>=0: ret+=u'%d/%d. '%(num,count)
 		else: ret+=u'%d. '%num
-	if href: ret+=(u' <b>' if boldHref else u' ')+serializableHref(ser)+(u'</b> ' if boldHref else u' ')
+	if href: ret+=(u' <b>' if boldHref else u' ')+makeObjectHref(ser)+(u'</b> ' if boldHref else u' ')
 	else: ret+=ser.__class__.__name__+' '
 	if hasActiveLabel(ser): ret+=u' “'+unicode(ser.label)+u'”'
 	# do not show address if there is a label already
