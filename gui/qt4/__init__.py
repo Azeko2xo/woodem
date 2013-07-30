@@ -113,22 +113,6 @@ from ExceptionDialog import *
 #"holds instances of QtWebKit windows; clicking an url will open it in the window that was the least recently updated"
 #webWindows=[] 
 #webController=None
-sphinxOnlineDocPath='http://www.woodem.eu/doc/'
-"Base URL for the documentation. Packaged versions should change to the local installation directory."
-
-import os.path
-# find if we have docs installed locally from package
-sphinxLocalDocPath=woo.config.prefix+'/share/doc/woo'+woo.config.suffix+'/html/'
-# FIXME: unfortunately file:// links don't seem to work with anchors, so just make this invalid
-sphinxBuildDocPath=woo.config.sourceRoot+'/doc/sphinx2/build/html/REMOVE_THIS_TO_USE_LOCAL_DOCS'
-# we prefer the packaged documentation for this version, if installed
-if   os.path.exists(sphinxLocalDocPath+'/index.html'): sphinxPrefix='file://'+sphinxLocalDocPath
-# otherwise look for documentation generated in the source tree
-elif  os.path.exists(sphinxBuildDocPath+'/index.html'): sphinxPrefix='file://'+sphinxBuildDocPath
-# fallback to online docs
-else: sphinxPrefix=sphinxOnlineDocPath
-
-#sphinxDocWrapperPage=sphinxPrefix+'/woo.wrapper.html'
 
 def onSelection(obj):
 	print 'woo.qt.onSelection:',obj,'was selected'
@@ -137,36 +121,7 @@ def onSelection(obj):
 def openUrl(url):
 	import webbrowser
 	webbrowser.open(url)
-	#global webController
-	#if not webController: webController=webbrowser.get()
-	#webController.open(url)
 	return
-
-	# old version
-	from PyQt4 import QtWebKit
-	global maxWebWindows,webWindows
-	reuseLast=False
-	# use the last window if the class is the same and only the attribute differs
-	try:
-		reuseLast=(len(webWindows)>0 and str(webWindows[-1].url()).split('#')[-1].split('.')[2]==url.split('#')[-1].split('.')[2])
-		#print str(webWindows[-1].url()).split('#')[-1].split('.')[2],url.split('#')[-1].split('.')[2]
-	except: pass
-	if not reuseLast:
-		if len(webWindows)<maxWebWindows: webWindows.append(QtWebKit.QWebView())
-		else: webWindows=webWindows[1:]+[webWindows[0]]
-	web=webWindows[-1]
-	web.load(QUrl(url)); web.setWindowTitle(url);
-	if 0:
-		def killSidebar(result):
-			frame=web.page().mainFrame()
-			frame.evaluateJavaScript("var bv=$('.bodywrapper'); bv.css('margin','0 0 0 0');")
-			frame.evaluateJavaScript("var sbw=$('.sphinxsidebarwrapper'); sbw.css('display','none');")
-			frame.evaluateJavaScript("var sb=$('.sphinxsidebar'); sb.css('display','none'); ")
-			frame.evaluateJavaScript("var sb=$('.sidebar'); sb.css('width','0px'); ")
-			web.loadFinished.disconnect(killSidebar)
-		web.loadFinished.connect(killSidebar)
-	web.show();	web.raise_()
-
 
 controller=None
 

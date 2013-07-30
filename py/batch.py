@@ -13,7 +13,7 @@ def inBatch():
 	import os
 	return 'WOO_BATCH' in os.environ
 
-def writeResults(defaultDb='woo-results.sqlite',syncXls=True,series=None,postHooks=[],**kw):
+def writeResults(scene,defaultDb='woo-results.sqlite',syncXls=True,dbFmt=None,series=None,postHooks=[],**kw):
 	'''
 	Write results to batch database. With *syncXls*, corresponding excel-file is re-generated.
 	Series is a dicionary of 1d arrays written to separate sheets in the XLS. If *series* is `None`
@@ -28,64 +28,103 @@ def writeResults(defaultDb='woo-results.sqlite',syncXls=True,series=None,postHoo
 	'''
 	# increase every time the db format changes, to avoid errors
 	formatVersion=3
-	import woo
-	S=woo.master.scene
-	import os
-	import sqlite3
-	if inBatch():
-		table,line,db=os.environ['WOO_BATCH'].split(':')
-	else:
-		table,line,db='',-1,defaultDb
+	import woo, woo.plot, woo.core
+	import os, os.path, datetime
+	import numpy
+	import json
+	S=scene
+	if inBatch(): table,line,db=os.environ['WOO_BATCH'].split(':')
+	else: table,line,db='',-1,defaultDb
 	newDb=not os.path.exists(db)
 	print 'Writing results to the database %s (%s)'%(db,'new' if newDb else 'existing')
-	conn=sqlite3.connect(db,detect_types=sqlite3.PARSE_DECLTYPES)
-	if newDb:
-		c=conn.cursor()
-		c.execute('create table batch (formatNumber integer, finished timestamp, batchtable text, batchTableLine integer, sceneId text, title text, duration integer, pre text, tags text, plots text, misc text, series text)')
-	else:	
-		conn.row_factory=sqlite3.Row
-		conn.execute('select * from batch')
-		row=conn.cursor().fetchone()
-		# row can be None if the db is empty
-		if row and row['formatVersion']!=formatVersion:
-			raise RuntimeError('database format mismatch: %s/batch/formatVersion==%s, but should be %s'%(db,row['formatVersion'],formatVersion))
-	with conn:
-		import json
-		import woo.plot
-		import datetime
-		import numpy
-		import woo.core
-		# make sure keys are unicode objects (which is what json converts to!)
-		# but preserve values using a 8-bit encoding)
-		# this sort-of sucks, hopefully there is a better solution soon
-		d2=dict([(key,val.decode('iso-8859-1')) for key,val in S.tags.items()])
-		# make sure series are 1d arrays
-		if series==None:
-			series={}; series.update([('plot_'+k,v) for k,v in S.plot.data.items()])
-		for k,v in series.items():
-			if isinstance(v,numpy.ndarray): series[k]=v.tolist()
-			elif not hasattr(v,'__len__'): raise ValueError('series["%s"] not a sequence (__len__ not defined).'%k)
-		values=(	
-			formatVersion, # formatVersion
-			datetime.datetime.now(), # finished
-			table, # batchTable
-			line, # batchTableLine
-			S.tags['id'], # sceneId
-			S.tags['title'], # title
-			S.duration,
-			(S.pre.dumps(format='json') if S.pre else None), # pre
-			json.dumps(d2), # tags
-			json.dumps(S.plot.plots), # plots
-			woo.core.WooJSONEncoder(indent=None,oneway=True).encode(kw), # misc
-			json.dumps(series) # series
-		)
-		conn.execute('insert into batch values (?,?,?,?,?, ?,?,?,?,?, ?,?)',values)
-	if syncXls:
-		import re
-		xls='%s.xls'%re.sub('\.sqlite$','',db)
-		print 'Converting %s to file://%s'%(db,os.path.abspath(xls))
-		dbToSpread(db,out=xls,dialect='xls')
-	for ph in postHooks: ph(db)
+	if dbFmt==None:
+		if db.endswith('.sqlite'): dbFmt='sqlite'
+		elif os.path.splitext(db)[1] in ('.h5','.hdf5','.he5','hdf'): dbFmt='hdf5'
+		else: raise ValueError("Unable to determine database format from file extension: must be *.sqlite, *.h5, *.hdf5, *.he5, *.hdf.")
+
+	# make sure keys are unicode objects (which is what json converts to!)
+	# but preserve values using a 8-bit encoding)
+	# this sort-of sucks, hopefully there is a better solution soon
+	unicodeTags=dict([(key,val.decode('iso-8859-1')) for key,val in S.tags.items()])
+	# make sure series are 1d arrays
+	if series==None:
+		series={}; series.update([('plot_'+k,v) for k,v in S.plot.data.items()])
+	for k,v in series.items():
+		if isinstance(v,numpy.ndarray):
+			if dmFmt=='sqlite': series[k]=v.tolist() # sqlite needs lists, hdf5 is fine with numpy arrays
+		elif not hasattr(v,'__len__'): raise ValueError('series["%s"] not a sequence (__len__ not defined).'%k)
+	if dbFmt=='sqlite':
+		import sqlite3
+		conn=sqlite3.connect(db,detect_types=sqlite3.PARSE_DECLTYPES)
+		if newDb:
+			c=conn.cursor()
+			c.execute('create table batch (formatNumber integer, finished timestamp, batchtable text, batchTableLine integer, sceneId text, title text, duration integer, pre text, tags text, plots text, misc text, series text)')
+		else:	
+			conn.row_factory=sqlite3.Row
+			conn.execute('select * from batch')
+			row=conn.cursor().fetchone()
+			# row can be None if the db is empty
+			if row and row['formatVersion']!=formatVersion:
+				raise RuntimeError('database format mismatch: %s/batch/formatVersion==%s, but should be %s'%(db,row['formatVersion'],formatVersion))
+		with conn:
+			values=(	
+				formatVersion, # formatVersion
+				datetime.datetime.now(), # finished
+				table, # batchTable
+				line, # batchTableLine
+				S.tags['id'], # sceneId
+				S.tags['title'], # title
+				S.duration,
+				(S.pre.dumps(format='json') if S.pre else None), # pre
+				json.dumps(unicodeTags), # tags
+				json.dumps(S.plot.plots), # plots
+				woo.core.WooJSONEncoder(indent=None,oneway=True).encode(kw), # misc
+				json.dumps(series) # series
+			)
+			conn.execute('insert into batch values (?,?,?,?,?, ?,?,?,?,?, ?,?)',values)
+		if syncXls:
+			import re
+			xls='%s.xls'%re.sub('\.sqlite$','',db)
+			print 'Converting %s to file://%s'%(db,os.path.abspath(xls))
+			dbToSpread(db,out=xls,dialect='xls')
+		for ph in postHooks: ph(db)
+	elif dbFmt=='hdf5':
+		formatNumber=1
+		import h5py
+		try:
+			hdf=h5py.File(db,'a',libver='latest')
+		except IOError:
+			import warnings
+			warnings.warn("Error opening HDF5 file %s, moving to %s~~corrupt and creating a new one")
+			import shutil
+			shutil.move(db,db+'~~corrupt')
+			hdf=h5py.File(db,'a',libver='latest')
+		i=0
+		while True:
+			sceneId=S.tags['id']+('' if i==0 else '~%d'%i)
+			if sceneId not in hdf: break
+			i+=1
+		# group for our Scene
+		G=hdf.create_group(sceneId)
+		G['formatNumber']=formatNumber
+		G['finished']=datetime.datetime.now().replace(microsecond=0).isoformat('_')
+		G['batchTable']=table
+		G['batchTableLine']=line
+		G['sceneId']=S.tags['id']
+		G['title']=S.tags['title']
+		G['duration']=S.duration
+		G['pre']=(S.pre.dumps(format='json') if S.pre else '')
+		G_tags=G.create_group('tags')
+		for k,v in unicodeTags.items():
+			# workaround from https://github.com/h5py/h5py/issues/289
+			#G_tags.attrs.create(k,v,dtype=h5py.special_dtype(vlen=unicode))
+			G_tags[k]=v.encode('utf-8')
+		G['plots']=json.dumps(S.plot.plots)
+		G['misc']=woo.core.WooJSONEncoder(indent=None,oneway=True).encode(kw)
+		G_series=G.create_group('series')
+		for k,v in series.items(): G_series[k]=v
+		hdf.close()
+	else: raise ValueError('*fmt* must be one of "sqlite", "hdf5", None (autodetect based on suffix)')
 
 # return all series stored in the database
 def dbReadResults(db,basicTypes=False):	

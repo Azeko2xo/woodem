@@ -3,6 +3,7 @@
 # various monkey-patches for wrapped c++ classes
 import woo.core
 import woo.system
+import woo.document
 #import woo.dem
 from minieigen import * # for recognizing the types
 
@@ -123,7 +124,10 @@ class SerializerToHtmlTableGenshi:
 		if depth>self.maxDepth: raise RuntimeError("Maximum nesting depth %d exceeded"%self.maxDepth)
 		kw=self.padding.copy()
 		if depth>0: kw.update(width='100%')
-		ret=tag.table(tag.th(tag.b('.'.join(obj.__class__.__module__.split('.')[1:])+'.'+obj.__class__.__name__),colspan=3,align='left'),frame='box',rules='all',**kw)
+		# was [1:] to omit leading woo./wooExtra., but that is not desirable
+		head=tag.b('.'.join(obj.__class__.__module__.split('.')[0:])+'.'+obj.__class__.__name__)
+		head=tag.a(head,href=woo.document.makeObjectUrl(obj),title=obj.__class__.__doc__.decode('utf-8'))
+		ret=tag.table(tag.th(head,colspan=3,align='left'),frame='box',rules='all',**kw)
 		# get all attribute traits first
 		traits=obj._getAllTraits()
 		for trait in traits:
@@ -132,7 +136,9 @@ class SerializerToHtmlTableGenshi:
 			if trait.startGroup:
 				ret.append(tag.tr(tag.td(tag.i(u'▸ %s'%trait.startGroup.decode('utf-8')),colspan=3)))
 			attr=getattr(obj,trait.name)
-			tr=tag.tr(tag.td(trait.name if not self.showDoc else trait.doc.decode('utf-8')))
+			if self.showDoc: tr=tag.tr(tag.td(trait.doc.decode('utf-8')))
+			else: tr=tag.tr(tag.td(tag.a(trait.name,href=woo.document.makeObjectUrl(obj,trait.name),title=trait.doc.decode('utf-8'))))
+			# tr=tag.tr(tag.td(trait.name if not self.showDoc else trait.doc.decode('utf-8')))
 			# nested object
 			if isinstance(attr,woo.core.Object):
 				tr.append([tag.td(self(attr,depth+1),align='justify'),tag.td()])

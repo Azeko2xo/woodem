@@ -16,6 +16,7 @@ logging.basicConfig(level=logging.INFO)
 #from woo import *
 import woo._customConverters, woo.core, woo.utils
 import woo.qt
+import woo.document
 import sys
 
 
@@ -66,53 +67,6 @@ class WidgetUpdatesDisabled():
 	def __exit__(self,eType,eValue,eTrace): self.widget.setUpdatesEnabled(True)
 
 
-def makeSphinxHtml(k):
-	'Given a class, try to guess name of the HTML page where it is documented by Sphinx'
-	if not k.__module__.startswith('woo.'): return k.__module__
-	mod=k.__module__.split('.')[1] # sphinx does not make the hierarchy any deeper than 2
-	for start,repl in [('_pack','pack'),('_qt','qt'),('_utils','utils')]:
-		if mod.startswith(start): return 'woo.'+repl
-	return 'woo.'+mod
-
-def makeClassAttrDocHref(text,klass,attr=None,static=False):
-	"""Create clickable HTML hyperlink to a Woo class or its attribute.
-	
-	:param klass: class object.
-	:param attr: attribute to link to. If given, must exist directly in given *klass*; if not given or empty, link to the class itself is created and *attr* is ignored.
-	:return: HTML with the hyperref.
-	"""
-	dotAttr=(('.'+attr) if attr else '')
-	if klass.__module__.startswith('wooExtra.'):
-		KEY=sys.modules['.'.join(klass.__module__.split('.')[:2])].KEY
-		return '<a href="http://www.woodem.eu/private/{KEY}/doc/index.html#{module}.{klass}{dotAttr}">{text}</a>'.format(KEY=KEY,module=klass.__module__,klass=klass.__name__,dotAttr=dotAttr,text=text)
-	# print klass.__module__,' -> ',makeSphinxHtml(klass)
-	return '<a href="{sphinxPrefix}/{sphinxHtml}.html#{module}.{klass}{dotAttr}">{text}</a>'.format(sphinxPrefix=woo.qt.sphinxPrefix,sphinxHtml=makeSphinxHtml(klass),module=klass.__module__,klass=klass.__name__,dotAttr=dotAttr,text=text)
-
-def makeObjectHref(ser,attr=None,text=None):
-	"""Return HTML href to a *ser* optionally to the attribute *attr*.
-	The class hierarchy is crawled upwards to find out in which parent class is *attr* defined,
-	so that the href target is a valid link. In that case, only single inheritace is assumed and
-	the first class from the top defining *attr* is used.
-
-	:param ser: object of class deriving from :ref:`Object`, or string; if string, *attr* must be empty.
-	:param attr: name of the attribute to link to; if empty, linke to the class itself is created.
-	:param text: visible text of the hyperlink; if not given, either class name or attribute name without class name (when *attr* is not given) is used.
-
-	:returns: HTML with the hyperref.
-	"""
-	# klass is a class name given as string
-	#if isinstance(ser,str):
-	#	if attr: raise InvalidArgument("When *ser* is a string, *attr* must be empty (only class link can be created)")
-	#	return makeClassAttrDocHref(text if text else ser,ser)
-	# klass is a type object
-	if attr:
-		klass=ser.__class__
-		while attr in dir(klass.__bases__[0]): klass=klass.__bases__[0]
-		if not text: text=attr
-	else:
-		klass=ser.__class__
-		if not text: text=klass.__name__
-	return makeClassAttrDocHref(text,klass,attr,static=(attr and getattr(klass,attr,None)==getattr(ser,attr)))
 
 # HACK: extend the QLineEdit class
 # set text but preserve cursor position
@@ -1017,7 +971,7 @@ class ObjectEditor(QFrame):
 			# boost::python won't convert weak_ptr, catch it here
 			ini=''
 		toolTip=entry.containingClass.__name__+'.<b><i>'+entry.name+'</i></b><br>'+entry.doc+('<br><small>default: %s</small>'%ini)
-		if self.labelIsVar: return makeObjectHref(self.ser,entry.name),toolTip
+		if self.labelIsVar: return woo.document.makeObjectHref(self.ser,entry.name),toolTip
 		return entry.doc.decode('utf-8'),toolTip
 	def toggleLabelIsVar(self,val=None):
 		self.labelIsVar=(not self.labelIsVar if val==None else val)
@@ -1237,7 +1191,7 @@ def makeObjectLabel(ser,href=False,addr=True,boldHref=True,num=-1,count=-1):
 	if num>=0:
 		if count>=0: ret+=u'%d/%d. '%(num,count)
 		else: ret+=u'%d. '%num
-	if href: ret+=(u' <b>' if boldHref else u' ')+makeObjectHref(ser)+(u'</b> ' if boldHref else u' ')
+	if href: ret+=(u' <b>' if boldHref else u' ')+woo.document.makeObjectHref(ser)+(u'</b> ' if boldHref else u' ')
 	else: ret+=ser.__class__.__name__+' '
 	if hasActiveLabel(ser): ret+=u' “'+unicode(ser.label)+u'”'
 	# do not show address if there is a label already

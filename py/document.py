@@ -5,6 +5,23 @@ import sys
 import codecs
 import re
 
+
+sphinxOnlineDocPath='http://www.woodem.eu/doc/'
+"Base URL for the documentation. Packaged versions should change to the local installation directory."
+
+import os.path
+# find if we have docs installed locally from package
+sphinxLocalDocPath=woo.config.prefix+'/share/doc/woo'+woo.config.suffix+'/html/'
+# FIXME: unfortunately file:// links don't seem to work with anchors, so just make this invalid
+sphinxBuildDocPath=woo.config.sourceRoot+'/doc/sphinx2/build/html/REMOVE_THIS_TO_USE_LOCAL_DOCS'
+# we prefer the packaged documentation for this version, if installed
+if   os.path.exists(sphinxLocalDocPath+'/index.html'): sphinxPrefix='file://'+sphinxLocalDocPath
+# otherwise look for documentation generated in the source tree
+elif  os.path.exists(sphinxBuildDocPath+'/index.html'): sphinxPrefix='file://'+sphinxBuildDocPath
+# fallback to online docs
+else: sphinxPrefix=sphinxOnlineDocPath
+
+
 def fixDocstring(s):
 	s=s.replace(':ref:',':obj:')
 	s=re.sub(r'(?<!\\)\$([^\$]+)(?<!\\)\$',r'\ :math:`\1`\ ',s)
@@ -162,5 +179,52 @@ def oneModuleWithSubmodules(mod,out,exclude=None,level=0):
 
 
 
+def makeSphinxHtml(k):
+	'Given a class, try to guess name of the HTML page where it is documented by Sphinx'
+	if not k.__module__.startswith('woo.'): return k.__module__
+	mod=k.__module__.split('.')[1] # sphinx does not make the hierarchy any deeper than 2
+	for start,repl in [('_pack','pack'),('_qt','qt'),('_utils','utils')]:
+		if mod.startswith(start): return 'woo.'+repl
+	return 'woo.'+mod
+
+def makeClassAttrDocUrl(klass,attr=None):
+	'''Return URL to documentation of Woo class or its attribute in http://woodem.eu/doc.
+	:param klass: class object
+	:param attr:  attribute to link to. If given, must exist directly in given *klass* (not its parent); if not given or empty, link to the class itself is created and *attr* is ignored.
+	:return: URL as text
+	'''
+	dotAttr=(('.'+attr) if attr else '')
+	if klass.__module__.startswith('wooExtra.'):
+		KEY=sys.modules['.'.join(klass.__module__.split('.')[:2])].KEY
+		return 'http://www.woodem.eu/private/{KEY}/doc/index.html#{module}.{klass}{dotAttr}'.format(KEY=KEY,module=klass.__module__,klass=klass.__name__,dotAttr=dotAttr)
+	return '{sphinxPrefix}/{sphinxHtml}.html#{module}.{klass}{dotAttr}'.format(sphinxPrefix=sphinxPrefix,sphinxHtml=makeSphinxHtml(klass),module=klass.__module__,klass=klass.__name__,dotAttr=dotAttr)
+
+def makeObjectUrl(obj,attr=None):
+	"""Return HTML href to a *obj* optionally to the attribute *attr*.
+	The class hierarchy is crawled upwards to find out in which parent class is *attr* defined,
+	so that the href target is a valid link. In that case, only single inheritace is assumed and
+	the first class from the top defining *attr* is used.
+
+	:param obj: object of class deriving from :ref:`Object`, or string; if string, *attr* must be empty.
+	:param attr: name of the attribute to link to; if empty, linke to the class itself is created.
+
+	:returns: HTML with the hyperref.
+	"""
+	if attr:
+		klass=obj.__class__
+		while attr in dir(klass.__bases__[0]): klass=klass.__bases__[0]
+	else:
+		klass=obj.__class__
+	return makeClassAttrDocUrl(klass,attr)
+
+def makeObjectHref(obj,attr=None,text=None):
+	'''Create HTML hyperlink, wrapping :obj:`makeObjectUrl`. adding ``<a href="...">text</a>``.
+
+	:param text: visible text of the hyperlink; if not given, either class name or attribute name without class name (when *attr* is given) is used.
+	'''
+	if not text:
+		if attr: text=attr
+		else: text=obj.__class__.__name__
+	return '<a href="%s">%s</a>'%(makeObjectUrl(obj,attr),text)
 
 

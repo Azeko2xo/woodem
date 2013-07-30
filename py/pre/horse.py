@@ -161,7 +161,7 @@ def finished(S):
 	import os,re,woo.batch,woo.utils,codecs
 	S.stop()
 	repName=os.path.abspath(S.pre.reportFmt.format(S=S,**(dict(S.tags))))
-	woo.batch.writeResults(defaultDb='horse.results',series=S.plot.data,postHooks=[plotBatchResults],simulationName='horse',report='file://'+repName)
+	woo.batch.writeResults(S,defaultDb='horse.results',series=S.plot.data,postHooks=[plotBatchResults],simulationName='horse',report='file://'+repName)
 
 
 	# energy plot, to show how to add plot to the report

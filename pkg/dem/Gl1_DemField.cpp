@@ -28,6 +28,7 @@ bool Gl1_DemField::wire;
 bool Gl1_DemField::bound;
 int Gl1_DemField::shape;
 bool Gl1_DemField::shape2;
+Vector2i Gl1_DemField::modulo;
 bool Gl1_DemField::nodes;
 bool Gl1_DemField::deadNodes;
 bool Gl1_DemField::fluct;
@@ -194,6 +195,9 @@ void Gl1_DemField::doShape(){
 
 		if(!p->shape || p->shape->nodes.empty()) continue;
 
+		// don't show particles not matching modulo value
+		if(modulo[0]>0 && (p->id+modulo[1])%modulo[0]!=0) continue;
+
 		const shared_ptr<Shape>& sh=p->shape;
 
 		// sets highlighted color, if the particle is selected
@@ -205,7 +209,7 @@ void Gl1_DemField::doShape(){
 
 		// if any of the particle's nodes is clipped, don't display it at all
 		bool clipped=false;
-		FOREACH(const shared_ptr<Node>& n,p->shape->nodes){
+		for(const shared_ptr<Node>& n: p->shape->nodes){
 			Renderer::setNodeGlData(n,updateRefPos);
 			if(n->getData<GlData>().isClipped()) clipped=true;
 		}
@@ -324,11 +328,15 @@ void Gl1_DemField::doNodes(const vector<shared_ptr<Node>>& nodeContainer){
 	boost::mutex::scoped_lock lock(dem->nodesMutex);
 
 	Renderer::nodeDispatcher.scene=scene; Renderer::nodeDispatcher.updateScenePtr();
-	FOREACH(shared_ptr<Node> n, nodeContainer){
+	for(shared_ptr<Node> n: nodeContainer){
 		PROCESS_GUI_EVENTS_SOMETIMES;
 
 		Renderer::setNodeGlData(n,updateRefPos);
 		if(n->getData<GlData>().isClipped()) continue;
+		const DemData& dyn=n->getData<DemData>();
+
+		// don't show particles not matching modulo value on first attached particle's id
+		if(modulo[0]>0 && !dyn.parRef.empty() && (((*dyn.parRef.begin())->id+modulo[1])%modulo[0])!=0) continue;
 
 		if(glyph!=GLYPH_KEEP){
 			// prepare rep types
@@ -342,8 +350,8 @@ void Gl1_DemField::doNodes(const vector<shared_ptr<Node>>& nodeContainer){
 			switch(glyph){
 				case GLYPH_NONE: n->rep.reset(); break; // no rep
 				case GLYPH_VEL: n->rep->cast<VectorGlRep>().val=getNodeVel(n); break;
-				case GLYPH_FORCE: n->rep->cast<VectorGlRep>().val=n->getData<DemData>().force; break;
-				case GLYPH_TORQUE: n->rep->cast<VectorGlRep>().val=n->getData<DemData>().torque; break;
+				case GLYPH_FORCE: n->rep->cast<VectorGlRep>().val=dyn.force; break;
+				case GLYPH_TORQUE: n->rep->cast<VectorGlRep>().val=dyn.torque; break;
 				case GLYPH_KEEP:
 				default: ;
 			}
