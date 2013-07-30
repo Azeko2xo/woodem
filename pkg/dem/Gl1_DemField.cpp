@@ -195,9 +195,6 @@ void Gl1_DemField::doShape(){
 
 		if(!p->shape || p->shape->nodes.empty()) continue;
 
-		// don't show particles not matching modulo value
-		if(modulo[0]>0 && (p->id+modulo[1])%modulo[0]!=0) continue;
-
 		const shared_ptr<Shape>& sh=p->shape;
 
 		// sets highlighted color, if the particle is selected
@@ -235,6 +232,10 @@ void Gl1_DemField::doShape(){
 			|| (colorBy==COLOR_MATSTATE && !p->matState)
 			|| (!isSphere && (colorBy==COLOR_SIG_N || colorBy==COLOR_SIG_T))
 		) useColor2=true;
+
+		// don't show particles not matching modulo value
+		if(!useColor2 && modulo[0]>0 && (p->id+modulo[1])%modulo[0]!=0) continue;
+
 
 		if(!shape2 && useColor2) continue; // skip particle
 

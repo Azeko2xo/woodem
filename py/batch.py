@@ -38,7 +38,8 @@ def writeResults(scene,defaultDb='woo-results.sqlite',syncXls=True,dbFmt=None,se
 	newDb=not os.path.exists(db)
 	print 'Writing results to the database %s (%s)'%(db,'new' if newDb else 'existing')
 	if dbFmt==None:
-		if db.endswith('.sqlite'): dbFmt='sqlite'
+		ext=os.path.splitext(db)[1]
+		if ext in ('.sqlite','.results'): dbFmt='sqlite'
 		elif os.path.splitext(db)[1] in ('.h5','.hdf5','.he5','hdf'): dbFmt='hdf5'
 		else: raise ValueError("Unable to determine database format from file extension: must be *.sqlite, *.h5, *.hdf5, *.he5, *.hdf.")
 

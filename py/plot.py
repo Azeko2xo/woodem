@@ -433,10 +433,11 @@ def createPlots(P,subPlots=True,scatterSize=60,wider=False):
 			if len(data.keys())==0 or len(data[data.keys()[0]])==0: # no data at all yet, do not add garbage NaNs
 				for m in missing: data[m]=[]
 			else:
-				#try:
-				print 'Missing columns in plot.data, adding NaN: ',u','.join(list(missing))
-				#except UnicodeEncodeError: pass
 				addDataColumns(data,missing)
+				try:
+					print 'Missing columns in Scene.plot.data, added NaNs:',', '.join([m.encode('utf-8') for m in missing])
+				except UnicodeDecodeError:
+					warnings.warn('UnicodeDecodeError reporting missing data columns -- harmless, just wondering...')
 		def createLines(pStrip,ySpecs,isY1=True,y2Exists=False):
 			'''Create data lines from specifications; this code is common for y1 and y2 axes;
 			it handles y-data specified as callables (or strings enging in '()'), which might create additional lines when updated with liveUpdate.
