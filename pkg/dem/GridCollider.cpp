@@ -137,6 +137,7 @@ void GridCollider::run(){
 	if(allOk) return;
 
 	/*** FULL COLLIDER RUN ***/
+	nFullRuns++;
 
 	prepareGridCurr(); GC_CHECKPOINT("prepare-grid");
 	bool diffStep=(useDiff && gridPrev && gridPrev->isCompatible(gridCurr));

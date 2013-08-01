@@ -28,11 +28,12 @@ def reset():
 _statCols={'label':38,'count':20,'time':20,'relTime':20}
 _maxLev=3
 
-def _formatLine(label,time,count,threads,totalTime,level):
+def _formatLine(label,time,count,threads,totalTime,level,count2=-1):
 	sp,negSp=' '*level*2,' '*(_maxLev-level)*2
 	raw=[]
 	raw.append(label)
 	raw.append((str(count)+(' [/%d]'%threads if threads>1 else '')) if count>=0 else '')
+	if count2>=0: raw[-1]='(%d) %s'%(count2,raw[-1]) # for nFullRuns for some colliders
 	raw.append(('%.1f'%(time/1000000.)) if time>=0 else '')
 	raw.append(('%6.2f'%(time*100./totalTime)) if totalTime>0 else '')
 	#raw.append('[%2.1f]'%(time*100./totalTime/threads) if totalTime>0 and threads>1 else '')
@@ -56,7 +57,7 @@ def _delta_stats(deltas,totalTime,level):
 def _engines_stats(engines,totalTime,level):
 	lines=0; hereLines=0
 	for e in engines:
-		if not isinstance(e,Functor): print _formatLine(u'"'+e.label+'"' if e.label else e.__class__.__name__,e.execTime,e.execCount,-1,totalTime,level); lines+=1; hereLines+=1
+		if not isinstance(e,Functor): print _formatLine(u'"'+e.label+'"' if e.label else e.__class__.__name__,e.execTime,e.execCount,-1,totalTime,level,count2=(e.nFullRuns if hasattr(e,'nFullRuns') else -1)); lines+=1; hereLines+=1
 		if e.timingDeltas: 
 			if isinstance(e,Functor):
 				print _formatLine(e.__class__.__name__,-1,-1,-1,-1,level); lines+=1; hereLines+=1

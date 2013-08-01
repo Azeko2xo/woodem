@@ -51,11 +51,16 @@ struct GridStore: public Object{
 	// say in which cell lies given spatial coordinate
 	// no bound checking is done, caller must assure the result makes sense
 	Vector3i xyz2ijk(const Vector3r& xyz) const { /* cast rounds down properly */ return ((xyz-lo).array()/cellSize.array()).cast<int>().matrix(); }
-	// bounding box for givendecltype(*grid)
+	AlignedBox3i xxyyzz2iijjkk(const AlignedBox3r& box) const{ return AlignedBox3i(xyz2ijk(box.min()),xyz2ijk(box.max())); }
+	// bounding box for given cell
 	AlignedBox3r ijk2box(const Vector3i& ijk) const { AlignedBox3r ret; ret.min()=ijk2boxMin(ijk); ret.max()=ret.min()+cellSize; return ret; }
+	AlignedBox3r iijjkk2box(const Vector3i& lo, const Vector3i& hi) const { return AlignedBox3r(ijk2boxMin(lo),ijk2boxMin(hi+Vector3i::Ones())); }
 	// lower corner of given cell
 	Vector3r ijk2boxMin(const Vector3i& ijk) const { return lo+(ijk.cast<Real>().array()*cellSize.array()).matrix(); }
 	Vector3r ijk2boxMiddle(const Vector3i& ijk) const { return lo+((ijk.cast<Real>()+.5*Vector3r::Ones()).array()*cellSize.array()).matrix(); }
+
+	// clamp given AlignedBox3i so that all its cells are valid
+	void clamp(AlignedBox3i& iijjkk){ iijjkk.clamp(AlignedBox3i(Vector3i::Zero(),/*inclusive upper bound*/sizes()-Vector3i::Ones())); }
 
 	/* bigger, not inlined */
 	// bounding box shrunk by dimensionless *shrink* (relative size)
@@ -64,6 +69,8 @@ struct GridStore: public Object{
 	Vector3r xyzNearXyz(const Vector3r& xyz, const Vector3i& ijk) const;
 	// point nearest to given cell *from* in cell *ijk*
 	Vector3r xyzNearIjk(const Vector3i& from, const Vector3i& ijk) const;
+	// squared distance between Aabb and cell *ijk*
+	Real boxCellDistSq(const AlignedBox3r& box, const Vector3i& ijk) const { return box.squaredExteriorDistance(ijk2box(ijk)); }
 
 	// http://stackoverflow.com/a/7918281/761090
 	template <class T>

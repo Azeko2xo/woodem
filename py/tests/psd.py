@@ -27,6 +27,16 @@ class PsdSphereGeneratorTest(unittest.TestCase):
 		'PSD: continuous number-based generator'
 		self.gen.mass=False; self.gen.discrete=False
 		self.checkOk()
+	def testMonodisperse(self):
+		'PSD: monidisperse packing'
+		self.gen.psdPts=[(.05,0),(.05,1)]
+		self.gen.mass=True; self.gen.discrete=False
+		# this cannot be checked with numpy.trapz, do it manually
+		for i in range(10000): self.gen(self.mat)
+		(id,im),(od,om)=self.gen.inputPsd(scale=True),self.gen.psd()
+		self.assert_(id[0]==id[-1])
+		self.assert_(im[0]==im[-1])
+		self.assertAlmostEqual(im[0],om[0],delta=.04*id[0])
 	def checkOk(self,relDeltaInt=.02,relDeltaD=.04):
 		for i in range(10000): self.gen(self.mat)
 		iPsd=self.gen.inputPsd(scale=True)

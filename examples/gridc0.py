@@ -12,11 +12,13 @@ S.dem.loneMask=S.lab.loneMask
 woo.master.timingEnabled=True
 
 rr=.02
+#rr=.1
 cell=rr
-verlet=.4*rr
+verlet=.1*rr
+verletSteps=0
 mat=woo.utils.defaultMaterial()
 
-gridCollider=GridCollider(domain=((-1,-1,-1),(2,3,3)),minCellSize=cell,boundDispatcher=GridBoundDispatcher(functors=[Grid1_Sphere(),Grid1_Wall(movable=False)]),label='collider',verletDist=verlet,gridDense=5,exIniSize=4,complSetMinSize=3,useDiff=('diff' in sys.argv))
+gridCollider=GridCollider(domain=((-1,-1,-1),(2,3,3)),minCellSize=cell,boundDispatcher=GridBoundDispatcher(functors=[Grid1_Sphere(),Grid1_Wall(movable=False)]),label='collider',verletDist=verlet,verletSteps=verletSteps,gridDense=5,exIniSize=4,complSetMinSize=3,useDiff=('diff' in sys.argv))
 sortCollider=InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Wall_Aabb()],verletDist=verlet)
 
 
@@ -31,12 +33,13 @@ S.engines=[
 		applyForces=True,
 		label='contactLoop',
 	),
-	PyRunner(1000,'import woo.timing; print("step %d, %d contacts, %g%% real"%(S.step,len(S.dem.con),S.dem.con.realRatio()*100)); woo.timing.stats(); woo.timing.reset()'),
+	PyRunner(1000,'import woo.timing; print("step %d, %d contacts, %g%% real"%(S.step,len(S.dem.con),S.dem.con.realRatio()*100)); woo.timing.stats(); woo.timing.reset(); S.lab.collider.nFullRuns=0;'),
 ]
 
 if 0:
 	for c,r in [((0,0,.4),.2),((1,1,1),.3),((1.3,2,2),.5),((.5,.5,.5),rr)]:
 		S.dem.par.append(woo.utils.sphere(c,r,mask=S.lab.spheMask))
+	S.lab.collider.renderCells=True
 else:
 	import woo.pack
 	sp=woo.pack.SpherePack()

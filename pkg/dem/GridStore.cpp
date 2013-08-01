@@ -61,6 +61,7 @@ Vector3r GridStore::xyzNearIjk(const Vector3i& from, const Vector3i& ijk) const{
 }
 
 
+
 bool GridStore::isCompatible(shared_ptr<GridStore>& other){
 	// if grid dimension matches, tht is all we need
 	if(this->sizes()!=other->sizes()) return false;

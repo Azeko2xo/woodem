@@ -13,6 +13,12 @@ void GridBound::setNodePlay(const shared_ptr<Shape>& s, const Real& verletDist){
 	}
 };
 
+void GridBound::setNodePlay_box0(const shared_ptr<Shape>& s, const AlignedBox3r& box){
+	assert(s->nodes.size()==1);
+	nodePlay.resize(1);
+	nodePlay[0]=box;
+}
+
 bool GridBound::insideNodePlay(const shared_ptr<Shape>& s) const {
 	if(s->nodes.size()!=nodePlay.size()) return false;
 	const size_t N=s->nodes.size();
@@ -34,29 +40,59 @@ void Grid1_Sphere::go(const shared_ptr<Shape>& sh, const Particle::id_t& id, con
 	#ifdef WOO_GRID_BOUND_DEBUG
 		gb.cells.clear();
 	#endif
-	//assert(s.numNodesOk());
 	const Vector3r& pos=s.nodes[0]->pos;
-	//Vector3r halfSize=(distFactor>0?distFactor:1.)*s.radius*Vector3r::Ones();
-	Real radEff=max(s.radius-coll->shrink,0.)+(distFactor>1?(distFactor-1):0.)*s.radius+coll->verletDist;
-	//if(!scene->isPeriodic){ gb.min=pos-halfSize; gb.max=pos+halfSize; return; }
-	Vector3i ijk0=grid->xyz2ijk(pos-radEff*Vector3r::Ones());
-	Vector3i ijk1=grid->xyz2ijk(pos+radEff*Vector3r::Ones());
-	// don't go over actual grid dimensions
-	ijk0=ijk0.cwiseMax(Vector3i::Zero());
-	ijk1=ijk1.cwiseMin(grid->sizes()-Vector3i::Ones()); // the upper bound is inclusive
-	for(Vector3i ijk=ijk0; ijk[0]<=ijk1[0]; ijk[0]++){
-		for(ijk[1]=ijk0[1]; ijk[1]<=ijk1[1]; ijk[1]++){
-			for(ijk[2]=ijk0[2]; ijk[2]<=ijk1[2]; ijk[2]++){
-				if((grid->xyzNearXyz(pos,ijk)-pos).squaredNorm()>pow(radEff,2)) continue; // cell not touched by the sphere
-				// add sphere to the cell
-				grid->protected_append(ijk,id);
-				#ifdef WOO_GRID_BOUND_DEBUG
-					gb.cells.push_back(ijk);
-				#endif
+	const auto& dyn(s.nodes[0]->getData<DemData>());
+	const Real& verletDist(coll->verletDist);
+	const int& verletSteps(coll->verletSteps);
+	// includes shrinkage (if applicable) and distFactor
+	Real radius=max(s.radius-coll->shrink,0.)+(distFactor>1?(distFactor-1):0.)*s.radius;
+	// this is the new branch
+	bool velSweep=(verletSteps>0 && (dyn.vel*verletSteps*scene->dt).squaredNorm()>pow(verletDist,2));
+	if(velSweep){
+		AlignedBox3r nodeBox, bbox;
+		for(const Vector3r& p:{pos,(pos+dyn.vel*scene->dt*verletSteps).eval()}){
+			nodeBox.extend(p);
+			bbox.extend(p+Vector3r::Ones()*radius); bbox.extend(p-Vector3r::Ones()*radius);
+		}
+		AlignedBox3i ijkBox=grid->xxyyzz2iijjkk(bbox);
+		// don't go over actual grid dimensions
+		grid->clamp(ijkBox);
+		Vector3i& ijk0(ijkBox.min()); Vector3i& ijk1(ijkBox.max());
+		for(Vector3i ijk=ijk0; ijk[0]<=ijk1[0]; ijk[0]++){
+			for(ijk[1]=ijk0[1]; ijk[1]<=ijk1[1]; ijk[1]++){
+				for(ijk[2]=ijk0[2]; ijk[2]<=ijk1[2]; ijk[2]++){
+					//if((grid->xyzNearXyz(pos,ijk)-pos).squaredNorm()>pow(radEff,2)) continue; 
+					if(grid->boxCellDistSq(nodeBox,ijk)>pow(radius,2)) continue; // cell not touched by the sphere
+					// add sphere to the cell
+					grid->protected_append(ijk,id);
+					#ifdef WOO_GRID_BOUND_DEBUG
+						gb.cells.push_back(ijk);
+					#endif
+				}
 			}
 		}
+		gb.setNodePlay_box0(sh,nodeBox);
+	} else {
+		AlignedBox3r bbox;
+		Real radiusVerletDist=radius+verletDist;
+		for(int sgn:{-1,+1}) bbox.extend(pos+sgn*Vector3r::Ones()*(radiusVerletDist));
+		AlignedBox3i ijkBox=grid->xxyyzz2iijjkk(bbox);
+		Vector3i& ijk0(ijkBox.min()); Vector3i& ijk1(ijkBox.max());
+		grid->clamp(ijkBox);
+		for(Vector3i ijk=ijk0; ijk[0]<=ijk1[0]; ijk[0]++){
+			for(ijk[1]=ijk0[1]; ijk[1]<=ijk1[1]; ijk[1]++){
+				for(ijk[2]=ijk0[2]; ijk[2]<=ijk1[2]; ijk[2]++){
+					if((grid->xyzNearXyz(pos,ijk)-pos).squaredNorm()>pow(radiusVerletDist,2)) continue; 
+					// add sphere to the cell
+					grid->protected_append(ijk,id);
+					#ifdef WOO_GRID_BOUND_DEBUG
+						gb.cells.push_back(ijk);
+					#endif
+				}
+			}
+		}
+		gb.setNodePlay(sh,verletDist);
 	}
-	gb.setNodePlay(sh,coll->verletDist);
 }
 
 void Grid1_Wall::go(const shared_ptr<Shape>& sh, const Particle::id_t& id, const shared_ptr<GridCollider>& coll, const shared_ptr<GridStore>& grid){

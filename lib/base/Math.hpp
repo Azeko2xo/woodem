@@ -89,6 +89,8 @@ typedef Eigen::Quaternion<Real> Quaternionr;
 typedef Eigen::AngleAxis<Real> AngleAxisr;
 typedef Eigen::AlignedBox<Real,2> AlignedBox2r;
 typedef Eigen::AlignedBox<Real,3> AlignedBox3r;
+typedef Eigen::AlignedBox<int,2> AlignedBox2i;
+typedef Eigen::AlignedBox<int,3> AlignedBox3i;
 using Eigen::AngleAxis; using Eigen::Quaternion;
 
 // in some cases, we want to initialize types that have no default constructor (OpenMPAccumulator, for instance)
@@ -245,7 +247,9 @@ BOOST_IS_BITWISE_SERIALIZABLE(Matrix6r);
 BOOST_IS_BITWISE_SERIALIZABLE(MatrixXr);
 BOOST_IS_BITWISE_SERIALIZABLE(VectorXr);
 BOOST_IS_BITWISE_SERIALIZABLE(AlignedBox2r);
+BOOST_IS_BITWISE_SERIALIZABLE(AlignedBox2i);
 BOOST_IS_BITWISE_SERIALIZABLE(AlignedBox3r);
+BOOST_IS_BITWISE_SERIALIZABLE(AlignedBox3i);
 
 namespace boost {
 namespace serialization {

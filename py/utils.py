@@ -251,16 +251,6 @@ def infCylinder(position,radius,axis,glAB=None,fixed=True,mass=0,color=None,wire
 	p.mask=mask
 	return p
 
-def facetBox(*args,**kw):
-	"|ydeprecated|"
-	_deprecatedUtilsFunction('facetBox','geom.facetBox')
-	return geom.facetBox(*args,**kw)
-
-def facetCylinder(*args,**kw):
-	"|ydeprecated|"
-	_deprecatedUtilsFunction('facetCylinder','geom.facetCylinder')
-	return geom.facetCylinder(*args,**kw)
-	
 def aabbWalls(extrema=None,thickness=None,oversizeFactor=1.5,**kw):
 	"""Return 6 boxes that will wrap existing packing as walls from all sides;
 	extrema are extremal points of the Aabb of the packing (will be calculated if not specified)
@@ -660,6 +650,12 @@ def runAllPreprocessors():
 		S=woo.master.scene=P()()
 		S.one
 	print 20*'*'+'   ALL OK   '+20*'*'
+
+def unbalancedEnergy(S):
+	if not S.trackEnergy: raise RuntimError('Scene.trackEnergy==False')
+	if not 'elast' in S.energy or 'kinetic' not in S.energy: return float('nan')
+	#raise RuntimeError('Scene.energy: does not contain *elast* or *kinetic* keys')
+	return S.energy['kinetic']/S.energy['elast']
 
 
 #############################

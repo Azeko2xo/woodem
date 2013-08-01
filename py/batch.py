@@ -316,7 +316,9 @@ def dbToSpread(db,out=None,dialect='excel',rows=False,series=True,ignored=('plot
 
 def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 	"""
-	Read parameters from a file and assign them to __builtin__ variables.
+	Read parameters from a file and assign them to __builtin__ variables. This function is used for scripts (as opposed to preprocessors) running in a batch.
+
+	.. warning:: This function will have its API changed (to pass values to :obj:`woo.core.Scene.lab` instead of abusing the ``__builtin__`` namespace).
 
 	The format of the file is as follows (commens starting with # and empty lines allowed)::
 
@@ -327,14 +329,14 @@ def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 		val2  val2  … # 2nd
 		…
 
-	Assigned tags (the ``title`` column is synthesized if absent,see :ref:`woo.utils.TableParamReader`); 
+	Assigned tags (the ``title`` column is synthesized if absent,see :ref:`woo.utils.TableParamReader`):: 
 
-		s=woo.master.scene
-		s.tags['title']=…                                      # assigns the title column; might be synthesized
-		s.tags['params']="name1=val1,name2=val2,…"                   # all explicitly assigned parameters
-		s.tags['defaultParams']="unassignedName1=defaultValue1,…"    # parameters that were left at their defaults
-		s.tags['d.id']=s.tags['id']+'.'+s.tags['title']
-		s.tags['id.d']=s.tags['title']+'.'+s.tags['id']
+		S=woo.master.scene
+		S.tags['title']=…                                            # assigns the title column; might be synthesized
+		S.tags['params']="name1=val1,name2=val2,…"                   # all explicitly assigned parameters
+		S.tags['defaultParams']="unassignedName1=defaultValue1,…"    # parameters that were left at their defaults
+		S.tags['d.id']=s.tags['id']+'.'+s.tags['title']
+		S.tags['id.d']=s.tags['title']+'.'+s.tags['id']
 
 	All parameters (default as well as settable) are saved using :ref:`woo.utils.saveVars`\ ``('table')``.
 
@@ -389,6 +391,11 @@ def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 
 
 def runPreprocessor(pre,preFile=None):
+	"""Execute given :obj:`Preprocessor <woo.core.Preprocessor>`, modifying its attributes from batch (if running in batch). Each column from the batch table (except of environment variables starting with ``!``) must correspond to a preprocessor's attribute.
+
+	Nested attributes are allowed, e.g. with :obj:`woo.pre.horse.FallingHorse`, a column named ``mat.tanPhi`` will modify horse's material's friction angle, using the default material object.
+	"""
+
 	def nestedSetattr(obj,attr,val):
 		attrs=attr.split(".")
 		for i in attrs[:-1]:

@@ -10,6 +10,8 @@ struct Shape;
 struct GridBound: public Bound{
 	// set *nodePlay* based on current nodal positions and verletDist
 	void setNodePlay(const shared_ptr<Shape>& s, const Real& verletDist);
+	// set *nodePlay* for a mononodal particles from given box
+	void setNodePlay_box0(const shared_ptr<Shape>& s, const AlignedBox3r& box);
 	// check if all nodes are inside their respective nodePlay boxes
 	bool insideNodePlay(const shared_ptr<Shape>& s) const;
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(GridBound,Bound,"Bound defined via grid cell indices (used with :obj:`GridCollider`)",/*attrs*/

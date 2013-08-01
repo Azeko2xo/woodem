@@ -748,8 +748,15 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNu
 
 
 
-def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,goal=.15,dontBlock=False,memoizeDir=None,botLine=None,leftLine=None,rightLine=None,clumps=[],returnSpherePack=False):
-	'''Create dense packing periodic in the +y direction, suitable for use with ConveyorFactory.'''
+
+def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,goal=.15,dontBlock=False,memoizeDir=None,botLine=None,leftLine=None,rightLine=None,clumps=[],returnSpherePack=False,useEnergy=True):
+	'''Create dense packing periodic in the +y direction, suitable for use with ConveyorFactory.
+:param useEnergy: use :obj:`woo.utils.unbalancedEnergy` instead of :obj:`woo.utils.unbalancedForce` as stop criterion.
+:param goal: target unbalanced force/energy; if unbalanced energy is used, this value is **multiplied by .2**.
+:param psd: particle size distribution
+:param mat: material for particles
+:param gravity: gravity acceleration (as Vector3)
+'''
 	print 'woo.pre.roro.makeBandFeedPack(dim=%s,psd=%s,mat=%s,gravity=%s,excessWd=%s,damping=%s,dontBlock=True,botLine=%s,leftLine=%s,rightLine=%s,clumps=%s)'%(repr(dim),repr(psd),mat.dumps(format='expr',width=-1,noMagic=True),repr(gravity),repr(excessWd),repr(damping),repr(botLine),repr(leftLine),repr(rightLine),repr(clumps))
 	dim=list(dim) # make modifiable in case of excess width
 	retWd=dim[1]
@@ -765,7 +772,7 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 	cellSize=(dim[0],dim[1],(1+2*porosity)*dim[2])
 	print 'cell size',cellSize,'target height',dim[2]
 	if memoizeDir and not dontBlock:
-		params=str(dim)+str(cellSize)+str(psd)+str(goal)+str(damping)+mat.dumps(format='expr')+str(gravity)+str(porosity)+str(botLine)+str(leftLine)+str(rightLine)+str(clumps)+'ver4'
+		params=str(dim)+str(cellSize)+str(psd)+str(goal)+str(damping)+mat.dumps(format='expr')+str(gravity)+str(porosity)+str(botLine)+str(leftLine)+str(rightLine)+str(clumps)+str(useEnergy)+'ver4'
 		import hashlib
 		paramHash=hashlib.sha1(params).hexdigest()
 		memoizeFile=memoizeDir+'/'+paramHash+'.bandfeed'
@@ -801,7 +808,15 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 
 	if not clumps: generator=woo.dem.PsdSphereGenerator(psdPts=psd,discrete=False,mass=True)
 	else: generator=woo.dem.PsdClumpGenerator(psdPts=psd,discrete=False,mass=True,clumps=clumps)
-
+	
+	# todo: move trackEnergy under useEnergy once we don't need comparisons
+	S.trackEnergy=True
+	if useEnergy:
+		unbalancedFunc='woo.utils.unbalancedEnergy'
+		# smaller goal for energy criterion
+		goal*=.2
+	else:
+		unbalancedFunc='woo.utils.unbalancedForce'
 	S.engines=utils.defaultEngines(damping=damping)+[
 		woo.dem.BoxFactory(
 			box=((.01*cellSize[0],factoryLeft,factoryBottom),(cellSize[0],factoryRight,cellSize[2])),
@@ -817,12 +832,14 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 			#periSpanMask=1, # x is periodic
 		),
 		#PyRunner(200,'plot.addData(uf=utils.unbalancedForce(),i=O.scene.step)'),
-		woo.core.PyRunner(300,'import woo\nprint "%g/%g mass, %d particles, unbalanced %g/'+str(goal)+'"%(S.lab.factory.mass,S.lab.factory.maxMass,len(S.dem.par),woo.utils.unbalancedForce(S))'),
+		# woo.core.PyRunner(300,'import woo\nprint "%g/%g mass, %d particles, unbalanced '+('energy' if useEnergy else 'force')+'%g/'+str(goal)+'"%(S.lab.factory.mass,S.lab.factory.maxMass,len(S.dem.par),'+unabalncedFunc+'(S))'),
+		woo.core.PyRunner(300,'import woo\nprint "%g/%g mass, %d particles, unbalanced F: %g E: %g /'+str(goal)+'"%(S.lab.factory.mass,S.lab.factory.maxMass,len(S.dem.par),woo.utils.unbalancedForce(S),woo.utils.unbalancedEnergy(S))'),
 		woo.core.PyRunner(300,'import woo\nif S.lab.factory.mass>=S.lab.factory.maxMass: S.engines[0].damping=1.5*%g'%damping),
-		woo.core.PyRunner(200,'import woo\nif woo.utils.unbalancedForce(S)<'+str(goal)+' and S.lab.factory.dead: S.stop()'),
+		woo.core.PyRunner(200,'import woo\nif '+unbalancedFunc+'(S)<'+str(goal)+' and S.lab.factory.dead: S.stop()'),
 	]
 	S.dt=.7*utils.spherePWaveDt(psd[0][0],mat.density,mat.young)
 	print 'Factory box is',S.lab.factory.box
+	S.dem.collectNodes()
 	if dontBlock: return S
 	else: S.run()
 	S.wait()

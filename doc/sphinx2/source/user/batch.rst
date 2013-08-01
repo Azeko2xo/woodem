@@ -84,7 +84,7 @@ dt.1	0.1
 dt.05	0.05
 ===== ===========
 
-This table will run 6 simulations. The **title** column is optional; if not given, simulation title is created from values of other parameters.
+This table will run 6 simulations. The **title** column is optional; if not given, simulation title is created from values of other parameters. For details of table syntax (including default values, repeating previous values and comments) see :obj:`woo.batch.TableParamReader`.
 
 .. note:: Simulation title can be used as basis for output files. In particular, Windows systems don't allow many characters in filenames, which can lead to errors. Therefore, specifying the **title** column without dangerous characters is always advisable under Windows.
 
