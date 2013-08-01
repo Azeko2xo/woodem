@@ -62,7 +62,7 @@ def _ensureInitialized():
 			print 'Importing',m
 			__import__(m)
 
-	global cxxClasses, allWooMods
+	# global cxxClasses, allWooMods
 	cc=woo.system.childClasses(woo.core.Object,includeBase=True,recurse=True)
 	for c in cc:
 		if re.match(modExcludeRegex,c.__module__): continue

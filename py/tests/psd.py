@@ -35,8 +35,7 @@ class PsdSphereGeneratorTest(unittest.TestCase):
 		for i in range(10000): self.gen(self.mat)
 		(id,im),(od,om)=self.gen.inputPsd(scale=True),self.gen.psd()
 		self.assert_(id[0]==id[-1])
-		self.assert_(im[0]==im[-1])
-		self.assertAlmostEqual(im[0],om[0],delta=.04*id[0])
+		self.assertAlmostEqual(im[-1],om[-1],delta=.04*im[-1])
 	def checkOk(self,relDeltaInt=.02,relDeltaD=.04):
 		for i in range(10000): self.gen(self.mat)
 		iPsd=self.gen.inputPsd(scale=True)
