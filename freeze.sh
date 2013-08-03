@@ -3,7 +3,7 @@ set -e -x
 # install Woo
 python setup.py install
 # install extras
-for $EX in wooExtra/*; do
+for EX in wooExtra/*; do
 	[ -f $EX/setup.py ] || continue
 	pushd $EX
 		python setup.py install
