@@ -65,6 +65,15 @@ void ConveyorFactory::postLoad(ConveyorFactory&,void* attr){
 	maxRate=vel*rho*vol/cellLen;
 	LOG_INFO("l="<<cellLen<<" m, V="<<vol<<" m³, rho="<<rho<<" kg/m³, vel="<<vel<<" m/s, packVel="<<packVel<<" m/s, massRate="<<massRate<<" kg/s, maxRate="<<maxRate<<" kg/s");
 	// comparisons are true only if neither operand is NaN
+	if(zTrim && vel>packVel) {
+		// with z-trimming, reduce number of volume (proportionally) and call this function again
+		LOG_INFO("zTrim in effect: trying to reduce volume from "<<vol<<" to "<<vol*(packVel/vel)<<" (factor "<<(packVel/vel)<<")");
+		sortPacking(/*zTrimVol*/vol*(packVel/vel));
+		zTrim=false;
+		sortPacking(); // sort packing again, along x, as that will not be done in the above block again
+		postLoad(*this,NULL);
+		return;
+	}
 	// error here if vel is being set
 	if(vel<packVel && attr==&vel) throw std::runtime_error("ConveyorFactory: vel="+to_string(vel)+" m/s < "+to_string(packVel)+" m/s - minimum to achieve desired massRate="+to_string(massRate));
 	// otherwise show the massRate error instead (very small tolerance as FP might not get it right)
@@ -77,7 +86,7 @@ void ConveyorFactory::postLoad(ConveyorFactory&,void* attr){
 	avgRate=(vol*rho/cellLen)*vel; // (kg/m)*(m/s)→kg/s
 }
 
-void ConveyorFactory::sortPacking(){
+void ConveyorFactory::sortPacking(const Real& zTrimVol){
 	if(radii.size()!=centers.size()) throw std::logic_error("ConveyorFactory.sortPacking: radii.size()!=centers.size()");
 	if(hasClumps() && radii.size()!=clumps.size()) throw std::logic_error("ConveyorFactory.sortPacking: clumps not empty and clumps.size()!=centers.size()");
 	if(!cellLen>0 /*catches NaN as well*/) ValueError("ConveyorFactory.cellLen must be positive (not "+to_string(cellLen)+")");
@@ -91,11 +100,23 @@ void ConveyorFactory::sortPacking(){
 		if(centers[i][0]<0 || centers[i][0]>=cellLen) centers[i][0]=Cell::wrapNum(centers[i][0],cellLen);
 		ccrrcc[i]=CRC{centers[i],radii[i],doClumps?clumps[i]:shared_ptr<SphereClumpGeom>()};
 	}
-	// sort according to the x-coordinate
-	std::sort(ccrrcc.begin(),ccrrcc.end(),[](const CRC& a, const CRC& b)->bool{ return a.c[0]<b.c[0]; });
+	// sort according to the z-coordinate of the top, if z-trimming, otherwise according to the x-coord of the center
+	if(zTrimVol>0) std::sort(ccrrcc.begin(),ccrrcc.end(),[](const CRC& a, const CRC& b)->bool{ return (a.c[2]+a.r<b.c[2]+b.r); });
+	else std::sort(ccrrcc.begin(),ccrrcc.end(),[](const CRC& a, const CRC& b)->bool{ return a.c[0]<b.c[0]; });
+	Real currVol=0.;
 	for(size_t i=0;i<N;i++){
 		centers[i]=ccrrcc[i].c; radii[i]=ccrrcc[i].r;
 		if(doClumps) clumps[i]=ccrrcc[i].clump;
+		// z-trimming
+		if(zTrimVol>0){
+			currVol+=(doClumps?clumps[i]->volume:(4/3.)*M_PI*pow(radii[i],3));
+			if(currVol>zTrimVol){
+				zTrimHt=centers[i][2]+radii[i];
+				LOG_INFO("Z-sorted packing reached volume "<<currVol<<">="<<zTrimVol<<" at sphere/clump "<<i<<"/"<<N<<", zTrimHt="<<zTrimHt<<", discarding remaining spheres/clumps.");
+				centers.resize(i+1); radii.resize(i+1); if(doClumps) clumps.resize(i+1);
+				return;
+			}
+		}
 	}
 }
 
@@ -222,7 +243,7 @@ void ConveyorFactory::run(){
 			for(auto& sphere: spheres){
 				sphere->mask=mask;
 				dem->particles->insert(sphere);
-				LOG_TRACE("[cllump] new sphere #"<<sphere->id<<", r="<<radii[nextIx]<<" at "<<n->pos.transpose());
+				LOG_TRACE("[clump] new sphere #"<<sphere->id<<", r="<<radii[nextIx]<<" at "<<n->pos.transpose());
 			}
 		}
 
