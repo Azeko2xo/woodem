@@ -62,7 +62,9 @@ if [ -d /boot ]; then
 				VERSION=`echo $EGG | cut -f2 -d-`
 				makensis -DCOMPONENT=$COMPONENT -DVERSION=$VERSION nsis-wwoo-extra.nsh
 				if $DO_UPLOAD; then
-					scp $EGG Woo-$COMPONENT-*-installer.exe bbeta:host/woodem/private/`python -c "import $COMPONENT; print $COMPONENT.KEY"`/inst/
+					KEY=`python -c "import $COMPONENT; print $COMPONENT.KEY" || true`
+					scp $EGG Woo-$COMPONENT-*-installer.exe bbeta:host/woodem/private/$KEY/inst/
+					ssh bbeta chmod ug+r host/woodem/private/$KEY/inst/*.{exe,egg}
 				fi
 			done
 		fi
