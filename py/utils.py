@@ -607,12 +607,19 @@ def htmlReport(S,repFmt,headline,afterHead='',figures=[],dialect=None,figFmt='sv
 	# attempt conversion to ODT
 	if 1:
 		def convertToOdt(html,odt):
-			import subprocess
-			ret=subprocess.call(['abiword','--to=ODT','--to-name='+odt,html])
-			if ret==0: print 'Report converted to ODT via Abiword: file://'+os.path.abspath(odt)
-			else: print 'Report conversion to ODT failed (Abiword not installed?), ignoring.'
-		import threading
-		threading.Thread(target=convertToOdt,args=(repName,repBase+'.odt')).start()
+			try:
+				import subprocess
+				# may raise OSError if the executable is not found
+				ret=subprocess.call(['abiword','--to=ODT','--to-name='+odt,html])
+				if ret!=0: raise RuntimeError('Conversion failed')
+				print 'Report converted to ODT via Abiword: file://'+os.path.abspath(odt)
+			except:
+				print 'Report conversion to ODT failed (Abiword not installed?), ignoring.'
+		# if this is run in the background, main process may finish before that thread, leading potentially to some error messages?? run in foreground
+		if 0: convertToOdt(repName,repBase+'.odt') 
+		else:
+			import threading
+			threading.Thread(target=convertToOdt,args=(repName,repBase+'.odt')).start()
 				
 	if show and not woo.batch.inBatch():
 		import webbrowser
@@ -655,6 +662,8 @@ def unbalancedEnergy(S):
 	if not S.trackEnergy: raise RuntimError('Scene.trackEnergy==False')
 	if not 'elast' in S.energy or 'kinetic' not in S.energy: return float('nan')
 	#raise RuntimeError('Scene.energy: does not contain *elast* or *kinetic* keys')
+	# this line seems to be necessary under Windows, zero raises ZeroDivisionError...?!
+	if S.energy['elast']==0: return float('nan')
 	return S.energy['kinetic']/S.energy['elast']
 
 
