@@ -700,7 +700,7 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNu
 		)
 	]
 	S.one()
-	print u'Created %d particles, compacting…'%(len(S.dem.par))
+	print 'Created %d particles, compacting...'%(len(S.dem.par))
 	S.dt=.9*utils.pWaveDt(S,noClumps=True)
 	if clumps: warnings.warn('utils.pWaveDt called with noClumps=True (clumps ignored), the result (S.dt=%g) might be significantly off!'%S.dt)
 	S.engines=[

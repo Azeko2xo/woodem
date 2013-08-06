@@ -20,15 +20,23 @@ def Entrypoint(dist, group, name, scripts=None, pathex=None, **kw):
 	return Analysis(scripts=scripts+[script_path], pathex=pathex, **kw)
 	
 
-import woo.pre, pkgutil
+import woo.pre, pkgutil,woo
 wooPreMods=[]
 for importer, modname, ispkg in pkgutil.iter_modules(woo.pre.__path__):
 	sys.stderr.write('ADDING PREPROCESSOR %s\n'%modname)
 	wooPreMods.append('woo.pre.'+modname)
 	
+# just in case some of those are not imported anywhere (such as woo.triangulated),
+# try to traverse them here and add those explicitly
+# this is perhaps not necessary
+wooMods=[]
+for importer, modname, ispkg in pkgutil.iter_modules(woo.__path__):
+	sys.stderr.write('ADDING MODULE %s\n'%modname)
+	wooMods.append('woo.'+modname)
+	
 
 main=Entrypoint(dist='woo',group='console_scripts',name='wwoo',
-	hiddenimports=['woo._cxxInternal']+wooPreMods,
+	hiddenimports=['woo._cxxInternal']+wooPreMods+wooMods,
 	excludes=['wooExtra','Tkinter']
 )
 
@@ -44,7 +52,7 @@ exeMain=EXE(pyz,
 	exclude_binaries=1,
 	name=os.path.join('build\\pyi.win32\\wwoo', 'wwoo.exe'),
 	icon='nsis/icons/woo-icon.256.ico',
-	debug=False,
+	debug=True,
 	strip=None,
 	upx=False,
 	console=True)
