@@ -56,7 +56,7 @@ section "install"
 	# pkg_resources.resources_fulename('woo','data/woo-icon.128.png') returns c:/Program Files/Woo/woo/data
 	# (should be c:/Program FIles/Woo/data). As we don't know how to fix that better, copy data once more
 	# to c:/Program Files/Woo/woo/data so that they are found.
-	setOutPath $INSTDIR\data\woo
+	setOutPath $INSTDIR\woo\data
 	file data\*
 
 	setOutPath $INSTDIR
