@@ -52,6 +52,13 @@ section "install"
 	setOutPath $INSTDIR\data
 	file data\*
 
+	# hack around poor support for pkg_resources in PyInstaller:
+	# pkg_resources.resources_fulename('woo','data/woo-icon.128.png') returns c:/Program Files/Woo/woo/data
+	# (should be c:/Program FIles/Woo/data). As we don't know how to fix that better, copy data once more
+	# to c:/Program Files/Woo/woo/data so that they are found.
+	setOutPath $INSTDIR\data\woo
+	file data\*
+
 	setOutPath $INSTDIR
 
 	# $\ is escape sequence, don't add quotation marks, they should not be in %PATH%
@@ -93,7 +100,8 @@ section "uninstall"
 	delete $INSTDIR\woo.*
 	delete $INSTDIR\uninstall-${COMPONENT}.exe
 	RMDir /R $INSTDIR\data
-
+	RMDir /R $INSTDIR\woo # should only contain a copy of data -- see note in the install section
+ 
 	# remove path again
 	${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR"
 	

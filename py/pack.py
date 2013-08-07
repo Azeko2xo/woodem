@@ -718,7 +718,6 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNu
 	sp.canonicalize()
 	sp.makeOverlapFree()
 	print 'Loose packing size is',sp.cellSize
-	sp.save('/tmp/sp0')
 	cc,rr=[],[]
 	inf=float('inf')
 	boxMin=Vector3(0,0,0);
@@ -726,10 +725,8 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNu
 	boxMin[lenAxis]=-inf
 	boxMax[lenAxis]=inf
 	box=AlignedBox3(boxMin,boxMax)
-	sp.save('/tmp/sp1')
 	sp2=sp.filtered(inAlignedBox(box))
 	print 'Box is ',box
-	sp2.save('/tmp/sp2')
 	#for c,r in sp:
 	#	if c-Vector3(r,r,r) not in box or c+Vector3(r,r,r) not in box: continue
 	#	cc.append(c); rr.append(r)
@@ -757,7 +754,7 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 :param mat: material for particles
 :param gravity: gravity acceleration (as Vector3)
 '''
-	print 'woo.pre.roro.makeBandFeedPack(dim=%s,psd=%s,mat=%s,gravity=%s,excessWd=%s,damping=%s,dontBlock=True,botLine=%s,leftLine=%s,rightLine=%s,clumps=%s)'%(repr(dim),repr(psd),mat.dumps(format='expr',width=-1,noMagic=True),repr(gravity),repr(excessWd),repr(damping),repr(botLine),repr(leftLine),repr(rightLine),repr(clumps))
+	print 'woo.pack.makeBandFeedPack(dim=%s,psd=%s,mat=%s,gravity=%s,excessWd=%s,damping=%s,dontBlock=True,botLine=%s,leftLine=%s,rightLine=%s,clumps=%s)'%(repr(dim),repr(psd),mat.dumps(format='expr',width=-1,noMagic=True),repr(gravity),repr(excessWd),repr(damping),repr(botLine),repr(leftLine),repr(rightLine),repr(clumps))
 	dim=list(dim) # make modifiable in case of excess width
 	retWd=dim[1]
 	repeatCell=[0]
