@@ -83,6 +83,7 @@ struct Law2_L6Geom_PelletPhys_Pellet: public LawFunctor{
 	,
 		((Real,thinningFactor,0,,"The amount of reducing particle radius, relative to plastic deformation increment (non-positive to disable thinning)"))
 		((Real,rMinFrac,.7,,"Minimum radius reachable with sphere thinning at plastic deformation"))
+		((Real,sigConfine,0,,"Confinement stress (acting on :obj:`contact area <L6Geom.contA>`). Negative values will make particles stick together. The strain-stress diagram is shifted vertically with this parameter.\n\n.. note:: Energy computation might be incorrect with confinement (not yet checked).\n"))
 		//((Real,alpha,-1.,,"$\\alpha$  coefficient in the yield function; if negative, compressive plasticity is deactivated. This coefficient is dimensionless."))
 		//((Real,kADivKn,.1,,"Ratio kA/kN (for adhesion); if non-positive, adhesion is disabled"))
 		((bool,plastSplit,false,,"Track energy dissipated in normal and tangential sliding separately"))

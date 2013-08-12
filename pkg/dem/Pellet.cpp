@@ -90,6 +90,8 @@ void Law2_L6Geom_PelletPhys_Pellet::go(const shared_ptr<CGeom>& cg, const shared
 			// in the elastic regime, Fn is trial force already
 		}
 	}
+	/* add fake confinement */
+	Fn-=g.contA*sigConfine;
 
 	// shear force
 	Ft+=scene->dt*ph.kt*velT;
