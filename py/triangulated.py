@@ -8,6 +8,7 @@ def cylinder(A,B,radius,div=20,capA=False,capB=False,wallCaps=False,angVel=0,**k
 
 :param angVel: axial angular velocity of the cylinder; the cylinder is always created as ``fixed``, but :obj:`woo.dem.Facet.fakeVel` is assigned.
 :param wallCaps: create caps as walls (with :obj:`woo.dem.wall.glAB` properly set) rather than triangulation; cylinder axis *must* be aligned with some global axis in this case, otherwise and error is raised.
+:returns: List of :obj:`particles <woo.dem.Particle>` building up the cylinder. Caps (if any) are always at the beginning of the list, triangulated perimeter is at the end.
 	'''
 	cylLen=(B-A).norm()
 	ax=(B-A)/cylLen
