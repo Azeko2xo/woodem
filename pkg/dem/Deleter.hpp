@@ -14,6 +14,7 @@ struct BoxDeleter: public PeriodicEngine{
 		void render(const GLViewInfo&){
 			if(isnan(glColor)) return;
 			GLUtils::AlignedBox(box,CompUtils::mapColor(glColor));
+			if(glHideZero && (isnan(currRate) || currRate==0) && mass==0) return;
 			std::ostringstream oss; oss.precision(4); oss<<mass;
 			if(!isnan(currRate)){ oss.precision(3); oss<<"\n("<<currRate<<")"; }
 			GLUtils::GLDrawText(oss.str(),box.center(),CompUtils::mapColor(glColor));
@@ -35,6 +36,7 @@ struct BoxDeleter: public PeriodicEngine{
 		((int,num,0,AttrTrait<Attr::readonly>(),"Number of deleted particles"))
 		((Real,mass,0.,AttrTrait<Attr::readonly>(),"Total mass of deleted particles"))
 		((Real,glColor,0,AttrTrait<>().noGui(),"Color for rendering (NaN disables rendering)"))
+		((bool,glHideZero,false,,"Show numbers (mass and rate) even if they are zero."))
 		//
 		((Real,currRate,NaN,AttrTrait<>().readonly(),"Current value of mass flow rate"))
 		((Real,currRateSmooth,1,AttrTrait<>().range(Vector2r(0,1)),"Smoothing factor for currRate ∈〈0,1〉"))

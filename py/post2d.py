@@ -61,6 +61,8 @@ This example can be found in examples/concrete/uniax-post.py ::
 from minieigen import *
 
 from woo.dem import Particle,Sphere
+import math
+nan=float('nan')
 
 class Flatten:
 	"""Abstract class for converting 3d point into 2d. Used by post2d.data2d."""
@@ -192,7 +194,7 @@ def data(scene,extractor,flattener,con=False,onlyDynamic=True,stDev=None,relThre
 	for b in objects:
 		if not con and (len(b.shape.nodes)!=1 or (onlyDynamic and b.blocked=='xyzXYZ')): continue
 		xy,d=flattener(b),extractor(b)
-		if xy==None or d==None: continue
+		if xy==None or d==None or math.isnan(d): continue
 		if nDim==0: nDim=1 if isinstance(d,float) else 2
 		if nDim==1: dd1.append(d);
 		elif len(d)==2:
@@ -203,9 +205,11 @@ def data(scene,extractor,flattener,con=False,onlyDynamic=True,stDev=None,relThre
 		else:
 			raise RuntimeError("Extractor must return float or 2 or 3 (not %d) floats"%nDim)
 		if stDev==None: # radii are needed in the raw mode exclusively
-			if not con and isinstance(b.shape,Sphere): r=b.shape.radius
-			else: r=(radius(b) if callable(radius) else radius)
-			rr.append(r)
+			if nDim==1 and math.isnan(d): rr.append(nan) # add NaN if value was also invalid
+			else:
+				if not con and isinstance(b.shape,Sphere): r=b.shape.radius
+				else: r=(radius(b) if callable(radius) else radius)
+				rr.append(r)
 		xx.append(xy[0]); yy.append(xy[1]);
 	if stDev==None:
 		bbox=(min(xx),min(yy)),(max(xx),max(yy))
@@ -214,6 +218,7 @@ def data(scene,extractor,flattener,con=False,onlyDynamic=True,stDev=None,relThre
 	
 	from woo.WeightedAverage2d import GaussAverage
 	import numpy
+	if min(len(xx),len(yy)==0): raise RuntimeError('Nothing to plot (extractor did not return any values)')
 	lo,hi=(min(xx),min(yy)),(max(xx),max(yy))
 	llo=lo[0]-margin[0],lo[1]-margin[1]; hhi=hi[0]+margin[0],hi[1]+margin[1]
 	ga=GaussAverage(llo,hhi,div,stDev,relThreshold)
@@ -233,11 +238,11 @@ def data(scene,extractor,flattener,con=False,onlyDynamic=True,stDev=None,relThre
 	elif perArea==2:
 		def compAvg(gauss,coord,cellCoord):
 			s=gauss.cellSum(cellCoord);
-			return (s/gauss.cellArea) if s>0 else float('nan')
+			return (s/gauss.cellArea) if s>0 else nan
 	elif perArea==3:
 		def compAvg(gauss,coord,cellCoord):
 			s=gauss.cellSum(cellCoord);
-			return s if s>0 else float('nan')
+			return s if s>0 else nan
 	else: raise RuntimeError('Invalid value of *perArea*, must be one of 0,1,2,3.')
 	#
 	for cx in range(0,div[0]):
@@ -247,7 +252,7 @@ def data(scene,extractor,flattener,con=False,onlyDynamic=True,stDev=None,relThre
 	if nDim==1: return {'type':'smoothScalar','x':xxx,'y':yyy,'val':ddd,'bbox':(llo,hhi),'perArea':perArea,'grid':ga} 
 	else: return {'type':'smoothVector','x':xxx,'y':yyy,'valX':ddd,'valY':ddd2,'bbox':(llo,hhi),'grid':ga,'grid2':ga2}
 	
-def plot(data,axes=None,alpha=.5,clabel=True,cbar=False,rawVecColorRadius=True,aspect='equal',**kw):
+def plot(data,axes=None,alpha=.5,clabel=True,cbar=False,rawVecColorRadius=True,bbox=None,aspect='equal',**kw):
 	"""Given output from post2d.data, plot the scalar as discrete or smooth plot.
 
 	For raw discrete data, plot filled circles with radii of particles, colored by the scalar value.
@@ -261,11 +266,18 @@ def plot(data,axes=None,alpha=.5,clabel=True,cbar=False,rawVecColorRadius=True,a
 	:param bool clabel: show contour labels (smooth mode only), or annotate cells with numbers inside (with perArea==2)
 	:param bool cbar: show colorbar (equivalent to calling pylab.colorbar(mappable) on the returned mappable)
 	:param rawVecColorRadius: if True, use radius associated with each point to color arrows in raw quiver plot.
+	:param bbox: if given, use this as axes limits instead of bbox computed from data points
 
 	:return: tuple of ``(axes,mappable)``; mappable can be used in further calls to pylab.colorbar.
 	"""
-	import pylab,math
-	if not axes: axes=pylab.gca()
+	import matplotlib.figure, math
+	if not axes:
+		# see http://stackoverflow.com/a/18261110/761090 
+		fig=matplotlib.figure.Figure()
+		axes=fig.add_subplot(1,1,1)
+		# this is to make sure the 
+		#canvas=matplotlib.backends.backend_agg.FigureCanvasAgg(fig)
+		#import matplotlib.figure, matplotlib.backends.backend_agg
 	if data['type']=='rawScalar':
 		from matplotlib.patches import Circle
 		import matplotlib.collections,numpy
@@ -274,38 +286,43 @@ def plot(data,axes=None,alpha=.5,clabel=True,cbar=False,rawVecColorRadius=True,a
 			patches.append(Circle(xy=(x,y),radius=r))
 		coll=matplotlib.collections.PatchCollection(patches,linewidths=0.,**kw)
 		coll.set_array(numpy.array(data['val']))
-		bb=coll.get_datalim(coll.get_transform())
 		axes.add_collection(coll)
-		axes.set_xlim(bb.xmin,bb.xmax); axes.set_ylim(bb.ymin,bb.ymax)
+		if bbox:
+			axes.set_xlim(bbox[0][0],bbox[1][0]); axes.set_ylim(bbox[0][1],bbox[1][1])
+		else:
+			bb=coll.get_datalim(coll.get_transform())
+			axes.set_xlim(bb.xmin,bb.xmax); axes.set_ylim(bb.ymin,bb.ymax)
 		if cbar: axes.get_figure().colorbar(coll)
 		axes.grid(True); axes.set_aspect(aspect)
 		return axes,coll
 	elif data['type']=='smoothScalar':
-		loHi=data['bbox']
+		# for imshow - do not depend on axes limits (if passed as the bbox param)
+		imgExtent=data['bbox'][0][0],data['bbox'][1][0],data['bbox'][0][1],data['bbox'][1][1] 
+		if not bbox: bbox=data['bbox']
 		if data['perArea'] in (0,1):
-			img=axes.imshow(data['val'],extent=(loHi[0][0],loHi[1][0],loHi[0][1],loHi[1][1]),origin='lower',aspect=aspect,**kw)
+			img=axes.imshow(data['val'],extent=imgExtent,origin='lower',aspect=aspect,**kw)
 			ct=axes.contour(data['x'],data['y'],data['val'],colors='k',origin='lower',extend='both')
 			if clabel: axes.clabel(ct,inline=1,fontsize=10)
 		else:
-			img=axes.imshow(data['val'],extent=(loHi[0][0],loHi[1][0],loHi[0][1],loHi[1][1]),origin='lower',aspect=aspect,interpolation='nearest',**kw)
+			img=axes.imshow(data['val'],extent=imgExtent,origin='lower',aspect=aspect,interpolation='nearest',**kw)
 			xStep=(data['x'][1]-data['x'][0]) if len(data['x'])>1 else 0
 			for y,valLine in zip(data['y'],data['val']):
 				for x,val in zip(data['x'],valLine): axes.text(x-.4*xStep,y,('-' if math.isnan(val) else '%5g'%val),size=4)
-		axes.update_datalim(loHi)
-		axes.set_xlim(loHi[0][0],loHi[1][0]); axes.set_ylim(loHi[0][1],loHi[1][1])
+		axes.update_datalim(bbox)
+		axes.set_xlim(bbox[0][0],bbox[1][0]); axes.set_ylim(bbox[0][1],bbox[1][1])
 		if cbar: axes.get_figure().colorbar(img)
 		axes.grid(True if data['perArea'] in (0,1) else False); axes.set_aspect(aspect)
 		return axes,img
 	elif data['type'] in ('rawVector','smoothVector'):
 		import numpy
-		loHi=data['bbox']
+		if not bbox: bbox=data['bbox']
 		valX,valY=numpy.array(data['valX']),numpy.array(data['valY']) # rawVector data are plain python lists
 		if data['type']=='rawVector' and rawVecColorRadius: scalars=numpy.array(data['radii'])
 		else: scalars=numpy.sqrt(valX**2+valY**2) # use vector magnitudes
 		# numpy.sqrt computes element-wise sqrt
 		quiv=axes.quiver(data['x'],data['y'],data['valX'],data['valY'],scalars,**kw)
-		#axes.update_datalim(loHi)
-		axes.set_xlim(loHi[0][0],loHi[1][0]); axes.set_ylim(loHi[0][1],loHi[1][1])
+		#axes.update_datalim(bbox)
+		axes.set_xlim(bbox[0][0],bbox[1][0]); axes.set_ylim(bbox[0][1],bbox[1][1])
 		if cbar: axes.get_figure().colorbar(coll)
 		axes.grid(True); axes.set_aspect(aspect)
 		return axes,quiv

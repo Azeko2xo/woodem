@@ -310,7 +310,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		S=woo.master.scene
 		if isOn:
 			# add SnapshotEngine to the current scene
-			snap=woo.qt.SnapshotEngine(label='_snapshooter',fileBase=woo.master.tmpFilename(),stepPeriod=100,realPeriod=.5,ignoreErrors=False)
+			snap=woo.qt.SnapshotEngine(label='snapshooter_',fileBase=woo.master.tmpFilename(),stepPeriod=100,realPeriod=.5,ignoreErrors=False)
 			S.engines=S.engines+[snap]
 			se=ObjectEditor(snap,parent=self.movieArea,showType=True)
 			self.movieArea.setWidget(se)
@@ -319,27 +319,29 @@ class ControllerClass(QWidget,Ui_Controller):
 			self.movieButton.setEnabled(True)
 			self.movieActive=True
 		else:
-			if hasattr(woo,'_snapshooter'): del woo._snapshooter
+			if hasattr(S.lab,'snapshooter_'): del S.lab.snapshooter_
 			woo.master.scene.engines=[e for e in S.engines if type(e)!=woo.qt.SnapshotEngine]
 			self.movieArea.setWidget(QFrame())
 			self.movieButton.setEnabled(False)
 			self.movieActive=False
 	def movieButtonClicked(self):
-		if not hasattr(woo,'_snapshooter'):
-			print 'No woo._snapshooter, no movie will be created'
+		S=woo.master.scene
+		if not hasattr(S.lab,'snapshooter_'):
+			print 'No S.lab.snapshooter_, no movie will be created'
 			return
 		out=self.movieFileEdit.text()
-		woo.utils.makeVideo(woo._snapshooter.snapshots,out=out,fps=self.movieFpsSpinbox.value(),kbps=self.movieBitrateSpinbox.value())
+		woo.utils.makeVideo(S.lab.snapshooter_.snapshots,out=out,fps=self.movieFpsSpinbox.value(),kbps=self.movieBitrateSpinbox.value())
 		import os.path
 		url='file://'+os.path.abspath(out)
 		print 'Video saved to',url
 		import webbrowser
 		webbrowser.open(url)
 	def resetTraceClicked(self):
-		if not hasattr(woo,'_tracer'):
-			print 'No woo._tracer, will not reset'
+		S=woo.master.scene
+		if not hasattr(S.lab,'tracer_'):
+			print 'No S.lab.tracer_, will not reset'
 			return
-		woo._tracer.resetNodesRep(setupEmpty=True)
+		S.lab.tracer_.resetNodesRep(setupEmpty=True)
 	def tracerGetEngine(self,S):
 		'Find tracer engine, return it, or return None; raise exception with multiple tracers'
 		tt=[e for e in S.engines if isinstance(e,woo.dem.Tracer)]
@@ -360,7 +362,7 @@ class ControllerClass(QWidget,Ui_Controller):
 			# is there a tracer already?
 			tracer=self.tracerGetEngine(S)
 			if not tracer:
-				tracer=woo.dem.Tracer(label='_tracer',stepPeriod=100,realPeriod=.2)
+				tracer=woo.dem.Tracer(label='tracer_',stepPeriod=100,realPeriod=.2)
 				S.engines=S.engines+[tracer]
 			tracer.dead=False
 			S.ranges=S.ranges+[woo.dem.Tracer.lineColor]

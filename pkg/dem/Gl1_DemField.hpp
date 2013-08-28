@@ -29,7 +29,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 
 	void postLoad2();
 
-	enum{COLOR_SOLID=0,COLOR_SHAPE,COLOR_RADIUS,COLOR_VEL,COLOR_ANGVEL,COLOR_MASS,COLOR_DISPLACEMENT,COLOR_ROTATION,COLOR_REFPOS,COLOR_MAT_ID,COLOR_MATSTATE,COLOR_SIG_N,COLOR_SIG_T,COLOR_INVISIBLE,/*last*/COLOR_SENTINEL};
+	enum{COLOR_SOLID=0,COLOR_SHAPE,COLOR_RADIUS,COLOR_VEL,COLOR_ANGVEL,COLOR_MASS,COLOR_DISPLACEMENT,COLOR_ROTATION,COLOR_REFPOS,COLOR_MAT_ID,COLOR_MATSTATE,COLOR_SIG_N,COLOR_SIG_T,COLOR_MASK,COLOR_INVISIBLE,/*last*/COLOR_SENTINEL};
 	enum{GLYPH_KEEP=0,GLYPH_NONE,GLYPH_FORCE,GLYPH_TORQUE,GLYPH_VEL,/*last*/GLYPH_SENTINEL};
 	enum{CNODE_NONE=0,CNODE_GLREP=1,CNODE_LINE=2,CNODE_NODE=4,CNODE_POTLINE=8};
 	enum{SHAPE_NONE=0,SHAPE_ALL,SHAPE_SPHERES,SHAPE_NONSPHERES,SHAPE_MASK};
@@ -45,6 +45,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 			{COLOR_VEL,"velocity"}, \
 			{COLOR_ANGVEL,"angular velocity"}, \
 			{COLOR_MASS,"mass"}, \
+			{COLOR_MASK,"mask"}, \
 			{COLOR_DISPLACEMENT,"ref. displacement"}, \
 			{COLOR_ROTATION,"ref. rotation"}, \
 			{COLOR_REFPOS,"refpos coordinate"}, \
@@ -108,6 +109,8 @@ struct Gl1_DemField: public GlFieldFunctor{
 			_classObj.attr("colorSolid")=(int)Gl1_DemField::COLOR_SOLID;
 			_classObj.attr("colorShape")=(int)Gl1_DemField::COLOR_SHAPE;
 			_classObj.attr("colorRadius")=(int)Gl1_DemField::COLOR_RADIUS;
+			_classObj.attr("colorMass")=(int)Gl1_DemField::COLOR_MASS;
+			_classObj.attr("colorMask")=(int)Gl1_DemField::COLOR_MASK;
 			_classObj.attr("colorVel")=(int)Gl1_DemField::COLOR_VEL;
 			_classObj.attr("colorAngVel")=(int)Gl1_DemField::COLOR_ANGVEL;
 			_classObj.attr("colorDisplacement")=(int)Gl1_DemField::COLOR_DISPLACEMENT;

@@ -17,7 +17,7 @@ except:
 
 
 
-import matplotlib,os,time,math,itertools
+import matplotlib,os,time,math,itertools,sys
 
 # running in batch
 #
@@ -608,7 +608,7 @@ def savePlotSequence(P,fileBase,stride=1,imgRatio=(5,7),title=None,titleFrames=2
 		out=fileBase+'-%03d.png'%i
 		pylab.gcf().savefig(out)
 		ret.append(out)
-		sys.stderr.write('[%d]')
+		sys.stderr.write('[%d]'%i)
 	if len(ret)==0: raise RuntimeError("No images created?!")
 	if title:
 		titleImgName=fileBase+'-title.png'

@@ -58,6 +58,7 @@ void LabelMapper::ensureUsedModsOk(const string& label){
 
 int LabelMapper::labelType(const string& label, string& lab0, int& index) const {
 	boost::smatch match;
+	if(boost::regex_match(label,match,boost::regex("_.*"))) woo::NameError("LabelMapper: labels may not start with underscore (those are reserved to access the underlying LabelMapper object itself).");
 	// may not end with .[]
 	if(boost::regex_match(label,match,boost::regex("([a-zA-Z_][.a-zA-Z0-9_][a-zA-Z0-9_]*)\\s*\\[([0-9]+)\\]"))){
 		lab0=match[1];
