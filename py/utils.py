@@ -540,7 +540,7 @@ def htmlReportHead(S,headline,dialect='xhtml',repBase=''):
 	)
 	return headers[dialect]+html
 
-def htmlReport(S,repFmt,headline,afterHead='',figures=[],dialect=None,figFmt='svg',svgEmbed=False,show=False):
+def htmlReport(S,repFmt,headline,afterHead='',figures=[],dialect=None,figFmt=None,svgEmbed=False,show=False):
 	'''
 	Generate (X)HTML report for simulation.
 
@@ -554,7 +554,7 @@ def htmlReport(S,repFmt,headline,afterHead='',figures=[],dialect=None,figFmt='sv
 		 2. figure object (`Matplotlib <http://matplotlib.org>` figure object)
 		 3. optionally, format to save the figure to (`svg`, `png`, ...)
 
-	:param figFmt: format of figures, if the format is not specified by the figure itself
+	:param figFmt: format of figures, if the format is not specified by the figure itself; if None, choose format appropriate for given dialect (png for html4, svg for html5 and xhtml)
 	:param dialect: one of "xhtml", "html5", "html4"; if not given (*None*), selected from file suffix (``.html`` for ``html4``, ``.xhtml`` for ``xhtml``). ``html4`` will save figures as PNG (even if something else is specified) so that the resulting file is easily importable into LibreOffice (which does not import HTML with SVG correctly now).
 	:param svgEmbed: don't save SVG as separate files, embed them in the report instead. 
 	:param show: open the report in browser via the webbrowser module, unless running in batch.
@@ -569,6 +569,7 @@ def htmlReport(S,repFmt,headline,afterHead='',figures=[],dialect=None,figFmt='sv
 		elif repFmt.endswith('.html'): dialect='html4'
 		else: raise ValueError("Unable to guess dialect (not given) from *repFmt* '%s' (not ending in .xhtml or .html)")
 	if dialect not in dialects: raise ValueError("Unknown dialect '%s': must be one of "+', '.join(dialects)+'.')
+	if figFmt==None: figFmt={'html5':'png','html4':'png','xhtml':'svg'}[dialect]
 	if dialect in ('html5',) and svgEmbed and figFmt=='svg':
 		svgEmbed=False
 		warnings.warn("Dialect '%s' does not support embedded SVG -- will not be embedded."%dialect)
@@ -585,12 +586,13 @@ def htmlReport(S,repFmt,headline,afterHead='',figures=[],dialect=None,figFmt='sv
 
 	if figures: s+='<h2>Figures</h2>\n'
 	extFiles=[]
-
+	from matplotlib.backends.backend_agg import FigureCanvasAgg
 	for ith,figspec in enumerate(figures):
 		if len(figspec)==2: figspec=(figspec[0],figspec[1],figFmt)
 		figName,figObj,figSuffix=figspec
 		if not figName: figName='Figure %i'%(ith+1)
 		s+='<h3>'+figName+'</h3>'
+		canvas=FigureCanvasAgg(figObj)
 		if figSuffix=='svg' and svgEmbed:
 			figFile=woo.master.tmpFilename()+'.'+figSuffix
 			figObj.savefig(figFile)
