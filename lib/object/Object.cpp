@@ -19,7 +19,7 @@ py::list Object::getDerivedCxxClasses(){ py::list ret; for(py::object c: derived
 
 void Object::pyRegisterClass() {
 	checkPyClassRegistersItself("Object");
-	py::class_<Object, shared_ptr<Object>, boost::noncopyable > classObj("Object");
+	py::class_<Object, shared_ptr<Object>, boost::noncopyable > classObj("Object","Base class for all Woo classes, providing uniform interface for constructors with attributes, attribute access, pickling, serialization via boost::serialization, equality comparison, attribute traits.");
 	classObj
 		.def("__str__",&Object::pyStr).def("__repr__",&Object::pyStr)
 		.def("dict",&Object::pyDict,"Return dictionary of attributes.")

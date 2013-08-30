@@ -1304,7 +1304,7 @@ class SeqObjectComboBox(QFrame):
 				return # cancelled
 			ser=dialog.result()
 			ix=self.combo.currentIndex()
-			currSeq=self.getter(); currSeq.insert(ix,ser); self.setter(currSeq)
+			currSeq=list(self.getter()); currSeq.insert(ix,ser); self.setter(currSeq)
 			logging.debug('%s new item created at index %d'%(self.serType.__name__,ix))
 			self.refreshEvent(forceIx=ix)
 	def newCancelledSlot(self):
@@ -1313,7 +1313,7 @@ class SeqObjectComboBox(QFrame):
 		ser=self.newDialog.result()
 		self.newDialog=None
 		ix=self.combo.currentIndex()
-		currSeq=self.getter(); currSeq.insert(ix,ser); self.setter(currSeq)
+		currSeq=list(self.getter()); currSeq.insert(ix,ser); self.setter(currSeq)
 		logging.debug('%s new item created at index %d'%(self.serType.__name__,ix))
 		self.refreshEvent(forceIx=ix)
 	def killSlot(self):
