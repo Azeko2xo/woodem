@@ -270,7 +270,7 @@ template<> struct _SerializeMaybe<false>{
 #define _PY_REGISTER_CLASS_BODY(thisClass,baseClass,classTrait,attrs,deprec,extras) \
 	checkPyClassRegistersItself(#thisClass); \
 	WOO_SET_DOCSTRING_OPTS; \
-	auto traitPtr=make_shared<ClassTrait>(classTrait); traitPtr->name(#thisClass); \
+	auto traitPtr=make_shared<ClassTrait>(classTrait); traitPtr->name(#thisClass).file(__FILE__).line(__LINE__); \
 	py::class_<thisClass,shared_ptr<thisClass>,py::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,traitPtr->getDoc().c_str(),/*call raw ctor even for parameterless construction*/py::no_init); \
 	_classObj.def("__init__",py::raw_constructor(Object_ctor_kwAttrs<thisClass>)); \
 	_classObj.attr("_classTrait")=traitPtr; \
@@ -310,7 +310,7 @@ template<> struct _SerializeMaybe<false>{
 
 #define _STATCLASS_PY_REGISTER_CLASS(thisClass,baseClass,classTrait,attrs,pyExtra)\
 	virtual void pyRegisterClass() { checkPyClassRegistersItself(#thisClass); initSetStaticAttributesValue(); WOO_SET_DOCSTRING_OPTS; \
-		auto traitPtr=make_shared<ClassTrait>(classTrait); traitPtr->name(#thisClass); \
+		auto traitPtr=make_shared<ClassTrait>(classTrait); traitPtr->name(#thisClass).file(__FILE__).line(__LINE__); \
 		py::class_<thisClass,shared_ptr<thisClass>,py::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,traitPtr->getDoc().c_str(),/*call raw ctor even for parameterless construction*/py::no_init); _classObj.def("__init__",py::raw_constructor(Object_ctor_kwAttrs<thisClass>)); \
 		_classObj.attr("_classTrait")=traitPtr; \
 		BOOST_PP_SEQ_FOR_EACH(_STATATTR_PY,thisClass,attrs); \

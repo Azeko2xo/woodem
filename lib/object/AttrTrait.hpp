@@ -233,8 +233,12 @@ namespace woo{
 		string title;
 		string intro;
 		vector<string> docOther;
+		string _file;
+		long _line;
 
 		string getDoc() const { return _doc; }
+		ClassTrait& file(const string& __file){ _file=__file; return *this; }
+		ClassTrait& line(const long __line){ _line=__line; return *this; }
 		ClassTrait& doc(const string __doc){ _doc=__doc; return *this; }
 		ClassTrait& name(const string& __name){ _name=__name; return *this; }
 		ClassTrait& section(const string& _title, const string& _intro, const vector<string>& _docOther){ title=_title; intro=_intro; docOther=_docOther; return *this; }
@@ -242,6 +246,8 @@ namespace woo{
 			py::class_<ClassTrait,shared_ptr<ClassTrait>>("ClassTrait",py::no_init)
 				.def_readonly("title",&ClassTrait::title)
 				.def_readonly("intro",&ClassTrait::intro)
+				.def_readonly("file",&ClassTrait::_file)
+				.def_readonly("line",&ClassTrait::_line)
 				// custom converters are needed for vector<string>
 				.add_property("docOther",py::make_getter(&ClassTrait::docOther,py::return_value_policy<py::return_by_value>())/*,py::make_setter(&ClassTrait::docOther,py::return_value_policy<py::return_by_value>())*/)
 				.def_readonly("doc",&ClassTrait::_doc)

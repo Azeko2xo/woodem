@@ -126,7 +126,27 @@ def makeTraitInfo(trait):
 
 	return ', '.join(ret)
 	
-
+def classSrcHyperlink(klass,repo='http://bazaar.launchpad.net/~eudoxos/woo/trunk/files/head:'):
+	'Return ReST-formatted line with hyperlinks to class headers (and implementation, if the corresponding .cpp file exists, using *repo* as base repository URL.'
+	import woo.config
+	f=klass._classTrait.file
+	if f.startswith(woo.config.sourceRoot): commonRoot=woo.config.sourceRoot
+	elif f.startswith(woo.config.buildRoot): commonRoot=woo.config.buildRoot
+	else:
+		print 'File where class is defined (%s) does not start with source root (%s) or build root (%s)'%(f,woo.config.sourceRoot,woo.config.buildRoot)
+		return None
+	# +1 removes underscore in woo/...
+	f2=f[len(commonRoot)+1:] 
+	# if this header was copied into include/, get rid of that now
+	m=re.match('include/woo/(.*)',f2)
+	if m: f2=m.group(1)
+	ret=['`header <%s/%s#L%d>`_'%(repo,f2,klass._classTrait.line)]
+	if f2.endswith('.hpp'):
+		cpp=woo.config.sourceRoot+'/'+f2[:-4]+'.cpp'
+		print 'Trying ',cpp
+		if os.path.exists(cpp):	
+			ret.append('`implementation <%s/%s>`_'%(repo,f2[:-4]+'.cpp'))
+	return '[ '+' , '.join(ret)+' ]'
 
 def oneModuleWithSubmodules(mod,out,exclude=None,level=0):
 	global cxxClasses,allWooMods
@@ -151,6 +171,8 @@ def oneModuleWithSubmodules(mod,out,exclude=None,level=0):
 		out.write('   :members:\n')
 		ex=[t.name for t in k._attrTraits]
 		if ex: out.write('   :exclude-members: %s\n\n'%(', '.join(ex)))
+		srcXref=classSrcHyperlink(k)
+		if srcXref: out.write('   '+srcXref+'\n\n')
 		for trait in k._attrTraits:
 			try:
 				iniStr=' (= %s)'%(repr(trait.ini))

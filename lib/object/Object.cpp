@@ -47,6 +47,11 @@ void Object::pyRegisterClass() {
 		.def(py::self != py::self)
 	;
 	classObj.attr("_attrTraits")=py::list();
+	// repeat the docstring here
+
+	shared_ptr<ClassTrait> traitPtr=make_shared<ClassTrait>();
+	traitPtr->name("Object").doc(py::extract<string>(classObj.attr("__doc__"))()).file(__FILE__).line(__LINE__);
+	classObj.attr("_classTrait")=traitPtr;
 	//classObj.attr("_derivedCxxClasses")=Object::derivedCxxClasses;
 }
 

@@ -43,6 +43,7 @@ pyObjects.append(env.SharedObject('config','py/config.cxx',
 		('WOO_REVISION',env['realVersion']),
 		('WOO_VERSION',env['version']),
 		('WOO_SOURCE_ROOT',env['sourceRoot']),
+		('WOO_BUILD_ROOT',env['buildDir']),
 		('WOO_FLAVOR',env['flavor'])
 	]
 ))

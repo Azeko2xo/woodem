@@ -203,6 +203,7 @@ cppDef+=[
 	('WOO_REVISION',revno),
 	('WOO_VERSION',version),
 	('WOO_SOURCE_ROOT','' if DISTBUILD else dirname(os.path.abspath(__file__)).replace('\\','/')),
+	('WOO_BUILD_ROOT',os.path.abspath(pathSourceTree).replace('\\','/')),
 	('WOO_FLAVOR',flavor),
 	('WOO_CXX_FLAVOR',cxxFlavor),
 ]

@@ -1,5 +1,6 @@
 #include<woo/core/Field.hpp>
 #include<woo/lib/base/CompUtils.hpp>
+#include<woo/core/Scene.hpp>
 
 #ifdef WOO_OPENGL
 void ScalarRange::reset(){
@@ -33,6 +34,12 @@ AlignedBox3r Field::renderingBbox() const {
 	}
 	return b;
 }
+
+shared_ptr<Scene> Field::py_getScene(){
+	if(!scene) return shared_ptr<Scene>();
+	else return static_pointer_cast<Scene>(scene->shared_from_this());
+}
+
 
 
 // Node::dataIndexMax=Node::ST_LAST;
