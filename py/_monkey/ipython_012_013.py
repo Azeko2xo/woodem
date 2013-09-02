@@ -64,7 +64,6 @@ def create_inputhook_qt4(mgr, app=None):
     latter has been temporarily disabled after having intercepted a
     KeyboardInterrupt.
     """
-    print "Running patched IPython.lib.inputhookqt4.create_inputhook_qt4"
 
     if app is None:
         app = QtCore.QCoreApplication.instance()
@@ -160,10 +159,8 @@ def create_inputhook_qt4(mgr, app=None):
 
 
 import woo.runtime
-print 'IPython version is ',woo.runtime.ipython_version
 ## apply local version instead of the stock one patch
 if woo.runtime.ipython_version in (12,13):
-	print "Monkey-patching ipython's event loop"
 	import IPython.lib.inputhookqt4
 	IPython.lib.inputhookqt4.create_inputhook_qt4=create_inputhook_qt4
 

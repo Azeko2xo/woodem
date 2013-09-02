@@ -5,6 +5,10 @@ nan=float('nan')
 from math import * 
 from minieigen import *
 
+# increase every time the db format changes, to avoid errors
+# applies to both sqlite and hdf5 dbs
+dbFormatVersion=3
+
 def wait():
 	'Block the simulation if running inside a batch. Typically used at the end of script so that it does not finish prematurely in batch mode (the execution would be ended in such a case).'
 	if inBatch(): woo.master.scene.wait()
@@ -26,8 +30,6 @@ def writeResults(scene,defaultDb='woo-results.sqlite',syncXls=True,dbFmt=None,se
 	once the database has been updated. They can be used in conjunction with :ref:`woo.batch.dbReadResults`
 	to write aaggregate results from all records in the database.
 	'''
-	# increase every time the db format changes, to avoid errors
-	formatVersion=3
 	import woo, woo.plot, woo.core
 	import os, os.path, datetime
 	import numpy
@@ -59,17 +61,17 @@ def writeResults(scene,defaultDb='woo-results.sqlite',syncXls=True,dbFmt=None,se
 		conn=sqlite3.connect(db,detect_types=sqlite3.PARSE_DECLTYPES)
 		if newDb:
 			c=conn.cursor()
-			c.execute('create table batch (formatNumber integer, finished timestamp, batchtable text, batchTableLine integer, sceneId text, title text, duration integer, pre text, tags text, plots text, misc text, series text)')
+			c.execute('create table batch (formatVersion integer, finished timestamp, batchtable text, batchTableLine integer, sceneId text, title text, duration integer, pre text, tags text, plots text, misc text, series text)')
 		else:	
 			conn.row_factory=sqlite3.Row
 			conn.execute('select * from batch')
 			row=conn.cursor().fetchone()
 			# row can be None if the db is empty
-			if row and row['formatVersion']!=formatVersion:
-				raise RuntimeError('database format mismatch: %s/batch/formatVersion==%s, but should be %s'%(db,row['formatVersion'],formatVersion))
+			if row and row['formatVersion']!=dbFormatVersion:
+				raise RuntimeError('database format mismatch: %s/batch/formatVersion==%s, but should be %s'%(db,row['formatVersion'],dbFormatVersion))
 		with conn:
 			values=(	
-				formatVersion, # formatVersion
+				dbFormatVersion, # formatVersion
 				datetime.datetime.now(), # finished
 				table, # batchTable
 				line, # batchTableLine
@@ -90,7 +92,6 @@ def writeResults(scene,defaultDb='woo-results.sqlite',syncXls=True,dbFmt=None,se
 			dbToSpread(db,out=xls,dialect='xls')
 		for ph in postHooks: ph(db)
 	elif dbFmt=='hdf5':
-		formatNumber=1
 		import h5py
 		try:
 			hdf=h5py.File(db,'a',libver='latest')
@@ -107,25 +108,27 @@ def writeResults(scene,defaultDb='woo-results.sqlite',syncXls=True,dbFmt=None,se
 			i+=1
 		# group for our Scene
 		G=hdf.create_group(sceneId)
-		G['formatNumber']=formatNumber
-		G['finished']=datetime.datetime.now().replace(microsecond=0).isoformat('_')
-		G['batchTable']=table
-		G['batchTableLine']=line
-		G['sceneId']=S.tags['id']
-		G['title']=S.tags['title']
-		G['duration']=S.duration
-		G['pre']=(S.pre.dumps(format='json') if S.pre else '')
-		G_tags=G.create_group('tags')
-		for k,v in unicodeTags.items():
-			# workaround from https://github.com/h5py/h5py/issues/289
-			#G_tags.attrs.create(k,v,dtype=h5py.special_dtype(vlen=unicode))
-			G_tags[k]=v.encode('utf-8')
-		G['plots']=json.dumps(S.plot.plots)
-		G['misc']=woo.core.WooJSONEncoder(indent=None,oneway=True).encode(kw)
+		G.attrs['formatVersion']=dbFormatVersion
+		G.attrs['finished']=datetime.datetime.now().replace(microsecond=0).isoformat('_')
+		G.attrs['batchTable']=table
+		G.attrs['batchTableLine']=line
+		G.attrs['sceneId']=S.tags['id']
+		G.attrs['title']=S.tags['title']
+		G.attrs['duration']=S.duration
+		G.attrs['pre']=(S.pre.dumps(format='json') if S.pre else '')
+		G.attrs['tags']=json.dumps(unicodeTags)
+		G.attrs['plots']=json.dumps(S.plot.plots)
+		G_misc=G.create_group('misc')
+		for k,v in kw.items(): G_misc.attrs[k]=woo.core.WooJSONEncoder(indent=None,oneway=True).encode(v)
 		G_series=G.create_group('series')
 		for k,v in series.items(): G_series[k]=v
 		hdf.close()
 	else: raise ValueError('*fmt* must be one of "sqlite", "hdf5", None (autodetect based on suffix)')
+
+def _checkHdf5sim(sim):
+	if not 'formatVersion' in sim.attrs: raise RuntimeError('database %s: simulation %s does not define formatVersion?!')
+	if sim.attrs['formatVersion']!=dbFormatVersion: raise RuntimeError('database format mismatch: %s: %s/formatVersion==%s, should be %s'%(db,sim,sim.attrs['formatVersion'],dbFormatVersion))
+
 
 # return all series stored in the database
 def dbReadResults(db,basicTypes=False):	
@@ -133,40 +136,63 @@ def dbReadResults(db,basicTypes=False):
 
 	:param basicTypes: don't reconstruct Woo objects from JSON (keep those as dicts) and don't return data series as numpy arrays.
 	'''
-	import numpy, sqlite3, json, woo.core
-	# open db and get rows
-	conn=sqlite3.connect(db,detect_types=sqlite3.PARSE_DECLTYPES)
-	conn.row_factory=sqlite3.Row
-	ret=[]
-	for i,row in enumerate(conn.execute('SELECT * FROM batch ORDER BY finished')):
-		rowDict={}
-		for key in row.keys():
-			# json-encoded fields
-			if key in ('pre','tags','plots','misc'):
-				if basicTypes: val=json.loads(row[key])
-				else: val=woo.core.WooJSONDecoder(onError='warn').decode(row[key])
-			elif key=='series':
-				series=json.loads(row[key])
-				assert type(series)==dict
-				if basicTypes: val=series
-				else: val=dict([(k,numpy.array(v)) for k,v in series.items()])
-			else:
-				val=row[key]
-			if basicTypes and key=='finished': val=val.isoformat(sep='_')
-			rowDict[key]=val
-		ret.append(rowDict)
-	conn.close() # don't occupy the db longer than necessary
-	return ret
+	import numpy, sqlite3, json, woo.core, h5py
+	try: hdf=h5py.File(db,'r',libver='latest')
+	except IOError:
+		# connect always succeeds, as it seems, even if the type is not sqlite3 db
+		# in that case, it will fail at conn.execute below
+		conn=sqlite3.connect(db,detect_types=sqlite3.PARSE_DECLTYPES)
+		hdf=None
+	if hdf:
+		ret=[]
+		# iterate over simulations
+		for simId in hdf:
+			sim=hdf[simId]
+			_checkHdf5sim(sim)
+			rowDict={}
+			for att in sim.attrs:
+				if att in ('pre','tags','plots'): rowDict[att]=woo.core.WooJSONDecoder(onError='warn').decode(sim.attrs[att])
+				else: rowDict[att]=sim.attrs[att]
+			rowDict['misc'],rowDict['series']={},{}
+			for misc in sim['misc'].attrs: rowDict['misc'][misc]=woo.core.WooJSONDecoder(onError='warn').decode(sim['misc'].attrs[misc])
+			for s in sim['series']: rowDict['series'][s]=sim['series'][s]
+			ret.append(rowDict)
+		return ret
+	else:
+		# sqlite
+		conn.row_factory=sqlite3.Row
+		ret=[]
+		for i,row in enumerate(conn.execute('SELECT * FROM batch ORDER BY finished')):
+			rowDict={}
+			for key in row.keys():
+				# json-encoded fields
+				if key in ('pre','tags','plots','misc'):
+					if basicTypes: val=json.loads(row[key])
+					else: val=woo.core.WooJSONDecoder(onError='warn').decode(row[key])
+				elif key=='series':
+					series=json.loads(row[key])
+					assert type(series)==dict
+					if basicTypes: val=series
+					else: val=dict([(k,numpy.array(v)) for k,v in series.items()])
+				else:
+					val=row[key]
+				if basicTypes and key=='finished': val=val.isoformat(sep='_')
+				rowDict[key]=val
+			ret.append(rowDict)
+		conn.close() # don't occupy the db longer than necessary
+		return ret
 
 def dbToJSON(db,**kw):
 	'''Return simulation database as JSON string.
 	
 	:param **kw: additional arguments passed to `json.dumps <http://docs.python.org/3/library/json.html#json.dumps>`_.
 	'''
-	import json
-	return json.dumps(dbReadResults(db,basicTypes=True),**kw)
+	import woo.core
+	return woo.core.WooJSONEncoder(indent=None,oneway=True).encode(dbReadResults(db,basicTypes=True),**kw)
 
-def dbToSpread(db,out=None,dialect='excel',rows=False,series=True,ignored=('plotData','tags'),sortFirst=('title','batchtable','batchTableLine','finished','sceneId','duration'),selector='SELECT * FROM batch ORDER BY title'):
+
+
+def dbToSpread(db,out=None,dialect='excel',rows=False,series=True,ignored=('plotData','tags'),sortFirst=('title','batchtable','batchTableLine','finished','sceneId','duration'),selector=None):
 	'''
 	Select simulation results (using *selector*) stored in batch database *db*, flatten data for each simulation,
 	and dump the data in the CSV format (using *dialect*: 'excel', 'excel-tab', 'xls') into file *out* (standard output
@@ -214,34 +240,69 @@ def dbToSpread(db,out=None,dialect='excel',rows=False,series=True,ignored=('plot
 		# see https://groups.google.com/forum/?fromgroups=#!topic/python-excel/QK4iJrPDSB8
 		if len(n)>30: n=u'…'+n[-29:]
 		# invald characters (is that documented somewhere?? those are the only ones I found manually)
-		n=n.replace('[','_').replace(']','_').replace('*','_').replace(':','_')
+		n=n.replace('[','_').replace(']','_').replace('*','_').replace(':','_').replace('/','_')
 		return n
 
-	import sqlite3,json,sys,csv
+	import sqlite3,json,sys,csv,h5py,warnings,numpy
 	allData={}
 	# lowercase
 	ignored=[i.lower() for i in ignored]
 	sortFirst=[sf.lower() for sf in sortFirst]
 	seriesData={}
 	# open db and get rows
-	conn=sqlite3.connect(db,detect_types=sqlite3.PARSE_DECLTYPES)
-	conn.row_factory=sqlite3.Row
-	for i,row in enumerate(conn.execute(selector)):
-		rowDict={}
-		for key in row.keys():
-			if key.lower() in ignored: continue
-			val=row[key]
-			# decode val from json, if it fails, leave it alone
-			try: val=json.loads(val)
-			except: pass
-			if key!='series': rowDict[key]=val
-			elif series: seriesData[row['title']+'_'+row['sceneId']]=val # set only if allowed
-		flat=flatten(rowDict)
-		for key,val in flat.items():
-			if key.lower() in ignored: continue
-			if key not in allData: allData[key]=[None]*i+[val]
-			else: allData[key].append(val)
-	conn.close() # don't occupy the db longer than necessary
+	try: hdf=h5py.File(db,'r',libver='latest')
+	except IOError:
+		# connect always succeeds, as it seems, even if the type is not sqlite3 db
+		# in that case, it will fail at conn.execute below
+		conn=sqlite3.connect(db,detect_types=sqlite3.PARSE_DECLTYPES)
+		hdf=None
+	if hdf:
+		ret=[]
+		if selector: warnings.warn('selector parameter ignored, since the file is HDF5 (not SQLite)')
+		# iterate over simulations
+		for i,simId in enumerate(hdf):
+			sim=hdf[simId]
+			_checkHdf5sim(sim)
+			rowDict={}
+			for att in sim.attrs:
+				val=sim.attrs[att]
+				try: val=json.loads(val)
+				except: pass
+				rowDict[att]=val
+			rowDict['misc']={}
+			for att in sim['misc']:
+				val=sim.attrs[att]
+				try: val=json.loads(val)
+				except: pass
+				rowDict['misc'][att]=val
+			series={}
+			for s in sim['series']: series[s]=numpy.array(sim['series'][s])
+			seriesData[sim.attrs['title']+'_'+sim.attrs['sceneId']]=series
+			# same as for sqlite3 below
+			flat=flatten(rowDict)
+			for key,val in flat.items():
+				if key.lower() in ignored: continue
+				if key not in allData: allData[key]=[None]*i+[val]
+				else: allData[key].append(val)
+	else:
+		conn=sqlite3.connect(db,detect_types=sqlite3.PARSE_DECLTYPES)
+		conn.row_factory=sqlite3.Row
+		for i,row in enumerate(conn.execute(selector if selector!=None else 'SELECT * FROM batch ORDER BY title')):
+			rowDict={}
+			for key in row.keys():
+				if key.lower() in ignored: continue
+				val=row[key]
+				# decode val from json, if it fails, leave it alone
+				try: val=json.loads(val)
+				except: pass
+				if key!='series': rowDict[key]=val
+				elif series: seriesData[row['title']+'_'+row['sceneId']]=val # set only if allowed
+			flat=flatten(rowDict)
+			for key,val in flat.items():
+				if key.lower() in ignored: continue
+				if key not in allData: allData[key]=[None]*i+[val]
+				else: allData[key].append(val)
+		conn.close() # don't occupy the db longer than necessary
 	fields=sorted(allData.keys(),key=natural_key)
 	# apply sortFirst
 	fieldsLower=[f.lower() for f in fields]; fields0=fields[:] # these two have always same order
@@ -251,6 +312,7 @@ def dbToSpread(db,out=None,dialect='excel',rows=False,series=True,ignored=('plot
 			fields=[field]+[f for f in fields if f!=field] # rearrange
 
 	if dialect.lower()=='xls' or (out and out.endswith('.xls')):
+		if out==None: raise ValueError('The *out* parameter must be given when using the xls dialect (refusing to write binary to standard output).')
 		# http://scienceoss.com/write-excel-files-with-python-using-xlwt/
 		# http://www.youlikeprogramming.com/2011/04/examples-generating-excel-documents-using-pythons-xlwt/
 		import xlwt, urllib
@@ -268,8 +330,8 @@ def dbToSpread(db,out=None,dialect='excel',rows=False,series=True,ignored=('plot
 		headStyle.font=font
 		hrefStyle=xlwt.easyxf('font: underline single')
 		# normal and transposed setters
-		if row: setCell=lambda r,c,data,style: sheet.write(c,r,data,style)
-		else: setCell=lambda r,c,data,style: sheet.write(r,c,data)
+		if rows: setCell=lambda r,c,data,style: sheet.write(r,c,data,style)
+		else: setCell=lambda r,c,data,style: sheet.write(c,r,data,style)
 		for col,field in enumerate(fields):
 			# headers
 			setCell(0,col,field,headStyle)

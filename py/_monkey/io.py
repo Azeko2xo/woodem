@@ -17,6 +17,7 @@ import pickle
 import json
 import minieigen
 import numpy
+import h5py
 
 nan,inf=float('nan'),float('inf') # for values in expressions
 
@@ -235,7 +236,7 @@ class WooJSONEncoder(json.JSONEncoder):
 	Do not use this class directly, say ``object.dump(format="json")`` instead.
 	'''
 	def __init__(self,indent=3,sort_keys=True,oneway=False):
-		'oneway: allow serialization of objects which won\'t be properly deserialized. They are: numpy.ndarray.'
+		'oneway: allow serialization of objects which won\'t be properly deserialized. They are: numpy.ndarray, h5py.Dataset.'
 		json.JSONEncoder.__init__(self,sort_keys=sort_keys,indent=indent)
 		self.oneway=oneway
 	def default(self,obj):
@@ -254,12 +255,16 @@ class WooJSONEncoder(json.JSONEncoder):
 			if isinstance(obj,minieigen.Quaternion): return obj.toAxisAngle()
 			else: return tuple(obj[i] for i in range(len(obj)))
 		# numpy arrays
-		elif obj.__class__==numpy.ndarray:
+		elif isinstance(obj,numpy.ndarray):
 			if not self.oneway: raise TypeError('numpy.ndarray can only be serialized with WooJSONEncoder(oneway=True), since deserialization will yield only dict/list, not a numpy.ndarray.')
 			# record array: dump as dict of sub-arrays (columns)
 			if obj.dtype.names: return dict([(name,obj[name].tolist()) for name in obj.dtype.names])
 			# non-record array: dump as nested list
 			return obj.tolist()
+		# h5py datasets
+		elif isinstance(obj,h5py.Dataset):
+			if not self.oneway: raise TypeError('h5py.Dataset can only be serialized with WooJSONEncoder(oneway=True), since deserialization will yield only dict/list, not a h5py.Dataset.')
+			return obj[...]
 		# other types, handled by the json module natively
 		else:
 			return super(WooJSONEncoder,self).default(obj)
