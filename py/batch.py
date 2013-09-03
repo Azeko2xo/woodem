@@ -4,6 +4,18 @@
 nan=float('nan')
 from math import * 
 from minieigen import *
+import warnings
+
+try:
+	from lockfile import FileLock
+except ImportError:
+	class FileLock:
+		'Dummy class if the `lockfile </https://pypi.python.org/pypi/lockfile>`_ module is not importable.'
+		def __init__(self,f):
+			warnings.warn("The 'lockfile' module is not importable, '%s' will not be locked. If this file is concurrently accessed by several simulations, it may get corrupted!"%f)
+		def __enter__(self): pass
+		def __exit__(self,*args): pass
+	
 
 # increase every time the db format changes, to avoid errors
 # applies to both sqlite and hdf5 dbs
@@ -101,28 +113,29 @@ def writeResults(scene,defaultDb='woo-results.sqlite',syncXls=True,dbFmt=None,se
 			import shutil
 			shutil.move(db,db+'~~corrupt')
 			hdf=h5py.File(db,'a',libver='latest')
-		i=0
-		while True:
-			sceneId=S.tags['id']+('' if i==0 else '~%d'%i)
-			if sceneId not in hdf: break
-			i+=1
-		# group for our Scene
-		G=hdf.create_group(sceneId)
-		G.attrs['formatVersion']=dbFormatVersion
-		G.attrs['finished']=datetime.datetime.now().replace(microsecond=0).isoformat('_')
-		G.attrs['batchTable']=table
-		G.attrs['batchTableLine']=line
-		G.attrs['sceneId']=S.tags['id']
-		G.attrs['title']=S.tags['title']
-		G.attrs['duration']=S.duration
-		G.attrs['pre']=(S.pre.dumps(format='json') if S.pre else '')
-		G.attrs['tags']=json.dumps(unicodeTags)
-		G.attrs['plots']=json.dumps(S.plot.plots)
-		G_misc=G.create_group('misc')
-		for k,v in kw.items(): G_misc.attrs[k]=woo.core.WooJSONEncoder(indent=None,oneway=True).encode(v)
-		G_series=G.create_group('series')
-		for k,v in series.items(): G_series[k]=v
-		hdf.close()
+		with FileLock(db):
+			i=0
+			while True:
+				sceneId=S.tags['id']+('' if i==0 else '~%d'%i)
+				if sceneId not in hdf: break
+				i+=1
+			# group for our Scene
+			G=hdf.create_group(sceneId)
+			G.attrs['formatVersion']=dbFormatVersion
+			G.attrs['finished']=datetime.datetime.now().replace(microsecond=0).isoformat('_')
+			G.attrs['batchTable']=table
+			G.attrs['batchTableLine']=line
+			G.attrs['sceneId']=S.tags['id']
+			G.attrs['title']=S.tags['title']
+			G.attrs['duration']=S.duration
+			G.attrs['pre']=(S.pre.dumps(format='json') if S.pre else '')
+			G.attrs['tags']=json.dumps(unicodeTags)
+			G.attrs['plots']=json.dumps(S.plot.plots)
+			G_misc=G.create_group('misc')
+			for k,v in kw.items(): G_misc.attrs[k]=woo.core.WooJSONEncoder(indent=None,oneway=True).encode(v)
+			G_series=G.create_group('series')
+			for k,v in series.items(): G_series[k]=v
+			hdf.close()
 	else: raise ValueError('*fmt* must be one of "sqlite", "hdf5", None (autodetect based on suffix)')
 
 def _checkHdf5sim(sim):
@@ -144,20 +157,21 @@ def dbReadResults(db,basicTypes=False):
 		conn=sqlite3.connect(db,detect_types=sqlite3.PARSE_DECLTYPES)
 		hdf=None
 	if hdf:
-		ret=[]
-		# iterate over simulations
-		for simId in hdf:
-			sim=hdf[simId]
-			_checkHdf5sim(sim)
-			rowDict={}
-			for att in sim.attrs:
-				if att in ('pre','tags','plots'): rowDict[att]=woo.core.WooJSONDecoder(onError='warn').decode(sim.attrs[att])
-				else: rowDict[att]=sim.attrs[att]
-			rowDict['misc'],rowDict['series']={},{}
-			for misc in sim['misc'].attrs: rowDict['misc'][misc]=woo.core.WooJSONDecoder(onError='warn').decode(sim['misc'].attrs[misc])
-			for s in sim['series']: rowDict['series'][s]=sim['series'][s]
-			ret.append(rowDict)
-		return ret
+		with FileLock(db):
+			ret=[]
+			# iterate over simulations
+			for simId in hdf:
+				sim=hdf[simId]
+				_checkHdf5sim(sim)
+				rowDict={}
+				for att in sim.attrs:
+					if att in ('pre','tags','plots'): rowDict[att]=woo.core.WooJSONDecoder(onError='warn').decode(sim.attrs[att])
+					else: rowDict[att]=sim.attrs[att]
+				rowDict['misc'],rowDict['series']={},{}
+				for misc in sim['misc'].attrs: rowDict['misc'][misc]=woo.core.WooJSONDecoder(onError='warn').decode(sim['misc'].attrs[misc])
+				for s in sim['series']: rowDict['series'][s]=sim['series'][s]
+				ret.append(rowDict)
+			return ret
 	else:
 		# sqlite
 		conn.row_factory=sqlite3.Row
@@ -257,33 +271,34 @@ def dbToSpread(db,out=None,dialect='excel',rows=False,series=True,ignored=('plot
 		conn=sqlite3.connect(db,detect_types=sqlite3.PARSE_DECLTYPES)
 		hdf=None
 	if hdf:
-		ret=[]
-		if selector: warnings.warn('selector parameter ignored, since the file is HDF5 (not SQLite)')
-		# iterate over simulations
-		for i,simId in enumerate(hdf):
-			sim=hdf[simId]
-			_checkHdf5sim(sim)
-			rowDict={}
-			for att in sim.attrs:
-				val=sim.attrs[att]
-				try: val=json.loads(val)
-				except: pass
-				rowDict[att]=val
-			rowDict['misc']={}
-			for att in sim['misc']:
-				val=sim.attrs[att]
-				try: val=json.loads(val)
-				except: pass
-				rowDict['misc'][att]=val
-			series={}
-			for s in sim['series']: series[s]=numpy.array(sim['series'][s])
-			seriesData[sim.attrs['title']+'_'+sim.attrs['sceneId']]=series
-			# same as for sqlite3 below
-			flat=flatten(rowDict)
-			for key,val in flat.items():
-				if key.lower() in ignored: continue
-				if key not in allData: allData[key]=[None]*i+[val]
-				else: allData[key].append(val)
+		with FileLock(db):
+			ret=[]
+			if selector: warnings.warn('selector parameter ignored, since the file is HDF5 (not SQLite)')
+			# iterate over simulations
+			for i,simId in enumerate(hdf):
+				sim=hdf[simId]
+				_checkHdf5sim(sim)
+				rowDict={}
+				for att in sim.attrs:
+					val=sim.attrs[att]
+					try: val=json.loads(val)
+					except: pass
+					rowDict[att]=val
+				rowDict['misc']={}
+				for att in sim['misc']:
+					val=sim.attrs[att]
+					try: val=json.loads(val)
+					except: pass
+					rowDict['misc'][att]=val
+				series={}
+				for s in sim['series']: series[s]=numpy.array(sim['series'][s])
+				seriesData[sim.attrs['title']+'_'+sim.attrs['sceneId']]=series
+				# same as for sqlite3 below
+				flat=flatten(rowDict)
+				for key,val in flat.items():
+					if key.lower() in ignored: continue
+					if key not in allData: allData[key]=[None]*i+[val]
+					else: allData[key].append(val)
 	else:
 		conn=sqlite3.connect(db,detect_types=sqlite3.PARSE_DECLTYPES)
 		conn.row_factory=sqlite3.Row
