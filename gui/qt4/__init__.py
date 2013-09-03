@@ -329,7 +329,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		if not hasattr(S.lab,'snapshooter_'):
 			print 'No S.lab.snapshooter_, no movie will be created'
 			return
-		out=self.movieFileEdit.text()
+		out=str(self.movieFileEdit.text())
 		woo.utils.makeVideo(S.lab.snapshooter_.snapshots,out=out,fps=self.movieFpsSpinbox.value(),kbps=self.movieBitrateSpinbox.value())
 		import os.path
 		url='file://'+os.path.abspath(out)
