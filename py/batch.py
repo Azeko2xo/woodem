@@ -149,9 +149,11 @@ def dbReadResults(db,basicTypes=False):
 
 	:param basicTypes: don't reconstruct Woo objects from JSON (keep those as dicts) and don't return data series as numpy arrays.
 	'''
-	import numpy, sqlite3, json, woo.core, h5py
-	try: hdf=h5py.File(db,'r',libver='latest')
-	except IOError:
+	import numpy, sqlite3, json, woo.core
+	try:
+		import h5py
+		hdf=h5py.File(db,'r',libver='latest')
+	except (ImportError,IOError):
 		# connect always succeeds, as it seems, even if the type is not sqlite3 db
 		# in that case, it will fail at conn.execute below
 		conn=sqlite3.connect(db,detect_types=sqlite3.PARSE_DECLTYPES)
@@ -257,15 +259,17 @@ def dbToSpread(db,out=None,dialect='excel',rows=False,series=True,ignored=('plot
 		n=n.replace('[','_').replace(']','_').replace('*','_').replace(':','_').replace('/','_')
 		return n
 
-	import sqlite3,json,sys,csv,h5py,warnings,numpy
+	import sqlite3,json,sys,csv,warnings,numpy
 	allData={}
 	# lowercase
 	ignored=[i.lower() for i in ignored]
 	sortFirst=[sf.lower() for sf in sortFirst]
 	seriesData={}
 	# open db and get rows
-	try: hdf=h5py.File(db,'r',libver='latest')
-	except IOError:
+	try:
+		import h5py
+		hdf=h5py.File(db,'r',libver='latest')
+	except (ImportError,IOError):
 		# connect always succeeds, as it seems, even if the type is not sqlite3 db
 		# in that case, it will fail at conn.execute below
 		conn=sqlite3.connect(db,detect_types=sqlite3.PARSE_DECLTYPES)

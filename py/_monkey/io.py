@@ -17,7 +17,13 @@ import pickle
 import json
 import minieigen
 import numpy
-import h5py
+# we don't support h5py on Windows, as it is too complicated to install
+# this is an ugly hack :|
+try:
+	import h5py
+	haveH5py=True
+except ImportError:
+	haveH5py=False
 
 nan,inf=float('nan'),float('inf') # for values in expressions
 
@@ -262,7 +268,7 @@ class WooJSONEncoder(json.JSONEncoder):
 			# non-record array: dump as nested list
 			return obj.tolist()
 		# h5py datasets
-		elif isinstance(obj,h5py.Dataset):
+		elif haveH5py and isinstance(obj,h5py.Dataset):
 			if not self.oneway: raise TypeError('h5py.Dataset can only be serialized with WooJSONEncoder(oneway=True), since deserialization will yield only dict/list, not a h5py.Dataset.')
 			return obj[...]
 		# other types, handled by the json module natively
