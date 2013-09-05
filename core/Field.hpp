@@ -141,7 +141,7 @@ WOO_REGISTER_OBJECT(Node);
 
 struct Field: public Object, public Indexable{
 	Scene* scene; // backptr to scene; must be set by Scene!
-	shared_ptr<Scene> py_getScene();
+	py::object py_getScene();
 	virtual void selfTest(){};
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Field,Object,"Spatial field described by nodes, their topology and associated values.",
 		// ((Scene*,scene,NULL,AttrTrait<Attr::hidden>(),"Backptr to scene")) // must be set by Scene!

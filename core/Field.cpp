@@ -35,9 +35,9 @@ AlignedBox3r Field::renderingBbox() const {
 	return b;
 }
 
-shared_ptr<Scene> Field::py_getScene(){
-	if(!scene) return shared_ptr<Scene>();
-	else return static_pointer_cast<Scene>(scene->shared_from_this());
+py::object Field::py_getScene(){
+	if(!scene) return py::object();
+	else return py::object(static_pointer_cast<Scene>(scene->shared_from_this()));
 }
 
 
