@@ -154,6 +154,7 @@ public:
 	bool isBlockedNone() const { return (flags&DOF_ALL)==DOF_NONE; }
 	void setBlockedNone() { flags&=~DOF_ALL; }
 	bool isBlockedAll()  const { return (flags&DOF_ALL)==DOF_ALL; }
+	bool isBlockedAllRot()  const { return (flags&DOF_RXRYRZ)==DOF_RXRYRZ; }
 	void setBlockedAll() { flags|=DOF_ALL; }
 	bool isBlockedAxisDOF(int axis, bool rot) const { return (flags & axisDOF(axis,rot)); }
 

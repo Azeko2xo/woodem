@@ -41,7 +41,7 @@ for n in nn: n.dem.addParRef(S.dem.par[-1])
 
 ff=S.dem.par[0].shape
 ff.setRefConf() #update()
-for n in nn: S.dem.nodes.append(n)
+for n in nn: S.dem.nodesAppend(n)
 S.engines=[Leapfrog(reset=True),PyRunner(1,'S.dem.par[0].shape.update()')]
 S.dt=1e-5
 S.saveTmp()

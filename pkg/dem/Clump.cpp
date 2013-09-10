@@ -214,8 +214,13 @@ shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, shared
 		clump->equivRad=(clump->inertia.array()/clump->mass).sqrt().mean();
 	} else {
 		// nodes have no mass; in that case, centralNode is used
-		if(!centralNode) throw std::runtime_error("Clump::updateProperties: no nodes with mass, therefore centralNode must be given, of which position will be used instead");
-		throw std::runtime_error("Clump::updateProperties: massless clumps not yet implemented.");
+		if(!centralNode) throw std::runtime_error("ClumpData::makeClump: no nodes with mass, therefore centralNode must be given, of which position will be used instead");
+		clump->equivRad=NaN;
+		// do not touch clump->mass or clump->inertia here
+		// if centralNode was given, it is user-provided
+		// if not, it is at its defaults, which are zeros
+		// block all DOFs in any case
+		clump->setBlockedAll();
 	}
 
 	clump->nodes.reserve(N); clump->relPos.reserve(N); clump->relOri.reserve(N);

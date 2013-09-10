@@ -12,4 +12,5 @@ S.dem.par.append([
 ])
 S.engines=utils.defaultEngines(damping=.4)
 S.dt=.1*utils.pWaveDt(S)
+S.dem.collectNodes()
 S.saveTmp()

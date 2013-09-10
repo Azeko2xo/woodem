@@ -27,7 +27,7 @@ woo.gl.Gl1_DemField.colorBy=woo.gl.Gl1_DemField.colorVel
 S=woo.master.scene=Scene(fields=[DemField(gravity=(0,0,-30))])
 if 1:
 	import woo.pack, woo.utils, numpy
-	scenario=['youtube','plain','inverse'][2]
+	scenario=['youtube','plain','inverse'][0]
 	if scenario=='youtube':
 		# http://www.youtube.com/watch?v=KmQWD_MfR8M
 		xmax,ymax=1,1
@@ -81,7 +81,7 @@ if 1:
 		sp.makeCloud((.3,.3,.1),(.7,.7,.3),rMean=.3*xmax/xdiv,rRelFuzz=.3,periodic=False)
 		sp.toSimulation(S,mat=FrictMat(young=1e6,density=3000))
 		for s in S.dem.par:
-			if type(s.shape)==Sphere: S.dem.nodes.append(s.shape.nodes[0])
+			if type(s.shape)==Sphere: S.dem.nodesAppend(s.shape.nodes[0])
 
 	S.dt=min(1e-5,.7*woo.utils.pWaveDt(S))
 

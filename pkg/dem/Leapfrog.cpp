@@ -174,7 +174,7 @@ void Leapfrog::run(){
 		Vector3r pprevFluctVel, pprevFluctAngVel;
 
 		// whether to use aspherical rotation integration for this body; for no accelerations, spherical integrator is "exact" (and faster)
-		bool useAspherical=(dyn.isAspherical() && (!dyn.isBlockedAll()));
+		bool useAspherical=(dyn.isAspherical() && (!dyn.isBlockedAllRot()));
 
 		Vector3r linAccel(Vector3r::Zero()), angAccel(Vector3r::Zero());
 		// for particles not totally blocked, compute accelerations; otherwise, the computations would be useless
@@ -235,9 +235,10 @@ void Leapfrog::run(){
 			if(!dyn.isBlockedAll()) cerr<<", posNew="<<node->pos<<endl;
 		#endif
 		// update orientation from angular velocity (or torque, for aspherical integrator)
-		if(dyn.inertia!=Vector3r::Zero()){
-			if(!useAspherical) leapfrogSphericalRotate(node);
-			else leapfrogAsphericalRotate(node,t);
+		if(!useAspherical) leapfrogSphericalRotate(node);
+		else {
+			if(dyn.inertia==Vector3r::Zero()) throw std::runtime_error("Leapfrog::run: DemField.nodes["+to_string(i)+"].den.inertia==(0,0,0), but the node wants to use aspherical integrator. Aspherical integrator is selected for non-spherical particles which have at least one rotational DOF free.");
+			leapfrogAsphericalRotate(node,t);
 		}
 
 		if(reset){

@@ -209,6 +209,8 @@ int DemField::collectNodes(){
 void DemField::pyNodesAppend(const shared_ptr<Node>& n){
 	if(!n) throw std::runtime_error("DemField.nodesAppend: Node to be added may not be None.");
 	if(!n->hasData<DemData>()) throw std::runtime_error("DemField.nodesAppend: Node must define Node.dem (DemData)");
+	auto& dyn=n->getData<DemData>();
+	if(dyn.linIx>=0 && dyn.linIx<(int)nodes.size() && (n.get()==nodes[dyn.linIx].get())) throw std::runtime_error("Node already in DemField.nodes["+to_string(dyn.linIx)+"], refusing to add it again.");
 	n->getData<DemData>().linIx=nodes.size();
 	nodes.push_back(n);
 }
@@ -299,6 +301,7 @@ void DemField::selfTest(){
 		if(p->id!=(Particle::id_t)i) throw std::logic_error("DemField.par["+to_string(i)+"].id="+to_string(p->id)+", should be "+to_string(i));
 		if(!p->shape) throw std::runtime_error("DemField.par["+to_string(i)+"].shape=None.");
 		if(!p->material) throw std::runtime_error("DemField.par["+to_string(i)+"].material=None.");
+		if(!p->material->density>0) throw std::runtime_error("DemField.par["+to_string(i)+"].material.density="+to_string(p->material->density)+", should be positive.");
 		if(!p->shape->numNodesOk()) throw std::logic_error("DemField.par["+to_string(i)+"].shape: numNodesOk failed with "+p->shape->pyStr()+".");
 		p->selfTest();
 		for(size_t j=0; j<p->shape->nodes.size(); j++){

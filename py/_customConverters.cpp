@@ -76,6 +76,15 @@ struct custom_OpenMPAccumulator_from_int{
 };
 
 template<typename T>
+struct custom_OpenMPArrayAccumulator_to_list {
+	static PyObject* convert(const OpenMPArrayAccumulator<T>& acc){
+		py::list ret; for(size_t i=0; i<acc.size(); i++) ret.append(acc.get(i));
+		return py::incref(ret.ptr());
+	}
+};
+
+
+template<typename T>
 struct custom_vvector_to_list{
 	static PyObject* convert(const vector<vector<T> >& vv){
 		py::list ret; FOREACH(const vector<T>& v, vv){
@@ -211,6 +220,10 @@ BOOST_PYTHON_MODULE(_customConverters){
 
 	custom_OpenMPAccumulator_from_float(); to_python_converter<OpenMPAccumulator<Real>, custom_OpenMPAccumulator_to_float>(); 
 	custom_OpenMPAccumulator_from_int(); to_python_converter<OpenMPAccumulator<int>, custom_OpenMPAccumulator_to_int>(); 
+
+	to_python_converter<OpenMPArrayAccumulator<int>, custom_OpenMPArrayAccumulator_to_list<int>>(); 
+	to_python_converter<OpenMPArrayAccumulator<Real>, custom_OpenMPArrayAccumulator_to_list<Real>>(); 
+
 
 	custom_ptrMatchMaker_from_float();
 

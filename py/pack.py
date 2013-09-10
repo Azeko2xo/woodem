@@ -500,7 +500,7 @@ def randomDensePack(predicate,radius,mat=-1,dim=None,cropLayers=0,rRelFuzz=0.,sp
 		S.cell.setBox(x1,y1,z1)
 		#print cloudPorosity,beta,gamma,N100,x1,y1,z1,S.cell.refSize
 		#print x1,y1,z1,radius,rRelFuzz
-		S.engines=[dem.ForceResetter(),dem.InsertionSortCollider([dem.Bo1_Sphere_Aabb()],verletDist=.05*radius),dem.ContactLoop([dem.Cg2_Sphere_Sphere_L6Geom()],[dem.Cp2_FrictMat_FrictPhys()],[dem.Law2_L6Geom_FrictPhys_IdealElPl()],applyForces=True),dem.Leapfrog(damping=.7,reset=False),dem.PeriIsoCompressor(charLen=2*radius,stresses=[-100e9,-1e8],maxUnbalanced=1e-2,doneHook='print "DONE"; S.stop();',globalUpdateInt=5,keepProportions=True,label='_compressor')]
+		S.engines=[dem.ForceResetter(),dem.InsertionSortCollider([dem.Bo1_Sphere_Aabb()],verletDist=.05*radius),dem.ContactLoop([dem.Cg2_Sphere_Sphere_L6Geom()],[dem.Cp2_FrictMat_FrictPhys()],[dem.Law2_L6Geom_FrictPhys_IdealElPl()],applyForces=True),dem.Leapfrog(damping=.7,reset=False),dem.PeriIsoCompressor(charLen=2*radius,stresses=[-100e9,-1e8],maxUnbalanced=1e-2,doneHook='print "DONE"; S.stop();',globalUpdateInt=5,keepProportions=True,label='compressor')]
 		num=sp.makeCloud(Vector3().Zero,S.cell.size0,radius,rRelFuzz,spheresInCell,True)
 		mat=dem.FrictMat(young=30e9,tanPhi=.5,density=1e3,ktDivKn=.2)
 		for s in sp: S.dem.par.append(utils.sphere(s[0],s[1],mat=mat))

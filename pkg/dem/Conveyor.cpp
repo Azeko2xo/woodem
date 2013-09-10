@@ -2,9 +2,11 @@
 #include<woo/pkg/dem/Factory.hpp>
 #include<woo/pkg/dem/Sphere.hpp>
 #include<woo/pkg/dem/Funcs.hpp>
+#include<woo/lib/smoothing/LinearInterpolate.hpp>
 
 // hack; check if that is really needed
 #include<woo/pkg/dem/InsertionSortCollider.hpp>
+
 
 
 
@@ -171,6 +173,7 @@ void ConveyorFactory::run(){
 	DemField* dem=static_cast<DemField*>(field.get());
 	if(radii.empty() || radii.size()!=centers.size()) ValueError("ConveyorFactory: radii and values must be same-length and non-empty.");
 	if(isnan(vel) || isnan(massRate) || !material) ValueError("ConveyorFactory: vel, massRate, material must be given.");
+	if(clipX.size()!=clipZ.size()) ValueError("ConveyorFactory: clipX and clipZ must have the same size ("+to_string(clipX.size())+"!="+to_string(clipZ.size()));
 	if(barrierLayer<0){
 		Real maxRad=-Inf;
 		for(const Real& r:radii) maxRad=max(r,maxRad);
@@ -223,6 +226,18 @@ void ConveyorFactory::run(){
 		lastX=Cell::wrapNum(nextX,cellLen);
 		lenDone+=dX;
 
+		if(!clipX.empty()){
+			clipLastX=Cell::wrapNum(clipLastX+dX,*clipX.rbegin());
+			Real zMax=linearInterpolate<Real,Real>(clipLastX,clipX,clipZ,clipPos);
+			// particle over interpolated clipZ(clipX)
+			// skip it and go to the next repetition of the loop
+			if(centers[nextIx][2]>zMax){
+				// repeat the code from the end of the loop (below) and do a new cycle
+				nextIx-=1;
+				continue;
+			}
+		}
+	
 		Real realSphereX=(vel/packVel)*(lenToDo-lenDone); // scale x-position by dilution (>1)
 		Vector3r newPos=node->pos+node->ori*Vector3r(realSphereX,centers[nextIx][1],centers[nextIx][2]);
 
@@ -272,7 +287,10 @@ void ConveyorFactory::run(){
 		stepMass+=dyn.mass;
 		mass+=dyn.mass;
 		num+=1;
-		nextIx-=1; // decrease; can go negative, handled at the beginning of the loop
+	
+		// decrease; can go negative, handled at the beginning of the loop
+		// this same code is repeated above if clipping short-circuits the loop, keep in sync!
+		nextIx-=1; 
 	};
 
 	setCurrRate(stepMass/(/*time*/lenToDo/packVel));

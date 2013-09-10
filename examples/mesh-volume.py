@@ -9,13 +9,13 @@ S.dem.collectNodes()
 S.periodic=True
 S.cell.setBox(2.4,2.4,2.4)
 S.cell.nextGradV=Matrix3(0.,.1,.1, -.1,0,.1, .1,-.1,-.01)
-woo.log.setLevel('TriSurfVolume',woo.log.TRACE)
+woo.log.setLevel('MeshVolume',woo.log.TRACE)
 S.engines=[
-	woo.dem.MeshVolume(stepPeriod=1),
+	woo.dem.MeshVolume(stepPeriod=1,label='meshVolume'),
 	woo.dem.Leapfrog(reset=True),
-	woo.core.PyRunner(1,'S.plot.addData(i=S.step,V=S.engines[0].volume,Vcell=S.cell.volume,ratio=S.engines[0].volume/S.cell.volume)'),
+	woo.core.PyRunner(1,'S.plot.addData(i=S.step,V=S.lab.meshVolume.vol,Vcell=S.cell.volume,ratio=S.lab.meshVolume.vol/S.cell.volume)'),
 ]
 S.dt=1e-4
 S.plot.plots={'i':('V','Vcell',None,'ratio')}
 S.one()
-print 'Sphere volume is ',S.engines[0].volume
+print 'Sphere volume is ',S.lab.meshVolume.vol

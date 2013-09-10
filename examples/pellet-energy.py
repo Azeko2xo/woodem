@@ -4,7 +4,7 @@ from woo.dem import *
 from woo.core import *
 
 woo.master.scene=S=Scene(fields=[DemField(gravity=(0,0,-10))])
-mat=utils.defaultMaterial()
+mat=woo.dem.PelletMat(young=1e6,tanPhi=.5,ktDivKn=.2,density=1000)
 if 1:
 	sp=pack.SpherePack()
 	sp.makeCloud((0,0,0),(10,10,10),.4,rRelFuzz=.5)
@@ -17,7 +17,7 @@ S.engines=utils.defaultEngines(damping=0.,cp2=Cp2_PelletMat_PelletPhys(),law=Law
 	PyRunner(1,'S.plot.addData(i=S.step,t=S.time,Eerr=(S.energy.relErr() if S.step>100 else 0),**S.energy)'),
 ]
 	
-S.dt=.3*utils.pWaveDt()
+S.dt=.3*utils.pWaveDt(S)
 
 S.dem.collectNodes()
 S.trackEnergy=True
@@ -28,4 +28,3 @@ S.run(500)
 #from woo import gl
 #gl.Gl1_Wall.div=10
 #gl.Gl1_InfCylinder.wire=True
-

@@ -28,7 +28,7 @@ if 0:
 	for n in nn: n.dem.addParRef(S.dem.par[-1])
 	ff=S.dem.par[0].shape
 	ff.setRefConf() #update()
-	for n in nn: S.dem.nodes.append(n)
+	for n in nn: S.dem.nodesAppend(n)
 	S.engines=[Leapfrog(reset=True),IntraForce([In2_FlexFacet_ElastMat(thickness=.01)])]
 	S.dt=1e-5
 	S.saveTmp()
@@ -68,7 +68,7 @@ else:
 		sp.makeCloud((.3,.3,.1),(.7,.7,.3),rMean=.3*xmax/xdiv,rRelFuzz=.3,periodic=False)
 		sp.toSimulation(S,mat=FrictMat(young=1e6,density=3000))
 		for s in S.dem.par:
-			if type(s.shape)==Sphere: S.dem.nodes.append(s.shape.nodes[0])
+			if type(s.shape)==Sphere: S.dem.nodesAppend(s.shape.nodes[0])
 
 	S.dt=min(1e-4,.7*woo.utils.pWaveDt(S))
 
