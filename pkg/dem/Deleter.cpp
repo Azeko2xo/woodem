@@ -95,10 +95,16 @@ void BoxDeleter::run(){
 	if(isnan(currRate)||stepPrev<0) currRate=currRateNoSmooth;
 	else currRate=(1-currRateSmooth)*currRate+currRateSmooth*currRateNoSmooth;
 }
-py::tuple BoxDeleter::pyDiamMass() const {
-	py::list dd, mm;
-	for(const auto& dm: diamMass){ dd.append(dm[0]); mm.append(dm[1]); }
-	return py::make_tuple(dd,mm);
+py::object BoxDeleter::pyDiamMass(bool zipped) const {
+	if(!zipped){
+		py::list dd, mm;
+		for(const auto& dm: diamMass){ dd.append(dm[0]); mm.append(dm[1]); }
+		return py::make_tuple(dd,mm);
+	} else {
+		py::list ret;
+		for(const auto& dm: diamMass){ ret.append(dm); }
+		return ret;
+	}
 }
 
 Real BoxDeleter::pyMassOfDiam(Real min, Real max) const {

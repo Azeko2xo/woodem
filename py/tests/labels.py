@@ -93,11 +93,19 @@ class TestSceneLabels(unittest.TestCase):
 		#self.assert_(S.lab._whereIs('foo.bar')==woo.core.LabelMapper.inMod)
 		S.lab.foo.bar.bb=1
 		self.assert_(S.lab.foo.bar.bb==1)
+		# this should not raise any exception
+		S.labels['foo.bar.baz[0]']=1
 	def testWritable(self):
 		self.S.lab.if_overwriting_this_causes_warning_it_is_a_bug=3
 		self.S.lab._setWritable('if_overwriting_this_causes_warning_it_is_a_bug')
 		# should not emit warning
 		self.S.lab.if_overwriting_this_causes_warning_it_is_a_bug=4
+	def testDir(self):
+		'LabelMapper: __dir__'
+		S=self.S
+		S.lab._newModule('foo')
+		S.lab.foo.bar=1
+		self.assert_('bar' in S.lab.foo.__dir__())
 
 	def testEngineLabels(self):
 		'LabelMapper: engine/functor labels (mix of older tests)'

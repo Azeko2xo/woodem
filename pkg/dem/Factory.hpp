@@ -40,7 +40,7 @@ struct ParticleGenerator: public Object{
 	virtual void revokeLast(){ if(save && !genDiamMass.empty()) genDiamMass.resize(genDiamMass.size()-1); }
 	virtual void clear(){ genDiamMass.clear(); }
 	py::tuple pyPsd(bool mass, bool cumulative, bool normalize, Vector2r dRange, int num) const;
-	py::object pyDiamMass() const;
+	py::object pyDiamMass(bool zipped=false) const;
 	Real pyMassOfDiam(Real min, Real max) const;
 	py::list pyCall(const shared_ptr<Material>& m){ vector<ParticleAndBox> pee=(*this)(m); py::list ret; for(const auto& pe: pee) ret.append(py::make_tuple(pe.par,pe.extents)); return ret; }
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ParticleGenerator,Object,"Abstract class for generating particles",
@@ -49,7 +49,7 @@ struct ParticleGenerator: public Object{
 		,/*ctor*/
 		,/*py*/
 			.def("psd",&ParticleGenerator::pyPsd,(py::arg("mass")=true,py::arg("cumulative")=true,py::arg("normalize")=false,py::arg("dRange")=Vector2r(NaN,NaN),py::arg("num")=80),"Return PSD for particles generated.")
-			.def("diamMass",&ParticleGenerator::pyDiamMass,"Return tuple of 2 arrays, diameters and masses.")
+			.def("diamMass",&ParticleGenerator::pyDiamMass,(py::arg("zipped")=false),"With *zipped*, return list of (diameter, mass); without *zipped*, return tuple of 2 arrays, diameters and masses.")
 			.def("massOfDiam",&ParticleGenerator::pyMassOfDiam,(py::arg("min")=0,py::arg("max")=Inf),"Return mass of particles of which diameters are between *min* and *max*.")
 			.def("clear",&ParticleGenerator::clear,"Clear stored data about generated particles; only subsequently generated particles will be considered in the PSD.")
 			.def("__call__",&ParticleGenerator::pyCall,"Call the generation routine, returning one particle (at origin) and its bounding-box when at origin. Useful for debugging.")

@@ -63,10 +63,10 @@ def writeResults(scene,defaultDb='woo-results.sqlite',syncXls=True,dbFmt=None,se
 	unicodeTags=dict([(key,val.decode('iso-8859-1')) for key,val in S.tags.items()])
 	# make sure series are 1d arrays
 	if series==None:
-		series={}; series.update([('plot_'+k,v) for k,v in S.plot.data.items()])
+		series={}; series.update([('plot/'+k,v) for k,v in S.plot.data.items()])
 	for k,v in series.items():
 		if isinstance(v,numpy.ndarray):
-			if dmFmt=='sqlite': series[k]=v.tolist() # sqlite needs lists, hdf5 is fine with numpy arrays
+			if dbFmt=='sqlite': series[k]=v.tolist() # sqlite needs lists, hdf5 is fine with numpy arrays
 		elif not hasattr(v,'__len__'): raise ValueError('series["%s"] not a sequence (__len__ not defined).'%k)
 	if dbFmt=='sqlite':
 		import sqlite3
@@ -134,7 +134,9 @@ def writeResults(scene,defaultDb='woo-results.sqlite',syncXls=True,dbFmt=None,se
 			G_misc=G.create_group('misc')
 			for k,v in kw.items(): G_misc.attrs[k]=woo.core.WooJSONEncoder(indent=None,oneway=True).encode(v)
 			G_series=G.create_group('series')
-			for k,v in series.items(): G_series[k]=v
+			for k,v in series.items():
+				# hdf5 is smart enough to create sub-groups automatically if the name contains slashes
+				G_series[k]=v
 			hdf.close()
 	else: raise ValueError('*fmt* must be one of "sqlite", "hdf5", None (autodetect based on suffix)')
 
@@ -295,7 +297,22 @@ def dbToSpread(db,out=None,dialect='excel',rows=False,series=True,ignored=('plot
 					except: pass
 					rowDict['misc'][att]=val
 				series={}
-				for s in sim['series']: series[s]=numpy.array(sim['series'][s])
+				print 'PROCESSING SERIES'
+				# we have to flatten series, since it may contain nested hdf5 groups
+				# http://stackoverflow.com/a/6036037/761090
+				def flat_group_helper(prefix,g):
+					if prefix: prefix+='/'
+					for name,sub in g.items():
+						if isinstance(sub,h5py.Group):
+							for j in flat_group_helper(prefix+name,sub): yield j
+						else: yield (prefix+name,sub)
+				def flat_group(g):
+					import collections
+					return collections.OrderedDict(flat_group_helper('',g))
+				print flat_group(sim['series']).keys()
+				for sName,sVal in flat_group(sim['series']).items():
+					print sName
+					series[sName]=numpy.array(sVal)
 				seriesData[sim.attrs['title']+'_'+sim.attrs['sceneId']]=series
 				# same as for sqlite3 below
 				flat=flatten(rowDict)

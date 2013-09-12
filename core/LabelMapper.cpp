@@ -58,15 +58,18 @@ void LabelMapper::ensureUsedModsOk(const string& label){
 
 int LabelMapper::labelType(const string& label, string& lab0, int& index) const {
 	boost::smatch match;
+	// catch leading _
 	if(boost::regex_match(label,match,boost::regex("_.*"))) woo::NameError("LabelMapper: labels may not start with underscore (those are reserved to access the underlying LabelMapper object itself).");
-	// may not end with .[]
-	if(boost::regex_match(label,match,boost::regex("([a-zA-Z_][.a-zA-Z0-9_][a-zA-Z0-9_]*)\\s*\\[([0-9]+)\\]"))){
+	// catch leading dot, two consecutive dots or .[]
+	if(boost::regex_match(label,match,boost::regex("^\\.")) || boost::regex_match(label,match,boost::regex(".*\\.\\..* ")) || boost::regex_match(label,match,boost::regex(".*\\.\\[.*"))) woo::NameError("LabelMapper: label '"+label+"' is not a valid python identifier name.");
+	// sequence
+	if(boost::regex_match(label,match,boost::regex("([a-zA-Z0-9_\\.]+)\\s*\\[([0-9]+)\\]"))){
 		lab0=match[1];
 		index=lexical_cast<long>(match[2]);
 		if(index<0) woo::ValueError("LabelMapper: label '"+lab0+"' specifies non-positive index "+to_string(index));
 		return LABEL_SEQ;
 	}
-	// may not end with .
+	// one object
 	if(boost::regex_match(label,match,boost::regex("[a-zA-Z_][.a-zA-Z0-9_]*[a-zA-Z0-9_]*"))){
 		return LABEL_PLAIN;
 	}
@@ -317,21 +320,23 @@ void LabelMapper::newModule(const string& label){
 		if(where==IN_MOD && i<mm.size()-1) continue; 
 		// something else having the same name as parent module is not OK
 		if(where!=NOWHERE) woo::ValueError("Label '"+mod+"' already exists.");
-		cerr<<"modSet.insert('"<<mod<<"');"<<endl;
+		// cerr<<"modSet.insert('"<<mod<<"');"<<endl;
 		modSet.insert(mod);
 	}
 }
 
 py::list LabelMapper::__dir__(const string& prefix) const {
-	std::set<string> allKeys, kk;
+	std::set<string> allKeys;
 	for(auto& kv: wooMap) allKeys.insert(kv.first);
 	for(auto& kv: wooSeqMap) allKeys.insert(kv.first);
 	for(auto& kv: pyMap) allKeys.insert(kv.first);
 	for(auto& k: modSet) allKeys.insert(k);
-	// filter only those matching prefix
-	for(auto& k: allKeys){ if(boost::starts_with(k,prefix) && k.substr(prefix.size()).find(".")==string::npos) kk.insert(k); }
 	py::list ret;
-	for(auto& k: kk) ret.append(k);
+	if(prefix.empty()){ for(auto& k: allKeys) ret.append(k); }
+	else {
+		for(auto& k: allKeys){
+			if(boost::starts_with(k,prefix)) ret.append(k.substr(prefix.size()));
+		}
+	}
 	return ret;
 }
-

@@ -25,7 +25,7 @@ struct ConveyorFactory: public ParticleFactory{
 	vector<shared_ptr<Node>> pyBarrier() const { return vector<shared_ptr<Node>>(barrier.begin(),barrier.end()); }
 	void pyClear(){ mass=0; num=0; genDiamMass.clear(); }
 	bool hasClumps(){ return !clumps.empty(); }
-	py::object pyDiamMass() const;
+	py::object pyDiamMass(bool zipped=false) const;
 	Real pyMassOfDiam(Real min, Real max) const ;
 	py::tuple pyPsd(bool mass, bool cumulative, bool normalize, Vector2r dRange, int num) const;
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ConveyorFactory,ParticleFactory,"Factory producing infinite band of particles from packing periodic in the x-direction. (Clumps are not supported (yet?), only spheres).",
@@ -66,7 +66,7 @@ struct ConveyorFactory: public ParticleFactory{
 		,/*py*/
 			.def("barrier",&ConveyorFactory::pyBarrier)
 			.def("clear",&ConveyorFactory::pyClear)
-			.def("diamMass",&ConveyorFactory::pyDiamMass,"Return 2-tuple of same-length list of diameters and masses.")
+			.def("diamMass",&ConveyorFactory::pyDiamMass,(py::arg("zipped")=false),"Return masses and diameters of generated particles. With *zipped*, return list of (diameter, mass); without *zipped*, return tuple of 2 arrays, diameters and masses.")
 			.def("massOfDiam",&ConveyorFactory::pyMassOfDiam,(py::arg("min")=0,py::arg("max")=Inf),"Return mass of particles of which diameters are between *min* and *max*.")
 			.def("psd",&ConveyorFactory::pyPsd,(py::arg("mass")=true,py::arg("cumulative")=true,py::arg("normalize")=false,py::arg("dRange")=Vector2r(NaN,NaN),py::arg("num")=80),"Return PSD for particles generated.")
 	);

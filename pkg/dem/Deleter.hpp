@@ -22,7 +22,7 @@ struct BoxDeleter: public PeriodicEngine{
 	#endif
 	void run();
 	py::object pyPsd(bool mass, bool cumulative, bool normalize, int num, const Vector2r& dRange, bool zip, bool emptyOk);
-	py::tuple pyDiamMass() const;
+	py::object pyDiamMass(bool zipped=false) const;
 	Real pyMassOfDiam(Real min, Real max) const ;
 	void pyClear(){ diamMass.clear(); mass=0.; num=0; }
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(BoxDeleter,PeriodicEngine,"Delete/mark particles which fall outside (or inside, if *inside* is True) given box. Deleted/mark particles are optionally stored in the *diamMass* array for later processing, if needed.\n\nParticle are deleted when :obj:`markMask` is 0, otherwise they are only marked with :obj:`markMask` and not deleted.",
@@ -30,9 +30,9 @@ struct BoxDeleter: public PeriodicEngine{
 		((AlignedBox3r,box,AlignedBox3r(Vector3r(NaN,NaN,NaN),Vector3r(NaN,NaN,NaN)),,"Box volume specification (lower and upper corners)"))
 		((uint,mask,0,,"If non-zero, only particles matching the mask will be candidates for removal"))
 		((bool,inside,false,,"Delete particles which fall inside the volume rather than outside"))
-		((bool,save,false,,"Save particles which are deleted in the *deleted* list"))
+		((bool,save,false,,"Save particles which are deleted in the *diamMass* list"))
 		((bool,recoverRadius,false,,"Recover radius of Spheres by computing it back from particle's mass and its material density (used when radius is changed due to radius thinning (in Law2_L6Geom_PelletPhys_Pellet.thinningFactor)."))
-		((vector<Vector2r>,diamMass,,AttrTrait<>().noGui().readonly(),"Radii and masses of deleted particles; not accessible from python."))
+		((vector<Vector2r>,diamMass,,AttrTrait<>().noGui().readonly(),"Radii and masses of deleted particles; not accessible from python (shadowed by the diamMass method)."))
 		((int,num,0,AttrTrait<Attr::readonly>(),"Number of deleted particles"))
 		((Real,mass,0.,AttrTrait<Attr::readonly>(),"Total mass of deleted particles"))
 		((Real,glColor,0,AttrTrait<>().noGui(),"Color for rendering (NaN disables rendering)"))
@@ -45,7 +45,7 @@ struct BoxDeleter: public PeriodicEngine{
 		,/*py*/
 		.def("psd",&BoxDeleter::pyPsd,(py::arg("mass")=true,py::arg("cumulative")=true,py::arg("normalize")=false,py::arg("num")=80,py::arg("dRange")=Vector2r(NaN,NaN),py::arg("zip")=false,py::arg("emptyOk")=false),"Return particle size distribution of deleted particles (only useful with *save*), spaced between *dRange* (a 2-tuple of minimum and maximum radius); )")
 		.def("clear",&BoxDeleter::pyClear,"Clear information about saved particles (particle list, if saved, mass and number)")
-		.def("diamMass",&BoxDeleter::pyDiamMass,"Return 2-tuple of same-length list of diameters and masses.")
+		.def("diamMass",&BoxDeleter::pyDiamMass,(py::arg("zipped")=false),"With *zipped*, return list of (diameter, mass); without *zipped*, return tuple of 2 arrays, diameters and masses.")
 		.def("massOfDiam",&BoxDeleter::pyMassOfDiam,(py::arg("min")=0,py::arg("max")=Inf),"Return mass of particles of which diameters are between *min* and *max*.")
 	);
 };

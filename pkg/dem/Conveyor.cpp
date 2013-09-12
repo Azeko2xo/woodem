@@ -303,10 +303,16 @@ void ConveyorFactory::run(){
 	#endif
 }
 
-py::object ConveyorFactory::pyDiamMass() const {
-	py::list diam, mass;
-	for(const Vector2r& vv: genDiamMass){ diam.append(vv[0]); mass.append(vv[1]); }
-	return py::object(py::make_tuple(diam,mass));
+py::object ConveyorFactory::pyDiamMass(bool zipped) const {
+	if(!zipped){
+		py::list diam, mass;
+		for(const Vector2r& vv: genDiamMass){ diam.append(vv[0]); mass.append(vv[1]); }
+		return py::object(py::make_tuple(diam,mass));
+	} else {
+		py::list ret;
+		for(const auto& dm: genDiamMass){ ret.append(dm); }
+		return ret;
+	}
 }
 
 Real ConveyorFactory::pyMassOfDiam(Real min, Real max) const {

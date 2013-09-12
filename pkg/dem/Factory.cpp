@@ -32,11 +32,17 @@ py::tuple ParticleGenerator::pyPsd(bool mass, bool cumulative, bool normalize, V
 	return py::make_tuple(diameters,percentage);
 }
 
-py::object ParticleGenerator::pyDiamMass() const {
+py::object ParticleGenerator::pyDiamMass(bool zipped) const {
 	#if 1
-		py::list diam, mass;
-		for(const Vector2r& vv: genDiamMass){ diam.append(vv[0]); mass.append(vv[1]); }
-		return py::object(py::make_tuple(diam,mass));
+		if(!zipped){
+			py::list diam, mass;
+			for(const Vector2r& vv: genDiamMass){ diam.append(vv[0]); mass.append(vv[1]); }
+			return py::object(py::make_tuple(diam,mass));
+		} else {
+			py::list ret;
+			for(const auto& dm: genDiamMass){ ret.append(dm); }
+			return ret;
+		}
 	#else
 		boost::multi_array<double,2> ret(boost::extents[genDiamMass.size()][2]);
 		for(size_t i=0;i<genDiamMass.size();i++){ ret[i][0]=genDiamMass[i][0]; ret[i][1]=genDiamMass[i][1]; }

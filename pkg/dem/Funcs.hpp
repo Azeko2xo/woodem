@@ -7,6 +7,9 @@
 #include<woo/pkg/dem/Facet.hpp>
 #include<woo/lib/sphere-pack/SpherePack.hpp>
 
+#include <boost/iterator/zip_iterator.hpp>
+#include <boost/range.hpp>
+
 struct DemFuncs{
 	DECLARE_LOGGER;
 	static shared_ptr<DemField> getDemField(const Scene* scene);
@@ -27,6 +30,15 @@ struct DemFuncs{
 	#if 0
 		static Vector2r radialAxialForce(const Scene* scene, const DemField* dem, int mask, Vector3r axis, bool shear);
 	#endif
+
+	# if 0
+		// helper zip range adaptor, when psd should iterates over 2 sequences (of diameters and radii)
+		// http://stackoverflow.com/a/8513803/761090
+		auto zip_end = 
+		template <typename... T>
+		auto zip(const T&... containers) -> boost::iterator_range<boost::zip_iterator<decltype(boost::make_tuple(std::begin(containers)...))>>{ return boost::make_iterator_range(boost::make_zip_iterator(boost::make_tuple(std::begin(containers)...)),boost::make_zip_iterator(boost::make_tuple(std::end(containers)...))); }
+	#endif
+
 	
 	template<class IteratorRange, class DiameterGetter, class WeightGetter> /* iterate over spheres */
 	static vector<Vector2r> psd(const IteratorRange& particleRange,
