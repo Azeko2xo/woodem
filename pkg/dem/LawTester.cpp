@@ -23,11 +23,12 @@ void LawTesterStage::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){
 		if(whatStr.size()!=6) woo::ValueError("LawTesterStage.whats, if given as string, must have length 6, not "+to_string(whatStr.size())+".");
 		for(int i=0;i<6;i++){
 			char w=whatStr[i];
-			if(w!='f' && w!='v' && w!='.') woo::ValueError("LawTesterStage.whats["+to_string(i)+"]: must be 'f' (force) or 'v' (velocity) or '.' (nothing prescribed). not '"+w+"'.");
+			if(w!='f' && w!='v' && w!='.' && w!='i') woo::ValueError("LawTesterStage.whats["+to_string(i)+"]: must be 'f' (force) or 'v' (velocity) or 'i' (initial velocity) or '.' (nothing prescribed). not '"+w+"'.");
 			switch(w){
 				case '.': whats[i]=Impose::NONE; break;
 				case 'v': whats[i]=Impose::VELOCITY; break;
 				case 'f': whats[i]=Impose::FORCE; break;
+				case 'i': whats[i]=Impose::INIT_VELOCITY; break;
 				default: LOG_FATAL("?!?"); abort();
 			}
 		}
@@ -82,6 +83,7 @@ void LawTester::run(){
 		stg->step=0;
 		stg->time=0;
 		stageT0=scene->time;
+		stg->hadC=stg->hasC=false;
 		/* prescribe values and whats */
 		for(int i:{0,1}){
 			int sign=(i==0?-1:1);
@@ -105,6 +107,8 @@ void LawTester::run(){
 						}
 						break;
 					}
+					// initial velocity is set just like velocity, but reset in the else branch when the stage is used next time
+					case Impose::INIT_VELOCITY:
 					case Impose::VELOCITY:{
 						Real w=weight;
 						// shear is distributed antisymmetrically, so we reset the sign here
@@ -137,8 +141,16 @@ void LawTester::run(){
 		/* only update stage values */
 		stg->step++;
 		stg->time=scene->time-stageT0;
-		// update local coords
-		for(int i:{0,1}) imposes[i]->ori=ori;
+		for(int i:{0,1}){
+			// update local coords
+			imposes[i]->ori=ori;
+			// check where only initial velocity was prescribed and remove that imposition
+			for(int ix=0; ix<6; ix++){
+				if(stg->whats[ix]!=Impose::INIT_VELOCITY) continue;
+				imposes[i]->whats[ix]=Impose::NONE;
+				imposes[i]->values[ix]=0.;
+			}
+		}
 	};
 
 	/* save smooth data */
@@ -146,9 +158,11 @@ void LawTester::run(){
 	if(!C){
 		f=v=u=smooF=smooV=smooU=Vector6r::Constant(NaN);
 		fErrRel=fErrAbs=uErrRel=uErrAbs=vErrRel=vErrAbs=Vector6r::Constant(NaN);
+		stg->hasC=false;
 	} else {
 		f<<C->phys->force,C->phys->torque;
 		v<<l6g->vel,l6g->angVel;
+		stg->hasC=stg->hadC=true;
 		if(isnan(smooF[0])){ // the contact is new in this step (or we are new), just save unsmoothed value
 			u=Vector6r::Zero(); u[0]=l6g->uN;
 			smooF=f; smooV=v; smooU=u;

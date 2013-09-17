@@ -99,7 +99,8 @@ WOO_REGISTER_OBJECT(Particle);
 struct Impose: public Object{
 	virtual void velocity(const Scene*, const shared_ptr<Node>&){ throw std::runtime_error("Calling abstract Impose::velocity."); }
 	virtual void force(const Scene*, const shared_ptr<Node>&){ throw std::runtime_error("Calling abstract Impose::force."); }
-	enum{ NONE=0, VELOCITY=1, FORCE=2};
+	// INIT_VELOCITY is used in LawTesteStage, but not by Impose classes
+	enum{ NONE=0, VELOCITY=1, FORCE=2, INIT_VELOCITY=4 };
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Impose,Object,"Impose arbitrary changes in Node and DemData, right after integration of the node.",
 		((int,what,,AttrTrait<>().readonly().choice({{0,"none"},{VELOCITY,"velocity"},{FORCE,"force"},{VELOCITY|FORCE,"velocity+force"}}),"What values are to be imposed; this is set by the derived engine automatically depending on what is to be prescribed."))
 		,/*ctor*/
@@ -108,7 +109,6 @@ struct Impose: public Object{
 			_classObj.attr("none")=(int)NONE;
 			_classObj.attr("velocity")=(int)VELOCITY;
 			_classObj.attr("force")=(int)FORCE;
-			
 	);
 };
 WOO_REGISTER_OBJECT(Impose);

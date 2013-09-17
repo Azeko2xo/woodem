@@ -267,6 +267,7 @@ def plot(data,axes=None,alpha=.5,clabel=True,cbar=False,rawVecColorRadius=True,b
 	:param bool cbar: show colorbar (equivalent to calling pylab.colorbar(mappable) on the returned mappable)
 	:param rawVecColorRadius: if True, use radius associated with each point to color arrows in raw quiver plot.
 	:param bbox: if given, use this as axes limits instead of bbox computed from data points
+	:param clip_path: clip plotted image maps, contour lines or patches with this clip path (should be an instance of ``matplotlib.patches.Patch``). 
 
 	:return: tuple of ``(axes,mappable)``; mappable can be used in further calls to pylab.colorbar.
 	"""
@@ -286,6 +287,7 @@ def plot(data,axes=None,alpha=.5,clabel=True,cbar=False,rawVecColorRadius=True,b
 			patches.append(Circle(xy=(x,y),radius=r))
 		coll=matplotlib.collections.PatchCollection(patches,linewidths=0.,**kw)
 		coll.set_array(numpy.array(data['val']))
+		# if clip_path: coll.set_clip_path(clip_path)
 		axes.add_collection(coll)
 		if bbox:
 			axes.set_xlim(bbox[0][0],bbox[1][0]); axes.set_ylim(bbox[0][1],bbox[1][1])
@@ -302,9 +304,15 @@ def plot(data,axes=None,alpha=.5,clabel=True,cbar=False,rawVecColorRadius=True,b
 		if data['perArea'] in (0,1):
 			img=axes.imshow(data['val'],extent=imgExtent,origin='lower',aspect=aspect,**kw)
 			ct=axes.contour(data['x'],data['y'],data['val'],colors='k',origin='lower',extend='both')
+			#if clip_path and 0:
+			#	img.set_clip_path(clip_path)
+			#	# XXX: does not work
+			#	# http://matplotlib.1069221.n5.nabble.com/Clipping-Contours-td39474.html
+			#	# for coll in ct.collections: coll.set_clip_path(clip_path)
 			if clabel: axes.clabel(ct,inline=1,fontsize=10)
 		else:
 			img=axes.imshow(data['val'],extent=imgExtent,origin='lower',aspect=aspect,interpolation='nearest',**kw)
+			# if clip_path: img.set_clip_path(clip_path)
 			xStep=(data['x'][1]-data['x'][0]) if len(data['x'])>1 else 0
 			for y,valLine in zip(data['y'],data['val']):
 				for x,val in zip(data['x'],valLine): axes.text(x-.4*xStep,y,('-' if math.isnan(val) else '%5g'%val),size=4)
@@ -321,6 +329,7 @@ def plot(data,axes=None,alpha=.5,clabel=True,cbar=False,rawVecColorRadius=True,b
 		else: scalars=numpy.sqrt(valX**2+valY**2) # use vector magnitudes
 		# numpy.sqrt computes element-wise sqrt
 		quiv=axes.quiver(data['x'],data['y'],data['valX'],data['valY'],scalars,**kw)
+		# if clip_path: quiv.set_clip_path(clip_path)
 		#axes.update_datalim(bbox)
 		axes.set_xlim(bbox[0][0],bbox[1][0]); axes.set_ylim(bbox[0][1],bbox[1][1])
 		if cbar: axes.get_figure().colorbar(coll)

@@ -38,7 +38,7 @@ try:
 except ImportError:
 	raise ImportError("Shphinx cloud theme is not importable; install it using 'easy_install cloud_sptheme'.")
 
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.mathjax', 'sphinx.ext.viewcode', 'matplotlib.sphinxext.plot_directive', 'sphinx.ext.inheritance_diagram', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'tikz', ext_ipython_directive, ]
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.mathjax', 'sphinx.ext.viewcode', 'matplotlib.sphinxext.plot_directive', 'sphinx.ext.inheritance_diagram', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'tikz', ext_ipython_directive, 'sphinx.ext.extlinks']
 
 # customize prompts
 ipython_rgxin =re.compile('Woo \[(\d+)\]:\s?(.*)\s*')
@@ -54,6 +54,8 @@ todo_include_todos=True
 
 tikz_latex_preamble=r'\usepackage{pgfplots}'
 tikz_tikzlibraries=''
+
+extlinks={'woosrc':('http://bazaar.launchpad.net/~eudoxos/woo/trunk/view/head:/%s','source file ')}
 
 ## customize mathjax
 ## hack from https://bitbucket.org/birkenfeld/sphinx/issue/969/allow-mathjax-customization-via-localjs 
