@@ -15,24 +15,21 @@ S.dem.par.append([
 ])
 S.dem.collectNodes()
 # S.engines=utils.defaultEngines(damping=.0,cp2=Cp2_FrictMat_FrictPhys(),law=Law2_L6Geom_FrictPhys_IdealElPl())+[
-S.engines=utils.defaultEngines(damping=.0,cp2=Cp2_FrictMat_HertzPhys(gamma=1e-3,en=.5),law=Law2_L6Geom_HertzPhys_DMT())+[
+S.engines=utils.defaultEngines(damping=.0,cp2=Cp2_FrictMat_HertzPhys(gamma=1e-3,en=.5),law=Law2_L6Geom_HertzPhys_DMT(),dynDtPeriod=10)+[
 	LawTester(ids=(0,1),abWeight=.5,smooth=1e-4,stages=[
-			#LawTesterStage(values=(-1.,0,0,0,0,0),whats='ivv...',until='stage.broken',done='print "Contact created and broken with v0=1m/s"'),
-			#LawTesterStage(values=(-.1,0,0,0,0,0),whats='ivv...',until='stage.broken',done='print "Contact created and broken with v0=.01m/s"'),
-			LawTesterStage(values=(-1e-2,0,0,0,0,0),whats='ivv...',until='stage.rebound',done='print "Contact created and broken with v0=1e-2m/s"'),
-			#LawTesterStage(values=(-1e-3,0,0,0,0,0),whats='ivv...',until='stage.broken',done='print "Contact created and broken with v0=1e-3m/s"'),
-			#LawTesterStage(values=(-1e-4,0,0,0,0,0),whats='ivv...',until='stage.broken',done='print "Contact created and broken with v0=1e-4m/s"'),
+			LawTesterStage(values=(-1e-2,0,0,0,0,0),whats='ivv...',until='stage.rebound',done='print "Rebound with v0=1e-2m/s"'),LawTesterStage(values=(1e-2,0,0,0,0,0),whats='vvv...',until='not C',done='print "Contact broken."'),
+			LawTesterStage(values=(-1e-3,0,0,0,0,0),whats='ivv...',until='stage.rebound',done='print "Rebound with v0=1e-3m/s"'),LawTesterStage(values=(1e-3,0,0,0,0,0),whats='vvv...',until='not C',done='print "Contact broken."'),
+			LawTesterStage(values=(-1e-4,0,0,0,0,0),whats='ivv...',until='stage.rebound',done='print "Rebound with v0=1e-4m/s"'),LawTesterStage(values=(1e-4,0,0,0,0,0),whats='vvv...',until='not C',done='print "Contact broken."'),
 		],
 		done='tester.dead=True; S.stop(); print "Everything done, making myself dead and pausing."',
 		label='tester'
 	),
-	PyRunner(10,'import woo; dd={}; dd.update(**S.lab.tester.fuv()); dd.update(**S.energy); S.plot.addData(i=S.step,dist=(S.dem.par[0].pos-S.dem.par[1].pos).norm(),v1=S.dem.par[0].vel.norm(),v2=S.dem.par[1].vel.norm(),t=S.time,bounces=S.lab.tester.stages[S.lab.tester.stage].bounces,**dd)'),
+	PyRunner(10,'import woo; dd={}; dd.update(**S.lab.tester.fuv()); dd.update(**S.energy); S.plot.addData(i=S.step,dist=(S.dem.par[0].pos-S.dem.par[1].pos).norm(),v1=S.dem.par[0].vel.norm(),v2=S.dem.par[1].vel.norm(),t=S.time,bounces=S.lab.tester.stages[S.lab.tester.stage].bounces,dt=S.dt,**dd)'),
 ]
-S.dt=2e-3
 #S.pause()
 S.trackEnergy=True
 #plot.plots={' i':(('fErrRel_xx','k'),None,'fErrAbs_xx'),'i ':('dist',None),' i ':(S.energy),'   i':('f_xx',None,'f_yy','f_zz'),'  i':('u_xx',None,'u_yy','u_zz'),'i  ':('u_yz',None,'u_zx','u_xy')}
-S.plot.plots={'i':('u_xx',None,'f_xx'),'u_xx':('f_xx',),'i ':('S.energy.keys()',),' i':('v1','v2',None,'bounces')}
+S.plot.plots={'i':('u_xx',None,'f_xx'),'u_xx':('f_xx',),'i ':('S.energy.keys()'),' i':('k_xx',None,('dt','g-'))}
 S.plot.plot()
 import woo.gl
 S.any=[woo.gl.Gl1_DemField(glyph=woo.gl.Gl1_DemField.glyphForce)]

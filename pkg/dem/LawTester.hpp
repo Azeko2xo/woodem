@@ -33,7 +33,7 @@ struct LawTester: public Engine{
 	py::dict pyFuv() const {
 		py::dict ret;
 		#define _RET_ADD(WHAT) ret[#WHAT]=py::object(WHAT);
-			_RET_ADD(f);     _RET_ADD(u);     _RET_ADD(v);
+			_RET_ADD(f);     _RET_ADD(u);     _RET_ADD(v); _RET_ADD(k);
 			_RET_ADD(smooF); _RET_ADD(smooU); _RET_ADD(smooV);
 			_RET_ADD(fErrRel);  _RET_ADD(uErrRel);  _RET_ADD(vErrRel);
 			_RET_ADD(fErrAbs);  _RET_ADD(uErrAbs);  _RET_ADD(vErrAbs);
@@ -45,6 +45,7 @@ struct LawTester: public Engine{
 		((string,done,"tester.dead=True",,"Python expression to run once all stages had finished."))
 		((Real,abWeight,1,,"Float, usually ∈〈0,1〉, determining on how are displacements/rotations distributed between particles (0 for A, 1 for B); intermediate values will apply respective part to each of them."))
 		((Vector6r,f,Vector6r::Zero(),AttrTrait<>().readonly(),"Force on contact, NaN if contact is broken"))
+		((Vector6r,k,Vector6r::Zero(),AttrTrait<>().readonly(),"Tangent contact stiffness, NaN if there is no contact (or the contact model does not define it). Diagonal of the K matrix in df=Kdu."))
 		((Vector6r,smooF,Vector6r::Zero(),AttrTrait<>().readonly(),"Smoothed value of generalized contact forces."))
 		((Vector6r,u,Vector6r::Zero(),AttrTrait<>().readonly(),"Cumulative value of contact displacement, NaN if contact is broken"))
 		((Vector6r,smooU,Vector6r::Zero(),AttrTrait<>().readonly(),"Smoothed value of generalized contact displacements."))

@@ -98,7 +98,7 @@ def defaultMaterial():
 	import math
 	return FrictMat(density=1e3,young=1e7,ktDivKn=.2,tanPhi=math.tan(.5))
 
-def defaultEngines(damping=0.,gravity=None,verletDist=-.05,kinSplit=False,dontCollect=False,noSlip=False,noBreak=False,cp2=None,law=None,grid=False,dynDtPeriod=300):
+def defaultEngines(damping=0.,gravity=None,verletDist=-.05,kinSplit=False,dontCollect=False,noSlip=False,noBreak=False,cp2=None,law=None,grid=False,dynDtPeriod=0):
 	"""Return default set of engines, suitable for basic simulations during testing."""
 	if gravity: raise ValueError("gravity MUST NOT be specified anymore, set DemField.gravity=... instead.")
 	if not grid: collider=InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb(),Bo1_Wall_Aabb(),Bo1_InfCylinder_Aabb()],label='collider',verletDist=verletDist)

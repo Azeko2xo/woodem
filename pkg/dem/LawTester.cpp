@@ -1,6 +1,7 @@
 #include<woo/pkg/dem/LawTester.hpp>
 #include<woo/lib/pyutil/gil.hpp>
 #include<woo/pkg/dem/L6Geom.hpp>
+#include<woo/pkg/dem/FrictMat.hpp>
 
 WOO_PLUGIN(dem,(LawTesterStage)(LawTester));
 
@@ -156,7 +157,7 @@ void LawTester::run(){
 	/* save smooth data */
 	if(smoothErr<0) smoothErr=smooth;
 	if(!C){
-		f=v=u=smooF=smooV=smooU=Vector6r::Constant(NaN);
+		f=v=u=k=smooF=smooV=smooU=Vector6r::Constant(NaN);
 		fErrRel=fErrAbs=uErrRel=uErrAbs=vErrRel=vErrAbs=Vector6r::Constant(NaN);
 		stg->hasC=false;
 	} else {
@@ -168,6 +169,10 @@ void LawTester::run(){
 		}
 		f<<C->phys->force,C->phys->torque;
 		v<<l6g->vel,l6g->angVel;
+		if(dynamic_pointer_cast<FrictPhys>(C->phys)){
+			const FrictPhys& ph=C->phys->cast<FrictPhys>();
+			k<<Vector3r(ph.kn,ph.kt,ph.kt),Vector3r::Zero();
+		} else k=Vector6r::Constant(NaN);
 		stg->hasC=stg->hadC=true;
 		if(isnan(smooF[0])){ // the contact is new in this step (or we are new), just save unsmoothed value
 			u=Vector6r::Zero(); u[0]=l6g->uN;

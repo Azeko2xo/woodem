@@ -48,7 +48,10 @@ void Law2_L6Geom_HertzPhys_DMT::go(const shared_ptr<CGeom>& cg, const shared_ptr
 	//if(C->isFresh(scene)) C->data=make_shared<PelletCData>();
 	//assert(C->data && dynamic_pointer_cast<PelletCData>(C->data));
 	// break contact
-	if(g.uN>0){ field->cast<DemField>().contacts->requestRemoval(C); return; }
+	if(g.uN>0){
+		// XXX: track nonzero energy of broken contact with adhesion
+		field->cast<DemField>().contacts->requestRemoval(C); return;
+	}
 	//Real d0=g.lens.sum();
 	Real& Fn(ph.force[0]); Eigen::Map<Vector2r> Ft(&ph.force[1]);
 	const Real& dt(scene->dt);
