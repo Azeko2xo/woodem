@@ -8,7 +8,7 @@
 """
 
 import math,random,doctest,geom
-import woo
+import woo, woo.dem, woo.core
 import sys,os
 from woo import *
 from minieigen import *
@@ -98,7 +98,7 @@ def defaultMaterial():
 	import math
 	return FrictMat(density=1e3,young=1e7,ktDivKn=.2,tanPhi=math.tan(.5))
 
-def defaultEngines(damping=0.,gravity=None,verletDist=-.05,kinSplit=False,dontCollect=False,noSlip=False,noBreak=False,cp2=None,law=None,grid=False):
+def defaultEngines(damping=0.,gravity=None,verletDist=-.05,kinSplit=False,dontCollect=False,noSlip=False,noBreak=False,cp2=None,law=None,grid=False,dynDtPeriod=300):
 	"""Return default set of engines, suitable for basic simulations during testing."""
 	if gravity: raise ValueError("gravity MUST NOT be specified anymore, set DemField.gravity=... instead.")
 	if not grid: collider=InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb(),Bo1_Wall_Aabb(),Bo1_InfCylinder_Aabb()],label='collider',verletDist=verletDist)
@@ -111,7 +111,7 @@ def defaultEngines(damping=0.,gravity=None,verletDist=-.05,kinSplit=False,dontCo
 			[cp2 if cp2 else Cp2_FrictMat_FrictPhys()],
 			[law if law else Law2_L6Geom_FrictPhys_IdealElPl(noSlip=noSlip,noBreak=noBreak)],applyForces=True,label='contactLoop'
 		),
-	]
+	]+([woo.dem.DynDt(stepPeriod=dynDtPeriod,label='dynDt')] if dynDtPeriod>0 else [])
 
 def _commonBodySetup(b,nodes,volumes,geomInertias,mat,masses=None,fixed=False):
 	"""Assign common body parameters."""

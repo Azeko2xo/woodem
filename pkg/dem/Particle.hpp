@@ -231,6 +231,8 @@ struct DemField: public Field{
 
 	void pyNodesAppend(const shared_ptr<Node>& n);
 
+	Real critDt() WOO_CXX11_OVERRIDE;
+
 	//template<> bool sceneHasField<DemField>() const;
 	//template<> shared_ptr<DemField> sceneGetField<DemField>() const;
 	void postLoad(DemField&,void*);
@@ -349,6 +351,9 @@ struct Contact: public Object{
 	void reset();
 	// return -1 or +1 depending on whether the particle passed to us is pA or pB
 	int forceSign(const shared_ptr<Particle>& p) const { return p.get()==leakPA()?1:-1; }
+	// return 0 or 1 depending on whether the particle passed is pA or pB
+	short pIndex(const shared_ptr<Particle>& p) const { return pIndex(p.get()); }
+	short pIndex(const Particle* p) const { return p==leakPA()?0:1; }
 	/* return force and torque in global coordinates which act at contact point C located at branch from node nodeI of particle.
 	Contact force is reversed automatically if particle==pB.
 	Force and torque at node itself are  F and branch.cross(F)+T respectively.

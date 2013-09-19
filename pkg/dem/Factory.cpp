@@ -61,6 +61,8 @@ Real ParticleGenerator::pyMassOfDiam(Real min, Real max) const{
 	return ret;
 };
 
+
+
 vector<ParticleGenerator::ParticleAndBox>
 MinMaxSphereGenerator::operator()(const shared_ptr<Material>&mat){
 	if(isnan(dRange[0]) || isnan(dRange[1]) || dRange[0]>dRange[1]) throw std::runtime_error("MinMaxSphereGenerator: dRange[0]>dRange[1], or they are NaN!");
@@ -71,6 +73,23 @@ MinMaxSphereGenerator::operator()(const shared_ptr<Material>&mat){
 	return vector<ParticleAndBox>({{sphere,AlignedBox3r(Vector3r(-r,-r,-r),Vector3r(r,r,r))}});
 };
 
+Real MinMaxSphereGenerator::critDt(Real density, Real young) {
+	return DemFuncs::spherePWaveDt(dRange[0],density,young);
+}
+
+
+
+
+Real RandomFactory::critDt() {
+	if(!generator) return Inf;
+	Real ret=Inf;
+	for(const auto& m: materials){
+		const auto em=dynamic_pointer_cast<ElastMat>(m);
+		if(!em) continue;
+		ret=min(ret,generator->critDt(em->density,em->young));
+	}
+	return ret;
+}
 
 
 void RandomFactory::run(){

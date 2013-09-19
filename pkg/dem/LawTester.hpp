@@ -7,16 +7,21 @@ struct LawTesterStage: public Object{
 	DECLARE_LOGGER;
 	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
 	bool pyBroken() const { return hadC && !hasC; }
+	bool pyRebound() const { return bounces>=2 || pyBroken(); }
 	WOO_CLASS_BASE_DOC_ATTRS_PY(LawTesterStage,Object,"Stage to be reached by LawTester.",
 		((Vector6r,values,Vector6r::Zero(),AttrTrait<>(),"Prescribed values during this step"))
 		((Vector6i,whats,Vector6i::Zero(),AttrTrait<>(),"Meaning of *values* components"))
 		((string,until,"",,"Stage finishes when *until* (python expression) evaluates to True. Besides receiving global variables, several local variables are passed: `C` (contact object; `None` if contact does not exist), `pA` (first particle), `pB` (second particle), `scene` (current scene object), `tester` (`LawTester` object), `stage` (`LawTesterStage` object)."))
+		((int,untilEvery,1,,"Test the :obj:`until` expression only every *untilEvery* steps (this may make the execution faster)"))
 		((string,done,"",,"Run this python command when the stage finishes"))
 		((int,step,0,,"Step in this stage"))
 		((Real,time,0,,"Time in this stage"))
 		((bool,hadC,false,,"Flag keeping track of whether there was a contact in this stage at all"))
 		((bool,hasC,false,,"Flag keeping track of whether there was a contact in this stage at all"))
-		,/*py*/.add_property("broken",&LawTesterStage::pyBroken,"Test whether an existing contact broke in this stage; this is useful for saying ``until='stage.broken'``. This is different from ``until='not C'``, since this condition will be satisfied before any contact exists at all.")
+		((int,bounces,0,,"Number of sign changes of the normal relative velocity in this stage"))
+		// ; to teest for a complete rebound, use ``until='stage.bounces>1 or stage.broken'``.")
+		,/*py*/.add_property("broken",&LawTesterStage::pyBroken,"Test whether an existing contact broke in this stage; this is useful for saying ``until='stage.broken'`` (equivalent to ``stage.hadC and not stage.hasC``). This is different from ``until='not C'``, since this condition will be satisfied before any contact exists at all.")
+		.add_property("rebound",&LawTesterStage::pyRebound,"Test for rebound; rebound is considered complete when sign of relative normal velocity changed more than once (adhesive contacts may never separate once they are created -- this catches a single period of the oscillation) or if contact :obj:`breaks <broken>`. Equivalent to ``stage.bounces>=2 or stage.broken``.")
 	);
 };
 WOO_REGISTER_OBJECT(LawTesterStage);

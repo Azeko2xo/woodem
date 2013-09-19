@@ -40,6 +40,31 @@ shared_ptr<DemField> DemFuncs::getDemField(const Scene* scene){
 }
 
 
+Real DemFuncs::pWaveDt(const shared_ptr<DemField>& field, bool noClumps/*=false*/){
+	//Scene* scene=(_scene?_scene.get():Master::instance().getScene().get());
+	//DemField* field=DemFuncs::getDemField(scene).get();
+	Real dt=Inf;
+	FOREACH(const shared_ptr<Particle>& b, *field->particles){
+		if(!b || !b->material || !b->shape || b->shape->nodes.size()!=1 || !b->shape->nodes[0]->hasData<DemData>()) continue;
+		const shared_ptr<ElastMat>& elMat=dynamic_pointer_cast<ElastMat>(b->material);
+		const shared_ptr<Sphere>& s=dynamic_pointer_cast<Sphere>(b->shape);
+		if(!elMat || !s) continue;
+		const auto& n(b->shape->nodes[0]);
+		const auto& dyn(n->getData<DemData>());
+		// for clumps, the velocity is higher: the distance from the sphere center to the clump center
+		// is traversed immediately, thus we need to increase the velocity artificially
+		Real velMult=1.;
+		if(dyn.isClumped() && !noClumps){
+			throw std::runtime_error("utils.pWaveDt does not currently work with clumps; pass noClumps=True to ignore clumps (and treat them as spheres) at your own risk.");
+			// this is probably bogus:
+			// assert(dyn.master); velMult+=(n->pos-dyn.master.lock()->pos).norm()/s->radius;
+		}
+		dt=min(dt,s->radius/(velMult*sqrt(elMat->young/elMat->density)));
+	}
+	return dt;
+}
+
+
 std::tuple</*stress*/Matrix3r,/*stiffness*/Matrix6r> DemFuncs::stressStiffness(const Scene* scene, const DemField* dem, bool skipMultinodal, Real volume){
 	const int kron[3][3]={{1,0,0},{0,1,0},{0,0,1}}; // Kronecker delta
 

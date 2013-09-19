@@ -15,6 +15,7 @@ struct PsdSphereGenerator: public ParticleGenerator{
 	int lastBin; Real lastM;
 
 	void clear() WOO_CXX11_OVERRIDE { ParticleGenerator::clear(); weightTotal=0.; std::fill(weightPerBin.begin(),weightPerBin.end(),0.); }
+	Real critDt(Real density, Real young) WOO_CXX11_OVERRIDE;
 	py::tuple pyInputPsd(bool scale, bool cumulative, int num) const;
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(PsdSphereGenerator,ParticleGenerator,"Generate spherical particles following a given Particle Size Distribution (PSD)",
 		((bool,discrete,true,,"The points on the PSD curve will be interpreted as the only allowed diameter values; if *false*, linear interpolation between them is assumed instead. Do not change once the generator is running."))
@@ -33,6 +34,7 @@ struct PsdClumpGenerator: public PsdSphereGenerator {
 	DECLARE_LOGGER;
 	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m);
 	void clear() WOO_CXX11_OVERRIDE { genClumpNo.clear(); /*call parent*/ PsdSphereGenerator::clear(); };
+	Real critDt(Real density, Real young) WOO_CXX11_OVERRIDE;
 	WOO_CLASS_BASE_DOC_ATTRS(PsdClumpGenerator,PsdSphereGenerator,"Generate clump particles following a given Particle Size Distribution. !! FULL DOCUMENTATION IS IN py/_monkey/extraDocs.py !!!",
 		((vector<shared_ptr<SphereClumpGeom>>,clumps,,,"Sequence of clump geometry definitions (:obj:`SphereClumpGeom`); for every selected radius from the PSD, clump will be chosen based on the :obj:`SphereClumpGeom.scaleProb` function and scaled to that radius."))
 		((vector<int>,genClumpNo,,AttrTrait<>().noGui().readonly(),"If :obj:`save` is set, keeps clump numbers (indices in :obj:`clumps` for each generated clump."))

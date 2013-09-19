@@ -21,6 +21,9 @@ struct DemFuncs{
 
 	static bool particleStress(const shared_ptr<Particle>& p, Vector3r& normal, Vector3r& shear);
 
+	static Real pWaveDt(const shared_ptr<DemField>& field, bool noClumps=false);
+	static Real spherePWaveDt(Real radius, Real density, Real young){ return radius/sqrt(young/density); }
+
 	// sum force and torque with regards to point pt over particles with matching mask
 	// if *multinodal* is true, get force/troque from contacts of multinodal particles
 	// (in addition to their nodal forces/torques);

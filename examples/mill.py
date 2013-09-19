@@ -54,7 +54,7 @@ millPar+=[woo.utils.wall(-.5*millDp,axis=0,sense=+1),woo.utils.wall(.5*millDp,ax
 for w in millPar[-2:]: w.shape.visible=False
 centralNode=woo.core.Node(pos=(0,0,0))
 S.dem.par.appendClumped(millPar,centralNode=centralNode)
-centralNode.dem.angVel=(-20,0,0)
+centralNode.dem.angVel=(-5,0,0)
 
 # define domains for initial cloud of red and blue spheres
 packHt=.8*millRad # size of the area
@@ -69,8 +69,12 @@ S.dem.collectNodes()
 
 #print "Numer of grains",len(O.dem.par)-len(millIds)
 
-S.dt=.5*woo.utils.pWaveDt()
-S.engines=woo.utils.defaultEngines(damping=.3)
+# S.dt=.9*woo.utils.pWaveDt()
+S.engines=woo.utils.defaultEngines(damping=.3)+[
+	woo.core.PyRunner(10,'S.plot.addData(i=S.step,dt=S.dt,dynDt=S.lab.dyndt.dt)'),woo.dem.DynDt(stepPeriod=200,dryRun=False,label='dyndt',maxRelInc=1e-4)
+]
+
+S.plot.plots={'i':('dt','dynDt')}
 
 S.saveTmp()
 try:

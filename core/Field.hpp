@@ -143,15 +143,15 @@ struct Field: public Object, public Indexable{
 	Scene* scene; // backptr to scene; must be set by Scene!
 	py::object py_getScene();
 	virtual void selfTest(){};
+	virtual Real critDt() { return Inf; }
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Field,Object,"Spatial field described by nodes, their topology and associated values.",
-		// ((Scene*,scene,NULL,AttrTrait<Attr::hidden>(),"Backptr to scene")) // must be set by Scene!
 		((vector<shared_ptr<Node> >,nodes,,AttrTrait<Attr::pyByRef>(),"Nodes referenced from this field."))
-		//((vector<shared_ptr<NodeData> >,nodeData,,,"Nodal data, associated to nodes with the same index."))
 		//((shared_ptr<Topology>,topology,,,"How nodes build up cells, neighborhood and coonectivity information."))
 		//((vector<shared_ptr<CellData> >,cells,,,""))
 		, /* ctor */ scene=NULL;
 		, /* py */
 			.add_property("scene",&Field::py_getScene,"Get associated scene object, if any (this function is dangerous in some corner cases, as it has to use raw pointer).")
+			.def("critDt",&Field::critDt,"Return critical (maximum numerically stable) timestep for this field. By default returns infinity (no critical timestep) but derived fields may override this function.")
 			WOO_PY_TOPINDEXABLE(Field)
 	);
 	REGISTER_INDEX_COUNTER(Field);

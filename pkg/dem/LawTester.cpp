@@ -160,6 +160,12 @@ void LawTester::run(){
 		fErrRel=fErrAbs=uErrRel=uErrAbs=vErrRel=vErrAbs=Vector6r::Constant(NaN);
 		stg->hasC=false;
 	} else {
+		// keep track of v[0] changing sign
+		// 0s and NaNs will not pass here, which is eaxctly what we want
+		if(stg->step>0 && v[0]*l6g->vel[0]<0){
+			LOG_DEBUG("Incrementing bounces, as v[0] changes sign: prev "<<v[0]<<", curr "<<l6g->vel[0]<<".");
+			stg->bounces+=1;
+		}
 		f<<C->phys->force,C->phys->torque;
 		v<<l6g->vel,l6g->angVel;
 		stg->hasC=stg->hadC=true;
@@ -182,6 +188,8 @@ void LawTester::run(){
 			#undef _SMOO_ERR
 		}
 	}
+
+	if(stg->untilEvery>1 && (stg->step%stg->untilEvery)>0) return;
 
 	GilLock lock; // lock the interpreter for this block
 	string* errCmd=nullptr; // to know where the error happened (traceback does not show that)

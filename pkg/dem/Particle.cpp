@@ -4,6 +4,7 @@
 #include<woo/lib/pyutil/except.hpp>
 
 #include<woo/pkg/dem/Clump.hpp>
+#include<woo/pkg/dem/Funcs.hpp>
 
 #ifdef WOO_OPENGL
 	#include<woo/pkg/gl/Renderer.hpp>
@@ -184,6 +185,11 @@ void DemField::postLoad(DemField&,void*){
 		(*particles)[c->leakPA()->id]->contacts[c->leakPB()->id]=c;
 		(*particles)[c->leakPB()->id]->contacts[c->leakPA()->id]=c;
 	}
+}
+
+
+Real DemField::critDt() {
+	return DemFuncs::pWaveDt(static_pointer_cast<DemField>(this->shared_from_this()),/*noClumps*/true);
 }
 
 

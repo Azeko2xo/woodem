@@ -7,7 +7,7 @@ class HertzPhys: public FrictPhys{
 		((Real,kn0,0,,"Constant for computing current normal stiffness."))
 		((Real,kt0,0,,"Constant for computing current normal stiffness."))
 		((Real,Fa,0,,"Adhesion force for this contact"))
-		((Real,alpha_mbar,0,,"Value for computing damping coefficient"))
+		((Real,alpha_sqrtMbar,0,,"Value for computing damping coefficient"))
 		, /*ctor*/ createIndex();
 	);
 	REGISTER_CLASS_INDEX(HertzPhys,CPhys);
@@ -21,7 +21,7 @@ struct Cp2_FrictMat_HertzPhys: public Cp2_FrictMat_FrictPhys{
 	WOO_CLASS_BASE_DOC_ATTRS(Cp2_FrictMat_HertzPhys,Cp2_FrictMat_FrictPhys,"Compute :ref:`HertzPhys` given two instances of :ref`FrictMat`.",
 		((Real,poisson,.2,,"Poisson ratio for computing contact properties (not provided by the material class currently)"))
 		((Real,gamma,0.0,,"Surface energy parameter [J/m^2] per each unit contact surface, to derive DMT formulation from HM"))
-		((Real,en,NaN,,"Normal coefficient of restitution."))
+		((Real,en,NaN,,"Normal coefficient of restitution (if outside the 0-1 range, there will be no damping, making en effectively equal to one)."))
 	);
 };
 WOO_REGISTER_OBJECT(Cp2_FrictMat_HertzPhys);

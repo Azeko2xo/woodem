@@ -318,7 +318,29 @@ void Scene::doOneStep(){
 		runInternalConsistencyChecks=false;
 		// checkStateTypes();
 	}
-	if(isnan(dt)||dt<0) throw std::runtime_error("Scene::dt is NaN or negative");
+	// check and automatically set timestep
+	if(isnan(dt)||isinf(dt)||dt<0){
+		#if 0
+			throw std::runtime_error("Scene::dt is NaN, Inf or negative");
+		#else
+			dt=Inf;
+			for(const auto& e: engines){
+				e->scene=this;
+				if(!e->field && e->needsField())  throw std::runtime_error((getClassName()+" has no field to run on, but requires one.").c_str());
+				if(e->dead) continue; // skip completely dead engines, but not those who are not isActivated()
+				Real crDt=e->critDt();
+				LOG_INFO("Critical dt from "+e->pyStr()+": "<<crDt);
+				dt=min(dt,crDt);
+			}
+			for(const auto& f: fields){
+				Real crDt=f->critDt();
+				LOG_INFO("Critical dt from "+f->pyStr()+": "<<crDt);
+				dt=min(dt,crDt);
+			}
+			if(isinf(dt)) throw std::runtime_error("Failed to obtain meaningful dt from engines and fields automatically.");
+			dt=dtSafety*dt;
+		#endif
+	}
 	// substepping or not, update engines from _nextEngines, if defined, at the beginning of step
 	// subStep can be 0, which happens if simulations is saved in the middle of step (without substepping)
 	// this assumes that prologue will not set _nextEngines, which is safe hopefully
@@ -352,6 +374,7 @@ void Scene::doOneStep(){
 		step++;
 		time+=dt;
 		subStep=-1;
+		if(!isnan(nextDt)){ dt=nextDt; nextDt=NaN; }
 	} else {
 		/* IMPORTANT: take care to copy EXACTLY the same sequence as is in the block above !! */
 		if(TimingInfo::enabled){ TimingInfo::enabled=false; LOG_INFO("O.timingEnabled disabled, since O.subStepping is used."); }
@@ -379,6 +402,7 @@ void Scene::doOneStep(){
 			else if(subs==(int)engines.size()){
 				if(isPeriodic) cell->setNextGradV();
 				step++; time+=dt; /* gives -1 along with the increment afterwards */ subStep=-2;
+				if(!isnan(nextDt)){ dt=nextDt; nextDt=NaN; }
 			}
 			// (?!)
 			else { /* never reached */ assert(false); }

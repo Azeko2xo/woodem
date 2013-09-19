@@ -176,6 +176,7 @@ class TestLoop(unittest.TestCase):
 	def setUp(self):
 		woo.master.reset()
 		woo.master.scene.fields=[DemField()]
+		woo.master.scene.dt=1e-8
 	def testSubstepping(self):
 		'Loop: substepping'
 		S=woo.master.scene

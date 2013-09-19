@@ -1,5 +1,5 @@
 
-#include<woo/pkg/dem/HertzMindlin.hpp>
+#include<woo/pkg/dem/Hertz.hpp>
 WOO_PLUGIN(dem,(HertzPhys)(Cp2_FrictMat_HertzPhys)(Law2_L6Geom_HertzPhys_DMT));
 
 CREATE_LOGGER(Cp2_FrictMat_HertzPhys);
@@ -26,18 +26,18 @@ void Cp2_FrictMat_HertzPhys::go(const shared_ptr<Material>& m1, const shared_ptr
 	ph.Fa=4*M_PI*R*gamma; 
 
 	// non-linear damping
-	if(en>0){
+	if(en>0 && en<1.){
 		const Real& m1=C->leakPA()->shape->nodes[0]->getData<DemData>().mass;
 		const Real& m2=C->leakPB()->shape->nodes[0]->getData<DemData>().mass;
 		Real alpha=-sqrt(5/6.)*2*log(en)*sqrt(2*E*sqrt(R))/sqrt(pow(log(en),2)+pow(M_PI,2)); // (see Tsuji, 1992)
 		// equiv mass, but use only the other particle if one has no mass
 		// if both have no mass, then mbar is irrelevant as their motion won't be influenced by force
 		Real mbar=(m1<=0 && m2>0)?m2:((m1>0 && m2<=0)?m1:(m1*m2)/(m1+m2));
-		ph.alpha_mbar=max(0.,alpha*mbar); // negative is nonsense, then no damping at all
+		ph.alpha_sqrtMbar=max(0.,alpha*sqrt(mbar)); // negative is nonsense, then no damping at all
 	} else {
-		ph.alpha_mbar=0.0;
+		ph.alpha_sqrtMbar=0.0;
 	}
-	LOG_WARN("E="<<E<<", G="<<G<<", nu="<<nu<<", R="<<R<<", kn0="<<ph.kn0<<", kt0="<<ph.kt0<<", tanPhi="<<ph.tanPhi<<", Fa="<<ph.Fa<<", alpha_mbar="<<ph.alpha_mbar);
+	LOG_WARN("E="<<E<<", G="<<G<<", nu="<<nu<<", R="<<R<<", kn0="<<ph.kn0<<", kt0="<<ph.kt0<<", tanPhi="<<ph.tanPhi<<", Fa="<<ph.Fa<<", alpha_sqrtMbar="<<ph.alpha_sqrtMbar);
 }
 
 
@@ -58,11 +58,11 @@ void Law2_L6Geom_HertzPhys_DMT::go(const shared_ptr<CGeom>& cg, const shared_ptr
 	ph.torque=Vector3r::Zero();
 	// non-linear damping, Tsuji 1992
 	// this damping is used for both normal and tangential force
-	Real cn=(ph.alpha_mbar>0?ph.alpha_mbar*pow(-g.uN,.25):0.);
+	Real cn=(ph.alpha_sqrtMbar>0?ph.alpha_sqrtMbar*pow(-g.uN,.25):0.);
 
 	// normal force
 	ph.kn=(3/2.)*ph.kn0*sqrt(-g.uN); // XXX: check
-	Fn=ph.kn0*pow(-g.uN,1.5)+cn*velN;
+	Fn=-ph.kn0*pow(-g.uN,1.5)+cn*velN+ph.Fa; // XXX: check sign of Fa
 	// normal viscous dissipation
 	if(unlikely(scene->trackEnergy)) scene->energy->add(cn*velN*velN*dt,"viscN",viscNIx,EnergyTracker::IsIncrement|EnergyTracker::ZeroDontCreate);
 
@@ -70,7 +70,7 @@ void Law2_L6Geom_HertzPhys_DMT::go(const shared_ptr<CGeom>& cg, const shared_ptr
 	ph.kt=ph.kt0*sqrt(-g.uN);
 	Ft=dt*ph.kt*velT;
 	// sliding: take adhesion in account
-	Real maxFt=max(0.,Fn+ph.Fa)*ph.tanPhi;
+	Real maxFt=max(0.,Fn)*ph.tanPhi;
 	if(Ft.squaredNorm()>pow(maxFt,2)){
 		// sliding
 		Real FtNorm=Ft.norm();
@@ -86,7 +86,7 @@ void Law2_L6Geom_HertzPhys_DMT::go(const shared_ptr<CGeom>& cg, const shared_ptr
 	assert(!isnan(Fn)); assert(!isnan(Ft[0]) && !isnan(Ft[1]));
 	// elastic potential energy
 	if(unlikely(scene->trackEnergy)) scene->energy->add(0.5*(pow(Fn,2)/ph.kn+Ft.squaredNorm()/ph.kt),"elast",elastPotIx,EnergyTracker::IsResettable);
-	LOG_WARN("Fn="<<Fn<<", Ft="<<Ft[0]<<","<<Ft[1]);
+	// LOG_WARN("uN="<<g.uN<<", Fn="<<Fn<<"; duT/dt="<<velT[0]<<","<<velT[1]<<", Ft="<<Ft[0]<<","<<Ft[1]);
 }
 
 

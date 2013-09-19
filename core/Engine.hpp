@@ -35,6 +35,10 @@ class Engine: public Object {
 		//! notify engine that dead has been changed (does nothing by default)
 		virtual void notifyDead(){};
 
+		// return value of critical (maximum) timestep this engine requires for numerical stability
+		// If nothing is required, return Inf, which is the default
+		virtual Real critDt() { return Inf; }
+
 		// cycles through fields and dispatches to run(), which then does the real work
 		// by default runs the engine for accepted fields
 		virtual void run();
@@ -87,6 +91,7 @@ class Engine: public Object {
 		.def("__call__",&Engine::explicitRun)
 		.def("acceptsField",&Engine::acceptsField)
 		.add_property("field",&Engine::field_get,&Engine::field_set,"Field to run this engine on; if unassigned, or set to *None*, automatic field selection is triggered.")
+		.def("critDt",&Engine::critDt,"Return critical (maximum numerically stable) timestep for this engine. By default returns infinity (no critical timestep) but derived engines may override this function.")
 	);
 };
 WOO_REGISTER_OBJECT(Engine);

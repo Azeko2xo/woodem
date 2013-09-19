@@ -137,7 +137,9 @@ struct Scene: public Object{
 		string expandTags(const string& s) const;
 
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Scene,Object,"Object comprising the whole simulation.",
-		((Real,dt,1e-8,AttrTrait<>().timeUnit(),"Current timestep for integration."))
+		((Real,dt,NaN,AttrTrait<>().timeUnit(),"Current timestep for integration."))
+		((Real,nextDt,NaN,AttrTrait<>().timeUnit(),"Timestep for the next step (if not NaN, :obj:`dt` is automatically replaced by this value at the end of the step)."))
+		((Real,dtSafety,.9,,"Safety factor for automatically-computed timestep."))
 		((long,step,0,AttrTrait<Attr::readonly>(),"Current step number"))
 		((bool,subStepping,false,,"Whether we currently advance by one engine in every step (rather than by single run through all engines)."))
 		((int,subStep,-1,AttrTrait<Attr::readonly>(),"Number of sub-step; not to be changed directly. -1 means to run loop prologue (cell integration), 0…n-1 runs respective engines (n is number of engines), n runs epilogue (increment step number and time."))

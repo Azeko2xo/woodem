@@ -70,6 +70,13 @@ std::tuple<Real,int> PsdSphereGenerator::computeNextRadiusBin(){
 	return std::make_tuple(r,maxBin);
 }
 
+Real PsdSphereGenerator::critDt(Real density, Real young) {
+	if(psdPts.empty()) return Inf;
+	return DemFuncs::spherePWaveDt(psdPts[0][0],density,young);
+}
+
+
+
 /*
 	Save information about generated particle; *bin* is the value returned by computeNextRadiusBin.
    This function saves real mass if mass-based PSD is used, otherwise unit mass is used.
@@ -154,6 +161,11 @@ py::tuple PsdSphereGenerator::pyInputPsd(bool scale, bool cumulative, int num) c
 WOO_PLUGIN(dem,(PsdClumpGenerator));
 CREATE_LOGGER(PsdClumpGenerator);
 
+Real PsdClumpGenerator::critDt(Real density, Real young) {
+	if(psdPts.empty()) return Inf;
+	LOG_WARN("Not yet implemented, returning perhaps bogus value from PsdSphereGenerator::critDt!!");
+	return PsdSphereGenerator::critDt(density,young);
+}
 
 vector<ParticleGenerator::ParticleAndBox>
 PsdClumpGenerator::operator()(const shared_ptr<Material>&mat){
