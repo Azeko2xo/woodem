@@ -4,7 +4,7 @@
 struct DynDt: public PeriodicEngine{
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	void nodalStiffAdd(const shared_ptr<Node>&, Vector3r& kt, Vector3r& kr) const;
-	Real nodalCritDt(const shared_ptr<Node>&) const;
+	Real nodalCritDtSq(const shared_ptr<Node>&) const;
 	virtual void run();
 	// virtual func common to all engines
 	Real critDt() WOO_CXX11_OVERRIDE { return critDt_stiffness(); }

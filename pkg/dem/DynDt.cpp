@@ -10,6 +10,7 @@ CREATE_LOGGER(DynDt);
 void DynDt::postLoad(DynDt&,void*){
 	if(1.+maxRelInc==1.) throw std::runtime_error("DynDt: maxRelInc too small (1.0+maxRelInc==1.0)");
 }
+
 void DynDt::nodalStiffAdd(const shared_ptr<Node>& n, Vector3r& ktrans, Vector3r& krot) const {
 	const DemData& dyn=n->getData<DemData>();
 	// for every particle with this node, traverse its contacts
@@ -34,8 +35,8 @@ void DynDt::nodalStiffAdd(const shared_ptr<Node>& n, Vector3r& ktrans, Vector3r&
 	}
 }
 
-// return criticla timestep for given node
-Real DynDt::nodalCritDt(const shared_ptr<Node>& n) const {
+// return square of critical timestep for given node
+Real DynDt::nodalCritDtSq(const shared_ptr<Node>& n) const {
 	const DemData& dyn=n->getData<DemData>();
 	// completely blocked particles are always stable
 	if(dyn.isBlockedAll()) return Inf;
@@ -51,7 +52,7 @@ Real DynDt::nodalCritDt(const shared_ptr<Node>& n) const {
 	Real ret=Inf;
 	for(int i:{0,1,2}){ if(ktrans[i]!=0) ret=min(ret,dyn.mass/ktrans[i]); }
 	for(int i:{0,1,2}){ if(krot[i]!=0) ret=min(ret,dyn.inertia[i]/krot[i]); }
-	return sqrt(2)*sqrt(ret);
+	return 2*ret; // (sqrt(2)*sqrt(ret))^2
 }
 
 
@@ -59,10 +60,10 @@ Real DynDt::critDt_stiffness() const {
 	// traverse nodes, find critical timestep for each of them
 	Real ret=Inf;
 	for(const auto& n: field->cast<DemField>().nodes){
-		ret=min(ret,nodalCritDt(n));
+		ret=min(ret,nodalCritDtSq(n));
 		assert(!isnan(ret));
 	}
-	return ret;
+	return sqrt(ret);
 }
 
 void DynDt::run(){

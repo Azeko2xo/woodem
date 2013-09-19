@@ -13,6 +13,33 @@
 WOO_PLUGIN(dem,(ConveyorFactory));
 CREATE_LOGGER(ConveyorFactory);
 
+Real ConveyorFactory::critDt(){
+	// no spheres/clumps defined at all
+	if(centers.empty()) return Inf;
+	if(!dynamic_pointer_cast<ElastMat>(material)){
+		LOG_WARN("Material is not a ElastMat, unable to compute critical timestep.");
+		return Inf;
+	}
+	const Real& density=material->density;
+	const Real& young=material->cast<ElastMat>().young;
+	// compute rMin
+	Real rMin=Inf;
+	if(hasClumps()){
+		// ignores that spheres are clumped
+		LOG_WARN("TODO: critDt may be bogus with clumps.");
+		for(const auto& clump: clumps){
+			for(const Real& r: clump->radii) rMin=min(rMin,r);
+		}
+	} else {
+		for(const Real& r: radii) rMin=min(rMin,r);
+	}
+	// compute critDt from rMin
+	if(isinf(rMin)){
+		LOG_WARN("Minimum radius is infinite?!")
+		return Inf;
+	}
+	return DemFuncs::spherePWaveDt(rMin,density,young);
+}
 
 Real ConveyorFactory::packVol() const {
 	Real ret=0;

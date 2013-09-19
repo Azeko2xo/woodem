@@ -9,7 +9,8 @@ struct ConveyorFactory: public ParticleFactory{
 	Real packVol() const;
 	void sortPacking(const Real& zTrimVol=-1);
 	void postLoad(ConveyorFactory&,void*);
-	void notifyDead();
+	void notifyDead() WOO_CXX11_OVERRIDE;
+	Real critDt() WOO_CXX11_OVERRIDE; 
 	void nodeLeavesBarrier(const shared_ptr<Node>& p);
 	void setAttachedParticlesColor(const shared_ptr<Node>& n, Real c);
 	#ifdef WOO_OPENGL
@@ -28,7 +29,7 @@ struct ConveyorFactory: public ParticleFactory{
 	py::object pyDiamMass(bool zipped=false) const;
 	Real pyMassOfDiam(Real min, Real max) const ;
 	py::tuple pyPsd(bool mass, bool cumulative, bool normalize, Vector2r dRange, int num) const;
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ConveyorFactory,ParticleFactory,"Factory producing infinite band of particles from packing periodic in the x-direction. (Clumps are not supported (yet?), only spheres).",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ConveyorFactory,ParticleFactory,"Factory producing infinite band of particles from packing periodic in the x-direction. Clumps are fully supported.",
 		((shared_ptr<Material>,material,,AttrTrait<>().startGroup("Particles"),"Material for new particles"))
 		((shared_ptr<SpherePack>,spherePack,,AttrTrait<Attr::noSave|Attr::triggerPostLoad>(),":obj:`woo.pack.SpherePack` object; when specified, :obj:`centers`, :obj:`radii` (and :obj:`clumps`, if clumps are contained) are discarded  and will be computed from this :obj:`SpherePack`. The attribute is reset afterwards."))
 		((bool,zTrim,false,AttrTrait<>().noGui(),"Trim packing from above so that the ratio of :obj:`vel` / :obj:`packVel` is as small as possible. Spheres/clumps will be discarded from above and this flag will be set to false once trimming is done (it will not be called again explicitly even if :obj:`massRate` or :obj:`vel` change."))
