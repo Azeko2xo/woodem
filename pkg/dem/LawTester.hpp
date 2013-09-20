@@ -48,7 +48,7 @@ struct LawTester: public Engine{
 	}
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(LawTester,Engine,"Engine for testing contact laws by prescribing various loading scenarios, which are a combination of prescribing force or velocity along given contact-local axes.",
 		((Vector2i,ids,,,"Ids of particles in contact"))
-		((string,done,"tester.dead=True",,"Python expression to run once all stages had finished."))
+		((string,done,"tester.dead=True",,"Python expression to run once all stages had finished. This is run *after* :obj:`LawTesterStage.done` of the last stage."))
 		((Real,abWeight,1,,"Float, usually ∈〈0,1〉, determining on how are displacements/rotations distributed between particles (0 for A, 1 for B); intermediate values will apply respective part to each of them."))
 		((Vector6r,f,Vector6r::Zero(),AttrTrait<>().readonly(),"Force on contact, NaN if contact is broken"))
 		((Vector6r,k,Vector6r::Zero(),AttrTrait<>().readonly(),"Tangent contact stiffness, NaN if there is no contact (or the contact model does not define it). Diagonal of the K matrix in df=Kdu."))
@@ -68,9 +68,9 @@ struct LawTester: public Engine{
 		((int,stage,0,AttrTrait<>().readonly(),"Current stage to be finished"))
 		((Real,stageT0,-1,AttrTrait<>().readonly(),"Time at which this stage was entered"))
 		((vector<shared_ptr<LawTesterStage>>,stages,,,"Stages to be reached during the testing"))
-		((int,maxStageSteps,100000,AttrTrait<>().noGui(),"Throw error if stage takes this much steps"))
+		((int,maxStageSteps,100000,AttrTrait<>().noGui(),"Throw error if stage takes this many steps"))
 		,/*ctor*/
-		,/*py*/ .def("fuv",&LawTester::pyFuv,"Return python dictionary containing f,u,v,smooF,smooU,smooU; useful for plotting with `woo.plot.addData(**tester.dict())`").def("restart",&LawTester::restart,"Reset the tester to initial state; all stages are reset via :obj:`LawTesterStage.reset`.")
+		,/*py*/ .def("fuv",&LawTester::pyFuv,"Return python dictionary containing f,u,v,smooF,smooU,smooU; useful for plotting with `woo.plot.addData(**tester.dict())`").def("restart",&LawTester::restart,"Reset the tester to initial state; all stages are reset via :obj:`LawTesterStage.reset`, the :obj:`woo.core.Engine.dead` flag is unset.")
 	);
 };
 WOO_REGISTER_OBJECT(LawTester);

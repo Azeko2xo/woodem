@@ -52,6 +52,8 @@ void LawTester::restart(){
 	stage=0;
 	stageT0=-1;
 	for(const auto& s: stages) s->reset();
+	// in case this has been changed by the user
+	dead=false; /*useless, but consistent*/notifyDead();
 }
 
 void LawTester::run(){
@@ -60,12 +62,16 @@ void LawTester::run(){
 	const shared_ptr<Particle>& pA=(*dem->particles)[ids[0]];
 	const shared_ptr<Particle>& pB=(*dem->particles)[ids[1]];
 	if(!pA->shape || pA->shape->nodes.size()!=1 || !pB->shape || pB->shape->nodes.size()!=1) throw std::runtime_error("LawTester: only mono-nodal particles are handled now.");
+	// get radii of spheres, but don't fail if they are not spheres
+	// radius is only needed when bending is prescribed
+	// and we only fail later if that is the case
 	Sphere *s1=dynamic_cast<Sphere*>(pA->shape.get()), *s2=dynamic_cast<Sphere*>(pA->shape.get());
-	if(!s1 || !s2) throw std::runtime_error("Only contact of two spheres is handled for now (not "+pA->shape->getClassName()+" with "+pB->shape->getClassName()+")");
-	Real rads[]={s1->radius,s2->radius};
+	Real rads[]={NaN,NaN};
+	if(s1) rads[0]=s1->radius;
+	if(s2) rads[1]=s2->radius;
 	Node* nodes[2]={pA->shape->nodes[0].get(),pB->shape->nodes[0].get()};
 	DemData* dyns[2]={nodes[0]->getDataPtr<DemData>().get(),nodes[1]->getDataPtr<DemData>().get()};
-	if(!dyns[0]->isBlockedNone() || !dyns[1]->isBlockedNone()) throw std::runtime_error("LawTester: particles should have no DemData.blocked, this is handled by imposing velocities and forces directly (#"+to_string(ids[0])+": '"+dyns[0]->blocked_vec_get()+"', #"+to_string(ids[1])+": '"+dyns[1]->blocked_vec_get()+"')");
+	
 	for(auto dyn: dyns){
 		if(!dyn->impose) dyn->impose=make_shared<Local6Dofs>();
 		else if(!dynamic_pointer_cast<Local6Dofs>(dyn->impose)) throw std::runtime_error("LawTester: DemData.impose is set, but it is not a Local6Dofs.");
@@ -114,6 +120,10 @@ void LawTester::run(){
 						// and block corresponding velocity component of the other particle
 						bool useForceHere=((i==0&&abWeight<.5) || (i==1 && abWeight>=.5));
 						if(useForceHere){
+							// when imposing force, check that it will be used by the integrator
+							if(!dyns[i]->isBlockedNone()){
+								throw std::runtime_error("LawTester: when imposing force, particle may not have *any* DoFs blocked via DemData.blocked; blocking is handled by imposing velocities/forces through LawTester directly (blocked DoFs: #"+to_string(ids[0])+": '"+dyns[0]->blocked_vec_get()+"', #"+to_string(ids[1])+": '"+dyns[1]->blocked_vec_get()+"')");
+							}
 							impose->whats[ix]=Impose::FORCE;
 							impose->values[ix]=sign*stg->values[ix];
 						} else {
@@ -128,8 +138,11 @@ void LawTester::run(){
 						Real w=weight;
 						// shear is distributed antisymmetrically, so we reset the sign here
 						//if(ix==1 || ix==2) w*=sign;
-						// bending must be distributed according to radii, as to not induce shear
-						if(ix==4 || ix==5) w=(1-rads[i]/(rads[0]+rads[1]));
+						if(ix==4 || ix==5){
+							// bending must be distributed according to radii, as to not induce shear
+							w=(1-rads[i]/(rads[0]+rads[1]));
+							if(!(rads[0]>0 && rads[1]>0)) throw std::runtime_error("LawTester: when bending is prescribed for particles, both must be spheres. It is not yet implemented for one sphere only (that is perfectly possible); it is geometrically not possible for two non-spherical shapes.");
+						}
 						impose->whats[ix]=Impose::VELOCITY;
 						impose->values[ix]=w*sign*stg->values[ix];
 						break;
@@ -143,7 +156,7 @@ void LawTester::run(){
 						LOG_FATAL("?!?"); abort();
 				}
 			}
-			// componsate shear, which is perpendicular to the current normal, not mid-step normal
+			// compensate shear, which is perpendicular to the current normal, not mid-step normal
 			// that would lead to normal extension, which is not desirable
 			// if normal force is prescribed, it will better take care of itself, without compensations here
 			if(stg->whats[0]==Impose::VELOCITY){

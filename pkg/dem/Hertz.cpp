@@ -57,10 +57,9 @@ void Law2_L6Geom_HertzPhys_DMT::go(const shared_ptr<CGeom>& cg, const shared_ptr
 	const L6Geom& g(cg->cast<L6Geom>()); HertzPhys& ph(cp->cast<HertzPhys>());
 	// break contact
 	if(g.uN>0){
-		// track nonzero energy of broken contact with adhesion or any other residual force
+		// TODO: track nonzero energy of broken contact with adhesion
 		// TODO: take residual shear force in account?
-		// TODO: account for Fa!=0
-		if(unlikely(scene->trackEnergy)) scene->energy->add(normalElasticEnergy(ph.kn0,-g.uN),"dmtComeGo",dmtIx,EnergyTracker::IsIncrement|EnergyTracker::ZeroDontCreate);
+		// if(unlikely(scene->trackEnergy)) scene->energy->add(normalElasticEnergy(ph.kn0,0),"dmtComeGo",dmtIx,EnergyTracker::IsIncrement|EnergyTracker::ZeroDontCreate);
 		field->cast<DemField>().contacts->requestRemoval(C); return;
 	}
 	// new contacts with adhesion add energy to the system, which is then taken away again
@@ -77,13 +76,17 @@ void Law2_L6Geom_HertzPhys_DMT::go(const shared_ptr<CGeom>& cg, const shared_ptr
 	// Antypov2012 (10)
 	Real cn=(ph.alpha_sqrtMK>0?ph.alpha_sqrtMK*pow_1_4(-g.uN):0.);
 
-	// normal force
+	// normal sense
 	ph.kn=(3/2.)*ph.kn0*sqrt(-g.uN);
-	Fn=-ph.kn0*pow_i_2(-g.uN,3)+cn*velN+ph.Fa; // XXX: check the sign of Fa
+	Real Fne=-ph.kn0*pow_i_2(-g.uN,3); // elastic force
+	Real Fnc=cn*velN; // viscous force
+	if(noAttraction && Fne+Fnc>0) Fnc=-Fne; // avoid viscosity which would induce attraction
+	// total normal force
+	Fn=Fne+Fnc+ph.Fa; // XXX: check the sign of Fa
 	// normal viscous dissipation
-	if(unlikely(scene->trackEnergy)) scene->energy->add(cn*velN*velN*dt,"viscN",viscNIx,EnergyTracker::IsIncrement|EnergyTracker::ZeroDontCreate);
+	if(unlikely(scene->trackEnergy)) scene->energy->add(Fnc*velN*dt,"viscN",viscNIx,EnergyTracker::IsIncrement|EnergyTracker::ZeroDontCreate);
 
-	// shear force
+	// shear sense
 	ph.kt=ph.kt0*sqrt(-g.uN);
 	Ft=dt*ph.kt*velT;
 	// sliding: take adhesion in account
