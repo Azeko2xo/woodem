@@ -20,7 +20,7 @@ struct Cp2_FrictMat_HertzPhys: public Cp2_FrictMat_FrictPhys{
 	DECLARE_LOGGER;
 	WOO_CLASS_BASE_DOC_ATTRS(Cp2_FrictMat_HertzPhys,Cp2_FrictMat_FrictPhys,"Compute :ref:`HertzPhys` given two instances of :ref`FrictMat`.",
 		((Real,poisson,.2,,"Poisson ratio for computing contact properties (not provided by the material class currently)"))
-		((Real,gamma,0.0,,"Surface energy parameter [J/m^2] per each unit contact surface, to derive DMT formulation from HM"))
+		((Real,gamma,0.0,,"Surface energy parameter [J/m^2] per each unit contact surface, to derive DMT formulation from HM. If zero, adhesion is disabled."))
 		((Real,en,NaN,,"Normal coefficient of restitution (if outside the 0-1 range, there will be no damping, making en effectively equal to one)."))
 	);
 };
@@ -31,13 +31,20 @@ WOO_REGISTER_OBJECT(Cp2_FrictMat_HertzPhys);
 
 struct Law2_L6Geom_HertzPhys_DMT: public LawFunctor{
 	void go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&);
+	// fast func for computing x^(i/2)
+	static Real pow_i_2(const Real& x, const short& i) { return pow(sqrt(x),i);}
+	// fast computation of x^(1/4)
+	static Real pow_1_4(const Real& x) { return sqrt(sqrt(x)); }
+	// normal elastic energy; see Popov2010, pg 60, eq (5.25)
+	inline Real normalElasticEnergy(const Real& kn0, const Real& uN){ return kn0*(2/5.)*pow_i_2(uN,5); }
 	FUNCTOR2D(L6Geom,HertzPhys);
 	DECLARE_LOGGER;
-	WOO_CLASS_BASE_DOC_ATTRS_PY(Law2_L6Geom_HertzPhys_DMT,LawFunctor,"Contact law for Hertz-Mindlin contact with optional non-linear viscosity and adhesion (the DMT model). The formulation for viscous damping is taken from :cite:`Antypov2011`.",
+	WOO_CLASS_BASE_DOC_ATTRS_PY(Law2_L6Geom_HertzPhys_DMT,LawFunctor,"Law for Hertz contact with optional adhesion (DMT (Derjaguin-Muller-Toporov) :cite:`Derjaguin1975`), non-linear viscosity (:cite:`Antypov2011`) The formulation is taken mainly from :cite:`Johnson1987`. The parameters are given through :obj:`Cp2_FrictMat_HertzPhys`.",
 		((int,plastIx,-1,AttrTrait<Attr::noSave|Attr::hidden>(),"Index of plastically dissipated energy."))
 		((int,viscNIx,-1,AttrTrait<Attr::noSave|Attr::hidden>(),"Index of viscous dissipation in the normal sense."))
 		((int,viscTIx,-1,AttrTrait<Attr::noSave|Attr::hidden>(),"Index of viscous dissipation in the tangent sense."))
 		((int,elastPotIx,-1,AttrTrait<Attr::noSave|Attr::hidden>(),"Index for elastic potential energy."))
+		((int,dmtIx,-1,AttrTrait<Attr::noSave|Attr::hidden>(),"Index for elastic energy of new/broken contacts."))
 		, /*py*/
 			#if 0
 				.def("yieldForce",&Law2_L6Geom_HertzPhys_DMT::yieldForce,(py::arg("uN"),py::arg("d0"),py::arg("kn"),py::arg("alpha")),"Return yield force for :ref:`alpha` and given parameters.").staticmethod("yieldForce")
