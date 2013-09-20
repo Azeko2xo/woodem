@@ -7,7 +7,7 @@ class HertzPhys: public FrictPhys{
 		((Real,kn0,0,,"Constant for computing current normal stiffness."))
 		((Real,kt0,0,,"Constant for computing current normal stiffness."))
 		((Real,Fa,0,,"Adhesion force for this contact"))
-		((Real,alpha_sqrtMbar,0,,"Value for computing damping coefficient"))
+		((Real,alpha_sqrtMK,0,,"Value for computing damping coefficient (see Antypov & Elliott, 'On an analytical solution for the damped Hertzian spring', eq (10)."))
 		, /*ctor*/ createIndex();
 	);
 	REGISTER_CLASS_INDEX(HertzPhys,CPhys);
@@ -33,7 +33,7 @@ struct Law2_L6Geom_HertzPhys_DMT: public LawFunctor{
 	void go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&);
 	FUNCTOR2D(L6Geom,HertzPhys);
 	DECLARE_LOGGER;
-	WOO_CLASS_BASE_DOC_ATTRS_PY(Law2_L6Geom_HertzPhys_DMT,LawFunctor,"Contact law for Hertz-Mindlin contact with optional non-linear viscosity and adhesion (the DMT model).",
+	WOO_CLASS_BASE_DOC_ATTRS_PY(Law2_L6Geom_HertzPhys_DMT,LawFunctor,"Contact law for Hertz-Mindlin contact with optional non-linear viscosity and adhesion (the DMT model). The formulation for viscous damping is taken from :cite:`Antypov2011`.",
 		((int,plastIx,-1,AttrTrait<Attr::noSave|Attr::hidden>(),"Index of plastically dissipated energy."))
 		((int,viscNIx,-1,AttrTrait<Attr::noSave|Attr::hidden>(),"Index of viscous dissipation in the normal sense."))
 		((int,viscTIx,-1,AttrTrait<Attr::noSave|Attr::hidden>(),"Index of viscous dissipation in the tangent sense."))

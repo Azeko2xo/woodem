@@ -143,7 +143,7 @@ def classSrcHyperlink(klass):
 	ret=[':woosrc:`header <%s#L%d>`'%(f2,klass._classTrait.line)]
 	if f2.endswith('.hpp'):
 		cpp=woo.config.sourceRoot+'/'+f2[:-4]+'.cpp'
-		print 'Trying ',cpp
+		# print 'Trying ',cpp
 		if os.path.exists(cpp):	
 			ret.append(':woosrc:`implementation <%s>`'%(f2[:-4]+'.cpp'))
 	return '[ '+' , '.join(ret)+' ]'
@@ -172,7 +172,7 @@ def oneModuleWithSubmodules(mod,out,exclude=None,level=0):
 		ex=[t.name for t in k._attrTraits]
 		if ex: out.write('   :exclude-members: %s\n\n'%(', '.join(ex)))
 		srcXref=classSrcHyperlink(k)
-		if srcXref: out.write('   '+srcXref+'\n\n')
+		if srcXref: out.write('\n   '+srcXref+'\n\n')
 		for trait in k._attrTraits:
 			try:
 				iniStr=' (= %s)'%(repr(trait.ini))

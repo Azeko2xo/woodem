@@ -14,7 +14,8 @@ void Cp2_FrictMat_HertzPhys::go(const shared_ptr<Material>& m1, const shared_ptr
 	Real G1=E1/(2*1+nu1); Real G2=E2/(2*1+nu2);
 
 	// XXX: check this
-	Real E=E1*E2/(E2*(1-pow(nu1,2)+E1*(1-pow(nu2,2))));
+	Real E=E1*E2/(E2*(1-pow(nu1,2))+E1*(1-pow(nu2,2)));
+	// LOG_WARN("E1="<<E1<<", E2="<<E2<<", nu1="<<nu1<<", nu2="<<nu2<<", E="<<E);
 	Real G=.5*(G1+G2);
 	Real nu=.5*(nu1+nu2); 
 	Real R=r1*r2/(r1+r2);
@@ -29,15 +30,20 @@ void Cp2_FrictMat_HertzPhys::go(const shared_ptr<Material>& m1, const shared_ptr
 	if(en>0 && en<1.){
 		const Real& m1=C->leakPA()->shape->nodes[0]->getData<DemData>().mass;
 		const Real& m2=C->leakPB()->shape->nodes[0]->getData<DemData>().mass;
-		Real alpha=-sqrt(5/6.)*2*log(en)*sqrt(2*E*sqrt(R))/sqrt(pow(log(en),2)+pow(M_PI,2)); // (see Tsuji, 1992)
 		// equiv mass, but use only the other particle if one has no mass
 		// if both have no mass, then mbar is irrelevant as their motion won't be influenced by force
 		Real mbar=(m1<=0 && m2>0)?m2:((m1>0 && m2<=0)?m1:(m1*m2)/(m1+m2));
-		ph.alpha_sqrtMbar=max(0.,alpha*sqrt(mbar)); // negative is nonsense, then no damping at all
+		Real alpha=-sqrt(5)*log(en)/(sqrt(pow(log(en),2)+pow(M_PI,2)));
+		ph.alpha_sqrtMK=max(0.,alpha*sqrt(mbar*ph.kn0)); // negative is nonsense, then no damping at all
+		#if 0
+			// Chiara's version:
+			alpha=-sqrt(5/6.)*2*log(en)*sqrt(2*E*sqrt(R))/sqrt(pow(log(en),2)+pow(M_PI,2)); // (see Tsuji, 1992)
+			ph.alpha_sqrtMK=max(0.,alpha*sqrt(mbar));
+		#endif
 	} else {
-		ph.alpha_sqrtMbar=0.0;
+		ph.alpha_sqrtMK=0.0;
 	}
-	LOG_WARN("E="<<E<<", G="<<G<<", nu="<<nu<<", R="<<R<<", kn0="<<ph.kn0<<", kt0="<<ph.kt0<<", tanPhi="<<ph.tanPhi<<", Fa="<<ph.Fa<<", alpha_sqrtMbar="<<ph.alpha_sqrtMbar);
+	LOG_WARN("E="<<E<<", G="<<G<<", nu="<<nu<<", R="<<R<<", kn0="<<ph.kn0<<", kt0="<<ph.kt0<<", tanPhi="<<ph.tanPhi<<", Fa="<<ph.Fa<<", alpha_sqrtMK="<<ph.alpha_sqrtMK);
 }
 
 
@@ -61,7 +67,7 @@ void Law2_L6Geom_HertzPhys_DMT::go(const shared_ptr<CGeom>& cg, const shared_ptr
 	ph.torque=Vector3r::Zero();
 	// non-linear damping, Tsuji 1992
 	// this damping is used for both normal and tangential force
-	Real cn=(ph.alpha_sqrtMbar>0?ph.alpha_sqrtMbar*pow(-g.uN,.25):0.);
+	Real cn=(ph.alpha_sqrtMK>0?ph.alpha_sqrtMK*pow(-g.uN,.25):0.);
 
 	// normal force
 	ph.kn=(3/2.)*ph.kn0*sqrt(-g.uN); // XXX: check

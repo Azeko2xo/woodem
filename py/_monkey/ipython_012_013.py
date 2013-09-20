@@ -41,21 +41,21 @@ from IPython.lib.inputhook import allow_CTRL_C, ignore_CTRL_C, stdin_ready
 def create_inputhook_qt4(mgr, app=None):
     """Create an input hook for running the Qt4 application event loop.
 
-    Parameters
-    ----------
+    Parameters:
+
     mgr : an InputHookManager
 
     app : Qt Application, optional.
         Running application to use.  If not given, we probe Qt for an
         existing application object, and create a new one if none is found.
 
-    Returns
-    -------
+    Returns:
+
     A pair consisting of a Qt Application (either the one given or the
     one found or created) and a inputhook.
 
-    Notes
-    -----
+    Notes:
+
     We use a custom input hook instead of PyQt4's default one, as it
     interacts better with the readline packages (issue #481).
 

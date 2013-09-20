@@ -36,9 +36,14 @@ except ImportError:
 try:
 	import cloud_sptheme
 except ImportError:
-	raise ImportError("Shphinx cloud theme is not importable; install it using 'easy_install cloud_sptheme'.")
+	raise ImportError("Sphinx cloud theme is not importable; install it using 'easy_install cloud_sptheme'.")
 
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.mathjax', 'sphinx.ext.viewcode', 'matplotlib.sphinxext.plot_directive', 'sphinx.ext.inheritance_diagram', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'tikz', ext_ipython_directive, 'sphinx.ext.extlinks']
+try:
+	import sphinxcontrib.bibtex
+except ImportError:
+	raise ImportError("BibTeX support for sphinx not found; isntall it using 'easu_install sphinxcontrib-bibtex'")
+
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.mathjax', 'sphinx.ext.viewcode', 'matplotlib.sphinxext.plot_directive', 'sphinx.ext.inheritance_diagram', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'tikz', ext_ipython_directive, 'sphinx.ext.extlinks', 'sphinxcontrib.bibtex']
 
 # customize prompts
 ipython_rgxin =re.compile('Woo \[(\d+)\]:\s?(.*)\s*')

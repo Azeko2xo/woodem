@@ -168,16 +168,16 @@ def Scene_autoPlotData(S,**kw):
 		from woo.dem import *
 		from woo.core import *
 		from woo import plot,utils
-		S=Scene(fields=[DemField(gravity=(0,0,-10)])
+		S=Scene(fields=[DemField(gravity=(0,0,-10))])
 		S.dem.par.append(utils.sphere((0,0,0),1));
 		S.dt=utils.pWaveDt(S)
-		S.engines=[Leapfrog(damping=.4,kinSplit=True,reset=True),PyRunner(S.autoPlotData()')]
-		S.plot.plots={'i=S.step':(S.energy,None,'total energy=S.energy.total()')}
+		S.engines=[Leapfrog(damping=.4,kinSplit=True,reset=True),PyRunner('S.autoPlotData()')]
+		S.plot.plots={'i=S.step':('S.energy',None,'total energy=S.energy.total()')}
 		S.trackEnergy=True
 		S.run(500,True)
 		import pylab; pylab.grid(True)
 		S.plot.legendLoc=('lower left','upper right')
-		plot.plot(noShow=True)
+		S.plot.plot(noShow=True)
 
 	"""
 	def colDictUpdate(col,dic,kw):
@@ -204,6 +204,8 @@ def Scene_autoPlotData(S,**kw):
 			# dict-like object
 			if hasattr(yy,'keys'): cols.update(dict(yy))
 			# callable returning list sequence of expressions to evaluate
+			#elif yy.endswith('()') and '=' not in :
+			# 	for yyy in eval(yy,{'S':S}): colDictUpdate(yyy,cols,kw)
 			#elif callable(yy):
 			#	for yyy in yy(): colDictUpdate(yyy,cols)
 			# plain value
@@ -422,7 +424,7 @@ def createPlots(P,subPlots=True,scatterSize=60,wider=False):
 				if (
 					d[0] not in data.keys()
 					and not callable(d[0])
-					and not (type(d[0]) in (str,unicode) and d[0].endswith('()')) # hack for callable as strings
+					and not (type(d[0]) in (str,unicode) and (d[0].endswith('()') or d[0].startswith('**'))) # hack for callable as strings
 					and not hasattr(d[0],'keys')
 				):
 					missing.add(d[0])
@@ -445,13 +447,13 @@ def createPlots(P,subPlots=True,scatterSize=60,wider=False):
 			# save the original specifications; they will be smuggled into the axes object
 			# the live updated will run yNameFuncs to see if there are new lines to be added
 			# and will add them if necessary
-			yNameFuncs=set([d[0] for d in ySpecs if callable(d[0])]) | set([d[0].keys for d in ySpecs if hasattr(d[0],'keys')]) | set([eval(d[0][:-2],{'S':woo.master.scene}) for d in ySpecs if type(d[0])==str and d[0].endswith('()')])
+			yNameFuncs=set([d[0] for d in ySpecs if callable(d[0])]) | set([d[0].keys for d in ySpecs if hasattr(d[0],'keys')]) | set([eval(d[0][:-2],{'S':woo.master.scene}) for d in ySpecs if type(d[0])==str and (d[0].endswith('()') or d[0].startswith('**'))])
 			yNames=set()
 			ySpecs2=[]
 			for ys in ySpecs:
 				# ys[0]() must return list of strings, which are added to ySpecs2; line specifier is synthesized by tuplifyYAxis and cannot be specified by the user
 				if callable(ys[0]): ySpecs2+=[(ret,ys[1]) for ret in ys[0]()]
-				elif type(ys[0])==str and ys[0].endswith('()'): ySpecs2+=[(ret,ys[1]) for ret in eval(ys[0][:-2],{'S':woo.master.scene})()]
+				elif type(ys[0])==str and (ys[0].endswith('()') or ys[0].startswith('**')): ySpecs2+=[(ret,ys[1]) for ret in eval(ys[0][:-2],{'S':woo.master.scene})()]
 				elif hasattr(ys[0],'keys'): ySpecs2+=[(yy,'') for yy in ys[0].keys()]
 				else: ySpecs2.append(ys)
 			if len(ySpecs2)==0:

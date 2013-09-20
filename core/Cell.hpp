@@ -142,7 +142,7 @@ struct Cell: public Object{
 		((bool,trsfUpperTriangular,false,AttrTrait<Attr::readonly>(),"Require that :obj:`Cell.trsf` is upper-triangular, to conform with the requirement of voro++ for sheared periodic cells."))\
 		/* overridden below to be modified by getters/setters because of intended side-effects */\
 		((Matrix3r,trsf,Matrix3r::Identity(),,"[overridden]")) \
-		((Matrix3r,refHSize,Matrix3r::Identity(),,"Reference cell configuration, only used with :obj:`OpenGLRenderer.dispScale`. Updated automatically when :obj:`hSize` or :obj:`trsf` is assigned directly; also modified by :obj:`woo.utils.setRefSe3` (called e.g. by the :gui:`Reference` button in the UI)."))\
+		((Matrix3r,refHSize,Matrix3r::Identity(),,"Reference cell configuration, only used with :obj:`OpenGLRenderer.dispScale`. Updated automatically when :obj:`hSize` or :obj:`trsf` is assigned directly; also modified by :obj:`woo.utils.setRefSe3` (called e.g. by the :guilabel:`Reference` button in the UI)."))\
 		((Matrix3r,hSize,Matrix3r::Identity(),,"[overridden below]"))\
 		((Matrix3r,pprevHsize,Matrix3r::Identity(),AttrTrait<Attr::readonly>(),"hSize at t-dt/2; used to compute velocity correction in contact with non-zero cellDist. Updated automatically."))\
 		/* normal attributes */\

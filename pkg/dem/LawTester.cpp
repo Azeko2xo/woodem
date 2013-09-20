@@ -38,7 +38,21 @@ void LawTesterStage::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){
 	}
 };
 
+void LawTesterStage::reset(){
+	step=0;
+	time=0;
+	hadC=hasC=false;
+	bounces=0;
+	timeC0=NaN;
+}
 
+
+void LawTester::restart(){
+	f=k=u=v=Vector6r::Zero();
+	stage=0;
+	stageT0=-1;
+	for(const auto& s: stages) s->reset();
+}
 
 void LawTester::run(){
 	const auto& dem=static_pointer_cast<DemField>(field);
@@ -167,6 +181,7 @@ void LawTester::run(){
 			LOG_DEBUG("Incrementing bounces, as v[0] changes sign: prev "<<v[0]<<", curr "<<l6g->vel[0]<<".");
 			stg->bounces+=1;
 		}
+		if(C->isFresh(scene)) stg->timeC0=scene->time-stageT0;
 		f<<C->phys->force,C->phys->torque;
 		v<<l6g->vel,l6g->angVel;
 		if(dynamic_pointer_cast<FrictPhys>(C->phys)){
