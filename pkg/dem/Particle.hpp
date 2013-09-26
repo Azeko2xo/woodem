@@ -347,6 +347,7 @@ struct Contact: public Object{
 	bool isColliding() const { return stepCreated>=0; }
 	void setNotColliding(){ stepCreated=-1; }
 	bool isFresh(Scene* s){ return s->step==stepCreated; }
+	bool pyIsFresh(shared_ptr<Scene> s){ return s->step==stepCreated; }
 	void swapOrder();
 	void reset();
 	// return -1 or +1 depending on whether the particle passed to us is pA or pB
@@ -399,6 +400,7 @@ struct Contact: public Object{
 		.add_property("pA",&Contact::pyPA,"First particle of the contact")
 		.add_property("pB",&Contact::pyPB,"Second particle of the contact")
 		.def("resetPhys",&Contact::pyResetPhys,"Set *phys* to *None* (to force its re-evaluation)")
+		.def("isFresh",&Contact::pyIsFresh,(py::arg("scene")),"Say whether this contact has just been created. Equivalent to ``C.stepCreated==scene.step``.")
 	);
 };
 WOO_REGISTER_OBJECT(Contact);

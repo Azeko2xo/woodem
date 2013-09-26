@@ -47,8 +47,9 @@ def _ensureInitialized():
 				try:
 					__import__(fqmodname,pkg.__name__)
 					print 'ok'
+					if ispkg:
+						subImport(sys.modules[fqmodname])
 				except ImportError: print '(error, ignoring)'
-			if ispkg: subImport(sys.modules[fqmodname])
 	modExcludeRegex='^woo\.(_cxxInternal.*)(\..*|$)'
 	subImport(woo,exclude=modExcludeRegex)
 	try:

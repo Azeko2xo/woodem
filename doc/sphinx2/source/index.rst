@@ -11,7 +11,10 @@ Contents:
    :maxdepth: 2
 
    user/user.rst
+   models/hertzian.rst
+   models/adhesive.rst
    wooMods.rst
+	references.rst
 
 Indices and tables
 ==================
@@ -20,8 +23,3 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
-References
-==========
-
-.. bibliography:: references.bib
-	:all:

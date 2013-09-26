@@ -18,6 +18,24 @@ void Cp2_FrictMat_HertzPhys::go(const shared_ptr<Material>& m1, const shared_ptr
 	Real R=1./(1./r1+1./r2);
 	ph.kn0=(4/3.)*E*sqrt(R);
 
+	#ifdef WOO_JKR
+	// JKR-only
+	ph.Eeq=E; ph.Req=R; ph.gamma=gamma; // XXX: 2*gamma for both surfaces?
+	#endif
+
+	// COS only
+	#if 1
+		Real K=(4/3.)*1./((1-nu1*nu1)/E1+(1-nu2*nu2)/E2); // COS Introduction
+		// R already computed above
+		Real lambda=-.924*log(1-1.02*alpha); // COS eq (10)
+		Real hatLc=-7/4.+(1/4.)*((4.04*pow(lambda,1.4)-1)/(4.04*pow(lambda,1.4)+1));  // COS eq (12a)
+		Real hatA0=(1.54+.279*((2.28*pow(lambda,1.3)-1)/(2.28*pow(lambda,1.3)+1))); // COS eq (12b) 
+		ph.Lc=hatLc*M_PI*gamma*R; // COS eq (11a)
+		ph.a0=hatA0/cbrt(K/(M_PI*gamma*R*R));
+		ph.alpha=alpha;
+		LOG_DEBUG("lambda="<<lambda<<", hatLc="<<hatLc<<", hatA0="<<hatA0<<", Lc="<<ph.Lc<<", a0="<<ph.a0<<", alpha="<<ph.alpha);
+	#endif
+
 	// shear behavior
 	Real G1=E1/(2*1+nu1); Real G2=E2/(2*1+nu2);
 	Real G=.5*(G1+G2);
@@ -41,8 +59,8 @@ void Cp2_FrictMat_HertzPhys::go(const shared_ptr<Material>& m1, const shared_ptr
 		// if both have no mass, then mbar is irrelevant as their motion won't be influenced by force
 		Real mbar=(m1<=0 && m2>0)?m2:((m1>0 && m2<=0)?m1:(m1*m2)/(m1+m2));
 		// For eqs, see Antypov2012, (10) and (17)
-		Real alpha=-sqrt(5)*log(en)/(sqrt(pow(log(en),2)+pow(M_PI,2)));
-		ph.alpha_sqrtMK=max(0.,alpha*sqrt(mbar*ph.kn0)); // negative is nonsense, then no damping at all
+		Real viscAlpha=-sqrt(5)*log(en)/(sqrt(pow(log(en),2)+pow(M_PI,2)));
+		ph.alpha_sqrtMK=max(0.,viscAlpha*sqrt(mbar*ph.kn0)); // negative is nonsense, then no damping at all
 	} else {
 		// no damping at all
 		ph.alpha_sqrtMK=0.0;
@@ -53,41 +71,94 @@ void Cp2_FrictMat_HertzPhys::go(const shared_ptr<Material>& m1, const shared_ptr
 
 CREATE_LOGGER(Law2_L6Geom_HertzPhys_DMT);
 
+void Law2_L6Geom_HertzPhys_DMT::postLoad(Law2_L6Geom_HertzPhys_DMT&,void*){
+	if(model=="DMT") model_=MODEL_DMT;
+	else if(model=="JKR"){
+		throw std::runtime_error("Law2_L6Geom_HertzPhys_DMT: JKR model not implemented yet.");
+		model_=MODEL_JKR;
+	} else if(model=="COS"){
+		model_=MODEL_COS;
+	}
+	else {
+		model_=MODEL_DMT; // just in case
+		throw std::runtime_error("Law2_L6Geom_HertzPhys_DMT.model: must be one of 'DMT', 'JKR' (not '"+model+"')");
+	}
+}
+
+#ifdef WOO_JKR
+	// _uN signifies that it has the opposite sign convention (positive=geometrical overlap)
+	Real Law2_L6Geom_HertzPhys_DMT::computeNormalForce_JKR(const Real& _uN, const HertzPhys& ph){
+		if(_uN>=0){
+			
+		}
+	}
+#endif
+
 void Law2_L6Geom_HertzPhys_DMT::go(const shared_ptr<CGeom>& cg, const shared_ptr<CPhys>& cp, const shared_ptr<Contact>& C){
 	const L6Geom& g(cg->cast<L6Geom>()); HertzPhys& ph(cp->cast<HertzPhys>());
-	// break contact
-	if(g.uN>0){
-		// TODO: track nonzero energy of broken contact with adhesion
-		// TODO: take residual shear force in account?
-		// if(unlikely(scene->trackEnergy)) scene->energy->add(normalElasticEnergy(ph.kn0,0),"dmtComeGo",dmtIx,EnergyTracker::IsIncrement|EnergyTracker::ZeroDontCreate);
-		field->cast<DemField>().contacts->requestRemoval(C); return;
-	}
-	// new contacts with adhesion add energy to the system, which is then taken away again
-	if(unlikely(scene->trackEnergy ) && C->isFresh(scene)){
-		// TODO: scene->energy->add(???,"dmtComeGo",dmtIx,EnergyTracker::IsIncrement)
-	}
 	Real& Fn(ph.force[0]); Eigen::Map<Vector2r> Ft(&ph.force[1]);
 	const Real& dt(scene->dt);
 	const Real& velN(g.vel[0]);
 	const Vector2r velT(g.vel[1],g.vel[2]);
 
 	ph.torque=Vector3r::Zero();
+
+	// normal elastic and adhesion forces
+	// COS model only uses Fne as sum of both elastic and viscous and Fna is zero
+	Real Fne, Fna;
+	switch(model_){
+		case MODEL_DMT:
+			if(g.uN>0){
+				// TODO: track nonzero energy of broken contact with adhesion
+				// TODO: take residual shear force in account?
+				// if(unlikely(scene->trackEnergy)) scene->energy->add(normalElasticEnergy(ph.kn0,0),"dmtComeGo",dmtIx,EnergyTracker::IsIncrement|EnergyTracker::ZeroDontCreate);
+				field->cast<DemField>().contacts->requestRemoval(C); return;
+			}
+			// new contacts with adhesion add energy to the system, which is then taken away again
+			if(unlikely(scene->trackEnergy ) && C->isFresh(scene)){
+				// TODO: scene->energy->add(???,"dmtComeGo",dmtIx,EnergyTracker::IsIncrement)
+			}
+			ph.kn=(3/2.)*ph.kn0*sqrt(-g.uN);
+			Fne=-ph.kn0*pow_i_2(-g.uN,3); // elastic force; XXX: check the sign of Fa
+			Fna=ph.Fa;
+			break;
+		case MODEL_COS:{
+			Real a=-g.uN; const Real& a0(ph.a0); const Real& Lc(ph.Lc); const Real& alpha(ph.alpha);
+			// L/Lc from COS eq (7); there is sqrt(1-L/Lc) in eq (7) so if L/Lc>1, there is no real
+			// solution meaning the contact is broken
+			// the solution forks depending on the sign of a/a0, which is expressed in the sgn variable
+			short sgn=(a>0?1:-1);
+			Real L_div_Lc=1-pow(pow_i_2(sgn*a/a0,3)*(1+alpha)-sgn*alpha,2);
+			if(L_div_Lc>1){ field->cast<DemField>().contacts->requestRemoval(C); return; }
+			Fne=-Lc*L_div_Lc;  // Fne=-L (opposite sign convention)
+			Fna=0.;
+			// d(fne)/da:
+			ph.kn=-2*Lc*((pow_i_2(sgn*a/a0,3)*(1+alpha)-sgn*alpha)*((3/2.)*sqrt(sgn*a/a0)*(1+alpha)));
+			LOG_WARN("a/a0="<<a/a0<<", sgn="<<sgn<<", L_div_Lc="<<L_div_Lc<<", Fne+Fna="<<Fne<<", kn="<<ph.kn);
+			break;
+		}
+		#ifdef WOO_JKR
+			case MODEL_JKR:
+				Fne=computeNormalForce_JKR(-g.uN,ph);
+				ph.kn=
+				// Chaira's code: is this correct?!
+				// ph.kn=2.*phys->E*phys->radius*((3.*sqrt(PP)-3.*sqrt(phys->pc))/(3.*sqrt(PP)-sqrt(phys->pc)));
+				break;
+		#endif
+		default: abort();
+	}
 	// viscous coefficient, both for normal and tangential force
 	// Antypov2012 (10)
-	Real cn=(ph.alpha_sqrtMK>0?ph.alpha_sqrtMK*pow_1_4(-g.uN):0.);
-
-	// normal sense
-	ph.kn=(3/2.)*ph.kn0*sqrt(-g.uN);
-	Real Fne=-ph.kn0*pow_i_2(-g.uN,3); // elastic force
-	Real Fnc=cn*velN; // viscous force
-	if(noAttraction && Fne+Fnc>0) Fnc=-Fne; // avoid viscosity which would induce attraction
+	Real eta=(ph.alpha_sqrtMK>0?ph.alpha_sqrtMK*pow_1_4(-g.uN):0.);
+	Real Fnv=eta*velN; // viscous force
+	if(model_==MODEL_DMT && noAttraction && Fne+Fnv>0) Fnv=-Fne; // avoid viscosity which would induce attraction with DMT
 	// total normal force
-	Fn=Fne+Fnc+ph.Fa; // XXX: check the sign of Fa
+	Fn=Fne+Fna+Fnv; 
 	// normal viscous dissipation
-	if(unlikely(scene->trackEnergy)) scene->energy->add(Fnc*velN*dt,"viscN",viscNIx,EnergyTracker::IsIncrement|EnergyTracker::ZeroDontCreate);
+	if(unlikely(scene->trackEnergy)) scene->energy->add(Fnv*velN*dt,"viscN",viscNIx,EnergyTracker::IsIncrement|EnergyTracker::ZeroDontCreate);
 
-	// shear sense
-	ph.kt=ph.kt0*sqrt(-g.uN);
+	// shear sense; zero shear stiffness in tension (XXX: should be different with adhesion)
+	ph.kt=ph.kt0*sqrt(g.uN<0?-g.uN:0);
 	Ft=dt*ph.kt*velT;
 	// sliding: take adhesion in account
 	Real maxFt=max(0.,Fn)*ph.tanPhi;
@@ -100,8 +171,8 @@ void Law2_L6Geom_HertzPhys_DMT::go(const shared_ptr<CGeom>& cg, const shared_ptr
 		Ft*=ratio;
 	} else {
 		// viscous tangent force (only applied in the absence of sliding)
-		Ft+=cn*velT;
-		if(unlikely(scene->trackEnergy)) scene->energy->add(cn*velT.dot(velT)*dt,"viscT",viscTIx,EnergyTracker::IsIncrement|EnergyTracker::ZeroDontCreate);
+		Ft+=eta*velT;
+		if(unlikely(scene->trackEnergy)) scene->energy->add(eta*velT.dot(velT)*dt,"viscT",viscTIx,EnergyTracker::IsIncrement|EnergyTracker::ZeroDontCreate);
 	}
 	assert(!isnan(Fn)); assert(!isnan(Ft[0]) && !isnan(Ft[1]));
 	// elastic potential energy
