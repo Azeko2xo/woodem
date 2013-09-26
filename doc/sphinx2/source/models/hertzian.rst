@@ -9,7 +9,8 @@ Hertz contact model is non-linear model which takes in account elastic deformati
 
 ==================  ===============
 :math:`R`           effective radius
-:math:`E`           equivalent modulus
+:math:`E`           equivalent elastic modulus
+:math:`K`           effective elastic modulus (:math:`K=\frac{3}{4}E`)
 :math:`m^{*}`       effective mass   
 :math:`\delta`      normal geometrical overlap of spheres; :math:`\delta=r_1+r_2-d` for two spheres (positive when there is overlap), numerically corresponds to :obj:`woo.dem.L6Geom.uN` with the sign inversed.
 :math:`a`           contact radius, i.e. radius of the contacting area
@@ -34,9 +35,14 @@ Equivalent mass
 
 is used for in models of viscosity; :math:`m_i` is taken to be zero if the particles is not subject to contact forces (such as when :obj:`woo.dem.DemData.blocked` is set for massless objects like :obj:`facets <woo.dem.Facet>` or :obj:`walls <woo.dem.Wall>`).
 
-Equivalent stiffness is computed as 
+Moduli (different authors use either :math:`E` or :math:`K=\frac{3}{4}E`) are computed as 
 
-.. math:: \frac{1}{E}=\frac{1-\nu_1^2}{E_1}+\frac{1-\nu_2^2}{E_2}
+.. math::
+
+   \frac{1}{E}=\frac{1-\nu_1^2}{E_1}+\frac{1-\nu_2^2}{E_2},
+
+   \frac{1}{K}=\frac{4}{3}\left(\frac{1-\nu_1^2}{E_1}+\frac{1-\nu_2^2}{E_2}\right)
+
 
 where :math:`E_i` are Young's moduli of contacting particles (:obj:`woo.dem.ElastMat.young`) and :math:`\nu_i` their Poisson's ratios (:obj:`woo.dem.Cp2_FrictMat_HertzPhys.poisson`).
 

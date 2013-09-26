@@ -20,7 +20,7 @@ Symbols used for adhesive models, in addition to those introduced for Hertzian m
 :math:`\hat a`      reduced contact radius (dimensionless)
 ==================  ===============
 
-:cite:`Maugis1991` introduced normalized (dimensionless) numbers of some quantities on adhesive contacts; they are useful for validating models against published plots regardless of the value of input parameters. These units are defined as follows:
+:cite:`Maugis1992` introduced normalized (dimensionless) numbers of some quantities on adhesive contacts; they are useful for validating models against published plots regardless of the value of input parameters. These units are defined as follows:
 
 .. math::
    :nowrap:
@@ -45,7 +45,7 @@ which acts against (negative sign) the elastic repulsion of particles :ref:`(eq)
 Schwarz model
 =============
 
-Schwarz :cite:`Schwarz2003` proposes model which accounts for the DMT-JKR transition and, unlike the Maugis "Dugdale" model (:cite:`Maugis1991`), gives the :math:`a(F)` and :math:`\delta(a)` analytically. The surface energy is decomposed as short-range adhesion :math:`w_1` and long-range adhesion :math:`w_2`, i.e.
+Schwarz :cite:`Schwarz2003` proposes model which accounts for the DMT-JKR transition and, unlike the Maugis "Dugdale" model (:cite:`Maugis1992`), gives the :math:`a(F)` and :math:`\delta(a)` analytically. The surface energy is decomposed as short-range adhesion :math:`w_1` and long-range adhesion :math:`w_2`, i.e.
 
 .. math:: \gamma=w_1+w_2
    :label: schwarz-gamma-w1-w2
@@ -79,14 +79,14 @@ and by further rearrangements we can relate the ratio of short-range and long-ra
 
    \alpha^2=\frac{3}{4\frac{w_1}{w_2}+3}
 
-We can see that extreme values of :math:`\alpha` recover DMT or JKR models (in the table below), and intermediate values represent transition between them:
+We can see that extreme values of :math:`\alpha` recover DMT (as limit) or JKR models, and intermediate values represent transition between them:
 
-============== =============== =============== ========
+============== =============== =============== ===========
 :math:`\alpha` :math:`w_1`     :math:`w_2`     model
--------------- --------------- --------------- --------
-0                        0     :math:`\gamma`  DMT
+-------------- --------------- --------------- -----------
+→ 0                      → 0   :math:`\gamma`  → DMT
 1               :math:`\gamma`              0  JKR
-============== =============== =============== ========
+============== =============== =============== ===========
 
 Contact radius
 ---------------
@@ -99,7 +99,7 @@ which is analytically invertible to
 
 .. math:: P_n=\left(\sqrt{a^3\frac{K}{R}}-\alpha\sqrt{-P_c}\right)^2+P_c.
 
-The following plot shows both functions (dots are the inverse relationship; this plot appears in :cite:`Maugis1991`, Fig. 5.):
+The following plot shows both functions (dots are the inverse relationship; this plot appears in :cite:`Maugis1992`, Fig. 5.):
 
 .. plot::
 
@@ -112,12 +112,8 @@ Peneration
 
 Penetration is given as (:cite:`Schwarz2003` (27))
 
-.. math:: \delta=\frac{a^2}{R}-4\sqrt{\frac{\pi a}{3 K}\left(\frac{P_c}{\pi R}+2\gamma\right)}
+.. math:: \delta=\frac{a^2}{R}-4\sqrt{\frac{\pi a}{3 K}\left(\frac{P_c}{\pi R}+2\gamma\right)}.
    :label: schwarz-delta-pc
-
-where :math:`K` is the "effective elastic modulus" computed as 
-
-.. math:: K=\frac{3}{4}\left(\frac{1-\nu_1^2}{E_1}+\frac{1-\nu_2^2}{E_2}\right)^{-1}=\frac{3}{4}E.
 
 Plugging :eq:`schwarz-pc-alpha` into :eq:`schwarz-delta-pc`, we obtain
 
@@ -143,7 +139,7 @@ is strictly positive as :math:`\xi`, :math:`R` and positive and :math:`a` non-ne
 
 Given known penetration :math:`\delta`, we can find the corresponding value of :math:`a` with `Newton-Raphson <http://en.wikipedia.org/wiki/Newton-Raphson>`__ or `Halley's <http://en.wikipedia.org/wiki/Halley%27s_method>`__ methods. There are two solutions for all :math:`\delta\in(\delta_\min\dots 0\rangle`. The solution for the ascending branch (:math:`\delta'(a<a_\min)>0`) is energetically unstable and we can ignore it in numerical simulations. As initial solution for iteration, the value of e.g. :math:`2a_\min` can be used when the contact is :obj:`fresh <woo.dem.Contact.isFresh>`, the previous value of :math:`a` is a good starting point otherwise.
 
-This plot shows both loading and unloading (unstable) branches, obtained via Newton iteration (bisection for the unstable branch for simplicity); this plot reproduces :cite:`Maugis1991`, Fig. 6.:
+This plot shows both loading and unloading (unstable) branches, obtained via Newton iteration (bisection for the unstable branch for simplicity); this plot reproduces :cite:`Maugis1992`, Fig. 6.:
 
 .. plot::
 
