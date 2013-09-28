@@ -97,7 +97,7 @@ def main(sysArgv=None):
 	par.add_argument('-n',help="Run without graphical interface (equivalent to unsetting the DISPLAY environment variable)",dest='nogui',action='store_true')
 	par.add_argument('-D','--debug',help='Run the debug build, if available.',dest='debug',action='store_true')
 	# quirks set flags in options
-	par.add_argument('--quirks',help='Bitmask for workarounds for broken configurations; all quirks are enabled by default. 1: set LIBGL_ALWAYS_SOFTWARE=1 for Intel GPUs (determined from `lspci | grep VGA`) (avoids GPU freeze), 2: set --in-gdb when on AMD FirePro GPUs to avoid crash in fglrx.so',dest='quirks',type=int,default=3) # , except the Intel one (seems to work properly now)
+	par.add_argument('--quirks',help='Bitmask for workarounds for broken configurations; all quirks are enabled by default. 1: set LIBGL_ALWAYS_SOFTWARE=1 for Intel GPUs (determined from `lspci | grep VGA`) (avoids GPU freeze), 2: set --in-gdb when on AMD FirePro GPUs to avoid crash in fglrx.so (when using the fglrx driver)',dest='quirks',type=int,default=3) # , except the Intel one (seems to work properly now)
 	par.add_argument('--flavor',help='Build flavor of woo to use.',type=str,default=flavorFromArgv0(sys.argv[0]))
 	#
 	# end store in *options*
@@ -173,12 +173,15 @@ def main(sysArgv=None):
 		sys.exit(subprocess.call(argv))
 	# QUIRK running in gdb
 	if (options.quirks & options.quirkFirePro) and (not options.forceNoGui and 'DISPLAY' in os.environ):
-		vgas=os.popen("LC_ALL=C lspci | grep VGA").readlines()
-		if sum(['FirePro' in vga for vga in vgas]):
-			print 'AMD FirePro GPU detected, will run inside gdb to avoid crash in buggy fglrx.so.'
-			opts.inGdb=True
-			# disable quirk to avoid infinite loop
-			sys.argv=[sys.argv[0]]+['--quirks=%d'%(options.quirks&(~options.quirkFirePro))]+[a for a in sys.argv[1:] if not a.startswith('--quirks')]
+		vgas=os.popen("LC_ALL=C lspci -nnk | grep VGA -A3").readlines()
+		if sum (['FirePro' in vga for vga in vgas]):
+			if sum(['fglrx' in vga for vga in vgas]):
+				print 'AMD FirePro GPU detected, will run inside gdb to avoid crash in buggy fglrx.so.'
+				opts.inGdb=True
+				# disable quirk to avoid infinite loop
+				sys.argv=[sys.argv[0]]+['--quirks=%d'%(options.quirks&(~options.quirkFirePro))]+[a for a in sys.argv[1:] if not a.startswith('--quirks')]
+			else:
+				print 'AMD FirePro GPU without fglrx detected (quirk ignored).'
 	# re-run inside gdb
 	if opts.inGdb:
 		import tempfile, subprocess

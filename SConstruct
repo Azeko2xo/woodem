@@ -237,6 +237,13 @@ def CheckCXX(context):
 	context.Message('Checking whether c++ compiler "%s %s" works...'%(env['CXX'],' '.join(env['CXXFLAGS'])))
 	ret=context.TryLink('#include<iostream>\nint main(int argc, char**argv){std::cerr<<std::endl;return 0;}\n','.cpp')
 	context.Result(ret)
+	# see http://llvm.org/bugs/show_bug.cgi?id=13530#c3, workaround number 4.
+	if 'clang' in context.env['CXX']:
+		context.env.Append(CPPDEFINES={'__float128':'void'})
+	# we REQUIRE gold to build Woo under Linux (not ld.bfd, the old GNU linker)
+	# binutils now require us to select gold explicitly (see https://launchpad.net/ubuntu/saucy/+source/binutils/+changelog)
+	# this option adds this to gcc and is hopefully backwards-compatible as to not break other builds
+	env.Append(LINKFLAGS='-fuse-ld=gold')
 	return ret
 
 def CheckPython(context):

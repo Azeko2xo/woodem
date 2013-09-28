@@ -375,7 +375,9 @@ def Object_load(typ,inFile,format='auto'):
 		# detect real format here (head is uncompressed already)
 		# the string between nulls is 'serialization::archive'
 		# see http://stackoverflow.com/questions/10614215/magic-for-detecting-boostserialization-file
-		if head.startswith('\x16\x00\x00\x00\x00\x00\x00\x00\x73\x65\x72\x69\x61\x6c\x69\x7a\x61\x74\x69\x6f\x6e\x3a\x3a\x61\x72\x63\x68\x69\x76\x65\x09\x00'):
+		# newer versions (1.51 and perhaps greater) put '\n' (\x0a) after serialization::archive instead of null,
+		# so let's just not test the byte after "archive"
+		if head.startswith('\x16\x00\x00\x00\x00\x00\x00\x00\x73\x65\x72\x69\x61\x6c\x69\x7a\x61\x74\x69\x6f\x6e\x3a\x3a\x61\x72\x63\x68\x69\x76\x65'):
 			format='boost::serialization'
 		elif head.startswith('<?xml version="1.0"'):
 			format='boost::serialization'

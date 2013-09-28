@@ -210,6 +210,7 @@ cppDef+=[
 cppDef+=[('WOO_'+feature.upper().replace('-','_'),None) for feature in features]
 cppDirs+=[pathSourceTree]
 
+
 cxxStd='c++11'
 ## this is needed for packaging on Ubuntu 12.04, where gcc 4.6 is the default
 if DISTBUILD=='debian':
@@ -249,6 +250,9 @@ if WIN:
 	cxxLibs=[(lib+boostTag if lib.startswith('boost_') else lib) for lib in cxxLibs]
 else:
 	cppDirs+=['/usr/include/eigen3']
+	# we want to use gold with gcc under Linux
+	# binutils now require us to select gold explicitly (see https://launchpad.net/ubuntu/saucy/+source/binutils/+changelog)
+	linkFlags+=['-fuse-ld=gold']
 	
 ##
 ## Debug-specific
@@ -269,6 +273,7 @@ if 'openmp' in features:
 	cxxFlags.append('-fopenmp')
 if 'opengl' in features:
 	if WIN: cxxLibs+=['opengl32','glu32','glut','gle','QGLViewer2']
+	# XXX: this will fail in Ubuntu >= 13.10 which calls this lib QGLViewer
 	else: cxxLibs+=['GL','GLU','glut','gle','qglviewer-qt4']
 	# qt4 without OpenGL is pure python and needs no additional compile options
 	if ('qt4' in features):
