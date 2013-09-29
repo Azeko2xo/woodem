@@ -38,8 +38,16 @@
 #include<sys/stat.h>
 // END workaround
 
-// require eigen3
-//#define EIGEN_NO_DEBUG
+/* clang 3.3 warns:
+		/usr/include/eigen3/Eigen/src/Core/products/SelfadjointMatrixVector.h:82:5: warning: 'register' storage class specifier is deprecated [-Wdeprecated]
+			register const Scalar* __restrict A0 = lhs + j*lhsStride;
+	we silence this warning with diagnostic pragmas:
+*/
+#ifdef __clang__
+	#pragma GCC diagnostic push
+	#pragma GCC diagnostic ignored "-Wdeprecated"
+#endif
+#define EIGEN_NO_DEBUG
 #include<Eigen/Core>
 #include<Eigen/Geometry>
 #include<Eigen/Eigenvalues>
@@ -47,13 +55,16 @@
 #include<Eigen/LU>
 #include<Eigen/SVD>
 #include<float.h>
+#ifdef __clang__
+	#pragma GCC diagnostic pop
+#endif
 
 // mimick expectation macros that linux has (see e.g. http://kerneltrap.org/node/4705)
 #ifndef likely
 	#define likely(x) __builtin_expect(!!(x),1)
 #endif
 #ifndef unlikely
-	#define unlikely(x) __builtin_expect(!!(x),1)
+	#define unlikely(x) __builtin_expect(!!(x),0)
 #endif
 
 // templates of those types with single parameter are not possible, use macros for now
@@ -211,24 +222,9 @@ const Real NaN(std::numeric_limits<Real>::signaling_NaN());
 __attribute__((unused))
 const Real Inf(std::numeric_limits<Real>::infinity());
 
-// void quaternionToEulerAngles (const Quaternionr& q, Vector3r& eulerAngles,Real threshold=1e-6f);
-template<typename Scalar> void quaterniontoGLMatrix(const Quaternion<Scalar>& q, Scalar m[16]){
-	Scalar w2=2.*q.w(), x2=2.*q.x(), y2=2.*q.y(), z2=2.*q.z();
-	Scalar x2w=w2*q.w(), y2w=y2*q.w(), z2w=z2*q.w();
-	Scalar x2x=x2*q.x(), y2x=y2*q.x(), z2x=z2*q.x();
-	Scalar x2y=y2*q.y(), y2y=y2*q.y(), z2y=z2*q.y();
-	Scalar x2z=z2*q.z(), y2z=y2*q.z(), z2z=z2*q.z();
-	m[0]=1.-(y2y+z2z); m[4]=y2x-z2w;      m[8]=z2x+y2w;       m[12]=0;
-	m[1]=y2x+z2w;      m[5]=1.-(x2x+z2z); m[9]=z2y-x2w;       m[13]=0;
-	m[2]=z2x-y2w;      m[6]=z2y+x2w;      m[10]=1.-(x2x+y2y); m[14]=0;
-	m[3]=0.;           m[7]=0.;           m[11]=0.;           m[15]=1.;
-}
-
-
 /*
  * Serialization of math classes
  */
-
 
 #include<boost/serialization/nvp.hpp>
 #include<boost/serialization/is_bitwise_serializable.hpp>

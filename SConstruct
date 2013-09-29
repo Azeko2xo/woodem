@@ -234,12 +234,12 @@ if len(sys.argv)>1 and ('clean' in sys.argv) or ('tags' in sys.argv) or ('doc' i
 env.Append(CPPPATH='',LIBPATH='',LIBS='',CXXFLAGS=('-std='+env['cxxstd'] if env['cxxstd'] else ''),SHCCFLAGS='',SHLINKFLAGS='')
 
 def CheckCXX(context):
-	context.Message('Checking whether c++ compiler "%s %s" works...'%(env['CXX'],' '.join(env['CXXFLAGS'])))
-	ret=context.TryLink('#include<iostream>\nint main(int argc, char**argv){std::cerr<<std::endl;return 0;}\n','.cpp')
-	context.Result(ret)
 	# see http://llvm.org/bugs/show_bug.cgi?id=13530#c3, workaround number 4.
 	if 'clang' in context.env['CXX']:
 		context.env.Append(CPPDEFINES={'__float128':'void'})
+	context.Message('Checking whether c++ compiler "%s %s" works...'%(env['CXX'],' '.join(env['CXXFLAGS'])))
+	ret=context.TryLink('#include<iostream>\nint main(int argc, char**argv){std::cerr<<std::endl;return 0;}\n','.cpp')
+	context.Result(ret)
 	# we REQUIRE gold to build Woo under Linux (not ld.bfd, the old GNU linker)
 	# binutils now require us to select gold explicitly (see https://launchpad.net/ubuntu/saucy/+source/binutils/+changelog)
 	# this option adds this to gcc and is hopefully backwards-compatible as to not break other builds
@@ -284,6 +284,10 @@ def EnsureBoostVersion(context,version):
 def CheckBoost(context):
 	context.Message('Checking boost libraries... ')
 	libs=[
+		# this might fail with clang, as boost_system requires boost_thread (and vice versa)
+		# if boost_system fails, it will be added in checkLib_MaybeMT for boost_thread
+		# as workaround, so everybody will be happy in the end
+		# no idea what is clang doing
 		('boost_system','boost/system/error_code.hpp','boost::system::error_code();',False),
 		('boost_thread','boost/thread/thread.hpp','boost::thread();',True),
 		('boost_date_time','boost/date_time/posix_time/posix_time.hpp','boost::posix_time::time_duration();',True),
@@ -299,6 +303,11 @@ def CheckBoost(context):
 		for LIB in (lib,lib+'-mt'):
 			LIBS=env['LIBS'][:]; context.env.Append(LIBS=[LIB])
 			if context.TryLink('#include<'+header+'>\nint main(void){'+func+';}','.cpp'): return True
+			# with boost_thread, try to link boost_system (or boost_system-mt) in addition
+			# as it might fail with clang otherwise (DSO not specified on the command-line)
+			if lib=='boost_thread':
+				LIBS=env['LIBS'][:]; context.env.Append(LIBS=[LIB,'boost_system'+('-mt' if LIB.endswith('-mt') else '')])
+				if context.TryLink('#include<'+header+'>\nint main(void){'+func+';}','.cpp'): return True
 			env['LIBS']=LIBS
 		return False
 	for lib,header,func,mandatory in libs:

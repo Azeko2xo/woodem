@@ -118,7 +118,7 @@ def prepareHorse(pre):
 	S.engines=S.engines+[
 		BoxDeleter(box=((xMin,yMin,zMin-.1*zSpan),(xMax,yMax,aabb[1][2]+.1*zSpan)),inside=False,stepPeriod=100),
 		VtkExport(out=pre.vtkPrefix,stepPeriod=pre.vtkStep,what=VtkExport.all,dead=(pre.vtkStep<=0 or not pre.vtkPrefix))
-		]+([Tracer(stepPeriod=20,num=16,compress=0,compSkip=2,dead=False,scalar=Tracer.scalarVel,label='_tracer')] if 'opengl' in woo.config.features else [])
+		]+([Tracer(stepPeriod=20,num=16,compress=0,compSkip=2,dead=False,scalar=Tracer.scalarVel,label='tracer')] if 'opengl' in woo.config.features else [])
 
 	#woo.master.timingEnabled=True
 	S.dt=pre.pWaveSafety*woo.utils.pWaveDt(S)

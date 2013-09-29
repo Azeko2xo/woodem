@@ -118,7 +118,7 @@ void ConveyorFactory::postLoad(ConveyorFactory&,void* attr){
 void ConveyorFactory::sortPacking(const Real& zTrimVol){
 	if(radii.size()!=centers.size()) throw std::logic_error("ConveyorFactory.sortPacking: radii.size()!=centers.size()");
 	if(hasClumps() && radii.size()!=clumps.size()) throw std::logic_error("ConveyorFactory.sortPacking: clumps not empty and clumps.size()!=centers.size()");
-	if(!cellLen>0 /*catches NaN as well*/) ValueError("ConveyorFactory.cellLen must be positive (not "+to_string(cellLen)+")");
+	if(!(cellLen>0) /*catches NaN as well*/) ValueError("ConveyorFactory.cellLen must be positive (not "+to_string(cellLen)+")");
 	size_t N=radii.size();
 	// sort spheres according to their x-coordinate
 	// copy arrays to structs first
