@@ -377,7 +377,7 @@ void Scene::doOneStep(){
 		if(!isnan(nextDt)){ dt=nextDt; nextDt=NaN; }
 	} else {
 		/* IMPORTANT: take care to copy EXACTLY the same sequence as is in the block above !! */
-		if(TimingInfo::enabled){ TimingInfo::enabled=false; LOG_INFO("O.timingEnabled disabled, since O.subStepping is used."); }
+		if(TimingInfo::enabled){ TimingInfo::enabled=false; LOG_INFO("Master.timingEnabled disabled, since Master.subStepping is used."); }
 		if(subStep<-1 || subStep>(int)engines.size()){ LOG_ERROR("Invalid value of Scene::subStep ("<<subStep<<"), setting to -1 (prologue will be run)."); subStep=-1; }
 		// if subStepping is disabled, it means we have not yet finished last step completely; in that case, do that here by running all remaining substeps at once
 		// if subStepping is enabled, just run the step we need (the loop is traversed only once, with subs==subStep)

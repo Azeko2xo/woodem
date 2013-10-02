@@ -193,7 +193,7 @@ struct Scene: public Object{
 		, /* py */
 		.add_property("tags",&Scene::pyGetTags,"Arbitrary key=value associations (tags like mp3 tags: author, date, version, description etc.")
 		.add_property("duration",&Scene::pyGetDuration,"Number of (wall clock) seconds this instance is alive (including time before being loaded from file")
-		.add_property("cell",&Scene::pyGetCell,"Periodic space configuration (is None for aperiodic scene); set :ref:`Scene.periodic` to enable/disable periodicity")
+		.add_property("cell",&Scene::pyGetCell,"Periodic space configuration (is None for aperiodic scene); set :obj:`periodic` to enable/disable periodicity")
 		.def_readwrite("periodic",&Scene::isPeriodic,"Set whether the scene is periodic or not")
 		.add_property("engines",&Scene::pyEnginesGet,&Scene::pyEnginesSet,"Engine sequence in the simulation")
 		.add_property("_currEngines",py::make_getter(&Scene::engines,py::return_value_policy<py::return_by_value>()),"Current engines, debugging only")

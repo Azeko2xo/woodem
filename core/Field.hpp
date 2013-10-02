@@ -65,7 +65,7 @@ struct ScalarRange: public Object{
 	void setHidden(bool h) { if(!h) flags&=~RANGE_HIDDEN; else flags|=RANGE_HIDDEN; }
 
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ScalarRange,Object,"Store and share range of scalar values",
-		((Vector2r,mnmx,Vector2r(std::numeric_limits<Real>::infinity(),-std::numeric_limits<Real>::infinity()),AttrTrait<Attr::triggerPostLoad>().buttons({"Reset","self.reset()","Re-initialize range"}),"Packed minimum and maximum values; adjusting from python sets :ref:`autoAdjust` to false automatically."))
+		((Vector2r,mnmx,Vector2r(std::numeric_limits<Real>::infinity(),-std::numeric_limits<Real>::infinity()),AttrTrait<Attr::triggerPostLoad>().buttons({"Reset","self.reset()","Re-initialize range"}),"Packed minimum and maximum values; adjusting from python sets :obj:`autoAdjust` to false automatically."))
 		((int,flags,(RANGE_AUTO_ADJUST),AttrTrait<>().bits({"autoAdjust","symmetric","reversed","hidden"}),"Flags for this range: autoAdjust, symmetric, reversed, hidden."))
 		//((bool,autoAdjust,true,,"Automatically adjust range using given values."))
 		//((bool,sym,false,,"Force maximum to be negative of minimum and vice versa (only with autoadjust)"))

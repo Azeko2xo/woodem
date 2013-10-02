@@ -17,6 +17,8 @@
 Qt4's inputhook support function
 
 Author: Christian Boos
+
+This file is copied from https://github.com/ipython/ipython/blob/66c77ff392ad7425f8443e1343f5bf8c84a7b5d7/IPython/lib/inputhookqt4.py for internal use in Woo.
 """
 
 #-----------------------------------------------------------------------------
@@ -41,28 +43,15 @@ from IPython.lib.inputhook import allow_CTRL_C, ignore_CTRL_C, stdin_ready
 def create_inputhook_qt4(mgr, app=None):
     """Create an input hook for running the Qt4 application event loop.
 
-    Parameters:
+    :param mgr: an InputHookManager
+    :param app: Qt Application, optional. Running application to use.  If not given, we probe Qt for an existing application object, and create a new one if none is found.
+    :returns: A pair consisting of a Qt Application (either the one given or the  one found or created) and a inputhook.
 
-    mgr : an InputHookManager
+    .. note::
 
-    app : Qt Application, optional.
-        Running application to use.  If not given, we probe Qt for an
-        existing application object, and create a new one if none is found.
+        We use a custom input hook instead of PyQt4's default one, as it interacts better with the readline packages (issue #481).
 
-    Returns:
-
-    A pair consisting of a Qt Application (either the one given or the
-    one found or created) and a inputhook.
-
-    Notes:
-
-    We use a custom input hook instead of PyQt4's default one, as it
-    interacts better with the readline packages (issue #481).
-
-    The inputhook function works in tandem with a 'pre_prompt_hook'
-    which automatically restores the hook as an inputhook in case the
-    latter has been temporarily disabled after having intercepted a
-    KeyboardInterrupt.
+        The inputhook function works in tandem with a 'pre_prompt_hook' which automatically restores the hook as an inputhook in case the latter has been temporarily disabled after having intercepted a KeyboardInterrupt.
     """
 
     if app is None:

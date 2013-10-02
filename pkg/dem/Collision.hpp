@@ -21,14 +21,14 @@ WOO_REGISTER_OBJECT(Aabb);
 struct Gl1_Aabb: public GlBoundFunctor{
 	virtual void go(const shared_ptr<Bound>&);
 	RENDERS(Aabb);
-	WOO_CLASS_BASE_DOC(Gl1_Aabb,GlBoundFunctor,"Render Axis-aligned bounding box (:ref:`AAbb`).");
+	WOO_CLASS_BASE_DOC(Gl1_Aabb,GlBoundFunctor,"Render Axis-aligned bounding box (:obj:`woo.dem.Aabb`).");
 };
 WOO_REGISTER_OBJECT(Gl1_Aabb);
 #endif
 
 
 struct BoundFunctor: public Functor1D</*dispatch types*/ Shape,/*return type*/ void, /*argument types*/ TYPELIST_1(const shared_ptr<Shape>&)>{
-	WOO_CLASS_BASE_DOC(BoundFunctor,Functor,"Functor for creating/updating :ref:`woo.dem.Bound`.");
+	WOO_CLASS_BASE_DOC(BoundFunctor,Functor,"Functor for creating/updating :obj:`woo.dem.Bound`.");
 };
 WOO_REGISTER_OBJECT(BoundFunctor);
 
@@ -58,7 +58,7 @@ struct Collider: public Engine{
 		*/
 		virtual void invalidatePersistentData(){}
 		// ctor with functors for the integrated BoundDispatcher
-	/* \n\n.. admonition:: Special constructor\n\n\tDerived colliders (unless they override ``pyHandleCustomCtorArgs``) can be given list of :ref:`BoundFunctors <BoundFunctor>` which is used to initialize the internal :ref:`boundDispatcher <Collider.boundDispatcher>` instance. */
+	/* \n\n.. admonition:: Special constructor\n\n\tDerived colliders (unless they override ``pyHandleCustomCtorArgs``) can be given list of :obj:`BoundFunctors <BoundFunctor>` which is used to initialize the internal :obj:`boundDispatcher <Collider.boundDispatcher>` instance. */
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Collider,Engine,"Abstract class for finding spatial collisions between bodies."
 		,/*attrs*/
 		,/*ctor*/

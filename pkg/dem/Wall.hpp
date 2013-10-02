@@ -23,7 +23,7 @@ WOO_REGISTER_OBJECT(Wall);
 struct Bo1_Wall_Aabb: public BoundFunctor{
 	virtual void go(const shared_ptr<Shape>&);
 	FUNCTOR1D(Wall);
-	WOO_CLASS_BASE_DOC(Bo1_Wall_Aabb,BoundFunctor,"Creates/updates an :ref:`Aabb` of a :ref:`Wall`");
+	WOO_CLASS_BASE_DOC(Bo1_Wall_Aabb,BoundFunctor,"Creates/updates an :obj:`Aabb` of a :obj:`Wall`");
 };
 WOO_REGISTER_OBJECT(Bo1_Wall_Aabb);
 
@@ -43,7 +43,7 @@ WOO_REGISTER_OBJECT(In2_Wall_ElastMat);
 struct Gl1_Wall: public GlShapeFunctor{	
 	virtual void go(const shared_ptr<Shape>&, const Vector3r&, bool,const GLViewInfo&);
 	DECLARE_LOGGER;
-	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Wall,GlShapeFunctor,"Renders :ref:`Wall` object",
+	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Wall,GlShapeFunctor,"Renders :obj:`woo.dem.Wall` object",
 		((int,div,20,,"Number of divisions of the wall inside visible scene part."))
 	);
 	RENDERS(Wall);

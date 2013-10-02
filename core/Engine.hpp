@@ -85,9 +85,9 @@ class Engine: public Object {
 		((bool,isNewObject,true,AttrTrait<Attr::hidden>(),"Flag to recognize in postLoad whether this object has just been constructed, to set userAssignedField properly (ugly...)"))
 		,/* ctor */ setDefaultScene(); ,
 		/* py */
-		.add_property("execTime",&Engine::timingInfo_nsec_get,&Engine::timingInfo_nsec_set,"Cummulative time this Engine took to run (only used if :ref:`O.timingEnabled<Master.timingEnabled>`\\ ==\\ ``True``).")
-		.add_property("execCount",&Engine::timingInfo_nExec_get,&Engine::timingInfo_nExec_set,"Cummulative count this engine was run (only used if :ref:`O.timingEnabled<Master.timingEnabled>`\\ ==\\ ``True``).")
-		.def_readonly("timingDeltas",&Engine::timingDeltas,"Detailed information about timing inside the Engine itself. Empty unless enabled in the source code and :ref:`O.timingEnabled<Master.timingEnabled>`\\ ==\\ ``True``.")
+		.add_property("execTime",&Engine::timingInfo_nsec_get,&Engine::timingInfo_nsec_set,"Cummulative time this Engine took to run (only used if :obj:`Master.timingEnabled`\\ ==\\ ``True``).")
+		.add_property("execCount",&Engine::timingInfo_nExec_get,&Engine::timingInfo_nExec_set,"Cummulative count this engine was run (only used if :obj:`Master.timingEnabled`\\ ==\\ ``True``).")
+		.def_readonly("timingDeltas",&Engine::timingDeltas,"Detailed information about timing inside the Engine itself. Empty unless enabled in the source code and :obj:`Master.timingEnabled`\\ ==\\ ``True``.")
 		.def("__call__",&Engine::explicitRun)
 		.def("acceptsField",&Engine::acceptsField)
 		.add_property("field",&Engine::field_get,&Engine::field_set,"Field to run this engine on; if unassigned, or set to *None*, automatic field selection is triggered.")
@@ -157,7 +157,7 @@ struct PyRunner: public PeriodicEngine{
 	virtual bool needsField(){ return false; }
 	virtual void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d);
 	WOO_CLASS_BASE_DOC_ATTRS(PyRunner,PeriodicEngine,
-		"Execute a python command periodically, with defined (and adjustable) periodicity. See :ref:`PeriodicEngine` documentation for details.\n\n.. admonition:: Special constructor\n\n*command* can be given as first unnamed string argument (``PyRunner('foo()')``), stepPeriod as unnamed integer argument (``PyRunner('foo()',100)`` or ``PyRunner(100,'foo()')``).",
+		"Execute a python command periodically, with defined (and adjustable) periodicity. See :obj:`PeriodicEngine` documentation for details.\n\n.. admonition:: Special constructor\n\n*command* can be given as first unnamed string argument (``PyRunner('foo()')``), stepPeriod as unnamed integer argument (``PyRunner('foo()',100)`` or ``PyRunner(100,'foo()')``).",
 		((string,command,"",,"Command to be run by python interpreter. Not run if empty."))
 	);
 };

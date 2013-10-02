@@ -130,7 +130,7 @@ Many keyboard shortcuts are defined of which the most important ones are:
 * :kbd:`a` toggles display of axes;
 * :kbd:`g` displays axes grids (cycles between all possible combinations);
 * :kbd:`x`, :kbd:`X`, :kbd:`y`, :kbd:`Y`, :kbd:`z`, :kbd:`Z`: make selected axes point upwars and align the other two, i.e. show respectively the ``zx``, ``yx``, ``xy``, ``zy``, ``yz``, ``xz`` plane;
-* :kbd:`s` toggles displacement/rotations scaling (see :ref:`woo.gl.Renderer.scaleOn`);
+* :kbd:`s` toggles displacement/rotations scaling (see :obj:`woo.gl.Renderer.scaleOn`);
 * :kbd:`d` selects which time information is displayed;
 * :kbd:`Ctrl-c` copies the view to clipboard, as raster image (can be pasted to documents/graphics editors).
 
@@ -230,6 +230,8 @@ Loading is more involved due to type hierarchy; after loading, the object is che
    horse=woo.core.Object.loadTmp()                            # load from the default memory buffer
    horse=woo.core.Object.loadTmp('something')                 # load from a named memory buffer
 
+.. _serializationFormats:
+
 Formats
 --------
 
@@ -248,6 +250,7 @@ Dump formats
     They are not guaranteed to be compatible between versions either, but they do remain compatible as long as the same attributes of a particular object are defined. They are also safe to use with c++ objects extended in python.
 
 .. note::
+
    File extension is only important when saving an object and format is not specified -- auto-detection will be attempted based on file extension.
 
    Extension is disregarded when loading an object, the format is always detected from the actual contents of the file.

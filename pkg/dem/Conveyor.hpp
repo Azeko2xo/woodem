@@ -60,7 +60,7 @@ struct ConveyorFactory: public ParticleFactory{
 		((Real,lastX,0,AttrTrait<>().readonly(),"X-coordinate of last-generated particles in the packing"))
 		((list<shared_ptr<Node>>,barrier,,AttrTrait<>().readonly().noGui(),"Nodes which make up the barrier and will be unblocked once they leave barrierLayer."))
 		((shared_ptr<Node>,node,make_shared<Node>(),AttrTrait<>(),"Position and orientation of the factory; local x-axis is the feed direction."))
-		((Real,avgRate,NaN,AttrTrait<>().readonly().massFlowRateUnit(),"Average feed rate (computed from :ref:`material` density, packing and  and :ref:`vel`"))
+		((Real,avgRate,NaN,AttrTrait<>().readonly().massFlowRateUnit(),"Average feed rate (computed from :obj:`Material density <Material.density>`, packing and  and :obj:`vel`"))
 		((int,kinEnergyIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for kinetic energy in scene.energy"))
 		((vector<Vector2r>,genDiamMass,,AttrTrait<Attr::readonly>().noGui(),"List of generated diameters and masses (for making granulometry)"))
 		,/*ctor*/

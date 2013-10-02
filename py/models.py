@@ -6,20 +6,42 @@ Classes providing python-only implementation of various implementation models, m
 from math import pi,sqrt
 import numpy
 
-class HertzModel(object):
+class CundallModel(object):
+	'Linear model :cite:`Cundall1979`.'
+	def __init__(self,r1,r2,E1,E2=None,ktDivKn=.2,name=''):
+		'Initialize the model with constants. If E2 is not given, it is the same as E1'
+		if not E2: E2=E1
+		self.E1,self.E2=E1,E2
+		self.r1,self.r2=r1,r2
+		# fictious contact area for the linear model
+		self.contA=pi*min(self.r1,self.r2)**2
+		# normal stiffness
+		self.kn=(1./(self.r1/(self.E1*self.contA)+self.r2/(self.E2*self.contA)))
+		#
+		self.name=name
+	def F_u(uN):
+		'Return :math:`F=k_n u_N` (uses the Woo convention).'
+		return uN*self.kn
+	@staticmethod
+	def make_plot():
+		import pylab
+		pylab.figure()
+		uu=numpy.linspace(0,1e-3,num=100)
+		pylab.plot(uu,F_u(uu),label='Cundall model')
+		pylab.grid(True)
+		pylab.legend()
+
+
+class HertzModel(CundallModel):
 	'Purely elastic Hertz contact model; base class for :obj:`SchwarzModel`. For details, see :ref:`hertzian_contact_models`.'
 	def __init__(self,r1,r2,E1,nu1,E2=None,nu2=None,name=''):
-		'Initialize the model with constants. If E2 is not given, it is the same as E1; if nu2 is not given, it is the same as nu1.'
-		if not E2: E2=E1
+		'Initialize the model with constants. If nu2 is not given, it is the same as nu1. Passes most parameters to :obj:`CundallModel`.'
 		if not nu2: nu2=nu1
-		self.E1,self.E2=E1,E2
 		self.nu1,self.nu2=nu1,nu2
-		self.r1,self.r2=r1,r2
 		# effective modulus
-		self.K=(4/3.)*1./((1-nu1**2)/E1+(1-nu2**2)/E2)
+		self.K=(4/3.)*1./((1-self.nu1**2)/self.E1+(1-self.nu2**2)/self.E2)
 		# effective radius
-		self.R=1./(1./r1+1./r2)
-		self.name=name
+		self.R=1./(1./self.r1+1./self.r2)
 	def delta_a(self,a):
 		':math:`\\delta(a)`'
 		return a**2/self.R
@@ -111,7 +133,7 @@ class SchwarzModel(HertzModel):
 	@staticmethod
 	def normalized_plot(what,alphaGammaName,N=1000,stride=50):
 		'''
-		Create normalized plot as it appears in :cite:`Maugis1991` including range of axes with normalized quatntities. This function is mainly useful for documentation of Woo itself.
+		Create normalized plot as it appears in :cite:`Maugis1992` including range of axes with normalized quantities. This function is mainly useful for documentation of Woo itself.
 
 		:param what: one of ``a(delta)``, ``F(delta)``, ``a(F)``
 		:param alphaGammaName: list of (alpha,gamma,name) tuples which are passed to the :obj:`SchwarzModel` constructor

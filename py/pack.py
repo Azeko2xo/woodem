@@ -4,16 +4,19 @@
 """
 Creating packings and filling volumes defined by boundary representation or constructive solid geometry.
 
+
+.. warning:: Broken links ahead:
+
 For examples, see
 
-* :ysrc:`scripts/test/gts-operators.py`
-* :ysrc:`scripts/test/gts-random-pack-obb.py`
-* :ysrc:`scripts/test/gts-random-pack.py`
-* :ysrc:`scripts/test/pack-cloud.py`
-* :ysrc:`scripts/test/pack-predicates.py`
-* :ysrc:`examples/packs/packs.py`
-* :ysrc:`examples/gts-horse/gts-horse.py`
-* :ysrc:`examples/WireMatPM/wirepackings.py`
+* :woosrc:`scripts/test/gts-operators.py`
+* :woosrc:`scripts/test/gts-random-pack-obb.py`
+* :woosrc:`scripts/test/gts-random-pack.py`
+* :woosrc:`scripts/test/pack-cloud.py`
+* :woosrc:`scripts/test/pack-predicates.py`
+* :woosrc:`examples/packs/packs.py`
+* :woosrc:`examples/gts-horse/gts-horse.py`
+* :woosrc:`examples/WireMatPM/wirepackings.py`
 """
 
 import itertools,warnings,os
@@ -81,7 +84,7 @@ def SpherePack_fromSimulation(self,scene):
 SpherePack.fromSimulation=SpherePack_fromSimulation
 
 def SpherePack_toSimulation(self,scene,rot=Matrix3.Identity,**kw):
-	ur"""Append spheres directly to the simulation. In addition calling :ref:`O.bodies.append<BodyContainer.append>`,
+	ur"""Append spheres directly to the simulation. In addition calling :obj:`woo.dem.BodyContainer.append`,
 this method also appropriately sets periodic cell information of the simulation.
 
 	>>> from woo import pack; from math import *; from woo.dem import *; from woo.core import *
@@ -117,9 +120,9 @@ The current state (even if rotated) is taken as mechanically undeformed, i.e. wi
 	>>> scene.cell.trsf
 	Matrix3(1,0,0, 0,1,0, 0,0,1)
 
-:param Quaternion/Matrix3 rot: rotation of the packing, which will be applied on spheres and will be used to set :ref:`Cell.trsf` as well.
-:param **kw: passed to :ref:`woo.utils.sphere`
-:return: list of body ids added (like :ref:`O.bodies.append<BodyContainer.append>`)
+:param Quaternion/Matrix3 rot: rotation of the packing, which will be applied on spheres and will be used to set :obj:`woo.core.Cell.trsf` as well.
+:param **kw: passed to :obj:`woo.utils.sphere`
+:return: list of body ids added (like :obj:`woo.dem.BodyContainer.append`)
 """
 	if isinstance(rot,Quaternion): rot=rot.toRotationMatrix()
 	assert(isinstance(rot,Matrix3))

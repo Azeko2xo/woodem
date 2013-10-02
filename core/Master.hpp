@@ -175,8 +175,8 @@ class Master: public Singleton<Master>{
 			.def("saveTmpAny",&Master::saveTmp,(py::arg("obj"),py::arg("name")="",py::arg("quiet")=false),"Save any object to named temporary store; *quiet* will supress warning if the name is already used.")
 			.def("lsTmp",&Master::pyLsTmp,"Return list of all memory-saved simulations.")
 			.def("rmTmp",&Master::rmTmp,py::arg("name"),"Remove memory-saved simulation.")
-			.def("tmpToFile",&Master::pyTmpToFile,(py::arg("mark"),py::arg("fileName")),"Save XML of :ref:`saveTmp`'d simulation into *fileName*.")
-			.def("tmpToString",&Master::pyTmpToString,(py::arg("mark")=""),"Return XML of :ref:`saveTmp<Master.saveTmp>`'d simulation as string.")
+			.def("tmpToFile",&Master::pyTmpToFile,(py::arg("mark"),py::arg("fileName")),"Save XML of :obj:`saveTmp`'d simulation into *fileName*.")
+			.def("tmpToString",&Master::pyTmpToString,(py::arg("mark")=""),"Return XML of :obj:`saveTmp <Master.saveTmp>`'d simulation as string.")
 
 			.def("plugins",&Master::pyPlugins,"Return list of all plugins registered in the class factory.")
 			#ifdef WOO_OPENCL
@@ -200,7 +200,7 @@ class Master: public Singleton<Master>{
 			.def("childClassesNonrecursive",&Master::pyListChildClassesNonrecursive,"Return list of all classes deriving from given class, as registered in the class factory")
 			.def("isChildClassOf",&Master::pyIsChildClassOf,"Tells whether the first class derives from the second one (both given as strings).")
 
-			.add_property("timingEnabled",&Master::timingEnabled_get,&Master::timingEnabled_set,"Globally enable/disable timing services (see documentation of the :ref:`timing module<woo.timing>`).")
+			.add_property("timingEnabled",&Master::timingEnabled_get,&Master::timingEnabled_set,"Globally enable/disable timing services (see documentation of the :obj:`timing module <woo.timing>`).")
 			// setting numThreads by hand crashes OpenMP, is that a bug?
 			// in any case, we disable it here just to make sure
 			.add_property("numThreads",&Master::numThreads_get /*,&Master::numThreads_set*/,"Maximum number of threads openMP can use.")

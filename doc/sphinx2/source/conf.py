@@ -41,9 +41,15 @@ except ImportError:
 try:
 	import sphinxcontrib.bibtex
 except ImportError:
-	raise ImportError("BibTeX support for sphinx not found; isntall it using 'easu_install sphinxcontrib-bibtex'")
+	raise ImportError("BibTeX support for sphinx not found; install it using 'easy_install sphinxcontrib-bibtex'")
 
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.mathjax', 'sphinx.ext.viewcode', 'matplotlib.sphinxext.plot_directive', 'sphinx.ext.inheritance_diagram', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'tikz', ext_ipython_directive, 'sphinx.ext.extlinks', 'sphinxcontrib.bibtex']
+try:
+	import sphinxcontrib.newsfeed
+except ImportError:
+	raise ImportError("Disqus support for sphinx not found; install it using 'easy_install sphinxcontrib-newsfeed'")
+
+
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.mathjax', 'sphinx.ext.viewcode', 'matplotlib.sphinxext.plot_directive', 'sphinx.ext.inheritance_diagram', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'tikz', ext_ipython_directive, 'sphinx.ext.extlinks', 'sphinxcontrib.bibtex','sphinxcontrib.newsfeed']
 
 # customize prompts
 ipython_rgxin =re.compile('Woo \[(\d+)\]:\s?(.*)\s*')
@@ -60,12 +66,15 @@ todo_include_todos=True
 tikz_latex_preamble=r'\usepackage{pgfplots}'
 tikz_tikzlibraries=''
 
+# show discussion form at the bottom of every page
+disqus_shortname='woodem'
+rst_epilog='.. disqus::\n\n'
+
 extlinks={'woosrc':('http://bazaar.launchpad.net/~eudoxos/woo/trunk/view/head:/%s','source file ')}
 
 ## customize mathjax
 ## hack from https://bitbucket.org/birkenfeld/sphinx/issue/969/allow-mathjax-customization-via-localjs 
-# DISABLED, does not work!
-# mathjax_path = 'MathJax_local.js' # file including MathJax from CDN plus local config, in _static
+mathjax_path = 'MathJax_local.js' # file including MathJax from CDN plus local config, in _static
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

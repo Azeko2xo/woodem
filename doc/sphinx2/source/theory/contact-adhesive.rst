@@ -1,12 +1,10 @@
 .. _adhesive_contact_models:
 
-****************
+================
 Adhesive models
-****************
-In addition to hertzian models, adhesive models capture the effect of distance-dependent attractive force between particles. Adhesive models are usually mathematically rather complicated, extending the Hertz theory in some way. Usually the equations for :math:`\delta(a)` and :math:`a(P)` are provided, reflecting the typical use of adhesive models in microscopy fields. For DEM models, the relationship :math:`P(\delta)` is needed. In some cases, the :math:`\delta(a(P))` is not analytically invertible and solution must be sought by iteration which can have some performance impacts.
+================
 
-Symbols
-========
+In addition to hertzian models, adhesive models capture the effect of distance-dependent attractive force between particles. Adhesive models are usually mathematically rather complicated, extending the Hertz theory in some way. Usually the equations for :math:`\delta(a)` and :math:`a(P)` are provided, reflecting the typical use of adhesive models in microscopy fields. For DEM models, the relationship :math:`P(\delta)` is needed. In some cases, the :math:`\delta(a(P))` is not analytically invertible and solution must be sought by iteration which can have some performance impacts.
 
 Symbols used for adhesive models, in addition to those introduced for Hertzian models) are:
 
@@ -26,13 +24,13 @@ Symbols used for adhesive models, in addition to those introduced for Hertzian m
    :nowrap:
 
    \begin{align}
-      \hat a&=a\left(\frac{K}{pi\gamma R^2}\right)^{\frac{1}{3}}, \\
+      \hat a&=a\left(\frac{K}{\pi\gamma R^2}\right)^{\frac{1}{3}}, \\
       \hat\delta&=\delta\left(\frac{K^2}{\pi^2\gamma^2 R}\right)^{\frac{1}{3}}, \\
       \hat P&=P\frac{1}{\pi\gamma R}.
    \end{align}
 
 Derjaugin-Muller-Toporov (DMT)
-==============================
+-------------------------------
 
 The DMT model superposes adhesion outside of the area of contact as predicted by the Hertz model. The magnitude of adhesion is derived from surface energy :math:`\gamma` using thermodynamic approach (:cite:`Modenese2013` pg 39; :cite:`Derjaguin1975` derives adhesion force for one surface with nonzero surface energy, here we suppose they have together the surface energy of :math:`2\gamma`):
 
@@ -43,7 +41,7 @@ which acts against (negative sign) the elastic repulsion of particles :ref:`(eq)
 .. todo:: Mention JKR model, then MD as the one which accounts for the transition between both, and finally COS as a good approximation of MD.
 
 Schwarz model
-=============
+--------------
 
 Schwarz :cite:`Schwarz2003` proposes model which accounts for the DMT-JKR transition and, unlike the Maugis "Dugdale" model (:cite:`Maugis1992`), gives the :math:`a(F)` and :math:`\delta(a)` analytically. The surface energy is decomposed as short-range adhesion :math:`w_1` and long-range adhesion :math:`w_2`, i.e.
 
@@ -56,7 +54,7 @@ and their proportion determines whether the model is DMT-like or JKR-like. The c
    :label: schwarz-pc-w
 
 DMT-JKR transition
-------------------
+^^^^^^^^^^^^^^^^^^^
 
 For convenience, we will use the :math:`\alpha\in\langle 0\dots 1\rangle` dimensionless parameter introduced by Carpick, Ogletree and Salmeron in :cite:`Carpick1999` defined as (:cite:`Schwarz2003` (34))
 
@@ -89,7 +87,7 @@ We can see that extreme values of :math:`\alpha` recover DMT (as limit) or JKR m
 ============== =============== =============== ===========
 
 Contact radius
----------------
+^^^^^^^^^^^^^^^
 
 Contact radius and force are related by the function (:cite:`Schwarz2003` (36))
 
@@ -108,7 +106,7 @@ The following plot shows both functions (dots are the inverse relationship; this
    woo.models.SchwarzModel.normalized_plot('a(F)',alphaGammaName)
 
 Peneration
------------
+^^^^^^^^^^^^
 
 Penetration is given as (:cite:`Schwarz2003` (27))
 
@@ -125,10 +123,10 @@ where the :math:`\xi` term was introduced for readability. This equation is not 
    :nowrap:
 
    \begin{align}
-      \delta'(a)&=\frac{2a}{R}-4\xi a^{\frac{1}{2}} \\
+      \delta'(a)&=\frac{2a}{R}-2\xi a^{-\frac{1}{2}} \\
       \delta'(a_\min)&=0 \\
       a_\min&=(R\xi)^{\frac{2}{3}} \\
-      \delta_\min&=\delta(a_\min)=3R^{\frac{1}{3}}\xi^{\frac{4}{3}}.
+      \delta_\min&=\delta(a_\min)=-3R^{\frac{1}{3}}\xi^{\frac{4}{3}}.
    \end{align}
 
 The second derivative

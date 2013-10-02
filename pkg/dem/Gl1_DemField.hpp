@@ -58,7 +58,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 	WOO_CLASS_BASE_DOC_STATICATTRS_CTOR_PY(Gl1_DemField,GlFieldFunctor,"Render DEM field.",
 		((int,shape,SHAPE_ALL,AttrTrait<Attr::triggerPostLoad>().choice({{SHAPE_NONE,"none"},{SHAPE_ALL,"all"},{SHAPE_SPHERES,"spheres"},{SHAPE_NONSPHERES,"non-spheres"},{SHAPE_MASK,"mask"}}).startGroup("Shape"),"Render only particles matching selected filter."))
 		((uint,mask,0,,"Only shapes/bounds of particles with this group will be shown; 0 matches all particles."))
-		((bool,shape2,true,AttrTrait<Attr::triggerPostLoad>(),"Render also particles not matching :ref:`shape` (using :ref:`colorBy2`)"))
+		((bool,shape2,true,AttrTrait<Attr::triggerPostLoad>(),"Render also particles not matching :obj:`shape` (using :obj:`colorBy2`)"))
 		((Vector2i,modulo,Vector2i(0,0),,"For particles matching :obj:`shape`, only show particles with :obj:`Particle.id` such that ``(id+modulo[1])%modulo[0]==0`` (similar to :obj:`woo.dem.Tracer.modulo`). Only nodes of which first particle matches (or don't have any particle attached) are shown (in case of nodes, regardless of its :obj:`shape`). Display of contacts is not affected by this value."))
 		((bool,wire,false,,"Render all shapes with wire only"))
 
@@ -66,20 +66,20 @@ struct Gl1_DemField: public GlFieldFunctor{
 		((int,vecAxis,-1,AttrTrait<>().choice({{-1,"norm"},{0,"x"},{1,"y"},{2,"z"}}).hideIf("self.colorBy in (self.colorShape, self.colorRadius, self.colorMatId, self.colorMatState)"),"Axis for colorRefPosCoord"))
 		((int,matStateIx,0,AttrTrait<Attr::triggerPostLoad>().hideIf("self.colorBy!=self.colorMatState and self.colorBy2!=self.colorMatState"),"Index for getting :obj:`MatState` scalars."))
 		((Real,matStateSmooth,1e-3,AttrTrait<>().hideIf("self.colorBy!=self.colorMatState and self.colorBy2!=self.colorMatState"),"Smoothing coefficient for :obj:`MatState` scalars."))
-		((shared_ptr<ScalarRange>,colorRange,,AttrTrait<>().readonly().hideIf("self.colorBy in (self.colorSolid,self.colorInvisible)"),"Range for particle colors (:ref:`colorBy`)"))
+		((shared_ptr<ScalarRange>,colorRange,,AttrTrait<>().readonly().hideIf("self.colorBy in (self.colorSolid,self.colorInvisible)"),"Range for particle colors (:obj:`colorBy`)"))
 
-		((int,colorBy2,COLOR_SOLID,AttrTrait<Attr::triggerPostLoad>().choice({ GL1_DEMFIELD_COLORBY_CHOICES }).hideIf("not self.shape2"),"Color for particles with :ref:`shape2`."))
-		((shared_ptr<ScalarRange>,colorRange2,,AttrTrait<>().readonly().hideIf("not self.shape2 or self.colorBy2 in (self.colorSolid,self.colorInvisible)"),"Range for particle colors (:ref:`colorBy`)"))
+		((int,colorBy2,COLOR_SOLID,AttrTrait<Attr::triggerPostLoad>().choice({ GL1_DEMFIELD_COLORBY_CHOICES }).hideIf("not self.shape2"),"Color for particles with :obj:`shape2`."))
+		((shared_ptr<ScalarRange>,colorRange2,,AttrTrait<>().readonly().hideIf("not self.shape2 or self.colorBy2 in (self.colorSolid,self.colorInvisible)"),"Range for particle colors (:obj:`colorBy`)"))
 		((Vector3r,solidColor,Vector3r(.3,.3,.3),AttrTrait<>().rgbColor(),"Solid color for particles."))
 
 		((vector<shared_ptr<ScalarRange>>,colorRanges,,AttrTrait<>().readonly().noGui(),"List of color ranges"))
 
-		((bool,bound,false,,"Render particle's :ref:`Bound`"))
+		((bool,bound,false,,"Render particle's :obj:`Bound`"))
 		((bool,periodic,false,AttrTrait<>().noGui(),"Automatically shows whether the scene is periodic (to use in hideIf of :obj:`fluct`"))
 		((bool,fluct,false,AttrTrait<>().hideIf("not self.periodic or (self.colorBy not in (self.colorVel,self.colorAngVel) and self.glyph not in (self.glyphVel,))"),"With periodic boundaries, show only fluctuation components of velocity."))
 
 		((bool,nodes,false,AttrTrait<>().startGroup("Nodes"),"Render DEM nodes"))
-		((int,glyph,GLYPH_KEEP,AttrTrait<Attr::triggerPostLoad>().choice({{GLYPH_KEEP,"keep"},{GLYPH_NONE,"none"},{GLYPH_FORCE,"force"},{GLYPH_TORQUE,"torque"},{GLYPH_VEL,"velocity"}}),"Show glyphs on particles by setting :ref:`GlData` on their nodes."))
+		((int,glyph,GLYPH_KEEP,AttrTrait<Attr::triggerPostLoad>().choice({{GLYPH_KEEP,"keep"},{GLYPH_NONE,"none"},{GLYPH_FORCE,"force"},{GLYPH_TORQUE,"torque"},{GLYPH_VEL,"velocity"}}),"Show glyphs on particles by setting :obj:`GlData` on their nodes."))
 		((shared_ptr<ScalarRange>,glyphRange,,AttrTrait<>().readonly(),"Range for glyph colors"))
 		((Real,glyphRelSz,.1,,"Maximum glyph size relative to scene radius"))
 		((bool,deadNodes,true,,"Show :obj:`DemField.deadNodes <woo.dem.DemField.deadNodes>`."))

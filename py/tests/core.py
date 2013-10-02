@@ -326,38 +326,39 @@ class TestArrayAccu(unittest.TestCase):
 		for i in range(0,self.N):
 			self.assert_(self.t.aaccuRaw[0][i]==i) # each thread has written its own index
 
+class _TestPyClass(woo.core.Object,woo.pyderived.PyWooObject):
+	'Sample pure-python class integrated into woo (mainly used with preprocessors), for use with :obj:`TestPyDerived`.'
+	PAT=woo.pyderived.PyAttrTrait
+	_attrTraits=[
+		PAT(float,'aF',1.,'float attr'),
+		PAT([float,],'aFF',[0.,1.,2.],'list of floats attr'),
+		PAT(Vector2,'aV2',(0.,1.),'vector2 attr'),
+		PAT([Vector2,],'aVV2',[(0.,0.),(1.,1.)],'list of vector2 attr'),
+		PAT(woo.core.Node,'aNode',woo.core.Node(pos=(1,1,1)),'node attr'),
+		PAT(woo.core.Node,'aNodeNone',None,'node attr, uninitialized'),
+		PAT([woo.core.Node,],'aNNode',[woo.core.Node(pos=(1,1,1)),woo.core.Node(pos=(2,2,2))],'List of nodes'),
+		PAT(float,'aF_trigger',1.,triggerPostLoad=True,doc='Float triggering postLoad, copying its value to aF'),
+		PAT(int,'postLoadCounter',0,doc='counter for postLoad (readonly). Incremented by 1 after construction, incremented by 10 when assigning to aF_trigger.'),
+		PAT(str,'sChoice','aa',choice=['aa','bb','cc'],doc='String choice attribute')
+	]
+	def postLoad(self,I):
+		# print '_TestPyClass.postLoad(%s)'%I
+		if I==None:
+			self.postLoadCounter+=1
+		elif I==id(self.aF_trigger):
+			print 'postLoad / aF_trigger'
+			self.postLoadCounter+=10
+			self.aF=self.aF_trigger
+		else: raise RuntimeError(self.__class__.__name__+'.postLoad called with unknown attribute id %s'%I)
+	def __init__(self,**kw):
+		woo.core.Object.__init__(self)
+		self.wooPyInit(self.__class__,woo.core.Object,**kw)
+
 
 class TestPyDerived(unittest.TestCase):
 	import woo.pyderived, woo.core
-	class _TestPyClass(woo.core.Object,woo.pyderived.PyWooObject):
-		'Sample pure-python class integrated into woo (mainly used with preprocessors)'
-		PAT=woo.pyderived.PyAttrTrait
-		_attrTraits=[
-			PAT(float,'aF',1.,'float attr'),
-			PAT([float,],'aFF',[0.,1.,2.],'list of floats attr'),
-			PAT(Vector2,'aV2',(0.,1.),'vector2 attr'),
-			PAT([Vector2,],'aVV2',[(0.,0.),(1.,1.)],'list of vector2 attr'),
-			PAT(woo.core.Node,'aNode',woo.core.Node(pos=(1,1,1)),'node attr'),
-			PAT(woo.core.Node,'aNodeNone',None,'node attr, uninitialized'),
-			PAT([woo.core.Node,],'aNNode',[woo.core.Node(pos=(1,1,1)),woo.core.Node(pos=(2,2,2))],'List of nodes'),
-			PAT(float,'aF_trigger',1.,triggerPostLoad=True,doc='Float triggering postLoad, copying its value to aF'),
-			PAT(int,'postLoadCounter',0,doc='counter for postLoad (readonly). Incremented by 1 after construction, incremented by 10 when assigning to aF_trigger.'),
-			PAT(str,'sChoice','aa',choice=['aa','bb','cc'],doc='String choice attribute')
-		]
-		def postLoad(self,I):
-			# print '_TestPyClass.postLoad(%s)'%I
-			if I==None:
-				self.postLoadCounter+=1
-			elif I==id(self.aF_trigger):
-				print 'postLoad / aF_trigger'
-				self.postLoadCounter+=10
-				self.aF=self.aF_trigger
-			else: raise RuntimeError(self.__class__.__name__+'.postLoad called with unknown attribute id %s'%I)
-		def __init__(self,**kw):
-			woo.core.Object.__init__(self)
-			self.wooPyInit(self.__class__,woo.core.Object,**kw)
 	def setUp(self):
-		self.t=self._TestPyClass()
+		self.t=_TestPyClass()
 	def testTrigger(self):
 		'PyDerived: postLoad triggers'
 		print 'postLoadCounter after ctor:',self.t.postLoadCounter
@@ -376,7 +377,7 @@ class TestPyDerived(unittest.TestCase):
 		self.assert_(self.t.aNode.pos==Vector3(0,0,0))
 		# pickle needs the class to be found in the module itself
 		#    PicklingError: Can't pickle <class 'woo.tests.core._TestPyClass'>: it's not found as woo.tests.core._TestPyClass
-		globals()['_TestPyClass']=self._TestPyClass
+		# this is fixed now the class is defined at the module level
 		t2=self.t.deepcopy()
 		self.assert_(t2.aF==2.)
 		self.assert_(t2.aNode.pos==Vector3(0,0,0))
@@ -406,7 +407,7 @@ class TestPyDerived(unittest.TestCase):
 		except: self.fail("[None,Node] not accepted for list of Nodes")
 	def testTypeCoerceCtor(self):
 		'PyDerived: type coercion (ctor)'
-		self.assertRaises(TypeError,lambda:self._TestPyClass(aF='abc'))
+		self.assertRaises(TypeError,lambda:_TestPyClass(aF='abc'))
 	def testTraits(self):
 		'PyDerived: PyAttrTraits'
 		self.assert_(self.t._attrTraits[0].ini==1.)
@@ -418,14 +419,14 @@ class TestPyDerived(unittest.TestCase):
 		self.assert_(self.t.aNodeNone==None)
 	def testIniUser(self):
 		'PyDerived: user initialization'
-		t2=self._TestPyClass(aF=2.)
+		t2=_TestPyClass(aF=2.)
 		self.assert_(t2.aF==2.)
-		self.assertRaises(AttributeError,lambda: self._TestPyClass(nonsense=123))
+		self.assertRaises(AttributeError,lambda: _TestPyClass(nonsense=123))
 	def testStrValidation(self):
 		'PyDerived: string choice is validated'
 		try: self.t.sChoice='bb'
 		except: self.fail("Valid choice value not accepted as new attribute value")
 		self.assertRaises(ValueError, lambda: setattr(self.t,'sChoice','abc'))
-		self.assertRaises(ValueError, lambda: self._TestPyClass(sChoice='abc'))
-		try: self._TestPyClass(sChoice='bb')
+		self.assertRaises(ValueError, lambda: _TestPyClass(sChoice='abc'))
+		try: _TestPyClass(sChoice='bb')
 		except: self.fail("Valid choice value not accepted in ctor")

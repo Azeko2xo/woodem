@@ -24,8 +24,8 @@ WOO_REGISTER_OBJECT(Sphere);
 struct Bo1_Sphere_Aabb: public BoundFunctor{
 	void go(const shared_ptr<Shape>&);
 	FUNCTOR1D(Sphere);
-	WOO_CLASS_BASE_DOC_ATTRS(Bo1_Sphere_Aabb,BoundFunctor,"Functor creating :ref:`Aabb` from :ref:`Sphere`.",
-		((Real,distFactor,((void)"deactivated",-1),,"Relative enlargement of the bounding box; deactivated if negative.\n\n.. note::\n\tThis attribute is used to create distant contacts, but is only meaningful with an :ref:`CGeomFunctor` which will not simply discard such interactions: :ref:`Cg2_Sphere_Sphere_L6Geom::distFactor` should have the same value."))
+	WOO_CLASS_BASE_DOC_ATTRS(Bo1_Sphere_Aabb,BoundFunctor,"Functor creating :obj:`Aabb` from :obj:`Sphere`.",
+		((Real,distFactor,((void)"deactivated",-1),,"Relative enlargement of the bounding box; deactivated if negative.\n\n.. note::\n\tThis attribute is used to create distant contacts, but is only meaningful with an :obj:`CGeomFunctor` which will not simply discard such interactions: :obj:`Cg2_Sphere_Sphere_L6Geom::distFactor` should have the same value."))
 	);
 };
 WOO_REGISTER_OBJECT(Bo1_Sphere_Aabb);
@@ -60,7 +60,7 @@ class Gl1_Sphere: public GlShapeFunctor{
 		static Real prevQuality;
 	public:
 		virtual void go(const shared_ptr<Shape>&, const Vector3r&, bool,const GLViewInfo&);
-	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Sphere,GlShapeFunctor,"Renders :ref:`Sphere` object",
+	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Sphere,GlShapeFunctor,"Renders :obj:`Sphere` object",
 		((Real,quality,1.0,AttrTrait<>().range(Vector2r(0,8)),"Change discretization level of spheres. quality>1 for better image quality, at the price of more cpu/gpu usage, 0<quality<1 for faster rendering. If mono-color sphres are displayed (:obj:`stripes` = `False`), quality mutiplies :obj:`glutSlices` and :obj:`glutStacks`. If striped spheres are displayed (:obj:`stripes = `True`), only integer increments are meaningful: quality=1 and quality=1.9 will give the same result, quality=2 will give a finer result."))
 		((bool,wire,false,,"Only show wireframe (controlled by :obj:`glutSlices` and :obj:`glutStacks`."))
 		((bool,smooth,false,,"Render lines smooth (it makes them thicker and less clear if there are many spheres.)"))
@@ -70,8 +70,8 @@ class Gl1_Sphere: public GlShapeFunctor{
 			((bool,stripes,false,,"In non-wire rendering, show stripes clearly showing particle rotation."))
 			((bool,localSpecView,true,,"Compute specular light in local eye coordinate system."))
 		*/
-		((int,glutSlices,12,AttrTrait<Attr::noSave>().readonly(),"Base number of sphere slices, multiplied by :ref:`Gl1_Sphere::quality` before use); not used with ``stripes`` (see `glut{Solid,Wire}Sphere reference <http://www.opengl.org/documentation/specs/glut/spec3/node81.html>`_)"))
-		((int,glutStacks,6,AttrTrait<Attr::noSave>().readonly(),"Base number of sphere stacks, multiplied by :ref:`Gl1_Sphere::quality` before use; not used with ``stripes`` (see `glut{Solid,Wire}Sphere reference <http://www.opengl.org/documentation/specs/glut/spec3/node81.html>`_)"))
+		((int,glutSlices,12,AttrTrait<Attr::noSave>().readonly(),"Base number of sphere slices, multiplied by :obj:`Gl1_Sphere.quality` before use); not used with ``stripes`` (see `glut{Solid,Wire}Sphere reference <http://www.opengl.org/documentation/specs/glut/spec3/node81.html>`_)"))
+		((int,glutStacks,6,AttrTrait<Attr::noSave>().readonly(),"Base number of sphere stacks, multiplied by :obj:`Gl1_Sphere.quality` before use; not used with ``stripes`` (see `glut{Solid,Wire}Sphere reference <http://www.opengl.org/documentation/specs/glut/spec3/node81.html>`_)"))
 	);
 	RENDERS(Sphere);
 };

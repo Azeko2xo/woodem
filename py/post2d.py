@@ -11,7 +11,7 @@ of post2d.data.
 Flatteners
 ----------
 Instance of classes that convert 3d (model) coordinates to 2d (plot) coordinates. Their interface is
-defined by the :ref:`woo.post2d.Flatten` class (``__call__``, ``planar``, ``normal``).
+defined by the :obj:`woo.post2d.Flatten` class (``__call__``, ``planar``, ``normal``).
 
 Extractors
 ----------
@@ -69,7 +69,7 @@ class Flatten:
 	def __init__(self,dispScale=1.):
 		self.dispScale=dispScale
 	def __call__(self,b):
-		"Given a :ref:`Body` / :ref:`Interaction` instance, should return either 2d coordinates as a 2-tuple, or None if the Body should be discarded." 
+		"Given a :obj:`woo.dem.Particle` / :obj:`woo.dem.Contact` instance, should return either 2d coordinates as a 2-tuple, or None if the Body should be discarded." 
 		pass
 	def planar(self,pos,vec):
 		"Given position and vector value, project the vector value to the flat plane and return its 2 in-plane components."
@@ -168,8 +168,8 @@ def data(scene,extractor,flattener,con=False,onlyDynamic=True,stDev=None,relThre
 	The ``con`` parameter determines whether we operate on particles or contacts;
 	the extractor provided should expect to receive body/interaction.
 
-	:param callable extractor: receives :ref:`Body` (or :ref:`Interaction`, if ``con`` is ``True``) instance, should return scalar, a 2-tuple (vector fields) or None (to skip that body/interaction)
-	:param callable flattener: :ref:`woo.post2d.Flatten` instance, receiving body/interaction, returns its 2d coordinates or ``None`` (to skip that body/interaction)
+	:param callable extractor: receives :obj:`woo.dem.Particle` (or :obj:`woo.dem.Contact`, if ``con`` is ``True``) instance, should return scalar, a 2-tuple (vector fields) or None (to skip that body/interaction)
+	:param callable flattener: :obj:`woo.post2d.Flatten` instance, receiving body/interaction, returns its 2d coordinates or ``None`` (to skip that body/interaction)
 	:param bool con: operate on contacts rather than particles
 	:param bool onlyDynamic: skip all non-dynamic particles
 	:param float/None stDev: standard deviation for averaging, enables smoothing; ``None`` (default) means raw mode, where discrete points are returned
@@ -262,7 +262,7 @@ def plot(data,axes=None,alpha=.5,clabel=True,cbar=False,rawVecColorRadius=True,b
 	For vector data (raw or smooth), plot quiver (vector field), with arrows colored by the magnitude.
 
 	:param axes: matplotlib.axes\ instance where the figure will be plotted; if None, will be created from scratch.
-	:param data: value returned by :ref:`woo.post2d.data`
+	:param data: value returned by :obj:`woo.post2d.data`
 	:param bool clabel: show contour labels (smooth mode only), or annotate cells with numbers inside (with perArea==2)
 	:param bool cbar: show colorbar (equivalent to calling pylab.colorbar(mappable) on the returned mappable)
 	:param rawVecColorRadius: if True, use radius associated with each point to color arrows in raw quiver plot.

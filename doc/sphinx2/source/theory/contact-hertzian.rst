@@ -1,9 +1,9 @@
 .. _hertzian_contact_models:
 
 
-************************
+========================
 Hertzian contact models
-************************
+========================
 
 Hertz contact model is non-linear model which takes in account elastic deformation of spherical solids and changing contact radius. Pure Hertzian model only describes normal deformation of spheres. Later extensions of the model add viscosity, shear response including friction and adhesion. The nomenclature usually used in literature on these models is the following (see :cite:`Modenese2013`):
 
@@ -46,16 +46,12 @@ Moduli (different authors use either :math:`E` or :math:`K=\frac{3}{4}E`) are co
 
 where :math:`E_i` are Young's moduli of contacting particles (:obj:`woo.dem.ElastMat.young`) and :math:`\nu_i` their Poisson's ratios (:obj:`woo.dem.Cp2_FrictMat_HertzPhys.poisson`).
 
-Overlap :math:`\delta` is geomerically related to the contact radius :math:`a` by the relationship
-
-.. math:: a^2=R\delta.
-
 A good summary of various contact models is given at `Wikipedia <http://en.wikipedia.org/wiki/Contact_mechanics>`_.
 
 .. warning:: Literature on contact mechanics mostly gives positive sign to compressive stress. This is opposite than the convension used throughout Woo. Therefore the overlap :math:`\delta` is positive when spheres are overlapping (whereas :obj:`woo.dem.L6Geom.uN` is negative) and contact force :math:`P_{n}` is positive for compression (repulsion) whereas the normal (:math:`x`) component of :obj:`woo.dem.CPhys.force`  would be negative. Keep this in mind when reading sources.
 
 Hertz contact
-=============
+--------------
 
 Hertz gives contact pressure as 
 
@@ -65,11 +61,15 @@ with :math:`r\in(0,r)` and :math:`p_0` being the maximum pressure in the middle 
 
 .. math:: P_{ne}=\int_0^a p(r) 2\pi r \mathrm{d}\,r=\frac{2}{3}p_0\pi a^2.
 
-Hertz also relates the overlap :math:`\delta` to the contact force :math:`P_{ne}` by
+Using the geometrical relationship for non-adhesive contact
+
+.. math:: a^2=R\delta,
+
+we can express substitute to obtain
 
 .. _eq_hertz_elastic:
 
-.. math:: P_{ne}=\underbrace{\frac{4}{3}E\sqrt{R}}_{k_{n0}}\delta^{\frac{3}{2}}=k_{n0}\delta^{\frac{3}{2}}
+.. math:: P_{ne}=\underbrace{K\sqrt{R}}_{k_{n0}}\delta^{\frac{3}{2}}=k_{n0}\delta^{\frac{3}{2}}
 	:label: hertz-elastic
 
 where the :math:`k_{n0}` term is often separated (:obj:`woo.dem.HertzPhys.kn0`) as it is constant throughout the contact duration. :obj:`Secant stiffness <woo.dem.FrictPhys.kn>` of the contact is expressed as 
@@ -80,7 +80,7 @@ By combining the above, we also obtain:
 
 .. _eq_contact_radius_general:
 
-.. math:: a=\sqrt[3]{\frac{3R}{4E}P_{ne}}.
+.. math:: a=\sqrt[3]{\frac{R}{K}P_{ne}}.
 	:label: contact-radius-general
 
 :cite:`Antypov2011` also references Landau & Lifschitz's analytical solution for collision time of purely elastic collision as 
@@ -90,10 +90,10 @@ By combining the above, we also obtain:
 where :math:`\rho` is density of particles. There is a :obj:`regression test <woo.tests.hertz.TestHertz.testElasticCollisionTime>` verifying that simulated collision gives the same result.
 
 Viscosity
----------
+^^^^^^^^^^
 
 Coefficient of restitution
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""""""
 
 Observable collisions of particles usually result in some energy dissipation of which measure is `coefficient of restitution <http://en.wikipedia.org/wiki/Coefficient_of_restitution>`_ which can be expressed as the ratio of relative velocity before and after collision, :math:`\epsilon=v_0/v_1` where :math:`v_0`, :math:`v_1` are relative velocities before and after collision respectively.
 
@@ -106,7 +106,7 @@ Similarly, potential field (gravity) can be used to determine coefficient of res
 .. math:: \epsilon=\sqrt{\frac{h_1}{h_0}}.
 
 Viscous damping
-^^^^^^^^^^^^^^^
+""""""""""""""""
 
 Viscosity adds force :math:`P_c` linearly related to the current rate of overlap :math:`\dot\delta` with linear term :math:`\eta`, the viscous coefficient
 
@@ -131,7 +131,8 @@ The total contact force :math:`P_n` is superposition of the elastic response :ma
 	:label: hertz-viscoleastic
 
 Nonphysical attraction
-^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""
+
 The presence of viscous force can lead to attraction between spheres towards the end of collision (:math:`\dot\delta<0`) when :math:`P_n=P_{ne}+P_{nv}<0`. This effect is non-physical in the absence of adhesion. For this reason, such attractive force is ignored, though it can be changed by setting :obj:`woo.dem.Law2_L6Geom_HertzPhys_DMT.noAttraction`. 
 
 This effect is discussed in :cite:`Antypov2011` and should be taken in account when measuring coefficients of restitution in simulations (see `this discussion <https://answers.launchpad.net/yade/+question/235934>`__).

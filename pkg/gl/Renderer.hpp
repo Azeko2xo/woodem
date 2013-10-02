@@ -12,7 +12,7 @@
 struct GlExtraDrawer: public Object{
 	Scene* scene;
 	virtual void render();
-	WOO_CLASS_BASE_DOC_ATTRS(GlExtraDrawer,Object,"Performing arbitrary OpenGL drawing commands; called from :ref:`Renderer` (see :ref:`Renderer.extraDrawers`) once regular rendering routines will have finished.\n\nThis class itself does not render anything, derived classes should override the *render* method.",
+	WOO_CLASS_BASE_DOC_ATTRS(GlExtraDrawer,Object,"Performing arbitrary OpenGL drawing commands; called from :obj:`Renderer` (see :obj:`Renderer.extraDrawers`) once regular rendering routines will have finished.\n\nThis class itself does not render anything, derived classes should override the *render* method.",
 		((bool,dead,false,,"Deactivate the object (on error/exception)."))
 	);
 };
@@ -120,14 +120,14 @@ struct Renderer: public Object{
 		((bool,ranges,true,,"Show color scales for :obj:`Scene.ranges`"))
 		((bool,cell,true,,"Render periodic cell boundaries (periodic simulations only)"))
 		((bool,ghosts,false,,"Render objects crossing periodic cell edges by cloning them in multiple places (periodic simulations only)."))
-		((vector<shared_ptr<GlExtraDrawer>>,extraDrawers,,,"Additional rendering components (:ref:`GlExtraDrawer`)."))
+		((vector<shared_ptr<GlExtraDrawer>>,extraDrawers,,,"Additional rendering components (:obj:`GlExtraDrawer`)."))
 		((Vector3r,iniUp,Vector3r(0,0,1),,"Up vector of new views"))
 		((Vector3r,iniViewDir,Vector3r(-1,0,0),,"View direction of new views"))
 		((string,snapFmt,"/tmp/{id}.{#}.png",AttrTrait<>().filename(),"Format for saving snapshots; `{tag}` sequences are expanded with Scene.tags; a special `{#}` tag is expanded with snapshot number (so that older ones are not overwritten), starting from 0 and zero-padded to 4 decimal palces. File format is auto-detected from extension. Supported raster formats are .png and .jpg; if compiled with the gl2ps feature, .pdf, .svg, .svg.gz formats are supported as well (though slow and rather unrealiable!)."))
 
 		((bool,scaleOn,false,AttrTrait<>().startGroup("Scaling").buttons({"Reference now","woo.gl.Gl1_DemField.updateRefPos=True","use current positions and orientations as reference for scaling displacement/rotation."},/*showBefore*/false),"Whether *dispScale* has any effect or not."))
-		((Vector3r,dispScale,((void)"disable scaling",Vector3r::Ones()),,"Artificially enlarge (scale) dispalcements from bodies' :ref:`reference positions<State.refPos>` by this relative amount, so that they become better visible (independently in 3 dimensions). Disbled if (1,1,1), and also if *scaleOn* is false."))
-		((Real,rotScale,((void)"disable scaling",1.),,"Artificially enlarge (scale) rotations of bodies relative to their :ref:`reference orientation<State.refOri>`, so the they are better visible. No effect if 1, and also if *scaleOn* is false."))
+		((Vector3r,dispScale,((void)"disable scaling",Vector3r::Ones()),,"Artificially enlarge (scale) dispalcements from bodies' :obj:`reference positions <GlData.refPos>` by this relative amount, so that they become better visible (independently in 3 dimensions). Disbled if (1,1,1), and also if *scaleOn* is false."))
+		((Real,rotScale,((void)"disable scaling",1.),,"Artificially enlarge (scale) rotations of bodies relative to their :ref:`reference orientation <GlData.refOri>`, so the they are better visible. No effect if 1, and also if *scaleOn* is false."))
 
 
 		((Vector3r,bgColor,Vector3r(.2,.2,.2),AttrTrait<>().rgbColor().startGroup("Colors and lighting"),"Color of the background canvas (RGB)"))

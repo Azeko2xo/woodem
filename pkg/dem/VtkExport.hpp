@@ -48,7 +48,7 @@ struct VtkExport: public PeriodicEngine{
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(VtkExport,PeriodicEngine,"Export DEM simulation to VTK files for post-processing.",
 		((string,out,,
 			AttrTrait<>().buttons({"Open PVD in Paraview","from subprocess import call; call(['paraview',self.pvd])",""},/*showBefore*/true),
-			"Filename prefix to write into; :ref:`Scene.tags` written as {tagName} are expanded at the first run."))
+			"Filename prefix to write into; :obj:`woo.core.Scene.tags` written as {tagName} are expanded at the first run."))
 		((bool,compress,true,,"Compress output XML files"))
 		((bool,ascii,false,,"Store data as readable text in the XML file (sets `vtkXMLWriter <http://www.vtk.org/doc/nightly/html/classvtkXMLWriter.html>`__ data mode to ``vtkXMLWriter::Ascii``, while the default is ``Appended``"))
 		((bool,multiblock,false,,"Write to multi-block VTK files, rather than separate files; currently borken, do not use."))
@@ -58,8 +58,8 @@ struct VtkExport: public PeriodicEngine{
 		((bool,infError,true,,"Raise exception for infinite objects which don't have the glAB attribute set properly"))
 		((bool,skipInvisible,true,,"Skip invisible particles"))
 		((int,subdiv,16,AttrTrait<>().noGui(),"Subdivision fineness for circular objects (such as cylinders).\n\n.. note::  are rendered without rounded edges (they are closed flat)."))
-		((int,thickFacetDiv,1,AttrTrait<>().noGui(),"Subdivision for :ref:`Facet` objects with non-zero :ref:`halfThick<Facet.halfThick>`; the value of -1 will use :ref:`subdiv`; 0 will render only faces, without edges; 1 will close the edge flat."))
-		((bool,cylCaps,true,,"Render caps of :ref:`InfCylinder` (at :ref:`InfCylinder.glAB`)."))
+		((int,thickFacetDiv,1,AttrTrait<>().noGui(),"Subdivision for :obj:`woo.dem.Facet` objects with non-zero :obj:`woo.dem.Facet.halfThick`; the value of -1 will use :obj:`subdiv`; 0 will render only faces, without edges; 1 will close the edge flat."))
+		((bool,cylCaps,true,,"Render caps of :obj:`InfCylinder` (at :obj:`InfCylinder.glAB`)."))
 		((Real,nanValue,0.,,"Use this number instead of NaN in entries, since VTK cannot read NaNs properly"))
 		((vector<vector<string>>,outFiles,,AttrTrait<>().noGui().readonly(),"Files which have been written out."))
 		((vector<Real>,outTimes,,AttrTrait<>().noGui().readonly(),"Times at which files were written."))

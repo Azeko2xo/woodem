@@ -17,7 +17,7 @@ def textExt(fileName,format='x_y_z_r',shift=Vector3.Zero,scale=1.0,**kw):
 		`scale`: float
 			factor scales the given data.
 		`**kw`: (unused keyword arguments)
-				is passed to :ref:`woo.utils.sphere`
+				is passed to :obj:`woo.utils.sphere`
 	:Returns: list of spheres.
 	Lines starting with # are skipped
 	"""
@@ -55,7 +55,7 @@ def text(fileName,shift=Vector3.Zero,scale=1.0,**kw):
 		`scale`: float
 			factor scales the given data.
 		`**kw`: (unused keyword arguments)
-				is passed to :ref:`woo.utils.sphere`
+				is passed to :obj:`woo.utils.sphere`
 	:Returns: list of spheres.
 	Lines starting with # are skipped
 	"""
@@ -89,7 +89,7 @@ def gts(meshfile,shift=(0,0,0),scale=1.0,**kw):
 		`scale`: float
 			factor scales the given data.
 		`**kw`: (unused keyword arguments)
-				is passed to :ref:`woo.utils.facet`
+				is passed to :obj:`woo.utils.facet`
 	:Returns: list of facets.
 	"""
 	import gts,woo.pack
@@ -109,11 +109,14 @@ def gmsh(meshfile="file.mesh",shift=Vector3.Zero,scale=1.0,orientation=Quaternio
 		`orientation`: quaternion
 			orientation of the imported mesh
 		`**kw`: (unused keyword arguments)
-				is passed to :ref:`woo.utils.facet`
+				is passed to :obj:`woo.utils.facet`
 	:Returns: list of facets forming the specimen.
 	
 	mesh files can be easily created with `GMSH <http://www.geuz.org/gmsh/>`_.
-	Example added to :ysrc:`examples/regular-sphere-pack/regular-sphere-pack.py`
+
+	.. warning:: Broken links ahead:
+	
+	Example added to :woosrc:`examples/regular-sphere-pack/regular-sphere-pack.py`
 	
 	Additional examples of mesh-files can be downloaded from 
 	http://www-roc.inria.fr/gamma/download/download.php
@@ -182,14 +185,16 @@ def gengeoFile(fileName="file.geo",shift=Vector3.Zero,scale=1.0,orientation=Quat
 		`orientation`: quaternion
 			orientation of the imported geometry
 		`**kw`: (unused keyword arguments)
-				is passed to :ref:`woo.utils.sphere`
+				is passed to :obj:`woo.utils.sphere`
 	:Returns: list of spheres.
 	
 	LSMGenGeo library allows to create pack of spheres
 	with given [Rmin:Rmax] with null stress inside the specimen.
 	Can be useful for Mining Rock simulation.
 	
-	Example: :ysrc:`examples/regular-sphere-pack/regular-sphere-pack.py`, usage of LSMGenGeo library in :ysrc:`scripts/test/genCylLSM.py`.
+	.. warning:: Broken links ahead:
+
+	Example: :woosrc:`examples/regular-sphere-pack/regular-sphere-pack.py`, usage of LSMGenGeo library in :woosrc:`scripts/test/genCylLSM.py`.
 	
 	* https://answers.launchpad.net/esys-particle/+faq/877
 	* http://www.access.edu.au/lsmgengeo_python_doc/current/pythonapi/html/GenGeo-module.html
@@ -219,13 +224,15 @@ def gengeo(mntable,shift=Vector3.Zero,scale=1.0,**kw):
 		`scale`: float
 			factor scales the given data.
 		`**kw`: (unused keyword arguments)
-				is passed to :ref:`woo.utils.sphere`
+				is passed to :obj:`woo.utils.sphere`
 	
 	LSMGenGeo library allows to create pack of spheres
 	with given [Rmin:Rmax] with null stress inside the specimen.
 	Can be useful for Mining Rock simulation.
 	
-	Example: :ysrc:`examples/regular-sphere-pack/regular-sphere-pack.py`, usage of LSMGenGeo library in :ysrc:`scripts/test/genCylLSM.py`.
+	.. warning:: Broken links ahead:
+
+	Example: :woosrc:`examples/regular-sphere-pack/regular-sphere-pack.py`, usage of LSMGenGeo library in :woosrc:`scripts/test/genCylLSM.py`.
 	
 	* https://answers.launchpad.net/esys-particle/+faq/877
 	* http://www.access.edu.au/lsmgengeo_python_doc/current/pythonapi/html/GenGeo-module.html

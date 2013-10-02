@@ -133,6 +133,7 @@ def classSrcHyperlink(klass):
 	f=klass._classTrait.file
 	if f.startswith(woo.config.sourceRoot): commonRoot=woo.config.sourceRoot
 	elif f.startswith(woo.config.buildRoot): commonRoot=woo.config.buildRoot
+	elif not f.startswith('/'): commonRoot=''
 	else:
 		print 'File where class is defined (%s) does not start with source root (%s) or build root (%s)'%(f,woo.config.sourceRoot,woo.config.buildRoot)
 		return None
@@ -145,57 +146,83 @@ def classSrcHyperlink(klass):
 	if f2.endswith('.hpp'):
 		cpp=woo.config.sourceRoot+'/'+f2[:-4]+'.cpp'
 		# print 'Trying ',cpp
-		if os.path.exists(cpp):	
-			ret.append(':woosrc:`implementation <%s>`'%(f2[:-4]+'.cpp'))
+		if os.path.exists(cpp):
+			# find first line in the cpp file which contains KlassName:: -- that's most likely where the implementation begins
+			numLines=[i for i,l in enumerate(file(cpp).readlines()) if klass.__name__+'::' in l]
+			if numLines: ret.append(':woosrc:`implementation <%s#L%d>`'%(f2[:-4]+'.cpp',numLines[0]+1))
+			# return just the cpp file if the implementation is probably not there at all?
+			# don't do it for now
+			# else: ret.append(':woosrc:`implementation <%s#L>`'%(f2[:-4]+'.cpp'))
 	return '[ '+' , '.join(ret)+' ]'
 
-def oneModuleWithSubmodules(mod,out,exclude=None,level=0):
+
+def oneModuleWithSubmodules(mod,out,exclude=None,level=0,importedInto=None):
 	global cxxClasses,allWooMods
 	_ensureInitialized()
 	if exclude==None: exclude=set() # avoid referenced empty set to be modified
-	if level>=0: out.write('Module %s\n%s\n\n'%(mod.__name__,(20+len(mod.__name__))*('=-^"'[level])))
-	out.write('.. module:: %s\n\n'%mod.__name__)
-	# HACK: we wan't module's docstring to appear at the top, but autodocumented stuff at the bottom
-	# dump __doc__ straight to the output here, and reset it, so that automodule does not pick it up
-	if mod.__doc__:
-		out.write(mod.__doc__+'\n\n')
-		mod.__doc__=None
-	out.write('.. inheritance-diagram:: %s\n\n'%mod.__name__)
+	if level>=0: out.write(':mod:`%s`\n%s\n\n'%(mod.__name__,(20+len(mod.__name__))*('=-^"'[level])))
+	if importedInto:
+		out.write('.. note:: This module is imported into the :obj:`%s` module automatically; refer to its objects through :obj:`%s`.\n\n'%(importedInto.__name__,importedInto.__name__))
 	klasses=[c for c in cxxClasses if (c.__module__==mod.__name__ or (hasattr(mod,'_docInlineModules') and sys.modules[c.__module__] in mod._docInlineModules))]
 	klasses.sort(key=lambda x: x.__name__)
 	# document any c++ classes in a special way
+	# defer writing that to out though so that automodule can exclude classes which are documented manually
+	import StringIO
+	kOut=StringIO.StringIO()
 	for k in klasses:
 		if k in exclude: continue
 		exclude.add(k) # already-documented should not be documented again
-		out.write('.. autoclass:: %s\n   :show-inheritance:\n'%k.__name__)
-		#out.write('   :members: %s\n'%(','.join([m for m in dir(k) if (not m.startswith('_') and m not in set(trait.name for trait in k._attrTraits))])))
-		out.write('   :members:\n')
+		kOut.write('.. autoclass:: %s\n   :show-inheritance:\n'%k.__name__)
+		#kOut.write('   :members: %s\n'%(','.join([m for m in dir(k) if (not m.startswith('_') and m not in set(trait.name for trait in k._attrTraits))])))
+		kOut.write('   :members:\n')
 		ex=[t.name for t in k._attrTraits]
-		if ex: out.write('   :exclude-members: %s\n\n'%(', '.join(ex)))
+		if ex: kOut.write('   :exclude-members: %s\n\n'%(', '.join(ex)))
 		srcXref=classSrcHyperlink(k)
-		if srcXref: out.write('\n   '+srcXref+'\n\n')
+		if srcXref: kOut.write('\n   '+srcXref+'\n\n')
 		for trait in k._attrTraits:
 			try:
 				iniStr=' (= %s)'%(repr(trait.ini))
 			except TypeError: # no converter found
 				iniStr=''
 			if trait.startGroup:
-				out.write(u'   .. rubric:: ► %s\n\n'%(trait.startGroup))
-			out.write('   .. attribute:: %s%s\n\n'%(trait.name,iniStr))
-			for l in fixDocstring(trait.doc.decode('utf-8')).split('\n'): out.write('      '+l+'\n')
+				kOut.write(u'   .. rubric:: ► %s\n\n'%(trait.startGroup))
+			kOut.write('   .. attribute:: %s%s\n\n'%(trait.name,iniStr))
+			for l in fixDocstring(trait.doc.decode('utf-8')).split('\n'): kOut.write('      '+l+'\n')
 			traitInfo=makeTraitInfo(trait)
-			if traitInfo: out.write(u'\n      ['+traitInfo+']\n')
-			out.write('\n')
+			if traitInfo: kOut.write(u'\n      ['+traitInfo+']\n')
+			kOut.write('\n')
+	# control whether autodocs are at the bottom or at the top
 	def writeAutoMod(mm,skip=None):
 		out.write('.. automodule:: %s\n   :members:\n   :undoc-members:\n'%(mm.__name__))
 		if skip: out.write('   :exclude-members: %s\n'%(',  '.join([e.__name__ for e in skip])))
 		out.write('\n')
-	# document the rest of the module here (don't recurse)
-	writeAutoMod(mod,skip=exclude)
+	autoAtBottom=False
+	if autoAtBottom:
+		# HACK: we want module's docstring to appear at the top, but autodocumented stuff at the bottom
+		# dump __doc__ straight to the output here, and reset it, so that automodule does not pick it up
+		# autodoc however automatically creates index entry for the module;
+		# that's why we end up with bunch of SEVERE: Duplicate ID: "module-..." msgs
+		out.write('.. module:: %s\n\n'%mod.__name__)
+		if mod.__doc__:
+			out.write(mod.__doc__+'\n\n')
+			mod.__doc__=None
+		# if there are no classes, avoid warning from sphinx
+		if klasses: out.write('.. inheritance-diagram:: %s\n\n'%mod.__name__)
+		# insert documentation of classes
+		out.write(kOut.getvalue())
+		# document the rest of the module here (don't recurse)
+		writeAutoMod(mod,skip=exclude)
+	else:
+		# automodule first, including inheritance tree (are excluded classes excluded from the tree as well?)
+		# exlude classes which are are then documented manually
+		# if there are no classes, avoid warning from sphinx
+		if klasses: out.write('.. inheritance-diagram:: %s\n\n'%mod.__name__)
+		writeAutoMod(mod,skip=exclude)
+		out.write(kOut.getvalue())
 	# imported modules
 	if hasattr(mod,'_docInlineModules'):
 		# negative level will skip heading
-		for m in mod._docInlineModules: oneModuleWithSubmodules(m,out,exclude=exclude,level=-1)
+		for m in mod._docInlineModules: oneModuleWithSubmodules(m,out,exclude=exclude,level=level+1,importedInto=mod)
 	# nested modules
 	# with nested heading
 	for m in [m for m in allWooMods if m.__name__.startswith(mod.__name__+'.') and len(mod.__name__.split('.'))+1==len(m.__name__.split('.'))]: oneModuleWithSubmodules(m,out,exclude=exclude,level=level+1)
@@ -228,7 +255,7 @@ def makeObjectUrl(obj,attr=None):
 	so that the href target is a valid link. In that case, only single inheritace is assumed and
 	the first class from the top defining *attr* is used.
 
-	:param obj: object of class deriving from :ref:`Object`, or string; if string, *attr* must be empty.
+	:param obj: object of class deriving from :obj:`woo.core.Object`, or string; if string, *attr* must be empty.
 	:param attr: name of the attribute to link to; if empty, linke to the class itself is created.
 
 	:returns: HTML with the hyperref.

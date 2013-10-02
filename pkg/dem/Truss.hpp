@@ -30,7 +30,7 @@ struct Gl1_Truss: public GlShapeFunctor{
 		((int,slices,12,,"Number of slices, controls quality"))
 		((int,stacks,6,,"Number of stacks, controls quality"))
 		((bool,wire,false,,"Render all shapes with wireframe only"))
-		((bool,colorStress,true,,"Set color based on axial stress rather than :ref:`Shape.color`"))
+		((bool,colorStress,true,,"Set color based on axial stress rather than :obj:`woo.dem.Shape.color`"))
 		((Vector2r,stressRange,Vector2r(-1,1),,"Stress range, to set color appropriately"))
 	);
 };
@@ -39,7 +39,7 @@ struct Gl1_Truss: public GlShapeFunctor{
 struct Bo1_Truss_Aabb: public BoundFunctor{
 	void go(const shared_ptr<Shape>&);
 	FUNCTOR1D(Truss);
-	WOO_CLASS_BASE_DOC(Bo1_Truss_Aabb,BoundFunctor,"Compute :ref:`Aabb` of a Truss particle")
+	WOO_CLASS_BASE_DOC(Bo1_Truss_Aabb,BoundFunctor,"Compute :obj:`woo.dem.Aabb` of a Truss particle")
 };
 WOO_REGISTER_OBJECT(Bo1_Truss_Aabb);
 

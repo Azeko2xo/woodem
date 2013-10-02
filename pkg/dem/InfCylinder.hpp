@@ -21,7 +21,7 @@ WOO_REGISTER_OBJECT(InfCylinder);
 struct Bo1_InfCylinder_Aabb: public BoundFunctor{
 	virtual void go(const shared_ptr<Shape>&);
 	FUNCTOR1D(InfCylinder);
-	WOO_CLASS_BASE_DOC(Bo1_InfCylinder_Aabb,BoundFunctor,"Creates/updates an :ref:`Aabb` of a :ref:`InfCylinder`");
+	WOO_CLASS_BASE_DOC(Bo1_InfCylinder_Aabb,BoundFunctor,"Creates/updates an :obj:`Aabb` of a :obj:`InfCylinder`");
 };
 WOO_REGISTER_OBJECT(Bo1_InfCylinder_Aabb);
 
@@ -30,7 +30,7 @@ WOO_REGISTER_OBJECT(Bo1_InfCylinder_Aabb);
 #include<woo/pkg/gl/Functors.hpp>
 struct Gl1_InfCylinder: public GlShapeFunctor{	
 	virtual void go(const shared_ptr<Shape>&, const Vector3r&, bool,const GLViewInfo&);
-	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_InfCylinder,GlShapeFunctor,"Renders :ref:`InfCylinder` object",
+	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_InfCylinder,GlShapeFunctor,"Renders :obj:`InfCylinder` object",
 		((bool,wire,false,,"Render Cylinders with wireframe"))
 		((bool,spokes,true,,"Render spokes between the cylinder axis and edge, at the position of :obj:`InfCylinder.glAB`."))
 		((int,slices,12,,"Number of circumferential division of circular sections"))

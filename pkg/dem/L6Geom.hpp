@@ -17,12 +17,12 @@ struct L6Geom: public CGeom{
 	// set trsf with locX, and orient y and z arbitrarily
 	void setInitialLocalCoords(const Vector3r& locX);
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(L6Geom,CGeom,"Geometry of particles in contact, defining relative velocities.",
-		((Vector3r,vel,Vector3r::Zero(),AttrTrait<>().velUnit(),"Relative displacement rate in local coordinates, defined by :ref:`CGeom.node`"))
+		((Vector3r,vel,Vector3r::Zero(),AttrTrait<>().velUnit(),"Relative displacement rate in local coordinates, defined by :obj:`CGeom.node`"))
 		((Vector3r,angVel,Vector3r::Zero(),AttrTrait<>().angVelUnit(),"Relative rotation rate in local coordinates"))
 		((Real,uN,NaN,,"Normal displacement, distace of separation of particles (mathematically equal to integral of vel[0], but given here for numerically more stable results, as this component can be usually computed directly)."))
 		((Vector2r,lens,Vector2r::Zero(),AttrTrait<>().lenUnit(),"Hint for Gp2 functor on how to distribute material stiffnesses according to lengths on both sides of the contact; their sum should be equal to the initial contact length."))
 		((Real,contA,NaN,AttrTrait<>().areaUnit(),"(Fictious) contact area, used by Gp2 functor to compute stiffness."))
-		((Matrix3r,trsf,Matrix3r::Identity(),,"Transformation (rotation) from global to local coordinates; only used internally, and is synchronized with :ref:`Node.ori` automatically. If the algorithm works with pure quaternions at some point (it is not stable now), can be removed safely."))
+		((Matrix3r,trsf,Matrix3r::Identity(),,"Transformation (rotation) from global to local coordinates; only used internally, and is synchronized with :obj:`woo.core.Node.ori` automatically. If the algorithm works with pure quaternions at some point (it is not stable now), can be removed safely."))
 		, /*ctor*/ createIndex();
 	);
 	REGISTER_CLASS_INDEX(L6Geom,CGeom);
@@ -35,7 +35,7 @@ struct Cg2_Any_Any_L6Geom__Base: public CGeomFunctor{
 	enum { APPROX_NO_MID_NORMAL=1, APPROX_NO_RENORM_MID_NORMAL=2, APPROX_NO_MID_TRSF=4, APPROX_NO_MID_BRANCH=8 };
 	WOO_CLASS_BASE_DOC_ATTRS(Cg2_Any_Any_L6Geom__Base,CGeomFunctor,"Common base for L6Geom-computing functors such as :obj:`Cg2_SPhere_Sphere_L6Geom`, holding common approximation flags.",
 		((bool,noRatch,false,,"FIXME: document what it really does."))
-		((int,trsfRenorm,100,,"How often to renormalize :ref:`trsf<L6Geom.trsf>`; if non-positive, never renormalized (simulation might be unstable)"))
+		((int,trsfRenorm,100,,"How often to renormalize :obj:`trsf <L6Geom.trsf>`; if non-positive, never renormalized (simulation might be unstable)"))
 		((int,approxMask,0,AttrTrait<>().range(Vector2i(0,15)),"Selectively enable geometrical approximations (bitmask); add the values for approximations to be enabled.\n\n"
 		"== ===============================================================\n"
 		"1  use previous normal instead of mid-step normal for computing tangent velocity\n"
@@ -53,7 +53,7 @@ WOO_REGISTER_OBJECT(Cg2_Any_Any_L6Geom__Base);
 struct Cg2_Sphere_Sphere_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 	bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE;
 	void setMinDist00Sq(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE;
-	WOO_CLASS_BASE_DOC_ATTRS(Cg2_Sphere_Sphere_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :ref:`L6Geom` for contact of 2 spheres. Detailed documentation in py/_extraDocs.py",
+	WOO_CLASS_BASE_DOC_ATTRS(Cg2_Sphere_Sphere_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :obj:`L6Geom` for contact of 2 spheres. Detailed documentation in py/_extraDocs.py",
 		((Real,distFactor,1,,"Create interaction if spheres are not futher than |distFactor|*(r1+r2). If negative, zero normal deformation will be set to be the initial value (otherwise, the geometrical distance is the 'zero' one)."))
 	);
 	FUNCTOR2D(Sphere,Sphere);
@@ -63,7 +63,7 @@ struct Cg2_Sphere_Sphere_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 WOO_REGISTER_OBJECT(Cg2_Sphere_Sphere_L6Geom);
 
 struct Cg2_Facet_Sphere_L6Geom: public Cg2_Any_Any_L6Geom__Base{
-	WOO_CLASS_BASE_DOC_ATTRS(Cg2_Facet_Sphere_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :ref:`L6Geom` for contact between :ref:`Facet` and :ref:`Sphere`. Uses attributes of :ref:`Cg2_Sphere_Sphere_L6Geom`.",
+	WOO_CLASS_BASE_DOC_ATTRS(Cg2_Facet_Sphere_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :obj:`L6Geom` for contact between :obj:`Facet` and :obj:`Sphere`. Uses attributes of :obj:`Cg2_Sphere_Sphere_L6Geom`.",
 	);
 	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
 	virtual bool goReverse(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){ throw std::logic_error("ContactLoop should swap interaction arguments, should be Facet+Sphere, but is "+s1->getClassName()+"+"+s2->getClassName()); }
@@ -75,7 +75,7 @@ struct Cg2_Facet_Sphere_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 WOO_REGISTER_OBJECT(Cg2_Facet_Sphere_L6Geom);
 
 struct Cg2_Wall_Sphere_L6Geom: public Cg2_Any_Any_L6Geom__Base{
-	WOO_CLASS_BASE_DOC(Cg2_Wall_Sphere_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :ref:`L6Geom` for contact between :ref:`Wall` and :ref:`Sphere`. Uses attributes of :ref:`Cg2_Sphere_Sphere_L6Geom`.");
+	WOO_CLASS_BASE_DOC(Cg2_Wall_Sphere_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :obj:`L6Geom` for contact between :obj:`Wall` and :obj:`Sphere`. Uses attributes of :obj:`Cg2_Sphere_Sphere_L6Geom`.");
 	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
 	virtual bool goReverse(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){ throw std::logic_error("ContactLoop should swap interaction arguments, should be Wall+Sphere, but is "+s1->getClassName()+"+"+s2->getClassName()); }
 	void setMinDist00Sq(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE { C->minDist00Sq=-1; }
@@ -86,7 +86,7 @@ struct Cg2_Wall_Sphere_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 WOO_REGISTER_OBJECT(Cg2_Wall_Sphere_L6Geom);
 
 struct Cg2_InfCylinder_Sphere_L6Geom: public Cg2_Any_Any_L6Geom__Base{
-	WOO_CLASS_BASE_DOC(Cg2_InfCylinder_Sphere_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :ref:`L6Geom` for contact between :ref:`InfCylinder` and :ref:`Sphere`. Uses attributes of :ref:`Cg2_Sphere_Sphere_L6Geom`.");
+	WOO_CLASS_BASE_DOC(Cg2_InfCylinder_Sphere_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :obj:`L6Geom` for contact between :obj:`InfCylinder` and :obj:`Sphere`. Uses attributes of :obj:`Cg2_Sphere_Sphere_L6Geom`.");
 	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
 	virtual bool goReverse(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){ throw std::logic_error("ContactLoop should swap interaction arguments, should be InfCylinder+Sphere, but is "+s1->getClassName()+"+"+s2->getClassName()); }
 	FUNCTOR2D(InfCylinder,Sphere);
@@ -98,7 +98,7 @@ WOO_REGISTER_OBJECT(Cg2_InfCylinder_Sphere_L6Geom);
 struct Cg2_Truss_Sphere_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
 	virtual bool goReverse(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){ throw std::logic_error("ContactLoop should swap interaction arguments, should be Truss+Sphere, but is "+s1->getClassName()+"+"+s2->getClassName()); }
-	WOO_CLASS_BASE_DOC(Cg2_Truss_Sphere_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :ref:`L6Geom` for contact between :ref:`Truss` and :ref:`Sphere`. Uses attributes of :ref:`Cg2_Sphere_Sphere_L6Geom`.");
+	WOO_CLASS_BASE_DOC(Cg2_Truss_Sphere_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :obj:`L6Geom` for contact between :obj:`Truss` and :obj:`Sphere`. Uses attributes of :obj:`Cg2_Sphere_Sphere_L6Geom`.");
 	FUNCTOR2D(Truss,Sphere);
 	DEFINE_FUNCTOR_ORDER_2D(Truss,Sphere);
 	DECLARE_LOGGER;
@@ -111,14 +111,14 @@ WOO_REGISTER_OBJECT(Cg2_Truss_Sphere_L6Geom);
 struct Gl1_L6Geom: public GlCGeomFunctor{
 	RENDERS(L6Geom);
 	void go(const shared_ptr<CGeom>&, const shared_ptr<Contact>&, bool);
-	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_L3Geom,GlCGeomFunctor,"Render :ref:`L3Geom` geometry.",
+	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_L3Geom,GlCGeomFunctor,"Render :obj:`L3Geom` geometry.",
 		((bool,axesLabels,false,,"Whether to display labels for local axes (x,y,z)"))
 		((Real,axesScale,1.,,"Scale local axes, their reference length being half of the minimum radius."))
 		((int,axesWd,1,,"Width of axes lines, in pixels; not drawn if non-positive"))
 		((Vector2i,axesWd_range,Vector2i(0,10),AttrTrait<>().noGui(),"Range for axesWd."))
-		//((int,uPhiWd,2,,"Width of lines for drawing displacements (and rotations for :ref:`L6Geom`); not drawn if non-positive."))
+		//((int,uPhiWd,2,,"Width of lines for drawing displacements (and rotations for :obj:`L6Geom`); not drawn if non-positive."))
 		//((Vector2i,uPhiWd_range,Vector2i(0,10),AttrTrait<>().noGui(),"Range for uPhiWd."))
-		//((Real,uScale,1.,,"Scale local displacements (:ref:`u<L3Geom.u>` - :ref:`u0<L3Geom.u0>`); 1 means the true scale, 0 disables drawing local displacements; negative values are permissible."))
+		//((Real,uScale,1.,,"Scale local displacements (:obj:`u <L3Geom.u>` - :obj:`u0 <L3Geom.u0>`); 1 means the true scale, 0 disables drawing local displacements; negative values are permissible."))
 	);
 };
 WOO_REGISTER_OBJECT(Gl1_L6Geom);

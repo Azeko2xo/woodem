@@ -210,6 +210,7 @@ public:
 		.add_property("clump",&DemData::isClump).add_property("clumped",&DemData::isClumped).add_property("noClump",&DemData::isNoClump).add_property("energySkip",&DemData::isEnergySkip,&DemData::setEnergySkip).add_property("gravitySkip",&DemData::isGravitySkip,&DemData::setGravitySkip)
 		.add_property("master",&DemData::pyGetMaster)
 		.add_property("parRef",&DemData::pyParRef_get).def("addParRef",&DemData::addParRef)
+		.add_property("isAspherical",&DemData::isAspherical,"Return ``True`` when inertia components are not equal.")
 		.def("_getDataOnNode",&Node::pyGetData<DemData>).staticmethod("_getDataOnNode").def("_setDataOnNode",&Node::pySetData<DemData>).staticmethod("_setDataOnNode")
 		;
 	);
@@ -236,13 +237,13 @@ struct DemField: public Field{
 	//template<> bool sceneHasField<DemField>() const;
 	//template<> shared_ptr<DemField> sceneGetField<DemField>() const;
 	void postLoad(DemField&,void*);
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(DemField,Field,"Field describing a discrete element assembly. Each body references (possibly many) nodes by their index in :ref:`Field.nodes` and :ref:`Field.nodalData`. ",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(DemField,Field,"Field describing a discrete element assembly. Each particle references (possibly many) nodes. ",
 		((shared_ptr<ParticleContainer>,particles,make_shared<ParticleContainer>(),AttrTrait<>().pyByRef().readonly().ini().buttons({"Export spheres to CSV","import woo.pack; from PyQt4.QtGui import QFileDialog\nsp=woo.pack.SpherePack(); sp.fromSimulation(self.scene); csv=woo.master.tmpFilename()+'.csv'; csv=str(QFileDialog.getSaveFileName(None,'Export spheres','.'));\nif csv:\n\tsp.save(csv); print 'Saved exported spheres to',csv",""}),"Particles (each particle holds its contacts, and references associated nodes)"))
 		((shared_ptr<ContactContainer>,contacts,make_shared<ContactContainer>(),AttrTrait<>().pyByRef().readonly().ini(),"Linear view on particle contacts"))
 		((uint,loneMask,0,,"Particle groups which have bits in loneMask in common (i.e. (A.mask & B.mask & loneMask)!=0) will not have contacts between themselves"))
 		((Vector3r,gravity,Vector3r::Zero(),,"Constant gravity acceleration"))
 		((bool,saveDeadNodes,false,AttrTrait<>().buttons({"Clear dead nodes","self.clearDead()",""}),"Save unused nodes of deleted particles, which would be otherwise removed (useful for displaying traces of deleted particles)."))
-		((vector<shared_ptr<Node>>,deadNodes,,AttrTrait<Attr::readonly>().noGui(),"List of nodes belonging to deleted particles; only used if :ref:`saveDeadNodes` is `True`"))
+		((vector<shared_ptr<Node>>,deadNodes,,AttrTrait<Attr::readonly>().noGui(),"List of nodes belonging to deleted particles; only used if :obj:`saveDeadNodes` is ``True``"))
 		, /* ctor */ createIndex(); postLoad(*this,NULL); /* to make sure pointers are OK */
 		, /*py*/
 		.def("collectNodes",&DemField::collectNodes,"Collect nodes from all particles and clumps and insert them to nodes defined for this field. Nodes are not added multiple times, even if they are referenced from different particles.")
@@ -275,7 +276,7 @@ struct Shape: public Object, public Indexable{
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Shape,Object,"Particle geometry",
 		((shared_ptr<Bound>,bound,,,"Bound of the particle, for use by collision detection only"))
 		((vector<shared_ptr<Node> >,nodes,,,"Nodes associated with this particle"))
-		((Real,color,Mathr::UnitRandom(),,"Normalized color for rendering; negative values render with wire (rather than solid), |color|>2 means invisible. (use *wire*, *hi* and *visible* to manipulate those)"))
+		((Real,color,Mathr::UnitRandom(),,"Normalized color for rendering; negative values render with wire (rather than solid), :math:`|\\text{color}|`>2 means invisible. (use *wire*, *hi* and *visible* to manipulate those)"))
 		,/*ctor*/,/*py*/
 			.add_property("wire",&Shape::getWire,&Shape::setWire)
 			.add_property("hi",&Shape::getHighlighted,&Shape::setHighlighted)

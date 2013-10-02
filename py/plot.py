@@ -1,7 +1,7 @@
 # encoding: utf-8
 # 2008 © Václav Šmilauer <eudoxos@arcig.cz> 
 """
-Module containing utility functions for plotting inside woo. Most functionality is exposed through :ref:`woo.core.Plot`, however
+Module containing utility functions for plotting inside woo. Most functionality is exposed through :obj:`woo.core.Plot`, however.
 """
 
 ## all exported names
@@ -81,7 +81,7 @@ scientific=True if hasattr(pylab,'ticklabel_format') else False  ## safe default
 current=-1
 "Point that is being tracked with a scatter point. -1 is for the last point, set to *nan* to disable."
 afterCurrentAlpha=.2
-"Color alpha value for part of lines after :ref:`woo.plot.current`, between 0 (invisible) to 1 (full color)"
+"Color alpha value for part of lines after :obj:`woo.plot.current`, between 0 (invisible) to 1 (full color)"
 scatterMarkerKw=dict(verts=[(0.,0.),(-30.,10.),(-25,0),(-30.,-10.)],marker=None)
 "Parameters for the current position marker"
 annotateKw=dict(horizontalalignment='left',verticalalignment='upper right',fontsize=9)
@@ -121,7 +121,7 @@ def addDataColumns(data,dd):
 		data[d]=[nan for i in range(numSamples)]
 
 def Scene_autoPlotData(S,**kw):
-	"""Add data by evaluating contents of :ref:`Plot.plots`. Expressions rasing exceptions will be handled gracefully, but warning is printed for each.
+	"""Add data by evaluating contents of :obj:`woo.core.Plot.plots`. Expressions rasing exceptions will be handled gracefully, but warning is printed for each.
 	
 	>>> from woo import plot; from woo.dem import *; from woo.core import *
 	>>> from pprint import pprint
@@ -131,11 +131,11 @@ def Scene_autoPlotData(S,**kw):
 	>>> pprint(S.plot.data)
 	{'S.step': [0], 'S.time': [0.0], 'numParticles': [0]}
 
-	Note that each item in :ref:`Plot.plots` can be
+	Note that each item in :obj:`woo.core.Plot.plots` can be
 
 	* an expression to be evaluated (using the ``eval`` builtin);
 	* ``name=expression`` string, where ``name`` will appear as label in plots, and expression will be evaluated each time;
-	* a dictionary-like object -- current keys are labels of plots and current values are added to :ref:`woo.plot.data`. The contents of the dictionary can change over time, in which case new lines will be created as necessary.
+	* a dictionary-like object -- current keys are labels of plots and current values are added to :obj:`woo.core.Plot.data`. The contents of the dictionary can change over time, in which case new lines will be created as necessary.
 
 	A simple simulation with plot can be written in the following way; note how the energy plot is specified.
 
@@ -582,7 +582,7 @@ def liveUpdate(P,timestamp):
 		#sys.stderr.write(')')
 	
 def savePlotSequence(P,fileBase,stride=1,imgRatio=(5,7),title=None,titleFrames=20,lastFrames=30):
-	'''Save sequence of plots, each plot corresponding to one line in history. It is especially meant to be used for :ref:`woo.utils.makeVideo`.
+	'''Save sequence of plots, each plot corresponding to one line in history. It is especially meant to be used for :obj:`woo.utils.makeVideo`.
 
 	:param stride: only consider every stride-th line of history (default creates one frame per each line)
 	:param title: Create title frame, where lines of title are separated with newlines (``\\n``) and optional subtitle is separated from title by double newline. 
@@ -713,7 +713,7 @@ def Scene_plot_saveDataTxt(P,fileName,vars=None):
 	array([11, 12])
 
 	:param fileName: file to save data to; if it ends with ``.bz2`` / ``.gz``, the file will be compressed using bzip2 / gzip. 
-	:param vars: Sequence (tuple/list/set) of variable names to be saved. If ``None`` (default), all variables in :ref:`woo.plot.plot` are saved.
+	:param vars: Sequence (tuple/list/set) of variable names to be saved. If ``None`` (default), all variables in :obj:`woo.core.Plot` are saved.
 	"""
 	import bz2,gzip
 	data=P.data
@@ -751,7 +751,7 @@ def _mkTimestamp():
 	return time.strftime('_%Y%m%d_%H:%M')
 
 def Scene_plot_saveGnuplot(baseName,term='wxt',extension=None,timestamp=False,comment=None,title=None,varData=False):
-	"""Save data added with :ref:`woo.plot.addData` into (compressed) file and create .gnuplot file that attempts to mimick plots specified with :ref:`woo.plot.plots`.
+	"""Save data added with :obj:`woo.plot.addData` into (compressed) file and create .gnuplot file that attempts to mimick plots specified with :obj:`woo.plot.plots`.
 
 :param baseName: used for creating baseName.gnuplot (command file for gnuplot), associated ``baseName.data.bz2`` (data) and output files (if applicable) in the form ``baseName.[plot number].extension``
 :param term: specify the gnuplot terminal; defaults to ``x11``, in which case gnuplot will draw persistent windows to screen and terminate; other useful terminals are ``png``, ``cairopdf`` and so on

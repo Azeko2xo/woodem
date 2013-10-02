@@ -37,7 +37,7 @@ class CentralGravityEngine: public FieldApplier {
 	public:
 		virtual void run();
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(CentralGravityEngine,FieldApplier,"Engine applying acceleration to all bodies, towards a central body.",
-		((Body::id_t,centralBody,Body::ID_NONE,,"The :ref:`body<Body>` towards which all other bodies are attracted."))
+		((Body::id_t,centralBody,Body::ID_NONE,,"The :obj:`body<Body>` towards which all other bodies are attracted."))
 		((Real,accel,0,,"Acceleration magnitude [kgms⁻²]"))
 		((bool,reciprocal,false,,"If true, acceleration will be applied on the central body as well."))
 		((int,mask,0,,"If mask defined, only bodies with corresponding groupMask will be affected by this engine. If 0, all bodies will be affected."))
@@ -54,7 +54,7 @@ class HdapsGravityEngine: public GravityEngine{
 	public:
 	Vector2i readSysfsFile(const std::string& name);
 	virtual void run();
-	WOO_CLASS_BASE_DOC_ATTRS(HdapsGravityEngine,GravityEngine,"Read accelerometer in Thinkpad laptops (`HDAPS <http://en.wikipedia.org/wiki/Active_hard_drive_protection>`__ and accordingly set gravity within the simulation. This code draws from `hdaps-gl <https://sourceforge.net/project/showfiles.php?group_id=138242>`__ . See :ysrc:`scripts/test/hdaps.py` for an example.",
+	WOO_CLASS_BASE_DOC_ATTRS(HdapsGravityEngine,GravityEngine,"Read accelerometer in Thinkpad laptops (`HDAPS <http://en.wikipedia.org/wiki/Active_hard_drive_protection>`__ and accordingly set gravity within the simulation. This code draws from `hdaps-gl <https://sourceforge.net/project/showfiles.php?group_id=138242>`__ . See :woosrc:`scripts/test/hdaps.py` for an example.",
 		((string,hdapsDir,"/sys/devices/platform/hdaps",,"Hdaps directory; contains ``position`` (with accelerometer readings) and ``calibration`` (zero acceleration)."))
 		((Real,msecUpdate,50,,"How often to update the reading."))
 		((int,updateThreshold,4,,"Minimum difference of reading from the file before updating gravity, to avoid jitter."))

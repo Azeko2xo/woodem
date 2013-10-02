@@ -15,14 +15,14 @@ struct TraceGlRep: public NodeGlRep{
 	// only called from python if no further writing of the trace will be done
 	void consolidate(); 
 	enum{FLAG_COMPRESS=1,FLAG_MINDIST=2,FLAG_HIDDEN=4};
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(TraceGlRep,NodeGlRep,"Data with node's position history; create by :ref:`Tracer`.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(TraceGlRep,NodeGlRep,"Data with node's position history; create by :obj:`Tracer`.",
 		((vector<Vector3r>,pts,,,"History points"))
 		((vector<Real>,scalars,,,"History scalars"))
 		((size_t,writeIx,0,,"Index where next data will be written"))
 		((short,flags,0,,"Flags for this instance"))
 		,/*ctor*/
 		,/*py*/
-			.def("consolidate",&TraceGlRep::consolidate,"Make :ref:`pts` sequential (normally, the data are stored as circular buffer, with next write position at :ref:`writeIx`, so that they are ordered temporally.")
+			.def("consolidate",&TraceGlRep::consolidate,"Make :obj:`pts` sequential (normally, the data are stored as circular buffer, with next write position at :obj:`writeIx`, so that they are ordered temporally.")
 	);
 };
 WOO_REGISTER_OBJECT(TraceGlRep);
@@ -50,7 +50,7 @@ struct Tracer: public PeriodicEngine{
 		((bool,glSmooth,false,,"Render traced lines with GL_LINE_SMOOTH"))
 		((int,glWidth,1,AttrTrait<>().range(Vector2i(1,10)),"Width of trace lines in pixels"))
 		, /*py*/
-			.def("resetNodesRep",&Tracer::resetNodesRep,(py::arg("setupEmpty")=false,py::arg("includeDead")=true),"Reset :ref:`Node.rep` on all :ref:`Dem.Field.nodes`. With *setupEmpty*, create new instances of :ref:`TraceGlRep`. With *includeDead*, :ref:`Node.rep` on all :ref:`Dem.Field.deadNodes` is also cleared (new are not created, even with *setupEmpty*).")
+			.def("resetNodesRep",&Tracer::resetNodesRep,(py::arg("setupEmpty")=false,py::arg("includeDead")=true),"Reset :obj:`woo.core.Node.rep` on all :obj:`woo.dem.DemField.nodes`. With *setupEmpty*, create new instances of :obj:`TraceGlRep`. With *includeDead*, :obj:`woo.core.Node.rep` on all :obj:`woo.dem.DemField.deadNodes` is also cleared (new are not created, even with *setupEmpty*).")
 			;
 			_classObj.attr("scalarNone")=(int)Tracer::SCALAR_NONE;
 			_classObj.attr("scalarTime")=(int)Tracer::SCALAR_TIME;

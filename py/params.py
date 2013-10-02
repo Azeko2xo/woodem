@@ -1,3 +1,3 @@
-"Module storing parametr values, used by :ref:`woo.utils.saveVars`, :ref:`woo.utils.saveVars`, :ref:`woo.utils.readParamsFromTable`."
+"Module storing parametr values, used by :obj:`woo.utils.saveVars`, :obj:`woo.utils.saveVars`, :obj:`woo.utils.readParamsFromTable`."
 # initially empty
 __all__=[]

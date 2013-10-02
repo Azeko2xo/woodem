@@ -39,7 +39,7 @@ def writeResults(scene,defaultDb='woo-results.sqlite',syncXls=True,dbFmt=None,se
 	All data are serialized using json so that they can be read back in a language-independent manner.
 
 	*postHooks* is list of functions (taking a single argument - the database name) which will be called
-	once the database has been updated. They can be used in conjunction with :ref:`woo.batch.dbReadResults`
+	once the database has been updated. They can be used in conjunction with :obj:`woo.batch.dbReadResults`
 	to write aaggregate results from all records in the database.
 	'''
 	import woo, woo.plot, woo.core
@@ -427,7 +427,7 @@ def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 		val2  val2  … # 2nd
 		…
 
-	Assigned tags (the ``title`` column is synthesized if absent,see :ref:`woo.utils.TableParamReader`):: 
+	Assigned tags (the ``title`` column is synthesized if absent,see :obj:`woo.utils.TableParamReader`):: 
 
 		S=woo.master.scene
 		S.tags['title']=…                                            # assigns the title column; might be synthesized
@@ -436,7 +436,7 @@ def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 		S.tags['d.id']=s.tags['id']+'.'+s.tags['title']
 		S.tags['id.d']=s.tags['title']+'.'+s.tags['id']
 
-	All parameters (default as well as settable) are saved using :ref:`woo.utils.saveVars`\ ``('table')``.
+	All parameters (default as well as settable) are saved using :obj:`woo.utils.saveVars`\ ``('table')``.
 
 	:param tableFile: text file (with one value per blank-separated columns)
 	:param int tableLine: number of line where to get the values from
@@ -550,7 +550,7 @@ Empty lines within the file are ignored (although counted); ``#`` starts comment
 
 A special value ``=`` can be used instead of parameter value; value from the previous non-empty line will be used instead (works recursively).
 
-This class is used by :ref:`woo.utils.readParamsFromTable`.
+This class is used by :obj:`woo.utils.readParamsFromTable`.
 
 >>> tryData=[
 ... 	['head1','important2!','!OMP_NUM_THREADS!','abcd'],

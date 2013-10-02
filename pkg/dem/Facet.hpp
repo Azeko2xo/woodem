@@ -37,7 +37,7 @@ WOO_REGISTER_OBJECT(Facet);
 struct Bo1_Facet_Aabb: public BoundFunctor{
 	void go(const shared_ptr<Shape>&);
 	FUNCTOR1D(Facet);
-	WOO_CLASS_BASE_DOC(Bo1_Facet_Aabb,BoundFunctor,"Creates/updates an :ref:`Aabb` of a :ref:`Facet`.");
+	WOO_CLASS_BASE_DOC(Bo1_Facet_Aabb,BoundFunctor,"Creates/updates an :obj:`Aabb` of a :obj:`Facet`.");
 };
 WOO_REGISTER_OBJECT(Bo1_Facet_Aabb);
 
