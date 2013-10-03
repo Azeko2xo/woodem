@@ -49,7 +49,12 @@ except ImportError:
 	raise ImportError("Disqus support for sphinx not found; install it using 'easy_install sphinxcontrib-newsfeed'")
 
 
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.mathjax', 'sphinx.ext.viewcode', 'matplotlib.sphinxext.plot_directive', 'sphinx.ext.inheritance_diagram', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'tikz', ext_ipython_directive, 'sphinx.ext.extlinks', 'sphinxcontrib.bibtex','sphinxcontrib.newsfeed']
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.mathjax', 'sphinx.ext.viewcode', 'matplotlib.sphinxext.plot_directive', 'sphinx.ext.inheritance_diagram', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'sphinx.ext.extlinks', 'sphinxcontrib.bibtex','sphinxcontrib.newsfeed',
+	# local copies
+	'sphinxcontrib_youtube',
+	'tikz',
+	ext_ipython_directive,
+]
 
 # customize prompts
 ipython_rgxin =re.compile('Woo \[(\d+)\]:\s?(.*)\s*')

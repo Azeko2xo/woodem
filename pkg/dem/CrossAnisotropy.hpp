@@ -8,7 +8,7 @@ struct Cp2_FrictMat_FrictPhys_CrossAnisotropic: CPhysFunctor {
 	FUNCTOR2D(FrictMat,FrictMat);
 	void postLoad(Cp2_FrictMat_FrictPhys_CrossAnisotropic&,void*);
 	DECLARE_LOGGER;
-	WOO_CLASS_BASE_DOC_ATTRS(Cp2_FrictMat_FrictPhys_CrossAnisotropic,CPhysFunctor,"Call :obj:`Cp2_FrictMat_FrictPhys` to create a new :obj:`FrictPhys`, but multiply resulting :obj:`normal <NormPhys.kn>` and `shear <NormShearPhys.ks>` stiffnesses by smooth dimensionless anisotropy distribution given by :obj:`rot` and :obj:`scale`.",
+	WOO_CLASS_BASE_DOC_ATTRS(Cp2_FrictMat_FrictPhys_CrossAnisotropic,CPhysFunctor,"Call :obj:`Cp2_FrictMat_FrictPhys` to create a new :obj:`FrictPhys`, but multiply resulting :obj:`normal <woo.dem.FrictPhys.kn>` and :obj:`shear <woo.dem.FrictPhys.kt>` stiffnesses by smooth dimensionless anisotropy distribution given by :obj:`alpha` and :obj:`beta`. The functionality is demonstrated in the following movie: \n\n.. youtube:: KYCvi6SNOc0\n\n",
 		//((Real,nu2,.4,AttrTrait<Attr::readonly>(),"Minor Poisson's ratio (not really used)."))
 		// ((Vector2r,nu1_range,Vector2r(-1.,1.),,"Meaningful range for :obj:`nu1<Cp2_FrictMat_FrictPhys_CrossAnisotropic.nu1>`."))
 		((Real,E1,1e6,AttrTrait<Attr::triggerPostLoad>(),"In-plane normal modulus"))
@@ -25,10 +25,8 @@ struct Cp2_FrictMat_FrictPhys_CrossAnisotropic: CPhysFunctor {
 		((Vector2r,beta_range,Vector2r(0,90),,"Range for beta (adjusted automatically depending on degrees)"))
 		((bool,deg,true,AttrTrait<Attr::triggerPostLoad>(),"True is alpha/beta are given in degrees rather than radians."))
 
-		// ((Quaternionr,rot,Quaternionr::Identity(),AttrTrait<Attr::readonly>(),"Rotation of principal axes of anisotropy. (Automatically orthonormalized)"))
-		((Vector3r,xisoAxis,Vector3r::UnitX(),AttrTrait<Attr::readonly>(),"Axis (normal) of the cross-anisotropy in global coordinates (computed from *alpha* and *beta* as $n=(\\cos\\alpha\\sin\\beta,-\\sin\\alpha\\sin\\beta,\\cos\\beta)$."))
-		// ((Vector3r,scale,Vector3r::Ones(),,"Scaling coefficients for computes stiffnesses along principal axes (colums of :obj:`rot`."))
-		((int,recomputeIter,-1,,"Flag to keep track of updates of rot/scale, so that stiffnesses of existing contacts are forced to be updated."))
+		((Vector3r,xisoAxis,Vector3r::UnitX(),AttrTrait<Attr::readonly>(),"Axis (normal) of the cross-anisotropy in global coordinates; computed from :obj:`alpha` and :obj:`beta` as :math:`\\vec{n}=(\\cos\\alpha\\sin\\beta,-\\sin\\alpha\\sin\\beta,\\cos\\beta)`."))
+		((int,recomputeIter,-1,,"Flag to keep track of updates to :obj:`alpha` and :obj:`beta`, so that stiffnesses of existing contacts are forced to be updated."))
 	);
 };
 WOO_REGISTER_OBJECT(Cp2_FrictMat_FrictPhys_CrossAnisotropic);

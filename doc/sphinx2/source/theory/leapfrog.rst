@@ -68,7 +68,7 @@ The basic integration procedure applies to nodes which have inertia tensor such 
    :label: eq-leapfrog-nnextangvel
 
 	\begin{align}
-      \curr{\dot{\vec{\omega}}}&=\frac{1}{\tens{I}_{11}}\sum \curr{\vec{T}}=\frac{\curr{\vec{T}_{\Sigma}}}{\tens{I}_{11}} \\
+      \curr{\dot{\vec{\omega}}}&=\frac{\curr{\vec{T}_{\Sigma}}}{\tens{I}_{11}} \\
       \nnext{\vec{\omega}}&=\pprev{\vec{\omega}}+\Dt\curr{\dot{\vec{\omega}}} \\
       \next{\vec{q}}&=\mathrm{Quaternion}(\nnext{\vec{\omega}}\Dt)\curr{\vec{q}}
 	\end{align}
@@ -79,7 +79,7 @@ Aspherical nodes
 
 Aspherical nodes have different moment of inertia along each principal axis. Their positions are integrated in the same ways as with spherical nodes.
 
-Integrating rotation is considerably more complicated as the local reference frame is not inertial. Rotation of rigid body in the local frame, where inertia tensor :math:`\mat{I}` is diagonal, is described in the continuous form by Euler's equations (:math:`i\in\{1,2,3\}`, and :math:`i`, :math:`j`, :math:`k` being suquential):
+Integrating rotation is considerably more complicated as the local reference frame is not inertial. Rotation of rigid body in the local frame, where inertia tensor :math:`\mat{I}` is diagonal, is described in the continuous form by Euler's equations (:math:`i\in\{1,2,3\}`, and :math:`i`, :math:`j`, :math:`k` being sequential):
 
 .. math:: \vec{T}_i=\mat{I}_{ii}\dot{\vec{\omega}}_i+(\mat{I}_{kk}-\mat{I}_{jj})\vec{\omega}_j\vec{\omega}_k.
 

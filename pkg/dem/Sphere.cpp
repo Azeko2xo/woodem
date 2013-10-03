@@ -83,18 +83,22 @@ int Gl1_Sphere::glStripedSphereList=-1;
 int Gl1_Sphere::glGlutSphereList=-1;
 Real  Gl1_Sphere::prevQuality=0;
 
-void Gl1_Sphere::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool wire2, const GLViewInfo& glInfo){
+// called for rendering spheres both and ellipsoids, differing in the scale parameter
+void Gl1_Sphere::renderScaledSphere(const shared_ptr<Shape>& shape, const Vector3r& shift, bool wire2, const GLViewInfo& glInfo, const Real& radius, const Vector3r& scaleAxes){
 
 	const shared_ptr<Node>& n=shape->nodes[0];
 	Vector3r dPos=(n->hasData<GlData>()?n->getData<GlData>().dGlPos:Vector3r::Zero());
 	GLUtils::setLocalCoords(shape->nodes[0]->pos+shift+dPos,shape->nodes[0]->ori);
+
+	// for rendering ellipsoid
+	if(!isnan(scaleAxes[0])) glScalev(scaleAxes);
 
 	glClearDepth(1.0f);
 	glEnable(GL_NORMALIZE);
 
 	if(quality>10) quality=10; // insane setting can quickly kill the GPU
 
-	Real r=shape->cast<Sphere>().radius*scale;
+	Real r=radius*scale;
 	//glColor3v(CompUtils::mapColor(shape->getBaseColor()));
 	bool doPoints=(quality<0 || (int)(quality*glutSlices)<2 || (int)(quality*glutStacks)<2);
 	if(doPoints){

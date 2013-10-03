@@ -38,7 +38,8 @@ def makeColorFuncs(colors,dumbWinColors=False):
 			sys.stderr.write(100*'@'+'NOTE: Not importing colorama, since we are probably generating documentation (sys.getdefaultencoding()=="utf-8")\n')
 			raise ImportError
 		import colorama
-		# work around http://code.google.com/p/colorama/issues/detail?id=16
+		
+		pass# work around http://code.google.com/p/colorama/issues/detail?id=16
 		# not under Windows, or under Windows in dumb "terminal" (cmd.exe), where autodetection works
 		if not WIN: colorama.init()
 		# windows with proper terminal emulator
@@ -97,7 +98,7 @@ def main(sysArgv=None):
 	par.add_argument('-n',help="Run without graphical interface (equivalent to unsetting the DISPLAY environment variable)",dest='nogui',action='store_true')
 	par.add_argument('-D','--debug',help='Run the debug build, if available.',dest='debug',action='store_true')
 	# quirks set flags in options
-	par.add_argument('--quirks',help='Bitmask for workarounds for broken configurations; all quirks are enabled by default. 1: set LIBGL_ALWAYS_SOFTWARE=1 for Intel GPUs (determined from `lspci | grep VGA`) (avoids GPU freeze), 2: set --in-gdb when on AMD FirePro GPUs to avoid crash in fglrx.so (when using the fglrx driver)',dest='quirks',type=int,default=3) # , except the Intel one (seems to work properly now)
+	par.add_argument('--quirks',help='Bitmask for workarounds for broken configurations; all quirks are enabled by default. 1: set LIBGL_ALWAYS_SOFTWARE=1 for Intel GPUs (determined from `lspci | grep VGA`) (avoids GPU freeze), 2: set --in-gdb when on AMD FirePro GPUs to avoid crash in fglrx.so (only when using the fglrx driver)',dest='quirks',type=int,default=3) # , except the Intel one (seems to work properly now)
 	par.add_argument('--flavor',help='Build flavor of woo to use.',type=str,default=flavorFromArgv0(sys.argv[0]))
 	#
 	# end store in *options*
@@ -181,7 +182,8 @@ def main(sysArgv=None):
 				# disable quirk to avoid infinite loop
 				sys.argv=[sys.argv[0]]+['--quirks=%d'%(options.quirks&(~options.quirkFirePro))]+[a for a in sys.argv[1:] if not a.startswith('--quirks')]
 			else:
-				print 'AMD FirePro GPU without fglrx detected (quirk ignored).'
+				pass
+				# print 'AMD FirePro GPU without fglrx detected (quirk ignored).'
 	# re-run inside gdb
 	if opts.inGdb:
 		import tempfile, subprocess

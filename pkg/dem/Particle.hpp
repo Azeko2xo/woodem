@@ -199,7 +199,7 @@ public:
 		((Vector3r,inertia,Vector3r::Zero(),AttrTrait<>().inertiaUnit(),"Inertia along local (principal) axes"))
 		((Vector3r,force,Vector3r::Zero(),AttrTrait<>().forceUnit(),"Applied force"))
 		((Vector3r,torque,Vector3r::Zero(),AttrTrait<>().torqueUnit(),"Applied torque"))
-		((Vector3r,angMom,Vector3r::Zero(),AttrTrait<>().angMomUnit(),"Angular momentum (used with the aspherical integrator)"))
+		((Vector3r,angMom,Vector3r(NaN,NaN,NaN),AttrTrait<>().angMomUnit(),"Angular momentum; used with the aspherical integrator. If NaN and aspherical integrator is used, the value is initialized to :obj:`inertia` × :obj:`angVel`."))
 		((unsigned,flags,0,AttrTrait<Attr::readonly>().bits({"block x","block y","block z","block rot x","block rot y","block rot z","clumped","clump","energy skip","gravity skip"}),"Bit flags storing blocked DOFs, clump status, ..."))
 		((long,linIx,-1,AttrTrait<>().readonly().noGui(),"Index within DemField.nodes (for efficient removal)"))
 		((std::list<Particle*>,parRef,,AttrTrait<Attr::hidden|Attr::noSave>(),"Back-reference for particles using this node; this is important for knowing when a node may be deleted (no particles referenced) and such. Should be kept consistent."))

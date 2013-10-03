@@ -58,8 +58,14 @@ class Gl1_Sphere: public GlShapeFunctor{
 		void initStripedGlList();
 		//for regenerating glutSphere list if needed
 		static Real prevQuality;
+	protected:
+		// called for rendering spheres both and ellipsoids, differing in the scale parameter
+		// radius is radius for sphere, and it can be set to 1.0 for ellipsoid (containing radii inside scale)
+		void renderScaledSphere(const shared_ptr<Shape>&, const Vector3r&, bool,const GLViewInfo&, const Real& radius, const Vector3r& scaleAxes=Vector3r(NaN,NaN,NaN));
 	public:
-		virtual void go(const shared_ptr<Shape>&, const Vector3r&, bool,const GLViewInfo&);
+		virtual void go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire2,const GLViewInfo& glInfo){
+			renderScaledSphere(sh,shift,wire2,glInfo,sh->cast<Sphere>().radius);
+		}
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Sphere,GlShapeFunctor,"Renders :obj:`Sphere` object",
 		((Real,quality,1.0,AttrTrait<>().range(Vector2r(0,8)),"Change discretization level of spheres. quality>1 for better image quality, at the price of more cpu/gpu usage, 0<quality<1 for faster rendering. If mono-color sphres are displayed (:obj:`stripes` = `False`), quality mutiplies :obj:`glutSlices` and :obj:`glutStacks`. If striped spheres are displayed (:obj:`stripes = `True`), only integer increments are meaningful: quality=1 and quality=1.9 will give the same result, quality=2 will give a finer result."))
 		((bool,wire,false,,"Only show wireframe (controlled by :obj:`glutSlices` and :obj:`glutStacks`."))

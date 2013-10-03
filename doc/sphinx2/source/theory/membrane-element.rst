@@ -55,6 +55,10 @@ This matrix is stored as :obj:`woo.dem.FlexFacet.KKcst`.
 
 .. math:: \vec{F}^{\mathrm{CST}}=\begin{pmatrix}F_{x1}\\F_{y1}\\F_{x2}\\F_{y2}\\F_{x3}\\F_{y3}\end{pmatrix}=\mat{K}^{\mathrm{CST}}\vec{u}.
 
+This is an example of a CST-only mesh (no bending):
+
+.. youtube:: jimWu0_8oLc
+
 Discrete Krichhoff Triangle (DKT) Element
 -----------------------------------------
 
@@ -91,6 +95,10 @@ Generalized nodal forces are computed as
    \vec{F}^{\mathrm{DKT}}=\begin{pmatrix} F_{z1} \\ T_{x1} \\ T_{y1} \\ F_{z2} \\ T_{x1} \\ T_{x2} \\ F_{z3} \\ T_{x3}  \\ T_{y3}\end{pmatrix}=\mat{K}^{\mathrm{DKT}}\begin{pmatrix}u_{z1}\equiv0\\ \phi_{x1} \\ \phi_{y1} \\ u_{z2}\equiv0 \\ \phi_{x2} \\ \phi_{y2} \\ u_{z3}\equiv 0 \\ \phi_{x3} \\ \phi_{y3}\end{pmatrix},
 
 Since out-of-plane translations :math:`u_{zi}` are always zero (they determine rigid body rotation of the element), we may condense those rows from :math:`\mat{K}_{\mathrm{DKT}}` away, making it 9×6 rather than 9×9, and removing zero elements from the generalized displacement vector as well. Note that corresponding DoFs may nevertheless have non-zero forces :math:`F_{zi}`.
+
+The following video shows the combined response of CST and DKT elements:
+
+.. youtube:: KmQWD_MfR8M
 
 Total nodal forces
 ------------------
@@ -133,3 +141,7 @@ Generalized forces from elements are distributed to nodes as follows:
    \end{align}
 
 .. note:: The value of :math:`\vec{T}_{zi}` (drilling torque) is always zero; therefore, drilling motion of nodes is unconstrained (though still governed by dynamics). This can lead to some problems in special cases, manifesting as wobbly rotation of nodes which does not go away.
+
+This video demonstrates the :obj:`cylindrical triaxial test <woo.pre.cylTriax.CylTriaxialTest>` which includes CST+DKT elements with hydrostatic pressure and interaction with particles inside the membrane (displacements are scaled 10×):
+
+.. youtube:: Li13NrIyMYU

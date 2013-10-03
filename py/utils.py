@@ -188,6 +188,21 @@ def sphere(center,radius,mat=defaultMaterial,fixed=False,wire=False,color=None,h
 	b.mask=mask
 	return b
 
+def ellipsoid(center,ori,semiAxes,angVel=None,color=None,mat=defaultMaterial,fixed=False,wire=False,visible=True,mask=1,**kw):
+	'Return an :obj:`woo.dem.Ellipsoid` particle.'
+	p=Particle()
+	p.shape=Ellipsoid(semiAxes=semiAxes,color=color if color else random.random())
+	p.shape.wire=wire
+	a,b,c=semiAxes
+	V=(4/3.)*math.pi*a*b*c
+	I=(1/5.)*V*Vector3(b**2+c**2,c**2+a**2,a**2+b**2)
+	_commonBodySetup(p,([center] if isinstance(center,Node) else [_mkDemNode(pos=center,ori=ori),]),volumes=[V],geomInertias=[I],mat=mat,fixed=fixed)
+	p.aspherical=True
+	p.mask=mask
+	p.shape.visible=visible
+	if angVel: p.shape.nodes[0].dem.angVel=angVel
+	return p
+
 def wall(position,axis,sense=0,glAB=None,fixed=True,mass=0,color=None,mat=defaultMaterial,visible=True,mask=1):
 	"""Return ready-made wall body.
 
