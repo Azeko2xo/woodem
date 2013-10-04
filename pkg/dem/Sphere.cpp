@@ -17,11 +17,15 @@ void woo::Sphere::updateDyn(const Real& density) const {
 
 void Bo1_Sphere_Aabb::go(const shared_ptr<Shape>& sh){
 	Sphere& s=sh->cast<Sphere>();
-	if(!s.bound){ s.bound=make_shared<Aabb>(); }
-	Aabb& aabb=s.bound->cast<Aabb>();
-	assert(s.numNodesOk());
-	const Vector3r& pos=s.nodes[0]->pos;
 	Vector3r halfSize=(distFactor>0?distFactor:1.)*s.radius*Vector3r::Ones();
+	goGeneric(sh, halfSize);
+}
+
+void Bo1_Sphere_Aabb::goGeneric(const shared_ptr<Shape>& sh, Vector3r halfSize){
+	if(!sh->bound){ sh->bound=make_shared<Aabb>(); }
+	Aabb& aabb=sh->bound->cast<Aabb>();
+	assert(sh->numNodesOk());
+	const Vector3r& pos=sh->nodes[0]->pos;
 	if(!scene->isPeriodic){ aabb.min=pos-halfSize; aabb.max=pos+halfSize; return; }
 
 	// adjust box size along axes so that sphere doesn't stick out of the box even if sheared (i.e. parallelepiped)

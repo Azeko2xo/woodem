@@ -294,9 +294,9 @@ void Leapfrog::leapfrogSphericalRotate(const shared_ptr<Node>& node){
 void Leapfrog::leapfrogAsphericalRotate(const shared_ptr<Node>& node, const Vector3r& M){
 	Quaternionr& ori(node->ori); DemData& dyn(node->getData<DemData>());
 	Vector3r& angMom(dyn.angMom);	Vector3r& angVel(dyn.angVel);	const Vector3r& inertia(dyn.inertia);
-	// initialize angular momentum
+	// initialize angular momentum; it is in local coordinates, therefore angVel must be rotated
 	if(isnan(angMom.minCoeff())){
-		angMom=dyn.inertia.asDiagonal()*dyn.angVel;
+		angMom=dyn.inertia.asDiagonal()*node->ori.conjugate()*dyn.angVel;
 	}
 
 	Matrix3r A=ori.conjugate().toRotationMatrix(); // rotation matrix from global to local r.f.

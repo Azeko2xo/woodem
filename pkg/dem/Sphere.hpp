@@ -23,6 +23,7 @@ WOO_REGISTER_OBJECT(Sphere);
 
 struct Bo1_Sphere_Aabb: public BoundFunctor{
 	void go(const shared_ptr<Shape>&);
+	void goGeneric(const shared_ptr<Shape>& sh, Vector3r halfSize);
 	FUNCTOR1D(Sphere);
 	WOO_CLASS_BASE_DOC_ATTRS(Bo1_Sphere_Aabb,BoundFunctor,"Functor creating :obj:`Aabb` from :obj:`Sphere`.",
 		((Real,distFactor,((void)"deactivated",-1),,"Relative enlargement of the bounding box; deactivated if negative.\n\n.. note::\n\tThis attribute is used to create distant contacts, but is only meaningful with an :obj:`CGeomFunctor` which will not simply discard such interactions: :obj:`Cg2_Sphere_Sphere_L6Geom::distFactor` should have the same value."))
