@@ -18,9 +18,27 @@ void woo::Ellipsoid::updateDyn(const Real& density) const {
 	dyn.inertia=(1/5.)*dyn.mass*Vector3r(pow(semiAxes[1],2)+pow(semiAxes[2],2),pow(semiAxes[2],2)+pow(semiAxes[0],2),pow(semiAxes[0],2)+pow(semiAxes[1],2));
 };
 
+Matrix3r woo::Ellipsoid::trsfFromUnitSphere() const{
+	Matrix3r ret=semiAxes.asDiagonal();
+	// XXX
+	throw std::runtime_error("Ellipsoid::trsfFromUnitSphere: not yet implemented.");
+	return Matrix3r::Zero();
+}
+
+
 /* suboptimal implementation for now */
 void Bo1_Ellipsoid_Aabb::go(const shared_ptr<Shape>& sh){
-	goGeneric(sh,sh->cast<Ellipsoid>().semiAxes.maxCoeff()*Vector3r::Ones());
+	//goGeneric(sh,sh->cast<Ellipsoid>().semiAxes.maxCoeff()*Vector3r::Ones());
+	if(!sh->bound){ sh->bound=make_shared<Aabb>(); }
+	Aabb& aabb=sh->bound->cast<Aabb>();
+	Matrix3r M;
+	// http://www.loria.fr/~shornus/ellipsoid-bbox.html
+	// XXX: aren't we swapping rows and columns?
+	for(int i:{0,1,2}) M.col(i)=sh->nodes[0]->ori*(sh->cast<Ellipsoid>().semiAxes[i]*Vector3r::Unit(i));
+	const Vector3r& pos(sh->nodes[0]->pos);
+	Vector3r delta(M.row(0).norm(),M.row(1).norm(),M.row(2).norm());
+	aabb.min=pos-delta;
+	aabb.max=pos+delta;
 }
 
 

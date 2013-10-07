@@ -8,6 +8,8 @@ namespace woo{
 	struct Ellipsoid: public Shape{
 		void selfTest(const shared_ptr<Particle>&) WOO_CXX11_OVERRIDE;
 		bool numNodesOk() const { return nodes.size()==1; }
+		// return transformation matrix transforming unit sphere to this ellipsoid
+		Matrix3r trsfFromUnitSphere() const;
 		// update dynamic properties (mass, intertia) of the sphere based on current radius
 		void updateDyn(const Real& density) const;
 		WOO_CLASS_BASE_DOC_ATTRS_CTOR(Ellipsoid,Shape,"Ellipsoidal particle.",
