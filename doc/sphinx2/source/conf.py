@@ -48,8 +48,10 @@ try:
 except ImportError:
 	raise ImportError("Disqus support for sphinx not found; install it using 'easy_install sphinxcontrib-newsfeed'")
 
+mathjax=('PNGMATH' not in os.environ)
+if not mathjax: print 100*'#'+'  USING PNGMATH  '+100*'#'
 
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.mathjax', 'sphinx.ext.viewcode', 'matplotlib.sphinxext.plot_directive', 'sphinx.ext.inheritance_diagram', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'sphinx.ext.extlinks', 'sphinxcontrib.bibtex','sphinxcontrib.newsfeed',
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.mathjax' if mathjax else 'sphinx.ext.pngmath', 'sphinx.ext.viewcode', 'matplotlib.sphinxext.plot_directive', 'sphinx.ext.inheritance_diagram', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'sphinx.ext.extlinks', 'sphinxcontrib.bibtex','sphinxcontrib.newsfeed',
 	# local copies
 	'sphinxcontrib_youtube',
 	'tikz',
@@ -80,6 +82,41 @@ extlinks={'woosrc':('http://bazaar.launchpad.net/~eudoxos/woo/trunk/view/head:/%
 ## customize mathjax
 ## hack from https://bitbucket.org/birkenfeld/sphinx/issue/969/allow-mathjax-customization-via-localjs 
 mathjax_path = 'MathJax_local.js' # file including MathJax from CDN plus local config, in _static
+
+# config for pngmath (in case we have to use that)
+pngmath_use_preview=True
+pngmath_add_tooltips=True
+pngmath_latex_preamble=r'''
+\usepackage{euler} % must be loaded before fontspec for the whole doc (below); this must be kept for pngmath, however
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{amsbsy}
+\usepackage{underscore}
+% symbols
+\let\mat\boldsymbol % matrix
+\let\vec\boldsymbol % vector
+\let\tens\boldsymbol % tensor
+
+\def\normalized#1{\frac{31}{|\cdot|}}
+\def\u#1{\,\mathrm{#1}}
+\def\d{\,\mathrm{d}}
+
+% timestep
+\def\Dt{\Delta t}
+% variants for greek symbols
+\let\epsilon\varepsilon
+\let\theta\vartheta
+\let\phi\varphi
+
+% variables at different points of time 
+\def\prev#1{#1^-}
+\def\pprev#1{#1^\ominus}
+\def\curr#1{#1^{\circ}}
+\def\nnext#1{#1^\oplus}
+\def\next#1{#1^+}
+'''
+
+
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

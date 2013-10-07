@@ -9,4 +9,7 @@ extras:
 upload:
 	rsync -r sphinx2/build/html/ bbeta:host/woodem/doc
 	for ex in sphinx2/build-extra/*; do rsync -r $$ex/ bbeta:host/woodem/private/`basename $$ex`/doc; done
+uploadpng:
+	rsync -r sphinx2/build/html/ bbeta:host/woodem/doc-png
+	for ex in sphinx2/build-extra/*; do rsync -r $$ex/ bbeta:host/woodem/private/`basename $$ex`/doc-png; done
 default: gen extras upload

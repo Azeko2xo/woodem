@@ -81,12 +81,12 @@ and can be integrated numerically (see :cite:`Kansara2004`, pg. 48) using the `G
 .. math::
    :nowrap:
 
-   \begin{align}
+   \begin{align*}
       \vec{\xi}&=\left(\frac{1}{2},\frac{1}{2},0\right),\\
       \vec{\eta}&=\left(0,\frac{1}{2},\frac{1}{2}\right),\\
       \vec{w}&=\left(\frac{1}{3},\frac{1}{2},\frac{1}{2}\right),\\
       \mat{K}^{\mathrm{DKT}}&=2A\sum_{j=1}^{3}\sum_{i=1}^{3} w_j w_i \mat{B}_b^T(\xi_i,\eta_j) \mat{D}_b \mat{B}_b(\xi_i,\eta_j).
-   \end{align}
+   \end{align*}
 
 Generalized nodal forces are computed as
 
@@ -122,10 +122,10 @@ Contact forces defined by contact point :math:`\vec{c}`, force :math:`\vec{F}_c`
 .. math::
    :nowrap:
 
-   \begin{align}
+   \begin{lign*}
       \Delta\vec{F}_i&=\frac{\vec{F}_c}{3}, \\
       \Delta\vec{T}_i&=(\vec{x}_i-\vec{c})\times\vec{F}_c+\vec{T}_c.
-   \end{align}
+   \end{align*}
 
 CST + DKT
 """""""""
@@ -135,10 +135,10 @@ Generalized forces from elements are distributed to nodes as follows:
 .. math::
    :nowrap:
 
-   \begin{align}
+   \begin{align*}
       \Delta\vec{F}_i&=\begin{pmatrix} \vec{F}^{\mathrm{CST}}_{xi} \\ \vec{F}^{\mathrm{CST}}_{yi} \\ -\vec{F}^{\mathrm{DKT}}_{zi} \end{pmatrix}, \\
       \Delta\vec{T}_i&=\begin{pmatrix} \vec{F}^{\mathrm{DKT}}_{\phi_{xi}} \\ \vec{F}^{\mathrm{DKT}}_{\phi_{yi}} \\ 0 \end{pmatrix}.
-   \end{align}
+   \end{align*}
 
 .. note:: The value of :math:`\vec{T}_{zi}` (drilling torque) is always zero; therefore, drilling motion of nodes is unconstrained (though still governed by dynamics). This can lead to some problems in special cases, manifesting as wobbly rotation of nodes which does not go away.
 

@@ -188,7 +188,7 @@ def sphere(center,radius,mat=defaultMaterial,fixed=False,wire=False,color=None,h
 	b.mask=mask
 	return b
 
-def ellipsoid(center,ori,semiAxes,angVel=None,color=None,mat=defaultMaterial,fixed=False,wire=False,visible=True,mask=1,**kw):
+def ellipsoid(center,semiAxes,ori=Quaternion.Identity,angVel=None,color=None,mat=defaultMaterial,fixed=False,wire=False,visible=True,mask=1,**kw):
 	'Return an :obj:`woo.dem.Ellipsoid` particle.'
 	p=Particle()
 	p.shape=Ellipsoid(semiAxes=semiAxes,color=color if color else random.random())

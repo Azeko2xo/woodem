@@ -30,7 +30,7 @@ WOO_REGISTER_OBJECT(Bo1_Ellipsoid_Aabb);
 struct Cg2_Ellipsoid_Ellipsoid_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 	bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE;
 	void setMinDist00Sq(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE;
-	WOO_CLASS_BASE_DOC_ATTRS(Cg2_Ellipsoid_Ellipsoid_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :obj:`L6Geom` for contact of 2 :obj:`ellipsoids <woo.dem.Ellipsoids>`. Uses the Perram-Wertheim potential function (:cite:`Perram1985`, :cite:`Perram1996`, :cite:`Donev2005`).\n\n.. youtube:: cBnz4el4qX8\n\n",
+	WOO_CLASS_BASE_DOC_ATTRS(Cg2_Ellipsoid_Ellipsoid_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :obj:`L6Geom` for contact of 2 :obj:`ellipsoids <woo.dem.Ellipsoid>`. Uses the Perram-Wertheim potential function (:cite:`Perram1985`, :cite:`Perram1996`, :cite:`Donev2005`). See example scripts :woosrc:`examples/ell0.py` and :woosrc:`examples/ell1.py`.\n\n.. youtube:: cBnz4el4qX8\n\n",
 		((bool,brent,true,,"Use Brent iteration for finding maximum of the Perram-Wertheim potential. If false, use Newton-Raphson (not yet implemented)."))
 		((int,brentBits,4*sizeof(Real),,"Precision for the Brent method, as number of bits."))
 	);

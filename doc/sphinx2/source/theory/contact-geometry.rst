@@ -100,10 +100,10 @@ Finally, current generalized displacements are evaluated as
 .. math::
    :nowrap:
 
-   \begin{align}
+   \begin{align*}
       \curr{\vec{u}}&=\prev{u}+\pprev{\mat{T}}\pprev{\vec{v}_r}\Dt, \\
       \curr{\vec{\phi}}&=\prev{\vec{\phi}}+\pprev{\mat{T}}\Dt(\vec{\omega}_2-\vec{\omega}_1)
-   \end{align}
+   \end{align*}
 
 For the normal component, non-incremental evaluation is preferred if possible; for two spheres, this reads
 

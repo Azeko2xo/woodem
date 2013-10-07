@@ -22,7 +22,7 @@ struct AnisoPorosityAnalyzer: public Engine {
 	DECLARE_LOGGER;
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(AnisoPorosityAnalyzer,Engine,"Engine which analyzes current scene and computes directionaly porosity value by intersecting spheres with lines. The algorithm only works on periodic simulations.",
 		((Matrix3r,poro,Matrix3r::Zero(),AttrTrait<Attr::readonly>(),"Store analysis result here"))
-		((int,div,10,,"Fineness of division of interval (0…1) for $u$,$v$ ∈〈0…1〉, which are used for uniform distribution over the positive octant as $\\theta=\frac{\\pi}{2}u$, $\\phi=\\acos v$ (see http://mathworld.wolfram.com/SpherePointPicking.html)"))
+		((int,div,10,,"Fineness of division of interval (0…1) for $u$,$v$ ∈〈0…1〉, which are used for uniform distribution over the positive octant as $\\theta=\frac{\\pi}{2}u$, $\\phi=\\arccos v$ (see http://mathworld.wolfram.com/SpherePointPicking.html)"))
 		// check that data are up-to-date
 		((long,initStep,-1,AttrTrait<Attr::hidden>(),"Step in which internal data were last updated"))
 		((size_t,initNum,-1,AttrTrait<Attr::hidden>(),"Number of particles at last update"))

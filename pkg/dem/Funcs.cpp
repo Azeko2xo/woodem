@@ -3,6 +3,7 @@
 #include<woo/pkg/dem/G3Geom.hpp>
 #include<woo/pkg/dem/FrictMat.hpp>
 #include<woo/pkg/dem/Clump.hpp>
+#include<woo/pkg/dem/Ellipsoid.hpp>
 
 #include<cstdint>
 #include<iostream>
@@ -40,17 +41,18 @@ shared_ptr<DemField> DemFuncs::getDemField(const Scene* scene){
 }
 
 
-Real DemFuncs::pWaveDt(const shared_ptr<DemField>& field, bool noClumps/*=false*/){
-	//Scene* scene=(_scene?_scene.get():Master::instance().getScene().get());
-	//DemField* field=DemFuncs::getDemField(scene).get();
+Real DemFuncs::pWaveDt(const shared_ptr<DemField>& dem, bool noClumps/*=false*/){
 	Real dt=Inf;
-	FOREACH(const shared_ptr<Particle>& b, *field->particles){
-		if(!b || !b->material || !b->shape || b->shape->nodes.size()!=1 || !b->shape->nodes[0]->hasData<DemData>()) continue;
-		const shared_ptr<ElastMat>& elMat=dynamic_pointer_cast<ElastMat>(b->material);
-		const shared_ptr<Sphere>& s=dynamic_pointer_cast<Sphere>(b->shape);
-		if(!elMat || !s) continue;
-		const auto& n(b->shape->nodes[0]);
+	FOREACH(const shared_ptr<Particle>& p, *dem->particles){
+		if(!p || !p->material || !p->shape || p->shape->nodes.size()!=1 || !p->shape->nodes[0]->hasData<DemData>()) continue;
+		const auto& n(p->shape->nodes[0]);
 		const auto& dyn(n->getData<DemData>());
+		const shared_ptr<ElastMat>& elMat=dynamic_pointer_cast<ElastMat>(p->material);
+		if(!elMat) continue;
+		Real radius;
+		if(dynamic_pointer_cast<Sphere>(p->shape)) radius=p->shape->cast<Sphere>().radius;
+		else if(dynamic_pointer_cast<Ellipsoid>(p->shape)) radius=p->shape->cast<Ellipsoid>().semiAxes.minCoeff();
+		else continue;
 		// for clumps, the velocity is higher: the distance from the sphere center to the clump center
 		// is traversed immediately, thus we need to increase the velocity artificially
 		Real velMult=1.;
@@ -59,7 +61,7 @@ Real DemFuncs::pWaveDt(const shared_ptr<DemField>& field, bool noClumps/*=false*
 			// this is probably bogus:
 			// assert(dyn.master); velMult+=(n->pos-dyn.master.lock()->pos).norm()/s->radius;
 		}
-		dt=min(dt,s->radius/(velMult*sqrt(elMat->young/elMat->density)));
+		dt=min(dt,radius/(velMult*sqrt(elMat->young/elMat->density)));
 	}
 	return dt;
 }

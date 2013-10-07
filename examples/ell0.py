@@ -10,6 +10,5 @@ S.dem.par.append([
 ])
 S.dem.collectNodes()
 S.engines=[Leapfrog(reset=True),InsertionSortCollider([Bo1_Ellipsoid_Aabb()]),ContactLoop([Cg2_Ellipsoid_Ellipsoid_L6Geom()],[Cp2_FrictMat_FrictPhys()],[Law2_L6Geom_FrictPhys_IdealElPl()])]
-S.dt=1e-5
 
 S.any=[Gl1_Ellipsoid(wire=True),Gl1_DemField(cPhys=True,cNode=Gl1_DemField.cNodeNode),Renderer(iniViewDir=(0,1,0))]

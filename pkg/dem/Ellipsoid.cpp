@@ -89,10 +89,24 @@ bool Cg2_Ellipsoid_Ellipsoid_L6Geom::go(const shared_ptr<Shape>& s1, const share
 	Matrix3r G=(1-L)*Ainv+L*Binv; // (2.6)
 	Vector3r nUnnorm=G.inverse()*R; // Donev, (19)
 	Vector3r contPt=ra+(1-L)*Ainv*nUnnorm; // Donev, (19)
-	Real uN=Fab-1.; // XXX - is this bogus?!
-	// cerr<<"lambda: "<<L<<", Fab: "<<Fab<<", n: "<<nUnnorm.transpose()<<", CP: "<<contPt.transpose()<<endl;
+	// compute uN: Perram&Wertheim (3.17): Fab=μ², where μ is the scaling factor
+	Real mu=sqrt(Fab);
+	// μ scales sizes while keeping ellipsoid distance
+	// 1/μ therefore scales distance keeping ellipsoid sizes
+	// with d (≡|R|) being the current distance, we have
+	// uN'=d-d₀=d-(1/μ)*d=d(1-1/μ) 
+	// however, the scaling approaches ellipsoids at that rate in the direction of R
+	// so if the normal has different orientation, we need to scale that by the cosine,
+	// which happens to be the scalar product of normalized rUnit and nUnit (normalized R and nUnnorm)
+	// so finally we have
+	// uN=uN'*cos(rUnit,nUnit)=|R|(1-1/μ)*(rUnit·nUnit)
+	Real Rnorm=R.norm();
+	Vector3r nUnit=nUnnorm.normalized(), rUnit=R/Rnorm;
+	Real uN=Rnorm*(1-1/mu)*rUnit.dot(nUnit);
+	// cerr<<"Fab="<<Fab<<", mu="<<mu<<", cos="<<rUnit.dot(nUnit)<<", l="<<l<<", l0="<<l0<<", |nUnnorm|="<<nUnnorm.norm()<<", uN="<<uN<<endl;
 
-	handleSpheresLikeContact(C,ra,dyn1.vel,dyn1.angVel,rb,dyn2.vel,dyn2.angVel,nUnnorm.normalized(),contPt,uN,(contPt-ra).norm(),(contPt-rb).norm());
+	// cerr<<"lambda: "<<L<<", Fab: "<<Fab<<", n: "<<nUnnorm.transpose()<<", CP: "<<contPt.transpose()<<endl;
+	handleSpheresLikeContact(C,ra,dyn1.vel,dyn1.angVel,rb,dyn2.vel,dyn2.angVel,nUnit,contPt,uN,(contPt-ra).norm(),(contPt-rb).norm());
 
 	return true;
 }

@@ -36,6 +36,7 @@ class HertzModel(CundallModel):
 	'Purely elastic Hertz contact model; base class for :obj:`SchwarzModel`. For details, see :ref:`hertzian_contact_models`.'
 	def __init__(self,r1,r2,E1,nu1,E2=None,nu2=None,name=''):
 		'Initialize the model with constants. If nu2 is not given, it is the same as nu1. Passes most parameters to :obj:`CundallModel`.'
+		super(HertzModel,self).__init__(r1=r1,r2=r2,E1=E1,E2=E2,name=name)
 		if not nu2: nu2=nu1
 		self.nu1,self.nu2=nu1,nu2
 		# effective modulus

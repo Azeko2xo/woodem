@@ -23,11 +23,11 @@ Symbols used for adhesive models, in addition to those introduced for Hertzian m
 .. math::
    :nowrap:
 
-   \begin{align}
+   \begin{align*}
       \hat a&=a\left(\frac{K}{\pi\gamma R^2}\right)^{\frac{1}{3}}, \\
       \hat\delta&=\delta\left(\frac{K^2}{\pi^2\gamma^2 R}\right)^{\frac{1}{3}}, \\
       \hat P&=P\frac{1}{\pi\gamma R}.
-   \end{align}
+   \end{align*}
 
 Derjaugin-Muller-Toporov (DMT)
 -------------------------------
@@ -122,12 +122,12 @@ where the :math:`\xi` term was introduced for readability. This equation is not 
 .. math::
    :nowrap:
 
-   \begin{align}
+   \begin{align*}
       \delta'(a)&=\frac{2a}{R}-2\xi a^{-\frac{1}{2}} \\
-      \delta'(a_\min)&=0 \\
-      a_\min&=(R\xi)^{\frac{2}{3}} \\
-      \delta_\min&=\delta(a_\min)=-3R^{\frac{1}{3}}\xi^{\frac{4}{3}}.
-   \end{align}
+      \delta'(a_{\min})&=0 \\
+      a_{\min}&=(R\xi)^{\frac{2}{3}} \\
+      \delta_{\min}&=\delta(a_{\min})=-3R^{\frac{1}{3}}\xi^{\frac{4}{3}}.
+   \end{align*}
 
 The second derivative
 
@@ -135,7 +135,7 @@ The second derivative
 
 is strictly positive as :math:`\xi`, :math:`R` and positive and :math:`a` non-negative.
 
-Given known penetration :math:`\delta`, we can find the corresponding value of :math:`a` with `Newton-Raphson <http://en.wikipedia.org/wiki/Newton-Raphson>`__ or `Halley's <http://en.wikipedia.org/wiki/Halley%27s_method>`__ methods. There are two solutions for all :math:`\delta\in(\delta_\min\dots 0\rangle`. The solution for the ascending branch (:math:`\delta'(a<a_\min)>0`) is energetically unstable and we can ignore it in numerical simulations. As initial solution for iteration, the value of e.g. :math:`2a_\min` can be used when the contact is :obj:`fresh <woo.dem.Contact.isFresh>`, the previous value of :math:`a` is a good starting point otherwise.
+Given known penetration :math:`\delta`, we can find the corresponding value of :math:`a` with `Newton-Raphson <http://en.wikipedia.org/wiki/Newton-Raphson>`__ or `Halley's <http://en.wikipedia.org/wiki/Halley%27s_method>`__ methods. There are two solutions for all :math:`\delta\in(\delta_{\min}\dots 0\rangle`. The solution for the ascending branch (:math:`\delta'(a<a_{\min})>0`) is energetically unstable and we can ignore it in numerical simulations. As initial solution for iteration, the value of e.g. :math:`2a_{\min}` can be used when the contact is :obj:`fresh <woo.dem.Contact.isFresh>`, the previous value of :math:`a` is a good starting point otherwise.
 
 This plot shows both loading and unloading (unstable) branches, obtained via Newton iteration (bisection for the unstable branch for simplicity); this plot reproduces :cite:`Maugis1992`, Fig. 6.:
 

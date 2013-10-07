@@ -46,10 +46,10 @@ Trial tangential force is computed from :obj:`relative velocity <woo.dem.L6Geom.
 .. math::
 	:nowrap:
 
-	\begin{align}
+	\begin{align*}
 		\Delta F_t&=(\pprev{\dot u})_t\Dt k_t, \\
 		F_t^T=\curr{F_t}+\Delta F_t,
-	\end{align}
+	\end{align*}
 
 and total tangential force is  reduced by the Coulomb criterion:
 

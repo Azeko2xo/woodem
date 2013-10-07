@@ -67,11 +67,11 @@ The basic integration procedure applies to nodes which have inertia tensor such 
    :nowrap:
    :label: eq-leapfrog-nnextangvel
 
-	\begin{align}
+	\begin{align*}
       \curr{\dot{\vec{\omega}}}&=\frac{\curr{\vec{T}_{\Sigma}}}{\tens{I}_{11}} \\
       \nnext{\vec{\omega}}&=\pprev{\vec{\omega}}+\Dt\curr{\dot{\vec{\omega}}} \\
       \next{\vec{q}}&=\mathrm{Quaternion}(\nnext{\vec{\omega}}\Dt)\curr{\vec{q}}
-	\end{align}
+	\end{align*}
 	
 
 Aspherical nodes
@@ -178,10 +178,10 @@ with
    :nowrap:
    :label: eq-hvl-currv
 
-   \begin{align}
+   \begin{align*}
       \Dt\curr{\vec{\dot v}_L}&=\Dt\partial_t(\curr{\tens{L}}\curr{\vec{x}})=\Dt(\curr{\tens{\dot L}}\curr{\vec{x}}+\curr{L}\curr{v})\approx\\
       &\approx \Dt \left[\frac{\nnext{\tens{L}}-\pprev{\tens{L}}}{\Dt}\curr{\vec{x}}+\frac{\pprev{\tens{L}}+\nnext{\tens{L}}}{2}\curr{\vec{v}}\right].
-   \end{align}
+   \end{align*}
 
 This equation can be rearranged as
 
