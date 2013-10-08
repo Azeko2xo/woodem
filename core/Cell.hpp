@@ -176,7 +176,7 @@ struct Cell: public Object{
 		.def("wrapPt",&Cell::wrapPt_py,"Wrap point inside the reference cell, assuming the cell has no skew+rot.")\
 		.def_readonly("shearTrsf",&Cell::_shearTrsf,"Current skew+rot transformation (no resize)")\
 		.def_readonly("unshearTrsf",&Cell::_unshearTrsf,"Inverse of the current skew+rot transformation (no resize)")\
-		.add_property("hSize0",&Cell::getHSize0,"Value of untransformed hSize, with respect to current :obj:`trsf` (computed as :obj:`trsf`⁻¹ × :obj:`hSize>`.")\
+		.add_property("hSize0",&Cell::getHSize0,"Value of untransformed hSize, with respect to current :obj:`trsf` (computed as :obj:`trsf` ⁻¹ × :obj:`hSize`).")\
 		.add_property("size0",&Cell::getSize0,"norms of columns of `hSize0` (edge lengths of the untransformed configuration)") ;\
 			_classObj.attr("HomoNone")=(int)Cell::HOMO_NONE; \
 			_classObj.attr("HomoPos")=(int)Cell::HOMO_POS; \
