@@ -4,7 +4,10 @@
 #include <boost/math/tools/minima.hpp>
 #include <boost/math/tools/tuple.hpp>
 
-WOO_PLUGIN(dem,(Ellipsoid)(Bo1_Ellipsoid_Aabb)(Cg2_Ellipsoid_Ellipsoid_L6Geom));
+WOO_PLUGIN(dem,(Ellipsoid)(Bo1_Ellipsoid_Aabb)(Cg2_Wall_Ellipsoid_L6Geom)(Cg2_Ellipsoid_Ellipsoid_L6Geom));
+#ifdef WOO_OPENGL
+	WOO_PLUGIN(gl,(Gl1_Ellipsoid));
+#endif
 
 void woo::Ellipsoid::selfTest(const shared_ptr<Particle>& p){
 	if(!(semiAxes.minCoeff()>0)) throw std::runtime_error("Ellipsoid #"+to_string(p->id)+": all semi-princial semiAxes must be positive (current minimum is "+to_string(semiAxes.minCoeff())+")");
@@ -18,28 +21,66 @@ void woo::Ellipsoid::updateDyn(const Real& density) const {
 	dyn.inertia=(1/5.)*dyn.mass*Vector3r(pow(semiAxes[1],2)+pow(semiAxes[2],2),pow(semiAxes[2],2)+pow(semiAxes[0],2),pow(semiAxes[0],2)+pow(semiAxes[1],2));
 };
 
+/* return matrix transforming unit sphere to this ellipsoid */
 Matrix3r woo::Ellipsoid::trsfFromUnitSphere() const{
-	Matrix3r ret=semiAxes.asDiagonal();
-	// XXX
-	throw std::runtime_error("Ellipsoid::trsfFromUnitSphere: not yet implemented.");
-	return Matrix3r::Zero();
+	Matrix3r M;
+	for(int i:{0,1,2}) M.col(i)=nodes[0]->ori*(semiAxes[i]*Vector3r::Unit(i));
+	return M;
+}
+
+/* return extents (half-size) spanned in the direction of *axis*; this is the same algo
+	as when computing Aabb, but evaluated for one axis only.
+ */
+Real woo::Ellipsoid::axisExtent(short axis) const {
+	Matrix3r M=trsfFromUnitSphere();
+	return M.row(axis).norm();
 }
 
 
-/* suboptimal implementation for now */
 void Bo1_Ellipsoid_Aabb::go(const shared_ptr<Shape>& sh){
 	//goGeneric(sh,sh->cast<Ellipsoid>().semiAxes.maxCoeff()*Vector3r::Ones());
 	if(!sh->bound){ sh->bound=make_shared<Aabb>(); }
 	Aabb& aabb=sh->bound->cast<Aabb>();
-	Matrix3r M;
+	Matrix3r M=sh->cast<Ellipsoid>().trsfFromUnitSphere();
 	// http://www.loria.fr/~shornus/ellipsoid-bbox.html
-	// XXX: aren't we swapping rows and columns?
-	for(int i:{0,1,2}) M.col(i)=sh->nodes[0]->ori*(sh->cast<Ellipsoid>().semiAxes[i]*Vector3r::Unit(i));
 	const Vector3r& pos(sh->nodes[0]->pos);
 	Vector3r delta(M.row(0).norm(),M.row(1).norm(),M.row(2).norm());
 	aabb.min=pos-delta;
 	aabb.max=pos+delta;
 }
+
+bool Cg2_Wall_Ellipsoid_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
+	const Wall& wall(s1->cast<Wall>());
+	const Ellipsoid& ell(s2->cast<Ellipsoid>());
+	const auto& ax(wall.axis); const auto& sense(wall.sense);
+	const Vector3r ellPos(ell.nodes[0]->pos+shift2); const Vector3r& wallPos(wall.nodes[0]->pos);
+	Real extent=ell.axisExtent(ax);
+	if(((wallPos[ax]<(ellPos[ax]-extent)) || (wallPos[ax]>(ellPos[ax]+extent))) && !C->isReal() && !force){ return false; }
+	// penetration distance and normal can be computed simply, being axis-aligned
+	Real dist=ellPos[ax]-wallPos[ax]; // signed distance: positive for ellipsoid above the wall
+	assert(sense==-1 || sense==0 || sense==1);
+	short normAxSgn; // sign of the normal along wall's axis
+	if(wall.sense==0) normAxSgn=dist>0?1:-1; // both-side wall
+	else normAxSgn=(sense==1?1:-1);
+	Vector3r normal=normAxSgn*Vector3r::Unit(ax);
+	Real uN=normAxSgn*dist-extent;
+	// for small deformations, we can suppose the contact point is the one touching the bounding box
+	// http://www.loria.fr/~shornus/ellipsoid-bbox.html -- using their notation
+	Matrix3r M(ell.trsfFromUnitSphere());
+	Matrix3r Mprime=M.transpose();
+	for(short i:{0,1,2}) Mprime.col(i).normalize();
+	// Columns of this product should be deltas from ellipsoid center to the extremal point, projected to the plane.
+	// normAxSign is ±1 depending on sense and position, re-use that one here, but opposite:
+	// it wall it touched from above, we need the lower point on the ellipsoid and vice versa
+	Vector3r contPt=ellPos+(-normAxSgn)*(M*Mprime).col(ax);
+	contPt[ax]=wallPos[ax];
+
+	Real contR=(contPt-ellPos).norm();
+	const DemData& ellDyn(ell.nodes[0]->getData<DemData>()); const DemData& wallDyn(wall.nodes[0]->getData<DemData>());
+	handleSpheresLikeContact(C,wallPos,wallDyn.vel,wallDyn.angVel,ellPos,ellDyn.vel,ellDyn.angVel,normal,contPt,uN,/*negative for wall*/-contR,contR);
+	return true;
+}
+
 
 
 void Cg2_Ellipsoid_Ellipsoid_L6Geom::setMinDist00Sq(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const shared_ptr<Contact>& C){
@@ -131,6 +172,3 @@ bool Cg2_Ellipsoid_Ellipsoid_L6Geom::go(const shared_ptr<Shape>& s1, const share
 
 
 
-#ifdef WOO_OPENGL
-WOO_PLUGIN(gl,(Gl1_Ellipsoid));
-#endif

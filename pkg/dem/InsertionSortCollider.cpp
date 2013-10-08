@@ -180,32 +180,36 @@ bool InsertionSortCollider::updateBboxes_doFullRun(){
 	}
 
 	bool recomputeBounds=false;
-	// first loop only checks if there something is our
-	FOREACH(const shared_ptr<Particle>& p, *dem->particles){
-		if(!p->shape) continue;
-		const int nNodes=p->shape->nodes.size();
-		// below we throw exception for particle that has no functor afer the dispatcher has been called
-		// that would prevent mistakenly boundless particless triggering collisions every time
-		if(!p->shape->bound){
-			LOG_TRACE("recomputeBounds because of #"<<p->id<<" without bound");
-			recomputeBounds=true;
-			break;
+	if(verletDist==0){
+		recomputeBounds=true;
+	} else {
+		// first loop only checks if there something is our
+		FOREACH(const shared_ptr<Particle>& p, *dem->particles){
+			if(!p->shape) continue;
+			const int nNodes=p->shape->nodes.size();
+			// below we throw exception for particle that has no functor afer the dispatcher has been called
+			// that would prevent mistakenly boundless particless triggering collisions every time
+			if(!p->shape->bound){
+				LOG_TRACE("recomputeBounds because of #"<<p->id<<" without bound");
+				recomputeBounds=true;
+				break;
+			}
+			// existing bound, do we need to update it?
+			const Aabb& aabb=p->shape->bound->cast<Aabb>();
+			assert(aabb.nodeLastPos.size()==p->shape->nodes.size());
+			if(isnan(aabb.min.maxCoeff())||isnan(aabb.max.maxCoeff())) { recomputeBounds=true; break; } 
+			Real d2=0; 
+			for(int i=0; i<nNodes; i++){
+				d2=max(d2,(aabb.nodeLastPos[i]-p->shape->nodes[i]->pos).squaredNorm());
+				// maxVel2b=max(maxVel2b,p->shape->nodes[i]->getData<DemData>().vel.squaredNorm());
+			}
+			if(d2>aabb.maxD2){
+				LOG_TRACE("recomputeBounds because of #"<<p->id<<" moved too far");
+				recomputeBounds=true;
+				break;
+			}
+			// fine, particle doesn't need to be updated
 		}
-		// existing bound, do we need to update it?
-		const Aabb& aabb=p->shape->bound->cast<Aabb>();
-		assert(aabb.nodeLastPos.size()==p->shape->nodes.size());
-		if(isnan(aabb.min.maxCoeff())||isnan(aabb.max.maxCoeff())) { recomputeBounds=true; break; } 
-		Real d2=0; 
-		for(int i=0; i<nNodes; i++){
-			d2=max(d2,(aabb.nodeLastPos[i]-p->shape->nodes[i]->pos).squaredNorm());
-			// maxVel2b=max(maxVel2b,p->shape->nodes[i]->getData<DemData>().vel.squaredNorm());
-		}
-		if(d2>aabb.maxD2){
-			LOG_TRACE("recomputeBounds because of #"<<p->id<<" moved too far");
-			recomputeBounds=true;
-			break;
-		}
-		// fine, particle doesn't need to be updated
 	}
 	// bounds don't need update, collision neither
 	if(!recomputeBounds) return false;
