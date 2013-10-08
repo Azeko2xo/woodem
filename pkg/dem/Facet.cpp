@@ -61,6 +61,18 @@ vector<Vector3r> Facet::outerEdgeNormals() const{
 	return {std::get<0>(o).normalized(),std::get<1>(o).normalized(),std::get<2>(o).normalized()};
 }
 
+#if 0
+Vector3r Facet::getNearestTrianglePt(const Vector3r& pt, const Vector3r[3] pts){
+	const Vector3r& A(pts[0]); const Vector3r& B(pts[1]); const Vector3r& C(pts[2]);
+	Vector3r n0=((B-A).cross(C-A));
+	Vector3r n=n0.normalized();
+	Vector3r outVec[3]={(B-A).cross(n0),(C-B).cross(n),(A-C).cross(n)};
+	short w=0;
+	for(int i:{0,1,2}) 
+}
+#endif
+
+
 Vector3r Facet::getNearestPt(const Vector3r& pt) const {
 	Vector3r fNormal=getNormal();
 	Real planeDist=(pt-nodes[0]->pos).dot(fNormal);
@@ -90,7 +102,16 @@ std::tuple<Vector3r,Vector3r> Facet::interpolatePtLinAngVel(const Vector3r& x) c
 	Vector3r vv[3]={nodes[0]->getData<DemData>().vel,nodes[1]->getData<DemData>().vel,nodes[2]->getData<DemData>().vel};
 	Vector3r linVel=a[0]*vv[0]+a[1]*vv[1]+a[2]*vv[2];
 	Vector3r angVel=(nodes[0]->pos-x).cross(vv[0])+(nodes[1]->pos-x).cross(vv[1])+(nodes[2]->pos-x).cross(vv[2]);
-	return std::make_tuple(linVel,angVel);
+	if(fakeVel==Vector3r::Zero()) return std::make_tuple(linVel,angVel);
+	else {
+		// add fake velocity, unless the first component is NaN
+		// which ignores fakeVel and reset in-plane velocities
+		if(!isnan(fakeVel[0])) return std::make_tuple(linVel+fakeVel,angVel);
+		// with isnan(fakeVel[0]), zero out in-plane components
+		Vector3r fNormal=getNormal();
+		linVel=linVel.dot(fNormal)*fNormal; 
+		return std::make_tuple(linVel,angVel);
+	}
 }
 
 

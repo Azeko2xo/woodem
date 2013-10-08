@@ -32,16 +32,16 @@ computations on triangulated surfaces.
 
 The following geometric primitives are provided:
 
-  Point - a point in 3D space
-  Vertex - a Point in 3D space that may be used to define a Segment
-  Segment - a line defined by two Vertex end-points
-  Edge - a Segment that may be used to define the edge of a Triangle
-  Triangle - a triangle defined by three Edges
-  Face - a Triangle that may be used to define a face on a Surface
-  Surface - a surface composed of Faces
+*  Point - a point in 3D space
+*  Vertex - a Point in 3D space that may be used to define a Segment
+*  Segment - a line defined by two Vertex end-points
+*  Edge - a Segment that may be used to define the edge of a Triangle
+*  Triangle - a triangle defined by three Edges
+*  Face - a Triangle that may be used to define a face on a Surface
+*  Surface - a surface composed of Faces
 
 A tetrahedron is assembled from these primitives as follows.  First,
-create Vertices for each of the tetrahedron's points:
+create Vertices for each of the tetrahedron's points::
 
     import gts
 
@@ -50,7 +50,7 @@ create Vertices for each of the tetrahedron's points:
     v3 = gts.Vertex(-1,1,-1)
     v4 = gts.Vertex(1,-1,-1)
 
-Next, connect the four vertices to create six unique Edges:
+Next, connect the four vertices to create six unique Edges::
 
     e1 = gts.Edge(v1,v2)
     e2 = gts.Edge(v2,v3)
@@ -59,14 +59,14 @@ Next, connect the four vertices to create six unique Edges:
     e5 = gts.Edge(v4,v2)
     e6 = gts.Edge(v4,v3)
 
-The four triangular faces are composed using three edges each:
+The four triangular faces are composed using three edges each::
 
     f1 = gts.Face(e1,e2,e3)
     f2 = gts.Face(e1,e4,e5)
     f3 = gts.Face(e2,e5,e6)
     f4 = gts.Face(e3,e4,e6)
 
-Finally, the surface is assembled from the faces:
+Finally, the surface is assembled from the faces::
 
     s = gts.Surface()
     for face in [f1,f2,f3,f4]:
@@ -76,7 +76,7 @@ Some care must be taken in the orientation of the faces.  In the above
 example, the surface normals are pointing inward, and so the surface
 technically defines a void, rather than a solid.  To create a 
 tetrahedron with surface normals pointing outward, use the following
-instead:
+instead::
 
     f1.revert()
     s = Surface()
@@ -86,11 +86,11 @@ instead:
         s.add(face)
 
 Once the Surface is constructed, there are many different operations that
-can be performed.  For example, the volume can be calculated using:
+can be performed.  For example, the volume can be calculated using::
 
     s.volume()
 
-The difference between two Surfaces s1 and s2 is given by:
+The difference between two Surfaces s1 and s2 is given by::
 
     s3 = s2.difference(s1)
 

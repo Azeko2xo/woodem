@@ -9,7 +9,7 @@ Motion integration consists in computing accelerations from forces/torques actin
 
 Motion integration is implemented in :obj:`woo.dem.Leapfrog`.
 
-The summary force :math:`\vec{F}_{\Sigma}` and torque :math:`\vec{T}_{\Sigma}` include contributions from all relevant contacts, fields (such as gravity) and internal forces (e.g. from :ref:`Membrane element`).
+The summary force :math:`\vec{F}_{\Sigma}` and torque :math:`\vec{T}_{\Sigma}` include contributions from all relevant contacts, fields (such as gravity) and internal forces (e.g. from :ref:`membrane_element`).
 
 .. todo:: Mention how are forces from contacts summed up.
 
@@ -113,7 +113,7 @@ Our goal is to compute new values of the latter three, i.e. :math:`\nnext{\vec{L
 		\nnext{\tilde{\vec{\omega}}}&=\curr{\tilde{\mat{I}}}{}^{-1}\nnext{\tilde{\vec{L}}}. \\
 	\end{align*}
 
-Then we compute :math:`\curr{\dot{q}}`, using :math:`\curr{q}` and :math:`\curr{\tilde{\vec{\omega}}}`:
+Then we compute :math:`\curr{\dot{q}}` (see `Quaternion differentiation <http://www.euclideanspace.com/physics/kinematics/angularvelocity/QuaternionDifferentiation2.pdf>`__), using :math:`\curr{q}` and :math:`\curr{\tilde{\vec{\omega}}}`:
 
 .. math::
 	:label: eq-quaternion-derivative

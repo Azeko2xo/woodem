@@ -1,13 +1,10 @@
-.. _contact_geometry:
+.. _l6geom:
 
-=======================
-Contact geometry
-=======================
+Local contact coordinates
+--------------------------
 
 Contact geometry is given by local coordinates (situated at the contact point and having the :math:`x`-axis along the contact normal) and also is responsible for computing relative velocity of contacting particles in local coordinates. This functionality is implemented by functors producing :obj:`woo.dem.L6Geom` (:obj:`woo.dem.Cg2_Sphere_Sphere_L6Geom` and others).
 
-Local coordinates
-------------------
 
 Local coordinates are defined by position (local origin) :math:`c` (contact point) and rotation (local orientation) given as rotation (=orthonormal) matrix :math:`\mat{T}`. The first row of :math:`\mat{T}` i.e. the local :math:`x`-axis, is noted :math:`\vec{n}` for brevity.
 
@@ -25,6 +22,8 @@ All displacements define their respective rates noted :math:`\dot{\vec{u}}` and 
 
 .. note:: It must be carefully observed for which time-point is any value valid; this is show by using time-indices :math:`\prev{x}\equiv x^{(t-\Dt)}`, :math:`\pprev{x}\equiv x^{(t-\Dt/2)}`, :math:`\curr{x}\equiv x^{(t)}`, :math:`\nnext{x} \equiv x^{(t+\Dt/2)}`, :math:`\next{x} \equiv x^{(t+\Dt)}`. Because of the leap-frog integration scheme, even derivatives of position (position, acceleration, forces, torques) are known at full-steps while odd derivatives (velocity) are known at mid-steps.
 
+
+.. _contact-geometry-l6gom-generic:
 
 Generic contact routine 
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -109,20 +108,4 @@ For the normal component, non-incremental evaluation is preferred if possible; f
 
 .. math:: \curr{\vec{u}_x}=|\curr{\vec{x}_2}-\curr{\vec{x}_1}|-(r_1+r_2).
 
-.. note: TODO: ``distFactor`` is not yet implemented as described above; some formulas mix values at different times, should be checked carefully.
-
-
-Sphere-sphere contact
-^^^^^^^^^^^^^^^^^^^^^^
-.. todo:: Something along the following lines (note that htis semsntics -- negative value of distFactor -- is not yet implemented): **Contact criterion for spheres:** When there is not yet contact, it will be created if :math:`u_n=|\curr{\vec{x}}_2-\curr{\vec{x}}_1|-|f_d|(r_1+r2)<0`, where :math:`f_d` is :obj:`interaction radius <Cg2_Sphere_Sphere_L6Geom.distFactor>` (sometimes also called "interaction radius"). If :math:`f_d>0`, then :math:`\vec{u}_{0x}` will be initalized to :math:`u_N`, otherwise to 0. In another words, contact will be created if spheres enlarged by :math:`|f_d|` touch, and the "equilibrium distance" (where :math:`\vec{u}_x-\vec{u}_{0x}=0`) will be set to the current distance if :math:`f_d>0` is positive, and to the geometrically-touching distance if :math:`f_d<0`. Initial contact point is :math:`\vec{c}=\vec{x}_1+\left(r_1+\frac{\vec{u}_{0x}}{2}\right)\normalized{\vec{x}_2-\vec{x}_1}`.
-
-
-Sphere-cylinder contact
-^^^^^^^^^^^^^^^^^^^^^^^
-
-Sphere-facet contact
-^^^^^^^^^^^^^^^^^^^^^
-
-Sphere-wall contact
-^^^^^^^^^^^^^^^^^^^^
 

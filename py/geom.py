@@ -18,7 +18,7 @@ def facetBox(center,extents,orientation=Quaternion.Identity,wallMask=63,**kw):
 	:param Vector3 extents: lengths of the box sides
 	:param Quaternion orientation: orientation of the box
 	:param bitmask wallMask: determines which walls will be created, in the order -x (1), +x (2), -y (4), +y (8), -z (16), +z (32). The numbers are ANDed; the default 63 means to create all walls
-	:param **kw: (unused keyword arguments) passed to :obj:`woo.utils.facet`
+	:param kw: (unused keyword arguments) passed to :obj:`woo.utils.facet`
 	:returns: list of facets forming the box
 	"""
 
@@ -71,7 +71,7 @@ def facetCylinder(center,radius,height,orientation=Quaternion.Identity,segmentsN
 	:param bitmask wallMask: determines which walls will be created, in the order up (1), down (2), side (4). The numbers are ANDed; the default 7 means to create all walls
 	:param (θmin,Θmax) angleRange: allows to create only part of bunker by specifying range of angles; if ``None``, (0,2*pi) is assumed.
 	:param bool closeGap: close range skipped in angleRange with triangular facets at cylinder bases.
-	:param **kw: (unused keyword arguments) passed to utils.facet;
+	:param kw: (unused keyword arguments) passed to utils.facet;
 	"""
 	# check zero dimentions
 	if (radius<=0): raise RuntimeError("The radius should have the positive value");
@@ -94,7 +94,7 @@ def facetCone(center,radiusTop,radiusBottom,height,orientation=Quaternion.Identi
 	:param bitmask wallMask: determines which walls will be created, in the order up (1), down (2), side (4). The numbers are ANDed; the default 7 means to create all walls
 	:param (θmin,Θmax) angleRange: allows to create only part of cone by specifying range of angles; if ``None``, (0,2*pi) is assumed.
 	:param bool closeGap: close range skipped in angleRange with triangular facets at cylinder bases.
-	:param **kw: (unused keyword arguments) passed to utils.facet;
+	:param kw: (unused keyword arguments) passed to utils.facet;
 	"""
 	# check zero dimentions
 	if ((radiusBottom<=0) and (radiusTop<=0)): raise RuntimeError("The radiusBottom or radiusTop should have the positive value");
@@ -113,7 +113,7 @@ def facetPolygon(center,radiusOuter,orientation=Quaternion.Identity,segmentsNumb
 	:param Quaternion orientation: orientation of the polygon; the reference orientation has axis along the $+x$ axis.
 	:param int segmentsNumber: number of edges on the polygon surface (>=3)
 	:param (θmin,Θmax) angleRange: allows to create only part of polygon by specifying range of angles; if ``None``, (0,2*pi) is assumed.
-	:param **kw: (unused keyword arguments) passed to utils.facet;
+	:param ``**kw``: (unused keyword arguments) passed to :obj:`woo.utils.facet`;
 	"""
 	# check zero dimentions
 	if (abs(angleRange[1]-angleRange[0])>2.0*math.pi): raise RuntimeError("The |angleRange| cannot be larger 2.0*math.pi");
@@ -132,7 +132,7 @@ def facetHelix(center,radiusOuter,pitch,orientation=Quaternion.Identity,segments
 	:param Quaternion orientation: orientation of the helix; the reference orientation has axis along the $+x$ axis.
 	:param int segmentsNumber: number of edges on the helix surface (>=3)
 	:param (θmin,Θmax) angleRange: range of angles; if ``None``, (0,2*pi) is assumed.
-	:param **kw: (unused keyword arguments) passed to utils.facet;
+	:param kw: (unused keyword arguments) passed to utils.facet;
 	"""
 	
 	# check zero dimentions
@@ -143,8 +143,8 @@ def facetHelix(center,radiusOuter,pitch,orientation=Quaternion.Identity,segments
 def facetBunker(center,dBunker,dOutput,hBunker,hOutput,hPipe=0.0,orientation=Quaternion.Identity,segmentsNumber=10,wallMask=4,angleRange=None,closeGap=False,**kw):
 	"""
 	Create arbitrarily-aligned bunker, composed of facets, with given center, radii, heights and orientation.
-	Return List of facets forming the bunker;
-	::
+	Return List of facets forming the bunker. ::
+
 		   dBunker
 		______________
 		|            |
@@ -174,7 +174,7 @@ def facetBunker(center,dBunker,dOutput,hBunker,hOutput,hPipe=0.0,orientation=Qua
 	:param bitmask wallMask: determines which walls will be created, in the order up (1), down (2), side (4). The numbers are ANDed; the default 7 means to create all walls
 	:param (θmin,Θmax) angleRange: allows to create only part of bunker by specifying range of angles; if ``None``, (0,2*pi) is assumed.
 	:param bool closeGap: close range skipped in angleRange with triangular facets at cylinder bases.
-	:param **kw: (unused keyword arguments) passed to utils.facet;
+	:param kw: (unused keyword arguments) passed to utils.facet;
 	"""
 	# check zero dimentions
 	if (dBunker<=0): raise RuntimeError("The diameter dBunker should have the positive value");
@@ -252,7 +252,7 @@ def facetCylinderConeGenerator(center,radiusTop,height,orientation=Quaternion.Id
 	This is the base function for generating cylinders and cones from facets.
 	:param float radiusTop:  top radius
 	:param float radiusBottom:  bottom radius
-	:param **kw: (unused keyword arguments) passed to utils.facet;
+	:param kw: (unused keyword arguments) passed to utils.facet;
 	"""
 	
 	#For cylinders top and bottom radii are equal

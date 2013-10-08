@@ -33,7 +33,7 @@ def writeResults(scene,defaultDb='woo-results.sqlite',syncXls=True,dbFmt=None,se
 	'''
 	Write results to batch database. With *syncXls*, corresponding excel-file is re-generated.
 	Series is a dicionary of 1d arrays written to separate sheets in the XLS. If *series* is `None`
-	(default), `S.plot.data` are automatically added. All other **kw
+	(default), `S.plot.data` are automatically added. All other ``**kw``
 	arguments are serialized in the misc field, which then appears in the main XLS sheet.
 
 	All data are serialized using json so that they can be read back in a language-independent manner.
@@ -203,7 +203,7 @@ def dbReadResults(db,basicTypes=False):
 def dbToJSON(db,**kw):
 	'''Return simulation database as JSON string.
 	
-	:param **kw: additional arguments passed to `json.dumps <http://docs.python.org/3/library/json.html#json.dumps>`_.
+	:param kw: additional arguments passed to `json.dumps <http://docs.python.org/3/library/json.html#json.dumps>`_.
 	'''
 	import woo.core
 	return woo.core.WooJSONEncoder(indent=None,oneway=True).encode(dbReadResults(db,basicTypes=True),**kw)

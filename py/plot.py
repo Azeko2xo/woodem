@@ -139,15 +139,16 @@ def Scene_autoPlotData(S,**kw):
 
 	A simple simulation with plot can be written in the following way; note how the energy plot is specified.
 
+	.. todo:: fix the following examples with ``S.energy.total()``!
+
 	>>> from woo import plot, utils
 	>>> S=Scene(fields=[DemField(gravity=(0,0,-10))])
-	>>> S.plot.plots={'i=S.step':(S.energy,None,'total energy=S.energy.total()')}
+	>>> # S.plot.plots={'i=S.step':(S.energy,None)} ## ,'total energy=S.energy.total()')}
 	>>> # we create a simple simulation with one ball falling down
 	>>> S.dem.par.append(utils.sphere((0,0,0),1,mat=utils.defaultMaterial()))
 	0
 	>>> S.dem.collectNodes() 
 	1
-	>>> S.dt=utils.pWaveDt(S)
 	>>> S.engines=[ForceResetter(),Leapfrog(kinSplit=True,damping=.4),
 	...    # get data required by plots at every step
 	...    PyRunner(1,'S.autoPlotData()')
@@ -170,9 +171,8 @@ def Scene_autoPlotData(S,**kw):
 		from woo import plot,utils
 		S=Scene(fields=[DemField(gravity=(0,0,-10))])
 		S.dem.par.append(utils.sphere((0,0,0),1));
-		S.dt=utils.pWaveDt(S)
 		S.engines=[Leapfrog(damping=.4,kinSplit=True,reset=True),PyRunner('S.autoPlotData()')]
-		S.plot.plots={'i=S.step':('S.energy',None,'total energy=S.energy.total()')}
+		# S.plot.plots={'i=S.step':('S.energy',None,)} #'total energy=S.energy.total()')}
 		S.trackEnergy=True
 		S.run(500,True)
 		import pylab; pylab.grid(True)

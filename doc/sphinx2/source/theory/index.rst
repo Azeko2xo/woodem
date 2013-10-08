@@ -5,6 +5,7 @@ Theory
 .. toctree::
 	:maxdepth: 2
 	
-	contact.rst
+	geom/index.rst
+	contact/index.rst
 	membrane-element.rst
 	leapfrog.rst

@@ -10,8 +10,10 @@ namespace woo{
 		bool numNodesOk() const { return nodes.size()==1; }
 		// return transformation matrix transforming unit sphere to this ellipsoid
 		Matrix3r trsfFromUnitSphere() const;
+		Matrix3r trsfFromUnitSphere(const Quaternionr& ori) const; // with additional rotation (local coords)
 		// return extent along one global axis
 		Real axisExtent(short axis) const;
+		Real rotatedExtent(short axis, const Quaternionr& ori) const; //with additional rotation
 		// update dynamic properties (mass, intertia) of the sphere based on current radius
 		void updateDyn(const Real& density) const;
 		WOO_CLASS_BASE_DOC_ATTRS_CTOR(Ellipsoid,Shape,"Ellipsoidal particle.",
@@ -53,6 +55,14 @@ struct Cg2_Wall_Ellipsoid_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 };
 WOO_REGISTER_OBJECT(Cg2_Wall_Ellipsoid_L6Geom);
 
+struct Cg2_Facet_Ellipsoid_L6Geom: public Cg2_Any_Any_L6Geom__Base{
+	bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE;
+	WOO_CLASS_BASE_DOC_ATTRS(Cg2_Facet_Ellipsoid_L6Geom,Cg2_Any_Any_L6Geom__Base,"Compute :obj:`L6Geom` for contact of :obj:`ellipsoid <woo.dem.Ellipsoid>` and :obj:`facet <woo.dem.Facet>` (axis-aligned plane).",
+	);
+	FUNCTOR2D(Facet,Ellipsoid);
+	DEFINE_FUNCTOR_ORDER_2D(Facet,Ellipsoid);
+};
+WOO_REGISTER_OBJECT(Cg2_Facet_Ellipsoid_L6Geom);
 
 
 #ifdef WOO_OPENGL

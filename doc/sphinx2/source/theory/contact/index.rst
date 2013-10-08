@@ -1,3 +1,5 @@
+.. _dem_contact_models:
+
 *******************
 DEM contact models
 *******************
@@ -30,8 +32,7 @@ The first task is covered in the :ref:`contact_geometry` chapter while the last 
 .. toctree::
 	:maxdepth: 3
 	
-	contact-geometry.rst
-	contact-linear.rst
-	contact-hertzian.rst
-	contact-adhesive.rst
+	linear.rst
+	hertzian.rst
+	adhesive.rst
 

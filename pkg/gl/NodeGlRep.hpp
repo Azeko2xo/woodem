@@ -21,7 +21,7 @@ struct VectorGlRep: public NodeGlRep{
 	WOO_CLASS_BASE_DOC_ATTRS(VectorGlRep,NodeGlRep,"Render vector value at associated node, as an arrow",
 		((Vector3r,val,Vector3r::Zero(),,"Value to be rendered"))
 		((Real,relSz,.2,,"Size of maximum-length arrows, relative to scene radius"))
-		((Real,scaleExp,1,,"Exponent for scaling arrow size as |normalized val|^scaleExp. NaN disables scaling (all arrows the same size)."))
+		((Real,scaleExp,1,,"Exponent for scaling arrow size as ``vector_norm^scaleExp``. NaN disables scaling (all arrows the same size)."))
 		((shared_ptr<ScalarRange>,range,,,"Extrema values for vector norm, to determine colors."))
 	);
 };

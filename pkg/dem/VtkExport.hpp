@@ -57,7 +57,7 @@ struct VtkExport: public PeriodicEngine{
 		((bool,sphereSphereOnly,false,,"Only export contacts between two spheres (not sphere+facet and such)"))
 		((bool,infError,true,,"Raise exception for infinite objects which don't have the glAB attribute set properly"))
 		((bool,skipInvisible,true,,"Skip invisible particles"))
-		((int,subdiv,16,AttrTrait<>().noGui(),"Subdivision fineness for circular objects (such as cylinders).\n\n.. note::  are rendered without rounded edges (they are closed flat)."))
+		((int,subdiv,16,AttrTrait<>().noGui(),"Subdivision fineness for circular objects (such as cylinders).\n\n.. note:: :obj:`facets <woo.dem.Facet>` are rendered without rounded edges (they are closed flat)."))
 		((int,thickFacetDiv,1,AttrTrait<>().noGui(),"Subdivision for :obj:`woo.dem.Facet` objects with non-zero :obj:`woo.dem.Facet.halfThick`; the value of -1 will use :obj:`subdiv`; 0 will render only faces, without edges; 1 will close the edge flat."))
 		((bool,cylCaps,true,,"Render caps of :obj:`InfCylinder` (at :obj:`InfCylinder.glAB`)."))
 		((Real,nanValue,0.,,"Use this number instead of NaN in entries, since VTK cannot read NaNs properly"))

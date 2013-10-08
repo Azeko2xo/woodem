@@ -77,11 +77,11 @@ def loadVars(mark=None):
 				loadVars(m[len('pickledPythonVariableDictionary')+1:])
 
 def spherePWaveDt(radius,density,young):
-	r"""Compute P-wave critical timestep for a single (presumably representative) sphere, using formula for P-Wave propagation speed $\Delta t_{c}=\frac{r}{\sqrt{E/\rho}}$.
-	If you want to compute minimum critical timestep for all spheres in the simulation, use :obj:`woo.utils.pWaveDt` instead.
+	r"""Compute P-wave critical timestep for a single (presumably representative) sphere, using formula for P-Wave propagation speed :math:`\Delta t_{c}=\frac{r}{\sqrt{E/\rho}}`. If you want to compute minimum critical timestep for all spheres in the simulation, use :obj:`woo.utils.pWaveDt` instead.
 
 	>>> spherePWaveDt(1e-3,2400,30e9)
 	2.8284271247461903e-07
+
 	"""
 	from math import sqrt
 	return radius/sqrt(young/density)
@@ -91,9 +91,8 @@ def spherePWaveDt(radius,density,young):
 #	return Vector3(random.random(),random.random(),random.random())
 
 def defaultMaterial():
-	"""Return default material, when creating bodies with :obj:`woo.utils.sphere` and friends, material is unspecified and there is no previous particle yet. By default, this function returns::
+	"""Return default material, when creating particles with :obj:`woo.utils.sphere` and friends and material is unspecified. This function returns ``FrictMat(density=1e3,young=1e7,ktDivKn=.2,tanPhi=tan(.5))``.
 
-		FrictMat(density=1e3,young=1e7,ktDivKn=.2,tanPhi=tan(.5))
 	"""
 	import math
 	return FrictMat(density=1e3,young=1e7,ktDivKn=.2,tanPhi=math.tan(.5))
@@ -144,7 +143,7 @@ def sphere(center,radius,mat=defaultMaterial,fixed=False,wire=False,color=None,h
 
 	:param Vector3 center: center
 	:param float radius: radius
-	:param float-or-None: particle's color as float; random color will be assigned if ``None`.
+	:param float-or-None: particle's color as float; random color will be assigned if ``None``.
 	:param mat:
 		specify :obj:`woo.dem.Particle.material`; different types are accepted:
 			* :obj:`woo.dem.Material` instance: this instance will be used

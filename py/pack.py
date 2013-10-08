@@ -121,7 +121,7 @@ The current state (even if rotated) is taken as mechanically undeformed, i.e. wi
 	Matrix3(1,0,0, 0,1,0, 0,0,1)
 
 :param Quaternion/Matrix3 rot: rotation of the packing, which will be applied on spheres and will be used to set :obj:`woo.core.Cell.trsf` as well.
-:param **kw: passed to :obj:`woo.utils.sphere`
+:param kw: passed to :obj:`woo.utils.sphere`
 :return: list of body ids added (like :obj:`woo.dem.BodyContainer.append`)
 """
 	if isinstance(rot,Quaternion): rot=rot.toRotationMatrix()
@@ -218,7 +218,7 @@ class inSpace(Predicate):
 #####
 
 def gtsSurface2Facets(surf,shareNodes=True,**kw):
-	"""Construct facets from given GTS surface. **kw is passed to utils.facet."""
+	"""Construct facets from given GTS surface. ``**kw`` is passed to utils.facet."""
 	import gts
 	from woo.core import Node
 	if not shareNodes:

@@ -50,9 +50,7 @@ class PyAttrTrait:
 	:param str doc: documentation for this attribute, as it appears in generated docs and tooltips in the UI
 	:param str unit: unit given as string, which is looked up in :obj:`woo.unit`; the multiplier is the ratio between *unit* and associated basic unit, which is found automatically.
 		
-		.. warning:: `unit` only determines multiplier for the GUI representation; it has no impact on the internal value used; in particular, the *ini* value is *unit-less*. If you want to give units to the initial value, say something like::
-			
-			PyAttrTrait(float,'angle',60*woo.unit['deg'],units='deg','This is some angle')
+		.. warning:: `unit` only determines multiplier for the GUI representation; it has no impact on the internal value used; in particular, the *ini* value is *unit-less*. If you want to give units to the initial value, say something like ``PyAttrTrait(float,'angle',60*woo.unit['deg'],units='deg','This is some angle')``.
 
 	:param bool noGui: do not show this attribute in the GUI; use this for attributes which the GUI does not know how to represent (such as python objects, numpy arrays and such), to avoid warnings.
 	:param bool noDump: skip this attribute when dumping/loading this object; that means that after loading (or after a :obj:`PyWooObjects.deepcopy`), the attribute will be default-initialized.
@@ -68,11 +66,11 @@ class PyAttrTrait:
 	:param bits: give names for bit values which this (integer) attribute which represents; they will be shown as array of checkboxes in the GUI.
 	:param buttons: Tuple of *list* and *bool*; in the flat list of strings, where each consecutive triplet contains
 
-		 1. button label
-		 2. python expression to evaluate when the button is clicked
-		 3. label to be shown as button description in the GUI
+		1. button label
+		2. python expression to evaluate when the button is clicked
+		3. label to be shown as button description in the GUI
 
-		 The bool at the end determined whether the button is created above (*True*) or below (*False*) the current attribute.
+		The bool at the end determined whether the button is created above (*True*) or below (*False*) the current attribute.
 	
 	:param filename: `str` attribute representing filename with file picker in the GUI; the file is possibly non-existent.
 	:param existingFilename: `str` attribute for existing filename, with file picker in the GUI.

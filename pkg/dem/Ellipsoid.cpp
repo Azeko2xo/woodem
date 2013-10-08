@@ -4,7 +4,7 @@
 #include <boost/math/tools/minima.hpp>
 #include <boost/math/tools/tuple.hpp>
 
-WOO_PLUGIN(dem,(Ellipsoid)(Bo1_Ellipsoid_Aabb)(Cg2_Wall_Ellipsoid_L6Geom)(Cg2_Ellipsoid_Ellipsoid_L6Geom));
+WOO_PLUGIN(dem,(Ellipsoid)(Bo1_Ellipsoid_Aabb)(Cg2_Wall_Ellipsoid_L6Geom)(Cg2_Facet_Ellipsoid_L6Geom)(Cg2_Ellipsoid_Ellipsoid_L6Geom));
 #ifdef WOO_OPENGL
 	WOO_PLUGIN(gl,(Gl1_Ellipsoid));
 #endif
@@ -37,6 +37,7 @@ Real woo::Ellipsoid::axisExtent(short axis) const {
 }
 
 
+
 void Bo1_Ellipsoid_Aabb::go(const shared_ptr<Shape>& sh){
 	//goGeneric(sh,sh->cast<Ellipsoid>().semiAxes.maxCoeff()*Vector3r::Ones());
 	if(!sh->bound){ sh->bound=make_shared<Aabb>(); }
@@ -48,6 +49,112 @@ void Bo1_Ellipsoid_Aabb::go(const shared_ptr<Shape>& sh){
 	aabb.min=pos-delta;
 	aabb.max=pos+delta;
 }
+
+// the same funcs but with extra rotation
+// (for computing in rotated coordinates)
+Matrix3r woo::Ellipsoid::trsfFromUnitSphere(const Quaternionr& ori) const{
+	Matrix3r M;
+	for(int i:{0,1,2}) M.col(i)=ori*nodes[0]->ori*(semiAxes[i]*Vector3r::Unit(i));
+	return M;
+}
+Real woo::Ellipsoid::rotatedExtent(short axis, const Quaternionr& ori) const {
+	Matrix3r M=trsfFromUnitSphere(ori);
+	return M.row(axis).norm();
+}
+
+bool Cg2_Facet_Ellipsoid_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
+	const Facet& facet(s1->cast<Facet>());
+	const Ellipsoid& ell(s2->cast<Ellipsoid>()); const Quaternionr& ellOri(ell.nodes[0]->ori);
+	const Vector3r& facetPosA(facet.nodes[0]->pos); const Vector3r ellPos(ell.nodes[0]->pos+shift2);
+	// compute local orientation where facet normal is the z-axis
+	Vector3r facetNormal=facet.getNormal();
+	Quaternionr locOri=Quaternionr::FromTwoVectors(facetNormal,Vector3r::UnitZ());
+	Real locZExtent=ell.rotatedExtent(2,locOri); // always positive
+	// put ellipsoid in origin, and facet somewhere, perpendicular to z
+	// the z-coordinate should be the same for all facet vertices
+	Vector3r facetLocPosA=locOri*(facetPosA-ellPos);
+
+	Real uN=abs(facetLocPosA[2])-facet.halfThick-locZExtent;
+	if(uN>0 && !C->isReal() && !force){ return false; }
+
+	#if 1
+		static bool notImpl=false; // give the warning only once
+		if(notImpl){
+			cerr<<"[Cg2_Facet_Ellipsoid_L6Geom: not yet implemented]";
+			notImpl=true;
+		}
+		return false;
+	// algo A: transform ellipsoid to unit sphere in origin, compute closest point with thus transformed triangle
+	// the contact point is transformed back to global coords
+	// if the CP is inside the triangle, the normal is coincident with facet's normal
+	// otherwise compute the ellipsoid normal at the contact point (potential steepest descent) and use that
+	// Move the point by halfThick away from the facet
+	Matrix3r fromUnitSphere=ell.trsfFromUnitSphere();
+	Matrix3r toUnitSphere=fromUnitSphere.inverse();
+	// all points end with 't', signifying the transformed space
+	Vector3r vt[3]={toUnitSphere*(facet.nodes[0]->pos-ellPos),toUnitSphere*(facet.nodes[1]->pos-ellPos),toUnitSphere*(facet.nodes[2]->pos-ellPos)};
+	Vector3r nt=((vt[1]-vt[0]).cross(vt[2]-vt[0])).normalized(); // facet normal
+	Real distt=vt[0].dot(nt); // distance origin-plane
+	Vector3r pot=nt*distt; // origin projected onto the plane
+	Vector3r ont[3]={(vt[1]-vt[0]).cross(nt),(vt[2]-vt[1]).cross(nt),(vt[0]-vt[2]).cross(nt)}; // outer normals
+
+	cerr<<"-----------------"<<endl;
+	cerr<<"vt: "<<vt[0].transpose()<<" | "<<vt[1].transpose()<<" | "<<vt[2].transpose()<<endl;
+	cerr<<"distt: "<<distt<<endl;
+	cerr<<"nt: "<<nt.transpose()<<endl;
+	cerr<<"pot: "<<pot.transpose()<<endl;
+	cerr<<"ont :"<<ont[0].transpose()<<" | "<<ont[1].transpose()<<" | "<<ont[2].transpose()<<endl;
+	cerr<<"vg: "<<(fromUnitSphere*vt[0]).transpose()<<" | "<<(fromUnitSphere*vt[1]).transpose()<<" | "<<(fromUnitSphere*vt[2]).transpose()<<endl;
+	cerr<<"ng: "<<(fromUnitSphere*nt).transpose()<<endl;
+	cerr<<"pog: "<<(fromUnitSphere*pot).transpose()<<endl;
+
+	// this algo is similar to what is in Facet::getNearestPt, but we need to know whether the point is inside or at the edge in addition
+	short w=0;
+	for(int i:{0,1,2}) w&=(ont[i].dot(pot-vt[i])>0?1:0)<<i;
+	Vector3r cpt; // contact point in transformed space
+	switch(w){
+		case 0: cpt=pot; break; // ---: inside triangle
+		case 1: cpt=CompUtils::closestSegmentPt(pot,vt[0],vt[1]); break; // +-- (n1)
+		case 2: cpt=CompUtils::closestSegmentPt(pot,vt[1],vt[2]); break; // -+- (n2)
+		case 4: cpt=CompUtils::closestSegmentPt(pot,vt[2],vt[0]); break; // --+ (n3)
+		case 3: cpt=vt[1]; break; // ++- (v1)
+		case 5: cpt=vt[0]; break; // +-+ (v0)
+		case 6: cpt=vt[2]; break; // -++ (v2)
+		case 7: throw logic_error("Cg2_Facet_Ellipsoid_L6Geom: Impossible sphere-facet intersection (all points are outside the edges). (please report bug)"); // +++ (impossible)
+		default: throw logic_error("Cg2_Facet_Ellipsoid_L6Geom: Nonsense intersection value. (please report bug)");
+	}
+	// transform contact point back (origin in ellipsoid's center, global orientation)
+	Vector3r cpe=fromUnitSphere*cpt;
+	// cerr<<"{"<<cpt.norm()<<","<<w<<"}"; // should be 1 or less (with no halfThick)
+	// contact normal, in global space
+	Vector3r normal;
+	if(w==0){
+		// face contact, easy
+		normal=facetNormal;
+	} else{
+		cerr<<".";
+		// ellipsoid gradient is 2(x/a²,y/b²,z/c²) in local coords, use that to compute the normal
+		Vector3r cpl=ellOri.conjugate()*cpe; //contact point in ellipsoid-local coords
+		Vector3r gradl(cpl[0]/ell.semiAxes[0],cpl[1]/ell.semiAxes[1],cpl[2]/ell.semiAxes[2]);
+		normal=ellOri*gradl.normalized(); // transform back to global coords
+	}
+	Real contR=cpe.norm(); // distance to the contact point
+	Real facetContR=(facet.halfThick>0?-contR:facet.halfThick); // take halfThick in account here
+	Vector3r contPt=cpe+ellPos; // in global coords
+	if(facet.halfThick>0) contPt+=normal*facet.halfThick;
+	Vector3r facetLinVel,facetAngVel;
+	std::tie(facetLinVel,facetAngVel)=facet.interpolatePtLinAngVel(contPt);
+
+	// FIXME: the uN is totally bogus here, it is only valid when for face contact!!!!
+
+	const DemData& ellDyn(ell.nodes[0]->getData<DemData>());
+	// const DemData& facetDyn(facet.nodes[0]->getData<DemData>());
+	handleSpheresLikeContact(C,contPt,facetLinVel,facetAngVel,ellPos,ellDyn.vel,ellDyn.angVel,normal,contPt,uN,facetContR,contR);
+	return true;
+	#endif
+
+}
+
 
 bool Cg2_Wall_Ellipsoid_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
 	const Wall& wall(s1->cast<Wall>());

@@ -49,7 +49,7 @@ try:
 
 Suppose two spheres with radii $r_i$, positions $\vec{x}_i$, velocities $\vec{v}_i$, angular velocities $\vec{\omega}_i$.
 
-When there is not yet contact, it will be created if $u_N=|\curr{\vec{x}}_2-\curr{\vec{x}}_1|-|f_d|(r_1+r2)<0$, where $f_d$ is :obj:`distFactor<Cg2_Sphere_Sphere_L6Geom.distFactor>` (sometimes also called ``interaction radius''). If $f_d>0$, then $\vec{u}_{0x}$ will be initalized to $u_N$, otherwise to 0. In another words, contact will be created if spheres enlarged by $|f_d|$ touch, and the ``equilibrium distance'' (where $\vec{u}_x-\vec{u}-{0x}$ is zero) will be set to the current distance if $f_d$ is positive, and to the geometrically-touching distance if negative.
+When there is not yet contact, it will be created if $u_N=|\curr{\vec{x}}_2-\curr{\vec{x}}_1|-|f_d|(r_1+r2)<0$, where $f_d$ is :obj:`distFactor<Cg2_Sphere_Sphere_L6Geom.distFactor>` (sometimes also called "interaction radius"). If $f_d>0$, then $\vec{u}_{0x}$ will be initalized to $u_N$, otherwise to 0. In another words, contact will be created if spheres enlarged by $|f_d|$ touch, and the "equilibrium distance" (where $\vec{u}_x-\vec{u}-{0x}$ is zero) will be set to the current distance if $f_d$ is positive, and to the geometrically-touching distance if negative.
 
 Local axes (rows of $\mat{T}$) are initially defined as follows:
 
@@ -57,7 +57,7 @@ Local axes (rows of $\mat{T}$) are initially defined as follows:
 * local $y$-axis positioned arbitrarily, but in a deterministic manner: aligned with the $xz$ plane (if $\vec{n}_y<\vec{n}_z$) or $xy$ plane (otherwise);
 * local $z$-axis $\vec{z}_l=\vec{x}_l\times\vec{y}_l$.
 
-If there has already been contact between the two spheres, it is updated to keep track of rigid motion of the contact (one that does not change mutual configuration of spheres) and mutual configuration changes. Rigid motion transforms local coordinate system and can be decomposed in rigid translation (affecting $\vec{c}$), and rigid rotation (affecting $\mat{T}$), which can be split in rotation $\vec{o}_r$ perpendicular to the normal and rotation $\vec{o}_t$ (``twist'') parallel with the normal:
+If there has already been contact between the two spheres, it is updated to keep track of rigid motion of the contact (one that does not change mutual configuration of spheres) and mutual configuration changes. Rigid motion transforms local coordinate system and can be decomposed in rigid translation (affecting $\vec{c}$), and rigid rotation (affecting $\mat{T}$), which can be split in rotation $\vec{o}_r$ perpendicular to the normal and rotation $\vec{o}_t$ ("twist") parallel with the normal:
 
 .. math:: \pprev{\vec{o}_r}=\prev{\vec{n}}\times\curr{\vec{n}}.
 

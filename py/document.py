@@ -119,7 +119,7 @@ def makeTraitInfo(trait):
 	if trait.hidden: ret.append('not accessible from python')
 	if trait.readonly: ret.append('read-only in python')
 	if trait.choice:
-		if isinstance(trait.choice[0],tuple): ret.append('choices: '+', '.join('%d = %s'%(c[0],c[1]) for c in trait.choice))
+		if isinstance(trait.choice[0],tuple): ret.append('choices: '+', '.join('%d = %s'%(c[0],c[1] if '|' not in c[1] else '``'+c[1]+'``') for c in trait.choice))
 		else: ret.append('choices: '+', '.join(str(c) for c in trait.choice))
 	if trait.filename: ret.append('filename')
 	if trait.existingFilename: ret.append('existing filename')

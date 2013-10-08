@@ -320,7 +320,7 @@ HTML      dump     ``.html``       Dump object to HTML table; this format is use
 ========= ======== =============== ==================================================
 
 Format examples
-'''''''''''''''''
+^^^^^^^^^^^^^^^^^
 
 To get a taste what those files look like, here are fragments of them.
 

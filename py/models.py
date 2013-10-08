@@ -62,7 +62,7 @@ class SchwarzModel(HertzModel):
 	'Schwarz contact model, following :cite:`Schwarz2003`. Details are given in :ref:`adhesive_contact_models`.'
 	@staticmethod
 	def makeDefault(**kw):
-		'Return instance of the model with some "reasonable" parameters, which are overridden with **kw. Useful for quick testing.'
+		'Return instance of the model with some "reasonable" parameters, which are overridden with ``**kw``. Useful for quick testing.'
 		params=dict(r1=1e-2,r2=1e-2,E1=1e6,E2=1e6,nu1=.2,nu2=.2,gamma=.1,alpha=.5)
 		params.update(kw)
 		return SchwarzModel(**params)

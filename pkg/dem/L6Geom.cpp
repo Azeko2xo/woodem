@@ -112,12 +112,6 @@ bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<
 	#ifdef CATCH_NAN_FACET
 		if(isnan(linVel[0])||isnan(linVel[1])||isnan(linVel[2])||isnan(angVel[0])||isnan(angVel[1])||isnan(angVel[2])) LOG_FATAL("NaN in interpolated facet velocity: linVel="<<linVel.transpose()<<", angVel="<<angVel.transpose()<<", contPt="<<contPt.transpose()<<"; particles Facet #"<<C->leakPA()->id<<" @ "<<f.nodes[0]->pos.transpose()<<", "<<f.nodes[1]->pos.transpose()<<", "<<f.nodes[2]->pos.transpose()<<" and Sphere #"<<C->leakPB()->id<<" @ "<<s.nodes[0]->pos.transpose()<<", r="<<s.radius)
 	#endif
-	// special case: if fakeVel[0] is nan, ignore both fakeVel and linVel (this is documented)
-	if(!isnan(f.fakeVel[0])){
-		linVel+=f.fakeVel; // add fake velocity
-	} else {
-		linVel=linVel.dot(fNormal)*fNormal; // zero out in-plane components
-	}
 	const DemData& dyn2(s.nodes[0]->getData<DemData>()); // sphere
 	// check if this will work when contact point == pseudo-position of the facet
 	handleSpheresLikeContact(C,contPt,linVel,angVel,sC,dyn2.vel,dyn2.angVel,normal,contPt,uN,f.halfThick,s.radius);

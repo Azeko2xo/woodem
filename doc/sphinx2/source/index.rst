@@ -14,6 +14,7 @@ Contents:
    theory/index.rst
    wooMods.rst
    references.rst
+   todos.rst
 
 Indices and tables
 ==================

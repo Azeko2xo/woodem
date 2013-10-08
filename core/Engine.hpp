@@ -109,7 +109,7 @@ class ParallelEngine: public Engine {
 	// py access
 		py::list pySlavesGet();
 		void pySlavesSet(const py::list& slaves);
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ParallelEngine,Engine,"Engine for running other Engine in parallel.\n\n.. admonition:: Special constructor\n\nPossibly nested list of engines, where each top-level item (engine or list) will be run in parallel; nested lists will be run sequentially.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ParallelEngine,Engine,"Engine for running other Engine in parallel.\n\n.. admonition:: Special constructor\n\n   Possibly nested list of engines, where each top-level item (engine or list) will be run in parallel; nested lists will be run sequentially.",
 		((slaveContainer,slaves,,AttrTrait<Attr::hidden>(),"[will be overridden]")),
 		/*ctor*/,
 		/*py*/
@@ -157,7 +157,7 @@ struct PyRunner: public PeriodicEngine{
 	virtual bool needsField(){ return false; }
 	virtual void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d);
 	WOO_CLASS_BASE_DOC_ATTRS(PyRunner,PeriodicEngine,
-		"Execute a python command periodically, with defined (and adjustable) periodicity. See :obj:`PeriodicEngine` documentation for details.\n\n.. admonition:: Special constructor\n\n*command* can be given as first unnamed string argument (``PyRunner('foo()')``), stepPeriod as unnamed integer argument (``PyRunner('foo()',100)`` or ``PyRunner(100,'foo()')``).",
+		"Execute a python command periodically, with defined (and adjustable) periodicity. See :obj:`PeriodicEngine` documentation for details.\n\n.. admonition:: Special constructor\n\n   *command* can be given as first unnamed string argument (``PyRunner('foo()')``), stepPeriod as unnamed integer argument (``PyRunner('foo()',100)`` or ``PyRunner(100,'foo()')``).",
 		((string,command,"",,"Command to be run by python interpreter. Not run if empty."))
 	);
 };
