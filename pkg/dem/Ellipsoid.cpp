@@ -68,7 +68,7 @@ bool Cg2_Facet_Ellipsoid_L6Geom::go(const shared_ptr<Shape>& s1, const shared_pt
 	const Vector3r& facetPosA(facet.nodes[0]->pos); const Vector3r ellPos(ell.nodes[0]->pos+shift2);
 	// compute local orientation where facet normal is the z-axis
 	Vector3r facetNormal=facet.getNormal();
-	Quaternionr locOri=Quaternionr::FromTwoVectors(facetNormal,Vector3r::UnitZ());
+	Quaternionr locOri; locOri.setFromTwoVectors(facetNormal,Vector3r::UnitZ()); // use this instead of the static Quaternionr::FromTwoVector which did not exist in earlier Eigen version (!)
 	Real locZExtent=ell.rotatedExtent(2,locOri); // always positive
 	// put ellipsoid in origin, and facet somewhere, perpendicular to z
 	// the z-coordinate should be the same for all facet vertices
