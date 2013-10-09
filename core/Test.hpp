@@ -38,6 +38,7 @@ namespace woo{
 			_UNIT_ATTR(massFlowRate)
 			_UNIT_ATTR(density)
 			_UNIT_ATTR(fraction)
+			_UNIT_ATTR(surfEnergy)
 			((OpenMPArrayAccumulator<Real>,aaccu,,AttrTrait<>().noGui(),"Test openmp array accumulator"))
 
 			((int,hiddenAttribute,0,AttrTrait<Attr::hidden>(),"Hidden data member (not accessible from python)"))

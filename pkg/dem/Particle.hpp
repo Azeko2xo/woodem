@@ -289,7 +289,7 @@ WOO_REGISTER_OBJECT(Shape);
 
 struct Material: public Object, public Indexable{
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Material,Object,"Particle material",
-		((Real,density,NaN,AttrTrait<>().densityUnit(),"Density"))
+		((Real,density,1000,AttrTrait<>().densityUnit(),"Density"))
 		((int,id,-1,AttrTrait<>().noGui(),"Some number identifying this material; used with MatchMaker objects, useless otherwise"))
 		,/*ctor*/,/*py*/ WOO_PY_TOPINDEXABLE(Material);
 	);

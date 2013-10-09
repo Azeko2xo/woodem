@@ -1,6 +1,6 @@
 # encoding: utf-8
 '''
-Classes providing python-only implementation of various implementation models, mostly for testing or plotting in documentation.
+Collection of classes providing python-only implementation of various implementation models, mostly for testing or plotting in documentation. Plus a class for selecting material model along with all its parameters for use in preprocessors.
 '''
 
 from math import pi,sqrt
@@ -189,6 +189,79 @@ class SchwarzModel(HertzModel):
 		pylab.grid(True)
 		pylab.legend(loc='best')
 		
+
+import woo.pyderived
+class ContactModelSelector(woo.core.Object,woo.pyderived.PyWooObject):
+	'User interface for humanely selecting contact model and all its features, plus functions returning respective :obj:`woo.dem.CPhysFunctor` and :obj:`woo.dem.LawFunctor` objects.'
+	_classTrait=None
+	_PAT=woo.pyderived.PyAttrTrait
+	_attrTraits=[
+		_PAT(str,'name','linear',triggerPostLoad=True,choice=['linear','pellet','Hertz','DMT','Schwarz'],doc='Material model to use.'),
+		_PAT(int,'nMat',1,triggerPostLoad=True,doc='Number of material definitions for given model'),
+		_PAT([woo.dem.Material],'mats',[],doc='Material definitions'),
+		_PAT(float,'poisson',.2,hideIf='self.name not in ("Hertz","DMT","Schwarz")',doc='Poisson ratio (:obj:`woo.dem.Cp2_FrictMat_HertzPhys.poisson`)'),
+		_PAT(float,'surfEnergy',.01,unit=u'J/m²',hideIf='self.name not in ("DMT","Schwarz")',doc='Surface energy for adhesive models (:obj:`woo.dem.Cp2_FrictMat_HertzPhys.gamma)'),
+		_PAT(float,'restitution',1.,hideIf='self.name not in ("Hertz","DMT","Schwarz")',doc='Restitution coefficient for models with viscosity (:obj:`woo.dem.Cp2_FrictMat_HertzPhys.en).'),
+		_PAT(float,'alpha',0.,hideIf='self.name not in ("Schwarz",)',doc='Parameter interpolating between DMT and JKR extremes in the Schwarz model. :math:`alpha` was introduced in :cite:`Carpick1999`.'),
+		_PAT(float,'damping',.2,hideIf='self.name not in ("linear",)',doc='Numerical (non-viscous) damping (:obj:`woo.dem.Leapfrog.damping`)'),
+	]
+	def __init__(self,**kw):
+		woo.core.Object.__init__(self)
+		self.wooPyInit(self.__class__,woo.core.Object,**kw)
+	def postLoad(self,what):
+		'Set :obj:`mats` based on :obj:`nMat` and :obj:`model`.'
+		if what==id(self.nMat):
+			# only resize
+			if len(self.mats)>self.nMat: self.mats=self.mats[:self.nMat]
+			elif len(self.mats)<self.nMat: self.mats+=[self.getMat() for i in range(self.nMat-len(self.mats))]
+		elif what==id(self.name):
+			# replace the entire array
+			mm=[self.getMat() for i in range(self.nMat)]
+			# try to preserve values if attributes are called the same
+			for i,m in enumerate(mm):
+				if len(self.mats)<=i: break
+				m0=self.mats[i]
+				for trait in m._getAllTraits():
+					if hasattr(m0,trait.name):
+						setattr(m,trait.name,getattr(m0,trait.name))
+			self.mats=mm
+		else:
+			# object constructed; fill missing array values, check material types
+			if len(self.mats)!=self.nMat: self.mats+=[self.getMat() for i in range(self.nMat-len(self.mats))]
+			for i,m in enumerate(self.mats):
+				if m.__class__!=self.getMatClass(): self.mats[i]=self.getMat()
+
+	def getFunctors(self):
+		'''Return tuple of ``([CPhysFunctor,...],[LawFunctor,...])`` corresponding to the selected model and parameters.'''
+		import woo.dem
+		if self.name=='linear':
+			return [woo.dem.Cp2_FrictMat_FrictPhys()],[woo.dem.Law2_L6Geom_FrictPhys_IdealElPl()]
+		elif self.name=='pellet':
+			return [woo.dem.Cp2_PelletMat_PelletPhys()],[woo.dem.Law2_L6Geom_PelletPhys_Pellet()]
+		elif self.name=='Hertz':
+			return [woo.dem.Cp2_FrictMat_HertzPhys(poisson=self.poisson,gamma=0.,en=self.restitution)],[woo.dem.Law2_L6Geom_HertzPhys_DMT()]
+		elif self.name=='DMT':
+			return [woo.dem.Cp2_FrictMat_HertzPhys(poisson=self.poisson,gamma=self.surfEnergy,en=self.restitution)],[woo.dem.Law2_L6Geom_HertzPhys_DMT()]
+		elif self.name=='Schwarz':
+			print 'WARN: Schwarz model not yet implemented, returning empty functors list!'
+			return [],[]
+		else: raise ValueError('Unknown model: '+self.name)
+	def getMat(self):
+		'''Return default-initialized material for use with this model.'''
+		return self.getMatClass()()
+	def getMatClass(self):
+		'''Return class object of material for use with this model.'''
+		import woo.dem
+		d={'linear':woo.dem.FrictMat,'pellet':woo.dem.PelletMat,'Hertz':woo.dem.FrictMat,'DMT':woo.dem.FrictMat,'Schwarz':woo.dem.FrictMat}
+		if self.name=='Schwarz': print 'WARN: Schwarz model not yet implemented, returning FrictMat.'
+		if self.name not in d: raise ValueError('Unknown model: '+self.name)
+		return d[self.name]
+	def getNonviscDamping(self):
+		'''Return the value for :obj:`woo.dem.Leapfrog.damping`; returns zero for models with internal damping, and :obj:`damping` for the "linear" model.'''
+		if self.name=='linear': return damping
+		else: return 0.
+
+
 
 if __name__=='__main__':
 
