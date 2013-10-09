@@ -1117,8 +1117,6 @@ class ObjectEditor(QFrame):
 					entry.widgets['buttons-%d'%(i/3)]=b
 					entry.widgets['buttonLabels-%d'%(i/3)]=l 
 				#print 'Buttons',entry.trait.name,entry.trait.buttons,entry.widgets
-			#if self.hasUnits and entry.widget.__class__!=ObjectEditor: entry.widgets['unit']=QLabel(u'−',self)
-			##else: entry.widgets['unit']=QLabel(u'−',self) if (self.hasUnits and entry.widget.__class__!=ObjectEditor) else QFrame() # avoid NaN widgets
 			self.entryGroups[entry.groupNo].entries.append(entry)
 		for i,g in enumerate(self.entryGroups):
 			hide=i>0
@@ -1145,7 +1143,8 @@ class ObjectEditor(QFrame):
 					# entry.widgets['label'].setFocusPolicy(Qt.NoFocus) # default
 					maxLabelWd=max(maxLabelWd,entry.widgets['label'].width())
 					if 'value' in entry.widgets:
-						lay.addWidget(entry.widgets['value'],row,self.gridCols['value'])
+						colSpan=(2 if 'unit' not in entry.widgets else 1) # use the unit column if there is no unit
+						lay.addWidget(entry.widgets['value'],row,self.gridCols['value'],1,colSpan)
 						# entry.widgets['value'].setFocusPolicy(Qt.StrongFocus) # default
 					if 'unit' in entry.widgets:
 						lay.addWidget(entry.widgets['unit'],row,self.gridCols['unit'])
