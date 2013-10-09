@@ -258,7 +258,7 @@ class ContactModelSelector(woo.core.Object,woo.pyderived.PyWooObject):
 		return d[self.name]
 	def getNonviscDamping(self):
 		'''Return the value for :obj:`woo.dem.Leapfrog.damping`; returns zero for models with internal damping, and :obj:`damping` for the "linear" model.'''
-		if self.name=='linear': return damping
+		if self.name=='linear': return self.damping
 		else: return 0.
 
 
