@@ -5,6 +5,7 @@ Collection of classes providing python-only implementation of various implementa
 
 from math import pi,sqrt
 import numpy
+from minieigen import *
 
 class CundallModel(object):
 	'Linear model :cite:`Cundall1979`.'
@@ -197,7 +198,7 @@ class ContactModelSelector(woo.core.Object,woo.pyderived.PyWooObject):
 	_PAT=woo.pyderived.PyAttrTrait
 	_attrTraits=[
 		_PAT(str,'name','linear',triggerPostLoad=True,choice=['linear','pellet','Hertz','DMT','Schwarz'],doc='Material model to use.'),
-		_PAT(int,'nMat',1,triggerPostLoad=True,doc='Number of material definitions for given model'),
+		_PAT(Vector2i,'numMat',Vector2i(1,1),guiReadonly=True,triggerPostLoad=True,doc='Minimum and maximum number of material definitions.'),
 		_PAT([woo.dem.Material],'mats',[],doc='Material definitions'),
 		_PAT(float,'poisson',.2,hideIf='self.name not in ("Hertz","DMT","Schwarz")',doc='Poisson ratio (:obj:`woo.dem.Cp2_FrictMat_HertzPhys.poisson`)'),
 		_PAT(float,'surfEnergy',.01,unit=u'J/m²',hideIf='self.name not in ("DMT","Schwarz")',doc='Surface energy for adhesive models (:obj:`woo.dem.Cp2_FrictMat_HertzPhys.gamma)'),
@@ -209,27 +210,22 @@ class ContactModelSelector(woo.core.Object,woo.pyderived.PyWooObject):
 		woo.core.Object.__init__(self)
 		self.wooPyInit(self.__class__,woo.core.Object,**kw)
 	def postLoad(self,what):
-		'Set :obj:`mats` based on :obj:`nMat` and :obj:`model`.'
-		if what==id(self.nMat):
-			# only resize
-			if len(self.mats)>self.nMat: self.mats=self.mats[:self.nMat]
-			elif len(self.mats)<self.nMat: self.mats+=[self.getMat() for i in range(self.nMat-len(self.mats))]
-		elif what==id(self.name):
-			# replace the entire array
-			mm=[self.getMat() for i in range(self.nMat)]
-			# try to preserve values if attributes are called the same
-			for i,m in enumerate(mm):
-				if len(self.mats)<=i: break
-				m0=self.mats[i]
+		'Do various consistency adjustments, such as materials matching the selected model type'
+		# check size constraints
+		if len(self.mats)>self.numMat[1]: self.mats=self.mats[:self.numMat[1]]
+		elif len(self.mats)<self.numMat[0]: self.mats+=[self.getMat() for i in range(self.numMat[0]-len(self.mats))]
+		# check types with the current material model
+		for i,m0 in enumerate(self.mats):
+			# if class does not match, replace things and preserve what we can preserve
+			if not isinstance (m0,self.getMatClass()):
+				m=self.getMat()
 				for trait in m._getAllTraits():
-					if hasattr(m0,trait.name):
-						setattr(m,trait.name,getattr(m0,trait.name))
-			self.mats=mm
-		else:
-			# object constructed; fill missing array values, check material types
-			if len(self.mats)!=self.nMat: self.mats+=[self.getMat() for i in range(self.nMat-len(self.mats))]
-			for i,m in enumerate(self.mats):
-				if m.__class__!=self.getMatClass(): self.mats[i]=self.getMat()
+					if hasattr(m0,trait.name): setattr(m,trait.name,getattr(m0,trait.name))
+				self.mats[i]=m
+		# modify traits so that the sequence only accepts required material type
+		matsTrait=[t for t in self._attrTraits if t.name=='mats'][0]
+		matsTrait.pyType=[self.getMatClass(),] # indicate array of instances of this type
+		matsTrait.range=self.numMat
 
 	def getFunctors(self):
 		'''Return tuple of ``([CPhysFunctor,...],[LawFunctor,...])`` corresponding to the selected model and parameters.'''

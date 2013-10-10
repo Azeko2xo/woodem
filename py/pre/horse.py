@@ -20,7 +20,7 @@ class FallingHorse(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		_PAT(Vector3,'gravity',(0,0,-9.81),'Gravity acceleration vector'),
 		_PAT(str,'pattern','hexa',choice=['hexa','ortho'],doc='Pattern to use when filling the volume with spheres'),
 		# _PAT(woo.dem.FrictMat,'mat',woo.dem.FrictMat(density=1e3,young=5e4,ktDivKn=.2,tanPhi=math.tan(.5)),startGroup='Material',doc='Material for particles'),
-		_PAT(woo.models.ContactModelSelector,'model',woo.models.ContactModelSelector(name='DMT',surfEnergy=1.,restitution=.7,mats=[woo.dem.FrictMat(density=1e4,young=1e6)]),doc='Select contact model. Material are used for particles; if 2 materials are defined the second one is used for the meshed horse.'),
+		_PAT(woo.models.ContactModelSelector,'model',woo.models.ContactModelSelector(name='DMT',surfEnergy=1.,restitution=.7,numMat=(1,2),mats=[woo.dem.FrictMat(density=1e4,young=1e6)]),doc='Select contact model. Material are used for particles; if 2 materials are defined the second one is used for the meshed horse.'),
 		# _PAT(woo.dem.FrictMat,'meshMat',None,'Material for the meshed horse; if not given, :obj:`mat` is used here as well.'),
 		_PAT(bool,'deformable',False,startGroup='Deformability',doc='Whether the meshed horse is deformable. Note that deformable horse does not track energy and disables plotting.'),
 		_PAT(float,'pWaveSafety',.7,startGroup='Tunables',doc='Safety factor for :obj:`woo.utils.pWaveDt` estimation.'),

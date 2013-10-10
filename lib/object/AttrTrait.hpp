@@ -7,7 +7,7 @@
 
 // attribute flags
 namespace woo{
-	#define ATTR_FLAGS_VALUES noSave=(1<<0), readonly=(1<<1), triggerPostLoad=(1<<2), hidden=(1<<3), noResize=(1<<4), noGui=(1<<5), pyByRef=(1<<6), static_=(1<<7), multiUnit=(1<<8), noDump=(1<<9), activeLabel=(1<<10), rgbColor=(1<<11), filename=(1<<12), existingFilename=(1<<13), dirname=(1<<14)
+	#define ATTR_FLAGS_VALUES noSave=(1<<0), readonly=(1<<1), triggerPostLoad=(1<<2), hidden=(1<<3), noGuiResize=(1<<4), noGui=(1<<5), pyByRef=(1<<6), static_=(1<<7), multiUnit=(1<<8), noDump=(1<<9), activeLabel=(1<<10), rgbColor=(1<<11), filename=(1<<12), existingFilename=(1<<13), dirname=(1<<14)
 	// this will disappear later
 	namespace Attr { enum flags { ATTR_FLAGS_VALUES }; }
 	// prohibit copies, only references should be passed around
@@ -40,7 +40,7 @@ namespace woo{
 			ATTR_FLAG_DO(readonly,isReadonly)
 			ATTR_FLAG_DO(triggerPostLoad,isTriggerPostLoad)
 			ATTR_FLAG_DO(hidden,isHidden)
-			ATTR_FLAG_DO(noResize,isNoResize)
+			ATTR_FLAG_DO(noGuiResize,isNoGuiResize)
 			ATTR_FLAG_DO(noGui,isNoGui)
 			ATTR_FLAG_DO(pyByRef,isPyByRef)
 			ATTR_FLAG_DO(static_,isStatic)
@@ -74,7 +74,7 @@ namespace woo{
 				.add_property("readonly",&AttrTraitBase::isReadonly)
 				.add_property("triggerPostLoad",&AttrTraitBase::isTriggerPostLoad)
 				.add_property("hidden",&AttrTraitBase::isHidden)
-				.add_property("noResize",&AttrTraitBase::isNoResize)
+				.add_property("noGuiResize",&AttrTraitBase::isNoGuiResize)
 				.add_property("noGui",&AttrTraitBase::isNoGui)
 				.add_property("pyByRef",&AttrTraitBase::isPyByRef)
 				.add_property("static",&AttrTraitBase::isStatic)
@@ -124,7 +124,7 @@ namespace woo{
 			ATTR_FLAG_DO(pyByRef,isPyByRef)
 
 			// dynamically modifiable without harm
-			ATTR_FLAG_DO(noResize,isNoResize)
+			ATTR_FLAG_DO(noGuiResize,isNoGuiResize)
 			ATTR_FLAG_DO(noGui,isNoGui)
 			ATTR_FLAG_DO(static_,isStatic)
 			ATTR_FLAG_DO(multiUnit,isMultiUnit)

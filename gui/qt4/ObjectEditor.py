@@ -600,11 +600,8 @@ _attributeGuessedTypeMap={woo._customConverters.NodeList:(woo.core.Node,),woo._c
 
 def hasActiveLabel(s):
 	if not hasattr(s,'label') or not  s.label: return False
-	#and len([1 for t in s._attrTraits if t.activeLabel])>0
-	k=s.__class__
-	while k!=woo.core.Object:
-		if len([1 for t in k._attrTraits if t.activeLabel])>0: return True
-		k=k.__bases__[0]
+	for t in s._getAllTraits():
+		if t.activeLabel==True: return True
 	return False
 
 class SerQLabel(QLabel):
@@ -612,11 +609,21 @@ class SerQLabel(QLabel):
 		QLabel.__init__(self,parent)
 		self.path=path
 		self.ser=ser
+		self.minWd=-1
 		self.setTextToolTip(label,tooltip,elide=elide)
 		self.linkActivated.connect(woo.qt.openUrl)
+	#def sizeHint(self): return QSize(self.minWd,20)
+	#def minimumSizeHint(self): return QSize(self.minWd,20)
 	def setTextToolTip(self,label,tooltip,elide=False):
-		if elide: label=self.fontMetrics().elidedText(label,Qt.ElideRight,1.5*self.width())
+		if elide:
+			# label is the text description; elide it at some fixed width
+			#self.minWd=100
+			label=self.fontMetrics().elidedText(label,Qt.ElideRight,1.5*self.width())
+		else:
+			pass
+			#self.minWd=60
 		self.setText(label)
+		#self.adjustSize()
 		if tooltip or self.path: self.setToolTip(('<b>'+self.path+'</b><br>' if self.path else '')+(tooltip if tooltip else ''))
 		else: self.setToolTip(None)
 	def mousePressEvent(self,event):
@@ -892,8 +899,9 @@ class ObjectEditor(QFrame):
 			return AttrEditor_FloatRange(self,lambda: (getattr(self.ser,entry.name),rg),lambda x: setattr(self.ser,entry.name,x))
 		elif entry.T==int and rg and rg.__class__==Vector2i:
 			return AttrEditor_IntRange(self,lambda: (getattr(self.ser,entry.name),rg),lambda x: setattr(self.ser,entry.name,x))
+		elif isinstance(entry.T,(list,tuple)) and len(entry.T)==1: return None
 		else:
-			raise RuntimeError("Invalid range object for "+self.ser.__class__.__name__+"."+entry.name+": type is "+entry.T.__name__+", range is "+str(rg)+" (of type "+rg.__class__.__name__+")")
+			raise RuntimeError("Invalid range object for "+self.ser.__class__.__name__+"."+entry.name+": type is "+str(entry.T)+", range is "+str(rg)+" (of type "+rg.__class__.__name__+")")
 	def handleChoices(self,getter,setter,entry):
 		choice=entry.trait.choice
 		return AttrEditor_Choice(self,lambda: (getattr(self.ser,entry.name),choice),lambda x: setattr(self.ser,entry.name,x))
@@ -915,6 +923,7 @@ class ObjectEditor(QFrame):
 		# default getter and setter
 		getter,setter=lambda: getattr(self.ser,entry.name), lambda x: setattr(self.ser,entry.name,x)
 		# try to find specific widget first based on traits
+		# these functions may return none, indicating that it won't be handled specially
 		if entry.trait.range: widget=self.handleRanges(getter,setter,entry)
 		elif entry.trait.choice: widget=self.handleChoices(getter,setter,entry)
 		elif entry.trait.bits: widget=self.handleBits(getter,setter,entry)
@@ -935,7 +944,7 @@ class ObjectEditor(QFrame):
 			# sequence of serializables
 			T=entry.T[0]
 			if (issubclass(T,Object) or T==Object):
-				widget=SeqObject(self,getter,setter,T,path=(self.path+'.'+entry.name if self.path else None),shrink=True)
+				widget=SeqObject(self,getter,setter,T=T,trait=entry.trait,path=(self.path+'.'+entry.name if self.path else None),shrink=True)
 				return widget
 			if (T in _fundamentalEditorMap):
 				widget=SeqFundamentalEditor(self,getter,setter,T)
@@ -1167,12 +1176,14 @@ class ObjectEditor(QFrame):
 		lay.setRowStretch(lay.rowCount()-1,10000)
 		lay.setColumnStretch(self.gridCols['check'],-1)
 		lay.setColumnStretch(self.gridCols['label'],2)
-		lay.setColumnStretch(self.gridCols['value'],8)
+		lay.setColumnStretch(self.gridCols['value'],10)
 		lay.setColumnStretch(self.gridCols['unit'],-1)
 		self.refreshEvent()
 	def refreshEvent(self):
+		maxLabelWd=0.
 		for e in self.entries:
 			if e.widget and not e.widget.hot:
+				maxLabelWd=max(maxLabelWd,e.widgets['label'].width())
 				# if there is a new instance of Object, we need to make new widget and replace the old one completely
 				if type(e.widget)==ObjectEditor and e.widget.ser!=getattr(self.ser,e.name):
 					#print 'New ObjectEditor for ',self.ser,e.name
@@ -1183,6 +1194,9 @@ class ObjectEditor(QFrame):
 				# visibility might change if hideIf is defined
 				if e.trait.hideIf or not e.visible: e.setVisible(None)
 				e.widget.refresh()
+		#self.layout().setColumnMinimumWidth(self.gridCols['label'],maxLabelWd)
+		if self.labelIsVar: self.layout().setColumnStretch(self.gridCols['label'],-1)
+		else: self.layout().setColumnStretch(self.gridCols['label'],2)
 	def refresh(self): pass
 
 def makeObjectLabel(ser,href=False,addr=True,boldHref=True,num=-1,count=-1):
@@ -1199,22 +1213,25 @@ def makeObjectLabel(ser,href=False,addr=True,boldHref=True,num=-1,count=-1):
 	return ret
 
 class SeqObjectComboBox(QFrame):
-	def __init__(self,parent,getter,setter,serType,path=None,shrink=False):
+	def getItemType(self): return self.trait.pyType[0]
+	def __init__(self,parent,getter,setter,T,trait,path=None,shrink=False):
 		QFrame.__init__(self,parent)
-		self.getter,self.setter,self.serType,self.path,self.shrink=getter,setter,serType,path,shrink
+		self.getter,self.setter,T,self.trait,self.path,self.shrink=getter,setter,T,trait,path,shrink
+		if not hasattr(self.trait,'pyType'): self.trait.pyType=(T,) # this is for compat with C++ (?)
 		self.layout=QVBoxLayout(self)
 		topLineFrame=QFrame(self)
 		topLineLayout=QHBoxLayout(topLineFrame);
 		for l in self.layout, topLineLayout: l.setSpacing(0); l.setContentsMargins(0,0,0,0)
 		topLineFrame.setLayout(topLineLayout)
-		#labels=(u'☘',u'☠',u'↑',u'↓')
-		labels=(u'+',u'−',u'↑',u'↓')
-		buttons=(self.newButton,self.killButton,self.upButton,self.downButton)=[QPushButton(label,self) for label in labels]
-		buttonSlots=(self.newSlot,self.killSlot,self.upSlot,self.downSlot) # same order as buttons
-		for b in buttons: b.setStyleSheet('QPushButton { font-size: 15pt; font-weight: bold; }'); b.setFixedWidth(30); b.setFixedHeight(30)
+		#labels=(u'+',u'⧉',u'−',u'↑',u'↓')
+		labels=(u'+',u'c',u'−',u'↑',u'↓')
+		tooltips=('Insert new','Clone','Delete','Move up','Move down')
+		buttons=(self.newButton,self.cloneButton,self.killButton,self.upButton,self.downButton)=[QPushButton(label,self) for label in labels]
+		buttonSlots=(self.newSlot,self.cloneSlot,self.killSlot,self.upSlot,self.downSlot) # same order as buttons
+		for i,b in enumerate(buttons): b.setStyleSheet('QPushButton { font-size: 15pt; font-weight: bold; }'); b.setFixedWidth(25); b.setFixedHeight(30); b.setToolTip(tooltips[i])
 		self.combo=QComboBox(self)
 		self.combo.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-		for w in buttons[0:2]+[self.combo,]+buttons[2:4]: topLineLayout.addWidget(w)
+		for w in buttons[:3]+[self.combo,]+buttons[3:]: topLineLayout.addWidget(w)
 		self.layout.addWidget(topLineFrame) # nested layout
 		self.scroll=QScrollArea(self); self.scroll.setWidgetResizable(True)
 		self.layout.addWidget(self.scroll)
@@ -1230,12 +1247,12 @@ class SeqObjectComboBox(QFrame):
 		# periodic refresh
 		self.refreshTimer=QTimer(self)
 		self.refreshTimer.timeout.connect(self.refreshEvent)
-		self.refreshTimer.start(1000) # 1s should be enough
+		self.refreshTimer.start(500) # 1s should be enough
 		#print 'SeqObject path is',self.path
 	def comboIndexSlot(self,ix): # different seq item selected
 		currSeq=self.getter();
 		if len(currSeq)==0: ix=-1
-		logging.debug('%s comboIndexSlot len=%d, ix=%d'%(self.serType.__name__,len(currSeq),ix))
+		logging.debug('%s comboIndexSlot len=%d, ix=%d'%(self.getItemType().__name__,len(currSeq),ix))
 		self.downButton.setEnabled(ix<len(currSeq)-1)
 		self.upButton.setEnabled(ix>0)
 		self.combo.setEnabled(ix>=0)
@@ -1268,7 +1285,7 @@ class SeqObjectComboBox(QFrame):
 			ser=(self.seqEdit.ser if self.seqEdit else None) if forceIx<0 else currSeq[forceIx] 
 			if comboEnabled and len(currSeq)==cnt and (ix<0 or ser==currSeq[ix]): return
 			if not comboEnabled and len(currSeq)==0: return
-			logging.debug(self.serType.__name__+' rebuilding list from scratch')
+			logging.debug(self.getItemType().__name__+' rebuilding list from scratch')
 			self.combo.clear()
 			if len(currSeq)>0:
 				prevIx=-1
@@ -1279,42 +1296,32 @@ class SeqObjectComboBox(QFrame):
 				elif prevIx>=0: newIx=prevIx # if found what was active before, use it
 				elif ix>=0: newIx=ix         # otherwise use the previous index (e.g. after deletion)
 				else: newIx=0                  # fallback to 0
-				logging.debug('%s setting index %d'%(self.serType.__name__,newIx))
+				logging.debug('%s setting index %d'%(self.getItemType().__name__,newIx))
 				self.combo.setCurrentIndex(newIx)
 			else:
-				logging.debug('%s EMPTY, setting index 0'%(self.serType.__name__))
+				logging.debug('%s EMPTY, setting index 0'%(self.getItemType().__name__))
 				self.combo.setCurrentIndex(-1)
-			self.killButton.setEnabled(len(currSeq)>0)
+			enableKill=(not self.trait.noGuiResize and len(currSeq)>(self.trait.range[0] if self.trait.range else 0))
+			enableNew=(not self.trait.noGuiResize and (not self.trait.range or len(currSeq)<self.trait.range[1]))
+			self.killButton.setEnabled(enableKill)
+			self.newButton.setEnabled(enableNew)
+			self.cloneButton.setEnabled(enableNew)
 		except RuntimeError as e:
 			print 'Error refreshing sequence (path %s), ignored.'%self.path
 			
 	def newSlot(self):
 		# print 'newSlot called'
-		if self.newDialog:
-			raise RuntimeError("newSlot called, but there is already a dialogue?")
-		self.newDialog=NewObjectDialog(self,self.serType.__name__)
-		self.newDialog.show()
-		self.newDialog.accepted.connect(self.newInsertSlot)
-		self.newDialog.rejected.connect(self.newCancelledSlot)
-		#raise RuntimeError("newSlot does not work due to dialogs getting closed immediately")
-		if 0: # old code which does not work due to exec_ returning immediately (used to work?!)
-			if not dialog.exec_():
-				# print 'NewObjectDialog cancelled'
-				return # cancelled
-			ser=dialog.result()
-			ix=self.combo.currentIndex()
-			currSeq=list(self.getter()); currSeq.insert(ix,ser); self.setter(currSeq)
-			logging.debug('%s new item created at index %d'%(self.serType.__name__,ix))
-			self.refreshEvent(forceIx=ix)
-	def newCancelledSlot(self):
-		self.newDialog=None # this must be tracked properly if cancelled
-	def newInsertSlot(self):
-		ser=self.newDialog.result()
-		self.newDialog=None
+		dialog=NewObjectDialog(self,self.getItemType())
+		if not dialog.exec_(): return # cancelled
+		ser=dialog.result()
 		ix=self.combo.currentIndex()
 		currSeq=list(self.getter()); currSeq.insert(ix,ser); self.setter(currSeq)
-		logging.debug('%s new item created at index %d'%(self.serType.__name__,ix))
+		logging.debug('%s new item created at index %d'%(self.getItemType().__name__,ix))
 		self.refreshEvent(forceIx=ix)
+	def cloneSlot(self):
+		ix=self.combo.currentIndex()
+		currSeq=list(self.getter()); currSeq.insert(ix+1,currSeq[ix].deepcopy()); self.setter(currSeq)
+		self.refreshEvent(forceIx=ix+1)
 	def killSlot(self):
 		ix=self.combo.currentIndex()
 		currSeq=self.getter(); del currSeq[ix]; self.setter(currSeq)
@@ -1365,17 +1372,18 @@ class NewFundamentalDialog(QDialog):
 		return getattr(self.fakeObj,self.attrName)
 
 class NewObjectDialog(QDialog):
-	def __init__(self,parent,baseClassName,includeBase=True):
+	def __init__(self,parent,baseClass,includeBase=True):
 		import woo.system
 		QDialog.__init__(self,parent)
-		self.setWindowTitle('Create new object of type %s'%baseClassName)
+		self.setWindowTitle('Create new object of type %s'%baseClass.__name__)
 		self.layout=QVBoxLayout(self)
 		self.combo=QComboBox(self)
-		childs=list(woo.system.childClasses(baseClassName,includeBase=False)); childs.sort()
+		self.classes=list(woo.system.childClasses(baseClass,includeBase=False)); self.classes.sort()
 		if includeBase:
-			self.combo.addItem(baseClassName)
+			self.classes=[baseClass,None]+self.classes # None is for the separator, so that indices are the same
+			self.combo.addItem(baseClass.__name__)
 			self.combo.insertSeparator(1000)
-		self.combo.addItems(childs)
+		self.combo.addItems([c.__name__ for c in self.classes[(2 if includeBase else 0):]])
 		self.combo.currentIndexChanged.connect(self.comboSlot)
 		self.scroll=QScrollArea(self)
 		self.scroll.setWidgetResizable(True)
@@ -1389,9 +1397,7 @@ class NewObjectDialog(QDialog):
 		self.combo.setCurrentIndex(0); self.comboSlot(0)
 		self.setWindowModality(Qt.WindowModal)
 	def comboSlot(self,index):
-		item=str(self.combo.itemText(index))
-		from woo import core,dem,gl,qt
-		self.ser=eval(item+'()',dict(sum([m.__dict__.items() for m in core,dem,gl,qt],[])))
+		self.ser=self.classes[index]() # instantiate the class
 		self.scroll.setWidget(ObjectEditor(self.ser,self.scroll,showType=True))
 		self.scroll.show()
 	def result(self): return self.ser
@@ -1418,7 +1424,7 @@ class SeqFundamentalEditor(QFrame):
 		# periodic refresh
 		self.refreshTimer=QTimer(self)
 		self.refreshTimer.timeout.connect(self.refreshEvent)
-		self.refreshTimer.start(1000) # 1s should be enough
+		self.refreshTimer.start(500) # 1s should be enough
 	def contextMenuEvent(self, event):
 		index=self.localPositionToIndex(event.pos())
 		seq=self.getter()
@@ -1510,7 +1516,6 @@ class SeqFundamentalEditor(QFrame):
 		curr,nxt=seq[i:i+2]; seq[i],seq[i+1]=nxt,curr; self.setter(seq)
 		self.refreshEvent(forceIx=i+1)
 	def fromClipSlot(self,i):
-		#raise NotImplementedError("Importing sequences not yet implemented")
 		try:
 			importables={Vector3:(float,3),Vector2:(float,2),Vector6:(float,6),Vector2i:(int,2),Vector2i:(int,3),Vector6i:(int,6),Matrix3:(float,9),float:(float,1),int:(int,1)}
 			if self.itemType not in importables: raise NotImplementedError("Type %s is not text-importable"%(self.itemType.__name__))

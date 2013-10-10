@@ -18,7 +18,7 @@ class EngineInspector(QWidget):
 	def __init__(self,parent=None):
 		QWidget.__init__(self,parent)
 		grid=QGridLayout(self); grid.setSpacing(0); grid.setMargin(0)
-		self.serEd=SeqObject(parent=None,getter=lambda:woo.master.scene.engines,setter=lambda x:setattr(woo.master.scene,'engines',x),serType=Engine,path='woo.master.scene.engines')
+		self.serEd=SeqObject(parent=None,getter=lambda:woo.master.scene.engines,setter=lambda x:setattr(woo.master.scene,'engines',x),T=Engine,trait=[t for t in Scene._attrTraits if t.name=='engines'][0],path='woo.master.scene.engines')
 		grid.addWidget(self.serEd)
 		self.setLayout(grid)
 #class MaterialsInspector(QWidget):

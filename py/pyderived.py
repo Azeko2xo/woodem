@@ -105,6 +105,8 @@ class PyAttrTrait:
 			existingFilename=False,
 			dirname=False,
 			triggerPostLoad=False,
+			guiReadonly=False,
+			noGuiResize=False,
 		):
 		# validity checks
 		if range:
@@ -147,8 +149,10 @@ class PyAttrTrait:
 		self.existingFilename=existingFilename
 		self.dirname=dirname
 		self.triggerPostLoad=triggerPostLoad
+		self.noGuiResize=noGuiResize
+		self.readonly=guiReadonly # this has different meaning in c++ and python, so call it differently
 		# those are unsupported in python
-		self.noSave=self.readonly=self.hidden=self.noResize=self.pyByRef=self.static=self.activeLabel=False
+		self.noSave=self.hidden=self.pyByRef=self.static=self.activeLabel=False
 		#
 		self.validator=None
 		if self.choice and type(self.choice[0])==str:
