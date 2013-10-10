@@ -287,7 +287,6 @@ class ControllerClass(QWidget,Ui_Controller):
 			auto=self.genOpenCheckbox.isChecked()
 			pre=self.generator
 			newScene=pre()
-			print newScene
 			if not isinstance(newScene,woo.core.Scene): raise RuntimeError('Preprocessor must return a Scene when called, not '+str(newScene))
 			if mem: newScene.saveTmp(out)
 			elif out: newScene.save(out)

@@ -47,6 +47,9 @@ class HertzModel(CundallModel):
 	def delta_a(self,a):
 		':math:`\\delta(a)`'
 		return a**2/self.R
+	def a_delta(self,delta):
+		':math:`a(\\delta)=\\sqrt{R\delta}`'
+		return sqrt(self.R*delta)
 	def F_delta(self,delta):
 		':math:`F(\\delta)`'
 		return self.K*sqrt(self.R)*delta**(3/2.) if delta>=0 else float('nan')
@@ -106,6 +109,15 @@ class SchwarzModel(HertzModel):
 			return scipy.optimize.newton(fa,x0=2*aMin,fprime=fa1,args=(delta,),maxiter=1000)
 		else:
 			return scipy.optimize.bisect(fa,a=0,b=aMin,args=(delta,))
+	def deltaMin(self):
+		r':math:`\delta_{\min}=-3R^\frac{1}{3}\xi^\frac{4}{3}`.'
+		return -3*self.R**(1/3.)*self.xi**(4/3.)
+	def aMin(self):
+		r':math:`a_{\min}=(R\xi)^\frac{2}{3}`.'
+		return (self.R*self.xi)**(2/3.)
+	def aMax(self,delta):
+		r':math:`a_{\max}=a_{\min}+\sqrt{R(\delta-\delta_{\min})}`.'
+		return self.aMin()+sqrt(self.R*(delta-self.deltaMin()))
 
 	def fHat_aHat(self,aHat): return self.fHat(numpy.array([self.F_a(self.aUnhat(ah)) for ah in aHat]))
 	def aHat_fHat(self,fHat): return self.aHat(numpy.array([self.a_F(self.fUnhat(fh)) for fh in fHat]))
@@ -133,7 +145,7 @@ class SchwarzModel(HertzModel):
 		return deltaHat*(pi**2*self.gamma**2*self.R/self.K**2)**(1/3.)
 
 	@staticmethod
-	def normalized_plot(what,alphaGammaName,N=1000,stride=50):
+	def normalized_plot(what,alphaGammaName,N=1000,stride=50,aMax=[]):
 		'''
 		Create normalized plot as it appears in :cite:`Maugis1992` including range of axes with normalized quantities. This function is mainly useful for documentation of Woo itself.
 
@@ -141,18 +153,21 @@ class SchwarzModel(HertzModel):
 		:param alphaGammaName: list of (alpha,gamma,name) tuples which are passed to the :obj:`SchwarzModel` constructor
 		:param N: numer of points in linspace for each axis
 		:param stride: stride for plotting inverse relationships (with points)
+		:param aMax: with ``what==a(delta)``, show upper bracket for $a$ for i-th model, if *i* appears in the list
 		'''
 		assert what in ('a(delta)','F(delta)','a(F)')
 		import pylab
 		invKw=dict(linewidth=4,alpha=.3)
 		kw=dict(linewidth=2)
 		pylab.figure()
-		for (alpha,gamma,name) in alphaGammaName:
+		for i,(alpha,gamma,name) in enumerate(alphaGammaName):
 			m=SchwarzModel.makeDefault(alpha=alpha,gamma=gamma,name=name)
 			if what=='a(delta)':
 				ddHat=numpy.linspace(-1.3,2.,num=N)
 				aaHat=numpy.linspace(0,2.1,num=N)
 				pylab.plot(m.deltaHat_aHat(aaHat),aaHat,label='$\\alpha$=%g %s'%(m.alpha,m.name),**kw)
+				ddH=m.deltaHat_aHat(aaHat)
+				if i in aMax: pylab.plot(ddH,[m.aHat(m.aMax(m.deltaUnhat(dh))) for dh in ddH],label='$\\alpha$=%g $a_{\max}$'%m.alpha,linewidth=1,alpha=.4)
 				pylab.plot(ddHat[::stride],m.aHat_deltaHat(ddHat[::stride],loading=True),'o',**invKw)
 				pylab.plot(ddHat[::stride],m.aHat_deltaHat(ddHat[::stride],loading=False),'o',**invKw)
 			elif what=='F(delta)':
@@ -169,7 +184,9 @@ class SchwarzModel(HertzModel):
 				pylab.plot(ffHat,[a[1] for a in m.aHat_fHat(ffHat)],**kw)
 				pylab.plot(m.fHat_aHat(aaHat[::stride]),aaHat[::stride],'o',label=None,**invKw)
 		if what=='a(delta)': 
-			pylab.plot([m.deltaHat(HertzModel.delta_a(m,m.aUnhat(a))) for a in aaHat],aaHat,label='Hertz',**kw)
+			ddH=[m.deltaHat(HertzModel.delta_a(m,m.aUnhat(a))) for a in aaHat]
+			pylab.plot(ddH,aaHat,label='Hertz',**kw)
+			# pylab.plot(ddHat,[m.aHat(m.aMax(m.deltaUnhat(dh))) for dh in ddHat],label=r'$\alpha=1$ a_{\max}',linewidth=1)
 			pylab.xlabel('$\hat\delta$')
 			pylab.ylabel('$\hat a$')
 			pylab.ylim(ymax=2.1)
@@ -217,7 +234,7 @@ class ContactModelSelector(woo.core.Object,woo.pyderived.PyWooObject):
 		# check types with the current material model
 		for i,m0 in enumerate(self.mats):
 			# if class does not match, replace things and preserve what we can preserve
-			if not isinstance (m0,self.getMatClass()):
+			if not m0.__class__!=self.getMatClass():
 				m=self.getMat()
 				for trait in m._getAllTraits():
 					if hasattr(m0,trait.name): setattr(m,trait.name,getattr(m0,trait.name))
@@ -235,12 +252,11 @@ class ContactModelSelector(woo.core.Object,woo.pyderived.PyWooObject):
 		elif self.name=='pellet':
 			return [woo.dem.Cp2_PelletMat_PelletPhys()],[woo.dem.Law2_L6Geom_PelletPhys_Pellet()]
 		elif self.name=='Hertz':
-			return [woo.dem.Cp2_FrictMat_HertzPhys(poisson=self.poisson,gamma=0.,en=self.restitution)],[woo.dem.Law2_L6Geom_HertzPhys_DMT()]
+			return [woo.dem.Cp2_FrictMat_HertzPhys(poisson=self.poisson,alpha=0.,gamma=0.,en=self.restitution)],[woo.dem.Law2_L6Geom_HertzPhys_DMT()]
 		elif self.name=='DMT':
-			return [woo.dem.Cp2_FrictMat_HertzPhys(poisson=self.poisson,gamma=self.surfEnergy,en=self.restitution)],[woo.dem.Law2_L6Geom_HertzPhys_DMT()]
+			return [woo.dem.Cp2_FrictMat_HertzPhys(poisson=self.poisson,alpha=0.,gamma=self.surfEnergy,en=self.restitution)],[woo.dem.Law2_L6Geom_HertzPhys_DMT()]
 		elif self.name=='Schwarz':
-			print 'WARN: Schwarz model not yet implemented, returning empty functors list!'
-			return [],[]
+			return [woo.dem.Cp2_FrictMat_HertzPhys(poisson=self.poisson,alpha=self.alpha,gamma=self.surfEnergy,en=self.restitution)],[woo.dem.Law2_L6Geom_HertzPhys_DMT()]
 		else: raise ValueError('Unknown model: '+self.name)
 	def getMat(self):
 		'''Return default-initialized material for use with this model.'''
@@ -249,7 +265,6 @@ class ContactModelSelector(woo.core.Object,woo.pyderived.PyWooObject):
 		'''Return class object of material for use with this model.'''
 		import woo.dem
 		d={'linear':woo.dem.FrictMat,'pellet':woo.dem.PelletMat,'Hertz':woo.dem.FrictMat,'DMT':woo.dem.FrictMat,'Schwarz':woo.dem.FrictMat}
-		if self.name=='Schwarz': print 'WARN: Schwarz model not yet implemented, returning FrictMat.'
 		if self.name not in d: raise ValueError('Unknown model: '+self.name)
 		return d[self.name]
 	def getNonviscDamping(self):

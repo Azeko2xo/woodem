@@ -16,7 +16,7 @@ S.dem.par.append([
 ])
 S.dem.collectNodes()
 # S.engines=utils.defaultEngines(damping=.0,cp2=Cp2_FrictMat_FrictPhys(),law=Law2_L6Geom_FrictPhys_IdealElPl())+[
-S.engines=utils.defaultEngines(damping=.0,cp2=Cp2_FrictMat_HertzPhys(gamma=10,en=1.,alpha=.3,label='cp2'),law=Law2_L6Geom_HertzPhys_DMT(model='COS'),dynDtPeriod=10)+[
+S.engines=utils.defaultEngines(damping=.0,cp2=Cp2_FrictMat_HertzPhys(gamma=10,en=1.,alpha=.6,label='cp2'),law=Law2_L6Geom_HertzPhys_DMT(),dynDtPeriod=10)+[
 	LawTester(ids=(0,1),abWeight=.5,smooth=1e-4,stages=[
 			# LawTesterStage(values=(-1e-0,0,0,0,0,0),whats='ivv...',until='stage.rebound',done='print "Rebound with v0=1e-0m/s"'),LawTesterStage(values=(1e-2,0,0,0,0,0),whats='vvv...',until='not C',done='print "Contact broken."'),
 			LawTesterStage(values=(-1e-1,0,0,0,0,0),whats='ivv...',until='stage.rebound',done='print "Rebound with v0=1e-1m/s"'),LawTesterStage(values=(1e-2,0,0,0,0,0),whats='vvv...',until='not C',done='print "Contact broken."'),
@@ -39,4 +39,5 @@ S.any=[woo.gl.Gl1_DemField(glyph=woo.gl.Gl1_DemField.glyphForce)]
 S.saveTmp()
 #S.run()
 S.one()
+S.run(1000)
 #O.reload()

@@ -2,23 +2,18 @@
 #include<woo/pkg/dem/FrictMat.hpp>
 #include<woo/pkg/dem/L6Geom.hpp>
 
-// #define WOO_JKR
-
 class HertzPhys: public FrictPhys{
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(HertzPhys,FrictPhys,"Physical properties of a contact of two :obj:`FrictMat` with viscous damping enabled (viscosity is currently not provided as material parameter).",
-		((Real,kn0,0,,"Constant for computing current normal stiffness."))
+		// ((Real,kn0,0,,"Constant for computing current normal stiffness."))
 		((Real,kt0,0,,"Constant for computing current normal stiffness."))
-		((Real,Fa,0,,"Adhesion force for this contact"))
 		((Real,alpha_sqrtMK,0,,"Value for computing damping coefficient -- see :cite:`Antypov2011`, eq (10)."))
-		#ifdef WOO_JKR
-			// only needed for JKR
-			((Real,gamma,0.,,"Surface energy for both surfaces (only used with the JKR model)."))
-			((Real,Eeq,NaN,,"Equivalent contact modulus (only used with the JKR model)."))
-			((Real,Req,NaN,,"Equivalent radius (only used with the JKR model)."))
-		#endif
-		((Real,alpha,NaN,,"COS alpha coefficient"))
-		((Real,Lc,NaN,,"COS critical load"))
-		((Real,a0,NaN,,"COS zero load"))
+		((Real,R,0,,"Effective radius (for the Schwarz model)"))
+		((Real,K,0,,"Effective stiffness (for the Schwarz model)"))
+		((Real,gamma,0,,"Surface energy (for the Schwarz model)"))
+		((Real,alpha,0.,,"COS alpha coefficient"))
+		((Real,contRad,0,,"Contact radius, used for storing previous value as the initial guess in the next step."))
+		//((Real,Lc,NaN,,"COS critical load"))
+		//((Real,a0,NaN,,"COS zero load"))
 		, /*ctor*/ createIndex();
 	);
 	REGISTER_CLASS_INDEX(HertzPhys,CPhys);
@@ -45,6 +40,8 @@ struct Law2_L6Geom_HertzPhys_DMT: public LawFunctor{
 	void go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&);
 	// fast func for computing x^(i/2)
 	static Real pow_i_2(const Real& x, const short& i) { return pow(sqrt(x),i);}
+	// faster (?) func for computing x^(i/3)
+	static Real pow_i_3(const Real& x, const short& i) { return pow(cbrt(x),i);}
 	// fast computation of x^(1/4)
 	static Real pow_1_4(const Real& x) { return sqrt(sqrt(x)); }
 	// normal elastic energy; see Popov2010, pg 60, eq (5.25)

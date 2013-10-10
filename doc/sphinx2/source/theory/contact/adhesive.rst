@@ -11,7 +11,7 @@ Symbols used for adhesive models, in addition to those introduced for Hertzian m
 ==================  ===============
 :math:`\gamma`      surface energy (in models with adhesion)
 :math:`P_{na}`      normal adhesive (also called "pull-off" or "sticking") force
-:math:`P_c`	        critical force (leads to surface separation); maximum tensile force an adhesive contact can sustain
+:math:`P_c`           critical force (leads to surface separation); maximum tensile force an adhesive contact can sustain
 :math:`\alpha`      :cite:`Carpick1999` transition parameter between DMT and JKR models
 :math:`\hat\delta`  reduced penetration (dimensionless)
 :math:`\hat P`      reduced total normal force (dimensionless)
@@ -115,7 +115,10 @@ Penetration is given as (:cite:`Schwarz2003` (27))
 
 Plugging :eq:`schwarz-pc-alpha` into :eq:`schwarz-delta-pc`, we obtain
 
-.. math:: \delta=\frac{a^2}{R}-4\underbrace{\sqrt{\frac{2\pi\gamma}{3K}\left(1-\frac{3}{\alpha^2+3}\right)}}_{\xi}\sqrt{a}=\frac{a^2}{R}-4\xi\sqrt{a}
+.. math::
+   :label: schwarz-delta-a
+
+   \delta(a)=\frac{a^2}{R}-4\underbrace{\sqrt{\frac{2\pi\gamma}{3K}\left(1-\frac{3}{\alpha^2+3}\right)}}_{\xi}\sqrt{a}=\frac{a^2}{R}-4\xi\sqrt{a}
 
 where the :math:`\xi` term was introduced for readability. This equation is not analytically invertible and has to be solved numerically. We can find the global minimum as
 
@@ -143,7 +146,25 @@ This plot shows both loading and unloading (unstable) branches, obtained via New
 
    import woo.models
    alphaGammaName=[(1.,.1,'JKR'),(.5,.1,''),(.01,.1,'$\\to$DMT')]
-   woo.models.SchwarzModel.normalized_plot('a(delta)',alphaGammaName)
+   woo.models.SchwarzModel.normalized_plot('a(delta)',alphaGammaName,aMax=[1])
+
+
+.. note::
+
+   Inverval of possible solutions (lower and upper brackets) is required for guarded iterative methods. The lower bracket is obviously :math:`a_{\min}`. The upper bracket can be obtained from :eq:`schwarz-delta-a`; since the :math:`\delta'(a)` is bounded by
+
+   .. math:: \delta'(a)=\frac{2a}{R}-\underbrace{2\xi a^{-\frac{1}{2}}}_{\geq0}\leq\frac{2a}{R}=\delta_{\mathrm{Hertz}}'(a)
+      :label: schwarz-delta-prime-bracket
+
+   where :math:`\delta_{\mathrm{Hertz}}=a^2 R` is the Hertz limit valid for :math:`\alpha\to0`; it is a purely geometrical relationship, valid also for the DMT model. It follows for the stable branch of :math:`a(\delta)` that
+
+   .. math:: \delta(a>a_{\min})\geq \delta_{\mathrm{Hertz}}(a-a_{\min})+\delta_{\min},
+
+   i.e. that :math:`\delta_{\mathrm{Hertz}}(a)` with the origin shifted to :math:`(a_{\min},\delta_{\min})` is the lower bracket for :math:`\delta(a)`. Since :math:`\delta'(a)=1/a'(\delta)` (as per `derivative rule for inverses <http://en.wikipedia.org/wiki/Derivative_rule_for_inverses>`__), the inequality from :eq:`schwarz-delta-prime-bracket` we obtain
+
+   .. math:: a(\delta)\leq a_{\max} = a_{\mathrm{Hertz}}(\delta-\delta_{\min})+a_{\min}=\sqrt{R(\delta-\delta_{\min})}+a_{\min}.
+
+   The upper bracket is show in the plot above.
 
 By composing :math:`P_n(a)` and (numerically evaluated) :math:`a(\delta)`, we obtain the displacement-force relationship (:cite:`Maugis1992`, Fig. 7.)
 

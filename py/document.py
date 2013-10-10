@@ -103,7 +103,7 @@ def makeTraitInfo(trait):
 	ret=[]
 	if trait.static: ret.append('static')
 	if hasattr(trait,'pyType'):
-		if isinstance(trait.pyType,list): ret.append('type: ['+trait.pyType[0].__name__+", …]")
+		if isinstance(trait.pyType,(list,tuple)): ret.append('type: ['+trait.pyType[0].__name__+", …]")
 		else: ret.append('type: '+trait.pyType.__name__)
 	else: ret.append('type: '+trait.cxxType)
 	if trait.unit:
@@ -130,6 +130,7 @@ def makeTraitInfo(trait):
 def classSrcHyperlink(klass):
 	'Return ReST-formatted line with hyperlinks to class headers (and implementation, if the corresponding .cpp file exists).'
 	import woo.config
+	if not klass._classTrait: return None
 	f=klass._classTrait.file
 	if f.startswith(woo.config.sourceRoot): commonRoot=woo.config.sourceRoot
 	elif f.startswith(woo.config.buildRoot): commonRoot=woo.config.buildRoot
