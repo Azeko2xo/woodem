@@ -63,25 +63,20 @@ void Law2_L6Geom_HertzPhys_DMT::go(const shared_ptr<CGeom>& cg, const shared_ptr
 	const Real& velN(g.vel[0]);
 	const Vector2r velT(g.vel[1],g.vel[2]);
 
-
-	if(g.uN>0){
-		// TODO: track nonzero energy of broken contact with adhesion
-		// TODO: take residual shear force in account?
-		// if(unlikely(scene->trackEnergy)) scene->energy->add(normalElasticEnergy(ph.kn0,0),"dmtComeGo",dmtIx,EnergyTracker::IsIncrement|EnergyTracker::ZeroDontCreate);
-		field->cast<DemField>().contacts->requestRemoval(C); return;
-	}
-	// new contacts with adhesion add energy to the system, which is then taken away again
-	if(unlikely(scene->trackEnergy) && C->isFresh(scene) && ph.gamma>0.){
-		// TODO: scene->energy->add(???,"dmtComeGo",dmtIx,EnergyTracker::IsIncrement)
-	}
 	// current normal stiffness
 	Real kn0=ph.K*sqrt(ph.R);
-	// TODO: this not valid for Schwarz
+	// TODO: this not really valid for Schwarz?
 	ph.kn=(3/2.)*kn0*sqrt(-g.uN);
 	// normal elastic and adhesion forces
 	// those are only split in the DMT model, Fna is zero for Schwarz or Hertz
 	Real Fne, Fna=0.;
 	if(ph.alpha==0.){
+		if(g.uN>0){
+			// TODO: track nonzero energy of broken contact with adhesion
+			// TODO: take residual shear force in account?
+			// if(unlikely(scene->trackEnergy)) scene->energy->add(normalElasticEnergy(ph.kn0,0),"dmtComeGo",dmtIx,EnergyTracker::IsIncrement|EnergyTracker::ZeroDontCreate);
+			field->cast<DemField>().contacts->requestRemoval(C); return;
+		}
 		// pure Hertz/DMT
 		Fne=-kn0*pow_i_2(-g.uN,3); // elastic force
 		// DMT adhesion ("sticking") force
@@ -91,12 +86,24 @@ void Law2_L6Geom_HertzPhys_DMT::go(const shared_ptr<CGeom>& cg, const shared_ptr
 		// See also Chiara's thesis, pg 39 eq (3.19).
 		Fna=4*M_PI*ph.R*ph.gamma;
 	} else {
+		// Schwarz model
+
+		// new contacts with adhesion add energy to the system, which is then taken away again
+		if(unlikely(scene->trackEnergy) && C->isFresh(scene)){
+			// TODO: scene->energy->add(???,"dmtComeGo",dmtIx,EnergyTracker::IsIncrement)
+		}
+
 		const Real& gamma(ph.gamma); const Real& R(ph.R); const Real& alpha(ph.alpha); const Real& K(ph.K);
 		Real delta=-g.uN; // inverse convention
-		// Schwarz
 		Real Pc=-6*M_PI*R*gamma/(pow(alpha,2)+3);
 		Real xi=sqrt(((2*M_PI*gamma)/(3*K))*(1-3/(pow(alpha,2)+3)));
 		Real deltaMin=-3*cbrt(R*pow(xi,4)); // -3R(-1/3)*ξ^(-4/3)
+		// broken contact
+		if(delta<deltaMin){
+			// TODO: track energy
+			field->cast<DemField>().contacts->requestRemoval(C); return;
+		}
+
 		// solution brackets
 		// XXX: a is for sure also greater than delta(a) for Hertz model, with delta>0
 		// this should be combined with aMin which gives the function apex
@@ -124,14 +131,20 @@ void Law2_L6Geom_HertzPhys_DMT::go(const shared_ptr<CGeom>& cg, const shared_ptr
 		#endif
 
 		ph.contRad=a;
-		// cerr<<"a0="<<aInit<<", a="<<a<<", delta="<<delta<<", delta="<<std::get<0>(delta_diff_diff(a))<<endl;
 		Real Pne=pow(sqrt(pow(a,3)*(K/R))-alpha*sqrt(-Pc),2)+Pc;
 		Fne=-Pne; // inverse convention
+		if(isnan(Pne)){
+			cerr<<"R="<<R<<", K="<<K<<", xi="<<xi<<", alpha="<<alpha<<endl;
+			cerr<<"delta="<<delta<<", deltaMin="<<deltaMin<<", aMin="<<aMin<<", aLo="<<aLo<<", aHi="<<aHi<<", a="<<a<<", iter="<<iter<<", Pne="<<Pne<<"; \n\n";
+			abort();
+		}
 	}
 
 	// viscous coefficient, both for normal and tangential force
 	// Antypov2012 (10)
-	Real eta=(ph.alpha_sqrtMK>0?ph.alpha_sqrtMK*pow_1_4(-g.uN):0.);
+	// XXX: max(-g.uN,0.) for adhesive models so that eta is not NaN
+	Real eta=(ph.alpha_sqrtMK>0?ph.alpha_sqrtMK*pow_1_4(max(-g.uN,0.)):0.);
+	// cerr<<"eta="<<eta<<", -g.uN="<<-g.uN<<"; ";
 	Real Fnv=eta*velN; // viscous force
 	// DMT ONLY (for now at least):
 	if(ph.alpha==0. && noAttraction && Fne+Fnv>0) Fnv=-Fne; // avoid viscosity which would induce attraction with DMT
