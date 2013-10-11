@@ -46,23 +46,30 @@ struct Law2_L6Geom_HertzPhys_DMT: public LawFunctor{
 	static Real pow_1_4(const Real& x) { return sqrt(sqrt(x)); }
 	// normal elastic energy; see Popov2010, pg 60, eq (5.25)
 	inline Real normalElasticEnergy(const Real& kn0, const Real& uN){ return kn0*(2/5.)*pow_i_2(uN,5); }
-	#ifdef WOO_JKR
-		static Real computeNormalForce_JKR(const Real& _uN, const HertzPhys& ph);
-	#endif
 	FUNCTOR2D(L6Geom,HertzPhys);
 	DECLARE_LOGGER;
 	enum{MODEL_DMT=0,MODEL_JKR,MODEL_COS};
 	void postLoad(Law2_L6Geom_HertzPhys_DMT&,void*);
-	WOO_CLASS_BASE_DOC_ATTRS_PY(Law2_L6Geom_HertzPhys_DMT,LawFunctor,"Law for Hertz contact with optional adhesion (DMT (Derjaguin-Muller-Toporov) :cite:`Derjaguin1975`), non-linear viscosity (:cite:`Antypov2011`) The formulation is taken mainly from :cite:`Johnson1987`. The parameters are given through :obj:`Cp2_FrictMat_HertzPhys`. More details are given in :ref:`hertzian_contact_models`.",
-		((bool,noAttraction,true,,"Avoid non-physical normal attraction which may result from viscous effects by making the normal force zero if there is attraction ($F_n>0$). This condition is only applied to elastic and viscous part of the normal force. Adhesion, if present, is not limited. See :cite:`Antypov2011`, the 'Model choice' section (pg. 5), for discussion of this effect.\n.. note:: It is technically not possible to break the contact completely while there is still geometrical overlap, so only force is set to zero but the contact still exists."))
-		((string,model,"DMT",AttrTrait<Attr::triggerPostLoad>().choice({"DMT","JKR","COS"}),"Adhesion model to use when computing contacts. See :ref:`hertzian_contact_models` for details."))
+	#define WOO_SCHWARZ_COUNTERS
+	#ifdef WOO_SCHWARZ_COUNTERS
+		Real pyAvgIter(){ return nCallsIters[1]*1./nCallsIters[0]; }
+	#endif
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Law2_L6Geom_HertzPhys_DMT,LawFunctor,"Law for Hertz contact with optional adhesion (DMT (Derjaguin-Muller-Toporov) :cite:`Derjaguin1975`), non-linear viscosity (:cite:`Antypov2011`) The formulation is taken mainly from :cite:`Johnson1987`. The parameters are given through :obj:`Cp2_FrictMat_HertzPhys`. More details are given in :ref:`hertzian_contact_models`.",
+		((bool,noAttraction,true,,"Avoid non-physical normal attraction which may result from viscous effects by making the normal force zero if there is attraction (:math:`F_n>0`). This condition is only applied to elastic and viscous part of the normal force. Adhesion, if present, is not limited. See :cite:`Antypov2011`, the 'Model choice' section (pg. 5), for discussion of this effect.\n.. note:: It is technically not possible to break the contact completely while there is still geometrical overlap, so only force is set to zero but the contact still exists."))
+		#ifdef WOO_SCHWARZ_COUNTERS
+			((OpenMPArrayAccumulator<int>,nCallsIters,,AttrTrait<>().noGui(),"Count number of calls of the functor and of iterations in the Halley solver (if used)."))
+		#endif
 		((int,model_,0,AttrTrait<Attr::hidden>(),"Numerical value for :obj:`model`."))
 		((int,plastIx,-1,AttrTrait<Attr::noSave|Attr::hidden>(),"Index of plastically dissipated energy."))
 		((int,viscNIx,-1,AttrTrait<Attr::noSave|Attr::hidden>(),"Index of viscous dissipation in the normal sense."))
 		((int,viscTIx,-1,AttrTrait<Attr::noSave|Attr::hidden>(),"Index of viscous dissipation in the tangent sense."))
 		((int,elastPotIx,-1,AttrTrait<Attr::noSave|Attr::hidden>(),"Index for elastic potential energy."))
 		((int,dmtIx,-1,AttrTrait<Attr::noSave|Attr::hidden>(),"Index for elastic energy of new/broken contacts."))
+		, /* ctor */ nCallsIters.resize(2);
 		, /*py*/
+			#ifdef WOO_SCHWARZ_COUNTERS
+				.def("avgIter",&Law2_L6Geom_HertzPhys_DMT::pyAvgIter,"Return average number of steps necessary for convergence of Halley iteration when using the Schwarz model.")
+			#endif
 			#if 0
 				.def("yieldForce",&Law2_L6Geom_HertzPhys_DMT::yieldForce,(py::arg("uN"),py::arg("d0"),py::arg("kn"),py::arg("alpha")),"Return yield force for :obj:`alpha` and given parameters.").staticmethod("yieldForce")
 				.def("yieldForceDerivative",&Law2_L6Geom_HertzPhys_DMT::yieldForceDerivative,(py::arg("uN"),py::arg("d0"),py::arg("kn"),py::arg("alpha")),"Return yield force derivative for given parameters.").staticmethod("yieldForceDerivative")

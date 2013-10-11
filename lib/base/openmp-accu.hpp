@@ -217,6 +217,10 @@ public:
 	BOOST_SERIALIZATION_SPLIT_FREE(OpenMPAccumulator<Real>);
 	template<class Archive> void save(Archive &ar, const OpenMPAccumulator<Real>& a, unsigned int version){ Real value=a.get(); ar & BOOST_SERIALIZATION_NVP(value); }
 	template<class Archive> void load(Archive &ar,       OpenMPAccumulator<Real>& a, unsigned int version){ Real value; ar & BOOST_SERIALIZATION_NVP(value); a.set(value); }
+
+	BOOST_SERIALIZATION_SPLIT_FREE(OpenMPArrayAccumulator<int>);
+	template<class Archive> void save(Archive &ar, const OpenMPArrayAccumulator<int>& a, unsigned int version){ size_t size=a.size(); ar & BOOST_SERIALIZATION_NVP(size); for(size_t i=0; i<size; i++) { int item(a.get(i)); ar & boost::serialization::make_nvp(("item"+boost::lexical_cast<std::string>(i)).c_str(),item); } }
+	template<class Archive> void load(Archive &ar,       OpenMPArrayAccumulator<int>& a, unsigned int version){ size_t size; ar & BOOST_SERIALIZATION_NVP(size); a.resize(size); for(size_t i=0; i<size; i++){ int item; ar & boost::serialization::make_nvp(("item"+boost::lexical_cast<std::string>(i)).c_str(),item); a.set(i,item); } }
 	BOOST_SERIALIZATION_SPLIT_FREE(OpenMPArrayAccumulator<Real>);
 	template<class Archive> void save(Archive &ar, const OpenMPArrayAccumulator<Real>& a, unsigned int version){ size_t size=a.size(); ar & BOOST_SERIALIZATION_NVP(size); for(size_t i=0; i<size; i++) { Real item(a.get(i)); ar & boost::serialization::make_nvp(("item"+boost::lexical_cast<std::string>(i)).c_str(),item); } }
 	template<class Archive> void load(Archive &ar,       OpenMPArrayAccumulator<Real>& a, unsigned int version){ size_t size; ar & BOOST_SERIALIZATION_NVP(size); a.resize(size); for(size_t i=0; i<size; i++){ Real item; ar & boost::serialization::make_nvp(("item"+boost::lexical_cast<std::string>(i)).c_str(),item); a.set(i,item); } }

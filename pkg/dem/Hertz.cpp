@@ -66,7 +66,7 @@ void Cp2_FrictMat_HertzPhys::go(const shared_ptr<Material>& m1, const shared_ptr
 		// no damping at all
 		ph.alpha_sqrtMK=0.0;
 	}
-	LOG_DEBUG("K="<<K<<", G="<<G<<", nu="<<nu<<", R="<<R<<", kn0="<<kn0<<", kt0="<<ph.kt0<<", tanPhi="<<ph.tanPhi<<", Fa="<<ph.Fa<<", alpha_sqrtMK="<<ph.alpha_sqrtMK);
+	LOG_DEBUG("K="<<ph.K<<", G="<<G<<", nu="<<nu<<", R="<<ph.R<<", kn0="<<kn0<<", kt0="<<ph.kt0<<", tanPhi="<<ph.tanPhi<<", alpha_sqrtMK="<<ph.alpha_sqrtMK);
 }
 
 
@@ -82,6 +82,7 @@ void Law2_L6Geom_HertzPhys_DMT::go(const shared_ptr<CGeom>& cg, const shared_ptr
 	const Real& dt(scene->dt);
 	const Real& velN(g.vel[0]);
 	const Vector2r velT(g.vel[1],g.vel[2]);
+
 
 	if(g.uN>0){
 		// TODO: track nonzero energy of broken contact with adhesion
@@ -132,7 +133,14 @@ void Law2_L6Geom_HertzPhys_DMT::go(const shared_ptr<CGeom>& cg, const shared_ptr
 		short digits=std::numeric_limits<Real>::digits/2;
 		// use 2aMin as intial guess for new contacts, and previous value for old contacts
 		Real aInit=(C->isFresh(scene)?2*aMin:ph.contRad); 
-		Real a=boost::math::tools::halley_iterate(delta_diff_ddiff,aInit,aMin,aMax,digits);
+		unsigned long iter=100;
+		Real a=boost::math::tools::halley_iterate(delta_diff_ddiff,aInit,aMin,aMax,digits,iter);
+		// increment call and iteration count
+		#ifdef WOO_SCHWARZ_COUNTERS
+			nCallsIters.add(0,1);
+			nCallsIters.add(1,iter);
+		#endif
+
 		ph.contRad=a;
 		// cerr<<"a0="<<aInit<<", a="<<a<<", delta="<<delta<<", delta="<<std::get<0>(delta_diff_diff(a))<<endl;
 		Real Pne=pow(sqrt(pow(a,3)*(K/R))-alpha*sqrt(-Pc),2)+Pc;
