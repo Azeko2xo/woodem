@@ -947,6 +947,10 @@ class ObjectEditor(QFrame):
 			# sequence of serializables
 			T=entry.T[0]
 			if (issubclass(T,Object) or T==Object):
+				# HACK!!!
+				# per-instance traits for py-derived objects
+				if hasattr(self.ser,'_instanceTraits') and entry.trait.name in self.ser._instanceTraits:
+					entry.trait=self.ser._instanceTraits[entry.trait.name]
 				widget=SeqObject(self,getter,setter,T=T,trait=entry.trait,path=(self.path+'.'+entry.name if self.path else None),shrink=True)
 				return widget
 			if (T in _fundamentalEditorMap):
@@ -1325,9 +1329,10 @@ class SeqObjectComboBox(QFrame):
 				self.combo.setCurrentIndex(-1)
 			enableKill=(not self.trait.noGuiResize and len(currSeq)>(self.trait.range[0] if self.trait.range else 0))
 			enableNew=(not self.trait.noGuiResize and (not self.trait.range or len(currSeq)<self.trait.range[1]))
+			enableClone=enableNew and len(currSeq)>0
 			self.killButton.setEnabled(enableKill)
 			self.newButton.setEnabled(enableNew)
-			self.cloneButton.setEnabled(enableNew)
+			self.cloneButton.setEnabled(enableClone)
 		except RuntimeError as e:
 			print 'Error refreshing sequence (path %s), ignored.'%self.path
 			

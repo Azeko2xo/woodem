@@ -4,7 +4,8 @@
 from woo.core import *
 from minieigen import *
 
-class PyAttrTrait:
+
+class PyAttrTrait(object):
 	'''
 	Class mimicking the `AttrTrait` template in c++, to be used when deriving from :obj:`PyWooObject`, like in this example (can be found in `woo.pyderived` module's source)::
 
@@ -305,6 +306,7 @@ class PyWooObject:
 		cxxBaseClass.__init__(self) # repeat, just to make sure
 		self.cxxBaseClass=cxxBaseClass
 		self.derivedClass=derivedClass
+		self._instanceTraits={}
 		self._attrValues={}
 		self._attrTraitsDict=dict([(trait.name,trait) for trait in derivedClass._attrTraits])
 		for trait in derivedClass._attrTraits:

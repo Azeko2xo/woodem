@@ -222,6 +222,7 @@ class ContactModelSelector(woo.core.Object,woo.pyderived.PyWooObject):
 		_PAT(float,'restitution',1.,hideIf='self.name not in ("Hertz","DMT","Schwarz")',doc='Restitution coefficient for models with viscosity (:obj:`woo.dem.Cp2_FrictMat_HertzPhys.en).'),
 		_PAT(float,'alpha',.5,hideIf='self.name not in ("Schwarz",)',doc='Parameter interpolating between DMT and JKR extremes in the Schwarz model. :math:`alpha` was introduced in :cite:`Carpick1999`.'),
 		_PAT(float,'damping',.2,hideIf='self.name not in ("linear",)',doc='Numerical (non-viscous) damping (:obj:`woo.dem.Leapfrog.damping`)'),
+		_PAT(bool,'plastSplit',False,hideIf='self.name not in ("pellet",)',doc='Split plastic dissipation into the normal and tangent component (obj:`woo.dem.Law2_L6Geom_PelletPhys_Pellet.plastSplit).'),
 	]
 	def __init__(self,**kw):
 		woo.core.Object.__init__(self)
@@ -234,13 +235,19 @@ class ContactModelSelector(woo.core.Object,woo.pyderived.PyWooObject):
 		# check types with the current material model
 		for i,m0 in enumerate(self.mats):
 			# if class does not match, replace things and preserve what we can preserve
-			if not m0.__class__!=self.getMatClass():
+			if m0.__class__!=self.getMatClass():
 				m=self.getMat()
 				for trait in m._getAllTraits():
 					if hasattr(m0,trait.name): setattr(m,trait.name,getattr(m0,trait.name))
 				self.mats[i]=m
 		# modify traits so that the sequence only accepts required material type
-		matsTrait=[t for t in self._attrTraits if t.name=='mats'][0]
+		### FIXME: per-instance traits!!!
+		### FIXME: document this
+		if 'mats' not in self._instanceTraits:
+			import copy
+			matsTrait=[t for t in self._attrTraits if t.name=='mats'][0]
+			self._instanceTraits['mats']=copy.deepcopy(matsTrait)
+		matsTrait=self._instanceTraits['mats']
 		matsTrait.pyType=[self.getMatClass(),] # indicate array of instances of this type
 		matsTrait.range=self.numMat
 		matsTrait.choice=self.matDesc
@@ -251,7 +258,7 @@ class ContactModelSelector(woo.core.Object,woo.pyderived.PyWooObject):
 		if self.name=='linear':
 			return [woo.dem.Cp2_FrictMat_FrictPhys()],[woo.dem.Law2_L6Geom_FrictPhys_IdealElPl()]
 		elif self.name=='pellet':
-			return [woo.dem.Cp2_PelletMat_PelletPhys()],[woo.dem.Law2_L6Geom_PelletPhys_Pellet()]
+			return [woo.dem.Cp2_PelletMat_PelletPhys()],[woo.dem.Law2_L6Geom_PelletPhys_Pellet(plastSplit=self.plastSplit)]
 		elif self.name=='Hertz':
 			return [woo.dem.Cp2_FrictMat_HertzPhys(poisson=self.poisson,alpha=0.,gamma=0.,en=self.restitution)],[woo.dem.Law2_L6Geom_HertzPhys_DMT()]
 		elif self.name=='DMT':
