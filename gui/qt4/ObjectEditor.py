@@ -899,10 +899,13 @@ class ObjectEditor(QFrame):
 			return AttrEditor_FloatRange(self,lambda: (getattr(self.ser,entry.name),rg),lambda x: setattr(self.ser,entry.name,x))
 		elif entry.T==int and rg and rg.__class__==Vector2i:
 			return AttrEditor_IntRange(self,lambda: (getattr(self.ser,entry.name),rg),lambda x: setattr(self.ser,entry.name,x))
+		# range for sequences has the special meaning of minimum and maximum lenth; handled in SeqEditor, not here
 		elif isinstance(entry.T,(list,tuple)) and len(entry.T)==1: return None
 		else:
 			raise RuntimeError("Invalid range object for "+self.ser.__class__.__name__+"."+entry.name+": type is "+str(entry.T)+", range is "+str(rg)+" (of type "+rg.__class__.__name__+")")
 	def handleChoices(self,getter,setter,entry):
+		# choice for sequences has the special meaning of descriptions of individual items; handled in SeqEditor, not here
+		if isinstance(entry.T,(list,tuple)) and len(entry.T)==1: return None
 		choice=entry.trait.choice
 		return AttrEditor_Choice(self,lambda: (getattr(self.ser,entry.name),choice),lambda x: setattr(self.ser,entry.name,x))
 	def handleBits(self,getter,setter,entry):
@@ -1223,7 +1226,6 @@ class SeqObjectComboBox(QFrame):
 		topLineLayout=QHBoxLayout(topLineFrame);
 		for l in self.layout, topLineLayout: l.setSpacing(0); l.setContentsMargins(0,0,0,0)
 		topLineFrame.setLayout(topLineLayout)
-		#labels=(u'+',u'⧉',u'−',u'↑',u'↓')
 		labels=(u'+',u'c',u'−',u'↑',u'↓')
 		tooltips=('Insert new','Clone','Delete','Move up','Move down')
 		buttons=(self.newButton,self.cloneButton,self.killButton,self.upButton,self.downButton)=[QPushButton(label,self) for label in labels]
@@ -1240,6 +1242,7 @@ class SeqObjectComboBox(QFrame):
 		self.hot=None # API compat with ObjectEditor
 		self.setFrameShape(QFrame.Box); self.setFrameShadow(QFrame.Raised); self.setLineWidth(1)
 		self.newDialog=None # is set when new dialog is created, and destroyed when it returns
+		self.comboItemCount=0 # we use some inactive items with ranges instead of objects, so keep track of valid items separately
 		# signals
 		for b,slot in zip(buttons,buttonSlots): b.clicked.connect(slot)
 		self.combo.currentIndexChanged.connect(self.comboIndexSlot)
@@ -1251,6 +1254,9 @@ class SeqObjectComboBox(QFrame):
 		#print 'SeqObject path is',self.path
 	def comboIndexSlot(self,ix): # different seq item selected
 		currSeq=self.getter();
+		if ix>=len(currSeq): # this can happen with fake items which get activated when real item is deleted
+			self.combo.setCurrentIndex(len(currSeq)-1)
+			return
 		if len(currSeq)==0: ix=-1
 		logging.debug('%s comboIndexSlot len=%d, ix=%d'%(self.getItemType().__name__,len(currSeq),ix))
 		self.downButton.setEnabled(ix<len(currSeq)-1)
@@ -1280,18 +1286,34 @@ class SeqObjectComboBox(QFrame):
 			currSeq=self.getter()
 			comboEnabled=self.combo.isEnabled()
 			if comboEnabled and len(currSeq)==0: self.comboIndexSlot(-1) # force refresh, otherwise would not happen from the initially empty state
-			ix,cnt=self.combo.currentIndex(),self.combo.count()
+			ix,cnt=self.combo.currentIndex(),self.comboItemCount # self.combo.count()
 			# serializable currently being edited (which can be absent) or the one of which index is forced
 			ser=(self.seqEdit.ser if self.seqEdit else None) if forceIx<0 else currSeq[forceIx] 
-			if comboEnabled and len(currSeq)==cnt and (ix<0 or ser==currSeq[ix]): return
+			if comboEnabled and len(currSeq)==cnt and (ix<0 or (ix<len(currSeq) and ser==currSeq[ix])): return
 			if not comboEnabled and len(currSeq)==0: return
 			logging.debug(self.getItemType().__name__+' rebuilding list from scratch')
 			self.combo.clear()
 			if len(currSeq)>0:
 				prevIx=-1
 				for i,s in enumerate(currSeq):
-					self.combo.addItem(makeObjectLabel(s,num=i,count=len(currSeq),addr=False))
+					extra=[]
+					if self.trait.choice and i<len(self.trait.choice): extra.append(self.trait.choice[i])
+					if self.trait.range and i>=self.trait.range[0]: extra.append('optional')
+					extra=' (%s)'%('; '.join(extra)) if extra else ''
+					self.combo.addItem(makeObjectLabel(s,num=i,count=len(currSeq),addr=False)+extra)
 					if s==ser: prevIx=i
+				self.comboItemCount=self.combo.count()
+				# add extra (inactive, unselectable) items
+				# when using range and descriptions
+				if self.trait.range or self.trait.choice:
+					for i in range(len(currSeq),max(self.trait.range[1],len(self.trait.choice))):
+						extra=[]
+						if self.trait.choice and i<len(self.trait.choice): extra.append(self.trait.choice[i])
+						if self.trait.range and i>=self.trait.range[0]: extra.append('optional')
+						extra=' (%s)'%('; '.join(extra)) if extra else ''
+						self.combo.addItem(u'%d. −'%i+extra)
+						# use the hack from http://theworldwideinternet.blogspot.cz/2011/01/disabling-qcombobox-items.html to deactivate items
+						self.combo.setItemData(i,0,Qt.UserRole-1)
 				if forceIx>=0: newIx=forceIx # force the index (used from newSlot to make the new element active)
 				elif prevIx>=0: newIx=prevIx # if found what was active before, use it
 				elif ix>=0: newIx=ix         # otherwise use the previous index (e.g. after deletion)

@@ -89,11 +89,11 @@ void ContactLoop::run(){
 		timingDeltas->start();
 	#endif
 
-	if(applyForces && !_forceApplyChecked){
+	if(applyForces && !alreadyWarnedForceNotApplied){
 		shared_ptr<IntraForce> intra;
 		for(const auto& e: scene->engines){ intra=dynamic_pointer_cast<IntraForce>(e); if(intra) break; }
 		if(intra && !intra->dead) LOG_WARN("ContactLoop.applyForce==True (default) and IntraForce is in Scene.engines! Are you sure this is ok? Forces might be applied twice. (proceeding)");
-		_forceApplyChecked=true;
+		alreadyWarnedForceNotApplied=true;
 	}
 
 	DemField& dem=field->cast<DemField>();

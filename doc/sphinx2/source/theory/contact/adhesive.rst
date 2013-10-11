@@ -128,7 +128,7 @@ where the :math:`\xi` term was introduced for readability. This equation is not 
    \begin{align*}
       \delta'(a)&=\frac{2a}{R}-2\xi a^{-\frac{1}{2}} \\
       \delta'(a_{\min})&=0 \\
-      a_{\min}&=(R\xi)^{\frac{2}{3}} \\
+      a_{\min}&=(\xi R)^{\frac{2}{3}} \\
       \delta_{\min}&=\delta(a_{\min})=-3R^{\frac{1}{3}}\xi^{\frac{4}{3}}.
    \end{align*}
 
@@ -138,7 +138,9 @@ The second derivative
 
 is strictly positive as :math:`\xi`, :math:`R` and positive and :math:`a` non-negative.
 
-Given known penetration :math:`\delta`, we can find the corresponding value of :math:`a` with `Newton-Raphson <http://en.wikipedia.org/wiki/Newton-Raphson>`__ or `Halley's <http://en.wikipedia.org/wiki/Halley%27s_method>`__ methods. There are two solutions for all :math:`\delta\in(\delta_{\min}\dots 0\rangle`. The solution for the ascending branch (:math:`\delta'(a<a_{\min})>0`) is energetically unstable and we can ignore it in numerical simulations. As initial solution for iteration, the value of e.g. :math:`2a_{\min}` can be used when the contact is :obj:`fresh <woo.dem.Contact.isFresh>`, the previous value of :math:`a` is a good starting point otherwise.
+Given known penetration :math:`\delta`, we can find the corresponding value of :math:`a` with `Newton-Raphson <http://en.wikipedia.org/wiki/Newton-Raphson>`__ or `Halley's <http://en.wikipedia.org/wiki/Halley%27s_method>`__ methods. There are two solutions for all :math:`\delta\in(\delta_{\min}\dots 0\rangle`. The solution for the ascending branch (:math:`\delta'(a<a_{\min})>0`) is energetically unstable and we can ignore it in dynamic simulations.
+
+As the initial solution for iteration, we can use the (stable) value for zero overlap (satisfying :math:`\delta(a_0)=0`) expressed from :eq:`schwarz-delta-a` as :math:`a_0=(4\xi R)^{\frac{2}{3}}` for :obj:`fresh <woo.dem.Contact.isFresh>` contacts (where the overlap is likely close to zero); for previously existing contacts, the previous value of :math:`a` is a good initial guess.
 
 This plot shows both loading and unloading (unstable) branches, obtained via Newton iteration (bisection for the unstable branch for simplicity); this plot reproduces :cite:`Maugis1992`, Fig. 6.:
 
@@ -146,12 +148,18 @@ This plot shows both loading and unloading (unstable) branches, obtained via New
 
    import woo.models
    alphaGammaName=[(1.,.1,'JKR'),(.5,.1,''),(.01,.1,'$\\to$DMT')]
-   woo.models.SchwarzModel.normalized_plot('a(delta)',alphaGammaName,aMax=[1])
+   woo.models.SchwarzModel.normalized_plot('a(delta)',alphaGammaName,aHi=[1])
 
 
 .. note::
 
-   Inverval of possible solutions (lower and upper brackets) is required for guarded iterative methods. The lower bracket is obviously :math:`a_{\min}`. The upper bracket can be obtained from :eq:`schwarz-delta-a`; since the :math:`\delta'(a)` is bounded by
+   Values bracketing possible solutions, :math:`a\in\langle a_{\mathrm{lo}}, a_{\mathrm{hi}}` (lower and upper brackets) are to be defined for guarded iterative methods.
+   
+   The lower bracket is
+   
+   .. math:: a_{\mathrm{lo}}=\begin{cases} a_{\min}=(\xi R)^\frac{2}{3} & \text{if $\delta<0$} \\ a_0=(4\xi R)^{\frac{2}{3}}=4^\frac{2}{3}a_{\min} & \text{if $\delta\geq0$} \end{cases}.
+
+   The upper bracket :math:`a_{\mathrm{hi}}` can be obtained from :eq:`schwarz-delta-a`. Since :math:`\delta'(a)` is bounded by
 
    .. math:: \delta'(a)=\frac{2a}{R}-\underbrace{2\xi a^{-\frac{1}{2}}}_{\geq0}\leq\frac{2a}{R}=\delta_{\mathrm{Hertz}}'(a)
       :label: schwarz-delta-prime-bracket
@@ -160,11 +168,11 @@ This plot shows both loading and unloading (unstable) branches, obtained via New
 
    .. math:: \delta(a>a_{\min})\geq \delta_{\mathrm{Hertz}}(a-a_{\min})+\delta_{\min},
 
-   i.e. that :math:`\delta_{\mathrm{Hertz}}(a)` with the origin shifted to :math:`(a_{\min},\delta_{\min})` is the lower bracket for :math:`\delta(a)`. Since :math:`\delta'(a)=1/a'(\delta)` (as per `derivative rule for inverses <http://en.wikipedia.org/wiki/Derivative_rule_for_inverses>`__), the inequality from :eq:`schwarz-delta-prime-bracket` we obtain
+   i.e. that :math:`\delta_{\mathrm{Hertz}}(a)` with the origin shifted to :math:`(a_{\min},\delta_{\min})` is the lower bracket for :math:`\delta(a)`. Since :math:`\delta'(a)=1/a'(\delta)` (as per `derivative rule for inverses <http://en.wikipedia.org/wiki/Derivative_rule_for_inverses>`__), the inequality :eq:`schwarz-delta-prime-bracket` implies
 
-   .. math:: a(\delta)\leq a_{\max} = a_{\mathrm{Hertz}}(\delta-\delta_{\min})+a_{\min}=\sqrt{R(\delta-\delta_{\min})}+a_{\min}.
+   .. math:: a(\delta)\leq a_{\mathrm{hi}} = a_{\mathrm{Hertz}}(\delta-\delta_{\min})+a_{\min}=\sqrt{R(\delta-\delta_{\min})}+a_{\min}.
 
-   The upper bracket is show in the plot above.
+   The upper bracket is show in the plot above for :math:`\alpha=0.5`.
 
 By composing :math:`P_n(a)` and (numerically evaluated) :math:`a(\delta)`, we obtain the displacement-force relationship (:cite:`Maugis1992`, Fig. 7.)
 

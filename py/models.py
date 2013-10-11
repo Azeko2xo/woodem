@@ -115,7 +115,7 @@ class SchwarzModel(HertzModel):
 	def aMin(self):
 		r':math:`a_{\min}=(R\xi)^\frac{2}{3}`.'
 		return (self.R*self.xi)**(2/3.)
-	def aMax(self,delta):
+	def aHi(self,delta):
 		r':math:`a_{\max}=a_{\min}+\sqrt{R(\delta-\delta_{\min})}`.'
 		return self.aMin()+sqrt(self.R*(delta-self.deltaMin()))
 
@@ -145,7 +145,7 @@ class SchwarzModel(HertzModel):
 		return deltaHat*(pi**2*self.gamma**2*self.R/self.K**2)**(1/3.)
 
 	@staticmethod
-	def normalized_plot(what,alphaGammaName,N=1000,stride=50,aMax=[]):
+	def normalized_plot(what,alphaGammaName,N=1000,stride=50,aHi=[]):
 		'''
 		Create normalized plot as it appears in :cite:`Maugis1992` including range of axes with normalized quantities. This function is mainly useful for documentation of Woo itself.
 
@@ -153,7 +153,7 @@ class SchwarzModel(HertzModel):
 		:param alphaGammaName: list of (alpha,gamma,name) tuples which are passed to the :obj:`SchwarzModel` constructor
 		:param N: numer of points in linspace for each axis
 		:param stride: stride for plotting inverse relationships (with points)
-		:param aMax: with ``what==a(delta)``, show upper bracket for $a$ for i-th model, if *i* appears in the list
+		:param aHi: with ``what==a(delta)``, show upper bracket for $a$ for i-th model, if *i* appears in the list
 		'''
 		assert what in ('a(delta)','F(delta)','a(F)')
 		import pylab
@@ -167,7 +167,7 @@ class SchwarzModel(HertzModel):
 				aaHat=numpy.linspace(0,2.1,num=N)
 				pylab.plot(m.deltaHat_aHat(aaHat),aaHat,label='$\\alpha$=%g %s'%(m.alpha,m.name),**kw)
 				ddH=m.deltaHat_aHat(aaHat)
-				if i in aMax: pylab.plot(ddH,[m.aHat(m.aMax(m.deltaUnhat(dh))) for dh in ddH],label='$\\alpha$=%g $a_{\max}$'%m.alpha,linewidth=1,alpha=.4)
+				if i in aHi: pylab.plot(ddH,[m.aHat(m.aHi(m.deltaUnhat(dh))) for dh in ddH],label='$\\alpha$=%g $a_{\mathrm{hi}}$'%m.alpha,linewidth=1,alpha=.4)
 				pylab.plot(ddHat[::stride],m.aHat_deltaHat(ddHat[::stride],loading=True),'o',**invKw)
 				pylab.plot(ddHat[::stride],m.aHat_deltaHat(ddHat[::stride],loading=False),'o',**invKw)
 			elif what=='F(delta)':
@@ -186,7 +186,6 @@ class SchwarzModel(HertzModel):
 		if what=='a(delta)': 
 			ddH=[m.deltaHat(HertzModel.delta_a(m,m.aUnhat(a))) for a in aaHat]
 			pylab.plot(ddH,aaHat,label='Hertz',**kw)
-			# pylab.plot(ddHat,[m.aHat(m.aMax(m.deltaUnhat(dh))) for dh in ddHat],label=r'$\alpha=1$ a_{\max}',linewidth=1)
 			pylab.xlabel('$\hat\delta$')
 			pylab.ylabel('$\hat a$')
 			pylab.ylim(ymax=2.1)
@@ -215,7 +214,8 @@ class ContactModelSelector(woo.core.Object,woo.pyderived.PyWooObject):
 	_PAT=woo.pyderived.PyAttrTrait
 	_attrTraits=[
 		_PAT(str,'name','linear',triggerPostLoad=True,choice=['linear','pellet','Hertz','DMT','Schwarz'],doc='Material model to use.'),
-		_PAT(Vector2i,'numMat',Vector2i(1,1),guiReadonly=True,triggerPostLoad=True,doc='Minimum and maximum number of material definitions.'),
+		_PAT(Vector2i,'numMat',Vector2i(1,1),noGui=True,guiReadonly=True,triggerPostLoad=True,doc='Minimum and maximum number of material definitions.'),
+		_PAT([str,],'matDesc',[],noGui=True,triggerPostLoad=True,doc='List of strings describing individual materials. Keep the description very short (one word) as it will show up in the UI combo box for materials.'),
 		_PAT([woo.dem.Material],'mats',[],doc='Material definitions'),
 		_PAT(float,'poisson',.2,hideIf='self.name not in ("Hertz","DMT","Schwarz")',doc='Poisson ratio (:obj:`woo.dem.Cp2_FrictMat_HertzPhys.poisson`)'),
 		_PAT(float,'surfEnergy',.01,unit=u'J/m²',hideIf='self.name not in ("DMT","Schwarz")',doc='Surface energy for adhesive models (:obj:`woo.dem.Cp2_FrictMat_HertzPhys.gamma)'),
@@ -243,6 +243,7 @@ class ContactModelSelector(woo.core.Object,woo.pyderived.PyWooObject):
 		matsTrait=[t for t in self._attrTraits if t.name=='mats'][0]
 		matsTrait.pyType=[self.getMatClass(),] # indicate array of instances of this type
 		matsTrait.range=self.numMat
+		matsTrait.choice=self.matDesc
 
 	def getFunctors(self):
 		'''Return tuple of ``([CPhysFunctor,...],[LawFunctor,...])`` corresponding to the selected model and parameters.'''

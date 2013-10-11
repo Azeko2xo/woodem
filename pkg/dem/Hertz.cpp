@@ -17,25 +17,12 @@ void Cp2_FrictMat_HertzPhys::go(const shared_ptr<Material>& m1, const shared_ptr
 
 	// normal behavior
 	// Johnson1987, pg 427 (Appendix 3)
-	ph.K=(4/3.)*1./( (1-nu1*nu1)/E1 + (1-nu2*nu2)/E2 );
+	ph.K=(4/3.)*1./( (1-nu1*nu1)/E1 + (1-nu2*nu2)/E2 ); // (4/3.)*E
 	ph.R=1./(1./r1+1./r2);
 	Real kn0=ph.K*sqrt(ph.R);
 	ph.gamma=gamma;
 	// COS alpha
 	ph.alpha=alpha;
-
-	#if 0
-		// COS only
-		Real K=(4/3.)*1./((1-nu1*nu1)/E1+(1-nu2*nu2)/E2); // COS Introduction
-		// R already computed above
-		Real lambda=-.924*log(1-1.02*alpha); // COS eq (10)
-		Real hatLc=-7/4.+(1/4.)*((4.04*pow(lambda,1.4)-1)/(4.04*pow(lambda,1.4)+1));  // COS eq (12a)
-		Real hatA0=(1.54+.279*((2.28*pow(lambda,1.3)-1)/(2.28*pow(lambda,1.3)+1))); // COS eq (12b) 
-		ph.Lc=hatLc*M_PI*gamma*R; // COS eq (11a)
-		ph.a0=hatA0/cbrt(K/(M_PI*gamma*R*R));
-		ph.alpha=alpha;
-		LOG_DEBUG("lambda="<<lambda<<", hatLc="<<hatLc<<", hatA0="<<hatA0<<", Lc="<<ph.Lc<<", a0="<<ph.a0<<", alpha="<<ph.alpha);
-	#endif
 
 	// shear behavior
 	Real G1=E1/(2*1+nu1); Real G2=E2/(2*1+nu2);
@@ -43,13 +30,6 @@ void Cp2_FrictMat_HertzPhys::go(const shared_ptr<Material>& m1, const shared_ptr
 	Real nu=.5*(nu1+nu2); 
 	ph.kt0=2*sqrt(4*ph.R)*G/(2-nu);
 	ph.tanPhi=min(mat1.tanPhi,mat2.tanPhi);
-
-	// DMT adhesion ("sticking") force
-	// See Dejaguin1975 ("Effect of Contact Deformation on the Adhesion of Particles"), eq (44)
-	// Derjaguin has Fs=2πRφ(ε), which is derived for sticky sphere (with surface energy)
-	// in contact with a rigid plane (without surface energy); therefore the value here is twice that of Derjaguin
-	// See also Chiara's thesis, pg 39 eq (3.19).
-	// ph.Fa=4*M_PI*ph.R*gamma; 
 
 	// non-linear viscous damping parameters
 	// only for meaningful values of en
@@ -91,7 +71,7 @@ void Law2_L6Geom_HertzPhys_DMT::go(const shared_ptr<CGeom>& cg, const shared_ptr
 		field->cast<DemField>().contacts->requestRemoval(C); return;
 	}
 	// new contacts with adhesion add energy to the system, which is then taken away again
-	if(unlikely(scene->trackEnergy ) && C->isFresh(scene)){
+	if(unlikely(scene->trackEnergy) && C->isFresh(scene) && ph.gamma>0.){
 		// TODO: scene->energy->add(???,"dmtComeGo",dmtIx,EnergyTracker::IsIncrement)
 	}
 	// current normal stiffness
@@ -102,7 +82,7 @@ void Law2_L6Geom_HertzPhys_DMT::go(const shared_ptr<CGeom>& cg, const shared_ptr
 	// those are only split in the DMT model, Fna is zero for Schwarz or Hertz
 	Real Fne, Fna=0.;
 	if(ph.alpha==0.){
-		// pure DMT
+		// pure Hertz/DMT
 		Fne=-kn0*pow_i_2(-g.uN,3); // elastic force
 		// DMT adhesion ("sticking") force
 		// See Dejaguin1975 ("Effect of Contact Deformation on the Adhesion of Particles"), eq (44)
@@ -120,8 +100,10 @@ void Law2_L6Geom_HertzPhys_DMT::go(const shared_ptr<CGeom>& cg, const shared_ptr
 		// solution brackets
 		// XXX: a is for sure also greater than delta(a) for Hertz model, with delta>0
 		// this should be combined with aMin which gives the function apex
-		Real aMin=pow_i_3(R*xi,2); // (Rξ)^(2/3)
-		Real aMax=aMin+sqrt(R*(delta-deltaMin));
+		Real aMin=pow_i_3(xi*R,2); // (ξR)^(2/3)
+		Real a0=pow_i_3(4,2)*aMin; // (4ξR)^(2/3)=4^(2/3) (ξR)^(2/3)
+		Real aLo=(delta<0?aMin:a0);
+		Real aHi=aMin+sqrt(R*(delta-deltaMin));
 		auto delta_diff_ddiff=[&](const Real& a){
 			Real aInvSqrt=1/sqrt(a);
 			return boost::math::make_tuple(
@@ -130,11 +112,11 @@ void Law2_L6Geom_HertzPhys_DMT::go(const shared_ptr<CGeom>& cg, const shared_ptr
 				2/R+xi*pow(aInvSqrt,3)
 			);
 		};
-		short digits=std::numeric_limits<Real>::digits/2;
-		// use 2aMin as intial guess for new contacts, and previous value for old contacts
-		Real aInit=(C->isFresh(scene)?2*aMin:ph.contRad); 
+		// use a0 (defined as  δ(a0)=0) as intial guess for new contacts, since they are likely close to the equilibrium condition
+		// use the previous value for old contacts
+		Real aInit=(C->isFresh(scene)?a0:ph.contRad); 
 		unsigned long iter=100;
-		Real a=boost::math::tools::halley_iterate(delta_diff_ddiff,aInit,aMin,aMax,digits,iter);
+		Real a=boost::math::tools::halley_iterate(delta_diff_ddiff,aInit,aLo,aHi,digits,iter);
 		// increment call and iteration count
 		#ifdef WOO_SCHWARZ_COUNTERS
 			nCallsIters.add(0,1);
