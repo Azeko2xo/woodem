@@ -122,7 +122,7 @@ void Law2_L6Geom_HertzPhys_DMT::go(const shared_ptr<CGeom>& cg, const shared_ptr
 		// use a0 (defined as  δ(a0)=0) as intial guess for new contacts, since they are likely close to the equilibrium condition
 		// use the previous value for old contacts
 		Real aInit=(C->isFresh(scene)?a0:ph.contRad); 
-		unitmax_t iter=100;
+		boost::uintmax_t iter=100;
 		Real a=boost::math::tools::halley_iterate(delta_diff_ddiff,aInit,aLo,aHi,digits,iter);
 		// increment call and iteration count
 		#ifdef WOO_SCHWARZ_COUNTERS
