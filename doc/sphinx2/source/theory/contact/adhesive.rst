@@ -153,7 +153,7 @@ This plot shows both loading and unloading (unstable) branches, obtained via New
 
 .. note::
 
-   Values bracketing possible solutions, :math:`a\in\langle a_{\mathrm{lo}}, a_{\mathrm{hi}}` (lower and upper brackets) are to be defined for guarded iterative methods.
+   Values bracketing possible solutions, :math:`a\in\langle a_{\mathrm{lo}}, a_{\mathrm{hi}}\rangle` (lower and upper brackets) are to be defined for guarded iterative methods.
    
    The lower bracket is
    
@@ -172,7 +172,7 @@ This plot shows both loading and unloading (unstable) branches, obtained via New
 
    .. math:: a(\delta)\leq a_{\mathrm{hi}} = a_{\mathrm{Hertz}}(\delta-\delta_{\min})+a_{\min}=\sqrt{R(\delta-\delta_{\min})}+a_{\min}.
 
-   The upper bracket is show in the plot above for :math:`\alpha=0.5`.
+   The upper bracket is shown in the plot above for :math:`\alpha=0.5`.
 
 By composing :math:`P_n(a)` and (numerically evaluated) :math:`a(\delta)`, we obtain the displacement-force relationship (:cite:`Maugis1992`, Fig. 7.)
 

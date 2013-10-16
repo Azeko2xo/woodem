@@ -16,7 +16,8 @@ if not '--only-extras' in sys.argv:
 				continue
 			f.write('    %s\n'%o)
 	if 1:
-		sphinx.main(['','-P','-b','html','-d','../build/doctrees','../source','../build/html'])
+		fmt='html'
+		sphinx.main(['','-P','-b',fmt,'-d','../build/doctrees','../source','../build/%s'%fmt])
 
 #
 # document extra modules, in separate trees

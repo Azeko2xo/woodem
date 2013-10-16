@@ -124,7 +124,7 @@ Contact forces defined by contact point :math:`\vec{c}`, force :math:`\vec{F}_c`
 .. math::
    :nowrap:
 
-   \begin{lign*}
+   \begin{align*}
       \Delta\vec{F}_i&=\frac{\vec{F}_c}{3}, \\
       \Delta\vec{T}_i&=(\vec{x}_i-\vec{c})\times\vec{F}_c+\vec{T}_c.
    \end{align*}

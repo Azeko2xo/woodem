@@ -33,6 +33,7 @@ The first task is covered in the :ref:`contact_geometry` chapter while the last 
 	:maxdepth: 3
 	
 	linear.rst
+	pellet.rst
 	hertzian.rst
 	adhesive.rst
 

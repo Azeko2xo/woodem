@@ -634,11 +634,10 @@ def htmlReport(S,repFmt,headline,afterHead='',figures=[],dialect=None,figFmt=Non
 			try:
 				import subprocess
 				# may raise OSError if the executable is not found
-				ret=subprocess.call(['abiword','--to=ODT','--to-name='+odt,html])
-				if ret!=0: raise RuntimeError('Conversion failed')
+				out=subprocess.check_output(['abiword','--to=ODT','--to-name='+odt,html])
 				print 'Report converted to ODT via Abiword: file://'+os.path.abspath(odt)
-			except:
-				print 'Report conversion to ODT failed (Abiword not installed?), ignoring.'
+			except subprocess.CalledProcessError as e:
+				print 'Report conversion to ODT failed (Abiword not installed?), returning %d; the output was: %s.'%(e.returncode,e.output)
 		# if this is run in the background, main process may finish before that thread, leading potentially to some error messages?? run in foreground
 		if 0: convertToOdt(repName,repBase+'.odt') 
 		else:

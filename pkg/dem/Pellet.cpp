@@ -58,7 +58,7 @@ void Law2_L6Geom_PelletPhys_Pellet::go(const shared_ptr<CGeom>& cg, const shared
 			Real Fy=yieldForce(g.uN,d0,ph.kn,ph.normPlastCoeff);
 			// normal plastic slip
 			if(Fn<Fy){
-				Real uNPl0=uNPl; // neede when tracking energy
+				Real uNPl0=uNPl; // needed when tracking energy
 				uNPl=g.uN-Fy/ph.kn;
 				if(unlikely(scene->trackEnergy)){
 					// backwards trapezoid integration
