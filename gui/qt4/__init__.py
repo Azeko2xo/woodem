@@ -363,6 +363,9 @@ class ControllerClass(QWidget,Ui_Controller):
 			if not tracer:
 				tracer=woo.dem.Tracer(label='tracer_',stepPeriod=100,realPeriod=.2)
 				S.engines=S.engines+[tracer]
+			else:
+				tracer.label='tracer_' # hijack existing engine and re-label it
+				S.engines=S.engines # force re-creation of labels
 			tracer.dead=False
 			S.ranges=S.ranges+[woo.dem.Tracer.lineColor]
 			self.tracerArea.setWidget(ObjectEditor(tracer,parent=self.tracerArea,showType=True))
