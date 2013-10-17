@@ -257,7 +257,7 @@ class WooJSONEncoder(json.JSONEncoder):
 			if hasattr(obj,'__len__'): return list(obj)
 			else: raise TypeError("Unhandled type for JSON: "+obj.__class__.__module__+'.'+obj.__class__.__name__)
 		# minieigen objects
-		elif obj.__class__.__module__ in ('minieigen','miniEigen'):
+		elif obj.__class__.__module__=='minieigen':
 			if isinstance(obj,minieigen.Quaternion): return obj.toAxisAngle()
 			else: return tuple(obj[i] for i in range(len(obj)))
 		# numpy arrays

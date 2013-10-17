@@ -144,19 +144,24 @@ bool PeriodicEngine::isActivated(){
 	const Real& virtNow=scene->time;
 	Real realNow=getClock();
 	const long& stepNow=scene->step;
-	// we run for the very first time here, just initialize counters
-	if(stepLast<0 && !initRun){ 
+	// we run for the very first time here, initialize counters
+	bool initNow=(stepLast<0);
+	if(initNow){ 
 		realLast=realNow; virtLast=virtNow; stepLast=stepNow;
-		return false;
 	}
-	if((nDo<0 || nDone<nDo) &&
-		((virtPeriod>0 && virtNow-virtLast>=virtPeriod) ||
-		 (realPeriod>0 && realNow-realLast>=realPeriod) ||
-		 (stepPeriod>0 && ((stepNow-stepLast>=stepPeriod) || (stepModulo && stepNow%stepPeriod==0)))
-		)){
+	if(
+		(nDo<0 || nDone<nDo) &&
+		(	(virtPeriod>0 && virtNow-virtLast>=virtPeriod) ||
+		 	(realPeriod>0 && realNow-realLast>=realPeriod) ||
+		 	(stepPeriod>0 && ((stepNow-stepLast>=stepPeriod) || (stepModulo && stepNow%stepPeriod==0)))
+		)
+	){
+		// we would run now, but if not desired, don't
 		realPrev=realLast; realLast=realNow;
 		virtPrev=virtLast; virtLast=virtNow;
 		stepPrev=stepLast; stepLast=stepNow;
+		// skip the initial run, but have all values of when last run set properly
+		if(initNow && !initRun) { return false; }
 		nDone++;
 		return true;
 	}

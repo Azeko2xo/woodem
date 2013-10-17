@@ -38,18 +38,14 @@ except ImportError: pass
 import woo.runtime
 if woo.runtime.hasDisplay==None: # not yet set
 	raise RuntimeError('woo.plot imported before woo.runtime.hasDisplay is set. This should not really happen, please report.')
-if not woo.runtime.hasDisplay: matplotlib.use('Agg')
+if not woo.runtime.hasDisplay:
+	#from matplotlib.backends.backend_agg import FigureCanvasAgg as WooFigureCanvas
+	matplotlib.use('Agg') ## pylab API
 else:
-	matplotlib.use('Qt4Agg')
-	# matplotlib.use('GTKAgg')
-	# there is probably no reason to support TkAgg anymore, but keep this for the future perhaps...
-	if 0:
-		# multi-threaded support for Tk; safe to import even if Tk will not be used
-		# live plots are dysfunctional anyway (dye to the qt4 gui?) so this can be safely removed later
-		try: import mtTkinter as Tkinter
-		except ImportError:
-			print 'mtTkinter not imported, but TkAgg backend for matplotlib is used; live plots will be broken, don\'t complain'
-		matplotlib.use('TkAgg')
+	matplotlib.use('Qt4Agg') # pylab API
+	#from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as WooFigureCanvas
+
+from matplotlib.backends.backend_agg import FigureCanvasAgg as _HeadlessFigureCanvas
 from minieigen import *
 
 matplotlib.rc('axes',grid=True) # put grid in all figures
@@ -76,7 +72,7 @@ autozoom=True
 "Enable/disable automatic plot rezooming after data update."
 legendAlpha=.6
 'Transparency of legend frames in plots'
-scientific=True if hasattr(pylab,'ticklabel_format') else False  ## safe default for older matplotlib versions
+scientific=True if hasattr(matplotlib.axes.Axes,'ticklabel_format') else False  ## safe default for older matplotlib versions
 "Use scientific notation for axes ticks."
 current=-1
 "Point that is being tracked with a scatter point. -1 is for the last point, set to *nan* to disable."
@@ -385,31 +381,50 @@ class LineRef:
 liveTimeStamp=0 # timestamp when live update was started, so that the old thread knows to stop if that changes
 nan=float('nan')
 
-def createPlots(P,subPlots=True,scatterSize=60,wider=False):
+def createPlots(P,subPlots=True,noShow=False,replace=True,scatterSize=60,wider=False):
+	'''Create plots based on current data;
+
+	:param subPlots: show all plots in one figure as subplots; otherwise, create multiple figures
+	:param noShow: use headless backend for plots, and do not show plots on the screen
+	:param replace: do not close existing figures, and do not update P.currLineRefs
+	'''
 	import logging
 	data,imgData,plots,labels,xylabels,legendLoc,axesWd,annotateFmt=P.data,P.imgData,P.plots,P.labels,P.xylabels,P.legendLoc,P.axesWd,P.annotateFmt
-	if P.currLineRefs:
-		logging.info('Closing existing figures')
-		figs=set([l.line.get_axes().get_figure() for l in P.currLineRefs]) # get all current figures
-		for f in figs: pylab.close(f) # close those
-	P.currLineRefs=[]
+	if replace:
+		if P.currLineRefs:
+			logging.info('Closing existing figures')
+			ff=set([l.line.get_axes().get_figure() for l in P.currLineRefs]) # get all current figures
+			for f in ff: pylab.close(f) # close those
+		P.currLineRefs=[]
+	figs=[]
 	if len(plots)==0: return # nothing to plot
 	if subPlots:
 		# compute number of rows and colums for plots we have
 		subCols=int(round(math.sqrt(len(plots)))); subRows=int(math.ceil(len(plots)*1./subCols))
 		if wider: subRows,subCols=subCols,subRows
+	# create a new figure; called once with subPlots, for each subplot without subPlots
+	def _newFig():
+		## pylab API		
+		if not noShow: return pylab.figure() # this will go onto the screen; the pylab call sets up the windows as well
+		else: # with noShow
+			fig=matplotlib.figure.Figure()
+			canvas=_HeadlessFigureCanvas(fig) # 
+			return fig
+	if subPlots: figs=[_newFig()]
 	for nPlot,p in enumerate(plots.keys()):
 		pStrip=p.strip().split('=',1)[0]
-		if not subPlots: pylab.figure()
-		else: pylab.subplot(subRows,subCols,nPlot)
+		if not subPlots:
+			figs.append(_newFig())
+			axes=figs[-1].add_subplot(1,1,1)
+		else: axes=figs[-1].add_subplot(subRows,subCols,nPlot)
 		if plots[p]==None: # image plot
 			if not pStrip in imgData.keys(): imgData[pStrip]=[]
 			# fake (empty) image if no data yet
 			if len(imgData[pStrip])==0 or imgData[pStrip][-1]==None: img=Image.new('RGBA',(1,1),(0,0,0,0))
 			else: img=Image.open(imgData[pStrip][-1])
-			img=pylab.imshow(img,origin='lower')
-			P.currLineRefs.append(LineRef(line=img,scatter=None,annotation=None,line2=None,xdata=imgData[pStrip],ydata=None,imgData=imgData,dataName=pStrip))
-			pylab.gca().set_axis_off()
+			img=axes.imshow(img,origin='lower')
+			if replace: P.currLineRefs.append(LineRef(line=img,scatter=None,annotation=None,line2=None,xdata=imgData[pStrip],ydata=None,imgData=imgData,dataName=pStrip))
+			axes.set_axis_off()
 			continue
 		plots_p=[addPointTypeSpecifier(o) for o in tuplifyYAxis(plots[p])]
 		plots_p_y1,plots_p_y2=[],[]; y1=True
@@ -440,7 +455,7 @@ def createPlots(P,subPlots=True,scatterSize=60,wider=False):
 					print 'Missing columns in Scene.plot.data, added NaNs:',', '.join([m.encode('utf-8') for m in missing])
 				except UnicodeDecodeError:
 					warnings.warn('UnicodeDecodeError reporting missing data columns -- harmless, just wondering...')
-		def createLines(pStrip,ySpecs,isY1=True,y2Exists=False):
+		def createLines(pStrip,ySpecs,axes,isY1=True,y2Exists=False):
 			'''Create data lines from specifications; this code is common for y1 and y2 axes;
 			it handles y-data specified as callables (or strings enging in '()'), which might create additional lines when updated with liveUpdate.
 			'''
@@ -458,42 +473,42 @@ def createPlots(P,subPlots=True,scatterSize=60,wider=False):
 				else: ySpecs2.append(ys)
 			if len(ySpecs2)==0:
 				print 'woo.plot: creating fake plot, since there are no y-data yet'
-				line,=pylab.plot([nan],[nan])
-				line2,=pylab.plot([nan],[nan])
-				P.currLineRefs.append(LineRef(line=line,scatter=None,annotation=None,line2=line2,xdata=[nan],ydata=[nan]))
+				line,=axes.plot([nan],[nan])
+				line2,=axes.plot([nan],[nan])
+				if replace: P.currLineRefs.append(LineRef(line=line,scatter=None,annotation=None,line2=line2,xdata=[nan],ydata=[nan]))
 			# set different color series for y1 and y2 so that they are recognizable
-			if pylab.rcParams.has_key('axes.color_cycle'): pylab.rcParams['axes.color_cycle']='b,g,r,c,m,y,k' if not isY1 else 'm,y,k,b,g,r,c'
+			if matplotlib.rcParams.has_key('axes.color_cycle'): matplotlib.rcParams['axes.color_cycle']='b,g,r,c,m,y,k' if not isY1 else 'm,y,k,b,g,r,c'
 			for d in ySpecs2:
 				yNames.add(d)
-				line,=pylab.plot(data[pStrip],data[d[0]],d[1],label=xlateLabel(d[0],P.labels))
-				line2,=pylab.plot([],[],d[1],color=line.get_color(),alpha=afterCurrentAlpha)
+				line,=axes.plot(data[pStrip],data[d[0]],d[1],label=xlateLabel(d[0],P.labels))
+				line2,=axes.plot([],[],d[1],color=line.get_color(),alpha=afterCurrentAlpha)
 				# use (0,0) if there are no data yet
 				scatterPt=[0,0] if len(data[pStrip])==0 else (data[pStrip][current],data[d[0]][current])
 				scatterPtPos=[scatterPt[0] if not math.isnan(scatterPt[0]) else 0,scatterPt[1] if not math.isnan(scatterPt[1]) else 0]
 				# if current value is NaN, use zero instead
-				scatter=pylab.scatter(scatterPtPos[0],scatterPtPos[1],s=scatterSize,color=line.get_color(),**scatterMarkerKw)
+				scatter=axes.scatter(scatterPtPos[0],scatterPtPos[1],s=scatterSize,color=line.get_color(),**scatterMarkerKw)
 				if annotateFmt:
 					if math.isnan(scatterPtPos[0]) or math.isnan(scatterPtPos[1]): text=''
 					else: text=annotateFmt.format(xy=scatterPt)
-					annotation=pylab.annotate(text,xy=scatterPtPos,color=line.get_color(),**annotateKw)
+					annotation=axes.annotate(text,xy=scatterPtPos,color=line.get_color(),**annotateKw)
 					annotation.annotateFmt=annotateFmt
 				else: annotation=None
-				P.currLineRefs.append(LineRef(line=line,scatter=scatter,annotation=annotation,line2=line2,xdata=data[pStrip],ydata=data[d[0]]))
+				if replace: P.currLineRefs.append(LineRef(line=line,scatter=scatter,annotation=annotation,line2=line2,xdata=data[pStrip],ydata=data[d[0]]))
 			axes=line.get_axes()
 			labelLoc=(legendLoc[0 if isY1 else 1] if y2Exists>0 else 'best')
-			l=pylab.legend(loc=labelLoc)
+			l=axes.legend(loc=labelLoc)
 			if l:
 				l.get_frame().set_alpha(legendAlpha)
 				if hasattr(l,'draggable'): l.draggable(True)
 			if scientific:
-				pylab.ticklabel_format(style='sci',scilimits=(0,0),axis='both')
+				axes.ticklabel_format(style='sci',scilimits=(0,0),axis='both')
 				# fixes scientific exponent placement for y2: https://sourceforge.net/mailarchive/forum.php?thread_name=20101223174750.GD28779%40ykcyc&forum_name=matplotlib-users
 				if not isY1: axes.yaxis.set_offset_position('right')
 			if isY1:
-				pylab.ylabel((', '.join([xlateLabel(_p[0],P.labels) for _p in ySpecs2])) if p not in xylabels or not xylabels[p][1] else xylabels[p][1])
-				pylab.xlabel(xlateLabel(pStrip,P.labels) if (p not in xylabels or not xylabels[p][0]) else xylabels[p][0])
+				axes.set_ylabel((', '.join([xlateLabel(_p[0],P.labels) for _p in ySpecs2])) if p not in xylabels or not xylabels[p][1] else xylabels[p][1])
+				axes.set_xlabel(xlateLabel(pStrip,P.labels) if (p not in xylabels or not xylabels[p][0]) else xylabels[p][0])
 			else:
-				pylab.ylabel((', '.join([xlateLabel(_p[0],P.labels) for _p in ySpecs2])) if (p not in xylabels or len(xylabels[p])<3 or not xylabels[p][2]) else xylabels[p][2])
+				axes.set_ylabel((', '.join([xlateLabel(_p[0],P.labels) for _p in ySpecs2])) if (p not in xylabels or len(xylabels[p])<3 or not xylabels[p][2]) else xylabels[p][2])
 			# if there are callable/dict ySpecs, save them inside the axes object, so that the live updater can use those
 			if yNameFuncs:
 				axes.wooYNames,axes.wooYFuncs,axes.wooXName,axes.wooLabelLoc=yNames,yNameFuncs,pStrip,labelLoc # prepend woo to avoid clashes
@@ -505,18 +520,19 @@ def createPlots(P,subPlots=True,scatterSize=60,wider=False):
 				if not hasattr(fig,'show'):
 					mgr=getattr(fig.canvas,'manager')
 					if mgr: fig.show=lambda *args: mgr.window.show()
-		createLines(pStrip,plots_p_y1,isY1=True,y2Exists=len(plots_p_y2)>0)
+		createLines(pStrip,plots_p_y1,axes=axes,isY1=True,y2Exists=len(plots_p_y2)>0)
 		if axesWd>0:
-			pylab.axhline(linewidth=axesWd,color='k')
-			pylab.axvline(linewidth=axesWd,color='k')
+			axes.axhline(linewidth=axesWd,color='k')
+			axes.axvline(linewidth=axesWd,color='k')
 		# create y2 lines, if any
 		if len(plots_p_y2)>0:
-			pylab.twinx() # create the y2 axis
-			createLines(pStrip,plots_p_y2,isY1=False,y2Exists=True)
+			axes.twinx() # create the y2 axis
+			createLines(pStrip,plots_p_y2,axes,isY1=False,y2Exists=True)
 		### scene is not directly accessible from here, do it like this:
 		S=woo.master.scene
 		if S.plot==P:
-			if 'title' in S.tags: pylab.title(S.tags['title'])
+			if 'title' in S.tags: axes.set_title(S.tags['title'])
+	return figs
 
 
 
@@ -591,13 +607,13 @@ def savePlotSequence(P,fileBase,stride=1,imgRatio=(5,7),title=None,titleFrames=2
 	:return: List of filenames with consecutive frames.
 	'''
 	data,imgData,plots=P.data,P.imgData,P.plots
-	createPlots(P,subPlots=True,scatterSize=60,wider=True)
+	fig=createPlots(P,noShow=True,replace=True,subPlots=True,scatterSize=60,wider=True)[0]
 	sqrtFigs=math.sqrt(len(plots))
-	pylab.gcf().set_size_inches(8*sqrtFigs,5*sqrtFigs) # better readable
-	pylab.subplots_adjust(left=.05,right=.95,bottom=.05,top=.95) # make it more compact
+	fig.set_size_inches(8*sqrtFigs,5*sqrtFigs) # better readable
+	fig.subplots_adjust(left=.05,right=.95,bottom=.05,top=.95) # make it more compact
 	if len(plots)==1 and plots[plots.keys()[0]]==None: # only pure snapshot is there
-		pylab.gcf().set_size_inches(5,5)
-		pylab.subplots_adjust(left=0,right=1,bottom=0,top=1)
+		fig.set_size_inches(5,5)
+		fig.subplots_adjust(left=0,right=1,bottom=0,top=1)
 	#if not data.keys(): raise ValueError("plot.data is empty.")
 	pltLen=max(len(data[data.keys()[0]]) if data else 0,len(imgData[imgData.keys()[0]]) if imgData else 0)
 	if pltLen==0: raise ValueError("Both plot.data and plot.imgData are empty.")
@@ -608,7 +624,7 @@ def savePlotSequence(P,fileBase,stride=1,imgRatio=(5,7),title=None,titleFrames=2
 		current=n
 		for l in P.currLineRefs: l.update()
 		out=fileBase+'-%03d.png'%i
-		pylab.gcf().savefig(out)
+		fig.savefig(out)
 		ret.append(out)
 		sys.stderr.write('[%d]'%i)
 	if len(ret)==0: raise RuntimeError("No images created?!")
@@ -621,7 +637,8 @@ def savePlotSequence(P,fileBase,stride=1,imgRatio=(5,7),title=None,titleFrames=2
 
 def createTitleFrame(out,size,title):
 	'create figure with title and save to file; a figure object must be opened to get the right size'
-	pylab.clf(); fig=pylab.gcf()
+	fig=matplotlib.figure.Figure()
+	canvas=_HeadlessFigureCanvas(fig)
 	#insize=fig.get_size_inches(); size=insize[1]*fig.get_dpi(),insize[0]*fig.get_dpi()  # this gives wrong dimensions...
 	#fig.set_facecolor('blue'); fig.patch.set_color('blue'); fig.patch.set_facecolor('blue'); fig.patch.set_alpha(None)
 	title,subtitle=title.split('\n\n')
@@ -659,8 +676,8 @@ def Scene_plot_plot(P,noShow=False,subPlots=True):
 	to save the figure to file automatically.
 
 	"""
-	createPlots(P,subPlots=subPlots)
-	figs=set([l.line.get_axes().get_figure() for l in P.currLineRefs])
+	figs=createPlots(P,subPlots=subPlots,noShow=noShow,replace=(False if noShow else True))
+	# figs=set([l.line.get_axes().get_figure() for l in P.currLineRefs])
 	if not figs:
 		import warnings
 		warnings.warn('Nothing to plot.')
@@ -689,9 +706,9 @@ def Scene_plot_plot(P,noShow=False,subPlots=True):
 							# remove closed axes from our update list
 							P.currLineRefs=[l for l in P.currLineRefs if l.line.get_axes().get_figure()!=ff] 
 						f.canvas.mpl_connect('close_event',closeFigureCallback)
-	else:
-		figs=list(set([l.line.get_axes().get_figure() for l in P.currLineRefs]))
-		return figs
+	# else:
+		# figs=list(set([l.line.get_axes().get_figure() for l in P.currLineRefs]))
+	return figs
 
 def Scene_plot_saveDataTxt(P,fileName,vars=None):
 	"""Save plot data into a (optionally compressed) text file. The first line contains a comment (starting with ``#``) giving variable name for each of the columns. This format is suitable for being loaded for further processing (outside woo) with ``numpy.genfromtxt`` function, which recognizes those variable names (creating numpy array with named entries) and handles decompression transparently.

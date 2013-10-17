@@ -342,7 +342,6 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 					}
 				} else nextSnapFile=out;
 				LOG_INFO("Will save snapshot to "<<nextSnapFile);
-				// LOG_ERROR("Saving screenshots directly does not work (the UI freezes); use Ctrl-C to copy to clipboard and paste somewhere, or set the Renderer.snapFmt (currently "<<Renderer::snapFmt<<") and press 'v' to save to that file directly.");
 			#endif
 		} else {
 			Renderer::scaleOn=!Renderer::scaleOn;

@@ -97,12 +97,6 @@ def writeResults(scene,defaultDb='woo-results.sqlite',syncXls=True,dbFmt=None,se
 				json.dumps(series) # series
 			)
 			conn.execute('insert into batch values (?,?,?,?,?, ?,?,?,?,?, ?,?)',values)
-		if syncXls:
-			import re
-			xls='%s.xls'%re.sub('\.sqlite$','',db)
-			print 'Converting %s to file://%s'%(db,os.path.abspath(xls))
-			dbToSpread(db,out=xls,dialect='xls')
-		for ph in postHooks: ph(db)
 	elif dbFmt=='hdf5':
 		import h5py
 		try:
@@ -139,6 +133,13 @@ def writeResults(scene,defaultDb='woo-results.sqlite',syncXls=True,dbFmt=None,se
 				G_series[k]=v
 			hdf.close()
 	else: raise ValueError('*fmt* must be one of "sqlite", "hdf5", None (autodetect based on suffix)')
+
+	if syncXls:
+		import re
+		xls='%s.xls'%re.sub('\.(sqlite|hdf5)$','',db)
+		print 'Converting %s to file://%s'%(db,os.path.abspath(xls))
+		dbToSpread(db,out=xls,dialect='xls')
+	for ph in postHooks: ph(db)
 
 def _checkHdf5sim(sim):
 	if not 'formatVersion' in sim.attrs: raise RuntimeError('database %s: simulation %s does not define formatVersion?!')
@@ -240,9 +241,12 @@ def dbToSpread(db,out=None,dialect='excel',rows=False,series=True,ignored=('plot
 			for i,item in enumerate(obj): flatten(item,(path+sep if path else '')+unicode(i),ret=ret)
 		elif isinstance(obj,dict):
 			for key,value in obj.items(): flatten(value,(path+sep if path else '')+unicode(key),ret=ret)
-		else:
+		elif isinstance(obj,(str,unicode)):
 			#ret[path]=(obj.encode('utf-8','ignore') if isinstance(obj,unicode) else obj)
 			ret[path]=unicode(obj)
+		else:
+			# other values passed as they are
+			ret[path]=obj
 		return ret
 
 	def natural_key(string_):
@@ -291,13 +295,12 @@ def dbToSpread(db,out=None,dialect='excel',rows=False,series=True,ignored=('plot
 					except: pass
 					rowDict[att]=val
 				rowDict['misc']={}
-				for att in sim['misc']:
-					val=sim.attrs[att]
+				for att in sim['misc'].attrs:
+					val=sim['misc'].attrs[att]
 					try: val=json.loads(val)
 					except: pass
 					rowDict['misc'][att]=val
 				series={}
-				print 'PROCESSING SERIES'
 				# we have to flatten series, since it may contain nested hdf5 groups
 				# http://stackoverflow.com/a/6036037/761090
 				def flat_group_helper(prefix,g):
@@ -309,9 +312,9 @@ def dbToSpread(db,out=None,dialect='excel',rows=False,series=True,ignored=('plot
 				def flat_group(g):
 					import collections
 					return collections.OrderedDict(flat_group_helper('',g))
-				print flat_group(sim['series']).keys()
+				# print flat_group(sim['series']).keys()
 				for sName,sVal in flat_group(sim['series']).items():
-					print sName
+					# print sName
 					series[sName]=numpy.array(sVal)
 				seriesData[sim.attrs['title']+'_'+sim.attrs['sceneId']]=series
 				# same as for sqlite3 below
@@ -374,11 +377,12 @@ def dbToSpread(db,out=None,dialect='excel',rows=False,series=True,ignored=('plot
 			# data
 			for row,val in enumerate(allData[field]):
 				style=styleDict.get(type(val),xlwt.Style.default_style)
-				if isinstance(val,str) or isinstance(val,unicode) and (val.startswith('file://') or val.startswith('http://') or val.startswith('https://')):
+				if isinstance(val,(str,unicode)) and (val.startswith('file://') or val.startswith('http://') or val.startswith('https://')):
 					val=val.replace('"',"'")
 					val=xlwt.Formula('HYPERLINK("%s","%s")'%(urllib.quote(val,safe=':/'),val))
 					style=hrefStyle
 				setCell(row+1,col,val,style)
+				# print row,type(val),val
 		# save data series
 		if seriesData:
 			for sheetName,dic in seriesData.items():

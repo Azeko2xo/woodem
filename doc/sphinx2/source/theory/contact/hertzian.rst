@@ -112,7 +112,7 @@ Viscosity adds force :math:`P_c` linearly related to the current rate of overlap
 
 .. math:: P_{nv}=\eta\dot\delta .
 
-The viscous coefficient :math:`\eta` is not straight-forwardly realted to the coefficient of restition :math:`C_R`, which is an integral measure over the whole collision time.
+The viscous coefficient :math:`\eta` is not straight-forwardly realted to the coefficient of restitution :math:`\epsilon`, which is an integral measure over the whole collision time.
 
 This problem is treated by :cite:`Antypov2011` in detail, which derives analytical relationships for viscous coefficient and coefficient of restitution in Hertzian contact. In order to obtain dissipative force resulting in velocity-independent coefficient of restitution, the force must take the form
 
