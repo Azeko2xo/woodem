@@ -628,8 +628,8 @@ def htmlReport(S,repFmt,headline,afterHead='',figures=[],dialect=None,figFmt=Non
 	rep.write(s)
 	rep.close() # flushed write buffers
 
-	# attempt conversion to ODT
-	if 1:
+	# attempt conversion to ODT, not under Windows
+	if sys.platform!='win32':
 		def convertToOdt(html,odt):
 			try:
 				import subprocess
@@ -638,11 +638,9 @@ def htmlReport(S,repFmt,headline,afterHead='',figures=[],dialect=None,figFmt=Non
 				print 'Report converted to ODT via Abiword: file://'+os.path.abspath(odt)
 			except subprocess.CalledProcessError as e:
 				print 'Report conversion to ODT failed (Abiword not installed?), returning %d; the output was: %s.'%(e.returncode,e.output)
-		# if this is run in the background, main process may finish before that thread, leading potentially to some error messages?? run in foreground
-		if 0: convertToOdt(repName,repBase+'.odt') 
-		else:
-			import threading
-			threading.Thread(target=convertToOdt,args=(repName,repBase+'.odt')).start()
+		# if this is run in the background, main process may finish before that thread, leading potentially to some error messages??
+		import threading
+		threading.Thread(target=convertToOdt,args=(repName,repBase+'.odt')).start()
 				
 	if show and not woo.batch.inBatch():
 		import webbrowser

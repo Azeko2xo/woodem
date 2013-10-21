@@ -108,7 +108,7 @@ Similarly, potential field (gravity) can be used to determine coefficient of res
 Viscous damping
 """"""""""""""""
 
-Viscosity adds force :math:`P_c` linearly related to the current rate of overlap :math:`\dot\delta` with linear term :math:`\eta`, the viscous coefficient
+Viscosity adds the :math:`P_{nv}` force linearly related to the current rate of overlap :math:`\dot\delta` via the linear term :math:`\eta`,
 
 .. math:: P_{nv}=\eta\dot\delta .
 
