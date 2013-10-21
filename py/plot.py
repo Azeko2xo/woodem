@@ -526,7 +526,7 @@ def createPlots(P,subPlots=True,noShow=False,replace=True,scatterSize=60,wider=F
 			axes.axvline(linewidth=axesWd,color='k')
 		# create y2 lines, if any
 		if len(plots_p_y2)>0:
-			axes.twinx() # create the y2 axis
+			axes=axes.twinx() # create the y2 axis
 			createLines(pStrip,plots_p_y2,axes,isY1=False,y2Exists=True)
 		### scene is not directly accessible from here, do it like this:
 		S=woo.master.scene
