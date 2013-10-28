@@ -137,7 +137,7 @@ def writeResults(scene,defaultDb='woo-results.hdf5',syncXls=True,dbFmt=None,seri
 
 	if syncXls:
 		import re
-		xls='%s.xls'+db
+		xls=db+'.xls'
 		if not quiet: print 'Converting %s to file://%s'%(db,os.path.abspath(xls))
 		dbToSpread(db,out=xls,dialect='xls')
 	for ph in postHooks: ph(db)
