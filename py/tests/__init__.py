@@ -15,6 +15,7 @@ from . import grid
 from . import labels
 from . import hertz
 from . import ellipsoid
+from . import batch
 # this is ugly, but automatic
 allTests=[m for m in dir() if type(eval(m))==types.ModuleType and eval(m).__name__.startswith('woo.tests')]
 # should the above break, do it manually (but keep the imports above):

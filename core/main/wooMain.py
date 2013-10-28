@@ -800,7 +800,7 @@ finished: %s
 	parser.add_argument('--log',dest='logFormat',help='Format of job log files: must contain a $, %% or @, which will be replaced by script name, line number or by title column respectively. Directory for logs will be created automatically. (default: logs/$.@.log)',metavar='FORMAT',default='logs/$.@.log')
 	parser.add_argument('--global-log',dest='globalLog',help='Filename where to redirect output of woo-batch itself (as opposed to \-\-log); if not specified (default), stdout/stderr are used',metavar='FILE')
 	parser.add_argument('-l','--lines',dest='lineList',help='Lines of TABLE to use, in the format 2,3-5,8,11-13 (default: all available lines in TABLE)',metavar='LIST')
-	parser.add_argument('--results',dest='resultsDb',help='File (HDF5 or SQLite) where simulation should store its results (such as input/output files and some data); the default is to use {tableName}.results, if there is a param table, otherwise each simulation defines its own default files to write results in.\nThe format is HDF5 for files with matching *.hdf5, *.h5, *.he5, *.hdf; otherwise, SQLite is used.',default=None)
+	parser.add_argument('--results',dest='resultsDb',help='File (HDF5 or SQLite) where simulation should store its results (such as input/output files and some data); the default is to use {tableName}.hdf5 ({tableName}.sqlite under Windows), if there is a param table, otherwise each simulation defines its own default files to write results in.\nThe preferred format is HDF5 (usually *.hdf5, *.h5, *.he5, *.hdf), SQLite is used for *.sqlite, *.db.',default=None)
 	parser.add_argument('--nice',dest='nice',type=int,help='Nice value of spawned jobs (default: 10)',default=10)
 	parser.add_argument('--cpu-affinity',dest='affinity',action='store_true',help='Bind each job to specific CPU cores; cores are assigned in a quasi-random order, depending on availability at the moment the jobs is started. Each job can override this setting by setting AFFINE column.')
 	parser.add_argument('--executable',dest='executable',help='Name of the program to run (default: %s). Jobs can override with !EXEC column.'%executable,default=executable,metavar='FILE')
@@ -899,7 +899,8 @@ finished: %s
 	executables=set()
 	logFiles=[]
 	if opts.resultsDb==None:
-		resultsDb='%s.results'%re.sub('\.(batch|table|xls)$','',table) if table else 'batch.results'
+		prefExt=('hdf5' if not sys.platform=='win32' else 'sqlite')
+		resultsDb='%s.%s'%(re.sub('\.(batch|table|xls)$','',table),prefExt) if table else 'batch.'+prefExt
 	else: resultsDb=opts.resultsDb
 	print 'Results database is',os.path.abspath(resultsDb)
 	

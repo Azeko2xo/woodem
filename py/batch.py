@@ -29,7 +29,7 @@ def inBatch():
 	import os
 	return 'WOO_BATCH' in os.environ
 
-def writeResults(scene,defaultDb='woo-results.sqlite',syncXls=True,dbFmt=None,series=None,postHooks=[],**kw):
+def writeResults(scene,defaultDb='woo-results.hdf5',syncXls=True,dbFmt=None,series=None,quiet=False,postHooks=[],**kw):
 	'''
 	Write results to batch database. With *syncXls*, corresponding excel-file is re-generated.
 	Series is a dicionary of 1d arrays written to separate sheets in the XLS. If *series* is `None`
@@ -46,16 +46,17 @@ def writeResults(scene,defaultDb='woo-results.sqlite',syncXls=True,dbFmt=None,se
 	import os, os.path, datetime
 	import numpy
 	import json
+	import logging
 	S=scene
 	if inBatch(): table,line,db=os.environ['WOO_BATCH'].split(':')
 	else: table,line,db='',-1,defaultDb
 	newDb=not os.path.exists(db)
-	print 'Writing results to the database %s (%s)'%(db,'new' if newDb else 'existing')
+	if not quiet: print 'Writing results to the database %s (%s)'%(db,'new' if newDb else 'existing')
 	if dbFmt==None:
 		ext=os.path.splitext(db)[1]
-		if ext in ('.sqlite','.results'): dbFmt='sqlite'
+		if ext in ('.sqlite','.db'): dbFmt='sqlite'
 		elif os.path.splitext(db)[1] in ('.h5','.hdf5','.he5','hdf'): dbFmt='hdf5'
-		else: raise ValueError("Unable to determine database format from file extension: must be *.sqlite, *.h5, *.hdf5, *.he5, *.hdf.")
+		else: raise ValueError("Unable to determine database format from file extension: must be *.h5, *.hdf5, *.he5, *.hdf, *.sqlite, *.db.")
 
 	# make sure keys are unicode objects (which is what json converts to!)
 	# but preserve values using a 8-bit encoding)
@@ -136,8 +137,8 @@ def writeResults(scene,defaultDb='woo-results.sqlite',syncXls=True,dbFmt=None,se
 
 	if syncXls:
 		import re
-		xls='%s.xls'%re.sub('\.(sqlite|hdf5)$','',db)
-		print 'Converting %s to file://%s'%(db,os.path.abspath(xls))
+		xls='%s.xls'+db
+		if not quiet: print 'Converting %s to file://%s'%(db,os.path.abspath(xls))
 		dbToSpread(db,out=xls,dialect='xls')
 	for ph in postHooks: ph(db)
 
@@ -151,6 +152,8 @@ def dbReadResults(db,basicTypes=False):
 	'''Return list of dictionaries, representing database contents.
 
 	:param basicTypes: don't reconstruct Woo objects from JSON (keep those as dicts) and don't return data series as numpy arrays.
+
+	.. todo:: Nested (grouped) series are not read correctly from HDF5. Should be fixed either by flattening the hiearchy (like we do in :obj:`dbToSpread` and stuffing it into returned dict; or by reflecting the hierarchy in the dict returned.
 	'''
 	import numpy, sqlite3, json, woo.core
 	try:
@@ -211,7 +214,7 @@ def dbToJSON(db,**kw):
 
 
 
-def dbToSpread(db,out=None,dialect='excel',rows=False,series=True,ignored=('plotData','tags'),sortFirst=('title','batchtable','batchTableLine','finished','sceneId','duration'),selector=None):
+def dbToSpread(db,out=None,dialect='xls',rows=False,series=True,ignored=('plotData','tags'),sortFirst=('title','batchtable','batchTableLine','finished','sceneId','duration'),selector=None):
 	'''
 	Select simulation results (using *selector*) stored in batch database *db*, flatten data for each simulation,
 	and dump the data in the CSV format (using *dialect*: 'excel', 'excel-tab', 'xls') into file *out* (standard output
