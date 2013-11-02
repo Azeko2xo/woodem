@@ -30,6 +30,9 @@ struct DemFuncs{
 	// returns number of particles matching the mask
 	static size_t reactionInPoint(const Scene* scene, const DemField* dem, int mask, const Vector3r& pt, bool multinodal, Vector3r& force, Vector3r& torque);
 
+	/* return list of quantile values for contact coordinates sorted along vector *dir* with the origin in *pt*. The list returned has the same length as *quantiles* */
+	static vector<Real> contactCoordQuantiles(const shared_ptr<DemField>& dem, const vector<Real>& quantiles, const Vector3r& pt, Vector3r dir);
+
 	#if 0
 		static Vector2r radialAxialForce(const Scene* scene, const DemField* dem, int mask, Vector3r axis, bool shear);
 	#endif
@@ -92,8 +95,11 @@ struct DemFuncs{
 
 		Threshold is distance relative to maximum bounding box size if negative; if positive, it is absolute
 		in the STL space (before scaling).
+
+		STL color specification (global or per-facet RGB colors) are not yet implemented; a warning is shown unless *readColors* is false.
+
 	*/
-	static vector<shared_ptr<Particle>> importSTL(const string& filename, const shared_ptr<Material>& mat, int mask=0, Real color=0., Real scale=1., const Vector3r& shift=Vector3r::Zero(), const Quaternionr& ori=Quaternionr::Identity(), Real threshold=-1e-6, Real maxBox=0);
+	static vector<shared_ptr<Particle>> importSTL(const string& filename, const shared_ptr<Material>& mat, int mask=0, Real color=0., Real scale=1., const Vector3r& shift=Vector3r::Zero(), const Quaternionr& ori=Quaternionr::Identity(), Real threshold=-1e-6, Real maxBox=0, bool readColors=true);
 
 };
 

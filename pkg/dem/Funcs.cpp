@@ -9,6 +9,8 @@
 #include<iostream>
 #include<fstream>
 #include<boost/algorithm/string/predicate.hpp>
+#include<boost/range/algorithm/count_if.hpp>
+#include<boost/range/algorithm/sort.hpp>
 #include<boost/detail/endian.hpp>
 
 #ifdef WOO_VTK
@@ -40,6 +42,34 @@ shared_ptr<DemField> DemFuncs::getDemField(const Scene* scene){
 	return ret;
 }
 
+vector<Real> DemFuncs::contactCoordQuantiles(const shared_ptr<DemField>& dem, const vector<Real>& quantiles, const Vector3r& pt, Vector3r dir){
+	dir.normalize();
+	vector<Real> ret;
+	ret.reserve(quantiles.size());
+	if(quantiles.empty()) return ret;
+	// count contacts first
+	size_t N=boost::range::count_if(*dem->contacts,[&](const shared_ptr<Contact>& C)->bool{ return C->isReal(); });
+	vector<Real> coords; coords.reserve(N);
+	for(const shared_ptr<Contact>& C: *dem->contacts){
+		if(!C->isReal()) continue;
+		coords.push_back((C->geom->node->pos-pt).dot(dir));
+	};
+	// no contacts yet, return NaNs
+	if(coords.empty()){
+		for(size_t i=0; i<quantiles.size(); i++) ret.push_back(NaN);
+		return ret;
+	}
+	boost::range::sort(coords);
+	N=coords.size(); // should be the same as N before
+	for(Real q: quantiles){
+		// clamp the value to 0,1
+		q=min(max(0.,q),1.);
+		if(isnan(q)) q=0.; // just to make sure
+		int i=min((int)((N-1)*q),(int)N-1);
+		ret.push_back(coords[i]);
+	}
+	return ret;
+}
 
 Real DemFuncs::pWaveDt(const shared_ptr<DemField>& dem, bool noClumps/*=false*/){
 	Real dt=Inf;
@@ -269,7 +299,7 @@ size_t DemFuncs::radialAxialForce(const Scene* scene, const DemField* dem, int m
 
 	TODO: read color/material, convert to scalar color in Woo
 */
-vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const shared_ptr<Material>& mat, int mask, Real color, Real scale, const Vector3r& shift, const Quaternionr& ori, Real threshold, Real maxBox){
+vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const shared_ptr<Material>& mat, int mask, Real color, Real scale, const Vector3r& shift, const Quaternionr& ori, Real threshold, Real maxBox, bool readColors){
 	vector<shared_ptr<Particle>> ret;
 	std::ifstream in(filename,std::ios::in|std::ios::binary);
 	if(!in) throw std::runtime_error("Error opening "+filename+" for reading (STL import).");
@@ -313,7 +343,7 @@ vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const s
 			LOG_TRACE("STL: binary format detected");
 			char header[80];
 			in.read(header,80);
-			if(boost::algorithm::contains(header,"COLOR=") || boost::algorithm::contains(header,"MATERIAL=")){
+			if(readColors && (boost::algorithm::contains(header,"COLOR=") || boost::algorithm::contains(header,"MATERIAL="))){
 				LOG_WARN("STL: global COLOR/MATERIAL not imported (not implemented yet).");
 			}
 			int32_t numFaces;
@@ -336,7 +366,7 @@ vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const s
 					" color "<<f.color
 				);
 				for(int j:{0,3,6}) vertices.push_back(Vector3r(f.v[j+0],f.v[j+1],f.v[j+2]));
-				if(f.color!=0) LOG_WARN("STL: face #"+to_string(i)+": color not imported (not implemented yet).");
+				if(readColors && f.color!=0) LOG_WARN("STL: face #"+to_string(i)+": color not imported (not implemented yet).");
 			}
 		#else
 			throw std::runtime_error("Binary STL import not supported on big-endian machines.");
