@@ -49,8 +49,6 @@ struct PredicateWrap: Predicate, py::wrapper<Predicate>{
 	bool operator()(const Vector3r& pt, Real pad=0.) const WOO_CXX11_OVERRIDE { return this->get_override("__call__")(pt,pad);}
 	AlignedBox3r aabb() const WOO_CXX11_OVERRIDE { return this->get_override("aabb")(); }
 };
-// make the pad parameter optional
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(PredicateWrapCall_overloads,operator(),1,2);
 
 /*********************************************************************************
 ****************** Boolean operations on predicates ******************************
@@ -127,6 +125,25 @@ public:
 			mn[2]+pad<=pt[2] && mx[2]-pad>=pt[2];
 	}
 	AlignedBox3r aabb() const WOO_CXX11_OVERRIDE { return AlignedBox3r(mn,mx); }
+};
+
+class inOrientedBox: public Predicate{
+	Vector3r pos;
+	Quaternionr ori;
+	AlignedBox3r box;
+public:
+	inOrientedBox(const Vector3r& _pos, const Quaternionr& _ori, const AlignedBox3r& _box): pos(_pos),ori(_ori),box(_box){};
+	bool operator()(const Vector3r& pt, Real pad=0.) const WOO_CXX11_OVERRIDE{
+		// shrunk box
+		AlignedBox3r box2; box2.min()=box.min()+Vector3r::Ones()*pad; box2.max()=box.max()-Vector3r::Ones()*pad;
+		return box2.contains(ori.conjugate()*(pt-pos));
+	}
+	AlignedBox3r aabb() const WOO_CXX11_OVERRIDE {
+		AlignedBox3r ret;
+		// box containing all corners after transformation
+		for(const auto& corner: {AlignedBox3r::BottomLeftFloor, AlignedBox3r::BottomRightFloor, AlignedBox3r::TopLeftFloor, AlignedBox3r::TopRightFloor, AlignedBox3r::BottomLeftCeil, AlignedBox3r::BottomRightCeil, AlignedBox3r::TopLeftCeil, AlignedBox3r::TopRightCeil}) ret.extend(pos+ori*box.corner(corner));
+		return ret;
+	}
 };
 
 class inParallelepiped: public Predicate{
@@ -396,6 +413,7 @@ BOOST_PYTHON_MODULE(_packPredicates){
 	// primitive predicates
 	py::class_<inSphere,shared_ptr<inSphere>,py::bases<Predicate> >("inSphere","Sphere predicate.",py::init<const Vector3r&,Real>(py::args("center","radius"),"Ctor taking center (as a 3-tuple) and radius"));
 	py::class_<inAlignedBox,shared_ptr<inAlignedBox>,py::bases<Predicate> >("inAlignedBox","Axis-aligned box predicate",py::init<const Vector3r&,const Vector3r&>(py::args("minAABB","maxAABB"),"Ctor taking minumum and maximum points of the box (as 3-tuples).")).def(py::init<const AlignedBox3r&>(py::arg("box")));
+	py::class_<inOrientedBox,shared_ptr<inOrientedBox>,py::bases<Predicate> >("inOrientedBox","Arbitrarily oriented box specified as local coordinates (pos,ori) and aligned box in those local coordinates.",py::init<const Vector3r&,const Quaternionr&, const AlignedBox3r&>(py::args("pos","ori","box"),"Ctor taking position and orientation of the local system, and aligned box in local coordinates."));
 	py::class_<inParallelepiped,shared_ptr<inParallelepiped>,py::bases<Predicate> >("inParallelepiped","Parallelepiped predicate",py::init<const Vector3r&,const Vector3r&, const Vector3r&, const Vector3r&>(py::args("o","a","b","c"),"Ctor taking four points: ``o`` (for origin) and then ``a``, ``b``, ``c`` which define endpoints of 3 respective edges from ``o``."));
 	py::class_<inCylinder,shared_ptr<inCylinder>,py::bases<Predicate> >("inCylinder","Cylinder predicate",py::init<const Vector3r&,const Vector3r&,Real>(py::args("centerBottom","centerTop","radius"),"Ctor taking centers of the lateral walls (as 3-tuples) and radius.")).def("__str__",&inCylinder::__str__);
 	py::class_<inHyperboloid,shared_ptr<inHyperboloid>,py::bases<Predicate> >("inHyperboloid","Hyperboloid predicate",py::init<const Vector3r&,const Vector3r&,Real,Real>(py::args("centerBottom","centerTop","radius","skirt"),"Ctor taking centers of the lateral walls (as 3-tuples), radius at bases and skirt (middle radius)."));

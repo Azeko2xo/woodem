@@ -42,17 +42,20 @@ shared_ptr<DemField> DemFuncs::getDemField(const Scene* scene){
 	return ret;
 }
 
-vector<Real> DemFuncs::contactCoordQuantiles(const shared_ptr<DemField>& dem, const vector<Real>& quantiles, const Vector3r& pt, Vector3r dir){
+vector<Real> DemFuncs::contactCoordQuantiles(const shared_ptr<DemField>& dem, const vector<Real>& quantiles, const Vector3r& pt, Vector3r dir, const Vector2r& range){
 	dir.normalize();
 	vector<Real> ret;
 	ret.reserve(quantiles.size());
 	if(quantiles.empty()) return ret;
 	// count contacts first
+	// this count will be off when range is given; it will be larger, so copying is avoided at the cost of some spurious allocation
 	size_t N=boost::range::count_if(*dem->contacts,[&](const shared_ptr<Contact>& C)->bool{ return C->isReal(); });
 	vector<Real> coords; coords.reserve(N);
 	for(const shared_ptr<Contact>& C: *dem->contacts){
 		if(!C->isReal()) continue;
-		coords.push_back((C->geom->node->pos-pt).dot(dir));
+		Real c=(C->geom->node->pos-pt).dot(dir);
+		if(range[0]<range[1] && (c<range[0] || c>range[1])) continue;
+		coords.push_back(c);
 	};
 	// no contacts yet, return NaNs
 	if(coords.empty()){

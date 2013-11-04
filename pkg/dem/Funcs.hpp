@@ -31,7 +31,7 @@ struct DemFuncs{
 	static size_t reactionInPoint(const Scene* scene, const DemField* dem, int mask, const Vector3r& pt, bool multinodal, Vector3r& force, Vector3r& torque);
 
 	/* return list of quantile values for contact coordinates sorted along vector *dir* with the origin in *pt*. The list returned has the same length as *quantiles* */
-	static vector<Real> contactCoordQuantiles(const shared_ptr<DemField>& dem, const vector<Real>& quantiles, const Vector3r& pt, Vector3r dir);
+	static vector<Real> contactCoordQuantiles(const shared_ptr<DemField>& dem, const vector<Real>& quantiles, const Vector3r& pt, Vector3r dir, const Vector2r& range=Vector2r(0,0));
 
 	#if 0
 		static Vector2r radialAxialForce(const Scene* scene, const DemField* dem, int mask, Vector3r axis, bool shear);
