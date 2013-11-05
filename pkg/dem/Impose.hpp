@@ -23,6 +23,17 @@ struct HarmonicOscillation: public Impose{
 };
 WOO_REGISTER_OBJECT(HarmonicOscillation);
 
+struct CircularOrbit: public Impose{
+	void velocity(const Scene* scene, const shared_ptr<Node>&n) WOO_CXX11_OVERRIDE;
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR(CircularOrbit,Impose,"Imposes circual orbiting around the local z-axis; the velocity is prescribed using midstep position.",
+		((shared_ptr<Node>,node,make_shared<Node>(),,"Local coordinate system."))
+		((bool,rotate,false,,"Impose rotational velocity so that orientation relative to the local z-axis is always the same.\n\n.. warn:: This is not yet implemented."))
+		((Real,omega,NaN,,"Orbiting angular velocity."))
+		,/*ctor*/ what=Impose::VELOCITY;
+	);
+};
+WOO_REGISTER_OBJECT(CircularOrbit);
+
 struct AlignedHarmonicOscillations: public Impose{
 	void velocity(const Scene* scene, const shared_ptr<Node>& n){
 		Vector3r& vv(n->getData<DemData>().vel);
