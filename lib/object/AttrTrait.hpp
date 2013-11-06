@@ -201,7 +201,7 @@ namespace woo{
 		AttrTrait& lenUnit(){ unit("m"); altUnits({{"mm",1e3}}); return *this; }
 		AttrTrait& areaUnit(){ unit("m²"); altUnits({{"mm²",1e6}}); return *this; }
 		AttrTrait& volUnit(){ unit("m³"); altUnits({{"mm³",1e9}}); return *this; }
-		AttrTrait& velUnit(){ unit("m/s"); altUnits({{"km/h",1e-3*3600}}); return *this; }
+		AttrTrait& velUnit(){ unit("m/s"); altUnits({{"km/h",1e-3*3600},{"m/min",60}}); return *this; }
 		AttrTrait& accelUnit(){ unit("m/s²"); return *this; }
 		AttrTrait& massUnit(){ unit("kg"); altUnits({{"g",1e3},{"t",1e-3}}); return *this; }
 		AttrTrait& angVelUnit(){ unit("rad/s"); altUnits({{"rot/s",1/(2*M_PI)},{"rot/min",60.*(1./(2*M_PI))}}); return *this; }

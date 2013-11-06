@@ -10,7 +10,13 @@
 
 #include<GL/gle.h>
 
-WOO_PLUGIN(gl,(ScalarGlRep)(VectorGlRep)(TensorGlRep)(ActReactGlRep)(CylGlRep));
+WOO_PLUGIN(gl,(LabelGlRep)(ScalarGlRep)(VectorGlRep)(TensorGlRep)(ActReactGlRep)(CylGlRep));
+
+void LabelGlRep::render(const shared_ptr<Node>& node, const GLViewInfo* viewInfo){
+	Vector3r pos=node->pos+(node->hasData<GlData>()?node->getData<GlData>().dGlPos:Vector3r::Zero());
+	GLUtils::GLDrawText(text,pos,color);
+};
+
 
 void ScalarGlRep::render(const shared_ptr<Node>& node, const GLViewInfo* viewInfo){
 	Vector3r color=(range?range->color(val):CompUtils::scalarOnColorScale(val,0,1));

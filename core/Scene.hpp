@@ -213,6 +213,7 @@ struct Scene: public Object{
 		.add_property("running",&Scene::running)
 		.def("paused",&Scene::pyPaused,py::return_value_policy<py::manage_new_object>())
 		.def("selfTest",&Scene::pySelfTest,"Run self-tests (they are usually run automatically with, see :obj:`selfTestEvery`).")
+		.def("expandTags",&Scene::expandTags,"Expand :obj:`tags` written as ``{tagName}``, returns the expanded string.")
 		;
 		// define nested class
 		py::scope foo(_classObj);

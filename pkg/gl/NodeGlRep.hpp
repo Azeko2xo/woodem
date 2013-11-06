@@ -4,6 +4,15 @@
 
 #include<woo/core/Field.hpp>
 
+struct LabelGlRep: public NodeGlRep{
+	void render(const shared_ptr<Node>&, const GLViewInfo*);
+	WOO_CLASS_BASE_DOC_ATTRS(LabelGlRep,NodeGlRep,"Render scalar value at associated node",
+		((string,text,"",,"Text to be rendered at the node's position"))
+		((Vector3r,color,Vector3r(1,1,1),AttrTrait<>().rgbColor(),"Color for rendering the text"))
+	);
+};
+WOO_REGISTER_OBJECT(LabelGlRep);
+
 struct ScalarGlRep: public NodeGlRep{
 	void render(const shared_ptr<Node>&, const GLViewInfo*);
 	WOO_CLASS_BASE_DOC_ATTRS(ScalarGlRep,NodeGlRep,"Render scalar value at associated node",
