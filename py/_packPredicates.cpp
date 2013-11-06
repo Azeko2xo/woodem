@@ -112,6 +112,19 @@ public:
 	AlignedBox3r aabb() const WOO_CXX11_OVERRIDE {return AlignedBox3r(Vector3r(center[0]-radius,center[1]-radius,center[2]-radius),Vector3r(center[0]+radius,center[1]+radius,center[2]+radius));}
 };
 
+class inAlignedHalfspace: public Predicate{
+	short axis; Real coord; bool lower;
+public:
+	inAlignedHalfspace(int _axis, const Real& _coord, bool _lower=true): axis(_axis), coord(_coord), lower(_lower){}
+	bool operator()( const Vector3r& pt, Real pad=0.) const WOO_CXX11_OVERRIDE {
+		if(!(axis==0 || axis==1 || axis==2)) throw std::runtime_error("inAlignedHalfSpace.axis: must be in {0,1,2} (not "+to_string(axis)+")");
+		if(pt[axis]<coord) return lower; // true if particles should be in the lower halfspace, false otherwise
+		return !lower; // the other way around
+	}
+	AlignedBox3r aabb() const WOO_CXX11_OVERRIDE { AlignedBox3r ret(Vector3r(-Inf,-Inf,-Inf),Vector3r(Inf,Inf,Inf)); if(lower) ret.max()[axis]=coord; else ret.min()[axis]=coord; return ret; }
+};
+
+
 /*! Axis-aligned box predicate */
 class inAlignedBox: public Predicate{
 	Vector3r mn, mx;
@@ -459,6 +472,7 @@ BOOST_PYTHON_MODULE(_packPredicates){
 	py::class_<inAlignedBox,shared_ptr<inAlignedBox>,py::bases<Predicate>>("inAlignedBox","Axis-aligned box predicate",py::init<const Vector3r&,const Vector3r&>(py::args("minAABB","maxAABB"),"Ctor taking minumum and maximum points of the box (as 3-tuples).")).def(py::init<const AlignedBox3r&>(py::arg("box")));
 	py::class_<inOrientedBox,shared_ptr<inOrientedBox>,py::bases<Predicate>>("inOrientedBox","Arbitrarily oriented box specified as local coordinates (pos,ori) and aligned box in those local coordinates.",py::init<const Vector3r&,const Quaternionr&, const AlignedBox3r&>(py::args("pos","ori","box"),"Ctor taking position and orientation of the local system, and aligned box in local coordinates."));
 	py::class_<inCylSector,shared_ptr<inCylSector>,py::bases<Predicate>>("inCylSector","Sector of an arbitrarily oriented cylinder in 3d, limiting cylindrical coordinates :math:`\\rho`, :math:`\\theta`, :math:`z`; all coordinate limits are optional.",py::init<const Vector3r&, const Quaternionr&, py::optional<const Vector2r&, const Vector2r&, const Vector2r&>>(py::args("pos","ori","rrho","ttheta","zz"),"Ctor taking position and orientation of the local system, and aligned box in local coordinates."));
+	py::class_<inAlignedHalfspace,shared_ptr<inAlignedHalfspace>,py::bases<Predicate>>("inAlignedHalfspace","Half-space given by coordinate at some axis.",py::init<int, const Real&, py::optional<bool>>(py::args("axis","coord","lower"),"Ctor taking axis (0,1,2 for :math:`x`, :math:`y`, :math:`z` respectively), the coordinate along that axis, and whether the *lower* half (or the upper half, if *lower* is false) is considered."));
 	py::class_<inParallelepiped,shared_ptr<inParallelepiped>,py::bases<Predicate>>("inParallelepiped","Parallelepiped predicate",py::init<const Vector3r&,const Vector3r&, const Vector3r&, const Vector3r&>(py::args("o","a","b","c"),"Ctor taking four points: ``o`` (for origin) and then ``a``, ``b``, ``c`` which define endpoints of 3 respective edges from ``o``."));
 	py::class_<inCylinder,shared_ptr<inCylinder>,py::bases<Predicate>>("inCylinder","Cylinder predicate",py::init<const Vector3r&,const Vector3r&,Real>(py::args("centerBottom","centerTop","radius"),"Ctor taking centers of the lateral walls (as 3-tuples) and radius.")).def("__str__",&inCylinder::__str__);
 	py::class_<inHyperboloid,shared_ptr<inHyperboloid>,py::bases<Predicate> >("inHyperboloid","Hyperboloid predicate",py::init<const Vector3r&,const Vector3r&,Real,Real>(py::args("centerBottom","centerTop","radius","skirt"),"Ctor taking centers of the lateral walls (as 3-tuples), radius at bases and skirt (middle radius)."));
