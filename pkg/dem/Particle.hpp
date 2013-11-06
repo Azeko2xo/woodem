@@ -6,6 +6,7 @@
 #include<woo/core/Field-templates.hpp>
 #include<woo/pkg/dem/ParticleContainer.hpp>
 #include<woo/pkg/dem/ContactContainer.hpp>
+#include<atomic>
 
 
 // namespace woo{namespace dem{
@@ -99,10 +100,20 @@ WOO_REGISTER_OBJECT(Particle);
 struct Impose: public Object{
 	virtual void velocity(const Scene*, const shared_ptr<Node>&){ throw std::runtime_error("Calling abstract Impose::velocity."); }
 	virtual void force(const Scene*, const shared_ptr<Node>&){ throw std::runtime_error("Calling abstract Impose::force."); }
+	bool isFirstStepRun(const Scene* scene){
+		// this does not need to be locked (hopefully)
+		if(stepLast==scene->step) return false;
+		boost::mutex::scoped_lock l(lock);
+		if(stepLast==scene->step) return false; // test again under the lock, in case it changed meanwhile
+		stepLast=scene->step;
+		return true;
+	}
+	boost::mutex lock;
 	// INIT_VELOCITY is used in LawTesteStage, but not by Impose classes
 	enum{ NONE=0, VELOCITY=1, FORCE=2, INIT_VELOCITY=4 };
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Impose,Object,"Impose arbitrary changes in Node and DemData, right after integration of the node.",
 		((int,what,,AttrTrait<>().readonly().choice({{0,"none"},{VELOCITY,"velocity"},{FORCE,"force"},{VELOCITY|FORCE,"velocity+force"}}),"What values are to be imposed; this is set by the derived engine automatically depending on what is to be prescribed."))
+		((long,stepLast,-1,AttrTrait<>().readonly(),"Step in which this imposition was last used; updated atomically by callers from c++ by calling isFirstStepRun."))
 		,/*ctor*/
 		,/*py*/
 			;

@@ -198,6 +198,50 @@ public:
 	}
 };
 
+class inCylSector: public Predicate{
+	Vector3r pos; Quaternionr ori; Vector2r rrho, ttheta, zz; Quaternionr oriConj;
+	bool limZ, limTh, limRho;
+public:
+	inCylSector(const Vector3r& _pos, const Quaternionr& _ori, const Vector2r& _rrho=Vector2r::Zero(), const Vector2r& _ttheta=Vector2r::Zero(), const Vector2r& _zz=Vector2r::Zero()): pos(_pos), ori(_ori), rrho(_rrho), ttheta(_ttheta), zz(_zz) {
+		oriConj=ori.conjugate();
+		for(int i:{0,1}) ttheta[i]=CompUtils::wrapNum(ttheta[i],2*M_PI);
+		limRho=(rrho!=Vector2r::Zero());
+		limTh=(ttheta!=Vector2r::Zero());
+		limZ=(zz!=Vector2r::Zero());
+	};
+	bool operator()(const Vector3r& pt, Real pad=0.) const {
+		Vector3r l3=oriConj*(pt-pos);
+		Real z=l3[2];
+		if(limZ && (z-pad<zz[0] || z+pad>zz[1])) return false;
+		Real th=CompUtils::wrapNum(atan2(l3[1],l3[0]),2*M_PI);
+		Real rho=l3.head<2>().norm();
+		if(limRho && (rho-pad<rrho[0] || rho+pad>rrho[1])) return false;
+		if(limTh){
+			Real t0=CompUtils::wrapNum(ttheta[0]+(rho>0?pad/rho:0.),2*M_PI);
+			Real t1=CompUtils::wrapNum(ttheta[1]-(rho>0?pad/rho:0.),2*M_PI);
+			// we are wrapping around 2π
+			// |===t1........t0===|
+			if(t1<t0) return (th>=t1 || th<=t0);
+			// |...t0========t1...|
+			return (th>=t0 && th<=t1);
+		};
+		return true;
+	}
+	AlignedBox3r aabb() const {
+		// this aabb is very pessimistic, but probably not really needed
+		// if(!limRho || !limTh || !limZ) 
+		return AlignedBox3r(Vector3r(-Inf,-Inf,-Inf),Vector3r(Inf,Inf,Inf));
+		#if 0
+			AlignedBox3r bb;
+			auto cyl2glob=[&](const Real& rho, const Real& theta, const Real& z)->Vector3r{ return ori*Vector3r(rho*cos(theta),rho*sin(theta),z)+pos; }
+			for(Real z:{zz[0],zz[1]){
+				bb.extend(cyl2glob(0,0,z)); // center
+				bb.extend(cyl2glob(
+			}
+		#endif
+	};
+};
+
 /*! Oriented hyperboloid predicate (cylinder as special case).
 
 See http://mathworld.wolfram.com/Hyperboloid.html for the parametrization and meaning of symbols
@@ -407,15 +451,16 @@ BOOST_PYTHON_MODULE(_packPredicates){
 	py::class_<PredicateBoolean,shared_ptr<PredicateBoolean>,py::bases<Predicate>,boost::noncopyable>("PredicateBoolean","Boolean operation on 2 predicates (abstract class)",py::no_init)
 		.add_property("A",&PredicateBoolean::getA).add_property("B",&PredicateBoolean::getB);
 	py::class_<PredicateUnion,shared_ptr<PredicateUnion>,py::bases<PredicateBoolean> >("PredicateUnion","Union (non-exclusive disjunction) of 2 predicates. A point has to be inside any of the two predicates to be inside. Can be constructed using the ``|`` operator on predicates: ``pred1 | pred2``.",py::init<shared_ptr<Predicate>,shared_ptr<Predicate>>());
-	py::class_<PredicateIntersection,shared_ptr<PredicateIntersection>,py::bases<PredicateBoolean> >("PredicateIntersection","Intersection (conjunction) of 2 predicates. A point has to be inside both predicates. Can be constructed using the ``&`` operator on predicates: ``pred1 & pred2``.",py::init<shared_ptr<Predicate>,shared_ptr<Predicate>>());
+	py::class_<PredicateIntersection,shared_ptr<PredicateIntersection>,py::bases<PredicateBoolean>>("PredicateIntersection","Intersection (conjunction) of 2 predicates. A point has to be inside both predicates. Can be constructed using the ``&`` operator on predicates: ``pred1 & pred2``.",py::init<shared_ptr<Predicate>,shared_ptr<Predicate>>());
 	py::class_<PredicateDifference,shared_ptr<PredicateDifference>,py::bases<PredicateBoolean> >("PredicateDifference","Difference (conjunction with negative predicate) of 2 predicates. A point has to be inside the first and outside the second predicate. Can be constructed using the ``-`` operator on predicates: ``pred1 - pred2``.",py::init<shared_ptr<Predicate>,shared_ptr<Predicate>>());
 	py::class_<PredicateSymmetricDifference,shared_ptr<PredicateSymmetricDifference>,py::bases<PredicateBoolean> >("PredicateSymmetricDifference","SymmetricDifference (exclusive disjunction) of 2 predicates. A point has to be in exactly one predicate of the two. Can be constructed using the ``^`` operator on predicates: ``pred1 ^ pred2``.",py::init<shared_ptr<Predicate>,shared_ptr<Predicate>>());
 	// primitive predicates
-	py::class_<inSphere,shared_ptr<inSphere>,py::bases<Predicate> >("inSphere","Sphere predicate.",py::init<const Vector3r&,Real>(py::args("center","radius"),"Ctor taking center (as a 3-tuple) and radius"));
-	py::class_<inAlignedBox,shared_ptr<inAlignedBox>,py::bases<Predicate> >("inAlignedBox","Axis-aligned box predicate",py::init<const Vector3r&,const Vector3r&>(py::args("minAABB","maxAABB"),"Ctor taking minumum and maximum points of the box (as 3-tuples).")).def(py::init<const AlignedBox3r&>(py::arg("box")));
-	py::class_<inOrientedBox,shared_ptr<inOrientedBox>,py::bases<Predicate> >("inOrientedBox","Arbitrarily oriented box specified as local coordinates (pos,ori) and aligned box in those local coordinates.",py::init<const Vector3r&,const Quaternionr&, const AlignedBox3r&>(py::args("pos","ori","box"),"Ctor taking position and orientation of the local system, and aligned box in local coordinates."));
-	py::class_<inParallelepiped,shared_ptr<inParallelepiped>,py::bases<Predicate> >("inParallelepiped","Parallelepiped predicate",py::init<const Vector3r&,const Vector3r&, const Vector3r&, const Vector3r&>(py::args("o","a","b","c"),"Ctor taking four points: ``o`` (for origin) and then ``a``, ``b``, ``c`` which define endpoints of 3 respective edges from ``o``."));
-	py::class_<inCylinder,shared_ptr<inCylinder>,py::bases<Predicate> >("inCylinder","Cylinder predicate",py::init<const Vector3r&,const Vector3r&,Real>(py::args("centerBottom","centerTop","radius"),"Ctor taking centers of the lateral walls (as 3-tuples) and radius.")).def("__str__",&inCylinder::__str__);
+	py::class_<inSphere,shared_ptr<inSphere>,py::bases<Predicate>>("inSphere","Sphere predicate.",py::init<const Vector3r&,Real>(py::args("center","radius"),"Ctor taking center (as a 3-tuple) and radius"));
+	py::class_<inAlignedBox,shared_ptr<inAlignedBox>,py::bases<Predicate>>("inAlignedBox","Axis-aligned box predicate",py::init<const Vector3r&,const Vector3r&>(py::args("minAABB","maxAABB"),"Ctor taking minumum and maximum points of the box (as 3-tuples).")).def(py::init<const AlignedBox3r&>(py::arg("box")));
+	py::class_<inOrientedBox,shared_ptr<inOrientedBox>,py::bases<Predicate>>("inOrientedBox","Arbitrarily oriented box specified as local coordinates (pos,ori) and aligned box in those local coordinates.",py::init<const Vector3r&,const Quaternionr&, const AlignedBox3r&>(py::args("pos","ori","box"),"Ctor taking position and orientation of the local system, and aligned box in local coordinates."));
+	py::class_<inCylSector,shared_ptr<inCylSector>,py::bases<Predicate>>("inCylSector","Sector of an arbitrarily oriented cylinder in 3d, limiting cylindrical coordinates :math:`\\rho`, :math:`\\theta`, :math:`z`; all coordinate limits are optional.",py::init<const Vector3r&, const Quaternionr&, py::optional<const Vector2r&, const Vector2r&, const Vector2r&>>(py::args("pos","ori","rrho","ttheta","zz"),"Ctor taking position and orientation of the local system, and aligned box in local coordinates."));
+	py::class_<inParallelepiped,shared_ptr<inParallelepiped>,py::bases<Predicate>>("inParallelepiped","Parallelepiped predicate",py::init<const Vector3r&,const Vector3r&, const Vector3r&, const Vector3r&>(py::args("o","a","b","c"),"Ctor taking four points: ``o`` (for origin) and then ``a``, ``b``, ``c`` which define endpoints of 3 respective edges from ``o``."));
+	py::class_<inCylinder,shared_ptr<inCylinder>,py::bases<Predicate>>("inCylinder","Cylinder predicate",py::init<const Vector3r&,const Vector3r&,Real>(py::args("centerBottom","centerTop","radius"),"Ctor taking centers of the lateral walls (as 3-tuples) and radius.")).def("__str__",&inCylinder::__str__);
 	py::class_<inHyperboloid,shared_ptr<inHyperboloid>,py::bases<Predicate> >("inHyperboloid","Hyperboloid predicate",py::init<const Vector3r&,const Vector3r&,Real,Real>(py::args("centerBottom","centerTop","radius","skirt"),"Ctor taking centers of the lateral walls (as 3-tuples), radius at bases and skirt (middle radius)."));
 	py::class_<inEllipsoid,shared_ptr<inEllipsoid>,py::bases<Predicate> >("inEllipsoid","Ellipsoid predicate",py::init<const Vector3r&,const Vector3r&>(py::args("centerPoint","abc"),"Ctor taking center of the ellipsoid (3-tuple) and its 3 radii (3-tuple)."));
 	py::class_<notInNotch,shared_ptr<notInNotch>,py::bases<Predicate> >("notInNotch","Outside of infinite, rectangle-shaped notch predicate",py::init<const Vector3r&,const Vector3r&,const Vector3r&,Real>(py::args("centerPoint","edge","normal","aperture"),"Ctor taking point in the symmetry plane, vector pointing along the edge, plane normal and aperture size.\nThe side inside the notch is edge×normal.\nNormal is made perpendicular to the edge.\nAll vectors are normalized at construction time.")); 

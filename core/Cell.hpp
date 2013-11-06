@@ -15,6 +15,7 @@ The transformation is split between "normal" part and "rotation/shear" part for 
 
 #include<woo/lib/object/Object.hpp>
 #include<woo/lib/base/Math.hpp>
+#include<woo/lib/base/CompUtils.hpp>
 
 struct Scene;
 
@@ -82,16 +83,12 @@ struct Cell: public Object{
 	Vector3r shearPt(const Vector3r& pt) const { return _shearTrsf*pt; }
 	/*! Wrap point to inside the periodic cell; don't compute number of periods wrapped */
 	Vector3r wrapPt(const Vector3r& pt) const {
-		Vector3r ret; for(int i=0;i<3;i++) ret[i]=wrapNum(pt[i],_size[i]); return ret;}
+		Vector3r ret; for(int i=0;i<3;i++) ret[i]=CompUtils::wrapNum(pt[i],_size[i]); return ret;
+	}
 	/*! Wrap point to inside the periodic cell; period will contain by how many cells it was wrapped. */
 	Vector3r wrapPt(const Vector3r& pt, Vector3i& period) const {
-		Vector3r ret; for(int i=0; i<3; i++){ ret[i]=wrapNum(pt[i],_size[i],period[i]); } return ret;}
-	/*! Wrap number to interval 0…sz */
-	static Real wrapNum(const Real& x, const Real& sz) {
-		Real norm=x/sz; return (norm-floor(norm))*sz;}
-	/*! Wrap number to interval 0…sz; store how many intervals were wrapped in period */
-	static Real wrapNum(const Real& x, const Real& sz, int& period) {
-		Real norm=x/sz; period=(int)floor(norm); return (norm-period)*sz;}
+		Vector3r ret; for(int i=0; i<3; i++){ ret[i]=CompUtils::wrapNum(pt[i],_size[i],period[i]); } return ret;
+	}
 
 	// relative position and velocity for interaction accross multiple cells
 	Vector3r intrShiftPos(const Vector3i& cellDist) const { return hSize*cellDist.cast<Real>(); }

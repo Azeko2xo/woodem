@@ -13,6 +13,7 @@ void CircularOrbit::velocity(const Scene* scene, const shared_ptr<Node>& n){
 	// tangential velocity at this point
 	Real v2t=omega*rho; // XXX: might be actually smaller due to leapfrog?
 	Real ttheta=theta+.5*v2t*scene->dt; // mid-step polar angle
+	if(isFirstStepRun(scene)) angle+=omega*scene->dt;
 	vv=node->ori*(Quaternionr(AngleAxisr(ttheta,Vector3r::UnitZ()))*Vector3r(0,v2t,0));
 }
 

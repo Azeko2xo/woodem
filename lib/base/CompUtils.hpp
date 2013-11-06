@@ -6,6 +6,11 @@
 struct CompUtils{
 	static void clamp(Real& x, Real a, Real b){ x=clamped(x,a,b);}
 	static Real clamped(Real x, Real a, Real b){ return x<a?a:(x>b?b:x); }
+	/*! Wrap number to interval 0…sz */
+	static Real wrapNum(const Real& x, const Real& sz) { Real norm=x/sz; return (norm-floor(norm))*sz; }
+	/*! Wrap number to interval 0…sz; store how many intervals were wrapped in period */
+	static Real wrapNum(const Real& x, const Real& sz, int& period) { Real norm=x/sz; period=(int)floor(norm); return (norm-period)*sz; }
+
 	static Vector3r scalarOnColorScale(Real x, Real xmin, Real xmal, int cmap=-1, bool reversed=false);
 	static int defaultCmap;
 	static Vector3r mapColor(Real normalizedColor, int cmap=-1, bool reversed=false); // if -1, use defaultCmap
@@ -24,4 +29,24 @@ struct CompUtils{
 		Real rgb[256*3];
 	};
 	static const vector<Colormap> colormaps;
+
+	// http://stackoverflow.com/a/7918281/761090
+	template <class T>
+	static inline T fetch_add(T *ptr, T val) {
+		#ifdef WOO_OPENMP
+			#ifdef __GNUC__
+				return __sync_fetch_and_add(ptr, val);
+			#elif _OPENMP>=201107
+				T t;
+				#pragma omp atomic capture
+				{ t = *ptr; *ptr += val; }
+				return t;
+			#else
+				#error "This function requires gcc extensions (for __sync_fetch_and_add) or OpenMP 3.1 (for 'pragma omp atomic capture')"
+			#endif
+		#else
+			// with single thread no need to synchronize at all
+			T t=*ptr; *ptr+=val; return t;
+		#endif
+	}
 };

@@ -126,7 +126,7 @@ void ConveyorFactory::sortPacking(const Real& zTrimVol){
 	vector<CRC> ccrrcc(radii.size());
 	bool doClumps=hasClumps();
 	for(size_t i=0;i<N;i++){
-		if(centers[i][0]<0 || centers[i][0]>=cellLen) centers[i][0]=Cell::wrapNum(centers[i][0],cellLen);
+		if(centers[i][0]<0 || centers[i][0]>=cellLen) centers[i][0]=CompUtils::wrapNum(centers[i][0],cellLen);
 		ccrrcc[i]=CRC{centers[i],radii[i],doClumps?clumps[i]:shared_ptr<SphereClumpGeom>()};
 	}
 	// sort according to the z-coordinate of the top, if z-trimming, otherwise according to the x-coord of the center
@@ -246,15 +246,15 @@ void ConveyorFactory::run(){
 		if(isnan(abs(dX)) || isnan(abs(nextX)) || isnan(abs(lenDone)) || isnan(abs(lenToDo))) std::logic_error("ConveyorFactory: some parameters are NaN.");
 		if(lenDone+dX>lenToDo){
 			// the next sphere would not fit
-			lastX=Cell::wrapNum(lastX-(lenToDo-lenDone),cellLen); // put lastX before the next sphere
+			lastX=CompUtils::wrapNum(lastX-(lenToDo-lenDone),cellLen); // put lastX before the next sphere
 			LOG_DEBUG("Conveyor done: next sphere "<<nextIx<<" would not fit, setting lastX="<<lastX);
 			break;
 		}
-		lastX=Cell::wrapNum(nextX,cellLen);
+		lastX=CompUtils::wrapNum(nextX,cellLen);
 		lenDone+=dX;
 
 		if(!clipX.empty()){
-			clipLastX=Cell::wrapNum(clipLastX+dX,*clipX.rbegin());
+			clipLastX=CompUtils::wrapNum(clipLastX+dX,*clipX.rbegin());
 			Real zMax=linearInterpolate<Real,Real>(clipLastX,clipX,clipZ,clipPos);
 			// particle over interpolated clipZ(clipX)
 			// skip it and go to the next repetition of the loop

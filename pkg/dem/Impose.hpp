@@ -29,6 +29,7 @@ struct CircularOrbit: public Impose{
 		((shared_ptr<Node>,node,make_shared<Node>(),,"Local coordinate system."))
 		((bool,rotate,false,,"Impose rotational velocity so that orientation relative to the local z-axis is always the same.\n\n.. warn:: This is not yet implemented."))
 		((Real,omega,NaN,,"Orbiting angular velocity."))
+		((Real,angle,0,,"Cumulative angle turned, incremented at every step."))
 		,/*ctor*/ what=Impose::VELOCITY;
 	);
 };

@@ -72,26 +72,6 @@ struct GridStore: public Object{
 	// squared distance between Aabb and cell *ijk*
 	Real boxCellDistSq(const AlignedBox3r& box, const Vector3i& ijk) const { return box.squaredExteriorDistance(ijk2box(ijk)); }
 
-	// http://stackoverflow.com/a/7918281/761090
-	template <class T>
-	inline T my_fetch_add(T *ptr, T val) {
-		#ifdef WOO_OPENMP
-			#ifdef __GNUC__
-				return __sync_fetch_and_add(ptr, val);
-			#elif _OPENMP>=201107
-				T t;
-				#pragma omp atomic capture
-				{ t = *ptr; *ptr += val; }
-				return t;
-			#else
-				#error "This function requires gcc extensions (for __sync_fetch_and_add) or OpenMP 3.1 (for 'pragma omp atomic capture')"
-			#endif
-		#else
-			// with single thread no need to synchronize at all
-			T t=*ptr; *ptr+=val; return t;
-		#endif
-	}
-
 
 	DECLARE_LOGGER;
 

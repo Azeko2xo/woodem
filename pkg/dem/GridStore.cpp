@@ -133,7 +133,7 @@ void GridStore::append(const Vector3i& ijk, const GridStore::id_t& id, bool noSi
 	// 0th element is the number of elements
 	// it is fetched and incremented atomically
 	int& cellSz=(*grid)[i][j][k][0];
-	int oldCellSz=my_fetch_add(&cellSz,noSizeInc?0:1);
+	int oldCellSz=CompUtils::fetch_add(&cellSz,noSizeInc?0:1);
 	assert(oldCellSz>=0);
 	const int &denseSz=grid->shape()[3]-1; // decrement as size itself takes space
 	assert(!noSizeInc || oldCellSz>=denseSz);
