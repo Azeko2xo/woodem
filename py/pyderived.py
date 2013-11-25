@@ -105,6 +105,7 @@ class PyAttrTrait(object):
 			filename=False,
 			existingFilename=False,
 			dirname=False,
+			psd=False,
 			triggerPostLoad=False,
 			guiReadonly=False,
 			noGuiResize=False,
@@ -162,6 +163,10 @@ class PyAttrTrait(object):
 			def validateStrChoice(self,val):
 				if val not in self.choice: raise ValueError("%s: '%s' is not an admissible value (must be one of: %s)"%(self.name,str(val),', '.join(["'%s'"%str(c) for c in self.choice])))
 			self.validator=validateStrChoice
+		# PSD buttons
+		if psd:
+			if self.buttons: raise ValueError("%s: psd and buttons are mutually exclusive (psd created a button for displaying the PSD)"%self.name)
+			self.buttons=(['Plot the PSD','import pylab; pylab.plot(*zip(*self.%s)); pylab.grid(True); pylab.show();'%(self.name),''],0)
 		# 
 		# units
 		#

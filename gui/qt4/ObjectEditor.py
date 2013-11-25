@@ -248,7 +248,7 @@ class AttrEditor_FloatRange(AttrEditor,QFrame):
 	def multipliedGetter(self):
 		curr,(mn,mx)=self.getter()
 		if self.multiplier:
-			curr*=self.multiplier(curr); mn*=self.multiplier; mx*=self.multiplier
+			curr*=self.multiplier; mn*=self.multiplier; mx*=self.multiplier
 		return curr,(mn,mx)
 	def refresh(self):
 		curr,(mn,mx)=self.multipliedGetter()
@@ -278,7 +278,7 @@ class AttrEditor_FloatRange(AttrEditor,QFrame):
 	def setFocus(self): self.slider.setFocus()
 	def multiplierChanged(self,convSpec):
 		if isinstance(self.multiplier,tuple): raise RuntimeError("Float range cannot have multiple units.")
-		log.debug("New multiplier is "+str(self.multiplier))
+		logging.debug("New multiplier is "+str(self.multiplier))
 		if self.multiplier: self.setToolTip("Unit-conversion %s: factor %g"%(convSpec,self.multiplier))
 		else: self.setToolTip()
 		self.refresh()
@@ -615,17 +615,21 @@ class SerQLabel(QLabel):
 	#def sizeHint(self): return QSize(self.minWd,20)
 	#def minimumSizeHint(self): return QSize(self.minWd,20)
 	def setTextToolTip(self,label,tooltip,elide=False):
-		if elide:
-			# label is the text description; elide it at some fixed width
-			#self.minWd=100
-			label=self.fontMetrics().elidedText(label,Qt.ElideRight,1.5*self.width())
-		else:
-			pass
-			#self.minWd=60
-		self.setText(label)
-		#self.adjustSize()
-		if tooltip or self.path: self.setToolTip(('<b>'+self.path+'</b><br>' if self.path else '')+(tooltip if tooltip else ''))
-		else: self.setToolTip(None)
+		# ignore UnicodeDecodeError (appears sometimes under Windows), perhaps there are non-ascii characters in docstrings somewhere?
+		try:
+			if elide:
+				# label is the text description; elide it at some fixed width
+				#self.minWd=100
+				label=self.fontMetrics().elidedText(label,Qt.ElideRight,1.5*self.width())
+			else:
+				pass
+				#self.minWd=60
+			self.setText(label)
+			#self.adjustSize()
+			if tooltip or self.path: self.setToolTip(('<b>'+self.path+'</b><br>' if self.path else '')+(tooltip if tooltip else ''))
+			else: self.setToolTip(None)
+		except UnicodeDecodeError:
+			self.setToolTip(None)
 	def mousePressEvent(self,event):
 		if event.button()!=Qt.MidButton:
 			event.ignore(); return

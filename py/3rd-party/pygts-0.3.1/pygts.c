@@ -28,6 +28,8 @@
 #include "pygts.h"
 
 #if PYGTS_HAS_NUMPY
+  // eudoxos 20131125: would be nice to avoid compiler warning, but pygts uses the old API unfortunately
+  // #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
   #include "numpy/arrayobject.h"
 #endif
 
