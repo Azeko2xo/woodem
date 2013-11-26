@@ -57,7 +57,7 @@ This matrix is stored as :obj:`woo.dem.FlexFacet.KKcst`.
 
 .. math:: \vec{F}^{\mathrm{CST}}=\begin{pmatrix}F_{x1}\\F_{y1}\\F_{x2}\\F_{y2}\\F_{x3}\\F_{y3}\end{pmatrix}=\mat{K}^{\mathrm{CST}}\vec{u}.
 
-This is an example of a CST-only mesh (no bending):
+This is an example of a CST-only mesh, no bending (:woosrc:`examples/membrane1.py`):
 
 .. youtube:: jimWu0_8oLc
 
@@ -78,7 +78,7 @@ The stiffness matrix is integrated over the triangle as (:cite:`Batoz1980`, (31)
 
 .. math:: \mat{K}^{\mathrm{DKT}}=2A\int_0^1\int_0^{1-\eta}\mat{B}^T\mat{D}_b\mat{B}\d\xi\,\d\eta
 
-and can be integrated numerically (see :cite:`Kansara2004`, pg. 48) using the `Gauss quadrature <http://en.wikipedia.org/wiki/Gaussian_quadrature>`__ (Gauss points are mid-points of triangle sides, :math`w` is vector of point weights) over the unit triangle as
+and can be integrated numerically (see :cite:`Kansara2004`, pg. 48) using the `Gauss quadrature <http://en.wikipedia.org/wiki/Gaussian_quadrature>`__ (Gauss points are mid-points of triangle sides, :math:`w` is vector of point weights) over the unit triangle as
 
 .. math::
    :nowrap:
@@ -98,7 +98,7 @@ Generalized nodal forces are computed as
 
 Since out-of-plane translations :math:`u_{zi}` are always zero (they determine rigid body rotation of the element), we may condense those rows from :math:`\mat{K}_{\mathrm{DKT}}` away, making it 9×6 rather than 9×9, and removing zero elements from the generalized displacement vector as well. Note that corresponding DoFs may nevertheless have non-zero forces :math:`F_{zi}`.
 
-The following video shows the combined response of CST and DKT elements:
+The :woosrc:`examples/membrane2.py` script shows the combined response of CST and DKT elements:
 
 .. youtube:: KmQWD_MfR8M
 
@@ -144,6 +144,6 @@ Generalized forces from elements are distributed to nodes as follows:
 
 .. note:: The value of :math:`\vec{T}_{zi}` (drilling torque) is always zero; therefore, drilling motion of nodes is unconstrained (though still governed by dynamics). This can lead to some problems in special cases, manifesting as wobbly rotation of nodes which does not go away.
 
-This video demonstrates the :obj:`cylindrical triaxial test <woo.pre.cylTriax.CylTriaxialTest>` which includes CST+DKT elements with hydrostatic pressure and interaction with particles inside the membrane (displacements are scaled 10×):
+This video demonstrates the :obj:`cylindrical triaxial test <woo.pre.cylTriax.CylTriaxTest>` which includes CST+DKT elements with hydrostatic pressure and interaction with particles inside the membrane (displacements are scaled 10×):
 
 .. youtube:: Li13NrIyMYU
