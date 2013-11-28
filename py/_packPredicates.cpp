@@ -383,8 +383,8 @@ shared_ptr<SpherePack> SpherePack_filtered(const shared_ptr<SpherePack>& sp, con
 	}
 	// do not warn for inifinite predicates, which are always larger than the packing
 	for(int ax:{0,1,2}){
-		if(pbox.min()[ax]!=-Inf && pbox.min()[ax]>sbox.min()[ax]) LOG_WARN("SpherePack.filtered: axis="<<ax<<", packing aabb (min="<<sbox.min()[ax]<<") outside of the predicate aabb (min="<<pbox.min()[ax]<<")");
-		if(pbox.max()[ax]!=Inf && pbox.max()[ax]<sbox.max()[ax]) LOG_WARN("SpherePack.filtered: axis="<<ax<<", packing aabb (max="<<sbox.min()[ax]<<") outside of the predicate aabb (max="<<pbox.min()[ax]<<").");
+		if(pbox.min()[ax]!=-Inf && pbox.min()[ax]<sbox.min()[ax]) LOG_WARN("SpherePack.filtered: axis="<<ax<<", packing aabb (min="<<sbox.min()[ax]<<") outside of the predicate aabb (min="<<pbox.min()[ax]<<")");
+		if(pbox.max()[ax]!=Inf && pbox.max()[ax]>sbox.max()[ax]) LOG_WARN("SpherePack.filtered: axis="<<ax<<", packing aabb (max="<<sbox.max()[ax]<<") outside of the predicate aabb (max="<<pbox.max()[ax]<<").");
 	}
 	// if(!sbox.contains(pbox)) LOG_WARN("Packing's box does not fully contain box of the predicate");
 	//#if dimP[0]>dimS[0] or dimP[1]>dimS[1] or dimP[2]>dimS[2]: warnings.warn("Packing's dimension (%s) doesn't fully contain dimension of the predicate (%s)."%(dimS,dimP))
