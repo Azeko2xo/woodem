@@ -760,15 +760,14 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 	print 'woo.pack.makeBandFeedPack(dim=%s,psd=%s,mat=%s,gravity=%s,excessWd=%s,damping=%s,dontBlock=True,botLine=%s,leftLine=%s,rightLine=%s,clumps=%s)'%(repr(dim),repr(psd),mat.dumps(format='expr',width=-1,noMagic=True),repr(gravity),repr(excessWd),repr(damping),repr(botLine),repr(leftLine),repr(rightLine),repr(clumps))
 	dim=list(dim) # make modifiable in case of excess width
 	retWd=dim[1]
-	repeatCell=[0]
+	nRepeatCells=0 # if 0, repetition is disabled
 	# too wide band is created by repeating narrower one
 	if excessWd:
 		if dim[1]>excessWd[0]:
 			print 'makeBandFeedPack: excess with %g>%g, using %g with packing repeated'%(dim[1],excessWd[0],excessWd[1])
-			retWd=dim[1]
+			retWd=dim[1] # this var is used at the end
 			dim[1]=excessWd[1]
-			nCopy=int(retWd/dim[1])+1
-			repeatCell=range(-nCopy,nCopy+1)
+			nRepeatCells=int(retWd/dim[1])+1
 	cellSize=(dim[0],dim[1],(1+2*porosity)*dim[2])
 	print 'cell size',cellSize,'target height',dim[2]
 	if memoizeDir and not dontBlock:
@@ -843,38 +842,21 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 	if dontBlock: return S
 	else: S.run()
 	S.wait()
-	if True:
-		sp=SpherePack()
-		sp.fromSimulation(S)
-		sp.canonicalize()
-		repeats=Vector3i(1,len(repeatCell),1)
-		sp.cellRepeat(repeats)
-		sp.translate(Vector3(0,dim[1]*(repeats[1]-1.5),0))
-		# only periodic along the x-axis
-		sp.cellSize[1]=sp.cellSize[2]=0
-		if memoizeDir:
-			print 'Saving to',memoizeFile
-			sp.save(memoizeFile)
-		if returnSpherePack: return sp
-		return zip(*sp)
 
-	# old implementation, without SpherePack
-	# should be removed at some point (soon)
-	else:
-		cc,rr=[],[]
-		for p in S.dem.par:
-			if not type(p.shape)==woo.dem.Sphere: continue
-			for rep in repeatCell:
-				c,r=S.cell.canonicalizePt(p.pos)+dim[1]*(rep-.5)*Vector3.UnitY,p.shape.radius
-				if abs(c[1])+r>.5*retWd or c[2]+r>dim[2]: continue
-				cc.append(Vector3(c[0],c[1],c[2])); rr.append(r)
-		if memoizeDir:
-			sp=SpherePack()
-			for c,r in zip(cc,rr): sp.add(c,r)
-			print 'Saving to',memoizeFile
-			sp.save(memoizeFile)
-		return cc,rr
-
-
-
+	sp=SpherePack()
+	sp.fromSimulation(S)
+	sp.canonicalize()
+	if nRepeatCells:
+		print 'nRepeatCells',nRepeatCells
+		sp.cellRepeat(Vector3i(1,nRepeatCells,1))
+		sp.translate(Vector3(0,-dim[1]*.5*nRepeatCells,0))
+		sp=sp.filtered(woo.pack.inAxisRange(axis=1,range=(-retWd/2.,retWd/2.)),recenter=False)
+	else: sp.translate(Vector3(0,-.5*dim[1],0))
+	# only periodic along the x-axis
+	sp.cellSize[1]=sp.cellSize[2]=0
+	if memoizeDir:
+		print 'Saving to',memoizeFile
+		sp.save(memoizeFile)
+	if returnSpherePack: return sp
+	return zip(*sp)
 
