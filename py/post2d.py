@@ -252,7 +252,7 @@ def data(scene,extractor,flattener,con=False,onlyDynamic=True,stDev=None,relThre
 	if nDim==1: return {'type':'smoothScalar','x':xxx,'y':yyy,'val':ddd,'bbox':(llo,hhi),'perArea':perArea,'grid':ga} 
 	else: return {'type':'smoothVector','x':xxx,'y':yyy,'valX':ddd,'valY':ddd2,'bbox':(llo,hhi),'grid':ga,'grid2':ga2}
 	
-def plot(data,axes=None,alpha=.5,clabel=True,cbar=False,rawVecColorRadius=True,bbox=None,aspect='equal',**kw):
+def plot(data,axes=None,clabel=True,cbar=False,rawVecColorRadius=True,bbox=None,aspect='equal',**kw):
 	"""Given output from post2d.data, plot the scalar as discrete or smooth plot.
 
 	For raw discrete data, plot filled circles with radii of particles, colored by the scalar value.
