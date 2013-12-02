@@ -115,7 +115,7 @@ class CylinderFlatten(Flatten):
 	"""Class for converting 3d point to 2d based on projection onto plane from circle.
 	The y-axis in the projection corresponds to the rotation axis; the x-axis is distance form the axis.
 	"""
-	def __init__(self,useRef,axis=2,origin=Vector3(0,0,0),dispScale=1.):
+	def __init__(self,axis=2,useRef=False,origin=Vector3(0,0,0),dispScale=1.):
 		"""
 		:param useRef: (bool) use reference positions rather than actual positions
 		:param axis: axis of the cylinder, ∈{0,1,2}
@@ -139,10 +139,10 @@ class CylinderFlatten(Flatten):
 		ax=Vector3(0,0,0); ax[axis]=1
 		circum=ax.cross(pos).normalized();
 		return circum.Dot(vec)
-		
+
 
 class AxisFlatten(Flatten):
-	def __init__(self,useRef=False,axis=2,swapAxes=False,dispScale=1.):
+	def __init__(self,axis=2,useRef=False,swapAxes=False,dispScale=1.):
 		"""
 		:param bool useRef: use reference positions rather than actual positions (only meaningful when operating on Particles)
 		:param {0,1,2}	axis: axis normal to the plane; the return value will be simply position with this component dropped.
@@ -152,13 +152,28 @@ class AxisFlatten(Flatten):
 		self.ax1,self.ax2=(self.axis+1)%3,(self.axis+2)%3
 		if swapAxes: self.ax1,self.ax2=self.ax2,self.ax1
 		Flatten.__init__(self,dispScale)
+	def _getPos(self,b):
+		return ((b.refPos if self.useRef else self.scaledPos(b)) if isinstance(b,Particle) else b.geom.node.pos)
 	def __call__(self,b):
-		p=((b.refPos if self.useRef else self.scaledPos(b)) if isinstance(b,Particle) else b.geom.node.pos)
+		p=self._getPos(b)
 		return (p[self.ax1],p[self.ax2])
 	def planar(self,pos,vec):
 		return vec[self.ax1],vec[self.ax2]
 	def normal(self,pos,vec):
 		return vec[self.axis]
+
+class LocalAxisFlatten(AxisFlatten):
+	def __init__(self,pos,ori,axis=2,useRef=False,swapAxes=False,dispScale=1.):
+		'''Like :obj:`AxisFlatten`, but transform the point to local coordinates first, using given position (Vector3) and orientation (Quaternion).'''
+		AxisFlatten.__init__(self,axis=axis,useRef=useRef,swapAxes=swapAxes,dispScale=dispScale)
+		self.pos,self.ori=pos,ori
+	def _getPos(self,b):
+		return self.ori.conjugate()*(AxisFlatten._getPos(self,b)-self.pos)
+	def planar(self,pos,vec):
+		return AxisFlatten.planar(self,self.ori.conjugate()*(pos-self.pos),self.ori.conjugate()*(pos-self.pos))
+	def normal(self,pos,vec):
+		return AxisFlatten.normal(self,self.ori.conjugate()*(pos-self.pos),self.ori.conjugate()*(pos-self.pos))
+
 
 def data(scene,extractor,flattener,con=False,onlyDynamic=True,stDev=None,relThreshold=3.,perArea=0,div=(50,50),margin=(0,0),radius=1):
 	"""Filter all particles/contacts, project them to 2d and extract required scalar value;
