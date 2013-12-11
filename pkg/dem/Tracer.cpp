@@ -114,12 +114,13 @@ void Tracer::resetNodesRep(bool setupEmpty, bool includeDead){
 	//for(const auto& p: *dem.particles){
 	//	for(const auto& n: p->shape->nodes){
 	for(const auto& n: dem.nodes){
-			n->rep.reset();
 			if(setupEmpty){
 				n->rep=make_shared<TraceGlRep>();
 				auto& tr=n->rep->cast<TraceGlRep>();
 				tr.resize(num);
 				tr.flags=(compress>0?TraceGlRep::FLAG_COMPRESS:0) | (minDist>0?TraceGlRep::FLAG_MINDIST:0);
+			} else {
+				n->rep.reset();
 			}
 		}
 	//}

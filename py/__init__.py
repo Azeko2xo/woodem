@@ -73,7 +73,7 @@ if not WIN and (wooOptions.quirks & wooOptions.quirkIntel):
 	import os
 	vgas=os.popen("LC_ALL=C lspci | grep VGA").readlines()
 	if len(vgas)==1 and 'Intel' in vgas[0]:
-		print 'Intel GPU detected, setting LIBGL_ALWAYS_SOFTWARE=1\n\t(use --no-soft-render to disable)'
+		print 'Intel GPU detected, setting LIBGL_ALWAYS_SOFTWARE=1\n\t(use --quirks=0 to disable)'
 		os.environ['LIBGL_ALWAYS_SOFTWARE']='1'
 
 if WIN:

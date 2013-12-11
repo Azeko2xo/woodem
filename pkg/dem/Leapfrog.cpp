@@ -143,16 +143,8 @@ void Leapfrog::run(){
 	#endif
 	for(size_t i=0; i<size; i++){
 		const shared_ptr<Node>& node=nodes[i];
-		if(!node->hasData<DemData>()) continue;
+		assert(node->hasData<DemData>()); // checked in DemField::selfTest
 		DemData& dyn(node->getData<DemData>());
-		if(dyn.linIx<0){
-			LOG_TRACE("Setting DemField.nodes["+to_string(i)+"].dem.linIx="+to_string(i)+" (was "+to_string(dyn.linIx)+")");
-			dyn.linIx=i;
-		}
-		#ifdef WOO_DEBUG
-			if(dyn.parRef.empty() && !dyn.isClump()) throw std::runtime_error("Node #"+to_string(i)+" has empty parRef and is not a clump.");
-			if(dyn.linIx!=(int)i) throw std::logic_error("DemField.nodes["+to_string(i)+"].dem.linIx="+to_string(dyn.linIx)+", should be "+to_string(i)+".");
-		#endif
 		// handle clumps
 		if(dyn.isClumped()) continue; // those particles are integrated via the clump's master node
 		bool isClump=dyn.isClump();
