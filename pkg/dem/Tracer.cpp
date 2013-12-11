@@ -115,6 +115,23 @@ void Tracer::resetNodesRep(bool setupEmpty, bool includeDead){
 	//for(const auto& p: *dem.particles){
 	//	for(const auto& n: p->shape->nodes){
 	for(const auto& n: dem.nodes){
+			/*
+				FIXME: there is some bug in boost::python's shared_ptr allocator, so if a node has GlRep
+				assigned from Python, we might crash here -- like this:
+
+					#4  <signal handler called>
+					#5  0x00000000004845d8 in ?? ()
+					#6  0x00007fac585be422 in boost::python::converter::shared_ptr_deleter::operator()(void const*) () from /usr/lib/x86_64-linux-gnu/libboost_python-py27.so.1.53.0
+					#7  0x00007fac568cc41e in boost::detail::sp_counted_base::release (this=0x5d6d940) at /usr/include/boost/smart_ptr/detail/sp_counted_base_gcc_x86.hpp:146
+					#8  0x00007fac56aaed7b in ~shared_count (this=<optimized out>, __in_chrg=<optimized out>) at /usr/include/boost/smart_ptr/detail/shared_count.hpp:371
+					#9  ~shared_ptr (this=<optimized out>, __in_chrg=<optimized out>) at /usr/include/boost/smart_ptr/shared_ptr.hpp:328
+					#10 operator=<TraceGlRep> (r=<unknown type in /usr/local/lib/python2.7/dist-packages/woo/_cxxInternal_mt_debug.so, CU 0x13c9b4f, DIE 0x1cc8cb9>, this=<optimized out>) at /usr/include/boost/smart_ptr/shared_ptr.hpp:601
+					#11 Tracer::resetNodesRep (this=this@entry=0x5066d20, setupEmpty=setupEmpty@entry=true, includeDead=includeDead@entry=false) at /home/eudoxos/woo/pkg/dem/Tracer.cpp:119
+
+				As workaround, set the tracerSkip flag on the node and the tracer will leave it alone.
+
+			*/
+			if(n->getData<DemData>().isTracerSkip()) continue;
 			if(setupEmpty){
 				n->rep=make_shared<TraceGlRep>();
 				auto& tr=n->rep->cast<TraceGlRep>();
@@ -127,6 +144,7 @@ void Tracer::resetNodesRep(bool setupEmpty, bool includeDead){
 	//}
 	if(includeDead){
 		for(const auto& n: dem.deadNodes){
+			if(n->getData<DemData>().isTracerSkip()) continue;
 			n->rep.reset();
 		}
 	}
@@ -161,6 +179,8 @@ void Tracer::run(){
 	auto& dem=field->cast<DemField>();
 	size_t i=0;
 	for(auto& n: dem.nodes){
+		const auto& dyn(n->getData<DemData>());
+		if(dyn.isTracerSkip()) continue;
 		// node added
 		if(!n->rep || !dynamic_pointer_cast<TraceGlRep>(n->rep)){
 			boost::mutex::scoped_lock lock(dem.nodesMutex);
@@ -170,15 +190,16 @@ void Tracer::run(){
 			tr.flags=(compress>0?TraceGlRep::FLAG_COMPRESS:0) | (minDist>0?TraceGlRep::FLAG_MINDIST:0);
 		}
 		auto& tr=n->rep->cast<TraceGlRep>();
-		const auto& dyn(n->getData<DemData>());
 		bool hasP=!dyn.parRef.empty();
-		const auto& pI(dyn.parRef.begin()); // use the iterator pI is hasP is true
 		bool hidden=false;
 		Real radius=NaN;
 		if(modulo[0]>0 && (i+modulo[1])%modulo[0]!=0) hidden=true;
 		if(dyn.isClump() && !clumps) hidden=true;
+		// if the node has no particle, hide it when radius is the scalar
+		if(!hasP && scalar==SCALAR_RADIUS) hidden=true;
 		// get redius only when actually needed
-		if(!hidden && (SCALAR_RADIUS || rRange.maxCoeff()>0)){
+		if(!hidden && (scalar==SCALAR_RADIUS || rRange.maxCoeff()>0)){
+			const auto& pI(dyn.parRef.begin());
 			if(hasP && dynamic_pointer_cast<Sphere>((*pI)->shape)) radius=(*pI)->shape->cast<Sphere>().radius;
 			else if(dyn.isClump()) radius=dyn.cast<ClumpData>().equivRad;
 			if(rRange.maxCoeff()>0) hidden=(isnan(radius) || (rRange[0]>0 && radius<rRange[0]) || (rRange[1]>0 && radius>rRange[1]));
@@ -196,7 +217,7 @@ void Tracer::run(){
 				break;
 			}
 			case SCALAR_RADIUS: sc=radius; break;
-			case SCALAR_SHAPE_COLOR: sc=(hasP?(*pI)->shape->color:NaN); break;
+			case SCALAR_SHAPE_COLOR: sc=(hasP?(*dyn.parRef.begin())->shape->color:NaN); break;
 			case SCALAR_TIME: sc=scene->time; break;
 			case SCALAR_ORDINAL: sc=(i%ordinalMod); break;
 			default: sc=NaN;

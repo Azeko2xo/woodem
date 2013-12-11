@@ -146,7 +146,7 @@ public:
 	// bits for flags
 	enum {
 		DOF_NONE=0,DOF_X=1,DOF_Y=2,DOF_Z=4,DOF_RX=8,DOF_RY=16,DOF_RZ=32,
-		CLUMP_CLUMPED=64,CLUMP_CLUMP=128,ENERGY_SKIP=256,GRAVITY_SKIP=512
+		CLUMP_CLUMPED=64,CLUMP_CLUMP=128,ENERGY_SKIP=256,GRAVITY_SKIP=512,TRACER_SKIP=1024
 	};
 	//! shorthands
 	static const unsigned DOF_ALL=DOF_X|DOF_Y|DOF_Z|DOF_RX|DOF_RY|DOF_RZ;
@@ -181,7 +181,9 @@ public:
 	bool isEnergySkip() const { return flags&ENERGY_SKIP; }
 	void setEnergySkip(bool skip) { if(!skip) flags&=~ENERGY_SKIP; else flags|=ENERGY_SKIP; }
 	bool isGravitySkip() const { return flags&GRAVITY_SKIP; }
-	void setGravitySkip(bool grav) { if(!grav) flags&=~GRAVITY_SKIP; else flags|=GRAVITY_SKIP; }
+	void setGravitySkip(bool skip) { if(!skip) flags&=~GRAVITY_SKIP; else flags|=GRAVITY_SKIP; }
+	bool isTracerSkip() const { return flags&TRACER_SKIP; }
+	void setTracerSkip(bool skip) { if(!skip) flags&=~TRACER_SKIP; else flags|=TRACER_SKIP; }
 
 	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
 	void addForceTorque(const Vector3r& f, const Vector3r& t=Vector3r::Zero()){ boost::mutex::scoped_lock l(lock); force+=f; torque+=t; }
@@ -218,7 +220,7 @@ public:
 		((weak_ptr<Node>,master,,AttrTrait<>().hidden(),"Master node; currently only used with clumps (since this is never set from python, it is safe to use weak_ptr)."))
 		, /*ctor*/
 		, /*py*/ .add_property("blocked",&DemData::blocked_vec_get,&DemData::blocked_vec_set,"Degress of freedom where linear/angular velocity will be always constant (equal to zero, or to an user-defined value), regardless of applied force/torque. String that may contain 'xyzXYZ' (translations and rotations).")
-		.add_property("clump",&DemData::isClump).add_property("clumped",&DemData::isClumped).add_property("noClump",&DemData::isNoClump).add_property("energySkip",&DemData::isEnergySkip,&DemData::setEnergySkip).add_property("gravitySkip",&DemData::isGravitySkip,&DemData::setGravitySkip)
+		.add_property("clump",&DemData::isClump).add_property("clumped",&DemData::isClumped).add_property("noClump",&DemData::isNoClump).add_property("energySkip",&DemData::isEnergySkip,&DemData::setEnergySkip).add_property("gravitySkip",&DemData::isGravitySkip,&DemData::setGravitySkip).add_property("tracerSkip",&DemData::isTracerSkip,&DemData::setTracerSkip)
 		.add_property("master",&DemData::pyGetMaster)
 		.add_property("parRef",&DemData::pyParRef_get).def("addParRef",&DemData::addParRef)
 		.add_property("isAspherical",&DemData::isAspherical,"Return ``True`` when inertia components are not equal.")
