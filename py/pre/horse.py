@@ -135,7 +135,7 @@ def plotBatchResults(db):
 
 	import re,math,woo.batch,os
 	results=woo.batch.dbReadResults(db)
-	out='%s.pdf'%re.sub('\.results$','',db)
+	out='%s.pdf'%re.sub('\.sqlite$','',db)
 	from matplotlib.figure import Figure
 	from matplotlib.backends.backend_agg import FigureCanvasAgg
 	fig=Figure();
@@ -166,7 +166,7 @@ def finished(S):
 	import os,re,woo.batch,woo.utils,codecs
 	S.stop()
 	repName=os.path.abspath(S.pre.reportFmt.format(S=S,**(dict(S.tags))))
-	woo.batch.writeResults(S,defaultDb='horse.results',series=S.plot.data,postHooks=[plotBatchResults],simulationName='horse',report='file://'+repName)
+	woo.batch.writeResults(S,defaultDb='horse.sqlite',series=S.plot.data,postHooks=[plotBatchResults],simulationName='horse',report='file://'+repName)
 
 
 	# energy plot, to show how to add plot to the report

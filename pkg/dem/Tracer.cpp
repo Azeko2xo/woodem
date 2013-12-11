@@ -98,6 +98,7 @@ int Tracer::ordinalMod;
 Vector2r Tracer::rRange;
 int Tracer::num;
 int Tracer::scalar;
+int Tracer::vecAxis;
 int Tracer::lastScalar;
 int Tracer::compress;
 int Tracer::compSkip;
@@ -140,12 +141,22 @@ void Tracer::run(){
 	switch(scalar){
 		case SCALAR_NONE: lineColor->label="[index]"; break;
 		case SCALAR_TIME: lineColor->label="time"; break;
-		case SCALAR_VEL: lineColor->label="|vel|"; break;
+		case SCALAR_VEL: lineColor->label="vel"; break;
+		case SCALAR_ANGVEL: lineColor->label="angVel"; break;
 		case SCALAR_SIGNED_ACCEL: lineColor->label="signed |accel|"; break;
 		case SCALAR_RADIUS: lineColor->label="radius"; break;
 		case SCALAR_SHAPE_COLOR: lineColor->label="Shape.color"; break;
 		case SCALAR_ORDINAL: lineColor->label="ordinal"+(ordinalMod>1?string(" % "+to_string(ordinalMod)):string());
 		break;
+	}
+	// add component to the label
+	if(scalar==SCALAR_VEL || scalar==SCALAR_ANGVEL){
+		switch(vecAxis){
+			case -1: lineColor->label="|"+lineColor->label+"|"; break;
+			case 0: lineColor->label+="_x"; break;
+			case 1: lineColor->label+="_y"; break;
+			case 2: lineColor->label+="_z"; break;
+		}
 	}
 	auto& dem=field->cast<DemField>();
 	size_t i=0;
@@ -174,8 +185,10 @@ void Tracer::run(){
 		}
 		if(tr.isHidden()!=hidden) tr.setHidden(hidden);
 		Real sc;
+		auto vecNormXyz=[&](const Vector3r& v)->Real{ if(vecAxis<0||vecAxis>2) return v.norm(); return v[vecAxis]; };
 		switch(scalar){
-			case SCALAR_VEL: sc=n->getData<DemData>().vel.norm(); break;
+			case SCALAR_VEL: sc=vecNormXyz(n->getData<DemData>().vel); break;
+			case SCALAR_ANGVEL: sc=vecNormXyz(n->getData<DemData>().angVel); break;
 			case SCALAR_SIGNED_ACCEL:{
 				const auto& dyn=n->getData<DemData>();
 				if(dyn.mass==0) sc=NaN;

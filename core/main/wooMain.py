@@ -765,6 +765,10 @@ finished: %s
 	def runJobs(jobs,numCores):
 		running,pending=0,len(jobs)
 		inf=1000000
+		# time to sleep between check for finished jobs
+		# this value is adjusted dynamically
+		sleepTime=.5 
+		sleepTimeMin,sleepTimeMax=.005,2 # in seconds; .005 is in the order of the startup time
 		while (running>0) or (pending>0):
 			pending,running,done=sum([j.nCores for j in jobs if j.status=='PENDING']),sum([j.nCores for j in jobs if j.status=='RUNNING']),sum([j.nCores for j in jobs if j.status=='DONE'])
 			numFreeCores=numCores-running
@@ -785,7 +789,12 @@ finished: %s
 					# if overloaded, do not assign cores directly
 					thread.start_new_thread(runJob,(j,))
 					break
-			time.sleep(.5)
+			# adjust sleepTime if some jobs have already finished
+			if done>0:
+				avgDone=sum([j.durationSec for j in jobs if j.status=='DONE'])/done
+				# don't waist more than 5% of time by being idle
+				sleepTime=max(min(.05*avgDone,sleepTimeMax),sleepTimeMin)
+			time.sleep(sleepTime) ## FIXME: make this configurable, or auto-adjusting
 			sys.stdout.flush()
 	
 	
@@ -900,10 +909,11 @@ finished: %s
 	logFiles=[]
 	if opts.resultsDb==None:
 		prefExt=('hdf5' if not sys.platform=='win32' else 'sqlite')
-		resultsDb='%s.%s'%(re.sub('\.(batch|table|xls)$','',table),prefExt) if table else 'batch.'+prefExt
+		resultsDb='%s.%s'%(table,prefExt) if table else 'batch.'+prefExt
 	else: resultsDb=opts.resultsDb
 	print 'Results database is',os.path.abspath(resultsDb)
-	
+	if woo.batch.mayHaveStaleLock(resultsDb):
+		print 100*'###'+'\n   The results database (%s) is locked\n\nThe lock might be stale (unless something is really writing results right now) which will make simulation to hang waiting for the lock to be released. If you encounter problems (simulations never finishing), try to break the lock by deleting the lock file (by default, %s.lock)\n\n'%(resultsDb,resultsDb)+100*'###'
 	
 	for i,l in enumerate(useLines):
 		script=scripts[0] if len(scripts)>0 else None

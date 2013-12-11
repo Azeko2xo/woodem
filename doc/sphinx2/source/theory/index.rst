@@ -9,3 +9,4 @@ Theory
 	contact/index.rst
 	membrane-element.rst
 	leapfrog.rst
+	clumps.rst

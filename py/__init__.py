@@ -69,12 +69,17 @@ soSuffix=distutils.sysconfig.get_config_vars()['SO']
 #
 # QUIRKS
 #
-if not WIN and (wooOptions.quirks & wooOptions.quirkIntel):
+# not in Windows, and not when running without X (the check is not very reliable
+if not WIN and (wooOptions.quirks & wooOptions.quirkIntel) and 'DISPLAY' in os.environ:
 	import os
 	vgas=os.popen("LC_ALL=C lspci | grep VGA").readlines()
 	if len(vgas)==1 and 'Intel' in vgas[0]:
-		print 'Intel GPU detected, setting LIBGL_ALWAYS_SOFTWARE=1\n\t(use --quirks=0 to disable)'
-		os.environ['LIBGL_ALWAYS_SOFTWARE']='1'
+		# popen does not raise exception if it fails
+		glx=os.popen("LC_ALL=C glxinfo | grep 'OpenGL version string:'").readlines()
+		# this should cover broken drivers down to Ubuntu 12.04 which shipped Mesa 8.0
+		if len(glx)==1 and re.match('.* Mesa (9\.[01]|8\.0)\..*',glx):
+			print 'Intel GPU + Mesa < 9.2 detected, setting LIBGL_ALWAYS_SOFTWARE=1\n\t(use --quirks=0 to disable)'
+			os.environ['LIBGL_ALWAYS_SOFTWARE']='1'
 
 if WIN:
 	# http://stackoverflow.com/questions/1447575/symlinks-on-windows/4388195#4388195

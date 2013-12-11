@@ -22,12 +22,21 @@ except ImportError:
 dbFormatVersion=3
 
 def wait():
-	'Block the simulation if running inside a batch. Typically used at the end of script so that it does not finish prematurely in batch mode (the execution would be ended in such a case).'
-	if inBatch(): woo.master.scene.wait()
+	'If running inside a batch, start the master simulation (if not already running) and block until it stops by itself. Typically used at the end of script so that it does not finish prematurely in batch mode (the execution would be ended in such a case). Does nothing outisde of batch.'
+	import woo
+	S=woo.master.scene
+	if inBatch():
+		if not S.running: S.run()
+		S.wait()
 def inBatch():
 	'Tell whether we are running inside the batch or separately.'
 	import os
 	return 'WOO_BATCH' in os.environ
+
+def mayHaveStaleLock(db):
+	import os.path
+	if not os.path.splitext(db)[-1] in ('.h5','.hdf5','.he5','.hdf'): return
+	return FileLock(db).is_locked()
 
 def writeResults(scene,defaultDb='woo-results.hdf5',syncXls=True,dbFmt=None,series=None,quiet=False,postHooks=[],**kw):
 	'''
@@ -53,9 +62,9 @@ def writeResults(scene,defaultDb='woo-results.hdf5',syncXls=True,dbFmt=None,seri
 	newDb=not os.path.exists(db)
 	if not quiet: print 'Writing results to the database %s (%s)'%(db,'new' if newDb else 'existing')
 	if dbFmt==None:
-		ext=os.path.splitext(db)[1]
+		ext=os.path.splitext(db)[-1]
 		if ext in ('.sqlite','.db'): dbFmt='sqlite'
-		elif os.path.splitext(db)[1] in ('.h5','.hdf5','.he5','hdf'): dbFmt='hdf5'
+		elif ext in ('.h5','.hdf5','.he5','.hdf'): dbFmt='hdf5'
 		else: raise ValueError("Unable to determine database format from file extension: must be *.h5, *.hdf5, *.he5, *.hdf, *.sqlite, *.db.")
 
 	# make sure keys are unicode objects (which is what json converts to!)
@@ -173,12 +182,16 @@ def dbReadResults(db,basicTypes=False):
 				_checkHdf5sim(sim)
 				rowDict={}
 				for att in sim.attrs:
-					if att in ('pre','tags','plots'): rowDict[att]=woo.core.WooJSONDecoder(onError='warn').decode(sim.attrs[att])
+					if att in ('pre','tags','plots'):
+						val=sim.attrs[att]
+						if hasattr(val,'__len__') and len(val)==0: continue
+						rowDict[att]=woo.core.WooJSONDecoder(onError='warn').decode(val)
 					else: rowDict[att]=sim.attrs[att]
 				rowDict['misc'],rowDict['series']={},{}
 				for misc in sim['misc'].attrs: rowDict['misc'][misc]=woo.core.WooJSONDecoder(onError='warn').decode(sim['misc'].attrs[misc])
 				for s in sim['series']: rowDict['series'][s]=sim['series'][s]
 				ret.append(rowDict)
+			## hdf.close()
 			return ret
 	else:
 		# sqlite
@@ -326,6 +339,7 @@ def dbToSpread(db,out=None,dialect='xls',rows=False,series=True,ignored=('plotDa
 					if key.lower() in ignored: continue
 					if key not in allData: allData[key]=[None]*i+[val]
 					else: allData[key].append(val)
+			## hdf.close()
 	else:
 		conn=sqlite3.connect(db,detect_types=sqlite3.PARSE_DECLTYPES)
 		conn.row_factory=sqlite3.Row
@@ -419,20 +433,9 @@ def dbToSpread(db,out=None,dialect='xls',rows=False,series=True,ignored=('plotDa
 
 	
 
-def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
+def readParamsFromTable(scene,under='table',tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 	"""
-	Read parameters from a file and assign them to __builtin__ variables. This function is used for scripts (as opposed to preprocessors) running in a batch.
-
-	.. warning:: This function will have its API changed (to pass values to :obj:`woo.core.Scene.lab` instead of abusing the ``__builtin__`` namespace).
-
-	The format of the file is as follows (commens starting with # and empty lines allowed)::
-
-		# commented lines allowed anywhere
-		name1 name2 … # first non-blank line are column headings
-					# empty line is OK, with or without comment
-		val1  val2  … # 1st parameter set
-		val2  val2  … # 2nd
-		…
+	Read parameters from a file and assign them to :obj:`woo.core.Scene.lab` under the ``under`` pseudo-module (e.g. ``Scene.lab.table.foo`` and so on. This function is used for scripts (as opposed to preprocessors) running in a batch. The file format is described in :obj:`TableParamReader` (CSV or XLS).
 
 	Assigned tags (the ``title`` column is synthesized if absent,see :obj:`woo.utils.TableParamReader`):: 
 
@@ -443,22 +446,24 @@ def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 		S.tags['d.id']=s.tags['id']+'.'+s.tags['title']
 		S.tags['id.d']=s.tags['title']+'.'+s.tags['id']
 
-	All parameters (default as well as settable) are saved using :obj:`woo.utils.saveVars`\ ``('table')``.
-
 	:param tableFile: text file (with one value per blank-separated columns)
+	:param under: name of pseudo-module under ``S.lab`` to save all values to (``table`` by default)
 	:param int tableLine: number of line where to get the values from
 	:param bool noTableOk: if False, raise exception if the file cannot be open; use default values otherwise
 	:param bool unknownOk: do not raise exception if unknown column name is found in the file, and assign it as well
-	:return: dictionary with all parameters
+	:return: None
 	"""
 	tagsParams=[]
-	# dictParams is what eventually ends up in woo.params.table (default+specified values)
+	# dictParams is what eventually ends up in S.lab.table.* (default+specified values)
 	dictDefaults,dictParams={},{}
 	import os, __builtin__,re,math,woo
-	s=woo.master.scene
+	# create the S.lab.table pseudo-module
+	S=scene
+	S.lab._newModule(under)
+	pseudoMod=getattr(S.lab,under)
 	if not tableFileLine and ('WOO_BATCH' not in os.environ or os.environ['WOO_BATCH']==''):
 		if not noTableOk: raise EnvironmentError("WOO_BATCH is not defined in the environment")
-		s.tags['line']='l!'
+		S.tags['line']='l!'
 	else:
 		if not tableFileLine: tableFileLine=os.environ['WOO_BATCH']
 		env=tableFileLine.split(':')
@@ -466,9 +471,10 @@ def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 		allTab=TableParamReader(tableFile).paramDict()
 		if not allTab.has_key(tableLine): raise RuntimeError("Table %s doesn't contain valid line number %d"%(tableFile,tableLine))
 		vv=allTab[tableLine]
-		s.tags['line']='l%d'%tableLine
-		s.tags['title']=str(vv['title'])
-		s.tags['idt']=s.tags['id']+'.'+s.tags['title']; s.tags['tid']=s.tags['title']+'.'+s.tags['id']
+		S.tags['line']='l%d'%tableLine
+		S.tags['title']=str(vv['title'])
+		S.tags['idt']=S.tags['id']+'.'+S.tags['title'];
+		S.tags['tid']=S.tags['title']+'.'+S.tags['id']
 		# assign values specified in the table to python vars
 		# !something cols are skipped, those are env vars we don't treat at all (they are contained in title, though)
 		for col in vv.keys():
@@ -486,13 +492,13 @@ def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
 	for k in kw.keys():
 		dictDefaults[k]=kw[k]
 		defaults+=["%s=%s"%(k,kw[k])];
-	s.tags['defaultParams']=",".join(defaults)
-	s.tags['params']=",".join(tagsParams)
-	dictParams.update(dictDefaults)
-	import woo.utils
-	woo.utils.saveVars('table',loadNow=True,**dictParams)
-	return dictParams
-	#return len(tagsParams)
+	pseudoMod.defaultParams_=",".join(defaults)
+	pseudoMod.explicitParams_=",".join(tagsParams)
+	# save all vars to the pseudo-module
+	dictDefaults.update(dictParams)
+	for k,v in dictDefaults.items():
+		setattr(pseudoMod,k,v)
+	return None
 
 
 def runPreprocessor(pre,preFile=None):
