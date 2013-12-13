@@ -115,8 +115,25 @@ Tangential plastic dissipation :math:`\Delta E_{pt}` is computed the same as for
 
       Spatial distribution of plastic dissipation in the simulation of particle stream impacting a shield.
 
+Thinning
+---------
+
+Larger-scale deformation of spherical pellets is modeled using an ad-hoc algorithm for reducing particle radius during plastic deformation along with rolling (:obj:`mass <woo.dem.DemData.mass>` and :obj:`inertia <woo.dem.DemData.inertia>` are not changed, as if the :obj:`density <woo.dem.Material.density>` were accordingly increased). When the contact is undergoing plastic deformation (i.e. :math:`F_n^t<F_n^y`; notice that :math:`F_n_y<0` and :math:`F_n_t<0` in compression), then the particle radius is updated. 
+
+This process is controlled by two parameters:
+
+#. :math:`\theta_r` (:obj:`thinningFactor <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinningFactor>`) controlling the amount of radius decrease per unit normal plastic deformation (:math:`\Delta u_N^{\mathrm{pl}}`) and unit rolling angle (:math:`\omega_r\Delta t`, where :math:`\omega_r` is the tangential part (:math:`y` and :math:`z`) of :obj:`relative angular velocity <woo.dem.L6Geom.angVel>` :math:`\vec{\omega}_r`); the unit of :math:`\theta_r` is therefore :math:`\mathrm{1/rad}`.
+
+#. :math:`r_{\min}^{\mathrm{rel}}`, dimensionless, relative minimum particle radius (the original paticle radius is noted :math:`r_0`).
+
+.. math::
+	:nowrap:
+	\begin{align}
+		\Delta u_N^{\mathrm{pl}}&=\curr{(u_N^{\mathrm{pl}})}-\prev{(u_N^{\mathrm{pl}})}, \\
+		\Delta r&=\theta_r \Delta u_N^{\mathrm{pl}} \omega_r \Delta t, \\
+		r_{\min} &= r_0 r_{\min}^{\mathrm{rel}}, \\
+		r & \rightarrow \min(r-\Delta r,r_{\min}).
+	\end{align}
 
 
-
-
-
+.. note:: Unlike :math:`u_n^{\mathrm{pl}}` which is stored per-contact (:obj:`uNPl <woo.dem.PelletCData.uNPl>`) and is zero-initialized for every new contact, the change of :obj:`radius <woo.dem.Sphere.radius>` is *permanent*. It is possible to recover the original radius in :obj:`woo.dem.BoxDeleter` by setting the :obj:`recoverRadius <woo.dem.BoxDeleter.recoverRadius>` flag, which re-computes the radius from mass and density.

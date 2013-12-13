@@ -77,7 +77,7 @@ if not WIN and (wooOptions.quirks & wooOptions.quirkIntel) and 'DISPLAY' in os.e
 		# popen does not raise exception if it fails
 		glx=os.popen("LC_ALL=C glxinfo | grep 'OpenGL version string:'").readlines()
 		# this should cover broken drivers down to Ubuntu 12.04 which shipped Mesa 8.0
-		if len(glx)==1 and re.match('.* Mesa (9\.[01]|8\.0)\..*',glx):
+		if len(glx)==1 and re.match('.* Mesa (9\.[01]|8\.0)\..*',glx[0]):
 			print 'Intel GPU + Mesa < 9.2 detected, setting LIBGL_ALWAYS_SOFTWARE=1\n\t(use --quirks=0 to disable)'
 			os.environ['LIBGL_ALWAYS_SOFTWARE']='1'
 
