@@ -91,7 +91,7 @@ void Law2_L6Geom_PelletPhys_Pellet::go(const shared_ptr<CGeom>& cg, const shared
 		}
 	}
 	/* add fake confinement */
-	Fn-=g.contA*confSigma*(confRefRad<0.?pow(g.contA/(M_PI*pow(confRefRad,2)),confExp):1.);
+	Fn-=g.contA*confSigma*(confRefRad>0.?pow(g.contA/(M_PI*pow(confRefRad,2)),confExp):1.);
 
 	// shear force
 	Ft+=scene->dt*ph.kt*velT;
