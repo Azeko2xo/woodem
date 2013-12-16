@@ -6,7 +6,9 @@ Pellet contact model
 
 Pellet contact model is custom-developed model with high plastic dissipation in the normal sense, accumulating plastic dissipation immediately when loaded. Adhesion force is initially zero, though it grows with normal plastic deformation, i.e. is dependent on the history of the contact loading.
 
-Normal plastic dissipation is controlled by a single dimensionless parameter :math:`\alpha` (:obj:`normPlastCoeff <woo.dem.PelletPhys.normPlastCoeff>`, averaged from :obj:`woo.dem.PelletMat.normPlastCoeff`) which determines the measure of deviation from the linear response.  Adhesion is controlled by the :math:`k_a` parameter (:obj:`ka <woo.dem.PelletPhys.ka>`, computed from the ratio :obj:`woo.dem.PelletMat.kaDivKn`). History-independent adhesion can be added by fake confinement :math:`\sigma_c` (:obj:`sigConfine <woo.dem.Law2_L6Geom_PelletPhys_Pellet.sigConfine>`), or which negative values lead to constant adhesion.
+Normal plastic dissipation is controlled by a single dimensionless parameter :math:`\alpha` (:obj:`normPlastCoeff <woo.dem.PelletPhys.normPlastCoeff>`, averaged from :obj:`woo.dem.PelletMat.normPlastCoeff`) which determines the measure of deviation from the linear response.  Adhesion is controlled by the :math:`k_a` parameter (:obj:`ka <woo.dem.PelletPhys.ka>`, computed from the ratio :obj:`woo.dem.PelletMat.kaDivKn`).
+
+.. note:: As an extension to the model, there is history-independent adhesion (confinement) and persistent plastic deformation due to rolling (thinning), which are documented below.
 
 The normal yield force takes the form
 
@@ -43,8 +45,6 @@ and it is used to compute the final normal force :math:`F_n` in the following wa
    .. math:: h\left(u_n=\frac{u_n^{\mathrm{pl}}}{2}\right)=-k_a u_n^{\mathrm{pl}}.
 
    where :math:`k_a` is the adhesion modulus introduced above.
-
-If :math:`\sigma_c` (:obj:`sigConfine <woo.dem.Law2_L6Geom_PelletPhys_Pellet.sigConfine>`) is non-zero, :math:`F_n` is updated as :math:`F_n \leftarrow F_n-A\sigma_c` (:math:`A` is the :obj:`contact area <woo.dem.L6Geom.contA>`).
 
 This plot shows the deformation-force diagram with two loading-unloading cycles, showing how plastic deformation and adhesion grow.
 
@@ -115,19 +115,38 @@ Tangential plastic dissipation :math:`\Delta E_{pt}` is computed the same as for
 
       Spatial distribution of plastic dissipation in the simulation of particle stream impacting a shield.
 
+Confinement
+-----------
+
+History-independent adhesion can be added by fake confinement :math:`\sigma_c` (:obj:`confSigma <woo.dem.Law2_L6Geom_PelletPhys_Pellet.confSigma>`) of which negative values lead to constant adhesion.
+
+If :math:`\sigma_c` (:obj:`confSigma <woo.dem.Law2_L6Geom_PelletPhys_Pellet.confSigma>`) is non-zero, :math:`F_n` is updated as
+
+.. math:: F_n \leftarrow F_n-A\sigma_c
+
+where :math:`A` is the :obj:`contact area <woo.dem.L6Geom.contA>`.
+
+To account for the effect of :math:`\sigma_c` depending on particle size, :math:`r_{\mathrm{ref}}` and :math:`\beta_c` (:obj:`confRefRad <woo.dem.Law2_L6Geom_PelletPhys_Pellet.confRefRad>` and :obj:`confExp <woo.dem.Law2_L6Geom_PelletPhys_Pellet.confExp>`) can be specified, in which case :math:`F_n` is updated as 
+
+.. math:: F_n \leftarrow F_n-A\sigma_c\underbrace{\left(\frac{A}{\pi r_{\mathrm{ref}}^2}\right)^{\beta_c}}_{\dagger};
+
+this leads to the confining stress being scaled by :math:`\dagger` -- increased/decreased for bigger/smaller particles with :math:`\beta_c>0`, or vice versa, decreased/increased for bigger/smaller particles with :math:`\beta_c<0`.
+
+
 Thinning
 ---------
 
-Larger-scale deformation of spherical pellets is modeled using an ad-hoc algorithm for reducing particle radius during plastic deformation along with rolling (:obj:`mass <woo.dem.DemData.mass>` and :obj:`inertia <woo.dem.DemData.inertia>` are not changed, as if the :obj:`density <woo.dem.Material.density>` were accordingly increased). When the contact is undergoing plastic deformation (i.e. :math:`F_n^t<F_n^y`; notice that :math:`F_n_y<0` and :math:`F_n_t<0` in compression), then the particle radius is updated. 
+Larger-scale deformation of spherical pellets is modeled using an ad-hoc algorithm for reducing particle radius during plastic deformation along with rolling (:obj:`mass <woo.dem.DemData.mass>` and :obj:`inertia <woo.dem.DemData.inertia>` are not changed, as if the :obj:`density <woo.dem.Material.density>` were accordingly increased). When the contact is undergoing plastic deformation (i.e. :math:`F_n^t<F_n^y`; notice that :math:`F_n^y<0` and :math:`F_n^t<0` in compression), then the particle radius is updated. 
 
 This process is controlled by two parameters:
 
-#. :math:`\theta_r` (:obj:`thinningFactor <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinningFactor>`) controlling the amount of radius decrease per unit normal plastic deformation (:math:`\Delta u_N^{\mathrm{pl}}`) and unit rolling angle (:math:`\omega_r\Delta t`, where :math:`\omega_r` is the tangential part (:math:`y` and :math:`z`) of :obj:`relative angular velocity <woo.dem.L6Geom.angVel>` :math:`\vec{\omega}_r`); the unit of :math:`\theta_r` is therefore :math:`\mathrm{1/rad}`.
+#. :math:`\theta_r` (:obj:`thinningFactor <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinningFactor>`) controlling the amount of radius decrease per unit normal plastic deformation (:math:`\Delta u_N^{\mathrm{pl}}`) and unit rolling angle (:math:`\omega_r\Delta t`, where :math:`\omega_r` is the tangential part (:math:`y` and :math:`z`) of :obj:`relative angular velocity <woo.dem.L6Geom.angVel>` :math:`\vec{\omega}_r`); the unit of :math:`\theta_r` is therefore :math:`\mathrm{1/rad}` (i.e. dimensionless).
 
 #. :math:`r_{\min}^{\mathrm{rel}}`, dimensionless, relative minimum particle radius (the original paticle radius is noted :math:`r_0`).
 
 .. math::
 	:nowrap:
+
 	\begin{align}
 		\Delta u_N^{\mathrm{pl}}&=\curr{(u_N^{\mathrm{pl}})}-\prev{(u_N^{\mathrm{pl}})}, \\
 		\Delta r&=\theta_r \Delta u_N^{\mathrm{pl}} \omega_r \Delta t, \\

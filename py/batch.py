@@ -21,6 +21,9 @@ except ImportError:
 # applies to both sqlite and hdf5 dbs
 dbFormatVersion=3
 
+## timeout for opening the database if locked
+sqliteTimeout=1000
+
 def wait():
 	'If running inside a batch, start the master simulation (if not already running) and block until it stops by itself. Typically used at the end of script so that it does not finish prematurely in batch mode (the execution would be ended in such a case). Does nothing outisde of batch.'
 	import woo
@@ -80,7 +83,7 @@ def writeResults(scene,defaultDb='woo-results.hdf5',syncXls=True,dbFmt=None,seri
 		elif not hasattr(v,'__len__'): raise ValueError('series["%s"] not a sequence (__len__ not defined).'%k)
 	if dbFmt=='sqlite':
 		import sqlite3
-		conn=sqlite3.connect(db,detect_types=sqlite3.PARSE_DECLTYPES)
+		conn=sqlite3.connect(db,timeout=sqliteTimeout,detect_types=sqlite3.PARSE_DECLTYPES)
 		if newDb:
 			c=conn.cursor()
 			c.execute('create table batch (formatVersion integer, finished timestamp, batchtable text, batchTableLine integer, sceneId text, title text, duration integer, pre text, tags text, plots text, misc text, series text)')
@@ -171,7 +174,7 @@ def dbReadResults(db,basicTypes=False):
 	except (ImportError,IOError):
 		# connect always succeeds, as it seems, even if the type is not sqlite3 db
 		# in that case, it will fail at conn.execute below
-		conn=sqlite3.connect(db,detect_types=sqlite3.PARSE_DECLTYPES)
+		conn=sqlite3.connect(db,timeout=sqliteTimeout,detect_types=sqlite3.PARSE_DECLTYPES)
 		hdf=None
 	if hdf:
 		with FileLock(db):
@@ -294,7 +297,7 @@ def dbToSpread(db,out=None,dialect='xls',rows=False,series=True,ignored=('plotDa
 	except (ImportError,IOError):
 		# connect always succeeds, as it seems, even if the type is not sqlite3 db
 		# in that case, it will fail at conn.execute below
-		conn=sqlite3.connect(db,detect_types=sqlite3.PARSE_DECLTYPES)
+		conn=sqlite3.connect(db,timeout=sqliteTimeout,detect_types=sqlite3.PARSE_DECLTYPES)
 		hdf=None
 	if hdf:
 		with FileLock(db):
@@ -341,7 +344,7 @@ def dbToSpread(db,out=None,dialect='xls',rows=False,series=True,ignored=('plotDa
 					else: allData[key].append(val)
 			## hdf.close()
 	else:
-		conn=sqlite3.connect(db,detect_types=sqlite3.PARSE_DECLTYPES)
+		conn=sqlite3.connect(db,timeout=sqliteTimeout,detect_types=sqlite3.PARSE_DECLTYPES)
 		conn.row_factory=sqlite3.Row
 		for i,row in enumerate(conn.execute(selector if selector!=None else 'SELECT * FROM batch ORDER BY title')):
 			rowDict={}
@@ -486,7 +489,7 @@ def readParamsFromTable(scene,under='table',tableFileLine=None,noTableOk=True,un
 			#print 'ASSIGN',col,vv[col]
 			tagsParams+=['%s=%s'%(col,vv[col])];
 			# when reading from XLS, data might be numbers; use eval only for strings, otherwise use the thing itself
-			dictParams[col]=eval(vv[col],math.__dict__) if type(vv[col]) in (str,unicode) else vv[col]
+			dictParams[col]=eval(vv[col],dict(woo=woo,**math.__dict__)) if type(vv[col]) in (str,unicode) else vv[col]
 	# assign remaining (default) keys to python vars
 	defaults=[]
 	for k in kw.keys():
@@ -561,7 +564,7 @@ if such colum is absent, title will be built by concatenating column names and c
 
 Empty lines within the file are ignored (although counted); ``#`` starts comment till the end of line. Number of blank-separated columns must be the same for all non-empty lines.
 
-A special value ``=`` can be used instead of parameter value; value from the previous non-empty line will be used instead (works recursively).
+A special value ``=`` can be used instead of parameter value; value from the previous non-empty line will be used instead (works recursively); in XLS, *empty* cell is treated the same as ``=``.
 
 This class is used by :obj:`woo.utils.readParamsFromTable`.
 
@@ -683,11 +686,11 @@ This class is used by :obj:`woo.utils.readParamsFromTable`.
 		#   headings=['col1title','col2title',...]        # with trailing bangs removed
 		#
 
-		# replace '=' by previous value of the parameter
+		# replace empty cells or '=' by the previous value of the parameter
 		lines=values.keys(); lines.sort()
 		for i,l in enumerate(lines):
 			for j in values[l].keys():
-				if values[l][j]=='=':
+				if values[l][j] in ('=',''):
 					try:
 						values[l][j]=values[lines[i-1]][j]
 					except IndexError,KeyError:

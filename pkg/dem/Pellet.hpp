@@ -83,7 +83,9 @@ struct Law2_L6Geom_PelletPhys_Pellet: public LawFunctor{
 	,
 		((Real,thinningFactor,0,,"The amount of reducing particle radius, relative to plastic deformation increment (non-positive to disable thinning)"))
 		((Real,rMinFrac,.7,,"Minimum radius reachable with sphere thinning at plastic deformation"))
-		((Real,sigConfine,0,,"Confinement stress (acting on :obj:`contact area <L6Geom.contA>`). Negative values will make particles stick together. The strain-stress diagram is shifted vertically with this parameter.\n\n.. note:: Energy computation might be incorrect with confinement (not yet checked).\n"))
+		((Real,confSigma,0,,"Confinement stress (acting on :obj:`contact area <L6Geom.contA>`). Negative values will make particles stick together. The strain-stress diagram is shifted vertically with this parameter. The value of confinement can be further scaled with :obj:`confRefRad`.\n\n.. note:: Energy computation might be incorrect with confinement (not yet checked).\n"))
+		((Real,confRefRad,0.,AttrTrait<>().lenUnit(),"If positive, scale the confining stress (:obj:`confSigma`) using the value of :math:`\\left(\\frac{A}{\\pi r_{\\rm ref}^2}\\right)^{\\beta_c}`; this allows to introduce confinement which varies depending on particle size."))
+		((Real,confExp,1.,,"Dimensionless exponent to be used in conjunction with :obj:`confRefRad`."))
 		//((Real,alpha,-1.,,"$\\alpha$  coefficient in the yield function; if negative, compressive plasticity is deactivated. This coefficient is dimensionless."))
 		//((Real,kADivKn,.1,,"Ratio kA/kN (for adhesion); if non-positive, adhesion is disabled"))
 		((bool,plastSplit,false,,"Track energy dissipated in normal and tangential sliding separately"))
