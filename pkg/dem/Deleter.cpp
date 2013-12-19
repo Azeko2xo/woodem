@@ -63,7 +63,10 @@ void BoxDeleter::run(){
 		if(dynamic_cast<Sphere*>(p->shape.get())){
 			auto& s=p->shape->cast<Sphere>();
 			Real r=s.radius;
-			if(recoverRadius) r=cbrt(3*m/(4*M_PI*p->material->density));
+			if(recoverRadius){
+				r=cbrt(3*m/(4*M_PI*p->material->density));
+				rDivR0.push_back(s.radius/r);
+			}
 			if(save) diamMass.push_back(Vector2r(2*r,m));
 		}
 		LOG_TRACE("DemField.par["<<id<<"] will be "<<(deleting?"deleted.":"marked."));

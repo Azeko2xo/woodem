@@ -265,6 +265,13 @@ void LabelMapper::__setitem__py(const string& label, py::object o){
 }
 
 py::object LabelMapper::__getitem__(const string& label){
+	boost::smatch match;
+	// hack to be able to do getattr(S.lab,'something[1]')
+	if(boost::regex_match(label,match,boost::regex("^(.*)\\[([0-9]+)\\]$"))){
+		string l0=match[1];
+		long index=lexical_cast<long>(index);
+		return this->__getitem__(l0)[index];
+	}
 	int where=whereIs(label);
 	switch(where){
 		case NOWHERE: woo::NameError("No such label: '"+label+"'"); break;

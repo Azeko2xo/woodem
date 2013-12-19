@@ -67,18 +67,19 @@ void Law2_L6Geom_PelletPhys_Pellet::go(const shared_ptr<CGeom>& cg, const shared
 					scene->energy->add(dissip,plastSplit?"normPlast":"plast",plastSplit?normPlastIx:plastIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate);
 					tryAddDissipState(DISSIP_NORM_PLAST,dissip,C);
 				}
-				if(thinningFactor>0 && rMinFrac<1.){
+				if(thinRate>0 && thinRelRMin<1.){
 					const Vector2r bendVel(g.angVel[1],g.angVel[2]);
-					Real dRad=thinningFactor*(uNPl0-uNPl)*(scene->dt*bendVel.norm());
+					Real dRad=thinRate*(uNPl0-uNPl)*(scene->dt*bendVel.norm());
 					for(const Particle* p:{C->leakPA(),C->leakPB()}){
 						if(!dynamic_cast<Sphere*>(p->shape.get())) continue;
 						auto& s=p->shape->cast<Sphere>();
 						//Real r0=(C->geom->cast<L6Geom>().lens[p.get()==C->pA.get()?0:1]);
 						Real r0=cbrt(3*s.nodes[0]->getData<DemData>().mass/(4*M_PI*p->material->density));
-						Real rMin=r0*rMinFrac;
+						Real rMin=r0*thinRelRMin;
 						if(s.radius<=rMin) continue;
 						// 0..1 norm between rMin and r0
-						Real r01=(s.radius-rMin)/(r0-rMin); 
+						Real r01=(s.radius-rMin)/(r0-rMin);
+						if(thinExp>0) dRad*=pow(r01,thinExp);
 						boost::mutex::scoped_lock lock(s.nodes[0]->getData<DemData>().lock);
 						// cerr<<"#"<<p->id<<": radius "<<s.radius<<" -> "<<s.radius-dRad<<endl;
 						s.radius=max(rMin,s.radius-dRad*r01);

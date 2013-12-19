@@ -138,19 +138,42 @@ Thinning
 
 Larger-scale deformation of spherical pellets is modeled using an ad-hoc algorithm for reducing particle radius during plastic deformation along with rolling (:obj:`mass <woo.dem.DemData.mass>` and :obj:`inertia <woo.dem.DemData.inertia>` are not changed, as if the :obj:`density <woo.dem.Material.density>` were accordingly increased). When the contact is undergoing plastic deformation (i.e. :math:`F_n^t<F_n^y`; notice that :math:`F_n^y<0` and :math:`F_n^t<0` in compression), then the particle radius is updated. 
 
-This process is controlled by two parameters:
+This process is controlled by three parameters:
 
-#. :math:`\theta_r` (:obj:`thinningFactor <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinningFactor>`) controlling the amount of radius decrease per unit normal plastic deformation (:math:`\Delta u_N^{\mathrm{pl}}`) and unit rolling angle (:math:`\omega_r\Delta t`, where :math:`\omega_r` is the tangential part (:math:`y` and :math:`z`) of :obj:`relative angular velocity <woo.dem.L6Geom.angVel>` :math:`\vec{\omega}_r`); the unit of :math:`\theta_r` is therefore :math:`\mathrm{1/rad}` (i.e. dimensionless).
+#. :math:`\theta_t` (:obj:`thinRate <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinRate>`) controlling the amount of radius decrease per unit normal plastic deformation (:math:`\Delta u_N^{\mathrm{pl}}`) and unit rolling angle (:math:`\omega_r\Delta t`, where :math:`\omega_r` is the tangential part (:math:`y` and :math:`z`) of :obj:`relative angular velocity <woo.dem.L6Geom.angVel>` :math:`\vec{\omega}_r`); the unit of :math:`\theta_t` is therefore :math:`\mathrm{1/rad}` (i.e. dimensionless).
 
-#. :math:`r_{\min}^{\mathrm{rel}}`, dimensionless, relative minimum particle radius (the original paticle radius is noted :math:`r_0`).
+#. :math:`r_{\min}^{\mathrm{rel}}` (:obj:`thinRelRMin <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinRelRMin>`), dimensionless, relative minimum particle radius (the original paticle radius is noted :math:`r_0`).
+
+#. :math:`\gamma_t` (:obj:`thinExp <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinExp>`), exponent for decreasing the thinning rate as the minimum radius is being approached. The valid range is :math:`\gamma_t\in\langle 0,\infty)`, otherwise, the reduction is not done (equivalent to :math:`\gamma_t=0`). Larger values of :math:`\gamma_t` make approaching the radius floor :math:`r_{\min}^{\mathrm{rel}}` harder.
+
+.. plot::
+
+	import numpy, pylab, woo.dem
+	r0,r1=0.7,1.0
+	rr=numpy.linspace(r0,r1,150)
+	expFunc=lambda r,gamma: ((r-r0)/(r1-r0))**gamma
+	kw=dict(linewidth=3,alpha=.5)
+	for gamma in (0,.2,1,2,10): pylab.plot(rr,[expFunc(r,gamma) for r in rr],label=r'$\gamma_t=%g$'%gamma,**kw)
+	l=pylab.legend(loc='best')
+	l.get_frame().set_alpha(.6)
+	pylab.ylim(-.05,1.05)
+	pylab.xlim(.9*r0,1.1*r1)
+	pylab.xlabel('radius')
+	pylab.ylabel(r'reduction of thinning rate $\theta_t$')
+	for r in (r0,r1): pylab.axvline(r,color='black',linewidth=2,alpha=.4)
+	pylab.grid(True)
+	pylab.suptitle('Reduction of $\\theta_t$ based on $r$ (with $r_0=1$, $r_{\min}^{\mathrm{rel}}=0.7$)')
+
+When thinning is active, the radius is updated as follows:
 
 .. math::
 	:nowrap:
 
 	\begin{align}
-		\Delta u_N^{\mathrm{pl}}&=\curr{(u_N^{\mathrm{pl}})}-\prev{(u_N^{\mathrm{pl}})}, \\
-		\Delta r&=\theta_r \Delta u_N^{\mathrm{pl}} \omega_r \Delta t, \\
 		r_{\min} &= r_0 r_{\min}^{\mathrm{rel}}, \\
+		\Delta u_N^{\mathrm{pl}}&=\curr{(u_N^{\mathrm{pl}})}-\prev{(u_N^{\mathrm{pl}})}, \\
+		(\Delta r)_0 &=\theta_t \Delta u_N^{\mathrm{pl}} \omega_r \Delta t, \\
+		\Delta r&=\begin{cases}(\Delta_r)_0 & \gamma_t<0 \\ (\Delta_r)_0\left(\frac{r-r_{\min}}{r_0-r_{\min}}\right)^{\gamma_t} & \mbox{otherwise} \end{cases}, \\
 		r & \rightarrow \min(r-\Delta r,r_{\min}).
 	\end{align}
 
