@@ -36,7 +36,7 @@ struct VtkExport: public PeriodicEngine{
 	enum{WHAT_SPHERES=1,WHAT_MESH=2,WHAT_CON=4 /*,WHAT_PELLET=8*/ };
 	enum{WHAT_ALL=WHAT_SPHERES|WHAT_MESH|WHAT_CON};
 
-	static int addTriangulatedObject(vector<Vector3r> pts, vector<Vector3i> tri, const vtkSmartPointer<vtkPoints>& vtkPts, const vtkSmartPointer<vtkCellArray>& cells);
+	static int addTriangulatedObject(const vector<Vector3r>& pts, const vector<Vector3i>& tri, const vtkSmartPointer<vtkPoints>& vtkPts, const vtkSmartPointer<vtkCellArray>& cells);
 
 	void postLoad(VtkExport&,void*){
 		if(what>WHAT_ALL || what<0) throw std::runtime_error("VtkExport.what="+to_string(what)+", but should be at most "+to_string(WHAT_ALL)+".");
@@ -44,6 +44,9 @@ struct VtkExport: public PeriodicEngine{
 
 	// write the PVD file for easy opening of everything
 	void writePvd(const string&);
+
+	// compute sphere tesselation from 
+	void computeUnitSphereTesselation();
 
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(VtkExport,PeriodicEngine,"Export DEM simulation to VTK files for post-processing.",
 		((string,out,,
@@ -57,7 +60,7 @@ struct VtkExport: public PeriodicEngine{
 		((bool,sphereSphereOnly,false,,"Only export contacts between two spheres (not sphere+facet and such)"))
 		((bool,infError,true,,"Raise exception for infinite objects which don't have the glAB attribute set properly"))
 		((bool,skipInvisible,true,,"Skip invisible particles"))
-		((int,subdiv,16,AttrTrait<>().noGui(),"Subdivision fineness for circular objects (such as cylinders).\n\n.. note:: :obj:`facets <woo.dem.Facet>` are rendered without rounded edges (they are closed flat)."))
+		((int,subdiv,16,AttrTrait<>().noGui(),"Subdivision fineness for circular objects (such as cylinders).\n\n.. note:: :obj:`Facets <woo.dem.Facet>` are rendered without rounded edges (they are closed flat).\n\n.. todo:: :obj:`Ellipsoids <woo.dem.Ellipsoid>` are currently rendered as icosahedron, without any finer subdivision."))
 		((int,thickFacetDiv,1,AttrTrait<>().noGui(),"Subdivision for :obj:`woo.dem.Facet` objects with non-zero :obj:`woo.dem.Facet.halfThick`; the value of -1 will use :obj:`subdiv`; 0 will render only faces, without edges; 1 will close the edge flat."))
 		((bool,cylCaps,true,,"Render caps of :obj:`InfCylinder` (at :obj:`InfCylinder.glAB`)."))
 		((Real,nanValue,0.,,"Use this number instead of NaN in entries, since VTK cannot read NaNs properly"))
@@ -65,6 +68,9 @@ struct VtkExport: public PeriodicEngine{
 		((vector<Real>,outTimes,,AttrTrait<>().noGui().readonly(),"Times at which files were written."))
 		((vector<int>,outSteps,,AttrTrait<>().noGui().readonly(),"Steps at which files were written."))
 		((string,pvd,,AttrTrait<>().readonly(),"PVD file (if already written)"))
+		// those will be moved away
+		((vector<Vector3r>,unitSphereTesselation,,AttrTrait<Attr::noSave>().noGui(),"Unit spheres subdivision vertices."))
+		((vector<Vector3i>,unitSphereFaces,,AttrTrait<Attr::noSave>().noGui(),"Unit sphere subdivision connectivity."))
 
 		,/*ctor*/
 		initRun=false; // do not run at the very first step

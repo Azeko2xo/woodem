@@ -88,11 +88,6 @@ BOOST_PYTHON_MODULE(_GLViewer){
 	OpenGLManager* glm=new OpenGLManager(); // keep this singleton object forever
 	glm->emitStartTimer();
 
-#if 0
-	// HACK: register SnapshotEngine here
-	SnapshotEngine se; se.pyRegisterClass();
-#endif
-
 	py::def("View",createView,"Create a new 3d view.");
 	py::def("center",centerViews,"Center all views.");
 	py::def("views",getAllViews,"Return list of all open :obj:`woo.qt.GLViewer` objects");

@@ -182,6 +182,7 @@ class Master: public Singleton<Master>{
 			#ifdef WOO_OPENCL
 				.def_readwrite("defaultClDev",&Master::defaultClDev,"Default OpenCL platform/device couple (as ints), set internally from the command-line arg.")
 			#endif
+			.def_readonly("confDir",&Master::confDir,"Directory for storing various local configuration files (automatically set at startup)")
 			.add_property("scene",&Master::pyGetScene,&Master::pySetScene)
 			.def("reset",&Master::pyReset,"Set empty main scene")
 

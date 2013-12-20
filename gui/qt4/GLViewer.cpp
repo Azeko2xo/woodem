@@ -173,19 +173,22 @@ GLViewer::GLViewer(int _viewId, QGLWidget* shareWidget): QGLViewer(/*parent*/(QW
 	setKeyDescription(Qt::Key_9,"Load [Alt: save] view configuration #2");
 	setKeyDescription(Qt::Key_Space,"Center scene (same as Alt-C); clip plane: activate/deactivate");
 
+	setInitialView();
 
-	// needed for movable scales
+	// FIXME: needed for movable scales (why?! we can just detect button pressed, then mouseMoveEvent should be received automatically...?)
 	setMouseTracking(true);
 
+}
+
+void GLViewer::setInitialView(){
 	// set initial orientation, z up
 	Vector3r &u(Renderer::iniUp), &v(Renderer::iniViewDir);
 	qglviewer::Vec up(u[0],u[1],u[2]), vDir(v[0],v[1],v[2]);
 	camera()->setViewDirection(vDir);
 	camera()->setUpVector(up);
-	centerMedianQuartile();
-
+	centerScene();
+	//centerMedianQuartile();
 	//connect(&GLGlobals::redrawTimer,SIGNAL(timeout()),this,SLOT(updateGL()));
-
 }
 
 void GLViewer::mouseMovesCamera(){
@@ -307,7 +310,7 @@ void GLViewer::setState(string state){
 
 void GLViewer::keyPressEvent(QKeyEvent *e)
 {
-	last_user_event = boost::posix_time::second_clock::local_time();
+	// last_user_event = boost::posix_time::second_clock::local_time();
 
 	if(false){}
 	/* special keys: Escape and Space */
@@ -596,6 +599,7 @@ void GLViewer::draw(bool withNames)
 			Renderer::clipPlaneOri[manipulatedClipPlane]=newOri;
 		}
 		const shared_ptr<Scene>& scene=Master::instance().getScene();
+		if(Renderer::scene.get()!=scene.get()) setInitialView();
 		Renderer::render(scene,withNames);
 	}
 }
@@ -958,6 +962,7 @@ string GLViewer::getRealTimeString(){
 #undef _W2
 #undef _W3
 
+#if 0
 void GLViewer::mouseMoveEvent(QMouseEvent *e){
 	last_user_event = boost::posix_time::second_clock::local_time();
 	QGLViewer::mouseMoveEvent(e);
@@ -967,6 +972,7 @@ void GLViewer::mousePressEvent(QMouseEvent *e){
 	last_user_event = boost::posix_time::second_clock::local_time();
 	QGLViewer::mousePressEvent(e);
 }
+#endif
 
 /* Handle double-click event; if clipping plane is manipulated, align it with the global coordinate system.
  * Otherwise pass the event to QGLViewer to handle it normally.
@@ -974,7 +980,7 @@ void GLViewer::mousePressEvent(QMouseEvent *e){
  * mostly copied over from ManipulatedFrame::mouseDoubleClickEvent
  */
 void GLViewer::mouseDoubleClickEvent(QMouseEvent *event){
-	last_user_event = boost::posix_time::second_clock::local_time();
+	// last_user_event = boost::posix_time::second_clock::local_time();
 
 	if(manipulatedClipPlane<0) { /* LOG_DEBUG("Double click not on clipping plane"); */ QGLViewer::mouseDoubleClickEvent(event); return; }
 #if QT_VERSION >= 0x040000
@@ -990,7 +996,7 @@ void GLViewer::mouseDoubleClickEvent(QMouseEvent *event){
 }
 
 void GLViewer::wheelEvent(QWheelEvent* event){
-	last_user_event = boost::posix_time::second_clock::local_time();
+	// last_user_event = boost::posix_time::second_clock::local_time();
 
 	if(manipulatedClipPlane<0){ QGLViewer::wheelEvent(event); return; }
 	assert(manipulatedClipPlane<Renderer::numClipPlanes);
@@ -1030,7 +1036,7 @@ void GLViewer::initFromDOMElement(const QDomElement& element){
 	#endif
 }
 
-boost::posix_time::ptime GLViewer::getLastUserEvent(){return last_user_event;};
+// boost::posix_time::ptime GLViewer::getLastUserEvent(){return last_user_event;};
 
 
 float YadeCamera::zNear() const

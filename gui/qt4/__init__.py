@@ -93,6 +93,29 @@ from woo.qt.Inspector import *
 from woo import *
 import woo.system, woo.config
 
+
+class UiPrefs(woo.core.Object,woo.pyderived.PyWooObject):
+	'Storage for local user interface preferences. This class is always instantiated as ``woo.qt.uiPrefs``; if the file :obj:`prefsFile` exists at startup, it is loaded automatically.'
+	_classTraits=None
+	_PAT=woo.pyderived.PyAttrTrait
+	_attrTraits=[
+		# _PAT(bool,'glCursorFreeze',...)
+		_PAT(bool,'prepShowVars',False,'Show variable names rather than descriptions by default in the preprocessor interface'),
+		# where to save preferences, plus a button to do so
+		_PAT(str,'prefsFile',woo.master.confDir+'/uiPrefs.conf',guiReadonly=True,noDump=True,buttons=(['Save preferences','self.savePrefs()',''],0),doc='Preferences will be loaded/saved from/to this file.'),
+	]
+	def __init__(self,**kw):
+		woo.core.Object.__init__(self)
+		self.wooPyInit(self.__class__,woo.core.Object,**kw)
+	def savePrefs(self):
+		import os, os.path, logging
+		d=os.path.dirname(self.prefsFile)
+		if not os.path.exists(d): os.makedirs(d)
+		self.dump(self.prefsFile,format='expr')
+
+uiPrefs=UiPrefs()
+# if config file exists, uiPrefs are loaded in Controller.__init__
+
 try:
 	from woo._qt import *
 	from woo._qt._GLViewer import *
@@ -102,6 +125,7 @@ try:
 	# document those with woo.qt
 	import _GLViewer
 	_docInlineModules=(woo._qt,_GLViewer)
+	# load preferences, if the file exists
 except ImportError:
 	OpenGL=False
 	if 'opengl' in woo.config.features: raise RuntimeError("Woo was compiled with the 'opengl' feature, but OpenGL modules (woo._qt, woo._qt._GLViewer) could not be imported?")
@@ -135,9 +159,15 @@ class ControllerClass(QWidget,Ui_Controller):
 		if OpenGL:
 			self.renderer=Renderer() # only hold one instance, managed by OpenGLManager
 			self.addRenderers()
+
+		# if config file exists already, load the config from that file instead
+		import os.path
+		global uiPrefs
+		if os.path.exists(uiPrefs.prefsFile): uiPrefs=UiPrefs.load(uiPrefs.prefsFile)
+
 		self.genIndexLoad=-1
 		self.genIndexCurr=-1
-		self.genChecks,self.genVars=False,False
+		self.genChecks,self.genVars=False,uiPrefs.prepShowVars
 		self.refreshPreprocessors()
 		self.fillAboutData()
 		self.generatorComboSlot(None)
@@ -201,6 +231,18 @@ class ControllerClass(QWidget,Ui_Controller):
 					if len(set(inst.dict().keys())-set(['label']))>0:
 						self.displayCombo.addItem(c); afterSep+=1
 				except (NameError,AttributeError): pass # functo which is not defined
+		self.displayCombo.insertSeparator(10000)
+		self.displayCombo.addItem('UI Preferences')
+	def displayComboSlot(self,dispStr):
+		from woo import gl
+		if dispStr=='Renderer':
+			ser,path=self.renderer,'woo.gl.Renderer'
+		elif dispStr=='UI Preferences':
+			ser,path=uiPrefs,'woo.qt.uiPrefs'
+		else:
+			ser,path=eval('woo.gl.'+str(dispStr)+'()'),'woo.gl.'+dispStr
+		se=ObjectEditor(ser,parent=self.displayArea,ignoredAttrs=set(['label']),showType=True,path=path)
+		self.displayArea.setWidget(se)
 	def fillAboutData(self):	
 		import woo, woo.config, platform, textwrap, types, pkg_resources, collections
 		extras=[]
@@ -385,12 +427,6 @@ class ControllerClass(QWidget,Ui_Controller):
 			self.resetTraceButton.setEnabled(False)
 			self.tracerActive=False
 		
-	def displayComboSlot(self,dispStr):
-		from woo import gl
-		ser=(self.renderer if dispStr=='Renderer' else eval('gl.'+str(dispStr)+'()'))
-		path='woo.gl.'+dispStr
-		se=ObjectEditor(ser,parent=self.displayArea,ignoredAttrs=set(['label']),showType=True,path=path)
-		self.displayArea.setWidget(se)
 	def loadSlot(self):
 		f=QFileDialog.getOpenFileName(self,'Load simulation','')
 		f=str(f)

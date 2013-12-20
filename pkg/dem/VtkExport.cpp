@@ -3,6 +3,7 @@
 #include<woo/pkg/dem/Sphere.hpp>
 #include<woo/pkg/dem/Facet.hpp>
 #include<woo/pkg/dem/InfCylinder.hpp>
+#include<woo/pkg/dem/Ellipsoid.hpp>
 #include<woo/pkg/dem/Wall.hpp>
 #include<woo/pkg/dem/Clump.hpp>
 #include<woo/pkg/dem/Funcs.hpp>
@@ -10,7 +11,7 @@
 WOO_PLUGIN(dem,(VtkExport));
 CREATE_LOGGER(VtkExport);
 
-int VtkExport::addTriangulatedObject(vector<Vector3r> pts, vector<Vector3i> tri, const vtkSmartPointer<vtkPoints>& vtkPts, const vtkSmartPointer<vtkCellArray>& cells){
+int VtkExport::addTriangulatedObject(const vector<Vector3r>& pts, const vector<Vector3i>& tri, const vtkSmartPointer<vtkPoints>& vtkPts, const vtkSmartPointer<vtkCellArray>& cells){
 	size_t id0=vtkPts->GetNumberOfPoints();
 	for(const auto& pt: pts) vtkPts->InsertNextPoint(pt.data());
 	for(size_t i=0; i<tri.size(); i++){
@@ -152,6 +153,7 @@ void VtkExport::run(){
 		const auto wall=dynamic_cast<Wall*>(p->shape.get());
 		const auto facet=dynamic_cast<Facet*>(p->shape.get());
 		const auto infCyl=dynamic_cast<InfCylinder*>(p->shape.get());
+		const auto ellipsoid=dynamic_cast<Ellipsoid*>(p->shape.get());
 		if(sphere){
 			Vector3r pos=p->shape->nodes[0]->pos;
 			if(scene->isPeriodic) pos=scene->cell->canonicalizePt(pos);
@@ -317,6 +319,15 @@ void VtkExport::run(){
 			}
 			nCells=addTriangulatedObject(pts,tri,mPos,mCells);
 		}
+		else if(ellipsoid){
+			const Vector3r& semiAxes(ellipsoid->semiAxes);
+			const Vector3r& pos(ellipsoid->nodes[0]->pos);
+			const Quaternionr& ori(ellipsoid->nodes[0]->ori);
+			if(unitSphereTesselation.empty()) computeUnitSphereTesselation();
+			vector<Vector3r> pts; pts.reserve(unitSphereTesselation.size());
+			for(const Vector3r& p: unitSphereTesselation){ pts.push_back(pos+(ori*(p.array()*semiAxes.array()).matrix())); }
+			nCells=addTriangulatedObject(pts,unitSphereFaces,mPos,mCells);
+		}
 		else continue; // skip unhandled shape
 		assert(nCells>0);
 		const auto& dyn=p->shape->nodes[0]->getData<DemData>();
@@ -424,5 +435,26 @@ void VtkExport::writePvd(const string& pvdName){
 	o.close();
 }
 
+void VtkExport::computeUnitSphereTesselation(){
+	// FIXME: add some subdiuvision
+	auto& vv(unitSphereTesselation);
+	auto& ff(unitSphereFaces);
+	vv.clear(); ff.clear();
+	// icosahedron, inspired by http://www.neubert.net/Htmapp/SPHEmesh.htm
+	Real t=(1+sqrt(5))/2;
+	Real tau=t/sqrt(1+t*t);
+	Real one=1/(sqrt(1+t*t));
+	vv={
+		Vector3r(tau,one,0),Vector3r(-tau,one,0),Vector3r(-tau,-one,0),Vector3r(tau,-one,0),
+		Vector3r(one,0,tau),Vector3r(one,0,-tau),Vector3r(-one,0,-tau),Vector3r(-one,0,tau),
+		Vector3r(0,tau,one),Vector3r(0,-tau,one),Vector3r(0,-tau,-one),Vector3r(0,tau,-one)
+	};
+	ff={Vector3i(4,8,7),Vector3i(4,7,9),Vector3i(5,6,11),Vector3i(5,10,6),
+		Vector3i(0,4,3),Vector3i(0,3,5),Vector3i(2,7,1),Vector3i(2,1,6),
+		Vector3i(8,0,11),Vector3i(8,11,1),Vector3i(9,10,3),Vector3i(9,2,10),
+		Vector3i(8,4,0),Vector3i(11,0,5),Vector3i(4,9,3),Vector3i(5,3,10),
+		Vector3i(7,8,1),Vector3i(6,1,11),Vector3i(7,2,9),Vector3i(6,10,2)
+	};
+}
 
 #endif /*WOO_VTK*/

@@ -15,15 +15,11 @@
 #include<set>
 
 
-#if 1
 #include<woo/core/Engine.hpp>
 
 /*****************************************************************************
 *********************************** SnapshotEngine ***************************
 *****************************************************************************/
-/* NOTE: this engine bypasses usual registration of plugins;
-	pyRegisterClass must be called in the module import stanza in gui/qt4/_GLViewer.cpp
-*/
 struct SnapshotEngine: public PeriodicEngine{
 	virtual void run();
 	virtual bool needsField(){ return false; }
@@ -42,8 +38,6 @@ struct SnapshotEngine: public PeriodicEngine{
 	DECLARE_LOGGER;
 };
 WOO_REGISTER_OBJECT(SnapshotEngine);
-
-#endif
 
 // for movable colorscales
 // mostly copied from
@@ -131,8 +125,10 @@ class GLViewer : public QGLViewer
 		int manipulatedClipPlane;
 		set<int> boundClipPlanes;
 		shared_ptr<qglviewer::LocalConstraint> xyPlaneConstraint;
-		string strBoundGroup(){string ret;FOREACH(int i, boundClipPlanes) ret+=" "+lexical_cast<string>(i+1);return ret;}
-		boost::posix_time::ptime last_user_event;
+		string strBoundGroup(){string ret; for(int i: boundClipPlanes) ret+=" "+lexical_cast<string>(i+1);return ret;}
+		// set initial view as specified by Renderer::iniViewDir and friends
+		void setInitialView();
+		// boost::posix_time::ptime last_user_event;
 
      public:
 		//virtual void updateGL(void);
@@ -186,7 +182,7 @@ class GLViewer : public QGLViewer
 		#endif
 		bool nextSnapIsGl2ps;
 
-		boost::posix_time::ptime getLastUserEvent();
+		// boost::posix_time::ptime getLastUserEvent();
 
 
 		DECLARE_LOGGER;
@@ -200,8 +196,8 @@ class GLViewer : public QGLViewer
 		virtual void endSelection(const QPoint &point);
 		virtual void mouseDoubleClickEvent(QMouseEvent *e);
 		virtual void wheelEvent(QWheelEvent* e);
-		virtual void mouseMoveEvent(QMouseEvent *e);
-		virtual void mousePressEvent(QMouseEvent *e);
+		// virtual void mouseMoveEvent(QMouseEvent *e);
+		// virtual void mousePressEvent(QMouseEvent *e);
 };
 
 /*! Get unconditional lock on a GL view.
