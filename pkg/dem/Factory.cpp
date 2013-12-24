@@ -17,7 +17,7 @@
 
 #include<boost/tuple/tuple_comparison.hpp>
 
-WOO_PLUGIN(dem,(ParticleFactory)(ParticleGenerator)(MinMaxSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(RandomFactory)(BoxFactory));
+WOO_PLUGIN(dem,(ParticleFactory)(ParticleGenerator)(MinMaxSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(RandomFactory)(BoxFactory)(BoxFactory2d));
 CREATE_LOGGER(RandomFactory);
 
 

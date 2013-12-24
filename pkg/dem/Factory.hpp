@@ -117,7 +117,10 @@ struct RandomFactory: public ParticleFactory{
 		// ((long,stepPrev,-1,AttrTrait<Attr::readonly>(),"Step in which we were run for the last time"))
 		,/*ctor*/
 		,/*py*/
-			.def("clear",&RandomFactory::pyClear);
+			.def("clear",&RandomFactory::pyClear)
+			.def("randomPosition",&RandomFactory::randomPosition)
+			.def("validateBox",&RandomFactory::validateBox)
+			;
 			_classObj.attr("maxAttError")=(int)MAXATT_ERROR;
 			_classObj.attr("maxAttDead")=(int)MAXATT_DEAD;
 			_classObj.attr("maxAttWarn")=(int)MAXATT_WARN;
@@ -158,4 +161,13 @@ struct BoxFactory: public RandomFactory{
 	);
 };
 WOO_REGISTER_OBJECT(BoxFactory);
+
+
+struct BoxFactory2d: public BoxFactory{
+	Vector2r flatten(const Vector3r& v){ return Vector2r(v[(axis+1)%3],v[(axis+2)%3]); }
+	bool validateBox(const AlignedBox3r& b){ return AlignedBox2r(flatten(box.min()),flatten(box.max())).contains(AlignedBox2r(flatten(b.min()),flatten(b.max()))); }
+	WOO_CLASS_BASE_DOC_ATTRS(BoxFactory2d,BoxFactory,"Generate particles inside axis-aligned plane (its normal axis is given via the :obj:`axis` attribute; particles are allowed to stick out of that plane.",
+		((short,axis,2,,"Axis normal to the plane in which particles are generated."))
+	);
+};
 

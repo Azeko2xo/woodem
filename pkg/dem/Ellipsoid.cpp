@@ -160,7 +160,7 @@ bool Cg2_Wall_Ellipsoid_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr
 	const Wall& wall(s1->cast<Wall>());
 	const Ellipsoid& ell(s2->cast<Ellipsoid>());
 	const auto& ax(wall.axis); const auto& sense(wall.sense);
-	const Vector3r ellPos(ell.nodes[0]->pos+shift2); const Vector3r& wallPos(wall.nodes[0]->pos);
+	const Vector3r& wallPos(wall.nodes[0]->pos); const Vector3r ellPos(ell.nodes[0]->pos+shift2);
 	Real extent=ell.axisExtent(ax);
 	if(((wallPos[ax]<(ellPos[ax]-extent)) || (wallPos[ax]>(ellPos[ax]+extent))) && !C->isReal() && !force){ return false; }
 	// penetration distance and normal can be computed simply, being axis-aligned
@@ -196,7 +196,7 @@ void Cg2_Ellipsoid_Ellipsoid_L6Geom::setMinDist00Sq(const shared_ptr<Shape>& s1,
 
 bool Cg2_Ellipsoid_Ellipsoid_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
 	/* notation taken from Perram, Rasmussen, Præstgaard, Lebowtz: Ellipsoid contact potential */
-	const Vector3r& ra(s1->nodes[0]->pos); const Vector3r& rb(s2->nodes[0]->pos);
+	const Vector3r& ra(s1->nodes[0]->pos); Vector3r rb(s2->nodes[0]->pos+shift2);
 	const Vector3r& a(s1->cast<Ellipsoid>().semiAxes); const Vector3r& b(s2->cast<Ellipsoid>().semiAxes);
 	const Quaternionr& oa(s1->nodes[0]->ori); const Quaternionr& ob(s2->nodes[0]->ori);
 	Vector3r u[]={oa*Vector3r::UnitX(),oa*Vector3r::UnitY(),oa*Vector3r::UnitZ()};
