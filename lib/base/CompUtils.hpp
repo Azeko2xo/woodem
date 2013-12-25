@@ -30,6 +30,14 @@ struct CompUtils{
 	};
 	static const vector<Colormap> colormaps;
 
+	static constexpr int unitSphereTri20_maxTesselationLevel=3;
+	// return vertices and face indices for unit sphere
+	// if level is 0, return icosahedron, higher levels return tesselated icosahedron
+	// the maximum level is in unitSphereTri20_maxTesselationLevel
+	// if higher level is demanded, an exception is thrown
+	// the tesselation is computed on-demand and cached for later use
+	static std::tuple<const vector<Vector3r>&,const vector<Vector3i>&> unitSphereTri20(int level);
+
 	// http://stackoverflow.com/a/7918281/761090
 	template <class T>
 	static inline T fetch_add(T *ptr, T val) {

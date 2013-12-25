@@ -214,7 +214,7 @@ PsdClumpGenerator::operator()(const shared_ptr<Material>&mat){
 		}
 	}
 	LOG_DEBUG("Chose clump #"<<cNo<<" for radius "<<r<<" (cumulative prob "<<cSum<<", random "<<randSum<<", total prob "<<probSum<<")");
-	assert(cNo>=0 && cNo<clumps.size());
+	assert(cNo<clumps.size());
 
 	// construct the clump based on its defintion
 	const auto& C(*(clumps[cNo]));
