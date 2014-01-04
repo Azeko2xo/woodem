@@ -35,6 +35,20 @@ void TraceGlRep::addPoint(const Vector3r& p, const Real& scalar){
 	}
 }
 
+bool TraceGlRep::getPointData(size_t i, Vector3r& pt, Real& scalar) const {
+	size_t ix;
+	if(flags&FLAG_COMPRESS){
+		ix=i;
+		if(ix>=writeIx) return false;
+	} else { // cycles through the array
+		if(i>=pts.size()) return false;
+		ix=(writeIx+i)%pts.size();
+	}
+	pt=pts[ix];
+	scalar=scalars[ix];
+	return true;
+}
+
 void TraceGlRep::render(const shared_ptr<Node>& n, const GLViewInfo*){
 	if(isHidden()) return;
 	if(!Tracer::glSmooth) glDisable(GL_LINE_SMOOTH);
@@ -44,6 +58,7 @@ void TraceGlRep::render(const shared_ptr<Node>& n, const GLViewInfo*){
 	glBegin(GL_LINE_STRIP);
 		for(size_t i=0; i<pts.size(); i++){
 			size_t ix;
+			// FIXME: use getPointData here (copied code)
 			// compressed start from the very beginning, till they reach the write position
 			if(flags&FLAG_COMPRESS){
 				ix=i;

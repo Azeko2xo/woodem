@@ -83,7 +83,7 @@ Integrating rotation is considerably more complicated as the local reference fra
 
 .. math:: \vec{T}_i=\mat{I}_{ii}\dot{\vec{\omega}}_i+(\mat{I}_{kk}-\mat{I}_{jj})\vec{\omega}_j\vec{\omega}_k.
 
-Due to the presence of the current values of both :math:\vec{\omega}` and :math:`\dot{\vec{\omega}}`, they cannot be solved using the standard leapfrog algorithm.
+Due to the presence of the current values of both :math:`\vec{\omega}` and :math:`\dot{\vec{\omega}}`, they cannot be solved using the standard leapfrog algorithm.
 			
 The algorithm presented here is described by :cite:`Allen1989` (pg. 84--89) and was designed by Fincham for molecular dynamics problems; it is based on extending the leapfrog algorithm by mid-step/on-step estimators of quantities known at on-step/mid-step points in the basic formulation. Although it has received criticism and more precise algorithms are known (:cite:`Omelyan1999`, :cite:`Neto2006`, :cite:`Johnson2008`), this one is currently implemented in Woo for its relative simplicity.
 
@@ -192,7 +192,7 @@ showing that the correction :math:`\Dt\curr{\vec{\dot v}_L}` corresponds to subt
 Going back to :eq:`eq-hvl-currv`, we write the unknown on-step velocity as :math:`\curr{\vec{v}}\approx (\pprev{\vec{v}}+\nnext{\vec{v}})/2` and substitute :math:`\Dt\curr{\vec{\dot v}_L}` into :eq:`eq-nnext-v-simple` obtaining
 
 .. math::
-   \nnext{\vec{v}}&=\left(\mat{1}-\frac{\nnext{\tens{L}}+\pprev{\tens{L}}}{4}\Dt\right)^{-1}\left[(\nnext{\tens{L}}-\pprev{\tens{L}})\curr{\vec{x}}+\left(\mat{1}+\frac{\nnext{\tens{L}}+\pprev{\tens{L}}}{4}\Dt\right)\pprev{\vec{v}}+\curr{\vec{a}}\Dt+\right].
+   \nnext{\vec{v}}&=\left(\mat{1}-\frac{\nnext{\tens{L}}+\pprev{\tens{L}}}{4}\Dt\right)^{-1}\left[(\nnext{\tens{L}}-\pprev{\tens{L}})\curr{\vec{x}}+\left(\mat{1}+\frac{\nnext{\tens{L}}+\pprev{\tens{L}}}{4}\Dt\right)\pprev{\vec{v}}+\curr{\vec{a}}\Dt\right].
 
 The position-independent terms are stored in :obj:`ImLL4hInv <woo.dem.Leapfrog.ImLL4hInv>`, :obj:`LmL <woo.dem.Leapfrog.LmL>`, :obj:`IpLL4h <woo.dem.Leapfrog.IpLL4h>` and are updated at each timestep. Both :math:`\pprev{\tens{L}}` and :math:`\nnext{\tens{L}}` must be know in this equations; they are stored in :obj:`woo.core.Cell.gradV` and :obj:`woo.core.Cell.nextGradV` respectively.
 

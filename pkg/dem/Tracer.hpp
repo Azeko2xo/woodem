@@ -11,6 +11,10 @@ struct TraceGlRep: public NodeGlRep{
 	void setHidden(bool hidden){ if(!hidden)flags&=~FLAG_HIDDEN; else flags|=FLAG_HIDDEN; }
 	bool isHidden() const { return flags&FLAG_HIDDEN; }
 	void resize(size_t size);
+	// set pt and scalar for point indexed i
+	// return true if the point is defined, false if not
+	bool getPointData(size_t i, Vector3r& pt, Real& scalar) const ;
+
 	// make pts sequential and start from 0th position
 	// only called from python if no further writing of the trace will be done
 	void consolidate(); 

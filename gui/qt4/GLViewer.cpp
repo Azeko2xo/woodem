@@ -878,9 +878,12 @@ void GLViewer::postDraw(){
 				range.dispPos=Vector2i(y0,x);
 			}
 			startScreenCoordinatesSystem();
+			const bool& reversed(range.isReversed());
 			glBegin(GL_LINE_STRIP);
 				for(int j=0; j<=nDiv; j++){
-					glColor3v(CompUtils::mapColor((nDiv-j)*(1./nDiv),range.cmap));
+					Real val=(nDiv-j)*(1./nDiv); // value in 0..1
+					if(reversed) val=1-val; // reversed range
+					glColor3v(CompUtils::mapColor(val,range.cmap));
 					if(!range.landscape) glVertex2f(x,y0+yStep*j);
 					else glVertex2f(y0+(ht-yStep*j),x);
 					//cerr<<"RG "<<i<<": lin "<<j<<": "<<(range.landscape?Vector2r(y0+(ht-yStep*j),x):Vector2r(x,y0+yStep*j))<<endl;
