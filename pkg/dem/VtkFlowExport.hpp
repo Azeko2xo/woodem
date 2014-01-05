@@ -25,9 +25,9 @@ struct VtkFlowExport: public PeriodicEngine{
 	vtkPoints* locatorPoints;
 	vtkUnstructuredGrid* locatorGrid;
 
-	vtkUniformGrid* dataGrid;
-	vtkDoubleArray* flowData;
-	vtkIntArray* numParData;
+	vtkUniformGrid *dataGrid;
+	vtkSmartPointer<vtkDoubleArray> flow, flowNorm, density, ekDensity;
+	vtkSmartPointer<vtkIntArray> nNear;
 	vector<Particle::id_t> pointParticle;
 	vector<Real> pointSpeed;
 

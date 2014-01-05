@@ -26,6 +26,15 @@ void VtkFlowExport::setupGrid(){
 
 	size_t numData=cellData?boxCells.prod():(boxCells+Vector3i::Ones()).prod();
 
+	#define _VTK_ARR_HELPER(arrayType,var,name,numComponents) var=vtkSmartPointer<arrayType>::New(); var->SetNumberOfComponents(numComponents); var->SetNumberOfTuples(numData); var->SetName(name); if(cellData) dataGrid->GetCellData()->AddArray(var); else dataGrid->GetPointData()->AddArray(var);
+
+	_VTK_ARR_HELPER(vtkDoubleArray,flow,"flow (momentum density)",3)
+	_VTK_ARR_HELPER(vtkDoubleArray,flowNorm,"|flow|",1)
+	_VTK_ARR_HELPER(vtkDoubleArray,density,"density",1)
+	_VTK_ARR_HELPER(vtkDoubleArray,ekDensity,"Ek density",1)
+	_VTK_ARR_HELPER(vtkIntArray,nNear,"num near",1)
+
+#if 0
 	flowData=vtkDoubleArray::New();
 	flowData->SetNumberOfComponents(3); // flow rate as vector
 	flowData->SetName("flow rate");
@@ -33,12 +42,20 @@ void VtkFlowExport::setupGrid(){
 	if(cellData) dataGrid->GetCellData()->AddArray(flowData);
 	else dataGrid->GetPointData()->AddArray(flowData);
 
+	flowAbsData=vtkDoubleArray::New();
+	flowAbsData->SetNumberOfComponents(1); // abs of flow rate (for volume rendering)
+	flowAbsData->SetName("|flow rate|");
+	flowAbsData->SetNumberOfTuples(numData);
+	if(cellData) dataGrid->GetCellData()->AddArray(flowAbsData);
+	else dataGrid->GetPointData()->AddArray(flowAbsData);
+
 	numParData=vtkIntArray::New();
 	numParData->SetNumberOfComponents(1);
 	numParData->SetName("number of near particles");
 	numParData->SetNumberOfTuples(numData);
 	if(cellData) dataGrid->GetCellData()->AddArray(numParData);
 	else dataGrid->GetPointData()->AddArray(numParData);
+#endif
 
 	locatorPoints=vtkPoints::New();
 	pointParticle.clear();
@@ -115,8 +132,8 @@ void VtkFlowExport::fillOnePoint(const Vector3i& ijk, const Vector3r& P, vtkIdLi
 	if(cellData) dataId=dataGrid->ComputeCellId(ijkArr);
 	else dataId=dataGrid->ComputePointId(ijkArr);
 	int numIds=ids->GetNumberOfIds();
-	numParData->SetValue(dataId,numIds);
-	Vector3r flow;
+	nNear->SetValue(dataId,numIds);
+	Vector3r mom; Real ekDens, dens;
 	// one neighbor does not count (makes fuzzy domain boundaries, not good)
 	if(numIds<1) goto blank_cell;
 
@@ -127,6 +144,7 @@ void VtkFlowExport::fillOnePoint(const Vector3i& ijk, const Vector3r& P, vtkIdLi
 		// FIXME: dimensionality??
 		// kg*(m/s)/m³=kg/m² but is that right?
 		Real weightSum=0.; Vector3r velWSum=Vector3r::Zero();
+		Real massSum=0., ekSum=0.;
 		Vector3r relPosPrev;
 		// bool allSameDir=true;
 		for(int i=0; i<numIds; i++){
@@ -137,6 +155,8 @@ void VtkFlowExport::fillOnePoint(const Vector3i& ijk, const Vector3r& P, vtkIdLi
 			Real weight=pointWeight(relPos);
 			weightSum+=weight;
 			velWSum+=weight*dyn.vel*dyn.mass;
+			massSum+=weight*dyn.mass;
+			ekSum+=weight*.5*dyn.vel.squaredNorm()*dyn.mass;
 			// if dot-product of coors is always positive, all points are on one side from the central point
 			// in that case, we discard that one also, as it is beyond the really active area anyway
 			//if(relPos.dot(relPosPrev)<0) allSameDir=false;
@@ -144,16 +164,22 @@ void VtkFlowExport::fillOnePoint(const Vector3i& ijk, const Vector3r& P, vtkIdLi
 		}
 		if(weightSum==0.) goto blank_cell; // perhaps just at the edge; avoid NaNs which Paraview chokes on
 		// if(allSameDir) goto blank_cell;
-		flow=velWSum/weightSum/suppVol;
+		mom=velWSum/weightSum/suppVol;
+		ekDens=ekSum/weightSum/suppVol;
+		dens=massSum/weightSum/suppVol;
 	}
 
 	// write flow vector to the grid
-	flowData->SetTuple3(dataId,flow[0],flow[1],flow[2]);
+	flow->SetTuple3(dataId,mom[0],mom[1],mom[2]);
+	flowNorm->SetValue(dataId,mom.norm());
+	density->SetValue(dataId,dens);
+	ekDensity->SetValue(dataId,ekDens);
 	return;
 
 	// invalid cell data (too little points, or unsuitable arrangement)
 	blank_cell:
-		flowData->SetTuple3(dataId,0.,0.,0.);
+		flow->SetTuple3(dataId,0.,0.,0.);
+		flowNorm->SetValue(dataId,0.);
 		if(cellData) dataGrid->BlankCell(dataId);
 		else dataGrid->BlankPoint(dataId);
 		return;

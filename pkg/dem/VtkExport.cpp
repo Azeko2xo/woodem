@@ -408,8 +408,10 @@ void VtkExport::run(){
 	outFiles.push_back(outF);
 	outTimes.push_back(scene->time);
 	outSteps.push_back(scene->step);
-	pvd=out+".pvd";
-	writePvd(pvd);
+	#if 0
+		pvd=out+".pvd";
+		writePvd(pvd);
+	#endif
 
 	#undef _VTK_ARR_HELPER
 	#undef _VTK_POINT_ARR
@@ -418,6 +420,7 @@ void VtkExport::run(){
 	#undef _VTK_CELL_INT_ARR
 };
 
+#if 0
 void VtkExport::writePvd(const string& pvdName){
 	std::ofstream o(pvdName,std::ofstream::binary);
 	o<<"<?xml version=\"1.0\"?>\n<VTKFile type=\"Collection\" version=\"0.1\">\n\t<Collection>\n";
@@ -435,5 +438,6 @@ void VtkExport::writePvd(const string& pvdName){
 	o<<"\t</Collection>\n</VTKFile>\n";
 	o.close();
 }
+#endif
 
 #endif /*WOO_VTK*/

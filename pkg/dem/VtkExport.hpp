@@ -43,11 +43,12 @@ struct VtkExport: public PeriodicEngine{
 	}
 
 	// write the PVD file for easy opening of everything
-	void writePvd(const string&);
+	// void writePvd(const string&);
 
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(VtkExport,PeriodicEngine,"Export DEM simulation to VTK files for post-processing.",
 		((string,out,,
-			AttrTrait<>().buttons({"Open PVD in Paraview","from subprocess import call; call(['paraview',self.pvd])",""},/*showBefore*/true),
+			// AttrTrait<>().buttons({"Open PVD in Paraview","from subprocess import call; call(['paraview',self.pvd])",""},/*showBefore*/true),
+			,
 			"Filename prefix to write into; :obj:`woo.core.Scene.tags` written as {tagName} are expanded at the first run."))
 		((bool,compress,true,,"Compress output XML files"))
 		((bool,ascii,false,,"Store data as readable text in the XML file (sets `vtkXMLWriter <http://www.vtk.org/doc/nightly/html/classvtkXMLWriter.html>`__ data mode to ``vtkXMLWriter::Ascii``, while the default is ``Appended``"))
@@ -65,7 +66,7 @@ struct VtkExport: public PeriodicEngine{
 		((vector<vector<string>>,outFiles,,AttrTrait<>().noGui().readonly(),"Files which have been written out."))
 		((vector<Real>,outTimes,,AttrTrait<>().noGui().readonly(),"Times at which files were written."))
 		((vector<int>,outSteps,,AttrTrait<>().noGui().readonly(),"Steps at which files were written."))
-		((string,pvd,,AttrTrait<>().readonly(),"PVD file (if already written)"))
+		// ((string,pvd,,AttrTrait<>().readonly(),"PVD file (if already written)"))
 		,/*ctor*/
 		initRun=false; // do not run at the very first step
 		,/*py*/

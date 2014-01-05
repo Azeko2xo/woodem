@@ -222,7 +222,9 @@ if DISTBUILD=='debian':
 		print 'Compiling with gcc 4.6 (%s), using -std=%s. Adding -pedantic.'%(gccVer,cxxStd)
 		cxxFlags+=['-pedantic'] # work around for http://gcc.gnu.org/bugzilla/show_bug.cgi?id=50478
 
-cxxFlags+=['-Wall','-fvisibility=hidden','-std='+cxxStd,'-pipe']
+## set language to c++ (via -xc++) even for .c files, as clang errors out when -std=c++11 is used on file which it thinks
+## is plain c (gts files); gcc accepts this option even for c source but clang does not.
+cxxFlags+=['-Wall','-fvisibility=hidden','-std='+cxxStd,'-pipe','-xc++']
 
 cxxLibs+=['m',
 	'boost_python',
