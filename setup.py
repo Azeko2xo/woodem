@@ -284,8 +284,12 @@ if 'opengl' in features:
 			# this will for sure fail - either the lib is not found (the first error reported), or we get "undefined reference to main" when the lib is there
 			subprocess.check_output(['gcc','-lqglviewer-qt4'],stderr=subprocess.STDOUT)
 		except subprocess.CalledProcessError,e:
-			if 'error: cannot find ' in e.output.split('\n')[0]: cxxLibs+=['QGLViewer']
-			else: cxxLibs+=['qglviewer-qt4']
+			if 'error: cannot find ' in e.output.split('\n')[0]:
+				print 'info: library check: qglviewer-qt4 not found, using QGLViewer'
+				cxxLibs+=['QGLViewer']
+			else:
+				print 'info: library check: qglviewer-qt4 found'
+				cxxLibs+=['qglviewer-qt4']
 	# qt4 without OpenGL is pure python and needs no additional compile options
 	if ('qt4' in features):
 		cppDef+=[('QT_CORE_LIB',None),('QT_GUI_LIB',None),('QT_OPENGL_LIB',None),('QT_SHARED',None)]
