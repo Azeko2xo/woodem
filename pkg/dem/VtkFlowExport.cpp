@@ -34,29 +34,6 @@ void VtkFlowExport::setupGrid(){
 	_VTK_ARR_HELPER(vtkDoubleArray,ekDensity,"Ek density",1)
 	_VTK_ARR_HELPER(vtkIntArray,nNear,"num near",1)
 
-#if 0
-	flowData=vtkDoubleArray::New();
-	flowData->SetNumberOfComponents(3); // flow rate as vector
-	flowData->SetName("flow rate");
-	flowData->SetNumberOfTuples(numData);
-	if(cellData) dataGrid->GetCellData()->AddArray(flowData);
-	else dataGrid->GetPointData()->AddArray(flowData);
-
-	flowAbsData=vtkDoubleArray::New();
-	flowAbsData->SetNumberOfComponents(1); // abs of flow rate (for volume rendering)
-	flowAbsData->SetName("|flow rate|");
-	flowAbsData->SetNumberOfTuples(numData);
-	if(cellData) dataGrid->GetCellData()->AddArray(flowAbsData);
-	else dataGrid->GetPointData()->AddArray(flowAbsData);
-
-	numParData=vtkIntArray::New();
-	numParData->SetNumberOfComponents(1);
-	numParData->SetName("number of near particles");
-	numParData->SetNumberOfTuples(numData);
-	if(cellData) dataGrid->GetCellData()->AddArray(numParData);
-	else dataGrid->GetPointData()->AddArray(numParData);
-#endif
-
 	locatorPoints=vtkPoints::New();
 	pointParticle.clear();
 	pointSpeed.clear(); // only used with traces, to avoid looking up trace points later
@@ -65,6 +42,7 @@ void VtkFlowExport::setupGrid(){
 	for(const auto& p: *(dem->particles)){
 		if(mask!=0 && (p->mask&mask)==0) continue;
 		if(p->shape->nodes.size()!=1) continue;
+		// if(!p->shape->nodes[0]->hasData<DemData>()) continue;
 		if(!traces){ // one point per particle
 			const Vector3r& pos=p->shape->nodes[0]->pos;
 			__attribute__((unused)) vtkIdType newId=locatorPoints->InsertNextPoint(pos.data());
@@ -112,6 +90,9 @@ Real VtkFlowExport::pointWeight(const Vector3r& relPos){
 
 void VtkFlowExport::fillGrid(){
 	// traverse the grid
+	#ifdef WOO_OPENMP
+		#pragma omp parallel for
+	#endif
 	for(int i=0; i<boxCells[0]+(cellData?0:1); i++){
 		for(int j=0; j<boxCells[1]+(cellData?0:1); j++){
 			for(int k=0; k<boxCells[2]+(cellData?0:1); k++){
@@ -149,7 +130,8 @@ void VtkFlowExport::fillOnePoint(const Vector3i& ijk, const Vector3r& P, vtkIdLi
 		// bool allSameDir=true;
 		for(int i=0; i<numIds; i++){
 			const auto& id=ids->GetId(i);
-			const auto& p=(*(dem->particles))[id]; // FIXME: this is apparently a potential crasher if particles are deleted meanwhile?!
+			const auto parId=pointParticle[id];
+			const auto& p=(*(dem->particles))[parId];
 			const auto& dyn=p->shape->nodes[0]->getData<DemData>();
 			Vector3r relPos=p->shape->nodes[0]->pos-P;
 			Real weight=pointWeight(relPos);

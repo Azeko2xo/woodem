@@ -85,7 +85,7 @@ pygts_vertices_merge(GList* vertices, gdouble epsilon,
 
   i = vertices;
   while(i) {
-    v = i->data;
+    v = (GtsVertex*)i->data;
     if (!GTS_OBJECT(v)->reserved) { /* Do something only if v is active */
 
       /* build bounding box */
@@ -100,10 +100,10 @@ pygts_vertices_merge(GList* vertices, gdouble epsilon,
       /* select vertices which are inside bbox using kdtree */
       j = selected = gts_kdtree_range(kdtree, bbox, NULL);
       while(j) {
-        sv = j->data;
+        sv = (GtsVertex*)j->data;
         if( sv!=v && !GTS_OBJECT(sv)->reserved && (!check||(*check)(sv, v)) ) {
           /* sv is not v and is active */
-	  if( (obj = g_hash_table_lookup(obj_table,GTS_OBJECT(sv))) !=NULL ) {
+	  if( (obj = (PygtsObject*)g_hash_table_lookup(obj_table,GTS_OBJECT(sv))) !=NULL ) {
 	    vertex = PYGTS_VERTEX(obj);
 	    /* Detach and save any parent segments */
 	    ii = sv->segments;
@@ -150,7 +150,7 @@ pygts_vertices_merge(GList* vertices, gdouble epsilon,
 
   i = vertices;
   while (i) {
-    v = i->data;
+    v = (GtsVertex*)i->data;
     next = g_list_next(i);
     if(GTS_OBJECT(v)->reserved) { /* v is inactive */
       if( g_hash_table_lookup(obj_table,GTS_OBJECT(v))==NULL ) {
@@ -225,7 +225,7 @@ pygts_edge_cleanup(GtsSurface *s)
 
   i = edges;
   while(i) {
-    e = i->data;
+    e = (GtsEdge*)i->data;
     if(GTS_SEGMENT(e)->v1 == GTS_SEGMENT(e)->v2) {
       /* edge is degenerate */
       if( !g_hash_table_lookup(obj_table,GTS_OBJECT(e)) ) {
@@ -296,7 +296,7 @@ pygts_face_cleanup(GtsSurface * s)
   /* remove duplicate and degenerate triangles */
   i = triangles;
   while(i) {
-    GtsTriangle * t = i->data;
+    GtsTriangle * t = (GtsTriangle*)i->data;
     if (!gts_triangle_is_ok(t)) {
       /* destroy t, its edges (if not used by any other triangle)
 	 and its corners (if not used by any other edge) */

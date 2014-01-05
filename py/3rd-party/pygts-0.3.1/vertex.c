@@ -514,7 +514,7 @@ static PyMethodDef methods[] = {
 static GtsObject * parent(GtsVertex *v1);
 
 static PyObject *
-new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+new_(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
   PyObject *o;
   PygtsObject *obj;
@@ -615,7 +615,7 @@ PyTypeObject PygtsVertexType = {
     0,                       /* tp_dictoffset */
     (initproc)init,          /* tp_init */
     0,                       /* tp_alloc */
-    (newfunc)new             /* tp_new */
+    (newfunc)new_             /* tp_new */
 };
 
 
@@ -839,7 +839,7 @@ pygts_parent_segment_class(void)
       (GtsArgSetFunc) NULL,
       (GtsArgGetFunc) NULL
     };
-    klass = gts_object_class_new(gts_object_class(),
+    klass = (GtsSegmentClass*)gts_object_class_new(gts_object_class(),
 				 &pygts_parent_segment_info);
   }
 
@@ -866,7 +866,7 @@ pygts_parent_vertex_class(void)
       (GtsArgSetFunc) NULL,
       (GtsArgGetFunc) NULL
     };
-    klass = gts_object_class_new(gts_object_class(),
+    klass = (GtsVertexClass*)gts_object_class_new(gts_object_class(),
 				 &pygts_parent_vertex_info);
   }
 

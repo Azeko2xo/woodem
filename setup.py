@@ -129,7 +129,8 @@ def wooPrepareChunks():
 	#print srcs
 	for i,src in enumerate(srcs):
 		if len(src)==0: continue
-		ext=('c' if src[0].split('.')[-1]=='c' else 'cpp')
+		# ext=('c' if src[0].split('.')[-1]=='c' else 'cpp')
+		ext='cpp' # FORCE the .cpp extension so that we don't have to pass -xc++ to the compiler with clang (which chokes at plain c with -std=c++11)
 		nameNoExt='' if len(src)>1 else '-'+basename(src[0][:-len(src[0].split('.')[-1])-1])
 		chunkPath=join(pathSources,('chunk-%02d%s.%s'%(i,nameNoExt,ext)))
 		if not chunksSame:
@@ -222,9 +223,7 @@ if DISTBUILD=='debian':
 		print 'Compiling with gcc 4.6 (%s), using -std=%s. Adding -pedantic.'%(gccVer,cxxStd)
 		cxxFlags+=['-pedantic'] # work around for http://gcc.gnu.org/bugzilla/show_bug.cgi?id=50478
 
-## set language to c++ (via -xc++) even for .c files, as clang errors out when -std=c++11 is used on file which it thinks
-## is plain c (gts files); gcc accepts this option even for c source but clang does not.
-cxxFlags+=['-Wall','-fvisibility=hidden','-std='+cxxStd,'-pipe','-xc++']
+cxxFlags+=['-Wall','-fvisibility=hidden','-std='+cxxStd,'-pipe']
 
 cxxLibs+=['m',
 	'boost_python',
@@ -276,7 +275,17 @@ if 'openmp' in features:
 if 'opengl' in features:
 	if WIN: cxxLibs+=['opengl32','glu32','glut','gle','QGLViewer2']
 	# XXX: this will fail in Ubuntu >= 13.10 which calls this lib QGLViewer
-	else: cxxLibs+=['GL','GLU','glut','gle','qglviewer-qt4']
+	else:
+		cxxLibs+=['GL','GLU','glut','gle']
+		# now older Ubuntu calls the library qglviewer-qt4, newer QGLViewer
+		# we check that by asking the compiler what it can find and what not
+		# this assumes gcc can be run
+		try:
+			# this will for sure fail - either the lib is not found (the first error reported), or we get "undefined reference to main" when the lib is there
+			subprocess.check_output(['gcc','-lqglviewer-qt4'],stderr=subprocess.STDOUT)
+		except subprocess.CalledProcessError,e:
+			if 'error: cannot find ' in e.output.split('\n')[0]: cxxLibs+=['QGLViewer']
+			else: cxxLibs+=['qglviewer-qt4']
 	# qt4 without OpenGL is pure python and needs no additional compile options
 	if ('qt4' in features):
 		cppDef+=[('QT_CORE_LIB',None),('QT_GUI_LIB',None),('QT_OPENGL_LIB',None),('QT_SHARED',None)]

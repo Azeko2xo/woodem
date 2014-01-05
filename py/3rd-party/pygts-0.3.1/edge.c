@@ -309,7 +309,7 @@ static PyMethodDef methods[] = {
 static GtsObject* parent(GtsEdge *e1);
 
 static PyObject *
-new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+new_(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
   PyObject *o;
   PygtsObject *obj;
@@ -381,7 +381,7 @@ new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     }
 
     /* If corresponding PyObject found in object table, we are done */
-    if( (obj=g_hash_table_lookup(obj_table,edge)) != NULL ) {
+    if( (obj=(PygtsObject*)g_hash_table_lookup(obj_table,edge)) != NULL ) {
       Py_INCREF(obj);
       return (PyObject*)obj;
     }
@@ -462,7 +462,7 @@ PyTypeObject PygtsEdgeType = {
     0,                       /* tp_dictoffset */
     (initproc)init,          /* tp_init */
     0,                       /* tp_alloc */
-    (newfunc)new             /* tp_new */
+    (newfunc)new_             /* tp_new */
 };
 
 
@@ -604,7 +604,7 @@ pygts_parent_triangle_class(void)
       (GtsArgSetFunc) NULL,
       (GtsArgGetFunc) NULL
     };
-    klass = gts_object_class_new(gts_object_class(),
+    klass = (GtsTriangleClass*)gts_object_class_new(gts_object_class(),
 				 &pygts_parent_triangle_info);
   }
 
@@ -631,7 +631,7 @@ pygts_parent_edge_class(void)
       (GtsArgSetFunc) NULL,
       (GtsArgGetFunc) NULL
     };
-    klass = gts_object_class_new(gts_object_class(),
+    klass = (GtsEdgeClass*)gts_object_class_new(gts_object_class(),
 				 &pygts_parent_edge_info);
   }
 

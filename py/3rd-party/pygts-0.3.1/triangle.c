@@ -660,7 +660,7 @@ static PyGetSetDef getset[] = {
 /* Python type methods */
 
 static PyObject *
-new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+new_(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
   PyObject *o;
   PygtsObject *obj;
@@ -826,7 +826,7 @@ new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     }
 
     /* If corresponding PyObject found in object table, we are done */
-    if( (obj=g_hash_table_lookup(obj_table,GTS_OBJECT(t))) != NULL ) {
+    if( (obj=(PygtsObject*)g_hash_table_lookup(obj_table,GTS_OBJECT(t))) != NULL ) {
       Py_INCREF(obj);
       return (PyObject*)obj;
     }
@@ -922,7 +922,7 @@ PyTypeObject PygtsTriangleType = {
     0,                       /* tp_dictoffset */
     (initproc)init,          /* tp_init */
     0,                       /* tp_alloc */
-    (newfunc)new             /* tp_new */
+    (newfunc)new_             /* tp_new */
 };
 
 

@@ -902,7 +902,7 @@ static PyGetSetDef getset[] = {
 /* Python type methods */
 
 static PyObject *
-new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+new_(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
   PyObject *o;
   PygtsObject *obj;
@@ -1027,7 +1027,7 @@ PyTypeObject PygtsPointType = {
   0,                         /* tp_dictoffset */
   (initproc)init,            /* tp_init */
   0,                         /* tp_alloc */
-  (newfunc)new               /* tp_new */
+  (newfunc)new_               /* tp_new */
 };
 
 
