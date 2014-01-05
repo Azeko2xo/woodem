@@ -284,6 +284,9 @@ if 'opengl' in features:
 			# this will for sure fail - either the lib is not found (the first error reported), or we get "undefined reference to main" when the lib is there
 			subprocess.check_output(['gcc','-lqglviewer-qt4'],stderr=subprocess.STDOUT)
 		except subprocess.CalledProcessError,e:
+			print 100*'#'
+			print e.output
+			print 100*'#'
 			if 'error: cannot find ' in e.output.split('\n')[0]:
 				print 'info: library check: qglviewer-qt4 not found, using QGLViewer'
 				cxxLibs+=['QGLViewer']
