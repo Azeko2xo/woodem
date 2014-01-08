@@ -13,7 +13,7 @@ void BoxDeleter::run(){
 	bool deleting=(markMask==0);
 	for(size_t i=0; i<dem->nodes.size(); i++){
 		const auto& n=dem->nodes[i];
-		if(inside!=box.contains(n->pos)) continue; // node inside, do nothing
+		if(inside!=boxContains(n->pos)) continue; // node inside, do nothing
 		if(!n->hasData<DemData>()) continue;
 		const auto& dyn=n->getData<DemData>();
 		// check all particles attached to this node
@@ -27,7 +27,7 @@ void BoxDeleter::run(){
 			bool otherOk=true;
 			for(const auto& nn: p->shape->nodes){
 				// useless to check n again
-				if(nn.get()!=n.get() && !(inside!=box.contains(nn->pos))){ otherOk=false; break; }
+				if(nn.get()!=n.get() && !(inside!=boxContains(nn->pos))){ otherOk=false; break; }
 			}
 			if(!otherOk) continue;
 			LOG_TRACE("DemField.par["<<i<<"] marked for deletion.");
@@ -38,7 +38,7 @@ void BoxDeleter::run(){
 			assert(dynamic_pointer_cast<ClumpData>(n->getDataPtr<DemData>()));
 			const auto& cd=n->getDataPtr<DemData>()->cast<ClumpData>();
 			for(const auto& nn: cd.nodes){
-				if(inside!=box.contains(nn->pos)) goto otherNotOk;
+				if(inside!=boxContains(nn->pos)) goto otherNotOk;
 				for(const Particle* p: nn->getData<DemData>().parRef){
 					assert(p);
 					if(mask && !(mask & p->mask)) goto otherNotOk;

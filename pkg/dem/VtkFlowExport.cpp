@@ -1,6 +1,7 @@
 #ifdef WOO_VTK
 #include<woo/pkg/dem/VtkFlowExport.hpp>
 #include<woo/pkg/dem/Tracer.hpp>
+#include<woo/pkg/dem/Sphere.hpp>
 
 #include<vtkZLibDataCompressor.h>
 #include<vtkXMLImageDataWriter.h>
@@ -31,6 +32,7 @@ void VtkFlowExport::setupGrid(){
 	_VTK_ARR_HELPER(vtkDoubleArray,flow,"flow (momentum density)",3)
 	_VTK_ARR_HELPER(vtkDoubleArray,flowNorm,"|flow|",1)
 	_VTK_ARR_HELPER(vtkDoubleArray,density,"density",1)
+	_VTK_ARR_HELPER(vtkDoubleArray,radius,"radius",1)
 	_VTK_ARR_HELPER(vtkDoubleArray,ekDensity,"Ek density",1)
 	_VTK_ARR_HELPER(vtkIntArray,nNear,"num near",1)
 
@@ -42,6 +44,11 @@ void VtkFlowExport::setupGrid(){
 	for(const auto& p: *(dem->particles)){
 		if(mask!=0 && (p->mask&mask)==0) continue;
 		if(p->shape->nodes.size()!=1) continue;
+		if(rRange[0]<rRange[1]){
+			if(!dynamic_pointer_cast<Sphere>(p->shape)) continue;
+			const Real& r(p->shape->cast<Sphere>().radius);
+			if(r<rRange[0] || r>rRange[1]){ continue; }
+		}
 		// if(!p->shape->nodes[0]->hasData<DemData>()) continue;
 		if(!traces){ // one point per particle
 			const Vector3r& pos=p->shape->nodes[0]->pos;
@@ -114,7 +121,7 @@ void VtkFlowExport::fillOnePoint(const Vector3i& ijk, const Vector3r& P, vtkIdLi
 	else dataId=dataGrid->ComputePointId(ijkArr);
 	int numIds=ids->GetNumberOfIds();
 	nNear->SetValue(dataId,numIds);
-	Vector3r mom; Real ekDens, dens;
+	Vector3r mom; Real ekDens, dens, rad;
 	// one neighbor does not count (makes fuzzy domain boundaries, not good)
 	if(numIds<1) goto blank_cell;
 
@@ -125,7 +132,7 @@ void VtkFlowExport::fillOnePoint(const Vector3i& ijk, const Vector3r& P, vtkIdLi
 		// FIXME: dimensionality??
 		// kg*(m/s)/m³=kg/m² but is that right?
 		Real weightSum=0.; Vector3r velWSum=Vector3r::Zero();
-		Real massSum=0., ekSum=0.;
+		Real massSum=0., ekSum=0., radSum=0.;
 		Vector3r relPosPrev;
 		// bool allSameDir=true;
 		for(int i=0; i<numIds; i++){
@@ -139,6 +146,9 @@ void VtkFlowExport::fillOnePoint(const Vector3i& ijk, const Vector3r& P, vtkIdLi
 			velWSum+=weight*dyn.vel*dyn.mass;
 			massSum+=weight*dyn.mass;
 			ekSum+=weight*.5*dyn.vel.squaredNorm()*dyn.mass;
+			if(dynamic_pointer_cast<Sphere>(p->shape)){
+				radSum+=weight*p->shape->cast<Sphere>().radius;
+			}
 			// if dot-product of coors is always positive, all points are on one side from the central point
 			// in that case, we discard that one also, as it is beyond the really active area anyway
 			//if(relPos.dot(relPosPrev)<0) allSameDir=false;
@@ -149,6 +159,7 @@ void VtkFlowExport::fillOnePoint(const Vector3i& ijk, const Vector3r& P, vtkIdLi
 		mom=velWSum/weightSum/suppVol;
 		ekDens=ekSum/weightSum/suppVol;
 		dens=massSum/weightSum/suppVol;
+		rad=radSum/weightSum;
 	}
 
 	// write flow vector to the grid
@@ -156,12 +167,16 @@ void VtkFlowExport::fillOnePoint(const Vector3i& ijk, const Vector3r& P, vtkIdLi
 	flowNorm->SetValue(dataId,mom.norm());
 	density->SetValue(dataId,dens);
 	ekDensity->SetValue(dataId,ekDens);
+	radius->SetValue(dataId,rad);
 	return;
 
 	// invalid cell data (too little points, or unsuitable arrangement)
 	blank_cell:
 		flow->SetTuple3(dataId,0.,0.,0.);
 		flowNorm->SetValue(dataId,0.);
+		density->SetValue(dataId,0.);
+		ekDensity->SetValue(dataId,0.);
+		radius->SetValue(dataId,0.);
 		if(cellData) dataGrid->BlankCell(dataId);
 		else dataGrid->BlankPoint(dataId);
 		return;

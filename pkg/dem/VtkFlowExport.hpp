@@ -26,7 +26,7 @@ struct VtkFlowExport: public PeriodicEngine{
 	vtkUnstructuredGrid* locatorGrid;
 
 	vtkUniformGrid *dataGrid;
-	vtkSmartPointer<vtkDoubleArray> flow, flowNorm, density, ekDensity;
+	vtkSmartPointer<vtkDoubleArray> flow, flowNorm, density, ekDensity, radius;
 	vtkSmartPointer<vtkIntArray> nNear;
 	vector<Particle::id_t> pointParticle;
 	vector<Real> pointSpeed;
@@ -61,6 +61,7 @@ struct VtkFlowExport: public PeriodicEngine{
 		((Real,relCrop,3,,"Crop the weight function to zero after this amount (see :obj:`stDev`)."))
 		((bool,traces,false,,"Use traces of particles instead of particles themselves."))
 		((int,mask,0,,"Particles to consider in the flow analysis (0 to consider everything)."))
+		((Vector2r,rRange,Vector2r::Zero(),,"Range for radii of particles to consider, used if rRange[0]<rRange[1]; in that case, non-spherical particles are ignored."))
 		((bool,cellData,false,,"Write flow rate as cell data rather than point data."))
 		, /*ctor*/ initRun=false; // do not run at the very first step
 		, /*py*/ 

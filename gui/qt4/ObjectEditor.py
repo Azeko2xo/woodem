@@ -1517,15 +1517,15 @@ class SeqFundamentalEditor(QFrame):
 			ev.accept()
 		elif ev.key()==Qt.Key_Enter or ev.key()==Qt.Key_Return:
 			# insert after the current row
-			self.newSlot(self.keyFocusIndex()+1)
+			self.newSlot(self.keyFocusIndex())
 			ev.accept();
-	def newSlot(self,i):
+	def newSlot(self,i): # i is the index AFTER which the new row is inserted
 		seq=self.getter();
-		seq.insert(i,_fundamentalInitValues.get(self.itemType,self.itemType()))
+		seq.insert(i+1,_fundamentalInitValues.get(self.itemType,self.itemType()))
 		self.setter(seq)
 		self.rebuild()
 		if len(seq)>0:
-			item=self.form.itemAt(i,QFormLayout.FieldRole)
+			item=self.form.itemAt(i+1,QFormLayout.FieldRole)
 			if item: item.widget().setFocus()
 	def killSlot(self,i):
 		seq=self.getter();

@@ -324,6 +324,10 @@ void VtkExport::run(){
 			const Vector3r& pos(ellipsoid->nodes[0]->pos);
 			const Quaternionr& ori(ellipsoid->nodes[0]->ori);
 			//if(unitSphereTesselation.empty()) computeUnitSphereTesselation();
+			#ifdef WOO_OLDABI
+				// FIXME: ellLev hardcoded here for backwards compat only!!
+				int ellLev=1;
+			#endif
 			auto uSphTri(CompUtils::unitSphereTri20(ellLev));
 			vector<Vector3r> pts; pts.reserve(std::get<0>(uSphTri).size());
 			for(const Vector3r& p: std::get<0>(uSphTri)){ pts.push_back(pos+(ori*(p.array()*semiAxes.array()).matrix())); }
