@@ -7,6 +7,7 @@
 #include<woo/pkg/dem/Sphere.hpp>
 #include<woo/pkg/dem/Clump.hpp>
 #include<woo/pkg/gl/Renderer.hpp> // for displacement scaling
+#include<woo/pkg/dem/Gl1_DemField.hpp> // for setOurSceneRanges
 
 WOO_PLUGIN(gl,(TraceGlRep));
 WOO_PLUGIN(dem,(Tracer));
@@ -165,12 +166,20 @@ void Tracer::resetNodesRep(bool setupEmpty, bool includeDead){
 	}
 }
 
+void Tracer::showHideRange(bool show){
+	// show lineColor
+	if(show) Gl1_DemField::setOurSceneRanges(scene,{lineColor},{lineColor});
+	// hide lineColor
+	else Gl1_DemField::setOurSceneRanges(scene,{lineColor},{});
+}
+
 void Tracer::run(){
 	if(scalar!=lastScalar){
 		resetNodesRep(/*setup empty*/true,/*includeDead*/false);
 		lastScalar=scalar;
 		lineColor->reset();
 	}
+	showHideRange(/*show*/true);
 	switch(scalar){
 		case SCALAR_NONE: lineColor->label="[index]"; break;
 		case SCALAR_TIME: lineColor->label="time"; break;

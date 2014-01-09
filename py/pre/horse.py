@@ -25,8 +25,9 @@ class FallingHorse(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		_PAT(bool,'deformable',False,startGroup='Deformability',doc='Whether the meshed horse is deformable. Note that deformable horse does not track energy and disables plotting.'),
 		_PAT(float,'pWaveSafety',.7,startGroup='Tunables',doc='Safety factor for :obj:`woo.utils.pWaveDt` estimation.'),
 		_PAT(str,'reportFmt',"/tmp/{tid}.xhtml",filename=True,startGroup="Outputs",doc="Report output format; :obj:`Scene.tags <woo.core.Scene.tags>` can be used."),
-		_PAT(int,'vtkStep',40,"How often should VtkExport run. If non-positive, never run the export."),
-		_PAT(str,'vtkPrefix',"/tmp/{tid}-",filename=True,doc="Prefix for saving :obj:`woo.dem.VtkExport` data; formatted with ``format()`` providing :obj:`woo.core.Scene.tags` as keys."),
+		_PAT(int,'vtkStep',40,"How often should :obj:`woo.dem.VtkExport` run. If non-positive, never run the export."),
+		_PAT(int,'vtkFlowStep',0,"How often should :obj:`VtkFlowExport` run. If non-positive, never run."),
+		_PAT(str,'vtkPrefix',"/tmp/{tid}-",filename=True,doc="Prefix for saving :obj:`woo.dem.VtkExport` and :obj:`woo.dem.VtkFlowExport` data; formatted with ``format()`` providing :obj:`woo.core.Scene.tags` as keys."),
 		_PAT(bool,'grid',False,'Use grid collider (experimental)'),
 	]
 	def __init__(self,**kw):
@@ -119,7 +120,7 @@ def prepareHorse(pre):
 	S.engines=S.engines+[
 		BoxDeleter(box=((xMin,yMin,zMin-.1*zSpan),(xMax,yMax,aabb[1][2]+.1*zSpan)),inside=False,stepPeriod=100),
 		VtkExport(out=pre.vtkPrefix,stepPeriod=pre.vtkStep,what=VtkExport.all,dead=(pre.vtkStep<=0 or not pre.vtkPrefix)),
-		VtkFlowExport(out=pre.vtkPrefix+'-flow-',box=((xMin,yMin,zMin-.1*zSpan),(xMax,yMax,aabb[1][2]+.1*zSpan)),stepPeriod=pre.vtkStep,dead=(pre.vtkStep<=0 or not pre.vtkPrefix),stDev=3*pre.radius,divSize=3*pre.radius),
+		VtkFlowExport(out=pre.vtkPrefix+'-flow-',box=((xMin,yMin,zMin-.1*zSpan),(xMax,yMax,aabb[1][2]+.1*zSpan)),stepPeriod=pre.vtkFlowStep,dead=(pre.vtkFlowStep<=0 or not pre.vtkPrefix),stDev=3*pre.radius,divSize=3*pre.radius),
 	]+(
 		[Tracer(stepPeriod=20,num=16,compress=0,compSkip=2,dead=False,scalar=Tracer.scalarVel,label='tracer')] if 'opengl' in woo.config.features else []
 	)

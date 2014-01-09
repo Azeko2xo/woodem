@@ -6,7 +6,6 @@
 #include<woo/pkg/dem/Wall.hpp>
 #include<woo/pkg/dem/Facet.hpp>
 #include<woo/pkg/dem/Funcs.hpp>
-//#include<woo/pkg/dem/Tracer.hpp>
 #include<woo/lib/opengl/GLUtils.hpp>
 #include<woo/pkg/gl/Renderer.hpp>
 #include<woo/lib/base/CompUtils.hpp>

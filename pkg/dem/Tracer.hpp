@@ -35,6 +35,9 @@ WOO_REGISTER_OBJECT(TraceGlRep);
 struct Tracer: public PeriodicEngine{
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	void resetNodesRep(bool setupEmpty=false, bool includeDead=true);
+	// bool notifyDead() WOO_CXX11_OVERRIDE(){ showHideRange(!dead); }
+	void showHideRange(bool show);
+
 	virtual void run();
 	enum{SCALAR_NONE=0,SCALAR_TIME,SCALAR_VEL,SCALAR_ANGVEL,SCALAR_SIGNED_ACCEL,SCALAR_RADIUS,SCALAR_SHAPE_COLOR,SCALAR_ORDINAL};
 	WOO_CLASS_BASE_DOC_STATICATTRS_PY(Tracer,PeriodicEngine,"Save trace of node's movement",

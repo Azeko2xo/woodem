@@ -107,8 +107,7 @@ void GLViewer::closeEvent(QCloseEvent *e){
 	bool snapshot=false;
 	for(const auto& e: Master::instance().scene->engines){ if(!e->dead && dynamic_pointer_cast<SnapshotEngine>(e)) snapshot=true; }
 	if(snapshot){
-		QMessageBox::StandardButton confirm;
-		confirm=QMessageBox::question(this,"Confirmation","There is an active SnapshotEngine in the simulation, closing the 3d view will cause error. Really close?",QMessageBox::Yes|QMessageBox::No);
+		auto confirm=QMessageBox::warning(this,"Confirmation","There is an active SnapshotEngine in the simulation, closing the 3d view may cause errors. Really close?",QMessageBox::Yes|QMessageBox::No);
 	 	if (confirm==QMessageBox::No){ e->ignore(); return; }
 	}
 	LOG_DEBUG("Will emit closeView for view #"<<viewId);
