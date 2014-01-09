@@ -49,28 +49,30 @@ def Object_dumps(obj,format,fragment=False,width=80,noMagic=False,stream=True,sh
 	elif format=='genshi':
 		return SerializerToHtmlTable()(obj,dontRender=True,showDoc=showDoc)
 
-def Object_dump(obj,out,format='auto',overwrite=True,fragment=False,width=80,noMagic=False,showDoc=False):
+def Object_dump(obj,out,format='auto',fallbackFormat=None,overwrite=True,fragment=False,width=80,noMagic=False,showDoc=False):
 	'''Dump an object in specified *format*; *out* can be a str/unicode (filename) or a *file* object. Supported formats are: `auto` (auto-detected from *out* extension; raises exception when *out* is an object), `html`, `expr`.'''
-	if format not in ('auto','html','json','expr','pickle','boost::serialization'): raise IOError("Unsupported dump format %s"%format)
 	hasFilename=(isinstance(out,str) or isinstance(out,unicode))
 	if hasFilename:
 		import os.path
 		if os.path.exists(out) and not overwrite: raise IOError("File '%s' exists (use overwrite=True)"%out)
-	#if not hasFilename and not hasattr(out,'write'): raise IOError('*out* must be filename or file-like object')
 	if format=='auto':
 		if not hasFilename: raise IOError("format='auto' is only possible when a fileName is given.")
 		if out.endswith('.html'): format='html'
-		if sum([out.endswith(ext) for ext in ('.expr','expr.gz','expr.bz2')]): format='expr'
-		if sum([out.endswith(ext) for ext in ('.pickle','pickle.gz','pickle.bz2')]): format='pickle'
-		if sum([out.endswith(ext) for ext in ('.json','json.gz','json.bz2')]): format='json'
-		if sum([out.endswith(ext) for ext in ('.xml','.xml.gz','.xml.bz2','.bin','.gz','.bz2')]): format='boost::serialization'
-		else: IOError("Output format not deduced for filename '%s'"%out)
+		elif sum([out.endswith(ext) for ext in ('.expr','expr.gz','expr.bz2')]): format='expr'
+		elif sum([out.endswith(ext) for ext in ('.pickle','pickle.gz','pickle.bz2')]): format='pickle'
+		elif sum([out.endswith(ext) for ext in ('.json','json.gz','json.bz2')]): format='json'
+		elif sum([out.endswith(ext) for ext in ('.xml','.xml.gz','.xml.bz2','.bin','.gz','.bz2')]): format='boost::serialization'
+		elif fallbackFormat!=None: format=fallbackFormat
+		else: IOError("Output format not deduced for filename '%s' (and fallbackFormat not specified)"%out)
+	if format not in ('auto','html','json','expr','pickle','boost::serialization'): raise IOError("Unsupported dump format %s"%format)
+	#if not hasFilename and not hasattr(out,'write'): raise IOError('*out* must be filename or file-like object')
 	if format in ('boost::serialization',) and not hasFilename: raise IOError("format='boost::serialization' needs filename.")
 	# this will go away later
 	if format=='boost::serialization':
+		if format in ('boost::serialization',) and not isinstance(obj,woo.core.Object): raise IOError("Only instances of woo.core.Object can be saved via boost::serialization")
 		if not hasFilename: raise NotImplementedError('Only serialization to files is supported with boost::serialization.')
 		if obj.deepcopy.__module__!='woo._monkey.io': raise IOError("boost::serialization formats can only reliably save pure-c++ objects. Given object %s.%s seems to be derived from python. Save using some dump formats."%(obj.__class__.__module__,obj.__class__.__name__))
-		obj.save(out)
+		obj.save(str(out)) # must convert unicode to str here, so that it can be converted to std::string
 	elif format=='pickle':
 		if hasFilename: pickle.dump(obj,open(out,'wb'))
 		else: out.write(pickle.dumps(obj))
@@ -330,7 +332,9 @@ def wooExprEval(e):
 	return eval(e)
 
 def Object_loads(typ,data,format='auto'):
+	'Load object from file, with format auto-detection; when *typ* is None, no type-checking is performed.'
 	def typeChecked(obj,type):
+		if type==None: return obj
 		if not isinstance(obj,typ): raise TypeError('Loaded object of type '+obj.__class__.__name__+' is not a '+typ.__name__)
 		return obj
 	if format not in ('auto','pickle','expr','json'): raise ValueError('Invalid format %s'%format)
@@ -356,6 +360,7 @@ def Object_loads(typ,data,format='auto'):
 
 def Object_load(typ,inFile,format='auto'):
 	def typeChecked(obj,type):
+		if type==None: return obj
 		if not isinstance(obj,typ): raise TypeError('Loaded object of type '+obj.__class__.__name__+' is not a '+typ.__name__)
 		return obj
 	validFormats=('auto','boost::serialization','expr','pickle','json')
@@ -396,7 +401,7 @@ def Object_load(typ,inFile,format='auto'):
 		raise IOError('Input file format not detected')
 	elif format=='boost::serialization':
 		# ObjectIO takes care of detecting binary, xml, compression independently
-		return typeChecked(Object._boostLoad(inFile),typ)
+		return typeChecked(Object._boostLoad(str(inFile)),typ) # convert unicode to str, if necessary, as the c++ type is std::string
 	elif format=='expr':
 		buf=codecs.open(inFile,'rb','utf-8').read()
 		return typeChecked(wooExprEval(buf),typ)

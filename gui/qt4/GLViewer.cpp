@@ -28,6 +28,7 @@ using boost::algorithm::iends_with;
 #include<QtGui/qevent.h>
 #include<QtCore/qdir.h>
 #include<QtGui/qfiledialog.h>
+#include<QtGui/QMessageBox>
 
 #ifdef WOO_GL2PS
 	#include<gl2ps.h>
@@ -102,6 +103,14 @@ GLLock::~GLLock(){ glv->doneCurrent(); }
 GLViewer::~GLViewer(){ /* get the GL mutex when closing */ GLLock lock(this); /* cerr<<"Destructing view #"<<viewId<<endl;*/ }
 
 void GLViewer::closeEvent(QCloseEvent *e){
+	// if there is an active SnapshotEngine, 
+	bool snapshot=false;
+	for(const auto& e: Master::instance().scene->engines){ if(!e->dead && dynamic_pointer_cast<SnapshotEngine>(e)) snapshot=true; }
+	if(snapshot){
+		QMessageBox::StandardButton confirm;
+		confirm=QMessageBox::question(this,"Confirmation","There is an active SnapshotEngine in the simulation, closing the 3d view will cause error. Really close?",QMessageBox::Yes|QMessageBox::No);
+	 	if (confirm==QMessageBox::No){ e->ignore(); return; }
+	}
 	LOG_DEBUG("Will emit closeView for view #"<<viewId);
 	OpenGLManager::self->emitCloseView(viewId);
 	e->accept();

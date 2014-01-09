@@ -1022,35 +1022,51 @@ class ObjectEditor(QFrame):
 	def objManipLabelMenu(self,entry,pos):
 		'context menu for creating/deleting/loading/saving woo.core.Object from within the editor'
 		menu=QMenu(self)
+		isObj=isinstance(getattr(self.ser,entry.name),woo.core.Object)
 		isNone=(getattr(self.ser,entry.name)==None)
-		newDel=menu.addAction(u'☘ New' if isNone else u'☠  Delete')
-		newDel.triggered.connect(lambda: self.doObjManip('newDel',entry,isNone))
+		if isObj:
+			newDel=menu.addAction(u'☘ New' if isNone else u'☠  Delete')
+			newDel.triggered.connect(lambda: self.doObjManip('newDel',entry,isNone,isObj))
 		if not isNone:
-			save=menu.addAction(u'⛁ Save (as expr)')
-			save.triggered.connect(lambda: self.doObjManip('save',entry,isNone))
+			save=menu.addAction(u'⛁ Save')
+			save.triggered.connect(lambda: self.doObjManip('save',entry,isNone,isObj))
 		load=menu.addAction(u'↥ Load')
-		load.triggered.connect(lambda: self.doObjManip('load',entry,isNone))
+		load.triggered.connect(lambda: self.doObjManip('load',entry,isNone,isObj))
+		default=menu.addAction(u'↺ Default')
+		default.triggered.connect(lambda: self.doObjManip('default',entry,isNone,isObj))
 		menu.popup(entry.widgets['label'].mapToGlobal(pos))
-	def doObjManip(self,action,entry,isNone):
+	def doObjManip(self,action,entry,isNone,isObj):
 		'Handle menu action from objManipLabelMenu'
+		# FIXME: this is an ugly hack of using woo._monkey.io.Object_{dump,load} directly!!!
+		import woo, woo.core, woo._monkey.io
 		#print 'Manipulating Object',self.ser.__class__.__name__+'.'+entry.name
-		if action=='newDel': setattr(self.ser,entry.name,entry.T() if isNone else None)
+		if action=='newDel':
+			assert isObj
+			setattr(self.ser,entry.name,entry.T() if isNone else None)
 		elif action=='save':
 			assert not isNone
 			obj=getattr(self.ser,entry.name)
-			f=QFileDialog.getSaveFileName(self,'Save %s'%(str(obj)),'.')
+			f=QFileDialog.getSaveFileName(self,'Save object: use .json, .expr, .pickle, .html ...','.')
 			if not f: return
-			obj.dump(f,format='expr')
+			woo._monkey.io.Object_dump(obj,unicode(f),format='auto',fallbackFormat='expr')
 		elif action=='load':
-			f=QFileDialog.getOpenFileName(self,'Load a %s'%entry.T.__name__,'.')
+			msg='Load a %s'%entry.T.__name__ if isObj else 'Load'
+			f=QFileDialog.getOpenFileName(self,msg,'.')
 			if not f: return # no file selected
 			try:
-				obj=entry.T.load(f) # be user friendly if garbage is being loaded
+				if isObj: obj=entry.T.load(f) # be user friendly if garbage is being loaded
+				else: obj=woo._monkey.io.Object_load(None,f)
 				setattr(self.ser,entry.name,obj)
 			except Exception as e:
 				import traceback
 				traceback.print_exc()
 				showExceptionDialog(self,e)
+		elif action=='default':
+			if isObj: val=entry.trait.ini.deepcopy()
+			else:
+				import copy
+				val=copy.deepcopy(entry.trait.ini)
+			setattr(self.ser,entry.name,val)
 		else: raise RuntimError('Unknown action %s for object manipulation context menu!'%action)
 		self.refreshEvent()
 	def mkWidgets(self):
@@ -1083,7 +1099,7 @@ class ObjectEditor(QFrame):
 			labelText,labelTooltip=self.getAttrLabelToolTip(entry)
 			label=SerQLabel(self,labelText,tooltip=labelTooltip,path=objPath,elide=not self.labelIsVar)
 			entry.widgets['label']=label
-			if self.objManip and ('value' in entry.widgets) and isinstance(entry.widgets['value'],ObjectEditor):
+			if self.objManip and ('value' in entry.widgets): # and isinstance(entry.widgets['value'],ObjectEditor):
 				label.setContextMenuPolicy(Qt.CustomContextMenu)
 				label.customContextMenuRequested.connect(lambda pos,entry=entry: self.objManipLabelMenu(entry,pos))
 				label.setFocusPolicy(Qt.ClickFocus)

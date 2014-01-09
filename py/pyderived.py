@@ -216,7 +216,8 @@ class PyAttrTrait(object):
 		if isinstance(self.pyType,list):
 			assert len(self.pyType)==1
 			ret=[]
-			if not hasattr(val,'__len__'): raise TypeError("Attribute {self.name} declared as sequence of {T} ({self.cxxT}), but its value {val!s} of type {valType} is not a sequence (__len__ not defined).".format(self=self,T=tName(self.pyType[0]),val=val,valType=tName(type(val))))
+			if not hasattr(val,'__len__'):
+				raise TypeError("Attribute {self.name} declared as sequence of {T}{cxxType}, but its value {val!s} of type {valType} is not a sequence (__len__ not defined).".format(self=self,T=tName(self.pyType[0]),val=val,valType=tName(type(val)),cxxType=((' ('+self.cxxT+' in c++') if hasattr(self,'cxxT') else '')))
 			T=self.pyType[0]
 			if T in self.primitiveTypes: # check convertibility
 				for i,v in enumerate(val):
