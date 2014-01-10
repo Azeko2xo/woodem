@@ -471,6 +471,9 @@ def readParamsFromTable(scene,under='table',tableFileLine=None,noTableOk=True,un
 		if not tableFileLine: tableFileLine=os.environ['WOO_BATCH']
 		env=tableFileLine.split(':')
 		tableFile,tableLine=env[0],int(env[1])
+		if tableFile=='':
+			if not noTableOk: raise RuntimeError("No table specified in WOO_BATCH, but noTableOk was not given.")
+			else: return
 		allTab=TableParamReader(tableFile).paramDict()
 		if not allTab.has_key(tableLine): raise RuntimeError("Table %s doesn't contain valid line number %d"%(tableFile,tableLine))
 		vv=allTab[tableLine]
@@ -525,15 +528,17 @@ def runPreprocessor(pre,preFile=None):
 	if tableFileLine:
 		env=tableFileLine.split(':')
 		tableFile,tableLine=env[0],int(env[1])
-		allTab=TableParamReader(tableFile).paramDict()
-		if not tableLine in allTab: raise RuntimeError("Table %s doesn't contain valid line number %d"%(tableFile,tableLine))
-		vv=allTab[tableLine]
-
-		# set preprocessor parameters first
-		for name,val in vv.items():
-			if name=='title': continue
-			if val in ('*','-',''): continue
-			nestedSetattr(pre,name,eval(val,globals(),dict(woo=woo,math=math))) # woo.unit
+		if tableFile!='':
+			allTab=TableParamReader(tableFile).paramDict()
+			if not tableLine in allTab: raise RuntimeError("Table %s doesn't contain valid line number %d"%(tableFile,tableLine))
+			vv=allTab[tableLine]
+			# set preprocessor parameters first
+			for name,val in vv.items():
+				if name=='title': continue
+				if val in ('*','-',''): continue
+				nestedSetattr(pre,name,eval(val,globals(),dict(woo=woo,math=math))) # woo.unit
+		else:
+			vv={'title':tableFileLine}
 	# check types, if this is a python preprocessor
 	if hasattr(pre,'checkAttrTypes'): pre.checkAttrTypes()
 	# run preprocessor

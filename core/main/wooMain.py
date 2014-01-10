@@ -965,7 +965,7 @@ finished: %s
 			desc=params[l]['title']
 			if '!SCRIPT' in params[l].keys(): desc=script+'.'+desc # prepend filename if script is specified explicitly
 			if opts.timing>0: desc+='[%d]'%j
-			jobs.append(JobInfo(jobNum,desc,fullCmd,hrefCmd,logFile2,nCores,script=script,table=table,lineNo=l,affinity=jobAffinity,resultsDb=resultsDb,debug=jobDebug,executable=jobExecutable,nice=nice))
+			jobs.append(JobInfo(jobNum,desc,fullCmd,hrefCmd,logFile2,nCores,script=script,table=(table if table!=None else ''),lineNo=l,affinity=jobAffinity,resultsDb=resultsDb,debug=jobDebug,executable=jobExecutable,nice=nice))
 	
 	print "Master process pid",os.getpid()
 	

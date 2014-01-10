@@ -414,11 +414,9 @@ shared_ptr<SpherePack> SpherePack_filtered(const shared_ptr<SpherePack>& sp, con
 
 // this is only activated in the SCons build
 #if defined(WOO_GTS)
-extern "C" {
 // HACK
 #include"3rd-party/pygts-0.3.1/pygts.h"
 
-}
 /* Helper function for inGtsSurface::aabb() */
 static void vertex_aabb(GtsVertex *vertex, pair<Vector3r,Vector3r> *bb)
 {
