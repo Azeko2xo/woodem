@@ -45,6 +45,11 @@
 #include <glib.h>
 #include <gts.h>
 
+// we never actually pop this again, but that is fine
+// important is that warnings are gone
+#pragma GCC diagnostic ignored "-Wwrite-strings"
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
+
 #include "object.h"
 #include "point.h"
 #include "vertex.h"
