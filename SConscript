@@ -55,7 +55,7 @@ if 'gts' in env['features']:
 	# HACK HACK HACK!!!
 	# this is VERY ugly, but we need resolve those symbols for ourselves
 	# so we basically have the same lib twice
-	pyObjects+=[env.SharedObject(f) for f in env.Glob('py/3rd-party/pygts-0.3.1/*.c')]
+	pyObjects+=[env.SharedObject(f) for f in env.Glob('py/3rd-party/pygts-0.3.1/*.cpp')]
 	env.Install('$LIBDIR/woo/gts',[
 		env.File('py/3rd-party/pygts-0.3.1/__init__.py'),
 		env.File('py/3rd-party/pygts-0.3.1/pygts.py'),

@@ -12,6 +12,8 @@ pygts-0.3.1:
 		import locale
 		locale.setlocale(locale.LC_NUMERIC,'C')
 
+	The entire source was c++-ified because of the inability of distutils to give different compiler flags to different files; the -std=c++11 flags was necessary for c++ sources but causing error for plain C sources.
+
 boost-python-indexing-suite-v2-noSymlinkHeaders:
 	homepage: http://www.language-binding.net/pyplusplus/pyplusplus.html (part of Py++-1.0.0)
 	documentation: http://www.language-binding.net/pyplusplus/documentation/indexing_suite_v2.html.html

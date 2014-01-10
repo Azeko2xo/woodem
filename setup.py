@@ -108,7 +108,7 @@ def wooPrepareChunks():
 	srcs=[glob('lib/*/*.cpp'),glob('core/*.cpp'),glob('py/*.cpp'),glob('py/*/*.cpp')]
 	if WIN: srcs=[[s] for s in sum(srcs,[])] # compile each file separately even amongst base files
 	if 'opengl' in features: srcs+=[glob('gui/qt4/*.cpp')+glob('gui/qt4/*.cc')]
-	if 'gts' in features: srcs+=[[f] for f in glob('py/3rd-party/pygts-0.3.1/*.c')]
+	if 'gts' in features: srcs+=[[f] for f in glob('py/3rd-party/pygts-0.3.1/*.cpp')]
 	pkg=glob('pkg/*.cpp')+glob('pkg/*/*.cpp')+glob('pkg/*/*/*.cpp')
 	# print srcs,pkg
 	for i in range(0,len(pkg),chunkSize): srcs.append(pkg[i:i+chunkSize])
