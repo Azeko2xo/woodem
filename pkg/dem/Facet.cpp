@@ -1,10 +1,14 @@
 #include<woo/pkg/dem/Facet.hpp>
 #include<woo/lib/base/CompUtils.hpp>
+#include<boost/range/algorithm/count_if.hpp>
+
 #ifdef WOO_OPENGL
 	#include<woo/pkg/gl/Renderer.hpp>
 #endif
 
 WOO_PLUGIN(dem,(Facet)(Bo1_Facet_Aabb));
+
+CREATE_LOGGER(Facet);
 
 #ifdef WOO_OPENGL
 	WOO_PLUGIN(gl,(Gl1_Facet));
@@ -13,6 +17,9 @@ WOO_PLUGIN(dem,(Facet)(Bo1_Facet_Aabb));
 void Facet::selfTest(const shared_ptr<Particle>& p){
 	if(!numNodesOk()) throw std::runtime_error("Facet #"+to_string(p->id)+": numNodesOk() failed (has "+to_string(nodes.size())+" nodes)");
 	for(int i:{0,1,2}) if((nodes[i]->pos-nodes[(i+1)%3]->pos).squaredNorm()==0) throw std::runtime_error("Facet #"+to_string(p->id)+": nodes "+to_string(i)+" and "+to_string((i+1)%3)+" are coincident.");
+	// check that we don't have contact with another Facet -- it is not forbidden but usually a bug
+	size_t ffCon=boost::range::count_if(p->contacts,[&](const Particle::MapParticleContact::value_type& C)->bool{ return C.second->isReal() && dynamic_pointer_cast<Facet>(C.second->leakOther(p.get())->shape); });
+	if(ffCon>0) LOG_WARN("Facet.selfTest: Facet #"<<p->id<<" has "<<ffCon<<" contacts with other facets. This is not per se an error though very likely unintended -- there is no functor to handle such contact and it will be uselessly recomputed in every step. Set both particles masks to have some DemField.loneMask bits and contact will not be created at all.");
 }
 
 

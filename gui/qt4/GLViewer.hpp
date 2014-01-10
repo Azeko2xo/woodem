@@ -214,15 +214,4 @@ class GLLock: public boost::try_mutex::scoped_lock{
 };
 
 
-class YadeCamera : public qglviewer::Camera
-{	
-	Q_OBJECT 
-	private:
-		float cuttingDistance;
-        public :
-		YadeCamera():cuttingDistance(0){};
-		virtual float zNear() const;
-		virtual void setCuttingDistance(float s){cuttingDistance=s;};
-};
-
 #endif /* WOO_OPENGL */

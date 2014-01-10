@@ -28,7 +28,7 @@ struct BoxDeleter: public PeriodicEngine{
 	#endif
 
 	#ifndef WOO_OLDABI
-	bool boxContains(const Vector3r& p){ if(!node) return box.contains(p); else return box.contains(node->ori.conjugate()*(p-node->pos)); }
+	bool boxContains(const Vector3r& p){ return box.contains(node?node->glob2loc(p):p); }
 	#else
 		bool boxContains(const Vector3r& p){ return box.contains(p); }
 	#endif

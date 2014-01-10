@@ -212,7 +212,7 @@ shared_ptr<Contact> ContactContainer::pyByIds(const Vector2i& ids){return find(i
 shared_ptr<Contact> ContactContainer::pyNth(int n){
 	int sz(size());
 	if(n<-sz || n>sz-1) IndexError("Linear index out of range ("+lexical_cast<string>(-sz)+".."+lexical_cast<string>(sz-1)+")");
-	return linView[n>=0?n:size()-n];
+	return linView[n>=0?n:sz+n];
 }
 ContactContainer::pyIterator ContactContainer::pyIter(){ return ContactContainer::pyIterator(this); }
 

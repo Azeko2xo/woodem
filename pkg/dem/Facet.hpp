@@ -13,6 +13,7 @@ struct Facet: public Shape {
 		Vector3r getGlVertex(int i) const;
 		Vector3r getGlCentroid() const;
 	#endif
+	DECLARE_LOGGER;
 	// return velocity which is linearly interpolated between velocities of facet nodes, and also angular velocity at that point
 	// takes fakeVel in account, with the NaN special case as documented
 	std::tuple<Vector3r,Vector3r> interpolatePtLinAngVel(const Vector3r& x) const;

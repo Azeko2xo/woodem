@@ -124,15 +124,22 @@ struct Node: public Object, public Indexable{
 	template<typename NodeDataSubclass>
 	static void pySetData(const shared_ptr<Node>& n, const shared_ptr<NodeDataSubclass>& d){ n->setData<NodeDataSubclass>(d); }
 
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Node,Object,"A point in space, referenced by other objects.",
-		((Vector3r,pos,Vector3r::Zero(),AttrTrait<>().lenUnit(),"Position in space (cartesian coordinates)."))
-		((Quaternionr,ori,Quaternionr::Identity(),,"Orientation of this node."))
+	// transform point p from global to local coordinates
+	Vector3r glob2loc(const Vector3r& p){ return ori.conjugate()*(p-pos); }
+	// 
+	Vector3r loc2glob(const Vector3r& p){ return ori*p+pos; }
+
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Node,Object,"A point in space (defining local coordinate system), referenced by other objects.",
+		((Vector3r,pos,Vector3r::Zero(),AttrTrait<>().lenUnit(),"Position in space (cartesian coordinates); origin :math:`O` of the local coordinate system."))
+		((Quaternionr,ori,Quaternionr::Identity(),,"Orientation :math:`q` of this node."))
 		((vector<shared_ptr<NodeData> >,data,,,"Array of data, ordered in globally consistent manner."))
 		#ifdef WOO_OPENGL
 			((shared_ptr<NodeGlRep>,rep,,,"What should be shown at this node when rendered via OpenGL."))
 		#endif
 		, /* ctor */ createIndex();
 		, /* py */ WOO_PY_TOPINDEXABLE(Node)
+			.def("glob2loc",&Node::glob2loc,(py::arg("p")),"Transform point :math:`p` from global to node-local coordinates as :math:`q^*(p-O)`.")
+			.def("loc2glob",&Node::glob2loc,(py::arg("p")),"Transform point :math:`p_l` from node-local to global coordinates as :math:`q\\cdot p_l+O`.")
 	);
 	REGISTER_INDEX_COUNTER(Node);
 };

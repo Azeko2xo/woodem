@@ -59,6 +59,7 @@ struct Particle: public Object{
 	void setRefPos(const Vector3r&);
 	std::vector<shared_ptr<Node> > getNodes();
 	virtual string pyStr() const { return "<Particle #"+to_string(id)+" @ "+lexical_cast<string>(this)+">"; }
+	int countRealContacts() const;
 	void postLoad(Particle&,void*);
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Particle,Object,ClassTrait().doc("Particle in DEM").section("Particle","Each particles in DEM is defined by its shape (given by multiple nodes) and other parameters.",{"Shape","Material","Bound"}),
 		((id_t,id,-1,AttrTrait<Attr::readonly>(),"Index in DemField::particles"))
@@ -390,6 +391,7 @@ struct Contact: public Object{
 	// we call it "leak" to make this very explicit
 	Particle* leakPA() const { assert(!pA.expired()); return pA.lock().get(); }
 	Particle* leakPB() const { assert(!pB.expired()); return pB.lock().get(); }
+	Particle* leakOther(const Particle* p) const { assert(p==leakPA() || p==leakPB()); return (p!=leakPA()?leakPA():leakPB()); }
 	shared_ptr<Particle> pyPA() const { return pA.lock(); }
 	shared_ptr<Particle> pyPB() const { return pB.lock(); }
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Contact,Object,"Contact in DEM",

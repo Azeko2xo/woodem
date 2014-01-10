@@ -29,7 +29,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 
 	void postLoad2();
 
-	enum{COLOR_SOLID=0,COLOR_SHAPE,COLOR_RADIUS,COLOR_VEL,COLOR_ANGVEL,COLOR_MASS,COLOR_DISPLACEMENT,COLOR_ROTATION,COLOR_REFPOS,COLOR_MAT_ID,COLOR_MATSTATE,COLOR_SIG_N,COLOR_SIG_T,COLOR_MASK,COLOR_INVISIBLE,/*last*/COLOR_SENTINEL};
+	enum{COLOR_SOLID=0,COLOR_SHAPE,COLOR_RADIUS,COLOR_VEL,COLOR_ANGVEL,COLOR_MASS,COLOR_DISPLACEMENT,COLOR_ROTATION,COLOR_REFPOS,COLOR_MAT_ID,COLOR_MATSTATE,COLOR_SIG_N,COLOR_SIG_T,COLOR_MASK,COLOR_NUM_CON,COLOR_INVISIBLE,/*last*/COLOR_SENTINEL};
 	enum{GLYPH_KEEP=0,GLYPH_NONE,GLYPH_FORCE,GLYPH_TORQUE,GLYPH_VEL,/*last*/GLYPH_SENTINEL};
 	enum{CNODE_NONE=0,CNODE_GLREP=1,CNODE_LINE=2,CNODE_NODE=4,CNODE_POTLINE=8};
 	enum{SHAPE_NONE=0,SHAPE_ALL,SHAPE_SPHERES,SHAPE_NONSPHERES,SHAPE_MASK};
@@ -53,6 +53,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 			{COLOR_MATSTATE,"Particle.matState"}, \
 			{COLOR_SIG_N,"normal stress"}, \
 			{COLOR_SIG_T,"shear stress"}, \
+			{COLOR_NUM_CON,"num. contacts"}, \
 			{COLOR_INVISIBLE,"invisible"}
 
 	WOO_CLASS_BASE_DOC_STATICATTRS_CTOR_PY(Gl1_DemField,GlFieldFunctor,"Render DEM field.",
@@ -63,7 +64,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 		((bool,wire,false,,"Render all shapes with wire only"))
 
 		((int,colorBy,COLOR_SHAPE,AttrTrait<Attr::triggerPostLoad>().choice({ GL1_DEMFIELD_COLORBY_CHOICES }).buttons({"Reference now","self.updateRefPos=True","use current positions and orientations as reference for showing displacement/rotation"},/*showBefore*/false),"Color particles by"))
-		((int,vecAxis,-1,AttrTrait<>().choice({{-1,"norm"},{0,"x"},{1,"y"},{2,"z"}}).hideIf("self.colorBy in (self.colorShape, self.colorRadius, self.colorMatId, self.colorMatState)"),"Axis for colorRefPosCoord"))
+		((int,vecAxis,-1,AttrTrait<>().choice({{-1,"norm"},{0,"x"},{1,"y"},{2,"z"}}).hideIf("self.colorBy in (self.colorShape, self.colorRadius, self.colorMatId, self.colorMatState, self.colorNumCon)"),"Axis for colorRefPosCoord"))
 		((int,matStateIx,0,AttrTrait<Attr::triggerPostLoad>().hideIf("self.colorBy!=self.colorMatState and self.colorBy2!=self.colorMatState"),"Index for getting :obj:`MatState` scalars."))
 		((Real,matStateSmooth,1e-3,AttrTrait<>().hideIf("self.colorBy!=self.colorMatState and self.colorBy2!=self.colorMatState"),"Smoothing coefficient for :obj:`MatState` scalars."))
 		((shared_ptr<ScalarRange>,colorRange,,AttrTrait<>().readonly().hideIf("self.colorBy in (self.colorSolid,self.colorInvisible)"),"Range for particle colors (:obj:`colorBy`)"))
@@ -120,6 +121,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 			_classObj.attr("colorMatState")=(int)Gl1_DemField::COLOR_MATSTATE;
 			_classObj.attr("colorSigN")=(int)Gl1_DemField::COLOR_SIG_N;
 			_classObj.attr("colorSigT")=(int)Gl1_DemField::COLOR_SIG_T;
+			_classObj.attr("colorNumCon")=(int)Gl1_DemField::COLOR_NUM_CON;
 			_classObj.attr("colorInvisible")=(int)Gl1_DemField::COLOR_INVISIBLE;
 			_classObj.attr("cNodeNone")=(int)Gl1_DemField::CNODE_NONE;
 			_classObj.attr("cNodeGlRep")=(int)Gl1_DemField::CNODE_GLREP;

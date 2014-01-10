@@ -42,20 +42,45 @@ shared_ptr<DemField> DemFuncs::getDemField(const Scene* scene){
 	return ret;
 }
 
-vector<Real> DemFuncs::contactCoordQuantiles(const shared_ptr<DemField>& dem, const vector<Real>& quantiles, const Vector3r& pt, Vector3r dir, const Vector2r& range){
-	dir.normalize();
+/* See https://yade-dem.org/doc/yade.utils.html#yade.utils.avgNumInteractions for docs */
+Real DemFuncs::coordNumber(const shared_ptr<DemField>& dem, const shared_ptr<Node>& node, const AlignedBox3r& box, int mask, bool skipFree){
+	long C2=0; // twice the number of contacts (counted for each participating particle)
+	long N0=0; // number of particles without contact (floaters)
+	long N1=0; // number of particles with one contact (rattlers)
+	long N=0;  // number of all particles
+	for(const auto& p: *dem->particles){
+		const Vector3r& pos=p->shape->nodes[0]->pos;
+		if(mask && (mask&p->mask)==0) continue;
+		if(p->shape->nodes[0]->getData<DemData>().isClumped()) throw std::runtime_error("Not yet implemented for clumps.");
+		if(!box.contains(node?node->glob2loc(pos):pos)) continue;
+		int n=p->countRealContacts();
+		if(n==0) N0++;
+		else if(n==1) N1++;
+		N++;
+		C2+=n;
+	}
+	if(skipFree) return (C2-N1)*1./(N-N0-N1);
+	else return C2*1./N;
+}
+
+vector<Real> DemFuncs::contactCoordQuantiles(const shared_ptr<DemField>& dem, const vector<Real>& quantiles, const shared_ptr<Node>& node, const AlignedBox3r& box){
+	if(!node) throw std::runtime_error("DemFuncs::contactCoordQuantiles: node must not be None.");
 	vector<Real> ret;
 	ret.reserve(quantiles.size());
 	if(quantiles.empty()) return ret;
+	vector<Real> coords;
 	// count contacts first
 	// this count will be off when range is given; it will be larger, so copying is avoided at the cost of some spurious allocation
-	size_t N=boost::range::count_if(*dem->contacts,[&](const shared_ptr<Contact>& C)->bool{ return C->isReal(); });
-	vector<Real> coords; coords.reserve(N);
+	size_t N;
+	#if 0
+		N=boost::range::count_if(*dem->contacts,[&](const shared_ptr<Contact>& C)->bool{ return C->isReal(); });
+		coords.reserve(N);
+	#endif
 	for(const shared_ptr<Contact>& C: *dem->contacts){
 		if(!C->isReal()) continue;
-		Real c=(C->geom->node->pos-pt).dot(dir);
-		if(range[0]<range[1] && (c<range[0] || c>range[1])) continue;
-		coords.push_back(c);
+		Vector3r p=node->glob2loc(C->geom->node->pos);
+		if(!box.contains(p)) continue;
+		coords.push_back(p[2]);
 	};
 	// no contacts yet, return NaNs
 	if(coords.empty()){
@@ -489,6 +514,7 @@ vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const s
 		auto par=make_shared<Particle>();
 		par->shape=facet;
 		par->material=mat;
+		par->mask=mask;
 		for(auto ix: vIx){
 			facet->nodes.push_back(nodes[ix]);
 			nodes[ix]->getData<DemData>().addParRef(par);

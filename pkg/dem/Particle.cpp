@@ -6,6 +6,9 @@
 #include<woo/pkg/dem/Clump.hpp>
 #include<woo/pkg/dem/Funcs.hpp>
 
+#include<boost/range/algorithm/count_if.hpp>
+
+
 #ifdef WOO_OPENGL
 	#include<woo/pkg/gl/Renderer.hpp>
 #endif
@@ -36,6 +39,11 @@ Vector3r Shape::avgNodePos(){
 	for(size_t i=0; i<sz; i++) ret+=nodes[i]->pos;
 	return ret/sz;
 }
+
+int Particle::countRealContacts() const{
+	return boost::range::count_if(contacts,[&](const MapParticleContact::value_type& C)->bool{ return C.second->isReal(); });
+}
+
 
 
 void DemData::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){

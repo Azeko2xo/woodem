@@ -102,6 +102,7 @@ void Gl1_DemField::initAllRanges(){
 			case COLOR_MATSTATE:     r->label=""; break; // can only be filled from MatState::getScalarName(matStateIx)
 			case COLOR_SIG_N: 	    r->label="normal stress"; break;
 			case COLOR_SIG_T:    	 r->label="shear stress"; break;
+			case COLOR_NUM_CON:    	 r->label="num. contacts"; break;
 			case COLOR_MASK:    		 r->label="mask"; break;
 		};
 	}
@@ -275,6 +276,7 @@ void Gl1_DemField::doShape(){
 				break;
 			}
 			case COLOR_MASK: parColor=CR->color(p->mask); break;
+			case COLOR_NUM_CON: parColor=CR->color(p->countRealContacts()); break;
 			case COLOR_INVISIBLE: continue; // don't show this particle at all
 			default: parColor=Vector3r(NaN,NaN,NaN);
 		}
