@@ -45,7 +45,7 @@ void VtkFlowExport::setupGrid(){
 		if(mask!=0 && (p->mask&mask)==0) continue;
 		if(p->shape->nodes.size()!=1) continue;
 		if(rRange[0]<rRange[1]){
-			if(!dynamic_pointer_cast<Sphere>(p->shape)) continue;
+			if(!p->shape->isA<Sphere>()) continue;
 			const Real& r(p->shape->cast<Sphere>().radius);
 			if(r<rRange[0] || r>rRange[1]){ continue; }
 		}
@@ -59,7 +59,7 @@ void VtkFlowExport::setupGrid(){
 			// make sure that velocity is the scalar -- otherwise we won't be able to get any meaningful data
 			if(Tracer::scalar!=Tracer::SCALAR_VEL) throw std::runtime_error("VtkFlowExport: when analyzing traces, the woo.dem.Tracer.scalar must be velocity (woo.dem.Tracer.scalarVel).");
 			const auto& node(p->shape->nodes[0]);
-			if(!node->rep || !dynamic_pointer_cast<TraceGlRep>(node->rep)) continue; // no trace data for this particle
+			if(!node->rep || !node->rep->isA<TraceGlRep>()) continue; // no trace data for this particle
 			const auto& trace(node->rep->cast<TraceGlRep>());
 			Vector3r pt; Real scalar;
 			// getPointData returns false when there is nothing left

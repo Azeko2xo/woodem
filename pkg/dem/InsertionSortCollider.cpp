@@ -173,7 +173,7 @@ bool InsertionSortCollider::updateBboxes_doFullRun(){
 		Real minR=std::numeric_limits<Real>::infinity();
 		FOREACH(const shared_ptr<Particle>& p, *dem->particles){
 			if(!p || !p->shape) continue;
-			if(!dynamic_pointer_cast<Sphere>(p->shape))continue;
+			if(!p->shape->isA<Sphere>())continue;
 			minR=min(p->shape->cast<Sphere>().radius,minR);
 		}
 		verletDist=isinf(minR) ? 0 : abs(verletDist)*minR;

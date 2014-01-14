@@ -32,6 +32,9 @@ struct DemFuncs{
 
 	static Real coordNumber(const shared_ptr<DemField>& dem, const shared_ptr<Node>& node, const AlignedBox3r& box, int mask=0, bool skipFree=true);
 
+	// compute porosity of given box (in local coords, if node is given) and return the 
+	static Real porosity(const shared_ptr<DemField>& dem, const shared_ptr<Node>& node, const AlignedBox3r& box);
+
 
 	/* return list of quantile values for contact coordinates in node-local z-coordinates, for contacts inside *box* (in local coordinates). The list returned has the same length as *quantiles* */
 	static vector<Real> contactCoordQuantiles(const shared_ptr<DemField>& dem, const vector<Real>& quantiles, const shared_ptr<Node>& node, const AlignedBox3r& box);

@@ -22,7 +22,7 @@ void MeshVolume::init(){
 		assert(p);
 		if(mask!=0 && (p->mask & mask)==0) continue;
 		if(!p->shape) throw std::runtime_error("MeshVolume: #"+to_string(p->id)+": shape==None.");
-		if(!dynamic_pointer_cast<Facet>(p->shape)) throw std::runtime_error("MeshVolume: #"+to_string(p->id)+": shape must be a Facet (not a "+p->shape->getClassName()+")");
+		if(!p->shape->isA<Facet>()) throw std::runtime_error("MeshVolume: #"+to_string(p->id)+": shape must be a Facet (not a "+p->shape->getClassName()+")");
 		const Facet& f=p->shape->cast<Facet>();
 		assert(f.numNodesOk()); // 3 nodes
 		LOG_DEBUG("Facet #"<<p->id<<", mask="<<p->mask<<" (mesh mask "<<mask);

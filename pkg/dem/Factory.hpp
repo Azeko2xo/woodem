@@ -24,7 +24,7 @@ struct ParticleFactory: public PeriodicEngine{
 		((long,num,0,,"Number of generated particles"))
 		((Real,currRate,NaN,AttrTrait<>().readonly(),"Current value of mass flow rate"))
 		((bool,zeroRateAtStop,true,,"When the generator stops (mass/number of particles reached, ...), set :obj:`currRate` to zero immediately"))
-		((Real,currRateSmooth,1,AttrTrait<>().noGui().range(Vector2r(0,1)),"Smoothing factor for currRate ∈〈0,1〉"))
+		((Real,currRateSmooth,1,AttrTrait<>().range(Vector2r(0,1)),"Smoothing factor for currRate ∈〈0,1〉"))
 		((Real,glColor,0,AttrTrait<>().noGui(),"Color for rendering (nan disables rendering)"))
 	);
 };

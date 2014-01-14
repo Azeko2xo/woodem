@@ -74,7 +74,7 @@ void LawTester::run(){
 	
 	for(auto dyn: dyns){
 		if(!dyn->impose) dyn->impose=make_shared<Local6Dofs>();
-		else if(!dynamic_pointer_cast<Local6Dofs>(dyn->impose)) throw std::runtime_error("LawTester: DemData.impose is set, but it is not a Local6Dofs.");
+		else if(!dyn->impose->isA<Local6Dofs>()) throw std::runtime_error("LawTester: DemData.impose is set, but it is not a Local6Dofs.");
 	}
 	Local6Dofs* imposes[2]={static_cast<Local6Dofs*>(dyns[0]->impose.get()),static_cast<Local6Dofs*>(dyns[1]->impose.get())};
 

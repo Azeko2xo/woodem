@@ -346,7 +346,7 @@ void Gl1_DemField::doNodes(const vector<shared_ptr<Node>>& nodeContainer){
 			// prepare rep types
 			// vector values
 			if(glyph==GLYPH_VEL || glyph==GLYPH_FORCE || glyph==GLYPH_TORQUE){
-				if(!n->rep || !dynamic_pointer_cast<VectorGlRep>(n->rep)){ n->rep=make_shared<VectorGlRep>(); }
+				if(!n->rep || !n->rep->isA<VectorGlRep>()){ n->rep=make_shared<VectorGlRep>(); }
 				auto& vec=n->rep->cast<VectorGlRep>();
 				vec.range=glyphRange;
 				vec.relSz=glyphRelSz;

@@ -14,7 +14,7 @@ relative displacements :math:`\vec{u}`
    the first (:math:`x`) component is the normal displacement :math:`u_n`, the other two are tangential displacement vector :math:`\vec{u_t}`;
 
 relative rotations :math:`\vec{\phi}`
-   the :math:`x`-component is the twist rotation :math:`\phi_x`, :math:`\phi_y` and :math:`\phi_z` are bending rotation along respective local axes.
+   the :math:`x`-component is the twist rotation :math:`\phi_x`, :math:`\phi_y` and :math:`\phi_z` are bending (in-plane) rotation along respective local axes.
 
 All displacements define their respective rates noted :math:`\dot{\vec{u}}` and :math:`\dot{\vec{\phi}}`.
 

@@ -125,7 +125,7 @@ void PelletAgglomerator::run(){
 			const shared_ptr<Contact>& c(idCon.second);
 			if(!c->isReal()) continue;
 			Particle* other(c->leakPA()==src.get()?c->leakPB():src.get());
-			if(!dynamic_pointer_cast<Sphere>(other->shape)) continue; // other particles is not a sphere
+			if(!other->shape->isA<Sphere>()) continue; // other particles is not a sphere
 			Sphere& sphere=other->shape->cast<Sphere>();
 			assert(dynamic_pointer_cast<L6Geom>(c->geom));
 			// radius change

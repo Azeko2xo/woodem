@@ -16,7 +16,7 @@ CREATE_LOGGER(ConveyorFactory);
 Real ConveyorFactory::critDt(){
 	// no spheres/clumps defined at all
 	if(centers.empty()) return Inf;
-	if(!dynamic_pointer_cast<ElastMat>(material)){
+	if(!material->isA<ElastMat>()){
 		LOG_WARN("Material is not a ElastMat, unable to compute critical timestep.");
 		return Inf;
 	}

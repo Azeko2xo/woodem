@@ -63,6 +63,18 @@ Real DemFuncs::coordNumber(const shared_ptr<DemField>& dem, const shared_ptr<Nod
 	else return C2*1./N;
 }
 
+Real DemFuncs::porosity(const shared_ptr<DemField>& dem, const shared_ptr<Node>& node, const AlignedBox3r& box){
+	Real Vs=0; // solid volume
+	Real V=box.volume(); // box volume
+	for(const auto& p: *dem->particles){
+		if(!p->shape->isA<Sphere>()) continue;
+		const Vector3r& pos=p->shape->nodes[0]->pos;
+		if(!box.contains(node?node->glob2loc(pos):pos)) continue;
+		Vs+=(4/3.)*M_PI*pow(p->shape->cast<Sphere>().radius,3);
+	}
+	return Vs/V;
+}
+
 vector<Real> DemFuncs::contactCoordQuantiles(const shared_ptr<DemField>& dem, const vector<Real>& quantiles, const shared_ptr<Node>& node, const AlignedBox3r& box){
 	if(!node) throw std::runtime_error("DemFuncs::contactCoordQuantiles: node must not be None.");
 	vector<Real> ret;

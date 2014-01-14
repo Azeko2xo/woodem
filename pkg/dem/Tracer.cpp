@@ -206,7 +206,7 @@ void Tracer::run(){
 		const auto& dyn(n->getData<DemData>());
 		if(dyn.isTracerSkip()) continue;
 		// node added
-		if(!n->rep || !dynamic_pointer_cast<TraceGlRep>(n->rep)){
+		if(!n->rep || !n->rep->isA<TraceGlRep>()){
 			boost::mutex::scoped_lock lock(dem.nodesMutex);
 			n->rep=make_shared<TraceGlRep>();
 			auto& tr=n->rep->cast<TraceGlRep>();

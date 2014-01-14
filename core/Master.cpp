@@ -339,7 +339,7 @@ void Master::pyExitNoBacktrace(int status){
 shared_ptr<woo::Object> Master::pyGetScene(){ return getScene(); }
 void Master::pySetScene(const shared_ptr<Object>& s){
 	if(!s) woo::ValueError("Argument is None");
-	if(!dynamic_pointer_cast<Scene>(s)) woo::TypeError("Argument is not a Scene instance");
+	if(!s->isA<Scene>()) woo::TypeError("Argument is not a Scene instance");
 	setScene(static_pointer_cast<Scene>(s));
 }
 
