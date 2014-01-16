@@ -388,8 +388,11 @@ tighter integration with python and user-friendliness.
 	# http://stackoverflow.com/questions/13271085/console-scripts-entry-point-ignored
 	entry_points={
 		'console_scripts':[
+			# wwoo on Windows, woo on Linux
 			'%swoo%s = wooMain:main'%('w' if WIN else '',execFlavor),
-			'%swoo%s_batch = wooMain:batch'%('w' if WIN else '',execFlavor),
+			# wwoo_batch on windows
+			# woo-batch on Linux
+			'%swoo%s%sbatch = wooMain:batch'%('w' if WIN else '',execFlavor,'_' if WIN else '-'),
 		],
 	},
 	# woo.__init__ makes symlinks to _cxxInternal, which would not be possible if zipped

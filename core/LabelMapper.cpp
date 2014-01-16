@@ -269,7 +269,7 @@ py::object LabelMapper::__getitem__(const string& label){
 	// hack to be able to do getattr(S.lab,'something[1]')
 	if(boost::regex_match(label,match,boost::regex("^(.*)\\[([0-9]+)\\]$"))){
 		string l0=match[1];
-		long index=lexical_cast<long>(index);
+		long index=lexical_cast<long>(match[2]);
 		return this->__getitem__(l0)[index];
 	}
 	int where=whereIs(label);

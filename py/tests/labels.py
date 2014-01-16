@@ -106,7 +106,16 @@ class TestSceneLabels(unittest.TestCase):
 		S.lab._newModule('foo')
 		S.lab.foo.bar=1
 		self.assert_('bar' in S.lab.foo.__dir__())
-
+	def testGetattrIndexed(self):
+		'LabelMapper: getattr with index'
+		S=self.S
+		S.engines=[woo.core.PyRunner(label='ee[1]'),woo.core.PyRunner(label='ee[2]')]
+		print S.lab.ee
+		print S.engines
+		print S.lab.ee[0],S.lab.ee[1],S.lab.ee[2]
+		self.assert_(getattr(S.lab,'ee[0]')==None)
+		self.assert_(getattr(S.lab,'ee[1]')==S.engines[0])
+		self.assert_(getattr(S.lab,'ee[2]')==S.engines[1])
 	def testEngineLabels(self):
 		'LabelMapper: engine/functor labels (mix of older tests)'
 		S=self.S
