@@ -46,7 +46,7 @@ struct Tracer: public PeriodicEngine{
 		((int,compSkip,2,,"Number of leading points to skip during compression; if negative, the value of *compress* is used."))
 		((Real,minDist,0,,"Only add new point when last point is at least minDist away, or no point exists at all."))
 		//((bool,reset,false,,"Reset traces at the next step"))
-		((int,scalar,SCALAR_NONE,AttrTrait<>().choice({{SCALAR_NONE,"none"},{SCALAR_TIME,"time"},{SCALAR_VEL,"|vel|"},{SCALAR_ANGVEL,"|angvel|"},{SCALAR_SIGNED_ACCEL,"signed |accel|"},{SCALAR_RADIUS,"radius"},{SCALAR_SHAPE_COLOR,"Shape.color"},{SCALAR_ORDINAL,"ordinal (+ordinalMod)"}}),"Scalars associated with history points (determine line color)"))
+		((int,scalar,SCALAR_NONE,AttrTrait<>().choice({{SCALAR_NONE,"none"},{SCALAR_TIME,"time"},{SCALAR_VEL,"vel"},{SCALAR_ANGVEL,"angvel"},{SCALAR_SIGNED_ACCEL,"signed |accel|"},{SCALAR_RADIUS,"radius"},{SCALAR_SHAPE_COLOR,"Shape.color"},{SCALAR_ORDINAL,"ordinal (+ordinalMod)"}}),"Scalars associated with history points (determine line color)"))
 		((int,vecAxis,-1,AttrTrait<>().choice({{-1,"norm"},{0,"x"},{1,"y"},{2,"z"}}).hideIf("self.scalar not in (self.scalarVel, self.scalarAngVel)"),"Scalar to use for vector values."))
 		((int,ordinalMod,5,AttrTrait<>().hideIf("self.scalar!=self.__class__.scalarOrdinal"),"Modulo value when :obj:`scalar` is :obj:`scalarOrdinal`."))
 		((int,lastScalar,SCALAR_NONE,AttrTrait<>().hidden(),"Keep track of last scalar value"))
