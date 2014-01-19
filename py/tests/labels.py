@@ -41,15 +41,21 @@ class TestSceneLabels(unittest.TestCase):
 		self.assert_(self.S.lab.objs3[2]==o2)
 		self.assert_(len(self.S.lab.objs3)==3)
 	def testMixedSeq(self):
-		'LabelMapper: mixed/empty sequences rejected'
+		'LabelMapper: mixed sequences rejected, undertermined accepted'
 		# mixed sequences
 		o1,o2=woo.core.Object(),woo.core.Object()
 		self.assertRaises(ValueError,lambda: setattr(self.S.lab,'ll',[o1,o2,12]))
 		self.assertRaises(ValueError,lambda: setattr(self.S.lab,'ll',(12,23,o1)))
-		# undetermined sequences
-		self.assertRaises(ValueError,lambda: setattr(self.S.lab,'ll',[]))
-		self.assertRaises(ValueError,lambda: setattr(self.S.lab,'ll',()))
-		self.assertRaises(ValueError,lambda: setattr(self.S.lab,'ll',[None,None]))
+		# undetermined sequences are sequences of woo.core.Object
+		try: self.S.lab.ll1=[]
+		except: self.fail("[] rejected by LabelMapper.")
+		try: self.S.lab.ll2=()
+		except: self.fail("() rejected by LabelMapper.")
+		try: self.S.lab.ll3=[None,None]
+		except: self.fail("[None,None] rejected by LabelMapper.")
+		# self.assertRaises(ValueError,lambda: setattr(self.S.lab,'ll',[]))
+		# self.assertRaises(ValueError,lambda: setattr(self.S.lab,'ll',()))
+		# self.assertRaises(ValueError,lambda: setattr(self.S.lab,'ll',[None,None]))
 		# this is legitimate
 		try: self.S.lab.mm=[o1,None]
 		except: self.fail("[woo.Object,None] rejected by LabelMapper as mixed.")
@@ -110,9 +116,6 @@ class TestSceneLabels(unittest.TestCase):
 		'LabelMapper: getattr with index'
 		S=self.S
 		S.engines=[woo.core.PyRunner(label='ee[1]'),woo.core.PyRunner(label='ee[2]')]
-		print S.lab.ee
-		print S.engines
-		print S.lab.ee[0],S.lab.ee[1],S.lab.ee[2]
 		self.assert_(getattr(S.lab,'ee[0]')==None)
 		self.assert_(getattr(S.lab,'ee[1]')==S.engines[0])
 		self.assert_(getattr(S.lab,'ee[2]')==S.engines[1])

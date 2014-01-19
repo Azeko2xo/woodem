@@ -36,7 +36,6 @@ class TestFactoriesAndDeleters(unittest.TestCase):
 	def testConveyorFactory(self):
 		'Energy: conveyor factory traces kinetic energy'
 		import os
-		print 'attach',os.getpid()
 		S=self.S
 		S.engines=[
 			ConveyorFactory(maxNum=1,material=self.mat,cellLen=.3,radii=[self.rad],centers=[(0,0,0)],vel=self.vel,node=Node(pos=(0,0,0))),

@@ -94,7 +94,8 @@ bool LabelMapper::sequence_check_setitem(const string& label, py::object o){
 	if(!exSeq.check()) return false;
 	listTuple seq=exSeq();
 	int isWoo=-1; // -1 is indeterminate, 0 is pure-python objects, 1 is woo objects
-	if(py::len(seq)==0) woo::ValueError("Sequence given to LabelMapper is empty.");
+	// this is OK actually
+	// if(py::len(seq)==0) woo::ValueError("Sequence given to LabelMapper is empty.");
 	for(int i=0; i<py::len(seq); i++){
 		// None can be both empty shared_ptr<Object> or None in python, so that one is not decisive
 		if(py::object(seq[i]).is_none()) continue; 
@@ -108,7 +109,15 @@ bool LabelMapper::sequence_check_setitem(const string& label, py::object o){
 		}
 	}
 	switch(isWoo){
-		case -1: woo::ValueError("Unable to decide whether the sequence contains python objects or woo.Object's (containing only None)."); /*compiler happy*/ return false; 
+		// indeterminate sequence is treated as a sequence of woo::Object
+		// it is better that way since assigning python objects will be rejected;
+		// the other way, woo::Objects would be assigned as python objects, i.e. not properly pickled and so on
+		case -1: {
+			// woo::ValueError("Unable to decide whether the sequence contains python objects or woo.Object's (containing only None)."); /*compiler happy*/ return false; 
+			vector<shared_ptr<Object>> vec(py::len(seq));
+			__setitem__wooSeq(label,vec);
+			return true;
+		}
 		case 0: __setitem__py(label,o); return true;
 		case 1: {
 			vector<shared_ptr<Object>> vec; vec.reserve(py::len(seq));

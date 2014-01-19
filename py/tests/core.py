@@ -346,7 +346,7 @@ class _TestPyClass(woo.core.Object,woo.pyderived.PyWooObject):
 		if I==None:
 			self.postLoadCounter+=1
 		elif I==id(self.aF_trigger):
-			print 'postLoad / aF_trigger'
+			# print 'postLoad / aF_trigger'
 			self.postLoadCounter+=10
 			self.aF=self.aF_trigger
 		else: raise RuntimeError(self.__class__.__name__+'.postLoad called with unknown attribute id %s'%I)
@@ -361,7 +361,7 @@ class TestPyDerived(unittest.TestCase):
 		self.t=_TestPyClass()
 	def testTrigger(self):
 		'PyDerived: postLoad triggers'
-		print 'postLoadCounter after ctor:',self.t.postLoadCounter
+		# print 'postLoadCounter after ctor:',self.t.postLoadCounter
 		self.assert_(self.t.postLoadCounter==1)
 		self.t.aF_trigger=514.
 		self.assert_(self.t.aF_trigger==514.)

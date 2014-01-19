@@ -26,56 +26,6 @@ _docInlineModules=(woo._utils2,)
 
 inf=float('inf')
 
-def saveVars(mark='',loadNow=True,**kw):
-	"""Save passed variables into the simulation so that it can be recovered when the simulation is loaded again.
-
-	For example, variables *a*, *b* and *c* are defined. To save them, use::
-
-		>>> from woo import utils
-		>>> utils.saveVars('something',a=1,b=2,c=3)
-		>>> from woo.params.something import *
-		>>> a,b,c
-		(1, 2, 3)
-
-	those variables will be save in the .xml file, when the simulation itself is saved. To recover those variables once the .xml is loaded again, use
-
-		>>> utils.loadVars('something')
-
-	and they will be defined in the woo.params.\ *mark* module. The *loadNow* parameter calls :obj:`woo.utils.loadVars` after saving automatically.
-	"""
-	import cPickle
-	woo.master.scene.tags['pickledPythonVariablesDictionary'+mark]=cPickle.dumps(kw)
-	if loadNow: loadVars(mark)
-
-def loadVars(mark=None):
-	"""Load variables from :obj:`woo.utils.saveVars`, which are saved inside the simulation.
-	If ``mark==None``, all save variables are loaded. Otherwise only those with
-	the mark passed."""
-	import cPickle, types, sys, warnings
-	scene=woo.master.scene
-	def loadOne(d,mark=None):
-		"""Load given dictionary into a synthesized module woo.params.name (or woo.params if *name* is not given). Update woo.params.__all__ as well."""
-		import woo.params
-		if mark:
-			if mark in woo.params.__dict__: warnings.warn('Overwriting woo.params.%s which already exists.'%mark)
-			modName='woo.params.'+mark
-			mod=types.ModuleType(modName)
-			mod.__dict__.update(d)
-			mod.__all__=list(d.keys()) # otherwise params starting with underscore would not be imported
-			sys.modules[modName]=mod
-			woo.params.__all__.append(mark)
-			woo.params.__dict__[mark]=mod
-		else:
-			woo.params.__all__+=list(d.keys())
-			woo.params.__dict__.update(d)
-	if mark!=None:
-		d=cPickle.loads(str(scene.tags['pickledPythonVariablesDictionary'+mark]))
-		loadOne(d,mark)
-	else: # load everything one by one
-		for m in scene.tags.keys():
-			if m.startswith('pickledPythonVariablesDictionary'):
-				loadVars(m[len('pickledPythonVariableDictionary')+1:])
-
 def spherePWaveDt(radius,density,young):
 	r"""Compute P-wave critical timestep for a single (presumably representative) sphere, using formula for P-Wave propagation speed :math:`\Delta t_{c}=\frac{r}{\sqrt{E/\rho}}`. If you want to compute minimum critical timestep for all spheres in the simulation, use :obj:`woo.utils.pWaveDt` instead.
 
@@ -336,33 +286,33 @@ def randomizeColors(onlyDynamic=False):
 	for b in O.bodies:
 		color=(random.random(),random.random(),random.random())
 		if b.dynamic or not onlyDynamic: b.shape.color=color
+if 0:
+	def avgNumInteractions(cutoff=0.,skipFree=False):
+		r"""Return average numer of interactions per particle, also known as *coordination number* $Z$. This number is defined as
 
-def avgNumInteractions(cutoff=0.,skipFree=False):
-	r"""Return average numer of interactions per particle, also known as *coordination number* $Z$. This number is defined as
+		.. math:: Z=2C/N
 
-	.. math:: Z=2C/N
+		where $C$ is number of contacts and $N$ is number of particles.
 
-	where $C$ is number of contacts and $N$ is number of particles.
+		With *skipFree*, particles not contributing to stable state of the packing are skipped, following equation (8) given in [Thornton2000]_:
 
-	With *skipFree*, particles not contributing to stable state of the packing are skipped, following equation (8) given in [Thornton2000]_:
+		.. math:: Z_m=\frac{2C-N_1}{N-N_0-N_1}
 
-	.. math:: Z_m=\frac{2C-N_1}{N-N_0-N_1}
-
-	:param cutoff: cut some relative part of the sample's bounding box away.
-	:param skipFree: see above.
-	
-"""
-	if cutoff==0 and not skipFree: return 2*O.interactions.countReal()*1./len(O.bodies)
-	else:
-		nums,counts=bodyNumInteractionsHistogram(aabbExtrema(cutoff))
-		## CC is 2*C
-		CC=sum([nums[i]*counts[i] for i in range(len(nums))]); N=sum(counts)
-		if not skipFree: return CC*1./N
-		## find bins with 0 and 1 spheres
-		N0=0 if (0 not in nums) else counts[nums.index(0)]
-		N1=0 if (1 not in nums) else counts[nums.index(1)]
-		NN=N-N0-N1
-		return (CC-N1)*1./NN if NN>0 else float('nan')
+		:param cutoff: cut some relative part of the sample's bounding box away.
+		:param skipFree: see above.
+		
+	"""
+		if cutoff==0 and not skipFree: return 2*O.interactions.countReal()*1./len(O.bodies)
+		else:
+			nums,counts=bodyNumInteractionsHistogram(aabbExtrema(cutoff))
+			## CC is 2*C
+			CC=sum([nums[i]*counts[i] for i in range(len(nums))]); N=sum(counts)
+			if not skipFree: return CC*1./N
+			## find bins with 0 and 1 spheres
+			N0=0 if (0 not in nums) else counts[nums.index(0)]
+			N1=0 if (1 not in nums) else counts[nums.index(1)]
+			NN=N-N0-N1
+			return (CC-N1)*1./NN if NN>0 else float('nan')
 
 
 def plotNumInteractionsHistogram(cutoff=0.):
@@ -442,37 +392,38 @@ def vmData():
 	l=_procStatus('VmData'); ll=l.split(); assert(ll[2]=='kB')
 	return int(ll[1])
 
-def trackPerfomance(updateTime=5):
-	"""
-	Track perfomance of a simulation. (Experimental)
-	Will create new thread to produce some plots.
-	Useful for track perfomance of long run simulations (in bath mode for example).
-	"""
+if 0:
+	def trackPerfomance(updateTime=5):
+		"""
+		Track perfomance of a simulation. (Experimental)
+		Will create new thread to produce some plots.
+		Useful for track perfomance of long run simulations (in bath mode for example).
+		"""
 
-	def __track_perfomance(updateTime):
-		pid=os.getpid()
-		threadsCpu={}
-		lastTime,lastIter=-1,-1
-		while 1:
-			time.sleep(updateTime)
-			if not O.running: 
-				lastTime,lastIter=-1,-1
-				continue
-			if lastTime==-1: 
+		def __track_perfomance(updateTime):
+			pid=os.getpid()
+			threadsCpu={}
+			lastTime,lastIter=-1,-1
+			while 1:
+				time.sleep(updateTime)
+				if not O.running: 
+					lastTime,lastIter=-1,-1
+					continue
+				if lastTime==-1: 
+					lastTime=time.time();lastIter=O.iter
+					plot.plots.update({'Iteration':('Perfomance',None,'Bodies','Interactions')})
+					continue
+				curTime=time.time();curIter=O.iter
+				perf=(curIter-lastIter)/(curTime-lastTime)
+				out=subprocess.Popen(['top','-bH','-n1', ''.join(['-p',str(pid)])],stdout=subprocess.PIPE).communicate()[0].splitlines()
+				for s in out[7:-1]:
+					w=s.split()
+					threadsCpu[w[0]]=float(w[8])
+				plot.addData(Iteration=curIter,Iter=curIter,Perfomance=perf,Bodies=len(O.bodies),Interactions=len(O.interactions),**threadsCpu)
+				plot.plots.update({'Iter':threadsCpu.keys()})
 				lastTime=time.time();lastIter=O.iter
-				plot.plots.update({'Iteration':('Perfomance',None,'Bodies','Interactions')})
-				continue
-			curTime=time.time();curIter=O.iter
-			perf=(curIter-lastIter)/(curTime-lastTime)
-			out=subprocess.Popen(['top','-bH','-n1', ''.join(['-p',str(pid)])],stdout=subprocess.PIPE).communicate()[0].splitlines()
-			for s in out[7:-1]:
-				w=s.split()
-				threadsCpu[w[0]]=float(w[8])
-			plot.addData(Iteration=curIter,Iter=curIter,Perfomance=perf,Bodies=len(O.bodies),Interactions=len(O.interactions),**threadsCpu)
-			plot.plots.update({'Iter':threadsCpu.keys()})
-			lastTime=time.time();lastIter=O.iter
 
-	thread.start_new_thread(__track_perfomance,(updateTime))
+		thread.start_new_thread(__track_perfomance,(updateTime))
 
 
 

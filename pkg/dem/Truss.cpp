@@ -61,7 +61,7 @@ void In2_Truss_ElastMat::go(const shared_ptr<Shape>& shape, const shared_ptr<Mat
 	// natural strain
 	Real natStrain=log(1+(len-t.l0)/t.l0);
 	// Fn=E*ε*A
-	t.axialStress=natStrain*mat->cast<ElastMat>().young;
+	t.axialStress=t.preStress+natStrain*mat->cast<ElastMat>().young;
 	Real Fn=t.axialStress*M_PI*pow(t.radius,2);
 	Fa+=Fn*AB/len;
 	Fb-=Fn*AB/len;

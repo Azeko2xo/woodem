@@ -322,14 +322,15 @@ class WooJSONDecoder(json.JSONDecoder):
 woo.core.WooJSONEncoder=WooJSONEncoder
 woo.core.WooJSONDecoder=WooJSONDecoder
 
-def wooExprEval(e):
+# call the arg __e to avoid clash with math.e if there is 'from math import *' in the magic string
+def wooExprEval(__e):
 	'''
 	Evaluate expression created with :obj:`SerializerToExpr`. Comments starting with ``#:`` are executed as python code, which is in particular useful for importing necessary modules.
 	'''
 	import woo,math,textwrap
 	# exec all lines starting with #: as a piece of code
-	exec (textwrap.dedent('\n'.join([l[2:] for l in e.split('\n') if l.startswith('#:')])))
-	return eval(e)
+	exec (textwrap.dedent('\n'.join([l[2:] for l in __e.split('\n') if l.startswith('#:')])))
+	return eval(__e)
 
 def Object_loads(typ,data,format='auto'):
 	'Load object from file, with format auto-detection; when *typ* is None, no type-checking is performed.'
