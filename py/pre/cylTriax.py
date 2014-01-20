@@ -4,6 +4,7 @@ from woo.dem import *
 import woo.core
 import woo.dem
 import woo.pyderived
+import woo.pack
 import woo
 import math
 from minieigen import *
