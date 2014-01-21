@@ -739,7 +739,7 @@ class ObjectEditor(QFrame):
 					e.setVisible(self.expander.isChecked())
 
 
-	def __init__(self,ser,parent=None,ignoredAttrs=set(),showType=False,path=None,labelIsVar=True,showChecks=False,showUnits=False,objManip=False):
+	def __init__(self,ser,parent=None,ignoredAttrs=set(),showType=False,path=None,labelIsVar=True,showChecks=False,showUnits=False,objManip=True):
 		"Construct window, *ser* is the object we want to show."
 		QtGui.QFrame.__init__(self,parent)
 		self.ser=ser
@@ -1062,7 +1062,8 @@ class ObjectEditor(QFrame):
 				traceback.print_exc()
 				showExceptionDialog(self,e)
 		elif action=='default':
-			if isObj: val=entry.trait.ini.deepcopy()
+			if isObj:
+				val=entry.trait.ini.deepcopy() if entry.trait.ini!=None else None # don't call deepcopy on none, it fails :)
 			else:
 				import copy
 				val=copy.deepcopy(entry.trait.ini)
@@ -1567,11 +1568,11 @@ class SeqFundamentalEditor(QFrame):
 			importables={Vector3:(float,3),Vector2:(float,2),Vector6:(float,6),Vector2i:(int,2),Vector2i:(int,3),Vector6i:(int,6),Matrix3:(float,9),float:(float,1),int:(int,1)}
 			if self.itemType not in importables: raise NotImplementedError("Type %s is not text-importable"%(self.itemType.__name__))
 			elementType,lineLen=importables[self.itemType]
-			print 'Will import lines with %d items of type %s'%(lineLen,elementType)
+			print 'Will import lines with %d item(s) of type %s'%(lineLen,elementType.__name__)
 			# get txt from clipboard
 			cb=QApplication.clipboard()
 			txt=str(cb.text())
-			print 'Got text from clipboard:\n',txt
+			print 'Got %d lines from clipboard:\n'%(len(txt.split('\n'))),txt
 			# handle unit conversions here
 			if self.multiplier:
 				if isinstance(self.multiplier,tuple): mult=[1./m for m in self.multiplier]
@@ -1585,7 +1586,9 @@ class SeqFundamentalEditor(QFrame):
 				if len(l)==0: continue # skip empty lines
 				if len(l)!=lineLen: raise ValueError("Line %d has %d elements (should have %d)"%(i,len(l),lineLen))
 				print 'Line tuple is',tuple([val for val in l])
-				seq.append(tuple([elementType(eval(val))*mult[i] for i,val in enumerate(l)]))
+				lineItems=[elementType(eval(val))*mult[i] for i,val in enumerate(l)]
+				if lineLen>1: seq.append(tuple(lineItems))
+				else: seq.append(lineItems[0]) # sequences of floats/ints are imported as sequence, not as sequence of tuples
 			print 'Imported sequence',seq
 		except Exception as e:
 			import traceback

@@ -84,7 +84,7 @@ struct DemFuncs{
 			int bin=max(0,min(num-1,1+(int)((num-1)*((d-dRange[0])/(dRange[1]-dRange[0])))));
 			ret[bin][1]+=w;
 		}
-		// set radii values
+		// set diameter values
 		for(int i=0;i<num;i++) ret[i][0]=dRange[0]+i*(dRange[1]-dRange[0])/(num-1);
 		// cummulate and normalize
 		if(normalize) for(int i=0;i<num;i++) ret[i][1]=ret[i][1]/weight;

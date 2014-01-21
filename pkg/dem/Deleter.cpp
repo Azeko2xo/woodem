@@ -116,11 +116,11 @@ Real BoxDeleter::pyMassOfDiam(Real min, Real max) const {
 	return ret;
 }
 
-py::object BoxDeleter::pyPsd(bool mass, bool cumulative, bool normalize, int num, const Vector2r& dRange, bool zip, bool emptyOk){
+py::object BoxDeleter::pyPsd(bool _mass, bool cumulative, bool normalize, int _num, const Vector2r& dRange, bool zip, bool emptyOk){
 	if(!save) throw std::runtime_error("BoxDeleter.save must be True for calling BoxDeleter.psd()");
-	vector<Vector2r> psd=DemFuncs::psd(/*deleted*/diamMass,cumulative,normalize,num,dRange,
+	vector<Vector2r> psd=DemFuncs::psd(/*deleted*/diamMass,cumulative,normalize,_num,dRange,
 		/*diameter getter*/[](const Vector2r& dm)->Real{ return dm[0]; },
-		/*weight getter*/[&mass](const Vector2r& dm)->Real{ return mass?dm[1]:1.; },
+		/*weight getter*/[&_mass](const Vector2r& dm)->Real{ return _mass?dm[1]:1.; },
 		/*emptyOk*/ emptyOk
 	);
 	if(zip){

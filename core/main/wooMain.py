@@ -450,17 +450,19 @@ def batch(sysArgv=None):
 		
 	#socket.setdefaulttimeout(10) 
 	
-	global options
-	options.forceNoGui=True
-	options.debug=False
-	options.quirks=0
-	import woo, woo.batch, woo.config, woo.remote
-	
-	match=re.match(r'(.*)[_-]batch(-script\.py|.exe)?$', sys.argv[0])
+	match=re.match(r'(.*)[_-]batch(-script\.py|.exe)?$',sys.argv[0])
 	if not match:
 		print sys.argv
 		raise RuntimeError(r'Batch executable "%s"does not match ".*[_-]batch(-script\.py)?"'%sys.argv[0])
 	executable=match.group(1)
+
+	global options
+	options.forceNoGui=True
+	options.debug=False
+	options.quirks=0
+	options.flavor=flavorFromArgv0(sys.argv[0],batch=True)
+	import woo, woo.batch, woo.config, woo.remote
+	
 	#re.sub('-batch(|.bat|.py)?$','\\1',sys.argv[0])
 	
 	
