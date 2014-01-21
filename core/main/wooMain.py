@@ -419,7 +419,7 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 		# http://lists.ipython.scipy.org/pipermail/ipython-user/2008-September/005839.html
 		import IPython.ipapi
 		IPython.ipapi.get().IP.atexit_operations()
-	elif woo.runtime.ipython_version in (11,12,13):
+	elif woo.runtime.ipython_version in (11,12,13,100,110):
 		if qtConsole:
 			qapp.start()
 		else:
