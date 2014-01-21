@@ -49,13 +49,15 @@ class TestSceneLabels(unittest.TestCase):
 		# undetermined sequences are sequences of woo.core.Object
 		try: self.S.lab.ll1=[]
 		except: self.fail("[] rejected by LabelMapper.")
-		try: self.S.lab.ll2=(,)
-		except: self.fail("(,) rejected by LabelMapper.")
+		try: self.S.lab.ll2=()
+		except: self.fail("() rejected by LabelMapper.")
 		try: self.S.lab.ll3=[None,None]
 		except: self.fail("[None,None] rejected by LabelMapper.")
 		# this is legitimate
 		try: self.S.lab.mm=[o1,None]
 		except: self.fail("[woo.Object,None] rejected by LabelMapper as mixed.")
+		try: setattr(self.S.lab,'ll4[0]',[])
+		except: self.fail("[] rejected in indexed label.")
 		self.assert_(self.S.labels._whereIs('mm')==woo.core.LabelMapper.inWooSeq)
 		# this as well
 		try: self.S.lab.nn=[231,None]

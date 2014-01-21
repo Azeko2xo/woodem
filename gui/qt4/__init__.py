@@ -93,29 +93,6 @@ from woo.qt.Inspector import *
 from woo import *
 import woo.system, woo.config
 
-
-class UiPrefs(woo.core.Object,woo.pyderived.PyWooObject):
-	'Storage for local user interface preferences. This class is always instantiated as ``woo.qt.uiPrefs``; if the file :obj:`prefsFile` exists at startup, it is loaded automatically.'
-	_classTraits=None
-	_PAT=woo.pyderived.PyAttrTrait
-	_attrTraits=[
-		# _PAT(bool,'glCursorFreeze',...)
-		_PAT(bool,'prepShowVars',False,'Show variable names rather than descriptions by default in the preprocessor interface'),
-		# where to save preferences, plus a button to do so
-		_PAT(str,'prefsFile',woo.master.confDir+'/uiPrefs.conf',guiReadonly=True,noDump=True,buttons=(['Save preferences','self.savePrefs()',''],0),doc='Preferences will be loaded/saved from/to this file.'),
-	]
-	def __init__(self,**kw):
-		woo.core.Object.__init__(self)
-		self.wooPyInit(self.__class__,woo.core.Object,**kw)
-	def savePrefs(self):
-		import os, os.path, logging
-		d=os.path.dirname(self.prefsFile)
-		if not os.path.exists(d): os.makedirs(d)
-		self.dump(self.prefsFile,format='expr')
-
-uiPrefs=UiPrefs()
-# if config file exists, uiPrefs are loaded in Controller.__init__
-
 try:
 	from woo._qt import *
 	from woo._qt._GLViewer import *
@@ -129,6 +106,35 @@ try:
 except ImportError:
 	OpenGL=False
 	if 'opengl' in woo.config.features: raise RuntimeError("Woo was compiled with the 'opengl' feature, but OpenGL modules (woo._qt, woo._qt._GLViewer) could not be imported?")
+
+
+class UiPrefs(woo.core.Object,woo.pyderived.PyWooObject):
+	'Storage for local user interface preferences. This class is always instantiated as ``woo.qt.uiPrefs``; if the file :obj:`prefsFile` exists at startup, it is loaded automatically.'
+	_classTraits=None
+	_PAT=woo.pyderived.PyAttrTrait
+	_attrTraits=[
+		_PAT(bool,'glRotCursorFreeze',False,triggerPostLoad=True,doc='Freeze cursor when rotating things (moving with buttons pressed); useful for trackballs; not yet functional.'),
+		_PAT(bool,'prepShowVars',False,'Show variable names rather than descriptions by default in the preprocessor interface'),
+		# where to save preferences, plus a button to do so
+		_PAT(str,'prefsFile',woo.master.confDir+'/uiPrefs.conf',guiReadonly=True,noDump=True,buttons=(['Save preferences','self.savePrefs()',''],0),doc='Preferences will be loaded/saved from/to this file.'),
+	]
+	def postLoad(self,I):
+		try:
+			# sync with the flag inside glviewer
+			import _GLViewer
+			_GLViewer.GLViewer.rotCursorFreeze=self.glRotCursorFreeze
+		except ImportError: pass # no OpenGL
+	def __init__(self,**kw):
+		woo.core.Object.__init__(self)
+		self.wooPyInit(self.__class__,woo.core.Object,**kw)
+	def savePrefs(self):
+		import os, os.path, logging
+		d=os.path.dirname(self.prefsFile)
+		if not os.path.exists(d): os.makedirs(d)
+		self.dump(self.prefsFile,format='expr')
+
+uiPrefs=UiPrefs()
+# if config file exists, uiPrefs are loaded in Controller.__init__
 
 from ExceptionDialog import *
 

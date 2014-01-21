@@ -77,7 +77,7 @@ struct Law2_L6Geom_PelletPhys_Pellet: public LawFunctor{
 	static Real yieldForce          (Real uN, Real d0, Real kn, Real alpha){return (-kn*d0/alpha)*log(alpha*(-uN/d0)+1); }
 	static Real yieldForceDerivative(Real uN, Real d0, Real kn, Real alpha){ return kn/(alpha*(-uN/d0)+1); }
 	static Real adhesionForce       (Real uN, Real uNPl, Real ka){ return -ka*uNPl-4*(-ka/uNPl)*pow(uN-.5*uNPl,2); }
-	WOO_CLASS_BASE_DOC_ATTRS_PY(Law2_L6Geom_PelletPhys_Pellet,LawFunctor,"Contact law with friction and plasticity in compression, designed for iron ore pellet behavior. See :ref:`pellet_contact_model` for details."
+	WOO_CLASS_BASE_DOC_ATTRS_PY(Law2_L6Geom_PelletPhys_Pellet,LawFunctor,"Contact law with friction and plasticity in compression, designed for iron ore pellet behavior. See :ref:`pellet-contact-model` for details."
 	#if 0
 	"The normal behavior is determined by yield force $F_N^y=-\\frac{k_N d_0}{\\alpha}\\log(\\alpha\\frac{-u_N}{d_0}+1),$ where $k_N$ is :obj:`contact stiffness <FrictPhys.kn>` $u_N$ is :obj:`normal displacement <L6Geom.uN>`, $d_0$ is :obj:`initial contact length <L6Geom.lens>`. :math:`F_N^y(u_N=0)=k_N`, which means the contact has initial stiffness $k_N$, but accumulates plastic displacement $u_N^{\\rm pl}$. Trial force is computed as :math:`F_N^T=k_N(u_N+u_N^{\\rm pl})`.\n\n"
 	"If $F_N^T<0$ (compression) and $F_N^T<F_N^y$, we update plastic displacement to $u_N^{\\rm pl}=u_N-F_N^y/k_N$ and set $F_N=F_N^y$; otherwise (elastic regime), $F_N=F_N^T$ is used.\n\n"

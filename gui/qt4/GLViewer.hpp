@@ -117,6 +117,7 @@ class GLViewer : public QGLViewer
 	friend class QGLThread;
 	private:
 		Vector2i prevSize; // used to move scales accordingly
+		QPoint pressPos; // remember where the last button was pressed, to freeze the cursor
 
 		bool			isMoving;
 		float			cut_plane;
@@ -134,6 +135,9 @@ class GLViewer : public QGLViewer
 		//virtual void updateGL(void);
 
 		const int viewId;
+		// public because of _GLViewer which exposes this to python
+		// shared by all instances
+		static bool rotCursorFreeze;
 
 		void centerMedianQuartile();
 		GLViewer(int viewId, QGLWidget* shareWidget=0);
@@ -196,8 +200,9 @@ class GLViewer : public QGLViewer
 		virtual void endSelection(const QPoint &point);
 		virtual void mouseDoubleClickEvent(QMouseEvent *e);
 		virtual void wheelEvent(QWheelEvent* e);
-		// virtual void mouseMoveEvent(QMouseEvent *e);
-		// virtual void mousePressEvent(QMouseEvent *e);
+		// hijacked to optionally freeze cursor when rotating
+		virtual void mouseMoveEvent(QMouseEvent *e);
+		virtual void mousePressEvent(QMouseEvent *e);
 };
 
 /*! Get unconditional lock on a GL view.

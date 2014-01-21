@@ -1,4 +1,4 @@
-.. _pellet_contact_model:
+.. _pellet-contact-model:
 
 ==============================
 Pellet contact model

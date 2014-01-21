@@ -51,6 +51,8 @@ class pyGLViewer{
 		#define BOOL_GET_SET(property,getter,setter)void set_##property(bool b){GLV; setter(b);} bool get_##property(){GLV; return getter();}
 		BOOL_GET_SET(axes,glv->axisIsDrawn,glv->setAxisIsDrawn);
 		BOOL_GET_SET(fps,glv->FPSIsDisplayed,glv->setFPSIsDisplayed);
+		static bool get_rotCursorFreeze(){ return GLViewer::rotCursorFreeze; }
+		static void set_rotCursorFreeze(bool b){ GLViewer::rotCursorFreeze=b; }
 		bool get_orthographic(){GLV; return glv->camera()->type()==qglviewer::Camera::ORTHOGRAPHIC;}
 		void set_orthographic(bool b){GLV; return glv->camera()->setType(b ? qglviewer::Camera::ORTHOGRAPHIC : qglviewer::Camera::PERSPECTIVE);}
 		int get_selection(void){ GLV; return glv->selectedName(); } void set_selection(int s){ GLV; glv->setSelectedName(s); }
@@ -101,6 +103,7 @@ BOOST_PYTHON_MODULE(_GLViewer){
 		.add_property("axes",&pyGLViewer::get_axes,&pyGLViewer::set_axes,"Show arrows for axes.")
 		.add_property("sceneRadius",&pyGLViewer::get_sceneRadius,&pyGLViewer::set_sceneRadius,"Visible scene radius.")
 		.add_property("ortho",&pyGLViewer::get_orthographic,&pyGLViewer::set_orthographic,"Whether orthographic projection is used; if false, use perspective projection.")
+		.add_static_property("rotCursorFreeze",&pyGLViewer::get_rotCursorFreeze,&pyGLViewer::set_rotCursorFreeze)
 		.add_property("screenSize",&pyGLViewer::get_screenSize,&pyGLViewer::set_screenSize,"Size of the viewer's window, in scree pixels")
 		.def("fitAABB",&pyGLViewer::fitAABB,(py::arg("mn"),py::arg("mx")),"Adjust scene bounds so that Axis-aligned bounding box given by its lower and upper corners *mn*, *mx* fits in.")
 		.def("fitSphere",&pyGLViewer::fitSphere,(py::arg("center"),py::arg("radius")),"Adjust scene bounds so that sphere given by *center* and *radius* fits in.")

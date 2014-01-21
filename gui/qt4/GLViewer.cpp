@@ -94,6 +94,8 @@ void SnapshotEngine::run(){
 
 CREATE_LOGGER(GLViewer);
 
+bool GLViewer::rotCursorFreeze=false;
+
 GLLock::GLLock(GLViewer* _glv): boost::try_mutex::scoped_lock(Master::instance().renderMutex), glv(_glv){
 	glv->makeCurrent();
 }
@@ -214,9 +216,9 @@ void GLViewer::mouseMovesCamera(){
 	setMouseBinding(Qt::LeftButton, CAMERA, ROTATE);
 	setMouseBinding(Qt::RightButton, CAMERA, TRANSLATE);
 	setWheelBinding(Qt::NoModifier, CAMERA, ZOOM);
-	};
+};
 
-	void GLViewer::mouseMovesManipulatedFrame(qglviewer::Constraint* c){
+void GLViewer::mouseMovesManipulatedFrame(qglviewer::Constraint* c){
 	setMouseBinding(Qt::LeftButton + Qt::RightButton, FRAME, ZOOM);
 	setMouseBinding(Qt::MidButton, FRAME, ZOOM);
 	setMouseBinding(Qt::LeftButton, FRAME, ROTATE);
@@ -973,17 +975,27 @@ string GLViewer::getRealTimeString(){
 #undef _W2
 #undef _W3
 
-#if 0
-void GLViewer::mouseMoveEvent(QMouseEvent *e){
-	last_user_event = boost::posix_time::second_clock::local_time();
-	QGLViewer::mouseMoveEvent(e);
-}
-
 void GLViewer::mousePressEvent(QMouseEvent *e){
-	last_user_event = boost::posix_time::second_clock::local_time();
+	#if 0
+		pressPos=e->globalPos(); // remember this position for blocking the cursor when rotating
+		cerr<<"["<<pressPos.x()<<","<<pressPos.y()<<"]";
+	#endif
 	QGLViewer::mousePressEvent(e);
 }
-#endif
+
+void GLViewer::mouseMoveEvent(QMouseEvent *e){
+	// cerr<<(rotCursorFreeze?":":".");
+	#if 0
+		if(rotCursorFreeze && (e->buttons()&(Qt::LeftButton|Qt::RightButton|Qt::MiddleButton))){
+			// this is the event returning us to the initial position, which we need to ignore
+			// see http://www.qtcentre.org/threads/16298-free-mouse-pointer
+			if(QCursor::pos()==pressPos) { cerr<<"_"; return; }
+			cerr<<"#";
+			QCursor::setPos(pressPos); // already in global coords
+	}
+	#endif
+	QGLViewer::mouseMoveEvent(e);
+}
 
 /* Handle double-click event; if clipping plane is manipulated, align it with the global coordinate system.
  * Otherwise pass the event to QGLViewer to handle it normally.
@@ -1009,7 +1021,19 @@ void GLViewer::mouseDoubleClickEvent(QMouseEvent *event){
 void GLViewer::wheelEvent(QWheelEvent* event){
 	// last_user_event = boost::posix_time::second_clock::local_time();
 
-	if(manipulatedClipPlane<0){ QGLViewer::wheelEvent(event); return; }
+	if(manipulatedClipPlane<0){
+		// with right button pressed (which is normally used for camera rotation), roll the scene
+		if(!mouseGrabber() && (event->buttons() & Qt::LeftButton)){
+			// hopefully we are really rotating the camera since there is no mouseGrabber
+			qglviewer::Vec up(camera()->upVector());
+			qglviewer::Vec dir(camera()->viewDirection());
+			//  QT5: use angleDelta() instead of delta()
+			float angle=manipulatedFrame()->rotationSensitivity()*manipulatedFrame()->wheelSensitivity()*event->delta()*(1/15.)*(M_PI/180);
+			qglviewer::Quaternion qRot; qRot.setAxisAngle(dir,angle);
+			camera()->setUpVector(qRot.rotate(up));
+		} else QGLViewer::wheelEvent(event);
+		return;
+	}
 	assert(manipulatedClipPlane<Renderer::numClipPlanes);
 	float distStep=1e-3*sceneRadius();
 	//const float wheelSensitivityCoef = 8E-4f;

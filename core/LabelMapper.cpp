@@ -197,7 +197,10 @@ void LabelMapper::__setitem__woo(const string& label, const shared_ptr<Object>& 
 void LabelMapper::__setitem__wooSeq(const string& label, const vector<shared_ptr<Object>>& oo){
 	string lab0=label; int index; 
 	int type=labelType(label,lab0,index);
-	if(type==LABEL_SEQ) woo::NameError("Subscripted label '"+label+"' may not be assigned a sequence of woo.Objects!");
+	if(type==LABEL_SEQ){
+		if(oo.empty()){ __setitem__py(label,py::list()); return; } // hack to assign [] properly as python object
+		woo::NameError("Subscripted label '"+label+"' may not be assigned a sequence of "+to_string(oo.size())+" woo.core.Objects.");
+	}
 	int where=whereIs(label);
 	if(where==IN_MOD) woo::NameError("Label '"+label+"' is a pseudo-module (cannot be overwritten).");
 	bool writable(writables.count(label));
