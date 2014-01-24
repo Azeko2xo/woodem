@@ -98,7 +98,7 @@ class TestPBC(unittest.TestCase):
 	def testL3GeomIncidentVelocity_homoPos(self):
 		"PBC: L6Geom incident velocity (homoDeform==Cell.HomoPos)"
 		S=woo.master.scene
-		S.cell.homoDeform=1; S.one()
+		S.cell.homoDeform=Cell.HomoPos; S.one()
 		S.engines=[ForceResetter(),ContactLoop([Cg2_Sphere_Sphere_L6Geom()],[Cp2_FrictMat_FrictPhys()],[Law2_L6Geom_FrictPhys_IdealElPl(noBreak=True)]),Leapfrog(reset=True)]
 		i=utils.createContacts([0],[1])[0]
 		S.dt=1e-10; S.one()

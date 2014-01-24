@@ -66,7 +66,7 @@ Real ParticleGenerator::pyMassOfDiam(Real min, Real max) const{
 vector<ParticleGenerator::ParticleAndBox>
 MinMaxSphereGenerator::operator()(const shared_ptr<Material>&mat){
 	if(isnan(dRange[0]) || isnan(dRange[1]) || dRange[0]>dRange[1]) throw std::runtime_error("MinMaxSphereGenerator: dRange[0]>dRange[1], or they are NaN!");
-	Real r=dRange[0]+Mathr::UnitRandom()*(dRange[1]-dRange[0]);
+	Real r=.5*(dRange[0]+Mathr::UnitRandom()*(dRange[1]-dRange[0]));
 	auto sphere=DemFuncs::makeSphere(r,mat);
 	Real m=sphere->shape->nodes[0]->getData<DemData>().mass;
 	if(save) genDiamMass.push_back(Vector2r(2*r,m));

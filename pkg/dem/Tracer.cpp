@@ -189,6 +189,7 @@ void Tracer::run(){
 		case SCALAR_RADIUS: lineColor->label="radius"; break;
 		case SCALAR_SHAPE_COLOR: lineColor->label="Shape.color"; break;
 		case SCALAR_ORDINAL: lineColor->label="ordinal"+(ordinalMod>1?string(" % "+to_string(ordinalMod)):string());
+		case SCALAR_KINETIC: lineColor->label="kinetic energy"; break;
 		break;
 	}
 	// add component to the label
@@ -244,6 +245,7 @@ void Tracer::run(){
 			case SCALAR_SHAPE_COLOR: sc=(hasP?(*dyn.parRef.begin())->shape->color:NaN); break;
 			case SCALAR_TIME: sc=scene->time; break;
 			case SCALAR_ORDINAL: sc=(i%ordinalMod); break;
+			case SCALAR_KINETIC: sc=dyn.getEk_any(n,/*trans*/true,/*rot*/true,scene); break;
 			default: sc=NaN;
 		}
 		tr.addPoint(n->pos,sc);

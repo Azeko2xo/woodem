@@ -44,7 +44,7 @@ void Law2_L6Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shar
 
 	// tangential force
 	Eigen::Map<Vector2r> Ft(&ph.force[1]); 
-	if(noFrict){
+	if(noFrict || ph.tanPhi==0.){
 		Ft=Vector2r::Zero();
 	} else {
 		// const Eigen::Map<Vector2r> velT(&g.vel[1]);
@@ -53,8 +53,10 @@ void Law2_L6Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shar
 		Real maxFt=abs(ph.force[0])*ph.tanPhi; assert(maxFt>=0);
 		_WATCH_MSG("\tFn="<<ph.force[0]<<", trial Ft="<<Ft.transpose()<<" (incremented by "<<(scene->dt*ph.kt*velT).transpose()<<"), max Ft="<<maxFt<<endl);
 		if(Ft.squaredNorm()>maxFt*maxFt && !noSlip){
+			// the conditional ensures Ft.norm()>0.
 			Real FtNorm=Ft.norm();
 			Real ratio=maxFt/FtNorm;
+			if(unlikely(FtNorm==0.)) ratio=0.; // in case |Ft|^2>0 && sqrt(|Ft|^2)==0.
 			// do this while Ft is still the trial value
 			if(scene->trackEnergy){
 				/* in the linear displacement-force graph, compute the are sliced away by the force drop; it has the
@@ -63,8 +65,9 @@ void Law2_L6Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shar
 				which gives together (.5*(Ft-Fm)+Fm)*(Ft-Fm)/kt (rectangle with top in the middle of the triangle height)
 				where Fm=maxFt and Ft=FtNorm
 				*/
-				Real dissip=(.5*(FtNorm-maxFt)+maxFt)*(FtNorm-maxFt)/ph.kt;
-				//Real dissip=(maxFt)*(FtNorm-maxFt)/ph.kt;
+				// FIXME: this is broken with zero friciton (dissipates energy when there is no dissipation at all!)
+				// Real dissip=(.5*(FtNorm-maxFt)+maxFt)*(FtNorm-maxFt)/ph.kt;
+				Real dissip=(maxFt)*(FtNorm-maxFt)/ph.kt;
 				scene->energy->add(dissip,"plast",plastDissipIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate);
 			}
 			Ft*=ratio;

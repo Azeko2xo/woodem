@@ -39,14 +39,14 @@ struct Tracer: public PeriodicEngine{
 	void showHideRange(bool show);
 
 	virtual void run();
-	enum{SCALAR_NONE=0,SCALAR_TIME,SCALAR_VEL,SCALAR_ANGVEL,SCALAR_SIGNED_ACCEL,SCALAR_RADIUS,SCALAR_SHAPE_COLOR,SCALAR_ORDINAL};
+	enum{SCALAR_NONE=0,SCALAR_TIME,SCALAR_VEL,SCALAR_ANGVEL,SCALAR_SIGNED_ACCEL,SCALAR_RADIUS,SCALAR_SHAPE_COLOR,SCALAR_KINETIC,SCALAR_ORDINAL};
 	WOO_CLASS_BASE_DOC_STATICATTRS_PY(Tracer,PeriodicEngine,"Save trace of node's movement",
 		((int,num,50,,"Number of positions to save (when creating new glyph)"))
 		((int,compress,2,,"Ratio by which history is compress when all data slots are filled; if 0, cycle and don't compress."))
 		((int,compSkip,2,,"Number of leading points to skip during compression; if negative, the value of *compress* is used."))
 		((Real,minDist,0,,"Only add new point when last point is at least minDist away, or no point exists at all."))
 		//((bool,reset,false,,"Reset traces at the next step"))
-		((int,scalar,SCALAR_NONE,AttrTrait<>().choice({{SCALAR_NONE,"none"},{SCALAR_TIME,"time"},{SCALAR_VEL,"vel"},{SCALAR_ANGVEL,"angvel"},{SCALAR_SIGNED_ACCEL,"signed |accel|"},{SCALAR_RADIUS,"radius"},{SCALAR_SHAPE_COLOR,"Shape.color"},{SCALAR_ORDINAL,"ordinal (+ordinalMod)"}}),"Scalars associated with history points (determine line color)"))
+		((int,scalar,SCALAR_NONE,AttrTrait<>().choice({{SCALAR_NONE,"none"},{SCALAR_TIME,"time"},{SCALAR_VEL,"vel"},{SCALAR_ANGVEL,"angvel"},{SCALAR_SIGNED_ACCEL,"signed |accel|"},{SCALAR_RADIUS,"radius"},{SCALAR_SHAPE_COLOR,"Shape.color"},{SCALAR_ORDINAL,"ordinal (+ordinalMod)"},{SCALAR_KINETIC,"kinetic energy"}}),"Scalars associated with history points (determine line color)"))
 		((int,vecAxis,-1,AttrTrait<>().choice({{-1,"norm"},{0,"x"},{1,"y"},{2,"z"}}).hideIf("self.scalar not in (self.scalarVel, self.scalarAngVel)"),"Scalar to use for vector values."))
 		((int,ordinalMod,5,AttrTrait<>().hideIf("self.scalar!=self.__class__.scalarOrdinal"),"Modulo value when :obj:`scalar` is :obj:`scalarOrdinal`."))
 		((int,lastScalar,SCALAR_NONE,AttrTrait<>().hidden(),"Keep track of last scalar value"))
@@ -68,6 +68,7 @@ struct Tracer: public PeriodicEngine{
 			_classObj.attr("scalarRadius")=(int)Tracer::SCALAR_RADIUS;
 			_classObj.attr("scalarShapeColor")=(int)Tracer::SCALAR_SHAPE_COLOR;
 			_classObj.attr("scalarOrdinal")=(int)Tracer::SCALAR_ORDINAL;
+			_classObj.attr("scalarKinetic")=(int)Tracer::SCALAR_KINETIC;
 	);
 };
 WOO_REGISTER_OBJECT(Tracer);

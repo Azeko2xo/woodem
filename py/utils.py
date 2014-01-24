@@ -62,7 +62,7 @@ def defaultEngines(damping=0.,gravity=None,verletDist=-.05,kinSplit=False,dontCo
 		cp2=[cp2 if cp2 else Cp2_FrictMat_FrictPhys()]
 		law=[law if law else Law2_L6Geom_FrictPhys_IdealElPl(noSlip=noSlip,noBreak=noBreak)]
 	return [
-		Leapfrog(damping=damping,reset=True,kinSplit=kinSplit,dontCollect=dontCollect),
+		Leapfrog(damping=damping,reset=True,kinSplit=kinSplit,dontCollect=dontCollect,label='leapfrog'),
 		collider,
 		ContactLoop(
 			[Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom(),Cg2_Wall_Sphere_L6Geom(),Cg2_InfCylinder_Sphere_L6Geom(),Cg2_Ellipsoid_Ellipsoid_L6Geom(),Cg2_Wall_Ellipsoid_L6Geom()],

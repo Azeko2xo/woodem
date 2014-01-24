@@ -596,7 +596,7 @@ bool InsertionSortCollider::spatialOverlapPeri(Particle::id_t id1, Particle::id_
 		#endif
 		{
 			// assertions; guard in block to avoid name clash with vars below
-			const Real &mn1(minima[3*id1+axis]), &mx1(maxima[3*id1+axis]), &mn2(minima[3*id2+axis]), &mx2(maxima[3*id2+axis]);
+			__attribute__((unused)) const Real &mn1(minima[3*id1+axis]), &mx1(maxima[3*id1+axis]), &mn2(minima[3*id2+axis]), &mx2(maxima[3*id2+axis]);
 			assert(!isnan(mn1)); assert(!isnan(mx1));
 			assert(!isnan(mn2)); assert(!isnan(mx2));
 			assert(isinf(mx1) || (mx1-mn1<.99*dim)); assert(isinf(mx2) || (mx2-mn2<.99*dim));
