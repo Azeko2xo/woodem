@@ -13,7 +13,7 @@ void Bo1_Wall_Aabb::go(const shared_ptr<Shape>& sh){
 	if(!wall.bound){ wall.bound=make_shared<Aabb>(); }
 	assert(wall.numNodesOk());
 	Aabb& aabb=wall.bound->cast<Aabb>();
-	if(scene->isPeriodic /* && scene->cell->hasShear()*/) throw logic_error(__FILE__ "Walls not supported in periodic cell.");
+	if(scene->isPeriodic && scene->cell->hasShear()) throw logic_error(__FILE__ ": Walls not supported in skewed (Scene.cell.trsf is not diagonal) periodic boundary conditions.");
 	const Real& inf=std::numeric_limits<Real>::infinity();
 	aabb.min=Vector3r(-inf,-inf,-inf); aabb.max=Vector3r( inf, inf, inf);
 	aabb.min[wall.axis]=aabb.max[wall.axis]=sh->nodes[0]->pos[wall.axis];
@@ -52,7 +52,14 @@ void In2_Wall_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Materia
 		assert(wall.nodes.size()==1);
 		// corner of the drawn plane is at the edge of the visible scene, except for the axis sense, which is in the wall plane
 		Vector3r A, unit1, unit2;
-		if(isnan(wall.glAB.min()[0])){
+		if(scene->isPeriodic){
+			assert(!scene->cell->hasShear());
+			const Vector3r& hSize=scene->cell->getHSize().diagonal();
+			A=Vector3r::Zero();
+			A[ax0]=CompUtils::wrapNum(pos[ax0],hSize[0]);
+			unit1=Vector3r::Unit(ax1)*hSize[ax1]/div;
+			unit2=Vector3r::Unit(ax2)*hSize[ax2]/div;
+		} else if(isnan(wall.glAB.min()[0])){
 			A=viewInfo.sceneCenter-Vector3r::Ones()*viewInfo.sceneRadius;
 			A[ax0]=pos[ax0];
 			unit1=Vector3r::Unit(ax1)*2*viewInfo.sceneRadius/div;

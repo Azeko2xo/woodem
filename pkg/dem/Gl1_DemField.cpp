@@ -307,6 +307,14 @@ void Gl1_DemField::doShape(){
 			pos-=scene->cell->intrShiftPos(sh->nodes[0]->getData<GlData>().dCellDist); // wrap the same as node[0] was wrapped
 			// traverse all periodic cells around the body, to see if any of them touches
 			Vector3r halfSize=.5*(sh->bound->max-sh->bound->min);
+			// handle infinite bboxes: set position to the middle of the cell
+			// this will not work with sheared cell, but we don't support that with inifinite bounds anyway
+			for(int ax:{0,1,2}){
+				const auto& cellDim(scene->cell->getHSize().diagonal());
+				if(isinf(sh->bound->min[ax]) || isinf(sh->bound->max[ax])){
+					pos[ax]=halfSize[ax]=.5*cellDim[ax];
+				}
+			}
 			Vector3r pmin,pmax;
 			Vector3i i;
 			// try all positions around, to see if any of them sticks outside the cell boundary

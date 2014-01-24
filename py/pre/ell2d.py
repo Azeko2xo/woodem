@@ -70,6 +70,8 @@ class EllGroup(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 			woo.core.PyRunner(pre.ell2Step,'import woo.pre.ell2d; mx=woo.pre.ell2d.ell2plot(out="%s-%05d.png"%(S.expandTags(S.pre.exportFmt),engine.nDone),S=S,colorRange=(0,S.lab.maxEll2Color),bbox=((0,0),S.pre.boxSize)); S.lab.maxEll2Color=max(mx,S.lab.maxEll2Color)',dead=(pre.ell2Step<=0)),
 		]
 
+		S.dtSafety=pre.dtSafety
+
 		S.lab.maxEll2Color=0. # max |angVel| for the start
 	
 		try:

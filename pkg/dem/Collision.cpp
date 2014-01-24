@@ -58,9 +58,12 @@ void Gl1_Aabb::go(const shared_ptr<Bound>& bv){
 		glTranslatev(Vector3r(.5*(aabb.min+aabb.max)));
 		glScalev(Vector3r(aabb.max-aabb.min));
 	} else {
-		glTranslatev(Vector3r(scene->cell->shearPt(scene->cell->wrapPt(.5*(aabb.min+aabb.max)))));
+		Vector3r mn=aabb.min, mx=aabb.max;
+		// fit infinite bboxes into the cell, if needed
+		for(int ax:{0,1,2}){ if(isinf(mn[ax])) mn[ax]=0; if(isinf(mx[ax])) mx[ax]=scene->cell->getHSize().diagonal()[ax]; }
+		glTranslatev(Vector3r(scene->cell->shearPt(scene->cell->wrapPt(.5*(mn+mx)))));
 		glMultMatrixd(scene->cell->getGlShearTrsfMatrix());
-		glScalev(Vector3r(aabb.max-aabb.min));
+		glScalev(Vector3r(mx-mn));
 	}
 	glDisable(GL_LINE_SMOOTH);
 	glutWireCube(1);

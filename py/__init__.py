@@ -323,7 +323,8 @@ try:
 	for importer, modname, ispkg in pkgutil.iter_modules(wooExtra.__path__):
 		try:
 			m=__import__('wooExtra.'+modname,fromlist='wooExtra')
-			sys.stderr.write('wooExtra.%s: loaded\n'%modname)
+			# disable message if plain import into python script
+			if sys.argv[0].startswith('woo'): sys.stderr.write('wooExtra.%s: loaded\n'%modname)
 			if hasattr(sys,'frozen') and not hasattr(m,'__loader__') and len(m.__path__)==1:
 				zip=m.__path__[0].split('/wooExtra/')[0].split('\\wooExtra\\')[0]
 				if not (zip.endswith('.zip') or zip.endswith('.egg')):
@@ -333,7 +334,7 @@ try:
 					m.__loader__=zipimport.zipimporter(zip)
 					m.__file__=os.path.join(m.__path__[0],os.path.basename(m.__file__))
 		except ImportError:
-			print 'ERROR importing wooExtra.%s:'%modname
+			sys.stderr.write('ERROR importing wooExtra.%s:'%modname)
 			raise
 except ImportError:
 	# no wooExtra packages are installed

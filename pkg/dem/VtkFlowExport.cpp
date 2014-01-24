@@ -54,7 +54,7 @@ void VtkFlowExport::setupGrid(){
 			const Vector3r& pos=p->shape->nodes[0]->pos;
 			__attribute__((unused)) vtkIdType newId=locatorPoints->InsertNextPoint(pos.data());
 			pointParticle.push_back(p->id);
-			assert(newId==pointParticle.size()-1);
+			assert(newId==(int)pointParticle.size()-1);
 		} else {
 			// make sure that velocity is the scalar -- otherwise we won't be able to get any meaningful data
 			if(Tracer::scalar!=Tracer::SCALAR_VEL) throw std::runtime_error("VtkFlowExport: when analyzing traces, the woo.dem.Tracer.scalar must be velocity (woo.dem.Tracer.scalarVel).");
@@ -67,7 +67,7 @@ void VtkFlowExport::setupGrid(){
 				__attribute__((unused)) vtkIdType newId=locatorPoints->InsertNextPoint(pt.data());
 				pointParticle.push_back(p->id);
 				pointSpeed.push_back(scalar);
-				assert(newId==pointParticle.size()-1);
+				assert(newId==(int)pointParticle.size()-1);
 				assert(pointParticle.size()==pointSpeed.size());
 			}
 		}

@@ -170,7 +170,7 @@ bool InsertionSortCollider::updateBboxes_doFullRun(){
 
 	// automatically initialize from min sphere size; if no spheres, disable stride
 	if(verletDist<0){
-		Real minR=std::numeric_limits<Real>::infinity();
+		Real minR=Inf;
 		FOREACH(const shared_ptr<Particle>& p, *dem->particles){
 			if(!p || !p->shape) continue;
 			if(!p->shape->isA<Sphere>())continue;
@@ -340,11 +340,22 @@ void InsertionSortCollider::run(){
 				VecBounds& BBj=BB[j];
 				const Particle::id_t id=BBj[i].id;
 				const shared_ptr<Particle>& b=(*particles)[id];
+				#ifdef ISC_INF
+					bool wasInf=false;
+				#endif
 				if(likely(b)){
 					const shared_ptr<Bound>& bv=b->shape->bound;
 					// coordinate is min/max if has bounding volume, otherwise both are the position. Add periodic shift so that we are inside the cell
 					// watch out for the parentheses around ?: within ?: (there was unwanted conversion of the Reals to bools!)
 					BBj[i].coord=((BBj[i].flags.hasBB=((bool)bv)) ? (BBj[i].flags.isMin ? bv->min[j] : bv->max[j]) : (b->shape->nodes[0]->pos[j])) - (periodic ? BBj.cellDim*BBj[i].period : 0.);
+					#ifdef ISC_INF
+						if(periodic && isinf(BBj[i].coord)){
+							// check that min and max are both infinite or none of them
+							assert(!bv || ((isinf(bv->min[j]) && isinf(bv->max[j])) || (!isinf(bv->min[j]) && !isinf(bv->max[j]))));
+							// infinite particles span between cell boundaries, the lower bound having period 0, the upper one 1 (this should not change)
+							BBj[i].period=(BBj[i].coord<0?0:1); BBj[i].coord=0.; wasInf=false;
+						}
+					#endif
 				} else { // vanished particle
 					BBj[i].flags.hasBB=false;
 					// when doing initial sort, set to -inf so that nonexistent particles don't generate inversions later
@@ -355,6 +366,11 @@ void InsertionSortCollider::run(){
 				}
 				// if initializing periodic, shift coords & record the period into BBj[i].period
 				if(doInitSort && periodic) {
+					#ifdef ISC_INF
+						// don't do this for infinite bbox which was adjusted to the cell size above
+						// if(!BBj[i].isInf)
+						if(!wasInf)
+					#endif
 					BBj[i].coord=cellWrap(BBj[i].coord,0,BBj.cellDim,BBj[i].period);
 				}
 			}	
@@ -578,11 +594,29 @@ bool InsertionSortCollider::spatialOverlapPeri(Particle::id_t id1, Particle::id_
 			return false;
 		}
 		#endif
-		assert(!isnan(minima[3*id1+axis])); assert(!isnan(maxima[3*id1+axis]));
-		assert(!isnan(minima[3*id2+axis])); assert(!isnan(maxima[3*id2+axis]));
-		assert(maxima[3*id1+axis]-minima[3*id1+axis]<.99*dim); assert(maxima[3*id2+axis]-minima[3*id2+axis]<.99*dim);
+		{
+			// assertions; guard in block to avoid name clash with vars below
+			const Real &mn1(minima[3*id1+axis]), &mx1(maxima[3*id1+axis]), &mn2(minima[3*id2+axis]), &mx2(maxima[3*id2+axis]);
+			assert(!isnan(mn1)); assert(!isnan(mx1));
+			assert(!isnan(mn2)); assert(!isnan(mx2));
+			assert(isinf(mx1) || (mx1-mn1<.99*dim)); assert(isinf(mx2) || (mx2-mn2<.99*dim));
+		}
 		// find particle of which minimum when taken as period start will make the gap smaller
 		Real m1=minima[3*id1+axis],m2=minima[3*id2+axis];
+		#ifdef ISC_INF
+			// infinite particles always overlap, cut it short
+			if(isinf(m1) || isinf(m2)){
+				assert(!isinf(m1) || m1<0); // check that minimum is minus infinity
+				assert(!isinf(m2) || m2<0); // check that minimum is minus infinity
+				periods[axis]=0; // does not matter where the contact happens really
+				#ifdef PISC_DEBUG
+					if(watchIds(id1,id2)){
+						LOG_DEBUG("    Some particle infinite along the "<<axis<<" axis.");
+					}
+				#endif
+				continue; // do other axes
+			}
+		#endif
 		Real wMn=(cellWrapRel(m1,m2,m2+dim)<cellWrapRel(m2,m1,m1+dim)) ? m2 : m1;
 		#ifdef PISC_DEBUG
 		if(watchIds(id1,id2)){

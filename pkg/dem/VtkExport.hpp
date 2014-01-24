@@ -56,7 +56,7 @@ struct VtkExport: public PeriodicEngine{
 		((int,mask,0,,"If non-zero, only particles matching the mask will be exported."))
 		((int,what,WHAT_ALL,AttrTrait<Attr::triggerPostLoad>(),"Select data to be saved (e.g. VtkExport.spheres|VtkExport.mesh, or use VtkExport.all for everything)"))
 		((bool,sphereSphereOnly,false,,"Only export contacts between two spheres (not sphere+facet and such)"))
-		((bool,infError,true,,"Raise exception for infinite objects which don't have the glAB attribute set properly"))
+		((bool,infError,true,,"Raise exception for infinite objects which don't have the glAB attribute set properly."))
 		((bool,skipInvisible,true,,"Skip invisible particles"))
 		((int,subdiv,16,AttrTrait<>().noGui(),"Subdivision fineness for circular objects (such as cylinders).\n\n.. note:: :obj:`Facets <woo.dem.Facet>` are rendered without rounded edges (they are closed flat).\n\n.. note:: :obj:`Ellipsoids <woo.dem.Ellipsoid>` triangulation is controlled via the :obj:`ellLev` parameter."))
 		#ifndef WOO_OLDABI

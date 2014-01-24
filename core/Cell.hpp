@@ -47,7 +47,7 @@ struct Cell: public Object{
 	*/
 	const double* getGlShearTrsfMatrix() const { return _glShearTrsfMatrix; }
 	//! Whether any shear (non-diagonal) component of the strain matrix is nonzero.
-	bool hasShear() const {return _hasShear; }
+	const bool& hasShear() const {return _hasShear; }
 
 	// caches; private
 	private:
@@ -101,10 +101,10 @@ struct Cell: public Object{
 
 
 	// get/set current shape; setting resets trsf to identity
-	Matrix3r getHSize() const { return hSize; }
+	const Matrix3r& getHSize() const { return hSize; }
 	void setHSize(const Matrix3r& m){ hSize=refHSize=m; pprevHsize=hSize; postLoad(*this,NULL); }
 	// set current transformation; has no influence on current configuration (hSize); sets display refHSize as side-effect
-	Matrix3r getTrsf() const { return trsf; }
+	const Matrix3r& getTrsf() const { return trsf; }
 	void setTrsf(const Matrix3r& m){ trsf=m; postLoad(*this,NULL); }
 	// get undeformed shape
 	Matrix3r getHSize0() const { return _invTrsf*hSize; }
@@ -154,10 +154,10 @@ struct Cell: public Object{
 	/*ctor*/ _invTrsf=Matrix3r::Identity(); integrateAndUpdate(0),\
 	/*py*/\
 		/* override some attributes above*/ \
-		.add_property("hSize",&Cell::getHSize,&Cell::setHSize,"Base cell vectors (columns of the matrix), updated at every step from :obj:`gradV` (:obj:`trsf` accumulates applied :obj:`gradV` transformations). Setting *hSize* during a simulation is not supported by most contact laws, it is only meant to be used at iteration 0 before any interactions have been created.")\
+		.add_property("hSize",py::make_function(&Cell::getHSize,py::return_value_policy<py::return_by_value>()),&Cell::setHSize,"Base cell vectors (columns of the matrix), updated at every step from :obj:`gradV` (:obj:`trsf` accumulates applied :obj:`gradV` transformations). Setting *hSize* during a simulation is not supported by most contact laws, it is only meant to be used at iteration 0 before any interactions have been created.")\
 		.add_property("size",&Cell::getSize_copy,&Cell::setSize,"Current size of the cell, i.e. lengths of the 3 cell lateral vectors contained in :obj:`Cell.hSize` columns. Updated automatically at every step. Assigning a value will change the lengths of base vectors (see :obj:`Cell.hSize`), keeping their orientations unchanged.")\
 		/* useful properties*/ \
-		.add_property("trsf",&Cell::getTrsf,&Cell::setTrsf,"Current transformation matrix of the cell, obtained from time integration of :obj:`Cell.gradV`.")\
+		.add_property("trsf",py::make_function(&Cell::getTrsf,py::return_value_policy<py::return_by_value>()),&Cell::setTrsf,"Current transformation matrix of the cell, obtained from time integration of :obj:`Cell.gradV`.")\
 		.def_readonly("size",&Cell::getSize_copy,"Current size of the cell, i.e. lengths of the 3 cell lateral vectors contained in :obj:`Cell.hSize` columns. Updated automatically at every step.")\
 		.add_property("volume",&Cell::getVolume,"Current volume of the cell.")\
 		/* functions */ \

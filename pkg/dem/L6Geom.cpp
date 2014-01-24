@@ -121,7 +121,7 @@ bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<
 CREATE_LOGGER(Cg2_Wall_Sphere_L6Geom);
 
 bool Cg2_Wall_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
-	if(scene->isPeriodic) throw std::logic_error("Cg2_Wall_Sphere_L3Geom does not handle periodic boundary conditions.");
+	if(scene->isPeriodic && scene->cell->hasShear()) throw std::logic_error("Cg2_Wall_Sphere_L6Geom does not handle periodic boundary conditions with skew (Scene.cell.trsf is not diagonal).");
 	const Wall& wall=sh1->cast<Wall>(); const Sphere& sphere=sh2->cast<Sphere>();
 	assert(wall.numNodesOk()); assert(sphere.numNodesOk());
 	const Real& radius=sphere.radius; const int& ax=wall.axis; const int& sense=wall.sense;
@@ -133,14 +133,23 @@ bool Cg2_Wall_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<S
 	Vector3r normal=Vector3r::Zero();
 	// wall interacting from both sides: normal depends on sphere's position
 	assert(sense==-1 || sense==0 || sense==1);
-	if(sense==0) normal[ax]=dist>0?1.:-1.;
+	if(sense==0){
+		// for new contacts, normal given by the sense of approaching the wall
+		if(!C->geom) normal[ax]=dist>0?1.:-1.; 
+		// for existing contacts, use the previous normal 
+		else normal[ax]=C->geom->cast<L6Geom>().trsf.row(0)[ax];
+	}
 	else normal[ax]=(sense==1?1.:-1);
 	Real uN=normal[ax]*dist-radius; // takes in account sense, radius and distance
 
-	// check that the normal did not change orientation (would be abrupt here)
-	if(C->geom && C->geom->cast<L6Geom>().trsf.row(0)!=normal.transpose()){
-		throw std::logic_error((boost::format("Cg2_Wall_Sphere_L6Geom: normal changed from %s to %s in Wall+Sphere ##%d+%d (with Wall.sense=0, a particle might cross the Wall plane if Δt is too high, repulsive force to small or velocity too high.")%C->geom->cast<L6Geom>().trsf.row(0)%normal.transpose()%C->leakPA()->id%C->leakPB()->id).str());
-	}
+	// this may not happen anymore as per conditions above
+	assert(!(C->geom && C->geom->cast<L6Geom().trsf.row(0)!=normal.transpose()));
+	#if 0
+		// check that the normal did not change orientation (would be abrupt here)
+		if(C->geom && C->geom->cast<L6Geom>().trsf.row(0)!=normal.transpose()){
+			throw std::logic_error((boost::format("Cg2_Wall_Sphere_L6Geom: normal changed from %s to %s in Wall+Sphere ##%d+%d (with Wall.sense=0, a particle might cross the Wall plane if Δt is too high, repulsive force to small or velocity too high.")%C->geom->cast<L6Geom>().trsf.row(0)%normal.transpose()%C->leakPA()->id%C->leakPB()->id).str());
+		}
+	#endif
 
 	const DemData& dyn1(wall.nodes[0]->getData<DemData>());const DemData& dyn2(sphere.nodes[0]->getData<DemData>());
 	handleSpheresLikeContact(C,wallPos,dyn1.vel,dyn1.angVel,spherePos,dyn2.vel,dyn2.angVel,normal,contPt,uN,/*r1*/-radius,radius);
@@ -150,7 +159,7 @@ bool Cg2_Wall_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<S
 CREATE_LOGGER(Cg2_InfCylinder_Sphere_L6Geom);
 
 bool Cg2_InfCylinder_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
-	if(scene->isPeriodic) throw std::logic_error("Cg2_InfCylinder_Sphere_L3Geom does not handle periodic boundary conditions.");
+	if(scene->isPeriodic && scene->cell->hasShear()) throw std::logic_error("Cg2_InfCylinder_Sphere_L6Geom does not handle periodic boundary conditions with skew (Scene.cell.trsf is not diagonal).");
 	const InfCylinder& cyl=sh1->cast<InfCylinder>(); const Sphere& sphere=sh2->cast<Sphere>();
 	assert(cyl.numNodesOk()); assert(sphere.numNodesOk());
 	const Real& sphRad=sphere.radius;

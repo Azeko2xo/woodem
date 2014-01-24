@@ -14,7 +14,7 @@ void Bo1_InfCylinder_Aabb::go(const shared_ptr<Shape>& sh){
 	if(!cyl.bound){ cyl.bound=make_shared<Aabb>(); }
 	assert(cyl.numNodesOk());
 	Aabb& aabb=cyl.bound->cast<Aabb>();
-	if(scene->isPeriodic) throw logic_error(__FILE__ "InfCylinder not supported in periodic cell.");
+	if(scene->isPeriodic && scene->cell->hasShear()) throw logic_error(__FILE__ ": InfCylinder not supported in periodic cell with skew (Scene.cell.trsf is not diagonal).");
 	Vector3r& pos=cyl.nodes[0]->pos;
 	short ax0=cyl.axis, ax1=(cyl.axis+1)%3, ax2=(cyl.axis+2)%3;
 	aabb.min[ax0]=-Inf; aabb.max[ax0]=Inf;
@@ -40,7 +40,15 @@ void Bo1_InfCylinder_Aabb::go(const shared_ptr<Shape>& sh){
 		glLineWidth(1);
 		assert(cyl.nodes.size()==1);
 		Vector3r A(Vector3r::Zero()),B(Vector3r::Zero());
-		if(isnan(cyl.glAB[0])||isnan(cyl.glAB[1])){
+		if(scene->isPeriodic){
+			assert(!scene->cell->hasShear());
+			const Vector3r& hSize=scene->cell->getHSize().diagonal();
+			Vector3r mid=scene->cell->wrapPt(cyl.nodes[0]->pos); mid[ax]=.5*hSize[ax];
+			GLUtils::setLocalCoords(mid,cyl.nodes[0]->ori);
+			A[ax]=-.5*hSize[ax];
+			B[ax]=+.5*hSize[ax];
+		}
+		else if(isnan(cyl.glAB.maxCoeff())){
 			Vector3r mid=cyl.nodes[0]->pos; mid[ax]=viewInfo.sceneCenter[ax];
 			GLUtils::setLocalCoords(mid,cyl.nodes[0]->ori);
 			A[ax]=-viewInfo.sceneRadius;

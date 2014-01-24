@@ -80,6 +80,8 @@ Possible performance improvements & bugs
 	#define ISC_CHECKPOINT(cpt)
 #endif
 
+#define ISC_INF
+
 struct ParticleContainer;
 
 struct InsertionSortCollider: public Collider {
