@@ -7,7 +7,7 @@ class ExceptionDialog(QMessageBox):
 	def __init__(self,parent,exc,t1=None,t2=None):
 		QMessageBox.__init__(self,parent)
 		if t1==None: t1=(exc.args[0] if len(exc.args)>0 else None)
-		self.setText('<b>'+exc.__class__.__name__+':</b><br>\n'+str(t1))
+		self.setText(u'<b>'+exc.__class__.__name__+':</b><br>\n'+unicode(t1))
 		#QMessageBox.setTitle(self,xc.__class__.__name__)
 		import traceback
 		tbRaw=traceback.format_exc()
