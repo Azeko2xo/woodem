@@ -18,6 +18,7 @@ import woo._customConverters, woo.core, woo.utils
 import woo.qt
 import woo.document
 import sys
+import os.path, os
 
 
 from ExceptionDialog import *
@@ -421,7 +422,15 @@ class AttrEditor_FileDir(AttrEditor,QFrame):
 		if isDir: b.setIcon(style.standardIcon(QStyle.SP_DirIcon))
 		else: b.setIcon(style.standardIcon(QStyle.SP_FileIcon))
 		self.butt.clicked.connect(self.dialogShow)
-		self.grid.addWidget(self.butt,0,1)
+		self.grid.addWidget(self.butt,0,2)
+		rel=self.rel=QPushButton()
+		rel.setCheckable(True)
+		rel.setText('rel')
+		rel.setToolTip(u'Toggle absolute/relative path.\nPaths are relative to the current directory,\nwhich is now %s.'%(unicode(os.getcwd())))
+		rel.toggled.connect(self.relToggled)
+		rel.setStyleSheet('padding: 0px;')
+		self.grid.addWidget(rel,0,1)
+		
 	def dialogShow(self):
 		curr=self.nameEdit.text()
 		if self.isDir:	f=QFileDialog.getExistingDirectory(self,'Select directory',curr)
@@ -429,12 +438,22 @@ class AttrEditor_FileDir(AttrEditor,QFrame):
 		else: f=QFileDialog.getSaveFileName(self,'Select file name',curr,options=QFileDialog.DontConfirmOverwrite)
 		if not f: return # cancelled
 		f=str(f)
+		if self.rel.isChecked(): f=os.path.relpath(f)
 		self.setter(f)
 	def refresh(self):
 		f=self.getter()
 		self.nameEdit.setTextStable(f)
+		self.rel.setChecked(not os.path.isabs(f))
 	def update(self):
-		self.trySetter(str(self.nameEdit.text()))
+		f=str(self.nameEdit.text())
+		self.trySetter(f)
+		self.rel.setChecked(not os.path.isabs(f))
+	def relToggled(self,isRel):
+		f=str(self.nameEdit.text())
+		if f=='': return # do nothing for empty path
+		if isRel: self.trySetter(os.path.relpath(f))
+		else: self.trySetter(os.path.abspath(f))
+		
 	
 
 class AttrEditor_Se3(AttrEditor,QFrame):

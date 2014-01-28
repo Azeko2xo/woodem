@@ -28,9 +28,26 @@ T linearInterpolate(const Real t, const std::vector<timeT>& tt, const std::vecto
 		if(tt[pos]>t) pos--;
 		else pos++;
 	}
-	const Real& t0=tt[pos], t1=tt[pos+1]; const T& v0=values[pos], v1=values[pos+1];
+	const Real &t0=tt[pos], &t1=tt[pos+1]; const T &v0=values[pos], &v1=values[pos+1];
 	return v0+(v1-v0)*((t-t0)/(t1-t0));
 }
+
+// templated to avoid linking multiple defs
+template<typename Scalar>
+Scalar linearInterpolate(const Scalar x, const vector<Eigen::Matrix<Scalar,2,1>>& xxyy, size_t& pos){
+	if(x<=xxyy[0].x()){ pos=0; return xxyy[0].y(); }
+	if(x>=xxyy.rbegin()->x()){ pos=xxyy.size()-2; return xxyy.rbegin()->y();}
+	pos=std::min(pos,xxyy.size()-2);
+	while((xxyy[pos].x()>x) || (xxyy[pos+1].x()<x)){
+		assert(xxyy[pos].x()<xxyy[pos+1].x());
+		if(xxyy[pos].x()>x) pos--;
+		else pos++;
+	}
+	const Scalar &x0=xxyy[pos].x(), &x1=xxyy[pos+1].x(); const Real &y0=xxyy[pos].y(), &y1=xxyy[pos+1].y();
+	return y0+(y1-y0)*((x-x0)/(x1-x0));
+}
+
+
 
 #if 0
 	// test program

@@ -223,6 +223,8 @@ class ContactModelSelector(woo.core.Object,woo.pyderived.PyWooObject):
 		_PAT(float,'alpha',.5,hideIf='self.name not in ("Schwarz",)',doc='Parameter interpolating between DMT and JKR extremes in the Schwarz model. :math:`alpha` was introduced in :cite:`Carpick1999`.'),
 		_PAT(float,'damping',.2,hideIf='self.name not in ("linear",)',doc='Numerical (non-viscous) damping (:obj:`woo.dem.Leapfrog.damping`)'),
 		_PAT(bool,'plastSplit',False,hideIf='self.name not in ("pellet",)',doc='Split plastic dissipation into the normal and tangent component (obj:`woo.dem.Law2_L6Geom_PelletPhys_Pellet.plastSplit`).'),
+		_PAT(Vector3,'pelletThin',(0,0,0),hideIf='self.name!="pellet"',doc='*Pellet model:* parameters for plastic thinning (decreasing pellet radius during normal plastic loading); their order is :obj:`thinRate <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinRate>`, :obj:`thinRelRMin <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinRelRMin>`, :obj:`thinExp <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinExp>`. Set the first value to zero to deactivate.'),
+		_PAT(Vector3,'pelletConf',(0,0,0),hideIf='self.name!="pellet"',doc='*Pellet model:* parameters for history-independent adhesion ("confinement"); the values are :obj:`confSigma <woo.dem.Law2_L6Geom_PelletPhys_Pellet.confSigma>`, :obj:`confRefRad <woo.dem.Law2_L6Geom_PelletPhys_Pellet.confRefRad>` and :obj:`confExp <woo.dem.Law2_L6Geom_PelletPhys_Pellet.confExp>`.'),
 	]
 	def __init__(self,**kw):
 		woo.core.Object.__init__(self)
@@ -258,7 +260,7 @@ class ContactModelSelector(woo.core.Object,woo.pyderived.PyWooObject):
 		if self.name=='linear':
 			return [woo.dem.Cp2_FrictMat_FrictPhys()],[woo.dem.Law2_L6Geom_FrictPhys_IdealElPl()]
 		elif self.name=='pellet':
-			return [woo.dem.Cp2_PelletMat_PelletPhys()],[woo.dem.Law2_L6Geom_PelletPhys_Pellet(plastSplit=self.plastSplit)]
+			return [woo.dem.Cp2_PelletMat_PelletPhys()],[woo.dem.Law2_L6Geom_PelletPhys_Pellet(plastSplit=self.plastSplit,confSigma=self.pelletConf[0],confRefRad=self.pelletConf[1],confExp=self.pelletConf[2],thinRate=self.pelletThin[0],thinRelRMin=self.pelletThin[1],thinExp=self.pelletThin[2])]
 		elif self.name=='Hertz':
 			return [woo.dem.Cp2_FrictMat_HertzPhys(poisson=self.poisson,alpha=0.,gamma=0.,en=self.restitution)],[woo.dem.Law2_L6Geom_HertzPhys_DMT()]
 		elif self.name=='DMT':

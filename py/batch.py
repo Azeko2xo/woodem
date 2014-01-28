@@ -615,27 +615,29 @@ This class is used by :obj:`woo.utils.readParamsFromTable`.
      'important2': 'b',
      'title': 'important2=b,OMP_NUM_THREADS=c__line=5__'}}
 >>> pprint(TableParamReader(f2).paramDict())
-{1: {u'!OMP_NUM_THREADS': '1.2',
+{2: {u'!OMP_NUM_THREADS': '1.2',
      u'abcd': '1.3',
      u'head1': '1.0',
      u'important2': '1.1',
      'title': u'important2=1.1,OMP_NUM_THREADS=1.2'},
- 2: {u'!OMP_NUM_THREADS': u'c',
+ 3: {u'!OMP_NUM_THREADS': u'c',
      u'abcd': u'd',
      u'head1': u'a',
      u'important2': u'b',
      'title': u'important2=b,OMP_NUM_THREADS=c'},
- 4: {u'!OMP_NUM_THREADS': u'c',
+ 5: {u'!OMP_NUM_THREADS': u'c',
      u'abcd': u'g',
      u'head1': '1.0',
      u'important2': u'b',
-     'title': u'important2=b,OMP_NUM_THREADS=c__line=4__'}}
+     'title': u'important2=b,OMP_NUM_THREADS=c__line=5__'}}
 
 	"""
-	def __init__(self,file):
-		"Setup the reader class, read data into memory."
+	def __init__(self,file,firstLine=-1):
+		"Setup the reader class, read data into memory. *firstLine* determines the number of the first line; if negative, 1 is used for XLS files and 0 for text files. The reason is that spreadsheets number lines from 1 whereas text editors number lines from zero, and having the numbering the same as the usual UI for editing that format is convenient."
 		import re
+		
 		if file.lower().endswith('.xls'):
+			if firstLine<0: firstLine=1
 			import xlrd
 			xls=xlrd.open_workbook(file)
 			sheet=xls.sheet_by_index(0)
@@ -666,8 +668,9 @@ This class is used by :obj:`woo.utils.readParamsFromTable`.
 					v=sheet.cell(r,c).value
 					if type(v)!=unicode: v=str(v)
 					vv[c]=v
-				values[r]=dict([(headings[c],vv[c]) for c in cols])
+				values[r+firstLine]=dict([(headings[c],vv[c]) for c in cols])
 		else:
+			if firstLine<0: firstLine=0
 			# text file, space separated
 			# read file in memory, remove newlines and comments; the [''] makes lines 1-indexed
 			ll=[re.sub('\s*#.*','',l[:-1]) for l in ['']+open(file,'r').readlines()]
@@ -683,7 +686,7 @@ This class is used by :obj:`woo.utils.readParamsFromTable`.
 				val={}
 				for i in range(len(headings)):
 					val[headings[i]]=ll[l].split()[i]
-				values[l]=val
+				values[l+firstLine]=val
 		#
 		# each format has to define the following:
 		#   values={lineNumber:{key:val,key:val,...],...} # keys are column headings
@@ -693,6 +696,7 @@ This class is used by :obj:`woo.utils.readParamsFromTable`.
 
 		# replace empty cells or '=' by the previous value of the parameter
 		lines=values.keys(); lines.sort()
+		# print file,lines
 		for i,l in enumerate(lines):
 			for j in values[l].keys():
 				if values[l][j] in ('=',''):

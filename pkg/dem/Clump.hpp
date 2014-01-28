@@ -10,9 +10,9 @@ struct SphereClumpGeom: public Object{
 	void makeInvalid(){ volume=equivRad=NaN; inertia=Vector3r(NaN,NaN,NaN); pos=Vector3r::Zero(); ori=Quaternionr::Identity(); }
 	bool isOk() const { return !isnan(volume); }
 	void ensureOk() { if(!isOk()) recompute(div,/*failOk*/false); }
-	std::tuple<shared_ptr<Node>,vector<shared_ptr<Particle>>> makeClump(const shared_ptr<Material>&, const Vector3r& pos, const Quaternionr& ori, Real scale=1.);
+	std::tuple<shared_ptr<Node>,vector<shared_ptr<Particle>>> makeClump(const shared_ptr<Material>&, const Vector3r& pos, const Quaternionr& ori, int mask, Real scale=1.);
 	py::tuple pyMakeClump(const shared_ptr<Material>& m, const Vector3r& p, const Quaternionr& o=Quaternionr::Identity(), Real scale=1., int mask=0){
-		const auto& tup=makeClump(m,p,o,scale); return py::make_tuple(std::get<0>(tup),std::get<1>(tup));
+		const auto& tup=makeClump(m,p,o,mask,scale); return py::make_tuple(std::get<0>(tup),std::get<1>(tup));
 	}
 	static vector<shared_ptr<SphereClumpGeom>> fromSpherePack(const shared_ptr<SpherePack>& sp, int div=5);
 	

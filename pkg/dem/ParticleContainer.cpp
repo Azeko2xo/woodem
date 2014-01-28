@@ -143,7 +143,11 @@ bool ParticleContainer::remove(Particle::id_t id){
 			assert(parts[id]->subDomId==Particle::ID_NONE); // subDomId should never be defined for OpenMP-less builds
 		#endif 
 	#endif /* WOO_SUBDOMAINS */
-	parts[id]=shared_ptr<Particle>();
+	{
+		// XXX: see https://svn.boost.org/trac/boost/ticket/8290
+		GilLock lock; // avoids the crash :D hopefully removeing particles from python will not deadlock (!!)
+		parts[id].reset(); 
+	}
 	// removing last element, shrink the size as much as possible
 	// extending the vector when the space is allocated is rather efficient
 	if((size_t)(id+1)==parts.size()){

@@ -66,26 +66,7 @@ WOO_REGISTER_OBJECT(RadialForce);
 struct Local6Dofs: public Impose{
 	void velocity(const Scene* scene, const shared_ptr<Node>& n){ doImpose(scene,n,/*velocity*/true); }
 	void force(const Scene* scene, const shared_ptr<Node>& n)   { doImpose(scene,n,/*velocity*/false); }
-	// function to impose both, distinguished by the last argument
-	void doImpose(const Scene* scene, const shared_ptr<Node>& n, bool velocity){
-		DemData& dyn=n->getData<DemData>();
-		for(int i=0;i<6;i++){
-			if( velocity&&(whats[i]&Impose::VELOCITY)){
-				if(i<3){
-					//dyn.vel+=ori.conjugate()*(Vector3r::Unit(i)*(values[i]-(ori*dyn.vel).dot(Vector3r::Unit(i))));
-					Vector3r locVel=ori*dyn.vel; locVel[i]=values[i]; dyn.vel=ori.conjugate()*locVel;
-				} else {
-					//dyn.angVel+=ori.conjugate()*(Vector3r::Unit(i%3)*(values[i]-(ori*dyn.angVel).dot(Vector3r::Unit(i%3))));
-					Vector3r locAngVel=ori*dyn.angVel; locAngVel[i%3]=values[i]; dyn.angVel=ori.conjugate()*locAngVel;
-				}
-			}
-			if(!velocity&&(whats[i]&Impose::FORCE)){
-				// set absolute value, cancel anything set previously (such as gravity)
-				if(i<3){ dyn.force =ori.conjugate()*(values[i]*Vector3r::Unit(i)); }
-				else   { dyn.torque=ori.conjugate()*(values[i]*Vector3r::Unit(i%3)); }
-			}
-		}
-	}
+	void doImpose(const Scene* scene, const shared_ptr<Node>& n, bool velocity);
 	void postLoad(Local6Dofs&,void*){
 		for(int i=0;i<6;i++) if(whats[i]!=0 && whats[i]!=Impose::FORCE && whats[i]!=Impose::VELOCITY) throw std::runtime_error("Local6Dofs.whats components must be 0, "+to_string(Impose::FORCE)+" or "+to_string(Impose::VELOCITY)+" (whats["+to_string(i)+"] invalid: "+lexical_cast<string>(whats.transpose())+")");
 	}
@@ -97,3 +78,15 @@ struct Local6Dofs: public Impose{
 	);
 };
 WOO_REGISTER_OBJECT(Local6Dofs);
+
+struct VariableAlignedRotation: public Impose{
+	void velocity(const Scene* scene, const shared_ptr<Node>& n);
+	void postLoad(VariableAlignedRotation&,void*);
+	size_t _interpPos; // cookie for interpolation routine, doees not need to be saved
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR(VariableAlignedRotation,Impose,"Impose piecewise-linear angular valocity along :obj:`axis`, based on the :obj:`timeAngVel`.",
+		((int,axis,0,,"Rotation axis."))
+		((vector<Vector2r>,timeAngVel,,,"Angular vlocity values in time. Time values must be increasing."))
+		, /*ctor*/ what=Impose::VELOCITY;
+	);
+};
+WOO_REGISTER_OBJECT(VariableAlignedRotation);

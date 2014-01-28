@@ -610,7 +610,8 @@ finished: %s
 			ret='<p>Running for %s, since %s.</p>'%(t2hhmmss(totalRunningTime()),time.ctime(t0))
 		else:
 			failed=len([j for j in jobs if j.exitStatus!=0])
-			lastFinished=max([j.finished for j in jobs])
+			if jobs: lastFinished=max([j.finished for j in jobs])
+			else: lastFinished=time.time()
 			# FIXME: do not report sum of runnign time of all jobs, only the real timespan
 			ret='<p><span style="background-color:%s">Finished</span>, idle for %s, running time %s since %s.</p>'%('red' if failed else 'lime',t2hhmmss(time.time()-lastFinished),t2hhmmss(sum([j.finished-j.started for j in jobs if j.started is not None])),time.ctime(t0))
 		ret+='<p>Pid %d'%(os.getpid())
@@ -820,6 +821,7 @@ finished: %s
 	parser.add_argument('--gnuplot',dest='gnuplotOut',help='Gnuplot file where gnuplot from all jobs should be put together',default=None,metavar='FILE')
 	parser.add_argument('--dry-run',action='store_true',dest='dryRun',help='Do not actually run (useful for getting gnuplot only, for instance)',default=False)
 	parser.add_argument('--http-wait',action='store_true',dest='httpWait',help='Do not quit if still serving overview over http repeatedly',default=False)
+	parser.add_argument('--exit-prompt',action='store_true',dest='exitPrompt',help='Do not quit until a key is pressed in the terminal (useful for reviewing plots after all simulations finish).',default=False)
 	# parser.add_argument('--generate-manpage',help='Generate man page documenting this program and exit',dest='manpage',metavar='FILE')
 	parser.add_argument('--plot-update',type=int,dest='plotAlwaysUpdateTime',help='Interval (in seconds) at which job plots will be updated even if not requested via HTTP. Non-positive values will make the plots not being updated and saved unless requested via HTTP (see \-\-plot-timeout for controlling maximum age of those).  Plots are saved at exit under the same name as the log file, with the .log extension removed. (default: 120 seconds)',metavar='TIME',default=120)
 	parser.add_argument('--plot-timeout',type=int,dest='plotTimeout',help='Maximum age (in seconds) of plots served over HTTP; they will be updated if they are older. (default: 30 seconds)',metavar='TIME',default=30)
@@ -1078,6 +1080,8 @@ finished: %s
 		print "(continue serving http until no longer requested  as per --http-wait)"
 		while time.time()-httpLastServe<30:
 			time.sleep(1)
+	if opts.exitPrompt:
+		raw_input('Press Enter to exit (--exit-prompt)...')
 	
 	if tailProcess: tailProcess.terminate()
 	#woo.master.exitNoBacktrace()
