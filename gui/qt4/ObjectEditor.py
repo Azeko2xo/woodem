@@ -1041,8 +1041,9 @@ class ObjectEditor(QFrame):
 	def objManipLabelMenu(self,entry,pos):
 		'context menu for creating/deleting/loading/saving woo.core.Object from within the editor'
 		menu=QMenu(self)
-		isObj=isinstance(getattr(self.ser,entry.name),woo.core.Object)
 		isNone=(getattr(self.ser,entry.name)==None)
+		# isinstance is false for None, but None is always (?) missing woo.core.Object anyway
+		isObj=isinstance(getattr(self.ser,entry.name),woo.core.Object) or isNone
 		if isObj:
 			newDel=menu.addAction(u'☘ New' if isNone else u'☠  Delete')
 			newDel.triggered.connect(lambda: self.doObjManip('newDel',entry,isNone,isObj))
@@ -1119,7 +1120,7 @@ class ObjectEditor(QFrame):
 			labelText,labelTooltip=self.getAttrLabelToolTip(entry)
 			label=SerQLabel(self,labelText,tooltip=labelTooltip,path=objPath,elide=not self.labelIsVar)
 			entry.widgets['label']=label
-			if self.objManip and ('value' in entry.widgets): # and isinstance(entry.widgets['value'],ObjectEditor):
+			if self.objManip and ('value' in entry.widgets):
 				label.setContextMenuPolicy(Qt.CustomContextMenu)
 				label.customContextMenuRequested.connect(lambda pos,entry=entry: self.objManipLabelMenu(entry,pos))
 				label.setFocusPolicy(Qt.ClickFocus)
@@ -1237,7 +1238,8 @@ class ObjectEditor(QFrame):
 					e.widget.hide()
 					e.widget=e.widgets['value']=self.mkWidget(e)
 					grid,row=e.gridAndRow
-					grid.addWidget(e.widget,row,self.gridCols['value'])
+					colSpan=(2 if 'unit' not in e.widgets else 1)
+					grid.addWidget(e.widget,row,self.gridCols['value'],1,colSpan)
 				# visibility might change if hideIf is defined
 				if e.trait.hideIf or not e.visible: e.setVisible(None)
 				e.widget.refresh()
