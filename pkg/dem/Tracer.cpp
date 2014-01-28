@@ -50,12 +50,14 @@ bool TraceGlRep::getPointData(size_t i, Vector3r& pt, Real& scalar) const {
 	return true;
 }
 
-void TraceGlRep::render(const shared_ptr<Node>& n, const GLViewInfo*){
+void TraceGlRep::render(const shared_ptr<Node>& n, const GLViewInfo* glInfo){
 	if(isHidden()) return;
 	if(!Tracer::glSmooth) glDisable(GL_LINE_SMOOTH);
 	else glEnable(GL_LINE_SMOOTH);
 	bool scale=(Renderer::dispScale!=Vector3r::Ones() && Renderer::scaleOn && n->hasData<GlData>());
 	glLineWidth(Tracer::glWidth);
+	const bool periodic=glInfo->scene->isPeriodic;
+	Vector3i prevPeriod;
 	glBegin(GL_LINE_STRIP);
 		for(size_t i=0; i<pts.size(); i++){
 			size_t ix;
@@ -76,13 +78,25 @@ void TraceGlRep::render(const shared_ptr<Node>& n, const GLViewInfo*){
 					else glColor3v(Tracer::noneColor);
 				}
 				else glColor3v(Tracer::lineColor->color(scalars[ix]));
-				if(!scale) glVertex3v(pts[ix]);
+				Vector3r pt(pts[ix]);
+				if(periodic){
+					// canonicalize the point, store the period
+					Vector3i currPeriod;
+					pt=glInfo->scene->cell->canonicalizePt(pt,currPeriod);
+					// if the period changes between these two points, split the line (and don't render the segment in-between for simplicity)
+					if(i>0 && currPeriod!=prevPeriod){
+						glEnd();
+						glBegin(GL_LINE_STRIP);
+					}
+					prevPeriod=currPeriod;
+				}
+				if(!scale) glVertex3v(pt);
 				else{
 					const auto& gl=n->getData<GlData>();
 					// don't scale if refpos is invalid
-					if(isnan(gl.refPos.maxCoeff())) glVertex3v(pts[ix]); 
+					if(isnan(gl.refPos.maxCoeff())) glVertex3v(pt); 
 					// x+(s-1)*(x-x0)
-					else glVertex3v((pts[i]+((Renderer::dispScale-Vector3r::Ones()).array()*(pts[i]-gl.refPos).array()).matrix()).eval());
+					else glVertex3v((pt+((Renderer::dispScale-Vector3r::Ones()).array()*(pt-gl.refPos).array()).matrix()).eval());
 				}
 			}
 		}

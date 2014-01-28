@@ -45,17 +45,17 @@ class TestFactoriesAndDeleters(unittest.TestCase):
 		S.one()
 		#print 100*'#',dict(S.energy)
 		#print 'Number of particles:',len(S.dem.par)
-		self.assert_(len(S.dem.par)==0)
-		self.assert_(S.energy['kinDelete']==self.Ek)
-		self.assert_(S.energy['kinFactory']==-self.Ek)
-		self.assert_(S.energy.total()==0.)
+		self.assertEqual(len(S.dem.par),0)
+		self.assertEqual(S.energy['kinDelete'],self.Ek)
+		self.assertEqual(S.energy['kinFactory'],-self.Ek)
+		self.assertEqual(S.energy.total(),0.)
 	def testRandomFactory(self):
 		'Energy: random box factory traces kinetic energy'
 		S=self.S
 		S.engines=[
 			InsertionSortCollider(),
 			BoxFactory(maxNum=1,materials=[self.mat],
-				generator=MinMaxSphereGenerator(dRange=(self.rad,self.rad)),
+				generator=MinMaxSphereGenerator(dRange=(2*self.rad,2*self.rad)),
 				shooter=AlignedMinMaxShooter(dir=(1,0,0),vRange=(self.vel,self.vel)),
 				box=((-.5,-.5,-.5),(.5,.5,.5)),
 				massFlowRate=0,
@@ -64,9 +64,9 @@ class TestFactoriesAndDeleters(unittest.TestCase):
 		]
 		S.dt=.05 # produce one particle in the first step
 		S.one()
-		self.assert_(S.energy['kinDelete']==self.Ek)
-		self.assert_(S.energy['kinFactory']==-self.Ek)
-		self.assert_(S.energy.total()==0.)
+		self.assertEqual(S.energy['kinDelete'],self.Ek)
+		self.assertEqual(S.energy['kinFactory'],-self.Ek)
+		self.assertEqual(S.energy.total(),0.)
 
 		
 
