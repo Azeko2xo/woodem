@@ -140,6 +140,7 @@ struct Scene: public Object{
 		((Real,dt,NaN,AttrTrait<>().timeUnit(),"Current timestep for integration."))
 		((Real,nextDt,NaN,AttrTrait<>().timeUnit(),"Timestep for the next step (if not NaN, :obj:`dt` is automatically replaced by this value at the end of the step)."))
 		((Real,dtSafety,.9,,"Safety factor for automatically-computed timestep."))
+		((Real,throttle,0,,"Insert this delay before each step when running in loop; useful for slowing down simulations for visual inspection if they happen too fast.\n\n.. note:: Negative values will not make the simulation run faster."))
 		((long,step,0,AttrTrait<Attr::readonly>(),"Current step number"))
 		((bool,subStepping,false,,"Whether we currently advance by one engine in every step (rather than by single run through all engines)."))
 		((int,subStep,-1,AttrTrait<Attr::readonly>(),"Number of sub-step; not to be changed directly. -1 means to run loop prologue (cell integration), 0…n-1 runs respective engines (n is number of engines), n runs epilogue (increment step number and time."))

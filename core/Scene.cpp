@@ -80,6 +80,7 @@ void Scene::backgroundLoop(){
 			doOneStep();
 			if(stopAtStep>0 && stopAtStep==step){ boost::mutex::scoped_lock l(runMutex); stopFlag=true; }
 			if(stopFlagSet()){ boost::mutex::scoped_lock l(runMutex); runningFlag=false; return; }
+			if(throttle>0){ boost::this_thread::sleep(boost::posix_time::milliseconds(int(1000*throttle))); }
 		}
 	} catch(std::exception& e){
 		LOG_ERROR("Exception: "<<endl<<e.what());

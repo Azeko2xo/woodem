@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>408</width>
+    <width>415</width>
     <height>512</height>
    </rect>
   </property>
@@ -39,7 +39,7 @@
       </sizepolicy>
      </property>
      <property name="currentIndex">
-      <number>5</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tabGridLayout">
       <attribute name="title">
@@ -412,6 +412,61 @@
                    </layout>
                   </item>
                   <item>
+                   <widget class="QDial" name="throttleControl">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>40</width>
+                      <height>40</height>
+                     </size>
+                    </property>
+                    <property name="baseSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="toolTip">
+                     <string>Limit the simulation speed by inserting pauses between timesteps. Set to 0 (default) to disable any slowdown and run as fast as possible. The number is the maximum number of steps per second since the delay of 1/N is inserted.</string>
+                    </property>
+                    <property name="maximum">
+                     <number>100</number>
+                    </property>
+                    <property name="singleStep">
+                     <number>2</number>
+                    </property>
+                    <property name="tracking">
+                     <bool>false</bool>
+                    </property>
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="invertedAppearance">
+                     <bool>true</bool>
+                    </property>
+                    <property name="invertedControls">
+                     <bool>true</bool>
+                    </property>
+                    <property name="notchTarget">
+                     <double>100.000000000000000</double>
+                    </property>
+                    <property name="notchesVisible">
+                     <bool>false</bool>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
                    <widget class="QPushButton" name="reloadButton">
                     <property name="enabled">
                      <bool>false</bool>
@@ -552,8 +607,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>98</width>
-            <height>28</height>
+            <width>407</width>
+            <height>462</height>
            </rect>
           </property>
          </widget>
@@ -840,8 +895,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>98</width>
-            <height>28</height>
+            <width>407</width>
+            <height>454</height>
            </rect>
           </property>
          </widget>
@@ -886,8 +941,8 @@
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>98</width>
-              <height>28</height>
+              <width>405</width>
+              <height>424</height>
              </rect>
             </property>
            </widget>
@@ -994,8 +1049,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>402</width>
-            <height>477</height>
+            <width>407</width>
+            <height>483</height>
            </rect>
           </property>
           <property name="sizePolicy">
@@ -1177,8 +1232,8 @@
    <slot>loadSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>323</x>
-     <y>62</y>
+     <x>407</x>
+     <y>55</y>
     </hint>
     <hint type="destinationlabel">
      <x>284</x>
@@ -1209,8 +1264,8 @@
    <slot>playSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>121</x>
-     <y>183</y>
+     <x>129</x>
+     <y>168</y>
     </hint>
     <hint type="destinationlabel">
      <x>3</x>
@@ -1225,8 +1280,8 @@
    <slot>pauseSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>344</x>
-     <y>183</y>
+     <x>316</x>
+     <y>168</y>
     </hint>
     <hint type="destinationlabel">
      <x>284</x>
@@ -1241,8 +1296,8 @@
    <slot>plotSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>443</x>
-     <y>205</y>
+     <x>407</x>
+     <y>184</y>
     </hint>
     <hint type="destinationlabel">
      <x>284</x>
@@ -1257,8 +1312,8 @@
    <slot>generatorComboSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>103</x>
-     <y>59</y>
+     <x>65</x>
+     <y>31</y>
     </hint>
     <hint type="destinationlabel">
      <x>284</x>
@@ -1274,7 +1329,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>101</x>
-     <y>45</y>
+     <y>37</y>
     </hint>
     <hint type="destinationlabel">
      <x>284</x>
@@ -1289,8 +1344,8 @@
    <slot>inspectSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>443</x>
-     <y>247</y>
+     <x>407</x>
+     <y>224</y>
     </hint>
     <hint type="destinationlabel">
      <x>0</x>
@@ -1305,8 +1360,8 @@
    <slot>reloadSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>344</x>
-     <y>246</y>
+     <x>316</x>
+     <y>223</y>
     </hint>
     <hint type="destinationlabel">
      <x>284</x>
@@ -1321,8 +1376,8 @@
    <slot>stepSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>92</x>
-     <y>245</y>
+     <x>85</x>
+     <y>222</y>
     </hint>
     <hint type="destinationlabel">
      <x>6</x>
@@ -1337,8 +1392,8 @@
    <slot>subStepSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>145</x>
-     <y>212</y>
+     <x>140</x>
+     <y>194</y>
     </hint>
     <hint type="destinationlabel">
      <x>0</x>
@@ -1353,8 +1408,8 @@
    <slot>show3dSlot(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>443</x>
-     <y>162</y>
+     <x>407</x>
+     <y>145</y>
     </hint>
     <hint type="destinationlabel">
      <x>0</x>
@@ -1369,8 +1424,8 @@
    <slot>generateSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>445</x>
-     <y>448</y>
+     <x>410</x>
+     <y>507</y>
     </hint>
     <hint type="destinationlabel">
      <x>284</x>
@@ -1385,8 +1440,8 @@
    <slot>genSaveParamsSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>445</x>
-     <y>59</y>
+     <x>410</x>
+     <y>51</y>
     </hint>
     <hint type="destinationlabel">
      <x>232</x>
@@ -1401,8 +1456,8 @@
    <slot>movieCheckboxToggled()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>103</x>
-     <y>54</y>
+     <x>99</x>
+     <y>26</y>
     </hint>
     <hint type="destinationlabel">
      <x>451</x>
@@ -1417,8 +1472,8 @@
    <slot>movieButtonClicked()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>446</x>
-     <y>449</y>
+     <x>411</x>
+     <y>508</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -1433,8 +1488,8 @@
    <slot>resetTraceClicked()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>446</x>
-     <y>58</y>
+     <x>411</x>
+     <y>50</y>
     </hint>
     <hint type="destinationlabel">
      <x>481</x>
@@ -1449,8 +1504,8 @@
    <slot>traceCheckboxToggled()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>88</x>
-     <y>49</y>
+     <x>48</x>
+     <y>36</y>
     </hint>
     <hint type="destinationlabel">
      <x>-4</x>
@@ -1465,12 +1520,28 @@
    <slot>refreshPreprocessors()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>11</x>
-     <y>50</y>
+     <x>15</x>
+     <y>31</y>
     </hint>
     <hint type="destinationlabel">
      <x>453</x>
      <y>92</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>throttleControl</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>Controller</receiver>
+   <slot>throttleChanged()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>159</x>
+     <y>204</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>148</x>
+     <y>513</y>
     </hint>
    </hints>
   </connection>
@@ -1501,5 +1572,6 @@
   <slot>resetTraceClicked()</slot>
   <slot>traceCheckboxToggled()</slot>
   <slot>refreshPreprocessors()</slot>
+  <slot>throttleChanged()</slot>
  </slots>
 </ui>

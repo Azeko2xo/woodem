@@ -1,6 +1,6 @@
 # encoding: utf-8
 
-
+import math
 # signal import error witout display
 if 1:
 	import woo.runtime, wooMain
@@ -353,6 +353,23 @@ class ControllerClass(QWidget,Ui_Controller):
 			showExceptionDialog(self,e)
 		finally:
 			QApplication.restoreOverrideCursor()
+
+	def throttleLin2Exp(self,x):
+		r'Convert integer value of the throttle control to Scene.throttle (in seconds). We map the range (0..xmax) to (0...ymax) with :math:`y(x)=\frac{\log x+1}{\log x_{\max}+1}y_{\max}`.'
+		xmax=self.throttleControl.maximum()
+		ymax=0.5 # sync with the same constant in throttleLin2Exp
+		beta=3.
+		return ymax*(x*1./xmax)**beta
+	def throttleExp2Lin(self,y):
+		r'Convert Scene.throttle (in seconds) to the position of the throttle control. This is the inverse of :obj:`throttleInt2Float` giving :math:`x(y)=\exp\left(\frac{y}{y_{\max}}\log(x_{\max}+1)\right)-1`.'
+		xmax=self.throttleControl.maximum()
+		ymax=0.5 # synced with the same constant in throttleExp2Lin
+		beta=3.
+		return xmax*(y/ymax)**(1./beta)
+	def throttleChanged(self,value):
+		if value>0: self.playButton.setStyleSheet('background-color: red; ')
+		else: self.playButton.setStyleSheet('')
+		woo.master.scene.throttle=self.throttleLin2Exp(value)
 	def movieCheckboxToggled(self,isOn):
 		S=woo.master.scene
 		if isOn:
@@ -534,16 +551,17 @@ class ControllerClass(QWidget,Ui_Controller):
 			else: raise RuntimeError("Invalid S.subStep value %d, should be ∈{-1,…,len(o.engines)}"%subStep)
 			subStepInfo="<br><small>sub %d/%d [%s]</small>"%(subStep,len(S.engines),subStepInfo)
 		self.subStepCheckbox.setChecked(S.subStepping) # might have been changed async
+		throttle='' if S.throttle==0. else '<font color="red">(max %d/s)</font>'%(int(round(1./S.throttle)))
 		if stopAtStep<=step:
 			self.realTimeLabel.setText('%02d:%02d:%02d'%(rt//3600,(rt%3600)//60,rt%60))
-			self.stepLabel.setText('#%ld, %.1f/s %s'%(step,self.stepPerSec,subStepInfo))
+			self.stepLabel.setText('#%ld, %.1f/s %s%s'%(step,self.stepPerSec,throttle,subStepInfo))
 		else:
 			if self.stepPerSec!=0:
 				e=int((stopAtStep-step)/self.stepPerSec)
 				eta='(ETA %02d:%02d:%02d)'%(e//3600,e//60,e%60)
 			else: eta=u'(ETA −)'
 			self.realTimeLabel.setText('%02d:%02d:%02d %s'%(rt//3600,rt//60,rt%60,eta))
-			self.stepLabel.setText('#%ld / %ld, %.1f/s %s'%(S.step,stopAtStep,self.stepPerSec,subStepInfo))
+			self.stepLabel.setText('#%ld / %ld, %.1f/s %s%s'%(S.step,stopAtStep,self.stepPerSec,throttle,subStepInfo))
 		if t!=float('inf') and t!=float('nan'):
 			s=int(t); ms=int(t*1000)%1000; us=int(t*1000000)%1000; ns=int(t*1000000000)%1000
 			self.virtTimeLabel.setText(u'%03ds%03dm%03dμ%03dn'%(s,ms,us,ns))
@@ -551,8 +569,10 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.dtLabel.setText(str(S.dt))
 		if OpenGL: self.show3dButton.setChecked(len(views())>0)
 		self.inspectButton.setChecked(self.inspector!=None)
-		# import sys
-		# sys.stderr.write(str(self.lastScene)+'/'+str(S)+'\n')
+		#
+		if not self.throttleControl.isSliderDown():
+			v=self.throttleExp2Lin(S.throttle)
+			if self.throttleControl.value!=v: self.throttleControl.setValue(v)
 		##
 		if self.lastScene!=S:
 			self.lastScene=S
