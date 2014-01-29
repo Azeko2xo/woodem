@@ -41,6 +41,9 @@ else:
 	wooOsEnviron=os.environ
 	
 
+# this is for GTS imports, must be set before compiled modules are imported
+wooOsEnviron['LC_NUMERIC']='C'
+
 # we cannot check for the 'openmp' feature yet, since woo.config is a compiled module
 # we set the variable as normally, but will warn below, once the compiled module is imported
 if wooOptions.ompCores:

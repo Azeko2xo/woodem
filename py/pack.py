@@ -318,7 +318,7 @@ def regularHexa(predicate,radius,gap,**kw):
 	# http://www.mail-archive.com/woo-users@lists.launchpad.net/msg01424.html
 	hy,hz=a*sqrt(3)/2.,a*sqrt(6)/3.
 	mn,mx=predicate.aabb()
-	dim=[mx[i]-mn[i] for i in 0,1,2]
+	dim=mx-mn
 	if(max(dim)==float('inf')): raise ValueError("Aabb of the predicate must not be infinite (didn't you use union | instead of intersection & for unbounded predicate such as notInNotch?");
 	ii,jj,kk=[range(0,int(dim[0]/a)+1),range(0,int(dim[1]/hy)+1),range(0,int(dim[2]/hz)+1)]
 	for i,j,k in itertools.product(ii,jj,kk):
