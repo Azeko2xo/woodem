@@ -280,8 +280,12 @@ def main(sysArgv=None):
 
 	# avoid warnings from ipython import (http://stackoverflow.com/a/3924047/761090)
 	import warnings
-	warnings.filterwarnings('ignore',category=DeprecationWarning,module='IPython.frontend.terminal.embed')
-	warnings.filterwarnings('ignore',category=DeprecationWarning,module='IPython.utils.io')
+	if woo.runtime.ipython_version<100:
+		warnings.filterwarnings('ignore',category=DeprecationWarning,module='IPython.frontend.terminal.embed')
+		warnings.filterwarnings('ignore',category=DeprecationWarning,module='IPython.utils.io')
+	else:
+		warnings.filterwarnings('ignore',category=DeprecationWarning,module='IPython.terminal.embed')
+		warnings.filterwarnings('ignore',category=UserWarning,module='IPython.frontend')
 
 	#
 	# select gui to use
