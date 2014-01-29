@@ -359,6 +359,7 @@ if not env.GetOption('clean'):
 	# check "optional" libs
 	if 'opengl' in env['features']:
 		ok=conf.CheckLibWithHeader('GL','GL/gl.h','c++','glFlush();',autoadd=1)
+		ok&=conf.CheckLibWithHeader('GLU','GL/glu.h','c++','gluNewTess();',autoadd=1)
 		ok&=conf.CheckLibWithHeader('glut','GL/glut.h','c++','glutGetModifiers();',autoadd=1)
 		ok&=conf.CheckLibWithHeader('gle','GL/gle.h','c++','gleSetNumSides(20);',autoadd=1)
 		# TODO ok=True for darwin platform where openGL (and glut) is native
