@@ -135,45 +135,42 @@ def Scene_autoPlotData(S,**kw):
 
 	A simple simulation with plot can be written in the following way; note how the energy plot is specified.
 
-	.. todo:: fix the following examples with ``S.energy.total()``!
-
 	>>> from woo import plot, utils
 	>>> S=Scene(fields=[DemField(gravity=(0,0,-10))])
-	>>> # S.plot.plots={'i=S.step':(S.energy,None)} ## ,'total energy=S.energy.total()')}
+	>>> S.plot.plots={'i=S.step':('**S.energy','total energy=S.energy.total()',None,'rel. error=S.energy.relErr()')}
 	>>> # we create a simple simulation with one ball falling down
 	>>> S.dem.par.append(utils.sphere((0,0,0),1,mat=utils.defaultMaterial()))
 	0
 	>>> S.dem.collectNodes() 
 	1
-	>>> S.engines=[ForceResetter(),Leapfrog(kinSplit=True,damping=.4),
+	>>> S.engines=[Leapfrog(damping=.4,reset=True),
 	...    # get data required by plots at every step
 	...    PyRunner(1,'S.autoPlotData()')
 	... ]
 	>>> S.trackEnergy=True
-	>>> S.run(2,True)
+	>>> S.run(3,True)
 	>>> pprint(S.plot.data)   #doctest: +ELLIPSIS
-	{'grav': [0.0, -25.13...],
-	 'i': [0, 1],
-	 'kinRot': [0.0, 0.0],
-	 'kinTrans': [1.8849..., 16.964...],
-	 'nonviscDamp': [nan, 10.053...],
-	 'total energy': [1.884..., 1.884...]}
+	{'grav': [0.0, 0.0, -20.357...],
+	 'i': [0, 1, 2],
+	 'kinetic': [0.0, 1.526..., 13.741...],
+	 'nonviscDamp': [nan, nan, 8.143...],
+	 'rel. error': [0.0, 1.0, 0.0361...],
+	 'total energy': [0.0, 1.526..., 1.526...]}
 
 	.. plot::
 
-		from woo import *
+		import woo, woo.plot, woo.utils
 		from woo.dem import *
 		from woo.core import *
-		from woo import plot,utils
 		S=Scene(fields=[DemField(gravity=(0,0,-10))])
-		S.dem.par.append(utils.sphere((0,0,0),1));
-		S.engines=[Leapfrog(damping=.4,kinSplit=True,reset=True),PyRunner('S.autoPlotData()')]
-		# S.plot.plots={'i=S.step':('S.energy',None,)} #'total energy=S.energy.total()')}
+		S.dem.par.append(woo.utils.sphere((0,0,0),1));
+		S.dem.collectNodes()
+		S.engines=[Leapfrog(damping=.4,reset=True),PyRunner('S.autoPlotData()')]
+		S.plot.plots={'i=S.step':('**S.energy','total energy=S.energy.total()',None,'rel. error=S.energy.relErr()')}
 		S.trackEnergy=True
 		S.run(500,True)
-		import pylab; pylab.grid(True)
 		S.plot.legendLoc=('lower left','upper right')
-		S.plot.plot(noShow=True)
+		S.plot.plot()
 
 	"""
 	def colDictUpdate(col,dic,kw):
@@ -197,14 +194,21 @@ def Scene_autoPlotData(S,**kw):
 			# imgplot specifier
 			if y==None: continue
 			yy=addPointTypeSpecifier(y,noSplit=True)[0]
+			yy1=yy.split('=')[-1]
 			# dict-like object
-			if hasattr(yy,'keys'): cols.update(dict(yy))
+			# if hasattr(yy,'keys'): cols.update(dict(yy))
 			# callable returning list sequence of expressions to evaluate
-			#elif yy.endswith('()') and '=' not in :
-			# 	for yyy in eval(yy,{'S':S}): colDictUpdate(yyy,cols,kw)
-			#elif callable(yy):
-			#	for yyy in yy(): colDictUpdate(yyy,cols)
-			# plain value
+			if yy1.startswith('**'):
+				try:
+					dd=eval(yy1[2:],{'S':S})
+				except:
+					import traceback
+					traceback.print_exc()
+					print 'WARN: ignoring exception raised while evaluating dictionary-returning expression "'+yy1[2:]+':'
+				for k,v in dd.items(): cols[k]=v
+			elif yy1.startswith('*'):
+				ee=eval(yy1[1:],{'S':S})
+				for e in ee: colDictUpdate(e,cols,{'S':S})
 			else: colDictUpdate(yy,cols,kw)
 	S.plot.addData(cols)
 
@@ -417,6 +421,7 @@ def createPlots(P,subPlots=True,noShow=False,replace=True,scatterSize=60,wider=F
 			figs.append(_newFig())
 			axes=figs[-1].add_subplot(1,1,1)
 		else: axes=figs[-1].add_subplot(subRows,subCols,nPlot)
+		axes.grid(True)
 		if plots[p]==None: # image plot
 			if not pStrip in imgData.keys(): imgData[pStrip]=[]
 			# fake (empty) image if no data yet
@@ -433,14 +438,15 @@ def createPlots(P,subPlots=True,noShow=False,replace=True,scatterSize=60,wider=F
 		for d in plots_p:
 			if d[0]==None:
 				y1=False; continue
+			if not isinstance(d[0],(str,unicode)): raise ValueError('Plots specifiers must be strings (not %s)'%(type(d[0].__name__)))
 			if y1: plots_p_y1.append(d)
 			else: plots_p_y2.append(d)
 			try:
 				if (
 					d[0] not in data.keys()
-					and not callable(d[0])
-					and not (type(d[0]) in (str,unicode) and (d[0].endswith('()') or d[0].startswith('**'))) # hack for callable as strings
-					and not hasattr(d[0],'keys')
+					# and not callable(d[0])
+					and not (isinstance(d[0],(str,unicode)) and (d[0].startswith('**') or d[0].startswith('*'))) # hack for callable as strings
+					# and not hasattr(d[0],'keys')
 				):
 					missing.add(d[0])
 			except UnicodeEncodeError:
@@ -457,19 +463,21 @@ def createPlots(P,subPlots=True,noShow=False,replace=True,scatterSize=60,wider=F
 					warnings.warn('UnicodeDecodeError reporting missing data columns -- harmless, just wondering...')
 		def createLines(pStrip,ySpecs,axes,isY1=True,y2Exists=False):
 			'''Create data lines from specifications; this code is common for y1 and y2 axes;
-			it handles y-data specified as callables (or strings enging in '()'), which might create additional lines when updated with liveUpdate.
+			it handles y-data specified as callables/dicts passed as string (starting with '*'/'**'), which might create additional lines when updated with liveUpdate.
 			'''
 			# save the original specifications; they will be smuggled into the axes object
 			# the live updated will run yNameFuncs to see if there are new lines to be added
 			# and will add them if necessary
-			yNameFuncs=set([d[0] for d in ySpecs if callable(d[0])]) | set([d[0].keys for d in ySpecs if hasattr(d[0],'keys')]) | set([eval(d[0][:-2],{'S':woo.master.scene}) for d in ySpecs if type(d[0])==str and (d[0].endswith('()') or d[0].startswith('**'))])
+			yNameFuncs=set()
 			yNames=set()
 			ySpecs2=[]
 			for ys in ySpecs:
-				# ys[0]() must return list of strings, which are added to ySpecs2; line specifier is synthesized by tuplifyYAxis and cannot be specified by the user
-				if callable(ys[0]): ySpecs2+=[(ret,ys[1]) for ret in ys[0]()]
-				elif type(ys[0])==str and (ys[0].endswith('()') or ys[0].startswith('**')): ySpecs2+=[(ret,ys[1]) for ret in eval(ys[0][:-2],{'S':woo.master.scene})()]
-				elif hasattr(ys[0],'keys'): ySpecs2+=[(yy,'') for yy in ys[0].keys()]
+				if not isinstance(ys[0],(str,unicode)): raise ValueError('Plot specifications must be strings (not a %s).'%type(ys[0]))
+				if ys[0].startswith('**') or ys[0].startswith('*'):
+					evEx=eval(ys[0][(2 if ys[0].startswith('**') else 1):],{'S':P.scene})
+					yNameFuncs.add(evEx)  # add callable or dictionary
+					# XXX: what is ys[1]? Previously, there was no line specifier there for dicts at least
+					ySpecs2+=[(ret,ys[1]) for ret in evEx] # traverse list or dict keys
 				else: ySpecs2.append(ys)
 			if len(ySpecs2)==0:
 				print 'woo.plot: creating fake plot, since there are no y-data yet'
@@ -480,6 +488,13 @@ def createPlots(P,subPlots=True,noShow=False,replace=True,scatterSize=60,wider=F
 			if matplotlib.rcParams.has_key('axes.color_cycle'): matplotlib.rcParams['axes.color_cycle']='b,g,r,c,m,y,k' if not isY1 else 'm,y,k,b,g,r,c'
 			for d in ySpecs2:
 				yNames.add(d)
+				# should have been handled above already
+				#if pStrip not in data:
+				#	print 'Missing column %s in Scene.plot.data, added NaN.'%pString
+				#	addDataColumns(data,[pStrip])
+				if d[0] not in data:
+					print 'Missing column %s in Scene.plot.data, added NaN.'%d[0]
+					addDataColumns(data,[d[0]])
 				line,=axes.plot(data[pStrip],data[d[0]],d[1],label=xlateLabel(d[0],P.labels))
 				line2,=axes.plot([],[],d[1],color=line.get_color(),alpha=afterCurrentAlpha)
 				# use (0,0) if there are no data yet
@@ -556,7 +571,8 @@ def liveUpdate(P,timestamp):
 			yy=set();
 			for f in ax.wooYFuncs:
 				if callable(f): yy.update(f())
-				elif hasattr(f,'keys'): yy.update(f.keys())
+				elif hasattr(f,'keys'):
+					yy.update(f.keys())
 				else: raise ValueError("Internal error: ax.wooYFuncs items must be callables or dictionary-like objects and nothing else.")
 			#print 'callables y names:',yy
 			news=yy-ax.wooYNames

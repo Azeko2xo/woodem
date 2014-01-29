@@ -106,6 +106,12 @@ void Particle::postLoad(Particle&,void* attr){
 	}
 }
 
+
+void DemData::setAngVel(const Vector3r& av){ angVel=av; angMom=Vector3r(NaN,NaN,NaN); };
+void DemData::postLoad(DemData&,void*attr){
+	if(attr==&angVel) angMom=Vector3r(NaN,NaN,NaN);
+}
+
 py::list DemData::pyParRef_get(){
 	py::list ret;
 	for(const auto& p: parRef) ret.append(static_pointer_cast<Particle>(p->shared_from_this()));
@@ -153,7 +159,7 @@ void Particle::setOri(const Quaternionr& p){ checkNodes(false); shape->nodes[0]-
 Vector3r& Particle::getVel() const { checkNodes(); return shape->nodes[0]->getData<DemData>().vel; };
 void Particle::setVel(const Vector3r& p){ checkNodes(); shape->nodes[0]->getData<DemData>().vel=p; }
 Vector3r& Particle::getAngVel() const { checkNodes(); return shape->nodes[0]->getData<DemData>().angVel; };
-void Particle::setAngVel(const Vector3r& p){ checkNodes(); shape->nodes[0]->getData<DemData>().angVel=p; }
+void Particle::setAngVel(const Vector3r& p){ checkNodes(); shape->nodes[0]->getData<DemData>().setAngVel(p); }
 shared_ptr<Impose> Particle::getImpose() const { checkNodes(); return shape->nodes[0]->getData<DemData>().impose; };
 void Particle::setImpose(const shared_ptr<Impose>& i){ checkNodes(); shape->nodes[0]->getData<DemData>().impose=i; }
 

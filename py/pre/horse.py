@@ -88,7 +88,7 @@ def prepareHorse(pre):
 			woo.core.PyRunner(50,'import woo.pre.horse\nif S.step>100 and S.energy["kinetic"]<S.pre.relEkStop*abs(S.energy["grav"]): woo.pre.horse.finished(S)'),
 		]
 		S.trackEnergy=True
-		S.plot.plots={'i':('total','S.energy.keys()'),' t':('relErr')}
+		S.plot.plots={'i':('total','**S.energy'),' t':('relErr')}
 		S.plot.data={'i':[nan],'total':[nan],'relErr':[nan]} # to make plot displayable from the very start
 	else:
 		# more complicated here

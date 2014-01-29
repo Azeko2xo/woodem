@@ -100,7 +100,7 @@ class EllGroup(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		S.lab.maxEll2Color=0. # max |angVel| for the start when plotting
 
 		S.trackEnergy=True
-		S.plot.plots={'i':('total','S.energy.keys()'),' t':('relErr')}
+		S.plot.plots={'i':('total','**S.energy'),' t':('relErr')}
 		S.plot.data={'i':[nan],'total':[nan],'relErr':[nan]} # to make plot displayable from the very start
 	
 		try:
@@ -167,7 +167,7 @@ def ellGroupUiBuild(S,area):
 		with S.paused():
 			for n in S.dem.nodes:
 				n.dem.vel*=coeff**2
-				n.dem.angVel*=coeff**2
+				n.dem.angVel=n.dem.angVel*coeff**2
 	def epsChange(S,eps,grid):
 		S.lab.triax.goal=(eps,eps,0)
 	bHalf.clicked.connect(lambda: ekAdjust(S,.5,grid))

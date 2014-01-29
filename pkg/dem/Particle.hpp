@@ -204,16 +204,19 @@ public:
 	// use raw pointer, which cannot be serialized, and set it from Particle::postLoad
 	// cross thumbs, that is quite fragile :|
 
+	// set angular velocity and reset angular momentum
+	void setAngVel(const Vector3r& av);
+	void postLoad(DemData&,void*);
 
 	bool isAspherical() const{ return !((inertia[0]==inertia[1] && inertia[1]==inertia[2])); }
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(DemData,NodeData,"Dynamic state of node.",
 		((Vector3r,vel,Vector3r::Zero(),AttrTrait<>().velUnit(),"Linear velocity."))
-		((Vector3r,angVel,Vector3r::Zero(),AttrTrait<>().angVelUnit(),"Angular velocity."))
+		((Vector3r,angVel,Vector3r::Zero(),AttrTrait<Attr::triggerPostLoad>().angVelUnit(),"Angular velocity; when set, :obj:`angMom` is reset (and updated from :obj:`angVel` in :obj:`Leapfrog`).."))
 		((Real,mass,0,AttrTrait<>().massUnit(),"Associated mass."))
 		((Vector3r,inertia,Vector3r::Zero(),AttrTrait<>().inertiaUnit(),"Inertia along local (principal) axes"))
 		((Vector3r,force,Vector3r::Zero(),AttrTrait<>().forceUnit(),"Applied force"))
 		((Vector3r,torque,Vector3r::Zero(),AttrTrait<>().torqueUnit(),"Applied torque"))
-		((Vector3r,angMom,Vector3r(NaN,NaN,NaN),AttrTrait<>().angMomUnit(),"Angular momentum; used with the aspherical integrator. If NaN and aspherical integrator is used, the value is initialized to :obj:`inertia` × :obj:`angVel`."))
+		((Vector3r,angMom,Vector3r(NaN,NaN,NaN),AttrTrait<>().angMomUnit(),"Angular momentum; used with the aspherical integrator. If NaN and aspherical integrator (:obj:`Leapfrog`) is used, the value is initialized to :obj:`inertia` × :obj:`angVel`."))
 		((unsigned,flags,0,AttrTrait<Attr::readonly>().bits({"block x","block y","block z","block rot x","block rot y","block rot z","clumped","clump","energy skip","gravity skip","tracer skip"}),"Bit flags storing blocked DOFs, clump status, ..."))
 		((long,linIx,-1,AttrTrait<>().readonly().noGui(),"Index within DemField.nodes (for efficient removal)"))
 		((std::list<Particle*>,parRef,,AttrTrait<Attr::hidden|Attr::noSave>(),"Back-reference for particles using this node; this is important for knowing when a node may be deleted (no particles referenced) and such. Should be kept consistent."))

@@ -265,6 +265,11 @@ void Scene::postLoad(Scene&,void*){
 		LOG_WARN("Scene.plot==None is disallowed, assigning woo.core.Plot().");
 		plot=make_shared<Plot>();
 	}
+	if(plot->scene.lock() && (plot->scene.lock().get()!=this)){
+		// this happens e.g. when reloading scene and should not be a reason for warning
+		// LOG_WARN("woo.core.Plot object belonging to another Scene? Reassigning.");
+	}
+	plot->scene=static_pointer_cast<Scene>(shared_from_this());
 
 	//
 	// assign fields to engines
