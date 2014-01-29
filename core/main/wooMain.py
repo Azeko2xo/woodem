@@ -423,7 +423,8 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 		if qtConsole:
 			qapp.start()
 		else:
-			from IPython.frontend.terminal.embed import InteractiveShellEmbed
+			try: from IPython.terminal.embed import InteractiveShellEmbed # IPython>=1.0
+			except ImportError: from IPython.frontend.terminal.embed import InteractiveShellEmbed # IPython<1.0
 			# use the dict to set attributes
 			ipconfig['banner1']=banner+'\n' # called banner1 in >=0.11, not banner as in 0.10
 			for k in ipconfig: setattr(InteractiveShellEmbed,k,ipconfig[k])

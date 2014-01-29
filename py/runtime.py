@@ -13,9 +13,9 @@ try: # attempt to get numerical version
 except ValueError:
 	print 'WARN: unable to extract IPython version from %s, defaulting to 0.13'%(IPython.__version__)
 	ipython_version=13
-if ipython_version not in (10,11,12,13): # versions that we are able to handle, round up or down correspondingly
+if ipython_version not in (10,11,12,13,100,110): # versions that we are able to handle, round up or down correspondingly
 	newipver=10 if ipython_version<10 else 12
-	print 'WARN: unhandled IPython version 0.%d, assuming 0.%d instead.'%(ipython_version,newipver)
+	print 'WARN: unhandled IPython version %d.%d, assuming %d.%d instead.'%(ipython_version%100,ipython_version//100,newipver%100,newipver//100)
 	ipython_version=newipver
 
 
