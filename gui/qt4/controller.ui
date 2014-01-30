@@ -447,7 +447,7 @@
                      <number>2</number>
                     </property>
                     <property name="tracking">
-                     <bool>false</bool>
+                     <bool>true</bool>
                     </property>
                     <property name="orientation">
                      <enum>Qt::Horizontal</enum>
@@ -607,8 +607,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>407</width>
-            <height>462</height>
+            <width>96</width>
+            <height>26</height>
            </rect>
           </property>
          </widget>
@@ -895,8 +895,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>407</width>
-            <height>454</height>
+            <width>96</width>
+            <height>26</height>
            </rect>
           </property>
          </widget>
@@ -941,8 +941,8 @@
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>405</width>
-              <height>424</height>
+              <width>96</width>
+              <height>26</height>
              </rect>
             </property>
            </widget>
@@ -1049,8 +1049,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>407</width>
-            <height>483</height>
+            <width>234</width>
+            <height>114</height>
            </rect>
           </property>
           <property name="sizePolicy">

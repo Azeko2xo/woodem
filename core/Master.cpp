@@ -117,7 +117,11 @@ std::string Master::tmpFilename(){
 }
 
 const shared_ptr<Scene>& Master::getScene(){return scene;}
-void Master::setScene(const shared_ptr<Scene>& s){ if(!s) throw std::runtime_error("Scene must not be None."); scene=s; }
+void Master::setScene(const shared_ptr<Scene>& s){
+	if(!s) throw std::runtime_error("Scene must not be None.");
+	GilLock lock; // protect shared_ptr deletion here
+	scene=s;
+}
 
 /* inheritance (?!!) */
 bool Master::isInheritingFrom(const string& className, const string& baseClassName){

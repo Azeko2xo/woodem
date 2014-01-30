@@ -37,6 +37,8 @@ struct ContactContainer: public Object{
 		shared_ptr<Contact> nullContactPtr; // ref to this will be returned if find finds nothing; such result may not be written to, but we want to avoid returning shared_ptr, since each find would change refcount
 		const shared_ptr<Contact>& find(ParticleContainer::id_t idA, ParticleContainer::id_t idB) const;
 		bool exists(ParticleContainer::id_t idA, ParticleContainer::id_t idB) const;
+		bool existsReal(ParticleContainer::id_t idA, ParticleContainer::id_t idB) const;
+		// bool pyContains(const Vector2i& ids) const{ return existsReal(ids[0],ids[1]); }
 		shared_ptr<Contact>& operator[](size_t ix){return linView[ix];}
 		const shared_ptr<Contact>& operator[](size_t ix) const { return linView[ix];}
 		void clear();
@@ -126,6 +128,8 @@ struct ContactContainer: public Object{
 		.def("countReal",&ContactContainer::countReal)
 		.def("realRatio",&ContactContainer::realRatio)
 		.def("exists",&ContactContainer::exists)
+		.def("existsReal",&ContactContainer::existsReal)
+		// .def("__contains__",&ContactContainer::pyContains,"Equivalent to :obj:`existsReal`, but taking tuple as argument.")
 		.def("__iter__",&ContactContainer::pyIter)
 		// define nested iterator class here; ugly, same as in ParticleContainer
 		; boost::python::scope foo(_classObj);

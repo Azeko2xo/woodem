@@ -17,16 +17,21 @@ struct TraceGlRep: public NodeGlRep{
 
 	// make pts sequential and start from 0th position
 	// only called from python if no further writing of the trace will be done
-	void consolidate(); 
+	// XXX: this function is deprecated now as *pts* and *scalars* are exposed as properties
+	void consolidate();
+	vector<Vector3r> pyPts_get() const;
+	vector<Real> pyScalars_get() const;
 	enum{FLAG_COMPRESS=1,FLAG_MINDIST=2,FLAG_HIDDEN=4};
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(TraceGlRep,NodeGlRep,"Data with node's position history; create by :obj:`Tracer`.",
-		((vector<Vector3r>,pts,,,"History points"))
-		((vector<Real>,scalars,,,"History scalars"))
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(TraceGlRep,NodeGlRep,"Data with node's position history; created by :obj:`Tracer`.",
+		((vector<Vector3r>,pts,,AttrTrait<>().noGui().readonly(),"History points"))
+		((vector<Real>,scalars,,AttrTrait<>().noGui().readonly(),"History scalars"))
 		((size_t,writeIx,0,,"Index where next data will be written"))
 		((short,flags,0,,"Flags for this instance"))
 		,/*ctor*/
 		,/*py*/
 			.def("consolidate",&TraceGlRep::consolidate,"Make :obj:`pts` sequential (normally, the data are stored as circular buffer, with next write position at :obj:`writeIx`, so that they are ordered temporally.")
+			.add_property("pts",&TraceGlRep::pyPts_get,"History points (read-only from python, as a copy of internal data is returned).")
+			.add_property("scalars",&TraceGlRep::pyScalars_get,"History scalars (read-only from python, as a copy of internal data is returned).")
 	);
 };
 WOO_REGISTER_OBJECT(TraceGlRep);

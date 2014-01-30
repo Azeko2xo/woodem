@@ -4,6 +4,7 @@
 #include<woo/lib/opengl/OpenGLWrapper.hpp>
 #include<woo/lib/opengl/GLUtils.hpp>
 #include<woo/lib/base/CompUtils.hpp>
+#include<woo/lib/pyutil/gil.hpp>
 #include<woo/core/Timing.hpp>
 #include<woo/core/Scene.hpp>
 #include<woo/core/Field.hpp>
@@ -245,8 +246,12 @@ void Renderer::render(const shared_ptr<Scene>& _scene, bool _withNames){
 
 	withNames=_withNames; // used in many methods
 	if(withNames) glNamedObjects.clear();
-
-	scene=_scene;
+	
+	// assign new scene; use GIL lock to avoid crash
+	if(scene.get()!=_scene.get()){
+		GilLock lock;
+		scene=_scene;
+	}
 	// smuggle scene and ourselves into GLViewInfo for use with GlRep and field functors
 	viewInfo.scene=scene.get();
 

@@ -36,6 +36,21 @@ void TraceGlRep::addPoint(const Vector3r& p, const Real& scalar){
 	}
 }
 
+vector<Vector3r> TraceGlRep::pyPts_get() const{
+	size_t i=0; vector<Vector3r> ret;
+	Vector3r pt; Real scalar;
+	while(getPointData(i++,pt,scalar)) ret.push_back(pt);
+	return ret;
+}
+
+vector<Real> TraceGlRep::pyScalars_get() const{
+	size_t i=0; vector<Real> ret;
+	Vector3r pt; Real scalar;
+	while(getPointData(i++,pt,scalar)) ret.push_back(scalar);
+	return ret;
+}
+
+
 bool TraceGlRep::getPointData(size_t i, Vector3r& pt, Real& scalar) const {
 	size_t ix;
 	if(flags&FLAG_COMPRESS){
@@ -160,8 +175,11 @@ void Tracer::resetNodesRep(bool setupEmpty, bool includeDead){
 
 				As workaround, set the tracerSkip flag on the node and the tracer will leave it alone.
 
+			
+				CAUSE: see https://svn.boost.org/trac/boost/ticket/8290 and pkg/dem/ParticleContainer.cpp
 			*/
 			if(n->getData<DemData>().isTracerSkip()) continue;
+			GilLock lock; // get GIL to avoid crash when destroying python-instantiated object
 			if(setupEmpty){
 				n->rep=make_shared<TraceGlRep>();
 				auto& tr=n->rep->cast<TraceGlRep>();
@@ -175,6 +193,7 @@ void Tracer::resetNodesRep(bool setupEmpty, bool includeDead){
 	if(includeDead){
 		for(const auto& n: dem.deadNodes){
 			if(n->getData<DemData>().isTracerSkip()) continue;
+			GilLock lock; // get GIL to avoid crash, see above
 			n->rep.reset();
 		}
 	}

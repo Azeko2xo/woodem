@@ -155,6 +155,11 @@ bool ContactContainer::exists(ParticleContainer::id_t idA, ParticleContainer::id
 	return true;
 }
 
+bool ContactContainer::existsReal(ParticleContainer::id_t idA, ParticleContainer::id_t idB) const {
+	const auto& c=find(idA,idB);
+	return c && c->isReal();
+}
+
 
 
 void ContactContainer::requestRemoval(const shared_ptr<Contact>& c, bool force){
