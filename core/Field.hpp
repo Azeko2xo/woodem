@@ -48,12 +48,12 @@ struct ScalarRange: public Object{
 	Real maxAbs(Real v){ adjust(v); return max(abs(mnmx[0]),abs(mnmx[1])); }
 	bool isOk(){ return(mnmx[0]<mnmx[1]); }
 	// return value on the range, given normalized value
-	Real normInv(Real norm){ return mnmx[0]+norm*(mnmx[1]-mnmx[0]); } 
+	Real normInv(Real norm);
 	Real norm(Real v);
 	void adjust(const Real& v);
 	// called only when mnmx is manipulated
-	enum{RANGE_AUTO_ADJUST=1,RANGE_SYMMETRIC=2,RANGE_REVERSED=4,RANGE_HIDDEN=8};
-	void postLoad(const ScalarRange&,void*){ if(isOk()) setAutoAdjust(false); }
+	enum{RANGE_LOG=1,RANGE_REVERSED=2,RANGE_SYMMETRIC=4,RANGE_AUTO_ADJUST=8,RANGE_HIDDEN=16};
+	void postLoad(const ScalarRange&,void*);
 
 	bool isAutoAdjust() const { return flags&RANGE_AUTO_ADJUST; }
 	void setAutoAdjust(bool aa) { if(!aa) flags&=~RANGE_AUTO_ADJUST; else flags|=RANGE_AUTO_ADJUST; }
@@ -63,10 +63,14 @@ struct ScalarRange: public Object{
 	void setReversed(bool s) { if(!s) flags&=~RANGE_REVERSED; else flags|=RANGE_REVERSED; }
 	bool isHidden() const { return flags&RANGE_HIDDEN; }
 	void setHidden(bool h) { if(!h) flags&=~RANGE_HIDDEN; else flags|=RANGE_HIDDEN; }
+	bool isLog() const { return flags&RANGE_LOG; }
+	void setLog(bool l) { if(!l) flags&=~RANGE_LOG; else flags|=RANGE_LOG; }
+	void cacheLogs(); 
 
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ScalarRange,Object,"Store and share range of scalar values",
 		((Vector2r,mnmx,Vector2r(std::numeric_limits<Real>::infinity(),-std::numeric_limits<Real>::infinity()),AttrTrait<Attr::triggerPostLoad>().buttons({"Reset","self.reset()","Re-initialize range"}),"Packed minimum and maximum values; adjusting from python sets :obj:`autoAdjust` to false automatically."))
-		((int,flags,(RANGE_AUTO_ADJUST),AttrTrait<>().bits({"autoAdjust","symmetric","reversed","hidden"}),"Flags for this range: autoAdjust, symmetric, reversed, hidden."))
+		((Vector2r,logMnmx,,AttrTrait<Attr::noSave>().hidden(),"Logs of mnmx values, to avoid computing logarithms all the time; computed via cacheLogs."))
+		((int,flags,(RANGE_AUTO_ADJUST),AttrTrait<>().bits({"log","reversed","symmetric","autoAdjust","hidden"}),"Flags for this range: autoAdjust, symmetric, reversed, hidden, log."))
 		//((bool,autoAdjust,true,,"Automatically adjust range using given values."))
 		//((bool,sym,false,,"Force maximum to be negative of minimum and vice versa (only with autoadjust)"))
 		((Vector2i,dispPos,Vector2i(-1000,-1000),AttrTrait<>().noGui(),"Where is this range displayed on the OpenGL canvas; initially out of range, will be reset automatically."))
@@ -82,6 +86,7 @@ struct ScalarRange: public Object{
 			.add_property("symmetric",&ScalarRange::isSymmetric,&ScalarRange::setSymmetric)
 			.add_property("reversed",&ScalarRange::isReversed,&ScalarRange::setReversed)
 			.add_property("hidden",&ScalarRange::isHidden,&ScalarRange::setHidden)
+			.add_property("log",&ScalarRange::isLog,&ScalarRange::setLog)
 	);
 };
 WOO_REGISTER_OBJECT(ScalarRange);

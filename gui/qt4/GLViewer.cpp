@@ -789,8 +789,8 @@ void GLViewer::postDraw(){
 			if(t>0){
 				if(min>0) oss<<_W2<<min<<":";
 					//<<_W2<<sec<<"."<<_W3<<msec<<"m"<<_W3<<usec<<"u"<<_W3<<nsec<<"n";
-				oss<<_W2<<sec;
-				if(dt<10) oss<<"."<<_W3<<msec<<"m";
+				oss<<_W2<<sec<<"s";
+				if(dt<10) oss<<_W3<<msec<<"m";
 				if(dt<1e-1) oss<<_W3<<usec<<"u";
 				if(dt<1e-4) oss<<_W3<<nsec<<"n";
 				//else if (msec>0) oss<<_W3<<msec<<"m"<<_W3<<usec<<"u"<<_W3<<nsec<<"n";

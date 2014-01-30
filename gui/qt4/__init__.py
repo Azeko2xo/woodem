@@ -115,6 +115,7 @@ class UiPrefs(woo.core.Object,woo.pyderived.PyWooObject):
 	_attrTraits=[
 		_PAT(bool,'glRotCursorFreeze',False,triggerPostLoad=True,doc='Freeze cursor when rotating things (moving with buttons pressed); useful for trackballs; not yet functional.'),
 		_PAT(bool,'prepShowVars',False,'Show variable names rather than descriptions by default in the preprocessor interface'),
+		_PAT(str,'defaultCmap','coolwarm',choice=woo.master.cmaps,triggerPostLoad=True,doc='Default colormap for scales.'),
 		# where to save preferences, plus a button to do so
 		_PAT(str,'prefsFile',woo.master.confDir+'/uiPrefs.conf',guiReadonly=True,noDump=True,buttons=(['Save preferences','self.savePrefs()',''],0),doc='Preferences will be loaded/saved from/to this file.'),
 	]
@@ -124,6 +125,7 @@ class UiPrefs(woo.core.Object,woo.pyderived.PyWooObject):
 			import _GLViewer
 			_GLViewer.GLViewer.rotCursorFreeze=self.glRotCursorFreeze
 		except ImportError: pass # no OpenGL
+		woo.master.cmap=self.defaultCmap
 	def __init__(self,**kw):
 		woo.core.Object.__init__(self)
 		self.wooPyInit(self.__class__,woo.core.Object,**kw)

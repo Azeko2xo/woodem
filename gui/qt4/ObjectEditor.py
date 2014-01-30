@@ -300,10 +300,13 @@ class AttrEditor_Choice(AttrEditor,QFrame):
 		if choices[0].__class__==tuple and len(choices[0])!=2: raise ValueError("Choice must be either single items or 2-tuples of code-value,display-value")
 		for c in choices:
 			self.combo.addItem(str(c if self.justValues else c[1])) 
-		### COLORMAP!!
-		if len(choices)==len(woo.master.cmaps)+1: # +1 for [default] (-1)
-			for i in range(len(choices)):
-				self.combo.setItemIcon(i,getColormapIcons()[(i-1) if i>0 else woo.master.cmap[0]])
+		### hack for COLORMAPS!!, only based on length of the choice list
+		nCmaps=len(woo.master.cmaps)
+		if len(choices) in (nCmaps,nCmaps+1): # +1 for [default] (-1)
+			if len(choices)==nCmaps+1:
+				for i in range(len(choices)): self.combo.setItemIcon(i,getColormapIcons()[(i-1) if i>0 else woo.master.cmap[0]])
+			else:
+				for i in range(len(choices)): self.combo.setItemIcon(i,getColormapIcons()[i])
 			self.combo.setIconSize(QSize(colormapIconSize[0],colormapIconSize[1]))
 		self.grid=QGridLayout(self); self.grid.setSpacing(0); self.grid.setMargin(0)
 		self.grid.addWidget(self.combo,0,0)

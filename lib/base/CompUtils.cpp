@@ -5,12 +5,13 @@
 
 using std::min; using std::max;
 
-int CompUtils::defaultCmap=18; // corresponds to 'jet' in Colormap-data.ipp
+int CompUtils::defaultCmap=19; // corresponds to 'jet' in Colormap-data.ipp
 constexpr int CompUtils::unitSphereTri20_maxTesselationLevel;
 
 const vector<CompUtils::Colormap> CompUtils::colormaps={
+	#include"Colormap-data.matplotlib-part.ipp"
+	,
 	#include"Colormap-data.ncView.ipp"
-	// ,
 	// #include"Colormap-data.matplotlib.ipp"
 };
 
