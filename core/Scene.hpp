@@ -39,7 +39,6 @@ struct Scene: public Object{
 		void pyWait();         
 		bool running(); 
 		void backgroundLoop();
-		~Scene(){ pyStop(); }
 
 		// initialize tags (author, date, time)
 		void fillDefaultTags();
@@ -136,7 +135,7 @@ struct Scene: public Object{
 		// expand {tagName} in given string
 		string expandTags(const string& s) const;
 
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Scene,Object,"Object comprising the whole simulation.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_DTOR_PY(Scene,Object,"Object comprising the whole simulation.",
 		((Real,dt,NaN,AttrTrait<>().timeUnit(),"Current timestep for integration."))
 		((Real,nextDt,NaN,AttrTrait<>().timeUnit(),"Timestep for the next step (if not NaN, :obj:`dt` is automatically replaced by this value at the end of the step)."))
 		((Real,dtSafety,.9,,"Safety factor for automatically-computed timestep."))
@@ -191,6 +190,7 @@ struct Scene: public Object{
 			runningFlag=false;
 			clock0=boost::posix_time::second_clock::local_time();
 			clock0adjusted=false;
+		, /* dtor */ pyStop(); 
 		, /* py */
 		.add_property("tags",&Scene::pyGetTags,"Arbitrary key=value associations (tags like mp3 tags: author, date, version, description etc.")
 		.add_property("duration",&Scene::pyGetDuration,"Number of (wall clock) seconds this instance is alive (including time before being loaded from file")

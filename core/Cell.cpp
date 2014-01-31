@@ -1,5 +1,9 @@
-
 #include<woo/core/Cell.hpp>
+#include<woo/core/Master.hpp>
+
+WOO_PLUGIN(core,(Cell));
+
+WOO_CLASS_IMPLEMENTATION(woo_core_Cell_CLASS_DESCRIPTOR);
 
 CREATE_LOGGER(Cell);
 

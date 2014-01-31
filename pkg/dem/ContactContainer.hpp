@@ -23,12 +23,6 @@ struct ContactContainer: public Object{
 		DemField* dem; // backptr to DemField, set by DemField::postLoad; do not modify!
 		ParticleContainer* particles;
 
-		~ContactContainer(){
-			#if defined(WOO_OPENMP) || defined(WOO_OPENGL)
-				delete manipMutex;
-			#endif
-		}
-
 	/* basic functionality */
 		bool add(const shared_ptr<Contact>& c, bool threadSafe=false);
 		// copy of shared_ptr, so that the argument does not get deleted while being manipulated with
@@ -104,7 +98,7 @@ struct ContactContainer: public Object{
 		pyIterator pyIter();
 
 
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ContactContainer,Object,"Linear view on all contacts in the DEM field",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_DTOR_PY(ContactContainer,Object,"Linear view on all contacts in the DEM field",
 		((ContainerT,linView,,AttrTrait<Attr::hidden>(),"Linear storage of references; managed by accessor methods, do not modify directly!"))
 		((bool,dirty,false,AttrTrait<Attr::hidden>(),"Flag for notifying the collider that persistent data should be invalidated"))
 		((int,stepColliderLastRun,-1,AttrTrait<Attr::readonly>(),"Step number when a collider was last run; set by the collider, if it wants contacts that were not encoutered in that step to be deleted by ContactLoop (such as SpatialQuickSortCollider). Other colliders (such as InsertionSortCollider) set it it -1, which is the default."))
@@ -117,6 +111,10 @@ struct ContactContainer: public Object{
 		, /*ctor*/
 			#if defined(WOO_OPENMP) || defined(WOO_OPENGL)
 				manipMutex=new boost::mutex;
+			#endif
+		, /*dtor*/
+			#if defined(WOO_OPENMP) || defined(WOO_OPENGL)
+				delete manipMutex;
 			#endif
 		, /* py */
 		.def("clear",&ContactContainer::clear)

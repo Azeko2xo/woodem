@@ -4,6 +4,8 @@
 
 #include<woo/lib/pyutil/gil.hpp>
 
+WOO_PLUGIN(core,(Engine)(ParallelEngine)(PeriodicEngine)(PyRunner));
+
 CREATE_LOGGER(Engine);
 
 void Engine::run(){ throw std::logic_error((getClassName()+" did not override Engine::run()").c_str()); } 

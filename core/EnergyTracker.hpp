@@ -9,7 +9,6 @@ namespace py=boost::python;
 
 class EnergyTracker: public Object{
 	public:
-	~EnergyTracker();
 	/* in flg, IsIncrement is a pseudo-value which doesn't do anything; is meant to increase readability of calls */
 	enum{ IsIncrement=0, IsResettable=1, ZeroDontCreate=2 };
 	void findId(const std::string& name, int& id, int flg, bool newIfNotFound=true){
@@ -83,8 +82,8 @@ class EnergyTracker: public Object{
 			.add_property("_perThreadData",&EnergyTracker::perThreadData,"Contents as dictionary, where each value is tuple of individual threads' values (for debugging)");
 
 			// define nested class
-			boost::python::scope foo(_classObj);
-			boost::python::class_<EnergyTracker::pyIterator>("iterator",py::init<pyIterator>()).def("__iter__",&pyIterator::iter).def("next",&pyIterator::next);
+			py::scope foo(_classObj);
+			py::class_<EnergyTracker::pyIterator>("iterator",py::init<pyIterator>()).def("__iter__",&pyIterator::iter).def("next",&pyIterator::next);
 
 	)
 };

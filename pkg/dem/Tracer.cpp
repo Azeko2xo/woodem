@@ -72,7 +72,7 @@ void TraceGlRep::render(const shared_ptr<Node>& n, const GLViewInfo* glInfo){
 	bool scale=(Renderer::dispScale!=Vector3r::Ones() && Renderer::scaleOn && n->hasData<GlData>());
 	glLineWidth(Tracer::glWidth);
 	const bool periodic=glInfo->scene->isPeriodic;
-	Vector3i prevPeriod;
+	Vector3i prevPeriod=Vector3i::Zero(); // silence gcc warning maybe-uninitialized
 	glBegin(GL_LINE_STRIP);
 		for(size_t i=0; i<pts.size(); i++){
 			size_t ix;

@@ -25,7 +25,6 @@ class MatchMaker: public Object {
 		bool fbNeedsValues;
 	#endif 
 	public:
-		virtual ~MatchMaker();
 		MatchMaker(std::string _algo): algo(_algo){ postLoad(*this,NULL); }
 		MatchMaker(Real _val): algo("val"), val(_val){ postLoad(*this,NULL); }
 		Real computeFallback(Real val1, Real val2) const ;

@@ -132,7 +132,7 @@ struct Cell: public Object{
 	void checkTrsfUpperTriangular();
 
 	enum { HOMO_NONE=0, HOMO_POS=1, HOMO_VEL=2, HOMO_VEL_2ND=3, HOMO_GRADV2=4 };
-	#define Cell_CLASS_DESCRIPTOR \
+	#define woo_core_Cell_CLASS_DESCRIPTOR \
 		/*class,base,doc*/ \
 		Cell,Object,"Parameters of periodic boundary conditions. Only applies if O.isPeriodic==True.", \
 		/*attrs*/ \
@@ -152,6 +152,7 @@ struct Cell: public Object{
 	/*deprec*/ ((Hsize,hSize,"conform to Yade's names convention.")),\
 	/*init*/ ,\
 	/*ctor*/ _invTrsf=Matrix3r::Identity(); integrateAndUpdate(0),\
+	/*dtor*/,\
 	/*py*/\
 		/* override some attributes above*/ \
 		.add_property("hSize",py::make_function(&Cell::getHSize,py::return_value_policy<py::return_by_value>()),&Cell::setHSize,"Base cell vectors (columns of the matrix), updated at every step from :obj:`gradV` (:obj:`trsf` accumulates applied :obj:`gradV` transformations). Setting *hSize* during a simulation is not supported by most contact laws, it is only meant to be used at iteration 0 before any interactions have been created.")\
@@ -181,6 +182,6 @@ struct Cell: public Object{
 			_classObj.attr("HomoVel2")=(int)Cell::HOMO_VEL_2ND; \
 			_classObj.attr("HomoGradV2")=(int)Cell::HOMO_GRADV2;
 
-	YAD3_CLASS_DECLARATION(Cell_CLASS_DESCRIPTOR);
+	WOO_CLASS_DECLARATION(woo_core_Cell_CLASS_DESCRIPTOR);
 };
 WOO_REGISTER_OBJECT(Cell);

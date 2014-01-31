@@ -39,12 +39,8 @@ struct Cp2_FrictMat_FrictPhys: public CPhysFunctor{
 	void go(const shared_ptr<Material>&, const shared_ptr<Material>&, const shared_ptr<Contact>&);
 	void updateFrictPhys(FrictMat& m1, FrictMat& m2, FrictPhys& ph, const shared_ptr<Contact>& C);
 	FUNCTOR2D(FrictMat,FrictMat);
-	WOO_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(Cp2_FrictMat_FrictPhys,CPhysFunctor,"TODO",
+	WOO_CLASS_BASE_DOC_ATTRS(Cp2_FrictMat_FrictPhys,CPhysFunctor,"TODO",
 		((shared_ptr<MatchMaker>,tanPhi,,,"Instance of :obj:`MatchMaker` determining how to compute contact friction angle. If ``None``, minimum value is used."))
-		//((Real,ktDivKn,.2,,"Ratio between tangent and normal stiffness on contact."))
-		, /*deprec*/
-		((ktDivKn,/*given just for syntax reasons*/tanPhi,"! Cp2_FrictMat_FrictPhys.ktDivKn was moved to FrictMat.ktDivKn"))
-		,/*init*/,/*ctor*/,/*py*/
 	);
 };
 WOO_REGISTER_OBJECT(Cp2_FrictMat_FrictPhys);

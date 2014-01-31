@@ -8,11 +8,10 @@
 
 
 #include<woo/core/Functor.hpp>
-Functor::~Functor(){}; // vtable
-
 #include<woo/core/Dispatcher.hpp>
 #include<algorithm>
 #include<vector>
 
+WOO_PLUGIN(core,(Dispatcher)(Functor));
 
-Dispatcher::~Dispatcher(){}
+

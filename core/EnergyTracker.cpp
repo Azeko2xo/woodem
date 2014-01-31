@@ -1,5 +1,7 @@
 #include<woo/core/EnergyTracker.hpp>
 
+WOO_PLUGIN(core,(EnergyTracker));
+
 Real EnergyTracker::total() const { Real ret=0; size_t sz=energies.size(); for(size_t id=0; id<sz; id++) ret+=energies.get(id); return ret; }
 Real EnergyTracker::relErr() const {
 	Real sumAbs=0, sum=0; size_t sz=energies.size(); for(size_t id=0; id<sz; id++){  Real e=energies.get(id); sumAbs+=abs(e); sum+=e; } return (sumAbs>0?sum/sumAbs:0.);

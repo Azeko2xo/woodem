@@ -28,7 +28,6 @@ struct Functor: public Object
 	//! updated before every dispatch loop by the dispatcher; DO NOT ABUSE access to scene, except for getting global variables like scene->dt.
 	Scene* scene;
 	Field* field;
-	virtual ~Functor(); // defined in Dispatcher.cpp
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Functor,Object,ClassTrait().doc("Function-like object that is called by Dispatcher, if types of arguments match those the Functor declares to accept."),
 		((string,label,,AttrTrait<>().activeLabel().noGui(),"Textual label for this object; must be valid python identifier, you can refer to it directly fron python (must be a valid python identifier).")),
 		/*ctor*/ scene=Master::instance().getScene().get() ,
