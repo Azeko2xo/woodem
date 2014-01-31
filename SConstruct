@@ -394,8 +394,7 @@ if not env.GetOption('clean'):
 		ok=conf.CheckLibWithHeader('log4cxx','log4cxx/logger.h','c++','log4cxx::Logger::getLogger("");',autoadd=1)
 		if not ok: featureNotOK('log4cxx')
 	if 'gl2ps' in env['features']:
-		ok=conf.CheckLibWithHeader('gl2ps','gl2ps.h','c','gl2psEndPage();',autoadd=1)
-		if not ok: featureNotOK('gl2ps')
+		print 'WARN: the gl2ps feature is deprecated and has no effect'
 	if 'cgal' in env['features']:
 		ok=conf.CheckLibWithHeader('CGAL','CGAL/Exact_predicates_inexact_constructions_kernel.h','c++','CGAL::Exact_predicates_inexact_constructions_kernel::Point_3();')
 		env.Append(CXXFLAGS='-frounding-math') # required by cgal, otherwise we get assertion failure at startup

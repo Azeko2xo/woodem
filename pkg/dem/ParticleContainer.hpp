@@ -48,8 +48,7 @@ struct ParticleContainer: public Object{
 	DemField* dem; // backptr to DemField, set by DemField::postLoad; do not modify!
 	typedef int id_t;
 
-	// XXX: make not a pointer, it was because Object was copyable previously (it is not anymore)
-	boost::mutex* manipMutex; // to synchronize with rendering, and between threads
+	boost::mutex manipMutex; // to synchronize with rendering, and between threads
 
 	private:
 		typedef std::vector<shared_ptr<Particle> > ContainerT;
@@ -165,7 +164,7 @@ struct ParticleContainer: public Object{
 		void pyReappear(vector<id_t> ids, int mask, bool removeOverlapping=false){ pyRemask(ids,mask,/*visible*/true,/*removeContacts*/false,/*removeOverlapping*/removeOverlapping); }
 	
 
-		WOO_CLASS_BASE_DOC_ATTRS_INIT_CTOR_DTOR_PY(ParticleContainer,Object,"Storage for DEM particles",
+		WOO_CLASS_BASE_DOC_ATTRS_INIT_PY(ParticleContainer,Object,"Storage for DEM particles",
 			((ContainerT/* = std::vector<shared_ptr<Particle> > */,parts,,AttrTrait<Attr::hidden>(),"Actual particle storage"))
 			((list<id_t>,freeIds,,AttrTrait<Attr::hidden>(),"Free particle id's"))
 			,/* init */
@@ -177,8 +176,6 @@ struct ParticleContainer: public Object{
 					#endif
 					((subDomainsLowestFree,vector<id_t>(maxSubdomains,0)))
 				#endif /* WOO_SUBDOMAINS */
-			,/* ctor */ manipMutex=new boost::mutex;
-			,/* dtor */ delete manipMutex; 
 			,/*py*/
 			.def("append",&ParticleContainer::pyAppend) /* wrapper chacks if the id is not already assigned */
 			.def("append",&ParticleContainer::pyAppendList)

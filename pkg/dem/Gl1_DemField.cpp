@@ -145,7 +145,7 @@ void Gl1_DemField::postLoad2(){
 
 void Gl1_DemField::doBound(){
 	Renderer::boundDispatcher.scene=scene; Renderer::boundDispatcher.updateScenePtr();
-	boost::mutex::scoped_lock lock(*dem->particles->manipMutex);
+	boost::mutex::scoped_lock lock(dem->particles->manipMutex);
 	FOREACH(const shared_ptr<Particle>& b, *dem->particles){
 		// PROCESS_GUI_EVENTS_SOMETIMES; // rendering bounds is usually fast
 		if(!b->shape || !b->shape->bound) continue;
@@ -186,7 +186,7 @@ Vector3r Gl1_DemField::getNodeAngVel(const shared_ptr<Node>& n) const{
 
 void Gl1_DemField::doShape(){
 	Renderer::shapeDispatcher.scene=scene; Renderer::shapeDispatcher.updateScenePtr();
-	boost::mutex::scoped_lock lock(*dem->particles->manipMutex);
+	boost::mutex::scoped_lock lock(dem->particles->manipMutex);
 
 	// instead of const shared_ptr&, get proper shared_ptr;
 	// Less efficient in terms of performance, since memory has to be written (not measured, though),
@@ -381,7 +381,7 @@ void Gl1_DemField::doNodes(const vector<shared_ptr<Node>>& nodeContainer){
 void Gl1_DemField::doContactNodes(){
 	if(cNode==CNODE_NONE) return;
 	Renderer::nodeDispatcher.scene=scene; Renderer::nodeDispatcher.updateScenePtr();
-	boost::mutex::scoped_lock lock(*dem->contacts->manipMutex);
+	boost::mutex::scoped_lock lock(dem->contacts->manipMutex);
 	for(size_t i=0; i<dem->contacts->size(); i++){
 		PROCESS_GUI_EVENTS_SOMETIMES;
 		const shared_ptr<Contact>& C((*dem->contacts)[i]);
@@ -428,7 +428,7 @@ void Gl1_DemField::doContactNodes(){
 
 void Gl1_DemField::doCPhys(){
 	Renderer::cPhysDispatcher.scene=scene; Renderer::cPhysDispatcher.updateScenePtr();
-	boost::mutex::scoped_lock lock(*dem->contacts->manipMutex);
+	boost::mutex::scoped_lock lock(dem->contacts->manipMutex);
 	FOREACH(const shared_ptr<Contact>& C, *dem->contacts){
 		PROCESS_GUI_EVENTS_SOMETIMES;
 		#if 1

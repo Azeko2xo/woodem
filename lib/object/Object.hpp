@@ -327,10 +327,12 @@ template<> struct _SerializeMaybe<false>{
 #define WOO_CLASS_BASE_DOC_ATTRS_CTOR(klass,base,doc,attrs,ctor)       WOO_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,,ctor,)
 #define WOO_CLASS_BASE_DOC_ATTRS_PY(klass,base,doc,attrs,py)           WOO_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,,,py)
 #define WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(klass,base,doc,attrs,ctor,py) WOO_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,,ctor,py)
-#define WOO_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,inits,ctor,py) WOO_CLASS_BASE_DOC_ATTRS_INIT_CTOR_DTOR_PY(klass,base,doc,attrs,inits,ctor,,py)
 #define WOO_CLASS_BASE_DOC_ATTRS_CTOR_DTOR_PY(klass,base,doc,attrs,ctor,dtor,py) WOO_CLASS_BASE_DOC_ATTRS_INIT_CTOR_DTOR_PY(klass,base,doc,attrs,,ctor,dtor,py)
 #define WOO_CLASS_BASE_DOC_ATTRS_INIT_CTOR_DTOR_PY(klass,base,doc,attrs,inits,ctor,dtor,py) WOO_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_DTOR_PY(klass,base,doc,attrs,,inits,ctor,dtor,py)
-// #define WOO_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,inits,ctor,py) WOO_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(klass,base,doc,attrs,,inits,ctor,py)
+
+// some shortcuts
+#define WOO_CLASS_BASE_DOC_ATTRS_INIT_PY(klass,base,doc,attrs,inits,py) WOO_CLASS_BASE_DOC_ATTRS_INIT_CTOR_DTOR_PY(klass,base,doc,attrs,inits,,,py)
+#define WOO_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,inits,ctor,py) WOO_CLASS_BASE_DOC_ATTRS_INIT_CTOR_DTOR_PY(klass,base,doc,attrs,inits,ctor,,py)
 
 // the most general
 #define WOO_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_DTOR_PY(thisClass,baseClass,classTraitSpec,attrs,deprec,inits,ctor,dtor,extras) \

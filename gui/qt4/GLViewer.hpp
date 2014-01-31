@@ -70,18 +70,7 @@ struct QglMovableObject: public qglviewer::MouseGrabber{
 	//void mouseDoubleClickEvent(QMouseEvent* const e, qglviewer::Camera* const){ reset=true; cerr<<"@@"; }
 	void mouseReleaseEvent(QMouseEvent* const e, qglviewer::Camera* const c) { mouseMoveEvent(e,c); moved=false; }
 	// drawing itself done in GLViewer::postDraw
-	#if 0
-	   void draw() {
-	      // The object is drawn centered on its pos, with different possible aspects:
-	      if (grabsMouse()){
-	        if (moved)
-	          // Object being moved, maybe a transparent display
-	        else
-	          // Object ready to be moved, maybe a highlighted visual feedback
-	      else
-	        // Normal display
-	    }
-	#endif
+
 	 QPoint pos, prevPos;
 	 QPoint dim;
 	 bool moved, reset;
@@ -177,14 +166,7 @@ class GLViewer : public QGLViewer
 		// if defined, snapshot will be saved to this file right after being drawn and the string will be reset.
 		// this way the caller will be notified of the frame being saved successfully.
 		string nextSnapFile;
-		// internal copy of nextSnapFile, NOT TO BE MODIFIED FROM OUTSIDE
-		string _snapTo;
 		bool nextSnapMsg; // whether there will be message informing where the snapshot was saved; disabled from SnapshotEngine, and recovered after every snapshot
-		#ifdef WOO_GL2PS
-			// output stream for gl2ps; initialized as needed
-			FILE* gl2psStream;
-		#endif
-		bool nextSnapIsGl2ps;
 
 		// boost::posix_time::ptime getLastUserEvent();
 

@@ -11,6 +11,7 @@ OpenGLManager::OpenGLManager(QObject* parent): QObject(parent){
 	self=this;
 	// move the whole rendering thing to a different thread
 	// this should make the UI responsive regardless of how long the rendering takes
+	// BROKEN!!
 	#if 0
 		renderThread=new QThread(); // is the thread going to be deleted later automatically?!
 		this->moveToThread(renderThread);

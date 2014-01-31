@@ -30,10 +30,6 @@ using boost::algorithm::iends_with;
 #include<QtGui/qfiledialog.h>
 #include<QtGui/QMessageBox>
 
-#ifdef WOO_GL2PS
-	#include<gl2ps.h>
-#endif
-
 WOO_PLUGIN(_qt,(SnapshotEngine));
 
 /*****************************************************************************
@@ -158,7 +154,7 @@ GLViewer::GLViewer(int _viewId, QGLWidget* shareWidget): QGLViewer(/*parent*/(QW
 	setKeyDescription(Qt::Key_O,"Set narrower field of view");
 	setKeyDescription(Qt::Key_P,"Set wider field of view");
 	setKeyDescription(Qt::Key_R,"Revolve around scene center");
-	setKeyDescription(Qt::Key_V,"Save PDF of the current view to /tmp/woo-snapshot-0001.pdf (whichever number is available first). (Must be compiled with the gl2ps feature.)");
+	setKeyDescription(Qt::Key_V,"Save PDF of the current view to /tmp/woo-snapshot-0001.pdf (whichever number is available first).");
 	#if 0
 		setKeyDescription(Qt::Key_Plus,    "Cut plane increase");
 		setKeyDescription(Qt::Key_Minus,   "Cut plane decrease");
@@ -354,11 +350,7 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 		} else if (e->modifiers() & Qt::ControlModifier){
 			#if 0
 				// popup save dialog
-				#ifndef WOO_GL2PS
-				   QString filters("Portable Network Graphics (*.png)");
-				#else
-				   QString filters("Portable Network Graphics (*.png);; Portable Document Format [unreliable] (*.pdf)");
-				#endif
+				QString filters("Portable Network Graphics (*.png);; Portable Document Format [unreliable] (*.pdf)");
 				// if cancelled, assigns empty string, which means no screenshot will be taken at all
 				nextSnapFile=QFileDialog::getSaveFileName(NULL,"Save screenshot",QDir::currentPath(),filters).toStdString();
 			#else
@@ -548,46 +540,6 @@ void GLViewer::centerScene(){
 
 void GLViewer::draw(bool withNames)
 {
-	_snapTo=nextSnapFile;
-	if(!_snapTo.empty()){
-		bool compress=false;
-		int gl2ps_format=-1;
-		nextSnapIsGl2ps=false;
-		#ifndef WOO_GL2PS
-			enum {GL2PS_PDF=0, GL2PS_SVG=0, GL2PS_PS=0, GL2PS_EPS=0}; // just avoid those to be undefined below
-		#endif
-		// guess the format, but use gl2ps only if QGLViewer does not handle that format itself
-		if(iends_with(_snapTo,".pdf")){	gl2ps_format=GL2PS_PDF; compress=true; nextSnapIsGl2ps=true; }
-		else if(iends_with(_snapTo,".svg")){ gl2ps_format=GL2PS_SVG; nextSnapIsGl2ps=true; }
-		else if(iends_with(_snapTo,".svgz")){ gl2ps_format=GL2PS_SVG; compress=true; nextSnapIsGl2ps=true; }
-		// comment this out once VRender does not spawn extra dialogues
-		#if 1
-			else if(iends_with(_snapTo,".eps")){ gl2ps_format=GL2PS_EPS;  nextSnapIsGl2ps=true; }
-			else if(iends_with(_snapTo,".ps")){ gl2ps_format=GL2PS_PS;  nextSnapIsGl2ps=true; }
-		#endif
-		if(nextSnapIsGl2ps){
-			#ifdef WOO_GL2PS
-				gl2psStream=fopen(_snapTo.c_str(),"wb");
-				if(!gl2psStream){ int err=errno; throw runtime_error(string("Error opening file ")+_snapTo+": "+strerror(err)); }
-				LOG_DEBUG("gl2ps: start saving snapshot to "<<_snapTo);
-				//int sortAlgo=GL2PS_BSP_SORT;
-				int sortAlgo=GL2PS_SIMPLE_SORT;
-				gl2psBeginPage(/*const char *title*/"Some title", /*const char *producer*/ "Woo",
-					/*GLint viewport[4]*/ NULL,
-					/*GLint format*/ gl2ps_format, /*GLint sort*/ sortAlgo, /*GLint options*/GL2PS_SIMPLE_LINE_OFFSET|GL2PS_USE_CURRENT_VIEWPORT|GL2PS_TIGHT_BOUNDING_BOX|/*GL2PS_OCCLUSION_CULL|*/GL2PS_NO_BLENDING|(compress?GL2PS_COMPRESS:GL2PS_NONE), 
-					/*GLint colormode*/ GL_RGBA, /*GLint colorsize*/0, 
-					/*GL2PSrgba *colortable*/NULL, 
-					/*GLint nr*/0, /*GLint ng*/0, /*GLint nb*/0, 
-					/*GLint buffersize*/4096*4096 /* 16MB */, /*FILE *stream*/ gl2psStream,
-					/*const char *filename*/NULL
-				);
-			#else
-				LOG_ERROR("Saving to some vector formats (PDF, SVG) not supported unless compiled with the gl2ps feature (was about to save to "<<_snapTo<<"). QGLViewer itself handles PS and EPS (try those).");
-				nextSnapIsGl2ps=false;
-				_snapTo.clear(); nextSnapFile.clear();
-			#endif
-		};
-	}
 
 	qglviewer::Vec vd=camera()->viewDirection(); Renderer::viewDirection=Vector3r(vd[0],vd[1],vd[2]);
 	if(Master::instance().getScene()){
@@ -826,7 +778,7 @@ void GLViewer::postDraw(){
 		}
 	}
 
-#if 1
+
 	/* draw colormapped ranges, on the right */
 	if(Renderer::ranges && (prevSize[0]!=width() || prevSize[1]!=height())){
 		Vector2i curr(width(),height());
@@ -940,41 +892,32 @@ void GLViewer::postDraw(){
 		glLineWidth(1);
 		glEnable(GL_LIGHTING);
 	};
-#endif
+
 
 	QGLViewer::postDraw();
+
+	string _snapTo=nextSnapFile; // make a copy so that it does not change while we use it
 	if(!_snapTo.empty()){
-		#ifdef WOO_GL2PS
-			if(nextSnapIsGl2ps){
-				gl2psEndPage();
-				LOG_DEBUG("Finished saving snapshot to "<<_snapTo);
-				fclose(gl2psStream);
-			} else
+		// save the snapshot
+		if(iends_with(_snapTo,".png")) setSnapshotFormat("PNG");
+		else if(iends_with(_snapTo,".jpg") || iends_with(_snapTo,".jpeg")) setSnapshotFormat("JPEG");
+		// using QGLViewer/VRender opens dialogues which make us freeze
+		#if 0
+			else if(iends_with(_snapTo,".eps")) setSnapshotFormat("EPS");
+			else if(iends_with(_snapTo,".ps") ) setSnapshotFormat("PS");
+			else if(iends_with(_snapTo,".xfig") || iends_with(_snapTo,".fig")) setSnapshotFormat("XFIG");
+			else if(iends_with(_snapTo,".pdf")) setSnapshotFormat("PDF");
+			else if(iends_with(_snapTo,".svg")) setSnapshotFormat("SVG");
 		#endif
-		{
-			// save the snapshot
-			if(iends_with(_snapTo,".png")) setSnapshotFormat("PNG");
-			else if(iends_with(_snapTo,".jpg") || iends_with(_snapTo,".jpeg")) setSnapshotFormat("JPEG");
-			// using QGLViewer/VRender opens dialogues which make us freeze
-			#if 0
-				else if(iends_with(_snapTo,".eps")) setSnapshotFormat("EPS");
-				else if(iends_with(_snapTo,".ps") ) setSnapshotFormat("PS");
-				else if(iends_with(_snapTo,".xfig") || iends_with(_snapTo,".fig")) setSnapshotFormat("XFIG");
-			#endif
-			//else if(iends_with(_snapTo,".pdf")) setSnapshotFormat("PDF");
-			//else if(iends_with(_snapTo,".svg")) setSnapshotFormat("SVG");
-			else {
-				LOG_WARN("Unable to deduce raster snapshot format from filename "<<_snapTo<<", or format is not supported; using PNG.");
-				#ifdef WOO_GL2PS
-					LOG_WARN("In addition, gl2ps supports SVG, SVGZ, PDF, PS, EPS.");
-				#endif
-				setSnapshotFormat("PNG");
-			}
-			saveSnapshot(QString(_snapTo.c_str()),/*overwrite*/ true);
+		else {
+			LOG_WARN("Unable to deduce raster snapshot format from filename "<<_snapTo<<", or format is not supported; using PNG (recognized extensions are png, jpg, jpeg.");
+			setSnapshotFormat("PNG");
 		}
+		saveSnapshot(QString(_snapTo.c_str()),/*overwrite*/ true);
+
 		if(nextSnapMsg) displayMessage("Saved snapshot to "+_snapTo);
 		// notify the caller that it is done already (probably not an atomic op :-|, though)
-		_snapTo.clear(); nextSnapFile.clear();
+		nextSnapFile.clear();
 		nextSnapMsg=true; // show next message, unless disabled again
 	}
 }

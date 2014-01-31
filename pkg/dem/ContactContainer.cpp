@@ -14,7 +14,7 @@ bool ContactContainer::IsReal::operator()(const shared_ptr<Contact>& c){ return 
 bool ContactContainer::add(const shared_ptr<Contact>& c, bool threadSafe){
 	assert(dem);
 	#if defined(WOO_OPENMP) || defined(WOO_OPENGL)
-		boost::mutex::scoped_lock lock(*manipMutex);
+		boost::mutex::scoped_lock lock(manipMutex);
 	#endif
 	Particle *pA=c->leakPA(), *pB=c->leakPB();
 	if(!threadSafe){
@@ -36,7 +36,7 @@ bool ContactContainer::add(const shared_ptr<Contact>& c, bool threadSafe){
 void ContactContainer::clear(){
 	assert(dem);
 	#if defined(WOO_OPENMP) || defined(WOO_OPENGL)
-		boost::mutex::scoped_lock lock(*manipMutex);
+		boost::mutex::scoped_lock lock(manipMutex);
 	#endif
 	FOREACH(const shared_ptr<Particle>& p, *dem->particles) p->contacts.clear();
 	linView.clear(); // clear the linear container
@@ -47,7 +47,7 @@ void ContactContainer::clear(){
 bool ContactContainer::remove(shared_ptr<Contact> c, bool threadSafe){
 	assert(dem);
 	#if defined(WOO_OPENMP) || defined(WOO_OPENGL)
-		boost::mutex::scoped_lock lock(*manipMutex);
+		boost::mutex::scoped_lock lock(manipMutex);
 	#endif
 
 	// this is the pre-weak_ptr code, keep it for reference for a while in case of troubles
