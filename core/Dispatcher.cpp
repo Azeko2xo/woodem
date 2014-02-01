@@ -12,6 +12,6 @@
 #include<algorithm>
 #include<vector>
 
-WOO_PLUGIN(core,(Dispatcher)(Functor));
+WOO_PLUGIN(core,(Dispatcher));
 
 
