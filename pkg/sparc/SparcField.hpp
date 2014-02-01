@@ -59,14 +59,14 @@ struct SparcField: public Field{
 
 	DECLARE_LOGGER;
 
-	~SparcField(){ locator->Delete(); points->Delete(); grid->Delete(); }
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(SparcField,Field,"Field for SPARC meshfree method",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_DTOR_PY(SparcField,Field,"Field for SPARC meshfree method",
 		// ((Real,maxRadius,-1,,"Maximum radius for neighbour search (required for periodic simulations)"))
 		((bool,locDirty,true,AttrTrait<Attr::readonly>(),"Flag whether the locator is updated."))
 		((Vector2r,neighAdjFact,Vector2r(.5,2.),,"Factors for adjusting neighbor search range."))
 		((int,neighAdjSteps,10,,"Maximum range for adjusting neighbor search range"))
 		((int,neighRelMax,3,,"Try to keep number of neighbors below *neighRelMax* × basis dimension (which is hard minimum of neighbors)."))
 		,/*ctor*/  createIndex(); constructLocator(); 
+		,/*dtor*/ locator->Delete(); points->Delete(); grid->Delete();
 		,/*py*/
 			.def("nodesAround",&SparcField::nodesAround,(py::arg("pt"),py::arg("radius")=-1,py::arg("count")=-1,py::arg("ptNode")=shared_ptr<Node>()),"Return array of nodes close to given point *pt*")
 			.def("updateLocator",&SparcField::updateLocator</*useNext*/false>,"Update the locator, should be done manually before the first step perhaps.")
