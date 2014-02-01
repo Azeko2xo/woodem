@@ -517,6 +517,7 @@ def runPreprocessor(pre,preFile=None):
 		attrs=attr.split(".")
 		for i in attrs[:-1]:
 			obj=getattr(obj,i)
+		if not hasattr(obj,attrs[-1]): raise AttributeError('%s: no such attribute: %s.'%(obj.__module__+'.'+type(obj).__name__,attrs[-1]))
 		setattr(obj,attrs[-1],val)
 
 	# just run preprocessor in this case
