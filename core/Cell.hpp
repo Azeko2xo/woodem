@@ -132,7 +132,7 @@ struct Cell: public Object{
 	void checkTrsfUpperTriangular();
 
 	enum { HOMO_NONE=0, HOMO_POS=1, HOMO_VEL=2, HOMO_VEL_2ND=3, HOMO_GRADV2=4 };
-	#define woo_core_Cell_CLASS_DESCRIPTOR \
+	#define woo_core_Cell__CLASS_BASE_DOC_ATTRS_CTOR_PY \
 		/*class,base,doc*/ \
 		Cell,Object,"Parameters of periodic boundary conditions. Only applies if O.isPeriodic==True.", \
 		/*attrs*/ \
@@ -149,10 +149,7 @@ struct Cell: public Object{
 		((Matrix3r,nextGradV,Matrix3r::Zero(),,"Value of gradV to be applied in the next step (that is, at t+dt/2). If any engine changes gradV, it should do it via this variable. The value propagates to gradV at the very end of each timestep, so if it is user-adjusted between steps, it will not become effective until after 1 steps. It should not be changed between Leapfrog and end of the step!"))\
 		((int,homoDeform,HOMO_GRADV2,AttrTrait<Attr::triggerPostLoad>().choice({{HOMO_NONE,"None"},{HOMO_POS,"position only"},{HOMO_VEL,"pos & vel, 1st order"},{HOMO_VEL_2ND,"pos & vel, 2nd order"},{HOMO_GRADV2,"all, leapfrog-consistent"}}),"Deform (:obj:`gradV`) the cell homothetically, by adjusting positions or velocities of particles. The values have the following meaning: 0: no homothetic deformation, 1: set absolute particle positions directly (when ``gradV`` is non-zero), but without changing their velocity, 2: adjust particle velocity (only when ``gradV`` changed) with Δv_i=Δ ∇v x_i. 3: as 2, but include a 2nd order term in addition -- the derivative of 1 (convective term in the velocity update)."))\
 		,\
-	/*deprec*/ ((Hsize,hSize,"conform to Yade's names convention.")),\
-	/*init*/ ,\
 	/*ctor*/ _invTrsf=Matrix3r::Identity(); integrateAndUpdate(0),\
-	/*dtor*/,\
 	/*py*/\
 		/* override some attributes above*/ \
 		.add_property("hSize",py::make_function(&Cell::getHSize,py::return_value_policy<py::return_by_value>()),&Cell::setHSize,"Base cell vectors (columns of the matrix), updated at every step from :obj:`gradV` (:obj:`trsf` accumulates applied :obj:`gradV` transformations). Setting *hSize* during a simulation is not supported by most contact laws, it is only meant to be used at iteration 0 before any interactions have been created.")\
@@ -182,6 +179,6 @@ struct Cell: public Object{
 			_classObj.attr("HomoVel2")=(int)Cell::HOMO_VEL_2ND; \
 			_classObj.attr("HomoGradV2")=(int)Cell::HOMO_GRADV2;
 
-	WOO_CLASS_DECLARATION(woo_core_Cell_CLASS_DESCRIPTOR);
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_core_Cell__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 };
 WOO_REGISTER_OBJECT(Cell);

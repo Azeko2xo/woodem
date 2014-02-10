@@ -61,30 +61,28 @@ class EnergyTracker: public Object{
 	};
 	pyIterator pyIter();
 
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(EnergyTracker,Object,"Storage for tracing energies. Only to be used if O.traceEnergy is True.",
-		((OpenMPArrayAccumulator<Real>,energies,,,"Energy values, in linear array"))
-		((mapStringInt,names,,/*no python converter for this type*/AttrTrait<Attr::hidden>(),"Associate textual name to an index in the energies array [overridden bellow].")) 
-		((vector<int>,flags,,AttrTrait<Attr::readonly>(),"Flags for respective energies; most importantly, whether the value should be reset at every step."))
-		,/*ctor*/
-		,/*py*/
-			.def("__len__",&EnergyTracker::len_py,"Number of items in the container.")
-			.def("__getitem__",&EnergyTracker::getItem_py,"Get energy value for given name.")
-			.def("__setitem__",&EnergyTracker::setItem_py,"Set energy value for given name (will create a non-resettable item, if it does not exist yet).")
-			.def("__contains__",&EnergyTracker::contains_py,"Query whether given key exists; used by ``'key' in EnergyTracker``")
-			.def("__iter__",&EnergyTracker::pyIter,"Return iterator over keys, to support python iteration protocol.")
-			.def("add",&EnergyTracker::add_py,(py::arg("dE"),py::arg("name"),py::arg("reset")=false),"Accumulate energy, used from python (likely inefficient)")
-			.def("clear",&EnergyTracker::clear,"Clear all stored values.")
-			.def("keys",&EnergyTracker::keys_py,"Return defined energies.")
-			.def("items",&EnergyTracker::items_py,"Return contents as list of (name,value) tuples.")
-			.def("total",&EnergyTracker::total,"Return sum of all energies.")
-			.def("relErr",&EnergyTracker::relErr,"Total energy divided by sum of absolute values.")
-			.add_property("names",&EnergyTracker::names_py) // return name->id map as python dict
-			.add_property("_perThreadData",&EnergyTracker::perThreadData,"Contents as dictionary, where each value is tuple of individual threads' values (for debugging)");
-
-			// define nested class
-			py::scope foo(_classObj);
-			py::class_<EnergyTracker::pyIterator>("iterator",py::init<pyIterator>()).def("__iter__",&pyIterator::iter).def("next",&pyIterator::next);
-
-	)
+	#define woo_core_EnergyTracker__CLASS_BASE_DOC_ATTRS_PY \
+		EnergyTracker,Object,"Storage for tracing energies. Only to be used if O.traceEnergy is True.", \
+		((OpenMPArrayAccumulator<Real>,energies,,,"Energy values, in linear array")) \
+		((mapStringInt,names,,/*no python converter for this type*/AttrTrait<Attr::hidden>(),"Associate textual name to an index in the energies array [overridden bellow]."))  \
+		((vector<int>,flags,,AttrTrait<Attr::readonly>(),"Flags for respective energies; most importantly, whether the value should be reset at every step.")) \
+		, /*py*/ \
+			.def("__len__",&EnergyTracker::len_py,"Number of items in the container.") \
+			.def("__getitem__",&EnergyTracker::getItem_py,"Get energy value for given name.") \
+			.def("__setitem__",&EnergyTracker::setItem_py,"Set energy value for given name (will create a non-resettable item, if it does not exist yet).") \
+			.def("__contains__",&EnergyTracker::contains_py,"Query whether given key exists; used by ``'key' in EnergyTracker``") \
+			.def("__iter__",&EnergyTracker::pyIter,"Return iterator over keys, to support python iteration protocol.") \
+			.def("add",&EnergyTracker::add_py,(py::arg("dE"),py::arg("name"),py::arg("reset")=false),"Accumulate energy, used from python (likely inefficient)") \
+			.def("clear",&EnergyTracker::clear,"Clear all stored values.") \
+			.def("keys",&EnergyTracker::keys_py,"Return defined energies.") \
+			.def("items",&EnergyTracker::items_py,"Return contents as list of (name,value) tuples.") \
+			.def("total",&EnergyTracker::total,"Return sum of all energies.") \
+			.def("relErr",&EnergyTracker::relErr,"Total energy divided by sum of absolute values.") \
+			.add_property("names",&EnergyTracker::names_py) /* return name->id map as python dict */ \
+			.add_property("_perThreadData",&EnergyTracker::perThreadData,"Contents as dictionary, where each value is tuple of individual threads' values (for debugging)"); \
+			/* define nested class */ \
+			py::scope foo(_classObj); \
+			py::class_<EnergyTracker::pyIterator>("iterator",py::init<pyIterator>()).def("__iter__",&pyIterator::iter).def("next",&pyIterator::next); 
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_core_EnergyTracker__CLASS_BASE_DOC_ATTRS_PY);
 };
 WOO_REGISTER_OBJECT(EnergyTracker);

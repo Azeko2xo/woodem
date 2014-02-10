@@ -4,6 +4,13 @@
 
 #include<woo/lib/pyutil/gil.hpp>
 
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_core_Engine__CLASS_BASE_DOC_ATTRS_CTOR_PY);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_core_ParallelEngine__CLASS_BASE_DOC_ATTRS_PY);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_core_PeriodicEngine__CLASS_BASE_DOC_ATTRS_CTOR);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_core_PyRunner__CLASS_BASE_DOC_ATTRS);
+
+
+
 WOO_PLUGIN(core,(Engine)(ParallelEngine)(PeriodicEngine)(PyRunner));
 
 CREATE_LOGGER(Engine);

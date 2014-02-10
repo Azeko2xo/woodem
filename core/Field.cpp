@@ -2,7 +2,24 @@
 #include<woo/lib/base/CompUtils.hpp>
 #include<woo/core/Scene.hpp>
 
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_core_Node__CLASS_BASE_DOC_ATTRS_CTOR_PY);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_core_Field__CLASS_BASE_DOC_ATTRS_CTOR_PY);
+WOO_IMPL__CLASS_BASE_DOC(woo_core_NodeData__CLASS_BASE_DOC);
+WOO_IMPL__CLASS_BASE_DOC(woo_core_Constraint__CLASS_BASE_DOC);
+
+WOO_PLUGIN(core,(Node)(Field)(NodeData)(Constraint));
+
 #ifdef WOO_OPENGL
+	WOO_IMPL__CLASS_BASE_DOC(woo_gl_NodeGlRep__CLASS_BASE_DOC);
+	WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_gl_ScalarRange__CLASS_BASE_DOC_ATTRS_PY);
+	WOO_PLUGIN(gl,(NodeGlRep)(ScalarRange));
+#endif
+
+
+
+
+#ifdef WOO_OPENGL
+
 void ScalarRange::reset(){
 	mnmx=Vector2r(Inf,-Inf);
 	setAutoAdjust(true);
@@ -21,7 +38,13 @@ void ScalarRange::cacheLogs(){
 void ScalarRange::adjust(const Real& v){
 	if(isLog() && v<0) setLog(false);
 	if(isSymmetric()){ if(abs(v)>max(abs(mnmx[0]),abs(mnmx[1])) || !isOk()){ mnmx[0]=-abs(v); mnmx[1]=abs(v); } }
-	else {if(v<mnmx[0]) mnmx[0]=v; if(v>mnmx[1]) mnmx[1]=v; }
+	else{
+		if(v<mnmx[0]){
+			if(v==0. && isLog()) mnmx[0]=1e-10*mnmx[1]; // don't set min to 0 as it would go back to 1e-3*max below
+			else mnmx[0]=v;
+		}
+		if(v>mnmx[1]) mnmx[1]=v;
+	}
 	if(!(mnmx[0]<=mnmx[1])) mnmx[0]=mnmx[1]; // inverted min/max?
 	if(isLog()){
 		if(!(mnmx[1]>0)) mnmx[1]=abs(mnmx[1])>0?abs(mnmx[1]):1.; // keep scale if possible

@@ -1,5 +1,19 @@
 #include<woo/core/Test.hpp>
 
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_core_WooTestClass__CLASS_BASE_DOC_ATTRS_CTOR_PY);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_core_WooTestPeriodicEngine__CLASS_BASE_DOC_ATTRS);
+
+WOO_PLUGIN(core,(WooTestClass)(WooTestPeriodicEngine));
+
+
+void WooTestClass::postLoad(WooTestClass&, void* addr){
+	if(addr==NULL){ postLoadStage=POSTLOAD_CTOR; return; }
+	if(addr==(void*)&foo_incBaz){ baz++; postLoadStage=POSTLOAD_FOO; return; }
+	if(addr==(void*)&bar_zeroBaz){ baz=0; postLoadStage=POSTLOAD_BAR; return; }
+	if(addr==(void*)&baz){ postLoadStage=POSTLOAD_BAZ; return; }
+}
+
+
 py::list WooTestClass::aaccuGetRaw(){
 	vector<vector<Real>> ddta=aaccu.getPerThreadData();
 	py::list ret;

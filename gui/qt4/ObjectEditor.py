@@ -281,7 +281,7 @@ class AttrEditor_FloatRange(AttrEditor,QFrame):
 		if isinstance(self.multiplier,tuple): raise RuntimeError("Float range cannot have multiple units.")
 		logging.debug("New multiplier is "+str(self.multiplier))
 		if self.multiplier: self.setToolTip("Unit-conversion %s: factor %g"%(convSpec,self.multiplier))
-		else: self.setToolTip()
+		else: self.setToolTip('')
 		self.refresh()
 		#pass # this is OK
 

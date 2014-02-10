@@ -1,6 +1,15 @@
 #include<woo/core/Timing.hpp>
 
 namespace woo{
+
+	void TimingDeltas::pyRegisterClass(){
+		py::class_<TimingDeltas, shared_ptr<TimingDeltas>, boost::noncopyable>("TimingDeltas")
+			.add_property("data",&TimingDeltas::pyData,"Get timing data as list of tuples (label, execTime[nsec], execCount) (one tuple per checkpoint)")
+			.def("reset",&TimingDeltas::reset,"Reset timing information")
+		;
+	}
+
+
 	void TimingDeltas::consolidate(int newSize){
 		if(newSize<0){
 			#ifdef WOO_OPENMP

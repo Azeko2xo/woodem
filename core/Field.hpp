@@ -11,8 +11,9 @@ struct Scene;
 
 struct Constraint: public Object{	
 	virtual void applyConstraint(Vector3r& newPos, Vector3r& newOri){};
-	WOO_CLASS_BASE_DOC_ATTRS(Constraint,Object,"Object defining constraint on motion of a node; this is an abstract class which is not to be used directly.",
-	);
+	#define woo_core_Constraint__CLASS_BASE_DOC \
+		Constraint,Object,"Object defining constraint on motion of a node; this is an abstract class which is not to be used directly."
+	WOO_DECL__CLASS_BASE_DOC(woo_core_Constraint__CLASS_BASE_DOC);
 };
 WOO_REGISTER_OBJECT(Constraint);
 
@@ -22,7 +23,9 @@ struct NodeData: public Object{
 	// template to be specialized by derived classes
 	template<typename Derived> struct Index; // { BOOST_STATIC_ASSERT(false); /* template must be specialized for derived NodeData types */ };
 
-	WOO_CLASS_BASE_DOC(NodeData,Object,"Data associated with some node.");
+	#define woo_core_NodeData__CLASS_BASE_DOC \
+		NodeData,Object,"Data associated with some node."
+	WOO_DECL__CLASS_BASE_DOC(woo_core_NodeData__CLASS_BASE_DOC);
 };
 WOO_REGISTER_OBJECT(NodeData);
 
@@ -35,7 +38,9 @@ struct NodeGlRep: public Object{
 	//boost::mutex lock; // for rendering
 	//void safeRender(const shared_ptr<Node>& n, GLViewInfo* glvi){ boost::mutex::scoped_lock l(lock); render(n,glvi); }
 	virtual void render(const shared_ptr<Node>&, const GLViewInfo*){};
-	WOO_CLASS_BASE_DOC(NodeGlRep,Object,"Object representing what should be rendered at associated node (abstract base class).");
+	#define woo_gl_NodeGlRep__CLASS_BASE_DOC \
+		NodeGlRep,Object,"Object representing what should be rendered at associated node (abstract base class)."
+	WOO_DECL__CLASS_BASE_DOC(woo_gl_NodeGlRep__CLASS_BASE_DOC);
 };
 WOO_REGISTER_OBJECT(NodeGlRep);
 
@@ -67,27 +72,25 @@ struct ScalarRange: public Object{
 	void setLog(bool l) { if(!l) flags&=~RANGE_LOG; else flags|=RANGE_LOG; }
 	void cacheLogs(); 
 
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ScalarRange,Object,"Store and share range of scalar values",
-		((Vector2r,mnmx,Vector2r(std::numeric_limits<Real>::infinity(),-std::numeric_limits<Real>::infinity()),AttrTrait<Attr::triggerPostLoad>().buttons({"Reset","self.reset()","Re-initialize range"}),"Packed minimum and maximum values; adjusting from python sets :obj:`autoAdjust` to false automatically."))
-		((Vector2r,logMnmx,,AttrTrait<Attr::noSave>().hidden(),"Logs of mnmx values, to avoid computing logarithms all the time; computed via cacheLogs."))
-		((int,flags,(RANGE_AUTO_ADJUST),AttrTrait<>().bits({"log","reversed","symmetric","autoAdjust","hidden"}),"Flags for this range: autoAdjust, symmetric, reversed, hidden, log."))
-		//((bool,autoAdjust,true,,"Automatically adjust range using given values."))
-		//((bool,sym,false,,"Force maximum to be negative of minimum and vice versa (only with autoadjust)"))
-		((Vector2i,dispPos,Vector2i(-1000,-1000),AttrTrait<>().noGui(),"Where is this range displayed on the OpenGL canvas; initially out of range, will be reset automatically."))
-		((Real,length,200,AttrTrait<>().noGui(),"Length on the display; if negative, it is fractional relative to view width/height"))
-		((bool,landscape,false,AttrTrait<>().noGui(),"Make the range display with landscape orientation"))
-		((std::string,label,,,"Short name of this range."))
-		((int,cmap,-1,AttrTrait<>().colormapChoice(),"Colormap index to be used; -1 means to use the default colormap (see *woo.master.cmaps*, *woo.master.cmap*)"))
-		, /* ctor */
-		, /* py */
-			.def("norm",&ScalarRange::norm,"Return value of the argument normalized to 0..1 range; the value is not clamped to 0..1 however: if autoAdjust is false, it can fall outside.")
-			.def("reset",&ScalarRange::reset)
-			.add_property("autoAdjust",&ScalarRange::isAutoAdjust,&ScalarRange::setAutoAdjust)
-			.add_property("symmetric",&ScalarRange::isSymmetric,&ScalarRange::setSymmetric)
-			.add_property("reversed",&ScalarRange::isReversed,&ScalarRange::setReversed)
-			.add_property("hidden",&ScalarRange::isHidden,&ScalarRange::setHidden)
+	#define woo_gl_ScalarRange__CLASS_BASE_DOC_ATTRS_PY \
+		ScalarRange,Object,"Store and share range of scalar values", \
+		((Vector2r,mnmx,Vector2r(std::numeric_limits<Real>::infinity(),-std::numeric_limits<Real>::infinity()),AttrTrait<Attr::triggerPostLoad>().buttons({"Reset","self.reset()","Re-initialize range"}),"Packed minimum and maximum values; adjusting from python sets :obj:`autoAdjust` to false automatically.")) \
+		((Vector2r,logMnmx,,AttrTrait<Attr::noSave>().hidden(),"Logs of mnmx values, to avoid computing logarithms all the time; computed via cacheLogs.")) \
+		((int,flags,(RANGE_AUTO_ADJUST),AttrTrait<>().bits({"log","reversed","symmetric","autoAdjust","hidden"}),"Flags for this range: autoAdjust, symmetric, reversed, hidden, log.")) \
+		((Vector2i,dispPos,Vector2i(-1000,-1000),AttrTrait<>().noGui(),"Where is this range displayed on the OpenGL canvas; initially out of range, will be reset automatically.")) \
+		((Real,length,200,AttrTrait<>().noGui(),"Length on the display; if negative, it is fractional relative to view width/height")) \
+		((bool,landscape,false,AttrTrait<>().noGui(),"Make the range display with landscape orientation")) \
+		((std::string,label,,,"Short name of this range.")) \
+		((int,cmap,-1,AttrTrait<>().colormapChoice(),"Colormap index to be used; -1 means to use the default colormap (see *woo.master.cmaps*, *woo.master.cmap*)")) \
+		, /* py */ \
+			.def("norm",&ScalarRange::norm,"Return value of the argument normalized to 0..1 range; the value is not clamped to 0..1 however: if autoAdjust is false, it can fall outside.") \
+			.def("reset",&ScalarRange::reset) \
+			.add_property("autoAdjust",&ScalarRange::isAutoAdjust,&ScalarRange::setAutoAdjust) \
+			.add_property("symmetric",&ScalarRange::isSymmetric,&ScalarRange::setSymmetric) \
+			.add_property("reversed",&ScalarRange::isReversed,&ScalarRange::setReversed) \
+			.add_property("hidden",&ScalarRange::isHidden,&ScalarRange::setHidden) \
 			.add_property("log",&ScalarRange::isLog,&ScalarRange::setLog)
-	);
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_gl_ScalarRange__CLASS_BASE_DOC_ATTRS_PY);
 };
 WOO_REGISTER_OBJECT(ScalarRange);
 #endif
@@ -133,19 +136,24 @@ struct Node: public Object, public Indexable{
 	Vector3r glob2loc(const Vector3r& p){ return ori.conjugate()*(p-pos); }
 	// 
 	Vector3r loc2glob(const Vector3r& p){ return ori*p+pos; }
+	#ifdef WOO_OPENGL
+		#define _DECL_Node_rep_ ((shared_ptr<NodeGlRep>,rep,,,"What should be shown at this node when rendered via OpenGL."))
+	#else
+		#define _DECL_Node_rep_
+	#endif
 
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Node,Object,"A point in space (defining local coordinate system), referenced by other objects.",
-		((Vector3r,pos,Vector3r::Zero(),AttrTrait<>().lenUnit(),"Position in space (cartesian coordinates); origin :math:`O` of the local coordinate system."))
-		((Quaternionr,ori,Quaternionr::Identity(),,"Orientation :math:`q` of this node."))
-		((vector<shared_ptr<NodeData> >,data,,,"Array of data, ordered in globally consistent manner."))
-		#ifdef WOO_OPENGL
-			((shared_ptr<NodeGlRep>,rep,,,"What should be shown at this node when rendered via OpenGL."))
-		#endif
-		, /* ctor */ createIndex();
-		, /* py */ WOO_PY_TOPINDEXABLE(Node)
-			.def("glob2loc",&Node::glob2loc,(py::arg("p")),"Transform point :math:`p` from global to node-local coordinates as :math:`q^*(p-O)`.")
+	#define woo_core_Node__CLASS_BASE_DOC_ATTRS_CTOR_PY \
+		Node,Object,"A point in space (defining local coordinate system), referenced by other objects.", \
+		((Vector3r,pos,Vector3r::Zero(),AttrTrait<>().lenUnit(),"Position in space (cartesian coordinates); origin :math:`O` of the local coordinate system.")) \
+		((Quaternionr,ori,Quaternionr::Identity(),,"Orientation :math:`q` of this node.")) \
+		((vector<shared_ptr<NodeData> >,data,,,"Array of data, ordered in globally consistent manner.")) \
+		_DECL_Node_rep_ /* defined above, nonempty in OpenGL-enabled builds only */ \
+		, /* ctor */ createIndex(); \
+		, /* py */ WOO_PY_TOPINDEXABLE(Node) \
+			.def("glob2loc",&Node::glob2loc,(py::arg("p")),"Transform point :math:`p` from global to node-local coordinates as :math:`q^*(p-O)`.") \
 			.def("loc2glob",&Node::glob2loc,(py::arg("p")),"Transform point :math:`p_l` from node-local to global coordinates as :math:`q\\cdot p_l+O`.")
-	);
+	
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_core_Node__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 	REGISTER_INDEX_COUNTER(Node);
 };
 WOO_REGISTER_OBJECT(Node);
@@ -156,16 +164,18 @@ struct Field: public Object, public Indexable{
 	py::object py_getScene();
 	virtual void selfTest(){};
 	virtual Real critDt() { return Inf; }
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Field,Object,"Spatial field described by nodes, their topology and associated values.",
-		((vector<shared_ptr<Node> >,nodes,,AttrTrait<Attr::pyByRef>(),"Nodes referenced from this field."))
-		//((shared_ptr<Topology>,topology,,,"How nodes build up cells, neighborhood and coonectivity information."))
-		//((vector<shared_ptr<CellData> >,cells,,,""))
-		, /* ctor */ scene=NULL;
-		, /* py */
-			.add_property("scene",&Field::py_getScene,"Get associated scene object, if any (this function is dangerous in some corner cases, as it has to use raw pointer).")
-			.def("critDt",&Field::critDt,"Return critical (maximum numerically stable) timestep for this field. By default returns infinity (no critical timestep) but derived fields may override this function.")
-			WOO_PY_TOPINDEXABLE(Field)
-	);
+	#define woo_core_Field__CLASS_BASE_DOC_ATTRS_CTOR_PY  \
+		Field,Object,"Spatial field described by nodes, their topology and associated values.", \
+		((vector<shared_ptr<Node> >,nodes,,AttrTrait<Attr::pyByRef>(),"Nodes referenced from this field.")) \
+		/* ((shared_ptr<Topology>,topology,,,"How nodes build up cells, neighborhood and coonectivity information.")) */ \
+		/* ((vector<shared_ptr<CellData> >,cells,,,"")) */ \
+		, /* ctor */ scene=NULL; \
+		, /* py */ \
+			.add_property("scene",&Field::py_getScene,"Get associated scene object, if any (this function is dangerous in some corner cases, as it has to use raw pointer).") \
+			.def("critDt",&Field::critDt,"Return critical (maximum numerically stable) timestep for this field. By default returns infinity (no critical timestep) but derived fields may override this function.") \
+			WOO_PY_TOPINDEXABLE(Field) \
+
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_core_Field__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 	REGISTER_INDEX_COUNTER(Field);
 
 

@@ -78,7 +78,6 @@ void wooInitialize(){
 
 
 	master.confDir=confDir;
-	// master.initTemps();
 	#if defined(WOO_DEBUG) && !defined(__MINGW64__)
 		std::ofstream gdbBatch;
 		master.gdbCrashBatch=master.tmpFilename();
@@ -94,7 +93,11 @@ void wooInitialize(){
 			LOG_INFO("Loaded "<<logConf);
 		}
 	#endif
-	//vector<string> ppp; for(int i=0; i<py::len(pp); i++) ppp.push_back(py::extract<string>(pp[i]));
+
+	// check that the decimal separator is "." (for GTS imports)
+	if(atof("0.5")==0.0){
+		LOG_WARN("Decimal separator is not '.'; this can cause erratic mesh imports from GTS and perhaps other problems. Please report this to http://bugs.launchpad.net/woo .");
+	}
 
 	// register all python classes here
 	master.pyRegisterAllClasses();

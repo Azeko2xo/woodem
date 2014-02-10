@@ -30,29 +30,6 @@ struct TimingInfo{
  * and nsec by time elapsed since construction or last checkpoint.
  */
 struct TimingDeltas{
-	#if 0
-	private:
-			TimingInfo::delta last;
-			size_t i;
-	public:
-		vector<TimingInfo> data;
-		vector<string> labels;
-		TimingDeltas():i(0){}
-		void start(){if(!TimingInfo::enabled)return; i=0;last=TimingInfo::getNow();}
-		void checkpoint(const string& label){
-			if(!TimingInfo::enabled) return;
-			if(data.size()<=i) { data.resize(i+1); labels.resize(i+1); labels[i]=label;}
-			TimingInfo::delta now=TimingInfo::getNow();
-			data[i].nExec+=1; data[i].nsec+=now-last; last=now; i++;
-		}
-		void reset(){ data.clear(); labels.clear(); }
-		// python access
-		py::list pyData(){
-			py::list ret;
-			for(size_t i=0; i<data.size(); i++){ ret.append(py::make_tuple(labels[i],data[i].nsec,data[i].nExec));}
-			return ret;
-		}
-	#endif
 	private:
 		/* mutex-protected (high-overhead) storage for data not yet in arrays from parallel checkpoints
 		   used when the index is out-of-range for arrays; arrays may be resized
@@ -87,12 +64,7 @@ struct TimingDeltas{
 		void reset();
 		py::list pyData();
 		
-	static void pyRegisterClass(){
-		py::class_<TimingDeltas, shared_ptr<TimingDeltas>, boost::noncopyable>("TimingDeltas")
-			.add_property("data",&TimingDeltas::pyData,"Get timing data as list of tuples (label, execTime[nsec], execCount) (one tuple per checkpoint)")
-			.def("reset",&TimingDeltas::reset,"Reset timing information")
-		;
-	}
+	static void pyRegisterClass();
 
 };
 

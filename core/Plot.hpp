@@ -6,7 +6,7 @@ struct Scene;
 namespace woo{
 	struct Plot: public Object{
 		shared_ptr<Scene> getScene_py();
-		#define woo_core_Plot_CLASS_DESCRIPTOR \
+		#define woo_core_Plot__CLASS_BASE_DOC_ATRRS_PY \
 			/* class, base, doc */ \
 			Plot,Object,"Storage for plots updated during simulation.", \
 			/* attrs */ \
@@ -21,9 +21,8 @@ namespace woo{
 			((py::object,currLineRefs,,AttrTrait<Attr::noSave>().noGui(),"References to axes which are being shown. Internal use only.")) \
 			((string,annotateFmt," {xy[1]:.4g}",,"Format for annotations in plots; if empty, no annotation is shown; has no impact on existing plots. *xy* is 2-tuple of the current point in data space.")) \
 			((weak_ptr<Scene>,scene,,AttrTrait<Attr::readonly>().noGui(),"Back-reference to the scene object, needed for python; set automatically when :obj:`Scene.plot` is assigned.")) \
-			,/*deprec*/,/*init*/,/*ctor*/,/*dtor*/ \
 			, /* py */ .add_property("scene",&Plot::getScene_py,"Back-reference to the scene object, needed for python; set automatically when :obj:`Scene.plot` is assigned.")
-		WOO_CLASS_DECLARATION(woo_core_Plot_CLASS_DESCRIPTOR);
+		WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_core_Plot__CLASS_BASE_DOC_ATRRS_PY);
 	};
 };
 WOO_REGISTER_OBJECT(woo::Plot);

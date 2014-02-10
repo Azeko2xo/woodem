@@ -166,54 +166,7 @@ class Master: public Singleton<Master>{
 	void pyReset();
 	py::list pyPlugins();
 
-
-	static void pyRegisterClass(){
-		py::class_<Master,boost::noncopyable>("Master",py::no_init)
-			.add_property("realtime",&Master::getRealTime,"Return clock (human world) time the simulation has been running.")
-			// tmp storage
-			.def("loadTmpAny",&Master::loadTmp,(py::arg("name")=""),"Load any object from named temporary store.")
-			.def("saveTmpAny",&Master::saveTmp,(py::arg("obj"),py::arg("name")="",py::arg("quiet")=false),"Save any object to named temporary store; *quiet* will supress warning if the name is already used.")
-			.def("lsTmp",&Master::pyLsTmp,"Return list of all memory-saved simulations.")
-			.def("rmTmp",&Master::rmTmp,py::arg("name"),"Remove memory-saved simulation.")
-			.def("tmpToFile",&Master::pyTmpToFile,(py::arg("mark"),py::arg("fileName")),"Save XML of :obj:`saveTmp`'d simulation into *fileName*.")
-			.def("tmpToString",&Master::pyTmpToString,(py::arg("mark")=""),"Return XML of :obj:`saveTmp <Master.saveTmp>`'d simulation as string.")
-
-			.def("plugins",&Master::pyPlugins,"Return list of all plugins registered in the class factory.")
-			#ifdef WOO_OPENCL
-				.def_readwrite("defaultClDev",&Master::defaultClDev,"Default OpenCL platform/device couple (as ints), set internally from the command-line arg.")
-			#endif
-			.def_readonly("confDir",&Master::confDir,"Directory for storing various local configuration files (automatically set at startup)")
-			.add_property("scene",&Master::pyGetScene,&Master::pySetScene)
-			.def("reset",&Master::pyReset,"Set empty main scene")
-
-			.add_property("cmaps",&Master::pyLsCmap,"List available colormaps (by name)")
-			.add_property("cmap",&Master::pyGetCmap,&Master::pySetCmap,"Current colormap as (index,name) tuple; set by index or by name alone.")
-
-			// throw on deprecated attributes
-			.add_property("dt",&Master::err_dt)
-			.add_property("engines",&Master::err_engines)
-			.add_property("cell",&Master::err_cell)
-			.add_property("periodic",&Master::err_periodic)
-			.add_property("trackEnergy",&Master::err_trackEnergy)
-			.add_property("energy",&Master::err_energy)
-			.add_property("tags",&Master::err_tags)
-	
-			.def("childClassesNonrecursive",&Master::pyListChildClassesNonrecursive,"Return list of all classes deriving from given class, as registered in the class factory")
-			.def("isChildClassOf",&Master::pyIsChildClassOf,"Tells whether the first class derives from the second one (both given as strings).")
-
-			.add_property("timingEnabled",&Master::timingEnabled_get,&Master::timingEnabled_set,"Globally enable/disable timing services (see documentation of the :obj:`timing module <woo.timing>`).")
-			// setting numThreads by hand crashes OpenMP, is that a bug?
-			// in any case, we disable it here just to make sure
-			.add_property("numThreads",&Master::numThreads_get /*,&Master::numThreads_set*/,"Maximum number of threads openMP can use.")
-			.add_property("compiledPyModules",&Master::pyCompiledPyModules) // we might not use to-python converters, since _customConverters have not yet been imported
-
-			.def("exitNoBacktrace",&Master::pyExitNoBacktrace,(py::arg("status")=0),"Disable SEGV handler and exit, optionally with given status number.")
-			.def("disableGdb",&Master::pyDisableGdb,"Revert SEGV and ABRT handlers to system defaults.")
-			.def("tmpFilename",&Master::tmpFilename,"Return unique name of file in temporary directory which will be deleted when woo exits.")
-			.add_property("tmpFileDir",&Master::getTmpFileDir,"Directory for temporary files; created automatically at startup.")
-			.add_static_property("instance",py::make_function(&Master::instance,py::return_value_policy<py::reference_existing_object>()))
-		;
-	}
+	static void pyRegisterClass();
 };
 
 

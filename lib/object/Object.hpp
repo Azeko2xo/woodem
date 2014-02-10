@@ -353,9 +353,34 @@ template<> struct _SerializeMaybe<false>{
 	// #define YAD3_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY2(thisClass,baseClass,classTraitSpec,attrs,deprec,inits,ctor,extras) thisClass,baseClass,makeClassTrait(classTraitSpec),attrs,deprec,initrs,ctor,extras
 #endif
 
+#define WOO_DECL__CLASS_BASE_DOC(args) _WOO_DECL__CLASS_BASE_DOC(args)
+#define WOO_IMPL__CLASS_BASE_DOC(args) _WOO_IMPL__CLASS_BASE_DOC(args)
+#define _WOO_DECL__CLASS_BASE_DOC(klass,base,doc) _WOO_CLASS_DECLARATION(   klass,base,doc,/*attrs*/,/*deprec*/,/*inits*/,/*ctor*/,/*dtor*/,/*py*/)
+#define _WOO_IMPL__CLASS_BASE_DOC(klass,base,doc) _WOO_CLASS_IMPLEMENTATION(klass,base,doc,/*attrs*/,/*deprec*/,/*inits*/,/*ctor*/,/*dtor*/,/*py*/)
+
+#define WOO_DECL__CLASS_BASE_DOC_ATTRS(args) _WOO_DECL__CLASS_BASE_DOC_ATTRS(args)
+#define WOO_IMPL__CLASS_BASE_DOC_ATTRS(args) _WOO_IMPL__CLASS_BASE_DOC_ATTRS(args)
+#define _WOO_DECL__CLASS_BASE_DOC_ATTRS(klass,base,doc,attrs) _WOO_CLASS_DECLARATION(   klass,base,doc,attrs,/*deprec*/,/*inits*/,/*ctor*/,/*dtor*/,/*py*/)
+#define _WOO_IMPL__CLASS_BASE_DOC_ATTRS(klass,base,doc,attrs) _WOO_CLASS_IMPLEMENTATION(klass,base,doc,attrs,/*deprec*/,/*inits*/,/*ctor*/,/*dtor*/,/*py*/)
+
+#define WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(args) _WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(args)
+#define WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(args) _WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(args)
+#define _WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(klass,base,doc,attrs,pyExtras) _WOO_CLASS_DECLARATION(   klass,base,doc,attrs,/*deprec*/,/*inits*/,/*ctor*/,/*dtor*/,pyExtras)
+#define _WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(klass,base,doc,attrs,pyExtras) _WOO_CLASS_IMPLEMENTATION(klass,base,doc,attrs,/*deprec*/,/*inits*/,/*ctor*/,/*dtor*/,pyExtras)
+
+#define WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR(args) _WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR(args)
+#define WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(args) _WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(args)
+#define _WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR(klass,base,doc,attrs,ctor) _WOO_CLASS_DECLARATION(   klass,base,doc,attrs,/*deprec*/,/*inits*/,ctor,/*dtor*/,/*pyExtras*/)
+#define _WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(klass,base,doc,attrs,ctor) _WOO_CLASS_IMPLEMENTATION(klass,base,doc,attrs,/*deprec*/,/*inits*/,ctor,/*dtor*/,/*pyExtras*/)
+
+#define WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(args) _WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(args)
+#define WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR_PY(args) _WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR_PY(args)
+#define _WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(klass,base,doc,attrs,ctor,pyExtras) _WOO_CLASS_DECLARATION(   klass,base,doc,attrs,/*deprec*/,/*inits*/,ctor,/*dtor*/,pyExtras)
+#define _WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR_PY(klass,base,doc,attrs,ctor,pyExtras) _WOO_CLASS_IMPLEMENTATION(klass,base,doc,attrs,/*deprec*/,/*inits*/,ctor,/*dtor*/,pyExtras)
+
 #define WOO_CLASS_DECLARATION(allArgsTogether) _WOO_CLASS_DECLARATION(allArgsTogether)
 
-#define _WOO_CLASS_DECLARATION(thisClass,baseClass,classTraitSpec,attrs,deprec,inits,ctor,dtor,extras) \
+#define _WOO_CLASS_DECLARATION(thisClass,baseClass,classTraitSpec,attrs,deprec,inits,ctor,dtor,pyExtras) \
 	/*class itself*/	REGISTER_CLASS_AND_BASE(thisClass,baseClass) \
 	/* attribute declarations*/ BOOST_PP_SEQ_FOR_EACH(_ATTR_DECL_AND_TRAIT,~,attrs) \
 	/* boost::serialization, all in header*/ _REGISTER_BOOST_SERIALIZATION_ATTRIBUTES(baseClass,attrs) public: \
@@ -372,12 +397,12 @@ template<> struct _SerializeMaybe<false>{
 
 #define WOO_CLASS_IMPLEMENTATION(allArgsTogether) _WOO_CLASS_IMPLEMENTATION(allArgsTogether)
 
-#define _WOO_CLASS_IMPLEMENTATION(thisClass,baseClass,classTraitSpec,attrs,deprec,init,ctor,dtor,extras) \
+#define _WOO_CLASS_IMPLEMENTATION(thisClass,baseClass,classTraitSpec,attrs,deprec,init,ctor,dtor,pyExtras) \
 	/*1.*/ thisClass::thisClass() BOOST_PP_IF(BOOST_PP_SEQ_SIZE(init attrs),:,) BOOST_PP_SEQ_FOR_EACH_I(_ATTR_MAKE_INITIALIZER,BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(init attrs)), init BOOST_PP_SEQ_FOR_EACH(_ATTR_MAKE_INIT_TUPLE,~,attrs)) { ctor; } \
 	/*2.*/ thisClass::~thisClass(){ dtor; } \
 	/*3.*/ void thisClass::pySetAttr(const std::string& key, const py::object& value){ BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR,~,attrs); BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR_DEPREC,thisClass,deprec); baseClass::pySetAttr(key,value); } \
 	/*4.*/ py::dict thisClass::pyDict() const { py::dict ret; BOOST_PP_SEQ_FOR_EACH(_PYDICT_ATTR,~,attrs); ret.update(baseClass::pyDict()); return ret; } \
-	/*5.*/ void thisClass::pyRegisterClass() { _PY_REGISTER_CLASS_BODY(thisClass,baseClass,makeClassTrait(classTraitSpec),attrs,deprec,extras); } \
+	/*5.*/ void thisClass::pyRegisterClass() { _PY_REGISTER_CLASS_BODY(thisClass,baseClass,makeClassTrait(classTraitSpec),attrs,deprec,pyExtras); } \
 	/*6. -- handled by WOO_PLUGIN */ \
 	/*7.*/ void thisClass::must_use_both_WOO_CLASS_DECLARATION_and_WOO_CLASS_IMPLEMENTATION(){};
 

@@ -4,6 +4,7 @@
 #include<boost/regex.hpp>
 #include<boost/algorithm/string.hpp>
 
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_core_LabelMapper__CLASS_BASE_DOC_ATTRS_PY);
 
 WOO_PLUGIN(core,(LabelMapper));
 CREATE_LOGGER(LabelMapper);
