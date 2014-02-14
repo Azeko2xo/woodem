@@ -22,7 +22,7 @@ Normal stiffness is related to :obj:`Young modulus <woo.dem.ElastMat.young>` of 
 
 Tangent (shear) stiffness :math:`k_t` is a :obj:`fraction <woo.dem.FrictMat.ktDivKn>` of :math:`k_n`,
 
-.. math:: k_t=\left(\frac{k_t}{k_n}\right)k_t,
+.. math:: k_t=\left(\frac{k_t}{k_n}\right)k_n,
 
 where the ratio is averaged between both materials in contact.
 

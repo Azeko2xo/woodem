@@ -1,4 +1,5 @@
 #include<woo/core/DisplayParameters.hpp>
+#include<woo/core/Master.hpp>
 
 WOO_PLUGIN(gl,(DisplayParameters));
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_gl_DisplayParameters__CLASS_BASE_DOC_ATTRS);
