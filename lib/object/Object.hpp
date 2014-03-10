@@ -200,11 +200,23 @@ template<> struct _setter_postLoadStaticMaybe<false>{
 	#define _ACCESS_DEPREC(x,y,z)
 #endif
 
+// static switch to make hidden attributes not settable via ctor args in python
+// this avoids compile-time error with boost::multi_array which with py::extract
+template<bool hidden> struct _setAttrMaybe{};
+template<> struct _setAttrMaybe<true>{
+	template<typename Tsrc, typename Tdst>
+	static void set(const string& name, const Tsrc& src, Tdst& dst){ woo::AttributeError(name+" is not settable from python (marked as hidden)."); }
+};
+template<> struct _setAttrMaybe<false>{
+	template<typename Tsrc, typename Tdst>
+	static void set(const string& name, const Tsrc& src, Tdst& dst){ dst=py::extract<Tdst>(src); }
+};
 
 // loop bodies for attribute access
 #define _PYGET_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) return py::object(_ATTR_NAM(z));
 //#define _PYSET_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) { _ATTR_NAM(z)=py::extract<decltype(_ATTR_NAM(z))>(t[1]); py::delitem(d,py::object(_ATTR_NAM(z))); continue; }
-#define _PYSET_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) { _ATTR_NAM(z)=py::extract<decltype(_ATTR_NAM(z))>(value); return; }
+// #define _PYSET_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) { _ATTR_NAM(z)=py::extract<decltype(_ATTR_NAM(z))>(value); return; }
+#define _PYSET_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) { _setAttrMaybe<!!(_ATTR_TRAIT_TYPE(z)::compileFlags & woo::Attr::hidden)>::set(key,value,_ATTR_NAM(z)); return; }
 #define _PYYATTR_ATTR(x,y,z) if(!(_ATTR_FLG(z).isHidden())) ret.append(_ATTR_NAM_STR(z));
 #define _PYATTR_TRAIT(x,y,z)        traitList.append(py::ptr(static_cast<AttrTraitBase*>(&_ATTR_TRAIT_GET(z)())));
 #define _PYATTR_TRAIT_STATIC(x,y,z) traitList.append(py::ptr(static_cast<AttrTraitBase*>(&_ATTR_TRAIT_GET(z)()))); // static_() already set in trait definition

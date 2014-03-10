@@ -18,6 +18,7 @@
 
 #include<limits>
 #include<cstdlib>
+#include<vector>
 #include<boost/lexical_cast.hpp>
 
 /*
@@ -228,6 +229,9 @@ const Real Inf(std::numeric_limits<Real>::infinity());
 
 #include<boost/serialization/nvp.hpp>
 #include<boost/serialization/is_bitwise_serializable.hpp>
+#include<boost/serialization/array.hpp>
+#include<boost/multi_array.hpp>
+
 
 // fast serialization (no version infor and no tracking) for basic math types
 // http://www.boost.org/doc/libs/1_42_0/libs/serialization/doc/traits.html#bitwise
@@ -252,39 +256,33 @@ namespace serialization {
 
 template<class Archive>
 void serialize(Archive & ar, Vector2r & g, const unsigned int version){
-	Real &x=g[0], &y=g[1];
-	ar & BOOST_SERIALIZATION_NVP(x) & BOOST_SERIALIZATION_NVP(y);
+	ar & boost::serialization::make_nvp("data",boost::serialization::make_array(g.data(),2));
 }
 
 template<class Archive>
 void serialize(Archive & ar, Vector2i & g, const unsigned int version){
-	int &x=g[0], &y=g[1];
-	ar & BOOST_SERIALIZATION_NVP(x) & BOOST_SERIALIZATION_NVP(y);
+	ar & boost::serialization::make_nvp("data",boost::serialization::make_array(g.data(),2));
 }
 
 template<class Archive>
 void serialize(Archive & ar, Vector3r & g, const unsigned int version)
 {
-	Real &x=g[0], &y=g[1], &z=g[2];
-	ar & BOOST_SERIALIZATION_NVP(x) & BOOST_SERIALIZATION_NVP(y) & BOOST_SERIALIZATION_NVP(z);
+	ar & boost::serialization::make_nvp("data",boost::serialization::make_array(g.data(),3));
 }
 
 template<class Archive>
 void serialize(Archive & ar, Vector3i & g, const unsigned int version){
-	int &x=g[0], &y=g[1], &z=g[2];
-	ar & BOOST_SERIALIZATION_NVP(x) & BOOST_SERIALIZATION_NVP(y) & BOOST_SERIALIZATION_NVP(z);
+	ar & boost::serialization::make_nvp("data",boost::serialization::make_array(g.data(),3));
 }
 
 template<class Archive>
 void serialize(Archive & ar, Vector6r & g, const unsigned int version){
-	Real &v0=g[0], &v1=g[1], &v2=g[2], &v3=g[3], &v4=g[4], &v5=g[5];
-	ar & BOOST_SERIALIZATION_NVP(v0) & BOOST_SERIALIZATION_NVP(v1) & BOOST_SERIALIZATION_NVP(v2) & BOOST_SERIALIZATION_NVP(v3) & BOOST_SERIALIZATION_NVP(v4) & BOOST_SERIALIZATION_NVP(v5);
+	ar & boost::serialization::make_nvp("data",boost::serialization::make_array(g.data(),6));
 }
 
 template<class Archive>
 void serialize(Archive & ar, Vector6i & g, const unsigned int version){
-	int &v0=g[0], &v1=g[1], &v2=g[2], &v3=g[3], &v4=g[4], &v5=g[5];
-	ar & BOOST_SERIALIZATION_NVP(v0) & BOOST_SERIALIZATION_NVP(v1) & BOOST_SERIALIZATION_NVP(v2) & BOOST_SERIALIZATION_NVP(v3) & BOOST_SERIALIZATION_NVP(v4) & BOOST_SERIALIZATION_NVP(v5);
+	ar & boost::serialization::make_nvp("data",boost::serialization::make_array(g.data(),6));
 }
 
 template<class Archive>
@@ -308,28 +306,12 @@ void serialize(Archive & ar, AlignedBox3r & b, const unsigned int version){
 
 template<class Archive>
 void serialize(Archive & ar, Matrix3r & m, const unsigned int version){
-	Real &m00=m(0,0), &m01=m(0,1), &m02=m(0,2), &m10=m(1,0), &m11=m(1,1), &m12=m(1,2), &m20=m(2,0), &m21=m(2,1), &m22=m(2,2);
-	ar & BOOST_SERIALIZATION_NVP(m00) & BOOST_SERIALIZATION_NVP(m01) & BOOST_SERIALIZATION_NVP(m02) &
-		BOOST_SERIALIZATION_NVP(m10) & BOOST_SERIALIZATION_NVP(m11) & BOOST_SERIALIZATION_NVP(m12) &
-		BOOST_SERIALIZATION_NVP(m20) & BOOST_SERIALIZATION_NVP(m21) & BOOST_SERIALIZATION_NVP(m22);
+	ar & boost::serialization::make_nvp("data",boost::serialization::make_array(m.data(),3*3));
 }
 
 template<class Archive>
 void serialize(Archive & ar, Matrix6r & m, const unsigned int version){
-	Real
-		&m00=m(0,0), &m01=m(0,1), &m02=m(0,2), &m03=m(0,3), &m04=m(0,4), &m05=m(0,5),
-		&m10=m(1,0), &m11=m(1,1), &m12=m(1,2), &m13=m(1,3), &m14=m(1,4), &m15=m(1,5),
-		&m20=m(2,0), &m21=m(2,1), &m22=m(2,2), &m23=m(2,3), &m24=m(2,4), &m25=m(2,5),
-		&m30=m(3,0), &m31=m(3,1), &m32=m(3,2), &m33=m(3,3), &m34=m(3,4), &m35=m(3,5),
-		&m40=m(4,0), &m41=m(4,1), &m42=m(4,2), &m43=m(4,3), &m44=m(4,4), &m45=m(4,5),
-		&m50=m(5,0), &m51=m(5,1), &m52=m(5,2), &m53=m(5,3), &m54=m(5,4), &m55=m(5,5);
-	ar &
-		BOOST_SERIALIZATION_NVP(m00) & BOOST_SERIALIZATION_NVP(m01) & BOOST_SERIALIZATION_NVP(m02) & BOOST_SERIALIZATION_NVP(m03) & BOOST_SERIALIZATION_NVP(m04) & BOOST_SERIALIZATION_NVP(m05) &
-		BOOST_SERIALIZATION_NVP(m10) & BOOST_SERIALIZATION_NVP(m11) & BOOST_SERIALIZATION_NVP(m12) & BOOST_SERIALIZATION_NVP(m13) & BOOST_SERIALIZATION_NVP(m14) & BOOST_SERIALIZATION_NVP(m15) &
-		BOOST_SERIALIZATION_NVP(m20) & BOOST_SERIALIZATION_NVP(m21) & BOOST_SERIALIZATION_NVP(m22) & BOOST_SERIALIZATION_NVP(m23) & BOOST_SERIALIZATION_NVP(m24) & BOOST_SERIALIZATION_NVP(m25) &
-		BOOST_SERIALIZATION_NVP(m30) & BOOST_SERIALIZATION_NVP(m31) & BOOST_SERIALIZATION_NVP(m32) & BOOST_SERIALIZATION_NVP(m33) & BOOST_SERIALIZATION_NVP(m34) & BOOST_SERIALIZATION_NVP(m35) &
-		BOOST_SERIALIZATION_NVP(m40) & BOOST_SERIALIZATION_NVP(m41) & BOOST_SERIALIZATION_NVP(m42) & BOOST_SERIALIZATION_NVP(m43) & BOOST_SERIALIZATION_NVP(m44) & BOOST_SERIALIZATION_NVP(m45) &
-		BOOST_SERIALIZATION_NVP(m50) & BOOST_SERIALIZATION_NVP(m51) & BOOST_SERIALIZATION_NVP(m52) & BOOST_SERIALIZATION_NVP(m53) & BOOST_SERIALIZATION_NVP(m54) & BOOST_SERIALIZATION_NVP(m55);
+	ar & boost::serialization::make_nvp("data",boost::serialization::make_array(m.data(),6*6));
 }
 
 template<class Archive>
@@ -337,7 +319,7 @@ void serialize(Archive & ar, VectorXr & v, const unsigned int version){
 	int size=v.size();
 	ar & BOOST_SERIALIZATION_NVP(size);
 	if(Archive::is_loading::value) v.resize(size);
-	for(int i=0; i<v.size(); i++) ar & boost::serialization::make_nvp(("v"+boost::lexical_cast<std::string>(i)).c_str(),v[i]);
+	ar & boost::serialization::make_nvp("data",boost::serialization::make_array(v.data(),size));
 };
 
 template<class Archive>
@@ -345,8 +327,19 @@ void serialize(Archive & ar, MatrixXr & m, const unsigned int version){
 	int rows=m.rows(), cols=m.cols();
 	ar & BOOST_SERIALIZATION_NVP(rows) & BOOST_SERIALIZATION_NVP(cols);
 	if(Archive::is_loading::value) m.resize(rows,cols);
-	for(int r=0; r<m.rows(); r++) for(int c=0; c<m.cols(); c++) ar & boost::serialization::make_nvp(("i_"+boost::lexical_cast<std::string>(r)+"_"+boost::lexical_cast<std::string>(c)).c_str(),m(r,c));
+	ar & boost::serialization::make_nvp("data",boost::serialization::make_array(m.data(),cols*rows));
 };
+
+template<class Archive, typename Scalar, size_t Dimension>
+void serialize(Archive & ar, boost::multi_array<Scalar,Dimension> & a, const unsigned int version){
+	typedef typename boost::multi_array<Scalar,Dimension>::size_type size_type;
+	boost::array<size_type,Dimension> shape;
+	if(!Archive::is_loading::value) std::memcpy(shape.data(),a.shape(),sizeof(size_type)*shape.size());
+	ar & boost::serialization::make_nvp("shape",boost::serialization::make_array(shape.data(),shape.size()));
+	if(Archive::is_loading::value) a.resize(shape);
+	ar & boost::serialization::make_nvp("data",boost::serialization::make_array(a.data(),a.num_elements()));
+};
+
 
 } // namespace serialization
 } // namespace boost

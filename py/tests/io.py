@@ -120,3 +120,25 @@ class TestSpecialDumpMethods(unittest.TestCase):
 		'IO: Scene.lastSave set (Object._boostSave overridden)'
 		woo.master.scene.save(self.out)
 		self.assert_(woo.master.scene.lastSave==self.out)
+
+class TestArraySerialization(unittest.TestCase):
+	def testMatrixX(self):
+		'IO: serialization of arrays'
+		t0=woo.core.WooTestClass()
+		t0.matX=MatrixX([[0,1,2],[3,4,5]])
+		out=woo.master.tmpFilename()
+		t0.save(out)
+		t1=woo.core.Object.load(out)
+		self.assert_(t1.matX.rows()==2)
+		self.assert_(t1.matX.cols()==3)
+		self.assert_(t1.matX.sum()==15)
+	def testBoostMultiArray(self):
+		'IO: serialization of boost::multi_array'
+		t0=woo.core.WooTestClass()
+		t0.arr3d_set((2,2,2),[0,1,2,3,4,5,6,7])
+		out=woo.master.tmpFilename()
+		t0.save(out)
+		t1=woo.core.Object.load(out)
+		self.assert_(t1.arr3d==[[[0.0, 1.0], [2.0, 3.0]], [[4.0, 5.0], [6.0, 7.0]]])
+
+		

@@ -80,16 +80,22 @@ void VtkFlowExport::setupGrid(){
 }
 
 void VtkFlowExport::updateWeightFunc(){
-	suppRad=relCrop*stDev;
-	// this is perhaps bogus as we used 1d Gaussian in 3d...?!
-	Real clippedQuant=boost::math::cdf(distrib,-suppRad);
-	Real fullSuppVol=(4/3.)*M_PI*pow(suppRad,3); // total volume of the support
-	suppVol=(1-2*clippedQuant)*fullSuppVol;
-	// cross-area of the support (for flow analysis)
-	// suppArea=(1-2*clippedQuant)*M_PI*pow(suppRad,2);
+	if(stDev<=0){
+		suppRad=divSize*sqrt(2)/2.;  // half of the diagonal - bounding sphere
+		suppVol=pow(divSize,3); // one cell
+	} else {
+		suppRad=relCrop*stDev;
+		// this is perhaps bogus as we used 1d Gaussian in 3d...?!
+		Real clippedQuant=boost::math::cdf(distrib,-suppRad);
+		Real fullSuppVol=(4/3.)*M_PI*pow(suppRad,3); // total volume of the support
+		suppVol=(1-2*clippedQuant)*fullSuppVol;
+		// cross-area of the support (for flow analysis)
+		// suppArea=(1-2*clippedQuant)*M_PI*pow(suppRad,2);
+	}
 }
 
 Real VtkFlowExport::pointWeight(const Vector3r& relPos){
+	assert(stDev>0); // should not be called otherwise
 	Real rSq=relPos.squaredNorm();
 	if(rSq>suppRad*suppRad) return 0.; // discard points too far away
 	return boost::math::pdf(distrib,sqrt(rSq));
@@ -121,14 +127,16 @@ void VtkFlowExport::fillOnePoint(const Vector3i& ijk, const Vector3r& P, vtkIdLi
 	else dataId=dataGrid->ComputePointId(ijkArr);
 	int numIds=ids->GetNumberOfIds();
 	nNear->SetValue(dataId,numIds);
-	Vector3r mom; Real ekDens, dens, rad;
+	Vector3r mom; Real ekDens, dens, avgRad;
 	// one neighbor does not count (makes fuzzy domain boundaries, not good)
 	if(numIds<1) goto blank_cell;
 
 	// compute the velocity average
-	if(traces){ // each point is one particle
+	if(traces){ 
 		throw std::runtime_error("VtkFlowExport.traces: not yet implemented.");
 	} else {
+		// each point is one particle
+
 		// FIXME: dimensionality??
 		// kg*(m/s)/m³=kg/m² but is that right?
 		Real weightSum=0.; Vector3r velWSum=Vector3r::Zero();
@@ -140,8 +148,19 @@ void VtkFlowExport::fillOnePoint(const Vector3i& ijk, const Vector3r& P, vtkIdLi
 			const auto parId=pointParticle[id];
 			const auto& p=(*(dem->particles))[parId];
 			const auto& dyn=p->shape->nodes[0]->getData<DemData>();
-			Vector3r relPos=p->shape->nodes[0]->pos-P;
-			Real weight=pointWeight(relPos);
+			const Vector3r& pos=p->shape->nodes[0]->pos;
+			Vector3r relPos=pos-P;
+			Real weight;
+			// with smoothing
+			if(stDev>0) weight=pointWeight(relPos); 
+			// without smoothing
+			else{
+				// discard points outside the rectagular cell completely
+				if(!AlignedBox3r(P-.5*Vector3r(divSize,divSize,divSize),P+.5*Vector3r(divSize,divSize,divSize)).contains(P)) weight=0;
+				// points in the cell have unit weight
+				else weight=1.;
+			}
+			if(weight==0.) continue;
 			weightSum+=weight;
 			velWSum+=weight*dyn.vel*dyn.mass;
 			massSum+=weight*dyn.mass;
@@ -156,10 +175,10 @@ void VtkFlowExport::fillOnePoint(const Vector3i& ijk, const Vector3r& P, vtkIdLi
 		}
 		if(weightSum==0.) goto blank_cell; // perhaps just at the edge; avoid NaNs which Paraview chokes on
 		// if(allSameDir) goto blank_cell;
-		mom=velWSum/weightSum/suppVol;
-		ekDens=ekSum/weightSum/suppVol;
-		dens=massSum/weightSum/suppVol;
-		rad=radSum/weightSum;
+		mom=velWSum/suppVol;
+		ekDens=ekSum/suppVol;
+		dens=massSum/suppVol;
+		avgRad=radSum/weightSum; // average radius
 	}
 
 	// write flow vector to the grid
@@ -167,7 +186,7 @@ void VtkFlowExport::fillOnePoint(const Vector3i& ijk, const Vector3r& P, vtkIdLi
 	flowNorm->SetValue(dataId,mom.norm());
 	density->SetValue(dataId,dens);
 	ekDensity->SetValue(dataId,ekDens);
-	radius->SetValue(dataId,rad);
+	radius->SetValue(dataId,avgRad);
 	return;
 
 	// invalid cell data (too little points, or unsuitable arrangement)

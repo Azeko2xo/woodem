@@ -55,14 +55,14 @@ void Law2_L6Geom_PelletPhys_Pellet::go(const shared_ptr<CGeom>& cg, const shared
 			if(ph.ka<=0) Fn=0;
 			else{ Fn=min(Fn,adhesionForce(g.uN,uNPl,ph.ka)); assert(Fn>0); }
 		} else {
-			Real Fy=yieldForce(g.uN,d0,ph.kn,ph.normPlastCoeff);
+			Real Fy=yieldForce(g.uN,d0,ph.kn,ph.normPlastCoeff,yieldFunc,yf1_beta,yf1_w);
 			// normal plastic slip
 			if(Fn<Fy){
 				Real uNPl0=uNPl; // needed when tracking energy
 				uNPl=g.uN-Fy/ph.kn;
 				if(unlikely(scene->trackEnergy)){
 					// backwards trapezoid integration
-					Real Fy0=Fy+yieldForceDerivative(g.uN,d0,ph.kn,ph.normPlastCoeff)*(uNPl0-uNPl);
+					Real Fy0=Fy+yieldForceDerivative(g.uN,d0,ph.kn,ph.normPlastCoeff,yieldFunc,yf1_beta,yf1_w)*(uNPl0-uNPl);
 					Real dissip=.5*abs(Fy0+Fy)*abs(uNPl-uNPl0);
 					scene->energy->add(dissip,plastSplit?"normPlast":"plast",plastSplit?normPlastIx:plastIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate);
 					tryAddDissipState(DISSIP_NORM_PLAST,dissip,C);
