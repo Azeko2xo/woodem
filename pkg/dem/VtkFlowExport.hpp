@@ -1,3 +1,4 @@
+#pragma once
 #ifdef WOO_VTK
 
 // #include<woo/core/Field.hpp>

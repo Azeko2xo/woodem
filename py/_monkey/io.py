@@ -17,6 +17,7 @@ import pickle
 import json
 import minieigen
 import numpy
+import sys
 # we don't support h5py on Windows, as it is too complicated to install
 # this is an ugly hack :|
 try:
@@ -33,6 +34,14 @@ def Object_getAllTraits(obj):
 		ret=k._attrTraits+ret
 		k=k.__bases__[0]
 	return ret
+
+
+# this is not necessary in Python >= 3.0, and older versions of minieigen don't expose that function 
+if sys.version_info<(3,0) and hasattr(minieigen,'float2str'):
+	def float2str(f): return minieigen.float2str(f)
+else:
+	def float2str(f): return '%g'%f
+
 
 htmlHead='<head><meta http-equiv="content-type" content="text/html;charset=UTF-8" /></head><body>\n'
 
@@ -106,7 +115,7 @@ class SerializerToHtmlTableGenshi:
 			for r in range(len(s)):
 				tr=tag.tr()
 				for c in range(len(s[0])):
-					tr.append(tag.td('%g'%s[r][c] if isinstance(s[r][c],float) else str(s[r][c]),align='right',width='%g%%'%(100./len(s[0])-1.)))
+					tr.append(tag.td(float2str(s[r][c]) if isinstance(s[r][c],float) else str(s[r][c]),align='right',width='%g%%'%(100./len(s[0])-1.)))
 				table.append(tr)
 			return table
 		splitLen=0
@@ -117,14 +126,14 @@ class SerializerToHtmlTableGenshi:
 		# 1d array
 		if splitLen==0 or len(s)<splitLen:
 			ret=table if not insideTable else []
-			for e in s: ret.append(tag.td('%g'%e if isinstance(e,float) else str(e),align='right',width='%g%%'%(100./len(s)-1.)))
+			for e in s: ret.append(tag.td(float2str(e) if isinstance(e,float) else str(e),align='right',width='%g%%'%(100./len(s)-1.)))
 		# 1d array, but with lines broken
 		else:
 			ret=table
 			for i,e in enumerate(s):
 				if i%splitLen==0:
 					tr=tag.tr()
-				tr.append(tag.td('%g'%e if isinstance(e,float) else str(e),align='right',width='%g%%'%(100./splitLen-1.)))
+				tr.append(tag.td(float2str(e) if isinstance(e,float) else str(e),align='right',width='%g%%'%(100./splitLen-1.)))
 				# last in the line, or last overall
 				if i%splitLen==(splitLen-1) or i==len(s)-1: table.append(tr)
 		return ret
@@ -183,7 +192,7 @@ class SerializerToHtmlTableGenshi:
 					else:
 						tr.append(tag.td(tag.i('[empty]'),align='right'))
 				else:
-					tr.append(tag.td('%g'%attr if isinstance(attr,float) else str(attr),align='right'))
+					tr.append(tag.td(float2str(attr) if isinstance(attr,float) else str(attr),align='right'))
 				if unit:
 					tr.append(tag.td(unit,align='right'))
 			ret.append(tr)
@@ -222,6 +231,9 @@ class SerializerToExpr:
 		elif sum([isinstance(obj,T) for T in (tuple,Vector2i,Vector2,Vector3i,Vector3)])>0:
 			attrs=[(None,obj[i]) for i in range(len(obj))]
 			delims='(',')'
+		# use short representation of float as str
+		elif isinstance(obj,float):
+			return float2str(obj)
 		# don't know what to do, use repr (unhandled or primive types)
 		else:
 			return repr(obj)

@@ -166,7 +166,7 @@ template<> struct _setter_postLoadStaticMaybe<false>{
 
 #define _DEF_READWRITE_CUSTOM_STATIC(thisClass,attr) if(!(_ATTR_FLG(attr).isHidden())){ \
 	bool _ro(_ATTR_FLG(attr).isReadonly()), _ref(woo::py_wrap_ref<decltype(thisClass::_ATTR_NAM(attr))>::value || (_ATTR_FLG(attr).isPyByRef())); \
-	constexpr bool _post=!!(_ATTR_TRAIT_TYPE(attr)::compileFlags & woo::Attr::triggerPostLoad); \
+	constexpr bool _post=!!(_ATTR_TRAIT_TYPE(thisClass,attr)::compileFlags & woo::Attr::triggerPostLoad); \
 	if      ( _ref &&  _ro) _classObj.add_static_property(_ATTR_NAM_STR(attr),py::make_getter(thisClass::_ATTR_NAM(attr))); \
 	else if ( _ref && !_ro) _classObj.add_static_property(_ATTR_NAM_STR(attr),py::make_getter(thisClass::_ATTR_NAM(attr)),/*setter*/_setter_postLoadStaticMaybe<_post>::setter<thisClass,decltype(thisClass::_ATTR_NAM(attr)),&thisClass::_ATTR_NAM(attr)>); \
 	else if (!_ref && _ro) _classObj.add_static_property(_ATTR_NAM_STR(attr),py::make_getter(thisClass::_ATTR_NAM(attr),py::return_value_policy<py::return_by_value>())); \
@@ -216,10 +216,10 @@ template<> struct _setAttrMaybe<false>{
 #define _PYGET_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) return py::object(_ATTR_NAM(z));
 //#define _PYSET_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) { _ATTR_NAM(z)=py::extract<decltype(_ATTR_NAM(z))>(t[1]); py::delitem(d,py::object(_ATTR_NAM(z))); continue; }
 // #define _PYSET_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) { _ATTR_NAM(z)=py::extract<decltype(_ATTR_NAM(z))>(value); return; }
-#define _PYSET_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) { _setAttrMaybe<!!(_ATTR_TRAIT_TYPE(z)::compileFlags & woo::Attr::hidden)>::set(key,value,_ATTR_NAM(z)); return; }
+#define _PYSET_ATTR(x,klass,z) if(key==_ATTR_NAM_STR(z)) { _setAttrMaybe<!!(_ATTR_TRAIT_TYPE(klass,z)::compileFlags & woo::Attr::hidden)>::set(key,value,_ATTR_NAM(z)); return; }
 #define _PYYATTR_ATTR(x,y,z) if(!(_ATTR_FLG(z).isHidden())) ret.append(_ATTR_NAM_STR(z));
-#define _PYATTR_TRAIT(x,y,z)        traitList.append(py::ptr(static_cast<AttrTraitBase*>(&_ATTR_TRAIT_GET(z)())));
-#define _PYATTR_TRAIT_STATIC(x,y,z) traitList.append(py::ptr(static_cast<AttrTraitBase*>(&_ATTR_TRAIT_GET(z)()))); // static_() already set in trait definition
+#define _PYATTR_TRAIT(x,klass,z)        traitList.append(py::ptr(static_cast<AttrTraitBase*>(&_ATTR_TRAIT_GET(klass,z)())));
+#define _PYATTR_TRAIT_STATIC(x,klass,z) traitList.append(py::ptr(static_cast<AttrTraitBase*>(&_ATTR_TRAIT_GET(klass,z)()))); // static_() already set in trait definition
 #define _PYHASKEY_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) return true;
 #define _PYDICT_ATTR(x,y,z) if(!(_ATTR_FLG(z).isHidden()) && !(_ATTR_FLG(z).isNoSave()) && !(_ATTR_FLG(z).isNoDump())){ /*if(_ATTR_FLG(z) & woo::Attr::pyByRef) ret[_ATTR_NAM_STR(z)]=py::object(boost::ref(_ATTR_NAM(z))); else */  ret[_ATTR_NAM_STR(z)]=py::object(_ATTR_NAM(z)); }
 
@@ -233,26 +233,48 @@ template<> struct _SerializeMaybe<false>{
 	template<class ArchiveT, typename T>
 	static void serialize(ArchiveT& ar, T&, const char* name){ /* do nothing */ }
 };
-#define _REGISTER_BOOST_SERIALIZATION_ATTRIBUTES_REPEAT(x,y,z) _SerializeMaybe<!(_ATTR_TRAIT_TYPE(z)::compileFlags & woo::Attr::noSave)>::serialize(ar,_ATTR_NAM(z), BOOST_PP_STRINGIZE(_ATTR_NAM(z)));
 
-#define _REGISTER_BOOST_SERIALIZATION_ATTRIBUTES(baseClass,attrs) \
+
+// serialization of a single attribute
+#define _WOO_BOOST_SERIALIZE_REPEAT(x,klass,z) _SerializeMaybe<!(_ATTR_TRAIT_TYPE(klass,z)::compileFlags & woo::Attr::noSave)>::serialize(ar,_ATTR_NAM(z), BOOST_PP_STRINGIZE(_ATTR_NAM(z)));
+
+// the body of the serialization function
+#define _WOO_BOOST_SERIALIZE_BODY(thisClass,baseClass,attrs) \
+	ar & BOOST_SERIALIZATION_BASE_OBJECT_NVP(baseClass);  \
+	/* with ADL, either the generic (empty) version above or baseClass::preLoad etc will be called (compile-time resolution) */ \
+	if(ArchiveT::is_loading::value) preLoad(*this); else preSave(*this); \
+	BOOST_PP_SEQ_FOR_EACH(_WOO_BOOST_SERIALIZE_REPEAT,thisClass,attrs) \
+	if(ArchiveT::is_loading::value) postLoad(*this,NULL); else postSave(*this);
+
+// declaration/implementation version of the whole serialization function
+// declaration first:
+#define _WOO_BOOST_SERIALIZE_DECL(thisClass,baseClass,attrs)\
+	friend class boost::serialization::access;\
+	private: template<class ArchiveT> void serialize(ArchiveT & ar, unsigned int version);
+
+// implementation: must provide explicit instantiation
+#define _WOO_BOOST_SERIALIZE_IMPL_INSTANTIATE(x,thisClass,archiveType) template void thisClass::serialize<archiveType>(archiveType & ar, unsigned int version);
+#define _WOO_BOOST_SERIALIZE_IMPL(thisClass,baseClass,attrs)\
+	template<class ArchiveT> void thisClass::serialize(ArchiveT & ar, unsigned int version){ \
+		_WOO_BOOST_SERIALIZE_BODY(thisClass,baseClass,attrs) \
+	} \
+	/* explicit instantiation for all available archive types -- see http://www.boost.org/doc/libs/1_55_0/libs/serialization/doc/pimpl.html */ \
+	BOOST_PP_SEQ_FOR_EACH(_WOO_BOOST_SERIALIZE_IMPL_INSTANTIATE,thisClass,WOO_BOOST_ARCHIVES)
+
+// inline version of the serialization function
+// no need for explcit instantiation, as the code is in headers
+#define _WOO_BOOST_SERIALIZE_INLINE(thisClass,baseClass,attrs) \
 	friend class boost::serialization::access; \
 	private: template<class ArchiveT> void serialize(ArchiveT & ar, unsigned int version){ \
-		ar & BOOST_SERIALIZATION_BASE_OBJECT_NVP(baseClass);  \
-		/* with ADL, either the generic (empty) version above or baseClass::preLoad etc will be called (compile-time resolution) */ \
-		if(ArchiveT::is_loading::value) preLoad(*this); else preSave(*this); \
-		BOOST_PP_SEQ_FOR_EACH(_REGISTER_BOOST_SERIALIZATION_ATTRIBUTES_REPEAT,~,attrs) \
-		if(ArchiveT::is_loading::value) postLoad(*this,NULL); else postSave(*this); \
+		_WOO_BOOST_SERIALIZE_BODY(thisClass,baseClass,attrs) \
 	}
 
-#define _REGISTER_ATTRIBUTES_DEPREC(thisClass,baseClass,attrs,deprec)  _REGISTER_BOOST_SERIALIZATION_ATTRIBUTES(baseClass,attrs) public: \
-	void pySetAttr(const std::string& key, const py::object& value){BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR,~,attrs); BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR_DEPREC,thisClass,deprec); baseClass::pySetAttr(key,value); } \
+
+
+#define _REGISTER_ATTRIBUTES_DEPREC(thisClass,baseClass,attrs,deprec)  _WOO_BOOST_SERIALIZE_INLINE(thisClass,baseClass,attrs) public: \
+	void pySetAttr(const std::string& key, const py::object& value){BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR,thisClass,attrs); BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR_DEPREC,thisClass,deprec); baseClass::pySetAttr(key,value); } \
 	/* return dictionary of all acttributes and values; deprecated attributes omitted */ py::dict pyDict() const { py::dict ret; BOOST_PP_SEQ_FOR_EACH(_PYDICT_ATTR,~,attrs); ret.update(baseClass::pyDict()); return ret; } \
 	virtual void callPostLoad(void* addr){ baseClass::callPostLoad(addr); postLoad(*this,addr); }
-
-#define _DEF_TRAIT_GETTER(x,thisClass,z) template<class Trait, > 
-#define _DEFINE_TRAIT_GETTERS(thisClass,attrs) BOOST_PP_SEQ_FOR_EACH(_DEF_TRAIT_GETTER,thisClass,attrs)
-
 
 
 // print warning about deprecated attribute; thisClass is type name, not string
@@ -264,8 +286,8 @@ template<> struct _SerializeMaybe<false>{
 #define _ATTR_INI(s) BOOST_PP_TUPLE_ELEM(5,2,s)
 #define _ATTR_FLG_RAW(s) BOOST_PP_TUPLE_ELEM(5,3,s)
 #define _ATTR_TRAIT(s) makeAttrTrait(BOOST_PP_TUPLE_ELEM(5,3,s)).doc(_ATTR_DOC(s)).name(_ATTR_NAM_STR(s)).cxxType(_ATTR_TYP_STR(s)).ini(_ATTR_TYP(s)(_ATTR_INI(s)))
-#define _ATTR_TRAIT_TYPE(s) BOOST_PP_CAT(TraitType_,_ATTR_NAM(s))
-#define _ATTR_TRAIT_GET(s) BOOST_PP_CAT(getTrait_,_ATTR_NAM(s))
+#define _ATTR_TRAIT_TYPE(klass,s) BOOST_PP_CAT(klass,BOOST_PP_CAT(_TraitType_,_ATTR_NAM(s)))
+#define _ATTR_TRAIT_GET(klass,s) BOOST_PP_CAT(klass,BOOST_PP_CAT(_getTrait_,_ATTR_NAM(s)))
 // get flags through AttrTrait now, to test
 #define _ATTR_FLG(s) _ATTR_TRAIT(s)
 #define _ATTR_DOC(s) BOOST_PP_TUPLE_ELEM(5,4,s)
@@ -299,11 +321,16 @@ template<> struct _SerializeMaybe<false>{
 	/* python class registration */ virtual void pyRegisterClass() { _PY_REGISTER_CLASS_BODY(thisClass,baseClass,classTrait,attrs,deprec,extras); } \
 	virtual void must_use_both_WOO_CLASS_BASE_DOC_ATTRS_and_WOO_PLUGIN(); // virtual ensures v-table for all classes 
 
+// attribute declaration
+#define _WOO_ATTR_DECL(x,thisClass,z) _ATTR_TYP(z) _ATTR_NAM(z);
+// trait definition - can go both in hpp or cpp (inside or outside the class body)
+#define _WOO_TRAIT_DEF(x,thisClass,z) \
+	typedef std::remove_reference<decltype(_ATTR_TRAIT(z))>::type _ATTR_TRAIT_TYPE(thisClass,z); \
+	static _ATTR_TRAIT_TYPE(thisClass,z)& _ATTR_TRAIT_GET(thisClass,z)(){ static _ATTR_TRAIT_TYPE(thisClass,z) _tmp=_ATTR_TRAIT(z); return _tmp; }
+
 // return "type name;", define trait type and getter
-#define _ATTR_DECL_AND_TRAIT(x,y,z) \
-	_ATTR_TYP(z) _ATTR_NAM(z); \
-	typedef std::remove_reference<decltype(_ATTR_TRAIT(z))>::type _ATTR_TRAIT_TYPE(z); \
-	static _ATTR_TRAIT_TYPE(z)& _ATTR_TRAIT_GET(z)(){ static _ATTR_TRAIT_TYPE(z) _tmp=_ATTR_TRAIT(z); return _tmp; }
+#define _ATTR_DECL_AND_TRAIT(x,thisClass,z) _WOO_ATTR_DECL(x,thisClass,z) _WOO_TRAIT_DEF(x,thisClass,z)
+
 
 // return name(default), (for initializers list); TRICKY: last one must not have the comma
 #define _ATTR_MAKE_INITIALIZER(x,maxIndex,i,z) BOOST_PP_TUPLE_ELEM(2,0,z)(BOOST_PP_TUPLE_ELEM(2,1,z)) BOOST_PP_COMMA_IF(BOOST_PP_NOT_EQUAL(maxIndex,i))
@@ -314,10 +341,10 @@ template<> struct _SerializeMaybe<false>{
 
 /* _DEF_READWRITE_CUSTOM(thisClass,attr,doc) */ /* duplicate static and non-static attributes do not work (they apparently trigger to-python converter being added; for now, make then non-static, that's it. */
 #define _STATATTR_PY(x,thisClass,z) _DEF_READWRITE_CUSTOM_STATIC(thisClass,z)
-#define _STATATTR_DECL_AND_TRAIT(x,y,z) \
+#define _STATATTR_DECL_AND_TRAIT(x,thisClass,z) \
 	static _ATTR_TYP(z) _ATTR_NAM(z); \
-	typedef std::remove_reference<decltype(_ATTR_TRAIT(z))>::type _ATTR_TRAIT_TYPE(z); \
-	static _ATTR_TRAIT_TYPE(z)& _ATTR_TRAIT_GET(z)(){ static _ATTR_TRAIT_TYPE(z) _tmp=_ATTR_TRAIT(z).static_(); return _tmp; }
+	typedef std::remove_reference<decltype(_ATTR_TRAIT(z))>::type _ATTR_TRAIT_TYPE(thisClass,z); \
+	static _ATTR_TRAIT_TYPE(thisClass,z)& _ATTR_TRAIT_GET(thisClass,z)(){ static _ATTR_TRAIT_TYPE(thisClass,z) _tmp=_ATTR_TRAIT(z).static_(); return _tmp; }
 #define _STATATTR_INITIALIZE(x,thisClass,z) thisClass::_ATTR_NAM(z)=_ATTR_TYP(z)(_ATTR_INI(z));
 
 #define _STATCLASS_PY_REGISTER_CLASS(thisClass,baseClass,classTrait,attrs,pyExtra)\
@@ -348,22 +375,11 @@ template<> struct _SerializeMaybe<false>{
 
 // the most general
 #define WOO_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_DTOR_PY(thisClass,baseClass,classTraitSpec,attrs,deprec,inits,ctor,dtor,extras) \
-	public: BOOST_PP_SEQ_FOR_EACH(_ATTR_DECL_AND_TRAIT,~,attrs) /* attribute declarations */ \
+	public: BOOST_PP_SEQ_FOR_EACH(_ATTR_DECL_AND_TRAIT,thisClass,attrs) /* attribute declarations */ \
 	thisClass() BOOST_PP_IF(BOOST_PP_SEQ_SIZE(inits attrs),:,) BOOST_PP_SEQ_FOR_EACH_I(_ATTR_MAKE_INITIALIZER,BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(inits attrs)), inits BOOST_PP_SEQ_FOR_EACH(_ATTR_MAKE_INIT_TUPLE,~,attrs)) { ctor ; } /* ctor, with initialization of defaults */ \
 	virtual ~thisClass(){ dtor ; }; /* virtual dtor, since classes are polymorphic*/ \
 	_YADE_CLASS_BASE_DOC_ATTRS_DEPREC_PY(thisClass,baseClass,makeClassTrait(classTraitSpec),attrs,deprec,extras)
 
-/** new-style macros **/
-// attrs is (type,name,init-value,docstring)
-#if 0
-	#define YAD3_CLASS_BASE_DOC(klass,base,doc)                             YAD3_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,,,,)
-	#define YAD3_CLASS_BASE_DOC_ATTRS(klass,base,doc,attrs)                 YAD3_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,,,)
-	#define YAD3_CLASS_BASE_DOC_ATTRS_CTOR(klass,base,doc,attrs,ctor)       YAD3_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,,ctor,)
-	#define YAD3_CLASS_BASE_DOC_ATTRS_PY(klass,base,doc,attrs,py)           YAD3_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,,,py)
-	#define YAD3_CLASS_BASE_DOC_ATTRS_CTOR_PY(klass,base,doc,attrs,ctor,py) YAD3_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,,ctor,py)
-	#define YAD3_CLASS_BASE_DOC_ATTRS_INIT_CTOR_PY(klass,base,doc,attrs,inits,ctor,py) YAD3_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY(klass,base,doc,attrs,,inits,ctor,py)
-	// #define YAD3_CLASS_BASE_DOC_ATTRS_DEPREC_INIT_CTOR_PY2(thisClass,baseClass,classTraitSpec,attrs,deprec,inits,ctor,extras) thisClass,baseClass,makeClassTrait(classTraitSpec),attrs,deprec,initrs,ctor,extras
-#endif
 
 #define WOO_DECL__CLASS_BASE_DOC(args) _WOO_DECL__CLASS_BASE_DOC(args)
 #define WOO_IMPL__CLASS_BASE_DOC(args) _WOO_IMPL__CLASS_BASE_DOC(args)
@@ -394,29 +410,31 @@ template<> struct _SerializeMaybe<false>{
 
 #define _WOO_CLASS_DECLARATION(thisClass,baseClass,classTraitSpec,attrs,deprec,inits,ctor,dtor,pyExtras) \
 	/*class itself*/	REGISTER_CLASS_AND_BASE(thisClass,baseClass) \
-	/* attribute declarations*/ BOOST_PP_SEQ_FOR_EACH(_ATTR_DECL_AND_TRAIT,~,attrs) \
-	/* boost::serialization, all in header*/ _REGISTER_BOOST_SERIALIZATION_ATTRIBUTES(baseClass,attrs) public: \
-	/* later: call postLoad via ADL*/virtual void callPostLoad(void* addr){ baseClass::callPostLoad(addr); postLoad(*this,addr); } \
+	/* attribute declarations*/ BOOST_PP_SEQ_FOR_EACH(_WOO_ATTR_DECL,thisClass,attrs) \
+	/*trait definitions*/ BOOST_PP_SEQ_FOR_EACH(_WOO_TRAIT_DEF,thisClass,attrs) \
+	/* later: call postLoad via ADL*/ public: virtual void callPostLoad(void* addr){ baseClass::callPostLoad(addr); postLoad(*this,addr); } \
 	/* accessors for deprecated attributes, with warnings */ BOOST_PP_SEQ_FOR_EACH(_ACCESS_DEPREC,thisClass,deprec) \
 	/**follow pure declarations of which implementation is handled sparately**/ \
 	/*1. ctor declaration */ thisClass();\
 	/*2. dtor declaration */ virtual ~thisClass(); \
-	/*3. set attributes from kw ctor */ void pySetAttr(const std::string& key, const py::object& value); \
-	/*4. for pickling*/ py::dict pyDict() const; \
-	/*5. python class registration*/ virtual void pyRegisterClass(); \
-	/*6. ensures v-table; will be removed later*/ void must_use_both_WOO_CLASS_BASE_DOC_ATTRS_and_WOO_PLUGIN(); \
-	/*7.*/ void must_use_both_WOO_CLASS_DECLARATION_and_WOO_CLASS_IMPLEMENTATION();
+	/*3. boost::serialization declarations */ _WOO_BOOST_SERIALIZE_DECL(thisClass,baseClass,attrs) \
+	/*4. set attributes from kw ctor */ protected: void pySetAttr(const std::string& key, const py::object& value); \
+	/*5. for pickling*/ py::dict pyDict() const; \
+	/*6. python class registration*/ virtual void pyRegisterClass(); \
+	/*7. ensures v-table; will be removed later*/ void must_use_both_WOO_CLASS_BASE_DOC_ATTRS_and_WOO_PLUGIN(); \
+	/*8.*/ void must_use_both_WOO_CLASS_DECLARATION_and_WOO_CLASS_IMPLEMENTATION();
 
 #define WOO_CLASS_IMPLEMENTATION(allArgsTogether) _WOO_CLASS_IMPLEMENTATION(allArgsTogether)
 
 #define _WOO_CLASS_IMPLEMENTATION(thisClass,baseClass,classTraitSpec,attrs,deprec,init,ctor,dtor,pyExtras) \
 	/*1.*/ thisClass::thisClass() BOOST_PP_IF(BOOST_PP_SEQ_SIZE(init attrs),:,) BOOST_PP_SEQ_FOR_EACH_I(_ATTR_MAKE_INITIALIZER,BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(init attrs)), init BOOST_PP_SEQ_FOR_EACH(_ATTR_MAKE_INIT_TUPLE,~,attrs)) { ctor; } \
 	/*2.*/ thisClass::~thisClass(){ dtor; } \
-	/*3.*/ void thisClass::pySetAttr(const std::string& key, const py::object& value){ BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR,~,attrs); BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR_DEPREC,thisClass,deprec); baseClass::pySetAttr(key,value); } \
-	/*4.*/ py::dict thisClass::pyDict() const { py::dict ret; BOOST_PP_SEQ_FOR_EACH(_PYDICT_ATTR,~,attrs); ret.update(baseClass::pyDict()); return ret; } \
-	/*5.*/ void thisClass::pyRegisterClass() { _PY_REGISTER_CLASS_BODY(thisClass,baseClass,makeClassTrait(classTraitSpec),attrs,deprec,pyExtras); } \
-	/*6. -- handled by WOO_PLUGIN */ \
-	/*7.*/ void thisClass::must_use_both_WOO_CLASS_DECLARATION_and_WOO_CLASS_IMPLEMENTATION(){};
+	/*3.*/ _WOO_BOOST_SERIALIZE_IMPL(thisClass,baseClass,attrs) \
+	/*4.*/ void thisClass::pySetAttr(const std::string& key, const py::object& value){ BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR,thisClass,attrs); BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR_DEPREC,thisClass,deprec); baseClass::pySetAttr(key,value); } \
+	/*5.*/ py::dict thisClass::pyDict() const { py::dict ret; BOOST_PP_SEQ_FOR_EACH(_PYDICT_ATTR,~,attrs); ret.update(baseClass::pyDict()); return ret; } \
+	/*6.*/ void thisClass::pyRegisterClass() { _PY_REGISTER_CLASS_BODY(thisClass,baseClass,makeClassTrait(classTraitSpec),attrs,deprec,pyExtras); } \
+	/*7. -- handled by WOO_PLUGIN */ \
+	/*8.*/ void thisClass::must_use_both_WOO_CLASS_DECLARATION_and_WOO_CLASS_IMPLEMENTATION(){};
 
 	
 
@@ -425,7 +443,7 @@ template<> struct _SerializeMaybe<false>{
 
 // for static classes (Gl1 functors, for instance)
 #define WOO_CLASS_BASE_DOC_STATICATTRS_CTOR_PY(thisClass,baseClass,classTraitSpec,attrs,statCtor,pyExtra)\
-	public: BOOST_PP_SEQ_FOR_EACH(_STATATTR_DECL_AND_TRAIT,~,attrs) /* attribute declarations */ \
+	public: BOOST_PP_SEQ_FOR_EACH(_STATATTR_DECL_AND_TRAIT,thisClass,attrs) /* attribute declarations */ \
 	/* no ctor */ \
 	REGISTER_CLASS_AND_BASE(thisClass,baseClass); \
 	_REGISTER_ATTRIBUTES_DEPREC(thisClass,baseClass,attrs,) \
