@@ -9,7 +9,8 @@ import math
 from minieigen import *
 
 class FallingHorse(woo.core.Preprocessor,woo.pyderived.PyWooObject):
-	'Sample for the falling horse simulation'
+	'''Preprocessor for the falling horse simulation. The falling horse is historically the demo of Woo. IT shows importing triangulated surfaces, filling imported geometry with particle arrangement, selection of material model, export for VTK (Paraview) and the :obj:`woo.dem.FlowAnalysis` tool. \n\n.. youtube:: LB3T6sBdwz0
+	'''
 	_classTraits=None
 	_PAT=woo.pyderived.PyAttrTrait # less typing
 	_attrTraits=[

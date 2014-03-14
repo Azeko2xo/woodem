@@ -237,7 +237,9 @@ void GridCollider::run(){
 #include<woo/lib/opengl/GLUtils.hpp>
 	void GridCollider::render(const GLViewInfo&){
 		// show domain with tics along all sides of the box
-		GLUtils::AlignedBox(domain,color);
+		// GLUtils::AlignedBox(domain,color);
+		GLUtils::AlignedBoxWithTicks(domain,cellSize,cellSize,color);
+	#if 0
 		glColor3v(color);
 		glBegin(GL_LINES);
 			// for each axis (along which the sides go), there are found corners
@@ -260,6 +262,7 @@ void GridCollider::run(){
 				}
 			}
 		glEnd();
+	#endif
 		if(!renderCells) return;
 
 		if(!occupancyRange){

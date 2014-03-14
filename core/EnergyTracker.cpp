@@ -3,6 +3,18 @@
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_core_EnergyTracker__CLASS_BASE_DOC_ATTRS_PY);
 
 WOO_PLUGIN(core,(EnergyTracker));
+CREATE_LOGGER(EnergyTracker);
+
+
+void EnergyTracker::add(const Real& val, const std::string& name, int &id, int flg){
+	// if ZeroDontCreate is set, the value is zero and no such energy exists, it will not be created and id will be still negative
+	if(id<0) findId(name,id,flg,/*newIfNotFound*/!(val==0. && (flg&ZeroDontCreate)));
+	if(id>=0){
+		if(isnan(val)){ LOG_WARN("Ignoring attempt to add NaN to energy '"<<name<<"'."); return; }
+		energies.add(id,val);
+	}
+}
+
 
 Real EnergyTracker::total() const {
 	Real ret=0; size_t sz=energies.size(); for(size_t id=0; id<sz; id++) ret+=energies.get(id); return ret;

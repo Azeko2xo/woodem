@@ -67,7 +67,7 @@ void Law2_L6Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shar
 				*/
 				// FIXME: this is broken with zero friciton (dissipates energy when there is no dissipation at all!)
 				// Real dissip=(.5*(FtNorm-maxFt)+maxFt)*(FtNorm-maxFt)/ph.kt;
-				Real dissip=(maxFt)*(FtNorm-maxFt)/ph.kt;
+				Real dissip=(ph.kt!=0.?(maxFt)*(FtNorm-maxFt)/ph.kt:0.); // with zero stiffness, no dissipation
 				scene->energy->add(dissip,"plast",plastDissipIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate);
 			}
 			Ft*=ratio;
@@ -79,7 +79,14 @@ void Law2_L6Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shar
 			throw std::runtime_error("NaN force in contact (message above)?!");
 		}
 	}
-	if(unlikely(scene->trackEnergy)){ scene->energy->add(0.5*(pow(ph.force[0],2)/ph.kn+Ft.squaredNorm()/ph.kt),"elast",elastPotIx,EnergyTracker::IsResettable); }
+	if(unlikely(scene->trackEnergy)){
+		Real elast=0.5*(pow(ph.force[0],2)/ph.kn+(ph.kt!=0.?Ft.squaredNorm()/ph.kt:0.));
+		if(isnan(elast)){
+			LOG_WARN("elast==NaN: Fn="<<ph.force[0]<<", kn="<<ph.kn<<", Ft=("<<Ft[0]<<","<<Ft[1]<<"), kt="<<ph.kt);
+			elast=0.; // this should not happen...?!
+		}
+		scene->energy->add(elast,"elast",elastPotIx,EnergyTracker::IsResettable);
+	}
 };
 
 void Law2_L6Geom_FrictPhys_LinEl6::go(const shared_ptr<CGeom>& cg, const shared_ptr<CPhys>& cp, const shared_ptr<Contact>& C){

@@ -61,40 +61,47 @@ struct Particle: public Object{
 	virtual string pyStr() const { return "<Particle #"+to_string(id)+" @ "+lexical_cast<string>(this)+">"; }
 	int countRealContacts() const;
 	void postLoad(Particle&,void*);
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Particle,Object,ClassTrait().doc("Particle in DEM").section("Particle","Each particles in DEM is defined by its shape (given by multiple nodes) and other parameters.",{"Shape","Material","Bound"}),
-		((id_t,id,-1,AttrTrait<Attr::readonly>(),"Index in DemField::particles"))
-		((uint,mask,1,,"Bitmask for collision detection and other (group 1 by default)"))
-		((shared_ptr<Shape>,shape,,,"Geometrical configuration of the particle"))
-		((shared_ptr<Material>,material,,,"Material of the particle"))
-		((shared_ptr<MatState>,matState,,,"Material state of the particle (such as damage data and similar)"))
-		// not saved, reconstructed from DemField::postLoad
-		((MapParticleContact,contacts,,AttrTrait<Attr::noSave|Attr::hidden>(),"Contacts of this particle, indexed by id of the other particle."))
-		// ((int,flags,0,AttrTrait<Attr::hidden>(),"Various flags, only individually accesible from Python"))
-		, /*ctor*/
-		, /*py*/
-			.add_property("contacts",&Particle::pyContacts)
-			.add_property("con",&Particle::pyCon)
-			.add_property("tacts",&Particle::pyTacts)
-		.add_property("pos",py::make_function(&Particle::getPos,py::return_internal_reference<>()),py::make_function(&Particle::setPos))
-		.add_property("refPos",py::make_function(&Particle::getRefPos
-			#ifdef WOO_OPENGL
-				,py::return_internal_reference<>()
-			#endif
-			),py::make_function(&Particle::setRefPos))
-		.add_property("ori",py::make_function(&Particle::getOri,py::return_internal_reference<>()),py::make_function(&Particle::setOri))
-		.add_property("vel",py::make_function(&Particle::getVel,py::return_internal_reference<>()),py::make_function(&Particle::setVel))
-		.add_property("angVel",py::make_function(&Particle::getAngVel,py::return_internal_reference<>()),py::make_function(&Particle::setAngVel))
-		.add_property("impose",&Particle::getImpose,&Particle::setImpose)
-		.add_property("mass",&Particle::getMass)
-		.add_property("inertia",&Particle::getInertia)
-		.add_property("f",&Particle::getForce)
-		.add_property("t",&Particle::getTorque)
-		.add_property("nodes",&Particle::getNodes)
-		.add_property("blocked",&Particle::getBlocked,&Particle::setBlocked)
-		.add_property("Ek",&Particle::getEk,"Summary kinetic energy of the particle")
-		.add_property("Ekt",&Particle::getEk_trans,"Translational kinetic energy of the particle")
+
+	// return internal reference for refPos with OpenGL
+	// without OpenGL, there is nothing like that
+	// we need to branch here since we can't use #ifdef inside macro definition
+	#ifdef WOO_OPENGL
+		#define woo_dem_Particle__OPENGL__return_internal_reference ,py::return_internal_reference<>()
+	#else
+		#define woo_dem_Particle__OPENGL__return_internal_reference
+	#endif
+
+	#define woo_dem_Particle__CLASS_BASE_DOC_ATTRS_PY \
+		Particle,Object,ClassTrait().doc("Particle in DEM").section("Particle","Each particles in DEM is defined by its shape (given by multiple nodes) and other parameters.",{"Shape","Material","Bound"}), \
+		((id_t,id,-1,AttrTrait<Attr::readonly>(),"Index in DemField::particles")) \
+		((uint,mask,1,,"Bitmask for collision detection and other (group 1 by default)")) \
+		((shared_ptr<Shape>,shape,,,"Geometrical configuration of the particle")) \
+		((shared_ptr<Material>,material,,,"Material of the particle")) \
+		((shared_ptr<MatState>,matState,,,"Material state of the particle (such as damage data and similar)")) \
+		/* not saved, reconstructed from DemField::postLoad */ \
+		((MapParticleContact,contacts,,AttrTrait<Attr::noSave|Attr::hidden>(),"Contacts of this particle, indexed by id of the other particle.")) \
+		/* ((int,flags,0,AttrTrait<Attr::hidden>(),"Various flags, only individually accesible from Python")) */ \
+		, /*py*/ \
+			.add_property("contacts",&Particle::pyContacts) \
+			.add_property("con",&Particle::pyCon) \
+			.add_property("tacts",&Particle::pyTacts) \
+		.add_property("pos",py::make_function(&Particle::getPos,py::return_internal_reference<>()),py::make_function(&Particle::setPos)) \
+		.add_property("refPos",py::make_function(&Particle::getRefPos woo_dem_Particle__OPENGL__return_internal_reference ),py::make_function(&Particle::setRefPos)) \
+		.add_property("ori",py::make_function(&Particle::getOri,py::return_internal_reference<>()),py::make_function(&Particle::setOri)) \
+		.add_property("vel",py::make_function(&Particle::getVel,py::return_internal_reference<>()),py::make_function(&Particle::setVel)) \
+		.add_property("angVel",py::make_function(&Particle::getAngVel,py::return_internal_reference<>()),py::make_function(&Particle::setAngVel)) \
+		.add_property("impose",&Particle::getImpose,&Particle::setImpose) \
+		.add_property("mass",&Particle::getMass) \
+		.add_property("inertia",&Particle::getInertia) \
+		.add_property("f",&Particle::getForce) \
+		.add_property("t",&Particle::getTorque) \
+		.add_property("nodes",&Particle::getNodes) \
+		.add_property("blocked",&Particle::getBlocked,&Particle::setBlocked) \
+		.add_property("Ek",&Particle::getEk,"Summary kinetic energy of the particle") \
+		.add_property("Ekt",&Particle::getEk_trans,"Translational kinetic energy of the particle") \
 		.add_property("Ekr",&Particle::getEk_rot,"Rotational kinetic energy of the particle")
-	);
+
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Particle__CLASS_BASE_DOC_ATTRS_PY);
 };
 WOO_REGISTER_OBJECT(Particle);
 
@@ -209,28 +216,29 @@ public:
 	void postLoad(DemData&,void*);
 
 	bool isAspherical() const{ return !((inertia[0]==inertia[1] && inertia[1]==inertia[2])); }
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(DemData,NodeData,"Dynamic state of node.",
-		((Vector3r,vel,Vector3r::Zero(),AttrTrait<>().velUnit(),"Linear velocity."))
-		((Vector3r,angVel,Vector3r::Zero(),AttrTrait<Attr::triggerPostLoad>().angVelUnit(),"Angular velocity; when set, :obj:`angMom` is reset (and updated from :obj:`angVel` in :obj:`Leapfrog`).."))
-		((Real,mass,0,AttrTrait<>().massUnit(),"Associated mass."))
-		((Vector3r,inertia,Vector3r::Zero(),AttrTrait<>().inertiaUnit(),"Inertia along local (principal) axes"))
-		((Vector3r,force,Vector3r::Zero(),AttrTrait<>().forceUnit(),"Applied force"))
-		((Vector3r,torque,Vector3r::Zero(),AttrTrait<>().torqueUnit(),"Applied torque"))
-		((Vector3r,angMom,Vector3r(NaN,NaN,NaN),AttrTrait<>().angMomUnit(),"Angular momentum; used with the aspherical integrator. If NaN and aspherical integrator (:obj:`Leapfrog`) is used, the value is initialized to :obj:`inertia` × :obj:`angVel`."))
-		((unsigned,flags,0,AttrTrait<Attr::readonly>().bits({"block x","block y","block z","block rot x","block rot y","block rot z","clumped","clump","energy skip","gravity skip","tracer skip"}),"Bit flags storing blocked DOFs, clump status, ..."))
-		((long,linIx,-1,AttrTrait<>().readonly().noGui(),"Index within DemField.nodes (for efficient removal)"))
-		((std::list<Particle*>,parRef,,AttrTrait<Attr::hidden|Attr::noSave>(),"Back-reference for particles using this node; this is important for knowing when a node may be deleted (no particles referenced) and such. Should be kept consistent."))
-		((shared_ptr<Impose>,impose,,,"Impose arbitrary velocity, angular velocity, ... on the node; the functor is called from Leapfrog, after new position and velocity have been computed."))
-		((weak_ptr<Node>,master,,AttrTrait<>().hidden(),"Master node; currently only used with clumps (since this is never set from python, it is safe to use weak_ptr)."))
-		, /*ctor*/
-		, /*py*/ .add_property("blocked",&DemData::blocked_vec_get,&DemData::blocked_vec_set,"Degress of freedom where linear/angular velocity will be always constant (equal to zero, or to an user-defined value), regardless of applied force/torque. String that may contain 'xyzXYZ' (translations and rotations).")
-		.add_property("clump",&DemData::isClump).add_property("clumped",&DemData::isClumped).add_property("noClump",&DemData::isNoClump).add_property("energySkip",&DemData::isEnergySkip,&DemData::setEnergySkip).add_property("gravitySkip",&DemData::isGravitySkip,&DemData::setGravitySkip).add_property("tracerSkip",&DemData::isTracerSkip,&DemData::setTracerSkip)
-		.add_property("master",&DemData::pyGetMaster)
-		.add_property("parRef",&DemData::pyParRef_get).def("addParRef",&DemData::addParRef)
-		.add_property("isAspherical",&DemData::isAspherical,"Return ``True`` when inertia components are not equal.")
+
+	#define woo_dem_DemData__CLASS_BASE_DOC_ATTRS_PY \
+		DemData,NodeData,"Dynamic state of node.", \
+		((Vector3r,vel,Vector3r::Zero(),AttrTrait<>().velUnit(),"Linear velocity.")) \
+		((Vector3r,angVel,Vector3r::Zero(),AttrTrait<Attr::triggerPostLoad>().angVelUnit(),"Angular velocity; when set, :obj:`angMom` is reset (and updated from :obj:`angVel` in :obj:`Leapfrog`)..")) \
+		((Real,mass,0,AttrTrait<>().massUnit(),"Associated mass.")) \
+		((Vector3r,inertia,Vector3r::Zero(),AttrTrait<>().inertiaUnit(),"Inertia along local (principal) axes")) \
+		((Vector3r,force,Vector3r::Zero(),AttrTrait<>().forceUnit(),"Applied force")) \
+		((Vector3r,torque,Vector3r::Zero(),AttrTrait<>().torqueUnit(),"Applied torque")) \
+		((Vector3r,angMom,Vector3r(NaN,NaN,NaN),AttrTrait<>().angMomUnit(),"Angular momentum; used with the aspherical integrator. If NaN and aspherical integrator (:obj:`Leapfrog`) is used, the value is initialized to :obj:`inertia` × :obj:`angVel`.")) \
+		((unsigned,flags,0,AttrTrait<Attr::readonly>().bits({"block x","block y","block z","block rot x","block rot y","block rot z","clumped","clump","energy skip","gravity skip","tracer skip"}),"Bit flags storing blocked DOFs, clump status, ...")) \
+		((long,linIx,-1,AttrTrait<>().readonly().noGui(),"Index within DemField.nodes (for efficient removal)")) \
+		((std::list<Particle*>,parRef,,AttrTrait<Attr::hidden|Attr::noSave>(),"Back-reference for particles using this node; this is important for knowing when a node may be deleted (no particles referenced) and such. Should be kept consistent.")) \
+		((shared_ptr<Impose>,impose,,,"Impose arbitrary velocity, angular velocity, ... on the node; the functor is called from Leapfrog, after new position and velocity have been computed.")) \
+		((weak_ptr<Node>,master,,AttrTrait<>().hidden(),"Master node; currently only used with clumps (since this is never set from python, it is safe to use weak_ptr).")) \
+		, /*py*/ .add_property("blocked",&DemData::blocked_vec_get,&DemData::blocked_vec_set,"Degress of freedom where linear/angular velocity will be always constant (equal to zero, or to an user-defined value), regardless of applied force/torque. String that may contain 'xyzXYZ' (translations and rotations).") \
+		.add_property("clump",&DemData::isClump).add_property("clumped",&DemData::isClumped).add_property("noClump",&DemData::isNoClump).add_property("energySkip",&DemData::isEnergySkip,&DemData::setEnergySkip).add_property("gravitySkip",&DemData::isGravitySkip,&DemData::setGravitySkip).add_property("tracerSkip",&DemData::isTracerSkip,&DemData::setTracerSkip) \
+		.add_property("master",&DemData::pyGetMaster) \
+		.add_property("parRef",&DemData::pyParRef_get).def("addParRef",&DemData::addParRef) \
+		.add_property("isAspherical",&DemData::isAspherical,"Return ``True`` when inertia components are not equal.") \
 		.def("_getDataOnNode",&Node::pyGetData<DemData>).staticmethod("_getDataOnNode").def("_setDataOnNode",&Node::pySetData<DemData>).staticmethod("_setDataOnNode")
-		;
-	);
+
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_DemData__CLASS_BASE_DOC_ATTRS_PY);
 };
 WOO_REGISTER_OBJECT(DemData);
 
@@ -254,21 +262,25 @@ struct DemField: public Field{
 	//template<> bool sceneHasField<DemField>() const;
 	//template<> shared_ptr<DemField> sceneGetField<DemField>() const;
 	void postLoad(DemField&,void*);
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(DemField,Field,"Field describing a discrete element assembly. Each particle references (possibly many) nodes. ",
-		((shared_ptr<ParticleContainer>,particles,make_shared<ParticleContainer>(),AttrTrait<>().pyByRef().readonly().ini().buttons({"Export spheres to CSV","import woo.pack; from PyQt4.QtGui import QFileDialog\nsp=woo.pack.SpherePack(); sp.fromSimulation(self.scene); csv=woo.master.tmpFilename()+'.csv'; csv=str(QFileDialog.getSaveFileName(None,'Export spheres','.'));\nif csv:\n\tsp.save(csv); print 'Saved exported spheres to',csv",""}),"Particles (each particle holds its contacts, and references associated nodes)"))
-		((shared_ptr<ContactContainer>,contacts,make_shared<ContactContainer>(),AttrTrait<>().pyByRef().readonly().ini(),"Linear view on particle contacts"))
-		((uint,loneMask,0,,"Particle groups which have bits in loneMask in common (i.e. (A.mask & B.mask & loneMask)!=0) will not have contacts between themselves"))
-		((Vector3r,gravity,Vector3r::Zero(),,"Constant gravity acceleration"))
-		((bool,saveDeadNodes,false,AttrTrait<>().buttons({"Clear dead nodes","self.clearDead()",""}),"Save unused nodes of deleted particles, which would be otherwise removed (useful for displaying traces of deleted particles)."))
-		((vector<shared_ptr<Node>>,deadNodes,,AttrTrait<Attr::readonly>().noGui(),"List of nodes belonging to deleted particles; only used if :obj:`saveDeadNodes` is ``True``"))
-		, /* ctor */ createIndex(); postLoad(*this,NULL); /* to make sure pointers are OK */
-		, /*py*/
-		.def("collectNodes",&DemField::collectNodes,"Collect nodes from all particles and clumps and insert them to nodes defined for this field. Nodes are not added multiple times, even if they are referenced from different particles.")
-		.def("clearDead",&DemField::clearDead)
-		.def("nodesAppend",&DemField::pyNodesAppend,"Append given node to :obj:`nodes`, and set :obj:`DemData.linIx` to the correct value automatically.")
-		.def("sceneHasField",&Field_sceneHasField<DemField>).staticmethod("sceneHasField")
-		.def("sceneGetField",&Field_sceneGetField<DemField>).staticmethod("sceneGetField")
-	);
+	#define woo_dem_DemField__CLASS_BASE_DOC_ATTRS_CTOR_PY \
+		DemField,Field,"Field describing a discrete element assembly. Each particle references (possibly many) nodes. ", \
+		((shared_ptr<ParticleContainer>,particles,make_shared<ParticleContainer>(),AttrTrait<>().pyByRef().readonly().ini().buttons({"Export spheres to CSV","import woo.pack; from PyQt4.QtGui import QFileDialog\nsp=woo.pack.SpherePack(); sp.fromSimulation(self.scene); csv=woo.master.tmpFilename()+'.csv'; csv=str(QFileDialog.getSaveFileName(None,'Export spheres','.'));\nif csv:\n\tsp.save(csv); print 'Saved exported spheres to',csv",""}),"Particles (each particle holds its contacts, and references associated nodes)")) \
+		((shared_ptr<ContactContainer>,contacts,make_shared<ContactContainer>(),AttrTrait<>().pyByRef().readonly().ini(),"Linear view on particle contacts")) \
+		((uint,loneMask,0,,"Particle groups which have bits in loneMask in common (i.e. (A.mask & B.mask & loneMask)!=0) will not have contacts between themselves")) \
+		((Vector3r,gravity,Vector3r::Zero(),,"Constant gravity acceleration")) \
+		((bool,saveDeadNodes,false,AttrTrait<>().buttons({"Clear dead nodes","self.clearDead()",""}),"Save unused nodes of deleted particles, which would be otherwise removed (useful for displaying traces of deleted particles).")) \
+		((vector<shared_ptr<Node>>,deadNodes,,AttrTrait<Attr::readonly>().noGui(),"List of nodes belonging to deleted particles; only used if :obj:`saveDeadNodes` is ``True``")) \
+		, /* ctor */ createIndex(); postLoad(*this,NULL); /* to make sure pointers are OK */ \
+		, /*py*/ \
+		.def("collectNodes",&DemField::collectNodes,"Collect nodes from all particles and clumps and insert them to nodes defined for this field. Nodes are not added multiple times, even if they are referenced from different particles.") \
+		.def("clearDead",&DemField::clearDead) \
+		.def("nodesAppend",&DemField::pyNodesAppend,"Append given node to :obj:`nodes`, and set :obj:`DemData.linIx` to the correct value automatically.") \
+		.def("sceneHasField",&Field_sceneHasField<DemField>).staticmethod("sceneHasField") \
+		.def("sceneGetField",&Field_sceneGetField<DemField>).staticmethod("sceneGetField") 
+
+	
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_DemField__CLASS_BASE_DOC_ATTRS_CTOR_PY);
+
 	REGISTER_CLASS_INDEX(DemField,Field);
 };
 WOO_REGISTER_OBJECT(DemField);
@@ -397,30 +409,35 @@ struct Contact: public Object{
 	Particle* leakOther(const Particle* p) const { assert(p==leakPA() || p==leakPB()); return (p!=leakPA()?leakPA():leakPB()); }
 	shared_ptr<Particle> pyPA() const { return pA.lock(); }
 	shared_ptr<Particle> pyPB() const { return pB.lock(); }
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Contact,Object,"Contact in DEM",
-		((shared_ptr<CGeom>,geom,,AttrTrait<Attr::readonly>(),"Contact geometry"))
-		((shared_ptr<CPhys>,phys,,AttrTrait<Attr::readonly>(),"Physical properties of contact"))
-		((shared_ptr<CData>,data,,AttrTrait<Attr::readonly>(),"Optional data stored by the functor for its own use"))
-		// these two are overridden below because of weak_ptr
-		((weak_ptr<Particle>,pA,,AttrTrait<Attr::readonly>(),"First particle of the contact"))
-		((weak_ptr<Particle>,pB,,AttrTrait<Attr::readonly>(),"Second particle of the contact"))
-		((Vector3i,cellDist,Vector3i::Zero(),AttrTrait<Attr::readonly>(),"Distace in the number of periodic cells by which pB must be shifted to get to the right relative position."))
-		#ifdef WOO_OPENGL
-			((Real,color,0,,"(Normalized) color value for this contact"))
-		#endif
-		((int,stepCreated,-1,AttrTrait<Attr::hidden>(),"Step in which this contact was created by the collider, or step in which it was made real (if geom and phys exist). This number is NOT reset by Contact::reset(). If negative, it means the collider does not want to keep this contact around anymore (this happens if the contact is real but there is no overlap anymore)."))
-		((Real,minDist00Sq,-1,AttrTrait<Attr::hidden>(),"Minimum distance between nodes[0] of both shapes so that the contact can exist. Set in ContactLoop by geometry functor once, and is used to check for possible contact without having to call the functor. If negative, not used. Currently, only Sphere-Sphere contacts use this information."))
-		((int,stepLastSeen,-1,AttrTrait<Attr::hidden>(),""))
-		((size_t,linIx,0,AttrTrait<Attr::readonly>().noGui(),"Position in the linear view (ContactContainer)"))
-		, /*ctor*/
-		, /*py*/ .add_property("id1",&Contact::pyId1).add_property("id2",&Contact::pyId2).add_property("real",&Contact::isReal).add_property("ids",&Contact::pyIds)
-		.def("dPos",&Contact::dPos_py,"Return position difference vector pB-pA, taking `Contact.cellDist` in account properly. Both particles must be uninodal, exception is raised otherwise.")
-		.def("dist",&Contact::dist_py,"Shorthand for dPos.norm().")
-		.add_property("pA",&Contact::pyPA,"First particle of the contact")
-		.add_property("pB",&Contact::pyPB,"Second particle of the contact")
-		.def("resetPhys",&Contact::pyResetPhys,"Set *phys* to *None* (to force its re-evaluation)")
+	#ifdef WOO_OPENGL
+		#define woo_dem_Contact__OPENGL__color ((Real,color,0,,"(Normalized) color value for this contact"))
+	#else
+		#define woo_dem_Contact__OPENGL__color
+	#endif
+
+	#define woo_dem_Contact__CLASS_BASE_DOC_ATTRS_PY \
+		Contact,Object,"Contact in DEM", \
+		((shared_ptr<CGeom>,geom,,AttrTrait<Attr::readonly>(),"Contact geometry")) \
+		((shared_ptr<CPhys>,phys,,AttrTrait<Attr::readonly>(),"Physical properties of contact")) \
+		((shared_ptr<CData>,data,,AttrTrait<Attr::readonly>(),"Optional data stored by the functor for its own use")) \
+		/* these two are overridden below because of weak_ptr */  \
+		((weak_ptr<Particle>,pA,,AttrTrait<Attr::readonly>(),"First particle of the contact")) \
+		((weak_ptr<Particle>,pB,,AttrTrait<Attr::readonly>(),"Second particle of the contact")) \
+		((Vector3i,cellDist,Vector3i::Zero(),AttrTrait<Attr::readonly>(),"Distace in the number of periodic cells by which pB must be shifted to get to the right relative position.")) \
+		woo_dem_Contact__OPENGL__color \
+		((int,stepCreated,-1,AttrTrait<Attr::hidden>(),"Step in which this contact was created by the collider, or step in which it was made real (if geom and phys exist). This number is NOT reset by Contact::reset(). If negative, it means the collider does not want to keep this contact around anymore (this happens if the contact is real but there is no overlap anymore).")) \
+		((Real,minDist00Sq,-1,AttrTrait<Attr::hidden>(),"Minimum distance between nodes[0] of both shapes so that the contact can exist. Set in ContactLoop by geometry functor once, and is used to check for possible contact without having to call the functor. If negative, not used. Currently, only Sphere-Sphere contacts use this information.")) \
+		((int,stepLastSeen,-1,AttrTrait<Attr::hidden>(),"")) \
+		((size_t,linIx,0,AttrTrait<Attr::readonly>().noGui(),"Position in the linear view (ContactContainer)")) \
+		, /*py*/ .add_property("id1",&Contact::pyId1).add_property("id2",&Contact::pyId2).add_property("real",&Contact::isReal).add_property("ids",&Contact::pyIds) \
+		.def("dPos",&Contact::dPos_py,"Return position difference vector pB-pA, taking `Contact.cellDist` in account properly. Both particles must be uninodal, exception is raised otherwise.") \
+		.def("dist",&Contact::dist_py,"Shorthand for dPos.norm().") \
+		.add_property("pA",&Contact::pyPA,"First particle of the contact") \
+		.add_property("pB",&Contact::pyPB,"Second particle of the contact") \
+		.def("resetPhys",&Contact::pyResetPhys,"Set *phys* to *None* (to force its re-evaluation)") \
 		.def("isFresh",&Contact::pyIsFresh,(py::arg("scene")),"Say whether this contact has just been created. Equivalent to ``C.stepCreated==scene.step``.")
-	);
+
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Contact__CLASS_BASE_DOC_ATTRS_PY);
 };
 WOO_REGISTER_OBJECT(Contact);
 

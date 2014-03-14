@@ -8,6 +8,7 @@
 namespace py=boost::python;
 
 class EnergyTracker: public Object{
+	DECLARE_LOGGER; 
 	public:
 	/* in flg, IsIncrement is a pseudo-value which doesn't do anything; is meant to increase readability of calls */
 	enum{ IsIncrement=0, IsResettable=1, ZeroDontCreate=2 };
@@ -27,11 +28,7 @@ class EnergyTracker: public Object{
 		energies.set(id,val);
 	}
 	// add value to the accumulator; safely called from parallel sections
-	void add(const Real& val, const std::string& name, int &id, int flg){
-		// if ZeroDontCreate is set, the value is zero and no such energy exists, it will not be created and id will be still negative
-		if(id<0) findId(name,id,flg,/*newIfNotFound*/!(val==0. && (flg&ZeroDontCreate)));
-		if(id>=0) energies.add(id,val);
-	}
+	void add(const Real& val, const std::string& name, int &id, int flg);
 	// add value from python (without the possibility of caching index, do name lookup every time)
 	void add_py(const Real& val, const std::string& name, bool reset=false);
 

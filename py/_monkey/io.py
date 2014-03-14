@@ -112,7 +112,7 @@ class SerializerToHtmlTableGenshi:
 		table=tag.table(frame='box',rules='all',width='100%',**self.padding)
 		if hasattr(s[0],'__len__') and not isinstance(s[0],str): # 2d array
 			# disregard insideTable in this case
-			for r in range(len(s)):
+			for r in range(len(s) if type(s)!=AlignedBox3 else 2): # len(s) is sufficient, but some version of minieigen report erroneously that AlignedBox3 has length of 3
 				tr=tag.tr()
 				for c in range(len(s[0])):
 					tr.append(tag.td(float2str(s[r][c]) if isinstance(s[r][c],float) else str(s[r][c]),align='right',width='%g%%'%(100./len(s[0])-1.)))

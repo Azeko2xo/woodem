@@ -42,6 +42,34 @@ void GLUtils::AlignedBox(const AlignedBox3r& box, const Vector3r& color){
 	glPopMatrix();
 }
 
+void GLUtils::AlignedBoxWithTicks(const AlignedBox3r& box, const Vector3r& stepLen, const Vector3r& tickLen, const Vector3r& color){
+	AlignedBox(box,color);
+	glColor3v(color);
+	glBegin(GL_LINES);
+		// for each axis (along which the sides go), there are found corners
+		for(int ax:{0,1,2}){
+			int ax1=(ax+1)%3, ax2=(ax+2)%3;
+			// coordinates of the corner
+			Real c1[]={box.min()[ax1],box.max()[ax1],box.min()[ax1],box.max()[ax1]};
+			Real c2[]={box.min()[ax2],box.min()[ax2],box.max()[ax2],box.max()[ax2]};
+			// tics direction (endpoint offsets from the point at the edge)
+			Real dc1[]={tickLen[ax1],-tickLen[ax1],tickLen[ax1],-tickLen[ax1]};
+			Real dc2[]={tickLen[ax2],tickLen[ax2],-tickLen[ax2],-tickLen[ax2]};
+			for(int corner:{0,1,2,3}){
+				Vector3r pt; pt[ax1]=c1[corner]; pt[ax2]=c2[corner];
+				Vector3r dx1; dx1[ax]=0; dx1[ax1]=dc1[corner]; dx1[ax2]=0;
+				Vector3r dx2; dx2[ax]=0; dx2[ax1]=0; dx2[ax2]=dc2[corner];
+				for(pt[ax]=box.min()[ax]+stepLen[ax]; pt[ax]<box.max()[ax]; pt[ax]+=stepLen[ax]){
+					glVertex3v(pt); glVertex3v((pt+dx1).eval());
+					glVertex3v(pt); glVertex3v((pt+dx2).eval());
+				}
+			}
+		}
+	glEnd();
+}
+
+
+
 void GLUtils::Cylinder(const Vector3r& a, const Vector3r& b, Real rad1, const Vector3r& color, bool wire, bool caps, Real rad2 /* if negative, use rad1 */,int slices, int stacks){
 	if(rad2<0) rad2=rad1;
 	static GLUquadric* gluQuadric;
