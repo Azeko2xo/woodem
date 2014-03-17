@@ -42,7 +42,7 @@ Fraction separation
 Using the :obj:`dLim <woo.dem.FlowAnalysis.dLim>`, fractions to be analyzed separately can be defined; we name those fields :math:`A` and :math:`B` in the following. Fraction behavior can be inspected visually, but analysis functions harness the computer power to show relevant data only (see the documentation of :obj:`woo.dem.FlowAnalysis` for the reference). Some of the available functions are:
 
 #. Cross-product (called ``cross`` in the VTK files), showing rotation of one vector field with respect to another, computed simply as :math:`A\times B`.
-#. Flow difference (``diff``), showing :math:`\delta_{\alpha}=A-\alpha B`, where :math:`\alpha=\bar{A}}{\bar{B}}` (:math:`\bar{\cdot}` denotes global average norm value) making the fraction flow directly comparable.
+#. Flow difference (``diff``), showing :math:`\delta_{\alpha}=A-\alpha B`, where :math:`\alpha=\bar{A}{\bar{B}}` (:math:`\bar{\bullet}` denotes global average norm value) making the fraction flow directly comparable.
 #. Signed flow differences for both fractions (``diffA``, ``diffB``) defined as
 
    .. math::

@@ -148,7 +148,7 @@ def create_inputhook_qt4(mgr, app=None):
 
 
 import woo.runtime
-## apply local version instead of the stock one patch
+## apply local version instead of the stock one
 if woo.runtime.ipython_version in (12,13):
 	import IPython.lib.inputhookqt4
 	IPython.lib.inputhookqt4.create_inputhook_qt4=create_inputhook_qt4

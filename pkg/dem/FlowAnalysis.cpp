@@ -30,8 +30,8 @@ void FlowAnalysis::setupGrid(){
 		box.max()[ax]=box.min()[ax]+boxCells[ax]*cellSize;
 	}
 	std::sort(dLim.begin(),dLim.end()); // necessary for lower_bound
-	LOG_WARN("There are "<<dLim.size()+1<<" grids "<<boxCells[0]<<"x"<<boxCells[1]<<"x"<<boxCells[2]<<"="<<boxCells.prod()<<" storing "<<NUM_RECS<<" numbers per point (total "<<boxCells.prod()*(dLim.size()+1)*NUM_RECS<<" items)");
-	data.resize(boost::extents[dLim.size()+1][boxCells[0]][boxCells[1]][boxCells[2]][NUM_RECS]);
+	LOG_WARN("There are "<<dLim.size()+1<<" grids "<<boxCells[0]<<"x"<<boxCells[1]<<"x"<<boxCells[2]<<"="<<boxCells.prod()<<" storing "<<NUM_PT_DATA<<" numbers per point (total "<<boxCells.prod()*(dLim.size()+1)*NUM_PT_DATA<<" items)");
+	data.resize(boost::extents[dLim.size()+1][boxCells[0]][boxCells[1]][boxCells[2]][NUM_PT_DATA]);
 	// zero all array items
 	std::fill(data.origin(),data.origin()+data.size(),0);
 }
@@ -41,17 +41,18 @@ void FlowAnalysis::addOneParticle(const Real& diameter, const shared_ptr<Node>& 
 	const auto& dyn(node->getData<DemData>());
 	Real V(pow(cellSize,3));
 	// all things saved are actually densities over the volume of a single cell
-	Vector3r momentum(dyn.vel*dyn.mass/V);
-	Real Ek(dyn.getEk_any(node,/*trans*/true,/*rot*/true,scene)/V);
+	Vector3r momentum_V(dyn.vel*dyn.mass/V);
+	Real Ek_V(dyn.getEk_any(node,/*trans*/true,/*rot*/true,scene)/V);
 
 	// determine particle fraction by diameter
 	// this works also when dLim is empty (returns 0)
 	size_t fraction=std::lower_bound(dLim.begin(),dLim.end(),diameter)-dLim.begin();
 	// loop over neighboring grid points, add relevant data with weights.
 	Vector3i ijk=xyz2ijk(node->pos);
-	assert(ijk.minCoeff()>=0);
-	assert(ijk[0]<=boxCells[0] && ijk[1]<=boxCells[1] && ijk[2]<=boxCells[1]);
-	for(int ax:{0,1,2}) if(ijk[ax]==boxCells[ax]) ijk[ax]-=1; // just in case we are right at the upper edge
+	// it does not matter here if ijk are inside the grid;
+	// the enlargedBox test in addCurrentData already pruned cases too far away.
+	// The rest is checked in the loop below with validIjkRange;
+	// that ensure that even points just touching the grid from outside are accounted for correctly.
 	Vector3r n=(node->pos-ijk2xyz(ijk))/cellSize; // normalized coordinate in the cube (0..1)x(0..1)x(0..1)
 	// trilinear interpolation
 	const Real& x(n[0]); const Real& y(n[1]); const Real& z(n[2]);
@@ -69,25 +70,31 @@ void FlowAnalysis::addOneParticle(const Real& diameter, const shared_ptr<Node>& 
 		Vector3i(i,j,k),Vector3i(I,j,k),Vector3i(I,J,k),Vector3i(i,J,k),
 		Vector3i(i,j,K),Vector3i(I,j,K),Vector3i(I,J,K),Vector3i(i,J,K)
 	};
+	Eigen::AlignedBox<int,3> validIjkRange(Vector3i::Zero(),Vector3i(data.shape()[1]-1,data.shape()[2]-1,data.shape()[3]-1));
 	for(int ii=0; ii<8; ii++){
 		// make sure we are within bounds here
-		if(pts[ii][0]>=(int)data.shape()[1] || pts[ii][1]>=(int)data.shape()[2] || pts[ii][2]>=(int)data.shape()[3] || pts[ii].minCoeff()<0) continue;
-		auto pt(data[fraction][pts[ii][0]][pts[ii][1]][pts[ii][2]]); // the array where to write our actual data
+		if(!validIjkRange.contains(pts[ii])) continue;
+		// subarray where we write the actual data for this point
+		auto pt(data[fraction][pts[ii][0]][pts[ii][1]][pts[ii][2]]); 
 		const Real& w(weights[ii]);
-		pt[REC_FLOW_X]+=w*momentum[0];
-		pt[REC_FLOW_Y]+=w*momentum[1];
-		pt[REC_FLOW_Z]+=w*momentum[2];
-		pt[REC_EK]+=w*Ek;
-		pt[REC_COUNT]+=w*1;
-		assert(!isnan(pt[REC_FLOW_X]) && !isnan(pt[REC_FLOW_Y]) && !isnan(pt[REC_FLOW_Z]) && !isnan(pt[REC_EK]) && !isnan(pt[REC_COUNT]));
+		pt[PT_FLOW_X]+=w*momentum_V[0];
+		pt[PT_FLOW_Y]+=w*momentum_V[1];
+		pt[PT_FLOW_Z]+=w*momentum_V[2];
+		pt[PT_EK]+=w*Ek_V;
+		pt[PT_SUM_WEIGHT]+=w*1.;
+		pt[PT_SUM_DIAM]+=w*diameter; // the average is computed later, dividing by PT_SUM_WEIGHT
+		pt[PT_SUM_PORO]+=w*(M_PI*pow(diameter,3)/6.)/V;
+		assert(!isnan(pt[PT_FLOW_X]) && !isnan(pt[PT_FLOW_Y]) && !isnan(pt[PT_FLOW_Z]) && !isnan(pt[PT_EK]) && !isnan(pt[PT_SUM_WEIGHT]));
 	}
 };
 
 void FlowAnalysis::addCurrentData(){
+	// point which would even just touch the box are interesting for us
+	AlignedBox3r enlargedBox(box.min()-Vector3r::Ones()*cellSize,box.max()+Vector3r::Ones()*cellSize);
 	for(const auto& p: *(dem->particles)){
 		if(mask!=0 && (p->mask&mask)==0) continue;
 		if(!p->shape->isA<Sphere>()) continue;
-		if(!box.contains(p->shape->nodes[0]->pos)) continue;
+		if(!enlargedBox.contains(p->shape->nodes[0]->pos)) continue;
 		addOneParticle(p->shape->cast<Sphere>().radius*2.,p->shape->nodes[0]);
 	}
 };
@@ -120,7 +127,9 @@ string FlowAnalysis::vtkExportFractions(const string& out, const vector<size_t>&
 	auto flow=vtkMakeArray(grid,"flow (momentum density)",3,/*fillZero*/true);
 	auto flowNorm=vtkMakeArray(grid,"|flow|",1,true);
 	auto ek=vtkMakeArray(grid,"Ek density",1,true);
-	auto count=vtkMakeArray(grid,"hit count",1,true);
+	auto hitRate=vtkMakeArray(grid,"hit rate",1,true);
+	auto diam=vtkMakeArray(grid,"avg. diameter",1,true);
+	auto poro=vtkMakeArray(grid,"avg. porosity",1,true);
 
 	for(size_t fraction: fractions){
 		// traverse the grid now
@@ -135,13 +144,18 @@ string FlowAnalysis::vtkExportFractions(const string& out, const vector<size_t>&
 					// increment flow vector
 					double f[3];
 					flow->GetTupleValue(dataId,f);
-					f[0]+=ptData[REC_FLOW_X]/timeSpan;
-					f[1]+=ptData[REC_FLOW_Y]/timeSpan;
-					f[2]+=ptData[REC_FLOW_Z]/timeSpan;
+					f[0]+=ptData[PT_FLOW_X]/timeSpan;
+					f[1]+=ptData[PT_FLOW_Y]/timeSpan;
+					f[2]+=ptData[PT_FLOW_Z]/timeSpan;
 					flow->SetTupleValue(dataId,f);
 					// increment scalars
-					*(ek->GetPointer(dataId))+=ptData[REC_EK]/timeSpan;
-					*(count->GetPointer(dataId))+=ptData[REC_COUNT]/timeSpan;
+					*(ek->GetPointer(dataId))+=ptData[PT_EK]/timeSpan;
+					*(hitRate->GetPointer(dataId))+=ptData[PT_SUM_WEIGHT]/timeSpan;
+					// avoid NaNs due to division
+					if(ptData[PT_SUM_WEIGHT]!=0.){
+						*(diam->GetPointer(dataId))+=ptData[PT_SUM_DIAM]/ptData[PT_SUM_WEIGHT];
+						*(poro->GetPointer(dataId))+=ptData[PT_SUM_PORO]/ptData[PT_SUM_WEIGHT];
+					}
 				}
 			}
 		}
@@ -208,7 +222,7 @@ Real FlowAnalysis::avgFlowNorm(const vector<size_t> &fractions){
 	long double ret=0.;
 	for(int i=0; i<boxCells[0]; i++){ for(int j=0; j<boxCells[1]; j++){ for(int k=0; k<boxCells[2]; k++){
 		for(size_t frac: fractions){
-			ret+=sqrt(pow(data[frac][i][j][k][REC_FLOW_X],2)+pow(data[frac][i][j][k][REC_FLOW_Y],2)+pow(data[frac][i][j][k][REC_FLOW_Z],2));
+			ret+=sqrt(pow(data[frac][i][j][k][PT_FLOW_X],2)+pow(data[frac][i][j][k][PT_FLOW_Y],2)+pow(data[frac][i][j][k][PT_FLOW_Z],2));
 		}
 	}}}
 	return ret/boxCells.prod();
@@ -230,8 +244,8 @@ string FlowAnalysis::vtkExportVectorOps(const string& out, const vector<size_t>&
 	for(int i=0; i<boxCells[0]; i++){ for(int j=0; j<boxCells[1]; j++){ for(int k=0; k<boxCells[2]; k++){
 		int ijk[]={i,j,k};
 		Vector3r A(Vector3r::Zero()), B(Vector3r::Zero());
-		for(size_t frac: fracA) A+=Vector3r(data[frac][i][j][k][REC_FLOW_X],data[frac][i][j][k][REC_FLOW_Y],data[frac][i][j][k][REC_FLOW_Z]);
-		for(size_t frac: fracB) B+=Vector3r(data[frac][i][j][k][REC_FLOW_X],data[frac][i][j][k][REC_FLOW_Y],data[frac][i][j][k][REC_FLOW_Z]);
+		for(size_t frac: fracA) A+=Vector3r(data[frac][i][j][k][PT_FLOW_X],data[frac][i][j][k][PT_FLOW_Y],data[frac][i][j][k][PT_FLOW_Z]);
+		for(size_t frac: fracB) B+=Vector3r(data[frac][i][j][k][PT_FLOW_X],data[frac][i][j][k][PT_FLOW_Y],data[frac][i][j][k][PT_FLOW_Z]);
 		// compute the result
 		_cross=A.cross(B);
 		_diff=A-B*weightB;
@@ -239,10 +253,12 @@ string FlowAnalysis::vtkExportVectorOps(const string& out, const vector<size_t>&
 		else{ _diffA=Vector3r::Zero(); _diffB=-_diff; }
 
 		vtkIdType dataId=grid->ComputePointId(ijk);
+
 		cross->SetTuple(dataId,_cross.data());
 		diff->SetTuple(dataId,_diff.data());
 		diffA->SetTuple(dataId,_diffA.data());
 		diffB->SetTuple(dataId,_diffB.data());
+
 		crossNorm->SetValue(dataId,_cross.norm());
 		diffNorm->SetValue(dataId,_diff.norm());
 		diffANorm->SetValue(dataId,_diffA.norm());

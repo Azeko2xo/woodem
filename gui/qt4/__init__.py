@@ -59,7 +59,8 @@ if 1: # initialize QApplication
 		# create an instance of InteractiveShell before the inputhook is created
 		# see http://stackoverflow.com/questions/9872517/how-to-embed-ipython-0-12-so-that-it-inherits-namespace-of-the-caller for details
 		# fixes http://gpu.doxos.eu/trac/ticket/40
-		from IPython.frontend.terminal.embed import InteractiveShellEmbed
+		try: from IPython.terminal.embed import InteractiveShellEmbed # IPython>=1.0
+		except ImportError: from IPython.frontend.terminal.embed import InteractiveShellEmbed # IPython<1.0
 		from IPython.config.configurable import MultipleInstanceError
 		try: ipshell=InteractiveShellEmbed.instance()
 		except MultipleInstanceError:

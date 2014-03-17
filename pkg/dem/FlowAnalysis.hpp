@@ -48,7 +48,7 @@ struct FlowAnalysis: public PeriodicEngine{
 	#endif
 
 	// number of floats to store for each point
-	enum {REC_FLOW_X=0, REC_FLOW_Y, REC_FLOW_Z, REC_EK, REC_COUNT, NUM_RECS};
+	enum {PT_FLOW_X=0, PT_FLOW_Y, PT_FLOW_Z, PT_EK, PT_SUM_WEIGHT, PT_SUM_DIAM, PT_SUM_PORO, NUM_PT_DATA};
 	enum {OP_CROSS=0,OP_WEIGHTED_DIFF=1};
 	WOO_CLASS_BASE_DOC_ATTRS_PY(FlowAnalysis,PeriodicEngine,"Collect particle flow data in rectangular grid, watching different particle groups (radius ranges at this moment), and saving averages to as VTK uniform grid once finished.\n\n.. todo:: Only spherical particles are handled now, any other are ignored.",
 		((boost_multi_array_real_5,data,boost_multi_array_real_5(boost::extents[0][0][0][0][0]),AttrTrait<Attr::hidden>(),"Grid data -- 5d since each 3d point contains multiple entries, and there are multiple grids."))
