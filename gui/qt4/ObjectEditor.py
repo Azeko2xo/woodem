@@ -532,8 +532,8 @@ class AttrEditor_MatrixX(AttrEditor,QFrame):
 				w=self.grid.itemAtPosition(row,col).widget()
 				if w.isModified():
 					v=float(w.text())
-					if self.multiplier:
-						v/=(self.multiplier[col] if isinstance(self.multiplier,tuple) else self.multiplier)
+					mult=(self.multiplier[col] if isinstance(self.multiplier,tuple) else self.multiplier)
+					if mult: v/=mult
 					val[self.idxConverter(row,col)]=v
 			logging.debug('setting'+str(val))
 			self.trySetter(val)
@@ -668,6 +668,26 @@ class SerQLabel(QLabel):
 		event.accept()
 
 def _unicodeUnit(u): return (u if isinstance(u,unicode) else unicode(u,'utf-8'))
+
+def makeLibraryBrowser(parentmenu,callback,types,libName='Library'):
+	'''Create menu under *parentmenu* named *libName*. *types* are passed to :obj:`woo.objectlibrary.checkout`. *callback* is called with chosen (name,object) as arguments.'''
+	import woo.objectlibrary
+	# root=parentmenu.addMenu('libName')
+	objs=woo.objectlibrary.checkout(types=types)
+	menus={():parentmenu.addMenu(libName)}
+	if objs:
+		for key,val in objs.items():
+			# create submenus
+			for i in range(1,len(key)):
+				if key[:i] not in menus:
+					menus[key[:i]]=menus[key[:i-1]].addMenu(key[i-1])
+			# create menu item
+			item=menus[key[:-1]].addAction(key[-1])
+			item.triggered.connect(lambda name=key,obj=val: callback(name,obj))
+	else: menus[()].setEnabled(False) # disable library menu if there are no objects in there
+
+
+
 
 class ObjectEditor(QFrame):
 	"Class displaying and modifying serializable attributes of a woo object."
@@ -869,14 +889,14 @@ class ObjectEditor(QFrame):
 				if not t and len(val)==0: t=(val[0].__class__,) # 1-tuple is list of the contained type
 				#if not t: raise RuntimeError('Unable to guess type of '+str(self.ser)+'.'+attr)
 			elif val.__class__ in _attributeGuessedTypeMap: t=_attributeGuessedTypeMap[val.__class__]
-			elif val!=None: t=val.__class__
+			elif val!=None and not isinstance(val,woo.core.Object): t=val.__class__
 			else:
 				# val==None, try to find which type it should be
 				# only useful if we can manipulate objects
 				if self.objManip:
 					t=None
 					wHead=self.ser.__class__.__module__+'.'+self.ser.__class__.__name__+'.'+trait.name
-					m=re.match(r'^\s*(shared_ptr\s*<)?([A-Za-z0-9_:]+)(\s*>)?\s*',trait.cxxType)
+					m=re.match(r'^\s*(weak_ptr\s*<|shared_ptr\s*<)?([A-Za-z0-9_:]+)(\s*>)?\s*',trait.cxxType)
 					if m:
 						cT=m.group(2)
 						logging.debug('%s: got c++ base type: %s -> %s'%(wHead,trait.cxxType,cT))
@@ -998,14 +1018,39 @@ class ObjectEditor(QFrame):
 		toggleLabelIsVar=menu.addAction('Variables')
 		toggleLabelIsVar.setCheckable(True); toggleLabelIsVar.setChecked(self.labelIsVar)
 		toggleLabelIsVar.triggered.connect(lambda: self.toggleLabelIsVar(None))
-		toggleShowChecks=menu.addAction('Checks')
+		toggleShowChecks=menu.addAction(u'Checks')
 		toggleShowChecks.setCheckable(True); toggleShowChecks.setChecked(self.showChecks)
 		toggleShowChecks.triggered.connect(lambda: self.toggleShowChecks(None))
 		toggleShowUnits=menu.addAction('Units')
 		toggleShowUnits.setCheckable(True); toggleShowUnits.setChecked(self.showUnits)
 		toggleShowUnits.triggered.connect(lambda: self.toggleShowUnits(None))
+		if self.ser is not None:
+			actionSave=menu.addAction(u'⛁ Save')
+			actionSave.triggered.connect(lambda: self.saveObject())
+		#if self.path is not None:
+		#	actionLoad=menu.addAction(u'↥ Load')
+		#	actionLoad.trigger.connect(lambda: self.loadObject)
 		menu.popup(self.mapToGlobal(position))
 		#print 'menu popped up at ',widget.mapToGlobal(position),' (local',position,')'
+	def saveObject(self):
+		f=QFileDialog.getSaveFileName(self,'Save object: use .json, .expr, .pickle, .html ...','.')
+		if not f: return
+		woo._monkey.io.Object_dump(self.ser,unicode(f),format='auto',fallbackFormat='expr')
+	def loadObject(self):
+		assert self.path
+		f=QFileDialog.getOpenFileName(self,msg,'.')
+		if not f: return # no file selected
+		try:
+			if isObj: obj=entry.T.load(f) # be user friendly if garbage is being loaded
+			else: obj=woo._monkey.io.Object_load(None,f)
+			raise NotImplementedError('Loading objects to path is not yet implemented.')
+			# get parent object (or parent sequence!) and use setattr/setitem to assign the object
+			# parent=path.split('.').join('.')
+			# eval(path)=obj
+		except Exception as e:
+			import traceback
+			traceback.print_exc()
+			showExceptionDialog(self,e)
 	def getAttrLabelToolTip(self,entry):
 		try:
 			ini=str(entry.trait.ini) if (entry.trait.ini and not isinstance(entry.trait.ini,Object)) else ''
@@ -1043,10 +1088,13 @@ class ObjectEditor(QFrame):
 					entry.widget.toggleShowUnits(self.showUnits)
 	def objManipLabelMenu(self,entry,pos):
 		'context menu for creating/deleting/loading/saving woo.core.Object from within the editor'
+		from . import ObjectLibrary
 		menu=QMenu(self)
 		isNone=(getattr(self.ser,entry.name)==None)
 		# isinstance is false for None, but None is always (?) missing woo.core.Object anyway
 		isObj=isinstance(getattr(self.ser,entry.name),woo.core.Object) or isNone
+		default=menu.addAction(u'↺ Default')
+		default.triggered.connect(lambda: self.doObjManip('default',entry,isNone,isObj))
 		if isObj:
 			newDel=menu.addAction(u'☘ New' if isNone else u'☠  Delete')
 			newDel.triggered.connect(lambda: self.doObjManip('newDel',entry,isNone,isObj))
@@ -1055,9 +1103,12 @@ class ObjectEditor(QFrame):
 			save.triggered.connect(lambda: self.doObjManip('save',entry,isNone,isObj))
 		load=menu.addAction(u'↥ Load')
 		load.triggered.connect(lambda: self.doObjManip('load',entry,isNone,isObj))
-		default=menu.addAction(u'↺ Default')
-		default.triggered.connect(lambda: self.doObjManip('default',entry,isNone,isObj))
+		lib=makeLibraryBrowser(menu,lambda name,obj: self.setFromLib(entry,name,obj),entry.T,u'⇈ Library')
 		menu.popup(entry.widgets['label'].mapToGlobal(pos))
+	def setFromLib(self,entry,name,obj):
+		# setting library object
+		if isinstance(obj,woo.core.Object): obj=obj.deepcopy() # prevent lib object modification
+		setattr(self.ser,entry.name,obj)
 	def doObjManip(self,action,entry,isNone,isObj):
 		'Handle menu action from objManipLabelMenu'
 		# FIXME: this is an ugly hack of using woo._monkey.io.Object_{dump,load} directly!!!
@@ -1276,9 +1327,9 @@ class SeqObjectComboBox(QFrame):
 		for l in self.layout, topLineLayout: l.setSpacing(0); l.setContentsMargins(0,0,0,0)
 		topLineFrame.setLayout(topLineLayout)
 		labels=(u'+',u'c',u'−',u'↑',u'↓')
-		tooltips=('Insert new','Clone','Delete','Move up','Move down')
+		tooltips=('New','Clone current','Delete','Move up','Move down')
 		buttons=(self.newButton,self.cloneButton,self.killButton,self.upButton,self.downButton)=[QPushButton(label,self) for label in labels]
-		buttonSlots=(self.newSlot,self.cloneSlot,self.killSlot,self.upSlot,self.downSlot) # same order as buttons
+		buttonSlots=(None,self.cloneSlot,self.killSlot,self.upSlot,self.downSlot) # same order as buttons
 		for i,b in enumerate(buttons): b.setStyleSheet('QPushButton { font-size: 15pt; font-weight: bold; }'); b.setFixedWidth(25); b.setFixedHeight(30); b.setToolTip(tooltips[i])
 		self.combo=QComboBox(self)
 		self.combo.setSizeAdjustPolicy(QComboBox.AdjustToContents)
@@ -1292,8 +1343,15 @@ class SeqObjectComboBox(QFrame):
 		self.setFrameShape(QFrame.Box); self.setFrameShadow(QFrame.Raised); self.setLineWidth(1)
 		self.newDialog=None # is set when new dialog is created, and destroyed when it returns
 		self.comboItemCount=0 # we use some inactive items with ranges instead of objects, so keep track of valid items separately
+		# create menu for the "new" button
+		newMenu=QMenu();
+		newMenu.addAction('New',self.newSlot)
+		newMenu.addAction('Load',self.loadSlot)
+		lib=makeLibraryBrowser(newMenu,lambda name,obj: self.libLoadSlot(name,obj),self.getItemType(),u'⇈ Library')
+		self.newButton.setMenu(newMenu)
+
 		# signals
-		for b,slot in zip(buttons,buttonSlots): b.clicked.connect(slot)
+		for b,slot in zip(buttons[1:],buttonSlots[1:]): b.clicked.connect(slot)
 		self.combo.currentIndexChanged.connect(self.comboIndexSlot)
 		self.refreshEvent()
 		# periodic refresh
@@ -1390,6 +1448,22 @@ class SeqObjectComboBox(QFrame):
 		currSeq=list(self.getter()); currSeq.insert(ix,ser); self.setter(currSeq)
 		logging.debug('%s new item created at index %d'%(self.getItemType().__name__,ix))
 		self.refreshEvent(forceIx=ix)
+	def loadSlot(self):
+		f=QFileDialog.getOpenFileName(self,msg,'.')
+		if not f: return # no file selected
+		T=self.getItemType()
+		try:
+			obj=T.load(f) # be user friendly if garbage is being loaded
+			# else: obj=woo._monkey.io.Object_load(None,f)
+			currSeq=list(self.getter()); currSeq.insert(ix+1,obj); self.setter(currSeq)
+		except Exception as e:
+			import traceback
+			traceback.print_exc()
+			showExceptionDialog(self,e)
+	def libLoadSlot(self,name,obj):
+		ix=self.combo.currentIndex()
+		currSeq=list(self.getter()); currSeq.insert(ix+1,obj); self.setter(currSeq)
+		self.refreshEvent(forceIx=ix+1)
 	def cloneSlot(self):
 		ix=self.combo.currentIndex()
 		currSeq=list(self.getter()); currSeq.insert(ix+1,currSeq[ix].deepcopy()); self.setter(currSeq)

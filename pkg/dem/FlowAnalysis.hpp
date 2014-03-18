@@ -55,7 +55,7 @@ struct FlowAnalysis: public PeriodicEngine{
 		((vector<Real>,dLim,,,"Limiting diameter values, for defining fractions which are analyzed separately. Do not change when there is some data already."))
 		((AlignedBox3r,box,,,"Domain in which the flow is to be analyzed; the box may glow slightly to accomodate integer number of cells. Do not change once there is some data alread. Do not change once there is some data already."))
 		((Real,cellSize,NaN,,"Size of one cell in the box (in all directions); will be satisfied exactly at the expense of perhaps slightly growing :obj:`box`. Do not change once there is some data already."))
-		((Vector3i,boxCells,,AttrTrait<Attr::readonly>(),"Number of cells in the box (computed automatically)"))
+		((Vector3i,boxCells,Vector3i::Zero(),AttrTrait<Attr::readonly>(),"Number of cells in the box (computed automatically)"))
 		((int,mask,0,,"Particles to consider in the flow analysis (0 to consider everything)."))
 		((bool,cellData,false,,"Write flow rate as cell data rather than point data."))
 		((Real,timeSpan,0.,,"Total time that the analysis has been running."))

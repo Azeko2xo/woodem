@@ -175,7 +175,7 @@ def finished(S):
 	woo.batch.writeResults(S,defaultDb='horse.sqlite',series=S.plot.data,postHooks=[plotBatchResults],simulationName='horse',report='file://'+repName)
 
 	## save flow data
-	S.lab.flowAnalysis.vtkExport(out=S.pre.vtkPrefix)
+	if not S.lab.flowAnalysis.dead: S.lab.flowAnalysis.vtkExport(out=S.pre.vtkPrefix)
 
 	# energy plot, to show how to add plot to the report
 	# instead of doing pylab stuff here, just get plot object from woo

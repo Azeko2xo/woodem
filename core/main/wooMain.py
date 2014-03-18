@@ -576,6 +576,7 @@ finished: %s
 				else: ret+='<nobr>step %d</nobr>'%(info['step'])
 				if runningTime!=0: ret+='<br/><nobr>avg %g/sec</nobr>'%(info['step']/runningTime)
 				ret+='<br/><nobr>%d particles</nobr><br/><nobr>%d contacts</nobr>'%(info['numBodies'],info['numIntrs'])
+				ret+='<br/><nobr>time %g s</nobr>'%info['time']
 				if info['title']: ret+='<br/>title <i>%s</i>'%info['title']
 				ret+='</td>'
 			else:

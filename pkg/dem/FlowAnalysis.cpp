@@ -123,6 +123,7 @@ vector<string> FlowAnalysis::vtkExport(const string& out){
 }
 
 string FlowAnalysis::vtkExportFractions(const string& out, const vector<size_t>& fractions){
+	if(timeSpan==0.) throw std::runtime_error("FlowAnalysis.timeSpan==0, no data was ever collected.");
 	auto grid=vtkMakeGrid();
 	auto flow=vtkMakeArray(grid,"flow (momentum density)",3,/*fillZero*/true);
 	auto flowNorm=vtkMakeArray(grid,"|flow|",1,true);
@@ -229,6 +230,7 @@ Real FlowAnalysis::avgFlowNorm(const vector<size_t> &fractions){
 }
 
 string FlowAnalysis::vtkExportVectorOps(const string& out, const vector<size_t>& fracA, const vector<size_t>& fracB){
+	if(timeSpan==0.) throw std::runtime_error("FlowAnalysis.timeSpan==0, no data was ever collected.");
 	auto grid=vtkMakeGrid();
 	auto cross=vtkMakeArray(grid,"cross",3,/*fillZero*/false);
 	auto crossNorm=vtkMakeArray(grid,"|cross|",1,/*fillZero*/false);
@@ -239,6 +241,10 @@ string FlowAnalysis::vtkExportVectorOps(const string& out, const vector<size_t>&
 	auto diffB=vtkMakeArray(grid,"diffB",3,/*fillZero*/false);
 	auto diffBNorm=vtkMakeArray(grid,"|diffB|",1,/*fillZero*/false);
 	Real weightB=avgFlowNorm(fracA)/avgFlowNorm(fracB);
+	if(isnan(weightB)){
+		LOG_WARN("Weighting coefficient is NaN (no flow in fraction B), using 1 instead; the result will be still mathematically correct but useless.")
+		weightB=1.;
+	}
 	Vector3r _cross, _diff, _diffA, _diffB;
 	// other conditions: resize sRes
 	for(int i=0; i<boxCells[0]; i++){ for(int j=0; j<boxCells[1]; j++){ for(int k=0; k<boxCells[2]; k++){
