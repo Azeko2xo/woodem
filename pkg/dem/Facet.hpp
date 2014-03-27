@@ -22,6 +22,7 @@ struct Facet: public Shape {
 	Vector3r getNearestPt(const Vector3r& pt) const;
 	vector<Vector3r> outerEdgeNormals() const;
 	Real getArea() const;
+	Real getPerimeterSq() const; 
 	// generic routine: return nearest point on triangle closes to *pt*, given triangle vertices and its normal
 	static Vector3r getNearestTrianglePt(const Vector3r& pt, const Vector3r& A, const Vector3r& B, const Vector3r& C, const Vector3r& normal);
 	//
@@ -56,6 +57,7 @@ struct Gl1_Facet: public GlShapeFunctor{
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Facet,GlShapeFunctor,"Renders :obj:`Facet` object",
 		((bool,wire,false,AttrTrait<>().buttons({"All facets solid","import woo\nfor p in woo.master.scene.dem.par:\n\tif isinstance(p.shape,woo.dem.Facet): p.shape.wire=False\n","","All facets wire","import woo\nfor p in woo.master.scene.dem.par:\n\tif isinstance(p.shape,woo.dem.Facet): p.shape.wire=True\n",""}),"Only show wireframe."))
 		((int,slices,8,AttrTrait<>().range(Vector2i(-1,16)),"Number of half-cylinder subdivision for rounded edges with halfThick>=0 (for whole circle); if smaller than 4, rounded edges are not drawn; if negative, only mid-plane is drawn."))
+		((Real,fastDrawLim,1e-3,,"If performing fast draw (during camera manipulation) and the facet's perimeter is smaller than *fastDrawLim* times scene radius, skip rendering of that facet."))
 		#if 0
 			((Vector2r,fuzz,Vector2r(1e-3,17),,"When drawing wire, move it by (fuzz[0]/fuzz[1])x(some dim)x(addr%fuzz[1]) along the normal. That way, facets are randomly (based on object address) and consistently displaced, avoiding the z-fighting problem leading to flickering."))
 		#endif

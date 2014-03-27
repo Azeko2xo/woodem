@@ -213,7 +213,7 @@ string FlowAnalysis::vtkWriteGrid(const string& out, vtkSmartPointer<vtkUniformG
 	string fn=scene->expandTags(out)+".vti";
 	writer->SetFileName(fn.c_str());
 	writer->SetInput(grid);
-	writer->SetDataModeToAscii();
+	// writer->SetDataModeToAscii();
  	writer->SetCompressor(compressor);
 	writer->Write();
 	return fn;

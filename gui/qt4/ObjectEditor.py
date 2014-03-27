@@ -683,7 +683,7 @@ def makeLibraryBrowser(parentmenu,callback,types,libName='Library'):
 					menus[key[:i]]=menus[key[:i-1]].addMenu(key[i-1])
 			# create menu item
 			item=menus[key[:-1]].addAction(key[-1])
-			item.triggered.connect(lambda name=key,obj=val: callback(name,obj))
+			item.triggered.connect(lambda checked, name=key,obj=val: callback(name,obj))
 	else: menus[()].setEnabled(False) # disable library menu if there are no objects in there
 
 
@@ -1326,14 +1326,14 @@ class SeqObjectComboBox(QFrame):
 		topLineLayout=QHBoxLayout(topLineFrame);
 		for l in self.layout, topLineLayout: l.setSpacing(0); l.setContentsMargins(0,0,0,0)
 		topLineFrame.setLayout(topLineLayout)
-		labels=(u'+',u'c',u'−',u'↑',u'↓')
-		tooltips=('New','Clone current','Delete','Move up','Move down')
-		buttons=(self.newButton,self.cloneButton,self.killButton,self.upButton,self.downButton)=[QPushButton(label,self) for label in labels]
-		buttonSlots=(None,self.cloneSlot,self.killSlot,self.upSlot,self.downSlot) # same order as buttons
+		labels=(u'+',u'−',u'↑',u'↓')
+		tooltips=('Add','Delete','Move up','Move down')
+		buttons=(self.newButton,self.killButton,self.upButton,self.downButton)=[QPushButton(label,self) for label in labels]
+		buttonSlots=(None,self.killSlot,self.upSlot,self.downSlot) # same order as buttons
 		for i,b in enumerate(buttons): b.setStyleSheet('QPushButton { font-size: 15pt; font-weight: bold; }'); b.setFixedWidth(25); b.setFixedHeight(30); b.setToolTip(tooltips[i])
 		self.combo=QComboBox(self)
 		self.combo.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-		for w in buttons[:3]+[self.combo,]+buttons[3:]: topLineLayout.addWidget(w)
+		for w in buttons[:2]+[self.combo,]+buttons[2:]: topLineLayout.addWidget(w)
 		self.layout.addWidget(topLineFrame) # nested layout
 		self.scroll=QScrollArea(self); self.scroll.setWidgetResizable(True)
 		self.layout.addWidget(self.scroll)
@@ -1345,8 +1345,9 @@ class SeqObjectComboBox(QFrame):
 		self.comboItemCount=0 # we use some inactive items with ranges instead of objects, so keep track of valid items separately
 		# create menu for the "new" button
 		newMenu=QMenu();
-		newMenu.addAction('New',self.newSlot)
-		newMenu.addAction('Load',self.loadSlot)
+		newMenu.addAction(u'☘ New',self.newSlot)
+		self.cloneAction=newMenu.addAction(u'≡ Clone',self.cloneSlot)
+		newMenu.addAction(u'↥ Load',self.loadSlot)
 		lib=makeLibraryBrowser(newMenu,lambda name,obj: self.libLoadSlot(name,obj),self.getItemType(),u'⇈ Library')
 		self.newButton.setMenu(newMenu)
 
@@ -1435,7 +1436,7 @@ class SeqObjectComboBox(QFrame):
 			enableClone=enableNew and len(currSeq)>0
 			self.killButton.setEnabled(enableKill)
 			self.newButton.setEnabled(enableNew)
-			self.cloneButton.setEnabled(enableClone)
+			self.cloneAction.setEnabled(enableClone)
 		except RuntimeError as e:
 			print 'Error refreshing sequence (path %s), ignored.'%self.path
 			

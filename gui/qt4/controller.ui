@@ -39,7 +39,7 @@
       </sizepolicy>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="tabGridLayout">
       <attribute name="title">
@@ -632,7 +632,7 @@
          <item row="2" column="0">
           <layout class="QHBoxLayout" name="horizontalLayout_6">
            <item>
-            <widget class="QPushButton" name="pushButton">
+            <widget class="QPushButton" name="preMenuButton">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                <horstretch>0</horstretch>
@@ -651,11 +651,14 @@
                <height>0</height>
               </size>
              </property>
+             <property name="acceptDrops">
+              <bool>false</bool>
+             </property>
              <property name="toolTip">
               <string>Refresh list of available preprocessors</string>
              </property>
              <property name="text">
-              <string>↻</string>
+              <string>☰</string>
              </property>
              <property name="default">
               <bool>true</bool>
@@ -1049,7 +1052,7 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>234</width>
+            <width>233</width>
             <height>114</height>
            </rect>
           </property>
@@ -1232,8 +1235,8 @@
    <slot>loadSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>407</x>
-     <y>55</y>
+     <x>101</x>
+     <y>52</y>
     </hint>
     <hint type="destinationlabel">
      <x>284</x>
@@ -1248,8 +1251,8 @@
    <slot>saveSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>291</x>
-     <y>64</y>
+     <x>101</x>
+     <y>52</y>
     </hint>
     <hint type="destinationlabel">
      <x>284</x>
@@ -1264,8 +1267,8 @@
    <slot>playSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>129</x>
-     <y>168</y>
+     <x>101</x>
+     <y>78</y>
     </hint>
     <hint type="destinationlabel">
      <x>3</x>
@@ -1280,8 +1283,8 @@
    <slot>pauseSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>316</x>
-     <y>168</y>
+     <x>101</x>
+     <y>78</y>
     </hint>
     <hint type="destinationlabel">
      <x>284</x>
@@ -1296,8 +1299,8 @@
    <slot>plotSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>407</x>
-     <y>184</y>
+     <x>101</x>
+     <y>52</y>
     </hint>
     <hint type="destinationlabel">
      <x>284</x>
@@ -1344,8 +1347,8 @@
    <slot>inspectSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>407</x>
-     <y>224</y>
+     <x>101</x>
+     <y>52</y>
     </hint>
     <hint type="destinationlabel">
      <x>0</x>
@@ -1360,8 +1363,8 @@
    <slot>reloadSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>316</x>
-     <y>223</y>
+     <x>101</x>
+     <y>52</y>
     </hint>
     <hint type="destinationlabel">
      <x>284</x>
@@ -1376,8 +1379,8 @@
    <slot>stepSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>85</x>
-     <y>222</y>
+     <x>87</x>
+     <y>52</y>
     </hint>
     <hint type="destinationlabel">
      <x>6</x>
@@ -1392,8 +1395,8 @@
    <slot>subStepSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>140</x>
-     <y>194</y>
+     <x>101</x>
+     <y>52</y>
     </hint>
     <hint type="destinationlabel">
      <x>0</x>
@@ -1408,8 +1411,8 @@
    <slot>show3dSlot(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>407</x>
-     <y>145</y>
+     <x>101</x>
+     <y>52</y>
     </hint>
     <hint type="destinationlabel">
      <x>0</x>
@@ -1472,8 +1475,8 @@
    <slot>movieButtonClicked()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>411</x>
-     <y>508</y>
+     <x>101</x>
+     <y>67</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -1488,8 +1491,8 @@
    <slot>resetTraceClicked()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>411</x>
-     <y>50</y>
+     <x>101</x>
+     <y>52</y>
     </hint>
     <hint type="destinationlabel">
      <x>481</x>
@@ -1514,30 +1517,14 @@
    </hints>
   </connection>
   <connection>
-   <sender>pushButton</sender>
-   <signal>clicked()</signal>
-   <receiver>Controller</receiver>
-   <slot>refreshPreprocessors()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>15</x>
-     <y>31</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>453</x>
-     <y>92</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>throttleControl</sender>
    <signal>valueChanged(int)</signal>
    <receiver>Controller</receiver>
    <slot>throttleChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>159</x>
-     <y>204</y>
+     <x>41</x>
+     <y>52</y>
     </hint>
     <hint type="destinationlabel">
      <x>148</x>

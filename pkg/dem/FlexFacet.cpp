@@ -384,6 +384,7 @@ void Gl1_FlexFacet::drawLocalDisplacement(const Vector2r& nodePt, const Vector2r
 
 void Gl1_FlexFacet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire2, const GLViewInfo& viewInfo){
 	Gl1_Facet::go(sh,shift,/*don't force wire rendering*/false,viewInfo);
+	if(Renderer::fastDraw) return;
 	FlexFacet& ff=sh->cast<FlexFacet>();
 	if(!ff.hasRefConf()) return;
 	if(node){

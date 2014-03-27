@@ -78,6 +78,7 @@ struct Renderer: public Object{
 		// static so that glScopedName can access it
 		// selection-related things
 		static bool withNames;
+		static bool fastDraw;
 		static vector<shared_ptr<Object>> glNamedObjects;
 		static vector<shared_ptr<Node>> glNamedNodes;
 
@@ -104,7 +105,7 @@ struct Renderer: public Object{
 
 		static void init();
 		static void initgl();
-		static void render(const shared_ptr<Scene>& scene, bool withNames);
+		static void render(const shared_ptr<Scene>& scene, bool withNames, bool fastDraw);
 
 		static void setNodeGlData(const shared_ptr<Node>& n, bool updateRefPos=false);
 

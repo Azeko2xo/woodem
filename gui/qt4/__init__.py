@@ -174,8 +174,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		global uiPrefs
 		if os.path.exists(uiPrefs.prefsFile): uiPrefs=UiPrefs.load(uiPrefs.prefsFile)
 
-		self.genIndexLoad=-1
-		self.genIndexCurr=-1
+		self.preIndexOther=-1
 		self.genChecks,self.genVars=False,uiPrefs.prepShowVars
 		self.refreshPreprocessors()
 		self.fillAboutData()
@@ -187,6 +186,19 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.movieFileEdit.setText(woo.utils.fixWindowsPath(str(self.movieFileEdit.text()))) # fix /tmp on windows
 		self.tracerActive=False
 		self.inspector=None
+
+		# preprocessor submenu
+		preSubMenu=QMenu()
+		preSubCurr=preSubMenu.addAction(u'▶ Current simulation')
+		preSubCurr.triggered.connect(lambda: self.generatorComboSlot(genStr=None,menuAction='loadCurrent'))
+		preSubLoad=preSubMenu.addAction(u'↥ Load')
+		preSubLoad.triggered.connect(lambda: self.generatorComboSlot(genStr=None,menuAction='loadFile'))
+		preSubLib=makeLibraryBrowser(preSubMenu,lambda name,obj: self.generatorComboSlot(genStr=None,menuAction='loadLibrary',menuData=(name,obj)),woo.core.Preprocessor,u'⇈ Library')
+		preSubMenu.addSeparator()
+		r=preSubMenu.addAction(u'↻ Refresh preprocessors')
+		r.triggered.connect(lambda: self.refreshPreprocessors())
+		self.preMenuButton.setMenu(preSubMenu)
+
 		global controller
 		controller=self
 		self.setWindowTitle('Woo ('+woo.config.prettyVersion(lead=True)+(', debug' if woo.config.debug else '')+')')
@@ -221,11 +233,10 @@ class ControllerClass(QWidget,Ui_Controller):
 			self.generatorCombo.addItem(pre[1]+('' if pre[0]=='woo.pre' else ' ('+pre[0]+')'))
 			self.preprocessorObjects.append(pre[2])
 		self.generatorCombo.insertSeparator(self.generatorCombo.count())
-		# currently crashes...?
-		self.generatorCombo.addItem('current simulation')
-		self.genIndexCurr=self.generatorCombo.count()-1
-		self.generatorCombo.addItem('load from file')
-		self.genIndexLoad=self.generatorCombo.count()-1
+		self.generatorCombo.addItem(u'−')
+		self.preIndexOther=self.generatorCombo.count()-1
+		# make this item non-selectable by the user
+		self.generatorCombo.model().setData(self.generatorCombo.model().index(self.preIndexOther,0),QtCore.QVariant(0),QtCore.Qt.UserRole-1)
 		# refresh the view
 		self.generatorComboSlot(0)
 	def addRenderers(self):
@@ -291,27 +302,42 @@ class ControllerClass(QWidget,Ui_Controller):
 		elif what=='python': ix=3
 		else: raise ValueErorr("No such tab: "+what)
 		self.controllerTabs.setCurrentIndex(ix)
-	def generatorComboSlot(self,genStr):
+	def generatorComboSlot(self,genStr,menuAction=None,menuData=None):
 		"update generator parameters when a new one is selected"
 		ix=self.generatorCombo.currentIndex()
-		if ix==self.genIndexLoad:
+		if menuAction==None:
+			self.generator=(self.preprocessorObjects[ix]() if ix<len(self.preprocessorObjects) else None)
+			self.generatorCombo.setItemText(self.preIndexOther,u'−')
+		elif menuAction=='loadFile':
 			f=str(QFileDialog.getOpenFileName(self,'Load preprocessor from','.'))
+			self.generatorCombo.setCurrentIndex(self.preIndexOther)
 			if not f:
 				self.generator=None
+				self.generatorCombo.setItemText(self.preIndexOther,u'−')
 				self.generatorArea.setWidget(QLabel('<i>No preprocessor loaded</i>'))
 			else:
-				self.generator=Preprocessor.load(f)
-				self.generatorCombo.setItemText(self.genIndexLoad,'%s'%f)
-		elif ix==self.genIndexCurr:
+				try:
+					self.generator=Preprocessor.load(f)
+					self.generatorCombo.setItemText(self.preIndexOther,'%s'%f)
+				except Exception as e:
+					import traceback
+					traceback.print_exc()
+					showExceptionDialog(self,e)
+		elif menuAction=='loadLibrary':
+			name,obj=menuData
+			self.generatorCombo.setCurrentIndex(self.preIndexOther)
+			self.generatorCombo.setItemText(self.preIndexOther,'/'.join(name))
+			self.generator=obj.deepcopy()
+		elif menuAction=='loadCurrent':
+			self.generatorCombo.setCurrentIndex(self.preIndexOther)
 			if not woo.master.scene.pre:
-				self.generatorArea.setWidget(QLabel('<i>No preprocessor in Scene.pre</i>'))
+				self.generatorArea.setWidget(QLabel('<i>No preprocessor in <b>Scene.pre</t></i>'))
 				self.generator=None
+				self.generatorCombo.setItemText(self.preIndexOther,u'−')
 			else:
 				# force deep-copy, to avoid bug #88
 				self.generator=woo.master.scene.pre.deepcopy()
-		else:
-			if self.genIndexLoad>=0: self.generatorCombo.setItemText(self.genIndexLoad,'load')
-			self.generator=(self.preprocessorObjects[ix]() if ix<len(self.preprocessorObjects) else None)
+				self.generatorCombo.setItemText(self.preIndexOther,u'current simulation')
 		if self.generator:
 			# keep var/check settings
 			w=self.generatorArea.widget()

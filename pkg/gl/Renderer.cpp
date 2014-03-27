@@ -36,6 +36,7 @@ GlNodeDispatcher Renderer::nodeDispatcher;
 GlCPhysDispatcher Renderer::cPhysDispatcher;
 shared_ptr<Scene> Renderer::scene;
 bool Renderer::withNames;
+bool Renderer::fastDraw;
 vector<shared_ptr<Object>> Renderer::glNamedObjects;
 vector<shared_ptr<Node>> Renderer::glNamedNodes;
 
@@ -240,9 +241,11 @@ void Renderer::setLighting(){
 };
 
 
-void Renderer::render(const shared_ptr<Scene>& _scene, bool _withNames){
+void Renderer::render(const shared_ptr<Scene>& _scene, bool _withNames, bool _fastDraw){
 	if(!initDone) init();
 	assert(initDone);
+
+	fastDraw=_fastDraw;
 
 	withNames=_withNames; // used in many methods
 	if(withNames) glNamedObjects.clear();
@@ -273,8 +276,8 @@ void Renderer::render(const shared_ptr<Scene>& _scene, bool _withNames){
 		}
 	}
 
-	FOREACH(const shared_ptr<GlExtraDrawer> d, extraDrawers){
-		if(d->dead) continue;
+	for(const shared_ptr<GlExtraDrawer>& d: extraDrawers){
+		if(!d || d->dead) continue;
 		glPushMatrix();
 			d->scene=scene.get();
 			d->render();
@@ -301,16 +304,21 @@ void Renderer::renderRawNode(shared_ptr<Node> node){
 		if(isnan(x[0])) return;
 	}
 	else{ x=(scene->isPeriodic?scene->cell->canonicalizePt(node->pos):node->pos); }
-	Quaternionr ori=(node->hasData<GlData>()?node->getData<GlData>().dGlOri:Quaternionr::Identity())*node->ori;
-	glPushMatrix();
-		GLUtils::setLocalCoords(x,ori.conjugate());
-		#if 0
-			glTranslatev(x);
-			AngleAxisr aa(ori.conjugate());
-			glRotatef(aa.angle()*(180/M_PI),aa.axis()[0],aa.axis()[1],aa.axis()[2]);
-		#endif
-		nodeDispatcher(node,viewInfo);
-	glPopMatrix();
+	if(likely(!Renderer::fastDraw)){
+		Quaternionr ori=(node->hasData<GlData>()?node->getData<GlData>().dGlOri:Quaternionr::Identity())*node->ori;
+		glPushMatrix();
+			GLUtils::setLocalCoords(x,ori.conjugate());
+			#if 0
+				glTranslatev(x);
+				AngleAxisr aa(ori.conjugate());
+				glRotatef(aa.angle()*(180/M_PI),aa.axis()[0],aa.axis()[1],aa.axis()[2]);
+			#endif
+			nodeDispatcher(node,viewInfo);
+		glPopMatrix();
+	} else {
+		// don't even call the functor with fastDraw, that slows down
+		glBegin(GL_POINTS); glVertex3v(x); glEnd();
+	}
 	// if(node->rep){ node->rep->render(node,&viewInfo); }
 }
 

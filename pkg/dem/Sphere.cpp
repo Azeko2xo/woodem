@@ -104,7 +104,7 @@ void Gl1_Sphere::renderScaledSphere(const shared_ptr<Shape>& shape, const Vector
 
 	Real r=radius*scale;
 	//glColor3v(CompUtils::mapColor(shape->getBaseColor()));
-	bool doPoints=(quality<0 || (int)(quality*glutSlices)<2 || (int)(quality*glutStacks)<2);
+	bool doPoints=(Renderer::fastDraw || quality<0 || (int)(quality*glutSlices)<2 || (int)(quality*glutStacks)<2);
 	if(doPoints){
 		if(smooth) glEnable(GL_POINT_SMOOTH);
 		else glDisable(GL_POINT_SMOOTH);

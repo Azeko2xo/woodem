@@ -56,6 +56,12 @@ Real Facet::getArea() const {
 	return .5*((B-A).cross(C-A)).norm();
 }
 
+Real Facet::getPerimeterSq() const {
+	assert(numNodesOk());
+	return (nodes[1]->pos-nodes[0]->pos).squaredNorm()+(nodes[2]->pos-nodes[1]->pos).squaredNorm()+(nodes[0]->pos-nodes[2]->pos).squaredNorm();
+
+}
+
 std::tuple<Vector3r,Vector3r,Vector3r> Facet::getOuterVectors() const {
 	assert(numNodesOk());
 	// is not normalized
@@ -202,6 +208,7 @@ void halfCylinder(const Vector3r& A, const Vector3r& B, Real radius, const Vecto
 bool Gl1_Facet::wire;
 int Gl1_Facet::slices;
 int Gl1_Facet::wd;
+Real Gl1_Facet::fastDrawLim;
 #if 0
 Vector2r Gl1_Facet::fuzz;
 #endif
@@ -237,10 +244,13 @@ void Gl1_Facet::drawEdges(const Facet& f, const Vector3r& facetNormal, const Vec
 	}
 }
 
-void Gl1_Facet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire2, const GLViewInfo&){   
+void Gl1_Facet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire2, const GLViewInfo& viewInfo){   
 	Facet& f=sh->cast<Facet>();
 
-	if(wire || wire2){
+	// don't draw very small facets when doing fastDraw
+	if(Renderer::fastDraw && f.getPerimeterSq()<pow(fastDrawLim*viewInfo.sceneRadius,2)) return;
+
+	if(wire || wire2 || Renderer::fastDraw){
 		glDisable(GL_LINE_SMOOTH);
 		Vector3r shift2(shift);
 		#if 0
@@ -249,7 +259,7 @@ void Gl1_Facet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire
 				shift2+=normal*abs((f.nodes[0]->pos-f.nodes[1]->pos).maxCoeff())*(fuzz[0]/fuzz[1])*(((ptrdiff_t)(&f))%((int)fuzz[1]));
 			}
 		#endif
-		if(f.halfThick==0 || slices<0){
+		if(f.halfThick==0 || slices<0 || Renderer::fastDraw){
 			glLineWidth(wd);
 			glBegin(GL_LINE_LOOP);
 				for(int i:{0,1,2}) glVertex3v((f.getGlVertex(i)+shift2).eval());

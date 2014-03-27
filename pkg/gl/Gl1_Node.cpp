@@ -17,7 +17,7 @@ void Gl1_Node::go(const shared_ptr<Node>& node, const GLViewInfo& viewInfo){
 	glLineWidth(wd);
 	Renderer::glScopedName name(node);
 
-	if(len<=0){
+	if(len<=0 || Renderer::fastDraw){
 		glPointSize(wd);
 		glBegin(GL_POINTS); glVertex3f(0,0,0); glEnd();
 	} else {

@@ -538,7 +538,7 @@ void GLViewer::centerScene(){
 	showEntireScene();
 }
 
-void GLViewer::draw(bool withNames)
+void GLViewer::draw(bool withNames, bool fast)
 {
 
 	qglviewer::Vec vd=camera()->viewDirection(); Renderer::viewDirection=Vector3r(vd[0],vd[1],vd[2]);
@@ -579,7 +579,7 @@ void GLViewer::draw(bool withNames)
 		}
 		const shared_ptr<Scene>& scene=Master::instance().getScene();
 		if(Renderer::scene.get()!=scene.get()) setInitialView();
-		Renderer::render(scene,withNames);
+		Renderer::render(scene,withNames,fast);
 	}
 }
 
