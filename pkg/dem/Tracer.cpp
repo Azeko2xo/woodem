@@ -12,6 +12,8 @@
 WOO_PLUGIN(gl,(TraceGlRep));
 WOO_PLUGIN(dem,(Tracer));
 
+CREATE_LOGGER(TraceGlRep);
+
 void TraceGlRep::compress(int ratio){
 	int i;
 	int skip=(Tracer::compSkip<0?ratio:Tracer::compSkip);
@@ -124,6 +126,8 @@ void TraceGlRep::resize(size_t size){
 }
 
 void TraceGlRep::consolidate(){
+	LOG_WARN("This function is deprecated and no-op. TraceGlRep.pts is always returned in the proper order, os a copy of the internal circular buffer.");
+#if 0
 	if(flags&FLAG_COMPRESS){
 		// compressed traces are always sequential, only discard invalid tail data
 		resize(writeIx);
@@ -136,6 +140,7 @@ void TraceGlRep::consolidate(){
 		std::swap(scalars[i],scalars[j]);
 	}
 	writeIx=0;
+#endif
 }
 
 Vector2i Tracer::modulo;

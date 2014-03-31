@@ -42,6 +42,7 @@ BOOST_PYTHON_MODULE(_packSpheres){
 		.def("maxRelOverlap",&SpherePack::maxRelOverlap,"Return maximum relative overlap of particles.")
 		.def("makeOverlapFree",&SpherePack::makeOverlapFree,"Scale by 1+maxRelOverlap(), without changing radii.")
 		.def("cellRepeat",&SpherePack::cellRepeat,"Repeat the packing given number of times in each dimension. Periodicity is retained, cellSize changes. Raises exception for non-periodic packing.")
+		.def("sphereVol",&SpherePack::sphereVol,"Summary volume of spheres, disregarding any overlaps (:math:`\\frac{4}{3}\\pi\\sum r_i^3`).")
 		.def("relDensity",&SpherePack::relDensity,"Relative packing density, measured as sum of spheres' volumes / aabb volume.\n(Sphere overlaps are ignored.)")
 		.def("translate",&SpherePack::translate,"Translate all spheres by given vector.")
 		.def("rotate",&SpherePack::rotate,(py::arg("axis"),py::arg("angle")),"Rotate all spheres around packing center (in terms of aabb()), given axis and angle of the rotation.")

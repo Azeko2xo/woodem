@@ -95,12 +95,9 @@ public:
 		return ret;
 	}
 	Vector3r midPt() const { return aabb().center();}
-	Real relDensity() const {
-		Real sphVol=0; Vector3r dd=dim();
-		for(const Sph& s: pack) sphVol+=pow(s.r,3);
-		sphVol*=(4/3.)*M_PI;
-		return sphVol/(dd[0]*dd[1]*dd[2]);
-	}
+	Real relDensity() const { return  sphereVol()/dim().prod(); }
+	Real sphereVol() const;
+
 	py::tuple psd(int bins=10, bool mass=false) const;
 	bool hasClumps() const;
 	py::tuple getClumps() const;

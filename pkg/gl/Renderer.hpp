@@ -125,6 +125,7 @@ struct Renderer: public Object{
 		((Vector3r,iniUp,Vector3r(0,0,1),,"Up vector of new views"))
 		((Vector3r,iniViewDir,Vector3r(-1,0,0),,"View direction of new views"))
 		((string,snapFmt,"/tmp/{id}.{#}.png",AttrTrait<>().filename(),"Format for saving snapshots; `{tag}` sequences are expanded with Scene.tags; a special `{#}` tag is expanded with snapshot number (so that older ones are not overwritten), starting from 0 and zero-padded to 4 decimal palces. File format is auto-detected from extension. Supported formats are .png, .jpg, .pdf, .svg, xfig, ps, eps."))
+		((bool,allowFast,true,,"Allow fast rendering when manipulating camera or the 3d window is not focused, and framerate drops below 15 FPS."))
 
 		((bool,scaleOn,false,AttrTrait<>().startGroup("Scaling").buttons({"Reference now","woo.gl.Gl1_DemField.updateRefPos=True","use current positions and orientations as reference for scaling displacement/rotation."},/*showBefore*/false),"Whether *dispScale* has any effect or not."))
 		((Vector3r,dispScale,((void)"disable scaling",Vector3r::Ones()),,"Artificially enlarge (scale) dispalcements from bodies' :obj:`reference positions <GlData.refPos>` by this relative amount, so that they become better visible (independently in 3 dimensions). Disbled if (1,1,1), and also if *scaleOn* is false."))

@@ -250,6 +250,13 @@ void SpherePack::cellFill(Vector3r vol){
 	cellRepeat(count);
 }
 
+Real SpherePack::sphereVol() const {
+	Real ret=0; 
+	for(const Sph& s: pack) ret+=pow(s.r,3);
+	return ret*(4/3.)*M_PI;
+}
+
+
 void SpherePack::cellRepeat(Vector3i count){
 	if(cellSize==Vector3r::Zero()){ throw std::runtime_error("cellRepeat cannot be used on non-periodic packing."); }
 	if(count[0]<=0 || count[1]<=0 || count[2]<=0){ throw std::invalid_argument("Repeat count components must be positive."); }

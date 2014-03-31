@@ -5,6 +5,7 @@
 #include<woo/pkg/dem/Particle.hpp>
 
 struct TraceGlRep: public NodeGlRep{
+	DECLARE_LOGGER;
 	void addPoint(const Vector3r& p, const Real& scalar);
 	void compress(int ratio);
 	void render(const shared_ptr<Node>&,const GLViewInfo*);
@@ -15,9 +16,6 @@ struct TraceGlRep: public NodeGlRep{
 	// return true if the point is defined, false if not
 	bool getPointData(size_t i, Vector3r& pt, Real& scalar) const ;
 
-	// make pts sequential and start from 0th position
-	// only called from python if no further writing of the trace will be done
-	// XXX: this function is deprecated now as *pts* and *scalars* are exposed as properties
 	void consolidate();
 	vector<Vector3r> pyPts_get() const;
 	vector<Real> pyScalars_get() const;

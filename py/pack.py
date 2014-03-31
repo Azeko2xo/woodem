@@ -750,7 +750,7 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNu
 
 
 def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,goal=.15,dontBlock=False,memoizeDir=None,botLine=None,leftLine=None,rightLine=None,clumps=[],returnSpherePack=False,useEnergy=True):
-	'''Create dense packing periodic in the +y direction, suitable for use with ConveyorFactory.
+	'''Create dense packing periodic in the +x direction, suitable for use with ConveyorFactory.
 :param useEnergy: use :obj:`woo.utils.unbalancedEnergy` instead of :obj:`woo.utils.unbalancedForce` as stop criterion.
 :param goal: target unbalanced force/energy; if unbalanced energy is used, this value is **multiplied by .2**.
 :param psd: particle size distribution
@@ -759,6 +759,9 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 '''
 	print 'woo.pack.makeBandFeedPack(dim=%s,psd=%s,mat=%s,gravity=%s,excessWd=%s,damping=%s,dontBlock=True,botLine=%s,leftLine=%s,rightLine=%s,clumps=%s)'%(repr(dim),repr(psd),mat.dumps(format='expr',width=-1,noMagic=True),repr(gravity),repr(excessWd),repr(damping),repr(botLine),repr(leftLine),repr(rightLine),repr(clumps))
 	dim=list(dim) # make modifiable in case of excess width
+
+
+
 	retWd=dim[1]
 	nRepeatCells=0 # if 0, repetition is disabled
 	# too wide band is created by repeating narrower one
@@ -770,22 +773,6 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 			nRepeatCells=int(retWd/dim[1])+1
 	cellSize=(dim[0],dim[1],(1+2*porosity)*dim[2])
 	print 'cell size',cellSize,'target height',dim[2]
-	if memoizeDir and not dontBlock:
-		params=str(dim)+str(cellSize)+str(psd)+str(goal)+str(damping)+mat.dumps(format='expr')+str(gravity)+str(porosity)+str(botLine)+str(leftLine)+str(rightLine)+str(clumps)+str(useEnergy)+'ver4'
-		import hashlib
-		paramHash=hashlib.sha1(params).hexdigest()
-		memoizeFile=memoizeDir+'/'+paramHash+'.bandfeed'
-		print 'Memoize file is ',memoizeFile
-		if os.path.exists(memoizeDir+'/'+paramHash+'.bandfeed'):
-			print 'Returning memoized result'
-			sp=SpherePack()
-			sp.load(memoizeFile)
-			if returnSpherePack: return sp
-			return zip(*sp)
-	import woo, woo.core, woo.dem
-	S=woo.core.Scene(fields=[woo.dem.DemField(gravity=gravity)])
-	S.periodic=True
-	S.cell.setBox(cellSize)
 	factoryBottom=.3*cellSize[2] if not botLine else max([b[1] for b in botLine]) # point above which are particles generated
 	factoryLeft=0 if not leftLine else max([l[0] for l in leftLine])
 	#print 'factoryLeft =',factoryLeft,'leftLine =',leftLine,'cellSize =',cellSize
@@ -794,9 +781,43 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 	if not rightLine:rightLine=[Vector2(cellSize[1],cellSize[2])]
 	if not botLine:  botLine=[Vector2(0,0),Vector2(cellSize[1],0)]
 	boundary2d=leftLine+botLine+rightLine
+	# boundary clipped to the part filled by particles
+	b2c=[Vector2(pt[0],min(pt[1],dim[2])) for pt in boundary2d]
+	print 'Clipped boundary',b2c
+	b2c+=[b2c[0],b2c[1]] # close the polygon
+	area2d=.5*abs(sum([b2c[i][0]*(b2c[i+1][1]-b2c[i-1][1]) for i in range(1,len(b2c)-1)]))
+
+	def printBulkParams(sp):
+		sphVol=sp.sphereVol()
+		mass=sphVol*mat.density
+		print 'Particle mass: %g kg (volume %g m3, mass density %g kg/m3).'%(mass,sphVol,mat.density)
+		vol=area2d*sp.cellSize[0]
+		print 'Bulk density: %g kg/m3 (area %g m2, length %g m).'%(mass/vol,area2d,sp.cellSize[0])
+		print 'Porosity: %g %%'%(100*(1-(mass/vol)/mat.density))
+
+	if memoizeDir and not dontBlock:
+		params=str(dim)+str(cellSize)+str(psd)+str(goal)+str(damping)+mat.dumps(format='expr')+str(gravity)+str(porosity)+str(botLine)+str(leftLine)+str(rightLine)+str(clumps)+str(useEnergy)+'ver5'
+		import hashlib
+		paramHash=hashlib.sha1(params).hexdigest()
+		memoizeFile=memoizeDir+'/'+paramHash+'.bandfeed'
+		print 'Memoize file is ',memoizeFile
+		if os.path.exists(memoizeDir+'/'+paramHash+'.bandfeed'):
+			print 'Returning memoized result'
+			sp=SpherePack()
+			sp.load(memoizeFile)
+			printBulkParams(sp)
+			if returnSpherePack: return sp
+			return zip(*sp)
+
+	import woo, woo.core, woo.dem
+	S=woo.core.Scene(fields=[woo.dem.DemField(gravity=gravity)])
+	S.periodic=True
+	S.cell.setBox(cellSize)
+	# add limiting surface
 	p=sweptPolylines2gtsSurface([utils.tesselatePolyline([Vector3(x,yz[0],yz[1]) for yz in boundary2d],maxDist=min(cellSize[0]/4.,cellSize[1]/4.,cellSize[2]/4.)) for x in numpy.linspace(0,cellSize[0],num=4)])
 	S.dem.par.append(gtsSurface2Facets(p,mask=0b011))
 	S.dem.loneMask=0b010
+
 
 	massToDo=porosity*mat.density*dim[0]*dim[1]*dim[2]
 	print 'Will generate %g mass'%massToDo
@@ -846,6 +867,9 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 	sp=SpherePack()
 	sp.fromSimulation(S)
 	sp.canonicalize()
+	# remove what is above the requested height
+	sp=sp.filtered(woo.pack.inAxisRange(axis=2,range=(0,dim[2])),recenter=False)
+	printBulkParams(sp)
 	if nRepeatCells:
 		print 'nRepeatCells',nRepeatCells
 		sp.cellRepeat(Vector3i(1,nRepeatCells,1))

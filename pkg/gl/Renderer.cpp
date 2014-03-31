@@ -28,6 +28,7 @@ Vector3r Renderer::highlightEmission0;
 Vector3r Renderer::highlightEmission1;
 const int Renderer::numClipPlanes;
 string Renderer::snapFmt;
+bool Renderer::allowFast;
 
 GlFieldDispatcher Renderer::fieldDispatcher;
 GlShapeDispatcher Renderer::shapeDispatcher;
@@ -244,8 +245,8 @@ void Renderer::setLighting(){
 void Renderer::render(const shared_ptr<Scene>& _scene, bool _withNames, bool _fastDraw){
 	if(!initDone) init();
 	assert(initDone);
-
-	fastDraw=_fastDraw;
+	if(allowFast) fastDraw=_fastDraw;
+	else fastDraw=false;
 
 	withNames=_withNames; // used in many methods
 	if(withNames) glNamedObjects.clear();

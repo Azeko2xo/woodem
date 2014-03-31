@@ -198,6 +198,17 @@ class ControllerClass(QWidget,Ui_Controller):
 		r=preSubMenu.addAction(u'↻ Refresh preprocessors')
 		r.triggered.connect(lambda: self.refreshPreprocessors())
 		self.preMenuButton.setMenu(preSubMenu)
+	
+		if OpenGL:
+			# display submenu
+			dispMenu=QMenu()
+			from . import DisplayProfiles
+			for label,func in DisplayProfiles.predefinedProfiles.items():
+				a=dispMenu.addAction(label)
+				a.triggered.connect(func)
+			if len(DisplayProfiles.predefinedProfiles)==0: self.dispMenuButton.setEnabled(False)
+			else: self.dispMenuButton.setMenu(dispMenu)
+		else: self.dispMenuButton.setEnabled(False)
 
 		global controller
 		controller=self

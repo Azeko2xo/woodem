@@ -39,9 +39,11 @@ for mName in [m for m in sys.modules if m.startswith('wooExtra.') and len(m.spli
 	shutil.copyfile('conf.py',confName) 
 	## copy package resources to the source directory
 	for R in ('resources','data'): # future-proof :)
-		resDir=pkg_resources.resource_filename(mName,R)
-		print srcDir,resDir,R
-		if os.path.exists(resDir) and not os.path.exists(srcDir+'/'+R): os.symlink(resDir,srcDir+'/'+R)
+		try:
+			resDir=pkg_resources.resource_filename(mName,R) # if zipped, seaches in zip, possibly raising KeyError
+			print srcDir,resDir,R
+			if os.path.exists(resDir) and not os.path.exists(srcDir+'/'+R): os.symlink(resDir,srcDir+'/'+R)
+		except KeyError: pass 
 	# HACK: change some values in the config
 	with open(confName,'a') as conf:
 		conf.write("""
