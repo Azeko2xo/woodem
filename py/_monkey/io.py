@@ -29,9 +29,18 @@ except ImportError:
 nan,inf=float('nan'),float('inf') # for values in expressions
 
 def Object_getAllTraits(obj):
+	'Return list of all trait objects for this instance, recursively including all parent classes.'
 	ret=[]; k=obj.__class__
 	while k!=woo.core.Object:
 		ret=k._attrTraits+ret
+		k=k.__bases__[0]
+	return ret
+
+def Object_getAllTraitsWithClasses(obj):
+	'Return list of (trait,klass) relevant for *obj*, where *klass* is class (type object) to which each trait belongs.'
+	ret=[]; k=obj.__class__
+	while k!=woo.core.Object:
+		ret=[(trait,k) for trait in k._attrTraits]+ret
 		k=k.__bases__[0]
 	return ret
 
@@ -447,6 +456,7 @@ def Object_deepcopy(obj):
 	
 
 Object._getAllTraits=Object_getAllTraits
+Object._getAllTraitsWithClasses=Object_getAllTraitsWithClasses
 Object.dump=Object_dump
 Object.dumps=Object_dumps
 Object.saveTmp=Object_saveTmp

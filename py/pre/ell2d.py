@@ -94,12 +94,13 @@ class EllGroup(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		S.lab.leapfrog.kinSplit=True
 
 		S.dtSafety=pre.dtSafety
+		S.trackEnergy=True
 
 		S.uiBuild='import woo.pre.ell2d; woo.pre.ell2d.ellGroupUiBuild(S,area)'
 
 		S.lab.maxEll2Color=0. # max |angVel| for the start when plotting
 
-		S.trackEnergy=True
+
 		S.plot.plots={'i':('total','**S.energy'),' t':('relErr')}
 		S.plot.data={'i':[nan],'total':[nan],'relErr':[nan]} # to make plot displayable from the very start
 	

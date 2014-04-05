@@ -24,6 +24,8 @@ namespace py=boost::python;
 
 WOO_PLUGIN(core,(Scene));
 CREATE_LOGGER(Scene);
+
+
 // should be elsewhere, probably
 bool TimingInfo::enabled=false;
 
@@ -270,6 +272,8 @@ void Scene::postLoad(Scene&,void*){
 		// LOG_WARN("woo.core.Plot object belonging to another Scene? Reassigning.");
 	}
 	plot->scene=static_pointer_cast<Scene>(shared_from_this());
+
+	if(ctrl) ctrl->scene=static_pointer_cast<Scene>(shared_from_this());
 
 	//
 	// assign fields to engines

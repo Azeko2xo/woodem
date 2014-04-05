@@ -36,7 +36,7 @@ struct PelletMatState: public MatState{
 		switch(index){
 			case 0: return normPlast+shearPlast;
 			// invalid value if not yet updated in this step
-			case 1: return (step<0||smooth<=0)?agglomRate:pow(smooth,step-stepUpdated)*agglomRate;
+			case 1: return (step<0||smooth<=0)?agglomRate:pow(smooth,step-stepAgglomUpdated)*agglomRate;
 			default: return NaN;	
 		}
 	}
@@ -44,6 +44,7 @@ struct PelletMatState: public MatState{
 		((Real,normPlast,0,,"Plastic energy dissipated in the normal sense"))
 		((Real,shearPlast,0,,"Plastic energy dissipated in the tangential sense"))
 		((Real,agglomRate,NaN,,"Agglomeration speed"))
+		((long,stepAgglomUpdated,-1,,"Step in which the agglomeration speed was updated for the last time."))
 	);
 };
 WOO_REGISTER_OBJECT(PelletMatState);

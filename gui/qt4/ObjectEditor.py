@@ -690,15 +690,15 @@ def makeLibraryBrowser(parentmenu,callback,types,libName='Library'):
 
 
 class ObjectEditor(QFrame):
-	"Class displaying and modifying serializable attributes of a woo object."
+	"Class displaying and modifying attributes of a woo object, or of unrelated attributes of different objects."
 	import collections
 	import logging
 	# each attribute has one entry associated with itself
 
 
 	class EntryData:
-		def __init__(self,name,T,doc,groupNo,trait,containingClass,editor):
-			self.name,self.T,self.doc,self.trait,self.groupNo,self.containingClass=name,T,doc,trait,groupNo,containingClass
+		def __init__(self,obj,name,T,doc,groupNo,trait,containingClass,editor,label):
+			self.obj,self.name,self.T,self.doc,self.trait,self.groupNo,self.containingClass,self.label=obj,name,T,doc,trait,groupNo,containingClass,label
 			self.widget=None
 			self.visible=True
 			self.hidden=False # this overrides the "visible" attribute
@@ -781,10 +781,11 @@ class ObjectEditor(QFrame):
 					e.setVisible(self.expander.isChecked())
 
 
-	def __init__(self,ser,parent=None,ignoredAttrs=set(),showType=False,path=None,labelIsVar=True,showChecks=False,showUnits=False,objManip=True):
+	def __init__(self,ser,parent=None,ignoredAttrs=set(),objAttrLabelList=None,showType=False,path=None,labelIsVar=True,showChecks=False,showUnits=False,objManip=True):
 		"Construct window, *ser* is the object we want to show."
 		QtGui.QFrame.__init__(self,parent)
 		self.ser=ser
+		self.oneObject=ser
 		self.setSizePolicy(QSizePolicy.Preferred,QSizePolicy.Expanding)
 		#where do widgets go in the grid
 		self.gridCols={'check':0,'label':1,'value':2,'unit':3}
@@ -799,15 +800,23 @@ class ObjectEditor(QFrame):
 		self.entries=[]
 		self.entryGroups=[]
 		self.ignoredAttrs=ignoredAttrs
-		if self.ser==None:
-			logging.debug('New None Object')
-			# show None
-			lay=QGridLayout(self); lay.setContentsMargins(2,2,2,2); lay.setVerticalSpacing(0)
-			lab=QLabel('<b>None</b>'); lab.setFrameShape(QFrame.Box); lab.setFrameShadow(QFrame.Sunken); lab.setLineWidth(2); lab.setAlignment(Qt.AlignHCenter);
-			if self.showType: lay.addWidget(lab,0,0,1,-1)
-			return # no timers, nothing will change at all
-		logging.debug('New Object of type %s'%ser.__class__.__name__)
-		self.setWindowTitle(str(ser))
+		if objAttrLabelList:
+			self.hasSer=False
+			# create entries for given attributes
+			self.addListObjAttrEntries(objAttrLabelList)
+		else:
+			self.hasSer=True
+			if self.ser==None:
+				logging.debug('New None Object')
+				# show None
+				lay=QGridLayout(self); lay.setContentsMargins(2,2,2,2); lay.setVerticalSpacing(0)
+				lab=QLabel('<b>None</b>'); lab.setFrameShape(QFrame.Box); lab.setFrameShadow(QFrame.Sunken); lab.setLineWidth(2); lab.setAlignment(Qt.AlignHCenter);
+				if self.showType: lay.addWidget(lab,0,0,1,-1)
+				return # no timers, nothing will change at all
+			logging.debug('New Object of type %s'%ser.__class__.__name__)
+			self.setWindowTitle(str(ser))
+			# create entries for all attributes of this object
+			self.addSerAttrEntries()
 		with WidgetUpdatesDisabled(self):
 			self.mkWidgets()
 		self.refreshTimer=QTimer(self)
@@ -848,90 +857,95 @@ class ObjectEditor(QFrame):
 		if m:
 			#print 'guessed literal type',m.group('elemT')
 			elemT=m.group('elemT')
-			for mod in [dem,core]+([gl] if 'opengl' in woo.config.features else []):
-				#print dir(mod)
-				if elemT in dir(mod) and type(mod.__dict__[elemT]).__name__=='class':
-					#print 'found type %s.%s for %s'%(mod.__name__,elemT,cxxT)
-					return (mod.__dict__[elemT],) # return tuple to signify sequence
+			klasses=[c for c in woo.system.childClasses(woo.core.Object,includeBase=True) if c.__name__==elemT]
+			if len(klasses)==0: logging.warn('%s: no Python type object with name %s found (cxxType=%s)'%(wHead,elemT,trait.cxxType))
+			elif len(klasses)>1: logging.warn('%s: multiple Python types with name %s found (cxxType=%s): %s'%(wHead,elemT,trait.cxxType,', '.join([c.__module__+'.'+c.__name__ for c in klasses])))
+			else: return (klasses[0],) # return tuple to signify sequence
 		logging.error("Unable to guess python type from cxx type '%s'"%cxxT)
 		return None
-	def mkAttrEntries(self):
-		if self.ser==None: return
+	def guessInstanceTypeFromCxxType(self,obj,trait):
+		'Return type object guessed from cxxType'
+		wHead=obj.__class__.__module__+'.'+obj.__class__.__name__+'.'+trait.name
+		m=re.match(r'^\s*(weak_ptr\s*<|shared_ptr\s*<)?([A-Za-z0-9_:]+)(\s*>)?\s*',trait.cxxType)
+		if m:
+			cT=m.group(2)
+			logging.debug('%s: got c++ base type: %s -> %s'%(wHead,trait.cxxType,cT))
+			klasses=[c for c in woo.system.childClasses(woo.core.Object,includeBase=True) if c.__name__==cT]
+			if len(klasses)==0: logging.warn('%s: no Python type object with name %s found (cxxType=%s)'%(wHead,cT,trait.cxxType))
+			elif len(klasses)>1: logging.warn('%s: multiple Python types with name %s found (cxxType=%s): %s'%(wHead,cT,trait.cxxType,', '.join([c.__module__+'.'+c.__name__ for c in klasses])))
+			else: return klasses[0]
+		logging.warn('%s: no c++ base type found for %s'%(wHead,trait.cxxType))
+		logging.warn('%s: using woo.core.Object as type'%(wHead))
+		return Object
 
-		# crawl class hierarchy up, ask each one for attribute traits
-		attrTraits=[]; k=self.ser.__class__
-		while k!=woo.core.Object:
-			attrTraits=[(k,trait) for trait in k._attrTraits]+attrTraits
-			k=k.__bases__[0]
-		
-		for klass,trait in attrTraits:
-			if trait.hidden or trait.noGui: continue
-			attr=trait.name
-			try:
-				val=getattr(self.ser,attr) # get the value using serattt, as it might be different from what the dictionary provides (e.g. Body.blockedDOFs)
-			except TypeError: # no conversion possible
-				logging.error("To-python conversion failed for %s.%s!"%(self.ser.__class__.__name__,trait.name))
+	def addListObjAttrEntries(self,objAttrLabelList):
+		for obj,attr,label in objAttrLabelList:
+			if not isinstance(obj,woo.core.Object): logging.error('%s is not a woo.core.Object (attribtue %s requested)'%(str(obj),attr))
+			ii=[i for i in obj._getAllTraitsWithClasses() if i[0].name==attr]
+			if len(ii)!=1:
+				if not ii: logging.error('Object %s has no attribute trait %s.'%(obj.__class__.__name__,attr))
+				else: logging.error('Object %s has multiple attribute traits named %s??'%(obj.__class__.__name__,attr))
 				continue
-			t=None
-			doc=trait.doc
-			# remove sphinx markup from docstrings
-			doc=re.sub(':[a-zA-Z0-9_-]+:`([^`]*)`',r'<i>\1</i>',doc)
-			doc=re.sub('``([^`]+)``',r'<tt>\1</tt>',doc)
+			trait,klass=ii[0]
+			self.addAttrEntry(obj=obj,trait=trait,klass=klass,label=label)
 
-			if attr in self.ignoredAttrs: continue
+	def addSerAttrEntries(self):
+		for trait,klass in self.oneObject._getAllTraitsWithClasses():
+			self.addAttrEntry(obj=self.ser,trait=trait,klass=klass)
 
-			# this attribute starts a new attribute group
-			if trait.startGroup: self.entryGroups.append(self.EntryGroupData(number=len(self.entryGroups),name=trait.startGroup))
+	def addAttrEntry(self,obj,trait,klass,label=None):
+		'Return attribute entry where *obj* is the parent object, *trait* is the attribute trait, *klass* is the class of the attribute (as python type; if 1-tuple, list of those types). *label* is what will be shown in the UI; if omitted, trait.name will be used by default.'
+		if trait.hidden or trait.noGui: return
+		attr=trait.name
+		try:
+			val=getattr(obj,attr) # get the value using serattt, as it might be different from what the dictionary provides (e.g. Body.blockedDOFs)
+		except TypeError: # no conversion possible
+			logging.error("To-python conversion failed for %s.%s!"%(obj.__class__.__name__,trait.name))
+			return
+		t=None
+		doc=trait.doc
+		# remove sphinx markup from docstrings
+		doc=re.sub(':[a-zA-Z0-9_-]+:`([^`]*)`',r'<i>\1</i>',doc)
+		doc=re.sub('``([^`]+)``',r'<tt>\1</tt>',doc)
 
-			# determine entry type
-			if isinstance(val,list):
-				t=self.getListTypeFromDocstring(trait)
-				if not t and len(val)==0: t=(val[0].__class__,) # 1-tuple is list of the contained type
-				#if not t: raise RuntimeError('Unable to guess type of '+str(self.ser)+'.'+attr)
-			elif val.__class__ in _attributeGuessedTypeMap: t=_attributeGuessedTypeMap[val.__class__]
-			elif val!=None and not isinstance(val,woo.core.Object): t=val.__class__
-			else:
-				# val==None, try to find which type it should be
-				# only useful if we can manipulate objects
-				if self.objManip:
-					t=None
-					wHead=self.ser.__class__.__module__+'.'+self.ser.__class__.__name__+'.'+trait.name
-					m=re.match(r'^\s*(weak_ptr\s*<|shared_ptr\s*<)?([A-Za-z0-9_:]+)(\s*>)?\s*',trait.cxxType)
-					if m:
-						cT=m.group(2)
-						logging.debug('%s: got c++ base type: %s -> %s'%(wHead,trait.cxxType,cT))
-						klasses=[c for c in woo.system.childClasses(woo.core.Object,includeBase=True) if c.__name__==cT]
-						if len(klasses)==0: logging.warn('%s: no Python type object with name %s found (cxxType=%s)'%(wHead,cT,trait.cxxType))
-						elif len(klasses)>1: logging.warn('%s: multiple Python types with name %s found (cxxType=%s): %s'%(wHead,cT,trait.cxxType,', '.join([c.__module__+'.'+c.__name__ for c in klasses])))
-						else: t=klasses[0]
-					else:
-						logging.warn('%s: no c++ base type found for %s'%(wHead,trait.cxxType))
-					if t==None:
-						logging.warn('%s: using woo.core.Object as type'%(wHead))
-						t=Object
-				else:
-					t=Object
+		if attr in self.ignoredAttrs: return
 
-			if len(self.entryGroups)==0: self.entryGroups.append(self.EntryGroupData(number=0,name=None))
-			groupNo=len(self.entryGroups)-1
+		# this attribute starts a new attribute group
+		if trait.startGroup: self.entryGroups.append(self.EntryGroupData(number=len(self.entryGroups),name=trait.startGroup))
 
-			#if not match: print 'No attr match for docstring of %s.%s'%(self.ser.__class__.__name__,attr)
-			#logging.debug('Attr %s is of type %s'%(attr,((t[0].__name__,) if isinstance(t,tuple) else t.__name__)))
-			self.entries.append(self.EntryData(name=attr,T=t,groupNo=groupNo,doc=doc,trait=trait,containingClass=klass,editor=self))
+		# determine entry type
+		if isinstance(val,list):
+			t=self.getListTypeFromDocstring(trait)
+			if not t and len(val)==0: t=(val[0].__class__,) # 1-tuple is list of the contained type
+			#if not t: raise RuntimeError('Unable to guess type of '+str(obj)+'.'+attr)
+		elif val.__class__ in _attributeGuessedTypeMap: t=_attributeGuessedTypeMap[val.__class__]
+		elif not isinstance(val,woo.core.Object) and val!=None: t=val.__class__
+		else: # for Woo objects, determine base class if manipulation is allowed; if not, use current instance type (it can't be changed anyway) or Object (it the value is None)
+			if self.objManip: t=self.guessInstanceTypeFromCxxType(obj,trait)
+			elif val!=None: t=val.__class__
+			else: t=Object
+
+		if len(self.entryGroups)==0: self.entryGroups.append(self.EntryGroupData(number=0,name=None))
+		groupNo=len(self.entryGroups)-1
+
+		#if not match: print 'No attr match for docstring of %s.%s'%(obj.__class__.__name__,attr)
+		#logging.debug('Attr %s is of type %s'%(attr,((t[0].__name__,) if isinstance(t,tuple) else t.__name__)))
+		self.entries.append(self.EntryData(obj=obj,name=attr,T=t,groupNo=groupNo,doc=doc,trait=trait,containingClass=klass,editor=self,label=label))
+
 	def getDocstring(self,attr=None):
 		"If attr is *None*, return docstring of the Object itself"
 		if attr==None:
-			if self.ser.__class__.__doc__!=None: doc=self.ser.__class__.__doc__.decode('utf-8')
+			if self.oneObject.__class__.__doc__!=None: doc=self.oneObject.__class__.__doc__.decode('utf-8')
 			else:
 				logging.error('Class %s __doc__ is None?'%self.ser.__class__.__name__)
 				return None
 		else:
-			tt=[t.doc for t in self.ser.__class__._attrTraits if t.name==attr]
-			if not tt:
-				logging.error('Attr %s.%s has no trait?'%(self.ser.__class__,attr))
+			ee=[e.doc for e in self.entries if e.name==attr]
+			if not ee:
+				logging.error('No entry for attribute named %s?'%(attr))
 				doc='[no documentation found]'
-			else: doc=tt[0]
-		doc=re.sub(':[a-zA-Z0-9_-]+:`([^`]*)`',r'<i>\1</i>',doc)
+			else: doc=e[0].doc
+		# doc=re.sub(':[a-zA-Z0-9_-]+:`([^`]*)`',r'<i>\1</i>',doc)
 		import textwrap
 		wrapper=textwrap.TextWrapper(replace_whitespace=False)
 		return wrapper.fill(textwrap.dedent(doc))
@@ -942,21 +956,21 @@ class ObjectEditor(QFrame):
 		if entry.T==float and rg and rg.__class__==Vector2:
 			# getter returns tuple value,range
 			# setter needs just the value itself
-			return AttrEditor_FloatRange(self,lambda: (getattr(self.ser,entry.name),rg),lambda x: setattr(self.ser,entry.name,x))
+			return AttrEditor_FloatRange(self,lambda: (getattr(entry.obj,entry.name),rg),lambda x: setattr(entry.obj,entry.name,x))
 		elif entry.T==int and rg and rg.__class__==Vector2i:
-			return AttrEditor_IntRange(self,lambda: (getattr(self.ser,entry.name),rg),lambda x: setattr(self.ser,entry.name,x))
+			return AttrEditor_IntRange(self,lambda: (getattr(entry.obj,entry.name),rg),lambda x: setattr(entry.obj,entry.name,x))
 		# range for sequences has the special meaning of minimum and maximum lenth; handled in SeqEditor, not here
 		elif isinstance(entry.T,(list,tuple)) and len(entry.T)==1: return None
 		else:
-			raise RuntimeError("Invalid range object for "+self.ser.__class__.__name__+"."+entry.name+": type is "+str(entry.T)+", range is "+str(rg)+" (of type "+rg.__class__.__name__+")")
+			raise RuntimeError("Invalid range object for "+entry.obj.__class__.__name__+"."+entry.name+": type is "+str(entry.T)+", range is "+str(rg)+" (of type "+rg.__class__.__name__+")")
 	def handleChoices(self,getter,setter,entry):
 		# choice for sequences has the special meaning of descriptions of individual items; handled in SeqEditor, not here
 		if isinstance(entry.T,(list,tuple)) and len(entry.T)==1: return None
 		choice=entry.trait.choice
-		return AttrEditor_Choice(self,lambda: (getattr(self.ser,entry.name),choice),lambda x: setattr(self.ser,entry.name,x))
+		return AttrEditor_Choice(self,lambda: (getattr(entry.obj,entry.name),choice),lambda x: setattr(entry.obj,entry.name,x))
 	def handleBits(self,getter,setter,entry):
 		bits=entry.trait.bits
-		return AttrEditor_Bits(self,lambda: (getattr(self.ser,entry.name),bits),lambda x: setattr(self.ser,entry.name,x))
+		return AttrEditor_Bits(self,lambda: (getattr(entry.obj,entry.name),bits),lambda x: setattr(entry.obj,entry.name,x))
 	def handleRgbColor(self,getter,setter,entry):
 		return AttrEditor_RgbColor(self,getter,setter)
 	def handleFileDir(self,getter,setter,entry):
@@ -964,13 +978,13 @@ class ObjectEditor(QFrame):
 		
 	def mkWidget(self,entry):
 		if not entry.T:
-			#print 'return None for %s.%s'%(self.ser.__class__.__name__,entry.name)
+			#print 'return None for %s.%s'%(entry.obj.__class__.__name__,entry.name)
 			return None
 
 		# single fundamental object
 		widget=None
 		# default getter and setter
-		getter,setter=lambda: getattr(self.ser,entry.name), lambda x: setattr(self.ser,entry.name,x)
+		getter,setter=lambda: getattr(entry.obj,entry.name), lambda x: setattr(entry.obj,entry.name,x)
 		# try to find specific widget first based on traits
 		# these functions may return none, indicating that it won't be handled specially
 		if entry.trait.range: widget=self.handleRanges(getter,setter,entry)
@@ -995,23 +1009,23 @@ class ObjectEditor(QFrame):
 			if (issubclass(T,Object) or T==Object):
 				# HACK!!!
 				# per-instance traits for py-derived objects
-				if hasattr(self.ser,'_instanceTraits') and entry.trait.name in self.ser._instanceTraits:
-					entry.trait=self.ser._instanceTraits[entry.trait.name]
+				if hasattr(entry.obj,'_instanceTraits') and entry.trait.name in entry.obj._instanceTraits:
+					entry.trait=entry.obj._instanceTraits[entry.trait.name]
 				widget=SeqObject(self,getter,setter,T=T,trait=entry.trait,path=(self.path+'.'+entry.name if self.path else None),shrink=True)
 				return widget
 			if (T in _fundamentalEditorMap):
 				widget=SeqFundamentalEditor(self,getter,setter,T)
 				return widget
-			print 'No widget for (%s,) in %s.%s'(T.__name__,self.ser.__class__.__name__,entry.name)
+			print 'No widget for (%s,) in %s.%s'(T.__name__,entry.obj.__class__.__name__,entry.name)
 			return None
 		# a woo.Object
 		if issubclass(entry.T,Object) or entry.T==Object:
-			obj=getattr(self.ser,entry.name)
+			obj=getattr(entry.obj,entry.name)
 			# should handle the case of obj==None as well
-			widget=ObjectEditor(getattr(self.ser,entry.name),parent=self,showType=self.showType,path=(self.path+'.'+entry.name if self.path else None),labelIsVar=self.labelIsVar,showChecks=self.showChecks,showUnits=self.showUnits,objManip=self.objManip)
+			widget=ObjectEditor(getattr(entry.obj,entry.name),parent=self,showType=self.showType,path=(self.path+'.'+entry.name if self.path else None),labelIsVar=self.labelIsVar,showChecks=self.showChecks,showUnits=self.showUnits,objManip=self.objManip)
 			widget.setFrameShape(QFrame.Box); widget.setFrameShadow(QFrame.Raised); widget.setLineWidth(1)
 			return widget
-		print 'No widget for %s in %s.%s'%(entry.T.__name__,self.ser.__class__.__name__,entry.name)
+		print 'No widget for %s in %s.%s'%(entry.T.__name__,entry.obj.__class__.__name__,entry.name)
 		return None
 	def serQLabelMenu(self,widget,position):
 		menu=QMenu(self)
@@ -1024,33 +1038,35 @@ class ObjectEditor(QFrame):
 		toggleShowUnits=menu.addAction('Units')
 		toggleShowUnits.setCheckable(True); toggleShowUnits.setChecked(self.showUnits)
 		toggleShowUnits.triggered.connect(lambda: self.toggleShowUnits(None))
-		if self.ser is not None:
+		if self.hasSer and self.ser is not None:
 			actionSave=menu.addAction(u'⛁ Save')
-			actionSave.triggered.connect(lambda: self.saveObject())
+			actionSave.triggered.connect(lambda obj=self.ser: self.saveObject(obj))
 		#if self.path is not None:
 		#	actionLoad=menu.addAction(u'↥ Load')
 		#	actionLoad.trigger.connect(lambda: self.loadObject)
 		menu.popup(self.mapToGlobal(position))
 		#print 'menu popped up at ',widget.mapToGlobal(position),' (local',position,')'
-	def saveObject(self):
+	def saveObject(self,obj):
+		assert obj is not None
 		f=QFileDialog.getSaveFileName(self,'Save object: use .json, .expr, .pickle, .html ...','.')
 		if not f: return
-		woo._monkey.io.Object_dump(self.ser,unicode(f),format='auto',fallbackFormat='expr')
-	def loadObject(self):
-		assert self.path
-		f=QFileDialog.getOpenFileName(self,msg,'.')
-		if not f: return # no file selected
-		try:
-			if isObj: obj=entry.T.load(f) # be user friendly if garbage is being loaded
-			else: obj=woo._monkey.io.Object_load(None,f)
-			raise NotImplementedError('Loading objects to path is not yet implemented.')
-			# get parent object (or parent sequence!) and use setattr/setitem to assign the object
-			# parent=path.split('.').join('.')
-			# eval(path)=obj
-		except Exception as e:
-			import traceback
-			traceback.print_exc()
-			showExceptionDialog(self,e)
+		woo._monkey.io.Object_dump(obj,unicode(f),format='auto',fallbackFormat='expr')
+	# XXX: deprecated chunk
+	#def loadObject(self):
+	#	assert self.path
+	#	f=QFileDialog.getOpenFileName(self,msg,'.')
+	#	if not f: return # no file selected
+	#	try:
+	#		if isObj: obj=entry.T.load(f) # be user friendly if garbage is being loaded
+	#		else: obj=woo._monkey.io.Object_load(None,f)
+	#		raise NotImplementedError('Loading objects to path is not yet implemented.')
+	#		# get parent object (or parent sequence!) and use setattr/setitem to assign the object
+	#		# parent=path.split('.').join('.')
+	#		# eval(path)=obj
+	#	except Exception as e:
+	#		import traceback
+	#		traceback.print_exc()
+	#		showExceptionDialog(self,e)
 	def getAttrLabelToolTip(self,entry):
 		try:
 			ini=str(entry.trait.ini) if (entry.trait.ini and not isinstance(entry.trait.ini,Object)) else ''
@@ -1058,7 +1074,7 @@ class ObjectEditor(QFrame):
 			# boost::python won't convert weak_ptr, catch it here
 			ini=''
 		toolTip=entry.containingClass.__name__+'.<b><i>'+entry.name+'</i></b><br>'+entry.doc+('<br><small>default: %s</small>'%ini)
-		if self.labelIsVar: return woo.document.makeObjectHref(self.ser,entry.name),toolTip
+		if self.labelIsVar: return woo.document.makeObjectHref(entry.obj,entry.name,text=entry.label),toolTip
 		return entry.doc.decode('utf-8'),toolTip
 	def toggleLabelIsVar(self,val=None):
 		self.labelIsVar=(not self.labelIsVar if val==None else val)
@@ -1088,11 +1104,10 @@ class ObjectEditor(QFrame):
 					entry.widget.toggleShowUnits(self.showUnits)
 	def objManipLabelMenu(self,entry,pos):
 		'context menu for creating/deleting/loading/saving woo.core.Object from within the editor'
-		from . import ObjectLibrary
 		menu=QMenu(self)
-		isNone=(getattr(self.ser,entry.name)==None)
+		isNone=(getattr(entry.obj,entry.name)==None)
 		# isinstance is false for None, but None is always (?) missing woo.core.Object anyway
-		isObj=isinstance(getattr(self.ser,entry.name),woo.core.Object) or isNone
+		isObj=isinstance(getattr(entry.obj,entry.name),woo.core.Object) or isNone
 		default=menu.addAction(u'↺ Default')
 		default.triggered.connect(lambda: self.doObjManip('default',entry,isNone,isObj))
 		if isObj:
@@ -1104,22 +1119,36 @@ class ObjectEditor(QFrame):
 		load=menu.addAction(u'↥ Load')
 		load.triggered.connect(lambda: self.doObjManip('load',entry,isNone,isObj))
 		lib=makeLibraryBrowser(menu,lambda name,obj: self.setFromLib(entry,name,obj),entry.T,u'⇈ Library')
+		# put this into each varibles menus instead, as there is no the label at the top
+		if not self.showType or not self.hasSer:
+			menu.addSeparator()
+			v=menu.addAction('Variables')
+			v.setCheckable(True); v.setChecked(self.labelIsVar)
+			v.triggered.connect(lambda: self.toggleLabelIsVar(None))
+			c=menu.addAction(u'Checks')
+			c.setCheckable(True); c.setChecked(self.showChecks)
+			c.triggered.connect(lambda: self.toggleShowChecks(None))
+			u=menu.addAction('Units')
+			u.setCheckable(True); u.setChecked(self.showUnits)
+			u.triggered.connect(lambda: self.toggleShowUnits(None))
+
+
 		menu.popup(entry.widgets['label'].mapToGlobal(pos))
 	def setFromLib(self,entry,name,obj):
 		# setting library object
 		if isinstance(obj,woo.core.Object): obj=obj.deepcopy() # prevent lib object modification
-		setattr(self.ser,entry.name,obj)
+		setattr(entry.obj,entry.name,obj)
 	def doObjManip(self,action,entry,isNone,isObj):
 		'Handle menu action from objManipLabelMenu'
 		# FIXME: this is an ugly hack of using woo._monkey.io.Object_{dump,load} directly!!!
 		import woo, woo.core, woo._monkey.io
-		#print 'Manipulating Object',self.ser.__class__.__name__+'.'+entry.name
+		#print 'Manipulating Object',entry.obj.__class__.__name__+'.'+entry.name
 		if action=='newDel':
 			assert isObj
-			setattr(self.ser,entry.name,entry.T() if isNone else None)
+			setattr(entry.obj,entry.name,entry.T() if isNone else None)
 		elif action=='save':
 			assert not isNone
-			obj=getattr(self.ser,entry.name)
+			obj=getattr(entry.obj,entry.name)
 			f=QFileDialog.getSaveFileName(self,'Save object: use .json, .expr, .pickle, .html ...','.')
 			if not f: return
 			woo._monkey.io.Object_dump(obj,unicode(f),format='auto',fallbackFormat='expr')
@@ -1130,7 +1159,7 @@ class ObjectEditor(QFrame):
 			try:
 				if isObj: obj=entry.T.load(f) # be user friendly if garbage is being loaded
 				else: obj=woo._monkey.io.Object_load(None,f)
-				setattr(self.ser,entry.name,obj)
+				setattr(entry.obj,entry.name,obj)
 			except Exception as e:
 				import traceback
 				traceback.print_exc()
@@ -1141,13 +1170,12 @@ class ObjectEditor(QFrame):
 			else:
 				import copy
 				val=copy.deepcopy(entry.trait.ini)
-			setattr(self.ser,entry.name,val)
+			setattr(entry.obj,entry.name,val)
 		else: raise RuntimError('Unknown action %s for object manipulation context menu!'%action)
 		self.refreshEvent()
 	def mkWidgets(self):
-		self.mkAttrEntries()
 		onlyDefaultGroups=(len(self.entryGroups)==1 and self.entryGroups[0].name==None)
-		if self.showType: # create type label
+		if self.showType and self.hasSer: # create type label
 			lab=SerQLabel(self,makeObjectLabel(self.ser,addr=True,href=True),tooltip=self.getDocstring(),path=self.path,ser=self.ser)
 			lab.setFrameShape(QFrame.Box); lab.setFrameShadow(QFrame.Sunken); lab.setLineWidth(2); lab.setAlignment(Qt.AlignHCenter); lab.linkActivated.connect(woo.qt.openUrl)
 			## attach context menu to the label
@@ -1162,12 +1190,11 @@ class ObjectEditor(QFrame):
 			lay.setRowStretch(0,-1)
 		self.setLayout(lay)
 
-		self.hasUnits=sum([1 for e in self.entries if e.trait.unit])
 		maxLabelWd=0.
 		for entry in self.entries:
 			w=self.mkWidget(entry)
 			if w!=None: entry.widget=entry.widgets['value']=w
-			# else: print 'No value widget for',self.ser.__class__.__name__+'.'+entry.name
+			# else: print 'No value widget for',entry.obj.__class__.__name__+'.'+entry.name
 			#entry.widgets['value']=entry.widget # for code compat
 			#if not entry.widgets['value']: entry.widgets['value']=entry.widget=QFrame() # avoid None widgets
 			objPath=(self.path+'.'+entry.name) if self.path else None
@@ -1221,7 +1248,7 @@ class ObjectEditor(QFrame):
 					b.setFocusPolicy(Qt.NoFocus)
 					l.setToolTip(bb[i+2])
 					def callButton(cmd):
-						exec cmd in globals(),dict(self=self.ser)
+						exec cmd in globals(),dict(self=entry.obj)
 					# first arg (foo) used by the dispatch
 					# cmd=bb[i+1] binds the current value bb[i+1]
 					b.clicked.connect(lambda foo,cmd=bb[i+1]: callButton(cmd)) 
@@ -1284,11 +1311,12 @@ class ObjectEditor(QFrame):
 	def refreshEvent(self):
 		maxLabelWd=0.
 		for e in self.entries:
+			if self.hasSer: assert id(self.ser)==id(e.obj)
 			if e.widget and not e.widget.hot:
 				maxLabelWd=max(maxLabelWd,e.widgets['label'].width())
 				# if there is a new instance of Object, we need to make new widget and replace the old one completely
-				if type(e.widget)==ObjectEditor and e.widget.ser!=getattr(self.ser,e.name):
-					#print 'New ObjectEditor for ',self.ser,e.name
+				if type(e.widget)==ObjectEditor and e.widget.hasSer and id(e.widget.ser)!=id(getattr(e.obj,e.name)):
+					#print 'New ObjectEditor for ',e.obj,e.name
 					e.widget.hide()
 					e.widget=e.widgets['value']=self.mkWidget(e)
 					grid,row=e.gridAndRow
@@ -1387,8 +1415,9 @@ class SeqObjectComboBox(QFrame):
 			if self.shrink:
 				self.setMaximumHeight(self.combo.height()+10);
 				self.scroll.setMaximumHeight(0)
-	def serLabel(self,ser,i=-1):
-		return ('' if i<0 else str(i)+'. ')+str(ser)[1:-1].replace('instance at ','')
+	# XXX: deprecated chunk
+	# def serLabel(self,ser,i=-1):
+	# 	return ('' if i<0 else str(i)+'. ')+str(ser)[1:-1].replace('instance at ','')
 	def refreshEvent(self,forceIx=-1):
 		try:
 			currSeq=self.getter()

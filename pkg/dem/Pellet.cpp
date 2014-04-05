@@ -11,7 +11,6 @@ void Cp2_PelletMat_PelletPhys::go(const shared_ptr<Material>& m1, const shared_p
 }
 
 
-
 // FIXME: energy tracking does not consider adhesion and the integration is very bad (forward trapezoid)
 // leading to 20% of energy erro in some cases
 
@@ -23,7 +22,6 @@ void Law2_L6Geom_PelletPhys_Pellet::tryAddDissipState(int what, Real E, const sh
 		assert(dynamic_cast<PelletMatState*>(p->matState.get()));
 		boost::mutex::scoped_lock l(p->matState->lock);
 		auto& pms=p->matState->cast<PelletMatState>();
-		pms.stepUpdated=scene->step;
 		switch(what){
 			case DISSIP_NORM_PLAST: pms.normPlast+=E/2.; break; 
 			case DISSIP_SHEAR_PLAST: pms.shearPlast+=E/2.; break; 
@@ -124,12 +122,14 @@ void PelletAgglomerator::run(){
 		for(const auto& idCon: src->contacts){
 			const shared_ptr<Contact>& c(idCon.second);
 			if(!c->isReal()) continue;
-			Particle* other(c->leakPA()==src.get()?c->leakPB():src.get());
+			Particle* other(c->leakOther(src.get()));
 			if(!other->shape->isA<Sphere>()) continue; // other particles is not a sphere
 			Sphere& sphere=other->shape->cast<Sphere>();
 			assert(dynamic_pointer_cast<L6Geom>(c->geom));
 			// radius change
-			Vector3r localAngVel=c->geom->node->ori.conjugate()*c->geom->cast<L6Geom>().angVel;
+			// XXX: angVel is local already???!
+			// Vector3r localAngVel=c->geom->node->ori.conjugate()*c->geom->cast<L6Geom>().angVel;
+			const Vector3r& localAngVel(c->geom->cast<L6Geom>().angVel);
 			Real dMass=localAngVel.tail<2>().norm()*scene->dt*massIncPerRad;
 			Real newVol=(4/3.)*M_PI*pow(sphere.radius,3)+dMass/other->material->density;
 			sphere.radius=cbrt(3*newVol/(4*M_PI));
@@ -137,7 +137,7 @@ void PelletAgglomerator::run(){
 			if(!other->matState) other->matState=make_shared<PelletMatState>();
 			assert(dynamic_pointer_cast<PelletMatState>(other->matState));
 			auto& pms=other->matState->cast<PelletMatState>();
-			if(pms.stepUpdated!=scene->step){ pms.agglomRate=0.; pms.stepUpdated=scene->step; } // reset value
+			if(pms.stepAgglomUpdated!=scene->step){ pms.agglomRate=0.; pms.stepAgglomUpdated=scene->step; } // reset value
 			pms.agglomRate+=dMass/scene->dt;
 			// rotation damping
 			if(lambda>0){

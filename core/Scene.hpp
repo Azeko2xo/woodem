@@ -181,6 +181,7 @@ struct Scene: public Object{
 
 		// postLoad checks the new value is not None
 		((shared_ptr<Plot>,plot,make_shared<Plot>(),AttrTrait<Attr::triggerPostLoad>().noGui(),"Data and settings for plots."))
+		((shared_ptr<SceneCtrl>,ctrl,/*empty by default*/,AttrTrait<Attr::triggerPostLoad>(),"High-level control interface for this particular scene."))
 
 		// ((shared_ptr<Bound>,bound,,AttrTrait<Attr::hidden>(),"Bounding box of the scene (only used for rendering and initialized if needed)."))
 
