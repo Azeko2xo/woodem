@@ -73,7 +73,7 @@ void Law2_L6Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shar
 			Ft*=ratio;
 			_WATCH_MSG("\tPlastic slip by "<<((Ft/ratio)*(1-ratio)).transpose()<<", ratio="<<ratio<<", new Ft="<<Ft.transpose()<<endl);
 		}
-		if(isnan(ph.force[0]) || isnan(ph.force[1]) || isnan(ph.force[2])){
+		if(isnan(ph.force.maxCoeff())){
 			LOG_FATAL("##"<<C->leakPA()->id<<"+"<<C->leakPB()->id<<" ("<<C->leakPA()->shape->getClassName()<<"+"<<C->leakPB()->shape->getClassName()<<") has NaN force!");
 			LOG_FATAL("    uN="<<uN<<", velT="<<velT.transpose()<<", F="<<ph.force.transpose()<<"; maxFt="<<maxFt<<"; kn="<<ph.kn<<", kt="<<ph.kt);
 			throw std::runtime_error("NaN force in contact (message above)?!");
@@ -86,6 +86,37 @@ void Law2_L6Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shar
 			elast=0.; // this should not happen...?!
 		}
 		scene->energy->add(elast,"elast",elastPotIx,EnergyTracker::IsResettable);
+	}
+	/* ROLLING AND BENDING */
+	if(relRollStiff>0. && rollTanPhi>0.){
+		Real charLen=g.lens.sum();
+		if(charLen<=0) throw std::runtime_error(C->pyStr()+": charLen<=0 !?");
+		Real kr=ph.kn*charLen;
+		// twist
+		if(relTwistStiff>0){
+			ph.torque[0]+=scene->dt*relTwistStiff*kr*g.angVel[0];
+			Real maxTt=abs(ph.force[0]*rollTanPhi*charLen);
+			if(abs(ph.torque[0])>maxTt){
+				// TODO: dissipation
+				ph.torque[0]=copysign(maxTt,ph.torque[0]);
+			}
+		}
+		// rolling resistance
+		Eigen::Map<Vector2r> Tr(&ph.torque[1]);
+		const Vector2r angVelR(g.angVel[1],g.angVel[2]);
+		Tr+=scene->dt*kr*angVelR;
+		Real maxTr=max(0.,abs(ph.force[0])*rollTanPhi*charLen);
+		if(Tr.squaredNorm()>maxTr*maxTr){
+			Real TrNorm=Tr.norm();
+			Real ratio=maxTr/TrNorm;
+			if(unlikely(TrNorm==0.)) ratio=0.; // in case |Ft|^2>0 && sqrt(|Ft|^2)==0.
+			// TODO: dissipation
+			Tr*=ratio;
+		};
+		if(isnan(ph.torque.maxCoeff())) LOG_ERROR("NaN in torque in "+C->pyStr());
+	} else {
+		// in case we disable rolling&twisting during the simulation
+		ph.torque=Vector3r::Zero();
 	}
 };
 

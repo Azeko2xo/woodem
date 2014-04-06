@@ -226,6 +226,8 @@ class ContactModelSelector(woo.core.Object,woo.pyderived.PyWooObject):
 		_PAT(Vector3,'pelletThin',(0,0,0),hideIf='self.name!="pellet"',doc='*Pellet model:* parameters for plastic thinning (decreasing pellet radius during normal plastic loading); their order is :obj:`thinRate <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinRate>`, :obj:`thinRelRMin <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinRelRMin>`, :obj:`thinExp <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinExp>`. Set the first value to zero to deactivate.'),
 		_PAT(Vector3,'pelletConf',(0,0,0),hideIf='self.name!="pellet"',doc='*Pellet model:* parameters for history-independent adhesion ("confinement"); the values are :obj:`confSigma <woo.dem.Law2_L6Geom_PelletPhys_Pellet.confSigma>`, :obj:`confRefRad <woo.dem.Law2_L6Geom_PelletPhys_Pellet.confRefRad>` and :obj:`confExp <woo.dem.Law2_L6Geom_PelletPhys_Pellet.confExp>`.'),
 		_PAT(Vector2,'pelletYf1Params',Vector2(float('nan'),float('nan')),hideIf='self.name!="pellet"',doc='When the first component is not NaN, set  :obj:`yieldFunc <woo.dem.Law2_L6Geom_PelletPhys_Pellet.yieldFunc>` to ``1`` and the values of :obj:`yf1_beta <woo.dem.Law2_L6Geom_PelletPhys_Pellet.yf1_beta>` and :obj:`yf1_w <woo.dem.Law2_L6Geom_PelletPhys_Pellet.yf1_w>` to the values of :obj:`pelletYf1Params`.'),
+		_PAT(bool,'linRoll',False,hideIf='self.name!="linear"',doc='*Linear model*: enable rolling, with parameters set in :obj:`linRollParams`.'),
+		_PAT(Vector3,'linRollParams',Vector3(1.,1.,1.),hideIf='self.name!="linear" or not self.linRoll',doc='Rolling parameters for the linear model, in the order of :obj:`relRollStiff <woo.dem.Law2_L6Geom_FrictPhys_IdealElPl.relRollStiff>`, :obj:`relTwistStiff <woo.dem.Law2_L6Geom_FrictPhys_IdealElPl.relTwistStiff>`, :obj:`rollTanPhi <woo.dem.Law2_L6Geom_FrictPhys_IdealElPl.rollTanPhi>`.'),
 	]
 	def __init__(self,**kw):
 		woo.core.Object.__init__(self)
@@ -259,7 +261,9 @@ class ContactModelSelector(woo.core.Object,woo.pyderived.PyWooObject):
 		'''Return tuple of ``([CPhysFunctor,...],[LawFunctor,...])`` corresponding to the selected model and parameters.'''
 		import woo.dem, math
 		if self.name=='linear':
-			return [woo.dem.Cp2_FrictMat_FrictPhys()],[woo.dem.Law2_L6Geom_FrictPhys_IdealElPl()]
+			law=woo.dem.Law2_L6Geom_FrictPhys_IdealElPl()
+			if self.linRoll: law.relRollStiff,law.relTwistStiff,law.rollTanPhi=self.linRollParams 
+			return [woo.dem.Cp2_FrictMat_FrictPhys()],[law]
 		elif self.name=='pellet':
 			law=woo.dem.Law2_L6Geom_PelletPhys_Pellet(plastSplit=self.plastSplit,confSigma=self.pelletConf[0],confRefRad=self.pelletConf[1],confExp=self.pelletConf[2],thinRate=self.pelletThin[0],thinRelRMin=self.pelletThin[1],thinExp=self.pelletThin[2])
 			if not math.isnan(self.pelletYf1Params[0]): law.yieldFunc,law.yf1_beta,law.yf1_w=1,self.pelletYf1Params[0],self.pelletYf1Params[1]

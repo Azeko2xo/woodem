@@ -800,12 +800,13 @@ class ObjectEditor(QFrame):
 		self.entries=[]
 		self.entryGroups=[]
 		self.ignoredAttrs=ignoredAttrs
+		self.hasSer=True
 		if objAttrLabelList:
 			self.hasSer=False
 			# create entries for given attributes
 			self.addListObjAttrEntries(objAttrLabelList)
 		else:
-			self.hasSer=True
+			# no objAttrLabelList
 			if self.ser==None:
 				logging.debug('New None Object')
 				# show None
@@ -814,11 +815,12 @@ class ObjectEditor(QFrame):
 				if self.showType: lay.addWidget(lab,0,0,1,-1)
 				return # no timers, nothing will change at all
 			logging.debug('New Object of type %s'%ser.__class__.__name__)
+		# create entries for all attributes of this object
+		if ser:
 			self.setWindowTitle(str(ser))
-			# create entries for all attributes of this object
 			self.addSerAttrEntries()
-		with WidgetUpdatesDisabled(self):
-			self.mkWidgets()
+		with WidgetUpdatesDisabled(self): self.mkWidgets()
+		
 		self.refreshTimer=QTimer(self)
 		self.refreshTimer.timeout.connect(self.refreshEvent)
 		self.refreshTimer.start(500)
@@ -1311,12 +1313,13 @@ class ObjectEditor(QFrame):
 	def refreshEvent(self):
 		maxLabelWd=0.
 		for e in self.entries:
-			if self.hasSer: assert id(self.ser)==id(e.obj)
+			if self.hasSer: assert self.ser==e.obj
 			if e.widget and not e.widget.hot:
 				maxLabelWd=max(maxLabelWd,e.widgets['label'].width())
 				# if there is a new instance of Object, we need to make new widget and replace the old one completely
-				if type(e.widget)==ObjectEditor and e.widget.hasSer and id(e.widget.ser)!=id(getattr(e.obj,e.name)):
-					#print 'New ObjectEditor for ',e.obj,e.name
+				if type(e.widget)==ObjectEditor and e.widget.hasSer and e.widget.ser!=getattr(e.obj,e.name):
+					# print 'New ObjectEditor (%s): '%e.name,e.widget.ser,'->',getattr(e.obj,e.name)
+					assert e.widget.ser==None or getattr(e.obj,e.name)==None or e.widget.ser._cxxAddr!=getattr(e.obj,e.name)._cxxAddr
 					e.widget.hide()
 					e.widget=e.widgets['value']=self.mkWidget(e)
 					grid,row=e.gridAndRow

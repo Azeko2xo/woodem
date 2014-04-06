@@ -57,10 +57,11 @@ def defaultEngines(damping=0.,gravity=None,verletDist=-.05,kinSplit=False,dontCo
 		if cp2 or law: warnings.warn("cp2 and law args are ignored when model is provided.")
 		if damping!=0.: warnings.warn("damping is ignored when model is provided.")
 		cp2,law=model.getFunctors()
+		if len(law)==1: law[0].label='contactLaw'
 		damping=model.getNonviscDamping()
 	else:
 		cp2=[cp2 if cp2 else Cp2_FrictMat_FrictPhys()]
-		law=[law if law else Law2_L6Geom_FrictPhys_IdealElPl(noSlip=noSlip,noBreak=noBreak)]
+		law=[law if law else Law2_L6Geom_FrictPhys_IdealElPl(noSlip=noSlip,noBreak=noBreak,label='contactLaw')]
 	return [
 		Leapfrog(damping=damping,reset=True,kinSplit=kinSplit,dontCollect=dontCollect,label='leapfrog'),
 		collider,

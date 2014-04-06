@@ -9,6 +9,10 @@ struct Law2_L6Geom_FrictPhys_IdealElPl: public LawFunctor{
 	DECLARE_LOGGER;
 	WOO_CLASS_BASE_DOC_ATTRS(Law2_L6Geom_FrictPhys_IdealElPl,LawFunctor,"Ideally elastic-plastic behavior.",
 		((bool,iniEqlb,false,,"Consider the intial distance as equilibrium distance (saved in contact data, subtracted from L6Geom.uN); enabling during simulation will only affect newly created contacts; disabling will affect all contacts."))
+		((Real,relRollStiff,0.,,"Rolling stiffness relative to :obj:`FrictPhys.kn` × ``charLen`` (with w``charLen`` being the sum of :obj:`L6Geom.lens`). If non-positive, there is no rolling/twisting resistance."))
+		((Real,relTwistStiff,0.,,"Twisting stiffness relative to rolling stiffness (see :obj:`relRollStiff`)."))
+		((Real,rollTanPhi,0.,AttrTrait<>().range(Vector2r(0,M_PI/2)),"Rolling friction angle -- the rolling force will not exceed Fn × rollTanPhi. This value is applied separately to twisting as well. If non-positive, there is no rolling/twisting resistance."))
+		//((Real,rollSlip,0.01,AttrTrait<>().angleUnit(),"Angle at which slipping in rolling occurs -- the magnitude of rolling resistance will never exceed 
 		((bool,noSlip,false,,"Disable plastic slipping"))
 		((bool,noBreak,false,,"Disable removal of contacts when in tension."))
 		((bool,noFrict,false,,"Turn off friction computation, it will be always zero regardless of material parameters"))
