@@ -119,16 +119,15 @@ struct Impose: public Object{
 	boost::mutex lock;
 	// INIT_VELOCITY is used in LawTesteStage, but not by Impose classes
 	enum{ NONE=0, VELOCITY=1, FORCE=2, INIT_VELOCITY=4 };
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Impose,Object,"Impose arbitrary changes in Node and DemData, right after integration of the node.",
-		((int,what,,AttrTrait<>().readonly().choice({{0,"none"},{VELOCITY,"velocity"},{FORCE,"force"},{VELOCITY|FORCE,"velocity+force"}}),"What values are to be imposed; this is set by the derived engine automatically depending on what is to be prescribed."))
-		((long,stepLast,-1,AttrTrait<>().readonly(),"Step in which this imposition was last used; updated atomically by callers from c++ by calling isFirstStepRun."))
-		,/*ctor*/
-		,/*py*/
-			;
-			_classObj.attr("none")=(int)NONE;
-			_classObj.attr("velocity")=(int)VELOCITY;
+	#define woo_dem_Impose__CLASS_BASE_DOC_ATTRS_PY \
+		Impose,Object,"Impose arbitrary changes in Node and DemData, right after integration of the node.", \
+		((int,what,,AttrTrait<>().readonly().choice({{0,"none"},{VELOCITY,"velocity"},{FORCE,"force"},{VELOCITY|FORCE,"velocity+force"}}),"What values are to be imposed; this is set by the derived engine automatically depending on what is to be prescribed.")) \
+		((long,stepLast,-1,AttrTrait<>().readonly(),"Step in which this imposition was last used; updated atomically by callers from c++ by calling isFirstStepRun.")) \
+		,/*py*/ ; \
+			_classObj.attr("none")=(int)NONE; \
+			_classObj.attr("velocity")=(int)VELOCITY; \
 			_classObj.attr("force")=(int)FORCE;
-	);
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Impose__CLASS_BASE_DOC_ATTRS_PY);
 };
 WOO_REGISTER_OBJECT(Impose);
 
@@ -138,12 +137,13 @@ struct MatState: public Object{
 	// returns scalar for rendering purposes 
 	virtual Real getScalar(int index, const long& step, const Real& smooth=0){ return NaN; }
 	virtual string getScalarName(int index){ return ""; }
-	WOO_CLASS_BASE_DOC_ATTRS_PY(MatState,Object,"Holds data related to material state of each particle.",
-		/*attrs*/
-		,/*py*/
-		.def("getScalar",&MatState::getScalar,(py::arg("index"),py::arg("step")=-1,py::arg("smooth")=0),"Return scalar value given its numerical index. *step* is used to check whether data are up-to-date, smooth (if positive) is used to smooth out old data (usually using exponential decay function)")
+	#define woo_dem_MatState__CLASS_BASE_DOC_ATTRS_PY \
+		MatState,Object,"Holds data related to material state of each particle.", \
+		/*attrs*/ \
+		,/*py*/ \
+		.def("getScalar",&MatState::getScalar,(py::arg("index"),py::arg("step")=-1,py::arg("smooth")=0),"Return scalar value given its numerical index. *step* is used to check whether data are up-to-date, smooth (if positive) is used to smooth out old data (usually using exponential decay function)") \
 		.def("getScalarName",&MatState::getScalarName,py::arg("index"),"Return name of scalar at given index (human-readable description)")
-	);
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_MatState__CLASS_BASE_DOC_ATTRS_PY);
 };
 WOO_REGISTER_OBJECT(MatState);
 
@@ -302,147 +302,44 @@ struct Shape: public Object, public Indexable{
 	bool getVisible() const { return abs(color)<=2; }
 	void setVisible(bool w){ if(getVisible()==w) return; bool hi=abs(color)>1; int sgn=(color<0?-1:1); color=sgn*((w?0:2)+getBaseColor()+(hi?1:0)); }
 	Vector3r avgNodePos();
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Shape,Object,"Particle geometry",
-		((shared_ptr<Bound>,bound,,,"Bound of the particle, for use by collision detection only"))
-		((vector<shared_ptr<Node> >,nodes,,,"Nodes associated with this particle"))
-		((Real,color,Mathr::UnitRandom(),,"Normalized color for rendering; negative values render with wire (rather than solid), :math:`|\\text{color}|`>2 means invisible. (use *wire*, *hi* and *visible* to manipulate those)"))
-		,/*ctor*/,/*py*/
-			.add_property("wire",&Shape::getWire,&Shape::setWire)
-			.add_property("hi",&Shape::getHighlighted,&Shape::setHighlighted)
-			.add_property("visible",&Shape::getVisible,&Shape::setVisible)
+	#define woo_dem_Shape__CLASS_BASE_DOC_ATTRS_PY \
+		Shape,Object,"Particle geometry", \
+		((shared_ptr<Bound>,bound,,,"Bound of the particle, for use by collision detection only")) \
+		((vector<shared_ptr<Node> >,nodes,,,"Nodes associated with this particle")) \
+		((Real,color,Mathr::UnitRandom(),,"Normalized color for rendering; negative values render with wire (rather than solid), :math:`|\\text{color}|`>2 means invisible. (use *wire*, *hi* and *visible* to manipulate those)")) \
+		,/*py*/ \
+			.add_property("wire",&Shape::getWire,&Shape::setWire) \
+			.add_property("hi",&Shape::getHighlighted,&Shape::setHighlighted) \
+			.add_property("visible",&Shape::getVisible,&Shape::setVisible) \
 			WOO_PY_TOPINDEXABLE(Shape)
-	);
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Shape__CLASS_BASE_DOC_ATTRS_PY);
 	REGISTER_INDEX_COUNTER(Shape);
 };
 WOO_REGISTER_OBJECT(Shape);
 
 struct Material: public Object, public Indexable{
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Material,Object,"Particle material",
-		((Real,density,1000,AttrTrait<>().densityUnit(),"Density"))
-		((int,id,-1,AttrTrait<>().noGui(),"Some number identifying this material; used with MatchMaker objects, useless otherwise"))
-		,/*ctor*/,/*py*/ WOO_PY_TOPINDEXABLE(Material);
-	);
+	// XXX: is createIndex() called here at all??
+	#define woo_dem_Material__CLASS_BASE_DOC_ATTRS_PY \
+		Material,Object,"Particle material", \
+		((Real,density,1000,AttrTrait<>().densityUnit(),"Density")) \
+		((int,id,-1,AttrTrait<>().noGui(),"Some number identifying this material; used with MatchMaker objects, useless otherwise")) \
+		,/*py*/ WOO_PY_TOPINDEXABLE(Material);
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Material__CLASS_BASE_DOC_ATTRS_PY);
 	REGISTER_INDEX_COUNTER(Material);
 };
 WOO_REGISTER_OBJECT(Material);
 
 struct Bound: public Object, public Indexable{
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Bound,Object,"Object bounding the associated body.",
-		// ((Vector3r,color,Vector3r(1,1,1),,"Color for rendering this object"))
-		((Vector3r,min,Vector3r(NaN,NaN,NaN),AttrTrait<Attr::noSave>().readonly().lenUnit(),"Lower corner of box containing this bound"))
-		((Vector3r,max,Vector3r(NaN,NaN,NaN),AttrTrait<Attr::noSave>().readonly().lenUnit(),"Lower corner of box containing this bound"))
-		,/* ctor*/,	/*py*/ WOO_PY_TOPINDEXABLE(Bound)
-	);
+	// XXX: is createIndex() called here at all??
+	#define woo_dem_Bound__CLASS_BASE_DOC_ATTRS_PY \
+		Bound,Object,"Object bounding the associated body.", \
+		((Vector3r,min,Vector3r(NaN,NaN,NaN),AttrTrait<Attr::noSave>().readonly().lenUnit(),"Lower corner of box containing this bound")) \
+		((Vector3r,max,Vector3r(NaN,NaN,NaN),AttrTrait<Attr::noSave>().readonly().lenUnit(),"Lower corner of box containing this bound")) \
+		,/*py*/ WOO_PY_TOPINDEXABLE(Bound);
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Bound__CLASS_BASE_DOC_ATTRS_PY);
 	REGISTER_INDEX_COUNTER(Bound);
 };
 WOO_REGISTER_OBJECT(Bound);
-
-
-/***************************************************
-
-                CONTACT CLASSES
-
-***************************************************/
-
-
-struct CGeom: public Object,public Indexable{
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(CGeom,Object,"Geometrical configuration of contact",
-		((shared_ptr<Node>,node,new Node,,"Local coordinates definition."))
-		,/*ctor*/,/*py*/WOO_PY_TOPINDEXABLE(CGeom)
-	);
-	REGISTER_INDEX_COUNTER(CGeom);
-};
-WOO_REGISTER_OBJECT(CGeom);
-
-struct CPhys: public Object, public Indexable{
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(CPhys,Object,"Physical properties of contact.",
-		/*attrs*/
-		((Vector3r,force,Vector3r::Zero(),AttrTrait<>().forceUnit(),"Force applied on the first particle in the contact"))
-		((Vector3r,torque,Vector3r::Zero(),AttrTrait<>().torqueUnit(),"Torque applied on the first particle in the contact"))
-		,/*ctor*/ createIndex(); ,/*py*/WOO_PY_TOPINDEXABLE(CPhys)
-	);
-	REGISTER_INDEX_COUNTER(CPhys);
-};
-WOO_REGISTER_OBJECT(CPhys);
-
-struct CData: public Object{
-	WOO_CLASS_BASE_DOC_ATTRS(CData,Object,"Optional data stored in the contact by the Law functor.",
-		/* attrs */
-	);
-};
-WOO_REGISTER_OBJECT(CData);
-
-struct Contact: public Object{
-	bool isReal() const { return geom&&phys; }
-	bool isColliding() const { return stepCreated>=0; }
-	void setNotColliding(){ stepCreated=-1; }
-	bool isFresh(Scene* s){ return s->step==stepCreated; }
-	bool pyIsFresh(shared_ptr<Scene> s){ return s->step==stepCreated; }
-	void swapOrder();
-	void reset();
-	// return -1 or +1 depending on whether the particle passed to us is pA or pB
-	int forceSign(const shared_ptr<Particle>& p) const { return p.get()==leakPA()?1:-1; }
-	// return 0 or 1 depending on whether the particle passed is pA or pB
-	short pIndex(const shared_ptr<Particle>& p) const { return pIndex(p.get()); }
-	short pIndex(const Particle* p) const { return p==leakPA()?0:1; }
-	/* return force and torque in global coordinates which act at contact point C located at branch from node nodeI of particle.
-	Contact force is reversed automatically if particle==pB.
-	Force and torque at node itself are  F and branch.cross(F)+T respectively.
-	Branch takes periodicity (cellDist) in account.
-	See In2_Sphere_Elastmat::go for its use.  */
-	std::tuple<Vector3r,Vector3r,Vector3r> getForceTorqueBranch(const shared_ptr<Particle>& p, int nodeI, Scene* scene){ return getForceTorqueBranch(p.get(),nodeI,scene); }
-	std::tuple<Vector3r,Vector3r,Vector3r> getForceTorqueBranch(const Particle*, int nodeI, Scene* scene);
-	// return position vector between pA and pB, taking in account PBC's; both must be uninodal
-	Vector3r dPos(const Scene* s) const;
-	Vector3r dPos_py() const{ if(pA.expired()||pB.expired()) return Vector3r(NaN,NaN,NaN); return dPos(Master::instance().getScene().get()); }
-	Real dist_py() const { return dPos_py().norm(); }
-	Particle::id_t pyId1() const;
-	Particle::id_t pyId2() const;
-	Vector2i pyIds() const;
-	void pyResetPhys(){ phys.reset(); }
-	virtual string pyStr() const { return "<Contact ##"+to_string(pyId1())+"+"+to_string(pyId2())+" @ "+lexical_cast<string>(this)+">"; }
-	// potentially unsafe pointer extraction (assert safety in debug builds only)
-	// only use when the particles are sure to exist and never return this pointer anywhere
-	// we call it "leak" to make this very explicit
-	Particle* leakPA() const { assert(!pA.expired()); return pA.lock().get(); }
-	Particle* leakPB() const { assert(!pB.expired()); return pB.lock().get(); }
-	Particle* leakOther(const Particle* p) const { assert(p==leakPA() || p==leakPB()); return (p!=leakPA()?leakPA():leakPB()); }
-	shared_ptr<Particle> pyPA() const { return pA.lock(); }
-	shared_ptr<Particle> pyPB() const { return pB.lock(); }
-	#ifdef WOO_OPENGL
-		#define woo_dem_Contact__OPENGL__color ((Real,color,0,,"(Normalized) color value for this contact"))
-	#else
-		#define woo_dem_Contact__OPENGL__color
-	#endif
-
-	#define woo_dem_Contact__CLASS_BASE_DOC_ATTRS_PY \
-		Contact,Object,"Contact in DEM", \
-		((shared_ptr<CGeom>,geom,,AttrTrait<Attr::readonly>(),"Contact geometry")) \
-		((shared_ptr<CPhys>,phys,,AttrTrait<Attr::readonly>(),"Physical properties of contact")) \
-		((shared_ptr<CData>,data,,AttrTrait<Attr::readonly>(),"Optional data stored by the functor for its own use")) \
-		/* these two are overridden below because of weak_ptr */  \
-		((weak_ptr<Particle>,pA,,AttrTrait<Attr::readonly>(),"First particle of the contact")) \
-		((weak_ptr<Particle>,pB,,AttrTrait<Attr::readonly>(),"Second particle of the contact")) \
-		((Vector3i,cellDist,Vector3i::Zero(),AttrTrait<Attr::readonly>(),"Distace in the number of periodic cells by which pB must be shifted to get to the right relative position.")) \
-		woo_dem_Contact__OPENGL__color \
-		((int,stepCreated,-1,AttrTrait<Attr::hidden>(),"Step in which this contact was created by the collider, or step in which it was made real (if geom and phys exist). This number is NOT reset by Contact::reset(). If negative, it means the collider does not want to keep this contact around anymore (this happens if the contact is real but there is no overlap anymore).")) \
-		((Real,minDist00Sq,-1,AttrTrait<Attr::hidden>(),"Minimum distance between nodes[0] of both shapes so that the contact can exist. Set in ContactLoop by geometry functor once, and is used to check for possible contact without having to call the functor. If negative, not used. Currently, only Sphere-Sphere contacts use this information.")) \
-		((int,stepLastSeen,-1,AttrTrait<Attr::hidden>(),"")) \
-		((size_t,linIx,0,AttrTrait<Attr::readonly>().noGui(),"Position in the linear view (ContactContainer)")) \
-		, /*py*/ .add_property("id1",&Contact::pyId1).add_property("id2",&Contact::pyId2).add_property("real",&Contact::isReal).add_property("ids",&Contact::pyIds) \
-		.def("dPos",&Contact::dPos_py,"Return position difference vector pB-pA, taking `Contact.cellDist` in account properly. Both particles must be uninodal, exception is raised otherwise.") \
-		.def("dist",&Contact::dist_py,"Shorthand for dPos.norm().") \
-		.add_property("pA",&Contact::pyPA,"First particle of the contact") \
-		.add_property("pB",&Contact::pyPB,"Second particle of the contact") \
-		.def("resetPhys",&Contact::pyResetPhys,"Set *phys* to *None* (to force its re-evaluation)") \
-		.def("isFresh",&Contact::pyIsFresh,(py::arg("scene")),"Say whether this contact has just been created. Equivalent to ``C.stepCreated==scene.step``.")
-
-	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Contact__CLASS_BASE_DOC_ATTRS_PY);
-};
-WOO_REGISTER_OBJECT(Contact);
-
-
-
 
 // }}; /* woo::dem */
 

@@ -210,3 +210,4 @@ struct GridStore: public Object{
 			;
 	);
 };
+WOO_REGISTER_OBJECT(GridStore);

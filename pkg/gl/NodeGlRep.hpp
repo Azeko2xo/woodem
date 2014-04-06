@@ -77,6 +77,7 @@ struct CylGlRep: public NodeGlRep{
 		((shared_ptr<ScalarRange>,rangeCol,,,"Range for col (or for rad, if *col* is NaN)"))
 	);
 };
+WOO_REGISTER_OBJECT(CylGlRep);
 
 
 #endif

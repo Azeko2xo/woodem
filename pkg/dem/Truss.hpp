@@ -35,6 +35,7 @@ struct Gl1_Truss: public GlShapeFunctor{
 		((Vector2r,stressRange,Vector2r(-1,1),,"Stress range, to set color appropriately"))
 	);
 };
+WOO_REGISTER_OBJECT(Gl1_Truss);
 #endif
 
 struct Bo1_Truss_Aabb: public BoundFunctor{

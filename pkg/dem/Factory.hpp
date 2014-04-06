@@ -170,4 +170,5 @@ struct BoxFactory2d: public BoxFactory{
 		((short,axis,2,,"Axis normal to the plane in which particles are generated."))
 	);
 };
+WOO_REGISTER_OBJECT(BoxFactory2d);
 

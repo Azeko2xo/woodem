@@ -248,7 +248,7 @@ class TestIO(unittest.TestCase):
 			woo.master.reset()
 			S=woo.master.scene
 			try:
-				S.iscParams=[c()]
+				S.any=[c()]
 				S.saveTmp(quiet=True)
 				S=Scene.loadTmp()
 			except (RuntimeError,ValueError):

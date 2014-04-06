@@ -7,7 +7,7 @@ struct SceneAttachedObject: public Object{
 	shared_ptr<Scene> getScene_py();
 	#define woo_core_SceneAttachedObject__CLASS_BASE_DOC_ATRRS_PY \
 		SceneAttachedObject,Object,"Parent class for object uniquely attached to one scene, for convenience of derived classes.", \
-		((weak_ptr<Scene>,scene,,AttrTrait<Attr::readonly>().noGui(),"Back-reference to the scene object, needed for python; set automatically when :obj:`Scene.plot` is assigned.")) \
+		((weak_ptr<Scene>,scene,,AttrTrait<Attr::readonly>().noGui(),"Back-reference to the scene object, needed for python; set automatically in Scene::postLoad when the object is assigned.")) \
 		, /* py */ .add_property("scene",&Plot::getScene_py,"Back-reference to the scene object, needed for python; set automatically when the object is assigned to :obj:`Scene`.")
 
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_core_SceneAttachedObject__CLASS_BASE_DOC_ATRRS_PY);
@@ -26,7 +26,7 @@ namespace woo{
 	struct Plot: public SceneAttachedObject{
 		#define woo_core_Plot__CLASS_BASE_DOC_ATRRS \
 			/* class, base, doc */ \
-			Plot,Object,"Storage for plots updated during simulation.", \
+			Plot,SceneAttachedObject,"Storage for plots updated during simulation.", \
 			/* attrs */ \
 			/* since Scene.plot is noGui, we don't have to specify noGui() here for attributes (there are no handlers for dicts etc in the gui code) */ \
 			((py::dict,data,,,"Global dictionary containing all data values, common for all plots, in the form {'name':[value,...],...}. Data should be added using plot.addData function. All [value,...] columns have the same length, they are padded with NaN if unspecified.")) \

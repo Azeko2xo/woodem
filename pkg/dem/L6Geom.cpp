@@ -11,6 +11,15 @@
 #endif
 
 WOO_PLUGIN(dem,(L6Geom)(Cg2_Any_Any_L6Geom__Base)(Cg2_Sphere_Sphere_L6Geom)(Cg2_Facet_Sphere_L6Geom)(Cg2_Wall_Sphere_L6Geom)(Cg2_InfCylinder_Sphere_L6Geom)(Cg2_Truss_Sphere_L6Geom));
+
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_L6Geom__CLASS_BASE_DOC_ATTRS_CTOR);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_Cg2_Any_Any_L6Geom__Base__CLASS_BASE_DOC_ATTRS);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_Cg2_Sphere_Sphere_L6Geom__CLASS_BASE_DOC_ATTRS);
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Facet_Sphere_L6Geom__CLASS_BASE_DOC);
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Wall_Sphere_L6Geom__CLASS_BASE_DOC);
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_InfCylinder_Sphere_L6Geom__CLASS_BASE_DOC);
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Truss_Sphere_L6Geom__CLASS_BASE_DOC);
+
 #if 0
 #ifdef WOO_OPENGL
 	WOO_PLUGIN(gl,(Gl1_L6Geom));

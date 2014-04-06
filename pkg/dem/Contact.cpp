@@ -1,4 +1,11 @@
 #include<woo/pkg/dem/Contact.hpp>
+#include<woo/pkg/dem/Particle.hpp>
+
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_CGeom__CLASS_BASE_DOC_ATTRS_PY);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_CPhys__CLASS_BASE_DOC_ATTRS_CTOR_PY);
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_CData__CLASS_BASE_DOC);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Contact__CLASS_BASE_DOC_ATTRS_PY);
+
 
 WOO_PLUGIN(dem,(CPhys)(CGeom)(CData)(Contact));
 

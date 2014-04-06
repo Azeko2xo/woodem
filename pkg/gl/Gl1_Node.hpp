@@ -13,6 +13,7 @@ struct Gl1_Node: public GlNodeFunctor{
 		((Vector2r,len_range,Vector2r(0.,.1),AttrTrait<>().noGui(),"Range for len"))
 	);
 };
+WOO_REGISTER_OBJECT(Gl1_Node);
 #endif
 
 
