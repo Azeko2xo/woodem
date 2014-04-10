@@ -3,6 +3,7 @@
 #include<woo/pkg/dem/Collision.hpp>
 #include<woo/pkg/dem/FrictMat.hpp>
 #include<woo/pkg/dem/IntraForce.hpp>
+#include<woo/pkg/dem/L6Geom.hpp>
 
 // NB: workaround for https://bugs.launchpad.net/woo/+bug/528509 removed
 namespace woo{
@@ -10,12 +11,13 @@ namespace woo{
 		void selfTest(const shared_ptr<Particle>&) WOO_CXX11_OVERRIDE;
 		bool numNodesOk() const { return nodes.size()==1; }
 		// update dynamic properties (mass, intertia) of the sphere based on current radius
-		void updateDyn(const Real& density) const;
+		void updateDyn(const Real& density) const WOO_CXX11_OVERRIDE;
 		virtual string pyStr() const { return "<Sphere r="+to_string(radius)+" @ "+lexical_cast<string>(this)+">"; }
-		WOO_CLASS_BASE_DOC_ATTRS_CTOR(Sphere,Shape,"Spherical particle.",
-			((Real,radius,NaN,AttrTrait<>().lenUnit(),"Radius [m]")),
+		#define woo_dem_Sphere__CLASS_BASE_DOC_ATTRS_CTOR \
+			Sphere,Shape,"Spherical particle.", \
+			((Real,radius,NaN,AttrTrait<>().lenUnit(),"Radius.")), \
 			createIndex(); /*ctor*/
-		);
+		WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_Sphere__CLASS_BASE_DOC_ATTRS_CTOR);
 		REGISTER_CLASS_INDEX(Sphere,Shape);
 	};
 };
@@ -25,23 +27,87 @@ struct Bo1_Sphere_Aabb: public BoundFunctor{
 	void go(const shared_ptr<Shape>&);
 	void goGeneric(const shared_ptr<Shape>& sh, Vector3r halfSize);
 	FUNCTOR1D(Sphere);
-	WOO_CLASS_BASE_DOC_ATTRS(Bo1_Sphere_Aabb,BoundFunctor,"Functor creating :obj:`Aabb` from :obj:`Sphere`.",
+	#define woo_dem_Bo1_Sphere_Aabb__CLASS_BASE_DOC_ATTRS \
+		Bo1_Sphere_Aabb,BoundFunctor,"Functor creating :obj:`Aabb` from :obj:`Sphere`.", \
 		((Real,distFactor,((void)"deactivated",-1),,"Relative enlargement of the bounding box; deactivated if negative.\n\n.. note::\n\tThis attribute is used to create distant contacts, but is only meaningful with an :obj:`CGeomFunctor` which will not simply discard such interactions: :obj:`Cg2_Sphere_Sphere_L6Geom::distFactor` should have the same value."))
-	);
+	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_Bo1_Sphere_Aabb__CLASS_BASE_DOC_ATTRS);
 };
 WOO_REGISTER_OBJECT(Bo1_Sphere_Aabb);
 
 struct In2_Sphere_ElastMat: public IntraFunctor{
 	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&);
 	FUNCTOR2D(Sphere,ElastMat);
-	WOO_CLASS_BASE_DOC_ATTRS(In2_Sphere_ElastMat,IntraFunctor,"Apply contact forces on sphere; having one node only, Sphere generates no internal forces as such.",/*attrs*/
-		// unused in the non-debugging version, but keep to not break archive compatibility
-		//#ifdef WOO_DEBUG
-			((Vector2i,watch,Vector2i(-1,-1),,"Print detailed information about contact having those ids (debugging only)"))
-		//#endif
-	);
+	#define woo_dem_In2_Sphere_ElastMat__CLASS_BASE_DOC_ATTRS \
+		In2_Sphere_ElastMat,IntraFunctor,"Apply contact forces on sphere; having one node only, Sphere generates no internal forces as such.",
+		/*attrs*/  \
+		/* ((Vector2i,watch,Vector2i(-1,-1),,"Print detailed information about contact having those ids (debugging only)")) */
+	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_In2_Sphere_ElastMat__CLASS_BASE_DOC_ATTRS);
 };
 WOO_REGISTER_OBJECT(In2_Sphere_ElastMat);
+
+
+struct Cg2_Sphere_Sphere_L6Geom: public Cg2_Any_Any_L6Geom__Base{
+	bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE;
+	void setMinDist00Sq(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE;
+	#define woo_dem_Cg2_Sphere_Sphere_L6Geom__CLASS_BASE_DOC_ATTRS \
+		Cg2_Sphere_Sphere_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :obj:`L6Geom` for contact of 2 spheres. Detailed documentation in py/_extraDocs.py", \
+		((Real,distFactor,1,,"Create interaction if spheres are not futher than ``|distFactor|*(r1+r2)``. If negative, zero normal deformation will be set to be the initial value (otherwise, the geometrical distance is the 'zero' one)."))
+	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_Cg2_Sphere_Sphere_L6Geom__CLASS_BASE_DOC_ATTRS);
+	FUNCTOR2D(Sphere,Sphere);
+	DEFINE_FUNCTOR_ORDER_2D(Sphere,Sphere);
+	//DECLARE_LOGGER;
+};
+WOO_REGISTER_OBJECT(Cg2_Sphere_Sphere_L6Geom);
+
+struct Cg2_Facet_Sphere_L6Geom: public Cg2_Any_Any_L6Geom__Base{
+	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
+	virtual bool goReverse(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){ throw std::logic_error("ContactLoop should swap interaction arguments, should be Facet+Sphere, but is "+s1->getClassName()+"+"+s2->getClassName()); }
+	void setMinDist00Sq(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE { C->minDist00Sq=-1; }
+	#define woo_dem_Cg2_Facet_Sphere_L6Geom__CLASS_BASE_DOC \
+		Cg2_Facet_Sphere_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :obj:`L6Geom` for contact between :obj:`Facet` and :obj:`Sphere`. Uses attributes of :obj:`Cg2_Sphere_Sphere_L6Geom`."
+	WOO_DECL__CLASS_BASE_DOC(woo_dem_Cg2_Facet_Sphere_L6Geom__CLASS_BASE_DOC);
+	FUNCTOR2D(Facet,Sphere);
+	DEFINE_FUNCTOR_ORDER_2D(Facet,Sphere);
+	DECLARE_LOGGER;
+};
+WOO_REGISTER_OBJECT(Cg2_Facet_Sphere_L6Geom);
+
+struct Cg2_Wall_Sphere_L6Geom: public Cg2_Any_Any_L6Geom__Base{
+	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
+	virtual bool goReverse(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){ throw std::logic_error("ContactLoop should swap interaction arguments, should be Wall+Sphere, but is "+s1->getClassName()+"+"+s2->getClassName()); }
+	void setMinDist00Sq(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE { C->minDist00Sq=-1; }
+	#define woo_dem_Cg2_Wall_Sphere_L6Geom__CLASS_BASE_DOC \
+		Cg2_Wall_Sphere_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :obj:`L6Geom` for contact between :obj:`Wall` and :obj:`Sphere`. Uses attributes of :obj:`Cg2_Sphere_Sphere_L6Geom`."
+	WOO_DECL__CLASS_BASE_DOC(woo_dem_Cg2_Wall_Sphere_L6Geom__CLASS_BASE_DOC);
+	FUNCTOR2D(Wall,Sphere);
+	DEFINE_FUNCTOR_ORDER_2D(Wall,Sphere);
+	DECLARE_LOGGER;
+};
+WOO_REGISTER_OBJECT(Cg2_Wall_Sphere_L6Geom);
+
+struct Cg2_InfCylinder_Sphere_L6Geom: public Cg2_Any_Any_L6Geom__Base{
+	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
+	virtual bool goReverse(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){ throw std::logic_error("ContactLoop should swap interaction arguments, should be InfCylinder+Sphere, but is "+s1->getClassName()+"+"+s2->getClassName()); }
+	#define woo_dem_Cg2_InfCylinder_Sphere_L6Geom__CLASS_BASE_DOC \
+		Cg2_InfCylinder_Sphere_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :obj:`L6Geom` for contact between :obj:`InfCylinder` and :obj:`Sphere`. Uses attributes of :obj:`Cg2_Sphere_Sphere_L6Geom`."
+	WOO_DECL__CLASS_BASE_DOC(woo_dem_Cg2_InfCylinder_Sphere_L6Geom__CLASS_BASE_DOC);
+	FUNCTOR2D(InfCylinder,Sphere);
+	DEFINE_FUNCTOR_ORDER_2D(InfCylinder,Sphere);
+	DECLARE_LOGGER;
+};
+WOO_REGISTER_OBJECT(Cg2_InfCylinder_Sphere_L6Geom);
+
+struct Cg2_Truss_Sphere_L6Geom: public Cg2_Any_Any_L6Geom__Base{
+	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
+	virtual bool goReverse(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){ throw std::logic_error("ContactLoop should swap interaction arguments, should be Truss+Sphere, but is "+s1->getClassName()+"+"+s2->getClassName()); }
+	#define woo_dem_Cg2_Truss_Sphere_L6Geom__CLASS_BASE_DOC \
+		Cg2_Truss_Sphere_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :obj:`L6Geom` for contact between :obj:`Truss` and :obj:`Sphere`. Uses attributes of :obj:`Cg2_Sphere_Sphere_L6Geom`."
+	WOO_DECL__CLASS_BASE_DOC(woo_dem_Cg2_Truss_Sphere_L6Geom__CLASS_BASE_DOC);
+	FUNCTOR2D(Truss,Sphere);
+	DEFINE_FUNCTOR_ORDER_2D(Truss,Sphere);
+	DECLARE_LOGGER;
+};
+WOO_REGISTER_OBJECT(Cg2_Truss_Sphere_L6Geom);
 
 
 

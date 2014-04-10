@@ -37,6 +37,31 @@ Vector3r CompUtils::scalarOnColorScale(Real x, Real xmin, Real xmax, int cmap, b
 	return mapColor(xnorm,cmap,reversed);
 }
 
+Vector2r CompUtils::closestParams_LineLine(const Vector3r& P, const Vector3r& u, const Vector3r& Q, const Vector3r& v, bool& parallel){
+	// http://geomalgorithms.com/a07-_distance.html
+	Vector3r w0(P-Q);
+	Real a=u.squaredNorm(), b=u.dot(v), c=v.squaredNorm(), d=u.dot(w0), e=v.dot(w0);
+	Real denom=a*c-b*b;
+	if(unlikely(denom==0.)){
+		parallel=true;
+		return Vector2r(0,b!=0.?(d/b):(e/c));
+	} else {
+		parallel=false;
+		return Vector2r((b*e-c*d)/denom,(a*e-b*d)/denom);
+	}
+}
+
+Real CompUtils::distSq_LineLine(const Vector3r& P, const Vector3r& u, const Vector3r& Q, const Vector3r& v, bool& parallel, Vector2r& st){
+	st=closestParams_LineLine(P,u,Q,v,parallel);
+	return ((P+u*st[0])-(Q+v*st[1])).squaredNorm();
+}
+
+Real CompUtils::distSq_SegmentSegment(const Vector3r& A0, const Vector3r& A1, const Vector3r& B0, const Vector3r& B1, Vector2r& st, bool& parallel){
+	st=closestParams_LineLine(A0,(A1-A0),B0,(B1-B0),parallel);
+	clamp(st[0],0.,1.); clamp(st[1],0.,1.);
+	return ((A0+(A1-A0)*st[0])-(B0+(B1-B0)*st[1])).squaredNorm();
+}
+
 Vector3r CompUtils::closestSegmentPt(const Vector3r& P, const Vector3r& A, const Vector3r& B, Real* normPos){
 	Vector3r BA=B-A;
 	Real u=(P.dot(BA)-A.dot(BA))/(BA.squaredNorm());

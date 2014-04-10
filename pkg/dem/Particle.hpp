@@ -62,6 +62,9 @@ struct Particle: public Object{
 	int countRealContacts() const;
 	void postLoad(Particle&,void*);
 
+	// call Shape.updateDyn(mat.density): convenience function
+	void updateDyn() const;
+
 	// return internal reference for refPos with OpenGL
 	// without OpenGL, there is nothing like that
 	// we need to branch here since we can't use #ifdef inside macro definition
@@ -82,6 +85,7 @@ struct Particle: public Object{
 		((MapParticleContact,contacts,,AttrTrait<Attr::noSave|Attr::hidden>(),"Contacts of this particle, indexed by id of the other particle.")) \
 		/* ((int,flags,0,AttrTrait<Attr::hidden>(),"Various flags, only individually accesible from Python")) */ \
 		, /*py*/ \
+			.def("updateDyn",&Particle::updateDyn) \
 			.add_property("contacts",&Particle::pyContacts) \
 			.add_property("con",&Particle::pyCon) \
 			.add_property("tacts",&Particle::pyTacts) \
@@ -288,6 +292,8 @@ WOO_REGISTER_OBJECT(DemField);
 
 struct Shape: public Object, public Indexable{
 	virtual bool numNodesOk() const { return true; } // checks for the right number of nodes; to be used in assertions
+	// check that we have the right number of nodes and that each nodes has DemData; raise python exception on failures
+	void checkNodesHaveDemData() const;
 	// this will be called from DemField::selfTest for each particle
 	virtual void selfTest(const shared_ptr<Particle>& p){};
 	// return average position of nodes, useful for rendering
@@ -302,6 +308,8 @@ struct Shape: public Object, public Indexable{
 	bool getVisible() const { return abs(color)<=2; }
 	void setVisible(bool w){ if(getVisible()==w) return; bool hi=abs(color)>1; int sgn=(color<0?-1:1); color=sgn*((w?0:2)+getBaseColor()+(hi?1:0)); }
 	Vector3r avgNodePos();
+	// update mass and inertia of this object
+	virtual void updateDyn(const Real& density) const;
 	#define woo_dem_Shape__CLASS_BASE_DOC_ATTRS_PY \
 		Shape,Object,"Particle geometry", \
 		((shared_ptr<Bound>,bound,,,"Bound of the particle, for use by collision detection only")) \

@@ -52,6 +52,22 @@ Vector3r Shape::avgNodePos(){
 	return ret/sz;
 }
 
+void Particle::updateDyn() const {
+	if(!shape) throw std::runtime_error("Particle.shape==None");
+	if(!material) throw std::runtime_error("Particle.material==None");
+	shape->updateDyn(material->density);
+}
+
+void Shape::checkNodesHaveDemData() const{
+	if(!numNodesOk()) woo::AttributeError(pyStr()+": mismatch of Shape and number of nodes.");
+	for(const auto& n: nodes){ if(!n->hasData<DemData>()) woo::AttributeError(pyStr()+": Node.dem==None."); } 
+}
+
+void Shape::updateDyn(const Real& density) const{
+	throw std::runtime_error(getClassName()+"::updateDyn: not implemented for this shape.");
+}
+
+
 int Particle::countRealContacts() const{
 	return boost::range::count_if(contacts,[&](const MapParticleContact::value_type& C)->bool{ return C.second->isReal(); });
 }

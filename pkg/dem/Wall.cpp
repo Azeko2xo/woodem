@@ -8,6 +8,13 @@ WOO_PLUGIN(dem,(Wall)(Bo1_Wall_Aabb)(In2_Wall_ElastMat));
 	WOO_PLUGIN(gl,(Gl1_Wall))
 #endif
 
+void Wall::updateDyn(const Real& density) const {
+	checkNodesHaveDemData();
+	auto& dyn(nodes[0]->getData<DemData>());
+	dyn.mass=0;
+	dyn.inertia=Vector3r::Zero();
+}
+
 void Bo1_Wall_Aabb::go(const shared_ptr<Shape>& sh){
 	Wall& wall=sh->cast<Wall>();
 	if(!wall.bound){ wall.bound=make_shared<Aabb>(); }

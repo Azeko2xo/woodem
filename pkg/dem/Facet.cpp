@@ -22,6 +22,16 @@ void Facet::selfTest(const shared_ptr<Particle>& p){
 	if(ffCon>0) LOG_WARN("Facet.selfTest: Facet #"<<p->id<<" has "<<ffCon<<" contacts with other facets. This is not per se an error though very likely unintended -- there is no functor to handle such contact and it will be uselessly recomputed in every step. Set both particles masks to have some DemField.loneMask bits and contact will not be created at all.");
 }
 
+void Facet::updateDyn(const Real& density) const {
+	checkNodesHaveDemData();
+	for(int i:{0,1,2}){
+		auto& dyn(nodes[i]->getData<DemData>());
+		dyn.mass=0;
+		dyn.inertia=Vector3r::Zero();
+	}
+}
+
+
 
 Vector3r Facet::getNormal() const {
 	assert(numNodesOk());

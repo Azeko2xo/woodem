@@ -5,6 +5,11 @@
 #include <boost/math/tools/tuple.hpp>
 
 WOO_PLUGIN(dem,(Ellipsoid)(Bo1_Ellipsoid_Aabb)(Cg2_Wall_Ellipsoid_L6Geom)(Cg2_Facet_Ellipsoid_L6Geom)(Cg2_Ellipsoid_Ellipsoid_L6Geom));
+
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_Cg2_Ellipsoid_Ellipsoid_L6Geom__CLASS_BASE_DOC_ATTRS);
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Wall_Ellipsoid_L6Geom__CLASS_BASE_DOC);
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Facet_Ellipsoid_L6Geom__CLASS_BASE_DOC);
+
 #ifdef WOO_OPENGL
 	WOO_PLUGIN(gl,(Gl1_Ellipsoid));
 #endif
@@ -15,7 +20,7 @@ void woo::Ellipsoid::selfTest(const shared_ptr<Particle>& p){
 }
 
 void woo::Ellipsoid::updateDyn(const Real& density) const {
-	assert(numNodesOk());
+	checkNodesHaveDemData();
 	auto& dyn=nodes[0]->getData<DemData>();
 	dyn.mass=(4/3.)*M_PI*semiAxes.prod()*density;
 	dyn.inertia=(1/5.)*dyn.mass*Vector3r(pow(semiAxes[1],2)+pow(semiAxes[2],2),pow(semiAxes[2],2)+pow(semiAxes[0],2),pow(semiAxes[0],2)+pow(semiAxes[1],2));

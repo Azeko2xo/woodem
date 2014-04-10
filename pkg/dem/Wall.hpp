@@ -10,6 +10,7 @@
 /*! Object representing infinite plane aligned with the coordinate system (axis-aligned wall). */
 struct Wall: public Shape{
 	bool numNodesOk() const { return nodes.size()==1; }
+	void updateDyn(const Real& density) const WOO_CXX11_OVERRIDE;
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(Wall,Shape,"Object representing infinite plane aligned with the coordinate system (axis-aligned wall).",
 		((int,sense,0,,"Which side of the wall interacts: -1 for negative only, 0 for both, +1 for positive only."))
 		((int,axis,0,,"Axis of the normal; can be 0,1,2 for +x, +y, +z respectively (Node's orientation is disregarded for walls)"))
@@ -19,6 +20,8 @@ struct Wall: public Shape{
 	REGISTER_CLASS_INDEX(Wall,Shape);
 };	
 WOO_REGISTER_OBJECT(Wall);
+
+
 
 struct Bo1_Wall_Aabb: public BoundFunctor{
 	virtual void go(const shared_ptr<Shape>&);

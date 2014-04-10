@@ -8,6 +8,14 @@ WOO_PLUGIN(dem,(InfCylinder)(Bo1_InfCylinder_Aabb));
 	WOO_PLUGIN(gl,(Gl1_InfCylinder))
 #endif
 
+void InfCylinder::updateDyn(const Real& density) const {
+	checkNodesHaveDemData();
+	auto& dyn(nodes[0]->getData<DemData>());
+	dyn.mass=0;
+	dyn.inertia=Vector3r(Inf,Inf,Inf);
+}
+
+
 void Bo1_InfCylinder_Aabb::go(const shared_ptr<Shape>& sh){
 	InfCylinder& cyl=sh->cast<InfCylinder>();
 	assert(cyl.axis>=0 && cyl.axis<3);

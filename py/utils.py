@@ -50,7 +50,7 @@ def defaultMaterial():
 def defaultEngines(damping=0.,gravity=None,verletDist=-.05,kinSplit=False,dontCollect=False,noSlip=False,noBreak=False,cp2=None,law=None,model=None,grid=False,dynDtPeriod=0):
 	"""Return default set of engines, suitable for basic simulations during testing."""
 	if gravity: raise ValueError("gravity MUST NOT be specified anymore, set DemField.gravity=... instead.")
-	if not grid: collider=InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb(),Bo1_Wall_Aabb(),Bo1_InfCylinder_Aabb(),Bo1_Ellipsoid_Aabb()],label='collider',verletDist=verletDist)
+	if not grid: collider=InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb(),Bo1_Wall_Aabb(),Bo1_InfCylinder_Aabb(),Bo1_Ellipsoid_Aabb(),Bo1_Capsule_Aabb()],label='collider',verletDist=verletDist)
 	else: collider=GridCollider([Grid1_Sphere(),Grid1_Facet(),Grid1_Wall(),Grid1_InfCylinder()],label='collider',verletDist=verletDist)
 	if model:
 		import warnings
@@ -66,29 +66,22 @@ def defaultEngines(damping=0.,gravity=None,verletDist=-.05,kinSplit=False,dontCo
 		Leapfrog(damping=damping,reset=True,kinSplit=kinSplit,dontCollect=dontCollect,label='leapfrog'),
 		collider,
 		ContactLoop(
-			[Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom(),Cg2_Wall_Sphere_L6Geom(),Cg2_InfCylinder_Sphere_L6Geom(),Cg2_Ellipsoid_Ellipsoid_L6Geom(),Cg2_Wall_Ellipsoid_L6Geom()],
+			[Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom(),Cg2_Wall_Sphere_L6Geom(),Cg2_InfCylinder_Sphere_L6Geom(),Cg2_Ellipsoid_Ellipsoid_L6Geom(),Cg2_Wall_Ellipsoid_L6Geom(),Cg2_Wall_Capsule_L6Geom(),Cg2_Capsule_Capsule_L6Geom(),Cg2_Facet_Capsule_L6Geom()],
 			cp2,law,applyForces=True,label='contactLoop'
 		),
 	]+([woo.dem.DynDt(stepPeriod=dynDtPeriod,label='dynDt')] if dynDtPeriod>0 else [])
 
-def _commonBodySetup(b,nodes,volumes,geomInertias,mat,masses=None,fixed=False):
+def _commonBodySetup(b,nodes,mat,fixed=False):
 	"""Assign common body parameters."""
 	if isinstance(mat,Material): b.mat=mat
 	elif callable(mat): b.mat=mat()
 	else: raise TypeError("The 'mat' argument must be Material instance, or a callable returning Material.");
-	if masses and volumes: raise ValueError("Only one of masses, volumes can be given")
-	if volumes:
-		if len(nodes)!=len(volumes) or len(volumes)!=len(geomInertias): raise ValueError("nodes, volumes (or masses) and geomInertias must have same lengths.")
-		masses=[v*b.mat.density for v in volumes]
-	if len(nodes)!=len(masses) or len(masses)!=len(geomInertias): raise ValueError("nodes, volumes (or masses) and geomInertias must have same lengths.")
 	b.shape.nodes=nodes
-	for i in range(0,len(nodes)):
-		b.nodes[i].dem.mass=masses[i]
-		b.nodes[i].dem.inertia=geomInertias[i]*b.mat.density
+	b.updateDyn()
 	for i,n in enumerate(b.nodes):
 		n.dem.addParRef(b) # increase particle count
 		if fixed: n.dem.blocked='xyzXYZ'
-		else: n.dem.blocked=''.join(['XYZ'[ax] for ax in (0,1,2) if geomInertias[i][ax]==inf]) # block rotational DOFs where inertia is infinite
+		else: n.dem.blocked=''.join(['XYZ'[ax] for ax in (0,1,2) if n.dem.inertia[ax]==inf]) # block rotational DOFs where inertia is infinite
 
 
 def _mkDemNode(**kw):
@@ -139,9 +132,7 @@ def sphere(center,radius,mat=defaultMaterial,fixed=False,wire=False,color=None,h
 	b=Particle()
 	b.shape=Sphere(radius=radius,color=color if color else random.random())
 	b.shape.wire=wire
-	V=(4./3)*math.pi*radius**3
-	geomInert=(2./5.)*V*radius**2
-	_commonBodySetup(b,([center] if isinstance(center,Node) else [_mkDemNode(pos=center),]),volumes=[V],geomInertias=[geomInert*Vector3.Ones],mat=mat,fixed=fixed)
+	_commonBodySetup(b,([center] if isinstance(center,Node) else [_mkDemNode(pos=center),]),mat=mat,fixed=fixed)
 	b.aspherical=False
 	b.mask=mask
 	return b
@@ -150,15 +141,22 @@ def ellipsoid(center,semiAxes,ori=Quaternion.Identity,angVel=None,color=None,mat
 	'Return an :obj:`woo.dem.Ellipsoid` particle.'
 	p=Particle()
 	p.shape=Ellipsoid(semiAxes=semiAxes,color=color if color else random.random())
+	_commonBodySetup(p,([center] if isinstance(center,Node) else [_mkDemNode(pos=center,ori=ori),]),mat=mat,fixed=fixed)
 	p.shape.wire=wire
-	a,b,c=semiAxes
-	V=(4/3.)*math.pi*a*b*c
-	I=(1/5.)*V*Vector3(b**2+c**2,c**2+a**2,a**2+b**2)
-	_commonBodySetup(p,([center] if isinstance(center,Node) else [_mkDemNode(pos=center,ori=ori),]),volumes=[V],geomInertias=[I],mat=mat,fixed=fixed)
 	p.aspherical=True
 	p.mask=mask
 	p.shape.visible=visible
 	if angVel: p.shape.nodes[0].dem.angVel=angVel
+	return p
+
+def capsule(center,radius,shaft,ori=Quaternion.Identity,fixed=False,color=None,wire=False,mat=defaultMaterial,mask=1):
+	'Return a ready-made capsule particle.'
+	p=Particle()
+	p.shape=Capsule(radius=radius,shaft=shaft,color=color if color else random.random())
+	_commonBodySetup(p,([center] if isinstance(center,Node) else [_mkDemNode(pos=center,ori=ori),]),mat=mat,fixed=fixed)
+	p.shape.wire=wire
+	p.aspherical=True
+	p.mask=mask
 	return p
 
 def wall(position,axis,sense=0,glAB=None,fixed=True,mass=0,color=None,mat=defaultMaterial,visible=True,mask=1):
@@ -176,11 +174,10 @@ def wall(position,axis,sense=0,glAB=None,fixed=True,mass=0,color=None,mat=defaul
 	if isinstance(position,(int,long,float)):
 		pos2=Vector3(0,0,0); pos2[axis]=position
 		node=_mkDemNode(pos=pos2)
-	elif isinstance(position,Node):
-		node=position
-	else:
-		node=_mkDemNode(pos=position)
-	_commonBodySetup(p,[node],volumes=None,masses=[mass],geomInertias=[inf*Vector3.Ones],mat=mat,fixed=fixed)
+	elif isinstance(position,Node): node=position
+	else: node=_mkDemNode(pos=position)
+	_commonBodySetup(p,[node],mat=mat,fixed=fixed)
+	p.shape.nodes[0].dem.mass=mass
 	p.aspherical=False # wall never rotates anyway
 	p.mask=mask
 	p.shape.visible=visible
@@ -204,22 +201,20 @@ def facet(vertices,fakeVel=None,halfThick=0.,fixed=True,wire=True,color=None,hig
 	p.shape=(FlexFacet if flex else Facet)(color=color if color else random.random(),halfThick=halfThick)
 	if fakeVel: p.shape.fakeVel=fakeVel
 	p.shape.wire=wire
-	_commonBodySetup(p,nodes,volumes=None,masses=(0,0,0),geomInertias=[Vector3(0,0,0),Vector3(0,0,0),Vector3(0,0,0)],mat=mat,fixed=fixed)
+	_commonBodySetup(p,nodes,mat=mat,fixed=fixed)
 	p.aspherical=False # mass and inertia are 0 anyway; fell free to change to ``True`` if needed
 	p.mask=mask
 	p.shape.visible=visible
 	return p
 
 def infCylinder(position,radius,axis,glAB=None,fixed=True,mass=0,color=None,wire=False,mat=defaultMaterial,mask=1):
-	"""Return a read-made infinite cylinder particle."""
+	"""Return a ready-made infinite cylinder particle."""
 	p=Particle()
 	p.shape=InfCylinder(radius=radius,axis=axis,color=color if color else random.random())
 	if glAB: p.shape.glAB=glAB
 	p.shape.wire=wire
-	if(isinstance(position,Node)):
-		node=position
-	else: node=_mkDemNode(pos=position)
-	_commonBodySetup(p,[node],volumes=None,masses=[mass],geomInertias=[inf*Vector3.Ones],mat=mat,fixed=fixed)
+	node=position if isinstance(position,Node) else _mkDemNode(pos=position)
+	_commonBodySetup(p,[node],mat=mat,fixed=fixed)
 	p.aspherical=False # only rotates along one axis
 	p.mask=mask
 	return p

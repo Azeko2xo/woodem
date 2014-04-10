@@ -15,7 +15,7 @@ namespace woo{
 		Real axisExtent(short axis) const;
 		Real rotatedExtent(short axis, const Quaternionr& ori) const; //with additional rotation
 		// update dynamic properties (mass, intertia) of the sphere based on current radius
-		void updateDyn(const Real& density) const;
+		void updateDyn(const Real& density) const WOO_CXX11_OVERRIDE;
 		WOO_CLASS_BASE_DOC_ATTRS_CTOR(Ellipsoid,Shape,"Ellipsoidal particle.",
 			((Vector3r,semiAxes,Vector3r(NaN,NaN,NaN),AttrTrait<>().lenUnit(),"Semi-principal axes.")),
 			createIndex(); /*ctor*/
@@ -36,10 +36,11 @@ WOO_REGISTER_OBJECT(Bo1_Ellipsoid_Aabb);
 struct Cg2_Ellipsoid_Ellipsoid_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 	bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE;
 	void setMinDist00Sq(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE;
-	WOO_CLASS_BASE_DOC_ATTRS(Cg2_Ellipsoid_Ellipsoid_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :obj:`L6Geom` for contact of 2 :obj:`ellipsoids <woo.dem.Ellipsoid>`. Uses the Perram-Wertheim potential function (:cite:`Perram1985`, :cite:`Perram1996`, :cite:`Donev2005`). See example scripts :woosrc:`examples/ell0.py` and :woosrc:`examples/ell1.py`.\n\n.. youtube:: cBnz4el4qX8\n\n",
-		((bool,brent,true,,"Use Brent iteration for finding maximum of the Perram-Wertheim potential. If false, use Newton-Raphson (not yet implemented)."))
+	#define woo_dem_Cg2_Ellipsoid_Ellipsoid_L6Geom__CLASS_BASE_DOC_ATTRS \
+		Cg2_Ellipsoid_Ellipsoid_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :obj:`L6Geom` for contact of 2 :obj:`ellipsoids <woo.dem.Ellipsoid>`. Uses the Perram-Wertheim potential function (:cite:`Perram1985`, :cite:`Perram1996`, :cite:`Donev2005`). See example scripts :woosrc:`examples/ell0.py` and :woosrc:`examples/ell1.py`.\n\n.. youtube:: cBnz4el4qX8\n\n", \
+		((bool,brent,true,,"Use Brent iteration for finding maximum of the Perram-Wertheim potential. If false, use Newton-Raphson (not yet implemented).")) \
 		((int,brentBits,4*sizeof(Real),,"Precision for the Brent method, as number of bits."))
-	);
+	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_Cg2_Ellipsoid_Ellipsoid_L6Geom__CLASS_BASE_DOC_ATTRS);
 	FUNCTOR2D(Ellipsoid,Ellipsoid);
 	DEFINE_FUNCTOR_ORDER_2D(Ellipsoid,Ellipsoid);
 	//DECLARE_LOGGER;
@@ -48,8 +49,9 @@ WOO_REGISTER_OBJECT(Cg2_Ellipsoid_Ellipsoid_L6Geom);
 
 struct Cg2_Wall_Ellipsoid_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 	bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE;
-	WOO_CLASS_BASE_DOC_ATTRS(Cg2_Wall_Ellipsoid_L6Geom,Cg2_Any_Any_L6Geom__Base,"Compute :obj:`L6Geom` for contact of :obj:`ellipsoid <woo.dem.Ellipsoid>` and :obj:`wall <woo.dem.Wall>` (axis-aligned plane).",
-	);
+	#define woo_dem_Cg2_Wall_Ellipsoid_L6Geom__CLASS_BASE_DOC \
+		Cg2_Wall_Ellipsoid_L6Geom,Cg2_Any_Any_L6Geom__Base,"Compute :obj:`L6Geom` for contact of :obj:`ellipsoid <woo.dem.Ellipsoid>` and :obj:`wall <woo.dem.Wall>` (axis-aligned plane)."
+	WOO_DECL__CLASS_BASE_DOC(woo_dem_Cg2_Wall_Ellipsoid_L6Geom__CLASS_BASE_DOC);
 	FUNCTOR2D(Wall,Ellipsoid);
 	DEFINE_FUNCTOR_ORDER_2D(Wall,Ellipsoid);
 };
@@ -57,8 +59,9 @@ WOO_REGISTER_OBJECT(Cg2_Wall_Ellipsoid_L6Geom);
 
 struct Cg2_Facet_Ellipsoid_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 	bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE;
-	WOO_CLASS_BASE_DOC_ATTRS(Cg2_Facet_Ellipsoid_L6Geom,Cg2_Any_Any_L6Geom__Base,"Compute :obj:`L6Geom` for contact of :obj:`ellipsoid <woo.dem.Ellipsoid>` and :obj:`facet <woo.dem.Facet>` (axis-aligned plane).",
-	);
+	#define woo_dem_Cg2_Facet_Ellipsoid_L6Geom__CLASS_BASE_DOC \
+		Cg2_Facet_Ellipsoid_L6Geom,Cg2_Any_Any_L6Geom__Base,"Compute :obj:`L6Geom` for contact of :obj:`ellipsoid <woo.dem.Ellipsoid>` and :obj:`facet <woo.dem.Facet>` (axis-aligned plane)."
+	WOO_DECL__CLASS_BASE_DOC(woo_dem_Cg2_Facet_Ellipsoid_L6Geom__CLASS_BASE_DOC);
 	FUNCTOR2D(Facet,Ellipsoid);
 	DEFINE_FUNCTOR_ORDER_2D(Facet,Ellipsoid);
 };
