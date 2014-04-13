@@ -778,6 +778,32 @@ void GLViewer::postDraw(){
 		}
 	}
 
+	/* show cursor position when orthogonal and aligned */
+	if(camera()->type()==qglviewer::Camera::ORTHOGRAPHIC){
+		qglviewer::Vec up(camera()->upVector());
+		qglviewer::Vec dir(camera()->viewDirection());
+		short upi=-1,diri=-1;
+		for(int ax:{0,1,2}){
+			if(1-abs(up[ax])<1e-5) upi=ax;
+			if(1-abs(dir[ax])<1e-5) diri=ax;
+		}
+		if(upi>=0 && diri>=0){
+			// exactly aligned, find the cursor position
+			QPoint p=this->mapFromGlobal(QCursor::pos());
+			qglviewer::Vec pp(p.x(),p.y(),.5); // x,y and z-coordinate (does not matter as we are orthogonal)
+			qglviewer::Vec p3=camera()->unprojectedCoordinatesOf(pp);
+			Vector3r p3v(p3[0],p3[1],p3[2]); p3v[diri]=NaN;
+			for(short ax:{0,1,2}){
+				std::ostringstream oss;
+				oss<<(isnan(p3v[ax])?"*":to_string(p3v[ax]));
+				Vector3r color(Vector3r::Zero());
+				color[ax]=1.;
+				glColor3v(color);
+				QGLViewer::drawText(p.x()+20,p.y()+14*ax,oss.str().c_str());
+			}
+		}
+	}
+
 
 	/* draw colormapped ranges, on the right */
 	if(Renderer::ranges && (prevSize[0]!=width() || prevSize[1]!=height())){

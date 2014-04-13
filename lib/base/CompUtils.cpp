@@ -55,12 +55,19 @@ Real CompUtils::distSq_LineLine(const Vector3r& P, const Vector3r& u, const Vect
 	st=closestParams_LineLine(P,u,Q,v,parallel);
 	return ((P+u*st[0])-(Q+v*st[1])).squaredNorm();
 }
-
+#if 0
+// this function is garbage, see pkg/dem/Capsule.cpp for a working implementation copied over from WildMagic libs
 Real CompUtils::distSq_SegmentSegment(const Vector3r& A0, const Vector3r& A1, const Vector3r& B0, const Vector3r& B1, Vector2r& st, bool& parallel){
 	st=closestParams_LineLine(A0,(A1-A0),B0,(B1-B0),parallel);
+	if(st[0]>=0 && st[0]<=1 && st[1]>=0 && st[1]<=1) return ((A0+(A1-A0)*st[0])-(B0+(B1-B0)*st[1])).squaredNorm();
+	// line must be clamped, but that can change the result; so test again
+	// XXX: not working yet!!!
+	cerr<<"1: "<<st.transpose()<<endl;
 	clamp(st[0],0.,1.); clamp(st[1],0.,1.);
+	cerr<<"2: "<<st.transpose()<<endl;
 	return ((A0+(A1-A0)*st[0])-(B0+(B1-B0)*st[1])).squaredNorm();
 }
+#endif
 
 Vector3r CompUtils::closestSegmentPt(const Vector3r& P, const Vector3r& A, const Vector3r& B, Real* normPos){
 	Vector3r BA=B-A;

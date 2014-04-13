@@ -68,7 +68,7 @@ def makeBodyLabel(b):
 	ret=unicode(b.id)+u' '
 	if not b.shape: ret+=u'⬚'
 	else:
-		typeMap={'Sphere':u'⚫','Facet':u'△','Wall':u'┃','Box':u'⎕','Cylinder':u'⌭','Clump':u'☍','InfCylinder':u'◎'}
+		typeMap={'Sphere':u'⚫','Facet':u'△','FlexFacet':u'⧋','Wall':u'┃','Box':u'⎕','Cylinder':u'⌭','Clump':u'☍','InfCylinder':u'◎','Ellipsoid':u'⬯','Capsule':u'O'}
 		ret+=typeMap.get(b.shape.__class__.__name__,u'﹖')
 	if (b.shape.nodes)==1 and b.blocked!='': ret+=u'⚓'
 	return ret
@@ -148,21 +148,14 @@ class BodyInspector(QWidget):
 			for i,j in ((0,2),(0,3),(1,1),(1,2),(1,3)): self.forceGrid.itemAtPosition(i,j).widget().setText('')
 		else:
 			try:
-				#val=[O.forces.f(self.bodyId),O.forces.t(self.bodyId),O.forces.move(self.bodyId),O.forces.rot(self.bodyId)]
 				d=b.shape.nodes[0].dem
 				val=[d.force,d.torque]
-				#hasMovRot=(val[2]!=Vector3.Zero or val[3]!=Vector3.Zero)
-				#if hasMovRot!=self.showMovRot:
-				#	for i,j in itertools.product((2,3),(-1,0,1,2)):
-				#		if hasMovRot: self.forceGrid.itemAtPosition(i,j+1).widget().show()
-				#		else: self.forceGrid.itemAtPosition(i,j+1).widget().hide()
-				#	self.showMovRot=hasMovRot
-				#rows=((0,1,2,3) if hasMovRot else (0,1))
 				rows=(0,1)
 				for i,j in itertools.product(rows,(0,1,2)): self.forceGrid.itemAtPosition(i,j+1).widget().setText('<small>'+str(val[i][j])+'</small>')
 			except IndexError:pass
 	def tryShowBody(self):
 		try:
+			if self.bodyId<0: raise IndexError()
 			b=woo.master.scene.dem.par[self.bodyId]
 			self.serEd=ObjectEditor(b,showType=True,parent=self,path='woo.master.scene.dem.par[%d]'%self.bodyId)
 		except IndexError:
