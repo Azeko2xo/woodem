@@ -118,17 +118,18 @@ void RandomFactory::run(){
 	vector<shared_ptr<Particle>> generated;
 	Real stepMass=0.;
 
-	#ifdef WOO_FACTORY_SPHERES_ONLY
-		SpherePack spheres;
+	SpherePack spheres;
+	//
+	if(spheresOnly){
 		spheres.pack.reserve(dem->particles->size()*1.2); // something extra for generated particles
 		// HACK!!!
 		bool isBox=dynamic_cast<BoxFactory*>(this);
 		AlignedBox3r box;
 		if(isBox){ box=this->cast<BoxFactory>().box; }
 		for(const auto& p: *dem->particles){
-			if(dynamic_pointer_cast<Sphere>(p->shape) && (!isBox || box.contains(p->shape->nodes[0]->pos))) spheres.pack.push_back(SpherePack::Sph(p->shape->nodes[0]->pos,p->shape->cast<Sphere>().radius));
+			if(p->shape->isA<Sphere>() && (!isBox || box.contains(p->shape->nodes[0]->pos))) spheres.pack.push_back(SpherePack::Sph(p->shape->nodes[0]->pos,p->shape->cast<Sphere>().radius));
 		}
-	#endif
+	}
 
 	while(true){
 		// finished forever
@@ -193,8 +194,8 @@ void RandomFactory::run(){
 
 				const shared_ptr<woo::Sphere>& peSphere=dynamic_pointer_cast<woo::Sphere>(pe.par->shape);
 
-				#ifdef WOO_FACTORY_SPHERES_ONLY
-					if(!peSphere) throw std::runtime_error(__FILE__ ": Only Spheres are supported in this build!");
+				if(spheresOnly){
+					if(!peSphere) throw std::runtime_error("RandomFactory.spheresOnly: is true, but a nonspherical particle ("+pe.par->shape->pyStr()+") was returned by the generator.");
 					Real r=peSphere->radius;
 					Vector3r subPos=peSphere->nodes[0]->pos;
 					for(const auto& s: spheres.pack){
@@ -206,7 +207,7 @@ void RandomFactory::run(){
 						}
 					}
 					// don't add to spheres until all particles will have been checked for overlaps (below)
-				#else
+				} else {
 					// see intersection with existing particles
 					bool overlap=false;
 					vector<Particle::id_t> ids=collider->probeAabb(peBox.min(),peBox.max());
@@ -230,17 +231,17 @@ void RandomFactory::run(){
 							}
 						}
 					}
-				#endif
+				}
 			}
 			LOG_DEBUG("No collision (attempt "<<attempt<<"), particle will be created :-) ");
-			#ifdef WOO_FACTORY_SPHERES_ONLY
+			if(spheresOnly){
 				// num will be the same for all spheres within this clump (abuse the *num* counter)
 				for(const auto& pe: pee){
 					Vector3r subPos=pe.par->shape->nodes[0]->pos;
 					Real r=pe.par->shape->cast<Sphere>().radius;
 					spheres.pack.push_back(SpherePack::Sph((pos+subPos),r,/*clumpId*/(pee.size()==1?-1:num)));
 				}
-			#endif
+			}
 			break;
 			tryAgain: ; // try to position the same particle again
 		}

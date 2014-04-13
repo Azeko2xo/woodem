@@ -15,7 +15,10 @@ namespace woo{
 		Real axisExtent(short axis) const;
 		Real rotatedExtent(short axis, const Quaternionr& ori) const; //with additional rotation
 		// update dynamic properties (mass, intertia) of the sphere based on current radius
-		void updateDyn(const Real& density) const WOO_CXX11_OVERRIDE;
+		void updateMassInertia(const Real& density) const WOO_CXX11_OVERRIDE;
+		Real equivRadius() const WOO_CXX11_OVERRIDE;
+		// compute axis-aligned bounding box
+		AlignedBox3r alignedBox() const;
 		WOO_CLASS_BASE_DOC_ATTRS_CTOR(Ellipsoid,Shape,"Ellipsoidal particle.",
 			((Vector3r,semiAxes,Vector3r(NaN,NaN,NaN),AttrTrait<>().lenUnit(),"Semi-principal axes.")),
 			createIndex(); /*ctor*/

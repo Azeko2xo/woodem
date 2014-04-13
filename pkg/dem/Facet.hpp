@@ -26,7 +26,7 @@ struct Facet: public Shape {
 	// generic routine: return nearest point on triangle closes to *pt*, given triangle vertices and its normal
 	static Vector3r getNearestTrianglePt(const Vector3r& pt, const Vector3r& A, const Vector3r& B, const Vector3r& C, const Vector3r& normal);
 	// defaults
-	void updateDyn(const Real& density) const WOO_CXX11_OVERRIDE;
+	void updateMassInertia(const Real& density) const WOO_CXX11_OVERRIDE;
 	//
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Facet,Shape,"Facet (triangle in 3d) particle.",
 		((Vector3r,fakeVel,Vector3r::Zero(),,"Fake velocity when computing contact, in global coordinates (for modeling moving surface modeled using static triangulation); only in-plane velocity is meaningful, but this is not enforced.\n\n.. note:: If the x-component is NaN, the meaning is special: :obj:`fakeVel` is taken as zero vector and, in addition, local in-plane facet's linear velocity at the contact is taken as zero (rather than linearly interpolated between velocity of nodes).\n"))

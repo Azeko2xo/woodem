@@ -52,10 +52,10 @@ Vector3r Shape::avgNodePos(){
 	return ret/sz;
 }
 
-void Particle::updateDyn() const {
+void Particle::updateMassInertia() const {
 	if(!shape) throw std::runtime_error("Particle.shape==None");
 	if(!material) throw std::runtime_error("Particle.material==None");
-	shape->updateDyn(material->density);
+	shape->updateMassInertia(material->density);
 }
 
 void Shape::checkNodesHaveDemData() const{
@@ -63,8 +63,8 @@ void Shape::checkNodesHaveDemData() const{
 	for(const auto& n: nodes){ if(!n->hasData<DemData>()) woo::AttributeError(pyStr()+": Node.dem==None."); } 
 }
 
-void Shape::updateDyn(const Real& density) const{
-	throw std::runtime_error(getClassName()+"::updateDyn: not implemented for this shape.");
+void Shape::updateMassInertia(const Real& density) const{
+	throw std::runtime_error(getClassName()+"::updateMassInertia: not implemented for this shape.");
 }
 
 

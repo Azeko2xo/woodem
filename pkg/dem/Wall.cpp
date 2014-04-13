@@ -8,7 +8,7 @@ WOO_PLUGIN(dem,(Wall)(Bo1_Wall_Aabb)(In2_Wall_ElastMat));
 	WOO_PLUGIN(gl,(Gl1_Wall))
 #endif
 
-void Wall::updateDyn(const Real& density) const {
+void Wall::updateMassInertia(const Real& density) const {
 	checkNodesHaveDemData();
 	auto& dyn(nodes[0]->getData<DemData>());
 	dyn.mass=0;

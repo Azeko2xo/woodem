@@ -77,7 +77,7 @@ def _commonBodySetup(b,nodes,mat,fixed=False):
 	elif callable(mat): b.mat=mat()
 	else: raise TypeError("The 'mat' argument must be Material instance, or a callable returning Material.");
 	b.shape.nodes=nodes
-	b.updateDyn()
+	b.updateMassInertia()
 	for i,n in enumerate(b.nodes):
 		n.dem.addParRef(b) # increase particle count
 		if fixed: n.dem.blocked='xyzXYZ'

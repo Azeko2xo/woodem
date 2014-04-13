@@ -216,7 +216,8 @@ void Gl1_DemField::doShape(){
 
 		bool useColor2=false;
 		bool isSphere((bool)dynamic_pointer_cast<Sphere>(p->shape));
-		Real radius=(isSphere?p->shape->cast<Sphere>().radius:NaN);
+		// Real radius=(isSphere?p->shape->cast<Sphere>().radius:NaN);
+		Real radius=p->shape->equivRadius();
 		if(n0->getData<DemData>().isClump()) radius=n0->getData<DemData>().cast<ClumpData>().equivRad;
 
 		switch(shape){

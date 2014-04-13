@@ -133,7 +133,7 @@ void PelletAgglomerator::run(){
 			Real dMass=localAngVel.tail<2>().norm()*scene->dt*massIncPerRad;
 			Real newVol=(4/3.)*M_PI*pow(sphere.radius,3)+dMass/other->material->density;
 			sphere.radius=cbrt(3*newVol/(4*M_PI));
-			sphere.updateDyn(other->material->density);
+			sphere.updateMassInertia(other->material->density);
 			if(!other->matState) other->matState=make_shared<PelletMatState>();
 			assert(dynamic_pointer_cast<PelletMatState>(other->matState));
 			auto& pms=other->matState->cast<PelletMatState>();

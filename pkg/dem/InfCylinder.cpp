@@ -8,7 +8,7 @@ WOO_PLUGIN(dem,(InfCylinder)(Bo1_InfCylinder_Aabb));
 	WOO_PLUGIN(gl,(Gl1_InfCylinder))
 #endif
 
-void InfCylinder::updateDyn(const Real& density) const {
+void InfCylinder::updateMassInertia(const Real& density) const {
 	checkNodesHaveDemData();
 	auto& dyn(nodes[0]->getData<DemData>());
 	dyn.mass=0;

@@ -19,7 +19,12 @@ void woo::Ellipsoid::selfTest(const shared_ptr<Particle>& p){
 	if(!numNodesOk()) throw std::runtime_error("Ellipsoid #"+to_string(p->id)+": numNodesOk() failed: must be 1, not "+to_string(nodes.size())+".");
 }
 
-void woo::Ellipsoid::updateDyn(const Real& density) const {
+Real woo::Ellipsoid::equivRadius() const {
+	// volume-based equivalent radius
+	return cbrt(semiAxes.prod());
+};
+
+void woo::Ellipsoid::updateMassInertia(const Real& density) const {
 	checkNodesHaveDemData();
 	auto& dyn=nodes[0]->getData<DemData>();
 	dyn.mass=(4/3.)*M_PI*semiAxes.prod()*density;
@@ -41,6 +46,13 @@ Real woo::Ellipsoid::axisExtent(short axis) const {
 	return M.row(axis).norm();
 }
 
+AlignedBox3r Ellipsoid::alignedBox() const {
+	Matrix3r M=trsfFromUnitSphere();
+	// http://www.loria.fr/~shornus/ellipsoid-bbox.html
+	const Vector3r& pos(nodes[0]->pos);
+	Vector3r delta(M.row(0).norm(),M.row(1).norm(),M.row(2).norm());
+	return AlignedBox3r(pos-delta,pos+delta);
+};
 
 
 void Bo1_Ellipsoid_Aabb::go(const shared_ptr<Shape>& sh){

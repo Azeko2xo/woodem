@@ -62,8 +62,8 @@ struct Particle: public Object{
 	int countRealContacts() const;
 	void postLoad(Particle&,void*);
 
-	// call Shape.updateDyn(mat.density): convenience function
-	void updateDyn() const;
+	// call Shape.updateMassInertia(mat.density): convenience function
+	void updateMassInertia() const;
 
 	// return internal reference for refPos with OpenGL
 	// without OpenGL, there is nothing like that
@@ -85,7 +85,7 @@ struct Particle: public Object{
 		((MapParticleContact,contacts,,AttrTrait<Attr::noSave|Attr::hidden>(),"Contacts of this particle, indexed by id of the other particle.")) \
 		/* ((int,flags,0,AttrTrait<Attr::hidden>(),"Various flags, only individually accesible from Python")) */ \
 		, /*py*/ \
-			.def("updateDyn",&Particle::updateDyn) \
+			.def("updateMassInertia",&Particle::updateMassInertia) \
 			.add_property("contacts",&Particle::pyContacts) \
 			.add_property("con",&Particle::pyCon) \
 			.add_property("tacts",&Particle::pyTacts) \
@@ -309,7 +309,9 @@ struct Shape: public Object, public Indexable{
 	void setVisible(bool w){ if(getVisible()==w) return; bool hi=abs(color)>1; int sgn=(color<0?-1:1); color=sgn*((w?0:2)+getBaseColor()+(hi?1:0)); }
 	Vector3r avgNodePos();
 	// update mass and inertia of this object
-	virtual void updateDyn(const Real& density) const;
+	virtual void updateMassInertia(const Real& density) const;
+	// return equivalent radius of the particle, or NaN if not defined by the shape
+	virtual Real equivRadius() const { return NaN; }
 	#define woo_dem_Shape__CLASS_BASE_DOC_ATTRS_PY \
 		Shape,Object,"Particle geometry", \
 		((shared_ptr<Bound>,bound,,,"Bound of the particle, for use by collision detection only")) \
@@ -319,6 +321,7 @@ struct Shape: public Object, public Indexable{
 			.add_property("wire",&Shape::getWire,&Shape::setWire) \
 			.add_property("hi",&Shape::getHighlighted,&Shape::setHighlighted) \
 			.add_property("visible",&Shape::getVisible,&Shape::setVisible) \
+			.add_property("equivRadius",&Shape::equivRadius) \
 			WOO_PY_TOPINDEXABLE(Shape)
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Shape__CLASS_BASE_DOC_ATTRS_PY);
 	REGISTER_INDEX_COUNTER(Shape);

@@ -91,7 +91,6 @@ WOO_REGISTER_OBJECT(AlignedMinMaxShooter);
 struct Collider;
 
 struct RandomFactory: public ParticleFactory{
-	#define WOO_FACTORY_SPHERES_ONLY
 	DECLARE_LOGGER;
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	virtual Vector3r randomPosition(){ throw std::runtime_error("Calling ParticleFactor.randomPosition	(abstract method); use derived classes."); }
@@ -114,6 +113,7 @@ struct RandomFactory: public ParticleFactory{
 		((Real,color,NaN,,"Color for new particles (NaN for random)"))
 		//
 		((Real,stepGoalMass,0,AttrTrait<Attr::readonly>(),"Mass to be attained in this step"))
+		((bool,spheresOnly,true,,"Enable optimizations which require that generated particles are spheres (clumped or not). If non-spherical particles are generated, an exception is raised."))
 		// ((long,stepPrev,-1,AttrTrait<Attr::readonly>(),"Step in which we were run for the last time"))
 		,/*ctor*/
 		,/*py*/

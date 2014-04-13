@@ -250,8 +250,7 @@ shared_ptr<Particle> DemFuncs::makeSphere(Real radius, const shared_ptr<Material
 
 	auto& dyn=n->getData<DemData>();
 	dyn.addParRef(par);
-	dyn.mass=(4/3.)*M_PI*pow(radius,3)*m->density;
-	dyn.inertia=Vector3r::Ones()*(2./5.)*dyn.mass*pow(radius,2);
+	sphere->updateMassInertia(m->density);
 
 	return par;
 };

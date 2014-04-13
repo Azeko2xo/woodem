@@ -1,6 +1,12 @@
 #include<woo/pkg/dem/Psd.hpp>
 #include<woo/pkg/dem/Funcs.hpp>
 #include<woo/pkg/dem/Sphere.hpp>
+#include<woo/pkg/dem/Capsule.hpp>
+#include<woo/pkg/dem/Ellipsoid.hpp>
+
+#ifdef WOO_OPENGL
+	#include<woo/pkg/gl/Renderer.hpp>
+#endif
 
 
 WOO_PLUGIN(dem,(PsdSphereGenerator));
@@ -98,7 +104,7 @@ void PsdSphereGenerator::revokeLast(){
 
 vector<ParticleGenerator::ParticleAndBox>
 PsdSphereGenerator::operator()(const shared_ptr<Material>&mat){
-	if(mass && !(mat->density>0)) woo::ValueError("PsdSphereGenerator: material density must be positive (not "+to_string(mat->density));
+	if(mass && !(mat->density>0)) woo::ValueError("PsdSphereGenerator: material density must be positive (not "+to_string(mat->density)+")");
 	int bin; Real r;
 	std::tie(r,bin)=computeNextRadiusBin();
 
@@ -169,7 +175,7 @@ Real PsdClumpGenerator::critDt(Real density, Real young) {
 
 vector<ParticleGenerator::ParticleAndBox>
 PsdClumpGenerator::operator()(const shared_ptr<Material>&mat){
-	if(mass && !(mat->density>0)) woo::ValueError("PsdClumpGenerator: material density must be positive (not "+to_string(mat->density));
+	if(mass && !(mat->density>0)) woo::ValueError("PsdClumpGenerator: material density must be positive (not "+to_string(mat->density)+")");
 	if(clumps.empty()) woo::ValueError("PsdClumpGenerator.clump may not be empty.");
 	int bin; Real r;
 	std::tie(r,bin)=computeNextRadiusBin();
@@ -246,4 +252,104 @@ PsdClumpGenerator::operator()(const shared_ptr<Material>&mat){
 	if(save) genClumpNo.push_back(cNo);
 	return ret;
 }
+
+
+/**********************************************
+              PsdCapsuleGenerator
+**********************************************/
+
+WOO_PLUGIN(dem,(PsdCapsuleGenerator));
+CREATE_LOGGER(PsdCapsuleGenerator);
+
+
+vector<ParticleGenerator::ParticleAndBox>
+PsdCapsuleGenerator::operator()(const shared_ptr<Material>&mat){
+	if(mass && !(mat->density>0)) woo::ValueError("PsdCapsuleGenerator: material density must be positive (not "+to_string(mat->density)+")");
+	int bin; Real rEq; // equivalent radius
+	std::tie(rEq,bin)=computeNextRadiusBin();
+
+	if(!(shaftRadiusRatio.minCoeff()>0)) woo::ValueError("PscCapsuleGenerator.shaftRadiusRatio: must be interval with positive endpoints (current: "+to_string(shaftRadiusRatio[0])+","+to_string(shaftRadiusRatio[1])+")");
+	Real srRatio=shaftRadiusRatio[0]+Mathr::UnitRandom()*(shaftRadiusRatio[1]-shaftRadiusRatio[0]);
+	Real cRad=rEq/cbrt(4/3.+srRatio);
+	Real cShaft=cRad*srRatio;
+
+	// setup the particle
+	auto capsule=make_shared<Capsule>();
+	capsule->radius=cRad;
+	capsule->shaft=cShaft;
+	capsule->nodes.push_back(make_shared<Node>());
+	const auto& node=capsule->nodes[0];
+	node->setData<DemData>(make_shared<DemData>());
+	#ifdef WOO_OPENGL
+		// to avoid crashes if renderer must resize the node's data array and reallocates it while other thread accesses those data
+		node->setData<GlData>(make_shared<GlData>());
+	#endif
+	capsule->updateMassInertia(mat->density);
+	auto par=make_shared<Particle>();
+	par->material=mat;
+	par->shape=capsule;
+	node->getData<DemData>().addParRef(par);
+
+	// random orientation
+	Quaternionr ori(AngleAxisr(Mathr::UnitRandom()*2*M_PI,Vector3r::Random().normalized()));
+	if(ori.norm()>0) ori.normalize();
+	else ori=Quaternionr::Identity(); // very unlikely that q has all zeros
+	node->ori=ori;
+	node->pos=Vector3r::Zero(); // this is expected
+
+	// bookkeeping
+	saveBinMassRadius(bin,node->getData<DemData>().mass,rEq);
+
+	return vector<ParticleAndBox>({{par,capsule->alignedBox()}});
+};
+
+
+/**********************************************
+              PsdEllipsoidGenerator
+**********************************************/
+
+WOO_PLUGIN(dem,(PsdEllipsoidGenerator));
+CREATE_LOGGER(PsdEllipsoidGenerator);
+
+
+vector<ParticleGenerator::ParticleAndBox>
+PsdEllipsoidGenerator::operator()(const shared_ptr<Material>&mat){
+	if(mass && !(mat->density>0)) woo::ValueError("PsdEllipsoidGenerator: material density must be positive (not "+to_string(mat->density)+")");
+	int bin; Real rEq; // equivalent radius
+	std::tie(rEq,bin)=computeNextRadiusBin();
+
+	if(!(axisRatio2.minCoeff()>0)) woo::ValueError("PscEllipsoidGenerator.axisRatio2: must be interval with positive endpoints (current: "+to_string(axisRatio2[0])+","+to_string(axisRatio2[1])+")");
+	Real beta=axisRatio2[0]+Mathr::UnitRandom()*(axisRatio2[1]-axisRatio2[0]);
+	Real gamma=(axisRatio3.minCoeff()>0?axisRatio3[0]+Mathr::UnitRandom()*(axisRatio3[1]-axisRatio3[0]):beta);
+	Real a=rEq/cbrt(beta*gamma);
+	Vector3r semiAxes(a,beta*a,gamma*a);
+
+	// setup the particle
+	auto ellipsoid=make_shared<Ellipsoid>();
+	ellipsoid->semiAxes=semiAxes;
+	ellipsoid->nodes.push_back(make_shared<Node>());
+	const auto& node=ellipsoid->nodes[0];
+	node->setData<DemData>(make_shared<DemData>());
+	#ifdef WOO_OPENGL
+		// to avoid crashes if renderer must resize the node's data array and reallocates it while other thread accesses those data
+		node->setData<GlData>(make_shared<GlData>());
+	#endif
+	ellipsoid->updateMassInertia(mat->density);
+	auto par=make_shared<Particle>();
+	par->material=mat;
+	par->shape=ellipsoid;
+	node->getData<DemData>().addParRef(par);
+
+	// random orientation
+	Quaternionr ori(AngleAxisr(Mathr::UnitRandom()*2*M_PI,Vector3r::Random().normalized()));
+	if(ori.norm()>0) ori.normalize();
+	else ori=Quaternionr::Identity(); // very unlikely that q has all zeros
+	node->ori=ori;
+	node->pos=Vector3r::Zero(); // this is expected
+
+	// bookkeeping
+	saveBinMassRadius(bin,node->getData<DemData>().mass,rEq);
+
+	return vector<ParticleAndBox>({{par,ellipsoid->alignedBox()}});
+};
 

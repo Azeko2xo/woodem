@@ -5,7 +5,7 @@
 
 struct PsdSphereGenerator: public ParticleGenerator{
 	DECLARE_LOGGER;
-	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m);
+	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m) WOO_CXX11_OVERRIDE;
 	void postLoad(PsdSphereGenerator&,void*);
 	// return radius and bin for the next particle (also used by derived classes)
 	std::tuple<Real,int> computeNextRadiusBin();
@@ -32,7 +32,7 @@ WOO_REGISTER_OBJECT(PsdSphereGenerator);
 
 struct PsdClumpGenerator: public PsdSphereGenerator {
 	DECLARE_LOGGER;
-	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m);
+	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m) WOO_CXX11_OVERRIDE;
 	void clear() WOO_CXX11_OVERRIDE { genClumpNo.clear(); /*call parent*/ PsdSphereGenerator::clear(); };
 	Real critDt(Real density, Real young) WOO_CXX11_OVERRIDE;
 	WOO_CLASS_BASE_DOC_ATTRS(PsdClumpGenerator,PsdSphereGenerator,"Generate clump particles following a given Particle Size Distribution. !! FULL DOCUMENTATION IS IN py/_monkey/extraDocs.py !!!",
@@ -42,3 +42,23 @@ struct PsdClumpGenerator: public PsdSphereGenerator {
 };
 WOO_REGISTER_OBJECT(PsdClumpGenerator);
 
+struct PsdCapsuleGenerator: public PsdSphereGenerator {
+	DECLARE_LOGGER;
+	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m) WOO_CXX11_OVERRIDE;
+	// clear, critDt: same as for PsdSphereGenerator
+	WOO_CLASS_BASE_DOC_ATTRS(PsdCapsuleGenerator,PsdSphereGenerator,"Generate capsules following a given Particle Size Distribution; elongation is chosen randomly using :obj:`shaftRadiusRatio`; orientation is random.",
+		((Vector2r,shaftRadiusRatio,Vector2r(.5,1.5),,"Range for :obj:`shaft <Capsule.shaft>` / :obj:`radius <Capsule.radius>`; the ratio is selected uniformly from this range."))
+	);
+};
+WOO_REGISTER_OBJECT(PsdCapsuleGenerator);
+
+struct PsdEllipsoidGenerator: public PsdSphereGenerator {
+	DECLARE_LOGGER;
+	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m) WOO_CXX11_OVERRIDE;
+	// clear, critDt: same as for PsdSphereGenerator
+	WOO_CLASS_BASE_DOC_ATTRS(PsdEllipsoidGenerator,PsdSphereGenerator,"Generate ellipsoids following a given Particle Size Distribution; ratio of :obj:`Ellipsoid.semiAxes` is chosen randomly from the :obj:`semiAxesRatio` range; orientation is random.",
+		((Vector2r,axisRatio2,Vector2r(.5,.5),,"Range for second semi-axis ratio."))
+		((Vector2r,axisRatio3,Vector2r(.5,.5),,"Range for third semi-axis ratio; if one of the coefficients is non-positive, the thirs semi-axis will be the same as the second one."))
+	);
+};
+WOO_REGISTER_OBJECT(PsdEllipsoidGenerator);

@@ -363,7 +363,12 @@ void Capsule::selfTest(const shared_ptr<Particle>& p){
 	if(!numNodesOk()) throw std::runtime_error("Capsule #"+to_string(p->id)+": numNodesOk() failed: must be 1, not "+to_string(nodes.size())+".");
 }
 
-void Capsule::updateDyn(const Real& density) const {
+Real Capsule::equivRadius() const {
+	Real V=(4/3.)*M_PI*pow(radius,3)+M_PI*pow(radius,2)*shaft;
+	return cbrt(V)*3/(4*M_PI);
+}
+
+void Capsule::updateMassInertia(const Real& density) const {
 	checkNodesHaveDemData();
 	auto& dyn=nodes[0]->getData<DemData>();
 	Real r2(pow(radius,2)), r3(pow(radius,3));
@@ -376,14 +381,19 @@ void Capsule::updateDyn(const Real& density) const {
 	dyn.mass=mCaps+mShaft;
 }
 
+AlignedBox3r Capsule::alignedBox() const {
+	const auto& pos(nodes[0]->pos); const auto& ori(nodes[0]->ori);
+	Vector3r dShaft=ori*Vector3r(.5*shaft,0,0);
+	AlignedBox3r ret;
+	for(int a:{-1,1}) for(int b:{-1,1}) ret.extend(pos+a*dShaft+b*radius*Vector3r::Ones());
+	return ret;
+}
+
 void Bo1_Capsule_Aabb::go(const shared_ptr<Shape>& sh){
 	if(!sh->bound){ sh->bound=make_shared<Aabb>(); }
-	Aabb& aabb=sh->bound->cast<Aabb>();
 	const auto& c(sh->cast<Capsule>());
-	const auto& pos(sh->nodes[0]->pos); const auto& ori(sh->nodes[0]->ori);
-	Vector3r dShaft=ori*Vector3r(.5*c.shaft,0,0);
-	AlignedBox3r ab;
-	for(int a:{-1,1}) for(int b:{-1,1}) ab.extend(pos+a*dShaft+b*c.radius*Vector3r::Ones());
+	AlignedBox3r ab=c.alignedBox();
+	Aabb& aabb=sh->bound->cast<Aabb>();
 	aabb.min=ab.min(); 
 	aabb.max=ab.max();
 }

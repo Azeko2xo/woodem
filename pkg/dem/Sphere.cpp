@@ -19,7 +19,7 @@ void woo::Sphere::selfTest(const shared_ptr<Particle>& p){
 	if(!numNodesOk()) throw std::runtime_error("Sphere #"+to_string(p->id)+": numNodesOk() failed (has "+to_string(nodes.size())+" nodes)");
 }
 
-void woo::Sphere::updateDyn(const Real& density) const {
+void woo::Sphere::updateMassInertia(const Real& density) const {
 	checkNodesHaveDemData();
 	auto& dyn=nodes[0]->getData<DemData>();
 	dyn.mass=(4/3.)*M_PI*pow(radius,3)*density;
