@@ -23,7 +23,6 @@ exit 0
 
 ## THE REST OF THE FILE IS UNUSED
 
-
 #
 # zipped (portable) libraries and executable
 # not really used since we have installers now
