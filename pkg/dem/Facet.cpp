@@ -6,7 +6,9 @@
 	#include<woo/pkg/gl/Renderer.hpp>
 #endif
 
-WOO_PLUGIN(dem,(Facet)(Bo1_Facet_Aabb));
+WOO_PLUGIN(dem,(Facet)(Bo1_Facet_Aabb)(Cg2_Facet_Sphere_L6Geom));
+
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Facet_Sphere_L6Geom__CLASS_BASE_DOC);
 
 CREATE_LOGGER(Facet);
 
@@ -161,6 +163,63 @@ void Bo1_Facet_Aabb::go(const shared_ptr<Shape>& sh){
 		}
 	}
 }
+
+CREATE_LOGGER(Cg2_Facet_Sphere_L6Geom);
+
+bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
+	const Facet& f=sh1->cast<Facet>(); const Sphere& s=sh2->cast<Sphere>();
+	const Vector3r& sC=s.nodes[0]->pos+shift2;
+	Vector3r fNormal=f.getNormal();
+	Real planeDist=(sC-f.nodes[0]->pos).dot(fNormal);
+	// cerr<<"planeDist="<<planeDist<<endl;
+	if(abs(planeDist)>(s.radius+f.halfThick) && !C->isReal() && !force) return false;
+	Vector3r fC=sC-planeDist*fNormal; // sphere's center projected to facet's plane
+	Vector3r outVec[3];
+	std::tie(outVec[0],outVec[1],outVec[2])=f.getOuterVectors();
+	Real ll[3]; // whether the projected center is on the outer or inner side of each side's line
+	for(int i:{0,1,2}) ll[i]=outVec[i].dot(fC-f.nodes[i]->pos);
+	short w=(ll[0]>0?1:0)+(ll[1]>0?2:0)+(ll[2]>0?4:0); // bitmask whether the closest point is outside (1,2,4 for respective edges)
+	Vector3r contPt;
+	switch(w){
+		case 0: contPt=fC; break; // ---: inside triangle
+		case 1: contPt=CompUtils::closestSegmentPt(fC,f.nodes[0]->pos,f.nodes[1]->pos); break; // +-- (n1)
+		case 2: contPt=CompUtils::closestSegmentPt(fC,f.nodes[1]->pos,f.nodes[2]->pos); break; // -+- (n2)
+		case 4: contPt=CompUtils::closestSegmentPt(fC,f.nodes[2]->pos,f.nodes[0]->pos); break; // --+ (n3)
+		case 3: contPt=f.nodes[1]->pos; break; // ++- (v1)
+		case 5: contPt=f.nodes[0]->pos; break; // +-+ (v0)
+		case 6: contPt=f.nodes[2]->pos; break; // -++ (v2)
+		case 7: throw logic_error("Cg2_Facet_Sphere_L3Geom: Impossible sphere-facet intersection (all points are outside the edges). (please report bug)"); // +++ (impossible)
+		default: throw logic_error("Ig2_Facet_Sphere_L3Geom: Nonsense intersection value. (please report bug)");
+	}
+	Vector3r normal=sC-contPt; // normal is now the contact normal (not yet normalized)
+	//cerr<<"sC="<<sC.transpose()<<", contPt="<<contPt.transpose()<<endl;
+	//cerr<<"dist="<<normal.norm()<<endl;
+	if(normal.squaredNorm()>pow(s.radius+f.halfThick,2) && !C->isReal() && !force) { return false; }
+	Real dist=normal.norm();
+	#define CATCH_NAN_FACET_SPHERE
+	#ifdef CATCH_NAN_FACET_SPHERE
+		if(dist==0) LOG_FATAL("dist==0.0 between Facet #"<<C->leakPA()->id<<" @ "<<f.nodes[0]->pos.transpose()<<", "<<f.nodes[1]->pos.transpose()<<", "<<f.nodes[2]->pos.transpose()<<" and Sphere #"<<C->leakPB()->id<<" @ "<<s.nodes[0]->pos.transpose()<<", r="<<s.radius);
+		normal/=dist; // normal is normalized now
+	#else
+		// this tries to handle that
+		if(dist!=0) normal/=dist; // normal is normalized now
+		// zero distance (sphere's center sitting exactly on the facet):
+		// use previous normal, or just unitX for new contacts (arbitrary, sorry)
+		else normal=(C->geom?C->geom->node->ori*Vector3r::UnitX():Vector3r::UnitX());
+	#endif
+	if(f.halfThick>0) contPt+=normal*f.halfThick;
+	Real uN=dist-s.radius-f.halfThick;
+	// TODO: not yet tested!!
+	Vector3r linVel,angVel;
+	std::tie(linVel,angVel)=f.interpolatePtLinAngVel(contPt);
+	#ifdef CATCH_NAN_FACET_SPHERE
+		if(isnan(linVel[0])||isnan(linVel[1])||isnan(linVel[2])||isnan(angVel[0])||isnan(angVel[1])||isnan(angVel[2])) LOG_FATAL("NaN in interpolated facet velocity: linVel="<<linVel.transpose()<<", angVel="<<angVel.transpose()<<", contPt="<<contPt.transpose()<<"; particles Facet #"<<C->leakPA()->id<<" @ "<<f.nodes[0]->pos.transpose()<<", "<<f.nodes[1]->pos.transpose()<<", "<<f.nodes[2]->pos.transpose()<<" and Sphere #"<<C->leakPB()->id<<" @ "<<s.nodes[0]->pos.transpose()<<", r="<<s.radius)
+	#endif
+	const DemData& dyn2(s.nodes[0]->getData<DemData>()); // sphere
+	// check if this will work when contact point == pseudo-position of the facet
+	handleSpheresLikeContact(C,contPt,linVel,angVel,sC,dyn2.vel,dyn2.angVel,normal,contPt,uN,f.halfThick,s.radius);
+	return true;
+};
 
 
 #ifdef WOO_OPENGL

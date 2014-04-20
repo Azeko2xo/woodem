@@ -4,6 +4,9 @@
 #include<woo/pkg/dem/Sphere.hpp>
 #include<woo/pkg/dem/L6Geom.hpp>
 
+#include<woo/pkg/dem/Wall.hpp>
+#include<woo/pkg/dem/Facet.hpp>
+
 namespace woo{
 	struct Ellipsoid: public Shape{
 		void selfTest(const shared_ptr<Particle>&) WOO_CXX11_OVERRIDE;

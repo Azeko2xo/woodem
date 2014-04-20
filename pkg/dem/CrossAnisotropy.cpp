@@ -1,7 +1,7 @@
 #include<woo/pkg/dem/CrossAnisotropy.hpp>
 #include<woo/pkg/dem/FrictMat.hpp>
 #include<woo/pkg/dem/L6Geom.hpp>
-// #include<woo/pkg/dem/ScGeom.hpp>
+#include<woo/pkg/dem/Sphere.hpp>
 
 WOO_PLUGIN(dem,(Cp2_FrictMat_FrictPhys_CrossAnisotropic));
 

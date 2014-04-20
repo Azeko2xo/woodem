@@ -2,6 +2,7 @@
 #include<woo/lib/pyutil/gil.hpp>
 #include<woo/pkg/dem/L6Geom.hpp>
 #include<woo/pkg/dem/FrictMat.hpp>
+#include<woo/pkg/dem/Sphere.hpp>
 
 WOO_PLUGIN(dem,(LawTesterStage)(LawTester));
 

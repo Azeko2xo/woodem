@@ -2,8 +2,9 @@
 #pragma once
 #include<woo/pkg/dem/Particle.hpp>
 #include<woo/pkg/dem/Collision.hpp>
-#include<woo/pkg/dem/FrictMat.hpp>
 #include<woo/pkg/dem/IntraForce.hpp>
+#include<woo/pkg/dem/L6Geom.hpp>
+#include<woo/pkg/dem/Sphere.hpp>
 
 /*! Object representing infinite plane aligned with the coordinate system (axis-aligned wall). */
 struct InfCylinder: public Shape{
@@ -25,6 +26,20 @@ struct Bo1_InfCylinder_Aabb: public BoundFunctor{
 	WOO_CLASS_BASE_DOC(Bo1_InfCylinder_Aabb,BoundFunctor,"Creates/updates an :obj:`Aabb` of a :obj:`InfCylinder`");
 };
 WOO_REGISTER_OBJECT(Bo1_InfCylinder_Aabb);
+
+struct Cg2_InfCylinder_Sphere_L6Geom: public Cg2_Any_Any_L6Geom__Base{
+	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
+	virtual bool goReverse(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){ throw std::logic_error("ContactLoop should swap interaction arguments, should be InfCylinder+Sphere, but is "+s1->getClassName()+"+"+s2->getClassName()); }
+	#define woo_dem_Cg2_InfCylinder_Sphere_L6Geom__CLASS_BASE_DOC \
+		Cg2_InfCylinder_Sphere_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :obj:`L6Geom` for contact between :obj:`InfCylinder` and :obj:`Sphere`. Uses attributes of :obj:`Cg2_Sphere_Sphere_L6Geom`."
+	WOO_DECL__CLASS_BASE_DOC(woo_dem_Cg2_InfCylinder_Sphere_L6Geom__CLASS_BASE_DOC);
+	FUNCTOR2D(InfCylinder,Sphere);
+	DEFINE_FUNCTOR_ORDER_2D(InfCylinder,Sphere);
+	DECLARE_LOGGER;
+};
+WOO_REGISTER_OBJECT(Cg2_InfCylinder_Sphere_L6Geom);
+
+
 
 #ifdef WOO_OPENGL
 

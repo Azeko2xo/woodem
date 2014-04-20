@@ -1,12 +1,14 @@
 // © 2009 Václav Šmilauer <eudoxos@arcig.cz>
 #include<woo/pkg/dem/InfCylinder.hpp>
 #include<woo/pkg/dem/ParticleContainer.hpp>
+#include<woo/pkg/dem/Sphere.hpp>
 #include<limits>
 
-WOO_PLUGIN(dem,(InfCylinder)(Bo1_InfCylinder_Aabb));
+WOO_PLUGIN(dem,(InfCylinder)(Bo1_InfCylinder_Aabb)(Cg2_InfCylinder_Sphere_L6Geom));
 #ifdef WOO_OPENGL
 	WOO_PLUGIN(gl,(Gl1_InfCylinder))
 #endif
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_InfCylinder_Sphere_L6Geom__CLASS_BASE_DOC);
 
 void InfCylinder::updateMassInertia(const Real& density) const {
 	checkNodesHaveDemData();
@@ -30,6 +32,39 @@ void Bo1_InfCylinder_Aabb::go(const shared_ptr<Shape>& sh){
 	aabb.min[ax2]=pos[ax2]-cyl.radius; aabb.max[ax2]=pos[ax2]+cyl.radius;
 	return;
 }
+
+
+CREATE_LOGGER(Cg2_InfCylinder_Sphere_L6Geom);
+
+bool Cg2_InfCylinder_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
+	if(scene->isPeriodic && scene->cell->hasShear()) throw std::logic_error("Cg2_InfCylinder_Sphere_L6Geom does not handle periodic boundary conditions with skew (Scene.cell.trsf is not diagonal).");
+	const InfCylinder& cyl=sh1->cast<InfCylinder>(); const Sphere& sphere=sh2->cast<Sphere>();
+	assert(cyl.numNodesOk()); assert(sphere.numNodesOk());
+	const Real& sphRad=sphere.radius;
+	const Real& cylRad=cyl.radius; const int& ax=cyl.axis;
+	const Vector3r& cylPos=cyl.nodes[0]->pos; Vector3r sphPos=sphere.nodes[0]->pos+shift2;
+	Vector3r relPos=sphPos-cylPos;
+	relPos[ax]=0.;
+	if(!C->isReal() && relPos.squaredNorm()>pow(cylRad+sphRad,2) && !force){ return false; }
+	Real dist=relPos.norm();
+	#define CATCH_NAN_FACET_INFCYLINDER
+	#ifdef CATCH_NAN_FACET_INFCYLINDER
+		if(dist==0.) LOG_FATAL("dist==0.0 between InfCylinder #"<<C->leakPA()->id<<" @ "<<cyl.nodes[0]->pos.transpose()<<", r="<<cylRad<<" and Sphere #"<<C->leakPB()->id<<" @ "<<sphere.nodes[0]->pos.transpose()<<", r="<<sphere.radius);
+	#else
+		#error You forgot to implement dist==0 handler with InfCylinder
+	#endif
+	Real uN=dist-(cylRad+sphRad);
+	Vector3r normal=relPos/dist;
+	Vector3r cylPosAx=cylPos; cylPosAx[ax]=sphPos[ax]; // projected
+	Vector3r contPt=cylPosAx+(cylRad+0.5*uN)*normal;
+
+	const DemData& cylDyn(cyl.nodes[0]->getData<DemData>());	const DemData& sphDyn(sphere.nodes[0]->getData<DemData>());
+	// check impossible rotations of the infinite cylinder
+	assert(cylDyn.angVel[(ax+1)%3]==0. && cylDyn.angVel[(ax+2)%3]==0.);
+	handleSpheresLikeContact(C,cylPos,cylDyn.vel,cylDyn.angVel,sphPos,sphDyn.vel,sphDyn.angVel,normal,contPt,uN,cylRad,sphRad);
+	return true;
+};
+
 
 #ifdef WOO_OPENGL
 	#include<woo/lib/opengl/OpenGLWrapper.hpp>

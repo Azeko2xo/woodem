@@ -5,7 +5,7 @@
 #pragma once
 
 #include<woo/core/Scene.hpp>
-
+#include<woo/pkg/dem/Particle.hpp> // for Particle::id_t
 
 struct Particle;
 struct Scene;

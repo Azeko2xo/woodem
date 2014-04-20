@@ -3,10 +3,12 @@
 #include<woo/pkg/dem/ParticleContainer.hpp>
 #include<limits>
 
-WOO_PLUGIN(dem,(Wall)(Bo1_Wall_Aabb)(In2_Wall_ElastMat));
+WOO_PLUGIN(dem,(Wall)(Bo1_Wall_Aabb)(In2_Wall_ElastMat)(Cg2_Wall_Sphere_L6Geom));
 #ifdef WOO_OPENGL
 	WOO_PLUGIN(gl,(Gl1_Wall))
 #endif
+
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Wall_Sphere_L6Geom__CLASS_BASE_DOC);
 
 void Wall::updateMassInertia(const Real& density) const {
 	checkNodesHaveDemData();
@@ -34,6 +36,44 @@ void In2_Wall_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Materia
 		sh->nodes[0]->getData<DemData>().addForceTorque(F,/*discard any torque on wall*/Vector3r::Zero());
 	}
 }
+
+CREATE_LOGGER(Cg2_Wall_Sphere_L6Geom);
+bool Cg2_Wall_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
+	if(scene->isPeriodic && scene->cell->hasShear()) throw std::logic_error("Cg2_Wall_Sphere_L6Geom does not handle periodic boundary conditions with skew (Scene.cell.trsf is not diagonal).");
+	const Wall& wall=sh1->cast<Wall>(); const Sphere& sphere=sh2->cast<Sphere>();
+	assert(wall.numNodesOk()); assert(sphere.numNodesOk());
+	const Real& radius=sphere.radius; const int& ax=wall.axis; const int& sense=wall.sense;
+	const Vector3r& wallPos=wall.nodes[0]->pos; Vector3r spherePos=sphere.nodes[0]->pos+shift2;
+	Real dist=spherePos[ax]-wallPos[ax]; // signed "distance" between centers
+	if(!C->isReal() && abs(dist)>radius && !force) { return false; }// wall and sphere too far from each other
+	// contact point is sphere center projected onto the wall
+	Vector3r contPt=spherePos; contPt[ax]=wallPos[ax];
+	Vector3r normal=Vector3r::Zero();
+	// wall interacting from both sides: normal depends on sphere's position
+	assert(sense==-1 || sense==0 || sense==1);
+	if(sense==0){
+		// for new contacts, normal given by the sense of approaching the wall
+		if(!C->geom) normal[ax]=dist>0?1.:-1.; 
+		// for existing contacts, use the previous normal 
+		else normal[ax]=C->geom->cast<L6Geom>().trsf.row(0)[ax];
+	}
+	else normal[ax]=(sense==1?1.:-1);
+	Real uN=normal[ax]*dist-radius; // takes in account sense, radius and distance
+
+	// this may not happen anymore as per conditions above
+	assert(!(C->geom && C->geom->cast<L6Geom>().trsf.row(0)!=normal.transpose()));
+	#if 0
+		// check that the normal did not change orientation (would be abrupt here)
+		if(C->geom && C->geom->cast<L6Geom>().trsf.row(0)!=normal.transpose()){
+			throw std::logic_error((boost::format("Cg2_Wall_Sphere_L6Geom: normal changed from %s to %s in Wall+Sphere ##%d+%d (with Wall.sense=0, a particle might cross the Wall plane if Δt is too high, repulsive force to small or velocity too high.")%C->geom->cast<L6Geom>().trsf.row(0)%normal.transpose()%C->leakPA()->id%C->leakPB()->id).str());
+		}
+	#endif
+
+	const DemData& dyn1(wall.nodes[0]->getData<DemData>());const DemData& dyn2(sphere.nodes[0]->getData<DemData>());
+	handleSpheresLikeContact(C,wallPos,dyn1.vel,dyn1.angVel,spherePos,dyn2.vel,dyn2.angVel,normal,contPt,uN,/*r1*/-radius,radius);
+	return true;
+};
+
 
 
 #ifdef WOO_OPENGL

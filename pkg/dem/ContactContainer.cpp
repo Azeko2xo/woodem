@@ -1,5 +1,6 @@
 #include<woo/pkg/dem/ContactContainer.hpp>
 #include<woo/pkg/dem/Particle.hpp>
+#include<woo/pkg/dem/Contact.hpp>
 
 #ifdef WOO_OPENMP
 	#include<omp.h>

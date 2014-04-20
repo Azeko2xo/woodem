@@ -20,7 +20,7 @@ generator=[
 		],
 	),
 	PsdSphereGenerator(psdPts=[(.15,0),(.3,1.)],discrete=False,mass=True),
-][3]
+][0]
 
 
 S.dem.par.append(woo.utils.wall(0,axis=2,sense=1))

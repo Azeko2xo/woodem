@@ -1,4 +1,5 @@
 #include<woo/pkg/dem/Pellet.hpp>
+#include<woo/pkg/dem/Sphere.hpp>
 WOO_PLUGIN(dem,(PelletMat)(PelletMatState)(PelletPhys)(Cp2_PelletMat_PelletPhys)(Law2_L6Geom_PelletPhys_Pellet)(PelletCData)(PelletAgglomerator));
 
 void Cp2_PelletMat_PelletPhys::go(const shared_ptr<Material>& m1, const shared_ptr<Material>& m2, const shared_ptr<Contact>& C){

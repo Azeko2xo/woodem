@@ -2,11 +2,6 @@
 #pragma once
 #include<woo/pkg/dem/Particle.hpp>
 #include<woo/pkg/dem/ContactLoop.hpp>
-#include<woo/pkg/dem/Sphere.hpp>
-#include<woo/pkg/dem/Facet.hpp>
-#include<woo/pkg/dem/Truss.hpp>
-#include<woo/pkg/dem/Wall.hpp>
-#include<woo/pkg/dem/InfCylinder.hpp>
 
 #ifdef WOO_OPENGL
 	#include<woo/pkg/gl/Functors.hpp>

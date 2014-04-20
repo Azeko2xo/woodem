@@ -1,5 +1,6 @@
 #include<woo/pkg/dem/Truss.hpp>
-WOO_PLUGIN(dem,(Truss)(Bo1_Truss_Aabb)(In2_Truss_ElastMat));
+WOO_PLUGIN(dem,(Truss)(Bo1_Truss_Aabb)(In2_Truss_ElastMat)(Cg2_Truss_Sphere_L6Geom));
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Truss_Sphere_L6Geom__CLASS_BASE_DOC);
 
 void Bo1_Truss_Aabb::go(const shared_ptr<Shape>& sh){
 	assert(sh->numNodesOk());
@@ -71,6 +72,43 @@ void In2_Truss_ElastMat::go(const shared_ptr<Shape>& shape, const shared_ptr<Mat
 	t.nodes[0]->getData<DemData>().addForceTorque(Fa);
 	t.nodes[1]->getData<DemData>().addForceTorque(Fb);
 };
+
+bool Cg2_Truss_Sphere_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
+	const Truss& t=s1->cast<Truss>(); const Sphere& s=s2->cast<Sphere>();
+	assert(s1->numNodesOk()); assert(s2->numNodesOk());
+	assert(s1->nodes[0]->hasData<DemData>()); assert(s2->nodes[0]->hasData<DemData>());
+	const DemData& dynTruss(t.nodes[0]->getData<DemData>());
+	const DemData& dynSphere(s.nodes[0]->getData<DemData>());
+	Real normAxisPos;
+
+	Vector3r cylAxisPt=CompUtils::closestSegmentPt(s.nodes[0]->pos+shift2,t.nodes[0]->pos,t.nodes[1]->pos,&normAxisPos);
+	Vector3r relPos=s.nodes[0]->pos-cylAxisPt;
+	Real unDistSq=relPos.squaredNorm()-pow(s.radius+t.radius,2); // no distFactor here
+
+	// TODO: find closest point of sharp-cut ends, remove this error
+	if(!(t.caps|Truss::CAP_A) || !(t.caps|Truss::CAP_B)) throw std::runtime_error("Cg2_Sphere_Truss_L6Geom: only handles capped trusses for now.");
+
+	if (unDistSq>0 && !C->isReal() && !force) return false;
+
+	// contact exists, go ahead
+	Real dist=relPos.norm();
+	Real uN=dist-(s.radius+t.radius);
+	Vector3r normal=relPos/dist;
+	Vector3r contPt=s.nodes[0]->pos-(s.radius+0.5*uN)*normal;
+
+	#if 0
+		Vector3r cylPtVel=(1-normAxisPos)*dynTruss.vel+normAxisPos*dynTruss.vel; // average velocity
+		// angular velocity of the contact point, exclusively due to linear velocity of endpoints
+		Vector3r cylPtAngVel=dynTruss.vel.cross(t.nodes[0]->pos-contPt)+dynTruss.vel.cross(t.nodes[1]->pos-contPt);
+	#endif
+
+	handleSpheresLikeContact(C,cylAxisPt,dynTruss.vel,dynTruss.angVel,s.nodes[0]->pos+shift2,dynSphere.vel,dynSphere.angVel,normal,contPt,uN,t.radius,s.radius);
+
+	return true;
+};
+
+
+
 
 
 #ifdef WOO_OPENGL
