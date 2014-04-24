@@ -151,7 +151,7 @@ struct ParticleContainer: public Object{
 		};
 		py::list pyFreeIds();
 		id_t pyAppend(shared_ptr<Particle>);
-		shared_ptr<Node> pyAppendClumped(vector<shared_ptr<Particle>>, shared_ptr<Node> n);
+		shared_ptr<Node> pyAppendClumped(const vector<shared_ptr<Particle>>&, const shared_ptr<Node>& node=shared_ptr<Node>());
 		py::list pyAppendList(vector<shared_ptr<Particle>>);
 		bool pyRemove(id_t id);
 		py::list pyRemoveList(vector<id_t> ids);
@@ -163,10 +163,8 @@ struct ParticleContainer: public Object{
 		void pyDisappear(vector<id_t> ids, int mask){ pyRemask(ids,mask,/*visible*/false,/*removeContacts*/true,/*removeOverlapping*/false); }
 		void pyReappear(vector<id_t> ids, int mask, bool removeOverlapping=false){ pyRemask(ids,mask,/*visible*/true,/*removeContacts*/false,/*removeOverlapping*/removeOverlapping); }
 	
-
-		WOO_CLASS_BASE_DOC_ATTRS_INIT_PY(ParticleContainer,Object,"Storage for DEM particles",
-			((ContainerT/* = std::vector<shared_ptr<Particle> > */,parts,,AttrTrait<Attr::hidden>(),"Actual particle storage"))
-			((list<id_t>,freeIds,,AttrTrait<Attr::hidden>(),"Free particle id's"))
+		// initializers with WOO_SUBDOMAINS
+		#if 0
 			,/* init */
 				#ifdef WOO_SUBDOMAINS
 					#ifdef WOO_OPENMP
@@ -176,26 +174,37 @@ struct ParticleContainer: public Object{
 					#endif
 					((subDomainsLowestFree,vector<id_t>(maxSubdomains,0)))
 				#endif /* WOO_SUBDOMAINS */
-			,/*py*/
-			.def("append",&ParticleContainer::pyAppend) /* wrapper chacks if the id is not already assigned */
-			.def("append",&ParticleContainer::pyAppendList)
-			.def("appendClumped",&ParticleContainer::pyAppendClumped,(py::arg("par"),py::arg("centralNode")=shared_ptr<Node>()),"Add particles as rigid aggregate. Add resulting clump node (which is *not* a particle) to Scene.dem.nodes, subject to integration. *centralNode* must be provided if particles have zero mass (in that case, clump position cannot be computed), all DOFs will be blocked automatically in that case; centralNode.dem will be set with a new instance of :obj:`ClumpData` and the old value, if any, discarded. Clump node is added automatically to DemField.nodes.")
-			.def("remove",&ParticleContainer::pyRemove) 
-			.def("remove",&ParticleContainer::pyRemoveList) 
-			.def("exists",&ParticleContainer::exists)
-			.def("__getitem__",&ParticleContainer::pyGetItem)
-			.def("__len__",&ParticleContainer::size)
-			.def("clear",&ParticleContainer::clear)
-			.def("__iter__",&ParticleContainer::pyIter)
-			.def("_freeIds",&ParticleContainer::pyFreeIds)
-			// remasking
-			.def("remask",&ParticleContainer::pyRemask,(py::arg("ids"),py::arg("mask"),py::arg("visible"),py::arg("removeContacts"),py::arg("removeOverlapping")),"Change particle mask and visibility; optionally remove contacts, which would no longer exist due to mask change; or remove particles, which would newly overlap with the particle. See also :obj:`disappear` and :obj:`reappear`.")
-			.def("disappear",&ParticleContainer::pyDisappear,(py::arg("ids"),py::arg("mask")),"Remask particle (so that it does not have contacts with other particles), remove contacts, which would no longer exist and make it invisible. Shorthand for calling ``remask(ids,mask,visible=False,removeContacts=True)``")
-			.def("reappear",&ParticleContainer::pyReappear,(py::arg("ids"),py::arg("mask"),py::arg("removeOverlapping")=false),"Remask particle, remove particles, which would overlap with newly-appeared particle (if ``removeOverlapping`` is ``True``), make it visible again. Shorthand for ``remask(ids,mask,visible=True,removeContacts=False)``")
-			// define nested iterator class here; ugly: abuses _classObj from the macro definition (implementation detail)
-			; boost::python::scope foo(_classObj);
+		#endif
+		#ifdef WOO_SUBDOMAINS
+			#error WOO_SUBDOMAINS: subdomains support is broken and should not be used
+		#endif
+
+		#define woo_dem_ParticleContainer__CLASS_BASE_DOC_ATTRS_PY\
+			ParticleContainer,Object,"Storage for DEM particles", \
+			((ContainerT/* = std::vector<shared_ptr<Particle> > */,parts,,AttrTrait<Attr::hidden>(),"Actual particle storage")) \
+			((list<id_t>,freeIds,,AttrTrait<Attr::hidden>(),"Free particle id's")) \
+			,/*py*/ \
+			.def("append",&ParticleContainer::pyAppend) /* wrapper chacks if the id is not already assigned */ \
+			.def("append",&ParticleContainer::pyAppendList) \
+			.def("appendClumped",&ParticleContainer::pyAppendClumped,(py::arg("par"),py::arg("centralNode")=shared_ptr<Node>()),"Add particles as rigid aggregate. Add resulting clump node (which is *not* a particle) to Scene.dem.nodes, subject to integration. *centralNode* must be provided if particles have zero mass (in that case, clump position cannot be computed), all DOFs will be blocked automatically in that case; centralNode.dem will be set with a new instance of :obj:`ClumpData` and the old value, if any, discarded. Clump node is added automatically to DemField.nodes.") \
+			.def("remove",&ParticleContainer::pyRemove)  \
+			.def("remove",&ParticleContainer::pyRemoveList)  \
+			.def("exists",&ParticleContainer::exists) \
+			.def("__getitem__",&ParticleContainer::pyGetItem) \
+			.def("__len__",&ParticleContainer::size) \
+			.def("clear",&ParticleContainer::clear) \
+			.def("__iter__",&ParticleContainer::pyIter) \
+			.def("_freeIds",&ParticleContainer::pyFreeIds) \
+			/* remasking */ \
+			.def("remask",&ParticleContainer::pyRemask,(py::arg("ids"),py::arg("mask"),py::arg("visible"),py::arg("removeContacts"),py::arg("removeOverlapping")),"Change particle mask and visibility; optionally remove contacts, which would no longer exist due to mask change; or remove particles, which would newly overlap with the particle. See also :obj:`disappear` and :obj:`reappear`.") \
+			.def("disappear",&ParticleContainer::pyDisappear,(py::arg("ids"),py::arg("mask")),"Remask particle (so that it does not have contacts with other particles), remove contacts, which would no longer exist and make it invisible. Shorthand for calling ``remask(ids,mask,visible=False,removeContacts=True)``") \
+			.def("reappear",&ParticleContainer::pyReappear,(py::arg("ids"),py::arg("mask"),py::arg("removeOverlapping")=false),"Remask particle, remove particles, which would overlap with newly-appeared particle (if ``removeOverlapping`` is ``True``), make it visible again. Shorthand for ``remask(ids,mask,visible=True,removeContacts=False)``") \
+			/* define nested iterator class here; ugly: abuses _classObj from the macro definition (implementation detail) */ \
+			; boost::python::scope foo(_classObj); \
 			boost::python::class_<ParticleContainer::pyIterator>("iterator",py::init<pyIterator>()).def("__iter__",&pyIterator::iter).def("next",&pyIterator::next);
-		);
+
+
+		WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_ParticleContainer__CLASS_BASE_DOC_ATTRS_PY);
 		DECLARE_LOGGER;
 };
 WOO_REGISTER_OBJECT(ParticleContainer);

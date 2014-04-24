@@ -9,11 +9,14 @@
 namespace woo{
 	struct Sphere: public Shape{
 		void selfTest(const shared_ptr<Particle>&) WOO_CXX11_OVERRIDE;
-		bool numNodesOk() const { return nodes.size()==1; }
+		int numNodes() const WOO_CXX11_OVERRIDE { return 1; }
+		void setFromRaw(const Vector3r& center, const Real& radius, const vector<Real>& raw) WOO_CXX11_OVERRIDE;
+		void asRaw(Vector3r& center, Real& radius, vector<Real>& raw) const WOO_CXX11_OVERRIDE;
 		// update dynamic properties (mass, intertia) of the sphere based on current radius
 		void updateMassInertia(const Real& density) const WOO_CXX11_OVERRIDE;
 		virtual string pyStr() const { return "<Sphere r="+to_string(radius)+" @ "+lexical_cast<string>(this)+">"; }
 		Real equivRadius() const WOO_CXX11_OVERRIDE { return radius; }
+		Real volume() const WOO_CXX11_OVERRIDE;
 		#define woo_dem_Sphere__CLASS_BASE_DOC_ATTRS_CTOR \
 			Sphere,Shape,"Spherical particle.", \
 			((Real,radius,NaN,AttrTrait<>().lenUnit(),"Radius.")), \

@@ -4,58 +4,7 @@
 #include<woo/core/Scene.hpp>
 // #include<boost/regex.hpp>
 
-WOO_PLUGIN(dem,(Gravity)(AxialGravity) /* (CentralGravityEngine)(AxialGravityEngine)(HdapsGravityEngine)*/ );
-
-void Gravity::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){
-	if(py::len(args)==1){ gravity=py::extract<Vector3r>(args[0]); args=py::tuple(); }
-}
-
-void Gravity::run(){
-	const bool trackEnergy(unlikely(scene->trackEnergy));
-	const Real dt(scene->dt);
-	LOG_WARN("\n"
-	"#######################################################################################\n"
-	"* woo.dem.Gravity() should not be used anymore\n"
-	"  set woo.dem.DemField.gravity to acceleration value instead.\n"
-	"* woo.utils.defaultEngines(gravity=...) is adding woo.dem.Gravity() automatically\n"
-	"  that is perhaps your case?\n"
-	"* I am setting DemField.gravity=("<<gravity.transpose()<<") now and make myself Engine.dead.\n"
-	"  This will not be fixed automatically for long, therefore\n\n"
-	"     !!! FIX YOUR CODE !!!\n\n"
-	"#######################################################################################\n");
-	FOREACH(const shared_ptr<Node>& n, field->nodes){
-		//if(mask!=0 && (b->groupMask & mask)==0) continue;
-		//scene->forces.addForce(b->getId(),gravity*b->state->mass);
-		// work done by gravity is "negative", since the energy appears in the system from outside
-		if(!n) throw std::logic_error("O.dem.nodes contains None!?");
-		if(!n->hasData<DemData>()){
-			cerr<<"Node at "<<n.get()<<" (pos "<<n->pos.transpose()<<") has not DemData"<<endl;
-			throw std::logic_error("No DemData");
-		}
-		DemData& dyn(n->getData<DemData>());
-
-		// clump members skipped
-		if(dyn.isClumped()) continue;
-
-		dyn.force+=gravity*dyn.mass;
-		if(trackEnergy){
-			Real e=0;
-			if(dyn.isBlockedNone()){
-				#if 1
-					e=-gravity.dot(dyn.vel)*dyn.mass*dt;
-				#else
-					// attempt to better estimate current velocity from acceleration :-|
-					e=-gravity.dot(dyn.vel+.5*dt*(dyn.force/dyn.mass))*dyn.mass*dt;
-				#endif
-			}
-			else { for(int ax:{0,1,2}){ if(!(dyn.isBlockedAxisDOF(ax,false))) e-=gravity[ax]*dyn.vel[ax]*dyn.mass*dt; } }
-			scene->energy->add(e,"grav",gravWorkIx,EnergyTracker::IsIncrement);
-		}
-	}
-	// FIX HERE
-	field->cast<DemField>().gravity=gravity;
-	this->dead=true;
-}
+WOO_PLUGIN(dem,(AxialGravity) /* (CentralGravityEngine)(AxialGravityEngine)(HdapsGravityEngine)*/ );
 
 void AxialGravity::run(){
 	axisDir.normalize();

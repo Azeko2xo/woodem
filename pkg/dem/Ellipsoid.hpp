@@ -10,7 +10,7 @@
 namespace woo{
 	struct Ellipsoid: public Shape{
 		void selfTest(const shared_ptr<Particle>&) WOO_CXX11_OVERRIDE;
-		bool numNodesOk() const { return nodes.size()==1; }
+		int numNodes() const { return 1; }
 		// return transformation matrix transforming unit sphere to this ellipsoid
 		Matrix3r trsfFromUnitSphere() const;
 		Matrix3r trsfFromUnitSphere(const Quaternionr& ori) const; // with additional rotation (local coords)
@@ -20,6 +20,7 @@ namespace woo{
 		// update dynamic properties (mass, intertia) of the sphere based on current radius
 		void updateMassInertia(const Real& density) const WOO_CXX11_OVERRIDE;
 		Real equivRadius() const WOO_CXX11_OVERRIDE;
+		Real volume() const WOO_CXX11_OVERRIDE;
 		// compute axis-aligned bounding box
 		AlignedBox3r alignedBox() const;
 		WOO_CLASS_BASE_DOC_ATTRS_CTOR(Ellipsoid,Shape,"Ellipsoidal particle.",

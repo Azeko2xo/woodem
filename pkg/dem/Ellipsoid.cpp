@@ -21,8 +21,10 @@ void woo::Ellipsoid::selfTest(const shared_ptr<Particle>& p){
 
 Real woo::Ellipsoid::equivRadius() const {
 	// volume-based equivalent radius
-	return cbrt(semiAxes.prod());
+	return cbrt((4/3.)*M_PI*semiAxes.prod());
 };
+
+Real woo::Ellipsoid::volume() const { return (4/3.)*M_PI*semiAxes.prod(); }
 
 void woo::Ellipsoid::updateMassInertia(const Real& density) const {
 	checkNodesHaveDemData();

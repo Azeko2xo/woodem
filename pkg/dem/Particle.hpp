@@ -291,7 +291,10 @@ WOO_REGISTER_OBJECT(DemField);
 
 
 struct Shape: public Object, public Indexable{
-	virtual bool numNodesOk() const { return true; } // checks for the right number of nodes; to be used in assertions
+	// return number of nodes for this shape; derived classes must override
+	virtual int numNodes() const { return -1; } 
+	// checks for the right number of nodes; to be used in assertions
+	bool numNodesOk() const { return numNodes()==nodes.size(); } 
 	// check that we have the right number of nodes and that each nodes has DemData; raise python exception on failures
 	void checkNodesHaveDemData() const;
 	// this will be called from DemField::selfTest for each particle
@@ -308,10 +311,22 @@ struct Shape: public Object, public Indexable{
 	bool getVisible() const { return abs(color)<=2; }
 	void setVisible(bool w){ if(getVisible()==w) return; bool hi=abs(color)>1; int sgn=(color<0?-1:1); color=sgn*((w?0:2)+getBaseColor()+(hi?1:0)); }
 	Vector3r avgNodePos();
+
+	// set shape and geometry from raw numbers (center, radius (bounding sphere) plus array of numbers with shape-specific length)
+	virtual void setFromRaw(const Vector3r& center, const Real& radius, const vector<Real>& raw);
+	// return this shape config as raw numbers
+	virtual void asRaw(Vector3r& center, Real& radius, vector<Real>& raw) const;
+	// python version - return as tuple
+	py::tuple pyAsRaw() const;
+	// check that size of raw in setFromRaw matches what we expect;
+	// create the right amount of nodes as necessary
+	void setFromRaw_helper_checkRaw_makeNodes(const vector<Real>& raw, size_t numRaw);
+
 	// update mass and inertia of this object
 	virtual void updateMassInertia(const Real& density) const;
 	// return equivalent radius of the particle, or NaN if not defined by the shape
 	virtual Real equivRadius() const { return NaN; }
+	virtual Real volume() const { return NaN; }
 	#define woo_dem_Shape__CLASS_BASE_DOC_ATTRS_PY \
 		Shape,Object,"Particle geometry", \
 		((shared_ptr<Bound>,bound,,,"Bound of the particle, for use by collision detection only")) \
@@ -322,6 +337,8 @@ struct Shape: public Object, public Indexable{
 			.add_property("hi",&Shape::getHighlighted,&Shape::setHighlighted) \
 			.add_property("visible",&Shape::getVisible,&Shape::setVisible) \
 			.add_property("equivRadius",&Shape::equivRadius) \
+			.def("asRaw",&Shape::pyAsRaw) \
+			.def("setFromRaw",&Shape::setFromRaw) \
 			WOO_PY_TOPINDEXABLE(Shape)
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Shape__CLASS_BASE_DOC_ATTRS_PY);
 	REGISTER_INDEX_COUNTER(Shape);

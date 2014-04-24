@@ -14,12 +14,29 @@ void woo::Sphere::selfTest(const shared_ptr<Particle>& p){
 	if(!numNodesOk()) throw std::runtime_error("Sphere #"+to_string(p->id)+": numNodesOk() failed (has "+to_string(nodes.size())+" nodes)");
 }
 
+Real woo::Sphere::volume() const { return (4/3.)*M_PI*pow(radius,3); }
+
 void woo::Sphere::updateMassInertia(const Real& density) const {
 	checkNodesHaveDemData();
 	auto& dyn=nodes[0]->getData<DemData>();
 	dyn.mass=(4/3.)*M_PI*pow(radius,3)*density;
 	dyn.inertia=Vector3r::Ones()*(2./5.)*dyn.mass*pow(radius,2);
 };
+
+void woo::Sphere::setFromRaw(const Vector3r& _center, const Real& _radius, const vector<Real>& raw) {
+	Shape::setFromRaw_helper_checkRaw_makeNodes(raw,0);
+	radius=_radius;
+	nodes[0]->pos=_center;
+}
+void woo::Sphere::asRaw(Vector3r& _center, Real& _radius, vector<Real>& raw) const {
+	raw.resize(0);
+	_center=nodes[0]->pos;
+	_radius=radius;
+}
+
+
+
+
 
 void Bo1_Sphere_Aabb::go(const shared_ptr<Shape>& sh){
 	Sphere& s=sh->cast<Sphere>();

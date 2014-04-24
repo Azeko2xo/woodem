@@ -45,6 +45,7 @@
 #include<woo/pkg/dem/IntraForce.hpp>
 #include<woo/pkg/dem/LawTester.hpp>
 #include<woo/pkg/dem/Psd.hpp>
+#include<woo/pkg/dem/ShapePack.hpp>
 
 #include<woo/pkg/dem/ParticleContainer.hpp>
 #include<woo/core/MatchMaker.hpp>
@@ -303,6 +304,9 @@ BOOST_PYTHON_MODULE(_customConverters){
 
 		VECTOR_INDEXING_SUITE_EXPOSE(Node);
 		VECTOR_INDEXING_SUITE_EXPOSE(Object);
+		// this should do the trick for nested vector<vector<shared_ptr<RawShape>>>
+		VECTOR_SEQ_CONV(shared_ptr<RawShape>);
+		VECTOR_SEQ_CONV(vector<shared_ptr<RawShape>>);
 
 		//VECTOR_SEQ_CONV(shared_ptr<Object>);
 		#ifdef WOO_OPENGL

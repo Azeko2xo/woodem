@@ -7,7 +7,7 @@
 
 
 struct Truss: public Shape{
-	bool numNodesOk() const { return nodes.size()==2; }
+	int numNodes() const WOO_CXX11_OVERRIDE { return 2; }
 	enum {CAP_A=1,CAP_B=2};
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(Truss,Shape,"Describes line element (cylinder) with optional caps and with free or constrained rotations at either end.",
 		// ((int,rotMask,0,,"Mask determining whether rotation is free or constrained at endnodes; 0=both free, 1=node0 constrained, 2=node1 constrained, 3=both contrained"))

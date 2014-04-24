@@ -11,7 +11,7 @@
 
 /*! Object representing infinite plane aligned with the coordinate system (axis-aligned wall). */
 struct Wall: public Shape{
-	bool numNodesOk() const { return nodes.size()==1; }
+	int numNodes() const WOO_CXX11_OVERRIDE { return 1; }
 	void updateMassInertia(const Real& density) const WOO_CXX11_OVERRIDE;
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(Wall,Shape,"Object representing infinite plane aligned with the coordinate system (axis-aligned wall).",
 		((int,sense,0,,"Which side of the wall interacts: -1 for negative only, 0 for both, +1 for positive only."))

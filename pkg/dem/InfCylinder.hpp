@@ -8,7 +8,7 @@
 
 /*! Object representing infinite plane aligned with the coordinate system (axis-aligned wall). */
 struct InfCylinder: public Shape{
-	bool numNodesOk() const { return nodes.size()==1; }
+	int numNodes() const WOO_CXX11_OVERRIDE { return 1; }
 	void updateMassInertia(const Real& density) const WOO_CXX11_OVERRIDE;
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(InfCylinder,Shape,"Object representing infinite plane aligned with the coordinate system (axis-aligned wall).",
 		((Real,radius,NaN,,"Radius of the cylinder"))

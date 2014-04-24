@@ -2,19 +2,6 @@
 #include<woo/core/Engine.hpp>
 #include<woo/pkg/dem/Particle.hpp>
 
-struct Gravity: public Engine{
-	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
-	virtual void run();
-	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
-	virtual string pyStr() const { return "<Gravity ("+to_string(gravity[0])+", "+to_string(gravity[1])+", "+to_string(gravity[2])+") @ "+lexical_cast<string>(this)+">"; }
-	WOO_CLASS_BASE_DOC_ATTRS(Gravity,Engine,"Engine applying constant acceleration to all bodies.",
-		((Vector3r,gravity,Vector3r::Zero(),,"Acceleration [kgms⁻²]"))
-		((int,gravWorkIx,-1,AttrTrait<Attr::noSave|Attr::hidden>(),"Index for work of gravity"))
-		// ((int,mask,0,,"If mask defined, only bodies with corresponding groupMask will be affected by this engine. If 0, all bodies will be affected."))
-	);
-};
-WOO_REGISTER_OBJECT(Gravity);
-
 struct AxialGravity: public Engine {
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	virtual void run();

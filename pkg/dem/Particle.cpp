@@ -72,6 +72,28 @@ int Particle::countRealContacts() const{
 	return boost::range::count_if(contacts,[&](const MapParticleContact::value_type& C)->bool{ return C.second->isReal(); });
 }
 
+void Shape::setFromRaw_helper_checkRaw_makeNodes(const vector<Real>& raw, size_t numRaw){
+	if(raw.size()!=numRaw) throw std::runtime_error("Error setting "+pyStr()+" from raw data: "+to_string(numRaw)+" numbers expected, "+to_string(raw.size())+" given.");
+	// add/remove nodes as necessary
+	while(nodes.size()<numNodes()) nodes.push_back(make_shared<Node>());
+	nodes.resize(numNodes());
+}
+
+void Shape::asRaw(Vector3r& center, Real& radius, vector<Real>& raw) const {
+	throw std::runtime_error(pyStr()+" does not implement Shape.asRaw.");
+}
+void Shape::setFromRaw(const Vector3r& center, const Real& radius, const vector<Real>& raw){
+	throw std::runtime_error(pyStr()+" does not implement Shape.setFromRaw.");
+}
+
+py::tuple Shape::pyAsRaw() const {
+	Vector3r center; Real radius; vector<Real> raw;
+	asRaw(center,radius,raw);
+	return py::make_tuple(center,radius,raw);
+}
+
+
+
 
 
 void DemData::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){

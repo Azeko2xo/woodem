@@ -97,34 +97,37 @@ struct ContactContainer: public Object{
 		shared_ptr<Contact> pyNth(int n);
 		pyIterator pyIter();
 
-
-	WOO_CLASS_BASE_DOC_ATTRS_PY(ContactContainer,Object,"Linear view on all contacts in the DEM field",
-		((ContainerT,linView,,AttrTrait<Attr::hidden>(),"Linear storage of references; managed by accessor methods, do not modify directly!"))
-		((bool,dirty,false,AttrTrait<Attr::hidden>(),"Flag for notifying the collider that persistent data should be invalidated"))
-		((int,stepColliderLastRun,-1,AttrTrait<Attr::readonly>(),"Step number when a collider was last run; set by the collider, if it wants contacts that were not encoutered in that step to be deleted by ContactLoop (such as SpatialQuickSortCollider). Other colliders (such as InsertionSortCollider) set it it -1, which is the default."))
-		#ifdef WOO_OPENMP
-			((std::vector<std::list<PendingContact>>,threadsPending,std::vector<std::list<PendingContact>>(omp_get_max_threads()),AttrTrait<Attr::hidden>(),"Contacts which might be deleted by the collider in the next step (separate for each thread, for safe lock-free writes)"))
-		#else
-			((std::list<PendingContact>,pending,,AttrTrait<Attr::hidden>(),"Contact which might be deleted by the collider in the next step."))
-		#endif
-		, /* py */
-		.def("clear",&ContactContainer::clear)
-		.def("__len__",&ContactContainer::size)
-		.def("__getitem__",&ContactContainer::pyByIds)
-		.def("__getitem__",&ContactContainer::pyNth)
-		.def("remove",&ContactContainer::requestRemoval,(py::arg("contact"),py::arg("force")=false))
-		.def("removeNonReal",&ContactContainer::removeNonReal)
-		.def("countReal",&ContactContainer::countReal)
-		.def("realRatio",&ContactContainer::realRatio)
-		.def("exists",&ContactContainer::exists)
-		.def("existsReal",&ContactContainer::existsReal)
-		// .def("__contains__",&ContactContainer::pyContains,"Equivalent to :obj:`existsReal`, but taking tuple as argument.")
-		.def("__iter__",&ContactContainer::pyIter)
-		// define nested iterator class here; ugly, same as in ParticleContainer
-		; boost::python::scope foo(_classObj);
+	#ifdef WOO_OPENMP
+		#define woo_dem_ContactContainer__threadsPending__OPENMP ((std::vector<std::list<PendingContact>>,threadsPending,std::vector<std::list<PendingContact>>(omp_get_max_threads()),AttrTrait<Attr::hidden>(),"Contacts which might be deleted by the collider in the next step (separate for each thread, for safe lock-free writes)"))
+	#else
+		#define woo_dem_ContactContainer__threadsPending__OPENMP ((std::list<PendingContact>,pending,,AttrTrait<Attr::hidden>(),"Contact which might be deleted by the collider in the next step."))
+	#endif
+	
+	#define woo_dem_ContactContainer__CLASS_BASE_DOC_ATTRS_PY \
+		ContactContainer,Object,"Linear view on all contacts in the DEM field", \
+		((ContainerT,linView,,AttrTrait<Attr::hidden>(),"Linear storage of references; managed by accessor methods, do not modify directly!")) \
+		((bool,dirty,false,AttrTrait<Attr::hidden>(),"Flag for notifying the collider that persistent data should be invalidated")) \
+		((int,stepColliderLastRun,-1,AttrTrait<Attr::readonly>(),"Step number when a collider was last run; set by the collider, if it wants contacts that were not encoutered in that step to be deleted by ContactLoop (such as SpatialQuickSortCollider). Other colliders (such as InsertionSortCollider) set it it -1, which is the default.")) \
+		woo_dem_ContactContainer__threadsPending__OPENMP \
+		, /* py */ \
+		.def("clear",&ContactContainer::clear) \
+		.def("__len__",&ContactContainer::size) \
+		.def("__getitem__",&ContactContainer::pyByIds) \
+		.def("__getitem__",&ContactContainer::pyNth) \
+		.def("remove",&ContactContainer::requestRemoval,(py::arg("contact"),py::arg("force")=false)) \
+		.def("removeNonReal",&ContactContainer::removeNonReal) \
+		.def("countReal",&ContactContainer::countReal) \
+		.def("realRatio",&ContactContainer::realRatio) \
+		.def("exists",&ContactContainer::exists) \
+		.def("existsReal",&ContactContainer::existsReal) \
+		/* .def("__contains__",&ContactContainer::pyContains,"Equivalent to :obj:`existsReal`, but taking tuple as argument.") */ \
+		.def("__iter__",&ContactContainer::pyIter) \
+		/* define nested iterator class here; ugly, same as in ParticleContainer */ \
+		; boost::python::scope foo(_classObj); \
 		boost::python::class_<ContactContainer::pyIterator>("iterator",py::init<pyIterator>()).def("__iter__",&pyIterator::iter).def("next",&pyIterator::next);
 
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_ContactContainer__CLASS_BASE_DOC_ATTRS_PY);
 
-	);
+
 };
 WOO_REGISTER_OBJECT(ContactContainer);

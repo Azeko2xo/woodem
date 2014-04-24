@@ -10,10 +10,13 @@
 
 struct Capsule: public Shape{
 	void selfTest(const shared_ptr<Particle>&) WOO_CXX11_OVERRIDE;
-	bool numNodesOk() const WOO_CXX11_OVERRIDE { return nodes.size()==1; }
+	int numNodes() const WOO_CXX11_OVERRIDE { return 1; }
+	void setFromRaw(const Vector3r& _center, const Real& _radius, const vector<Real>& raw) WOO_CXX11_OVERRIDE;
+	void asRaw(Vector3r& _center, Real& _radius, vector<Real>& raw) const WOO_CXX11_OVERRIDE;
 	// recompute inertia and mass
 	void updateMassInertia(const Real& density) const WOO_CXX11_OVERRIDE;
 	Real equivRadius() const WOO_CXX11_OVERRIDE;
+	Real volume() const WOO_CXX11_OVERRIDE;
 	// compute axis-aligned bounding box
 	AlignedBox3r alignedBox() const;
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(Capsule,Shape,"Cylinder with half-spherical caps on both sides, Mindowski sum of segment with sphere.",

@@ -10,8 +10,7 @@
 #endif
 
 WOO_PLUGIN(dem,(ParticleContainer));
-
-
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_ParticleContainer__CLASS_BASE_DOC_ATTRS_PY);
 CREATE_LOGGER(ParticleContainer);
  
 void ParticleContainer::clear(){
@@ -181,11 +180,11 @@ Particle::id_t ParticleContainer::pyAppend(shared_ptr<Particle> p){
 
 py::list ParticleContainer::pyAppendList(vector<shared_ptr<Particle>> pp){
 	py::list ret;
-	FOREACH(shared_ptr<Particle>& p, pp){ret.append(pyAppend(p));}
+	for(shared_ptr<Particle>& p: pp){ret.append(pyAppend(p));}
 	return ret;
 }
 
-shared_ptr<Node> ParticleContainer::pyAppendClumped(vector<shared_ptr<Particle>> pp, shared_ptr<Node> n){
+shared_ptr<Node> ParticleContainer::pyAppendClumped(const vector<shared_ptr<Particle>>& pp, const shared_ptr<Node>& clumpNode){
 	std::set<void*> seen;
 	vector<shared_ptr<Node>> nodes; nodes.reserve(pp.size());
 	for(const auto& p:pp){
@@ -196,7 +195,7 @@ shared_ptr<Node> ParticleContainer::pyAppendClumped(vector<shared_ptr<Particle>>
 			nodes.push_back(n);
 		}
 	}
-	shared_ptr<Node> clump=ClumpData::makeClump(nodes,n);
+	shared_ptr<Node> clump=ClumpData::makeClump(nodes,clumpNode);
 	clump->getData<DemData>().linIx=dem->nodes.size();
 	dem->nodes.push_back(clump);
 	return clump;

@@ -34,6 +34,21 @@ void Facet::updateMassInertia(const Real& density) const {
 }
 
 
+void Facet::asRaw(Vector3r& center, Real& radius, vector<Real>& raw) const {
+	center=CompUtils::inscribedCircleCenter(nodes[0]->pos,nodes[1]->pos,nodes[2]->pos);
+	radius=sqrt(Vector3r((nodes[0]->pos-center).squaredNorm(),(nodes[1]->pos-center).squaredNorm(),(nodes[2]->pos-center).squaredNorm()).minCoeff());
+	// store nodal positions as raw data
+	raw.resize(9);
+	for(int i:{0,1,2}) for(int ax:{0,1,2}) raw[3*i+ax]=nodes[i]->pos[ax];
+}
+
+void Facet::setFromRaw(const Vector3r& center, const Real& radius, const vector<Real>& raw){
+	Shape::setFromRaw_helper_checkRaw_makeNodes(raw,9);
+	// center and radius are ignored
+	for(int i:{0,1,2}) for(int ax:{0,1,2}) nodes[i]->pos[ax]=raw[3*i+ax];
+}
+
+
 
 Vector3r Facet::getNormal() const {
 	assert(numNodesOk());

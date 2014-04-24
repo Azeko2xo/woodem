@@ -363,6 +363,10 @@ void Capsule::selfTest(const shared_ptr<Particle>& p){
 	if(!numNodesOk()) throw std::runtime_error("Capsule #"+to_string(p->id)+": numNodesOk() failed: must be 1, not "+to_string(nodes.size())+".");
 }
 
+Real Capsule::volume() const {
+	return (4/3.)*M_PI*pow(radius,3)+M_PI*pow(radius,2)*shaft;
+}
+
 Real Capsule::equivRadius() const {
 	Real V=(4/3.)*M_PI*pow(radius,3)+M_PI*pow(radius,2)*shaft;
 	return cbrt(V)*3/(4*M_PI);
@@ -388,6 +392,26 @@ AlignedBox3r Capsule::alignedBox() const {
 	for(int a:{-1,1}) for(int b:{-1,1}) ret.extend(pos+a*dShaft+b*radius*Vector3r::Ones());
 	return ret;
 }
+
+void Capsule::asRaw(Vector3r& _center, Real& _radius, vector<Real>& raw) const {
+	_center=nodes[0]->pos;
+	_radius=radius+.5*shaft;
+	// store as half-shaft vector
+	// radius will be bounding sphere radius minus shaft/2
+	raw.resize(3);
+	Eigen::Map<Vector3r> hShaft(raw.data());
+	hShaft=nodes[0]->ori*Vector3r(.5*shaft,0,0);
+}
+
+void Capsule::setFromRaw(const Vector3r& _center, const Real& _radius, const vector<Real>& raw) {
+	Shape::setFromRaw_helper_checkRaw_makeNodes(raw,3);
+	Eigen::Map<const Vector3r> hShaft(raw.data());
+	nodes[0]->pos=_center;
+	shaft=2*hShaft.norm();
+	radius=_radius-.5*shaft;
+	nodes[0]->ori.setFromTwoVectors(Vector3r::UnitX(),hShaft.normalized());
+}
+
 
 void Bo1_Capsule_Aabb::go(const shared_ptr<Shape>& sh){
 	if(!sh->bound){ sh->bound=make_shared<Aabb>(); }
