@@ -21,8 +21,10 @@ namespace woo{
 		void updateMassInertia(const Real& density) const WOO_CXX11_OVERRIDE;
 		Real equivRadius() const WOO_CXX11_OVERRIDE;
 		Real volume() const WOO_CXX11_OVERRIDE;
+		bool isInside(const Vector3r& pt) const WOO_CXX11_OVERRIDE;
 		// compute axis-aligned bounding box
-		AlignedBox3r alignedBox() const;
+		AlignedBox3r alignedBox() const WOO_CXX11_OVERRIDE;
+		void applyScale(Real scale) WOO_CXX11_OVERRIDE;
 		WOO_CLASS_BASE_DOC_ATTRS_CTOR(Ellipsoid,Shape,"Ellipsoidal particle.",
 			((Vector3r,semiAxes,Vector3r(NaN,NaN,NaN),AttrTrait<>().lenUnit(),"Semi-principal axes.")),
 			createIndex(); /*ctor*/

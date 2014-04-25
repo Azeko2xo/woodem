@@ -17,8 +17,10 @@ struct Capsule: public Shape{
 	void updateMassInertia(const Real& density) const WOO_CXX11_OVERRIDE;
 	Real equivRadius() const WOO_CXX11_OVERRIDE;
 	Real volume() const WOO_CXX11_OVERRIDE;
+	bool isInside(const Vector3r& pt) const WOO_CXX11_OVERRIDE;
 	// compute axis-aligned bounding box
-	AlignedBox3r alignedBox() const;
+	AlignedBox3r alignedBox() const WOO_CXX11_OVERRIDE;
+	void applyScale(Real scale) WOO_CXX11_OVERRIDE;
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(Capsule,Shape,"Cylinder with half-spherical caps on both sides, Mindowski sum of segment with sphere.",
 		((Real,radius,NaN,AttrTrait<>().lenUnit(),"Radius of the capsule -- of half-spherical caps and also of the middle part."))
 		((Real,shaft,NaN,AttrTrait<>().lenUnit(),"Length of the middle segment"))

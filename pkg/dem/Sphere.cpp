@@ -15,6 +15,11 @@ void woo::Sphere::selfTest(const shared_ptr<Particle>& p){
 }
 
 Real woo::Sphere::volume() const { return (4/3.)*M_PI*pow(radius,3); }
+void woo::Sphere::applyScale(Real scale) { radius*=scale; }
+
+AlignedBox3r woo::Sphere::alignedBox() const {
+	AlignedBox3r ret; ret.extend(nodes[0]->pos-radius*Vector3r::Ones()); ret.extend(nodes[0]->pos+radius*Vector3r::Ones()); return ret;
+}
 
 void woo::Sphere::updateMassInertia(const Real& density) const {
 	checkNodesHaveDemData();
@@ -34,9 +39,10 @@ void woo::Sphere::asRaw(Vector3r& _center, Real& _radius, vector<Real>& raw) con
 	_radius=radius;
 }
 
-
-
-
+bool woo::Sphere::isInside(const Vector3r& pt) const {
+	assert(numNodesOk());
+	return (pt-nodes[0]->pos).squaredNorm()<=pow(radius,2);
+}
 
 void Bo1_Sphere_Aabb::go(const shared_ptr<Shape>& sh){
 	Sphere& s=sh->cast<Sphere>();

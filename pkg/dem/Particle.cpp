@@ -79,21 +79,17 @@ void Shape::setFromRaw_helper_checkRaw_makeNodes(const vector<Real>& raw, size_t
 	nodes.resize(numNodes());
 }
 
-void Shape::asRaw(Vector3r& center, Real& radius, vector<Real>& raw) const {
-	throw std::runtime_error(pyStr()+" does not implement Shape.asRaw.");
-}
-void Shape::setFromRaw(const Vector3r& center, const Real& radius, const vector<Real>& raw){
-	throw std::runtime_error(pyStr()+" does not implement Shape.setFromRaw.");
-}
-
 py::tuple Shape::pyAsRaw() const {
 	Vector3r center; Real radius; vector<Real> raw;
 	asRaw(center,radius,raw);
 	return py::make_tuple(center,radius,raw);
 }
 
-
-
+void Shape::asRaw(Vector3r& center, Real& radius, vector<Real>& raw) const { throw std::runtime_error(pyStr()+" does not implement Shape.asRaw."); }
+void Shape::setFromRaw(const Vector3r& center, const Real& radius, const vector<Real>& raw){	throw std::runtime_error(pyStr()+" does not implement Shape.setFromRaw."); }
+bool Shape::isInside(const Vector3r& pt) const { throw std::runtime_error(pyStr()+" does not implement Shape.isInside."); }
+AlignedBox3r Shape::alignedBox() const { throw std::runtime_error(pyStr()+" does not implement Shape.alignedBox."); }
+void Shape::applyScale(Real s) { throw std::runtime_error(pyStr()+" does not implement Shape.applyScale."); }
 
 
 void DemData::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){

@@ -372,6 +372,18 @@ Real Capsule::equivRadius() const {
 	return cbrt(V)*3/(4*M_PI);
 }
 
+bool Capsule::isInside(const Vector3r& pt) const{
+	Vector3r l(nodes[0]->glob2loc(pt));
+	// cylinder test
+	if(abs(l[0])<shaft/2.) return pow(l[1],2)+pow(l[2],2)<pow(radius,2);
+	// cap test (distance to endpoint)
+	return (Vector3r(l[0]<0?-shaft/2.:shaft/2.,0,0)-l).squaredNorm()<pow(radius,2);
+}
+
+void Capsule::applyScale(Real scale){ radius*=scale; shaft*=scale; }
+
+
+
 void Capsule::updateMassInertia(const Real& density) const {
 	checkNodesHaveDemData();
 	auto& dyn=nodes[0]->getData<DemData>();
@@ -416,7 +428,7 @@ void Capsule::setFromRaw(const Vector3r& _center, const Real& _radius, const vec
 void Bo1_Capsule_Aabb::go(const shared_ptr<Shape>& sh){
 	if(!sh->bound){ sh->bound=make_shared<Aabb>(); }
 	const auto& c(sh->cast<Capsule>());
-	AlignedBox3r ab=c.alignedBox();
+	AlignedBox3r ab=c.Capsule::alignedBox(); // non-virtual call
 	Aabb& aabb=sh->bound->cast<Aabb>();
 	aabb.min=ab.min(); 
 	aabb.max=ab.max();

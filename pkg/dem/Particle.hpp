@@ -294,13 +294,12 @@ struct Shape: public Object, public Indexable{
 	// return number of nodes for this shape; derived classes must override
 	virtual int numNodes() const { return -1; } 
 	// checks for the right number of nodes; to be used in assertions
-	bool numNodesOk() const { return numNodes()==nodes.size(); } 
+	bool numNodesOk() const { return numNodes()==nodes.size(); }
 	// check that we have the right number of nodes and that each nodes has DemData; raise python exception on failures
 	void checkNodesHaveDemData() const;
 	// this will be called from DemField::selfTest for each particle
 	virtual void selfTest(const shared_ptr<Particle>& p){};
-	// return average position of nodes, useful for rendering
-	// caller must make sure that !nodes.empty()
+	// color manipulation
 	Real getSignedBaseColor(){ return color-trunc(color); }
 	Real getBaseColor(){ return abs(color)-trunc(abs(color)); }
 	void setBaseColor(Real c){ if(isnan(c)) return; color=trunc(color)+(color<0?-1:1)*CompUtils::clamped(c,0,1); }
@@ -310,7 +309,15 @@ struct Shape: public Object, public Indexable{
 	void setHighlighted(bool h){ if(getHighlighted()==h) return; color=(color>=0?1:-1)+getSignedBaseColor(); }
 	bool getVisible() const { return abs(color)<=2; }
 	void setVisible(bool w){ if(getVisible()==w) return; bool hi=abs(color)>1; int sgn=(color<0?-1:1); color=sgn*((w?0:2)+getBaseColor()+(hi?1:0)); }
+	// return average position of nodes, useful for rendering
+	// caller must make sure that !nodes.empty()
 	Vector3r avgNodePos();
+
+	// predicate whether given point (in global coords) is inside this shape; used for samping when computing clump properties
+	virtual bool isInside(const Vector3r&) const;
+	virtual AlignedBox3r alignedBox() const;
+	// scale all dimensions; do not update mass/inertia, the caller is responsible for that
+	virtual void applyScale(Real s); 
 
 	// set shape and geometry from raw numbers (center, radius (bounding sphere) plus array of numbers with shape-specific length)
 	virtual void setFromRaw(const Vector3r& center, const Real& radius, const vector<Real>& raw);
@@ -339,6 +346,7 @@ struct Shape: public Object, public Indexable{
 			.add_property("equivRadius",&Shape::equivRadius) \
 			.def("asRaw",&Shape::pyAsRaw) \
 			.def("setFromRaw",&Shape::setFromRaw) \
+			.def("isInside",&Shape::isInside) \
 			WOO_PY_TOPINDEXABLE(Shape)
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Shape__CLASS_BASE_DOC_ATTRS_PY);
 	REGISTER_INDEX_COUNTER(Shape);

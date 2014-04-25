@@ -281,7 +281,7 @@ void ConveyorFactory::run(){
 		} else {
 			const auto& clump=clumps[nextIx];
 			vector<shared_ptr<Particle>> spheres;
-			std::tie(n,spheres)=clump->makeClump(material,/*pos*/newPos,/*ori*/Quaternionr::Identity(),/*mask*/mask,/*scale*/1.);
+			std::tie(n,spheres)=clump->makeParticles(material,/*pos*/newPos,/*ori*/Quaternionr::Identity(),/*mask*/mask,/*scale*/1.);
 			for(auto& sphere: spheres){
 				dem->particles->insert(sphere);
 				LOG_TRACE("[clump] new sphere #"<<sphere->id<<", r="<<radii[nextIx]<<" at "<<n->pos.transpose());

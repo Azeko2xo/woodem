@@ -17,6 +17,7 @@ class TestShapePack(unittest.TestCase):
 		data='''##PERIODIC:: 1. 1. 1.
 0 Sphere 0 0 0 .1
 1 Sphere .1 .1 .1 .1
+1 Sphere .1 .1 .2 .1
 2 Sphere .2 .2 .2 .2
 2 Sphere .3 .3 .3 .3
 2 Capsule .4 .4 .4 .3 .05 .05 .05
@@ -24,9 +25,10 @@ class TestShapePack(unittest.TestCase):
 		tmp=woo.master.tmpFilename()
 		f=open(tmp,'w'); f.write(data); f.close()
 		sp=ShapePack(loadFrom=tmp)
-		self.assert_(len(sp.rawShapes)==3)
-		self.assert_(len(sp.rawShapes[2])==3)
-		self.assert_(sp.rawShapes[2][2].className=='Capsule')
+		self.assert_(len(sp.raws)==3)
+		self.assert_(type(sp.raws[1])==SphereClumpGeom) # automatic conversion for sphere-only clumps
+		self.assert_(sp.raws[2].rawShapes[2].className=='Capsule')
+		print sp.raws
 	def testFromSim(self):
 		'ShapePack: from/to simulation with particles'
 		S=woo.core.Scene(fields=[DemField()])
@@ -44,9 +46,10 @@ class TestShapePack(unittest.TestCase):
 		# from DEM
 		sp=ShapePack()
 		sp.fromDem(S,S.dem,mask=0)
-		self.assert_(len(sp.rawShapes)==2)
-		self.assert_(len(sp.rawShapes[0])==2)
-		self.assert_(sp.rawShapes[1][0].className=='Capsule')
+		self.assert_(len(sp.raws)==2)
+		self.assert_(type(sp.raws[0])==SphereClumpGeom)
+		self.assert_(sp.raws[1].rawShapes[0].className=='Capsule')
+		print sp.raws
 		# to DEM
 		mat=woo.utils.defaultMaterial()
 		S2=woo.core.Scene(fields=[DemField()])
@@ -58,5 +61,5 @@ class TestShapePack(unittest.TestCase):
 		self.assert_(S2.dem.par[0].shape.nodes[0] not in S2.dem.nodes) # sphere node not in dem.nodes
 		self.assert_(S2.dem.nodes[0].dem.clump) # two-sphere clump node
 		self.assert_(not S2.dem.nodes[1].dem.clump) # capsule node
-		
+		# TODO: test that particle positions are as they should be
 

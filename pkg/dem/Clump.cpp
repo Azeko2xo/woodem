@@ -2,6 +2,9 @@
 #include<woo/pkg/dem/Funcs.hpp>
 
 WOO_PLUGIN(dem,(ClumpData)(SphereClumpGeom));
+
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_SphereClumpGeom__CLASS_BASE_DOC_ATTRS_PY);
+
 CREATE_LOGGER(ClumpData);
 CREATE_LOGGER(SphereClumpGeom);
 
@@ -117,7 +120,7 @@ void SphereClumpGeom::recompute(int _div, bool failOk, bool fastOnly){
 	equivRad=(inertia.array()/volume).sqrt().mean(); // mean of radii of gyration
 }
 
-std::tuple<shared_ptr<Node>,vector<shared_ptr<Particle>>> SphereClumpGeom::makeClump(const shared_ptr<Material>& mat, const Vector3r& clumpPos, const Quaternionr& clumpOri, int mask, Real scale){
+std::tuple<shared_ptr<Node>,vector<shared_ptr<Particle>>> SphereClumpGeom::makeParticles(const shared_ptr<Material>& mat, const Vector3r& clumpPos, const Quaternionr& clumpOri, int mask, Real scale){
 	ensureOk();
 	assert(centers.size()==radii.size());
 	const auto N=centers.size();

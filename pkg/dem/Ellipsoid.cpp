@@ -25,6 +25,14 @@ Real woo::Ellipsoid::equivRadius() const {
 };
 
 Real woo::Ellipsoid::volume() const { return (4/3.)*M_PI*semiAxes.prod(); }
+void woo::Ellipsoid::applyScale(Real scale) { semiAxes*=scale; }
+
+
+bool woo::Ellipsoid::isInside(const Vector3r& pt) const {
+	Vector3r l=nodes[0]->glob2loc(pt);
+	return pow(l[0]/semiAxes[0],2)+pow(l[1]/semiAxes[1],2)+pow(l[2]/semiAxes[2],2)<=1;
+}
+
 
 void woo::Ellipsoid::updateMassInertia(const Real& density) const {
 	checkNodesHaveDemData();
