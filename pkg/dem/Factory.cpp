@@ -106,6 +106,7 @@ void RandomFactory::run(){
 	if(maxAttempts<0){
 		std::runtime_error("RandomFactory.maxAttempts must be non-negative. Negative value, leading to meaking engine dead, is achieved by setting atMaxAttempts=RandomFactory.maxAttDead now.");
 	}
+	spheresOnly=generator->isSpheresOnly();
 
 	// as if some time has already elapsed at the very start
 	// otherwise mass flow rate is too big since one particle during Δt exceeds it easily

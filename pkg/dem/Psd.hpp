@@ -16,9 +16,10 @@ struct PsdSphereGenerator: public ParticleGenerator{
 
 	void clear() WOO_CXX11_OVERRIDE { ParticleGenerator::clear(); weightTotal=0.; std::fill(weightPerBin.begin(),weightPerBin.end(),0.); }
 	Real critDt(Real density, Real young) WOO_CXX11_OVERRIDE;
+	bool isSpheresOnly() const WOO_CXX11_OVERRIDE { return true; }
 	py::tuple pyInputPsd(bool scale, bool cumulative, int num) const;
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(PsdSphereGenerator,ParticleGenerator,"Generate spherical particles following a given Particle Size Distribution (PSD)",
-		((bool,discrete,true,,"The points on the PSD curve will be interpreted as the only allowed diameter values; if *false*, linear interpolation between them is assumed instead. Do not change once the generator is running."))
+		((bool,discrete,false,,"The points on the PSD curve will be interpreted as the only allowed diameter values; if *false*, linear interpolation between them is assumed instead. Do not change once the generator is running."))
 		((vector<Vector2r>,psdPts,,AttrTrait<Attr::triggerPostLoad>(),"Points of the PSD curve; the first component is particle diameter [m] (not radius!), the second component is passing percentage. Both diameter and passing values must be increasing (diameters must be strictly increasing). Passing values are normalized so that the last value is 1.0 (therefore, you can enter the values in percents if you like)."))
 		((bool,mass,true,,"PSD has mass percentages; if false, number of particles percentages are assumed. Do not change once the generator is running."))
 		((vector<Real>,weightPerBin,,AttrTrait<>().noGui().readonly(),"Keep track of mass/number of particles for each point on the PSD so that we get as close to the curve as possible. Only used for discrete PSD."))
@@ -35,6 +36,7 @@ struct PsdClumpGenerator: public PsdSphereGenerator {
 	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m) WOO_CXX11_OVERRIDE;
 	void clear() WOO_CXX11_OVERRIDE { genClumpNo.clear(); /*call parent*/ PsdSphereGenerator::clear(); };
 	Real critDt(Real density, Real young) WOO_CXX11_OVERRIDE;
+	bool isSpheresOnly() const WOO_CXX11_OVERRIDE { return true; }
 	WOO_CLASS_BASE_DOC_ATTRS(PsdClumpGenerator,PsdSphereGenerator,"Generate clump particles following a given Particle Size Distribution. !! FULL DOCUMENTATION IS IN py/_monkey/extraDocs.py !!!",
 		((vector<shared_ptr<SphereClumpGeom>>,clumps,,,"Sequence of clump geometry definitions (:obj:`SphereClumpGeom`); for every selected radius from the PSD, clump will be chosen based on the :obj:`SphereClumpGeom.scaleProb` function and scaled to that radius."))
 		((vector<int>,genClumpNo,,AttrTrait<>().noGui().readonly(),"If :obj:`save` is set, keeps clump numbers (indices in :obj:`clumps` for each generated clump."))
@@ -45,6 +47,7 @@ WOO_REGISTER_OBJECT(PsdClumpGenerator);
 struct PsdCapsuleGenerator: public PsdSphereGenerator {
 	DECLARE_LOGGER;
 	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m) WOO_CXX11_OVERRIDE;
+	bool isSpheresOnly() const WOO_CXX11_OVERRIDE { return false; }
 	// clear, critDt: same as for PsdSphereGenerator
 	WOO_CLASS_BASE_DOC_ATTRS(PsdCapsuleGenerator,PsdSphereGenerator,"Generate capsules following a given Particle Size Distribution; elongation is chosen randomly using :obj:`shaftRadiusRatio`; orientation is random.",
 		((Vector2r,shaftRadiusRatio,Vector2r(.5,1.5),,"Range for :obj:`shaft <Capsule.shaft>` / :obj:`radius <Capsule.radius>`; the ratio is selected uniformly from this range."))
@@ -55,6 +58,7 @@ WOO_REGISTER_OBJECT(PsdCapsuleGenerator);
 struct PsdEllipsoidGenerator: public PsdSphereGenerator {
 	DECLARE_LOGGER;
 	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m) WOO_CXX11_OVERRIDE;
+	bool isSpheresOnly() const WOO_CXX11_OVERRIDE { return false; }
 	// clear, critDt: same as for PsdSphereGenerator
 	WOO_CLASS_BASE_DOC_ATTRS(PsdEllipsoidGenerator,PsdSphereGenerator,"Generate ellipsoids following a given Particle Size Distribution; ratio of :obj:`Ellipsoid.semiAxes` is chosen randomly from the :obj:`semiAxesRatio` range; orientation is random.",
 		((Vector2r,axisRatio2,Vector2r(.5,.5),,"Range for second semi-axis ratio."))

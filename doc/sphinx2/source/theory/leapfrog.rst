@@ -152,7 +152,7 @@ In some simulations, nodes can be considered as moving within uniformly deformin
 
 .. note:: The node's :obj:`linear <woo.dem.DemData.vel>` and :obj:`angular <woo.dem.DemData.angVel>` velocities comprise both space and fluctuation velocity. It is (almost) only in the integrator that the two must be distinguished.
 
-Spin is skew-symmetric (rotational) part of velocity gradient :math:`\tens{W}=\frac{1}{2}(\tens{L}-\tens{L}^T)`; its dual vector (noted :math:`*\bullet`) is position-independent medium angular velocity. Local medium velocities (in cartesian coordinates) read
+Spin is skew-symmetric (rotational) part of velocity gradient :math:`\tens{W}=\frac{1}{2}(\tens{L}-\tens{L}^T)`; its `Horge dual <http://en.wikipedia.org/wiki/Hodge_dual>` vector (noted :math:`*\bullet`) is position-independent medium angular velocity. Local medium velocities (in cartesian coordinates) read
 
 .. math::
 

@@ -21,7 +21,7 @@ void woo::Ellipsoid::selfTest(const shared_ptr<Particle>& p){
 
 Real woo::Ellipsoid::equivRadius() const {
 	// volume-based equivalent radius
-	return cbrt((4/3.)*M_PI*semiAxes.prod());
+	return cbrt(semiAxes.prod());
 };
 
 Real woo::Ellipsoid::volume() const { return (4/3.)*M_PI*semiAxes.prod(); }
@@ -40,6 +40,28 @@ void woo::Ellipsoid::updateMassInertia(const Real& density) const {
 	dyn.mass=(4/3.)*M_PI*semiAxes.prod()*density;
 	dyn.inertia=(1/5.)*dyn.mass*Vector3r(pow(semiAxes[1],2)+pow(semiAxes[2],2),pow(semiAxes[2],2)+pow(semiAxes[0],2),pow(semiAxes[0],2)+pow(semiAxes[1],2));
 };
+
+void woo::Ellipsoid::asRaw(Vector3r& _center, Real& _radius, vector<Real>& raw) const{
+	_center=nodes[0]->pos;
+	_radius=semiAxes.maxCoeff();
+	AngleAxisr aa(nodes[0]->ori);
+	raw.resize(6);
+	Eigen::Map<Vector3r> rawOri(raw.data());
+	Eigen::Map<Vector3r> rawSemiAxes(raw.data()+3);
+	rawOri=aa.axis()*aa.angle();
+	rawSemiAxes=semiAxes;
+}
+
+void woo::Ellipsoid::setFromRaw(const Vector3r& _center, const Real& _radius, const vector<Real>& raw){
+	Shape::setFromRaw_helper_checkRaw_makeNodes(raw,6);
+	Eigen::Map<const Vector3r> rawOri(raw.data());
+	Eigen::Map<const Vector3r> rawSemiAxes(raw.data()+3);
+	nodes[0]->pos=_center;
+	Real n=rawOri.norm();
+	if(n==0.) nodes[0]->ori=Quaternionr::Identity();
+	else nodes[0]->ori=Quaternionr(AngleAxisr(n,rawOri/n));
+	semiAxes=rawSemiAxes;
+}
 
 /* return matrix transforming unit sphere to this ellipsoid */
 Matrix3r woo::Ellipsoid::trsfFromUnitSphere() const{

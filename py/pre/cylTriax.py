@@ -26,6 +26,8 @@ class CylTriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 
 	.. warning:: There are (unfortunately) quite a few tunables which must be tinkered with to get the desired result (those are in the *Tunables* section: :obj:`pWaveSafety`, :obj:`massFactor`, :obj:`damping`, :obj:`maxUnbalanced`). Several factors are also hard-set in the code, hoping that they will work in different scenarios than those which were tested.
 
+	.. youtube:: Li13NrIyMYU
+
 	'''
 	_classTraits=None
 	_PAT=woo.pyderived.PyAttrTrait # less typing

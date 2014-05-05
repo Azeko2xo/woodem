@@ -19,11 +19,34 @@ WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_RawShape__CLASS_BASE_DOC_ATTRS);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_RawShapeClump__CLASS_BASE_DOC_ATTRS);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_ShapeClump__CLASS_BASE_DOC_ATTRS_PY);
 CREATE_LOGGER(RawShapeClump);
+CREATE_LOGGER(ShapePack);
 
 
 RawShape::RawShape(const shared_ptr<Shape>& sh){
 	sh->asRaw(center,radius,raw);
 	className=sh->getClassName();
+}
+
+
+void RawShape::translate(const Vector3r& off){ center+=off; }
+
+#if 0
+void RawShape::rotate(const Quaternionr& rot){
+	// convert to shape, rotate, convert back
+	const auto sh=this->toShape();
+	if(sh->nodes.size()>1) sh->nodes[0]->ori=rot*sh->nodes[0]->ori;
+	else throw std::runtime_error("RawShape::rotate: rotation of multinodal shapes not supported.");
+	sh->asRaw(center,radius,raw);
+}
+#endif
+
+shared_ptr<RawShape> RawShape::copy() const {
+	auto ret=make_shared<RawShape>();
+	ret->className=className;
+	ret->center=center;
+	ret->radius=radius;
+	ret->raw=raw;
+	return ret;
 }
 
 shared_ptr<Shape> RawShape::toShape(Real density, Real scale) const {
@@ -49,6 +72,19 @@ shared_ptr<Shape> RawShape::toShape(Real density, Real scale) const {
 	return ret;
 }
 
+void RawShapeClump::translate(const Vector3r& offset){
+	for(const auto& r: rawShapes) r->translate(offset);
+}
+
+shared_ptr<ShapeClump> RawShapeClump::copy() const {
+	auto ret=make_shared<RawShapeClump>();
+	ret->rawShapes.reserve(rawShapes.size());
+	ret->div=div;
+	for(const auto& r: rawShapes) ret->rawShapes.push_back(r->copy());
+	return ret;
+}
+
+
 bool RawShapeClump::isSphereOnly() const {
 	for(const auto& r: rawShapes){ if(r->className!="Sphere") return false; }
 	return true;
@@ -67,6 +103,16 @@ shared_ptr<SphereClumpGeom> RawShapeClump::asSphereClumpGeom() const {
 	return ret;
 }
 
+#if 0
+void RawShapeClump::ensureApproxPos(){
+	if(isOk()) return;
+	pos=Vector3r::Zero();
+	for(const auto& r: rawShapes){
+		pos+=r.center;
+	}
+	pos/=rawShapes.size();
+}
+#endif
 
 void RawShapeClump::recompute(int _div, bool failOk/* =false */, bool fastOnly/* =false */){
 	if(rawShapes.empty()){
@@ -74,8 +120,9 @@ void RawShapeClump::recompute(int _div, bool failOk/* =false */, bool fastOnly/*
 		if(failOk) return;
 		throw std::runtime_error("RawShapeClump.recompute: rawShapes is empty.");
 	}
+	div=_div;
 	vector<shared_ptr<Shape>> shsh(rawShapes.size());
-	for(size_t i=0; i<rawShapes.size(); i++) shsh[i]=rawShapes[i]->toShape(1.);
+	for(size_t i=0; i<rawShapes.size(); i++) shsh[i]=rawShapes[i]->toShape(1.); // unit density
 	// single mononodal particle: copy things over
 	if(shsh.size()==1 && shsh[0]->nodes.size()==1){
 		const auto& sh(shsh[0]);
@@ -88,7 +135,7 @@ void RawShapeClump::recompute(int _div, bool failOk/* =false */, bool fastOnly/*
 		return;
 	}
 	// several particles
-	Real volume=0;
+	volume=0;
 	Vector3r Sg=Vector3r::Zero();
 	Matrix3r Ig=Matrix3r::Zero();
 	if(_div<=0){
@@ -200,25 +247,45 @@ std::tuple<shared_ptr<Node>,vector<shared_ptr<Particle>>> RawShapeClump::makePar
 }
 
 
+void ShapePack::recomputeAll(){
+	#ifdef WOO_OPENMP
+		#pragma omp parallel for schedule(guided)
+	#endif
+	for(size_t i=0; i<raws.size(); i++){
+		const auto& r(raws[i]);
+		if(r->isOk() && r->div==div) continue;
+		r->recompute(div);
+	}
+};
 
 
-#if 0
 void ShapePack::sort(const int& ax, const Real& trimVol){
-	std::sort(rawShapes.begin(),shapes.end(),[](const shared_ptr<Shape>& a, const shared_ptr<Shape>& b)->bool{ return a.avgNodePos()[ax]<b.avgNodesPos()[ax]; });
-	if(!trimVol>0) return;
+	recomputeAll();
+	std::sort(raws.begin(),raws.end(),[&ax](const shared_ptr<ShapeClump>& a, const shared_ptr<ShapeClump>& b)->bool{ return a->pos[ax]<b->pos[ax]; });
+	if(!(trimVol>0)) return;
 	Real vol=0;
-	for(size_t i=0; i<shapes.size(); i++){
-		vol+=shapes[i]->volume();
+	for(size_t i=0; i<raws.size(); i++){
+		vol+=raws[i]->volume;
 		if(vol>trimVol){
 			// discard remaining particles above this level
-			shapes.resize(i+1);
+			raws.resize(i+1);
 			return;
 		}
 	}
 };
-#endif
 
-void ShapePack::fromDem(const shared_ptr<Scene>& scene, const shared_ptr<DemField>& dem, int mask){
+Real ShapePack::solidVolume(){
+	recomputeAll();
+	Real ret=0;
+	for(const auto& r: raws) ret+=r->volume;
+	return ret;
+}
+
+bool ShapePack::shapeSupported(const shared_ptr<Shape>& sh) const {
+	return sh->isA<Sphere>() || sh->isA<Ellipsoid>() || sh->isA<Capsule>();
+}
+
+void ShapePack::fromDem(const shared_ptr<Scene>& scene, const shared_ptr<DemField>& dem, int mask, bool skipUnsupported){
 	raws.clear();
 	for(const auto& n: dem->nodes){
 		assert(n->hasData<DemData>());
@@ -226,6 +293,7 @@ void ShapePack::fromDem(const shared_ptr<Scene>& scene, const shared_ptr<DemFiel
 		if(!dyn.isA<ClumpData>()){
 			for(const Particle* p: dyn.parRef){
 				if(mask!=0 && (mask&p->mask)==0) continue;
+				if(skipUnsupported && !shapeSupported(p->shape)) continue;
 				shared_ptr<Shape> sh(p->shape);
 				this->add({p->shape}); // handles sphere-only vs. non-sphere
 			}
@@ -236,12 +304,19 @@ void ShapePack::fromDem(const shared_ptr<Scene>& scene, const shared_ptr<DemFiel
 				const auto& dyn2(n2->getData<DemData>());
 				for(const Particle* p: dyn2.parRef){
 					if(mask!=0 && (mask&p->mask)==0) continue;
+					if(skipUnsupported && !shapeSupported(p->shape)) continue;
 					shsh.push_back(p->shape);
 				}
 			}
-			this->add(shsh); // if sphere-only, saves as SphereClumpGeom
+			if(!shsh.empty()) this->add(shsh); // if sphere-only, saves as SphereClumpGeom
 		}
 	}
+	if(scene->isPeriodic){
+		if(scene->cell->hasShear()) throw std::runtime_error("ShapePack.fromDem: Cell with shear not supported by ShapePack.");
+		cellSize=scene->cell->getHSize().diagonal();
+	} else {
+		cellSize=Vector3r::Zero();
+	}	
 }
 
 void ShapePack::toDem(const shared_ptr<Scene>& scene, const shared_ptr<DemField>& dem, const shared_ptr<Material>& mat, int mask, Real color){
@@ -256,25 +331,6 @@ void ShapePack::toDem(const shared_ptr<Scene>& scene, const shared_ptr<DemField>
 			dem->particles->pyAppend(p);
 		}
 		dem->pyNodesAppend(node);
-		#if 0
-			vector<shared_ptr<Particle>> pp; pp.reserve(rr.size());
-			for(size_t i=0; i<rr.size(); i++){
-				auto p=make_shared<Particle>();
-				p->shape=ss[i]->toShape(/*density*/mat->density);
-				p->shape->color=_color;
-				p->material=mat;
-				p->mask=mask;
-				pp.push_back(p);
-				for(const auto& n: p->shape->nodes) n->getData<DemData>().parRef.push_back(p.get());
-			}
-			if(pp.size()==1){ // insert a solo particle
-				const auto& p(pp[0]);
-				dem->particles->pyAppend(p); // node not appended here
-				for(const auto& n: p->shape->nodes) dem->pyNodesAppend(n);
-			}
-			// insert clump
-			else dem->particles->pyAppendClumped(pp); // this appends node automatically
-		#endif
 	}
 }
 
@@ -348,7 +404,7 @@ void ShapePack::loadTxt(const string& in) {
 		if(tokens.empty()) continue;
 		if(tokens.size()<6) throw std::invalid_argument(in+":"+to_string(lineNo)+": insufficient number of columns ("+to_string(tokens.size())+")");
 		int id=lexical_cast<int>(tokens[0]);
-		if(id!=lastId && id!=raws.size()){
+		if(id!=lastId && id!=(int)raws.size()){
 			LOG_WARN(in<<":"<<lineNo<<": shape numbers not contiguous.");
 		}
 		// creating a new particle
@@ -374,3 +430,76 @@ void ShapePack::loadTxt(const string& in) {
 }
 
 
+
+void ShapePack::filter(const shared_ptr<Predicate>& predicate, int recenter){
+	if(recenter>=0){
+		if((!!recenter && !movable) || (!recenter && movable)) throw std::runtime_error("ShapePack.filtered: recenter argument is ignored, but does not match ShapePack.movable.");
+	}
+	if(movable) throw std::runtime_error("ShapePack.filter: not implemented for movable ShapePack's yet (missing bbox computation).");
+	recomputeAll();
+	// FIXME: warnings with predicates being larger and such à la SpherePack
+	vector<shared_ptr<ShapeClump>> raws2;
+	for(const auto& r: raws){
+		// FIXME: this will work exactly for spheres, but not so for clumps and others where equivRad is not at all the bounding radius; this will need some infrastructure changes to work properly
+		if((*predicate)(r->pos,r->equivRad)) raws2.push_back(r);
+	}
+	// replace
+	raws=raws2;
+}
+
+shared_ptr<ShapePack> ShapePack::filtered(const shared_ptr<Predicate>& predicate, int recenter) {
+	if(recenter>=0){
+		if((!!recenter && !movable) || (!recenter && movable)) throw std::runtime_error("ShapePack.filtered: recenter argument is ignored, but does not match ShapePack.movable.");
+	}
+	auto ret=make_shared<ShapePack>();
+	if(movable) throw std::runtime_error("ShapePack.filter: not implemented for movable ShapePack's yet (missing bbox computation).");
+	// copy everything needed
+	ret->div=div;
+	ret->cellSize=cellSize;
+	ret->movable=movable;
+	ret->userData=userData;
+	recomputeAll();
+	for(const auto& r: raws){
+		// FIXME: this will work exactly for spheres, but not so for clumps and others where equivRad is not at all the bounding radius; this will need some infrastructure changes to work properly
+		if((*predicate)(r->pos,r->equivRad)) ret->raws.push_back(r);
+	}
+	return ret;
+}
+
+void ShapePack::translate(const Vector3r& offset){
+	for(auto& r: raws) r->translate(offset);
+}
+
+void ShapePack::canonicalize(){
+	if(cellSize==Vector3r::Zero()) throw std::runtime_error("ShapePack.canonicalize: only meaningful on periodic packings");
+	recomputeAll();
+	for(auto &r: raws){
+		Vector3r off=Vector3r::Zero();
+		for(int ax:{0,1,2}){
+			if(cellSize[ax]==0.) continue;
+			Real newPos=SpherePack::cellWrapRel(r->pos[ax],0,cellSize[ax]);
+			off[ax]=newPos-r->pos[ax];
+		}
+		r->translate(off);
+	}
+}
+
+void ShapePack::cellRepeat(const Vector3i& count){
+	if(cellSize==Vector3r::Zero()){ throw std::runtime_error("cellRepeat cannot be used on non-periodic packing."); }
+	if(count[0]<=0 || count[1]<=0 || count[2]<=0){ throw std::invalid_argument("Repeat count components must be positive."); }
+	size_t origSize=raws.size();
+	raws.reserve(origSize*count.prod());
+	for(int i=0; i<count[0]; i++){
+		for(int j=0; j<count[1]; j++){
+			for(int k=0; k<count[2]; k++){
+				if((i==0) && (j==0) && (k==0)) continue; // original cell
+				Vector3r off(cellSize[0]*i,cellSize[1]*j,cellSize[2]*k);
+				for(size_t l=0; l<origSize; l++){
+					auto copy=raws[l]->copy(); copy->translate(off);
+					raws.push_back(copy);
+				}
+			}
+		}
+	}
+	cellSize=Vector3r(cellSize[0]*count[0],cellSize[1]*count[1],cellSize[2]*count[2]);
+}

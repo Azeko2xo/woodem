@@ -44,10 +44,15 @@ WOO_REGISTER_OBJECT(Bo1_Sphere_Aabb);
 struct In2_Sphere_ElastMat: public IntraFunctor{
 	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&);
 	FUNCTOR2D(Sphere,ElastMat);
+	#ifdef WOO_DEBUG
+		#define woo_dem_In2_Sphere_ElastMat__watch__DEBUG ((Vector2i,watch,Vector2i(-1,-1),,"Print detailed information about contact having those ids (debugging only)"))
+	#else
+		#define woo_dem_In2_Sphere_ElastMat__watch__DEBUG
+	#endif
+
 	#define woo_dem_In2_Sphere_ElastMat__CLASS_BASE_DOC_ATTRS \
-		In2_Sphere_ElastMat,IntraFunctor,"Apply contact forces on sphere; having one node only, Sphere generates no internal forces as such.",
-		/*attrs*/  \
-		/* ((Vector2i,watch,Vector2i(-1,-1),,"Print detailed information about contact having those ids (debugging only)")) */
+		In2_Sphere_ElastMat,IntraFunctor,"Apply contact forces on sphere; having one node only, Sphere generates no internal forces as such.", \
+		/*attrs*/ woo_dem_In2_Sphere_ElastMat__watch__DEBUG
 	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_In2_Sphere_ElastMat__CLASS_BASE_DOC_ATTRS);
 };
 WOO_REGISTER_OBJECT(In2_Sphere_ElastMat);

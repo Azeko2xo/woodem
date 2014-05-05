@@ -287,6 +287,7 @@ BOOST_PYTHON_MODULE(_customConverters){
 		VECTOR_SEQ_CONV(shared_ptr<ScalarRange>);
 		VECTOR_SEQ_CONV(shared_ptr<Field>);
 		VECTOR_SEQ_CONV(shared_ptr<Particle>);
+		VECTOR_SEQ_CONV(shared_ptr<Shape>);
 		VECTOR_SEQ_CONV(shared_ptr<Contact>);
 		VECTOR_SEQ_CONV(shared_ptr<Material>);
 

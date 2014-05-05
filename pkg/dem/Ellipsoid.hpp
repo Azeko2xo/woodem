@@ -25,6 +25,10 @@ namespace woo{
 		// compute axis-aligned bounding box
 		AlignedBox3r alignedBox() const WOO_CXX11_OVERRIDE;
 		void applyScale(Real scale) WOO_CXX11_OVERRIDE;
+		//
+		void setFromRaw(const Vector3r& _center, const Real& _radius, const vector<Real>& raw) WOO_CXX11_OVERRIDE;
+		void asRaw(Vector3r& _center, Real& _radius, vector<Real>& raw) const WOO_CXX11_OVERRIDE;
+
 		WOO_CLASS_BASE_DOC_ATTRS_CTOR(Ellipsoid,Shape,"Ellipsoidal particle.",
 			((Vector3r,semiAxes,Vector3r(NaN,NaN,NaN),AttrTrait<>().lenUnit(),"Semi-principal axes.")),
 			createIndex(); /*ctor*/

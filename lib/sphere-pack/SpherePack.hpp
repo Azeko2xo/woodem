@@ -12,11 +12,24 @@
 
 #include<woo/lib/pyutil/except.hpp>
 
+/* base class for filtering predicates */
+struct Predicate{
+	public:
+		virtual bool operator() (const Vector3r& pt,Real pad=0.) const = 0;
+		virtual AlignedBox3r aabb() const = 0;
+		Vector3r dim() const { return aabb().sizes(); }
+		Vector3r center() const { return aabb().center(); }
+};
+
+
+
 /*! Class representing geometry of spherical packing, with some utility functions. */
 class SpherePack{
+	struct ClumpInfo{ int clumpId; Vector3r center; Real rad; int minId, maxId; };
+public:
 	// return coordinate wrapped to x0…x1, relative to x0; don't care about period
 	// copied from PeriodicInsertionSortCollider
-	Real cellWrapRel(const Real x, const Real x0, const Real x1){
+	static Real cellWrapRel(const Real x, const Real x0, const Real x1){
 		Real xNorm=(x-x0)/(x1-x0);
 		return (xNorm-floor(xNorm))*(x1-x0);
 	}
@@ -28,9 +41,6 @@ class SpherePack{
 		}
 		return dr.squaredNorm();
 	}
-	struct ClumpInfo{ int clumpId; Vector3r center; Real rad; int minId, maxId; };
-
-public:
 	enum {RDIST_RMEAN, RDIST_NUM, RDIST_PSD};
 	struct Sph{
 		Vector3r c; Real r; int clumpId; int shadowOf;

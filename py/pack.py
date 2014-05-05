@@ -27,6 +27,14 @@ import numpy
 
 from minieigen import *
 from woo import *
+import woo
+import woo.dem
+
+def ShapePack_fromSimulation(sp,S):
+	import warnings
+	warnings.warn('ShapePack.fromSimulation is deprecated, use ShapePack.fromDem instead')
+	return sp.fromDem(scene=S,dem=S.dem,mask=0,skipUnsupported=True)
+woo.dem.ShapePack.fromSimulation=ShapePack_fromSimulation
 
 
 ## compatibility hack for python 2.5 (21/8/2009)
@@ -749,7 +757,7 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNu
 
 
 
-def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,goal=.15,dontBlock=False,memoizeDir=None,botLine=None,leftLine=None,rightLine=None,clumps=[],returnSpherePack=False,useEnergy=True):
+def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,goal=.15,dontBlock=False,memoizeDir=None,botLine=None,leftLine=None,rightLine=None,clumps=[],returnSpherePack=False,useEnergy=True,gen=None):
 	'''Create dense packing periodic in the +x direction, suitable for use with ConveyorFactory.
 :param useEnergy: use :obj:`woo.utils.unbalancedEnergy` instead of :obj:`woo.utils.unbalancedForce` as stop criterion.
 :param goal: target unbalanced force/energy; if unbalanced energy is used, this value is **multiplied by .2**.
@@ -757,7 +765,7 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 :param mat: material for particles
 :param gravity: gravity acceleration (as Vector3)
 '''
-	print 'woo.pack.makeBandFeedPack(dim=%s,psd=%s,mat=%s,gravity=%s,excessWd=%s,damping=%s,dontBlock=True,botLine=%s,leftLine=%s,rightLine=%s,clumps=%s)'%(repr(dim),repr(psd),mat.dumps(format='expr',width=-1,noMagic=True),repr(gravity),repr(excessWd),repr(damping),repr(botLine),repr(leftLine),repr(rightLine),repr(clumps))
+	print 'woo.pack.makeBandFeedPack(dim=%s,psd=%s,mat=%s,gravity=%s,excessWd=%s,damping=%s,dontBlock=True,botLine=%s,leftLine=%s,rightLine=%s,clumps=%s,gen=%s)'%(repr(dim),repr(psd),mat.dumps(format='expr',width=-1,noMagic=True),repr(gravity),repr(excessWd),repr(damping),repr(botLine),repr(leftLine),repr(rightLine),repr(clumps),repr(gen))
 	dim=list(dim) # make modifiable in case of excess width
 
 
@@ -788,26 +796,33 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 	area2d=.5*abs(sum([b2c[i][0]*(b2c[i+1][1]-b2c[i-1][1]) for i in range(1,len(b2c)-1)]))
 
 	def printBulkParams(sp):
-		sphVol=sp.sphereVol()
-		mass=sphVol*mat.density
-		print 'Particle mass: %g kg (volume %g m3, mass density %g kg/m3).'%(mass,sphVol,mat.density)
+		volume=sp.solidVolume() # works with both ShapePack and SpherePack
+		mass=volume*mat.density
+		print 'Particle mass: %g kg (volume %g m3, mass density %g kg/m3).'%(mass,volume,mat.density)
 		vol=area2d*sp.cellSize[0]
 		print 'Bulk density: %g kg/m3 (area %g m2, length %g m).'%(mass/vol,area2d,sp.cellSize[0])
 		print 'Porosity: %g %%'%(100*(1-(mass/vol)/mat.density))
 
 	if memoizeDir and not dontBlock:
-		params=str(dim)+str(cellSize)+str(psd)+str(goal)+str(damping)+mat.dumps(format='expr')+str(gravity)+str(porosity)+str(botLine)+str(leftLine)+str(rightLine)+str(clumps)+str(useEnergy)+'ver5'
+		params=str(dim)+str(cellSize)+str(psd)+str(goal)+str(damping)+mat.dumps(format='expr')+str(gravity)+str(porosity)+str(botLine)+str(leftLine)+str(rightLine)+str(clumps)+str(useEnergy)+(gen.dumps(format='expr') if gen else '')+'ver5'
 		import hashlib
 		paramHash=hashlib.sha1(params).hexdigest()
 		memoizeFile=memoizeDir+'/'+paramHash+'.bandfeed'
 		print 'Memoize file is ',memoizeFile
 		if os.path.exists(memoizeDir+'/'+paramHash+'.bandfeed'):
 			print 'Returning memoized result'
-			sp=SpherePack()
-			sp.load(memoizeFile)
-			printBulkParams(sp)
-			if returnSpherePack: return sp
-			return zip(*sp)
+			if not gen:
+				sp=SpherePack()
+				sp.load(memoizeFile)
+				printBulkParams(sp)
+				if returnSpherePack: return sp
+				return zip(*sp)
+			else:
+				import woo.dem
+				sp=woo.dem.ShapePack(loadFrom=memoizeFile)
+				printBulkParams(sp)
+				return sp
+
 
 	import woo, woo.core, woo.dem
 	S=woo.core.Scene(fields=[woo.dem.DemField(gravity=gravity)])
@@ -826,7 +841,8 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 	mat0,mat=mat,mat.deepcopy()
 	mat.tanPhi=min(.2,mat0.tanPhi)
 
-	if not clumps: generator=woo.dem.PsdSphereGenerator(psdPts=psd,discrete=False,mass=True)
+	if gen: generator=gen
+	elif not clumps: generator=woo.dem.PsdSphereGenerator(psdPts=psd,discrete=False,mass=True)
 	else: generator=woo.dem.PsdClumpGenerator(psdPts=psd,discrete=False,mass=True,clumps=clumps)
 	
 	# todo: move trackEnergy under useEnergy once we don't need comparisons
@@ -857,14 +873,16 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 		woo.core.PyRunner(300,'import woo\nif S.lab.factory.mass>=S.lab.factory.maxMass: S.engines[0].damping=1.5*%g'%damping),
 		woo.core.PyRunner(200,'import woo\nif '+unbalancedFunc+'(S)<'+str(goal)+' and S.lab.factory.dead: S.stop()'),
 	]
-	S.dt=.7*utils.spherePWaveDt(psd[0][0],mat.density,mat.young)
+	# S.dt=.7*utils.spherePWaveDt(psd[0][0],mat.density,mat.young)
+	S.dtSafety=.7
 	print 'Factory box is',S.lab.factory.box
 	S.dem.collectNodes()
 	if dontBlock: return S
 	else: S.run()
 	S.wait()
-
-	sp=SpherePack()
+	
+	if gen: sp=woo.dem.ShapePack()
+	else: sp=SpherePack()
 	sp.fromSimulation(S)
 	sp.canonicalize()
 	# remove what is above the requested height
@@ -880,7 +898,7 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 	sp.cellSize[1]=sp.cellSize[2]=0
 	if memoizeDir:
 		print 'Saving to',memoizeFile
-		sp.save(memoizeFile)
-	if returnSpherePack: return sp
+		sp.saveTxt(memoizeFile)
+	if returnSpherePack or gen: return sp
 	return zip(*sp)
 

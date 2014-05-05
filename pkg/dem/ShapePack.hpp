@@ -1,5 +1,6 @@
 #pragma once
 #include<woo/pkg/dem/Particle.hpp>
+#include<woo/lib/sphere-pack/SpherePack.hpp> // for Predicate
 
 struct SphereClumpGeom;
 
@@ -9,6 +10,9 @@ struct RawShape: public Object{
 	string pyStr() const WOO_CXX11_OVERRIDE {	return "<"+getClassName()+" @ "+boost::lexical_cast<string>(this)+": "+className+">"; }
 	// if density is given, create DemData (and GlData) so that it is ready to be inserted into the simulation
 	shared_ptr<Shape> toShape(Real density=NaN, Real scale=1.) const;
+	void translate(const Vector3r& offset);
+	// void rotate(const Quaternionr& rot);
+	shared_ptr<RawShape> copy() const;
 	#define woo_dem_RawShape__CLASS_BASE_DOC_ATTRS \
 		RawShape,Object,"", \
 		((string,className,"",,"Name of the Shape subclass.")) \
@@ -26,9 +30,13 @@ struct ShapeClump: public Object{
 	void makeInvalid(){ volume=equivRad=NaN; inertia=Vector3r(NaN,NaN,NaN); pos=Vector3r::Zero(); ori=Quaternionr::Identity(); }
 	bool isOk() const { return !isnan(volume); }
 	void ensureOk() { if(!isOk()) recompute(div,/*failOk*/false); }
+	// fill *pos* as average bounding sphere position, without calling compute
+	// virtual void ensureApproxPos(){ throw std::runtime_error("ShapeClump.ensureApproxPos: this class is not to be used directly, derived classes should override ensureApproxPos."); }
 	// if pos contains NaN, RawShape natural position and orientation are used
 	virtual std::tuple<shared_ptr<Node>,vector<shared_ptr<Particle>>> makeParticles(const shared_ptr<Material>&, const Vector3r& pos, const Quaternionr& ori, int mask=0, Real scale=1.){  throw std::runtime_error("ShapeClump.makeParticles: this class is not be used directly, derived classes should override makeParticles."); }
 	py::tuple pyMakeParticles(const shared_ptr<Material>& m, const Vector3r& p, const Quaternionr& o=Quaternionr::Identity(), Real scale=1., int mask=0){ const auto& tup=makeParticles(m,p,o,mask,scale); return py::make_tuple(std::get<0>(tup),std::get<1>(tup)); }
+	virtual void translate(const Vector3r& offset){  throw std::runtime_error("ShapeClump.translate: this class is not be used directly, derived classes should override translate."); }
+	virtual shared_ptr<ShapeClump> copy() const{  throw std::runtime_error("ShapeClump.copy: this class is not be used directly, derived classes should override copy."); }
 	
 	#define woo_dem_ShapeClump__CLASS_BASE_DOC_ATTRS_PY \
 		ShapeClump,Object,"Defines pure geometry of clumps. This is a base class, not to be used as-is.", \
@@ -51,6 +59,11 @@ struct RawShapeClump: public ShapeClump {
 	DECLARE_LOGGER;
 	void recompute(int div, bool failOk=false, bool fastOnly=false) WOO_CXX11_OVERRIDE;
 	std::tuple<shared_ptr<Node>,vector<shared_ptr<Particle>>> makeParticles(const shared_ptr<Material>&, const Vector3r& pos, const Quaternionr& ori, int mask, Real scale=1.) WOO_CXX11_OVERRIDE;
+
+	void translate(const Vector3r& offset) WOO_CXX11_OVERRIDE;
+	shared_ptr<ShapeClump> copy() const WOO_CXX11_OVERRIDE;
+
+	// void ensureApproxPos() WOO_CXX11_OVERRIDE;
 	bool isSphereOnly() const;
 	shared_ptr<SphereClumpGeom> asSphereClumpGeom() const;
 	#define woo_dem_RawShapeClump__CLASS_BASE_DOC_ATTRS \
@@ -64,27 +77,47 @@ WOO_REGISTER_OBJECT(RawShapeClump);
 struct ShapePack: public Object{
 	// sort the array according to the coordinate along *ax*
 	// if *trimVol* is positive, discard all shapes after trimVol has been reached, in the order of increasing *ax*
-	// void sort(const int& ax, const Real& trimVol=NaN);
-	void fromDem(const shared_ptr<Scene>& scene, const shared_ptr<DemField>& dem, int mask);
+	void sort(const int& ax, const Real& trimVol=NaN);
+	// recompute all clumps with this precision
+	void recomputeAll();
+	bool shapeSupported(const shared_ptr<Shape>&) const;
+	void fromDem(const shared_ptr<Scene>& scene, const shared_ptr<DemField>& dem, int mask, bool skipUnsupported=true);
 	void toDem(const shared_ptr<Scene>& scene, const shared_ptr<DemField>& dem, const shared_ptr<Material>& mat, int mask=0, Real color=NaN);
 	void saveTxt(const string& out) const;
 	void loadTxt(const string& in);
 	// mostly for testing only
 	void add(const vector<shared_ptr<Shape>>& ss);
 
+	shared_ptr<ShapePack> filtered(const shared_ptr<Predicate>& p, int recenter=-1); // recenter is for compat with SpherePack
+	void filter(const shared_ptr<Predicate>& p, int recenter=-1);
+	// total volume of all particles
+	Real solidVolume(); 
+	void translate(const Vector3r& offset);
+	void canonicalize();
+	void cellRepeat(const Vector3i& count);
+
 	void postLoad(ShapePack&,void*);
+	DECLARE_LOGGER;
 
 	#define woo_dem_ShapePack__CLASS_BASE_DOC_ATTRS_PY \
 		ShapePack,Object,"Representation of geometry of many particles, with the ability of text I/O. It is meant as a replacement for :obj:`woo.pack.SpherePack`, which only handles spherical particles.", \
 		((Vector3r,cellSize,Vector3r::Zero(),,"Positive components signify periodic boundary along the respective axis.")) \
 		((bool,movable,false,,"Whether the packing is movable, i.e. should be automatically recentered after filtered with a predicate.")) \
-		/* ((vector<vector<shared_ptr<RawShape>>>,rawShapes,,,"Shape objects of particles")) */ \
+		((int,div,5,,"Default value for recomputing properties of clumps (relative to the smallest equivalent radius)")) \
 		((vector<shared_ptr<ShapeClump>>,raws,,,"Raw shapes of particles/clumps.")) \
 		((string,userData,,,"String of arbitrary user data to be loaded/saved with the ShapePack.")) \
 		((string,loadFrom,,AttrTrait<Attr::triggerPostLoad>(),"If given when constructing the instance, the file is loaded immediately and the attribute is reset.")) \
-		,/*py*/ .def("loadTxt",&ShapePack::loadTxt).def("saveTxt",&ShapePack::saveTxt).def("add",&ShapePack::add) \
-		.def("fromDem",&ShapePack::fromDem,(py::arg("scene"),py::arg("dem"),py::arg("mask"))) \
-		.def("toDem",&ShapePack::toDem,(py::arg("scene"),py::arg("dem"),py::arg("mat"),py::arg("mask")=0,py::arg("color")=NaN))
+		,/*py*/ .def("loadTxt",&ShapePack::loadTxt).def("saveTxt",&ShapePack::saveTxt) \
+			.def("load",&ShapePack::loadTxt).def("save",&ShapePack::saveTxt) /* SpherePack compat names */ \
+		.def("add",&ShapePack::add) \
+		.def("fromDem",&ShapePack::fromDem,(py::arg("scene"),py::arg("dem"),py::arg("mask")=0,py::arg("skipUnsupported")=true)) \
+		.def("toDem",&ShapePack::toDem,(py::arg("scene"),py::arg("dem"),py::arg("mat"),py::arg("mask")=0,py::arg("color")=NaN)) \
+		.def("filtered",&ShapePack::filtered,(py::arg("predicate"),py::arg("recenter")=-1)) \
+		.def("filter",&ShapePack::filter,(py::arg("predicate"),py::arg("recenter")=-1)) \
+		.def("solidVolume",&ShapePack::solidVolume) \
+		.def("translate",&ShapePack::translate) \
+		.def("canonicalize",&ShapePack::canonicalize) \
+		.def("cellRepeat",&ShapePack::cellRepeat)
 
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_ShapePack__CLASS_BASE_DOC_ATTRS_PY);
 };

@@ -11,7 +11,7 @@ S.dem.loneMask=0b0010
 mat=FrictMat(young=1e6,density=3200)
 
 generator=[
-	PsdCapsuleGenerator(psdPts=[(.15,0),(.3,1.)],discrete=False,mass=True,shaftRadiusRatio=(1.,4)),
+	PsdCapsuleGenerator(psdPts=[(.15,0),(.3,1.)],discrete=False,mass=True,shaftRadiusRatio=(.4,4.)),
 	PsdEllipsoidGenerator(psdPts=[(.15,0),(.3,1.)],discrete=False,mass=True,axisRatio2=(.2,.6),axisRatio3=(.2,.6)),
 	PsdClumpGenerator(psdPts=[(.15,0),(.3,1.)],discrete=False,mass=True,
 		clumps=[
@@ -20,7 +20,7 @@ generator=[
 		],
 	),
 	PsdSphereGenerator(psdPts=[(.15,0),(.3,1.)],discrete=False,mass=True),
-][0]
+][2]
 
 
 S.dem.par.append(woo.utils.wall(0,axis=2,sense=1))

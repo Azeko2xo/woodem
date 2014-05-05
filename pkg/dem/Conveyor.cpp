@@ -14,8 +14,6 @@ WOO_PLUGIN(dem,(ConveyorFactory));
 CREATE_LOGGER(ConveyorFactory);
 
 Real ConveyorFactory::critDt(){
-	// no spheres/clumps defined at all
-	if(centers.empty()) return Inf;
 	if(!material->isA<ElastMat>()){
 		LOG_WARN("Material is not a ElastMat, unable to compute critical timestep.");
 		return Inf;
@@ -30,7 +28,11 @@ Real ConveyorFactory::critDt(){
 		for(const auto& clump: clumps){
 			for(const Real& r: clump->radii) rMin=min(rMin,r);
 		}
-	} else {
+	} else if(shapePack){
+		shapePack->recomputeAll();
+		for(const auto& r: shapePack->raws) rMin=min(rMin,r->equivRad);
+	} else{
+		if(radii.empty()) return Inf;
 		for(const Real& r: radii) rMin=min(rMin,r);
 	}
 	// compute critDt from rMin
@@ -49,7 +51,7 @@ Real ConveyorFactory::packVol() const {
 }
 
 void ConveyorFactory::postLoad(ConveyorFactory&,void* attr){
-	if(attr==NULL || attr==&spherePack || attr==&clumps || attr==&centers || attr==&radii){
+	if(attr==NULL || attr==&spherePack || attr==&clumps || attr==&centers || attr==&radii || attr==&shapePack){
 		if(spherePack){
 			// spherePack given
 			clumps.clear(); centers.clear(); radii.clear();
@@ -77,6 +79,10 @@ void ConveyorFactory::postLoad(ConveyorFactory&,void* attr){
 			// no clumps
 			if(radii.size()==centers.size() && !radii.empty()) sortPacking();
 		}
+		if(shapePack){
+			if(!clumps.empty()) throw std::runtime_error("ConveyorFactory: shapePack and clumps cannot be specified simultaneously.");
+			shapePack->sort(/*axis*/0);
+		}
 	}
 	/* this block applies in too may cases to name all attributes here;
 	   besides computing the volume, it is cheap, so do it at every postLoad to make sure it gets done
@@ -86,6 +92,10 @@ void ConveyorFactory::postLoad(ConveyorFactory&,void* attr){
 	if(vel<=0) vel=NaN;
 
 	Real vol=packVol();
+	if(shapePack){
+		vol=shapePack->solidVolume();
+		cellLen=shapePack->cellSize[0];
+	}
 	Real maxRate;
 	Real rho=(material?material->density:NaN);
 	// minimum velocity to achieve given massRate (if any)
@@ -96,10 +106,16 @@ void ConveyorFactory::postLoad(ConveyorFactory&,void* attr){
 	// comparisons are true only if neither operand is NaN
 	if(zTrim && vel>packVel) {
 		// with z-trimming, reduce number of volume (proportionally) and call this function again
-		LOG_INFO("zTrim in effect: trying to reduce volume from "<<vol<<" to "<<vol*(packVel/vel)<<" (factor "<<(packVel/vel)<<")");
-		sortPacking(/*zTrimVol*/vol*(packVel/vel));
+		Real zTrimVol=vol*(packVel/vel);
+		LOG_INFO("zTrim in effect: trying to reduce volume from "<<vol<<" to "<<zTrimVol<<" (factor "<<(packVel/vel)<<")");
+		if(!shapePack){
+			sortPacking(zTrimVol);
+			sortPacking(); // sort packing again, along x, as that will not be done in the above block again
+		} else { // with shapePack
+			shapePack->sort(/*axis*/2,/*trimVol*/zTrimVol);
+			shapePack->sort(/*axis*/0);
+		}
 		zTrim=false;
-		sortPacking(); // sort packing again, along x, as that will not be done in the above block again
 		postLoad(*this,NULL);
 		return;
 	}
@@ -113,6 +129,17 @@ void ConveyorFactory::postLoad(ConveyorFactory&,void* attr){
 
 
 	avgRate=(vol*rho/cellLen)*vel; // (kg/m)*(m/s)→kg/s
+
+	// copy values to centers, radii
+	if(shapePack){
+		size_t N=shapePack->raws.size();
+		centers.resize(N); radii.resize(N);
+		LOG_WARN("Copying data from shapePack over to centers, radii ("<<N<<"items).");
+		for(size_t i=0; i<N; i++){
+			centers[i]=shapePack->raws[i]->pos;
+			radii[i]=shapePack->raws[i]->equivRad;
+		}
+	}
 }
 
 void ConveyorFactory::sortPacking(const Real& zTrimVol){
@@ -198,7 +225,7 @@ void ConveyorFactory::setAttachedParticlesColor(const shared_ptr<Node>& n, Real 
 
 void ConveyorFactory::run(){
 	DemField* dem=static_cast<DemField*>(field.get());
-	if(radii.empty() || radii.size()!=centers.size()) ValueError("ConveyorFactory: radii and values must be same-length and non-empty.");
+	if(radii.empty() || radii.size()!=centers.size()) ValueError("ConveyorFactory: radii and centers must be same-length and non-empty (if shapePack is given, radii and centers should have been populated automatically)");
 	if(isnan(vel) || isnan(massRate) || !material) ValueError("ConveyorFactory: vel, massRate, material must be given.");
 	if(clipX.size()!=clipZ.size()) ValueError("ConveyorFactory: clipX and clipZ must have the same size ("+to_string(clipX.size())+"!="+to_string(clipZ.size()));
 	if(barrierLayer<0){
@@ -270,21 +297,31 @@ void ConveyorFactory::run(){
 
 		shared_ptr<Node> n;
 		
-		if(!hasClumps()){
-			auto sphere=DemFuncs::makeSphere(radii[nextIx],material);
-			sphere->mask=mask;
-			n=sphere->shape->nodes[0];
-			//LOG_TRACE("x="<<x<<", "<<lenToDo<<"-("<<1+currWraps<<")*"<<cellLen<<"+"<<currX);
-			dem->particles->insert(sphere);
-			n->pos=newPos;
-			LOG_TRACE("New sphere #"<<sphere->id<<", r="<<radii[nextIx]<<" at "<<n->pos.transpose());
+		if(shapePack){
+			const auto& r=shapePack->raws[nextIx];
+			vector<shared_ptr<Particle>> pp;
+			std::tie(n,pp)=r->makeParticles(material,/*pos*/newPos,/*ori*/Quaternionr::Identity(),/*mask*/mask,/*scale*/1.);
+			for(auto& p: pp){
+				dem->particles->insert(p);
+				LOG_TRACE("[shapePack] new particle #"<<sphere->id<<", "<<p->shape->pyStr());
+			}
 		} else {
-			const auto& clump=clumps[nextIx];
-			vector<shared_ptr<Particle>> spheres;
-			std::tie(n,spheres)=clump->makeParticles(material,/*pos*/newPos,/*ori*/Quaternionr::Identity(),/*mask*/mask,/*scale*/1.);
-			for(auto& sphere: spheres){
+			if(!hasClumps()){
+				auto sphere=DemFuncs::makeSphere(radii[nextIx],material);
+				sphere->mask=mask;
+				n=sphere->shape->nodes[0];
+				//LOG_TRACE("x="<<x<<", "<<lenToDo<<"-("<<1+currWraps<<")*"<<cellLen<<"+"<<currX);
 				dem->particles->insert(sphere);
-				LOG_TRACE("[clump] new sphere #"<<sphere->id<<", r="<<radii[nextIx]<<" at "<<n->pos.transpose());
+				n->pos=newPos;
+				LOG_TRACE("New sphere #"<<sphere->id<<", r="<<radii[nextIx]<<" at "<<n->pos.transpose());
+			} else {
+				const auto& clump=clumps[nextIx];
+				vector<shared_ptr<Particle>> spheres;
+				std::tie(n,spheres)=clump->makeParticles(material,/*pos*/newPos,/*ori*/Quaternionr::Identity(),/*mask*/mask,/*scale*/1.);
+				for(auto& sphere: spheres){
+					dem->particles->insert(sphere);
+					LOG_TRACE("[clump] new sphere #"<<sphere->id<<", r="<<radii[nextIx]<<" at "<<n->pos.transpose());
+				}
 			}
 		}
 

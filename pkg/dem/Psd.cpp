@@ -104,7 +104,7 @@ void PsdSphereGenerator::revokeLast(){
 
 vector<ParticleGenerator::ParticleAndBox>
 PsdSphereGenerator::operator()(const shared_ptr<Material>&mat){
-	if(mass && !(mat->density>0)) woo::ValueError("PsdSphereGenerator: material density must be positive (not "+to_string(mat->density)+")");
+	if(mass && !(mat->density>0)) throw std::invalid_argument("PsdSphereGenerator: material density must be positive (not "+to_string(mat->density)+")");
 	int bin; Real r;
 	std::tie(r,bin)=computeNextRadiusBin();
 
@@ -175,8 +175,8 @@ Real PsdClumpGenerator::critDt(Real density, Real young) {
 
 vector<ParticleGenerator::ParticleAndBox>
 PsdClumpGenerator::operator()(const shared_ptr<Material>&mat){
-	if(mass && !(mat->density>0)) woo::ValueError("PsdClumpGenerator: material density must be positive (not "+to_string(mat->density)+")");
-	if(clumps.empty()) woo::ValueError("PsdClumpGenerator.clump may not be empty.");
+	if(mass && !(mat->density>0)) throw std::invalid_argument("PsdClumpGenerator: material density must be positive (not "+to_string(mat->density)+")");
+	if(clumps.empty()) throw std::invalid_argument("PsdClumpGenerator.clump may not be empty.");
 	int bin; Real r;
 	std::tie(r,bin)=computeNextRadiusBin();
 	LOG_TRACE("Next radius is "<<r);
@@ -185,7 +185,7 @@ PsdClumpGenerator::operator()(const shared_ptr<Material>&mat){
 	
 	// sum probabilities, with interpolation for each clump
 	for(size_t i=0; i<clumps.size(); i++){
-		if(!clumps[i]) woo::ValueError("PsdCLumpGenerator.clumps["+to_string(i)+"] is None.");
+		if(!clumps[i]) throw std::invalid_argument("PsdCLumpGenerator.clumps["+to_string(i)+"] is None.");
 		SphereClumpGeom& C(*clumps[i]);
 		C.ensureOk();
 		const auto& pf(C.scaleProb); // probability function
@@ -264,11 +264,11 @@ CREATE_LOGGER(PsdCapsuleGenerator);
 
 vector<ParticleGenerator::ParticleAndBox>
 PsdCapsuleGenerator::operator()(const shared_ptr<Material>&mat){
-	if(mass && !(mat->density>0)) woo::ValueError("PsdCapsuleGenerator: material density must be positive (not "+to_string(mat->density)+")");
+	if(mass && !(mat->density>0)) throw std::invalid_argument("PsdCapsuleGenerator: material density must be positive (not "+to_string(mat->density)+")");
 	int bin; Real rEq; // equivalent radius
 	std::tie(rEq,bin)=computeNextRadiusBin();
 
-	if(!(shaftRadiusRatio.minCoeff()>0)) woo::ValueError("PscCapsuleGenerator.shaftRadiusRatio: must be interval with positive endpoints (current: "+to_string(shaftRadiusRatio[0])+","+to_string(shaftRadiusRatio[1])+")");
+	if(!(shaftRadiusRatio.minCoeff()>=0)) throw std::invalid_argument("PscCapsuleGenerator.shaftRadiusRatio: must be interval with non-negative endpoints (current: "+to_string(shaftRadiusRatio[0])+","+to_string(shaftRadiusRatio[1])+")");
 	Real srRatio=shaftRadiusRatio[0]+Mathr::UnitRandom()*(shaftRadiusRatio[1]-shaftRadiusRatio[0]);
 	Real cRad=rEq/cbrt(4/3.+srRatio);
 	Real cShaft=cRad*srRatio;
@@ -314,11 +314,11 @@ CREATE_LOGGER(PsdEllipsoidGenerator);
 
 vector<ParticleGenerator::ParticleAndBox>
 PsdEllipsoidGenerator::operator()(const shared_ptr<Material>&mat){
-	if(mass && !(mat->density>0)) woo::ValueError("PsdEllipsoidGenerator: material density must be positive (not "+to_string(mat->density)+")");
+	if(mass && !(mat->density>0)) throw std::invalid_argument("PsdEllipsoidGenerator: material density must be positive (not "+to_string(mat->density)+")");
 	int bin; Real rEq; // equivalent radius
 	std::tie(rEq,bin)=computeNextRadiusBin();
 
-	if(!(axisRatio2.minCoeff()>0)) woo::ValueError("PscEllipsoidGenerator.axisRatio2: must be interval with positive endpoints (current: "+to_string(axisRatio2[0])+","+to_string(axisRatio2[1])+")");
+	if(!(axisRatio2.minCoeff()>0)) throw std::invalid_argument("PscEllipsoidGenerator.axisRatio2: must be interval with positive endpoints (current: "+to_string(axisRatio2[0])+","+to_string(axisRatio2[1])+")");
 	Real beta=axisRatio2[0]+Mathr::UnitRandom()*(axisRatio2[1]-axisRatio2[0]);
 	Real gamma=(axisRatio3.minCoeff()>0?axisRatio3[0]+Mathr::UnitRandom()*(axisRatio3[1]-axisRatio3[0]):beta);
 	Real a=rEq/cbrt(beta*gamma);

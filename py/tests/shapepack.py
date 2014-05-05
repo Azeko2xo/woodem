@@ -62,4 +62,24 @@ class TestShapePack(unittest.TestCase):
 		self.assert_(S2.dem.nodes[0].dem.clump) # two-sphere clump node
 		self.assert_(not S2.dem.nodes[1].dem.clump) # capsule node
 		# TODO: test that particle positions are as they should be
+	def assertAlmostEqualRel(self,a,b,relerr,abserr=0):
+		self.assertAlmostEqual(a,b,delta=max(max(abs(a),abs(b))*relerr,abserr))
+	def testGridSamping(self):
+		'ShapePack: grid samping gives good approximations of mass+inertia'
+		# take a single shape, compare with clump of zero-sized sphere (to force grid samping) and that shape
+		m=woo.utils.defaultMaterial()
+		zeroSphere=woo.utils.sphere((0,0,0),.4) # sphere which is entirely inside the thing
+		for p in [woo.utils.sphere((0,0,0),1,mat=m),woo.utils.ellipsoid((0,0,0),semiAxes=(.8,1,1.2),mat=m),woo.utils.capsule((0,0,0),radius=.8,shaft=.6,mat=m)]:
+			# print p.shape
+			sp=woo.dem.ShapePack()
+			sp.add([p.shape,zeroSphere.shape])
+			r=sp.raws[0]
+			r.recompute(div=10)
+			self.assertAlmostEqualRel(r.equivRad,p.shape.equivRadius,1e-2)
+			self.assertAlmostEqualRel(r.volume,p.mass.mass/m.density,1e-2)
+			# sorted since axes may be swapped
+			ii1,ii2=sort(r.inertia),sort(p.inertia/m.density)
+			for i1,i2 in zip(ii1,ii2): self.assertAlmostEqualRel(i1,i2,1e-2)
+			for ax in (0,1,2):
+				self.assertAlmostEqualRel(r.pos[ax],p.pos[ax],0,1e-2)
 

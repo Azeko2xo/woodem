@@ -32,6 +32,7 @@ struct ConveyorFactory: public ParticleFactory{
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(ConveyorFactory,ParticleFactory,"Factory producing infinite band of particles from packing periodic in the x-direction. Clumps are fully supported.",
 		((shared_ptr<Material>,material,,AttrTrait<>().startGroup("Particles"),"Material for new particles"))
 		((shared_ptr<SpherePack>,spherePack,,AttrTrait<Attr::noSave|Attr::triggerPostLoad>(),":obj:`woo.pack.SpherePack` object; when specified, :obj:`centers`, :obj:`radii` (and :obj:`clumps`, if clumps are contained) are discarded  and will be computed from this :obj:`SpherePack`. The attribute is reset afterwards."))
+		((shared_ptr<ShapePack>,shapePack,,AttrTrait<Attr::triggerPostLoad>(),"Purely geomerical description of particles to be generated (will replace :obj:`spherePack`, :obj:`centers`, :obj:`radii`, :obj:`clumps` and :obj:`cellLen` in the future)."))
 		((bool,zTrim,false,AttrTrait<>().noGui(),"Trim packing from above so that the ratio of :obj:`vel` / :obj:`packVel` is as small as possible. Spheres/clumps will be discarded from above and this flag will be set to false once trimming is done (it will not be called again explicitly even if :obj:`massRate` or :obj:`vel` change."))
 		((Real,zTrimHt,NaN,AttrTrait<>().noGui(),"Height at which the packing was trimmed if :obj:`zTrim` was set."))
 		((Real,cellLen,NaN,AttrTrait<>().lenUnit(),"Length of the band cell, which is repeated periodically (if :obj:`spherePack` is given and is periodic, this value is deduced)"))

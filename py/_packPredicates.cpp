@@ -23,14 +23,6 @@ See examples/regular-sphere-pack/regular-sphere-pack.py for an example.
 
 */
 
-struct Predicate{
-	public:
-		virtual bool operator() (const Vector3r& pt,Real pad=0.) const = 0;
-		virtual AlignedBox3r aabb() const = 0;
-		Vector3r dim() const { return aabb().sizes(); }
-		Vector3r center() const { return aabb().center(); }
-};
-
 /* Since we want to make Predicate::operator() and Predicate::aabb() callable from c++ on py::object
 with the right virtual method resolution, we have to wrap the class in the following way. See 
 http://www.boost.org/doc/libs/1_38_0/libs/python/doc/tutorial/doc/html/python/exposing.html for documentation

@@ -116,6 +116,7 @@ void Leapfrog::run(){
 		ImLL4hInv=(Matrix3r::Identity()-dt*(nnextL+pprevL)/4.).inverse();
 		IpLL4h   = Matrix3r::Identity()+dt*(nnextL+pprevL)/4.;
 		LmL=(nnextL-pprevL); 
+		// https://answers.launchpad.net/yade/+question/247806 : am I really sure about the .5? no, I am not!!
 		// difference of "spin" (angVel) vectors, which are duals of spin tensor
 		deltaSpinVec=-.5*leviCivita((.5*(pprevL-pprevL.transpose())).eval())+.5*leviCivita((.5*(nnextL-nnextL.transpose())).eval());
 	}
@@ -197,7 +198,7 @@ void Leapfrog::run(){
 					angAccel=computeAngAccel(t,dyn.inertia,dyn);
 					nonviscDamp2nd(dt,t,pprevFluctAngVel,angAccel);
 					dyn.angVel+=dt*angAccel;
-					if(homoDeform==Cell::HOMO_GRADV2) dyn.angVel+=deltaSpinVec;
+					if(homoDeform==Cell::HOMO_GRADV2) dyn.angVel-=deltaSpinVec;
 				} else { // uses torque
 					for(int i=0; i<3; i++) if(dyn.isBlockedAxisDOF(i,true)) t[i]=0; // block DOFs here
 					nonviscDamp1st(t,pprevFluctAngVel);
@@ -230,7 +231,11 @@ void Leapfrog::run(){
 		if(!useAspherical) leapfrogSphericalRotate(node);
 		else {
 			if(dyn.inertia==Vector3r::Zero()) throw std::runtime_error("Leapfrog::run: DemField.nodes["+to_string(i)+"].den.inertia==(0,0,0), but the node wants to use aspherical integrator. Aspherical integrator is selected for non-spherical particles which have at least one rotational DOF free.");
-			leapfrogAsphericalRotate(node,t);
+			if(!isPeriodic) leapfrogAsphericalRotate(node,t);
+			else{
+				// FIXME: add fake torque from rotating space or modify angMom or angVel
+				leapfrogAsphericalRotate(node,t); //-dyn.inertia.asDiagonal()*node->ori.conjugate()*deltaSpinVec/dt*2);
+			}
 		}
 
 		if(reset){

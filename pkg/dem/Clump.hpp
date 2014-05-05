@@ -12,7 +12,12 @@ struct SphereClumpGeom: public ShapeClump {
 	bool isOk() const { return !isnan(volume); }
 	void ensureOk() { if(!isOk()) recompute(div,/*failOk*/false); }
 	std::tuple<shared_ptr<Node>,vector<shared_ptr<Particle>>> makeParticles(const shared_ptr<Material>&, const Vector3r& pos, const Quaternionr& ori, int mask, Real scale=1.) WOO_CXX11_OVERRIDE;
+	// void ensureApproxPos() WOO_CXX11_OVERRIDE;
 	static vector<shared_ptr<SphereClumpGeom>> fromSpherePack(const shared_ptr<SpherePack>& sp, int div=5);
+
+	void translate(const Vector3r& offset) WOO_CXX11_OVERRIDE;
+	shared_ptr<ShapeClump> copy() const WOO_CXX11_OVERRIDE;
+
 
 	#define woo_dem_SphereClumpGeom__CLASS_BASE_DOC_ATTRS_PY \
 		SphereClumpGeom,ShapeClump,"Defines geometry of spherical clumps. Each clump is described by spheres it is made of (position and radius).", \

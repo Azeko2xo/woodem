@@ -359,7 +359,7 @@ Real distSq_SegmentSegment(const Vector3r& center0, const Vector3r& direction0, 
 
 
 void Capsule::selfTest(const shared_ptr<Particle>& p){
-	if(!(radius>0.) || !(shaft>0.)) throw std::runtime_error("Capsule #"+to_string(p->id)+": both radius and shaft must be positive lengths (current: radius="+to_string(radius)+", shaft="+to_string(shaft)+").");
+	if(!(radius>0.) || !(shaft>=0.)) throw std::runtime_error("Capsule #"+to_string(p->id)+": radius must be positive and shaft non-negative (current: radius="+to_string(radius)+", shaft="+to_string(shaft)+").");
 	if(!numNodesOk()) throw std::runtime_error("Capsule #"+to_string(p->id)+": numNodesOk() failed: must be 1, not "+to_string(nodes.size())+".");
 }
 
@@ -368,8 +368,7 @@ Real Capsule::volume() const {
 }
 
 Real Capsule::equivRadius() const {
-	Real V=(4/3.)*M_PI*pow(radius,3)+M_PI*pow(radius,2)*shaft;
-	return cbrt(V)*3/(4*M_PI);
+	return cbrt(this->Capsule::volume()*3/(4*M_PI));
 }
 
 bool Capsule::isInside(const Vector3r& pt) const{
@@ -421,7 +420,8 @@ void Capsule::setFromRaw(const Vector3r& _center, const Real& _radius, const vec
 	nodes[0]->pos=_center;
 	shaft=2*hShaft.norm();
 	radius=_radius-.5*shaft;
-	nodes[0]->ori.setFromTwoVectors(Vector3r::UnitX(),hShaft.normalized());
+	if(shaft>0.) nodes[0]->ori.setFromTwoVectors(Vector3r::UnitX(),hShaft.normalized());
+	else nodes[0]->ori=Quaternionr::Identity();
 }
 
 
@@ -594,7 +594,29 @@ bool Cg2_Capsule_Capsule_L6Geom::go(const shared_ptr<Shape>& s1, const shared_pt
 
 
 
-bool Cg2_Facet_Capsule_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){ return false; }
+bool Cg2_Facet_Capsule_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
+	return false;
+#if 0
+	bool malfunctioning=true;
+	if(malfunctioning) LOG_ERROR("This function currently replaces facet by infinite plane, the results are generally gerbage!!");
+	const auto& facet(s1->cast<Facet>()); const auto& cap(s2->cast<Capsule>());
+	const auto& wallPos(wall.nodes[0]->pos);
+	const auto& capNode(cap.nodes[0]);
+	const Vector3r capPos(capNode->pos+shift2); const auto& capOri(capNode->ori);
+	const DemData& capDyn(capNode->getData<DemData>());
+	Vector3r fNormal=facet.getNormal();
+	Vector3r AB[2]={capPos-capOri*Vector3r(cap.shaft/2.,0,0),capPos+capOri*Vector3r(cap.shaft/2.,0,0)};
+	Vector2r planeDists;
+	for(int i:{0,1}) planeDists[i]=(AB[i]-facet.nodes[0]->pos).dot(fNormal);
+
+	// compute normal, contPt, uN
+
+	Vector3r linVel,angVel;
+	std::tie(linVel,angVel)=f.interpolatePtLinAngVel(contPt);
+	handleSpheresLikeContact(C,wallPos,linVel,angVel,capPos,capDyn.vel,capDyn.angVel,normal,contPt,uN,/*r1*/-cap.radius,cap.radius);
+	return true;
+#endif
+}
 
 #ifdef WOO_OPENGL
 #include<woo/pkg/gl/Functors.hpp>
@@ -616,10 +638,16 @@ void Gl1_Capsule::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool
 		else glDisable(GL_POINT_SMOOTH);
 		GLUtils::setLocalCoords(dPos+shape->nodes[0]->pos+shift,(dOri*shape->nodes[0]->ori));
 		glPointSize(1.);
-		glBegin(GL_LINE_STRIP);
-			glVertex3v(Vector3r(-shaft/2.,0,0));
-			glVertex3v(Vector3r( shaft/2.,0,0));
-		glEnd();
+		if(shaft>0){
+			glBegin(GL_LINE_STRIP);
+				glVertex3v(Vector3r(-shaft/2.,0,0));
+				glVertex3v(Vector3r( shaft/2.,0,0));
+			glEnd();
+		} else {
+			glBegin(GL_POINTS);
+			glVertex3v(Vector3r(0,0,0));
+			glEnd();
+		}
 		return;
 	}
 	static double clipPlaneA[4]={0,0,-1,0};

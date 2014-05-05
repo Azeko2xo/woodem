@@ -75,7 +75,7 @@ int Particle::countRealContacts() const{
 void Shape::setFromRaw_helper_checkRaw_makeNodes(const vector<Real>& raw, size_t numRaw){
 	if(raw.size()!=numRaw) throw std::runtime_error("Error setting "+pyStr()+" from raw data: "+to_string(numRaw)+" numbers expected, "+to_string(raw.size())+" given.");
 	// add/remove nodes as necessary
-	while(nodes.size()<numNodes()) nodes.push_back(make_shared<Node>());
+	while((int)nodes.size()<numNodes()) nodes.push_back(make_shared<Node>());
 	nodes.resize(numNodes());
 }
 

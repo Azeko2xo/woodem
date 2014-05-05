@@ -294,7 +294,7 @@ struct Shape: public Object, public Indexable{
 	// return number of nodes for this shape; derived classes must override
 	virtual int numNodes() const { return -1; } 
 	// checks for the right number of nodes; to be used in assertions
-	bool numNodesOk() const { return numNodes()==nodes.size(); }
+	bool numNodesOk() const { return numNodes()==(int)nodes.size(); }
 	// check that we have the right number of nodes and that each nodes has DemData; raise python exception on failures
 	void checkNodesHaveDemData() const;
 	// this will be called from DemField::selfTest for each particle
@@ -344,6 +344,7 @@ struct Shape: public Object, public Indexable{
 			.add_property("hi",&Shape::getHighlighted,&Shape::setHighlighted) \
 			.add_property("visible",&Shape::getVisible,&Shape::setVisible) \
 			.add_property("equivRadius",&Shape::equivRadius) \
+			.add_property("volume",&Shape::volume) \
 			.def("asRaw",&Shape::pyAsRaw) \
 			.def("setFromRaw",&Shape::setFromRaw) \
 			.def("isInside",&Shape::isInside) \

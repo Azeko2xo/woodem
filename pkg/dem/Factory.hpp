@@ -40,6 +40,8 @@ struct ParticleGenerator: public Object{
 	// called when the particle placement failed; the generator must revoke it and update its bookkeeping information (e.g. PSD, generated radii and diameters etc)
 	virtual void revokeLast(){ if(save && !genDiamMass.empty()) genDiamMass.resize(genDiamMass.size()-1); }
 	virtual void clear(){ genDiamMass.clear(); }
+	// spheres-only generators override this to enable some optimizations
+	virtual bool isSpheresOnly() const { throw std::logic_error(pyStr()+" should override ParticleGenerator.isSpheresOnly."); }
 	py::tuple pyPsd(bool mass, bool cumulative, bool normalize, Vector2r dRange, int num) const;
 	py::object pyDiamMass(bool zipped=false) const;
 	Real pyMassOfDiam(Real min, Real max) const;
@@ -62,6 +64,7 @@ WOO_REGISTER_OBJECT(ParticleGenerator);
 struct MinMaxSphereGenerator: public ParticleGenerator{
 	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m);
 	Real critDt(Real density, Real young) WOO_CXX11_OVERRIDE; 
+	bool isSpheresOnly() const WOO_CXX11_OVERRIDE { return true; }
 	WOO_CLASS_BASE_DOC_ATTRS(MinMaxSphereGenerator,ParticleGenerator,"Generate particles with given minimum and maximum radius",
 		((Vector2r,dRange,Vector2r(NaN,NaN),,"Minimum and maximum radius of generated spheres"))
 	);
@@ -100,6 +103,7 @@ struct RandomFactory: public ParticleFactory{
 	Real critDt() WOO_CXX11_OVERRIDE; 
 	shared_ptr<Collider> collider;
 	enum{MAXATT_ERROR=0,MAXATT_DEAD,MAXATT_WARN,MAXATT_SILENT};
+	bool spheresOnly; // set at each step, queried from the generator
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(RandomFactory,ParticleFactory,"Factory generating new particles. This class overrides :obj:`woo.core.Engine.critDt`, which in turn calls :obj:`woo.dem.ParticleGenerator.critDt` with all possible :obj:`materials` one by one.",
 		((Real,massFlowRate,NaN,AttrTrait<>().massFlowRateUnit(),"Mass flow rate; if zero, generate as many particles as possible, until maxAttemps is reached."))
 		((vector<shared_ptr<Material>>,materials,,,"Set of materials for new particles, randomly picked from"))
@@ -113,7 +117,6 @@ struct RandomFactory: public ParticleFactory{
 		((Real,color,NaN,,"Color for new particles (NaN for random)"))
 		//
 		((Real,stepGoalMass,0,AttrTrait<Attr::readonly>(),"Mass to be attained in this step"))
-		((bool,spheresOnly,true,,"Enable optimizations which require that generated particles are spheres (clumped or not). If non-spherical particles are generated, an exception is raised."))
 		// ((long,stepPrev,-1,AttrTrait<Attr::readonly>(),"Step in which we were run for the last time"))
 		,/*ctor*/
 		,/*py*/

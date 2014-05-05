@@ -53,6 +53,25 @@ vector<shared_ptr<SphereClumpGeom>> SphereClumpGeom::fromSpherePack(const shared
 	return ret;
 }
 
+#if 0
+void SphereClumpGeom::ensureApproxPos(){
+	if(isOk()) return;
+	pos=Vector3r::Zero();
+	for(const auto& c: centers): pos+=c;
+	c/=centers.size();
+}
+#endif
+
+void SphereClumpGeom::translate(const Vector3r& offset){
+	for(auto& c: centers) c+=offset;
+}
+
+shared_ptr<ShapeClump> SphereClumpGeom::copy() const {
+	auto ret=make_shared<SphereClumpGeom>();
+	ret->centers=centers;
+	ret->radii=radii;
+	return ret;
+}
 
 
 void SphereClumpGeom::recompute(int _div, bool failOk, bool fastOnly){
@@ -60,8 +79,7 @@ void SphereClumpGeom::recompute(int _div, bool failOk, bool fastOnly){
 		if(failOk) { makeInvalid(); return;}
 		throw std::runtime_error("SphereClumpGeom.recompute: centers and radii must have the same length (len(centers)="+to_string(centers.size())+", len(radii)="+to_string(radii.size())+"), and may not be empty.");
 	}
-	#if 0
-	#endif
+	div=_div;
 	// one single sphere: simple
 	if(centers.size()==1){
 		pos=centers[0];
