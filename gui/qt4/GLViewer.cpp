@@ -778,7 +778,7 @@ void GLViewer::postDraw(){
 		}
 	}
 
-	/* show cursor position when orthogonal and aligned */
+	/* show cursor position & cross-hair when orthogonal and aligned */
 	if(camera()->type()==qglviewer::Camera::ORTHOGRAPHIC){
 		qglviewer::Vec up(camera()->upVector());
 		qglviewer::Vec dir(camera()->viewDirection());
@@ -799,8 +799,18 @@ void GLViewer::postDraw(){
 				Vector3r color(Vector3r::Zero());
 				color[ax]=1.;
 				glColor3v(color);
-				QGLViewer::drawText(p.x()+20,p.y()+14*ax,oss.str().c_str());
+				QGLViewer::drawText(p.x()+20,p.y()+14*(ax+1),oss.str().c_str());
 			}
+			// cross-hair
+			glColor3v(Vector3r(.5,.5,.5));
+			startScreenCoordinatesSystem();
+				glBegin(GL_LINES);
+					if(p.x()>20){ glVertex2i(0,p.y()); glVertex2i(p.x()-20,p.y()); }
+					if(p.x()<width()-20){ glVertex2i(p.x()+20,p.y()); glVertex2i(width(),p.y()); }
+					if(p.y()>20){ glVertex2i(p.x(),0); glVertex2i(p.x(),p.y()-20); }
+					if(p.y()<height()-20){ glVertex2i(p.x(),p.y()+20); glVertex2i(p.x(),height()); }
+				glEnd();
+			stopScreenCoordinatesSystem();
 		}
 	}
 
