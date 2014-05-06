@@ -1,3 +1,5 @@
+#ifndef WOO_NOCAPSULE
+
 #include<woo/pkg/dem/Capsule.hpp>
 #include<woo/pkg/dem/Sphere.hpp>
 
@@ -677,5 +679,7 @@ void Gl1_Capsule::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool
 		glDisable(GL_CLIP_PLANE0);
 	}
 }
-#endif
+#endif /* WOO_OPENGL */
 
+
+#endif /* WOO_NOCAPSULE */

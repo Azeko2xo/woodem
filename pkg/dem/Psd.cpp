@@ -254,6 +254,8 @@ PsdClumpGenerator::operator()(const shared_ptr<Material>&mat){
 }
 
 
+#ifndef WOO_NOCAPSULE
+
 /**********************************************
               PsdCapsuleGenerator
 **********************************************/
@@ -302,6 +304,8 @@ PsdCapsuleGenerator::operator()(const shared_ptr<Material>&mat){
 
 	return vector<ParticleAndBox>({{par,capsule->alignedBox()}});
 };
+
+#endif /* WOO_NOCAPSULE */
 
 
 /**********************************************

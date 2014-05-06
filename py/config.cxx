@@ -49,6 +49,9 @@ BOOST_PYTHON_MODULE(config){
 		#ifdef WOO_NOXML
 			features.append("noxml");
 		#endif
+		#ifdef WOO_NOCAPSULE
+			features.append("nocapsule");
+		#endif
 
 	py::scope().attr("features")=features;
 

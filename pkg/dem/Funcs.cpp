@@ -123,7 +123,9 @@ Real DemFuncs::pWaveDt(const shared_ptr<DemField>& dem, bool noClumps/*=false*/)
 		Real radius;
 		if(dynamic_pointer_cast<Sphere>(p->shape)) radius=p->shape->cast<Sphere>().radius;
 		else if(dynamic_pointer_cast<Ellipsoid>(p->shape)) radius=p->shape->cast<Ellipsoid>().semiAxes.minCoeff();
-		else if(dynamic_pointer_cast<Capsule>(p->shape)) radius=p->shape->cast<Capsule>().radius;
+		#ifndef WOO_NOCAPSULE
+			else if(dynamic_pointer_cast<Capsule>(p->shape)) radius=p->shape->cast<Capsule>().radius;
+		#endif
 		else continue;
 		// for clumps, the velocity is higher: the distance from the sphere center to the clump center
 		// is traversed immediately, thus we need to increase the velocity artificially

@@ -44,6 +44,7 @@ struct PsdClumpGenerator: public PsdSphereGenerator {
 };
 WOO_REGISTER_OBJECT(PsdClumpGenerator);
 
+#ifndef WOO_NOCAPSULE
 struct PsdCapsuleGenerator: public PsdSphereGenerator {
 	DECLARE_LOGGER;
 	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m) WOO_CXX11_OVERRIDE;
@@ -54,6 +55,7 @@ struct PsdCapsuleGenerator: public PsdSphereGenerator {
 	);
 };
 WOO_REGISTER_OBJECT(PsdCapsuleGenerator);
+#endif
 
 struct PsdEllipsoidGenerator: public PsdSphereGenerator {
 	DECLARE_LOGGER;

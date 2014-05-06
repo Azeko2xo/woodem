@@ -53,7 +53,9 @@ shared_ptr<Shape> RawShape::toShape(Real density, Real scale) const {
 	shared_ptr<Shape> ret;
 	if(className=="Sphere") ret=make_shared<Sphere>();
 	else if(className=="Ellipsoid") ret=make_shared<Ellipsoid>();
-	else if(className=="Capsule") ret=make_shared<Capsule>();
+	#ifndef WOO_NOCAPSULE
+		else if(className=="Capsule") ret=make_shared<Capsule>();
+	#endif
 	else throw std::invalid_argument("RawShape.toShape: className '"+className+"' is not supported.");
 	if(scale<=0) throw std::invalid_argument("RawShape.toShape: scale must be a positive number.");
 	ret->setFromRaw(center,radius,raw);
@@ -282,7 +284,11 @@ Real ShapePack::solidVolume(){
 }
 
 bool ShapePack::shapeSupported(const shared_ptr<Shape>& sh) const {
-	return sh->isA<Sphere>() || sh->isA<Ellipsoid>() || sh->isA<Capsule>();
+	return sh->isA<Sphere>() || sh->isA<Ellipsoid>()
+	#ifndef WOO_NOCAPSULE
+		|| sh->isA<Capsule>()
+	#endif
+	;
 }
 
 void ShapePack::fromDem(const shared_ptr<Scene>& scene, const shared_ptr<DemField>& dem, int mask, bool skipUnsupported){
