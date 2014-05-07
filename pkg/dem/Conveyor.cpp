@@ -134,7 +134,7 @@ void ConveyorFactory::postLoad(ConveyorFactory&,void* attr){
 	if(shapePack){
 		size_t N=shapePack->raws.size();
 		centers.resize(N); radii.resize(N);
-		LOG_WARN("Copying data from shapePack over to centers, radii ("<<N<<"items).");
+		LOG_WARN("Copying data from shapePack over to centers, radii ("<<N<<" items).");
 		for(size_t i=0; i<N; i++){
 			centers[i]=shapePack->raws[i]->pos;
 			radii[i]=shapePack->raws[i]->equivRad;
@@ -300,7 +300,8 @@ void ConveyorFactory::run(){
 		if(shapePack){
 			const auto& r=shapePack->raws[nextIx];
 			vector<shared_ptr<Particle>> pp;
-			std::tie(n,pp)=r->makeParticles(material,/*pos*/newPos,/*ori*/Quaternionr::Identity(),/*mask*/mask,/*scale*/1.);
+			// use conveyor's identity which is added to the particle's orientation
+			std::tie(n,pp)=r->makeParticles(material,/*pos*/newPos,/*ori*/node->ori,/*mask*/mask,/*scale*/1.);
 			for(auto& p: pp){
 				dem->particles->insert(p);
 				LOG_TRACE("[shapePack] new particle #"<<sphere->id<<", "<<p->shape->pyStr());

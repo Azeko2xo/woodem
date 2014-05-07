@@ -595,29 +595,84 @@ bool Cg2_Capsule_Capsule_L6Geom::go(const shared_ptr<Shape>& s1, const shared_pt
 }
 
 
-
+CREATE_LOGGER(Cg2_Facet_Capsule_L6Geom);
 bool Cg2_Facet_Capsule_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
-	return false;
-#if 0
-	bool malfunctioning=true;
-	if(malfunctioning) LOG_ERROR("This function currently replaces facet by infinite plane, the results are generally gerbage!!");
 	const auto& facet(s1->cast<Facet>()); const auto& cap(s2->cast<Capsule>());
-	const auto& wallPos(wall.nodes[0]->pos);
+	// const auto& wallPos(wall.nodes[0]->pos);
 	const auto& capNode(cap.nodes[0]);
 	const Vector3r capPos(capNode->pos+shift2); const auto& capOri(capNode->ori);
 	const DemData& capDyn(capNode->getData<DemData>());
 	Vector3r fNormal=facet.getNormal();
 	Vector3r AB[2]={capPos-capOri*Vector3r(cap.shaft/2.,0,0),capPos+capOri*Vector3r(cap.shaft/2.,0,0)};
-	Vector2r planeDists;
-	for(int i:{0,1}) planeDists[i]=(AB[i]-facet.nodes[0]->pos).dot(fNormal);
-
-	// compute normal, contPt, uN
+	const Vector3r& f0pos(facet.nodes[0]->pos);
+	typedef Eigen::Array<Real,2,1> Array2r;
+	Array2r planeDists;
+	for(int i:{0,1}) planeDists[i]=(AB[i]-f0pos).dot(fNormal);
+	bool mayFail=(!C->isReal() && !force);
+	// points on the same side and too far from the plane
+	Real touchDist=facet.halfThick+cap.radius;
+	if(mayFail && (std::signbit(planeDists[0])==std::signbit(planeDists[1])) && planeDists.abs().minCoeff()>touchDist){
+		// cerr<<"Too far from the plane: "<<planeDists.transpose()<<endl;
+		return false;
+	}
+	// compute points on the facet which are the closest to the segment ends
+	Vector3r ffp[2]={facet.getNearestPt(AB[0]),facet.getNearestPt(AB[1])};
+	// find points on the segment closest to those points (project back onto the segment)
+	Array2r rp; // relative positions on the segment
+	Vector3r ccp[2]={CompUtils::closestSegmentPt(ffp[0],AB[0],AB[1],&rp[0]),CompUtils::closestSegmentPt(ffp[1],AB[0],AB[1],&rp[1])};
+	Array2r fcd2((ccp[0]-ffp[0]).squaredNorm(),(ccp[1]-ffp[1]).squaredNorm());
+	if(mayFail && fcd2.minCoeff()>pow(touchDist,2)){
+		#if 0
+			cerr<<"===================================================="<<endl;
+			cerr<<"  Too far from the triangle: "<<fcd2.transpose()<<endl;
+			cerr<<"  Segment endpoints: "<<AB[0].transpose()<<"; "<<AB[1].transpose()<<endl;
+			cerr<<"  Triangle points: "<<ffp[0].transpose()<<"; "<<ffp[1].transpose()<<endl;
+			cerr<<"  Segment points: "<<ccp[0].transpose()<<"; "<<ccp[1].transpose()<<endl;
+		#endif
+		return false; // too far from the triangle
+	}
+	Array2r fcd=fcd2.sqrt();
+	// penetration is the geometrical max
+	Real uN=fcd.minCoeff()-touchDist;
+	// normal vector and contact point are geometry-dependent
+	Vector3r normal, contPt;
+	// if one of the points is beyond physical touch, do no interpolation and take the close one
+	// (if both are beyond, then take the closer one anyway as the contact must be computed;
+	// the case of too far was handled above already)
+	if(fcd.maxCoeff()>touchDist){
+		// cerr<<"[1]";
+		Array2r::Index ix;
+		fcd.minCoeff(&ix);
+		normal=(ccp[ix]-ffp[ix]).normalized();
+		contPt=ffp[ix]+(facet.halfThick+0.5*uN)*normal;
+	} else {
+		//cerr<<"[2]";
+		Array2r weights(fcd[0]-touchDist,fcd[1]-touchDist);
+		weights/=weights.sum();
+		// if(weights.maxCoeff()>0) LOG_ERROR("weights are positive but should not be: "<<weights.transpose());
+		normal=(weights[0]*(ccp[0]-ffp[0])+weights[1]*(ccp[1]-ffp[1])).normalized(); // interpolated normal; is this not a nonsense?!
+		#if 0
+			contPt=weights[0]*ccp[0]+weights[1]*ccp[1]; // point on the segment line weighted by distance
+			contPt+=-normal*(cap.radius+.5*uN);
+		#else
+			contPt=weights[0]*ffp[0]+weights[1]*ffp[1]+(facet.halfThick+.5*uN)*normal; // FIXME: +.5*uN
+		#endif
+		// interpolate between two points; this also handles the case when both
+		#if 0
+		cerr<<"===================================================="<<endl;
+		cerr<<"  Segment endpoints: "<<AB[0].transpose()<<"; "<<AB[1].transpose()<<endl;
+		cerr<<"  Triangle points: "<<ffp[0].transpose()<<"; "<<ffp[1].transpose()<<endl;
+		cerr<<"  Segment points: "<<ccp[0].transpose()<<"; "<<ccp[1].transpose()<<endl;
+		cerr<<"  normal: "<<normal<<endl;
+		cerr<<"  weights: "<<weights.transpose()<<endl;
+		cerr<<"  contPt: "<<contPt.transpose()<<endl;
+		#endif
+	}
 
 	Vector3r linVel,angVel;
-	std::tie(linVel,angVel)=f.interpolatePtLinAngVel(contPt);
-	handleSpheresLikeContact(C,wallPos,linVel,angVel,capPos,capDyn.vel,capDyn.angVel,normal,contPt,uN,/*r1*/-cap.radius,cap.radius);
+	std::tie(linVel,angVel)=facet.interpolatePtLinAngVel(contPt);
+	handleSpheresLikeContact(C,contPt,linVel,angVel,capPos,capDyn.vel,capDyn.angVel,normal,contPt,uN,/*r1*/facet.halfThick,cap.radius);
 	return true;
-#endif
 }
 
 #ifdef WOO_OPENGL

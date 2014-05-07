@@ -55,6 +55,7 @@ Real CompUtils::distSq_LineLine(const Vector3r& P, const Vector3r& u, const Vect
 	st=closestParams_LineLine(P,u,Q,v,parallel);
 	return ((P+u*st[0])-(Q+v*st[1])).squaredNorm();
 }
+
 #if 0
 // this function is garbage, see pkg/dem/Capsule.cpp for a working implementation copied over from WildMagic libs
 Real CompUtils::distSq_SegmentSegment(const Vector3r& A0, const Vector3r& A1, const Vector3r& B0, const Vector3r& B1, Vector2r& st, bool& parallel){
@@ -71,6 +72,7 @@ Real CompUtils::distSq_SegmentSegment(const Vector3r& A0, const Vector3r& A1, co
 
 Vector3r CompUtils::closestSegmentPt(const Vector3r& P, const Vector3r& A, const Vector3r& B, Real* normPos){
 	Vector3r BA=B-A;
+	if(unlikely(BA.squaredNorm()==0.)){ if(normPos) *normPos=0.; return A; }
 	Real u=(P.dot(BA)-A.dot(BA))/(BA.squaredNorm());
 	if(normPos) *normPos=u;
 	return A+min(1.,max(0.,u))*BA;
@@ -78,6 +80,12 @@ Vector3r CompUtils::closestSegmentPt(const Vector3r& P, const Vector3r& A, const
 
 Vector3r CompUtils::inscribedCircleCenter(const Vector3r& v0, const Vector3r& v1, const Vector3r& v2){
 	return v0+((v2-v0)*(v1-v0).norm()+(v1-v0)*(v2-v0).norm())/((v1-v0).norm()+(v2-v1).norm()+(v0-v2).norm());
+}
+
+Vector3r CompUtils::circumscribedCircleCenter(const Vector3r& A, const Vector3r& B, const Vector3r& C){
+	// http://en.wikipedia.org/wiki/Circumscribed_circle#Circumcircle_equations
+	Vector3r a(A-C), b(B-C);
+	return C+((a.squaredNorm()*b-b.squaredNorm()*a).cross(a.cross(b)))/(2*(a.cross(b)).squaredNorm());
 }
 
 Real CompUtils::segmentPlaneIntersection(const Vector3r& A, const Vector3r& B, const Vector3r& pt, const Vector3r& normal){

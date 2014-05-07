@@ -211,7 +211,7 @@ std::tuple<shared_ptr<Node>,vector<shared_ptr<Particle>>> RawShapeClump::makePar
 	// one particle: do not clump
 	if(shsh.size()==1 && shsh[0]->nodes.size()==1){
 		const auto& n(shsh[0]->nodes[0]);
-		if(!isnan(clumpPos.maxCoeff())){ n->pos=clumpPos; n->ori=clumpOri; }
+		if(!isnan(clumpPos.maxCoeff())){ n->pos=clumpPos; n->ori=clumpOri*n->ori; }
 		return std::make_tuple(n,par);
 	}
 	if(shsh.size()==1) LOG_WARN("RawShapeClump.makeParticle: clumping node of a single multi-nodal particle.");

@@ -35,17 +35,18 @@ void Facet::updateMassInertia(const Real& density) const {
 
 
 void Facet::asRaw(Vector3r& center, Real& radius, vector<Real>& raw) const {
-	center=CompUtils::inscribedCircleCenter(nodes[0]->pos,nodes[1]->pos,nodes[2]->pos);
-	radius=sqrt(Vector3r((nodes[0]->pos-center).squaredNorm(),(nodes[1]->pos-center).squaredNorm(),(nodes[2]->pos-center).squaredNorm()).minCoeff());
+	center=CompUtils::circumscribedCircleCenter(nodes[0]->pos,nodes[1]->pos,nodes[2]->pos);
+	radius=(nodes[0]->pos-center).norm();
 	// store nodal positions as raw data
 	raw.resize(9);
-	for(int i:{0,1,2}) for(int ax:{0,1,2}) raw[3*i+ax]=nodes[i]->pos[ax];
+	// use positions relative to the center so that translation of center translates the whole thing
+	for(int i:{0,1,2}) for(int ax:{0,1,2}) raw[3*i+ax]=nodes[i]->pos[ax]-center[ax];
 }
 
 void Facet::setFromRaw(const Vector3r& center, const Real& radius, const vector<Real>& raw){
 	Shape::setFromRaw_helper_checkRaw_makeNodes(raw,9);
 	// center and radius are ignored
-	for(int i:{0,1,2}) for(int ax:{0,1,2}) nodes[i]->pos[ax]=raw[3*i+ax];
+	for(int i:{0,1,2}) for(int ax:{0,1,2}) nodes[i]->pos[ax]=raw[3*i+ax]+center[ax];
 }
 
 
@@ -114,13 +115,14 @@ Vector3r Facet::getNearestTrianglePt(const Vector3r& pt, const Vector3r[3] pts){
 
 
 Vector3r Facet::getNearestPt(const Vector3r& pt) const {
+	// FIXME: actually no need to project, sign of the dot product will be the same regardless?!
 	Vector3r fNormal=getNormal();
 	Real planeDist=(pt-nodes[0]->pos).dot(fNormal);
 	Vector3r fC=pt-planeDist*fNormal; // point projected to facet's plane
 	Vector3r outVec[3];
 	std::tie(outVec[0],outVec[1],outVec[2])=getOuterVectors();
 	short w=0;
-	for(int i:{0,1,2}) w&=(outVec[i].dot(fC-nodes[i]->pos)>0?1:0)<<i;
+	for(int i:{0,1,2}) w|=(outVec[i].dot(fC-nodes[i]->pos)>0.?1:0)<<i;
 	Vector3r contPt;
 	switch(w){
 		case 0: return fC; // ---: inside triangle
