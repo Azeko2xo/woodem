@@ -192,7 +192,7 @@ def dbReadResults(db,basicTypes=False):
 					else: rowDict[att]=sim.attrs[att]
 				rowDict['misc'],rowDict['series']={},{}
 				for misc in sim['misc'].attrs: rowDict['misc'][misc]=woo.core.WooJSONDecoder(onError='warn').decode(sim['misc'].attrs[misc])
-				for s in sim['series']: rowDict['series'][s]=sim['series'][s]
+				for s in sim['series']: rowDict['series'][s]=numpy.array(sim['series'][s])
 				ret.append(rowDict)
 			## hdf.close()
 			return ret
@@ -412,6 +412,9 @@ def dbToSpread(db,out=None,dialect='xls',rows=False,series=True,ignored=('plotDa
 					sheet.write(0,col,colName,headStyle)
 					rowOffset=1 # length of header
 					for row in range(0,len(dic[colName])):
+						if row+rowOffset>65535:
+							print 'WARNING: the data being converted to XLS (%s) contain %d rows (with %d header rows), which is more than 65535, the limit of the XLS file format. Extra data will be discarded from the XLS output.'%(out,len(dic[colName]),rowOffset)
+							break
 						sheet.write(row+rowOffset,col,dic[colName][row])
 		wbk.save(out)
 	else:

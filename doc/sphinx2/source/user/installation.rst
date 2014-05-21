@@ -7,8 +7,14 @@ Linux
 
 Linux is the platform of choice for both developing and using Woo. Installation can be done in several ways, trading fexibility for straightforwardness.
 
-Package installation
-	If your distribution is supported, this is the easiest way to install and to receive updates automatically, via your system's package manager. For now, only recent releases of Ubuntu have packages built automatically, those can be downloaded from `Woo-daily package archive <https://code.launchpad.net/~eudoxos/+archive/woo-daily>`_.
+.. admonition:: Package installation (Ubuntu, Debian)
+
+	This is the recommended method of installation. You will receive updates automatically via your system's package manager. `Woo-daily package archive <https://code.launchpad.net/~eudoxos/+archive/woo-daily>`_ contains the packages. Open the terminal and type::
+
+		sudo add-apt-repository ppa:eudoxos/woo-daily
+		sudo apt-get update
+		sudo apt-get install python-woo
+
 Compilation from source
 	Source code is hosted at `Launchpad <http://www.launchpad.net/woo>`_ and can be obtained with the `Bazaar revision control system <http://bazaar.canonical.com>`_ by saying ``bzr checkout lp:woo``.
 
