@@ -23,3 +23,17 @@ The geometry computation (performed by various :obj:`woo.dem.CGeomFunctor` subcl
       sphere.rst
       ellipsoid.rst
 
+
+Particle shapes
+----------------
+The following particle shapes are supported:
+
+1. Simple shapes (1-node): :obj:`~woo.dem.Sphere`, :obj:`~woo.dem.Capsule`, :obj:`~woo.dem.Ellipsoid`;
+2. Multinodal shapes: :obj:`~woo.dem.Truss` (2 nodes), :obj:`~woo.dem.Facet` (3 nodes); :obj:`~woo.dem.FlexFacet` (same as :obj:`~woo.dem.Facet` geometrically, but adds deformability);
+3. Infinite axis-aligned shapes: :obj:`~woo.dem.InfCylinder`, :obj:`~woo.dem.Wall`.
+
+The following matrix shows which shapes can collide with each other:
+
+.. include:: generated-cg2-table.rst
+
+The ``g3g`` geometry is an algorithm used in Yade's `ScGeom <https://yade-dem.org/doc/yade.wrapper.html#yade.wrapper.ScGeom>`__ and many other codes including PFC3D; it was only included for comparison purposes and is not to be used otherwise.

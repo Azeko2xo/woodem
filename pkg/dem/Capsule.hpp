@@ -7,6 +7,7 @@
 #include<woo/pkg/dem/L6Geom.hpp>
 #include<woo/pkg/dem/Sphere.hpp>
 #include<woo/pkg/dem/Wall.hpp>
+#include<woo/pkg/dem/InfCylinder.hpp>
 #include<woo/pkg/dem/Facet.hpp>
 
 
@@ -52,21 +53,42 @@ struct Cg2_Capsule_Capsule_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 };
 WOO_REGISTER_OBJECT(Cg2_Capsule_Capsule_L6Geom);
 
+struct Cg2_Sphere_Capsule_L6Geom: public Cg2_Any_Any_L6Geom__Base{
+	bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE;
+	void setMinDist00Sq(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE;
+	#define woo_dem_Cg2_Sphere_Capsule_L6Geom__CLASS_BASE_DOC \
+		Cg2_Sphere_Capsule_L6Geom,Cg2_Any_Any_L6Geom__Base,"Compute :obj:`L6Geom` for contact of :obj:`~woo.dem.Capsule` and :obj:`~woo.dem.Sphere`."
+	WOO_DECL__CLASS_BASE_DOC(woo_dem_Cg2_Sphere_Capsule_L6Geom__CLASS_BASE_DOC);
+	FUNCTOR2D(Sphere,Capsule);
+	DEFINE_FUNCTOR_ORDER_2D(Sphere,Capsule);
+};
+WOO_REGISTER_OBJECT(Cg2_Sphere_Capsule_L6Geom);
+
 struct Cg2_Wall_Capsule_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 	bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE;
 	#define woo_dem_Cg2_Wall_Capsule_L6Geom__CLASS_BASE_DOC \
-		Cg2_Wall_Capsule_L6Geom,Cg2_Any_Any_L6Geom__Base,"Compute :obj:`L6Geom` for contact of :obj:`ellipsoid <woo.dem.Capsule>` and :obj:`wall <woo.dem.Wall>` (axis-aligned plane)."
+		Cg2_Wall_Capsule_L6Geom,Cg2_Any_Any_L6Geom__Base,"Compute :obj:`L6Geom` for contact of :obj:`~woo.dem.Capsule` and :obj:`~woo.dem.Wall` (axis-aligned plane)."
 	WOO_DECL__CLASS_BASE_DOC(woo_dem_Cg2_Wall_Capsule_L6Geom__CLASS_BASE_DOC);
 	FUNCTOR2D(Wall,Capsule);
 	DEFINE_FUNCTOR_ORDER_2D(Wall,Capsule);
 };
 WOO_REGISTER_OBJECT(Cg2_Wall_Capsule_L6Geom);
 
+struct Cg2_InfCylinder_Capsule_L6Geom: public Cg2_Any_Any_L6Geom__Base{
+	bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE;
+	#define woo_dem_Cg2_InfCylinder_Capsule_L6Geom__CLASS_BASE_DOC \
+		Cg2_InfCylinder_Capsule_L6Geom,Cg2_Any_Any_L6Geom__Base,"Compute :obj:`L6Geom` for contact of :obj:`~woo.dem.Capsule` and :obj:`~woo.dem.InfCylinder`."
+	WOO_DECL__CLASS_BASE_DOC(woo_dem_Cg2_InfCylinder_Capsule_L6Geom__CLASS_BASE_DOC);
+	FUNCTOR2D(InfCylinder,Capsule);
+	DEFINE_FUNCTOR_ORDER_2D(InfCylinder,Capsule);
+};
+WOO_REGISTER_OBJECT(Cg2_InfCylinder_Capsule_L6Geom);
+
 struct Cg2_Facet_Capsule_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 	DECLARE_LOGGER;
 	bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE;
 	#define woo_dem_Cg2_Facet_Capsule_L6Geom__CLASS_BASE_DOC \
-		Cg2_Facet_Capsule_L6Geom,Cg2_Any_Any_L6Geom__Base,"Compute :obj:`L6Geom` for contact of :obj:`ellipsoid <woo.dem.Capsule>` and :obj:`facet <woo.dem.Facet>` (axis-aligned plane)."
+		Cg2_Facet_Capsule_L6Geom,Cg2_Any_Any_L6Geom__Base,"Compute :obj:`L6Geom` for contact of :obj:`~woo.dem.Capsule` and :obj:`~woo.dem.Facet`."
 	WOO_DECL__CLASS_BASE_DOC(woo_dem_Cg2_Facet_Capsule_L6Geom__CLASS_BASE_DOC);
 	FUNCTOR2D(Facet,Capsule);
 	DEFINE_FUNCTOR_ORDER_2D(Facet,Capsule);

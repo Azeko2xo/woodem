@@ -3,11 +3,13 @@
 #include<woo/pkg/dem/Capsule.hpp>
 #include<woo/pkg/dem/Sphere.hpp>
 
-WOO_PLUGIN(dem,(Capsule)(Bo1_Capsule_Aabb)(Cg2_Wall_Capsule_L6Geom)(Cg2_Facet_Capsule_L6Geom)(Cg2_Capsule_Capsule_L6Geom));
+WOO_PLUGIN(dem,(Capsule)(Bo1_Capsule_Aabb)(Cg2_Sphere_Capsule_L6Geom)(Cg2_Wall_Capsule_L6Geom)(Cg2_Facet_Capsule_L6Geom)(Cg2_InfCylinder_Capsule_L6Geom)(Cg2_Capsule_Capsule_L6Geom));
 
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Capsule_Capsule_L6Geom__CLASS_BASE_DOC);
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Wall_Capsule_L6Geom__CLASS_BASE_DOC);
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Facet_Capsule_L6Geom__CLASS_BASE_DOC);
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_InfCylinder_Capsule_L6Geom__CLASS_BASE_DOC);
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Sphere_Capsule_L6Geom__CLASS_BASE_DOC);
 #ifdef WOO_OPENGL
 	WOO_PLUGIN(gl,(Gl1_Capsule));
 #endif
@@ -436,10 +438,6 @@ void Bo1_Capsule_Aabb::go(const shared_ptr<Shape>& sh){
 	aabb.max=ab.max();
 }
 
-void Cg2_Capsule_Capsule_L6Geom::setMinDist00Sq(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const shared_ptr<Contact>& C){
-	const auto& c1(s1->cast<Capsule>()); const auto& c2(s2->cast<Capsule>());
-	C->minDist00Sq=pow(c1.radius+.5*c1.shaft+c2.radius+.5*c2.shaft,2);
-}
 
 bool Cg2_Wall_Capsule_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
 	if(scene->isPeriodic && scene->cell->hasShear()) throw std::logic_error("Cg2_Wall_Capsule_L6Geom does not handle periodic boundary conditions with skew (Scene.cell.trsf is not diagonal).");
@@ -492,6 +490,61 @@ bool Cg2_Wall_Capsule_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<S
 }
 
 
+bool Cg2_InfCylinder_Capsule_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
+	if(scene->isPeriodic && scene->cell->hasShear()) throw std::logic_error("Cg2_InfCylinder_Capsule_L6Geom does not handle periodic boundary conditions with skew (Scene.cell.trsf is not diagonal).");
+	const auto& cyl(s1->cast<InfCylinder>()); const auto& cap(s2->cast<Capsule>());
+	const auto& cylPos(cyl.nodes[0]->pos);
+	const auto& capNode(cap.nodes[0]);
+	const Vector3r capPos(capNode->pos+shift2); const auto& capOri(capNode->ori);
+	const DemData& cylDyn(cyl.nodes[0]->getData<DemData>()); const DemData& capDyn(capNode->getData<DemData>());
+	const int& ax=cyl.axis; const int ax1((ax+1)%3), ax2((ax+2)%3);
+	// do the computation in 2d
+	Vector2r capPos2(capPos[ax1],capPos[ax2]);
+	Vector3r capHalf=capOri*Vector3r(cap.shaft/2.,0,0);
+	Vector2r capHalf2(capHalf[ax1],capHalf[ax2]);
+	Vector2r cylPos2(cylPos[ax1],cylPos[ax2]);
+	// see http://www.geometrictools.com/Documentation/DistancePointLine.pdf
+	Real t=CompUtils::clamped(capHalf2.dot(cylPos2-capPos2)/capHalf2.squaredNorm(),-1,1);
+	Vector2r cyl2seg2=(capPos2+t*capHalf2)-cylPos2; // relative position from cylinder to segment in 2d
+	Real distSq=cyl2seg2.squaredNorm();
+	if(!C->isReal() && distSq>pow(cyl.radius+cap.radius,2) && !force) return false;
+	Vector3r normal=Vector3r::Zero(); normal[ax1]=cyl2seg2[0]; normal[ax2]=cyl2seg2[1]; normal.normalize();
+	Real uN=sqrt(distSq)-(cyl.radius+cap.radius);
+	Vector3r contPt; contPt=cylPos+(cyl.radius+.5*uN)*normal;
+	handleSpheresLikeContact(C,cylPos,cylDyn.vel,cylDyn.angVel,capPos,capDyn.vel,capDyn.angVel,normal,contPt,uN,cyl.radius,cap.radius);
+	return true;
+}
+
+void Cg2_Sphere_Capsule_L6Geom::setMinDist00Sq(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const shared_ptr<Contact>& C){
+	const auto& s(s1->cast<Sphere>()); const auto& c(s2->cast<Capsule>());
+	C->minDist00Sq=pow(s.radius+c.radius+.5*c.shaft,2);
+}
+
+
+bool Cg2_Sphere_Capsule_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
+	const auto& sphere(s1->cast<Sphere>()); const auto& cap(s2->cast<Capsule>());
+	const auto& spherePos(sphere.nodes[0]->pos);
+	const auto& capNode(cap.nodes[0]);
+	const Vector3r capPos(capNode->pos+shift2); const auto& capOri(capNode->ori);
+	const DemData& sphereDyn(sphere.nodes[0]->getData<DemData>()); const DemData& capDyn(capNode->getData<DemData>());
+	Real rSum(sphere.radius+cap.radius);
+	Vector3r AB[2]={capPos-capOri*Vector3r(cap.shaft/2.,0,0),capPos+capOri*Vector3r(cap.shaft/2.,0,0)};
+	Vector3r pt=CompUtils::closestSegmentPt(spherePos,AB[0],AB[1]);
+	Real distSq=(pt-spherePos).squaredNorm();
+	if(!C->isReal() && distSq>pow(rSum,2) && !force) return false;
+	Real dist=sqrt(distSq);
+	Vector3r normal=(pt-spherePos)/dist;
+	Real uN=dist-rSum;
+	Vector3r contPt=spherePos+normal*(sphere.radius+.5*uN);
+	handleSpheresLikeContact(C,spherePos,sphereDyn.vel,sphereDyn.angVel,capPos,capDyn.vel,capDyn.angVel,normal,contPt,uN,sphere.radius,cap.radius);
+	return true;
+}
+
+
+void Cg2_Capsule_Capsule_L6Geom::setMinDist00Sq(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const shared_ptr<Contact>& C){
+	const auto& c1(s1->cast<Capsule>()); const auto& c2(s2->cast<Capsule>());
+	C->minDist00Sq=pow(c1.radius+.5*c1.shaft+c2.radius+.5*c2.shaft,2);
+}
 
 bool Cg2_Capsule_Capsule_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
 	const auto& c1(s1->cast<Capsule>()); const auto& c2(s2->cast<Capsule>());

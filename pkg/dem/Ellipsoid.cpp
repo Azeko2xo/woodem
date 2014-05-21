@@ -4,10 +4,11 @@
 #include <boost/math/tools/minima.hpp>
 #include <boost/math/tools/tuple.hpp>
 
-WOO_PLUGIN(dem,(Ellipsoid)(Bo1_Ellipsoid_Aabb)(Cg2_Wall_Ellipsoid_L6Geom)(Cg2_Facet_Ellipsoid_L6Geom)(Cg2_Ellipsoid_Ellipsoid_L6Geom));
+WOO_PLUGIN(dem,(Ellipsoid)(Bo1_Ellipsoid_Aabb)(Cg2_Wall_Ellipsoid_L6Geom)(Cg2_Facet_Ellipsoid_L6Geom)(Cg2_Ellipsoid_Ellipsoid_L6Geom)(Cg2_Sphere_Ellipsoid_L6Geom));
 
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_Cg2_Ellipsoid_Ellipsoid_L6Geom__CLASS_BASE_DOC_ATTRS);
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Wall_Ellipsoid_L6Geom__CLASS_BASE_DOC);
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Sphere_Ellipsoid_L6Geom__CLASS_BASE_DOC);
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Facet_Ellipsoid_L6Geom__CLASS_BASE_DOC);
 
 #ifdef WOO_OPENGL
@@ -238,15 +239,20 @@ bool Cg2_Wall_Ellipsoid_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr
 }
 
 
+void Cg2_Sphere_Ellipsoid_L6Geom::setMinDist00Sq(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const shared_ptr<Contact>& C){ C->minDist00Sq=pow(s1->cast<Sphere>().radius+s2->cast<Ellipsoid>().semiAxes.maxCoeff(),2); }
+bool Cg2_Sphere_Ellipsoid_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){ return Cg2_Ellipsoid_Ellipsoid_L6Geom::go_Ellipsoid_or_Sphere(s1,s1->cast<Sphere>().radius*Vector3r::Ones(),s2,s2->cast<Ellipsoid>().semiAxes,shift2,force,C); }
 
-void Cg2_Ellipsoid_Ellipsoid_L6Geom::setMinDist00Sq(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const shared_ptr<Contact>& C){
-	C->minDist00Sq=pow(s1->cast<Ellipsoid>().semiAxes.maxCoeff()+s2->cast<Ellipsoid>().semiAxes.maxCoeff(),2);
-}
 
-bool Cg2_Ellipsoid_Ellipsoid_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
+
+void Cg2_Ellipsoid_Ellipsoid_L6Geom::setMinDist00Sq(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const shared_ptr<Contact>& C){ C->minDist00Sq=pow(s1->cast<Ellipsoid>().semiAxes.maxCoeff()+s2->cast<Ellipsoid>().semiAxes.maxCoeff(),2); }
+
+bool Cg2_Ellipsoid_Ellipsoid_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){ return go_Ellipsoid_or_Sphere(s1,s1->cast<Ellipsoid>().semiAxes,s2,s2->cast<Ellipsoid>().semiAxes,shift2,force,C); }
+
+// passes semiAxes explicitly, hence can be also called for sphere+ellipsoid
+bool Cg2_Ellipsoid_Ellipsoid_L6Geom::go_Ellipsoid_or_Sphere(const shared_ptr<Shape>& s1, const Vector3r& semiAxesA, const shared_ptr<Shape>& s2, const Vector3r& semiAxesB, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
 	/* notation taken from Perram, Rasmussen, Præstgaard, Lebowtz: Ellipsoid contact potential */
 	const Vector3r& ra(s1->nodes[0]->pos); Vector3r rb(s2->nodes[0]->pos+shift2);
-	const Vector3r& a(s1->cast<Ellipsoid>().semiAxes); const Vector3r& b(s2->cast<Ellipsoid>().semiAxes);
+	const Vector3r& a(semiAxesA); const Vector3r& b(semiAxesB);
 	const Quaternionr& oa(s1->nodes[0]->ori); const Quaternionr& ob(s2->nodes[0]->ori);
 	Vector3r u[]={oa*Vector3r::UnitX(),oa*Vector3r::UnitY(),oa*Vector3r::UnitZ()};
 	Vector3r v[]={ob*Vector3r::UnitX(),ob*Vector3r::UnitY(),ob*Vector3r::UnitZ()};

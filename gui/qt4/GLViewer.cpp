@@ -468,11 +468,11 @@ void GLViewer::centerPeriodic(){
 	Scene* scene=Master::instance().getScene().get();
 	assert(scene->isPeriodic);
 	Vector3r center=.5*scene->cell->getSize();
-	Vector3r halfSize=.5*scene->cell->getSize();
-	float radius=std::max(halfSize[0],std::max(halfSize[1],halfSize[2]));
-	LOG_DEBUG("Periodic scene center="<<center<<", halfSize="<<halfSize<<", radius="<<radius);
+	center=scene->cell->shearPt(center);
+	float radius=sqrt(3.)*.5*scene->cell->getSize().maxCoeff();
+	LOG_DEBUG("Periodic scene center="<<center<<", radius="<<radius);
 	setSceneCenter(qglviewer::Vec(center[0],center[1],center[2]));
-	setSceneRadius(radius*1.5);
+	setSceneRadius(radius);
 	showEntireScene();
 }
 
@@ -578,6 +578,7 @@ void GLViewer::draw(bool withNames, bool fast)
 			Renderer::clipPlaneOri[manipulatedClipPlane]=newOri;
 		}
 		const shared_ptr<Scene>& scene=Master::instance().getScene();
+		camera()->setZClippingCoefficient(Renderer::zClipCoeff);
 		if(Renderer::scene.get()!=scene.get()) setInitialView();
 		Renderer::render(scene,withNames,fast);
 	}
@@ -790,27 +791,30 @@ void GLViewer::postDraw(){
 		if(upi>=0 && diri>=0){
 			// exactly aligned, find the cursor position
 			QPoint p=this->mapFromGlobal(QCursor::pos());
-			qglviewer::Vec pp(p.x(),p.y(),.5); // x,y and z-coordinate (does not matter as we are orthogonal)
-			qglviewer::Vec p3=camera()->unprojectedCoordinatesOf(pp);
-			Vector3r p3v(p3[0],p3[1],p3[2]); p3v[diri]=NaN;
-			for(short ax:{0,1,2}){
-				std::ostringstream oss;
-				oss<<(isnan(p3v[ax])?"*":to_string(p3v[ax]));
-				Vector3r color(Vector3r::Zero());
-				color[ax]=1.;
-				glColor3v(color);
-				QGLViewer::drawText(p.x()+20,p.y()+14*(ax+1),oss.str().c_str());
+			// disable if the mouse is outside of the window
+			if(p.x()>0 && p.x()<width() && p.y()>0 && p.y()<height()){
+				qglviewer::Vec pp(p.x(),p.y(),.5); // x,y and z-coordinate (does not matter as we are orthogonal)
+				qglviewer::Vec p3=camera()->unprojectedCoordinatesOf(pp);
+				Vector3r p3v(p3[0],p3[1],p3[2]); p3v[diri]=NaN;
+				for(short ax:{0,1,2}){
+					std::ostringstream oss;
+					oss<<(isnan(p3v[ax])?"*":to_string(p3v[ax]));
+					Vector3r color(Vector3r::Zero());
+					color[ax]=1.;
+					glColor3v(color);
+					QGLViewer::drawText(p.x()+20,p.y()+14*(ax+1),oss.str().c_str());
+				}
+				// cross-hair
+				glColor3v(Vector3r(.5,.5,.5));
+				startScreenCoordinatesSystem();
+					glBegin(GL_LINES);
+						if(p.x()>20){ glVertex2i(0,p.y()); glVertex2i(p.x()-20,p.y()); }
+						if(p.x()<width()-20){ glVertex2i(p.x()+20,p.y()); glVertex2i(width(),p.y()); }
+						if(p.y()>20){ glVertex2i(p.x(),0); glVertex2i(p.x(),p.y()-20); }
+						if(p.y()<height()-20){ glVertex2i(p.x(),p.y()+20); glVertex2i(p.x(),height()); }
+					glEnd();
+				stopScreenCoordinatesSystem();
 			}
-			// cross-hair
-			glColor3v(Vector3r(.5,.5,.5));
-			startScreenCoordinatesSystem();
-				glBegin(GL_LINES);
-					if(p.x()>20){ glVertex2i(0,p.y()); glVertex2i(p.x()-20,p.y()); }
-					if(p.x()<width()-20){ glVertex2i(p.x()+20,p.y()); glVertex2i(width(),p.y()); }
-					if(p.y()>20){ glVertex2i(p.x(),0); glVertex2i(p.x(),p.y()-20); }
-					if(p.y()<height()-20){ glVertex2i(p.x(),p.y()+20); glVertex2i(p.x(),height()); }
-				glEnd();
-			stopScreenCoordinatesSystem();
 		}
 	}
 

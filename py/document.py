@@ -279,3 +279,43 @@ def makeObjectHref(obj,attr=None,text=None):
 	return '<a href="%s">%s</a>'%(makeObjectUrl(obj,attr),text)
 
 
+def makeCGeomFunctorsMatrix():
+	import woo, woo.dem, woo.system
+	import prettytable
+	ggg0=woo.system.childClasses(woo.dem.CGeomFunctor)
+	ggg=set()
+	for g in ggg0:
+		# handle derived classes which don't really work as functors (Cg2_Any_Any_L6Geom__Base)
+		try: 
+			g().bases
+			ggg.add(g)
+		except: pass 
+
+	ss=list(woo.system.childClasses(woo.dem.Shape))
+	ss.sort(key=lambda s: s.__name__)
+	ss=[s for s in ss if s.__name__!='FlexFacet'] # FlexFacet is useless here, as it is the same as Facet
+
+	def type2sphinx(t,name=None):
+		if name==None: return ':obj:`~%s.%s`'%(t.__module__,t.__name__)
+		else: return ':obj:`%s <%s.%s>`'%(name,t.__module__,t.__name__)
+
+	t=prettytable.PrettyTable(['']+[type2sphinx(s) for s in ss],border=True,header=True,hrules=prettytable.ALL)
+	for s1 in ss:
+		row=[type2sphinx(s1)] # header column
+		for s2 in ss:
+			gg=[g for g in ggg if sorted(g().bases)==sorted([s1.__name__,s2.__name__])]
+			cell=[]
+			for g in gg:
+				if g.__name__.endswith('L6Geom'): cell+=[type2sphinx(g,'l6g')]
+				elif g.__name__.endswith('G3Geom'): cell+=[type2sphinx(g,'g3g')]
+				else: raise RuntimError('CGeomFunctor name does not end in L6Geom or G3Geom.')
+			cell.sort(reverse=True) # so that l6g comes first
+			if cell: row.append(', '.join(cell))
+			else: row.append(u'×')
+		t.add_row(row)
+	tt=t.get_string().split('\n')
+	tt=[(tt[i] if i!=2 else tt[i].replace('-','=')) for i in range(len(tt))]
+	# return '.. tabularcolumns:: |l|'+'|'.join(len(ss)*['c'])+'\n\n'
+	return '\n'.join(tt)+'\n\n'
+
+

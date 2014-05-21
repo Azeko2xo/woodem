@@ -12,6 +12,7 @@ Contents:
 
    user/user.rst
    theory/index.rst
+   cases/index.rst
    wooMods.rst
    references.rst
    todos.rst

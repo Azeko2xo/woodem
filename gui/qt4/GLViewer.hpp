@@ -8,6 +8,9 @@
 
 #include<QGLViewer/qglviewer.h>
 #include<QGLViewer/constraint.h>
+#include<QGLViewer/manipulatedFrame.h>
+#include<QGLViewer/manipulatedCameraFrame.h>
+#include<QGLViewer/mouseGrabber.h>
 
 #include<QMouseEvent>
 

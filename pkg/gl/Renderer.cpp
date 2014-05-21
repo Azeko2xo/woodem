@@ -44,6 +44,7 @@ vector<shared_ptr<Node>> Renderer::glNamedNodes;
 bool Renderer::scaleOn;
 Vector3r Renderer::dispScale;
 Real Renderer::rotScale;
+Real Renderer::zClipCoeff;
 Vector3r Renderer::lightPos;
 Vector3r Renderer::light2Pos;
 Vector3r Renderer::lightColor;

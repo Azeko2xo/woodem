@@ -10,17 +10,17 @@ S.dem.loneMask=0b0010
 
 mat=FrictMat(young=1e6,density=3200)
 
-generator=[
-	PsdCapsuleGenerator(psdPts=[(.15,0),(.3,1.)],discrete=False,mass=True,shaftRadiusRatio=(.4,4.)),
-	PsdEllipsoidGenerator(psdPts=[(.15,0),(.3,1.)],discrete=False,mass=True,axisRatio2=(.2,.6),axisRatio3=(.2,.6)),
-	PsdClumpGenerator(psdPts=[(.15,0),(.3,1.)],discrete=False,mass=True,
+generators=[
+	PsdCapsuleGenerator(psdPts=[(.15,0),(.25,.8),(.3,1.)],discrete=False,mass=True,shaftRadiusRatio=(1.,2.)),
+	# PsdEllipsoidGenerator(psdPts=[(.15,0),(.3,1.)],discrete=False,mass=True,axisRatio2=(.2,.6),axisRatio3=(.2,.6)),
+	PsdClumpGenerator(psdPts=[(.15,0),(.25,1.)],discrete=False,mass=True,
 		clumps=[
 			SphereClumpGeom(centers=[(0,0,-.06),(0,0,0),(0,0,.06)],radii=(.05,.08,.05),scaleProb=[(0,1.)]),
 			SphereClumpGeom(centers=[(-.03,0,0),(0,.03,0)],radii=(.05,.05),scaleProb=[(0,.5)]),
 		],
 	),
-	PsdSphereGenerator(psdPts=[(.15,0),(.3,1.)],discrete=False,mass=True),
-][0]
+	PsdSphereGenerator(psdPts=[(.15,0),(.25,.8),(.3,1.)],discrete=False,mass=True),
+]
 
 
 S.dem.par.append([
@@ -31,10 +31,24 @@ S.dem.collectNodes()
 S.dtSafety=.8
 S.engines=woo.utils.defaultEngines(damping=.4,dynDtPeriod=10)+[
 	BoxFactory(
-		box=((-1,-1,1),(1,1,5)),
+		box=((-1,-1,1),(1,1,3)),
 		stepPeriod=100,
-		maxMass=10e3,maxNum=-1,massFlowRate=0,maxAttempts=100,attemptPar=50,atMaxAttempts=BoxFactory.maxAttWarn,
-		generator=generator,
+		maxMass=3e3,maxNum=-1,massFlowRate=0,maxAttempts=100,attemptPar=50,atMaxAttempts=BoxFactory.maxAttWarn,
+		generator=generators[0],
+		materials=[mat]
+	),
+	BoxFactory(
+		box=((-1,-1,3),(1,1,5)),
+		stepPeriod=200,
+		maxMass=3e3,maxNum=-1,massFlowRate=0,maxAttempts=100,attemptPar=50,atMaxAttempts=BoxFactory.maxAttWarn,
+		generator=generators[1],
+		materials=[mat]
+	),
+	BoxFactory(
+		box=((-1,-1,5),(1,1,7)),
+		stepPeriod=100,
+		maxMass=3e3,maxNum=-1,massFlowRate=0,maxAttempts=100,attemptPar=50,atMaxAttempts=BoxFactory.maxAttWarn,
+		generator=generators[2],
 		materials=[mat]
 	)
 ]

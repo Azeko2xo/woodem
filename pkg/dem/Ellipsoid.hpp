@@ -48,6 +48,8 @@ WOO_REGISTER_OBJECT(Bo1_Ellipsoid_Aabb);
 
 struct Cg2_Ellipsoid_Ellipsoid_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 	bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE;
+	// this can be called for sphere+ellipsoid and ellipsoid+ellipsoid collisions
+	bool go_Ellipsoid_or_Sphere(const shared_ptr<Shape>& s1, const Vector3r& semiAxesA, const shared_ptr<Shape>& s2, const Vector3r& semiAxesB, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
 	void setMinDist00Sq(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE;
 	#define woo_dem_Cg2_Ellipsoid_Ellipsoid_L6Geom__CLASS_BASE_DOC_ATTRS \
 		Cg2_Ellipsoid_Ellipsoid_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :obj:`L6Geom` for contact of 2 :obj:`ellipsoids <woo.dem.Ellipsoid>`. Uses the Perram-Wertheim potential function (:cite:`Perram1985`, :cite:`Perram1996`, :cite:`Donev2005`). See example scripts :woosrc:`examples/ell0.py` and :woosrc:`examples/ell1.py`.\n\n.. youtube:: cBnz4el4qX8\n\n", \
@@ -59,6 +61,17 @@ struct Cg2_Ellipsoid_Ellipsoid_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 	//DECLARE_LOGGER;
 };
 WOO_REGISTER_OBJECT(Cg2_Ellipsoid_Ellipsoid_L6Geom);
+
+struct Cg2_Sphere_Ellipsoid_L6Geom: public Cg2_Ellipsoid_Ellipsoid_L6Geom{
+	bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE;
+	void setMinDist00Sq(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE;
+	#define woo_dem_Cg2_Sphere_Ellipsoid_L6Geom__CLASS_BASE_DOC \
+		Cg2_Sphere_Ellipsoid_L6Geom,Cg2_Ellipsoid_Ellipsoid_L6Geom,"Compute the geometry of :obj:`~woo.dem.Ellipsoid` + :obj:`~woo.dem.Sphere` collision. Uses the code from :obj:`Cg2_Ellipsoid_Ellipsoid_L6Geom`, representing the sphere as an ellipsoid with all semiaxes equal to the radius."
+	WOO_DECL__CLASS_BASE_DOC(woo_dem_Cg2_Sphere_Ellipsoid_L6Geom__CLASS_BASE_DOC);
+	FUNCTOR2D(Sphere,Ellipsoid);
+	DEFINE_FUNCTOR_ORDER_2D(Sphere,Ellipsoid);
+};
+WOO_REGISTER_OBJECT(Cg2_Sphere_Ellipsoid_L6Geom);
 
 struct Cg2_Wall_Ellipsoid_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 	bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE;
