@@ -6,6 +6,7 @@
 #include<woo/pkg/dem/Particle.hpp>
 #include<woo/pkg/dem/Funcs.hpp>
 #include<woo/pkg/dem/FrictMat.hpp>
+#include<woo/pkg/dem/Leapfrog.hpp>
 #include<woo/lib/pyutil/gil.hpp>
 
 CREATE_LOGGER(PeriIsoCompressor);
@@ -114,8 +115,16 @@ WOO_PLUGIN(dem,(WeirdTriaxControl))
 
 void WeirdTriaxControl::run(){
 	dem=static_cast<DemField*>(field.get());
-	if (!scene->isPeriodic){ throw runtime_error("PeriTriaxController run on aperiodic simulation."); }
+	if (!scene->isPeriodic){ throw runtime_error("WeirdTriaxControl run on aperiodic simulation."); }
 	bool doUpdate((scene->step%globUpdate)==0);
+	if(!leapfrogChecked){
+		bool seenMe=false;
+		for(const auto& e: scene->engines){
+			if(e.get()==this) seenMe=true;
+			if(e->isA<Leapfrog>() && !seenMe) LOG_ERROR("WeirdTriaxControl should always come **before** Leapfrog in the engine sequence, as it sets nextGradV. You can ignore this warning at your own risk.");
+		}
+		leapfrogChecked=true;
+	}
 	if(doUpdate){
 		//"Natural" strain, still correct for large deformations, used for comparison with goals
 		for (int i=0;i<3;i++) strain[i]=log(scene->cell->trsf(i,i));

@@ -3,10 +3,11 @@ import woo.pack
 import numpy
 import math
 
-def cylinder(A,B,radius,div=20,capA=False,capB=False,wallCaps=False,angVel=0,**kw):
+def cylinder(A,B,radius,div=20,axDiv=1,capA=False,capB=False,wallCaps=False,angVel=0,**kw):
 	'''Return triangulated cylinder, as list of facets to be passed to :obj:`ParticleContainer.append`. ``**kw`` arguments are passed to :obj:`woo.pack.gtsSurface2Facets` (and thus to :obj:`woo.utils.facet`).
 
 :param angVel: axial angular velocity of the cylinder; the cylinder is always created as ``fixed``, but :obj:`woo.dem.Facet.fakeVel` is assigned.
+:param axDiv: divide the triangulation axially as well; the default creates facets spanning between both bases
 :param wallCaps: create caps as walls (with :obj:`woo.dem.wall.glAB` properly set) rather than triangulation; cylinder axis *must* be aligned with some global axis in this case, otherwise and error is raised.
 :returns: List of :obj:`particles <woo.dem.Particle>` building up the cylinder. Caps (if any) are always at the beginning of the list, triangulated perimeter is at the end.
 	'''
@@ -16,7 +17,8 @@ def cylinder(A,B,radius,div=20,capA=False,capB=False,wallCaps=False,angVel=0,**k
 
 	thetas=numpy.linspace(0,2*math.pi,num=div,endpoint=True)
 	yyzz=[Vector2(radius*math.cos(th),radius*math.sin(th)) for th in thetas]
-	xxyyzz=[[A+axOri*Vector3(x,yz[0],yz[1]) for yz in yyzz] for x in (0,cylLen)]
+	xx=numpy.linspace(0,cylLen,num=max(axDiv+1,2))
+	xxyyzz=[[A+axOri*Vector3(x,yz[0],yz[1]) for yz in yyzz] for x in xx]
 	# add caps, if needed; the points will be merged automatically in sweptPolylines2gtsSurface via threshold
 	caps=[]
 	if wallCaps:

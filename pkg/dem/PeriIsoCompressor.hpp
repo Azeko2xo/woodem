@@ -57,6 +57,7 @@ struct WeirdTriaxControl: public Engine{
 		((Real,mass,NaN,,"mass of the cell (user set); if not set, it will be computed as sum of masses of all particles."))
 		((Real,externalWork,0,,"Work input from boundary controller."))
 		((int,gradVWorkIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for work done by velocity gradient, if tracking energy"))
+		((bool,leapfrogChecked,false,AttrTrait<Attr::hidden>(),"Whether we already checked that we come before :obj:`Leapfrog` (otherwise setting nextGradV will have no effect."))
 	);
 	DECLARE_LOGGER;
 };

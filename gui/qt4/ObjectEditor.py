@@ -1113,8 +1113,14 @@ class ObjectEditor(QFrame):
 		default=menu.addAction(u'↺ Default')
 		default.triggered.connect(lambda: self.doObjManip('default',entry,isNone,isObj))
 		if isObj:
-			newDel=menu.addAction(u'☘ New' if isNone else u'☠  Delete')
-			newDel.triggered.connect(lambda: self.doObjManip('newDel',entry,isNone,isObj))
+			if isNone:
+				newDel=menu.addAction(u'☘ New')
+				newDel.triggered.connect(lambda: self.doObjManip('new',entry,isNone,isObj))
+			else:
+				d=menu.addAction(u'☠  Delete')
+				d.triggered.connect(lambda: self.doObjManip('del',entry,isNone,isObj))
+				replace=menu.addAction(u'⇄ Replace')
+				replace.triggered.connect(lambda: self.doObjManip('replace',entry,isNone,isObj))
 		if not isNone:
 			save=menu.addAction(u'⛁ Save')
 			save.triggered.connect(lambda: self.doObjManip('save',entry,isNone,isObj))
@@ -1145,9 +1151,17 @@ class ObjectEditor(QFrame):
 		# FIXME: this is an ugly hack of using woo._monkey.io.Object_{dump,load} directly!!!
 		import woo, woo.core, woo._monkey.io
 		#print 'Manipulating Object',entry.obj.__class__.__name__+'.'+entry.name
-		if action=='newDel':
+		if action=='del':
 			assert isObj
-			setattr(entry.obj,entry.name,entry.T() if isNone else None)
+			setattr(entry.obj,entry.name,None)
+		elif action=='new' or action=='replace':
+			assert isObj
+			types=woo.system.childClasses(entry.T,includeBase=True)
+			if(len(types)==1): setattr(entry.obj,entry.name,entry.T())
+			else:
+				d=NewObjectDialog(self,entry.T)
+				if not d.exec_(): return # cancelled
+				setattr(entry.obj,entry.name,d.result())
 		elif action=='save':
 			assert not isNone
 			obj=getattr(entry.obj,entry.name)
@@ -1319,7 +1333,8 @@ class ObjectEditor(QFrame):
 				# if there is a new instance of Object, we need to make new widget and replace the old one completely
 				if type(e.widget)==ObjectEditor and e.widget.hasSer and e.widget.ser!=getattr(e.obj,e.name):
 					# print 'New ObjectEditor (%s): '%e.name,e.widget.ser,'->',getattr(e.obj,e.name)
-					assert e.widget.ser==None or getattr(e.obj,e.name)==None or e.widget.ser._cxxAddr!=getattr(e.obj,e.name)._cxxAddr
+					# print e.widget.ser._cxxAddr,getattr(e.obj,e.name)._cxxAddr,getattr(e.obj,e.name)
+					assert e.widget.ser==None or getattr(e.obj,e.name)==None or e.widget.ser._cxxAddr!=getattr(e.obj,e.name)._cxxAddr or (isinstance(getattr(e.obj,e.name),woo.pyderived.PyWooObject) and id(getattr(e.obj,e.name))!=id(e.widget.ser))
 					e.widget.hide()
 					e.widget=e.widgets['value']=self.mkWidget(e)
 					grid,row=e.gridAndRow

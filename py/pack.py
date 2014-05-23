@@ -441,7 +441,6 @@ def _getMemoizedPacking(memoizeDb,radius,rRelFuzz,x1,y1,z1,fullDim,wantPeri,fill
 	#sys.stdout.flush()
 
 
-
 def randomDensePack(predicate,radius,mat=-1,dim=None,cropLayers=0,rRelFuzz=0.,spheresInCell=0,memoizeDb=None,useOBB=True,memoDbg=False,color=None):
 	"""Generator of random dense packing with given geometry properties, using TriaxialTest (aperiodic)
 	or PeriIsoCompressor (periodic). The periodicity depens on whether	the spheresInCell parameter is given.
@@ -901,4 +900,49 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 		sp.saveTxt(memoizeFile)
 	if returnSpherePack or gen: return sp
 	return zip(*sp)
+
+
+##
+## an attempt at a better randomDensePack
+## currently ShapePack does not support moving, or the interface is not clear, so it just waits here
+
+#	def randomDensePack2(predicate,generator,memoizeDir=None,debug=False):
+#		box=predicate.aabb()
+#		if memoizeDir:
+#			import hashlib
+#			hash=hashlib.sha1('1'+str(box)+generator.dumps(format='expr')).hexdigest()
+#			memo=memoizeDir+'/'+hash+'.randomdense'
+#			print 'Memoize file is',memo
+#			if os.path.exists(memo):
+#				print 'Returning memoized result'
+#				import woo.pack
+#				return woo.pack.ShapePack(loadFrom=memo).filtered(predicate)
+#		S=woo.core.Scene(fields=[woo.dem.DemField()])
+#		S.dtSafety=.9
+#		S.periodic=True
+#		S.cell.setBox(box.sizes())
+#		S.engines=[	
+#			woo.dem.InsertionSortCollider(list(woo.system.childClasses(woo.dem.BoundFunctor))),
+#			woo.dem.BoxFactory(box=((0,0,0),box.sizes()),maxMass=-1,maxNum=-1,generator=generator,massFlowRate=0,maxAttempts=5000,materials=[woo.dem.FrictMat(density=1e3,young=1e7,ktDivKn=0,tanPhi=0)],shooter=None,mask=1)
+#		]
+#		S.one()
+#		print 'Created %d particles, compacting...'%len(S.dem.par)
+#		minRad=float('inf')
+#		for p in S.dem.par:
+#			r=p.shape.equivRadius()
+#			if not isnan(r): minRad=min(minRad,r)
+#		S.engines=[woo.dem.PeriIsoCompressor(charLen=2*minRad,stresses=[-1e8,-1e6],maxUnbalanced=goal,doneHook='print "done"; S.stop()',globalUpdateInt=1,keepProportions=True,label='peri'),woo.core.PyRunner(100,'print S>lab.peri.stresses[S.lab.peri.state], S.lab.peri.sigma, S.lab.peri.currUnbalanced')]+utils.defaultEngines(damping=.3)
+#		# S.plot.plots={'i':('unb'),' i':('sig_x','sig_y','sig_z')}
+#		if debug: return S
+#		S.run(); S.wait()
+#		sp=woo.pack.ShapePack()
+#		sp.fromDem(S,S.dem)
+#		print 'Compacted packing size is',sp.cellSize
+#		sp.canonicalize()
+#		if memoizeDir:
+#			print 'saving to',memo
+#			sp.save(memo)
+#		return sp
+
+
 

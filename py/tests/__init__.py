@@ -35,6 +35,13 @@ except ImportError: pass
 # fully qualified module names
 allTestsFQ=['woo.tests.'+test for test in allTests]
 
+try:
+	import colour_runner.runner
+	MyTestRunner=colour_runner.runner.ColourTextTestRunner
+except ImportError:
+	print '(colour-runner not installed, using uncolored output for tests; see https://github.com/meshy/colour-runner/)'
+	MyTestRunner=unittest.TextTestRunner
+
 def testModule(module):
 	"""Run all tests defined in the module specified, return TestResult object 
 	(http://docs.python.org/library/unittest.html#unittest.TextTestResult)
@@ -43,7 +50,7 @@ def testModule(module):
 	@param module: fully-qualified module name, e.g. woo.tests.core
 	"""
 	suite=unittest.defaultTestLoader().loadTestsFromName(module)
-	return unittest.TextTestRunner(verbosity=2).run(suite)
+	return MyTestRunner(verbosity=2).run(suite)
 
 def testAll(sysExit=False):
 	"""Run all tests defined in all woo.tests.* modules. Return
@@ -56,7 +63,7 @@ def testAll(sysExit=False):
 	for mod in allModules:
 		suite.addTest(doctest.DocTestSuite(mod))
 	try:
-		result=unittest.TextTestRunner(verbosity=2).run(suite)
+		result=MyTestRunner(verbosity=2).run(suite)
 		if not sysExit: return result
 		if result.wasSuccessful():
 			print '*** ALL TESTS PASSED ***'

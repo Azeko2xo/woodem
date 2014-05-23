@@ -7,11 +7,9 @@
 // hack; check if that is really needed
 #include<woo/pkg/dem/InsertionSortCollider.hpp>
 
-
-
-
 WOO_PLUGIN(dem,(ConveyorFactory));
 CREATE_LOGGER(ConveyorFactory);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_ConveyorFactory__CLASS_BASE_DOC_ATTRS_PY);
 
 Real ConveyorFactory::critDt(){
 	if(!material->isA<ElastMat>()){

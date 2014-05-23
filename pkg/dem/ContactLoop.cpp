@@ -7,6 +7,12 @@
 WOO_PLUGIN(dem,(CGeomFunctor)(CGeomDispatcher)(CPhysFunctor)(CPhysDispatcher)(LawFunctor)(LawDispatcher)(ContactLoop));
 CREATE_LOGGER(ContactLoop);
 
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_CGeomFunctor__CLASS_BASE_DOC);
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_CPhysFunctor__CLASS_BASE_DOC);
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_LawFunctor__CLASS_BASE_DOC);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_ContactLoop__CLASS_BASE_DOC_ATTRS_CTOR);
+
+
 shared_ptr<Contact> CGeomDispatcher::explicitAction(Scene* _scene, const shared_ptr<Particle>& p1, const shared_ptr<Particle>& p2, bool force){
 	scene=_scene;
 	updateScenePtr();

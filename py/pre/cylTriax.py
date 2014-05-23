@@ -14,7 +14,7 @@ class CylTriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 	r'''
 	Preprocessor for cylindrical triaxial test with membrane. The test is run in 3 stages:
 
-		* compression, where random loose packing of spheres is compressed to attain the $\sigma_{\rm iso}$ (:obj:`sigIso`) pressure in all directions; during this stage, the cylindrical boundary is rigid and resized along main axes (so it can become (slightly) elliptical); friction is turned off during this stage to achieve better compacity; the compaction finishes when stress level is sufficiently close to the desired one, and unbalanced force drops below :obj:`maxUnbalanced`.
+		* compaction, where random loose packing of spheres is compressed to attain the :math`\sigma_{\rm iso}` (:obj:`sigIso`) pressure in all directions; during this stage, the cylindrical boundary is rigid and resized along main axes (so it can become (slightly) elliptical); friction is turned off during this stage to achieve better compacity; the compaction finishes when stress level is sufficiently close to the desired one, and unbalanced force drops below :obj:`maxUnbalanced`.
 
 		* Membrane stabilization: once the compression is done, membrane around the cylinder is activated -- loaded with surface pressure and made flexible. Friction is activated at this moment. The cylinder may deform axially (stress-controlled), but lateral deformation is now due to membrane-particle interaction. This stage finished when unbalanced force drops below 1/10th of :obj:`maxUnbalanced` (the reason is that membrane motion is not considered when computing unbalanced force, only mononodal particles are). Surface pressure is adjusted so that the value of lateral stress (in terms of global stress tensor) is close to :obj:`sigIso`. At the same time, friction is increased from initial zero values
 
@@ -364,13 +364,13 @@ def velocityFieldPlots(S,nameBase):
 	#exVel=lambda p: p.vel if p.vel.norm()<=maxVel else p.vel/(p.vel.norm()/maxVel)
 	exVel=lambda p: p.vel
 	exVelNorm=lambda p: exVel(p).norm()
-	import pylab
-	fVRaw=pylab.figure()
-	post2d.plot(post2d.data(S,exVel,flattener),alpha=.3,minlength=.3,cmap='jet')
-	fV2=pylab.figure()
-	post2d.plot(post2d.data(S,exVel,flattener,stDev=.5*S.pre.psd[0][0],div=(80,80)),minlength=.6,cmap='jet')
-	fV1=pylab.figure()
-	post2d.plot(post2d.data(S,exVelNorm,flattener,stDev=.5*S.pre.psd[0][0],div=(80,80)),cmap='jet')
+	from matplotlib.figure import Figure
+	fVRaw=Figure(); ax=fVRaw.add_subplot(1,1,1)
+	post2d.plot(post2d.data(S,exVel,flattener),axes=ax,alpha=.3,minlength=.3,cmap='jet')
+	fV2=Figure(); ax=fV1.add_subplot(1,1,1)
+	post2d.plot(post2d.data(S,exVel,flattener,stDev=.5*S.pre.psd[0][0],div=(80,80)),axes=ax,minlength=.6,cmap='jet')
+	fV1=Figure(); ax=fV1.add_subplot(1,1,1)
+	post2d.plot(post2d.data(S,exVelNorm,flattener,stDev=.5*S.pre.psd[0][0],div=(80,80)),axes=ax,cmap='jet')
 	outs=[]
 	for name,fig in [('particle-velocity',fVRaw),('smooth-velocity',fV2),('smooth-velocity-norm',fV1)]:
 		out=nameBase+'.%s.png'%name
@@ -477,7 +477,10 @@ def compactionDone(S):
 
 def plotBatchResults(db,titleRegex=None,out=None,stressPath=True,sorter=None):
 	'Hook called from woo.batch.writeResults'
-	import pylab,re,math,woo.batch,os
+	import re,math,woo.batch,os
+	from matplotlib.figure import Figure
+	from matplotlib.backends.backend_agg import FigureCanvasAgg
+
 	results=woo.batch.dbReadResults(db)
 	if sorter: results=sorter(results)
 	if out==None: out='%s.pdf'%re.sub('\.results$','',db)
@@ -488,11 +491,12 @@ def plotBatchResults(db,titleRegex=None,out=None,stressPath=True,sorter=None):
 
 	if stressPath:
 		fig1,fig2,fig3=311,312,313
-		fig=pylab.figure(figsize=(8,20))
+		fig=Figure(figsize=(8,20))
 	else:
 		fig1,fig2=121,122
-		fig=pylab.figure(figsize=(8,4))
-		pylab.subplots_adjust(left=.1,right=.98,bottom=.15,top=.9,wspace=.2,hspace=.25)
+		fig=Figure(figsize=(8,4))
+		fig.subplots_adjust(left=.1,right=.98,bottom=.15,top=.9,wspace=.2,hspace=.25)
+	canvas=FigureCanvasAgg(fig)
 
 	ed_qp=fig.add_subplot(fig1)
 	ed_qp.set_xlabel(r'$\varepsilon_d$ [%]')

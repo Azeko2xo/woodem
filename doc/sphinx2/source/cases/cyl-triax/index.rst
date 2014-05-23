@@ -1,6 +1,6 @@
-=========================
-Cylindrical triaxial test
-=========================
+================================================
+Cylindrical triaxial test with flexible membrane
+================================================
 
 Summary
 --------
@@ -8,7 +8,9 @@ The task of this study was to investigate the **role of support friction in tria
 
 .. note:: The simulation presented here was done using the :obj:`woo.pre.cylTriax` preprocessor. Input data for the preprocessor will be added to Woo sources at some point, so that the results can be independently recalculated.
 
-.. note:: The support of … [unconfirmed confidentiality issues] for this project is gratefully acknowledged.
+.. admonition:: Acknowledgement
+
+	This project was supported by a commercial contract. We honor the wish to not disclose the identity of the contractor.
  
 Setup
 ------

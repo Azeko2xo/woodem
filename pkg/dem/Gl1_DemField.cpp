@@ -232,7 +232,7 @@ void Gl1_DemField::doShape(){
 		if(false
 			|| (colorBy==COLOR_RADIUS && isnan(radius))
 			|| (colorBy==COLOR_MATSTATE && !p->matState)
-			|| (!isSphere && (colorBy==COLOR_SIG_N || colorBy==COLOR_SIG_T))
+			/* || (!isSphere && (colorBy==COLOR_SIG_N || colorBy==COLOR_SIG_T)) */
 		) useColor2=true;
 
 		// don't show particles not matching modulo value

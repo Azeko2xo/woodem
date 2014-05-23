@@ -192,7 +192,19 @@ def dbReadResults(db,basicTypes=False):
 					else: rowDict[att]=sim.attrs[att]
 				rowDict['misc'],rowDict['series']={},{}
 				for misc in sim['misc'].attrs: rowDict['misc'][misc]=woo.core.WooJSONDecoder(onError='warn').decode(sim['misc'].attrs[misc])
-				for s in sim['series']: rowDict['series'][s]=numpy.array(sim['series'][s])
+				for s in sim['series']:
+					try:
+						# This was sometimes causing trouble (why?)
+						#
+						# File "/usr/lib/python2.7/dist-packages/h5py/_hl/group.py", line 153, in __getitem__
+						#    oid = h5o.open(self.id, self._e(name), lapl=self._lapl)
+						#  File "/usr/lib/python2.7/dist-packages/h5py/_hl/base.py", line 113, in _e
+						#    name = name.encode('ascii')
+						# AttributeError: 'int' object has no attribute 'encode'
+						rowDict['series'][s]=numpy.array(sim['series'][s])
+					except AttributeError:
+						# should we fail, do the conversion indirectly, through list (perhaps slower)
+						rowDict['series'][s]=numpy.array(list(sim['series'][s]))
 				ret.append(rowDict)
 			## hdf.close()
 			return ret
