@@ -7,9 +7,9 @@
 WOO_PLUGIN(dem,(CGeomFunctor)(CGeomDispatcher)(CPhysFunctor)(CPhysDispatcher)(LawFunctor)(LawDispatcher)(ContactLoop));
 CREATE_LOGGER(ContactLoop);
 
-WOO_IMPL__CLASS_BASE_DOC(woo_dem_CGeomFunctor__CLASS_BASE_DOC);
-WOO_IMPL__CLASS_BASE_DOC(woo_dem_CPhysFunctor__CLASS_BASE_DOC);
-WOO_IMPL__CLASS_BASE_DOC(woo_dem_LawFunctor__CLASS_BASE_DOC);
+WOO_IMPL__CLASS_BASE_DOC_PY(woo_dem_CGeomFunctor__CLASS_BASE_DOC_PY);
+WOO_IMPL__CLASS_BASE_DOC_PY(woo_dem_CPhysFunctor__CLASS_BASE_DOC_PY);
+WOO_IMPL__CLASS_BASE_DOC_PY(woo_dem_LawFunctor__CLASS_BASE_DOC_PY);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_ContactLoop__CLASS_BASE_DOC_ATTRS_CTOR);
 
 

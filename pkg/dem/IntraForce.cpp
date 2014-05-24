@@ -3,6 +3,7 @@
 #include<cstdlib>
 
 WOO_PLUGIN(dem,(IntraFunctor)(IntraForce));
+WOO_IMPL__CLASS_BASE_DOC_PY(woo_dem_IntraFunctor__CLASS_BASE_DOC_PY);
 
 CREATE_LOGGER(IntraForce);
 

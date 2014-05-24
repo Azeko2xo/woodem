@@ -91,7 +91,10 @@ class Engine: public Object {
 		.def("__call__",&Engine::explicitRun) \
 		.def("acceptsField",&Engine::acceptsField) \
 		.add_property("field",&Engine::field_get,&Engine::field_set,"Field to run this engine on; if unassigned, or set to *None*, automatic field selection is triggered.") \
-		.def("critDt",&Engine::critDt,"Return critical (maximum numerically stable) timestep for this engine. By default returns infinity (no critical timestep) but derived engines may override this function.")
+		.def("critDt",&Engine::critDt,"Return critical (maximum numerically stable) timestep for this engine. By default returns infinity (no critical timestep) but derived engines may override this function.") \
+		; \
+		woo::converters_cxxVector_pyList_2way<shared_ptr<Engine>>();
+
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_core_Engine__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 };
 WOO_REGISTER_OBJECT(Engine);

@@ -6,6 +6,12 @@
 
 WOO_PLUGIN(dem,(Aabb)(BoundFunctor)(BoundDispatcher)(Collider));
 
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_Aabb__CLASS_BASE_DOC_ATTRS_CTOR);
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_Gl1_Aabb__CLASS_BASE_DOC);
+WOO_IMPL__CLASS_BASE_DOC_PY(woo_dem_BoundFunctor__CLASS_BASE_DOC_PY);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Collider__CLASS_BASE_DOC_ATTRS_PY);
+
+
 #ifdef WOO_OPENGL
 	WOO_PLUGIN(gl,(Gl1_Aabb))
 #endif

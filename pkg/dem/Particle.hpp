@@ -103,7 +103,11 @@ struct Particle: public Object{
 		.add_property("blocked",&Particle::getBlocked,&Particle::setBlocked) \
 		.add_property("Ek",&Particle::getEk,"Summary kinetic energy of the particle") \
 		.add_property("Ekt",&Particle::getEk_trans,"Translational kinetic energy of the particle") \
-		.add_property("Ekr",&Particle::getEk_rot,"Rotational kinetic energy of the particle")
+		.add_property("Ekr",&Particle::getEk_rot,"Rotational kinetic energy of the particle") \
+		; \
+		woo::converters_cxxVector_pyList_2way<shared_ptr<Particle>>();
+
+
 
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Particle__CLASS_BASE_DOC_ATTRS_PY);
 };
@@ -348,7 +352,10 @@ struct Shape: public Object, public Indexable{
 			.def("asRaw",&Shape::pyAsRaw) \
 			.def("setFromRaw",&Shape::setFromRaw) \
 			.def("isInside",&Shape::isInside) \
-			WOO_PY_TOPINDEXABLE(Shape)
+			WOO_PY_TOPINDEXABLE(Shape) \
+			; \
+			woo::converters_cxxVector_pyList_2way<shared_ptr<Shape>>();
+
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Shape__CLASS_BASE_DOC_ATTRS_PY);
 	REGISTER_INDEX_COUNTER(Shape);
 };
@@ -360,7 +367,8 @@ struct Material: public Object, public Indexable{
 		Material,Object,"Particle material", \
 		((Real,density,1000,AttrTrait<>().densityUnit(),"Density")) \
 		((int,id,-1,AttrTrait<>().noGui(),"Some number identifying this material; used with MatchMaker objects, useless otherwise")) \
-		,/*py*/ WOO_PY_TOPINDEXABLE(Material);
+		,/*py*/ WOO_PY_TOPINDEXABLE(Material); \
+		woo::converters_cxxVector_pyList_2way<shared_ptr<Material>>();
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Material__CLASS_BASE_DOC_ATTRS_PY);
 	REGISTER_INDEX_COUNTER(Material);
 };

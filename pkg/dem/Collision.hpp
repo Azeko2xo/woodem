@@ -7,12 +7,13 @@
 #endif
 
 struct Aabb: public Bound{
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR(Aabb,Bound,"Axis-aligned bounding box, for use with `InsertionSortCollider`.",/*attrs*/
-		((vector<Vector3r>,nodeLastPos,,AttrTrait<>(Attr::readonly).lenUnit(),"Node positions when bbox was last updated."))
-		((Real,maxD2,0,AttrTrait<>(Attr::readonly).unit("m²").noGui(),"Maximum allowed squared distance for nodal displacements (i.e. how much was the bbox enlarged last time)"))
-		,
-		/*ctor*/createIndex();
-	);
+	#define woo_dem_Aabb__CLASS_BASE_DOC_ATTRS_CTOR \
+		Aabb,Bound,"Axis-aligned bounding box, for use with `InsertionSortCollider`.", \
+		((vector<Vector3r>,nodeLastPos,,AttrTrait<>(Attr::readonly).lenUnit(),"Node positions when bbox was last updated.")) \
+		((Real,maxD2,0,AttrTrait<>(Attr::readonly).unit("m²").noGui(),"Maximum allowed squared distance for nodal displacements (i.e. how much was the bbox enlarged last time)")) \
+		, /*ctor*/createIndex();
+	
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_Aabb__CLASS_BASE_DOC_ATTRS_CTOR);
 	REGISTER_CLASS_INDEX(Aabb,Bound);
 };
 WOO_REGISTER_OBJECT(Aabb);
@@ -21,14 +22,16 @@ WOO_REGISTER_OBJECT(Aabb);
 struct Gl1_Aabb: public GlBoundFunctor{
 	virtual void go(const shared_ptr<Bound>&);
 	RENDERS(Aabb);
-	WOO_CLASS_BASE_DOC(Gl1_Aabb,GlBoundFunctor,"Render Axis-aligned bounding box (:obj:`woo.dem.Aabb`).");
+	#define woo_dem_Gl1_Aabb__CLASS_BASE_DOC Gl1_Aabb,GlBoundFunctor,"Render Axis-aligned bounding box (:obj:`woo.dem.Aabb`)."
+	WOO_DECL__CLASS_BASE_DOC(woo_dem_Gl1_Aabb__CLASS_BASE_DOC);
 };
 WOO_REGISTER_OBJECT(Gl1_Aabb);
 #endif
 
 
 struct BoundFunctor: public Functor1D</*dispatch types*/ Shape,/*return type*/ void, /*argument types*/ TYPELIST_1(const shared_ptr<Shape>&)>{
-	WOO_CLASS_BASE_DOC(BoundFunctor,Functor,"Functor for creating/updating :obj:`woo.dem.Bound`.");
+	#define woo_dem_BoundFunctor__CLASS_BASE_DOC_PY BoundFunctor,Functor,"Functor for creating/updating :obj:`woo.dem.Bound`.",/*py*/; woo::converters_cxxVector_pyList_2way<shared_ptr<BoundFunctor>>();
+	WOO_DECL__CLASS_BASE_DOC_PY(woo_dem_BoundFunctor__CLASS_BASE_DOC_PY);
 };
 WOO_REGISTER_OBJECT(BoundFunctor);
 
@@ -59,12 +62,12 @@ struct Collider: public Engine{
 		virtual void invalidatePersistentData(){}
 		// ctor with functors for the integrated BoundDispatcher
 	/* \n\n.. admonition:: Special constructor\n\n\tDerived colliders (unless they override ``pyHandleCustomCtorArgs``) can be given list of :obj:`BoundFunctors <BoundFunctor>` which is used to initialize the internal :obj:`boundDispatcher <Collider.boundDispatcher>` instance. */
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Collider,Engine,"Abstract class for finding spatial collisions between bodies."
-		,/*attrs*/
-		,/*ctor*/
-		,/*py*/ .def("probeAabb",&Collider::probeAabb,(py::arg("mn"),py::arg("mx")),"Return list of particles intersected by axis-aligned box with given corners")
+	#define woo_dem_Collider__CLASS_BASE_DOC_ATTRS_PY \
+		Collider,Engine,"Abstract class for finding spatial collisions between bodies." \
+		,/*attrs*/ \
+		,/*py*/ .def("probeAabb",&Collider::probeAabb,(py::arg("mn"),py::arg("mx")),"Return list of particles intersected by axis-aligned box with given corners") \
 		.def("mayCollide",&Collider::mayCollide,(py::arg("dem"),py::arg("pA"),py::arg("pB")),"Predicate whether two particles in question may collide or not").staticmethod("mayCollide")
-	);
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Collider__CLASS_BASE_DOC_ATTRS_PY);
 };
 WOO_REGISTER_OBJECT(Collider);
 

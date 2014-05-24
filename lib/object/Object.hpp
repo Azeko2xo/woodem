@@ -391,6 +391,11 @@ template<> struct _SerializeMaybe<false>{
 #define _WOO_DECL__CLASS_BASE_DOC_ATTRS(klass,base,doc,attrs) _WOO_CLASS_DECLARATION(   klass,base,doc,attrs,/*deprec*/,/*inits*/,/*ctor*/,/*dtor*/,/*py*/)
 #define _WOO_IMPL__CLASS_BASE_DOC_ATTRS(klass,base,doc,attrs) _WOO_CLASS_IMPLEMENTATION(klass,base,doc,attrs,/*deprec*/,/*inits*/,/*ctor*/,/*dtor*/,/*py*/)
 
+#define WOO_DECL__CLASS_BASE_DOC_PY(args) _WOO_DECL__CLASS_BASE_DOC_PY(args)
+#define WOO_IMPL__CLASS_BASE_DOC_PY(args) _WOO_IMPL__CLASS_BASE_DOC_PY(args)
+#define _WOO_DECL__CLASS_BASE_DOC_PY(klass,base,doc,py) _WOO_CLASS_DECLARATION(   klass,base,doc,/*attrs*/,/*deprec*/,/*inits*/,/*ctor*/,/*dtor*/,py)
+#define _WOO_IMPL__CLASS_BASE_DOC_PY(klass,base,doc,py) _WOO_CLASS_IMPLEMENTATION(klass,base,doc,/*attrs*/,/*deprec*/,/*inits*/,/*ctor*/,/*dtor*/,py)
+
 #define WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(args) _WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(args)
 #define WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(args) _WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(args)
 #define _WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(klass,base,doc,attrs,pyExtras) _WOO_CLASS_DECLARATION(   klass,base,doc,attrs,/*deprec*/,/*inits*/,/*ctor*/,/*dtor*/,pyExtras)

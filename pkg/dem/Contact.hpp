@@ -104,7 +104,9 @@ struct Contact: public Object{
 		.add_property("pA",&Contact::pyPA,"First particle of the contact") \
 		.add_property("pB",&Contact::pyPB,"Second particle of the contact") \
 		.def("resetPhys",&Contact::pyResetPhys,"Set *phys* to *None* (to force its re-evaluation)") \
-		.def("isFresh",&Contact::pyIsFresh,(py::arg("scene")),"Say whether this contact has just been created. Equivalent to ``C.stepCreated==scene.step``.")
+		.def("isFresh",&Contact::pyIsFresh,(py::arg("scene")),"Say whether this contact has just been created. Equivalent to ``C.stepCreated==scene.step``.") \
+		; \
+		woo::converters_cxxVector_pyList_2way<shared_ptr<Contact>>();
 
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Contact__CLASS_BASE_DOC_ATTRS_PY);
 };

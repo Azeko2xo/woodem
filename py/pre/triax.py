@@ -12,9 +12,11 @@ import woo.models
 class TriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 	r'''Preprocessor for triaxial test with rigid boundary. The test is run in 2 stages:
 	
-		* **compaction** where random loopse packing is compressed to attain :math:`\sigma_{\rm iso}` (:obj:`sigIso`) in all directions. The compaction finishes when the stress level is sufficiently close to :obj:`sigIso` and unbalanced force drops below :obj:`maxUnbalanced`.
+		* **compaction** where random loose packing is compressed to attain :math:`\sigma_{\rm iso}` (:obj:`sigIso`) in all directions. The compaction finishes when the stress level is sufficiently close to :obj:`sigIso` and unbalanced force drops below :obj:`maxUnbalanced`.
 
 		* **Triaxial compression**: displacement-controlled compression along the ``z``-axis, with strain rate increasing until :obj:`maxRates` is reached; the test finished when axial strain attains :obj:`stopStrain`.
+
+	.. youtube:: qWZBCQbS6x4
 
 	'''
 	_classTraits=None
@@ -44,7 +46,7 @@ class TriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		_PAT(float,'stopStrain',-.3,unit=r'%',doc='Goal value of axial deformation in the triaxial phase'),
 		_PAT(str,'shape','cell',choice=('cell','box','cylinder'),doc='Shape of the volume being compressed; *cell* is rectangular periodic cell, *box* is rectangular :obj:`~woo.dem.Wall`-delimited box, *cylinder* is triangulated cylinder aligned with the :math:`z`-axis'),
 		_PAT(Vector3,'iniSize',(.3,.3,.6),unit='m',doc='Initial size of the volume; when :obj:`shape` is ``cylinder``, the second (:math:`y`) dimension is ignored.'),
-		_PAT(woo.dem.ParticleGenerator,'generator',woo.dem.PsdCapsuleGenerator(psdPts=[(.01,0),(.04,1.)],shaftRadiusRatio=(.4,.8)),
+		_PAT(woo.dem.ParticleGenerator,'generator',woo.dem.PsdCapsuleGenerator(psdPts=[(.01,0),(.04,1.)],shaftRadiusRatio=(.6,1.2)),
 			# woo.dem.PsdEllipsoidGenerator(psdPts=[(.01,0),(.04,1.)],axisRatio2=(.5,.9),axisRatio3=(.3,.7))
 			# woo.dem.PsdSphereGenerator(psdPts=[(.01,0),(.04,1.)])
 			'Particle generator; partices are then randomly placed in the volume.'),

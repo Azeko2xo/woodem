@@ -12,25 +12,26 @@
 struct GlExtraDrawer: public Object{
 	Scene* scene;
 	virtual void render();
-	WOO_CLASS_BASE_DOC_ATTRS(GlExtraDrawer,Object,"Performing arbitrary OpenGL drawing commands; called from :obj:`Renderer` (see :obj:`Renderer.extraDrawers`) once regular rendering routines will have finished.\n\nThis class itself does not render anything, derived classes should override the *render* method.",
-		((bool,dead,false,,"Deactivate the object (on error/exception)."))
-	);
+	#define woo_gl_GlExtraDrawer__CLASS_BASE_DOC_ATTRS_PY \
+		GlExtraDrawer,Object,"Performing arbitrary OpenGL drawing commands; called from :obj:`Renderer` (see :obj:`Renderer.extraDrawers`) once regular rendering routines will have finished.\n\nThis class itself does not render anything, derived classes should override the *render* method.", \
+		((bool,dead,false,,"Deactivate the object (on error/exception).")) \
+		,/*py*/ ; woo::converters_cxxVector_pyList_2way<shared_ptr<GlExtraDrawer>>();
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_gl_GlExtraDrawer__CLASS_BASE_DOC_ATTRS_PY);
 };
 WOO_REGISTER_OBJECT(GlExtraDrawer);
 
 struct GlData: public NodeData{
 	bool isClipped() const { return isnan(dGlPos[0]); }
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(GlData,NodeData,"Nodal data used for rendering.",
-		((Vector3r,refPos,Vector3r(NaN,NaN,NaN),AttrTrait<>().lenUnit(),"Reference position (for displacement scaling)"))
-		((Quaternionr,refOri,Quaternionr(NaN,NaN,NaN,NaN),,"Reference orientation (for rotation scaling)"))
-		((Vector3r,dGlPos,Vector3r(NaN,NaN,NaN),AttrTrait<>().lenUnit(),"Difference from real spatial position when rendered. (when [0] is NaN, the node is clipped and should not be rendered at all)"))
-		((Quaternionr,dGlOri,Quaternionr(NaN,NaN,NaN,NaN),,"Difference from real spatial orientation when rendered."))
-		((Vector3i,dCellDist,Vector3i::Zero(),,"How much is canonicalized point from the real one."))
-		, /* ctor */
-		, /* py */
+	#define woo_gl_GlData__CLASS_BASE_DOC_ATTRS_PY \
+		GlData,NodeData,"Nodal data used for rendering.", \
+		((Vector3r,refPos,Vector3r(NaN,NaN,NaN),AttrTrait<>().lenUnit(),"Reference position (for displacement scaling)")) \
+		((Quaternionr,refOri,Quaternionr(NaN,NaN,NaN,NaN),,"Reference orientation (for rotation scaling)")) \
+		((Vector3r,dGlPos,Vector3r(NaN,NaN,NaN),AttrTrait<>().lenUnit(),"Difference from real spatial position when rendered. (when [0] is NaN, the node is clipped and should not be rendered at all)")) \
+		((Quaternionr,dGlOri,Quaternionr(NaN,NaN,NaN,NaN),,"Difference from real spatial orientation when rendered.")) \
+		((Vector3i,dCellDist,Vector3i::Zero(),,"How much is canonicalized point from the real one.")) \
+		, /* py */ \
 		.def("_getDataOnNode",&Node::pyGetData<GlData>).staticmethod("_getDataOnNode").def("_setDataOnNode",&Node::pySetData<GlData>).staticmethod("_setDataOnNode")
-
-	);
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_gl_GlData__CLASS_BASE_DOC_ATTRS_PY);
 };
 WOO_REGISTER_OBJECT(GlData);
 template<> struct NodeData::Index<GlData>{enum{value=Node::ST_GL};};

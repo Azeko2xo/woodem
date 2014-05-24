@@ -24,7 +24,9 @@ struct SphereClumpGeom: public ShapeClump {
 		((vector<Vector3r>,centers,,AttrTrait<Attr::triggerPostLoad>(),"Centers of constituent spheres, in clump-local coordinates.")) \
 		((vector<Real>,radii,,AttrTrait<Attr::triggerPostLoad>(),"Radii of constituent spheres")) \
 		, /* py */ \
-		.def("fromSpherePack",&SphereClumpGeom::fromSpherePack,(py::arg("pack"),py::arg("div")=5),"Return [ :obj:`SphereClumpGeom` ] which contain all clumps and spheres from given :obj:`SpherePack`.").staticmethod("fromSpherePack")
+		.def("fromSpherePack",&SphereClumpGeom::fromSpherePack,(py::arg("pack"),py::arg("div")=5),"Return [ :obj:`SphereClumpGeom` ] which contain all clumps and spheres from given :obj:`SpherePack`.").staticmethod("fromSpherePack") \
+		; woo::converters_cxxVector_pyList_2way<shared_ptr<SphereClumpGeom>>();
+
 
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_SphereClumpGeom__CLASS_BASE_DOC_ATTRS_PY);
 
@@ -57,12 +59,13 @@ struct ClumpData: public DemData{
 	static void computePrincipalAxes(const Real& m, const Vector3r& Sg, const Matrix3r& Ig, Vector3r& pos, Quaternionr& ori, Vector3r& inertia);
 
 	DECLARE_LOGGER;
-	WOO_CLASS_BASE_DOC_ATTRS(ClumpData,DemData,"Data of a DEM particle which binds multiple particles together.",
-		((vector<shared_ptr<Node>>,nodes,,AttrTrait<Attr::readonly>(),"Member nodes"))
-		((vector<Vector3r>,relPos,,AttrTrait<Attr::readonly>(),"Relative member's positions"))
-		((vector<Quaternionr>,relOri,,AttrTrait<Attr::readonly>(),"Relative member's orientations"))
+	#define woo_dem_ClumpData__CLASS_BASE_DOC_ATTRS \
+		ClumpData,DemData,"Data of a DEM particle which binds multiple particles together.", \
+		((vector<shared_ptr<Node>>,nodes,,AttrTrait<Attr::readonly>(),"Member nodes")) \
+		((vector<Vector3r>,relPos,,AttrTrait<Attr::readonly>(),"Relative member's positions")) \
+		((vector<Quaternionr>,relOri,,AttrTrait<Attr::readonly>(),"Relative member's orientations")) \
 		((Real,equivRad,NaN,,"Equivalent radius, for PSD statistics (e.g. in :obj:`BoxDeleter`)."))
-	);
+	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_ClumpData__CLASS_BASE_DOC_ATTRS);
 };
 WOO_REGISTER_OBJECT(ClumpData);
 

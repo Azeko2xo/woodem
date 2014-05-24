@@ -2,6 +2,7 @@
 #include<woo/lib/multimethods/Indexable.hpp>
 #include<woo/lib/object/Object.hpp>
 #include<woo/core/Master.hpp>
+#include<woo/lib/pyutil/converters.hpp>
 
 namespace py=boost::python;
 
@@ -23,9 +24,11 @@ struct NodeData: public Object{
 	// template to be specialized by derived classes
 	template<typename Derived> struct Index; // { BOOST_STATIC_ASSERT(false); /* template must be specialized for derived NodeData types */ };
 
-	#define woo_core_NodeData__CLASS_BASE_DOC \
-		NodeData,Object,"Data associated with some node."
-	WOO_DECL__CLASS_BASE_DOC(woo_core_NodeData__CLASS_BASE_DOC);
+	#define woo_core_NodeData__CLASS_BASE_DOC_ATTRS_PY \
+		NodeData,Object,"Data associated with some node.",/*attrs*/ \
+		,/*py*/; woo::converters_cxxVector_pyList_2way<shared_ptr<NodeData>>();
+
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_core_NodeData__CLASS_BASE_DOC_ATTRS_PY);
 };
 WOO_REGISTER_OBJECT(NodeData);
 
@@ -89,7 +92,10 @@ struct ScalarRange: public Object{
 			.add_property("symmetric",&ScalarRange::isSymmetric,&ScalarRange::setSymmetric) \
 			.add_property("reversed",&ScalarRange::isReversed,&ScalarRange::setReversed) \
 			.add_property("hidden",&ScalarRange::isHidden,&ScalarRange::setHidden) \
-			.add_property("log",&ScalarRange::isLog,&ScalarRange::setLog)
+			.add_property("log",&ScalarRange::isLog,&ScalarRange::setLog) \
+			; \
+			woo::converters_cxxVector_pyList_2way<shared_ptr<ScalarRange>>();
+
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_gl_ScalarRange__CLASS_BASE_DOC_ATTRS_PY);
 };
 WOO_REGISTER_OBJECT(ScalarRange);
@@ -174,6 +180,8 @@ struct Field: public Object, public Indexable{
 			.add_property("scene",&Field::py_getScene,"Get associated scene object, if any (this function is dangerous in some corner cases, as it has to use raw pointer).") \
 			.def("critDt",&Field::critDt,"Return critical (maximum numerically stable) timestep for this field. By default returns infinity (no critical timestep) but derived fields may override this function.") \
 			WOO_PY_TOPINDEXABLE(Field) \
+			; \
+			woo::converters_cxxVector_pyList_2way<shared_ptr<Field>>();
 
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_core_Field__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 	REGISTER_INDEX_COUNTER(Field);

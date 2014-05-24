@@ -13,14 +13,16 @@ struct RawShape: public Object{
 	void translate(const Vector3r& offset);
 	// void rotate(const Quaternionr& rot);
 	shared_ptr<RawShape> copy() const;
-	#define woo_dem_RawShape__CLASS_BASE_DOC_ATTRS \
+	#define woo_dem_RawShape__CLASS_BASE_DOC_ATTRS_PY \
 		RawShape,Object,"", \
 		((string,className,"",,"Name of the Shape subclass.")) \
 		((Vector3r,center,Vector3r::Zero(),,"Center of the bounding sphere.")) \
 		((Real,radius,0.,,"Radius of the bounding sphere.")) \
-		((vector<Real>,raw,,,"Raw data for shape reconstruction; the size of the array is shape-specific."))
+		((vector<Real>,raw,,,"Raw data for shape reconstruction; the size of the array is shape-specific.")) \
+		,/*py*/ ; woo::converters_cxxVector_pyList_2way<shared_ptr<RawShape>>();
 
-	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_RawShape__CLASS_BASE_DOC_ATTRS);
+
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_RawShape__CLASS_BASE_DOC_ATTRS_PY);
 };
 WOO_REGISTER_OBJECT(RawShape);
 
@@ -49,8 +51,8 @@ struct ShapeClump: public Object{
 		((int,div,5,AttrTrait<Attr::triggerPostLoad>().noDump(),"Sampling grid fineness, when computing volume and other properties, relative to the smallest sphere's radius. When zero or negative, assume spheres don't intersect and use a different algorithm (Steiner's theorem)."))  \
 		, /* py */ \
 		.def("recompute",&ShapeClump::recompute,(py::arg("div")=5,py::arg("failOk")=false,py::arg("fastOnly")=false),"Recompute principal axes of the clump, using *div* for subdivision (see :obj:`div` for the semantics). *failOk* (silently return in case of invalid data) and *fastOnly* (return if there is lots of cells in subdivision) are only to be used internally.") \
-		.def("makeParticles",&ShapeClump::pyMakeParticles,(py::arg("mat"),py::arg("pos"),py::arg("ori")=Quaternionr::Identity(),py::arg("scale")=1.,py::arg("mask")=0),"Create particle(s) as described by this geometry, positioned in *pos* and rotated with *ori*. Geometry will be scaled by *scale*. Returns tuple (Node,[Particle,..]).")
-
+		.def("makeParticles",&ShapeClump::pyMakeParticles,(py::arg("mat"),py::arg("pos"),py::arg("ori")=Quaternionr::Identity(),py::arg("scale")=1.,py::arg("mask")=0),"Create particle(s) as described by this geometry, positioned in *pos* and rotated with *ori*. Geometry will be scaled by *scale*. Returns tuple (Node,[Particle,..]).") \
+		; woo::converters_cxxVector_pyList_2way<shared_ptr<ShapeClump>>();
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_ShapeClump__CLASS_BASE_DOC_ATTRS_PY);
 };
 WOO_REGISTER_OBJECT(ShapeClump);

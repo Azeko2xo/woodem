@@ -34,28 +34,10 @@
 
 #include<woo/lib/base/Math.hpp>
 #include<woo/lib/base/openmp-accu.hpp>
-
-#include<woo/core/Field.hpp>
+#include<woo/lib/pyutil/converters.hpp>
 #include<woo/core/Scene.hpp>
-
-#include<woo/pkg/dem/Particle.hpp>
-#include<woo/pkg/dem/ContactLoop.hpp>
-#include<woo/pkg/dem/Collision.hpp>
-#include<woo/pkg/dem/GridBound.hpp>
-#include<woo/pkg/dem/IntraForce.hpp>
-#include<woo/pkg/dem/LawTester.hpp>
-#include<woo/pkg/dem/Psd.hpp>
-#include<woo/pkg/dem/ShapePack.hpp>
-
-#include<woo/pkg/dem/ParticleContainer.hpp>
 #include<woo/core/MatchMaker.hpp>
 
-
-#ifdef WOO_OPENGL
-	#include<woo/pkg/gl/Functors.hpp>
-	#include<woo/pkg/gl/Renderer.hpp>
-	#include<woo/pkg/gl/NodeGlRep.hpp>
-#endif
 
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 
@@ -81,73 +63,6 @@ struct custom_OpenMPArrayAccumulator_to_list {
 	static PyObject* convert(const OpenMPArrayAccumulator<T>& acc){
 		py::list ret; for(size_t i=0; i<acc.size(); i++) ret.append(acc.get(i));
 		return py::incref(ret.ptr());
-	}
-};
-
-
-template<typename T>
-struct custom_vvector_to_list{
-	static PyObject* convert(const vector<vector<T> >& vv){
-		py::list ret; FOREACH(const vector<T>& v, vv){
-			py::list ret2;
-			FOREACH(const T& e, v) ret2.append(e);
-			ret.append(ret2);
-		}
-		return incref(ret.ptr());
-	}
-};
-
-template<typename containedType>
-struct custom_list_to_list{
-	static PyObject* convert(const std::list<containedType>& v){
-		py::list ret; FOREACH(const containedType& e, v) ret.append(e);
-		return incref(ret.ptr());
-	}
-};
-/* pair-tuple converter */
-template<typename CxxPair>
-struct custom_CxxPair_to_PyTuple{
-	static PyObject* convert(const CxxPair& t){ return incref(py::make_tuple(std::get<0>(t),std::get<1>(t)).ptr()); }
-};
-template<typename CxxPair>
-struct custom_CxxPair_from_PyTuple{
-	custom_CxxPair_from_PyTuple(){ converter::registry::push_back(&convertible,&construct,type_id<CxxPair>()); }
-	static void* convertible(PyObject* obj_ptr){
-		if(!PySequence_Check(obj_ptr) || !PyObject_HasAttrString(obj_ptr,"__len__") || PySequence_Size(obj_ptr)!=2) return 0;
-		return obj_ptr;
-	}
-	static void construct(PyObject* obj_ptr, converter::rvalue_from_python_stage1_data* data){
-		void* storage=((converter::rvalue_from_python_storage<CxxPair>*)(data))->storage.bytes;
-		new (storage) CxxPair();
-		CxxPair* t=(CxxPair*)(storage);
-		t->first=extract<typename CxxPair::first_type>(PySequence_GetItem(obj_ptr,0));
-		t->second=extract<typename CxxPair::second_type>(PySequence_GetItem(obj_ptr,1));
-		data->convertible=storage;
-	}
-};
-
-/*** c++-list to python-list */
-template<typename containedType>
-struct custom_vector_to_list{
-	static PyObject* convert(const vector<containedType>& v){
-		py::list ret; FOREACH(const containedType& e, v) ret.append(e);
-		return incref(ret.ptr());
-	}
-};
-template<typename containedType>
-struct custom_vector_from_seq{
-	custom_vector_from_seq(){ converter::registry::push_back(&convertible,&construct,type_id<vector<containedType> >()); }
-	static void* convertible(PyObject* obj_ptr){
-		// the second condition is important, for some reason otherwise there were attempted conversions of Body to list which failed afterwards.
-		if(!PySequence_Check(obj_ptr) || !PyObject_HasAttrString(obj_ptr,"__len__")) return 0;
-		return obj_ptr;
-	}
-	static void construct(PyObject* obj_ptr, converter::rvalue_from_python_stage1_data* data){
-		 void* storage=((converter::rvalue_from_python_storage<vector<containedType> >*)(data))->storage.bytes;
-		 new (storage) vector<containedType>();
-		 vector<containedType>* v=(vector<containedType>*)(storage);
-		 int l=PySequence_Size(obj_ptr); if(l<0) abort(); /*std::cerr<<"l="<<l<<"; "<<typeid(containedType).name()<<std::endl;*/ v->reserve(l); for(int i=0; i<l; i++) { v->push_back(extract<containedType>(PySequence_GetItem(obj_ptr,i))); }
-		 data->convertible=storage;
 	}
 };
 
@@ -211,13 +126,6 @@ struct VectorPickle: py::pickle_suite{
 
 WOO_PYTHON_MODULE(_customConverters);
 BOOST_PYTHON_MODULE(_customConverters){
-	#if 0
-		custom_vector_from_seq<string>(); class_<vector<string> >("vector_" "string").def(indexing::container_suite<vector<string> >()).def("__repr__",&vectorRepr<string>);
-		custom_vector_from_seq<int>(); class_<vector<int> >("vector_" "int").def(indexing::container_suite<vector<int> >()).def("__repr__",&vectorRepr<int>);
-		custom_vector_from_seq<Real>(); class_<vector<Real> >("vector_" "Real").def(indexing::container_suite<vector<Real> >()).def("__repr__",&vectorRepr<Real>);
-		// this needs operator< for Vector3r (defined above, but not picked up for some reason)
-		custom_vector_from_seq<Vector3r>(); class_<vector<Vector3r> >("vector_" "Vector3r").def(indexing::container_suite<vector<Vector3r> >()).def("__repr__",&vectorRepr<Vector3r>);
-	#endif
 
 	custom_OpenMPAccumulator_from_float(); to_python_converter<OpenMPAccumulator<Real>, custom_OpenMPAccumulator_to_float>(); 
 	custom_OpenMPAccumulator_from_int(); to_python_converter<OpenMPAccumulator<int>, custom_OpenMPAccumulator_to_int>(); 
@@ -258,71 +166,31 @@ BOOST_PYTHON_MODULE(_customConverters){
 	//	py::class_<vector<shared_ptr<Node> > >("NodeList").def(py::vector_indexing_suite<vector<shared_ptr<Node> >, /*NoProxy, shared_ptr provides proxy semantics already */true>()).def_pickle(VectorPickle<vector<shared_ptr<Node>>>());
 
 	// register 2-way conversion between c++ vector and python homogeneous sequence (list/tuple) of corresponding type
-	#define VECTOR_SEQ_CONV(Type) custom_vector_from_seq<Type>();  to_python_converter<vector<Type>, custom_vector_to_list<Type> >();
-		VECTOR_SEQ_CONV(int);
-		VECTOR_SEQ_CONV(size_t);
-		VECTOR_SEQ_CONV(bool);
-		VECTOR_SEQ_CONV(Real);
-		#if 0
-			VECTOR_SEQ_CONV(Se3r);
-		#endif
-		VECTOR_SEQ_CONV(Vector2r);
-		VECTOR_SEQ_CONV(Vector2i);
-		VECTOR_SEQ_CONV(Vector3r);
-		VECTOR_SEQ_CONV(Vector3i);
-		VECTOR_SEQ_CONV(Vector6r);
-		VECTOR_SEQ_CONV(Vector6i);
-		VECTOR_SEQ_CONV(VectorXr);
-		VECTOR_SEQ_CONV(Matrix3r);
-		VECTOR_SEQ_CONV(AlignedBox3r);
-		VECTOR_SEQ_CONV(AlignedBox2r);
-		VECTOR_SEQ_CONV(Quaternionr);
-		VECTOR_SEQ_CONV(string);
-		VECTOR_SEQ_CONV(pairIntString);
-		VECTOR_SEQ_CONV(pairStringReal);
-		VECTOR_SEQ_CONV(vecPairStringReal); // vector<vector<pair<string,Real>>>
+		woo::converters_cxxVector_pyList_2way<int>();
+		woo::converters_cxxVector_pyList_2way<size_t>();
+		woo::converters_cxxVector_pyList_2way<bool>();
+		woo::converters_cxxVector_pyList_2way<Real>();
 
-		// TODO: put this macro somewhere else and use it in the PY block of the class itself
-		VECTOR_SEQ_CONV(shared_ptr<NodeData>);
-		VECTOR_SEQ_CONV(shared_ptr<ScalarRange>);
-		VECTOR_SEQ_CONV(shared_ptr<Field>);
-		VECTOR_SEQ_CONV(shared_ptr<Particle>);
-		VECTOR_SEQ_CONV(shared_ptr<Shape>);
-		VECTOR_SEQ_CONV(shared_ptr<Contact>);
-		VECTOR_SEQ_CONV(shared_ptr<Material>);
-
-		VECTOR_SEQ_CONV(shared_ptr<BoundFunctor>);
-		VECTOR_SEQ_CONV(shared_ptr<GridBoundFunctor>);
-		VECTOR_SEQ_CONV(shared_ptr<CGeomFunctor>);
-		VECTOR_SEQ_CONV(shared_ptr<CPhysFunctor>);
-		VECTOR_SEQ_CONV(shared_ptr<LawFunctor>);
-		VECTOR_SEQ_CONV(shared_ptr<IntraFunctor>);
-		VECTOR_SEQ_CONV(shared_ptr<LawTesterStage>);
-
-		VECTOR_SEQ_CONV(shared_ptr<SphereClumpGeom>);
-
-		VECTOR_SEQ_CONV(shared_ptr<Engine>);
+		woo::converters_cxxVector_pyList_2way<Vector2r>();
+		woo::converters_cxxVector_pyList_2way<Vector2i>();
+		woo::converters_cxxVector_pyList_2way<Vector3r>();
+		woo::converters_cxxVector_pyList_2way<Vector3i>();
+		woo::converters_cxxVector_pyList_2way<Vector6r>();
+		woo::converters_cxxVector_pyList_2way<Vector6i>();
+		woo::converters_cxxVector_pyList_2way<VectorXr>();
+		woo::converters_cxxVector_pyList_2way<Matrix3r>();
+		woo::converters_cxxVector_pyList_2way<AlignedBox3r>();
+		woo::converters_cxxVector_pyList_2way<AlignedBox2r>();
+		woo::converters_cxxVector_pyList_2way<Quaternionr>();
+		woo::converters_cxxVector_pyList_2way<string>();
+		woo::converters_cxxVector_pyList_2way<std::pair<int,string>>();
+		woo::converters_cxxVector_pyList_2way<std::pair<string,Real>>();
+		woo::converters_cxxVector_pyList_2way<std::vector<std::pair<string,Real>>();
 
 		VECTOR_INDEXING_SUITE_EXPOSE(Node);
 		VECTOR_INDEXING_SUITE_EXPOSE(Object);
-		VECTOR_SEQ_CONV(shared_ptr<RawShape>);
-		VECTOR_SEQ_CONV(shared_ptr<ShapeClump>);
-		//VECTOR_SEQ_CONV(vector<shared_ptr<RawShape>>);
 
-		//VECTOR_SEQ_CONV(shared_ptr<Object>);
-		#ifdef WOO_OPENGL
-			VECTOR_SEQ_CONV(shared_ptr<GlShapeFunctor>);
-			VECTOR_SEQ_CONV(shared_ptr<GlNodeFunctor>);
-			VECTOR_SEQ_CONV(shared_ptr<GlBoundFunctor>);
-			VECTOR_SEQ_CONV(shared_ptr<GlExtraDrawer>);
-			VECTOR_SEQ_CONV(shared_ptr<GlCPhysFunctor>);
-			VECTOR_SEQ_CONV(shared_ptr<GlFieldFunctor>);
-		#if 0
-			VECTOR_SEQ_CONV(shared_ptr<GlStateFunctor>);
-			VECTOR_SEQ_CONV(shared_ptr<GlCGeomFunctor>);
-		#endif
-		#endif
-	#undef VECTOR_SEQ_CONV
+	#undef VECTOR_INDEXING_SUITE_EXPOSE
 
 	#if 0
 		import_array();

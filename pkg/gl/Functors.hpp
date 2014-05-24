@@ -25,7 +25,7 @@ struct GLViewInfo{
 #define GL_FUNCTOR(Klass,typelist,renderedType) class Klass: public Functor1D<renderedType,void,typelist>{public:\
 	virtual string renders() const { throw std::runtime_error(#Klass ": unregistered gldraw class.\n"); };\
 	virtual void initgl(){/*WARNING: it must deal with static members, because it is called from another instance!*/};\
-	WOO_CLASS_BASE_DOC(Klass,Functor,"Abstract functor for rendering :obj:`" #renderedType "` objects."); \
+	WOO_CLASS_BASE_DOC_ATTRS_PY(Klass,Functor,"Abstract functor for rendering :obj:`" #renderedType "` objects.",/*attrs*/,/*py*/ ; woo::converters_cxxVector_pyList_2way<shared_ptr<Klass>>();); \
 	}; WOO_REGISTER_OBJECT(Klass); 
 #define GL_DISPATCHER(Klass,Functor) class Klass: public Dispatcher1D<Functor>{public:\
 	WOO_DISPATCHER1D_FUNCTOR_DOC_ATTRS_CTOR_PY(Klass,Functor,/*optional doc*/,/*attrs*/,/*ctor*/,/*py*/); \

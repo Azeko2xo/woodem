@@ -4,6 +4,8 @@ WOO_PLUGIN(dem,(GridBound)(GridBoundFunctor)(GridBoundDispatcher)(Grid1_Sphere)(
 	WOO_PLUGIN(gl,(Gl1_GridBound));
 #endif
 
+WOO_IMPL__CLASS_BASE_DOC_PY(woo_dem_GridBoundFunctor__CLASS_BASE_DOC_PY);
+
 
 void GridBound::setNodePlay(const shared_ptr<Shape>& s, const Real& verletDist){
 	const size_t N=s->nodes.size();
