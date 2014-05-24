@@ -185,7 +185,7 @@ BOOST_PYTHON_MODULE(_customConverters){
 		woo::converters_cxxVector_pyList_2way<string>();
 		woo::converters_cxxVector_pyList_2way<std::pair<int,string>>();
 		woo::converters_cxxVector_pyList_2way<std::pair<string,Real>>();
-		woo::converters_cxxVector_pyList_2way<std::vector<std::pair<string,Real>>();
+		woo::converters_cxxVector_pyList_2way<std::vector<std::pair<string,Real>>>();
 
 		VECTOR_INDEXING_SUITE_EXPOSE(Node);
 		VECTOR_INDEXING_SUITE_EXPOSE(Object);

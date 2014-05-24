@@ -23,22 +23,28 @@ class TriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 	_PAT=woo.pyderived.PyAttrTrait # less typing
 
 	def postLoad(self,I):
-		if self.preCooked: print 'Applying pre-cooked configuration "%s".'%self.preCooked
-		if self.preCooked=='Spheres in cylinder':
+		if self.preCooked:
+			print 'Applying pre-cooked configuration "%s".'%self.preCooked
+			if self.preCooked=='Spheres in cylinder':
+				self.generator=woo.dem.PsdSphereGenerator(psdPts=[(.01,0),(.04,1.)])
+				self.shape='cylinder'
+			elif self.preCooked=='Capsules in cylinder':
+				self.generator=woo.dem.PsdCapsuleGenerator(psdPts=[(.01,0),(.04,1.)],shaftRadiusRatio=(.6,1.2))
+				self.shape='cylinder'
+			elif self.preCooked=='Ellipsoids in box':
+				self.generator=woo.dem.PsdEllipsoidGenerator(psdPts=[(.01,0),(.04,1.)],axisRatio2=(.5,.9),axisRatio3=(.3,.7))
+				self.shape='box'
+			elif self.preCooked=='Sphere clumps in box':
+				self.generator=woo.dem.PsdClumpGenerator(psdPts=[(.01,0),(.04,1.)],clumps=[
+					SphereClumpGeom(centers=[(0,0,-.15),(0,0,-.05),(0,0,.05)],radii=(.05,.08,.05),scaleProb=[(0,1.)]),
+					SphereClumpGeom(centers=[(.05,0,0) ,(0,.05,0) ,(0,0,.05)],radii=(.05,.05,.05),scaleProb=[(0,.5)]),
+				])
+				self.shape='box'
+			else: raise RuntimeError('Unknown precooked configuration "%s"'%self.preCooked)
 			self.preCooked=''
-			self.generator=woo.dem.PsdSphereGenerator(psdPts=[(.01,0),(.04,1.)])
-			self.shape='cylinder'
-		elif self.preCooked=='Capsules in cylinder':
-			self.preCooked=''
-			self.generator=woo.dem.PsdCapsuleGenerator(psdPts=[(.01,0),(.04,1.)],shaftRadiusRatio=(.6,1.2))
-			self.shape='cylinder'
-		elif self.preCooked=='Ellipsoids in box':
-			self.preCooked=''
-			self.generator=woo.dem.PsdEllipsoidGenerator(psdPts=[(.01,0),(.04,1.)],axisRatio2=(.5,.9),axisRatio3=(.3,.7))
-			self.shape='box'
 
 	_attrTraits=[
-		_PAT(str,'preCooked','',noDump=True,noGui=False,startGroup='Predefined config',choice=['','Spheres in cylinder','Capsules in cylinder','Ellipsoids in box'],triggerPostLoad=True,doc='Apply pre-cooked configuration (i.e. change other parameters); this option is not saved.'),
+		_PAT(str,'preCooked','',noDump=True,noGui=False,startGroup='Predefined config',choice=['','Spheres in cylinder','Capsules in cylinder','Ellipsoids in box','Sphere clumps in box'],triggerPostLoad=True,doc='Apply pre-cooked configuration (i.e. change other parameters); this option is not saved.'),
 
 		# noGui would make startGroup being ignored
 		_PAT(float,'sigIso',-500e3,unit='kPa',startGroup='General',doc='Confining stress (isotropic during compaction)'),
@@ -209,7 +215,7 @@ def addPlotData_checkProgress(S):
 	if not S.plot.plots:
 		S.plot.plots={
 			'i':('unbalanced',None,'vol'),'i ':('srr','szz'),' i':('err','ezz','eVol'),'i  ':('dotE_z','dotEMax_z'),
-			'eDev':('qDivP',None,'eVol'),'p':('q',),
+			'eDev':(('qDivP','g-'),None,('eVol','r-')),'p':('q',),
 			# energy plot
 			#' i ':(O.energy.keys,None,'Etot'),
 		}
@@ -270,7 +276,7 @@ def triaxDone(S):
 		S.save(out)
 	S.stop()
 	import woo.utils
-	(repName,figs)=woo.utils.htmlReport(S,S.pre.reportFmt,'Cylindrical triaxial test',afterHead='',figures=[(None,f) for f in S.plot.plot(noShow=True,subPlots=False)],svgEmbed=True,show=True)
+	(repName,figs)=woo.utils.htmlReport(S,S.pre.reportFmt,'Triaxial test with rigid boundary',afterHead='',figures=[(None,f) for f in S.plot.plot(noShow=True,subPlots=False)],svgEmbed=True,show=True)
 	woo.batch.writeResults(S,defaultDb='triax.hdf5',series=S.plot.data,postHooks=[woo.pre.cylTriax.plotBatchResults],simulationName='triax',report='file://'+repName)
 
 

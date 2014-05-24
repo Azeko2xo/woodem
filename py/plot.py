@@ -82,6 +82,8 @@ scatterMarkerKw=dict(verts=[(0.,0.),(-30.,10.),(-25,0),(-30.,-10.)],marker=None)
 "Parameters for the current position marker"
 annotateKw=dict(horizontalalignment='left',verticalalignment='upper right',fontsize=9)
 "Parameters for annotation (current value) display"
+lineKw=dict(linewidth=1.5,alpha=.8)
+"Parameters for the normal line plot"
 
 componentSeparator='_'
 componentSuffixes={Vector2:{0:'x',1:'y'},Vector3:{0:'x',1:'y',2:'z'},Vector2i:{0:'x',1:'y'},Vector3i:{0:'x',1:'y',2:'z'},Vector6:{0:'xx',1:'yy',2:'zz',3:'yz',4:'zx',5:'xy'},Matrix3:{(0,0):'xx',(1,1):'yy',(2,2):'zz',(0,1):'xy',(1,0):'yx',(0,2):'xz',(2,0):'zx',(1,2):'yz',(2,1):'zy'}}
@@ -493,8 +495,9 @@ def createPlots(P,subPlots=True,noShow=False,replace=True,scatterSize=60,wider=F
 				if d[0] not in data:
 					print 'Missing column %s in Scene.plot.data, added NaN.'%d[0]
 					addDataColumns(data,[d[0]])
-				line,=axes.plot(data[pStrip],data[d[0]],d[1],label=xlateLabel(d[0],P.labels))
-				line2,=axes.plot([],[],d[1],color=line.get_color(),alpha=afterCurrentAlpha)
+				line,=axes.plot(data[pStrip],data[d[0]],d[1],label=xlateLabel(d[0],P.labels),**lineKw)
+				lineKwWithoutAlpha=dict([(k,v) for k,v in lineKw.items() if k!='alpha'])
+				line2,=axes.plot([],[],d[1],color=line.get_color(),alpha=afterCurrentAlpha,**lineKwWithoutAlpha)
 				# use (0,0) if there are no data yet
 				scatterPt=[0,0] if len(data[pStrip])==0 else (data[pStrip][current],data[d[0]][current])
 				scatterPtPos=[scatterPt[0] if not math.isnan(scatterPt[0]) else 0,scatterPt[1] if not math.isnan(scatterPt[1]) else 0]
