@@ -43,19 +43,18 @@
 
 
 
-using namespace py; // = boost::python
 
-struct custom_OpenMPAccumulator_to_float{ static PyObject* convert(const OpenMPAccumulator<Real>& acc){ return incref(PyFloat_FromDouble(acc.get())); } };
+struct custom_OpenMPAccumulator_to_float{ static PyObject* convert(const OpenMPAccumulator<Real>& acc){ return py::incref(PyFloat_FromDouble(acc.get())); } };
 struct custom_OpenMPAccumulator_from_float{
-	custom_OpenMPAccumulator_from_float(){  converter::registry::push_back(&convertible,&construct,type_id<OpenMPAccumulator<Real> >()); }
+	custom_OpenMPAccumulator_from_float(){  py::converter::registry::push_back(&convertible,&construct,py::type_id<OpenMPAccumulator<Real> >()); }
 	static void* convertible(PyObject* obj_ptr){ return PyFloat_Check(obj_ptr) ? obj_ptr : 0; }
-	static void construct(PyObject* obj_ptr, converter::rvalue_from_python_stage1_data* data){ void* storage=((converter::rvalue_from_python_storage<OpenMPAccumulator<Real> >*)(data))->storage.bytes; new (storage) OpenMPAccumulator<Real>; ((OpenMPAccumulator<Real>*)storage)->set(extract<Real>(obj_ptr)); data->convertible=storage; }
+	static void construct(PyObject* obj_ptr, py::converter::rvalue_from_python_stage1_data* data){ void* storage=((py::converter::rvalue_from_python_storage<OpenMPAccumulator<Real> >*)(data))->storage.bytes; new (storage) OpenMPAccumulator<Real>; ((OpenMPAccumulator<Real>*)storage)->set(py::extract<Real>(obj_ptr)); data->convertible=storage; }
 };
-struct custom_OpenMPAccumulator_to_int  { static PyObject* convert(const OpenMPAccumulator<int>& acc){ return incref(PyLong_FromLong((long)acc.get())); } };
+struct custom_OpenMPAccumulator_to_int  { static PyObject* convert(const OpenMPAccumulator<int>& acc){ return py::incref(PyLong_FromLong((long)acc.get())); } };
 struct custom_OpenMPAccumulator_from_int{
-	custom_OpenMPAccumulator_from_int(){  converter::registry::push_back(&convertible,&construct,type_id<OpenMPAccumulator<int> >()); }
+	custom_OpenMPAccumulator_from_int(){  py::converter::registry::push_back(&convertible,&construct,py::type_id<OpenMPAccumulator<int> >()); }
 	static void* convertible(PyObject* obj_ptr){ return PyLong_Check(obj_ptr) ? obj_ptr : 0; }
-	static void construct(PyObject* obj_ptr, converter::rvalue_from_python_stage1_data* data){ void* storage=((converter::rvalue_from_python_storage<OpenMPAccumulator<int> >*)(data))->storage.bytes; new (storage) OpenMPAccumulator<int>; ((OpenMPAccumulator<int>*)storage)->set(extract<int>(obj_ptr)); data->convertible=storage; }
+	static void construct(PyObject* obj_ptr, py::converter::rvalue_from_python_stage1_data* data){ void* storage=((py::converter::rvalue_from_python_storage<OpenMPAccumulator<int> >*)(data))->storage.bytes; new (storage) OpenMPAccumulator<int>; ((OpenMPAccumulator<int>*)storage)->set(py::extract<int>(obj_ptr)); data->convertible=storage; }
 };
 
 template<typename T>
@@ -68,10 +67,10 @@ struct custom_OpenMPArrayAccumulator_to_list {
 
 
 struct custom_ptrMatchMaker_from_float{
-	custom_ptrMatchMaker_from_float(){ converter::registry::push_back(&convertible,&construct,type_id<shared_ptr<MatchMaker> >()); }
+	custom_ptrMatchMaker_from_float(){ py::converter::registry::push_back(&convertible,&construct,py::type_id<shared_ptr<MatchMaker> >()); }
 	static void* convertible(PyObject* obj_ptr){ if(!PyNumber_Check(obj_ptr)) { cerr<<"Not convertible to MatchMaker"<<endl; return 0; } return obj_ptr; }
-	static void construct(PyObject* obj_ptr, converter::rvalue_from_python_stage1_data* data){
-		void* storage=((converter::rvalue_from_python_storage<shared_ptr<MatchMaker> >*)(data))->storage.bytes;
+	static void construct(PyObject* obj_ptr, py::converter::rvalue_from_python_stage1_data* data){
+		void* storage=((py::converter::rvalue_from_python_storage<shared_ptr<MatchMaker> >*)(data))->storage.bytes;
 		new (storage) shared_ptr<MatchMaker>(new MatchMaker); // allocate the object at given address
 		shared_ptr<MatchMaker>* mm=(shared_ptr<MatchMaker>*)(storage); // convert that address to our type
 		(*mm)->algo="val"; (*mm)->val=PyFloat_AsDouble(obj_ptr); (*mm)->postLoad(**mm,NULL);
@@ -127,17 +126,17 @@ struct VectorPickle: py::pickle_suite{
 WOO_PYTHON_MODULE(_customConverters);
 BOOST_PYTHON_MODULE(_customConverters){
 
-	custom_OpenMPAccumulator_from_float(); to_python_converter<OpenMPAccumulator<Real>, custom_OpenMPAccumulator_to_float>(); 
-	custom_OpenMPAccumulator_from_int(); to_python_converter<OpenMPAccumulator<int>, custom_OpenMPAccumulator_to_int>(); 
+	custom_OpenMPAccumulator_from_float(); py::to_python_converter<OpenMPAccumulator<Real>, custom_OpenMPAccumulator_to_float>(); 
+	custom_OpenMPAccumulator_from_int(); py::to_python_converter<OpenMPAccumulator<int>, custom_OpenMPAccumulator_to_int>(); 
 
-	to_python_converter<OpenMPArrayAccumulator<int>, custom_OpenMPArrayAccumulator_to_list<int>>(); 
-	to_python_converter<OpenMPArrayAccumulator<Real>, custom_OpenMPArrayAccumulator_to_list<Real>>(); 
+	py::to_python_converter<OpenMPArrayAccumulator<int>, custom_OpenMPArrayAccumulator_to_list<int>>(); 
+	py::to_python_converter<OpenMPArrayAccumulator<Real>, custom_OpenMPArrayAccumulator_to_list<Real>>(); 
 
 
 	custom_ptrMatchMaker_from_float();
 
 	// 2-way conversion for std::pair -- python 2-tuple
-	#define PAIR_TUPLE_CONV(T) custom_CxxPair_from_PyTuple<T>(); to_python_converter<T,custom_CxxPair_to_PyTuple<T>>();
+	#define PAIR_TUPLE_CONV(T) custom_CxxPair_from_PyTuple<T>(); py::to_python_converter<T,custom_CxxPair_to_PyTuple<T>>();
 	typedef std::pair<int,string> pairIntString;
 	typedef std::pair<string,Real> pairStringReal;
 	typedef vector<std::pair<string,Real>> vecPairStringReal;
@@ -148,12 +147,12 @@ BOOST_PYTHON_MODULE(_customConverters){
 	//custom_StrArrayMap_to_dict();
 	// register from-python converter and to-python converter
 
-	to_python_converter<vector<vector<string> >,custom_vvector_to_list<string> >();
-	//to_python_converter<std::list<shared_ptr<Functor> >, custom_list_to_list<shared_ptr<Functor> > >();
-	//to_python_converter<std::list<shared_ptr<Functor> >, custom_list_to_list<shared_ptr<Functor> > >();
+	py::to_python_converter<vector<vector<string> >,custom_vvector_to_list<string> >();
+	//py::to_python_converter<std::list<shared_ptr<Functor> >, custom_list_to_list<shared_ptr<Functor> > >();
+	//py::to_python_converter<std::list<shared_ptr<Functor> >, custom_list_to_list<shared_ptr<Functor> > >();
 
 	// this somehow did not work really...
-	//to_python_converter<vector<py::object>,custom_vector_to_list<py::object>>();
+	//py::to_python_converter<vector<py::object>,custom_vector_to_list<py::object>>();
 
 	// don't return array of nodes as lists, each DemField.nodes[0] operation must create the list first,
 	// pick the element, and throw it away; since node lists are typically long, create a custom class
@@ -194,10 +193,10 @@ BOOST_PYTHON_MODULE(_customConverters){
 
 	#if 0
 		import_array();
-		to_python_converter<numpy_boost<Real,1>, custom_numpyBoost_to_py<Real,1> >();
-		to_python_converter<numpy_boost<Real,2>, custom_numpyBoost_to_py<Real,2> >();
-		to_python_converter<numpy_boost<int,1>, custom_numpyBoost_to_py<int,1> >();
-		to_python_converter<numpy_boost<int,2>, custom_numpyBoost_to_py<int,2> >();
+		py::to_python_converter<numpy_boost<Real,1>, custom_numpyBoost_to_py<Real,1> >();
+		py::to_python_converter<numpy_boost<Real,2>, custom_numpyBoost_to_py<Real,2> >();
+		py::to_python_converter<numpy_boost<int,1>, custom_numpyBoost_to_py<int,1> >();
+		py::to_python_converter<numpy_boost<int,2>, custom_numpyBoost_to_py<int,2> >();
 	#endif
 
 }
