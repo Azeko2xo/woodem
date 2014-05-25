@@ -5,6 +5,11 @@
 
 WOO_PLUGIN(dem,(ElastMat)(FrictMat)(FrictPhys)(Cp2_FrictMat_FrictPhys));
 
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_ElastMat__CLASS_BASE_DOC_ATTRS_CTOR);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_FrictMat__CLASS_BASE_DOC_ATTRS_CTOR);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_FrictPhys__CLASS_BASE_DOC_ATTRS_CTOR);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_Cp2_FrictMat_FrictPhys__CLASS_BASE_DOC_ATTRS);
+
 void Cp2_FrictMat_FrictPhys::go(const shared_ptr<Material>& m1, const shared_ptr<Material>& m2, const shared_ptr<Contact>& C){
 	if(!C->phys) C->phys=make_shared<FrictPhys>();
 	updateFrictPhys(m1->cast<FrictMat>(),m2->cast<FrictMat>(),C->phys->cast<FrictPhys>(),C);
