@@ -32,16 +32,16 @@ struct Facet: public Shape {
 	// defaults
 	void updateMassInertia(const Real& density) const WOO_CXX11_OVERRIDE;
 	//
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(Facet,Shape,"Facet (triangle in 3d) particle.",
-		((Vector3r,fakeVel,Vector3r::Zero(),,"Fake velocity when computing contact, in global coordinates (for modeling moving surface modeled using static triangulation); only in-plane velocity is meaningful, but this is not enforced.\n\n.. note:: If the x-component is NaN, the meaning is special: :obj:`fakeVel` is taken as zero vector and, in addition, local in-plane facet's linear velocity at the contact is taken as zero (rather than linearly interpolated between velocity of nodes).\n"))
-		((Real,halfThick,0.,,"Geometric thickness (added in all directions)"))
-		/*attrs*/
-		,/*ctor*/ createIndex();
-		,/*py*/
-			.def("getNormal",&Facet::getNormal,"Return normal vector of the facet")
-			.def("outerEdgeNormals",&Facet::outerEdgeNormals,"Return outer edge normal vectors")
+	#define woo_dem_Facet__CLASS_BASE_DOC_ATTRS_CTOR_PY \
+		Facet,Shape,"Facet (triangle in 3d) particle.", \
+		((Vector3r,fakeVel,Vector3r::Zero(),,"Fake velocity when computing contact, in global coordinates (for modeling moving surface modeled using static triangulation); only in-plane velocity is meaningful, but this is not enforced.\n\n.. note:: If the x-component is NaN, the meaning is special: :obj:`fakeVel` is taken as zero vector and, in addition, local in-plane facet's linear velocity at the contact is taken as zero (rather than linearly interpolated between velocity of nodes).\n")) \
+		((Real,halfThick,0.,,"Geometric thickness (added in all directions)")) \
+		,/*ctor*/ createIndex(); \
+		,/*py*/ \
+			.def("getNormal",&Facet::getNormal,"Return normal vector of the facet") \
+			.def("outerEdgeNormals",&Facet::outerEdgeNormals,"Return outer edge normal vectors") \
 			.def("area",&Facet::getArea,"Return surface area of the facet")
-	);
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_Facet__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 	REGISTER_CLASS_INDEX(Facet,Shape);
 };
 WOO_REGISTER_OBJECT(Facet);
@@ -49,7 +49,8 @@ WOO_REGISTER_OBJECT(Facet);
 struct Bo1_Facet_Aabb: public BoundFunctor{
 	void go(const shared_ptr<Shape>&);
 	FUNCTOR1D(Facet);
-	WOO_CLASS_BASE_DOC(Bo1_Facet_Aabb,BoundFunctor,"Creates/updates an :obj:`Aabb` of a :obj:`Facet`.");
+	#define woo_dem_Bo1_Facet_Aabb__CLASS_BASE_DOC Bo1_Facet_Aabb,BoundFunctor,"Creates/updates an :obj:`Aabb` of a :obj:`Facet`."
+	WOO_DECL__CLASS_BASE_DOC(woo_dem_Bo1_Facet_Aabb__CLASS_BASE_DOC);
 };
 WOO_REGISTER_OBJECT(Bo1_Facet_Aabb);
 

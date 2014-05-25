@@ -8,7 +8,9 @@
 
 WOO_PLUGIN(dem,(Facet)(Bo1_Facet_Aabb)(Cg2_Facet_Sphere_L6Geom));
 
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_Facet__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Facet_Sphere_L6Geom__CLASS_BASE_DOC);
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_Bo1_Facet_Aabb__CLASS_BASE_DOC);
 
 CREATE_LOGGER(Facet);
 

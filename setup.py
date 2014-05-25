@@ -67,6 +67,9 @@ debug=False
 chunkSize=(1 if WIN else 10)
 hotCxx=[] # plugins to be compiled separately despite chunkSize>1
 
+# XXX
+chunkSize=1
+
 ## arch-specific optimizations
 march='corei7' if WIN else 'native'
 # lower, but at least some machine-specific optimizations
@@ -105,11 +108,11 @@ def wooPrepareChunks():
 	# make chunks from sources
 	global chunkSize
 	if chunkSize<0: chunkSize=10000
-	srcs=[glob('lib/*/*.cpp'),glob('core/*.cpp'),glob('py/*.cpp'),glob('py/*/*.cpp')]
+	srcs=[glob('lib/*/*.cpp'),glob('py/*.cpp'),glob('py/*/*.cpp')]
 	if WIN: srcs=[[s] for s in sum(srcs,[])] # compile each file separately even amongst base files
 	if 'opengl' in features: srcs+=[glob('gui/qt4/*.cpp')+glob('gui/qt4/*.cc')]
 	if 'gts' in features: srcs+=[[f] for f in glob('py/3rd-party/pygts-0.3.1/*.cpp')]
-	pkg=glob('pkg/*.cpp')+glob('pkg/*/*.cpp')+glob('pkg/*/*/*.cpp')
+	pkg=glob('pkg/*.cpp')+glob('pkg/*/*.cpp')+glob('pkg/*/*/*.cpp')+glob('core/*.cpp')
 	# print srcs,pkg
 	for i in range(0,len(pkg),chunkSize): srcs.append(pkg[i:i+chunkSize])
 	hot=[]

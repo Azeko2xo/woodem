@@ -1,5 +1,6 @@
 #include<woo/core/Master.hpp>
 #include<woo/core/Plot.hpp>
+#include<woo/core/Scene.hpp>
 
 WOO_PLUGIN(core,(SceneAttachedObject)(SceneCtrl)(Plot));
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_core_SceneAttachedObject__CLASS_BASE_DOC_ATRRS_PY);

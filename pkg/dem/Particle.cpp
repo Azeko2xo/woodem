@@ -2,16 +2,14 @@
 #include<woo/pkg/dem/ParticleContainer.hpp>
 #include<woo/pkg/dem/Contact.hpp>
 #include<woo/lib/pyutil/except.hpp>
-
 #include<woo/pkg/dem/Clump.hpp>
 #include<woo/pkg/dem/Funcs.hpp>
 
-#include<boost/range/algorithm/count_if.hpp>
-
-
 #ifdef WOO_OPENGL
-	#include<woo/pkg/gl/Renderer.hpp>
+	#include<woo/pkg/gl/GlData.hpp>
 #endif
+
+#include<boost/range/algorithm/count_if.hpp>
 
 WOO_PLUGIN(dem,(DemField)(Particle)(MatState)(DemData)(Impose)(Shape)(Material)(Bound));
 

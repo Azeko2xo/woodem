@@ -6,7 +6,7 @@
 #include<woo/pkg/dem/Ellipsoid.hpp>
 
 #ifdef WOO_OPENGL
-	#include<woo/pkg/gl/Renderer.hpp>
+	#include<woo/pkg/gl/GlData.hpp>
 #endif
 
 #include<boost/filesystem/convenience.hpp>

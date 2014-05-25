@@ -15,11 +15,10 @@
 #include <GL/gl.h>
 #include <GL/glut.h>
 
-WOO_PLUGIN(gl,(Renderer)(GlExtraDrawer)(GlData));
+WOO_PLUGIN(gl,(Renderer)(GlExtraDrawer));
 CREATE_LOGGER(Renderer);
 
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_gl_GlExtraDrawer__CLASS_BASE_DOC_ATTRS_PY);
-WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_gl_GlData__CLASS_BASE_DOC_ATTRS_PY);
 
 void GlExtraDrawer::render(){ throw runtime_error("GlExtraDrawer::render called from class "+getClassName()+". (did you forget to override it in the derived class?)"); }
 

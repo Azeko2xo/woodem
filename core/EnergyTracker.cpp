@@ -1,4 +1,5 @@
 #include<woo/core/EnergyTracker.hpp>
+#include<woo/core/Master.hpp>
 
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_core_EnergyTracker__CLASS_BASE_DOC_ATTRS_PY);
 
