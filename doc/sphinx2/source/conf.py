@@ -97,9 +97,11 @@ pngmath_latex_preamble=r'''
 \let\vec\boldsymbol % vector
 \let\tens\boldsymbol % tensor
 
+
 \def\normalized#1{\frac{31}{|\cdot|}}
 \def\u#1{\,\mathrm{#1}}
 \def\d{\,\mathrm{d}}
+\def\tr{\mathop{\rm tr}\nolimits
 
 % timestep
 \def\Dt{\Delta t}
@@ -107,6 +109,7 @@ pngmath_latex_preamble=r'''
 \let\epsilon\varepsilon
 \let\theta\vartheta
 \let\phi\varphi
+\let\eps\varepsilon % abbrev
 
 % variables at different points of time 
 \def\prev#1{#1^-}

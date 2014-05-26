@@ -22,6 +22,7 @@ The geometry computation (performed by various :obj:`woo.dem.CGeomFunctor` subcl
 
       sphere.rst
       ellipsoid.rst
+      capsule.rst
 
 
 Particle shapes
