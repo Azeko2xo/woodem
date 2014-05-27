@@ -22,7 +22,7 @@ struct FlowAnalysis: public PeriodicEngine{
 	inline Vector3r ijk2xyz(const Vector3i& ijk) const { return box.min()+ijk.cast<Real>()*cellSize; }
 
 	void setupGrid();
-	void addOneParticle(const Real& radius, const shared_ptr<Node>& node);
+	void addOneParticle(const Real& radius, const int& mask, const shared_ptr<Node>& node);
 	void addCurrentData();
 	Real avgFlowNorm(const vector<size_t> &fractions);
 
@@ -50,9 +50,11 @@ struct FlowAnalysis: public PeriodicEngine{
 	// number of floats to store for each point
 	enum {PT_FLOW_X=0, PT_FLOW_Y, PT_FLOW_Z, PT_EK, PT_SUM_WEIGHT, PT_SUM_DIAM, PT_SUM_PORO, NUM_PT_DATA};
 	enum {OP_CROSS=0,OP_WEIGHTED_DIFF=1};
-	WOO_CLASS_BASE_DOC_ATTRS_PY(FlowAnalysis,PeriodicEngine,"Collect particle flow data in rectangular grid, watching different particle groups (radius ranges at this moment), and saving averages to as VTK uniform grid once finished.\n\n.. todo:: Only spherical particles are handled now, any other are ignored.",
+	WOO_CLASS_BASE_DOC_ATTRS_PY(FlowAnalysis,PeriodicEngine,"Collect particle flow data in rectangular grid, watching different particle groups (radius ranges via :obj:`dLim` or groups by mask via :obj:`masks` -- only one of them may be specified), and saving averages to as VTK uniform grid once finished.\n\n.. note:: Only particles returning meaningful :obj:`woo.dem.Shape.equivRad` are considered, all other are ignored.",
 		((boost_multi_array_real_5,data,boost_multi_array_real_5(boost::extents[0][0][0][0][0]),AttrTrait<Attr::hidden>(),"Grid data -- 5d since each 3d point contains multiple entries, and there are multiple grids."))
 		((vector<Real>,dLim,,,"Limiting diameter values, for defining fractions which are analyzed separately. Do not change when there is some data already."))
+		((vector<int>,masks,,,"Mask values for fractions; it is an error if a particle matches multiple masks. Do not change when there is some data already."))
+		((int,nFractions,-1,AttrTrait<Attr::readonly>(),"Number of fractions, defined via :obj:`dLim` or :obj:`masks`; set automatically."))
 		((AlignedBox3r,box,,,"Domain in which the flow is to be analyzed; the box may glow slightly to accomodate integer number of cells. Do not change once there is some data alread. Do not change once there is some data already."))
 		((Real,cellSize,NaN,,"Size of one cell in the box (in all directions); will be satisfied exactly at the expense of perhaps slightly growing :obj:`box`. Do not change once there is some data already."))
 		((Vector3i,boxCells,Vector3i::Zero(),AttrTrait<Attr::readonly>(),"Number of cells in the box (computed automatically)"))

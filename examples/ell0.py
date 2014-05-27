@@ -13,8 +13,7 @@ S.dem.par.append([
 ])
 S.dtSafety=100.
 S.dem.collectNodes()
-S.engines=[Leapfrog(reset=True),InsertionSortCollider([Bo1_Ellipsoid_Aabb(),Bo1_Wall_Aabb(),Bo1_Facet_Aabb()],verletDist=0.),ContactLoop([Cg2_Ellipsoid_Ellipsoid_L6Geom(),Cg2_Wall_Ellipsoid_L6Geom(),Cg2_Facet_Ellipsoid_L6Geom()],[Cp2_FrictMat_FrictPhys()],[Law2_L6Geom_FrictPhys_IdealElPl()])]
+S.engines=[Leapfrog(reset=True),InsertionSortCollider([Bo1_Ellipsoid_Aabb(),Bo1_Wall_Aabb(),Bo1_Facet_Aabb()],verletDist=.05),ContactLoop([Cg2_Ellipsoid_Ellipsoid_L6Geom(),Cg2_Wall_Ellipsoid_L6Geom(),Cg2_Facet_Ellipsoid_L6Geom()],[Cp2_FrictMat_FrictPhys()],[Law2_L6Geom_FrictPhys_IdealElPl()])]
 if 'vtk' in woo.config.features: S.engines=S.engines+[VtkExport(out='/tmp/ell0',ascii=True,compress=False,stepPeriod=1000)]
-
 
 S.any=[Gl1_Ellipsoid(wire=True),Gl1_DemField(cPhys=True,cNode=Gl1_DemField.cNodeNode,bound=True),Renderer(iniViewDir=(0,1,0))]

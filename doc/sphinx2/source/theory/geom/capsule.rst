@@ -1,32 +1,47 @@
 Capsule
 --------
 
-:obj:`Capsules <woo.dem.Capsule>` are Minkowski sum of segment and sphere, a sphere swept along a segment. It is defined by :obj:`~woo.dem.Capsule.shaft` (the length bof the segment, noted :math:`s`) and :obj:`~woo.dem.Capsule.radius` (:math:`r`). The segment is always oriented along the local :math:`x`-axis.
+:obj:`Capsule <woo.dem.Capsule>` (`Wikipedia <http://en.wikipedia.org/wiki/Capsule_%28geometry%29>`__) is a cylinder with hemispherical ends, or a sphere swept along a segment. It is defined by :obj:`~woo.dem.Capsule.shaft` (the length of the segment, noted :math:`a`) and :obj:`~woo.dem.Capsule.radius` (:math:`r`). The segment is always oriented along the local :math:`x`-axis.
+
+.. figure:: fig/capsule_geometry-wikipedia.*
+	:align: center
+	:width: 50%
+
+	Geometry of a capsule particle.
+
+Particle of this shapes are useful, among others, in the pharmaceutical industry or geomechanics.
+
+.. figure:: fig/capsules.jpg
+	:align: center
+	:width: 50%
+
+	Pharmaceutical capsules (image courtesy of `wikipedia <http://en.wikipedia.org/wiki/File:Kapseln.JPG>`__).
+	
 
 Properties
 ^^^^^^^^^^^
 The volume is computed as 
 
-.. math:: V=V_c+V_s=\frac{4}{3}\pi r^3+\pi r^2 s.
+.. math:: V=V_c+V_a=\frac{4}{3}\pi r^3+\pi r^2 a.
 
-Inertia is the sum of caps' (half-spheres) and shaft's (cylinder) inertia, applying `Parallel Axes Theorem <http://en.wikipedia.org/wiki/Parallel_Axes_Theorem>`__.
+Inertia is the sum of caps' (hemispheres) and shaft's (cylinder) inertia, applying `Parallel Axes Theorem <http://en.wikipedia.org/wiki/Parallel_Axes_Theorem>`__ along :math:`y` and :math:`z` axes:
 
 .. math::
 	:nowrap:
 
 	\begin{align*}
-		I_{xx}&=\rho\left[\frac{2}{5}V_c r^2 + \frac{1}{2}V_s r^2\right]
-		I_{yy}=I_{zz}&=\rho\left[\frac{83}{320}V_c r^2+V_c\left(\frac{s}{2}+\frac{3}{8}r\right)^2+\frac{1}{12}V_s(3r^2+s^2) \right]
+		I_{xx}&=\rho\left[\frac{2}{5}V_c r^2 + \frac{1}{2}V_a r^2\right], \\
+		I_{yy}=I_{zz}&=\rho\left[\frac{83}{320}V_c r^2+V_c\left(\frac{a}{2}+\frac{3}{8}r\right)^2+\frac{1}{12}V_a(3r^2+a^2) \right].
 	\end{align*}
 
-The centroid is always in the middle of the shaft due to symmetries. The radius of the bounding sphere is :math:`r+s/2`.
+The centroid is always in the middle of the shaft due to symmetries. The radius of the bounding sphere is :math:`r+a/2`.
 
 Capsule-capsule contact
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-This algorithm is implemented by :obj:`woo.dem._Cg2_Capsule_Capsule_L6Geom`. Determination of the contact is equivalent to finding minimum distance :math:`d` between segments of both capsules. Each segment's endpoints :math:`A_i`, :math:`B_i` are computed by multiplying local :math:`x`-axis by :math:`\pm s_i/2`. The algorithm is decribed in [Eberly...XXX].
+This algorithm is implemented by :obj:`woo.dem.Cg2_Capsule_Capsule_L6Geom`. Determination of the contact is equivalent to finding minimum distance :math:`d` between segments of both capsules. Each segment's endpoints :math:`A_i`, :math:`B_i` are computed by multiplying local :math:`x`-axis by :math:`\pm a_i/2`. The algorithm is described in :cite:`Eberly1999Segments`.
 
-The normal overlap is based doirectly on the distance as
+The normal overlap is based directly on the distance as
 
 .. math:: u_N=d-(r_1+r_2).
 
@@ -38,14 +53,18 @@ If there is one overlap, the purely geometrical contact point and normal applies
 	:nowrap:
 	
 	\begin{align*}
-		\vec{n}&=\frac{\sum w_i \vec{n}_i }{\sum w_i} & \vec{c}&=\frac{\sum w_i \vec{c}_i}{\sum w_i}.
+		\vec{n}&=\frac{\sum w_i \vec{n}_i }{\sum w_i}, & \vec{c}&=\frac{\sum w_i \vec{c}_i}{\sum w_i}.
 	\end{align*}
 
-.. note:: The overlap :math:`u_N` is used in conjunction with contact point and normal which may not correspond geometrically to the place where :math:`u_N` occurs. This can lead to strange consequences, such as :obj:`L6Geom.vel[0] <woo.dem.L6Geom.vel>` not being the derivative of :math:`~woo.dem.L6Geom.uN`. The advantages of this approach (that the movement of the contact point and the normal is continuous, and that we still meaningfully represent the contact by one point) seem to outweight such inconveniences.
+.. note:: The overlap :math:`u_N` is used in conjunction with contact point and normal which may not correspond geometrically to the place where :math:`u_N` occurs. This can lead to strange consequences, such as :obj:`L6Geom.vel[0] <woo.dem.L6Geom.vel>` not being the derivative of :obj:`~woo.dem.L6Geom.uN`. The advantages of this approach (that the movement of the contact point and the normal is continuous, and that we still meaningfully represent the contact by one point) seem to outweight such inconveniences.
 
 Wall-capsule contact
 ^^^^^^^^^^^^^^^^^^^^
 This algorithm is implemented by :obj:`woo.dem.Cg2_Wall_Capsule_L6Geom` and is similar to the capsule-capsule contact above; there is interpolation between max. two endpoints of the capsule touching the wall:
+
+.. figure:: fig/capsule-wall.png
+
+----------------------
 
 .. youtube:: BksnzJ-D9dI
 

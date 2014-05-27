@@ -8,6 +8,7 @@ WOO_PLUGIN(dem,(InfCylinder)(Bo1_InfCylinder_Aabb)(Cg2_InfCylinder_Sphere_L6Geom
 #ifdef WOO_OPENGL
 	WOO_PLUGIN(gl,(Gl1_InfCylinder))
 #endif
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_InfCylinder__CLASS_BASE_DOC_ATTRS_CTOR);
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_InfCylinder_Sphere_L6Geom__CLASS_BASE_DOC);
 
 void InfCylinder::updateMassInertia(const Real& density) const {
@@ -21,7 +22,7 @@ void InfCylinder::updateMassInertia(const Real& density) const {
 void Bo1_InfCylinder_Aabb::go(const shared_ptr<Shape>& sh){
 	InfCylinder& cyl=sh->cast<InfCylinder>();
 	assert(cyl.axis>=0 && cyl.axis<3);
-	if(!cyl.bound){ cyl.bound=make_shared<Aabb>(); }
+	if(!cyl.bound){ cyl.bound=make_shared<Aabb>(); /* ignore node rotation*/ cyl.bound->cast<Aabb>().maxRot=-1;  }
 	assert(cyl.numNodesOk());
 	Aabb& aabb=cyl.bound->cast<Aabb>();
 	if(scene->isPeriodic && scene->cell->hasShear()) throw logic_error(__FILE__ ": InfCylinder not supported in periodic cell with skew (Scene.cell.trsf is not diagonal).");

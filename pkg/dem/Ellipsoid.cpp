@@ -90,7 +90,7 @@ AlignedBox3r Ellipsoid::alignedBox() const {
 
 void Bo1_Ellipsoid_Aabb::go(const shared_ptr<Shape>& sh){
 	//goGeneric(sh,sh->cast<Ellipsoid>().semiAxes.maxCoeff()*Vector3r::Ones());
-	if(!sh->bound){ sh->bound=make_shared<Aabb>(); }
+	if(!sh->bound){ sh->bound=make_shared<Aabb>(); /* consider rotation*/ sh->bound->cast<Aabb>().maxRot=0.; }
 	Aabb& aabb=sh->bound->cast<Aabb>();
 	Matrix3r M=sh->cast<Ellipsoid>().trsfFromUnitSphere();
 	// http://www.loria.fr/~shornus/ellipsoid-bbox.html

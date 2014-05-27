@@ -101,7 +101,7 @@ pngmath_latex_preamble=r'''
 \def\normalized#1{\frac{31}{|\cdot|}}
 \def\u#1{\,\mathrm{#1}}
 \def\d{\,\mathrm{d}}
-\def\tr{\mathop{\rm tr}\nolimits
+\DeclareMathOperator{\tr}{tr}
 
 % timestep
 \def\Dt{\Delta t}

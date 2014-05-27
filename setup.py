@@ -69,6 +69,7 @@ hotCxx=[] # plugins to be compiled separately despite chunkSize>1
 
 # XXX
 chunkSize=1
+features+=['noxml']
 
 ## arch-specific optimizations
 march='corei7' if WIN else 'native'

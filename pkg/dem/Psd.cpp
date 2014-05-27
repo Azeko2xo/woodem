@@ -82,6 +82,12 @@ Real PsdSphereGenerator::critDt(Real density, Real young) {
 }
 
 
+Vector2r PsdSphereGenerator::minMaxDiam() const {
+	if(psdPts.empty()) return Vector2r(NaN,NaN);
+	return Vector2r(psdPts[0][0],(*psdPts.rbegin())[0]);
+}
+
+
 
 /*
 	Save information about generated particle; *bin* is the value returned by computeNextRadiusBin.

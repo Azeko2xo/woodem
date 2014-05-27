@@ -57,7 +57,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 			{COLOR_INVISIBLE,"invisible"}
 
 	WOO_CLASS_BASE_DOC_STATICATTRS_CTOR_PY(Gl1_DemField,GlFieldFunctor,"Render DEM field.",
-		((int,shape,SHAPE_ALL,AttrTrait<Attr::triggerPostLoad>().choice({{SHAPE_NONE,"none"},{SHAPE_ALL,"all"},{SHAPE_SPHERES,"spheres"},{SHAPE_NONSPHERES,"non-spheres"},{SHAPE_MASK,"mask"}}).startGroup("Shape"),"Render only particles matching selected filter."))
+		((int,shape,SHAPE_ALL,AttrTrait<Attr::triggerPostLoad>().choice({{SHAPE_NONE,"none"},{SHAPE_ALL,"all"},{SHAPE_SPHERES,"spheroids"},{SHAPE_NONSPHERES,"non-spheroids"},{SHAPE_MASK,"mask"}}).startGroup("Shape"),"Render only particles matching selected filter."))
 		((uint,mask,0,,"Only shapes/bounds of particles with this group will be shown; 0 matches all particles."))
 		((bool,shape2,true,AttrTrait<Attr::triggerPostLoad>(),"Render also particles not matching :obj:`shape` (using :obj:`colorBy2`)"))
 		((Vector2i,modulo,Vector2i(0,0),,"For particles matching :obj:`shape`, only show particles with :obj:`Particle.id` such that ``(id+modulo[1])%modulo[0]==0`` (similar to :obj:`woo.dem.Tracer.modulo`). Only nodes of which first particle matches (or don't have any particle attached) are shown (in case of nodes, regardless of its :obj:`shape`). Display of contacts is not affected by this value."))

@@ -302,7 +302,7 @@ void ConveyorFactory::run(){
 			std::tie(n,pp)=r->makeParticles(material,/*pos*/newPos,/*ori*/node->ori,/*mask*/mask,/*scale*/1.);
 			for(auto& p: pp){
 				dem->particles->insert(p);
-				LOG_TRACE("[shapePack] new particle #"<<sphere->id<<", "<<p->shape->pyStr());
+				LOG_TRACE("[shapePack] new particle #"<<p->id<<", "<<p->shape->pyStr());
 			}
 		} else {
 			if(!hasClumps()){

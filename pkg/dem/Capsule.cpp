@@ -430,7 +430,7 @@ void Capsule::setFromRaw(const Vector3r& _center, const Real& _radius, const vec
 
 
 void Bo1_Capsule_Aabb::go(const shared_ptr<Shape>& sh){
-	if(!sh->bound){ sh->bound=make_shared<Aabb>(); }
+	if(!sh->bound){ sh->bound=make_shared<Aabb>(); /* consider node rotation*/ sh->bound->cast<Aabb>().maxRot=0.; }
 	const auto& c(sh->cast<Capsule>());
 	AlignedBox3r ab=c.Capsule::alignedBox(); // non-virtual call
 	Aabb& aabb=sh->bound->cast<Aabb>();
@@ -510,7 +510,7 @@ bool Cg2_InfCylinder_Capsule_L6Geom::go(const shared_ptr<Shape>& s1, const share
 	if(!C->isReal() && distSq>pow(cyl.radius+cap.radius,2) && !force) return false;
 	Vector3r normal=Vector3r::Zero(); normal[ax1]=cyl2seg2[0]; normal[ax2]=cyl2seg2[1]; normal.normalize();
 	Real uN=sqrt(distSq)-(cyl.radius+cap.radius);
-	Vector3r contPt; contPt=cylPos+(cyl.radius+.5*uN)*normal;
+	Vector3r contPt=cylPos; contPt[ax]=(capPos+t*capHalf)[ax]; contPt+=(cyl.radius+.5*uN)*normal;
 	handleSpheresLikeContact(C,cylPos,cylDyn.vel,cylDyn.angVel,capPos,capDyn.vel,capDyn.angVel,normal,contPt,uN,cyl.radius,cap.radius);
 	return true;
 }
@@ -708,7 +708,7 @@ bool Cg2_Facet_Capsule_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<
 			contPt=weights[0]*ccp[0]+weights[1]*ccp[1]; // point on the segment line weighted by distance
 			contPt+=-normal*(cap.radius+.5*uN);
 		#else
-			contPt=weights[0]*ffp[0]+weights[1]*ffp[1]+(facet.halfThick+.5*uN)*normal; // FIXME: +.5*uN
+			contPt=weights[0]*ffp[0]+weights[1]*ffp[1]+(facet.halfThick+.5*uN)*normal;
 		#endif
 		// interpolate between two points; this also handles the case when both
 		#if 0

@@ -18,9 +18,11 @@ struct PsdSphereGenerator: public ParticleGenerator{
 	Real critDt(Real density, Real young) WOO_CXX11_OVERRIDE;
 	bool isSpheresOnly() const WOO_CXX11_OVERRIDE { return true; }
 	py::tuple pyInputPsd(bool scale, bool cumulative, int num) const;
+	Vector2r minMaxDiam() const WOO_CXX11_OVERRIDE;
+
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(PsdSphereGenerator,ParticleGenerator,"Generate spherical particles following a given Particle Size Distribution (PSD)",
 		((bool,discrete,false,,"The points on the PSD curve will be interpreted as the only allowed diameter values; if *false*, linear interpolation between them is assumed instead. Do not change once the generator is running."))
-		((vector<Vector2r>,psdPts,,AttrTrait<Attr::triggerPostLoad>(),"Points of the PSD curve; the first component is particle diameter [m] (not radius!), the second component is passing percentage. Both diameter and passing values must be increasing (diameters must be strictly increasing). Passing values are normalized so that the last value is 1.0 (therefore, you can enter the values in percents if you like)."))
+		((vector<Vector2r>,psdPts,,AttrTrait<Attr::triggerPostLoad>().buttons({"Plot PSD","import pylab; pylab.plot(*zip(*self.psdPts)); pylab.grid(True); pylab.xlabel('diameter'); pylab.ylabel('Cumulative fraction'); pylab.show()",""},/*showBefore*/false),"Points of the PSD curve; the first component is particle diameter [m] (not radius!), the second component is passing percentage. Both diameter and passing values must be increasing (diameters must be strictly increasing). Passing values are normalized so that the last value is 1.0 (therefore, you can enter the values in percents if you like)."))
 		((bool,mass,true,,"PSD has mass percentages; if false, number of particles percentages are assumed. Do not change once the generator is running."))
 		((vector<Real>,weightPerBin,,AttrTrait<>().noGui().readonly(),"Keep track of mass/number of particles for each point on the PSD so that we get as close to the curve as possible. Only used for discrete PSD."))
 		((Real,weightTotal,,AttrTrait<>().noGui().readonly(),"Total mass (number, with *discrete*) of of particles generated."))

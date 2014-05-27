@@ -8,6 +8,9 @@ WOO_PLUGIN(dem,(Wall)(Bo1_Wall_Aabb)(In2_Wall_ElastMat)(Cg2_Wall_Sphere_L6Geom))
 	WOO_PLUGIN(gl,(Gl1_Wall))
 #endif
 
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_Wall__CLASS_BASE_DOC_ATTRS_CTOR);
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_Bo1_Wall_Aabb__CLASS_BASE_DOC);
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_In2_Wall_ElastMat__CLASS_BASE_DOC);
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Wall_Sphere_L6Geom__CLASS_BASE_DOC);
 
 void Wall::updateMassInertia(const Real& density) const {
@@ -19,7 +22,7 @@ void Wall::updateMassInertia(const Real& density) const {
 
 void Bo1_Wall_Aabb::go(const shared_ptr<Shape>& sh){
 	Wall& wall=sh->cast<Wall>();
-	if(!wall.bound){ wall.bound=make_shared<Aabb>(); }
+	if(!wall.bound){ wall.bound=make_shared<Aabb>(); /* ignore node rotation*/ wall.bound->cast<Aabb>().maxRot=-1;  }
 	assert(wall.numNodesOk());
 	Aabb& aabb=wall.bound->cast<Aabb>();
 	if(scene->isPeriodic && scene->cell->hasShear()) throw logic_error(__FILE__ ": Walls not supported in skewed (Scene.cell.trsf is not diagonal) periodic boundary conditions.");

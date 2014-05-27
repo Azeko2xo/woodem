@@ -198,12 +198,34 @@ bool InsertionSortCollider::updateBboxes_doFullRun(){
 			const Aabb& aabb=p->shape->bound->cast<Aabb>();
 			assert(aabb.nodeLastPos.size()==p->shape->nodes.size());
 			if(isnan(aabb.min.maxCoeff())||isnan(aabb.max.maxCoeff())) { recomputeBounds=true; break; } 
+			// check rotation difference, for particles where it matters
+			Real moveDueToRot2=0.;
+			if(aabb.maxRot>=0.){
+				assert(!isnan(aabb.maxRot));
+				Real maxRot=0.;
+				for(int i=0; i<nNodes; i++){
+					AngleAxisr aa(aabb.nodeLastOri[i].conjugate()*p->shape->nodes[i]->ori);
+					// moving will decrease the angle, it is taken in account here, with the asymptote
+					// it is perhaps not totally correct... :|
+					maxRot=max(maxRot,abs(aa.angle())); // abs perhaps not needed?
+					//cerr<<"#"<<p->id<<": rot="<<aa.angle()<<" (max "<<aabb.maxRot<<")"<<endl;
+				}
+				if(maxRot>aabb.maxRot){
+					LOG_TRACE("recomputeBounds because of #"<<p->id<<" rotating too much");
+					recomputeBounds=true;
+					break;
+				}
+				// linearize here, but don't subtract verletDist
+				moveDueToRot2=pow(.5*(aabb.max-aabb.min).maxCoeff()*maxRot,2);
+			}
+			// check movement
 			Real d2=0; 
 			for(int i=0; i<nNodes; i++){
 				d2=max(d2,(aabb.nodeLastPos[i]-p->shape->nodes[i]->pos).squaredNorm());
+				//cerr<<"#"<<p->id<<": move2="<<d2<<" (+"<<moveDueToRot2<<"; max "<<aabb.maxD2<<")"<<endl;
 				// maxVel2b=max(maxVel2b,p->shape->nodes[i]->getData<DemData>().vel.squaredNorm());
 			}
-			if(d2>aabb.maxD2){
+			if(d2+moveDueToRot2>aabb.maxD2){
 				LOG_TRACE("recomputeBounds because of #"<<p->id<<" moved too far");
 				recomputeBounds=true;
 				break;
@@ -225,8 +247,13 @@ bool InsertionSortCollider::updateBboxes_doFullRun(){
 		const int nNodes=p->shape->nodes.size();
 		// save reference node positions
 		aabb.nodeLastPos.resize(nNodes);
-		for(int i=0; i<nNodes; i++) aabb.nodeLastPos[i]=p->shape->nodes[i]->pos;
+		aabb.nodeLastOri.resize(nNodes);
+		for(int i=0; i<nNodes; i++){
+			aabb.nodeLastPos[i]=p->shape->nodes[i]->pos;
+			aabb.nodeLastOri[i]=p->shape->nodes[i]->ori;
+		}
 		aabb.maxD2=pow(verletDist,2);
+		if(isnan(aabb.maxRot)) throw std::runtime_error("S.dem.par["+to_string(p->id)+"]: bound functor did not set maxRot -- should be set to either to a negative value (to ignore it) or to non-negative value (maxRot will be set from verletDist in that case); this is an implementation error.");
 		#if 0
 			// proportionally to relVel, shift bbox margin in the direction of velocity
 			// take velocity of nodes[0] as representative
@@ -235,6 +262,12 @@ bool InsertionSortCollider::updateBboxes_doFullRun(){
 			Real relVel=max(maxVel2b,maxVel2)==0?0:vNorm/sqrt(max(maxVel2b,maxVel2));
 		#endif
 		if(verletDist>0){
+			if(aabb.maxRot>=0){
+				// maximum rotation arm, assume centroid in the middle
+				Real maxArm=.5*(aabb.max-aabb.min).maxCoeff();
+				if(maxArm>0.) aabb.maxRot=atan(verletDist/maxArm); // FIXME: this may be very slow...?
+				else aabb.maxRot=0.;
+			}
 			aabb.max+=verletDist*Vector3r::Ones();
 			aabb.min-=verletDist*Vector3r::Ones();
 		}

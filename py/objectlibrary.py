@@ -31,6 +31,7 @@ def refresh():
 					logging.warn('Loading library object from %s failed (skipped):\n\n'%ff)
 					import traceback
 					traceback.print_exc()
+					print logging.warn('--------------------------------------------------------')
 	global libObjs
 	libObjs=objs
 

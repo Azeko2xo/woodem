@@ -29,24 +29,49 @@ void FlowAnalysis::setupGrid(){
 		boxCells[ax]=std::round(box.sizes()[ax]/cellSize);
 		box.max()[ax]=box.min()[ax]+boxCells[ax]*cellSize;
 	}
-	std::sort(dLim.begin(),dLim.end()); // necessary for lower_bound
-	LOG_WARN("There are "<<dLim.size()+1<<" grids "<<boxCells[0]<<"x"<<boxCells[1]<<"x"<<boxCells[2]<<"="<<boxCells.prod()<<" storing "<<NUM_PT_DATA<<" numbers per point (total "<<boxCells.prod()*(dLim.size()+1)*NUM_PT_DATA<<" items)");
-	data.resize(boost::extents[dLim.size()+1][boxCells[0]][boxCells[1]][boxCells[2]][NUM_PT_DATA]);
+	if(!dLim.empty() && !masks.empty()) throw std::runtime_error("FlowAnalysis: only one of dLim and masks may be given, not both.");
+	nFractions=1;
+	if(!dLim.empty()){
+		std::sort(dLim.begin(),dLim.end()); // necessary for lower_bound
+		nFractions=dLim.size()+1;
+	}
+	if(!masks.empty()){
+		nFractions=masks.size();
+	}
+	LOG_WARN("There are "<<nFractions<<" grids "<<boxCells[0]<<"x"<<boxCells[1]<<"x"<<boxCells[2]<<"="<<boxCells.prod()<<" storing "<<NUM_PT_DATA<<" numbers per point (total "<<boxCells.prod()*nFractions*NUM_PT_DATA<<" items)");
+	data.resize(boost::extents[nFractions][boxCells[0]][boxCells[1]][boxCells[2]][NUM_PT_DATA]);
 	// zero all array items
 	std::fill(data.origin(),data.origin()+data.size(),0);
 }
 
 
-void FlowAnalysis::addOneParticle(const Real& diameter, const shared_ptr<Node>& node){
+void FlowAnalysis::addOneParticle(const Real& diameter, const int& mask, const shared_ptr<Node>& node){
 	const auto& dyn(node->getData<DemData>());
 	Real V(pow(cellSize,3));
 	// all things saved are actually densities over the volume of a single cell
 	Vector3r momentum_V(dyn.vel*dyn.mass/V);
 	Real Ek_V(dyn.getEk_any(node,/*trans*/true,/*rot*/true,scene)/V);
 
-	// determine particle fraction by diameter
-	// this works also when dLim is empty (returns 0)
-	size_t fraction=std::lower_bound(dLim.begin(),dLim.end(),diameter)-dLim.begin();
+	size_t fraction=0; // default is the only fraction, which is always present
+	// by diameter
+	if(!dLim.empty()){
+		std::lower_bound(dLim.begin(),dLim.end(),diameter)-dLim.begin();
+	}
+	// by particle mask
+	if(!masks.empty()){
+		bool found=false;
+		for(size_t i=0; i<masks.size(); i++){
+			if(mask&masks[i]){
+				if(found){
+					LOG_WARN("Particle with mask "<<mask<<" matching both masks["<<fraction<<"]="<<masks[i]<<" and masks["<<i<<"]="<<masks[i]<<"; only first match used.");
+				} else {
+					found=true; 
+					fraction=i;
+				}
+			}
+		}
+		if(!found){ LOG_WARN("Particle not matching any mask, ignoring; set FlowAnalysis.mask to filter those out upfront."); return; }
+	}
 	// loop over neighboring grid points, add relevant data with weights.
 	Vector3i ijk=xyz2ijk(node->pos);
 	// it does not matter here if ijk are inside the grid;
@@ -93,9 +118,11 @@ void FlowAnalysis::addCurrentData(){
 	AlignedBox3r enlargedBox(box.min()-Vector3r::Ones()*cellSize,box.max()+Vector3r::Ones()*cellSize);
 	for(const auto& p: *(dem->particles)){
 		if(mask!=0 && (p->mask&mask)==0) continue;
-		if(!p->shape->isA<Sphere>()) continue;
+		//if(!p->shape->isA<Sphere>()) continue;
+		Real radius=p->shape->equivRadius();
+		if(isnan(radius)) continue;
 		if(!enlargedBox.contains(p->shape->nodes[0]->pos)) continue;
-		addOneParticle(p->shape->cast<Sphere>().radius*2.,p->shape->nodes[0]);
+		addOneParticle(radius*2.,p->mask,p->shape->nodes[0]);
 	}
 };
 
@@ -116,8 +143,15 @@ vector<string> FlowAnalysis::vtkExport(const string& out){
 			ret.push_back(vtkExportFractions(out+"."+tag,{i}));
 		}
 	}
+	// export over all masks, export those separately
+	if(!masks.empty()){
+		for(size_t i=0; i<masks.size(); i++){
+			string tag("mask="+to_string(masks[i]));
+			ret.push_back(vtkExportFractions(out+"."+tag,{i}));
+		}
+	}
 	// export sum of all fractions as well
-	vector<size_t> all; for(size_t i=0; i<=dLim.size(); i++) all.push_back(i);
+	vector<size_t> all; for(size_t i=0; i<=(size_t)nFractions; i++) all.push_back(i);
 	ret.push_back(vtkExportFractions(out+".all",all));
 	return ret;
 }

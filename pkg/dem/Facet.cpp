@@ -161,7 +161,7 @@ std::tuple<Vector3r,Vector3r> Facet::interpolatePtLinAngVel(const Vector3r& x) c
 
 void Bo1_Facet_Aabb::go(const shared_ptr<Shape>& sh){
 	Facet& f=sh->cast<Facet>();
-	if(!f.bound){ f.bound=make_shared<Aabb>(); }
+	if(!f.bound){ f.bound=make_shared<Aabb>(); /* ignore node rotation*/ sh->bound->cast<Aabb>().maxRot=-1;}
 	Aabb& aabb=f.bound->cast<Aabb>();
 	const Vector3r halfThickVec=Vector3r::Constant(f.halfThick);
 	if(!scene->isPeriodic){

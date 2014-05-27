@@ -241,6 +241,8 @@ struct InsertionSortCollider: public Collider {
 		/* py */
 		.def_readonly("strideActive",&InsertionSortCollider::strideActive,"Whether striding is active (read-only; for debugging).")
 		.def_readonly("periodic",&InsertionSortCollider::periodic,"Whether the collider is in periodic mode (read-only; for debugging)")
+		.def_readonly("minima",&InsertionSortCollider::minima,"Array of minimum bbox coords; every 3 contiguous values are x, y,z for one particle")
+		.def_readonly("maxima",&InsertionSortCollider::minima,"Array of maximum bbox coords; every 3 contiguous values are x, y, z for one particle")
 		.def("dumpBounds",&InsertionSortCollider::dumpBounds,"Return representation of the internal sort data. The format is ``([...],[...],[...])`` for 3 axes, where each ``...`` is a list of entries (bounds). The entry is a tuple with the fllowing items:\n\n* coordinate (float)\n* body id (int), but negated for negative bounds\n* period numer (int), if the collider is in the periodic regime.")
 		.def("dbgInfo",&InsertionSortCollider::dbgInfo,"Return python distionary with information on some internal structures (debugging only)")
 		#ifdef PISC_DEBUG

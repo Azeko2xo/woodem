@@ -176,7 +176,7 @@ void RandomFactory::run(){
 					}
 					case MAXATT_WARN: LOG_WARN("maxAttempts "<<maxAttempts<<" reached before required mass amount was generated; continuing, since maxAttemptsError==False"); break;
 					case MAXATT_SILENT: break;
-					default: woo::ValueError("Invalid value of RandomFactory.atMaxAttempts="+to_string(atMaxAttempts)+".");
+					default: throw std::invalid_argument("Invalid value of RandomFactory.atMaxAttempts="+to_string(atMaxAttempts)+".");
 				}
 			}
 			/***** each maxAttempts/attPerPar, try a new particles *****/	

@@ -13,12 +13,14 @@
 struct Wall: public Shape{
 	int numNodes() const WOO_CXX11_OVERRIDE { return 1; }
 	void updateMassInertia(const Real& density) const WOO_CXX11_OVERRIDE;
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR(Wall,Shape,"Object representing infinite plane aligned with the coordinate system (axis-aligned wall).",
-		((int,sense,0,,"Which side of the wall interacts: -1 for negative only, 0 for both, +1 for positive only."))
-		((int,axis,0,,"Axis of the normal; can be 0,1,2 for +x, +y, +z respectively (Node's orientation is disregarded for walls)"))
-		((AlignedBox2r,glAB,AlignedBox2r(Vector2r(NaN,NaN),Vector2r(NaN,NaN)),,"Points between which the wall is drawn (if NaN, computed automatically to cover the visible part of the scene)"))
+	#define woo_dem_Wall__CLASS_BASE_DOC_ATTRS_CTOR \
+		Wall,Shape,"Object representing infinite plane aligned with the coordinate system (axis-aligned wall).", \
+		((int,sense,0,,"Which side of the wall interacts: -1 for negative only, 0 for both, +1 for positive only.")) \
+		((int,axis,0,,"Axis of the normal; can be 0,1,2 for +x, +y, +z respectively (Node's orientation is disregarded for walls)")) \
+		((AlignedBox2r,glAB,AlignedBox2r(Vector2r(NaN,NaN),Vector2r(NaN,NaN)),,"Points between which the wall is drawn (if NaN, computed automatically to cover the visible part of the scene)")) \
 		,/*ctor*/createIndex();
-	);
+
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_Wall__CLASS_BASE_DOC_ATTRS_CTOR);
 	REGISTER_CLASS_INDEX(Wall,Shape);
 };	
 WOO_REGISTER_OBJECT(Wall);
@@ -28,16 +30,16 @@ WOO_REGISTER_OBJECT(Wall);
 struct Bo1_Wall_Aabb: public BoundFunctor{
 	virtual void go(const shared_ptr<Shape>&);
 	FUNCTOR1D(Wall);
-	WOO_CLASS_BASE_DOC(Bo1_Wall_Aabb,BoundFunctor,"Creates/updates an :obj:`Aabb` of a :obj:`Wall`");
+	#define woo_dem_Bo1_Wall_Aabb__CLASS_BASE_DOC Bo1_Wall_Aabb,BoundFunctor,"Creates/updates an :obj:`Aabb` of a :obj:`Wall`"
+	WOO_DECL__CLASS_BASE_DOC(woo_dem_Bo1_Wall_Aabb__CLASS_BASE_DOC);
 };
 WOO_REGISTER_OBJECT(Bo1_Wall_Aabb);
 
 struct In2_Wall_ElastMat: public IntraFunctor{
 	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&);
 	FUNCTOR2D(Wall,ElastMat);
-	WOO_CLASS_BASE_DOC_ATTRS(In2_Wall_ElastMat,IntraFunctor,"Apply contact forces on wall. Wall generates no internal forces as such. Torque from applied forces is discarded, as Wall does not rotate.",
-		/*attrs*/
-	);
+	#define woo_dem_In2_Wall_ElastMat__CLASS_BASE_DOC In2_Wall_ElastMat,IntraFunctor,"Apply contact forces on wall. Wall generates no internal forces as such. Torque from applied forces is discarded, as Wall does not rotate."
+	WOO_DECL__CLASS_BASE_DOC(woo_dem_In2_Wall_ElastMat__CLASS_BASE_DOC);
 };
 WOO_REGISTER_OBJECT(In2_Wall_ElastMat);
 

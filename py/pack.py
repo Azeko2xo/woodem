@@ -668,22 +668,29 @@ def hexaNet( radius, cornerCoord=[0,0,0], xLength=1., yLength=0.5, mos=0.08, a=0
 
 
 
-def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNum=-1,dontBlock=False,returnSpherePack=False,memoizeDir=None,clumps=None):
+def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNum=-1,dontBlock=False,returnSpherePack=False,memoizeDir=None,clumps=None,gen=None):
 	if memoizeDir and not dontBlock:
 		# increase number at the end for every change in the algorithm to make old feeds incompatible
-		params=str(dim)+str(psd)+str(goal)+str(damping)+str(porosity)+str(lenAxis)+str(clumps)+'5'
+		params=str(dim)+str(psd)+str(goal)+str(damping)+str(porosity)+str(lenAxis)+str(clumps)+('' if not gen else gen.dumps(format='expr'))+'5'
 		import hashlib
 		paramHash=hashlib.sha1(params).hexdigest()
 		memoizeFile=memoizeDir+'/'+paramHash+'.perifeed'
 		print 'Memoize file is ',memoizeFile
 		if os.path.exists(memoizeDir+'/'+paramHash+'.perifeed'):
 			print 'Returning memoized result'
-			sp=SpherePack()
-			sp.load(memoizeFile)
-			if returnSpherePack: return sp
-			return zip(*sp)+[sp.cellSize[lenAxis],]
+			if not gen:
+				sp=SpherePack()
+				sp.load(memoizeFile)
+				if returnSpherePack: return sp
+				return zip(*sp)+[sp.cellSize[lenAxis],]
+			else:
+				import woo.dem
+				sp=woo.dem.ShapePack(loadFrom=memoizeFile)
+				return sp
 	p3=porosity**(1/3.)
-	rMax=psd[-1][0]
+	if psd: rMax=psd[-1][0]
+	elif hasattr(gen,'psdPts'): rMax=gen.psdPts[-1][0]
+	else: raise NotImplementedError('Generators without PSD do not inform about the biggest particle radius.')
 	minSize=rMax*5
 	cellSize=Vector3(max(dim[0]/p3,minSize),max(dim[1]/p3,minSize),max(dim[2]/p3,minSize))
 	print 'dimension',dim
@@ -693,7 +700,8 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNu
 	S=woo.core.Scene(fields=[woo.dem.DemField()])
 	S.periodic=True
 	S.cell.setBox(cellSize)
-	if not clumps: generator=woo.dem.PsdSphereGenerator(psdPts=psd,discrete=False,mass=True)
+	if gen: generator=gen
+	elif not clumps: generator=woo.dem.PsdSphereGenerator(psdPts=psd,discrete=False,mass=True)
 	else: generator=woo.dem.PsdClumpGenerator(psdPts=psd,discrete=False,mass=True,clumps=clumps)
 	S.engines=[
 		woo.dem.InsertionSortCollider([woo.dem.Bo1_Sphere_Aabb()]),
@@ -712,26 +720,28 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNu
 	S.one()
 	print 'Created %d particles, compacting...'%(len(S.dem.par))
 	S.dt=.9*utils.pWaveDt(S,noClumps=True)
+	S.dtSafety=.9
 	if clumps: warnings.warn('utils.pWaveDt called with noClumps=True (clumps ignored), the result (S.dt=%g) might be significantly off!'%S.dt)
 	S.engines=[
-		woo.dem.PeriIsoCompressor(charLen=2*psd[-1][0],stresses=[-1e8,-1e6],maxUnbalanced=goal,doneHook='print "done"; S.stop();',globalUpdateInt=1,keepProportions=True,label='peri'),
+		woo.dem.PeriIsoCompressor(charLen=2*rMax,stresses=[-1e8,-1e6],maxUnbalanced=goal,doneHook='print "done"; S.stop();',globalUpdateInt=1,keepProportions=True,label='peri'),
 		# plots only useful for debugging - uncomment if needed
 		# woo.core.PyRunner(100,'S.plot.addData(i=S.step,unb=S.lab.peri.currUnbalanced,sig=S.lab.peri.sigma)'),
 		woo.core.PyRunner(100,'print S.lab.peri.stresses[S.lab.peri.state], S.lab.peri.sigma, S.lab.peri.currUnbalanced'),
-	]+utils.defaultEngines(damping=damping)
+	]+utils.defaultEngines(damping=damping,dynDtPeriod=100)
 	S.plot.plots={'i':('unb'),' i':('sig_x','sig_y','sig_z')}
 	if dontBlock: return S
 	S.run(); S.wait()
-	sp=SpherePack()
+	if gen: sp=woo.dem.ShapePack()
+	else: sp=SpherePack()
 	sp.fromSimulation(S)
 	print 'Packing size is',sp.cellSize
 	sp.canonicalize()
-	sp.makeOverlapFree()
+	if not gen: sp.makeOverlapFree()
 	print 'Loose packing size is',sp.cellSize
 	cc,rr=[],[]
 	inf=float('inf')
 	boxMin=Vector3(0,0,0);
-	boxMax=dim
+	boxMax=Vector3(dim)
 	boxMin[lenAxis]=-inf
 	boxMax[lenAxis]=inf
 	box=AlignedBox3(boxMin,boxMax)
@@ -740,15 +750,15 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNu
 	#for c,r in sp:
 	#	if c-Vector3(r,r,r) not in box or c+Vector3(r,r,r) not in box: continue
 	#	cc.append(c); rr.append(r)
-	if memoizeDir or returnSpherePack:
+	if memoizeDir or returnSpherePack or gen:
 		#sp2=SpherePack()
 		#sp2.fromList(cc,rr)
 		#sp2.cellSize=sp.cellSize
 		if memoizeDir:
 			print 'Saving to',memoizeFile
-			print len(sp2)
+			# print len(sp2)
 			sp2.save(memoizeFile)
-		if returnSpherePack:
+		if returnSpherePack or gen:
 			return sp2
 	cc,rr=sp2.toCcRr()
 	return cc,rr,sp2.cellSize[lenAxis]
@@ -852,7 +862,7 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 		goal*=.2
 	else:
 		unbalancedFunc='woo.utils.unbalancedForce'
-	S.engines=utils.defaultEngines(damping=damping)+[
+	S.engines=utils.defaultEngines(damping=damping,dynDtPeriod=100)+[
 		woo.dem.BoxFactory(
 			box=((.01*cellSize[0],factoryLeft,factoryBottom),(cellSize[0],factoryRight,cellSize[2])),
 			stepPeriod=200,
@@ -873,7 +883,7 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 		woo.core.PyRunner(200,'import woo\nif '+unbalancedFunc+'(S)<'+str(goal)+' and S.lab.factory.dead: S.stop()'),
 	]
 	# S.dt=.7*utils.spherePWaveDt(psd[0][0],mat.density,mat.young)
-	S.dtSafety=.7
+	S.dtSafety=.9
 	print 'Factory box is',S.lab.factory.box
 	S.dem.collectNodes()
 	if dontBlock: return S

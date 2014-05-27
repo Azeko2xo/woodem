@@ -202,7 +202,7 @@ void Gl1_DemField::doShape(){
 		// last optional arg can be used to provide additional highlight conditions (unused for now)
 		const shared_ptr<Node>& _n0=p->shape->nodes[0];
 		const shared_ptr<Node>& n0=(_n0->getData<DemData>().isClumped()?_n0->getData<DemData>().master.lock():_n0);
-		Renderer::glScopedName name(p,n0);
+		Renderer::glScopedName name(p,n0,/*highLev=*/(p->shape->getHighlighted()?0:-1));
 		// bool highlight=(p->id==selId || (p->clumpId>=0 && p->clumpId==selId) || p->shape->highlight);
 
 		// if any of the particle's nodes is clipped, don't display it at all
@@ -215,16 +215,15 @@ void Gl1_DemField::doShape(){
 		if(!sh->getVisible() || clipped) continue;
 
 		bool useColor2=false;
-		bool isSphere((bool)dynamic_pointer_cast<Sphere>(p->shape));
-		// Real radius=(isSphere?p->shape->cast<Sphere>().radius:NaN);
+		bool isSpheroid(!isnan(p->shape->equivRadius()));
 		Real radius=p->shape->equivRadius();
 		if(n0->getData<DemData>().isClump()) radius=n0->getData<DemData>().cast<ClumpData>().equivRad;
 
 		switch(shape){
 			case SHAPE_NONE: useColor2=true; break;
 			case SHAPE_ALL: useColor2=false; break;
-			case SHAPE_SPHERES: useColor2=!isSphere; break;
-			case SHAPE_NONSPHERES: useColor2=isSphere; break;
+			case SHAPE_SPHERES: useColor2=!isSpheroid; break;
+			case SHAPE_NONSPHERES: useColor2=isSpheroid; break;
 			case SHAPE_MASK: useColor2=(mask!=0 && !(p->mask & mask)); break;
 			default: useColor2=true; break;  // invalid value, filter not matching
 		}
@@ -232,7 +231,7 @@ void Gl1_DemField::doShape(){
 		if(false
 			|| (colorBy==COLOR_RADIUS && isnan(radius))
 			|| (colorBy==COLOR_MATSTATE && !p->matState)
-			/* || (!isSphere && (colorBy==COLOR_SIG_N || colorBy==COLOR_SIG_T)) */
+			/* || (!isSpheroid && (colorBy==COLOR_SIG_N || colorBy==COLOR_SIG_T)) */
 		) useColor2=true;
 
 		// don't show particles not matching modulo value

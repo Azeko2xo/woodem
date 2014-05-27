@@ -5,7 +5,7 @@ WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Truss_Sphere_L6Geom__CLASS_BASE_DOC);
 void Bo1_Truss_Aabb::go(const shared_ptr<Shape>& sh){
 	assert(sh->numNodesOk());
 	Truss& t=sh->cast<Truss>();
-	if(!t.bound){ t.bound=shared_ptr<Bound>(new Aabb); }
+	if(!t.bound){ t.bound=make_shared<Aabb>(); /* ignore node rotation*/ t.bound->cast<Aabb>().maxRot=-1; }
 	Aabb& aabb=sh->bound->cast<Aabb>();
 	// TODO: fix caps and so on; for now, approximate, a bit larger than necessary.
 	// TODO: test periodic shear

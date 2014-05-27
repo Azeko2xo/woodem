@@ -51,7 +51,7 @@ void Bo1_Sphere_Aabb::go(const shared_ptr<Shape>& sh){
 }
 
 void Bo1_Sphere_Aabb::goGeneric(const shared_ptr<Shape>& sh, Vector3r halfSize){
-	if(!sh->bound){ sh->bound=make_shared<Aabb>(); }
+	if(!sh->bound){ sh->bound=make_shared<Aabb>(); /* ignore node rotation*/ sh->bound->cast<Aabb>().maxRot=-1; }
 	Aabb& aabb=sh->bound->cast<Aabb>();
 	assert(sh->numNodesOk());
 	const Vector3r& pos=sh->nodes[0]->pos;
