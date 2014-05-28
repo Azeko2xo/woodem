@@ -72,7 +72,7 @@ WOO_REGISTER_OBJECT(Cg2_Facet_Sphere_L6Geom);
 #include<woo/pkg/gl/Functors.hpp>
 struct Gl1_Facet: public GlShapeFunctor{	
 	void go(const shared_ptr<Shape>&, const Vector3r&, bool, const GLViewInfo&);
-	void drawEdges(const Facet& f, const Vector3r& facetNormal, const Vector3r& shift, bool wire);
+	void drawEdges(const Facet& f, const Vector3r& facetNormal, const Vector3r shifts[3], bool wire);
 	void glVertex(const Facet& f, int i);
 	RENDERS(Facet);
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Facet,GlShapeFunctor,"Renders :obj:`Facet` object",

@@ -301,19 +301,19 @@ Real Gl1_Facet::fastDrawLim;
 Vector2r Gl1_Facet::fuzz;
 #endif
 
-void Gl1_Facet::drawEdges(const Facet& f, const Vector3r& facetNormal, const Vector3r& shift, bool wire){
+void Gl1_Facet::drawEdges(const Facet& f, const Vector3r& facetNormal, const Vector3r shifts[3], bool wire){
 	if(slices>=4){
 		// draw half-cylinders and caps
 		Vector3r edges[]={(f.getGlVertex(1)-f.getGlVertex(0)).normalized(),(f.getGlVertex(2)-f.getGlVertex(1)).normalized(),(f.getGlVertex(0)-f.getGlVertex(2)).normalized()};
 		for(int i:{0,1,2}){
-			const Vector3r& A(f.getGlVertex(i)+shift), B(f.getGlVertex((i+1)%3)+shift);
+			const Vector3r& A(f.getGlVertex(i)+shifts[i]), B(f.getGlVertex((i+1)%3)+shifts[i]);
 			halfCylinder(A,B,f.halfThick,facetNormal,Vector3r(NaN,NaN,NaN),wire,slices,1,acos(edges[(i)%3].dot(edges[(i+1)%3])));
 		}
 	}else{
 		// just the edges
 		Vector3r dz=f.halfThick*facetNormal;
 		if(wire){
-			Vector3r A(f.getGlVertex(0)+shift), B(f.getGlVertex(1)+shift), C(f.getGlVertex(2)+shift);
+			Vector3r A(f.getGlVertex(0)+shifts[0]), B(f.getGlVertex(1)+shifts[1]), C(f.getGlVertex(2)+shifts[2]);
 			Vector3r vv[]={A+dz,B+dz,C+dz,A+dz,A-dz,B-dz,B+dz,B-dz,C-dz,C+dz,C-dz,A-dz};
 			glLineWidth(wd);
 			glBegin(GL_LINE_LOOP);
@@ -322,7 +322,7 @@ void Gl1_Facet::drawEdges(const Facet& f, const Vector3r& facetNormal, const Vec
 		} else {
 			glBegin(GL_QUADS);
 				for(int edge:{0,1,2}){
-					const Vector3r A(f.getGlVertex(edge)+shift), B(f.getGlVertex((edge+1)%3)+shift);
+					const Vector3r A(f.getGlVertex(edge)+shifts[edge]), B(f.getGlVertex((edge+1)%3)+shifts[(edge+1)%3]);
 					glNormal3v((B-A).cross(facetNormal).normalized());
 					Vector3r vv[]={A-dz,A+dz,B+dz,B-dz};
 					for(const Vector3r& v: vv) glVertex3v(v);
@@ -337,11 +337,21 @@ void Gl1_Facet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire
 
 	// don't draw very small facets when doing fastDraw
 	if(Renderer::fastDraw && f.getPerimeterSq()<pow(fastDrawLim*viewInfo.sceneRadius,2)) return;
+	Vector3r shifts[3]={shift,shift,shift};
+	if(scene->isPeriodic && f.nodes[0]->hasData<GlData>() && f.nodes[1]->hasData<GlData>() && f.nodes[2]->hasData<GlData>()){
+		GlData* g[3]={&(f.nodes[0]->getData<GlData>()),&(f.nodes[1]->getData<GlData>()),&(f.nodes[2]->getData<GlData>())};
+		// not all nodes shifted the same; in that case, check where the centroid is, and use that one
+		if(!(g[0]->dCellDist==g[1]->dCellDist && g[1]->dCellDist==g[2]->dCellDist)){
+			Vector3i dCell;
+			scene->cell->canonicalizePt(f.getCentroid(),dCell);
+			for(int i:{0,1,2}) shifts[i]+=scene->cell->intrShiftPos(g[i]->dCellDist-dCell);
+		}
+	}
 
 	if(wire || wire2 || Renderer::fastDraw){
 		glDisable(GL_LINE_SMOOTH);
-		Vector3r shift2(shift);
 		#if 0
+			Vector3r shift2(shift);
 			if(fuzz.minCoeff()>0){
 				// shift point along the normal to avoid z-battles, based on facet address
 				shift2+=normal*abs((f.nodes[0]->pos-f.nodes[1]->pos).maxCoeff())*(fuzz[0]/fuzz[1])*(((ptrdiff_t)(&f))%((int)fuzz[1]));
@@ -350,11 +360,11 @@ void Gl1_Facet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire
 		if(f.halfThick==0 || slices<0 || Renderer::fastDraw){
 			glLineWidth(wd);
 			glBegin(GL_LINE_LOOP);
-				for(int i:{0,1,2}) glVertex3v((f.getGlVertex(i)+shift2).eval());
+				for(int i:{0,1,2}) glVertex3v((f.getGlVertex(i)+shifts[i]).eval());
 		   glEnd();
 		} else {
 			// draw noting inside, just the boundary
-			drawEdges(f,f.getGlNormal(),shift2,true);
+			drawEdges(f,f.getGlNormal(),shifts,true);
 		}
 		glEnable(GL_LINE_SMOOTH);
 	} else {
@@ -364,17 +374,17 @@ void Gl1_Facet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire
 			glDisable(GL_CULL_FACE); 
 			glBegin(GL_TRIANGLES);
 				glNormal3v(normal);
-				for(int i:{0,1,2}) glVertex3v((f.getGlVertex(i)+shift).eval());
+				for(int i:{0,1,2}) glVertex3v((f.getGlVertex(i)+shifts[i]).eval());
 			glEnd();
 		} else {
 			glDisable(GL_CULL_FACE); 
 			glBegin(GL_TRIANGLES);
 				glNormal3v(normal);
-				for(int i:{0,1,2}) glVertex3v((f.getGlVertex(i)+1*normal*f.halfThick+shift).eval());
+				for(int i:{0,1,2}) glVertex3v((f.getGlVertex(i)+1*normal*f.halfThick+shifts[i]).eval());
 				glNormal3v((-normal).eval());
-				for(int i:{0,2,1}) glVertex3v((f.getGlVertex(i)-1*normal*f.halfThick+shift).eval());
+				for(int i:{0,2,1}) glVertex3v((f.getGlVertex(i)-1*normal*f.halfThick+shifts[i]).eval());
 			glEnd();
-			drawEdges(f,normal,shift,false);
+			drawEdges(f,normal,shifts,false);
 		}
 	}
 }

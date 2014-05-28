@@ -40,7 +40,7 @@ void Suspicious::run(){
 	avgVel=vel; avgForce=force; avgUn=un; avgFn=fn; avgFt=ft;
 
 	// loop again and check values
-	bool allOk=true, parVelOk=true, parForceOk=true, conOk=true; 
+	bool allOk=true, parVelOk=true, parForceOk=true; 
 	for(const auto& p: errPar) p->shape->setHighlighted(false);
 	errPar.clear(); errCon.clear();
 
@@ -57,9 +57,9 @@ void Suspicious::run(){
 		const Real& un=abs(C->geom->cast<L6Geom>().uN);
 		const Real& fn=abs(C->phys->force[0]);
 		Real ft=Vector2r(C->phys->force[1],C->phys->force[2]).norm();
-		if(un>avgUn*relThreshold){ conOk=false; LOG_ERROR("S.dem.con["<<C->pyId1()<<","<<C->pyId2()<<"]: overlap "<<un<<" exceeds the limit value of "<<relThreshold<<"*"<<avgVel<<" [*"<<un/avgUn<<"]"); errCon.push_back(C); }
-		if(fn>avgFn*relThreshold){ conOk=false; LOG_ERROR("S.dem.con["<<C->pyId1()<<","<<C->pyId2()<<"]: overlap "<<un<<" exceeds the limit value of "<<relThreshold<<"*"<<avgVel<<" [*"<<un/avgFn<<"]"); errCon.push_back(C); }
-		if(ft>avgFt*relThreshold){ conOk=false; LOG_ERROR("S.dem.con["<<C->pyId1()<<","<<C->pyId2()<<"]: overlap "<<un<<" exceeds the limit value of "<<relThreshold<<"*"<<avgVel<<" [*"<<un/avgFt<<"]"); errCon.push_back(C); }
+		if(un>avgUn*relThreshold){ LOG_ERROR("S.dem.con["<<C->pyId1()<<","<<C->pyId2()<<"]: overlap "<<un<<" exceeds the limit value of "<<relThreshold<<"*"<<avgVel<<" [*"<<un/avgUn<<"]"); errCon.push_back(C); }
+		if(fn>avgFn*relThreshold){ LOG_ERROR("S.dem.con["<<C->pyId1()<<","<<C->pyId2()<<"]: overlap "<<un<<" exceeds the limit value of "<<relThreshold<<"*"<<avgVel<<" [*"<<un/avgFn<<"]"); errCon.push_back(C); }
+		if(ft>avgFt*relThreshold){ LOG_ERROR("S.dem.con["<<C->pyId1()<<","<<C->pyId2()<<"]: overlap "<<un<<" exceeds the limit value of "<<relThreshold<<"*"<<avgVel<<" [*"<<un/avgFt<<"]"); errCon.push_back(C); }
 	}
 	#ifdef WOO_OPENGL
 		if(!parForceOk) Gl1_DemField::glyph=Gl1_DemField::GLYPH_FORCE;
