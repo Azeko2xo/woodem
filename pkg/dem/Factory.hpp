@@ -18,7 +18,7 @@ struct ParticleFactory: public PeriodicEngine{
 		else currRate=(1-currRateSmooth)*currRate+currRateSmooth*currRateNoSmooth;
 	}
 	#define woo_dem_ParticleFactory__CLASS_BASE_DOC_ATTRS \
-		ParticleFactory,PeriodicEngine,"Factory generating new particles. This is an abstract base class which in itself does not generate anything, but provides some unified interface to derived classes.", \
+		ParticleFactory,PeriodicEngine,ClassTrait().doc("Factory generating new particles. This is an abstract base class which in itself does not generate anything, but provides some unified interface to derived classes.").section("Factories","TODO",{"ParticleGenerator","ParticleShooter","BoxDeleter"}), \
 		((Real,maxMass,-1,,"Mass at which the engine will not produce any particles (inactive if not positive)")) \
 		((long,maxNum,-1,,"Number of generated particles after which no more will be produced (inactive if not positive)")) \
 		((Real,mass,0,,"Generated mass total")) \
@@ -27,6 +27,7 @@ struct ParticleFactory: public PeriodicEngine{
 		((bool,zeroRateAtStop,true,,"When the generator stops (mass/number of particles reached, ...), set :obj:`currRate` to zero immediately")) \
 		((Real,currRateSmooth,1,AttrTrait<>().range(Vector2r(0,1)),"Smoothing factor for currRate ∈〈0,1〉")) \
 		((Real,glColor,0,AttrTrait<>().noGui(),"Color for rendering (nan disables rendering)"))
+
 	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_ParticleFactory__CLASS_BASE_DOC_ATTRS);
 };
 WOO_REGISTER_OBJECT(ParticleFactory);

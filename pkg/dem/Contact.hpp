@@ -15,7 +15,7 @@ struct Node;
 struct CGeom: public Object,public Indexable{
 	// XXX: is createIndex() called here at all??
 	#define woo_dem_CGeom__CLASS_BASE_DOC_ATTRS_PY \
-		CGeom,Object,"Geometrical configuration of contact", \
+		CGeom,Object,ClassTrait().doc("Geometrical configuration of contact").section("Geometry","TODO",{"CGeomFunctor","CGeomDispatcher"}), \
 		((shared_ptr<Node>,node,new Node,,"Local coordinates definition.")) \
 		,/*py*/WOO_PY_TOPINDEXABLE(CGeom);
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_CGeom__CLASS_BASE_DOC_ATTRS_PY);
@@ -25,7 +25,7 @@ WOO_REGISTER_OBJECT(CGeom);
 
 struct CPhys: public Object, public Indexable{
 	#define woo_dem_CPhys__CLASS_BASE_DOC_ATTRS_CTOR_PY \
-		CPhys,Object,"Physical properties of contact.", \
+		CPhys,Object,ClassTrait().doc("Physical properties of contact.").section("Physical properties","TODO",{"CPhysFunctor","CPhysDispatcher"}), \
 		/*attrs*/ \
 		((Vector3r,force,Vector3r::Zero(),AttrTrait<>().forceUnit(),"Force applied on the first particle in the contact")) \
 		((Vector3r,torque,Vector3r::Zero(),AttrTrait<>().torqueUnit(),"Torque applied on the first particle in the contact")) \
@@ -36,7 +36,8 @@ struct CPhys: public Object, public Indexable{
 WOO_REGISTER_OBJECT(CPhys);
 
 struct CData: public Object{
-	#define woo_dem_CData__CLASS_BASE_DOC CData,Object,"Optional data stored in the contact by the Law functor."
+	#define woo_dem_CData__CLASS_BASE_DOC CData,Object,ClassTrait().doc("Optional data stored in the contact by the Law functor.").section("Contact law","TODO",{"LawFunctor","LawDispatcher","LawTester"})
+
 	WOO_DECL__CLASS_BASE_DOC(woo_dem_CData__CLASS_BASE_DOC);
 };
 WOO_REGISTER_OBJECT(CData);
@@ -85,7 +86,7 @@ struct Contact: public Object{
 	#endif
 
 	#define woo_dem_Contact__CLASS_BASE_DOC_ATTRS_PY \
-		Contact,Object,"Contact in DEM", \
+		Contact,Object,ClassTrait().doc("Contact in DEM").section("Contacts","TODO",{"ContactLoop","CGeom","CPhys","CData"}), \
 		((shared_ptr<CGeom>,geom,,AttrTrait<Attr::readonly>(),"Contact geometry")) \
 		((shared_ptr<CPhys>,phys,,AttrTrait<Attr::readonly>(),"Physical properties of contact")) \
 		((shared_ptr<CData>,data,,AttrTrait<Attr::readonly>(),"Optional data stored by the functor for its own use")) \

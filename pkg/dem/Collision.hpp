@@ -65,10 +65,11 @@ struct Collider: public Engine{
 		// ctor with functors for the integrated BoundDispatcher
 	/* \n\n.. admonition:: Special constructor\n\n\tDerived colliders (unless they override ``pyHandleCustomCtorArgs``) can be given list of :obj:`BoundFunctors <BoundFunctor>` which is used to initialize the internal :obj:`boundDispatcher <Collider.boundDispatcher>` instance. */
 	#define woo_dem_Collider__CLASS_BASE_DOC_ATTRS_PY \
-		Collider,Engine,"Abstract class for finding spatial collisions between bodies." \
+		Collider,Engine,ClassTrait().doc("Abstract class for finding spatial collisions between bodies.").section("Collision detection","TODO",{"Bound","BoundFunctor","GridBoundFunctor","BoundDispatcher","GridBoundDispatcher"}) \
 		,/*attrs*/ \
 		,/*py*/ .def("probeAabb",&Collider::probeAabb,(py::arg("mn"),py::arg("mx")),"Return list of particles intersected by axis-aligned box with given corners") \
 		.def("mayCollide",&Collider::mayCollide,(py::arg("dem"),py::arg("pA"),py::arg("pB")),"Predicate whether two particles in question may collide or not").staticmethod("mayCollide")
+
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Collider__CLASS_BASE_DOC_ATTRS_PY);
 };
 WOO_REGISTER_OBJECT(Collider);

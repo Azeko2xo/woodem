@@ -89,6 +89,15 @@ bool Shape::isInside(const Vector3r& pt) const { throw std::runtime_error(pyStr(
 AlignedBox3r Shape::alignedBox() const { throw std::runtime_error(pyStr()+" does not implement Shape.alignedBox."); }
 void Shape::applyScale(Real s) { throw std::runtime_error(pyStr()+" does not implement Shape.applyScale."); }
 
+#if 0
+shared_ptr<Particle> Shape::make(const shared_ptr<Shape>& shape, const shared_ptr<Material>& mat, py::dict kwargs){
+	int mask=1;
+	if(kwargs.haskey("mask")) mask=py::extract<int>(kwargs["mask"]);
+	bool fixed=false;
+}
+#endif
+
+
 
 void DemData::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){
 	if(!kw.has_key("blocked")) return;

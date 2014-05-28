@@ -25,7 +25,7 @@ class Dispatcher: public Engine{
 	virtual int getDimension() { throw; };
 	virtual string getBaseClassType(unsigned int ) { throw; };
 	//
-	WOO_CLASS_BASE_DOC(Dispatcher,Engine,"Engine dispatching control to its associated functors, based on types of argument it receives. This abstract base class provides no functionality in itself.")
+	WOO_CLASS_BASE_DOC(Dispatcher,Engine,ClassTrait().doc("Engine dispatching control to its associated functors, based on types of argument it receives. This abstract base class provides no functionality in itself.").section("","",{"Functor"}));
 };
 WOO_REGISTER_OBJECT(Dispatcher);
 
@@ -36,7 +36,7 @@ Because we need literal functor and class names for registration in python, we p
 #define _WOO_DISPATCHER1D_FUNCTOR_ADD(FunctorT,f) virtual void addFunctor(shared_ptr<FunctorT> f){ add1DEntry(f); }
 #define _WOO_DISPATCHER2D_FUNCTOR_ADD(FunctorT,f) virtual void addFunctor(shared_ptr<FunctorT> f){ add2DEntry(f); }
 
-#define _WOO_DIM_DISPATCHER_FUNCTOR_DOC_ATTRS_CTOR_PY(Dim,DispatcherT,FunctorT,doc,attrs,ctor,ppy) \
+#define _WOO_DIM_DISPATCHER_FUNCTOR_DOC_ATTRS_CTOR_PY(Dim,DispatcherT,FunctorT,_doc,attrs,ctor,ppy) \
 	typedef FunctorT FunctorType; \
 	void updateScenePtr(){ for(const shared_ptr<FunctorT>& f: functors){ f->scene=scene; f->field=field.get(); }} \
 	void postLoad(DispatcherT&, void* addr){ clearMatrix(); for(shared_ptr<FunctorT> f: functors) add(static_pointer_cast<FunctorT>(f)); } \
@@ -47,7 +47,7 @@ Because we need literal functor and class names for registration in python, we p
 	virtual void getLabeledObjects(const shared_ptr<LabelMapper>& labelMapper){ for(const shared_ptr<FunctorT>& f: functors){ Engine::handlePossiblyLabeledObject(f,labelMapper); } } \
 	void functors_set(const vector<shared_ptr<FunctorT> >& ff){ functors.clear(); for(const shared_ptr<FunctorT>& f: ff) add(f); postLoad(*this,NULL); } \
 	void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d){ if(py::len(t)==0)return; if(py::len(t)!=1) throw invalid_argument("Exactly one list of " BOOST_PP_STRINGIZE(FunctorT) " must be given."); typedef std::vector<shared_ptr<FunctorT> > vecF; vecF vf=py::extract<vecF>(t[0])(); functors_set(vf); t=py::tuple(); } \
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(DispatcherT,Dispatcher,"Dispatcher calling :obj:`functors<" BOOST_PP_STRINGIZE(FunctorT) ">` based on received argument type(s).\n\n" doc, \
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(DispatcherT,Dispatcher,ClassTrait().doc("Dispatcher calling :obj:`functors<" BOOST_PP_STRINGIZE(FunctorT) ">` based on received argument type(s).\n\n") _doc, \
 		((vector<shared_ptr<FunctorT> >,functors,,,"Functors active in the dispatch mechanism [overridden below].")) /*additional attrs*/ attrs, \
 		/*ctor*/ ctor, /*py*/ ppy .add_property("functors",&DispatcherT::functors_get,&DispatcherT::functors_set,"Functors associated with this dispatcher (list of :obj:`" BOOST_PP_STRINGIZE(FunctorT) "`)") \
 		.def("dispMatrix",&DispatcherT::dump,py::arg("names")=true,"Return dictionary with contents of the dispatch matrix.").def("dispFunctor",&DispatcherT::getFunctor,"Return functor that would be dispatched for given argument(s); None if no dispatch; ambiguous dispatch throws."); \

@@ -16,7 +16,7 @@ WOO_REGISTER_OBJECT(IntraFunctor);
 struct IntraForce: public Dispatcher2D</* functor type*/ IntraFunctor, /* autosymmetry*/ false>{
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	void run();
-	WOO_DISPATCHER2D_FUNCTOR_DOC_ATTRS_CTOR_PY(IntraForce,IntraFunctor,/* doc is optional*/,/*attrs*/,/*ctor*/,/*py*/);
+	WOO_DISPATCHER2D_FUNCTOR_DOC_ATTRS_CTOR_PY(IntraForce,IntraFunctor,/*ClassObject instantiated by the macro*/.doc("Apply internal forces on integration nodes, by calling appropriate :obj:`IntraFunctor` objects.").section("Internal forces","TODO",{"IntraFunctor"}),/*attrs*/,/*ctor*/,/*py*/);
 	DECLARE_LOGGER;
 };
 WOO_REGISTER_OBJECT(IntraForce);

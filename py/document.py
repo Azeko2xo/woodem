@@ -28,12 +28,12 @@ def fixDocstring(s):
 	s=re.sub(r'\\\$',r'$',s)
 	return s
 
-cxxClasses,allWooMods=set(),set()
+allWooClasses,allWooMods=set(),set()
 
 def _ensureInitialized():
-	'Fill cxxClasses and allWooMods, called automatically as needed'
-	global cxxClasses,allWooMods
-	if cxxClasses: return  # do nothing if already filled
+	'Fill allWooClasses and allWooMods, called automatically as needed'
+	global allWooClasses,allWooMods
+	if allWooClasses: return  # do nothing if already filled
 	def subImport(pkg,exclude=None):
 		'Import recursively all subpackages'
 		import pkgutil
@@ -63,12 +63,12 @@ def _ensureInitialized():
 			print 'Importing',m
 			__import__(m)
 
-	# global cxxClasses, allWooMods
+	# global allWooClasses, allWooMods
 	cc=woo.system.childClasses(woo.core.Object,includeBase=True,recurse=True)
 	for c in cc:
 		if re.match(modExcludeRegex,c.__module__): continue
 		if c.__doc__: c.__doc__=fixDocstring(c.__doc__)
-		cxxClasses.add(c)
+		allWooClasses.add(c)
 
 	allWooMods=set([sys.modules[m] for m in sys.modules if m.startswith('woo') and sys.modules[m] and sys.modules[m].__name__==m])
 	
@@ -76,7 +76,7 @@ def _ensureInitialized():
 def allWooPackages(outDir='/tmp',skip='^(woo|wooExtra(|\..*))$'):
 	'''Generate documentation of packages in the Restructured Text format. Each package is written to file called *out*/.`woo.[package].rst` and list of files created is returned.'''
 
-	global cxxClasses,allWooMods
+	global allWooClasses,allWooMods
 	_ensureInitialized()
 	
 	modsElsewhere=set()
@@ -100,6 +100,7 @@ def allWooPackages(outDir='/tmp',skip='^(woo|wooExtra(|\..*))$'):
 	return rsts
 
 def makeTraitInfo(trait):
+	def maybe_decode(a): return (a if isinstance(a,unicode) else unicode(a,'utf-8'))
 	ret=[]
 	if trait.static: ret.append('static')
 	if hasattr(trait,'pyType'):
@@ -107,11 +108,11 @@ def makeTraitInfo(trait):
 		else: ret.append('type: '+trait.pyType.__name__)
 	else: ret.append('type: '+trait.cxxType)
 	if trait.unit:
-		if len(trait.unit)==1: ret.append('unit: '+unicode(trait.unit[0]))
-		else: ret.append(u'units: ['+u','.join(u for u in trait.unit)+u']')
+		if len(trait.unit)==1: ret.append('unit: '+maybe_decode(trait.unit[0]))
+		else: ret.append(u'units: ['+u','.join(maybe_decode(u) for u in trait.unit)+u']')
 	if trait.prefUnit and trait.unit[0]!=trait.prefUnit[0][0]:
-		if len(trait.unit)==1: ret.append('preferred unit: '+unicode(trait.prefUnit[0][0]))
-		else: ret.append('preferred units: ['+u','.join(u[0] for u in trait.prefUnit)+']')
+		if len(trait.unit)==1: ret.append('preferred unit: '+maybe_decode(trait.prefUnit[0][0]))
+		else: ret.append('preferred units: ['+u','.join(maybe_decode(u[0]) for u in trait.prefUnit)+']')
 	if trait.range: ret.append(u'range: %g−%g'%(trait.range[0],trait.range[1]))
 	if trait.noGui: ret.append('not shown in the UI')
 	if trait.noDump: ret.append('not dumped')
@@ -156,22 +157,51 @@ def classSrcHyperlink(klass):
 			# else: ret.append(':woosrc:`implementation <%s#L>`'%(f2[:-4]+'.cpp'))
 	return '[ '+' , '.join(ret)+' ]'
 
+def classDocHierarchy_topsAndDict(mod):
+	'Return tuple containing list of top-level class objects, and dictionary which maps all module-contained class objects to classes which should be documented under it (derived classes, and doc-related classes specified via ClassTrait.section'
+	global allWooClasses,allWooMods
+	_ensureInitialized()
+	# kk=woo.system.childClasses(woo.core.Object,includeBase=True) # all woo classes
+	dd={}
+	for k in allWooClasses:
+		if k==woo.core.Object: continue # obejct itself is not documented this way
+		t=k._classTrait
+		if not t: continue
+		if k.__module__!=mod.__name__: continue
+		dd[k]=[]
+		for a in t.docOther:
+			if '.' in a:
+				raise NotImplementedError("Cross-module documentation not yet supported.")
+				dd[k].append(eval(a))
+			else: dd[k].append(eval(k.__module__+'.'+a))
+			# [eval('%s.%s'%(k.__module__,a)) for a in t.docOther] # perhaps not in the same module? fix here!!
+		#print t.name,t.docOther,t.intro,t.title
+
+	for k in dd:
+		# if the base is documented, put it under the base class (prepend)
+		b=k.__bases__[0]
+		if b in dd: dd[b]=[k]+dd[b]
+	tops=[]
+	for k in dd:
+		refs=[]
+		for kk,vv in dd.items():
+			if k in vv: refs+=[kk]
+		if len(refs)==0: tops.append(k)
+		elif len(refs)>1: raise RuntimeError('Class %s listed under multiple classes: '%k.__name__+', '.join(['%s'%(r.__name__) for r in refs]))
+		# if the class has one single reference, it is not a top class
+	return (tops,dd)
+
 
 def oneModuleWithSubmodules(mod,out,exclude=None,level=0,importedInto=None):
-	global cxxClasses,allWooMods
+	global allWooClasses,allWooMods
 	_ensureInitialized()
 	if exclude==None: exclude=set() # avoid referenced empty set to be modified
 	if level>=0: out.write(':mod:`%s`\n%s\n\n'%(mod.__name__,(20+len(mod.__name__))*('=-^"'[level])))
 	if importedInto:
 		out.write('.. note:: This module is imported into the :obj:`%s` module automatically; refer to its objects through :obj:`%s`.\n\n'%(importedInto.__name__,importedInto.__name__))
-	klasses=[c for c in cxxClasses if (c.__module__==mod.__name__ or (hasattr(mod,'_docInlineModules') and sys.modules[c.__module__] in mod._docInlineModules))]
-	klasses.sort(key=lambda x: x.__name__)
-	# document any c++ classes in a special way
-	# defer writing that to out though so that automodule can exclude classes which are documented manually
-	import StringIO
-	kOut=StringIO.StringIO()
-	for k in klasses:
-		if k in exclude: continue
+
+	def _docOneClass(k):
+		if k in exclude: return
 		exclude.add(k) # already-documented should not be documented again
 		kOut.write('.. autoclass:: %s\n   :show-inheritance:\n'%k.__name__)
 		#kOut.write('   :members: %s\n'%(','.join([m for m in dir(k) if (not m.startswith('_') and m not in set(trait.name for trait in k._attrTraits))])))
@@ -192,6 +222,51 @@ def oneModuleWithSubmodules(mod,out,exclude=None,level=0,importedInto=None):
 			traitInfo=makeTraitInfo(trait)
 			if traitInfo: kOut.write(u'\n      ['+traitInfo+']\n')
 			kOut.write('\n')
+
+	klasses=[c for c in allWooClasses if (c.__module__==mod.__name__ or (hasattr(mod,'_docInlineModules') and sys.modules[c.__module__] in mod._docInlineModules))]
+	klasses.sort(key=lambda x: x.__name__)
+	#
+	tops,klassesUnder=classDocHierarchy_topsAndDict(mod)
+
+	#global prevLevel
+	#prevLevel=0
+
+	def _docOneClassWithSectioning(k,level=0):
+		# print level*'\t',k.__name__
+		if not hasattr(k,'_classTrait'): return # will be documented later
+		t=k._classTrait
+		nextLevel=level
+		#global prevLevel
+		#if not t.title:
+		#	# decrasing level without section -- write dividing line
+		#	if prevLevel>level: out.write('\n\n-----\n\n\n') #
+		#prevLevel=level
+		if t.title: # write section title
+			nextLevel=level+1
+			tt=t.title+' ('+k.__name__+')'
+			kOut.write(tt+'\n'+len(tt)*'-"\'^'[level]+'\n\n')
+		else:
+			nextLevel=level+1
+			kOut.write(k.__name__+'\n'+len(k.__name__)*('-"\'^+_%'[level])+'\n\n')
+		if t.intro:
+			kOut.write(t.intro+'\n\n')
+			if not t.title: warnings.warn('Class %s.%s has intro but no title in class trait.'%(k.__module__,k.__name__))
+		_docOneClass(k)
+		for kk in klassesUnder[k]:
+			assert k!=kk
+			# print kk.__name__
+			_docOneClassWithSectioning(kk,nextLevel)
+		#if not t.title and t.intro:
+
+	# document any c++ classes in a special way
+	# defer writing that to out though so that automodule can exclude classes which are documented manually
+	import StringIO
+	kOut=StringIO.StringIO()
+	for top in tops: _docOneClassWithSectioning(top,level)
+
+	# document all remaining classes linearly here, if any
+	for k in klasses: _docOneClass(k)
+
 	# control whether autodocs are at the bottom or at the top
 	def writeAutoMod(mm,skip=None):
 		out.write('.. automodule:: %s\n   :members:\n   :undoc-members:\n'%(mm.__name__))

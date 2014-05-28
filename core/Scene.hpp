@@ -135,7 +135,7 @@ struct Scene: public Object{
 		// expand {tagName} in given string
 		string expandTags(const string& s) const;
 
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_DTOR_PY(Scene,Object,"Object comprising the whole simulation.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_DTOR_PY(Scene,Object,ClassTrait().doc("Object comprising the whole simulation.").section("Scene","TODO",{"SceneAttachedObject","Field","LabelMapper","Cell","EnergyTracker"}),
 		((Real,dt,NaN,AttrTrait<>().timeUnit(),"Current timestep for integration."))
 		((Real,nextDt,NaN,AttrTrait<>().timeUnit(),"Timestep for the next step (if not NaN, :obj:`dt` is automatically replaced by this value at the end of the step)."))
 		((Real,dtSafety,.9,,"Safety factor for automatically-computed timestep."))

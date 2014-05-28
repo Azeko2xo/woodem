@@ -10,6 +10,7 @@ namespace py=boost::python;
 
 struct Scene;
 
+#if 0
 struct Constraint: public Object{	
 	virtual void applyConstraint(Vector3r& newPos, Vector3r& newOri){};
 	#define woo_core_Constraint__CLASS_BASE_DOC \
@@ -17,6 +18,7 @@ struct Constraint: public Object{
 	WOO_DECL__CLASS_BASE_DOC(woo_core_Constraint__CLASS_BASE_DOC);
 };
 WOO_REGISTER_OBJECT(Constraint);
+#endif
 
 struct NodeData: public Object{
 	boost::mutex lock; // used by applyForceTorque
@@ -149,7 +151,7 @@ struct Node: public Object, public Indexable{
 	#endif
 
 	#define woo_core_Node__CLASS_BASE_DOC_ATTRS_CTOR_PY \
-		Node,Object,"A point in space (defining local coordinate system), referenced by other objects.", \
+		Node,Object,ClassTrait().doc("A point in space (defining local coordinate system), referenced by other objects.").section("","",{"NodeData"}), \
 		((Vector3r,pos,Vector3r::Zero(),AttrTrait<>().lenUnit(),"Position in space (cartesian coordinates); origin :math:`O` of the local coordinate system.")) \
 		((Quaternionr,ori,Quaternionr::Identity(),,"Orientation :math:`q` of this node.")) \
 		((vector<shared_ptr<NodeData> >,data,,,"Array of data, ordered in globally consistent manner.")) \
@@ -171,7 +173,7 @@ struct Field: public Object, public Indexable{
 	virtual void selfTest(){};
 	virtual Real critDt() { return Inf; }
 	#define woo_core_Field__CLASS_BASE_DOC_ATTRS_CTOR_PY  \
-		Field,Object,"Spatial field described by nodes, their topology and associated values.", \
+		Field,Object,ClassTrait().doc("Spatial field described by nodes, their topology and associated values.").section("","",{"Node"}), \
 		((vector<shared_ptr<Node> >,nodes,,AttrTrait<Attr::pyByRef>(),"Nodes referenced from this field.")) \
 		/* ((shared_ptr<Topology>,topology,,,"How nodes build up cells, neighborhood and coonectivity information.")) */ \
 		/* ((vector<shared_ptr<CellData> >,cells,,,"")) */ \

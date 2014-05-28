@@ -7,6 +7,10 @@
 WOO_PLUGIN(dem,(Leapfrog)(ForceResetter));
 CREATE_LOGGER(Leapfrog);
 
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_Leapfrog__CLASS_BASE_DOC_ATTRS);
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_ForceResetter__CLASS_BASE_DOC);
+
+
 void ForceResetter::run(){
 	const auto& dem=field->cast<DemField>();
 	bool hasGravity(dem.gravity!=Vector3r::Zero());

@@ -194,7 +194,7 @@ else:
 	import cloud_sptheme
 	html_theme='cloud'
 	html_theme_path=[cloud_sptheme.get_theme_dir()]
-	html_theme_options={'roottarget':'index'}
+	html_theme_options={'roottarget':'index','stickysidebar':'true','popuptoc':'true'}
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the

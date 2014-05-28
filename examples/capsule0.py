@@ -25,8 +25,10 @@ generators=[
 
 S.dem.par.append([
 	woo.utils.facet([(.6,0,.3),(0,.6,.3),(-.6,0,.3)],halfThick=.1,wire=False),
-	woo.utils.wall(0,axis=2,sense=1)
+	woo.utils.wall(0,axis=2,sense=1),
+	woo.utils.infCylinder((.33,.33,0),radius=.3,axis=1),
 ])
+S.dem.par[-1].angVel=(0,.5,0)
 S.dem.collectNodes()
 S.dtSafety=.8
 S.engines=woo.utils.defaultEngines(damping=.4,dynDtPeriod=10)+[
@@ -37,20 +39,20 @@ S.engines=woo.utils.defaultEngines(damping=.4,dynDtPeriod=10)+[
 		generator=generators[0],
 		materials=[mat]
 	),
-	BoxFactory(
-		box=((-1,-1,3),(1,1,5)),
-		stepPeriod=200,
-		maxMass=3e3,maxNum=-1,massFlowRate=0,maxAttempts=100,attemptPar=50,atMaxAttempts=BoxFactory.maxAttWarn,
-		generator=generators[1],
-		materials=[mat]
-	),
-	BoxFactory(
-		box=((-1,-1,5),(1,1,7)),
-		stepPeriod=100,
-		maxMass=3e3,maxNum=-1,massFlowRate=0,maxAttempts=100,attemptPar=50,atMaxAttempts=BoxFactory.maxAttWarn,
-		generator=generators[2],
-		materials=[mat]
-	)
+#	BoxFactory(
+#		box=((-1,-1,3),(1,1,5)),
+#		stepPeriod=200,
+#		maxMass=3e3,maxNum=-1,massFlowRate=0,maxAttempts=100,attemptPar=50,atMaxAttempts=BoxFactory.maxAttWarn,
+#		generator=generators[1],
+#		materials=[mat]
+#	),
+#	BoxFactory(
+#		box=((-1,-1,5),(1,1,7)),
+#		stepPeriod=100,
+#		maxMass=3e3,maxNum=-1,massFlowRate=0,maxAttempts=100,attemptPar=50,atMaxAttempts=BoxFactory.maxAttWarn,
+#		generator=generators[2],
+#		materials=[mat]
+#	)
 ]
 
 # S.any=[Gl1_Ellipsoid(wire=True),Gl1_DemField(cPhys=True,cNode=Gl1_DemField.cNodeNode),Renderer(iniViewDir=(0,1,0))]

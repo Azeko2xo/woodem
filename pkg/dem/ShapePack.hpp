@@ -102,7 +102,7 @@ struct ShapePack: public Object{
 	DECLARE_LOGGER;
 
 	#define woo_dem_ShapePack__CLASS_BASE_DOC_ATTRS_PY \
-		ShapePack,Object,"Representation of geometry of many particles, with the ability of text I/O. It is meant as a replacement for :obj:`woo.pack.SpherePack`, which only handles spherical particles.", \
+		ShapePack,Object,ClassTrait().doc("Representation of geometry of many particles, with the ability of text I/O. It is meant as a replacement for :obj:`woo.pack.SpherePack`, which only handles spherical particles.").section("Packings","TODO",{"RawShape","ShapeClump"}), \
 		((Vector3r,cellSize,Vector3r::Zero(),,"Positive components signify periodic boundary along the respective axis.")) \
 		((bool,movable,false,,"Whether the packing is movable, i.e. should be automatically recentered after filtered with a predicate.")) \
 		((int,div,5,,"Default value for recomputing properties of clumps (relative to the smallest equivalent radius)")) \

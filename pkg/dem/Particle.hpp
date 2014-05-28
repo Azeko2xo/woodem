@@ -75,7 +75,7 @@ struct Particle: public Object{
 	#endif
 
 	#define woo_dem_Particle__CLASS_BASE_DOC_ATTRS_PY \
-		Particle,Object,ClassTrait().doc("Particle in DEM").section("Particle","Each particles in DEM is defined by its shape (given by multiple nodes) and other parameters.",{"Shape","Material","Bound"}), \
+		Particle,Object,ClassTrait().doc("Particle in DEM").section("Particle","Each particles in DEM is defined by its shape (given by multiple nodes) and other parameters.",{"Shape","Material"}), \
 		((id_t,id,-1,AttrTrait<Attr::readonly>(),"Index in DemField::particles")) \
 		((uint,mask,1,,"Bitmask for collision detection and other (group 1 by default)")) \
 		((shared_ptr<Shape>,shape,,,"Geometrical configuration of the particle")) \
@@ -271,7 +271,7 @@ struct DemField: public Field{
 	//template<> shared_ptr<DemField> sceneGetField<DemField>() const;
 	void postLoad(DemField&,void*);
 	#define woo_dem_DemField__CLASS_BASE_DOC_ATTRS_CTOR_PY \
-		DemField,Field,"Field describing a discrete element assembly. Each particle references (possibly many) nodes. ", \
+		DemField,Field,ClassTrait().doc("Field describing a discrete element assembly. Each particle references (possibly many) nodes.").section("DEM field","TODO",{"ContactContainer","ParticleContainer"}), \
 		((shared_ptr<ParticleContainer>,particles,make_shared<ParticleContainer>(),AttrTrait<>().pyByRef().readonly().ini().buttons({"Export spheres to CSV","import woo.pack; from PyQt4.QtGui import QFileDialog\nsp=woo.pack.SpherePack(); sp.fromSimulation(self.scene); csv=woo.master.tmpFilename()+'.csv'; csv=str(QFileDialog.getSaveFileName(None,'Export spheres','.'));\nif csv:\n\tsp.save(csv); print 'Saved exported spheres to',csv",""}),"Particles (each particle holds its contacts, and references associated nodes)")) \
 		((shared_ptr<ContactContainer>,contacts,make_shared<ContactContainer>(),AttrTrait<>().pyByRef().readonly().ini(),"Linear view on particle contacts")) \
 		((uint,loneMask,0,,"Particle groups which have bits in loneMask in common (i.e. (A.mask & B.mask & loneMask)!=0) will not have contacts between themselves")) \
@@ -333,6 +333,11 @@ struct Shape: public Object, public Indexable{
 	// create the right amount of nodes as necessary
 	void setFromRaw_helper_checkRaw_makeNodes(const vector<Real>& raw, size_t numRaw);
 
+	#if 0
+		shared_ptr<Particle> make(const shared_ptr<Shape>& shape, const shared_ptr<Material>& mat, py::dict kwargs);
+		shared_ptr<Particle> make(const shared_ptr<Shape>& shape, const shared_ptr<Material>& mat, int mask=1, const vector<shared_ptr<Node>> nodes=vector<shared_ptr<Node>>(), const Vector3r& pos=Vector3r(NaN,NaN,NaN), const Quaternionr& ori=Quaternionr::Identity(), bool fixed=false, bool wire=false, bool color=NaN, bool highlight=false, bool visible=true);
+	#endif
+
 	// update mass and inertia of this object
 	virtual void updateMassInertia(const Real& density) const;
 	// return equivalent radius of the particle, or NaN if not defined by the shape
@@ -364,7 +369,7 @@ WOO_REGISTER_OBJECT(Shape);
 struct Material: public Object, public Indexable{
 	// XXX: is createIndex() called here at all??
 	#define woo_dem_Material__CLASS_BASE_DOC_ATTRS_PY \
-		Material,Object,"Particle material", \
+		Material,Object,ClassTrait().doc("Particle material").section("Material properties","TODO",{"MatState"}), \
 		((Real,density,1000,AttrTrait<>().densityUnit(),"Density")) \
 		((int,id,-1,AttrTrait<>().noGui(),"Some number identifying this material; used with MatchMaker objects, useless otherwise")) \
 		,/*py*/ WOO_PY_TOPINDEXABLE(Material); \

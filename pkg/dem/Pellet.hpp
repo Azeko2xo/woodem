@@ -4,7 +4,7 @@
 #include<woo/pkg/dem/ContactLoop.hpp>
 
 struct PelletMat: public FrictMat{
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR(PelletMat,FrictMat,"Material describing pellet behavior; see :obj:`Law2_L6Geom_PelletPhys_Pellet` for details of the material model.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR(PelletMat,FrictMat,ClassTrait().doc("Material describing pellet behavior; see :obj:`Law2_L6Geom_PelletPhys_Pellet` for details of the material model.").section("","",{"PelletAgglomerator"}),
 		((Real,normPlastCoeff,0,,"Coefficient $\\alpha$ in the normal yield function; non-positive deactivates."))
 		((Real,kaDivKn,0,,"Ratio of $\\frac{k_A}{K_N}$ for the adhesion function; non-positive deactivates."))
 		, /*ctor*/ createIndex();

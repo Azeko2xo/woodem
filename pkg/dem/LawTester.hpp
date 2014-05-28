@@ -51,7 +51,7 @@ struct LawTester: public Engine{
 		return ret;
 	}
 	#define woo_dem_LawTester__CLASS_BASE_DOC_ATTRS_PY \
-		LawTester,Engine,"Engine for testing contact laws by prescribing various loading scenarios, which are a combination of prescribing force or velocity along given contact-local axes.", \
+		LawTester,Engine,ClassTrait().doc("Engine for testing contact laws by prescribing various loading scenarios, which are a combination of prescribing force or velocity along given contact-local axes.").section("Testing contact laws","TODO",{"LawTesterStage"}), \
 		((Vector2i,ids,,,"Ids of particles in contact")) \
 		((string,done,"tester.dead=True",,"Python expression to run once all stages had finished. This is run *after* :obj:`LawTesterStage.done` of the last stage.")) \
 		((Real,abWeight,1,,"Float, usually ∈〈0,1〉, determining on how are displacements/rotations distributed between particles (0 for A, 1 for B); intermediate values will apply respective part to each of them.")) \

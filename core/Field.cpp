@@ -5,9 +5,9 @@
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_core_Node__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_core_Field__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_core_NodeData__CLASS_BASE_DOC_ATTRS_PY);
-WOO_IMPL__CLASS_BASE_DOC(woo_core_Constraint__CLASS_BASE_DOC);
+/* WOO_IMPL__CLASS_BASE_DOC(woo_core_Constraint__CLASS_BASE_DOC); */
 
-WOO_PLUGIN(core,(Node)(Field)(NodeData)(Constraint));
+WOO_PLUGIN(core,(Node)(Field)(NodeData) /* (Constraint) */ );
 
 #ifdef WOO_OPENGL
 	WOO_IMPL__CLASS_BASE_DOC(woo_gl_NodeGlRep__CLASS_BASE_DOC);
