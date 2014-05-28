@@ -121,6 +121,7 @@ bool Cg2_Wall_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<S
 			unit1=Vector3r::Unit(ax1)*wall.glAB.sizes()[0]/div;
 			unit2=Vector3r::Unit(ax2)*wall.glAB.sizes()[1]/div;
 		}
+		if(wall.nodes[0]->hasData<GlData>()) A[ax0]+=wall.nodes[0]->getData<GlData>().dGlPos[ax0];
 		glDisable(GL_LINE_SMOOTH);
 		GLUtils::Grid(A,unit1,unit2,Vector2i(div,div),/*edgeMask*/0);
 		glEnable(GL_LINE_SMOOTH);

@@ -51,7 +51,7 @@ struct ParticleGenerator: public Object{
 	py::list pyCall(const shared_ptr<Material>& m){ vector<ParticleAndBox> pee=(*this)(m); py::list ret; for(const auto& pe: pee) ret.append(py::make_tuple(pe.par,pe.extents)); return ret; }
 	#define woo_dem_ParticleGenerator__CLASS_BASE_DOC_ATTRS_PY \
 		ParticleGenerator,Object,"Abstract class for generating particles", \
-		((vector<Vector2r>,genDiamMass,,AttrTrait<Attr::readonly>().noGui(),"List of generated particle's (equivalent) radii and masses (for making granulometry)")) \
+		((vector<Vector2r>,genDiamMass,,AttrTrait<Attr::readonly>().noGui().noDump(),"List of generated particle's (equivalent) radii and masses (for making granulometry)")) \
 		((bool,save,true,,"Save generated particles so that PSD can be generated afterwards")) \
 		,/*py*/ \
 			.def("psd",&ParticleGenerator::pyPsd,(py::arg("mass")=true,py::arg("cumulative")=true,py::arg("normalize")=false,py::arg("dRange")=Vector2r(NaN,NaN),py::arg("num")=80),"Return PSD for particles generated.") \
