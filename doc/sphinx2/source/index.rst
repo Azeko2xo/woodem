@@ -11,6 +11,7 @@ Contents:
    :maxdepth: 2
 
    user/user.rst
+   tutorial/index.rst
    theory/index.rst
    cases/index.rst
    wooMods.rst

@@ -64,7 +64,7 @@ features=['qt4','vtk','opengl','gts','openmp']
 if 'CC' in os.environ and os.environ['CC'].endswith('clang'): features.remove('openmp')
 flavor='' #('' if WIN else 'distutils')
 debug=False
-chunkSize=(1 if WIN else 10)
+chunkSize=1 # (1 if WIN else 10)
 hotCxx=[] # plugins to be compiled separately despite chunkSize>1
 
 # XXX
