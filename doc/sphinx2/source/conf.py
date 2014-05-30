@@ -62,12 +62,12 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.mathjax' i
 ipython_rgxin =re.compile(r'Woo \[(\d+)\]:\s?(.*)\s*')
 ipython_rgxout=re.compile(r'Out\[(\d+)\]:\s?(.*)\s*')
 #ipython_rgxout=re.compile(r'\s*\S*(Out)\S*: \[0m(.*)\s*')
-ipython_promptin ='Woo [%d]:'
-ipython_promptout=' -> [%d]:'
+ipython_promptin ='Woo[%d]:'  ### make smaller to be aligned with "Out" as " -> " does not show up
+ipython_promptout=' -> [%d]:' ### FIXME:: this does not work for some reason :|
 
 import IPython.sphinxext.ipython_console_highlighting as ich
 # TODO: 
-ich.IPythonConsoleLexer.input_prompt=re.compile(r'(Woo \[[0-9]+\]: )')
+ich.IPythonConsoleLexer.input_prompt=re.compile(r'(Woo\[[0-9]+\]: )')
 ich.IPythonConsoleLexer.output_prompt=re.compile(r'(( -> |Out)|\[[0-9]+\]: )')
 ich.IPythonConsoleLexer.continue_prompt=re.compile(r'\s+\.\.\.+:')
 

@@ -39,7 +39,7 @@
       </sizepolicy>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>4</number>
      </property>
      <widget class="QWidget" name="tabGridLayout">
       <attribute name="title">
@@ -983,8 +983,8 @@
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>96</width>
-              <height>26</height>
+              <width>403</width>
+              <height>451</height>
              </rect>
             </property>
            </widget>
@@ -1006,7 +1006,7 @@
             <number>500</number>
            </property>
            <property name="value">
-            <number>6000</number>
+            <number>15000</number>
            </property>
           </widget>
          </item>

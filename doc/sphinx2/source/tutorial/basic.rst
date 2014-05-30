@@ -2,6 +2,10 @@
 Basic simulation
 #################
 
+.. admonition:: Overview:
+
+   This chapter explains how to write script for a very simple DEM simulation (a sphere falling onto plane) and how to run it.
+
 Scene
 =======
 
@@ -27,7 +31,7 @@ Since all objects can take *keyword arguments* when constructed, and assignments
    S=woo.master.scene=woo.core.Scene(fields=[woo.dem.DemField(gravity=(0,0,-9.81))])
 
 ..
-	asdfasdf
+   asdfasdf
 
    .. ipython::
 
@@ -117,7 +121,7 @@ All in all, the minimal simulation of a sphere falling onto plane looks like thi
 
 .. literalinclude:: basic-1.py
 
-Save this to a file, name it e.g. ``basic-1.py`` (or whatever ending with ``.py``, which is the extension indicating `Python <http://www.python.org>`__) and run woo from the terminal by typing::
+Save this to a file, name it e.g. ``basic-1.py`` (or whatever ending with ``.py``, which is the extension indicating `Python <http://www.python.org>`__) and run woo from the terminal, passing the ``basic-1.py`` as argument to Woo. You must run Woo from the same directory as where the script is located (by default, new terminal opens in your home directory; if the ``basic-1.py`` is saved for example under ``~/Documents``, you have to type ``cd Documents`` first)::
 
    woo basic-1.py
 
@@ -134,4 +138,39 @@ and the controller window opens. The script was executed, but the simulation is 
    :align: center
 
    User interface after running the :woosrc:`basic-1.py <doc/source/sphinx2/tutorial/basic-1.py>` script.
+
+When you click the :guilabel:`▶` (play) button , you will see the simulation running:
+
+.. youtube:: BOgc5FH-XzM
+
+The :guilabel:`▶`  button is red as we set :obj:`S.throttle `woo.core.Scene.throttle`; you can change the value using the dial under :guilabel:`▶`. Try also clicking :guilabel:`▮▮` (pause), :guilabel:`▶▮` (single step, or several steps as set next to it) and :guilabel:`↻` (that will load the state when you said ``S.saveTmp()``). The controller shows some basic data, some of which are also presented in the corner of the 3d view: time, step number, timestep.
+
+Clicking the :guilabel:`Inspector` button will present internal structure of the simulation -- particles, engines, contacts (there will be no contact most the time, in this simulation). You can select a particle with by :kbd:`Shift-click` on the particle in the 3d view; it will be selected in the inspector as well.
+
+The simulation can also be run from the script or the command line in terminal (starting with ``Woo [1]:``)::
+
+   S.one()         # one step, like ▶▮
+   S.run()         # run in background until stopped, like ▶
+   S.stop()        # stop the simulation (does nothing if not running), like ▮▮
+   S.run(200)      # run 200 steps in background
+   S.wait()        # wait for the background to finish, then return
+
+.. warning:: When the script is executed, it defines the ``S`` variable to point to your scene. When the scene is reloaded via :guilabel:`↻` (which invokes ``woo.master.reload``), :obj:`woo.master.scene <woo.core.Master.scene>` refers to the newly loaded scene, but ``S`` is still pointing to the old object:
+   
+   .. ipython::
+
+      Woo [1]: import woo; S=woo.master.scene; S.dt=1e-9; S.saveTmp()
+
+      Woo [1]: S, woo.master.scene      ## both point to the same scene -- look at the address
+
+      Woo [1]: woo.master.reload()      ## reload the master scene
+
+      Woo [1]: S, woo.master.scene      ## two different scenes
+
+      Woo [1]: S.one()                  ## will run the OLD scene, but it won't be seen graphically :|
+
+      Woo [1]: S=woo.master.scene       ## set S to the "good" value after reloading 
+
+      Woo [1]: S.one()                  ## runs the current master scene, OK :)
+
 

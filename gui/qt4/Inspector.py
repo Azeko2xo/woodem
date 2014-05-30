@@ -81,18 +81,18 @@ def getBodyIdFromLabel(label):
 		return -1
 
 class BodyInspector(QWidget):
-	def __init__(self,bodyId=-1,parent=None,bodyLinkCallback=None,intrLinkCallback=None):
+	def __init__(self,parId=None,parent=None,bodyLinkCallback=None,intrLinkCallback=None):
 		QWidget.__init__(self,parent)
-		self.bodyId=bodyId
+		self.parId=(0 if parId==None else parId)
 		if 'opengl' in woo.config.features:
 			v=woo.qt.views()
-			if bodyId<0 and len(v)>0 and v[0].selection>0: self.bodyId=v[0].selection
-		self.idGlSync=self.bodyId
+			if parId==None and len(v)>0 and v[0].selection>0: self.bodyId=v[0].selection
+		self.idGlSync=self.parId
 		self.bodyLinkCallback,self.intrLinkCallback=bodyLinkCallback,intrLinkCallback
 		self.bodyIdBox=QSpinBox(self)
 		self.bodyIdBox.setMinimum(0)
 		self.bodyIdBox.setMaximum(100000000)
-		self.bodyIdBox.setValue(self.bodyId)
+		self.bodyIdBox.setValue(self.parId)
 		self.intrWithCombo=QComboBox(self);
 		self.gotoBodyButton=QPushButton(u'→ #',self)
 		self.gotoIntrButton=QPushButton(u'→ #+#',self)
@@ -132,12 +132,12 @@ class BodyInspector(QWidget):
 		self.refreshTimer.start(1000)
 		self.intrWithCombo.addItems(['0']); self.intrWithCombo.setCurrentIndex(0);
 		self.intrWithCombo.setMinimumWidth(80)
-		self.setWindowTitle('Particle #%d'%self.bodyId)
+		self.setWindowTitle('Particle #%d'%self.parId)
 		self.gotoBodySlot()
 	def displayForces(self):
-		if self.bodyId<0: return
+		if self.parId==None: return
 		S=woo.master.scene
-		b=S.dem.par[self.bodyId]
+		b=S.dem.par[self.parId]
 		if not b.shape: noshow='no shape'
 		elif len(b.shape.nodes)==0: noshow='no nodes'
 		elif len(b.shape.nodes)>1: noshow='multinodal'
@@ -155,33 +155,34 @@ class BodyInspector(QWidget):
 			except IndexError:pass
 	def tryShowBody(self):
 		try:
-			if self.bodyId<0: raise IndexError()
-			b=woo.master.scene.dem.par[self.bodyId]
-			self.serEd=ObjectEditor(b,showType=True,parent=self,path='woo.master.scene.dem.par[%d]'%self.bodyId)
+			if self.parId==None: raise IndexError()
+			b=woo.master.scene.dem.par[self.parId]
+			self.serEd=ObjectEditor(b,showType=True,parent=self,path='woo.master.scene.dem.par[%d]'%self.parId)
 		except IndexError:
 			if self.bodyIdBox.hasFocus(): return False
 			self.serEd=QFrame(self)
-			self.bodyId=-1
+			self.parId=None
 		self.scroll.setWidget(self.serEd)
 		return True
 	def changeIdSlot(self,newId):
 		self.bodyIdBox.setValue(newId);
-		self.bodyIdSlot()
-	def bodyIdSlot(self):
+		self.bodyIdSlot(newId)
+	def bodyIdSlot(self,currId):
+		self.parId=currId
 		if not self.tryShowBody():
 			self.bodyIdBox.setStyleSheet('QWidget { background: red }')
 			return # we still have focus, don't attempt to change
 		else:
 			self.bodyIdBox.setStyleSheet('QWidget { background: none }')
-		self.bodyId=self.bodyIdBox.value()
-		self.setWindowTitle('Particle #%d'%self.bodyId)
+		# self.parId=currId # self.bodyIdBox.value()
+		self.setWindowTitle('Particle #%d'%self.parId)
 		self.refreshEvent()
 	def gotoBodySlot(self):
 		try:
 			id=int(getBodyIdFromLabel(self.intrWithCombo.currentText()))
 		except ValueError: return # empty id
 		if not self.bodyLinkCallback:
-			self.bodyIdBox.setValue(id); self.bodyId=id
+			self.bodyIdBox.setValue(id); self.parId=id
 		else: self.bodyLinkCallback(id)
 	def gotoIntrSlot(self):
 		ids=self.bodyIdBox.value(),getBodyIdFromLabel(self.intrWithCombo.currentText())
@@ -191,21 +192,21 @@ class BodyInspector(QWidget):
 		else: self.intrLinkCallback(ids)
 	def refreshEvent(self):
 		S=woo.master.scene
-		try: S.dem.par[self.bodyId]
-		except: self.bodyId=-1 # invalidate deleted body
+		try: S.dem.par[self.parId]
+		except: self.parId=None # invalidate deleted body
 		# no body shown yet, try to get the first one...
-		if self.bodyId<0 and len(S.dem.par)>0:
+		if self.parId==None and len(S.dem.par)>0:
 			try:
 				# print 'SET ZERO'
-				b=S.dem.par[0]; self.bodyIdBox.setValue(0); self.bodyId=0
+				b=S.dem.par[0]; self.bodyIdBox.setValue(0); self.parId=0
 			except IndexError: pass
 		if 'opengl' in woo.config.features:
 			v=woo.qt.views()
-			if len(v)>0 and v[0].selection!=self.bodyId:
-				if self.idGlSync==self.bodyId: # changed in the viewer, reset ourselves
-					self.bodyId=self.idGlSync=v[0].selection; self.changeIdSlot(self.bodyId)
+			if len(v)>0 and v[0].selection!=self.parId:
+				if self.idGlSync==self.parId: # changed in the viewer, reset ourselves
+					self.parId=self.idGlSync=v[0].selection; self.changeIdSlot(self.parId)
 					return
-				else: v[0].selection=self.idGlSync=self.bodyId # changed here, set in the viewer
+				else: v[0].selection=self.idGlSync=self.parId # changed here, set in the viewer
 		meId=self.bodyIdBox.value(); pos=self.intrWithCombo.currentIndex()
 		try:
 			meLabel=makeBodyLabel(S.dem.par[meId])

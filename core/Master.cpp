@@ -59,8 +59,6 @@ void crtWin32EnvCheck(const char* name){
 
 Master::Master(){
 	LOG_DEBUG_EARLY("Constructing woo::Master.");
-	sceneAnother=shared_ptr<Scene>(new Scene);
-	scene=shared_ptr<Scene>(new Scene);
 	startupLocalTime=boost::posix_time::microsec_clock::local_time();
 	#ifdef __MINGW64__
 		// check that (some) env vars set from python will work under windows.
@@ -98,6 +96,10 @@ Master::Master(){
 	tmpFileCounter=0;
 
 	defaultClDev=Vector2i(-1,-1);
+	
+	// create the initial master scene
+	scene=shared_ptr<Scene>(new Scene);
+	scene->postLoad(*scene,NULL); // this would not get called otherwise, causing troubles
 }
 
 

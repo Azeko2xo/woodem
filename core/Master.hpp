@@ -62,7 +62,6 @@ class Master: public Singleton<Master>{
 
 	
 	shared_ptr<Scene> scene;
-	shared_ptr<Scene> sceneAnother; // used for temporarily running different simulation, in Master().switchscene()
 
 	boost::posix_time::ptime startupLocalTime;
 
