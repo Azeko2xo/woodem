@@ -130,6 +130,7 @@ class GLViewer : public QGLViewer
 		// public because of _GLViewer which exposes this to python
 		// shared by all instances
 		static bool rotCursorFreeze;
+		long framesDone;
 
 		void centerMedianQuartile();
 		GLViewer(int viewId, QGLWidget* shareWidget=0);
@@ -139,7 +140,7 @@ class GLViewer : public QGLViewer
 		#endif
 		// if we fastDraw was active already, FPS may go up temporarily, thus we keep using fastDraw once it was already active. fastDraw will be set to false when campera manipulation ends.
 		void fastDraw() WOO_CXX11_OVERRIDE { draw(/*withNames*/false,/*fast*/(currentFPS()<10 || Renderer::fastDraw));}
-		void draw() WOO_CXX11_OVERRIDE { draw(/*withNames*/false,/*fast*/(!hasFocus() && (currentFPS()<15 || Renderer::fastDraw))); }
+		void draw() WOO_CXX11_OVERRIDE { draw(/*withNames*/false,/*fast*/(!hasFocus() && ((currentFPS()<15 && framesDone>100) || Renderer::fastDraw))); }
 		void drawWithNames() WOO_CXX11_OVERRIDE { draw(/*withNames*/true); }
 		// this one is not virtual
 		void draw(bool withNames, bool fast=false);

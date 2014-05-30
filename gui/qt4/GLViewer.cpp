@@ -120,6 +120,7 @@ GLViewer::GLViewer(int _viewId, QGLWidget* shareWidget): QGLViewer(/*parent*/(QW
 	gridSubdivide = false;
 	prevSize=Vector2i(550,550);
 	resize(prevSize[0],prevSize[1]);
+	framesDone=0;
 
 	if(viewId==0) setWindowTitle("Primary view");
 	else setWindowTitle(("Secondary view #"+lexical_cast<string>(viewId)).c_str());
@@ -582,6 +583,7 @@ void GLViewer::draw(bool withNames, bool fast)
 		if(Renderer::scene.get()!=scene.get()) setInitialView();
 		Renderer::render(scene,withNames,fast);
 	}
+	framesDone++;
 }
 
 // new object selected.
