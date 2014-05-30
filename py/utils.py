@@ -515,12 +515,12 @@ def htmlReport(S,repFmt,headline,afterHead='',figures=[],dialect=None,figFmt=Non
 
 	:param S: :obj:`Scene` object; must contain :obj:`Scene.pre`
 	:param repFmt: format for the output file; will be expanded using :obj:`Scene.tags`; it should end with `.html` or `.xhtml`.
-	:param headline: title of the report, used as HTML title and the first `<h1>` heading.
+	:param headline: title of the report, used as HTML title and the first ``<h1>`` heading.
 	:param afterHead: contents (XHTML fragment) to be added verbatim after the header (title, woo config table, preprocessor parameters)
 	:param figs: figures included in the report; they are either embedded (SVG, optionally ) or saved to files in the same directory as the report, using its name as prefix, and referenced via relative links from the XHTML. Figures are given as list of 2- or 3-tuples, where each item contains:
 	   
-		 1. name of the figure (will generate a `<h2>` heading)
-		 2. figure object (`Matplotlib <http://matplotlib.org>` figure object)
+		 1. name of the figure (will generate a ``<h2>`` heading)
+		 2. figure object (`Matplotlib <http://matplotlib.org>`__ figure object)
 		 3. optionally, format to save the figure to (`svg`, `png`, ...)
 
 	:param figFmt: format of figures, if the format is not specified by the figure itself; if None, choose format appropriate for given dialect (png for html4, svg for html5 and xhtml)

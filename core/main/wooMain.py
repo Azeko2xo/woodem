@@ -15,6 +15,7 @@ class WooOptions(object):
 		self.flavor=''
 		self.debug=False
 		self.clDev=None
+		self.fakeDisplay=False
 		self.quirks=3 ### was 3, but Intel seems to work now OK
 		self.quirkIntel=1
 		self.quirkFirePro=2
@@ -83,7 +84,6 @@ def main(sysArgv=None):
 
 	global options
 	
-	green,red,yellow,bright=makeColorFuncs(['GREEN','RED','YELLOW','BRIGHT'])
 
 	# handle command-line options first
 	import argparse
@@ -117,10 +117,14 @@ def main(sysArgv=None):
 	par.add_argument('--in-gdb',help='Run Woo inside gdb (must be in $PATH).',dest='inGdb',action='store_true')
 	par.add_argument('--in-pdb',help='Run Woo inside pdb',dest='inPdb',action='store_true')
 	par.add_argument('--in-valgrind',help='Run inside valgrind (must be in $PATH); automatically adds python ignore files',dest='inValgrind',action='store_true')
+	par.add_argument('--fake-display',help='Allow importing the woo.qt4 module without initializing Qt4. This is only useful for generating documentation and should not be used otherwise.',dest='fakeDisplay',action='store_true')
 	par.add_argument('simulation',nargs=argparse.REMAINDER)
 	opts=par.parse_args()
 	if WIN: opts.rebuild=False # make sure it is defined
 	args=opts.simulation
+
+	green,red,yellow,bright=makeColorFuncs(['GREEN','RED','YELLOW','BRIGHT'])
+	
 
 	# copy options (will be used in woo/__init__.py)
 	options.ompThreads=opts.threads
@@ -135,6 +139,7 @@ def main(sysArgv=None):
 	options.debug=opts.debug
 	options.quirks=opts.quirks
 	options.flavor=opts.flavor
+	options.fakeDisplay=opts.fakeDisplay
 
 	# disable quirks in those cases
 	if (opts.version or opts.inGdb or opts.test or opts.rebuild):
@@ -298,7 +303,7 @@ def main(sysArgv=None):
 
 	# run remote access things, before actually starting the user session
 	from woo import remote, batch
-	woo.remote.useQThread=(gui=='qt4')
+	woo.remote.useQThread=(gui==('qt4' and not opts.fakeDisplay))
 	# only run XMLRPC server when in batch
 	# do not run the TCP command prompt, is probably useless now
 	woo.remote.runServers(xmlrpc=batch.inBatch(),tcpPy=False)
@@ -308,7 +313,7 @@ def main(sysArgv=None):
 	#from math import *
 	import woo.plot # monkey-patches, which require woo.runtime.hasDisplay (hence not importable from _monkey :/)
 
-	if gui==None:
+	if gui==None or opts.fakeDisplay:
 		ipythonSession(opts)
 	elif gui=='qt4':
 		## we already tested that DISPLAY is available and can be opened
@@ -331,9 +336,10 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 	# start non-blocking qt4 app here; need to ask on the mailing list on how to make it functional
 	# with ipython >0.11, start the even loop early (impossible with 0.10, which is thread-based)
 	# http://mail.scipy.org/pipermail/ipython-user/2011-July/007931.html mentions this
-	if False and qt4 and woo.runtime.ipython_version>=11:
-		import IPython.lib.guisupport
-		IPython.lib.guisupport.start_event_loop_qt4()
+	#if False and qt4 and woo.runtime.ipython_version>=11:
+	#	import IPython.lib.guisupport
+	#	IPython.lib.guisupport.start_event_loop_qt4()
+
 	if len(sys.argv)>0:
 		arg0=sys.argv[0]
 		if qt4: woo.qt.Controller();
@@ -396,7 +402,7 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 	# common ipython configuration
 	banner='[[ ^L clears screen, ^U kills line. '+', '.join(['F12 controller']+(['F11 3d view','F10 both'] if 'opengl' in woo.config.features else [])+(['F9 generator'] if (qt4) else [])+['F8 plot'])+'. ]]'
 	ipconfig=dict( # ipython options, see e.g. http://www.cv.nrao.edu/~rreid/casa/tips/ipy_user_conf.py
-		prompt_in1='Woo [\#]: ',
+		prompt_in1='Waa [\#]: ',
 		prompt_in2='    .\D.: ',
 		prompt_out=" -> [\#]: ",
 		separate_in='',separate_out='',separate_out2='',

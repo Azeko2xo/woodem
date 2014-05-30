@@ -203,11 +203,13 @@ def oneModuleWithSubmodules(mod,out,exclude=None,level=0,importedInto=None):
 	def _docOneClass(k):
 		if k in exclude: return
 		exclude.add(k) # already-documented should not be documented again
-		kOut.write('.. autoclass:: %s\n   :show-inheritance:\n'%k.__name__)
+
+		kOut.write('.. autoclass:: %s\n'%k.__name__)
 		#kOut.write('   :members: %s\n'%(','.join([m for m in dir(k) if (not m.startswith('_') and m not in set(trait.name for trait in k._attrTraits))])))
 		kOut.write('   :members:\n')
 		ex=[t.name for t in k._attrTraits]
 		if ex: kOut.write('   :exclude-members: %s\n\n'%(', '.join(ex)))
+
 		srcXref=classSrcHyperlink(k)
 		if srcXref: kOut.write('\n   '+srcXref+'\n\n')
 		for trait in k._attrTraits:
@@ -231,6 +233,22 @@ def oneModuleWithSubmodules(mod,out,exclude=None,level=0,importedInto=None):
 	#global prevLevel
 	#prevLevel=0
 
+	def _inheritanceDiagram(k,currmod):
+		def nodeName(kk): return ('' if kk.__module__==currmod else kk.__module__+'.')+kk.__name__
+		def mkNode(kk,style='solid',fillcolor=None): return '\t\t"%s" [shape="box",fontsize=8,style="setlinewidth(0.5),%s",%sheight=0.2,URL="%s.html#%s.%s"];\n'%(nodeName(kk),style,'fillcolor=%s,'%fillcolor if fillcolor else '','.'.join(kk.__module__.split('.')[:2]),kk.__module__,k.__name__)
+		ret=".. graphviz::\n\n\tdigraph %s {\n\t\trankdir=LR;\n\t\tmargin=.2;\n"%k.__name__
+		ret+=mkNode(k)
+		cc=woo.system.childClasses(k,includeBase=False)
+		for c in cc:
+			if c.__module__.startswith('wooExtra.'): continue
+			# this class will have its own diagram for inheritance
+			# if hasattr(c,'_classTrait') and c._classTrait.title and c._classTrait.klassesUnder:
+			if c.__module__==currmod: ret+=mkNode(c)
+			else: ret+=mkNode(c,style='filled',fillcolor='grey')
+			ret+='\t\t"%s" -> "%s" [arrowsize=0.5,style="setlinewidth(0.5)"]'%(nodeName(c.__bases__[0]),nodeName(c))
+		return ret+'\n\t}\n\n'
+
+
 	def _docOneClassWithSectioning(k,level=0):
 		# print level*'\t',k.__name__
 		if not hasattr(k,'_classTrait'): return # will be documented later
@@ -241,16 +259,35 @@ def oneModuleWithSubmodules(mod,out,exclude=None,level=0,importedInto=None):
 		#	# decrasing level without section -- write dividing line
 		#	if prevLevel>level: out.write('\n\n-----\n\n\n') #
 		#prevLevel=level
-		if t.title: # write section title
-			nextLevel=level+1
-			tt=t.title+' ('+k.__name__+')'
-			kOut.write(tt+'\n'+len(tt)*'-"\'^'[level]+'\n\n')
-		else:
-			nextLevel=level+1
-			kOut.write(k.__name__+'\n'+len(k.__name__)*('-"\'^+_%'[level])+'\n\n')
+		#if t.title: # write section title
+		nextLevel=level+1
+		tt=t.title if t.title else k.__name__
+		if level<3:
+			kOut.write('\n.. rst-class:: html-toggle\n\n')
+			kOut.write('\n.. rst-class:: emphasized\n\n')
+		kOut.write(tt+'\n'+len(tt)*'-+"%\'^_'[level]+'\n\n')
+		#else:
+		#	nextLevel=level+1
+		#	kOut.write(k.__name__+'\n'+len(k.__name__)*('-"\'^+_%'[level])+'\n\n')
 		if t.intro:
 			kOut.write(t.intro+'\n\n')
 			if not t.title: warnings.warn('Class %s.%s has intro but no title in class trait.'%(k.__module__,k.__name__))
+		# if there was a title different from the class title and there are classes under us, repeat the class name here on the subordinate level
+		if t.title:
+			if nextLevel<3:
+				kOut.write('\n.. rst-class:: html-toggle\n\n')
+				kOut.write('\n.. rst-class:: emphasized\n\n')
+			kOut.write(k.__name__+'\n'+len(k.__name__)*'-+"%\'^_'[nextLevel]+'\n\n')
+		# print inheritance
+		if k!=woo.core.Object:
+			bb=[k]
+			while True:
+				bb+=[bb[-1].__bases__[0]]
+				if bb[-1]==woo.core.Object: break
+			kOut.write(u'\n'+u' → '.join([u':obj:`~%s.%s`'%(b.__module__,b.__name__) for b in reversed(bb)])+'\n\n')
+		# print derived classes
+		if klassesUnder and woo.system.childClasses(k):
+			kOut.write(_inheritanceDiagram(k,mod.__name__))
 		_docOneClass(k)
 		for kk in klassesUnder[k]:
 			assert k!=kk
@@ -283,7 +320,7 @@ def oneModuleWithSubmodules(mod,out,exclude=None,level=0,importedInto=None):
 			out.write(mod.__doc__+'\n\n')
 			mod.__doc__=None
 		# if there are no classes, avoid warning from sphinx
-		if klasses: out.write('.. inheritance-diagram:: %s\n\n'%mod.__name__)
+		if klasses: out.write('.. inheritance-diagram:: %s\n\n'%mod.__name__) 
 		# insert documentation of classes
 		out.write(kOut.getvalue())
 		# document the rest of the module here (don't recurse)
@@ -292,7 +329,7 @@ def oneModuleWithSubmodules(mod,out,exclude=None,level=0,importedInto=None):
 		# automodule first, including inheritance tree (are excluded classes excluded from the tree as well?)
 		# exlude classes which are are then documented manually
 		# if there are no classes, avoid warning from sphinx
-		if klasses: out.write('.. inheritance-diagram:: %s\n\n'%mod.__name__)
+		if klasses: out.write('.. inheritance-diagram:: %s\n   :parts: %s\n\n'%(mod.__name__,len(mod.__name__.split('.')) if mod.__name__.startswith('woo.') else 0)) # without showing module name in the inheritance diagram
 		writeAutoMod(mod,skip=exclude)
 		out.write(kOut.getvalue())
 	# imported modules

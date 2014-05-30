@@ -51,7 +51,7 @@ struct VtkFlowExport: public PeriodicEngine{
 
 	DemField* dem;
 
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(VtkFlowExport,PeriodicEngine,"Export DEM simulation to VTK files for post-processing.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(VtkFlowExport,PeriodicEngine,"Export DEM simulation to VTK files for post-processing.\n\n.. warning:: This engine is not fully functional, use :obj:`FlowAnalysis` instead. ",
 		((string,out,,,"Filename prefix to write into; :obj:`woo.core.Scene.tags` written as {tagName} are expanded the first time run."))
 		((string,lastOut,,AttrTrait<>().buttons({"Open in Paraview","from subprocess import call; call(['paraview',self.lastOut])",""},/*showBefore*/true),"Last output file written."))
 		((AlignedBox3r,box,,,"Domain where the flow is to be analyzed."))

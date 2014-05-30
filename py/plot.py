@@ -35,7 +35,9 @@ import matplotlib,os,time,math,itertools,sys
 try: import woo.qt
 except ImportError: pass
 
-import woo.runtime
+import woo.runtime, wooMain
+if wooMain.options.fakeDisplay: woo.runtime.hasDisplay=False
+
 if woo.runtime.hasDisplay==None: # not yet set
 	raise RuntimeError('woo.plot imported before woo.runtime.hasDisplay is set. This should not really happen, please report.')
 if not woo.runtime.hasDisplay:

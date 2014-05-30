@@ -180,6 +180,7 @@ When thinning is active, the radius is updated as follows:
 .. note:: Unlike :math:`u_n^{\mathrm{pl}}` which is stored per-contact (:obj:`uNPl <woo.dem.PelletCData.uNPl>`) and is zero-initialized for every new contact, the change of :obj:`radius <woo.dem.Sphere.radius>` is *permanent*. It is possible to recover the original radius in :obj:`woo.dem.BoxDeleter` by setting the :obj:`recoverRadius <woo.dem.BoxDeleter.recoverRadius>` flag, which re-computes the radius from mass and density.
 
 .. _pellet-contact-model-thinning-radius-dependence:
+
 Radius-dependence
 '''''''''''''''''
 The :math:`r_{\min}^{\mathrm{rel}}` and :math:`\theta_t` in the previous can be made effectively size-dependent by setting the :math:`r_{\rm thinRefRad}` (:obj:`thinRefRad <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinRefRad>`) to a positive value. In that case, two additional exponents :obj:`thinMinExp <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinMinExp>` and :obj:`thinRateExp <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinRateExp>` are used to multiply the equations :math:`(*)` and :math:`(**)` by exponential scaling factors. Note that the dependency is on the original radius :math:`r_0`, **not** the curretn radius :math:`r`:

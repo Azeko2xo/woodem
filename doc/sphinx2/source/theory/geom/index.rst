@@ -35,6 +35,6 @@ The following particle shapes are supported:
 
 The following matrix shows which shapes can collide with each other:
 
-.. include:: generated-cg2-table.rst
+.. include:: generated-cg2-table.rst-fragment
 
 The ``g3g`` geometry is an algorithm used in Yade's `ScGeom <https://yade-dem.org/doc/yade.wrapper.html#yade.wrapper.ScGeom>`__ and many other codes including PFC3D; it was only included for comparison purposes and is not to be used otherwise.

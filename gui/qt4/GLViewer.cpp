@@ -122,7 +122,7 @@ GLViewer::GLViewer(int _viewId, QGLWidget* shareWidget): QGLViewer(/*parent*/(QW
 	resize(prevSize[0],prevSize[1]);
 	framesDone=0;
 
-	if(viewId==0) setWindowTitle("Primary view");
+	if(viewId==0) setWindowTitle("3d view");
 	else setWindowTitle(("Secondary view #"+lexical_cast<string>(viewId)).c_str());
 
 	show();

@@ -47,6 +47,17 @@ try:
 	def _DemData_parCount_get(d): raise AttributeError("DemData.parCount is superceded by DemData.parRef!")
 	def _DemData_parCount_set(d): raise AttributeError("DemData.parCount is superceded by DemData.parRef!")
 	dem.DemData.parCount=property(_DemData_parCount_get,_DemData_parCount_set)
+
+	# nicer names
+	import woo.utils
+	dem.DemField.minimalEngines=staticmethod(woo.utils.defaultEngines)
+
+	dem.Sphere.make=staticmethod(woo.utils.sphere)
+	dem.Ellipsoid.make=staticmethod(woo.utils.ellipsoid)
+	dem.Capsule.make=staticmethod(woo.utils.capsule)
+	dem.Wall.make=staticmethod(woo.utils.wall)
+	dem.InfCylinder.make=staticmethod(woo.utils.infCylinder)
+	dem.Facet.make=staticmethod(woo.utils.facet)
 except ImportError:
 	core.Scene.hasDem=lambda o: False
 

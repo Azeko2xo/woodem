@@ -45,7 +45,7 @@ struct VtkExport: public PeriodicEngine{
 	// write the PVD file for easy opening of everything
 	// void writePvd(const string&);
 
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(VtkExport,PeriodicEngine,ClassTrait().doc("Export DEM simulation to VTK files for post-processing.").section("Export","TODO",{"FlowAnalysis"}),
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(VtkExport,PeriodicEngine,ClassTrait().doc("Export DEM simulation to VTK files for post-processing.").section("Export","TODO",{"FlowAnalysis","VtkFlowExport"}),
 		((string,out,,
 			// AttrTrait<>().buttons({"Open PVD in Paraview","from subprocess import call; call(['paraview',self.pvd])",""},/*showBefore*/true),
 			,

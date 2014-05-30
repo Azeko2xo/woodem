@@ -5,7 +5,7 @@ import minieigen,re,sys,sphinx,os,os.path
 ##
 ## generated parts of the docs here
 ##
-cg2=open('theory/geom/generated-cg2-table.rst','w')
+cg2=open('theory/geom/generated-cg2-table.rst-fragment','w')
 cg2.write(woo.document.makeCGeomFunctorsMatrix()+'\n\n')
 cg2.close()
 

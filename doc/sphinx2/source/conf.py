@@ -27,11 +27,10 @@ import sys, os, re
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 
 try:
-	import IPython.docs.extensions.ipython_directive # this is wrong, fix it at some point
-	ext_ipython_directive='FQDN_of_ipython-directive' 
+	import IPython.sphinxext.ipython_directive
+	import IPython.sphinxext.ipython_console_highlighting
 except ImportError:
-	# use local copy
-	ext_ipython_directive='ipython_directive'
+	raise ImportError("IPython.sphinxext.ipython_directive or IPython.sphinxext.ipython_console_highlighting module not found?!")
 
 try:
 	import cloud_sptheme
@@ -55,14 +54,23 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.mathjax' i
 	# local copies
 	'sphinxcontrib_youtube',
 	'tikz',
-	ext_ipython_directive,
+	'IPython.sphinxext.ipython_directive','IPython.sphinxext.ipython_console_highlighting'
 ]
 
 # customize prompts
-ipython_rgxin =re.compile('Woo \[(\d+)\]:\s?(.*)\s*')
-ipython_rgxout=re.compile(' -> \[(\d+)\]:\s?(.*)\s*')
+# TODO
+ipython_rgxin =re.compile(r'Woo \[(\d+)\]:\s?(.*)\s*')
+ipython_rgxout=re.compile(r'Out\[(\d+)\]:\s?(.*)\s*')
+#ipython_rgxout=re.compile(r'\s*\S*(Out)\S*: \[0m(.*)\s*')
 ipython_promptin ='Woo [%d]:'
 ipython_promptout=' -> [%d]:'
+
+import IPython.sphinxext.ipython_console_highlighting as ich
+# TODO: 
+ich.IPythonConsoleLexer.input_prompt=re.compile(r'(Woo \[[0-9]+\]: )')
+ich.IPythonConsoleLexer.output_prompt=re.compile(r'(( -> |Out)|\[[0-9]+\]: )')
+ich.IPythonConsoleLexer.continue_prompt=re.compile(r'\s+\.\.\.+:')
+
 
 # make graphviz determine the best size instead of hard-coded one
 # http://stackoverflow.com/a/2151808/761090
@@ -75,7 +83,7 @@ tikz_tikzlibraries=''
 
 # show discussion form at the bottom of every page
 disqus_shortname='woodem'
-rst_epilog='.. disqus::\n\n'
+rst_epilog='\n\n.. disqus::\n\n'
 
 extlinks={'woosrc':('http://bazaar.launchpad.net/~eudoxos/woo/trunk/view/head:/%s','')}
 
@@ -218,7 +226,7 @@ else:
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
-html_favicon = 'woo-favicon.ico'
+html_favicon = '_static/woo-favicon.ico'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -345,3 +353,4 @@ texinfo_documents = [
 #texinfo_show_urls = 'footnote'
 
 graphviz_output_format='png'
+
