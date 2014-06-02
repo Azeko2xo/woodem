@@ -267,6 +267,9 @@ struct DemField: public Field{
 
 	Real critDt() WOO_CXX11_OVERRIDE;
 
+	// for passing particles to the ctor
+	// void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d) WOO_CXX11_OVERRIDE;
+
 	//template<> bool sceneHasField<DemField>() const;
 	//template<> shared_ptr<DemField> sceneGetField<DemField>() const;
 	void postLoad(DemField&,void*);

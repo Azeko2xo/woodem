@@ -45,6 +45,9 @@ for mName in [m for m in sys.modules if m.startswith('wooExtra.') and len(m.spli
 	# copy config over
 	confName=srcDir+'/conf.py'
 	shutil.copyfile('conf.py',confName) 
+	statDir=srcDir+'/_static'
+	#shutils.copyfile(glob.glob('_static/*),srcDir+
+	if not os.path.exists(statDir): os.symlink(os.path.relpath('_static',srcDir),statDir)
 	## copy package resources to the source directory
 	for R in ('resources','data'): # future-proof :)
 		try:

@@ -3,4 +3,5 @@ Tutorial
 
 .. toctree::
 
-	basic.rst
+   basic.rst
+   data.rst

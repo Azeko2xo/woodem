@@ -118,14 +118,14 @@ def addDataColumns(data,dd):
 		if d in data.keys(): continue
 		data[d]=[nan for i in range(numSamples)]
 
-def Scene_autoPlotData(S,**kw):
+def Scene_plot_autoData(P,**kw):
 	"""Add data by evaluating contents of :obj:`woo.core.Plot.plots`. Expressions rasing exceptions will be handled gracefully, but warning is printed for each.
 	
 	>>> from woo import plot; from woo.dem import *; from woo.core import *
 	>>> from pprint import pprint
 	>>> S=Scene(fields=[DemField(gravity=(0,0,-10))])
 	>>> S.plot.plots={'S.step':('S.time',None,'numParticles=len(S.dem.par)')}
-	>>> S.autoPlotData()
+	>>> S.plot.autoData()
 	>>> pprint(S.plot.data)
 	{'S.step': [0], 'S.time': [0.0], 'numParticles': [0]}
 
@@ -147,7 +147,7 @@ def Scene_autoPlotData(S,**kw):
 	1
 	>>> S.engines=[Leapfrog(damping=.4,reset=True),
 	...    # get data required by plots at every step
-	...    PyRunner(1,'S.autoPlotData()')
+	...    PyRunner(1,'S.plot.autoData()')
 	... ]
 	>>> S.trackEnergy=True
 	>>> S.run(3,True)
@@ -167,7 +167,7 @@ def Scene_autoPlotData(S,**kw):
 		S=Scene(fields=[DemField(gravity=(0,0,-10))])
 		S.dem.par.append(woo.utils.sphere((0,0,0),1));
 		S.dem.collectNodes()
-		S.engines=[Leapfrog(damping=.4,reset=True),PyRunner('S.autoPlotData()')]
+		S.engines=[Leapfrog(damping=.4,reset=True),PyRunner('S.plot.autoData()')]
 		S.plot.plots={'i=S.step':('**S.energy','total energy=S.energy.total()',None,'rel. error=S.energy.relErr()')}
 		S.trackEnergy=True
 		S.run(500,True)
@@ -187,12 +187,13 @@ def Scene_autoPlotData(S,**kw):
 			print 'WARN: ignoring exception raised while evaluating auto-column `'+expr+"'%s."%('' if name==expr else ' ('+name+')')
 			
 	cols={}
-	data,imgData,plots=S.plot.data,S.plot.imgData,S.plot.plots
+	S=P.scene
+	# data,imgData,plots=P.data,P.imgData,P.plots
 	kw.update(S=S)
-	for p in plots:
-		pp=plots[p]
+	for p in P.plots:
+		pp=P.plots[p]
 		colDictUpdate(p.strip(),cols,kw)
-		for y in tuplifyYAxis(plots[p]):
+		for y in tuplifyYAxis(P.plots[p]):
 			# imgplot specifier
 			if y==None: continue
 			yy=addPointTypeSpecifier(y,noSplit=True)[0]
@@ -212,7 +213,7 @@ def Scene_autoPlotData(S,**kw):
 				ee=eval(yy1[1:],{'S':S})
 				for e in ee: colDictUpdate(e,cols,{'S':S})
 			else: colDictUpdate(yy,cols,kw)
-	S.plot.addData(cols)
+	P.addData(cols)
 
 
 def Scene_plot_addData(P,*d_in,**kw):
@@ -865,7 +866,7 @@ def reset(): _deprecPlotFunc('reset',Scene_plot_reset)
 def resetData(): _deprecPlotFunc('resetData',Scene_plot_resetData)
 def splitData(): _deprecPlotFunc('splitData',Scene_plot_splitData)
 def reverseData(): _deprecPlotFunc('reverseData',Scene_plot_reverseData)
-def addAutoData(): _deprecPlotFunc('addAutoData',Scene_autoPlotData,new='autoPlotData',takesScene=True)
+def addAutoData(): _deprecPlotFunc('addAutoData',Scene_plot_autoData,new='autoData')
 def addData(): _deprecPlotFunc('addData',Scene_plot_addData)
 def addImgData(): _deprecPlotFunc('addImgData',Scene_plot_addImgData)
 def saveGnuplot(): _deprecPlotFunc('saveGnuplot',Scene_plot_saveGnuplot)
@@ -879,7 +880,7 @@ def defMonkeyMethods():
 	woo.core.Plot.resetData=Scene_plot_resetData
 	woo.core.Plot.splitData=Scene_plot_splitData
 	woo.core.Plot.reverseData=Scene_plot_reverseData
-	woo.core.Scene.autoPlotData=Scene_autoPlotData
+	woo.core.Plot.autoData=Scene_plot_autoData
 	woo.core.Plot.addData=Scene_plot_addData
 	woo.core.Plot.addImgData=Scene_plot_addImgData
 	woo.core.Plot.saveGnuplot=Scene_plot_saveGnuplot

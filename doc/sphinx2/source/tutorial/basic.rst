@@ -2,7 +2,7 @@
 Basic simulation
 #################
 
-.. admonition:: Overview:
+.. admonition:: Overview
 
    This chapter explains how to write script for a very simple DEM simulation (a sphere falling onto plane) and how to run it.
 

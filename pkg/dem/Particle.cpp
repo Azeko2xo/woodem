@@ -241,7 +241,6 @@ AlignedBox3r DemField::renderingBbox() const{
 	return box;
 }
 
-
 void DemField::postLoad(DemField&,void*){
 	particles->dem=this;
 	contacts->dem=this;
