@@ -108,6 +108,8 @@ void DemData::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){
 }
 
 
+
+
 std::string DemData::blocked_vec_get() const {
 	std::string ret;
 	#define _SET_DOF(DOF_ANY,ch) if((flags & DemData::DOF_ANY)!=0) ret.push_back(ch);
@@ -230,6 +232,17 @@ Real Particle::getEk_any(bool trans, bool rot, Scene* scene) const {
 	return DemData::getEk_any(shape->nodes[0],trans,rot,scene);
 }
 
+
+	
+void DemField::pyHandleCustomCtorArgs(py::tuple& t, py::dict& d){
+	if(d.has_key("par")){
+		py::extract<vector<shared_ptr<Particle>>> ex(d["par"]);
+		if(!ex.check()) throw std::runtime_error("DemField(par=...) must be a sequence of Particles.");
+		for(const auto& p: ex()) particles->pyAppend(p);
+		py::api::delitem(d,"par");
+		this->collectNodes();
+	}
+}
 
 AlignedBox3r DemField::renderingBbox() const{
 	AlignedBox3r box;

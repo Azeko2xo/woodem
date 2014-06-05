@@ -5,6 +5,7 @@
 #include<woo/pkg/dem/InfCylinder.hpp>
 #include<woo/pkg/dem/Ellipsoid.hpp>
 #include<woo/pkg/dem/Wall.hpp>
+#include<woo/pkg/dem/Capsule.hpp>
 #include<woo/pkg/dem/Clump.hpp>
 #include<woo/pkg/dem/Funcs.hpp>
 
@@ -154,6 +155,7 @@ void VtkExport::run(){
 		const auto facet=dynamic_cast<Facet*>(p->shape.get());
 		const auto infCyl=dynamic_cast<InfCylinder*>(p->shape.get());
 		const auto ellipsoid=dynamic_cast<Ellipsoid*>(p->shape.get());
+		const auto capsule=dynamic_cast<Capsule*>(p->shape.get());
 		if(sphere){
 			Vector3r pos=p->shape->nodes[0]->pos;
 			if(scene->isPeriodic) pos=scene->cell->canonicalizePt(pos);
@@ -250,6 +252,25 @@ void VtkExport::run(){
 					nCells=addTriangulatedObject(vertices,pts,mPos,mCells);
 				}
 			}
+		}
+		else if(capsule){
+			LOG_ERROR("VtkExport: #"<<p->id<<": triangulated capsule export not yet implemented.");
+			#if 0
+			vector<Vector3r> pts; vector<Vector3i> tri;
+			const auto& node=capsule->nodes[0];
+			for(int i=0;i<subdiv;i++){
+				int J=2*i+1, K=(i==(subdiv-1))?1:2*i+3, L=(i==0)?2*(subdiv-1):2*i-2, M=2*i;
+				tri.push_back(Vector3i(M,J,L)); tri.push_back(Vector3i(J,M,K));
+				// if(cylCaps){ tri.push_back(Vector3i(M,L,centA)); tri.push_back(Vector3i(J,K,centB)); }
+				Real phi=phi0+i*2*M_PI/subdiv;
+				Vector2r c=capsule->radius*Vector2r(sin(phi),cos(phi));
+				Vector3r A,B;
+				A[ax0]=infCyl->glAB[0]; B[ax0]=infCyl->glAB[1];
+				A[ax1]=B[ax1]=c[0];
+				A[ax2]=B[ax2]=c[1];
+				pts.push_back(A); pts.push_back(B);
+			}
+			#endif
 		}
 		else if(wall){
 			if(isnan(wall->glAB.volume())){

@@ -158,8 +158,8 @@ struct Node: public Object, public Indexable{
 		_DECL_Node_rep_ /* defined above, nonempty in OpenGL-enabled builds only */ \
 		, /* ctor */ createIndex(); \
 		, /* py */ WOO_PY_TOPINDEXABLE(Node) \
-			.def("glob2loc",&Node::glob2loc,(py::arg("p")),"Transform point :math:`p` from global to node-local coordinates as :math:`q^*(p-O)`.") \
-			.def("loc2glob",&Node::glob2loc,(py::arg("p")),"Transform point :math:`p_l` from node-local to global coordinates as :math:`q\\cdot p_l+O`.")
+			.def("glob2loc",&Node::glob2loc,(py::arg("p")),"Transform point :math:`p` from global to node-local coordinates as :math:`q^*(p-O)q`, in code ``q.conjugate()*(p-O)``.") \
+			.def("loc2glob",&Node::loc2glob,(py::arg("p")),"Transform point :math:`p_l` from node-local to global coordinates as :math:`q\\cdot p_l\\cdot q^*+O`, in code ``q*p+O``.")
 	
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_core_Node__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 	REGISTER_INDEX_COUNTER(Node);

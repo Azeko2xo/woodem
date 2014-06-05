@@ -1,10 +1,10 @@
-##################################
-Getting and using simulation data
-##################################
+################
+Internal data
+################
 
 .. admonition:: Overview
 
-   This chapter explains how to extract data from simulation and how to plot them. Using per-simulation labels for things is exaplained.
+   This chapter explains how to obtain various data from simulation and how to plot them. Using per-simulation labels for things is exaplained.
 
 
 Plotting
@@ -76,7 +76,7 @@ There is a limited support for specifying style of individual lines by using ``(
 
 This example also demonstrates that ``**expression`` denotes a dictionary-like object which contains values to be plotted (this syntax is similar to `keyword argument syntax <https://docs.python.org/2/tutorial/controlflow.html#keyword-arguments>`__ in Python); this feature is probably only useful with :obj:`energy tracking <woo.core.EnergyTracker>` where keys are not known a-priori.
 
-We add another figure showing energies on the left; :obj:`energy total <woo.core.EnergyTracker.sum>` (":math:`\sum` energy") should be zero, as energy should be conserved, and :obj:`relative error <woo.core.EnergyTracker.relErr>` will be plotted on the right::
+We add another figure showing energies on the left; :obj:`energy total <woo.core.EnergyTracker.total>` (":math:`\sum` energy") should be zero, as energy should be conserved, and :obj:`relative error <woo.core.EnergyTracker.relErr>` will be plotted on the right::
 
    S.plot.plots={
       't=S.time':(
@@ -157,3 +157,35 @@ produces (only the beginning of the file is shown):
 .. literalinclude:: basic-1.data.txt
    :linenos:
    :lines: 1-15
+
+
+Labeling 
+=========
+
+When plotting, we were accessing the sphere using the ``S.dem.par[1]`` notation; that is not convenient. For this reason, there exists a special place for putting labeled :obj:`objects <woo.core.Object>`, ``S.lab`` (it is a per-scene isntance of the :obj:`woo.core.LabelMapper` object) which can then be accessed by readable names.
+
+Engines, when they have :obj:`~woo.core.Engine.label` set in the constructor (as is the case with :obj:`woo.dem.DemField.minimalEngines`), are added to ``S.lab`` automatically, other objects are to be added manually as needed.
+
+.. ipython::
+   
+   @suppress
+   Woo [1]: from woo.core import *; from woo.dem import *; import woo
+
+   Woo [1]: S=Scene(engines=[PyRunner(10,'print "Step number %d"%S.step',label='foo')],fields=[DemField()])
+
+   Woo [1]: S.engines 
+
+   Woo [1]: S.lab.foo            # the same engine accessed using the label
+ 
+   Woo [1]: S.lab.foo.command    # its properties can be accessed
+
+   Woo [1]: s=Sphere.make((0,1,2),1)    # create a new spherical particle
+
+   Woo [1]: S.lab.sphere=s              # give it the label "sphere"
+
+   Woo [1]: S.dem.par.append(s)         # add it to the simulation
+
+   Woo [1]: S.dem.par[0]==S.lab.sphere  # it is one and the same particle
+
+   Woo [1]: S.dem.par[0].pos[2], S.lab.sphere.pos[2]  # the z-position can be accessed both ways
+

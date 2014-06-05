@@ -268,13 +268,13 @@ struct DemField: public Field{
 	Real critDt() WOO_CXX11_OVERRIDE;
 
 	// for passing particles to the ctor
-	// void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d) WOO_CXX11_OVERRIDE;
+	void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d) WOO_CXX11_OVERRIDE;
 
 	//template<> bool sceneHasField<DemField>() const;
 	//template<> shared_ptr<DemField> sceneGetField<DemField>() const;
 	void postLoad(DemField&,void*);
 	#define woo_dem_DemField__CLASS_BASE_DOC_ATTRS_CTOR_PY \
-		DemField,Field,ClassTrait().doc("Field describing a discrete element assembly. Each particle references (possibly many) nodes.").section("DEM field","TODO",{"ContactContainer","ParticleContainer"}), \
+		DemField,Field,ClassTrait().doc("Field describing a discrete element assembly. Each particle references (possibly many) nodes.\n\n.. admonition:: Special constructor\n\n\tWhen passed the ``par`` parameter in constructor, this sequence of particles will be assigned to :obj:`particles`, and :obj:`collectNodes` will be called immediately.").section("DEM field","TODO",{"ContactContainer","ParticleContainer"}), \
 		((shared_ptr<ParticleContainer>,particles,make_shared<ParticleContainer>(),AttrTrait<>().pyByRef().readonly().ini().buttons({"Export spheres to CSV","import woo.pack; from PyQt4.QtGui import QFileDialog\nsp=woo.pack.SpherePack(); sp.fromSimulation(self.scene); csv=woo.master.tmpFilename()+'.csv'; csv=str(QFileDialog.getSaveFileName(None,'Export spheres','.'));\nif csv:\n\tsp.save(csv); print 'Saved exported spheres to',csv",""}),"Particles (each particle holds its contacts, and references associated nodes)")) \
 		((shared_ptr<ContactContainer>,contacts,make_shared<ContactContainer>(),AttrTrait<>().pyByRef().readonly().ini(),"Linear view on particle contacts")) \
 		((uint,loneMask,0,,"Particle groups which have bits in loneMask in common (i.e. (A.mask & B.mask & loneMask)!=0) will not have contacts between themselves")) \

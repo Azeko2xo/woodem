@@ -1,3 +1,5 @@
+.. _tutorial-basic:
+
 #################
 Basic simulation
 #################
@@ -143,7 +145,7 @@ When you click the :guilabel:`▶` (play) button , you will see the simulation r
 
 .. youtube:: BOgc5FH-XzM
 
-The :guilabel:`▶`  button is red as we set :obj:`S.throttle `woo.core.Scene.throttle`; you can change the value using the dial under :guilabel:`▶`. Try also clicking :guilabel:`▮▮` (pause), :guilabel:`▶▮` (single step, or several steps as set next to it) and :guilabel:`↻` (that will load the state when you said ``S.saveTmp()``). The controller shows some basic data, some of which are also presented in the corner of the 3d view: time, step number, timestep.
+The :guilabel:`▶`  button is red as we set :obj:`S.throttle <woo.core.Scene.throttle>`; you can change the value using the dial under :guilabel:`▶`. Try also clicking :guilabel:`▮▮` (pause), :guilabel:`▶▮` (single step, or several steps as set next to it) and :guilabel:`↻` (that will load the state when you said ``S.saveTmp()``). The controller shows some basic data, some of which are also presented in the corner of the 3d view: time, step number, timestep.
 
 Clicking the :guilabel:`Inspector` button will present internal structure of the simulation -- particles, engines, contacts (there will be no contact most the time, in this simulation). You can select a particle with by :kbd:`Shift-click` on the particle in the 3d view; it will be selected in the inspector as well.
 
@@ -173,4 +175,28 @@ The simulation can also be run from the script or the command line in terminal (
 
       Woo [1]: S.one()                  ## runs the current master scene, OK :)
 
+All data in the scene can be accessed as well:
 
+.. ipython::
+
+   Woo [1]: from woo.dem import *; from woo.core import *; import woo; S=Scene(fields=[DemField(gravity=(0,0,-9.81),par=[Wall.make(0,axis=2),Sphere.make((0,0,2),.2)])],engines=DemField.minimalEngines(damping=.2)); S.run(100,True)
+
+   Woo [1]: S.dem                    # the DEM field
+
+   Woo [1]: S.dem.gravity=(0,0,-20)  # set different gravity acceleration
+
+   Woo [1]: S.step                   # step number
+
+   Woo [1]: S.dt                     # time-step
+
+   Woo [1]: S.dem.par[0]             # first particle (numbering starts from 0)
+
+   Woo [1]: S.dem.par[1]             # second particle
+
+   Woo [1]: S.dem.par[-1]            # last particle; negative numbers from the end
+
+   Woo [1]: S.dem.par[1].pos         # position of particle #1
+
+   Woo [1]: S.dem.par[1].shape       # geometrical shape of particle #1
+
+   Woo [1]: S.engines                # all engines

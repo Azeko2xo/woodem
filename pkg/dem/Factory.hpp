@@ -77,6 +77,10 @@ struct MinMaxSphereGenerator: public ParticleGenerator{
 };
 WOO_REGISTER_OBJECT(MinMaxSphereGenerator);
 
+struct PharmaCapsuleGenerator: public ParticleGenerator{
+
+}
+
 struct ParticleShooter: public Object{
 	virtual void operator()(Vector3r& vel, Vector3r& angVel){ throw std::runtime_error("Calling ParticleShooter.setVelocities (abstract method); use derived classes"); }
 	#define woo_dem_ParticleShooter__CLASS_BASE_DOC \

@@ -11,6 +11,10 @@
 
 WOO_PLUGIN(dem,(PsdSphereGenerator));
 CREATE_LOGGER(PsdSphereGenerator);
+#ifndef WOO_NOCAPSULE
+	WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_PharmaCapsuleGenerator__CLASS_BASE_DOC_ATTRS);
+#endif
+
 
 void PsdSphereGenerator::postLoad(PsdSphereGenerator&,void*){
 	if(psdPts.empty()) return;
@@ -266,8 +270,52 @@ PsdClumpGenerator::operator()(const shared_ptr<Material>&mat){
               PsdCapsuleGenerator
 **********************************************/
 
-WOO_PLUGIN(dem,(PsdCapsuleGenerator));
+WOO_PLUGIN(dem,(PsdCapsuleGenerator)(PharmaCapsuleGenerator));
 CREATE_LOGGER(PsdCapsuleGenerator);
+
+
+Real PharmaCapsuleGenerator::critDt(Real density, Real young){
+	return DemFuncs::spherePWaveDt(extDiam.minCoeff(),density,young);
+}
+
+#if 0
+vector<ParticleGenerator::ParticleAndBox>
+PharmaCapsuleGenerator::operator()(const shared_ptr<Material>&mat){
+	vector<ParticleAndBox> ret(2);
+
+	// random orientation
+	Quaternionr ori(AngleAxisr(Mathr::UnitRandom()*2*M_PI,Vector3r::Random().normalized()));
+	if(ori.norm()>0) ori.normalize();
+	else ori=Quaternionr::Identity(); // very unlikely that q has all zeros
+	node->ori=ori;
+	node->pos=Vector3r::Zero(); // this is expected
+
+	// bookkeeping
+	saveBinMassRadius(bin,node->getData<DemData>().mass,rEq);
+
+
+	
+	auto capsule=make_shared<Capsule>();
+	capsule->radius=cRad;
+	capsule->shaft=cShaft;
+	capsule->nodes.push_back(make_shared<Node>());
+	const auto& node=capsule->nodes[0];
+	node->setData<DemData>(make_shared<DemData>());
+	#ifdef WOO_OPENGL
+		// to avoid crashes if renderer must resize the node's data array and reallocates it while other thread accesses those data
+		node->setData<GlData>(make_shared<GlData>());
+	#endif
+	capsule->updateMassInertia(mat->density);
+	auto par=make_shared<Particle>();
+	par->material=mat;
+	par->shape=capsule;
+	node->getData<DemData>().addParRef(par);
+
+
+}
+#endif
+
+
 
 
 vector<ParticleGenerator::ParticleAndBox>

@@ -82,11 +82,25 @@ WOO_REGISTER_OBJECT(Local6Dofs);
 struct VariableAlignedRotation: public Impose{
 	void velocity(const Scene* scene, const shared_ptr<Node>& n);
 	void postLoad(VariableAlignedRotation&,void*);
-	size_t _interpPos; // cookie for interpolation routine, doees not need to be saved
+	size_t _interpPos; // cookie for interpolation routine, does not need to be saved
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(VariableAlignedRotation,Impose,"Impose piecewise-linear angular valocity along :obj:`axis`, based on the :obj:`timeAngVel`.",
 		((int,axis,0,,"Rotation axis."))
-		((vector<Vector2r>,timeAngVel,,,"Angular vlocity values in time. Time values must be increasing."))
-		, /*ctor*/ what=Impose::VELOCITY;
+		((vector<Vector2r>,timeAngVel,,,"Angular velocity values in time. Time values must be increasing."))
+		, /*ctor*/ what=Impose::VELOCITY; _interpPos=0;
 	);
 };
 WOO_REGISTER_OBJECT(VariableAlignedRotation);
+
+struct InterpolatedMotion: public Impose{
+	void velocity(const Scene* scene, const shared_ptr<Node>& n) WOO_CXX11_OVERRIDE;
+	void postLoad(InterpolatedMotion&,void*);
+	size_t _interpPos; // cookies for interpolation routine, does not need to be saved
+	#define woo_dem_InterpolatedMotion__CLASS_BASE_DOC_ATTRS_CTOR \
+		InterpolatedMotion,Impose,"Impose linear and angular velocity such that given positions and orientations are reached in at given time-points.", \
+			((vector<Vector3r>,poss,,,"Positions which will be interpolated between.")) \
+			((vector<Quaternionr>,oris,,,"Orientations which will be interpolated between.")) \
+			((vector<Real>,times,,,"Times at which given :obj:`positions <poss>` and :obj:`orientations <oris>` should be reached.")) \
+			, /*ctor*/ what=Impose::VELOCITY; _interpPos=0;
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_InterpolatedMotion__CLASS_BASE_DOC_ATTRS_CTOR);
+};
+WOO_REGISTER_OBJECT(InterpolatedMotion);

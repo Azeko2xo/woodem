@@ -32,6 +32,7 @@ struct FlowAnalysis: public PeriodicEngine{
 	string vtkWriteGrid(const string& out, vtkSmartPointer<vtkUniformGrid>& grid);
 
 	vtkSmartPointer<vtkUniformGrid> vtkMakeGrid();
+
 	template<class vtkArrayType=vtkDoubleArray>
 	vtkSmartPointer<vtkArrayType> vtkMakeArray(const vtkSmartPointer<vtkUniformGrid>& grid, const string& name, size_t numComponents, bool fillZero=true);
 

@@ -1,8 +1,9 @@
 #include<woo/pkg/dem/Impose.hpp>
 #include<woo/lib/smoothing/LinearInterpolate.hpp>
 
-WOO_PLUGIN(dem,(HarmonicOscillation)(AlignedHarmonicOscillations)(CircularOrbit)(RadialForce)(Local6Dofs)(VariableAlignedRotation));
+WOO_PLUGIN(dem,(HarmonicOscillation)(AlignedHarmonicOscillations)(CircularOrbit)(RadialForce)(Local6Dofs)(VariableAlignedRotation)(InterpolatedMotion));
 
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_InterpolatedMotion__CLASS_BASE_DOC_ATTRS_CTOR);
 
 void CircularOrbit::velocity(const Scene* scene, const shared_ptr<Node>& n){
 	if(!node) throw std::runtime_error("CircularOrbit: node must not be None.");
@@ -64,3 +65,20 @@ void VariableAlignedRotation::velocity(const Scene* scene, const shared_ptr<Node
 	auto& dyn=n->getData<DemData>();
 	dyn.angVel[axis]=linearInterpolate(scene->time,timeAngVel,_interpPos);
 }
+
+void InterpolatedMotion::postLoad(InterpolatedMotion&,void* attr){
+	if(attr!=NULL) return; // just some value being set
+	if(poss.size()!=oris.size() || oris.size()!=times.size()) throw std::runtime_error("InterpolatedMotion: poss, oris, times must have the same length (not "+to_string(poss.size())+", "+to_string(oris.size())+", "+to_string(times.size()));
+}
+
+void InterpolatedMotion::velocity(const Scene* scene, const shared_ptr<Node>& n){
+	Real nextT=scene->time+scene->dt;
+	Vector3r nextPos=linearInterpolate(nextT,times,poss,_interpPos);
+	Quaternionr nextOri, oriA, oriB; Real relAB;
+	std::tie(oriA,oriB,relAB)=linearInterpolateRel(nextT,times,oris,_interpPos);
+	nextOri=oriA.slerp(relAB,oriB);
+	DemData& dyn=n->getData<DemData>();
+	dyn.vel=(nextPos-n->pos)/scene->dt;
+	AngleAxisr rot(n->ori.conjugate()*nextOri);
+	dyn.angVel=rot.axis()*rot.angle()/scene->dt;
+};

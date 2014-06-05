@@ -236,8 +236,8 @@ def gtsSurface2Facets(surf,shareNodes=True,**kw):
 		return [utils.facet([nodesMap[v.id] for v in face.vertices()],**kw) for face in surf.faces()]
 
 
-def sweptPolylines2gtsSurface(pts,threshold=0,capStart=False,capEnd=False):
-	"""Create swept suface (as GTS triangulation) given same-length sequences of points (as 3-tuples).
+def sweptPolylines2gtsSurface(pts,threshold=0,localCoords=None,capStart=False,capEnd=False):
+	"""Create swept suface (as GTS triangulation) given same-length sequences of points (as 3-tuples). If *localCoords* is given, it must be a :obj:`woo.core.Node` instance and will be used to convert local coordinates in *pts* to global coordinates.
 
 If threshold is given (>0), then
 
@@ -250,7 +250,9 @@ If threshold is given (>0), then
 	"""
 	import gts # will raise an exception in gts-less builds
 	if not len(set([len(pts1) for pts1 in pts]))==1: raise RuntimeError("Polylines must be all of the same length!")
-	vtxs=[[gts.Vertex(x,y,z) for x,y,z in pts1] for pts1 in pts]
+	if localCoords: ptsGlob=[[localCoords.loc2glob(p) for p in pts1] for pts1 in pts]
+	else: ptsGlob=pts
+	vtxs=[[gts.Vertex(x,y,z) for x,y,z in pts1] for pts1 in ptsGlob]
 	sectEdges=[[gts.Edge(vtx[i],vtx[i+1]) for i in xrange(0,len(vtx)-1)] for vtx in vtxs]
 	interSectEdges=[[] for i in range(0,len(vtxs)-1)]
 	for i in range(0,len(vtxs)-1):

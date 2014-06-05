@@ -93,6 +93,7 @@ struct Scene: public Object{
 			void initCl(); // initialize OpenCL using clDev
 		#endif
 
+
 		/*
 			engineLoopMutex synchronizes access to particles/engines/contacts between
 			* simulation itself (at the beginning of Scene::doOneStep) and
@@ -164,7 +165,7 @@ struct Scene: public Object{
 
 		((string,uiBuild,"",,"Command to run when a new main-panel UI should be built for this scene (called when the Controller is opened with this simulation, or the simulation is new to the controller)."))
 
-		((vector<shared_ptr<Engine>>,engines,,AttrTrait<Attr::hidden|Attr::triggerPostLoad>(),"Engines sequence in the simulation."))
+		((vector<shared_ptr<Engine>>,engines,,,"Engines sequence in the simulation (direct access to the c++ sequence is shadowed by python property which access it indirectly)."))
 		((vector<shared_ptr<Engine>>,_nextEngines,,AttrTrait<Attr::hidden>(),"Engines to be used from the next step on; is returned transparently by S.engines if in the middle of the loop (controlled by subStep>=0)."))
 		((shared_ptr<EnergyTracker>,energy,new EnergyTracker,AttrTrait<Attr::readonly>().noGui(),"Energy values, if energy tracking is enabled."))
 		((vector<shared_ptr<Field>>,fields,,AttrTrait<Attr::triggerPostLoad>().noGui(),"Defined simulation fields."))

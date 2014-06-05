@@ -57,6 +57,20 @@ struct PsdCapsuleGenerator: public PsdSphereGenerator {
 	);
 };
 WOO_REGISTER_OBJECT(PsdCapsuleGenerator);
+
+struct PharmaCapsuleGenerator: public ParticleGenerator{
+	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m) WOO_CXX11_OVERRIDE;
+	bool isSpheresOnly() const WOO_CXX11_OVERRIDE { return false; }
+	Real critDt(Real density, Real young) WOO_CXX11_OVERRIDE;
+	#define woo_dem_PharmaCapsuleGenerator__CLASS_BASE_DOC_ATTRS \
+		PharmaCapsuleGenerator,ParticleGenerator,"Generate pharmaceutical capsules of fixed size; they consist of body and cap. two caps of differing diameter and are thus represented as two interpenetrated (clumped) capsules. The default value corresponds to `Human Cap Size 1 <http://www.torpac.com/Reference/sizecharts/Human%20Caps%20Size%20Chart.pdf>`__ from `Torpac <http://www.torpac.com>`.", \
+		((Real,len,19.4e-3,,"Total (locked) length of the capsule.")) \
+		((Real,capLen,9.78,,"Cut length of the cap.")) \
+		((Vector2r,extDiam,Vector2r(6.91e-3,6.63e-3),,"External diameter of the cap and the body."))
+	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_PharmaCapsuleGenerator__CLASS_BASE_DOC_ATTRS);
+};
+WOO_REGISTER_OBJECT(PharmaCapsuleGenerator);
+
 #endif
 
 struct PsdEllipsoidGenerator: public PsdSphereGenerator {
