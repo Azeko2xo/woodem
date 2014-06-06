@@ -32,7 +32,7 @@ struct SnapshotEngine: public PeriodicEngine{
 		((string,format,"PNG",AttrTrait<>().choice({"JPEG","PNG","EPS","PS","PPM","BMP"}),"Format of snapshots (one of JPEG, PNG, EPS, PS, PPM, BMP) `QGLViewer documentation <http://www.libqglviewer.com/refManual/classQGLViewer.html#abbb1add55632dced395e2f1b78ef491c>`_. File extension will be lowercased :obj:`format`. Validity of format is not checked."))
 		((int,counter,0,AttrTrait<Attr::readonly>(),"Number that will be appended to fileBase when the next snapshot is saved (incremented at every save)."))
 		((string,plot,,,"Name of field in :obj:`woo.core.Plot.imgData` to which taken snapshots will be appended automatically."))
-		((vector<string>,snapshots,,AttrTrait<>().startGroup("Saved files").readonly(),"Files that have been created so far"))
+		((vector<string>,snapshots,,AttrTrait<>().startGroup("Saved files").readonly().noGui(),"Files that have been created so far"))
 		((bool,ignoreErrors,true,AttrTrait<>().startGroup("Error handling"),"Only report errors instead of throwing exceptions, in case of timeouts."))
 		((int,msecSleep,0,,"number of msec to sleep after snapshot (to prevent 3d hw problems) [ms]"))
 		((Real,deadTimeout,3,,"Timeout for 3d operations (opening new view, saving snapshot); after timing out, throw exception (or only report error if :obj:`ignoreErrors`) and make myself :obj:`dead <Engine.dead>`. [s]"))

@@ -695,6 +695,9 @@ class ObjectEditor(QFrame):
 	import logging
 	# each attribute has one entry associated with itself
 
+	# maximum nesting level in the UI, to avoid cycles and freezes
+	maxNest=6
+
 
 	class EntryData:
 		def __init__(self,obj,name,T,doc,groupNo,trait,containingClass,editor,label):
@@ -781,8 +784,9 @@ class ObjectEditor(QFrame):
 					e.setVisible(self.expander.isChecked())
 
 
-	def __init__(self,ser,parent=None,ignoredAttrs=set(),objAttrLabelList=None,showType=False,path=None,labelIsVar=True,showChecks=False,showUnits=False,objManip=True):
+	def __init__(self,ser,parent=None,ignoredAttrs=set(),objAttrLabelList=None,showType=False,path=None,labelIsVar=True,showChecks=False,showUnits=False,objManip=True,nesting=0):
 		"Construct window, *ser* is the object we want to show."
+		# print path
 		QtGui.QFrame.__init__(self,parent)
 		self.ser=ser
 		self.oneObject=ser
@@ -792,6 +796,7 @@ class ObjectEditor(QFrame):
 		# set path or use label, if active (allows 'label' attributes which don't imply automatic python variables of that name)
 		self.path=('woo.master.scene.lab.'+ser.label if ser!=None and hasActiveLabel(ser) else path)
 		self.showType=showType
+		self.nesting=nesting
 		self.labelIsVar=labelIsVar # show variable name; if false, docstring is used instead
 		self.showChecks=showChecks
 		self.showUnits=showUnits
@@ -801,6 +806,11 @@ class ObjectEditor(QFrame):
 		self.entryGroups=[]
 		self.ignoredAttrs=ignoredAttrs
 		self.hasSer=True
+
+		if nesting>ObjectEditor.maxNest:
+			self.mkStub()
+			return
+		
 		if objAttrLabelList:
 			self.hasSer=False
 			# create entries for given attributes
@@ -1013,7 +1023,7 @@ class ObjectEditor(QFrame):
 				# per-instance traits for py-derived objects
 				if hasattr(entry.obj,'_instanceTraits') and entry.trait.name in entry.obj._instanceTraits:
 					entry.trait=entry.obj._instanceTraits[entry.trait.name]
-				widget=SeqObject(self,getter,setter,T=T,trait=entry.trait,path=(self.path+'.'+entry.name if self.path else None),shrink=True)
+				widget=SeqObject(self,getter,setter,T=T,trait=entry.trait,path=(self.path+'.'+entry.name if self.path else None),shrink=True,nesting=self.nesting+1)
 				return widget
 			if (T in _fundamentalEditorMap):
 				widget=SeqFundamentalEditor(self,getter,setter,T)
@@ -1024,7 +1034,7 @@ class ObjectEditor(QFrame):
 		if issubclass(entry.T,Object) or entry.T==Object:
 			obj=getattr(entry.obj,entry.name)
 			# should handle the case of obj==None as well
-			widget=ObjectEditor(getattr(entry.obj,entry.name),parent=self,showType=self.showType,path=(self.path+'.'+entry.name if self.path else None),labelIsVar=self.labelIsVar,showChecks=self.showChecks,showUnits=self.showUnits,objManip=self.objManip)
+			widget=ObjectEditor(getattr(entry.obj,entry.name),parent=self,showType=self.showType,path=(self.path+'.'+entry.name if self.path else None),labelIsVar=self.labelIsVar,showChecks=self.showChecks,showUnits=self.showUnits,objManip=self.objManip,nesting=self.nesting+1)
 			widget.setFrameShape(QFrame.Box); widget.setFrameShadow(QFrame.Raised); widget.setLineWidth(1)
 			return widget
 		print 'No widget for %s in %s.%s'%(entry.T.__name__,entry.obj.__class__.__name__,entry.name)
@@ -1189,6 +1199,15 @@ class ObjectEditor(QFrame):
 			setattr(entry.obj,entry.name,val)
 		else: raise RuntimError('Unknown action %s for object manipulation context menu!'%action)
 		self.refreshEvent()
+
+	def mkStub(self):
+		lay=QGridLayout(self)
+		lay.setContentsMargins(2,2,2,2)
+		lay.setVerticalSpacing(0)
+		self.setLayout(lay)
+		lay.addWidget(QLabel("GUI nesting > %d"%(ObjectEditor.maxNest)),1,1)
+
+
 	def mkWidgets(self):
 		onlyDefaultGroups=(len(self.entryGroups)==1 and self.entryGroups[0].name==None)
 		if self.showType and self.hasSer: # create type label
@@ -1363,11 +1382,12 @@ def makeObjectLabel(ser,href=False,addr=True,boldHref=True,num=-1,count=-1):
 
 class SeqObjectComboBox(QFrame):
 	def getItemType(self): return self.trait.pyType[0]
-	def __init__(self,parent,getter,setter,T,trait,path=None,shrink=False):
+	def __init__(self,parent,getter,setter,T,trait,path=None,shrink=False,nesting=0):
 		QFrame.__init__(self,parent)
 		self.getter,self.setter,T,self.trait,self.path,self.shrink=getter,setter,T,trait,path,shrink
 		if not hasattr(self.trait,'pyType'): self.trait.pyType=(T,) # this is for compat with C++ (?)
 		self.layout=QVBoxLayout(self)
+		self.nesting=nesting
 		topLineFrame=QFrame(self)
 		topLineLayout=QHBoxLayout(topLineFrame);
 		for l in self.layout, topLineLayout: l.setSpacing(0); l.setContentsMargins(0,0,0,0)
@@ -1418,7 +1438,7 @@ class SeqObjectComboBox(QFrame):
 		self.combo.setEnabled(ix>=0)
 		if ix>=0:
 			ser=currSeq[ix]
-			self.seqEdit=ObjectEditor(ser,parent=self,showType=seqObjectShowType,path=(self.path+'['+str(ix)+']') if self.path else None)
+			self.seqEdit=ObjectEditor(ser,parent=self,showType=seqObjectShowType,path=(self.path+'['+str(ix)+']') if self.path else None,nesting=self.nesting+1)
 			self.scroll.setWidget(self.seqEdit)
 			if self.shrink:
 				self.sizeHint=lambda: QSize(100,1000)

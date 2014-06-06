@@ -148,6 +148,9 @@ struct Math{
 	static Scalar UnitRandom(){ return ((double)rand()/((double)(RAND_MAX))); }
 	static Scalar SymmetricRandom(){ return 2.*(((double)rand())/((double)(RAND_MAX)))-1.; }
 	static Scalar FastInvCos0(Scalar fValue){ Scalar fRoot = sqrt(((Scalar)1.0)-fValue); Scalar fResult = -(Scalar)0.0187293; fResult *= fValue; fResult += (Scalar)0.0742610; fResult *= fValue; fResult -= (Scalar)0.2121144; fResult *= fValue; fResult += (Scalar)1.5707288; fResult *= fRoot; return fResult; }
+	// see http://planning.cs.uiuc.edu/node198.html (uses inverse notation: x,y,z,w!!
+	// and also http://www.mech.utah.edu/~brannon/public/rotation.pdf pg 110
+	static Quaternion<Scalar> UniformRandomRotation(){ Scalar u1=UnitRandom(), u2=UnitRandom(), u3=UnitRandom(); return Quaternion<Scalar>(/*w*/sqrt(u1)*cos(2*M_PI*u3),/*x*/sqrt(1-u1)*sin(2*M_PI*u2),/*y*/sqrt(1-u1)*cos(2*M_PI*u2),/*z*/sqrt(u1)*sin(2*M_PI*u3)); }
 };
 typedef Math<Real> Mathr;
 

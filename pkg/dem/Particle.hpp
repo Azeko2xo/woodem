@@ -62,6 +62,9 @@ struct Particle: public Object{
 	int countRealContacts() const;
 	void postLoad(Particle&,void*);
 
+	// create new particle with given shape and material, set new nodes with DemData as needed, recompute intertia
+	static shared_ptr<Particle> make(const shared_ptr<Shape>&, const shared_ptr<Material>&, bool fixed=false);
+
 	// call Shape.updateMassInertia(mat.density): convenience function
 	void updateMassInertia() const;
 
@@ -104,6 +107,7 @@ struct Particle: public Object{
 		.add_property("Ek",&Particle::getEk,"Summary kinetic energy of the particle") \
 		.add_property("Ekt",&Particle::getEk_trans,"Translational kinetic energy of the particle") \
 		.add_property("Ekr",&Particle::getEk_rot,"Rotational kinetic energy of the particle") \
+		.def("make",&Particle::make,(py::arg("shape"),py::arg("mat"),py::arg("fixed")=false),"Return Particle instance created from given shape and material; nodes with DemData are automatically added to the shape, mass and inertia is recomuted.").staticmethod("make") \
 		; \
 		woo::converters_cxxVector_pyList_2way<shared_ptr<Particle>>();
 
@@ -236,9 +240,9 @@ public:
 		((Vector3r,angMom,Vector3r(NaN,NaN,NaN),AttrTrait<>().angMomUnit(),"Angular momentum; used with the aspherical integrator. If NaN and aspherical integrator (:obj:`Leapfrog`) is used, the value is initialized to :obj:`inertia` × :obj:`angVel`.")) \
 		((unsigned,flags,0,AttrTrait<Attr::readonly>().bits({"block x","block y","block z","block rot x","block rot y","block rot z","clumped","clump","energy skip","gravity skip","tracer skip"}),"Bit flags storing blocked DOFs, clump status, ...")) \
 		((long,linIx,-1,AttrTrait<>().readonly().noGui(),"Index within DemField.nodes (for efficient removal)")) \
-		((std::list<Particle*>,parRef,,AttrTrait<Attr::hidden|Attr::noSave>(),"Back-reference for particles using this node; this is important for knowing when a node may be deleted (no particles referenced) and such. Should be kept consistent.")) \
+		((std::list<Particle*>,parRef,,AttrTrait<Attr::hidden|Attr::noSave>().noGui(),"Back-reference for particles using this node; this is important for knowing when a node may be deleted (no particles referenced) and such. Should be kept consistent.")) \
 		((shared_ptr<Impose>,impose,,,"Impose arbitrary velocity, angular velocity, ... on the node; the functor is called from Leapfrog, after new position and velocity have been computed.")) \
-		((weak_ptr<Node>,master,,AttrTrait<>().hidden(),"Master node; currently only used with clumps (since this is never set from python, it is safe to use weak_ptr).")) \
+		((weak_ptr<Node>,master,,AttrTrait<>().hidden().noGui(),"Master node; currently only used with clumps (since this is never set from python, it is safe to use weak_ptr).")) \
 		, /*py*/ .add_property("blocked",&DemData::blocked_vec_get,&DemData::blocked_vec_set,"Degress of freedom where linear/angular velocity will be always constant (equal to zero, or to an user-defined value), regardless of applied force/torque. String that may contain 'xyzXYZ' (translations and rotations).") \
 		.add_property("clump",&DemData::isClump).add_property("clumped",&DemData::isClumped).add_property("noClump",&DemData::isNoClump).add_property("energySkip",&DemData::isEnergySkip,&DemData::setEnergySkip).add_property("gravitySkip",&DemData::isGravitySkip,&DemData::setGravitySkip).add_property("tracerSkip",&DemData::isTracerSkip,&DemData::setTracerSkip) \
 		.add_property("master",&DemData::pyGetMaster) \

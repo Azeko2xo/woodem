@@ -96,10 +96,11 @@ struct InterpolatedMotion: public Impose{
 	void postLoad(InterpolatedMotion&,void*);
 	size_t _interpPos; // cookies for interpolation routine, does not need to be saved
 	#define woo_dem_InterpolatedMotion__CLASS_BASE_DOC_ATTRS_CTOR \
-		InterpolatedMotion,Impose,"Impose linear and angular velocity such that given positions and orientations are reached in at given time-points.", \
+		InterpolatedMotion,Impose,"Impose linear and angular velocity such that given positions and orientations are reached in at given time-points.\n\n.. youtube:: D_pc3RU5IXc\n\n", \
 			((vector<Vector3r>,poss,,,"Positions which will be interpolated between.")) \
 			((vector<Quaternionr>,oris,,,"Orientations which will be interpolated between.")) \
 			((vector<Real>,times,,,"Times at which given :obj:`positions <poss>` and :obj:`orientations <oris>` should be reached.")) \
+			((Real,t0,0,,"Time offset to add to all time points.")) \
 			, /*ctor*/ what=Impose::VELOCITY; _interpPos=0;
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_InterpolatedMotion__CLASS_BASE_DOC_ATTRS_CTOR);
 };

@@ -278,42 +278,34 @@ Real PharmaCapsuleGenerator::critDt(Real density, Real young){
 	return DemFuncs::spherePWaveDt(extDiam.minCoeff(),density,young);
 }
 
-#if 0
 vector<ParticleGenerator::ParticleAndBox>
 PharmaCapsuleGenerator::operator()(const shared_ptr<Material>&mat){
-	vector<ParticleAndBox> ret(2);
+	Real re=extDiam.maxCoeff()/2.;
+	Real ri=extDiam.minCoeff()/2.;
 
-	// random orientation
-	Quaternionr ori(AngleAxisr(Mathr::UnitRandom()*2*M_PI,Vector3r::Random().normalized()));
-	if(ori.norm()>0) ori.normalize();
-	else ori=Quaternionr::Identity(); // very unlikely that q has all zeros
-	node->ori=ori;
-	node->pos=Vector3r::Zero(); // this is expected
+	Real cutOver=re*sqrt(1-pow(ri/re,2));
+	Real corr=cutCorr*cutOver;
 
-	// bookkeeping
-	saveBinMassRadius(bin,node->getData<DemData>().mass,rEq);
+	Real shafts[2]={len-capLen-ri,capLen-re-corr};
+	Real xpos[2]={-shafts[0]/2.,shafts[1]/2.+corr};
+	Real rads[2]={ri,re};
 
+	Quaternionr ori=Mathr::UniformRandomRotation();
 
-	
-	auto capsule=make_shared<Capsule>();
-	capsule->radius=cRad;
-	capsule->shaft=cShaft;
-	capsule->nodes.push_back(make_shared<Node>());
-	const auto& node=capsule->nodes[0];
-	node->setData<DemData>(make_shared<DemData>());
-	#ifdef WOO_OPENGL
-		// to avoid crashes if renderer must resize the node's data array and reallocates it while other thread accesses those data
-		node->setData<GlData>(make_shared<GlData>());
-	#endif
-	capsule->updateMassInertia(mat->density);
-	auto par=make_shared<Particle>();
-	par->material=mat;
-	par->shape=capsule;
-	node->getData<DemData>().addParRef(par);
+	vector<shared_ptr<Particle>> pp(2);
 
-
+	for(int i:{0,1}){
+		shared_ptr<Capsule> c=make_shared<Capsule>();
+		c->color=colors[i];
+		c->radius=rads[i];
+		c->shaft=shafts[i];
+		shared_ptr<Particle> p=Particle::make(c,mat);
+		c->nodes[0]->pos=ori*Vector3r(xpos[i],0,0);
+		c->nodes[0]->ori=ori;
+		pp[i]=p;
+	}
+	return vector<ParticleAndBox>({{pp[0],pp[0]->shape->alignedBox()},{pp[1],pp[1]->shape->alignedBox()}});
 }
-#endif
 
 
 

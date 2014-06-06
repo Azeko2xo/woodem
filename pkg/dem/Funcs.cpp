@@ -234,28 +234,11 @@ bool DemFuncs::particleStress(const shared_ptr<Particle>& p, Vector3r& normal, V
 	return true;
 }
 
-
 shared_ptr<Particle> DemFuncs::makeSphere(Real radius, const shared_ptr<Material>& m){
-	auto sphere=make_shared<Sphere>();
-	sphere->radius=radius;
-	sphere->nodes.push_back(make_shared<Node>());
-
-	const auto& n=sphere->nodes[0];
-	n->setData<DemData>(make_shared<DemData>());
-	#ifdef WOO_OPENGL
-		// to avoid crashes if renderer must resize the node's data array and reallocates it while other thread accesses those data
-		n->setData<GlData>(make_shared<GlData>());
-	#endif
-	auto par=make_shared<Particle>();
-	par->shape=sphere;
-	par->material=m;
-
-	auto& dyn=n->getData<DemData>();
-	dyn.addParRef(par);
-	sphere->updateMassInertia(m->density);
-
-	return par;
-};
+	shared_ptr<Shape> sphere=make_shared<Sphere>();
+	sphere->cast<Sphere>().radius=radius;
+	return Particle::make(sphere,m);
+}
 
 vector<Particle::id_t> DemFuncs::SpherePack_toSimulation_fast(const shared_ptr<SpherePack>& sp, const Scene* scene, const DemField* dem, const shared_ptr<Material>& mat, int mask, Real color){
 	vector<Particle::id_t> ret; ret.reserve(sp->pack.size());

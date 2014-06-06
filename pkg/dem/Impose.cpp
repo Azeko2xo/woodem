@@ -72,7 +72,7 @@ void InterpolatedMotion::postLoad(InterpolatedMotion&,void* attr){
 }
 
 void InterpolatedMotion::velocity(const Scene* scene, const shared_ptr<Node>& n){
-	Real nextT=scene->time+scene->dt;
+	Real nextT=scene->time+scene->dt-t0;
 	Vector3r nextPos=linearInterpolate(nextT,times,poss,_interpPos);
 	Quaternionr nextOri, oriA, oriB; Real relAB;
 	std::tie(oriA,oriB,relAB)=linearInterpolateRel(nextT,times,oris,_interpPos);

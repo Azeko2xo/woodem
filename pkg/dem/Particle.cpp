@@ -41,6 +41,28 @@ void Particle::selfTest(){
 	// test other things here as necessary
 }
 
+
+shared_ptr<Particle> Particle::make(const shared_ptr<Shape>& shape, const shared_ptr<Material>& mat, bool fixed){
+	auto par=make_shared<Particle>();
+	par->shape=shape;
+	par->material=mat;
+	auto& nodes(shape->nodes);
+	nodes.resize(shape->numNodes());
+	for(size_t i=0; i<shape->nodes.size(); i++){
+		if(!nodes[i]) nodes[i]=make_shared<Node>();
+		if(!nodes[i]->hasData<DemData>()) nodes[i]->setData<DemData>(make_shared<DemData>());
+		if(fixed) nodes[i]->getData<DemData>().setBlockedAll();
+		nodes[i]->getData<DemData>().addParRef(par);
+		#ifdef WOO_OPENGL
+			// to avoid crashes if renderer must resize the node's data array and reallocates it while other thread accesses those data
+			nodes[i]->setData<GlData>(make_shared<GlData>());
+		#endif
+	}
+	shape->updateMassInertia(mat->density);
+	return par;
+}
+
+
 Vector3r Shape::avgNodePos(){
 	assert(!nodes.empty());
 	size_t sz=nodes.size();

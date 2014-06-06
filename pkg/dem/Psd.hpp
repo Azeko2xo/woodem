@@ -19,6 +19,8 @@ struct PsdSphereGenerator: public ParticleGenerator{
 	bool isSpheresOnly() const WOO_CXX11_OVERRIDE { return true; }
 	py::tuple pyInputPsd(bool scale, bool cumulative, int num) const;
 	Vector2r minMaxDiam() const WOO_CXX11_OVERRIDE;
+	Real padDist() const WOO_CXX11_OVERRIDE{ if(psdPts.empty()) return NaN; return psdPts[0][1]/2.; }
+
 
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(PsdSphereGenerator,ParticleGenerator,"Generate spherical particles following a given Particle Size Distribution (PSD)",
 		((bool,discrete,false,,"The points on the PSD curve will be interpreted as the only allowed diameter values; if *false*, linear interpolation between them is assumed instead. Do not change once the generator is running."))
@@ -62,11 +64,14 @@ struct PharmaCapsuleGenerator: public ParticleGenerator{
 	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m) WOO_CXX11_OVERRIDE;
 	bool isSpheresOnly() const WOO_CXX11_OVERRIDE { return false; }
 	Real critDt(Real density, Real young) WOO_CXX11_OVERRIDE;
+	Real padDist() const WOO_CXX11_OVERRIDE { return extDiam.minCoeff()/2.; }
 	#define woo_dem_PharmaCapsuleGenerator__CLASS_BASE_DOC_ATTRS \
-		PharmaCapsuleGenerator,ParticleGenerator,"Generate pharmaceutical capsules of fixed size; they consist of body and cap. two caps of differing diameter and are thus represented as two interpenetrated (clumped) capsules. The default value corresponds to `Human Cap Size 1 <http://www.torpac.com/Reference/sizecharts/Human%20Caps%20Size%20Chart.pdf>`__ from `Torpac <http://www.torpac.com>`.", \
+		PharmaCapsuleGenerator,ParticleGenerator,"Generate pharmaceutical capsules of fixed size; they consist of body and cap. two caps of differing diameter and are thus represented as two interpenetrated (clumped) capsules. The default value corresponds to `Human Cap Size 1 <http://www.torpac.com/Reference/sizecharts/Human%20Caps%20Size%20Chart.pdf>`__ from `Torpac <http://www.torpac.com>`.\n\n .. youtube:: kRQt0jxKDG0\n", \
 		((Real,len,19.4e-3,,"Total (locked) length of the capsule.")) \
-		((Real,capLen,9.78,,"Cut length of the cap.")) \
-		((Vector2r,extDiam,Vector2r(6.91e-3,6.63e-3),,"External diameter of the cap and the body."))
+		((Real,capLen,9.78e-3,,"Cut length of the cap.")) \
+		((Vector2r,extDiam,Vector2r(6.91e-3,6.63e-3),,"External diameter of the cap and the body.")) \
+		((Vector2r,colors,Vector2r(.5,.99),,"Color of body and cap; white and red with the default (coolwarm) colormap.")) \
+		((Real,cutCorr,.5,,"Make the cap shorter by this amount relative to the area of outer cap over the inner cap; this is to compensate for the approximation that the cap is not cut sharply."))
 	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_PharmaCapsuleGenerator__CLASS_BASE_DOC_ATTRS);
 };
 WOO_REGISTER_OBJECT(PharmaCapsuleGenerator);

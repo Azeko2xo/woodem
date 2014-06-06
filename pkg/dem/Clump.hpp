@@ -61,7 +61,7 @@ struct ClumpData: public DemData{
 	DECLARE_LOGGER;
 	#define woo_dem_ClumpData__CLASS_BASE_DOC_ATTRS \
 		ClumpData,DemData,"Data of a DEM particle which binds multiple particles together.", \
-		((vector<shared_ptr<Node>>,nodes,,AttrTrait<Attr::readonly>(),"Member nodes")) \
+		((vector<shared_ptr<Node>>,nodes,,AttrTrait<Attr::readonly>().noGui(),"Member nodes")) \
 		((vector<Vector3r>,relPos,,AttrTrait<Attr::readonly>(),"Relative member's positions")) \
 		((vector<Quaternionr>,relOri,,AttrTrait<Attr::readonly>(),"Relative member's orientations")) \
 		((Real,equivRad,NaN,,"Equivalent radius, for PSD statistics (e.g. in :obj:`BoxDeleter`)."))

@@ -118,6 +118,8 @@ void RandomFactory::run(){
 		std::runtime_error("RandomFactory.maxAttempts must be non-negative. Negative value, leading to meaking engine dead, is achieved by setting atMaxAttempts=RandomFactory.maxAttDead now.");
 	}
 	spheresOnly=generator->isSpheresOnly();
+	padDist=generator->padDist();
+	if(isnan(padDist) || padDist<0) throw std::runtime_error(generator->pyStr()+".padDist(): returned invalid value "+to_string(padDist));
 
 	// as if some time has already elapsed at the very start
 	// otherwise mass flow rate is too big since one particle during Δt exceeds it easily
@@ -149,6 +151,7 @@ void RandomFactory::run(){
 			LOG_INFO("mass or number reached, making myself dead.");
 			dead=true;
 			if(zeroRateAtStop) currRate=0.;
+			if(!doneHook.empty()){ LOG_DEBUG("Running doneHook: "<<doneHook); Engine::runPy(doneHook); }
 			return;
 		}
 		// finished in this step
@@ -196,7 +199,7 @@ void RandomFactory::run(){
 				LOG_TRACE("Placing "<<pee.size()<<"-sized particle; first component is a "<<pee[0].par->getClassName()<<", extents from "<<pee[0].extents.min().transpose()<<" to "<<pee[0].extents.max().transpose());
 			}
 
-			pos=randomPosition(); // overridden in child classes
+			pos=randomPosition(padDist); // overridden in child classes
 			LOG_TRACE("Trying pos="<<pos.transpose());
 			for(const auto& pe: pee){
 				// make translated copy
@@ -279,7 +282,7 @@ void RandomFactory::run(){
 				p->mask=mask;
 				#ifdef WOO_OPENGL
 					assert(p->shape);
-					p->shape->color=color_;
+					if(color_>=0) p->shape->color=color_; // otherwise keep generator-assigned color
 				#endif
 				if(p->shape->nodes.size()!=1) LOG_WARN("Adding suspicious clump containing particle with more than one node (please check, this is perhaps not tested");
 				for(const auto& n: p->shape->nodes){
@@ -310,7 +313,7 @@ void RandomFactory::run(){
 			p->mask=mask;
 			assert(p->shape);
 			#ifdef WOO_OPENGL
-				p->shape->color=color_;
+				if(color_>=0) p->shape->color=color_;
 			#endif
 			assert(p->shape->nodes.size()==1); // if this fails, enable the block below
 			const auto& node0=p->shape->nodes[0];
@@ -350,6 +353,12 @@ void RandomFactory::run(){
 	setCurrRate(stepMass/(nSteps*scene->dt));
 }
 
+Vector3r BoxFactory::randomPosition(const Real& padDist){
+	AlignedBox3r box2(box.min()+padDist*Vector3r::Ones(),box.max()-padDist*Vector3r::Ones());
+	return box2.sample();
+}
+
+
 
 #ifdef BOX_FACTORY_PERI
 bool BoxFactory::validatePeriodicBox(const AlignedBox3r& b) const {
@@ -365,22 +374,47 @@ bool BoxFactory::validatePeriodicBox(const AlignedBox3r& b) const {
 }
 #endif
 
-Vector3r CylinderFactory::randomPosition() {
+#ifdef WOO_OPENGL
+	void CylinderFactory::render(const GLViewInfo&){
+		if(isnan(glColor) || !node) return;
+		GLUtils::Cylinder(node->loc2glob(Vector3r::Zero()),node->loc2glob(Vector3r(height,0,0)),radius,CompUtils::mapColor(glColor),/*wire*/true,/*caps*/false,/*rad2: use rad1*/-1,/*slices*/glSlices);
+		std::ostringstream oss; oss.precision(4); oss<<mass;
+		if(maxMass>0){ oss<<"/"; oss.precision(4); oss<<maxMass; }
+		if(!isnan(currRate)){ oss.precision(3); oss<<"\n("<<currRate<<")"; }
+		GLUtils::GLDrawText(oss.str(),node->loc2glob(Vector3r(height/2,0,0)),CompUtils::mapColor(glColor));
+		#if 0
+			size_t i=0;
+			for(const auto& b: boxesTried){
+				GLUtils::AlignedBox(b,/*color*/Vector3r(.3*(i%3),.2*(i%5),(1/7)*(i%7))); // stable random colors
+				i++;
+			}
+		#endif
+	}
+#endif
+
+
+Vector3r CylinderFactory::randomPosition(const Real& padDist) {
+	if(!node) throw std::runtime_error("CylinderFactory.node==None.");
+	if(padDist>radius) throw std::runtime_error("CylinderFactory.randomPosition: padDist="+to_string(padDist)+" > radius="+to_string(radius));
 	// http://stackoverflow.com/questions/5837572/generate-a-random-point-within-a-circle-uniformly
 	Real t=2*M_PI*Mathr::UnitRandom();
 	Real u=Mathr::UnitRandom()+Mathr::UnitRandom();
 	Real r=u>1.?2.-u:u;
-	Real h=Mathr::UnitRandom()*height;
-	Vector3r p(h,r*cos(t),r*sin(t));
+	Real h=Mathr::UnitRandom()*(height-2*padDist)+padDist;
+	Vector3r p(h,(radius-padDist)*r*cos(t),(radius-padDist)*r*sin(t));
 	// cerr<<node->loc2glob(p)<<endl;
-	return node?node->loc2glob(p):p;
+	return node->loc2glob(p);
 
 };
 
 bool CylinderFactory::validateBox(const AlignedBox3r& b) {
+	if(!node) throw std::runtime_error("CylinderFactory.node==None.");
 	/* check all corners are inside the cylinder */
+	#if 0
+		boxesTried.push_back(b);
+	#endif
 	for(AlignedBox3r::CornerType c:{AlignedBox3r::BottomLeft,AlignedBox3r::BottomRight,AlignedBox3r::TopLeft,AlignedBox3r::TopRight,AlignedBox3r::BottomLeftCeil,AlignedBox3r::BottomRightCeil,AlignedBox3r::TopLeftCeil,AlignedBox3r::TopRightCeil}){
-		Vector3r p=node?node->glob2loc(b.corner(c)):b.corner(c);
+		Vector3r p=node->glob2loc(b.corner(c));
 		if(p[0]<0. || p[0]>height) return false;
 		if(Vector2r(p[1],p[2]).squaredNorm()>pow(radius,2)) return false;
 	}
