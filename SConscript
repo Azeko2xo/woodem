@@ -49,7 +49,7 @@ pyObjects.append(env.SharedObject('config','py/config.cxx',
 ))
 
 if 'qt4' in env['features']:
-	pyObjects+=['gui/qt4/GLViewer.cpp','gui/qt4/_GLViewer.cpp','gui/qt4/OpenGLManager.cpp']
+	pyObjects+=['gui/qt4/GLViewer.cpp','gui/qt4/GLViewer.qrc','gui/qt4/_GLViewer.cpp','gui/qt4/OpenGLManager.cpp']
 
 if 'gts' in env['features']:
 	# HACK HACK HACK!!!

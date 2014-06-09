@@ -349,7 +349,7 @@ def plotDirections(aabb=(),mask=0,bins=20,numHist=True,noShow=False):
 	else: pylab.show()
 
 
-def makeVideo(frameSpec,out,renameNotOverwrite=True,fps=24,kbps=6000,bps=None):
+def makeVideo(frameSpec,out,renameNotOverwrite=True,fps=24,kbps=15000,holdLast=-.5):
 	"""Create a video from external image files using `mencoder <http://www.mplayerhq.hu>`__. Two-pass encoding using the default mencoder codec (mpeg4) is performed, running multi-threaded with number of threads equal to number of OpenMP threads allocated for Yade.
 
 	:param frameSpec: wildcard | sequence of filenames. If list or tuple, filenames to be encoded in given order; otherwise wildcard understood by mencoder's mf:// URI option (shell wildcards such as ``/tmp/snap-*.png`` or and printf-style pattern like ``/tmp/snap-%05d.png``)
@@ -357,16 +357,17 @@ def makeVideo(frameSpec,out,renameNotOverwrite=True,fps=24,kbps=6000,bps=None):
 	:param bool renameNotOverwrite: if True, existing same-named video file will have -*number* appended; will be overwritten otherwise.
 	:param int fps: Frames per second (``-mf fps=…``)
 	:param int kbps: Bitrate (``-lavcopts vbitrate=…``) in kb/s
+	:param holdLast: Repeat the last frame this many times; if negative, it means seconds and will be converted to frames according to *fps*. This option is not applicable if *frameSpec* is a wildcard (as opposed to a list of images).
 	"""
 	import os,os.path,subprocess,warnings
-	if bps!=None:
-		warnings.warn('plot.makeVideo: bps is deprecated, use kbps instead (the significance is the same, but the name is more precise)',stacklevel=2,category=DeprecationWarning)
-		kbps=bps
 	if renameNotOverwrite and os.path.exists(out):
 		i=0
 		while(os.path.exists(out+"~%d"%i)): i+=1
 		os.rename(out,out+"~%d"%i); print "Output file `%s' already existed, old file renamed to `%s'"%(out,out+"~%d"%i)
-	if isinstance(frameSpec,list) or isinstance(frameSpec,tuple): frameSpec=','.join(frameSpec)
+	if holdLast<0: holdLast*=-fps
+	if isinstance(frameSpec,list) or isinstance(frameSpec,tuple):
+		if holdLast>0: frameSpec=list(frameSpec)+holdLast*[frameSpec[-1]]
+		frameSpec=','.join(frameSpec)
 
 	devNull='nul' if (sys.platform=='win32') else '/dev/null'
 	# mencoder normally creates divx2pass.log in the current dir, which might fail

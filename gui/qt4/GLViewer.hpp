@@ -177,6 +177,11 @@ class GLViewer : public QGLViewer
 
 		// boost::posix_time::ptime getLastUserEvent();
 
+		// called from the init routine
+		// http://stackoverflow.com/a/20425778/761090
+		GLuint logoTextureId;
+		QImage loadTexture(const char *filename, GLuint &textureID);
+
 
 		DECLARE_LOGGER;
 	protected:

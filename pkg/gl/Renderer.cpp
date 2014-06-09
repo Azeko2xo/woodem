@@ -9,6 +9,8 @@
 #include<woo/core/Scene.hpp>
 #include<woo/core/Field.hpp>
 
+#include<woo/pkg/gl/GlWooLogo.hpp>
+
 // #include<woo/pkg/dem/Particle.hpp>
 
 #include <GL/glu.h>
@@ -76,6 +78,10 @@ int Renderer::grid;
 bool Renderer::oriAxes;
 int Renderer::oriAxesPx;
 
+int Renderer::logoSize;
+Vector2i Renderer::logoPos;
+Vector3r Renderer::logoColor;
+Real Renderer::logoWd;
 
 void Renderer::init(){
 	LOG_DEBUG("Renderer::init()");
@@ -325,5 +331,26 @@ void Renderer::renderRawNode(shared_ptr<Node> node){
 	}
 	// if(node->rep){ node->rep->render(node,&viewInfo); }
 }
+
+
+void Renderer::renderLogo(int wd, int ht){
+	if(logoWd<=0) return;
+	Vector2r offset(logoPos[0]>=0?logoPos[0]:wd+logoPos[0],logoPos[1]>=0?logoPos[1]:ht+logoPos[1]);
+	const auto& data=getGlWooLogo();
+	glLineWidth(logoWd);
+	//glEnable(GL_BLEND);
+	glEnable(GL_LINE_SMOOTH);
+	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glColor3v(logoColor);
+	for(const auto& line: data){
+		glBegin(GL_LINE_STRIP);
+		for(const Vector2r& pt: line){
+			glVertex2d(offset[0]+pt[0]*logoSize,offset[1]+pt[1]*logoSize);
+		}
+		glEnd();
+	}
+	glDisable(GL_LINE_SMOOTH);
+	//glDisable(GL_BLEND);
+};
 
 #endif /* WOO_OPENGL */

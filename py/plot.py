@@ -655,27 +655,51 @@ def savePlotSequence(P,fileBase,stride=1,imgRatio=(5,7),title=None,titleFrames=2
 	if lastFrames>1: ret+=(lastFrames-1)*[ret[-1]]
 	return ret
 
-def createTitleFrame(out,size,title):
-	'create figure with title and save to file; a figure object must be opened to get the right size'
-	fig=matplotlib.figure.Figure()
+def createTitleFrame(out,size,title,bgColor=(.8,.6,.8),fgColor='#405090',logo=None,logoPos=(20,20)):
+	'''Create figure with title and save to file.
+
+	:param out: file to save the result to; format is anything supported by matplotlib.
+	:param size: figure size (for pixel output formats), tuple of (width,height)
+	:param str title: title and subtitle; lines are separated by single newlines (``\n``) and subtitle (if any) is separated from the title by two consecutive newlines (``\n\n``). Oversize lines are scaled to fit the width, line spacing fits all lines.
+	:param color fgColor: Font color, any `color format that Matplotlib understands <http://matplotlib.org/api/colors_api.html>`__.
+	:param color bgColor: Background color.
+	:param logo: filename or file-like object to be read via `matplotlib.pyploy.imread <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.imread>`__.
+	:param logoPos: position where to place the logo.
+
+	'''
+	import matplotlib, matplotlib.figure, matplotlib.mathtext
+	# http://stackoverflow.com/a/13714720/761090
+	dpi=100 # does not matter as font is specified in inches
+	fig=matplotlib.figure.Figure(figsize=(size[0]/dpi,size[1]/dpi),dpi=dpi,facecolor=bgColor)
 	canvas=_HeadlessFigureCanvas(fig)
-	#insize=fig.get_size_inches(); size=insize[1]*fig.get_dpi(),insize[0]*fig.get_dpi()  # this gives wrong dimensions...
 	#fig.set_facecolor('blue'); fig.patch.set_color('blue'); fig.patch.set_facecolor('blue'); fig.patch.set_alpha(None)
-	title,subtitle=title.split('\n\n')
+	titSub=title.split('\n\n')
+	if len(titSub)==0: subtitle=''
+	elif len(titSub)==1: title,subtitle=titSub
+	else: title,subtitle=titSub[0],'\n'.join(titSub[1:])
 	lines=[(t,True) for t in title.split('\n')]+([(t,False) for t in subtitle.split('\n')] if subtitle else [])
 	nLines=len(lines); fontSizes=size[1]/10.,size[1]/16.
-	import matplotlib.mathtext
 	def writeLine(text,vertPos,fontsize):
-		rgba,depth=matplotlib.mathtext.MathTextParser('Bitmap').to_rgba(text,fontsize=fontsize,dpi=fig.get_dpi(),color='blue')
+		rgba,depth=matplotlib.mathtext.MathTextParser('Bitmap').to_rgba(text,fontsize=fontsize,dpi=fig.get_dpi(),color=fgColor)
 		textsize=rgba.shape[1],rgba.shape[0]
 		if textsize[0]>size[0]:
-			rgba,depth=matplotlib.mathtext.MathTextParser('Bitmap').to_rgba(text,fontsize=fontsize*size[0]/textsize[0],dpi=fig.get_dpi(),color='blue')
+			rgba,depth=matplotlib.mathtext.MathTextParser('Bitmap').to_rgba(text,fontsize=fontsize*size[0]/textsize[0],dpi=fig.get_dpi(),color=fgColor)
 			textsize=rgba.shape[1],rgba.shape[0]
 		fig.figimage(rgba.astype(float)/255.,xo=(size[0]-textsize[0])/2.,yo=vertPos-depth)
-	ht=size[1]; y0=ht-2*fontSizes[0]; yStep=(ht-2.5*fontSizes[0])/len(lines)
+	nTitle,nSubtitle=len(title.split('\n')),len(subtitle.split('\n')) if subtitle else 0
+	nLines=nTitle+nSubtitle
+	ht=size[1]; y0=ht-2*fontSizes[0]; yStep=(ht-2.5*fontSizes[0])/(nTitle+.6*nSubtitle+(.5 if nSubtitle else 0))
+	def lineYOffset(lineno):
+		# .5*yStep is per between title and subtitle
+		return nTitle*yStep+.5*yStep+(i-nTitle)*.6*yStep if i>=nTitle else i*yStep
+	if logo:
+		import matplotlib.pylab
+		logoData=pylab.imread(logo)
+		fig.figimage(logoData,xo=logoPos[0],yo=logoPos[1],origin='upper')
 	for i,(l,isTitle) in enumerate(lines):
-		writeLine(l,y0-i*yStep,fontSizes[0 if isTitle else 1])
-	fig.savefig(out)
+		writeLine(l,y0-lineYOffset(i),fontSizes[0 if isTitle else 1])
+	# http://stackoverflow.com/a/4805178/761090 - savefig default overrides facecolor set previously
+	fig.savefig(out,facecolor=fig.get_facecolor())
 	
 
 

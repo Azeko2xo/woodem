@@ -99,7 +99,9 @@ struct Renderer: public Object{
 
 		static void renderRawNode(shared_ptr<Node>);
 
-		// static void pyInitError(py::tuple, py::dict){ throw std::runtime_error("woo.gl.Renderer() may not be instantiated directly, use woo.qt.Renderer() to get the current instance."); }
+		// OpenGL commands which render the logo, in 2d
+		// coordinate system must be set by the caller!
+		static void renderLogo(int ht, int wd);
 
 	enum{TIME_NONE=0,TIME_VIRT=1,TIME_REAL=2,TIME_STEP=4};
 	enum{TIME_ALL=TIME_VIRT|TIME_REAL|TIME_STEP};
@@ -128,13 +130,17 @@ struct Renderer: public Object{
 		((bool,light2,true,,"Turn light 2 on."))
 		((Vector3r,light2Pos,Vector3r(-130,75,30),,"Position of secondary OpenGL light source in the scene."))
 		((Vector3r,light2Color,Vector3r(0.5,0.5,0.1),AttrTrait<>().rgbColor(),"Per-color intensity of secondary light (RGB)."))
-		((int,showTime,TIME_ALL,AttrTrait<>().bits({"virt.","real","step"}),"Control whether virtual time, real time and step number are displayed in the 3d view."))
+		((int,showTime,5/*(TIME_VIRT|TIME_STEP)*/,AttrTrait<>().bits({"virt.","real","step"}),"Control whether virtual time, real time and step number are displayed in the 3d view."))
 		((Vector3r,virtColor,Vector3r(1.,1.,1.),AttrTrait<>().rgbColor(),"Virtual time color"))
 		((Vector3r,realColor,Vector3r(0,.5,.5),AttrTrait<>().rgbColor(),"Real time color"))
 		((Vector3r,stepColor,Vector3r(0,.5,.5),AttrTrait<>().rgbColor(),"Step number color"))
 		((int,grid,0,AttrTrait<>().bits({"yz","zx","xy"}),"Show axes planes with grid"))
 		((bool,oriAxes,true,,"Show orientation axes in the 3d view (in the upper left corner)"))
 		((int,oriAxesPx,50,AttrTrait<>().range(Vector2i(10,100)),"Maximum pixel size of orientation axes in the corner."))
+		((int,logoSize,50,,"Size of the bigger size of the logo, in pixels"))
+		((Vector2i,logoPos,Vector2i(-64,-60),,"Position of the logo; negative values count from the other side of the window."))
+		((Vector3r,logoColor,Vector3r(1.,1.,1.),AttrTrait<>().rgbColor(),"Logo color"))
+		((Real,logoWd,1.,AttrTrait<>().range(Vector2r(0,10)),"Width of the logo stroke; set to non-positive value to disable the logo."))
 
 		
 		((vector<Vector3r>,clipPlanePos,vector<Vector3r>(numClipPlanes,Vector3r::Zero()),AttrTrait<>().startGroup("Selection and clipping"),"Position and orientation of clipping planes"))

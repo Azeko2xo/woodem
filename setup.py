@@ -159,6 +159,7 @@ def wooPrepareQt4():
 		('gui/qt4/GLViewer.hpp','gui/qt4/moc_GLViewer.cc'),
 		('gui/qt4/OpenGLManager.hpp','gui/qt4/moc_OpenGLManager.cc')
 	]
+	cxxRccInOut=[('gui/qt4/GLViewer.qrc','gui/qt4/qrc_GLViewer.cc')]
 	if WIN:
 		# this is ugly
 		# pyuic is a batch file, which is not runnable from mingw shell directly
@@ -167,7 +168,7 @@ def wooPrepareQt4():
 		pyuic4=['python',PyQt4.uic.__file__[:-12]+'pyuic.py']
 	else:
 		pyuic4=['pyuic4']
-	for tool,opts,inOut,enabled in [(['pyrcc4'],[],rccInOut,True),(pyuic4,[],uicInOut,True),(['moc'],['-DWOO_OPENGL','-DWOO_QT4'],mocInOut,('opengl' in features))]:
+	for tool,opts,inOut,enabled in [(['pyrcc4'],[],rccInOut,True),(pyuic4,[],uicInOut,True),(['moc'],['-DWOO_OPENGL','-DWOO_QT4'],mocInOut,('opengl' in features)),(['qrc'],['-name','GLViewer'],cxxRccInOut,('opengl' in features))]:
 		if not enabled: continue
 		for fIn,fOut in inOut:
 			cmd=tool+opts+[fIn,'-o',fOut]

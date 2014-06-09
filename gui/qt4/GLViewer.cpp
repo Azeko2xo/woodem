@@ -29,6 +29,7 @@ using boost::algorithm::iends_with;
 #include<QtCore/qdir.h>
 #include<QtGui/qfiledialog.h>
 #include<QtGui/QMessageBox>
+#include<QtGui/QIcon>
 
 WOO_PLUGIN(_qt,(SnapshotEngine));
 
@@ -113,6 +114,26 @@ void GLViewer::closeEvent(QCloseEvent *e){
 	e->accept();
 }
 
+
+// http://stackoverflow.com/a/20425778/761090
+QImage GLViewer::loadTexture(const char *filename, GLuint &textureID){
+    glEnable(GL_TEXTURE_2D); // enable texturing
+
+    glGenTextures(1, &textureID); // obtain an id for the texture
+    glBindTexture(GL_TEXTURE_2D, textureID); // set as the current texture
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+
+    QImage im(filename);
+    QImage tex=QGLWidget::convertToGLFormat(im);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex.width(), tex.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, tex.bits());
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+
+    glDisable(GL_TEXTURE_2D);
+    return tex;
+}
+
 GLViewer::GLViewer(int _viewId, QGLWidget* shareWidget): QGLViewer(/*parent*/(QWidget*)NULL,shareWidget), viewId(_viewId) {
 	isMoving=false;
 	cut_plane = 0;
@@ -124,6 +145,8 @@ GLViewer::GLViewer(int _viewId, QGLWidget* shareWidget): QGLViewer(/*parent*/(QW
 
 	if(viewId==0) setWindowTitle("3d view");
 	else setWindowTitle(("Secondary view #"+lexical_cast<string>(viewId)).c_str());
+
+	setWindowIcon(QIcon(":/woo-logo.svg"));
 
 	show();
 
@@ -185,6 +208,7 @@ GLViewer::GLViewer(int _viewId, QGLWidget* shareWidget): QGLViewer(/*parent*/(QW
 	// FIXME: needed for movable scales (why?! we can just detect button pressed, then mouseMoveEvent should be received automatically...?)
 	setMouseTracking(true);
 
+	loadTexture(":/woo-logo.200x200.png",logoTextureId);
 }
 
 void GLViewer::setInitialView(){
@@ -934,6 +958,40 @@ void GLViewer::postDraw(){
 		glLineWidth(1);
 		glEnable(GL_LIGHTING);
 	};
+
+
+	/* show Woo logo */
+	// http://stackoverflow.com/a/20425778/761090
+	if(false){
+		// glClearColor(0.4f, 0.1f, 0.1f, 1.0f);
+		//glClearColor(0.f,0.f,0.f,0.f);
+		// glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		//glColor4f(0,0,0,0);
+
+		startScreenCoordinatesSystem();
+		glEnable(GL_TEXTURE_2D);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+		glDisable(GL_LIGHTING);
+		glDisable(GL_DEPTH_TEST);
+		glBindTexture(GL_TEXTURE_2D, logoTextureId);
+		glBegin(GL_QUADS);
+			glTexCoord2f(0,1); glVertex2f(0,0);
+			glTexCoord2f(1,1); glVertex2f(100,0);
+			glTexCoord2f(1,0); glVertex2f(100,100);
+			glTexCoord2f(0,0); glVertex2f(0,100);
+		glEnd();
+		glDisable(GL_TEXTURE_2D);
+		glEnable(GL_LIGHTING);
+		glDisable(GL_BLEND);
+		glEnable(GL_DEPTH_TEST);
+		stopScreenCoordinatesSystem();
+	}
+	if(Renderer::logoWd>0){
+		startScreenCoordinatesSystem();
+		Renderer::renderLogo(width(),height());
+		stopScreenCoordinatesSystem();
+	}
 
 
 	QGLViewer::postDraw();
