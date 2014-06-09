@@ -11,6 +11,8 @@
 
 WOO_PLUGIN(dem,(VtkExport));
 CREATE_LOGGER(VtkExport);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_VtkExport__CLASS_BASE_DOC_ATTRS_CTOR_PY);
+
 
 int VtkExport::addTriangulatedObject(const vector<Vector3r>& pts, const vector<Vector3i>& tri, const vtkSmartPointer<vtkPoints>& vtkPts, const vtkSmartPointer<vtkCellArray>& cells){
 	size_t id0=vtkPts->GetNumberOfPoints();
@@ -24,6 +26,14 @@ int VtkExport::addTriangulatedObject(const vector<Vector3r>& pts, const vector<V
 	}
 	return tri.size();
 };
+
+py::dict VtkExport::pyOutFiles() const {
+	py::dict ret;
+	for(auto& item: outFiles){
+		ret[item.first]=py::object(item.second);
+	}
+	return ret;
+}
 
 
 void VtkExport::run(){
@@ -380,8 +390,6 @@ void VtkExport::run(){
 	vtkSmartPointer<vtkDataCompressor> compressor;
 	if(compress) compressor=vtkSmartPointer<vtkZLibDataCompressor>::New();
 
-	vector<string> outF;
-
 	if(!multiblock){
 		if(what&WHAT_CON){
 			vtkSmartPointer<vtkXMLPolyDataWriter> writer = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
@@ -391,8 +399,8 @@ void VtkExport::run(){
 			writer->SetFileName(fn.c_str());
 			writer->SetInput(cPoly);
 			writer->Write();
-			outF.push_back(fn);
-		} else outF.push_back(string());
+			outFiles["con"].push_back(fn);
+		} 
 		if(what&WHAT_SPHERES){
 			auto writer=vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
 			if(compress) writer->SetCompressor(compressor);
@@ -401,8 +409,8 @@ void VtkExport::run(){
 			writer->SetFileName(fn.c_str());
 			writer->SetInput(sGrid);
 			writer->Write();
-			outF.push_back(fn);
-		} else outF.push_back(string());
+			outFiles["spheres"].push_back(fn);
+		}
 		if(what&WHAT_MESH){
 			auto writer=vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
 			if(compress) writer->SetCompressor(compressor);
@@ -411,8 +419,8 @@ void VtkExport::run(){
 			writer->SetFileName(fn.c_str());
 			writer->SetInput(mGrid);
 			writer->Write();
-			outF.push_back(fn);
-		} else outF.push_back(string()); // empty string
+			outFiles["mesh"].push_back(fn);
+		}
 	} else {
 		// multiblock
 		auto multi=vtkSmartPointer<vtkMultiBlockDataSet>::New();
@@ -427,10 +435,8 @@ void VtkExport::run(){
 		writer->SetFileName(fn.c_str());
 		writer->SetInput(multi);
 		writer->Write();	
-		outF.push_back(fn);
 	}
 
-	outFiles.push_back(outF);
 	outTimes.push_back(scene->time);
 	outSteps.push_back(scene->step);
 	#if 0

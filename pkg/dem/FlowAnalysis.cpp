@@ -13,8 +13,9 @@
 #include<vtkXMLImageDataWriter.h>
 
 WOO_PLUGIN(dem,(FlowAnalysis));
-
 CREATE_LOGGER(FlowAnalysis);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_FlowAnalysis__CLASS_BASE_DOC_ATTRS_PY);
+
 
 void FlowAnalysis::reset(){
 	data.resize(boost::extents[0][0][0][0][0]);
@@ -38,7 +39,7 @@ void FlowAnalysis::setupGrid(){
 	if(!masks.empty()){
 		nFractions=masks.size();
 	}
-	LOG_WARN("There are "<<nFractions<<" grids "<<boxCells[0]<<"x"<<boxCells[1]<<"x"<<boxCells[2]<<"="<<boxCells.prod()<<" storing "<<NUM_PT_DATA<<" numbers per point (total "<<boxCells.prod()*nFractions*NUM_PT_DATA<<" items)");
+	LOG_WARN("There are "<<nFractions<<" grid(s) "<<boxCells[0]<<"x"<<boxCells[1]<<"x"<<boxCells[2]<<"="<<boxCells.prod()<<" storing "<<NUM_PT_DATA<<" numbers per point (total "<<boxCells.prod()*nFractions*NUM_PT_DATA<<" items)");
 	data.resize(boost::extents[nFractions][boxCells[0]][boxCells[1]][boxCells[2]][NUM_PT_DATA]);
 	// zero all array items
 	std::fill(data.origin(),data.origin()+data.size(),0);
@@ -151,13 +152,14 @@ vector<string> FlowAnalysis::vtkExport(const string& out){
 		}
 	}
 	// export sum of all fractions as well
-	vector<size_t> all; for(size_t i=0; i<=(size_t)nFractions; i++) all.push_back(i);
+	vector<size_t> all; for(int i=0; i<nFractions; i++) all.push_back((size_t)i);
 	ret.push_back(vtkExportFractions(out+".all",all));
 	return ret;
 }
 
-string FlowAnalysis::vtkExportFractions(const string& out, const vector<size_t>& fractions){
+string FlowAnalysis::vtkExportFractions(const string& out, /*copy, since we may modify locally*/ vector<size_t> fractions){ 
 	if(timeSpan==0.) throw std::runtime_error("FlowAnalysis.timeSpan==0, no data was ever collected.");
+	if(nFractions<=0) throw std::runtime_error("FlowAnalysis.nFractions<=0?!!");
 	auto grid=vtkMakeGrid();
 	auto flow=vtkMakeArray(grid,"flow (momentum density)",3,/*fillZero*/true);
 	auto flowNorm=vtkMakeArray(grid,"|flow|",1,true);
@@ -165,8 +167,11 @@ string FlowAnalysis::vtkExportFractions(const string& out, const vector<size_t>&
 	auto hitRate=vtkMakeArray(grid,"hit rate",1,true);
 	auto diam=vtkMakeArray(grid,"avg. diameter",1,true);
 	auto poro=vtkMakeArray(grid,"avg. porosity",1,true);
+	// no fractions given, export all of them together
+	if(fractions.empty()){ for(size_t i=0; i<(size_t)nFractions; i++) fractions.push_back(i); }
 
 	for(size_t fraction: fractions){
+		if((int)fraction>=nFractions) throw std::runtime_error("FlowAnalysis.vtkExportFraction: fraction="+to_string(fraction)+" out of range 0.."+to_string(nFractions-1));
 		// traverse the grid now
 		for(int i=0; i<boxCells[0]; i++){
 			for(int j=0; j<boxCells[1]; j++){
@@ -274,6 +279,9 @@ string FlowAnalysis::vtkExportVectorOps(const string& out, const vector<size_t>&
 	auto diffANorm=vtkMakeArray(grid,"|diffA|",1,/*fillZero*/false);
 	auto diffB=vtkMakeArray(grid,"diffB",3,/*fillZero*/false);
 	auto diffBNorm=vtkMakeArray(grid,"|diffB|",1,/*fillZero*/false);
+	for(size_t i=0; i<fracA.size(); i++) if(fracA[i]>=nFractions) throw std::runtime_error("FlowAnalysis.vtkExportVectorOps: fracA["+to_string(i)+"]="+to_string(fracA[i])+" out of range 0.."+to_string(nFractions-1));
+	for(size_t i=0; i<fracB.size(); i++) if(fracB[i]>=nFractions) throw std::runtime_error("FlowAnalysis.vtkExportVectorOps: fracB["+to_string(i)+"]="+to_string(fracB[i])+" out of range 0.."+to_string(nFractions-1));
+
 	Real weightB=avgFlowNorm(fracA)/avgFlowNorm(fracB);
 	if(isnan(weightB)){
 		LOG_WARN("Weighting coefficient is NaN (no flow in fraction B), using 1 instead; the result will be still mathematically correct but useless.")

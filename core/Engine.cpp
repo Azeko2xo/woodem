@@ -48,6 +48,11 @@ void Engine::postLoad(Engine&, void* addr){
 
 shared_ptr<Field> Engine::field_get(){ return field; }
 
+py::object Engine::py_getScene(){
+	if(!scene) return py::object();
+	else return py::object(static_pointer_cast<Scene>(scene->shared_from_this()));
+}
+
 void Engine::field_set(const shared_ptr<Field>& f){
 	if(!f) { setField(); userAssignedField=false; }
 	else{ field=f; userAssignedField=true; }

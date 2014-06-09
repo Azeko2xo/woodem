@@ -132,7 +132,8 @@ class BodyInspector(QWidget):
 		self.refreshTimer.start(1000)
 		self.intrWithCombo.addItems(['0']); self.intrWithCombo.setCurrentIndex(0);
 		self.intrWithCombo.setMinimumWidth(80)
-		self.setWindowTitle('Particle #%d'%self.parId)
+		if self.parId==None: self.setWindowTitle('Particle')
+		else: self.setWindowTitle('Particle #%d'%self.parId)
 		self.gotoBodySlot()
 	def displayForces(self):
 		if self.parId==None: return
@@ -175,7 +176,8 @@ class BodyInspector(QWidget):
 		else:
 			self.bodyIdBox.setStyleSheet('QWidget { background: none }')
 		# self.parId=currId # self.bodyIdBox.value()
-		self.setWindowTitle('Particle #%d'%self.parId)
+		if self.parId==None: self.setWindowTitle('Particle')
+		else: self.setWindowTitle('Particle #%d'%self.parId)
 		self.refreshEvent()
 	def gotoBodySlot(self):
 		try:
@@ -206,7 +208,7 @@ class BodyInspector(QWidget):
 				if self.idGlSync==self.parId: # changed in the viewer, reset ourselves
 					self.parId=self.idGlSync=v[0].selection; self.changeIdSlot(self.parId)
 					return
-				else: v[0].selection=self.idGlSync=self.parId # changed here, set in the viewer
+				elif self.parId!=None: v[0].selection=self.idGlSync=self.parId # changed here, set in the viewer
 		meId=self.bodyIdBox.value(); pos=self.intrWithCombo.currentIndex()
 		try:
 			meLabel=makeBodyLabel(S.dem.par[meId])
@@ -314,6 +316,7 @@ class SimulationInspector(QWidget):
 		S=woo.master.scene
 		QWidget.__init__(self,parent)
 		self.setWindowTitle("Simulation Inspection")
+		self.setWindowIcon(QIcon(":/woo-logo.svg"))
 		self.tabWidget=QTabWidget(self)
 		demField=S.dem if S.hasDem else None
 		self.engineInspector=EngineInspector(parent=None)
