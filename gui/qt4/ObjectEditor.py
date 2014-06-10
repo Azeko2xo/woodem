@@ -697,6 +697,8 @@ class ObjectEditor(QFrame):
 
 	# maximum nesting level in the UI, to avoid cycles and freezes
 	maxNest=6
+	# maximum length of inline lists
+	maxListLen=40 
 
 
 	class EntryData:
@@ -992,6 +994,7 @@ class ObjectEditor(QFrame):
 		if not entry.T:
 			#print 'return None for %s.%s'%(entry.obj.__class__.__name__,entry.name)
 			return None
+		
 
 		# single fundamental object
 		widget=None
@@ -1618,6 +1621,10 @@ class NewObjectDialog(QDialog):
 	def sizeHint(self): return QSize(180,400)
 
 class SeqFundamentalEditor(QFrame):
+	# maximum length of the sequence; show ellipsis in the middle if longer
+	# this should avoid freezes in the UI due to unexpectedly long data
+	maxShowLen=30
+
 	def __init__(self,parent,getter,setter,itemType):
 		QFrame.__init__(self,parent)
 		self.getter,self.setter,self.itemType=getter,setter,itemType
@@ -1640,10 +1647,12 @@ class SeqFundamentalEditor(QFrame):
 		self.refreshTimer.timeout.connect(self.refreshEvent)
 		self.refreshTimer.start(500) # 1s should be enough
 	def contextMenuEvent(self, event):
+		# may return -1, which is OK
 		index=self.localPositionToIndex(event.pos())
 		seq=self.getter()
 		if len(seq)==0: index=-1
-		field=self.form.itemAt(index,QFormLayout.LabelRole).widget() if index>=0 else None
+		item=self.form.itemAt(index,QFormLayout.LabelRole)
+		field=item.widget() if (index>=0 and item) else None
 		menu=QMenu(self)
 		actNew,actKill,actUp,actDown,actFromClip=[menu.addAction(name) for name in (u'☘ New',u'☠ Remove',u'↑ Up',u'↓ Down',u'↵ From clipboard')]
 		if index<0: [a.setEnabled(False) for a in actKill,actUp,actDown]
@@ -1671,12 +1680,12 @@ class SeqFundamentalEditor(QFrame):
 			elif act==actDown: self.downSlot(index)
 	def localPositionToIndex(self,pos,isGlobal=False):
 		gp=self.mapToGlobal(pos) if not isGlobal else pos
-		for row in range(self.form.count()/2):
+		for row in range(self.form.rowCount()):
 			w,i=self.form.itemAt(row,QFormLayout.FieldRole),self.form.itemAt(row,QFormLayout.LabelRole)
 			for wi in w.widget(),i.widget():
 				x0,y0,x1,y1=wi.geometry().getCoords(); globG=QRect(self.mapToGlobal(QPoint(x0,y0)),self.mapToGlobal(QPoint(x1,y1)))
 				if globG.contains(gp):
-					return row
+					return self.mapList2Seq(row)
 		return -1
 	def keyFocusIndex(self):
 		w=QApplication.focusWidget()
@@ -1685,6 +1694,7 @@ class SeqFundamentalEditor(QFrame):
 	def keyPressEvent(self,ev):
 		isModified=ev.modifiers()&Qt.AltModifier
 		if not isModified:
+			if not QApplication.focusWidget(): return
 			if ev.key()==Qt.Key_Return: QApplication.focusWidget().focusNextPrevChild(True)
 			if ev.key()==Qt.Key_Up: QApplication.focusWidget().focusNextPrevChild(False)
 			if ev.key()==Qt.Key_Down: QApplication.focusWidget().focusNextPrevChild(True)
@@ -1763,17 +1773,46 @@ class SeqFundamentalEditor(QFrame):
 			return
 		self.setter(seq)
 		self.refreshEvent(forceIx=0)
+	def mapList2Seq(self,l):
+		'return sequence (object) index from given list (widget) index.'
+		if not self.split: return l
+		if l>self.split[0]: return l+self.split[1]-1  # 1 for the separator widget
+	def mapSeq2List(self,s):
+		'return list (widget) index from given sequence (object) index. Return -1 if the item is not shown in the UI due to splitting.'
+		if not self.split: return s
+		if s<self.split[0]: return s
+		if s<self.split[1]: return -1
+		if s>=self.split[1]: return s+(self.split[1]-self.split[0])+1 # 1 for the separator widget
+	def recomputeSplit(self,currLen):
+		l=currLen; ml=SeqFundamentalEditor.maxShowLen
+		if l>ml:
+			self.split=(ml/2,l-ml/2)
+			self.splitLen=l
+		else:
+			self.split=None
+			self.splitLen=0
+
+	def renumber(self,currLen):
+		if not self.split: return
+		self.recomputeSplit()
+		for row in range(self.form.rowCount()):
+			l=self.form.itemAt(row,QFormLayout.LabelRole)
+			l.widget().setText('%d. '%self.mapList2Seq(row))
+		self.splitLen=currLen
+
 	def rebuild(self):
 		currSeq=self.getter()
 		#print 'aaa',len(currSeq)
 		# clear everything
-		rows=self.form.count()//2
-		for row in range(rows):
+		for row in range(self.form.rowCount()):
 			logging.trace('counts',self.form.rowCount(),self.form.count())
 			for wi in self.form.itemAt(row,QFormLayout.FieldRole),self.form.itemAt(row,QFormLayout.LabelRole):
 				self.form.removeItem(wi)
+				if not wi.widget(): continue
 				logging.trace('deleting widget',wi.widget())
-				widget=wi.widget(); widget.hide(); del widget # for some reason, deleting does not make the thing disappear visually; hiding does, however
+				# for some reason, deleting does not make the thing disappear visually; hiding does, however
+				# FIXME: this might be the reason why ever-resizing sequences eat up RAM!!
+				widget=wi.widget(); widget.hide(); del widget 
 			logging.trace('counts after ',self.form.rowCount(),self.form.count())
 		logging.debug('cleared')
 		# add everything
@@ -1795,9 +1834,20 @@ class SeqFundamentalEditor(QFrame):
 				try:
 					seq=self.getter(); seq[self.index]=val; self.setter(seq)
 				except IndexError: pass
+
+		self.recomputeSplit(len(currSeq))
+
 		for i,item in enumerate(currSeq):
-			widget=Klass(self,ItemGetter(self.getter,i),ItemSetter(self.getter,self.setter,i)) #proxy,'value')
-			self.form.insertRow(i,'%d. '%i,widget)
+			if self.split and self.split[0]==i:
+				# show separator
+				l=QLabel(u'<b>⋮</b>'); l.font().setPointSize(32)
+				self.form.insertRow(i,u'<b>⋮</b>',l)
+				continue 
+			li=self.mapSeq2List(i)
+			# print 'item #%d mapped to field %d'%(i,li)
+			if li<0: continue # in the split, do not show anything
+			widget=Klass(self,ItemGetter(self.getter,i),ItemSetter(self.getter,self.setter,i))
+			self.form.insertRow(i,'%d. '%li,widget)
 			logging.debug('added item %d %s'%(i,str(widget)))
 			# set units correctly
 			if self.multiplier:
@@ -1809,10 +1859,11 @@ class SeqFundamentalEditor(QFrame):
 	def refreshEvent(self,dontRebuild=False,forceIx=-1):
 		currSeq=self.getter()
 		#print 'bbb',len(currSeq)
-		if len(currSeq)!=self.form.count()//2: #rowCount():
+		if not self.split and len(currSeq)!=self.form.rowCount():
 			if dontRebuild: return # length changed behind our back, just pretend nothing happened and update next time instead
 			self.rebuild()
 			currSeq=self.getter()
+		elif self.split and len(currSeq)!=self.splitLen: self.renumber(len(currSeq))
 		for i in range(len(currSeq)):
 			item=self.form.itemAt(i,QFormLayout.FieldRole)
 			if not item: continue # some error condition, oh well

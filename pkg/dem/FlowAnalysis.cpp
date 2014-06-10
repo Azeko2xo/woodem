@@ -279,8 +279,8 @@ string FlowAnalysis::vtkExportVectorOps(const string& out, const vector<size_t>&
 	auto diffANorm=vtkMakeArray(grid,"|diffA|",1,/*fillZero*/false);
 	auto diffB=vtkMakeArray(grid,"diffB",3,/*fillZero*/false);
 	auto diffBNorm=vtkMakeArray(grid,"|diffB|",1,/*fillZero*/false);
-	for(size_t i=0; i<fracA.size(); i++) if(fracA[i]>=nFractions) throw std::runtime_error("FlowAnalysis.vtkExportVectorOps: fracA["+to_string(i)+"]="+to_string(fracA[i])+" out of range 0.."+to_string(nFractions-1));
-	for(size_t i=0; i<fracB.size(); i++) if(fracB[i]>=nFractions) throw std::runtime_error("FlowAnalysis.vtkExportVectorOps: fracB["+to_string(i)+"]="+to_string(fracB[i])+" out of range 0.."+to_string(nFractions-1));
+	for(size_t i=0; i<fracA.size(); i++) if((int)fracA[i]>=nFractions) throw std::runtime_error("FlowAnalysis.vtkExportVectorOps: fracA["+to_string(i)+"]="+to_string(fracA[i])+" out of range 0.."+to_string(nFractions-1));
+	for(size_t i=0; i<fracB.size(); i++) if((int)fracB[i]>=nFractions) throw std::runtime_error("FlowAnalysis.vtkExportVectorOps: fracB["+to_string(i)+"]="+to_string(fracB[i])+" out of range 0.."+to_string(nFractions-1));
 
 	Real weightB=avgFlowNorm(fracA)/avgFlowNorm(fracB);
 	if(isnan(weightB)){

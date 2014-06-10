@@ -28,7 +28,7 @@ def kwFromVtkExport(vtkExport,out=None,launch=False):
 	'Extract keywords suitable for :obj:`write` from a given :obj:`~woo.dem.VtkExport` instance.'
 	assert isinstance(vtkExport,woo.dem.VtkExport)
 	ff=vtkExport.outFiles
-	return dict(sphereFiles=ff['spheres'] if 'spheres' in ff else [],meshFiles=ff['mesh'] if 'mesh' in ff else [],conFiles=ff['con'] if 'con' in ff else [])
+	return dict(sphereFiles=ff['spheres'] if 'spheres' in ff else [],meshFiles=ff['mesh'] if 'mesh' in ff else [],conFiles=ff['con'] if 'con' in ff else [],triFiles=ff['tri'] if 'tri' in ff else [])
 
 def kwFromFlowAnalysis(flowAnalysis,outPrefix=None,fractions=[],fracA=[],fracB=[]):
 	'Extract keywords suitable for :obj:`write` from a given :obj:`~woo.dem.VtkFlowAnalysis` instance.'
@@ -66,12 +66,13 @@ def fromFlowAnalysis(flowAnalysis,out=None,findMesh=True,launch=False):
 	if launch: launchPV(out)
 
 
-def write(out,sphereFiles=[],meshFiles=[],conFiles=[],flowFile='',splitFile='',flowMeshFile='',flowMeshOpacity=.2,splitStride=2,splitClip=False,flowStride=2):
+def write(out,sphereFiles=[],meshFiles=[],conFiles=[],triFiles=[],flowFile='',splitFile='',flowMeshFile='',flowMeshOpacity=.2,splitStride=2,splitClip=False,flowStride=2):
 	'''Write out script suitable for running with Paraview (with the ``--script`` option). The options to this function are:
 
-	:param sphereFiles: files from :obj:`woo.dem.VtkExport.outFiles` (0th component);
-	:param meshFiles: files from :obj:`woo.dem.VtkExport.outFiles` (1st component);
-	:param conFiles: files from :obj:`woo.dem.VtkExport.outFiles` (2nd component);
+	:param sphereFiles: files from :obj:`woo.dem.VtkExport.outFiles` (``spheres``);
+	:param meshFiles: files from :obj:`woo.dem.VtkExport.outFiles` (``mesh``);
+	:param conFiles: files from :obj:`woo.dem.VtkExport.outFiles` (``con``);
+	:param triFiles: files from :obj:`woo.dem.VtkExport.outFiles` (``tri``);
 	:param flowFile: file written by :obj:`woo.dem.FlowAnalysis.vtkExportFractions` (usually all fractions together);
 	:param splitFile: file written by :obj:`woo.dem.FlowAnalysis.vtkExportVectorOps`;
 	:param flowMeshFile: mesh file to be used for showing boundaries for split analysis;
@@ -84,6 +85,7 @@ def write(out,sphereFiles=[],meshFiles=[],conFiles=[],flowFile='',splitFile='',f
 		sphereFiles=sphereFiles,
 		meshFiles=meshFiles,
 		conFiles=conFiles,
+		triFiles=triFiles,
 		flowFile=flowFile,
 		splitFile=splitFile,
 		flowMeshFile=flowMeshFile,
@@ -117,6 +119,7 @@ flowStride={flowStride}
 sphereFiles={sphereFiles}
 meshFiles={meshFiles}
 conFiles={conFiles}
+triFiles={triFiles}
 
 ## we should change directory here, so that datafiles are found
 # Paraview defined current_script_path but that only works when run from Paraview
@@ -138,7 +141,7 @@ if hasattr(sys,'argv') and len(sys.argv)>1:
 		seqStride=parser.stride
 		import zipfile
 		with zipfile.ZipFile(zipName,'w',allowZip64=True) as ar:
-			for fff in ('sphereFiles','meshFiles','conFiles'):
+			for fff in ('sphereFiles','meshFiles','conFiles','triFiles'):
 				ff=eval(fff) # get the sequence
 				ff2=[]
 				for f in ff[::seqStride]:
@@ -157,7 +160,7 @@ if hasattr(sys,'argv') and len(sys.argv)>1:
 			ll=[]
 			for l in open(sys.argv[0]):
 				var=l.split('=',1)[0]
-				if var in ('sphereFiles','meshFiles','conFiles','splitFile','flowMeshFile','flowFile'):
+				if var in ('sphereFiles','meshFiles','conFiles','triFiles','splitFile','flowMeshFile','flowFile'):
 					if type(newFiles[var])==list: ll.append(var+'='+str(newFiles[var])+'\n')
 					else: ll.append(var+"='"+newFiles[var]+"'\n")
 				else: ll.append(l)
@@ -272,6 +275,13 @@ if meshFiles:
 	RenameSource(meshFiles[0],mesh)
 	rep=Show()
 	rep.Opacity=0.2
+
+if triFiles:
+	tri=XMLUnstructuredGridReader(FileName=triFiles)
+	readPointCellData(tri)
+	RenameSource(triFiles[0],tri)
+	rep=Show()
+	# rep.Opacity=1.0
 
 if conFiles:
 	con=XMLPolyDataReader(FileName=conFiles)

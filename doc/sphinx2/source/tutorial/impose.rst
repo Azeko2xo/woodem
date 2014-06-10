@@ -56,11 +56,16 @@ This shows how the feed was made movable by imposing :obj:`woo.dem.HarmonicOscil
 
 .. youtube:: M23o4tuak6g
 
-:obj:`woo.dem.InterpolatedMotion` was used in this example to move the bottle:
+:obj:`woo.dem.InterpolatedMotion` was used in this example to move the bottle (using :guilabel:`Video`, internally :obj:`woo._qt.SnapshotEngine`)
 
 .. youtube:: D_pc3RU5IXc
 
+The same simulation visualized in Paraview using the :obj:`woo.dem.VtkExport` engine:
+
+.. youtube:: jXL8qXi780M
+
 .. literalinclude:: bottle.py
+
 
 This example shows the :obj:`woo.dem.AlignedHarmonicOscillations` imposition, which is applied to all cylinders with different parameters:
 

@@ -27,6 +27,43 @@ int VtkExport::addTriangulatedObject(const vector<Vector3r>& pts, const vector<V
 	return tri.size();
 };
 
+/* triangulate strip given two equal-length indices of points, return indices of triangles; adds triangulation to an existing *tri* triangulation */
+int VtkExport::triangulateStrip(const vector<int>::iterator& ABegin, const vector<int>::iterator& AEnd, const vector<int>::iterator& BBegin, const vector<int>::iterator& BEnd, bool close, vector<Vector3i>& tri){
+	size_t ASize=AEnd-ABegin, BSize=BEnd-BBegin;
+	if(ASize!=BSize) throw std::logic_error("VtkExport::triangulateStrip: point lengths not equal.");
+	if(ASize<2) throw std::logic_error("VtkExport::triangulateStrip: at least 2 points must be given.");
+	int ret=0;
+	// vector<Vector3i> ret;
+	tri.reserve(tri.size()+2*ASize+(close?2:0));
+	for(size_t i=0; i<ASize-1; i++){
+		const int& a1=*(ABegin+i); const int& a2=*(ABegin+i+1);
+		const int& b1=*(BBegin+i); const int& b2=*(BBegin+i+1);
+		if(a1==b1 && a2==b2){ throw std::logic_error("VtkExport::triangulateStrip: indices "+to_string(i)+", "+to_string(i+1)+" are both co-incident."); }
+		else if(a1==b1){ tri.push_back(Vector3i(a1,b2,a2)); ret+=1; }
+		else if(a2==b2){ tri.push_back(Vector3i(a1,b1,a2)); ret+=1; }
+		else{ tri.push_back(Vector3i(b1,b2,a1)); tri.push_back(Vector3i(a1,b2,a2)); ret+=2; }
+	}
+	if(close){
+		// don't check for co-indicent vertices here
+		tri.push_back(Vector3i(*(BEnd-1),*BBegin,*(AEnd-1)));
+		tri.push_back(Vector3i(*(AEnd-1),*BBegin,*ABegin));
+		ret+=2;
+	}
+	return ret;
+}
+
+/* triangulate close fan around point a, adds to an existing triangulation *tri*. */
+int VtkExport::triangulateFan(const int& a, const vector<int>::iterator& BBegin, const vector<int>::iterator& BEnd, bool invert, vector<Vector3i>& tri){
+	size_t BSize(BEnd-BBegin);
+	tri.reserve(tri.size()+(BEnd-BBegin));
+	for(size_t i=0; i<BSize; i++){
+		int b1=*(BBegin+i), b2=*(BBegin+((i+1)%BSize));
+		if(!invert) tri.push_back(Vector3i(a,b1,b2));
+		else tri.push_back(Vector3i(a,b2,b1));
+	}
+	return BSize;
+}
+
 py::dict VtkExport::pyOutFiles() const {
 	py::dict ret;
 	for(auto& item: outFiles){
@@ -155,6 +192,17 @@ void VtkExport::run(){
 	_VTK_CELL_INT_ARR(mGrid,mMatId,"matId",1);
 	_VTK_CELL_ARR(mGrid,mVel,"vel",3);
 	_VTK_CELL_ARR(mGrid,mAngVel,"angVel",3);
+	// triangulated particles
+	auto tGrid=vtkSmartPointer<vtkUnstructuredGrid>::New();
+	auto tPos=vtkSmartPointer<vtkPoints>::New();
+	auto tCells=vtkSmartPointer<vtkCellArray>::New();
+	tGrid->SetPoints(tPos);
+	_VTK_POINT_ARR(tGrid,tEqRad,"eqRadius",1);
+	_VTK_CELL_ARR(tGrid,tColor,"color",1);
+	_VTK_CELL_ARR(tGrid,tMatState,"matState",1);
+	_VTK_CELL_INT_ARR(tGrid,tMatId,"matId",1);
+	_VTK_CELL_ARR(tGrid,tVel,"vel",3);
+	_VTK_CELL_ARR(tGrid,tAngVel,"angVel",3);
 
 	for(const auto& p: *dem->particles){
 		if(!p->shape) continue; // this should not happen really
@@ -189,11 +237,12 @@ void VtkExport::run(){
 			continue;
 		}
 		// no more spheres, just meshes now
-		int nCells=0;
+		int mCellNum=0;
+		int tCellNum=0;
 		if(facet){
 			const Vector3r &A(facet->nodes[0]->pos), &B(facet->nodes[1]->pos), &C(facet->nodes[2]->pos);
 			if(facet->halfThick==0.){
-				nCells=addTriangulatedObject({A,B,C},{Vector3i(0,1,2)},mPos,mCells);
+				mCellNum=addTriangulatedObject({A,B,C},{Vector3i(0,1,2)},mPos,mCells);
 			} else {
 				int fDiv=max(0,thickFacetDiv>=0?thickFacetDiv:subdiv);
 				const Vector3r dz=facet->getNormal()*facet->halfThick;
@@ -205,7 +254,7 @@ void VtkExport::run(){
 						Vector3i(1,2,4),Vector3i(4,2,5),
 						Vector3i(2,0,5),Vector3i(5,0,3),
 					}));
-					nCells=addTriangulatedObject({A+dz,B+dz,C+dz,A-dz,B-dz,C-dz},pts,mPos,mCells);
+					mCellNum=addTriangulatedObject({A+dz,B+dz,C+dz,A-dz,B-dz,C-dz},pts,mPos,mCells);
 				} else {
 					// with rounded edges
 					vector<Vector3r> vertices={A+dz,B+dz,C+dz,A-dz,B-dz,C-dz};
@@ -259,28 +308,51 @@ void VtkExport::run(){
 							}
 						}
 					}
-					nCells=addTriangulatedObject(vertices,pts,mPos,mCells);
+					mCellNum=addTriangulatedObject(vertices,pts,mPos,mCells);
 				}
 			}
 		}
 		else if(capsule){
-			LOG_ERROR("VtkExport: #"<<p->id<<": triangulated capsule export not yet implemented.");
-			#if 0
-			vector<Vector3r> pts; vector<Vector3i> tri;
+			vector<Vector3r> vert; vector<Vector3i> tri;
+			const Real& rad(capsule->radius); const Real& shaft(capsule->shaft);
 			const auto& node=capsule->nodes[0];
-			for(int i=0;i<subdiv;i++){
-				int J=2*i+1, K=(i==(subdiv-1))?1:2*i+3, L=(i==0)?2*(subdiv-1):2*i-2, M=2*i;
-				tri.push_back(Vector3i(M,J,L)); tri.push_back(Vector3i(J,M,K));
-				// if(cylCaps){ tri.push_back(Vector3i(M,L,centA)); tri.push_back(Vector3i(J,K,centB)); }
-				Real phi=phi0+i*2*M_PI/subdiv;
-				Vector2r c=capsule->radius*Vector2r(sin(phi),cos(phi));
-				Vector3r A,B;
-				A[ax0]=infCyl->glAB[0]; B[ax0]=infCyl->glAB[1];
-				A[ax1]=B[ax1]=c[0];
-				A[ax2]=B[ax2]=c[1];
-				pts.push_back(A); pts.push_back(B);
+			//int capPos=0, capNeg=1;
+			//vert.push_back(node->loc2glob(Vector3r( rad+.5*shaft,0,0)));
+			//vert.push_back(node->loc2glob(Vector3r(-rad-.5*shaft,0,0)));
+			Real phiStep=2*M_PI/subdiv;
+			int thetaDiv=int(ceil(subdiv/4));
+			Real thetaStep=.5*M_PI/thetaDiv;
+			// create points around; cap at +x first
+			for(int i=1; i<=thetaDiv; i++){
+				Real theta=i*thetaStep;
+				for(int j=0; j<subdiv; j++){
+					Real phi=j*phiStep;
+					vert.push_back(node->loc2glob(Vector3r(.5*shaft+rad*cos(theta),rad*sin(theta)*cos(phi),rad*sin(theta)*sin(phi))));
+				}
 			}
-			#endif
+			for(int i=0; i<thetaDiv; i++){
+				Real theta=.5*M_PI-i*thetaStep;
+				for(int j=0; j<subdiv; j++){
+					Real phi=j*phiStep;
+					vert.push_back(node->loc2glob(Vector3r(-.5*shaft-rad*cos(theta),rad*sin(theta)*cos(phi),rad*sin(theta)*sin(phi))));
+				}
+			}
+			// dummy array of sequential indices to pass to triangulateStrip and triangulateFan 
+			vector<int> ii(vert.size()); for(size_t i=0; i<vert.size(); i++) ii[i]=i;
+			// connect successive groups of subdiv points
+			assert((vert.size()%subdiv)==0);
+			for(size_t i=0; i<=vert.size()-2*subdiv; i+=subdiv){
+				auto i0=ii.begin()+i;
+				triangulateStrip(i0,i0+subdiv,i0+subdiv,i0+2*subdiv,/*close*/true,tri);
+			}
+			// connect endpoints (caps)
+			size_t lastGroupAt=vert.size()-subdiv;
+			vert.push_back(node->loc2glob(Vector3r( rad+.5*shaft,0,0)));
+			triangulateFan(vert.size()-1,ii.begin(),ii.begin()+subdiv,/*invert*/false,tri);
+			vert.push_back(node->loc2glob(Vector3r(-rad-.5*shaft,0,0)));
+			triangulateFan(vert.size()-1,ii.begin()+lastGroupAt,ii.begin()+lastGroupAt+subdiv,/*invert*/true,tri);
+
+			tCellNum=addTriangulatedObject(vert,tri,tPos,tCells);
 		}
 		else if(wall){
 			if(isnan(wall->glAB.volume())){
@@ -302,7 +374,7 @@ void VtkExport::run(){
 			A[ax0]=B[ax0]=C[ax0]=D[ax0]=pos[ax0];
 			A[ax1]=B[ax1]=lo[0]; C[ax1]=D[ax1]=hi[0];
 			A[ax2]=C[ax2]=lo[1]; B[ax2]=D[ax2]=hi[1];
-			nCells=addTriangulatedObject({A,B,C,D},{Vector3i(0,1,3),Vector3i(0,3,2)},mPos,mCells);
+			mCellNum=addTriangulatedObject({A,B,C,D},{Vector3i(0,1,3),Vector3i(0,3,2)},mPos,mCells);
 		}
 		else if(infCyl){
 			if(isnan(infCyl->glAB.squaredNorm())){
@@ -348,26 +420,23 @@ void VtkExport::run(){
 				cA[ax2]=cB[ax2]=c2[1];
 				pts.push_back(cA); pts.push_back(cB);
 			}
-			nCells=addTriangulatedObject(pts,tri,mPos,mCells);
+			mCellNum=addTriangulatedObject(pts,tri,mPos,mCells);
 		}
 		else if(ellipsoid){
 			const Vector3r& semiAxes(ellipsoid->semiAxes);
 			const Vector3r& pos(ellipsoid->nodes[0]->pos);
 			const Quaternionr& ori(ellipsoid->nodes[0]->ori);
-			//if(unitSphereTesselation.empty()) computeUnitSphereTesselation();
-			#ifdef WOO_OLDABI
-				// FIXME: ellLev hardcoded here for backwards compat only!!
-				int ellLev=1;
-			#endif
 			auto uSphTri(CompUtils::unitSphereTri20(ellLev));
 			vector<Vector3r> pts; pts.reserve(std::get<0>(uSphTri).size());
 			for(const Vector3r& p: std::get<0>(uSphTri)){ pts.push_back(pos+(ori*(p.array()*semiAxes.array()).matrix())); }
-			nCells=addTriangulatedObject(pts,std::get<1>(uSphTri),mPos,mCells);
+			tCellNum=addTriangulatedObject(pts,std::get<1>(uSphTri),tPos,tCells);
 		}
 		else continue; // skip unhandled shape
-		assert(nCells>0);
 		const auto& dyn=p->shape->nodes[0]->getData<DemData>();
-		for(int i=0;i<nCells;i++){
+		assert(mCellNum>0 || tCellNum>0);
+
+		// mesh and mesh-like particles (facets, walls, infCylinders)
+		for(int i=0;i<mCellNum;i++){
 			mColor->InsertNextValue(p->shape->color);
 			mMatId->InsertNextValue(p->material->id);
 			// velocity values are erroneous for multi-nodal particles (facets), don't care now
@@ -380,11 +449,25 @@ void VtkExport::run(){
 			}
 			mMatState->InsertNextValue(isnan(scalar)?nanValue:scalar);
 		}
+		// triangulated particles (ellipsoids, capsules)
+		for(int i=0;i<tCellNum;i++){
+			Real r=p->shape->equivRadius();
+			tEqRad->InsertNextValue(isnan(r)?-1:r);
+			tColor->InsertNextValue(p->shape->color);
+			tMatId->InsertNextValue(p->material->id);
+			// velocity values are erroneous for multi-nodal particles (facets), don't care now
+			tVel->InsertNextTupleValue(dyn.vel.data());
+			tAngVel->InsertNextTupleValue(dyn.angVel.data());
+			Real scalar=NaN;
+			if(p->matState){ scalar=p->matState->getScalar(0,scene->step);	/* if(facet) scalar/=p->shape->cast<Facet>().getArea(); */ }
+			tMatState->InsertNextValue(isnan(scalar)?nanValue:scalar);
+		}
 	}
 
 	// set cells (must be called onces cells are complete)
 	sGrid->SetCells(VTK_VERTEX,sCells);
 	mGrid->SetCells(VTK_TRIANGLE,mCells);
+	tGrid->SetCells(VTK_TRIANGLE,tCells);
 
 
 	vtkSmartPointer<vtkDataCompressor> compressor;
@@ -421,6 +504,16 @@ void VtkExport::run(){
 			writer->Write();
 			outFiles["mesh"].push_back(fn);
 		}
+		if(what&WHAT_TRI){
+			auto writer=vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
+			if(compress) writer->SetCompressor(compressor);
+			if(ascii) writer->SetDataModeToAscii();
+			string fn=out+"tri."+to_string(scene->step)+".vtu";
+			writer->SetFileName(fn.c_str());
+			writer->SetInput(tGrid);
+			writer->Write();
+			outFiles["tri"].push_back(fn);
+		}
 	} else {
 		// multiblock
 		auto multi=vtkSmartPointer<vtkMultiBlockDataSet>::New();
@@ -428,6 +521,7 @@ void VtkExport::run(){
 		if(what&WHAT_SPHERES) multi->SetBlock(i++,sGrid);
 		if(what&WHAT_MESH) multi->SetBlock(i++,mGrid);
 		if(what&WHAT_CON) multi->SetBlock(i++,cPoly);
+		if(what&WHAT_TRI) multi->SetBlock(i++,tGrid);
 		auto writer=vtkSmartPointer<vtkXMLMultiBlockDataWriter>::New();
 		if(compress) writer->SetCompressor(compressor);
 		if(ascii) writer->SetDataModeToAscii();
@@ -439,10 +533,6 @@ void VtkExport::run(){
 
 	outTimes.push_back(scene->time);
 	outSteps.push_back(scene->step);
-	#if 0
-		pvd=out+".pvd";
-		writePvd(pvd);
-	#endif
 
 	#undef _VTK_ARR_HELPER
 	#undef _VTK_POINT_ARR
@@ -450,25 +540,5 @@ void VtkExport::run(){
 	#undef _VTK_CELL_ARR
 	#undef _VTK_CELL_INT_ARR
 };
-
-#if 0
-void VtkExport::writePvd(const string& pvdName){
-	std::ofstream o(pvdName,std::ofstream::binary);
-	o<<"<?xml version=\"1.0\"?>\n<VTKFile type=\"Collection\" version=\"0.1\">\n\t<Collection>\n";
-	size_t n=0;
-	assert(outFiles.size()==outTimes.size());
-	assert(outFiles.size()==outSteps.size());
-	for(size_t i=0; i<outFiles.size(); i++){
-		assert(i<outTimes.size());
-		if(i==0) n=outFiles[i].size();
-		if(n!=outFiles[i].size()) throw std::logic_error("VtkExport.outFiles["+to_string(i)+": number of outputs per step mismatched (expecting "+to_string(n)+" as before, got "+to_string(outFiles[i].size()));
-		for(size_t j=0; j<n; j++){
-			o<<"\t\t<DataSet timestep=\""+to_string(outSteps[i])+"\" group=\""+to_string(j)+"\" part=\"\" file=\""+outFiles[i][j]+"\"/>\n";
-		}
-	}
-	o<<"\t</Collection>\n</VTKFile>\n";
-	o.close();
-}
-#endif
 
 #endif /*WOO_VTK*/

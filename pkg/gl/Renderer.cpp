@@ -103,6 +103,8 @@ void Renderer::init(){
 		/* transparent spheres (still not working): glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH | GLUT_MULTISAMPLE | GLUT_ALPHA); glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE); */
 		glutInitDone=true;
 	}
+	// this is not initialized properly for some reason?!
+	showTime=TIME_STEP|TIME_VIRT;
 	initDone=true;
 }
 

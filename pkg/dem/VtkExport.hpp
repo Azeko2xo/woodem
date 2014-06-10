@@ -33,13 +33,15 @@ struct VtkExport: public PeriodicEngine{
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	void run();
 
-	enum{WHAT_SPHERES=1,WHAT_MESH=2,WHAT_CON=4 /*,WHAT_PELLET=8*/ };
-	enum{WHAT_ALL=WHAT_SPHERES|WHAT_MESH|WHAT_CON};
-
-	// order of files in outFiles
-	enum{FILE_SPHERES=0,FILE_MESH,FILE_CON,FILE_SENTINEL}; 
+	enum{WHAT_SPHERES=1,WHAT_MESH=2,WHAT_CON=4,WHAT_TRI=8 /*,WHAT_PELLET=8*/ };
+	enum{WHAT_ALL=WHAT_SPHERES|WHAT_MESH|WHAT_CON|WHAT_TRI};
 
 	static int addTriangulatedObject(const vector<Vector3r>& pts, const vector<Vector3i>& tri, const vtkSmartPointer<vtkPoints>& vtkPts, const vtkSmartPointer<vtkCellArray>& cells);
+
+	// TODO: convert to boost::range instead of 2 iterators
+	int triangulateStrip(const vector<int>::iterator& ABegin, const vector<int>::iterator& AEnd, const vector<int>::iterator& BBegin, const vector<int>::iterator& BEnd, bool close, vector<Vector3i>& tri);
+	int triangulateFan(const int& a, const vector<int>::iterator& BBegin, const vector<int>::iterator& BEnd, bool invert, vector<Vector3i>& tri);
+
 
 	void postLoad(VtkExport&,void*){
 		if(what>WHAT_ALL || what<0) throw std::runtime_error("VtkExport.what="+to_string(what)+", but should be at most "+to_string(WHAT_ALL)+".");
@@ -76,6 +78,7 @@ struct VtkExport: public PeriodicEngine{
 			/* casting to (int) necessary, since otherwise it is a special enum type which is not registered in python and we get error: "TypeError: No to_python (by-value) converter found for C++ type: VtkExport::$_2" at boot. */ \
 			_classObj.attr("spheres")=(int)VtkExport::WHAT_SPHERES; \
 			_classObj.attr("mesh")=(int)VtkExport::WHAT_MESH; \
+			_classObj.attr("tri")=(int)VtkExport::WHAT_TRI; \
 			_classObj.attr("con")=(int)VtkExport::WHAT_CON; \
 			_classObj.attr("all")=(int)VtkExport::WHAT_ALL; \
 			/* _classObj.attr("pellet")=(int)VtkExport::WHAT_PELLET; */
