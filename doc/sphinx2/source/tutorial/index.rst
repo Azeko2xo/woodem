@@ -8,3 +8,4 @@ Tutorial
    data.rst
    mesh.rst
    impose.rst
+   factory.rst

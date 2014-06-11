@@ -36,10 +36,6 @@ def spherePWaveDt(radius,density,young):
 	from math import sqrt
 	return radius/sqrt(young/density)
 
-#def randomColor():
-#	"""Return random Vector3 with each component in interval 0…1 (uniform distribution)"""
-#	return Vector3(random.random(),random.random(),random.random())
-
 def defaultMaterial():
 	"""Return default material, when creating particles with :obj:`woo.utils.sphere` and friends and material is unspecified. This function returns ``FrictMat(density=1e3,young=1e7,ktDivKn=.2,tanPhi=tan(.5))``.
 
@@ -90,7 +86,7 @@ def _mkDemNode(**kw):
 	n=Node(**kw); n.dem=DemData() 
 	return n
 
-def sphere(center,radius,mat=defaultMaterial,fixed=False,wire=False,color=None,highlight=False,mask=1):
+def sphere(center,radius,mat=defaultMaterial,fixed=False,wire=False,color=None,highlight=False,mask=0b0001):
 	"""Create sphere with given parameters; mass and inertia computed automatically.
 
 	:param Vector3 center: center
@@ -137,7 +133,7 @@ def sphere(center,radius,mat=defaultMaterial,fixed=False,wire=False,color=None,h
 	b.mask=mask
 	return b
 
-def ellipsoid(center,semiAxes,ori=Quaternion.Identity,angVel=None,color=None,mat=defaultMaterial,fixed=False,wire=False,visible=True,mask=1,**kw):
+def ellipsoid(center,semiAxes,ori=Quaternion.Identity,angVel=None,color=None,mat=defaultMaterial,fixed=False,wire=False,visible=True,mask=0b001,**kw):
 	'Return an :obj:`woo.dem.Ellipsoid` particle.'
 	p=Particle()
 	p.shape=Ellipsoid(semiAxes=semiAxes,color=color if color else random.random())
@@ -149,7 +145,7 @@ def ellipsoid(center,semiAxes,ori=Quaternion.Identity,angVel=None,color=None,mat
 	if angVel: p.shape.nodes[0].dem.angVel=angVel
 	return p
 
-def capsule(center,radius,shaft,ori=Quaternion.Identity,fixed=False,color=None,wire=False,mat=defaultMaterial,mask=1):
+def capsule(center,radius,shaft,ori=Quaternion.Identity,fixed=False,color=None,wire=False,mat=defaultMaterial,mask=0b0001):
 	'Return a ready-made capsule particle.'
 	p=Particle()
 	p.shape=Capsule(radius=radius,shaft=shaft,color=color if color else random.random())
@@ -159,7 +155,7 @@ def capsule(center,radius,shaft,ori=Quaternion.Identity,fixed=False,color=None,w
 	p.mask=mask
 	return p
 
-def wall(position,axis,sense=0,glAB=None,fixed=True,mass=0,color=None,mat=defaultMaterial,visible=True,mask=1):
+def wall(position,axis,sense=0,glAB=None,fixed=True,mass=0,color=None,mat=defaultMaterial,visible=True,mask=0b0011):
 	"""Return ready-made wall body.
 
 	:param float-or-Vector3-or-Node position: center of the wall. If float, it is the position along given axis, the other 2 components being zero
@@ -183,7 +179,7 @@ def wall(position,axis,sense=0,glAB=None,fixed=True,mass=0,color=None,mat=defaul
 	p.shape.visible=visible
 	return p
 
-def facet(vertices,fakeVel=None,halfThick=0.,fixed=True,wire=True,color=None,highlight=False,mat=defaultMaterial,visible=True,mask=1,flex=False):
+def facet(vertices,fakeVel=None,halfThick=0.,fixed=True,wire=True,color=None,highlight=False,mat=defaultMaterial,visible=True,mask=0b0011,flex=False):
 	"""Create facet with given parameters.
 
 	:param [Vector3,Vector3,Vector3] vertices: coordinates of vertices in the global coordinate system.
@@ -207,7 +203,7 @@ def facet(vertices,fakeVel=None,halfThick=0.,fixed=True,wire=True,color=None,hig
 	p.shape.visible=visible
 	return p
 
-def infCylinder(position,radius,axis,glAB=None,fixed=True,mass=0,color=None,wire=False,mat=defaultMaterial,mask=1):
+def infCylinder(position,radius,axis,glAB=None,fixed=True,mass=0,color=None,wire=False,mat=defaultMaterial,mask=0b0011):
 	"""Return a ready-made infinite cylinder particle."""
 	p=Particle()
 	p.shape=InfCylinder(radius=radius,axis=axis,color=color if color else random.random())

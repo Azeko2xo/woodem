@@ -6,36 +6,6 @@ Meshes
 
    This chapter explains particle masks and how to create mesh -- by importing or by paramteric construction.
 
-Particle masks
-==============
-Before going to the import itself, :obj:`Particle.mask <woo.dem.Particle.mask>` must be introduced. Mask is a `bit array <http://en.wikipedia.org/wiki/Bit_array>`__ which determines which particles may have contacts with other particles. Mask is a regular (integer) number in the memory, but is interpreted as individual bits, for example like this::
-
-    0000 0010     = 2 in decimal
-    0000 0011     = 3 in decimal
-    0000 0110     = 6 in decimal
-
-Binary numbers can be written in python directly, e.g. ``0b0010`` would be the first bit array.
-
-There are two basic rules:
-
-1. Particles collide only if they have a common bit (that is, if their `bitwise AND <http://en.wikipedia.org/wiki/Bitwise_operation#AND>`__ is nonzero: ``maskA & maskB !=0``).
-
-2. If a common bit is contained in :obj:`DemField.loneMask <woo.dem.DemField.loneMask>`, the particles will not collide. This rule is to avoid collisions of particles where it is meaningless, such as facets in a mesh between themselves. With meshes, the number of spurious "contacts" can be **very high** (thousands) slowing down the simulation unnecessarily.
-
-Mask bits can be further used for marking particles (e.g. with :obj:`~woo.dem.BoxDeleter`, when :obj:`~woo.dem.BoxDeleter.markMask` is set) in arbitrary ways.
-
-Common practice is the following::
-
-   partMask=0b0001        # particles set the first bit (from the right) only
-   meshMask=0b0011        # meshes will collide with particles (first bit), but not among themselves (second bit)
-   S.dem.loneMask=0b0010  # prevent collision of particles having this bit in common
-
-   # use masks when creating particles
-   S.dem.par.append(Sphere.make((0,0,1),.3,mask=partMask))
-   S.dem.par.append(Facet.make([(0,0,0),(1,0,0),(0,1,0)],mask=meshMask))
-
-.. todo:: It might be a good idea to make this the default: set :obj:`woo.dem.DemField.loneMask` to ``0b0010`` by default, and create usual particles with 0b0001 and meshes/walls/... with 0b0010.
-
 STL import
 ===========
 
@@ -131,3 +101,35 @@ In summary, the conveyor code looks like this, in a compact way:
 .. warning:: Do **not** call :obj:`woo.dem.DemField.collectNodes` once a mesh is added to :obj:`S.dem.par <woo.dem.DemField.particles>`. All nodes would be made subject to motion integration, which is not something you want for static meshes!
 
 .. todo:: Think about ways how to make :obj:`woo.dem.DemField.collectNodes` smarter.
+
+
+Note on particle masks
+=======================
+
+:obj:`Particle.mask <woo.dem.Particle.mask>` is a `bit array <http://en.wikipedia.org/wiki/Bit_array>`__ which determines which particles may have contacts with other particles. Mask is a regular (integer) number in the memory, but is interpreted as individual bits, for example like this::
+
+    0000 0010     = 2 in decimal
+    0000 0011     = 3 in decimal
+    0000 0110     = 6 in decimal
+
+Binary numbers can be written in python directly, e.g. ``0b0010`` would be the first bit array, equal to ``2`` in decimal.
+
+There are two basic rules:
+
+1. Particles collide only if they have a common bit (that is, if their `bitwise AND <http://en.wikipedia.org/wiki/Bitwise_operation#AND>`__ is nonzero: ``maskA & maskB !=0``).
+
+2. If a common bit is contained in :obj:`DemField.loneMask <woo.dem.DemField.loneMask>`, the particles will not collide. This rule is to avoid collisions of particles where it is meaningless, such as facets in a mesh between themselves. With meshes, the number of spurious "contacts" can be **very high** (thousands) slowing down the simulation unnecessarily.
+
+Mask bits can be further used for marking particles (e.g. with :obj:`~woo.dem.BoxDeleter`, when :obj:`~woo.dem.BoxDeleter.markMask` is set) in arbitrary ways.
+
+**Default values** of mask are different for different particles:
+
+1. Particles which usually move (:obj:`~woo.dem.Sphere`, :obj:`~woo.dem.Ellipsoid`, :obj:`~woo.dem.Capsule`) have the mask set to ``0b0001`` by default (when created using the :obj:`Sphere.make <woo.dem.Sphere.make>` etc functions).
+
+2. Particles usually acting as the boundary (:obj:`~woo.dem.Facet`, :obj:`~woo.dem.InfCylinder`, :obj:`~woo.dem.Wall`) set the mask to ``0b0011`` by default.
+
+3. :obj:`DemField.loneMask <woo.dem.DemField.loneMask>` default to ``0b0010``.
+
+This means that any contacts between boundary particles (:obj:`~woo.dem.Facet` + :obj:`~woo.dem.Facet` and such) are avoided, but that boundary will still interact with particles which usually move.
+
+If the default behavior is not sufficiently flexible ofr your setup, it can be always tuned by hand.
