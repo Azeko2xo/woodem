@@ -19,7 +19,7 @@ PSD-based
 
 For example, let's have the following PSD:
 
-.. tikz:: \begin{axis}[area style, enlarge x limits=false, xlabel=d,ylabel={$P(D\leq d)$}]\addplot[mark=o,very thick,red,grid=both] coordinates { (.3, 0) (.3, .2) (.4, .9) (.5, 1.) }; \end{axis}
+.. tikz:: \begin{axis}[area style, enlarge x limits=false, xlabel=d,ylabel={$P(D\leq d)$},grid=major]\addplot[mark=o,very thick,red] coordinates { (.3, 0) (.3, .2) (.4, .9) (.5, 1.) }; \end{axis}
 
 Let's play with the generator now:
 
@@ -35,9 +35,13 @@ Let's play with the generator now:
 
    Woo [1]: import pylab
 
-   Woo [1]: pylab.plot(*gen.inputPsd(scale=True),label='input')
+   # scale the PSD to the mass generator
+   Woo [1]: pylab.plot(*gen.inputPsd(scale=True),label='input',linewidth=3,alpha=.4)
+   
+   # we could, alternatively, normalize the output PSD by gen.psd(normalize=True)
+   Woo [1]: pylab.plot(*gen.psd(),label='output',linewidth=3,alpha=.4)
 
-   Woo [1]: pylab.plot(*gen.psd(),label='input')
+   Woo [1]: pylab.legend()
    
    @savefig tutorial-psd-sphere-generator.png width=8in
    Woo [1]: pylab.grid(True)
