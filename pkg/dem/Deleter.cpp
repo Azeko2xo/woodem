@@ -60,7 +60,8 @@ void BoxDeleter::run(){
 		num++;
 		mass+=m;
 		stepMass+=m;
-		if(dynamic_cast<Sphere*>(p->shape.get())){
+		// handle radius recovery with spheres
+		if(recoverRadius && p->shape->isA<Sphere>()){
 			auto& s=p->shape->cast<Sphere>();
 			Real r=s.radius;
 			if(recoverRadius){
@@ -68,6 +69,9 @@ void BoxDeleter::run(){
 				rDivR0.push_back(s.radius/r);
 			}
 			if(save) diamMass.push_back(Vector2r(2*r,m));
+		} else{
+			// all other cases
+			if(save) diamMass.push_back(Vector2r(2*p->shape->equivRadius(),m));
 		}
 		LOG_TRACE("DemField.par["<<id<<"] will be "<<(deleting?"deleted.":"marked."));
 		if(deleting) dem->removeParticle(id);

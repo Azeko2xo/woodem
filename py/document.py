@@ -39,6 +39,7 @@ def _ensureInitialized():
 		import pkgutil
 		for importer, modname, ispkg in pkgutil.iter_modules(pkg.__path__):
 			fqmodname=pkg.__name__+'.'+modname
+			print fqmodname
 			if exclude and re.match(exclude,fqmodname):
 				print 'Skipping  '+fqmodname
 				continue
@@ -47,9 +48,11 @@ def _ensureInitialized():
 				try:
 					__import__(fqmodname,pkg.__name__)
 					print 'ok'
-					if ispkg:
-						subImport(sys.modules[fqmodname])
-				except ImportError: print '(error, ignoring)'
+				except (ImportError, NameError): print '(error, ignoring)'
+			if fqmodname in sys.modules and ispkg:
+				print 'Import submodules from ',fqmodname
+				subImport(sys.modules[fqmodname])
+				
 	modExcludeRegex='^woo\.(_cxxInternal.*)(\..*|$)'
 	subImport(woo,exclude=modExcludeRegex)
 	try:

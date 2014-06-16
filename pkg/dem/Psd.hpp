@@ -17,7 +17,7 @@ struct PsdSphereGenerator: public ParticleGenerator{
 	void clear() WOO_CXX11_OVERRIDE { ParticleGenerator::clear(); weightTotal=0.; std::fill(weightPerBin.begin(),weightPerBin.end(),0.); }
 	Real critDt(Real density, Real young) WOO_CXX11_OVERRIDE;
 	bool isSpheresOnly() const WOO_CXX11_OVERRIDE { return true; }
-	py::tuple pyInputPsd(bool scale, bool cumulative, int num) const;
+	py::tuple pyInputPsd(bool normalize, bool cumulative, int num) const;
 	Vector2r minMaxDiam() const WOO_CXX11_OVERRIDE;
 	Real padDist() const WOO_CXX11_OVERRIDE{ if(psdPts.empty()) return NaN; return psdPts[0][1]/2.; }
 
@@ -30,7 +30,7 @@ struct PsdSphereGenerator: public ParticleGenerator{
 		((Real,weightTotal,,AttrTrait<>().noGui().noDump().readonly(),"Total mass (number, with *discrete*) of of particles generated."))
 		, /* ctor */
 		, /* py */
-			.def("inputPsd",&PsdSphereGenerator::pyInputPsd,(py::arg("scale")=false,py::arg("cumulative")=true,py::arg("num")=80),"Return input PSD; it will be a staircase function if *discrete* is true, otherwise linearly interpolated. With *scale*, the curve is multiplied with the actually generated mass/numer of particles (depending on whether *mass* is true or false); the result should then be very similar to the psd() output with actually generated spheres. Discrete non-cumulative PSDs are handled specially: discrete distributions return skypline plot with peaks represented as plateaus of the relative width 1/*num*; continuous distributions return ideal histogram computed for relative bin with 1/*num*; thus returned histogram will match non-cummulative histogram returned by `ParticleGenerator.psd(cumulative=False)`, provided *num* is the same in both cases.")
+			.def("inputPsd",&PsdSphereGenerator::pyInputPsd,(py::arg("normalize")=true,py::arg("cumulative")=true,py::arg("num")=80),"Return input PSD; it will be a staircase function if *discrete* is true, otherwise linearly interpolated. With *normalize*, the maximum is equal to 1.; otherwise, the curve is multiplied with the actually generated mass/numer of particles (depending on whether :obj:`mass` is true or false); the result should then be very similar to the :obj:`woo.dem.ParticleGenerator.psd` output with actually generated spheres. Discrete non-cumulative PSDs are handled specially: discrete distributions return skypline plot with peaks represented as plateaus of the relative width 1/*num*; continuous distributions return ideal histogram computed for relative bin with 1/*num*; thus returned histogram will match non-cummulative histogram returned by :obj:`ParticleGenerator.psd(cumulative=False) <woo.dem.ParticleGenerator.psd>`, provided *num* is the same in both cases.\n\n .. todo:: with ``cumulative=False`` and when the PSD does not :math:`x`-start at 0, the plot is not correct as the hump coming from the jump in the PSD (from 0 to non-zero at the left) is not taken in account.")
 	);
 };
 WOO_REGISTER_OBJECT(PsdSphereGenerator);

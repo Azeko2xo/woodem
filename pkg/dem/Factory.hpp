@@ -17,6 +17,9 @@ struct ParticleFactory: public PeriodicEngine{
 		if(isnan(currRate)||stepPrev<0) currRate=currRateNoSmooth;
 		else currRate=(1-currRateSmooth)*currRate+currRateSmooth*currRateNoSmooth;
 	}
+	// return true when maximum mass/num of particles (or other termination condition) has been reached
+	// runs doneHook inside and sets dead=True
+	bool everythingDone();
 	#define woo_dem_ParticleFactory__CLASS_BASE_DOC_ATTRS \
 		ParticleFactory,PeriodicEngine,ClassTrait().doc("Factory generating new particles. This is an abstract base class which in itself does not generate anything, but provides some unified interface to derived classes.").section("Factories","TODO",{"ParticleGenerator","ParticleShooter","BoxDeleter"}), \
 		((Real,maxMass,-1,,"Mass at which the engine will not produce any particles (inactive if not positive)")) \
@@ -56,7 +59,7 @@ struct ParticleGenerator: public Object{
 		((vector<Vector2r>,genDiamMass,,AttrTrait<Attr::readonly>().noGui().noDump(),"List of generated particle's (equivalent) radii and masses (for making granulometry)")) \
 		((bool,save,true,,"Save generated particles so that PSD can be generated afterwards")) \
 		,/*py*/ \
-			.def("psd",&ParticleGenerator::pyPsd,(py::arg("mass")=true,py::arg("cumulative")=true,py::arg("normalize")=false,py::arg("dRange")=Vector2r(NaN,NaN),py::arg("num")=80),"Return PSD for particles generated.") \
+			.def("psd",&ParticleGenerator::pyPsd,(py::arg("mass")=true,py::arg("cumulative")=true,py::arg("normalize")=true,py::arg("dRange")=Vector2r(NaN,NaN),py::arg("num")=80),"Return PSD for particles generated.") \
 			.def("diamMass",&ParticleGenerator::pyDiamMass,(py::arg("zipped")=false),"With *zipped*, return list of (diameter, mass); without *zipped*, return tuple of 2 arrays, diameters and masses.") \
 			.def("massOfDiam",&ParticleGenerator::pyMassOfDiam,(py::arg("min")=0,py::arg("max")=Inf),"Return mass of particles of which diameters are between *min* and *max*.") \
 			.def("clear",&ParticleGenerator::clear,"Clear stored data about generated particles; only subsequently generated particles will be considered in the PSD.") \
@@ -91,15 +94,15 @@ WOO_REGISTER_OBJECT(ParticleShooter);
 
 struct AlignedMinMaxShooter: public ParticleShooter{
 	void operator()(Vector3r& vel, Vector3r& angVel){
-		if(isnan(vRange[0]) || isnan(vRange[0])){ throw std::runtime_error("AlignedMinMaxShooter.vRange must not be NaN."); }
+		if(isnan(vRange.maxCoeff())){ throw std::runtime_error("AlignedMinMaxShooter.vRange: must not contain NaN."); }
 		vel=dir*(vRange[0]+Mathr::UnitRandom()*(vRange[1]-vRange[0]));
 		angVel=Vector3r::Zero();
 	}
 	void postLoad(AlignedMinMaxShooter&, void*){ dir.normalize(); }
 	#define woo_dem_AlignedMinMaxShooter__CLASS_BASE_DOC_ATTRS \
 		AlignedMinMaxShooter,ParticleShooter,"Shoot particles in one direction, with velocity magnitude constrained by vRange values", \
-		((Vector3r,dir,Vector3r::UnitX(),AttrTrait<Attr::triggerPostLoad>(),"Direction (will be normalized)")) \
-		((Vector2r,vRange,Vector2r(NaN,NaN),,"Minimum velocity magnitude"))
+		((Vector3r,dir,Vector3r::UnitX(),AttrTrait<Attr::triggerPostLoad>(),"Direction (will be normalized).")) \
+		((Vector2r,vRange,Vector2r(NaN,NaN),,"Minimum and maximum velocities."))
 	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_AlignedMinMaxShooter__CLASS_BASE_DOC_ATTRS);
 };
 WOO_REGISTER_OBJECT(AlignedMinMaxShooter);
@@ -119,7 +122,7 @@ struct RandomFactory: public ParticleFactory{
 	bool spheresOnly; // set at each step, queried from the generator
 	#define woo_dem_RandomFactory__CLASS_BASE_DOC_ATTRS_PY \
 		RandomFactory,ParticleFactory,"Factory generating new particles. This class overrides :obj:`woo.core.Engine.critDt`, which in turn calls :obj:`woo.dem.ParticleGenerator.critDt` with all possible :obj:`materials` one by one.", \
-		((Real,massFlowRate,NaN,AttrTrait<>().massFlowRateUnit(),"Mass flow rate; if zero, generate as many particles as possible, until maxAttemps is reached.")) \
+		((Real,massRate,NaN,AttrTrait<>().massRateUnit(),"Mass flow rate; if zero, generate as many particles as possible, until maxAttemps is reached.")) \
 		((vector<shared_ptr<Material>>,materials,,,"Set of materials for new particles, randomly picked from")) \
 		((shared_ptr<ParticleGenerator>,generator,,,"Particle generator instance")) \
 		((shared_ptr<ParticleShooter>,shooter,,,"Particle shooter instance (assigns velocities to generated particles. If not given, particles have zero velocities initially.")) \

@@ -7,7 +7,7 @@ S=woo.master.scene=Scene(fields=[DemField(gravity=(0,0,-9.81))])
 S.dem.par.append([Wall.make(0,axis=2),Sphere.make((0,0,2),radius=.2)])
 S.dem.collectNodes()
 # engines:
-S.engines=S.dem.minimalEngines(damping=.2)+[PyRunner(10,'S.autoPlotData()')]
+S.engines=S.dem.minimalEngines(damping=.2)+[PyRunner(10,'S.plot.autoData()')]
 # plotting:
 S.plot.plots={'t=S.time':('z=S.dem.par[1].pos[2]')}
 # extras:

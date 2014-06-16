@@ -33,7 +33,7 @@ WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_CylinderFactory__CLASS_BASE_DOC_ATTRS);
 py::tuple ParticleGenerator::pyPsd(bool mass, bool cumulative, bool normalize, Vector2r dRange, int num) const {
 	if(!save) throw std::runtime_error("ParticleGenerator.save must be True for calling ParticleGenerator.psd()");
 	vector<Vector2r> psd=DemFuncs::psd(genDiamMass,/*cumulative*/cumulative,/*normalize*/normalize,num,dRange,
-		/*radius getter*/[](const Vector2r& diamMass) ->Real { return diamMass[0]; },
+		/*diameter getter*/[](const Vector2r& diamMass) ->Real { return diamMass[0]; },
 		/*weight getter*/[&](const Vector2r& diamMass) -> Real{ return mass?diamMass[1]:1.; }
 	);
 	py::list diameters,percentage;
@@ -101,6 +101,18 @@ Real RandomFactory::critDt() {
 }
 
 
+bool ParticleFactory::everythingDone(){
+	if((maxMass>0 && mass>=maxMass) || (maxNum>0 && num>=maxNum)){
+		LOG_INFO("mass or number reached, making myself dead.");
+		dead=true;
+		if(zeroRateAtStop) currRate=0.;
+		if(!doneHook.empty()){ LOG_DEBUG("Running doneHook: "<<doneHook); Engine::runPy(doneHook); }
+		return true;
+	}
+	return false;
+}
+
+
 void RandomFactory::run(){
 	DemField* dem=static_cast<DemField*>(field.get());
 	if(!generator) throw std::runtime_error("RandomFactory.generator==None!");
@@ -112,8 +124,8 @@ void RandomFactory::run(){
 		}
 		if(dynamic_pointer_cast<InsertionSortCollider>(collider)) static_pointer_cast<InsertionSortCollider>(collider)->forceInitSort=true;
 	}
-	if(isnan(massFlowRate)) throw std::runtime_error("RandomFactory.massFlowRate must be given (is "+to_string(massFlowRate)+"); if you want to generate as many particles as possible, say massFlowRate=0.");
-	if(massFlowRate<=0 && maxAttempts==0) throw std::runtime_error("RandomFactory.massFlowRate<=0 (no massFlowRate prescribed), but RandomFactory.maxAttempts==0. (unlimited number of attempts); this would cause infinite loop.");
+	if(isnan(massRate)) throw std::runtime_error("RandomFactory.massRate must be given (is "+to_string(massRate)+"); if you want to generate as many particles as possible, say massRate=0.");
+	if(massRate<=0 && maxAttempts==0) throw std::runtime_error("RandomFactory.massFlowRate<=0 (no massFlowRate prescribed), but RandomFactory.maxAttempts==0. (unlimited number of attempts); this would cause infinite loop.");
 	if(maxAttempts<0){
 		std::runtime_error("RandomFactory.maxAttempts must be non-negative. Negative value, leading to meaking engine dead, is achieved by setting atMaxAttempts=RandomFactory.maxAttDead now.");
 	}
@@ -127,7 +139,7 @@ void RandomFactory::run(){
 	if(stepPrev==-1 && stepPeriod>0) stepPrev=-stepPeriod; 
 	long nSteps=scene->step-stepPrev;
 	// to be attained in this step;
-	stepGoalMass+=massFlowRate*scene->dt*nSteps; // stepLast==-1 if never run, which is OK
+	stepGoalMass+=massRate*scene->dt*nSteps; // stepLast==-1 if never run, which is OK
 	vector<AlignedBox3r> genBoxes; // of particles created in this step
 	vector<shared_ptr<Particle>> generated;
 	Real stepMass=0.;
@@ -147,15 +159,10 @@ void RandomFactory::run(){
 
 	while(true){
 		// finished forever
-		if((maxMass>0 && mass>=maxMass) || (maxNum>0 && num>=maxNum)){
-			LOG_INFO("mass or number reached, making myself dead.");
-			dead=true;
-			if(zeroRateAtStop) currRate=0.;
-			if(!doneHook.empty()){ LOG_DEBUG("Running doneHook: "<<doneHook); Engine::runPy(doneHook); }
-			return;
-		}
+		if(everythingDone()) return;
+
 		// finished in this step
-		if(massFlowRate>0 && mass>=stepGoalMass) break;
+		if(massRate>0 && mass>=stepGoalMass) break;
 
 		shared_ptr<Material> mat;
 		Vector3r pos=Vector3r::Zero();
@@ -166,8 +173,8 @@ void RandomFactory::run(){
 			/***** too many tries, give up ******/
 			if(attempt>=maxAttempts){
 				generator->revokeLast(); // last particle could not be placed
-				if(massFlowRate<=0){
-					LOG_DEBUG("maxAttempts="<<maxAttempts<<" reached; since massFlowRate is not positive, we're done in this step");
+				if(massRate<=0){
+					LOG_DEBUG("maxAttempts="<<maxAttempts<<" reached; since massRate is not positive, we're done in this step");
 					goto stepDone;
 				}
 				switch(atMaxAttempts){

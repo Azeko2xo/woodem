@@ -362,7 +362,7 @@ def makeVideo(frameSpec,out,renameNotOverwrite=True,fps=24,kbps=15000,holdLast=-
 		os.rename(out,out+"~%d"%i); print "Output file `%s' already existed, old file renamed to `%s'"%(out,out+"~%d"%i)
 	if holdLast<0: holdLast*=-fps
 	if isinstance(frameSpec,list) or isinstance(frameSpec,tuple):
-		if holdLast>0: frameSpec=list(frameSpec)+holdLast*[frameSpec[-1]]
+		if holdLast>0: frameSpec=list(frameSpec)+int(holdLast)*[frameSpec[-1]]
 		frameSpec=','.join(frameSpec)
 
 	devNull='nul' if (sys.platform=='win32') else '/dev/null'

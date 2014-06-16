@@ -6,7 +6,21 @@ Summary
 --------
 The task of this study was to investigate the **role of support friction in triaxial tests** using the discrete element method. Spherical grains and elastic membrane around the cylindrical specimen were used. Parametric study was performed varying specimen size, aspect ratio and support friction (normal or reduced values). The conclusion was that the role of support friction is in the same order of magnitude as scatter due to random factors in the simulation (such as particle arrangement), in contrast to laboratory experiments. A likely cause for this outcome is are spherical grains which do not have any rolling friction, unlike irregular shapes of real soils.
 
-.. note:: The simulation presented here was done using the :obj:`woo.pre.cylTriax` preprocessor. Input data for the preprocessor will be added to Woo sources at some point, so that the results can be independently recalculated.
+.. note:: The simulation presented here was done using the :obj:`woo.pre.cylTriax.CylTriaxTest` preprocessor. The results can be obtained by downloading
+
+   * :download:`preprocessor file <downloads/cyl-triax.preprocessor>`,
+   * :download:`batch table <downloads/cyl-triax.batch.xls>`,
+   * :download:`script to produce graphs <downloads/cyl-triax.postprocess-figures.py>`
+
+   Running::
+   
+      woo-batch --job-threads=3 cyl-triax.batch.xls cyl-triax.preprocessor
+
+   (adjust ``--job-threads`` according to how many cores you want to allocate for each simulation; or don't specify for using one core per simulation) and waiting a few hours for simulations to finish will result in reports for individual simulations being created, and also the ``cyl-triax.batch.hdf5`` file with aggregate results. Afterwards,  run::
+
+      woo cyl-triax.postprocess-figures.py
+
+   to produce graphs shown below.
 
 .. admonition:: Acknowledgement
 

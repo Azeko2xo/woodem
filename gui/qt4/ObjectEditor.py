@@ -1808,7 +1808,7 @@ class SeqFundamentalEditor(QFrame):
 			logging.trace('counts',self.form.rowCount(),self.form.count())
 			for wi in self.form.itemAt(row,QFormLayout.FieldRole),self.form.itemAt(row,QFormLayout.LabelRole):
 				self.form.removeItem(wi)
-				if not wi.widget(): continue
+				if not wi or not wi.widget(): continue
 				logging.trace('deleting widget',wi.widget())
 				# for some reason, deleting does not make the thing disappear visually; hiding does, however
 				# FIXME: this might be the reason why ever-resizing sequences eat up RAM!!

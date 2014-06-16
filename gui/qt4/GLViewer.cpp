@@ -604,7 +604,10 @@ void GLViewer::draw(bool withNames, bool fast)
 		}
 		const shared_ptr<Scene>& scene=Master::instance().getScene();
 		camera()->setZClippingCoefficient(Renderer::zClipCoeff);
-		if(Renderer::scene.get()!=scene.get()) setInitialView();
+		if(Renderer::scene.get()!=scene.get()){
+			// if the same scene was reloaded, do not change the view
+			if(!(Renderer::scene && scene && !scene->lastSave.empty() && Renderer::scene->lastSave==scene->lastSave)) setInitialView();
+		}
 		Renderer::render(scene,withNames,fast);
 	}
 	framesDone++;

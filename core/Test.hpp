@@ -36,7 +36,7 @@ namespace woo{
 			_WOO_UNIT_ATTR(torque) \
 			_WOO_UNIT_ATTR(pressure) \
 			_WOO_UNIT_ATTR(stiffness) \
-			_WOO_UNIT_ATTR(massFlowRate) \
+			_WOO_UNIT_ATTR(massRate) \
 			_WOO_UNIT_ATTR(density) \
 			_WOO_UNIT_ATTR(fraction) \
 			_WOO_UNIT_ATTR(surfEnergy) \

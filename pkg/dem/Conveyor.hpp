@@ -40,7 +40,7 @@ struct ConveyorFactory: public ParticleFactory{
 		((vector<Real>,radii,,AttrTrait<Attr::triggerPostLoad>().noGui(),"Radii for the packing (if :obj:`spherePack` is given, radii are computed)")) \
 		((vector<Vector3r>,centers,,AttrTrait<Attr::triggerPostLoad>().noGui(),"Centers of spheres/clumps in the packing (if :obj:`spherePack` is given, centers are computed)")) \
 		((vector<shared_ptr<SphereClumpGeom>>,clumps,,AttrTrait<Attr::triggerPostLoad>().noGui(),"Clump geometry, corresponding to each :obj:`radii` and :obj:`centers`. (if :obj:`spherePack` is given, clumps are computed)")) \
-		((Real,massRate,NaN,AttrTrait<Attr::triggerPostLoad>().massFlowRateUnit(),"Average mass flow rate; if given, :obj:`vel` is adjusted (if both are given, :obj:`massRate` takes precedence).")) \
+		((Real,massRate,NaN,AttrTrait<Attr::triggerPostLoad>().massRateUnit(),"Average mass flow rate; if given, :obj:`vel` is adjusted (if both are given, :obj:`massRate` takes precedence).")) \
 		((Real,vel,NaN,AttrTrait<Attr::triggerPostLoad>().velUnit(),"Velocity of particles; if specified, :obj:`massRate` is adjusted (of both are given, such as in constructor, :obj:`massRate` has precedence and a warning is issued if the two don't match)")) \
 		((Real,packVel,NaN,AttrTrait<>().readonly().velUnit(),"Velocity by which the packing is traversed and new particles emmited; always smaller than or equal to :obj:`vel`. Computed automatically.")) \
 		((Real,relLatVel,0.,,"Relative velocity components lateral to :obj:`vel` (local x-axis); both components are assigned with uniform probability from range `(-relLatVel*vel,+relLatVel*vel)`, at the moment the particle leaves the barrier layer.")) \
@@ -61,7 +61,7 @@ struct ConveyorFactory: public ParticleFactory{
 		((Real,lastX,0,AttrTrait<>().readonly(),"X-coordinate of last-generated particles in the packing")) \
 		((list<shared_ptr<Node>>,barrier,,AttrTrait<>().readonly().noGui(),"Nodes which make up the barrier and will be unblocked once they leave barrierLayer.")) \
 		((shared_ptr<Node>,node,make_shared<Node>(),AttrTrait<>(),"Position and orientation of the factory; local x-axis is the feed direction.")) \
-		((Real,avgRate,NaN,AttrTrait<>().readonly().massFlowRateUnit(),"Average feed rate (computed from :obj:`Material density <Material.density>`, packing and  and :obj:`vel`")) \
+		((Real,avgRate,NaN,AttrTrait<>().readonly().massRateUnit(),"Average feed rate (computed from :obj:`Material density <Material.density>`, packing and  and :obj:`vel`")) \
 		((int,kinEnergyIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for kinetic energy in scene.energy")) \
 		((vector<Vector2r>,genDiamMass,,AttrTrait<Attr::readonly>().noGui(),"List of generated diameters and masses (for making granulometry)")) \
 		,/*py*/ \

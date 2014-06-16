@@ -58,7 +58,7 @@ class TestFactoriesAndDeleters(unittest.TestCase):
 				generator=MinMaxSphereGenerator(dRange=(2*self.rad,2*self.rad)),
 				shooter=AlignedMinMaxShooter(dir=(1,0,0),vRange=(self.vel,self.vel)),
 				box=((-.5,-.5,-.5),(.5,.5,.5)),
-				massFlowRate=0,
+				massRate=0,
 			),
 			BoxDeleter(inside=True,box=((-1,-1,-1),(1,1,1))),
 		]

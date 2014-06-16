@@ -12,7 +12,7 @@ S.engines=[
 	InsertionSortCollider([Bo1_Sphere_Aabb()]),
 	BoxFactory(
 		box=((0,0,0),(1,1,1)),
-		maxMass=-1,maxNum=-1,massFlowRate=0,maxAttempts=50000,attemptPar=50,atMaxAttempts=BoxFactory.maxAttWarn,
+		maxMass=-1,maxNum=-1,massRate=0,maxAttempts=50000,attemptPar=50,atMaxAttempts=BoxFactory.maxAttWarn,
 		generator=PsdClumpGenerator(
 			psdPts=[(.1,0),(.2,1.)],discrete=False,mass=True,
 			clumps=[

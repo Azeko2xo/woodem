@@ -28,21 +28,21 @@ class PsdSphereGeneratorTest(unittest.TestCase):
 		self.gen.mass=False; self.gen.discrete=False
 		self.checkOk()
 	def testMonodisperse(self):
-		'PSD: monidisperse packing'
+		'PSD: monodisperse packing'
 		self.gen.psdPts=[(.05,0),(.05,1)]
 		self.gen.mass=True; self.gen.discrete=False
 		# this cannot be checked with numpy.trapz, do it manually
 		for i in range(10000): self.gen(self.mat)
-		(id,im),(od,om)=self.gen.inputPsd(scale=True),self.gen.psd()
+		(id,im),(od,om)=self.gen.inputPsd(normalize=False),self.gen.psd(normalize=False)
 		self.assert_(id[0]==id[-1])
 		self.assertAlmostEqual(im[-1],om[-1],delta=.04*im[-1])
 	def checkOk(self,relDeltaInt=.02,relDeltaD=.04):
 		for i in range(10000): self.gen(self.mat)
-		iPsd=self.gen.inputPsd(scale=True)
-		iPsdNcum=self.gen.inputPsd(scale=True,cumulative=False,num=150)
+		iPsd=self.gen.inputPsd(normalize=False)
+		iPsdNcum=self.gen.inputPsd(normalize=False,cumulative=False,num=150)
 		 # scale by mass rather than number depending on the generator setup
-		oPsd=self.gen.psd(mass=self.gen.mass,num=150)
-		oPsdNcum=self.gen.psd(mass=self.gen.mass,num=150,cumulative=False)
+		oPsd=self.gen.psd(mass=self.gen.mass,normalize=False,num=150)
+		oPsdNcum=self.gen.psd(mass=self.gen.mass,normalize=False,num=150,cumulative=False)
 		iInt=numpy.trapz(*iPsd)
 		oInt=numpy.trapz(*oPsd)
 		if 0: # enable to show graphical output

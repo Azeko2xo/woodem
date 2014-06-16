@@ -257,12 +257,9 @@ void ConveyorFactory::run(){
 	LOG_DEBUG("lenToDo="<<lenToDo<<", time="<<scene->time<<", virtPrev="<<virtPrev<<", packVel="<<packVel);
 	Real lenDone=0;
 	while(true){
-		// done foerver
-		if((maxMass>0 && mass>maxMass) || (maxNum>0 && num>=maxNum)){
-			dead=true;
-			notifyDead();
-			return;
-		}
+		// done forever
+		if(ParticleFactory::everythingDone()) return;
+
 		LOG_TRACE("Doing next particle: mass/maxMass="<<mass<<"/"<<maxMass<<", num/maxNum"<<num<<"/"<<maxNum);
 		if(nextIx<0) nextIx=centers.size()-1;
 		Real nextX=centers[nextIx][0];

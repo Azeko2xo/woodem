@@ -127,9 +127,9 @@ PsdSphereGenerator::operator()(const shared_ptr<Material>&mat){
 	return vector<ParticleAndBox>({{sphere,AlignedBox3r(Vector3r(-r,-r,-r),Vector3r(r,r,r))}});
 };
 
-py::tuple PsdSphereGenerator::pyInputPsd(bool scale, bool cumulative, int num) const {
+py::tuple PsdSphereGenerator::pyInputPsd(bool normalize, bool cumulative, int num) const {
 	Real factor=1.; // no scaling at all
-	if(scale){
+	if(!normalize){
 		if(mass) for(const auto& vv: genDiamMass) factor+=vv[1]; // scale by total mass of all generated particles
 		else factor=genDiamMass.size(); //  scale by number of particles
 	}
@@ -158,8 +158,10 @@ py::tuple PsdSphereGenerator::pyInputPsd(bool scale, bool cumulative, int num) c
 			dia.append(psdPts[0][0]); frac.append(0);
 			Real xSpan=(psdPts.back()[0]-psdPts[0][0]);
 			for(size_t i=0;i<psdPts.size()-1;i++){
-				Real dx=(psdPts[i+1][0]-psdPts[i][0]);
-				Real y=factor*(psdPts[i+1][1]-psdPts[i][1])*1./(num*dx/xSpan);
+				Real dx=psdPts[i+1][0]-psdPts[i][0];
+				Real dy=psdPts[i+1][1]-psdPts[i][1];
+				// Real dyPrev=(psdPts[i][1]-(i>0?psdPts[i-1][0]:0.);
+				Real y=factor*dy*1./(num*dx/xSpan);
 				dia.append(psdPts[i][0]); frac.append(y);
 				dia.append(psdPts[i+1][0]); frac.append(y);
 			}
@@ -318,7 +320,10 @@ PsdCapsuleGenerator::operator()(const shared_ptr<Material>&mat){
 
 	if(!(shaftRadiusRatio.minCoeff()>=0)) throw std::invalid_argument("PscCapsuleGenerator.shaftRadiusRatio: must be interval with non-negative endpoints (current: "+to_string(shaftRadiusRatio[0])+","+to_string(shaftRadiusRatio[1])+")");
 	Real srRatio=shaftRadiusRatio[0]+Mathr::UnitRandom()*(shaftRadiusRatio[1]-shaftRadiusRatio[0]);
-	Real cRad=rEq/cbrt(4/3.+srRatio);
+	// capsule volume is V=(4/3)πr³+πr²s=πr³(4/3+s/r) (s/r=srRatio)
+	// this is equal to (4/3)πr'³, r' being the equivalent radius which we must satisfy
+	// hence: r³ = r'³ [(4/3) / (4/3+s/r)]
+	Real cRad=rEq*cbrt((4/3.)/(4/3.+srRatio));
 	Real cShaft=cRad*srRatio;
 
 	// setup the particle

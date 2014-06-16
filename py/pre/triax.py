@@ -62,8 +62,7 @@ class TriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		_PAT(str,'saveFmt',"/tmp/{tid}-{stage}.bin.gz",'''Savefile format; keys are :obj:`Scene.tags <woo.core.Scene.tags>`; additionally ``{stage}`` will be replaced by
 * ``init`` for stress-free but compact cloud,
 * ``iso`` after isotropic compaction,
-* ``backup-011234`` for regular backups, see :obj:`backupSaveTime`,
- 'done' at the very end.
+* ``backup-011234`` for regular backups, see :obj:`backupSaveTime`, 'done' at the very end.
 '''),
 		# _PAT(int,'backupSaveTime',1800,doc='How often to save backup of the simulation (0 or negative to disable)'),
 		_PAT(float,'dtSafety',.7,startGroup='Tunables',doc='See :obj:`woo.core.Scene.dtSafety`.'),
@@ -97,7 +96,7 @@ def prepareTriax(pre):
 
 	margin=.1
 
-	factoryKw=dict(maxMass=-1,maxNum=-1,generator=pre.generator,massFlowRate=0,maxAttempts=5000,materials=[S.lab.partMat],shooter=None,mask=partMask,collideExisting=False)
+	factoryKw=dict(maxMass=-1,maxNum=-1,generator=pre.generator,massRate=0,maxAttempts=5000,materials=[S.lab.partMat],shooter=None,mask=partMask,collideExisting=False)
 
 	if pre.shape=='cell':
 		factory=woo.dem.BoxFactory(box=((0,0,0),pre.iniSize),**factoryKw)

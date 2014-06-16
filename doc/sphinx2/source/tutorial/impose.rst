@@ -56,6 +56,17 @@ This shows how the feed was made movable by imposing :obj:`woo.dem.HarmonicOscil
 
 .. youtube:: M23o4tuak6g
 
+
+This example shows the :obj:`woo.dem.AlignedHarmonicOscillations` imposition, which is applied to all cylinders with different parameters:
+
+.. youtube:: 6BvN0OuhgvI 
+
+.. literalinclude:: impose-harmonic.py
+
+
+Interpolated
+--------------
+
 :obj:`woo.dem.InterpolatedMotion` was used in this example to move the bottle (using :guilabel:`Video`, internally :obj:`woo.qt.SnapshotEngine`)
 
 .. youtube:: D_pc3RU5IXc
@@ -66,11 +77,7 @@ The same simulation visualized in Paraview using the :obj:`woo.dem.VtkExport` en
 
 .. literalinclude:: bottle.py
 
+Circular
+---------
 
-This example shows the :obj:`woo.dem.AlignedHarmonicOscillations` imposition, which is applied to all cylinders with different parameters:
-
-.. youtube:: 6BvN0OuhgvI 
-
-.. literalinclude:: impose-harmonic.py
-
-
+.. todo:: write about :obj:`woo.dem.CircularOrbit` and how to use it on meshes (like mixer blades), be those clumped or not.

@@ -353,7 +353,7 @@ def randomLoosePsd(predicate,psd,mass=True,discrete=False,maxAttempts=5000,clump
 			box=(mn,mx),
 			maxMass=-1,
 			maxNum=-1,
-			massFlowRate=0,
+			massRate=0,
 			maxAttempts=maxAttempts,
 			generator=generator,
 			materials=[woo.dem.ElastMat(density=1)], # must have some density
@@ -712,7 +712,7 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNu
 			maxMass=-1,
 			maxNum=maxNum,
 			generator=generator,
-			massFlowRate=0,
+			massRate=0,
 			maxAttempts=5000,
 			materials=[woo.dem.FrictMat(density=1e3,young=1e7,ktDivKn=.2,tanPhi=math.tan(.5))],
 			shooter=None,
@@ -768,7 +768,7 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNu
 
 
 
-def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,goal=.15,dontBlock=False,memoizeDir=None,botLine=None,leftLine=None,rightLine=None,clumps=[],returnSpherePack=False,useEnergy=True,gen=None):
+def makeBandFeedPack(dim,mat,gravity,psd=[],excessWd=None,damping=.3,porosity=.5,goal=.15,dontBlock=False,memoizeDir=None,botLine=None,leftLine=None,rightLine=None,clumps=[],returnSpherePack=False,useEnergy=True,gen=None):
 	'''Create dense packing periodic in the +x direction, suitable for use with ConveyorFactory.
 :param useEnergy: use :obj:`woo.utils.unbalancedEnergy` instead of :obj:`woo.utils.unbalancedForce` as stop criterion.
 :param goal: target unbalanced force/energy; if unbalanced energy is used, this value is **multiplied by .2**.
@@ -869,7 +869,7 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 			box=((.01*cellSize[0],factoryLeft,factoryBottom),(cellSize[0],factoryRight,cellSize[2])),
 			stepPeriod=200,
 			maxMass=massToDo,
-			massFlowRate=0,
+			massRate=0,
 			maxAttempts=20,
 			generator=generator,
 			materials=[mat],
@@ -935,7 +935,7 @@ def makeBandFeedPack(dim,psd,mat,gravity,excessWd=None,damping=.3,porosity=.5,go
 #		S.cell.setBox(box.sizes())
 #		S.engines=[	
 #			woo.dem.InsertionSortCollider(list(woo.system.childClasses(woo.dem.BoundFunctor))),
-#			woo.dem.BoxFactory(box=((0,0,0),box.sizes()),maxMass=-1,maxNum=-1,generator=generator,massFlowRate=0,maxAttempts=5000,materials=[woo.dem.FrictMat(density=1e3,young=1e7,ktDivKn=0,tanPhi=0)],shooter=None,mask=1)
+#			woo.dem.BoxFactory(box=((0,0,0),box.sizes()),maxMass=-1,maxNum=-1,generator=generator,massRate=0,maxAttempts=5000,materials=[woo.dem.FrictMat(density=1e3,young=1e7,ktDivKn=0,tanPhi=0)],shooter=None,mask=1)
 #		]
 #		S.one()
 #		print 'Created %d particles, compacting...'%len(S.dem.par)

@@ -78,6 +78,12 @@ inheritance_graph_attrs = dict(size='""')
 
 todo_include_todos=True
 
+## matplotlib default params
+import matplotlib
+matplotlib.rc('lines',linewidth=3)
+matplotlib.rc('axes',grid=True)
+
+
 tikz_latex_preamble=r'\usepackage{pgfplots}'
 tikz_tikzlibraries=''
 
