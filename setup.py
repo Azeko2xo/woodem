@@ -168,7 +168,7 @@ def wooPrepareQt4():
 		pyuic4=['python',PyQt4.uic.__file__[:-12]+'pyuic.py']
 	else:
 		pyuic4=['pyuic4']
-	for tool,opts,inOut,enabled in [(['pyrcc4'],[],rccInOut,True),(pyuic4,[],uicInOut,True),(['moc'],['-DWOO_OPENGL','-DWOO_QT4'],mocInOut,('opengl' in features)),(['qrc'],['-name','GLViewer'],cxxRccInOut,('opengl' in features))]:
+	for tool,opts,inOut,enabled in [(['pyrcc4'],[],rccInOut,True),(pyuic4,[],uicInOut,True),(['moc'],['-DWOO_OPENGL','-DWOO_QT4'],mocInOut,('opengl' in features)),(['rcc'],['-name','GLViewer'],cxxRccInOut,('opengl' in features))]:
 		if not enabled: continue
 		for fIn,fOut in inOut:
 			cmd=tool+opts+[fIn,'-o',fOut]

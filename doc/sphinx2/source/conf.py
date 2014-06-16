@@ -83,7 +83,6 @@ import matplotlib
 matplotlib.rc('lines',linewidth=3)
 matplotlib.rc('axes',grid=True)
 
-
 tikz_latex_preamble=r'\usepackage{pgfplots}'
 tikz_tikzlibraries=''
 
@@ -145,7 +144,7 @@ source_suffix = '.rst'
 #source_encoding = 'utf-8-sig'
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = 'contents'
 
 # General information about the project.
 project = u'Woo'
@@ -253,6 +252,9 @@ html_static_path = ['_static']
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
 #html_additional_pages = {}
+html_additional_pages = { 'index':'index.html'}
+html_index='index.html'
+
 
 # If false, no module index is generated.
 #html_domain_indices = True

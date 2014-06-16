@@ -27,5 +27,5 @@ if 1:
    pylab.plot(*S.lab.out.psd(),label='out',lw=2)
    pylab.legend(loc='best')
    # pylab.show()
-   pylab.savefig('factory-deleter_psds.svg')
-   pylab.savefig('factory-deleter_psds.pdf')
+   pylab.savefig('fig/factory-deleter_psds.svg')
+   pylab.savefig('fig/factory-deleter_psds.pdf')

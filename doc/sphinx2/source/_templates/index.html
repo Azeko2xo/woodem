@@ -1,0 +1,84 @@
+{% extends "layout.html" %}
+{% set title = 'Overview' %}
+{% block body %}
+  <h1>Welcome to Woo − extensible DEM simulations</h1>
+  <p>
+ 	Woo is extesible and portable framework primarily for mechanics granular materials. Computation parts are written in c++ parallelized using OpenMP, fully accessible and modifiable from python (ipython console or scripts). Arbitrarily complex scene can be scripted. Qt-based user interface is provided, featuring flexible OpenGL display, inspection of all objects and runtime modification. Parametric preprocessors can be written in pure python, and batch system can be used to drive parametric studies. New material models and particle shapes can be added (in c++) without modifying existing classes.
+
+   Woo is a commercially-backed and geared towards customisations for non-trivial, challenging scenarios — sieving, segregation, conveyors, membranes and similar.
+  </p>
+  <p>
+  	This is user-level documentation of Woo; general information is available from the <a href="http://woodem.eu">main page</a>, development is hosted at <a href="http://www.launchpad.net/woo">launchpad</a>, including bug tracking and downloads.
+  </p>
+  <p>
+   This documentation decribes Woo version {{ release }} / {{ version }}.
+  </p>
+  
+
+<!--
+ <h2>Yade Community</h2>
+ 
+ <table class="contentstable" align="center" style="margin-left: 30px">
+    <tr>
+      <td width="50%">
+        <p class="biglink"><a class="biglink" href="https://launchpad.net/yade/+announcements">NEWS</a><br/>
+           <span class="linkdescr">latest news about Yade project</span></p>
+        <p class="biglink"><a class="biglink" href="https://yade-dem.org/wiki/Authors_and_contributors">Authors and contributors</a><br/>
+           <span class="linkdescr">information about the people working on Yade</span></p>
+        <p class="biglink"><a class="biglink" href="https://yade-dem.org/wiki/Contact">Contact</a><br/>
+           <span class="linkdescr">contact details, mailing lists</span></p>
+        <p class="biglink"><a class="biglink" href="https://yade-dem.org/wiki/WhoIsDoingWhat">Who Is Doing What (Wiki)</a><br/>
+           <span class="linkdescr">you may introduce yourself here</span></p>
+        <p class="biglink"><a class="biglink" href="https://yade-dem.org/wiki/Screenshots_and_videos">Screenshots and videos (Wiki)</a><br/>
+           <span class="linkdescr">Simulation examples (wiki); feel free to add yours.</span></p>
+      </td>
+      <td width="50%">
+
+        <p class="biglink"><a class="biglink" href="{{ pathto("citing") }}">Acknowledging Yade</a><br/>
+           <span class="linkdescr">How to cite Yade in publications</span></p>
+        <p class="biglink"><a class="biglink" href="https://www.yade-dem.org/doc/publications.html">Publications</a><br/>
+           <span class="linkdescr">on Yade itself or done with Yade</span></p>
+        <p class="biglink"><a class="biglink" href="https://answers.launchpad.net/yade">Questions and answers</a><br/>
+           <span class="linkdescr">Users questions and discussions, hosted at launchpad</span></p>
+        <p class="biglink"><a class="biglink" href="https://yade-dem.org/wiki/">Wiki pages</a><br/>
+           <span class="linkdescr">A less formal place to report results and more, worth a look</span></p>
+      </td>
+    </tr>
+ </table>
+-->
+
+ <h2>Documentation</h2>
+  <table class="contentstable" align="center" style="margin-left: 30px">
+    <tr>
+      <td width="50%">
+        <p class="biglink"><a class="biglink" href="{{ pathto("user/user") }}">User's manual</a><br/>
+           <span class="linkdescr">basic usage of Woo</span></p>
+        <p class="biglink"><a class="biglink" href="{{ pathto("cases/index") }}">Case studies</a><br/>
+           <span class="linkdescr">larger studies done with Woo</span></p>
+        <p class="biglink"><a class="biglink" href="{{ pathto("theory/index") }}">Theory</a><br/>
+           <span class="linkdescr">various physical aspects of simulations</span></p>
+      </td>
+      <td width="50%">
+        <p class="biglink"><a class="biglink" href="{{ pathto("tutorial/index") }}">Tutorial</a><br/>
+           <span class="linkdescr">steps to write your own simulations
+        <p class="biglink"><a class="biglink" href="{{ pathto("wooMods") }}">Woo modules</a><br/>
+           <span class="linkdescr">reference for all internals</span></p>
+      </td>
+    </tr>
+    <tr>
+      <td width="50%">
+        <p class="biglink"><a class="biglink" href="{{ pathto("references") }}">References</a><br/>
+           <span class="linkdescr">articles cited in the documentation</span></p>
+      </td>
+      <td width="50%">
+        <p class="biglink"><a class="biglink" href="{{ pathto("genindex") }}">Index</a><br/>
+           <span class="linkdescr">all functions, classes, attributes</span></p>
+        <p class="biglink"><a class="biglink" href="{{ pathto("search") }}">Search</a><br/>
+           <span class="linkdescr">search the documentation</span></p>
+        <p class="biglink"><a class="biglink" href="{{ pathto("contents") }}">Full contents</a><br/>
+           <span class="linkdescr">with all the details</span></p>
+      </td>
+    </tr>
+  </table>
+
+{% endblock %}
