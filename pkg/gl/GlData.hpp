@@ -1,5 +1,6 @@
 #pragma once
 
+#include<woo/lib/base/Types.hpp>
 #include<woo/core/Field.hpp>
 
 struct GlData: public NodeData{
