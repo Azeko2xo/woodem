@@ -242,7 +242,7 @@ vtkSmartPointer<vtkArrayType> FlowAnalysis::vtkMakeArray(const vtkSmartPointer<v
 	arr->SetName(name.c_str());
 	if(cellData) grid->GetCellData()->AddArray(arr);
 	else grid->GetPointData()->AddArray(arr);
-	if(fillZero){ for(int _i=0; _i<numComponents; _i++) arr->FillComponent(_i,0.); }
+	if(fillZero){ for(int _i=0; _i<(int)numComponents; _i++) arr->FillComponent(_i,0.); }
 	return arr;
 }
 

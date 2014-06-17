@@ -65,7 +65,7 @@ id(PygtsObject *self, void *closure)
     return NULL;
   }
   /* Use the pointer of the gtsobj */
-  return Py_BuildValue("i",(long)(self->gtsobj));
+  return PyLong_FromVoidPtr((void*)(self->gtsobj));
 }
 
 
