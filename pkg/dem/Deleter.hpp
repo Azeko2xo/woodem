@@ -33,7 +33,7 @@ struct BoxDeleter: public PeriodicEngine{
 		((uint,markMask,0,,"When non-zero, switch to marking mode -- particles of which :obj:`Particle.mask` does not comtain :obj:`mark` (i.e. ``(mask&mark)!=mark``) have :obj:`mark` bit-added to :obj:`Particle.mask` (this can happen only once for each particle); particles are not deleted, but their diameter/mass added to :obj:`diamMass` if :obj:`save` is True."))
 		((AlignedBox3r,box,AlignedBox3r(Vector3r(NaN,NaN,NaN),Vector3r(NaN,NaN,NaN)),,"Box volume specification (lower and upper corners). If :obj:`node` is specified, the box is in local coordinates; otherwise, global coorinates are used."))
 		((shared_ptr<Node>,node,,,"Node specifying local coordinates; if not given :obj:`box` is in global coords."))
-		((uint,mask,0,,"If non-zero, only particles matching the mask will be candidates for removal"))
+		((uint,mask,((void)":obj:`DemField.defaultDeleterMask`",DemField::defaultDeleterMask),,"If non-zero, only particles matching the mask will be candidates for removal"))
 		((bool,inside,false,,"Delete particles which fall inside the volume rather than outside"))
 		((bool,save,false,,"Save particles which are deleted in the *diamMass* list"))
 		((bool,recoverRadius,false,,"Recover radius of Spheres by computing it back from particle's mass and its material density (used when radius is changed due to radius thinning (in Law2_L6Geom_PelletPhys_Pellet.thinningFactor). When radius is recovered, the :math:`r/r_0` ratio is added to :obj:`rDivR0` for further processing."))

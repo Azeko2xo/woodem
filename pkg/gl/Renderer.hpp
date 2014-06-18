@@ -140,7 +140,7 @@ struct Renderer: public Object{
 		((int,logoSize,50,,"Size of the bigger size of the logo, in pixels"))
 		((Vector2i,logoPos,Vector2i(-64,-60),,"Position of the logo; negative values count from the other side of the window."))
 		((Vector3r,logoColor,Vector3r(1.,1.,1.),AttrTrait<>().rgbColor(),"Logo color"))
-		((Real,logoWd,1.,AttrTrait<>().range(Vector2r(0,10)),"Width of the logo stroke; set to non-positive value to disable the logo."))
+		((Real,logoWd,1.8,AttrTrait<>().range(Vector2r(0,10)),"Width of the logo stroke; set to non-positive value to disable the logo."))
 
 		
 		((vector<Vector3r>,clipPlanePos,vector<Vector3r>(numClipPlanes,Vector3r::Zero()),AttrTrait<>().startGroup("Selection and clipping"),"Position and orientation of clipping planes"))

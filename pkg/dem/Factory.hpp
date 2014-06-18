@@ -22,6 +22,7 @@ struct ParticleFactory: public PeriodicEngine{
 	bool everythingDone();
 	#define woo_dem_ParticleFactory__CLASS_BASE_DOC_ATTRS \
 		ParticleFactory,PeriodicEngine,ClassTrait().doc("Factory generating new particles. This is an abstract base class which in itself does not generate anything, but provides some unified interface to derived classes.").section("Factories","TODO",{"ParticleGenerator","ParticleShooter","BoxDeleter"}), \
+		((int,mask,((void)":obj:`DemField.defaultFactoryMask`",DemField::defaultFactoryMask),,":obj:`~woo.dem.Particle.mask` for new particles.")) \
 		((Real,maxMass,-1,,"Mass at which the engine will not produce any particles (inactive if not positive)")) \
 		((long,maxNum,-1,,"Number of generated particles after which no more will be produced (inactive if not positive)")) \
 		((string,doneHook,"",,"Python string to be evaluated when :obj:`maxMass` or :obj:`maxNum` have been reached. The engine is made dead automatically even if doneHook is not specified.")) \
@@ -130,7 +131,6 @@ struct RandomFactory: public ParticleFactory{
 		((int,attemptPar,5,,"Number of trying a different particle to position (each will be tried maxAttempts/attemptPar times)")) \
 		((int,atMaxAttempts,MAXATT_ERROR,AttrTrait<>().choice({{MAXATT_ERROR,"error"},{MAXATT_DEAD,"dead"},{MAXATT_WARN,"warn"},{MAXATT_SILENT,"silent"}}),"What to do when maxAttempts is reached.")) \
 		((Real,padDist,0.,AttrTrait<Attr::readonly>(),"Pad geometry by this distance inside; random points will be chosen inside the shrunk geometry, whereas boxes will be validated in the larger one. This attribute must be set by the generator.")) \
-		((int,mask,1,,"Groupmask for new particles")) \
 		((int,kinEnergyIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for kinetic energy in scene.energy")) \
 		((Real,color,NaN,,"Color for new particles (NaN for random; negative for keeping color assigned by the generator).")) \
 		((Real,stepGoalMass,0,AttrTrait<Attr::readonly>(),"Mass to be attained in this step")) \

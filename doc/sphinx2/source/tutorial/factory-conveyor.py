@@ -21,7 +21,7 @@ S=woo.master.scene=woo.core.Scene(fields=[DemField(gravity=(0,0,-10))])
 S.dem.par.append(Wall.make(0,axis=2,sense=1,mat=mat,glAB=((-1,-3),(10,3))))
 S.dem.collectNodes()
 
-S.engines=woo.utils.defaultEngines(damping=.2)+[
+S.engines=DemField.minimalEngines(damping=.2)+[
 	# this is the factory engine
 	ConveyorFactory(
 		stepPeriod=100,     # run every 100 steps

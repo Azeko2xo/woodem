@@ -44,7 +44,6 @@ struct ConveyorFactory: public ParticleFactory{
 		((Real,vel,NaN,AttrTrait<Attr::triggerPostLoad>().velUnit(),"Velocity of particles; if specified, :obj:`massRate` is adjusted (of both are given, such as in constructor, :obj:`massRate` has precedence and a warning is issued if the two don't match)")) \
 		((Real,packVel,NaN,AttrTrait<>().readonly().velUnit(),"Velocity by which the packing is traversed and new particles emmited; always smaller than or equal to :obj:`vel`. Computed automatically.")) \
 		((Real,relLatVel,0.,,"Relative velocity components lateral to :obj:`vel` (local x-axis); both components are assigned with uniform probability from range `(-relLatVel*vel,+relLatVel*vel)`, at the moment the particle leaves the barrier layer.")) \
-		((int,mask,1,,"Mask for new particles")) \
 		\
 		((vector<Real>,clipX,,AttrTrait<>().startGroup("Clipping").lenUnit(),"If given, clip the given packing from above by the given function $z_max(x)$ given as piecewise-linear function in same-length arrays :obj:`clipX` and :obj:`clipZ`. If :obj:`clipX` is empty, no clipping is done.")) \
 		((vector<Real>,clipZ,,AttrTrait<>().lenUnit(),"Z-coordinate (max sphere $z$ coordinate), with points corresponding to :obj:`clipX`.")) \

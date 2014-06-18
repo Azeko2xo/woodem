@@ -16,13 +16,17 @@ def fromEngines(S,out=None,launch=False):
 	'''
 	sphereFiles,meshFiles,conFiles=[],[],[]
 	if not out: out=woo.master.tmpFilename()+'.py'
+	if not out.endswith('.py'): out=out+'.py'
 	kw={}
 	for e in S.engines:
-		if isinstance(e,woo.dem.VtkExport): kw.update(kwFromVtkExport(e))
-		elif isinstance(e,woo.dem.FlowAnalysis): kw.update(kwFromFlowAnalysis(e))
+		if isinstance(e,woo.dem.VtkExport) and e.nDone>0: kw.update(kwFromVtkExport(e))
+		elif isinstance(e,woo.dem.FlowAnalysis) and e.nDone>0: kw.update(kwFromFlowAnalysis(e,outPrefix=out[:-3])) # without the .py
 	if 'meshFiles' in kw: kw['flowMeshFile']=kw['meshFiles'][-1]
+	# no data found from engines
+	if not kw: raise RuntimeError("No Paraview data found in engines.")
 	write(out,**kw)
 	if launch: launchPV(out)
+	return out
 
 def kwFromVtkExport(vtkExport,out=None,launch=False):
 	'Extract keywords suitable for :obj:`write` from a given :obj:`~woo.dem.VtkExport` instance.'
@@ -131,31 +135,37 @@ if 'current_script_path' in dir():
 ### create zip archive when the first arg is --zip
 if hasattr(sys,'argv') and len(sys.argv)>1:
 	import argparse
-	parser=argparse.ArgumentParses()
-	parser.add_argument('--zip',help='Create self-contained zip file from data files.',action='store_true')
-	parser.add_argument('--stride',type=int,default='1',help='Stride for packing files, to avoid large volumes of data')
-	if parser.zip:
+	parser=argparse.ArgumentParser()
+	parser.add_argument('--zip',help='Create self-contained zip file from data files.',dest='zip',action='store_true')
+	parser.add_argument('--stride',type=int,default='1',dest='stride',help='Stride for packing files, to avoid large volumes of data')
+	opts=parser.parse_args()
+	if opts.zip:
 		out0=os.path.basename(sys.argv[0]+'-packed')
 		zipName=out0+'.zip'
 		newFiles=dict()
-		seqStride=parser.stride
+		seqStride=opts.stride
 		import zipfile
 		with zipfile.ZipFile(zipName,'w',allowZip64=True) as ar:
+			zippedFiles=set()
 			for fff in ('sphereFiles','meshFiles','conFiles','triFiles'):
 				ff=eval(fff) # get the sequence
 				ff2=[]
 				for f in ff[::seqStride]:
 					fn=os.path.basename(f)
 					print zipName+': adding',fn
+					zippedFiles.add(fn)
 					ar.write(f,out0+'/'+fn)
 					ff2.append(fn)
 				newFiles[fff]=ff2
 			for ff in ('splitFile','flowMeshFile','flowFile'):
 				f=eval(ff)
 				fn=os.path.basename(f)
-				print zipName+': adding',fn
-				ar.write(f,out0+'/'+fn)
 				newFiles[ff]=fn
+				if not fn: continue # empty filename for missing data
+				if fn in zippedFiles: continue # skip if already in the archive
+				print zipName+': adding',fn
+				zippedFiles.add(fn)
+				ar.write(f,out0+'/'+fn)
 			# make a copy of this script, adjust filenames in there and add it to the archive as well
 			ll=[]
 			for l in open(sys.argv[0]):

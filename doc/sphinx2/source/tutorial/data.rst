@@ -67,6 +67,8 @@ To make the plot prettier, :math:`x`-axis and :math:`y`-axis title can be set us
 
 Note that we used math expressions ``$...$`` for symbols in line labels; the syntax is very similar to `LaTeX <http://en.wikipedia.org/LaTeX>`__ and is `documented in detail <http://matplotlib.org/1.3.1/users/mathtext.html>`__ in the underlying plotting library, `Matplotlib <http://matplotlib.org>`__.
 
+.. _data-sphere-with-energy-tracking:
+
 Subfigures
 ''''''''''
 
@@ -98,18 +100,12 @@ We add another figure showing energies on the left; :obj:`energy total <woo.core
 
 .. plot::
 
-   execfile('basic-1.py')
-   S.engines=S.engines+[PyRunner(10,'S.plot.autoData()')]
-   S.plot.plots={'t=S.time':('$z_1$=S.dem.par[1].pos[2]','$z_0$=S.dem.par[0].pos[2]',),' t=S.time':('**S.energy',r'$\sum$energy=S.energy.total()',None,('relative error=S.energy.relErr()','g--'))}
-   S.trackEnergy=True
-   S.throttle=0
+   execfile('data-plot-energy.py')
    S.run(2000,True)
    S.plot.plot()
    import pylab
    pylab.gcf().set_size_inches(8,12)    # make higher so that it is readable
    pylab.gcf().subplots_adjust(left=.1,right=.95,bottom=.05,top=.95) # make more compact
-
-.. :: **aas** 
 
 Complex interface
 ------------------

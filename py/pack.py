@@ -62,17 +62,18 @@ _docInlineModules=(woo._packPredicates,woo._packSpheres,woo._packObb)
 ##
 # extend _packSphere.SpherePack c++ class by these methods
 ##
-def SpherePack_fromSimulation(self,scene):
+def SpherePack_fromSimulation(self,scene,dem=None):
 	ur"""Reset this SpherePack object and initialize it from the current simulation; only spherical particles are taken in account. Periodic boundary conditions are supported, but the hSize matrix must be diagonal. Clumps are supported."""
 	self.reset()
 	import woo.dem
-	for p in scene.dem.par:
+	de=scene.dem if not dem else dem
+	for p in de.par:
 		if p.shape.__class__!=woo.dem.Sphere: continue
 		if p.shape.nodes[0].dem.clumped: continue # those will be added as clumps in the next block
 		self.add(p.pos,p.shape.radius)
 	# handle clumps here
 	clumpId=0
-	for n in scene.dem.nodes:
+	for n in de.nodes:
 		if not n.dem.clump: continue
 		someOk=False # prevent adding only a part of the clump to the packing
 		for nn in n.dem.nodes: # get particles belonging to clumped nodes
@@ -89,6 +90,9 @@ def SpherePack_fromSimulation(self,scene):
 		if h-h.transpose()!=Matrix3.Zero: raise RuntimeError("Only box-shaped (no shear) periodic boundary conditions can be represented with a pack.SpherePack object")
 		self.cellSize=h.diagonal()
 
+def SpherePack_fromDem(self,scene,dem): return SpherePack_fromSimulation(self,scene,dem)
+
+SpherePack.fromDem=SpherePack_fromDem
 SpherePack.fromSimulation=SpherePack_fromSimulation
 
 def SpherePack_toSimulation(self,scene,rot=Matrix3.Identity,**kw):

@@ -7,7 +7,7 @@
 #include<woo/pkg/dem/ParticleContainer.hpp>
 #include<woo/pkg/dem/ContactContainer.hpp>
 #include<atomic>
-
+#include<boost/utility/binary.hpp>
 
 // namespace woo{namespace dem{
 
@@ -274,6 +274,17 @@ struct DemField: public Field{
 	// for passing particles to the ctor
 	void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d) WOO_CXX11_OVERRIDE;
 
+	enum {
+		// first bit: normally novable particles
+		// second bit: boundary particle
+		// third bit: deletable particle
+		defaultMovableMask =BOOST_BINARY(0101),
+		defaultBoundaryMask=BOOST_BINARY(0011),
+		defaultLoneMask    =BOOST_BINARY(0010),
+		defaultFactoryMask =BOOST_BINARY(0101),
+		defaultDeleterMask =BOOST_BINARY(0100)
+	};
+
 	//template<> bool sceneHasField<DemField>() const;
 	//template<> shared_ptr<DemField> sceneGetField<DemField>() const;
 	void postLoad(DemField&,void*);
@@ -281,7 +292,7 @@ struct DemField: public Field{
 		DemField,Field,ClassTrait().doc("Field describing a discrete element assembly. Each particle references (possibly many) nodes.\n\n.. admonition:: Special constructor\n\n\tWhen passed the ``par`` parameter in constructor, this sequence of particles will be assigned to :obj:`particles`, and :obj:`collectNodes` will be called immediately.").section("DEM field","TODO",{"ContactContainer","ParticleContainer"}), \
 		((shared_ptr<ParticleContainer>,particles,make_shared<ParticleContainer>(),AttrTrait<>().pyByRef().readonly().ini().buttons({"Export spheres to CSV","import woo.pack; from PyQt4.QtGui import QFileDialog\nsp=woo.pack.SpherePack(); sp.fromSimulation(self.scene); csv=woo.master.tmpFilename()+'.csv'; csv=str(QFileDialog.getSaveFileName(None,'Export spheres','.'));\nif csv:\n\tsp.save(csv); print 'Saved exported spheres to',csv",""}),"Particles (each particle holds its contacts, and references associated nodes)")) \
 		((shared_ptr<ContactContainer>,contacts,make_shared<ContactContainer>(),AttrTrait<>().pyByRef().readonly().ini(),"Linear view on particle contacts")) \
-		((uint,loneMask,2/*0b0010*/,,"Particle groups which have bits in loneMask in common (i.e. (A.mask & B.mask & loneMask)!=0) will not have contacts between themselves")) \
+		((uint,loneMask,((void)":obj:`DemField.defaultLoneMask`",DemField::defaultLoneMask),,"Particle groups which have bits in loneMask in common (i.e. (A.mask & B.mask & loneMask)!=0) will not have contacts between themselves")) \
 		((Vector3r,gravity,Vector3r::Zero(),,"Constant gravity acceleration")) \
 		((bool,saveDeadNodes,false,AttrTrait<>().buttons({"Clear dead nodes","self.clearDead()",""}),"Save unused nodes of deleted particles, which would be otherwise removed (useful for displaying traces of deleted particles).")) \
 		((vector<shared_ptr<Node>>,deadNodes,,AttrTrait<Attr::readonly>().noGui(),"List of nodes belonging to deleted particles; only used if :obj:`saveDeadNodes` is ``True``")) \
@@ -291,7 +302,14 @@ struct DemField: public Field{
 		.def("clearDead",&DemField::clearDead) \
 		.def("nodesAppend",&DemField::pyNodesAppend,"Append given node to :obj:`nodes`, and set :obj:`DemData.linIx` to the correct value automatically.") \
 		.def("sceneHasField",&Field_sceneHasField<DemField>).staticmethod("sceneHasField") \
-		.def("sceneGetField",&Field_sceneGetField<DemField>).staticmethod("sceneGetField") 
+		.def("sceneGetField",&Field_sceneGetField<DemField>).staticmethod("sceneGetField"); \
+		_classObj.attr("defaultMovableMask")=(int)DemField::defaultMovableMask; \
+		_classObj.attr("defaultBoundaryMask")=(int)DemField::defaultBoundaryMask; \
+		_classObj.attr("defaultLoneMask")=(int)DemField::defaultLoneMask; \
+		_classObj.attr("defaultFactoryMask")=(int)DemField::defaultFactoryMask; \
+		_classObj.attr("defaultDeleterMask")=(int)DemField::defaultDeleterMask;
+
+
 
 	
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_DemField__CLASS_BASE_DOC_ATTRS_CTOR_PY);

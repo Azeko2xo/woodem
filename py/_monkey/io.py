@@ -471,12 +471,16 @@ def Master_save(o,*args,**kw):
 def Master_load(o,*args,**kw):
 	o.scene=woo.core.Scene.load(*args,**kw)
 def Master_reload(o,quiet=None,*args,**kw): # this arg is deprecated
+	'Reload master scene, using its :obj:`woo.core.Scene.lastSave`; assigns ``woo.master.scene`` and returns the new scene object'
 	f=o.scene.lastSave
 	if not f: raise ValueError("Scene.lastSave is empty.")
 	if f.startswith(':memory:'): o.scene=woo.core.Scene.loadTmp(f[8:])
 	else: o.scene=woo.core.Scene.load(f,*args,**kw)
+	return o.scene
 def Master_loadTmp(o,name='',quiet=None): # quiet deprecated
+	'Load scene from temporary storage, assign to it ``woo.master.scene`` and return it.'
 	o.scene=woo.core.Scene.loadTmp(name)
+	return o.scene
 def Master_saveTmp(o,name='',quiet=False):
 	o.scene.lastSave=':memory:'+name
 	o.scene.saveTmp(name,quiet)

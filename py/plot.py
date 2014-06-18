@@ -811,7 +811,7 @@ def _mkTimestamp():
 	import time
 	return time.strftime('_%Y%m%d_%H:%M')
 
-def Scene_plot_saveGnuplot(baseName,term='wxt',extension=None,timestamp=False,comment=None,title=None,varData=False):
+def Scene_plot_saveGnuplot(P,baseName,term='wxt',extension=None,timestamp=False,comment=None,title=None,varData=False):
 	"""Save data added with :obj:`woo.plot.addData` into (compressed) file and create .gnuplot file that attempts to mimick plots specified with :obj:`woo.plot.plots`.
 
 :param baseName: used for creating baseName.gnuplot (command file for gnuplot), associated ``baseName.data.bz2`` (data) and output files (if applicable) in the form ``baseName.[plot number].extension``
@@ -828,7 +828,7 @@ def Scene_plot_saveGnuplot(baseName,term='wxt',extension=None,timestamp=False,co
 	if timestamp: baseName+=_mkTimestamp()
 	baseNameNoPath=baseName.split('/')[-1]
 	vars=data.keys(); vars.sort()
-	saveDataTxt(fileName=baseName+'.data.bz2',vars=vars)
+	P.saveDataTxt(fileName=baseName+'.data.bz2',vars=vars)
 	fPlot=file(baseName+".gnuplot",'w')
 	fPlot.write('#!/usr/bin/env gnuplot\n#\n# created '+time.asctime()+' ('+time.strftime('%Y%m%d_%H:%M')+')\n#\n')
 	if comment: fPlot.write('# '+comment.replace('\n','\n# ')+'#\n')
@@ -851,8 +851,17 @@ def Scene_plot_saveGnuplot(baseName,term='wxt',extension=None,timestamp=False,co
 		# replace callable/dict-like data specifiers by the results, it that particular data exists
 		plots_p2=[]
 		for pp in plots_p:
-			if callable(pp[0]): plots_p2+=[(ppp,'') for ppp in pp[0]() if ppp in data.keys()]
-			elif hasattr(pp[0],'keys'): plots_p2+=[(name,val) for name,val in pp[0].items() if name in data.keys()]
+			if pp[0]==None: plots_p2.append((pp[0],pp[1]))
+			elif pp[0].startswith('**'):
+				try:
+					dd=eval(pp[0][2:],{'S':P.scene})
+					plots_p2+=[(ppp,'') for ppp in dd.keys() if ppp in data.keys()]
+				except:
+					import traceback
+					traceback.print_exc()
+					print 'WARN: ignoring exception raised while evaluating expression "'+pp[0][2:]+'".'
+			elif pp[0].startswith('*'):
+				plots_p2+=[(e,'') for e in eval(pp[0][1:],{'S':P.scene}) if e in data.keys()]
 			else: plots_p2.append((pp[0],pp[1]))
 		plots_p=plots_p2
 		#plots_p=sum([([(pp,'') for pp in p[0]() if pp in data.keys()] if callable(p[0]) else [(p[0],p[1])] ) for p in plots_p],[])
@@ -866,8 +875,10 @@ def Scene_plot_saveGnuplot(baseName,term='wxt',extension=None,timestamp=False,co
 			fPlot.write("set y2label '%s'\n"%(','.join([xlateLabel(_p[0],labels) for _p in plots_y2])))
 			fPlot.write("set y2tics\n")
 		ppp=[]
-		for pp in plots_y1: ppp.append(" %s using %d:%d title '← %s(%s)' with lines"%(dataFile,vars.index(pStrip)+1,vars.index(pp[0])+1,xlateLabel(pp[0],labels),xlateLabel(pStrip,labels),))
-		for pp in plots_y2: ppp.append(" %s using %d:%d title '%s(%s) →' with lines axes x1y2"%(dataFile,vars.index(pStrip)+1,vars.index(pp[0])+1,xlateLabel(pp[0],labels),xlateLabel(pStrip,labels),))
+		def _mkLine(varX,varY,i):
+			return " %s using %d:%d title '%s%s(%s)%s' with lines%s"%(dataFile,vars.index(varX)+1,vars.index(varY)+1,'← ' if i==0 else'',xlateLabel(varY,labels),xlateLabel(varX,labels),' →' if i==1 else '',' axes x1y2' if i==1 else '')
+		for pp in plots_y1: ppp.append(_mkLine(pStrip,pp[0],0))
+		for pp in plots_y2: ppp.append(_mkLine(pStrip,pp[0],1))
 		fPlot.write("plot "+",".join(ppp)+"\n")
 		i+=1
 	fPlot.close()

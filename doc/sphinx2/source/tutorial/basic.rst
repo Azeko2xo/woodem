@@ -1,12 +1,12 @@
 .. _tutorial-basic:
 
-#################
-Basic simulation
-#################
+#######
+Basics
+#######
 
 .. admonition:: Overview
 
-   This chapter explains how to write script for a very simple DEM simulation (a sphere falling onto plane) and how to run it.
+   This chapter explains how to write script for a very simple DEM simulation (a sphere falling onto plane) and how to run it. It clarifies the function of particles, nodes and engines.
 
 Scene
 =======
@@ -28,22 +28,25 @@ New scene with the DEM field can be initialized in this way:
    S.fields=[f]                     # add field to the scene
    woo.master.scene=S              # this will be the master scene now
 
-Since all objects can take *keyword arguments* when constructed, and assignments can be chained in Python, this can be written in a much more compact way::
+Since all objects can take *keyword arguments* when constructed, and assignments can be chained in Python, this can be written in a much more compact way:
 
-   S=woo.master.scene=woo.core.Scene(fields=[woo.dem.DemField(gravity=(0,0,-9.81))])
+.. ipython::
 
-..
-   asdfasdf
+   @suppress
+   Woo [1]: import woo, woo.core, woo.dem
 
-   .. ipython::
-
-      Woo [1]: import woo, woo.core, woo.dem
-
-      Woo [2]: woo.master.scene
-
+   Woo [1]: S=woo.master.scene=woo.core.Scene(fields=[woo.dem.DemField(gravity=(0,0,-9.81))])
 
 
 The DEM field can be accessed as ``S.fields[0]``, but this is not very convenient. There is a shorthand defined, ``S.dem``, which always returns the (first) DEM field attached to the scene object.
+
+.. ipython::
+
+   Woo [1]: S.fields[0]
+
+   Woo [1]: S.dem
+
+   Woo [1]: S.dem.gravity
 
 Particles
 ==========
@@ -71,13 +74,23 @@ The :obj:`~woo.dem.ParticleContainer.append` method can also take several partic
       woo.dem.Sphere.make((0,0,2),radius=.2)
    ])
 
-or in one line::
+or in one line:
 
-   S.dem.par.append([woo.dem.Wall.make(0,axis=2),woo.dem.Sphere.make((0,0,2),radius=.2)])
+.. ipython::
 
-Besides creating the particles, it must also be said which nodes we actually want to have moving, i.e. subject to motion integration. In most basic cases, we will want all nodes to move, and there is a convenience function to collect all particles' nodes and put them into :obj:`S.dem.nodes <woo.core.Field.nodes>`::
+   Woo [1]: S.dem.par.append([woo.dem.Wall.make(0,axis=2),woo.dem.Sphere.make((0,0,2),radius=.2)])
 
-   S.dem.collectNodes()
+   Woo [1]: S.dem.par[0]
+
+   Woo [1]: S.dem.par[1]
+
+Besides creating the particles, it must also be said which nodes we actually want to have moving, i.e. subject to motion integration. In most basic cases, we will want all nodes to move, and there is a convenience function to collect all particles' nodes and put them into :obj:`S.dem.nodes <woo.core.Field.nodes>`:
+
+.. ipython::
+
+   Woo [1]: S.dem.collectNodes()
+
+   Woo [1]: S.dem.nodes
 
 If we fail to do this, the integrator will collect them automatically, but will issue a warning.
 
@@ -86,30 +99,75 @@ Engines
 
 After adding particles to the scene, we need to tell Woo what to do with those particles. :obj:`Scene.engines <woo.core.Scene.engines>` describe things to do. Engines are run one after another; once the sequence finishes, :obj:`~woo.core.Scene.time` is incremented by :obj:`~woo.core.Scene.dt`, :obj:`~woo.core.Scene.step` is incremented by one, and the sequence starts over.
 
-Although the engine sequence can get complex, there is a pre-cooked engine sequence :obj:`DemField.minimalEngines <woo.dem.DemField.minimalEngines()>` suitable for most scenarios; it consists of the minimum of what virtually every DEM simulation needs:
+Although the engine sequence can get complex, there is a pre-cooked engine sequence :obj:`DemField.minimalEngines <woo.dem.DemField.minimalEngines>` suitable for most scenarios; it consists of the minimum of what virtually every DEM simulation needs:
 
 * motion integration (compute accelerations from contact forces and gravity on nodes, update velocities and positions);
 * collision detection (find particle overlaps)
 * contact resolution (compute forces resulting from overlaps; without any other parameters, the linear contact model is used);
+* automatic time-step adjustment based on numerical stability criteria (not strictly necessary, but highly useful)
 
-Assigning the engines is simple::
+Assigning the engines is simple (in simple simulations):
 
-   S.engines=S.dem.minimalEngines(damping=.2)
+.. ipython::
+
+   Woo [1]: S.engines=S.dem.minimalEngines(damping=.2)
 
 Notice that we passed the :obj:`~woo.dem.Leapfrog.damping` parameter, which is necessary for models without internal dissipation; more on this later.
+
+Periodic engines
+----------------
+
+Engines usually run at every time-step once. Some (deriving from :obj:`woo.core.PeriodicEngine`) run with a different periodicity, which can be specified using :obj:`~woo.core.PeriodicEngine.stepPeriod` (run every :math:`N` :obj:`steps <woo.core.Scene.step>`), :obj:`~woo.core.PeriodicEngine.virtPeriod` (run every :math:`x` seconds of the in-simulation, "virtual" time), :obj:`~woo.core.PeriodicEngine.realPeriod` (run every :math:`x` seconds of the human time).
+
+The number of the engine being run can be limited via :obj:`~woo.core.PeriodicEngine.nDo`; the number of how many times it was run is stored in :obj:`~woo.core.PeriodicEngine.nDone`.
+
+.. ipython::
+
+   @suppress
+   Woo [1]: S.saveTmp()
+
+   Woo [1]: d=S.engines[-1]   # last engine
+
+   Woo [1]: d.stepPeriod      # how often this engine runs
+
+   
+   Woo [1]: S.run(500,True)   # run 500 steps -- see below for explanation
+ 
+   Woo [1]: d.nDone           # how many times the engine was run
+
+   @suppress
+   Woo [1]: S=woo.master.loadTmp()
+
+
+One of the most flexible engines is :obj:`woo.core.PyRunner` which allows one to run arbitrary python code (given as string); we can use it here to print simulation time, just as an example
+
+.. ipython::
+
+   Woo [1]: S
+   
+   Woo [1]: S.engines=S.engines+[woo.core.PyRunner(100,'print(S.step,S.time,S.dt)')]
+
+   Woo [1]: S.run(500,True)
+
+   @suppress
+   Woo [1]: S=woo.master.loadTmp()
 
 Extras
 =======
 
 Two handy things to do before we run the simulation:
 
-1. Limit the simulation speed; this is never used for big simulations, but now we want to see things as they happen. We can insert a small pause after each step (here we use 5ms)::
+1. Limit the simulation speed; this is never used for big simulations, but now we want to see things as they happen. We can insert a small pause after each step (here we use 5ms):
 
-      S.throttle=5e-3
+.. ipython::
 
-2. Save the simulation so that we can quickly reload it using the :guilabel:`↻` (reload) button::
+   Woo [1]: S.throttle=5e-3
 
-      S.saveTmp()
+2. Save the simulation so that we can quickly reload it using the :guilabel:`↻` (reload) button:
+
+.. ipython::
+
+   Woo [1]: S.saveTmp()
 
 The :obj:`woo.core.Object.saveTmp` function saves to the memory, so everything will be lost when Woo finishes, but that is just fine now.
 
@@ -149,13 +207,22 @@ The :guilabel:`▶`  button is red as we set :obj:`S.throttle <woo.core.Scene.th
 
 Clicking the :guilabel:`Inspector` button will present internal structure of the simulation -- particles, engines, contacts (there will be no contact most the time, in this simulation). You can select a particle with by :kbd:`Shift-click` on the particle in the 3d view; it will be selected in the inspector as well.
 
-The simulation can also be run from the script or the command line in terminal (starting with ``Woo [1]:``)::
+The simulation can also be run from the script or the command line in terminal:
 
-   S.one()         # one step, like ▶▮
-   S.run()         # run in background until stopped, like ▶
-   S.stop()        # stop the simulation (does nothing if not running), like ▮▮
-   S.run(200)      # run 200 steps in background
-   S.wait()        # wait for the background to finish, then return
+.. ipython::
+
+   Woo [1]: S.one()         # one step, like ▶▮
+
+   Woo [1]: S.run()         # run in background until stopped, like ▶
+
+   Woo [1]: S.stop()        # stop the simulation (does nothing if not running), like ▮▮
+
+   # where are we at now?
+   Woo [1]: S.step, S.time, S.dt 
+
+   Woo [1]: S.run(200)      # run 200 steps in background
+
+   Woo [1]: S.wait()        # wait for the background to finish, then return
 
 .. warning:: When the script is executed, it defines the ``S`` variable to point to your scene. When the scene is reloaded via :guilabel:`↻` (which invokes ``woo.master.reload``), :obj:`woo.master.scene <woo.core.Master.scene>` refers to the newly loaded scene, but ``S`` is still pointing to the old object:
    

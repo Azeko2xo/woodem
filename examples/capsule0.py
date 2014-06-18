@@ -6,7 +6,6 @@ from math import *
 import numpy
 from random import random
 S=woo.master.scene=woo.core.Scene(fields=[DemField(gravity=(0,0,-10))])
-S.dem.loneMask=0b0010
 
 mat=FrictMat(young=1e6,density=3200)
 
@@ -30,7 +29,7 @@ S.dem.par.append([
 ])
 S.dem.par[-1].angVel=(0,.5,0)
 S.dem.collectNodes()
-S.dtSafety=.8
+S.dtSafety=.2
 S.engines=woo.utils.defaultEngines(damping=.4,dynDtPeriod=10)+[BoxFactory(box=((-1,-1,1+i*2),(1,1,3+i*2)),stepPeriod=100,maxMass=3e3,maxNum=-1,massRate=0,maxAttempts=100,attemptPar=50,atMaxAttempts=BoxFactory.maxAttWarn,generator=generators[i],materials=[mat]) for i in range(len(generators))]
 
 # S.any=[Gl1_Ellipsoid(wire=True),Gl1_DemField(cPhys=True,cNode=Gl1_DemField.cNodeNode),Renderer(iniViewDir=(0,1,0))]

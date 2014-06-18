@@ -12,7 +12,7 @@ sp.toSimulation(S,mat=mat)
 S.dem.par.append([utils.wall(1,axis=2,sense=0,mat=mat,glAB=((-10,-1),(20,11))),])
 S.periodic=True
 S.cell.setBox(20,20,20)
-S.engines=utils.defaultEngines(damping=.4)
+S.engines=DemField.minimalEngines(damping=.4)
 S.dtSafety=.5
 S.dt=.5*utils.pWaveDt() # to compute oscillation freqs below
 # create cylinders

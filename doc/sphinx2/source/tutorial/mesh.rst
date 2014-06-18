@@ -124,12 +124,18 @@ Mask bits can be further used for marking particles (e.g. with :obj:`~woo.dem.Bo
 
 **Default values** of mask are different for different particles:
 
-1. Particles which usually move (:obj:`~woo.dem.Sphere`, :obj:`~woo.dem.Ellipsoid`, :obj:`~woo.dem.Capsule`) have the mask set to ``0b0001`` by default (when created using the :obj:`Sphere.make <woo.dem.Sphere.make>` etc functions).
+1. Particles which usually move (:obj:`~woo.dem.Sphere`, :obj:`~woo.dem.Ellipsoid`, :obj:`~woo.dem.Capsule`) have the mask set to ``0b0101`` by default (when created using the :obj:`Sphere.make <woo.dem.Sphere.make>` etc functions). This is also the default value for :obj:`ParticleFactory.mask <woo.dem.ParticleFactory.mask>` (particles created during the simulation; treated later)
 
 2. Particles usually acting as the boundary (:obj:`~woo.dem.Facet`, :obj:`~woo.dem.InfCylinder`, :obj:`~woo.dem.Wall`) set the mask to ``0b0011`` by default.
 
 3. :obj:`DemField.loneMask <woo.dem.DemField.loneMask>` default to ``0b0010``.
 
-This means that any contacts between boundary particles (:obj:`~woo.dem.Facet` + :obj:`~woo.dem.Facet` and such) are avoided, but that boundary will still interact with particles which usually move.
+4. :obj:`BoxDeleter.mask <woo.dem.BoxDeleter.mask>` defaults to ``0b0100`` (delting particles is treated in detail later).
 
-If the default behavior is not sufficiently flexible ofr your setup, it can be always tuned by hand.
+This means that
+
+1. any contacts between boundary particles (:obj:`~woo.dem.Facet` + :obj:`~woo.dem.Facet` and such) are avoided, but that boundary will still interact with particles which usually move;
+
+2. deleters will by default only delete particles which usually move (since they contain the ``0b0100`` bit), but not boundary particles.
+
+If the default behavior is not sufficiently flexible for your setup, it can be always tuned by hand.
