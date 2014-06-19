@@ -4,12 +4,57 @@ Convenience module for setting up visualization pipelines for Paraview through p
 import woo
 import woo.dem
 
+
+def findPV():
+	'Find Paraview executable in the system. Under Windows (64bit only), this entails searching the registry (see `this post <http://www.paraview.org/pipermail/paraview/2010-August/018645.html>`__), under Linux, just return ``paraview`` and suppose the executable is in the ``$PATH``.'
+	import sys,operator
+	if sys.platform=='win32':
+		# oh gee...
+		# http://www.paraview.org/pipermail/paraview/2010-August/018645.html
+		# - HKEY_CURRENT_USER\SOFTWARE\Wow6432Node\Kitware Inc.\ParaView 3.8.X (64bit machines single user install)
+		# - HKEY_CURRENT_USER\SOFTWARE\Kitware Inc.\ParaView 3.8.X (32bit machines single user install)
+		# - HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Kitware Inc.\ParaView 3.8.X (64bit machines all users)
+		# - HKEY_LOCAL_MACHINE\SOFTWARE\Kitware Inc.\ParaView 3.8.X (32bit machines all users)
+		#
+		# we don't care about 32 bit, do just 64bit
+		import _winreg as winreg
+		path='SOFTWARE\Wow6432Node\Kitware Inc.'
+		paraviews=[]
+		for reg in (winreg.HKEY_CURRENT_USER,winreg.HKEY_LOCAL_MACHINE):
+			aReg=winreg.ConnectRegistry(None,reg)
+			try:
+				aKey=winreg.OpenKey(aReg,r'SOFTWARE\Wow6432Node\Kitware, Inc.')
+			except WindowsError: continue
+			for i in range(0,winreg.QueryInfoKey(aKey)[0]):
+				keyname=winreg.EnumKey(aKey,i)
+				if not keyname.startswith('ParaView '):
+					print 'no match:',keyname
+					continue
+				subKey=winreg.OpenKey(aKey,keyname)
+				paraviews.append((keyname,subKey))
+		# sort lexically using key name and use the last one (highest version)
+		pv=sorted(paraviews,key=operator.itemgetter(1))
+		if not pv: raise RuntimeError('ParaView installation not found in registry.')
+		pvName,pvKey=pv[-1]
+		pvExec=''
+		for i in range(0,winreg.QueryInfoKey(pvKey)[1]):
+			key,val,T=winreg.EnumValue(pvKey,i)
+			if key=='':
+				pvExec=val+'/bin/paraview'
+				break
+		if not pvExec: raise RuntimeError('ParaView installation: found in registry, but default key is missing...?')
+		return pvExec
+	else:
+		# on Linux, assume it is in $PATH
+		return 'paraview'
+
 def launchPV(script):
+	'Launch paraview as background process, passing --script=*script* as the only argument.'
 	import subprocess
 	# will launch it in the background
-	cmd=['paraview','--script='+script]
+	cmd=[findPV(),'--script='+script]
 	print 'Running ',' '.join(cmd)
-	subprocess.Popen(['paraview','--script='+script])
+	subprocess.Popen(cmd)
 
 def fromEngines(S,out=None,launch=False):
 	'''Write paraview script showing data from the current VTK-related engines: :obj:`woo.dem.VtkExport` and :obj:`FlowAnalysis`. Files exported by :obj:`woo.dem.VtkExport` are used, while :obj:`FlowAnalysis` is made to export its internal data at the moment of calling this function.
@@ -103,8 +148,6 @@ def write(out,sphereFiles=[],meshFiles=[],conFiles=[],triFiles=[],flowFile='',sp
 	
 
 _paraviewScriptTemplate=r'''
-
-from paraview.simple import *
 import sys, os.path
 
 # input parameters
@@ -178,6 +221,8 @@ if hasattr(sys,'argv') and len(sys.argv)>1:
 		print 'File '+zipName+' written.'
 		sys.exit(0)
 
+from paraview.simple import *		
+		
 
 def readPointCellData(src):
 	src.PointArrayStatus=src.GetPointDataInformation().keys()

@@ -23,10 +23,9 @@ allTests=[m for m in dir() if type(eval(m))==types.ModuleType and eval(m).__name
 ## allTests=['core','pbc','clump','psd','io']
 
 
-
 # all woo modules (ugly...)
-import woo.export,woo.linterpolation,woo.log,woo.pack,woo.plot,woo.post2d,woo.timing,woo.utils,woo.ymport,woo.geom,woo.batch
-allModules=(woo.export,woo.linterpolation,woo.log,woo.pack,woo.plot,woo.post2d,woo.timing,woo.utils,woo.ymport,woo.geom,woo.batch)
+import woo.export,woo.linterpolation,woo.log,woo.pack,woo.plot,woo.post2d,woo.timing,woo.utils,woo.geom,woo.batch
+allModules=(woo.export,woo.linterpolation,woo.log,woo.pack,woo.plot,woo.post2d,woo.timing,woo.utils,woo.geom,woo.batch)
 try:
 	import woo.qt
 	allModules+=(woo.qt,)

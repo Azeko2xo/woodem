@@ -308,9 +308,6 @@ struct DemField: public Field{
 		_classObj.attr("defaultLoneMask")=(int)DemField::defaultLoneMask; \
 		_classObj.attr("defaultFactoryMask")=(int)DemField::defaultFactoryMask; \
 		_classObj.attr("defaultDeleterMask")=(int)DemField::defaultDeleterMask;
-
-
-
 	
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_DemField__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 
