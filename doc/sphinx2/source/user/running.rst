@@ -103,6 +103,8 @@ For the object, attributes can be displayed either as variable names, or as thei
 
 .. image:: fig/object-editor-context-menu.png
 
+.. _user-manual-3d-rendering:
+
 3d rendering
 ------------
 
@@ -140,7 +142,7 @@ Colorscales can be manipulated using mouse:
 * *right-draw* moves, and toggles portrait/landscape when touching the edge
 * *left-click* resets the range an sets to auto-adjust
 
-A movie from the 3d view can be made by checking the :menuselection:`Controller -> Video --> Take snapshots` first, and, when sufficient number of snapshots will have been save, clicking :menuselection:`Controller --> Video --> Make video`.
+A movie from the 3d view can be made by checking the :menuselection:`Controller --> Video --> Take snapshots` first, and, when sufficient number of snapshots will have been save, clicking :menuselection:`Controller --> Video --> Make video`.
 
 Display control
 ^^^^^^^^^^^^^^^^^

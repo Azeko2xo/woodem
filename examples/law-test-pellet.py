@@ -14,7 +14,7 @@ S.dem.par.append([
 	utils.sphere((0,1.001,0),.5,fixed=False,wire=True,mat=m)
 ])
 S.dem.collectNodes()
-S.engines=utils.defaultEngines(damping=.0,cp2=Cp2_PelletMat_PelletPhys(),law=Law2_L6Geom_PelletPhys_Pellet(sigConfine=-1e3))+[
+S.engines=utils.defaultEngines(damping=.0,cp2=Cp2_PelletMat_PelletPhys(),law=Law2_L6Geom_PelletPhys_Pellet())+[
 	LawTester(ids=(0,1),abWeight=.3,smooth=1e-4,stages=[
 			LawTesterStage(values=(-.01,0,0,0,0,0),whats='v.....',until='bool(C)',done='print "New contact is",C'),
 			LawTesterStage(values=(-.01,0,0,0,0,0),whats='v.....',until='C and C.geom.uN<-1e-3',done='print "Compressed to",C.geom.uN'),

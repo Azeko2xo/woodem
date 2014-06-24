@@ -359,10 +359,9 @@ void VtkExport::run(){
 				if(infError) throw std::runtime_error("Wall #"+to_string(p->id)+" does not have Wall.glAB set and cannot be exported to VTK with VtkExport.infError=True.");
 				else continue; // skip otherwise
 			}
-			Vector3r pos=p->shape->nodes[0]->pos;
+			const auto& node=p->shape->nodes[0];
 			int ax0=wall->axis,ax1=(wall->axis+1)%3,ax2=(wall->axis+2)%3;
-			Vector2r cent(pos[ax1],pos[ax2]);
-			Vector2r lo(cent+wall->glAB.corner(AlignedBox2r::BottomLeft)), hi(cent+wall->glAB.corner(AlignedBox2r::TopRight));
+			Vector2r lo(wall->glAB.corner(AlignedBox2r::BottomLeft)), hi(wall->glAB.corner(AlignedBox2r::TopRight));
 			// construct two facets which look like this in axes (ax1,ax2)
 			//
 			// ax2   C---D
@@ -371,10 +370,10 @@ void VtkExport::run(){
 			// |
 			// +--------> ax1
 			Vector3r A,B,C,D;
-			A[ax0]=B[ax0]=C[ax0]=D[ax0]=pos[ax0];
+			A[ax0]=B[ax0]=C[ax0]=D[ax0]=0;
 			A[ax1]=B[ax1]=lo[0]; C[ax1]=D[ax1]=hi[0];
 			A[ax2]=C[ax2]=lo[1]; B[ax2]=D[ax2]=hi[1];
-			mCellNum=addTriangulatedObject({A,B,C,D},{Vector3i(0,1,3),Vector3i(0,3,2)},mPos,mCells);
+			mCellNum=addTriangulatedObject({node->loc2glob(A),node->loc2glob(B),node->loc2glob(C),node->loc2glob(D)},{Vector3i(0,1,3),Vector3i(0,3,2)},mPos,mCells);
 		}
 		else if(infCyl){
 			if(isnan(infCyl->glAB.squaredNorm())){

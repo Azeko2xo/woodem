@@ -1,0 +1,27 @@
+##woo-expression##
+#: import woo.pre.cylTriax,woo.dem
+woo.pre.cylTriax.CylTriaxTest(
+	htDiam=(0.1, 0.06),
+	memThick=-1.0,
+	cylDiv=40.0,
+	sigIso=-500000.0,
+	stopStrain=-0.3,
+	maxRates=(0.4, 1.0),
+	parMat=woo.dem.FrictMat(density=100000000.0, id=-1, young=300000000.0, tanPhi=0.4, ktDivKn=0.2),
+	psd=[(0.002, 0.0), (0.0025, 0.2), (0.004, 1.0)],
+	clumps=[
+		woo.dem.SphereClumpGeom(centers=[(0,0,-.15),(0,0,-.05),(0,0,.05)],radii=(.05,.10,.05),scaleProb=[(0,1.)]),
+		woo.dem.SphereClumpGeom(centers=[(.05,0,0) ,(0,.05,0) ,(0,0,.05)],radii=(.05,.05,.05),scaleProb=[(0,.5)]),
+	],
+	memMat=woo.dem.FrictMat(density=100000000.0, id=-1, young=1100000.0, tanPhi=0.4, ktDivKn=0.2),
+	suppTanPhi=nan,
+	reportFmt='/tmp/{tid}.xhtml',
+	packCacheDir='.',
+	saveFmt='/tmp/{tid}-{stage}.bin.gz',
+	vtkStep=0,
+	vtkFmt='/tmp/{title}.{id}-',
+	pWaveSafety=0.6,
+	massFactor=0.5,
+	damping=0.5,
+	maxUnbalanced=0.05
+)

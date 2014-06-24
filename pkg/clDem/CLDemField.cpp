@@ -8,6 +8,7 @@
 #include<woo/pkg/dem/Particle.hpp>
 #include<woo/pkg/dem/Sphere.hpp>
 #include<woo/pkg/dem/Wall.hpp>
+#include<woo/pkg/dem/Facet.hpp>
 #include<woo/pkg/dem/Clump.hpp>
 #include<woo/pkg/dem/L6Geom.hpp>
 #include<woo/pkg/dem/FrictMat.hpp>
@@ -405,7 +406,7 @@ void CLDemRun::doCompare(){
 #undef _THROW_ERROR
 
 
-/* convert simulation from Yade to clDem, optionally add engines running the clDem simulation alongside */
+/* convert simulation from Woo to clDem, optionally add engines running the clDem simulation alongside */
 shared_ptr<clDem::Simulation> CLDemField::wooToClDem(const shared_ptr< ::Scene>& scene, int stepPeriod, Real relTol){
 	auto sim=make_shared<clDem::Simulation>();
 	shared_ptr<DemField> dem;
@@ -427,7 +428,7 @@ shared_ptr<clDem::Simulation> CLDemField::wooToClDem(const shared_ptr< ::Scene>&
 	for(const auto& yp: *dem->particles){
 		ymm.insert(std::make_pair(yp->material.get(),ymm.size())); // this makes sure materials are numbered consecutively
 	}
-	if(ymm.size()>(size_t)clDem::SCENE_MAT_NUM_) throw std::runtime_error("Yade uses "+lexical_cast<string>(ymm.size())+" materials, which is more than the maximum "+lexical_cast<string>(clDem::SCENE_MAT_NUM_)+" clDem was compiled with.");
+	if(ymm.size()>(size_t)clDem::SCENE_MAT_NUM_) throw std::runtime_error("Woo uses "+lexical_cast<string>(ymm.size())+" materials, which is more than the maximum "+lexical_cast<string>(clDem::SCENE_MAT_NUM_)+" clDem was compiled with.");
 	// copy materials
 	for(const auto& ymi: ymm){
 		const ::Material* ym(ymi.first);
@@ -524,11 +525,9 @@ shared_ptr<clDem::Simulation> CLDemField::wooToClDem(const shared_ptr< ::Scene>&
 	// decide which contact model to use
 	shared_ptr<ContactLoop> loop;
 	shared_ptr<Leapfrog> leapfrog;
-	shared_ptr<Gravity> gravity;
 	for(const auto& e: scene->engines){
 		if(!loop) loop=dynamic_pointer_cast<ContactLoop>(e);
 		if(!leapfrog) leapfrog=dynamic_pointer_cast<Leapfrog>(e);
-		if(!gravity) gravity=dynamic_pointer_cast<Gravity>(e);
 	}
 	if(!loop) throw std::runtime_error("No ContactLoop in simulation.");
 	if(!loop) throw std::runtime_error("No Leapfrog in simulation.");
@@ -552,7 +551,7 @@ shared_ptr<clDem::Simulation> CLDemField::wooToClDem(const shared_ptr< ::Scene>&
 	}
 
 	sim->scene.damping=leapfrog->damping;
-	sim->scene.gravity=clDem::fromEigen(gravity?gravity->gravity:Vector3r(0,0,0));
+	sim->scene.gravity=clDem::fromEigen(dem->gravity);
 	sim->trackEnergy=scene->trackEnergy;
 	//sim->scene.step=scene->step-1; // right before
 	//sim->scene.t=scene->t-
@@ -574,8 +573,8 @@ shared_ptr<clDem::Simulation> CLDemField::wooToClDem(const shared_ptr< ::Scene>&
 }
 
 
-/* convert simulation from clDem to Yade, create engines such that both simulations run in parallel */
-shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>& sim, int stepPeriod, Real relTol){
+/* convert simulation from clDem to Woo, create engines such that both simulations run in parallel */
+shared_ptr< ::Scene> CLDemField::clDemToWoo(const shared_ptr<clDem::Simulation>& sim, int stepPeriod, Real relTol){
 	auto scene=make_shared< ::Scene>();
 
 	auto dem=make_shared< ::DemField>();
@@ -595,6 +594,7 @@ shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>
 	scene->step=sim->scene.step+1;
 	scene->trackEnergy=sim->trackEnergy;
 	dem->loneMask=sim->scene.loneGroups;
+	dem->gravity=v2v(sim->scene.gravity);
 
 	// materials
 	int mmatT=clDem::Mat_None; // track combination of materials, which is not supported
@@ -636,8 +636,6 @@ shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>
 
 	// create engines
 	// woo first
-	auto grav=make_shared<Gravity>();
-	grav->gravity=v2v(sim->scene.gravity);
 	auto integrator=make_shared<Leapfrog>();
 	integrator->damping=sim->scene.damping;
 	integrator->reset=true;
@@ -682,7 +680,6 @@ shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>
 	clDemRun->relTol=relTol;
 
 	scene->engines={
-		grav,
 		integrator,
 		collider,
 		loop,
@@ -755,6 +752,7 @@ shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>
 				node->ori=q2q(cp.ori);
 				node->setData<DemData>(make_shared<DemData>());
 				DemData& dyn=node->getData<DemData>();
+				dyn.parRef.push_back(yp.get());
 				dyn.vel=v2v(cp.vel);
 				dyn.angVel=v2v(cp.angVel);
 				dyn.angMom=v2v(cp.angMom);
@@ -789,6 +787,7 @@ shared_ptr< ::Scene> CLDemField::clDemToYade(const shared_ptr<clDem::Simulation>
 		if(clDem::con_geomT_get(&c)!=Geom_None) throw std::runtime_error(cId+": pre-existing geom not handled yet.");
 		if(clDem::con_physT_get(&c)!=Phys_None) throw std::runtime_error(cId+": pre-existing phys not handled yet.");
 		auto yc=make_shared< ::Contact>();
+		yc->stepCreated=0; // to avoid ContactLoop deleting the contact right away
 		::Particle::id_t idA=wooIds[c.ids.s0], idB=wooIds[c.ids.s1];
 		assert(idA>=0 && idA<(long)dem->particles->size());
 		assert(idB>=0 && idB<(long)dem->particles->size());

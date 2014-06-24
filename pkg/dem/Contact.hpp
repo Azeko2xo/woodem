@@ -95,9 +95,9 @@ struct Contact: public Object{
 		((weak_ptr<Particle>,pB,,AttrTrait<Attr::readonly>(),"Second particle of the contact")) \
 		((Vector3i,cellDist,Vector3i::Zero(),AttrTrait<Attr::readonly>(),"Distace in the number of periodic cells by which pB must be shifted to get to the right relative position.")) \
 		woo_dem_Contact__OPENGL__color \
-		((int,stepCreated,-1,AttrTrait<Attr::hidden>(),"Step in which this contact was created by the collider, or step in which it was made real (if geom and phys exist). This number is NOT reset by Contact::reset(). If negative, it means the collider does not want to keep this contact around anymore (this happens if the contact is real but there is no overlap anymore).")) \
+		((int,stepCreated,-1,AttrTrait<Attr::readonly>(),"Step in which this contact was created by the collider, or step in which it was made real (if geom and phys exist). This number is NOT reset by Contact::reset(). If negative, it means the collider does not want to keep this contact around anymore (this happens if the contact is real but there is no overlap anymore).")) \
 		((Real,minDist00Sq,-1,AttrTrait<Attr::readonly>(),"Minimum distance between nodes[0] of both shapes so that the contact can exist. Set in ContactLoop by geometry functor once, and is used to check for possible contact without having to call the functor. If negative, not used. Currently, only Sphere-Sphere contacts use this information.")) \
-		((int,stepLastSeen,-1,AttrTrait<Attr::hidden>(),"")) \
+		((int,stepLastSeen,-1,AttrTrait<Attr::readonly>(),"")) \
 		((size_t,linIx,0,AttrTrait<Attr::readonly>().noGui(),"Position in the linear view (ContactContainer)")) \
 		, /*py*/ .add_property("id1",&Contact::pyId1).add_property("id2",&Contact::pyId2).add_property("real",&Contact::isReal).add_property("ids",&Contact::pyIds) \
 		.def("dPos",&Contact::dPos_py,"Return position difference vector pB-pA, taking `Contact.cellDist` in account properly. Both particles must be uninodal, exception is raised otherwise.") \

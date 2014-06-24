@@ -4,7 +4,7 @@ Internal data
 
 .. admonition:: Overview
 
-   This chapter explains how to obtain various data from simulation and how to plot them. Using per-simulation labels for things is exaplained.
+   This chapter explains how to obtain various data from simulation and how to plot them. Using per-simulation labels for things is exaplained, and scene tags are introduced.
 
 
 Plotting
@@ -155,8 +155,8 @@ produces (only the beginning of the file is shown):
    :lines: 1-15
 
 
-Labeling 
-=========
+Labels
+======
 
 When plotting, we were accessing the sphere using the ``S.dem.par[1]`` notation; that is not convenient. For this reason, there exists a special place for putting labeled :obj:`objects <woo.core.Object>`, ``S.lab`` (it is a per-scene isntance of the :obj:`woo.core.LabelMapper` object) which can then be accessed by readable names.
 
@@ -184,4 +184,32 @@ Engines, when they have :obj:`~woo.core.Engine.label` set in the constructor (as
    Woo [1]: S.dem.par[0]==S.lab.sphere  # it is one and the same particle
 
    Woo [1]: S.dem.par[0].pos[2], S.lab.sphere.pos[2]  # the z-position can be accessed both ways
+
+
+.. _tutorial-tags:
+
+Tags
+=====
+
+Each :obj:`~woo.core.Scene` defines :obj:`~woo.core.Scene.tags` of which some are filled-in automatically. It is a dictionary-like object. Some of the useful tags are ``id`` (unique identifier of the simulation, composed of time, date and process number) and ``title`` (by default empty, but used in batch simulations), ``tid`` (title+id concatenated, for readability and uniqueness).
+
+.. ipython::
+
+   Woo [1]: S.tags.keys()
+
+   Woo [1]: S.tags['isoTime']
+
+   Woo [1]: S.tags['idt']
+
+   Woo [1]: S.tags['id']
+
+   Woo [1]: S.tags['whatever']='whatever you want'
+
+   Woo [1]: S.tags['whatever']
+
+Tags can be embedded in some parameters in ``{}`` and are expanded by :obj:`woo.core.Scene.expandTags` (e.g. :obj:`VtkExport.out <woo.dem.VtkExport.out>` can contain ``{tid}``, ensuring output data will not overwrite each other):
+
+.. ipython::
+  
+   Woo [1]: S.expandTags('/this/is/some/filename-{tid}')
 

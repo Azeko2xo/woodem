@@ -7,8 +7,18 @@ Export
 	This chapter explains how to export data from Woo into formats readable by other programs.
 
 
+Plots
+======
+
+Plots as graphics
+------------------
+
+Plots can be exported as graphics into any format supported by Matplotlib (PDF, SVG, PNG, ...) by clicking the save icon in the plot itself:
+
+.. figure:: plot-image-export.png
+
 Plot data
-==========
+----------
 
 Plot data are stored in the :obj:`S.plot.data <woo.core.Plot.data>` dictionary; we can re-use the simulation of :ref:`sphere and energy tracking <data-sphere-with-energy-tracking>` which was giving the following plot:
 
@@ -54,7 +64,7 @@ Those figures don't interpret math and look a bit rough, but may be useful for p
 Packings
 =========
 
-Packings contain purely geometrical information about particles.
+Packings contain purely geometrical information about particles, without material properties, velocity or anything else.
 
 :obj:`woo.pack.SpherePack <_packSpheres.SpherePack>` is sphere-only, as this feature allows many operations to be optimized, as only position and radius is stored for each particles. :obj:`~_packSpheres.SpherePack` can be saved and loaded from/to file in CSV (space-separated) file. It is occasionally useful to do analyses on e.g. radii distribution of particles in 3rd-party tools, and this might be a useful format for interchange:
 
@@ -136,6 +146,88 @@ Paraview
 * snapshots of particles and contacts for visualization or evolution analysis using :obj:`~woo.dem.VtkExport` 
 * time-averaged and space-averaged data for flow and segregation analysis using :obj:`~woo.dem.FlowAnalysis`
 
+Both are shown in this movie, created in Paraview from the :obj:`woo.pre.horse.FallingHorse` simulation:
+
+.. youtube:: LB3T6sBdwz0
+
+Movies in Paraview can be created using :menuselection:`File --> Save Animation`.
+
+
 :obj:`~woo.dem.VtkExport`
 -------------------------
 
+:obj:`~woo.dem.VtkExport` is a :obj:`periodic engine <woo.core.PeriodicEngine>` which saves particles and contacts in regular intervals; this results in several time-series of data which can be used e.g. to create beautiful movies from Paraview; Paraview visualization capabilities are far more advanced than what the 3d view in Woo offers, which is in contract more DEM-specific, thus more useful in other situations.
+
+.. ipython::
+
+   Woo [1]: S.engines=S.engines+[
+      ...:   VtkExport(
+      ...:      # run every 100 steps
+      ...:      stepPeriod=100,  
+      ...:      # the default is what=VtkExport.all, no need to specify it usually
+      ...:      what=VtkExport.spheres|VtkExport.mesh|VtkExport.tri|VtkExport.con 
+      ...:      # where will the output go; can use {tags} 
+      ...:      out="/tmp/{tid}-"
+      ...:   )
+
+:obj:`~woo.dem.VtkExport` produces several files per time-step; those can be loaded into Paraview as groups.  Note that the ``/tmp/{tid}-`` was expanded (see :ref:`tutorial-tags`) to ``/tmp/20140620T145830p6238-`` and different endings were appended for different data (``con`` for contacts, ``mesh`` for boundary meshes, ``spheres`` for spherical particles, ``tri`` for triangulated particles). Each ``...`` hides series of step numbers (40, 80, 120, ...) which Paraview loads sequentially:
+
+.. figure:: fig/paraview-multiple-open.png
+   :align: center
+
+   Opening multiple files in Paraview.
+
+Loading files manually this way (detailed in :ref:`user-manual-postprocess-vtk-export`) is not very easy. Fortunately, there is a handy command :obj:`woo.paraviewscript.fromEngines` which writes Paraview script including all setup, by scanning engines in the simulation:
+
+.. ipython::
+
+   Woo [1]: import woo.paraviewscript
+
+   # add launch=True to run Paraview right away
+   # this writes into temporary file
+   Woo [1]: woo.paraviewscript.fromEngines(S) 
+
+   # writes into user-defined file
+   Woo [1]: woo.paraviewscript.fromEngines(S,out='something.py') 
+
+The script can be then used in 2 ways:
+
+1. As script to be run with Paraview, which will load all necessary files and set the visualization pipeline up::
+
+   paraview --script=something.py
+
+2. As a means to zip all data files and the script itself, e.g. for easy transfer or archiving (run with ``--help`` for more help)::
+
+   python something.py --zip
+
+
+:obj:`~woo.dem.FlowAnalysis`
+--------------------------
+
+:obj:`~woo.dem.FlowAnalysis` is an engine which :obj:`periodically <woo.core.PeriodicEngine>` stores flow data interpolated in a uniform grid. The theory is described in :ref:`user-manual-flow-analysis`. The :obj:`woo.paraviewscript.fromEngines` introduced above recognizes the presence of :obj:`~woo.dem.FlowAnalysis` and puts its data into the visualization pipeline as well.
+
+3d view
+========
+
+Settings and manupulation of the 3d view are covered in :ref:`user-manual-3d-rendering`.
+
+Images
+-------
+
+Snapshots from the 3d view can be created by pressing :kbd:`Control-C` in the view. THe bitmap will be copied to the clipboard and can be pasted into documents or image editors.
+
+Movies
+-------
+
+Sequence of snapshots can be saved :obj:`periodically <woo.core.PeriodicEngine>` by checking `Controller --> Video --> Take snapshots`; periodicity should be set according to your needs, and perhaps some experimentation is necessary as to how often to take a snapshot. When done, click on :menuselection:`Controller --> Video --> Make video`. The resulting ``.mpeg4`` file can be, for example, uploaded to `youtube <http://youtube.com>`__.
+
+.. youtube:: D_pc3RU5IXc
+
+This (almost) the same simulation in Paraview:
+
+.. youtube:: jXL8qXi780M
+
+Batch data
+===========
+
+Using data from batches is discussed in :ref:`tutorial-batch`.

@@ -268,9 +268,6 @@ def main(sysArgv=None):
 		woo.master.disableGdb()
 	if 'log4cxx' in woo.config.features and opts.verbosity:
 		woo.log.setLevel('',[woo.log.INFO,woo.log.DEBUG,woo.log.TRACE][min(opts.verbosity,2)])
-	if 'opencl' in woo.config.features and opts.clDev:
-		woo.master.defaultClDev=opts.clDev
-
 
 	## modify sys.argv in-place so that it can be handled by userSession
 	woo.runtime.origArgv=sys.argv[:]

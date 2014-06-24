@@ -218,7 +218,7 @@ if hasattr(sys,'argv') and len(sys.argv)>1:
 					else: ll.append(var+"='"+newFiles[var]+"'\n")
 				else: ll.append(l)
 			ar.writestr(out0+'/'+os.path.basename(sys.argv[0]),''.join(ll))
-		print 'File '+zipName+' written.'
+		print 'File '+os.path.abspath(zipName)+' written.'
 		sys.exit(0)
 
 from paraview.simple import *		

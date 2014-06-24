@@ -305,7 +305,8 @@ def revolutionSurfaceMeridians(sects,angles,origin=Vector3().Zero,orientation=Qu
 	import math
 	def toGlobal(x,y,z):
 		return tuple(origin+orientation*(Vector3(x,y,z)))
-	return [[toGlobal(x2d*math.cos(angles[i]),x2d*math.sin(angles[i]),y2d) for x2d,y2d in sects[i]] for i in range(0,len(sects))]
+	print sects
+	return [[toGlobal(p[0]*math.cos(angle),p[0]*math.sin(angle),p[1]) for p in sects] for angle in angles]
 
 ########
 ## packing generators

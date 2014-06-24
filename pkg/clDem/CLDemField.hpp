@@ -22,15 +22,18 @@ WOO_REGISTER_OBJECT(CLDemData);
 
 template<> struct NodeData::Index<CLDemData>{enum{value=Node::ST_CLDEM};};
 
+// no longer needed
+#if 0
 #if BOOST_VERSION<104900
 	namespace boost {
 		namespace align { struct __attribute__((__aligned__(128))) a128 {};}
 		template<> class type_with_alignment<128> { public: typedef align::a128 type; };
 	};
 #endif
+#endif
 
 struct CLDemField: public Field{
-	static shared_ptr<Scene> clDemToYade(const shared_ptr<clDem::Simulation>& sim, int stepPeriod=-1, Real relTol=-1);
+	static shared_ptr<Scene> clDemToWoo(const shared_ptr<clDem::Simulation>& sim, int stepPeriod=-1, Real relTol=-1);
 	static shared_ptr<clDem::Simulation> wooToClDem(const shared_ptr< ::Scene>& scene, int stepPeriod=-1, Real relTol=-1);
 	// returns clDem::Simulation within current scene
 	static shared_ptr<clDem::Simulation> getSimulation();
@@ -38,8 +41,8 @@ struct CLDemField: public Field{
 			((shared_ptr<clDem::Simulation>,sim,,,"The OpenCL simulation in question."))
 		, /* ctor */ createIndex();
 		, /* py */ // .def_readwrite("sim",&CLDemField::sim,"Simulation field to operate on")
-		.def("clDemToYade",&CLDemField::clDemToYade,(py::arg("clDemSim"),py::arg("stepPeriod")=1,py::arg("relTol")=-1),"Create woo simulation which mimics the one in *clDemSim* as close as possible. If stepPeriod>=1, prepare enginess for running and comparing them in parallel. *stepPeriod* determines how many steps of the CL simulation to launch at once. If *relTol* is greater than 0., comparison between clDem and Yade will be done at every step, with the tolerance specified.")
-		.staticmethod("clDemToYade")
+		.def("clDemToWoo",&CLDemField::clDemToWoo,(py::arg("clDemSim"),py::arg("stepPeriod")=1,py::arg("relTol")=-1),"Create woo simulation which mimics the one in *clDemSim* as close as possible. If stepPeriod>=1, prepare enginess for running and comparing them in parallel. *stepPeriod* determines how many steps of the CL simulation to launch at once. If *relTol* is greater than 0., comparison between clDem and Woo will be done at every step, with the tolerance specified.")
+		.staticmethod("clDemToWoo")
 		.def("wooToClDem",&CLDemField::wooToClDem,(py::arg("scene"),py::arg("stepPeriod")=-1,py::arg("relTol")=-1),"Convert woo simulation in *scene* to clDem simulation (returned object), optionally adding the clDem simulation to the woo's scene itself (if stepPeriod>=1) to be run in parallel. Positive value of *relTol* will run checks between both computations after each *stepPeriod* steps.")
 		.staticmethod("wooToClDem")
 		.def("getSimulation",&CLDemField::getSimulation).staticmethod("getSimulation")

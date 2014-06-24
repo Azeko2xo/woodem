@@ -62,7 +62,7 @@ struct VtkExport: public PeriodicEngine{
 		((bool,sphereSphereOnly,false,,"Only export contacts between two spheres (not sphere+facet and such)")) \
 		((bool,infError,true,,"Raise exception for infinite objects which don't have the glAB attribute set properly.")) \
 		((bool,skipInvisible,true,,"Skip invisible particles")) \
-		((int,subdiv,16,AttrTrait<>().noGui(),"Subdivision fineness for circular objects (such as cylinders).\n\n.. note:: :obj:`Facets <woo.dem.Facet>` are rendered without rounded edges (they are closed flat).\n\n.. note:: :obj:`Ellipsoids <woo.dem.Ellipsoid>` triangulation is controlled via the :obj:`ellLev` parameter.")) \
+		((int,subdiv,16,AttrTrait<>(),"Subdivision fineness for circular objects (such as cylinders).\n\n.. note:: :obj:`Facets <woo.dem.Facet>` are rendered without rounded edges (they are closed flat).\n\n.. note:: :obj:`Ellipsoids <woo.dem.Ellipsoid>` triangulation is controlled via the :obj:`ellLev` parameter.")) \
 		((int,ellLev,0,AttrTrait<>().range(Vector2i(0,CompUtils::unitSphereTri20_maxTesselationLevel)),"Tesselation level for exporting ellipsoids (0 = icosahedron, each level subdivides one triangle into three.")) \
 		((int,thickFacetDiv,1,AttrTrait<>().noGui(),"Subdivision for :obj:`woo.dem.Facet` objects with non-zero :obj:`woo.dem.Facet.halfThick`; the value of -1 will use :obj:`subdiv`; 0 will render only faces, without edges; 1 will close the edge flat.")) \
 		((bool,cylCaps,true,,"Render caps of :obj:`InfCylinder` (at :obj:`InfCylinder.glAB`).")) \

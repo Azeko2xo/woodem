@@ -292,7 +292,7 @@ if wooOptions.clDev:
 				if not len(clDev) in (1,2): raise ValueError()
 			except (IndexError, ValueError, AssertionError):
 				raise ValueError('Invalid --cl-dev specification %s, should an integer (platform), or a comma-separated couple (platform,device) of integers'%opts.clDev)
-			master.clDev=clDev
+			master.defaultClDev=clDev
 	else: warnings.warn("--cl-dev ignored, since compiled without OpenCL.")
 
 
