@@ -10,9 +10,9 @@ woo.gl.Gl1_Node.wd=4
 woo.gl.Gl1_Node.len=.1
 woo.gl.Gl1_FlexFacet.phiSplit=True
 woo.gl.Gl1_FlexFacet.phiWd=10
-#woo.gl.Gl1_FlexFacet.arrows=True
+woo.gl.Gl1_FlexFacet.arrows=True
 #nn=[Node(pos=(1,0,0)),Node(pos=(0,1,0)),Node(pos=(0,0,1))]
-nn=[Node(pos=(0,0,0)),Node(pos=(0,1,0)),Node(pos=(0,0,1))]
+nn=[Node(pos=(1,0,0)),Node(pos=(0,1,0)),Node(pos=(0,0,1))]
 for n in nn:
 	n.dem=DemData(inertia=(1,1,1))
 	n.dem.blocked='xyzXYZ'
@@ -28,9 +28,10 @@ for n in nn:
 #nn[1].dem.vel=(0,0,0)
 #nn[2].dem.vel=(0,0,0)
 
-for i,n in enumerate(nn):
-	#n.dem.vel=Vector3.Random()
-	n.dem.angVel=2.*(n.ori*Vector3.Unit(i))
+#for i,n in enumerate(nn):
+#	#n.dem.vel=Vector3.Random()
+#	n.dem.angVel=2.*(n.ori*Vector3.Unit(i))
+nn[2].dem.angVel=2*(nn[2].ori*Vector3.UnitZ)
 
 #nn[0].ori=Quaternion(Matrix3(-Vector3.UnitY,-Vector3.UnitZ,Vector3.UnitX))
 #nn[0].dem.angVel=10.*Vector3.UnitY

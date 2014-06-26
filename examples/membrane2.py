@@ -11,6 +11,7 @@ from minieigen import *
 
 import woo.log
 #woo.log.setLevel('In2_FlexFacet_ElastMat',woo.log.TRACE)
+#woo.log.setLevel('DynDt',woo.log.DEBUG)
 
 woo.gl.Gl1_Node.wd=2
 woo.gl.Gl1_Node.len=.05
@@ -20,7 +21,6 @@ woo.gl.Gl1_FlexFacet.uScale=1.
 woo.gl.Gl1_FlexFacet.relPhi=.1
 woo.gl.Gl1_FlexFacet.phiSplit=False
 woo.gl.Gl1_FlexFacet.phiWd=5
-
 
 
 woo.gl.Gl1_DemField.colorBy=woo.gl.Gl1_DemField.colorVel
@@ -72,6 +72,7 @@ if 1:
 		InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb()],verletDist=0.01),
 		ContactLoop([Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom()],[Cp2_FrictMat_FrictPhys()],[Law2_L6Geom_FrictPhys_IdealElPl()],applyForces=False), # forces are applied in IntraForce
 		IntraForce([In2_FlexFacet_ElastMat(thickness=.1,bending=True,bendThickness=.03),In2_Sphere_ElastMat()]),
+		DynDt(stepPeriod=100),
 		# VtkExport(out='/tmp/membrane',stepPeriod=100,what=VtkExport.spheres|VtkExport.mesh)
 	]
 	
@@ -82,8 +83,6 @@ if 1:
 		sp.toSimulation(S,mat=FrictMat(young=1e6,density=3000))
 		for s in S.dem.par:
 			if type(s.shape)==Sphere: S.dem.nodesAppend(s.shape.nodes[0])
-
-	S.dt=min(1e-5,.7*woo.utils.pWaveDt(S))
 
 	S.saveTmp()
 

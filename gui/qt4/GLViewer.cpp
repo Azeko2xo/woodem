@@ -684,13 +684,13 @@ void GLViewer::postDraw(){
 	// XYZ grids
 	glLineWidth(.5);
 	int& grid(Renderer::grid);
-	if(grid & 1) {glColor3f(0.6,0.3,0.3); glPushMatrix(); glRotated(90.,0.,1.,0.); QGLViewer::drawGrid(realSize,nSegments); glPopMatrix();}
-	if(grid & 2) {glColor3f(0.3,0.6,0.3); glPushMatrix(); glRotated(90.,1.,0.,0.); QGLViewer::drawGrid(realSize,nSegments); glPopMatrix();}
-	if(grid & 4) {glColor3f(0.3,0.3,0.6); glPushMatrix(); /*glRotated(90.,0.,1.,0.);*/ QGLViewer::drawGrid(realSize,nSegments); glPopMatrix();}
+	if(grid & 1) {glColor3v(Renderer::axisColor(0)); glPushMatrix(); glRotated(90.,0.,1.,0.); QGLViewer::drawGrid(realSize,nSegments); glPopMatrix();}
+	if(grid & 2) {glColor3v(Renderer::axisColor(1)); glPushMatrix(); glRotated(90.,1.,0.,0.); QGLViewer::drawGrid(realSize,nSegments); glPopMatrix();}
+	if(grid & 4) {glColor3v(Renderer::axisColor(2)); glPushMatrix(); /*glRotated(90.,0.,1.,0.);*/ QGLViewer::drawGrid(realSize,nSegments); glPopMatrix();}
 	if(gridSubdivide){
-		if(grid & 1) {glColor3f(0.4,0.1,0.1); glPushMatrix(); glRotated(90.,0.,1.,0.); QGLViewer::drawGrid(realSize,nSegments*10); glPopMatrix();}
-		if(grid & 2) {glColor3f(0.1,0.4,0.1); glPushMatrix(); glRotated(90.,1.,0.,0.); QGLViewer::drawGrid(realSize,nSegments*10); glPopMatrix();}
-		if(grid & 4) {glColor3f(0.1,0.1,0.4); glPushMatrix(); /*glRotated(90.,0.,1.,0.);*/ QGLViewer::drawGrid(realSize,nSegments*10); glPopMatrix();}
+		if(grid & 1) {glColor3v((Renderer::axisColor(0)*.5).eval()); glPushMatrix(); glRotated(90.,0.,1.,0.); QGLViewer::drawGrid(realSize,nSegments*10); glPopMatrix();}
+		if(grid & 2) {glColor3v((Renderer::axisColor(1)*.5).eval()); glPushMatrix(); glRotated(90.,1.,0.,0.); QGLViewer::drawGrid(realSize,nSegments*10); glPopMatrix();}
+		if(grid & 4) {glColor3v((Renderer::axisColor(2)*.5).eval()); glPushMatrix(); /*glRotated(90.,0.,1.,0.);*/ QGLViewer::drawGrid(realSize,nSegments*10); glPopMatrix();}
 	}
 	
 	// scale
@@ -722,8 +722,8 @@ void GLViewer::postDraw(){
 			glDisable(GL_DEPTH_TEST);
 			glLineWidth(3.0);
 			for(int axis=0; axis<3; axis++){
-				Vector3r color(.4,.4,.4); color[axis]=.9;
-				glColor3v(color);
+				// Vector3r color(.4,.4,.4); color[axis]=.9;
+				glColor3v(Renderer::axisColor(axis));
 				glBegin(GL_LINES);
 				glVertex2f(scaleCenter[0],scaleCenter[1]);
 				glVertex2f(scaleCenter[0]+screenDxDy[axis][0],scaleCenter[1]+screenDxDy[axis][1]);

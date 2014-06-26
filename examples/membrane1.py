@@ -19,21 +19,22 @@ if 0:
 		n.dem.blocked='xyz'
 		rotvec=Vector3.Random()
 		n.ori=Quaternion(rotvec.norm(),rotvec.normalized())
-		n.dem.mass=1e3
-	nn[2].dem.vel=(0,-1,0)
+		n.dem.mass=1
+	nn[2].dem.vel=(0,0,0)
 	nn[2].dem.blocked=''
 
 	S=woo.master.scene=Scene(fields=[DemField(gravity=(0,0,0))])
+	S.dem.gravity=(0,0,-10)
 	S.dem.par.append(Particle(shape=FlexFacet(nodes=nn),material=FrictMat(young=1e6)))
 	for n in nn: n.dem.addParRef(S.dem.par[-1])
 	ff=S.dem.par[0].shape
 	ff.setRefConf() #update()
 	for n in nn: S.dem.nodesAppend(n)
-	S.engines=[Leapfrog(reset=True),IntraForce([In2_FlexFacet_ElastMat(thickness=.01)])]
+	S.engines=[Leapfrog(reset=True),IntraForce([In2_FlexFacet_ElastMat(thickness=.01,bending=False)])]
 	S.dt=1e-5
 	S.saveTmp()
 	S.one()
-	print S.dem.par[0].shape.KK
+	# print S.dem.par[0].shape.KK
 else:
 	# see http://www.youtube.com/watch?v=jimWu0_8oLc
 	woo.gl.Gl1_DemField.nodes=False

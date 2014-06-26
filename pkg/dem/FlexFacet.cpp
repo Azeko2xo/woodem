@@ -12,6 +12,9 @@ CREATE_LOGGER(FlexFacet);
 
 #define FLEXFACET_CONDENSE_DKT
 
+
+
+
 void FlexFacet::stepUpdate(){
 	if(!hasRefConf()) setRefConf();
 	updateNode();
@@ -28,21 +31,22 @@ void FlexFacet::setRefConf(){
 	//const int ini_cs=INI_CS_SIMPLE;
 	switch(ini_cs){
 		case INI_CS_SIMPLE:
-			node->ori.setFromTwoVectors(this->getNormal(),Vector3r::UnitZ());
+			node->ori.setFromTwoVectors(Vector3r::UnitZ(),this->getNormal());
 			break;
 		case INI_CS_NODE0_AT_X:{
 			Matrix3r T;
-			T.row(0)=(nodes[0]->pos-node->pos).normalized();
-			T.row(2)=this->getNormal();
-			T.row(1)=T.row(2).cross(T.row(0));
-			assert(T.row(0).dot(T.row(2))<1e-12);
+			T.col(0)=(nodes[0]->pos-node->pos).normalized(); // QQQ: row->col
+			T.col(2)=this->getNormal();
+			T.col(1)=T.col(2).cross(T.col(0));
+			assert(T.col(0).dot(T.col(2))<1e-12);
 			node->ori=Quaternionr(T);
 			break;
 		}
 	};
 	// reference nodal positions
 	for(int i:{0,1,2}){
-		Vector3r nl=node->ori*(nodes[i]->pos-node->pos);
+		// Vector3r nl=node->ori.conjugate()*(nodes[i]->pos-node->pos); // QQQ
+		Vector3r nl=node->glob2loc(nodes[i]->pos);
 		assert(nl[2]<1e-6*(max(abs(nl[0]),abs(nl[1])))); // z-coord should be zero
 		refPos.segment<2>(2*i)=nl.head<2>();
 	}
@@ -50,7 +54,8 @@ void FlexFacet::setRefConf(){
 	refRot.resize(3);
 	for(int i:{0,1,2}){
 		// facet node orientation minus vertex node orientation, in local frame (read backwards)
-		refRot[i]=node->ori*nodes[i]->ori.conjugate();
+		/// QQQ: refRot[i]=node->ori*nodes[i]->ori.conjugate();
+		refRot[i]=nodes[i]->ori.conjugate()*node->ori;
 		//LOG_WARN("refRot["<<i<<"]="<<AngleAxisr(refRot[i]).angle()<<"/"<<AngleAxisr(refRot[i]).axis().transpose());
 	};
 	// set displacements to zero
@@ -217,19 +222,42 @@ void FlexFacet::ensureStiffnessMatrices(const Real& young, const Real& nu, const
 	#endif
 };
 
+void FlexFacet::addIntraStiffnesses(const shared_ptr<Node>& n,Vector3r& ktrans, Vector3r& krot){
+	if(!hasRefConf()) return;
+	int i=-1;
+	for(int j=0; j<3; j++){ if(nodes[j].get()==n.get()) i=j; }
+	if(i<0) throw std::logic_error("FlexFacet::addIntraStiffness:: node "+n->pyStr()+" not found within nodes of "+this->pyStr()+".");
+	if(KKcst.size()==0) return;
+	bool dkt=(KKdkt.size()>0);
+	// local translational stiffness diagonal
+	Vector3r ktl(KKcst(2*i,2*i),KKcst(2*i+1,2*i+1),dkt?abs(KKdkt(3*i)):0);
+	ktrans+=node->ori*ktl;
+	// local rotational stiffness, if needed
+	if(dkt){
+		#ifdef FLEXFACET_CONDENSE_DKT
+			Vector3r krl(abs(KKdkt(3*i,2*i)),abs(KKdkt(3*i+1,2*i+1)),0);
+		#else
+			Vector3r krl(abs(KKdkt(3*i,3*i)),abs(KKdkt(3*i+1,3*i+1)),0);
+		#endif
+		krot+=node->ori*krl;
+	}
+}
+
+
+
 
 void FlexFacet::updateNode(){
 	assert(hasRefConf());
 	node->pos=this->getCentroid();
 	// temporary orientation, just to be planar
 	// see http://www.colorado.edu/engineering/cas/courses.d/NFEM.d/NFEM.AppC.d/NFEM.AppC.pdf
-	Quaternionr ori0; ori0.setFromTwoVectors(this->getNormal(),Vector3r::UnitZ());
+	Quaternionr ori0; ori0.setFromTwoVectors(Vector3r::UnitZ(),this->getNormal());
 	Vector6r nxy0;
 	for(int i:{0,1,2}){
-		Vector3r xy0=ori0*(nodes[i]->pos-node->pos);
+		Vector3r xy0=ori0.conjugate()*(nodes[i]->pos-node->pos);
 		#ifdef FLEXFACET_DEBUG_ROT
 			if(xy0[2]>1e-5*(max(abs(xy0[0]),abs(xy0[1])))){
-				LOG_ERROR("z-coordinate is not zero for node "<<i<<": ori0="<<AngleAxisr(ori0).axis()<<" !"<<AngleAxisr(ori0).angle()<<", xy0="<<xy0<<", positiion in global-oriented centroid-origin CS "<<nodes[i]->pos-node->pos);
+				LOG_ERROR("z-coordinate is not zero for node "<<i<<": ori0="<<AngleAxisr(ori0).axis()<<" !"<<AngleAxisr(ori0).angle()<<", xy0="<<xy0<<", position in global-oriented centroid-origin CS "<<(nodes[i]->pos-node->pos).transpose());
 			}
 		#else
 			assert(xy0[2]<1e-5*(max(abs(xy0[0]),abs(xy0[1])))); // z-coord should be zero
@@ -240,15 +268,15 @@ void FlexFacet::updateNode(){
 	// split the fraction into numerator (y) and denominator (x) to get the correct quadrant
 	Real tanTheta3_y=refPos[0]*nxy0[1]+refPos[2]*nxy0[3]+refPos[4]*nxy0[5]-refPos[1]*nxy0[0]-refPos[3]*nxy0[2]-refPos[5]*nxy0[4];
 	Real tanTheta3_x=refPos.dot(nxy0);
-	// rotation to be planar, plus rotation around plane normal to the element CR frame
-	node->ori=AngleAxisr(-atan2(tanTheta3_y,tanTheta3_x),Vector3r::UnitZ())*ori0;
+	// rotation to be planar, plus rotation around plane normal to the element CR frame (read backwards)
+	node->ori=ori0*AngleAxisr(atan2(tanTheta3_y,tanTheta3_x),Vector3r::UnitZ());
 };
 
 void FlexFacet::computeNodalDisplacements(){
 	assert(hasRefConf());
 	// supposes node is updated already
 	for(int i:{0,1,2}){
-		Vector3r xy=node->ori*(nodes[i]->pos-node->pos);
+		Vector3r xy=node->glob2loc(nodes[i]->pos); // QQQ: node->ori*(nodes[i]->pos-node->pos);
 		// relative tolerance of 1e-6 was too little, in some cases?!
 		#ifdef FLEXFACET_DEBUG_ROT
 			if(xy[2]>1e-5*(max(abs(xy[0]),abs(xy[1])))){
@@ -260,7 +288,7 @@ void FlexFacet::computeNodalDisplacements(){
 		// displacements
 		uXy.segment<2>(2*i)=xy.head<2>()-refPos.segment<2>(2*i);
 		// rotations
-		AngleAxisr aa(refRot[i]*(node->ori*nodes[i]->ori.conjugate()).conjugate());
+		AngleAxisr aa(refRot[i].conjugate()*(nodes[i]->ori.conjugate()*node->ori));
 		/* aa sometimes gives angle close to 2π for rotations which are actually small and negative;
 			I posted that question at http://forum.kde.org/viewtopic.php?f=74&t=110854 .
 			Such a result is fixed by conditionally subtracting 2π:
@@ -272,10 +300,10 @@ void FlexFacet::computeNodalDisplacements(){
 		phiXy.segment<2>(2*i)=rot.head<2>(); // drilling rotation discarded
 		#ifdef FLEXFACET_DEBUG_ROT
 			AngleAxisr rr(refRot[i]);
-			AngleAxisr cr(node->ori*nodes[i]->ori.conjugate());
+			AngleAxisr cr(nodes[i]->ori.conjugate()*node->ori);
 			LOG_TRACE("node "<<i<<"\n   refRot : "<<rr.axis()<<" !"<<rr.angle()<<"\n   currRot: "<<cr.axis()<<" !"<<cr.angle()<<"\n   diffRot: "<<aa.axis()<<" !"<<aa.angle());
 			drill[i]=rot[2];
-			currRot[i]=node->ori*nodes[i]->ori.conjugate();
+			currRot[i]=nodes[i]->ori.conjugate()*node->ori;
 		#endif
 	}
 };
@@ -300,18 +328,20 @@ void In2_FlexFacet_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Ma
 	// assemble local stiffness matrix, in case it does not exist yet
 	ff.ensureStiffnessMatrices(particle->material->cast<ElastMat>().young,nu,thickness,/*bending*/bending,bendThickness);
 	// compute nodal forces response here
+	// ?? CST forces are applied with the - sign, DKT with the + sign; are uXy/phiXy introduced differently?
 	Vector6r Fcst=-(ff.KKcst*ff.uXy).transpose();
+
 
 	Vector9r Fdkt;
 	if(bending){
 		#ifdef FLEXFACET_CONDENSE_DKT
 			assert(ff.KKdkt.size()==54);
-			Fdkt=-(ff.KKdkt*ff.phiXy).transpose();
+			Fdkt=(ff.KKdkt*ff.phiXy).transpose();
 		#else
 			assert(ff.KKdkt.size()==81);
 			Vector9r uDkt_;
 			uDkt_<<0,ff.phiXy.segment<2>(0),0,ff.phiXy.segment<2>(2),0,ff.phiXy.segment<2>(4);
-			Fdkt=-(ff.KKdkt*uDkt_).transpose();
+			Fdkt=(ff.KKdkt*uDkt_).transpose();
 			#ifdef FLEXFACET_DEBUG_ROT
 				ff.uDkt=uDkt_; // debugging copy, acessible from python
 			#endif
@@ -325,13 +355,12 @@ void In2_FlexFacet_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Ma
 	Real surfLoadForce=0.;
 	if(!isnan(ff.surfLoad) && ff.surfLoad!=0.){ surfLoadForce=(1/3.)*ff.getArea()*ff.surfLoad; }
 	// apply nodal forces
-	// STRANGE: signs are opposite for torques?
 	for(int i:{0,1,2}){
-		Vector3r Fl=Vector3r(Fcst[2*i],Fcst[2*i+1],-Fdkt[3*i]+surfLoadForce);
+		Vector3r Fl=Vector3r(Fcst[2*i],Fcst[2*i+1],Fdkt[3*i]+surfLoadForce);
 		Vector3r Tl=Vector3r(Fdkt[3*i+1],Fdkt[3*i+2],0);
-		ff.nodes[i]->getData<DemData>().addForceTorque(ff.node->ori.conjugate()*Fl,ff.node->ori.conjugate()*Tl);
-		LOG_TRACE("  "<<i<<" F: "<<Fl.transpose()<<" \t| "<<ff.node->ori.conjugate()*Fl);
-		LOG_TRACE("  "<<i<<" T: "<<Tl.transpose()<<" \t| "<<ff.node->ori.conjugate()*Tl);
+		ff.nodes[i]->getData<DemData>().addForceTorque(ff.node->ori*Fl,ff.node->ori*Tl);
+		LOG_TRACE("  "<<i<<" F: "<<Fl.transpose()<<" \t| "<<ff.node->ori*Fl);
+		LOG_TRACE("  "<<i<<" T: "<<Tl.transpose()<<" \t| "<<ff.node->ori*Tl);
 	}
 }
 
@@ -366,6 +395,7 @@ void Gl1_FlexFacet::drawLocalDisplacement(const Vector2r& nodePt, const Vector2r
 			GLUtils::GLDrawLine(nodePt3,p1,c1);
 			GLUtils::GLDrawLine(nodePt3,p2,c2);
 		} else {
+			// this messes OpenGL coords up!??
 			GLUtils::GLDrawArrow(nodePt3,p1,c1,/*doubled*/arrow>1);
 			GLUtils::GLDrawArrow(nodePt3,p2,c2,/*doubled*/arrow>1);
 		}
@@ -375,6 +405,7 @@ void Gl1_FlexFacet::drawLocalDisplacement(const Vector2r& nodePt, const Vector2r
 			glLineWidth(lineWd);
 			GLUtils::GLDrawLine(nodePt3,p1,c1);
 		} else {
+			// this messes OpenGL coords up!??
 			GLUtils::GLDrawArrow(nodePt3,p1,c1,/*doubled*/arrow>1);
 		}
 	}
@@ -400,7 +431,7 @@ void Gl1_FlexFacet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool 
 				for(int i:{0,1,2}){
 					shared_ptr<Node> n=make_shared<Node>();
 					n->pos=ff.node->pos+.5*(ff.nodes[i]->pos-ff.node->pos);
-					n->ori=ff.currRot[i].conjugate()*ff.node->ori;
+					n->ori=(ff.currRot[i]*ff.node->ori.conjugate()).conjugate();
 					Renderer::renderRawNode(n);
 				}
 			}
@@ -411,7 +442,7 @@ void Gl1_FlexFacet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool 
 	glPushMatrix();
 		if(!Renderer::scaleOn){
 			// without displacement scaling, local orientation is easy
-			GLUtils::setLocalCoords(ff.node->pos,ff.node->ori.conjugate());
+			GLUtils::setLocalCoords(ff.node->pos,ff.node->ori);
 		} else {
 			/* otherwise compute scaled orientation such that
 				* +x points to the same point on the triangle (in terms of angle)

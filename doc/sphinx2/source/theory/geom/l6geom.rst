@@ -35,7 +35,7 @@ At every step, every contact directly computes (incomplete) current local coordi
 Contact formation
 """""""""""""""""
 
-When a contact is initially formed, current values of :math:`\curr{\vec{c}}` and :math:`\curr{\vec{n}}` are computed directly. Local axes (rows of :math:`\mat{T}`) are initially defined as follows:
+When a contact is initially formed, current values of :math:`\curr{\vec{c}}` and :math:`\curr{\vec{n}}` are computed directly. Local axes (columns of :math:`\mat{T}`) are initially defined as follows:
 
 * local :math:`x`-axis is contact normal :math:`\vec{n}`;
 * local :math:`y`-axis is positioned arbitrarily, but in a deterministic manner: aligned with the :math:`xz` plane (if :math:`\vec{n}_y<\vec{n}_z`) or :math:`xy` plane (otherwise);
@@ -86,22 +86,22 @@ Any vector :math:`\vec{a}` expressed in global coordinates transforms during one
 
 .. math:: \curr{\vec{a}}=\prev{\vec{a}}+\pprev{\vec{v}_r}\Dt-\prev{\vec{a}}\times\pprev{\vec{o}_r}-\prev{\vec{a}}\times{\pprev{\vec{t}_r}}
 
-where the increments have the meaning of relative shear, rigid rotation normal to :math:`\vec{n}` and rigid rotation parallel with :math:`\vec{n}`. Local coordinate system orientation, rotation matrix :math:`\mat{T}`, is updated by rows, i.e.
+where the increments have the meaning of relative shear, rigid rotation normal to :math:`\vec{n}` and rigid rotation parallel with :math:`\vec{n}`. Local coordinate system orientation, rotation matrix :math:`\mat{T}`, is updated by columns (written as transpose for space reasons), i.e.
 
-.. math:: \curr{\mat{T}}=\begin{pmatrix} \curr{\vec{n}_x}, \curr{\vec{n}_y}, \curr{\vec{n}_z} \\ \prev{\mat{T}_{1,\bullet}}-\prev{\mat{T}_{1,\bullet}}\times\pprev{\vec{o}_r}-\prev{\mat{T}_{1,\bullet}}\times\pprev{\vec{o}_t} \\ \prev{\mat{T}_{2,\bullet}}-\prev{\mat{T}_{2,\bullet}}\times\pprev{\vec{o}_r}-\prev{\mat{T}_{,\bullet}}\times\pprev{\vec{o}_t} \end{pmatrix}
+.. math:: \curr{\mat{T}}=\begin{pmatrix} \curr{\vec{n}_x}, \curr{\vec{n}_y}, \curr{\vec{n}_z} \\ \prev{\mat{T}_{1,\bullet}}-\prev{\mat{T}_{1,\bullet}}\times\pprev{\vec{o}_r}-\prev{\mat{T}_{1,\bullet}}\times\pprev{\vec{o}_t} \\ \prev{\mat{T}_{2,\bullet}}-\prev{\mat{T}_{2,\bullet}}\times\pprev{\vec{o}_r}-\prev{\mat{T}_{,\bullet}}\times\pprev{\vec{o}_t} \end{pmatrix}^T
 
 This matrix is re-normalized (unless prevented approximation flags) and mid-step transformation is computed using quaternion spherical interpolation as
 
 .. math:: \pprev{\mat{T}}\begin{cases}=\mathrm{Slerp}\,\left(\prev{\mat{T}};\curr{\mat{T}};t=1/2\right) & \text{(accurate solution)} \\ \approx\prev{\mat{T}} & \text{(with approximation flag set)}\end{cases}.
 
-Finally, current generalized displacements are evaluated as 
+Finally, current generalized displacements in local coordinates are evaluated as 
 
 .. math::
    :nowrap:
 
    \begin{align*}
-      \curr{\vec{u}}&=\prev{u}+\pprev{\mat{T}}\pprev{\vec{v}_r}\Dt, \\
-      \curr{\vec{\phi}}&=\prev{\vec{\phi}}+\pprev{\mat{T}}\Dt(\vec{\omega}_2-\vec{\omega}_1)
+      \curr{\vec{u}}&=\prev{u}+\pprev{\mat{T}}^T\pprev{\vec{v}_r}\Dt, \\
+      \curr{\vec{\phi}}&=\prev{\vec{\phi}}+\pprev{\mat{T}}^T\Dt(\vec{\omega}_2-\vec{\omega}_1)
    \end{align*}
 
 For the normal component, non-incremental evaluation is preferred if possible; for two spheres, this reads

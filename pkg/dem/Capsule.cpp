@@ -458,7 +458,7 @@ bool Cg2_Wall_Capsule_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<S
 		if(!C->geom){
 			normal[ax]=cDist>0?1.:-1.;  // new contacts (depending on current position)
 		}
-		else normal[ax]=C->geom->cast<L6Geom>().trsf.row(0)[ax]; // existing contacts (preserve previous)
+		else normal[ax]=C->geom->cast<L6Geom>().trsf.col(0)[ax]; // existing contacts (preserve previous) // QQQ
 	}
 	else normal[ax]=(sense==1?1.:-1);
 

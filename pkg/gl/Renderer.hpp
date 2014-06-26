@@ -103,6 +103,8 @@ struct Renderer: public Object{
 		// coordinate system must be set by the caller!
 		static void renderLogo(int ht, int wd);
 
+		static const Vector3r& axisColor(short ax);
+
 	enum{TIME_NONE=0,TIME_VIRT=1,TIME_REAL=2,TIME_STEP=4};
 	enum{TIME_ALL=TIME_VIRT|TIME_REAL|TIME_STEP};
 
@@ -137,6 +139,9 @@ struct Renderer: public Object{
 		((int,grid,0,AttrTrait<>().bits({"yz","zx","xy"}),"Show axes planes with grid"))
 		((bool,oriAxes,true,,"Show orientation axes in the 3d view (in the upper left corner)"))
 		((int,oriAxesPx,50,AttrTrait<>().range(Vector2i(10,100)),"Maximum pixel size of orientation axes in the corner."))
+		((Vector3r,colorX,Vector3r(1,.1,0),AttrTrait<>().rgbColor(),"X-axis color"))
+		((Vector3r,colorY,Vector3r(1,1,0),AttrTrait<>().rgbColor(),"Y-axis color"))
+		((Vector3r,colorZ,Vector3r(.1,1,0),AttrTrait<>().rgbColor(),"Z-axis color"))
 		((int,logoSize,50,,"Size of the bigger size of the logo, in pixels"))
 		((Vector2i,logoPos,Vector2i(-64,-60),,"Position of the logo; negative values count from the other side of the window."))
 		((Vector3r,logoColor,Vector3r(1.,1.,1.),AttrTrait<>().rgbColor(),"Logo color"))

@@ -3,6 +3,7 @@
 #include<woo/pkg/dem/FrictMat.hpp>
 #include<woo/pkg/dem/L6Geom.hpp>
 #include<woo/pkg/dem/Clump.hpp>
+#include<woo/pkg/dem/FlexFacet.hpp>
 
 WOO_PLUGIN(dem,(DynDt));
 CREATE_LOGGER(DynDt);
@@ -32,6 +33,8 @@ void DynDt::nodalStiffAdd(const shared_ptr<Node>& n, Vector3r& ktrans, Vector3r&
 		}
 		// TODO: if the particle is multinodal,
 		// call some new virtual func giving its intra-particle inter-nodal stiffnesses
+		// this is just a hack for FlexFacet
+		if(p->shape->isA<FlexFacet>()) p->shape->cast<FlexFacet>().addIntraStiffnesses(n,ktrans,krot);
 	}
 }
 
@@ -50,8 +53,8 @@ Real DynDt::nodalCritDtSq(const shared_ptr<Node>& n) const {
 		for(const auto& cn: clump.nodes) nodalStiffAdd(cn,ktrans,krot);
 	};
 	Real ret=Inf;
-	for(int i:{0,1,2}){ if(ktrans[i]!=0) ret=min(ret,dyn.mass/ktrans[i]); }
-	for(int i:{0,1,2}){ if(krot[i]!=0) ret=min(ret,dyn.inertia[i]/krot[i]); }
+	for(int i:{0,1,2}){ if(ktrans[i]!=0) ret=min(ret,dyn.mass/abs(ktrans[i])); }
+	for(int i:{0,1,2}){ if(krot[i]!=0) ret=min(ret,dyn.inertia[i]/abs(krot[i])); }
 	return 2*ret; // (sqrt(2)*sqrt(ret))^2
 }
 
@@ -61,6 +64,7 @@ Real DynDt::critDt_stiffness() const {
 	Real ret=Inf;
 	for(const auto& n: field->cast<DemField>().nodes){
 		ret=min(ret,nodalCritDtSq(n));
+		if(isnan(ret)){ LOG_ERROR("DynDt::nodalCritDtSq returning nan for node at "<<n->pos<<"??"); }
 		assert(!isnan(ret));
 	}
 	return sqrt(ret);

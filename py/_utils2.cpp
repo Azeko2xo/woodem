@@ -140,7 +140,7 @@ Matrix6r bestFitCompliance(){
 		const Particle *pA=c->leakPA(), *pB=c->leakPB();
 		if(!(dynamic_pointer_cast<Sphere>(pA->shape) && dynamic_pointer_cast<Sphere>(pB->shape))) continue;
 		const Matrix3r& trsf=c->geom->cast<L6Geom>().trsf;
-		ContData cd={1/c->phys->cast<FrictPhys>().kn,1/c->phys->cast<FrictPhys>().kt,c->dPos(scene),trsf.row(0),trsf.row(1),trsf.row(2)};
+		ContData cd={1/c->phys->cast<FrictPhys>().kn,1/c->phys->cast<FrictPhys>().kt,c->dPos(scene),trsf.col(0),trsf.col(1),trsf.col(2)};
 		CC.push_back(cd);
 	}
 	Matrix3r AA(Matrix3r::Zero());

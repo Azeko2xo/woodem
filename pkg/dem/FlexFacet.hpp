@@ -2,7 +2,7 @@
 #include<woo/pkg/dem/Facet.hpp>
 #include<woo/pkg/dem/FrictMat.hpp>
 
-// #define FLEXFACET_DEBUG_ROT
+#define FLEXFACET_DEBUG_ROT
 struct FlexFacet: public Facet{
 	bool hasRefConf() const { return node && refRot.size()==3; }
 	bool hasBending(){ return KKdkt.size()>0; }
@@ -13,6 +13,9 @@ struct FlexFacet: public Facet{
 	void computeNodalDisplacements(); 
 	// called by functors to initialize (if necessary) and update
 	void stepUpdate();
+	// called from DynDt for updating internal stiffness for given node
+	void addIntraStiffnesses(const shared_ptr<Node>&,Vector3r& ktrans, Vector3r& krot);
+
 	REGISTER_CLASS_INDEX(FlexFacet,Facet);
 	DECLARE_LOGGER;
 	#ifdef FLEXFACET_DEBUG_ROT

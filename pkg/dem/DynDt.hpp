@@ -14,7 +14,7 @@ struct DynDt: public PeriodicEngine{
 	DECLARE_LOGGER;
 	WOO_CLASS_BASE_DOC_ATTRS(DynDt,PeriodicEngine,"Adjusts :obj:`Scene.dt` based on current stiffness of particle contacts.",
 		((Real,maxRelInc,1e-4,AttrTrait<Attr::triggerPostLoad>(),"Maximum relative increment of timestep within one step, to void abrupt changes in timestep leading to numerical artefacts."))
-		((bool,dryRun,false,,"Only set :obj:`newDt` to the value of timestep, don't apply it really."))
+		((bool,dryRun,false,,"Only set :obj:`dt` to the value of timestep, don't apply it really."))
 		((Real,dt,NaN,,"New timestep value which would be used if :obj:`dryRun` were not set. Unused when :obj:`dryRun` is false."))
 	);
 };

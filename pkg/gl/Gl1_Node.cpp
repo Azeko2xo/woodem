@@ -22,7 +22,7 @@ void Gl1_Node::go(const shared_ptr<Node>& node, const GLViewInfo& viewInfo){
 		glBegin(GL_POINTS); glVertex3f(0,0,0); glEnd();
 	} else {
 		for(int i=0; i<3; i++){
-			Vector3r pt=Vector3r::Zero(); pt[i]=len*viewInfo.sceneRadius; Vector3r color=.3*Vector3r::Ones(); color[i]=1;
+			Vector3r pt=Vector3r::Zero(); pt[i]=len*viewInfo.sceneRadius; const Vector3r& color=Renderer::axisColor(i);
 			GLUtils::GLDrawLine(Vector3r::Zero(),pt,color);
 			// if(axesLabels) GLUtils::GLDrawText(string(i==0?"x":(i==1?"y":"z")),pt,color);
 		}

@@ -27,8 +27,8 @@ std::tuple<Vector3r,Vector3r,Vector3r> Contact::getForceTorqueBranch(const Parti
 	assert(nodeI>=0 && particle->shape && particle->shape->nodes.size()>(size_t)nodeI);
 	bool isPA=(leakPA()==particle);
 	int sign=(isPA?1:-1);
-	Vector3r F=geom->node->ori.conjugate()*phys->force*sign;
-	Vector3r T=(phys->torque==Vector3r::Zero() ? Vector3r::Zero() : geom->node->ori.conjugate()*phys->torque)*sign;
+	Vector3r F=geom->node->ori*phys->force*sign; // QQQ
+	Vector3r T=(phys->torque==Vector3r::Zero() ? Vector3r::Zero() : geom->node->ori*phys->torque)*sign; // QQQ
 	Vector3r xc=geom->node->pos-(particle->shape->nodes[nodeI]->pos+((!isPA && scene->isPeriodic) ? scene->cell->intrShiftPos(cellDist) : Vector3r::Zero()));
 	return std::make_tuple(F,T,xc);
 }

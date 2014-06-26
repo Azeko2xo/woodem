@@ -58,17 +58,17 @@ bool Cg2_Wall_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<S
 		// for new contacts, normal given by the sense of approaching the wall
 		if(!C->geom) normal[ax]=dist>0?1.:-1.; 
 		// for existing contacts, use the previous normal 
-		else normal[ax]=C->geom->cast<L6Geom>().trsf.row(0)[ax];
+		else normal[ax]=C->geom->cast<L6Geom>().trsf.col(0)[ax]; // QQQ
 	}
 	else normal[ax]=(sense==1?1.:-1);
 	Real uN=normal[ax]*dist-radius; // takes in account sense, radius and distance
 
 	// this may not happen anymore as per conditions above
-	assert(!(C->geom && C->geom->cast<L6Geom>().trsf.row(0)!=normal.transpose()));
+	assert(!(C->geom && C->geom->cast<L6Geom>().trsf.col(0)!=normal)); // QQQ
 	#if 0
 		// check that the normal did not change orientation (would be abrupt here)
-		if(C->geom && C->geom->cast<L6Geom>().trsf.row(0)!=normal.transpose()){
-			throw std::logic_error((boost::format("Cg2_Wall_Sphere_L6Geom: normal changed from %s to %s in Wall+Sphere ##%d+%d (with Wall.sense=0, a particle might cross the Wall plane if Δt is too high, repulsive force to small or velocity too high.")%C->geom->cast<L6Geom>().trsf.row(0)%normal.transpose()%C->leakPA()->id%C->leakPB()->id).str());
+		if(C->geom && C->geom->cast<L6Geom>().trsf.col(0)!=normal.transpose()){
+			throw std::logic_error((boost::format("Cg2_Wall_Sphere_L6Geom: normal changed from %s to %s in Wall+Sphere ##%d+%d (with Wall.sense=0, a particle might cross the Wall plane if Δt is too high, repulsive force to small or velocity too high.")%C->geom->cast<L6Geom>().trsf.col(0)%normal.transpose()%C->leakPA()->id%C->leakPB()->id).str());
 		}
 	#endif
 

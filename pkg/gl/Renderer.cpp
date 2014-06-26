@@ -78,6 +78,10 @@ int Renderer::grid;
 bool Renderer::oriAxes;
 int Renderer::oriAxesPx;
 
+Vector3r Renderer::colorX;
+Vector3r Renderer::colorY;
+Vector3r Renderer::colorZ;
+
 int Renderer::logoSize;
 Vector2i Renderer::logoPos;
 Vector3r Renderer::logoColor;
@@ -113,6 +117,11 @@ bool Renderer::pointClipped(const Vector3r& p){
 	for(int i=0;i<numClipPlanes;i++) if(clipPlaneActive[i]&&(p-clipPlanePos[i]).dot(clipPlaneNormals[i])<0) return true;
 	return false;
 }
+
+const Vector3r& Renderer::axisColor(short ax){
+	return (ax==0?colorX:(ax==1?colorY:colorZ));
+}
+
 
 
 /* this function is called from field renderers for all field nodes */
@@ -319,7 +328,7 @@ void Renderer::renderRawNode(shared_ptr<Node> node){
 	if(likely(!Renderer::fastDraw)){
 		Quaternionr ori=(node->hasData<GlData>()?node->getData<GlData>().dGlOri:Quaternionr::Identity())*node->ori;
 		glPushMatrix();
-			GLUtils::setLocalCoords(x,ori.conjugate());
+			GLUtils::setLocalCoords(x,ori); // QQQ
 			#if 0
 				glTranslatev(x);
 				AngleAxisr aa(ori.conjugate());

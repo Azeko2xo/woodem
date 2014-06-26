@@ -21,16 +21,19 @@ WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_Cg2_Any_Any_L6Geom__Base__CLASS_BASE_DOC_
 #endif
 #endif
 
+
+// QQQ: ALL occurences of .row(..) were replaced by .col(...) !!!
+
 void L6Geom::setInitialLocalCoords(const Vector3r& locX){
 	// initial local y-axis orientation, in the xz or xy plane, depending on which component is larger to avoid singularities
 	Vector3r locY=locX.cross(abs(locX[1])<abs(locX[2])?Vector3r::UnitY():Vector3r::UnitZ()); locY-=locX*locY.dot(locX); locY.normalize();
 	Vector3r locZ=locX.cross(locY);
 	// set our data
 	#ifdef L6_TRSF_QUATERNION
-		Matrix3r T; T.row(0)=locX; T.row(1)=locY; T.row(2)=locZ;
+		Matrix3r T; T.col(0)=locX; T.col(1)=locY; T.col(2)=locZ;
 		trsf=Quaternionr(T); // from transformation matrix
 	#else
-		trsf.row(0)=locX; trsf.row(1)=locY; trsf.row(2)=locZ;
+		trsf.col(0)=locX; trsf.col(1)=locY; trsf.col(2)=locZ;
 	#endif
 }
 
@@ -74,7 +77,7 @@ void Cg2_Any_Any_L6Geom__Base::handleSpheresLikeContact(const shared_ptr<Contact
 	*/
 
 	L6Geom& g(C->geom->cast<L6Geom>());
-	const Vector3r& currNormal(normal); const Vector3r& prevNormal(g.trsf.row(0));
+	const Vector3r& currNormal(normal); const Vector3r& prevNormal(g.trsf.col(0));
 	const Vector3r& prevContPt(C->geom->node->pos);
 	const Real& dt(scene->dt);
 	Vector3r shiftVel2(scene->isPeriodic?scene->cell->intrShiftVel(C->cellDist):Vector3r::Zero());
@@ -104,15 +107,15 @@ void Cg2_Any_Any_L6Geom__Base::handleSpheresLikeContact(const shared_ptr<Contact
 	#endif
 	/* middle transformation first */
 	Matrix3r midTrsf;
-	if(approxMask&APPROX_NO_MID_TRSF){ midTrsf.row(0)=prevNormal; midTrsf.row(1)=prevTrsf.row(1); }
-	else{ midTrsf.row(0)=midNormal; midTrsf.row(1)=prevTrsf.row(1)-prevTrsf.row(1).cross(normRotVec+normTwistVec)/2.; }
-	midTrsf.row(2)=midTrsf.row(0).cross(midTrsf.row(1));
+	if(approxMask&APPROX_NO_MID_TRSF){ midTrsf.col(0)=prevNormal; midTrsf.col(1)=prevTrsf.col(1); }
+	else{ midTrsf.col(0)=midNormal; midTrsf.col(1)=prevTrsf.col(1)-prevTrsf.col(1).cross(normRotVec+normTwistVec)/2.; }
+	midTrsf.col(2)=midTrsf.col(0).cross(midTrsf.col(1));
 
 	/* current transformation now */
 	Matrix3r currTrsf;
-	currTrsf.row(0)=currNormal;
-	currTrsf.row(1)=prevTrsf.row(1)-midTrsf.row(1).cross(normRotVec+normTwistVec);
-	currTrsf.row(2)=currTrsf.row(0).cross(currTrsf.row(1));
+	currTrsf.col(0)=currNormal;
+	currTrsf.col(1)=prevTrsf.col(1)-midTrsf.col(1).cross(normRotVec+normTwistVec);
+	currTrsf.col(2)=currTrsf.col(0).cross(currTrsf.col(1));
 
 	#ifdef L6_TRSF_QUATERNION
 		Quaternionr currTrsfQ(currTrsf);
@@ -120,10 +123,10 @@ void Cg2_Any_Any_L6Geom__Base::handleSpheresLikeContact(const shared_ptr<Contact
 	#else
 		/* orthonormalize in a way to not alter local x-axis */
 		if(trsfRenorm>0 && (scene->step % trsfRenorm)==0){
-			currTrsf.row(0).normalize();
-			currTrsf.row(1)-=currTrsf.row(0)*currTrsf.row(1).dot(currTrsf.row(0)); // take away y projected on x, to stabilize numerically
-			currTrsf.row(1).normalize();
-			currTrsf.row(2)=currTrsf.row(0).cross(currTrsf.row(1)); // normalized automatically
+			currTrsf.col(0).normalize();
+			currTrsf.col(1)-=currTrsf.col(0)*currTrsf.col(1).dot(currTrsf.col(0)); // take away y projected on x, to stabilize numerically
+			currTrsf.col(1).normalize();
+			currTrsf.col(2)=currTrsf.col(0).cross(currTrsf.col(1)); // normalized automatically
 			#ifdef WOO_DEBUG
 				if(abs(currTrsf.determinant()-1)>.05){
 					LOG_ERROR("##"<<C->leakPA()->id<<"+"<<C->leakPB()->id<<", |trsf|="<<currTrsf.determinant());
@@ -200,8 +203,13 @@ void Cg2_Any_Any_L6Geom__Base::handleSpheresLikeContact(const shared_ptr<Contact
 	#endif
 
 	// update data here
-	g.vel=midTrsf*relVel;
-	g.angVel=midTrsf*(angVel2-angVel1);
+	#ifdef L6_TRSF_QUATERNION
+		const auto& midTrsfInv=midTrsf.conjugate();
+	#else
+		const auto& midTrsfInv=midTrsf.transpose();
+	#endif
+	g.vel=midTrsfInv*relVel;
+	g.angVel=midTrsfInv*(angVel2-angVel1);
 	g.uN=uN; // this does not have to be computed incrementally
 	// Node
 	g.node->pos=contPt;
