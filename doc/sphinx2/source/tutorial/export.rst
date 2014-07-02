@@ -194,15 +194,15 @@ The script can be then used in 2 ways:
 
 1. As script to be run with Paraview, which will load all necessary files and set the visualization pipeline up::
 
-   paraview --script=something.py
+      paraview --script=something.py
 
 2. As a means to zip all data files and the script itself, e.g. for easy transfer or archiving (run with ``--help`` for more help)::
 
-   python something.py --zip
+      python something.py --zip
 
 
 :obj:`~woo.dem.FlowAnalysis`
---------------------------
+-----------------------------
 
 :obj:`~woo.dem.FlowAnalysis` is an engine which :obj:`periodically <woo.core.PeriodicEngine>` stores flow data interpolated in a uniform grid. The theory is described in :ref:`user-manual-flow-analysis`. The :obj:`woo.paraviewscript.fromEngines` introduced above recognizes the presence of :obj:`~woo.dem.FlowAnalysis` and puts its data into the visualization pipeline as well.
 

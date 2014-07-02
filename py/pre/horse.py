@@ -82,16 +82,16 @@ def prepareHorse(pre):
 	if not pre.grid: collider=InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb(),Bo1_Wall_Aabb()],verletDist=0.01)
 	else: collider=GridCollider([Grid1_Sphere(),Grid1_Facet(),Grid1_Wall()],label='collider')
 
-	if not pre.deformable:
-		S.engines=woo.utils.defaultEngines(model=pre.model,grid=pre.grid,dynDtPeriod=100,
-		)+[
-			woo.core.PyRunner(10,'S.plot.addData(i=S.step,t=S.time,total=S.energy.total(),relErr=(S.energy.relErr() if S.step>100 else 0),**S.energy)'),
-			woo.core.PyRunner(50,'import woo.pre.horse\nif S.step>100 and S.energy["kinetic"]<S.pre.relEkStop*abs(S.energy["grav"]): woo.pre.horse.finished(S)'),
-		]
-		S.trackEnergy=True
-		S.plot.plots={'i':('total','**S.energy'),' t':('relErr')}
-		S.plot.data={'i':[nan],'total':[nan],'relErr':[nan]} # to make plot displayable from the very start
-	else:
+	S.engines=woo.utils.defaultEngines(model=pre.model,grid=pre.grid,dynDtPeriod=100,
+	)+[
+		woo.core.PyRunner(10,'S.plot.addData(i=S.step,t=S.time,total=S.energy.total(),relErr=(S.energy.relErr() if S.step>100 else 0),**S.energy)'),
+		woo.core.PyRunner(50,'import woo.pre.horse\nif S.step>100 and S.energy["kinetic"]<S.pre.relEkStop*abs(S.energy["grav"]): woo.pre.horse.finished(S)'),
+	]
+	S.trackEnergy=True
+	S.plot.plots={'i':('total','**S.energy'),' t':('relErr')}
+	S.plot.data={'i':[nan],'total':[nan],'relErr':[nan]} # to make plot displayable from the very start
+
+	if pre.deformable:
 		# more complicated here
 		# go through facet's nodes, give them some mass
 		nodeM=1e-3*mat.density*(4/3)*math.pi*pre.radius**3
@@ -103,13 +103,10 @@ def prepareHorse(pre):
 				n.dem.inertia=nodeI*Vector3(1,1,1)
 				n.dem.gravitySkip=True
 				#if n.pos[2]<zMin: n.dem.blocked='xyzXYZ'
-		cp2s,law2s=pre.model.getFunctors()
-		S.engines=[
-			Leapfrog(reset=True,damping=pre.damping),
-			collider,
-			ContactLoop([Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom(),Cg2_Wall_Sphere_L6Geom()],cp2s,law2s,applyForces=False), # forces are applied in IntraForce
-			IntraForce([In2_FlexFacet_ElastMat(bending=True,thickness=(pre.radius if pre.halfThick<=0 else float('nan'))),In2_Sphere_ElastMat()]),
-		]
+				if n.pos[2]<-0.22: n.dem.blocked='xyzXYZ'
+
+		S.engines=S.engines[:-1]+[IntraForce([In2_FlexFacet_ElastMat(bending=True,thickness=(pre.radius if pre.halfThick<=0 else float('nan'))),In2_Sphere_ElastMat()])]+[S.engines[-1]] # put dynDt to the very end
+		S.lab.contactLoop.applyForces=False
 
 	if pre.grid:
 		c=S.lab.collider

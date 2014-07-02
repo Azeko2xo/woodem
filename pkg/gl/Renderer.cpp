@@ -109,6 +109,7 @@ void Renderer::init(){
 	}
 	// this is not initialized properly for some reason?!
 	showTime=TIME_STEP|TIME_VIRT;
+	dispScale=Vector3r(10,10,10);
 	initDone=true;
 }
 

@@ -19,3 +19,4 @@ S.dt=1e-4
 S.plot.plots={'i':('V','Vcell',None,'ratio')}
 S.one()
 print 'Sphere volume is ',S.lab.meshVolume.vol
+S.saveTmp()

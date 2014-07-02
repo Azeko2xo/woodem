@@ -120,7 +120,7 @@ struct Renderer: public Object{
 		((bool,allowFast,true,,"Allow fast rendering when manipulating camera or the 3d window is not focused, and framerate drops below 15 FPS."))
 
 		((bool,scaleOn,false,AttrTrait<>().startGroup("Scaling").buttons({"Reference now","woo.gl.Gl1_DemField.updateRefPos=True","use current positions and orientations as reference for scaling displacement/rotation."},/*showBefore*/false),"Whether *dispScale* has any effect or not."))
-		((Vector3r,dispScale,((void)"disable scaling",Vector3r::Ones()),,"Artificially enlarge (scale) dispalcements from bodies' :obj:`reference positions <GlData.refPos>` by this relative amount, so that they become better visible (independently in 3 dimensions). Disbled if (1,1,1), and also if *scaleOn* is false."))
+		((Vector3r,dispScale,Vector3r(10,10,10),,"Artificially enlarge (scale) dispalcements from bodies' :obj:`reference positions <GlData.refPos>` by this relative amount, so that they become better visible (independently in 3 dimensions). Disbled if (1,1,1), and also if *scaleOn* is false."))
 		((Real,rotScale,((void)"disable scaling",1.),,"Artificially enlarge (scale) rotations of bodies relative to their :ref:`reference orientation <GlData.refOri>`, so the they are better visible. No effect if 1, and also if *scaleOn* is false."))
 		((Real,zClipCoeff,4.,AttrTrait<>().range(Vector2r(sqrt(3.),10)),"Z-clipping coefficient, relative to scene radius (see http://www.libqglviewer.com/refManual/classqglviewer_1_1Camera.html#acd07c1b9464b935ad21bb38b7c27afca for details)"))
 

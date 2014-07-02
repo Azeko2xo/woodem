@@ -3,7 +3,7 @@
 #include<woo/pkg/dem/ParticleContainer.hpp>
 #include<limits>
 
-WOO_PLUGIN(dem,(Wall)(Bo1_Wall_Aabb)(In2_Wall_ElastMat)(Cg2_Wall_Sphere_L6Geom));
+WOO_PLUGIN(dem,(Wall)(Bo1_Wall_Aabb)(In2_Wall_ElastMat)(Cg2_Wall_Sphere_L6Geom)(Cg2_Wall_Facet_L6Geom));
 #ifdef WOO_OPENGL
 	WOO_PLUGIN(gl,(Gl1_Wall))
 #endif
@@ -12,6 +12,7 @@ WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_Wall__CLASS_BASE_DOC_ATTRS_CTOR);
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_Bo1_Wall_Aabb__CLASS_BASE_DOC);
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_In2_Wall_ElastMat__CLASS_BASE_DOC);
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Wall_Sphere_L6Geom__CLASS_BASE_DOC);
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Wall_Facet_L6Geom__CLASS_BASE_DOC);
 
 void Wall::updateMassInertia(const Real& density) const {
 	checkNodesHaveDemData();
@@ -76,6 +77,62 @@ bool Cg2_Wall_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<S
 	handleSpheresLikeContact(C,wallPos,dyn1.vel,dyn1.angVel,spherePos,dyn2.vel,dyn2.angVel,normal,contPt,uN,/*r1*/-radius,radius);
 	return true;
 };
+
+CREATE_LOGGER(Cg2_Wall_Facet_L6Geom);
+bool Cg2_Wall_Facet_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
+	if(scene->isPeriodic && scene->cell->hasShear()) throw std::logic_error("Cg2_Wall_Facet_L6Geom does not handle periodic boundary conditions with skew (Scene.cell.trsf is not diagonal).");
+	const Wall& wall=sh1->cast<Wall>(); const Facet& facet=sh2->cast<Facet>();
+	assert(wall.numNodesOk()); assert(facet.numNodesOk());
+	if(!(facet.halfThick>0.)){
+		LOG_WARN("Cg2_Wall_Facet_L6Geom: Contact of Wall with zero-thickness facet is always false.");
+		return false;
+	}
+	const Real& radius=facet.halfThick; const int& ax=wall.axis; const int& sense=wall.sense;
+	const Vector3r& wallPos=wall.nodes[0]->pos;
+	Vector3r fPos[]={facet.nodes[0]->pos+shift2,facet.nodes[1]->pos+shift2,facet.nodes[2]->pos+shift2};
+	Eigen::Array<Real,3,1> dist(fPos[0][ax]-wallPos[ax],fPos[1][ax]-wallPos[ax],fPos[2][ax]-wallPos[ax]);
+	if(!C->isReal() && abs(dist[0])>radius && abs(dist[1])>radius && abs(dist[2])>radius && !force) return false;
+	Vector3r normal=Vector3r::Zero();
+	if(sense==0){
+		// for new contacts, normal is given by the sense the wall is being approached
+		// use average distance (which means distance to the facet midpoint) to determine that
+		if(!C->geom) normal[ax]=dist.sum()>0?1.:-1.;
+		// use the previous normal for existing contacts
+		else normal[ax]=C->geom->cast<L6Geom>().trsf.col(0)[ax];
+	}
+	else normal[ax]=(sense==1?1.:-1);
+	Vector3r contPt=Vector3r::Zero();
+	Real contPtWeightSum=0.;
+	Real uN=Inf;
+	short minIx=-1;
+	for(int i:{0,1,2}){
+		// negative uN0 means overlap
+		Real uNi=dist[i]*normal[ax]-radius; 
+		// minimal distance vertex
+		if(uNi<uN){ uN=uNi; minIx=i; }
+		// with no overlap, skip the vertex, it will not contribute to the contact point
+		if(uNi>=0) continue;
+		Vector3r c=fPos[i];
+		const Real& weight=uNi;
+		contPt+=c*weight;
+		contPtWeightSum+=weight;
+	}
+	// some vertices overlapping, use weighted average on those
+	if(contPtWeightSum!=0.) contPt/=contPtWeightSum;
+	// no overlapping vertices, use the closest one
+	else contPt=fPos[minIx]; 
+	contPt[ax]=wallPos[ax];
+
+	Vector3r fCenter=facet.getCentroid();
+	Vector3r fLinVel,fAngVel;
+	std::tie(fLinVel,fAngVel)=facet.interpolatePtLinAngVel(fCenter);
+
+	const DemData& wallDyn(wall.nodes[0]->getData<DemData>());
+	handleSpheresLikeContact(C,wallPos,wallDyn.vel,wallDyn.angVel,fCenter,fLinVel,fAngVel,normal,contPt,uN,/*r1*/-radius,radius);
+	return true;
+}
+
+
 
 
 

@@ -5,6 +5,7 @@
 #include<woo/pkg/dem/Clump.hpp>
 #include<woo/pkg/dem/Ellipsoid.hpp>
 #include<woo/pkg/dem/Capsule.hpp>
+#include<woo/pkg/dem/FlexFacet.hpp>
 
 #include<cstdint>
 #include<iostream>
@@ -325,7 +326,7 @@ size_t DemFuncs::radialAxialForce(const Scene* scene, const DemField* dem, int m
 
 	TODO: read color/material, convert to scalar color in Woo
 */
-vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const shared_ptr<Material>& mat, int mask, Real color, Real scale, const Vector3r& shift, const Quaternionr& ori, Real threshold, Real maxBox, bool readColors){
+vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const shared_ptr<Material>& mat, int mask, Real color, Real scale, const Vector3r& shift, const Quaternionr& ori, Real threshold, Real maxBox, bool readColors, bool flex){
 	vector<shared_ptr<Particle>> ret;
 	std::ifstream in(filename,std::ios::in|std::ios::binary);
 	if(!in) throw std::runtime_error("Error opening "+filename+" for reading (STL import).");
@@ -335,6 +336,8 @@ vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const s
 
 	// linear array of vertices, each triplet is one face
 	// this is filled from ASCII and binary formats as intermediary representation
+	
+	// coordinate system change using (ori, scale, shift) is done already when reading vertices from the file
 	vector<Vector3r> vertices;
 	if(isAscii){
 		LOG_TRACE("STL: ascii format detected");
@@ -353,7 +356,7 @@ vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const s
 				// Vector3r normal; line>>normal.x(); line>>normal.y(); line>>normal.z();
 			} else if(tok=="vertex"){
 				Vector3r p; line>>p.x(); line>>p.y(); line>>p.z();
-				vertices.push_back(p);
+				vertices.push_back(ori*(p*scale+shift));
 				fVertsNum++;
 			} else if(tok=="endfacet"){
 				if(fVertsNum!=3){
@@ -391,7 +394,7 @@ vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const s
 					" vertex 2 ("<<f.v[6]<<", "<<f.v[7]<<", "<<f.v[8]<<"), "
 					" color "<<f.color
 				);
-				for(int j:{0,3,6}) vertices.push_back(Vector3r(f.v[j+0],f.v[j+1],f.v[j+2]));
+				for(int j:{0,3,6}) vertices.push_back(ori*(Vector3r(f.v[j+0],f.v[j+1],f.v[j+2])*scale+shift));
 				if(readColors && f.color!=0) LOG_WARN("STL: face #"+to_string(i)+": color not imported (not implemented yet).");
 			}
 		#else
@@ -404,14 +407,14 @@ vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const s
 
 	AlignedBox3r bbox;
 	for(const Vector3r& v: vertices) bbox.extend(v);
-	threshold*=-bbox.sizes().maxCoeff();
+	if(threshold<0) threshold*=-bbox.sizes().maxCoeff();
 
 	// tesselate faces so that their smalles bbox dimension (in rotated & scaled space) does not exceed maxBox
 	// this is useful to avoid faces with voluminous bboxs, creating many spurious potential contacts
 	if(maxBox>0){
 		for(int i=0; i<(int)vertices.size(); i+=3){
 			AlignedBox3r b; // in resulting (simulation) space
-			for(int j:{0,1,2}) b.extend(ori*(vertices[i+j]*scale+shift));
+			for(int j:{0,1,2}) b.extend(vertices[i+j]);
 			if(b.sizes().minCoeff()<=maxBox) continue;
 			// too big, tesselate (in STL space)
 			vertices.reserve(vertices.size()+9); // 3 new faces will be added
@@ -456,9 +459,7 @@ vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const s
 		locator->InitPointInsertion(points,bounds);
 	#endif
 
-
-	
-
+	LOG_TRACE("Vertex merge threshold is "<<threshold);
 	vector<shared_ptr<Node>> nodes;
 	for(size_t v0=0; v0<vertices.size(); v0+=3){
 		size_t vIx[3];
@@ -487,7 +488,7 @@ vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const s
 			// create new node
 			if(vIx[v]==nodes.size()){
 				auto n=make_shared<Node>();
-				n->pos=ori*(pos*scale+shift); // change coordinate system here
+				n->pos=pos; 
 				n->setData<DemData>(make_shared<DemData>());
 				// block all DOFs
 				n->getData<DemData>().setBlockedAll();
@@ -508,7 +509,9 @@ vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const s
 		}
 		LOG_TRACE("STL: Face #"<<v0/3<<", node indices "<<vIx[0]<<(isNew[0]?"*":"")<<", "<<vIx[1]<<(isNew[1]?"*":"")<<", "<<vIx[2]<<(isNew[2]?"*":"")<<" ("<<nodes.size()<<" nodes)");
 		// create facet
-		auto facet=make_shared<Facet>();
+		shared_ptr<Facet> facet;
+		if(!flex) facet=make_shared<Facet>();
+		else facet=make_shared<FlexFacet>();
 		auto par=make_shared<Particle>();
 		par->shape=facet;
 		par->material=mat;

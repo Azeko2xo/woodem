@@ -2,7 +2,7 @@
 #include<woo/pkg/dem/Facet.hpp>
 #include<woo/pkg/dem/FrictMat.hpp>
 
-#define FLEXFACET_DEBUG_ROT
+// #define FLEXFACET_DEBUG_ROT
 struct FlexFacet: public Facet{
 	bool hasRefConf() const { return node && refRot.size()==3; }
 	bool hasBending(){ return KKdkt.size()>0; }

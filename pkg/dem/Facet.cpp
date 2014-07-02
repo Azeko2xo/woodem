@@ -6,11 +6,12 @@
 	#include<woo/pkg/gl/Renderer.hpp>
 #endif
 
-WOO_PLUGIN(dem,(Facet)(Bo1_Facet_Aabb)(Cg2_Facet_Sphere_L6Geom));
+WOO_PLUGIN(dem,(Facet)(Bo1_Facet_Aabb)(Cg2_Facet_Sphere_L6Geom)(In2_Facet_ElastMat));
 
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_Facet__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Facet_Sphere_L6Geom__CLASS_BASE_DOC);
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_Bo1_Facet_Aabb__CLASS_BASE_DOC);
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_In2_Facet_ElastMat__CLASS_BASE_DOC);
 
 CREATE_LOGGER(Facet);
 
@@ -184,6 +185,21 @@ void Bo1_Facet_Aabb::go(const shared_ptr<Shape>& sh){
 }
 
 CREATE_LOGGER(Cg2_Facet_Sphere_L6Geom);
+
+
+void In2_Facet_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& particle){
+	auto& f=sh->cast<Facet>();
+	for(const auto& I: particle->contacts){
+		const shared_ptr<Contact>& C(I.second); if(!C->isReal()) continue;
+		Vector3r F,T,xc;
+		for(int i:{0,1,2}){
+			std::tie(F,T,xc)=C->getForceTorqueBranch(particle,/*nodeI*/i,scene);
+			F/=3.; T/=3.;
+			f.nodes[i]->getData<DemData>().addForceTorque(F,xc.cross(F)+T);
+		}
+	}
+};
+
 
 bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
 	const Facet& f=sh1->cast<Facet>(); const Sphere& s=sh2->cast<Sphere>();

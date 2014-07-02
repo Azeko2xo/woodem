@@ -22,6 +22,8 @@
 #include<woo/lib/base/CompUtils.hpp>
 #include<woo/lib/opengl/GLUtils.hpp>
 
+#include<woo/pkg/dem/Gl1_DemField.hpp>
+
 using boost::algorithm::iends_with;
 
 
@@ -171,6 +173,7 @@ GLViewer::GLViewer(int _viewId, QGLWidget* shareWidget): QGLViewer(/*parent*/(QW
 	setKeyDescription(Qt::Key_Z,"Show the zy [shift: zx] (up-right) plane (clip plane: align normal with +z)");
 	setKeyDescription(Qt::Key_Period,"Toggle grid subdivision by 10");
 	setKeyDescription(Qt::Key_S,"Toggle displacement and rotation scaling (Renderer.scaleOn)");
+	setKeyDescription(Qt::Key_S &Qt::ShiftModifier,"Set reference positions for displacements scaling to the current ones.");
 	setKeyDescription(Qt::Key_S & Qt::AltModifier,"Save QGLViewer state to /tmp/qglviewerState.xml");
 	setKeyDescription(Qt::Key_S & Qt::ControlModifier,"Save hardcopy of the image to file.");
 	setKeyDescription(Qt::Key_C & Qt::ControlModifier,"Save hardcopy of the image to clipboard.");
@@ -390,6 +393,9 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 				} else nextSnapFile=out;
 				LOG_INFO("Will save snapshot to "<<nextSnapFile);
 			#endif
+		} else if (e->modifiers() & Qt::ShiftModifier){
+			Gl1_DemField::updateRefPos=true;
+			displayMessage("Will use current positions/orientations for scaling.");
 		} else {
 			Renderer::scaleOn=!Renderer::scaleOn;
 			displayMessage("Scaling is "+(Renderer::scaleOn?string("on (displacements ")+lexical_cast<string>(Renderer::dispScale.transpose())+", rotations "+lexical_cast<string>(Renderer::rotScale)+")":string("off")));
