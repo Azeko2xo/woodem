@@ -6,7 +6,6 @@ This module is imported automatically by Woo at startup and should not be used d
 '''
 from . import io
 from . import gts
-from . import ipython_012_013
 import traceback
 
 # out-of-class docstrings for some classes

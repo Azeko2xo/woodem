@@ -282,7 +282,7 @@ def main(sysArgv=None):
 
 	# avoid warnings from ipython import (http://stackoverflow.com/a/3924047/761090)
 	import warnings
-	if woo.runtime.ipython_version<100:
+	if woo.runtime.ipython_version()<100:
 		warnings.filterwarnings('ignore',category=DeprecationWarning,module='IPython.frontend.terminal.embed')
 		warnings.filterwarnings('ignore',category=DeprecationWarning,module='IPython.utils.io')
 	else:
@@ -417,8 +417,10 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 
 	# show python console
 	# handle both ipython 0.10 and 0.11 (incompatible API)
-	# print 'ipython version', woo.runtime.ipython_version
-	if woo.runtime.ipython_version==10:
+	ipython_version=woo.runtime.ipython_version()
+	import woo.ipythonintegration
+	woo.ipythonintegration.replaceInputHookIfNeeded()
+	if ipython_version==10:
 		from IPython.Shell import IPShellEmbed
 		ipshell=IPShellEmbed(banner=banner,rc_override=ipconfig)
 		ipshell()
@@ -426,7 +428,7 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 		# http://lists.ipython.scipy.org/pipermail/ipython-user/2008-September/005839.html
 		import IPython.ipapi
 		IPython.ipapi.get().IP.atexit_operations()
-	elif woo.runtime.ipython_version in (11,12,13,100,110,120):
+	elif ipython_version in (11,12,13,100,110,120):
 		if qtConsole:
 			qapp.start()
 		else:
@@ -436,14 +438,14 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 			ipconfig['banner1']=banner+'\n' # called banner1 in >=0.11, not banner as in 0.10
 			for k in ipconfig: setattr(InteractiveShellEmbed,k,ipconfig[k])
 			ipshell=InteractiveShellEmbed()
-			if woo.runtime.ipython_version>=12:
+			if ipython_version>=12:
 				ipshell.prompt_manager.in_template= 'Woo [\#]: '
 				ipshell.prompt_manager.in2_template='    .\D.: '
 				ipshell.prompt_manager.out_template=' -> [\#]: '
 			ipshell()
 			# similar to the workaround, as for 0.10 (perhaps not needed?)
 			ipshell.atexit_operations()
-	else: raise RuntimeError("Unhandled ipython version %d"%woo.runtime.ipython_version)
+	else: raise RuntimeError("Unhandled ipython version %d"%ipython_version)
 
 
 
