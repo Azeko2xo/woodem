@@ -47,13 +47,15 @@ else:
 		# it would lead to crash
 		import sys
 		if woo.runtime.hasDisplay and ('PyQt4' not in sys.modules) and ('PySide' not in sys.modules):
-			if woo.runtime.ipython_version>=11:
-				import IPython.external.qt
-				IPython.external.qt.prepare_pyqt4()
+			if 11<=woo.runtime.ipython_version()<120:
+				try:
+					import IPython.external.qt # in later IPython version, the import itself does everything already
+					IPython.external.qt.prepare_pyqt4()
+				except AttributeError: pass
 
 	if 1: # initialize QApplication
 		from PyQt4 import QtGui
-		if woo.runtime.ipython_version==10:
+		if woo.runtime.ipython_version()==10:
 			wooQApp=QtGui.QApplication(sys.argv)
 		elif useQtConsole:
 			from IPython.frontend.qt.console.qtconsoleapp import IPythonQtConsoleApp

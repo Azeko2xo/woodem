@@ -29,14 +29,6 @@ This file is copied from https://github.com/ipython/ipython/blob/66c77ff392ad742
 #-----------------------------------------------------------------------------
 
 #-----------------------------------------------------------------------------
-# Imports
-#-----------------------------------------------------------------------------
-
-from IPython.core.interactiveshell import InteractiveShell
-from IPython.external.qt_for_kernel import QtCore, QtGui
-from IPython.lib.inputhook import allow_CTRL_C, ignore_CTRL_C, stdin_ready
-
-#-----------------------------------------------------------------------------
 # Code
 #-----------------------------------------------------------------------------
 
@@ -53,6 +45,10 @@ def create_inputhook_qt4(mgr, app=None):
 
         The inputhook function works in tandem with a 'pre_prompt_hook' which automatically restores the hook as an inputhook in case the latter has been temporarily disabled after having intercepted a KeyboardInterrupt.
     """
+
+    from IPython.core.interactiveshell import InteractiveShell
+    from IPython.external.qt_for_kernel import QtCore, QtGui
+    from IPython.lib.inputhook import allow_CTRL_C, ignore_CTRL_C, stdin_ready
 
     if app is None:
         app = QtCore.QCoreApplication.instance()
@@ -147,10 +143,11 @@ def create_inputhook_qt4(mgr, app=None):
     return app, inputhook_qt4
 
 
-import woo.runtime
-## apply local version instead of the stock one
-if woo.runtime.ipython_version in (12,13):
-	import IPython.lib.inputhookqt4
-	IPython.lib.inputhookqt4.create_inputhook_qt4=create_inputhook_qt4
+def replaceInputHookIfNeeded():
+    import woo.runtime
+    ## apply local version instead of the stock one
+    if woo.runtime.ipython_version() in (12,13,100,110,120):
+        import IPython.lib.inputhookqt4
+        IPython.lib.inputhookqt4.create_inputhook_qt4=create_inputhook_qt4
 
 
