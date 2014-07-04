@@ -47,7 +47,7 @@ else:
 		# it would lead to crash
 		import sys
 		if woo.runtime.hasDisplay and ('PyQt4' not in sys.modules) and ('PySide' not in sys.modules):
-			if 11<=woo.runtime.ipython_version()<120:
+			if 11<woo.runtime.ipython_version()<120:
 				try:
 					import IPython.external.qt # in later IPython version, the import itself does everything already
 					IPython.external.qt.prepare_pyqt4()

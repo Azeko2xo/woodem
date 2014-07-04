@@ -12,6 +12,12 @@ def ipython_version():
 	# find out about which ipython version we use -- 0.10* and 0.11 are supported, but they have different internals
 	global _ipython_version
 	if not _ipython_version==None: return _ipython_version
+	# workaround around bug in IPython 0.13 (and perhaps later): frozen install does not define sys.argv
+	import sys
+	fakedArgv=False
+	if hasattr(sys,'frozen') and len(sys.argv)==0:
+		sys.argv=['wwoo']
+		fakedArgv=True
 	import IPython
 	try: # attempt to get numerical version
 		if IPython.__version__.startswith('1.0'): ret=100
@@ -26,6 +32,7 @@ def ipython_version():
 		print 'WARN: unhandled IPython version %d.%d, assuming %d.%d instead.'%(ret%100,ret//100,newipver%100,newipver//100)
 		ret=newipver
 	_ipython_version=ret
+	if fakedArgv: sys.argv=[]
 	return ret
 
 
