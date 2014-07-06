@@ -2,6 +2,16 @@
 WOO_PLUGIN(dem,(Truss)(Bo1_Truss_Aabb)(In2_Truss_ElastMat)(Cg2_Truss_Sphere_L6Geom));
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Truss_Sphere_L6Geom__CLASS_BASE_DOC);
 
+void Truss::updateMassInertia(const Real& density) const {
+	checkNodesHaveDemData();
+	for(int i:{0,1}){
+		auto& dyn(nodes[i]->getData<DemData>());
+		dyn.mass=0;
+		dyn.inertia=Vector3r::Zero();
+	}
+}
+
+
 void Bo1_Truss_Aabb::go(const shared_ptr<Shape>& sh){
 	assert(sh->numNodesOk());
 	Truss& t=sh->cast<Truss>();
