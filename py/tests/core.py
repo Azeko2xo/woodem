@@ -169,7 +169,15 @@ class TestObjectInstantiation(unittest.TestCase):
 		prev=e.deadCounter
 		e.dead=False
 		self.assert_(e.deadCounter>prev)
-		
+
+	def testNodeDataCtorAssign(self):
+		'Core: assign node data using shorthands in the ctor'
+		n=woo.core.Node(pos=(1,2,3),dem=woo.dem.DemData(mass=100))
+		self.assert_(n.dem.mass==100)
+		self.assertRaises(TypeError,lambda: woo.core.Node(dem=1))
+		if 'gl' in woo.config.features:
+			# type mismatch
+			self.assertRaises(RuntimeError,lambda: woo.core.Node(dem=woo.gl.GlData()))
 
 
 class TestLoop(unittest.TestCase):

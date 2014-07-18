@@ -20,15 +20,21 @@ struct Constraint: public Object{
 WOO_REGISTER_OBJECT(Constraint);
 #endif
 
+struct Node;
+
 struct NodeData: public Object{
 	boost::mutex lock; // used by applyForceTorque
 
 	// template to be specialized by derived classes
 	template<typename Derived> struct Index; // { BOOST_STATIC_ASSERT(false); /* template must be specialized for derived NodeData types */ };
 
+	virtual const char* getterName() const;
+	virtual void setDataOnNode(Node&);
+
 	#define woo_core_NodeData__CLASS_BASE_DOC_ATTRS_PY \
 		NodeData,Object,"Data associated with some node.",/*attrs*/ \
-		,/*py*/; woo::converters_cxxVector_pyList_2way<shared_ptr<NodeData>>();
+		,/*py*/ .add_property("getterName",&NodeData::getterName); \
+			woo::converters_cxxVector_pyList_2way<shared_ptr<NodeData>>();
 
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_core_NodeData__CLASS_BASE_DOC_ATTRS_PY);
 };
@@ -103,8 +109,6 @@ struct ScalarRange: public Object{
 WOO_REGISTER_OBJECT(ScalarRange);
 #endif
 
-
-
 struct Node: public Object, public Indexable{
 
 	// indexing data items
@@ -139,6 +143,8 @@ struct Node: public Object, public Indexable{
 	static shared_ptr<NodeDataSubclass> pyGetData(const shared_ptr<Node>& n){ return n->hasData<NodeDataSubclass>() ? static_pointer_cast<NodeDataSubclass>(n->getData(NodeData::Index<NodeDataSubclass>::value)) : shared_ptr<NodeDataSubclass>(); }
 	template<typename NodeDataSubclass>
 	static void pySetData(const shared_ptr<Node>& n, const shared_ptr<NodeDataSubclass>& d){ n->setData<NodeDataSubclass>(d); }
+
+	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
 
 	// transform point p from global to local coordinates
 	Vector3r glob2loc(const Vector3r& p){ return ori.conjugate()*(p-pos); }

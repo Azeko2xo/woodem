@@ -42,7 +42,7 @@ struct Bo1_Sphere_Aabb: public BoundFunctor{
 WOO_REGISTER_OBJECT(Bo1_Sphere_Aabb);
 
 struct In2_Sphere_ElastMat: public IntraFunctor{
-	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&);
+	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&, const bool skipContacts) WOO_CXX11_OVERRIDE;
 	FUNCTOR2D(Sphere,ElastMat);
 	#ifdef WOO_DEBUG
 		#define woo_dem_In2_Sphere_ElastMat__watch__DEBUG ((Vector2i,watch,Vector2i(-1,-1),,"Print detailed information about contact having those ids (debugging only)"))
@@ -52,7 +52,9 @@ struct In2_Sphere_ElastMat: public IntraFunctor{
 
 	#define woo_dem_In2_Sphere_ElastMat__CLASS_BASE_DOC_ATTRS \
 		In2_Sphere_ElastMat,IntraFunctor,"Apply contact forces on sphere; having one node only, Sphere generates no internal forces as such.", \
-		/*attrs*/ woo_dem_In2_Sphere_ElastMat__watch__DEBUG
+		/*attrs*/ \
+			((bool,alreadyWarned_ContactLoopWithApplyForces,false,AttrTrait<>().noGui(),"Keep track of whether the warning on ContactLoop already applying forces was issued.")) \
+			woo_dem_In2_Sphere_ElastMat__watch__DEBUG
 	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_In2_Sphere_ElastMat__CLASS_BASE_DOC_ATTRS);
 };
 WOO_REGISTER_OBJECT(In2_Sphere_ElastMat);

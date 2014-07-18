@@ -15,6 +15,8 @@ from minieigen import *
 
 from woo.dem import *
 from woo.core import *
+import woo
+import woo.config
 
 # c++ implementations for performance reasons
 #from woo._utils import *
@@ -62,7 +64,7 @@ def defaultEngines(damping=0.,gravity=None,verletDist=-.05,kinSplit=False,dontCo
 		Leapfrog(damping=damping,reset=True,kinSplit=kinSplit,dontCollect=dontCollect,label='leapfrog'),
 		collider,
 		ContactLoop(
-			[Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom(),Cg2_Wall_Sphere_L6Geom(),Cg2_InfCylinder_Sphere_L6Geom(),Cg2_Ellipsoid_Ellipsoid_L6Geom(),Cg2_Sphere_Ellipsoid_L6Geom(),Cg2_Wall_Ellipsoid_L6Geom()]+([] if 'nocapsule' in woo.config.features else [Cg2_Wall_Capsule_L6Geom(),Cg2_Capsule_Capsule_L6Geom(),Cg2_InfCylinder_Capsule_L6Geom(),Cg2_Facet_Capsule_L6Geom(),Cg2_Sphere_Capsule_L6Geom(),Cg2_Truss_Sphere_L6Geom()]),
+			[Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom(),Cg2_Wall_Sphere_L6Geom(),Cg2_InfCylinder_Sphere_L6Geom(),Cg2_Ellipsoid_Ellipsoid_L6Geom(),Cg2_Sphere_Ellipsoid_L6Geom(),Cg2_Wall_Ellipsoid_L6Geom(),Cg2_Wall_Facet_L6Geom(),Cg2_Truss_Sphere_L6Geom()]+([] if 'nocapsule' in woo.config.features else [Cg2_Wall_Capsule_L6Geom(),Cg2_Capsule_Capsule_L6Geom(),Cg2_InfCylinder_Capsule_L6Geom(),Cg2_Facet_Capsule_L6Geom(),Cg2_Sphere_Capsule_L6Geom()]),
 			cp2,law,applyForces=True,label='contactLoop'
 		),
 	]+([woo.dem.DynDt(stepPeriod=dynDtPeriod,label='dynDt')] if dynDtPeriod>0 else [])
@@ -75,15 +77,20 @@ def _commonBodySetup(b,nodes,mat,fixed=False):
 	b.shape.nodes=nodes
 	b.updateMassInertia()
 	for i,n in enumerate(b.nodes):
-		n.dem.addParRef(b) # increase particle count
-		if fixed: n.dem.blocked='xyzXYZ'
+		n.dem.addParRef(b) # tell the node that it has that particle
+		if fixed==None: pass # do not modify blocked at all
+		elif fixed==True: n.dem.blocked='xyzXYZ'
 		else: n.dem.blocked=''.join(['XYZ'[ax] for ax in (0,1,2) if n.dem.inertia[ax]==inf]) # block rotational DOFs where inertia is infinite
 
 
 def _mkDemNode(**kw):
 	'''Helper function to create new Node instance, with dem set to an new empty instance.
 	dem can't be assigned directly in the ctor, since it is not a c++ attribute :-| '''
-	n=Node(**kw); n.dem=DemData() 
+	n=Node(**kw); n.dem=DemData()
+	import woo.config
+	if 'gl' in woo.config.features:
+		import woo.gl
+		n.gl=woo.gl.GlData()
 	return n
 
 def sphere(center,radius,mat=defaultMaterial,fixed=False,wire=False,color=None,highlight=False,mask=DemField.defaultMovableMask):

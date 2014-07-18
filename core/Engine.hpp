@@ -75,7 +75,7 @@ class Engine: public Object {
 		void timingInfo_nsec_set(TimingInfo::delta d){ timingInfo.nsec=d;}
 		long timingInfo_nExec_get(){return timingInfo.nExec;};
 		void timingInfo_nExec_set(long d){ timingInfo.nExec=d;}
-		void explicitRun(); 
+		void explicitRun(const shared_ptr<Scene>&, const shared_ptr<Field>&); 
 
 	DECLARE_LOGGER;
 

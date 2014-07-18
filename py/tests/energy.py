@@ -68,7 +68,27 @@ class TestFactoriesAndDeleters(unittest.TestCase):
 		self.assertEqual(S.energy['kinFactory'],-self.Ek)
 		self.assertEqual(S.energy.total(),0.)
 
-		
+class TestLeapfrog(unittest.TestCase):
+	def setUp(self):
+		m=woo.utils.defaultMaterial()
+		self.S=Scene(dtSafety=.9,trackEnergy=True,engines=DemField.minimalEngines(damping=.4),
+			fields=[DemField(gravity=(0,0,-10),par=[Wall.make(0,axis=2,sense=1,mat=m),
+			Sphere.make((0,0,.1),radius=.8,mat=m)])])
+	def testGravitySkip(self):
+		'Energy: DemData.gravitySkip'
+		S=self.S
+		for n in S.dem.nodes: n.dem.gravitySkip=True
+		S.dem.par[-1].vel=(0,0,-1) # so that we hit ground and have dissipation
+		S.run(400,True)
+		self.assert_('grav' not in S.energy)
+		self.assert_(S.energy['nonviscDamp']!=0.)
+	def testDampingSkip(self):
+		'Energy: DemData.dampingSkip'
+		S=self.S
+		for n in S.dem.nodes: n.dem.dampingSkip=True
+		S.run(400,True)
+		self.assert_(S.energy['grav']!=0.)
+		self.assert_('nonviscDamp' not in S.energy)
 
 
 

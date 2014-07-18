@@ -103,8 +103,18 @@ bool Cg2_Sphere_Sphere_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<
 };
 
 
-void In2_Sphere_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& particle){
-	FOREACH(const Particle::MapParticleContact::value_type& I,particle->contacts){
+void In2_Sphere_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& particle, const bool skipContacts){
+	if(skipContacts) return;
+	if(!alreadyWarned_ContactLoopWithApplyForces){
+		for(const auto& e: scene->engines){
+			if(!e->isA<ContactLoop>()) continue;
+			if(e->cast<ContactLoop>().applyForces){
+				LOG_WARN("In2_Sphere_ElastMat: ContactLoop.applyForces==True, forces on spheres will be probably applied twice; are you sure this is what you want?!");
+			}
+		}
+		alreadyWarned_ContactLoopWithApplyForces=true;
+	}
+	for(const Particle::MapParticleContact::value_type& I: particle->contacts){
 		const shared_ptr<Contact>& C(I.second); if(!C->isReal()) continue;
 		Vector3r F,T,xc;
 		std::tie(F,T,xc)=C->getForceTorqueBranch(particle,/*nodeI*/0,scene);

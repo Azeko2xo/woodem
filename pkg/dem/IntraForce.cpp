@@ -21,7 +21,7 @@ void IntraForce::run(){
 			LOG_ERROR("#"<<i<<" has no shape/material.");
 			continue;
 		}
-		operator()(p->shape,p->material,p);
+		operator()(p->shape,p->material,p,/*skipContacts*/false);
 	}
 };
 

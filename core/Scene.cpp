@@ -336,13 +336,14 @@ void Scene::doOneStep(){
 			dt=Inf;
 			for(const auto& e: engines){
 				e->scene=this;
-				if(!e->field && e->needsField())  throw std::runtime_error((getClassName()+" has no field to run on, but requires one.").c_str());
+				if(!e->field && e->needsField())  throw std::runtime_error(e->pyStr()+" has no field to run on, but requires one.");
 				if(e->dead) continue; // skip completely dead engines, but not those who are not isActivated()
 				Real crDt=e->critDt();
 				LOG_INFO("Critical dt from "+e->pyStr()+": "<<crDt);
 				dt=min(dt,crDt);
 			}
 			for(const auto& f: fields){
+				f->scene=this;
 				Real crDt=f->critDt();
 				LOG_INFO("Critical dt from "+f->pyStr()+": "<<crDt);
 				dt=min(dt,crDt);
@@ -374,7 +375,7 @@ void Scene::doOneStep(){
 		// ** 2. ** engines
 		for(const shared_ptr<Engine>& e: engines){
 			e->scene=this;
-			if(!e->field && e->needsField()) throw std::runtime_error((getClassName()+" has no field to run on, but requires one.").c_str());
+			if(!e->field && e->needsField()) throw std::runtime_error(e->pyStr()+" has no field to run on, but requires one.");
 			if(e->dead || !e->isActivated()) continue;
 			e->run();
 			if(unlikely(TimingInfo_enabled)) {TimingInfo::delta now=TimingInfo::getNow(); e->timingInfo.nsec+=now-last; e->timingInfo.nExec+=1; last=now;}

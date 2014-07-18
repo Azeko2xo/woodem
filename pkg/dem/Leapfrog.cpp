@@ -153,6 +153,7 @@ void Leapfrog::run(){
 		// handle clumps
 		if(dyn.isClumped()) continue; // those particles are integrated via the clump's master node
 		bool isClump=dyn.isClump();
+		bool damp=(damping!=0. && !dyn.isDampingSkip());
 		if(isClump){
 			ClumpData::collectFromMembers(node,dyn.force,dyn.torque);
 		}
@@ -160,7 +161,7 @@ void Leapfrog::run(){
 		Vector3r& t=dyn.torque;
 
 		if(unlikely(reallyTrackEnergy)){
-			if(damping!=0.) doDampingDissipation(node);
+			if(damp) doDampingDissipation(node);
 			if(hasGravity) doGravityWork(dyn,*dem);
 		}
 			
@@ -186,7 +187,7 @@ void Leapfrog::run(){
 			#ifdef DUMP_INTEGRATOR
 				cerr<<"*"<<scene->step<<"/"<<i<<": v="<<dyn.vel<<", ω="<<dyn.angVel<<", F="<<f<<", T="<<t<<", a="<<linAccel;
 			#endif
-			nonviscDamp2nd(dt,f,pprevFluctVel,linAccel);
+			if(damp) nonviscDamp2nd(dt,f,pprevFluctVel,linAccel);
 			#ifdef DUMP_INTEGRATOR
 				cerr<<", aDamp="<<linAccel;
 			#endif
@@ -200,12 +201,12 @@ void Leapfrog::run(){
 			if(dyn.inertia!=Vector3r::Zero()){
 				if(!useAspherical){ // spherical integrator, uses angular velocity
 					angAccel=computeAngAccel(t,dyn.inertia,dyn);
-					nonviscDamp2nd(dt,t,pprevFluctAngVel,angAccel);
+					if(damp) nonviscDamp2nd(dt,t,pprevFluctAngVel,angAccel);
 					dyn.angVel+=dt*angAccel;
 					if(homoDeform==Cell::HOMO_GRADV2) dyn.angVel-=deltaSpinVec;
 				} else { // uses torque
 					for(int i=0; i<3; i++) if(dyn.isBlockedAxisDOF(i,true)) t[i]=0; // block DOFs here
-					nonviscDamp1st(t,pprevFluctAngVel);
+					if(damp) nonviscDamp1st(t,pprevFluctAngVel);
 				}
 			}
 			// in case velocity is imposed, it must be re-applied to cancel effects of forces
@@ -220,9 +221,8 @@ void Leapfrog::run(){
 		// this is for both fixed and free particles, without gradV2
 		if(homoDeform!=Cell::HOMO_GRADV2) applyPeriodicCorrections(node,linAccel);
 
-		// numerical damping & kinetic energy
+		// kinetic energy
 		// accelerations are needed, therefore not evaluated earlier;
-		// force and torque use the undamped values here, with damping energy dissipation handled inside
 		if(unlikely(reallyTrackEnergy)) doKineticEnergy(node,pprevFluctVel,pprevFluctAngVel,linAccel,angAccel);
 
 

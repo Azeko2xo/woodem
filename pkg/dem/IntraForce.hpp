@@ -6,7 +6,7 @@
 class IntraFunctor: public Functor2D<
 	/*dispatch types*/ Shape,Material,
 	/*retrun type*/    void,
-	/*argument types*/ TYPELIST_3(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&)
+	/*argument types*/ TYPELIST_4(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&, const bool)
 >{
 	#define woo_dem_IntraFunctor__CLASS_BASE_DOC_PY IntraFunctor,Functor,"Functor appying internal forces", /*py*/ ; woo::converters_cxxVector_pyList_2way<shared_ptr<IntraFunctor>>();
 	WOO_DECL__CLASS_BASE_DOC_PY(woo_dem_IntraFunctor__CLASS_BASE_DOC_PY);

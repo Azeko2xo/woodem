@@ -36,6 +36,12 @@ def ShapePack_fromSimulation(sp,S):
 	return sp.fromDem(scene=S,dem=S.dem,mask=0,skipUnsupported=True)
 woo.dem.ShapePack.fromSimulation=ShapePack_fromSimulation
 
+def ParticleGenerator_makeCloud(S,dem,gen,box,mask=woo.dem.DemField.defaultMovableMask,color=float('nan')):
+	#S=woo.core.Scene(fields=[DemField()])
+	woo.dem.BoxFactory(box=box,materials=[mat],generator=gen,massRate=0,color=color,collideExisting=False)(scene=S,dem=dem)
+
+	
+
 
 ## compatibility hack for python 2.5 (21/8/2009)
 ## can be safely removed at some point

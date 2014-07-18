@@ -23,6 +23,9 @@ struct DemFuncs{
 
 	static Real pWaveDt(const shared_ptr<DemField>& field, bool noClumps=false);
 	static Real spherePWaveDt(Real radius, Real density, Real young){ return radius/sqrt(young/density); }
+	// calls pWaveDt and DynDt for FlexFacets
+	static Real critDt(const shared_ptr<Scene>& scene, const shared_ptr<DemField>& dem, bool noClumps=false);
+
 
 	// sum force and torque with regards to point pt over particles with matching mask
 	// if *multinodal* is true, get force/troque from contacts of multinodal particles

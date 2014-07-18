@@ -17,7 +17,13 @@ CREATE_LOGGER(Engine);
 
 void Engine::run(){ throw std::logic_error((getClassName()+" did not override Engine::run()").c_str()); } 
 
-void Engine::explicitRun(){ scene=Master::instance().getScene().get(); if(!field) setField(); run(); }
+void Engine::explicitRun(const shared_ptr<Scene>& scene_, const shared_ptr<Field>& field){
+	if(!scene_) throw std::runtime_error("Engine.__call__: scene must not be None.");
+	scene=scene_.get();
+	if(field && !acceptsField(field.get())) throw std::runtime_error("Engine.__call__: field "+field->pyStr()+" passed, but is not accepted by the engine.");
+	if(!field && needsField()) setField();
+	run();
+}
 
 void Engine::setDefaultScene(){ scene=Master::instance().getScene().get(); }
 
@@ -25,14 +31,14 @@ void Engine::setField(){
 	if(userAssignedField) return; // do nothing in this case
 	if(!needsField()) return; // no field required, do nothing
 	vector<shared_ptr<Field> > accepted;
-	FOREACH(const shared_ptr<Field> f, scene->fields){ if(acceptsField(f.get())) accepted.push_back(f); }
+	for(const auto& f: scene->fields){ if(acceptsField(f.get())) accepted.push_back(f); }
 	if(accepted.size()>1){
-		string err="Engine "+getClassName()+" accepted "+boost::lexical_cast<string>(accepted.size())+" fields to run on:";
-		FOREACH(const shared_ptr<Field>& f,accepted) err+=" "+f->getClassName();
+		string err="Engine "+pyStr()+" accepted "+to_string(accepted.size())+" fields to run on:";
+		for(const shared_ptr<Field>& f: accepted) err+=" "+f->pyStr();
 		err+=". Only one field is allowed; this ambiguity can be resolved by setting the field attribute.";
 		throw std::runtime_error(err); 
 	}
-	if(accepted.empty()) throw std::runtime_error(("Engine "+getClassName()+" accepted no field to run on; remove it from engines.").c_str()); 
+	if(accepted.empty()) throw std::runtime_error("Engine "+pyStr()+" accepted no field to run on; remove it from engines."); 
 	field=accepted[0];
 }
 

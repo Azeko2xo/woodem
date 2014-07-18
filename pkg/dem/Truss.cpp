@@ -30,7 +30,7 @@ void Bo1_Truss_Aabb::go(const shared_ptr<Shape>& sh){
 	}
 };
 
-void In2_Truss_ElastMat::go(const shared_ptr<Shape>& shape, const shared_ptr<Material>& mat, const shared_ptr<Particle>& particle){
+void In2_Truss_ElastMat::go(const shared_ptr<Shape>& shape, const shared_ptr<Material>& mat, const shared_ptr<Particle>& particle, const bool skipContacts){
 	Truss& t=shape->cast<Truss>();
 	assert(t.numNodesOk());
 	Vector3r Fa(Vector3r::Zero()), Fb(Vector3r::Zero());
@@ -41,32 +41,34 @@ void In2_Truss_ElastMat::go(const shared_ptr<Shape>& shape, const shared_ptr<Mat
 		if(setL0) t.l0=len;
 		else woo::ValueError(("#"+lexical_cast<string>(particle->id)+": Truss.l0==NaN (set In2_Truss_ElastMat.setL0=True to initialize this value automatically."));
 	}
-	FOREACH(const Particle::MapParticleContact::value_type& I,particle->contacts){
-		const shared_ptr<Contact>& C(I.second); if(!C->isReal()) continue;
-		// force and torque at the contact point
-		Vector3r Fc(C->geom->node->ori.conjugate()*C->phys->force *C->forceSign(particle));
-		Vector3r Tc(C->geom->node->ori.conjugate()*C->phys->torque*C->forceSign(particle));
-		// compute reactions (simply supported beam) on both ends
-		Vector3r AC(C->geom->node->pos-t.nodes[0]->pos);
-		// torque on A from contact
-		//Vector3r Ta=(Tc+Fc.cross(AC));
+	if(!skipContacts){
+		for(const auto& pC: particle->contacts){
+			const shared_ptr<Contact>& C(pC.second); if(!C->isReal()) continue;
+			// force and torque at the contact point
+			Vector3r Fc(C->geom->node->ori.conjugate()*C->phys->force *C->forceSign(particle));
+			Vector3r Tc(C->geom->node->ori.conjugate()*C->phys->torque*C->forceSign(particle));
+			// compute reactions (simply supported beam) on both ends
+			Vector3r AC(C->geom->node->pos-t.nodes[0]->pos);
+			// torque on A from contact
+			//Vector3r Ta=(Tc+Fc.cross(AC));
 
-		// force FC and torque TC (at contact point C) are to be replaced by
-		// Fac abd Fbc; from torque around A, we get the perpendicular contribution as
-		// Tc-AC×FcPerp+AB×Fbc=0 and Fbc.AB=0, from which
-		// Fbc=AB×(-Tc+AC×FcPerp)/|AB|²
-		// (http://boards.straightdope.com/sdmb/showpost.php?p=5107984&postcount=3)
-		Vector3r FcAxial=axUnit*Fc.dot(axUnit);
-		Vector3r FcPerp=Fc-FcAxial;
-		Vector3r Fbc=AB.cross(-Tc+AC.cross(FcPerp))/AB.squaredNorm();
-		// axial force is distributed according to relative position on the truss
-		// max(0,min(1,AC.n/|AB|)) (min and max in case the contact points is on the cap)
-		// Fbc+=FcAxial*cRelPos
-		// from Fac+Fbc=Fc → Fac=Fc-Fbc
-		Real cRelPos=max(0.,min(1.,AC.dot(axUnit)/len));
-		Fbc+=FcAxial*cRelPos;
-		Fb+=Fbc;
-		Fa+=Fc-Fbc;
+			// force FC and torque TC (at contact point C) are to be replaced by
+			// Fac abd Fbc; from torque around A, we get the perpendicular contribution as
+			// Tc-AC×FcPerp+AB×Fbc=0 and Fbc.AB=0, from which
+			// Fbc=AB×(-Tc+AC×FcPerp)/|AB|²
+			// (http://boards.straightdope.com/sdmb/showpost.php?p=5107984&postcount=3)
+			Vector3r FcAxial=axUnit*Fc.dot(axUnit);
+			Vector3r FcPerp=Fc-FcAxial;
+			Vector3r Fbc=AB.cross(-Tc+AC.cross(FcPerp))/AB.squaredNorm();
+			// axial force is distributed according to relative position on the truss
+			// max(0,min(1,AC.n/|AB|)) (min and max in case the contact points is on the cap)
+			// Fbc+=FcAxial*cRelPos
+			// from Fac+Fbc=Fc → Fac=Fc-Fbc
+			Real cRelPos=max(0.,min(1.,AC.dot(axUnit)/len));
+			Fbc+=FcAxial*cRelPos;
+			Fb+=Fbc;
+			Fa+=Fc-Fbc;
+		}
 	}
 	// elastic response of the truss
 	// natural strain

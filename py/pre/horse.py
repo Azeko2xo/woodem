@@ -19,12 +19,15 @@ class FallingHorse(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		_PAT(float,'halfThick',.002,unit='mm',doc='Half-thickness of the mesh.'),
 		_PAT(float,'relEkStop',.02,'Stop when kinetic energy drops below this fraction of gravity work (and step number is greater than 100)'),
 		_PAT(Vector3,'gravity',(0,0,-9.81),'Gravity acceleration vector'),
+		_PAT(Vector3,'dir',(0,0,1),'Direction of the upper horse from the lower one. The default is upwards. Will be normalized automatically.'),
 		_PAT(str,'pattern','hexa',choice=['hexa','ortho'],doc='Pattern to use when filling the volume with spheres'),
 		# _PAT(woo.dem.FrictMat,'mat',woo.dem.FrictMat(density=1e3,young=5e4,ktDivKn=.2,tanPhi=math.tan(.5)),startGroup='Material',doc='Material for particles'),
 		_PAT(woo.models.ContactModelSelector,'model',woo.models.ContactModelSelector(name='Schwarz',surfEnergy=4.,restitution=.7,alpha=.6,numMat=(1,2),matDesc=['particles','mesh'],mats=[woo.dem.FrictMat(density=1e4,young=1e6)]),doc='Select contact model. The first material is for particles; the second, optional, material, is for the meshed horse (the first material is used if there is no second one).'),
 		# _PAT(woo.dem.FrictMat,'meshMat',None,'Material for the meshed horse; if not given, :obj:`mat` is used here as well.'),
 		_PAT(bool,'deformable',False,startGroup='Deformability',doc='Whether the meshed horse is deformable. Note that deformable horse does not track energy and disables plotting.'),
-		_PAT(float,'pWaveSafety',.7,startGroup='Tunables',doc='Safety factor for :obj:`woo.utils.pWaveDt` estimation.'),
+		_PAT(bool,'stand',False,doc='Whether the bottoms of the legs should be fixed (applicable with :obj:`deformable` only)'),
+		_PAT(float,'meshDamping',.03,doc='Damping for mesh nodes; only used when then contact :obj:`model` sets zero :obj:`~woo.dem.Leapfrog.damping`. In that case, :obj:`Leapfrog.damping <woo.dem.Leapfrog.damping>` is set to :obj:`meshDamping` and all other nodes set :obj:`woo.dem.DemData.dampingSkip`.'),
+		_PAT(float,'dtSafety',.7,startGroup='Tunables',doc='Safety factor for :obj:`woo.utils.pWaveDt` and :obj:`woo.dem.DynDt`.'),
 		_PAT(str,'reportFmt',"/tmp/{tid}.xhtml",filename=True,startGroup="Outputs",doc="Report output format; :obj:`Scene.tags <woo.core.Scene.tags>` can be used."),
 		_PAT(int,'vtkStep',40,"How often should :obj:`woo.dem.VtkExport` run. If non-positive, never run the export."),
 		_PAT(int,'vtkFlowStep',40,"How often should :obj:`VtkFlowExport` run. If non-positive, never run."),
@@ -68,13 +71,17 @@ def prepareHorse(pre):
 	S.dem.par.append(packer(pred,radius=pre.radius,gap=pre.relGap*pre.radius,mat=mat))
 	# meshed horse below
 	xSpan,ySpan,zSpan=aabb.sizes() # aabb[1][0]-aabb[0][0],aabb[1][1]-aabb[0][1],aabb[1][2]-aabb[0][2]
-	surf.translate(0,0,-zSpan)
-	zMin=aabb[0][2]-(aabb[1][2]-aabb[0][2])
-	xMin,yMin,xMax,yMax=aabb[0][0]-zSpan,aabb[0][1]-zSpan,aabb[1][0]+zSpan,aabb[1][1]+zSpan
+	if pre.dir.squaredNorm()>0.:
+		trans=-pre.dir.normalized()*zSpan
+	else: trans=Vector3(0,0,-zSpan)
+	surf.translate(*trans)
+	zMin=aabb[0][2]+trans[2]-pre.halfThick
+	xMin,yMin,xMax,yMax=aabb[0][0]-zSpan+trans[0],aabb[0][1]-zSpan+trans[1],aabb[1][0]+zSpan+trans[0],aabb[1][1]+zSpan+trans[1]
+	if not pre.deformable: S.dem.collectNodes() # for deformable, done later
 	S.dem.par.append(woo.pack.gtsSurface2Facets(surf,wire=False,flex=pre.deformable,mat=meshMat,halfThick=pre.halfThick,fixed=(not pre.deformable)))
 	S.dem.par.append(woo.utils.wall(zMin,axis=2,sense=1,mat=meshMat,glAB=((xMin,yMin),(xMax,yMax))))
 	S.dem.saveDeadNodes=True # for traces, if used
-	S.dem.collectNodes() # collects also mesh nodes, if deformable; good :-)
+	if pre.deformable: S.dem.collectNodes() # collects also mesh nodes
 	
 	nan=float('nan')
 
@@ -92,18 +99,27 @@ def prepareHorse(pre):
 	S.plot.data={'i':[nan],'total':[nan],'relErr':[nan]} # to make plot displayable from the very start
 
 	if pre.deformable:
+		# set deformation just for mesh nodes
+		if S.lab.leapfrog.damping==0.:
+			setNoDamp=True
+			S.lab.leapfrog.damping=pre.meshDamping 
+		else: setNoDamp=False
 		# more complicated here
 		# go through facet's nodes, give them some mass
-		nodeM=1e-3*mat.density*(4/3)*math.pi*pre.radius**3
-		nodeI=1e3*(2/5.)*nodeM*pre.radius**2
+		nodeM=1e-1*mat.density*(4/3)*math.pi*pre.radius**3
+		nodeI=3e3*(2/5.)*nodeM*pre.radius**2
 		for p in S.dem.par:
-			if type(p.shape)!=FlexFacet: continue
-			for n in p.shape.nodes:
-				n.dem.mass=nodeM
-				n.dem.inertia=nodeI*Vector3(1,1,1)
-				n.dem.gravitySkip=True
-				#if n.pos[2]<zMin: n.dem.blocked='xyzXYZ'
-				if n.pos[2]<-0.22: n.dem.blocked='xyzXYZ'
+			if type(p.shape)!=FlexFacet:
+				if not setNoDamp: continue
+				for n in p.shape.nodes:
+					n.dem.dampingSkip=True
+			else:
+				p.mask=DemField.defaultMovableMask^DemField.defaultDeleterMask # make horse movable, but avoid deletion by the deleter
+				for n in p.shape.nodes:
+					n.dem.mass=nodeM
+					n.dem.inertia=nodeI*Vector3(1,1,1)
+					# n.dem.gravitySkip=True
+					if pre.stand and n.pos[2]<-0.22: n.dem.blocked='xyzXYZ'
 
 		S.engines=S.engines[:-1]+[IntraForce([In2_FlexFacet_ElastMat(bending=True,thickness=(pre.radius if pre.halfThick<=0 else float('nan'))),In2_Sphere_ElastMat()])]+[S.engines[-1]] # put dynDt to the very end
 		S.lab.contactLoop.applyForces=False
@@ -125,11 +141,12 @@ def prepareHorse(pre):
 	)
 
 	#woo.master.timingEnabled=True
-	S.dtSafety=pre.pWaveSafety
+	S.dtSafety=pre.dtSafety
 	import woo.config
 	if 'opengl' in woo.config.features:
 		S.any=[
-			woo.gl.Gl1_DemField(shape=woo.gl.Gl1_DemField.shapeSpheres,colorBy=woo.gl.Gl1_DemField.colorVel,deadNodes=False)
+			woo.gl.Gl1_DemField(shape=woo.gl.Gl1_DemField.shapeSpheres,colorBy=woo.gl.Gl1_DemField.colorVel,deadNodes=False),
+			woo.gl.Gl1_FlexFacet(relPhi=0.),
 		]
 	return S
 

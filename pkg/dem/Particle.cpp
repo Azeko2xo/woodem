@@ -290,7 +290,10 @@ void DemField::postLoad(DemField&,void*){
 
 
 Real DemField::critDt() {
-	return DemFuncs::pWaveDt(static_pointer_cast<DemField>(this->shared_from_this()),/*noClumps*/true);
+	// fake shared_ptr's to work around issues with enable_from_this (crash, perhaps related to boost::python?)
+	shared_ptr<Scene> s(scene,woo::Object::null_deleter());
+	shared_ptr<DemField> f(this,woo::Object::null_deleter());
+	return DemFuncs::critDt(s,f,/*noClumps*/true);
 }
 
 

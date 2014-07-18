@@ -37,7 +37,7 @@ struct Bo1_Wall_Aabb: public BoundFunctor{
 WOO_REGISTER_OBJECT(Bo1_Wall_Aabb);
 
 struct In2_Wall_ElastMat: public IntraFunctor{
-	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&);
+	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&, const bool skipContacts) WOO_CXX11_OVERRIDE;
 	FUNCTOR2D(Wall,ElastMat);
 	#define woo_dem_In2_Wall_ElastMat__CLASS_BASE_DOC In2_Wall_ElastMat,IntraFunctor,"Apply contact forces on wall. Wall generates no internal forces as such. Torque from applied forces is discarded, as Wall does not rotate."
 	WOO_DECL__CLASS_BASE_DOC(woo_dem_In2_Wall_ElastMat__CLASS_BASE_DOC);

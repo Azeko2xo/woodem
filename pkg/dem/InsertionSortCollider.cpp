@@ -56,7 +56,7 @@ void InsertionSortCollider::insertionSort(VecBounds& v, bool doCollide, int ax){
 	assert(!periodic);
 	assert(v.size==(long)v.vec.size());
 	for(long i=0; i<v.size; i++){
-		const Bounds viInit=v[i]; long j=i-1; /* cache hasBB; otherwise 1% overall performance hit */ const bool viInitBB=viInit.flags.hasBB;
+		const Bounds viInit=v[i]; long j=i-1; /* cache hasBB; otherwise 1% overall performance hit */ const bool viInitBB=viInit.flags.hasBB; const bool viInitIsMin=viInit.flags.isMin;
 		while(j>=0 && v[j]>viInit){
 			v[j+1]=v[j];
 			#ifdef PISC_DEBUG
@@ -69,7 +69,8 @@ void InsertionSortCollider::insertionSort(VecBounds& v, bool doCollide, int ax){
 			// no collisions without bounding boxes
 			// also, do not collide particle with itself; it sometimes happens for facets aligned perpendicular to an axis, for reasons that are not very clear
 			// see https://bugs.launchpad.net/woo/+bug/669095
-			if(likely(doCollide && viInitBB && v[j].flags.hasBB && (viInit.id!=v[j].id))){
+			// do not collide minimum with minimum and maximum with maximum (suggested by Bruno)
+			if(/* viInitIsMin!=v[j].flags.isMin && */ likely(doCollide && viInitBB && v[j].flags.hasBB && (viInit.id!=v[j].id))){
 				handleBoundInversion(viInit.id,v[j].id);
 			}
 			j--;

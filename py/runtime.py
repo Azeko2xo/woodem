@@ -18,6 +18,9 @@ def ipython_version():
 	if hasattr(sys,'frozen') and len(sys.argv)==0:
 		sys.argv=['wwoo']
 		fakedArgv=True
+	if len(sys.argv)==0: ## ???
+		sys.argv=['woo']
+		fakedArgv=True
 	import IPython
 	try: # attempt to get numerical version
 		if IPython.__version__.startswith('1.0'): ret=100

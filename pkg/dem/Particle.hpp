@@ -163,10 +163,14 @@ WOO_REGISTER_OBJECT(MatState);
 struct DemData: public NodeData{
 public:
 	DECLARE_LOGGER;
+	const char* getterName() const WOO_CXX11_OVERRIDE { return "dem"; }
+	void setDataOnNode(Node& n) WOO_CXX11_OVERRIDE { n.setData(static_pointer_cast<DemData>(shared_from_this())); }
+
+
 	// bits for flags
 	enum {
 		DOF_NONE=0,DOF_X=1,DOF_Y=2,DOF_Z=4,DOF_RX=8,DOF_RY=16,DOF_RZ=32,
-		CLUMP_CLUMPED=64,CLUMP_CLUMP=128,ENERGY_SKIP=256,GRAVITY_SKIP=512,TRACER_SKIP=1024
+		CLUMP_CLUMPED=64,CLUMP_CLUMP=128,ENERGY_SKIP=256,GRAVITY_SKIP=512,TRACER_SKIP=1024,DAMPING_SKIP=2048
 	};
 	//! shorthands
 	static const unsigned DOF_ALL=DOF_X|DOF_Y|DOF_Z|DOF_RX|DOF_RY|DOF_RZ;
@@ -204,6 +208,8 @@ public:
 	void setGravitySkip(bool skip) { if(!skip) flags&=~GRAVITY_SKIP; else flags|=GRAVITY_SKIP; }
 	bool isTracerSkip() const { return flags&TRACER_SKIP; }
 	void setTracerSkip(bool skip) { if(!skip) flags&=~TRACER_SKIP; else flags|=TRACER_SKIP; }
+	bool isDampingSkip() const { return flags&DAMPING_SKIP; }
+	void setDampingSkip(bool skip) { if(!skip) flags&=~DAMPING_SKIP; else flags|=DAMPING_SKIP; }
 
 	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
 	void addForceTorque(const Vector3r& f, const Vector3r& t=Vector3r::Zero()){ boost::mutex::scoped_lock l(lock); force+=f; torque+=t; }
@@ -238,13 +244,13 @@ public:
 		((Vector3r,force,Vector3r::Zero(),AttrTrait<>().forceUnit(),"Applied force")) \
 		((Vector3r,torque,Vector3r::Zero(),AttrTrait<>().torqueUnit(),"Applied torque")) \
 		((Vector3r,angMom,Vector3r(NaN,NaN,NaN),AttrTrait<>().angMomUnit(),"Angular momentum; used with the aspherical integrator. If NaN and aspherical integrator (:obj:`Leapfrog`) is used, the value is initialized to :obj:`inertia` × :obj:`angVel`.")) \
-		((unsigned,flags,0,AttrTrait<Attr::readonly>().bits({"block x","block y","block z","block rot x","block rot y","block rot z","clumped","clump","energy skip","gravity skip","tracer skip"}),"Bit flags storing blocked DOFs, clump status, ...")) \
+		((unsigned,flags,0,AttrTrait<Attr::readonly>().bits({"block x","block y","block z","block rot x","block rot y","block rot z","clumped","clump","energy skip","gravity skip","tracer skip","damping skip"}),"Bit flags storing blocked DOFs, clump status, ...")) \
 		((long,linIx,-1,AttrTrait<>().readonly().noGui(),"Index within DemField.nodes (for efficient removal)")) \
 		((std::list<Particle*>,parRef,,AttrTrait<Attr::hidden|Attr::noSave>().noGui(),"Back-reference for particles using this node; this is important for knowing when a node may be deleted (no particles referenced) and such. Should be kept consistent.")) \
 		((shared_ptr<Impose>,impose,,,"Impose arbitrary velocity, angular velocity, ... on the node; the functor is called from Leapfrog, after new position and velocity have been computed.")) \
 		((weak_ptr<Node>,master,,AttrTrait<>().hidden().noGui(),"Master node; currently only used with clumps (since this is never set from python, it is safe to use weak_ptr).")) \
 		, /*py*/ .add_property("blocked",&DemData::blocked_vec_get,&DemData::blocked_vec_set,"Degress of freedom where linear/angular velocity will be always constant (equal to zero, or to an user-defined value), regardless of applied force/torque. String that may contain 'xyzXYZ' (translations and rotations).") \
-		.add_property("clump",&DemData::isClump).add_property("clumped",&DemData::isClumped).add_property("noClump",&DemData::isNoClump).add_property("energySkip",&DemData::isEnergySkip,&DemData::setEnergySkip).add_property("gravitySkip",&DemData::isGravitySkip,&DemData::setGravitySkip).add_property("tracerSkip",&DemData::isTracerSkip,&DemData::setTracerSkip) \
+		.add_property("clump",&DemData::isClump).add_property("clumped",&DemData::isClumped).add_property("noClump",&DemData::isNoClump).add_property("energySkip",&DemData::isEnergySkip,&DemData::setEnergySkip).add_property("gravitySkip",&DemData::isGravitySkip,&DemData::setGravitySkip).add_property("tracerSkip",&DemData::isTracerSkip,&DemData::setTracerSkip).add_property("dampingSkip",&DemData::isDampingSkip,&DemData::setDampingSkip) \
 		.add_property("master",&DemData::pyGetMaster) \
 		.add_property("parRef",&DemData::pyParRef_get).def("addParRef",&DemData::addParRef) \
 		.add_property("isAspherical",&DemData::isAspherical,"Return ``True`` when inertia components are not equal.") \

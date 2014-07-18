@@ -187,7 +187,9 @@ void Bo1_Facet_Aabb::go(const shared_ptr<Shape>& sh){
 CREATE_LOGGER(Cg2_Facet_Sphere_L6Geom);
 
 
-void In2_Facet_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& particle){
+void In2_Facet_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& particle, const bool skipContacts){
+	// nothing to do
+	if(skipContacts) return;
 	auto& f=sh->cast<Facet>();
 	for(const auto& I: particle->contacts){
 		const shared_ptr<Contact>& C(I.second); if(!C->isReal()) continue;

@@ -6,6 +6,7 @@
 #include<woo/pkg/dem/Ellipsoid.hpp>
 #include<woo/pkg/dem/Capsule.hpp>
 #include<woo/pkg/dem/FlexFacet.hpp>
+#include<woo/pkg/dem/DynDt.hpp>
 
 #include<cstdint>
 #include<iostream>
@@ -115,7 +116,7 @@ vector<Real> DemFuncs::contactCoordQuantiles(const shared_ptr<DemField>& dem, co
 
 Real DemFuncs::pWaveDt(const shared_ptr<DemField>& dem, bool noClumps/*=false*/){
 	Real dt=Inf;
-	FOREACH(const shared_ptr<Particle>& p, *dem->particles){
+	for(const shared_ptr<Particle>& p: *dem->particles){
 		if(!p || !p->material || !p->shape || p->shape->nodes.size()!=1 || !p->shape->nodes[0]->hasData<DemData>()) continue;
 		const auto& n(p->shape->nodes[0]);
 		const auto& dyn(n->getData<DemData>());
@@ -137,6 +138,16 @@ Real DemFuncs::pWaveDt(const shared_ptr<DemField>& dem, bool noClumps/*=false*/)
 			// assert(dyn.master); velMult+=(n->pos-dyn.master.lock()->pos).norm()/s->radius;
 		}
 		dt=min(dt,radius/(velMult*sqrt(elMat->young/elMat->density)));
+	}
+	return dt;
+}
+
+Real DemFuncs::critDt(const shared_ptr<Scene>& scene, const shared_ptr<DemField>& dem, bool noClumps){
+	Real dt=min(Inf,DemFuncs::pWaveDt(dem,/*noClumps*/noClumps));
+	for(const auto& e: scene->engines){
+		if(e->isA<DynDt>()){	
+			dt=min(dt,e->cast<DynDt>().critDt_compute(scene,dem));
+		}
 	}
 	return dt;
 }

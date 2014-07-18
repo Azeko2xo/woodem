@@ -15,7 +15,7 @@ void DynDt::postLoad(DynDt&,void*){
 void DynDt::nodalStiffAdd(const shared_ptr<Node>& n, Vector3r& ktrans, Vector3r& krot) const {
 	const DemData& dyn=n->getData<DemData>();
 	// for every particle with this node, traverse its contacts
-	for(const auto& p: dyn.parRef){
+	for(auto& p: dyn.parRef){
 		for(const auto& idC: p->contacts){
 			const auto& C(idC.second);
 			if(!C->isReal()) continue;
@@ -31,10 +31,19 @@ void DynDt::nodalStiffAdd(const shared_ptr<Node>& n, Vector3r& ktrans, Vector3r&
 			// rotational stiffness only due to translation
 			krot+=pow(g.lens[ix],2)*ph.kt*Vector3r(n2[1]+n2[2],n2[2]+n2[0],n2[0]+n2[1]);
 		}
-		// TODO: if the particle is multinodal,
-		// call some new virtual func giving its intra-particle inter-nodal stiffnesses
-		// this is just a hack for FlexFacet
-		if(p->shape->isA<FlexFacet>()) p->shape->cast<FlexFacet>().addIntraStiffnesses(n,ktrans,krot);
+		// TODO: if the particle is multinodal, call some new virtual func giving its intra-particle inter-nodal stiffnesses
+		// those funcs should be: check if internal stiffnesses are initialized, addIntraStiffnesses (as virtual func working also for other things than FlexFacet)
+		// this is just a hack working for FlexFacet only
+		if(p->shape->nodes.size()>1){
+			if(!p->shape->isA<FlexFacet>()) continue;
+			const auto& ff=p->shape->cast<FlexFacet>();
+			if(!ff.hasRefConf() && intraForce){
+				// this will initialize stiffnesses
+				(*intraForce)(p->shape,p->material,static_pointer_cast<Particle>(p->shared_from_this()),/*skipContacts*/true); 
+			}
+			// will do nothing if the FlexFacet is still not initialized here
+			ff.addIntraStiffnesses(n,ktrans,krot);
+		}
 	}
 }
 
@@ -70,10 +79,26 @@ Real DynDt::critDt_stiffness() const {
 	return sqrt(ret);
 }
 
+
+Real DynDt::critDt_compute() const {
+	// just for the case of unitialized FlexFacets, find the functor if present and store the pointer to it
+	// this way it can be called to compute their stiffness matrices on-demand
+	intraForce=NULL;
+	for(const auto& e: scene->engines){
+		if(!e->isA<IntraForce>()) continue;
+		intraForce=&(e->cast<IntraForce>()); break;
+	}
+
+	// compute timestep from contact stiffnesses
+	// and from internal stiffnesses of membranes
+	return critDt_stiffness();
+}
+
 void DynDt::run(){
 	// apply critical timestep times safety factor
 	// prevent too fast changes, so cap the value with maxRelInc
-	Real crDt=critDt_stiffness();
+	Real crDt=critDt_compute();
+
 	if(isinf(crDt)){
 		if(!dryRun) LOG_INFO("No timestep computed, keeping the current value "<<scene->dt);
 		return;

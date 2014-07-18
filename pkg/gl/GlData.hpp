@@ -4,6 +4,8 @@
 #include<woo/core/Field.hpp>
 
 struct GlData: public NodeData{
+	const char* getterName() const WOO_CXX11_OVERRIDE { return "gl"; }
+	void setDataOnNode(Node& n) WOO_CXX11_OVERRIDE { n.setData(static_pointer_cast<GlData>(shared_from_this())); }
 	bool isClipped() const { return isnan(dGlPos[0]); }
 	#define woo_gl_GlData__CLASS_BASE_DOC_ATTRS_PY \
 		GlData,NodeData,"Nodal data used for rendering.", \

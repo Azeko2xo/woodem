@@ -222,7 +222,7 @@ void FlexFacet::ensureStiffnessMatrices(const Real& young, const Real& nu, const
 	#endif
 };
 
-void FlexFacet::addIntraStiffnesses(const shared_ptr<Node>& n,Vector3r& ktrans, Vector3r& krot){
+void FlexFacet::addIntraStiffnesses(const shared_ptr<Node>& n,Vector3r& ktrans, Vector3r& krot) const {
 	if(!hasRefConf()) return;
 	int i=-1;
 	for(int j=0; j<3; j++){ if(nodes[j].get()==n.get()) i=j; }
@@ -310,13 +310,13 @@ void FlexFacet::computeNodalDisplacements(){
 
 CREATE_LOGGER(In2_FlexFacet_ElastMat);
 
-void In2_FlexFacet_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& particle){
+void In2_FlexFacet_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& particle, const bool skipContacts){
 	auto& ff=sh->cast<FlexFacet>();
-	if(contacts){
-		FOREACH(const Particle::MapParticleContact::value_type& I,particle->contacts){
-			const shared_ptr<Contact>& C(I.second); if(!C->isReal()) continue;
+	if(contacts && !skipContacts){
+		for(const auto& pC: particle->contacts){
+			const shared_ptr<Contact>& C(pC.second); if(!C->isReal()) continue;
 			Vector3r F,T,xc;
-			// TODO: this should be done more efficiently
+			// TODO: this could be done more efficiently
 			for(int i:{0,1,2}){
 				std::tie(F,T,xc)=C->getForceTorqueBranch(particle,/*nodeI*/i,scene);
 				F/=3.; T/=3.;
