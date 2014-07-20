@@ -10,6 +10,7 @@
 #endif
 
 #include<boost/range/algorithm/count_if.hpp>
+#include<boost/range/algorithm/find_if.hpp>
 
 WOO_PLUGIN(dem,(DemField)(Particle)(MatState)(DemData)(Impose)(Shape)(Material)(Bound));
 
@@ -200,7 +201,7 @@ void DemData::addParRef(const shared_ptr<Particle>& p){
 }
 
 void DemData::addParRef_raw(Particle* p){
-	if(std::find_if(parRef.begin(),parRef.end(),[&p](const Particle* i)->bool{ return p==i; })!=parRef.end()){
+	if(boost::range::find_if(parRef,[&p](const Particle* i)->bool{ return p==i; })!=parRef.end()){
 		LOG_TRACE(p->pyStr()<<": already in parRef, skipping.");
 		return;
 	}
@@ -294,6 +295,38 @@ Real DemField::critDt() {
 	shared_ptr<Scene> s(scene,woo::Object::null_deleter());
 	shared_ptr<DemField> f(this,woo::Object::null_deleter());
 	return DemFuncs::critDt(s,f,/*noClumps*/true);
+}
+
+
+vector<shared_ptr<Node>> DemField::splitNode(const shared_ptr<Node>& node, const vector<shared_ptr<Particle>>& pp, const Real massMult, const Real inertiaMult){
+	auto& dyn=node->getData<DemData>();
+	if(dyn.isClump()) throw std::runtime_error("Node may not be a clump.");
+	if(dyn.isClumped()) throw std::runtime_error("Node may not be a clumped.");
+	vector<shared_ptr<Node>> ret(2); ret[0]=node;
+	shared_ptr<Node> clone=static_pointer_cast<Node>(Master::instance().deepcopy(node));
+	ret[1]=clone;
+	auto& dyn2=clone->getData<DemData>();
+	dyn2.linIx=-1; // not in DemField.nodes yet
+
+	for(const auto& p: pp){
+		for(std::list<Particle*>::iterator I=dyn.parRef.begin(); I!=dyn.parRef.end(); I++){
+			Particle* ref=*I;
+			if(ref!=p.get()) continue;
+			// swap node of the particle itself (do this first, as it may fail due to bad user data, and we don't mess particle references uselessly in that case)
+			auto N=boost::range::find_if(p->shape->nodes,[&node](shared_ptr<Node>& n){ return n.get()==node.get(); });
+			if(N==p->shape->nodes.end()) throw std::runtime_error("Node "+node->pyStr()+" not in shape.nodes of "+p->pyStr());
+			*N=clone;
+			// remove from dyn.parRef
+			dyn.parRef.erase(I);
+			// add to dyn2.parRef
+			dyn2.parRef.push_back(ref);
+			break; // don't iterate further, the iterator is invalidated by deletion
+		}
+	}
+	if(!isnan(massMult)){ dyn.mass*=massMult; dyn2.mass*=massMult; }
+	if(!isnan(inertiaMult)){ dyn.inertia*=inertiaMult; dyn2.inertia*=inertiaMult; }
+	pyNodesAppend(clone); // add to DemField.nodes
+	return ret;
 }
 
 
@@ -450,11 +483,10 @@ void DemField::selfTest(){
 		for(Particle* p: dyn.parRef){
 			if(!p) throw std::logic_error("DemField.nodes["+to_string(i)+"].dem.parRef["+to_string(j)+"]==NULL."); //very unlikely
 			if(!p->shape) throw std::logic_error("DemField.nodes["+to_string(i)+"].dem.parRef["+to_string(j)+"].shape=None (#"+to_string(p->id)+"): clumps may not meaningfully contain particles without shape.");
-			if(std::find_if(
-				p->shape->nodes.begin(),
-				p->shape->nodes.end(),
+			if(boost::range::find_if(
+				p->shape->nodes,
 				[&n](const shared_ptr<Node>& a){return a.get()==n.get();}
-			)==p->shape->nodes.end()) throw std::logic_error("DemField.nodes["+to_string(i)+"].dem.parRef["+to_string(j)+"].shape.nodes does not contain DemField.nodes["+to_string(i)+" (the node back-references the particle, but the particle does not reference the node).");
+			)==p->shape->nodes.end()) throw std::logic_error("DemField.nodes["+to_string(i)+"].dem.parRef["+to_string(j)+"].shape.nodes does not contain DemField.nodes["+to_string(i)+"] (the node back-references the particle, but the particle does not reference the node).");
 		}
 	}
 }

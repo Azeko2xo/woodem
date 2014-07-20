@@ -111,6 +111,7 @@ void Master::pyRegisterClass(){
 		.add_property("realtime",&Master::getRealTime,"Return clock (human world) time the simulation has been running.")
 		// tmp storage
 		.def("loadTmpAny",&Master::loadTmp,(py::arg("name")=""),"Load any object from named temporary store.")
+		.def("deepcopy",&Master::deepcopy,(py::arg("obj")),"Return a deep-copy of given object; this performs serialization+deserialization using temporary (RAM) storage; all objects are therefore created anew.")
 		.def("saveTmpAny",&Master::saveTmp,(py::arg("obj"),py::arg("name")="",py::arg("quiet")=false),"Save any object to named temporary store; *quiet* will supress warning if the name is already used.")
 		.def("lsTmp",&Master::pyLsTmp,"Return list of all memory-saved simulations.")
 		.def("rmTmp",&Master::rmTmp,py::arg("name"),"Remove memory-saved simulation.")
@@ -185,6 +186,14 @@ bool Master::isInheritingFrom_recursive(const string& className, const string& b
 		if(isInheritingFrom_recursive(parent,baseClassName)) return true;
 	}
 	return false;
+}
+
+shared_ptr<Object> Master::deepcopy(shared_ptr<Object> obj){
+	std::stringstream ss;
+	woo::ObjectIO::save<shared_ptr<Object>,boost::archive::binary_oarchive>(ss,"woo__Object",obj);
+	auto ret=make_shared<Object>();
+	woo::ObjectIO::load<shared_ptr<Object>,boost::archive::binary_iarchive>(ss,"woo__Object",ret);
+	return ret;
 }
 
 /* named temporary store */

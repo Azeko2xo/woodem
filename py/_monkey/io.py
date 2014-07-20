@@ -443,17 +443,7 @@ def Object_saveTmp(obj,name='',quiet=False):
 	woo.master.saveTmpAny(obj,name,quiet)
 def Object_deepcopy(obj):
 	'Make object deepcopy by serializing to memory and deserializing.'
-	prefix='_deepcopy'
-	tmps=woo.master.lsTmp()
-	# FIXME: possible race condition here?
-	i=0
-	while prefix+'%d'%i in tmps: i+=1
-	name=prefix+'%d'%i
-	obj.saveTmp(name)
-	ret=Object.loadTmp(name)
-	woo.master.rmTmp(name)
-	return ret
-	
+	return woo.master.deepcopy(obj)
 
 Object._getAllTraits=Object_getAllTraits
 Object._getAllTraitsWithClasses=Object_getAllTraitsWithClasses

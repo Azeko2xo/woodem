@@ -7,6 +7,20 @@ WOO_IMPL__CLASS_BASE_DOC_PY(woo_dem_IntraFunctor__CLASS_BASE_DOC_PY);
 
 CREATE_LOGGER(IntraForce);
 
+void IntraForce::addIntraStiffness(const shared_ptr<Particle>& p, const shared_ptr<Node>& n, Vector3r& ktrans, Vector3r& krot) {
+	bool swap; // ignored
+	shared_ptr<IntraFunctor> functor=getFunctor2D(p->shape,p->material,swap);
+	if(!functor) return;
+	assert(boost::range::find_if(p->shape->nodes,[&n](const shared_ptr<Node> n2){ return n.get()==n2.get(); })!=p->shape->nodes.end());
+	functor->addIntraStiffnesses(p,n,ktrans,krot);
+};
+
+void IntraFunctor::addIntraStiffnesses(const shared_ptr<Particle>&, const shared_ptr<Node>&, Vector3r& ktrans, Vector3r& krot) const{
+	LOG_WARN("IntraFunctor::addIntraStiffnesses: not overridden for "+pyStr()+", internal stiffness ignored for timestep computation.");
+}
+
+
+
 void IntraForce::run(){
 	DemField& dem=field->cast<DemField>();
 	updateScenePtr();

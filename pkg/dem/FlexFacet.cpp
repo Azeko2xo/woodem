@@ -310,6 +310,14 @@ void FlexFacet::computeNodalDisplacements(){
 
 CREATE_LOGGER(In2_FlexFacet_ElastMat);
 
+
+void In2_FlexFacet_ElastMat::addIntraStiffnesses(const shared_ptr<Particle>& p, const shared_ptr<Node>& n, Vector3r& ktrans, Vector3r& krot) const {
+	auto& ff=p->shape->cast<FlexFacet>();
+	ff.ensureStiffnessMatrices(p->material->cast<ElastMat>().young,nu,thickness,/*bending*/bending,bendThickness);
+	ff.addIntraStiffnesses(n,ktrans,krot);
+}
+
+
 void In2_FlexFacet_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& particle, const bool skipContacts){
 	auto& ff=sh->cast<FlexFacet>();
 	if(contacts && !skipContacts){

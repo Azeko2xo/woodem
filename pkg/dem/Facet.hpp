@@ -39,6 +39,7 @@ struct Facet: public Shape {
 		,/*ctor*/ createIndex(); \
 		,/*py*/ \
 			.def("getNormal",&Facet::getNormal,"Return normal vector of the facet") \
+			.def("getCentroid",&Facet::getCentroid,"Return centroid of the facet") \
 			.def("outerEdgeNormals",&Facet::outerEdgeNormals,"Return outer edge normal vectors") \
 			.def("area",&Facet::getArea,"Return surface area of the facet")
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_Facet__CLASS_BASE_DOC_ATTRS_CTOR_PY);

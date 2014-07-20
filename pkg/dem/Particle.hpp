@@ -268,6 +268,7 @@ struct DemField: public Field{
 	void clearDead(){ deadNodes.clear(); }
 	void removeParticle(Particle::id_t id);
 	void removeClump(size_t id);
+	vector<shared_ptr<Node>> splitNode(const shared_ptr<Node>&, const vector<shared_ptr<Particle>>& pp, const Real massMult=NaN, const Real inertiaMult=NaN);
 	AlignedBox3r renderingBbox() const; // overrides Field::renderingBbox
 	boost::mutex nodesMutex; // sync adding nodes with the renderer, which might otherwise crash
 
@@ -307,6 +308,7 @@ struct DemField: public Field{
 		.def("collectNodes",&DemField::collectNodes,"Collect nodes from all particles and clumps and insert them to nodes defined for this field. Nodes are not added multiple times, even if they are referenced from different particles.") \
 		.def("clearDead",&DemField::clearDead) \
 		.def("nodesAppend",&DemField::pyNodesAppend,"Append given node to :obj:`nodes`, and set :obj:`DemData.linIx` to the correct value automatically.") \
+		.def("splitNode",&DemField::splitNode,(py::arg("node"),py::arg("pars"),py::arg("massMult")=NaN,py::arg("inertiaMult")=NaN),"For particles *pars*, replace their node *node* by a clone (:obj:`~woo.core.Master.deepcopy`) of this node. If *massMult* and *inertiaMult* are given, mass/inertia of both original and cloned node are multiplied by those factors. Returns the original and the new node. Both nodes will be co-incident in space. This function is used to un-share node shared by multiple particles, such as when breaking mesh apart.")  \
 		.def("sceneHasField",&Field_sceneHasField<DemField>).staticmethod("sceneHasField") \
 		.def("sceneGetField",&Field_sceneGetField<DemField>).staticmethod("sceneGetField"); \
 		_classObj.attr("defaultMovableMask")=(int)DemField::defaultMovableMask; \

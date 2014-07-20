@@ -144,7 +144,7 @@ Real DemFuncs::pWaveDt(const shared_ptr<DemField>& dem, bool noClumps/*=false*/)
 
 Real DemFuncs::critDt(const shared_ptr<Scene>& scene, const shared_ptr<DemField>& dem, bool noClumps){
 	Real dt=min(Inf,DemFuncs::pWaveDt(dem,/*noClumps*/noClumps));
-	for(const auto& e: scene->engines){
+	for(auto& e: scene->engines){
 		if(e->isA<DynDt>()){	
 			dt=min(dt,e->cast<DynDt>().critDt_compute(scene,dem));
 		}

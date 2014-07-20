@@ -93,6 +93,7 @@ class Master: public Singleton<Master>{
 
 
 		/* temporary storage */
+		shared_ptr<woo::Object> deepcopy(shared_ptr<woo::Object> obj);
 		shared_ptr<woo::Object> loadTmp(const string& name);
 		void saveTmp(shared_ptr<woo::Object> s, const string& name, bool quiet=false);
 		void rmTmp(const string& name);

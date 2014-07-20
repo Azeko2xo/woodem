@@ -32,7 +32,9 @@ if 1:
 		# http://www.youtube.com/watch?v=KmQWD_MfR8M
 		xmax,ymax=1,1
 		xdiv,ydiv=10,10
-		ff=woo.pack.gtsSurface2Facets(woo.pack.sweptPolylines2gtsSurface([[(x,y,0) for x in numpy.linspace(0,xmax,num=xdiv)] for y in numpy.linspace(0,ymax,num=ydiv)]),flex=True)
+		mat=woo.utils.defaultMaterial()
+		mat.young*=.1
+		ff=woo.pack.gtsSurface2Facets(woo.pack.sweptPolylines2gtsSurface([[(x,y,0) for x in numpy.linspace(0,xmax,num=xdiv)] for y in numpy.linspace(0,ymax,num=ydiv)]),flex=True,halfThick=.01,mat=mat)
 		S.dem.par.append(ff)
 		woo.gl.Renderer.dispScale=(10,10,10)
 		woo.gl.Gl1_FlexFacet.node=False
@@ -83,6 +85,12 @@ if 1:
 		sp.toSimulation(S,mat=FrictMat(young=1e6,density=3000))
 		for s in S.dem.par:
 			if type(s.shape)==Sphere: S.dem.nodesAppend(s.shape.nodes[0])
+	
+	# split the plate along the diagonal
+	for n in [n for n in S.dem.nodes if n.pos[0]==n.pos[1]]:
+		# make the other end of the diagonal fixed as well, just for the fun of it
+		if n.pos[1]==1.: n.dem.blocked='xyzXYZ'
+		S.dem.splitNode(n,[p for p in n.dem.parRef if p.shape.getCentroid()[0]>p.shape.getCentroid()[1]])
 
 	S.saveTmp()
 

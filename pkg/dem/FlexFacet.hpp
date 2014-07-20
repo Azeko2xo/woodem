@@ -14,7 +14,7 @@ struct FlexFacet: public Facet{
 	// called by functors to initialize (if necessary) and update
 	void stepUpdate();
 	// called from DynDt for updating internal stiffness for given node
-	void addIntraStiffnesses(const shared_ptr<Node>&,Vector3r& ktrans, Vector3r& krot) const;
+	void addIntraStiffnesses(const shared_ptr<Node>&, Vector3r& ktrans, Vector3r& krot) const;
 
 	REGISTER_CLASS_INDEX(FlexFacet,Facet);
 	DECLARE_LOGGER;
@@ -48,6 +48,7 @@ struct FlexFacet: public Facet{
 WOO_REGISTER_OBJECT(FlexFacet);
 
 struct In2_FlexFacet_ElastMat: public IntraFunctor{
+	void addIntraStiffnesses(const shared_ptr<Particle>&, const shared_ptr<Node>&, Vector3r& ktrans, Vector3r& krot) const WOO_CXX11_OVERRIDE;
 	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&, const bool skipContacts) WOO_CXX11_OVERRIDE;
 	FUNCTOR2D(FlexFacet,ElastMat);
 	DECLARE_LOGGER;
