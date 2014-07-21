@@ -95,13 +95,6 @@ void ContactLoop::run(){
 		timingDeltas->start();
 	#endif
 
-	if(applyForces && !alreadyWarnedForceNotApplied){
-		shared_ptr<IntraForce> intra;
-		for(const auto& e: scene->engines){ intra=dynamic_pointer_cast<IntraForce>(e); if(intra) break; }
-		if(intra && !intra->dead) LOG_WARN("ContactLoop.applyForce==True (default) and IntraForce is in Scene.engines! Are you sure this is ok? Forces might be applied twice. (proceeding)");
-		alreadyWarnedForceNotApplied=true;
-	}
-
 	DemField& dem=field->cast<DemField>();
 
 	if(dem.contacts->removeAllPending()>0 && !alreadyWarnedNoCollider){
@@ -193,13 +186,13 @@ void ContactLoop::run(){
 		if(applyForces && C->isReal()){
 			for(const Particle* particle:{pA,pB}){
 				const shared_ptr<Shape>& sh(particle->shape);
-				if(!sh) continue;
-				if(sh->nodes.size()!=1){
+				if(!sh || sh->nodes.size()!=1) continue;
+				// if(sh->nodes.size()!=1) continue;
+				#if 0
 					for(size_t i=0; i<sh->nodes.size(); i++){
 						if((sh->nodes[i]->getData<DemData>().flags&DemData::DOF_ALL)!=DemData::DOF_ALL) LOG_WARN("Multinodal #"<<particle->id<<" has free DOFs, but force will not be applied; set ContactLoop.applyForces=False and use IntraForce(...) dispatcher instead.");
 					}
-					continue;
-				}
+				#endif
 				Vector3r F,T,xc;
 				std::tie(F,T,xc)=C->getForceTorqueBranch(particle,/*nodeI*/0,scene);
 				sh->nodes[0]->getData<DemData>().addForceTorque(F,xc.cross(F)+T);

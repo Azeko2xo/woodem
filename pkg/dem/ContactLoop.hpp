@@ -109,7 +109,7 @@ class ContactLoop: public Engine {
 			((bool,evalStress,false,,"Evaluate stress tensor, in periodic simluations; if energy tracking is enabled, increments *gradV* energy.")) \
 			((bool,applyForces,true,,"Apply forces directly; this avoids IntraForce engine, but will silently skip multinodal particles.")) \
 			((bool,updatePhys,false,,"Call :obj:`CPhysFunctor` even for contacts which already have :obj:`Contact.phys` (to reflect changes in particle's material, for example)")) \
-			((bool,alreadyWarnedForceNotApplied,false,AttrTrait<>().noGui(),"We already warned if forces are not applied here and no IntraForce engine exists in O.scene.engines")) \
+			/*((bool,alreadyWarnedForceNotApplied,false,AttrTrait<>().noGui(),"We already warned if forces are not applied here and no IntraForce engine exists in O.scene.engines")) */ \
 			((bool,dist00,true,,"Whether to apply the Contact.minDist00Sq optimization (for mesuring the speedup only)")) \
 			((Matrix3r,stress,Matrix3r::Zero(),AttrTrait<Attr::readonly>(),"Stress value, used to compute *gradV*  energy if *trackWork* is True.")) \
 			((int,reorderEvery,1000,,"Reorder contacts so that real ones are at the beginning in the linear sequence, making the OpenMP loop traversal (hopefully) less unbalanced.")) \

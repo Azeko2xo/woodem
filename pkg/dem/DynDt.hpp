@@ -8,14 +8,14 @@ struct DynDt: public PeriodicEngine{
 	Real nodalCritDtSq(const shared_ptr<Node>&) const;
 	virtual void run();
 	// virtual func common to all engines
-	Real critDt() WOO_CXX11_OVERRIDE { return critDt_stiffness(); }
+	Real critDt() WOO_CXX11_OVERRIDE { return critDt_compute(); }
 	// non-virtual func called from run() and from critDt(), the actual implementation
 	Real critDt_stiffness() const;
 	Real critDt_compute(const shared_ptr<Scene>& s, const shared_ptr<DemField>& f){ scene=s.get(); field=f; return critDt_compute(); }
 	Real critDt_compute();
 	void postLoad(DynDt&,void*);
 	DECLARE_LOGGER;
-	IntraForce* intraForce; // hack: cache the dispatcher, if available
+	shared_ptr<IntraForce> intraForce; // cache the dispatcher, if available
 	WOO_CLASS_BASE_DOC_ATTRS(DynDt,PeriodicEngine,"Adjusts :obj:`Scene.dt` based on current stiffness of particle contacts.",
 		((Real,maxRelInc,1e-4,AttrTrait<Attr::triggerPostLoad>(),"Maximum relative increment of timestep within one step, to void abrupt changes in timestep leading to numerical artefacts."))
 		((bool,dryRun,false,,"Only set :obj:`dt` to the value of timestep, don't apply it really."))

@@ -93,17 +93,19 @@ Real DynDt::critDt_stiffness() const {
 
 
 Real DynDt::critDt_compute() {
-	// just for the case of unitialized FlexFacets, find the functor if present and store the pointer to it
+	// just for the case of unitialized finite elements, find the functor if present and store the pointer to it
 	// this way it can be called to compute their stiffness matrices on-demand
-	intraForce=NULL;
+	intraForce.reset();
 	for(const auto& e: scene->engines){
 		if(!e->isA<IntraForce>()) continue;
-		intraForce=&(e->cast<IntraForce>()); break;
+		intraForce=static_pointer_cast<IntraForce>(e); break;
 	}
 
 	// compute timestep from contact stiffnesses
 	// and from internal stiffnesses of membranes
-	return critDt_stiffness();
+	Real cdt=critDt_stiffness();
+	intraForce.reset();
+	return cdt;	
 }
 
 void DynDt::run(){

@@ -8,6 +8,7 @@ struct IntraFunctor: public Functor2D<
 	/*retrun type*/    void,
 	/*argument types*/ TYPELIST_4(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&, const bool)
 >{
+	DECLARE_LOGGER;
 	// called from IntraForce::critDt
 	virtual void addIntraStiffnesses(const shared_ptr<Particle>&, const shared_ptr<Node>&, Vector3r& ktrans, Vector3r& krot) const;
 	

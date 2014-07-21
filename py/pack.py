@@ -36,9 +36,10 @@ def ShapePack_fromSimulation(sp,S):
 	return sp.fromDem(scene=S,dem=S.dem,mask=0,skipUnsupported=True)
 woo.dem.ShapePack.fromSimulation=ShapePack_fromSimulation
 
-def ParticleGenerator_makeCloud(S,dem,gen,box,mask=woo.dem.DemField.defaultMovableMask,color=float('nan')):
+def ParticleGenerator_makeCloud(gen,S,dem,box,mat,mask=woo.dem.DemField.defaultMovableMask,color=float('nan')):
 	#S=woo.core.Scene(fields=[DemField()])
-	woo.dem.BoxFactory(box=box,materials=[mat],generator=gen,massRate=0,color=color,collideExisting=False)(scene=S,dem=dem)
+	woo.dem.BoxFactory(box=box,materials=[mat],generator=gen,massRate=0,color=color,collideExisting=False)(S,dem)
+woo.dem.ParticleGenerator.makeCloud=ParticleGenerator_makeCloud
 
 	
 

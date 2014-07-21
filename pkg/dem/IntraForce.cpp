@@ -1,5 +1,6 @@
 #include<woo/pkg/dem/IntraForce.hpp>
 #include<woo/pkg/dem/Particle.hpp>
+#include<boost/range/algorithm/find_if.hpp>
 #include<cstdlib>
 
 WOO_PLUGIN(dem,(IntraFunctor)(IntraForce));
@@ -15,6 +16,7 @@ void IntraForce::addIntraStiffness(const shared_ptr<Particle>& p, const shared_p
 	functor->addIntraStiffnesses(p,n,ktrans,krot);
 };
 
+CREATE_LOGGER(IntraFunctor);
 void IntraFunctor::addIntraStiffnesses(const shared_ptr<Particle>&, const shared_ptr<Node>&, Vector3r& ktrans, Vector3r& krot) const{
 	LOG_WARN("IntraFunctor::addIntraStiffnesses: not overridden for "+pyStr()+", internal stiffness ignored for timestep computation.");
 }
