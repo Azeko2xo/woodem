@@ -8,19 +8,15 @@ WOO_PLUGIN(dem,(Cp2_FrictMat_FrictPhys_CrossAnisotropic));
 CREATE_LOGGER(Cp2_FrictMat_FrictPhys_CrossAnisotropic);
 
 void Cp2_FrictMat_FrictPhys_CrossAnisotropic::postLoad(Cp2_FrictMat_FrictPhys_CrossAnisotropic&,void*){
-	Real a=alpha*(deg?M_PI/180.:1.), b=beta*(deg?M_PI/180.:1.);
-	xisoAxis=Vector3r(cos(a)*sin(b),-sin(a)*sin(b),cos(b));
-	recomputeIter=scene->step+1; // recompute everything at the next step
-	alpha_range=Vector2r(0.,deg?360.:2*M_PI);
-	beta_range=Vector2r(0.,deg?90.:.5*M_PI);
-
-	// recompute dependent poisson's ratio
-	//G1=E1/(2*(1+nu1));
+	xisoAxis=Vector3r(cos(alpha)*sin(beta),-sin(alpha)*sin(beta),cos(beta));
+	//OLD: Vector3r anisoNormal=Vector3r(cos(a)*sin(b),-sin(a)*sin(b),cos(b));
+	//OLD: rot.setFromTwoVectors(Vector3r::UnitX(),anisoNormal);
+	recomputeStep=scene->step+1; // recompute everything at the next step
 	nu1=E1/(2*G1)-1;
 }
 
 void Cp2_FrictMat_FrictPhys_CrossAnisotropic::go(const shared_ptr<Material>& b1, const shared_ptr<Material>& b2, const shared_ptr<Contact>& C){
-	if(C->phys && recomputeIter!=scene->step) return;
+	if(C->phys && recomputeStep!=scene->step) return;
 	// if(C->phys) cerr<<"Cp2_..._CrossAnisotropic: Recreating ##"<<C->leakPA()->id<<"+"<<C->leakPB()->id<<endl;
 	C->phys=shared_ptr<CPhys>(new FrictPhys); // this deletes the old CPhys, if it was there
 	FrictPhys& ph=C->phys->cast<FrictPhys>();
@@ -42,7 +38,10 @@ void Cp2_FrictMat_FrictPhys_CrossAnisotropic::go(const shared_ptr<Material>& b1,
 	#endif
 
 	// angle between pole (i.e. anisotropy normal) and contact normal
-	Real sinTheta=(/*xiso axis in global coords*/(xisoAxis).cross(/*contact axis in global coords*/g.node->ori.conjugate()*Vector3r::UnitX())).norm();
+	Real sinTheta=(/*xiso axis in global coords*/xisoAxis.cross(/*contact axis in global coords*/g.node->ori*Vector3r::UnitX())).norm();
+
+	//OLD: Real sinTheta=/*aniso z-axis in global coords*/((rot.conjugate()*Vector3r::UnitX()).cross(/*normal in global coords*/g.node->ori.conjugate()*Vector3r::UnitX())).norm();
+
 	// cerr<<"x-aniso normal "<<Vector3r(rot.conjugate()*Vector3r::UnitZ())<<", contact axis "<<Vector3r(g.node->ori.conjugate()*Vector3r::UnitX())<<", angle "<<asin(sinTheta)*180/M_PI<<" (sin="<<sinTheta<<")"<<endl;
 	Real weight=pow(sinTheta,2);
 	ph.kn=(A/l)*(weight*E1+(1-weight)*E2);

@@ -204,8 +204,8 @@ void ContactLoop::run(){
 		if(doStress && /*contact law deleted the contact?*/ C->isReal()){
 			const auto& nnA(pA->shape->nodes); const auto& nnB(pB->shape->nodes);
 			if(nnA.size()!=1 || nnB.size()!=1) throw std::runtime_error("ContactLoop.trackWork not allowed with multi-nodal particles in contact (##"+lexical_cast<string>(pA->id)+"+"+lexical_cast<string>(pB->id)+")");
-			Vector3r branch=(nnB[0]->pos-nnA[0]->pos+scene->cell->intrShiftPos(C->cellDist));
-			Vector3r F=C->geom->node->ori.conjugate()*C->phys->force; // force in global coords
+			Vector3r branch=C->dPos(scene); // (nnB[0]->pos-nnA[0]->pos+scene->cell->intrShiftPos(C->cellDist));
+			Vector3r F=C->geom->node->ori*C->phys->force; // force in global coords
 			#ifdef WOO_OPENMP
 				#pragma omp critical
 			#endif

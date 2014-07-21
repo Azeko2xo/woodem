@@ -45,8 +45,8 @@ void In2_Truss_ElastMat::go(const shared_ptr<Shape>& shape, const shared_ptr<Mat
 		for(const auto& pC: particle->contacts){
 			const shared_ptr<Contact>& C(pC.second); if(!C->isReal()) continue;
 			// force and torque at the contact point
-			Vector3r Fc(C->geom->node->ori.conjugate()*C->phys->force *C->forceSign(particle));
-			Vector3r Tc(C->geom->node->ori.conjugate()*C->phys->torque*C->forceSign(particle));
+			Vector3r Fc(C->geom->node->ori*C->phys->force *C->forceSign(particle));
+			Vector3r Tc(C->geom->node->ori*C->phys->torque*C->forceSign(particle));
 			// compute reactions (simply supported beam) on both ends
 			Vector3r AC(C->geom->node->pos-t.nodes[0]->pos);
 			// torque on A from contact

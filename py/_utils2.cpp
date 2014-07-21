@@ -104,7 +104,7 @@ py::tuple stressStiffnessWork(Real volume=0, bool skipMultinodal=false, const Ve
 	return py::make_tuple(tensor_toVoigt(stress),K,work);
 }
 
-Real muStiffnessScaling(Real piHat=M_PI/2, bool skipFloaters=false, Real V=-1){
+Real muStiffnessScaling(Real piHat=M_PI, bool skipFloaters=false, Real V=-1){
 	Scene* scene=Master::instance().getScene().get(); const auto& dem=DemFuncs::getDemField(scene);
 	if(V<=0){
 		if(scene->isPeriodic) V=scene->cell->getVolume();
@@ -125,7 +125,7 @@ Real muStiffnessScaling(Real piHat=M_PI/2, bool skipFloaters=false, Real V=-1){
 		N++;
 	}
 	Rr2/=N; // averages
-	return (2/3.)*(N*piHat/V)*Rr2;
+	return (1/3.)*(N*piHat/V)*Rr2;
 }
 
 /* Liao1997: Stress-strain relationship for granular materials based on the hypothesis of the best fit */

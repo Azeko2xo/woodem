@@ -18,7 +18,7 @@ void PeriIsoCompressor::avgStressIsoStiffness(const Vector3r& cellAreas, Vector3
 	FOREACH(const shared_ptr<Contact>& C, *dem->contacts){
 		const auto fp=dynamic_pointer_cast<FrictPhys>(C->phys); // needed for stiffness
 		if(!fp) continue;
-		force+=(C->geom->node->ori.conjugate()*C->phys->force).array().abs().matrix();
+		force+=(C->geom->node->ori*C->phys->force).array().abs().matrix();
 		stiff+=(1/3.)*fp->kn+(2/3.)*fp->kt; // count kn in one direction and ks in the other two
 		n++;
 	}
@@ -135,6 +135,11 @@ void WeirdTriaxControl::run(){
 
 	bool allOk=true;
 
+	maxStrainedStress=NaN;
+	// maximum stress along strain-prescribed axes
+	for(int ax:{0,1,2}){ if((stressMask&(1<<ax))==0 && (maxStrainedStress<abs(stress(ax,ax)) || isnan(maxStrainedStress))) maxStrainedStress=abs(stress(ax,ax)); }
+
+
 	// apply condition along each axis separately (stress or strain)
 	for(int axis=0; axis<3; axis++){
  		Real& strain_rate=scene->cell->nextGradV(axis,axis);//strain rate on axis
@@ -158,7 +163,9 @@ void WeirdTriaxControl::run(){
 		// signal if condition not satisfied
 		if(stressMask&(1<<axis)){
 			Real curr=stress(axis,axis);
-			if((goal[axis]!=0 && abs((curr-goal[axis])/goal[axis])>relStressTol) || abs(curr-goal[axis])>absStressTol) allOk=false;
+			if(goal[axis]!=0 && relStressTol>0. && abs((curr-goal[axis])/goal[axis])>relStressTol) allOk=false;
+			else if(relStressTol<0 && !isnan(maxStrainedStress) && abs((curr-goal[axis])/maxStrainedStress)>abs(relStressTol)) allOk=false;
+			else if(absStressTol>0 && abs(curr-goal[axis])>absStressTol) allOk=false;
 		}else{
 			Real curr=strain[axis];
 			// since strain is prescribed exactly, tolerances need just to accomodate rounding issues

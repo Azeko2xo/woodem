@@ -174,14 +174,14 @@ std::tuple</*stress*/Matrix3r,/*stiffness*/Matrix6r> DemFuncs::stressStiffness(c
 		}
 		// use current distance here
 		const Real d0=(posA-posB).norm();
-		Vector3r n=C->geom->node->ori.conjugate()*Vector3r::UnitX(); // normal in global coords
+		Vector3r n=C->geom->node->ori*Vector3r::UnitX(); // normal in global coords
 		#if 1
 			// g3geom doesn't set local x axis properly
 			G3Geom* g3g=dynamic_cast<G3Geom*>(C->geom.get());
 			if(g3g) n=g3g->normal;
 		#endif
 		// contact force, in global coords
-		Vector3r F=C->geom->node->ori.conjugate()*C->phys->force;
+		Vector3r F=C->geom->node->ori*C->phys->force;
 		Real fN=F.dot(n);
 		Vector3r fT=F-n*fN;
 		//cerr<<"n="<<n.transpose()<<", fN="<<fN<<", fT="<<fT.transpose()<<endl;
@@ -241,9 +241,8 @@ bool DemFuncs::particleStress(const shared_ptr<Particle>& p, Vector3r& normal, V
 		L6Geom* l6g=dynamic_cast<L6Geom*>(C->geom.get());
 		if(!l6g) continue;
 		const Vector3r& Fl=C->phys->force;
-		const Quaternionr invOri=l6g->node->ori.conjugate();
-		normal+=(1/l6g->contA)*invOri*Vector3r(Fl[0],0,0);
-		shear+=(1/l6g->contA)*invOri*Vector3r(0,Fl[1],Fl[2]);
+		normal+=(1/l6g->contA)*l6g->node->ori*Vector3r(Fl[0],0,0); //???
+		shear+=(1/l6g->contA)*l6g->node->ori*Vector3r(0,Fl[1],Fl[2]);
 	}
 	return true;
 }
@@ -322,7 +321,7 @@ size_t DemFuncs::radialAxialForce(const Scene* scene, const DemField* dem, int m
 		for(const auto& idC: p->contacts){
 			const shared_ptr<Contact>& C(idC.second);
 			if(!C->isReal()) continue;
-			Vector3r F=C->geom->node->ori.conjugate()*((shear?C->phys->force:Vector3r(C->phys->force[0],0,0))*C->forceSign(p));
+			Vector3r F=C->geom->node->ori*((shear?C->phys->force:Vector3r(C->phys->force[0],0,0))*C->forceSign(p));
 			Vector3r axF=F.dot(axis);
 			radAxF+=Vector2r(axF,(F-axF).norm());
 		}

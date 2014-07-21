@@ -131,10 +131,8 @@ void PelletAgglomerator::run(){
 			Sphere& sphere=other->shape->cast<Sphere>();
 			assert(dynamic_pointer_cast<L6Geom>(c->geom));
 			// radius change
-			// XXX: angVel is local already???!
-			// Vector3r localAngVel=c->geom->node->ori.conjugate()*c->geom->cast<L6Geom>().angVel;
-			const Vector3r& localAngVel(c->geom->cast<L6Geom>().angVel);
-			Real dMass=localAngVel.tail<2>().norm()*scene->dt*massIncPerRad;
+			// angVel is local already
+			Real dMass=c->geom->cast<L6Geom>().angVel.tail<2>().norm()*scene->dt*massIncPerRad;
 			Real newVol=(4/3.)*M_PI*pow(sphere.radius,3)+dMass/other->material->density;
 			sphere.radius=cbrt(3*newVol/(4*M_PI));
 			sphere.updateMassInertia(other->material->density);
