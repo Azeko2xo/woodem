@@ -15,7 +15,7 @@ Plots as graphics
 
 Plots can be exported as graphics into any format supported by Matplotlib (PDF, SVG, PNG, ...) by clicking the save icon in the plot itself:
 
-.. figure:: plot-image-export.png
+.. figure:: fig/plot-image-export.png
 
 Plot data
 ----------
