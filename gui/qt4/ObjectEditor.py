@@ -1380,7 +1380,7 @@ class ObjectEditor(QFrame):
 		# restore group visibility, since there is no search text anymore
 		if not self.searchText and self.prevSearchText:
 			for g in self.entryGroups:
-					g.toggleExpander()
+				g.toggleExpander() # queries the group expander whether it is toggled or not
 			self.prevSearchText=''
 			self.objQLabel.setColor(-1)
 		searchMatches=0
@@ -1399,9 +1399,10 @@ class ObjectEditor(QFrame):
 					grid,row=e.gridAndRow
 					colSpan=(2 if 'unit' not in e.widgets else 1)
 					grid.addWidget(e.widget,row,self.gridCols['value'],1,colSpan)
-				if type(e.widget)==ObjectEditor: e.searchText=self.searchText
-				# visibility might change if hideIf is defined
+				## propagate the search to nested widgets; disabled for now, since the widget itself will be very likely disabled anyway, as the search result does not propagate upwards to us
+				# if type(e.widget)==ObjectEditor: e.searchText=self.searchText
 				if not self.searchText:
+					# visibility might change if hideIf is defined
 					if e.trait.hideIf or not e.visible: e.setVisible(None)
 				else:
 					if re.search(self.searchText,e.name,re.IGNORECASE):
