@@ -626,16 +626,35 @@ def hasActiveLabel(s):
 		if t.activeLabel==True: return True
 	return False
 
-class SerQLabel(QLabel):
-	def __init__(self,parent,label,tooltip,path,ser=None,elide=False):
-		QLabel.__init__(self,parent)
+class ObjQLabel(QFrame):
+	def __init__(self,parent,label,tooltip,path,ser=None,elide=False,searchSlot=None):
+		QFrame.__init__(self,parent)
+		lay=QHBoxLayout(self); lay.setContentsMargins(0,0,0,0); lay.setSpacing(0)
+		self.qlabel=QLabel(self)
 		self.path=path
 		self.ser=ser
 		self.minWd=-1
 		self.setTextToolTip(label,tooltip,elide=elide)
-		self.linkActivated.connect(woo.qt.openUrl)
+		self.qlabel.linkActivated.connect(woo.qt.openUrl)
+		if searchSlot:
+			le=QLineEdit(self)
+			le.setTextMargins(0,0,0,0)
+			le.setMaximumWidth(50)
+			le.textChanged.connect(searchSlot)
+			self.lineEdit=le
+			self.setColor(-1)
+			lay.addWidget(le)
+			lay.addStretch(1)
+		lay.addWidget(self.qlabel)
+		if searchSlot:
+			lay.addStretch(2)
 	#def sizeHint(self): return QSize(self.minWd,20)
 	#def minimumSizeHint(self): return QSize(self.minWd,20)
+	def setColor(self,match):
+		if match==1: color='PaleGreen'
+		elif match==0: color='OrangeRed'
+		else: color='gray'
+		self.lineEdit.setStyleSheet('QLineEdit{ background: %s; }'%color)
 	def setTextToolTip(self,label,tooltip,elide=False):
 		# ignore UnicodeDecodeError (appears sometimes under Windows), perhaps there are non-ascii characters in docstrings somewhere?
 		try:
@@ -646,10 +665,10 @@ class SerQLabel(QLabel):
 			else:
 				pass
 				#self.minWd=60
-			self.setText(label)
+			self.qlabel.setText(label)
 			#self.adjustSize()
-			if tooltip or self.path: self.setToolTip(('<b>'+self.path+'</b><br>' if self.path else '')+(tooltip if tooltip else ''))
-			else: self.setToolTip(None)
+			if tooltip or self.path: self.qlabel.setToolTip(('<b>'+self.path+'</b><br>' if self.path else '')+(tooltip if tooltip else ''))
+			else: self.qlabel.setToolTip(None)
 		except UnicodeDecodeError:
 			self.setToolTip(None)
 	def mousePressEvent(self,event):
@@ -808,6 +827,9 @@ class ObjectEditor(QFrame):
 		self.entryGroups=[]
 		self.ignoredAttrs=ignoredAttrs
 		self.hasSer=True
+		self.searchText=None
+		self.prevSearchText=None
+		self.objQLabel=None
 
 		if nesting>ObjectEditor.maxNest:
 			self.mkStub()
@@ -1210,12 +1232,13 @@ class ObjectEditor(QFrame):
 		self.setLayout(lay)
 		lay.addWidget(QLabel("GUI nesting > %d"%(ObjectEditor.maxNest)),1,1)
 
-
+	
 	def mkWidgets(self):
 		onlyDefaultGroups=(len(self.entryGroups)==1 and self.entryGroups[0].name==None)
 		if self.showType and self.hasSer: # create type label
-			lab=SerQLabel(self,makeObjectLabel(self.ser,addr=True,href=True),tooltip=self.getDocstring(),path=self.path,ser=self.ser)
-			lab.setFrameShape(QFrame.Box); lab.setFrameShadow(QFrame.Sunken); lab.setLineWidth(2); lab.setAlignment(Qt.AlignHCenter); lab.linkActivated.connect(woo.qt.openUrl)
+			lab=ObjQLabel(self,makeObjectLabel(self.ser,addr=True,href=True),tooltip=self.getDocstring(),path=self.path,ser=self.ser,searchSlot=self.search)
+			self.objQLabel=lab
+			lab.setFrameShape(QFrame.Box); lab.setFrameShadow(QFrame.Sunken); lab.setLineWidth(2); lab.qlabel.setAlignment(Qt.AlignHCenter); lab.qlabel.linkActivated.connect(woo.qt.openUrl)
 			## attach context menu to the label
 			lab.setContextMenuPolicy(Qt.CustomContextMenu)
 			lab.customContextMenuRequested.connect(lambda pos: self.serQLabelMenu(lab,pos))
@@ -1237,7 +1260,7 @@ class ObjectEditor(QFrame):
 			#if not entry.widgets['value']: entry.widgets['value']=entry.widget=QFrame() # avoid None widgets
 			objPath=(self.path+'.'+entry.name) if self.path else None
 			labelText,labelTooltip=self.getAttrLabelToolTip(entry)
-			label=SerQLabel(self,labelText,tooltip=labelTooltip,path=objPath,elide=not self.labelIsVar)
+			label=ObjQLabel(self,labelText,tooltip=labelTooltip,path=objPath,elide=not self.labelIsVar)
 			entry.widgets['label']=label
 			if self.objManip and ('value' in entry.widgets):
 				label.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -1346,8 +1369,22 @@ class ObjectEditor(QFrame):
 		lay.setColumnStretch(self.gridCols['value'],10)
 		lay.setColumnStretch(self.gridCols['unit'],-1)
 		self.refreshEvent()
+
+	def search(self,text):
+		self.prevSearchText=self.searchText
+		self.searchText=unicode(text)
+		self.refreshEvent()
+
 	def refreshEvent(self):
 		maxLabelWd=0.
+		# restore group visibility, since there is no search text anymore
+		if not self.searchText and self.prevSearchText:
+			for g in self.entryGroups:
+					g.toggleExpander()
+			self.prevSearchText=''
+			self.objQLabel.setColor(-1)
+		searchMatches=0
+
 		for e in self.entries:
 			if self.hasSer: assert self.ser==e.obj
 			if e.widget and not e.widget.hot:
@@ -1362,9 +1399,17 @@ class ObjectEditor(QFrame):
 					grid,row=e.gridAndRow
 					colSpan=(2 if 'unit' not in e.widgets else 1)
 					grid.addWidget(e.widget,row,self.gridCols['value'],1,colSpan)
+				if type(e.widget)==ObjectEditor: e.searchText=self.searchText
 				# visibility might change if hideIf is defined
-				if e.trait.hideIf or not e.visible: e.setVisible(None)
+				if not self.searchText:
+					if e.trait.hideIf or not e.visible: e.setVisible(None)
+				else:
+					if re.search(self.searchText,e.name,re.IGNORECASE):
+						searchMatches+=1
+						e.setVisible(True)
+					else: e.setVisible(False)
 				e.widget.refresh()
+		if self.searchText: self.objQLabel.setColor(1 if searchMatches else 0)
 		#self.layout().setColumnMinimumWidth(self.gridCols['label'],maxLabelWd)
 		if self.labelIsVar: self.layout().setColumnStretch(self.gridCols['label'],-1)
 		else: self.layout().setColumnStretch(self.gridCols['label'],2)
