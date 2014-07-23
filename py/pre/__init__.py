@@ -5,3 +5,6 @@
 # so they don't apper in the UI until they get imported by hand
 # if they are listed here, they show up just fine
 from . import horse
+from . import cylTriax
+from . import ell2d
+from . import triax

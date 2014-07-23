@@ -20,23 +20,35 @@ def Entrypoint(dist, group, name, scripts=None, pathex=None, **kw):
 	return Analysis(scripts=scripts+[script_path], pathex=pathex, **kw)
 	
 
-import woo.pre, pkgutil,woo
-wooPreMods=[]
-for importer, modname, ispkg in pkgutil.iter_modules(woo.pre.__path__):
-	sys.stderr.write('ADDING PREPROCESSOR %s\n'%modname)
-	wooPreMods.append('woo.pre.'+modname)
+#import woo.pre, pkgutil,woo
+#wooPreMods=[]
+#for importer, modname, ispkg in pkgutil.iter_modules(woo.pre.__path__):
+# 	sys.stderr.write('ADDING PREPROCESSOR %s\n'%modname)
+#	wooPreMods.append('woo.pre.'+modname)
 	
 # just in case some of those are not imported anywhere (such as woo.triangulated),
 # try to traverse them here and add those explicitly
 # this is perhaps not necessary
+import woo
 wooMods=[]
-for importer, modname, ispkg in pkgutil.iter_modules(woo.__path__):
-	sys.stderr.write('ADDING MODULE %s\n'%modname)
-	wooMods.append('woo.'+modname)
+def addModulesRecursive(m0):
+	global wooMods, addModulesRecursive
+	import pkgutil
+	for importer, modname, ispkg in pkgutil.iter_modules(m0.__path__,prefix=m0.__name__+'.'):
+		sys.stderr.write('ADDING MODULE %s\n'%modname)
+		try:
+			__import__(modname)
+		except: pass # some modules, such as cldem, will not import cleanly
+		wooMods.append(modname)
+		if ispkg:
+			# sys.stderr.write("Descending into "+modname+'\n')
+			addModulesRecursive(sys.modules[modname])
+		
+addModulesRecursive(woo)
 	
 
 main=Entrypoint(dist='woo',group='console_scripts',name='wwoo',
-	hiddenimports=['woo._cxxInternal']+wooPreMods+wooMods,
+	hiddenimports=['woo._cxxInternal']+wooMods,
 	excludes=['wooExtra','Tkinter']
 )
 
