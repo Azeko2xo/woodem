@@ -24,7 +24,7 @@ def checkPoro(S):
 	if poro<.5:
 		sp=woo.pack.SpherePack()
 		sp.fromSimulation(S)
-		saveTo='pbc-spheres:N=%d,r=%g,rRelFuzz=%g.txt'%(len(S.dem.par),rSph,rRelFuzz)
+		saveTo='pbc-spheres_N=%d,r=%g,rRelFuzz=%g.txt'%(len(S.dem.par),rSph,rRelFuzz)
 		sp.save(saveTo)
 		print 'Packing saved to',saveTo,'\n\\bye'
 		import sys

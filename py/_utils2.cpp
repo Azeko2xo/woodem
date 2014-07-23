@@ -108,7 +108,7 @@ Real muStiffnessScaling(Real piHat=M_PI, bool skipFloaters=false, Real V=-1){
 	Scene* scene=Master::instance().getScene().get(); const auto& dem=DemFuncs::getDemField(scene);
 	if(V<=0){
 		if(scene->isPeriodic) V=scene->cell->getVolume();
-		else woo::RuntimeError("Positive value of volume (V) must be givne for aperiodic simulations.");
+		else woo::RuntimeError("Positive value of volume (V) must be given for aperiodic simulations.");
 	}
 	int N=0;
 	Real Rr2=0; // r'*r^2

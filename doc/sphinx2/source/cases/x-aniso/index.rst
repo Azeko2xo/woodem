@@ -20,7 +20,7 @@ Behavior of circular cavity under radial pressure was examined using this model;
 
 .. note:: The results presented here can be reproduced by downloading the following scripts:
 
-   * :download:`pbc-prepare-sample.py <downloads/pbc-prepare-sample.py>` to prepare monomodal periodic packing with porosity equal to 0.5; alternatively, download :download:`pbc-spheres:N=2556,r=0.03,rRelFuzz=0.txt <downloads/pbc-spheres:N=2556,r=0.03,rRelFuzz=0.txt>` which is the result of running this script
+   * :download:`pbc-prepare-sample.py <downloads/pbc-prepare-sample.py>` to prepare monomodal periodic packing with porosity equal to 0.5; alternatively, download :download:`pbc-spheres_N=2556,r=0.03,rRelFuzz=0.txt <downloads/pbc-spheres_N=2556,r=0.03,rRelFuzz=0.txt>` which is the result of running this script
    * :download:`pbc-deform-sample.py <downloads/pbc-deform-sample.py>` to run a single element test on the whole periodic lattice
    * :download:`pbc-deform-sample.table.xls <downloads/pbc-deform-sample.table.xls>` as input to batch for running element tests on a range of the :math:`I_R` parameters by using::
 

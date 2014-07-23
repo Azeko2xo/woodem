@@ -22,7 +22,7 @@ woo.batch.readParamsFromTable(S,unknownOk=True,
 )
 
 sp=woo.pack.SpherePack()
-sp.load('pbc-spheres:N=2556,r=0.03,rRelFuzz=0.txt')
+sp.load('pbc-spheres_N=2556,r=0.03,rRelFuzz=0.txt')
 sp.scale(S.lab.table.packScale)
 sp.toSimulation(S,mat=mat)
 S.dem.collectNodes()
