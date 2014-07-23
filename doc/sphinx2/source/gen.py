@@ -67,6 +67,8 @@ templates_path=['../../source/_templates']
 html_static_path=['../../source/_static']
 intersphinx_mapping={{'woo':('http://www.woodem.eu/doc',None)}}
 extensions=[e for e in extensions if e!='sphinx.ext.viewcode'] # don't show code in extras, stragely wooExtra.* is included, not just the one particular extra module
+html_additional_pages = {{ }} # double here because of .format(...)
+modindex_common_prefix = [ '{mName}' ]
 		""".format(
 			version=pkg_resources.get_distribution(mName).version,
 			mName=mName,

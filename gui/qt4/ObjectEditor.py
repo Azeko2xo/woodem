@@ -640,6 +640,7 @@ class ObjQLabel(QFrame):
 			le=QLineEdit(self)
 			le.setTextMargins(0,0,0,0)
 			le.setMaximumWidth(50)
+			le.setMaximumHeight(15)
 			le.textChanged.connect(searchSlot)
 			self.lineEdit=le
 			self.setColor(-1)
