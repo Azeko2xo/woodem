@@ -418,18 +418,32 @@ class ControllerClass(QWidget,Ui_Controller):
 		if value>0: self.playButton.setStyleSheet('background-color: red; ')
 		else: self.playButton.setStyleSheet('')
 		woo.master.scene.throttle=self.throttleLin2Exp(value)
-	def movieCheckboxToggled(self,isOn):
+	def movieCheckboxToggled(self,isOn,findExisting=False):
 		S=woo.master.scene
-		if isOn:
+		snap=None
+		if findExisting: # done when the scene changes
+			ss=[e for e in S.engines if isinstance(e,woo.qt.SnapshotEngine)]
+			if ss:
+				if len(ss)>1: warnings.warn('Multiple SnapshotEngines?! (proceed with fingers crossed; if one of them disappears, it is the UI Video tab trying to enable/disable it by itself)')
+				snap=ss[0]
+				if snap.label and snap.label!='snapshooter_':
+					warnings.warn('Setting SnapshotEngine.label="snapshooter_" automatically, for integration with the UI')
+					del S.labels[snap.label]
+				snap.label='snapshooter_'
+				S.engines=S.engines
+		if isOn or snap:
+			if hasattr(S.lab,'snapshooter_'): snap=S.lab.snapshooter_
 			# add SnapshotEngine to the current scene
-			snap=woo.qt.SnapshotEngine(label='snapshooter_',fileBase=woo.master.tmpFilename(),stepPeriod=100,realPeriod=.5,ignoreErrors=False)
-			S.engines=S.engines+[snap]
+			if not snap:
+				snap=woo.qt.SnapshotEngine(label='snapshooter_',fileBase=woo.master.tmpFilename(),stepPeriod=100,realPeriod=.5,ignoreErrors=False)
+				S.engines=S.engines+[snap]
 			se=ObjectEditor(snap,parent=self.movieArea,showType=True)
 			self.movieArea.setWidget(se)
 			# open new view if there is none			
 			if len(views())==0: View()
 			self.movieButton.setEnabled(True)
 			self.movieActive=True
+			if not self.movieCheckbox.isChecked(): self.movieCheckbox.setChecked(True) # force the checkbox
 		else:
 			if hasattr(S.lab,'snapshooter_'): del S.lab.snapshooter_
 			woo.master.scene.engines=[e for e in S.engines if type(e)!=woo.qt.SnapshotEngine]
@@ -626,7 +640,7 @@ class ControllerClass(QWidget,Ui_Controller):
 			self.lastScene=S
 			# set movie and trace using last state
 			if OpenGL:
-				self.movieCheckboxToggled(self.movieActive)
+				self.movieCheckboxToggled(self.movieActive,findExisting=True)
 				self.traceCheckboxToggled(isOn=None)
 			#
 			#

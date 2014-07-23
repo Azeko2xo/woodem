@@ -88,7 +88,7 @@ void SnapshotEngine::run(){
 	}
 	snapshots.push_back(fss.str());
 	boost::this_thread::sleep(boost::posix_time::microseconds(msecSleep));
-	if(!plot.empty()){ pyRunString("import woo.plot; woo.plot.addImgData("+plot+"='"+fss.str()+"')"); }
+	if(!plot.empty()){ runPy("import woo.plot; S.plot.addImgData("+plot+"='"+fss.str()+"')"); }
 }
 
 CREATE_LOGGER(GLViewer);

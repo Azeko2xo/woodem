@@ -279,7 +279,6 @@ def Scene_plot_addData(P,*d_in,**kw):
 	#numpy.append(data[name],[d[name]],1)
 
 def Scene_plot_addImgData(P,**kw):
-	##S
 	data,imgData=P.data,P.imgData
 	for k in kw:
 		if k not in imgData: imgData[k]=[]
@@ -303,7 +302,7 @@ def Scene_plot_addImgData(P,**kw):
 	# align values which were not in kw by repeating the last value
 	for k in imgData:
 		if len(imgData[k])<newLen: imgData[k]+=(newLen-len(imgData[k]))*[imgData[k][-1]]
-	assert(len(set([len(i) for i in imgData.values()]))<=1)  # no data or all having the same value
+	assert len(set([len(i) for i in imgData.values()]))<=1  # no data or all having the same value
 
 
 
@@ -430,7 +429,7 @@ def createPlots(P,subPlots=True,noShow=False,replace=True,scatterSize=60,wider=F
 			# fake (empty) image if no data yet
 			if len(imgData[pStrip])==0 or imgData[pStrip][-1]==None: img=Image.new('RGBA',(1,1),(0,0,0,0))
 			else: img=Image.open(imgData[pStrip][-1])
-			img=axes.imshow(img,origin='lower')
+			img=axes.imshow(img,origin='upper')
 			if replace: P.currLineRefs.append(LineRef(line=img,scatter=None,annotation=None,line2=None,xdata=imgData[pStrip],ydata=None,imgData=imgData,dataName=pStrip))
 			axes.set_axis_off()
 			continue

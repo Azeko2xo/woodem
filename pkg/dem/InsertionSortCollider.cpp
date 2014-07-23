@@ -70,7 +70,7 @@ void InsertionSortCollider::insertionSort(VecBounds& v, bool doCollide, int ax){
 			// also, do not collide particle with itself; it sometimes happens for facets aligned perpendicular to an axis, for reasons that are not very clear
 			// see https://bugs.launchpad.net/woo/+bug/669095
 			// do not collide minimum with minimum and maximum with maximum (suggested by Bruno)
-			if(/* viInitIsMin!=v[j].flags.isMin && */ likely(doCollide && viInitBB && v[j].flags.hasBB && (viInit.id!=v[j].id))){
+			if(viInitIsMin!=v[j].flags.isMin && likely(doCollide && viInitBB && v[j].flags.hasBB && (viInit.id!=v[j].id))){
 				handleBoundInversion(viInit.id,v[j].id);
 			}
 			j--;
@@ -518,7 +518,7 @@ void InsertionSortCollider::insertionSortPeri(VecBounds& v, bool doCollide, int 
 		if(v[i_1].coord<=iCmpCoord) continue;
 		// vi is the copy that will travel down the list, while other elts go up
 		// if will be placed in the list only at the end, to avoid extra copying
-		int j=i_1; Bounds vi=v[i];  const bool viHasBB=vi.flags.hasBB;
+		int j=i_1; Bounds vi=v[i];  const bool viHasBB=vi.flags.hasBB; const bool viIsMin=vi.flags.isMin;
 		while(v[j].coord>vi.coord + /* wrap for elt just below split */ (v.norm(j+1)==loIdx ? v.cellDim : 0)){
 			long j1=v.norm(j+1);
 			// OK, now if many bodies move at the same pace through the cell and at one point, there is inversion,
@@ -534,7 +534,7 @@ void InsertionSortCollider::insertionSortPeri(VecBounds& v, bool doCollide, int 
 			// inversions close the the split need special care
 			if(unlikely(j==loIdx && vi.coord<0)) { vi.period-=1; vi.coord+=v.cellDim; loIdx=v.norm(loIdx+1); }
 			else if(unlikely(j1==loIdx)) { vNew.period+=1; vNew.coord-=v.cellDim; loIdx=v.norm(loIdx-1); }
-			if(likely(doCollide && viHasBB && v[j].flags.hasBB)){
+			if(viIsMin!=v[j].flags.isMin && likely(doCollide && viHasBB && v[j].flags.hasBB)){
 				// see https://bugs.launchpad.net/woo/+bug/669095 and similar problem in aperiodic insertionSort
 				#if 0
 				if(vi.id==vNew.id){
