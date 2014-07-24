@@ -177,7 +177,7 @@ void ContactContainer::requestRemoval(const shared_ptr<Contact>& c, bool force){
 
 void ContactContainer::clearPending(){
 	#ifdef WOO_OPENMP
-		FOREACH(list<PendingContact>& pending, threadsPending){
+		for(auto& pending: threadsPending){
 			pending.clear();
 		}
 	#else
@@ -189,7 +189,7 @@ int ContactContainer::removeAllPending(){
 	int ret=0;
 	#ifdef WOO_OPENMP
 		// shadow this->pendingErase by the local variable, to share code
-		for(list<PendingContact>& pending: threadsPending){
+		for(auto& pending: threadsPending){
 	#endif
 			if(!pending.empty()){
 				for(const PendingContact& p: pending){ if(remove(p.contact)) ret++; }

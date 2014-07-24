@@ -72,9 +72,9 @@ struct ContactContainer: public Object{
 			int ret=0;
 			#ifdef WOO_OPENMP
 				// shadow the this->pending by the local variable, to share the code
-				FOREACH(list<PendingContact>& pending, threadsPending){
+				for(auto& pending: threadsPending){
 			#endif
-					FOREACH(const PendingContact& p, pending){
+					for(const PendingContact& p: pending){
 						ret++;
 						if(p.force || t.shouldBeRemoved(p.contact,scene)) remove(p.contact);
 					}
@@ -98,9 +98,9 @@ struct ContactContainer: public Object{
 		pyIterator pyIter();
 
 	#ifdef WOO_OPENMP
-		#define woo_dem_ContactContainer__threadsPending__OPENMP ((std::vector<std::list<PendingContact>>,threadsPending,std::vector<std::list<PendingContact>>(omp_get_max_threads()),AttrTrait<Attr::hidden>(),"Contacts which might be deleted by the collider in the next step (separate for each thread, for safe lock-free writes)"))
+		#define woo_dem_ContactContainer__threadsPending__OPENMP ((std::vector<std::vector<PendingContact>>,threadsPending,std::vector<std::vector<PendingContact>>(omp_get_max_threads()),AttrTrait<Attr::hidden>(),"Contacts which might be deleted by the collider in the next step (separate for each thread, for safe lock-free writes)"))
 	#else
-		#define woo_dem_ContactContainer__threadsPending__OPENMP ((std::list<PendingContact>,pending,,AttrTrait<Attr::hidden>(),"Contact which might be deleted by the collider in the next step."))
+		#define woo_dem_ContactContainer__threadsPending__OPENMP ((std::vector<PendingContact>,pending,,AttrTrait<Attr::hidden>(),"Contact which might be deleted by the collider in the next step."))
 	#endif
 	
 	#define woo_dem_ContactContainer__CLASS_BASE_DOC_ATTRS_PY \
