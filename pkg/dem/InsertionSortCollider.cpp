@@ -104,14 +104,13 @@ void InsertionSortCollider::insertionSort(VecBounds& v, bool doCollide, int ax){
 	#ifndef WOO_OPENMP
 		insertionSort_part(v,doCollide,ax,0,v.size,0);
 	#else
-		// don't bother with parallelized sorting for small number of bounds
-		//if(v.size<1000){
-		// XXX: sequential, just now for testing
-		insertionSort_part(v,doCollide,ax,0,v.size,0); return;
-		//}
 
 		// will be adapted -- can be the double and so on
-		size_t chunks=omp_get_num_threads();
+		size_t chunks=omp_get_max_threads();
+		size_t chunkSize=v.size/chunks;
+		// don't bother with parallelized sorting for small number of bounds
+		if(v.size<1000){ insertionSort_part(v,doCollide,ax,0,v.size,0); return; }
+
 		// pre-compute split points
 		/*
 			============================================= bound sequence
@@ -124,7 +123,6 @@ void InsertionSortCollider::insertionSort(VecBounds& v, bool doCollide, int ax){
 
 		*/
 		vector<size_t> splits0(chunks+1), splits1(chunks);
-		size_t chunkSize=v.size/chunks;
 		for(size_t i=0; i<chunks; i++){ splits0[i]=i*chunkSize; splits1[i]=i*chunkSize+chunkSize/2; }
 		splits0[chunks]=v.size;
 		bool isOk=false; size_t pass;
@@ -133,7 +131,10 @@ void InsertionSortCollider::insertionSort(VecBounds& v, bool doCollide, int ax){
 			const vector<size_t>& s(even?splits0:splits1);
 			#pragma omp parallel for schedule(static)
 			for(size_t chunk=0; chunk<(even?chunks:chunks-1); chunk++){
-				insertionSort_part(v,doCollide,ax,s[chunk],s[chunk+1],s[chunk]/*XXX: this will be different*/);
+				// start at the beginning of the chunk in the first pass;
+				// start in the mid-split in subsequent passes
+				size_t start(pass==0?s[chunk]:(even?splits1[chunk]:splits0[chunk+1]));
+				insertionSort_part(v,doCollide,ax,s[chunk],s[chunk+1],start);
 			}
 			// check boundaries between chunks -- if all of them are ordered, we're done; otherwise a next pass is needed
 			isOk=true;
@@ -141,15 +142,22 @@ void InsertionSortCollider::insertionSort(VecBounds& v, bool doCollide, int ax){
 				if(v[s[chunk]-1]>v[s[chunk]]) isOk=false;
 			}
 		}
+		// cerr<<"Parallel insertion sort done ("<<pass+1<<") passes, "<<chunks<<" chunks; inversions remaining: "<<countInversions().transpose()<<endl;
 		// cerr<<"Parallel insertion sort done, needed "<<pass+1<<" passes."<<endl;
 	#endif
 }
 
 // perform partial insertion sort
 void InsertionSortCollider::insertionSort_part(VecBounds& v, bool doCollide, int ax, long iBegin, long iEnd, long iStart){
+	// stop after encountering the first ordered couple; this is used from the parallel sort
+	const bool earlyStop=(iBegin!=iStart);
+
 	for(long i=iStart; i<iEnd; i++){
 		// no inversion here, short-circuit the whole walking setup and avoid the write after the while loop
-		if(!(v[i-1]>v[i])) continue; 
+		if(!(v[i-1]>v[i])){
+			if(unlikely(earlyStop)) return;
+			continue;
+		}
 
 		const Bounds viInit=v[i]; long j=i-1; /* cache hasBB; otherwise 1% overall performance hit */ const bool viInitBB=viInit.flags.hasBB; const bool viInitIsMin=viInit.flags.isMin;
 		while(v[j]>viInit && j>=iBegin){
