@@ -9,6 +9,11 @@
 #include<vector>
 #include<boost/static_assert.hpp>
 
+#if defined(WOO_OPENMP) && defined(__GNUC__)
+	#include<parallel/algorithm>
+#endif
+
+
 WOO_PLUGIN(dem,(InsertionSortCollider));
 CREATE_LOGGER(InsertionSortCollider);
 
@@ -492,7 +497,11 @@ void InsertionSortCollider::run(){
 				LOG_DEBUG("Initial std::sort over all axes");
 				for(int i:{0,1,2}) {
 					BB[i].loIdx=0;
-					std::sort(BB[i].vec.begin(),BB[i].vec.end());
+					#if defined(WOO_OPENMP) && defined(__GNUC__)
+						__gnu_parallel::sort(BB[i].vec.begin(),BB[i].vec.end());
+					#else
+						std::sort(BB[i].vec.begin(),BB[i].vec.end());
+					#endif
 				}
 				numReinit++;
 			} else { // sortThenCollide
