@@ -101,14 +101,58 @@ void InsertionSortCollider::handleBoundInversion(Particle::id_t id1, Particle::i
 void InsertionSortCollider::insertionSort(VecBounds& v, bool doCollide, int ax){
 	assert(!periodic);
 	assert(v.size==(long)v.vec.size());
-	insertionSort_part(v,doCollide,ax,0,v.size);
+	#ifndef WOO_OPENMP
+		insertionSort_part(v,doCollide,ax,0,v.size,0);
+	#else
+		// don't bother with parallelized sorting for small number of bounds
+		//if(v.size<1000){
+		// XXX: sequential, just now for testing
+		insertionSort_part(v,doCollide,ax,0,v.size,0); return;
+		//}
+
+		// will be adapted -- can be the double and so on
+		size_t chunks=omp_get_num_threads();
+		// pre-compute split points
+		/*
+			============================================= bound sequence
+			              with chunks==4:
+			|----------|----------|----------|----------| splits0 (even sorts run in-between)
+			     |----------|-----------|----------|      splits1 (odd sorts run in-between)
+
+			Split-points inner to bounds are checked for ordering after each pass;
+			when all of them are ordered, it means the whole sequence is ordered.
+
+		*/
+		vector<size_t> splits0(chunks+1), splits1(chunks);
+		size_t chunkSize=v.size/chunks;
+		for(size_t i=0; i<chunks; i++){ splits0[i]=i*chunkSize; splits1[i]=i*chunkSize+chunkSize/2; }
+		splits0[chunks]=v.size;
+		bool isOk=false; size_t pass;
+		for(pass=0; !isOk; pass++){
+			bool even=((pass%2)==0);
+			const vector<size_t>& s(even?splits0:splits1);
+			#pragma omp parallel for schedule(static)
+			for(size_t chunk=0; chunk<(even?chunks:chunks-1); chunk++){
+				insertionSort_part(v,doCollide,ax,s[chunk],s[chunk+1],s[chunk]/*XXX: this will be different*/);
+			}
+			// check boundaries between chunks -- if all of them are ordered, we're done; otherwise a next pass is needed
+			isOk=true;
+			for(size_t chunk=(even?1:0); chunk<chunks; chunk++){
+				if(v[s[chunk]-1]>v[s[chunk]]) isOk=false;
+			}
+		}
+		// cerr<<"Parallel insertion sort done, needed "<<pass+1<<" passes."<<endl;
+	#endif
 }
 
 // perform partial insertion sort
-void InsertionSortCollider::insertionSort_part(VecBounds& v, bool doCollide, int ax, long iBegin, long iEnd){
-	for(long i=iBegin; i<iEnd; i++){
+void InsertionSortCollider::insertionSort_part(VecBounds& v, bool doCollide, int ax, long iBegin, long iEnd, long iStart){
+	for(long i=iStart; i<iEnd; i++){
+		// no inversion here, short-circuit the whole walking setup and avoid the write after the while loop
+		if(!(v[i-1]>v[i])) continue; 
+
 		const Bounds viInit=v[i]; long j=i-1; /* cache hasBB; otherwise 1% overall performance hit */ const bool viInitBB=viInit.flags.hasBB; const bool viInitIsMin=viInit.flags.isMin;
-		while(j>=iBegin && v[j]>viInit){
+		while(v[j]>viInit && j>=iBegin){
 			v[j+1]=v[j];
 			#ifdef PISC_DEBUG
 				if(watchIds(v[j].id,viInit.id)) cerr<<"Swapping #"<<v[j].id<<"  with #"<<viInit.id<<" ("<<setprecision(80)<<v[j].coord<<">"<<setprecision(80)<<viInit.coord<<" along axis "<<v.axis<<")"<<endl;
@@ -139,7 +183,7 @@ Vector3i InsertionSortCollider::countInversions(){
 			for(long j=i+1; j<v.size; j++){
 				if(v[i]>v[j]){
 					N++;
-				}
+				} 
 			}
 		}
 		ret[ax]=N;
