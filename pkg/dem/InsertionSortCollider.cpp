@@ -12,6 +12,28 @@
 WOO_PLUGIN(dem,(InsertionSortCollider));
 CREATE_LOGGER(InsertionSortCollider);
 
+#ifdef ISC_LATER
+void InsertionSortCollider::makeRemoveContactLater_process() {
+	#ifdef WOO_OPENMP
+		for(auto& removeContacts: rremoveContacts){
+	#endif
+			for(const auto& C: removeContacts) dem->contacts->remove(C);
+			removeContacts.clear();
+	#ifdef WOO_OPENMP
+		}
+	#endif
+
+	#ifdef WOO_OPENMP
+		for(auto & makeContacts: mmakeContacts){
+	#endif
+			for(const auto& C: makeContacts) dem->contacts->add(C);
+			makeContacts.clear();
+	#ifdef WOO_OPENMP
+		}
+	#endif
+};
+#endif
+
 
 // return true if bodies bb overlap in all 3 dimensions
 bool InsertionSortCollider::spatialOverlap(Particle::id_t id1, Particle::id_t id2) const {
@@ -22,6 +44,8 @@ bool InsertionSortCollider::spatialOverlap(Particle::id_t id1, Particle::id_t id
 		(minima[3*id1+2]<=maxima[3*id2+2]) && (maxima[3*id1+2]>=minima[3*id2+2]);
 }
 
+
+
 // called by the insertion sort if 2 bodies swapped their bounds
 void InsertionSortCollider::handleBoundInversion(Particle::id_t id1, Particle::id_t id2, bool separating){
 	assert(!periodic);
@@ -30,25 +54,42 @@ void InsertionSortCollider::handleBoundInversion(Particle::id_t id1, Particle::i
 	bool overlap=separating?false:spatialOverlap(id1,id2); // if bboxes seaprate, there is for sure no overlap
 	// existing interaction?
 	const shared_ptr<Contact>& C=dem->contacts->find(id1,id2);
-	bool hasInter=(bool)C;
+	bool hasCon=(bool)C;
 	// interaction doesn't exist and shouldn't, or it exists and should
-	if(likely(!overlap && !hasInter)) return;
-	if(overlap && hasInter){  return; }
+	if(likely(!overlap && !hasCon)) return;
+	if(overlap && hasCon){  return; }
 	// create interaction if not yet existing
-	if(overlap && !hasInter){ // second condition only for readability
+	if(overlap && !hasCon){ // second condition only for readability
 		const shared_ptr<Particle>& p1((*particles)[id1]);
 		const shared_ptr<Particle>& p2((*particles)[id2]);
 		if(!Collider::mayCollide(dem,p1,p2)) return;
-		// LOG_TRACE("Creating new interaction #"<<id1<<"+#"<<id2);
-		shared_ptr<Contact> newC=make_shared<Contact>();
-		// mimick the way clDem::Collider does the job so that results are easily comparable
-		if(id1<id2){ newC->pA=p1; newC->pB=p2; }
-		else{ newC->pA=p2; newC->pB=p1; }
-		newC->stepCreated=scene->step;
-		dem->contacts->add(newC);
+		#ifdef ISC_LATER
+			#if 0
+				// reorder for clDem compatibility; otherwise not needed
+				if(id1<id2) makeContactLater(p1,p2,Vector3i::Zero());
+				else makeContactLater(p2,p1,Vector3i::Zero());
+			#else
+				makeContactLater(p1,p2,Vector3i::Zero());
+			#endif
+		#else
+			// LOG_TRACE("Creating new interaction #"<<id1<<"+#"<<id2);
+			shared_ptr<Contact> newC=make_shared<Contact>();
+			// mimick the way clDem::Collider does the job so that results are easily comparable
+			if(id1<id2){ newC->pA=p1; newC->pB=p2; }
+			else{ newC->pA=p2; newC->pB=p1; }
+			newC->stepCreated=scene->step;
+			dem->contacts->add(newC);
+		#endif
 		return;
 	}
-	if(!overlap && hasInter){ if(!C->isReal()) dem->contacts->remove(C); return; }
+	if(!overlap && hasCon){
+		#ifdef ISC_LATER
+			if(!C->isReal()) removeContactLater(C);
+		#else
+			if(!C->isReal()) dem->contacts->remove(C);
+		#endif
+		return;
+	}
 	assert(false); // unreachable
 }
 
@@ -431,12 +472,12 @@ void InsertionSortCollider::run(){
 		// the regular case
 		if(!doInitSort && !sortThenCollide){
 			/* each inversion in insertionSort calls handleBoundInversion, which in turns may add/remove interaction */
-			if(!periodic) for(int i=0; i<3; i++){
+			if(!periodic) for(int i:{0,1,2}){
 				//Vector3i invs=countInversions();
 				insertionSort(BB[i],/*collide*/true,i); 
 				//LOG_INFO(invs.sum()<<"/"<<stepInvs<<" invs (counted/insertion sort)");
 			}
-			else for(int i=0; i<3; i++) insertionSortPeri(BB[i],/*collide*/true,i);
+			else for(int i:{0,1,2}) insertionSortPeri(BB[i],/*collide*/true,i);
 		}
 		// create initial interactions (much slower)
 		else {
@@ -444,16 +485,18 @@ void InsertionSortCollider::run(){
 				// the initial sort is in independent in 3 dimensions, may be run in parallel; it seems that there is no time gain running in parallel, though
 				// important to reset loInx for periodic simulation (!!)
 				LOG_DEBUG("Initial std::sort over all axes");
-				for(int i=0; i<3; i++) { BB[i].loIdx=0; std::sort(BB[i].vec.begin(),BB[i].vec.end()); }
+				for(int i:{0,1,2}) { BB[i].loIdx=0; std::sort(BB[i].vec.begin(),BB[i].vec.end()); }
 				numReinit++;
 			} else { // sortThenCollide
-				if(!periodic) for(int i=0; i<3; i++) insertionSort(BB[i],false,i);
-				else for(int i=0; i<3; i++) insertionSortPeri(BB[i],false,i);
+				if(!periodic) for(int i:{0,1,2}) insertionSort(BB[i],false,i);
+				else for(int i:{0,1,2}) insertionSortPeri(BB[i],false,i);
 			}
+
 			// traverse the container along requested axis
 			assert(sortAxis==0 || sortAxis==1 || sortAxis==2);
 			VecBounds& V=BB[sortAxis];
-			// go through potential aabb collisions, create interactions as necessary
+
+			// go through potential aabb collisions, create contacts as necessary
 			if(!periodic){
 				for(long i=0; i<2*nPar; i++){
 					// start from the lower bound (i.e. skipping upper bounds)
@@ -486,6 +529,10 @@ void InsertionSortCollider::run(){
 			}
 		}
 	ISC_CHECKPOINT("sort&collide");
+	#ifdef ISC_LATER
+		makeRemoveContactLater_process();
+	#endif
+	ISC_CHECKPOINT("make-remove-write");
 }
 
 
@@ -563,35 +610,43 @@ void InsertionSortCollider::handleBoundInversionPeri(Particle::id_t id1, Particl
 	bool overlap=separating?false:spatialOverlapPeri(id1,id2,scene,periods);
 	// existing interaction?
 	const shared_ptr<Contact>& C=dem->contacts->find(id1,id2);
-	bool hasInter=(bool)C;
+	bool hasCon=(bool)C;
 	#ifdef PISC_DEBUG
-		if(watchIds(id1,id2)) LOG_DEBUG("Inversion #"<<id1<<"+#"<<id2<<", overlap=="<<overlap<<", hasInter=="<<hasInter);
+		if(watchIds(id1,id2)) LOG_DEBUG("Inversion #"<<id1<<"+#"<<id2<<", overlap=="<<overlap<<", hasCon=="<<hasCon);
 	#endif
 	// interaction doesn't exist and shouldn't, or it exists and should
-	if(likely(!overlap && !hasInter)) return;
-	if(overlap && hasInter){  return; }
+	if(likely(!overlap && !hasCon)) return;
+	if(overlap && hasCon){  return; }
 	// create interaction if not yet existing
-	if(overlap && !hasInter){ // second condition only for readability
+	if(overlap && !hasCon){ // second condition only for readability
 		#ifdef PISC_DEBUG
 			if(watchIds(id1,id2)) LOG_DEBUG("Attemtping collision of #"<<id1<<"+#"<<id2);
 		#endif
 		const shared_ptr<Particle>& pA((*particles)[id1]);
 		const shared_ptr<Particle>& pB((*particles)[id2]);
 		if(!Collider::mayCollide(dem,pA,pB)) return;
-		// LOG_TRACE("Creating new interaction #"<<id1<<"+#"<<id2);
-		shared_ptr<Contact> newC=make_shared<Contact>();
-		newC->pA=pA; newC->pB=pB;
-		newC->cellDist=periods;
+		#ifdef ISC_LATER
+			makeContactLater(pA,pB,periods);
+		#else
+			// LOG_TRACE("Creating new interaction #"<<id1<<"+#"<<id2);
+			shared_ptr<Contact> newC=make_shared<Contact>();
+			newC->pA=pA; newC->pB=pB;
+			newC->cellDist=periods;
+			newC->stepCreated=scene->step;
+			dem->contacts->add(newC);
+		#endif
 		#ifdef PISC_DEBUG
 			if(watchIds(id1,id2)) LOG_DEBUG("Created intr #"<<id1<<"+#"<<id2<<", periods="<<periods);
 		#endif
-		newC->stepCreated=scene->step;
-		dem->contacts->add(newC);
 		return;
 	}
-	if(!overlap && hasInter){
+	if(!overlap && hasCon){
 		if(!C->isReal()) {
-			dem->contacts->remove(C);
+			#ifdef ISC_LATER
+				removeContactLater(C);
+			#else
+				dem->contacts->remove(C);
+			#endif
 			#ifdef PISC_DEBUG
 				if(watchIds(id1,id2)) LOG_DEBUG("Erased intr #"<<id1<<"+#"<<id2);
 			#endif

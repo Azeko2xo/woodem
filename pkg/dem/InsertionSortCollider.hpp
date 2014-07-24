@@ -81,6 +81,7 @@ Possible performance improvements & bugs
 #endif
 
 #define ISC_INF
+#define ISC_LATER
 
 struct ParticleContainer;
 
@@ -88,6 +89,35 @@ struct InsertionSortCollider: public Collider {
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 
 	private:
+
+
+	#ifdef ISC_LATER
+		/*
+			Structs for queueing writing operations during sort; these keep contacts to be created and to be removed in a way that can be written in thread-safe way. Once writing is finished, makeContactLater_process and removeContactLater_process are called to process those things.
+
+		*/
+		#ifdef WOO_OPENMP
+			vector<vector<shared_ptr<Contact>>> mmakeContacts;
+			vector<vector<shared_ptr<Contact>>> rremoveContacts;
+			void removeContactLater(const shared_ptr<Contact>& C){ rremoveContacts[omp_get_thread_num()].push_back(C); }
+		#else
+			vector<shared_ptr<Contact>> makeContacts;
+			vector<shared_ptr<Contact>> removeContacts;
+			void removeContactLater(const shared_ptr<Contact>& C){ removeContacts.push_back(C); }
+		#endif
+		void makeContactLater(const shared_ptr<Particle>& pA, const shared_ptr<Particle>& pB, const Vector3i& cellDist=Vector3r::Zero()){
+			shared_ptr<Contact> C=make_shared<Contact>(); C->pA=pA; C->pB=pB; C->cellDist=cellDist; C->stepCreated=scene->step;
+			#ifdef WOO_OPENMP
+				mmakeContacts[omp_get_thread_num()].push_back(C);
+			#else
+				makeContacts.push_back(C);
+			#endif
+		}
+		void makeRemoveContactLater_process();
+	#endif /* ISC_LATER */
+
+
+
 
 	//! struct for storing bounds of bodies
 	struct Bounds{
@@ -180,6 +210,9 @@ struct InsertionSortCollider: public Collider {
 		if(!periodic) return !spatialOverlap(id1,id2);
 		else { Vector3i periods; return !spatialOverlapPeri(id1,id2,scene,periods); }
 	}
+
+
+	
 	virtual bool isActivated();
 
 	// force reinitialization at next run
@@ -233,6 +266,10 @@ struct InsertionSortCollider: public Collider {
 			#endif 
 			#ifdef PISC_DEBUG
 				watch1=watch2=-1; // disable watching
+			#endif
+			#ifdef WOO_OPENMP
+				mmakeContacts.resize(omp_get_max_threads());
+				rremoveContacts.resize(omp_get_max_threads());
 			#endif
 			for(int i=0; i<3; i++) BB[i].axis=i;
 			periodic=false;
