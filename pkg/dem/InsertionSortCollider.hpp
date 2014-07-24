@@ -161,12 +161,12 @@ struct InsertionSortCollider: public Collider {
 	*/
 	Vector3i countInversions(); // for debugging only
 	void insertionSort(VecBounds& v,bool doCollide=true, int ax=0);
-	void handleBoundInversion(Particle::id_t,Particle::id_t);
+	void handleBoundInversion(Particle::id_t,Particle::id_t, bool separating);
 	bool spatialOverlap(Particle::id_t,Particle::id_t) const;
 
 	// periodic variants
 	void insertionSortPeri(VecBounds& v,bool doCollide=true, int ax=0);
-	void handleBoundInversionPeri(Particle::id_t,Particle::id_t);
+	void handleBoundInversionPeri(Particle::id_t,Particle::id_t, bool separating);
 	bool spatialOverlapPeri(Particle::id_t,Particle::id_t,Scene*,Vector3i&) const;
 	static Real cellWrap(const Real, const Real, const Real, int&);
 	static Real cellWrapRel(const Real, const Real, const Real);

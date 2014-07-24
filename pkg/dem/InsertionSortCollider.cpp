@@ -23,11 +23,11 @@ bool InsertionSortCollider::spatialOverlap(Particle::id_t id1, Particle::id_t id
 }
 
 // called by the insertion sort if 2 bodies swapped their bounds
-void InsertionSortCollider::handleBoundInversion(Particle::id_t id1, Particle::id_t id2){
+void InsertionSortCollider::handleBoundInversion(Particle::id_t id1, Particle::id_t id2, bool separating){
 	assert(!periodic);
 	assert(id1!=id2);
 	// do bboxes overlap in all 3 dimensions?
-	bool overlap=spatialOverlap(id1,id2);
+	bool overlap=separating?false:spatialOverlap(id1,id2); // if bboxes seaprate, there is for sure no overlap
 	// existing interaction?
 	const shared_ptr<Contact>& C=dem->contacts->find(id1,id2);
 	bool hasInter=(bool)C;
@@ -71,7 +71,7 @@ void InsertionSortCollider::insertionSort(VecBounds& v, bool doCollide, int ax){
 			// see https://bugs.launchpad.net/woo/+bug/669095
 			// do not collide minimum with minimum and maximum with maximum (suggested by Bruno)
 			if(viInitIsMin!=v[j].flags.isMin && likely(doCollide && viInitBB && v[j].flags.hasBB && (viInit.id!=v[j].id))){
-				handleBoundInversion(viInit.id,v[j].id);
+				handleBoundInversion(viInit.id,v[j].id,/*separating*/!viInitIsMin);
 			}
 			j--;
 		}
@@ -465,8 +465,8 @@ void InsertionSortCollider::run(){
 						const Particle::id_t& jid=V[j].id;
 						// take 2 of the same condition (only handle collision [min_i..max_i]+min_j, not [min_i..max_i]+min_i (symmetric)
 						if(!V[j].flags.isMin) continue;
-						/* abuse the same function here; since it does spatial overlap check first, it is OK to use it */
-						handleBoundInversion(iid,jid);
+						/* abuse the same function here; since it does spatial overlap check first (with separating==false), it is OK to use it */
+						handleBoundInversion(iid,jid,/*separting*/false);
 						assert(j<2*nPar-1);
 					}
 				}
@@ -479,7 +479,7 @@ void InsertionSortCollider::run(){
 					for(long j=V.norm(i+1); V[j].id!=iid; j=V.norm(j+1)){
 						const Particle::id_t& jid=V[j].id;
 						if(!V[j].flags.isMin) continue;
-						handleBoundInversionPeri(iid,jid);
+						handleBoundInversionPeri(iid,jid,/*separating*/false);
 						if(cnt++>2*(long)nPar){ LOG_FATAL("Uninterrupted loop in the initial sort?"); throw std::logic_error("loop??"); }
 					}
 				}
@@ -543,7 +543,7 @@ void InsertionSortCollider::insertionSortPeri(VecBounds& v, bool doCollide, int 
 				}
 				#endif
 				if(likely(vi.id!=vNew.id)){
-					handleBoundInversionPeri(vi.id,vNew.id);
+					handleBoundInversionPeri(vi.id,vNew.id,/*separating*/!viIsMin);
 				}
 			}
 			#ifdef WOO_DEBUG
@@ -556,11 +556,11 @@ void InsertionSortCollider::insertionSortPeri(VecBounds& v, bool doCollide, int 
 }
 
 // called by the insertion sort if 2 bodies swapped their bounds
-void InsertionSortCollider::handleBoundInversionPeri(Particle::id_t id1, Particle::id_t id2){
+void InsertionSortCollider::handleBoundInversionPeri(Particle::id_t id1, Particle::id_t id2, bool separating){
 	assert(periodic);
 	// do bboxes overlap in all 3 dimensions?
 	Vector3i periods;
-	bool overlap=spatialOverlapPeri(id1,id2,scene,periods);
+	bool overlap=separating?false:spatialOverlapPeri(id1,id2,scene,periods);
 	// existing interaction?
 	const shared_ptr<Contact>& C=dem->contacts->find(id1,id2);
 	bool hasInter=(bool)C;
