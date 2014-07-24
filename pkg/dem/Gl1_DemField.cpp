@@ -461,11 +461,11 @@ void Gl1_DemField::go(const shared_ptr<Field>& demField, GLViewInfo* _viewInfo){
 	if(updateRefPos && periodic) scene->cell->refHSize=scene->cell->hSize;
 
 	if(shape!=SHAPE_NONE || shape2) doShape();
-	if(bound) doBound();
+	if(bound && !Renderer::fastDraw) doBound();
 	doNodes(dem->nodes);
 	if(deadNodes && !dem->deadNodes.empty()) doNodes(dem->deadNodes);
-	doContactNodes();
-	if(cPhys) doCPhys();
+	if(!Renderer::fastDraw) doContactNodes();
+	if(cPhys && !Renderer::fastDraw) doCPhys();
 	updateRefPos=false;
 };
 
