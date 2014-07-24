@@ -96,9 +96,14 @@ void InsertionSortCollider::handleBoundInversion(Particle::id_t id1, Particle::i
 void InsertionSortCollider::insertionSort(VecBounds& v, bool doCollide, int ax){
 	assert(!periodic);
 	assert(v.size==(long)v.vec.size());
-	for(long i=0; i<v.size; i++){
+	insertionSort_part(v,doCollide,ax,0,v.size);
+}
+
+// perform partial insertion sort
+void InsertionSortCollider::insertionSort_part(VecBounds& v, bool doCollide, int ax, long iBegin, long iEnd){
+	for(long i=iBegin; i<iEnd; i++){
 		const Bounds viInit=v[i]; long j=i-1; /* cache hasBB; otherwise 1% overall performance hit */ const bool viInitBB=viInit.flags.hasBB; const bool viInitIsMin=viInit.flags.isMin;
-		while(j>=0 && v[j]>viInit){
+		while(j>=iBegin && v[j]>viInit){
 			v[j+1]=v[j];
 			#ifdef PISC_DEBUG
 				if(watchIds(v[j].id,viInit.id)) cerr<<"Swapping #"<<v[j].id<<"  with #"<<viInit.id<<" ("<<setprecision(80)<<v[j].coord<<">"<<setprecision(80)<<viInit.coord<<" along axis "<<v.axis<<")"<<endl;
@@ -485,7 +490,10 @@ void InsertionSortCollider::run(){
 				// the initial sort is in independent in 3 dimensions, may be run in parallel; it seems that there is no time gain running in parallel, though
 				// important to reset loInx for periodic simulation (!!)
 				LOG_DEBUG("Initial std::sort over all axes");
-				for(int i:{0,1,2}) { BB[i].loIdx=0; std::sort(BB[i].vec.begin(),BB[i].vec.end()); }
+				for(int i:{0,1,2}) {
+					BB[i].loIdx=0;
+					std::sort(BB[i].vec.begin(),BB[i].vec.end());
+				}
 				numReinit++;
 			} else { // sortThenCollide
 				if(!periodic) for(int i:{0,1,2}) insertionSort(BB[i],false,i);

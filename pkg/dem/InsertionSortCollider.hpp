@@ -191,6 +191,7 @@ struct InsertionSortCollider: public Collider {
 	*/
 	Vector3i countInversions(); // for debugging only
 	void insertionSort(VecBounds& v,bool doCollide=true, int ax=0);
+	void insertionSort_part(VecBounds& v, bool doCollide, int ax, long iBegin, long iEnd);
 	void handleBoundInversion(Particle::id_t,Particle::id_t, bool separating);
 	bool spatialOverlap(Particle::id_t,Particle::id_t) const;
 
