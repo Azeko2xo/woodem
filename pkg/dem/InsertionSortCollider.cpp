@@ -19,23 +19,44 @@ CREATE_LOGGER(InsertionSortCollider);
 
 #ifdef ISC_LATER
 void InsertionSortCollider::makeRemoveContactLater_process() {
+	/*
+	FIXME: check what happens if a contact is added twice:
+	there will be a problem in add(C,threadSafe=false), since it can end up being added twice;
+	with threadSafe=true, this will be double-checked (with mutex), but it can be a potential slowdown.
+
+	An alternative is to put ALL new overlaps and ALL separations to makeContactLater/removeContactLater,
+	without checking if the contact exists or not; and do that here. It will make the handBoundInversion
+	routine much lighter, but will move the load to the sequential part of the code.
+
+	Should be tested.
+	*/
+
+	#if defined(WOO_OPENMP) || defined(WOO_OPENGL)
+		boost::mutex::scoped_lock lock(dem->contacts->manipMutex);
+	#endif
+
+	ISC_CHECKPOINT("pre-con-add-remove");
+
+
 	#ifdef WOO_OPENMP
 		for(auto& removeContacts: rremoveContacts){
 	#endif
-			for(const auto& C: removeContacts) dem->contacts->remove(C);
+			for(const auto& C: removeContacts) dem->contacts->removeMaybe_fast(C);
 			removeContacts.clear();
 	#ifdef WOO_OPENMP
 		}
 	#endif
 
+	ISC_CHECKPOINT("con-remove-done");
 	#ifdef WOO_OPENMP
 		for(auto & makeContacts: mmakeContacts){
 	#endif
-			for(const auto& C: makeContacts) dem->contacts->add(C);
+			for(const auto& C: makeContacts)	dem->contacts->addMaybe_fast(C);
 			makeContacts.clear();
 	#ifdef WOO_OPENMP
 		}
 	#endif
+	ISC_CHECKPOINT("con-add-done");
 };
 #endif
 
@@ -64,7 +85,7 @@ void InsertionSortCollider::handleBoundInversion(Particle::id_t id1, Particle::i
 	if(likely(!overlap && !hasCon)) return;
 	if(overlap && hasCon){  return; }
 	// create interaction if not yet existing
-	if(overlap && !hasCon){ // second condition only for readability
+	if(overlap /* && !hasCon */){ // second condition redundant
 		const shared_ptr<Particle>& p1((*particles)[id1]);
 		const shared_ptr<Particle>& p2((*particles)[id2]);
 		if(!Collider::mayCollide(dem,p1,p2)) return;
@@ -87,7 +108,7 @@ void InsertionSortCollider::handleBoundInversion(Particle::id_t id1, Particle::i
 		#endif
 		return;
 	}
-	if(!overlap && hasCon){
+	if(!overlap /* && hasCon */){
 		#ifdef ISC_LATER
 			if(!C->isReal()) removeContactLater(C);
 		#else
@@ -109,7 +130,7 @@ void InsertionSortCollider::insertionSort(VecBounds& v, bool doCollide, int ax){
 		size_t chunks=omp_get_max_threads();
 		size_t chunkSize=v.size/chunks;
 		// don't bother with parallelized sorting for small number of bounds
-		if(v.size<1000){ insertionSort_part(v,doCollide,ax,0,v.size,0); return; }
+		if(v.size<1000 || chunkSize<100){ insertionSort_part(v,doCollide,ax,0,v.size,0); return; }
 
 		// pre-compute split points
 		/*
@@ -148,19 +169,21 @@ void InsertionSortCollider::insertionSort(VecBounds& v, bool doCollide, int ax){
 }
 
 // perform partial insertion sort
-void InsertionSortCollider::insertionSort_part(VecBounds& v, bool doCollide, int ax, long iBegin, long iEnd, long iStart){
+/*__attribute__((optimize("O0")))*/ void InsertionSortCollider::insertionSort_part(VecBounds& v, bool doCollide, int ax, long iBegin, long iEnd, long iStart){
 	// stop after encountering the first ordered couple; this is used from the parallel sort
 	const bool earlyStop=(iBegin!=iStart);
 
-	for(long i=iStart; i<iEnd; i++){
+	// the max(...) condition ensures v[j=i-1] is initially valid
+	// otherwise the while(... && j>=iBegin) stops right away anyway
+	for(long i=max(iStart,iBegin+1); i<iEnd; i++){
 		// no inversion here, short-circuit the whole walking setup and avoid the write after the while loop
 		if(!(v[i-1]>v[i])){
-			if(unlikely(earlyStop)) return;
+			if(unlikely(earlyStop)){ /*cerr<<"{"<<i-iStart<<"}";*/ return; }
 			continue;
 		}
 
 		const Bounds viInit=v[i]; long j=i-1; /* cache hasBB; otherwise 1% overall performance hit */ const bool viInitBB=viInit.flags.hasBB; const bool viInitIsMin=viInit.flags.isMin;
-		while(v[j]>viInit && j>=iBegin){
+		while(j>=iBegin && v[j]>viInit){ // first check whether j is valid, not the other way around
 			v[j+1]=v[j];
 			#ifdef PISC_DEBUG
 				if(watchIds(v[j].id,viInit.id)) cerr<<"Swapping #"<<v[j].id<<"  with #"<<viInit.id<<" ("<<setprecision(80)<<v[j].coord<<">"<<setprecision(80)<<viInit.coord<<" along axis "<<v.axis<<")"<<endl;
@@ -529,6 +552,7 @@ void InsertionSortCollider::run(){
 	field->cast<DemField>().contacts->removePending(*this,scene);
 	
 	ISC_CHECKPOINT("erase");
+	ISC_CHECKPOINT("pre-sort");
 
 	// sort
 		// the regular case
@@ -540,6 +564,7 @@ void InsertionSortCollider::run(){
 				//LOG_INFO(invs.sum()<<"/"<<stepInvs<<" invs (counted/insertion sort)");
 			}
 			else for(int i:{0,1,2}) insertionSortPeri(BB[i],/*collide*/true,i);
+			ISC_CHECKPOINT("insertion-sort-done");
 		}
 		// create initial interactions (much slower)
 		else {
@@ -560,6 +585,7 @@ void InsertionSortCollider::run(){
 				if(!periodic) for(int i:{0,1,2}) insertionSort(BB[i],false,i);
 				else for(int i:{0,1,2}) insertionSortPeri(BB[i],false,i);
 			}
+			ISC_CHECKPOINT("init-sort-done");
 
 			// traverse the container along requested axis
 			assert(sortAxis==0 || sortAxis==1 || sortAxis==2);
@@ -596,6 +622,7 @@ void InsertionSortCollider::run(){
 					}
 				}
 			}
+			ISC_CHECKPOINT("init-contacts-done");
 		}
 	ISC_CHECKPOINT("sort&collide");
 	#ifdef ISC_LATER

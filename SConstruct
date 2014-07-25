@@ -456,8 +456,8 @@ else:
 
 if env['lto']:
 	env.Append(CXXFLAGS='-flto',CFLAGS='-flto')
-	if 'clang' in env['CXX']: env.Append(SHLINKFLAGS='-use-gold-plugin')
-	else: env.Append(SHLINKFLAGS='-fuse-linker-plugin')
+	if 'clang' in env['CXX']: env.Append(SHLINKFLAGS=['-use-gold-plugin','-O3','-flto'])
+	else: env.Append(SHLINKFLAGS=['-fuse-linker-plugin','-O3','-flto=%d'%env['jobs']])
 
 if env['gprof']: env.Append(CXXFLAGS=['-pg'],LINKFLAGS=['-pg'],SHLINKFLAGS=['-pg'])
 env.Prepend(CXXFLAGS=['-pipe','-Wall'])

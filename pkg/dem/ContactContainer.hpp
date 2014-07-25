@@ -24,6 +24,13 @@ struct ContactContainer: public Object{
 		ParticleContainer* particles;
 
 	/* basic functionality */
+		// caller's responsibility to lock manipMutex
+		// the functions do nothing if the contact does (for add) or does not (for remove) exist
+		void addMaybe_fast(const shared_ptr<Contact>& c);
+		void removeMaybe_fast(const shared_ptr<Contact>& c);
+		void linView_remove(const size_t& ix);
+
+
 		bool add(const shared_ptr<Contact>& c, bool threadSafe=false);
 		// copy of shared_ptr, so that the argument does not get deleted while being manipulated with
 		bool remove(shared_ptr<Contact> c, bool threadSafe=false);
