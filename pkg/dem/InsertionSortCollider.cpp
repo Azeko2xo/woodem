@@ -35,7 +35,7 @@ void InsertionSortCollider::makeRemoveContactLater_process() {
 		boost::mutex::scoped_lock lock(dem->contacts->manipMutex);
 	#endif
 
-	ISC_CHECKPOINT("pre-con-add-remove");
+	ISC_CHECKPOINT("later: start");
 
 
 	#ifdef WOO_OPENMP
@@ -47,7 +47,7 @@ void InsertionSortCollider::makeRemoveContactLater_process() {
 		}
 	#endif
 
-	ISC_CHECKPOINT("con-remove-done");
+	ISC_CHECKPOINT("later: remove");
 	#ifdef WOO_OPENMP
 		for(auto & makeContacts: mmakeContacts){
 	#endif
@@ -56,7 +56,7 @@ void InsertionSortCollider::makeRemoveContactLater_process() {
 	#ifdef WOO_OPENMP
 		}
 	#endif
-	ISC_CHECKPOINT("con-add-done");
+	ISC_CHECKPOINT("later: add");
 };
 #endif
 
@@ -289,6 +289,7 @@ vector<Particle::id_t> InsertionSortCollider::probeAabb(const Vector3r& mn, cons
 
 
 bool InsertionSortCollider::updateBboxes_doFullRun(){
+	ISC_CHECKPOINT("bounds: start");
 	// update bounds via boundDispatcher
 	boundDispatcher->scene=scene;
 	boundDispatcher->field=field;
@@ -298,7 +299,7 @@ bool InsertionSortCollider::updateBboxes_doFullRun(){
 	// automatically initialize from min sphere size; if no spheres, disable stride
 	if(verletDist<0){
 		Real minR=Inf;
-		FOREACH(const shared_ptr<Particle>& p, *dem->particles){
+		for(const shared_ptr<Particle>& p: *dem->particles){
 			if(!p || !p->shape) continue;
 			if(!p->shape->isA<Sphere>())continue;
 			minR=min(p->shape->cast<Sphere>().radius,minR);
@@ -311,7 +312,7 @@ bool InsertionSortCollider::updateBboxes_doFullRun(){
 		recomputeBounds=true;
 	} else {
 		// first loop only checks if there something is our
-		FOREACH(const shared_ptr<Particle>& p, *dem->particles){
+		for(const shared_ptr<Particle>& p: *dem->particles){
 			if(!p->shape) continue;
 			const int nNodes=p->shape->nodes.size();
 			// below we throw exception for particle that has no functor afer the dispatcher has been called
@@ -360,11 +361,19 @@ bool InsertionSortCollider::updateBboxes_doFullRun(){
 			// fine, particle doesn't need to be updated
 		}
 	}
+	ISC_CHECKPOINT("bounds: check");
 	// bounds don't need update, collision neither
 	if(!recomputeBounds) return false;
 
-	FOREACH(const shared_ptr<Particle>& p, *dem->particles){
-		if(!p->shape) continue;
+	
+	// this loop takes 25% collider time when not parallelized, give it a try
+	size_t size=particles->size();
+	#ifdef WOO_OPENMP
+		#pragma omp parallel for schedule(static)
+	#endif
+	for(size_t i=0; i<size; i++){
+		const shared_ptr<Particle>& p((*particles)[i]);
+		if(!p || !p->shape) continue;
 		// call dispatcher now
 		boundDispatcher->operator()(p->shape);
 		if(!p->shape->bound){
@@ -398,7 +407,8 @@ bool InsertionSortCollider::updateBboxes_doFullRun(){
 			aabb.max+=verletDist*Vector3r::Ones();
 			aabb.min-=verletDist*Vector3r::Ones();
 		}
-	};
+	}
+	ISC_CHECKPOINT("bounds: recompute");
 	return true;
 }
 
@@ -432,10 +442,12 @@ void InsertionSortCollider::run(){
 	#ifdef ISC_TIMING
 		timingDeltas->start();
 	#endif
+	ISC_CHECKPOINT("== start ==");
 	bool fullRun=prologue_doFullRun();
-
-	ISC_CHECKPOINT("aabb");
+	ISC_CHECKPOINT("prologue");
 	bool runBboxes=updateBboxes_doFullRun();
+	ISC_CHECKPOINT("bbox-check");
+
 	if(runBboxes) fullRun=true;
 
 	stepInvs=Vector3i::Zero();
@@ -490,11 +502,13 @@ void InsertionSortCollider::run(){
 	#endif
 
 
-
-
 	ISC_CHECKPOINT("bound");
 
 	// copy bounds along given axis into our arrays
+	// this loop takes 27% of total collider time, try to make it parallel
+		#ifdef WOO_OPENMP
+			#pragma omp parallel for schedule(static)
+		#endif
 		for(long i=0; i<2*nPar; i++){
 			for(int j=0; j<3; j++){
 				VecBounds& BBj=BB[j];
@@ -535,6 +549,8 @@ void InsertionSortCollider::run(){
 				}
 			}	
 		}
+	ISC_CHECKPOINT("copy-bounds");
+
 	// for each body, copy its minima and maxima, for quick checks of overlaps later
 	for(Particle::id_t id=0; id<nPar; id++){
 		BOOST_STATIC_ASSERT(sizeof(Vector3r)==3*sizeof(Real));
@@ -545,8 +561,7 @@ void InsertionSortCollider::run(){
 			else{ const Vector3r& pos=b->shape->nodes[0]->pos; memcpy(&minima[3*id],&pos,3*sizeof(Real)); memcpy(&maxima[3*id],&pos,3*sizeof(Real)); }
 		} else { memset(&minima[3*id],0,3*sizeof(Real)); memset(&maxima[3*id],0,3*sizeof(Real)); }
 	}
-
-	ISC_CHECKPOINT("copy");
+	ISC_CHECKPOINT("copy-minima-maxima");
 
 	// process interactions that the constitutive law asked to be erased
 	field->cast<DemField>().contacts->removePending(*this,scene);
