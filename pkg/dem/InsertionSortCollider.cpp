@@ -127,10 +127,19 @@ void InsertionSortCollider::insertionSort(VecBounds& v, bool doCollide, int ax){
 	#else
 
 		// will be adapted -- can be the double and so on
-		size_t chunks=omp_get_max_threads();
+		int chunks_per_core=ompTuneSort[0];
+		int min_per_core=2*ompTuneSort[1]; // ×2: number of particles → number of bounds;
+		int max_per_core=2*ompTuneSort[2];
+		int TH=omp_get_max_threads();
+		size_t chunks=TH*max(1,chunks_per_core);
+		// apply bounds, but always round up to a multiple of TH
+		if(min_per_core>0 && (int)(v.size/chunks)<min_per_core) chunks=TH*(int)ceil(max(1L,v.size/min_per_core)*1./TH);
+		else if(max_per_core>0 && (int)(v.size/chunks)>max_per_core) chunks=TH*(int)ceil(max(1L,v.size/max_per_core)*1./TH);
 		size_t chunkSize=v.size/chunks;
 		// don't bother with parallelized sorting for small number of bounds
-		if(v.size<1000 || chunkSize<100){ insertionSort_part(v,doCollide,ax,0,v.size,0); return; }
+		if(chunks==1){ insertionSort_part(v,doCollide,ax,0,v.size,0); return; }
+		if(chunks==0) throw std::logic_error("0 chunks for parallel insertion sort!");
+		sortChunks=chunks; // for diagnostics
 
 		// pre-compute split points
 		/*
