@@ -10,23 +10,22 @@ echo "    5. Woo is compiled and installed."
 echo
 echo "*** You will be asked for root password several times. That is normal. ***"
 
+ISSUE=`cat /etc/issue`
+
+case $ISSUE in
+	*12.04*|*12.10*|*13.04*) 
+		echo '*** YOUR UBUNTU INSTALLATION IS TOO OLD, ONLY 13.10 AND NEWER ARE SUPPORTED***'
+		exit 1
+	;;
+esac
+
 sudo apt-get install software-properties-common python-software-properties # for add-apt-repository
 sudo add-apt-repository ppa:eudoxos/minieigen
 sudo apt-get update
 
+sudo apt-get install libboost-all-dev python-colorama libqt4-dev-bin python-setuptools python-all-dev pyqt4-dev-tools libqt4-dev qt4-dev-tools libgle3-dev libqglviewer-dev libvtk5-dev libgts-dev libeigen3-dev freeglut3-dev python-xlrd python-xlwt python-numpy python-matplotlib python-qt4 python-xlib python-genshi python-psutil python-imaging python-h5py python-lockfile bzr ccache scons ipython mencoder python-imaging python-minieigen python-prettytable
+		
 sudo chown -R $USER: /usr/local
-
-WOODEPS="python-setuptools python-all-dev pyqt4-dev-tools libqt4-dev qt4-dev-tools libgle3-dev libqglviewer-qt4-dev libvtk5-dev libgts-dev libeigen3-dev freeglut3-dev python-xlrd python-xlwt python-numpy python-matplotlib python-qt4 python-xlib python-genshi python-psutil bzr ccache scons ipython python-imaging python-minieigen binutils-gold"
-
-# extra packages are not in 12.04, but are in later releases
-if [[ "`cat /etc/issue`" != *12.04* ]]; then
-	sudo apt-get install $WOODEPS libboost-all-dev python-colorama libqt4-dev-bin
-else
-	# force boost 1.48, not the default 1.46
-	sudo apt-get install $WOODEPS libboost-date-time1.48-dev libboost-filesystem1.48-dev libboost-iostreams1.48-dev libboost-python1.48-dev libboost-regex1.48-dev libboost-chrono1.48-dev libboost-serialization1.48-dev libboost-system1.48-dev libboost-thread1.48-dev 
-	# easy_install is in python-setuptools, which we just installed
-	easy_install colorama
-fi
 
 
 if [ ! -d ~/woo/.bzr ]; then
