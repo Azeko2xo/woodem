@@ -1,4 +1,7 @@
 # encoding: utf-8
+# py3k support
+from __future__ import print_function
+
 #import setuptools # for bdist_egg and console_scripts entry point
 from setuptools import setup,Extension
 #import distutils.command.install_scripts
@@ -24,7 +27,7 @@ if not DISTBUILD: # don't do parallel at buildbot
 		def _single_compile(obj):
 			try: src, ext = build[obj]
 			except KeyError: return
-			print obj
+			print(obj)
 			self._compile(obj, src, ext, cc_args, extra_postargs, pp_opts)
 		# convert to list, imap is evaluated on-demand
 		list(multiprocessing.pool.ThreadPool(N).imap(_single_compile,objects))
@@ -43,7 +46,7 @@ revno=None
 # on debian, get version from changelog
 if DISTBUILD=='debian':
 	version=re.match(r'^[^(]* \(([^)]+)\).*$',open('debian/changelog').readlines()[0]).group(1)
-	print 'Debian version from changelog: ',version
+	print('Debian version from changelog: ',version)
 	revno='debian'
 # get version from queryling local bzr repo
 if not version and os.path.exists('.bzr'):
@@ -63,6 +66,7 @@ if not version and os.path.exists('.bzr'):
 features=['qt4','vtk','opengl','gts','openmp']
 if 'CC' in os.environ and os.environ['CC'].endswith('clang'): features.remove('openmp')
 flavor='' #('' if WIN else 'distutils')
+if sys.version_info[0]==3: flavor+=('-' if flavor else '')+'py3k'
 debug=False
 chunkSize=1 # (1 if WIN else 10)
 hotCxx=[] # plugins to be compiled separately despite chunkSize>1
@@ -102,7 +106,7 @@ def wooPrepareHeaders():
 	for hpp in hpps:
 		d=join(pathHeaders,dirname(hpp))
 		if not os.path.exists(d): os.makedirs(d)
-		#print hpp,d
+		#print(hpp,d)
 		shutil.copyfile(hpp,join(pathHeaders,hpp))
 def wooPrepareChunks():
 	'Make chunks from sources, and install those files to build-src-tree'
@@ -114,23 +118,23 @@ def wooPrepareChunks():
 	if 'opengl' in features: srcs+=[glob('gui/qt4/*.cpp')+glob('gui/qt4/*.cc')]
 	if 'gts' in features: srcs+=[[f] for f in glob('py/3rd-party/pygts-0.3.1/*.cpp')]
 	pkg=glob('pkg/*.cpp')+glob('pkg/*/*.cpp')+glob('pkg/*/*/*.cpp')+glob('core/*.cpp')
-	# print srcs,pkg
+	# print(srcs,pkg)
 	for i in range(0,len(pkg),chunkSize): srcs.append(pkg[i:i+chunkSize])
 	hot=[]
 	for i in range(len(srcs)):
 		hot+=[s for s in srcs[i] if basename(s)[:-4] in hotCxx]
 		srcs[i]=[s for s in srcs[i] if basename(s)[:-4] not in hotCxx]
 	srcs+=[[h] for h in hot] # add as single files
-	#print srcs
+	#print(srcs)
 	# check hash
-	import hashlib; h=hashlib.new('sha1'); h.update(str(srcs))
+	import hashlib; h=hashlib.new('sha1'); h.update(str(srcs).encode('utf-8'))
 	# exactly the same configuration does not have to be repeated again
 	chunksSame=os.path.exists(join(pathSources,h.hexdigest()))
 	if not chunksSame and os.path.exists(pathSources): shutil.rmtree(pathSources)
 	if not os.path.exists(pathSources):
 		os.mkdir(pathSources)
 		open(join(pathSources,h.hexdigest()),'w')
-	#print srcs
+	#print(srcs)
 	for i,src in enumerate(srcs):
 		if len(src)==0: continue
 		# ext=('c' if src[0].split('.')[-1]=='c' else 'cpp')
@@ -145,9 +149,9 @@ def wooPrepareChunks():
 			# update timestamp to the newest include
 			if not os.path.exists(chunkPath): raise RuntimeError('Chunk configuration identical, but chunk %s not found; delete the build directory to recreate everything.'%chunkPath)
 			last=max([os.path.getmtime(s) for s in src])
-			#for s in src: print s,os.path.getmtime(s)
+			#for s in src: print(s,os.path.getmtime(s))
 			if last>os.path.getmtime(chunkPath):
-				print 'Updating timestamp of %s (%s -> %s)'%(chunkPath,os.path.getmtime(chunkPath),last+10)
+				print('Updating timestamp of %s (%s -> %s)'%(chunkPath,os.path.getmtime(chunkPath),last+10))
 				os.utime(chunkPath,(last+10,last+10))
 def wooPrepareQt4():
 	'Generate Qt4 files (normally handled by scons); those are only neede with OpenGL'
@@ -174,19 +178,20 @@ def wooPrepareQt4():
 			cmd=tool+opts+[fIn,'-o',fOut]
 			# no need to recreate, since source is older
 			if os.path.exists(fOut) and os.path.getmtime(fIn)<os.path.getmtime(fOut): continue
-			print ' '.join(cmd)
+			print(' '.join(cmd))
 			status=subprocess.call(cmd)
 			if status: raise RuntimeError("Error %d returned when running %s"%(status,' '.join(cmd)))
 			if not os.path.exists(fOut): RuntimeError("No output file (though exit status was zero): %s"%(' '.join(cmd)))
 def pkgconfig(packages):
 	flag_map={'-I':'include_dirs','-L':'library_dirs','-l':'libraries'}
 	ret={'library_dirs':[],'include_dirs':[],'libraries':[]}
-	for token in subprocess.check_output("pkg-config --libs --cflags %s"%' '.join(packages),shell=True).split():
-		if flag_map.has_key(token[:2]): ret.setdefault(flag_map.get(token[:2]),[]).append(token[2:])
+	for token in subprocess.check_output("pkg-config --libs --cflags %s"%' '.join(packages),shell=True).decode('utf-8').split():
+		if token[:2] in flag_map:
+			ret.setdefault(flag_map.get(token[:2]),[]).append(token[2:])
 		# throw others to extra_link_args
 		else: ret.setdefault('extra_link_args',[]).append(token)
 	# remove duplicated
-	for k,v in ret.iteritems(): ret[k]=list(set(v))
+	for k,v in ret.items(): ret[k]=list(set(v))
 	return ret
 
 # if the following file is missing, we are being run from sdist, which has tree already prepared
@@ -222,10 +227,10 @@ cxxStd='c++11'
 if DISTBUILD=='debian':
 	# c++0x for gcc == 4.6
 	gccVer=subprocess.check_output(['g++','--version']).split('\n')[0].split()[-1]
-	print 'GCC version is',gccVer
+	print('GCC version is',gccVer)
 	if gccVer.startswith('4.6'):
 		cxxStd='c++0x'
-		print 'Compiling with gcc 4.6 (%s), using -std=%s. Adding -pedantic.'%(gccVer,cxxStd)
+		print('Compiling with gcc 4.6 (%s), using -std=%s. Adding -pedantic.'%(gccVer,cxxStd))
 		cxxFlags+=['-pedantic'] # work around for http://gcc.gnu.org/bugzilla/show_bug.cgi?id=50478
 
 cxxFlags+=['-Wall','-fvisibility=hidden','-std='+cxxStd,'-pipe']
@@ -288,15 +293,15 @@ if 'opengl' in features:
 		try:
 			# this will for sure fail - either the lib is not found (the first error reported), or we get "undefined reference to main" when the lib is there
 			subprocess.check_output(['gcc','-lqglviewer-qt4'],stderr=subprocess.STDOUT)
-		except subprocess.CalledProcessError,e:
-			print 20*'=','the output from gcc -lqglviewer-qt4',20*'='
-			print e.output
-			print 60*'='
-			if ' -lqglviewer-qt4' in e.output.split('\n')[0]:
-				print 'info: library check: qglviewer-qt4 not found, using QGLViewer instead'
+		except (subprocess.CalledProcessError,) as e:
+			print(20*'=','the output from gcc -lqglviewer-qt4',20*'=')
+			print(e.output)
+			print(60*'=')
+			if ' -lqglviewer-qt4' in e.output.decode('utf-8').split('\n')[0]:
+				print('info: library check: qglviewer-qt4 not found, using QGLViewer instead')
 				cxxLibs+=['QGLViewer']
 			else:
-				print 'info: library check: qglviewer-qt4 found'
+				print('info: library check: qglviewer-qt4 found')
 				cxxLibs+=['qglviewer-qt4']
 	# qt4 without OpenGL is pure python and needs no additional compile options
 	if ('qt4' in features):
@@ -403,5 +408,7 @@ tighter integration with python and user-friendliness.
 	# woo.__init__ makes symlinks to _cxxInternal, which would not be possible if zipped
 	# see http://stackoverflow.com/a/10618900/761090
 	zip_safe=False, 
+	# py3k support
+	use_2to3=True,
 )
 

@@ -77,9 +77,12 @@ void InsertionSortCollider::handleBoundInversion(Particle::id_t id1, Particle::i
 	assert(!periodic);
 	assert(id1!=id2);
 	// do bboxes overlap in all 3 dimensions?
+	ISC_CHECKPOINT("handle: start");
 	bool overlap=separating?false:spatialOverlap(id1,id2); // if bboxes seaprate, there is for sure no overlap
+	ISC_CHECKPOINT("handle: overlap-test");
 	// existing interaction?
 	const shared_ptr<Contact>& C=dem->contacts->find(id1,id2);
+	ISC_CHECKPOINT("handle: find-contact");
 	bool hasCon=(bool)C;
 	// interaction doesn't exist and shouldn't, or it exists and should
 	if(likely(!overlap && !hasCon)) return;
@@ -96,6 +99,7 @@ void InsertionSortCollider::handleBoundInversion(Particle::id_t id1, Particle::i
 				else makeContactLater(p2,p1,Vector3i::Zero());
 			#else
 				makeContactLater(p1,p2,Vector3i::Zero());
+				ISC_CHECKPOINT("handle: later-new");
 			#endif
 		#else
 			// LOG_TRACE("Creating new interaction #"<<id1<<"+#"<<id2);
@@ -111,6 +115,7 @@ void InsertionSortCollider::handleBoundInversion(Particle::id_t id1, Particle::i
 	if(!overlap /* && hasCon */){
 		#ifdef ISC_LATER
 			if(!C->isReal()) removeContactLater(C);
+			ISC_CHECKPOINT("handle: later-remove");
 		#else
 			if(!C->isReal()) dem->contacts->remove(C);
 		#endif

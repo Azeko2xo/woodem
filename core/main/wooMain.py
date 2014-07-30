@@ -9,7 +9,7 @@ WIN=(sys.platform=='win32')
 class WooOptions(object):
 	def __init__(self):
 		'''Object holding load-time options for Woo. The object's dictionary is frozen after construction, which prevents mistakenly adding non-existing option. Do not construct this object directly, set attributes of the :obj:`wooMain.options` instance instead.'''
-		self.forceNoGui=False
+		self.forceNoGui=True
 		self.ompThreads=0
 		self.ompCores=[]
 		self.flavor=''

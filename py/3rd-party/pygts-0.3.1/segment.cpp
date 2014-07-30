@@ -436,13 +436,13 @@ init(PygtsSegment *self, PyObject *args, PyObject *kwds)
 
 
 static int 
-compare(PygtsSegment *s1_, PygtsSegment *s2_)
+compare(PyObject *s1_, PyObject *s2_)
 {
   GtsSegment *s1, *s2;
 
 #if PYGTS_DEBUG
-  pygts_segment_check((PyObject*)s1_);
-  pygts_segment_check((PyObject*)s2_);
+  pygts_segment_check(s1_);
+  pygts_segment_check(s2_);
 #endif
 
   s1 = PYGTS_SEGMENT_AS_GTS_SEGMENT(s1_);
@@ -452,11 +452,23 @@ compare(PygtsSegment *s1_, PygtsSegment *s2_)
   
 }
 
+#if PY_MAJOR_VERSION >= 3
+  static PyObject* rich_compare(PyObject *o1, PyObject* o2, int op){
+    switch(op){
+      case Py_EQ:{
+         if(compare(o1,o2)) Py_RETURN_TRUE;
+         Py_RETURN_FALSE;
+      }
+      default: Py_RETURN_NOTIMPLEMENTED;
+    }
+  }
+#endif
+
+
 
 /* Methods table */
 PyTypeObject PygtsSegmentType = {
-    PyObject_HEAD_INIT(NULL)
-    0,                       /* ob_size */
+    PyVarObject_HEAD_INIT(NULL,0)
     "gts.Segment",           /* tp_name */
     sizeof(PygtsSegment),    /* tp_basicsize */
     0,                       /* tp_itemsize */
@@ -464,7 +476,11 @@ PyTypeObject PygtsSegmentType = {
     0,                       /* tp_print */
     0,                       /* tp_getattr */
     0,                       /* tp_setattr */
-    (cmpfunc)compare,        /* tp_compare */
+    #if PY_MAJOR_VERSION >= 3
+      0,
+    #else
+      (cmpfunc)compare,          /* tp_compare */
+    #endif
     0,                       /* tp_repr */
     0,                       /* tp_as_number */
     0,                       /* tp_as_sequence */
@@ -480,7 +496,11 @@ PyTypeObject PygtsSegmentType = {
     "Segment object",        /* tp_doc */
     0,                       /* tp_traverse */
     0,                       /* tp_clear */
-    0,                       /* tp_richcompare */
+    #if PY_MAJOR_VERSION >= 3
+      (richcmpfunc)rich_compare, /* tp_richcompare */
+    #else
+      0,                       /* tp_richcompare */
+    #endif
     0,                       /* tp_weaklistoffset */
     0,                       /* tp_iter */
     0,                       /* tp_iternext */

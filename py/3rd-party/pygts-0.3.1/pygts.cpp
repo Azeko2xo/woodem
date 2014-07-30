@@ -28,8 +28,7 @@
 #include "pygts.h"
 
 #if PYGTS_HAS_NUMPY
-  // eudoxos 20131125: would be nice to avoid compiler warning, but pygts uses the old API unfortunately
-  // #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+  #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
   #include "numpy/arrayobject.h"
 #endif
 
@@ -406,6 +405,55 @@ triangle_enclosing(PyObject *self, PyObject *args)
 }
 
 
+#if PY_MAJOR_VERSION >= 3
+// in python/Modules/_io/_iomodule.h
+extern PyTypeObject PyIOBase_Type;
+// taken from:
+// https://github.com/mapserver/mapserver/issues/4748
+/* Translate Python's built-in file object to FILE * */
+static FILE* streamFromPyFile( PyObject* file )
+{
+  int fd;
+  FILE* fs;
+
+  fd = PyObject_AsFileDescriptor(file);
+  if (fd < 0) return NULL;
+
+  fd = dup(fd);
+  if (fd < 0) return NULL;
+
+  fs = fdopen(fd, "w");
+  if (fs == NULL) {
+    close(fd);
+    return NULL;
+  }
+  return fs;
+}
+#endif
+
+FILE* FILE_from_py_file__raises(PyObject *f_){
+  FILE* f;
+  #if PY_MAJOR_VERSION >= 3
+    if(!PyObject_IsInstance(f_,(PyObject*)&PyIOBase_Type)){
+      PyErr_SetString(PyExc_TypeError,"expected a File (PyIOBase_type).");
+      return NULL;
+    }
+    f=streamFromPyFile(f_);
+    if(f==NULL){
+       PyErr_SetString(PyExc_TypeError,"failed to obtained FILE* from the Python object (python 3 only).");
+       return NULL;
+    }
+  #else
+    if(!PyFile_Check(f_)) {
+      PyErr_SetString(PyExc_TypeError,"expected a File");
+      return NULL;
+    }
+    f = PyFile_AsFile(f_);
+  #endif
+  return f;
+}
+
+
 static PyObject*
 pygts_read(PygtsSurface *self, PyObject *args)
 {
@@ -420,12 +468,8 @@ pygts_read(PygtsSurface *self, PyObject *args)
   if(! PyArg_ParseTuple(args, "O", &f_) )
     return NULL;
 
-  /* Convert to PygtsObjects */
-  if(!PyFile_Check(f_)) {
-    PyErr_SetString(PyExc_TypeError,"expected a File");
-    return NULL;
-  }
-  f = PyFile_AsFile(f_);
+  f=FILE_from_py_file__raises(f_);
+  if(!f) return NULL;
 
   if(feof(f)) {
     PyErr_SetString(PyExc_EOFError,"End of File");
@@ -434,7 +478,7 @@ pygts_read(PygtsSurface *self, PyObject *args)
 
   /* Create a temporary surface to read into */
   if( (s = gts_surface_new(gts_surface_class(), gts_face_class(),
-			   gts_edge_class(), gts_vertex_class())) == NULL ) {
+       gts_edge_class(), gts_vertex_class())) == NULL ) {
     PyErr_SetString(PyExc_MemoryError,"could not create Surface");
     return NULL;
   }
@@ -499,10 +543,10 @@ static void isofunc(gdouble **f, GtsCartesianGrid g, guint k, gpointer data)
   PyArrayObject *scalars = (PyArrayObject *)data;
   int i, j;
 
-  for (i = 0; i < scalars->dimensions[0]; i++) {
-    for (j = 0; j < scalars->dimensions[1]; j++) {
-      f[i][j] = *(gdouble *)(scalars->data + i*scalars->strides[0] + \
-			     j*scalars->strides[1] + k*scalars->strides[2]);
+  for (i = 0; i < PyArray_DIMS(scalars)[0]; i++) {
+    for (j = 0; j < PyArray_DIMS(scalars)[1]; j++) {
+      f[i][j] = *((gdouble *)PyArray_DATA(scalars) + i*PyArray_STRIDES(scalars)[0] + \
+			     j*PyArray_STRIDES(scalars)[1] + k*PyArray_STRIDES(scalars)[2]);
     }
   }
 }
@@ -530,51 +574,51 @@ isosurface(PyObject *self, PyObject *args, PyObject *kwds)
   }
   
   if(!(scalars = (PyArrayObject *) 
-       PyArray_ContiguousFromObject(Oscalars, PyArray_DOUBLE, 3, 3))) {
+       PyArray_ContiguousFromObject(Oscalars, NPY_DOUBLE, 3, 3))) {
     ISO_CLEANUP;
     return NULL;
   }
 
   if(Oextents && 
      (!(extents =  (PyArrayObject *)
-	PyArray_ContiguousFromObject(Oextents, PyArray_DOUBLE, 1, 1)))) {
+	PyArray_ContiguousFromObject(Oextents, NPY_DOUBLE, 1, 1)))) {
     ISO_CLEANUP;
     return NULL;
   }
 
-  if(extents && extents->dimensions[0] < 6) {
+  if(extents && PyArray_DIMS(extents)[0] < 6) {
     PyErr_SetString(PyExc_ValueError, "extents must have at least 6 elements");
     ISO_CLEANUP;
     return NULL;
   }
   
   if(extents) {
-    int s = extents->strides[0];
-    g.x = *(gdouble*)(extents->data + 0*s);
-    g.nx = scalars->dimensions[0];
-    g.dx = (*(gdouble*)(extents->data + 1*s) - \
-	    *(gdouble*)(extents->data + 0* s))/(g.nx-1);
+    int s = PyArray_STRIDES(extents)[0];
+    g.x = *((gdouble*)PyArray_DATA(extents) + 0*s);
+    g.nx = PyArray_DIMS(scalars)[0];
+    g.dx = (*((gdouble*)PyArray_DATA(extents) + 1*s) - \
+	    *((gdouble*)PyArray_DATA(extents) + 0* s))/(g.nx-1);
 
-    g.y = *(gdouble*)(extents->data + 2*s);
-    g.ny = scalars->dimensions[1];
-    g.dy = (*(gdouble*)(extents->data + 3*s) - \
-	    *(gdouble*)(extents->data + 2*s))/(g.ny-1);
+    g.y = *((gdouble*)PyArray_DATA(extents) + 2*s);
+    g.ny = PyArray_DIMS(scalars)[1];
+    g.dy = (*((gdouble*)PyArray_DATA(extents) + 3*s) - \
+	    *((gdouble*)PyArray_DATA(extents) + 2*s))/(g.ny-1);
 
-    g.z = *(gdouble*)(extents->data + 4*s);
-    g.nz = scalars->dimensions[2];
-    g.dz = (*(gdouble*)(extents->data + 5*s) - \
-	    *(gdouble*)(extents->data + 4*s))/(g.nz-1);
+    g.z = *((gdouble*)PyArray_DATA(extents) + 4*s);
+    g.nz = PyArray_DIMS(scalars)[2];
+    g.dz = (*((gdouble*)PyArray_DATA(extents) + 5*s) - \
+	    *((gdouble*)PyArray_DATA(extents) + 4*s))/(g.nz-1);
   }
   else {
     g.x = -1.0;
-    g.nx = scalars->dimensions[0];
-    g.dx = 2.0/(scalars->dimensions[0]-1);
+    g.nx = PyArray_DIMS(scalars)[0];
+    g.dx = 2.0/(PyArray_DIMS(scalars)[0]-1);
     g.y = -1.0;
-    g.ny = scalars->dimensions[1];
-    g.dy = 2.0/(scalars->dimensions[1]-1);
+    g.ny = PyArray_DIMS(scalars)[1];
+    g.dy = 2.0/(PyArray_DIMS(scalars)[1]-1);
     g.z = -1.0;
-    g.nz = scalars->dimensions[2];
-    g.dz = 2.0/(scalars->dimensions[2]-1);
+    g.nz = PyArray_DIMS(scalars)[2];
+    g.dz = 2.0/(PyArray_DIMS(scalars)[2]-1);
   }
 
   /* Create the surface */
@@ -724,52 +768,69 @@ static PyMethodDef gts_methods[] = {
   {NULL}  /* Sentinel */
 };
 
-#ifndef PyMODINIT_FUNC	/* declarations for DLL import/export */
-#define PyMODINIT_FUNC void
+#ifndef PyMODINIT_FUNC  /* declarations for DLL import/export */
+  #define PyMODINIT_FUNC void
 #endif
 
-PyMODINIT_FUNC
-/* this is needed when compiling with distutils? */ __attribute__((visibility("default")))
-init_gts(void) 
+// Python 3 compatibility macros
+// taken from http://python3porting.com/cextensions.html
+#if PY_MAJOR_VERSION >= 3
+  #define MOD_ERROR_VAL NULL
+  #define MOD_SUCCESS_VAL(val) val
+  #define MOD_INIT(name) PyMODINIT_FUNC __attribute__((visibility("default"))) PyInit_##name(void)
+  #define MOD_DEF(ob, name, doc, methods) \
+          static struct PyModuleDef moduledef = { \
+            PyModuleDef_HEAD_INIT, name, doc, -1, methods, }; \
+          ob = PyModule_Create(&moduledef);
+#else
+  #define MOD_ERROR_VAL
+  #define MOD_SUCCESS_VAL(val)
+  #define MOD_INIT(name) PyMODINIT_FUNC __attribute__((visibility("default"))) init##name(void)
+  #define MOD_DEF(ob, name, doc, methods) \
+          ob = Py_InitModule3(name, methods, doc);
+#endif
+
+/* this is needed when compiling with distutils? */
+MOD_INIT(_gts)
 {
   PyObject* m;
 
   /* Allocate the object table */
-  if( (obj_table=g_hash_table_new(NULL,NULL)) == NULL ) return;
+  if( (obj_table=g_hash_table_new(NULL,NULL)) == NULL ) return MOD_ERROR_VAL;
 
   /* Set class base types and make ready (i.e., inherit methods) */
-  if (PyType_Ready(&PygtsObjectType) < 0) return;
+  if (PyType_Ready(&PygtsObjectType) < 0) return MOD_ERROR_VAL;
 
   PygtsPointType.tp_base = &PygtsObjectType;
-  if (PyType_Ready(&PygtsPointType) < 0) return;
+  if (PyType_Ready(&PygtsPointType) < 0) return MOD_ERROR_VAL;
 
   PygtsVertexType.tp_base = &PygtsPointType;
-  if (PyType_Ready(&PygtsVertexType) < 0) return;
+  if (PyType_Ready(&PygtsVertexType) < 0) return MOD_ERROR_VAL;
 
   PygtsSegmentType.tp_base = &PygtsObjectType;
-  if (PyType_Ready(&PygtsSegmentType) < 0) return;
+  if (PyType_Ready(&PygtsSegmentType) < 0) return MOD_ERROR_VAL;
 
   PygtsEdgeType.tp_base = &PygtsSegmentType;
-  if (PyType_Ready(&PygtsEdgeType) < 0) return;
+  if (PyType_Ready(&PygtsEdgeType) < 0) return MOD_ERROR_VAL;
 
   PygtsTriangleType.tp_base = &PygtsObjectType;
-  if (PyType_Ready(&PygtsTriangleType) < 0) return;
+  if (PyType_Ready(&PygtsTriangleType) < 0) return MOD_ERROR_VAL;
 
   PygtsFaceType.tp_base = &PygtsTriangleType;
-  if (PyType_Ready(&PygtsFaceType) < 0) return;
+  if (PyType_Ready(&PygtsFaceType) < 0) return MOD_ERROR_VAL;
 
   PygtsSurfaceType.tp_base = &PygtsObjectType;
-  if (PyType_Ready(&PygtsSurfaceType) < 0) return;
+  if (PyType_Ready(&PygtsSurfaceType) < 0) return MOD_ERROR_VAL;
 
 
   /* Initialize the module */
-  m = Py_InitModule3("_gts", gts_methods,"Gnu Triangulated Surface Library");
-  if (m == NULL) return;
+  MOD_DEF(m,"_gts","Gnu Triangulated Surface Library",gts_methods);
+  if (m == NULL) return MOD_ERROR_VAL;
 
-#if PYGTS_HAS_NUMPY
-  /* Make sure Surface.iso can work with numpy arrays */
-  import_array()
-#endif
+  #if PYGTS_HAS_NUMPY
+    /* Make sure Surface.iso can work with numpy arrays */
+    import_array()
+  #endif
 
   /* Add new types to python */
   Py_INCREF(&PygtsObjectType);
@@ -795,4 +856,6 @@ init_gts(void)
 
   Py_INCREF(&PygtsSurfaceType);
   PyModule_AddObject(m, "Surface", (PyObject *)&PygtsSurfaceType);
+
+  return MOD_SUCCESS_VAL(m);
 }

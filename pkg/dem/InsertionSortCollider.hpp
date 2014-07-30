@@ -67,7 +67,7 @@ Possible performance improvements & bugs
 
 
 // #define this macro to enable timing within this engine
-// #define ISC_TIMING
+//#define ISC_TIMING
 
 // #define to turn on some tracing information for the periodic part
 // all code under this can be probably removed at some point, when the collider will have been tested thoroughly

@@ -444,7 +444,7 @@ interpolate_height(PygtsTriangle *self,PyObject *args)
   point.y = PYGTS_POINT_AS_GTS_POINT(p)->y;
 
   gts_triangle_interpolate_height(PYGTS_TRIANGLE_AS_GTS_TRIANGLE(self),
-				  &point);
+      &point);
 
   return Py_BuildValue("d",point.z);
 }
@@ -865,7 +865,6 @@ init(PygtsTriangle *self, PyObject *args, PyObject *kwds)
   return 0;
 }
 
-
 static int
 compare(PyObject *o1, PyObject *o2)
 {
@@ -879,12 +878,23 @@ compare(PyObject *o1, PyObject *o2)
   
   return pygts_triangle_compare(t1,t2);  
 }
+#if PY_MAJOR_VERSION >= 3
+  static PyObject* rich_compare(PyObject *o1, PyObject* o2, int op){
+    switch(op){
+      case Py_EQ:{
+         if(compare(o1,o2)) Py_RETURN_TRUE;
+         Py_RETURN_FALSE;
+      }
+      default: Py_RETURN_NOTIMPLEMENTED;
+    }
+  }
+#endif
+
 
 
 /* Methods table */
 PyTypeObject PygtsTriangleType = {
-    PyObject_HEAD_INIT(NULL)
-    0,                       /* ob_size */
+    PyVarObject_HEAD_INIT(NULL,0)
     "gts.Triangle",          /* tp_name */
     sizeof(PygtsTriangle),   /* tp_basicsize */
     0,                       /* tp_itemsize */
@@ -892,7 +902,11 @@ PyTypeObject PygtsTriangleType = {
     0,                       /* tp_print */
     0,                       /* tp_getattr */
     0,                       /* tp_setattr */
-    (cmpfunc)compare,        /* tp_compare */
+    #if PY_MAJOR_VERSION >= 3
+      0,
+    #else
+      (cmpfunc)compare,        /* tp_compare */
+    #endif
     0,                       /* tp_repr */
     0,                       /* tp_as_number */
     0,                       /* tp_as_sequence */
@@ -908,7 +922,11 @@ PyTypeObject PygtsTriangleType = {
     "Triangle object",       /* tp_doc */
     0,                       /* tp_traverse */
     0,                       /* tp_clear */
-    0,                       /* tp_richcompare */
+    #if PY_MAJOR_VERSION >= 3
+      (richcmpfunc)rich_compare, /* tp_richcompare */
+    #else
+      0,                       /* tp_richcompare */
+    #endif
     0,                       /* tp_weaklistoffset */
     0,                       /* tp_iter */
     0,                       /* tp_iternext */

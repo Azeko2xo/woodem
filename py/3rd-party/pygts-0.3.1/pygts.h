@@ -61,4 +61,17 @@
 
 #include "cleanup.h"
 
+// used in several cpp files without having any good header for it
+// defined in pygts.cpp
+FILE* FILE_from_py_file__raises(PyObject *f_);
+
+// helpers for py3k compatibility
+#if PY_MAJOR_VERSION < 3
+    #define PyLong_AsLong PyInt_AsLong
+    #define PyLong_Check PyInt_Check
+#endif
+
+
+
+
 #endif /* __PYGTS_H__ */
