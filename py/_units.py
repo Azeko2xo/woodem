@@ -9,17 +9,20 @@ unit={}
 baseUnit={}
 'Map units to their base units (with unit multiplier)'
 
+import sys
+PY3K=(sys.version_info[0]==3)
+
 def _makeUnitsDicts():
 	def addUnitMultiplier(name,mult):
 		global unit
-		name=unicode(name,'utf-8')
+		if not PY3K: name=unicode(name,'utf-8')
 		if name in unit:
 			if unit[name]==mult: return
 			raise ValueError('Inconsistent multipliers for unit "%s": %g, %g'%(name,unit[name],mult))
 		else: unit[name]=mult
 	def addUnitBase(name,base):
 		global baseUnit
-		name,base=unicode(name,'utf-8'),unicode(base,'utf-8')
+		if not PY3K: name,base=unicode(name,'utf-8'),unicode(base,'utf-8')
 		if name in baseUnit:
 			if baseUnit[name]==base: return
 			raise ValueError('Inconsistent base units for unit "%s": %s, %s'%(name,baseUnit[name],base))

@@ -7,6 +7,8 @@ import woo._customConverters
 import woo.dem, woo.core, woo.pre, woo.batch
 import sys, math, numpy
 
+PY3K=(sys.version_info[0]==3)
+
 class TestBatchResults(unittest.TestCase):
 	def setUp(self):
 		self.misc=dict(a='a',pi=math.pi,sphere=woo.dem.Sphere(radius=2.3))
@@ -30,18 +32,18 @@ class TestBatchResults(unittest.TestCase):
 	def _writeCsv(self,db,out):
 		woo.batch.dbToSpread(db,out,series=False)
 	def testSqlite(self):
-		'Batch: results in SQLite (store/read/XLS/CSV)'
+		'Batch: results in SQLite (store/read/XLS(X)/CSV)'
 		db=woo.master.tmpFilename()+'.sqlite'
 		self._writeDb(db)
 		self._checkDbContents(db)
-		self._writeXls(db,db+'.xls')
+		self._writeXls(db,db+('.xlsx' if PY3K else '.xls'))
 		self._writeCsv(db,db+'.csv')
 	@unittest.skipIf(sys.platform=='win32','HDF5 not supported under Windows yet.')	
 	def testHdf5(self):
-		'Batch: results in HDF5 (store/read/XLS/CSV)'
+		'Batch: results in HDF5 (store/read/XLS(X)/CSV)'
 		db=woo.master.tmpFilename()+'.hdf5'
 		self._writeDb(db)
 		self._checkDbContents(db)
-		self._writeXls(db,db+'.xls')
+		self._writeXls(db,db+('.xlsx' if PY3K else '.xls'))
 		self._writeCsv(db,db+'.csv')
 

@@ -8,9 +8,9 @@ import unittest
 import random
 from minieigen import *
 from math import *
+import woo
 from woo._customConverters import *
 from woo import utils
-from woo import *
 from woo.core import *
 from woo.dem import *
 from woo.pre import *
@@ -205,7 +205,7 @@ class TestLoop(unittest.TestCase):
 		'Loop: Scene.engines can be modified inside the loop transparently.'
 		S=woo.master.scene
 		S.engines=[
-			PyRunner(stepPeriod=1,command='from woo import*; from woo.dem import *; scene.engines=[ForceResetter(),ForceResetter(),Leapfrog(reset=False)]'), # change engines here
+			PyRunner(stepPeriod=1,command='from woo.core import *; from woo.dem import *; scene.engines=[ForceResetter(),ForceResetter(),Leapfrog(reset=False)]'), # change engines here
 			ForceResetter() # useless engine
 		]
 		S.subStepping=True

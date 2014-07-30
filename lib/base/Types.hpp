@@ -92,6 +92,14 @@ using std::abs;
 	#define WOO_CXX11_OVERRIDE override
 #endif
 
+// py 2x: iterator.next, py3k: iterator.__next__
+#if PY_MAJOR_VERSION >= 3
+	#define WOO_next_OR__next__ "__next__"
+#else
+	#define WOO_next_OR__next__ "next"
+#endif
+
+
 typedef unsigned int uint;
 typedef unsigned long ulong;
 typedef unsigned short ushort;

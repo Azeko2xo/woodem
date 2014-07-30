@@ -2,8 +2,8 @@
 
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-from woo import *
 from woo.qt.ObjectEditor import *
+import woo
 import woo.qt
 import woo.config
 from woo.dem import *

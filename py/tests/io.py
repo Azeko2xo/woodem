@@ -3,7 +3,6 @@ Test loading and saving woo objects in various formats
 '''
 import woo
 import unittest
-from woo import *
 from woo.core import *
 from woo.dem import *
 from woo.pre import *

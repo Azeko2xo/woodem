@@ -5,6 +5,8 @@ useQtConsole=False # does not work yet
 wooQApp=None
 
 import wooMain
+import sys
+PY3K=(sys.version_info[0]==3)
 
 if wooMain.options.fakeDisplay:
 	# do nothing, let all the imports happen without error
@@ -26,7 +28,11 @@ else:
 			# assume display is always available at Windows
 			woo.runtime.hasDisplay=True
 		else:
-			import Xlib.display
+			try:
+				import Xlib.display
+			except ImportError:
+				# raise something elase than ImportError, since that signals that a display is not available
+				raise RuntimeError("The python Xlib module could not be imported.")
 			# PyQt4's QApplication does exit(1) if it is unable to connect to the display
 			# we however want to handle this gracefully, therefore
 			# we test the connection with bare xlib first, which merely raises DisplayError
@@ -34,7 +40,7 @@ else:
 				# contrary to display.Display, _BaseDisplay does not check for extensions and that avoids spurious message "Xlib.protocol.request.QueryExtension" (bug?)
 				Xlib.display._BaseDisplay();
 				woo.runtime.hasDisplay=True
-			except: 
+			except:
 				# usually Xlib.error.DisplayError, but there can be Xlib.error.XauthError etc as well
 				# let's just pretend any exception means the display would not work
 				woo.runtime.hasDisplay=False
@@ -99,18 +105,16 @@ from PyQt4 import QtCore
 from woo.qt.ui_controller import Ui_Controller
 
 from woo.qt.Inspector import *
-from woo import *
-import woo.system, woo.config
+import woo,woo.system, woo.config
 
 try:
 	from woo._qt import *
+	import woo._qt._GLViewer
 	from woo._qt._GLViewer import *
 	OpenGL=True
-	#import woo._qt._GLViewer, woo._qt
-	#print woo
 	# document those with woo.qt
-	import _GLViewer
-	_docInlineModules=(woo._qt,_GLViewer)
+	import woo._qt._GLViewer
+	_docInlineModules=(woo._qt,woo._qt._GLViewer)
 	# load preferences, if the file exists
 except ImportError:
 	OpenGL=False
@@ -255,7 +259,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.generatorCombo.addItem(u'−')
 		self.preIndexOther=self.generatorCombo.count()-1
 		# make this item non-selectable by the user
-		self.generatorCombo.model().setData(self.generatorCombo.model().index(self.preIndexOther,0),QtCore.QVariant(0),QtCore.Qt.UserRole-1)
+		self.generatorCombo.model().setData(self.generatorCombo.model().index(self.preIndexOther,0),0 if PY3K else QtCore.QVariant(0),QtCore.Qt.UserRole-1)
 		# refresh the view
 		self.generatorComboSlot(0)
 	def addRenderers(self):
@@ -296,6 +300,8 @@ class ControllerClass(QWidget,Ui_Controller):
 				distributor=unicode(getattr(mod,'distributor') if hasattr(mod,'distributor') else u'−')
 				extras.append(ExInfo(name=exName,mod=mod,version=ver,distributor=distributor))
 		except ImportError: pass # no wooExtra modules installed
+		user=woo.master.scene.tags['user']
+		if not PY3K: user=user.decode('utf-8')
 		self.aboutGeneralLabel.setText('''<h4>System data</h4><table cellpadding='2px' rules='all' width='100%'>
 			<tr><td>user</td><td>{user}</td></tr>
 			<tr><td>cores</td><td>{nCores}</td></tr>
@@ -304,7 +310,7 @@ class ControllerClass(QWidget,Ui_Controller):
 			<tr><td>features&nbsp;</td><td>{features}</td></tr>
 			<tr><td>extras</td><td>{extraModules}</td></tr>
 		</table>
-		'''.format(user=woo.master.scene.tags['user'].decode('utf-8'),nCores=woo.master.numThreads,platform='<br>'.join(textwrap.wrap(platform.platform().replace('-',' '),40)),version=woo.config.version+'/'+woo.config.revision+(' (debug)' if woo.config.debug else ''),features=', '.join(woo.config.features),buildDate=woo.config.buildDate,flavor=((', flavor "'+woo.config.flavor+'"') if woo.config.flavor else ''),extraModules='<br>'.join(['{e.name} ({e.version})'.format(e=e) for e in extras])))
+		'''.format(user=user,nCores=woo.master.numThreads,platform='<br>'.join(textwrap.wrap(platform.platform().replace('-',' '),40)),version=woo.config.version+'/'+woo.config.revision+(' (debug)' if woo.config.debug else ''),features=', '.join(woo.config.features),buildDate=woo.config.buildDate,flavor=((', flavor "'+woo.config.flavor+'"') if woo.config.flavor else ''),extraModules='<br>'.join(['{e.name} ({e.version})'.format(e=e) for e in extras])))
 		if extras:
 			self.aboutExtraLabel.setText(u"<h4>Extra modules</h4><table cellpadding='10px' width='100%'>"+u''.join([u'<tr><td>wooExtra.<b>{e.name}&nbsp;</b><br>{e.version}</td><td>{e.distributor}</td></tr>'.format(e=e) for e in extras])+'</table')
 	def inspectSlot(self):

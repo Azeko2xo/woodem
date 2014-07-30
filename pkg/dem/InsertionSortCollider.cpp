@@ -146,6 +146,9 @@ void InsertionSortCollider::insertionSort(VecBounds& v, bool doCollide, int ax){
 		if(chunks==0) throw std::logic_error("0 chunks for parallel insertion sort!");
 		sortChunks=chunks; // for diagnostics
 
+		// too small chunks, go sequential
+		if(chunkSize<100){ insertionSort_part(v,doCollide,ax,0,v.size,0); return; }
+
 		// pre-compute split points
 		/*
 			============================================= bound sequence

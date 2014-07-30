@@ -78,8 +78,8 @@ class EnergyTracker: public Object{
 			.add_property("names",&EnergyTracker::names_py) /* return name->id map as python dict */ \
 			.add_property("_perThreadData",&EnergyTracker::perThreadData,"Contents as dictionary, where each value is tuple of individual threads' values (for debugging)"); \
 			/* define nested class */ \
-			py::scope foo(_classObj); \
-			py::class_<EnergyTracker::pyIterator>("iterator",py::init<pyIterator>()).def("__iter__",&pyIterator::iter).def("next",&pyIterator::next); 
+			/*py::scope foo(_classObj);*/ \
+			py::class_<EnergyTracker::pyIterator>("EnergyTracker_iterator",py::init<pyIterator>()).def("__iter__",&pyIterator::iter).def(WOO_next_OR__next__,&pyIterator::next); 
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_core_EnergyTracker__CLASS_BASE_DOC_ATTRS_PY);
 };
 WOO_REGISTER_OBJECT(EnergyTracker);

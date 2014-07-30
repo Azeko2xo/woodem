@@ -8,7 +8,6 @@ import random
 from minieigen import *
 from woo._customConverters import *
 from woo import utils
-from woo import *
 from woo.dem import *
 from woo.core import *
 from math import *

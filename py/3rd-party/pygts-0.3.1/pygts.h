@@ -63,12 +63,13 @@
 
 // used in several cpp files without having any good header for it
 // defined in pygts.cpp
-FILE* FILE_from_py_file__raises(PyObject *f_);
+FILE* FILE_from_py_file__raises(PyObject *f_, const char* mode);
 
 // helpers for py3k compatibility
 #if PY_MAJOR_VERSION < 3
-    #define PyLong_AsLong PyInt_AsLong
-    #define PyLong_Check PyInt_Check
+	#ifndef PyLong_AsLong
+	   #define PyLong_AsLong PyInt_AsLong
+	#endif
 #endif
 
 

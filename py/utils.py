@@ -7,10 +7,9 @@
 """Heap of functions that don't (yet) fit anywhere else.
 """
 
-import math,random,doctest,geom
+import math,random,doctest
 import woo, woo.dem, woo.core
 import sys,os
-from woo import *
 from minieigen import *
 
 from woo.dem import *
@@ -20,6 +19,7 @@ import woo.config
 
 # c++ implementations for performance reasons
 #from woo._utils import *
+#from woo._utils2 import *
 from woo._utils2 import *
 
 

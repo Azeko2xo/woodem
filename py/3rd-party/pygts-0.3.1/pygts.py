@@ -32,7 +32,8 @@
 import locale
 locale.setlocale(locale.LC_NUMERIC,'C')
 
-from _gts import *
+## PY3K compatibility
+from .._gts import *
 
 def get_coords_and_face_indices(s,unzip=False):
     """Returns the coordinates and face indices of Surface s.

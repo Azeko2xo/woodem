@@ -411,7 +411,7 @@ extern PyTypeObject PyIOBase_Type;
 // taken from:
 // https://github.com/mapserver/mapserver/issues/4748
 /* Translate Python's built-in file object to FILE * */
-static FILE* streamFromPyFile( PyObject* file )
+static FILE* streamFromPyFile(PyObject* file, const char* mode)
 {
   int fd;
   FILE* fs;
@@ -422,7 +422,7 @@ static FILE* streamFromPyFile( PyObject* file )
   fd = dup(fd);
   if (fd < 0) return NULL;
 
-  fs = fdopen(fd, "w");
+  fs = fdopen(fd, mode);
   if (fs == NULL) {
     close(fd);
     return NULL;
@@ -431,14 +431,14 @@ static FILE* streamFromPyFile( PyObject* file )
 }
 #endif
 
-FILE* FILE_from_py_file__raises(PyObject *f_){
+FILE* FILE_from_py_file__raises(PyObject *f_, const char* mode){
   FILE* f;
   #if PY_MAJOR_VERSION >= 3
     if(!PyObject_IsInstance(f_,(PyObject*)&PyIOBase_Type)){
       PyErr_SetString(PyExc_TypeError,"expected a File (PyIOBase_type).");
       return NULL;
     }
-    f=streamFromPyFile(f_);
+    f=streamFromPyFile(f_,mode);
     if(f==NULL){
        PyErr_SetString(PyExc_TypeError,"failed to obtained FILE* from the Python object (python 3 only).");
        return NULL;
@@ -468,7 +468,7 @@ pygts_read(PygtsSurface *self, PyObject *args)
   if(! PyArg_ParseTuple(args, "O", &f_) )
     return NULL;
 
-  f=FILE_from_py_file__raises(f_);
+  f=FILE_from_py_file__raises(f_,"r");
   if(!f) return NULL;
 
   if(feof(f)) {
@@ -777,7 +777,6 @@ static PyMethodDef gts_methods[] = {
 #if PY_MAJOR_VERSION >= 3
   #define MOD_ERROR_VAL NULL
   #define MOD_SUCCESS_VAL(val) val
-  #define MOD_INIT(name) PyMODINIT_FUNC __attribute__((visibility("default"))) PyInit_##name(void)
   #define MOD_DEF(ob, name, doc, methods) \
           static struct PyModuleDef moduledef = { \
             PyModuleDef_HEAD_INIT, name, doc, -1, methods, }; \
@@ -785,13 +784,17 @@ static PyMethodDef gts_methods[] = {
 #else
   #define MOD_ERROR_VAL
   #define MOD_SUCCESS_VAL(val)
-  #define MOD_INIT(name) PyMODINIT_FUNC __attribute__((visibility("default"))) init##name(void)
+  #define MOD_INIT(name) 
   #define MOD_DEF(ob, name, doc, methods) \
           ob = Py_InitModule3(name, methods, doc);
 #endif
 
-/* this is needed when compiling with distutils? */
-MOD_INIT(_gts)
+#if PY_MAJOR_VERSION >= 3
+  extern "C" __attribute__((visibility("default"))) PyObject* PyInit__gts()
+#else
+  /* this is needed when compiling with distutils? */
+  PyMODINIT_FUNC __attribute__((visibility("default"))) init_gts(void)
+#endif
 {
   PyObject* m;
 

@@ -20,6 +20,8 @@ import woo.document
 import sys
 import os.path, os
 
+PY3K=(sys.version_info[0]==3)
+
 
 from ExceptionDialog import *
 
@@ -972,7 +974,9 @@ class ObjectEditor(QFrame):
 	def getDocstring(self,attr=None):
 		"If attr is *None*, return docstring of the Object itself"
 		if attr==None:
-			if self.oneObject.__class__.__doc__!=None: doc=self.oneObject.__class__.__doc__.decode('utf-8')
+			if self.oneObject.__class__.__doc__!=None:
+				doc=self.oneObject.__class__.__doc__
+				if not PY3K: doc=doc.decode("utf-8")
 			else:
 				logging.error('Class %s __doc__ is None?'%self.ser.__class__.__name__)
 				return None
@@ -1113,7 +1117,8 @@ class ObjectEditor(QFrame):
 			ini=''
 		toolTip=entry.containingClass.__name__+'.<b><i>'+entry.name+'</i></b><br>'+entry.doc+('<br><small>default: %s</small>'%ini)
 		if self.labelIsVar: return woo.document.makeObjectHref(entry.obj,entry.name,text=entry.label),toolTip
-		return entry.doc.decode('utf-8'),toolTip
+		if PY3K: return entry.doc,toolTip
+		else: return entry.doc.decode('utf-8'),toolTip
 	def toggleLabelIsVar(self,val=None):
 		self.labelIsVar=(not self.labelIsVar if val==None else val)
 		for entry in self.entries:

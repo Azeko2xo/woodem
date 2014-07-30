@@ -14,6 +14,7 @@ from os.path import sep,join,basename,dirname
 DISTBUILD=None # set to None if building locally, or to a string when dist-building on a bot
 if 'DEB_BUILD_ARCH' in os.environ: DISTBUILD='debian'
 WIN=(sys.platform=='win32')
+PY3K=(sys.version_info[0]==3)
 
 if not DISTBUILD: # don't do parallel at buildbot
 	# monkey-patch for parallel compilation
@@ -66,7 +67,7 @@ if not version and os.path.exists('.bzr'):
 features=['qt4','vtk','opengl','gts','openmp']
 if 'CC' in os.environ and os.environ['CC'].endswith('clang'): features.remove('openmp')
 flavor='' #('' if WIN else 'distutils')
-if sys.version_info[0]==3: flavor+=('-' if flavor else '')+'py3k'
+if PY3K: flavor+=('-' if flavor else '')+'py3k'
 debug=False
 chunkSize=1 # (1 if WIN else 10)
 hotCxx=[] # plugins to be compiled separately despite chunkSize>1
@@ -172,7 +173,7 @@ def wooPrepareQt4():
 		pyuic4=['python',PyQt4.uic.__file__[:-12]+'pyuic.py']
 	else:
 		pyuic4=['pyuic4']
-	for tool,opts,inOut,enabled in [(['pyrcc4'],[],rccInOut,True),(pyuic4,[],uicInOut,True),(['moc'],['-DWOO_OPENGL','-DWOO_QT4'],mocInOut,('opengl' in features)),(['rcc'],['-name','GLViewer'],cxxRccInOut,('opengl' in features))]:
+	for tool,opts,inOut,enabled in [(['pyrcc4'],['-py3' if PY3K else '-py2'],rccInOut,True),(pyuic4,[],uicInOut,True),(['moc'],['-DWOO_OPENGL','-DWOO_QT4'],mocInOut,('opengl' in features)),(['rcc'],['-name','GLViewer'],cxxRccInOut,('opengl' in features))]:
 		if not enabled: continue
 		for fIn,fOut in inOut:
 			cmd=tool+opts+[fIn,'-o',fOut]
@@ -235,8 +236,9 @@ if DISTBUILD=='debian':
 
 cxxFlags+=['-Wall','-fvisibility=hidden','-std='+cxxStd,'-pipe']
 
+
 cxxLibs+=['m',
-	'boost_python',
+	'boost_python-py34' if PY3K else 'boost_python' ,
 	'boost_system',
 	'boost_thread',
 	'boost_date_time',

@@ -9,9 +9,6 @@ These classes are used internally in gui/py/PythonUI_rc.py and are not intended 
 import SocketServer,xmlrpclib,socket
 import sys,time,os,math
 
-from woo import *
-import woo.runtime
-
 useQThread=False
 "Set before using any of our classes to use QThread for background execution instead of the standard thread module. Mixing the two (in case the qt4 UI is running, for instance) does not work well."
 
@@ -22,13 +19,14 @@ bgThreads=[] # needed to keep background threads alive
 
 class InfoProvider:
 	def basicInfo(self):
+		import woo
 		S=woo.master.scene
 		ret=dict(step=S.step,dt=S.dt,stopAtStep=S.stopAtStep,time=S.time,id=S.tags['id'] if 'id' in S.tags else None,title=S.tags['title'] if 'title' in S.tags else None,threads=woo.master.numThreads,numBodies=(len(S.dem.par) if S.hasDem else -1),numIntrs=(len(S.dem.con) if S.hasDem else -1))
 		sys.stdout.flush(); sys.stderr.flush()
 		return ret
 	def plot(self):
 		try:
-			from woo import plot
+			import woo
 			S=woo.master.scene
 			if len(S.plot.plots)==0: return None
 			fig=S.plot.plot(subPlots=True,noShow=True)[0]
@@ -60,16 +58,9 @@ class PythonConsoleSocketEmulator(SocketServer.BaseRequestHandler):
 		self.request.send('Enter auth cookie: ')
 	def tryLogin(self):
 		if self.request.recv(1024).rstrip()==self.server.cookie:
-	  		self.server.authenticated+=[self.client_address]
-			self.request.send("""__   __    ____                 __  _____ ____ ____  
-\ \ / /_ _|  _ \  ___    ___   / / |_   _/ ___|  _ \ 
- \ V / _` | | | |/ _ \  / _ \ / /    | || |   | |_) |
-  | | (_| | |_| |  __/ | (_) / /     | || |___|  __/ 
-  |_|\__,_|____/ \___|  \___/_/      |_| \____|_|    
-
-(connected from %s:%d)
->>> """%(str(self.client_address[0]),self.client_address[1]))
-  			return True
+			self.server.authenticated+=[self.client_address]
+			self.request.send("Woo / TCP\n(connected from %s:%d)\n>>>"%(str(self.client_address[0]),self.client_address[1]))
+			return True
 		else:
 			import time
 			time.sleep(5)
@@ -162,6 +153,7 @@ def runServers(xmlrpc=False,tcpPy=False):
 	This socket is primarily used by woo-multi batch scheduler.
 	"""
 	if tcpPy:
+		import woo.runtime
 		srv=GenericTCPServer(handler=woo.remote.PythonConsoleSocketEmulator,title='TCP python prompt',cookie=True,minPort=9000)
 		woo.runtime.cookie=srv.server.cookie
 	if xmlrpc:

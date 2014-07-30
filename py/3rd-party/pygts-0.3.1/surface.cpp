@@ -355,7 +355,7 @@ pygts_write(PygtsSurface *self, PyObject *args)
     return NULL;
 
   /* Convert to PygtsObjects */
-  f=FILE_from_py_file__raises(f_);
+  f=FILE_from_py_file__raises(f_,"w");
   if(!f) return NULL;
 
   /* Write to the file */
@@ -379,7 +379,7 @@ pygts_write_oogl(PygtsSurface *self, PyObject *args)
     return NULL;
 
   /* Convert to PygtsObjects */
-  f=FILE_from_py_file__raises(f_);
+  f=FILE_from_py_file__raises(f_,"w");
   if(!f) return NULL;
 
   /* Write to the file */
@@ -403,7 +403,7 @@ pygts_write_oogl_boundary(PygtsSurface *self, PyObject *args)
     return NULL;
 
   /* Convert to PygtsObjects */
-  f=FILE_from_py_file__raises(f_);
+  f=FILE_from_py_file__raises(f_,"w");
   if(!f) return NULL;
 
   /* Write to the file */
@@ -427,7 +427,7 @@ pygts_write_vtk(PygtsSurface *self, PyObject *args)
     return NULL;
 
   /* Convert to PygtsObjects */
-  f=FILE_from_py_file__raises(f_);
+  f=FILE_from_py_file__raises(f_,"w");
   if(!f) return NULL;
 
   /* Write to the file */

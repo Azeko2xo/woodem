@@ -9,7 +9,7 @@ WIN=(sys.platform=='win32')
 class WooOptions(object):
 	def __init__(self):
 		'''Object holding load-time options for Woo. The object's dictionary is frozen after construction, which prevents mistakenly adding non-existing option. Do not construct this object directly, set attributes of the :obj:`wooMain.options` instance instead.'''
-		self.forceNoGui=True
+		self.forceNoGui=False
 		self.ompThreads=0
 		self.ompCores=[]
 		self.flavor=''
@@ -197,7 +197,7 @@ def main(sysArgv=None):
 		gdbBatch=tempfile.NamedTemporaryFile(prefix='woo-gdb-',delete=(not WIN))
 		sep='' if WIN else "'" # gdb seems to read files differently on windows??
 		args=[sep+arg.replace("'",r"\'").replace('\\','/')+sep for arg in sys.argv if arg!='--in-gdb']
-		gdbBatch.write('set pagination off\nrun '+' '.join(args)+'\n')
+		gdbBatch.write(('set pagination off\nrun '+' '.join(args)+'\n').encode('utf-8'))
 		if WIN: gdbBatch.close()
 		else: gdbBatch.flush()  
 		if opts.debug:

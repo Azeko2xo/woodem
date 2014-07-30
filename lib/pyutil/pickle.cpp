@@ -10,7 +10,11 @@ namespace woo{
 		if(initialized) return;
 		GilLock pyLock;
 		//cerr<<"[Pickler::ensureInitialized:gil]";
-		py::object cPickle=py::import("cPickle");
+		#if PY_MAJOR_VERSION >= 3
+			py::object cPickle=py::import("pickle");
+		#else
+			py::object cPickle=py::import("cPickle");
+		#endif
 		cPickle_dumps=cPickle.attr("dumps");
 		cPickle_loads=cPickle.attr("loads");
 		initialized=true;

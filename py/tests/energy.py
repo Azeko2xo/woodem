@@ -10,7 +10,6 @@ from minieigen import *
 from math import *
 from woo._customConverters import *
 from woo import utils
-from woo import *
 from woo.core import *
 from woo.dem import *
 from woo.pre import *

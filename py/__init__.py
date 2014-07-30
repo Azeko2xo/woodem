@@ -76,11 +76,11 @@ soSuffix=distutils.sysconfig.get_config_vars()['SO']
 if not WIN and (wooOptions.quirks & wooOptions.quirkIntel) and 'DISPLAY' in os.environ:
 	import os,subprocess
 	try:
-		vgas=subprocess.check_output("LC_ALL=C lspci | grep VGA",shell=True,stderr=subprocess.STDOUT).split('\n')
+		vgas=subprocess.check_output("LC_ALL=C lspci | grep VGA",shell=True,stderr=subprocess.STDOUT,universal_newlines=True).split('\n')
 		if len(vgas)==1 and 'Intel' in vgas[0]:
 			# popen does not raise exception if it fails
 			try:
-				glx=subprocess.check_output("LC_ALL=C glxinfo | grep 'OpenGL version string:'",shell=True,stderr=subprocess.STDOUT).split('\n')
+				glx=subprocess.check_output("LC_ALL=C glxinfo | grep 'OpenGL version string:'",shell=True,stderr=subprocess.STDOUT,universal_newlines=True).split('\n')
 				# this should cover broken drivers down to Ubuntu 12.04 which shipped Mesa 8.0
 				if len(glx)==1 and re.match('.* Mesa (9\.[01]|8\.0)\..*',glx[0]):
 					print 'Intel GPU + Mesa < 9.2 detected, setting LIBGL_ALWAYS_SOFTWARE=1\n\t(use --quirks=0 to disable)'
@@ -164,7 +164,7 @@ except ImportError:
 		maxFlav=max([len(flav) for flav in flavs])
 		print 'Available flavors are:'
 		for so,flav in zip(sos,flavs):
-			print '\t',string.ljust(flav,maxFlav),so
+			print '\t{0: <{1}}\t{2}'.format(flav,maxFlav,so)
 	raise
 sys.modules['woo._cxxInternal']=_cxxInternal
 
@@ -173,66 +173,79 @@ cxxInternalFile=_cxxInternal.__file__
 from . import core
 master=core.Master.instance
 
+PY3K=(sys.version_info[0]==3)
 
 #
 # create compiled python modules
 #
-if 0: 
+if sys.version_info>=(3,4): 
 	# will only work when http://bugs.python.org/issue16421 is fixed (python 3.4??)
 	import imp
 	for mod in master.compiledPyModules:
-		print 'Loading compiled module',mod,'from',cxxInternalFile
+		if 'WOO_DEBUG' in os.environ: print 'Loading compiled module',mod,'from',cxxInternalFile
 		# this inserts the module to sys.modules automatically
-		imp.load_dynamic(mod,cxxInternalFile)
-# WORKAROUND: create temporary symlinks
-def hack_loadCompiledModulesViaLinks(compiledModDir,tryInAnotherTempdir=True):
-	allSubmodules=[]
-	import os,sys
-	if not os.path.exists(compiledModDir): os.mkdir(compiledModDir)
-	sys.path=[compiledModDir]+sys.path
-	# move _customConverters to the start, so that imports reyling on respective converters don't fail
-	# remove woo._cxxInternal since it is imported already
-	cpm=master.compiledPyModules
-	cc='woo._customConverters'
-	#assert cc in cpm # FIXME: temporarily disabled
-	## HACK: import _gts this way until it gets separated
-	cpm=[cc]+[m for m in cpm if m!=cc and m!='woo._cxxInternal']
-	# run imports now
-	for iMod,mod in enumerate(cpm):
-		modpath=mod.split('.') 
-		linkName=os.path.join(compiledModDir,modpath[-1])+soSuffix # use just the last part to avoid hierarchy
-		if WIN:
-			try:
-				win_hardlink(os.path.abspath(cxxInternalFile),linkName)
-			except IOError:
-				sys.stderr.write('Creating hardlink failed - on Windows, _cxxInternal.pyd is copied to tempdir before being imported, so that hardlinks should be on the same partition. What\'s happening here? If you are using FAT filesystem, you are out of luck. With NTFS, hardlinks should work. Please report this error so that it can be fixed or worked around.\n')
-				raise
-		else: os.symlink(os.path.abspath(cxxInternalFile),linkName)
-		if 'WOO_DEBUG' in os.environ: print 'Loading compiled module',mod,'from symlink',linkName
-		sys.stdout.flush()
-		try: sys.modules[mod]=__import__(modpath[-1])
-		except ImportError:
-			# compiled without GTS
-			if mod=='_gts' and False:
-				if 'WOO_DEBUG' in os.environ: print 'Loading compiled module _gts: _gts module probably not compiled-in (ImportError)'
-				pass 
-			else: raise # otherwise it is serious
-		#__allSubmodules.append(modpath[1])
-		if len(modpath)==1: pass # nothing to do, adding to sys.modules is enough
-		elif len(modpath)==2: # subdmodule must be added to module
-			globals()[modpath[1]]=sys.modules[mod]
-			allSubmodules.append(modpath[1])
-		elif len(modpath)==3: # must be added to module and submodule
-			allSubmodules.append(modpath[1])
-			setattr(__import__('.'.join(modpath[:2])),modpath[2],sys.modules[mod])
-		else:
-			raise RuntimeError('Module %s does not have 2 or 3 path items and will not be imported properly.'%mod)
-	sys.path=sys.path[1:] # remove temp dir from the path again
-	return allSubmodules
-	
-allSubmodules=hack_loadCompiledModulesViaLinks(master.tmpFilename()) # this will be a directory
+		m=imp.load_dynamic(mod,cxxInternalFile)
+		# now put the module where it belongs
+		mm=mod.split('.')
+		if mm[0]!='woo': print 'ERROR: non-woo module %s imported from the shared lib? Expect troubles.'%mod
+		elif len(mm)==2: globals()[mm[1]]=m
+		else: setattr(eval('.'.join(mm[1:-1])),mm[-1],mm)
+	allSubmodules=master.compiledPyModules
 
-from . import config
+else:
+	if PY3K: print 'WARNING: importing only works in Python 2.x via workarounds, and in Python >= 3.4 properly. Your version %s will most likely break right here'%(sys.version)
+	# WORKAROUND: create temporary symlinks
+	def hack_loadCompiledModulesViaLinks(compiledModDir,tryInAnotherTempdir=True):
+		allSubmodules=[]
+		import os,sys
+		if not os.path.exists(compiledModDir): os.mkdir(compiledModDir)
+		sys.path=[compiledModDir]+sys.path
+		# move _customConverters to the start, so that imports reyling on respective converters don't fail
+		# remove woo._cxxInternal since it is imported already
+		cpm=master.compiledPyModules
+		cc='woo._customConverters'
+		#assert cc in cpm # FIXME: temporarily disabled
+		## HACK: import _gts this way until it gets separated
+		cpm=[cc]+[m for m in cpm if m!=cc and m!='woo._cxxInternal']
+		# run imports now
+		for iMod,mod in enumerate(cpm):
+			modpath=mod.split('.') 
+			linkName=os.path.join(compiledModDir,modpath[-1])+soSuffix # use just the last part to avoid hierarchy
+			if WIN:
+				try:
+					win_hardlink(os.path.abspath(cxxInternalFile),linkName)
+				except IOError:
+					sys.stderr.write('Creating hardlink failed - on Windows, _cxxInternal.pyd is copied to tempdir before being imported, so that hardlinks should be on the same partition. What\'s happening here? If you are using FAT filesystem, you are out of luck. With NTFS, hardlinks should work. Please report this error so that it can be fixed or worked around.\n')
+					raise
+			else: os.symlink(os.path.abspath(cxxInternalFile),linkName)
+			if 'WOO_DEBUG' in os.environ:
+				print 'Loading compiled module',mod,'from symlink',linkName
+				print 'modpath =',modpath
+			sys.stdout.flush()
+			try: sys.modules[mod]=__import__(modpath[-1])
+			except ImportError:
+				# compiled without GTS
+				if mod=='_gts' and False:
+					if 'WOO_DEBUG' in os.environ: print 'Loading compiled module _gts: _gts module probably not compiled-in (ImportError)'
+					pass 
+				else: raise # otherwise it is serious
+			if len(modpath)==1: pass # nothing to do, adding to sys.modules is enough
+			if len(modpath)>=2: # subdmodule must be added to module
+				globals()[modpath[1]]=sys.modules['.'.join(modpath[:2])]
+				allSubmodules.append(modpath[1])
+			if len(modpath)>=3: # must be added to module and submodule
+				allSubmodules.append(modpath[1])
+				setattr(globals()[modpath[1]],modpath[2],sys.modules[mod])
+			if len(modpath)>=4:
+				raise RuntimeError('Module %s does not have 2 or 3 path items and will not be imported properly.'%mod)
+		sys.path=sys.path[1:] # remove temp dir from the path again
+		return allSubmodules
+		
+	allSubmodules=hack_loadCompiledModulesViaLinks(master.tmpFilename()) # this will be a directory
+
+# from . import config # does not work in PY3K??
+# import woo.config
+config=sys.modules['woo.config']
 if 'gts' in config.features:
 	if 'gts' in sys.modules: raise RuntimeError("Woo was compiled with woo.gts; do not import external gts module, they clash with each other.")
 	from . import gts
@@ -261,7 +274,7 @@ def cleanOldTemps(prefix,keep):
 		pidfile=d+'/pid'
 		if not os.path.exists(pidfile): continue
 		try:
-			pid=int(open(pidfile).readlines()[0][:-1])
+			with open(pidfile) as f: pid=int(f.readlines()[0][:-1])
 			if not psutil.pid_exists(pid):
 				sys.stderr.write('Purging old %s (pid=%d)\n'%(d,pid))
 				shutil.rmtree(d)
@@ -295,8 +308,9 @@ if wooOptions.clDev:
 			master.defaultClDev=clDev
 	else: warnings.warn("--cl-dev ignored, since compiled without OpenCL.")
 
-
-import _customConverters
+# this import will fail with PY3K??
+if not PY3K:
+	from . import _customConverters
 
 from . import system
 # create proxies for deprecated classes
@@ -314,9 +328,9 @@ system.setExitHandlers()
 from minieigen import *
 
 # monkey-patches
-import _monkey
+from . import _monkey
 
-import _units 
+from . import _units 
 unit=_units.unit # allow woo.unit['mm']
 # hint fo pyinstaller to freeze this module
 from . import pyderived

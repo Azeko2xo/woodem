@@ -8,12 +8,23 @@ Module containing utility functions for plotting inside woo. Most functionality 
 __all__=['live','liveInterval','autozoom','legendAlpha','scientific','scatterMarkerKw']
 
 
-	
+import sys
+PY3K=sys.version_info[0]==3
 
 try:
-	import Image
-except:
+	if PY3K:
+		import PIL as Image
+	else:
+		import Image
+except ImportError:
 	raise ImportError("PIL (python-imaging package) must be installed to use woo.plot")
+
+# PY3K
+if PY3K:
+	def _bytes(s): return bytes(s,'ascii')
+else:
+	def _bytes(s): return s
+
 
 
 
@@ -479,6 +490,7 @@ def createPlots(P,subPlots=True,noShow=False,replace=True,scatterSize=60,wider=F
 					evEx=eval(ys[0][(2 if ys[0].startswith('**') else 1):],{'S':P.scene})
 					yNameFuncs.add(evEx)  # add callable or dictionary
 					# XXX: what is ys[1]? Previously, there was no line specifier there for dicts at least
+					print evEx,type(evEx), evEx.__iter__(),type(evEx.__iter__())
 					ySpecs2+=[(ret,ys[1]) for ret in evEx] # traverse list or dict keys
 				else: ySpecs2.append(ys)
 			if len(ySpecs2)==0:
@@ -782,9 +794,9 @@ def Scene_plot_saveDataTxt(P,fileName,vars=None):
 	if fileName.endswith('.bz2'): f=bz2.BZ2File(fileName,'wb')
 	elif fileName.endswith('.gz'): f=gzip.GzipFile(fileName,'wb')
 	else: f=open(fileName,'wb')
-	f.write("# "+"\t".join(vars)+"\n")
+	f.write(_bytes("# "+"\t".join(vars)+"\n"))
 	for i in range(len(data[vars[0]])):
-		f.write("\t".join([str(data[var][i]) for var in vars])+"\n")
+		f.write(_bytes("\t".join([str(data[var][i]) for var in vars])+"\n"))
 	f.close()
 
 

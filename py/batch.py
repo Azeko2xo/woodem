@@ -5,6 +5,9 @@ nan=float('nan')
 from math import * 
 from minieigen import *
 import warnings
+import sys
+
+PY3K=(sys.version_info[0]==3)
 
 try:
 	from lockfile import FileLock
@@ -71,9 +74,11 @@ def writeResults(scene,defaultDb='woo-results.hdf5',syncXls=True,dbFmt=None,seri
 		else: raise ValueError("Unable to determine database format from file extension: must be *.h5, *.hdf5, *.he5, *.hdf, *.sqlite, *.db.")
 
 	# make sure keys are unicode objects (which is what json converts to!)
-	# but preserve values using a 8-bit encoding)
-	# this sort-of sucks, hopefully there is a better solution soon
-	unicodeTags=dict([(key,val.decode('iso-8859-1')) for key,val in S.tags.items()])
+	if PY3K: unicodeTags=dict(S.tags)
+	else:
+		# but preserve values using a 8-bit encoding)
+		# this sort-of sucks, hopefully there is a better solution soon
+		unicodeTags=dict([(key,val.decode('iso-8859-1')) for key,val in S.tags.items()])
 	# make sure series are 1d arrays
 	if series==None:
 		series={}; series.update([('plot/'+k,v) for k,v in S.plot.data.items()])
@@ -149,9 +154,9 @@ def writeResults(scene,defaultDb='woo-results.hdf5',syncXls=True,dbFmt=None,seri
 
 	if syncXls:
 		import re
-		xls=db+'.xls'
+		xls=db+('.xlsx' if PY3K else '.xls')
 		if not quiet: print 'Converting %s to file://%s'%(db,os.path.abspath(xls))
-		dbToSpread(db,out=xls,dialect='xls')
+		dbToSpread(db,out=xls,dialect=('xlsx' if PY3K else 'xls'))
 	for ph in postHooks: ph(db)
 
 def _checkHdf5sim(sim):
@@ -382,53 +387,84 @@ def dbToSpread(db,out=None,dialect='xls',rows=False,series=True,ignored=('plotDa
 			field=fields0[fieldsLower.index(sf)] # get the case-sensitive one
 			fields=[field]+[f for f in fields if f!=field] # rearrange
 
-	if dialect.lower()=='xls' or (out and out.endswith('.xls')):
-		if out==None: raise ValueError('The *out* parameter must be given when using the xls dialect (refusing to write binary to standard output).')
+	xls=dialect.lower()=='xls' or (out and out.endswith('.xls'))
+	xlsx=dialect.lower()=='xlsx' or (out and out.endswith('.xlsx'))
+	if xls or xlsx:
+		if out==None: raise ValueError('The *out* parameter must be given when using the xls/xlsx dialects (refusing to write binary to standard output).')
 		# http://scienceoss.com/write-excel-files-with-python-using-xlwt/
 		# http://www.youlikeprogramming.com/2011/04/examples-generating-excel-documents-using-pythons-xlwt/
-		import xlwt, urllib
-		wbk=xlwt.Workbook('utf-8')
-		sheet=wbk.add_sheet(fixSheetname(db)) # truncate if too long, see below
-		# cell styling 
+		import urllib
 		import datetime
-		datetimeStyle=xlwt.XFStyle()
-		datetimeStyle.num_format_str='yyyy-mm-dd_hh:mm:ss' # http://office.microsoft.com/en-us/excel-help/number-format-codes-HP005198679.aspx
+		if xls:
+			import xlwt
+			wbk=xlwt.Workbook('utf-8')
+			sheet=wbk.add_sheet(fixSheetname(db)) # truncate if too long, see below
+			# datetime style
+			datetimeStyle=xlwt.XFStyle()
+			datetimeStyle.num_format_str='yyyy-mm-dd_hh:mm:ss' # http://office.microsoft.com/en-us/excel-help/number-format-codes-HP005198679.aspx
+			# header style
+			font=xlwt.Font()
+			font.bold=True
+			headStyle=xlwt.XFStyle()
+			headStyle.font=font
+			hrefStyle=xlwt.easyxf('font: underline single')
+			# default style
+			defaultStyle=xlwt.Style.default_style
+		else:
+			import xlsxwriter
+			wbk=xlsxwriter.Workbook(out)
+			sheet=wbk.add_worksheet(fixSheetname(db))
+			headStyle=wbk.add_format({'bold':True})
+			datetimeStyle=wbk.add_format({'num_format':'yyyy-mm-dd_hh:mm:ss'})
+			hrefStyle=wbk.add_format({'underline':1})
+			defaultStyle=None
+		# cell styling 
 		styleDict={datetime.datetime:datetimeStyle} # add styles for other custom types here
-		# header style
-		font=xlwt.Font()
-		font.bold=True
-		headStyle=xlwt.XFStyle()
-		headStyle.font=font
-		hrefStyle=xlwt.easyxf('font: underline single')
 		# normal and transposed setters
-		if rows: setCell=lambda r,c,data,style: sheet.write(r,c,data,style)
-		else: setCell=lambda r,c,data,style: sheet.write(c,r,data,style)
+		if rows: setCell=lambda s,r,c,data,style: write_cell(s,r,c,data,style)
+		else: setCell=lambda s,r,c,data,style: write_cell(s,c,r,data,style)
+		def write_cell(s,c,r,data,style):
+			hyperlink=isinstance(data,(str,unicode)) and (data.startswith('file://') or data.startswith('http://') or data.startswith('https://'))
+			if hyperlink:
+				if xls:
+					data=data.replace('"',"'")
+					data=xlwt.Formula('HYPERLINK("%s","%s")'%(urllib.quote(data,safe=':/'),data))
+					style=hrefStyle
+					s.write(c,r,data,style)
+				else:
+					s.write_url(c,r,data,string=data)
+			else:
+				if isinstance(data,numpy.int64): data=int(data)
+				elif isinstance(data,numpy.float64): data=float(data)
+				if isinstance(data,float) and (isinf(data) or isnan(data)): s.write(c,r,str(data),style)
+				s.write(c,r,data,style)
+
 		for col,field in enumerate(fields):
 			# headers
-			setCell(0,col,field,headStyle)
+			setCell(sheet,0,col,field,headStyle)
 			# data
 			for row,val in enumerate(allData[field]):
-				style=styleDict.get(type(val),xlwt.Style.default_style)
-				if isinstance(val,(str,unicode)) and (val.startswith('file://') or val.startswith('http://') or val.startswith('https://')):
-					val=val.replace('"',"'")
-					val=xlwt.Formula('HYPERLINK("%s","%s")'%(urllib.quote(val,safe=':/'),val))
-					style=hrefStyle
-				setCell(row+1,col,val,style)
+				style=styleDict.get(type(val),defaultStyle)
+				setCell(sheet,row+1,col,val,style)
 				# print row,type(val),val
 		# save data series
 		if seriesData:
 			for sheetName,dic in seriesData.items():
-				sheet=wbk.add_sheet(fixSheetname(sheetName))
+				if xls: sheet=wbk.add_sheet(fixSheetname(sheetName))
+				else: sheet=wbk.add_worksheet(fixSheetname(sheetName))
 				# perhaps write some header here
 				for col,colName in enumerate(sorted(dic.keys())):
 					sheet.write(0,col,colName,headStyle)
 					rowOffset=1 # length of header
 					for row in range(0,len(dic[colName])):
-						if row+rowOffset>65535:
+						if xls and row+rowOffset>65535:
 							print 'WARNING: the data being converted to XLS (%s) contain %d rows (with %d header rows), which is more than 65535, the limit of the XLS file format. Extra data will be discarded from the XLS output.'%(out,len(dic[colName]),rowOffset)
 							break
-						sheet.write(row+rowOffset,col,dic[colName][row])
-		wbk.save(out)
+						val=dic[colName][row]
+						if xlsx and (isnan(val) or isinf(val)): val=str(val)
+						sheet.write(row+rowOffset,col,val)
+		if xls: wbk.save(out)
+		else: wbk.close()
 	else:
 		if seriesData: raise RuntimeError('Data series can only be written with the *xls* dialect')
 		outt=(open(out,'w') if out else sys.stdout)
@@ -689,7 +725,7 @@ This class is used by :obj:`woo.utils.readParamsFromTable`.
 			if firstLine<0: firstLine=0
 			# text file, space separated
 			# read file in memory, remove newlines and comments; the [''] makes lines 1-indexed
-			ll=[re.sub('\s*#.*','',l[:-1]) for l in ['']+open(file,'r').readlines()]
+			with open(file,'r') as f: ll=[re.sub('\s*#.*','',l[:-1]) for l in ['']+f.readlines()]
 			# usable lines are those that contain something else than just spaces
 			usableLines=[i for i in range(len(ll)) if not re.match(r'^\s*(#.*)?$',ll[i])]
 			rawHeadings=ll[usableLines[0]].split()

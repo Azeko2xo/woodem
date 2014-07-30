@@ -10,7 +10,6 @@ import random,math
 from minieigen import *
 from woo._customConverters import *
 from woo import utils
-from woo import *
 import woo
 from woo.core import *
 from woo.dem import *

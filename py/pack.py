@@ -26,7 +26,6 @@ from woo import utils
 import numpy
 
 from minieigen import *
-from woo import *
 import woo
 import woo.dem
 
@@ -59,10 +58,10 @@ try: import gts
 except ImportError: pass
 
 # make c++ predicates available in this module
-from _packPredicates import * ## imported in randomDensePack as well
+from woo._packPredicates import * ## imported in randomDensePack as well
 # import SpherePack
-from _packSpheres import *
-from _packObb import *
+from woo._packSpheres import *
+from woo._packObb import *
 import woo
 _docInlineModules=(woo._packPredicates,woo._packSpheres,woo._packObb)
 
@@ -482,11 +481,11 @@ def randomDensePack(predicate,radius,mat=-1,dim=None,cropLayers=0,rRelFuzz=0.,sp
 
 	:return: SpherePack object with spheres, filtered by the predicate.
 	"""
-	import sqlite3, os.path, cPickle, time, sys, _packPredicates
+	import sqlite3, os.path, cPickle, time, sys, woo._packPredicates
 	from woo import log, core, dem
 	from math import pi
 	wantPeri=(spheresInCell>0)
-	if 'inGtsSurface' in dir(_packPredicates) and type(predicate)==inGtsSurface and useOBB:
+	if 'inGtsSurface' in dir(woo._packPredicates) and type(predicate)==inGtsSurface and useOBB:
 		center,dim,orientation=gtsSurfaceBestFitOBB(predicate.surf)
 		print "Best-fit oriented-bounding-box computed for GTS surface, orientation is",orientation
 		dim*=2 # gtsSurfaceBestFitOBB returns halfSize
