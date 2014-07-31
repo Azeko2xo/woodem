@@ -443,7 +443,6 @@ def dbToSpread(db,out=None,dialect='xls',rows=False,series=True,ignored=('plotDa
 		for col,field in enumerate(fields):
 			# headers
 			setCell(sheet,0,col,field,headStyle)
-			print 'COLUMN =',col
 			# data
 			for row,val in enumerate(allData[field]):
 				style=styleDict.get(type(val),defaultStyle)
