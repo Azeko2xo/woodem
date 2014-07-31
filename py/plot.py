@@ -17,7 +17,7 @@ try:
 	else:
 		import Image
 except ImportError:
-	raise ImportError("PIL (python-imaging package) must be installed to use woo.plot")
+	print 'WARN: PIL/Image module (python-imaging) not importable, embedding images into plots will give errors.'
 
 # PY3K
 if PY3K:
@@ -343,6 +343,7 @@ class LineRef:
 			# image name
 			try:
 				if len(self.xdata)==0 and self.dataName: self.xdata=self.imgData[self.dataName]  # empty list reference an empty singleton, not the list we want; adjust here
+				import Image
 				if self.xdata[current]==None: img=Image.new('RGBA',(1,1),(0,0,0,0))
 				else: img=Image.open(self.xdata[current])
 				self.line.set_data(img)
@@ -438,6 +439,7 @@ def createPlots(P,subPlots=True,noShow=False,replace=True,scatterSize=60,wider=F
 		if plots[p]==None: # image plot
 			if not pStrip in imgData.keys(): imgData[pStrip]=[]
 			# fake (empty) image if no data yet
+			import Image
 			if len(imgData[pStrip])==0 or imgData[pStrip][-1]==None: img=Image.new('RGBA',(1,1),(0,0,0,0))
 			else: img=Image.open(imgData[pStrip][-1])
 			img=axes.imshow(img,origin='upper')
@@ -660,6 +662,7 @@ def savePlotSequence(P,fileBase,stride=1,imgRatio=(5,7),title=None,titleFrames=2
 		sys.stderr.write('[%d]'%i)
 	if len(ret)==0: raise RuntimeError("No images created?!")
 	if title:
+		import Image
 		titleImgName=fileBase+'-title.png'
 		createTitleFrame(titleImgName,Image.open(ret[-1]).size,title)
 		ret=titleFrames*[titleImgName]+ret
