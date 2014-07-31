@@ -420,6 +420,7 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 	ipython_version=woo.runtime.ipython_version()
 	import woo.ipythonintegration
 	woo.ipythonintegration.replaceInputHookIfNeeded()
+	print ipython_version
 	if ipython_version==10:
 		from IPython.Shell import IPShellEmbed
 		ipshell=IPShellEmbed(banner=banner,rc_override=ipconfig)
@@ -428,7 +429,7 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 		# http://lists.ipython.scipy.org/pipermail/ipython-user/2008-September/005839.html
 		import IPython.ipapi
 		IPython.ipapi.get().IP.atexit_operations()
-	elif ipython_version in (11,12,13,100,110,120):
+	elif ipython_version in (11,12,13,100,110,120,200,210):
 		if qtConsole:
 			qapp.start()
 		else:

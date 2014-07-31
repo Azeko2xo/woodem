@@ -26,11 +26,13 @@ def ipython_version():
 		if IPython.__version__.startswith('1.0'): ret=100
 		elif IPython.__version__.startswith('1.1'): ret=110
 		elif IPython.__version__.startswith('1.2'): ret=120
+		elif IPython.__version__.startswith('2.0'): ret=200
+		elif IPython.__version__.startswith('2.1'): ret=210
 		else: ret=int(IPython.__version__.split('.',2)[1]) ## convert '0.10' to 10, '0.11.alpha1.bzr.r1223' to 11
 	except ValueError:
 		print 'WARN: unable to extract IPython version from %s, defaulting to 0.13'%(IPython.__version__)
 		ret=13
-	if ret not in (10,11,12,13,100,110,120): # versions that we are able to handle, round up or down correspondingly
+	if ret not in (10,11,12,13,100,110,120,200,210): # versions that we are able to handle, round up or down correspondingly
 		newipver=10 if ret<10 else 110
 		print 'WARN: unhandled IPython version %d.%d, assuming %d.%d instead.'%(ret%100,ret//100,newipver%100,newipver//100)
 		ret=newipver
