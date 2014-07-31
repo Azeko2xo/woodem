@@ -76,9 +76,10 @@ env.SharedLibrary(pySharedObject,pyObjects,
 #
 # EXECUTABLES HERE
 #
+import sys
 pyMain='$EXECDIR/woo'+('-'+env['flavor'] if env['flavor'] else '')
-env.InstallAs(pyMain,env.Textfile('main.py','#!/usr/bin/python\nimport wooMain,sys; sys.exit(wooMain.main())\n'))
-env.InstallAs(pyMain+'-batch',env.Textfile('batch.py','#!/usr/bin/python\nimport wooMain,sys; sys.exit(wooMain.batch())\n'))
+env.InstallAs(pyMain,env.Textfile('main.py','#!%s\nimport wooMain,sys; sys.exit(wooMain.main())\n'%sys.executable))
+env.InstallAs(pyMain+'-batch',env.Textfile('batch.py','#!%s\nimport wooMain,sys; sys.exit(wooMain.batch())\n'%sys.executable))
 env.AddPostAction(pyMain,Chmod(pyMain,0755))
 env.AddPostAction(pyMain+'-batch',Chmod(pyMain+'-batch',0755))
 

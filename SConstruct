@@ -95,7 +95,7 @@ def colonSplit(x): return x.split(':')
 
 import site
 
-if hasattr(site,'getsitepakages'): defaultLIBDIR=site.getsitepackages()[0]
+if hasattr(site,'getsitepackages'): defaultLIBDIR=site.getsitepackages()[0]
 else: defaultLIBDIR=None
 
 
