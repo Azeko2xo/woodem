@@ -138,3 +138,26 @@ py::object BoxDeleter::pyPsd(bool _mass, bool cumulative, bool normalize, int _n
 	}
 }
 
+#ifdef WOO_OPENGL
+void BoxDeleter::render(const GLViewInfo&){
+	if(isnan(glColor)) return;
+	Vector3r center;
+	if(!node){
+		GLUtils::AlignedBox(box,CompUtils::mapColor(glColor));
+		center=box.center();
+	} else {
+		glPushMatrix();
+			GLUtils::setLocalCoords(node->pos,node->ori);
+			GLUtils::AlignedBox(box,CompUtils::mapColor(glColor));
+		glPopMatrix();
+		center=node->loc2glob(box.center());
+	}
+	if(!glHideZero || !(isnan(currRate) || currRate==0) || mass!=0){
+		//if(glHideZero && (isnan(currRate) || currRate==0) && mass==0) goto ret;
+		std::ostringstream oss;
+		oss.precision(4); oss<<mass;
+		if(!isnan(currRate)){ oss.precision(3); oss<<"\n("<<currRate<<")"; }
+		GLUtils::GLDrawText(oss.str(),center,CompUtils::mapColor(glColor));
+	}
+}
+#endif

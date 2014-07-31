@@ -11,16 +11,7 @@ struct BoxDeleter: public PeriodicEngine{
 	DECLARE_LOGGER;
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	#ifdef WOO_OPENGL
-		void render(const GLViewInfo&){
-			if(isnan(glColor)) return;
-			if(node){ glPushMatrix(); GLUtils::setLocalCoords(node->pos,node->ori); }
-			GLUtils::AlignedBox(box,CompUtils::mapColor(glColor));
-			if(glHideZero && (isnan(currRate) || currRate==0) && mass==0) return;
-			std::ostringstream oss; oss.precision(4); oss<<mass;
-			if(!isnan(currRate)){ oss.precision(3); oss<<"\n("<<currRate<<")"; }
-			GLUtils::GLDrawText(oss.str(),box.center(),CompUtils::mapColor(glColor));
-			if(node) glPopMatrix();
-		}
+		void render(const GLViewInfo&);
 	#endif
 
 	bool boxContains(const Vector3r& p){ return box.contains(node?node->glob2loc(p):p); }
