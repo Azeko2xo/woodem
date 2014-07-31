@@ -178,8 +178,11 @@ PY3K=(sys.version_info[0]==3)
 #
 # create compiled python modules
 #
-if sys.version_info>=(3,4): 
+if PY3K:
+	if sys.version_info<(3,4): 
+		print 'WARNING: in Python 3.x, importing only works in Python >= 3.4 properly. Your version %s will most likely break right here.'%(sys.version)
 	# will only work when http://bugs.python.org/issue16421 is fixed (python 3.4??)
+	allSubmodules=set()
 	import imp
 	for mod in master.compiledPyModules:
 		if 'WOO_DEBUG' in os.environ: print 'Loading compiled module',mod,'from',cxxInternalFile
@@ -188,15 +191,15 @@ if sys.version_info>=(3,4):
 		# now put the module where it belongs
 		mm=mod.split('.')
 		if mm[0]!='woo': print 'ERROR: non-woo module %s imported from the shared lib? Expect troubles.'%mod
-		elif len(mm)==2: globals()[mm[1]]=m
+		elif len(mm)==2:
+			allSubmodules.add(mm[1])
+			globals()[mm[1]]=m
 		else: setattr(eval('.'.join(mm[1:-1])),mm[-1],mm)
-	allSubmodules=master.compiledPyModules
 
 else:
-	if PY3K: print 'WARNING: importing only works in Python 2.x via workarounds, and in Python >= 3.4 properly. Your version %s will most likely break right here'%(sys.version)
 	# WORKAROUND: create temporary symlinks
 	def hack_loadCompiledModulesViaLinks(compiledModDir,tryInAnotherTempdir=True):
-		allSubmodules=[]
+		allSubmodules=set()
 		import os,sys
 		if not os.path.exists(compiledModDir): os.mkdir(compiledModDir)
 		sys.path=[compiledModDir]+sys.path
@@ -232,9 +235,8 @@ else:
 			if len(modpath)==1: pass # nothing to do, adding to sys.modules is enough
 			if len(modpath)>=2: # subdmodule must be added to module
 				globals()[modpath[1]]=sys.modules['.'.join(modpath[:2])]
-				allSubmodules.append(modpath[1])
+				allSubmodules.add(modpath[1])
 			if len(modpath)>=3: # must be added to module and submodule
-				allSubmodules.append(modpath[1])
 				setattr(globals()[modpath[1]],modpath[2],sys.modules[mod])
 			if len(modpath)>=4:
 				raise RuntimeError('Module %s does not have 2 or 3 path items and will not be imported properly.'%mod)
@@ -318,7 +320,7 @@ deprecatedTypes=system.cxxCtorsDict()
 # insert those in the module namespace
 globals().update(deprecatedTypes)
 # declare what should be imported for "from woo import *"
-__all__=deprecatedTypes.keys()+['master']+allSubmodules
+__all__=deprecatedTypes.keys()+['master']+list(allSubmodules)
 
 # avoids backtrace if crash at finalization (log4cxx)
 system.setExitHandlers() 
