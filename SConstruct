@@ -95,9 +95,13 @@ def colonSplit(x): return x.split(':')
 
 import site
 
+if hasattr(site,'getsitepakages'): defaultLIBDIR=site.getsitepackages()[0]
+else: defaultLIBDIR=None
+
+
 opts.AddVariables(
 	### OLD: use PathOption with PathOption.PathIsDirCreate, but that doesn't exist in 0.96.1!
-	('LIBDIR','Install directory for python modules (the default is obtained via "import site; site.getsitepackages()[0]")',site.getsitepackages()[0]),
+	('LIBDIR','Install directory for python modules (the default is obtained via "import site; site.getsitepackages()[0]"; in virtual environments, where getsitepackages it not defined, it MUST be specified; in that case, also specify EXECDIR and use the virtual python interpreter to run SCons)',defaultLIBDIR),
 	('EXECDIR','Install directory for executables','/usr/local/bin'),
 	# ('variant','Build variant, will be suffixed to all files, along with version.','-'+flavor if flavor else '',None,lambda x:x),
 	BoolVariable('debug', 'Enable debugging information',0),

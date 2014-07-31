@@ -56,20 +56,24 @@ void VtkFlowExport::setupGrid(){
 			pointParticle.push_back(p->id);
 			assert(newId==(int)pointParticle.size()-1);
 		} else {
-			// make sure that velocity is the scalar -- otherwise we won't be able to get any meaningful data
-			if(Tracer::scalar!=Tracer::SCALAR_VEL) throw std::runtime_error("VtkFlowExport: when analyzing traces, the woo.dem.Tracer.scalar must be velocity (woo.dem.Tracer.scalarVel).");
-			const auto& node(p->shape->nodes[0]);
-			if(!node->rep || !node->rep->isA<TraceGlRep>()) continue; // no trace data for this particle
-			const auto& trace(node->rep->cast<TraceGlRep>());
-			Vector3r pt; Real scalar;
-			// getPointData returns false when there is nothing left
-			for(int i=0; trace.getPointData(i,pt,scalar); i++){
-				__attribute__((unused)) vtkIdType newId=locatorPoints->InsertNextPoint(pt.data());
-				pointParticle.push_back(p->id);
-				pointSpeed.push_back(scalar);
-				assert(newId==(int)pointParticle.size()-1);
-				assert(pointParticle.size()==pointSpeed.size());
-			}
+			#ifndef WOO_OPENGL
+				throw std::runtime_error("VtkFlowExport.traces: only works when compiled with the 'opengl' features.");
+			#else
+				// make sure that velocity is the scalar -- otherwise we won't be able to get any meaningful data
+				if(Tracer::scalar!=Tracer::SCALAR_VEL) throw std::runtime_error("VtkFlowExport: when analyzing traces, the woo.dem.Tracer.scalar must be velocity (woo.dem.Tracer.scalarVel).");
+				const auto& node(p->shape->nodes[0]);
+					if(!node->rep || !node->rep->isA<TraceGlRep>()) continue; // no trace data for this particle
+					const auto& trace(node->rep->cast<TraceGlRep>());
+				Vector3r pt; Real scalar;
+				// getPointData returns false when there is nothing left
+				for(int i=0; trace.getPointData(i,pt,scalar); i++){
+					__attribute__((unused)) vtkIdType newId=locatorPoints->InsertNextPoint(pt.data());
+					pointParticle.push_back(p->id);
+					pointSpeed.push_back(scalar);
+					assert(newId==(int)pointParticle.size()-1);
+					assert(pointParticle.size()==pointSpeed.size());
+				}
+			#endif
 		}
 	}
 	locatorGrid=vtkUnstructuredGrid::New();

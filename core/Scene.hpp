@@ -19,7 +19,9 @@
 
 struct Bound;
 struct Field;
-struct ScalarRange;
+#ifdef WOO_OPENGL
+	struct ScalarRange;
+#endif
 
 struct Scene: public Object{
 		// this is managed by methods of Scene exclusively

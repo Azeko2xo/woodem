@@ -14,6 +14,11 @@
 	#define GC_CHECKPOINT2(cpt)
 #endif
 
+#ifdef WOO_OPENGL
+	#define woo_dem_GridCollider__occupancyRange__OPENGL ((shared_ptr<ScalarRange>,occupancyRange,,,"Range for coloring grids based on occupancy (automatically created)"))
+#else
+	#define woo_dem_GridCollider__occupancyRange__OPENGL
+#endif
 
 
 struct GridCollider: public Collider{
@@ -61,7 +66,7 @@ struct GridCollider: public Collider{
 		((Vector3r,color,Vector3r(1,1,0),AttrTrait<>().rgbColor().startGroup("Rendering"),"Color for rendering the domain")) \
 		((bool,renderCells,false,,"Render cells.")) \
 		((int,minOccup,0,,"Minimum occupancy for cell to be rendered (zero cells are never rendered).")) \
-		((shared_ptr<ScalarRange>,occupancyRange,,,"Range for coloring grids based on occupancy (automatically created)")) \
+		woo_dem_GridCollider__occupancyRange__OPENGL \
 		/* tunables */ \
 		((int,gridDense,6,AttrTrait<>().startGroup("Tunables"),"Length of dense storage for new :obj:`GridStore` objects.")) \
 		((int,exIniSize,6,,":obj:`GridStore.exIniSize` for new grids.")) \

@@ -1,5 +1,7 @@
 #pragma once 
 
+#ifdef WOO_OPENGL
+
 #include<woo/core/Field.hpp>
 #include<woo/core/Scene.hpp>
 #include<woo/pkg/dem/Particle.hpp>
@@ -76,4 +78,4 @@ struct Tracer: public PeriodicEngine{
 };
 WOO_REGISTER_OBJECT(Tracer);
 
-
+#endif /* WOO_OPENGL */

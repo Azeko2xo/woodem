@@ -4,6 +4,7 @@
 #include<woo/core/Functor.hpp>
 #include<woo/pkg/dem/Particle.hpp>
 #include<woo/pkg/dem/Collision.hpp>
+#include<woo/pkg/dem/Contact.hpp>
 
 
 /* ***************************************** */

@@ -2,6 +2,7 @@
 
 #pragma once
 #include<woo/pkg/dem/Collision.hpp>
+#include<woo/pkg/dem/Contact.hpp>
 #include<woo/core/Scene.hpp>
 
 
