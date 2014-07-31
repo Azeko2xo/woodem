@@ -121,7 +121,7 @@ def writeResults(scene,defaultDb='woo-results.hdf5',syncXls=True,dbFmt=None,seri
 			hdf=h5py.File(db,'a',libver='latest')
 		except IOError:
 			import warnings
-			warnings.warn("Error opening HDF5 file %s, moving to %s~~corrupt and creating a new one")
+			warnings.warn("Error opening HDF5 file %s, moving to %s~~corrupt and creating a new one"%(db,db))
 			import shutil
 			shutil.move(db,db+'~~corrupt')
 			hdf=h5py.File(db,'a',libver='latest')
@@ -436,12 +436,14 @@ def dbToSpread(db,out=None,dialect='xls',rows=False,series=True,ignored=('plotDa
 			else:
 				if isinstance(data,numpy.int64): data=int(data)
 				elif isinstance(data,numpy.float64): data=float(data)
-				if isinstance(data,float) and (isinf(data) or isnan(data)): s.write(c,r,str(data),style)
-				s.write(c,r,data,style)
+				# XLSX does not handle NaN/Inf (yet)
+				if not xls and isinstance(data,float) and (isinf(data) or isnan(data)): s.write(c,r,str(data),style)
+				else: s.write(c,r,data,style)
 
 		for col,field in enumerate(fields):
 			# headers
 			setCell(sheet,0,col,field,headStyle)
+			print 'COLUMN =',col
 			# data
 			for row,val in enumerate(allData[field]):
 				style=styleDict.get(type(val),defaultStyle)
