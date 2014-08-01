@@ -60,7 +60,7 @@ flavorOpts.Update(env)
 # if env['flavor']=='': env['flavor']='default'
 # save the flavor only if the last char is not !
 saveFlavor=True
-if env['flavor'] and env['flavor'][-1]=='!': env['flavor'],noSaveFlavor=env['flavor'][:-1],False
+if env['flavor'] and env['flavor'][-1]=='!': env['flavor'],saveFlavor=env['flavor'][:-1],False
 if saveFlavor: flavorOpts.Save(flavorFile,env)
 
 #if env['flavor']=='': env['flavor']='default'
@@ -93,17 +93,29 @@ def colonSplit(x): return x.split(':')
 #  2. lowercase options influence the building process, compiler options and the like.
 #
 
-import site
+## detect virtual environment
+## http://stackoverflow.com/a/1883251/761090
+import sys,site
+VENV=hasattr(sys,'real_prefix')
+if not hasattr(site,'getsitepackages'):
+	# avoid this warning for rebuilds using -R, which should actually work just fine
+	if saveFlavor:
+		print 'WARN: it seems that you are running SCons inside a virtual environment, without having set it up properly (e.g. "source /my/virtual/env/bin/activate"). (sys.real_prefix is not defined, but site.getsitepackages is not defined either.) I will pretend we are inside a virtual environment, but things may break.'
+	VENV=True
 
-if hasattr(site,'getsitepackages'): defaultLIBDIR=site.getsitepackages()[0]
-else: defaultLIBDIR=None
+if VENV:
+	defaultEXECDIR=sys.prefix+'/bin'
+	pp=[p for p in sys.path if p.endswith('/site-packages')]
+	defaultLIBDIR=pp[-1] if pp else None
+	if not defaultLIBDIR: print 'WARN: no good default value of LIBDIR was found, you will have to specify one my hand'
+else:
+	defaultEXECDIR='/usr/local/bin'
+	defaultLIBDIR=site.getsitepackages()[0]
 
 
 opts.AddVariables(
-	### OLD: use PathOption with PathOption.PathIsDirCreate, but that doesn't exist in 0.96.1!
 	('LIBDIR','Install directory for python modules (the default is obtained via "import site; site.getsitepackages()[0]"; in virtual environments, where getsitepackages it not defined, it MUST be specified; in that case, also specify EXECDIR and use the virtual python interpreter to run SCons)',defaultLIBDIR),
-	('EXECDIR','Install directory for executables','/usr/local/bin'),
-	# ('variant','Build variant, will be suffixed to all files, along with version.','-'+flavor if flavor else '',None,lambda x:x),
+	('EXECDIR','Install directory for executables; defaults to /usr/local/bin in normal environemtns and to $VIRTUAL_ENV/bin in virtual environments',defaultEXECDIR),
 	BoolVariable('debug', 'Enable debugging information',0),
 	BoolVariable('gprof','Enable profiling information for gprof',0),
 	('optimize','Turn on optimizations; negative value sets optimization based on debugging: not optimize with debugging and vice versa. -3 (the default) selects -O3 for non-debug and no optimization flags for debug builds',-3,None,int),

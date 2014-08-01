@@ -7,15 +7,19 @@ Linux
 
 Linux is the platform of choice for both developing and using Woo. Installation can be done in several ways, trading fexibility for straightforwardness.
 
-.. admonition:: Package installation (Ubuntu, Debian)
+Package installation
+---------------------
+.. admonition:: Recommendation
 
-	This is the recommended method of installation. You will receive updates automatically via your system's package manager. `Woo-daily package archive <https://code.launchpad.net/~eudoxos/+archive/woo-daily>`_ contains the packages. Open the terminal and type::
+   Installation from packages is the recommended method of installation. You will receive updates automatically via your system's package manager. `Woo-daily package archive <https://code.launchpad.net/~eudoxos/+archive/woo-daily>`_ contains the packages. Open the terminal and type::
 
-		sudo add-apt-repository ppa:eudoxos/woo-daily
-		sudo apt-get update
-		sudo apt-get install python-woo
+   	sudo add-apt-repository ppa:eudoxos/woo-daily
+   	sudo apt-get update
+   	sudo apt-get install python-woo
+
 
 Compilation from source
+-----------------------
 	Source code is hosted at `Launchpad <http://www.launchpad.net/woo>`_ and can be obtained with the `Bazaar revision control system <http://bazaar.canonical.com>`_ by saying ``bzr checkout lp:woo``.
 
 	Woo is written in `C++11 <http://en.wikipedia.org/wiki/C%2B%2B11>`_ and can be compiled with gcc>=4.6 or clang >= 3.1. Note that clang does not support all features (``openmp`` in particular).
@@ -49,12 +53,35 @@ Compilation from source
 		gts
 			Enable building the (adapted) :obj:`woo.gts` module.
 	jobs
-		Number of compilations to run simultaneously. Can be set to the number of cores your machine has, but make sure you have at least 4GB RAM per each job if you use ``gcc`` − Woo is extremely RAM-hungry during compilation, due to extensive use of templates.
+		Number of compilations to run simultaneously. Can be set to the number of cores your machine has, but make sure you have at least 3GB RAM per each job if you use ``gcc`` − Woo is quite RAM-hungry during compilation, due to extensive use of templates, especially in boost::python.
 	CPPPATH
 		Path for preprocessor. Usually, you only need to set this if you have VTK or Eigen in non-standard locations.
 
 	For quick development, woo takes the ``-R`` flag, which will recompile itself and run. The ``-RR`` flag will, in addition, update the source before recompiling.
-		 	
+
+Virtual environment
+^^^^^^^^^^^^^^^^^^^
+
+Python allows for creation of separate `Virtual environments <http://docs.python-guide.org/en/latest/dev/virtualenvs/>`__ which is an isolated working copy of Pyhon. This is useful if you want to keep multiple version of Woo around simultaneously, or don't want to install system-wide (where different users need a different version, and perhaps don't have permissions to install to system directories).
+
+If you want to use SCons for building (which is quite useful for keeping your installation up-to-date, and necessary if you want to modify the source code), do something like the following example. You need to have all required headers and libraries installed somewhere where they will be found. This example compiles Woo without the ``opengl`` and ``qt4`` features, for running Woo without the graphical interface (useful e.g. on computing nodes in clusters). Something like this::
+
+    pip install virtualenv
+    virtualenv my/venv               # create the virtual environment in some directory
+    source my/venv/acticate          # sets environment variables (e.g. $PATH) so that venv commands are found first
+    pip install --egg scons
+    pip install minieigen ipython numpy matplotlib genshi xlwt xlrd h5py lockfile psutil pillow bzr
+    bzr co lp:woo woo                # checkout the source from Launchpad
+    ## for wooExtra modules:
+    # mkdir woo/wooExtra             # create directory for extras
+    # bzr co URL woo/wooExtra/...    # checkout extras, put them under there so that they are installed automatically
+    cd woo
+    scons features='vtk,gts,openmp'  # compile the source
+    woo
+    deactivate
+
+The ``woo`` executable remembers virtual python used during the build (in `shebang <http://en.wikipedia.org/wiki/Shebang_%28Unix%29>`__), so you can also execute it *without* activating the virtual environment the next time, and it *should* work; this includes recompilation with ``-R`` or ``-RR``.
+
 
 Windows
 =======

@@ -2,7 +2,7 @@
 # vim: set filetype=python:
 Import('*')
 
-import os.path,re
+import os.path,re,sys
 
 pyModules=[]
 pyObjects=[]
@@ -44,7 +44,8 @@ pyObjects.append(env.SharedObject('config','py/config.cxx',
 		('WOO_VERSION',env['version']),
 		('WOO_SOURCE_ROOT',env['sourceRoot']),
 		('WOO_BUILD_ROOT',env['buildDir']),
-		('WOO_FLAVOR',env['flavor'])
+		('WOO_FLAVOR',env['flavor']),
+		('WOO_SCONS_PATH',os.path.abspath(sys.argv[0]))
 	]
 ))
 

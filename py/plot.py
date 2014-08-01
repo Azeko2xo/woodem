@@ -11,13 +11,18 @@ __all__=['live','liveInterval','autozoom','legendAlpha','scientific','scatterMar
 import sys
 PY3K=sys.version_info[0]==3
 
+pilOk=False
 try:
-	if PY3K:
-		import PIL as Image
-	else:
-		import Image
-except ImportError:
-	print 'WARN: PIL/Image module (python-imaging) not importable, embedding images into plots will give errors.'
+	import PIL as Image
+	pilOk=True
+except ImportError: pass
+try:
+	import Image
+	pilOk=True
+except ImportError: pass
+
+if not pilOk: print 'WARN: PIL/Image module (python-imaging) not importable, embedding images into plots will give errors.'
+
 
 # PY3K
 if PY3K:

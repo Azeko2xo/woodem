@@ -167,7 +167,7 @@ def main(sysArgv=None):
 					print 'Updating '+dd
 					if subprocess.call(['bzr','up',dd]): raise RuntimeError('Error updating %d from bzr.'%(dd))
 		# rebuild
-		cmd=['scons','-Q','-C',woo.config.sourceRoot,'flavor=%s!'%woo.config.flavor,'debug=%d'%(1 if opts.debug else 0),'execCheck=%s'%(os.path.abspath(sys.argv[0]))]
+		cmd=[sys.executable,(woo.config.sconsPath if hasattr(woo.config,'sconsPath') else 'scons'),'-Q','-C',woo.config.sourceRoot,'flavor=%s!'%woo.config.flavor,'debug=%d'%(1 if opts.debug else 0),'execCheck=%s'%(os.path.abspath(sys.argv[0]))]
 		print 'Rebuilding Woo using',' '.join(cmd)
 		if subprocess.call(cmd): raise RuntimeError('Error rebuilding Woo (--rebuild).')
 		# run ourselves
@@ -420,7 +420,6 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 	ipython_version=woo.runtime.ipython_version()
 	import woo.ipythonintegration
 	woo.ipythonintegration.replaceInputHookIfNeeded()
-	print ipython_version
 	if ipython_version==10:
 		from IPython.Shell import IPShellEmbed
 		ipshell=IPShellEmbed(banner=banner,rc_override=ipconfig)
