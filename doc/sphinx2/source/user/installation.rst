@@ -64,23 +64,36 @@ Virtual environment
 
 Python allows for creation of separate `Virtual environments <http://docs.python-guide.org/en/latest/dev/virtualenvs/>`__ which is an isolated working copy of Pyhon. This is useful if you want to keep multiple version of Woo around simultaneously, or don't want to install system-wide (where different users need a different version, and perhaps don't have permissions to install to system directories).
 
-If you want to use SCons for building (which is quite useful for keeping your installation up-to-date, and necessary if you want to modify the source code), do something like the following example. You need to have all required headers and libraries installed somewhere where they will be found. This example compiles Woo without the ``opengl`` and ``qt4`` features, for running Woo without the graphical interface (useful e.g. on computing nodes in clusters). Something like this::
+If you want to use SCons for building (which is quite useful for keeping your installation up-to-date, and necessary if you want to modify the source code), do something like the following example. You need to have all required headers and libraries installed somewhere where they will be found. This example compiles Woo without the ``opengl`` and ``qt4`` features, for running Woo without the graphical interface (useful e.g. on computing nodes in clusters).
 
+.. code-block:: bash
+
+    # install the support for virtual environments
     pip install virtualenv
-    virtualenv my/venv               # create the virtual environment in some directory
-    source my/venv/acticate          # sets environment variables (e.g. $PATH) so that venv commands are found first
+    # create the virtual environment in some directory
+    virtualenv my/venv
+    # sets environment variables (e.g. $PATH) so that venv commands are found first
+    source my/venv/acticate
+    # install scons (needs the --egg option)
     pip install --egg scons
-    pip install minieigen ipython numpy matplotlib genshi xlwt xlrd h5py lockfile psutil pillow bzr
-    bzr co lp:woo woo                # checkout the source from Launchpad
-    ## for wooExtra modules:
-    # mkdir woo/wooExtra             # create directory for extras
-    # bzr co URL woo/wooExtra/...    # checkout extras, put them under there so that they are installed automatically
+    # install all required python modules, this may take a while
+    pip install minieigen ipython numpy matplotlib genshi xlwt xlrd h5py lockfile psutil pillow bzr colour-runner
+    # checkout the source from Launchpad
+    bzr co lp:woo woo
+    ### for wooExtra modules (if you need some)
+    ## create directory for extras
+    mkdir woo/wooExtra
+    ## checkout extras, put them under there so that they are installed automatically
+    bzr co URL woo/wooExtra/...    
     cd woo
-    scons features='vtk,gts,openmp'  # compile the source
-    woo
-    deactivate
+    # compile the source
+    scons features='vtk,gts,openmp' BUNCH OF OTHER OPTIONS
+    # run self-tests to check that everything is OK
+    woo --test
+    # exit the virtual environment
+    deactivate                       
 
-The ``woo`` executable remembers virtual python used during the build (in `shebang <http://en.wikipedia.org/wiki/Shebang_%28Unix%29>`__), so you can also execute it *without* activating the virtual environment the next time, and it *should* work; this includes recompilation with ``-R`` or ``-RR``.
+The ``woo`` executable remembers virtual python used during the build (in `shebang <http://en.wikipedia.org/wiki/Shebang_%28Unix%29>`__), so you can also execute it *without* activating the virtual environment (by saying ``my/venv/bin/woo``) the next time, and it *should* work (including recompilation with ``-R`` or ``-RR``), **unless** you have another installation of woo system-wide (in that case, make sure you always activate the virtual environment properly).
 
 
 Windows
