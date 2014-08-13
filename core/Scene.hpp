@@ -2,7 +2,6 @@
 
 #include<woo/core/Cell.hpp>
 #include<woo/core/Engine.hpp>
-#include<woo/core/DisplayParameters.hpp>
 #include<woo/core/EnergyTracker.hpp>
 #include<woo/core/Plot.hpp>
 #include<woo/core/LabelMapper.hpp>
@@ -13,12 +12,17 @@
 	#include<CL/cl.hpp>
 #endif
 
+#ifdef WOO_OPENGL
+	#include<woo/core/DisplayParameters.hpp>
+#endif
+
 #ifndef HOST_NAME_MAX
 #define HOST_NAME_MAX 255 
 #endif
 
 struct Bound;
 struct Field;
+
 #ifdef WOO_OPENGL
 	struct ScalarRange;
 #endif
@@ -172,11 +176,11 @@ struct Scene: public Object{
 		((shared_ptr<EnergyTracker>,energy,new EnergyTracker,AttrTrait<Attr::readonly>().noGui(),"Energy values, if energy tracking is enabled."))
 		((vector<shared_ptr<Field>>,fields,,AttrTrait<Attr::triggerPostLoad>().noGui(),"Defined simulation fields."))
 		((shared_ptr<Cell>,cell,new Cell,AttrTrait<Attr::hidden>(),"Information on periodicity; only should be used if Scene::isPeriodic."))
-		((vector<shared_ptr<DisplayParameters>>,dispParams,,AttrTrait<Attr::hidden>().noGui(),"'hash maps' of display parameters (since woo::serialization had no support for maps, emulate it via vector of strings in format key=value)"))
 		((std::string,lastSave,,AttrTrait<>().noGui(),"Name under which the simulation was saved for the last time; used for reloading the simulation. Updated automatically, don't change."))
 		((long,preSaveDuration,,AttrTrait<Attr::readonly>().noGui(),"Wall clock duration this Scene was alive before being saved last time; this count is incremented every time the scene is saved. When Scene is loaded, it is used to construct clock0 as current_local_time - lastSecDuration."))
 
 		#if WOO_OPENGL
+			((vector<shared_ptr<DisplayParameters>>,dispParams,,AttrTrait<Attr::hidden>().noGui(),"'hash maps' of display parameters (since woo::serialization had no support for maps, emulate it via vector of strings in format key=value)"))
 			((vector<shared_ptr<ScalarRange>>,ranges,,,"Scalar ranges to be rendered on the display as colormaps"))
 		#endif
 		((vector<shared_ptr<Object>>,any,,,"Storage for arbitrary Objects; meant for storing and loading static objects like Gl1_* functors to restore their parameters when scene is loaded."))

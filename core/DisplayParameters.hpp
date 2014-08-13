@@ -1,4 +1,6 @@
 #pragma once
+#ifdef WOO_OPENGL
+
 #include<woo/lib/object/Object.hpp>
 #include<string>
 #include<vector>
@@ -26,3 +28,5 @@ class DisplayParameters: public Object{
 	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_gl_DisplayParameters__CLASS_BASE_DOC_ATTRS);
 };
 WOO_REGISTER_OBJECT(DisplayParameters);
+
+#endif /* WOO_OPENGL */

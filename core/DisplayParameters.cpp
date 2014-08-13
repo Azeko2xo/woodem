@@ -1,3 +1,5 @@
+#ifdef WOO_OPENGL
+
 #include<woo/core/DisplayParameters.hpp>
 #include<woo/core/Master.hpp>
 
@@ -18,3 +20,4 @@ void DisplayParameters::setValue(std::string displayType, std::string value){
 	else {values[std::distance(displayTypes.begin(),I)]=value;}
 }
 
+#endif /* WOO_OPENGL */

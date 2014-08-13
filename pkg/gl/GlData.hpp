@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef WOO_OPENGL
+
 #include<woo/lib/base/Types.hpp>
 #include<woo/core/Field.hpp>
 
@@ -21,3 +23,5 @@ struct GlData: public NodeData{
 WOO_REGISTER_OBJECT(GlData);
 template<> struct NodeData::Index<GlData>{enum{value=Node::ST_GL};};
 
+
+#endif

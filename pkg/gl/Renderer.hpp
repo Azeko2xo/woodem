@@ -1,6 +1,7 @@
 // © 2004 Olivier Galizzi <olivier.galizzi@imag.fr>
 // © 2008 Václav Šmilauer <eudoxos@arcig.cz>
 #pragma once
+#ifdef WOO_OPENGL
 
 #include<woo/lib/multimethods/DynLibDispatcher.hpp>
 #include<woo/core/Dispatcher.hpp>
@@ -167,3 +168,5 @@ struct Renderer: public Object{
 	);
 };
 WOO_REGISTER_OBJECT(Renderer);
+
+#endif /* WOO_OPENGL */

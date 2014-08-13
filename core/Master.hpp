@@ -22,6 +22,10 @@
 
 #include<woo/core/Timing.hpp>
 
+#ifndef __MINGW64__
+	#include<signal.h>
+#endif
+
 #ifndef FOREACH
 # define FOREACH BOOST_FOREACH
 #endif
