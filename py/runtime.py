@@ -29,10 +29,12 @@ def ipython_version():
 		elif IPython.__version__.startswith('1.2'): ret=120
 		elif IPython.__version__.startswith('2.0'): ret=200
 		elif IPython.__version__.startswith('2.1'): ret=210
+		elif IPython.__version__.startswith('2.2'): ret=220
+		else: raise ValueError() # nothing detected, issue a warning
 	except ValueError:
-		print 'WARN: unable to extract IPython version from %s, defaulting to 1.0'%(IPython.__version__)
-		ret=110
-	if ret not in (10,11,12,13,100,110,120,200,210): # versions that we are able to handle, round up or down correspondingly
+		print 'WARN: unable to extract IPython version from %s, defaulting to 2.0'%(IPython.__version__)
+		ret=200
+	if ret not in (10,11,12,13,100,110,120,200,210,220): # versions that we are able to handle, round up or down correspondingly
 		newipver=10 if ret<10 else 110
 		print 'WARN: unhandled IPython version %d.%d, assuming %d.%d instead.'%(ret%100,ret//100,newipver%100,newipver//100)
 		ret=newipver

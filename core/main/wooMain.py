@@ -428,7 +428,7 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 		# http://lists.ipython.scipy.org/pipermail/ipython-user/2008-September/005839.html
 		import IPython.ipapi
 		IPython.ipapi.get().IP.atexit_operations()
-	elif ipython_version in (11,12,13,100,110,120,200,210):
+	else:
 		if qtConsole:
 			qapp.start()
 		else:
@@ -445,7 +445,6 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 			ipshell()
 			# similar to the workaround, as for 0.10 (perhaps not needed?)
 			ipshell.atexit_operations()
-	else: raise RuntimeError("Unhandled ipython version %d"%ipython_version)
 
 
 
