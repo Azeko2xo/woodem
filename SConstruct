@@ -48,7 +48,7 @@ if 'Variables' not in dir():
 	Variables=Options
 	BoolVariable,ListVariable,EnumVariable=BoolOption,ListOption,EnumOption
 
-env=Environment(tools=['default','textfile'])
+env=Environment(ENV=os.environ,tools=['default','textfile'])
 flavorFile='scons.current-flavor'
 env['sourceRoot']=os.getcwd()
 
