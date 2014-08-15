@@ -609,7 +609,9 @@ def htmlReport(S,repFmt,headline,afterHead='',figures=[],dialect=None,figFmt=Non
 				out=subprocess.check_output(['abiword','--to=ODT','--to-name='+odt,html])
 				print 'Report converted to ODT via Abiword: file://'+os.path.abspath(odt)
 			except subprocess.CalledProcessError as e:
-				print 'Report conversion to ODT failed (Abiword not installed?), returning %d; the output was: %s.'%(e.returncode,e.output)
+				print 'Report conversion to ODT failed (error when running Abiword), returning %d; the output was: %s.'%(e.returncode,e.output)
+			except:
+				print 'Report conversion to ODT not done (Abiword not installed?).'
 		# if this is run in the background, main process may finish before that thread, leading potentially to some error messages??
 		import threading
 		threading.Thread(target=convertToOdt,args=(repName,repBase+'.odt')).start()

@@ -27,6 +27,7 @@ WOO_REGISTER_OBJECT(L6Geom);
 
 struct Cg2_Any_Any_L6Geom__Base: public CGeomFunctor{
 	bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE { throw std::logic_error("Cg2_Any_Any_L6Geom__Base::go: Cg2_Any_Any_L6Geom__Base is an 'abstract' class which should not be used as-is; use derived classes."); }
+	bool goReverse(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){ throw std::logic_error("ContactLoop should swap interaction arguments, the order is "+s1->getClassName()+"+"+s2->getClassName()+" (goReverse should never be called)."); }
 	void handleSpheresLikeContact(const shared_ptr<Contact>& C, const Vector3r& pos1, const Vector3r& vel1, const Vector3r& angVel1, const Vector3r& pos2, const Vector3r& vel2, const Vector3r& angVel2, const Vector3r& normal, const Vector3r& contPt, Real uN, Real r1, Real r2);
 	enum { APPROX_NO_MID_NORMAL=1, APPROX_NO_RENORM_MID_NORMAL=2, APPROX_NO_MID_TRSF=4, APPROX_NO_MID_BRANCH=8 };
 	#define woo_dem_Cg2_Any_Any_L6Geom__Base__CLASS_BASE_DOC_ATTRS \

@@ -14,11 +14,11 @@ struct Node;
 
 struct CGeom: public Object,public Indexable{
 	// XXX: is createIndex() called here at all??
-	#define woo_dem_CGeom__CLASS_BASE_DOC_ATTRS_PY \
+	#define woo_dem_CGeom__CLASS_BASE_DOC_ATTRS_CTOR_PY \
 		CGeom,Object,ClassTrait().doc("Geometrical configuration of contact").section("Geometry","TODO",{"CGeomFunctor","CGeomDispatcher"}), \
 		((shared_ptr<Node>,node,new Node,,"Local coordinates definition.")) \
-		,/*py*/WOO_PY_TOPINDEXABLE(CGeom);
-	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_CGeom__CLASS_BASE_DOC_ATTRS_PY);
+		,/*ctor*/ createIndex(); ,/*py*/WOO_PY_TOPINDEXABLE(CGeom);
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_CGeom__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 	REGISTER_INDEX_COUNTER(CGeom);
 };
 WOO_REGISTER_OBJECT(CGeom);

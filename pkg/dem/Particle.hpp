@@ -373,11 +373,12 @@ struct Shape: public Object, public Indexable{
 	// return equivalent radius of the particle, or NaN if not defined by the shape
 	virtual Real equivRadius() const { return NaN; }
 	virtual Real volume() const { return NaN; }
-	#define woo_dem_Shape__CLASS_BASE_DOC_ATTRS_PY \
+	#define woo_dem_Shape__CLASS_BASE_DOC_ATTRS_CTOR_PY \
 		Shape,Object,"Particle geometry", \
 		((shared_ptr<Bound>,bound,,,"Bound of the particle, for use by collision detection only")) \
 		((vector<shared_ptr<Node> >,nodes,,,"Nodes associated with this particle")) \
 		((Real,color,Mathr::UnitRandom(),,"Normalized color for rendering; negative values render with wire (rather than solid), :math:`|\\text{color}|`>2 means invisible. (use *wire*, *hi* and *visible* to manipulate those)")) \
+		,/*ctor*/ createIndex(); \
 		,/*py*/ \
 			.add_property("wire",&Shape::getWire,&Shape::setWire) \
 			.add_property("hi",&Shape::getHighlighted,&Shape::setHighlighted) \
@@ -391,32 +392,34 @@ struct Shape: public Object, public Indexable{
 			; \
 			woo::converters_cxxVector_pyList_2way<shared_ptr<Shape>>();
 
-	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Shape__CLASS_BASE_DOC_ATTRS_PY);
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_Shape__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 	REGISTER_INDEX_COUNTER(Shape);
 };
 WOO_REGISTER_OBJECT(Shape);
 
 struct Material: public Object, public Indexable{
 	// XXX: is createIndex() called here at all??
-	#define woo_dem_Material__CLASS_BASE_DOC_ATTRS_PY \
+	#define woo_dem_Material__CLASS_BASE_DOC_ATTRS_CTOR_PY \
 		Material,Object,ClassTrait().doc("Particle material").section("Material properties","TODO",{"MatState"}), \
 		((Real,density,1000,AttrTrait<>().densityUnit(),"Density")) \
 		((int,id,-1,AttrTrait<>().noGui(),"Some number identifying this material; used with MatchMaker objects, useless otherwise")) \
+		,/*ctor*/createIndex(); \
 		,/*py*/ WOO_PY_TOPINDEXABLE(Material); \
 		woo::converters_cxxVector_pyList_2way<shared_ptr<Material>>();
-	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Material__CLASS_BASE_DOC_ATTRS_PY);
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_Material__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 	REGISTER_INDEX_COUNTER(Material);
 };
 WOO_REGISTER_OBJECT(Material);
 
 struct Bound: public Object, public Indexable{
 	// XXX: is createIndex() called here at all??
-	#define woo_dem_Bound__CLASS_BASE_DOC_ATTRS_PY \
+	#define woo_dem_Bound__CLASS_BASE_DOC_ATTRS_CTOR_PY \
 		Bound,Object,"Object bounding the associated body.", \
 		((Vector3r,min,Vector3r(NaN,NaN,NaN),AttrTrait<Attr::noSave>().readonly().lenUnit(),"Lower corner of box containing this bound")) \
 		((Vector3r,max,Vector3r(NaN,NaN,NaN),AttrTrait<Attr::noSave>().readonly().lenUnit(),"Lower corner of box containing this bound")) \
+		,/*ctor*/ createIndex(); \
 		,/*py*/ WOO_PY_TOPINDEXABLE(Bound);
-	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Bound__CLASS_BASE_DOC_ATTRS_PY);
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_Bound__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 	REGISTER_INDEX_COUNTER(Bound);
 };
 WOO_REGISTER_OBJECT(Bound);

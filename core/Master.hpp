@@ -208,12 +208,12 @@ py::list Indexable_getClassIndices(const shared_ptr<TopIndexable> i, bool conver
 	int depth=1; py::list ret; int idx0=i->getClassIndex();
 	if(convertToNames) ret.append(Dispatcher_indexToClassName<TopIndexable>(idx0));
 	else ret.append(idx0);
-	if(idx0<0) return ret; // don't continue and call getBaseClassIndex(), since we are at the top already
+	if(idx0<=0) return ret; // don't continue and call getBaseClassIndex(), since we are at the top already
 	while(true){
 		int idx=i->getBaseClassIndex(depth++);
 		if(convertToNames) ret.append(Dispatcher_indexToClassName<TopIndexable>(idx));
 		else ret.append(idx);
-		if(idx<0) return ret;
+		if(idx<=0) return ret;
 	}
 }
 

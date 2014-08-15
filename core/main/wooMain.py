@@ -167,7 +167,7 @@ def main(sysArgv=None):
 					print 'Updating '+dd
 					if subprocess.call(['bzr','up',dd]): raise RuntimeError('Error updating %d from bzr.'%(dd))
 		# rebuild
-		cmd=[sys.executable,(woo.config.sconsPath if hasattr(woo.config,'sconsPath') else 'scons'),'-Q','-C',woo.config.sourceRoot,'flavor=%s!'%woo.config.flavor,'debug=%d'%(1 if opts.debug else 0),'execCheck=%s'%(os.path.abspath(sys.argv[0]))]
+		cmd=(['scons'] if not hasattr(woo.config,'sconsPath') else [sys.executable,woo.config.sconsPath])+['-Q','-C',woo.config.sourceRoot,'flavor=%s!'%woo.config.flavor,'debug=%d'%(1 if opts.debug else 0),'execCheck=%s'%(os.path.abspath(sys.argv[0]))]
 		print 'Rebuilding Woo using',' '.join(cmd)
 		if subprocess.call(cmd): raise RuntimeError('Error rebuilding Woo (--rebuild).')
 		# run ourselves

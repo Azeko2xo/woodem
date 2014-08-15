@@ -186,7 +186,11 @@ class DynLibDispatcher
 			return shared_ptr<Executor>();
 		 }
 
-		shared_ptr<Executor> getFunctor1D(const shared_ptr<BaseClass1>& base1){ return getExecutor(base1); }
+		shared_ptr<Executor> getFunctor1D(const shared_ptr<BaseClass1>& base1){
+			int ix1;
+			if(!locateMultivirtualFunctor1D(ix1,base1)) return shared_ptr<Executor>();
+			return callBacks[ix1];
+		}
 		/* Return pointer to the functor for two base classes given. Swap is true if the dispatch objects should be swapped before calling Executor::go. */
 		shared_ptr<Executor> getFunctor2D(const shared_ptr<BaseClass1>& base1, const shared_ptr<BaseClass2>& base2, bool& swap){
 			int ix1, ix2;
@@ -234,8 +238,7 @@ class DynLibDispatcher
 		
 			assert(base);
 			int& index = base->getClassIndex();
-			if(index == -1)
-				std::cerr << "--------> Did you forget to call createIndex(); in constructor?\n";
+			if(index == -1) throw std::logic_error(string("Programming error: DynlibDispatcher::add1DEntry: class index for ")+typeid(base).name()+" is -1, did you forget to call createIndex() in the ctor?");
  			assert (index != -1);
 			
 			int maxCurrentIndex = base->getMaxCurrentlyUsedClassIndex();
@@ -260,11 +263,11 @@ class DynLibDispatcher
 			assert(base2);
 
  			int& index1=base1->getClassIndex();
-			if(index1==-1) std::cerr<<"--------> Did you forget to call createIndex(); in constructor?\n";
+			if(index1 == -1) throw std::logic_error(string("Programming error: DynlibDispatcher::add2DEntry: class index for ")+typeid(base1).name()+" is -1, did you forget to call createIndex() in the ctor?");
 			assert(index1!=-1);
  			
 			int& index2 = base2->getClassIndex();
-			if(index2==-1) std::cerr << "--------> Did you forget to call createIndex(); in constructor?\n";
+			if(index2 == -1) throw std::logic_error(string("Programming error: DynlibDispatcher::add2DEntry: class index for ")+typeid(base2).name()+" is -1, did you forget to call createIndex() in the ctor?");
  			assert(index2!=-1);
 	
 			if(typeid(BaseClass1)==typeid(BaseClass2))

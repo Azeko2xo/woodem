@@ -183,7 +183,7 @@ struct Field: public Object, public Indexable{
 		((vector<shared_ptr<Node> >,nodes,,AttrTrait<Attr::pyByRef>(),"Nodes referenced from this field.")) \
 		/* ((shared_ptr<Topology>,topology,,,"How nodes build up cells, neighborhood and coonectivity information.")) */ \
 		/* ((vector<shared_ptr<CellData> >,cells,,,"")) */ \
-		, /* ctor */ scene=NULL; \
+		, /* ctor */ scene=NULL; createIndex(); \
 		, /* py */ \
 			.add_property("scene",&Field::py_getScene,"Get associated scene object, if any (this function is dangerous in some corner cases, as it has to use raw pointer).") \
 			.def("critDt",&Field::critDt,"Return critical (maximum numerically stable) timestep for this field. By default returns infinity (no critical timestep) but derived fields may override this function.") \

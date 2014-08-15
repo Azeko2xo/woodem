@@ -157,7 +157,7 @@ void Cg2_Any_Any_L6Geom__Base::handleSpheresLikeContact(const shared_ptr<Contact
 	if(approxMask&APPROX_NO_MID_BRANCH){ midContPt=contPt; midPos1=pos1; midPos2=pos2; }
 	else{ midContPt=.5*(prevContPt+contPt); midPos1=pos1-(dt/2.)*vel1; /* pos2 is wrapped, use corrected vel2 as well */ midPos2=pos2-(dt/2.)*(vel2+shiftVel2); }
 	Vector3r c1x=((noRatch && r1>0) ? ( r1*midNormal).eval() : (midContPt-midPos1).eval()); // used only for sphere-sphere
-	Vector3r c2x=( noRatch          ? (-r2*midNormal).eval() : (midContPt-midPos2).eval());
+	Vector3r c2x=((noRatch && r2>0) ? (-r2*midNormal).eval() : (midContPt-midPos2).eval());
 	//Vector3r state2velCorrected=state2.vel+(scene->isPeriodic?scene->cell->intrShiftVel(I->cellDist):Vector3r::Zero()); // velocity of the second particle, corrected with meanfield velocity if necessary
 	//cerr<<"correction "<<(scene->isPeriodic?scene->cell->intrShiftVel(I->cellDist):Vector3r::Zero())<<endl;
 	Vector3r relVel=(vel2+shiftVel2+angVel2.cross(c2x))-(vel1+angVel1.cross(c1x));
