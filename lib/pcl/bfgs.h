@@ -119,6 +119,8 @@ class BFGS
 public:
   typedef typename FunctorType::Scalar Scalar;
   typedef typename FunctorType::VectorType FVectorType;
+  typedef Eigen::Matrix<Scalar,1,1> Matrix11;
+  typedef typename FunctorType::JacobianType FJacobianType;
 
   BFGS(FunctorType &_functor) 
       : pnorm(0), g0norm(0), iter(-1), functor(_functor) {  }
@@ -158,7 +160,7 @@ public:
   Parameters parameters;
   Scalar f;
   FVectorType gradient;
-private:
+//private:
   
   BFGS& operator=(const BFGS&);
   BFGSSpace::Status lineSearch (Scalar rho, Scalar sigma, 
@@ -191,7 +193,9 @@ private:
   Scalar x_cache_key;
   Scalar g_cache_key;
 
+  public:  // added for Woo
   Index iter;
+  private:
   FunctorType &functor;
 };
 
@@ -221,7 +225,9 @@ BFGS<FunctorType>::applyF(Scalar alpha)
 {
   if (alpha == f_cache_key) return f_alpha;
   moveTo (alpha);
-  f_alpha = functor (x_alpha);
+  Matrix11 _f;
+  functor (x_alpha,_f);
+  f_alpha=_f(0,0);
   f_cache_key = alpha;
   return (f_alpha);
 }
@@ -233,7 +239,9 @@ BFGS<FunctorType>::applyDF(Scalar alpha)
   moveTo (alpha);
   if(alpha != g_cache_key)
   {
-    functor.df (x_alpha, g_alpha);
+	 FJacobianType g_alphaT;
+    functor.df (x_alpha, g_alphaT);
+	 g_alpha=g_alphaT.transpose();
     g_cache_key = alpha;
   }
   df_alpha = slope ();
@@ -259,7 +267,14 @@ BFGS<FunctorType>::applyFDF(Scalar alpha, Scalar& f, Scalar& df)
   }
 
   moveTo (alpha);
-  functor.fdf (x_alpha, f_alpha, g_alpha);
+
+  Matrix11 _f;
+  FJacobianType g_alphaT;
+  //functor.fdf (x_alpha, _f , g_alphaT);
+  functor(x_alpha,_f); functor.df(x_alpha,g_alphaT);
+  f_alpha=_f(0,0);
+  g_alpha=g_alphaT.transpose();
+
   f_cache_key = alpha;
   g_cache_key = alpha;
   df_alpha = slope ();
@@ -310,7 +325,12 @@ BFGS<FunctorType>::minimizeInit(FVectorType  &x)
   iter = 0;
   delta_f = 0;
   dx.setZero ();
-  functor.fdf(x, f, gradient);
+  Matrix11 _f;
+  FJacobianType gradientT;
+  //functor.fdf(x, _f, gradientT);
+  functor(x,_f); functor.df(x,gradientT);
+  f=_f(0,0);
+  gradient=gradientT.transpose();
   x0 = x;
   g0 = gradient;
   g0norm = g0.norm ();

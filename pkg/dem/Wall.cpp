@@ -164,7 +164,8 @@ bool Cg2_Wall_Facet_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Sh
 			assert(!scene->cell->hasShear());
 			const Vector3r& hSize=scene->cell->getHSize().diagonal();
 			A=Vector3r::Zero();
-			A[ax0]=CompUtils::wrapNum(pos[ax0],hSize[ax0]);
+			if(wall.nodes[0]->hasData<GlData>()) A[ax0]=pos[ax0]; // with GlData, shift is handles by dGlPos below
+			else A[ax0]=CompUtils::wrapNum(pos[ax0],hSize[ax0]);
 			unit1=Vector3r::Unit(ax1)*hSize[ax1]/div;
 			unit2=Vector3r::Unit(ax2)*hSize[ax2]/div;
 		} else if(isnan(wall.glAB.min()[0])){

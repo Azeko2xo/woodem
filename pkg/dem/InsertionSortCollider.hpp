@@ -81,9 +81,6 @@ Possible performance improvements & bugs
 	#define ISC_CHECKPOINT(cpt)
 #endif
 
-#define ISC_INF
-#define ISC_LATER
-
 struct ParticleContainer;
 
 struct InsertionSortCollider: public Collider {
@@ -92,30 +89,29 @@ struct InsertionSortCollider: public Collider {
 	private:
 
 
-	#ifdef ISC_LATER
-		/*
-			Structs for queueing writing operations during sort; these keep contacts to be created and to be removed in a way that can be written in thread-safe way. Once writing is finished, makeContactLater_process and removeContactLater_process are called to process those things.
+	// LATER:
+	/*
+		Structs for queueing writing operations during sort; these keep contacts to be created and to be removed in a way that can be written in thread-safe way. Once writing is finished, makeContactLater_process and removeContactLater_process are called to process those things.
 
-		*/
+	*/
+	#ifdef WOO_OPENMP
+		vector<vector<shared_ptr<Contact>>> mmakeContacts;
+		vector<vector<shared_ptr<Contact>>> rremoveContacts;
+		void removeContactLater(const shared_ptr<Contact>& C){ rremoveContacts[omp_get_thread_num()].push_back(C); }
+	#else
+		vector<shared_ptr<Contact>> makeContacts;
+		vector<shared_ptr<Contact>> removeContacts;
+		void removeContactLater(const shared_ptr<Contact>& C){ removeContacts.push_back(C); }
+	#endif
+	void makeContactLater(const shared_ptr<Particle>& pA, const shared_ptr<Particle>& pB, const Vector3i& cellDist=Vector3r::Zero()){
+		shared_ptr<Contact> C=make_shared<Contact>(); C->pA=pA; C->pB=pB; C->cellDist=cellDist; C->stepCreated=scene->step;
 		#ifdef WOO_OPENMP
-			vector<vector<shared_ptr<Contact>>> mmakeContacts;
-			vector<vector<shared_ptr<Contact>>> rremoveContacts;
-			void removeContactLater(const shared_ptr<Contact>& C){ rremoveContacts[omp_get_thread_num()].push_back(C); }
+			mmakeContacts[omp_get_thread_num()].push_back(C);
 		#else
-			vector<shared_ptr<Contact>> makeContacts;
-			vector<shared_ptr<Contact>> removeContacts;
-			void removeContactLater(const shared_ptr<Contact>& C){ removeContacts.push_back(C); }
+			makeContacts.push_back(C);
 		#endif
-		void makeContactLater(const shared_ptr<Particle>& pA, const shared_ptr<Particle>& pB, const Vector3i& cellDist=Vector3r::Zero()){
-			shared_ptr<Contact> C=make_shared<Contact>(); C->pA=pA; C->pB=pB; C->cellDist=cellDist; C->stepCreated=scene->step;
-			#ifdef WOO_OPENMP
-				mmakeContacts[omp_get_thread_num()].push_back(C);
-			#else
-				makeContacts.push_back(C);
-			#endif
-		}
-		void makeRemoveContactLater_process();
-	#endif /* ISC_LATER */
+	}
+	void makeRemoveContactLater_process();
 
 
 
@@ -129,7 +125,7 @@ struct InsertionSortCollider: public Collider {
 		//! periodic cell coordinate
 		int period;
 		//! is it the minimum (true) or maximum (false) bound?
-		struct{ unsigned hasBB:1; unsigned isMin:1; } flags;
+		struct{ unsigned hasBB:1; unsigned isMin:1; unsigned isInf:1; } flags;
 		Bounds(Real coord_, Particle::id_t id_, bool isMin): coord(coord_), id(id_), period(0){ flags.isMin=isMin; }
 		bool operator<(const Bounds& b) const {
 			/* handle special case of zero-width bodies, which could otherwise get min/max swapped in the unstable std::sort */
@@ -248,8 +244,6 @@ struct InsertionSortCollider: public Collider {
 		**Stride** can be used to avoid running collider at every step by enlarging the particle's bounds, tracking their velocities and only re-run if they might have gone out of that bounds (see `Verlet list <http://en.wikipedia.org/wiki/Verlet_list>`_ for brief description and background) . This requires cooperation from :obj:`Leapfrog` as well as :obj:`BoundDispatcher`, which will be found among engines automatically (exception is thrown if they are not found).\
 		\n\n \
 		If you wish to use strides, set ``verletDist`` (length by which bounds will be enlarged in all directions) to some value, e.g. 0.05 × typical particle radius. This parameter expresses the tradeoff between many potential interactions (running collider rarely, but with longer exact interaction resolution phase) and few potential interactions (running collider more frequently, but with less exact resolutions of interactions); it depends mainly on packing density and particle radius distribution.\
-		\n\n \
-		If you additionally set ``nBins`` to >=1, not all particles will have their bound enlarged by ``verletDist``; instead, they will be put to bins (in the statistical sense) based on magnitude of their velocity; ``verletDist`` will only be used for particles in the fastest bin, whereas only proportionally smaller length will be used for slower particles; The coefficient between bin's velocities is given by ``binCoeff``.\
 	",
 		((bool,forceInitSort,false,,"When set to true, full sort will be run regardless of other conditions. This flag is then reset automatically to false"))
 		((int,sortAxis,0,,"Axis for the initial contact detection."))

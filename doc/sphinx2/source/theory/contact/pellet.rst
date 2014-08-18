@@ -20,7 +20,7 @@ The normal yield force takes the form
    \frac{\partial F_n^y}{\partial u_n}&=\frac{k_n}{\alpha\frac{-u_n}{d_0}+1}
    \end{align*}
 
-where :math:`k_n` is the :obj:`tangent stiffness <woo.dem.FrictPhys.kn>` at origin (:math:`\frac{\partial F_n^y}{\partial u_n}(u_n=0)=k_n`) computed as in :ref:`linear_contact_model`, :math:`d_0` is the :obj:`initial contact length <woo.dem.L6Geom.lens>` and :math:`u_n` is the :obj:`normal displacement <woo.dem.L6Geom.uN>`. The contact accumulates plastic displacement :math:`u_n^{\mathrm{pl}}` (:obj:`uNPl <woo.dem.PelletCData.uNPl>`) which is initially zero.
+where :math:`k_n` is the :obj:`normal stiffness <woo.dem.FrictPhys.kn>` at origin (:math:`\frac{\partial F_n^y}{\partial u_n}(u_n=0)=k_n`) computed as in :ref:`linear_contact_model`, :math:`d_0` is the :obj:`initial contact length <woo.dem.L6Geom.lens>` and :math:`u_n` is the :obj:`normal displacement <woo.dem.L6Geom.uN>`. The contact accumulates plastic displacement :math:`u_n^{\mathrm{pl}}` (:obj:`uNPl <woo.dem.PelletCData.uNPl>`) which is initially zero.
 
 The normal trial force is evaluated as
 
@@ -183,7 +183,7 @@ When thinning is active, the radius is updated as follows:
 
 Radius-dependence
 '''''''''''''''''
-The :math:`r_{\min}^{\mathrm{rel}}` and :math:`\theta_t` in the previous can be made effectively size-dependent by setting the :math:`r_{\rm thinRefRad}` (:obj:`thinRefRad <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinRefRad>`) to a positive value. In that case, two additional exponents :obj:`thinMinExp <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinMinExp>` and :obj:`thinRateExp <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinRateExp>` are used to multiply the equations :math:`(*)` and :math:`(**)` by exponential scaling factors. Note that the dependency is on the original radius :math:`r_0`, **not** the curretn radius :math:`r`:
+The :math:`r_{\min}^{\mathrm{rel}}` and :math:`\theta_t` in the previous can be made effectively size-dependent by setting the :math:`r_{\rm thinRefRad}` (:obj:`thinRefRad <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinRefRad>`) to a positive value. In that case, two additional exponents :obj:`thinMinExp <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinMinExp>` and :obj:`thinRateExp <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinRateExp>` are used to multiply the equations :math:`(*)` and :math:`(**)` by exponential scaling factors. Note that the dependency is on the original radius :math:`r_0`, **not** the current radius :math:`r`:
 
 .. math::
 	:nowrap:

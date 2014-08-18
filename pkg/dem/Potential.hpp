@@ -5,8 +5,10 @@
 
 struct PotentialFunctor: public Functor1D</*dispatch types*/ Shape,/*return type*/ Real, /*argument types*/ TYPELIST_2(const shared_ptr<Shape>&, const Vector3r&)>{
 	// function returning potential at the coordinate given
-	virtual std::function<Real(const Vector3r&)> funcPotentialValue(const shared_ptr<Shape>&);
-	virtual std::function<Real(const Vector3r&)> funcPotentialGradient(const shared_ptr<Shape>&);
+	typedef std::function<Real(const Vector3r&)> PotFuncType;
+	typedef std::function<Vector3r(const Vector3r&)> GradFuncType;
+	virtual PotFuncType funcPotentialValue(const shared_ptr<Shape>&);
+	virtual GradFuncType funcPotentialGradient(const shared_ptr<Shape>&);
 	Real go(const shared_ptr<Shape>&, const Vector3r& pos) WOO_CXX11_OVERRIDE;
 	// return bounding sphere radius, for uninodal particles only
 	virtual Real boundingSphereRadius(const shared_ptr<Shape>&){ return NaN; }
@@ -24,7 +26,8 @@ WOO_REGISTER_OBJECT(PotentialDispatcher);
 #include<woo/pkg/dem/Sphere.hpp>
 struct Pot1_Sphere: public PotentialFunctor{
 	Real boundingSphereRadius(const shared_ptr<Shape>&) WOO_CXX11_OVERRIDE;
-	std::function<Real(const Vector3r&)> funcPotentialValue(const shared_ptr<Shape>&) WOO_CXX11_OVERRIDE;
+	Real pot(const shared_ptr<Shape>& s, const Vector3r& x);
+	PotFuncType funcPotentialValue(const shared_ptr<Shape>&) WOO_CXX11_OVERRIDE;
 	FUNCTOR1D(Sphere);
 	#define woo_dem_Pot1_Sphere__CLASS_BASE_DOC Pot1_Sphere,PotentialFunctor,"Fuctor computing potential for spheres."
 	WOO_DECL__CLASS_BASE_DOC(woo_dem_Pot1_Sphere__CLASS_BASE_DOC);
@@ -33,7 +36,8 @@ WOO_REGISTER_OBJECT(Pot1_Sphere);
 
 #include<woo/pkg/dem/Wall.hpp>
 struct Pot1_Wall: public PotentialFunctor{
-	std::function<Real(const Vector3r&)> funcPotentialValue(const shared_ptr<Shape>&) WOO_CXX11_OVERRIDE;
+	Real pot(const shared_ptr<Shape>& s, const Vector3r& x);
+	PotFuncType funcPotentialValue(const shared_ptr<Shape>&) WOO_CXX11_OVERRIDE;
 	FUNCTOR1D(Wall);
 	#define woo_dem_Pot1_Wall__CLASS_BASE_DOC Pot1_Wall,PotentialFunctor,"Fuctor computing potential for spheres."
 	WOO_DECL__CLASS_BASE_DOC(woo_dem_Pot1_Wall__CLASS_BASE_DOC);

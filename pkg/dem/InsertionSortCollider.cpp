@@ -17,19 +17,7 @@
 WOO_PLUGIN(dem,(InsertionSortCollider));
 CREATE_LOGGER(InsertionSortCollider);
 
-#ifdef ISC_LATER
 void InsertionSortCollider::makeRemoveContactLater_process() {
-	/*
-	FIXME: check what happens if a contact is added twice:
-	there will be a problem in add(C,threadSafe=false), since it can end up being added twice;
-	with threadSafe=true, this will be double-checked (with mutex), but it can be a potential slowdown.
-
-	An alternative is to put ALL new overlaps and ALL separations to makeContactLater/removeContactLater,
-	without checking if the contact exists or not; and do that here. It will make the handBoundInversion
-	routine much lighter, but will move the load to the sequential part of the code.
-
-	Should be tested.
-	*/
 
 	#if defined(WOO_OPENMP) || defined(WOO_OPENGL)
 		boost::mutex::scoped_lock lock(dem->contacts->manipMutex);
@@ -58,7 +46,6 @@ void InsertionSortCollider::makeRemoveContactLater_process() {
 	#endif
 	ISC_CHECKPOINT("later: add");
 };
-#endif
 
 
 // return true if bodies bb overlap in all 3 dimensions
@@ -92,33 +79,19 @@ void InsertionSortCollider::handleBoundInversion(Particle::id_t id1, Particle::i
 		const shared_ptr<Particle>& p1((*particles)[id1]);
 		const shared_ptr<Particle>& p2((*particles)[id2]);
 		if(!Collider::mayCollide(dem,p1,p2)) return;
-		#ifdef ISC_LATER
-			#if 0
-				// reorder for clDem compatibility; otherwise not needed
-				if(id1<id2) makeContactLater(p1,p2,Vector3i::Zero());
-				else makeContactLater(p2,p1,Vector3i::Zero());
-			#else
-				makeContactLater(p1,p2,Vector3i::Zero());
-				ISC_CHECKPOINT("handle: later-new");
-			#endif
+		#if 0
+			// reorder for clDem compatibility; otherwise not needed
+			if(id1<id2) makeContactLater(p1,p2,Vector3i::Zero());
+			else makeContactLater(p2,p1,Vector3i::Zero());
 		#else
-			// LOG_TRACE("Creating new interaction #"<<id1<<"+#"<<id2);
-			shared_ptr<Contact> newC=make_shared<Contact>();
-			// mimick the way clDem::Collider does the job so that results are easily comparable
-			if(id1<id2){ newC->pA=p1; newC->pB=p2; }
-			else{ newC->pA=p2; newC->pB=p1; }
-			newC->stepCreated=scene->step;
-			dem->contacts->add(newC);
+			makeContactLater(p1,p2,Vector3i::Zero());
+			ISC_CHECKPOINT("handle: later-new");
 		#endif
 		return;
 	}
 	if(!overlap /* && hasCon */){
-		#ifdef ISC_LATER
-			if(!C->isReal()) removeContactLater(C);
-			ISC_CHECKPOINT("handle: later-remove");
-		#else
-			if(!C->isReal()) dem->contacts->remove(C);
-		#endif
+		if(!C->isReal()) removeContactLater(C);
+		ISC_CHECKPOINT("handle: later-remove");
 		return;
 	}
 	assert(false); // unreachable
@@ -269,40 +242,40 @@ vector<Particle::id_t> InsertionSortCollider::probeAabb(const Vector3r& mn, cons
 	} else {
 		// for the periodic case, go through all particles
 		// algorithmically wasteful :|
-		// copied from handleBoundInversionPeri, with adjustments
-		for(long i=0; i<v.size; i++){
-			// safely skip deleted particles to avoid spurious overlaps
-			const Bounds& b(v.vec[i]);
-			if(!b.flags.isMin || !b.flags.hasBB) continue;
-			long id1=b.id;
-			for(int axis=0; axis<3; axis++){
-				Real dim=scene->cell->getSize()[axis];
-				// find particle of which minimum when taken as period start will make the gap smaller
-				Real m1=minima[3*id1+axis],m2=mn[axis];
-				Real wMn=(cellWrapRel(m1,m2,m2+dim)<cellWrapRel(m2,m1,m1+dim)) ? m2 : m1;
-				int pmn1,pmx1,pmn2,pmx2;
-				Real mn1=cellWrap(minima[3*id1+axis],wMn,wMn+dim,pmn1), mx1=cellWrap(maxima[3*id1+axis],wMn,wMn+dim,pmx1);
-				Real mn2=cellWrap(mn[axis],wMn,wMn+dim,pmn2), mx2=cellWrap(mx[axis],wMn,wMn+dim,pmx2);
-				if(unlikely((pmn1!=pmx1) || (pmn2!=pmx2))){
-					Real span=(pmn1!=pmx1?mx1-mn1:mx2-mn2); if(span<0) span=dim-span;
-					LOG_FATAL("Particle #"<<(pmn1!=pmx1?id1:-1)<<" spans over half of the cell size "<<dim<<" (axis="<<axis<<", min="<<(pmn1!=pmx1?mn1:mn2)<<", max="<<(pmn1!=pmx1?mx1:mx2)<<", span="<<span<<")");
-					throw runtime_error(__FILE__ ": Particle larger than half of the cell size encountered.");
-				}
-				if(!(mn1<=mx2 && mx1 >= mn2)) goto noOverlap;
+	// copied from handleBoundInversionPeri, with adjustments
+	for(long i=0; i<v.size; i++){
+		// safely skip deleted particles to avoid spurious overlaps
+		const Bounds& b(v.vec[i]);
+		if(!b.flags.isMin || !b.flags.hasBB) continue;
+		long id1=b.id;
+		for(int axis=0; axis<3; axis++){
+			Real dim=scene->cell->getSize()[axis];
+			// find particle of which minimum when taken as period start will make the gap smaller
+			Real m1=minima[3*id1+axis],m2=mn[axis];
+			Real wMn=(cellWrapRel(m1,m2,m2+dim)<cellWrapRel(m2,m1,m1+dim)) ? m2 : m1;
+			int pmn1,pmx1,pmn2,pmx2;
+			Real mn1=cellWrap(minima[3*id1+axis],wMn,wMn+dim,pmn1), mx1=cellWrap(maxima[3*id1+axis],wMn,wMn+dim,pmx1);
+			Real mn2=cellWrap(mn[axis],wMn,wMn+dim,pmn2), mx2=cellWrap(mx[axis],wMn,wMn+dim,pmx2);
+			if(unlikely((pmn1!=pmx1) || (pmn2!=pmx2))){
+				Real span=(pmn1!=pmx1?mx1-mn1:mx2-mn2); if(span<0) span=dim-span;
+				LOG_FATAL("Particle #"<<(pmn1!=pmx1?id1:-1)<<" spans over half of the cell size "<<dim<<" (axis="<<axis<<", min="<<(pmn1!=pmx1?mn1:mn2)<<", max="<<(pmn1!=pmx1?mx1:mx2)<<", span="<<span<<")");
+				throw runtime_error(__FILE__ ": Particle larger than half of the cell size encountered.");
 			}
-			ret.push_back(id1);
-			noOverlap: ;
+			if(!(mn1<=mx2 && mx1 >= mn2)) goto noOverlap;
 		}
-		return ret;
+		ret.push_back(id1);
+		noOverlap: ;
 	}
+	return ret;
+}
 };
 
 // STRIDE
-	bool InsertionSortCollider::isActivated(){
-		// we wouldn't run in this step; in that case, just delete pending interactions
-		// this is done in ::action normally, but it would make the call counters not reflect the stride
-		return true;
-	}
+bool InsertionSortCollider::isActivated(){
+	// we wouldn't run in this step; in that case, just delete pending interactions
+	// this is done in ::action normally, but it would make the call counters not reflect the stride
+	return true;
+}
 
 
 bool InsertionSortCollider::updateBboxes_doFullRun(){
@@ -382,12 +355,12 @@ bool InsertionSortCollider::updateBboxes_doFullRun(){
 	// bounds don't need update, collision neither
 	if(!recomputeBounds) return false;
 
-	
+
 	// this loop takes 25% collider time when not parallelized, give it a try
 	size_t size=particles->size();
-	#ifdef WOO_OPENMP
+#ifdef WOO_OPENMP
 		#pragma omp parallel for schedule(static)
-	#endif
+#endif
 	for(size_t i=0; i<size; i++){
 		const shared_ptr<Particle>& p((*particles)[i]);
 		if(!p || !p->shape) continue;
@@ -430,29 +403,29 @@ bool InsertionSortCollider::updateBboxes_doFullRun(){
 }
 
 bool InsertionSortCollider::prologue_doFullRun(){
-	dem=dynamic_cast<DemField*>(field.get());
-	assert(dem);
-	particles=dem->particles.get();
+dem=dynamic_cast<DemField*>(field.get());
+assert(dem);
+particles=dem->particles.get();
 
-	// scene->interactions->iterColliderLastRun=-1;
+// scene->interactions->iterColliderLastRun=-1;
 
-	// conditions when we need to run a full pass
-	bool fullRun=false;
+// conditions when we need to run a full pass
+bool fullRun=false;
 
-	// contacts are dirty and must be detected anew
-	if(dem->contacts->dirty || forceInitSort){ fullRun=true; dem->contacts->dirty=false; }
+// contacts are dirty and must be detected anew
+if(dem->contacts->dirty || forceInitSort){ fullRun=true; dem->contacts->dirty=false; }
 
-	// number of particles changed
-	if((size_t)BB[0].size!=2*particles->size()) fullRun=true;
-	//redundant: if(minima.size()!=3*nPar || maxima.size()!=3*nPar) fullRun=true;
+// number of particles changed
+if((size_t)BB[0].size!=2*particles->size()) fullRun=true;
+//redundant: if(minima.size()!=3*nPar || maxima.size()!=3*nPar) fullRun=true;
 
-	// periodicity changed
-	if(scene->isPeriodic != periodic){
-		for(int i=0; i<3; i++) BB[i].vec.clear();
-		periodic=scene->isPeriodic;
-		fullRun=true;
-	}
-	return fullRun;
+// periodicity changed
+if(scene->isPeriodic != periodic){
+	for(int i=0; i<3; i++) BB[i].vec.clear();
+	periodic=scene->isPeriodic;
+	fullRun=true;
+}
+return fullRun;
 }
 
 void InsertionSortCollider::run(){
@@ -475,7 +448,7 @@ void InsertionSortCollider::run(){
 		field->cast<DemField>().contacts->removePending(*this,scene);
 		return;
 	}
-	
+
 	nFullRuns++;
 
 	long nPar=(long)particles->size();
@@ -531,22 +504,19 @@ void InsertionSortCollider::run(){
 				VecBounds& BBj=BB[j];
 				const Particle::id_t id=BBj[i].id;
 				const shared_ptr<Particle>& b=(*particles)[id];
-				#ifdef ISC_INF
-					bool wasInf=false;
-				#endif
 				if(likely(b)){
 					const shared_ptr<Bound>& bv=b->shape->bound;
 					// coordinate is min/max if has bounding volume, otherwise both are the position. Add periodic shift so that we are inside the cell
 					// watch out for the parentheses around ?: within ?: (there was unwanted conversion of the Reals to bools!)
 					BBj[i].coord=((BBj[i].flags.hasBB=((bool)bv)) ? (BBj[i].flags.isMin ? bv->min[j] : bv->max[j]) : (b->shape->nodes[0]->pos[j])) - (periodic ? BBj.cellDim*BBj[i].period : 0.);
-					#ifdef ISC_INF
-						if(periodic && isinf(BBj[i].coord)){
-							// check that min and max are both infinite or none of them
-							assert(!bv || ((isinf(bv->min[j]) && isinf(bv->max[j])) || (!isinf(bv->min[j]) && !isinf(bv->max[j]))));
-							// infinite particles span between cell boundaries, the lower bound having period 0, the upper one 1 (this should not change)
-							BBj[i].period=(BBj[i].coord<0?0:1); BBj[i].coord=0.; wasInf=false;
-						}
-					#endif
+					BBj[i].flags.isInf=false;
+					if(periodic && isinf(BBj[i].coord)){
+						// check that min and max are both infinite or none of them
+						assert(!bv || ((isinf(bv->min[j]) && isinf(bv->max[j])) || (!isinf(bv->min[j]) && !isinf(bv->max[j]))));
+						// infinite particles span between cell boundaries, the lower bound having period 0, the upper one 1 (this should not change)
+						BBj[i].period=(BBj[i].coord<0?0:1); BBj[i].coord=0.; /* wasInf=true; */
+						BBj[i].flags.isInf=true; // keep track of infinite coord here, so that we know there is no separation possible later
+					}
 				} else { // vanished particle
 					BBj[i].flags.hasBB=false;
 					// when doing initial sort, set to -inf so that nonexistent particles don't generate inversions later
@@ -557,12 +527,8 @@ void InsertionSortCollider::run(){
 				}
 				// if initializing periodic, shift coords & record the period into BBj[i].period
 				if(doInitSort && periodic) {
-					#ifdef ISC_INF
-						// don't do this for infinite bbox which was adjusted to the cell size above
-						// if(!BBj[i].isInf)
-						if(!wasInf)
-					#endif
-					BBj[i].coord=cellWrap(BBj[i].coord,0,BBj.cellDim,BBj[i].period);
+					// don't do this for infinite bbox which was adjusted to the cell size above
+					if(!BBj[i].flags.isInf) BBj[i].coord=cellWrap(BBj[i].coord,0,BBj.cellDim,BBj[i].period);
 				}
 			}	
 		}
@@ -582,7 +548,7 @@ void InsertionSortCollider::run(){
 
 	// process interactions that the constitutive law asked to be erased
 	field->cast<DemField>().contacts->removePending(*this,scene);
-	
+
 	ISC_CHECKPOINT("erase");
 	ISC_CHECKPOINT("pre-sort");
 
@@ -657,9 +623,9 @@ void InsertionSortCollider::run(){
 			ISC_CHECKPOINT("init-contacts-done");
 		}
 	ISC_CHECKPOINT("sort&collide");
-	#ifdef ISC_LATER
-		makeRemoveContactLater_process();
-	#endif
+
+	makeRemoveContactLater_process();
+
 	ISC_CHECKPOINT("make-remove-write");
 }
 
@@ -693,17 +659,19 @@ void InsertionSortCollider::insertionSortPeri(VecBounds& v, bool doCollide, int 
 		if(v[i_1].coord<=iCmpCoord) continue;
 		// vi is the copy that will travel down the list, while other elts go up
 		// if will be placed in the list only at the end, to avoid extra copying
-		int j=i_1; Bounds vi=v[i];  const bool viHasBB=vi.flags.hasBB; const bool viIsMin=vi.flags.isMin;
+		int j=i_1; Bounds vi=v[i];  const bool viHasBB=vi.flags.hasBB; const bool viIsMin=vi.flags.isMin; const bool viIsInf=vi.flags.isInf;
 		while(v[j].coord>vi.coord + /* wrap for elt just below split */ (v.norm(j+1)==loIdx ? v.cellDim : 0)){
 			long j1=v.norm(j+1);
 			// OK, now if many bodies move at the same pace through the cell and at one point, there is inversion,
 			// this can happen without any side-effects
-			if (false && v[j].coord>2*v.cellDim){
-				// this condition is not strictly necessary, but the loop of insertionSort would have to run more times.
-				// Since size of particle is required to be < .5*cellDim, this would mean simulation explosion anyway
-				LOG_FATAL("Body #"<<v[j].id<<" going faster than 1 cell in one step? Not handled.");
-				throw runtime_error(__FILE__ ": body mmoving too fast (skipped 1 cell).");
-			}
+			#if 0
+				if (v[j].coord>2*v.cellDim){
+					// this condition is not strictly necessary, but the loop of insertionSort would have to run more times.
+					// Since size of particle is required to be < .5*cellDim, this would mean simulation explosion anyway
+					LOG_FATAL("Particle #"<<v[j].id<<" going faster than 1 cell in one step? Not handled.");
+					throw runtime_error(__FILE__ ": particle moving too fast (skipped 1 cell).");
+				}
+			#endif
 			Bounds& vNew(v[j1]); // elt at j+1 being overwritten by the one at j and adjusted
 			vNew=v[j];
 			// inversions close the the split need special care
@@ -711,14 +679,8 @@ void InsertionSortCollider::insertionSortPeri(VecBounds& v, bool doCollide, int 
 			else if(unlikely(j1==loIdx)) { vNew.period+=1; vNew.coord-=v.cellDim; loIdx=v.norm(loIdx-1); }
 			if(viIsMin!=v[j].flags.isMin && likely(doCollide && viHasBB && v[j].flags.hasBB)){
 				// see https://bugs.launchpad.net/woo/+bug/669095 and similar problem in aperiodic insertionSort
-				#if 0
-				if(vi.id==vNew.id){
-					LOG_FATAL("Inversion of body's #"<<vi.id<<" boundary with its other boundary, "<<v[j].coord<<" meets "<<vi.coord);
-					throw runtime_error(__FILE__ ": Body's boundary metting its opposite boundary.");
-				}
-				#endif
 				if(likely(vi.id!=vNew.id)){
-					handleBoundInversionPeri(vi.id,vNew.id,/*separating*/!viIsMin);
+					handleBoundInversionPeri(vi.id,vNew.id,/*separating*/(!viIsMin && !viIsInf && !v[j].flags.isInf));
 				}
 			}
 			#ifdef WOO_DEBUG
@@ -753,16 +715,7 @@ void InsertionSortCollider::handleBoundInversionPeri(Particle::id_t id1, Particl
 		const shared_ptr<Particle>& pA((*particles)[id1]);
 		const shared_ptr<Particle>& pB((*particles)[id2]);
 		if(!Collider::mayCollide(dem,pA,pB)) return;
-		#ifdef ISC_LATER
-			makeContactLater(pA,pB,periods);
-		#else
-			// LOG_TRACE("Creating new interaction #"<<id1<<"+#"<<id2);
-			shared_ptr<Contact> newC=make_shared<Contact>();
-			newC->pA=pA; newC->pB=pB;
-			newC->cellDist=periods;
-			newC->stepCreated=scene->step;
-			dem->contacts->add(newC);
-		#endif
+		makeContactLater(pA,pB,periods);
 		#ifdef PISC_DEBUG
 			if(watchIds(id1,id2)) LOG_DEBUG("Created intr #"<<id1<<"+#"<<id2<<", periods="<<periods);
 		#endif
@@ -770,11 +723,7 @@ void InsertionSortCollider::handleBoundInversionPeri(Particle::id_t id1, Particl
 	}
 	if(!overlap && hasCon){
 		if(!C->isReal()) {
-			#ifdef ISC_LATER
-				removeContactLater(C);
-			#else
-				dem->contacts->remove(C);
-			#endif
+			removeContactLater(C);
 			#ifdef PISC_DEBUG
 				if(watchIds(id1,id2)) LOG_DEBUG("Erased intr #"<<id1<<"+#"<<id2);
 			#endif
@@ -803,14 +752,6 @@ bool InsertionSortCollider::spatialOverlapPeri(Particle::id_t id1, Particle::id_
 	assert(id1!=id2); // programming error, or weird bodies (too large?)
 	for(int axis=0; axis<3; axis++){
 		Real dim=scene->cell->getSize()[axis];
-		// LOG_DEBUG("dim["<<axis<<"]="<<dim);
-		// too big bodies in interaction
-		#if 0
-		if(!(maxima[3*id1+axis]-minima[3*id1+axis]<.99*dim)){
-			LOG_ERROR("##"<<id1<<"+"<<id2<<": min["<<axis<<"]="<<minima[3*id1+axis]<<" max["<<axis<<"]="<<maxima[3*id1+axis]<<", dim="<<dim<<", ignored!!")
-			return false;
-		}
-		#endif
 		{
 			// assertions; guard in block to avoid name clash with vars below
 			__attribute__((unused)) const Real &mn1(minima[3*id1+axis]), &mx1(maxima[3*id1+axis]), &mn2(minima[3*id2+axis]), &mx2(maxima[3*id2+axis]);
@@ -820,20 +761,16 @@ bool InsertionSortCollider::spatialOverlapPeri(Particle::id_t id1, Particle::id_
 		}
 		// find particle of which minimum when taken as period start will make the gap smaller
 		Real m1=minima[3*id1+axis],m2=minima[3*id2+axis];
-		#ifdef ISC_INF
-			// infinite particles always overlap, cut it short
-			if(isinf(m1) || isinf(m2)){
-				assert(!isinf(m1) || m1<0); // check that minimum is minus infinity
-				assert(!isinf(m2) || m2<0); // check that minimum is minus infinity
-				periods[axis]=0; // does not matter where the contact happens really
-				#ifdef PISC_DEBUG
-					if(watchIds(id1,id2)){
-						LOG_DEBUG("    Some particle infinite along the "<<axis<<" axis.");
-					}
-				#endif
-				continue; // do other axes
-			}
-		#endif
+		// infinite particles always overlap, cut it short
+		if(isinf(m1) || isinf(m2)){
+			assert(!isinf(m1) || m1<0); // check that minimum is minus infinity
+			assert(!isinf(m2) || m2<0); // check that minimum is minus infinity
+			periods[axis]=0; // does not matter where the contact happens really
+			#ifdef PISC_DEBUG
+				if(watchIds(id1,id2)){ LOG_DEBUG("    Some particle infinite along the "<<axis<<" axis."); }
+			#endif
+			continue; // do other axes
+		}
 		Real wMn=(cellWrapRel(m1,m2,m2+dim)<cellWrapRel(m2,m1,m1+dim)) ? m2 : m1;
 		#ifdef PISC_DEBUG
 		if(watchIds(id1,id2)){

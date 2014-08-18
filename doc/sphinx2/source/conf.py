@@ -71,6 +71,7 @@ ich.IPythonConsoleLexer.input_prompt=re.compile(r'(Woo\[[0-9]+\]: )')
 ich.IPythonConsoleLexer.output_prompt=re.compile(r'(( -> |Out)|\[[0-9]+\]: )')
 ich.IPythonConsoleLexer.continue_prompt=re.compile(r'\s+\.\.\.+:')
 
+intersphinx_mapping={'yade':('http://www.yade-dem.org/doc',None)}
 
 # make graphviz determine the best size instead of hard-coded one
 # http://stackoverflow.com/a/2151808/761090

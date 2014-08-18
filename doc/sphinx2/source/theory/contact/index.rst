@@ -30,10 +30,11 @@ The first task is covered in the :ref:`contact_geometry` chapter while the last 
       =========================== ======================= ===================== ====================
 
 .. toctree::
-	:maxdepth: 3
-	
-	linear.rst
-	pellet.rst
-	hertzian.rst
-	adhesive.rst
+   :maxdepth: 3
+   
+   linear.rst
+   pellet.rst
+   hertzian.rst
+   adhesive.rst
+   concrete.rst
 

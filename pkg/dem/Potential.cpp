@@ -1,6 +1,6 @@
 #include<woo/pkg/dem/Potential.hpp>
-
-#include<unsupported/Eigen/NonLinearOptimization>
+#include<woo/lib/pcl/bfgs.h>
+#include<unsupported/Eigen/NumericalDiff>
 
 WOO_PLUGIN(dem,(PotentialFunctor)(PotentialDispatcher)(Pot1_Sphere)(Pot1_Wall)(Cg2_Shape_Shape_L6Geom__Potential));
 
@@ -10,12 +10,12 @@ WOO_IMPL__CLASS_BASE_DOC(woo_dem_Pot1_Wall__CLASS_BASE_DOC);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_Cg2_Shape_Shape_L6Geom__Potential__CLASS_BASE_DOC_ATTRS);
 
 
-std::function<Real(const Vector3r&)> PotentialFunctor::funcPotentialValue(const shared_ptr<Shape>& s){
+PotentialFunctor::PotFuncType PotentialFunctor::funcPotentialValue(const shared_ptr<Shape>& s){
 	throw std::runtime_error(pyStr()+".funcPotentialValue: not overridden (called with shape "+s->pyStr()+").");
 }
-std::function<Real(const Vector3r&)> PotentialFunctor::funcPotentialGradient(const shared_ptr<Shape>&){
+PotentialFunctor::GradFuncType PotentialFunctor::funcPotentialGradient(const shared_ptr<Shape>&){
 	// return empty function by default
-	return std::function<Real(const Vector3r&)>();
+	return GradFuncType();
 }
 Real PotentialFunctor::go(const shared_ptr<Shape>& s, const Vector3r& pt){
 	return funcPotentialValue(s)(pt);
@@ -24,15 +24,28 @@ Real PotentialFunctor::go(const shared_ptr<Shape>& s, const Vector3r& pt){
 
 Real Pot1_Sphere::boundingSphereRadius(const shared_ptr<Shape>& s){ return s->cast<Sphere>().radius; }
 
-std::function<Real(const Vector3r&)> Pot1_Sphere::funcPotentialValue(const shared_ptr<Shape>& s){
-	return std::function<Real(const Vector3r&)>([&](const Vector3r& pt)->Real{ return (pt-s->nodes[0]->pos).norm()-s->cast<Sphere>().radius; });
+Real Pot1_Sphere::pot(const shared_ptr<Shape>& s, const Vector3r& pt){
+	Real ret=(pt-s->nodes[0]->pos).norm()-s->cast<Sphere>().radius;
+	cerr<<"Pot1_Sphere::pot("<<pt.transpose()<<")="<<ret<<endl;
+	return ret;
+}
+PotentialFunctor::PotFuncType Pot1_Sphere::funcPotentialValue(const shared_ptr<Shape>& s){
+	// return PotFuncType([&](const Vector3r& pt)->Real{ return (pt-s->nodes[0]->pos).norm()-s->cast<Sphere>().radius; });
+	return PotFuncType([&](const Vector3r& pt)->Real{ return this->pot(s,pt); });
 }
 
-std::function<Real(const Vector3r&)> Pot1_Wall::funcPotentialValue(const shared_ptr<Shape>& s){
+Real Pot1_Wall::pot(const shared_ptr<Shape>& s, const Vector3r& pt){
+	const auto& w(s->cast<Wall>());
+	Real ret=w.sense*(pt[w.axis]-w.nodes[0]->pos[w.axis]);
+	cerr<<"Pot1_Wall::pot  ("<<pt.transpose()<<")="<<ret<<endl;
+	return ret;
+}
+	// return PotFuncType([&](const Vector3r& pt)->Real{ return w.sense*(pt[w.axis]-w.nodes[0]->pos[w.axis]); });
+PotentialFunctor::PotFuncType Pot1_Wall::funcPotentialValue(const shared_ptr<Shape>& s){
 	const auto& w(s->cast<Wall>());
 	if(w.sense!=-1 && w.sense!=1) throw std::runtime_error("Pot1_Wall: Wall.sense must be +1 or -1, not "+to_string(w.sense)+".");
-	std::function<Real(const Vector3r&)> f=[&](const Vector3r& pt)->Real{ return w.sense*(pt[w.axis]-w.nodes[0]->pos[w.axis]); };
-	return f;
+	// return PotFuncType([&](const Vector3r& pt)->Real{ return w.sense*(pt[w.axis]-w.nodes[0]->pos[w.axis]); });
+	return PotFuncType([&](const Vector3r& pt)->Real{ return this->pot(s,pt); });
 }
 
 void Cg2_Shape_Shape_L6Geom__Potential::setMinDist00Sq(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const shared_ptr<Contact>& C) {
@@ -56,71 +69,50 @@ void Cg2_Shape_Shape_L6Geom__Potential::pyHandleCustomCtorArgs(py::tuple& t, py:
 	t=py::tuple(); // empty the args
 }
 
-#if EIGEN_WORLD_VERSION==3 && EIGEN_MAJOR_VERSION<3
-	// copy over from newer Eigen
-	template <typename _Scalar, int NX=Eigen::Dynamic, int NY=Eigen::Dynamic>
-	struct DenseFunctor
-	{
-	 typedef _Scalar Scalar;
-	 enum {
-	 InputsAtCompileTime = NX,
-	 ValuesAtCompileTime = NY
-	 };
-	 typedef Eigen::Matrix<Scalar,InputsAtCompileTime,1> InputType;
-	 typedef Eigen::Matrix<Scalar,ValuesAtCompileTime,1> ValueType;
-	 typedef Eigen::Matrix<Scalar,ValuesAtCompileTime,InputsAtCompileTime> JacobianType;
-	 typedef Eigen::ColPivHouseholderQR<JacobianType> QRSolver;
-	 const int m_inputs, m_values;
 
-	 DenseFunctor() : m_inputs(InputsAtCompileTime), m_values(ValuesAtCompileTime) {}
-	 DenseFunctor(int inputs, int values) : m_inputs(inputs), m_values(values) {}
+template<typename _Scalar, int NX>
+struct ParticleBFGSFunctor
+{
+	typedef _Scalar Scalar;
+	typedef Eigen::Matrix<Scalar,1,1> Matrix11;
+	enum { InputsAtCompileTime = NX, ValuesAtCompileTime=1 };
+	typedef Eigen::Matrix<Scalar,InputsAtCompileTime,1> VectorType;
+	typedef PotentialFunctor::PotFuncType PotFuncType;
+	typedef PotentialFunctor::GradFuncType GradFuncType;
+	// for NumericalDiff
+	typedef VectorType InputType; 
+	typedef Eigen::Matrix<Scalar,1,InputsAtCompileTime> JacobianType;
+	typedef Matrix11 ValueType;
 
-	 int inputs() const { return m_inputs; }
-	 int values() const { return m_values; }
 
-	 //int operator()(const InputType &x, ValueType& fvec) { }
-	 // should be defined in derived classes
-
-	 //int df(const InputType &x, JacobianType& fjac) { }
-	 // should be defined in derived classes
-	};
-#else
-	using Eigen::DenseFunctor; // later versions of Eigen support that natively
-#endif
-
-struct ParticlePotentialFunctor: public DenseFunctor<Real> {
 	std::function<Real(const Vector3r&)> potFunc;
 	std::function<Vector3r(const Vector3r&)> gradFunc; // unset by default
-	ParticlePotentialFunctor(): DenseFunctor(3,1) {}
-	int operator()(const InputType& x, ValueType& p) const {
-		cerr<<"["<<x.transpose()<<": "<<potFunc(x)<<"]";
-		p(0,0)=potFunc(x);
-		return 0;
-	}
-	int df(const InputType &x, JacobianType& fjac) { fjac=gradFunc(x); return 0; }
+	const int m_inputs;
+
+	ParticleBFGSFunctor(PotFuncType _potFunc, GradFuncType _gradFunc=GradFuncType(), int _inputs=0): potFunc(_potFunc), gradFunc(_gradFunc), m_inputs(_inputs!=0?_inputs:InputsAtCompileTime) { }
+
+	int inputs() const { return m_inputs; }
+	int values() const { return 1; }
+
+	int operator() (const InputType& x, ValueType &v) const { v(0,0)=potFunc(x); return 1; }
+	int df(const VectorType &x, JacobianType &df) const { if(!gradFunc) throw std::logic_error("ParticleBFGSFunctor.df: gradFunc is undefined and numerical differentiation is not enabled."); df=gradFunc(x).transpose(); return 0; }
+	// int fdf(const VectorType &x, ValueType &_f, JacobianType &_df) const { int ret=1; (*this)(x,_f); ret+=df(x,_df); return ret; }
 };
 
-typedef Eigen::NumericalDiff<ParticlePotentialFunctor,/*mode=*/Eigen::Central/*Eigen::Forward*/> ParticlePotentialFunctor_numDiff;
-typedef Eigen::LevenbergMarquardt<ParticlePotentialFunctor_numDiff,Real> SolverLM;
+typedef ParticleBFGSFunctor<Real,3> ParticleBFGSFunctor_R3;
+typedef Eigen::NumericalDiff<ParticleBFGSFunctor_R3,/*mode=*/ /* Eigen::Central */ Eigen::Forward> ParticleBFGSFunctor_R3_numDiff;
 
-string solverLM_status2str(int status){
-	#define CASE_STATUS(st) case Eigen::LevenbergMarquardtSpace::st: return string(#st);
+string BFGS_status2str(int status){
+	#define CASE_STATUS(st) case BFGSSpace::st: return string(#st);
 	switch(status){
+		CASE_STATUS(NegativeGradientEpsilon);
 		CASE_STATUS(NotStarted);
 		CASE_STATUS(Running);
-		CASE_STATUS(ImproperInputParameters);
-		CASE_STATUS(RelativeReductionTooSmall);
-		CASE_STATUS(RelativeErrorTooSmall);
-		CASE_STATUS(RelativeErrorAndReductionTooSmall);
-		CASE_STATUS(CosinusTooSmall);
-		CASE_STATUS(TooManyFunctionEvaluation);
-		CASE_STATUS(FtolTooSmall);
-		CASE_STATUS(XtolTooSmall);
-		CASE_STATUS(GtolTooSmall);
-		CASE_STATUS(UserAsked);
+		CASE_STATUS(Success);
+		CASE_STATUS(NoProgress);
 	}
 	#undef CASE_STATUS
-	throw std::logic_error(("solverLM_status2str called with unknown status number "+lexical_cast<string>(status)).c_str());
+	throw std::logic_error(("BFGS_status2str: unknown status number "+to_string(status)));
 }
 
 
@@ -131,9 +123,11 @@ bool Cg2_Shape_Shape_L6Geom__Potential::go(const shared_ptr<Shape>& s1, const sh
 	const auto& f2=potentialDispatcher->getFunctor1D(s2);
 	if(!f1 || !f2) return false; // unable to handle this contact
 	auto l1=f1->funcPotentialValue(s1); auto l2=f2->funcPotentialValue(s2);
-	ParticlePotentialFunctor_numDiff functor;
-	functor.potFunc=std::function<Real(const Vector3r&)>([&](const Vector3r& pt)->Real{ return l1(pt)+l2(pt); });
-	SolverLM solver(functor);
+	Real refLen=(s1->nodes[0]->pos-s2->nodes[0]->pos).norm();
+	//auto functor=Eigen::NumericalDiff<ParticleBFGSFunctor_R3>(PotentialFunctor::PotFuncType([&](const Vector3r& pt)->Real{ return l1(pt)+l2(pt); }),refLen*1e-6);
+	auto functor=ParticleBFGSFunctor_R3_numDiff(ParticleBFGSFunctor_R3(PotentialFunctor::PotFuncType([&](const Vector3r& pt)->Real{ return l1(pt)+l2(pt); })),refLen*1e-6);
+	// scaling factor for numerics
+	BFGS<ParticleBFGSFunctor_R3_numDiff> solver(functor);
 	// initial solution?
 	Vector3r solution;
 	if(!C->isReal()){
@@ -141,32 +135,33 @@ bool Cg2_Shape_Shape_L6Geom__Potential::go(const shared_ptr<Shape>& s1, const sh
 	} else {
 		solution=C->geom->node->pos;
 	}
-	VectorXr solution2(solution);
-	LOG_TRACE("LM: initial "<<solution2.transpose());
+
+	LOG_TRACE("BFGS: initial "<<solution.transpose());
+	ParticleBFGSFunctor_R3::JacobianType jac; functor.df(solution,jac);
+	LOG_TRACE("BFGS: gradient "<<jac);
 	#if 1
-		int status=solver.minimizeInit(solution2);
-		LOG_TRACE("LM: initialized, status="<<status<<" "<<solverLM_status2str(status));
+		int status=solver.minimizeInit(solution);
+		LOG_TRACE("BFGS: initialized, status="<<status<<" "<<BFGS_status2str(status));
 		do{
-			status=solver.minimizeOneStep(solution2);
-			LOG_TRACE("LM: solution step, solution="<<solution2.transpose()<<", status="<<status<<" "<<solverLM_status2str(status));
-		} while(status==Eigen::LevenbergMarquardtSpace::Running);
+			LOG_TRACE("BFGS: gradient="<<solver.gradient.transpose()<<", pnorm="<<solver.pnorm<<", g0norm="<<solver.g0norm<<", fp0="<<solver.fp0);
+			status=solver.minimizeOneStep(solution);
+			LOG_TRACE("BFGS: solution step, solution="<<solution.transpose()<<", status="<<status<<" "<<BFGS_status2str(status));
+		} while(status==BFGSSpace::Running);
 	#else
-		int status=solver.minimize(solution2);
+		int status=solver.minimize(solution);
 	#endif
-	LOG_TRACE("LM: final solution "<<solution2.transpose()<<", status="<<status<<" "<<solverLM_status2str(status));
-	solution=solution2;
+	LOG_TRACE("BFGS: final solution "<<solution.transpose()<<", status="<<status<<" "<<BFGS_status2str(status));
 	// solution found
-	if(status==Eigen::LevenbergMarquardtSpace::RelativeErrorTooSmall || status==Eigen::LevenbergMarquardtSpace::RelativeErrorAndReductionTooSmall || status==Eigen::LevenbergMarquardtSpace::RelativeReductionTooSmall || status==Eigen::LevenbergMarquardtSpace::CosinusTooSmall){
+	if(status==BFGSSpace::Success){
 		Real p1=l1(solution), p2=l2(solution);
-		cerr<<"Solution found at"<<solution.transpose()<<" after "<<solver.nfev<<" iterations; potentials are "<<p1<<" "<<p2<<endl;
+		cerr<<"Solution "<<solution.transpose()<<" found after "<<solver.iter<<" iterations; potentials are "<<p1<<" "<<p2<<endl;
 		if(p1*p2<0) throw std::runtime_error("Potential have differing signs at the solution point.");
 		// compute the gradient
-		ParticlePotentialFunctor_numDiff f2;
-		f2.potFunc=std::function<Real(const Vector3r&)>([&](const Vector3r& pt)->Real{ return l1(pt)-l2(pt); });
-		MatrixXr jac(3,3);
+		ParticleBFGSFunctor_R3_numDiff f2(PotentialFunctor::PotFuncType([&](const Vector3r& pt)->Real{ return l1(pt)-l2(pt); }));
+		ParticleBFGSFunctor_R3::JacobianType jac;
 		f2.df(solution,jac);
-		cerr<<"Jacobian at the solution point: "<<jac<<endl;
-		Vector3r normal(jac(0,0),jac(1,0),jac(2,0)); 
+		Vector3r grad(jac.transpose());
+		cerr<<"Gradient (contact normal) at the solution point: "<<grad.transpose()<<endl;
 		Real r1=s1->equivRadius(), r2=s2->equivRadius();
 		if(!(r1>0) && !(r2>0)) throw std::runtime_error("Shape.equivRadius: at least one should be positive ("+to_string(r1)+" for "+s1->pyStr()+", "+to_string(r2)+" for "+s2->pyStr()+")");
 		if(!(r1>0)) r1=-r2;
@@ -174,10 +169,10 @@ bool Cg2_Shape_Shape_L6Geom__Potential::go(const shared_ptr<Shape>& s1, const sh
 		Real uN=-p1-p2;
 		const auto& dyn1=s1->nodes[0]->getData<DemData>();
 		const auto& dyn2=s2->nodes[0]->getData<DemData>();
-		handleSpheresLikeContact(C,s1->nodes[0]->pos,dyn1.vel,dyn1.angVel,s2->nodes[0]->pos,dyn2.vel,dyn2.angVel,normal,solution,uN,r1,r2);
+		handleSpheresLikeContact(C,s1->nodes[0]->pos,dyn1.vel,dyn1.angVel,s2->nodes[0]->pos,dyn2.vel,dyn2.angVel,grad,solution,uN,r1,r2);
 	} else {
 		// no solution found?
-		throw std::runtime_error("LevenbergMarquardt minimizer found no solution?!");
+		throw std::runtime_error("BFGS: no solution, status "+BFGS_status2str(status));
 	}
 	return true;
 }
