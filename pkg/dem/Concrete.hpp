@@ -20,8 +20,8 @@ WOO_REGISTER_OBJECT(ConcreteMatState);
 
 struct ConcreteMat: public FrictMat {
 	//public:
-	//	virtual shared_ptr<State> newAssocState() const { return shared_ptr<State>(new CpmState); }
-	//	virtual bool stateTypeOk(State* s) const { return (bool)dynamic_cast<CpmState*>(s); }
+	//	virtual shared_ptr<State> newAssocState() const { return shared_ptr<State>(new ConcreteMatState); }
+	//	virtual bool stateTypeOk(State* s) const { return s->isA<ConcreteMatState>(); }
 	#define woo_dem_ConcreteMat__CLASS_BASE_DOC_ATTRS_CTOR \
 		ConcreteMat,FrictMat,"Concrete material, for use with other Concrete classes.", \
 		((Real,sigmaT,NaN,,"Initial cohesion [Pa]")) \
@@ -43,7 +43,7 @@ WOO_REGISTER_OBJECT(ConcreteMat);
 
 struct ConcretePhys: public FrictPhys {
 	static long cummBetaIter, cummBetaCount;
-	/*! auxiliary variable for visualization, recalculated in Law2_ScGeom_ConcretePhys_Cpm at every iteration */
+	/*! auxiliary variable for visualization, recalculated in Law2_L6Geom_ConcretePhys at every iteration */
 	// Fn and Fs are also stored as Vector3r normalForce, shearForce in NormShearPhys 
 	Real omega, Fn, sigmaN, epsN, relResidualStrength, kappaD, epsNPl;
 	Vector3r sigmaT, Fs, epsTPl, epsT;
@@ -70,7 +70,7 @@ struct ConcretePhys: public FrictPhys {
 		((Real,refLength,NaN,,"initial length of interaction [m]")) \
 		((Real,refPD,NaN,,"initial penetration depth of interaction [m] (used with ScGeom)")) \
 		((Real,epsCrackOnset,NaN,,"strain at which the material starts to behave non-linearly")) \
-		((Real,relDuctility,NaN,,"Relative ductility of bonds in normal direction")) \
+		/*((Real,relDuctility,NaN,,"Relative ductility of bonds in normal direction"))*/ \
 		((Real,epsFracture,NaN,,"strain at which the bond is fully broken [-]")) \
 		((Real,dmgTau,-1,,"characteristic time for damage (if non-positive, the law without rate-dependence is used)")) \
 		((Real,dmgRateExp,0,,"exponent in the rate-dependent damage evolution")) \
@@ -151,11 +151,11 @@ struct Law2_L6Geom_ConcretePhys: public LawFunctor{
 		((Real,omegaThreshold,((void)">=1. to deactivate, i.e. never delete any contacts",1.),,"damage after which the contact disappears (<1), since omega reaches 1 only for strain →+∞")) \
 		((Real,epsSoft,((void)"approximates confinement -20MPa precisely, -100MPa a little over, -200 and -400 are OK (secant)",-3e-3),,"Strain at which softening in compression starts (non-negative to deactivate)")) \
 		((Real,relKnSoft,.3,,"Relative rigidity of the softening branch in compression (0=perfect elastic-plastic, <0 softening, >0 hardening)")) \
-		, /*py*/.def("yieldSigmaTMagnitude",&Law2_ScGeom_CpmPhys_Cpm::yieldSigmaTMagnitude,(py::arg("sigmaN"),py::arg("omega"),py::arg("coh0"),py::arg("tanPhi")),"Return radius of yield surface for given material and state parameters; uses attributes of the current instance (*yieldSurfType* etc), change them before calling if you need that.") \
+		, /*py*/.def("yieldSigmaTMagnitude",&Law2_L6Geom_ConcretePhys::yieldSigmaTMagnitude,(py::arg("sigmaN"),py::arg("omega"),py::arg("coh0"),py::arg("tanPhi")),"Return radius of yield surface for given material and state parameters; uses attributes of the current instance (*yieldSurfType* etc), change them before calling if you need that.") \
 		.def("elasticEnergy",&Law2_L6Geom_ConcretePhys::elasticEnergy,"Compute and return the total elastic energy in all :obj:`ConcretePhys` contacts")
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Law2_L6Geom_ConcretePhys__CLASS_BASE_DOC_ATTRS_PY);
 };
-WOO_REGISTER_OBJECT(Law2_ScGeom_CpmPhys_Cpm);
+WOO_REGISTER_OBJECT(Law2_L6Geom_ConcretePhys);
 
 
 

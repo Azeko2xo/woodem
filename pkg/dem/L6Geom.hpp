@@ -16,8 +16,8 @@ struct L6Geom: public CGeom{
 		((Vector3r,vel,Vector3r::Zero(),AttrTrait<>().velUnit(),"Relative displacement rate in local coordinates, defined by :obj:`CGeom.node`")) \
 		((Vector3r,angVel,Vector3r::Zero(),AttrTrait<>().angVelUnit(),"Relative rotation rate in local coordinates")) \
 		((Real,uN,NaN,,"Normal displacement, distace of separation of particles (mathematically equal to integral of vel[0], but given here for numerically more stable results, as this component can be usually computed directly).")) \
-		((Vector2r,lens,Vector2r::Zero(),AttrTrait<>().lenUnit(),"Hint for Gp2 functor on how to distribute material stiffnesses according to lengths on both sides of the contact; their sum should be equal to the initial contact length.")) \
-		((Real,contA,NaN,AttrTrait<>().areaUnit(),"(Fictious) contact area, used by Gp2 functor to compute stiffness.")) \
+		((Vector2r,lens,Vector2r::Zero(),AttrTrait<>().lenUnit(),"Hint for Cp2 functor on how to distribute material stiffnesses according to lengths on both sides of the contact; their sum should be equal to the initial contact length.")) \
+		((Real,contA,NaN,AttrTrait<>().areaUnit(),"(Fictious) contact area, used by Cp2 functor to compute stiffness.")) \
 		((Matrix3r,trsf,Matrix3r::Identity(),,"Transformation (rotation) from global to local coordinates; only used internally, and is synchronized with :obj:`woo.core.Node.ori` automatically. If the algorithm works with pure quaternions at some point (it is not stable now), can be removed safely.")) \
 		, /*ctor*/ createIndex();
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_L6Geom__CLASS_BASE_DOC_ATTRS_CTOR);

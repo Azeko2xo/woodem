@@ -31,17 +31,15 @@ void Cp2_ConcreteMat_ConcretePhys::go(const shared_ptr<Material>& m1, const shar
 		assert(!isnan(mat2.relDuctility));
 	}
 
-	p->damLaw = mat1->damLaw;
 	// particles sharing the same material; no averages necessary
 	if (m1.get()==m2.get()) {
-		p->E = mat1->young;
-		p->G = mat1->young*mat1->poisson; // !!
-		p->tanPhi = mat1->tanPhi;
-		p->coh0 = mat1->sigmaT;
-		p->isCohesive = (cohesiveThresholdStep < 0 || scene->step < cohesiveThresholdStep);
+		p->E=mat1.young;
+		p->G=mat1.young*mat1.ktDivKn;
+		p->tanPhi=mat1.tanPhi;
+		p->coh0=mat1.sigmaT;
+		p->isCohesive=(cohesiveThresholdStep<0 || scene->step<cohesiveThresholdStep);
 		#define _CPATTR(a) p->a=mat1.a
 			_CPATTR(epsCrackOnset);
-			_CPATTR(relDuctility);
 			_CPATTR(neverDamage);
 			_CPATTR(dmgTau);
 			_CPATTR(dmgRateExp);
@@ -52,14 +50,13 @@ void Cp2_ConcreteMat_ConcretePhys::go(const shared_ptr<Material>& m1, const shar
 	} else {
 		// averaging over both materials
 		#define _AVGATTR(a) p->a=.5*(mat1.a+mat2.a)
-			p->E = .5*(mat1.young + mat2.young);
-			p->G = .5*(mat1.poisson + mat2.poisson)*.5*(mat1.young + mat2.young); // !!
+			p->E=.5*(mat1.young+mat2.young);
+			p->G=.5*(mat1.ktDivKn+mat2.ktDivKn)*.5*(mat1.young+mat2.young);
 			_AVGATTR(tanPhi);
-			p->coh0 = .5*(mat1.sigmaT + mat2.sigmaT);
-			p->isCohesive = (cohesiveThresholdStep < 0 || scene->step < cohesiveThresholdStep);
+			p->coh0=.5*(mat1.sigmaT+mat2.sigmaT);
+			p->isCohesive=(cohesiveThresholdStep<0 || scene->step<cohesiveThresholdStep);
 			_AVGATTR(epsCrackOnset);
-			_AVGATTR(relDuctility);
-			p->neverDamage = (mat1->neverDamage || mat2->neverDamage);
+			p->neverDamage=(mat1.neverDamage || mat2.neverDamage);
 			_AVGATTR(dmgTau);
 			_AVGATTR(dmgRateExp);
 			_AVGATTR(plTau);
@@ -68,8 +65,15 @@ void Cp2_ConcreteMat_ConcretePhys::go(const shared_ptr<Material>& m1, const shar
 		#undef _AVGATTR
 	}
 
-	// NOTE: some params are not assigned until in Law2_L6Geom_ConcretePhys, since they need geometry as well; those are:
-	// 	crossSection, kn, ks, refLength
+	if(mat1.damLaw!=mat2.damLaw) throw std::runtime_error("Cp2_ConcreteMat_ConcretePhys: damLaw is not the same for "+C->leakPA()->pyStr()+" and "+C->leakPB()->pyStr()+".");
+	p->damLaw=mat1.damLaw;
+	p->epsFracture=p->epsCrackOnset*.5*(mat1.relDuctility+mat2.relDuctility);
+
+	// geometry-dependent
+	assert(C->geom->isA<L6Geom>());
+	const auto& g(C->geom->cast<L6Geom>());
+	p->kn=p->E*g.contA/g.lens.sum();
+	p->kt=p->G*g.contA/g.lens.sum();
 }
 
 
@@ -82,18 +86,18 @@ Real ConcretePhys::solveBeta(const Real c, const Real N){
 	#ifdef WOO_DEBUG
 		cummBetaCount++;
 	#endif
-	const int maxIter = 20;
-	const Real maxError = 1e-12;
-	Real f, ret = 0.;
-	for(int i = 0; i < maxIter; i++){
+	const int maxIter=20;
+	const Real maxError=1e-12;
+	Real f, ret=0.;
+	for(int i=0; i<maxIter; i++){
 		#ifdef WOO_DEBUG
 			cummBetaIter++;
 		#endif
-		Real aux = c*exp(N*ret)+exp(ret);
-		f = log(aux);
-		if (std::abs(f) < maxError) return ret;
-		Real df = (c*N*exp(N*ret)+exp(ret))/aux;
-		ret -= f/df;
+		Real aux=c*exp(N*ret)+exp(ret);
+		f=log(aux);
+		if(std::abs(f)<maxError) return ret;
+		Real df=(c*N*exp(N*ret)+exp(ret))/aux;
+		ret-=f/df;
 	}
 	LOG_FATAL("No convergence after "<<maxIter<<" iters; c="<<c<<", N="<<N<<", ret="<<ret<<", f="<<f);
 	throw runtime_error("ConcretePhys::solveBeta failed to converge.");
@@ -101,151 +105,151 @@ Real ConcretePhys::solveBeta(const Real c, const Real N){
 
 
 Real ConcretePhys::computeDmgOverstress(Real dt){
-	if (dmgStrain >= epsN*omega) { // unloading, no viscous stress
-		dmgStrain = epsN*omega;
+	if(dmgStrain>=epsN*omega) { // unloading, no viscous stress
+		dmgStrain=epsN*omega;
 		LOG_TRACE("Elastic/unloading, no viscous overstress");
 		return 0.;
 	}
-	Real c = epsCrackOnset*(1-omega)*pow(dmgTau/dt,dmgRateExp)*pow(epsN*omega-dmgStrain,dmgRateExp-1.);
-	Real beta = solveBeta(c,dmgRateExp);
-	Real deltaDmgStrain = (epsN*omega-dmgStrain)*exp(beta);
-	dmgStrain += deltaDmgStrain;
+	Real c=epsCrackOnset*(1-omega)*pow(dmgTau/dt,dmgRateExp)*pow(epsN*omega-dmgStrain,dmgRateExp-1.);
+	Real beta=solveBeta(c,dmgRateExp);
+	Real deltaDmgStrain=(epsN*omega-dmgStrain)*exp(beta);
+	dmgStrain+=deltaDmgStrain;
 	LOG_TRACE("deltaDmgStrain="<<deltaDmgStrain<<", viscous overstress "<<(epsN*omega-dmgStrain)*E);
 	/* σN=Kn(εN-εd); dmgOverstress=σN-(1-ω)*Kn*εN=…=Kn(ω*εN-εd) */
 	return (epsN*omega-dmgStrain)*E;
 }
 
 Real ConcretePhys::computeViscoplScalingFactor(Real sigmaTNorm, Real sigmaTYield,Real dt){
-	if (sigmaTNorm<sigmaTYield) return 1.;
-	Real c = coh0*pow(plTau/(G*dt),plRateExp)*pow(sigmaTNorm-sigmaTYield,plRateExp-1.);
-	Real beta = solveBeta(c,plRateExp);
+	if(sigmaTNorm<sigmaTYield) return 1.;
+	Real c=coh0*pow(plTau/(G*dt),plRateExp)*pow(sigmaTNorm-sigmaTYield,plRateExp-1.);
+	Real beta=solveBeta(c,plRateExp);
 	//LOG_DEBUG("scaling factor "<<1.-exp(beta)*(1-sigmaTYield/sigmaTNorm));
 	return 1.-exp(beta)*(1-sigmaTYield/sigmaTNorm);
 }
 
-Real ConcretePhys::funcG(const Real& kappaD, const Real& epsCrackOnset, const Real& epsFracture, const bool& neverDamage, const int& damLaw) {
+Real ConcretePhys::funcG(const Real& kappaD, const Real& epsCrackOnset, const Real& epsFracture, const bool& neverDamage, const int& damLaw {
 	if (kappaD<epsCrackOnset || neverDamage) return 0;
-	switch (damLaw) {
+	switch(damLaw){
 		case 0: // linear
 			return (1.-epsCrackOnset/kappaD)/(1.-epsCrackOnset/epsFracture);
 		case 1: // exponential
 			return 1.-(epsCrackOnset/kappaD)*exp(-(kappaD-epsCrackOnset)/epsFracture);
 	}
-	throw runtime_error("ConcretePhys::funcG: wrong damLaw\n");
+	throw runtime_error("ConcretePhys::funcG: wrong damLaw "+to_string(damLaw)+".");
 }
 
 Real ConcretePhys::funcGDKappa(const Real& kappaD, const Real& epsCrackOnset, const Real& epsFracture, const bool& neverDamage, const int& damLaw) {
-	switch (damLaw) {
+	switch(damLaw){
 		case 0: // linear
-			return epsCrackOnset / ((1.-epsCrackOnset/epsFracture)*kappaD*kappaD);
+			return epsCrackOnset/((1.-epsCrackOnset/epsFracture)*kappaD*kappaD);
 		case 1: // exponential
-			return epsCrackOnset/kappaD * (1./kappaD + 1./epsFracture) * exp(-(kappaD-epsCrackOnset)/epsFracture);
+			return epsCrackOnset/kappaD*(1./kappaD+1./epsFracture)*exp(-(kappaD-epsCrackOnset)/epsFracture);
 	}
-	throw runtime_error("ConcretePhys::funcGDKappa: wrong damLaw\n");
+	throw runtime_error("ConcretePhys::funcGDKappa: wrong damLaw "+to_string(damLaw)+".");
 }
 
 Real ConcretePhys::funcGInv(const Real& omega, const Real& epsCrackOnset, const Real& epsFracture, const bool& neverDamage, const int& damLaw) {
-	if (omega==0. || neverDamage) return 0;
-	switch (damLaw) {
+	if(omega==0. || neverDamage) return 0;
+	switch(damLaw) 
 		case 0: // linear
-			return epsCrackOnset / (1. - omega*(1. - epsCrackOnset/epsFracture));
+			return epsCrackOnset/(1.-omega*(1.-epsCrackOnset/epsFracture));
 		case 1: // exponential
 			// Newton's iterations
-			Real fg,dfg,decr,ret=epsCrackOnset,tol=1e-3;
+			Real fg, dfg, decr, ret=epsCrackOnset,tol=1e-3;
 			int maxIter = 100;
 			for (int i=0; i<maxIter; i++) {
-				fg = - omega + 1. - epsCrackOnset/ret * exp(-(ret-epsCrackOnset)/epsFracture);
-				//dfg = (epsCrackOnset/ret/ret - epsCrackOnset*(ret-epsCrackOnset)/ret/epsFracture/epsFracture) * exp(-(ret-epsCrackOnset)/epsFracture);
-				dfg = ConcretePhys::funcGDKappa(ret,epsCrackOnset,epsFracture,neverDamage,damLaw);
-				decr = fg/dfg;
-				ret -= decr;
-				if (std::abs(decr/epsCrackOnset) < tol) {
+				fg=-omega+1.-epsCrackOnset/ret*exp(-(ret-epsCrackOnset)/epsFracture);
+				//dfg=(epsCrackOnset/ret/ret-epsCrackOnset*(ret-epsCrackOnset)/ret/epsFracture/epsFracture)*exp(-(ret-epsCrackOnset)/epsFracture);
+				dfg=ConcretePhys::funcGDKappa(ret,epsCrackOnset,epsFracture,neverDamage,damLaw);
+				decr=fg/dfg;
+				ret-=decr;
+				if (std::abs(decr/epsCrackOnset)<tol) {
 					return ret;
 				}
 			}
-			throw runtime_error("ConcretePhys::funcGInv: no convergence\n");
+			throw runtime_error("ConcretePhys::funcGInv: no convergence");
 	}
-	throw runtime_error("ConcretePhys::funcGInv: wrong damLaw\n");
+	throw runtime_error("ConcretePhys::funcGInv: wrong damLaw "+to_string(damLaw)+".");
 }
 
 void ConcretePhys::setDamage(Real dmg) {
-	if (neverDamage) { return; }
-	omega = dmg;
-	kappaD = ConcretePhys::funcGInv(dmg,epsCrackOnset,epsFracture,neverDamage,damLaw);
+	if(neverDamage){ return; }
+	omega=dmg;
+	kappaD=ConcretePhys::funcGInv(dmg,epsCrackOnset,epsFracture,neverDamage,damLaw);
 }
 
 void ConcretePhys::setRelResidualStrength(Real r) {
-	if (neverDamage) { return; }
-	if (r == 1.) {
-		relResidualStrength = r;
-		kappaD = omega = 0.;
+	if(neverDamage){ return; }
+	if(r==1.){
+		relResidualStrength=r;
+		kappaD=omega=0.;
 		return;
 	}
-	Real k = epsFracture;
-	Real g,dg,f,df,tol=1e-3,e0i=1./epsCrackOnset,decr;
-	int maxIter = 100;
+	Real k=epsFracture;
+	Real g, dg, f, df, tol=1e-3, e0i=1./epsCrackOnset, decr;
+	int maxIter=100;
 	int i;
-	for (i=0; i<maxIter; i++) {
-		g = ConcretePhys::funcG(k,epsCrackOnset,epsFracture,neverDamage,damLaw);
-		dg = ConcretePhys::funcGDKappa(k,epsCrackOnset,epsFracture,neverDamage,damLaw);
-		f = -r + (1-g)*k*e0i;
-		df = e0i*(1-g-k*dg);
-		decr = f/df;
-		k -= decr;
-		if (std::abs(decr) < tol) {
-			kappaD = k;
-			omega = ConcretePhys::funcG(k,epsCrackOnset,epsFracture,neverDamage,damLaw);
-			relResidualStrength = r;
+	for(i=0; i<maxIter; i++){
+		g=ConcretePhys::funcG(k,epsCrackOnset,epsFracture,neverDamage,damLaw);
+		dg=ConcretePhys::funcGDKappa(k,epsCrackOnset,epsFracture,neverDamage,damLaw);
+		f=-r+(1-g)*k*e0i;
+		df=e0i*(1-g-k*dg);
+		decr=f/df;
+		k-=decr;
+		if(std::abs(decr)<tol){
+			kappaD=k;
+			omega=ConcretePhys::funcG(k,epsCrackOnset,epsFracture,neverDamage,damLaw);
+			relResidualStrength=r;
 			return;
 		}
 	}
-	throw runtime_error("ConcretePhys::setRelResidualStrength: no convergence\n");
+	throw runtime_error("ConcretePhys::setRelResidualStrength: no convergence.");
 }
 
 
 
-
-
-#define _WOO_VERIFY(condition) if(!(condition)){LOG_FATAL("Verification `"<<#condition<<"' failed!"); LOG_FATAL("in interaction #"<<I->getId1()<<"+#"<<I->getId2()); Omega::instance().saveSimulation("/tmp/verificationFailed.xml"); throw;}
+#define _WOO_VERIFY(condition) if(!(condition)){ throw std::runtime_error(__FILE__+":"+to_string(__LINE__)+": verification '+#condition+" failed, in contact "+C->pyStr()+"."); }
 #define NNAN(a) _WOO_VERIFY(!isnan(a));
 #define NNANV(v) _WOO_VERIFY(!isnan(v.maxCoeff()));
 
-void Law2_L6Geom_ConcretePhys::go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&);
+void Law2_L6Geom_ConcretePhys::go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>& C);
 	L6Geom& geom=_geom->cast<L6Geom>();
 	ConcretePhys& phys=_phys->cast<ConcretePhys>();
 
-	/* just the first time */
-	// TODO: replace by L6Geom.contA, lens and friends
-	if (C->isFresh(scene)) {
-		const shared_ptr<Body> b1 = Body::byId(I->id1,scene);
-		const shared_ptr<Body> b2 = Body::byId(I->id2,scene);
-		const int sphereIndex = Sphere::getClassIndexStatic();
-		const int facetIndex = Facet::getClassIndexStatic();
-		const int wallIndex = Wall::getClassIndexStatic();
-		const int b1index = b1->shape->getClassIndex();
-		const int b2index = b2->shape->getClassIndex();
-		if (b1index == sphereIndex && b2index == sphereIndex) { // both bodies are spheres
-			const Vector3r& pos1 = Body::byId(I->id1,scene)->state->pos;
-			const Vector3r& pos2 = Body::byId(I->id2,scene)->state->pos;
-			Real minRad = (geom->refR1 <= 0? geom->refR2 : (geom->refR2 <=0? geom->refR1 : min(geom->refR1,geom->refR2)));
-			Vector3r shift2 = scene->isPeriodic? Vector3r(scene->cell->hSize*I->cellDist.cast<Real>()) : Vector3r::Zero();
-			phys->refLength = (pos2 - pos1 + shift2).norm();
-			phys->crossSection = Mathr::PI*pow(minRad,2);
-			phys->refPD = geom->refR1 + geom->refR2 - phys->refLength;
-		} else if (b1index == facetIndex || b2index == facetIndex || b1index == wallIndex || b2index == wallIndex) { // one body is facet or wall
-			shared_ptr<Body> sphere, plane;
-			if (b1index == facetIndex || b1index == wallIndex) { plane = b1; sphere = b2; }
-			else { plane = b2; sphere = b1; }
-			Real rad = ( (Sphere*) sphere->shape.get() )->radius;
-			phys->refLength = rad;
-			phys->crossSection = Mathr::PI*pow(rad,2);
-			phys->refPD = 0.;
-		}
+	#if 0
+		/* just the first time */
+		// TODO: replace by L6Geom.contA, lens and friends
+		if (C->isFresh(scene)) {
+			const shared_ptr<Body> b1 = Body::byId(I->id1,scene);
+			const shared_ptr<Body> b2 = Body::byId(I->id2,scene);
+			const int sphereIndex = Sphere::getClassIndexStatic();
+			const int facetIndex = Facet::getClassIndexStatic();
+			const int wallIndex = Wall::getClassIndexStatic();
+			const int b1index = b1->shape->getClassIndex();
+			const int b2index = b2->shape->getClassIndex();
+			if (b1index == sphereIndex && b2index == sphereIndex) { // both bodies are spheres
+				const Vector3r& pos1 = Body::byId(I->id1,scene)->state->pos;
+				const Vector3r& pos2 = Body::byId(I->id2,scene)->state->pos;
+				Real minRad = (geom->refR1 <= 0? geom->refR2 : (geom->refR2 <=0? geom->refR1 : min(geom->refR1,geom->refR2)));
+				Vector3r shift2 = scene->isPeriodic? Vector3r(scene->cell->hSize*I->cellDist.cast<Real>()) : Vector3r::Zero();
+				phys->refLength = (pos2 - pos1 + shift2).norm();
+				phys->crossSection = Mathr::PI*pow(minRad,2);
+				phys->refPD = geom->refR1 + geom->refR2 - phys->refLength;
+			} else if (b1index == facetIndex || b2index == facetIndex || b1index == wallIndex || b2index == wallIndex) { // one body is facet or wall
+				shared_ptr<Body> sphere, plane;
+				if (b1index == facetIndex || b1index == wallIndex) { plane = b1; sphere = b2; }
+				else { plane = b2; sphere = b1; }
+				Real rad = ( (Sphere*) sphere->shape.get() )->radius;
+				phys->refLength = rad;
+				phys->crossSection = Mathr::PI*pow(rad,2);
+				phys->refPD = 0.;
+			}
 
-		phys->kn = phys->crossSection*phys->E/phys->refLength;
-		phys->ks = phys->crossSection*phys->G/phys->refLength;
-		phys->epsFracture = phys->epsCrackOnset*phys->relDuctility;
-	}
+			phys->kn = phys->crossSection*phys->E/phys->refLength;
+			phys->ks = phys->crossSection*phys->G/phys->refLength;
+			phys->epsFracture = phys->epsCrackOnset*phys->relDuctility;
+		}
+	#endif
 	
 	/* shorthands */
 	Real& epsN(phys->epsN);
@@ -254,13 +258,12 @@ void Law2_L6Geom_ConcretePhys::go(const shared_ptr<CGeom>&, const shared_ptr<CPh
 	/* Real& epsPlSum(phys->epsPlSum); */
 	const Real& E(phys->E); \
 	const Real& coh0(phys->coh0);
-	const Real& tanFrictionAngle(phys->tanFrictionAngle);
+	const Real& tanPhi(phys->tanPhi);
 	const Real& G(phys->G);
-	const Real& crossSection(phys->crossSection);
+	const Real& contA(geom->contA);
 	const Real& omegaThreshold(this->omegaThreshold);
 	const Real& epsCrackOnset(phys->epsCrackOnset);
 	Real& relResidualStrength(phys->relResidualStrength);
-	/*const Real& relDuctility(phys->relDuctility); */
 	const Real& epsFracture(phys->epsFracture);
 	const int& damLaw(phys->damLaw);
 	const bool& neverDamage(phys->neverDamage);
@@ -320,13 +323,13 @@ void Law2_L6Geom_ConcretePhys::go(const shared_ptr<CGeom>&, const shared_ptr<CPh
 
 	sigmaN -= phys->isoPrestress;
    
-   NNAN(sigmaN); NNANV(sigmaT); NNAN(crossSection);
+   NNAN(sigmaN); NNANV(sigmaT); NNAN(contA);
    if (!neverDamage) { NNAN(kappaD); NNAN(epsFracture); NNAN(omega); }
 
 	/* handle broken contacts */
 	if (epsN>0. && ((isCohesive && omega>omegaThreshold) || !isCohesive)) {
 		const shared_ptr<Body>& body1 = Body::byId(I->getId1(),scene), body2 = Body::byId(I->getId2(),scene); assert(body1); assert(body2);
-	 	const shared_ptr<CpmState>& st1 = YADE_PTR_CAST<CpmState>(body1->state), st2 = YADE_PTR_CAST<CpmState>(body2->state);
+	 	const shared_ptr<ConcreteMatState>& st1 = YADE_PTR_CAST<ConcreteMatState>(body1->state), st2 = YADE_PTR_CAST<ConcreteMatState>(body2->state);
 		/* nice article about openMP::critical vs. scoped locks: http://www.thinkingparallel.com/2006/08/21/scoped-locking-vs-critical-in-openmp-a-personal-shootout/ */
 		{ boost::mutex::scoped_lock lock(st1->updateMutex); st1->numBrokenCohesive += 1; /* st1->epsPlBroken += epsPlSum; */ }
 		{ boost::mutex::scoped_lock lock(st2->updateMutex); st2->numBrokenCohesive += 1; /* st2->epsPlBroken += epsPlSum; */ }
@@ -334,8 +337,8 @@ void Law2_L6Geom_ConcretePhys::go(const shared_ptr<CGeom>&, const shared_ptr<CPh
 		return false;
 	}
 
-	Fn = sigmaN*crossSection; phys->normalForce = -Fn*geom->normal;
-	Fs = sigmaT*crossSection; phys->shearForce = -Fs;
+	Fn = sigmaN*contA; phys->normalForce = -Fn*geom->normal;
+	Fs = sigmaT*contA; phys->shearForce = -Fs;
 
 	TIMING_DELTAS_CHECKPOINT("GO B");
 

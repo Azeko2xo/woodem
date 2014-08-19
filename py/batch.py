@@ -358,7 +358,9 @@ def dbToSpread(db,out=None,dialect='xls',rows=False,series=True,ignored=('plotDa
 				for key,val in flat.items():
 					if key.lower() in ignored: continue
 					if key not in allData: allData[key]=[None]*i+[val]
-					else: allData[key].append(val)
+					else:
+						allData[key]+=[None]*(i-len(allData[key]))+[val]
+						#allData[key].append(val)
 			## hdf.close()
 	else:
 		conn=sqlite3.connect(db,timeout=sqliteTimeout,detect_types=sqlite3.PARSE_DECLTYPES)
@@ -377,7 +379,9 @@ def dbToSpread(db,out=None,dialect='xls',rows=False,series=True,ignored=('plotDa
 			for key,val in flat.items():
 				if key.lower() in ignored: continue
 				if key not in allData: allData[key]=[None]*i+[val]
-				else: allData[key].append(val)
+				else: 
+					allData[key]+=[None]*(i-len(allData[key]))+[val]
+					#allData[key].append(val)
 		conn.close() # don't occupy the db longer than necessary
 	fields=sorted(allData.keys(),key=natural_key)
 	# apply sortFirst
