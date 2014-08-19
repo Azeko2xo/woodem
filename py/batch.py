@@ -587,6 +587,7 @@ def runPreprocessor(pre,preFile=None):
 			vv=allTab[tableLine]
 			# set preprocessor parameters first
 			for name,val in vv.items():
+				if name[0]=='!': continue # pseudo-variables such as !SCRIPT, !THREADS and so on
 				if name=='title': continue
 				if val in ('*','-',''): continue
 				nestedSetattr(pre,name,eval(val,globals(),dict(woo=woo,math=math))) # woo.unit
@@ -704,13 +705,14 @@ This class is used by :obj:`woo.utils.readParamsFromTable`.
 					empty=(c.ctype in (xlrd.XL_CELL_EMPTY,xlrd.XL_CELL_BLANK) or (c.ctype==xlrd.XL_CELL_TEXT and c.value.strip()==''))
 					comment=(c.ctype==xlrd.XL_CELL_TEXT and re.match(r'^\s*(#.*)?$',c.value)) 
 					if comment: break # comment cancels all remaining cells on the line
-					if not empty: lastDataCol=col
+					if not empty: lastDataCol=max(col,lastDataCol)
 				if lastDataCol>=0:
 					rows.append(row)
-					maxCol=lastDataCol
+					maxCol=max(maxCol,lastDataCol)
+					# if lastDataCol<maxCol: raise RuntimeError('Error in %s: all data rows should have the same number of colums; row %d has only %d columns, should have %d.'%(file,row,lastDataCol+1,maxCol+1))
 			# rows and cols with data
 			cols=range(maxCol+1)
-			#print 'maxCol=%d,cols=%s'%(maxCol,cols)
+			# print 'maxCol=%d,cols=%s'%(maxCol,cols)
 			# iterate through cells, define rawHeadings, headings, values
 			rawHeadings=[sheet.cell(rows[0],c).value for c in cols]
 			headings=[(h[:-1] if (h and h[-1]=='!') else h) for h in rawHeadings] # without trailing bangs

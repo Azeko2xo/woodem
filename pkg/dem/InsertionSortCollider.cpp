@@ -150,7 +150,7 @@ void InsertionSortCollider::insertionSort(VecBounds& v, bool doCollide, int ax){
 			// check boundaries between chunks -- if all of them are ordered, we're done; otherwise a next pass is needed
 			isOk=true;
 			for(size_t chunk=(even?1:0); chunk<chunks; chunk++){
-				if(v[s[chunk]-1]>v[s[chunk]]) isOk=false;
+				if(v[s[chunk]-1]>v[s[chunk]]){ isOk=false; break; }
 			}
 		}
 		// cerr<<"Parallel insertion sort done ("<<pass+1<<") passes, "<<chunks<<" chunks; inversions remaining: "<<countInversions().transpose()<<endl;
@@ -645,22 +645,95 @@ Real InsertionSortCollider::cellWrapRel(const Real x, const Real x0, const Real 
 
 void InsertionSortCollider::insertionSortPeri(VecBounds& v, bool doCollide, int ax){
 	assert(periodic);
-	long &loIdx=v.loIdx; const long &size=v.size;
-	for(long _i=0; _i<size; _i++){
+	assert(v.size==(long)v.vec.size());
+	#ifndef WOO_OPENMP
+		insertionSortPeri_part(v,doCollide,ax,0,v.size,0);
+	#else
+		// one chunk per core; the complicated logic for the non-periodic variant has not brought any improvement
+		int chunks=omp_get_max_threads();
+		int chunkSize=v.size/chunks;
+		if(chunkSize<100){ insertionSortPeri_part(v,doCollide,ax,0,v.size,0); return; }
+
+		/*
+			============================================= bound sequence
+			              with chunks==4:
+			0----------1----------2----------3----------4         splits0 (even sorts run in-between)
+			.....0----------1-----------2----------3-----.....4   splits1 (odd sorts run in-between); 4 wraps to 0
+
+			Split-points inner to bounds are checked for ordering after each pass;
+			when all of them are ordered, it means the whole sequence is ordered.
+
+		*/
+		vector<size_t> splits0(chunks+1), splits1(chunks+1);
+		for(int i=0; i<chunks; i++){ splits0[i]=i*chunkSize; splits1[i]=i*chunkSize+chunkSize/2; }
+		splits0[chunks]=v.size;
+		splits1[chunks]=splits1[0]+v.size; // wrapping around
+		//cerr<<"splits0:"; for(auto s: splits0) cerr<<" "<<s; cerr<<endl;
+		//cerr<<"splits1:"; for(auto s: splits1) cerr<<" "<<s; cerr<<endl;
+		
+		bool isOk=false; size_t pass;
+		for(pass=0; !isOk; pass++){
+			bool even=((pass%2)==0);
+			const vector<size_t>& s(even?splits0:splits1);
+			#pragma omp parallel for schedule(static)
+			for(int chunk=0; chunk<chunks; chunk++){
+				long start(pass==0?s[chunk]:(even?splits1[chunk]:splits0[chunk+1]));
+				// cerr<<"{pass:"<<pass<<",chunk:"<<chunk<<"/"<<chunks-1<<":"<<s[chunk]<<","<<s[chunk+1]<<","<<start<<"}";
+				insertionSortPeri_part(v,doCollide,ax,s[chunk],s[chunk+1],start);
+			}
+			isOk=true;
+			// if(pass<=3) isOk=false;
+			for(int chunk=0; chunk<chunks; chunk++){
+				// cerr<<"["<<chunk<<"/"<<chunks-1<<"]";
+				long i=v.norm(s[chunk]); long i_1=v.norm(i-1);
+				// this condition is copied over from the InsertionSortPeri_part loop
+				if((i==v.loIdx && v[i].coord<0) || v[i_1].coord>v[i].coord+(i==v.loIdx?v.cellDim:0)){ isOk=false; break; }
+			}
+		}
+		// cerr<<" (("<<pass<<" passes))"<<endl;
+		// cerr<<"Parallel periodic insertion sort done ("<<pass+1<<") passes, "<<chunks<<" chunks; inversions remaining: "<<countInversions().transpose()<<endl;
+	#endif
+}
+void InsertionSortCollider::insertionSortPeri_part(VecBounds& v, bool doCollide, int ax, long iBegin, long iEnd, long iStart){
+	assert(periodic);
+	assert(iBegin<iEnd);
+	// iBegin must be in the normalized range
+	assert(v.norm(iBegin)==iBegin);
+	assert(0<=iEnd);
+	assert(iStart<iEnd);
+	long &loIdx=v.loIdx;
+	#ifdef WOO_OPENMP
+		const bool earlyStop=(iBegin!=iStart);
+		const bool partial=(v.norm(iBegin)!=v.norm(iEnd));
+		// cerr<<"[["<<iBegin<<","<<iEnd<<"("<<v.norm(iEnd)<<"),"<<iStart<<"]]";
+	#else
+		const bool earlyStop=false;
+		const bool partial=false;
+		assert(iBegin==iStart);
+		assert(v.norm(iBegin)==v.norm(iEnd));
+	#endif
+	// don't start at iBegin+1 for partial sort, since we may need to adjust loIdx at that index as well
+	// for single-threaded sort, we need iBegin, since j may go down arbitrarily (smaller than iBegin)
+	for(long _i=max(iStart,iBegin); _i<iEnd; _i++){
+		// TODO: check that we threads cannot change loIdx concurrently!!!
 		const long i=v.norm(_i);
 		const long i_1=v.norm(i-1);
-		//switch period of (i) if the coord is below the lower edge cooridnate-wise and just above the split
-		if(i==loIdx && v[i].coord<0){ v[i].period-=1; v[i].coord+=v.cellDim; loIdx=v.norm(loIdx+1); }
+		// switch period of (i) if the coord is below the lower edge cooridnate-wise and just above the split
+		// make sure we don't push loIdx up to other parallel thread's range
+		if(i==loIdx && v[i].coord<0 && (!partial || i!=iEnd-1)){ v[i].period-=1; v[i].coord+=v.cellDim; loIdx=v.norm(loIdx+1); }
 		// coordinate of v[i] used to check inversions
 		// if crossing the split, adjust by cellDim;
 		// if we get below the loIdx however, the v[i].coord will have been adjusted already, no need to do that here
 		const Real iCmpCoord=v[i].coord+(i==loIdx ? v.cellDim : 0); 
-		// no inversion
-		if(v[i_1].coord<=iCmpCoord) continue;
+		// no inversion, early return
+		if(v[i_1].coord<=iCmpCoord){
+			if(unlikely(earlyStop)){ return; }
+			continue;
+		}
 		// vi is the copy that will travel down the list, while other elts go up
 		// if will be placed in the list only at the end, to avoid extra copying
 		int j=i_1; Bounds vi=v[i];  const bool viHasBB=vi.flags.hasBB; const bool viIsMin=vi.flags.isMin; const bool viIsInf=vi.flags.isInf;
-		while(v[j].coord>vi.coord + /* wrap for elt just below split */ (v.norm(j+1)==loIdx ? v.cellDim : 0)){
+		while((!partial || j>=iBegin) && v[j].coord>vi.coord + /* wrap for elt just below split */ (v.norm(j+1)==loIdx ? v.cellDim : 0)){
 			long j1=v.norm(j+1);
 			// OK, now if many bodies move at the same pace through the cell and at one point, there is inversion,
 			// this can happen without any side-effects
@@ -675,6 +748,7 @@ void InsertionSortCollider::insertionSortPeri(VecBounds& v, bool doCollide, int 
 			Bounds& vNew(v[j1]); // elt at j+1 being overwritten by the one at j and adjusted
 			vNew=v[j];
 			// inversions close the the split need special care
+			// parallel: loIdx modification is safe since j>iBegin (when loIdx is incremented) and j1>iBegin+1 (when loIdx is decremented);
 			if(unlikely(j==loIdx && vi.coord<0)) { vi.period-=1; vi.coord+=v.cellDim; loIdx=v.norm(loIdx+1); }
 			else if(unlikely(j1==loIdx)) { vNew.period+=1; vNew.coord-=v.cellDim; loIdx=v.norm(loIdx-1); }
 			if(viIsMin!=v[j].flags.isMin && likely(doCollide && viHasBB && v[j].flags.hasBB)){
@@ -684,7 +758,10 @@ void InsertionSortCollider::insertionSortPeri(VecBounds& v, bool doCollide, int 
 				}
 			}
 			#ifdef WOO_DEBUG
-				stepInvs[ax]++; numInvs[ax]++;
+				#ifdef WOO_OPENMP
+					#pragma omp critical
+				#endif
+				{ stepInvs[ax]++; numInvs[ax]++; }
 			#endif
 			j=v.norm(j-1);
 		}

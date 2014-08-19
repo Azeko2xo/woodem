@@ -633,7 +633,7 @@ Future work could use the best-fit deformation description :cite:`Liao1997` to d
 Videos
 -------
 
-Circular hole in DEM-discretized medium is subjected to radial hydrostatic pressure applied in the cavity. Contact stiffness are cross-anisotropic, with the strike angle :math:`\alpha=270^{\circ}` and the dip angle :math:`\beta=25^{\circ}`. This vide shows behavior of the medium when the pressure is applied.
+Circular hole in DEM-discretized medium is subjected to radial hydrostatic pressure applied in the cavity. Contact stiffness are cross-anisotropic, with the strike angle :math:`\alpha=270^{\circ}` and the dip angle :math:`\beta=25^{\circ}`. This video shows behavior of the medium when the pressure is applied.
 
 .. youtube:: KYCvi6SNOc0
 
@@ -641,5 +641,5 @@ It can be seen that:
 
 * the sound wave propagates faster in the sense of higher stiffness (horizontally)
 * the deformation is bigger in the sense of lower stiffness (vertically)
-* radial loading leads to axial deformation due to cross-anisotropy axis not aligned with the cavity axis (it goes downwards under the angle :math:`\beta`.
+* radial loading leads to axial deformation due to cross-anisotropy axis not aligned with the cavity axis (it goes downwards under the angle :math:`\beta`).
 

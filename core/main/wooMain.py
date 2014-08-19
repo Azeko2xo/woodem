@@ -949,7 +949,7 @@ finished: %s
 			else: envVars+=['%s=%s'%(col[1:],val)]
 		if not script:
 			raise ValueError('When only batch table is given without script to run, it must contain !SCRIPT column with simulation to be run.')
-		logFile=logFormat.replace('$',script).replace('%',str(l)).replace('@',params[l]['title'].replace('/','_'))
+		logFile=logFormat.replace('$',script).replace('%',str(l)).replace('@',params[l]['title'].replace('/','_').replace('[','_').replace(']','_'))
 		if nCores>maxJobs:
 			if opts.forceThreads:
 				logging.info('Forcing job #%d to use only %d cores (max available) instead of %d requested'%(i,maxJobs,nCores))
