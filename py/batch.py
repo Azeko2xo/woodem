@@ -118,7 +118,7 @@ def writeResults(scene,defaultDb='woo-results.hdf5',syncXls=True,dbFmt=None,seri
 	elif dbFmt=='hdf5':
 		import h5py
 		try:
-			hdf=h5py.File(db,'a',libver='latest')
+			hdf=h5py.File(db,('w' if newDb else 'a'),libver='latest')
 		except IOError:
 			import warnings
 			warnings.warn("Error opening HDF5 file %s, moving to %s~~corrupt and creating a new one"%(db,db))
