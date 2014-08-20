@@ -17,6 +17,13 @@ S=woo.master.scene=Scene(
 	)],
 )
 
+## very strange: when this comes after the facets, there are sometimes crashes in sysmalloc... probably having to do with simultaneous call to Bo1_Facet_Aabb (that's where the crash happens), perhaps as Aabb.createIndex is called?!
+S.dem.par.append([
+	Facet.make([(-2,-2,0),(2,0,0),(0,2,0)],halfThick=.6,mat=m,fixed=True,wire=True),
+	Wall.make(-.7,sense=1,axis=2,mat=m),
+	InfCylinder.make((0,-2,-.5),radius=1.,axis=0,mat=m,wire=True)
+])
+
 for i in range(200):
 	o=Vector3((1.3+1e-2*i)*sin(i*.9),(1.3+1e-2*i)*cos(i*.9),.18*i+1)
 	q=Quaternion(Vector3(rnd(),rnd(),rnd()),rnd())
@@ -28,14 +35,7 @@ for i in range(200):
 		n.dem.inertia=(10,10,10)
 	S.dem.par.appendClumped([f])
 
-S.dem.par.append([
-	Facet.make([(-2,-2,0),(2,0,0),(0,2,0)],halfThick=.6,mat=m,fixed=True,wire=True),
-	Wall.make(-.7,sense=1,axis=2,mat=m),
-	InfCylinder.make((0,-2,-.5),radius=1.,axis=0,mat=m,wire=True)
-])
 
-
-
-S.dt=1e-4
+S.dt=3e-3
 S.saveTmp()
 S.one()

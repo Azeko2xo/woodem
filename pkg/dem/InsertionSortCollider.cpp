@@ -359,7 +359,7 @@ bool InsertionSortCollider::updateBboxes_doFullRun(){
 	// this loop takes 25% collider time when not parallelized, give it a try
 	size_t size=particles->size();
 	#ifdef WOO_OPENMP
-		#pragma omp parallel for schedule(static)
+		#pragma omp parallel for
 	#endif
 	for(size_t i=0; i<size; i++){
 		const shared_ptr<Particle>& p((*particles)[i]);
