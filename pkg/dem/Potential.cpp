@@ -1,5 +1,5 @@
 #include<woo/pkg/dem/Potential.hpp>
-#include<woo/lib/pcl/bfgs.h>
+#include<woo/lib/pcl/bfgs.hpp>
 #include<unsupported/Eigen/NumericalDiff>
 
 WOO_PLUGIN(dem,(PotentialFunctor)(PotentialDispatcher)(Pot1_Sphere)(Pot1_Wall)(Cg2_Shape_Shape_L6Geom__Potential));

@@ -210,7 +210,7 @@ def main(sysArgv=None):
 			print 'Downloading '+saveTo
 			urllib.urlretrieve('http://svn.python.org/projects/python/trunk/Misc/valgrind-python.supp',saveTo)
 		else:
-			print 'Using alread-downloaded '+saveTo
+			print 'Using already-downloaded '+saveTo
 		args=['valgrind','--suppressions='+saveTo,sys.executable]+[a for a in sys.argv if a!='--in-valgrind']
 		print 'Running',' '.join(args)
 		sys.exit(subprocess.call(args))

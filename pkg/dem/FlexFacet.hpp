@@ -58,7 +58,8 @@ struct In2_FlexFacet_ElastMat: public IntraFunctor{
 		((Real,nu,.25,,"Poisson's ratio used for assembling the $E$ matrix (Young's modulus is taken from :obj:`ElastMat`). Will be moved to the material class at some point.")) \
 		((Real,thickness,NaN,,"Thickness for CST stiffness computation; if NaN, try to use the double of :obj:`Facet.halfThick`.")) \
 		((Real,bendThickness,NaN,,"Thickness for CST stiffness computation; if NaN, use :obj:`thickness`.")) \
-		((bool,bending,false,,"Consider also bending stiffness of elements (DKT)"))
+		((bool,bending,false,,"Consider also bending stiffness of elements (DKT)")) \
+		((bool,applyBary,false,,"Distribute force according to barycentric coordinate of the contact point; this is done normally with :obj:`bending` enabled, this forces the same also for particles without bending."))
 	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_In2_FlexFacet_ElastMat__CLASS_BASE_DOC_ATTRS);
 };
 WOO_REGISTER_OBJECT(In2_FlexFacet_ElastMat);

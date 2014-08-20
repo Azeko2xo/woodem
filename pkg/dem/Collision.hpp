@@ -13,7 +13,7 @@ struct Aabb: public Bound{
 		((Real,maxD2,0,AttrTrait<>(Attr::readonly).unit("m²").noGui(),"Maximum allowed squared distance for nodal displacements (i.e. how much was the bbox enlarged last time)")) \
 		((Real,maxRot,NaN,AttrTrait<>(Attr::readonly),"Maximum allowed rotation (in radians, without discriminating different angles) that does not yet invalidate the bbox. Functor sets to -1 (or other negative value) for particles where node rotation does not influence the box (such as spheres or facets); in that case, orientation difference is not computed at all. If it is left at NaN, it is an indication that the functor does not implemnt this behavior and an error will be raised in the collider.")) \
 		((vector<Quaternionr>,nodeLastOri,,AttrTrait<>(Attr::readonly),"Node orientations when bbox was last updated.")) \
-		, /*ctor*/createIndex();
+		, /*ctor*/ createIndex();
 	
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_Aabb__CLASS_BASE_DOC_ATTRS_CTOR);
 	REGISTER_CLASS_INDEX(Aabb,Bound);

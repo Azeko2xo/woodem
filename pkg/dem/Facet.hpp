@@ -3,6 +3,7 @@
 #include<woo/pkg/dem/Collision.hpp>
 #include<woo/pkg/dem/IntraForce.hpp>
 #include<woo/pkg/dem/Sphere.hpp>
+#include<woo/pkg/dem/InfCylinder.hpp>
 
 
 struct Facet: public Shape {
@@ -57,16 +58,43 @@ WOO_REGISTER_OBJECT(Bo1_Facet_Aabb);
 
 struct Cg2_Facet_Sphere_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
-	virtual bool goReverse(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){ throw std::logic_error("ContactLoop should swap interaction arguments, should be Facet+Sphere, but is "+s1->getClassName()+"+"+s2->getClassName()); }
+	// virtual bool goReverse(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){ throw std::logic_error("ContactLoop should swap interaction arguments, should be Facet+Sphere, but is "+s1->getClassName()+"+"+s2->getClassName()); }
 	void setMinDist00Sq(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE { C->minDist00Sq=-1; }
 	#define woo_dem_Cg2_Facet_Sphere_L6Geom__CLASS_BASE_DOC \
-		Cg2_Facet_Sphere_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :obj:`L6Geom` for contact between :obj:`Facet` and :obj:`Sphere`. Uses attributes of :obj:`Cg2_Sphere_Sphere_L6Geom`."
+		Cg2_Facet_Sphere_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :obj:`L6Geom` for contact between :obj:`Facet` and :obj:`Sphere`."
 	WOO_DECL__CLASS_BASE_DOC(woo_dem_Cg2_Facet_Sphere_L6Geom__CLASS_BASE_DOC);
 	FUNCTOR2D(Facet,Sphere);
 	DEFINE_FUNCTOR_ORDER_2D(Facet,Sphere);
 	DECLARE_LOGGER;
 };
 WOO_REGISTER_OBJECT(Cg2_Facet_Sphere_L6Geom);
+
+
+struct Cg2_Facet_Facet_L6Geom: public Cg2_Any_Any_L6Geom__Base{
+	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
+	void setMinDist00Sq(const shared_ptr<Shape>&, const shared_ptr<Shape>&, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE { C->minDist00Sq=-1; }
+	#define woo_dem_Cg2_Facet_Facet_L6Geom__CLASS_BASE_DOC \
+		Cg2_Facet_Facet_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :obj:`L6Geom` for contact between two :obj:`Facet` shapes."
+	WOO_DECL__CLASS_BASE_DOC(woo_dem_Cg2_Facet_Facet_L6Geom__CLASS_BASE_DOC);
+	FUNCTOR2D(Facet,Facet);
+	DEFINE_FUNCTOR_ORDER_2D(Facet,Facet);
+	DECLARE_LOGGER;
+};
+WOO_REGISTER_OBJECT(Cg2_Facet_Facet_L6Geom);
+
+struct Cg2_Facet_InfCylinder_L6Geom: public Cg2_Any_Any_L6Geom__Base{
+	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
+	void setMinDist00Sq(const shared_ptr<Shape>&, const shared_ptr<Shape>&, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE { C->minDist00Sq=-1; }
+	#define woo_dem_Cg2_Facet_InfCylinder_L6Geom__CLASS_BASE_DOC \
+		Cg2_Facet_InfCylinder_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :obj:`L6Geom` for contact between :obj:`Facet` and :obj:`InfCylinder`."
+	WOO_DECL__CLASS_BASE_DOC(woo_dem_Cg2_Facet_InfCylinder_L6Geom__CLASS_BASE_DOC);
+	FUNCTOR2D(Facet,InfCylinder);
+	DEFINE_FUNCTOR_ORDER_2D(Facet,InfCylinder);
+	DECLARE_LOGGER;
+};
+WOO_REGISTER_OBJECT(Cg2_Facet_InfCylinder_L6Geom);
+
+
 
 struct In2_Facet_ElastMat: public IntraFunctor{
 	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&, const bool skipContacts);

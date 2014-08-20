@@ -208,7 +208,7 @@ void ConcretePhys::setRelResidualStrength(Real r) {
 
 
 
-#define _WOO_VERIFY(condition) if(!(condition)){ throw std::runtime_error(__FILE__+":"+to_string(__LINE__)+": verification '+#condition+" failed, in contact "+C->pyStr()+"."); }
+#define _WOO_VERIFY(condition) if(!(condition)){ throw std::runtime_error(__FILE__+":"+to_string(__LINE__)+": verification "+#condition+" failed, in contact "+C->pyStr()+"."); }
 #define NNAN(a) _WOO_VERIFY(!isnan(a));
 #define NNANV(v) _WOO_VERIFY(!isnan(v.maxCoeff()));
 

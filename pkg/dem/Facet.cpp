@@ -6,12 +6,15 @@
 	#include<woo/pkg/gl/Renderer.hpp>
 #endif
 
-WOO_PLUGIN(dem,(Facet)(Bo1_Facet_Aabb)(Cg2_Facet_Sphere_L6Geom)(In2_Facet_ElastMat));
+WOO_PLUGIN(dem,(Facet)(Bo1_Facet_Aabb)(Cg2_Facet_Sphere_L6Geom)(Cg2_Facet_Facet_L6Geom)(Cg2_Facet_InfCylinder_L6Geom)(In2_Facet_ElastMat));
 
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_Facet__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Facet_Sphere_L6Geom__CLASS_BASE_DOC);
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Facet_Facet_L6Geom__CLASS_BASE_DOC);
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Facet_InfCylinder_L6Geom__CLASS_BASE_DOC);
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_Bo1_Facet_Aabb__CLASS_BASE_DOC);
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_In2_Facet_ElastMat__CLASS_BASE_DOC);
+
 
 CREATE_LOGGER(Facet);
 
@@ -143,7 +146,7 @@ Vector3r Facet::getNearestPt(const Vector3r& pt) const {
 
 std::tuple<Vector3r,Vector3r> Facet::interpolatePtLinAngVel(const Vector3r& x) const {
 	assert(numNodesOk());
-	Vector3r a=CompUtils::facetBarycentrics(x,nodes[0]->pos,nodes[1]->pos,nodes[2]->pos);
+	Vector3r a=CompUtils::triangleBarycentrics(x,nodes[0]->pos,nodes[1]->pos,nodes[2]->pos);
 	Vector3r vv[3]={nodes[0]->getData<DemData>().vel,nodes[1]->getData<DemData>().vel,nodes[2]->getData<DemData>().vel};
 	Vector3r linVel=a[0]*vv[0]+a[1]*vv[1]+a[2]*vv[2];
 	Vector3r angVel=(nodes[0]->pos-x).cross(vv[0])+(nodes[1]->pos-x).cross(vv[1])+(nodes[2]->pos-x).cross(vv[2]);
@@ -162,7 +165,8 @@ std::tuple<Vector3r,Vector3r> Facet::interpolatePtLinAngVel(const Vector3r& x) c
 
 void Bo1_Facet_Aabb::go(const shared_ptr<Shape>& sh){
 	Facet& f=sh->cast<Facet>();
-	if(!f.bound){ f.bound=make_shared<Aabb>(); /* ignore node rotation*/ sh->bound->cast<Aabb>().maxRot=-1;}
+	if(!f.bound){ f.bound=make_shared<Aabb>(); /* ignore node rotation*/ sh->bound->cast<Aabb>().maxRot=-1;
+	}
 	Aabb& aabb=f.bound->cast<Aabb>();
 	const Vector3r halfThickVec=Vector3r::Constant(f.halfThick);
 	if(!scene->isPeriodic){
@@ -258,6 +262,195 @@ bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<
 	return true;
 };
 
+CREATE_LOGGER(Cg2_Facet_Facet_L6Geom);
+
+bool Cg2_Facet_Facet_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
+	const Facet& A=sh1->cast<Facet>(); const Facet& B=sh2->cast<Facet>();
+	const Vector3r pp[2][3]={{A.nodes[0]->pos,A.nodes[1]->pos,A.nodes[2]->pos},{B.nodes[0]->pos+shift2,B.nodes[1]->pos+shift2,B.nodes[2]->pos+shift2}};
+	// Vector3r nn[]={A.getNormal(),B.getNormal()};
+	const Real triD=A.halfThick+B.halfThick;
+	const Real triD2=pow(triD,2);
+	Vector3r oo[2][3]; // outer normals
+	Vector3r ee[2][3]; // edge unit vectors
+	Vector3r em[2][3]; // edge midpoints
+	Real     eh[2][3]; // edge half-lengths
+	Vector3r nn[2]; // plane normals (normalized)
+	for(short a:{0,1}){
+		nn[a]=(pp[a][1]-pp[a][0]).cross(pp[a][2]-pp[a][0]).normalized(); // normalization needed?
+		for(short e:{0,1,2}){
+			ee[a][e]=pp[a][(e+1)%3]-pp[a][e];
+			oo[a][e]=ee[a][e].cross(nn[a]);
+			eh[a][e]=.5*ee[a][e].norm();
+			ee[a][e]/=2*eh[a][e];
+			em[a][e]=.5*(pp[a][(e+1)%3]+pp[a][e]);
+		}
+	}
+	vector<Vector6r> close; close.reserve(6);
+	// we must find some closest point, even if not overlapping
+	// that is done only if there is nothing in *close*, which always have precendence
+	bool must=(C->isReal() || force);
+	Real minD2=Inf; Vector6r minPts=Vector6r::Zero();
+
+	// find nearest points both ways, A-B and B-A
+	// a is the facet considered as facet, b is the other one (vertices, edges)
+	//LOG_TRACE("A: "<<pp[0][0].transpose()<<"; "<<pp[0][1].transpose()<<"; "<<pp[0][2].transpose());
+	//LOG_TRACE("B: "<<pp[1][0].transpose()<<"; "<<pp[1][1].transpose()<<"; "<<pp[1][2].transpose());
+	for(short a:{0,1}){
+		short b=(a==0?1:0);
+		// dist of vertices to the triangle
+		for(short v:{0,1,2}){
+			const Vector3r& p=pp[b][v]; // vertex of b
+			short w=0;
+			for(short i:{0,1,2}) w|=(oo[a][i].dot(p-pp[a][i])>0.?1:0)<<i;
+			Vector3r c;
+			switch(w){
+				case 0: c=p-(p-pp[a][0]).dot(nn[a])*nn[a]; break; // ---: inside triangle, project onto the plane
+				case 1: c=CompUtils::closestSegmentPt(p,pp[a][0],pp[a][1]); break; // +-- (n1)
+				case 2: c=CompUtils::closestSegmentPt(p,pp[a][1],pp[a][2]); break; // -+- (n2)
+				case 4: c=CompUtils::closestSegmentPt(p,pp[a][2],pp[a][0]); break; // --+ (n3)
+				case 3: c=pp[a][1]; break; // ++- (v1)
+				case 5: c=pp[a][0]; break; // +-+ (v0)
+				case 6: c=pp[a][2]; break; // -++ (v2)
+			}
+			Real d2=(c-p).squaredNorm();
+			Vector6r cc;
+			//LOG_TRACE("ab="<<a<<b<<": w="<<w<<" d="<<sqrt(d2)<<" triD="<<triD<<"; c="<<c.transpose()<<", p="<<p.transpose());
+			if (a==0) cc<<c,p; else cc<<p,c;
+			if(d2<triD2){
+				close.push_back(cc);
+				//LOG_TRACE("added");
+			} else {
+				// if point is not being added to close, put it to minPts if necessary
+				if(close.empty() && must && d2<=minD2){ minPts=cc; minD2=d2; }
+			}
+		}
+	}
+	// dist of edges to edges
+	for(short e0:{0,1,2}){
+		for(short e1:{0,1,2}){
+			Vector2r st; bool parallel;
+			Real d2=CompUtils::distSq_SegmentSegment(em[0][e0],ee[0][e0],eh[0][e0],em[1][e1],ee[1][e1],eh[1][e1],st,parallel);
+			Vector6r c; c<<em[0][e0]+st[0]*ee[0][e0],em[1][e1]+st[1]*ee[1][e1];
+			//LOG_TRACE("ee="<<e0<<e1<<": d="<<sqrt(d2)<<"; "<<c.transpose());
+			// too far || vertex proximity was already detected above (in vertex-triangle tests)
+			if(d2>=triD2 || max(abs(st[0]),abs(st[1]))>.99*max(eh[0][e0],eh[1][e1])){
+				if(close.empty() && must && d2<=minD2){ minPts=c; minD2=d2; }
+				continue;
+			} else close.push_back(c);
+		}
+	}
+	// handle close points
+	//LOG_TRACE(close.size()<<" close points, must="<<must<<", minD2="<<minD2<<".");
+	if(close.empty() && !must){
+		//LOG_TRACE("---------------------------------------------------------");
+		return false;
+	}
+	Vector3r ptA, ptB, contPt, normal;
+	Real uN;
+
+	if(close.empty () && must && isinf(minD2)) throw std::logic_error("Cf2_Facet_Facet_L6GeomL: minD2==Inf but the contact must be computed!");
+	if(close.empty()){
+		// use the closest point
+		ptA=minPts.head<3>(); ptB=minPts.tail<3>();
+		Real d=(ptB-ptA).norm();
+		uN=d-triD;
+		//LOG_TRACE("minPts: uN="<<uN<<"; "<<ptA.transpose()<<", "<<ptB.transpose());
+		normal=(ptB-ptA)/d;
+	} else {
+		// weighted average
+		Vector6r c=Vector6r::Zero(); Real wSum=0; Real minUn=Inf;
+		for(const auto& v: close){
+			Real d=(v.head<3>()-v.tail<3>()).norm();
+			minUn=min(minUn,d-triD);
+			Real w=d-triD; 
+			//LOG_TRACE("Close: w="<<w<<", d="<<d<<"; "<<v.transpose());
+			assert(w<=0);
+			wSum+=w;
+			c+=v*w;
+		}
+		c/=wSum;
+		ptA=c.head<3>(); ptB=c.tail<3>();
+		uN=minUn;
+		//LOG_TRACE("Weighted: uN="<<uN<<"; "<<ptA.transpose()<<", "<<ptB.transpose());
+		normal=(ptB-ptA).normalized();
+		// LOG_TRACE((ptB-ptA).transposed()<<", |ptB-ptA|="<<(ptB-ptA).norm()<<", normal="<<(ptB-ptA).normalized());
+	}
+
+	// LOG_TRACE("ptA="<<ptA.transpose()<<", A.halfThick="<<A.halfThick<<", uN="<<uN<<", normal="<<normal);
+	contPt=ptA+(A.halfThick+.5*uN)*normal;
+	//LOG_TRACE("contPt "<<contPt<<", normal "<<normal);
+
+	Vector3r linA,angA,linB,angB;
+	std::tie(linA,angA)=A.interpolatePtLinAngVel(ptA);
+	std::tie(linB,angB)=B.interpolatePtLinAngVel(ptB);
+	handleSpheresLikeContact(C,ptA,linA,angA,ptB,linB,angB,normal,contPt,uN,A.halfThick,B.halfThick);
+	//LOG_TRACE("===========================================================");
+	return true;
+}
+
+
+bool Cg2_Facet_InfCylinder_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
+	const Facet& f=sh1->cast<Facet>(); const InfCylinder& cyl=sh2->cast<InfCylinder>();
+	const Vector3r& cylPos(cyl.nodes[0]->pos);
+	const int& ax0=cyl.axis;
+	const int ax1=(ax0+1)%3, ax2=(ax0+2)%3;
+	const Vector2r P(cylPos[ax1],cylPos[ax2]);
+	Vector2r vv2[3];
+	for(short v:{0,1,2}) vv2[v]=Vector2r(f.nodes[v]->pos[ax1],f.nodes[v]->pos[ax2]);
+	const Real dTouch=cyl.radius+f.halfThick;
+	const Real dTouch2=pow(dTouch,2);
+	Vector3r pp[3];
+	Vector3r dd2;
+	for(short i:{0,1,2}){
+		const Vector2r& B=vv2[i];
+		Vector2r M=vv2[(i+1)%3]-B;
+		// http://www.geometrictools.com/Documentation/DistancePointLine.pdf
+		Real t=CompUtils::clamped(M.dot(P-B)/M.squaredNorm(),0,1);
+		// closest point
+		Real d2=(P-(B+t*M)).squaredNorm();
+		pp[i]=f.nodes[i]->pos+t*(f.nodes[(i+1)%3]->pos-f.nodes[i]->pos);
+		dd2[i]=d2;
+	}
+	bool touch=(dd2.minCoeff()<dTouch2);
+	if(!C->isReal() && !touch && !force) return false;
+	
+	Vector3r fP=Vector3r::Zero(); // facet contact point
+	Real uN;
+	
+	if(!touch){
+		// return the closest point, no interpolation at all
+		int e; dd2.minCoeff(&e);
+		fP=pp[e];
+		uN=sqrt(dd2[e])-dTouch;
+	} else {
+		// interpolate using distances as weights
+		Real wSum=0.; Real minUn=Inf;
+		for(short e:{0,1,2}){
+			if(dd2[e]>=dTouch2) continue;
+			Real w=sqrt(dd2[e])-dTouch;
+			wSum+=w;
+			minUn=min(minUn,w);
+			// cerr<<"uN=w="<<w<<", pp["<<e<<"]="<<pp[e].transpose()<<endl;
+			fP+=w*pp[e];
+		}
+		uN=minUn;
+		fP/=wSum;
+	}
+
+	Vector3r normal, contPt;
+	normal=cylPos-fP; normal[cyl.axis]=0; normal.normalize();
+	contPt=fP+(f.halfThick+.5*uN)*normal;
+	// cerr<<"normal="<<normal.transpose()<<", uN="<<uN<<", contPt="<<contPt.transpose()<<endl;
+
+	Vector3r vel,angVel;
+	std::tie(vel,angVel)=f.interpolatePtLinAngVel(fP);
+	const DemData& cylDyn(cyl.nodes[0]->getData<DemData>());
+	handleSpheresLikeContact(C,fP,vel,angVel,cylPos,cylDyn.vel,cylDyn.angVel,normal,contPt,uN,f.halfThick,cyl.radius);
+
+	return true;
+}
+
+
 
 #ifdef WOO_OPENGL
 #include<woo/lib/opengl/OpenGLWrapper.hpp>
@@ -293,7 +486,7 @@ void halfCylinder(const Vector3r& A, const Vector3r& B, Real radius, const Vecto
 		if(connectorAngle!=0){
 			glTranslatev(Vector3r(len,0,0)); // move to the far end
 			stacks=slices; // what were slices for cylinder are stacks for the sphere
-			slices=stacks*(abs(connectorAngle)/M_PI); // compute slices to make the sphere round as te 
+			slices=stacks*(abs(connectorAngle+.01)/M_PI); // compute slices to make the sphere round; add .01 to avoid oscillation for pi/2 and such
 			auto makeNormCoords=[&](int sl, int st)->Vector3r{ return Vector3r(sin(sl*1./slices*connectorAngle)*sin(st*1./stacks*M_PI),-cos(-sl*1./slices*connectorAngle)*sin(st*1./stacks*M_PI),-cos(st*1./stacks*M_PI)); };
 			for(int slice=0; slice<slices; slice++){
 				glBegin(GL_QUAD_STRIP);
@@ -325,7 +518,7 @@ void Gl1_Facet::drawEdges(const Facet& f, const Vector3r& facetNormal, const Vec
 		Vector3r edges[]={(f.getGlVertex(1)-f.getGlVertex(0)).normalized(),(f.getGlVertex(2)-f.getGlVertex(1)).normalized(),(f.getGlVertex(0)-f.getGlVertex(2)).normalized()};
 		for(int i:{0,1,2}){
 			const Vector3r& A(f.getGlVertex(i)+shifts[i]), B(f.getGlVertex((i+1)%3)+shifts[i]);
-			halfCylinder(A,B,f.halfThick,facetNormal,Vector3r(NaN,NaN,NaN),wire,slices,1,acos(edges[(i)%3].dot(edges[(i+1)%3])));
+			halfCylinder(A,B,f.halfThick,facetNormal,Vector3r(NaN,NaN,NaN),wire,slices,1,acos(edges[i].dot(edges[(i+1)%3])));
 		}
 	}else{
 		// just the edges

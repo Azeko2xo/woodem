@@ -55,21 +55,6 @@ Real CompUtils::distSq_LineLine(const Vector3r& P, const Vector3r& u, const Vect
 	st=closestParams_LineLine(P,u,Q,v,parallel);
 	return ((P+u*st[0])-(Q+v*st[1])).squaredNorm();
 }
-
-#if 0
-// this function is garbage, see pkg/dem/Capsule.cpp for a working implementation copied over from WildMagic libs
-Real CompUtils::distSq_SegmentSegment(const Vector3r& A0, const Vector3r& A1, const Vector3r& B0, const Vector3r& B1, Vector2r& st, bool& parallel){
-	st=closestParams_LineLine(A0,(A1-A0),B0,(B1-B0),parallel);
-	if(st[0]>=0 && st[0]<=1 && st[1]>=0 && st[1]<=1) return ((A0+(A1-A0)*st[0])-(B0+(B1-B0)*st[1])).squaredNorm();
-	// line must be clamped, but that can change the result; so test again
-	// XXX: not working yet!!!
-	cerr<<"1: "<<st.transpose()<<endl;
-	clamp(st[0],0.,1.); clamp(st[1],0.,1.);
-	cerr<<"2: "<<st.transpose()<<endl;
-	return ((A0+(A1-A0)*st[0])-(B0+(B1-B0)*st[1])).squaredNorm();
-}
-#endif
-
 Vector3r CompUtils::closestSegmentPt(const Vector3r& P, const Vector3r& A, const Vector3r& B, Real* normPos){
 	Vector3r BA=B-A;
 	if(unlikely(BA.squaredNorm()==0.)){ if(normPos) *normPos=0.; return A; }
@@ -105,7 +90,7 @@ int CompUtils::lineSphereIntersection(const Vector3r& A, const Vector3r& u, cons
 	return 2;
 }
 
-Vector3r CompUtils::facetBarycentrics(const Vector3r& x, const Vector3r& A, const Vector3r& B, const Vector3r& C){
+Vector3r CompUtils::triangleBarycentrics(const Vector3r& x, const Vector3r& A, const Vector3r& B, const Vector3r& C){
 	/* http://www.blackpawn.com/texts/pointinpoly/default.html, but we used different notation
 		vert=[A,B,C]
 		reference point (origin) is A
@@ -210,6 +195,353 @@ void unitSphereTri20_compute(int l){
 	// std::cerr<<"DONE: "<<v1.size()<<" vertices, "<<f1.size()<<" faces"<<std::endl;
 }
 
+
+/*
+copied and adapted from http://www.geometrictools.com/LibMathematics/Distance/Wm5DistSegment3Segment3.cpp
+(licensed under the Boost license) and adapted. Much appreciated!
+
+The arguments provided are such that there is minimum compution in the routine itself; direction* arguments must be unit vectors.
+
+The *st* vector returns parameters for the closest points; both s and t run from -HALF_LENGTH to +HALF_LENGTH.
+*/
+Real CompUtils::distSq_SegmentSegment(const Vector3r& center0, const Vector3r& direction0, const Real& halfLength0, const Vector3r& center1, const Vector3r& direction1, const Real& halfLength1, Vector2r& st, bool& parallel){
+	Vector3r diff=center0-center1;
+	const Real& extent0(halfLength0);
+	const Real& extent1(halfLength1);
+	Real a01=-direction0.dot(direction1);
+	Real b0=diff.dot(direction0);
+	Real b1=-diff.dot(direction1);
+	Real c=diff.squaredNorm();
+	Real det=abs(1.-a01*a01);
+	Real& s0(st[0]);
+	Real& s1(st[1]);
+	Real sqrDist, extDet0, extDet1, tmpS0, tmpS1;
+	#if 0
+	    Real a01 = -direction0.Dot(direction1);
+	    Real b0 = diff.Dot(direction0);
+	    Real b1 = -diff.Dot(direction1);
+	    Real c = diff.SquaredLength();
+	    Real det = Math<Real>::FAbs((Real)1 - a01*a01);
+	    Real s0, s1, sqrDist, extDet0, extDet1, tmpS0, tmpS1;
+    if (det >= Math<Real>::ZERO_TOLERANCE)
+	#endif
+	if(det>=1e-8){
+		parallel=false;
+		// Segments are not parallel.
+		s0 = a01*b1 - b0;
+		s1 = a01*b0 - b1;
+		extDet0 = extent0*det;
+		extDet1 = extent1*det;
+
+		if (s0 >= -extDet0)
+		{
+			if (s0 <= extDet0)
+			{
+				if (s1 >= -extDet1)
+				{
+					if (s1 <= extDet1)  // region 0 (interior)
+					{
+						// Minimum at interior points of segments.
+						Real invDet = ((Real)1)/det;
+						s0 *= invDet;
+						s1 *= invDet;
+						sqrDist = s0*(s0 + a01*s1 + ((Real)2)*b0) +
+							s1*(a01*s0 + s1 + ((Real)2)*b1) + c;
+					}
+					else  // region 3 (side)
+					{
+						s1 = extent1;
+						tmpS0 = -(a01*s1 + b0);
+						if (tmpS0 < -extent0)
+						{
+							s0 = -extent0;
+							sqrDist = s0*(s0 - ((Real)2)*tmpS0) +
+								s1*(s1 + ((Real)2)*b1) + c;
+						}
+						else if (tmpS0 <= extent0)
+						{
+							s0 = tmpS0;
+							sqrDist = -s0*s0 + s1*(s1 + ((Real)2)*b1) + c;
+						}
+						else
+						{
+							s0 = extent0;
+							sqrDist = s0*(s0 - ((Real)2)*tmpS0) +
+								s1*(s1 + ((Real)2)*b1) + c;
+						}
+					}
+				}
+				else  // region 7 (side)
+				{
+					s1 = -extent1;
+					tmpS0 = -(a01*s1 + b0);
+					if (tmpS0 < -extent0)
+					{
+						s0 = -extent0;
+						sqrDist = s0*(s0 - ((Real)2)*tmpS0) +
+							s1*(s1 + ((Real)2)*b1) + c;
+					}
+					else if (tmpS0 <= extent0)
+					{
+						s0 = tmpS0;
+						sqrDist = -s0*s0 + s1*(s1 + ((Real)2)*b1) + c;
+					}
+					else
+					{
+						s0 = extent0;
+						sqrDist = s0*(s0 - ((Real)2)*tmpS0) +
+							s1*(s1 + ((Real)2)*b1) + c;
+					}
+				}
+			}
+			else
+			{
+				if (s1 >= -extDet1)
+				{
+					if (s1 <= extDet1)  // region 1 (side)
+					{
+						s0 = extent0;
+						tmpS1 = -(a01*s0 + b1);
+						if (tmpS1 < -extent1)
+						{
+							s1 = -extent1;
+							sqrDist = s1*(s1 - ((Real)2)*tmpS1) +
+								s0*(s0 + ((Real)2)*b0) + c;
+						}
+						else if (tmpS1 <= extent1)
+						{
+							s1 = tmpS1;
+							sqrDist = -s1*s1 + s0*(s0 + ((Real)2)*b0) + c;
+						}
+						else
+						{
+							s1 = extent1;
+							sqrDist = s1*(s1 - ((Real)2)*tmpS1) +
+								s0*(s0 + ((Real)2)*b0) + c;
+						}
+					}
+					else  // region 2 (corner)
+					{
+						s1 = extent1;
+						tmpS0 = -(a01*s1 + b0);
+						if (tmpS0 < -extent0)
+						{
+							s0 = -extent0;
+							sqrDist = s0*(s0 - ((Real)2)*tmpS0) +
+								s1*(s1 + ((Real)2)*b1) + c;
+						}
+						else if (tmpS0 <= extent0)
+						{
+							s0 = tmpS0;
+							sqrDist = -s0*s0 + s1*(s1 + ((Real)2)*b1) + c;
+						}
+						else
+						{
+							s0 = extent0;
+							tmpS1 = -(a01*s0 + b1);
+							if (tmpS1 < -extent1)
+							{
+								s1 = -extent1;
+								sqrDist = s1*(s1 - ((Real)2)*tmpS1) +
+									s0*(s0 + ((Real)2)*b0) + c;
+							}
+							else if (tmpS1 <= extent1)
+							{
+								s1 = tmpS1;
+								sqrDist = -s1*s1 + s0*(s0 + ((Real)2)*b0) + c;
+							}
+							else
+							{
+								s1 = extent1;
+								sqrDist = s1*(s1 - ((Real)2)*tmpS1) +
+									s0*(s0 + ((Real)2)*b0) + c;
+							}
+						}
+					}
+				}
+				else  // region 8 (corner)
+				{
+					s1 = -extent1;
+					tmpS0 = -(a01*s1 + b0);
+					if (tmpS0 < -extent0)
+					{
+						s0 = -extent0;
+						sqrDist = s0*(s0 - ((Real)2)*tmpS0) +
+							s1*(s1 + ((Real)2)*b1) + c;
+					}
+					else if (tmpS0 <= extent0)
+					{
+						s0 = tmpS0;
+						sqrDist = -s0*s0 + s1*(s1 + ((Real)2)*b1) + c;
+					}
+					else
+					{
+						s0 = extent0;
+						tmpS1 = -(a01*s0 + b1);
+						if (tmpS1 > extent1)
+						{
+							s1 = extent1;
+							sqrDist = s1*(s1 - ((Real)2)*tmpS1) +
+								s0*(s0 + ((Real)2)*b0) + c;
+						}
+						else if (tmpS1 >= -extent1)
+						{
+							s1 = tmpS1;
+							sqrDist = -s1*s1 + s0*(s0 + ((Real)2)*b0) + c;
+						}
+						else
+						{
+							s1 = -extent1;
+							sqrDist = s1*(s1 - ((Real)2)*tmpS1) +
+								s0*(s0 + ((Real)2)*b0) + c;
+						}
+					}
+				}
+			}
+		}
+		else 
+		{
+			if (s1 >= -extDet1)
+			{
+				if (s1 <= extDet1)  // region 5 (side)
+				{
+					s0 = -extent0;
+					tmpS1 = -(a01*s0 + b1);
+					if (tmpS1 < -extent1)
+					{
+						s1 = -extent1;
+						sqrDist = s1*(s1 - ((Real)2)*tmpS1) +
+							s0*(s0 + ((Real)2)*b0) + c;
+					}
+					else if (tmpS1 <= extent1)
+					{
+						s1 = tmpS1;
+						sqrDist = -s1*s1 + s0*(s0 + ((Real)2)*b0) + c;
+					}
+					else
+					{
+						s1 = extent1;
+						sqrDist = s1*(s1 - ((Real)2)*tmpS1) +
+							s0*(s0 + ((Real)2)*b0) + c;
+					}
+				}
+				else  // region 4 (corner)
+				{
+					s1 = extent1;
+					tmpS0 = -(a01*s1 + b0);
+					if (tmpS0 > extent0)
+					{
+						s0 = extent0;
+						sqrDist = s0*(s0 - ((Real)2)*tmpS0) +
+							s1*(s1 + ((Real)2)*b1) + c;
+					}
+					else if (tmpS0 >= -extent0)
+					{
+						s0 = tmpS0;
+						sqrDist = -s0*s0 + s1*(s1 + ((Real)2)*b1) + c;
+					}
+					else
+					{
+						s0 = -extent0;
+						tmpS1 = -(a01*s0 + b1);
+						if (tmpS1 < -extent1)
+						{
+							s1 = -extent1;
+							sqrDist = s1*(s1 - ((Real)2)*tmpS1) +
+								s0*(s0 + ((Real)2)*b0) + c;
+						}
+						else if (tmpS1 <= extent1)
+						{
+							s1 = tmpS1;
+							sqrDist = -s1*s1 + s0*(s0 + ((Real)2)*b0) + c;
+						}
+						else
+						{
+							s1 = extent1;
+							sqrDist = s1*(s1 - ((Real)2)*tmpS1) +
+								s0*(s0 + ((Real)2)*b0) + c;
+						}
+					}
+				}
+			}
+			else   // region 6 (corner)
+			{
+				s1 = -extent1;
+				tmpS0 = -(a01*s1 + b0);
+				if (tmpS0 > extent0)
+				{
+					s0 = extent0;
+					sqrDist = s0*(s0 - ((Real)2)*tmpS0) +
+						s1*(s1 + ((Real)2)*b1) + c;
+				}
+				else if (tmpS0 >= -extent0)
+				{
+					s0 = tmpS0;
+					sqrDist = -s0*s0 + s1*(s1 + ((Real)2)*b1) + c;
+				}
+				else
+				{
+					s0 = -extent0;
+					tmpS1 = -(a01*s0 + b1);
+					if (tmpS1 < -extent1)
+					{
+						s1 = -extent1;
+						sqrDist = s1*(s1 - ((Real)2)*tmpS1) +
+							s0*(s0 + ((Real)2)*b0) + c;
+					}
+					else if (tmpS1 <= extent1)
+					{
+						s1 = tmpS1;
+						sqrDist = -s1*s1 + s0*(s0 + ((Real)2)*b0) + c;
+					}
+					else
+					{
+						s1 = extent1;
+						sqrDist = s1*(s1 - ((Real)2)*tmpS1) +
+							s0*(s0 + ((Real)2)*b0) + c;
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		parallel=true;
+		// The segments are parallel.  The average b0 term is designed to
+		// ensure symmetry of the function.  That is, dist(seg0,seg1) and
+		// dist(seg1,seg0) should produce the same number.
+		Real e0pe1 = extent0 + extent1;
+		Real sign = (a01 > (Real)0 ? (Real)-1 : (Real)1);
+		Real b0Avr = ((Real)0.5)*(b0 - sign*b1);
+		Real lambda = -b0Avr;
+		if (lambda < -e0pe1)
+		{
+			lambda = -e0pe1;
+		}
+		else if (lambda > e0pe1)
+		{
+			lambda = e0pe1;
+		}
+
+		s1 = -sign*lambda*extent1/e0pe1;
+		s0 = lambda + sign*s1;
+		sqrDist = lambda*(lambda + ((Real)2)*b0Avr) + c;
+	}
+	
+	#if 0
+		mClosestPoint0 = center0 + s0*direction0;
+		mClosestPoint1 = center1 + s1*direction1;
+		mSegment0Parameter = s0;
+		mSegment1Parameter = s1;
+	#endif
+
+	// Account for numerical round-off errors.
+	if (sqrDist < (Real)0)
+	{
+		sqrDist = (Real)0;
+	}
+	return sqrDist;
+}
 
 
 

@@ -321,14 +321,27 @@ void In2_FlexFacet_ElastMat::addIntraStiffnesses(const shared_ptr<Particle>& p, 
 
 void In2_FlexFacet_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& particle, const bool skipContacts){
 	auto& ff=sh->cast<FlexFacet>();
-	if(contacts && !skipContacts){
+	if(contacts && !skipContacts && !particle->contacts.empty()){
+		Vector3r normal=Vector3r::Zero(); // compiler happy
+		if(bending||applyBary) normal=ff.getNormal();
 		for(const auto& pC: particle->contacts){
 			const shared_ptr<Contact>& C(pC.second); if(!C->isReal()) continue;
 			Vector3r F,T,xc;
+			Vector3r weights;
+			if(bending||applyBary){
+				// find barycentric coordinates of the projected contact point, and use those as weights
+				// I *guess* this would be the solution for linear interpolation anyway
+				const Vector3r& c=C->geom->node->pos;
+				Vector3r p=c-(c-sh->nodes[0]->pos).dot(normal)*normal;
+				weights=CompUtils::triangleBarycentrics(p,sh->nodes[0]->pos,sh->nodes[1]->pos,sh->nodes[2]->pos);
+			} else {
+				// distribute equally when bending is not considered
+				weights=Vector3r::Constant(1/3.);
+			}
 			// TODO: this could be done more efficiently
 			for(int i:{0,1,2}){
 				std::tie(F,T,xc)=C->getForceTorqueBranch(particle,/*nodeI*/i,scene);
-				F/=3.; T/=3.;
+				F*=weights[i]; T*=weights[i];
 				ff.nodes[i]->getData<DemData>().addForceTorque(F,xc.cross(F)+T);
 			}
 		}
@@ -426,7 +439,7 @@ void Gl1_FlexFacet::drawLocalDisplacement(const Vector2r& nodePt, const Vector2r
 
 
 void Gl1_FlexFacet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire2, const GLViewInfo& viewInfo){
-	Gl1_Facet::go(sh,shift,/*don't force wire rendering*/false,viewInfo);
+	Gl1_Facet::go(sh,shift,/*don't force wire rendering*/ wire2,viewInfo);
 	if(Renderer::fastDraw) return;
 	FlexFacet& ff=sh->cast<FlexFacet>();
 	if(!ff.hasRefConf()) return;
