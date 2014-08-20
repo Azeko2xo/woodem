@@ -591,6 +591,7 @@ void InsertionSortCollider::run(){
 
 			// go through potential aabb collisions, create contacts as necessary
 			if(!periodic){
+				// parallelizing this decreases performance slightly
 				for(long i=0; i<2*nPar; i++){
 					// start from the lower bound (i.e. skipping upper bounds)
 					// skip bodies without bbox, because they don't collide
@@ -607,6 +608,7 @@ void InsertionSortCollider::run(){
 					}
 				}
 			} else { // periodic case: see comments above
+				// parallelizing this decreases performance slightly
 				for(long i=0; i<2*nPar; i++){
 					if(unlikely(!(V[i].flags.isMin && V[i].flags.hasBB))) continue;
 					const Particle::id_t& iid=V[i].id;

@@ -285,7 +285,7 @@ As in the case of normal stress, we introduce an extension to better capture con
 
 which introduces a new dimensionless parameter :math:`Y_0` determining how fast the logarithm deviates from the original, linear form. The function is shown here:
 
-.. _yield-surf-log:
+.. _concrete-yield-surf-log:
 
 .. figure:: fig/yield-surfaces.*
    :figclass: align-center
@@ -372,7 +372,7 @@ The following table summarizes the nomenclature and corresponding internal Woo (
     :math:`A_{eq}`, :obj:`~woo.dem.L6Geom.contA`, :obj:`CpmPhys.crossSection <yade:yade.wrapper.CpmPhys.crossSection>`, geometry
     :math:`\tan\phi`, :obj:`~woo.dem.FrictPhys.tanPhi`, :obj:`CpmPhys.tanFrictionAngle <yade:yade.wrapper.CpmPhys.tanFrictionAngle>`, material
     :math:`\eps_0`, :obj:`~woo.dem.ConcretePhys.epsCrackOnset`, :obj:`CpmPhys.epsCrackOnset <yade:yade.wrapper.CpmPhys.epsCrackOnset>`, material
-    :math:`\eps_f`, :obj:`~woo.dem.ConcretePhys.epsFracture`, :obj:`CpmPhys.epsFracture <yade:yade.wrapper.CpmPhys.epsFracture>`, :obj:`~woo.dem.ConcreteMat.cpsCrackOnset` multiplied by :obj:`~woo.dem.ConcreteMat.relDuctility>`
+    :math:`\eps_f`, :obj:`~woo.dem.ConcretePhys.epsFracture`, :obj:`CpmPhys.epsFracture <yade:yade.wrapper.CpmPhys.epsFracture>`, :obj:`~woo.dem.ConcreteMat.epsCrackOnset` multiplied by :obj:`~woo.dem.ConcreteMat.relDuctility`
     :math:`\eps_N`, :obj:`~woo.dem.ConcretePhys.epsN`, :obj:`CpmPhys.epsN <yade:yade.wrapper.CpmPhys.epsN>`, state
     :math:`\vec{\eps}_T`, :obj:`~woo.dem.ConcretePhys.epsT`, :obj:`CpmPhys.epsT <yade:yade.wrapper.CpmPhys.epsT>`, state
     :math:`\eps_s`, :obj:`~woo.dem.Law2_L6Geom_ConcretePhys.epsSoft`, :obj:`Law2_ScGeom_CpmPhys_Cpm.epsSoft <yade:yade.wrapper.Law2_ScGeom_CpmPhys_Cpm.epsSoft>`, material
@@ -396,417 +396,333 @@ The following table summarizes the nomenclature and corresponding internal Woo (
     :math:`Y_0`, :obj:`~woo.dem.Law2_L6Geom_ConcretePhys.yieldLogSpeed`,  :obj:`Law2_ScGeom_CpmPhys_Cpm.yieldLogSpeed <yade:yade.wrapper.Law2_ScGeom_CpmPhys_Cpm.yieldLogSpeed>`, material
 
 
-
-.. ::
-      \begin{comment}
-      To summarize this section, we give the the constitutive model in a compact form in fig. \ref{fig-cpm-main}, \ref{fig-cpm-overstress}, \ref{fig-cpm-viscopl} and \ref{fig-cpm-beta}.
-      Notation of symbols in the source code is given in tab.~\ref{tab-cpm-symbols}.
-      
-      \begin{figure}
-         \def\mm{:math:`^{*}`} % derived from material
-         \def\ss{:math:`^{\dag}`} % state variables
-         \begin{center}
-         \begin{tabular}{lp{.7\linewidth}}
-         \end{tabular}
-         \end{center}
-         \caption{
-         \label{tab-cpm-symbols}
-      \end{figure}
-
-      \def\COMMENT#1{\emph{:math:`\sim`\;#1\;:math:`\sim`}}
-      \begin{figure}
-         \begin{center}
-         \begin{pseudocode}[ruled]{ConcreteContactLaw}{\dots}
-            \COMMENT{Apply isotropic confinement} \\
-            \BEGIN
-               \IF \eps_s\geq 0  \vee \sigma_0\geq k_N\eps_s
-               \THEN
-                  \eps_N \GETS \eps_N+\sigma_0
-               \ELSE
-                  \eps_N \GETS \eps_s+\frac{\sigma_0-k_N\eps_s}{k_N\tilde K_s}
-            \END\\
-            \COMMENT{Evaluate normal stress:}\\
-            \BEGIN
-               \tilde\eps\GETS\langle \eps_N \rangle \\
-               \kappa \GETS \max(\kappa,\tilde\eps) \\
-               \IF \hbox{contact is cohesive}
-               \THEN
-                  \omega\GETS g(\kappa)=1-\frac{\eps_f}{\kappa}\exp\left(-\frac{\kappa-\eps_0}{\eps_f}\right)
-               \ELSE
-                  \omega\GETS 1 \\
-               \eps_N^{\rm el} \GETS \eps_N-\eps_N^{\rm pl} \\
-               \sigma_N \GETS \left(1-H(\eps_N^{\rm el})\omega\right)k_N(\eps_N^{\rm el}) \\
-               \COMMENT{Normal plastic slip} \\
-               \sigma_{Ns} \GETS k_N(\eps_s+\tilde K_s (\eps_N-\eps_s) \\
-               \IF \eps_s<0 \wedge \eps_N^{\rm el}<\eps_s \wedge \sigma_{Ns}>\sigma_N \THEN
-               \BEGIN
-                  \eps_N^{\rm pl} \GETS \eps_N^{\rm pl}+\frac{\sigma_N-\sigma_{Ns}}{k_N} \\
-                  \sigma_N \GETS \sigma_{Ns} 
-               \END
-            \END\\
-            \COMMENT{Evaluate shear stress}\\
-            \BEGIN
-               \vec{\sigma}_T\GETS k_T\vec{\eps}_T \\
-               \COMMENT{Plastic surface radius} \\
-               \IF \sigma_N \geq 0 \THEN r_{pl} \GETS c_{T0}(1-\omega)-\sigma_N\tan\phi
-               \ELSE r_{pl} \GETS c_{T0}\left[(1-\omega)+Y_0\tan\phi\left(\frac{-\sigma_N}{c_{T0} Y_0}+1\right)\right] \\
-               \COMMENT{Shear plastic slip} \\
-               \IF |\sigma_T|>r_{pl} \THEN
-               \BEGIN
-                  \COMMENT{With visco-plasticity} \\
-                  \IF \tau_{pl}>0 \THEN
-                  \BEGIN
-                     \vec{\sigma}_T\GETS \vec{\sigma}_T \CALL{viscoPlasticScalingFactor}{{|\vec{\sigma}_T|},r_{pl},\Dt} \\
-                  \END
-                  \ELSE\BEGIN
-                     \vec{\sigma}_T\GETS \frac{\vec{\sigma}_T}{|\vec{\sigma}_T|} r_{pl} \\
-                  \END \\
-                  \CALL{applyStrainSlip}{|\vec{\sigma}_T|/k_T} \\
-               \END
-            \END\\
-            \COMMENT{Visco-damage overstress} \\
-            \BEGIN
-               \IF \tau_d>0 \vee \hbox{contact is cohesive}\THEN
-               \BEGIN
-                  \sigma_{Nv}\GETS\CALL{dmgOverstress}{\dots}\\
-                  \sigma_N\GETS\sigma_N+\sigma_{Nv}
-               \END
-            \END \\
-            \COMMENT{Remove isotropic confinement from applied force} \\
-            \sigma_N\GETS\sigma_N-\sigma_0 \\
-            \COMMENT{Apply forces} \\
-            \BEGIN
-               \vec{F}=A_{eq}\left(\sigma_N\vec{n}+\vec{\sigma}_T\right)
-            \END
-         \end{pseudocode}
-         \end{center}
-         \caption{Contact law written in compact form. Variables :math:`\eps_N` and :math:`\eps_T` are already computed. All features described in the text are included. \textsc{applyStrainSlip} is algorithm described in sect.~\ref{sect-formulation-total-shear}.}
-         \label{fig-cpm-main}
-      \end{figure}
-
-      \begin{figure}
-         \begin{center}
-         \begin{pseudocode}[ruled]{dmgOverstress}{\dots}
-            \COMMENT{no overstress if unloading} \\
-            \IF \eps_d\geq\eps_N\omega \THEN
-            \BEGIN
-               \eps_d\GETS\eps_N\omega \\
-               \RETURN{0}
-            \END\\ 
-            c \GETS \eps_0(1-\omega)\left(\frac{\tau_d}{\Dt}\right)^{M_d}\left(\eps_N\omega-\eps_d\right)^{M_d-1} \\
-            \beta \GETS \CALL{solveBeta}{c,M_d} \\
-            \eps_d\GETS\eps_d+(\eps_N\omega-\eps_d)e^{\beta} \\
-            \RETURN{(\eps_N\omega-\eps_d)k_N}
-         \end{pseudocode}
-         \end{center}
-         \caption{Evaluation of damage overstress :math:`\sigma_{Nv}`. All variables are those used in the contact law itself.}
-         \label{fig-cpm-overstress}
-      \end{figure}
-
-      \begin{figure}
-         \begin{center}
-         \begin{pseudocode}[ruled]{viscoPlasticScalingFactor}{|\vec{\sigma}_T|,r_{pl},\Dt}
-            c\GETS c_{T0}\left(\frac{\tau_{pl}}{G\Dt}\right)^{M_{pl}}\left(|\vec{\sigma}_T|-r_{pl}\right)^{M_{pl}-1} \\
-            \beta \GETS\CALL{solveBeta}{c,M_{pl}} \\
-            \RETURN{1-e^{\beta}(1-r_{pl}/|\vec{\sigma}_T|}
-         \end{pseudocode}
-         \end{center}
-         \caption{Scaling factor for enlarging plastic surface radius depending on rate of plastic flow. (Only used if :math:`\tau_{pl}>0`).}
-         \label{fig-cpm-viscopl}
-      \end{figure}
-
-      \begin{figure}
-         \begin{center}
-         \begin{pseudocode}[ruled]{solveBeta}{c,N}
-            f\GETS 0;\; \beta\GETS 0 \\
-            \FOR i\GETS 0 \TO i_{\max} \DO
-            \BEGIN
-               a\GETS c e^{N\beta}+e^{\beta} \\
-               f\GETS\log(a) \\
-               \IF |f|<\delta \THEN \RETURN{\beta}  \\
-               \beta\GETS \beta - \left. f\middle/ \frac{c N e^{N\beta}+e^{\beta}}{a} \right.
-            \END \\
-            \COMMENT{ERROR: not converged in :math:`i_{\max}` steps with tolerance :math:`\delta`} \\
-            \EXIT 
-         \end{pseudocode}
-         \end{center}
-         \caption{Iterative procedure (Newton method) for solving the \ref{eq-cpm-logeq} equation, which is common for both damage overstress and visco-plasticity scaling.}
-         \label{fig-cpm-beta}
-      \end{figure}
-      \end{comment}
-
-
-
-.. :: sect-cpm-calibration
-
-
-
-
 .. _concrete-model-calibration:
 
 ----------------------
 Parameter calibration
 ----------------------
 
-.. ::
-      The model comprises two sets of parameters that determine elastic and inelastic behavior. In order to match simulations to experiments, a procedure to calibrate these parameters must be given. Since elastic properties are independent of inelastic ones, they are calibrated first.
+The model comprises two sets of parameters that determine elastic and inelastic behavior. In order to match simulations to experiments, a procedure to calibrate these parameters must be given. Since elastic properties are independent of inelastic ones, they are calibrated first.
 
-      \paragraph{Model parameters} can be summarized as follows:
-      \begin{enumerate}
-         \item geometry
-            \begin{itemize*}
-               \item[:math:`r`] sphere radius
-               \item[:math:`R_I`] interaction radius
-            \end{itemize*}
-         \item elasticity
-            \begin{itemize*}
-               \item[:math:`k_N`] normal contact stiffness
-               \item[:math:`k_T/k_N`] relative shear contact stiffness
-            \end{itemize*}
-         \item damage and plasticity
-            \begin{itemize*}
-               \item[:math:`\eps_0`] limit elastic strain
-               \item[:math:`\eps_f`] parameter of damage evolution function
-               \item[:math:`C_{T0}`] shear cohesion of undamaged material
-               \item[:math:`\phi`] internal friction angle
-            \end{itemize*}
-         \item confinement
-            \begin{itemize*}
-               \item[:math:`Y_0`] parameter for plastic surface evolution in compression
-               \item[:math:`\eps_s`] hardening strain in compression
-               \item[:math:`\tilde K_s`] relative hardening modulus in compression
-            \end{itemize*}
-         \item rate-dependence 
-            \begin{itemize*}
-               \item[:math:`\tau_d`] characteristic time for visco-damage
-               \item[:math:`M_d`] dimensionless visco-damage exponent
-               \item[:math:`\tau_{pl}`] characteristic time for visco-plasticity
-               \item[:math:`M_{pl}`] dimensionless visco-plasticity exponent
-            \end{itemize*}
-      \end{enumerate}
+**Model parameters** can be summarized as follows:
 
-      \paragraph{Macroscopic properties} should be matched to prescribed values by running simulation on sufficiently large specimen. Let us give overview of them, in the order of calibration:
-         \begin{enumerate}   
-            \item elastic properties, which depend on only geometry and elastic parameters (using grouping from the list above)
-               \begin{itemize*}
-                  \item[:math:`E`] Young's modulus,
-                  \item[:math:`\nu`] Poisson's ratio
-               \end{itemize*}
-            \item inelastic properties, depending (in addition) on damage and plasticity parameters:
-            \begin{itemize*}
-                  \item[:math:`f_t`] tensile strength
-                  \item[:math:`f_c`] compressive strength
-                  \item[:math:`G_f`] fracture energy (conventional definition shown in fig.~\ref{fracture-energy-def})
-               \end{itemize*}
-            \item confinement properties; they appear only in high confinement situations and can be calibrated without having substantial impact on already calibrated inelastic properties. We do not describe them quantitatively; fitting simulation and experimental curves is used instead.
-            \item rate-dependence properties; they appear only in high-rate situations, therefore are again calibrated after inelastic properties independently. As in the previous case, a simple fitting approach is used here.
-         \end{enumerate}
+* geometry
 
-      \begin{figure}
-         \begin{center}
-            \includegraphics{graphs/cpm/fracture-energy.pdf}
-         \end{center}
-         \caption{Conventional definition of fracture energy of our own, which goes only to :math:`0.2f_t` on the strain-stress curve.}
-         \label{fracture-energy-def}
-      \end{figure}
-      \subsection{Simulation setup}
-         In order to calibrate macroscopic properties, simulations with multiple particles have to be run. This allows to smooth away different orientation of individual contacts and gives apparent continuum-like behavior.
+  * :math:`r` sphere radius
+  * :math:`R_I` interaction radius
 
-         We were running simple strain-controlled tension/compression (\yclass{UniaxialStrainer}) test on a 1:1:2 cuboid-shaped specimen of 2000 spheres.\footnote{Later, the test was being done on hyperboloid-shaped specimen, to pre-determine fracturing area, while avoiding boundary effects.} Straining is applied in the direction of the longest dimension, on boundary particles; they are identified, on the ``positive'' and ``negative'' end of the specimen, by distance from bounding box of the specimen; as result, roughly one layer of spheres is considered as support on each side. Distance between (some) two spheres on each end along the strained axis determines the reference length :math:`l_0`; specimen elongation is computed from their current distance divided by :math:`l_0` during subsequent simulation. Straining imposes displacement on support particles along strained axis, symmetrically on either end of the specimen (half on the ``positive'' and half on the ``negative'' boundary particles), while all their other degrees of freedom are kept free, including perpendicular translations, leading to simulation of frictionless supports.
+* elasticity
 
-         Axial force :math:`F` is computed by averaging sums of forces on support particles from both supports :math:`F^+` and :math:`-F^-`. Divided by specimen cross-section :math:`A`, average stress is obtained. The cross-section area is estimated as either cross-section of the specimen's bounding box (for cuboid specimen) or as minimum of several areas :math:`A_i` of convex hull around particles intersecting perpendicular plane at different coordinates along the axis (for non-prismatic specimen) -- see fig.~\ref{fig-cpm-uniax-specimen}.
-         \begin{figure}
-            \begin{center}
-               \includegraphics{graphs/cpm/uniax-specimen.pdf}
-            \end{center}
-            \caption{Simplified scheme of the uniaxial tension/compression setup. Strained spheres, negative and positive support, are shown in green and red respectively. Cross-section area :math:`A` is minimum of convex hull's areas :math:`A_i`.}
-            \label{fig-cpm-uniax-specimen}
-         \end{figure}
+  * :math:`k_N` normal contact stiffness
+  * :math:`k_T/k_N` relative shear contact stiffness
 
-         Such tension/compression test can be found in the \ysrc{examples/concrete/uniax.py} script.
+* damage and plasticity
 
-         \paragraph{Periodic boundary conditions} were not implemented in Yade until later stages of the thesis (the \yclass{Cell} class). In such case, determining deformation and cross-section area is much simpler, as it exists objectively, embodies in the periodic cell size. Computing stress is equally trivial: first, vector of sum of all forces on interactions in the cell (taking tensile forces as positive and compressive as negative) is computed, then divided by-component by perpendicular areas of the cell. This is handled by \yclass{PeriTriaxCompressor} and \yclass{PeriTriaxController} classes.
+  * :math:`\eps_0` limit elastic strain
+  * :math:`\eps_f` parameter of damage evolution function
+  * :math:`C_{T0}` shear cohesion of undamaged material
+  * :math:`\phi` internal friction angle
+
+* confinement
+
+  * :math:`Y_0` parameter for plastic surface evolution in compression
+  * :math:`\eps_s` hardening strain in compression
+  * :math:`\tilde K_s` relative hardening modulus in compression
+
+* rate-dependence 
+  * :math:`\tau_d` characteristic time for visco-damage
+  * :math:`M_d` dimensionless visco-damage exponent
+  * :math:`\tau_{pl}` characteristic time for visco-plasticity
+  * :math:`M_{pl}` dimensionless visco-plasticity exponent
+
+**Macroscopic properties** should be matched to prescribed values by running simulation on sufficiently large specimen. Let us give overview of them, in the order of calibration:
+
+* *elastic properties*, which depend on only geometry and elastic parameters (using grouping from the list above)
+
+  * :math:`E` Young's modulus,
+  * :math:`\nu` Poisson's ratio
+
+* *inelastic properties*, depending (in addition) on damage and plasticity parameters:
+
+  * :math:`f_t` tensile strength
+  * :math:`f_c` compressive strength
+  * :math:`G_f` fracture energy (conventional definition shown in :ref:`this figure <concrete-fracture-energy>`
+
+* *confinement properties*; they appear only in high confinement situations and can be calibrated without having substantial impact on already calibrated inelastic properties. We do not describe them quantitatively; fitting simulation and experimental curves is used instead.
+
+* *rate-dependence properties*; they appear only in high-rate situations, therefore are again calibrated after inelastic properties independently. As in the previous case, a simple fitting approach is used here.
+
+.. _concrete-fracture-energy:
+
+.. figure:: fig/fracture-energy.*
+   :figclass: align-center
+   :width: 80%
          
-         \subsubsection{Stress tensor evaluation in arbitrary volume}
-            Computation of stress from reaction forces is not suitable for cases where the loading scenario is not as straight-forwardly defined as in the case of uniaxial tension/compression. For general case, an equation for stress tensor can be derived. Using the work of \citet{Kuhl2001}, eqs. (33) and (35), we have
-            \def\tsig{\tensor{\sigma}}
-            \begin{align}
-               \tsig&=\frac{1}{V}\sum_{c\in V}\left[\vec{F}_{\Sigma}^c \otimes (\vec{C}_2-\vec{C}_1)\right]^{\rm sym} = \\
-                     &=\frac{1}{V}\sum_{c\in V}l^c\left[\tensor{N}^c \vec{F}_N^c+{\tensor{T}^c}^T\vec{F}_T^c\right] \label{eq-cpm-stress-tensor0}
-            \end{align}
-            where :math:`V` is the considered volume containing interactions with the :math:`c` index. For each interaction, there is :math:`l=|\vec{C}_2-\vec{C}_1|`, :math:`F_{\Sigma}=F_N\vec{n}+\vec{F}_T`, with all variables assuming their current value. We use \engordnumber{2}-order normal projection tensor :math:`\tensor{N}=\vec{n}\otimes\vec{n}` which, evaluated component-wise, gives
-            \begin{align}
-               \tensor{N}_{ij}&=\vec{n}_i\vec{n}_j.
-            \end{align}
-            The \engordnumber{3}-order tangential projection tensor :math:`\tensor{T}^T=\tensor{I}_{\rm sym}\cdot \vec{n}-\vec{n}\otimes\vec{n}\otimes\vec{n}` is written by components
-            \begin{align}
-               \tensor{T}_{ijk}^T&=\frac{1}{2}\left(\delta_{ik}\delta_{jl}+\delta_{il}\delta_{jk}\right)\vec{n}_l-\vec{n}_i\vec{n}_j\vec{n}_k = \\
-                  &=\frac{\delta_{ik}\vec{n}_j}{2}+\frac{\delta_{jk}\vec{n}_i}{2}-\vec{n}_i\vec{n}_j\vec{n}_k.
-            \end{align}
-            Plugging these expressions into (\ref{eq-cpm-stress-tensor0}) gives
-            \begin{align}
-               \tensor{\sigma}_{ij}&=\frac{1}{V}\sum_{c\in V}\vec{n}_i^c\vec{n}_j^c F_N^c+\frac{\vec{n}_j^c \vec{F}_{Ti}^c}{2}+\frac{\vec{n}_i^c \vec{F}_{Tj}^c}{2}-\vec{n}_i^c\vec{n}_j^c\underbrace{\vec{n}_k^c\vec{F}_{Tk}^c}_{\hbox to0pt{\hss:math:`=0`, since :math:`\vec{n}^c\perp\vec{F}_{T}^c`\hss}}
-            \end{align}
+   Conventional definition of fracture energy of our own, which goes only to :math:`0.2f_t` on the strain-stress curve.
+
+Simulation setup
+^^^^^^^^^^^^^^^^^
+
+In order to calibrate macroscopic properties, simulations with multiple particles have to be run. This allows to smooth away different orientation of individual contacts and gives apparent continuum-like behavior.
+
+We were running simple strain-controlled tension/compression test on a 1:1:2 cuboid-shaped specimen of 2000 spheres. (Later, the test was being done on hyperboloid-shaped specimen, to pre-determine fracturing area, while avoiding boundary effects.) Straining is applied in the direction of the longest dimension, on boundary particles; they are identified, on the "positive" and "negative" end of the specimen, by distance from bounding box of the specimen; as result, roughly one layer of spheres is considered as support on each side. Distance between (some) two spheres on each end along the strained axis determines the reference length :math:`l_0`; specimen elongation is computed from their current distance divided by :math:`l_0` during subsequent simulation. Straining imposes displacement on support particles along strained axis, symmetrically on either end of the specimen (half on the "positive" and half on the "negative" boundary particles), while all their other degrees of freedom are kept free, including perpendicular translations, leading to simulation of frictionless supports.
+
+Axial force :math:`F` is computed by averaging sums of forces on support particles from both supports :math:`F^+` and :math:`-F^-`. Divided by specimen cross-section :math:`A`, average stress is obtained. The cross-section area is estimated as either cross-section of the specimen's bounding box (for cuboid specimen) or as minimum of several areas :math:`A_i` of convex hull around particles intersecting perpendicular plane at different coordinates along the axis (for non-prismatic specimen):.
+
+.. figure:: fig/uniax-specimen.*
+   :figclass: align-center
+   :width: 80%
+
+   Simplified scheme of the uniaxial tension/compression setup. Strained spheres, negative and positive support, are shown in green and red respectively. Cross-section area :math:`A` is minimum of convex hull's areas :math:`A_i`.
+
+
+.. todo:: Such tension/compression test can be found in the \ysrc{examples/concrete/uniax.py} script.
+
+*Periodic boundary conditions* were not implemented in Yade until later stages of the thesis (:obj:`~woo.core.Cell`). In such case, determining deformation and cross-section area is much simpler, as it exists objectively, embodies in the periodic cell size. Computing stress is equally trivial: first, vector of sum of all forces on contacts in the cell (taking tensile forces as positive and compressive as negative) is computed, then divided by-component by perpendicular areas of the cell. This is handled by :obj:`~woo.dem.WeirdTriaxControl`.
+         
+Stress tensor evaluation
+"""""""""""""""""""""""""
+Computation of stress from reaction forces is not suitable for cases where the loading scenario is not as straight-forwardly defined as in the case of uniaxial tension/compression. For general case, an equation for stress tensor can be derived. Using the work of :cite:`Kuhl2001`, eqs. (33) and (35), we have
+
+.. math::
+   :label: eq-cpm-stress-tensor0
+   :nowrap:
+
+   \begin{align}
+      \tens{\sigma}&=\frac{1}{V}\sum_{c\in V}\left[\vec{F}_{\Sigma}^c \otimes (\vec{C}_2-\vec{C}_1)\right]^{\rm sym} = \\
+         &=\frac{1}{V}\sum_{c\in V}l^c\left[\tens{N}^c \vec{F}_N^c+{\tens{T}^c}^T\vec{F}_T^c\right] \label{}
+   \end{align}
+
+where :math:`V` is the considered volume containing contacts with the :math:`c` index. For each contact, there is :math:`l=|\vec{C}_2-\vec{C}_1|`, :math:`F_{\Sigma}=F_N\vec{n}+\vec{F}_T`, with all variables assuming their current value. We use 2nd-order normal projection tensor :math:`\tens{N}=\vec{n}\otimes\vec{n}` which, evaluated component-wise, gives
+
+.. math:: \tens{N}_{ij}&=\vec{n}_i\vec{n}_j.
+
+
+The 3rd-order tangential projection tensor :math:`\tens{T}^T=\tens{I}_{\rm sym}\cdot \vec{n}-\vec{n}\otimes\vec{n}\otimes\vec{n}` is written by components
+
+.. math::
+   :nowrap:
+
+   \begin{align}
+      \tens{T}_{ijk}^T&=\frac{1}{2}\left(\delta_{ik}\delta_{jl}+\delta_{il}\delta_{jk}\right)\vec{n}_l-\vec{n}_i\vec{n}_j\vec{n}_k = \\
+        &=\frac{\delta_{ik}\vec{n}_j}{2}+\frac{\delta_{jk}\vec{n}_i}{2}-\vec{n}_i\vec{n}_j\vec{n}_k.
+   \end{align}
+
+Plugging these expressions into :eq:`eq-cpm-stress-tensor0` gives
+
+.. math:: \tens{\sigma}_{ij}=\frac{1}{V}\sum_{c\in V}\vec{n}_i^c\vec{n}_j^c F_N^c+\frac{\vec{n}_j^c \vec{F}_{Ti}^c}{2}+\frac{\vec{n}_i^c \vec{F}_{Tj}^c}{2}-\vec{n}_i^c\vec{n}_j^c\underbrace{\vec{n}_k^c\vec{F}_{Tk}^c}_{$=0$, since $\vec{n}^c\perp\vec{F}_{T}^c$}
             
-            Results from this formula were slightly lower than stress obtained from support reaction forces. It is likely due to small number of interaction in :math:`V`; we were considering an interaction inside if the contact point was inside spherical :math:`V`, which can also happen for an interaction between two spheres outside :math:`V`; some weighting function could be used to avoid :math:`V` boundary problems.
+Results from this formula were slightly lower than stress obtained from support reaction forces. It is likely due to small number of interaction in :math:`V`; we were considering an interaction inside if the contact point was inside spherical :math:`V`, which can also happen for an interaction between two spheres outside :math:`V`; some weighting function could be used to avoid :math:`V` boundary problems.
             
-            Boundary effect is avoided for periodic cell (\yclass{Cell}), where the volume :math:`V` is defined by its size and all interaction would are summed together.
+Boundary effect is avoided for periodic cell (:obj:`~woo.core.Cell`), where the volume :math:`V` is defined by its size and all interaction would are summed together.
             
-            This algorithm is implemented in the \yfunfun eudoxos/_eudoxos.InteractionLocator.macroAroundPt() method. 
-      \subsection{Geometry and elastic parameters}\label{sect-calibration-elastic-properties}
-         Let us recall the parameters that influence the elastic response of the model:
-         \begin{description}
-            \item[Radius :math:`r`.] The radius is considered to be the same for all the spheres, for the following two reasons:
-               \begin{enumerate}
-                  \item The time step of the computation (which is one of the main factors determining computational costs) depends on the smallest critical time step for all bodies. Small elements have a smaller critical time step, therefore they would negatively impact the performance.
-                  \item A direct correlation of macroscopic and contact-level properties is based on the assumption that the sphere radii are the same.
-               \end{enumerate}
-            \item[Interaction radius :math:`R_I`] is the relative distance determining the „non-locality“ of contact detection. For :math:`R_I=1`, only spheres that touch are considered as being in contact. In general, the condition reads
-               \begin{align}
-                  d_0&\leq R_I(r_1+r_2).
-               \end{align}
-               The value of :math:`R_I` directly influences the average number of interactions per sphere (percolation). For our purposes, we recommend to use :math:`R_I=1.5`, which gives the average of :math:`\approx`12 interactions per sphere for packing with density :math:`>0.5`.
+.. This algorithm is implemented in the \yfunfun eudoxos/_eudoxos.InteractionLocator.macroAroundPt() method. 
+
+
+sect-calibration-elastic-properties
+
+Geometry and elastic parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Let us recall the parameters that influence the elastic response of the model:
+
+* radius :math:`r`. The radius is considered to be the same for all the spheres, for the following two reasons:
+
+  1. The time step of the computation (which is one of the main factors determining computational costs) depends on the smallest critical time step for all bodies. Small elements have a smaller critical time step, therefore they would negatively impact the performance.
+
+  2. A direct correlation of macroscopic and contact-level properties is based on the assumption that the sphere radii are the same.
+
+* interaction radius :math:`R_I` is the relative distance determining the "non-locality" of contact detection. For :math:`R_I=1`, only spheres that touch are considered as being in contact. In general, the condition reads
+   
+  .. math:: d_0&\leq R_I(r_1+r_2).
+
+  The value of :math:`R_I` directly influences the average number of interactions per sphere (percolation). For our purposes, we recommend to use :math:`R_I=1.5`, which gives the average of ≈12 interactions per sphere for packing with porosity < 0.5.
                
-               This value was determined experimentally based on the average number of interactions; it stabilizes the packing with regards to contact-level phenomena (damage) and makes the model, in a way, ``non-local''.
+  This value was determined experimentally based on the average number of interactions; it stabilizes the packing with regards to contact-level phenomena (damage) and makes the model, in a way, "non-local".
 
-               :math:`R_I` also importantly influences the :math:`f_t/f_c` ratio, which was the original motivation for increasing its value from 1.
+  :math:`R_I` also importantly influences the :math:`f_t/f_c` ratio, which was the original motivation for increasing its value from 1.
 
-               :math:`R_I` only serves to create initial (cohesive) interactions in the packing; after the initial step, interactions having been established, it is reset to 1. A disadvantage is that fractured material which becomes compact again (such as dust compaction) will have a smaller elastic stiffness, since it will have a smaller number of contacts per sphere.
-            \item[:math:`k_N` and :math:`k_T`] are contact moduli in the normal and shear directions introduced above.
-         \end{description}
-         These 4 parameters should be calibrated in such way that the given macroscopic properties :math:`E` and :math:`\nu` are matched. It can be shown by dimensional analysis that :math:`\nu` depends on the dimensionless ratio :math:`k_N/k_T` and, if :math:`R_I` is fixed, Young's modulus is proportional to :math:`k_N` (at fixed :math:`k_N/k_T`).
+  :math:`R_I` only serves to create initial (cohesive) interactions in the packing; after the initial step, interactions having been established, it is reset to 1. A disadvantage is that fractured material which becomes compact again (such as dust compaction) will have a smaller elastic stiffness, since it will have a smaller number of contacts per sphere.
+
+* :math:`k_N` and :math:`k_T` are contact moduli in the normal and shear directions introduced above.
+
+These 4 parameters should be calibrated in such way that the given macroscopic properties :math:`E` and :math:`\nu` are matched. It can be shown by dimensional analysis that :math:`\nu` depends on the dimensionless ratio :math:`k_N/k_T` and, if :math:`R_I` is fixed, Young's modulus is proportional to :math:`k_N` (at fixed :math:`k_N/k_T`).
          
-         By analogy with the microplane theory, the dependence can be derived analytically (see \cite{Kuhl2001}) as
-         \begin{align}
-            \nu&=\frac{k_N-k_T}{4k_N+k_T}=\frac{1-k_T/k_N}{4+k_T/k_N},
-         \end{align}
-         which matches quite well the results our simulations (fig.~\ref{nu-kt-kn}). \citet{Stransky2010} reports similar numerical results, which get closer to theoretical values as :math:`R_I` grows.
-            \begin{figure}
-               \begin{center}
-                  \includegraphics{graphs/cpm/nu-calibration.pdf}
-               \end{center}
-               \caption{Relationship between :math:`k_T/k_N` and :math:`\nu`.}
-               \label{nu-kt-kn}
-            \end{figure}
+By analogy with the microplane theory, the dependence can be derived analytically (see :cite:`Kuhl2001` and also :eq:`eq-c1111-iso`) as
 
-            For :math:`E`, similar equations can be derived, leading to
-            \begin{align}
-               \frac{E}{k_N}&=\frac{\sum A_i L_i}{3V}\frac{2+3\frac{k_T}{k_N}}{4+\frac{k_T}{k_N}}, \label{eq-cpm-ekn-ratio}
-            \end{align}
-            where :math:`A_i` is cross-sectional area of contact number :math:`i`, :math:`L_i` is its length and :math:`V` is the volume of space in which the spheres are placed (total volume of the given sample). The first fraction, volume ratio, is determined solely by the interaction radius :math:`R_I`; therefore, :math:`E` depends linearly on :math:`K_N`.
+.. math:: \nu=\frac{k_N-k_T}{4k_N+k_T}=\frac{1-k_T/k_N}{4+k_T/k_N},
 
-            In our case, however, we simply run elastic simulation to determine the actual :math:`E/k_N` ratio (\ref{eq-cpm-ekn-ratio}). To obtain desired macroscopic modulus of :math:`E^*`, the value of :math:`k_N` is scaled by :math:`E^*/E`.
-         \subsubsection{Measuring macroscopic elastic properties}
-            Measuring linear properties in dynamic simulations faces 2 sources of non-linearity:
-            \begin{enumerate}
-               \item Dynamic oscillations may influence results if strain rate is too high. This can be avoided by stopping loading at some point and letting kinetic energy dissipate by using numerical damping (\yclass{NewtonIntegrator.damping}).
-               \item Early non-linear behavior might disturb the results. For avoiding damage, special flag \yclass{CpmMat.neverDamage} was introduced to the material, causing it to never damage. To prevent plasticity, loading to low strains is necessary. However, due to :math:`R_I=1.5`, there will be no plastic behavior (rearranging particles under initial load, which would make the response artificially more compliant) until later loading stages.
-            \end{enumerate}
-            \paragraph{Young's modulus} can be evaluated in a straight-forward way from its definition :math:`\sigma_i/\eps_i`, if :math:`i\in\{x,y,z\}` is the strained axis.
+which matches quite well the results our simulations (below). :cite:`Stransky2010` reports similar numerical results, which get closer to theoretical values as :math:`R_I` grows.
+
+
+.. _concrete-nu-kt-kn:
+
+.. figure:: fig/nu-calibration.*
+   :figclass: align-center
+   :width: 80%
+
+   Relationship between :math:`k_T/k_N` and :math:`\nu`.
+
+For :math:`E`, similar equations can be derived, leading to
+
+.. math::
+   :label: eq-concrete-ekn-ratio
+
+   \frac{E}{k_N}=\frac{\sum A_i L_i}{3V}\frac{2+3\frac{k_T}{k_N}}{4+\frac{k_T}{k_N}},
+
+where :math:`A_i` is cross-sectional area of contact number :math:`i`, :math:`L_i` is its length and :math:`V` is the volume of space in which the spheres are placed (total volume of the given sample). The first fraction, volume ratio, is determined solely by the interaction radius :math:`R_I`; therefore, :math:`E` depends linearly on :math:`K_N`.
+
+In our case, however, we simply run elastic simulation to determine the actual :math:`E/k_N` ratio :eq:`eq-concrete-ekn-ratio`. To obtain desired macroscopic modulus of :math:`E^*`, the value of :math:`k_N` is scaled by :math:`E^*/E`.
+
+Measuring macroscopic elastic properties
+""""""""""""""""""""""""""""""""""""""""
+Measuring linear properties in dynamic simulations faces 2 sources of non-linearity:
+
+1. Dynamic oscillations may influence results if strain rate is too high. This can be avoided by stopping loading at some point and letting kinetic energy dissipate by using numerical damping (:obj:`woo.dem.Leapfrog.damping`).
+
+2. Early non-linear behavior might disturb the results. For avoiding damage, special flag :obj:`ConcreteMat.neverDamage <woo.dem.ConcreteMat.neverDamage>` was introduced to the material, causing it to never damage. To prevent plasticity, loading to low strains is necessary. However, due to :math:`R_I=1.5`, there will be no plastic behavior (rearranging particles under initial load, which would make the response artificially more compliant) until later loading stages.
+
+Young's modulus
+   can be evaluated in a straight-forward way from its definition :math:`\sigma_i/\eps_i`, if :math:`i\in\{x,y,z\}` is the strained axis.
             
-            \paragraph{Poisson's ratio.} The original idea of measuring specimen dilation by tracking displacement of some boundary spheres was quickly abandoned, as it was giving highly unstable response due to local irregularities and boundary effects. Later, a simple and reliable way was found, consisting in correlation between average axial and transversal displacements.
+Poisson's ratio.
+   The original idea of measuring specimen dilation by tracking displacement of some boundary spheres was quickly abandoned, as it was giving highly unstable response due to local irregularities and boundary effects. Later, a simple and reliable way was found, consisting in correlation between average axial and transversal displacements.
             
-            Taking :math:`w\in\{x,y,z\}`, we evaluate displacement from the initial position :math:`\Delta w(w)` for all particles. To avoid boundary effect, only sufficient number of particles inside the specimen can be considered. The slope of linear regression :math:`\widehat{\Delta w}(w)` has the meaning of average :math:`\eps_w`, shown in fig.~\ref{poisson-regression}. If :math:`z` is the strained axis, Poisson's ratio is then computed as
-            \begin{equation}   
-               \nu=\frac{-\frac{1}{2}(\eps_x+\eps_y)}{\eps_z}.
-            \end{equation}
-            \begin{figure}
-               \begin{center}
-                  \includegraphics{graphs/cpm/poisson-regression.pdf}
-               \end{center}
-               \caption{Displacements during uniaxial tension test, plotted against position on respective axis. The slope of the regression :math:`\widehat{\Delta x}(x)` is the average :math:`\eps_x` in the specimen. Straining was applied in the direction of the :math:`z` axis (as :math:`\eps_z>0`) in the case pictured.}
-               \label{poisson-regression}
-            \end{figure}
+   Taking :math:`w\in\{x,y,z\}`, we evaluate displacement from the initial position :math:`\Delta w(w)` for all particles. To avoid boundary effect, only sufficient number of particles inside the specimen can be considered. The slope of linear regression :math:`\widehat{\Delta w}(w)` has the meaning of average :math:`\eps_w`, shown in the :ref:`following figure <concrete-poisson-regression>`. If :math:`z` is the strained axis, Poisson's ratio is then computed as
 
-            The algorithms described are implemented in the \yfun eudoxos.estimatePoissonYoung() function.
-      \subsection{Damage and plasticity parameters}
-         Once the elastic parameters are calibrated, inelastic parameters :math:`\eps_0`, :math:`\eps_f`, :math:`c_{T0}` and :math:`\phi` should be adjusted such that we obtain the desired macroscopic properties :math:`f_t`, :math:`f_c`, :math:`G_f`.
-         The calibration procedure is as follows:
-         \begin{enumerate}
-            \item We transform model parameters to be dimensionless and material properties to be normalized:
-               \begin{description}
-                  \item[parameters] :math:`\frac{\eps_f}{\eps_0}` (relative ductility), :math:`\frac{c_{T0}}{k_T\eps_0}`, :math:`\phi`; (:math:`\eps_0` is left as-is)
-                  \item[properties] :math:`\frac{f_c}{f_t}` (strength ratio), :math:`\frac{k_N G_f}{f_t^2}` (characteristic length); (:math:`f_t` is lest as-is)
-               \end{description}
-               There is one additional degree of freedom on both sides (:math:`\eps_0` and :math:`f_t`), which we will use later.
-            \item Since there is one additional parameter on the material model side, we fix :math:`c_{T0}` to a known good value. It was shown that it has the least influence on macroscopic properties, hence the choice.
-            \item From graphs showing the parameter/property dependence, we set :math:`\eps_f/\eps_0` to get the desired :math:`{k_N G_f}/{f_t^2}` (fig.~\ref{calibration-nonelastic} lower right), since the only remaining parameter :math:`\phi` has (almost) no influence on :math:`{k_N G_f}/{f_t^2}` (fig.~\ref{calibration-nonelastic} lower left).
-            \item We set :math:`\tan\phi` such that we obtain the desired :math:`f_c/f_t` (fig.~\ref{calibration-nonelastic} upper left).
-            \item We use the remaining degree of freedom to scale the stress-strain diagram to get the absolute values using \emph{radial scaling} (fig.~\ref{radial-scaling}). By dimensional analysis it can be shown that
-               \begin{align}
-                  f_t&=k_N\eps_0\Psi\left(\frac{\eps_f}{\eps_0},\frac{c_{T0}}{k_T\eps_0},\phi\right).
-               \end{align}
-               Since :math:`k_N` is already determined, it is only :math:`\eps_0` that will directly determine :math:`f_t`.
-         \end{enumerate}
-         
-            \begin{figure}
-               \begin{center}
-                  \includegraphics{graphs/cpm/nonelastic-correlations.pdf}
-               \end{center}
-               \caption{Cross-dependencies of :math:`\eps_0/\eps_f`, :math:`EG_f/f_t^2` and :math:`\tan\phi`. Since :math:`\tan\phi` has little influence on :math:`k_N G_f/f_t^2` (lower left), first :math:`\eps_f/\eps_0` can be set based on desired :math:`k_N G_f/f_t^2` (lower right), then :math:`\tan\phi` is determined so that wanted :math:`f_c/f_t` ratio is obtained (upper left).}
-               \label{calibration-nonelastic}
-            \end{figure}
+   .. math:: \nu=\frac{-\frac{1}{2}(\eps_x+\eps_y)}{\eps_z}.
 
-            \begin{figure}
-               \begin{center}
-                  \includegraphics{graphs/cpm/cpm-scaling.pdf}
-               \end{center}
-               \caption{Radial and vertical scaling of the stress-strain diagram; vertical scaling is used during calibration and is achieved by changing the value of :math:`\eps_0`.}
-               \label{radial-scaling}
-            \end{figure}
+   .. _concrete-poisson-regression:
 
-      \subsection{Confinement parameters}
-         Calibrating three confinement-related parameters :math:`\eps_s`, :math:`\tilde K_s` and :math:`Y_0` is not algorithmic, but rather a trial-and-error process. On the other hand, typically it will be enough to calibrate the parameters for some generic confinement data, both for the lack of availability of exact measurements and for at best fuzzy matching that can be achieved. The chief reason is that the bilinear relationship for plasticity in compression is far from perfect and could be refined by using a smooth function; in our case, however, the confinement extension was only meant to mitigate high strength overestimation under confinement, not to accurately predict behavior under such conditions. Introducing more complicated functions would further increase the number of parameters, which was not desirable.
-         
-         The experimental data we use come from \cite{Caner2000} and \cite{Grassl2006}.
+   .. figure:: fig/poisson-regression.*
+      :figclass: align-center
+      :width: 80%
 
-         \begin{figure}
-            \begin{center}
-               \includegraphics{graphs/cpm/confined/cpm-confined-plain.pdf}
-            \end{center}
-            \caption{Confined compression, comparing experimental data and simulation without the confinement extensions of the model. Experimental results (dashed) from \citet{Caner2000}.}
-            \label{confined-linear-nosoft}
-         \end{figure}
-         Consider confined strain-stress diagrams at fig.~\ref{confined-linear-nosoft} exhibiting unrealistic behavior under high confinement (-400\,MPa). Parameters :math:`\eps_s` and :math:`\tilde K_s` will influence at which point the curve will get to the hardening branch and what will be its tangent modulus  (fig.~\ref{strain-stress-normal-hardening}). The :math:`Y_0` parameter determines evolution of plasticity surface in compression (fig~\ref{yield-surf-log}). We recommend the following values of the parameters:
-         \begin{align}
-            \eps_s&=-3\cdot10^{-3}, & \tilde K_s&=0.3, & Y_0&=0.1,
-         \end{align}
-         which give curves in fig.~\ref{confined-log-soft}. It was observed when running multiple simulations that results under high confinement depend greatly on the exact packing configuration, specimen shape and specimen size; therefore, the values given above should be taken with grain of salt.
-         \begin{figure}
-            \begin{center}
-               \includegraphics{graphs/cpm/confined/cpm-confined-extension.pdf}
-            \end{center}
-            \caption{Experimental data and simulation in confined compression, using confinement extensions of the model. Cf. fig~\ref{confined-linear-nosoft} for influence of those extensions.}
-            \label{confined-log-soft}
-         \end{figure}
+   Displacements during uniaxial tension test, plotted against position on respective axis. The slope of the regression :math:`\widehat{\Delta x}(x)` is the average :math:`\eps_x` in the specimen. Straining was applied in the direction of the :math:`z` axis (as :math:`\eps_z>0`) in the case pictured.}
 
-         During simulation, the confinement effect was introduced on the contact level, in the constitutive law itself, as described in sect.~\ref{sect-cpm-isoprestress}; the confinement is therefore isotropic and without boundary influence.
-
-         \paragraph{Cross-dependencies.} Confinement properties may, to certain extent, have influence on inelastic properties. If that happens, reiterating the calibration with new confinement properties should give wanted results quickly.
-
-      \subsection{Rate-dependence parameters}
-         The visco-damage behavior in tension introduced two parameters, characteristic time :math:`\tau_d` and exponent :math:`M_d`. There is no calibration procedure developed for them, as measuring the response is experimentally challenging and the scatter of results is rather high. Instead, we determined those two parameters by a trial-and-error procedure so that the resulting curve approximately fits the experimental data cloud − we use figures from \cite{Ragueneau2003}, which are in turn based on published experiments.
-         
-         The resulting curves are show in figs.~\ref{visco-tension} and \ref{visco-compression}. Because DEM computation would be very slow (large number of steps, determined by critical timestep) for slow rates, those results were computed with the same model implemented in the OOFEM framework (using a static implicit FEM model); this also served to verify that both implementations give identical results. For high loading rates, Yade's results deviate, since there is inertial mass that begins to play an important role.
-         \begin{figure}
-            \begin{center}
-               \includegraphics[width=\linewidth]{fig/rb-tau-calibration-plot-ft.png}
-            \end{center}
-            \caption{Experimental data and simulation results for tension.}
-            \label{visco-tension}
-         \end{figure}
-         \begin{figure}
-            \begin{center}
-               \includegraphics[width=\linewidth]{fig/rb-tau-calibration-plot-fc.png}
-            \end{center}
-            \caption{Experimental data and simulation results for compression.}
-            \label{visco-compression}
-         \end{figure}
-
-         The values that we recommend to use are\begin{align*}
-            \tau_d&=1000\,{\rm s} & M_d=0.3.
-            \end{align*}
-
-         Calibration of visco-plastic parameters was rather simple: we found out that it has no beneficial effect on results; therefore, visco-plasticity should be deactivated.\footnote{In the implementation, this is done by setting :math:`\tau_{pl}` to an arbitrary non-positive value.}
+.. The algorithms described were implemented in the \yfun eudoxos.estimatePoissonYoung() function.
 
 
+
+Damage and plasticity parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Once the elastic parameters are calibrated, inelastic parameters :math:`\eps_0`, :math:`\eps_f`, :math:`c_{T0}` and :math:`\phi` should be adjusted such that we obtain the desired macroscopic properties :math:`f_t`, :math:`f_c`, :math:`G_f`.
+
+The calibration procedure is as follows:
+
+1. We transform model parameters to be dimensionless and material properties to be normalized:
+
+   * **parameters**
+
+     * :math:`\frac{\eps_f}{\eps_0}` (relative ductility)
+     * :math:`\frac{c_{T0}}{k_T\eps_0}`
+     * :math:`\phi`
+     * (:math:`\eps_0` is left as-is)
+
+   * **properties**
+
+     * :math:`\frac{f_c}{f_t}` (strength ratio)
+     * :math:`\frac{k_N G_f}{f_t^2}` (characteristic length)
+     * (:math:`f_t` is left as-is)
+
+   There is one additional degree of freedom on both sides (:math:`\eps_0` and :math:`f_t`), which we will use later.
+
+2.  Since there is one additional parameter on the material model side, we fix :math:`c_{T0}` to a known good value. It was shown that it has the least influence on macroscopic properties, hence the choice.
+
+3.  From graphs showing the parameter/property dependence, we set :math:`\eps_f/\eps_0` to get the desired :math:`{k_N G_f}/{f_t^2}` (:ref:`lower right in the figure <concrete-calibration-nonelastic>`), since the only remaining parameter :math:`\phi` has (almost) no influence on :math:`{k_N G_f}/{f_t^2}` (:ref:`lower left in the figure <concrete-calibration-nonelastic>`).
+
+4. We set :math:`\tan\phi` such that we obtain the desired :math:`f_c/f_t` (:ref:`upper left in the figure <concrete-calibration-nonelastic>`).
+
+5. We use the remaining degree of freedom to scale the stress-strain diagram to get the absolute values using :ref:`radial scaling <concrete-radial-scaling>`. By dimensional analysis it can be shown that
+
+.. math:: f_t=k_N\eps_0\Psi\left(\frac{\eps_f}{\eps_0},\frac{c_{T0}}{k_T\eps_0},\phi\right).
+
+Since :math:`k_N` is already determined, it is only :math:`\eps_0` that will directly determine :math:`f_t`.
+
+.. _concrete-calibration-nonelastic:
+
+.. figure:: fig/nonelastic-correlations.*
+   :figclass: align-center
+   :width: 80%
+
+   Cross-dependencies of :math:`\eps_0/\eps_f`, :math:`EG_f/f_t^2` and :math:`\tan\phi`. Since :math:`\tan\phi` has little influence on :math:`k_N G_f/f_t^2` (lower left), first :math:`\eps_f/\eps_0` can be set based on desired :math:`k_N G_f/f_t^2` (lower right), then :math:`\tan\phi` is determined so that wanted :math:`f_c/f_t` ratio is obtained (upper left).
+
+.. _concrete-radial-scaling:
+
+.. figure:: fig/cpm-scaling.*
+   :figclass: align-center
+   :width: 80%
+
+   Radial and vertical scaling of the stress-strain diagram; vertical scaling is used during calibration and is achieved by changing the value of :math:`\eps_0`.
+
+Confinement parameters
+^^^^^^^^^^^^^^^^^^^^^^^
+Calibrating three confinement-related parameters :math:`\eps_s`, :math:`\tilde K_s` and :math:`Y_0` is not algorithmic, but rather a trial-and-error process. On the other hand, typically it will be enough to calibrate the parameters for some generic confinement data, both for the lack of availability of exact measurements and for at best fuzzy matching that can be achieved. The chief reason is that the bilinear relationship for plasticity in compression is far from perfect and could be refined by using a smooth function; in our case, however, the confinement extension was only meant to mitigate high strength overestimation under confinement, not to accurately predict behavior under such conditions. Introducing more complicated functions would further increase the number of parameters, which was not desirable.
+
+The experimental data we use come from :cite:`Caner2000` and :cite:`Grassl2006`.
+
+.. _concrete-confined-linear-nosoft:
+
+.. figure:: fig/cpm-confined-plain.*
+   :figclass: align-center
+   :width: 80%
+
+   Confined compression, comparing experimental data and simulation without the confinement extensions of the model. Experimental results (dashed) from :cite:`Caner2000`.
+
+Consider confined strain-stress diagrams at the :ref:`preceding figure <concrete-confined-linear-nosoft>` exhibiting unrealistic behavior under high confinement (-400MPa). Parameters :math:`\eps_s` and :math:`\tilde K_s` will influence at which point the curve will get to the hardening branch and what will be its tangent modulus  (:ref:`figure <concrete-strain-stress-normal-hardening>`). The :math:`Y_0` parameter determines evolution of plasticity surface in compression (:ref:`figure <concrete-yield-surf-log>`). We recommend the following values of the parameters:
+
+.. math::
+   :nowrap:
+
+   \begin{align}
+      \eps_s&=-3\cdot10^{-3}, & \tilde K_s&=0.3, & Y_0&=0.1,
+   \end{align}
+
+which give curves in the :ref:`following figure <concrete-confined-log-soft>`. It was observed when running multiple simulations that results under high confinement depend greatly on the exact packing configuration, specimen shape and specimen size; therefore, the values given above should be taken with grain of salt.
+
+.. _concrete-confined-log-soft:
+
+.. figure:: fig/cpm-confined-extension.*
+   :figclass: align-center
+   :width: 80%
+
+   Experimental data and simulation in confined compression, using confinement extensions of the model. Cf. :ref:`this figure <concrete-confined-linear-nosoft>` for the influence of those extensions.
+
+During simulation, the confinement effect was introduced on the contact level, in the constitutive law itself, as described in :ref:`concrete-isoprestress`; the confinement is therefore isotropic and without boundary influence.
+
+**Cross-dependencies.** Confinement properties may, to certain extent, have influence on inelastic properties. If that happens, reiterating the calibration with new confinement properties should give wanted results quickly.
+
+Rate-dependence parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The visco-damage behavior in tension introduced two parameters, characteristic time :math:`\tau_d` and exponent :math:`M_d`. There is no calibration procedure developed for them, as measuring the response is experimentally challenging and the scatter of results is rather high. Instead, we determined those two parameters by a trial-and-error procedure so that the resulting curve approximately fits the experimental data cloud − we use figures from :cite:`Ragueneau2003`, which are in turn based on published experiments.
+
+The resulting curves show :ref:`tension <concrete-visco-tension>` and :ref:`compression <concrete-visco-compression>`. Because DEM computation would be very slow (large number of steps, determined by critical timestep) for slow rates, those results were computed with the same model implemented in the `OOFEM <http://www.oofem.org>`__ framework (using a static implicit FEM model); this also served to verify that both implementations give identical results. For high loading rates, DEM results deviate, since there is inertial mass that begins to play an important role.
+
+.. _concrete-visco-tension:
+
+.. figure:: fig/rb-tau-calibration-plot-ft.*
+   :figclass: align-center
+   :width: 80%
+
+   Experimental data and simulation results for tension.
+
+.. _concrete-visco-compression:
+
+.. figure:: fig/rb-tau-calibration-plot-fc.*
+   :figclass: align-center
+   :width: 80%
+
+   Experimental data and simulation results for compression.
+
+The values that we recommend to use are
+
+.. math::
+   :nowrap:
+   
+   \begin{align} 
+      \tau_d&=1000\,{\rm s}, \\
+      M_d&=0.3.
+   \end{align}
+
+Calibration of visco-plastic parameters was rather simple: we found out that it has no beneficial effect on results; therefore, visco-plasticity should be deactivated. In the implementation, this is done by setting :math:`\tau_{pl}` (:obj:`ConcretePhys.plTau <woo.dem.ConcretePhys.plTau>` to an arbitrary non-positive value).
