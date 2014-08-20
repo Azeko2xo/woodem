@@ -79,7 +79,7 @@ def prepareHorse(pre):
 	xMin,yMin,xMax,yMax=aabb[0][0]-zSpan+trans[0],aabb[0][1]-zSpan+trans[1],aabb[1][0]+zSpan+trans[0],aabb[1][1]+zSpan+trans[1]
 	if not pre.deformable: S.dem.collectNodes() # for deformable, done later
 	S.dem.par.append(woo.pack.gtsSurface2Facets(surf,wire=False,flex=pre.deformable,mat=meshMat,halfThick=pre.halfThick,fixed=(not pre.deformable)))
-	S.dem.par.append(woo.utils.wall(zMin,axis=2,sense=1,mat=meshMat,glAB=((xMin,yMin),(xMax,yMax))))
+	S.dem.par.append(woo.utils.wall(zMin,axis=2,sense=1,mat=meshMat,glAB=((xMin,yMin),(xMax,yMax)),mask=DemField.defaultMovableMask))
 	S.dem.saveDeadNodes=True # for traces, if used
 	if pre.deformable: S.dem.collectNodes() # collects also mesh nodes
 	
@@ -114,7 +114,7 @@ def prepareHorse(pre):
 				for n in p.shape.nodes:
 					n.dem.dampingSkip=True
 			else:
-				p.mask=DemField.defaultMovableMask^DemField.defaultDeleterMask # make horse movable, but avoid deletion by the deleter
+				p.mask=(DemField.defaultMovableMask|S.dem.loneMask)^DemField.defaultDeleterMask # make horse movable, but avoid deletion by the deleter
 				for n in p.shape.nodes:
 					n.dem.mass=nodeM
 					n.dem.inertia=nodeI*Vector3(1,1,1)
