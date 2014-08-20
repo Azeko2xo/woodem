@@ -260,6 +260,10 @@ void Master::pyRegisterAllClasses(){
 			assert(obj);
 			// needed for Master::childClasses
 			for(int i=0;i<obj->getBaseClassNumber();i++) classBases[name].insert(obj->getBaseClassName(i));
+			// needed for properly initialized class indices
+			Indexable* indexable=dynamic_cast<Indexable*>(obj.get());
+			if(indexable) indexable->createIndex();
+			//
 			if(pyModules.find(module)==pyModules.end()){
 				try{
 					// module existing as file, use it

@@ -26,6 +26,7 @@ namespace py=boost::python;
 #define _THROW_NOT_OVERRIDDEN  throw std::logic_error(std::string("Derived class did not override ")+__PRETTY_FUNCTION__+", use REGISTER_INDEX_COUNTER and REGISTER_CLASS_INDEX.")
 
 class Indexable{
+	friend class Master; // for calling createIndex at initialization
 	protected: void createIndex();
 	public:
 		Indexable();
@@ -38,6 +39,7 @@ class Indexable{
 		virtual const int& getBaseClassIndex(int ) const         { _THROW_NOT_OVERRIDDEN;};
 		virtual const int& getMaxCurrentlyUsedClassIndex() const { _THROW_NOT_OVERRIDDEN;};
 		virtual void incrementMaxCurrentlyUsedClassIndex()       { _THROW_NOT_OVERRIDDEN;};
+
 };
 
 
