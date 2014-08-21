@@ -358,8 +358,20 @@ bool InsertionSortCollider::updateBboxes_doFullRun(){
 
 	// this loop takes 25% collider time when not parallelized, give it a try
 	size_t size=particles->size();
+	/*
+		HACK: there are some (reproducible) crashes in the ctor of Aabb when this is run in parallel
+		for the first time. This is not caused by calls to createIndex() in Aabb or Bound ctors
+		(both checked, simultaneously and separately), and does not occus when not running in parallel.
+
+		This occurs only with some particular simulations, such as examples/facet-facet.py.
+
+		It is possibly related to some race conditions in the BoundDispatcher, and should be
+		examined more closely.
+
+		Therefore, always run serially for the very first time, until a better solution is found.
+	*/
 	#ifdef WOO_OPENMP
-		#pragma omp parallel for
+		#pragma omp parallel for num_threads(nFullRuns>0?omp_get_max_threads():1)
 	#endif
 	for(size_t i=0; i<size; i++){
 		const shared_ptr<Particle>& p((*particles)[i]);
