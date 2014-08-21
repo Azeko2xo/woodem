@@ -3,11 +3,11 @@ import woo.pack
 import numpy
 import math
 
-def cylinder(A,B,radius,div=20,axDiv=1,capA=False,capB=False,wallCaps=False,angVel=0,**kw):
+def cylinder(A,B,radius,div=20,axDiv=1,capA=False,capB=False,wallCaps=False,angVel=0,fixed=True,**kw):
 	'''Return triangulated cylinder, as list of facets to be passed to :obj:`ParticleContainer.append`. ``**kw`` arguments are passed to :obj:`woo.pack.gtsSurface2Facets` (and thus to :obj:`woo.utils.facet`).
 
-:param angVel: axial angular velocity of the cylinder; the cylinder is always created as ``fixed``, but :obj:`woo.dem.Facet.fakeVel` is assigned.
-:param axDiv: divide the triangulation axially as well; the default creates facets spanning between both bases
+:param angVel: axial angular velocity of the cylinder; the cylinder has nevertheless zero velocity, only :obj:`woo.dem.Facet.fakeVel` is assigned.
+:param axDiv: divide the triangulation axially as well; the default creates facets spanning between both bases. If negative, it will attempt to have that ratio with circumferential division, e.g. specifying -1 will give nearly-square division.
 :param wallCaps: create caps as walls (with :obj:`woo.dem.wall.glAB` properly set) rather than triangulation; cylinder axis *must* be aligned with some global axis in this case, otherwise and error is raised.
 :returns: List of :obj:`particles <woo.dem.Particle>` building up the cylinder. Caps (if any) are always at the beginning of the list, triangulated perimeter is at the end.
 	'''
@@ -17,6 +17,9 @@ def cylinder(A,B,radius,div=20,axDiv=1,capA=False,capB=False,wallCaps=False,angV
 
 	thetas=numpy.linspace(0,2*math.pi,num=div,endpoint=True)
 	yyzz=[Vector2(radius*math.cos(th),radius*math.sin(th)) for th in thetas]
+	if axDiv<0:
+		circum=2*radius*math.pi
+		axDiv=int(abs(axDiv)*cylLen/(circum/div))
 	xx=numpy.linspace(0,cylLen,num=max(axDiv+1,2))
 	xxyyzz=[[A+axOri*Vector3(x,yz[0],yz[1]) for yz in yyzz] for x in xx]
 	# add caps, if needed; the points will be merged automatically in sweptPolylines2gtsSurface via threshold
@@ -40,7 +43,7 @@ def cylinder(A,B,radius,div=20,axDiv=1,capA=False,capB=False,wallCaps=False,angV
 		# add as triangulation
 		if capA: xxyyzz=[[A+Vector3.Zero for yz in yyzz]]+xxyyzz
 		if capB: xxyyzz+=[[B+Vector3.Zero for yz in yyzz]]
-	ff=woo.pack.gtsSurface2Facets(woo.pack.sweptPolylines2gtsSurface(xxyyzz,threshold=min(radius,cylLen)*1e-4),fixed=True,**kw)
+	ff=woo.pack.gtsSurface2Facets(woo.pack.sweptPolylines2gtsSurface(xxyyzz,threshold=min(radius,cylLen)*1e-4),fixed=fixed,**kw)
 	if angVel!=0: 
 		for f in ff:
 			f.shape.fakeVel=-radius*angVel*f.shape.getNormal().cross(ax)
