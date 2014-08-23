@@ -7,7 +7,7 @@
 
 // attribute flags
 namespace woo{
-	#define ATTR_FLAGS_VALUES noSave=(1<<0), readonly=(1<<1), triggerPostLoad=(1<<2), hidden=(1<<3), noGuiResize=(1<<4), noGui=(1<<5), pyByRef=(1<<6), static_=(1<<7), multiUnit=(1<<8), noDump=(1<<9), activeLabel=(1<<10), rgbColor=(1<<11), filename=(1<<12), existingFilename=(1<<13), dirname=(1<<14)
+	#define ATTR_FLAGS_VALUES noSave=(1<<0), readonly=(1<<1), triggerPostLoad=(1<<2), hidden=(1<<3), noGuiResize=(1<<4), noGui=(1<<5), pyByRef=(1<<6), static_=(1<<7), multiUnit=(1<<8), noDump=(1<<9), activeLabel=(1<<10), rgbColor=(1<<11), filename=(1<<12), existingFilename=(1<<13), dirname=(1<<14), namedEnum=(1<<15)
 	// this will disappear later
 	namespace Attr { enum flags { ATTR_FLAGS_VALUES }; }
 	// prohibit copies, only references should be passed around
@@ -22,13 +22,17 @@ namespace woo{
 		// do not access those directly; public for convenience when accessed from python
 		int _flags;
 		int _currUnit;
-		string _doc, _name, _cxxType,_startGroup, _hideIf;
+		string _doc, _name, _className, _cxxType,_startGroup, _hideIf;
 		vector<string> _unit;
 		vector<pair<string,Real>> _prefUnit;
 		vector<vector<pair<string,Real>>> _altUnits;
+		map<int,vector<string>> _enumNum2Names; // map value to list of alternative names (the first one is preferred)
+		map<string,int> _enumName2Num; // filled automatically from _enumNames
+
 		// avoid throwing exceptions when not initialized, just return None
 		AttrTraitBase(): _flags(0)              { _ini=_range=_choice=_bits=_buttons=[]()->py::object{ return py::object(); }; }
 		AttrTraitBase(int flags): _flags(flags) { _ini=_range=_choice=_bits=_buttons=[]()->py::object{ return py::object(); }; }
+
 		std::function<py::object()> _ini;
 		std::function<py::object()> _range;
 		std::function<py::object()> _choice;
@@ -51,6 +55,7 @@ namespace woo{
 			ATTR_FLAG_DO(filename,isFilename)
 			ATTR_FLAG_DO(existingFilename,isExistingFilename)
 			ATTR_FLAG_DO(dirname,isDirname)
+			ATTR_FLAG_DO(namedEnum,isNamedEnum)
 		#undef ATTR_FLAG_DO
 		py::object pyGetIni()const{ return _ini(); }
 		py::object pyGetRange()const{ return _range(); }
@@ -67,6 +72,51 @@ namespace woo{
 		py::object pyAltUnits(){ return py::object(_altUnits); }
 
 		string pyStr(){ return "<AttrTrait '"+_name+"', flags="+to_string(_flags)+" @ '"+lexical_cast<string>(this)+">"; }
+
+		void namedEnum_validValues(std::ostream& os) const {
+			bool first=true;
+			for(const auto& iss: _enumNum2Names){
+				os<<(first?"":", "); first=false;
+				const auto& ss(iss.second);
+				assert(!ss.empty());
+				os<<ss[0]<<" (";
+				for(size_t i=1; i<ss.size(); i++){
+					os<<(i==1?"":", ")<<ss[i];
+				}
+				os<<(ss.size()>1?"; ":"")<<iss.first<<")";
+			}
+			os<<".";
+		}
+		int namedEnum_name2num(py::object o) const {
+			py::extract<int> i(o);
+			if(i.check()){
+				if(_enumNum2Names.count(i())==0){
+					std::ostringstream oss;
+					oss<<i<<" invalid for "<<_className+"."+_name<<". Valid values are: ";
+					namedEnum_validValues(oss);
+					woo::ValueError(oss.str());
+				} else return i();
+			}
+			py::extract<string> s(o);
+			if(s.check()){
+				auto I=_enumName2Num.find(s());
+				if(I==_enumName2Num.end()){
+					std::ostringstream oss;
+					oss<<"'"<<s()<<"' invalid for "<<_className<<"."<<_name<<". Valid values are: ";
+					namedEnum_validValues(oss);
+					woo::ValueError(oss.str());
+				}
+				return I->second;
+			}
+			woo::TypeError("Named enumeration "+_className+"."+_name+" can only be assigned string or int.");
+			// make compiler happy
+			throw std::logic_error("Unreachable code in AttrTrait::namedEnum_name2num."); 
+		}
+		string namedEnum_num2name(int i) const {
+			auto I=_enumNum2Names.find(i);
+			if(I==_enumNum2Names.end()) throw std::logic_error("Internal (c++) value of "+_className+"."+_name+" is "+to_string(i)+", which is not valid according to AttrTrait.");
+			return I->second[0];
+		}
 
 		static void pyRegisterClass(){
 			py::class_<AttrTraitBase,boost::noncopyable>("AttrTrait",py::no_init) // this is intentional; no need for templates in python
@@ -85,11 +135,13 @@ namespace woo{
 				.add_property("filename",&AttrTraitBase::isFilename)
 				.add_property("existingFilename",&AttrTraitBase::isExistingFilename)
 				.add_property("dirname",&AttrTraitBase::isDirname)
+				.add_property("namedEnum",&AttrTraitBase::isNamedEnum)
 				.def_readonly("_flags",&AttrTraitBase::_flags)
 				// non-flag attributes
 				.def_readonly("doc",&AttrTraitBase::_doc)
 				.def_readonly("cxxType",&AttrTraitBase::_cxxType)
 				.def_readonly("name",&AttrTraitBase::_name)
+				.def_readonly("className",&AttrTraitBase::_className)
 				.def_readonly("unit",&AttrTraitBase::pyUnit)
 				.def_readonly("prefUnit",&AttrTraitBase::pyPrefUnit)
 				.add_property("altUnits",&AttrTraitBase::pyAltUnits)
@@ -114,16 +166,17 @@ namespace woo{
 		/*
 			Some flags may only be set as template argument (since they select templated code),
 			not after trait construction. Their setters are not provided below. Those are:
+
 			* noSave
 			* triggerPostLoad
+			* hidden
+			* namedEnum
+
 		*/
 		#define ATTR_FLAG_DO(flag,isFlag) AttrTrait& flag(bool val=true){ if(val) _flags|=(int)Flags::flag; else _flags&=~((int)Flags::flag); return *this; } bool isFlag() const { return _flags&(int)Flags::flag; }
-			// REMOVE later
-			ATTR_FLAG_DO(readonly,isReadonly)
-			ATTR_FLAG_DO(hidden,isHidden)
-			ATTR_FLAG_DO(pyByRef,isPyByRef)
-
 			// dynamically modifiable without harm
+			ATTR_FLAG_DO(pyByRef,isPyByRef)
+			ATTR_FLAG_DO(readonly,isReadonly)
 			ATTR_FLAG_DO(noGuiResize,isNoGuiResize)
 			ATTR_FLAG_DO(noGui,isNoGui)
 			ATTR_FLAG_DO(static_,isStatic)
@@ -135,7 +188,9 @@ namespace woo{
 			ATTR_FLAG_DO(existingFilename,isExistingFilename)
 			ATTR_FLAG_DO(dirname,isDirname)
 		#undef ATTR_FLAG_DO
+
 		AttrTrait& name(const string& s){ _name=s; return *this; }
+		AttrTrait& className(const string& s){ _className=s; return *this; }
 		AttrTrait& doc(const string& s){ _doc=s; return *this; }
 		AttrTrait& cxxType(const string& s){ _cxxType=s; return *this; }
 		AttrTrait& unit(const string& s){
@@ -188,6 +243,20 @@ namespace woo{
 		AttrTrait& choice(const vector<string>& t){ _choice=std::function<py::object()>([=]()->py::object{ return py::object(t);} ); return *this; }
 		// bitmask where each bit is represented by a string (given from the left)
 		AttrTrait& bits(const vector<string>& t){ _bits=std::function<py::object()>([=]()->py::object{ return py::object(t);} ); return *this; }
+
+		AttrTrait& namedEnum(const map<int,vector<string>>& _n){
+			if(!compileFlags&(int)Flags::namedEnum) woo::TypeError("Error in declaration of "+_name+": AttrTrait<Attr::namedEnum|...>().namedEnum(...) template argument must be used with namedEnum(...).");
+			_enumNum2Names=_n;
+			vector<string> ch;
+			for(const auto& iss: _enumNum2Names){
+				if(iss.second.empty()) woo::ValueError("AttrTrait.namedEnum: no names provided for "+to_string(iss.first));
+				for(const string& n: iss.second) _enumName2Num[n]=iss.first;
+				ch.push_back(iss.second[0]); // will be shown as choice in the UI
+			}
+			choice(ch);
+			return *this;
+		}
+
 		// bitmask where each bit-group (size given by the int) is represented by given string (if 1, it is a simple bool, otherwise strings should be 2**i in number, so that e.g. 2 bits have 4 corresponding values which are bits 00, 01, 10, 11 respectively
 		// AttrTrait& bits(const vector<pair<int,vector<string>>>& t){ _bits=std::function<py::object()>([=]()->py::object{ return py::object(t);} ); return *this; }
 

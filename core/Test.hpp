@@ -12,6 +12,7 @@ namespace woo{
 		void aaccuSetRaw(const vector<Real>& r);
 		void aaccuWriteThreads(size_t ix, const vector<Real>& cycleData);
 		enum { POSTLOAD_NONE=-1,POSTLOAD_CTOR=0, POSTLOAD_FOO=1, POSTLOAD_BAR=2, POSTLOAD_BAZ=3 };
+		enum { NAMED_MINUS_ONE=-1, NAMED_ZERO=0, NAMED_ONE=1, NAMED_TWO=2 };
 		void postLoad(WooTestClass&, void* addr);
 		typedef boost::multi_array<Real,3> boost_multi_array_real_3;
 		py::object arr3d_py_get();
@@ -49,6 +50,7 @@ namespace woo{
 			((int,postLoadStage,(int)POSTLOAD_NONE,AttrTrait<Attr::readonly>(),"Store the last stage from postLoad (to check it is called the right way)")) \
 			((MatrixXr,matX,,,"MatriXr object, for testing serialization of arrays.")) \
 			((boost_multi_array_real_3,arr3d,boost_multi_array_real_3(boost::extents[0][0][0]),AttrTrait<Attr::hidden>(),"boost::multi_array<Real,3> object for testing serialization of multi_array.")) \
+			((int,namedEnum,NAMED_MINUS_ONE,AttrTrait<Attr::namedEnum>().namedEnum({{NAMED_MINUS_ONE,{"minus one","_1","neg1"}},{NAMED_ZERO,{"zero","nothing","NULL"}},{NAMED_ONE,{"one","single"}},{NAMED_TWO,{"two","double","2"}}}),"Named enumeration.")) \
 			,/*ctor*/ \
 			,/*py*/ \
 				.add_property("aaccuRaw",&WooTestClass::aaccuGetRaw,&WooTestClass::aaccuSetRaw,"Access OpenMPArrayAccumulator data directly. Writing resizes and sets the 0th thread value, resetting all other ones.") \

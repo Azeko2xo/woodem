@@ -54,7 +54,7 @@ struct Tracer: public PeriodicEngine{
 		((int,scalar,SCALAR_NONE,AttrTrait<>().choice({{SCALAR_NONE,"none"},{SCALAR_TIME,"time"},{SCALAR_VEL,"vel"},{SCALAR_ANGVEL,"angvel"},{SCALAR_SIGNED_ACCEL,"signed |accel|"},{SCALAR_RADIUS,"radius"},{SCALAR_SHAPE_COLOR,"Shape.color"},{SCALAR_ORDINAL,"ordinal (+ordinalMod)"},{SCALAR_KINETIC,"kinetic energy"}}),"Scalars associated with history points (determine line color)"))
 		((int,vecAxis,-1,AttrTrait<>().choice({{-1,"norm"},{0,"x"},{1,"y"},{2,"z"}}).hideIf("self.scalar not in (self.scalarVel, self.scalarAngVel)"),"Scalar to use for vector values."))
 		((int,ordinalMod,5,AttrTrait<>().hideIf("self.scalar!=self.__class__.scalarOrdinal"),"Modulo value when :obj:`scalar` is :obj:`scalarOrdinal`."))
-		((int,lastScalar,SCALAR_NONE,AttrTrait<>().hidden(),"Keep track of last scalar value"))
+		((int,lastScalar,SCALAR_NONE,AttrTrait<Attr::hidden>(),"Keep track of last scalar value"))
 		((shared_ptr<ScalarRange>,lineColor,make_shared<ScalarRange>(),AttrTrait<>().readonly(),"Color range for coloring the trace line"))
 		((Vector2i,modulo,Vector2i(0,0),,"Only add trace to nodes with ordinal number such that ``(i+modulo[1])%modulo[0]==0``."))
 		((Vector2r,rRange,Vector2r(0,0),,"If non-zero, only show traces of spheres of which radius falls into this range. (not applicable to clumps); traces of non-spheres are not shown in this case."))

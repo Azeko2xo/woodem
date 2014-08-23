@@ -55,6 +55,8 @@ struct Gl1_DemField: public GlFieldFunctor{
 			{COLOR_SIG_T,"shear stress"}, \
 			{COLOR_NUM_CON,"num. contacts"}, \
 			{COLOR_INVISIBLE,"invisible"}
+	
+	#define GL1_DEMFIELD_COLORBY_NAMEDENUM {{COLOR_SOLID,{"solid"}},{COLOR_SHAPE,{"Shape.color","shape"}},{COLOR_RADIUS,{"radius","r"}},{COLOR_VEL,{"velocity","vel","v"}},{COLOR_ANGVEL,{"angular velocity","angVel"}},{COLOR_MASS,{"mass","m"}},{COLOR_MASK,{"mask"}},{COLOR_DISPLACEMENT,{"ref. displacement","disp","displacement"}},{COLOR_ROTATION,{"ref. rotation","rot","rotation"}},{COLOR_REFPOS,{"refpos coord","refpos"}},{COLOR_MAT_ID,{"material id","mat id"}},{COLOR_MATSTATE,{"Particle.matState","mat state"}},{COLOR_SIG_N,{"normal stress","sigN"}},{COLOR_SIG_T,{"shear stress","sigT"}},{COLOR_NUM_CON,{"number of contacts","num contacts","numCon"}},{COLOR_INVISIBLE,{"invisible","-"}}}
 
 	WOO_CLASS_BASE_DOC_STATICATTRS_CTOR_PY(Gl1_DemField,GlFieldFunctor,"Render DEM field.",
 		((int,shape,SHAPE_ALL,AttrTrait<Attr::triggerPostLoad>().choice({{SHAPE_NONE,"none"},{SHAPE_ALL,"all"},{SHAPE_SPHERES,"spheroids"},{SHAPE_NONSPHERES,"non-spheroids"},{SHAPE_MASK,"mask"}}).startGroup("Shape"),"Render only particles matching selected filter."))
@@ -63,13 +65,13 @@ struct Gl1_DemField: public GlFieldFunctor{
 		((Vector2i,modulo,Vector2i(0,0),,"For particles matching :obj:`shape`, only show particles with :obj:`Particle.id` such that ``(id+modulo[1])%modulo[0]==0`` (similar to :obj:`woo.dem.Tracer.modulo`). Only nodes of which first particle matches (or don't have any particle attached) are shown (in case of nodes, regardless of its :obj:`shape`). Display of contacts is not affected by this value."))
 		((bool,wire,false,,"Render all shapes with wire only"))
 
-		((int,colorBy,COLOR_SHAPE,AttrTrait<Attr::triggerPostLoad>().choice({ GL1_DEMFIELD_COLORBY_CHOICES }).buttons({"Reference now","self.updateRefPos=True","use current positions and orientations as reference for showing displacement/rotation"},/*showBefore*/false),"Color particles by"))
+		((int,colorBy,COLOR_SHAPE,AttrTrait<Attr::triggerPostLoad|Attr::namedEnum>().namedEnum(GL1_DEMFIELD_COLORBY_NAMEDENUM) /*.choice({ GL1_DEMFIELD_COLORBY_CHOICES })*/.buttons({"Reference now","self.updateRefPos=True","use current positions and orientations as reference for showing displacement/rotation"},/*showBefore*/false),"Color particles by"))
 		((int,vecAxis,-1,AttrTrait<>().choice({{-1,"norm"},{0,"x"},{1,"y"},{2,"z"}}).hideIf("self.colorBy in (self.colorShape, self.colorRadius, self.colorMatId, self.colorMatState, self.colorNumCon)"),"Axis for colorRefPosCoord"))
 		((int,matStateIx,0,AttrTrait<Attr::triggerPostLoad>().hideIf("self.colorBy!=self.colorMatState and self.colorBy2!=self.colorMatState"),"Index for getting :obj:`MatState` scalars."))
 		((Real,matStateSmooth,1e-3,AttrTrait<>().hideIf("self.colorBy!=self.colorMatState and self.colorBy2!=self.colorMatState"),"Smoothing coefficient for :obj:`MatState` scalars."))
 		((shared_ptr<ScalarRange>,colorRange,,AttrTrait<>().readonly().hideIf("self.colorBy in (self.colorSolid,self.colorInvisible)"),"Range for particle colors (:obj:`colorBy`)"))
 
-		((int,colorBy2,COLOR_SOLID,AttrTrait<Attr::triggerPostLoad>().choice({ GL1_DEMFIELD_COLORBY_CHOICES }).hideIf("not self.shape2"),"Color for particles with :obj:`shape2`."))
+		((int,colorBy2,COLOR_SOLID,AttrTrait<Attr::triggerPostLoad|Attr::namedEnum>().namedEnum(GL1_DEMFIELD_COLORBY_NAMEDENUM) /*.choice({ GL1_DEMFIELD_COLORBY_CHOICES }) */ .hideIf("not self.shape2"),"Color for particles with :obj:`shape2`."))
 		((shared_ptr<ScalarRange>,colorRange2,,AttrTrait<>().readonly().hideIf("not self.shape2 or self.colorBy2 in (self.colorSolid,self.colorInvisible)"),"Range for particle colors (:obj:`colorBy`)"))
 		((Vector3r,solidColor,Vector3r(.3,.3,.3),AttrTrait<>().rgbColor(),"Solid color for particles."))
 
@@ -90,7 +92,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 		((int,cNode,CNODE_NONE,AttrTrait<>().bits({"GlRep","line","node","pot. line"}).startGroup("Contact nodes"),"What should be shown for contact nodes"))
 		((bool,cPhys,false,,"Render contact's nodes"))
 
-		((bool,doPostLoad,false,AttrTrait<>().hidden(),"Run initialization routine when called next time (set from postLoadStatic)"))
+		((bool,doPostLoad,false,AttrTrait<Attr::hidden>(),"Run initialization routine when called next time (set from postLoadStatic)"))
 		((bool,updateRefPos,false,,"Update reference positions of all nodes in the next step"))
 		((int,guiEvery,100,,"Process GUI events once every *guiEvery* objects are painted, to keep the ui responsive. Set to 0 to make rendering blocking."))
 		, /*ctor*/

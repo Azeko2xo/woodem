@@ -150,7 +150,7 @@ struct Scene: public Object{
 		((long,step,0,AttrTrait<Attr::readonly>(),"Current step number"))
 		((bool,subStepping,false,,"Whether we currently advance by one engine in every step (rather than by single run through all engines)."))
 		((int,subStep,-1,AttrTrait<Attr::readonly>(),"Number of sub-step; not to be changed directly. -1 means to run loop prologue (cell integration), 0…n-1 runs respective engines (n is number of engines), n runs epilogue (increment step number and time."))
-		((Real,time,0,AttrTrait<>().readonly().timeUnit(),"Simulation time (virtual time) [s]"))
+		((Real,time,0,AttrTrait<Attr::readonly>().timeUnit(),"Simulation time (virtual time) [s]"))
 		((long,stopAtStep,0,,"Iteration after which to stop the simulation."))
 
 		((bool,isPeriodic,false,/*exposed as "periodic" in python */AttrTrait<Attr::hidden>(),"Whether periodic boundary conditions are active."))

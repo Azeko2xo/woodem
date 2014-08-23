@@ -40,11 +40,11 @@ struct LabelMapper: public Object{
 
 	#define woo_core_LabelMapper__CLASS_BASE_DOC_ATTRS_PY \
 		LabelMapper,Object,"Map labels to :obj:`woo.Object`, lists of :obj:`woo.Object` or Python's objects, while preserving reference-counting of c++ objects during save/loads. This object is exposed as :obj:`Scene.labels` (with dictionary-like access) and :obj:`Scene.lab` (with attribute access) and presents a simulation-bound persistent namespace for arbitrary objects.", \
-		((StrPyMap,pyMap,,AttrTrait<>().hidden(),"Map names to python objects")) \
-		((StrWooMap,wooMap,,AttrTrait<>().hidden(),"Map names to woo objects")) \
-		((StrWooSeqMap,wooSeqMap,,AttrTrait<>().hidden(),"Map names to sequences of woo objects")) \
-		((std::set<string>,modSet,,AttrTrait<>().hidden(),"Set of pseudo-modules names (fully qualified)")) \
-		((std::set<string>,writables,,AttrTrait<>().hidden(),"Set of writable names (without warning)")) \
+		((StrPyMap,pyMap,,AttrTrait<Attr::hidden>(),"Map names to python objects")) \
+		((StrWooMap,wooMap,,AttrTrait<Attr::hidden>(),"Map names to woo objects")) \
+		((StrWooSeqMap,wooSeqMap,,AttrTrait<Attr::hidden>(),"Map names to sequences of woo objects")) \
+		((std::set<string>,modSet,,AttrTrait<Attr::hidden>(),"Set of pseudo-modules names (fully qualified)")) \
+		((std::set<string>,writables,,AttrTrait<Attr::hidden>(),"Set of writable names (without warning)")) \
 		, /*py*/ \
 			.def("__setitem__",&LabelMapper::__setitem__) \
 			.def("__getitem__",&LabelMapper::__getitem__) \

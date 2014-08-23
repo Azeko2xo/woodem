@@ -86,7 +86,7 @@ struct ScalarRange: public Object{
 	#define woo_gl_ScalarRange__CLASS_BASE_DOC_ATTRS_PY \
 		ScalarRange,Object,"Store and share range of scalar values", \
 		((Vector2r,mnmx,Vector2r(std::numeric_limits<Real>::infinity(),-std::numeric_limits<Real>::infinity()),AttrTrait<Attr::triggerPostLoad>().buttons({"Reset","self.reset()","Re-initialize range"}),"Packed minimum and maximum values; adjusting from python sets :obj:`autoAdjust` to false automatically.")) \
-		((Vector2r,logMnmx,,AttrTrait<Attr::noSave>().hidden(),"Logs of mnmx values, to avoid computing logarithms all the time; computed via cacheLogs.")) \
+		((Vector2r,logMnmx,,AttrTrait<Attr::noSave|Attr::hidden>(),"Logs of mnmx values, to avoid computing logarithms all the time; computed via cacheLogs.")) \
 		((int,flags,(RANGE_AUTO_ADJUST),AttrTrait<>().bits({"log","reversed","symmetric","autoAdjust","hidden"}),"Flags for this range: autoAdjust, symmetric, reversed, hidden, log.")) \
 		((Vector2i,dispPos,Vector2i(-1000,-1000),AttrTrait<>().noGui(),"Where is this range displayed on the OpenGL canvas; initially out of range, will be reset automatically.")) \
 		((Real,length,200,AttrTrait<>().noGui(),"Length on the display; if negative, it is fractional relative to view width/height")) \

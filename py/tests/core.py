@@ -152,6 +152,17 @@ class TestObjectInstantiation(unittest.TestCase):
 		# assign to baz to test postLoad again
 		self.t.baz=-1
 		self.assert_(self.t.postLoadStage==WTC.postLoad_baz)
+	def testNamedEnum(self):
+		t=woo.core.WooTestClass()
+		self.assertRaises(ValueError,lambda: setattr(t,'namedEnum','nonsense'))
+		self.assertRaises(ValueError,lambda: setattr(t,'namedEnum',-2))
+		self.assertRaises(TypeError,lambda: setattr(t,'namedEnum',[]))
+		t.namedEnum='zero'
+		self.assert_(t.namedEnum=='zero')
+		t.namedEnum='nothing'
+		self.assert_(t.namedEnum=='zero')
+		t.namedEnum=0
+		self.assert_(t.namedEnum=='zero')
 	def testHidden(self):
 		'Core: Attr::hidden'
 		# hidden attributes are not wrapped in python at all
