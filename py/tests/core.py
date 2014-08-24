@@ -50,7 +50,7 @@ class TestScene(unittest.TestCase):
 class TestObjectInstantiation(unittest.TestCase):
 	def setUp(self):
 		self.t=woo.core.WooTestClass()
-		pass # no setup needed for tests here
+		self.ts=woo.core.WooTestClassStatic()
 	def testClassCtors(self):
 		"Core: correct types are instantiated"
 		# correct instances created with Foo() syntax
@@ -113,6 +113,7 @@ class TestObjectInstantiation(unittest.TestCase):
 		S.saveTmp(quiet=True); S=Scene.loadTmp()
 		S.dem.par[0].mat.young=9087438484
 		self.assert_(S.dem.par[0].mat.young==S.dem.par[1].mat.young)
+
 	##
 	## attribute flags
 	##
@@ -131,10 +132,29 @@ class TestObjectInstantiation(unittest.TestCase):
 		# check that the minimum is not saved
 		self.assert_(not isnan(mn0[0]))
 		self.assert_(isnan(mn1[0]))
+	def testNoSave_static(self):
+		'Cote:: Attr::noSave (static)'
+		ts=self.ts
+		ts.noSave=344
+		ts.namedEnum='one'
+		ts.saveTmp('ts')
+		ts.noSave=123
+		self.assert_(ts.noSave==123)
+		ts2=woo.core.WooTestClassStatic.loadTmp('ts')
+		self.assert_(ts2.noSave==123)        # was not saved
+		self.assert_(ts2.namedEnum=='one') # was saved
+		# since it is static, self.ts is changed as well now
+		self.assert_(ts.namedEnum==ts2.namedEnum)
+		self.assert_(id(ts.namedEnum)==id(ts2.namedEnum))
+
 	def testReadonly(self):
 		'Core: Attr::readonly'
 		self.assert_(self.t.meaning42==42)
 		self.assertRaises(AttributeError,lambda: setattr(self.t,'meaning42',43))
+	def testReaonly_static(self):
+		'Core: Attr::readonly (static)'
+		self.assertRaises(AttributeError,lambda: setattr(self.ts,'readonly',2))
+	
 	def testTriggerPostLoad(self):
 		'Core: postLoad & Attr::triggerPostLoad'
 		WTC=woo.core.WooTestClass
@@ -152,7 +172,19 @@ class TestObjectInstantiation(unittest.TestCase):
 		# assign to baz to test postLoad again
 		self.t.baz=-1
 		self.assert_(self.t.postLoadStage==WTC.postLoad_baz)
+	def testTriggerPostLoad_static(self):
+		'Core: Attr::triggerPostLoad (static)'
+		ts=self.ts
+		self.assert_(ts.numTriggered==0)
+		self.trigger=1
+		print 'self.numTriggered',ts.numTriggered
+		# self.assert_(ts.numTriggered==1)
+		self.trigger=-1
+		print 'self.numTriggered',ts.numTriggered
+		# self.assert_(ts.numTriggered==2)
+
 	def testNamedEnum(self):
+		'Core: Attr::namedEnum'
 		t=woo.core.WooTestClass()
 		self.assertRaises(ValueError,lambda: setattr(t,'namedEnum','nonsense'))
 		self.assertRaises(ValueError,lambda: setattr(t,'namedEnum',-2))
@@ -163,10 +195,46 @@ class TestObjectInstantiation(unittest.TestCase):
 		self.assert_(t.namedEnum=='zero')
 		t.namedEnum=0
 		self.assert_(t.namedEnum=='zero')
+	def testNamedEnum_static(self):
+		'Core: Attr::namedEnum (static)'
+		ts=self.ts
+		self.assertRaises(ValueError,lambda: setattr(ts,'namedEnum','nonsense'))
+		self.assertRaises(ValueError,lambda: setattr(ts,'namedEnum',-2))
+		self.assertRaises(TypeError,lambda: setattr(ts,'namedEnum',[]))
+		ts.namedEnum='zero'
+		self.assert_(ts.namedEnum=='zero')
+		ts.namedEnum=-1
+		self.assert_(ts.namedEnum=='minus one')
+
+	def testBits(self):
+		'Core:: AttrTrait.bits accessors' 
+		t=self.t
+		# flags and bits read-write
+		t.bits=1
+		self.assert_(t.bit0)
+		t.bit2=True
+		self.assert_(t.bits==5)
+		# flags read-only, bits midifiable
+		self.assertRaises(AttributeError,lambda: setattr(t,'bitsRw',1))
+		t.bit2rw=True
+		t.bit3rw=True
+		self.assert_(t.bitsRw==12)
+		# both flags and bits read-only
+		self.assertRaises(AttributeError,lambda: setattr(t,'bitsRo',1))
+		self.assertRaises(AttributeError,lambda: setattr(t,'bit1ro',True))
+		self.assert_(t.bitsRo==3)
+		self.assert_((t.bit0ro,t.bit1ro,t.bit2ro)==(True,True,False))
+	## not (yet) supported for static attributes
+	# def testBits_static(self):
+
 	def testHidden(self):
 		'Core: Attr::hidden'
 		# hidden attributes are not wrapped in python at all
 		self.assert_(not hasattr(self.t,'hiddenAttribute'))
+	def testHidden_static(self):
+		'Core: Attr::hidden (static)'
+		self.assertRaises(AttributeError,lambda: getattr(self.ts,'hidden'))
+
 	def testNotifyDead(self):
 		'Core: PeriodicEngine::notifyDead'
 		e=woo.core.WooTestPeriodicEngine()
@@ -180,7 +248,6 @@ class TestObjectInstantiation(unittest.TestCase):
 		prev=e.deadCounter
 		e.dead=False
 		self.assert_(e.deadCounter>prev)
-
 	def testNodeDataCtorAssign(self):
 		'Core: assign node data using shorthands in the ctor'
 		n=woo.core.Node(pos=(1,2,3),dem=woo.dem.DemData(mass=100))
@@ -189,6 +256,8 @@ class TestObjectInstantiation(unittest.TestCase):
 		if 'gl' in woo.config.features:
 			# type mismatch
 			self.assertRaises(RuntimeError,lambda: woo.core.Node(dem=woo.gl.GlData()))
+
+
 
 
 class TestLoop(unittest.TestCase):

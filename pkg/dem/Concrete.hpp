@@ -1,12 +1,11 @@
 #pragma once
 
-#if 0
 #include<woo/pkg/dem/FrictMat.hpp>
 #include<woo/pkg/dem/L6Geom.hpp>
 
 struct ConcreteMatState: public MatState {
 	#define woo_dem_ConcreteMatState__CLASS_BASE_DOC_ATTRS \
-		ConcreteMatState,State,"State information about body use by the concrete model. None of that is used for computation (at least not now), only for post-processing.", \
+		ConcreteMatState,MatState,"State information about body use by the concrete model. None of that is used for computation (at least not now), only for post-processing.", \
 		((Real,epsVolumetric,0,,"Volumetric strain around this body (unused for now)")) \
 		((int,numBrokenCohesive,0,,"Number of (cohesive) contacts that damaged completely")) \
 		((int,numContacts,0,,"Number of contacts with this body")) \
@@ -43,10 +42,6 @@ WOO_REGISTER_OBJECT(ConcreteMat);
 
 struct ConcretePhys: public FrictPhys {
 	static long cummBetaIter, cummBetaCount;
-	/*! auxiliary variable for visualization, recalculated in Law2_L6Geom_ConcretePhys at every iteration */
-	// Fn and Fs are also stored as Vector3r normalForce, shearForce in NormShearPhys 
-	Real omega, Fn, sigmaN, epsN, relResidualStrength, kappaD, epsNPl;
-	Vector3r sigmaT, Fs, epsTPl, epsT;
 
 	static Real solveBeta(const Real c, const Real N);
 	Real computeDmgOverstress(Real dt);
@@ -82,16 +77,14 @@ struct ConcretePhys: public FrictPhys {
 		((bool,neverDamage,false,,"the damage evolution function will always return virgin state")) \
 		((int,damLaw,1,,"Law for softening part of uniaxial tension. 0 for linear, 1 for exponential (default)")) \
 		((bool,isCohesive,false,,"if not cohesive, interaction is deleted when distance is greater than zero.")) \
+		((Vector2r,epsT,Vector2r::Zero(),AttrTrait<Attr::noSave|Attr::readonly>(),"Shear strain; updated incrementally from :obj:`L6Geom.vel`.")) \
 		\
 		((Real,omega,0,AttrTrait<Attr::noSave|Attr::readonly>().startGroup("Auto-computed"),"Damage parameter")) \
-		((Real,Fn,0,AttrTrait<Attr::noSave|Attr::readonly>(),"Normal force")) \
-		((Vector3r,Fs,Vector3r::Zero(),AttrTrait<Attr::noSave|Attr::readonly>(),"Shear force")) \
 		((Real,epsN,0,AttrTrait<Attr::noSave|Attr::readonly>(),"Normal strain")) \
-		((Vector3r,epsT,Vector3r::Zero(),AttrTrait<Attr::noSave|Attr::readonly>(),"Shear strain")) \
 		((Real,sigmaN,0,AttrTrait<Attr::noSave|Attr::readonly>(),"Normal force")) \
-		((Vector3r,sigmaT,Vector3r::Zero(),AttrTrait<Attr::noSave|Attr::readonly>(),"Tangential stress")) \
+		((Vector2r,sigmaT,Vector2r::Zero(),AttrTrait<Attr::noSave|Attr::readonly>(),"Tangential stress")) \
 		((Real,epsNPl,0,AttrTrait<Attr::noSave|Attr::readonly>(),"Normal plastic strain")) \
-		((Vector3r,epsTPl,Vector3r::Zero(),AttrTrait<Attr::noSave|Attr::readonly>(),"Shear plastic strain")) \
+		/*((Vector2r,epsTPl,Vector3r::Zero(),AttrTrait<Attr::noSave|Attr::readonly>(),"Shear plastic strain"))*/ \
 		((Real,kappaD,0,AttrTrait<Attr::noSave|Attr::readonly>(),"Value of the kappa function")) \
 		((Real,relResidualStrength,1,AttrTrait<Attr::noSave|Attr::readonly>(),"Relative residual strength")) \
 		,/*ctor*/ createIndex(); \
@@ -120,16 +113,16 @@ struct Cp2_ConcreteMat_ConcretePhys: public CPhysFunctor{
 		((long,cohesiveThresholdStep,10,,"Should new contacts be cohesive? They will before this iter#, they will not be afterwards. If 0, they will never be. If negative, they will always be created as cohesive (10 by default)."))
 	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_Cp2_ConcreteMat_ConcretePhys__CLASS_BASE_DOC_ATTRS);
 };
-WOO_REGISTER_OBJECT(Cp2_ConcreteMat_ConcreteMat_ConcretePhys);
+WOO_REGISTER_OBJECT(Cp2_ConcreteMat_ConcretePhys);
 
 
 struct Law2_L6Geom_ConcretePhys: public LawFunctor{
-	Real elasticEnergy();
+	// Real elasticEnergy();
 	Real yieldSigmaTMagnitude(Real sigmaN, Real omega, Real coh0, Real tanPhi) {
 		switch(yieldSurfType){
 			case 0: return coh0*(1-omega)*-sigmaN*tanPhi;
-			case 1: return sqrt(pow(coh0,2)-2*coh0*tanPhi*sigmaN)-coh0*omega
-			case 2: return ( (sigmaN/(coh0*yieldLogSpeed))>=1 ? 0 : coh0*((1-omega)+(tanPhi*yieldLogSpeed)*log(-sigmaN/(coh0*yieldLogSpeed)+1)))
+			case 1: return sqrt(pow(coh0,2)-2*coh0*tanPhi*sigmaN)-coh0*omega;
+			case 2: return ( (sigmaN/(coh0*yieldLogSpeed))>=1 ? 0 : coh0*((1-omega)+(tanPhi*yieldLogSpeed)*log(-sigmaN/(coh0*yieldLogSpeed)+1)));
 			case 3:
 				if(sigmaN>0) return coh0*(1-omega)*-sigmaN*tanPhi;
 				return ((sigmaN/(coh0*yieldLogSpeed))>=1 ? 0 : coh0*((1-omega)+(tanPhi*yieldLogSpeed)*log(-sigmaN/(coh0*yieldLogSpeed)+1)));
@@ -152,11 +145,9 @@ struct Law2_L6Geom_ConcretePhys: public LawFunctor{
 		((Real,epsSoft,((void)"approximates confinement -20MPa precisely, -100MPa a little over, -200 and -400 are OK (secant)",-3e-3),,"Strain at which softening in compression starts (non-negative to deactivate)")) \
 		((Real,relKnSoft,.3,,"Relative rigidity of the softening branch in compression (0=perfect elastic-plastic, <0 softening, >0 hardening)")) \
 		, /*py*/.def("yieldSigmaTMagnitude",&Law2_L6Geom_ConcretePhys::yieldSigmaTMagnitude,(py::arg("sigmaN"),py::arg("omega"),py::arg("coh0"),py::arg("tanPhi")),"Return radius of yield surface for given material and state parameters; uses attributes of the current instance (*yieldSurfType* etc), change them before calling if you need that.") \
-		.def("elasticEnergy",&Law2_L6Geom_ConcretePhys::elasticEnergy,"Compute and return the total elastic energy in all :obj:`ConcretePhys` contacts")
+		// .def("elasticEnergy",&Law2_L6Geom_ConcretePhys::elasticEnergy,"Compute and return the total elastic energy in all :obj:`ConcretePhys` contacts")
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Law2_L6Geom_ConcretePhys__CLASS_BASE_DOC_ATTRS_PY);
 };
 WOO_REGISTER_OBJECT(Law2_L6Geom_ConcretePhys);
 
 
-
-#endif

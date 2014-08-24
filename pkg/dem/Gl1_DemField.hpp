@@ -89,7 +89,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 		((vector<shared_ptr<ScalarRange>>,glyphRanges,,AttrTrait<>().readonly().noGui(),"List of glyph ranges"))
 
 		// ((bool,id,false,,"Show particle id's"))
-		((int,cNode,CNODE_NONE,AttrTrait<>().bits({"GlRep","line","node","pot. line"}).startGroup("Contact nodes"),"What should be shown for contact nodes"))
+		((int,cNode,CNODE_NONE,AttrTrait<>().bits({"GlRep","line","node","potLine"}).startGroup("Contact nodes"),"What should be shown for contact nodes"))
 		((bool,cPhys,false,,"Render contact's nodes"))
 
 		((bool,doPostLoad,false,AttrTrait<Attr::hidden>(),"Run initialization routine when called next time (set from postLoadStatic)"))

@@ -107,3 +107,22 @@ typedef unsigned short ushort;
 #include<boost/python.hpp>
 namespace py=boost::python;
 
+// allow using lambda funcs in in add_property
+// http://stackoverflow.com/a/25281985/761090
+// does not work yet :|
+#if 0
+namespace boost {
+  namespace python {
+    namespace detail {
+
+      template <class T, class... Args>
+      inline boost::mpl::vector<T, Args...> 
+        get_signature(std::function<T(Args...)>, void* = 0)
+      {
+        return boost::mpl::vector<T, Args...>();
+      }
+
+    }
+  }
+}
+#endif

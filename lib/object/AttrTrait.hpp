@@ -24,19 +24,20 @@ namespace woo{
 		int _currUnit;
 		string _doc, _name, _className, _cxxType,_startGroup, _hideIf;
 		vector<string> _unit;
+		vector<string> _bits;
+		bool _bitsRw; // bits will be python-writable even if corresponding flag attr is not
 		vector<pair<string,Real>> _prefUnit;
 		vector<vector<pair<string,Real>>> _altUnits;
 		map<int,vector<string>> _enumNum2Names; // map value to list of alternative names (the first one is preferred)
 		map<string,int> _enumName2Num; // filled automatically from _enumNames
 
 		// avoid throwing exceptions when not initialized, just return None
-		AttrTraitBase(): _flags(0)              { _ini=_range=_choice=_bits=_buttons=[]()->py::object{ return py::object(); }; }
-		AttrTraitBase(int flags): _flags(flags) { _ini=_range=_choice=_bits=_buttons=[]()->py::object{ return py::object(); }; }
+		AttrTraitBase(): _flags(0)              { _ini=_range=_choice=_buttons=[]()->py::object{ return py::object(); }; }
+		AttrTraitBase(int flags): _flags(flags) { _ini=_range=_choice=_buttons=[]()->py::object{ return py::object(); }; }
 
 		std::function<py::object()> _ini;
 		std::function<py::object()> _range;
 		std::function<py::object()> _choice;
-		std::function<py::object()> _bits;
 		std::function<py::object()> _buttons;
 		// getters (setters below, to return the same reference type)
 		#define ATTR_FLAG_DO(flag,isFlag) bool isFlag() const { return _flags&(int)Flags::flag; }
@@ -60,7 +61,7 @@ namespace woo{
 		py::object pyGetIni()const{ return _ini(); }
 		py::object pyGetRange()const{ return _range(); }
 		py::object pyGetChoice()const{ return _choice(); }
-		py::object pyGetBits()const{ return _bits(); }
+		py::object pyGetBits()const{ return py::object(_bits); }
 		py::object pyGetButtons(){ return _buttons(); }
 		py::object pyUnit(){ return py::object(_unit); }
 		py::object pyPrefUnit(){
@@ -242,10 +243,10 @@ namespace woo{
 		AttrTrait& choice(const vector<pair<int,string>>& t){ _choice=std::function<py::object()>([=]()->py::object{ return py::object(t);} ); return *this; }
 		AttrTrait& choice(const vector<string>& t){ _choice=std::function<py::object()>([=]()->py::object{ return py::object(t);} ); return *this; }
 		// bitmask where each bit is represented by a string (given from the left)
-		AttrTrait& bits(const vector<string>& t){ _bits=std::function<py::object()>([=]()->py::object{ return py::object(t);} ); return *this; }
+		AttrTrait& bits(const vector<string>& t, bool rw=false){ _bits=t; _bitsRw=rw; return *this; }
 
 		AttrTrait& namedEnum(const map<int,vector<string>>& _n){
-			if(!compileFlags&(int)Flags::namedEnum) woo::TypeError("Error in declaration of "+_name+": AttrTrait<Attr::namedEnum|...>().namedEnum(...) template argument must be used with namedEnum(...).");
+			if(!(compileFlags&(int)Flags::namedEnum)) woo::TypeError("Error in declaration of "+_name+": AttrTrait<Attr::namedEnum|...>().namedEnum(...) template argument must be used with namedEnum(...).");
 			_enumNum2Names=_n;
 			vector<string> ch;
 			for(const auto& iss: _enumNum2Names){
@@ -256,9 +257,6 @@ namespace woo{
 			choice(ch);
 			return *this;
 		}
-
-		// bitmask where each bit-group (size given by the int) is represented by given string (if 1, it is a simple bool, otherwise strings should be 2**i in number, so that e.g. 2 bits have 4 corresponding values which are bits 00, 01, 10, 11 respectively
-		// AttrTrait& bits(const vector<pair<int,vector<string>>>& t){ _bits=std::function<py::object()>([=]()->py::object{ return py::object(t);} ); return *this; }
 
 		AttrTrait& buttons(const vector<string>& b, bool showBefore=true){ _buttons=std::function<py::object()>([=]()->py::object{ return py::make_tuple(py::object(b),showBefore);}); return *this; }
 

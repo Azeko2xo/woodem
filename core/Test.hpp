@@ -51,6 +51,9 @@ namespace woo{
 			((MatrixXr,matX,,,"MatriXr object, for testing serialization of arrays.")) \
 			((boost_multi_array_real_3,arr3d,boost_multi_array_real_3(boost::extents[0][0][0]),AttrTrait<Attr::hidden>(),"boost::multi_array<Real,3> object for testing serialization of multi_array.")) \
 			((int,namedEnum,NAMED_MINUS_ONE,AttrTrait<Attr::namedEnum>().namedEnum({{NAMED_MINUS_ONE,{"minus one","_1","neg1"}},{NAMED_ZERO,{"zero","nothing","NULL"}},{NAMED_ONE,{"one","single"}},{NAMED_TWO,{"two","double","2"}}}),"Named enumeration.")) \
+			((int,bits,0,AttrTrait<>().bits({"bit0","bit1","bit2","bit3","bit4"}),"Test writable bits of writable flags var.")) \
+			((int,bitsRw,0,AttrTrait<Attr::readonly>().bits({"bit0rw","bit1rw","bit2rw","bit3rw","bit4rw"},/*rw*/true),"Test writable bits of read-only flags var.")) \
+			((int,bitsRo,3,AttrTrait<Attr::readonly>().bits({"bit0ro","bit1ro","bit2ro","bit3ro","bit4ro"}),"Test read-only bits of read-only flags var.")) \
 			,/*ctor*/ \
 			,/*py*/ \
 				.add_property("aaccuRaw",&WooTestClass::aaccuGetRaw,&WooTestClass::aaccuSetRaw,"Access OpenMPArrayAccumulator data directly. Writing resizes and sets the 0th thread value, resetting all other ones.") \
@@ -67,6 +70,22 @@ namespace woo{
 		WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_core_WooTestClass__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 	};
 
+	struct WooTestClassStatic: public woo::Object {
+		static void postLoadStatic(void* attr){
+			if(attr==&trigger) numTriggered++;
+		}
+		WOO_CLASS_BASE_DOC_STATICATTRS(WooTestClassStatic,Object,"Class for testing static attributes access.",
+			((int,namedEnum,-1,AttrTrait<Attr::namedEnum>().namedEnum({{-1,{"minus one"}},{0,{"zero"}},{1,{"one"}}}),"Test named enumeration"))
+			((int,readonly,2,AttrTrait<Attr::readonly>(),"Test readonly access"))
+			((int,hidden,0,AttrTrait<Attr::hidden>(),"Test hidden"))
+			((int,noSave,0,AttrTrait<Attr::noSave>(),"test noSave"))
+			((int,numTriggered,0,,"Counter for testing :obj:`trigger`."))
+			((int,trigger,0,AttrTrait<Attr::triggerPostLoad>(),"Test triggerPostLoad"))
+		);
+	};
+
+
+
 	struct WooTestPeriodicEngine: public PeriodicEngine{
 		void notifyDead(){ deadCounter++; }
 		#define woo_core_WooTestPeriodicEngine__CLASS_BASE_DOC_ATTRS \
@@ -76,7 +95,9 @@ namespace woo{
 	};
 };
 using woo::WooTestClass;
+using woo::WooTestClassStatic;
 using woo::WooTestPeriodicEngine;
 WOO_REGISTER_OBJECT(WooTestClass);
+WOO_REGISTER_OBJECT(WooTestClassStatic);
 WOO_REGISTER_OBJECT(WooTestPeriodicEngine);
 

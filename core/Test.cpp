@@ -3,7 +3,15 @@
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_core_WooTestClass__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_core_WooTestPeriodicEngine__CLASS_BASE_DOC_ATTRS);
 
-WOO_PLUGIN(core,(WooTestClass)(WooTestPeriodicEngine));
+WOO_PLUGIN(core,(WooTestClass)(WooTestClassStatic)(WooTestPeriodicEngine));
+
+
+int WooTestClassStatic::namedEnum;
+int WooTestClassStatic::readonly;
+int WooTestClassStatic::hidden;
+int WooTestClassStatic::noSave;
+int WooTestClassStatic::numTriggered;
+int WooTestClassStatic::trigger;
 
 
 void WooTestClass::postLoad(WooTestClass&, void* addr){

@@ -133,7 +133,7 @@ struct Renderer: public Object{
 		((bool,light2,true,,"Turn light 2 on."))
 		((Vector3r,light2Pos,Vector3r(-130,75,30),,"Position of secondary OpenGL light source in the scene."))
 		((Vector3r,light2Color,Vector3r(0.5,0.5,0.1),AttrTrait<>().rgbColor(),"Per-color intensity of secondary light (RGB)."))
-		((int,showTime,(TIME_VIRT|TIME_STEP),AttrTrait<>().bits({"virt.","real","step"}),"Control whether virtual time, real time and step number are displayed in the 3d view."))
+		((int,showTime,(TIME_VIRT|TIME_STEP),AttrTrait<>().bits({"virt","real","step"}),"Control whether virtual time, real time and step number are displayed in the 3d view."))
 		((Vector3r,virtColor,Vector3r(1.,1.,1.),AttrTrait<>().rgbColor(),"Virtual time color"))
 		((Vector3r,realColor,Vector3r(0,.5,.5),AttrTrait<>().rgbColor(),"Real time color"))
 		((Vector3r,stepColor,Vector3r(0,.5,.5),AttrTrait<>().rgbColor(),"Step number color"))

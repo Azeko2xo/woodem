@@ -1,5 +1,3 @@
-#if 0
-
 #include<woo/pkg/dem/Concrete.hpp>
 
 WOO_PLUGIN(dem,(ConcreteMatState)(ConcreteMat)(ConcretePhys)(Cp2_ConcreteMat_ConcretePhys)(Law2_L6Geom_ConcretePhys));
@@ -127,7 +125,7 @@ Real ConcretePhys::computeViscoplScalingFactor(Real sigmaTNorm, Real sigmaTYield
 	return 1.-exp(beta)*(1-sigmaTYield/sigmaTNorm);
 }
 
-Real ConcretePhys::funcG(const Real& kappaD, const Real& epsCrackOnset, const Real& epsFracture, const bool& neverDamage, const int& damLaw {
+Real ConcretePhys::funcG(const Real& kappaD, const Real& epsCrackOnset, const Real& epsFracture, const bool& neverDamage, const int& damLaw) {
 	if (kappaD<epsCrackOnset || neverDamage) return 0;
 	switch(damLaw){
 		case 0: // linear
@@ -150,7 +148,7 @@ Real ConcretePhys::funcGDKappa(const Real& kappaD, const Real& epsCrackOnset, co
 
 Real ConcretePhys::funcGInv(const Real& omega, const Real& epsCrackOnset, const Real& epsFracture, const bool& neverDamage, const int& damLaw) {
 	if(omega==0. || neverDamage) return 0;
-	switch(damLaw) 
+	switch(damLaw){
 		case 0: // linear
 			return epsCrackOnset/(1.-omega*(1.-epsCrackOnset/epsFracture));
 		case 1: // exponential
@@ -208,11 +206,11 @@ void ConcretePhys::setRelResidualStrength(Real r) {
 
 
 
-#define _WOO_VERIFY(condition) if(!(condition)){ throw std::runtime_error(__FILE__+":"+to_string(__LINE__)+": verification "+#condition+" failed, in contact "+C->pyStr()+"."); }
+#define _WOO_VERIFY(condition) if(!(condition)){ throw std::runtime_error(__FILE__+string(":")+to_string(__LINE__)+": verification "+#condition+" failed, in contact "+C->pyStr()+"."); }
 #define NNAN(a) _WOO_VERIFY(!isnan(a));
 #define NNANV(v) _WOO_VERIFY(!isnan(v.maxCoeff()));
 
-void Law2_L6Geom_ConcretePhys::go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>& C);
+void Law2_L6Geom_ConcretePhys::go(const shared_ptr<CGeom>& _geom, const shared_ptr<CPhys>& _phys, const shared_ptr<Contact>& C){
 	L6Geom& geom=_geom->cast<L6Geom>();
 	ConcretePhys& phys=_phys->cast<ConcretePhys>();
 
@@ -252,56 +250,59 @@ void Law2_L6Geom_ConcretePhys::go(const shared_ptr<CGeom>&, const shared_ptr<CPh
 	#endif
 	
 	/* shorthands */
-	Real& epsN(phys->epsN);
-	Vector3r& epsT(phys->epsT);
-	Real& kappaD(phys->kappaD);
+	phys.epsN=geom.uN/geom.lens.sum();
+	phys.epsT+=scene->dt*geom.vel.tail<2>()/geom.lens.sum();
+
+	Real& epsN(phys.epsN);
+	Vector2r& epsT(phys.epsT);
+	Real& sigmaN(phys.sigmaN);
+	Vector2r& sigmaT(phys.sigmaT);
+	Real& Fn(phys.force[0]); Eigen::Map<Vector2r> Ft(&phys.force[1]);
+	Real& kappaD(phys.kappaD);
+
 	/* Real& epsPlSum(phys->epsPlSum); */
-	const Real& E(phys->E); \
-	const Real& coh0(phys->coh0);
-	const Real& tanPhi(phys->tanPhi);
-	const Real& G(phys->G);
-	const Real& contA(geom->contA);
-	const Real& omegaThreshold(this->omegaThreshold);
-	const Real& epsCrackOnset(phys->epsCrackOnset);
-	Real& relResidualStrength(phys->relResidualStrength);
-	const Real& epsFracture(phys->epsFracture);
-	const int& damLaw(phys->damLaw);
-	const bool& neverDamage(phys->neverDamage);
-	Real& omega(phys->omega);
-	Real& sigmaN(phys->sigmaN);
-	Vector3r& sigmaT(phys->sigmaT);
-	Real& Fn(phys->Fn);
-	Vector3r& Fs(phys->Fs); /* for python access */
-	const bool& isCohesive(phys->isCohesive);
+	const Real& E(phys.E); \
+	const Real& coh0(phys.coh0);
+	const Real& tanPhi(phys.tanPhi);
+	const Real& G(phys.G);
+	const Real& contA(geom.contA);
+	const Real& epsCrackOnset(phys.epsCrackOnset);
+	Real& relResidualStrength(phys.relResidualStrength);
+	const Real& epsFracture(phys.epsFracture);
+	const int& damLaw(phys.damLaw);
+	const bool& neverDamage(phys.neverDamage);
+	Real& omega(phys.omega);
+	const bool& isCohesive(phys.isCohesive);
 
+	// Vector3r& epsTPl(phys->epsTPl); // unused
+	Real& epsNPl(phys.epsNPl);
+	const Real& dt(scene->dt);
+	const Real& dmgTau(phys.dmgTau);
+	const Real& plTau(phys.plTau);
+	#if 0
+		const Real& omegaThreshold(this->omegaThreshold);
+		const Real& yieldLogSpeed(this->yieldLogSpeed);
+		const int& yieldSurfType(this->yieldSurfType);
+		const Real& yieldEllipseShift(this->yieldEllipseShift);
+		const Real& epsSoft(this->epsSoft);
+		const Real& relKnSoft(this->relKnSoft);
+	#endif
 
-	Vector3r& epsTPl(phys->epsTPl);
-	Real& epsNPl(phys->epsNPl);
-	const Real& dt = scene->dt;
-	const Real& dmgTau(phys->dmgTau);
-	const Real& plTau(phys->plTau);
-	const Real& yieldLogSpeed(this->yieldLogSpeed);
-	const int& yieldSurfType(this->yieldSurfType);
-	const Real& yieldEllipseShift(this->yieldEllipseShift);
-	const Real& epsSoft(this->epsSoft);
-	const Real& relKnSoft(this->relKnSoft);
-
-	// XXX
-	epsN = - (-phys->refPD + geom->penetrationDepth) / phys->refLength;
-	//epsT = geom->rotate(epsT);
-	geom->rotate(epsT);
-	//epsT += geom->shearIncrement() / (phys->refLength + phys->refPD) ; 
-	epsT += geom->shearIncrement() / phys->refLength;
-
-	/* debugging */
-	CPM_YADE_DEBUG_A
+	#if 0
+		// XXX
+		epsN = - (-phys->refPD + geom->penetrationDepth) / phys->refLength;
+		//epsT = geom->rotate(epsT);
+		geom->rotate(epsT);
+		//epsT += geom->shearIncrement() / (phys->refLength + phys->refPD) ; 
+		epsT += geom->shearIncrement() / phys->refLength;
+	#endif
 
 	NNAN(epsN); NNANV(epsT);
 
 	/* constitutive law */
 	Real epsNorm=max(epsN-epsNPl,0.); /* sqrt(epsN**2); */
 	kappaD=max(epsNorm,kappaD); /* kappaD is non-decreasing */
-	omega=isCohesive?funcG(kappaD,epsCrackOnset,epsFracture,neverDamage):1.; /* damage parameter; simulate non-cohesive contact via full damage */
+	omega=isCohesive?ConcretePhys::funcG(kappaD,epsCrackOnset,epsFracture,neverDamage,damLaw):1.; /* damage parameter; simulate non-cohesive contact via full damage */
 	sigmaN=(1-(epsN-epsNPl>0?omega:0))*E*(epsN-epsNPl); /* normal stress */
 	if((epsSoft<0) && (epsN-epsNPl<epsSoft)){ /* plastic slip in compression */
 		Real sigmaNSoft=E*(epsSoft+relKnSoft*(epsN-epsSoft));
@@ -310,55 +311,60 @@ void Law2_L6Geom_ConcretePhys::go(const shared_ptr<CGeom>&, const shared_ptr<CPh
 	relResidualStrength=isCohesive?(kappaD<epsCrackOnset?1.:(1-omega)*(kappaD)/epsCrackOnset):0;
 
 	/* strain return: Coulomb friction */
-	sigmaT=G*epsT; /* trial stress */
-	Real rT=yieldSigmaTMagnitude(sigmaN,omega,coh0,tanPhi); /* radius of plastic zone in tangent direction */
+	sigmaT=G*epsT; // trial stress
+	Real rT=yieldSigmaTMagnitude(sigmaN,omega,coh0,tanPhi);  // radius of plastic zone in tangent direction
 	if(sigmaT.squaredNorm()>rT*rT){
 		Real sigmaTNorm=sigmaT.norm();
-		Real scale=plTau>0 ? BC->computeViscoplScalingFactor(sigmaTNorm,rT,dt) : rT/sigmaTNorm;
+		Real scale=plTau>0 ? phys.computeViscoplScalingFactor(sigmaTNorm,rT,dt) : rT/sigmaTNorm;
 		sigmaT*=scale; /* radial shear stress return */
 		/* plastic strain multiplied by stress: dissipated energy */
-		epsPlSum+=rT*contGeom->slipToStrainTMax((plTau>0 ? sigmaT.norm() : rT)/G);
+		/* epsPlSum+=rT*contGeom->slipToStrainTMax((plTau>0 ? sigmaT.norm() : rT)/G); */
 	}
-	if(dmgTau>0. && isCohesive){sigmaN+=BC->computeDmgOverstress(dt);} /* viscous normal overstress */
 
-	sigmaN -= phys->isoPrestress;
+	/* viscous normal overstress */
+	if(dmgTau>0. && isCohesive){ sigmaN+=phys.computeDmgOverstress(dt); } 
+
+	sigmaN-=phys.isoPrestress;
    
    NNAN(sigmaN); NNANV(sigmaT); NNAN(contA);
    if (!neverDamage) { NNAN(kappaD); NNAN(epsFracture); NNAN(omega); }
 
 	/* handle broken contacts */
 	if (epsN>0. && ((isCohesive && omega>omegaThreshold) || !isCohesive)) {
-		const shared_ptr<Body>& body1 = Body::byId(I->getId1(),scene), body2 = Body::byId(I->getId2(),scene); assert(body1); assert(body2);
-	 	const shared_ptr<ConcreteMatState>& st1 = YADE_PTR_CAST<ConcreteMatState>(body1->state), st2 = YADE_PTR_CAST<ConcreteMatState>(body2->state);
-		/* nice article about openMP::critical vs. scoped locks: http://www.thinkingparallel.com/2006/08/21/scoped-locking-vs-critical-in-openmp-a-personal-shootout/ */
-		{ boost::mutex::scoped_lock lock(st1->updateMutex); st1->numBrokenCohesive += 1; /* st1->epsPlBroken += epsPlSum; */ }
-		{ boost::mutex::scoped_lock lock(st2->updateMutex); st2->numBrokenCohesive += 1; /* st2->epsPlBroken += epsPlSum; */ }
-		requestErase(...); // !!!
-		return false;
+		#if 0
+			const shared_ptr<Body>& body1 = Body::byId(I->getId1(),scene), body2 = Body::byId(I->getId2(),scene); assert(body1); assert(body2);
+		 	const shared_ptr<ConcreteMatState>& st1 = YADE_PTR_CAST<ConcreteMatState>(body1->state), st2 = YADE_PTR_CAST<ConcreteMatState>(body2->state);
+			/* nice article about openMP::critical vs. scoped locks: http://www.thinkingparallel.com/2006/08/21/scoped-locking-vs-critical-in-openmp-a-personal-shootout/ */
+			{ boost::mutex::scoped_lock lock(st1->updateMutex); st1->numBrokenCohesive += 1; /* st1->epsPlBroken += epsPlSum; */ }
+			{ boost::mutex::scoped_lock lock(st2->updateMutex); st2->numBrokenCohesive += 1; /* st2->epsPlBroken += epsPlSum; */ }
+		#endif
+		field->cast<DemField>().contacts->requestRemoval(C);
+		return;
 	}
 
-	Fn = sigmaN*contA; phys->normalForce = -Fn*geom->normal;
-	Fs = sigmaT*contA; phys->shearForce = -Fs;
+	Fn=sigmaN*contA; // phys->normalForce = -Fn*geom->normal;
+	Ft=sigmaT*contA; // phys->shearForce = -Fs;
 
-	TIMING_DELTAS_CHECKPOINT("GO B");
+	// TIMING_DELTAS_CHECKPOINT("GO B");
 
-	Body::id_t id1 = I->getId1();
- 	Body::id_t id2 = I->getId2();
+	#if 0
+		Body::id_t id1 = I->getId1();
+		Body::id_t id2 = I->getId2();
+		State* b1 = Body::byId(id1,scene)->state.get();
+		State* b2 = Body::byId(id2,scene)->state.get();	
 
-	State* b1 = Body::byId(id1,scene)->state.get();
-	State* b2 = Body::byId(id2,scene)->state.get();	
-
-	Vector3r f = -phys->normalForce - phys->shearForce;
-	if (!scene->isPeriodic) {
-		applyForceAtContactPoint(f, geom->contactPoint , id1, b1->se3.position, id2, b2->se3.position);
-	} else {
-		scene->forces.addForce(id1,f);
-		scene->forces.addForce(id2,-f);
-		scene->forces.addTorque(id1,(geom->radius1+.5*(phys->refPD-geom->penetrationDepth))*geom->normal.cross(f));
-		scene->forces.addTorque(id2,(geom->radius2+.5*(phys->refPD-geom->penetrationDepth))*geom->normal.cross(f));
-	}
-	TIMING_DELTAS_CHECKPOINT("rest");
-	return true;
+		Vector3r f = -phys->normalForce - phys->shearForce;
+		if (!scene->isPeriodic) {
+			applyForceAtContactPoint(f, geom->contactPoint , id1, b1->se3.position, id2, b2->se3.position);
+		} else {
+			scene->forces.addForce(id1,f);
+			scene->forces.addForce(id2,-f);
+			scene->forces.addTorque(id1,(geom->radius1+.5*(phys->refPD-geom->penetrationDepth))*geom->normal.cross(f));
+			scene->forces.addTorque(id2,(geom->radius2+.5*(phys->refPD-geom->penetrationDepth))*geom->normal.cross(f));
+		}
+		TIMING_DELTAS_CHECKPOINT("rest");
+	#endif
+	// return true;
 }
 
 
@@ -366,5 +372,3 @@ void Law2_L6Geom_ConcretePhys::go(const shared_ptr<CGeom>&, const shared_ptr<CPh
 #undef _WOO_VERIFY
 #undef _NNAN
 #undef _NNANV
-
-#endif

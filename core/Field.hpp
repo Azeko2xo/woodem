@@ -95,13 +95,7 @@ struct ScalarRange: public Object{
 		((int,cmap,-1,AttrTrait<>().colormapChoice(),"Colormap index to be used; -1 means to use the default colormap (see *woo.master.cmaps*, *woo.master.cmap*)")) \
 		, /* py */ \
 			.def("norm",&ScalarRange::norm,"Return value of the argument normalized to 0..1 range; the value is not clamped to 0..1 however: if autoAdjust is false, it can fall outside.") \
-			.def("reset",&ScalarRange::reset) \
-			.add_property("autoAdjust",&ScalarRange::isAutoAdjust,&ScalarRange::setAutoAdjust) \
-			.add_property("symmetric",&ScalarRange::isSymmetric,&ScalarRange::setSymmetric) \
-			.add_property("reversed",&ScalarRange::isReversed,&ScalarRange::setReversed) \
-			.add_property("hidden",&ScalarRange::isHidden,&ScalarRange::setHidden) \
-			.add_property("log",&ScalarRange::isLog,&ScalarRange::setLog) \
-			; \
+			.def("reset",&ScalarRange::reset); \
 			woo::converters_cxxVector_pyList_2way<shared_ptr<ScalarRange>>();
 
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_gl_ScalarRange__CLASS_BASE_DOC_ATTRS_PY);
