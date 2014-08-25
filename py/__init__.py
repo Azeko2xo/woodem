@@ -314,15 +314,10 @@ if wooOptions.clDev:
 if not PY3K:
 	from . import _customConverters
 
-from . import system
-# create proxies for deprecated classes
-deprecatedTypes=system.cxxCtorsDict()
-# insert those in the module namespace
-globals().update(deprecatedTypes)
-# declare what should be imported for "from woo import *"
-__all__=deprecatedTypes.keys()+['master']+list(allSubmodules)
+__all__=['master']+list(allSubmodules)
 
 # avoids backtrace if crash at finalization (log4cxx)
+from . import system
 system.setExitHandlers() 
 
 

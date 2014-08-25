@@ -5,7 +5,7 @@
 #include<woo/pkg/dem/Clump.hpp>
 #include<woo/pkg/dem/Ellipsoid.hpp>
 #include<woo/pkg/dem/Capsule.hpp>
-#include<woo/pkg/dem/FlexFacet.hpp>
+#include<woo/pkg/fem/Membrane.hpp>
 #include<woo/pkg/dem/DynDt.hpp>
 
 #include<cstdint>
@@ -144,13 +144,6 @@ Real DemFuncs::pWaveDt(const shared_ptr<DemField>& dem, bool noClumps/*=false*/)
 
 Real DemFuncs::critDt(const shared_ptr<Scene>& scene, const shared_ptr<DemField>& dem, bool noClumps){
 	Real dt=min(Inf,DemFuncs::pWaveDt(dem,/*noClumps*/noClumps));
-	#if 0
-		for(auto& e: scene->engines){
-			if(e->isA<DynDt>()){	
-				dt=min(dt,e->cast<DynDt>().critDt_compute(scene,dem));
-			}
-		}
-	#endif
 	return dt;
 }
 
@@ -523,7 +516,7 @@ vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const s
 		// create facet
 		shared_ptr<Facet> facet;
 		if(!flex) facet=make_shared<Facet>();
-		else facet=make_shared<FlexFacet>();
+		else facet=make_shared<Membrane>();
 		auto par=make_shared<Particle>();
 		par->shape=facet;
 		par->material=mat;

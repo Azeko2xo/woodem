@@ -100,7 +100,7 @@ struct In2_Facet_ElastMat: public IntraFunctor{
 	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&, const bool skipContacts);
 	FUNCTOR2D(Facet,ElastMat);
 	DECLARE_LOGGER;
-	#define woo_dem_In2_Facet_ElastMat__CLASS_BASE_DOC In2_Facet_ElastMat,IntraFunctor,"Apply contact forces to the nodes of undeformable :obj:`Facet`; if you need deformability, see :obj:`In2_FlexFacet_ElastMat` instead."
+	#define woo_dem_In2_Facet_ElastMat__CLASS_BASE_DOC In2_Facet_ElastMat,IntraFunctor,"Apply contact forces to the nodes of undeformable :obj:`Facet`; if you need deformability, see :obj:`In2_Membrane_ElastMat` instead."
 	WOO_DECL__CLASS_BASE_DOC(woo_dem_In2_Facet_ElastMat__CLASS_BASE_DOC);
 };
 WOO_REGISTER_OBJECT(In2_Facet_ElastMat);

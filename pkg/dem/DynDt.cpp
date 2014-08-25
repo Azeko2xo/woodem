@@ -3,7 +3,6 @@
 #include<woo/pkg/dem/FrictMat.hpp>
 #include<woo/pkg/dem/L6Geom.hpp>
 #include<woo/pkg/dem/Clump.hpp>
-#include<woo/pkg/dem/FlexFacet.hpp>
 
 WOO_PLUGIN(dem,(DynDt));
 CREATE_LOGGER(DynDt);
@@ -32,30 +31,6 @@ void DynDt::nodalStiffAdd(const shared_ptr<Node>& n, Vector3r& ktrans, Vector3r&
 			krot+=pow(g.lens[ix],2)*ph.kt*Vector3r(n2[1]+n2[2],n2[2]+n2[0],n2[0]+n2[1]);
 		}
 		if(p->shape->nodes.size()>1 && intraForce){ intraForce->addIntraStiffness(shared_ptr<Particle>(p,woo::Object::null_deleter()),n,ktrans,krot); }
-	#if 0
-		// TODO: if the particle is multinodal, call some new virtual func giving its intra-particle inter-nodal stiffnesses
-		// those funcs should be: check if internal stiffnesses are initialized, addIntraStiffnesses (as virtual func working also for other things than FlexFacet)
-		// this is just a hack working for FlexFacet only
-		if(p->shape->nodes.size()>1){
-			if(!p->shape->isA<FlexFacet>()) continue;
-			const auto& ff=p->shape->cast<FlexFacet>();
-			if(!ff.hasRefConf() && intraForce){
-				// this will initialize stiffnesses
-				// shared_ptr<Particle> tmpP=shared_ptr<Particle>(p,woo::Object::null_deleter());
-				// FIXME: original multimethod implementation is broken here:
-				// (*intraForce)(p->shape,p->material,...) will call 
-				// goReverse in preference (see DynLibDispatcher.hpp:569 and others
-				// therefore get the functor explicitly and call it ourselves
-				bool swap; // ignored
-				shared_ptr<IntraFunctor> functor=intraForce->getFunctor2D(p->shape,p->material,swap);
-				//(*intraForce)(p->shape,p->material,static_pointer_cast<Particle>(p->shared_from_this()),/*skipContacts*/true); 
-				if(functor) functor->go(p->shape,p->material,static_pointer_cast<Particle>(p->shared_from_this()),/*skipContacts*/true);
-				//(*intraForce)(p->shape,p->material,tmpP,/*skipContacts*/true); 
-			}
-			// will do nothing if the FlexFacet is still not initialized here
-			ff.addIntraStiffnesses(n,ktrans,krot);
-		}
-	#endif
 	}
 }
 

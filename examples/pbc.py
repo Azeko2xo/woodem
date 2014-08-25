@@ -2,7 +2,7 @@ import woo, woo.core, woo.utils, woo.dem, woo.gl
 from minieigen import *
 from math import *
 S=woo.master.scene=woo.core.Scene(fields=[woo.dem.DemField()])
-S.dem.par.append([
+S.dem.par.add([
 	#woo.utils.capsule((.5,.2,.2),radius=.1,shaft=.2,ori=Quaternion.Identity,color=0),
 	#woo.utils.capsule((.2,.5,.2),radius=.1,shaft=.2,ori=Quaternion((0,0,1),pi/2.),color=.5),
 	#woo.utils.capsule((.2,.2,.5),radius=.1,shaft=.2,ori=Quaternion((0,1,0),-pi/2.),color=1.),

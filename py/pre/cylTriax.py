@@ -115,7 +115,7 @@ def mkFacetCyl(aabb,cylDiv,suppMat,sideMat,suppMask,sideMask,suppBlock,sideBlock
 		ret=[]
 		for i in range(len(nnAC)):
 			A,B,C,D=nnAC[i],nnBD[i],nnAC[(i+1)%len(nnAC)],nnBD[(i+1)%len(nnBD)]
-			ret+=[woo.dem.Particle(material=mat,shape=FlexFacet(nodes=fNodes,halfThick=halfThick),mask=mask) for fNodes in ((A,B,D),(A,D,C))]
+			ret+=[woo.dem.Particle(material=mat,shape=Membrane(nodes=fNodes,halfThick=halfThick),mask=mask) for fNodes in ((A,B,D),(A,D,C))]
 			for n in (A,B,D): n.dem.addParRef(ret[-2])
 			for n in (A,D,C): n.dem.addParRef(ret[-1])
 		return ret
@@ -212,7 +212,7 @@ def prepareCylTriax(pre):
 		), 
 		IntraForce([
 				In2_Sphere_ElastMat(),
-				In2_FlexFacet_ElastMat(bending=True)],
+				In2_Membrane_ElastMat(bending=True)],
 			label='intraForce',dead=True # ContactLoop applies forces during compaction
 		), 
 		WeirdTriaxControl(goal=(pre.sigIso,pre.sigIso,pre.sigIso),maxStrainRate=(pre.maxRates[0],pre.maxRates[0],pre.maxRates[0]),relVol=math.pi*innerRad**2*ht/S.cell.volume,stressMask=0b0111,maxUnbalanced=pre.maxUnbalanced,mass=pre.massFactor*sumParMass,doneHook='import woo.pre.cylTriax; woo.pre.cylTriax.compactionDone(S)',label='triax',absStressTol=1e4,relStressTol=1e-2),
@@ -231,7 +231,7 @@ def prepareCylTriax(pre):
 
 	try:
 		import woo.gl
-		S.any=[woo.gl.Renderer(dispScale=(5,5,2),rotScale=0,cell=False),woo.gl.Gl1_DemField(),woo.gl.Gl1_CPhys(),woo.gl.Gl1_FlexFacet(phiSplit=False,phiWd=1,relPhi=0.,uScale=0.,slices=-1,wire=True),woo.gl.Gl1_Facet(wd=2,slices=-1)]
+		S.any=[woo.gl.Renderer(dispScale=(5,5,2),rotScale=0,cell=False),woo.gl.Gl1_DemField(),woo.gl.Gl1_CPhys(),woo.gl.Gl1_Membrane(phiSplit=False,phiWd=1,relPhi=0.,uScale=0.,slices=-1,wire=True),woo.gl.Gl1_Facet(wd=2,slices=-1)]
 	except ImportError: pass
 
 	return S
@@ -328,7 +328,7 @@ def addPlotData(S):
 		S.lab.surfLoad=sl
 		#print 'Changing surface load to ',S.lab.surfLoad,', srr is',srr
 		for p in S.dem.par:
-			if isinstance(p.shape,FlexFacet): p.shape.surfLoad=S.lab.surfLoad
+			if isinstance(p.shape,Membrane): p.shape.surfLoad=S.lab.surfLoad
 		## 2% tolerance on stress
 		if (srr-S.pre.sigIso)/abs(S.pre.sigIso)>2e-2: stable=False
 
@@ -444,7 +444,7 @@ def compactionDone(S):
 	S.lab.surfLoad=S.pre.sigIso*(1-(.5*S.lab.memThick)/(.5*S.pre.htDiam[1]))
 	print 'Initial surface load',S.lab.surfLoad
 	for p in S.dem.par:
-		if isinstance(p.shape,FlexFacet): p.shape.surfLoad=S.lab.surfLoad
+		if isinstance(p.shape,Membrane): p.shape.surfLoad=S.lab.surfLoad
 	# set velocity to 0 (so that when loading packing, the conditions are the same)
 	for n in S.dem.nodes: n.dem.vel=n.dem.angVel=Vector3.Zero
 

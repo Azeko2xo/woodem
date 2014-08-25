@@ -53,7 +53,7 @@ mrs2=millRad*sqrt(2)
 millPar+=[woo.utils.wall(-.5*millDp,axis=0,sense=+1),woo.utils.wall(.5*millDp,axis=0,sense=-1)]
 for w in millPar[-2:]: w.shape.visible=False
 centralNode=woo.core.Node(pos=(0,0,0))
-S.dem.par.appendClumped(millPar,centralNode=centralNode)
+S.dem.par.addClumped(millPar,centralNode=centralNode)
 centralNode.dem.angVel=(-5,0,0)
 
 # define domains for initial cloud of red and blue spheres
@@ -63,7 +63,7 @@ colors=.2,.7
 for i in (0,1): # red and blue spheres
 	sp=woo.pack.SpherePack(); bb=bboxes[i]; vol=(bb[1][0]-bb[0][0])*(bb[1][1]-bb[0][1])*(bb[1][2]-bb[0][2])
 	sp.makeCloud(bb[0],bb[1],sphRad,sphRadFuzz)
-	S.dem.par.append([woo.utils.sphere(s[0],s[1],color=colors[i]) for s in sp])
+	S.dem.par.add([woo.utils.sphere(s[0],s[1],color=colors[i]) for s in sp])
 
 S.dem.collectNodes()
 

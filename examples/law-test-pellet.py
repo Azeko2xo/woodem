@@ -9,7 +9,7 @@ woo.log.setLevel('LawTester',woo.log.INFO)
 woo.log.setLevel('Law2_L6Geom_FrictPhys_Pellet',woo.log.TRACE)
 m=PelletMat(density=1e3,young=1e7,ktDivKn=.2,tanPhi=.5,normPlastCoeff=1e3,kaDivKn=.05)
 S=woo.master.scene=Scene(fields=[DemField(gravity=(0,0,0))])
-S.dem.par.append([
+S.dem.par.add([
 	utils.sphere((0,0,0),.5,fixed=False,wire=True,mat=m),
 	utils.sphere((0,1.001,0),.5,fixed=False,wire=True,mat=m)
 ])

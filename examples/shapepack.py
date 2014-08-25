@@ -11,7 +11,7 @@ for p in [woo.utils.sphere((0,0,0),1,mat=m),woo.utils.ellipsoid((0,0,0),semiAxes
 	print 100*'#'
 	print p.shape
 	#S=woo.core.Scene(fields=[DemField()])
-	#S.dem.par.append(p)
+	#S.dem.par.add(p)
 	sp=woo.dem.ShapePack()
 	sp.add([p.shape,zeroSphere.shape])
 	r=sp.raws[0]

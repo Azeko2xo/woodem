@@ -7,7 +7,7 @@ import woo.log
 woo.log.setLevel('LawTester',woo.log.INFO)
 m=utils.defaultMaterial()
 S=woo.master.scene=Scene(fields=[DemField()])
-S.dem.par.append([
+S.dem.par.add([
 	utils.sphere((0,0,0),.5,fixed=False,wire=True,mat=m),
 	utils.sphere((0,1.01,0),.5,fixed=False,wire=True,mat=m)
 ])

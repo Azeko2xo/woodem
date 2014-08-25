@@ -3,7 +3,7 @@ from woo.dem import *
 import woo.gl
 from woo import utils
 S=woo.master.scene=Scene(fields=[DemField(gravity=(0,0,-10))])
-S.dem.par.append([
+S.dem.par.add([
 	utils.wall((0,0,0),axis=2,sense=1),
 	utils.sphere((0,0,1),.2)
 ])

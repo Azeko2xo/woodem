@@ -8,9 +8,12 @@ from minieigen import *
 woo.gl.Gl1_DemField.nodes=True
 woo.gl.Gl1_Node.wd=4
 woo.gl.Gl1_Node.len=.05
-woo.gl.Gl1_FlexFacet.node=False
-woo.gl.Gl1_FlexFacet.phiScale=0.
+woo.gl.Gl1_Membrane.node=False
+woo.gl.Gl1_Membrane.phiScale=0.
 woo.gl.Gl1_DemField.glyph=woo.gl.Gl1_DemField.glyphForce
+
+import woo.dem
+# print sorted(woo.dem.__dict__.keys())
 
 if 0:
 	nn=[Node(pos=(0,0,1)),Node(pos=(0,1,1)),Node(pos=(0,1,0))]
@@ -25,12 +28,12 @@ if 0:
 
 	S=woo.master.scene=Scene(fields=[DemField(gravity=(0,0,0))])
 	S.dem.gravity=(0,0,-10)
-	S.dem.par.append(Particle(shape=FlexFacet(nodes=nn),material=FrictMat(young=1e6)))
+	S.dem.par.add(Particle(shape=Membrane(nodes=nn),material=FrictMat(young=1e6)))
 	for n in nn: n.dem.addParRef(S.dem.par[-1])
 	ff=S.dem.par[0].shape
 	ff.setRefConf() #update()
 	for n in nn: S.dem.nodesAppend(n)
-	S.engines=[Leapfrog(reset=True),IntraForce([In2_FlexFacet_ElastMat(thickness=.01,bending=False)])]
+	S.engines=[Leapfrog(reset=True),IntraForce([In2_Membrane_ElastMat(thickness=.01,bending=False)])]
 	S.dt=1e-5
 	S.saveTmp()
 	S.one()
@@ -38,15 +41,15 @@ if 0:
 else:
 	# see http://www.youtube.com/watch?v=jimWu0_8oLc
 	woo.gl.Gl1_DemField.nodes=False
-	woo.gl.Gl1_FlexFacet.uScale=0.
-	woo.gl.Gl1_FlexFacet.relPhi=0.
+	woo.gl.Gl1_Membrane.uScale=0.
+	woo.gl.Gl1_Membrane.relPhi=0.
 	woo.gl.Gl1_DemField.colorBy=woo.gl.Gl1_DemField.colorVel
 	S=woo.master.scene=Scene(fields=[DemField(gravity=(0,0,-30))])
 	import woo.pack, woo.utils, numpy
 	xmax,ymax=1,1
 	xdiv,ydiv=20,20
 	ff=woo.pack.gtsSurface2Facets(woo.pack.sweptPolylines2gtsSurface([[(x,y,0) for x in numpy.linspace(0,xmax,num=xdiv)] for y in numpy.linspace(0,ymax,num=ydiv)]),flex=True)
-	S.dem.par.append(ff)
+	S.dem.par.add(ff)
 	S.dem.collectNodes()
 	for n in S.dem.nodes:
 		n.dem.inertia=(1.,1.,1.)
@@ -54,12 +57,12 @@ else:
 		if n.pos[0] in (0,xmax) or n.pos[1] in (0,ymax): n.dem.blocked='xyzXYZ'
 		n.dem.mass=5.
 	# this would be enough without spheres
-	#S.engines=[Leapfrog(reset=True,damping=.05),IntraForce([In2_FlexFacet_ElastMat(thickness=.01)])]
+	#S.engines=[Leapfrog(reset=True,damping=.05),IntraForce([In2_Membrane_ElastMat(thickness=.01)])]
 	S.engines=[
 		Leapfrog(reset=True,damping=.1),
 		InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb()],verletDist=0.01),
 		ContactLoop([Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom()],[Cp2_FrictMat_FrictPhys()],[Law2_L6Geom_FrictPhys_IdealElPl()],applyForces=False), # forces are applied in IntraForce
-		IntraForce([In2_FlexFacet_ElastMat(thickness=.01,bending=False,bendThickness=.2),In2_Sphere_ElastMat()]),
+		IntraForce([In2_Membrane_ElastMat(thickness=.01,bending=False,bendThickness=.2),In2_Sphere_ElastMat()]),
 		# VtkExport(out='/tmp/membrane',stepPeriod=100,what=VtkExport.spheres|VtkExport.mesh)
 	]
 	

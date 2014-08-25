@@ -4,7 +4,7 @@ from minieigen import *
 S=woo.master.scene=woo.core.Scene(fields=[woo.dem.DemField()])
 surf=gts.sphere(4)
 surf.translate(1.2,1.2,1.2)
-S.dem.par.append(woo.pack.gtsSurface2Facets(surf))
+S.dem.par.add(woo.pack.gtsSurface2Facets(surf))
 S.dem.collectNodes()
 S.periodic=True
 S.cell.setBox(2.4,2.4,2.4)

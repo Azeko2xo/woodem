@@ -22,7 +22,7 @@ generators=[
 ]
 
 
-S.dem.par.append([
+S.dem.par.add([
 	woo.utils.facet([(.6,0,.3),(0,.6,.3),(-.6,0,.3)],halfThick=.1,wire=False),
 	woo.utils.wall(0,axis=2,sense=1),
 	woo.utils.infCylinder((.33,.33,0),radius=.3,axis=1),

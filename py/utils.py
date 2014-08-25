@@ -13,6 +13,7 @@ import sys,os
 from minieigen import *
 
 from woo.dem import *
+from woo.fem import *
 from woo.core import *
 import woo
 import woo.config
@@ -222,7 +223,7 @@ def facet(vertices,fakeVel=None,halfThick=0.,fixed=True,wire=True,color=None,hig
 			if not n.dem: n.dem=DemData()
 	else:
 		nodes=[_mkDemNode(pos=vertices[0]),_mkDemNode(pos=vertices[1]),_mkDemNode(pos=vertices[2])]
-	p.shape=(FlexFacet if flex else Facet)(color=color if color else random.random(),halfThick=halfThick)
+	p.shape=(Membrane if flex else Facet)(color=color if color else random.random(),halfThick=halfThick)
 	if fakeVel: p.shape.fakeVel=fakeVel
 	p.shape.wire=wire
 	_commonBodySetup(p,nodes,mat=mat,fixed=fixed)

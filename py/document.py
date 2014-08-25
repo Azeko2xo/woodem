@@ -408,7 +408,7 @@ def makeCGeomFunctorsMatrix():
 
 	ss=list(woo.system.childClasses(woo.dem.Shape))
 	ss.sort(key=lambda s: s.__name__)
-	ss=[s for s in ss if s.__name__!='FlexFacet'] # FlexFacet is useless here, as it is the same as Facet
+	ss=[s for s in ss if s.__name__!='Membrane'] # Membrane is useless here, as it is the same as Facet
 
 	def type2sphinx(t,name=None):
 		if name==None: return ':obj:`~%s.%s`'%(t.__module__,t.__name__)

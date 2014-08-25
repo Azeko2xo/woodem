@@ -9,7 +9,7 @@ mat=utils.defaultMaterial()
 sp=pack.SpherePack()
 sp.makeCloud((4,4,4),(14,14,14),.4,rRelFuzz=.5)
 sp.toSimulation(S,mat=mat)
-S.dem.par.append([utils.wall(1,axis=2,sense=0,mat=mat,glAB=((-10,-1),(20,11))),])
+S.dem.par.add([utils.wall(1,axis=2,sense=0,mat=mat,glAB=((-10,-1),(20,11))),])
 S.periodic=True
 S.cell.setBox(20,20,20)
 S.engines=utils.defaultEngines(damping=.4)
@@ -21,7 +21,7 @@ for i,x in enumerate([-2,0,2,4,6,8,10.5,12,14]):
 	c.angVel=(0,2.*(i+1),0)
 	# each of cylinders will move haronically along global x and z axes (not y)
 	c.impose=AlignedHarmonicOscillations(freqs=(1./(10000.*S.dt),float('nan'),1/(((i%3)+3)*1000.*S.dt)),amps=(.3*(i%2+1),0,.4*(i%4+1)))
-	S.dem.par.append(c)
+	S.dem.par.add(c)
 S.dem.collectNodes()
 S.saveTmp()
 

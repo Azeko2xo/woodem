@@ -38,7 +38,7 @@ S.engines=[
 
 if 0:
 	for c,r in [((0,0,.4),.2),((1,1,1),.3),((1.3,2,2),.5),((.5,.5,.5),rr)]:
-		S.dem.par.append(woo.utils.sphere(c,r,mask=S.lab.spheMask))
+		S.dem.par.add(woo.utils.sphere(c,r,mask=S.lab.spheMask))
 	S.lab.collider.renderCells=True
 else:
 	import woo.pack
@@ -48,8 +48,8 @@ else:
 	print 'Generated cloud with %d spheres'%(len(sp))
 	sp.toSimulation_fast(S,mat=mat,mask=S.lab.spheMask)
 	print 'Spheres added to Scene'
-S.dem.par.append(woo.utils.wall(0,axis=2,sense=1,mat=mat,mask=S.lab.wallMask))
-S.dem.par.append(woo.utils.wall(1.9,axis=0,sense=-1,mat=mat,mask=S.lab.wallMask))
+S.dem.par.add(woo.utils.wall(0,axis=2,sense=1,mat=mat,mask=S.lab.wallMask))
+S.dem.par.add(woo.utils.wall(1.9,axis=0,sense=-1,mat=mat,mask=S.lab.wallMask))
 S.dem.collectNodes()
 S.dt=.5*woo.utils.pWaveDt()
 

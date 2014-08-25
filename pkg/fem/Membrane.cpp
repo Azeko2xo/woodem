@@ -1,27 +1,27 @@
-#include<woo/pkg/dem/FlexFacet.hpp>
+#include<woo/pkg/fem/Membrane.hpp>
 
-WOO_PLUGIN(dem,(FlexFacet)(In2_FlexFacet_ElastMat));
+WOO_PLUGIN(fem,(Membrane)(In2_Membrane_ElastMat));
 
-WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_FlexFacet__CLASS_BASE_DOC_ATTRS_CTOR_PY);
-WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_In2_FlexFacet_ElastMat__CLASS_BASE_DOC_ATTRS);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_Membrane__CLASS_BASE_DOC_ATTRS_CTOR_PY);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_In2_Membrane_ElastMat__CLASS_BASE_DOC_ATTRS);
 
 // this should go to some shared header
 typedef Eigen::Matrix<Real,9,1> Vector9r;
 
-CREATE_LOGGER(FlexFacet);
+CREATE_LOGGER(Membrane);
 
-#define FLEXFACET_CONDENSE_DKT
-
-
+#define MEMBRANE_CONDENSE_DKT
 
 
-void FlexFacet::stepUpdate(){
+
+
+void Membrane::stepUpdate(){
 	if(!hasRefConf()) setRefConf();
 	updateNode();
 	computeNodalDisplacements();
 }
 
-void FlexFacet::setRefConf(){
+void Membrane::setRefConf(){
 	if(!node) node=make_shared<Node>();
 	// set initial node position and orientation
 	node->pos=this->getCentroid();
@@ -60,7 +60,7 @@ void FlexFacet::setRefConf(){
 	};
 	// set displacements to zero
 	uXy=phiXy=Vector6r::Zero();
-	#ifdef FLEXFACET_DEBUG_ROT
+	#ifdef MEMBRANE_DEBUG_ROT
 		drill=Vector3r::Zero();
 		currRot.resize(3);
 	#endif
@@ -69,11 +69,11 @@ void FlexFacet::setRefConf(){
 	KKdkt.resize(0,0);
 };
 
-void FlexFacet::ensureStiffnessMatrices(const Real& young, const Real& nu, const Real& thickness,bool bending, const Real& bendThickness){
+void Membrane::ensureStiffnessMatrices(const Real& young, const Real& nu, const Real& thickness,bool bending, const Real& bendThickness){
 	assert(hasRefConf());
 	// do nothing if both matrices exist already
 	if(KKcst.size()==36 && (!bending ||
-		#ifdef FLEXFACET_CONDENSE_DKT		
+		#ifdef MEMBRANE_CONDENSE_DKT		
 			KKdkt.size()==54
 		#else 
 			KKdkt.size()==81
@@ -81,7 +81,7 @@ void FlexFacet::ensureStiffnessMatrices(const Real& young, const Real& nu, const
 	)) return; 
 	// check thickness
 	Real t=(isnan(thickness)?2*this->halfThick:thickness);
-	if(/*also covers NaN*/!(t>0)) throw std::runtime_error("FlexFacet::ensureStiffnessMatrices: Facet thickness is not positive!");
+	if(/*also covers NaN*/!(t>0)) throw std::runtime_error("Membrane::ensureStiffnessMatrices: Facet thickness is not positive!");
 
 	// plane stress stiffness matrix
 	Matrix3r E;
@@ -193,7 +193,7 @@ void FlexFacet::ensureStiffnessMatrices(const Real& young, const Real& nu, const
 
 	// assemble the matrix here
 	// KKdkt0 is 9x9, then w_i dofs are condensed away, and KKdkt is only 9x6
-	#ifdef FLEXFACET_CONDENSE_DKT
+	#ifdef MEMBRANE_CONDENSE_DKT
 		MatrixXr KKdkt0(9,9); KKdkt0.setZero();
 	#else
 		KKdkt.setZero(9,9);
@@ -204,7 +204,7 @@ void FlexFacet::ensureStiffnessMatrices(const Real& young, const Real& nu, const
 	for(int i:{0,1,2}){
 		for(int j:{0,1,2}){
 			auto b=Bphi(xxi[i],eeta[j]); // evaluate B at the gauss point
-			#ifdef FLEXFACET_CONDENSE_DKT
+			#ifdef MEMBRANE_CONDENSE_DKT
 				KKdkt0
 			#else
 				KKdkt
@@ -212,7 +212,7 @@ void FlexFacet::ensureStiffnessMatrices(const Real& young, const Real& nu, const
 				+=(2*area*ww[j]*ww[i])*b.transpose()*Db*b;
 		}
 	}
-	#ifdef FLEXFACET_CONDENSE_DKT
+	#ifdef MEMBRANE_CONDENSE_DKT
 		// extract columns [_ 1 2 _ 4 5 _ 7 8]
 		KKdkt.setZero(9,6);
 		for(int i:{0,1,2}){
@@ -222,11 +222,11 @@ void FlexFacet::ensureStiffnessMatrices(const Real& young, const Real& nu, const
 	#endif
 };
 
-void FlexFacet::addIntraStiffnesses(const shared_ptr<Node>& n,Vector3r& ktrans, Vector3r& krot) const {
+void Membrane::addIntraStiffnesses(const shared_ptr<Node>& n,Vector3r& ktrans, Vector3r& krot) const {
 	if(!hasRefConf()) return;
 	int i=-1;
 	for(int j=0; j<3; j++){ if(nodes[j].get()==n.get()) i=j; }
-	if(i<0) throw std::logic_error("FlexFacet::addIntraStiffness:: node "+n->pyStr()+" not found within nodes of "+this->pyStr()+".");
+	if(i<0) throw std::logic_error("Membrane::addIntraStiffness:: node "+n->pyStr()+" not found within nodes of "+this->pyStr()+".");
 	if(KKcst.size()==0) return;
 	bool dkt=(KKdkt.size()>0);
 	// local translational stiffness diagonal
@@ -234,7 +234,7 @@ void FlexFacet::addIntraStiffnesses(const shared_ptr<Node>& n,Vector3r& ktrans, 
 	ktrans+=node->ori*ktl;
 	// local rotational stiffness, if needed
 	if(dkt){
-		#ifdef FLEXFACET_CONDENSE_DKT
+		#ifdef MEMBRANE_CONDENSE_DKT
 			Vector3r krl(abs(KKdkt(3*i,2*i)),abs(KKdkt(3*i+1,2*i+1)),0);
 		#else
 			Vector3r krl(abs(KKdkt(3*i,3*i)),abs(KKdkt(3*i+1,3*i+1)),0);
@@ -246,7 +246,7 @@ void FlexFacet::addIntraStiffnesses(const shared_ptr<Node>& n,Vector3r& ktrans, 
 
 
 
-void FlexFacet::updateNode(){
+void Membrane::updateNode(){
 	assert(hasRefConf());
 	node->pos=this->getCentroid();
 	// temporary orientation, just to be planar
@@ -255,7 +255,7 @@ void FlexFacet::updateNode(){
 	Vector6r nxy0;
 	for(int i:{0,1,2}){
 		Vector3r xy0=ori0.conjugate()*(nodes[i]->pos-node->pos);
-		#ifdef FLEXFACET_DEBUG_ROT
+		#ifdef MEMBRANE_DEBUG_ROT
 			if(xy0[2]>1e-5*(max(abs(xy0[0]),abs(xy0[1])))){
 				LOG_ERROR("z-coordinate is not zero for node "<<i<<": ori0="<<AngleAxisr(ori0).axis()<<" !"<<AngleAxisr(ori0).angle()<<", xy0="<<xy0<<", position in global-oriented centroid-origin CS "<<(nodes[i]->pos-node->pos).transpose());
 			}
@@ -272,13 +272,13 @@ void FlexFacet::updateNode(){
 	node->ori=ori0*AngleAxisr(atan2(tanTheta3_y,tanTheta3_x),Vector3r::UnitZ());
 };
 
-void FlexFacet::computeNodalDisplacements(){
+void Membrane::computeNodalDisplacements(){
 	assert(hasRefConf());
 	// supposes node is updated already
 	for(int i:{0,1,2}){
 		Vector3r xy=node->glob2loc(nodes[i]->pos); // QQQ: node->ori*(nodes[i]->pos-node->pos);
 		// relative tolerance of 1e-6 was too little, in some cases?!
-		#ifdef FLEXFACET_DEBUG_ROT
+		#ifdef MEMBRANE_DEBUG_ROT
 			if(xy[2]>1e-5*(max(abs(xy[0]),abs(xy[1])))){
 				LOG_ERROR("local z-coordinate is not zero for node "<<i<<": node->ori="<<AngleAxisr(node->ori).axis()<<" !"<<AngleAxisr(node->ori).angle()<<", xy="<<xy<<", position in global-oriented centroid-origin CS "<<(nodes[i]->pos-node->pos).transpose());
 			}
@@ -296,9 +296,9 @@ void FlexFacet::computeNodalDisplacements(){
 		if(aa.angle()>M_PI) aa.angle()-=2*M_PI;
 		Vector3r rot=Vector3r(aa.angle()*aa.axis()); // rotation vector in local coords
 		// if(aa.angle()>3)
-		if(rot.head<2>().squaredNorm()>3*3) LOG_WARN("FlexFacet's in-plane rotation in a node is > 3 radians, expect unstability!");
+		if(rot.head<2>().squaredNorm()>3*3) LOG_WARN("Membrane's in-plane rotation in a node is > 3 radians, expect unstability!");
 		phiXy.segment<2>(2*i)=rot.head<2>(); // drilling rotation discarded
-		#ifdef FLEXFACET_DEBUG_ROT
+		#ifdef MEMBRANE_DEBUG_ROT
 			AngleAxisr rr(refRot[i]);
 			AngleAxisr cr(nodes[i]->ori.conjugate()*node->ori);
 			LOG_TRACE("node "<<i<<"\n   refRot : "<<rr.axis()<<" !"<<rr.angle()<<"\n   currRot: "<<cr.axis()<<" !"<<cr.angle()<<"\n   diffRot: "<<aa.axis()<<" !"<<aa.angle());
@@ -308,19 +308,19 @@ void FlexFacet::computeNodalDisplacements(){
 	}
 };
 
-CREATE_LOGGER(In2_FlexFacet_ElastMat);
+CREATE_LOGGER(In2_Membrane_ElastMat);
 
 
-void In2_FlexFacet_ElastMat::addIntraStiffnesses(const shared_ptr<Particle>& p, const shared_ptr<Node>& n, Vector3r& ktrans, Vector3r& krot) const {
-	auto& ff=p->shape->cast<FlexFacet>();
+void In2_Membrane_ElastMat::addIntraStiffnesses(const shared_ptr<Particle>& p, const shared_ptr<Node>& n, Vector3r& ktrans, Vector3r& krot) const {
+	auto& ff=p->shape->cast<Membrane>();
 	if(!ff.hasRefConf()) ff.setRefConf();
 	ff.ensureStiffnessMatrices(p->material->cast<ElastMat>().young,nu,thickness,/*bending*/bending,bendThickness);
 	ff.addIntraStiffnesses(n,ktrans,krot);
 }
 
 
-void In2_FlexFacet_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& particle, const bool skipContacts){
-	auto& ff=sh->cast<FlexFacet>();
+void In2_Membrane_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& particle, const bool skipContacts){
+	auto& ff=sh->cast<Membrane>();
 	if(contacts && !skipContacts && !particle->contacts.empty()){
 		Vector3r normal=Vector3r::Zero(); // compiler happy
 		if(bending||applyBary) normal=ff.getNormal();
@@ -356,7 +356,7 @@ void In2_FlexFacet_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Ma
 
 	Vector9r Fdkt;
 	if(bending){
-		#ifdef FLEXFACET_CONDENSE_DKT
+		#ifdef MEMBRANE_CONDENSE_DKT
 			assert(ff.KKdkt.size()==54);
 			Fdkt=(ff.KKdkt*ff.phiXy).transpose();
 		#else
@@ -364,7 +364,7 @@ void In2_FlexFacet_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Ma
 			Vector9r uDkt_;
 			uDkt_<<0,ff.phiXy.segment<2>(0),0,ff.phiXy.segment<2>(2),0,ff.phiXy.segment<2>(4);
 			Fdkt=(ff.KKdkt*uDkt_).transpose();
-			#ifdef FLEXFACET_DEBUG_ROT
+			#ifdef MEMBRANE_DEBUG_ROT
 				ff.uDkt=uDkt_; // debugging copy, acessible from python
 			#endif
 		#endif
@@ -391,24 +391,24 @@ void In2_FlexFacet_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Ma
 #include<woo/pkg/gl/Renderer.hpp>
 #include<woo/lib/opengl/GLUtils.hpp>
 
-WOO_PLUGIN(gl,(Gl1_FlexFacet));
+WOO_PLUGIN(gl,(Gl1_Membrane));
 
 
-bool Gl1_FlexFacet::node;
-bool Gl1_FlexFacet::refConf;
-Vector3r Gl1_FlexFacet::refColor;
-int Gl1_FlexFacet::refWd;
-Real Gl1_FlexFacet::uScale;
-int Gl1_FlexFacet::uWd;
-bool Gl1_FlexFacet::uSplit;
-Real Gl1_FlexFacet::relPhi;
-int Gl1_FlexFacet::phiWd;
-bool Gl1_FlexFacet::phiSplit;
-bool Gl1_FlexFacet::arrows;
-shared_ptr<ScalarRange> Gl1_FlexFacet::uRange;
-shared_ptr<ScalarRange> Gl1_FlexFacet::phiRange;
+bool Gl1_Membrane::node;
+bool Gl1_Membrane::refConf;
+Vector3r Gl1_Membrane::refColor;
+int Gl1_Membrane::refWd;
+Real Gl1_Membrane::uScale;
+int Gl1_Membrane::uWd;
+bool Gl1_Membrane::uSplit;
+Real Gl1_Membrane::relPhi;
+int Gl1_Membrane::phiWd;
+bool Gl1_Membrane::phiSplit;
+bool Gl1_Membrane::arrows;
+shared_ptr<ScalarRange> Gl1_Membrane::uRange;
+shared_ptr<ScalarRange> Gl1_Membrane::phiRange;
 
-void Gl1_FlexFacet::drawLocalDisplacement(const Vector2r& nodePt, const Vector2r& xy, const shared_ptr<ScalarRange>& range, bool split, char arrow, int lineWd, const Real z){
+void Gl1_Membrane::drawLocalDisplacement(const Vector2r& nodePt, const Vector2r& xy, const shared_ptr<ScalarRange>& range, bool split, char arrow, int lineWd, const Real z){
 	Vector3r nodePt3(nodePt[0],nodePt[1],0);
 	if(split){
 		Vector3r p1=Vector3r(nodePt[0]+xy[0],nodePt[1],0), c1=range->color(xy[0]), p2=Vector3r(nodePt[0],nodePt[1]+xy[1],0), c2=range->color(xy[1]);
@@ -438,17 +438,17 @@ void Gl1_FlexFacet::drawLocalDisplacement(const Vector2r& nodePt, const Vector2r
 }
 
 
-void Gl1_FlexFacet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire2, const GLViewInfo& viewInfo){
+void Gl1_Membrane::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire2, const GLViewInfo& viewInfo){
 	Gl1_Facet::go(sh,shift,/*don't force wire rendering*/ wire2,viewInfo);
 	if(Renderer::fastDraw) return;
-	FlexFacet& ff=sh->cast<FlexFacet>();
+	Membrane& ff=sh->cast<Membrane>();
 	if(!ff.hasRefConf()) return;
 	if(node){
 		Renderer::setNodeGlData(ff.node,false/*set refPos only for the first time*/);
 		Renderer::renderRawNode(ff.node);
 		if(ff.node->rep) ff.node->rep->render(ff.node,&viewInfo);
-		#ifdef FLEXFACET_DEBUG_ROT
-			// show what FlexFacet thinks the orientation of nodes is - render those midway
+		#ifdef MEMBRANE_DEBUG_ROT
+			// show what Membrane thinks the orientation of nodes is - render those midway
 			if(ff.currRot.size()==3){
 				for(int i:{0,1,2}){
 					shared_ptr<Node> n=make_shared<Node>();
@@ -494,7 +494,7 @@ void Gl1_FlexFacet::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool 
 		if(relPhi!=0 && ff.hasBending()){
 			glLineWidth(phiWd);
 			for(int i:{0,1,2}) drawLocalDisplacement(ff.refPos.segment<2>(2*i),relPhi*viewInfo.sceneRadius*ff.phiXy.segment<2>(2*i),phiRange,phiSplit,arrows?2:0,phiWd
-				#ifdef FLEXFACET_DEBUG_ROT
+				#ifdef MEMBRANE_DEBUG_ROT
 					, relPhi*viewInfo.sceneRadius*ff.drill[i] /* show the out-of-plane component */
 				#endif
 			);

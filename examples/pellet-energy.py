@@ -10,9 +10,9 @@ if 1:
 	sp.makeCloud((0,0,0),(10,10,10),.4,rRelFuzz=.5)
 	sp.toSimulation(S,mat=mat)
 else:
-	S.dem.par.append(utils.sphere((0,0,1),.5,mat=mat))
+	S.dem.par.add(utils.sphere((0,0,1),.5,mat=mat))
 
-S.dem.par.append(utils.wall(0,axis=2,sense=1,mat=mat))
+S.dem.par.add(utils.wall(0,axis=2,sense=1,mat=mat))
 S.engines=utils.defaultEngines(damping=0.,cp2=Cp2_PelletMat_PelletPhys(),law=Law2_L6Geom_PelletPhys_Pellet(plastSplit=True))+[
 	PyRunner(1,'S.plot.addData(i=S.step,t=S.time,Eerr=(S.energy.relErr() if S.step>100 else 0),**S.energy)'),
 ]

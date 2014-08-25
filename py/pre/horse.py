@@ -109,7 +109,7 @@ def prepareHorse(pre):
 		nodeM=1e-1*mat.density*(4/3)*math.pi*pre.radius**3
 		nodeI=3e3*(2/5.)*nodeM*pre.radius**2
 		for p in S.dem.par:
-			if type(p.shape)!=FlexFacet:
+			if type(p.shape)!=Membrane:
 				if not setNoDamp: continue
 				for n in p.shape.nodes:
 					n.dem.dampingSkip=True
@@ -121,7 +121,7 @@ def prepareHorse(pre):
 					# n.dem.gravitySkip=True
 					if pre.stand and n.pos[2]<-0.22: n.dem.blocked='xyzXYZ'
 
-		S.engines=S.engines[:-1]+[IntraForce([In2_FlexFacet_ElastMat(bending=True,thickness=(pre.radius if pre.halfThick<=0 else float('nan'))),In2_Sphere_ElastMat()])]+[S.engines[-1]] # put dynDt to the very end
+		S.engines=S.engines[:-1]+[IntraForce([In2_Membrane_ElastMat(bending=True,thickness=(pre.radius if pre.halfThick<=0 else float('nan'))),In2_Sphere_ElastMat()])]+[S.engines[-1]] # put dynDt to the very end
 		S.lab.contactLoop.applyForces=False
 
 	if pre.grid:
@@ -146,7 +146,7 @@ def prepareHorse(pre):
 	if 'opengl' in woo.config.features:
 		S.any=[
 			woo.gl.Gl1_DemField(shape=woo.gl.Gl1_DemField.shapeSpheres,colorBy=woo.gl.Gl1_DemField.colorVel,deadNodes=False),
-			woo.gl.Gl1_FlexFacet(relPhi=0.),
+			woo.gl.Gl1_Membrane(relPhi=0.),
 		]
 	return S
 

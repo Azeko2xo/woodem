@@ -2,6 +2,7 @@
 
 from woo import core
 from woo.core import Master
+import sys, warnings
 core.Field.nod=core.Field.nodes
 
 ## proxy for attribute-like access to Scene.labels
@@ -30,6 +31,40 @@ def Scene_lab(scene):
 core.Scene.lab=property(Scene_lab)
 
 
+
+
+
+## deprecated classes
+# if old class name is used, the new object is constructed and a warning is issued about old name being used
+# keep chronologically ordered, oldest first; script/rename-class.py appends at the end
+_deprecated={
+	('woo.dem','FlexFacet'):('woo.fem','Membrane'),
+	('woo.gl','Gl1_FlexFacet'):('woo.gl','Gl1_Membrane'),
+	('woo.dem','In2_FlexFacet_ElastMat'):('woo.fem','In2_Membrane_ElastMat'),
+	### END_RENAMED_CLASSES_LIST ### (do not delete this line; scripts/rename-class.py uses it
+}
+
+def injectDeprecated():
+	''' Inject decprecated classes into woo modules as needed.
+	'''
+	proxyNamespace={}
+	class warnWrap:
+		def __init__(self,_old,_new):
+			self.old,self.new=_old,_new
+		def __call__(self,*args,**kw):
+			warnings.warn("%s.%s was renamed to %s.%s; update your code!"%(self.old[0],self.old[1],self.new.__module__,self.new.__name__),DeprecationWarning,stacklevel=2);
+			return self.new(*args,**kw)
+	# deprecated names
+	for deprec,curr in _deprecated.items():
+		# try to import both modules
+		try: mDep,mCurr=sys.modules[deprec[0]],sys.modules[curr[0]]
+		except KeyError: continue
+		# new name not found?!
+		try: setattr(mDep,deprec[1],warnWrap(deprec,getattr(mCurr,curr[1])))
+		except AttributeError: pass
+
+injectDeprecated()
+
 try:
 	from woo import dem
 	dem.DemField.par=dem.DemField.particles
@@ -37,16 +72,16 @@ try:
 	dem.Particle.mat=dem.Particle.material
 	core.Scene.dem=property(lambda s: dem.DemField.sceneGetField(s))
 	core.Scene.hasDem=property(lambda s: dem.DemField.sceneHasField(s))
-	def _Master_dem(o): raise ValueError("Master.dem is no longer supported, use Scene.dem instead")
-	def _Master_hasDem(o): raise ValueError("Master.hasDem is no longer supported, use Scene.hasDem instead")
-	core.Master.dem=property(_Master_dem)
-	core.Master.hasdem=property(_Master_hasDem)
 	# DemData defines those methods, which are used for transparent access to respective data field
 	core.Node.dem=property(dem.DemData._getDataOnNode,dem.DemData._setDataOnNode)
-	# this can be removed later
-	def _DemData_parCount_get(d): raise AttributeError("DemData.parCount is superceded by DemData.parRef!")
-	def _DemData_parCount_set(d): raise AttributeError("DemData.parCount is superceded by DemData.parRef!")
-	dem.DemData.parCount=property(_DemData_parCount_get,_DemData_parCount_set)
+
+	# those are deprecated
+	def deprecWrapper(self,_oldName,_newName,_newFunc,*args,**kw):
+		warnings.warn('The %s function is deprecated, use %s instead.'%(_oldName,_newName),DeprecationWarning,stacklevel=3)
+		return _newFunc(self,*args,**kw)
+
+	dem.ParticleContainer.append=lambda self, *args,**kw: deprecWrapper(self,'dem.ParticleContainer.append','dem.ParticleContainer.add',dem.ParticleContainer.add,*args,**kw)
+	dem.ParticleContainer.appendClumped=lambda self, *args,**kw: deprecWrapper(self,'dem.ParticleContainer.appendClumped','dem.ParticleContainer.addClumped',dem.ParticleContainer.addClumped,*args,**kw)
 
 	# nicer names
 	import woo.utils
