@@ -88,6 +88,12 @@ AlignedBox3r Field::renderingBbox() const {
 const char* NodeData::getterName() const { throw std::runtime_error(pyStr()+" does not reimplement NodeData::getterName."); }
 void NodeData::setDataOnNode(Node&){ throw std::runtime_error(pyStr()+" does not reimplement NodeData::setDataOnNode."); }
 
+string Node::pyStr() const {
+	std::ostringstream o;
+	o<<"<"+getClassName()<<" @ "<<this<<", at ("<<pos.transpose()<<")>";
+	return o.str();
+}
+
 void Node::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){
 	for(const char* name:{"dem","gl","sparc","clDem"}){
 		if(!kw.has_key(name)) continue;

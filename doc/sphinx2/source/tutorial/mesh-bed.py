@@ -5,4 +5,4 @@ xx=numpy.linspace(0,x1,num=xDiv)
 pts=[[(x,-.5*botWd-sideWd,sideHt),(x,-.5*botWd,0),(x,.5*botWd,0),(x,.5*botWd+sideWd,sideHt)] for x in xx]
 node=Node(pos=(.2,.2,.2),ori=((0,0,1),math.pi/3))
 surf=woo.pack.sweptPolylines2gtsSurface(pts,localCoords=node)
-S.dem.par.append(woo.pack.gtsSurface2Facets(surf))
+S.dem.par.add(woo.pack.gtsSurface2Facets(surf))

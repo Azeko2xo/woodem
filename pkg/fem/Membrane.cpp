@@ -225,7 +225,7 @@ void Membrane::ensureStiffnessMatrices(const Real& young, const Real& nu, const 
 void Membrane::addIntraStiffnesses(const shared_ptr<Node>& n,Vector3r& ktrans, Vector3r& krot) const {
 	if(!hasRefConf()) return;
 	int i=-1;
-	for(int j=0; j<3; j++){ if(nodes[j].get()==n.get()) i=j; }
+	for(int j=0; j<3; j++){ if(nodes[j].get()==n.get()){ i=j; break; }}
 	if(i<0) throw std::logic_error("Membrane::addIntraStiffness:: node "+n->pyStr()+" not found within nodes of "+this->pyStr()+".");
 	if(KKcst.size()==0) return;
 	bool dkt=(KKdkt.size()>0);
@@ -276,7 +276,7 @@ void Membrane::computeNodalDisplacements(){
 	assert(hasRefConf());
 	// supposes node is updated already
 	for(int i:{0,1,2}){
-		Vector3r xy=node->glob2loc(nodes[i]->pos); // QQQ: node->ori*(nodes[i]->pos-node->pos);
+		Vector3r xy=node->glob2loc(nodes[i]->pos);
 		// relative tolerance of 1e-6 was too little, in some cases?!
 		#ifdef MEMBRANE_DEBUG_ROT
 			if(xy[2]>1e-5*(max(abs(xy[0]),abs(xy[1])))){

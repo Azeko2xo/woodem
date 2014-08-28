@@ -11,7 +11,7 @@ STL import
 
 `STL (STereoLitography) file format <http://en.wikipedia.org/wiki/STL_%28file_format%29>`__ is an interchange format for triangulated sorfaces in 3d. It is used as a possible export format in many CAD systems. There is a single function for their import, :obj:`woo.utils.importSTL <_utils2.importSTL>` which return list of facet particles, which can be added to the simulation instantly::
 
-   S.dem.par.append(woo.utils.importSTL('your-model.stl'),mat=woo.utils.defaultMaterial())
+   S.dem.par.add(woo.utils.importSTL('your-model.stl'),mat=woo.utils.defaultMaterial())
 
 .. figure:: fig/ship-mesh.png
    :align: center
@@ -60,7 +60,7 @@ The bed will start at :math:`x=0` and will go up to :math:`x=x_1` (``x1``) with 
    Woo [1]: print surf
 
    # convert surface to facets and add them to the scene
-   Woo [1]: S.dem.par.append(woo.pack.gtsSurface2Facets(surf))
+   Woo [1]: S.dem.par.add(woo.pack.gtsSurface2Facets(surf))
 
 If one wants to convert from local to global coordinates, define local coordinates via :obj:`~woo.core.Node` and pass it as the ``localCoords`` parameter to :obj:`woo.pack.sweptPolylines2gtsSurface`:
 

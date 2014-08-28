@@ -6,9 +6,9 @@ Membrane element
 
 Membrane elements are special 3-node particles in DEM. They have their mass lumped into nodes and respond to plane-stress stretching (CST element) and bending (DKT element; optional, enabled by setting the :obj:`bending flag <woo.dem.In2_FlexFacet_ElastMat.bending>`). These two elements are superposed. The element has constant thickness. Each node has 6 DoFs:
 
-#. two in-plane translations (gathered in :obj:`woo.dem.FlexFacet.uXy` for all nodes as a 6-vector), used by the CST element;
+#. two in-plane translations (gathered in :obj:`woo.fem.Membrane.uXy` for all nodes as a 6-vector), used by the CST element;
 #. one out-of-plane translation -- defines rigid motion of the whole element and causes no internal response;
-#. two in-plane rotations (gathered in :obj:`woo.dem.FlexFacet.phiXy` for all nodes as a 6-vector), used by the DKT element;
+#. two in-plane rotations (gathered in :obj:`woo.fem.Membrane.phiXy` for all nodes as a 6-vector), used by the DKT element;
 #. one out-of-plane rotation (drilling DoF), which is ignored.
 
 Lumping mass into nodes is not automatic. The user is responsible for assigning proper values of :obj:`woo.dem.DemData.mass` and :obj:`woo.dem.DemData.inertia` to nodes.
@@ -16,13 +16,13 @@ Lumping mass into nodes is not automatic. The user is responsible for assigning 
 Element coordinate system
 -------------------------
 
-When the element is first used, its configuration defines the reference configuration which is stored in :obj:`woo.dem.FlexFacet.refPos` and :obj:`woo.dem.FlexFacet.refOri`.
+When the element is first used, its configuration defines the reference configuration which is stored in :obj:`woo.fem.Membrane.refPos` and :obj:`woo.fem.Membrane.refRot`.
 
-The element coordinate system (held in :obj:`woo.dem.FlexFacet.node`) is always such that
+The element coordinate system (held in :obj:`woo.fem.Membrane.node`) is always such that
 
 #. local origin coindices with centroid of the (deformed) triangle;
 #. the local :math:`z`-axis is normal to the plane defined by element nodes in their current positions;
-#. local :math:`x` and :math:`y` axes are oriented in a way which minimizes displacements of nodes in the local plane relative to the :obj:`reference positions <woo.dem.FlexFacet.refPos>`, and tries to represent their mutual displacements as rigid body motion as much as possible.
+#. local :math:`x` and :math:`y` axes are oriented in a way which minimizes displacements of nodes in the local plane relative to the :obj:`reference positions <woo.fem.Membrane.refPos>`, and tries to represent their mutual displacements as rigid body motion as much as possible.
 
    This point is trivially satisfied in the reference configuration (first time the element is used) when displacements are zero with arbitrary orientation of the local :math:`x` and :math:`y` axes. (The implementation currently chooses to rotate the :math:`x`-axis so that it passes through the first node.)
 
@@ -32,7 +32,7 @@ The element coordinate system (held in :obj:`woo.dem.FlexFacet.node`) is always 
 
    where the numerator and denominator are computed separately in the implementation and :math:`\tan\phi_3` is obtained vi via the `atan2 <http://en.wikipedia.org/wiki/Atan2>`__ function as to preserve quadrant information and handle zero denominator correctly. The :math:`\theta_3` rotation is then added to the previous rotation of the :math:`xy` plane, obtaining the best-fit coordinate system.
 
-Once the local coordinate system is established, displacements are evaluated. Evaluating :obj:`woo.dem.FlexFacet.uXy` is done as trivial subtraction of reference nodal positions from the current ones in the local system. Rotations :obj:`woo.dem.FlexFacet.phiXy` are computed by rotation "subtraction" (conjugate product) using quaternions (:obj:`woo.dem.FlexFacet.refRot` holds the rotation necessary to obtain each node orientation from global element orientation). See the source code for details.
+Once the local coordinate system is established, displacements are evaluated. Evaluating :obj:`woo.fem.Membrane.uXy` is done as trivial subtraction of reference nodal positions from the current ones in the local system. Rotations :obj:`woo.fem.Membrane.phiXy` are computed by rotation "subtraction" (conjugate product) using quaternions (:obj:`woo.fem.Membrane.refRot` holds the rotation necessary to obtain each node orientation from global element orientation). See the source code for details.
 
 Constant Strain Triangle (CST) Element
 --------------------------------------
@@ -51,9 +51,9 @@ Since :obj:`membrane thickness <woo.dem.In2_FlexFacet_ElastMat.thickness>` :math
 
 .. math:: \mat{K^{\mathrm{CST}}}=A h \mat{B}^T \mat E \mat B.
 
-This matrix is stored as :obj:`woo.dem.FlexFacet.KKcst`.
+This matrix is stored as :obj:`woo.fem.Membrane.KKcst`.
 
-:obj:`Displacements <woo.dem.FlexFacet.uXy>` :math:`\vec{u}` (6-vector) are computed by subtracting :obj:`reference positions <woo.dem.FlexFacet.refPos>` from the current nodal positions in best-fit local coordinates. Nodal forces (6-vector) are 
+:obj:`Displacements <woo.fem.Membrane.uXy>` :math:`\vec{u}` (6-vector) are computed by subtracting :obj:`reference positions <woo.fem.Membrane.refPos>` from the current nodal positions in best-fit local coordinates. Nodal forces (6-vector) are 
 
 .. math:: \vec{F}^{\mathrm{CST}}=\begin{pmatrix}F_{x1}\\F_{y1}\\F_{x2}\\F_{y2}\\F_{x3}\\F_{y3}\end{pmatrix}=\mat{K}^{\mathrm{CST}}\vec{u}.
 
@@ -72,7 +72,7 @@ where the thickness :math:`h` may be :obj:`different thickness <woo.dem.In2_Flex
 
 .. math:: \mat{B}_{b}(\xi,\eta)=\frac{1}{2A}\begin{pmatrix}y_{31}\vec{H}_{x,\xi}^T+y_{12}\vec{H}_{x,\eta}^T \\ -x_{31}\vec{H}_{y,\xi}^T-x_{12}\vec{H}_{y,\eta}^T \\ -x_{31}\vec{H}_{x,\xi}^T-x_{12}\vec{H}_{x,\eta}^T+y_{31}\vec{H}_{y,\xi}^T+y_{12}\vec{H}_{y,\eta}^T \end{pmatrix}.
 
-where :math:`x_{ij}\equiv x_i-x_j`, :math:`y_{ij}\equiv y_i-y_j` and :math:`(\xi,\eta)` are natural (≡barycentric) coordinates on the triangle. Refer to Appendix A of :cite:`Batoz1980` (or the source code of :obj:`woo.dem.FlexFacet`) for formulation of :math:`\vec{H}_{x,\xi}`, :math:`\vec{H}_{x,\eta}`, :math:`\vec{H}_{y,\xi}`, :math:`\vec{H}_{y,\eta}`, which are rather convolved.
+where :math:`x_{ij}\equiv x_i-x_j`, :math:`y_{ij}\equiv y_i-y_j` and :math:`(\xi,\eta)` are natural (≡barycentric) coordinates on the triangle. Refer to Appendix A of :cite:`Batoz1980` (or the source code of :obj:`woo.fem.Membrane`) for formulation of :math:`\vec{H}_{x,\xi}`, :math:`\vec{H}_{x,\eta}`, :math:`\vec{H}_{y,\xi}`, :math:`\vec{H}_{y,\eta}`, which are rather convolved.
 
 The stiffness matrix is integrated over the triangle as (:cite:`Batoz1980`, (31))
 
@@ -110,7 +110,7 @@ Total nodal forces are  superimposed from both elements and also from contact fo
 Hydrostatic pressure
 """""""""""""""""""""
 
-Elements may be under :obj:`surface load <woo.dem.FlexFacet.surfLoad>` which is always perpendicular to the element plane, thus representing hydrostatic pressure. Such pressure :math:`p` is distributed into nodes as
+Elements may be under :obj:`surface load <woo.fem.Membrane.surfLoad>` which is always perpendicular to the element plane, thus representing hydrostatic pressure. Such pressure :math:`p` is distributed into nodes as
 
 .. math:: \Delta\vec{F}_i = \begin{pmatrix} 0 \\ 0 \\ p\frac{A^*}{3} \end{pmatrix}
 

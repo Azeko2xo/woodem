@@ -162,6 +162,7 @@ def writeResults(scene,defaultDb='woo-results.hdf5',syncXls=True,dbFmt=None,seri
 def _checkHdf5sim(sim):
 	if not 'formatVersion' in sim.attrs: raise RuntimeError('database %s: simulation %s does not define formatVersion?!')
 	if sim.attrs['formatVersion']!=dbFormatVersion: raise RuntimeError('database format mismatch: %s: %s/formatVersion==%s, should be %s'%(db,sim,sim.attrs['formatVersion'],dbFormatVersion))
+	return True
 
 
 # return all series stored in the database
@@ -301,7 +302,7 @@ def dbToSpread(db,out=None,dialect='xls',rows=False,series=True,ignored=('plotDa
 		n=n.replace('[','_').replace(']','_').replace('*','_').replace(':','_').replace('/','_')
 		return n
 
-	import sqlite3,json,sys,csv,warnings,numpy
+	import sqlite3,json,sys,csv,warnings,numpy,operator
 	allData={}
 	# lowercase
 	ignored=[i.lower() for i in ignored]
@@ -320,8 +321,15 @@ def dbToSpread(db,out=None,dialect='xls',rows=False,series=True,ignored=('plotDa
 		with FileLock(db):
 			ret=[]
 			if selector: warnings.warn('selector parameter ignored, since the file is HDF5 (not SQLite)')
+			# first loop: sort by batchTable, batchTableLine, finished
+			# for i,simId in enumerate(hdf):
+			sortAttrs=('batchTable','batchTableLine','finished')
+			# sort simulation ids by attribute tuples:
+			# http://stackoverflow.com/a/6620187/761090
+			simIds=zip(*sorted(zip([s for s in hdf if _checkHdf5sim(hdf[s])],[tuple([natural_key(str(hdf[s].attrs[a])) for a in sortAttrs if a in hdf[s].attrs]) for s in hdf if _checkHdf5sim(hdf[s])]),key=operator.itemgetter(1)))[0]
+			print simIds
 			# iterate over simulations
-			for i,simId in enumerate(hdf):
+			for i,simId in enumerate(simIds):
 				sim=hdf[simId]
 				_checkHdf5sim(sim)
 				rowDict={}

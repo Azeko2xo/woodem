@@ -137,6 +137,7 @@ struct Node: public Object, public Indexable{
 	static shared_ptr<NodeDataSubclass> pyGetData(const shared_ptr<Node>& n){ return n->hasData<NodeDataSubclass>() ? static_pointer_cast<NodeDataSubclass>(n->getData(NodeData::Index<NodeDataSubclass>::value)) : shared_ptr<NodeDataSubclass>(); }
 	template<typename NodeDataSubclass>
 	static void pySetData(const shared_ptr<Node>& n, const shared_ptr<NodeDataSubclass>& d){ n->setData<NodeDataSubclass>(d); }
+	string pyStr() const WOO_CXX11_OVERRIDE;
 
 	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
 

@@ -53,7 +53,7 @@ struct In2_Membrane_ElastMat: public IntraFunctor{
 	FUNCTOR2D(Membrane,ElastMat);
 	DECLARE_LOGGER;
 	#define woo_dem_In2_Membrane_ElastMat__CLASS_BASE_DOC_ATTRS \
-		In2_Membrane_ElastMat,IntraFunctor,"Apply contact forces and compute internal response of a :obj:`Membrane` (so far only the plane stress element has been implemented).", \
+		In2_Membrane_ElastMat,IntraFunctor,"Apply contact forces and compute internal response of a :obj:`Membrane`.", \
 		((bool,contacts,true,,"Apply contact forces to facet's nodes (FIXME: very simply distributed in thirds now)")) \
 		((Real,nu,.25,,"Poisson's ratio used for assembling the $E$ matrix (Young's modulus is taken from :obj:`ElastMat`). Will be moved to the material class at some point.")) \
 		((Real,thickness,NaN,,"Thickness for CST stiffness computation; if NaN, try to use the double of :obj:`Facet.halfThick`.")) \
@@ -74,7 +74,7 @@ struct Gl1_Membrane: public Gl1_Facet{
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Membrane,Gl1_Facet,"Renders :obj:`Membrane` object; :obj:`Facet` itself is rendered via :obj:`Gl1_Facet`.",
 		((bool,node,false,,"Show local frame node"))
 		((bool,refConf,true,,"Show reference configuration, rotated to the current local frame"))
-		((Vector3r,refColor,Vector3r(0,.5,0),AttrTrait<>().rgbColor(),"COlor for the reference shape"))
+		((Vector3r,refColor,Vector3r(0,.5,0),AttrTrait<>().rgbColor(),"Color for the reference shape"))
 		((int,refWd,1,,"Line width for the reference shape"))
 		((Real,uScale,1.,,"Scale of displacement lines (zero to disable)"))
 		((int,uWd,2,,"Width of displacement lines"))

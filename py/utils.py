@@ -208,7 +208,7 @@ def truss(vertices,radius,fixed=False,wire=True,color=None,mat=defaultMaterial,v
 	return p
 
 
-def facet(vertices,fakeVel=None,halfThick=0.,fixed=True,wire=True,color=None,highlight=False,mat=defaultMaterial,visible=True,mask=DemField.defaultBoundaryMask,flex=False):
+def facet(vertices,fakeVel=None,halfThick=0.,fixed=True,wire=True,color=None,highlight=False,mat=defaultMaterial,visible=True,mask=DemField.defaultBoundaryMask,flex=None,__class=woo.dem.Facet):
 	"""Create facet with given parameters.
 
 	:param [Vector3,Vector3,Vector3] vertices: coordinates of vertices in the global coordinate system.
@@ -223,7 +223,11 @@ def facet(vertices,fakeVel=None,halfThick=0.,fixed=True,wire=True,color=None,hig
 			if not n.dem: n.dem=DemData()
 	else:
 		nodes=[_mkDemNode(pos=vertices[0]),_mkDemNode(pos=vertices[1]),_mkDemNode(pos=vertices[2])]
-	p.shape=(Membrane if flex else Facet)(color=color if color else random.random(),halfThick=halfThick)
+	if flex!=None:
+		if flex:
+			warnings.warn(DeprecationWarning,'Facet.make(...,flex=True) is deprecated, use Membrane.make(...) instead.',stacklevel=2)
+			__class=woo.fem.Membrane
+	p.shape=__class(color=color if color else random.random(),halfThick=halfThick)
 	if fakeVel: p.shape.fakeVel=fakeVel
 	p.shape.wire=wire
 	_commonBodySetup(p,nodes,mat=mat,fixed=fixed)
@@ -231,6 +235,32 @@ def facet(vertices,fakeVel=None,halfThick=0.,fixed=True,wire=True,color=None,hig
 	p.mask=mask
 	p.shape.visible=visible
 	return p
+
+def membrane(*args,**kw):
+	if 'flex' in kw: raise ValueError("Membrane.make: *flex* argument not accepted (use Membrane.make for Membranes and Facet.make for pure facets).")
+	return facet(__class=woo.fem.Membrane,*args,**kw)
+
+def tetra(vertices,fixed=True,wire=True,color=None,highlight=False,mat=defaultMaterial,visible=True,mask=DemField.defaultBoundaryMask,__class=woo.fem.Tetra):
+	'''Create tetrahedral particle'''
+	p=Particle()
+	nodes=[]
+	for i in range(4):
+		if isinstance(vertices[i],Node):
+			nodes.append(vertices[i])
+			if not nodes[-1].dem: nodes[-1].dem=DemData()
+		else: nodes.append(_mkDemNode(pos=vertices[i]))
+	p.shape=__class(color=color if color else random.random())
+	assert len(nodes)==4
+	_commonBodySetup(p,nodes,mat=mat,fixed=fixed)
+	p.aspherical=False
+	p.mask=mask
+	p.shape.wire=wire
+	p.shape.visible=visible
+	p.shape.canonicalizeVertexOrder()
+	return p
+
+def tet4(*args,**kw):
+	return tetra(__class=woo.fem.Tet4,*args,**kw)
 
 def infCylinder(position,radius,axis,glAB=None,fixed=True,mass=0,color=None,wire=False,mat=defaultMaterial,mask=DemField.defaultMovableMask):
 	"""Return a ready-made infinite cylinder particle."""

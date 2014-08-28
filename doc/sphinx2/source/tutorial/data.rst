@@ -179,7 +179,7 @@ Engines, when they have :obj:`~woo.core.Engine.label` set in the constructor (as
 
    Woo [1]: S.lab.sphere=s              # give it the label "sphere"
 
-   Woo [1]: S.dem.par.append(s)         # add it to the simulation
+   Woo [1]: S.dem.par.add(s)            # add it to the simulation
 
    Woo [1]: S.dem.par[0]==S.lab.sphere  # it is one and the same particle
 

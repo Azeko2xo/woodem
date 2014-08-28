@@ -51,7 +51,7 @@ void Facet::asRaw(Vector3r& center, Real& radius, vector<Real>& raw) const {
 
 void Facet::setFromRaw(const Vector3r& center, const Real& radius, const vector<Real>& raw){
 	Shape::setFromRaw_helper_checkRaw_makeNodes(raw,9);
-	// center and radius are ignored
+	// radius is ignored
 	for(int i:{0,1,2}) for(int ax:{0,1,2}) nodes[i]->pos[ax]=raw[3*i+ax]+center[ax];
 }
 

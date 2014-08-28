@@ -98,6 +98,14 @@ except ImportError:
 	core.Scene.hasDem=lambda o: False
 
 try:
+	from woo import fem
+	fem.Membrane.make=staticmethod(woo.utils.membrane)
+	fem.Tetra.make=staticmethod(woo.utils.tetra)
+	fem.Tet4.make=staticmethod(woo.utils.tet4)
+except ImportError:
+	pass
+
+try:
 	from woo import sparc
 	core.Scene.sparc=property(lambda s: sparc.SparcField.sceneGetField(s))
 	core.Scene.hasSparc=property(lambda s: sparc.SparcField.sceneHasField(s))

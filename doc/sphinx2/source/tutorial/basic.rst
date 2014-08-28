@@ -51,7 +51,7 @@ The DEM field can be accessed as ``S.fields[0]``, but this is not very convenien
 Particles
 ==========
 
-Particles are held in the :obj:`DemField.par <woo.dem.DemField.particles>` container (shorthand for :obj:`DemField.particles <woo.dem.DemField.particles>`); new particles can be added using the :obj:`append <woo.dem.DemField.append>` method.
+Particles are held in the :obj:`DemField.par <woo.dem.DemField.particles>` container (shorthand for :obj:`DemField.particles <woo.dem.DemField.particles>`); new particles can be added using the :obj:`~woo.dem.ParticleContainer.add` method.
 
 Particles are not simple objects; they hold together :obj:`material <woo.dem.Material>` and :obj:`shape <woo.dem.Shape>` (the geometry -- such as :obj:`~woo.dem.Sphere`, :obj:`~woo.dem.Capsule`, :obj:`~woo.dem.Wall`, ...) and other thigs. :obj:`~woo.dem.Shape` is attached to one (for mononodal particles, like :obj:`spheres <woo.dem.Sphere>`) or several (for multinodal particles, like :obj:`facets <woo.dem.Facet>`) nodes with some :obj:`position <woo.core.Node.pos>` and :obj:`orientation <woo.core.Node.ori>`, each node holds :obj:`~woo.dem.DemData` containing :obj:`~woo.dem.DemData.mass`, :obj:`~woo.dem.DemData.inertia`, :obj:`velocity <woo.dem.DemData.vel>` and so on.
 
@@ -60,16 +60,16 @@ To avoid complexity, there are utility functions that take a few input data and 
 We can define an infinite plane (:obj:`~woo.dem.Wall`) in the :math:`xy`-plane with :math:`z=0` and add it to the scene::
 
    wall=woo.dem.Wall.make(0,axis=2)
-   S.dem.par.append(wall)
+   S.dem.par.add(wall)
 
 Walls are *fixed* by default, and the :obj:`woo.utils.defaultMaterial` was used as :obj:`~woo.dem.Particle.material` -- the default material is not good for real simulations, but it is handy for quick demos. We also define a :obj:`sphere <woo.dem.Sphere>` and put it in the space above the wall::
 
    sphere=woo.dem.Sphere.make((0,0,2),radius=.2)
-   S.dem.par.append(sphere)
+   S.dem.par.add(sphere)
 
-The :obj:`~woo.dem.ParticleContainer.append` method can also take several particles as list, so we can add both particles in a compact way::
+The :obj:`~woo.dem.ParticleContainer.add` method can also take several particles as list, so we can add both particles in a compact way::
 
-   S.dem.par.append([
+   S.dem.par.add([
       woo.dem.Wall.make(0,axis=2),
       woo.dem.Sphere.make((0,0,2),radius=.2)
    ])
@@ -78,7 +78,7 @@ or in one line:
 
 .. ipython::
 
-   Woo [1]: S.dem.par.append([woo.dem.Wall.make(0,axis=2),woo.dem.Sphere.make((0,0,2),radius=.2)])
+   Woo [1]: S.dem.par.add([woo.dem.Wall.make(0,axis=2),woo.dem.Sphere.make((0,0,2),radius=.2)])
 
    Woo [1]: S.dem.par[0]
 
