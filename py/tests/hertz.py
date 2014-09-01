@@ -14,7 +14,7 @@ class TestHertz(unittest.TestCase):
 	def setUp(self):
 		S=self.S=woo.core.Scene(fields=[woo.dem.DemField()])
 		m=FrictMat(density=1e3,young=1e8,ktDivKn=.2,tanPhi=.5)
-		S.dem.par.append([
+		S.dem.par.add([
 			woo.utils.sphere((0,0,0),.05,fixed=False,wire=True,mat=m),
 			woo.utils.sphere((0,.10001,0),.05,fixed=False,wire=True,mat=m)
 		])

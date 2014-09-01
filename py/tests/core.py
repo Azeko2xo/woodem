@@ -109,7 +109,7 @@ class TestObjectInstantiation(unittest.TestCase):
 		"Core: shared_ptr preserved when saving/loading"
 		S=Scene(fields=[DemField()])
 		m=woo.utils.defaultMaterial()
-		S.dem.par.append([woo.utils.sphere((0,0,0),1,mat=m),woo.utils.sphere((0,0,0),2,mat=m)])
+		S.dem.par.add([woo.utils.sphere((0,0,0),1,mat=m),woo.utils.sphere((0,0,0),2,mat=m)])
 		S.saveTmp(quiet=True); S=Scene.loadTmp()
 		S.dem.par[0].mat.young=9087438484
 		self.assert_(S.dem.par[0].mat.young==S.dem.par[1].mat.young)
@@ -121,7 +121,7 @@ class TestObjectInstantiation(unittest.TestCase):
 		'Core: Attr::noSave'
 		# update bound of the particle
 		S=Scene(fields=[DemField()])
-		S.dem.par.append(utils.sphere((0,0,0),1))
+		S.dem.par.add(utils.sphere((0,0,0),1))
 		S.dem.collectNodes()
 		S.engines=[InsertionSortCollider([Bo1_Sphere_Aabb()]),Leapfrog(reset=True)]
 		S.one()
@@ -351,7 +351,7 @@ class TestParticles(unittest.TestCase):
 		woo.master.scene.fields=[DemField()]
 		S=woo.master.scene
 		self.count=100
-		S.dem.par.append([utils.sphere([random.random(),random.random(),random.random()],random.random()) for i in range(0,self.count)])
+		S.dem.par.add([utils.sphere([random.random(),random.random(),random.random()],random.random()) for i in range(0,self.count)])
 		random.seed()
 	def testIterate(self):
 		"Particles: Iteration"

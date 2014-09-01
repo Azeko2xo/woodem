@@ -19,7 +19,7 @@ class TestSimpleClump(unittest.TestCase):
 		woo.master.reset()
 		woo.master.scene=S=Scene(fields=[DemField()])
 		r1,r2,p0,p1=1,.5,Vector3.Zero,Vector3(0,0,3)
-		S.dem.par.appendClumped([
+		S.dem.par.addClumped([
 			utils.sphere(p0,r1),
 			utils.sphere(p1,r2)
 		])
@@ -84,7 +84,7 @@ class TestSimpleClump(unittest.TestCase):
 		"Clump: particles inside one clump don't collide with each other"
 		# use a new scene, with a different clump in this test
 		S=Scene(fields=[DemField()])
-		S.dem.par.appendClumped([utils.sphere(c,r) for c,r in [((1,0,0),1),((0,1,0),1),((0,0,1),1)]])
+		S.dem.par.addClumped([utils.sphere(c,r) for c,r in [((1,0,0),1),((0,1,0),1),((0,0,1),1)]])
 		S.engines=[InsertionSortCollider([Bo1_Sphere_Aabb()])]
 		S.one()
 		for i,j in [(0,1),(1,2),(0,2)]:

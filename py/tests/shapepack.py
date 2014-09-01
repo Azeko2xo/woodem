@@ -35,13 +35,13 @@ class TestShapePack(unittest.TestCase):
 		# add two clumped spheres first
 		r1,r2,p0,p1=1,.5,Vector3.Zero,Vector3(0,0,3)
 		# adds clump node to S.dem.nodes automatically
-		S.dem.par.appendClumped([
+		S.dem.par.addClumped([
 			woo.utils.sphere((0,0,0),1),
 			woo.utils.sphere((0,0,3),.5)
 		])
 		# add a capsule
 		c=woo.utils.capsule(center=(5,5,5),shaft=.3,radius=.3)
-		S.dem.par.append(c)
+		S.dem.par.add(c)
 		S.dem.nodesAppend(c.shape.nodes[0])
 		# from DEM
 		sp=ShapePack()

@@ -32,7 +32,7 @@ class TestEllipsoid(unittest.TestCase):
 			# two ellipsoids exteranlly touching perpendicularly; the whole setup it rotated by gOri
 			gOri=Quaternion((.1,1,.3),math.pi/3.) # some rather random orientation
 			gOri.normalize() # important; axis is normalized automatically in minieigen newly, but not yet always
-			S.dem.par.append([
+			S.dem.par.add([
 				woo.utils.ellipsoid((0,0,0),semiAxes=scale*Vector3(.1,.2,.1),ori=gOri,mat=self.mat,fixed=True),
 				woo.utils.ellipsoid(gOri*(scale*Vector3(.3,0,0)),semiAxes=scale*Vector3(.2,.1,.1),ori=gOri,mat=self.mat,fixed=True)
 			])

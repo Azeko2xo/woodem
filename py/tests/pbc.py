@@ -23,9 +23,9 @@ class TestPBC(unittest.TestCase):
 		self.cellDist=Vector3i(0,0,10) # how many cells away we go
 		self.relDist=Vector3(0,.999999999999999999,0) # rel position of the 2nd ball within the cell
 		self.initVel=Vector3(0,0,5)
-		S.dem.par.append(utils.sphere((1,1,1),.5))
+		S.dem.par.add(utils.sphere((1,1,1),.5))
 		self.initPos=Vector3([S.dem.par[0].pos[i]+self.relDist[i]+self.cellDist[i]*S.cell.hSize0.col(i).norm() for i in (0,1,2)])
-		S.dem.par.append(utils.sphere(self.initPos,.5))
+		S.dem.par.add(utils.sphere(self.initPos,.5))
 		S.dem.par[1].vel=self.initVel
 		S.engines=[Leapfrog(reset=True)]
 		S.cell.nextGradV=Matrix3(0,0,0, 0,0,0, 0,0,-1)

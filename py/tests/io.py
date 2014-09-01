@@ -13,7 +13,7 @@ class TestFormatsAndDetection(unittest.TestCase):
 	def setUp(self):
 		woo.master.scene=S=Scene(fields=[DemField()])
 		S.engines=utils.defaultEngines()
-		S.dem.par.append(utils.sphere((0,0,0),radius=1))
+		S.dem.par.add(utils.sphere((0,0,0),radius=1))
 	def tryDumpLoad(self,fmt='auto',ext='',load=True):
 		S=woo.master.scene
 		for o in S.engines+[S.dem.par[0]]:
