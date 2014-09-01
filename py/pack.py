@@ -102,7 +102,7 @@ SpherePack.fromDem=SpherePack_fromDem
 SpherePack.fromSimulation=SpherePack_fromSimulation
 
 def SpherePack_toSimulation(self,scene,rot=Matrix3.Identity,**kw):
-	ur"""Append spheres directly to the simulation. In addition calling :obj:`woo.dem.BodyContainer.append`,
+	ur"""Append spheres directly to the simulation. In addition calling :obj:`woo.dem.ParticleContainer.add`,
 this method also appropriately sets periodic cell information of the simulation.
 
 	>>> from woo import pack; from math import *; from woo.dem import *; from woo.core import *
@@ -140,7 +140,7 @@ The current state (even if rotated) is taken as mechanically undeformed, i.e. wi
 
 :param Quaternion/Matrix3 rot: rotation of the packing, which will be applied on spheres and will be used to set :obj:`woo.core.Cell.trsf` as well.
 :param kw: passed to :obj:`woo.utils.sphere`
-:return: list of body ids added (like :obj:`woo.dem.BodyContainer.append`)
+:return: list of body ids added (like :obj:`woo.dem.ParticleContainer.add`)
 """
 	if isinstance(rot,Quaternion): rot=rot.toRotationMatrix()
 	assert(isinstance(rot,Matrix3))
@@ -152,15 +152,15 @@ The current state (even if rotated) is taken as mechanically undeformed, i.e. wi
 	from woo.dem import DemField
 	if not self.hasClumps():
 		if 'mat' not in kw.keys(): kw['mat']=utils.defaultMaterial()
-		return scene.dem.par.append([utils.sphere(rot*c,r,**kw) for c,r in self])
+		return scene.dem.par.add([utils.sphere(rot*c,r,**kw) for c,r in self])
 	else:
 		standalone,clumps=self.getClumps()
-		# append standalone
-		ids=scene.dem.par.append([utils.sphere(rot*self[i][0],self[i][1],**kw) for i in standalone])
-		# append clumps
+		# add standalone
+		ids=scene.dem.par.add([utils.sphere(rot*self[i][0],self[i][1],**kw) for i in standalone])
+		# add clumps
 		clumpIds=[]
 		for clump in clumps:
-			clumpNode=scene.dem.par.appendClumped([utils.sphere(rot*(self[i][0]),self[i][1],**kw) for i in clump])
+			clumpNode=scene.dem.par.addClumped([utils.sphere(rot*(self[i][0]),self[i][1],**kw) for i in clump])
 			# make all particles within one clump same color (as the first particle),
 			# unless color was already user-specified
 			clumpIds=[n.dem.parRef[0].id for n in clumpNode.dem.nodes] 
@@ -526,7 +526,7 @@ def randomDensePack(predicate,radius,mat=-1,dim=None,cropLayers=0,rRelFuzz=0.,sp
 		S.engines=[dem.ForceResetter(),dem.InsertionSortCollider([dem.Bo1_Sphere_Aabb()],verletDist=.05*radius),dem.ContactLoop([dem.Cg2_Sphere_Sphere_L6Geom()],[dem.Cp2_FrictMat_FrictPhys()],[dem.Law2_L6Geom_FrictPhys_IdealElPl()],applyForces=True),dem.Leapfrog(damping=.7,reset=False),dem.PeriIsoCompressor(charLen=2*radius,stresses=[-100e9,-1e8],maxUnbalanced=1e-2,doneHook='print "DONE"; S.stop();',globalUpdateInt=5,keepProportions=True,label='compressor')]
 		num=sp.makeCloud(Vector3().Zero,S.cell.size0,radius,rRelFuzz,spheresInCell,True)
 		mat=dem.FrictMat(young=30e9,tanPhi=.5,density=1e3,ktDivKn=.2)
-		for s in sp: S.dem.par.append(utils.sphere(s[0],s[1],mat=mat))
+		for s in sp: S.dem.par.add(utils.sphere(s[0],s[1],mat=mat))
 		S.dem.collectNodes()
 		S.dt=.5*utils.pWaveDt(S)
 		S.run(); S.wait()
@@ -578,7 +578,7 @@ def randomPeriPack(radius,initSize,rRelFuzz=0.0,memoizeDb=None):
 	log.setLevel('PeriIsoCompressor',log.DEBUG)
 	S.engines=[dem.ForceResetter(),dem.InsertionSortCollider([dem.Bo1_Sphere_Aabb()],verletDist=.05*radius),dem.ContactLoop([dem.Cg2_Sphere_Sphere_L6Geom()],[dem.Cp2_FrictMat_FrictPhys()],[dem.Law2_L6Geom_FrictPhys_IdealElPl()],applyForces=True),dem.PeriIsoCompressor(charLen=2*radius,stresses=[-100e9,-1e8],maxUnbalanced=1e-2,doneHook='print "done"; S.stop();',globalUpdateInt=20,keepProportions=True),dem.Leapfrog(damping=.8)]
 	mat=dem.FrictMat(young=30e9,tanPhi=.1,ktDivKn=.3,density=1e3)
-	for s in sp: S.dem.par.append(utils.sphere(s[0],s[1],mat=mat))
+	for s in sp: S.dem.par.add(utils.sphere(s[0],s[1],mat=mat))
 	S.dt=utils.pWaveDt(S)
 	#O.timingEnabled=True
 	S.run(); S.wait()
@@ -852,7 +852,7 @@ def makeBandFeedPack(dim,mat,gravity,psd=[],excessWd=None,damping=.3,porosity=.5
 	S.cell.setBox(cellSize)
 	# add limiting surface
 	p=sweptPolylines2gtsSurface([utils.tesselatePolyline([Vector3(x,yz[0],yz[1]) for yz in boundary2d],maxDist=min(cellSize[0]/4.,cellSize[1]/4.,cellSize[2]/4.)) for x in numpy.linspace(0,cellSize[0],num=4)])
-	S.dem.par.append(gtsSurface2Facets(p,mask=0b011))
+	S.dem.par.add(gtsSurface2Facets(p,mask=0b011))
 	S.dem.loneMask=0b010
 
 
