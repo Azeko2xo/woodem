@@ -50,8 +50,8 @@ Real DynDt::nodalCritDtSq(const shared_ptr<Node>& n) const {
 	};
 	Real ret=Inf;
 	LOG_TRACE("ktrans="<<ktrans.transpose()<<", krot="<<krot.transpose()<<", mass="<<dyn.mass<<", inertia="<<dyn.inertia.transpose());
-	for(int i:{0,1,2}){ if(ktrans[i]!=0 && dyn.mass>0.) ret=min(ret,dyn.mass/abs(ktrans[i])); }
-	for(int i:{0,1,2}){ if(krot[i]!=0 && dyn.inertia[i]>0.) ret=min(ret,dyn.inertia[i]/abs(krot[i])); }
+	for(int i:{0,1,2}){ if(ktrans[i]!=0 && dyn.mass>0. && !dyn.isBlockedAxisDOF(i,/*rot*/false)) ret=min(ret,dyn.mass/abs(ktrans[i])); }
+	for(int i:{0,1,2}){ if(krot[i]!=0 && dyn.inertia[i]>0. && !dyn.isBlockedAxisDOF(i,/*rot*/true)) ret=min(ret,dyn.inertia[i]/abs(krot[i])); }
 	return 2*ret; // (sqrt(2)*sqrt(ret))^2
 }
 

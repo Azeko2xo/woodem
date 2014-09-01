@@ -42,7 +42,7 @@ void Tetra::canonicalizeVertexOrder() {
 	if(!numNodesOk()) return;
 	const Vector3r& v1(nodes[0]->pos); const Vector3r& v2(nodes[1]->pos); const Vector3r& v3(nodes[2]->pos); const Vector3r& v4(nodes[3]->pos);
 	if(((v2-v1).cross(v3-v2)).dot(v4-v1)<0){
-		std::swap(nodes[3],nodes[4]);
+		std::swap(nodes[2],nodes[3]);
 	}
 }
 
@@ -125,6 +125,7 @@ void Tet4::computeNodalDisplacements(){
 }
 
 void Tet4::computeCorotatedFrame(){
+	node->pos=this->getCentroid();
 	// notation and procedure follows Mostafa, Sivaselvan: Best-fit corotated frames
 	typedef Eigen::Matrix<Real,4,3> Matrix43r; 
 	typedef Eigen::Matrix<Real,4,4> Matrix4r; 
@@ -202,11 +203,19 @@ void Tet4::ensureStiffnessMatrix(Real young, Real nu){
 	Matrix6r E; E<<e*(Matrix3r()<<1-nu,nu,nu, nu,1-nu,nu, nu,nu,1-nu).finished(),Matrix3r::Zero(),Matrix3r::Zero(),Matrix3r(Vector3r::Constant(e*(.5-nu)).asDiagonal());
 	// (9.40)
 	KK=V*B.transpose()*E*B;
+	EB=E*B; // this could be perhaps re-used from the previous expression
 	#if 0
 		cerr<<"E matrix:"<<endl<<E<<endl<<endl;
 		cerr<<"B matrix:"<<endl<<B<<endl<<endl;
 		cerr<<"K matrix:"<<endl<<KK<<endl<<endl;
 	#endif
+}
+
+Matrix3r Tet4::getStressTensor() const {
+	if(EB.size()!=72) return Matrix3r::Zero();
+	Matrix3r sigL((EB*uXyz).block<3,3>(0,0));
+	Matrix3r r=node->ori.toRotationMatrix();
+	return r*sigL*r.transpose();
 }
 
 
@@ -311,6 +320,7 @@ void Gl1_Tetra::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire
 
 
 bool Gl1_Tet4::node;
+bool Gl1_Tet4::rep;
 bool Gl1_Tet4::refConf;
 Vector3r Gl1_Tet4::refColor;
 int Gl1_Tet4::refWd;
@@ -321,17 +331,18 @@ void Gl1_Tet4::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire2
 	if(Renderer::fastDraw) return;
 	Tet4& t=sh->cast<Tet4>();
 	if(!t.node) return;
-	if(node){
+	if(node || rep){
 		Renderer::setNodeGlData(t.node);
-		Renderer::renderRawNode(t.node);
-		if(t.node->rep) t.node->rep->render(t.node,&viewInfo);
+		if(node) Renderer::renderRawNode(t.node);
+		if(rep && t.node->rep) t.node->rep->render(t.node,&viewInfo);
 	}
+
 	glPushMatrix();
 		GLUtils::setLocalCoords(t.node->pos,t.node->ori);
 		if(refConf){
 			glColor3v(refColor);
 			glLineWidth(refWd);
-			glBegin(GL_LINE_LOOP);
+			glBegin(GL_LINE_STRIP);
 				for(int i:{0,1,2,3,0,2,1,3}) glVertex3v(Vector3r(t.refPos.col(i)));
 			glEnd();
 		}

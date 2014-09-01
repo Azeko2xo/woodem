@@ -40,7 +40,7 @@ struct Tetra: public Shape {
 		,/*py*/ \
 			/*.def("getNormal",&Tetra::getNormal,"Return normal vector of the facet") */ \
 			.def("getCentroid",&Tetra::getCentroid,"Return centroid of the tetrahedron") \
-			.def("volume",&Tetra::getVolume,"Return volume of the tetrahedron.") \
+			.def("getVolume",&Tetra::getVolume,"Return volume of the tetrahedron.") \
 			.def("canonicalizeVertexOrder",&Tetra::canonicalizeVertexOrder,"Order vertices so that signed volume is positive.") \
 			/*.def("outerEdgeNormals",&Tetra::outerEdgeNormals,"Return outer edge normal vectors")*/ \
 			/*.def("area",&Tetra::getArea,"Return surface area of the facet") */
@@ -59,6 +59,7 @@ struct Tet4: public Tetra{
 
 	void ensureStiffnessMatrix(Real young, Real nu);
 	void addIntraStiffnesses(const shared_ptr<Node>&, Vector3r& ktrans, Vector3r& krot) const;
+	Matrix3r getStressTensor() const;
 
 	#define woo_fem_Tet4__CLASS_BASE_DOC_ATTRS_CTOR_PY \
 		Tet4,Tetra,"4-node linear interpolation tetrahedron element with best-fit co-rotated coordinates.", \
@@ -66,11 +67,13 @@ struct Tet4: public Tetra{
 		((MatrixXr,refPos,,AttrTrait<>().readonly(),"Reference nodal positions in local coordinates")) \
 		((VectorXr,uXyz,,AttrTrait<>().readonly(),"Nodal displacements in local coordinates")) \
 		((MatrixXr,KK,,AttrTrait<>().readonly().noGui(),"Stiffness matrix")) \
+		((MatrixXr,EB,,AttrTrait<>().readonly().noGui(),":math:`E B` matrix, used to compute stresses from displacements.")) \
 		,/*ctor*/ createIndex();\
 		,/*py*/.def("setRefConf",&Tet4::setRefConf,"Set the current configuration as the reference one") \
 			.def("ensureStiffnessMatrix",&Tet4::ensureStiffnessMatrix,(py::arg("young"),py::arg("nu")),"Ensure that stiffness matrix is initialized; internally also sets reference configuration. The *young* parameter should match :obj:`woo.dem.ElastMat.young` attached to the particle.") \
 			.def("update",&Tet4::stepUpdate,"Update current configuration; creates reference configuration if not existing") \
-			.def("reset",&Tet4::pyReset)
+			.def("reset",&Tet4::pyReset) \
+			.def("getStressTensor",&Tet4::getStressTensor)
 
 	REGISTER_CLASS_INDEX(Tet4,Shape);
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_fem_Tet4__CLASS_BASE_DOC_ATTRS_CTOR_PY);
@@ -120,7 +123,8 @@ struct Gl1_Tet4: public Gl1_Tetra{
 	RENDERS(Tet4);
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Tet4,Gl1_Tetra,"Renders :obj:`Tet4` object; :obj:`Tetra` itself is rendered via :obj:`Gl1_Tetra`.",
 		((bool,node,false,,"Show local frame node"))
-		((bool,refConf,true,,"Show reference configuration, rotated to the current local frame"))
+		((bool,rep,true,,"Show GlRep of the frame node (without showing the node itself)"))
+		((bool,refConf,false,,"Show reference configuration, rotated to the current local frame"))
 		((Vector3r,refColor,Vector3r(0,.5,0),AttrTrait<>().rgbColor(),"Color for the reference shape"))
 		((int,refWd,1,,"Line width for the reference shape"))
 		((int,uWd,2,,"Width of displacement lines"))

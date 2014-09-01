@@ -22,7 +22,6 @@ void IntraFunctor::addIntraStiffnesses(const shared_ptr<Particle>&, const shared
 }
 
 
-
 void IntraForce::run(){
 	DemField& dem=field->cast<DemField>();
 	updateScenePtr();

@@ -380,6 +380,7 @@ bool InsertionSortCollider::updateBboxes_doFullRun(){
 		// cerr<<"["<<p->id<<"]";
 		boundDispatcher->operator()(p->shape);
 		if(!p->shape->bound){
+			if(noBoundOk) continue;
 			throw std::runtime_error("InsertionSortCollider: No bound was created for #"+lexical_cast<string>(p->id)+", provide a Bo1_*_Aabb functor for it. (Particle without Aabb are not supported yet, and perhaps will never be (what is such a particle good for?!)");
 		}
 		Aabb& aabb=p->shape->bound->cast<Aabb>();

@@ -349,6 +349,10 @@ int DemField::collectNodes(){
 	return added;
 }
 
+void DemField::pyNodesAppendList(const vector<shared_ptr<Node>> nn){
+	for(const auto& n: nn) pyNodesAppend(n);
+}
+
 void DemField::pyNodesAppend(const shared_ptr<Node>& n){
 	if(!n) throw std::runtime_error("DemField.nodesAppend: Node to be added may not be None.");
 	if(!n->hasData<DemData>()) throw std::runtime_error("DemField.nodesAppend: Node must define Node.dem (DemData)");

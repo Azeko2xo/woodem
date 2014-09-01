@@ -30,7 +30,7 @@ Particle shapes
 The following particle shapes are supported:
 
 1. Simple shapes (1-node): :obj:`~woo.dem.Sphere`, :obj:`~woo.dem.Capsule`, :obj:`~woo.dem.Ellipsoid`;
-2. Multinodal shapes: :obj:`~woo.dem.Truss` (2 nodes), :obj:`~woo.dem.Facet` (3 nodes); :obj:`~woo.dem.FlexFacet` (same as :obj:`~woo.dem.Facet` geometrically, but adds deformability);
+2. Multinodal shapes: :obj:`~woo.dem.Truss` (2 nodes), :obj:`~woo.dem.Facet` (3 nodes); :obj:`~woo.fem.Membrane` (same as :obj:`~woo.dem.Facet` geometrically, but adds deformability), :obj:`woo.fem.Tetra` (4 nodes; plus deforming :obj:`woo.fem.Tet4`)
 3. Infinite axis-aligned shapes: :obj:`~woo.dem.InfCylinder`, :obj:`~woo.dem.Wall`.
 
 The following matrix shows which shapes can collide with each other:
