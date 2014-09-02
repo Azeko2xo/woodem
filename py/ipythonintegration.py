@@ -144,7 +144,8 @@ def create_inputhook_qt4(mgr, app=None):
 
 
 def replaceInputHookIfNeeded():
-    import woo.runtime
+    import woo.runtime, woo.config
+	 if 'qt4' not in woo.config.features: return
     ## apply local version instead of the stock one
     if woo.runtime.ipython_version() in (12,13,100,110,120):
         import IPython.lib.inputhookqt4
