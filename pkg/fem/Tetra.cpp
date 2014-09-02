@@ -238,9 +238,9 @@ void In2_Tet4_ElastMat::addIntraStiffnesses(const shared_ptr<Particle>& p, const
 }
 
 
-void In2_Tet4_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& particle, const bool skipContacts){
+void In2_Tet4_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& particle){
 	auto& t=sh->cast<Tet4>();
-	if(contacts && !skipContacts && !particle->contacts.empty()){
+	if(contacts && !particle->contacts.empty()){
 		throw std::runtime_error("In2_Tet4_ElastMat: contacts==True not handled yet.");
 	}
 	t.stepUpdate();

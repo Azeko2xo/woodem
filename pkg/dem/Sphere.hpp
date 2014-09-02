@@ -42,7 +42,7 @@ struct Bo1_Sphere_Aabb: public BoundFunctor{
 WOO_REGISTER_OBJECT(Bo1_Sphere_Aabb);
 
 struct In2_Sphere_ElastMat: public IntraFunctor{
-	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&, const bool skipContacts) WOO_CXX11_OVERRIDE;
+	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&) WOO_CXX11_OVERRIDE;
 	FUNCTOR2D(Sphere,ElastMat);
 	#ifdef WOO_DEBUG
 		#define woo_dem_In2_Sphere_ElastMat__watch__DEBUG ((Vector2i,watch,Vector2i(-1,-1),,"Print detailed information about contact having those ids (debugging only)"))

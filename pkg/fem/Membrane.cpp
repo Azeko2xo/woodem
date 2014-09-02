@@ -102,6 +102,8 @@ void Membrane::ensureStiffnessMatrices(const Real& young, const Real& nu, const 
 	KKcst.resize(6,6);
 	KKcst=t*area*B.transpose()*E*B;
 
+	// EBcst=E*B;
+
 	if(!bending) return;
 
 	// strain-displacement matrix (DKT element)
@@ -195,8 +197,10 @@ void Membrane::ensureStiffnessMatrices(const Real& young, const Real& nu, const 
 	// KKdkt0 is 9x9, then w_i dofs are condensed away, and KKdkt is only 9x6
 	#ifdef MEMBRANE_CONDENSE_DKT
 		MatrixXr KKdkt0(9,9); KKdkt0.setZero();
+		// MatrixXr EBdkt0(9,6); EBdkt0.setZero();
 	#else
 		KKdkt.setZero(9,9);
+		// EBdkt.setZero(9,6);
 	#endif
 	// gauss integration points and their weights
 	Vector3r xxi(.5,.5,0), eeta(0,.5,.5);
@@ -210,6 +214,14 @@ void Membrane::ensureStiffnessMatrices(const Real& young, const Real& nu, const 
 				KKdkt
 			#endif
 				+=(2*area*ww[j]*ww[i])*b.transpose()*Db*b;
+			#if 0
+				#ifdef MEMBRANE_CONDENSE_DKT
+					EBdkt0
+				#else
+					EBdkt
+				#endif
+					+=(2*area*ww[j]*ww[i])*Db*b;
+			#endif
 		}
 	}
 	#ifdef MEMBRANE_CONDENSE_DKT
@@ -319,33 +331,11 @@ void In2_Membrane_ElastMat::addIntraStiffnesses(const shared_ptr<Particle>& p, c
 }
 
 
-void In2_Membrane_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& particle, const bool skipContacts){
+void In2_Membrane_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& particle){
 	auto& ff=sh->cast<Membrane>();
-	if(contacts && !skipContacts && !particle->contacts.empty()){
-		Vector3r normal=Vector3r::Zero(); // compiler happy
-		if(bending||applyBary) normal=ff.getNormal();
-		for(const auto& pC: particle->contacts){
-			const shared_ptr<Contact>& C(pC.second); if(!C->isReal()) continue;
-			Vector3r F,T,xc;
-			Vector3r weights;
-			if(bending||applyBary){
-				// find barycentric coordinates of the projected contact point, and use those as weights
-				// I *guess* this would be the solution for linear interpolation anyway
-				const Vector3r& c=C->geom->node->pos;
-				Vector3r p=c-(c-sh->nodes[0]->pos).dot(normal)*normal;
-				weights=CompUtils::triangleBarycentrics(p,sh->nodes[0]->pos,sh->nodes[1]->pos,sh->nodes[2]->pos);
-			} else {
-				// distribute equally when bending is not considered
-				weights=Vector3r::Constant(1/3.);
-			}
-			// TODO: this could be done more efficiently
-			for(int i:{0,1,2}){
-				std::tie(F,T,xc)=C->getForceTorqueBranch(particle,/*nodeI*/i,scene);
-				F*=weights[i]; T*=weights[i];
-				ff.nodes[i]->getData<DemData>().addForceTorque(F,xc.cross(F)+T);
-			}
-		}
-	}
+
+	if(!particle->contacts.empty()) distributeForces(particle,sh->cast<Facet>(),/*bary*/bending||applyBary);
+
 	ff.stepUpdate();
 	// assemble local stiffness matrix, in case it does not exist yet
 	ff.ensureStiffnessMatrices(particle->material->cast<ElastMat>().young,nu,thickness,/*bending*/bending,bendThickness);

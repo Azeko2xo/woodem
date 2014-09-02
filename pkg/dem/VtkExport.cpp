@@ -6,6 +6,7 @@
 #include<woo/pkg/dem/Ellipsoid.hpp>
 #include<woo/pkg/dem/Wall.hpp>
 #include<woo/pkg/dem/Capsule.hpp>
+#include<woo/pkg/fem/Tetra.hpp>
 #include<woo/pkg/dem/Clump.hpp>
 #include<woo/pkg/dem/Funcs.hpp>
 
@@ -192,6 +193,7 @@ void VtkExport::run(){
 	_VTK_CELL_INT_ARR(mGrid,mMatId,"matId",1);
 	_VTK_CELL_ARR(mGrid,mVel,"vel",3);
 	_VTK_CELL_ARR(mGrid,mAngVel,"angVel",3);
+	_VTK_CELL_ARR(mGrid,mSigNorm,"|sigma|",1);
 	// triangulated particles
 	auto tGrid=vtkSmartPointer<vtkUnstructuredGrid>::New();
 	auto tPos=vtkSmartPointer<vtkPoints>::New();
@@ -211,9 +213,12 @@ void VtkExport::run(){
 		const auto sphere=dynamic_cast<Sphere*>(p->shape.get());
 		const auto wall=dynamic_cast<Wall*>(p->shape.get());
 		const auto facet=dynamic_cast<Facet*>(p->shape.get());
+		const auto tetra=dynamic_cast<Tetra*>(p->shape.get());
+		const auto tet4=dynamic_cast<Tet4*>(p->shape.get());
 		const auto infCyl=dynamic_cast<InfCylinder*>(p->shape.get());
 		const auto ellipsoid=dynamic_cast<Ellipsoid*>(p->shape.get());
 		const auto capsule=dynamic_cast<Capsule*>(p->shape.get());
+		Real sigNorm=0;
 		if(sphere){
 			Vector3r pos=p->shape->nodes[0]->pos;
 			if(scene->isPeriodic) pos=scene->cell->canonicalizePt(pos);
@@ -239,7 +244,12 @@ void VtkExport::run(){
 		// no more spheres, just meshes now
 		int mCellNum=0;
 		int tCellNum=0;
-		if(facet){
+		if(tetra){
+			const Vector3r &A(tetra->nodes[0]->pos), &B(tetra->nodes[1]->pos), &C(tetra->nodes[2]->pos), &D(tetra->nodes[3]->pos);
+			mCellNum=addTriangulatedObject({A,B,C,D},{Vector3i(0,2,1),Vector3i(0,1,3),Vector3i(0,3,2),Vector3i(1,2,3)},mPos,mCells);
+			if(tet4) sigNorm=tet4->getStressTensor().norm();
+		}
+		else if(facet){
 			const Vector3r &A(facet->nodes[0]->pos), &B(facet->nodes[1]->pos), &C(facet->nodes[2]->pos);
 			if(facet->halfThick==0.){
 				mCellNum=addTriangulatedObject({A,B,C},{Vector3i(0,1,2)},mPos,mCells);
@@ -447,6 +457,7 @@ void VtkExport::run(){
 				if(facet) scalar/=p->shape->cast<Facet>().getArea();
 			}
 			mMatState->InsertNextValue(isnan(scalar)?nanValue:scalar);
+			mSigNorm->InsertNextValue(sigNorm);
 		}
 		// triangulated particles (ellipsoids, capsules)
 		for(int i=0;i<tCellNum;i++){

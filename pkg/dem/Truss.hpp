@@ -62,7 +62,7 @@ struct Bo1_Truss_Aabb: public BoundFunctor{
 WOO_REGISTER_OBJECT(Bo1_Truss_Aabb);
 
 struct In2_Truss_ElastMat: public IntraFunctor{
-	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&, const bool skipContacts) WOO_CXX11_OVERRIDE;
+	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&) WOO_CXX11_OVERRIDE;
 	FUNCTOR2D(Truss,ElastMat);
 	WOO_CLASS_BASE_DOC_ATTRS(In2_Truss_ElastMat,IntraFunctor,"Compute elastic response of cylinder determined by 2 nodes.",
 		((bool,setL0,true,,"Automatically set equilibrium length of truss, when first encountered."))

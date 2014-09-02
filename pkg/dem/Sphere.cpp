@@ -103,8 +103,7 @@ bool Cg2_Sphere_Sphere_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<
 };
 
 
-void In2_Sphere_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& particle, const bool skipContacts){
-	if(skipContacts) return;
+void In2_Sphere_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& particle){
 	if(!alreadyWarned_ContactLoopWithApplyForces){
 		for(const auto& e: scene->engines){
 			if(!e->isA<ContactLoop>()) continue;

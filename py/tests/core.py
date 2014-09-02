@@ -177,11 +177,11 @@ class TestObjectInstantiation(unittest.TestCase):
 		ts=self.ts
 		self.assert_(ts.numTriggered==0)
 		self.trigger=1
-		print 'self.numTriggered',ts.numTriggered
-		# self.assert_(ts.numTriggered==1)
+		# print 'self.numTriggered',ts.numTriggered
+		self.assert_(ts.numTriggered>0)
 		self.trigger=-1
-		print 'self.numTriggered',ts.numTriggered
-		# self.assert_(ts.numTriggered==2)
+		# print 'self.numTriggered',ts.numTriggered
+		self.assert_(ts.numTriggered==2)
 
 	def testNamedEnum(self):
 		'Core: Attr::namedEnum'

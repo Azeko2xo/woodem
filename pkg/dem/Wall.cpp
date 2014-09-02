@@ -32,8 +32,7 @@ void Bo1_Wall_Aabb::go(const shared_ptr<Shape>& sh){
 	aabb.min[wall.axis]=aabb.max[wall.axis]=sh->nodes[0]->pos[wall.axis];
 }
 
-void In2_Wall_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& particle, const bool skipContacts){
-	if(skipContacts) return;
+void In2_Wall_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& particle){
 	for(const auto& pC: particle->contacts){
 		const shared_ptr<Contact>& C(pC.second); if(!C->isReal()) continue;
 		Vector3r F,T,xc;

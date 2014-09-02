@@ -327,7 +327,7 @@ def dbToSpread(db,out=None,dialect='xls',rows=False,series=True,ignored=('plotDa
 			# sort simulation ids by attribute tuples:
 			# http://stackoverflow.com/a/6620187/761090
 			simIds=zip(*sorted(zip([s for s in hdf if _checkHdf5sim(hdf[s])],[tuple([natural_key(str(hdf[s].attrs[a])) for a in sortAttrs if a in hdf[s].attrs]) for s in hdf if _checkHdf5sim(hdf[s])]),key=operator.itemgetter(1)))[0]
-			print simIds
+			# print simIds
 			# iterate over simulations
 			for i,simId in enumerate(simIds):
 				sim=hdf[simId]

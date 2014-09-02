@@ -30,7 +30,7 @@ void Bo1_Truss_Aabb::go(const shared_ptr<Shape>& sh){
 	}
 };
 
-void In2_Truss_ElastMat::go(const shared_ptr<Shape>& shape, const shared_ptr<Material>& mat, const shared_ptr<Particle>& particle, const bool skipContacts){
+void In2_Truss_ElastMat::go(const shared_ptr<Shape>& shape, const shared_ptr<Material>& mat, const shared_ptr<Particle>& particle){
 	Truss& t=shape->cast<Truss>();
 	assert(t.numNodesOk());
 	Vector3r Fa(Vector3r::Zero()), Fb(Vector3r::Zero());
@@ -41,7 +41,7 @@ void In2_Truss_ElastMat::go(const shared_ptr<Shape>& shape, const shared_ptr<Mat
 		if(setL0) t.l0=len;
 		else woo::ValueError(("#"+lexical_cast<string>(particle->id)+": Truss.l0==NaN (set In2_Truss_ElastMat.setL0=True to initialize this value automatically."));
 	}
-	if(!skipContacts){
+	if(true){
 		for(const auto& pC: particle->contacts){
 			const shared_ptr<Contact>& C(pC.second); if(!C->isReal()) continue;
 			// force and torque at the contact point

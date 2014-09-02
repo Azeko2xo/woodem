@@ -668,7 +668,7 @@ void InsertionSortCollider::insertionSortPeri(VecBounds& v, bool doCollide, int 
 		// one chunk per core; the complicated logic for the non-periodic variant has not brought any improvement
 		int chunks=omp_get_max_threads();
 		int chunkSize=v.size/chunks;
-		if(chunkSize<100){ insertionSortPeri_part(v,doCollide,ax,0,v.size,0); return; }
+		if(chunkSize<100 || !paraPeri){ insertionSortPeri_part(v,doCollide,ax,0,v.size,0); return; }
 
 		/*
 			============================================= bound sequence

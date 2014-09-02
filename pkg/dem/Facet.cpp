@@ -6,14 +6,14 @@
 	#include<woo/pkg/gl/Renderer.hpp>
 #endif
 
-WOO_PLUGIN(dem,(Facet)(Bo1_Facet_Aabb)(Cg2_Facet_Sphere_L6Geom)(Cg2_Facet_Facet_L6Geom)(Cg2_Facet_InfCylinder_L6Geom)(In2_Facet_ElastMat));
+WOO_PLUGIN(dem,(Facet)(Bo1_Facet_Aabb)(Cg2_Facet_Sphere_L6Geom)(Cg2_Facet_Facet_L6Geom)(Cg2_Facet_InfCylinder_L6Geom)(In2_Facet));
 
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_Facet__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Facet_Sphere_L6Geom__CLASS_BASE_DOC);
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Facet_Facet_L6Geom__CLASS_BASE_DOC);
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Facet_InfCylinder_L6Geom__CLASS_BASE_DOC);
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_Bo1_Facet_Aabb__CLASS_BASE_DOC);
-WOO_IMPL__CLASS_BASE_DOC(woo_dem_In2_Facet_ElastMat__CLASS_BASE_DOC);
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_In2_Facet__CLASS_BASE_DOC);
 
 
 CREATE_LOGGER(Facet);
@@ -190,12 +190,40 @@ void Bo1_Facet_Aabb::go(const shared_ptr<Shape>& sh){
 	}
 }
 
-CREATE_LOGGER(Cg2_Facet_Sphere_L6Geom);
+
+void In2_Facet::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& p){
+	if(!p->contacts.empty()) distributeForces(p,sh->cast<Facet>(),/*bary*/true);
+}
+
+void In2_Facet::distributeForces(const shared_ptr<Particle>& particle, const Facet& f, bool bary){
+	Vector3r normal=(bary?f.getNormal():/*compiler happy*/Vector3r::Zero());
+	for(const auto& pC: particle->contacts){
+		const shared_ptr<Contact>& C(pC.second); if(!C->isReal()) continue;
+		Vector3r F,T,xc;
+		Vector3r weights;
+		if(bary){
+			// find barycentric coordinates of the projected contact point, and use those as weights
+			// I *guess* this would be the solution for linear interpolation anyway
+			const Vector3r& c=C->geom->node->pos;
+			Vector3r p=c-(c-f.nodes[0]->pos).dot(normal)*normal;
+			weights=CompUtils::triangleBarycentrics(p,f.nodes[0]->pos,f.nodes[1]->pos,f.nodes[2]->pos);
+		} else {
+			// distribute equally when bending is not considered
+			weights=Vector3r::Constant(1/3.);
+		}
+		// TODO: this could be done more efficiently
+		for(int i:{0,1,2}){
+			std::tie(F,T,xc)=C->getForceTorqueBranch(particle,/*nodeI*/i,scene);
+			F*=weights[i]; T*=weights[i];
+			f.nodes[i]->getData<DemData>().addForceTorque(F,xc.cross(F)+T);
+		}
+	}
+}
 
 
-void In2_Facet_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& particle, const bool skipContacts){
+#if 0
+void In2_Facet_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& particle){
 	// nothing to do
-	if(skipContacts) return;
 	auto& f=sh->cast<Facet>();
 	for(const auto& I: particle->contacts){
 		const shared_ptr<Contact>& C(I.second); if(!C->isReal()) continue;
@@ -207,7 +235,10 @@ void In2_Facet_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Materi
 		}
 	}
 };
+#endif
 
+
+CREATE_LOGGER(Cg2_Facet_Sphere_L6Geom);
 
 bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
 	const Facet& f=sh1->cast<Facet>(); const Sphere& s=sh2->cast<Sphere>();

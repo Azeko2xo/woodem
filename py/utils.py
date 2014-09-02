@@ -9,7 +9,7 @@
 
 import math,random,doctest
 import woo, woo.dem, woo.core
-import sys,os
+import sys,os,warnings
 from minieigen import *
 
 from woo.dem import *
@@ -52,7 +52,6 @@ def defaultEngines(damping=0.,gravity=None,verletDist=-.05,kinSplit=False,dontCo
 	if not grid: collider=InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb(),Bo1_Wall_Aabb(),Bo1_InfCylinder_Aabb(),Bo1_Ellipsoid_Aabb(),Bo1_Truss_Aabb()]+([] if 'nocapsule' in woo.config.features else [Bo1_Capsule_Aabb()]),label='collider',verletDist=verletDist)
 	else: collider=GridCollider([Grid1_Sphere(),Grid1_Facet(),Grid1_Wall(),Grid1_InfCylinder()],label='collider',verletDist=verletDist)
 	if model:
-		import warnings
 		if cp2 or law: warnings.warn("cp2 and law args are ignored when model is provided.")
 		if damping!=0.: warnings.warn("damping is ignored when model is provided.")
 		cp2,law=model.getFunctors()
@@ -225,7 +224,7 @@ def facet(vertices,fakeVel=None,halfThick=0.,fixed=True,wire=True,color=None,hig
 		nodes=[_mkDemNode(pos=vertices[0]),_mkDemNode(pos=vertices[1]),_mkDemNode(pos=vertices[2])]
 	if flex!=None:
 		if flex:
-			warnings.warn(DeprecationWarning,'Facet.make(...,flex=True) is deprecated, use Membrane.make(...) instead.',stacklevel=2)
+			warnings.warn('Facet.make(...,flex=True) is deprecated, use Membrane.make(...) instead.',DeprecationWarning,stacklevel=2)
 			__class=woo.fem.Membrane
 	p.shape=__class(color=color if color else random.random(),halfThick=halfThick)
 	if fakeVel: p.shape.fakeVel=fakeVel
@@ -414,7 +413,7 @@ def makeVideo(frameSpec,out,renameNotOverwrite=True,fps=24,kbps=15000,holdLast=-
 	:param int kbps: Bitrate (``-lavcopts vbitrate=…``) in kb/s
 	:param holdLast: Repeat the last frame this many times; if negative, it means seconds and will be converted to frames according to *fps*. This option is not applicable if *frameSpec* is a wildcard (as opposed to a list of images).
 	"""
-	import os,os.path,subprocess,warnings
+	import os,os.path,subprocess
 	if renameNotOverwrite and os.path.exists(out):
 		i=0
 		while(os.path.exists(out+"~%d"%i)): i+=1
@@ -586,7 +585,7 @@ def htmlReport(S,repFmt,headline,afterHead='',figures=[],dialect=None,figFmt=Non
 	:return: (filename of the report, list of external figures)
 
 	'''
-	import codecs, re, os.path, warnings
+	import codecs, re, os.path
 	import woo,woo.batch
 	dialects=set(['html5','html4','xhtml'])
 	if not dialect:
@@ -701,7 +700,6 @@ def unbalancedEnergy(S):
 
 def _deprecatedUtilsFunction(old,new):
 	"Wrapper for deprecated functions, example below."
-	import warnings
 	warnings.warn('Function utils.%s is deprecated, use %s instead.'%(old,new),stacklevel=2,category=DeprecationWarning)
 
 # example of _deprecatedUtilsFunction usage:

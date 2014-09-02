@@ -36,6 +36,8 @@ struct Membrane: public Facet{
 		((Vector6r,phiXy,Vector6r::Zero(),AttrTrait<>().readonly(),"Nodal rotations, only including in-plane rotations (drilling DOF not yet implemented)")) \
 		((MatrixXr,KKcst,,,"Stiffness matrix of the element (assembled from the reference configuration when needed for the first time)")) \
 		((MatrixXr,KKdkt,,,"Bending stiffness matrix of the element (assembled from the reference configuration when needed for the first time).")) \
+		/* ((MatrixXr,EBcst,,,"Displacement-stress matrix, for computation of stress tensor in post-processing only.")) \
+		((MatrixXr,EBdkt,,,"Displacement-stress matrix, for computation of stress tensor in post-processing only.")) */ \
 		woo_dem_Membrane__ATTRS__MEMBRANE_DEBUG_ROT \
 		,/*ctor*/ createIndex(); \
 		,/*py*/ \
@@ -47,13 +49,13 @@ struct Membrane: public Facet{
 };
 WOO_REGISTER_OBJECT(Membrane);
 
-struct In2_Membrane_ElastMat: public IntraFunctor{
+struct In2_Membrane_ElastMat: public In2_Facet{
 	void addIntraStiffnesses(const shared_ptr<Particle>&, const shared_ptr<Node>&, Vector3r& ktrans, Vector3r& krot) const WOO_CXX11_OVERRIDE;
-	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&, const bool skipContacts) WOO_CXX11_OVERRIDE;
+	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&) WOO_CXX11_OVERRIDE;
 	FUNCTOR2D(Membrane,ElastMat);
 	DECLARE_LOGGER;
 	#define woo_dem_In2_Membrane_ElastMat__CLASS_BASE_DOC_ATTRS \
-		In2_Membrane_ElastMat,IntraFunctor,"Apply contact forces and compute internal response of a :obj:`Membrane`.", \
+		In2_Membrane_ElastMat,In2_Facet,"Apply contact forces and compute internal response of a :obj:`Membrane`. Forces are distributed according to barycentric coordinates when :obj:`bending` is enabled; otherwise forces are distributed equally (thirds) to all nodes, to avoid contacts punching through the mesh which has no bending resistance. This can be overridden by setting :obj:`applyBary`, in which case forces will be always applied weighted by barycentric coords.", \
 		((bool,contacts,true,,"Apply contact forces to facet's nodes (FIXME: very simply distributed in thirds now)")) \
 		((Real,nu,.25,,"Poisson's ratio used for assembling the $E$ matrix (Young's modulus is taken from :obj:`ElastMat`). Will be moved to the material class at some point.")) \
 		((Real,thickness,NaN,,"Thickness for CST stiffness computation; if NaN, try to use the double of :obj:`Facet.halfThick`.")) \

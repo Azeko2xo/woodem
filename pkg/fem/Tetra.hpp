@@ -91,12 +91,12 @@ WOO_REGISTER_OBJECT(Bo1_Tetra_Aabb);
 
 struct In2_Tet4_ElastMat: public IntraFunctor{
 	void addIntraStiffnesses(const shared_ptr<Particle>&, const shared_ptr<Node>&, Vector3r& ktrans, Vector3r& krot) const WOO_CXX11_OVERRIDE;
-	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&, const bool skipContacts) WOO_CXX11_OVERRIDE;
+	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&) WOO_CXX11_OVERRIDE;
 	FUNCTOR2D(Tet4,ElastMat);
 	DECLARE_LOGGER;
 	#define woo_dem_In2_Tet4_ElastMat__CLASS_BASE_DOC_ATTRS \
 		In2_Tet4_ElastMat,IntraFunctor,"Apply contact forces and compute internal response of a :obj:`Tet4`.", \
-		((bool,contacts,true,,"Apply contact forces to :obj:`Tetra` nodes")) \
+		((bool,contacts,false,AttrTrait<>().readonly(),"Apply contact forces to :obj:`Tetra` nodes (not yet implemented)")) \
 		((Real,nu,.25,,"Poisson's ratio used for assembling the $E$ matrix (Young's modulus is taken from :obj:`ElastMat`). Will be moved to the material class at some point."))
 	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_In2_Tet4_ElastMat__CLASS_BASE_DOC_ATTRS);
 };

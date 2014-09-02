@@ -56,6 +56,19 @@ struct Bo1_Facet_Aabb: public BoundFunctor{
 };
 WOO_REGISTER_OBJECT(Bo1_Facet_Aabb);
 
+struct In2_Facet: public IntraFunctor {
+	void addIntraStiffnesses(const shared_ptr<Particle>&, const shared_ptr<Node>&, Vector3r& ktrans, Vector3r& krot) const WOO_CXX11_OVERRIDE{/*no internal stiffness in Facets*/};
+	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&) WOO_CXX11_OVERRIDE;
+	// this does the actual job
+	void distributeForces(const shared_ptr<Particle>&, const Facet& f, bool bary);
+	FUNCTOR2D(Facet,Material);
+	#define woo_dem_In2_Facet__CLASS_BASE_DOC \
+		In2_Facet,IntraFunctor,"Distribute frce on :obj:`Facet` to its nodes; the algorithm is purely geometrical since :obj:`Facet` has no internal forces, therefore can accept any kind of material."
+	WOO_DECL__CLASS_BASE_DOC(woo_dem_In2_Facet__CLASS_BASE_DOC)
+};
+WOO_REGISTER_OBJECT(In2_Facet);
+
+
 struct Cg2_Facet_Sphere_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
 	// virtual bool goReverse(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){ throw std::logic_error("ContactLoop should swap interaction arguments, should be Facet+Sphere, but is "+s1->getClassName()+"+"+s2->getClassName()); }
@@ -94,16 +107,6 @@ struct Cg2_Facet_InfCylinder_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 };
 WOO_REGISTER_OBJECT(Cg2_Facet_InfCylinder_L6Geom);
 
-
-
-struct In2_Facet_ElastMat: public IntraFunctor{
-	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&, const bool skipContacts);
-	FUNCTOR2D(Facet,ElastMat);
-	DECLARE_LOGGER;
-	#define woo_dem_In2_Facet_ElastMat__CLASS_BASE_DOC In2_Facet_ElastMat,IntraFunctor,"Apply contact forces to the nodes of undeformable :obj:`Facet`; if you need deformability, see :obj:`In2_Membrane_ElastMat` instead."
-	WOO_DECL__CLASS_BASE_DOC(woo_dem_In2_Facet_ElastMat__CLASS_BASE_DOC);
-};
-WOO_REGISTER_OBJECT(In2_Facet_ElastMat);
 
 
 #ifdef WOO_OPENGL
