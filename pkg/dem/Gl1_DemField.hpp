@@ -66,20 +66,20 @@ struct Gl1_DemField: public GlFieldFunctor{
 		((bool,wire,false,,"Render all shapes with wire only"))
 
 		((int,colorBy,COLOR_SHAPE,AttrTrait<Attr::triggerPostLoad|Attr::namedEnum>().namedEnum(GL1_DEMFIELD_COLORBY_NAMEDENUM) /*.choice({ GL1_DEMFIELD_COLORBY_CHOICES })*/.buttons({"Reference now","self.updateRefPos=True","use current positions and orientations as reference for showing displacement/rotation"},/*showBefore*/false),"Color particles by"))
-		((int,vecAxis,-1,AttrTrait<>().choice({{-1,"norm"},{0,"x"},{1,"y"},{2,"z"}}).hideIf("self.colorBy in (self.colorShape, self.colorRadius, self.colorMatId, self.colorMatState, self.colorNumCon)"),"Axis for colorRefPosCoord"))
-		((int,matStateIx,0,AttrTrait<Attr::triggerPostLoad>().hideIf("self.colorBy!=self.colorMatState and self.colorBy2!=self.colorMatState"),"Index for getting :obj:`MatState` scalars."))
-		((Real,matStateSmooth,1e-3,AttrTrait<>().hideIf("self.colorBy!=self.colorMatState and self.colorBy2!=self.colorMatState"),"Smoothing coefficient for :obj:`MatState` scalars."))
-		((shared_ptr<ScalarRange>,colorRange,,AttrTrait<>().readonly().hideIf("self.colorBy in (self.colorSolid,self.colorInvisible)"),"Range for particle colors (:obj:`colorBy`)"))
+		((int,vecAxis,-1,AttrTrait<>().choice({{-1,"norm"},{0,"x"},{1,"y"},{2,"z"}}).hideIf("self.colorBy in ('Shape.color', 'radius', 'material id', 'Particle.matState', 'number of contacts')"),"Axis for colorRefPosCoord"))
+		((int,matStateIx,0,AttrTrait<Attr::triggerPostLoad>().hideIf("self.colorBy!='Particle.matState'  and self.colorBy2!='Particle.matState'"),"Index for getting :obj:`MatState` scalars."))
+		((Real,matStateSmooth,1e-3,AttrTrait<>().hideIf("self.colorBy!='Particle.matState' and self.colorBy2!='Particle.matState'"),"Smoothing coefficient for :obj:`MatState` scalars."))
+		((shared_ptr<ScalarRange>,colorRange,,AttrTrait<>().readonly().hideIf("self.colorBy in ('solid','invisible')"),"Range for particle colors (:obj:`colorBy`)"))
 
 		((int,colorBy2,COLOR_SOLID,AttrTrait<Attr::triggerPostLoad|Attr::namedEnum>().namedEnum(GL1_DEMFIELD_COLORBY_NAMEDENUM) /*.choice({ GL1_DEMFIELD_COLORBY_CHOICES }) */ .hideIf("not self.shape2"),"Color for particles with :obj:`shape2`."))
-		((shared_ptr<ScalarRange>,colorRange2,,AttrTrait<>().readonly().hideIf("not self.shape2 or self.colorBy2 in (self.colorSolid,self.colorInvisible)"),"Range for particle colors (:obj:`colorBy`)"))
+		((shared_ptr<ScalarRange>,colorRange2,,AttrTrait<>().readonly().hideIf("not self.shape2 or self.colorBy2 in ('solid','invisible')"),"Range for particle colors (:obj:`colorBy`)"))
 		((Vector3r,solidColor,Vector3r(.3,.3,.3),AttrTrait<>().rgbColor(),"Solid color for particles."))
 
 		((vector<shared_ptr<ScalarRange>>,colorRanges,,AttrTrait<>().readonly().noGui(),"List of color ranges"))
 
 		((bool,bound,false,,"Render particle's :obj:`Bound`"))
 		((bool,periodic,false,AttrTrait<>().noGui(),"Automatically shows whether the scene is periodic (to use in hideIf of :obj:`fluct`"))
-		((bool,fluct,false,AttrTrait<>().hideIf("not self.periodic or (self.colorBy not in (self.colorVel,self.colorAngVel) and self.glyph not in (self.glyphVel,))"),"With periodic boundaries, show only fluctuation components of velocity."))
+		((bool,fluct,false,AttrTrait<>().hideIf("not self.periodic or (self.colorBy not in ('velocity','angular velocity') and self.glyph not in ('velocity',))"),"With periodic boundaries, show only fluctuation components of velocity."))
 
 		((bool,nodes,false,AttrTrait<>().startGroup("Nodes"),"Render DEM nodes"))
 		((int,glyph,GLYPH_KEEP,AttrTrait<Attr::triggerPostLoad>().choice({{GLYPH_KEEP,"keep"},{GLYPH_NONE,"none"},{GLYPH_FORCE,"force"},{GLYPH_TORQUE,"torque"},{GLYPH_VEL,"velocity"}}),"Show glyphs on particles by setting :obj:`GlData` on their nodes."))
@@ -89,7 +89,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 		((vector<shared_ptr<ScalarRange>>,glyphRanges,,AttrTrait<>().readonly().noGui(),"List of glyph ranges"))
 
 		// ((bool,id,false,,"Show particle id's"))
-		((int,cNode,CNODE_NONE,AttrTrait<>().bits({"GlRep","line","node","potLine"}).startGroup("Contact nodes"),"What should be shown for contact nodes"))
+		((int,cNode,CNODE_NONE,AttrTrait<>().bits({"glRep","line","node","potLine"}).startGroup("Contact nodes"),"What should be shown for contact nodes"))
 		((bool,cPhys,false,,"Render contact's nodes"))
 
 		((bool,doPostLoad,false,AttrTrait<Attr::hidden>(),"Run initialization routine when called next time (set from postLoadStatic)"))

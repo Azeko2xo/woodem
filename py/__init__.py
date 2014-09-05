@@ -118,12 +118,6 @@ if WIN:
 # enable warnings which are normally invisible, such as DeprecationWarning
 warnings.simplefilter('default')
 
-try: # backwards-compat for miniEigen (new is minieigen)
-	import miniEigen
-	sys.modules['minieigen']=miniEigen
-	warnings.warn("'miniEigen' was imported and aliased to the new name 'minieigen' (update your installation to use 'minieigen' only).")
-except ImportError: pass
-
 # import eigen before plugins because of its converters, so that default args to python methods can use Vector3r etc
 import minieigen
 

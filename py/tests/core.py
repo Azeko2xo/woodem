@@ -176,11 +176,9 @@ class TestObjectInstantiation(unittest.TestCase):
 		'Core: Attr::triggerPostLoad (static)'
 		ts=self.ts
 		self.assert_(ts.numTriggered==0)
-		self.trigger=1
-		# print 'self.numTriggered',ts.numTriggered
-		self.assert_(ts.numTriggered>0)
-		self.trigger=-1
-		# print 'self.numTriggered',ts.numTriggered
+		ts.trigger=1
+		self.assert_(ts.numTriggered==1)
+		ts.trigger=-1
 		self.assert_(ts.numTriggered==2)
 
 	def testNamedEnum(self):
@@ -195,6 +193,10 @@ class TestObjectInstantiation(unittest.TestCase):
 		self.assert_(t.namedEnum=='zero')
 		t.namedEnum=0
 		self.assert_(t.namedEnum=='zero')
+		# ctor
+		self.assertRaises(ValueError,lambda: woo.core.WooTestClass(namedEnum='nonsense'))
+		tt=woo.core.WooTestClass(namedEnum='single')
+		self.assert_(tt.namedEnum=='one')
 	def testNamedEnum_static(self):
 		'Core: Attr::namedEnum (static)'
 		ts=self.ts
@@ -205,6 +207,11 @@ class TestObjectInstantiation(unittest.TestCase):
 		self.assert_(ts.namedEnum=='zero')
 		ts.namedEnum=-1
 		self.assert_(ts.namedEnum=='minus one')
+		# test passing it in the ctor
+		tt=woo.core.WooTestClass(namedEnum='NULL') # use the alternative name
+		self.assert_(tt.namedEnum=='zero')
+		tt=woo.core.WooTestClass(namedEnum=1) # use number
+		self.assert_(tt.namedEnum=='one')
 
 	def testBits(self):
 		'Core:: AttrTrait.bits accessors' 
@@ -256,9 +263,6 @@ class TestObjectInstantiation(unittest.TestCase):
 		if 'gl' in woo.config.features:
 			# type mismatch
 			self.assertRaises(RuntimeError,lambda: woo.core.Node(dem=woo.gl.GlData()))
-
-
-
 
 class TestLoop(unittest.TestCase):
 	def setUp(self):

@@ -24,9 +24,12 @@
 /*
  * use Eigen http://eigen.tuxfamily.org, version at least 3
  */
-
-// IMPORTANT!!
-#define EIGEN_DONT_ALIGN
+#ifndef WOO_ALIGN
+	// IMPORTANT!!
+	#define EIGEN_DONT_ALIGN
+#else
+	#error Building with WOO_ALIGN is currently broken and unsupported.
+#endif
 
 
 
@@ -48,14 +51,17 @@
 	#pragma GCC diagnostic push
 	#pragma GCC diagnostic ignored "-Wdeprecated"
 #endif
-#define EIGEN_NO_DEBUG
-#include<Eigen/Core>
-#include<Eigen/Geometry>
-#include<Eigen/Eigenvalues>
-#include<Eigen/QR>
-#include<Eigen/LU>
-#include<Eigen/SVD>
-#include<float.h>
+	#define EIGEN_NO_DEBUG
+	#include<Eigen/Core>
+	#include<Eigen/Geometry>
+	#include<Eigen/Eigenvalues>
+	#include<Eigen/QR>
+	#include<Eigen/LU>
+	#include<Eigen/SVD>
+	#include<float.h>
+	#ifdef WOO_ALIGN
+		#include<unsupported/Eigen/AlignedVector3>
+	#endif
 #ifdef __clang__
 	#pragma GCC diagnostic pop
 #endif
@@ -88,7 +94,11 @@
 typedef VECTOR2_TEMPLATE(int) Vector2i;
 typedef VECTOR2_TEMPLATE(Real) Vector2r;
 typedef VECTOR3_TEMPLATE(int) Vector3i;
-typedef VECTOR3_TEMPLATE(Real) Vector3r;
+#ifdef WOO_ALIGN
+	typedef VECTOR3_TEMPLATE(Real) Vector3r;
+#else
+	typedef Eigen::AlignedVector3<Real> Vector3r;
+#endif
 typedef VECTOR6_TEMPLATE(Real) Vector6r;
 typedef VECTOR6_TEMPLATE(int) Vector6i;
 typedef MATRIX3_TEMPLATE(Real) Matrix3r;

@@ -211,10 +211,13 @@ template<> struct _def_woo_attr_static__namedEnum<false>{
 	void wooDef(classObjT& _classObj, traitT& trait, const char* className, const char *attrName){
 		bool _ro=trait.isReadonly(), _ref(!_ro && (woo::py_wrap_ref<attrT>::value || trait.isPyByRef()));
 		constexpr bool _post=!!(traitT::compileFlags & woo::Attr::triggerPostLoad);
-		if(_ref && _ro) _classObj.add_static_property(attrName,py::make_getter(A));
-		else if(_ref && !_ro) _classObj.add_static_property(attrName,py::make_getter(A),/*setter*/_setter_postLoadStaticMaybe<_post>::template setter<classT,attrT,A>);
-		else if(!_ref && _ro) _classObj.add_static_property(attrName,py::make_getter(A,py::return_value_policy<py::return_by_value>()));
-		else if(!_ref && !_ro) _classObj.add_static_property(attrName,py::make_getter(A,py::return_value_policy<py::return_by_value>()),/*setter*/_setter_postLoadStaticMaybe<_post>::template setter<classT,attrT,A>);
+		if(_ref){
+			if(_ro) _classObj.add_static_property(attrName,py::make_getter(A));
+			else    _classObj.add_static_property(attrName,py::make_getter(A),/*setter*/_setter_postLoadStaticMaybe<_post>::template setter<classT,attrT,A>);
+		} else {
+			if(_ro) _classObj.add_static_property(attrName,py::make_getter(A,py::return_value_policy<py::return_by_value>()));
+			else _classObj.add_static_property(attrName,py::make_getter(A,py::return_value_policy<py::return_by_value>()),/*setter*/_setter_postLoadStaticMaybe<_post>::template setter<classT,attrT,A>);
+		}
 	}
 };
 // helper template for static named enumerations
@@ -276,19 +279,23 @@ template<> struct _def_woo_attr_static__namedEnum<true>{
 
 // static switch to make hidden attributes not settable via ctor args in python
 // this avoids compile-time error with boost::multi_array which with py::extract
-template<bool hidden> struct _setAttrMaybe{};
-template<> struct _setAttrMaybe<true>{
-	template<typename Tsrc, typename Tdst>
-	static void set(const string& name, const Tsrc& src, Tdst& dst){ woo::AttributeError(name+" is not settable from python (marked as hidden)."); }
+template<bool hidden, bool namedEnum> struct _setAttrMaybe{};
+template<bool namedEnum> struct _setAttrMaybe</*hidden*/true,namedEnum>{
+	template<typename traitT, typename Tsrc, typename Tdst>
+	static void set(traitT& trait, const string& name, const Tsrc& src, Tdst& dst){ woo::AttributeError(name+" is not settable from python (marked as hidden)."); }
 };
-template<> struct _setAttrMaybe<false>{
-	template<typename Tsrc, typename Tdst>
-	static void set(const string& name, const Tsrc& src, Tdst& dst){ dst=py::extract<Tdst>(src); }
+template<> struct _setAttrMaybe</*hidden*/false,/*namedEnum*/false>{
+	template<typename traitT, typename Tsrc, typename Tdst>
+	static void set(traitT& trait, const string& name, const Tsrc& src, Tdst& dst){ dst=py::extract<Tdst>(src); }
+};
+template<> struct _setAttrMaybe</*hidden*/false,/*namedEnum*/true>{
+	template<typename traitT, typename Tsrc, typename Tdst>
+	static void set(traitT& trait, const string& name, const Tsrc& src, Tdst& dst){ dst=trait.namedEnum_name2num(src); }
 };
 
 // loop bodies for attribute access
 #define _PYGET_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) return py::object(_ATTR_NAM(z));
-#define _PYSET_ATTR(x,klass,z) if(key==_ATTR_NAM_STR(z)) { _setAttrMaybe<!!(_ATTR_TRAIT_TYPE(klass,z)::compileFlags & woo::Attr::hidden)>::set(key,value,_ATTR_NAM(z)); return; }
+#define _PYSET_ATTR(x,klass,z) if(key==_ATTR_NAM_STR(z)) { typedef _ATTR_TRAIT_TYPE(klass,z) traitT; _setAttrMaybe<!!(traitT::compileFlags & woo::Attr::hidden),!!(traitT::compileFlags & woo::Attr::namedEnum)>::set(_ATTR_TRAIT_GET(klass,z)(),key,value,_ATTR_NAM(z)); return; }
 #define _PYATTR_TRAIT(x,klass,z)        traitList.append(py::ptr(static_cast<AttrTraitBase*>(&_ATTR_TRAIT_GET(klass,z)())));
 #define _PYATTR_TRAIT_STATIC(x,klass,z) traitList.append(py::ptr(static_cast<AttrTraitBase*>(&_ATTR_TRAIT_GET(klass,z)()))); // static_() already set in trait definition
 #define _PYHASKEY_ATTR(x,y,z) if(key==_ATTR_NAM_STR(z)) return true;

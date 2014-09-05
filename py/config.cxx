@@ -52,6 +52,9 @@ BOOST_PYTHON_MODULE(config){
 		#ifdef WOO_NOCAPSULE
 			features.append("nocapsule");
 		#endif
+		#ifdef WOO_ALIGN
+			features.append("align");
+		#endif
 
 	py::scope().attr("features")=features;
 
