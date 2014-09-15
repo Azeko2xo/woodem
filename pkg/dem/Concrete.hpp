@@ -33,9 +33,10 @@ struct ConcreteMat: public FrictMat {
 		((Real,plTau,((void)"deactivated if negative",-1),,"Characteristic time for visco-plasticity. [s]")) \
 		((Real,plRateExp,0,,"Exponent for visco-plasticity function. [-]")) \
 		((Real,isoPrestress,0,,"Isotropic prestress of the whole specimen. [P a]")), \
-		/*ctor*/createIndex(); density=4800;
+		/*ctor*/ createIndex(); density=4800;
 
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_ConcreteMat__CLASS_BASE_DOC_ATTRS_CTOR);
+	REGISTER_CLASS_INDEX(ConcreteMat,FrictMat);
 };
 WOO_REGISTER_OBJECT(ConcreteMat);
 

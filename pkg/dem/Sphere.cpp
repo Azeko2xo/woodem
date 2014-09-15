@@ -58,16 +58,19 @@ void Bo1_Sphere_Aabb::goGeneric(const shared_ptr<Shape>& sh, Vector3r halfSize){
 	if(!scene->isPeriodic){ aabb.min=pos-halfSize; aabb.max=pos+halfSize; return; }
 
 	// adjust box size along axes so that sphere doesn't stick out of the box even if sheared (i.e. parallelepiped)
-	if(scene->cell->hasShear()){
-		Vector3r refHalfSize(halfSize);
-		const Vector3r& cos=scene->cell->getCos();
-		for(int i=0; i<3; i++){
-			int i1=(i+1)%3,i2=(i+2)%3;
-			halfSize[i1]+=.5*refHalfSize[i1]*(1/cos[i]-1);
-			halfSize[i2]+=.5*refHalfSize[i2]*(1/cos[i]-1);
+	halfSize=scene->cell->shearAlignedExtents(halfSize);
+	#if 0
+		if(scene->cell->hasShear()){
+			Vector3r refHalfSize(halfSize);
+			const Vector3r& cos=scene->cell->getCos();
+			for(int i=0; i<3; i++){
+				int i1=(i+1)%3,i2=(i+2)%3;
+				halfSize[i1]+=.5*refHalfSize[i1]*(1/cos[i]-1);
+				halfSize[i2]+=.5*refHalfSize[i2]*(1/cos[i]-1);
+			}
 		}
-	}
-	//cerr<<" || "<<halfSize<<endl;
+		//cerr<<" || "<<halfSize<<endl;
+	#endif
 	aabb.min=scene->cell->unshearPt(pos)-halfSize;
 	aabb.max=scene->cell->unshearPt(pos)+halfSize;	
 }

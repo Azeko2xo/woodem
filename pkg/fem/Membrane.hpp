@@ -55,7 +55,7 @@ struct In2_Membrane_ElastMat: public In2_Facet{
 	FUNCTOR2D(Membrane,ElastMat);
 	DECLARE_LOGGER;
 	#define woo_dem_In2_Membrane_ElastMat__CLASS_BASE_DOC_ATTRS \
-		In2_Membrane_ElastMat,In2_Facet,"Apply contact forces and compute internal response of a :obj:`Membrane`. Forces are distributed according to barycentric coordinates when :obj:`bending` is enabled; otherwise forces are distributed equally (thirds) to all nodes, to avoid contacts punching through the mesh which has no bending resistance. This can be overridden by setting :obj:`applyBary`, in which case forces will be always applied weighted by barycentric coords.", \
+		In2_Membrane_ElastMat,In2_Facet,"Apply contact forces and compute internal response of a :obj:`Membrane`. Forces are distributed according to barycentric coordinates when :obj:`bending` is enabled; otherwise forces are distributed equally (thirds) to all nodes, to avoid contacts punching through the mesh which has no bending resistance. This can be overridden by setting :obj:`applyBary`, in which case forces will be always applied weighted by barycentric coords.\n\n.. note:: If your particles are made of ~:obj:`woo.dem.FrictMat`, use :obj:`In2_Membrane_FrictMat` instead, if you run into ambiguous dipatch errors.", \
 		((bool,contacts,true,,"Apply contact forces to facet's nodes (FIXME: very simply distributed in thirds now)")) \
 		((Real,nu,.25,,"Poisson's ratio used for assembling the $E$ matrix (Young's modulus is taken from :obj:`ElastMat`). Will be moved to the material class at some point.")) \
 		((Real,thickness,NaN,,"Thickness for CST stiffness computation; if NaN, try to use the double of :obj:`Facet.halfThick`.")) \
@@ -65,6 +65,13 @@ struct In2_Membrane_ElastMat: public In2_Facet{
 	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_In2_Membrane_ElastMat__CLASS_BASE_DOC_ATTRS);
 };
 WOO_REGISTER_OBJECT(In2_Membrane_ElastMat);
+
+struct In2_Membrane_FrictMat: public In2_Membrane_ElastMat{
+	#define woo_dem_In2_Membrane_FrictMat__CLASS_BASE_DOC In2_Membrane_FrictMat,In2_Membrane_ElastMat,"Workaround for current dispatching mechanism limitations so that membrane with :obj:`woo.dem.FrictMat` is not matched by :obj:`woo.dem.In2_Facet`."
+	FUNCTOR2D(Membrane,FrictMat);
+	WOO_DECL__CLASS_BASE_DOC(woo_dem_In2_Membrane_FrictMat__CLASS_BASE_DOC);
+};
+WOO_REGISTER_OBJECT(In2_Membrane_FrictMat);
 
 
 #ifdef WOO_OPENGL

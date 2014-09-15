@@ -16,7 +16,6 @@ S.lab.botNode=Node(pos=(0,0,.04))
 # center is the centroid normally, but the mesh has no mass, thus reference point must be given
 S.dem.par.addClumped(bottle,centralNode=S.lab.botNode)
 
-# FIXME: strange, this seems to be necessary for capsules...?
 S.dtSafety=.5
 
 import woo.gl

@@ -219,7 +219,7 @@ class DynLibDispatcher
 		}
 		/*! Dump 2d dispatch matrix to given stream. */
 		std::ostream& dumpDispatchMatrix2D(std::ostream& out, const string& prefix=""){
-			for(size_t i=0; i<callBacks.size(); i++){	for(size_t j=0; j<callBacks.size(); j++){
+			for(size_t i=0; i<callBacks.size(); i++){	for(size_t j=0; j<callBacks[i].size(); j++){
 				if(callBacks[i][j]) out<<prefix<<i<<"+"<<j<<" -> "<<callBacks[i][j]->getClassName()<<std::endl;
 			}}
 			return out;
@@ -360,7 +360,7 @@ class DynLibDispatcher
 
 				Increase depth sum from 0 up and look for possible matches, of which sum of distances beween the argument and the declared functor arg type equals depth.
 				
-				Two matches are considered euqally good (ambiguous) if they have the same depth. That raises exception.
+				Two matches are considered equally good (ambiguous) if they have the same depth. That raises exception.
 
 				If both indices are negative (reached the top of hierarchy for that indexable type) and nothing has been found for given depth, raise exception (undefined dispatch).
 
@@ -385,7 +385,7 @@ class DynLibDispatcher
 					distTooBig=false;
 					if(callBacks[ix1][ix2]){
 						if(foundIx1!=-1 && callBacks[foundIx1][foundIx2]!=callBacks[ix1][ix2]){ // we found a callback, but there already was one at this distance and it was different from the current one
-							cerr<<__FILE__<<":"<<__LINE__<<": ambiguous 2d dispatch ("<<"arg1="<<base1->getClassName()<<", arg2="<<base2->getClassName()<<", distance="<<dist<<"), dispatch matrix:"<<endl;
+							cerr<<__FILE__<<":"<<__LINE__<<": ambiguous 2d dispatch ("<<"arg1="<<base1->getClassName()<<", arg2="<<base2->getClassName()<<", distance="<<dist<<") between "<<callBacks[foundIx1][foundIx2]->getClassName()<<" and "<<callBacks[ix1][ix2]->getClassName()<<"; dispatch matrix:"<<endl;
 							dumpDispatchMatrix2D(cerr,"AMBIGUOUS: "); throw runtime_error("Ambiguous dispatch.");
 						}
 						foundIx1=ix1; foundIx2=ix2;

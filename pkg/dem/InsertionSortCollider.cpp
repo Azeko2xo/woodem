@@ -664,11 +664,16 @@ void InsertionSortCollider::insertionSortPeri(VecBounds& v, bool doCollide, int 
 	assert(v.size==(long)v.vec.size());
 	#ifndef WOO_OPENMP
 		insertionSortPeri_part(v,doCollide,ax,0,v.size,0);
+		// insertionSortPeri_orig(v,doCollide,ax);
 	#else
 		// one chunk per core; the complicated logic for the non-periodic variant has not brought any improvement
 		int chunks=omp_get_max_threads();
 		int chunkSize=v.size/chunks;
-		if(chunkSize<100 || !paraPeri){ insertionSortPeri_part(v,doCollide,ax,0,v.size,0); return; }
+		if(chunkSize<100 || !paraPeri){
+			insertionSortPeri_part(v,doCollide,ax,0,v.size,0);
+			// insertionSortPeri_orig(v,doCollide,ax);
+			return;
+		}
 
 		/*
 			============================================= bound sequence
@@ -778,6 +783,48 @@ void InsertionSortCollider::insertionSortPeri_part(VecBounds& v, bool doCollide,
 					#pragma omp critical
 				#endif
 				{ stepInvs[ax]++; numInvs[ax]++; }
+			#endif
+			j=v.norm(j-1);
+		}
+		v[v.norm(j+1)]=vi;
+	}
+}
+
+
+void InsertionSortCollider::insertionSortPeri_orig(VecBounds& v, bool doCollide, int ax){
+	assert(periodic);
+	long &loIdx=v.loIdx; const long &size=v.size;
+	for(long _i=0; _i<size; _i++){
+		const long i=v.norm(_i);
+		const long i_1=v.norm(i-1);
+		//switch period of (i) if the coord is below the lower edge cooridnate-wise and just above the split
+		if(i==loIdx && v[i].coord<0){ v[i].period-=1; v[i].coord+=v.cellDim; loIdx=v.norm(loIdx+1); }
+		// coordinate of v[i] used to check inversions
+		// if crossing the split, adjust by cellDim;
+		// if we get below the loIdx however, the v[i].coord will have been adjusted already, no need to do that here
+		const Real iCmpCoord=v[i].coord+(i==loIdx ? v.cellDim : 0); 
+		// no inversion
+		if(v[i_1].coord<=iCmpCoord) continue;
+		// vi is the copy that will travel down the list, while other elts go up
+		// if will be placed in the list only at the end, to avoid extra copying
+		int j=i_1; Bounds vi=v[i];  const bool viHasBB=vi.flags.hasBB; const bool viIsMin=vi.flags.isMin; const bool viIsInf=vi.flags.isInf;
+		while(v[j].coord>vi.coord + /* wrap for elt just below split */ (v.norm(j+1)==loIdx ? v.cellDim : 0)){
+			long j1=v.norm(j+1);
+			// OK, now if many bodies move at the same pace through the cell and at one point, there is inversion,
+			// this can happen without any side-effects
+			Bounds& vNew(v[j1]); // elt at j+1 being overwritten by the one at j and adjusted
+			vNew=v[j];
+			// inversions close the the split need special care
+			if(unlikely(j==loIdx && vi.coord<0)) { vi.period-=1; vi.coord+=v.cellDim; loIdx=v.norm(loIdx+1); }
+			else if(unlikely(j1==loIdx)) { vNew.period+=1; vNew.coord-=v.cellDim; loIdx=v.norm(loIdx-1); }
+			if(viIsMin!=v[j].flags.isMin && likely(doCollide && viHasBB && v[j].flags.hasBB)){
+				// see https://bugs.launchpad.net/woo/+bug/669095 and similar problem in aperiodic insertionSort
+				if(likely(vi.id!=vNew.id)){
+					handleBoundInversionPeri(vi.id,vNew.id,/*separating*/(!viIsMin && !viIsInf && !v[j].flags.isInf));
+				}
+			}
+			#ifdef WOO_DEBUG
+				stepInvs[ax]++; numInvs[ax]++;
 			#endif
 			j=v.norm(j-1);
 		}

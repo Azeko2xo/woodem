@@ -1,9 +1,11 @@
 #include<woo/pkg/fem/Membrane.hpp>
 
-WOO_PLUGIN(fem,(Membrane)(In2_Membrane_ElastMat));
+WOO_PLUGIN(fem,(Membrane)(In2_Membrane_ElastMat)(In2_Membrane_FrictMat));
 
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_Membrane__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_In2_Membrane_ElastMat__CLASS_BASE_DOC_ATTRS);
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_In2_Membrane_FrictMat__CLASS_BASE_DOC);
+
 
 // this should go to some shared header
 typedef Eigen::Matrix<Real,9,1> Vector9r;

@@ -84,11 +84,20 @@ void Capsule::setFromRaw(const Vector3r& _center, const Real& _radius, const vec
 
 void Bo1_Capsule_Aabb::go(const shared_ptr<Shape>& sh){
 	if(!sh->bound){ sh->bound=make_shared<Aabb>(); /* consider node rotation*/ sh->bound->cast<Aabb>().maxRot=0.; }
-	const auto& c(sh->cast<Capsule>());
-	AlignedBox3r ab=c.Capsule::alignedBox(); // non-virtual call
 	Aabb& aabb=sh->bound->cast<Aabb>();
-	aabb.min=ab.min(); 
-	aabb.max=ab.max();
+	const auto& c(sh->cast<Capsule>());
+	if(!scene->isPeriodic || !scene->cell->hasShear()){
+		aabb.box=c.Capsule::alignedBox(); // non-virtual call
+	} else {
+		aabb.box.setEmpty();
+		Vector3r extents=scene->cell->shearAlignedExtents(Vector3r::Constant(c.radius));
+		// as if sphere for both endpoints
+		for(int e:{0,1}){
+			Vector3r ue=scene->cell->unshearPt(c.endPt(e));
+			aabb.box.extend(ue+extents);
+			aabb.box.extend(ue-extents);
+		}
+	}
 }
 
 

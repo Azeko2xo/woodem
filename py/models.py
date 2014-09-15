@@ -145,7 +145,7 @@ class SchwarzModel(HertzModel):
 		return deltaHat*(pi**2*self.gamma**2*self.R/self.K**2)**(1/3.)
 
 	@staticmethod
-	def normalized_plot(what,alphaGammaName,N=1000,stride=50,aHi=[]):
+	def normalized_plot(what,alphaGammaName,N=1000,stride=50,aHi=[],legendAlpha=.5):
 		'''
 		Create normalized plot as it appears in :cite:`Maugis1992` including range of axes with normalized quantities. This function is mainly useful for documentation of Woo itself.
 
@@ -204,7 +204,10 @@ class SchwarzModel(HertzModel):
 			pylab.ylabel('$\hat a$')
 			pylab.xlim(xmax=4)
 		pylab.grid(True)
-		pylab.legend(loc='best')
+		try:
+			pylab.legend(loc='best',framealpha=legendAlpha)
+		except:
+			pylab.legend(loc='best')
 		
 
 import woo.pyderived

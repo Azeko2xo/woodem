@@ -139,9 +139,6 @@ def prepareTriax(pre):
 		woo.core.PyRunner(20,'import woo.pre.cylTriax; woo.pre.triax.addPlotData_checkProgress(S)')
 	]+woo.utils.defaultEngines(model=pre.model,dynDtPeriod=100)
 		
-	# FIXME
-	#S.lab.leapfrog.damping=.4
-
 	S.lab.stage='compact'
 	S.lab._setWritable('stage')
 

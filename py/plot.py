@@ -72,13 +72,6 @@ import pylab
 
 # simulation-specific bits moved to woo.core.Plot
 # so that they are saved and reloaded with Scene automatically
-#data,imgData,plots,labels,xylabels,legendLoc,axesWd=[getattr(woo.master.scene.plot,a) for a in  ('data','imgData','plots','labels','xylabels','legendLoc','axesWd')]
-
-def checkObsolete():
-	import warnings
-	obsolete=('data','imgData','plots','labels','xylabels','legendLoc','axesWd')
-	for o in obsolete:
-		if o in globals(): warnings.warn("woo.plot.%s is obsolete, use Scene.plot.%s instead!"%o)
 
 #
 # those remain module-global objects

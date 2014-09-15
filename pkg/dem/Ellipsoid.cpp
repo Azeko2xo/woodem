@@ -89,15 +89,27 @@ AlignedBox3r Ellipsoid::alignedBox() const {
 
 
 void Bo1_Ellipsoid_Aabb::go(const shared_ptr<Shape>& sh){
-	//goGeneric(sh,sh->cast<Ellipsoid>().semiAxes.maxCoeff()*Vector3r::Ones());
 	if(!sh->bound){ sh->bound=make_shared<Aabb>(); /* consider rotation*/ sh->bound->cast<Aabb>().maxRot=0.; }
 	Aabb& aabb=sh->bound->cast<Aabb>();
-	Matrix3r M=sh->cast<Ellipsoid>().trsfFromUnitSphere();
-	// http://www.loria.fr/~shornus/ellipsoid-bbox.html
 	const Vector3r& pos(sh->nodes[0]->pos);
-	Vector3r delta(M.row(0).norm(),M.row(1).norm(),M.row(2).norm());
-	aabb.min=pos-delta;
-	aabb.max=pos+delta;
+	if(!scene->isPeriodic || !scene->cell->hasShear()){
+		Matrix3r M=sh->cast<Ellipsoid>().trsfFromUnitSphere();
+		// http://www.loria.fr/~shornus/ellipsoid-bbox.html
+		Vector3r delta(M.row(0).norm(),M.row(1).norm(),M.row(2).norm());
+		aabb.min=pos-delta;
+		aabb.max=pos+delta;
+	} else {
+		Vector3r extents;
+		const Matrix3r& sT=scene->cell->getShearTrsf();
+		for(int i:{0,1,2}){
+			Quaternionr q; q.setFromTwoVectors(Vector3r::Unit(i),sT.col((i+1)%3).cross(sT.col((i+2)%3)));
+			Matrix3r M=sh->cast<Ellipsoid>().trsfFromUnitSphere(q.conjugate());
+			extents[i]=M.row(i).norm();
+		}
+		extents=scene->cell->shearAlignedExtents(extents);
+		aabb.min=scene->cell->unshearPt(pos)-extents;
+		aabb.max=scene->cell->unshearPt(pos)+extents;	
+	}
 }
 
 // the same funcs but with extra rotation

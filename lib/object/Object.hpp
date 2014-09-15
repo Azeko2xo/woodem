@@ -505,6 +505,12 @@ template<> struct _SerializeMaybe<false>{
 #define _WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(klass,base,doc,attrs,ctor,pyExtras) _WOO_CLASS_DECLARATION(   klass,base,doc,attrs,/*deprec*/,/*inits*/,ctor,/*dtor*/,pyExtras)
 #define _WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR_PY(klass,base,doc,attrs,ctor,pyExtras) _WOO_CLASS_IMPLEMENTATION(klass,base,doc,attrs,/*deprec*/,/*inits*/,ctor,/*dtor*/,pyExtras)
 
+
+#define WOO_DECL__CLASS_BASE_DOC_ATTRS_INI_CTOR_PY(args) _WOO_DECL__CLASS_BASE_DOC_ATTRS_INI_CTOR_PY(args)
+#define WOO_IMPL__CLASS_BASE_DOC_ATTRS_INI_CTOR_PY(args) _WOO_IMPL__CLASS_BASE_DOC_ATTRS_INI_CTOR_PY(args)
+#define _WOO_DECL__CLASS_BASE_DOC_ATTRS_INI_CTOR_PY(klass,base,doc,attrs,ini,ctor,pyExtras) _WOO_CLASS_DECLARATION(   klass,base,doc,attrs,/*deprec*/,ini,ctor,/*dtor*/,pyExtras)
+#define _WOO_IMPL__CLASS_BASE_DOC_ATTRS_INI_CTOR_PY(klass,base,doc,attrs,ini,ctor,pyExtras) _WOO_CLASS_IMPLEMENTATION(klass,base,doc,attrs,/*deprec*/,ini,ctor,/*dtor*/,pyExtras)
+
 #define WOO_CLASS_DECLARATION(allArgsTogether) _WOO_CLASS_DECLARATION(allArgsTogether)
 
 #define _WOO_CLASS_DECLARATION(thisClass,baseClass,classTraitSpec,attrs,deprec,inits,ctor,dtor,pyExtras) \
@@ -521,12 +527,13 @@ template<> struct _SerializeMaybe<false>{
 	/*5. for pickling*/ py::dict pyDict() const; \
 	/*6. python class registration*/ virtual void pyRegisterClass(); \
 	/*7. ensures v-table; will be removed later*/ void must_use_both_WOO_CLASS_BASE_DOC_ATTRS_and_WOO_PLUGIN(); \
-	/*8.*/ void must_use_both_WOO_CLASS_DECLARATION_and_WOO_CLASS_IMPLEMENTATION();
+	/*8.*/ void must_use_both_WOO_CLASS_DECLARATION_and_WOO_CLASS_IMPLEMENTATION(); \
+	public: /* make the rest public by default again */
 
 #define WOO_CLASS_IMPLEMENTATION(allArgsTogether) _WOO_CLASS_IMPLEMENTATION(allArgsTogether)
 
 #define _WOO_CLASS_IMPLEMENTATION(thisClass,baseClass,classTraitSpec,attrs,deprec,init,ctor,dtor,pyExtras) \
-	/*1.*/ thisClass::thisClass() BOOST_PP_IF(BOOST_PP_SEQ_SIZE(init attrs),:,) BOOST_PP_SEQ_FOR_EACH_I(_ATTR_MAKE_INITIALIZER,BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(init attrs)), init BOOST_PP_SEQ_FOR_EACH(_ATTR_MAKE_INIT_TUPLE,~,attrs)) { ctor; } \
+	/*1.*/ thisClass::thisClass() BOOST_PP_IF(BOOST_PP_SEQ_SIZE(attrs init),:,) BOOST_PP_SEQ_FOR_EACH_I(_ATTR_MAKE_INITIALIZER,BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(attrs init)), BOOST_PP_SEQ_FOR_EACH(_ATTR_MAKE_INIT_TUPLE,~,attrs) init) { ctor; } \
 	/*2.*/ thisClass::~thisClass(){ dtor; } \
 	/*3.*/ _WOO_BOOST_SERIALIZE_IMPL(thisClass,baseClass,attrs) \
 	/*4.*/ void thisClass::pySetAttr(const std::string& key, const py::object& value){ BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR,thisClass,attrs); BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR_DEPREC,thisClass,deprec); baseClass::pySetAttr(key,value); } \

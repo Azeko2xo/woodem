@@ -94,7 +94,7 @@
 typedef VECTOR2_TEMPLATE(int) Vector2i;
 typedef VECTOR2_TEMPLATE(Real) Vector2r;
 typedef VECTOR3_TEMPLATE(int) Vector3i;
-#ifdef WOO_ALIGN
+#ifndef WOO_ALIGN
 	typedef VECTOR3_TEMPLATE(Real) Vector3r;
 #else
 	typedef Eigen::AlignedVector3<Real> Vector3r;

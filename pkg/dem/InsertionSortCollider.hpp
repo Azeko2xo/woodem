@@ -195,6 +195,8 @@ struct InsertionSortCollider: public Collider {
 	// periodic variants
 	void insertionSortPeri(VecBounds& v,bool doCollide=true, int ax=0);
 	void insertionSortPeri_part(VecBounds& v, bool doCollide, int ax, long iBegin, long iEnd, long iStart);
+	// fallback, hopefully bug-free original version
+	void insertionSortPeri_orig(VecBounds& v,bool doCollide=true, int ax=0);
 	void handleBoundInversionPeri(Particle::id_t,Particle::id_t, bool separating);
 	bool spatialOverlapPeri(Particle::id_t,Particle::id_t,Scene*,Vector3i&) const;
 	static Real cellWrap(const Real, const Real, const Real, int&);

@@ -415,14 +415,18 @@ struct Material: public Object, public Indexable{
 WOO_REGISTER_OBJECT(Material);
 
 struct Bound: public Object, public Indexable{
-	// XXX: is createIndex() called here at all??
-	#define woo_dem_Bound__CLASS_BASE_DOC_ATTRS_CTOR_PY \
+	#define woo_dem_Bound__CLASS_BASE_DOC_ATTRS_INI_CTOR_PY \
 		Bound,Object,"Object bounding the associated body.", \
-		((Vector3r,min,Vector3r(NaN,NaN,NaN),AttrTrait<Attr::noSave>().readonly().lenUnit(),"Lower corner of box containing this bound")) \
-		((Vector3r,max,Vector3r(NaN,NaN,NaN),AttrTrait<Attr::noSave>().readonly().lenUnit(),"Lower corner of box containing this bound")) \
+		((AlignedBox3r,box,AlignedBox3r(),AttrTrait<Attr::noSave>().readonly().lenUnit(),"Axis-aligned bounding box.")) \
+		,/*ini*/((min,box.min()))((max,box.max())) \
 		,/*ctor*/ createIndex(); \
 		,/*py*/ WOO_PY_TOPINDEXABLE(Bound);
-	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_Bound__CLASS_BASE_DOC_ATTRS_CTOR_PY);
+	
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_INI_CTOR_PY(woo_dem_Bound__CLASS_BASE_DOC_ATTRS_INI_CTOR_PY);
+
+	// must come after declaration of box, as that is the order of initialization
+	Vector3r& min; Vector3r& max;
+
 	REGISTER_INDEX_COUNTER(Bound);
 };
 WOO_REGISTER_OBJECT(Bound);

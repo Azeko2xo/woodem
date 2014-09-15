@@ -5,6 +5,8 @@ newinternal numeric penExMultiple;
 penYScale:=1.;
 penExMultiple:=.1;
 
+% drawoptions(withcolor (.773,.6406,.6016));
+
 ex:=10cm;
 htt=.5*ex;
 oRad=.4ex;
@@ -53,7 +55,7 @@ def lettersOO =
 	draw fullcircle scaled 2oRad shifted (0-odDist/2,-oDeltaY);
 enddef;
 
-outputtemplate:="%j.woodem.svg";
+outputtemplate:="%j.woodem."&outputformat;
 
 beginfig(1);
 	letterW;
@@ -73,13 +75,13 @@ beginfig(1);
 	draw ePt--eCent;
 endfig;
 
-outputtemplate:="%j.woo.svg";
+outputtemplate:="%j.woo."&outputformat;
 beginfig(2);
 	letterW;
 	lettersOO;
 endfig;
 
-outputtemplate:="%j.woo-batch.svg";
+outputtemplate:="%j.woo-batch."&outputformat;
 beginfig(2);
 	letterW;
 	currentpicture:=currentpicture shifted (-.65oRad,.3oRad);

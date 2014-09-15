@@ -65,6 +65,17 @@ void Cell::setNextGradV(){
 	// if(!isnan(nnextGradV(0,0))){ nextGradV=nnextGradV; nnextGradV<<NaN,NaN,NaN, NaN,NaN,NaN, NaN,NaN,NaN; }
 }
 
+Vector3r Cell::shearAlignedExtents(const Vector3r& perpExtent) const{
+	if(!hasShear()) return perpExtent;
+	Vector3r ret(perpExtent);
+	const Vector3r& cos=getCos();
+	for(short ax:{0,1,2}){
+		short ax1=(ax+1)%3, ax2=(ax+2)%3;
+		ret[ax1]+=.5*perpExtent[ax1]*(1/cos[ax]-1);
+		ret[ax2]+=.5*perpExtent[ax2]*(1/cos[ax]-1);
+	}
+	return ret;
+}
 
 
 void Cell::integrateAndUpdate(Real dt){

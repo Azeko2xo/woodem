@@ -90,6 +90,8 @@ struct Cell: public Object{
 		Vector3r ret; for(int i=0; i<3; i++){ ret[i]=CompUtils::wrapNum(pt[i],_size[i],period[i]); } return ret;
 	}
 
+	Vector3r shearAlignedExtents(const Vector3r& perpExtent) const;
+
 	// relative position and velocity for interaction accross multiple cells
 	Vector3r intrShiftPos(const Vector3i& cellDist) const { return hSize*cellDist.cast<Real>(); }
 	Vector3r intrShiftVel(const Vector3i& cellDist) const;

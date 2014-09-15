@@ -64,7 +64,7 @@ struct VtkExport: public PeriodicEngine{
 		((bool,skipInvisible,true,,"Skip invisible particles")) \
 		((int,subdiv,16,AttrTrait<>(),"Subdivision fineness for circular objects (such as cylinders).\n\n.. note:: :obj:`Facets <woo.dem.Facet>` are rendered without rounded edges (they are closed flat).\n\n.. note:: :obj:`Ellipsoids <woo.dem.Ellipsoid>` triangulation is controlled via the :obj:`ellLev` parameter.")) \
 		((int,ellLev,0,AttrTrait<>().range(Vector2i(0,CompUtils::unitSphereTri20_maxTesselationLevel)),"Tesselation level for exporting ellipsoids (0 = icosahedron, each level subdivides one triangle into three.")) \
-		((int,thickFacetDiv,1,AttrTrait<>().noGui(),"Subdivision for :obj:`woo.dem.Facet` objects with non-zero :obj:`woo.dem.Facet.halfThick`; the value of -1 will use :obj:`subdiv`; 0 will render only faces, without edges; 1 will close the edge flat.")) \
+		((int,thickFacetDiv,1,AttrTrait<>(),"Subdivision for :obj:`woo.dem.Facet` objects with non-zero :obj:`woo.dem.Facet.halfThick`; the value of -1 will use :obj:`subdiv`; 0 will render only faces, without edges; 1 will close the edge flat; higher values mean the number of subdivisions.")) \
 		((bool,cylCaps,true,,"Render caps of :obj:`InfCylinder` (at :obj:`InfCylinder.glAB`).")) \
 		((Real,nanValue,0.,,"Use this number instead of NaN in entries, since VTK cannot read NaNs properly")) \
 		((map_string_vector_string,outFiles,,AttrTrait<>().noGui().readonly(),"Files which have been written out, keyed by what they contain: 'spheres','mesh','con'.")) \

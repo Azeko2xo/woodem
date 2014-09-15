@@ -23,6 +23,7 @@ struct Capsule: public Shape{
 	bool isInside(const Vector3r& pt) const WOO_CXX11_OVERRIDE;
 	// compute axis-aligned bounding box
 	AlignedBox3r alignedBox() const WOO_CXX11_OVERRIDE;
+	Vector3r endPt(short i) const { return nodes[0]->loc2glob(Vector3r((i==0?-.5:.5)*shaft,0,0)); }
 	void applyScale(Real scale) WOO_CXX11_OVERRIDE;
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(Capsule,Shape,"Cylinder with half-spherical caps on both sides, Mindowski sum of segment with sphere.",
 		((Real,radius,NaN,AttrTrait<>().lenUnit(),"Radius of the capsule -- of half-spherical caps and also of the middle part."))
