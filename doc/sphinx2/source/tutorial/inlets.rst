@@ -1,14 +1,14 @@
-##########
-Factories
-##########
+#################
+Inlets & outlets
+#################
 
-:obj:`Factories <woo.dem.ParticleFactory>` are engines which generate new particles during the simulation; their counterpart are deleters (:obj:`~woo.dem.BoxDeleter`) deleting particles during the simulation.
+:obj:`Inlets <woo.dem.ParticleInlet>` are engines which generate new particles during the simulation; their counterpart are outlets (:obj:`~woo.dem.BoxOutlet`) deleting particles during the simulation.
 
-Factories are split into several orthogonal components:
+Inlets are split into several orthogonal components:
 
 1. :obj:`~woo.dem.ParticleGenerator` creating a new particle, given some input criteria, such as the PSD;
-2. :obj:`~woo.dem.ParticleFactory`, which positions the new particle, given some spatial requirements (random, given sequence and such);
-3. :obj:`~woo.dem.ParticleShooter` is used with random factories and assigns an intial velocity to the particle; this component is optional, and actually only rarely used.
+2. :obj:`~woo.dem.ParticleInlet`, which positions the new particle, given some spatial requirements (random, given sequence and such);
+3. :obj:`~woo.dem.ParticleShooter` is used with random inlets and assigns an intial velocity to the particle; this component is optional, and actually only rarely used.
 
 Generators
 ===========
@@ -114,61 +114,61 @@ There are some generators which are not based on PSD; one of them is :obj:`woo.d
 .. youtube:: jXL8qXi780M
 
 
-Factories
+Inlets
 ==========
 
-Newly created particles must be placed in the simulation space, without colliding with existing particles; this is the task of :obj:`~woo.dem.ParticleFactory`. The mass rate of particles generated is can be always obtained by querying :obj:`~woo.dem.ParticleFactory.currRate`.
+Newly created particles must be placed in the simulation space, without colliding with existing particles; this is the task of :obj:`~woo.dem.ParticleInlet`. The mass rate of particles generated is can be always obtained by querying :obj:`~woo.dem.ParticleInlet.currRate`.
 
 Random
 -------
-Random factories position particles in a given part of space (box with :obj:`~woo.dem.BoxFactory`, 2d box with :obj:`~woo.dem.BoxFactory2d`, cylinder with :obj:`~woo.dem.CylinderFactory`); various parameters can govern the generation process:
+Random inlets position particles in a given part of space (box with :obj:`~woo.dem.BoxInlet`, 2d box with :obj:`~woo.dem.BoxInlet2d`, cylinder with :obj:`~woo.dem.CylinderInlet`); various parameters can govern the generation process:
 
-1. :obj:`~woo.dem.ParticleFactory.massRate` which limits how many mass per second may be generated; if set to zero, generate as many particles as "possible" in each step. "Possible" means that there will be in total :obj:`~woo.dem.ParticleFactory.maxAttempts` attempts to place a particle in one step; one particle will be tried :obj:`~woo.dem.ParticleFactory.attemptPar` times.
+1. :obj:`~woo.dem.ParticleInlet.massRate` which limits how many mass per second may be generated; if set to zero, generate as many particles as "possible" in each step. "Possible" means that there will be in total :obj:`~woo.dem.ParticleInlet.maxAttempts` attempts to place a particle in one step; one particle will be tried :obj:`~woo.dem.ParticleInlet.attemptPar` times.
 
-2. :obj:`~woo.dem.ParticleFactory.maxMass` or :obj:`~woo.dem.ParticleFactory.maxNum` limit total mass or the number of particles generated altogether. Once this limit is reached, the :obj:`~woo.dem.ParticleFactory.doneHook` is run and the engine is made :obj:`~woo.core.Engine.dead`.
+2. :obj:`~woo.dem.ParticleInlet.maxMass` or :obj:`~woo.dem.ParticleInlet.maxNum` limit total mass or the number of particles generated altogether. Once this limit is reached, the :obj:`~woo.dem.ParticleInlet.doneHook` is run and the engine is made :obj:`~woo.core.Engine.dead`.
 
-The bottle in the example above has :obj:`~woo.dem.CylinderFactory` above the neck:
+The bottle in the example above has :obj:`~woo.dem.CylinderInlet` above the neck:
 
 .. literalinclude:: bottle.py
 
 Dense
 ------
-There is a special factory :obj:`~woo.dem.ConveyorFactory` which can continuously produce stream of particles from pre-generated (compact, dense) arrangement which is periodic in one direction; as the name suggests, this is especially useful for simulating conveyors. The compaction process is itself dynamic simulation, which generates particles randomly in space at first, and lets them settle down in gravity; all this happens behind the scenes in the :obj:`woo.pack.makeBandFeedPack` function.
+There is a special inlet :obj:`~woo.dem.ConveyorInlet` which can continuously produce stream of particles from pre-generated (compact, dense) arrangement which is periodic in one direction; as the name suggests, this is especially useful for simulating conveyors. The compaction process is itself dynamic simulation, which generates particles randomly in space at first, and lets them settle down in gravity; all this happens behind the scenes in the :obj:`woo.pack.makeBandFeedPack` function.
 
 .. note:: Since the initial compaction is a relatively expensive (time-demanding) process, use the ``memoizeDir`` argument so that when the function is called with the same argument, it returns the result immediately.
 
-.. literalinclude:: factory-conveyor.py
+.. literalinclude:: inlet-conveyor.py
 
 .. youtube:: P862JVvWmpo 
 
 
-This is another movie (created in Paraview) showing the :obj:`~woo.dem.ConveyorFactory` with spherical particles:
+This is another movie (created in Paraview) showing the :obj:`~woo.dem.ConveyorInlet` with spherical particles:
 
 .. youtube:: -Q81oGxoz_s
 
 
 Shooters
 ========
-When random factories generate particles, they have zero intial velocity; this can be changed by assigning a :obj:`~woo.dem.ParticleShooter` to :obj:`~woo.dem.RandomFactory.shooter`, as in this example:
+When random inlets generate particles, they have zero intial velocity; this can be changed by assigning a :obj:`~woo.dem.ParticleShooter` to :obj:`~woo.dem.RandomInlet.shooter`, as in this example:
 
-.. literalinclude:: factory-shooter.py
+.. literalinclude:: inlet-shooter.py
 
 .. youtube:: zCPUll9MrLM
 
 
-Deleters
+Outlets
 =========
 
-The inverse task is to delete particles from simulation while it is running; this is done using the :obj:`woo.dem.BoxDeleter` engine. This engine is able to report PSD just like factories. Comparing PSDs from factory and from the deleter can be useful for segregation analysis.
+The inverse task is to delete particles from simulation while it is running; this is done using the :obj:`woo.dem.BoxOutlet` engine. This engine is able to report PSD just like inlets. Comparing PSDs from inlet and from the outlet can be useful for segregation analysis.
 
-.. literalinclude:: factory-deleter.py
+.. literalinclude:: inlet-outlet.py
 
 .. youtube:: JHVD9au7LTY
 
-.. figure:: fig/factory-deleter_psds.*
+.. figure:: fig/inlet-outlet_psds.*
    :align: center
 
-   Comparison of PSDs of the factory and the deleter.
+   Comparison of PSDs of the inlet and the outlet.
 
 
 

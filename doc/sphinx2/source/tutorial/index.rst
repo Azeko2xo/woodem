@@ -8,5 +8,5 @@ Tutorial
    data.rst
    mesh.rst
    impose.rst
-   factory.rst
+   inlets.rst
    export.rst

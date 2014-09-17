@@ -1,6 +1,6 @@
 #pragma once
 
-#include<woo/pkg/dem/Factory.hpp>
+#include<woo/pkg/dem/Inlet.hpp>
 #include<woo/pkg/dem/Clump.hpp>
 
 struct PsdSphereGenerator: public ParticleGenerator{

@@ -1,5 +1,5 @@
 % filetype: metapost
-outputformat:="svg"; prologues:=3;
+outputformat:="png"; prologues:=3;
 newinternal numeric penYScale;
 newinternal numeric penExMultiple;
 penYScale:=1.;

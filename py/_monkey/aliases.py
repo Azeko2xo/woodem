@@ -41,6 +41,15 @@ _deprecated={
 	('woo.dem','FlexFacet'):('woo.fem','Membrane'),
 	('woo.gl','Gl1_FlexFacet'):('woo.gl','Gl1_Membrane'),
 	('woo.dem','In2_FlexFacet_ElastMat'):('woo.fem','In2_Membrane_ElastMat'),
+	#
+	('woo.dem','ParticleFactory'):('woo.dem','ParticleInlet'),
+	('woo.dem','RandomFactory'):('woo.dem','RandomInlet'),
+	('woo.dem','BoxFactory'):('woo.dem','BoxInlet'),
+	('woo.dem','CylinderFactory'):('woo.dem','CylinderInlet'),
+	('woo.dem','BoxFactory2d'):('woo.dem','BoxInlet2d'),
+	('woo.dem','ConveyorFactory'):('woo.dem','ConveyorInlet'),
+	('woo.dem','BoxDeleter'):('woo.dem','BoxOutlet'),
+	#
 	### END_RENAMED_CLASSES_LIST ### (do not delete this line; scripts/rename-class.py uses it
 }
 

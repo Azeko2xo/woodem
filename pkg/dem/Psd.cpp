@@ -240,7 +240,7 @@ PsdClumpGenerator::operator()(const shared_ptr<Material>&mat){
 	Real scale=r/C.equivRad;
 	LOG_DEBUG("Clump will be scaled "<<scale<<"× so that its equivRad "<<C.equivRad<<" becomes "<<r);
 
-	/* make individual spheres; the clump itself is constructed in RandomFactory (using Clump::makeClump)
+	/* make individual spheres; the clump itself is constructed in RandomInlet (using Clump::makeClump)
 	   that means that we don't know what the exact mass is here :|
 	   perhaps the interface will need to be changed to take that into account properly
 	   for now, suppose sphere never intersect (which is what Clump::makeClump supposes as well)

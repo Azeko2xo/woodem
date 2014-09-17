@@ -9,7 +9,7 @@
 	#include<woo/lib/base/CompUtils.hpp>
 #endif
 
-struct ParticleFactory: public PeriodicEngine{
+struct ParticleInlet: public PeriodicEngine{
 	//bool isActivated(){ return !((maxMass>0 && mass>maxMass) || (maxNum>0 && num>maxNum)); }
 	// set current smoothed mass flow rate, given unsmoothed value from the current step
 	// handles NaN values if there is no previous value
@@ -20,9 +20,9 @@ struct ParticleFactory: public PeriodicEngine{
 	// return true when maximum mass/num of particles (or other termination condition) has been reached
 	// runs doneHook inside and sets dead=True
 	bool everythingDone();
-	#define woo_dem_ParticleFactory__CLASS_BASE_DOC_ATTRS \
-		ParticleFactory,PeriodicEngine,ClassTrait().doc("Factory generating new particles. This is an abstract base class which in itself does not generate anything, but provides some unified interface to derived classes.").section("Factories","TODO",{"ParticleGenerator","ParticleShooter","BoxDeleter"}), \
-		((int,mask,((void)":obj:`DemField.defaultFactoryMask`",DemField::defaultFactoryMask),,":obj:`~woo.dem.Particle.mask` for new particles.")) \
+	#define woo_dem_ParticleInlet__CLASS_BASE_DOC_ATTRS \
+		ParticleInlet,PeriodicEngine,ClassTrait().doc("Inlet generating new particles. This is an abstract base class which in itself does not generate anything, but provides some unified interface to derived classes.").section("Factories","TODO",{"ParticleGenerator","ParticleShooter","BoxOutlet"}), \
+		((int,mask,((void)":obj:`DemField.defaultInletMask`",DemField::defaultInletMask),,":obj:`~woo.dem.Particle.mask` for new particles.")) \
 		((Real,maxMass,-1,,"Mass at which the engine will not produce any particles (inactive if not positive)")) \
 		((long,maxNum,-1,,"Number of generated particles after which no more will be produced (inactive if not positive)")) \
 		((string,doneHook,"",,"Python string to be evaluated when :obj:`maxMass` or :obj:`maxNum` have been reached. The engine is made dead automatically even if doneHook is not specified.")) \
@@ -33,9 +33,9 @@ struct ParticleFactory: public PeriodicEngine{
 		((Real,currRateSmooth,1,AttrTrait<>().range(Vector2r(0,1)),"Smoothing factor for currRate ∈〈0,1〉")) \
 		((Real,glColor,0,AttrTrait<>().noGui(),"Color for rendering (nan disables rendering)"))
 
-	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_ParticleFactory__CLASS_BASE_DOC_ATTRS);
+	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_ParticleInlet__CLASS_BASE_DOC_ATTRS);
 };
-WOO_REGISTER_OBJECT(ParticleFactory);
+WOO_REGISTER_OBJECT(ParticleInlet);
 
 struct ParticleGenerator: public Object{
 	// particle and two extents sizes (bbox if p is at origin)
@@ -110,7 +110,7 @@ WOO_REGISTER_OBJECT(AlignedMinMaxShooter);
 
 struct Collider;
 
-struct RandomFactory: public ParticleFactory{
+struct RandomInlet: public ParticleInlet{
 	DECLARE_LOGGER;
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	virtual Vector3r randomPosition(const Real& padDist){ throw std::runtime_error("Calling ParticleFactor.randomPosition	(abstract method); use derived classes."); }
@@ -121,8 +121,8 @@ struct RandomFactory: public ParticleFactory{
 	shared_ptr<Collider> collider;
 	enum{MAXATT_ERROR=0,MAXATT_DEAD,MAXATT_WARN,MAXATT_SILENT};
 	bool spheresOnly; // set at each step, queried from the generator
-	#define woo_dem_RandomFactory__CLASS_BASE_DOC_ATTRS_PY \
-		RandomFactory,ParticleFactory,"Factory generating new particles. This class overrides :obj:`woo.core.Engine.critDt`, which in turn calls :obj:`woo.dem.ParticleGenerator.critDt` with all possible :obj:`materials` one by one.", \
+	#define woo_dem_RandomInlet__CLASS_BASE_DOC_ATTRS_PY \
+		RandomInlet,ParticleInlet,"Inlet generating new particles. This class overrides :obj:`woo.core.Engine.critDt`, which in turn calls :obj:`woo.dem.ParticleGenerator.critDt` with all possible :obj:`materials` one by one.", \
 		((Real,massRate,NaN,AttrTrait<>().massRateUnit(),"Mass flow rate; if zero, generate as many particles as possible, until maxAttemps is reached.")) \
 		((vector<shared_ptr<Material>>,materials,,,"Set of materials for new particles, randomly picked from")) \
 		((shared_ptr<ParticleGenerator>,generator,,,"Particle generator instance")) \
@@ -134,26 +134,26 @@ struct RandomFactory: public ParticleFactory{
 		((int,kinEnergyIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for kinetic energy in scene.energy")) \
 		((Real,color,NaN,,"Color for new particles (NaN for random; negative for keeping color assigned by the generator).")) \
 		((Real,stepGoalMass,0,AttrTrait<Attr::readonly>(),"Mass to be attained in this step")) \
-		((bool,collideExisting,true,,"Consider collisions with pre-existing particle; this is generally a good idea, though if e.g. there are no pre-existing particles, it is useful to set to ``False`` to avoid having to define collider for no other reason than make :obj:`RandomFactory` happy.")) \
+		((bool,collideExisting,true,,"Consider collisions with pre-existing particle; this is generally a good idea, though if e.g. there are no pre-existing particles, it is useful to set to ``False`` to avoid having to define collider for no other reason than make :obj:`RandomInlet` happy.")) \
 		,/*py*/ \
-			.def("clear",&RandomFactory::pyClear) \
-			.def("randomPosition",&RandomFactory::randomPosition) \
-			.def("validateBox",&RandomFactory::validateBox) \
+			.def("clear",&RandomInlet::pyClear) \
+			.def("randomPosition",&RandomInlet::randomPosition) \
+			.def("validateBox",&RandomInlet::validateBox) \
 			; \
 			_classObj.attr("maxAttError")=(int)MAXATT_ERROR; \
 			_classObj.attr("maxAttDead")=(int)MAXATT_DEAD; \
 			_classObj.attr("maxAttWarn")=(int)MAXATT_WARN; \
 			_classObj.attr("maxAttSilent")=(int)MAXATT_SILENT;
-	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_RandomFactory__CLASS_BASE_DOC_ATTRS_PY);
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_RandomInlet__CLASS_BASE_DOC_ATTRS_PY);
 };
-WOO_REGISTER_OBJECT(RandomFactory);
+WOO_REGISTER_OBJECT(RandomInlet);
 
 /*
-repsect periodic boundaries when this is defined; this makes configurable side of BoxFactory transparent, i.e.
-new particles can cross the boundary; note however that this is not properly supported in RandomFactory, where periodicity is not take in account when detecting overlap with particles generated within the same step
+repsect periodic boundaries when this is defined; this makes configurable side of BoxInlet transparent, i.e.
+new particles can cross the boundary; note however that this is not properly supported in RandomInlet, where periodicity is not take in account when detecting overlap with particles generated within the same step
 */
 	// #define BOX_FACTORY_PERI
-struct BoxFactory: public RandomFactory{
+struct BoxInlet: public RandomInlet{
 	Vector3r randomPosition(const Real& padDist) WOO_CXX11_OVERRIDE;
 	#ifdef BOX_FACTORY_PERI
 		bool validateBox(const AlignedBox3r& b) WOO_CXX11_OVERRIDE { return scene->isPeriodic?box.contains(b):validatePeriodicBox(b); }
@@ -174,45 +174,45 @@ struct BoxFactory: public RandomFactory{
 	#endif
 
 	#ifdef BOX_FACTORY_PERI
-		#define woo_dem_BoxFactory__periSpanMask__BOX_FACTORY_PERI ((int,periSpanMask,0,,"When running in periodic scene, particles bboxes will be allowed to stick out of the factory in those directions (used to specify that the factory itself should be periodic along those axes). 1=x, 2=y, 4=z."))
+		#define woo_dem_BoxInlet__periSpanMask__BOX_FACTORY_PERI ((int,periSpanMask,0,,"When running in periodic scene, particles bboxes will be allowed to stick out of the factory in those directions (used to specify that the factory itself should be periodic along those axes). 1=x, 2=y, 4=z."))
 	#else
-		#define woo_dem_BoxFactory__periSpanMask__BOX_FACTORY_PERI		
+		#define woo_dem_BoxInlet__periSpanMask__BOX_FACTORY_PERI		
 	#endif
 
-	#define woo_dem_BoxFactory__CLASS_BASE_DOC_ATTRS \
-		BoxFactory,RandomFactory,"Generate particle inside axis-aligned box volume.", \
+	#define woo_dem_BoxInlet__CLASS_BASE_DOC_ATTRS \
+		BoxInlet,RandomInlet,"Generate particle inside axis-aligned box volume.", \
 		((AlignedBox3r,box,AlignedBox3r(Vector3r(NaN,NaN,NaN),Vector3r(NaN,NaN,NaN)),,"Box volume specification (lower and upper corners)")) \
-		woo_dem_BoxFactory__periSpanMask__BOX_FACTORY_PERI 
-	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_BoxFactory__CLASS_BASE_DOC_ATTRS);
+		woo_dem_BoxInlet__periSpanMask__BOX_FACTORY_PERI 
+	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_BoxInlet__CLASS_BASE_DOC_ATTRS);
 };
-WOO_REGISTER_OBJECT(BoxFactory);
+WOO_REGISTER_OBJECT(BoxInlet);
 
-struct CylinderFactory: public RandomFactory{
+struct CylinderInlet: public RandomInlet{
 	Vector3r randomPosition(const Real& padDist) WOO_CXX11_OVERRIDE; /* http://stackoverflow.com/questions/5837572/generate-a-random-point-within-a-circle-uniformly */
 	bool validateBox(const AlignedBox3r& b) WOO_CXX11_OVERRIDE; /* check all corners are inside the cylinder */
 	#ifdef WOO_OPENGL
 		void render(const GLViewInfo&);
 	#endif
 
-	#define woo_dem_CylinderFactory__CLASS_BASE_DOC_ATTRS \
-		CylinderFactory,RandomFactory,"Generate particle inside an arbitrarily oriented cylinder.", \
+	#define woo_dem_CylinderInlet__CLASS_BASE_DOC_ATTRS \
+		CylinderInlet,RandomInlet,"Generate particle inside an arbitrarily oriented cylinder.", \
 		((shared_ptr<Node>,node,,,"Node defining local coordinate system. If not given, global coordinates are used.")) \
 		((Real,height,NaN,AttrTrait<>().lenUnit(),"Height along the local :math:`x`-axis.")) \
 		((Real,radius,NaN,AttrTrait<>().lenUnit(),"Radius of the cylinder (perpendicular to the local :math:`x`-axis).")) \
 		((int,glSlices,16,,"Number of subdivision slices for rendering."))
 
 		// ((vector<AlignedBox3r>,boxesTried,,AttrTrait<>().noGui(),"Bounding boxes being attempted to validate -- debugging only."))
-	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_CylinderFactory__CLASS_BASE_DOC_ATTRS);
+	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_CylinderInlet__CLASS_BASE_DOC_ATTRS);
 };
-WOO_REGISTER_OBJECT(CylinderFactory);
+WOO_REGISTER_OBJECT(CylinderInlet);
 
-struct BoxFactory2d: public BoxFactory{
+struct BoxInlet2d: public BoxInlet{
 	Vector2r flatten(const Vector3r& v){ return Vector2r(v[(axis+1)%3],v[(axis+2)%3]); }
 	bool validateBox(const AlignedBox3r& b) WOO_CXX11_OVERRIDE { return AlignedBox2r(flatten(box.min()),flatten(box.max())).contains(AlignedBox2r(flatten(b.min()),flatten(b.max()))); }
-	#define woo_dem_BoxFactory2d__CLASS_BASE_DOC_ATTRS \
-		BoxFactory2d,BoxFactory,"Generate particles inside axis-aligned plane (its normal axis is given via the :obj:`axis` attribute; particles are allowed to stick out of that plane.", \
+	#define woo_dem_BoxInlet2d__CLASS_BASE_DOC_ATTRS \
+		BoxInlet2d,BoxInlet,"Generate particles inside axis-aligned plane (its normal axis is given via the :obj:`axis` attribute; particles are allowed to stick out of that plane.", \
 		((short,axis,2,,"Axis normal to the plane in which particles are generated.")) 
-	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_BoxFactory2d__CLASS_BASE_DOC_ATTRS);
+	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_BoxInlet2d__CLASS_BASE_DOC_ATTRS);
 };
-WOO_REGISTER_OBJECT(BoxFactory2d);
+WOO_REGISTER_OBJECT(BoxInlet2d);
 

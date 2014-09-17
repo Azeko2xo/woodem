@@ -290,8 +290,8 @@ struct DemField: public Field{
 		defaultMovableMask =BOOST_BINARY(0101),
 		defaultBoundaryMask=BOOST_BINARY(0011),
 		defaultLoneMask    =BOOST_BINARY(0010),
-		defaultFactoryMask =BOOST_BINARY(0101),
-		defaultDeleterMask =BOOST_BINARY(0100)
+		defaultInletMask   =BOOST_BINARY(0101),
+		defaultOutletMask =BOOST_BINARY(0100)
 	};
 
 	//template<> bool sceneHasField<DemField>() const;
@@ -317,8 +317,8 @@ struct DemField: public Field{
 		_classObj.attr("defaultMovableMask")=(int)DemField::defaultMovableMask; \
 		_classObj.attr("defaultBoundaryMask")=(int)DemField::defaultBoundaryMask; \
 		_classObj.attr("defaultLoneMask")=(int)DemField::defaultLoneMask; \
-		_classObj.attr("defaultFactoryMask")=(int)DemField::defaultFactoryMask; \
-		_classObj.attr("defaultDeleterMask")=(int)DemField::defaultDeleterMask;
+		_classObj.attr("defaultInletMask")=(int)DemField::defaultInletMask; \
+		_classObj.attr("defaultOutletMask")=(int)DemField::defaultOutletMask;
 	
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_DemField__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 
@@ -415,12 +415,14 @@ struct Material: public Object, public Indexable{
 WOO_REGISTER_OBJECT(Material);
 
 struct Bound: public Object, public Indexable{
+	Vector3r pyMin(){ return box.min(); }
+	Vector3r pyMax(){ return box.max(); }
 	#define woo_dem_Bound__CLASS_BASE_DOC_ATTRS_INI_CTOR_PY \
 		Bound,Object,"Object bounding the associated body.", \
 		((AlignedBox3r,box,AlignedBox3r(),AttrTrait<Attr::noSave>().readonly().lenUnit(),"Axis-aligned bounding box.")) \
 		,/*ini*/((min,box.min()))((max,box.max())) \
 		,/*ctor*/ createIndex(); \
-		,/*py*/ WOO_PY_TOPINDEXABLE(Bound);
+		,/*py*/ .add_property("min",&Bound::pyMin).add_property("max",&Bound::pyMax) WOO_PY_TOPINDEXABLE(Bound); 
 	
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_INI_CTOR_PY(woo_dem_Bound__CLASS_BASE_DOC_ATTRS_INI_CTOR_PY);
 

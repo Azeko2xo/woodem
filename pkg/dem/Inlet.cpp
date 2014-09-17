@@ -1,4 +1,4 @@
-#include<woo/pkg/dem/Factory.hpp>
+#include<woo/pkg/dem/Inlet.hpp>
 #include<woo/pkg/dem/Collision.hpp>
 #include<woo/pkg/dem/Funcs.hpp>
 #include<woo/pkg/dem/Clump.hpp>
@@ -17,18 +17,18 @@
 
 #include<boost/tuple/tuple_comparison.hpp>
 
-WOO_PLUGIN(dem,(ParticleFactory)(ParticleGenerator)(MinMaxSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(RandomFactory)(BoxFactory)(BoxFactory2d)(CylinderFactory));
-CREATE_LOGGER(RandomFactory);
+WOO_PLUGIN(dem,(ParticleInlet)(ParticleGenerator)(MinMaxSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(RandomInlet)(BoxInlet)(BoxInlet2d)(CylinderInlet));
+CREATE_LOGGER(RandomInlet);
 
-WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_ParticleFactory__CLASS_BASE_DOC_ATTRS);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_ParticleInlet__CLASS_BASE_DOC_ATTRS);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_ParticleGenerator__CLASS_BASE_DOC_ATTRS_PY);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_MinMaxSphereGenerator_CLASS_BASE_DOC_ATTRS);
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_ParticleShooter__CLASS_BASE_DOC);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_AlignedMinMaxShooter__CLASS_BASE_DOC_ATTRS);
-WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_RandomFactory__CLASS_BASE_DOC_ATTRS_PY);
-WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_BoxFactory__CLASS_BASE_DOC_ATTRS);
-WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_BoxFactory2d__CLASS_BASE_DOC_ATTRS);
-WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_CylinderFactory__CLASS_BASE_DOC_ATTRS);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_RandomInlet__CLASS_BASE_DOC_ATTRS_PY);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_BoxInlet__CLASS_BASE_DOC_ATTRS);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_BoxInlet2d__CLASS_BASE_DOC_ATTRS);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_CylinderInlet__CLASS_BASE_DOC_ATTRS);
 
 py::tuple ParticleGenerator::pyPsd(bool mass, bool cumulative, bool normalize, Vector2r dRange, int num) const {
 	if(!save) throw std::runtime_error("ParticleGenerator.save must be True for calling ParticleGenerator.psd()");
@@ -89,7 +89,7 @@ Real MinMaxSphereGenerator::critDt(Real density, Real young) {
 
 
 
-Real RandomFactory::critDt() {
+Real RandomInlet::critDt() {
 	if(!generator) return Inf;
 	Real ret=Inf;
 	for(const auto& m: materials){
@@ -101,7 +101,7 @@ Real RandomFactory::critDt() {
 }
 
 
-bool ParticleFactory::everythingDone(){
+bool ParticleInlet::everythingDone(){
 	if((maxMass>0 && mass>=maxMass) || (maxNum>0 && num>=maxNum)){
 		LOG_INFO("mass or number reached, making myself dead.");
 		dead=true;
@@ -113,21 +113,21 @@ bool ParticleFactory::everythingDone(){
 }
 
 
-void RandomFactory::run(){
+void RandomInlet::run(){
 	DemField* dem=static_cast<DemField*>(field.get());
-	if(!generator) throw std::runtime_error("RandomFactory.generator==None!");
-	if(materials.empty()) throw std::runtime_error("RandomFactory.materials is empty!");
+	if(!generator) throw std::runtime_error("RandomInlet.generator==None!");
+	if(materials.empty()) throw std::runtime_error("RandomInlet.materials is empty!");
 	if(collideExisting){
 		if(!collider){
 		for(const auto& e: scene->engines){ collider=dynamic_pointer_cast<Collider>(e); if(collider) break; }
-		if(!collider) throw std::runtime_error("RandomFactory: no Collider found within engines (needed for collisions detection with already existing particles; if you don't need that, set collideExisting=False.)");
+		if(!collider) throw std::runtime_error("RandomInlet: no Collider found within engines (needed for collisions detection with already existing particles; if you don't need that, set collideExisting=False.)");
 		}
 		if(dynamic_pointer_cast<InsertionSortCollider>(collider)) static_pointer_cast<InsertionSortCollider>(collider)->forceInitSort=true;
 	}
-	if(isnan(massRate)) throw std::runtime_error("RandomFactory.massRate must be given (is "+to_string(massRate)+"); if you want to generate as many particles as possible, say massRate=0.");
-	if(massRate<=0 && maxAttempts==0) throw std::runtime_error("RandomFactory.massFlowRate<=0 (no massFlowRate prescribed), but RandomFactory.maxAttempts==0. (unlimited number of attempts); this would cause infinite loop.");
+	if(isnan(massRate)) throw std::runtime_error("RandomInlet.massRate must be given (is "+to_string(massRate)+"); if you want to generate as many particles as possible, say massRate=0.");
+	if(massRate<=0 && maxAttempts==0) throw std::runtime_error("RandomInlet.massFlowRate<=0 (no massFlowRate prescribed), but RandomInlet.maxAttempts==0. (unlimited number of attempts); this would cause infinite loop.");
 	if(maxAttempts<0){
-		std::runtime_error("RandomFactory.maxAttempts must be non-negative. Negative value, leading to meaking engine dead, is achieved by setting atMaxAttempts=RandomFactory.maxAttDead now.");
+		std::runtime_error("RandomInlet.maxAttempts must be non-negative. Negative value, leading to meaking engine dead, is achieved by setting atMaxAttempts=RandomInlet.maxAttDead now.");
 	}
 	spheresOnly=generator->isSpheresOnly();
 	padDist=generator->padDist();
@@ -149,9 +149,9 @@ void RandomFactory::run(){
 	if(spheresOnly){
 		spheres.pack.reserve(dem->particles->size()*1.2); // something extra for generated particles
 		// HACK!!!
-		bool isBox=dynamic_cast<BoxFactory*>(this);
+		bool isBox=dynamic_cast<BoxInlet*>(this);
 		AlignedBox3r box;
-		if(isBox){ box=this->cast<BoxFactory>().box; }
+		if(isBox){ box=this->cast<BoxInlet>().box; }
 		for(const auto& p: *dem->particles){
 			if(p->shape->isA<Sphere>() && (!isBox || box.contains(p->shape->nodes[0]->pos))) spheres.pack.push_back(SpherePack::Sph(p->shape->nodes[0]->pos,p->shape->cast<Sphere>().radius));
 		}
@@ -178,7 +178,7 @@ void RandomFactory::run(){
 					goto stepDone;
 				}
 				switch(atMaxAttempts){
-					case MAXATT_ERROR: throw std::runtime_error("RandomFactory.maxAttempts reached ("+lexical_cast<string>(maxAttempts)+")"); break;
+					case MAXATT_ERROR: throw std::runtime_error("RandomInlet.maxAttempts reached ("+lexical_cast<string>(maxAttempts)+")"); break;
 					case MAXATT_DEAD:{
 						LOG_INFO("maxAttempts="<<maxAttempts<<" reached, making myself dead.");
 						this->dead=true;
@@ -186,7 +186,7 @@ void RandomFactory::run(){
 					}
 					case MAXATT_WARN: LOG_WARN("maxAttempts "<<maxAttempts<<" reached before required mass amount was generated; continuing, since maxAttemptsError==False"); break;
 					case MAXATT_SILENT: break;
-					default: throw std::invalid_argument("Invalid value of RandomFactory.atMaxAttempts="+to_string(atMaxAttempts)+".");
+					default: throw std::invalid_argument("Invalid value of RandomInlet.atMaxAttempts="+to_string(atMaxAttempts)+".");
 				}
 			}
 			/***** each maxAttempts/attPerPar, try a new particles *****/	
@@ -217,7 +217,7 @@ void RandomFactory::run(){
 				const shared_ptr<woo::Sphere>& peSphere=dynamic_pointer_cast<woo::Sphere>(pe.par->shape);
 
 				if(spheresOnly){
-					if(!peSphere) throw std::runtime_error("RandomFactory.spheresOnly: is true, but a nonspherical particle ("+pe.par->shape->pyStr()+") was returned by the generator.");
+					if(!peSphere) throw std::runtime_error("RandomInlet.spheresOnly: is true, but a nonspherical particle ("+pe.par->shape->pyStr()+") was returned by the generator.");
 					Real r=peSphere->radius;
 					Vector3r subPos=peSphere->nodes[0]->pos;
 					for(const auto& s: spheres.pack){
@@ -301,9 +301,9 @@ void RandomFactory::run(){
 			shared_ptr<Node> clump=ClumpData::makeClump(nn,/*no central node pre-given*/shared_ptr<Node>(),/*intersection*/false);
 			auto& dyn=clump->getData<DemData>();
 			if(shooter) (*shooter)(dyn.vel,dyn.angVel);
-			if(scene->trackEnergy) scene->energy->add(-DemData::getEk_any(clump,true,true,scene),"kinFactory",kinEnergyIx,EnergyTracker::ZeroDontCreate);
+			if(scene->trackEnergy) scene->energy->add(-DemData::getEk_any(clump,true,true,scene),"kinInlet",kinEnergyIx,EnergyTracker::ZeroDontCreate);
 			if(dyn.angVel!=Vector3r::Zero()){
-				throw std::runtime_error("pkg/dem/RandomFactory.cpp: generated particle has non-zero angular velocity; angular momentum should be computed so that rotation integration is correct, but it was not yet implemented.");
+				throw std::runtime_error("pkg/dem/RandomInlet.cpp: generated particle has non-zero angular velocity; angular momentum should be computed so that rotation integration is correct, but it was not yet implemented.");
 				// TODO: compute initial angular momentum, since we will (very likely) use the aspherical integrator
 			}
 			ClumpData::applyToMembers(clump,/*reset*/false); // apply velocity
@@ -328,7 +328,7 @@ void RandomFactory::run(){
 			node0->pos+=pos;
 			auto& dyn=node0->getData<DemData>();
 			if(shooter) (*shooter)(dyn.vel,dyn.angVel);
-			if(scene->trackEnergy) scene->energy->add(-DemData::getEk_any(node0,true,true,scene),"kinFactory",kinEnergyIx,EnergyTracker::ZeroDontCreate);
+			if(scene->trackEnergy) scene->energy->add(-DemData::getEk_any(node0,true,true,scene),"kinInlet",kinEnergyIx,EnergyTracker::ZeroDontCreate);
 			mass+=dyn.mass;
 			stepMass+=dyn.mass;
 			assert(node0->hasData<DemData>());
@@ -360,7 +360,7 @@ void RandomFactory::run(){
 	setCurrRate(stepMass/(nSteps*scene->dt));
 }
 
-Vector3r BoxFactory::randomPosition(const Real& padDist){
+Vector3r BoxInlet::randomPosition(const Real& padDist){
 	AlignedBox3r box2(box.min()+padDist*Vector3r::Ones(),box.max()-padDist*Vector3r::Ones());
 	return box2.sample();
 }
@@ -368,7 +368,7 @@ Vector3r BoxFactory::randomPosition(const Real& padDist){
 
 
 #ifdef BOX_FACTORY_PERI
-bool BoxFactory::validatePeriodicBox(const AlignedBox3r& b) const {
+bool BoxInlet::validatePeriodicBox(const AlignedBox3r& b) const {
 	if(periSpanMask==0) return box.contains(b);
 	// otherwise just enlarge our box in all directions
 	AlignedBox3r box2(box);
@@ -382,7 +382,7 @@ bool BoxFactory::validatePeriodicBox(const AlignedBox3r& b) const {
 #endif
 
 #ifdef WOO_OPENGL
-	void CylinderFactory::render(const GLViewInfo&){
+	void CylinderInlet::render(const GLViewInfo&){
 		if(isnan(glColor) || !node) return;
 		GLUtils::Cylinder(node->loc2glob(Vector3r::Zero()),node->loc2glob(Vector3r(height,0,0)),radius,CompUtils::mapColor(glColor),/*wire*/true,/*caps*/false,/*rad2: use rad1*/-1,/*slices*/glSlices);
 		std::ostringstream oss; oss.precision(4); oss<<mass;
@@ -400,9 +400,9 @@ bool BoxFactory::validatePeriodicBox(const AlignedBox3r& b) const {
 #endif
 
 
-Vector3r CylinderFactory::randomPosition(const Real& padDist) {
-	if(!node) throw std::runtime_error("CylinderFactory.node==None.");
-	if(padDist>radius) throw std::runtime_error("CylinderFactory.randomPosition: padDist="+to_string(padDist)+" > radius="+to_string(radius));
+Vector3r CylinderInlet::randomPosition(const Real& padDist) {
+	if(!node) throw std::runtime_error("CylinderInlet.node==None.");
+	if(padDist>radius) throw std::runtime_error("CylinderInlet.randomPosition: padDist="+to_string(padDist)+" > radius="+to_string(radius));
 	// http://stackoverflow.com/questions/5837572/generate-a-random-point-within-a-circle-uniformly
 	Real t=2*M_PI*Mathr::UnitRandom();
 	Real u=Mathr::UnitRandom()+Mathr::UnitRandom();
@@ -414,8 +414,8 @@ Vector3r CylinderFactory::randomPosition(const Real& padDist) {
 
 };
 
-bool CylinderFactory::validateBox(const AlignedBox3r& b) {
-	if(!node) throw std::runtime_error("CylinderFactory.node==None.");
+bool CylinderInlet::validateBox(const AlignedBox3r& b) {
+	if(!node) throw std::runtime_error("CylinderInlet.node==None.");
 	/* check all corners are inside the cylinder */
 	#if 0
 		boxesTried.push_back(b);

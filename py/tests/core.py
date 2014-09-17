@@ -120,18 +120,13 @@ class TestObjectInstantiation(unittest.TestCase):
 	def testNoSave(self):
 		'Core: Attr::noSave'
 		# update bound of the particle
-		S=Scene(fields=[DemField()])
-		S.dem.par.add(utils.sphere((0,0,0),1))
-		S.dem.collectNodes()
-		S.engines=[InsertionSortCollider([Bo1_Sphere_Aabb()]),Leapfrog(reset=True)]
-		S.one()
-		S.saveTmp(quiet=True)
-		mn0=Vector3(S.dem.par[0].shape.bound.min)
-		S=S.loadTmp()
-		mn1=Vector3(S.dem.par[0].shape.bound.min)
-		# check that the minimum is not saved
-		self.assert_(not isnan(mn0[0]))
-		self.assert_(isnan(mn1[0]))
+		t=self.t
+		i0=t.noSaveAttr
+		t.noSaveAttr=i0+10
+		t.saveTmp('t')
+		t2=woo.core.WooTestClass.loadTmp('t')
+		# loaded copy has the default value
+		self.assert_(t2.noSaveAttr==i0)
 	def testNoSave_static(self):
 		'Cote:: Attr::noSave (static)'
 		ts=self.ts
@@ -237,7 +232,7 @@ class TestObjectInstantiation(unittest.TestCase):
 	def testHidden(self):
 		'Core: Attr::hidden'
 		# hidden attributes are not wrapped in python at all
-		self.assert_(not hasattr(self.t,'hiddenAttribute'))
+		self.assert_(not hasattr(self.t,'hiddenAttr'))
 	def testHidden_static(self):
 		'Core: Attr::hidden (static)'
 		self.assertRaises(AttributeError,lambda: getattr(self.ts,'hidden'))

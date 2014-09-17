@@ -1,5 +1,5 @@
 #include<woo/pkg/dem/Conveyor.hpp>
-#include<woo/pkg/dem/Factory.hpp>
+#include<woo/pkg/dem/Inlet.hpp>
 #include<woo/pkg/dem/Sphere.hpp>
 #include<woo/pkg/dem/Funcs.hpp>
 #include<woo/lib/smoothing/LinearInterpolate.hpp>
@@ -7,11 +7,11 @@
 // hack; check if that is really needed
 #include<woo/pkg/dem/InsertionSortCollider.hpp>
 
-WOO_PLUGIN(dem,(ConveyorFactory));
-CREATE_LOGGER(ConveyorFactory);
-WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_ConveyorFactory__CLASS_BASE_DOC_ATTRS_PY);
+WOO_PLUGIN(dem,(ConveyorInlet));
+CREATE_LOGGER(ConveyorInlet);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_ConveyorInlet__CLASS_BASE_DOC_ATTRS_PY);
 
-Real ConveyorFactory::critDt(){
+Real ConveyorInlet::critDt(){
 	if(!material->isA<ElastMat>()){
 		LOG_WARN("Material is not a ElastMat, unable to compute critical timestep.");
 		return Inf;
@@ -41,14 +41,14 @@ Real ConveyorFactory::critDt(){
 	return DemFuncs::spherePWaveDt(rMin,density,young);
 }
 
-Real ConveyorFactory::packVol() const {
+Real ConveyorInlet::packVol() const {
 	Real ret=0;
 	if(!clumps.empty()){ for(const auto& c: clumps){ assert(c); ret+=c->volume; }}
 	else{ for(const Real& r: radii) ret+=(4/3.)*M_PI*pow(r,3); }
 	return ret;
 }
 
-void ConveyorFactory::postLoad(ConveyorFactory&,void* attr){
+void ConveyorInlet::postLoad(ConveyorInlet&,void* attr){
 	if(attr==NULL || attr==&spherePack || attr==&clumps || attr==&centers || attr==&radii || attr==&shapePack){
 		if(spherePack){
 			// spherePack given
@@ -59,7 +59,7 @@ void ConveyorFactory::postLoad(ConveyorFactory&,void* attr){
 				for(const auto& s: spherePack->pack){ centers.push_back(s.c); radii.push_back(s.r); }
 			}
 			if(spherePack->cellSize[0]>0) cellLen=spherePack->cellSize[0];
-			else if(isnan(cellLen)) throw std::runtime_error("ConveyorFactory: spherePack.cellSize[0]="+to_string(spherePack->cellSize[0])+": must be positive, or cellLen must be given.");
+			else if(isnan(cellLen)) throw std::runtime_error("ConveyorInlet: spherePack.cellSize[0]="+to_string(spherePack->cellSize[0])+": must be positive, or cellLen must be given.");
 			spherePack.reset();
 		}
 		// handles the case of clumps generated in the above block as well
@@ -78,7 +78,7 @@ void ConveyorFactory::postLoad(ConveyorFactory&,void* attr){
 			if(radii.size()==centers.size() && !radii.empty()) sortPacking();
 		}
 		if(shapePack){
-			if(!clumps.empty()) throw std::runtime_error("ConveyorFactory: shapePack and clumps cannot be specified simultaneously.");
+			if(!clumps.empty()) throw std::runtime_error("ConveyorInlet: shapePack and clumps cannot be specified simultaneously.");
 			shapePack->sort(/*axis*/0);
 		}
 	}
@@ -118,9 +118,9 @@ void ConveyorFactory::postLoad(ConveyorFactory&,void* attr){
 		return;
 	}
 	// error here if vel is being set
-	if(vel<packVel && attr==&vel) throw std::runtime_error("ConveyorFactory: vel="+to_string(vel)+" m/s < "+to_string(packVel)+" m/s - minimum to achieve desired massRate="+to_string(massRate));
+	if(vel<packVel && attr==&vel) throw std::runtime_error("ConveyorInlet: vel="+to_string(vel)+" m/s < "+to_string(packVel)+" m/s - minimum to achieve desired massRate="+to_string(massRate));
 	// otherwise show the massRate error instead (very small tolerance as FP might not get it right)
-	if(massRate>maxRate*(1+1e-6)) throw std::runtime_error("ConveyorFactory: massRate="+to_string(massRate)+" kg/s > "+to_string(maxRate)+" - maximum to achieve desired vel="+to_string(vel)+" m/s");
+	if(massRate>maxRate*(1+1e-6)) throw std::runtime_error("ConveyorInlet: massRate="+to_string(massRate)+" kg/s > "+to_string(maxRate)+" - maximum to achieve desired vel="+to_string(vel)+" m/s");
 	if(isnan(massRate)) massRate=maxRate;
 	if(isnan(vel)) vel=packVel;
 	LOG_INFO("packVel="<<packVel<<"m/s, vel="<<vel<<"m/s, massRate="<<massRate<<"kg/s, maxRate="<<maxRate<<"kg/s; dilution factor "<<massRate/maxRate);
@@ -140,10 +140,10 @@ void ConveyorFactory::postLoad(ConveyorFactory&,void* attr){
 	}
 }
 
-void ConveyorFactory::sortPacking(const Real& zTrimVol){
-	if(radii.size()!=centers.size()) throw std::logic_error("ConveyorFactory.sortPacking: radii.size()!=centers.size()");
-	if(hasClumps() && radii.size()!=clumps.size()) throw std::logic_error("ConveyorFactory.sortPacking: clumps not empty and clumps.size()!=centers.size()");
-	if(!(cellLen>0) /*catches NaN as well*/) ValueError("ConveyorFactory.cellLen must be positive (not "+to_string(cellLen)+")");
+void ConveyorInlet::sortPacking(const Real& zTrimVol){
+	if(radii.size()!=centers.size()) throw std::logic_error("ConveyorInlet.sortPacking: radii.size()!=centers.size()");
+	if(hasClumps() && radii.size()!=clumps.size()) throw std::logic_error("ConveyorInlet.sortPacking: clumps not empty and clumps.size()!=centers.size()");
+	if(!(cellLen>0) /*catches NaN as well*/) ValueError("ConveyorInlet.cellLen must be positive (not "+to_string(cellLen)+")");
 	size_t N=radii.size();
 	// sort spheres according to their x-coordinate
 	// copy arrays to structs first
@@ -174,7 +174,7 @@ void ConveyorFactory::sortPacking(const Real& zTrimVol){
 	}
 }
 
-void ConveyorFactory::nodeLeavesBarrier(const shared_ptr<Node>& n){
+void ConveyorInlet::nodeLeavesBarrier(const shared_ptr<Node>& n){
 	auto& dyn=n->getData<DemData>();
 	dyn.setBlockedNone();
 	Real c=isnan(color)?Mathr::UnitRandom():color;
@@ -185,12 +185,12 @@ void ConveyorFactory::nodeLeavesBarrier(const shared_ptr<Node>& n){
 		static bool warnedEnergyIgnored=false;
 		if(scene->trackEnergy && !warnedEnergyIgnored){
 			warnedEnergyIgnored=true;
-			LOG_WARN("FIXME: ConveyorFactory.relLatVel is ignored when computing kinetic energy of new particles; energy balance will not be accurate.");
+			LOG_WARN("FIXME: ConveyorInlet.relLatVel is ignored when computing kinetic energy of new particles; energy balance will not be accurate.");
 		}
 	}
 }
 
-void ConveyorFactory::notifyDead(){
+void ConveyorInlet::notifyDead(){
 	if(dead){
 		// we were just made dead; remove the barrier and set zero rate
 		if(zeroRateAtStop) currRate=0.;
@@ -204,7 +204,7 @@ void ConveyorFactory::notifyDead(){
 	}
 }
 
-void ConveyorFactory::setAttachedParticlesColor(const shared_ptr<Node>& n, Real c){
+void ConveyorInlet::setAttachedParticlesColor(const shared_ptr<Node>& n, Real c){
 	assert(n); assert(n->hasData<DemData>());
 	auto& dyn=n->getData<DemData>();
 	if(!dyn.isClump()){
@@ -221,15 +221,15 @@ void ConveyorFactory::setAttachedParticlesColor(const shared_ptr<Node>& n, Real 
 }
 
 
-void ConveyorFactory::run(){
+void ConveyorInlet::run(){
 	DemField* dem=static_cast<DemField*>(field.get());
-	if(radii.empty() || radii.size()!=centers.size()) ValueError("ConveyorFactory: radii and centers must be same-length and non-empty (if shapePack is given, radii and centers should have been populated automatically)");
-	if(isnan(vel) || isnan(massRate) || !material) ValueError("ConveyorFactory: vel, massRate, material must be given.");
-	if(clipX.size()!=clipZ.size()) ValueError("ConveyorFactory: clipX and clipZ must have the same size ("+to_string(clipX.size())+"!="+to_string(clipZ.size()));
+	if(radii.empty() || radii.size()!=centers.size()) ValueError("ConveyorInlet: radii and centers must be same-length and non-empty (if shapePack is given, radii and centers should have been populated automatically)");
+	if(isnan(vel) || isnan(massRate) || !material) ValueError("ConveyorInlet: vel, massRate, material must be given.");
+	if(clipX.size()!=clipZ.size()) ValueError("ConveyorInlet: clipX and clipZ must have the same size ("+to_string(clipX.size())+"!="+to_string(clipZ.size()));
 	if(barrierLayer<0){
 		Real maxRad=-Inf;
 		for(const Real& r:radii) maxRad=max(r,maxRad);
-		if(isinf(maxRad)) throw std::logic_error("ConveyorFactory.radii: infinite value?");
+		if(isinf(maxRad)) throw std::logic_error("ConveyorInlet.radii: infinite value?");
 		barrierLayer=maxRad*abs(barrierLayer);
 		LOG_INFO("Setting barrierLayer="<<barrierLayer);
 	}
@@ -246,7 +246,7 @@ void ConveyorFactory::run(){
 
 	Real lenToDo;
 	if(stepPrev<0){ // first time run
-		if(startLen<=0) ValueError("ConveyorFactory.startLen must be positive or NaN (not "+to_string(startLen)+")");
+		if(startLen<=0) ValueError("ConveyorInlet.startLen must be positive or NaN (not "+to_string(startLen)+")");
 		if(!isnan(startLen)) lenToDo=startLen;
 		else lenToDo=(stepPeriod>0?stepPeriod*scene->dt*packVel:scene->dt*packVel);
 	} else {
@@ -258,14 +258,14 @@ void ConveyorFactory::run(){
 	Real lenDone=0;
 	while(true){
 		// done forever
-		if(ParticleFactory::everythingDone()) return;
+		if(ParticleInlet::everythingDone()) return;
 
 		LOG_TRACE("Doing next particle: mass/maxMass="<<mass<<"/"<<maxMass<<", num/maxNum"<<num<<"/"<<maxNum);
 		if(nextIx<0) nextIx=centers.size()-1;
 		Real nextX=centers[nextIx][0];
 		Real dX=lastX-nextX+((lastX<nextX && (nextIx==(int)centers.size()-1))?cellLen:0); // when wrapping, fix the difference
 		LOG_DEBUG("len toDo/done "<<lenToDo<<"/"<<lenDone<<", lastX="<<lastX<<", nextX="<<nextX<<", dX="<<dX<<", nextIx="<<nextIx);
-		if(isnan(abs(dX)) || isnan(abs(nextX)) || isnan(abs(lenDone)) || isnan(abs(lenToDo))) std::logic_error("ConveyorFactory: some parameters are NaN.");
+		if(isnan(abs(dX)) || isnan(abs(nextX)) || isnan(abs(lenDone)) || isnan(abs(lenToDo))) std::logic_error("ConveyorInlet: some parameters are NaN.");
 		if(lenDone+dX>lenToDo){
 			// the next sphere would not fit
 			lastX=CompUtils::wrapNum(lastX-(lenToDo-lenDone),cellLen); // put lastX before the next sphere
@@ -333,7 +333,7 @@ void ConveyorFactory::run(){
 		// set velocity;
 		dyn.vel=node->ori*(Vector3r::UnitX()*vel);
 		if(scene->trackEnergy){
-			scene->energy->add(-DemData::getEk_any(n,true,/*rotation zero, don't even compute it*/false,scene),"kinFactory",kinEnergyIx,EnergyTracker::ZeroDontCreate);
+			scene->energy->add(-DemData::getEk_any(n,true,/*rotation zero, don't even compute it*/false,scene),"kinInlet",kinEnergyIx,EnergyTracker::ZeroDontCreate);
 		}
 
 		if(save) genDiamMass.push_back(Vector2r(2*radii[nextIx],dyn.mass));
@@ -362,7 +362,7 @@ void ConveyorFactory::run(){
 	#endif
 }
 
-py::object ConveyorFactory::pyDiamMass(bool zipped) const {
+py::object ConveyorInlet::pyDiamMass(bool zipped) const {
 	if(!zipped){
 		py::list diam, mass;
 		for(const Vector2r& vv: genDiamMass){ diam.append(vv[0]); mass.append(vv[1]); }
@@ -374,7 +374,7 @@ py::object ConveyorFactory::pyDiamMass(bool zipped) const {
 	}
 }
 
-Real ConveyorFactory::pyMassOfDiam(Real min, Real max) const {
+Real ConveyorInlet::pyMassOfDiam(Real min, Real max) const {
 	Real ret=0.;
 	for(const Vector2r& vv: genDiamMass){
 		if(vv[0]>=min && vv[0]<=max) ret+=vv[1];
@@ -383,8 +383,8 @@ Real ConveyorFactory::pyMassOfDiam(Real min, Real max) const {
 }
 
 
-py::tuple ConveyorFactory::pyPsd(bool mass, bool cumulative, bool normalize, Vector2r dRange, int num) const {
-	if(!save) throw std::runtime_error("ConveyorFactory.save must be True for calling ConveyorFactory.psd()");
+py::tuple ConveyorInlet::pyPsd(bool mass, bool cumulative, bool normalize, Vector2r dRange, int num) const {
+	if(!save) throw std::runtime_error("ConveyorInlet.save must be True for calling ConveyorInlet.psd()");
 	vector<Vector2r> psd=DemFuncs::psd(genDiamMass,/*cumulative*/cumulative,/*normalize*/normalize,num,dRange,
 		/*radius getter*/[](const Vector2r& diamMass) ->Real { return diamMass[0]; },
 		/*weight getter*/[&](const Vector2r& diamMass) -> Real{ return mass?diamMass[1]:1.; }

@@ -1,6 +1,6 @@
 import woo.document
 # import all modules here
-from woo import utils,log,timing,pack,document,manpage,plot,post2d,runtime,ymport,WeightedAverage2d
+from woo import utils,log,timing,pack,document,manpage,plot,post2d,runtime,WeightedAverage2d
 import minieigen,re,sys,sphinx,os,os.path
 ##
 ## generated parts of the docs here

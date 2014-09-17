@@ -17,7 +17,7 @@ import woo
 import woo.log
 
 
-class TestFactoriesAndDeleters(unittest.TestCase):
+class TestInletsAndOutlets(unittest.TestCase):
 	def setUp(self):
 		self.S=Scene(fields=[DemField(gravity=(0,0,0))])
 		self.S.trackEnergy=True
@@ -32,39 +32,39 @@ class TestFactoriesAndDeleters(unittest.TestCase):
 			woo.log.setLevel('RandomFactory',woo.log.TRACE)
 			woo.log.setLevel('DemField',woo.log.TRACE)
 			woo.log.setLevel('ParticleContainer',woo.log.TRACE)
-	def testConveyorFactory(self):
-		'Energy: conveyor factory traces kinetic energy'
+	def testConveyorInlet(self):
+		'Energy: conveyor inlet traces kinetic energy'
 		import os
 		S=self.S
 		S.engines=[
-			ConveyorFactory(maxNum=1,material=self.mat,cellLen=.3,radii=[self.rad],centers=[(0,0,0)],vel=self.vel,node=Node(pos=(0,0,0))),
-			BoxDeleter(inside=True,box=((-1,-1,-1),(1,1,1)))
+			ConveyorInlet(maxNum=1,material=self.mat,cellLen=.3,radii=[self.rad],centers=[(0,0,0)],vel=self.vel,node=Node(pos=(0,0,0))),
+			BoxOutlet(inside=True,box=((-1,-1,-1),(1,1,1)))
 		]
 		S.dt=1. # produce one particle in the first step
 		S.one()
 		#print 100*'#',dict(S.energy)
 		#print 'Number of particles:',len(S.dem.par)
 		self.assertEqual(len(S.dem.par),0)
-		self.assertEqual(S.energy['kinDelete'],self.Ek)
-		self.assertEqual(S.energy['kinFactory'],-self.Ek)
+		self.assertEqual(S.energy['kinOutlet'],self.Ek)
+		self.assertEqual(S.energy['kinInlet'],-self.Ek)
 		self.assertEqual(S.energy.total(),0.)
-	def testRandomFactory(self):
+	def testRandomInlet(self):
 		'Energy: random box factory traces kinetic energy'
 		S=self.S
 		S.engines=[
 			InsertionSortCollider(),
-			BoxFactory(maxNum=1,materials=[self.mat],
+			BoxInlet(maxNum=1,materials=[self.mat],
 				generator=MinMaxSphereGenerator(dRange=(2*self.rad,2*self.rad)),
 				shooter=AlignedMinMaxShooter(dir=(1,0,0),vRange=(self.vel,self.vel)),
 				box=((-.5,-.5,-.5),(.5,.5,.5)),
 				massRate=0,
 			),
-			BoxDeleter(inside=True,box=((-1,-1,-1),(1,1,1))),
+			BoxOutlet(inside=True,box=((-1,-1,-1),(1,1,1))),
 		]
 		S.dt=.05 # produce one particle in the first step
 		S.one()
-		self.assertEqual(S.energy['kinDelete'],self.Ek)
-		self.assertEqual(S.energy['kinFactory'],-self.Ek)
+		self.assertEqual(S.energy['kinOutlet'],self.Ek)
+		self.assertEqual(S.energy['kinInlet'],-self.Ek)
 		self.assertEqual(S.energy.total(),0.)
 
 class TestLeapfrog(unittest.TestCase):

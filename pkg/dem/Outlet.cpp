@@ -1,11 +1,11 @@
-#include<woo/pkg/dem/Deleter.hpp>
+#include<woo/pkg/dem/Outlet.hpp>
 #include<woo/pkg/dem/Sphere.hpp>
 #include<woo/pkg/dem/Clump.hpp>
 #include<woo/pkg/dem/Funcs.hpp>
-WOO_PLUGIN(dem,(BoxDeleter));
-CREATE_LOGGER(BoxDeleter);
+WOO_PLUGIN(dem,(BoxOutlet));
+CREATE_LOGGER(BoxOutlet);
 
-void BoxDeleter::run(){
+void BoxOutlet::run(){
 	DemField* dem=static_cast<DemField*>(field.get());
 	Real stepMass=0.;
 	std::set<Particle::id_t> delParIds;
@@ -55,7 +55,7 @@ void BoxDeleter::run(){
 	}
 	for(const auto& id: delParIds){
 		const shared_ptr<Particle>& p((*dem->particles)[id]);
-		if(deleting && scene->trackEnergy) scene->energy->add(DemData::getEk_any(p->shape->nodes[0],true,true,scene),"kinDelete",kinEnergyIx,EnergyTracker::ZeroDontCreate);
+		if(deleting && scene->trackEnergy) scene->energy->add(DemData::getEk_any(p->shape->nodes[0],true,true,scene),"kinOutlet",kinEnergyIx,EnergyTracker::ZeroDontCreate);
 		const Real& m=p->shape->nodes[0]->getData<DemData>().mass;
 		num++;
 		mass+=m;
@@ -80,7 +80,7 @@ void BoxDeleter::run(){
 	}
 	for(const auto& ix: delClumpIxs){
 		const shared_ptr<Node>& n(dem->nodes[ix]);
-		if(deleting && scene->trackEnergy) scene->energy->add(DemData::getEk_any(n,true,true,scene),"kinDelete",kinEnergyIx,EnergyTracker::ZeroDontCreate);
+		if(deleting && scene->trackEnergy) scene->energy->add(DemData::getEk_any(n,true,true,scene),"kinOutlet",kinEnergyIx,EnergyTracker::ZeroDontCreate);
 		Real m=n->getData<DemData>().mass;
 		num++;
 		mass+=m;
@@ -102,7 +102,7 @@ void BoxDeleter::run(){
 	if(isnan(currRate)||stepPrev<0) currRate=currRateNoSmooth;
 	else currRate=(1-currRateSmooth)*currRate+currRateSmooth*currRateNoSmooth;
 }
-py::object BoxDeleter::pyDiamMass(bool zipped) const {
+py::object BoxOutlet::pyDiamMass(bool zipped) const {
 	if(!zipped){
 		py::list dd, mm;
 		for(const auto& dm: diamMass){ dd.append(dm[0]); mm.append(dm[1]); }
@@ -114,14 +114,14 @@ py::object BoxDeleter::pyDiamMass(bool zipped) const {
 	}
 }
 
-Real BoxDeleter::pyMassOfDiam(Real min, Real max) const {
+Real BoxOutlet::pyMassOfDiam(Real min, Real max) const {
 	Real ret=0.;
 	for(const auto& dm: diamMass){ if(dm[0]>=min && dm[0]<=max) ret+=dm[1]; }
 	return ret;
 }
 
-py::object BoxDeleter::pyPsd(bool _mass, bool cumulative, bool normalize, int _num, const Vector2r& dRange, bool zip, bool emptyOk){
-	if(!save) throw std::runtime_error("BoxDeleter.save must be True for calling BoxDeleter.psd()");
+py::object BoxOutlet::pyPsd(bool _mass, bool cumulative, bool normalize, int _num, const Vector2r& dRange, bool zip, bool emptyOk){
+	if(!save) throw std::runtime_error("BoxOutlet.save must be True for calling BoxOutlet.psd()");
 	vector<Vector2r> psd=DemFuncs::psd(/*deleted*/diamMass,cumulative,normalize,_num,dRange,
 		/*diameter getter*/[](const Vector2r& dm)->Real{ return dm[0]; },
 		/*weight getter*/[&_mass](const Vector2r& dm)->Real{ return _mass?dm[1]:1.; },
@@ -139,7 +139,7 @@ py::object BoxDeleter::pyPsd(bool _mass, bool cumulative, bool normalize, int _n
 }
 
 #ifdef WOO_OPENGL
-void BoxDeleter::render(const GLViewInfo&){
+void BoxOutlet::render(const GLViewInfo&){
 	if(isnan(glColor)) return;
 	Vector3r center;
 	if(!node){

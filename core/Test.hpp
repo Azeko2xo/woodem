@@ -42,7 +42,8 @@ namespace woo{
 			_WOO_UNIT_ATTR(fraction) \
 			_WOO_UNIT_ATTR(surfEnergy) \
 			((OpenMPArrayAccumulator<Real>,aaccu,,AttrTrait<>().noGui(),"Test openmp array accumulator")) \
-			((int,hiddenAttribute,0,AttrTrait<Attr::hidden>(),"Hidden data member (not accessible from python)")) \
+			((int,noSaveAttr,0,AttrTrait<Attr::noSave>(),"Attribute which is not saved")) \
+			((int,hiddenAttr,0,AttrTrait<Attr::hidden>(),"Hidden data member (not accessible from python)")) \
 			((int,meaning42,42,AttrTrait<Attr::readonly>(),"Read-only data member")) \
 			((int,foo_incBaz,0,AttrTrait<Attr::triggerPostLoad>(),"Change this attribute to have baz incremented")) \
 			((int,bar_zeroBaz,0,AttrTrait<Attr::triggerPostLoad>(),"Change this attribute to have baz incremented")) \
