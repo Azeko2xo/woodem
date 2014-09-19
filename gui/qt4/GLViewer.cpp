@@ -173,7 +173,7 @@ GLViewer::GLViewer(int _viewId, QGLWidget* shareWidget): QGLViewer(/*parent*/(QW
 	setKeyDescription(Qt::Key_Z,"Show the zy [shift: zx] (up-right) plane (clip plane: align normal with +z)");
 	setKeyDescription(Qt::Key_Period,"Toggle grid subdivision by 10");
 	setKeyDescription(Qt::Key_S,"Toggle displacement and rotation scaling (Renderer.scaleOn)");
-	setKeyDescription(Qt::Key_S &Qt::ShiftModifier,"Set reference positions for displacements scaling to the current ones.");
+	setKeyDescription(Qt::Key_S & Qt::ShiftModifier,"Set reference positions for displacements scaling to the current ones.");
 	setKeyDescription(Qt::Key_S & Qt::AltModifier,"Save QGLViewer state to /tmp/qglviewerState.xml");
 	setKeyDescription(Qt::Key_S & Qt::ControlModifier,"Save hardcopy of the image to file.");
 	setKeyDescription(Qt::Key_C & Qt::ControlModifier,"Save hardcopy of the image to clipboard.");
@@ -182,6 +182,8 @@ GLViewer::GLViewer(int _viewId, QGLWidget* shareWidget): QGLViewer(/*parent*/(QW
 	setKeyDescription(Qt::Key_P,"Set wider field of view");
 	setKeyDescription(Qt::Key_R,"Revolve around scene center");
 	setKeyDescription(Qt::Key_V,"Save PDF of the current view to /tmp/woo-snapshot-0001.pdf (whichever number is available first).");
+	setKeyDescription(Qt::Key_Q,"Cycle through available FPS rates (2, 5, 10, 15)");
+	setKeyDescription(Qt::Key_Q & Qt::ShiftModifier,"Toggle fast rendering mode (always, unfocused, never)");
 	#if 0
 		setKeyDescription(Qt::Key_Plus,    "Cut plane increase");
 		setKeyDescription(Qt::Key_Minus,   "Cut plane decrease");
@@ -228,9 +230,8 @@ void GLViewer::setInitialView(){
 void GLViewer::mouseMovesCamera(){
 	camera()->frame()->setWheelSensitivity(-1.0f);
 	// old version - deprecated
-#if QGLVIEWER_VERSION<0x020500
+#if 0 /* QGLVIEWER_VERSION<0x020500 */
 	setMouseBinding(Qt::SHIFT + Qt::LeftButton, SELECT);
-	//setMouseBinding(Qt::RightButton, NO_CLICK_ACTION);
 	setMouseBinding(Qt::SHIFT + Qt::LeftButton + Qt::RightButton, FRAME, ZOOM);
 	setMouseBinding(Qt::SHIFT + Qt::MidButton, FRAME, TRANSLATE);
 	setMouseBinding(Qt::SHIFT + Qt::RightButton, FRAME, ROTATE);
@@ -251,7 +252,7 @@ void GLViewer::mouseMovesCamera(){
 };
 
 void GLViewer::mouseMovesManipulatedFrame(qglviewer::Constraint* c){
-#if QGLVIEWER_VERSION<0x020500
+#if 0 /* QGLVIEWER_VERSION<0x020500 */
 	setMouseBinding(Qt::LeftButton + Qt::RightButton, FRAME, ZOOM);
 	setMouseBinding(Qt::MidButton, FRAME, ZOOM);
 	setMouseBinding(Qt::LeftButton, FRAME, ROTATE);
@@ -459,6 +460,25 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 	else if (e->key() == Qt::Key_T) camera()->setType(camera()->type()==qglviewer::Camera::ORTHOGRAPHIC ? qglviewer::Camera::PERSPECTIVE : qglviewer::Camera::ORTHOGRAPHIC);
 	else if(e->key()==Qt::Key_O) camera()->setFieldOfView(camera()->fieldOfView()*0.9);
 	else if(e->key()==Qt::Key_P) camera()->setFieldOfView(camera()->fieldOfView()*1.1);
+	else if(e->key()==Qt::Key_Q){ // display quality control
+		if(e->modifiers()==Qt::NoModifier){
+			int& f(Renderer::maxFps);
+			if(f<5) f=5;
+			else if(f<10) f=10;
+			else if(f<15) f=15;
+			else f=2;
+			displayMessage("Max framerate "+to_string(f)+" fps.");
+		}
+		else if(e->modifiers() & Qt::ShiftModifier){
+			// toggle fast draw
+			int& f(Renderer::fast);
+			switch(f){
+				case Renderer::FAST_NEVER: f=Renderer::FAST_UNFOCUSED; displayMessage("Fast: manipulating/unfocused."); break;
+				case Renderer::FAST_UNFOCUSED: f=Renderer::FAST_ALWAYS; displayMessage("Fast: always."); break;
+				default: f=Renderer::FAST_NEVER; displayMessage("Fast: never.");
+			}
+		}
+	}
 	else if(e->key()==Qt::Key_R){ // reverse the clipping plane; revolve around scene center if no clipping plane selected
 		if(manipulatedClipPlane>=0 && manipulatedClipPlane<Renderer::numClipPlanes){
 			/* here, we must update both manipulatedFrame orientation and Renderer::clipPlaneOri in the same way */
@@ -967,35 +987,15 @@ void GLViewer::postDraw(){
 
 
 	/* show Woo logo */
-	// http://stackoverflow.com/a/20425778/761090
-	if(false){
-		// glClearColor(0.4f, 0.1f, 0.1f, 1.0f);
-		//glClearColor(0.f,0.f,0.f,0.f);
-		// glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		//glColor4f(0,0,0,0);
-
-		startScreenCoordinatesSystem();
-		glEnable(GL_TEXTURE_2D);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-		glDisable(GL_LIGHTING);
-		glDisable(GL_DEPTH_TEST);
-		glBindTexture(GL_TEXTURE_2D, logoTextureId);
-		glBegin(GL_QUADS);
-			glTexCoord2f(0,1); glVertex2f(0,0);
-			glTexCoord2f(1,1); glVertex2f(100,0);
-			glTexCoord2f(1,0); glVertex2f(100,100);
-			glTexCoord2f(0,0); glVertex2f(0,100);
-		glEnd();
-		glDisable(GL_TEXTURE_2D);
-		glEnable(GL_LIGHTING);
-		glDisable(GL_BLEND);
-		glEnable(GL_DEPTH_TEST);
-		stopScreenCoordinatesSystem();
-	}
 	if(Renderer::logoWd>0){
 		startScreenCoordinatesSystem();
 		Renderer::renderLogo(width(),height());
+		stopScreenCoordinatesSystem();
+	}
+
+	if(Renderer::fastDraw){
+		startScreenCoordinatesSystem();
+		GLUtils::GLDrawText("[FAST]",Vector3r(0,height()/2,0),/*color*/Vector3r(0,0,1),/*center*/false);
 		stopScreenCoordinatesSystem();
 	}
 

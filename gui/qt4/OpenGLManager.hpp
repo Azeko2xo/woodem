@@ -45,6 +45,9 @@ class OpenGLManager: public QObject{
 	private:
 		boost::mutex viewsMutex;
 		int viewsMutexMissed;
+		int frameMeasureTime;
+		int renderTimerId;
+		int maxFps;
 };
 
 #endif /* WOO_OPENGL */

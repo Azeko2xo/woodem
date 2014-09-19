@@ -108,6 +108,7 @@ struct Renderer: public Object{
 
 	enum{TIME_NONE=0,TIME_VIRT=1,TIME_REAL=2,TIME_STEP=4};
 	enum{TIME_ALL=TIME_VIRT|TIME_REAL|TIME_STEP};
+	enum{FAST_ALWAYS=0,FAST_UNFOCUSED,FAST_NEVER};
 
 	WOO_CLASS_BASE_DOC_STATICATTRS_PY(Renderer,Object,"Class responsible for rendering scene on OpenGL devices.",
 		((bool,engines,true,AttrTrait<>().startGroup("General"),"Call engine's rendering functions (if defined)"))
@@ -118,7 +119,7 @@ struct Renderer: public Object{
 		((Vector3r,iniUp,Vector3r(0,0,1),,"Up vector of new views"))
 		((Vector3r,iniViewDir,Vector3r(-1,0,0),,"View direction of new views"))
 		((string,snapFmt,"/tmp/{id}.{#}.png",AttrTrait<>().filename(),"Format for saving snapshots; `{tag}` sequences are expanded with Scene.tags; a special `{#}` tag is expanded with snapshot number (so that older ones are not overwritten), starting from 0 and zero-padded to 4 decimal palces. File format is auto-detected from extension. Supported formats are .png, .jpg, .pdf, .svg, xfig, ps, eps."))
-		((bool,allowFast,true,,"Allow fast rendering when manipulating camera or the 3d window is not focused, and framerate drops below 15 FPS."))
+		((int,fast,true,AttrTrait<Attr::namedEnum>().namedEnum({{FAST_ALWAYS,{"always"}},{FAST_UNFOCUSED,{"unfocused"}},{FAST_NEVER,{"never"}}}),"When to use fast rendering; unfocused means when manipulating camera or the 3d windows is not focused, and framerate drops below *maxFps*."))
 
 		((bool,scaleOn,false,AttrTrait<>().startGroup("Scaling").buttons({"Reference now","woo.gl.Gl1_DemField.updateRefPos=True","use current positions and orientations as reference for scaling displacement/rotation."},/*showBefore*/false),"Whether *dispScale* has any effect or not."))
 		((Vector3r,dispScale,Vector3r(10,10,10),,"Artificially enlarge (scale) dispalcements from bodies' :obj:`reference positions <GlData.refPos>` by this relative amount, so that they become better visible (independently in 3 dimensions). Disbled if (1,1,1), and also if *scaleOn* is false."))
@@ -155,6 +156,9 @@ struct Renderer: public Object{
 		((shared_ptr<Object>,selObj,,,"Object which was selected by the user (access only via woo.qt.selObj)."))
 		((shared_ptr<Node>,selObjNode,,AttrTrait<Attr::readonly>(),"Node associated to the selected object (recenters scene on that object upon selection)"))
 		((string,selFunc,"import woo.qt\nwoo.qt.onSelection",,"Python expression to be called (by textually appending '(woo.gl.Renderer.selOBj)' or '(None)') at object selection/deselection. If empty, no function will be called. Any imports must be explicitly mentioned in the string."))
+
+		((int,maxFps,10,AttrTrait<>().startGroup("Performance"),"Maximum frame rate for the OpenGL display"))
+		((Real,renderTime,NaN,AttrTrait<>().readonly().timeUnit(),"Time for rendering one frame (smoothed)"))
 		,/*py*/
 		//.def("render",&Renderer::pyRender,"Render the scene in the current OpenGL context.")
 			.def_readonly("shapeDispatcher",&Renderer::shapeDispatcher)

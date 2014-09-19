@@ -32,7 +32,7 @@ Vector3r Renderer::highlightEmission0;
 Vector3r Renderer::highlightEmission1;
 const int Renderer::numClipPlanes;
 string Renderer::snapFmt;
-bool Renderer::allowFast;
+int Renderer::fast;
 
 GlFieldDispatcher Renderer::fieldDispatcher;
 GlShapeDispatcher Renderer::shapeDispatcher;
@@ -86,6 +86,9 @@ int Renderer::logoSize;
 Vector2i Renderer::logoPos;
 Vector3r Renderer::logoColor;
 Real Renderer::logoWd;
+
+int Renderer::maxFps;
+Real Renderer::renderTime;
 
 void Renderer::init(){
 	LOG_DEBUG("Renderer::init()");
@@ -266,8 +269,12 @@ void Renderer::setLighting(){
 void Renderer::render(const shared_ptr<Scene>& _scene, bool _withNames, bool _fastDraw){
 	if(!initDone) init();
 	assert(initDone);
-	if(allowFast) fastDraw=_fastDraw;
-	else fastDraw=false;
+
+	switch(fast){
+		case FAST_ALWAYS: fastDraw=true; break;
+		case FAST_UNFOCUSED: fastDraw=_fastDraw; break;
+		case FAST_NEVER: fastDraw=false; break;
+	}
 
 	withNames=_withNames; // used in many methods
 	if(withNames) glNamedObjects.clear();
@@ -286,7 +293,7 @@ void Renderer::render(const shared_ptr<Scene>& _scene, bool _withNames, bool _fa
 
 	fieldDispatcher.scene=scene.get(); fieldDispatcher.updateScenePtr();
 
-	FOREACH(shared_ptr<Field> f, scene->fields){
+	for(auto& f: scene->fields){
 		fieldDispatcher(f,&viewInfo);
 	}
 

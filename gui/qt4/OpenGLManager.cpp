@@ -1,6 +1,7 @@
 #ifdef WOO_OPENGL
 // use local includes, since MOC generated files do that as well
 #include"OpenGLManager.hpp"
+#include<woo/core/Timing.hpp>
 
 CREATE_LOGGER(OpenGLManager);
 
@@ -19,6 +20,7 @@ OpenGLManager::OpenGLManager(QObject* parent): QObject(parent){
 	#endif
 	// Renderer::init(); called automatically when Renderer::render() is called for the first time
 	viewsMutexMissed=0;
+	frameMeasureTime=0;
 	connect(this,SIGNAL(createView()),this,SLOT(createViewSlot()));
 	connect(this,SIGNAL(resizeView(int,int,int)),this,SLOT(resizeViewSlot(int,int,int)));
 	connect(this,SIGNAL(closeView(int)),this,SLOT(closeViewSlot(int)));
@@ -27,9 +29,31 @@ OpenGLManager::OpenGLManager(QObject* parent): QObject(parent){
 
 void OpenGLManager::timerEvent(QTimerEvent* event){
 #if 1
+	if(views.empty() || !views[0]) return;
 	boost::mutex::scoped_lock lock(viewsMutex,boost::try_to_lock);
 	if(!lock) return;
-	for(const auto& view: views){ if(view) view->updateGL(); }
+	if(views.size()>1) LOG_WARN("Only one (primary) view will be rendered.");
+	Real t;
+	bool measure=(frameMeasureTime>=Renderer::maxFps);
+	if(measure){ t=woo::TimingInfo::getNow(/*evenIfDisabled*/true); }
+	views[0]->updateGL();
+	if(measure){
+		frameMeasureTime=0;
+		t=1e-9*(woo::TimingInfo::getNow(/*evenIfDisabled*/true)-t); // in seconds
+		if(isnan(Renderer::renderTime)) Renderer::renderTime=t;
+		Renderer::renderTime=.6*Renderer::renderTime+.4*(t);
+	} else {
+		frameMeasureTime++;
+	}
+
+	if(maxFps!=Renderer::maxFps){
+		killTimer(renderTimerId);
+		maxFps=Renderer::maxFps;
+		renderTimerId=startTimer(1000/Renderer::maxFps);
+	}
+	//for(const auto& view: views){
+	//	if(view) view->updateGL();
+	//}
 #else
 	// this implementation makes the GL idle on subsequent timers, if the rednering took longer than one timer shot
 	// as many tim ers as the waiting took are the idle
@@ -79,7 +103,8 @@ void OpenGLManager::centerAllViews(){
 	FOREACH(const shared_ptr<GLViewer>& g, views){ if(!g) continue; g->centerScene(); }
 }
 void OpenGLManager::startTimerSlot(){
-	startTimer(50);
+	maxFps=Renderer::maxFps; // remember the last value
+	renderTimerId=startTimer(1000/Renderer::maxFps);
 }
 
 int OpenGLManager::waitForNewView(float timeout,bool center){
