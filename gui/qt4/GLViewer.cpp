@@ -229,8 +229,8 @@ void GLViewer::setInitialView(){
 
 void GLViewer::mouseMovesCamera(){
 	camera()->frame()->setWheelSensitivity(-1.0f);
-	// old version - deprecated
-#if 0 /* QGLVIEWER_VERSION<0x020500 */
+	// old version -- used in Ubuntu 12.04 LTS
+#if QGLVIEWER_VERSION<0x020500
 	setMouseBinding(Qt::SHIFT + Qt::LeftButton, SELECT);
 	setMouseBinding(Qt::SHIFT + Qt::LeftButton + Qt::RightButton, FRAME, ZOOM);
 	setMouseBinding(Qt::SHIFT + Qt::MidButton, FRAME, TRANSLATE);
@@ -252,7 +252,8 @@ void GLViewer::mouseMovesCamera(){
 };
 
 void GLViewer::mouseMovesManipulatedFrame(qglviewer::Constraint* c){
-#if 0 /* QGLVIEWER_VERSION<0x020500 */
+	// old version -- used in Ubuntu 12.04 LTS
+#if QGLVIEWER_VERSION<0x020500
 	setMouseBinding(Qt::LeftButton + Qt::RightButton, FRAME, ZOOM);
 	setMouseBinding(Qt::MidButton, FRAME, ZOOM);
 	setMouseBinding(Qt::LeftButton, FRAME, ROTATE);
