@@ -27,9 +27,9 @@ class TestInletsAndOutlets(unittest.TestCase):
 		self.m=self.mat.density*(4/3.)*pi*self.rad**3
 		self.Ek=.5*self.m*self.vel**2
 		if 0:
-			woo.log.setLevel('BoxDeleter',woo.log.TRACE)
-			woo.log.setLevel('ConveyorFactory',woo.log.TRACE)
-			woo.log.setLevel('RandomFactory',woo.log.TRACE)
+			woo.log.setLevel('BoxOutlet',woo.log.TRACE)
+			woo.log.setLevel('ConveyorInlet',woo.log.TRACE)
+			woo.log.setLevel('RandomInlet',woo.log.TRACE)
 			woo.log.setLevel('DemField',woo.log.TRACE)
 			woo.log.setLevel('ParticleContainer',woo.log.TRACE)
 	def testConveyorInlet(self):

@@ -7,7 +7,7 @@ S.lab.feed.massRate=10
 # necessary for capsules... ?
 S.dtSafety=0.4 
 S.engines=S.engines+[
-   BoxDeleter(
+   BoxOutlet(
       box=((0,0,0),(1,1.1,1)),
       stepPeriod=100,
       save=True,      # keep track of diameters/masses of deleted particles, for PSD

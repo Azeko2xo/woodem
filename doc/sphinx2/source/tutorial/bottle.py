@@ -24,7 +24,7 @@ woo.gl.Renderer.allowFast=False
 
 # particle factory, with many parameters
 # when the factory finishes, it will call the pillsDone function, defined below
-factory=CylinderFactory(stepPeriod=100,node=Node(pos=(0,0,.17),ori=Quaternion((0,1,0),math.pi/2.)),radius=.018,height=.05,generator=PharmaCapsuleGenerator(),materials=[capsMat],massRate=0,maxMass=.12,label='feed',attemptPar=100,color=-1,doneHook='pillsDone(S)')
+factory=CylinderInlet(stepPeriod=100,node=Node(pos=(0,0,.17),ori=Quaternion((0,1,0),math.pi/2.)),radius=.018,height=.05,generator=PharmaCapsuleGenerator(),materials=[capsMat],massRate=0,maxMass=.12,label='feed',attemptPar=100,color=-1,doneHook='pillsDone(S)')
 
 # add factory (and optional Paraview export) to engines
 S.engines=DemField.minimalEngines(damping=.3)+[

@@ -23,7 +23,7 @@ S.dem.collectNodes()
 
 S.engines=DemField.minimalEngines(damping=.2)+[
 	# this is the factory engine
-	ConveyorFactory(
+	ConveyorInlet(
 		stepPeriod=100,     # run every 100 steps
 		shapePack=sp,       # this is the packing which will be used
 		vel=1.,             # linear velocity of particles

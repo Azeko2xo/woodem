@@ -46,7 +46,7 @@ for n in [n for n in S.dem.nodes if n.pos[0]==n.pos[1]]:
 	# if n.pos[0]<.2: continue
 	S.dem.splitNode(n,[p for p in n.dem.parRef if p.shape.getCentroid()[0]>p.shape.getCentroid()[1]])
 
-S.engines=DemField.minimalEngines(damping=.4,verletDist=-0.01)+[IntraForce([In2_Membrane_ElastMat(thickness=.01,bending=True,bendThickness=.01)]),BoxDeleter(box=((-.1,-.1,-1),(1.1,1.1,1)),glColor=float('nan'))]
+S.engines=DemField.minimalEngines(damping=.4,verletDist=-0.01)+[IntraForce([In2_Membrane_ElastMat(thickness=.01,bending=True,bendThickness=.01)]),BoxOutlet(box=((-.1,-.1,-1),(1.1,1.1,1)),glColor=float('nan'))]
 
 
 S.saveTmp()

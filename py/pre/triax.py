@@ -115,7 +115,7 @@ def prepareTriax(pre):
 		d,h=pre.iniSize[0],pre.iniSize[2]
 		bot=Vector3((.5+margin)*d,(.5+margin)*d,margin*h)
 		top=bot+(0,0,h)
-		factory=woo.dem.CylinderFactory(node=woo.core.Node(pos=bot,ori=Quaternion((0,1,0),-math.pi/2.)),radius=.5*d,height=h,**factoryKw)
+		factory=woo.dem.CylinderInlet(node=woo.core.Node(pos=bot,ori=Quaternion((0,1,0),-math.pi/2.)),radius=.5*d,height=h,**factoryKw)
 		# axDiv to make sure we don't have facet larger than half of the cell (collider limitation)
 		S.dem.par.append(woo.triangulated.cylinder(bot,top,radius=.5*d,div=pre.cylDiv,axDiv=3,capA=True,capB=True,wallCaps=True,mat=wallMat,mask=wallMask))
 		S.lab.relVol=math.pi*d*h/AlignedBox3((0,0,0),(1+2*margin)*pre.iniSize).volume()

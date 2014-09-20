@@ -132,7 +132,7 @@ def prepareHorse(pre):
 		c.verletDist=.5*pre.radius
 
 	S.engines=S.engines+[
-		BoxDeleter(box=((xMin,yMin,zMin-.1*zSpan),(xMax,yMax,aabb[1][2]+.1*zSpan)),inside=False,stepPeriod=100),
+		BoxOutlet(box=((xMin,yMin,zMin-.1*zSpan),(xMax,yMax,aabb[1][2]+.1*zSpan)),inside=False,stepPeriod=100),
 		VtkExport(out=pre.vtkPrefix,stepPeriod=pre.vtkStep,what=VtkExport.all,dead=(pre.vtkStep<=0 or not pre.vtkPrefix)),
 		# VtkFlowExport(out=pre.vtkPrefix+'-flow-',box=((xMin,yMin,zMin-.1*zSpan),(xMax,yMax,aabb[1][2]+.1*zSpan)),stepPeriod=pre.vtkFlowStep,dead=(pre.vtkFlowStep<=0 or not pre.vtkPrefix),stDev=3*pre.radius,divSize=3*pre.radius),
 		FlowAnalysis(label='flowAnalysis',box=((xMin,yMin,zMin-.1*zSpan),(xMax,yMax,aabb[1][2]+.1*zSpan)),stepPeriod=pre.vtkFlowStep,cellSize=5*pre.radius,cellData=False,dead=(pre.vtkFlowStep<=0 or not pre.vtkPrefix)),

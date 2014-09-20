@@ -5,7 +5,7 @@ S.dem.par.add(Wall.make(0,axis=2,sense=1,mat=woo.utils.defaultMaterial(),glAB=((
 S.dem.collectNodes()
 
 S.engines=DemField.minimalEngines(damping=.2)+[
-	BoxFactory(
+	BoxInlet(
 		stepPeriod=100,                           # run every 100 steps
 		box=((0,0,0),(1,1,1)),                    # unit box for new particles
 		massRate=2.,                              # limit rate of new particles

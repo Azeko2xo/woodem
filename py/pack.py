@@ -37,7 +37,7 @@ woo.dem.ShapePack.fromSimulation=ShapePack_fromSimulation
 
 def ParticleGenerator_makeCloud(gen,S,dem,box,mat,mask=woo.dem.DemField.defaultMovableMask,color=float('nan')):
 	#S=woo.core.Scene(fields=[DemField()])
-	woo.dem.BoxFactory(box=box,materials=[mat],generator=gen,massRate=0,color=color,collideExisting=False)(S,dem)
+	woo.dem.BoxInlet(box=box,materials=[mat],generator=gen,massRate=0,color=color,collideExisting=False)(S,dem)
 woo.dem.ParticleGenerator.makeCloud=ParticleGenerator_makeCloud
 
 	
@@ -361,7 +361,7 @@ def randomLoosePsd(predicate,psd,mass=True,discrete=False,maxAttempts=5000,clump
 	else: generator=woo.dem.PsdClumpGenerator(psdPts=psd,discrete=False,mass=True,clumps=clumps)
 	S.engines=[
 		woo.dem.InsertionSortCollider([woo.dem.Bo1_Sphere_Aabb()]),
-		woo.dem.BoxFactory(
+		woo.dem.BoxInlet(
 			box=(mn,mx),
 			maxMass=-1,
 			maxNum=-1,
@@ -719,7 +719,7 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNu
 	else: generator=woo.dem.PsdClumpGenerator(psdPts=psd,discrete=False,mass=True,clumps=clumps)
 	S.engines=[
 		woo.dem.InsertionSortCollider([woo.dem.Bo1_Sphere_Aabb()]),
-		woo.dem.BoxFactory(
+		woo.dem.BoxInlet(
 			box=((0,0,0),cellSize),
 			maxMass=-1,
 			maxNum=maxNum,
@@ -781,7 +781,7 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNu
 
 
 def makeBandFeedPack(dim,mat,gravity,psd=[],excessWd=None,damping=.3,porosity=.5,goal=.15,dontBlock=False,memoizeDir=None,botLine=None,leftLine=None,rightLine=None,clumps=[],returnSpherePack=False,useEnergy=True,gen=None):
-	'''Create dense packing periodic in the +x direction, suitable for use with ConveyorFactory.
+	'''Create dense packing periodic in the +x direction, suitable for use with ConveyorInlet.
 :param useEnergy: use :obj:`woo.utils.unbalancedEnergy` instead of :obj:`woo.utils.unbalancedForce` as stop criterion.
 :param goal: target unbalanced force/energy; if unbalanced energy is used, this value is **multiplied by .2**.
 :param psd: particle size distribution
@@ -877,7 +877,7 @@ def makeBandFeedPack(dim,mat,gravity,psd=[],excessWd=None,damping=.3,porosity=.5
 	else:
 		unbalancedFunc='woo.utils.unbalancedForce'
 	S.engines=utils.defaultEngines(damping=damping,dynDtPeriod=100)+[
-		woo.dem.BoxFactory(
+		woo.dem.BoxInlet(
 			box=((.01*cellSize[0],factoryLeft,factoryBottom),(cellSize[0],factoryRight,cellSize[2])),
 			stepPeriod=200,
 			maxMass=massToDo,
@@ -947,7 +947,7 @@ def makeBandFeedPack(dim,mat,gravity,psd=[],excessWd=None,damping=.3,porosity=.5
 #		S.cell.setBox(box.sizes())
 #		S.engines=[	
 #			woo.dem.InsertionSortCollider(list(woo.system.childClasses(woo.dem.BoundFunctor))),
-#			woo.dem.BoxFactory(box=((0,0,0),box.sizes()),maxMass=-1,maxNum=-1,generator=generator,massRate=0,maxAttempts=5000,materials=[woo.dem.FrictMat(density=1e3,young=1e7,ktDivKn=0,tanPhi=0)],shooter=None,mask=1)
+#			woo.dem.BoxInlet(box=((0,0,0),box.sizes()),maxMass=-1,maxNum=-1,generator=generator,massRate=0,maxAttempts=5000,materials=[woo.dem.FrictMat(density=1e3,young=1e7,ktDivKn=0,tanPhi=0)],shooter=None,mask=1)
 #		]
 #		S.one()
 #		print 'Created %d particles, compacting...'%len(S.dem.par)

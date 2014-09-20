@@ -30,7 +30,7 @@ S.dem.par.add([
 S.dem.par[-1].angVel=(0,.5,0)
 S.dem.collectNodes()
 S.dtSafety=.2
-S.engines=woo.utils.defaultEngines(damping=.4,dynDtPeriod=10)+[BoxFactory(box=((-1,-1,1+i*2),(1,1,3+i*2)),stepPeriod=100,maxMass=3e3,maxNum=-1,massRate=0,maxAttempts=100,attemptPar=50,atMaxAttempts=BoxFactory.maxAttWarn,generator=generators[i],materials=[mat]) for i in range(len(generators))]
+S.engines=woo.utils.defaultEngines(damping=.4,dynDtPeriod=10)+[BoxInlet(box=((-1,-1,1+i*2),(1,1,3+i*2)),stepPeriod=100,maxMass=3e3,maxNum=-1,massRate=0,maxAttempts=100,attemptPar=50,atMaxAttempts=BoxInlet.maxAttWarn,generator=generators[i],materials=[mat]) for i in range(len(generators))]
 
 # S.any=[Gl1_Ellipsoid(wire=True),Gl1_DemField(cPhys=True,cNode=Gl1_DemField.cNodeNode),Renderer(iniViewDir=(0,1,0))]
 # S.throttle=.03
