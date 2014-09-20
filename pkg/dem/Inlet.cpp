@@ -17,10 +17,10 @@
 
 #include<boost/tuple/tuple_comparison.hpp>
 
-WOO_PLUGIN(dem,(ParticleInlet)(ParticleGenerator)(MinMaxSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(RandomInlet)(BoxInlet)(BoxInlet2d)(CylinderInlet));
+WOO_PLUGIN(dem,(Inlet)(ParticleGenerator)(MinMaxSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(RandomInlet)(BoxInlet)(BoxInlet2d)(CylinderInlet));
 CREATE_LOGGER(RandomInlet);
 
-WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_ParticleInlet__CLASS_BASE_DOC_ATTRS);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_Inlet__CLASS_BASE_DOC_ATTRS);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_ParticleGenerator__CLASS_BASE_DOC_ATTRS_PY);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_MinMaxSphereGenerator_CLASS_BASE_DOC_ATTRS);
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_ParticleShooter__CLASS_BASE_DOC);
@@ -101,7 +101,7 @@ Real RandomInlet::critDt() {
 }
 
 
-bool ParticleInlet::everythingDone(){
+bool Inlet::everythingDone(){
 	if((maxMass>0 && mass>=maxMass) || (maxNum>0 && num>=maxNum)){
 		LOG_INFO("mass or number reached, making myself dead.");
 		dead=true;

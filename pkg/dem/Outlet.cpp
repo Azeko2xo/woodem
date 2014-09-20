@@ -2,10 +2,12 @@
 #include<woo/pkg/dem/Sphere.hpp>
 #include<woo/pkg/dem/Clump.hpp>
 #include<woo/pkg/dem/Funcs.hpp>
-WOO_PLUGIN(dem,(BoxOutlet));
-CREATE_LOGGER(BoxOutlet);
+WOO_PLUGIN(dem,(Outlet)(BoxOutlet));
+CREATE_LOGGER(Outlet);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Outlet__CLASS_BASE_DOC_ATTRS_PY);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_BoxOutlet__CLASS_BASE_DOC_ATTRS);
 
-void BoxOutlet::run(){
+void Outlet::run(){
 	DemField* dem=static_cast<DemField*>(field.get());
 	Real stepMass=0.;
 	std::set<Particle::id_t> delParIds;
@@ -13,7 +15,7 @@ void BoxOutlet::run(){
 	bool deleting=(markMask==0);
 	for(size_t i=0; i<dem->nodes.size(); i++){
 		const auto& n=dem->nodes[i];
-		if(inside!=boxContains(n->pos)) continue; // node inside, do nothing
+		if(inside!=isInside(n->pos)) continue; // node inside, do nothing
 		if(!n->hasData<DemData>()) continue;
 		const auto& dyn=n->getData<DemData>();
 		// check all particles attached to this node
@@ -27,7 +29,7 @@ void BoxOutlet::run(){
 			bool otherOk=true;
 			for(const auto& nn: p->shape->nodes){
 				// useless to check n again
-				if(nn.get()!=n.get() && !(inside!=boxContains(nn->pos))){ otherOk=false; break; }
+				if(nn.get()!=n.get() && !(inside!=isInside(nn->pos))){ otherOk=false; break; }
 			}
 			if(!otherOk) continue;
 			LOG_TRACE("DemField.par["<<i<<"] marked for deletion.");
@@ -38,7 +40,7 @@ void BoxOutlet::run(){
 			assert(dynamic_pointer_cast<ClumpData>(n->getDataPtr<DemData>()));
 			const auto& cd=n->getDataPtr<DemData>()->cast<ClumpData>();
 			for(const auto& nn: cd.nodes){
-				if(inside!=boxContains(nn->pos)) goto otherNotOk;
+				if(inside!=isInside(nn->pos)) goto otherNotOk;
 				for(const Particle* p: nn->getData<DemData>().parRef){
 					assert(p);
 					if(mask && !(mask & p->mask)) goto otherNotOk;
@@ -102,7 +104,7 @@ void BoxOutlet::run(){
 	if(isnan(currRate)||stepPrev<0) currRate=currRateNoSmooth;
 	else currRate=(1-currRateSmooth)*currRate+currRateSmooth*currRateNoSmooth;
 }
-py::object BoxOutlet::pyDiamMass(bool zipped) const {
+py::object Outlet::pyDiamMass(bool zipped) const {
 	if(!zipped){
 		py::list dd, mm;
 		for(const auto& dm: diamMass){ dd.append(dm[0]); mm.append(dm[1]); }
@@ -114,14 +116,14 @@ py::object BoxOutlet::pyDiamMass(bool zipped) const {
 	}
 }
 
-Real BoxOutlet::pyMassOfDiam(Real min, Real max) const {
+Real Outlet::pyMassOfDiam(Real min, Real max) const {
 	Real ret=0.;
 	for(const auto& dm: diamMass){ if(dm[0]>=min && dm[0]<=max) ret+=dm[1]; }
 	return ret;
 }
 
-py::object BoxOutlet::pyPsd(bool _mass, bool cumulative, bool normalize, int _num, const Vector2r& dRange, bool zip, bool emptyOk){
-	if(!save) throw std::runtime_error("BoxOutlet.save must be True for calling BoxOutlet.psd()");
+py::object Outlet::pyPsd(bool _mass, bool cumulative, bool normalize, int _num, const Vector2r& dRange, bool zip, bool emptyOk){
+	if(!save) throw std::runtime_error("Outlet.psd(): Outlet.save must be True.");
 	vector<Vector2r> psd=DemFuncs::psd(/*deleted*/diamMass,cumulative,normalize,_num,dRange,
 		/*diameter getter*/[](const Vector2r& dm)->Real{ return dm[0]; },
 		/*weight getter*/[&_mass](const Vector2r& dm)->Real{ return _mass?dm[1]:1.; },

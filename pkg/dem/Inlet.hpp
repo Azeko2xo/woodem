@@ -9,7 +9,7 @@
 	#include<woo/lib/base/CompUtils.hpp>
 #endif
 
-struct ParticleInlet: public PeriodicEngine{
+struct Inlet: public PeriodicEngine{
 	//bool isActivated(){ return !((maxMass>0 && mass>maxMass) || (maxNum>0 && num>maxNum)); }
 	// set current smoothed mass flow rate, given unsmoothed value from the current step
 	// handles NaN values if there is no previous value
@@ -20,8 +20,8 @@ struct ParticleInlet: public PeriodicEngine{
 	// return true when maximum mass/num of particles (or other termination condition) has been reached
 	// runs doneHook inside and sets dead=True
 	bool everythingDone();
-	#define woo_dem_ParticleInlet__CLASS_BASE_DOC_ATTRS \
-		ParticleInlet,PeriodicEngine,ClassTrait().doc("Inlet generating new particles. This is an abstract base class which in itself does not generate anything, but provides some unified interface to derived classes.").section("Factories","TODO",{"ParticleGenerator","ParticleShooter","BoxOutlet"}), \
+	#define woo_dem_Inlet__CLASS_BASE_DOC_ATTRS \
+		Inlet,PeriodicEngine,ClassTrait().doc("Inlet generating new particles. This is an abstract base class which in itself does not generate anything, but provides some unified interface to derived classes.").section("Factories","TODO",{"ParticleGenerator","ParticleShooter","BoxOutlet"}), \
 		((int,mask,((void)":obj:`DemField.defaultInletMask`",DemField::defaultInletMask),,":obj:`~woo.dem.Particle.mask` for new particles.")) \
 		((Real,maxMass,-1,,"Mass at which the engine will not produce any particles (inactive if not positive)")) \
 		((long,maxNum,-1,,"Number of generated particles after which no more will be produced (inactive if not positive)")) \
@@ -33,9 +33,9 @@ struct ParticleInlet: public PeriodicEngine{
 		((Real,currRateSmooth,1,AttrTrait<>().range(Vector2r(0,1)),"Smoothing factor for currRate ∈〈0,1〉")) \
 		((Real,glColor,0,AttrTrait<>().noGui(),"Color for rendering (nan disables rendering)"))
 
-	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_ParticleInlet__CLASS_BASE_DOC_ATTRS);
+	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_Inlet__CLASS_BASE_DOC_ATTRS);
 };
-WOO_REGISTER_OBJECT(ParticleInlet);
+WOO_REGISTER_OBJECT(Inlet);
 
 struct ParticleGenerator: public Object{
 	// particle and two extents sizes (bbox if p is at origin)
@@ -110,7 +110,7 @@ WOO_REGISTER_OBJECT(AlignedMinMaxShooter);
 
 struct Collider;
 
-struct RandomInlet: public ParticleInlet{
+struct RandomInlet: public Inlet{
 	DECLARE_LOGGER;
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	virtual Vector3r randomPosition(const Real& padDist){ throw std::runtime_error("Calling ParticleFactor.randomPosition	(abstract method); use derived classes."); }
@@ -122,7 +122,7 @@ struct RandomInlet: public ParticleInlet{
 	enum{MAXATT_ERROR=0,MAXATT_DEAD,MAXATT_WARN,MAXATT_SILENT};
 	bool spheresOnly; // set at each step, queried from the generator
 	#define woo_dem_RandomInlet__CLASS_BASE_DOC_ATTRS_PY \
-		RandomInlet,ParticleInlet,"Inlet generating new particles. This class overrides :obj:`woo.core.Engine.critDt`, which in turn calls :obj:`woo.dem.ParticleGenerator.critDt` with all possible :obj:`materials` one by one.", \
+		RandomInlet,Inlet,"Inlet generating new particles. This class overrides :obj:`woo.core.Engine.critDt`, which in turn calls :obj:`woo.dem.ParticleGenerator.critDt` with all possible :obj:`materials` one by one.", \
 		((Real,massRate,NaN,AttrTrait<>().massRateUnit(),"Mass flow rate; if zero, generate as many particles as possible, until maxAttemps is reached.")) \
 		((vector<shared_ptr<Material>>,materials,,,"Set of materials for new particles, randomly picked from")) \
 		((shared_ptr<ParticleGenerator>,generator,,,"Particle generator instance")) \

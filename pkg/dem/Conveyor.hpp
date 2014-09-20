@@ -3,7 +3,7 @@
 #include<woo/pkg/dem/Clump.hpp>
 
 
-struct ConveyorInlet: public ParticleInlet{
+struct ConveyorInlet: public Inlet{
 	DECLARE_LOGGER;
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	Real packVol() const;
@@ -30,7 +30,7 @@ struct ConveyorInlet: public ParticleInlet{
 	Real pyMassOfDiam(Real min, Real max) const ;
 	py::tuple pyPsd(bool mass, bool cumulative, bool normalize, Vector2r dRange, int num) const;
 #define woo_dem_ConveyorInlet__CLASS_BASE_DOC_ATTRS_PY \
-		ConveyorInlet,ParticleInlet,"Inlet producing infinite band of particles from packing periodic in the x-direction. Clumps are fully supported.", \
+		ConveyorInlet,Inlet,"Inlet producing infinite band of particles from packing periodic in the x-direction. Clumps are fully supported.", \
 		((shared_ptr<Material>,material,,AttrTrait<>().startGroup("Particles"),"Material for new particles")) \
 		((shared_ptr<SpherePack>,spherePack,,AttrTrait<Attr::noSave|Attr::triggerPostLoad>(),":obj:`woo.pack.SpherePack` object; when specified, :obj:`centers`, :obj:`radii` (and :obj:`clumps`, if clumps are contained) are discarded  and will be computed from this :obj:`SpherePack`. The attribute is reset afterwards.")) \
 		((shared_ptr<ShapePack>,shapePack,,AttrTrait<Attr::triggerPostLoad>(),"Purely geomerical description of particles to be generated (will replace :obj:`spherePack`, :obj:`centers`, :obj:`radii`, :obj:`clumps` and :obj:`cellLen` in the future).")) \

@@ -258,7 +258,7 @@ void ConveyorInlet::run(){
 	Real lenDone=0;
 	while(true){
 		// done forever
-		if(ParticleInlet::everythingDone()) return;
+		if(Inlet::everythingDone()) return;
 
 		LOG_TRACE("Doing next particle: mass/maxMass="<<mass<<"/"<<maxMass<<", num/maxNum"<<num<<"/"<<maxNum);
 		if(nextIx<0) nextIx=centers.size()-1;
