@@ -147,14 +147,14 @@ bool Cg2_Wall_Sphere_G3Geom::go(const shared_ptr<Shape>& wallSh, const shared_pt
 #endif
 
 
-void Law2_G3Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shared_ptr<CPhys>& cp, const shared_ptr<Contact>&C){
+bool Law2_G3Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shared_ptr<CPhys>& cp, const shared_ptr<Contact>&C){
 	G3Geom& geom=cg->cast<G3Geom>(); FrictPhys& phys=cp->cast<FrictPhys>();
 	#ifdef WOO_DEBUG
 		bool watched=(max(C->leakPA()->id,C->leakPB()->id)==watch.maxCoeff() && (watch.minCoeff()<0 || min(C->leakPA()->id,C->leakPB()->id)==watch.minCoeff()));
 	#endif
 	_WATCH_MSG("Step "<<scene->step<<", ##"<<C->leakPA()->id<<"+"<<C->leakPB()->id<<": "<<endl);
 	if(geom.uN>0){
-		if(!noBreak){ _WATCH_MSG("Contact being broken."<<endl); field->cast<DemField>().contacts->requestRemoval(C); return; }
+		if(!noBreak){ _WATCH_MSG("Contact being broken."<<endl); return false; }
 	}
 	Vector3r normalForce=phys.kn*geom.uN*geom.normal;
 	if(!C->data){ C->data=make_shared<G3GeomCData>(); }
@@ -185,5 +185,7 @@ void Law2_G3Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shar
 	// local coordinates are not rotated, though
 	assert(C->geom->node->ori==Quaternionr::Identity());
 	phys.force=normalForce+dta.shearForce;
+
+	return true;
 }
 

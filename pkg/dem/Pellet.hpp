@@ -69,7 +69,7 @@ WOO_REGISTER_OBJECT(Cp2_PelletMat_PelletPhys);
 
 
 struct Law2_L6Geom_PelletPhys_Pellet: public LawFunctor{
-	void go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&);
+	bool go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&) WOO_CXX11_OVERRIDE;
 	enum { DISSIP_NORM_PLAST=0, DISSIP_SHEAR_PLAST=1};
 	void tryAddDissipState(int what, Real E, const shared_ptr<Contact>& C);
 

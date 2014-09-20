@@ -31,13 +31,13 @@ void Law2_L6Geom_PelletPhys_Pellet::tryAddDissipState(int what, Real E, const sh
 	}
 }
 
-void Law2_L6Geom_PelletPhys_Pellet::go(const shared_ptr<CGeom>& cg, const shared_ptr<CPhys>& cp, const shared_ptr<Contact>& C){
+bool Law2_L6Geom_PelletPhys_Pellet::go(const shared_ptr<CGeom>& cg, const shared_ptr<CPhys>& cp, const shared_ptr<Contact>& C){
 	const L6Geom& g(cg->cast<L6Geom>()); PelletPhys& ph(cp->cast<PelletPhys>());
 	if(C->isFresh(scene)) C->data=make_shared<PelletCData>();
 	assert(C->data && dynamic_pointer_cast<PelletCData>(C->data));
 	// break contact
 	if(g.uN>0){
-		field->cast<DemField>().contacts->requestRemoval(C); return;
+		return false;
 	}
 	Real d0=g.lens.sum();
 	Real& Fn(ph.force[0]); Eigen::Map<Vector2r> Ft(&ph.force[1]);
@@ -113,6 +113,7 @@ void Law2_L6Geom_PelletPhys_Pellet::go(const shared_ptr<CGeom>& cg, const shared
 	assert(!isnan(Fn)); assert(!isnan(Ft[0]) && !isnan(Ft[1]));
 	// elastic potential energy
 	if(unlikely(scene->trackEnergy)) scene->energy->add(0.5*(pow(Fn,2)/ph.kn+Ft.squaredNorm()/ph.kt),"elast",elastPotIx,EnergyTracker::IsResettable);
+	return true;
 }
 
 

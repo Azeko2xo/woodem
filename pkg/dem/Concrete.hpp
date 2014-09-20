@@ -135,7 +135,7 @@ struct Law2_L6Geom_ConcretePhys: public LawFunctor{
 		}
 	}
 
-	void go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&);
+	bool go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&) WOO_CXX11_OVERRIDE;
 	FUNCTOR2D(L6Geom,ConcretePhys);
 	#define woo_dem_Law2_L6Geom_ConcretePhys__CLASS_BASE_DOC_ATTRS_PY \
 		Law2_L6Geom_ConcretePhys,LawFunctor,"Constitutive law for concrete.", \

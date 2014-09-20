@@ -9,7 +9,7 @@ WOO_PLUGIN(dem,(Law2_L6Geom_FrictPhys_IdealElPl)(IdealElPlData)(Law2_L6Geom_Fric
 
 CREATE_LOGGER(Law2_L6Geom_FrictPhys_IdealElPl);
 
-void Law2_L6Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shared_ptr<CPhys>& cp, const shared_ptr<Contact>& C){
+bool Law2_L6Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shared_ptr<CPhys>& cp, const shared_ptr<Contact>& C){
 	const L6Geom& g(cg->cast<L6Geom>()); FrictPhys& ph(cp->cast<FrictPhys>());
 	#ifdef WOO_DEBUG
 		bool watched=(max(C->leakPA()->id,C->leakPB()->id)==watch.maxCoeff() && min(C->leakPA()->id,C->leakPB()->id)==watch.minCoeff());
@@ -35,7 +35,7 @@ void Law2_L6Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shar
 			// Real Fn=ph.force[0]; Vector2r Ft(ph.force[1],ph.force[2]);
 			scene->energy->add(.5*(pow(Fn,2)/ph.kn+Ft.squaredNorm()/ph.kt),"broken",brokenIx,EnergyTracker::IsIncrement);
 		}
-		field->cast<DemField>().contacts->requestRemoval(C); return;
+		return false;
 	}
 	ph.torque=Vector3r::Zero();
 
@@ -118,9 +118,10 @@ void Law2_L6Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shar
 		// in case we disable rolling&twisting during the simulation
 		ph.torque=Vector3r::Zero();
 	}
+	return true;
 };
 
-void Law2_L6Geom_FrictPhys_LinEl6::go(const shared_ptr<CGeom>& cg, const shared_ptr<CPhys>& cp, const shared_ptr<Contact>& C){
+bool Law2_L6Geom_FrictPhys_LinEl6::go(const shared_ptr<CGeom>& cg, const shared_ptr<CPhys>& cp, const shared_ptr<Contact>& C){
 	L6Geom& geom=cg->cast<L6Geom>(); FrictPhys& phys=cp->cast<FrictPhys>(); const Real& dt=scene->dt;
 	if(charLen<0) throw std::invalid_argument("Law2_L6Geom_FrictPhys_LinEl6.charLen must be non-negative (is "+lexical_cast<string>(charLen)+")");
 	// simple linear increments
@@ -145,4 +146,5 @@ void Law2_L6Geom_FrictPhys_LinEl6::go(const shared_ptr<CGeom>& cg, const shared_
 			scene->energy->add((phys.force-.5*dt*(geom.vel.cwise()*kntt)).dot(dt*geom.vel)+(phys.torque-.5*dt*(geom.angVel.cwise()*ktbb)).dot(dt*geom.angVel),"elast",elastPotIx,EnergyTracker::IsIncrement);
 		#endif
 	}
+	return true;
 };

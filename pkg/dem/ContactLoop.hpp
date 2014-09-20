@@ -34,7 +34,7 @@ WOO_REGISTER_OBJECT(CPhysFunctor);
 
 class LawFunctor: public Functor2D<
 	/*dispatch types*/ CGeom,CPhys,
-	/*return type*/    void,
+	/*return type*/    bool,
 	/*argument types*/ TYPELIST_3(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&)
 >{
 	#define woo_dem_LawFunctor__CLASS_BASE_DOC_PY LawFunctor,Functor,"Functor for applying constitutive laws on :obj:`contact <Contact>`.", /*py*/ ; woo::converters_cxxVector_pyList_2way<shared_ptr<LawFunctor>>();

@@ -210,7 +210,7 @@ void ConcretePhys::setRelResidualStrength(Real r) {
 #define NNAN(a) _WOO_VERIFY(!isnan(a));
 #define NNANV(v) _WOO_VERIFY(!isnan(v.maxCoeff()));
 
-void Law2_L6Geom_ConcretePhys::go(const shared_ptr<CGeom>& _geom, const shared_ptr<CPhys>& _phys, const shared_ptr<Contact>& C){
+bool Law2_L6Geom_ConcretePhys::go(const shared_ptr<CGeom>& _geom, const shared_ptr<CPhys>& _phys, const shared_ptr<Contact>& C){
 	L6Geom& geom=_geom->cast<L6Geom>();
 	ConcretePhys& phys=_phys->cast<ConcretePhys>();
 
@@ -338,8 +338,7 @@ void Law2_L6Geom_ConcretePhys::go(const shared_ptr<CGeom>& _geom, const shared_p
 			{ boost::mutex::scoped_lock lock(st1->updateMutex); st1->numBrokenCohesive += 1; /* st1->epsPlBroken += epsPlSum; */ }
 			{ boost::mutex::scoped_lock lock(st2->updateMutex); st2->numBrokenCohesive += 1; /* st2->epsPlBroken += epsPlSum; */ }
 		#endif
-		field->cast<DemField>().contacts->requestRemoval(C);
-		return;
+		return false;
 	}
 
 	Fn=sigmaN*contA; // phys->normalForce = -Fn*geom->normal;
@@ -364,7 +363,7 @@ void Law2_L6Geom_ConcretePhys::go(const shared_ptr<CGeom>& _geom, const shared_p
 		}
 		TIMING_DELTAS_CHECKPOINT("rest");
 	#endif
-	// return true;
+	return true;
 }
 
 

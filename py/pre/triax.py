@@ -99,7 +99,7 @@ def prepareTriax(pre):
 	factoryKw=dict(maxMass=-1,maxNum=-1,generator=pre.generator,massRate=0,maxAttempts=5000,materials=[S.lab.partMat],shooter=None,mask=partMask,collideExisting=False)
 
 	if pre.shape=='cell':
-		factory=woo.dem.BoxFactory(box=((0,0,0),pre.iniSize),**factoryKw)
+		factory=woo.dem.BoxInlet(box=((0,0,0),pre.iniSize),**factoryKw)
 		S.lab.relVol=1.
 		margin=0. # no margins, use the full volume
 	elif pre.shape=='box':
@@ -109,7 +109,7 @@ def prepareTriax(pre):
 				# make copy of mid
 				pos=Vector3(mid); pos[ax]-=sense*.5*pre.iniSize[ax]
 				S.dem.par.append(woo.utils.wall(pos,sense=sense,axis=ax,mat=wallMat,mask=wallMask))
-		factory=woo.dem.BoxFactory(box=(margin*pre.iniSize,(1+margin)*pre.iniSize),**factoryKw)
+		factory=woo.dem.BoxInlet(box=(margin*pre.iniSize,(1+margin)*pre.iniSize),**factoryKw)
 		S.lab.relVol=AlignedBox3((0,0,0),pre.iniSize).volume()/AlignedBox3((0,0,0),(1+2*margin)*pre.iniSize).volume()
 	elif pre.shape=='cylinder':
 		d,h=pre.iniSize[0],pre.iniSize[2]

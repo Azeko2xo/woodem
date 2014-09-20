@@ -49,7 +49,7 @@ class EllGroup(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 
 		ZZ=pre.rRange[1]*3;
 		# only generate spheres randomly in 2d box
-		S.engines=[woo.dem.BoxFactory2d(axis=2,box=((0,0,ZZ),(pre.boxSize[0],pre.boxSize[1],ZZ)),materials=[ellMat],generator=woo.dem.MinMaxSphereGenerator(dRange=2*pre.rRange),massRate=0),woo.dem.InsertionSortCollider([woo.dem.Bo1_Sphere_Aabb()])]
+		S.engines=[woo.dem.BoxInlet2d(axis=2,box=((0,0,ZZ),(pre.boxSize[0],pre.boxSize[1],ZZ)),materials=[ellMat],generator=woo.dem.MinMaxSphereGenerator(dRange=2*pre.rRange),massRate=0),woo.dem.InsertionSortCollider([woo.dem.Bo1_Sphere_Aabb()])]
 		S.one()
 		posRad=[(p.pos,p.shape.radius) for p in S.dem.par]
 		# clear the dem field

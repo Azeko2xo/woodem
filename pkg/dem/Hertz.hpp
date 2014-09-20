@@ -37,7 +37,7 @@ WOO_REGISTER_OBJECT(Cp2_FrictMat_HertzPhys);
 // Cp2_FrictMat_HertzPhys
 
 struct Law2_L6Geom_HertzPhys_DMT: public LawFunctor{
-	void go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&);
+	bool go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&) WOO_CXX11_OVERRIDE;
 	// fast func for computing x^(i/2)
 	static Real pow_i_2(const Real& x, const short& i) { return pow(sqrt(x),i);}
 	// faster (?) func for computing x^(i/3)

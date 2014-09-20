@@ -55,7 +55,7 @@ CREATE_LOGGER(Law2_L6Geom_HertzPhys_DMT);
 void Law2_L6Geom_HertzPhys_DMT::postLoad(Law2_L6Geom_HertzPhys_DMT&,void*){
 }
 
-void Law2_L6Geom_HertzPhys_DMT::go(const shared_ptr<CGeom>& cg, const shared_ptr<CPhys>& cp, const shared_ptr<Contact>& C){
+bool Law2_L6Geom_HertzPhys_DMT::go(const shared_ptr<CGeom>& cg, const shared_ptr<CPhys>& cp, const shared_ptr<Contact>& C){
 	const L6Geom& g(cg->cast<L6Geom>()); HertzPhys& ph(cp->cast<HertzPhys>());
 	Real& Fn(ph.force[0]); Eigen::Map<Vector2r> Ft(&ph.force[1]);
 	ph.torque=Vector3r::Zero();
@@ -75,7 +75,7 @@ void Law2_L6Geom_HertzPhys_DMT::go(const shared_ptr<CGeom>& cg, const shared_ptr
 			// TODO: track nonzero energy of broken contact with adhesion
 			// TODO: take residual shear force in account?
 			// if(unlikely(scene->trackEnergy)) scene->energy->add(normalElasticEnergy(ph.kn0,0),"dmtComeGo",dmtIx,EnergyTracker::IsIncrement|EnergyTracker::ZeroDontCreate);
-			field->cast<DemField>().contacts->requestRemoval(C); return;
+			return false;
 		}
 		// pure Hertz/DMT
 		Fne=-kn0*pow_i_2(-g.uN,3); // elastic force
@@ -101,7 +101,7 @@ void Law2_L6Geom_HertzPhys_DMT::go(const shared_ptr<CGeom>& cg, const shared_ptr
 		// broken contact
 		if(delta<deltaMin){
 			// TODO: track energy
-			field->cast<DemField>().contacts->requestRemoval(C); return;
+			return false;
 		}
 
 		// solution brackets
@@ -178,6 +178,7 @@ void Law2_L6Geom_HertzPhys_DMT::go(const shared_ptr<CGeom>& cg, const shared_ptr
 		if(g.uN<0) scene->energy->add(normalElasticEnergy(kn0,-g.uN)+0.5*Ft.squaredNorm()/ph.kt,"elast",elastPotIx,EnergyTracker::IsResettable);
 	}
 	LOG_DEBUG("uN="<<g.uN<<", Fn="<<Fn<<"; duT/dt="<<velT[0]<<","<<velT[1]<<", Ft="<<Ft[0]<<","<<Ft[1]);
+	return true;
 }
 
 

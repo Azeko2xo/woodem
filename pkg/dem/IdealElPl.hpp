@@ -4,7 +4,7 @@
 #include<woo/pkg/dem/ContactLoop.hpp>
 
 struct Law2_L6Geom_FrictPhys_IdealElPl: public LawFunctor{
-	void go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&);
+	bool go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&) WOO_CXX11_OVERRIDE;
 	FUNCTOR2D(L6Geom,FrictPhys);
 	DECLARE_LOGGER;
 	WOO_CLASS_BASE_DOC_ATTRS(Law2_L6Geom_FrictPhys_IdealElPl,LawFunctor,"Ideally elastic-plastic behavior.",
@@ -35,7 +35,7 @@ struct IdealElPlData: public CData{
 WOO_REGISTER_OBJECT(IdealElPlData);
 
 struct Law2_L6Geom_FrictPhys_LinEl6: public LawFunctor{
-	void go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&);
+	bool go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&) WOO_CXX11_OVERRIDE; 
 	FUNCTOR2D(L6Geom,FrictPhys);
 	WOO_CLASS_BASE_DOC_ATTRS(Law2_L6Geom_FrictPhys_LinEl6,LawFunctor,"Ideally elastic-plastic behavior.",
 		((Real,charLen,-1,,"Characteristic length, which is equal to stiffnesses ratio kNormal/kTwist and kShear/kBend. Must be non-negative."))

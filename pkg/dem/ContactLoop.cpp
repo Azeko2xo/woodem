@@ -180,7 +180,8 @@ void ContactLoop::run(){
 		CONTACTLOOP_CHECKPOINT("phys");
 
 		// CLaw
-		lawDisp->operator()(C->geom,C->phys,C);
+		bool keepContact=lawDisp->operator()(C->geom,C->phys,C);
+		if(!keepContact) dem.contacts->requestRemoval(C);
 		CONTACTLOOP_CHECKPOINT("law");
 
 		if(applyForces && C->isReal()){

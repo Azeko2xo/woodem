@@ -51,7 +51,7 @@ struct G3GeomCData: public CData{
 WOO_REGISTER_OBJECT(G3GeomCData);
 
 struct Law2_G3Geom_FrictPhys_IdealElPl: public LawFunctor{
-	void go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&);
+	bool go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&) WOO_CXX11_OVERRIDE;
 	FUNCTOR2D(G3Geom,FrictPhys);
 	WOO_CLASS_BASE_DOC_ATTRS(Law2_G3Geom_FrictPhys_IdealElPl,LawFunctor,"Ideally elastic-plastic behavior, for use with G3Geom.",
 		((bool,noSlip,false,,"Disable plastic slipping"))
