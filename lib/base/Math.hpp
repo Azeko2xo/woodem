@@ -156,6 +156,7 @@ template<typename Scalar>
 struct Math{
 	static Scalar Sign(Scalar f){ if(f<0) return -1; if(f>0) return 1; return 0; }
 	static Scalar UnitRandom(){ return ((double)rand()/((double)(RAND_MAX))); }
+	static Scalar IntervalRandom(const Real& a, const Real& b){ return a+UnitRandom()*(b-a); }
 	static Scalar SymmetricRandom(){ return 2.*(((double)rand())/((double)(RAND_MAX)))-1.; }
 	static Scalar FastInvCos0(Scalar fValue){ Scalar fRoot = sqrt(((Scalar)1.0)-fValue); Scalar fResult = -(Scalar)0.0187293; fResult *= fValue; fResult += (Scalar)0.0742610; fResult *= fValue; fResult -= (Scalar)0.2121144; fResult *= fValue; fResult += (Scalar)1.5707288; fResult *= fRoot; return fResult; }
 	// see http://planning.cs.uiuc.edu/node198.html (uses inverse notation: x,y,z,w!!

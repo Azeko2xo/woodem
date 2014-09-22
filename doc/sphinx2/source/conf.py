@@ -54,8 +54,15 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.mathjax' i
 	# local copies
 	'sphinxcontrib_youtube',
 	'tikz',
-	'IPython.sphinxext.ipython_directive','IPython.sphinxext.ipython_console_highlighting'
+	'IPython.sphinxext.ipython_directive','IPython.sphinxext.ipython_console_highlighting',
+	# experimental
+	# 'breathe'
 ]
+
+breathe_default_project='woo'
+breathe_projects={'woo':'../../doxygen/xml'}
+breathe_default_members=('members','undoc-members','private-members')
+
 
 # customize prompts
 # TODO

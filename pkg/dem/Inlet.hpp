@@ -20,8 +20,11 @@ struct Inlet: public PeriodicEngine{
 	// return true when maximum mass/num of particles (or other termination condition) has been reached
 	// runs doneHook inside and sets dead=True
 	bool everythingDone();
+	#ifdef WOO_OPENGL
+		void renderMassAndRate(const Vector3r& pos);
+	#endif
 	#define woo_dem_Inlet__CLASS_BASE_DOC_ATTRS \
-		Inlet,PeriodicEngine,ClassTrait().doc("Inlet generating new particles. This is an abstract base class which in itself does not generate anything, but provides some unified interface to derived classes.").section("Factories","TODO",{"ParticleGenerator","ParticleShooter","BoxOutlet"}), \
+		Inlet,PeriodicEngine,ClassTrait().doc("Inlet generating new particles. This is an abstract base class which in itself does not generate anything, but provides some unified interface to derived classes.").section("Inlets & Outlets","TODO",{"ParticleGenerator","ParticleShooter","Outlet"}), \
 		((int,mask,((void)":obj:`DemField.defaultInletMask`",DemField::defaultInletMask),,":obj:`~woo.dem.Particle.mask` for new particles.")) \
 		((Real,maxMass,-1,,"Mass at which the engine will not produce any particles (inactive if not positive)")) \
 		((long,maxNum,-1,,"Number of generated particles after which no more will be produced (inactive if not positive)")) \
@@ -163,13 +166,10 @@ struct BoxInlet: public RandomInlet{
 	#endif
 
 	#ifdef WOO_OPENGL
-		void render(const GLViewInfo&){
+		void render(const GLViewInfo&) WOO_CXX11_OVERRIDE {
 			if(isnan(glColor)) return;
 			GLUtils::AlignedBox(box,CompUtils::mapColor(glColor));
-			std::ostringstream oss; oss.precision(4); oss<<mass;
-			if(maxMass>0){ oss<<"/"; oss.precision(4); oss<<maxMass; }
-			if(!isnan(currRate)){ oss.precision(3); oss<<"\n("<<currRate<<")"; }
-			GLUtils::GLDrawText(oss.str(),box.center(),CompUtils::mapColor(glColor));
+			renderMassAndRate(box.center());
 		}
 	#endif
 
@@ -191,7 +191,7 @@ struct CylinderInlet: public RandomInlet{
 	Vector3r randomPosition(const Real& padDist) WOO_CXX11_OVERRIDE; /* http://stackoverflow.com/questions/5837572/generate-a-random-point-within-a-circle-uniformly */
 	bool validateBox(const AlignedBox3r& b) WOO_CXX11_OVERRIDE; /* check all corners are inside the cylinder */
 	#ifdef WOO_OPENGL
-		void render(const GLViewInfo&);
+		void render(const GLViewInfo&) WOO_CXX11_OVERRIDE;
 	#endif
 
 	#define woo_dem_CylinderInlet__CLASS_BASE_DOC_ATTRS \
@@ -215,4 +215,21 @@ struct BoxInlet2d: public BoxInlet{
 	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_BoxInlet2d__CLASS_BASE_DOC_ATTRS);
 };
 WOO_REGISTER_OBJECT(BoxInlet2d);
+
+struct ArcInlet: public RandomInlet{
+	Vector3r randomPosition(const Real& padDist) WOO_CXX11_OVERRIDE;
+	bool validateBox(const AlignedBox3r& b) WOO_CXX11_OVERRIDE;
+	void postLoad(ArcInlet&, void* attr);
+	#ifdef WOO_CXX11_OVERRIDE
+		void render(const GLViewInfo&) WOO_CXX11_OVERRIDE;
+	#endif
+	#define woo_dem_ArcInlet__CLASS_BASE_DOC_ATTRS \
+		ArcInlet,RandomInlet,"Inlet generating particles in prismatic arc (revolved rectangle) specified using `cylindrical coordinates <http://en.wikipedia.org/wiki/Cylindrical_coordinate_system>`__ (with the ``ISO 31-11`` convention, as mentioned at the Wikipedia page) in a local system.", \
+		((shared_ptr<Node>,node,make_shared<Node>(),AttrTrait<Attr::triggerPostLoad>(),"Node defining local coordinates system. *Must* be given.")) \
+		((AlignedBox3r,cylBox,,,"Box in cylindrical coordinates, as: (ρ₀,φ₀,z₀),(ρ₁,φ₁,z₁). ρ must be non-negative, (φ₁-φ₀)≤2π.")) \
+		((int,glSlices,32,,"Number of slices for rendering circle (the arc takes the proportionate value"))
+
+	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_ArcInlet__CLASS_BASE_DOC_ATTRS);
+};
+WOO_REGISTER_OBJECT(ArcInlet);
 

@@ -69,6 +69,38 @@ void GLUtils::AlignedBoxWithTicks(const AlignedBox3r& box, const Vector3r& stepL
 }
 
 
+void GLUtils::RevolvedRectangle(const AlignedBox3r& box, const Vector3r& color, int div){
+	Real p0(box.min()[1]); Real p1(box.max()[1]);
+	const Real& r0(box.min()[0]); const Real& r1(box.max()[0]);
+	const Real& z0(box.min()[2]); const Real& z1(box.max()[2]);
+	bool boundary;
+	if(abs(p0-p1)>=2*M_PI){ boundary=false; p0=0; p1=2*M_PI; }
+	else{
+		boundary=true;
+		if(p0>p1) p0-=2*M_PI;
+	}
+	int nn=div*(p1-p0)/(2*M_PI);
+	Real step=(p1-p0)/nn;
+	glColor3v(color);
+	for(const auto& rz:{Vector2r(r0,z0),Vector2r(r0,z1),Vector2r(r1,z0),Vector2r(r1,z1)}){
+		glBegin(GL_LINE_STRIP);
+			for(int n=0; n<=nn; n++){
+				glVertex3v(CompUtils::cyl2cart(Vector3r(rz[0],p0+n*step,rz[1])));
+			}
+		glEnd();
+	}
+	if(boundary){
+		for(const Real& p:{p0,p1}){
+			glBegin(GL_LINE_LOOP);
+				glVertex3v(CompUtils::cyl2cart(Vector3r(r0,p,z0)));
+				glVertex3v(CompUtils::cyl2cart(Vector3r(r1,p,z0)));
+				glVertex3v(CompUtils::cyl2cart(Vector3r(r1,p,z1)));
+				glVertex3v(CompUtils::cyl2cart(Vector3r(r0,p,z1)));
+			glEnd();
+		}
+	}
+};
+
 
 void GLUtils::Cylinder(const Vector3r& a, const Vector3r& b, Real rad1, const Vector3r& color, bool wire, bool caps, Real rad2 /* if negative, use rad1 */,int slices, int stacks){
 	if(rad2<0) rad2=rad1;

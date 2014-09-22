@@ -2,12 +2,12 @@
 Inlets & outlets
 #################
 
-:obj:`Inlets <woo.dem.ParticleInlet>` are engines which generate new particles during the simulation; their counterpart are outlets (:obj:`~woo.dem.BoxOutlet`) deleting particles during the simulation.
+:obj:`Inlets <woo.dem.Inlet>` are engines which generate new particles during the simulation; their counterpart are outlets (:obj:`~woo.dem.BoxOutlet`) deleting particles during the simulation.
 
 Inlets are split into several orthogonal components:
 
 1. :obj:`~woo.dem.ParticleGenerator` creating a new particle, given some input criteria, such as the PSD;
-2. :obj:`~woo.dem.ParticleInlet`, which positions the new particle, given some spatial requirements (random, given sequence and such);
+2. :obj:`~woo.dem.Inlet`, which positions the new particle, given some spatial requirements (random, given sequence and such);
 3. :obj:`~woo.dem.ParticleShooter` is used with random inlets and assigns an intial velocity to the particle; this component is optional, and actually only rarely used.
 
 Generators
@@ -117,15 +117,15 @@ There are some generators which are not based on PSD; one of them is :obj:`woo.d
 Inlets
 ==========
 
-Newly created particles must be placed in the simulation space, without colliding with existing particles; this is the task of :obj:`~woo.dem.ParticleInlet`. The mass rate of particles generated is can be always obtained by querying :obj:`~woo.dem.ParticleInlet.currRate`.
+Newly created particles must be placed in the simulation space, without colliding with existing particles; this is the task of :obj:`~woo.dem.Inlet`. The mass rate of particles generated is can be always obtained by querying :obj:`~woo.dem.Inlet.currRate`.
 
 Random
 -------
 Random inlets position particles in a given part of space (box with :obj:`~woo.dem.BoxInlet`, 2d box with :obj:`~woo.dem.BoxInlet2d`, cylinder with :obj:`~woo.dem.CylinderInlet`); various parameters can govern the generation process:
 
-1. :obj:`~woo.dem.ParticleInlet.massRate` which limits how many mass per second may be generated; if set to zero, generate as many particles as "possible" in each step. "Possible" means that there will be in total :obj:`~woo.dem.ParticleInlet.maxAttempts` attempts to place a particle in one step; one particle will be tried :obj:`~woo.dem.ParticleInlet.attemptPar` times.
+1. :obj:`~woo.dem.Inlet.massRate` which limits how many mass per second may be generated; if set to zero, generate as many particles as "possible" in each step. "Possible" means that there will be in total :obj:`~woo.dem.Inlet.maxAttempts` attempts to place a particle in one step; one particle will be tried :obj:`~woo.dem.Inlet.attemptPar` times.
 
-2. :obj:`~woo.dem.ParticleInlet.maxMass` or :obj:`~woo.dem.ParticleInlet.maxNum` limit total mass or the number of particles generated altogether. Once this limit is reached, the :obj:`~woo.dem.ParticleInlet.doneHook` is run and the engine is made :obj:`~woo.core.Engine.dead`.
+2. :obj:`~woo.dem.Inlet.maxMass` or :obj:`~woo.dem.Inlet.maxNum` limit total mass or the number of particles generated altogether. Once this limit is reached, the :obj:`~woo.dem.Inlet.doneHook` is run and the engine is made :obj:`~woo.core.Engine.dead`.
 
 The bottle in the example above has :obj:`~woo.dem.CylinderInlet` above the neck:
 

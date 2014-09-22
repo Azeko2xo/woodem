@@ -16,6 +16,9 @@ struct Outlet: public PeriodicEngine{
 	py::object pyDiamMass(bool zipped=false) const;
 	Real pyMassOfDiam(Real min, Real max) const ;
 	void pyClear(){ diamMass.clear(); rDivR0.clear(); mass=0.; num=0; }
+	#ifdef WOO_OPENGL
+		void renderMassAndRate(const Vector3r& pos);
+	#endif
 	#define woo_dem_Outlet__CLASS_BASE_DOC_ATTRS_PY \
 		Outlet,PeriodicEngine,"Delete/mark particles which fall outside (or inside, if *inside* is True) given box. Deleted/mark particles are optionally stored in the *diamMass* array for later processing, if needed.\n\nParticle are deleted when :obj:`markMask` is 0, otherwise they are only marked with :obj:`markMask` and not deleted.", \
 		((uint,markMask,0,,"When non-zero, switch to marking mode -- particles of which :obj:`Particle.mask` does not comtain :obj:`mark` (i.e. ``(mask&mark)!=mark``) have :obj:`mark` bit-added to :obj:`Particle.mask` (this can happen only once for each particle); particles are not deleted, but their diameter/mass added to :obj:`diamMass` if :obj:`save` is True.")) \
@@ -55,3 +58,19 @@ struct BoxOutlet: public Outlet{
 	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_BoxOutlet__CLASS_BASE_DOC_ATTRS);
 };
 WOO_REGISTER_OBJECT(BoxOutlet);
+
+struct ArcOutlet: public Outlet{
+	bool isInside(const Vector3r& p) WOO_CXX11_OVERRIDE;
+	void postLoad(ArcOutlet&, void* attr);
+	#ifdef WOO_OPENGL
+		void render(const GLViewInfo&) WOO_CXX11_OVERRIDE;
+	#endif
+	#define woo_dem_ArcOutlet__CLASS_BASE_DOC_ATTRS \
+		ArcOutlet,Outlet,"Outlet detnig/marking particles in prismatic arc (revolved rectangle) specified using `cylindrical coordinates <http://en.wikipedia.org/wiki/Cylindrical_coordinate_system>`__ (with the ``ISO 31-11`` convention, as mentioned at the Wikipedia page) in a local system. See also analogous :obj:`ArcInlet`.", \
+		((shared_ptr<Node>,node,make_shared<Node>(),AttrTrait<Attr::triggerPostLoad>(),"Node defining local coordinates system. *Must* be given.")) \
+		((AlignedBox3r,cylBox,,,"Box in cylindrical coordinates, as: (ρ₀,φ₀,z₀),(ρ₁,φ₁,z₁). ρ must be non-negative, (φ₁-φ₀)≤2π.")) \
+		((int,glSlices,32,,"Number of slices for rendering circle (the arc takes the proportionate value"))
+
+	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_ArcOutlet__CLASS_BASE_DOC_ATTRS);
+};
+WOO_REGISTER_OBJECT(ArcOutlet);

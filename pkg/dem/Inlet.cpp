@@ -17,7 +17,7 @@
 
 #include<boost/tuple/tuple_comparison.hpp>
 
-WOO_PLUGIN(dem,(Inlet)(ParticleGenerator)(MinMaxSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(RandomInlet)(BoxInlet)(BoxInlet2d)(CylinderInlet));
+WOO_PLUGIN(dem,(Inlet)(ParticleGenerator)(MinMaxSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(RandomInlet)(BoxInlet)(BoxInlet2d)(CylinderInlet)(ArcInlet));
 CREATE_LOGGER(RandomInlet);
 
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_Inlet__CLASS_BASE_DOC_ATTRS);
@@ -29,6 +29,18 @@ WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_RandomInlet__CLASS_BASE_DOC_ATTRS_PY);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_BoxInlet__CLASS_BASE_DOC_ATTRS);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_BoxInlet2d__CLASS_BASE_DOC_ATTRS);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_CylinderInlet__CLASS_BASE_DOC_ATTRS);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_ArcInlet__CLASS_BASE_DOC_ATTRS);
+
+
+#ifdef WOO_OPENGL
+	void Inlet::renderMassAndRate(const Vector3r& pos){
+		std::ostringstream oss; oss.precision(4); oss<<mass;
+		if(maxMass>0){ oss<<"/"; oss.precision(4); oss<<maxMass; }
+		if(!isnan(currRate)){ oss.precision(3); oss<<"\n("<<currRate<<")"; }
+		GLUtils::GLDrawText(oss.str(),pos,CompUtils::mapColor(glColor));
+	}
+#endif
+
 
 py::tuple ParticleGenerator::pyPsd(bool mass, bool cumulative, bool normalize, Vector2r dRange, int num) const {
 	if(!save) throw std::runtime_error("ParticleGenerator.save must be True for calling ParticleGenerator.psd()");
@@ -385,17 +397,7 @@ bool BoxInlet::validatePeriodicBox(const AlignedBox3r& b) const {
 	void CylinderInlet::render(const GLViewInfo&){
 		if(isnan(glColor) || !node) return;
 		GLUtils::Cylinder(node->loc2glob(Vector3r::Zero()),node->loc2glob(Vector3r(height,0,0)),radius,CompUtils::mapColor(glColor),/*wire*/true,/*caps*/false,/*rad2: use rad1*/-1,/*slices*/glSlices);
-		std::ostringstream oss; oss.precision(4); oss<<mass;
-		if(maxMass>0){ oss<<"/"; oss.precision(4); oss<<maxMass; }
-		if(!isnan(currRate)){ oss.precision(3); oss<<"\n("<<currRate<<")"; }
-		GLUtils::GLDrawText(oss.str(),node->loc2glob(Vector3r(height/2,0,0)),CompUtils::mapColor(glColor));
-		#if 0
-			size_t i=0;
-			for(const auto& b: boxesTried){
-				GLUtils::AlignedBox(b,/*color*/Vector3r(.3*(i%3),.2*(i%5),(1/7)*(i%7))); // stable random colors
-				i++;
-			}
-		#endif
+		Inlet::renderMassAndRate(node->loc2glob(Vector3r(height/2,0,0)));
 	}
 #endif
 
@@ -427,4 +429,32 @@ bool CylinderInlet::validateBox(const AlignedBox3r& b) {
 	}
 	return true;
 }
+
+
+void ArcInlet::postLoad(ArcInlet&, void* attr){
+	if(cylBox.min()[0]<0 || cylBox.max()[0]<0) throw std::runtime_error("ArcInlet.cylBox: radius bounds (x-component) must be non-negative (not "+to_string(cylBox.min()[0])+".."+to_string(cylBox.max()[0])+").");
+	if(!node){ node=make_shared<Node>(); throw std::runtime_error("ArcInlet.node: must not be None (dummy node created)."); }
+};
+
+
+
+Vector3r ArcInlet::randomPosition(const Real& padDist) { AlignedBox3r b2(cylBox); Vector3r pad(padDist,padDist/cylBox.min()[0],padDist); b2.min()+=pad; b2.max()-=pad; return node->loc2glob(CompUtils::cylCoordBox_sample_cartesian(b2)); }
+
+bool ArcInlet::validateBox(const AlignedBox3r& b) {
+	for(const auto& c:{AlignedBox3r::BottomLeftFloor,AlignedBox3r::BottomRightFloor,AlignedBox3r::TopLeftFloor,AlignedBox3r::TopRightFloor,AlignedBox3r::BottomLeftCeil,AlignedBox3r::BottomRightCeil,AlignedBox3r::TopLeftCeil,AlignedBox3r::TopRightCeil}){
+		CompUtils::cylCoordBox_contains_cartesian(cylBox,node->glob2loc(b.corner(c)));
+	}
+	return true;
+}
+
+#ifdef WOO_CXX11_OVERRIDE
+	void ArcInlet::render(const GLViewInfo&) {
+		if(isnan(glColor)) return;
+		glPushMatrix();
+			GLUtils::setLocalCoords(node->pos,node->ori);
+			GLUtils::RevolvedRectangle(cylBox,CompUtils::mapColor(glColor),glSlices);
+		glPopMatrix();
+		Inlet::renderMassAndRate(node->loc2glob(CompUtils::cyl2cart(cylBox.center())));
+	}
+#endif
 

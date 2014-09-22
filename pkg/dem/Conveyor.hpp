@@ -16,10 +16,7 @@ struct ConveyorInlet: public Inlet{
 	#ifdef WOO_OPENGL
 		void render(const GLViewInfo&){
 			if(isnan(glColor)) return;
-			std::ostringstream oss; oss.precision(4); oss<<mass;
-			if(maxMass>0){ oss<<"/"; oss.precision(4); oss<<maxMass; }
-			if(!isnan(currRate)){ oss.precision(3); oss<<"\n("<<currRate<<")"; }
-			GLUtils::GLDrawText(oss.str(),node->pos,CompUtils::mapColor(glColor));
+			Inlet::renderMassAndRate(node->pos);
 		}
 	#endif
 	void run();

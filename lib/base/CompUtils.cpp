@@ -110,6 +110,48 @@ Vector3r CompUtils::triangleBarycentrics(const Vector3r& x, const Vector3r& A, c
 	return Vector3r(1-uv[0]-uv[1],uv[0],uv[1]);
 }
 
+// convert cartesian coordinates to cylindrical
+Vector3r CompUtils::cart2cyl(const Vector3r& cart){
+	return Vector3r(cart.head<2>().norm(),atan2(cart[1],cart[0]),cart[2]);
+}
+
+// convert cylindrical coordinates to cartesian
+Vector3r CompUtils::cyl2cart(const Vector3r& cyl){
+	return Vector3r(cyl[0]*cos(cyl[1]),cyl[0]*sin(cyl[1]),cyl[2]);
+}
+
+bool CompUtils::angleInside(const Real& phi, Real a, const Real& b){
+	if(std::abs(a-b)>=2*M_PI) return true; // interval covers everything
+	if(a>b) a-=2*M_PI;
+	if(a==b) return (fmod(a,2*M_PI)==fmod(phi,2*M_PI)); // corner case
+	assert(b-a>0 && b-a<2*M_PI); // unless I overlooked something?
+	// wrap phi so that a+pphi is in a..a+2*M_PI, i.e. pphi in 0..2*M_PI
+	Real pphi=wrapNum(phi-a,2*M_PI);
+	return pphi<(b-a);
+}
+
+
+// return sample for cylindrical coordinate "box" uniformly-distributed in cartesian space; returned point is in cylindrical coordinates
+Vector3r CompUtils::cylCoordBox_sample_cylindrical(const AlignedBox3r& box){
+	// explanation at http://www.anderswallin.net/2009/05/uniform-random-points-in-a-circle-using-polar-coordinates/
+	const Real& r0(box.min()[0]); const Real& r1(box.max()[0]);
+	Real r=sqrt(pow(r0,2)+Mathr::UnitRandom()*(pow(r1,2)-pow(r0,2)));
+	Real theta=Mathr::IntervalRandom(box.min()[1],box.max()[1]);
+	Real z=Mathr::IntervalRandom(box.min()[2],box.max()[2]);
+	return Vector3r(r,theta,z);
+}
+// test whether the point (given in cylindrical coordinates) is contained in box
+bool CompUtils::cylCoordBox_contains_cylindrical(const AlignedBox3r& box, const Vector3r& pt){
+	return (pt[0]>=box.min()[0] && pt[0]<=box.max()[0]) && angleInside(pt[1],box.min()[1],box.max()[1]) && (pt[2]>=box.min()[2] && pt[2]<=box.max()[2]);
+}
+
+Vector3r CompUtils::cylCoordBox_sample_cartesian(const AlignedBox3r& box){
+	return cyl2cart(cylCoordBox_sample_cylindrical(box));
+}
+bool CompUtils::cylCoordBox_contains_cartesian(const AlignedBox3r& box, const Vector3r& pt){
+	return cylCoordBox_contains_cylindrical(box,cart2cyl(pt));
+}
+
 vector<Vector3r> unitSphereTri20_vertices[CompUtils::unitSphereTri20_maxTesselationLevel+1];
 vector<Vector3i> unitSphereTri20_faces[CompUtils::unitSphereTri20_maxTesselationLevel+1];
 void unitSphereTri20_compute(int); // defined below

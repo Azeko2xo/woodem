@@ -653,7 +653,7 @@ Real InsertionSortCollider::cellWrap(const Real x, const Real x0, const Real x1,
 	return x0+(xNorm-period)*(x1-x0);
 }
 
-// return coordinate wrapped to 0…x1, relative to x0; don't care about period
+// return coordinate wrapped to 0…(x1-x0), relative to x0; don't care about period
 Real InsertionSortCollider::cellWrapRel(const Real x, const Real x0, const Real x1){
 	Real xNorm=(x-x0)/(x1-x0);
 	return (xNorm-floor(xNorm))*(x1-x0);

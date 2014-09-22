@@ -10,6 +10,8 @@ struct CompUtils{
 	static Real wrapNum(const Real& x, const Real& sz) { Real norm=x/sz; return (norm-floor(norm))*sz; }
 	/*! Wrap number to interval 0…sz; store how many intervals were wrapped in period */
 	static Real wrapNum(const Real& x, const Real& sz, int& period) { Real norm=x/sz; period=(int)floor(norm); return (norm-period)*sz; }
+	// test whether *phi* is inside angle interval <a,b> -- see http://stackoverflow.com/q/25969687/761090
+	static bool angleInside(const Real& phi, Real a, const Real& b);
 
 	static Vector3r scalarOnColorScale(Real x, Real xmin, Real xmal, int cmap=-1, bool reversed=false);
 	static int defaultCmap;
@@ -33,6 +35,18 @@ struct CompUtils{
 	static int lineSphereIntersection(const Vector3r& A, const Vector3r& u, const Vector3r& C, const Real r, Real& t0, Real& t1, Real relTol=1e-6);
 	// return barycentric coordinates of a point (must be in-plane) on a triangle in space
 	static Vector3r triangleBarycentrics(const Vector3r& x, const Vector3r& A, const Vector3r& B, const Vector3r& C);
+
+	// convert cartesian coordinates to cylindrical
+	static Vector3r cart2cyl(const Vector3r& ca);
+	// convert cylindrical coordinates to cartesian
+	static Vector3r cyl2cart(const Vector3r& cy);
+
+	static Vector3r cylCoordBox_sample_cylindrical(const AlignedBox3r& box);
+	static bool cylCoordBox_contains_cylindrical(const AlignedBox3r& box, const Vector3r& pt);
+	static Vector3r cylCoordBox_sample_cartesian(const AlignedBox3r& box);
+	static bool cylCoordBox_contains_cartesian(const AlignedBox3r& box, const Vector3r& pt);
+
+
 	struct Colormap{
 		std::string name;
 		Real rgb[256*3];

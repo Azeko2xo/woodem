@@ -2,10 +2,12 @@
 #include<woo/pkg/dem/Sphere.hpp>
 #include<woo/pkg/dem/Clump.hpp>
 #include<woo/pkg/dem/Funcs.hpp>
-WOO_PLUGIN(dem,(Outlet)(BoxOutlet));
+WOO_PLUGIN(dem,(Outlet)(BoxOutlet)(ArcOutlet));
 CREATE_LOGGER(Outlet);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Outlet__CLASS_BASE_DOC_ATTRS_PY);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_BoxOutlet__CLASS_BASE_DOC_ATTRS);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_ArcOutlet__CLASS_BASE_DOC_ATTRS);
+
 
 void Outlet::run(){
 	DemField* dem=static_cast<DemField*>(field.get());
@@ -140,6 +142,18 @@ py::object Outlet::pyPsd(bool _mass, bool cumulative, bool normalize, int _num, 
 	}
 }
 
+
+#ifdef WOO_OPENGL
+	void Outlet::renderMassAndRate(const Vector3r& pos){
+		if(glHideZero && (isnan(currRate) || currRate==0) && mass!=0) return;
+		std::ostringstream oss;
+		oss.precision(4); oss<<mass;
+		if(!isnan(currRate)){ oss.precision(3); oss<<"\n("<<currRate<<")"; }
+		GLUtils::GLDrawText(oss.str(),pos,CompUtils::mapColor(glColor));
+	}
+#endif
+
+
 #ifdef WOO_OPENGL
 void BoxOutlet::render(const GLViewInfo&){
 	if(isnan(glColor)) return;
@@ -154,12 +168,23 @@ void BoxOutlet::render(const GLViewInfo&){
 		glPopMatrix();
 		center=node->loc2glob(box.center());
 	}
-	if(!glHideZero || !(isnan(currRate) || currRate==0) || mass!=0){
-		//if(glHideZero && (isnan(currRate) || currRate==0) && mass==0) goto ret;
-		std::ostringstream oss;
-		oss.precision(4); oss<<mass;
-		if(!isnan(currRate)){ oss.precision(3); oss<<"\n("<<currRate<<")"; }
-		GLUtils::GLDrawText(oss.str(),center,CompUtils::mapColor(glColor));
-	}
+	Outlet::renderMassAndRate(center);
 }
+#endif
+
+void ArcOutlet::postLoad(ArcOutlet&, void* attr){
+	if(cylBox.min()[0]<0 || cylBox.max()[0]<0) throw std::runtime_error("ArcOutlet.cylBox: radius bounds (x-component) must be non-negative (not "+to_string(cylBox.min()[0])+".."+to_string(cylBox.max()[0])+").");
+	if(!node){ node=make_shared<Node>(); throw std::runtime_error("ArcOutlet.node: must not be None (dummy node created)."); }
+};
+
+bool ArcOutlet::isInside(const Vector3r& p){ return CompUtils::cylCoordBox_contains_cartesian(cylBox,node->glob2loc(p)); }
+#ifdef WOO_OPENGL
+	void ArcOutlet::render(const GLViewInfo&){
+		if(isnan(glColor)) return;
+		glPushMatrix();
+			GLUtils::setLocalCoords(node->pos,node->ori);
+			GLUtils::RevolvedRectangle(cylBox,CompUtils::mapColor(glColor),glSlices);
+		glPopMatrix();
+		Outlet::renderMassAndRate(node->loc2glob(CompUtils::cyl2cart(cylBox.center())));
+	}
 #endif
