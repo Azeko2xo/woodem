@@ -679,7 +679,7 @@ def htmlReport(S,repFmt,headline,afterHead='',figures=[],dialect=None,figFmt=Non
 	rep.close() # flushed write buffers
 
 	# attempt conversion to ODT, not under Windows
-	if sys.platform!='win32':
+	if False and sys.platform!='win32':
 		# TODO TODO TODO: have timeout on the abiword call; some versions stall forever
 		def convertToOdt(html,odt):
 			try:
