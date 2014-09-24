@@ -364,13 +364,8 @@ class PyWooObject:
 		derivedClass.__getstate__=__getstate__
 		derivedClass.__setstate__=__setstate__
 		derivedClass.deepcopy=deepcopy
-		# this function is no longer needed, as each attribute checks the value at assignment time (as property)
-		# it is also evil, because it actively sets every attribute, even if its type is perfectly correct
-		#def _coerceAttrValues(self):
-		#	'Convert all attribute values to their specified type (or derived type thereof) - e.g. 3-tuples are converted to Vector3 where Vector3 is required, ints to floats, where floats are required, etc. An exception is raised if the conversion is impossible.'
-		#	for a in derivedClass._attrTraits: setattr(self,a.name,a.coerceValue(getattr(self,a.name)))
-		#derivedClass._coerceAttrValues=_coerceAttrValues
-		if hasattr(derivedClass,'postLoad'): self.postLoad(None)
+		if hasattr(derivedClass,'postLoad'):
+			self.postLoad(None)
 		
 
 

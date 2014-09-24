@@ -670,7 +670,7 @@ void InsertionSortCollider::insertionSortPeri(VecBounds& v, bool doCollide, int 
 		int chunks=omp_get_max_threads();
 		int chunkSize=v.size/chunks;
 		if(chunkSize<100 || !paraPeri){
-			insertionSortPeri_part(v,doCollide,ax,0,v.size,0);
+			if(v.size>0) insertionSortPeri_part(v,doCollide,ax,0,v.size,0);
 			// insertionSortPeri_orig(v,doCollide,ax);
 			return;
 		}

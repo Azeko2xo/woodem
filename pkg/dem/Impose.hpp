@@ -12,7 +12,7 @@ struct HarmonicOscillation: public Impose{
 		else{ /*subtract projection on dir*/ vv-=vv.dot(dir)*dir; /* apply new value instead */ vv+=vMag*dir; }
 	}
 	void postLoad(HarmonicOscillation&,void*){ dir.normalize(); }
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR(HarmonicOscillation,Impose,"Impose harmonic oscillation around initial center position, with given frequency and amplitude, by prescribing velocity.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR(HarmonicOscillation,Impose,"Impose `harmonic oscillation <http://en.wikipedia.org/wiki/Harmonic_oscillation#Simple_harmonic_oscillator>`__ around initial center position, with given frequency :obj:`freq` (:math:`f`) and amplitude :obj:`amp` (:math:`A`), by prescribing velocity. Nodal velocity magnitude along :obj:`dir` is :math:`x'(t)=A\\omega\\cos(\\omega(t-t_0))` (with :math:`\\omega=2\\pi f`), which is the derivative of the harmonic motion equation :math:`x(t)=A\\sin(\\omega(t-t_0))`. The motion starts in zero (for :math:`t_0=0`); to reverse the direction, either reverse :obj:`dir` or assign :math:`t_0=\\frac{1}{2f}=\\frac{\\pi}{\\omega}`.",
 		((Real,freq,NaN,,"Frequence of oscillation"))
 		((Real,amp,NaN,,"Amplitude of oscillation"))
 		((Vector3r,dir,Vector3r::UnitX(),,"Direcrtion of oscillation (normalized automatically)"))

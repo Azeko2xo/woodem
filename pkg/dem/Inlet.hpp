@@ -89,7 +89,7 @@ struct MinMaxSphereGenerator: public ParticleGenerator{
 WOO_REGISTER_OBJECT(MinMaxSphereGenerator);
 
 struct ParticleShooter: public Object{
-	virtual void operator()(Vector3r& vel, Vector3r& angVel){ throw std::runtime_error("Calling ParticleShooter.setVelocities (abstract method); use derived classes"); }
+	virtual void operator()(const shared_ptr<Node>& node){ throw std::runtime_error("Calling ParticleShooter.setVelocities (abstract method); use derived classes"); }
 	#define woo_dem_ParticleShooter__CLASS_BASE_DOC \
 		ParticleShooter,Object,"Abstract class for assigning initial velocities to generated particles."
 	WOO_DECL__CLASS_BASE_DOC(woo_dem_ParticleShooter__CLASS_BASE_DOC);
@@ -97,10 +97,10 @@ struct ParticleShooter: public Object{
 WOO_REGISTER_OBJECT(ParticleShooter);
 
 struct AlignedMinMaxShooter: public ParticleShooter{
-	void operator()(Vector3r& vel, Vector3r& angVel){
+	void operator()(const shared_ptr<Node>& n) WOO_CXX11_OVERRIDE {
 		if(isnan(vRange.maxCoeff())){ throw std::runtime_error("AlignedMinMaxShooter.vRange: must not contain NaN."); }
-		vel=dir*(vRange[0]+Mathr::UnitRandom()*(vRange[1]-vRange[0]));
-		angVel=Vector3r::Zero();
+		n->getData<DemData>().vel=dir*(vRange[0]+Mathr::UnitRandom()*(vRange[1]-vRange[0]));
+		n->getData<DemData>().angVel=Vector3r::Zero();
 	}
 	void postLoad(AlignedMinMaxShooter&, void*){ dir.normalize(); }
 	#define woo_dem_AlignedMinMaxShooter__CLASS_BASE_DOC_ATTRS \
@@ -233,3 +233,16 @@ struct ArcInlet: public RandomInlet{
 };
 WOO_REGISTER_OBJECT(ArcInlet);
 
+#if 0
+struct ArcShooter: public ParticleShooter{
+	void operator()(const shared_ptr<Node>& node) WOO_CXX11_OVERRIDE {
+	}
+	// void postLoad(ArcShooter&, void*){ dir.normalize(); }
+	#define woo_dem_ArcShooter__CLASS_BASE_DOC_ATTRS \
+		ArcShooter,ParticleShooter,"Shoot particles in one direction, with velocity magnitude constrained by vRange values", \
+		/*attrs*/
+
+	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_ArcShooter__CLASS_BASE_DOC_ATTRS);
+};
+WOO_REGISTER_OBJECT(ArcShooter);
+#endif

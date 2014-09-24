@@ -108,7 +108,7 @@ def prepareTriax(pre):
 			for sense in (-1,1):
 				# make copy of mid
 				pos=Vector3(mid); pos[ax]-=sense*.5*pre.iniSize[ax]
-				S.dem.par.append(woo.utils.wall(pos,sense=sense,axis=ax,mat=wallMat,mask=wallMask))
+				S.dem.par.add(woo.utils.wall(pos,sense=sense,axis=ax,mat=wallMat,mask=wallMask))
 		factory=woo.dem.BoxInlet(box=(margin*pre.iniSize,(1+margin)*pre.iniSize),**factoryKw)
 		S.lab.relVol=AlignedBox3((0,0,0),pre.iniSize).volume()/AlignedBox3((0,0,0),(1+2*margin)*pre.iniSize).volume()
 	elif pre.shape=='cylinder':
@@ -117,7 +117,7 @@ def prepareTriax(pre):
 		top=bot+(0,0,h)
 		factory=woo.dem.CylinderInlet(node=woo.core.Node(pos=bot,ori=Quaternion((0,1,0),-math.pi/2.)),radius=.5*d,height=h,**factoryKw)
 		# axDiv to make sure we don't have facet larger than half of the cell (collider limitation)
-		S.dem.par.append(woo.triangulated.cylinder(bot,top,radius=.5*d,div=pre.cylDiv,axDiv=3,capA=True,capB=True,wallCaps=True,mat=wallMat,mask=wallMask))
+		S.dem.par.add(woo.triangulated.cylinder(bot,top,radius=.5*d,div=pre.cylDiv,axDiv=3,capA=True,capB=True,wallCaps=True,mat=wallMat,mask=wallMask))
 		S.lab.relVol=math.pi*d*h/AlignedBox3((0,0,0),(1+2*margin)*pre.iniSize).volume()
 		if isinstance(pre.generator,woo.dem.PsdEllipsoidGenerator): raise NotImplementedError('It is not possible to combine ellipsoids with cylindrical boundary, since Ellipsoid+Facet collisions are not (yet) supported.')
 	else: raise RuntimeError('Triax.shape must be one of "cell", "box" or "cylinder".')

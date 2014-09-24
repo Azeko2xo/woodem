@@ -14,6 +14,7 @@ Contents:
    tutorial/index.rst
    theory/index.rst
    cases/index.rst
+   prog/index.rst
    wooMods.rst
    references.rst
    todos.rst

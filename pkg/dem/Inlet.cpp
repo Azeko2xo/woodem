@@ -17,7 +17,7 @@
 
 #include<boost/tuple/tuple_comparison.hpp>
 
-WOO_PLUGIN(dem,(Inlet)(ParticleGenerator)(MinMaxSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(RandomInlet)(BoxInlet)(BoxInlet2d)(CylinderInlet)(ArcInlet));
+WOO_PLUGIN(dem,(Inlet)(ParticleGenerator)(MinMaxSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(RandomInlet)(BoxInlet)(BoxInlet2d)(CylinderInlet)(ArcInlet)/*(ArcShooter)*/);
 CREATE_LOGGER(RandomInlet);
 
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_Inlet__CLASS_BASE_DOC_ATTRS);
@@ -30,6 +30,10 @@ WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_BoxInlet__CLASS_BASE_DOC_ATTRS);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_BoxInlet2d__CLASS_BASE_DOC_ATTRS);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_CylinderInlet__CLASS_BASE_DOC_ATTRS);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_ArcInlet__CLASS_BASE_DOC_ATTRS);
+#if 0
+	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_ArcShooter__CLASS_BASE_DOC_ATTRS);
+#endif
+
 
 
 #ifdef WOO_OPENGL
@@ -312,7 +316,7 @@ void RandomInlet::run(){
 			}
 			shared_ptr<Node> clump=ClumpData::makeClump(nn,/*no central node pre-given*/shared_ptr<Node>(),/*intersection*/false);
 			auto& dyn=clump->getData<DemData>();
-			if(shooter) (*shooter)(dyn.vel,dyn.angVel);
+			if(shooter) (*shooter)(clump);
 			if(scene->trackEnergy) scene->energy->add(-DemData::getEk_any(clump,true,true,scene),"kinInlet",kinEnergyIx,EnergyTracker::ZeroDontCreate);
 			if(dyn.angVel!=Vector3r::Zero()){
 				throw std::runtime_error("pkg/dem/RandomInlet.cpp: generated particle has non-zero angular velocity; angular momentum should be computed so that rotation integration is correct, but it was not yet implemented.");
@@ -339,7 +343,7 @@ void RandomInlet::run(){
 			assert(node0->pos==Vector3r::Zero());
 			node0->pos+=pos;
 			auto& dyn=node0->getData<DemData>();
-			if(shooter) (*shooter)(dyn.vel,dyn.angVel);
+			if(shooter) (*shooter)(node0);
 			if(scene->trackEnergy) scene->energy->add(-DemData::getEk_any(node0,true,true,scene),"kinInlet",kinEnergyIx,EnergyTracker::ZeroDontCreate);
 			mass+=dyn.mass;
 			stepMass+=dyn.mass;
@@ -353,9 +357,9 @@ void RandomInlet::run(){
 			// handle multi-nodal particle (unused now)
 			#if 0
 				// TODO: track energy of the shooter
-				Vector3r vel,angVel;
-				if(shooter) shooter(dyn.vel,dyn.angVel);
 				// in case the particle is multinodal, apply the same to all nodes
+				if(shooter) shooter(p.shape->nodes[0]);
+				const Vector3r& vel(p->shape->nodes[0]->getData<DemData>().vel); const Vector3r& angVel(p->shape->nodes[0]->getData<DemData>().angVel);
 				for(const auto& n: p.shape->nodes){
 					auto& dyn=n->getData<DemData>();
 					dyn.vel=vel; dyn.angVel=angVel;

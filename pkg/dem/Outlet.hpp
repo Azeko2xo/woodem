@@ -21,7 +21,7 @@ struct Outlet: public PeriodicEngine{
 	#endif
 	#define woo_dem_Outlet__CLASS_BASE_DOC_ATTRS_PY \
 		Outlet,PeriodicEngine,"Delete/mark particles which fall outside (or inside, if *inside* is True) given box. Deleted/mark particles are optionally stored in the *diamMass* array for later processing, if needed.\n\nParticle are deleted when :obj:`markMask` is 0, otherwise they are only marked with :obj:`markMask` and not deleted.", \
-		((uint,markMask,0,,"When non-zero, switch to marking mode -- particles of which :obj:`Particle.mask` does not comtain :obj:`mark` (i.e. ``(mask&mark)!=mark``) have :obj:`mark` bit-added to :obj:`Particle.mask` (this can happen only once for each particle); particles are not deleted, but their diameter/mass added to :obj:`diamMass` if :obj:`save` is True.")) \
+		((uint,markMask,0,,"When non-zero, switch to marking mode -- particles of which :obj:`Particle.mask` does not comtain :obj:`markMask` (i.e. ``(mask&markMask)!=markMask``) have :obj:`markMask` bit-added to :obj:`Particle.mask` (this can happen only once for each particle); particles are not deleted, but their diameter/mass added to :obj:`diamMass` if :obj:`save` is True.")) \
 		((uint,mask,((void)":obj:`DemField.defaultOutletMask`",DemField::defaultOutletMask),,"If non-zero, only particles matching the mask will be candidates for removal")) \
 		((bool,inside,false,,"Delete particles which fall inside the volume rather than outside")) \
 		((bool,save,false,,"Save particles which are deleted in the *diamMass* list")) \
