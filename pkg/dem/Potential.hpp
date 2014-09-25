@@ -1,4 +1,6 @@
 #pragma once
+
+#if 0
 #include<woo/pkg/dem/Particle.hpp>
 #include<woo/core/Dispatcher.hpp>
 
@@ -57,4 +59,4 @@ struct Cg2_Shape_Shape_L6Geom__Potential: public Cg2_Any_Any_L6Geom__Base{
 	DECLARE_LOGGER;
 };
 WOO_REGISTER_OBJECT(Cg2_Shape_Shape_L6Geom__Potential);
-
+#endif

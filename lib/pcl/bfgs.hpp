@@ -1,4 +1,6 @@
 #pragma once
+
+#if 0
 // downloaded from pointclouds.org and adapted for the use in Woo
 // the original is BSD-licensed, hence compatible with Woo
 // much thanks to the authors
@@ -639,3 +641,4 @@ BFGS<FunctorType>::lineSearch(Scalar rho, Scalar sigma,
 }
 #endif // PCL_FOR_EIGEN_BFGS_H
 
+#endif

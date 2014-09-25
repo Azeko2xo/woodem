@@ -1,4 +1,6 @@
 #include<woo/pkg/dem/Potential.hpp>
+
+#if 0
 #include<woo/lib/pcl/bfgs.hpp>
 #include<unsupported/Eigen/NumericalDiff>
 
@@ -176,4 +178,4 @@ bool Cg2_Shape_Shape_L6Geom__Potential::go(const shared_ptr<Shape>& s1, const sh
 	}
 	return true;
 }
-
+#endif
