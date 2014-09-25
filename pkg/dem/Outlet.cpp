@@ -173,7 +173,7 @@ void BoxOutlet::render(const GLViewInfo&){
 #endif
 
 void ArcOutlet::postLoad(ArcOutlet&, void* attr){
-	if(cylBox.min()[0]<0 || cylBox.max()[0]<0) throw std::runtime_error("ArcOutlet.cylBox: radius bounds (x-component) must be non-negative (not "+to_string(cylBox.min()[0])+".."+to_string(cylBox.max()[0])+").");
+	if(!cylBox.isEmpty() && (cylBox.min()[0]<0 || cylBox.max()[0]<0)) throw std::runtime_error("ArcOutlet.cylBox: radius bounds (x-component) must be non-negative (not "+to_string(cylBox.min()[0])+".."+to_string(cylBox.max()[0])+").");
 	if(!node){ node=make_shared<Node>(); throw std::runtime_error("ArcOutlet.node: must not be None (dummy node created)."); }
 };
 

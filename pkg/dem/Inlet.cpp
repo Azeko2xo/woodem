@@ -436,7 +436,7 @@ bool CylinderInlet::validateBox(const AlignedBox3r& b) {
 
 
 void ArcInlet::postLoad(ArcInlet&, void* attr){
-	if(cylBox.min()[0]<0 || cylBox.max()[0]<0) throw std::runtime_error("ArcInlet.cylBox: radius bounds (x-component) must be non-negative (not "+to_string(cylBox.min()[0])+".."+to_string(cylBox.max()[0])+").");
+	if(!cylBox.isEmpty() && (cylBox.min()[0]<0 || cylBox.max()[0]<0)) throw std::runtime_error("ArcInlet.cylBox: radius bounds (x-component) must be non-negative (not "+to_string(cylBox.min()[0])+".."+to_string(cylBox.max()[0])+").");
 	if(!node){ node=make_shared<Node>(); throw std::runtime_error("ArcInlet.node: must not be None (dummy node created)."); }
 };
 
@@ -451,7 +451,7 @@ bool ArcInlet::validateBox(const AlignedBox3r& b) {
 	return true;
 }
 
-#ifdef WOO_CXX11_OVERRIDE
+#ifdef WOO_OPENGL
 	void ArcInlet::render(const GLViewInfo&) {
 		if(isnan(glColor)) return;
 		glPushMatrix();

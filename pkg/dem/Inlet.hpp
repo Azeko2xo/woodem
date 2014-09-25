@@ -220,7 +220,7 @@ struct ArcInlet: public RandomInlet{
 	Vector3r randomPosition(const Real& padDist) WOO_CXX11_OVERRIDE;
 	bool validateBox(const AlignedBox3r& b) WOO_CXX11_OVERRIDE;
 	void postLoad(ArcInlet&, void* attr);
-	#ifdef WOO_CXX11_OVERRIDE
+	#ifdef WOO_OPENGL
 		void render(const GLViewInfo&) WOO_CXX11_OVERRIDE;
 	#endif
 	#define woo_dem_ArcInlet__CLASS_BASE_DOC_ATTRS \
