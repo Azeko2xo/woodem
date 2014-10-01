@@ -53,7 +53,7 @@ Compilation is driven using `scons <http://www.scons.org>`_ and takes a number o
 
 A typical first-compile command line may look like this::
 
-   scons jobs=4 CXX='ccache clang++' features=qt4,opengl,vtk
+   scons jobs=4 CXX='ccache g++' features=qt4,opengl,vtk,openmp,gts
 
 For quick development, woo takes the ``-R`` flag, which will recompile itself (with remembered options) and run. The ``-RR`` flag will, in addition, update the source from upstream before recompiling (if managed with bzr).
 
@@ -71,7 +71,7 @@ If you want to use SCons for building (which is quite useful for keeping your in
     # create the virtual environment in some directory
     virtualenv my/venv
     # sets environment variables (e.g. $PATH) so that venv commands are found first
-    source my/venv/acticate
+    source my/venv/bin/activate
     # install scons (needs the --egg option)
     pip install --egg scons
     # install all required python modules, this may take a while

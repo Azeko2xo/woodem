@@ -200,14 +200,14 @@ shared_ptr<Object> Master::deepcopy(shared_ptr<Object> obj){
 void Master::saveTmp(shared_ptr<Object> obj, const string& name, bool quiet){
 	if(memSavedSimulations.count(name)>0 && !quiet){  LOG_INFO("Overwriting in-memory saved simulation "<<name); }
 	std::ostringstream oss;
-	woo::ObjectIO::save<shared_ptr<Object>,boost::archive::binary_oarchive>(oss,"woo__Serializable",obj);
+	woo::ObjectIO::save<shared_ptr<Object>,boost::archive::binary_oarchive>(oss,"woo__Object",obj);
 	memSavedSimulations[name]=oss.str();
 }
 shared_ptr<Object> Master::loadTmp(const string& name){
 	if(memSavedSimulations.count(name)==0) throw std::runtime_error("No memory-saved simulation "+name);
 	std::istringstream iss(memSavedSimulations[name]);
 	auto obj=make_shared<Object>();
-	woo::ObjectIO::load<shared_ptr<Object>,boost::archive::binary_iarchive>(iss,"woo__Serializable",obj);
+	woo::ObjectIO::load<shared_ptr<Object>,boost::archive::binary_iarchive>(iss,"woo__Object",obj);
 	return obj;
 }
 
@@ -233,24 +233,36 @@ void Master::registerPluginClasses(const char* module, const char* fileAndClasse
 	}
 }
 
-void Master::pyRegisterAllClasses(){	
-	// register support classes
-	py::scope core(py::import("woo.core"));
-		this->pyRegisterClass();
-		woo::ClassTrait::pyRegisterClass();
-		woo::AttrTraitBase::pyRegisterClass();
-		woo::TimingDeltas::pyRegisterClass();
-		Object().pyRegisterClass(); // virtual method, therefore cannot be static
+void Master::pyRegisterAllClasses(){
 
 	LOG_DEBUG("called with "<<modulePluginClasses.size()<<" module+class pairs.");
 	std::map<std::string,py::object> pyModules;
-	// http://boost.2283326.n4.nabble.com/C-sig-How-to-create-package-structure-in-single-extension-module-td2697292.html
 	py::object wooScope=boost::python::import("woo");
 
-	typedef std::pair<std::string,shared_ptr<Object> > StringObjectPair;
-	typedef std::pair<std::string,std::string> StringPair;
-	std::list<StringObjectPair> pythonables;
-	FOREACH(StringPair moduleName, modulePluginClasses){
+	auto synthesizePyModule=[&](const string& modName){
+		py::object m(py::handle<>(PyModule_New(("woo."+modName).c_str())));
+		m.attr("__file__")="<synthetic>";
+		wooScope.attr(modName.c_str())=m;
+		pyModules[modName.c_str()]=m;
+		// http://stackoverflow.com/questions/11063243/synethsized-submodule-from-a-import-b-ok-vs-import-a-b-error/11063494
+		py::extract<py::dict>(py::getattr(py::import("sys"),"modules"))()[("woo."+modName).c_str()]=m;
+		LOG_DEBUG_EARLY("Synthesized new module woo."<<modName);
+	};
+
+	// this module is synthesized for core.Master; other synthetic modules are created on-demand in the loop below
+	synthesizePyModule("core");
+	py::scope core(py::import("woo.core"));
+
+	this->pyRegisterClass();
+	woo::ClassTrait::pyRegisterClass();
+	woo::AttrTraitBase::pyRegisterClass();
+	woo::TimingDeltas::pyRegisterClass();
+	Object().pyRegisterClass(); // virtual method, therefore cannot be static
+
+	// http://boost.2283326.n4.nabble.com/C-sig-How-to-create-package-structure-in-single-extension-module-td2697292.html
+
+	list<pair<string,shared_ptr<Object>>> pythonables;
+	for(const auto& moduleName: modulePluginClasses){
 		string module(moduleName.first);
 		string name(moduleName.second);
 		shared_ptr<Object> obj;
@@ -273,17 +285,10 @@ void Master::pyRegisterAllClasses(){
 					if(getenv("WOO_DEBUG")) PyErr_Print();
 					// this only clears the the error indicator
 					else PyErr_Clear(); 
-					py::object newModule(py::handle<>(PyModule_New(("woo."+module).c_str())));
-					newModule.attr("__file__")="<synthetic>";
-					wooScope.attr(module.c_str())=newModule;
-					//pyModules[module]=py::import(("woo."+module).c_str());
-					pyModules[module]=newModule;
-					// http://stackoverflow.com/questions/11063243/synethsized-submodule-from-a-import-b-ok-vs-import-a-b-error/11063494
-					py::extract<py::dict>(py::getattr(py::import("sys"),"modules"))()[("woo."+module).c_str()]=newModule;
-					LOG_INFO("Synthesized new module woo."<<module);
+					synthesizePyModule(module);
 				}
 			}
-			pythonables.push_back(StringObjectPair(module,obj));
+			pythonables.push_back(make_pair(module,obj));
 		}
 		catch (std::runtime_error& e){
 			/* FIXME: this catches all errors! Some of them are not harmful, however:
@@ -303,7 +308,7 @@ void Master::pyRegisterAllClasses(){
 		if(i==10) throw std::runtime_error("Too many attempts to register python classes. Run again with WOO_DEBUG=1 to get better diagnostics.");
 		LOG_DEBUG_EARLY_FRAGMENT(endl<<"[[[ Round "<<i<<" ]]]: ");
 		std::list<string> done;
-		for(std::list<StringObjectPair>::iterator I=pythonables.begin(); I!=pythonables.end(); ){
+		for(auto I=pythonables.begin(); I!=pythonables.end(); ){
 			const std::string& module=I->first;
 			const shared_ptr<Object>& s=I->second;
 			const std::string& klass=s->getClassName();
@@ -311,7 +316,7 @@ void Master::pyRegisterAllClasses(){
 				LOG_DEBUG_EARLY_FRAGMENT("{{"<<klass<<"}}");
 				py::scope _scope(pyModules[module]);
 				s->pyRegisterClass();
-				std::list<StringObjectPair>::iterator prev=I++;
+				auto prev=I++;
 				pythonables.erase(prev);
 			} catch (...){
 				LOG_DEBUG_EARLY("["<<klass<<"]");

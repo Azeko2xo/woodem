@@ -12,6 +12,7 @@
 
 #include<boost/filesystem/convenience.hpp>
 #include<boost/preprocessor/cat.hpp>
+#include<boost/preprocessor/stringize.hpp>
 
 
 #ifdef WOO_LOG4CXX
@@ -118,6 +119,7 @@ void wooInitialize(){
 	BOOST_PYTHON_MODULE(BOOST_PP_CAT(_cxxInternal,WOO_CXX_FLAVOR))
 #endif
 {
+	LOG_DEBUG_EARLY("Initializing the _cxxInternal" BOOST_PP_STRINGIZE(WOO_CXX_FLAVOR) " module.");
 	py::scope().attr("__doc__")="This module's binary contains all compiled Woo modules (such as :obj:`woo.core`), which are created dynamically when this module is imported for the first time. In itself, it is empty and only to be used internally.";
 	// call automatically at module import time
 	wooInitialize();
