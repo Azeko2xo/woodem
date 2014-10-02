@@ -70,12 +70,12 @@ class EllGroup(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 			else: p=woo.utils.sphere(center=pos,radius=rad,mat=ellMat)
 			p.vel=rndOri2d()*Vector3(pre.vMax*random.random(),0,0)
 			S.energy['kin0']-=p.Ek
-			S.dem.par.append(p)
+			S.dem.par.add(p)
 			p.blocked='zXY'
 		S.dem.collectNodes()
 		#for coord,axis,sense in [(0,0,+1),(pre.boxSize[0],0,-1),(0,1,+1),(pre.boxSize[1],1,-1)]:
-		#	S.dem.par.append(woo.utils.wall(coord,axis=axis,sense=sense,mat=wallMat,visible=False))
-		S.dem.par.append([
+		#	S.dem.par.add(woo.utils.wall(coord,axis=axis,sense=sense,mat=wallMat,visible=False))
+		S.dem.par.add([
 			woo.utils.wall(0,axis=0,mat=wallMat,visible=True),
 			woo.utils.wall(0,axis=1,mat=wallMat,visible=True)
 		])

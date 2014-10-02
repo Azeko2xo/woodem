@@ -68,7 +68,7 @@ def prepareHorse(pre):
 	if pre.pattern=='hexa': packer=woo.pack.regularHexa
 	elif pre.pattern=='ortho': packer=woo.pack.regularOrtho
 	else: raise ValueError('FallingHorse.pattern must be one of hexa, ortho (not %s)'%pre.pattern)
-	S.dem.par.append(packer(pred,radius=pre.radius,gap=pre.relGap*pre.radius,mat=mat))
+	S.dem.par.add(packer(pred,radius=pre.radius,gap=pre.relGap*pre.radius,mat=mat))
 	# meshed horse below
 	xSpan,ySpan,zSpan=aabb.sizes() # aabb[1][0]-aabb[0][0],aabb[1][1]-aabb[0][1],aabb[1][2]-aabb[0][2]
 	if pre.dir.squaredNorm()>0.:
@@ -78,8 +78,8 @@ def prepareHorse(pre):
 	zMin=aabb[0][2]+trans[2]-pre.halfThick
 	xMin,yMin,xMax,yMax=aabb[0][0]-zSpan+trans[0],aabb[0][1]-zSpan+trans[1],aabb[1][0]+zSpan+trans[0],aabb[1][1]+zSpan+trans[1]
 	if not pre.deformable: S.dem.collectNodes() # for deformable, done later
-	S.dem.par.append(woo.pack.gtsSurface2Facets(surf,wire=False,flex=pre.deformable,mat=meshMat,halfThick=pre.halfThick,fixed=(not pre.deformable)))
-	S.dem.par.append(woo.utils.wall(zMin,axis=2,sense=1,mat=meshMat,glAB=((xMin,yMin),(xMax,yMax)),mask=DemField.defaultMovableMask))
+	S.dem.par.add(woo.pack.gtsSurface2Facets(surf,wire=False,flex=pre.deformable,mat=meshMat,halfThick=pre.halfThick,fixed=(not pre.deformable)))
+	S.dem.par.add(woo.utils.wall(zMin,axis=2,sense=1,mat=meshMat,glAB=((xMin,yMin),(xMax,yMax)),mask=DemField.defaultMovableMask))
 	S.dem.saveDeadNodes=True # for traces, if used
 	if pre.deformable: S.dem.collectNodes() # collects also mesh nodes
 	

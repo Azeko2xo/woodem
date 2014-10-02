@@ -15,13 +15,13 @@ class CylTriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 	r'''
 	Preprocessor for cylindrical triaxial test with membrane. The test is run in 3 stages:
 
-		* compaction, where random loose packing of spheres is compressed to attain the :math`\sigma_{\rm iso}` (:obj:`sigIso`) pressure in all directions; during this stage, the cylindrical boundary is rigid and resized along main axes (so it can become (slightly) elliptical); friction is turned off during this stage to achieve better compacity; the compaction finishes when stress level is sufficiently close to the desired one, and unbalanced force drops below :obj:`maxUnbalanced`.
+		* compaction, where random loose packing of spheres is compressed to attain the :math:`\sigma_{\rm iso}` (:obj:`sigIso`) pressure in all directions; during this stage, the cylindrical boundary is rigid and resized along main axes (so it can become (slightly) elliptical); friction is turned off during this stage to achieve better compacity; the compaction finishes when stress level is sufficiently close to the desired one, and unbalanced force drops below :obj:`maxUnbalanced`.
 
-		* Membrane stabilization: once the compression is done, membrane around the cylinder is activated -- loaded with surface pressure and made flexible. Friction is activated at this moment. The cylinder may deform axially (stress-controlled), but lateral deformation is now due to membrane-particle interaction. This stage finished when unbalanced force drops below 1/10th of :obj:`maxUnbalanced` (the reason is that membrane motion is not considered when computing unbalanced force, only mononodal particles are). Surface pressure is adjusted so that the value of lateral stress (in terms of global stress tensor) is close to :obj:`sigIso`. At the same time, friction is increased from initial zero values
+		* Membrane stabilization: once the compression is done, membrane around the cylinder is activated -- loaded with surface pressure and made flexible. Friction is activated at this moment. The cylinder may deform axially (stress-controlled), but lateral deformation is now due to membrane-particle interaction. This stage finishes when unbalanced force drops below 1/10th of :obj:`maxUnbalanced` (the reason is that membrane motion is not considered when computing unbalanced force, only mononodal particles are). Surface pressure is adjusted so that the value of lateral stress (in terms of global stress tensor) is close to :obj:`sigIso`. At the same time, friction is increased from initial zero values
 
-		* Triaxial compression: displacement-controlled compression along the ``z`` axis, with strain rate increasing until :obj:`maxRates` is reached; the test finished when axial strain attains :obj:`stopStrain`; during the triaxial phase, lateral pressure is exerted by surface load of membrane elements.
+		* Triaxial compression: displacement-controlled compression along the ``z`` axis, with strain rate increasing until :obj:`maxRates` is reached; the test finishes when axial strain attains :obj:`stopStrain`; during the triaxial phase, lateral pressure is exerted by surface load of membrane elements.
 
-	Membrane thickness :obj:`memThick` should be set carefully. The article Molenkamp, Luger (1981): *Modelling and minimzation of membrane peneration effects in tests on granular soils* (Géotechnique 31, no. 4, pp. 471-486) discusses membrane thickness relative to maximum grain size, depending on the ratio of grain stiffness and applied stress.
+	Membrane thickness :obj:`memThick` should be set carefully. The article :cite:`Molenkamp1981` discusses membrane thickness relative to maximum grain size, depending on the ratio of grain stiffness and applied stress.
 
 	Supports are from the same material as *particles*, but they may have their friction reduced (when :obj:`suppTanPhi` is given). 
 
@@ -57,7 +57,7 @@ class CylTriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		#_PAT(int,'backupSaveTime',1800,doc='How often to save backup of the simulation (0 or negative to disable)'),
 
 		## tunables
-		_PAT(float,'dtSafety',.9,startGroup='Tunables',doc='Safety factor for :obj:`woo.utils.pWaveDt` estimation.'),
+		_PAT(float,'dtSafety',.9,startGroup='Tunables',doc='Safety factor, stored in :obj:`woo.core.Scene.dtSafety` and used for computing the initial timestep as well as by :obj:`woo.dem.DynDt` later during the simulation.'),
 		_PAT(float,'massFactor',.5,'Multiply real mass of particles by this number to obtain the :obj:`woo.dem.WeirdTriaxControl.mass` control parameter'),
 		_PAT(float,'damping',.5,'Nonviscous damping'),
 		_PAT(float,'maxUnbalanced',.05,'Maximum unbalanced force at the end of compaction'),
