@@ -189,7 +189,7 @@ void RawShapeClump::recompute(int _div, bool failOk/* =false */, bool fastOnly/*
 }
 
 
-std::tuple<shared_ptr<Node>,vector<shared_ptr<Particle>>> RawShapeClump::makeParticles(const shared_ptr<Material>& mat, const Vector3r& clumpPos, const Quaternionr& clumpOri, int mask, Real scale){
+std::tuple<vector<shared_ptr<Node>>,vector<shared_ptr<Particle>>> RawShapeClump::makeParticles(const shared_ptr<Material>& mat, const Vector3r& clumpPos, const Quaternionr& clumpOri, int mask, Real scale){
 	ensureOk(); // this already failed with rawShapes.empty()
 	vector<shared_ptr<Shape>> shsh(rawShapes.size());
 	for(size_t i=0; i<rawShapes.size(); i++) shsh[i]=rawShapes[i]->toShape(mat->density,/*scale*/scale);
@@ -212,10 +212,11 @@ std::tuple<shared_ptr<Node>,vector<shared_ptr<Particle>>> RawShapeClump::makePar
 	if(shsh.size()==1 && shsh[0]->nodes.size()==1){
 		const auto& n(shsh[0]->nodes[0]);
 		if(!isnan(clumpPos.maxCoeff())){ n->pos=clumpPos; n->ori=clumpOri*n->ori; }
-		return std::make_tuple(n,par);
+		return std::make_tuple(vector<shared_ptr<Node>>({n}),par);
 	}
 	if(shsh.size()==1) LOG_WARN("RawShapeClump.makeParticle: clumping node of a single multi-nodal particle.");
 
+	if(!clumped) throw std::runtime_error("Creating non-clumped shapes is not yet supported.");
 	/* do all in the natural clump position, change everything at the end!! */
 	// multiple particles: make clump node
 	auto cn=make_shared<Node>();
@@ -245,7 +246,7 @@ std::tuple<shared_ptr<Node>,vector<shared_ptr<Particle>>> RawShapeClump::makePar
 		cn->pos=clumpPos;
 		cn->ori=clumpOri;
 	}
-	return std::make_tuple(cn,par);
+	return std::make_tuple(vector<shared_ptr<Node>>({cn}),par);
 }
 
 
@@ -292,6 +293,7 @@ bool ShapePack::shapeSupported(const shared_ptr<Shape>& sh) const {
 }
 
 void ShapePack::fromDem(const shared_ptr<Scene>& scene, const shared_ptr<DemField>& dem, int mask, bool skipUnsupported){
+	/* TODO: contiguous node groups should be exported as one (non-clump) shape */
 	raws.clear();
 	for(const auto& n: dem->nodes){
 		assert(n->hasData<DemData>());
@@ -329,14 +331,16 @@ void ShapePack::toDem(const shared_ptr<Scene>& scene, const shared_ptr<DemField>
 	if(cellSize!=Vector3r::Zero()) throw std::runtime_error("ShapePack.toDem: cellSize (PBC) not supported yet.");
 	for(const auto& rr: raws){
 		Real _color=(isnan(color)?Mathr::UnitRandom():color);
-		shared_ptr<Node> node;
+		vector<shared_ptr<Node>> nodes;
 		vector<shared_ptr<Particle>> pp;
-		std::tie(node,pp)=rr->makeParticles(/*mat*/mat,/*clumpPos: force natural position*/Vector3r(NaN,NaN,NaN),/*ori: ignored*/Quaternionr::Identity(),/*mask*/mask,/*scale*/1.);
+		std::tie(nodes,pp)=rr->makeParticles(/*mat*/mat,/*clumpPos: force natural position*/Vector3r(NaN,NaN,NaN),/*ori: ignored*/Quaternionr::Identity(),/*mask*/mask,/*scale*/1.);
 		for(const auto& p: pp){
 			p->shape->color=_color;
 			dem->particles->pyAppend(p);
 		}
-		dem->pyNodesAppend(node);
+		for(const auto& n: nodes){
+			dem->pyNodesAppend(n);
+		}
 	}
 }
 
@@ -349,10 +353,11 @@ void ShapePack::postLoad(ShapePack&,void* attr){
 	};
 }
 
-void ShapePack::add(const vector<shared_ptr<Shape>>& shsh){
+void ShapePack::add(const vector<shared_ptr<Shape>>& shsh, bool clumped){
 	auto rsc=make_shared<RawShapeClump>();
+	rsc->clumped=clumped;
 	for(const auto& sh: shsh) rsc->rawShapes.push_back(make_shared<RawShape>(sh));
-	if(rsc->isSphereOnly()) raws.push_back(rsc->asSphereClumpGeom());
+	if(clumped && rsc->isSphereOnly()) raws.push_back(rsc->asSphereClumpGeom());
 	else raws.push_back(rsc);
 }
 
@@ -371,7 +376,7 @@ void ShapePack::saveTxt(const string& out) const {
 		} else if(raws[i]->isA<RawShapeClump>()){
 			const auto& rsc(raws[i]->cast<RawShapeClump>());
 			for(const auto& rs: rsc.rawShapes){
-				f<<i<<" "<<rs->className<<" "<<rs->center[0]<<" "<<rs->center[1]<<" "<<rs->center[2]<<" "<<rs->radius;
+				f<<i<<(raws[i]->clumped?" ":"u ")<<rs->className<<" "<<rs->center[0]<<" "<<rs->center[1]<<" "<<rs->center[2]<<" "<<rs->radius;
 				for(const Real& r: rs->raw) f<<" "<<r;
 				f<<endl;
 			}
@@ -398,7 +403,7 @@ void ShapePack::loadTxt(const string& in) {
 			userData=line.substr(14,string::npos); // strip the line header
 			continue;
 		}
-		boost::tokenizer<boost::char_separator<char> > toks(line,boost::char_separator<char>(" \t"));
+		boost::tokenizer<boost::char_separator<char>> toks(line,boost::char_separator<char>(" \t"));
 		vector<string> tokens; for(const string& s: toks) tokens.push_back(s);
 		if(tokens[0]=="##PERIODIC::"){
 			if(tokens.size()!=4) throw std::invalid_argument(in+":"+to_string(lineNo)+": starts with ##PERIODIC:: but the line is malformed.");
@@ -409,7 +414,10 @@ void ShapePack::loadTxt(const string& in) {
 		for(size_t i=0; i<tokens.size(); i++){ if(tokens[i][0]=='#'){ tokens.resize(i); break; }}
 		if(tokens.empty()) continue;
 		if(tokens.size()<6) throw std::invalid_argument(in+":"+to_string(lineNo)+": insufficient number of columns ("+to_string(tokens.size())+")");
-		int id=lexical_cast<int>(tokens[0]);
+		const string& idStr(tokens[0]);
+		int id; bool clumped;
+		if(boost::algorithm::ends_with(idStr,"u")){ id=lexical_cast<int>(idStr.substr(0,idStr.size()-1)); clumped=false; }
+		else{ id=lexical_cast<int>(idStr); clumped=true; }
 		if(id!=lastId && id!=(int)raws.size()){
 			LOG_WARN(in<<":"<<lineNo<<": shape numbers not contiguous.");
 		}
@@ -417,6 +425,9 @@ void ShapePack::loadTxt(const string& in) {
 		if(id!=lastId){
 			raws.push_back(make_shared<RawShapeClump>());
 			lastId=id;
+			raws.back()->clumped=clumped;
+		} else {
+			if(raws.back()->clumped!=clumped) throw std::invalid_argument(in+":"+to_string(lineNo)+": shape #"+to_string(lastId)+" clumping not consistent (some id number have 'u'=unclumped appended, some don't).");
 		}
 		// read particle data, no checking whatsoever
 		auto ss=make_shared<RawShape>();

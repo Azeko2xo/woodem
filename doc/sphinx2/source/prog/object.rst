@@ -11,7 +11,6 @@ All objects in Woo derive from the :obj:`woo.core.Object` (``woo::Object``) clas
 6. Guarantess that all attributes are initialized (as long as they provide an initialization value
 
 
-
 ``WOO_DECL__`` and ``WOO_IMPL__`` macro family
 -----------------------------------------------
 
@@ -63,6 +62,13 @@ And in the ``.cpp`` file:
    WOO_PLUGIN(zoo,(Animal)(Rabbit)); 
    WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_zoo_Animal__CLASS_BASE_DOC);
    WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_zoo_Rabbit__CLASS_BASE_DOC_ATTRS);
+
+Other macros
+-------------
+There are two more macros which *must* be used with every new class:
+
+* ``WOO_REGISTER_OBJECT(Rabbit);`` in the header file, after the class declaration and *outside* of the class body; this is necessary for proper support of ``boost::serialization``;
+* ``WOO_PLUGIN(zoo,(Animal)(Rabbit));`` in the implementation file; internally, this macro puts the classes to the given module (``woo.zoo`` in this example), and completes the serialization support. It may appear more than once in one implementation file (though not with the same classes).
 
 
 Attributes
@@ -139,3 +145,4 @@ THe following traits influence how is the attribute displayed in the GUI:
 * ``.startGroup("Name")``: start attribute group named ``Name``, shown as collapsible group of attributes, and also shown in the documentation as an attribute group.
 
 * ``.buttons({"button label","python command to be executed","label",...})``: create button(s) in the UI, where each triplet specifies one button; it will be created after the attribute itself by default, which can be changed by setting the second optional argument ``showBefore`` to ``true``.
+

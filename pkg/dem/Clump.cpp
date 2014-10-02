@@ -139,7 +139,7 @@ void SphereClumpGeom::recompute(int _div, bool failOk, bool fastOnly){
 	equivRad=(inertia.array()/volume).sqrt().mean(); // mean of radii of gyration
 }
 
-std::tuple<shared_ptr<Node>,vector<shared_ptr<Particle>>> SphereClumpGeom::makeParticles(const shared_ptr<Material>& mat, const Vector3r& clumpPos, const Quaternionr& clumpOri, int mask, Real scale){
+std::tuple<vector<shared_ptr<Node>>,vector<shared_ptr<Particle>>> SphereClumpGeom::makeParticles(const shared_ptr<Material>& mat, const Vector3r& clumpPos, const Quaternionr& clumpOri, int mask, Real scale){
 	ensureOk();
 	assert(centers.size()==radii.size());
 	const auto N=centers.size();
@@ -169,7 +169,7 @@ std::tuple<shared_ptr<Node>,vector<shared_ptr<Particle>>> SphereClumpGeom::makeP
 	cd->mass=mat->density*volume*pow(scale,3);
 	cd->inertia=mat->density*inertia*pow(scale,5);
 	cd->equivRad=equivRad;
-	return std::make_tuple(n,par);
+	return std::make_tuple(vector<shared_ptr<Node>>({n}),par);
 }
 
 

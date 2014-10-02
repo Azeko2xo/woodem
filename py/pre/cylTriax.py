@@ -1,6 +1,7 @@
 # encoding: utf-8
 
 from woo.dem import *
+from woo.fem import *
 import woo.core
 import woo.dem
 import woo.pyderived
@@ -24,7 +25,7 @@ class CylTriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 
 	Supports are from the same material as *particles*, but they may have their friction reduced (when :obj:`suppTanPhi` is given). 
 
-	.. warning:: There are (unfortunately) quite a few tunables which must be tinkered with to get the desired result (those are in the *Tunables* section: :obj:`pWaveSafety`, :obj:`massFactor`, :obj:`damping`, :obj:`maxUnbalanced`). Several factors are also hard-set in the code, hoping that they will work in different scenarios than those which were tested.
+	.. warning:: There are (unfortunately) quite a few tunables which must be tinkered with to get the desired result (those are in the *Tunables* section: :obj:`dtSafety`, :obj:`massFactor`, :obj:`damping`, :obj:`maxUnbalanced`). Several factors are also hard-set in the code, hoping that they will work in different scenarios than those which were tested.
 
 	.. youtube:: Li13NrIyMYU
 
@@ -56,7 +57,7 @@ class CylTriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		#_PAT(int,'backupSaveTime',1800,doc='How often to save backup of the simulation (0 or negative to disable)'),
 
 		## tunables
-		_PAT(float,'pWaveSafety',.1,startGroup='Tunables',doc='Safety factor for :obj:`woo.utils.pWaveDt` estimation.'),
+		_PAT(float,'dtSafety',.9,startGroup='Tunables',doc='Safety factor for :obj:`woo.utils.pWaveDt` estimation.'),
 		_PAT(float,'massFactor',.5,'Multiply real mass of particles by this number to obtain the :obj:`woo.dem.WeirdTriaxControl.mass` control parameter'),
 		_PAT(float,'damping',.5,'Nonviscous damping'),
 		_PAT(float,'maxUnbalanced',.05,'Maximum unbalanced force at the end of compaction'),
@@ -193,14 +194,15 @@ def prepareCylTriax(pre):
 		sideThick=pre.memThick,
 	)
 	S.lab.cylNodes=nodes
-	S.dem.par.append(particles)
+	S.dem.par.add(particles)
 
 	##
 	# collect nodes from both facets and spheres
 	S.dem.collectNodes() 
 
-	S.dt=pre.pWaveSafety*woo.utils.pWaveDt(S,noClumps=True)
-	if pre.clumps: print 'WARNING: clumps used, Scene.dt might not be correct; lower CylTriaxTest.pWaveSafety (currently %g) if the simulation is unstable'%(pre.pWaveSafety)
+	#S.dt=pre.pWaveSafety*woo.utils.pWaveDt(S,noClumps=True)
+	S.dtSafety=pre.dtSafety
+	if pre.clumps: print 'WARNING: clumps used, Scene.dt might not be correct; lower CylTriaxTest.dtSafety (currently %g) if the simulation is unstable'%(pre.dtSafety)
 	# setup engines
 	S.engines=[
 		InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb()],verletDist=-.05),
@@ -221,6 +223,7 @@ def prepareCylTriax(pre):
 		woo.core.PyRunner(20,'import woo.pre.cylTriax; woo.pre.cylTriax.addPlotData(S)'),
 		VtkExport(out=pre.vtkFmt,stepPeriod=pre.vtkStep,what=VtkExport.all,dead=True,label='vtk'),
 		Leapfrog(damping=pre.damping,reset=True,label='leapfrog'),
+		DynDt(stepPeriod=500),
 	]
 
 	S.lab.stage='compact'

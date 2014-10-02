@@ -11,13 +11,12 @@ struct SphereClumpGeom: public ShapeClump {
 	void makeInvalid(){ volume=equivRad=NaN; inertia=Vector3r(NaN,NaN,NaN); pos=Vector3r::Zero(); ori=Quaternionr::Identity(); }
 	bool isOk() const { return !isnan(volume); }
 	void ensureOk() { if(!isOk()) recompute(div,/*failOk*/false); }
-	std::tuple<shared_ptr<Node>,vector<shared_ptr<Particle>>> makeParticles(const shared_ptr<Material>&, const Vector3r& pos, const Quaternionr& ori, int mask, Real scale=1.) WOO_CXX11_OVERRIDE;
+	std::tuple<vector<shared_ptr<Node>>,vector<shared_ptr<Particle>>> makeParticles(const shared_ptr<Material>&, const Vector3r& pos, const Quaternionr& ori, int mask, Real scale=1.) WOO_CXX11_OVERRIDE;
 	// void ensureApproxPos() WOO_CXX11_OVERRIDE;
 	static vector<shared_ptr<SphereClumpGeom>> fromSpherePack(const shared_ptr<SpherePack>& sp, int div=5);
 
 	void translate(const Vector3r& offset) WOO_CXX11_OVERRIDE;
 	shared_ptr<ShapeClump> copy() const WOO_CXX11_OVERRIDE;
-
 
 	#define woo_dem_SphereClumpGeom__CLASS_BASE_DOC_ATTRS_PY \
 		SphereClumpGeom,ShapeClump,"Defines geometry of spherical clumps. Each clump is described by spheres it is made of (position and radius).", \
@@ -29,11 +28,6 @@ struct SphereClumpGeom: public ShapeClump {
 
 
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_SphereClumpGeom__CLASS_BASE_DOC_ATTRS_PY);
-
-	#if 0
-		.def("recompute",&SphereClumpGeom::recompute,(py::arg("div")=5,py::arg("failOk")=false,py::arg("fastOnly")=false),"Recompute principal axes of the clump, using *div* for subdivision (see :obj:`div` for the semantics). *failOk* (silently return in case of invalid data) and *fastOnly* (return if there is lots of cells in subdivision) are only to be used internally.")
-		.def("makeClump",&SphereClumpGeom::pyMakeClump,(py::arg("mat"),py::arg("pos"),py::arg("ori")=Quaternionr::Identity(),py::arg("scale")=1.,py::arg("mask")=0),"Create particles as described by this clump geometry, positioned in *pos* and rotated with *ori*. Geometry will be scaled by *scale*. Returns tuple (Node,[Particle]).")
-	#endif
 };
 WOO_REGISTER_OBJECT(SphereClumpGeom);
 

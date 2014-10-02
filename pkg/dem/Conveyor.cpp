@@ -290,13 +290,13 @@ void ConveyorInlet::run(){
 		Real realSphereX=(vel/packVel)*(lenToDo-lenDone); // scale x-position by dilution (>1)
 		Vector3r newPos=node->pos+node->ori*Vector3r(realSphereX,centers[nextIx][1],centers[nextIx][2]);
 
-		shared_ptr<Node> n;
+		vector<shared_ptr<Node>> nn;
 		
 		if(shapePack){
 			const auto& r=shapePack->raws[nextIx];
 			vector<shared_ptr<Particle>> pp;
 			// use conveyor's identity which is added to the particle's orientation
-			std::tie(n,pp)=r->makeParticles(material,/*pos*/newPos,/*ori*/node->ori,/*mask*/mask,/*scale*/1.);
+			std::tie(nn,pp)=r->makeParticles(material,/*pos*/newPos,/*ori*/node->ori,/*mask*/mask,/*scale*/1.);
 			for(auto& p: pp){
 				dem->particles->insert(p);
 				LOG_TRACE("[shapePack] new particle #"<<p->id<<", "<<p->shape->pyStr());
@@ -305,46 +305,52 @@ void ConveyorInlet::run(){
 			if(!hasClumps()){
 				auto sphere=DemFuncs::makeSphere(radii[nextIx],material);
 				sphere->mask=mask;
-				n=sphere->shape->nodes[0];
+				nn.push_back(sphere->shape->nodes[0]);
 				//LOG_TRACE("x="<<x<<", "<<lenToDo<<"-("<<1+currWraps<<")*"<<cellLen<<"+"<<currX);
 				dem->particles->insert(sphere);
-				n->pos=newPos;
+				nn[0]->pos=newPos;
 				LOG_TRACE("New sphere #"<<sphere->id<<", r="<<radii[nextIx]<<" at "<<n->pos.transpose());
 			} else {
 				const auto& clump=clumps[nextIx];
 				vector<shared_ptr<Particle>> spheres;
-				std::tie(n,spheres)=clump->makeParticles(material,/*pos*/newPos,/*ori*/Quaternionr::Identity(),/*mask*/mask,/*scale*/1.);
+				std::tie(nn,spheres)=clump->makeParticles(material,/*pos*/newPos,/*ori*/Quaternionr::Identity(),/*mask*/mask,/*scale*/1.);
 				for(auto& sphere: spheres){
 					dem->particles->insert(sphere);
 					LOG_TRACE("[clump] new sphere #"<<sphere->id<<", r="<<radii[nextIx]<<" at "<<n->pos.transpose());
 				}
 			}
 		}
+		Real nnMass=0.;
+		for(const auto& n: nn){
+			auto& dyn=n->getData<DemData>();
+			if(realSphereX<barrierLayer){
+				setAttachedParticlesColor(n,isnan(barrierColor)?Mathr::UnitRandom():barrierColor);
+				barrier.push_back(n);
+				dyn.setBlockedAll();
+			} else {
+				setAttachedParticlesColor(n,isnan(color)?Mathr::UnitRandom():color);
+			}
 
-		auto& dyn=n->getData<DemData>();
-		if(realSphereX<barrierLayer){
-			setAttachedParticlesColor(n,isnan(barrierColor)?Mathr::UnitRandom():barrierColor);
-			barrier.push_back(n);
-			dyn.setBlockedAll();
-		} else {
-			setAttachedParticlesColor(n,isnan(color)?Mathr::UnitRandom():color);
+			// set velocity;
+			dyn.vel=node->ori*(Vector3r::UnitX()*vel);
+			if(scene->trackEnergy){
+				scene->energy->add(-DemData::getEk_any(n,true,/*rotation zero, don't even compute it*/false,scene),"kinInlet",kinEnergyIx,EnergyTracker::ZeroDontCreate);
+			}
+
+			#ifdef WOO_OPENGL
+				boost::mutex::scoped_lock lock(dem->nodesMutex);
+			#endif
+			dyn.linIx=dem->nodes.size();
+			dem->nodes.push_back(n);
+
+			stepMass+=dyn.mass;
+			mass+=dyn.mass;
+			nnMass+=dyn.mass;
 		}
 
-		// set velocity;
-		dyn.vel=node->ori*(Vector3r::UnitX()*vel);
-		if(scene->trackEnergy){
-			scene->energy->add(-DemData::getEk_any(n,true,/*rotation zero, don't even compute it*/false,scene),"kinInlet",kinEnergyIx,EnergyTracker::ZeroDontCreate);
-		}
+		// add mass of all nodes
+		if(save) genDiamMass.push_back(Vector2r(2*radii[nextIx],nnMass));
 
-		if(save) genDiamMass.push_back(Vector2r(2*radii[nextIx],dyn.mass));
-		#ifdef WOO_OPENGL
-			boost::mutex::scoped_lock lock(dem->nodesMutex);
-		#endif
-		dyn.linIx=dem->nodes.size();
-		dem->nodes.push_back(n);
-
-		stepMass+=dyn.mass;
-		mass+=dyn.mass;
 		num+=1;
 	
 		// decrease; can go negative, handled at the beginning of the loop

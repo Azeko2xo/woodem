@@ -14,7 +14,7 @@ struct RawShape: public Object{
 	// void rotate(const Quaternionr& rot);
 	shared_ptr<RawShape> copy() const;
 	#define woo_dem_RawShape__CLASS_BASE_DOC_ATTRS_PY \
-		RawShape,Object,"", \
+		RawShape,Object,"Object holding raw geometry data for one :obj:`Shape` in a uniform manner: center and radius of bounding sphere, plus an array of raw data. It is used as an intermediary shape-neutral storage format.", \
 		((string,className,"",,"Name of the Shape subclass.")) \
 		((Vector3r,center,Vector3r::Zero(),,"Center of the bounding sphere.")) \
 		((Real,radius,0.,,"Radius of the bounding sphere.")) \
@@ -35,7 +35,7 @@ struct ShapeClump: public Object{
 	// fill *pos* as average bounding sphere position, without calling compute
 	// virtual void ensureApproxPos(){ throw std::runtime_error("ShapeClump.ensureApproxPos: this class is not to be used directly, derived classes should override ensureApproxPos."); }
 	// if pos contains NaN, RawShape natural position and orientation are used
-	virtual std::tuple<shared_ptr<Node>,vector<shared_ptr<Particle>>> makeParticles(const shared_ptr<Material>&, const Vector3r& pos, const Quaternionr& ori, int mask=0, Real scale=1.){  throw std::runtime_error("ShapeClump.makeParticles: this class is not be used directly, derived classes should override makeParticles."); }
+	virtual std::tuple<vector<shared_ptr<Node>>,vector<shared_ptr<Particle>>> makeParticles(const shared_ptr<Material>&, const Vector3r& pos, const Quaternionr& ori, int mask=0, Real scale=1.){  throw std::runtime_error("ShapeClump.makeParticles: this class is not be used directly, derived classes should override makeParticles."); }
 	py::tuple pyMakeParticles(const shared_ptr<Material>& m, const Vector3r& p, const Quaternionr& o=Quaternionr::Identity(), Real scale=1., int mask=0){ const auto& tup=makeParticles(m,p,o,mask,scale); return py::make_tuple(std::get<0>(tup),std::get<1>(tup)); }
 	virtual void translate(const Vector3r& offset){  throw std::runtime_error("ShapeClump.translate: this class is not be used directly, derived classes should override translate."); }
 	virtual shared_ptr<ShapeClump> copy() const{  throw std::runtime_error("ShapeClump.copy: this class is not be used directly, derived classes should override copy."); }
@@ -49,9 +49,10 @@ struct ShapeClump: public Object{
 		((Real,equivRad,NaN,AttrTrait<>().readonly().noDump().lenUnit(),"Equivalent radius of the clump (computed automatically) -- mean of radii of gyration, i.e. $\\frac{1}{3}\\sum \\sqrt{I_{ii}/V}$.")) \
 		((Vector3r,inertia,Vector3r(NaN,NaN,NaN),AttrTrait<>().readonly().noDump(),"Geometrical inertia (computed with unit density)")) \
 		((int,div,5,AttrTrait<Attr::triggerPostLoad>().noDump(),"Sampling grid fineness, when computing volume and other properties, relative to the smallest sphere's radius. When zero or negative, assume spheres don't intersect and use a different algorithm (Steiner's theorem)."))  \
+		((bool,clumped,true,AttrTrait<>().readonly(),"Whether nodes of this shape are clumped together when the particle is created (so far, clumped shapes *only* are produced).")) \
 		, /* py */ \
 		.def("recompute",&ShapeClump::recompute,(py::arg("div")=5,py::arg("failOk")=false,py::arg("fastOnly")=false),"Recompute principal axes of the clump, using *div* for subdivision (see :obj:`div` for the semantics). *failOk* (silently return in case of invalid data) and *fastOnly* (return if there is lots of cells in subdivision) are only to be used internally.") \
-		.def("makeParticles",&ShapeClump::pyMakeParticles,(py::arg("mat"),py::arg("pos"),py::arg("ori")=Quaternionr::Identity(),py::arg("scale")=1.,py::arg("mask")=0),"Create particle(s) as described by this geometry, positioned in *pos* and rotated with *ori*. Geometry will be scaled by *scale*. Returns tuple (Node,[Particle,..]).") \
+		.def("makeParticles",&ShapeClump::pyMakeParticles,(py::arg("mat"),py::arg("pos"),py::arg("ori")=Quaternionr::Identity(),py::arg("scale")=1.,py::arg("mask")=0),"Create particle(s) as described by this geometry, positioned in *pos* and rotated with *ori*. Geometry will be scaled by *scale*. Returns tuple ([Node,...],[Particle,..]).") \
 		; woo::converters_cxxVector_pyList_2way<shared_ptr<ShapeClump>>();
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_ShapeClump__CLASS_BASE_DOC_ATTRS_PY);
 };
@@ -60,7 +61,7 @@ WOO_REGISTER_OBJECT(ShapeClump);
 struct RawShapeClump: public ShapeClump {
 	DECLARE_LOGGER;
 	void recompute(int div, bool failOk=false, bool fastOnly=false) WOO_CXX11_OVERRIDE;
-	std::tuple<shared_ptr<Node>,vector<shared_ptr<Particle>>> makeParticles(const shared_ptr<Material>&, const Vector3r& pos, const Quaternionr& ori, int mask, Real scale=1.) WOO_CXX11_OVERRIDE;
+	std::tuple<vector<shared_ptr<Node>>,vector<shared_ptr<Particle>>> makeParticles(const shared_ptr<Material>&, const Vector3r& pos, const Quaternionr& ori, int mask, Real scale=1.) WOO_CXX11_OVERRIDE;
 
 	void translate(const Vector3r& offset) WOO_CXX11_OVERRIDE;
 	shared_ptr<ShapeClump> copy() const WOO_CXX11_OVERRIDE;
@@ -88,7 +89,7 @@ struct ShapePack: public Object{
 	void saveTxt(const string& out) const;
 	void loadTxt(const string& in);
 	// mostly for testing only
-	void add(const vector<shared_ptr<Shape>>& ss);
+	void add(const vector<shared_ptr<Shape>>& ss, bool clumped=true);
 
 	shared_ptr<ShapePack> filtered(const shared_ptr<Predicate>& p, int recenter=-1); // recenter is for compat with SpherePack
 	void filter(const shared_ptr<Predicate>& p, int recenter=-1);
@@ -111,7 +112,7 @@ struct ShapePack: public Object{
 		((string,loadFrom,,AttrTrait<Attr::triggerPostLoad>(),"If given when constructing the instance, the file is loaded immediately and the attribute is reset.")) \
 		,/*py*/ .def("loadTxt",&ShapePack::loadTxt).def("saveTxt",&ShapePack::saveTxt) \
 			.def("load",&ShapePack::loadTxt).def("save",&ShapePack::saveTxt) /* SpherePack compat names */ \
-		.def("add",&ShapePack::add) \
+		.def("add",&ShapePack::add,(py::arg("shapes"),py::arg("clumped")=true)) \
 		.def("fromDem",&ShapePack::fromDem,(py::arg("scene"),py::arg("dem"),py::arg("mask")=0,py::arg("skipUnsupported")=true)) \
 		.def("toDem",&ShapePack::toDem,(py::arg("scene"),py::arg("dem"),py::arg("mat"),py::arg("mask")=0,py::arg("color")=NaN)) \
 		.def("filtered",&ShapePack::filtered,(py::arg("predicate"),py::arg("recenter")=-1)) \
