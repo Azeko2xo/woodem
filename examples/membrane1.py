@@ -1,5 +1,6 @@
 from woo.core import *
 from woo.dem import *
+from woo.fem import *
 import woo
 import woo.gl
 import math
