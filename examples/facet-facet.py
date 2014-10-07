@@ -1,5 +1,6 @@
 import woo
 from woo.dem import *
+from woo.fem import *
 from woo.core import *
 from random import random as rnd
 
@@ -29,7 +30,7 @@ for i in range(200):
 	q=Quaternion(Vector3(rnd(),rnd(),rnd()),rnd())
 	q.normalize();
 	pp=[Vector3(0,0,0),Vector3(.3,0,0),Vector3(0,.4,0)]
-	f=Facet.make([o+q*p for p in pp],halfThick=.1+.2*rnd(),mat=m,flex=True,fixed=False,wire=False)
+	f=Membrane.make([o+q*p for p in pp],halfThick=.1+.2*rnd(),mat=m,fixed=False,wire=False)
 	for n in f.shape.nodes:
 		n.dem.mass=100
 		n.dem.inertia=(10,10,10)

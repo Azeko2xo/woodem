@@ -15,7 +15,7 @@ from math import *
 S=woo.master.scene=Scene(fields=[DemField(gravity=(0,0,-9.81))])
 
 thetas=linspace(0,2*pi,num=16,endpoint=True)
-meridians=pack.revolutionSurfaceMeridians([[(3+rad*sin(th),10*rad+rad*cos(th)) for th in thetas] for rad in linspace(1,2,num=10)],linspace(0,pi,num=10))
+meridians=pack.revolutionSurfaceMeridians([[Vector2(3+rad*sin(th),10*rad+rad*cos(th)) for th in thetas] for rad in linspace(1,2,num=10)],linspace(0,pi,num=10))
 surf=pack.sweptPolylines2gtsSurface(meridians+[[Vector3(5*sin(-th),-10+5*cos(-th),30) for th in thetas]])
 S.dem.par.add(pack.gtsSurface2Facets(surf))
 

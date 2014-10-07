@@ -452,7 +452,7 @@ def createPlots(P,subPlots=True,noShow=False,replace=True,scatterSize=60,wider=F
 		for d in plots_p:
 			if d[0]==None:
 				y1=False; continue
-			if not isinstance(d[0],(str,unicode)): raise ValueError('Plots specifiers must be strings (not %s)'%(type(d[0].__name__)))
+			if not isinstance(d[0],(str,unicode)): raise ValueError('Plots specifiers must be strings (not %s)'%(type(d[0]).__name__))
 			if y1: plots_p_y1.append(d)
 			else: plots_p_y2.append(d)
 			try:

@@ -46,12 +46,12 @@ enum{ll_TRACE,ll_DEBUG,ll_INFO,ll_WARN,ll_ERROR,ll_FATAL};
 		// it shouldn't be trapped by boost::python's exception translator, just print warning
 		// Do like this for now.
 		if(warnedOnce) return;
-		LOG_WARN("Yade was compiled without log4cxx support. Setting log levels from python will have no effect (warn once).");
+		LOG_WARN("Woo was compiled without log4cxx support. Setting log levels from python will have no effect (warn once).");
 		warnedOnce=true;
 	}
 	void logLoadConfig(std::string f){
 		if(warnedOnce) return;
-		LOG_WARN("Yade was compiled without log4cxx support. Loading log file will have no effect (warn once).");
+		LOG_WARN("Woo was compiled without log4cxx support. Loading log file will have no effect (warn once).");
 		warnedOnce=true;
 	}
 #endif
