@@ -35,7 +35,7 @@ Woo depends on a number of libraries. Those are in particular
 #. `FreeGLUT <http://freeglut.sourceforge.net>`_, `GLE <http://www.linas.org/gle>`_ (optional: OpenGL display)
 #. A number of python modules: ``matplotlib`` (plotting), ``genshi`` (HTML export), ``xlrd`` & ``xlwt`` (XLS export), ``minieigen`` (math in python), ``xlib``, ``psutil``, …
 
-Ubuntu machines can be easily set up for development with Woo using the `woo-install-ubuntu.sh <http://bazaar.launchpad.net/~eudoxos/woo/trunk/view/head:/scripts/woo-install-ubuntu.sh>`_ script.
+Ubuntu machines can be easily set up for development with Woo using the `woo-install-ubuntu.sh <http://bazaar.launchpad.net/~eudoxos/woo/trunk/view/head:/scripts/woo-install-ubuntu.sh>`_ script. This script also installs packages neede for building.
 
 Compilation is driven using `scons <http://www.scons.org>`_ and takes a number of options. They are listed when ``scons -h`` is run from the source directory, and are remembered accross compilations (they can be given just the first time):
 

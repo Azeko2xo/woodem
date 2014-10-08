@@ -7,6 +7,9 @@ from minieigen import *
 import warnings
 import sys
 
+from wooMain import options as wooOptions
+
+
 PY3K=(sys.version_info[0]==3)
 
 try:
@@ -37,7 +40,7 @@ def wait():
 def inBatch():
 	'Tell whether we are running inside the batch or separately.'
 	import os
-	return 'WOO_BATCH' in os.environ
+	return bool(wooOptions.batchTable)
 
 def mayHaveStaleLock(db):
 	import os.path
@@ -63,7 +66,7 @@ def writeResults(scene,defaultDb='woo-results.hdf5',syncXls=True,dbFmt=None,seri
 	import json
 	import logging
 	S=scene
-	if inBatch(): table,line,db=os.environ['WOO_BATCH'].split(':')
+	if inBatch(): table,line,db=wooOptions.batchTable,wooOptions.batchLine,wooOptions.batchResults
 	else: table,line,db='',-1,defaultDb
 	newDb=not os.path.exists(db)
 	if not quiet: print 'Writing results to the database %s (%s)'%(db,'new' if newDb else 'existing')
@@ -498,7 +501,7 @@ def dbToSpread(db,out=None,dialect='xls',rows=False,series=True,ignored=('plotDa
 
 	
 
-def readParamsFromTable(scene,under='table',tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
+def readParamsFromTable(scene,under='table',noTableOk=True,unknownOk=False,**kw):
 	"""
 	Read parameters from a file and assign them to :obj:`woo.core.Scene.lab` under the ``under`` pseudo-module (e.g. ``Scene.lab.table.foo`` and so on. This function is used for scripts (as opposed to preprocessors) running in a batch. The file format is described in :obj:`TableParamReader` (CSV or XLS).
 
@@ -526,15 +529,13 @@ def readParamsFromTable(scene,under='table',tableFileLine=None,noTableOk=True,un
 	S=scene
 	S.lab._newModule(under)
 	pseudoMod=getattr(S.lab,under)
-	if not tableFileLine and ('WOO_BATCH' not in os.environ or os.environ['WOO_BATCH']==''):
-		if not noTableOk: raise EnvironmentError("WOO_BATCH is not defined in the environment")
+	if not inBatch():
+		if not noTableOk: raise EnvironmentError("Batch options not defined (and required; pass noTableOk=True if they are not)")
 		S.tags['line']='l!'
 	else:
-		if not tableFileLine: tableFileLine=os.environ['WOO_BATCH']
-		env=tableFileLine.split(':')
-		tableFile,tableLine=env[0],int(env[1])
+		tableFile,tableLine=wooOptions.batchFile,wooOptions.batchLine
 		if tableFile=='':
-			if not noTableOk: raise RuntimeError("No table specified in WOO_BATCH, but noTableOk was not given.")
+			if not noTableOk: raise RuntimeError("No table specified in batch options, but noTableOk was not given.")
 			else: return
 		allTab=TableParamReader(tableFile).paramDict()
 		if not allTab.has_key(tableLine): raise RuntimeError("Table %s doesn't contain valid line number %d"%(tableFile,tableLine))
@@ -587,29 +588,24 @@ def runPreprocessor(pre,preFile=None):
 
 	import os
 	import woo,math
-	tableFileLine=os.environ['WOO_BATCH']
-	if tableFileLine:
-		env=tableFileLine.split(':')
-		tableFile,tableLine=env[0],int(env[1])
-		if tableFile!='':
-			allTab=TableParamReader(tableFile).paramDict()
-			if not tableLine in allTab: raise RuntimeError("Table %s doesn't contain valid line number %d"%(tableFile,tableLine))
-			vv=allTab[tableLine]
-			# set preprocessor parameters first
-			for name,val in vv.items():
-				if name[0]=='!': continue # pseudo-variables such as !SCRIPT, !THREADS and so on
-				if name=='title': continue
-				if val in ('*','-',''): continue
-				nestedSetattr(pre,name,eval(val,globals(),dict(woo=woo,math=math))) # woo.unit
-		else:
-			vv={'title':tableFileLine}
+	tableFileLine=wooOptions.batchTable,wooOptions.batchLine
+	if wooOptions.batchTable:
+		allTab=TableParamReader(wooOptions.batchTable).paramDict()
+		if not wooOptions.batchLine in allTab: raise RuntimeError("Table %s doesn't contain valid line number %d"%(wooOptions.batchTable,wooOptions.batchLine))
+		vv=allTab[wooOptions.batchLine]
+		# set preprocessor parameters first
+		for name,val in vv.items():
+			if name[0]=='!': continue # pseudo-variables such as !SCRIPT, !THREADS and so on
+			if name=='title': continue
+			if val in ('*','-',''): continue
+			nestedSetattr(pre,name,eval(val,globals(),dict(woo=woo,math=math))) # woo.unit
 	# check types, if this is a python preprocessor
 	if hasattr(pre,'checkAttrTypes'): pre.checkAttrTypes()
 	# run preprocessor
 	S=pre()
 	# set tags from batch
-	if tableFileLine:
-		S.tags['line']='l%d'%tableLine
+	if wooOptions.batchTable:
+		S.tags['line']='l%d'%wooOptions.batchLine
 		S.tags['title']=str(vv['title'])
 	else:
 		S.tags['line']='default'

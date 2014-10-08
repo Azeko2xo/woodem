@@ -16,6 +16,9 @@ class WooOptions(object):
 		self.debug=False
 		self.clDev=None
 		self.fakeDisplay=False
+		self.batchTable=''
+		self.batchLine=-1
+		self.batchResults=''
 		self.quirks=3 ### was 3, but Intel seems to work now OK
 		self.quirkIntel=1
 		self.quirkFirePro=2
@@ -100,6 +103,10 @@ def main(sysArgv=None):
 	# quirks set flags in options
 	par.add_argument('--quirks',help='Bitmask for workarounds for broken configurations; all quirks are enabled by default. 1: set LIBGL_ALWAYS_SOFTWARE=1 for Intel GPUs (determined from `lspci | grep VGA`) (avoids GPU freeze), 2: set --in-gdb when on AMD FirePro GPUs to avoid crash in fglrx.so (only when using the fglrx driver)',dest='quirks',type=int,default=3) # , except the Intel one (seems to work properly now)
 	par.add_argument('--flavor',help='Build flavor of woo to use.',type=str,default=flavorFromArgv0(sys.argv[0]))
+	# batch-related options (replacing WOO_BATCH env var)
+	par.add_argument('--batch-table',help='Batch table file.',dest='batchTable',type=str,default=''),
+	par.add_argument('--batch-line',help='Batch table line.',dest='batchLine',type=int,default=-1),
+	par.add_argument('--batch-results',help='Batch results file.',dest='batchResults',type=str,default=''),
 	#
 	# end store in *options*
 	#
@@ -224,11 +231,25 @@ def main(sysArgv=None):
 		import woo.tests
 		woo.tests.testAll(sysExit=True)
 
+	if opts.batchTable:
+		if opts.batchLine<0: raise RuntimeError('--batch-table given without --batch--line.')
+		options.batchTable=opts.batchTable
+		options.batchLine=opts.batchLine
+		options.batchResults=opts.batchResults
+		if 'WOO_BATCH' in os.environ: raise RuntimeError('WOO_BATCH env var exists, but --batch-table was also specified (WOO_BATCH is deprecated, it can still be used for backwards-compatibility, but not mixed with --batch-table).')
+
+	if 'WOO_BATCH' in os.environ:
+		batch=os.environ['WOO_BATCH'].split(':')
+		if len(batch) not in (2,3): raise RuntimeError('WOO_BATCH environment variable is malformed.')
+		options.batchTable=batch[0]
+		options.batchLine=int(batch[1])
+		if len(batch)>2: options.batchResults=batch[2]
+		print 'WOO_BATCH environment variable is still honored, but deprecated. Say --batch-table=%s --batch-line=%d '%(options.batchTable,options.batchLine)+(' --batch-results=%s'%options.batchResults)+' instead.'
+
 	# c++ boot code checks for WOO_DEBUG at some places; debug verbosity is equivalent
 	# do this early, to have debug messages in the boot code (plugin registration etc)
 	#print opts.verbosity,type(opts.verbosity)
 	if opts.verbosity and opts.verbosity>1: os.environ['WOO_DEBUG']='1'
-
 
 	# initialization and c++ plugins import
 	import woo
@@ -486,19 +507,20 @@ def batch(sysArgv=None):
 			self.threadNum=None
 			self.winBatch=None
 			self.plotsLastUpdate,self.plotsFile=0.,woo.master.tmpFilename()+'.'+woo.remote.plotImgFormat
-			self.hrefCommand='WOO_BATCH=<a href="jobs/{self.num}/table">{self.table}:{self.lineNo}:{self.resultsDb}</a> {self.executable} <a href="jobs/{self.num}/script">{self.script}</a> &gt; <a href="jobs/{self.num}/log">{self.log}</a>'.format(self=self)
+			self.hrefCommand='{self.executable} <a href="jobs/{self.num}/table">--batch-table={self.table} --batch-line={self.lineNo} --batch-results={self.resultsDb}</a>  <a href="jobs/{self.num}/script">{self.script}</a> &gt; <a href="jobs/{self.num}/log">{self.log}</a>'.format(self=self)
 			if WIN:
 				self.hrefCommand='<a href="jobs/{self.num}/winbatch">.bat</a>: '.format(self=self)+self.hrefCommand
 		def prepareToRun(self):
 			'Assemble command to run as needed'
 			import pipes
+			batchOpts='--batch-table={self.table} --batch-line={self.lineNo} --batch-results={self.resultsDb}'.format(self=self)
 			if WIN:
 				self.winBatch=woo.master.tmpFilename()+'.bat'
 				batch='@ECHO OFF\n' # don's show commands in terminal
 				batch+='set OMP_NUM_THREADS=%d\n'%job.nCores
-				batch+='set WOO_BATCH={self.table}:{self.lineNo}:{self.resultsDb}\n'.format(self=self)
+				#batch+='set WOO_BATCH={self.table}:{self.lineNo}:{self.resultsDb}\n'.format(self=self)
 				#batch+='start /B /WAIT /LOW '
-				batch+='{self.executable} -x -n {self.script} {debugFlag} > {self.log} 2>&1 \n'.format(self=self,debugFlag=('-D' if self.debug else ''))
+				batch+='{self.executable} -x -n {batchOpts} {self.script} {debugFlag} > {self.log} 2>&1 \n'.format(self=self,batchOpts=batchOpts,debugFlag=('-D' if self.debug else ''))
 				#sys.stderr.write(batch)
 				f=open(self.winBatch,'w')
 				f.write(batch)
@@ -511,7 +533,7 @@ def batch(sysArgv=None):
 				elif self.nCores: ompOpt='--threads=%d'%(self.nCores)
 				if self.nice: niceOpt='--nice=%d'%self.nice
 				if self.debug: debugOpt='--debug'
-				self.command='WOO_BATCH={self.table}:{self.lineNo}:{self.resultsDb} {self.executable} -x -n {ompOpt} {niceOpt} {debugOpt} {self.script} > {logFile} 2>&1'.format(self=self,ompOpt=ompOpt,niceOpt=niceOpt,debugOpt=debugOpt,logFile=pipes.quote(self.log))
+				self.command='{self.executable} -x -n {batchOpts} {ompOpt} {niceOpt} {debugOpt} {self.script} > {logFile} 2>&1'.format(self=self,batchOpts=batchOpts,ompOpt=ompOpt,niceOpt=niceOpt,debugOpt=debugOpt,logFile=pipes.quote(self.log))
 				self.hrefCommand+='<br><tt>'+self.command+'</tt>'
 			
 		def saveInfo(self):
@@ -1001,7 +1023,7 @@ finished: %s
 	
 	print "Job summary:"
 	for job in jobs:
-		print (bright('   #{job.num} ({job.id}{cores})')+': WOO_BATCH={job.table}:{job.lineNo}:{job.resultsDb} {job.executable} {job.script} > {job.log}').format(job=job,cores='' if job.nCores==1 else '/%d'%job.nCores)
+		print (bright('   #{job.num} ({job.id}{cores})')+': {job.table} {job.lineNo} {job.resultsDb}: {job.executable} {job.script} > {job.log}').format(job=job,cores='' if job.nCores==1 else '/%d'%job.nCores)
 	sys.stdout.flush()
 	
 	

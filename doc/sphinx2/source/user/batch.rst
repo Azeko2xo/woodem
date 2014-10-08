@@ -46,7 +46,7 @@ Let us summarize important parameters for everyday use:
 Batch example
 ==============
 
-Let us use the :obj:`woo.pre.horse.FallingHorse` preprocessor as the basis for our example; suppose we want to study the influence of the :obj:`pWaveSafety <woo.pre.horse.FallingHorse.pWaveSafety>` parameter, which will vary between 0.1 to 0.9. This example is shown in `examples/horse-batch <http://bazaar.launchpad.net/~eudoxos/woo/trunk/files/head:/examples/horse-batch/>`_ in the source distribution.
+Let us use the :obj:`woo.pre.horse.FallingHorse` preprocessor as the basis for our example; suppose we want to study the influence of the :obj:`dtSafety <woo.pre.horse.FallingHorse.dtSafety>` parameter, which will vary between 0.1 to 0.9. This example is shown in `examples/horse-batch <http://bazaar.launchpad.net/~eudoxos/woo/trunk/files/head:/examples/horse-batch/>`_ in the source distribution.
 
 As exaplained above, we need one file with preprocessor and one file describing how to vary preprocessor parameters.
 
@@ -75,9 +75,9 @@ Table
 
 Batch table is tabular representation of data, where each row represents one simulation, and each column one parameter value. The table can be given in text (space-separated columns) or as XLS file, where the first worksheet is used. ``#`` can be used for comments. The first non-empty line are column headers, each non-empty line afterwards is one simulation.
 
-===== ===========
-title	pWaveSafety
-===== ===========
+===== ========
+title	dtSafety
+===== ========
 dt.9	0.9
 dt.7	0.7
 dt.4	0.4

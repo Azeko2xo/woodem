@@ -215,6 +215,6 @@ def finished(S):
 	# catch exception if there are no VTK data (disabled in preprocessor)
 	try:
 		import woo.paraviewscript
-		pvscript=woo.paraviewscript.fromEngines(S,out=S.expandTags(S.pre.vtkPrefix),launch=True)
+		pvscript=woo.paraviewscript.fromEngines(S,out=S.expandTags(S.pre.vtkPrefix),launch=(not woo.batch.inBatch()))
 		print 'Paraview script written to',pvscript
 	except RuntimeError: raise
