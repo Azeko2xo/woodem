@@ -9,6 +9,7 @@
 #include<boost/iostreams/filter/gzip.hpp>
 #include<boost/iostreams/device/file.hpp>
 #include<boost/algorithm/string.hpp>
+#include<boost/filesystem/operations.hpp>
 #include<boost/version.hpp>
 #if BOOST_VERSION<104800
 	#error You need boost >= 1.48 for boost/math/special_functions/nonfinite_num_facets.hpp . Woo does not provide its own copy since rev. 3048, you might need to revert back, or upgrade your boost installation. [boost version should have been checked by the configure script already?]
@@ -47,14 +48,16 @@ struct ObjectIO{
 	}
 	// save to given file, guessing compression and XML/binary from extension
 	template<class T>
-	static void save(const string fileName, const string& objectTag, T& object){
+	static void save(const string& fileName, const string& objectTag, T& object){
 		boost::iostreams::filtering_ostream out;
 		if(boost::algorithm::ends_with(fileName,".bz2")) out.push(boost::iostreams::bzip2_compressor());
 		if(boost::algorithm::ends_with(fileName,".gz")) out.push(boost::iostreams::gzip_compressor());
-		boost::iostreams::file_sink outSink(fileName,std::ios_base::out|std::ios_base::binary);
-		if(!outSink.is_open()) throw std::runtime_error("Error opening file "+fileName+" for writing.");
+		// write to a temporary, then rename; this avoids incompletely written files (e.g. when interrupted externally)
+		string tmp=fileName+".~woo~tmp~";
+		boost::iostreams::file_sink outSink(tmp,std::ios_base::out|std::ios_base::binary);
+		if(!outSink.is_open()) throw std::runtime_error("Error opening file "+tmp+" for writing.");
 		out.push(outSink);
-		if(!out.good()) throw std::logic_error("boost::iostreams::filtering_ostream.good() failed (but "+fileName+" is open for writing)?");
+		if(!out.good()) throw std::logic_error("boost::iostreams::filtering_ostream.good() failed (but "+tmp+" is open for writing)?");
 		if(isXmlFilename(fileName)){
 			#ifdef WOO_NOXML
 				throw std::runtime_error("Serialization to XML is not supported in this build of Woo (recompile without the 'noxml' feature).");
@@ -63,6 +66,9 @@ struct ObjectIO{
 			#endif
 		}
 		else save<T,boost::archive::binary_oarchive>(out,objectTag,object);
+		// rename to the file requested;
+		// see http://stackoverflow.com/questions/7054844/is-rename-atomic
+		boost::filesystem::rename(tmp,fileName);
 	}
 	// load from given file, guessing compression and XML/binary from extension
 	template<class T>
