@@ -36,6 +36,13 @@ class PsdSphereGeneratorTest(unittest.TestCase):
 		(id,im),(od,om)=self.gen.inputPsd(normalize=False),self.gen.psd(normalize=False)
 		self.assert_(id[0]==id[-1])
 		self.assertAlmostEqual(im[-1],om[-1],delta=.04*im[-1])
+	def testClippingSpuriousPoints(self):
+		'PSD: clipping spurious values'
+		self.gen.psdPts=[(0,0),(1,0),(5,5)]
+		res=[(1,0),(5,1)]
+		self.assert_(self.gen.psdPts==res)
+		self.gen.psdPts=[(1,0),(5,2),(5,2),(5,2)]
+		self.assert_(self.gen.psdPts==res)
 	def checkOk(self,relDeltaInt=.02,relDeltaD=.04):
 		for i in range(10000): self.gen(self.mat)
 		iPsd=self.gen.inputPsd(normalize=False)

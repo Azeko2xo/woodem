@@ -176,7 +176,7 @@ struct Scene: public Object{
 		((shared_ptr<EnergyTracker>,energy,new EnergyTracker,AttrTrait<Attr::readonly>().noGui(),"Energy values, if energy tracking is enabled."))
 		((vector<shared_ptr<Field>>,fields,,AttrTrait<Attr::triggerPostLoad>().noGui(),"Defined simulation fields."))
 		((shared_ptr<Cell>,cell,new Cell,AttrTrait<Attr::hidden>(),"Information on periodicity; only should be used if Scene::isPeriodic."))
-		((std::string,lastSave,,AttrTrait<>().noGui(),"Name under which the simulation was saved for the last time; used for reloading the simulation. Updated automatically, don't change."))
+		((std::string,lastSave,,AttrTrait<Attr::readonly>(),"Name under which the simulation was saved for the last time; used for reloading the simulation. Updated automatically, don't change."))
 		((long,preSaveDuration,,AttrTrait<Attr::readonly>().noGui(),"Wall clock duration this Scene was alive before being saved last time; this count is incremented every time the scene is saved. When Scene is loaded, it is used to construct clock0 as current_local_time - lastSecDuration."))
 
 		#if WOO_OPENGL

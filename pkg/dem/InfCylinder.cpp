@@ -73,6 +73,7 @@ bool Cg2_InfCylinder_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const share
 	#include<woo/lib/base/CompUtils.hpp>
 	#include<woo/lib/opengl/GLUtils.hpp>
 
+
 	bool Gl1_InfCylinder::wire;
 	bool Gl1_InfCylinder::spokes;
 	int  Gl1_InfCylinder::slices;
@@ -101,6 +102,13 @@ bool Cg2_InfCylinder_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const share
 			GLUtils::setLocalCoords(cyl.nodes[0]->pos,cyl.nodes[0]->ori);
 			A[ax]=cyl.nodes[0]->pos[ax]+cyl.glAB[0];
 			B[ax]=cyl.nodes[0]->pos[ax]+cyl.glAB[1];
+		}
+		// fast drawing
+		if(Renderer::fastDraw){
+			glBegin(GL_LINES);
+			glVertex3v(A); glVertex3v(B);
+			glEnd();
+			return;
 		}
 		glDisable(GL_LINE_SMOOTH);
 		GLUtils::Cylinder(A,B,cyl.radius,/*keep current color*/Vector3r(NaN,NaN,NaN),/*wire*/wire||wire2,/*caps*/false,/*rad2*/-1,slices);

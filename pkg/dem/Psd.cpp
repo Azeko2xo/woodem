@@ -24,6 +24,15 @@ void PsdSphereGenerator::postLoad(PsdSphereGenerator&,void*){
 		if(psdPts[i][1]>psdPts[i+1][1]) throw std::runtime_error("PsdSphereGenerator.psdPts: passing values (the y-component) must be increasing ("+to_string(psdPts[i][1])+">"+to_string(psdPts[i+1][1])+")");
 	}
 	Real maxPass=psdPts.back()[1];
+	// remove leading zero points
+	int ii=0;
+	for(ii=0; ii<(int)psdPts.size(); ii++){ if(psdPts[ii][1]>0) break; }
+	if(ii>1) psdPts.erase(psdPts.begin(),psdPts.begin()+(ii-1));
+	// remove trailing points with the same passing value
+	for(ii=(int)psdPts.size()-2; ii>=0; ii--){ if(psdPts[ii][1]<maxPass) break; }
+	if(ii<(int)psdPts.size()-2) psdPts.erase(psdPts.begin()+ii+2,psdPts.end());
+	if(psdPts.empty()) throw std::logic_error("PsdSphereGenerator.psdPts: empty after removing spurious values?");
+
 	if(maxPass!=1.0){
 		LOG_INFO("Normalizing psdPts so that highest value of passing is 1.0 rather than "<<maxPass);
 		for(Vector2r& v: psdPts) v[1]/=maxPass;
@@ -82,13 +91,13 @@ std::tuple<Real,int> PsdSphereGenerator::computeNextRadiusBin(){
 
 Real PsdSphereGenerator::critDt(Real density, Real young) {
 	if(psdPts.empty()) return Inf;
-	return DemFuncs::spherePWaveDt(psdPts[0][0],density,young);
+	return DemFuncs::spherePWaveDt(minMaxDiam()[0],density,young);
 }
 
 
 Vector2r PsdSphereGenerator::minMaxDiam() const {
 	if(psdPts.empty()) return Vector2r(NaN,NaN);
-	return Vector2r(psdPts[0][0],(*psdPts.rbegin())[0]);
+	return Vector2r(psdPts[0][0],psdPts.back()[0]);
 }
 
 

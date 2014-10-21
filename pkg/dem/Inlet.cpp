@@ -103,8 +103,6 @@ Real MinMaxSphereGenerator::critDt(Real density, Real young) {
 }
 
 
-
-
 Real RandomInlet::critDt() {
 	if(!generator) return Inf;
 	Real ret=Inf;

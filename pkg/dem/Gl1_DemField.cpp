@@ -188,6 +188,9 @@ void Gl1_DemField::doShape(){
 	Renderer::shapeDispatcher.scene=scene; Renderer::shapeDispatcher.updateScenePtr();
 	boost::mutex::scoped_lock lock(dem->particles->manipMutex);
 
+	// experimental
+	glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST);
+
 	// instead of const shared_ptr&, get proper shared_ptr;
 	// Less efficient in terms of performance, since memory has to be written (not measured, though),
 	// but it is still better than crashes if the body gets deleted meanwile.
@@ -280,11 +283,19 @@ void Gl1_DemField::doShape(){
 			case COLOR_INVISIBLE: continue; // don't show this particle at all
 			default: parColor=Vector3r(NaN,NaN,NaN);
 		}
-
-		glPushMatrix();
+		
+		// fast-track for spheres (don't call the functor, avoid glPushMatrix())
+		if(Renderer::fastDraw && p->shape->isA<Sphere>()){
 			glColor3v(parColor);
-			Renderer::shapeDispatcher(p->shape,/*shift*/Vector3r::Zero(),wire||sh->getWire(),*viewInfo);
-		glPopMatrix();
+			glBegin(GL_POINTS);
+				glVertex3v((n0->pos+n0->getData<GlData>().dGlPos).eval());
+			glEnd();
+		} else {
+			glPushMatrix();
+				glColor3v(parColor);
+				Renderer::shapeDispatcher(p->shape,/*shift*/Vector3r::Zero(),wire||sh->getWire(),*viewInfo);
+			glPopMatrix();
+		}
 
 
 		if(name.highlighted){

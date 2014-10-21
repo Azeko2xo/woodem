@@ -587,8 +587,9 @@ def runPreprocessor(pre,preFile=None):
 	if not inBatch(): return pre()
 
 	import os
-	import woo,math
+	import woo,math,numpy
 	tableFileLine=wooOptions.batchTable,wooOptions.batchLine
+	evalParams=[]
 	if wooOptions.batchTable:
 		allTab=TableParamReader(wooOptions.batchTable).paramDict()
 		if not wooOptions.batchLine in allTab: raise RuntimeError("Table %s doesn't contain valid line number %d"%(wooOptions.batchTable,wooOptions.batchLine))
@@ -598,7 +599,14 @@ def runPreprocessor(pre,preFile=None):
 			if name[0]=='!': continue # pseudo-variables such as !SCRIPT, !THREADS and so on
 			if name=='title': continue
 			if val in ('*','-',''): continue
-			nestedSetattr(pre,name,eval(val,globals(),dict(woo=woo,math=math))) # woo.unit
+			print 'VALUE',val
+			# postpone evaluation of parameters starting with = so that they can use other params
+			if type(val) in (str,unicode) and val.startswith('='): evalParams.append((name,val[1:]))
+			elif type(val) in (str,unicode) and val.startswith("'="): evalParams.append((name,val[2:]))
+			else: nestedSetattr(pre,name,eval(val,globals(),dict(woo=woo,math=math))) # woo.unit
+	# postponed evaluation of computable params
+	for name,val in evalParams:
+		nestedSetattr(pre,name,eval(val,globals(),dict(woo=woo,math=math,numpy=numpy,self=pre)))
 	# check types, if this is a python preprocessor
 	if hasattr(pre,'checkAttrTypes'): pre.checkAttrTypes()
 	# run preprocessor
@@ -634,11 +642,11 @@ A special value ``=`` can be used instead of parameter value; value from the pre
 This class is used by :obj:`woo.utils.readParamsFromTable`.
 
 >>> tryData=[
-... 	['head1','important2!','!OMP_NUM_THREADS!','abcd'],
-... 	[1,1.1,1.2,1.3,],
-... 	['a','b','c','d','###','comment'],
+... 	['head1','important2!','head3','...','...','!OMP_NUM_THREADS!','abcd'],
+... 	[1,1.1, '1.','1','5', 1.2,1.3,],
+... 	['a','b','HE','AD','_3','c','d','###','comment'],
 ... 	['# empty line'],
-... 	[1,'=','=','g']
+... 	[1,'=','=','=','=','=','g']
 ... ]
 >>> import woo
 >>> tryFile=woo.master.tmpFilename()
@@ -662,32 +670,38 @@ This class is used by :obj:`woo.utils.readParamsFromTable`.
 {2: {'!OMP_NUM_THREADS': '1.2',
      'abcd': '1.3',
      'head1': '1',
+     'head3': '1.15',
      'important2': '1.1',
      'title': 'important2=1.1,OMP_NUM_THREADS=1.2'},
  3: {'!OMP_NUM_THREADS': 'c',
      'abcd': 'd',
      'head1': 'a',
+     'head3': 'HEAD_3',
      'important2': 'b',
      'title': 'important2=b,OMP_NUM_THREADS=c'},
  5: {'!OMP_NUM_THREADS': 'c',
      'abcd': 'g',
      'head1': '1',
+     'head3': 'HEAD_3',
      'important2': 'b',
      'title': 'important2=b,OMP_NUM_THREADS=c__line=5__'}}
 >>> pprint(TableParamReader(f2).paramDict())
 {2: {u'!OMP_NUM_THREADS': '1.2',
      u'abcd': '1.3',
      u'head1': '1.0',
+     u'head3': u'1.15',
      u'important2': '1.1',
      'title': u'important2=1.1,OMP_NUM_THREADS=1.2'},
  3: {u'!OMP_NUM_THREADS': u'c',
      u'abcd': u'd',
      u'head1': u'a',
+     u'head3': u'HEAD_3',
      u'important2': u'b',
      'title': u'important2=b,OMP_NUM_THREADS=c'},
  5: {u'!OMP_NUM_THREADS': u'c',
      u'abcd': u'g',
      u'head1': '1.0',
+     u'head3': u'HEAD_3',
      u'important2': u'b',
      'title': u'important2=b,OMP_NUM_THREADS=c__line=5__'}}
 
@@ -696,91 +710,118 @@ This class is used by :obj:`woo.utils.readParamsFromTable`.
 		"Setup the reader class, read data into memory. *firstLine* determines the number of the first line; if negative, 1 is used for XLS files and 0 for text files. The reason is that spreadsheets number lines from 1 whereas text editors number lines from zero, and having the numbering the same as the usual UI for editing that format is convenient."
 		import re
 		
-		if file.lower().endswith('.xls'):
-			if firstLine<0: firstLine=1
-			import xlrd
-			xls=xlrd.open_workbook(file)
-			sheet=xls.sheet_by_index(0)
-			maxCol=0
-			rows=[] # rows actually containing data (filled in the loop)
-			for row in range(sheet.nrows):
-				# find first non-empty and non-comment cell
-				lastDataCol=-1
-				for col in range(sheet.ncols):
-					c=sheet.cell(row,col)
-					empty=(c.ctype in (xlrd.XL_CELL_EMPTY,xlrd.XL_CELL_BLANK) or (c.ctype==xlrd.XL_CELL_TEXT and c.value.strip()==''))
-					comment=(c.ctype==xlrd.XL_CELL_TEXT and re.match(r'^\s*(#.*)?$',c.value)) 
-					if comment: break # comment cancels all remaining cells on the line
-					if not empty: lastDataCol=max(col,lastDataCol)
-				if lastDataCol>=0:
-					rows.append(row)
-					maxCol=max(maxCol,lastDataCol)
-					# if lastDataCol<maxCol: raise RuntimeError('Error in %s: all data rows should have the same number of colums; row %d has only %d columns, should have %d.'%(file,row,lastDataCol+1,maxCol+1))
-			# rows and cols with data
-			cols=range(maxCol+1)
-			# print 'maxCol=%d,cols=%s'%(maxCol,cols)
-			# iterate through cells, define rawHeadings, headings, values
-			rawHeadings=[sheet.cell(rows[0],c).value for c in cols]
-			headings=[(h[:-1] if (h and h[-1]=='!') else h) for h in rawHeadings] # without trailing bangs
-			values={}
-			for r in rows[1:]:
-				vv={}
-				for c in cols:
-					v=sheet.cell(r,c).value
-					if type(v)!=unicode: v=str(v)
-					vv[c]=v
-				values[r+firstLine]=dict([(headings[c],vv[c]) for c in cols])
-		else:
-			if firstLine<0: firstLine=0
-			# text file, space separated
-			# read file in memory, remove newlines and comments; the [''] makes lines 1-indexed
-			with open(file,'r') as f: ll=[re.sub('\s*#.*','',l[:-1]) for l in ['']+f.readlines()]
-			# usable lines are those that contain something else than just spaces
-			usableLines=[i for i in range(len(ll)) if not re.match(r'^\s*(#.*)?$',ll[i])]
-			rawHeadings=ll[usableLines[0]].split()
-			headings=[(h[:-1] if h[-1]=='!' else h) for h in rawHeadings] # copy of headings without trailing bangs (if any)
-			# use all values of which heading has ! after its name to build up the title string
-			# if there are none, use all columns
-			usableLines=usableLines[1:] # and remove headindgs from usableLines
-			values={}
-			for l in usableLines:
-				val={}
-				for i in range(len(headings)):
-					val[headings[i]]=ll[l].split()[i]
-				values[l+firstLine]=val
-		#
-		# each format has to define the following:
-		#   values={lineNumber:{key:val,key:val,...],...} # keys are column headings
-		#   rawHeadings=['col1title!','col2title',...]    # as in the file
-		#   headings=['col1title','col2title',...]        # with trailing bangs removed
-		#
+		if 1:
+			if file.lower().endswith('.xls'):
+				if firstLine<0: firstLine=1
+				import xlrd
+				xls=xlrd.open_workbook(file)
+				sheet=xls.sheet_by_index(0)
+				maxCol=0
+				rows=[] # rows actually containing data (filled in the loop)
+				for row in range(sheet.nrows):
+					# find first non-empty and non-comment cell
+					lastDataCol=-1
+					for col in range(sheet.ncols):
+						c=sheet.cell(row,col)
+						empty=(c.ctype in (xlrd.XL_CELL_EMPTY,xlrd.XL_CELL_BLANK) or (c.ctype==xlrd.XL_CELL_TEXT and c.value.strip()==''))
+						comment=(c.ctype==xlrd.XL_CELL_TEXT and re.match(r'^\s*(#.*)?$',c.value)) 
+						if comment: break # comment cancels all remaining cells on the line
+						if not empty: lastDataCol=max(col,lastDataCol)
+					if lastDataCol>=0:
+						rows.append(row)
+						maxCol=max(maxCol,lastDataCol)
+						# if lastDataCol<maxCol: raise RuntimeError('Error in %s: all data rows should have the same number of colums; row %d has only %d columns, should have %d.'%(file,row,lastDataCol+1,maxCol+1))
+				# rows and cols with data
+				cols=range(maxCol+1)
+				# print 'maxCol=%d,cols=%s'%(maxCol,cols)
+				# iterate through cells, define rawHeadings, headings, values
+				headings=[sheet.cell(rows[0],c).value for c in cols]
+				#headings=[(h[:-1] if (h and h[-1]=='!') else h) for h in rawHeadings] # without trailing bangs
+				values={}
+				for r in rows[1:]:
+					vv={}
+					for c in cols:
+						v=sheet.cell(r,c).value
+						if type(v)!=unicode: v=str(v)
+						vv[c]=v
+					values[r+firstLine]=[vv[c] for c in cols]
+			else:
+				if firstLine<0: firstLine=0
+				# text file, space separated
+				# read file in memory, remove newlines and comments; the [''] makes lines 1-indexed
+				with open(file,'r') as f: ll=[re.sub('\s*#.*','',l[:-1]) for l in ['']+f.readlines()]
+				# usable lines are those that contain something else than just spaces
+				usableLines=[i for i in range(len(ll)) if not re.match(r'^\s*(#.*)?$',ll[i])]
+				headings=ll[usableLines[0]].split()
+				# headings=[(h[:-1] if h[-1]=='!' else h) for h in rawHeadings] # copy of headings without trailing bangs (if any)
+				# use all values of which heading has ! after its name to build up the title string
+				# if there are none, use all columns
+				usableLines=usableLines[1:] # and remove headindgs from usableLines
+				values={}
+				for l in usableLines:
+					val=[]; lSplit=ll[l].split()
+					for i in range(len(headings)):
+						val.append(lSplit[i])
+					values[l+firstLine]=val
+			#
+			# each format has to define the following:
+			#   values={lineNumber:[val,val,...],...}         # values ordered the same as headings
+			#   headings=['col1title!','col2title',...]       # as in the file
+			#
 
-		# replace empty cells or '=' by the previous value of the parameter
-		lines=values.keys(); lines.sort()
-		# print file,lines
-		for i,l in enumerate(lines):
-			for j in values[l].keys():
-				if values[l][j] in ('=',''):
-					try:
-						values[l][j]=values[lines[i-1]][j]
-					except IndexError,KeyError:
-						raise ValueError("The = specifier for '%s' on line %d, refers to nonexistent value on previous line?"%(j,l))
-		# add descriptions, but if they repeat, append line number as well
-		if not 'title' in headings:
-			bangHeads=[h[:-1] for h in rawHeadings if (h and h[-1]=='!')] or headings
-			descs=set()
-			for l in lines:
-				ddd=[]
-				for head in bangHeads:
-					val=values[l][head]
-					if type(val) in (str,unicode) and val.strip() in ('','-','*'): continue # default value used
-					ddd.append(head.replace('!','')+'='+('%g'%val if isinstance(val,float) else str(val)))
-				dd=','.join(ddd).replace("'",'').replace('"','')
-				#dd=','.join(head.replace('!','')+'='+('%g'%values[head] if isinstance(values[l][head],float) else str(values[l][head])) for head in bangHeads if (values[l][head].strip()!='-').replace("'",'').replace('"','')
-				if dd in descs: dd+='__line=%d__'%l
-				values[l]['title']=dd
-				descs.add(dd)
-		self.values=values
+			# replace empty cells or '=' by the previous value of the parameter
+			lines=values.keys(); lines.sort()
+			# print file,lines
+			for i,l in enumerate(lines):
+				for col,val in enumerate(values[l]):
+					if val in ('=',''):
+						try:
+							values[l][col]=values[lines[i-1]][col]
+						except IndexError,KeyError:
+							raise ValueError("The = specifier on line %d, column %d, refers to nonexistent value on previous line?"%(l,col))
+	
+			nCollapsed=0
+			for ih,h in enumerate(headings): # index of headings (headings are pruned after the loop)
+				iv=ih-nCollapsed # index of values: changes as values are being removed 
+				if h in ('...',u'...',u'…'):
+					nCollapsed+=1
+					if ih<1: raise ValueError("The ... header continuation is not allowed in the first column.")
+					# merge adjacent cols contents
+					for i,l in enumerate(lines):
+						vv=values[l]
+						strType=(unicode if (unicode in (type(vv[iv-1]),type(vv[iv]))) else str)
+						collapsed=strType(vv[iv-1])+strType(vv[iv])
+						values[l]=vv[:iv-1]+[collapsed]+vv[iv+1:]
+			headings=[h for h in headings if h not in ('...',u'...',u'…')]
+
+			# prune headings with trailing bangs
+			rawHeadings=headings
+			headings=[(h[:-1] if h[-1]=='!' else h) for h in headings]
+
+			# copy to dictionary; that is the way results are supposed to be returned
+			dvalues={}
+			for i,l in enumerate(lines):
+				dvalues[l]=dict([(headings[c],values[l][c]) for c in range(len(headings))])
+
+			# add descriptions, but if they repeat, append line number as well
+			if not 'title' in headings:
+				# bangHeads=[h[:-1] for h in rawHeadings if (h and h[-1]=='!')] or headings
+				hasBangs=sum([1 for h in rawHeadings if h[-1]=='!'])>0
+				descs=set()
+				for l in lines:
+					ddd=[]
+					for col,head in enumerate(rawHeadings):
+						if hasBangs and head[-1]!='!': continue
+						val=values[l][col]
+						if type(val) in (str,unicode) and val.strip() in ('','-','*'): continue # default value used
+						ddd.append(head.replace('!','')+'='+('%g'%val if isinstance(val,float) else str(val)))
+					dd=','.join(ddd).replace("'",'').replace('"','')
+					#dd=','.join(head.replace('!','')+'='+('%g'%values[head] if isinstance(values[l][head],float) else str(values[l][head])) for head in bangHeads if (values[l][head].strip()!='-').replace("'",'').replace('"','')
+					if dd in descs: dd+='__line=%d__'%l
+					dvalues[l]['title']=dd
+					descs.add(dd)
+
+			self.values=dvalues
 
 	def paramDict(self):
 		"""Return dictionary containing data from file given to constructor. Keys are line numbers (which might be non-contiguous and refer to real line numbers that one can see in text editors), values are dictionaries mapping parameter names to their values given in the file. The special value '=' has already been interpreted, ``!`` (bangs) (if any) were already removed from column titles, ``title`` column has already been added (if absent)."""

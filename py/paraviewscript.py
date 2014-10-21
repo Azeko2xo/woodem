@@ -56,7 +56,7 @@ def launchPV(script):
 	print 'Running ',' '.join(cmd)
 	subprocess.Popen(cmd)
 
-def fromEngines(S,out=None,launch=False):
+def fromEngines(S,out=None,launch=False,noDataOk=False):
 	'''Write paraview script showing data from the current VTK-related engines: :obj:`woo.dem.VtkExport` and :obj:`FlowAnalysis`. Files exported by :obj:`woo.dem.VtkExport` are used, while :obj:`FlowAnalysis` is made to export its internal data at the moment of calling this function.
 	'''
 	sphereFiles,meshFiles,conFiles=[],[],[]
@@ -68,7 +68,9 @@ def fromEngines(S,out=None,launch=False):
 		elif isinstance(e,woo.dem.FlowAnalysis) and e.nDone>0: kw.update(kwFromFlowAnalysis(e,outPrefix=out[:-3])) # without the .py
 	if 'meshFiles' in kw: kw['flowMeshFile']=kw['meshFiles'][-1]
 	# no data found from engines
-	if not kw: raise RuntimeError("No Paraview data found in engines.")
+	if not kw:
+		if noDataOk: return None
+		raise RuntimeError("No Paraview data found in engines.")
 	write(out,**kw)
 	if launch: launchPV(out)
 	return out

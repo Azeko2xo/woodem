@@ -113,7 +113,6 @@ woo.dem.DemField(
 class TestSpecialDumpMethods(unittest.TestCase):
 	def setUp(self):
 		woo.master.reset()
-		woo.master.scene.lastSave='foo'
 		self.out=woo.master.tmpFilename()
 	def testSceneLastDump_direct(self):
 		'IO: Scene.lastSave set (Object._boostSave overridden)'
