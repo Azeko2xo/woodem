@@ -5,7 +5,7 @@ import collections
 
 def predefPublishing():
 	predefHighQuality()
-	gl.Renderer(bgColor=(81/255.,87/255.,110/255.),showTime=5,allowFast=False)
+	gl.Renderer(bgColor=(81/255.,87/255.,110/255.),showTime=5,fast='never')
 
 def predefHighQuality():
 	gl.Gl1_Sphere(quality=3.,wire=False)

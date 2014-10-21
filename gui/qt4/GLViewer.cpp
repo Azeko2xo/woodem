@@ -852,9 +852,7 @@ void GLViewer::postDraw(){
 				for(short ax:{0,1,2}){
 					std::ostringstream oss;
 					oss<<(isnan(p3v[ax])?"*":to_string(p3v[ax]));
-					Vector3r color(Vector3r::Zero());
-					color[ax]=1.;
-					glColor3v(color);
+					glColor3v(Renderer::axisColor(ax));
 					QGLViewer::drawText(p.x()+20,p.y()+14*(ax+1),oss.str().c_str());
 				}
 				// cross-hair
