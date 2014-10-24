@@ -873,6 +873,19 @@ void InsertionSortCollider::handleBoundInversionPeri(Particle::id_t id1, Particl
 	assert(false); // unreachable
 }
 
+py::object InsertionSortCollider::pySpatialOverlap(const shared_ptr<Scene>& S, Particle::id_t id1, Particle::id_t id2){
+	if(S.get()!=scene) throw std::runtime_error("Scene object is not the same as this engine was used with.");
+	if(min(id1,id2)<0 || max(id1,id2)>(Particle::id_t)particles->size()) throw std::runtime_error("Particle ids outisde of valid range (0.."+to_string(particles->size()));
+	if(scene->isPeriodic){
+		Vector3i periods;
+		bool over=spatialOverlapPeri(id1,id2,scene,periods);
+		return py::make_tuple(over,periods);
+	} else {
+		return py::object(spatialOverlap(id1,id2));
+	}
+}
+
+
 /* Performance hint
 	================
 
@@ -950,7 +963,7 @@ py::tuple InsertionSortCollider::dumpBounds(){
 		if(periodic){
 			for(long i=0; i<V.size; i++){
 				long ii=V.norm(i); // start from the period boundary
-				bl[axis].append(py::make_tuple(V[ii].coord,(V[ii].flags.isMin?-1:1)*V[ii].id,V[ii].period));
+				bl[axis].append(py::make_tuple(V[ii].coord,(V[ii].flags.isMin?-1:1)*V[ii].id,V[ii].period,string()+(V[ii].flags.hasBB?"":"nobb ")+(V[ii].flags.isInf?"inf":"")));
 			}
 		} else {
 			for(long i=0; i<V.size; i++){

@@ -49,3 +49,17 @@ def cylinder(A,B,radius,div=20,axDiv=1,capA=False,capB=False,wallCaps=False,angV
 			f.shape.fakeVel=-radius*angVel*f.shape.getNormal().cross(ax)
 	return caps+ff
 
+def quadrilateral(A,B,C,D,size=0,div=Vector2i(0,0),**kw):
+	'Return triangulated `quadrilateral <http://en.wikipedia.org/wiki/Quadrilateral>`__ (or a `skew quadrilateral <http://en.wikipedia.org/wiki/Skew_polygon>`__), when points are not co-planar), where division size is at most *size* (absolute length) or *div* (number of subdivisions in the AB--CD and AC--BD directions).'
+	if sum(div)>0:
+		if min(div)<1: raise ValueError('Both components of div must be positive')
+		if size>0: raise ValueError('only one of *div* or *size* may be given (not both)')
+	else:
+		l1,l2=min((A-C).norm(),(D-B).norm()),min((A-B).norm(),(C-D).norm())
+		div=Vector2i(int(max(1,math.ceil(l1/size))),int(max(1,math.ceil(l2/size))))
+	AB,AC,CD,BD=B-A,C-A,D-C,D-B
+	aabb,aacc=numpy.linspace(0,1,div[0]),numpy.linspace(0,1,div[1])
+	pts=[[A+ac*AC+ab*(B+ac*BD-(A+ac*AC)).normalized() for ac in aacc] for ab in aabb]
+	return woo.pack.gtsSurface2Facets(woo.pack.sweptPolylines2gtsSurface(pts),**kw)
+
+	

@@ -131,20 +131,25 @@ def write(out,sphereFiles=[],meshFiles=[],conFiles=[],triFiles=[],flowFile='',sp
 	:param splitStride: spatial stride for segregation analysis; use 2 and more for very dense data meshes which are difficult to see through;
 	:param flowStride: spatial stride for flow analysis.
 	'''
-	f=open(out,'w')
+	def fixPath(p):
+		import os,os.path
+		if not p or os.path.isabs(p): return p         # empty or absolute, nothing to do
+		if os.path.dirname(out)==os.getcwd(): return p # script in the current directory, so relative is OK
+		return os.path.relpath(p,os.path.dirname(out)) # relative to where the script is being written
 	subst=dict(
-		sphereFiles=sphereFiles,
-		meshFiles=meshFiles,
-		conFiles=conFiles,
-		triFiles=triFiles,
-		flowFile=flowFile,
-		splitFile=splitFile,
-		flowMeshFile=flowMeshFile,
+		sphereFiles=[fixPath(f) for f in sphereFiles],
+		meshFiles=[fixPath(f) for f in meshFiles],
+		conFiles=[fixPath(f) for f in conFiles],
+		triFiles=[fixPath(f) for f in triFiles],
+		flowFile=fixPath(flowFile),
+		splitFile=fixPath(splitFile),
+		flowMeshFile=fixPath(flowMeshFile),
 		flowMeshOpacity=flowMeshOpacity,
 		splitStride=splitStride,
 		splitClip=splitClip,
 		flowStride=flowStride,
 	)
+	f=open(out,'w')
 	f.write(_paraviewScriptTemplate.format(**subst))
 	f.close()
 	
@@ -177,25 +182,28 @@ if 'current_script_path' in dir():
 	d=os.path.dirname(current_script_path)
 	if d: os.chdir(d)
 
-### create zip archive when the first arg is --zip
+### create zip archive
 if hasattr(sys,'argv') and len(sys.argv)>1:
-	import argparse
+	import argparse,re
 	parser=argparse.ArgumentParser()
-	parser.add_argument('--zip',help='Create self-contained zip file from data files.',dest='zip',action='store_true')
-	parser.add_argument('--stride',type=int,default='1',dest='stride',help='Stride for packing files, to avoid large volumes of data')
+	parser.add_argument('--zip',help='Create self-contained zip file from data files.',dest='zip',type=str,default='')
+	parser.add_argument('--slice',type=str,default='',dest='slice',help='Slice for packing files, to avoid large volumes of data; the slice must be in python format, i.e. ``start:stop`` or ``start:stop:step``, where any of the fields may be empty. E.g. to choose every second file, say ``--slice=::2``, to get just the last one, say ``--slice=:-1``.')
 	opts=parser.parse_args()
 	if opts.zip:
-		out0=os.path.basename(sys.argv[0]+'-packed')
-		zipName=out0+'.zip'
+		zipName=opts.zip+('.zip' if not opts.zip.endswith('.zip') else '')
+		out0=os.path.basename(os.path.splitext(zipName)[0]) # directory inside the archive
 		newFiles=dict()
-		seqStride=opts.stride
+		if opts.slice:
+			# from http://stackoverflow.com/a/681949/761090 in comment by pprzemek
+			vtkSlice=slice(*map(lambda x: int(x.strip()) if x.strip() else None, opts.slice.split(':')))
+		else: vtkSlice=Slice(None,None) # all files
 		import zipfile
 		with zipfile.ZipFile(zipName,'w',allowZip64=True) as ar:
 			zippedFiles=set()
 			for fff in ('sphereFiles','meshFiles','conFiles','triFiles'):
 				ff=eval(fff) # get the sequence
 				ff2=[]
-				for f in ff[::seqStride]:
+				for f in ff[vtkSlice]:
 					fn=os.path.basename(f)
 					print zipName+': adding',fn
 					zippedFiles.add(fn)
@@ -312,17 +320,19 @@ if sphereFiles:
 	spheres=XMLUnstructuredGridReader(FileName=sphereFiles)
 	readPointCellData(spheres)
 	RenameSource(sphereFiles[0],spheres)
+	# don't show glyphs for more than 5e4 spheres by default to avoid veeery sloooow rendering
+	isBig=(spheres.CellData.Proxy.GetDataInformation().GetNumberOfCells()>5e4)
 	# setup glyphs, but don't show those by default
 	gl=Glyph(GlyphType='Sphere',ScaleMode='scalar',Scalars=['POINTS','radius'],MaskPoints=0,RandomMode=0,SetScaleFactor=1.0)
 	gl.GlyphType.Radius=1.0
 	rep=Show()
-	rep.Visibility=1
+	rep.Visibility=(0 if isBig else 1)
 	rep.ColorArrayName=('POINT_DATA','radius')
 	rep.LookupTable=GetLookupTableForArray('radius',1)
 	# make sphere points invisible
 	SetActiveSource(spheres)
 	rep=Show()
-	rep.Visibility=0
+	rep.Visibility=(1 if isBig else 0)
 	rep.ColorArrayName=('POINT_DATA','radius')
 	rep.LookupTable=GetLookupTableForArray('radius',1)
 

@@ -99,7 +99,8 @@ void Cell::integrateAndUpdate(Real dt){
 	for(int i=0; i<3; i++){
 		Vector3r base(hSize.col(i));
 		_size[i]=base.norm(); base/=_size[i]; //base is normalized now
-		Hnorm(0,i)=base[0]; Hnorm(1,i)=base[1]; Hnorm(2,i)=base[2];};
+		Hnorm(0,i)=base[0]; Hnorm(1,i)=base[1]; Hnorm(2,i)=base[2];
+	};
 	// skew cosines
 	for(int i=0; i<3; i++){
 		int i1=(i+1)%3, i2=(i+2)%3;

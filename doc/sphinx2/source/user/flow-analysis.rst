@@ -4,18 +4,18 @@
 Flow analysis
 ***************
 
-The :obj:`woo.dem.FlowAnalysis` engine is used to periodically collect particle data on a given :obj:`~woo.dem.FlowAnalysis.box`, using uniform grid with `trilinear interpolation <http://en.wikipedia.org/wiki/Trilinear_interpolation>`__ to save values. The :obj:`~woo.dem.FLowAnalysis.dLim` parameter serves to define fraction limits, as fractions are observed separately.
+The :obj:`woo.dem.FlowAnalysis` engine is used to periodically collect particle data on a given :obj:`~woo.dem.FlowAnalysis.box`, using uniform grid with `trilinear interpolation <http://en.wikipedia.org/wiki/Trilinear_interpolation>`__ to save values. The :obj:`~woo.dem.FlowAnalysis.dLim` parameter serves to define fraction limits, as fractions are observed separately.
 
 This :obj:`basic example <woo.pre.horse.FallingHorse>` shows flow rate (computed after the simulation) rendered as volume cloud in Paraview, along with particles and meshes being visible; in addition, `StreamTracer <http://paraview.org/OnlineHelpCurrent/StreamTracer.html>`__ is used to integrate the flow field and render it as lines.
 
 .. youtube:: LB3T6sBdwz0
 
 
-Each grid cell is cube-shaped with math:`V=h\times h\times h`; the data collected in each grid point are
+Each grid cell is cube-shaped with :math:`V=h\times h\times h`; the data cumulated in each grid point are
 
-* flow vector computed from :math:`\vec{v}m/(Vt)` (momentum per volume and time, unit-wise giving :math:`\mathrm{kg(m/s)/(m^3s)=(kg/m^2)/s}`);
-* kinetic energy density :math:`E_k/(Vt)`;
-* hit count :math:`1/(Vt)`;
+* flow vector computed from :math:`\vec{v}m/V` (momentum per volume, unit-wise giving :math:`\mathrm{kg(m/s)/(m^3)=(kg/m^2)/s}`);
+* kinetic energy density :math:`E_k/(V)`;
+* hit count :math:`1/(V)`;
 
 where each value is multiplied by its weight :math:`w` respective to the grid interpolation point:
 
@@ -36,7 +36,9 @@ where each value is multiplied by its weight :math:`w` respective to the grid in
    :math:`(i,j+1,k+1)`    :math:`(0,1,1)`       :math:`(1-\hat{x})\hat{y}\hat{z}`
    ====================== ===================== ==========================================
 
-   which are assigned values using their respective weight :math:`w_i`. It can be verified that the sum of all :math:`w_i` is one, i.e. that the inrpolation is a partition of unity.
+   which are assigned values using their respective weight :math:`w_i`. It can be verified that the sum of all :math:`w_i` is one, i.e. that the interpolation is a partition of unity.
+
+All quantities are finally averaged over the entire :obj:`time span <woo.dem.FlowAnalysis.timeSpan>` that the :obj:`~woo.dem.FlowAnalysis` engine covers.
 
 Fraction separation
 ====================

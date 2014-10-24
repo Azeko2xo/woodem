@@ -199,6 +199,7 @@ struct InsertionSortCollider: public Collider {
 	void insertionSortPeri_orig(VecBounds& v,bool doCollide=true, int ax=0);
 	void handleBoundInversionPeri(Particle::id_t,Particle::id_t, bool separating);
 	bool spatialOverlapPeri(Particle::id_t,Particle::id_t,Scene*,Vector3i&) const;
+	py::object pySpatialOverlap(const shared_ptr<Scene>&, Particle::id_t id1, Particle::id_t id2);
 	static Real cellWrap(const Real, const Real, const Real, int&);
 	static Real cellWrapRel(const Real, const Real, const Real);
 
@@ -285,6 +286,7 @@ struct InsertionSortCollider: public Collider {
 		.def_readonly("maxima",&InsertionSortCollider::minima,"Array of maximum bbox coords; every 3 contiguous values are x, y, z for one particle")
 		.def("dumpBounds",&InsertionSortCollider::dumpBounds,"Return representation of the internal sort data. The format is ``([...],[...],[...])`` for 3 axes, where each ``...`` is a list of entries (bounds). The entry is a tuple with the fllowing items:\n\n* coordinate (float)\n* body id (int), but negated for negative bounds\n* period numer (int), if the collider is in the periodic regime.")
 		.def("dbgInfo",&InsertionSortCollider::dbgInfo,"Return python distionary with information on some internal structures (debugging only)")
+		.def("spatialOverlap",&InsertionSortCollider::pySpatialOverlap,(py::arg("scene"),py::arg("id1"),py::arg("id2")),"Debug access to the spatial overlap function.")
 		#ifdef PISC_DEBUG
 			.def_readwrite("watch1",&InsertionSortCollider::watch1,"debugging only: watched body Id.")
 			.def_readwrite("watch2",&InsertionSortCollider::watch2,"debugging only: watched body Id.")
