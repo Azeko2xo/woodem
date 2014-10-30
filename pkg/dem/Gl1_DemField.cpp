@@ -349,6 +349,8 @@ void Gl1_DemField::doShape(){
 
 void Gl1_DemField::doNodes(const vector<shared_ptr<Node>>& nodeContainer){
 	boost::mutex::scoped_lock lock(dem->nodesMutex);
+	// not sure if this is right...?
+	glDisable(GL_LIGHTING);
 
 	Renderer::nodeDispatcher.scene=scene; Renderer::nodeDispatcher.updateScenePtr();
 	for(shared_ptr<Node> n: nodeContainer){

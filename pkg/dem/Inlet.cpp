@@ -46,41 +46,23 @@ WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_ArcInlet__CLASS_BASE_DOC_ATTRS);
 #endif
 
 
-py::tuple ParticleGenerator::pyPsd(bool mass, bool cumulative, bool normalize, Vector2r dRange, int num) const {
+py::object ParticleGenerator::pyPsd(bool mass, bool cumulative, bool normalize, const Vector2r& dRange, const Vector2r& tRange, int num) const {
 	if(!save) throw std::runtime_error("ParticleGenerator.save must be True for calling ParticleGenerator.psd()");
-	vector<Vector2r> psd=DemFuncs::psd(genDiamMass,/*cumulative*/cumulative,/*normalize*/normalize,num,dRange,
-		/*diameter getter*/[](const Vector2r& diamMass) ->Real { return diamMass[0]; },
-		/*weight getter*/[&](const Vector2r& diamMass) -> Real{ return mass?diamMass[1]:1.; }
+	auto tOk=[&tRange](const Real& t){ return isnan(tRange.minCoeff()) || (tRange[0]<=t && t<tRange[1]); };
+	vector<Vector2r> psd=DemFuncs::psd(genDiamMassTime,/*cumulative*/cumulative,/*normalize*/normalize,num,dRange,
+		/*diameter getter*/[&tOk](const Vector3r& dmt) ->Real { return tOk(dmt[2])?dmt[0]:NaN; },
+		/*weight getter*/[&](const Vector3r& dmt) -> Real{ return mass?dmt[1]:1.; }
 	);
-	py::list diameters,percentage;
-	for(const auto& dp: psd){ diameters.append(dp[0]); percentage.append(dp[1]); }
-	return py::make_tuple(diameters,percentage);
+	return DemFuncs::seqVectorToPy(psd,[](const Vector2r& i)->Vector2r{ return i; },/*zip*/false);
 }
 
 py::object ParticleGenerator::pyDiamMass(bool zipped) const {
-	#if 1
-		if(!zipped){
-			py::list diam, mass;
-			for(const Vector2r& vv: genDiamMass){ diam.append(vv[0]); mass.append(vv[1]); }
-			return py::object(py::make_tuple(diam,mass));
-		} else {
-			py::list ret;
-			for(const auto& dm: genDiamMass){ ret.append(dm); }
-			return ret;
-		}
-	#else
-		boost::multi_array<double,2> ret(boost::extents[genDiamMass.size()][2]);
-		for(size_t i=0;i<genDiamMass.size();i++){ ret[i][0]=genDiamMass[i][0]; ret[i][1]=genDiamMass[i][1]; }
-		//PyObject* result=numpy_from_boost_array(ret).py_ptr();
-		PyObject* o=numpy_boost<double,2>(numpy_from_boost_array(ret)).py_ptr();
-		//return py::incref(o);
-		return py::object(py::handle<>(py::borrowed(o)));
-	#endif
+	return DemFuncs::seqVectorToPy(genDiamMassTime,/*itemGetter*/[](const Vector3r& i)->Vector2r{ return i.head<2>(); },/*zip*/zipped);
 }
 
 Real ParticleGenerator::pyMassOfDiam(Real min, Real max) const{
 	Real ret=0.;
-	for(const Vector2r& vv: genDiamMass){
+	for(const Vector3r& vv: genDiamMassTime){
 		if(vv[0]>=min && vv[0]<=max) ret+=vv[1];
 	}
 	return ret;
@@ -89,12 +71,12 @@ Real ParticleGenerator::pyMassOfDiam(Real min, Real max) const{
 
 
 vector<ParticleGenerator::ParticleAndBox>
-MinMaxSphereGenerator::operator()(const shared_ptr<Material>&mat){
+MinMaxSphereGenerator::operator()(const shared_ptr<Material>&mat, const Real& time){
 	if(isnan(dRange[0]) || isnan(dRange[1]) || dRange[0]>dRange[1]) throw std::runtime_error("MinMaxSphereGenerator: dRange[0]>dRange[1], or they are NaN!");
 	Real r=.5*(dRange[0]+Mathr::UnitRandom()*(dRange[1]-dRange[0]));
 	auto sphere=DemFuncs::makeSphere(r,mat);
 	Real m=sphere->shape->nodes[0]->getData<DemData>().mass;
-	if(save) genDiamMass.push_back(Vector2r(2*r,m));
+	if(save) genDiamMassTime.push_back(Vector3r(2*r,m,time));
 	return vector<ParticleAndBox>({{sphere,AlignedBox3r(Vector3r(-r,-r,-r),Vector3r(r,r,r))}});
 };
 
@@ -215,7 +197,7 @@ void RandomInlet::run(){
 					mat=materials[i];
 				}
 				// generate a new particle
-				pee=(*generator)(mat);
+				pee=(*generator)(mat,scene->time);
 				assert(!pee.empty());
 				LOG_TRACE("Placing "<<pee.size()<<"-sized particle; first component is a "<<pee[0].par->getClassName()<<", extents from "<<pee[0].extents.min().transpose()<<" to "<<pee[0].extents.max().transpose());
 			}

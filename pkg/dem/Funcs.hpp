@@ -80,6 +80,8 @@ struct DemFuncs{
 		for(const auto& p: particleRange){
 			Real d=diameterGetter(p);
 			Real w=weightGetter(p);
+			// NaN diameter or weight, or zero weight make the particle effectively disappear
+			if(isnan(d) || isnan(w) || w==0.) continue;
 			// particles beyong upper bound are discarded, though their weight is taken in account
 			weight+=w;
 			if(d>dRange[1]) continue;
@@ -93,6 +95,26 @@ struct DemFuncs{
 		if(cumulative) for(int i=1;i<num;i++) ret[i][1]+=ret[i-1][1];
 		return ret;
 	};
+
+	template<class IteratorRange, class ItemGetter>
+	static py::object seqVectorToPy(const IteratorRange& range, ItemGetter itemGetter, bool zipped){
+		if(!zipped){
+			vector<py::list> ret;
+			for(const auto& p: range){
+				auto item=itemGetter(p);
+				if(ret.empty()) ret.resize(item.size());
+				assert(item.size()==ret.size());
+				for(int i=0; i<item.size(); i++) ret[i].append(item[i]);
+			}
+			py::list l;
+			for(size_t i=0; i<ret.size(); i++) l.append(ret[i]);
+			return py::tuple(l);
+		} else {
+			py::list ret;
+			for(const auto& p: range){ ret.append(itemGetter(p)); }
+			return ret;
+		}
+	}
 
 	/* Create facets from STL file; scale, shift and rotation (ori) are applied in this order before
 	   creating nodes in global coordinates.

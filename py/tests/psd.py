@@ -43,6 +43,18 @@ class PsdSphereGeneratorTest(unittest.TestCase):
 		self.assert_(self.gen.psdPts==res)
 		self.gen.psdPts=[(1,0),(5,2),(5,2),(5,2)]
 		self.assert_(self.gen.psdPts==res)
+	def testPsdTimeRange(self):
+		'PSD: time range for computing PSD'
+		# generate radii in different ranges at t=0 and t=1
+		self.gen.psdPts=[(.1,0),(.2,1)]
+		for i in range(50): self.gen(self.mat,0)
+		self.gen.psdPts=[(1,0),(2,1)]
+		for i in range(50): self.gen(self.mat,1)
+		# now check that max and min in that time correspond
+		psdA=self.gen.psd(normalize=True,num=10,tRange=(0,.5))
+		psdB=self.gen.psd(normalize=True,num=10,tRange=(.5,2.))
+		self.assert_(psdA[0][0]<.2 and psdA[0][-1]>.1)
+		self.assert_(psdB[0][0]<2 and psdB[0][-1]>1.)
 	def checkOk(self,relDeltaInt=.02,relDeltaD=.04):
 		for i in range(10000): self.gen(self.mat)
 		iPsd=self.gen.inputPsd(normalize=False)

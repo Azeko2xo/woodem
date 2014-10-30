@@ -71,6 +71,7 @@ void TraceGlRep::render(const shared_ptr<Node>& n, const GLViewInfo* glInfo){
 	if(isHidden()) return;
 	if(!Tracer::glSmooth) glDisable(GL_LINE_SMOOTH);
 	else glEnable(GL_LINE_SMOOTH);
+	glDisable(GL_LIGHTING);
 	bool scale=(Renderer::dispScale!=Vector3r::Ones() && Renderer::scaleOn && n->hasData<GlData>());
 	glLineWidth(Tracer::glWidth);
 	const bool periodic=glInfo->scene->isPeriodic;

@@ -72,10 +72,10 @@ void Outlet::run(){
 				r=cbrt(3*m/(4*M_PI*p->material->density));
 				rDivR0.push_back(s.radius/r);
 			}
-			if(save) diamMass.push_back(Vector2r(2*r,m));
+			if(save) diamMassTime.push_back(Vector3r(2*r,m,scene->time));
 		} else{
 			// all other cases
-			if(save) diamMass.push_back(Vector2r(2*p->shape->equivRadius(),m));
+			if(save) diamMassTime.push_back(Vector3r(2*p->shape->equivRadius(),m,scene->time));
 		}
 		LOG_TRACE("DemField.par["<<id<<"] will be "<<(deleting?"deleted.":"marked."));
 		if(deleting) dem->removeParticle(id);
@@ -89,7 +89,7 @@ void Outlet::run(){
 		num++;
 		mass+=m;
 		stepMass+=m;
-		if(save) diamMass.push_back(Vector2r(2*n->getData<DemData>().cast<ClumpData>().equivRad,m));
+		if(save) diamMassTime.push_back(Vector3r(2*n->getData<DemData>().cast<ClumpData>().equivRad,m,scene->time));
 		LOG_TRACE("DemField.nodes["<<ix<<"] (clump) will be "<<(deleting?"deleted":"marked")<<", with all its particles.");
 		if(deleting) dem->removeClump(ix);
 		else {
@@ -107,39 +107,27 @@ void Outlet::run(){
 	else currRate=(1-currRateSmooth)*currRate+currRateSmooth*currRateNoSmooth;
 }
 py::object Outlet::pyDiamMass(bool zipped) const {
-	if(!zipped){
-		py::list dd, mm;
-		for(const auto& dm: diamMass){ dd.append(dm[0]); mm.append(dm[1]); }
-		return py::make_tuple(dd,mm);
-	} else {
-		py::list ret;
-		for(const auto& dm: diamMass){ ret.append(dm); }
-		return ret;
-	}
+	return DemFuncs::seqVectorToPy(diamMassTime,/*itemGetter*/[](const Vector3r& i)->Vector2r{ return i.head<2>(); },/*zip*/zipped);
+}
+py::object Outlet::pyDiamMassTime(bool zipped) const {
+	return DemFuncs::seqVectorToPy(diamMassTime,/*itemGetter*/[](const Vector3r& i)->Vector3r{ return i; },/*zip*/zipped);
 }
 
 Real Outlet::pyMassOfDiam(Real min, Real max) const {
 	Real ret=0.;
-	for(const auto& dm: diamMass){ if(dm[0]>=min && dm[0]<=max) ret+=dm[1]; }
+	for(const auto& dm: diamMassTime){ if(dm[0]>=min && dm[0]<=max) ret+=dm[1]; }
 	return ret;
 }
 
-py::object Outlet::pyPsd(bool _mass, bool cumulative, bool normalize, int _num, const Vector2r& dRange, bool zip, bool emptyOk){
+py::object Outlet::pyPsd(bool _mass, bool cumulative, bool normalize, int _num, const Vector2r& dRange, const Vector2r& tRange, bool zip, bool emptyOk){
 	if(!save) throw std::runtime_error("Outlet.psd(): Outlet.save must be True.");
-	vector<Vector2r> psd=DemFuncs::psd(/*deleted*/diamMass,cumulative,normalize,_num,dRange,
-		/*diameter getter*/[](const Vector2r& dm)->Real{ return dm[0]; },
-		/*weight getter*/[&_mass](const Vector2r& dm)->Real{ return _mass?dm[1]:1.; },
+	auto tOk=[&tRange](const Real& t){ return isnan(tRange.minCoeff()) || (tRange[0]<=t && t<tRange[1]); };
+	vector<Vector2r> psd=DemFuncs::psd(diamMassTime,cumulative,normalize,_num,dRange,
+		/*diameter getter*/[&tOk](const Vector3r& dmt)->Real{ return tOk(dmt[2])?dmt[0]:NaN; },
+		/*weight getter*/[&_mass](const Vector3r& dmt)->Real{ return _mass?dmt[1]:1.; },
 		/*emptyOk*/ emptyOk
 	);
-	if(zip){
-		py::list ret;
-		for(const auto& dp: psd) ret.append(py::make_tuple(dp[0],dp[1]));
-		return ret;
-	} else {
-		py::list diameters,percentage;
-		for(const auto& dp: psd){ diameters.append(dp[0]); percentage.append(dp[1]); }
-		return py::make_tuple(diameters,percentage);
-	}
+	return DemFuncs::seqVectorToPy(psd,[](const Vector2r& i)->Vector2r{ return i; },/*zip*/zip);
 }
 
 

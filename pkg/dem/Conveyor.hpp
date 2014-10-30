@@ -21,12 +21,12 @@ struct ConveyorInlet: public Inlet{
 	#endif
 	void run();
 	vector<shared_ptr<Node>> pyBarrier() const { return vector<shared_ptr<Node>>(barrier.begin(),barrier.end()); }
-	void pyClear(){ mass=0; num=0; genDiamMass.clear(); }
+	void pyClear(){ mass=0; num=0; genDiamMassTime.clear(); }
 	bool hasClumps(){ return !clumps.empty(); }
 	py::object pyDiamMass(bool zipped=false) const;
 	Real pyMassOfDiam(Real min, Real max) const ;
-	py::tuple pyPsd(bool mass, bool cumulative, bool normalize, Vector2r dRange, int num) const;
-#define woo_dem_ConveyorInlet__CLASS_BASE_DOC_ATTRS_PY \
+	py::object pyPsd(bool mass, bool cumulative, bool normalize, const Vector2r& dRange, const Vector2r& tRange, int num) const;
+	#define woo_dem_ConveyorInlet__CLASS_BASE_DOC_ATTRS_PY \
 		ConveyorInlet,Inlet,"Inlet producing infinite band of particles from packing periodic in the x-direction. Clumps are fully supported.", \
 		((shared_ptr<Material>,material,,AttrTrait<>().startGroup("Particles"),"Material for new particles")) \
 		((shared_ptr<SpherePack>,spherePack,,AttrTrait<Attr::noSave|Attr::triggerPostLoad>(),":obj:`woo.pack.SpherePack` object; when specified, :obj:`centers`, :obj:`radii` (and :obj:`clumps`, if clumps are contained) are discarded  and will be computed from this :obj:`SpherePack`. The attribute is reset afterwards.")) \
@@ -59,13 +59,13 @@ struct ConveyorInlet: public Inlet{
 		((shared_ptr<Node>,node,make_shared<Node>(),AttrTrait<>(),"Position and orientation of the factory; local x-axis is the feed direction.")) \
 		((Real,avgRate,NaN,AttrTrait<>().readonly().massRateUnit(),"Average feed rate (computed from :obj:`Material density <Material.density>`, packing and  and :obj:`vel`")) \
 		((int,kinEnergyIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for kinetic energy in scene.energy")) \
-		((vector<Vector2r>,genDiamMass,,AttrTrait<Attr::readonly>().noGui(),"List of generated diameters and masses (for making granulometry)")) \
+		((vector<Vector3r>,genDiamMassTime,,AttrTrait<Attr::readonly>().noGui(),"List of generated diameters, masses and times (for making granulometry)")) \
 		,/*py*/ \
 			.def("barrier",&ConveyorInlet::pyBarrier) \
 			.def("clear",&ConveyorInlet::pyClear) \
 			.def("diamMass",&ConveyorInlet::pyDiamMass,(py::arg("zipped")=false),"Return masses and diameters of generated particles. With *zipped*, return list of (diameter, mass); without *zipped*, return tuple of 2 arrays, diameters and masses.") \
 			.def("massOfDiam",&ConveyorInlet::pyMassOfDiam,(py::arg("min")=0,py::arg("max")=Inf),"Return mass of particles of which diameters are between *min* and *max*.") \
-			.def("psd",&ConveyorInlet::pyPsd,(py::arg("mass")=true,py::arg("cumulative")=true,py::arg("normalize")=false,py::arg("dRange")=Vector2r(NaN,NaN),py::arg("num")=80),"Return PSD for particles generated.")
+			.def("psd",&ConveyorInlet::pyPsd,(py::arg("mass")=true,py::arg("cumulative")=true,py::arg("normalize")=false,py::arg("dRange")=Vector2r(NaN,NaN),py::arg("tRange")=Vector2r(NaN,NaN),py::arg("num")=80),"Return PSD for particles generated.")
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_ConveyorInlet__CLASS_BASE_DOC_ATTRS_PY);
 };
 WOO_REGISTER_OBJECT(ConveyorInlet);

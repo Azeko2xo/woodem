@@ -349,7 +349,7 @@ void ConveyorInlet::run(){
 		}
 
 		// add mass of all nodes
-		if(save) genDiamMass.push_back(Vector2r(2*radii[nextIx],nnMass));
+		if(save) genDiamMassTime.push_back(Vector3r(2*radii[nextIx],nnMass,scene->time));
 
 		num+=1;
 	
@@ -369,34 +369,25 @@ void ConveyorInlet::run(){
 }
 
 py::object ConveyorInlet::pyDiamMass(bool zipped) const {
-	if(!zipped){
-		py::list diam, mass;
-		for(const Vector2r& vv: genDiamMass){ diam.append(vv[0]); mass.append(vv[1]); }
-		return py::object(py::make_tuple(diam,mass));
-	} else {
-		py::list ret;
-		for(const auto& dm: genDiamMass){ ret.append(dm); }
-		return ret;
-	}
+	return DemFuncs::seqVectorToPy(genDiamMassTime,/*itemGetter*/[](const Vector3r& i)->Vector2r{ return i.head<2>(); },/*zip*/zipped);
 }
 
 Real ConveyorInlet::pyMassOfDiam(Real min, Real max) const {
 	Real ret=0.;
-	for(const Vector2r& vv: genDiamMass){
+	for(const auto& vv: genDiamMassTime){
 		if(vv[0]>=min && vv[0]<=max) ret+=vv[1];
 	}
 	return ret;
 }
 
 
-py::tuple ConveyorInlet::pyPsd(bool mass, bool cumulative, bool normalize, Vector2r dRange, int num) const {
+py::object ConveyorInlet::pyPsd(bool mass, bool cumulative, bool normalize, const Vector2r& dRange, const Vector2r& tRange, int num) const {
 	if(!save) throw std::runtime_error("ConveyorInlet.save must be True for calling ConveyorInlet.psd()");
-	vector<Vector2r> psd=DemFuncs::psd(genDiamMass,/*cumulative*/cumulative,/*normalize*/normalize,num,dRange,
-		/*radius getter*/[](const Vector2r& diamMass) ->Real { return diamMass[0]; },
-		/*weight getter*/[&](const Vector2r& diamMass) -> Real{ return mass?diamMass[1]:1.; }
+	auto tOk=[&tRange](const Real& t){ return isnan(tRange.minCoeff()) || (tRange[0]<=t && t<tRange[1]); };
+	vector<Vector2r> psd=DemFuncs::psd(genDiamMassTime,/*cumulative*/cumulative,/*normalize*/normalize,num,dRange,
+		/*radius getter*/[&tOk](const Vector3r& dmt) ->Real { return tOk(dmt[2])?dmt[0]:NaN; },
+		/*weight getter*/[&](const Vector3r& dmt) -> Real{ return mass?dmt[1]:1.; }
 	);
-	py::list diameters,percentage;
-	for(const auto& dp: psd){ diameters.append(dp[0]); percentage.append(dp[1]); }
-	return py::make_tuple(diameters,percentage);
+	return DemFuncs::seqVectorToPy(psd,[](const Vector2r& i)->Vector2r{ return i; },/*zip*/false);
 }
 
