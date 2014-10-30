@@ -99,11 +99,10 @@ struct DemFuncs{
 	template<class IteratorRange, class ItemGetter>
 	static py::object seqVectorToPy(const IteratorRange& range, ItemGetter itemGetter, bool zipped){
 		if(!zipped){
-			vector<py::list> ret;
+			size_t num=decltype(itemGetter(*(range.begin())))::RowsAtCompileTime;
+			vector<py::list> ret(num);
 			for(const auto& p: range){
 				auto item=itemGetter(p);
-				if(ret.empty()) ret.resize(item.size());
-				assert(item.size()==ret.size());
 				for(int i=0; i<item.size(); i++) ret[i].append(item[i]);
 			}
 			py::list l;

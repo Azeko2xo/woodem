@@ -468,11 +468,14 @@ def dbToSpread(db,out=None,dialect='xls',rows=False,series=True,ignored=('plotDa
 				else: sheet=wbk.add_worksheet(fixSheetname(sheetName))
 				# perhaps write some header here
 				for col,colName in enumerate(sorted(dic.keys())):
+					if xls and col>255:
+						print 'WARNING: the data being converted to XLS (%s) contain %d columns, which is more than 255, the limit of the XLS format. Extra data will be discarded from the XLS output. Use .xlsx to overcome this limitation.'%(out,len(dic))
+						break
 					sheet.write(0,col,colName,headStyle)
 					rowOffset=1 # length of header
 					for row in range(0,len(dic[colName])):
 						if xls and row+rowOffset>65535:
-							print 'WARNING: the data being converted to XLS (%s) contain %d rows (with %d header rows), which is more than 65535, the limit of the XLS file format. Extra data will be discarded from the XLS output.'%(out,len(dic[colName]),rowOffset)
+							print 'WARNING: the data being converted to XLS (%s) contain %d rows (with %d header rows), which is more than 65535, the limit of the XLS file format. Extra data will be discarded from the XLS output. Use .xlsx to overcome this limitation.'%(out,len(dic[colName]),rowOffset)
 							break
 						val=dic[colName][row]
 						if xlsx and (isnan(val) or isinf(val)): val=str(val)
