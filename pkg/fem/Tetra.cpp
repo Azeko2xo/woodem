@@ -21,7 +21,7 @@ WOO_IMPL__CLASS_BASE_DOC(woo_fem_Bo1_Tetra_Aabb__CLASS_BASE_DOC);
 	WOO_PLUGIN(gl,(Gl1_Tetra)(Gl1_Tet4));
 #endif
 
-CREATE_LOGGER(Tetra);
+WOO_IMPL_LOGGER(Tetra);
 
 void Tetra::selfTest(const shared_ptr<Particle>& p){
 	if(!numNodesOk()) throw std::runtime_error("Tetra #"+to_string(p->id)+": numNodesOk() failed (has "+to_string(nodes.size())+" nodes)");

@@ -34,7 +34,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 	enum{CNODE_NONE=0,CNODE_GLREP=1,CNODE_LINE=2,CNODE_NODE=4,CNODE_POTLINE=8};
 	enum{SHAPE_NONE=0,SHAPE_ALL,SHAPE_SPHERES,SHAPE_NONSPHERES,SHAPE_MASK};
 	RENDERS(DemField);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	Scene* _lastScene; // to detect changes; never acessed as pointer
 
 	// those are used twice, stuff them into macro

@@ -5,7 +5,7 @@
 #include<woo/pkg/dem/G3Geom.hpp>
 
 WOO_PLUGIN(dem,(CGeomFunctor)(CGeomDispatcher)(CPhysFunctor)(CPhysDispatcher)(LawFunctor)(LawDispatcher)(ContactLoop));
-CREATE_LOGGER(ContactLoop);
+WOO_IMPL_LOGGER(ContactLoop);
 
 WOO_IMPL__CLASS_BASE_DOC_PY(woo_dem_CGeomFunctor__CLASS_BASE_DOC_PY);
 WOO_IMPL__CLASS_BASE_DOC_PY(woo_dem_CPhysFunctor__CLASS_BASE_DOC_PY);

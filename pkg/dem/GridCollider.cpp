@@ -1,7 +1,7 @@
 #include<woo/pkg/dem/GridCollider.hpp>
 
 WOO_PLUGIN(dem,(GridCollider));
-CREATE_LOGGER(GridCollider);
+WOO_IMPL_LOGGER(GridCollider);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_GridCollider__CLASS_BASE_DOC_ATTRS);
 
 void GridCollider::pyHandleCustomCtorArgs(py::tuple& t, py::dict& d){

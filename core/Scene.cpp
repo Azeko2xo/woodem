@@ -23,7 +23,7 @@
 namespace py=boost::python;
 
 WOO_PLUGIN(core,(Scene));
-CREATE_LOGGER(Scene);
+WOO_IMPL_LOGGER(Scene);
 
 
 // should be elsewhere, probably
@@ -235,12 +235,10 @@ void Scene::pyEnginesSet(const vector<shared_ptr<Engine> >& e){
 	postLoad(*this,(void*)&engines);
 }
 
-#ifdef WOO_OPENGL
 shared_ptr<ScalarRange> Scene::getRange(const std::string& l) const{
 	for(const shared_ptr<ScalarRange>& r: ranges) if(r->label==l) return r;
 	throw std::runtime_error("No range labeled `"+l+"'.");
 }
-#endif
 
 void Scene::boostSave(const string& out){
 	lastSave=out;

@@ -22,7 +22,7 @@
 
 
 struct GridCollider: public Collider{
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	DemField* dem;
 	void postLoad(GridCollider&, void*);

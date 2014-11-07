@@ -14,7 +14,7 @@ struct Contact;
 struct Scene;
 
 struct ContactContainer: public Object{
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	/* internal data */
 		// created in the ctor
 		#if defined(WOO_OPENMP) || defined(WOO_OPENGL)

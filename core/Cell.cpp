@@ -6,7 +6,7 @@ WOO_PLUGIN(core,(Cell));
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_core_Cell__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 
 
-CREATE_LOGGER(Cell);
+WOO_IMPL_LOGGER(Cell);
 
 Matrix3r Cell::getVelGrad() const{ LOG_WARN("Cell.velGrad is a deprecated alias for Cell.gradV, update your code!."); return gradV; }
 void Cell::setVelGrad(const Matrix3r& v){

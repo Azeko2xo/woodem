@@ -9,8 +9,8 @@ WOO_PLUGIN(dem,(LawTesterStage)(LawTester));
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_LawTesterStage__CLASS_BASE_DOC_ATTRS_PY);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_LawTester__CLASS_BASE_DOC_ATTRS_PY);
 
-CREATE_LOGGER(LawTesterStage);
-CREATE_LOGGER(LawTester);
+WOO_IMPL_LOGGER(LawTesterStage);
+WOO_IMPL_LOGGER(LawTester);
 
 void LawTesterStage::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){
 	// go through the dict, find just values we need

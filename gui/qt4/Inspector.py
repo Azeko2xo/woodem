@@ -324,7 +324,6 @@ class SimulationInspector(QWidget):
 		self.intrInspector=InteractionInspector(parent=None,bodyLinkCallback=self.changeBodyId) if demField else None
 		self.cellInspector=CellInspector(parent=None)
 		self.sceneInspector=SceneInspector(parent=None)
-
 		for i,name,widget in [(0,'Engines',self.engineInspector),(1,'Particles',self.bodyInspector),(2,'Contacts',self.intrInspector),(3,'Cell',self.cellInspector),(4,'Scene',self.sceneInspector)]:
 			if widget: self.tabWidget.addTab(widget,name)
 

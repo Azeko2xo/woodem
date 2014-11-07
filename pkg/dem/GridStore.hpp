@@ -73,7 +73,7 @@ struct GridStore: public Object{
 	Real boxCellDistSq(const AlignedBox3r& box, const Vector3i& ijk) const { return box.squaredExteriorDistance(ijk2box(ijk)); }
 
 
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 
 	/*
 		the first ID is not actually ID, but the number of IDs for that cell;

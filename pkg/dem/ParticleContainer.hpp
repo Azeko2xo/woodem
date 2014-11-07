@@ -205,6 +205,6 @@ struct ParticleContainer: public Object{
 
 
 		WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_ParticleContainer__CLASS_BASE_DOC_ATTRS_PY);
-		DECLARE_LOGGER;
+		WOO_DECL_LOGGER;
 };
 WOO_REGISTER_OBJECT(ParticleContainer);

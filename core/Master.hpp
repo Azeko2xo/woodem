@@ -149,7 +149,7 @@ class Master: public Singleton<Master>{
 		// default OpenCL device passed from the command-line
 		Vector2i defaultClDev;
 
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 
 	Master();
 	~Master();

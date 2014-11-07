@@ -100,7 +100,7 @@ struct ConcretePhys: public FrictPhys {
 		.def("setRelResidualStrength",&ConcretePhys::setRelResidualStrength,"TODO")
 	
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_ConcretePhys__CLASS_BASE_DOC_ATTRS_CTOR_PY);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	REGISTER_CLASS_INDEX(ConcretePhys,FrictPhys);
 };
 WOO_REGISTER_OBJECT(ConcretePhys);
@@ -108,7 +108,7 @@ WOO_REGISTER_OBJECT(ConcretePhys);
 struct Cp2_ConcreteMat_ConcretePhys: public CPhysFunctor{
 	void go(const shared_ptr<Material>&, const shared_ptr<Material>&, const shared_ptr<Contact>&);
 	FUNCTOR2D(ConcreteMat,ConcreteMat);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	#define woo_dem_Cp2_ConcreteMat_ConcretePhys__CLASS_BASE_DOC_ATTRS \
 		Cp2_ConcreteMat_ConcretePhys,CPhysFunctor,"Compute :obj:`ConcretePhys` from two :obj:`ConcreteMat` instances. Uses simple (arithmetic) averages if material are different. Simple copy of parameters is performed if the instance of :obj:`ConcreteMat` is shared.", \
 		((long,cohesiveThresholdStep,10,,"Should new contacts be cohesive? They will before this iter#, they will not be afterwards. If 0, they will never be. If negative, they will always be created as cohesive (10 by default)."))

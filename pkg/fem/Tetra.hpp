@@ -18,7 +18,7 @@ struct Tetra: public Shape {
 		Vector3r getGlVertex(int i) const;
 		Vector3r getGlCentroid() const;
 	#endif
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	// return velocity which is linearly interpolated between velocities of tetra nodes, and also angular velocity at that point
 	// takes fakeVel in account, with the NaN special case as documented
 	// std::tuple<Vector3r,Vector3r> interpolatePtLinAngVel(const Vector3r& x) const;
@@ -93,7 +93,7 @@ struct In2_Tet4_ElastMat: public IntraFunctor{
 	void addIntraStiffnesses(const shared_ptr<Particle>&, const shared_ptr<Node>&, Vector3r& ktrans, Vector3r& krot) const WOO_CXX11_OVERRIDE;
 	void go(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&) WOO_CXX11_OVERRIDE;
 	FUNCTOR2D(Tet4,ElastMat);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	#define woo_dem_In2_Tet4_ElastMat__CLASS_BASE_DOC_ATTRS \
 		In2_Tet4_ElastMat,IntraFunctor,"Apply contact forces and compute internal response of a :obj:`Tet4`.", \
 		((bool,contacts,false,AttrTrait<>().readonly(),"Apply contact forces to :obj:`Tetra` nodes (not yet implemented)")) \

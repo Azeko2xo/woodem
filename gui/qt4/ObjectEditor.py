@@ -1436,17 +1436,26 @@ def makeObjectLabel(ser,href=False,addr=True,boldHref=True,num=-1,count=-1):
 	return ret
 
 class SeqObjectComboBox(QFrame):
+	maxShowLen=500
 	def getItemType(self): return self.trait.pyType[0]
 	def __init__(self,parent,getter,setter,T,trait,path=None,shrink=False,nesting=0):
 		QFrame.__init__(self,parent)
 		self.getter,self.setter,T,self.trait,self.path,self.shrink=getter,setter,T,trait,path,shrink
 		if not hasattr(self.trait,'pyType'): self.trait.pyType=(T,) # this is for compat with C++ (?)
+		self.hot=None # API compat with ObjectEditor
+		ll=len(self.getter())
+		if ll>self.maxShowLen:
+			lab=QLabel('<i>Not showing sequence with %d (&gt;%d) items.</i>'%(ll,self.maxShowLen))
+			lay=QVBoxLayout(self)
+			lay.addWidget(lab)
+			self.setLayout(lay)
+			return
 		self.layout=QVBoxLayout(self)
 		self.nesting=nesting
 		topLineFrame=QFrame(self)
 		topLineLayout=QHBoxLayout(topLineFrame);
-		for l in self.layout, topLineLayout: l.setSpacing(0); l.setContentsMargins(0,0,0,0)
 		topLineFrame.setLayout(topLineLayout)
+		for l in self.layout, topLineLayout: l.setSpacing(0); l.setContentsMargins(0,0,0,0)
 		labels=(u'+',u'−',u'↑',u'↓')
 		tooltips=('Add','Delete','Move up','Move down')
 		buttons=(self.newButton,self.killButton,self.upButton,self.downButton)=[QPushButton(label,self) for label in labels]
@@ -1460,7 +1469,6 @@ class SeqObjectComboBox(QFrame):
 		self.layout.addWidget(self.scroll)
 		self.seqEdit=None # currently edited serializable
 		self.setLayout(self.layout)
-		self.hot=None # API compat with ObjectEditor
 		self.setFrameShape(QFrame.Box); self.setFrameShadow(QFrame.Raised); self.setLineWidth(1)
 		self.newDialog=None # is set when new dialog is created, and destroyed when it returns
 		self.comboItemCount=0 # we use some inactive items with ranges instead of objects, so keep track of valid items separately

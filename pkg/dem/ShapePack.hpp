@@ -59,7 +59,7 @@ struct ShapeClump: public Object{
 WOO_REGISTER_OBJECT(ShapeClump);
 
 struct RawShapeClump: public ShapeClump {
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	void recompute(int div, bool failOk=false, bool fastOnly=false) WOO_CXX11_OVERRIDE;
 	std::tuple<vector<shared_ptr<Node>>,vector<shared_ptr<Particle>>> makeParticles(const shared_ptr<Material>&, const Vector3r& pos, const Quaternionr& ori, int mask, Real scale=1.) WOO_CXX11_OVERRIDE;
 
@@ -100,7 +100,7 @@ struct ShapePack: public Object{
 	void cellRepeat(const Vector3i& count);
 
 	void postLoad(ShapePack&,void*);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 
 	#define woo_dem_ShapePack__CLASS_BASE_DOC_ATTRS_PY \
 		ShapePack,Object,ClassTrait().doc("Representation of geometry of many particles, with the ability of text I/O. It is meant as a replacement for :obj:`woo.pack.SpherePack`, which only handles spherical particles.").section("Packings","TODO",{"RawShape","ShapeClump"}), \

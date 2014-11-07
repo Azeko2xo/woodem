@@ -7,7 +7,7 @@
 
 WOO_PLUGIN(dem,(GridStore));
 
-CREATE_LOGGER(GridStore);
+WOO_IMPL_LOGGER(GridStore);
 
 
 GridStore::GridStore(const Vector3i& _gridSize, int _cellLen, bool _denseLock, int _exIniSize, int _exNumMaps): gridSize(_gridSize), cellLen(_cellLen), denseLock(_denseLock), exIniSize(_exIniSize), exNumMaps(_exNumMaps){

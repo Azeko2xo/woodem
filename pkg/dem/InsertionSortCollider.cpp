@@ -15,7 +15,7 @@
 
 
 WOO_PLUGIN(dem,(InsertionSortCollider));
-CREATE_LOGGER(InsertionSortCollider);
+WOO_IMPL_LOGGER(InsertionSortCollider);
 
 void InsertionSortCollider::makeRemoveContactLater_process() {
 

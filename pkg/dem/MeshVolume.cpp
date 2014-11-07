@@ -3,7 +3,7 @@
 #include<woo/pkg/dem/MeshVolume.hpp>
 
 WOO_PLUGIN(dem,(MeshVolume));
-CREATE_LOGGER(MeshVolume);
+WOO_IMPL_LOGGER(MeshVolume);
 
 void MeshVolume::init(){
 	surface.reset();

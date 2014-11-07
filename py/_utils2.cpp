@@ -237,6 +237,9 @@ BOOST_PYTHON_MODULE(_utils2){
 	py::def("contactCoordQuantiles",DemFuncs::contactCoordQuantiles,(py::arg("dem"),py::arg("quantiles"),py::arg("node"),py::arg("box")),"Return list of local contact z-coordinates for given quantile values; *box* is specified in node-local coordinates (but may be infinite to include all contacts).");
 	py::def("coordNumber",DemFuncs::coordNumber,(py::arg("dem"),py::arg("node")=shared_ptr<Node>(),py::arg("box")=AlignedBox3r(Vector3r(-Inf,-Inf,-Inf),Vector3r(Inf,Inf,Inf)),py::arg("mask")=0,py::arg("skipFree")=true),"Return coordination number of the sampled area given by optional local coordinates (*node*) and *box* (which is in local coordinates if *node* is given and global if not); if *mask* is non-zero, particles without matching :obj:`mask <woo.dem.Particle.mask` are ignored. See `yade.utils.avgNumInterations <https://yade-dem.org/doc/yade.utils.html#yade.utils.avgNumInteractions>`__ for temporary doc.\n.. warn:: Clumps are not handled properly by this function and an exception will be raised if they are encountered.");
 	py::def("porosity",DemFuncs::porosity,(py::arg("dem"),py::arg("node")=shared_ptr<Node>(),py::arg("box")),"Return `porosity <http://en.wikipedia.org/wiki/Porosity>`__ for given box (in local coordinates, if *node* is not ``None``), considering (only) spherical particles of which centroid is in the box.");
+	#ifdef WOO_VTK
+		py::def("vtkExportTraces",DemFuncs::vtkExportTraces,(py::arg("scene"),py::arg("dem"),py::arg("filename")),"Export traces of existing spheroid particles to VTK file, for visualization in Paraview.");
+	#endif
 }
 
 

@@ -18,7 +18,7 @@
 #include<boost/tuple/tuple_comparison.hpp>
 
 WOO_PLUGIN(dem,(Inlet)(ParticleGenerator)(MinMaxSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(RandomInlet)(BoxInlet)(BoxInlet2d)(CylinderInlet)(ArcInlet)/*(ArcShooter)*/);
-CREATE_LOGGER(RandomInlet);
+WOO_IMPL_LOGGER(RandomInlet);
 
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_Inlet__CLASS_BASE_DOC_ATTRS);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_ParticleGenerator__CLASS_BASE_DOC_ATTRS_PY);

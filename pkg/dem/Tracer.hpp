@@ -1,47 +1,51 @@
 #pragma once 
 
-#ifdef WOO_OPENGL
-
 #include<woo/core/Field.hpp>
 #include<woo/core/Scene.hpp>
 #include<woo/pkg/dem/Particle.hpp>
 
-struct TraceGlRep: public NodeGlRep{
-	DECLARE_LOGGER;
+struct TraceVisRep: public NodeVisRep{
+	WOO_DECL_LOGGER;
 	void addPoint(const Vector3r& p, const Real& scalar);
 	void compress(int ratio);
-	void render(const shared_ptr<Node>&,const GLViewInfo*);
+	#ifdef WOO_OPENGL
+		void render(const shared_ptr<Node>&,const GLViewInfo*);
+	#endif
 	void setHidden(bool hidden){ if(!hidden)flags&=~FLAG_HIDDEN; else flags|=FLAG_HIDDEN; }
 	bool isHidden() const { return flags&FLAG_HIDDEN; }
 	void resize(size_t size);
 	// set pt and scalar for point indexed i
 	// return true if the point is defined, false if not
 	bool getPointData(size_t i, Vector3r& pt, Real& scalar) const ;
+	// returns the number of point data (by traversal); the number returned is like size(), the value minus one is the last valid index where getPointData returns true
+	size_t countPointData() const;
 
 	void consolidate();
 	vector<Vector3r> pyPts_get() const;
 	vector<Real> pyScalars_get() const;
 	enum{FLAG_COMPRESS=1,FLAG_MINDIST=2,FLAG_HIDDEN=4};
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(TraceGlRep,NodeGlRep,"Data with node's position history; created by :obj:`Tracer`.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(TraceVisRep,NodeVisRep,"Data with node's position history; created by :obj:`Tracer`.",
 		((vector<Vector3r>,pts,,AttrTrait<>().noGui().readonly(),"History points"))
 		((vector<Real>,scalars,,AttrTrait<>().noGui().readonly(),"History scalars"))
 		((size_t,writeIx,0,,"Index where next data will be written"))
 		((short,flags,0,,"Flags for this instance"))
 		,/*ctor*/
 		,/*py*/
-			.def("consolidate",&TraceGlRep::consolidate,"Make :obj:`pts` sequential (normally, the data are stored as circular buffer, with next write position at :obj:`writeIx`, so that they are ordered temporally.")
-			.add_property("pts",&TraceGlRep::pyPts_get,"History points (read-only from python, as a copy of internal data is returned).")
-			.add_property("scalars",&TraceGlRep::pyScalars_get,"History scalars (read-only from python, as a copy of internal data is returned).")
+			.def("consolidate",&TraceVisRep::consolidate,"Make :obj:`pts` sequential (normally, the data are stored as circular buffer, with next write position at :obj:`writeIx`, so that they are ordered temporally.")
+			.add_property("pts",&TraceVisRep::pyPts_get,"History points (read-only from python, as a copy of internal data is returned).")
+			.add_property("scalars",&TraceVisRep::pyScalars_get,"History scalars (read-only from python, as a copy of internal data is returned).")
 	);
 };
-WOO_REGISTER_OBJECT(TraceGlRep);
+WOO_REGISTER_OBJECT(TraceVisRep);
 
 
 struct Tracer: public PeriodicEngine{
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	void resetNodesRep(bool setupEmpty=false, bool includeDead=true);
 	// bool notifyDead() WOO_CXX11_OVERRIDE(){ showHideRange(!dead); }
-	void showHideRange(bool show);
+	#ifdef WOO_OPENGL
+		void showHideRange(bool show);
+	#endif
 
 	virtual void run();
 	enum{SCALAR_NONE=0,SCALAR_TIME,SCALAR_VEL,SCALAR_ANGVEL,SCALAR_SIGNED_ACCEL,SCALAR_RADIUS,SCALAR_SHAPE_COLOR,SCALAR_KINETIC,SCALAR_ORDINAL};
@@ -63,7 +67,7 @@ struct Tracer: public PeriodicEngine{
 		((bool,glSmooth,false,,"Render traced lines with GL_LINE_SMOOTH"))
 		((int,glWidth,1,AttrTrait<>().range(Vector2i(1,10)),"Width of trace lines in pixels"))
 		, /*py*/
-			.def("resetNodesRep",&Tracer::resetNodesRep,(py::arg("setupEmpty")=false,py::arg("includeDead")=true),"Reset :obj:`woo.core.Node.rep` on all :obj:`woo.dem.DemField.nodes`. With *setupEmpty*, create new instances of :obj:`TraceGlRep`. With *includeDead*, :obj:`woo.core.Node.rep` on all :obj:`woo.dem.DemField.deadNodes` is also cleared (new are not created, even with *setupEmpty*).")
+			.def("resetNodesRep",&Tracer::resetNodesRep,(py::arg("setupEmpty")=false,py::arg("includeDead")=true),"Reset :obj:`woo.core.Node.rep` on all :obj:`woo.dem.DemField.nodes`. With *setupEmpty*, create new instances of :obj:`TraceVisRep`. With *includeDead*, :obj:`woo.core.Node.rep` on all :obj:`woo.dem.DemField.deadNodes` is also cleared (new are not created, even with *setupEmpty*).")
 			;
 			_classObj.attr("scalarNone")=(int)Tracer::SCALAR_NONE;
 			_classObj.attr("scalarTime")=(int)Tracer::SCALAR_TIME;
@@ -77,5 +81,3 @@ struct Tracer: public PeriodicEngine{
 	);
 };
 WOO_REGISTER_OBJECT(Tracer);
-
-#endif /* WOO_OPENGL */

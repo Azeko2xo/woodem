@@ -4,7 +4,7 @@
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_core_EnergyTracker__CLASS_BASE_DOC_ATTRS_PY);
 
 WOO_PLUGIN(core,(EnergyTracker));
-CREATE_LOGGER(EnergyTracker);
+WOO_IMPL_LOGGER(EnergyTracker);
 
 
 void EnergyTracker::add(const Real& val, const std::string& name, int &id, int flg){

@@ -10,7 +10,7 @@ WOO_IMPL__CLASS_BASE_DOC(woo_dem_In2_Membrane_FrictMat__CLASS_BASE_DOC);
 // this should go to some shared header
 typedef Eigen::Matrix<Real,9,1> Vector9r;
 
-CREATE_LOGGER(Membrane);
+WOO_IMPL_LOGGER(Membrane);
 
 #define MEMBRANE_CONDENSE_DKT
 
@@ -322,7 +322,7 @@ void Membrane::computeNodalDisplacements(){
 	}
 };
 
-CREATE_LOGGER(In2_Membrane_ElastMat);
+WOO_IMPL_LOGGER(In2_Membrane_ElastMat);
 
 
 void In2_Membrane_ElastMat::addIntraStiffnesses(const shared_ptr<Particle>& p, const shared_ptr<Node>& n, Vector3r& ktrans, Vector3r& krot) const {

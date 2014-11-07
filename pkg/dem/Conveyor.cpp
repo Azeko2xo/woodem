@@ -8,7 +8,7 @@
 #include<woo/pkg/dem/InsertionSortCollider.hpp>
 
 WOO_PLUGIN(dem,(ConveyorInlet));
-CREATE_LOGGER(ConveyorInlet);
+WOO_IMPL_LOGGER(ConveyorInlet);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_ConveyorInlet__CLASS_BASE_DOC_ATTRS_PY);
 
 Real ConveyorInlet::critDt(){
@@ -309,14 +309,14 @@ void ConveyorInlet::run(){
 				//LOG_TRACE("x="<<x<<", "<<lenToDo<<"-("<<1+currWraps<<")*"<<cellLen<<"+"<<currX);
 				dem->particles->insert(sphere);
 				nn[0]->pos=newPos;
-				LOG_TRACE("New sphere #"<<sphere->id<<", r="<<radii[nextIx]<<" at "<<n->pos.transpose());
+				LOG_TRACE("New sphere #"<<sphere->id<<", r="<<radii[nextIx]<<" at "<<nn[0]->pos.transpose());
 			} else {
 				const auto& clump=clumps[nextIx];
 				vector<shared_ptr<Particle>> spheres;
 				std::tie(nn,spheres)=clump->makeParticles(material,/*pos*/newPos,/*ori*/Quaternionr::Identity(),/*mask*/mask,/*scale*/1.);
 				for(auto& sphere: spheres){
 					dem->particles->insert(sphere);
-					LOG_TRACE("[clump] new sphere #"<<sphere->id<<", r="<<radii[nextIx]<<" at "<<n->pos.transpose());
+					LOG_TRACE("[clump] new sphere #"<<sphere->id<<", r="<<radii[nextIx]<<" at "<<nn[0]->pos.transpose());
 				}
 			}
 		}

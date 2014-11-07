@@ -8,7 +8,7 @@
 namespace py=boost::python;
 
 class EnergyTracker: public Object{
-	DECLARE_LOGGER; 
+	WOO_DECL_LOGGER; 
 	public:
 	/* in flg, IsIncrement is a pseudo-value which doesn't do anything; is meant to increase readability of calls */
 	enum{ IsIncrement=0, IsResettable=1, ZeroDontCreate=2 };

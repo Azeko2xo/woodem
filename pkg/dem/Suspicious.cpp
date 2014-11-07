@@ -7,7 +7,7 @@
 	#include<woo/pkg/dem/Gl1_DemField.hpp>
 #endif
 
-CREATE_LOGGER(Suspicious);
+WOO_IMPL_LOGGER(Suspicious);
 WOO_PLUGIN(dem,(Suspicious));
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_Suspicious__CLASS_BASE_DOC_ATTRS);
 

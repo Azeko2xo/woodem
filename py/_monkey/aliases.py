@@ -50,6 +50,10 @@ _deprecated={
 	('woo.dem','ConveyorFactory'):('woo.dem','ConveyorInlet'),
 	('woo.dem','BoxDeleter'):('woo.dem','BoxOutlet'),
 	#
+	('woo.gl','TraceGlRep'):('woo.dem','TraceGlRep'),
+	('woo.gl','ScalarRange'):('woo.core','ScalarRange'),
+	('woo.gl','NodeGlRep'):('woo.core','NodeVisRep'),
+	#
 	### END_RENAMED_CLASSES_LIST ### (do not delete this line; scripts/rename-class.py uses it
 }
 

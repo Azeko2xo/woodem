@@ -61,7 +61,7 @@ struct Leapfrog: public Engine {
 		((int,kinEnergyRotIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for rotational kinetic energy in scene->energies."))
 
 	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_Leapfrog__CLASS_BASE_DOC_ATTRS);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 };
 WOO_REGISTER_OBJECT(Leapfrog);
 

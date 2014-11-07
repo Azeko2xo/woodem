@@ -4,7 +4,7 @@
 
 
 struct ConveyorInlet: public Inlet{
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	Real packVol() const;
 	void sortPacking(const Real& zTrimVol=-1);

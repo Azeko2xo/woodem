@@ -43,7 +43,7 @@ struct Cg2_Any_Any_L6Geom__Base: public CGeomFunctor{
 		"== ===============================================================\n\n" \
 		"By default, the mask is zero, wherefore none of these approximations is used.\n" ))
 	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_Cg2_Any_Any_L6Geom__Base__CLASS_BASE_DOC_ATTRS);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 };
 WOO_REGISTER_OBJECT(Cg2_Any_Any_L6Geom__Base);
 

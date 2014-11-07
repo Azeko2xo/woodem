@@ -41,7 +41,7 @@ void In2_Wall_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Materia
 	}
 }
 
-CREATE_LOGGER(Cg2_Wall_Sphere_L6Geom);
+WOO_IMPL_LOGGER(Cg2_Wall_Sphere_L6Geom);
 bool Cg2_Wall_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
 	if(scene->isPeriodic && scene->cell->hasShear()) throw std::logic_error("Cg2_Wall_Sphere_L6Geom does not handle periodic boundary conditions with skew (Scene.cell.trsf is not diagonal).");
 	const Wall& wall=sh1->cast<Wall>(); const Sphere& sphere=sh2->cast<Sphere>();
@@ -78,7 +78,7 @@ bool Cg2_Wall_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<S
 	return true;
 };
 
-CREATE_LOGGER(Cg2_Wall_Facet_L6Geom);
+WOO_IMPL_LOGGER(Cg2_Wall_Facet_L6Geom);
 bool Cg2_Wall_Facet_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
 	if(scene->isPeriodic && scene->cell->hasShear()) throw std::logic_error("Cg2_Wall_Facet_L6Geom does not handle periodic boundary conditions with skew (Scene.cell.trsf is not diagonal).");
 	const Wall& wall=sh1->cast<Wall>(); const Facet& facet=sh2->cast<Facet>();
@@ -141,7 +141,7 @@ bool Cg2_Wall_Facet_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Sh
 	#include<woo/pkg/gl/Renderer.hpp>
 	#include<woo/lib/base/CompUtils.hpp>
 	#include<woo/lib/opengl/GLUtils.hpp>
-	CREATE_LOGGER(Gl1_Wall);
+	WOO_IMPL_LOGGER(Gl1_Wall);
 
 	int  Gl1_Wall::div=20;
 	void Gl1_Wall::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool wire2, const GLViewInfo& viewInfo){

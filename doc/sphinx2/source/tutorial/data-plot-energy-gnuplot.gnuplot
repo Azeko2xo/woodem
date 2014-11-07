@@ -1,6 +1,6 @@
 #!/usr/bin/env gnuplot
 #
-# created Thu Oct 23 18:31:22 2014 (20141023_18:31)
+# created Fri Nov  7 15:15:41 2014 (20141107_15:15)
 #
 set term wxt 0 persist
 set xlabel ' t=S.time'

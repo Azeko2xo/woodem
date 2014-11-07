@@ -7,7 +7,7 @@ struct Cp2_FrictMat_FrictPhys_CrossAnisotropic: CPhysFunctor {
 	virtual void go(const shared_ptr<Material>&, const shared_ptr<Material>&, const shared_ptr<Contact>&);
 	FUNCTOR2D(FrictMat,FrictMat);
 	void postLoad(Cp2_FrictMat_FrictPhys_CrossAnisotropic&,void*);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	WOO_CLASS_BASE_DOC_ATTRS(Cp2_FrictMat_FrictPhys_CrossAnisotropic,CPhysFunctor,"Call :obj:`Cp2_FrictMat_FrictPhys` to create a new :obj:`FrictPhys`, but multiply resulting :obj:`normal <woo.dem.FrictPhys.kn>` and :obj:`shear <woo.dem.FrictPhys.kt>` stiffnesses by smooth dimensionless anisotropy distribution given by :obj:`alpha` and :obj:`beta`. The functionality is demonstrated in the following movie: \n\n.. youtube:: KYCvi6SNOc0\n\n",
 		((Real,E1,1e6,AttrTrait<Attr::triggerPostLoad>().stiffnessUnit(),"In-plane normal modulus"))
 		((Real,E2,1e5,AttrTrait<Attr::triggerPostLoad>().stiffnessUnit(),"Out-of-plane normal modulus"))

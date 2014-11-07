@@ -28,7 +28,7 @@ struct PeriIsoCompressor: public Engine{
 		, /*ctor*/ maxDisplPerStep=-1;
 		, /* py */
 	);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 };
 WOO_REGISTER_OBJECT(PeriIsoCompressor);
 
@@ -60,6 +60,6 @@ struct WeirdTriaxControl: public Engine{
 		((int,gradVWorkIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for work done by velocity gradient, if tracking energy"))
 		((bool,leapfrogChecked,false,AttrTrait<Attr::hidden>(),"Whether we already checked that we come before :obj:`Leapfrog` (otherwise setting nextGradV will have no effect."))
 	);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 };
 WOO_REGISTER_OBJECT(WeirdTriaxControl);

@@ -114,7 +114,7 @@ WOO_REGISTER_OBJECT(AlignedMinMaxShooter);
 struct Collider;
 
 struct RandomInlet: public Inlet{
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	virtual Vector3r randomPosition(const Real& padDist){ throw std::runtime_error("Calling ParticleFactor.randomPosition	(abstract method); use derived classes."); }
 	virtual bool validateBox(const AlignedBox3r& b) { throw std::runtime_error("Calling ParticleFactor.validateBox (abstract method); use derived classes."); }

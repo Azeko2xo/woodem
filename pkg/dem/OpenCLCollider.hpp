@@ -18,7 +18,7 @@ class OpenCLCollider: public InsertionSortCollider{
 		AxBound(): coord(std::numeric_limits<cl_float>::infinity()){};
 	};
 
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	bool bboxOverlapAx(int id1, int id2, int ax);
 	bool bboxOverlap(int id1, int id2);
 

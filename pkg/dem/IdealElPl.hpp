@@ -6,7 +6,7 @@
 struct Law2_L6Geom_FrictPhys_IdealElPl: public LawFunctor{
 	bool go(const shared_ptr<CGeom>&, const shared_ptr<CPhys>&, const shared_ptr<Contact>&) WOO_CXX11_OVERRIDE;
 	FUNCTOR2D(L6Geom,FrictPhys);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	WOO_CLASS_BASE_DOC_ATTRS(Law2_L6Geom_FrictPhys_IdealElPl,LawFunctor,"Ideally elastic-plastic behavior.",
 		((bool,iniEqlb,false,,"Consider the intial distance as equilibrium distance (saved in contact data, subtracted from L6Geom.uN); enabling during simulation will only affect newly created contacts; disabling will affect all contacts."))
 		((Real,relRollStiff,0.,,"Rolling stiffness relative to :obj:`FrictPhys.kn` × ``charLen`` (with w``charLen`` being the sum of :obj:`L6Geom.lens`). If non-positive, there is no rolling/twisting resistance."))

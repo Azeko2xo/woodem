@@ -5,7 +5,7 @@
 
 WOO_PLUGIN(dem,(HertzPhys)(Cp2_FrictMat_HertzPhys)(Law2_L6Geom_HertzPhys_DMT));
 
-CREATE_LOGGER(Cp2_FrictMat_HertzPhys);
+WOO_IMPL_LOGGER(Cp2_FrictMat_HertzPhys);
 void Cp2_FrictMat_HertzPhys::go(const shared_ptr<Material>& m1, const shared_ptr<Material>& m2, const shared_ptr<Contact>& C){
 	if(!C->phys) C->phys=make_shared<HertzPhys>();
 	auto& mat1=m1->cast<FrictMat>(); auto& mat2=m2->cast<FrictMat>();
@@ -50,7 +50,7 @@ void Cp2_FrictMat_HertzPhys::go(const shared_ptr<Material>& m1, const shared_ptr
 }
 
 
-CREATE_LOGGER(Law2_L6Geom_HertzPhys_DMT);
+WOO_IMPL_LOGGER(Law2_L6Geom_HertzPhys_DMT);
 
 void Law2_L6Geom_HertzPhys_DMT::postLoad(Law2_L6Geom_HertzPhys_DMT&,void*){
 }

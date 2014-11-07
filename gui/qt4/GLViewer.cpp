@@ -39,7 +39,7 @@ WOO_PLUGIN(_qt,(SnapshotEngine));
 *********************************** SnapshotEngine ***************************
 *****************************************************************************/
 
-CREATE_LOGGER(SnapshotEngine);
+WOO_IMPL_LOGGER(SnapshotEngine);
 
 void SnapshotEngine::pyHandleCustomCtorArgs(py::tuple& t, py::dict& d){
 	if(py::len(t)==0) return;
@@ -91,7 +91,7 @@ void SnapshotEngine::run(){
 	if(!plot.empty()){ runPy("import woo.plot; S.plot.addImgData("+plot+"='"+fss.str()+"')"); }
 }
 
-CREATE_LOGGER(GLViewer);
+WOO_IMPL_LOGGER(GLViewer);
 
 bool GLViewer::rotCursorFreeze=false;
 

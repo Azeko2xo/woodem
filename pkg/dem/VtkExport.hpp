@@ -29,7 +29,7 @@
 #pragma GCC diagnostic pop
 
 struct VtkExport: public PeriodicEngine{
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	void run();
 

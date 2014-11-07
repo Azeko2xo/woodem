@@ -25,9 +25,9 @@ WOO_IMPL__CLASS_BASE_DOC_ATTRS_INI_CTOR_PY(woo_dem_Bound__CLASS_BASE_DOC_ATTRS_I
 
 
 
-CREATE_LOGGER(DemField);
-CREATE_LOGGER(DemData);
-CREATE_LOGGER(Particle);
+WOO_IMPL_LOGGER(DemField);
+WOO_IMPL_LOGGER(DemData);
+WOO_IMPL_LOGGER(Particle);
 
 py::dict Particle::pyContacts()const{	py::dict ret; FOREACH(MapParticleContact::value_type i,contacts) ret[i.first]=i.second; return ret;}
 py::list Particle::pyCon()const{ py::list ret; FOREACH(MapParticleContact::value_type i,contacts) ret.append(i.first); return ret;}

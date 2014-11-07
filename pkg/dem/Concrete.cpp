@@ -75,7 +75,7 @@ void Cp2_ConcreteMat_ConcretePhys::go(const shared_ptr<Material>& m1, const shar
 }
 
 
-CREATE_LOGGER(ConcretePhys);
+WOO_IMPL_LOGGER(ConcretePhys);
 
 
 long ConcretePhys::cummBetaIter=0, ConcretePhys::cummBetaCount=0;

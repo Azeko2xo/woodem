@@ -6,7 +6,7 @@
 WOO_PLUGIN(dem,(IntraFunctor)(IntraForce));
 WOO_IMPL__CLASS_BASE_DOC_PY(woo_dem_IntraFunctor__CLASS_BASE_DOC_PY);
 
-CREATE_LOGGER(IntraForce);
+WOO_IMPL_LOGGER(IntraForce);
 
 void IntraForce::addIntraStiffness(const shared_ptr<Particle>& p, const shared_ptr<Node>& n, Vector3r& ktrans, Vector3r& krot) {
 	bool swap; // ignored
@@ -16,7 +16,7 @@ void IntraForce::addIntraStiffness(const shared_ptr<Particle>& p, const shared_p
 	functor->addIntraStiffnesses(p,n,ktrans,krot);
 };
 
-CREATE_LOGGER(IntraFunctor);
+WOO_IMPL_LOGGER(IntraFunctor);
 void IntraFunctor::addIntraStiffnesses(const shared_ptr<Particle>&, const shared_ptr<Node>&, Vector3r& ktrans, Vector3r& krot) const{
 	LOG_WARN("IntraFunctor::addIntraStiffnesses: not overridden for "+pyStr()+", internal stiffness ignored for timestep computation.");
 }

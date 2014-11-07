@@ -77,7 +77,7 @@ class Engine: public Object {
 		void timingInfo_nExec_set(long d){ timingInfo.nExec=d;}
 		void explicitRun(const shared_ptr<Scene>&, const shared_ptr<Field>&); 
 
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 
 	#define woo_core_Engine__CLASS_BASE_DOC_ATTRS_CTOR_PY \
 		Engine,Object,"Basic execution unit of simulation, called from the simulation loop (O.engines)", \

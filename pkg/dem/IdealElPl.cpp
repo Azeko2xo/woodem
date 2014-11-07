@@ -7,7 +7,7 @@ WOO_PLUGIN(dem,(Law2_L6Geom_FrictPhys_IdealElPl)(IdealElPlData)(Law2_L6Geom_Fric
 	#define _WATCH_MSG(msg)
 #endif
 
-CREATE_LOGGER(Law2_L6Geom_FrictPhys_IdealElPl);
+WOO_IMPL_LOGGER(Law2_L6Geom_FrictPhys_IdealElPl);
 
 bool Law2_L6Geom_FrictPhys_IdealElPl::go(const shared_ptr<CGeom>& cg, const shared_ptr<CPhys>& cp, const shared_ptr<Contact>& C){
 	const L6Geom& g(cg->cast<L6Geom>()); FrictPhys& ph(cp->cast<FrictPhys>());

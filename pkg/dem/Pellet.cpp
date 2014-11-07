@@ -15,7 +15,7 @@ void Cp2_PelletMat_PelletPhys::go(const shared_ptr<Material>& m1, const shared_p
 // FIXME: energy tracking does not consider adhesion and the integration is very bad (forward trapezoid)
 // leading to 20% of energy erro in some cases
 
-CREATE_LOGGER(Law2_L6Geom_PelletPhys_Pellet);
+WOO_IMPL_LOGGER(Law2_L6Geom_PelletPhys_Pellet);
 
 void Law2_L6Geom_PelletPhys_Pellet::tryAddDissipState(int what, Real E, const shared_ptr<Contact>& C){
 	for(const Particle* p: {C->leakPA(), C->leakPB()}){

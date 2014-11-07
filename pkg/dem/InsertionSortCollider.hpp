@@ -292,6 +292,6 @@ struct InsertionSortCollider: public Collider {
 			.def_readwrite("watch2",&InsertionSortCollider::watch2,"debugging only: watched body Id.")
 		#endif
 	);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 };
 WOO_REGISTER_OBJECT(InsertionSortCollider);

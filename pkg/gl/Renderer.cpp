@@ -18,7 +18,7 @@
 #include <GL/glut.h>
 
 WOO_PLUGIN(gl,(Renderer)(GlExtraDrawer));
-CREATE_LOGGER(Renderer);
+WOO_IMPL_LOGGER(Renderer);
 
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_gl_GlExtraDrawer__CLASS_BASE_DOC_ATTRS_PY);
 

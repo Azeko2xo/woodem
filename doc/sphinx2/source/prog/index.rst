@@ -6,3 +6,4 @@ Programming manual
    :maxdepth: 2
 
    object.rst
+   conventions.rst

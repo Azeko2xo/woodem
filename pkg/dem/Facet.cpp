@@ -16,7 +16,7 @@ WOO_IMPL__CLASS_BASE_DOC(woo_dem_Bo1_Facet_Aabb__CLASS_BASE_DOC);
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_In2_Facet__CLASS_BASE_DOC);
 
 
-CREATE_LOGGER(Facet);
+WOO_IMPL_LOGGER(Facet);
 
 #ifdef WOO_OPENGL
 	WOO_PLUGIN(gl,(Gl1_Facet));
@@ -238,7 +238,7 @@ void In2_Facet_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Materi
 #endif
 
 
-CREATE_LOGGER(Cg2_Facet_Sphere_L6Geom);
+WOO_IMPL_LOGGER(Cg2_Facet_Sphere_L6Geom);
 
 bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
 	const Facet& f=sh1->cast<Facet>(); const Sphere& s=sh2->cast<Sphere>();
@@ -295,7 +295,7 @@ bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<
 	return true;
 };
 
-CREATE_LOGGER(Cg2_Facet_Facet_L6Geom);
+WOO_IMPL_LOGGER(Cg2_Facet_Facet_L6Geom);
 
 bool Cg2_Facet_Facet_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
 	const Facet& A=sh1->cast<Facet>(); const Facet& B=sh2->cast<Facet>();

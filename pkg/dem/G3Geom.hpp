@@ -28,7 +28,7 @@ struct Cg2_Sphere_Sphere_G3Geom: public CGeomFunctor{
 	);
 	FUNCTOR2D(Sphere,Sphere);
 	DEFINE_FUNCTOR_ORDER_2D(Sphere,Sphere);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 };
 WOO_REGISTER_OBJECT(Cg2_Sphere_Sphere_G3Geom);
 
@@ -38,7 +38,7 @@ struct Cg2_Wall_Sphere_G3Geom: public CGeomFunctor{
 	);
 	FUNCTOR2D(Wall,Sphere);
 	DEFINE_FUNCTOR_ORDER_2D(Wall,Sphere);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 };
 WOO_REGISTER_OBJECT(Cg2_Wall_Sphere_G3Geom);
 

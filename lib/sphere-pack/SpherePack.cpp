@@ -23,7 +23,7 @@
 
 #include<time.h>
 
-CREATE_LOGGER(SpherePack);
+WOO_IMPL_LOGGER(SpherePack);
 
 using boost::lexical_cast;
 using std::string;

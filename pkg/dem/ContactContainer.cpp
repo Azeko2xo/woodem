@@ -6,7 +6,7 @@
 	#include<omp.h>
 #endif
 
-CREATE_LOGGER(ContactContainer);
+WOO_IMPL_LOGGER(ContactContainer);
 WOO_PLUGIN(dem,(ContactContainer));
 
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_ContactContainer__CLASS_BASE_DOC_ATTRS_PY);

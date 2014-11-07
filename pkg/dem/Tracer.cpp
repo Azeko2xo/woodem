@@ -1,20 +1,21 @@
-#ifdef WOO_OPENGL
 
 #include<woo/pkg/dem/Tracer.hpp>
-#include<woo/lib/opengl/OpenGLWrapper.hpp>
-#include<woo/lib/opengl/GLUtils.hpp>
+
+#ifdef WOO_OPENGL
+	#include<woo/lib/opengl/OpenGLWrapper.hpp>
+	#include<woo/lib/opengl/GLUtils.hpp>
+	#include<woo/pkg/gl/Renderer.hpp> // for displacement scaling
+#endif
 
 #include<woo/pkg/dem/Sphere.hpp>
 #include<woo/pkg/dem/Clump.hpp>
-#include<woo/pkg/gl/Renderer.hpp> // for displacement scaling
 #include<woo/pkg/dem/Gl1_DemField.hpp> // for setOurSceneRanges
 
-WOO_PLUGIN(gl,(TraceGlRep));
-WOO_PLUGIN(dem,(Tracer));
+WOO_PLUGIN(dem,(Tracer)(TraceVisRep));
 
-CREATE_LOGGER(TraceGlRep);
+WOO_IMPL_LOGGER(TraceVisRep);
 
-void TraceGlRep::compress(int ratio){
+void TraceVisRep::compress(int ratio){
 	int i;
 	int skip=(Tracer::compSkip<0?ratio:Tracer::compSkip);
 	for(i=0; ratio*i+skip<(int)pts.size(); i++){
@@ -23,7 +24,7 @@ void TraceGlRep::compress(int ratio){
 	}
 	writeIx=i;
 }
-void TraceGlRep::addPoint(const Vector3r& p, const Real& scalar){
+void TraceVisRep::addPoint(const Vector3r& p, const Real& scalar){
 	if(flags&FLAG_MINDIST){
 		size_t lastIx=(writeIx>0?writeIx-1:pts.size());
 		if((p-pts[lastIx]).norm()<Tracer::minDist) return;
@@ -38,22 +39,28 @@ void TraceGlRep::addPoint(const Vector3r& p, const Real& scalar){
 	}
 }
 
-vector<Vector3r> TraceGlRep::pyPts_get() const{
+vector<Vector3r> TraceVisRep::pyPts_get() const{
 	size_t i=0; vector<Vector3r> ret;
 	Vector3r pt; Real scalar;
 	while(getPointData(i++,pt,scalar)) ret.push_back(pt);
 	return ret;
 }
 
-vector<Real> TraceGlRep::pyScalars_get() const{
+vector<Real> TraceVisRep::pyScalars_get() const{
 	size_t i=0; vector<Real> ret;
 	Vector3r pt; Real scalar;
 	while(getPointData(i++,pt,scalar)) ret.push_back(scalar);
 	return ret;
 }
 
+size_t TraceVisRep::countPointData() const {
+	Vector3r pt; Real scalar;
+	size_t ret=0;
+	while(getPointData(ret++,pt,scalar));
+	return ret;
+}
 
-bool TraceGlRep::getPointData(size_t i, Vector3r& pt, Real& scalar) const {
+bool TraceVisRep::getPointData(size_t i, Vector3r& pt, Real& scalar) const {
 	size_t ix;
 	if(flags&FLAG_COMPRESS){
 		ix=i;
@@ -67,7 +74,8 @@ bool TraceGlRep::getPointData(size_t i, Vector3r& pt, Real& scalar) const {
 	return true;
 }
 
-void TraceGlRep::render(const shared_ptr<Node>& n, const GLViewInfo* glInfo){
+#ifdef WOO_OPENGL
+void TraceVisRep::render(const shared_ptr<Node>& n, const GLViewInfo* glInfo){
 	if(isHidden()) return;
 	if(!Tracer::glSmooth) glDisable(GL_LINE_SMOOTH);
 	else glEnable(GL_LINE_SMOOTH);
@@ -120,28 +128,15 @@ void TraceGlRep::render(const shared_ptr<Node>& n, const GLViewInfo* glInfo){
 		}
 	glEnd();
 }
+#endif
 
-void TraceGlRep::resize(size_t size){
+void TraceVisRep::resize(size_t size){
 	pts.resize(size,Vector3r(NaN,NaN,NaN));
 	scalars.resize(size,NaN);
 }
 
-void TraceGlRep::consolidate(){
-	LOG_WARN("This function is deprecated and no-op. TraceGlRep.pts is always returned in the proper order, os a copy of the internal circular buffer.");
-#if 0
-	if(flags&FLAG_COMPRESS){
-		// compressed traces are always sequential, only discard invalid tail data
-		resize(writeIx);
-	}
-	if(writeIx==0) return; // just filled up, nothing to do
-	if(pts.size()<2) return; // strange things would happen here
-	for(size_t i=0; i<pts.size(); i++){
-		size_t j=(i+writeIx)%pts.size(); // i≠j since writeIx≠0
-		std::swap(pts[i],pts[j]);
-		std::swap(scalars[i],scalars[j]);
-	}
-	writeIx=0;
-#endif
+void TraceVisRep::consolidate(){
+	LOG_WARN("This function is deprecated and no-op. TraceVisRep.pts is always returned in the proper order, as a copy of the internal circular buffer.");
 }
 
 Vector2i Tracer::modulo;
@@ -163,8 +158,6 @@ shared_ptr<ScalarRange> Tracer::lineColor;
 void Tracer::resetNodesRep(bool setupEmpty, bool includeDead){
 	auto& dem=field->cast<DemField>();
 	boost::mutex::scoped_lock lock(dem.nodesMutex);
-	//for(const auto& p: *dem.particles){
-	//	for(const auto& n: p->shape->nodes){
 	for(const auto& n: dem.nodes){
 			/*
 				FIXME: there is some bug in boost::python's shared_ptr allocator, so if a node has GlRep
@@ -176,7 +169,7 @@ void Tracer::resetNodesRep(bool setupEmpty, bool includeDead){
 					#7  0x00007fac568cc41e in boost::detail::sp_counted_base::release (this=0x5d6d940) at /usr/include/boost/smart_ptr/detail/sp_counted_base_gcc_x86.hpp:146
 					#8  0x00007fac56aaed7b in ~shared_count (this=<optimized out>, __in_chrg=<optimized out>) at /usr/include/boost/smart_ptr/detail/shared_count.hpp:371
 					#9  ~shared_ptr (this=<optimized out>, __in_chrg=<optimized out>) at /usr/include/boost/smart_ptr/shared_ptr.hpp:328
-					#10 operator=<TraceGlRep> (r=<unknown type in /usr/local/lib/python2.7/dist-packages/woo/_cxxInternal_mt_debug.so, CU 0x13c9b4f, DIE 0x1cc8cb9>, this=<optimized out>) at /usr/include/boost/smart_ptr/shared_ptr.hpp:601
+					#10 operator=<TraceVisRep> (r=<unknown type in /usr/local/lib/python2.7/dist-packages/woo/_cxxInternal_mt_debug.so, CU 0x13c9b4f, DIE 0x1cc8cb9>, this=<optimized out>) at /usr/include/boost/smart_ptr/shared_ptr.hpp:601
 					#11 Tracer::resetNodesRep (this=this@entry=0x5066d20, setupEmpty=setupEmpty@entry=true, includeDead=includeDead@entry=false) at /home/eudoxos/woo/pkg/dem/Tracer.cpp:119
 
 				As workaround, set the tracerSkip flag on the node and the tracer will leave it alone.
@@ -187,15 +180,14 @@ void Tracer::resetNodesRep(bool setupEmpty, bool includeDead){
 			if(n->getData<DemData>().isTracerSkip()) continue;
 			GilLock lock; // get GIL to avoid crash when destroying python-instantiated object
 			if(setupEmpty){
-				n->rep=make_shared<TraceGlRep>();
-				auto& tr=n->rep->cast<TraceGlRep>();
+				n->rep=make_shared<TraceVisRep>();
+				auto& tr=n->rep->cast<TraceVisRep>();
 				tr.resize(num);
-				tr.flags=(compress>0?TraceGlRep::FLAG_COMPRESS:0) | (minDist>0?TraceGlRep::FLAG_MINDIST:0);
+				tr.flags=(compress>0?TraceVisRep::FLAG_COMPRESS:0) | (minDist>0?TraceVisRep::FLAG_MINDIST:0);
 			} else {
 				n->rep.reset();
 			}
 		}
-	//}
 	if(includeDead){
 		for(const auto& n: dem.deadNodes){
 			if(n->getData<DemData>().isTracerSkip()) continue;
@@ -205,12 +197,14 @@ void Tracer::resetNodesRep(bool setupEmpty, bool includeDead){
 	}
 }
 
+#ifdef WOO_OPENGL
 void Tracer::showHideRange(bool show){
 	// show lineColor
 	if(show) Gl1_DemField::setOurSceneRanges(scene,{lineColor},{lineColor});
 	// hide lineColor
 	else Gl1_DemField::setOurSceneRanges(scene,{lineColor},{});
 }
+#endif
 
 void Tracer::run(){
 	if(scalar!=lastScalar){
@@ -218,7 +212,9 @@ void Tracer::run(){
 		lastScalar=scalar;
 		lineColor->reset();
 	}
-	showHideRange(/*show*/true);
+	#ifdef WOO_OPENGL
+		showHideRange(/*show*/true);
+	#endif
 	switch(scalar){
 		case SCALAR_NONE: lineColor->label="[index]"; break;
 		case SCALAR_TIME: lineColor->label="time"; break;
@@ -246,14 +242,14 @@ void Tracer::run(){
 		const auto& dyn(n->getData<DemData>());
 		if(dyn.isTracerSkip()) continue;
 		// node added
-		if(!n->rep || !n->rep->isA<TraceGlRep>()){
+		if(!n->rep || !n->rep->isA<TraceVisRep>()){
 			boost::mutex::scoped_lock lock(dem.nodesMutex);
-			n->rep=make_shared<TraceGlRep>();
-			auto& tr=n->rep->cast<TraceGlRep>();
+			n->rep=make_shared<TraceVisRep>();
+			auto& tr=n->rep->cast<TraceVisRep>();
 			tr.resize(num);
-			tr.flags=(compress>0?TraceGlRep::FLAG_COMPRESS:0) | (minDist>0?TraceGlRep::FLAG_MINDIST:0);
+			tr.flags=(compress>0?TraceVisRep::FLAG_COMPRESS:0) | (minDist>0?TraceVisRep::FLAG_MINDIST:0);
 		}
-		auto& tr=n->rep->cast<TraceGlRep>();
+		auto& tr=n->rep->cast<TraceVisRep>();
 		bool hasP=!dyn.parRef.empty();
 		bool hidden=false;
 		Real radius=NaN;
@@ -291,4 +287,3 @@ void Tracer::run(){
 		i++;
 	}
 }
-#endif

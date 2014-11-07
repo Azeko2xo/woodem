@@ -4,7 +4,7 @@
 #include<woo/pkg/dem/Clump.hpp>
 
 struct PsdSphereGenerator: public ParticleGenerator{
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m, const Real& time) WOO_CXX11_OVERRIDE;
 	void postLoad(PsdSphereGenerator&,void*);
 	// return radius and bin for the next particle (also used by derived classes)
@@ -36,7 +36,7 @@ struct PsdSphereGenerator: public ParticleGenerator{
 WOO_REGISTER_OBJECT(PsdSphereGenerator);
 
 struct PsdClumpGenerator: public PsdSphereGenerator {
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m, const Real& time) WOO_CXX11_OVERRIDE;
 	void clear() WOO_CXX11_OVERRIDE { genClumpNo.clear(); /*call parent*/ PsdSphereGenerator::clear(); };
 	Real critDt(Real density, Real young) WOO_CXX11_OVERRIDE;
@@ -50,7 +50,7 @@ WOO_REGISTER_OBJECT(PsdClumpGenerator);
 
 #ifndef WOO_NOCAPSULE
 struct PsdCapsuleGenerator: public PsdSphereGenerator {
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m, const Real& time) WOO_CXX11_OVERRIDE;
 	bool isSpheresOnly() const WOO_CXX11_OVERRIDE { return false; }
 	// clear, critDt: same as for PsdSphereGenerator
@@ -79,7 +79,7 @@ WOO_REGISTER_OBJECT(PharmaCapsuleGenerator);
 #endif
 
 struct PsdEllipsoidGenerator: public PsdSphereGenerator {
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m, const Real& time) WOO_CXX11_OVERRIDE;
 	bool isSpheresOnly() const WOO_CXX11_OVERRIDE { return false; }
 	// clear, critDt: same as for PsdSphereGenerator

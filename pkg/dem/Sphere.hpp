@@ -69,7 +69,7 @@ struct Cg2_Sphere_Sphere_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_Cg2_Sphere_Sphere_L6Geom__CLASS_BASE_DOC_ATTRS);
 	FUNCTOR2D(Sphere,Sphere);
 	DEFINE_FUNCTOR_ORDER_2D(Sphere,Sphere);
-	//DECLARE_LOGGER;
+	//WOO_DECL_LOGGER;
 };
 WOO_REGISTER_OBJECT(Cg2_Sphere_Sphere_L6Geom);
 

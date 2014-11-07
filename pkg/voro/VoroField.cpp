@@ -13,7 +13,7 @@
 
 WOO_PLUGIN(voro,(VoroField));
 
-CREATE_LOGGER(VoroField);
+WOO_IMPL_LOGGER(VoroField);
 
 void VoroField::preSave(VoroField&){
 	LOG_WARN("VoroField: serialization not yet implemented, your data will be lost. Call VoroField.updateFromDem(...) to refresh.");

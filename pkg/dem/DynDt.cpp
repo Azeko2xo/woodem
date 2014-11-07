@@ -5,7 +5,7 @@
 #include<woo/pkg/dem/Clump.hpp>
 
 WOO_PLUGIN(dem,(DynDt));
-CREATE_LOGGER(DynDt);
+WOO_IMPL_LOGGER(DynDt);
 
 void DynDt::postLoad(DynDt&,void*){
 	if(1.+maxRelInc==1.) throw std::runtime_error("DynDt: maxRelInc too small (1.0+maxRelInc==1.0)");

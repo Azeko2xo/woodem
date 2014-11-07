@@ -46,7 +46,7 @@ pos2 however is with periodic correction already!!
 
 */
 
-CREATE_LOGGER(Cg2_Any_Any_L6Geom__Base);
+WOO_IMPL_LOGGER(Cg2_Any_Any_L6Geom__Base);
 
 void Cg2_Any_Any_L6Geom__Base::handleSpheresLikeContact(const shared_ptr<Contact>& C, const Vector3r& pos1, const Vector3r& vel1, const Vector3r& angVel1, const Vector3r& pos2, const Vector3r& vel2, const Vector3r& angVel2, const Vector3r& normal, const Vector3r& contPt, Real uN, Real r1, Real r2){
 	// create geometry

@@ -57,15 +57,22 @@ def launchPV(script):
 	subprocess.Popen(cmd)
 
 def fromEngines(S,out=None,launch=False,noDataOk=False):
-	'''Write paraview script showing data from the current VTK-related engines: :obj:`woo.dem.VtkExport` and :obj:`FlowAnalysis`. Files exported by :obj:`woo.dem.VtkExport` are used, while :obj:`FlowAnalysis` is made to export its internal data at the moment of calling this function.
+	'''Write paraview script showing data from the current VTK-related engines:
+	
+	* :obj:`woo.dem.VtkExport` is queried for files already written, and those are returned;
+	* :obj:`woo.dem.FlowAnalysis` is made to export its internal data at the moment of calling this function;
+	* :obj:`woo.dem.Tracer` indicates there are particles traces, which are exported by calling :obj:`woo.utils.vtkExportTraces`.
+
 	'''
 	sphereFiles,meshFiles,conFiles=[],[],[]
 	if not out: out=woo.master.tmpFilename()+'.py'
 	if not out.endswith('.py'): out=out+'.py'
+	outPrefix=out[:-3] # without extension
 	kw={}
 	for e in S.engines:
 		if isinstance(e,woo.dem.VtkExport) and e.nDone>0: kw.update(kwFromVtkExport(e))
-		elif isinstance(e,woo.dem.FlowAnalysis) and e.nDone>0: kw.update(kwFromFlowAnalysis(e,outPrefix=out[:-3])) # without the .py
+		elif isinstance(e,woo.dem.FlowAnalysis) and e.nDone>0: kw.update(kwFromFlowAnalysis(e,outPrefix=outPrefix)) # without the .py
+		elif isinstance(e,woo.dem.Tracer): kw.update(kwFromVtkExportTraces(S,e.field,outPrefix=outPrefix))
 	if 'meshFiles' in kw: kw['flowMeshFile']=kw['meshFiles'][-1]
 	# no data found from engines
 	if not kw:
@@ -80,6 +87,14 @@ def kwFromVtkExport(vtkExport,out=None,launch=False):
 	assert isinstance(vtkExport,woo.dem.VtkExport)
 	ff=vtkExport.outFiles
 	return dict(sphereFiles=ff['spheres'] if 'spheres' in ff else [],meshFiles=ff['mesh'] if 'mesh' in ff else [],conFiles=ff['con'] if 'con' in ff else [],triFiles=ff['tri'] if 'tri' in ff else [])
+
+def kwFromVtkExportTraces(S,dem,outPrefix=None):
+	if not outPrefix: outPrefix=woo.master.tmpFilename()
+	out=outPrefix+'_traces.vtp'
+	tr=woo.utils.vtkExportTraces(S,dem,out)
+	if tr: return {'tracesFile':out}
+	else: return {}
+
 
 def kwFromFlowAnalysis(flowAnalysis,outPrefix=None,fractions=[],fracA=[],fracB=[]):
 	'Extract keywords suitable for :obj:`write` from a given :obj:`~woo.dem.VtkFlowAnalysis` instance.'
@@ -117,7 +132,7 @@ def fromFlowAnalysis(flowAnalysis,out=None,findMesh=True,launch=False):
 	if launch: launchPV(out)
 
 
-def write(out,sphereFiles=[],meshFiles=[],conFiles=[],triFiles=[],flowFile='',splitFile='',flowMeshFile='',flowMeshOpacity=.2,splitStride=2,splitClip=False,flowStride=2):
+def write(out,sphereFiles=[],meshFiles=[],conFiles=[],triFiles=[],flowFile='',splitFile='',flowMeshFile='',tracesFile='',flowMeshOpacity=.2,splitStride=2,splitClip=False,flowStride=2):
 	'''Write out script suitable for running with Paraview (with the ``--script`` option). The options to this function are:
 
 	:param sphereFiles: files from :obj:`woo.dem.VtkExport.outFiles` (``spheres``);
@@ -127,6 +142,7 @@ def write(out,sphereFiles=[],meshFiles=[],conFiles=[],triFiles=[],flowFile='',sp
 	:param flowFile: file written by :obj:`woo.dem.FlowAnalysis.vtkExportFractions` (usually all fractions together);
 	:param splitFile: file written by :obj:`woo.dem.FlowAnalysis.vtkExportVectorOps`;
 	:param flowMeshFile: mesh file to be used for showing boundaries for split analysis;
+	:param tracesFile: file written by :obj:`woo.utils.vtkExportTraces`, for per-particle traces;
 	:param flowMeshOpacity: opacity of the mesh for flow analysis;
 	:param splitStride: spatial stride for segregation analysis; use 2 and more for very dense data meshes which are difficult to see through;
 	:param flowStride: spatial stride for flow analysis.
@@ -144,6 +160,7 @@ def write(out,sphereFiles=[],meshFiles=[],conFiles=[],triFiles=[],flowFile='',sp
 		flowFile=fixPath(flowFile),
 		splitFile=fixPath(splitFile),
 		flowMeshFile=fixPath(flowMeshFile),
+		tracesFile=fixPath(tracesFile),
 		flowMeshOpacity=flowMeshOpacity,
 		splitStride=splitStride,
 		splitClip=splitClip,
@@ -168,6 +185,10 @@ flowMeshOpacity={flowMeshOpacity}
 # global flow analysis
 flowFile='{flowFile}'
 flowStride={flowStride}
+
+# traces
+tracesFile='{tracesFile}'
+
 
 # particles
 sphereFiles={sphereFiles}
@@ -315,6 +336,11 @@ if flowMeshFile:
 	rep.Representation='Surface'
 	rep.Opacity=flowMeshOpacity
 
+if tracesFile:
+	traces=XMLPolyDataReader(FileName=[tracesFile])
+	RenameSource(tracesFile,traces)
+	traces.CellArrayStatus=traces.GetCellDataInformation().keys()
+	rep=Show()
 
 if sphereFiles:
 	spheres=XMLUnstructuredGridReader(FileName=sphereFiles)

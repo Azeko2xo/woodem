@@ -119,7 +119,7 @@ string BFGS_status2str(int status){
 
 
 
-CREATE_LOGGER(Cg2_Shape_Shape_L6Geom__Potential);
+WOO_IMPL_LOGGER(Cg2_Shape_Shape_L6Geom__Potential);
 bool Cg2_Shape_Shape_L6Geom__Potential::go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
 	const auto& f1=potentialDispatcher->getFunctor1D(s1);
 	const auto& f2=potentialDispatcher->getFunctor1D(s2);

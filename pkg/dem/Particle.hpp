@@ -29,7 +29,7 @@ struct Particle: public Object{
 	void checkNodes(bool dyn=true, bool checkOne=true) const;
 	void selfTest();
 
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 
 
 	Vector3r& getPos() const; void setPos(const Vector3r&);
@@ -162,7 +162,7 @@ WOO_REGISTER_OBJECT(MatState);
 
 struct DemData: public NodeData{
 public:
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	const char* getterName() const WOO_CXX11_OVERRIDE { return "dem"; }
 	void setDataOnNode(Node& n) WOO_CXX11_OVERRIDE { n.setData(static_pointer_cast<DemData>(shared_from_this())); }
 
@@ -264,7 +264,7 @@ WOO_REGISTER_OBJECT(DemData);
 template<> struct NodeData::Index<DemData>{enum{value=Node::ST_DEM};};
 
 struct DemField: public Field{
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	int collectNodes();
 	void clearDead(){ deadNodes.clear(); }
 	void removeParticle(Particle::id_t id);

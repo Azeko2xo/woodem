@@ -12,7 +12,7 @@
 
 
 WOO_PLUGIN(dem,(VtkFlowExport));
-CREATE_LOGGER(VtkFlowExport);
+WOO_IMPL_LOGGER(VtkFlowExport);
 
 void VtkFlowExport::setupGrid(){
 	if(!(box.volume()>0)) throw std::runtime_error("VtkFlowExport.box: invalid box (volume not positive).");
@@ -62,8 +62,8 @@ void VtkFlowExport::setupGrid(){
 				// make sure that velocity is the scalar -- otherwise we won't be able to get any meaningful data
 				if(Tracer::scalar!=Tracer::SCALAR_VEL) throw std::runtime_error("VtkFlowExport: when analyzing traces, the woo.dem.Tracer.scalar must be velocity (woo.dem.Tracer.scalarVel).");
 				const auto& node(p->shape->nodes[0]);
-					if(!node->rep || !node->rep->isA<TraceGlRep>()) continue; // no trace data for this particle
-					const auto& trace(node->rep->cast<TraceGlRep>());
+					if(!node->rep || !node->rep->isA<TraceVisRep>()) continue; // no trace data for this particle
+					const auto& trace(node->rep->cast<TraceVisRep>());
 				Vector3r pt; Real scalar;
 				// getPointData returns false when there is nothing left
 				for(int i=0; trace.getPointData(i,pt,scalar); i++){

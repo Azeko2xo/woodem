@@ -20,7 +20,7 @@ struct VoroField: public Field{
 	void cellsToPov(const std::string& out);
 	void particlesToPov(const std::string& out);
 
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 
 	WOO_CLASS_BASE_DOC_ATTRS_PY(VoroField,Field,"Radical voronoi tesellation, given number of points",
 		// ((vector<Vector4r>,sph,,AttrTrait<Attr::readonly>(),"Positions and radius of particles; negative radius means no sphere; index the same as particles in associated DEM field"))

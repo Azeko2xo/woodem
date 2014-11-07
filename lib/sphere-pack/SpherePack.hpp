@@ -139,6 +139,6 @@ public:
 		}
 	};
 	SpherePack::_iterator getIterator() const{ return SpherePack::_iterator(*this);};
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 };
 

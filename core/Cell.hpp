@@ -61,7 +61,7 @@ struct Cell: public Object{
 		void fillGlShearTrsfMatrix(double m[16]);
 	public:
 
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 
 	// at the end of step, bring gradV(t-dt/2) to the value gradV(t+dt/2) so that e.g. kinetic energies are right
 	void setNextGradV();

@@ -57,7 +57,7 @@ struct SparcField: public Field{
 	template<bool useNext=false>
 	void updateLocator();
 
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_DTOR_PY(SparcField,Field,"Field for SPARC meshfree method",
 		// ((Real,maxRadius,-1,,"Maximum radius for neighbour search (required for periodic simulations)"))
@@ -189,7 +189,7 @@ struct ExplicitNodeIntegrator: public Engine {
 	vecReal3dFunc wlsPhiDy;
 	vecReal3dFunc wlsPhiDz;
 
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 
 	enum {WEIGHT_DIST=0,WEIGHT_GAUSS,WEIGHT_SENTINEL};
 	enum {WLS_EMPTY=0,WLS_QUAD_X,WLS_CUBIC_X,WLS_LIN_XY,WLS_QUAD_XY,WLS_LIN_XYZ,WLS_QUAD_XYZ};
@@ -366,7 +366,7 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 	int nFactorLowered;
 	ofstream out;
 
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 
 	virtual void run();
 #if 0
@@ -456,7 +456,7 @@ struct StaticEquilibriumSolver: public ExplicitNodeIntegrator{
 WOO_REGISTER_OBJECT(StaticEquilibriumSolver);
 
 #ifdef WOO_OPENGL
-#include<woo/pkg/gl/NodeGlRep.hpp>
+#include<woo/pkg/gl/NodeVisRep.hpp>
 #include<woo/pkg/gl/Functors.hpp>
 
 
@@ -478,10 +478,10 @@ struct Gl1_SparcField: public GlFieldFunctor{
 WOO_REGISTER_OBJECT(Gl1_SparcField);
 
 
-struct SparcConstraintGlRep: public NodeGlRep{
+struct SparcConstraintGlRep: public NodeVisRep{
 	void render(const shared_ptr<Node>&, const GLViewInfo*);
 	void renderLabeledArrow(const Vector3r& pos, const Vector3r& vec, const Vector3r& color, Real num, bool posIsA, bool doubleHead=false);
-	WOO_CLASS_BASE_DOC_ATTRS(SparcConstraintGlRep,NodeGlRep,"Render static and kinematic constraints on Sparc nodes",
+	WOO_CLASS_BASE_DOC_ATTRS(SparcConstraintGlRep,NodeVisRep,"Render static and kinematic constraints on Sparc nodes",
 		((Vector3r,fixedV,Vector3r(NaN,NaN,NaN),,"Prescribed velocity value in local coords (nan if not prescribed)"))
 		((Vector3r,fixedT,Vector3r(NaN,NaN,NaN),,"Prescribed traction value in local coords (nan if not prescribed)"))
 		((Vector2r,vColor,Vector2r(0,.3),,"Color for rendering kinematic constraint."))

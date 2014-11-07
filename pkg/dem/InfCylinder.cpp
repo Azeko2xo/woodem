@@ -35,7 +35,7 @@ void Bo1_InfCylinder_Aabb::go(const shared_ptr<Shape>& sh){
 }
 
 
-CREATE_LOGGER(Cg2_InfCylinder_Sphere_L6Geom);
+WOO_IMPL_LOGGER(Cg2_InfCylinder_Sphere_L6Geom);
 
 bool Cg2_InfCylinder_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
 	if(scene->isPeriodic && scene->cell->hasShear()) throw std::logic_error("Cg2_InfCylinder_Sphere_L6Geom does not handle periodic boundary conditions with skew (Scene.cell.trsf is not diagonal).");

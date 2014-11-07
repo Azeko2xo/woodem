@@ -14,7 +14,7 @@ renderer and timer to refresh the display.
 */
 class OpenGLManager: public QObject{
 	Q_OBJECT
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	public:
 		static OpenGLManager* self;
 		OpenGLManager(QObject *parent=0);

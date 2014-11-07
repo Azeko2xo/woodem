@@ -48,7 +48,7 @@ struct CGeomDispatcher: public Dispatcher2D</* functor type*/ CGeomFunctor, /* a
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	shared_ptr<Contact> explicitAction(Scene*, const shared_ptr<Particle>&, const shared_ptr<Particle>&, bool force);
 	WOO_DISPATCHER2D_FUNCTOR_DOC_ATTRS_CTOR_PY(CGeomDispatcher,CGeomFunctor,/* doc is optional*/,/*attrs*/,/*ctor*/,/*py*/);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 };
 WOO_REGISTER_OBJECT(CGeomDispatcher);
 
@@ -62,7 +62,7 @@ WOO_REGISTER_OBJECT(CPhysDispatcher);
 struct LawDispatcher: public Dispatcher2D</*functor type*/ LawFunctor, /*autosymmetry*/ false>{
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	WOO_DISPATCHER2D_FUNCTOR_DOC_ATTRS_CTOR_PY(LawDispatcher,LawFunctor,/*doc is optional*/,/*attrs*/,/*ctor*/,/*py*/);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 };
 WOO_REGISTER_OBJECT(LawDispatcher);
 
@@ -123,7 +123,7 @@ class ContactLoop: public Engine {
 				woo_dem_ContactLoop__CTOR_removeAfterLoopRefs
 
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_ContactLoop__CLASS_BASE_DOC_ATTRS_CTOR);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 };
 WOO_REGISTER_OBJECT(ContactLoop);
 

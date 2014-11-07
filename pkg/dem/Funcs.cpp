@@ -30,7 +30,7 @@
 
 #include <boost/range/adaptor/filtered.hpp>
 
-CREATE_LOGGER(DemFuncs);
+WOO_IMPL_LOGGER(DemFuncs);
 
 // to be used in Python wrappers, to get the DEM field
 shared_ptr<DemField> DemFuncs::getDemField(const Scene* scene){
@@ -531,3 +531,74 @@ vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const s
 	return ret;
 }
 
+
+#ifdef WOO_VTK
+
+#include<vtkPolyData.h>
+#include<vtkCellArray.h>
+#include<vtkPoints.h>
+#include<vtkPointData.h>
+#include<vtkCellData.h>
+#include<vtkPolyLine.h>
+#include<vtkDoubleArray.h>
+#include<vtkXMLPolyDataWriter.h>
+#include<vtkZLibDataCompressor.h>
+#include<vtkSmartPointer.h>
+
+
+#include<woo/pkg/dem/Tracer.hpp>
+
+
+bool DemFuncs::vtkExportTraces(const shared_ptr<Scene>& scene, const shared_ptr<DemField>& dem, const string& filename){
+	auto polyData=vtkSmartPointer<vtkPolyData>::New();
+	auto points=vtkSmartPointer<vtkPoints>::New();
+	auto cellArray=vtkSmartPointer<vtkCellArray>::New();
+	polyData->SetPoints(points);
+	polyData->SetLines(cellArray);
+
+	auto radius=vtkSmartPointer<vtkDoubleArray>::New(); radius->SetNumberOfComponents(1); radius->SetName("radius");
+	polyData->GetCellData()->AddArray(radius);
+
+	for(const auto& n: dem->nodes){
+		const auto& dyn=n->getData<DemData>();
+		if(dyn.parRef.size()!=1) continue; // skip nodes with more than 1 particle
+		const Particle* p=dyn.parRef.front();
+		if(!n->rep || !n->rep->isA<TraceVisRep>()) continue;
+		const auto& trace=n->rep->cast<TraceVisRep>();
+		if(!p || !p->shape) continue;
+		Real r=p->shape->equivRadius();
+		if(isnan(r)) continue; // skip non-spheroids
+		size_t count=trace.countPointData();
+		if(count<=1) continue;
+		// radius
+		radius->InsertNextValue(r);
+		// trace points
+		auto polyLine=vtkSmartPointer<vtkPolyLine>::New();
+		polyLine->GetPointIds()->SetNumberOfIds(count);
+		for(size_t i=0; i<count; i++){
+			polyLine->GetPointIds()->SetId(i,points->GetNumberOfPoints());
+			Vector3r pt; Real scalar; // scalar discarded
+			trace.getPointData(i,pt,scalar);
+			points->InsertNextPoint(pt.data());
+			// radius->InsertNextValue(r);
+		}
+		cellArray->InsertNextCell(polyLine);
+	};
+
+	// don't write anything if there are no traces at all
+	if(points->GetNumberOfPoints()==0) return false;
+
+	auto writer=vtkSmartPointer<vtkXMLPolyDataWriter>::New();
+	bool compress=true; bool ascii=false;
+	if(compress) writer->SetCompressor(vtkSmartPointer<vtkZLibDataCompressor>::New());
+	if(ascii) writer->SetDataModeToAscii();
+	// string fn=out+"con."+to_string(scene->step)+".vtp";
+	// string out=filename;
+	// if(!boost::algorithm::ends_with(out,".vtp")) out+=".vtp";
+	writer->SetFileName(filename.c_str());
+	writer->SetInput(polyData);
+	writer->Write();
+	return true;
+}
+
+#endif /* WOO_VTK */

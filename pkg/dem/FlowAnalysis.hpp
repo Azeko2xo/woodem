@@ -9,7 +9,7 @@
 
 
 struct FlowAnalysis: public PeriodicEngine{
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	DemField* dem; // temp only
 	typedef boost::multi_array<Real,5> boost_multi_array_real_5;

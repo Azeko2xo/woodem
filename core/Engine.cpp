@@ -13,7 +13,7 @@ WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_core_PyRunner__CLASS_BASE_DOC_ATTRS);
 
 WOO_PLUGIN(core,(Engine)(ParallelEngine)(PeriodicEngine)(PyRunner));
 
-CREATE_LOGGER(Engine);
+WOO_IMPL_LOGGER(Engine);
 
 void Engine::run(){ throw std::logic_error((getClassName()+" did not override Engine::run()").c_str()); } 
 

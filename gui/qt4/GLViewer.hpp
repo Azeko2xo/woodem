@@ -38,7 +38,7 @@ struct SnapshotEngine: public PeriodicEngine{
 		((Real,deadTimeout,3,,"Timeout for 3d operations (opening new view, saving snapshot); after timing out, throw exception (or only report error if :obj:`ignoreErrors`) and make myself :obj:`dead <Engine.dead>`. [s]"))
 		((bool,tryOpenView,false,,"Attempt to open new view if there is none; this is very unreliable (off by default)."))
 	);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 };
 WOO_REGISTER_OBJECT(SnapshotEngine);
 
@@ -183,7 +183,7 @@ class GLViewer : public QGLViewer
 		QImage loadTexture(const char *filename, GLuint &textureID);
 
 
-		DECLARE_LOGGER;
+		WOO_DECL_LOGGER;
 	protected:
 		virtual void keyPressEvent(QKeyEvent *e);
 		virtual void postDraw();

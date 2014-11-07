@@ -5,7 +5,7 @@
 
 WOO_PLUGIN(dem,(Cp2_FrictMat_FrictPhys_CrossAnisotropic));
 
-CREATE_LOGGER(Cp2_FrictMat_FrictPhys_CrossAnisotropic);
+WOO_IMPL_LOGGER(Cp2_FrictMat_FrictPhys_CrossAnisotropic);
 
 void Cp2_FrictMat_FrictPhys_CrossAnisotropic::postLoad(Cp2_FrictMat_FrictPhys_CrossAnisotropic&,void*){
 	xisoAxis=Vector3r(cos(alpha)*sin(beta),-sin(alpha)*sin(beta),cos(beta));

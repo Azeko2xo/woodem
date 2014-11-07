@@ -4,18 +4,18 @@
 
 #include<woo/core/Field.hpp>
 
-struct LabelGlRep: public NodeGlRep{
+struct LabelGlRep: public NodeVisRep{
 	void render(const shared_ptr<Node>&, const GLViewInfo*);
-	WOO_CLASS_BASE_DOC_ATTRS(LabelGlRep,NodeGlRep,"Render scalar value at associated node",
+	WOO_CLASS_BASE_DOC_ATTRS(LabelGlRep,NodeVisRep,"Render scalar value at associated node",
 		((string,text,"",,"Text to be rendered at the node's position"))
 		((Vector3r,color,Vector3r(1,1,1),AttrTrait<>().rgbColor(),"Color for rendering the text"))
 	);
 };
 WOO_REGISTER_OBJECT(LabelGlRep);
 
-struct ScalarGlRep: public NodeGlRep{
+struct ScalarGlRep: public NodeVisRep{
 	void render(const shared_ptr<Node>&, const GLViewInfo*);
-	WOO_CLASS_BASE_DOC_ATTRS(ScalarGlRep,NodeGlRep,"Render scalar value at associated node",
+	WOO_CLASS_BASE_DOC_ATTRS(ScalarGlRep,NodeVisRep,"Render scalar value at associated node",
 		((Real,val,0,,"Value to be rendered"))
 		((int,how,0,,"Different ways to render given value; 0=number, 1=colored point, 2=colored sphere"))
 		((int,prec,5,,"Precision for rendering numbers"))
@@ -25,9 +25,9 @@ struct ScalarGlRep: public NodeGlRep{
 };
 WOO_REGISTER_OBJECT(ScalarGlRep);
 
-struct VectorGlRep: public NodeGlRep{
+struct VectorGlRep: public NodeVisRep{
 	void render(const shared_ptr<Node>&, const GLViewInfo*);
-	WOO_CLASS_BASE_DOC_ATTRS(VectorGlRep,NodeGlRep,"Render vector value at associated node, as an arrow",
+	WOO_CLASS_BASE_DOC_ATTRS(VectorGlRep,NodeVisRep,"Render vector value at associated node, as an arrow",
 		((Vector3r,val,Vector3r::Zero(),,"Value to be rendered"))
 		((Real,relSz,.2,,"Size of maximum-length arrows, relative to scene radius"))
 		((Real,scaleExp,1,,"Exponent for scaling arrow size as ``vector_norm^scaleExp``. NaN disables scaling (all arrows the same size)."))
@@ -48,10 +48,10 @@ struct ActReactGlRep: public VectorGlRep{
 };
 WOO_REGISTER_OBJECT(ActReactGlRep);
 
-struct TensorGlRep: public NodeGlRep{
+struct TensorGlRep: public NodeVisRep{
 	void render(const shared_ptr<Node>&, const GLViewInfo*);
 	void postLoad(TensorGlRep&,void*);
-	WOO_CLASS_BASE_DOC_ATTRS(TensorGlRep,NodeGlRep,"Render tensor (given as 3x3 matrix) as its principal components.",
+	WOO_CLASS_BASE_DOC_ATTRS(TensorGlRep,NodeVisRep,"Render tensor (given as 3x3 matrix) as its principal components.",
 		((Matrix3r,val,Matrix3r::Zero(),AttrTrait<Attr::triggerPostLoad>(),"Value to be rendered."))
 		((Matrix3r,eigVec,Matrix3r::Zero(),AttrTrait<Attr::noSave|Attr::readonly>(),"eigenvectors as columns, updated in postLoad."))
 		((Vector3r,eigVal,Vector3r::Zero(),AttrTrait<Attr::noSave|Attr::readonly>(),"eigenvalues of corresponding eigenvectors, updated in postLoad."))
@@ -65,10 +65,10 @@ struct TensorGlRep: public NodeGlRep{
 };
 WOO_REGISTER_OBJECT(TensorGlRep);
 
-struct CylGlRep: public NodeGlRep{
+struct CylGlRep: public NodeVisRep{
 	void render(const shared_ptr<Node>&, const GLViewInfo*);
 	//void postLoad(CylGlRep&,void*);
-	WOO_CLASS_BASE_DOC_ATTRS(CylGlRep,NodeGlRep,"Render cylinder aligned with local x-axis, with color and radius given by val (and optionally val2).",
+	WOO_CLASS_BASE_DOC_ATTRS(CylGlRep,NodeVisRep,"Render cylinder aligned with local x-axis, with color and radius given by val (and optionally val2).",
 		((Real,rad,NaN,,"Scalar determining radius; 1 if NaN"))
 		((Real,col,NaN,,"Scalar determining color; *rad* is used if NaN."))
 		((Vector2r,xx,Vector2r(0,0),,"End positions on the local x-axis"))

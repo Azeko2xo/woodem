@@ -74,7 +74,7 @@ struct Law2_L6Geom_PelletPhys_Pellet: public LawFunctor{
 	void tryAddDissipState(int what, Real E, const shared_ptr<Contact>& C);
 
 	FUNCTOR2D(L6Geom,PelletPhys);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	static Real yieldForce          (Real uN, Real d0, Real kn, Real alpha, int yieldFunc=0, Real yf1_beta=0, Real yf1_w=0){
 		switch(yieldFunc){
 			case 0: return (-kn*d0/alpha)*log(alpha*(-uN/d0)+1);
@@ -128,7 +128,7 @@ struct PelletCData: public CData{
 WOO_REGISTER_OBJECT(PelletCData);
 
 struct PelletAgglomerator: public Engine{
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	void run();
 	WOO_CLASS_BASE_DOC_ATTRS(PelletAgglomerator,Engine,"Compute agglomeration of pellets due to contact some special particles, or wearing due to impacts (only applies to particles with :obj:`PelletMat`.",

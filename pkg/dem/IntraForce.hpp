@@ -8,7 +8,7 @@ struct IntraFunctor: public Functor2D<
 	/*retrun type*/    void,
 	/*argument types*/ TYPELIST_4(const shared_ptr<Shape>&, const shared_ptr<Material>&, const shared_ptr<Particle>&, const bool)
 >{
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	// called from IntraForce::critDt
 	virtual void addIntraStiffnesses(const shared_ptr<Particle>&, const shared_ptr<Node>&, Vector3r& ktrans, Vector3r& krot) const;
 	
@@ -22,7 +22,7 @@ struct IntraForce: public Dispatcher2D</* functor type*/ IntraFunctor, /* autosy
 	void addIntraStiffness(const shared_ptr<Particle>&, const shared_ptr<Node>&, Vector3r& ktrans, Vector3r& krot);
 	void run();
 	WOO_DISPATCHER2D_FUNCTOR_DOC_ATTRS_CTOR_PY(IntraForce,IntraFunctor,/*ClassObject instantiated by the macro*/.doc("Apply internal forces on integration nodes, by calling appropriate :obj:`IntraFunctor` objects.").section("Internal forces","TODO",{"IntraFunctor"}),/*attrs*/,/*ctor*/,/*py*/);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 };
 WOO_REGISTER_OBJECT(IntraForce);
 

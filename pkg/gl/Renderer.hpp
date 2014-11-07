@@ -55,7 +55,7 @@ struct Renderer: public Object{
 		static GlBoundDispatcher boundDispatcher;
 		static GlNodeDispatcher nodeDispatcher;
 		static GlCPhysDispatcher cPhysDispatcher;
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	public:
 		// updated after every call to render
 		static shared_ptr<Scene> scene;

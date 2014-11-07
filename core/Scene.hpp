@@ -6,6 +6,7 @@
 #include<woo/core/Plot.hpp>
 #include<woo/core/LabelMapper.hpp>
 #include<woo/core/Preprocessor.hpp>
+#include<woo/core/ScalarRange.hpp>
 
 #ifdef WOO_OPENCL
 	#define __CL_ENABLE_EXCEPTIONS
@@ -22,10 +23,6 @@
 
 struct Bound;
 struct Field;
-
-#ifdef WOO_OPENGL
-	struct ScalarRange;
-#endif
 
 struct Scene: public Object{
 		// this is managed by methods of Scene exclusively
@@ -69,9 +66,7 @@ struct Scene: public Object{
 
 		std::vector<shared_ptr<Engine> > pyEnginesGet();
 		void pyEnginesSet(const std::vector<shared_ptr<Engine> >&);
-		#ifdef WOO_OPENGL
-			shared_ptr<ScalarRange> getRange(const std::string& l) const;
-		#endif
+		shared_ptr<ScalarRange> getRange(const std::string& l) const;
 		
 		struct pyTagsProxy{
 			Scene* scene;
@@ -181,8 +176,8 @@ struct Scene: public Object{
 
 		#if WOO_OPENGL
 			((vector<shared_ptr<DisplayParameters>>,dispParams,,AttrTrait<Attr::hidden>().noGui(),"'hash maps' of display parameters (since woo::serialization had no support for maps, emulate it via vector of strings in format key=value)"))
-			((vector<shared_ptr<ScalarRange>>,ranges,,,"Scalar ranges to be rendered on the display as colormaps"))
 		#endif
+			((vector<shared_ptr<ScalarRange>>,ranges,,,"Scalar ranges to be rendered on the display as colormaps"))
 		((vector<shared_ptr<Object>>,any,,,"Storage for arbitrary Objects; meant for storing and loading static objects like Gl1_* functors to restore their parameters when scene is loaded."))
 		((py::object,pre,,AttrTrait<>().noGui(),"Preprocessor used for generating this simulation; to be only used in user scripts to query preprocessing parameters, not in c++ code."))
 
@@ -207,9 +202,7 @@ struct Scene: public Object{
 		.add_property("engines",&Scene::pyEnginesGet,&Scene::pyEnginesSet,"Engine sequence in the simulation")
 		.add_property("_currEngines",py::make_getter(&Scene::engines,py::return_value_policy<py::return_by_value>()),"Current engines, debugging only")
 		.add_property("_nextEngines",py::make_getter(&Scene::_nextEngines,py::return_value_policy<py::return_by_value>()),"Next engines, debugging only")
-		#ifdef WOO_OPENGL
-			.def("getRange",&Scene::getRange,"Retrieve a *ScalarRange* object by its label")
-		#endif
+		.def("getRange",&Scene::getRange,"Retrieve a *ScalarRange* object by its label")
 		#ifdef WOO_OPENCL
 			.def("ensureCl",&Scene::ensureCl,"[for debugging] Initialize the OpenCL subsystem (this is done by engines using OpenCL, but trying to do so in advance might catch errors earlier)")
 		#endif
@@ -229,7 +222,7 @@ struct Scene: public Object{
 		py::class_<Scene::pyTagsProxy>("TagsProxy",py::init<pyTagsProxy>()).def("__getitem__",&pyTagsProxy::getItem).def("__setitem__",&pyTagsProxy::setItem).def("__delitem__",&pyTagsProxy::delItem).def("has_key",&pyTagsProxy::has_key).def("__contains__",&pyTagsProxy::has_key).def("keys",&pyTagsProxy::keys).def("update",&pyTagsProxy::update).def("items",&pyTagsProxy::items).def("values",&pyTagsProxy::values);
 		Scene::PausedContextManager::pyRegisterClass();
 		);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 };
 
 WOO_REGISTER_OBJECT(Scene);

@@ -7,7 +7,7 @@
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_core_LabelMapper__CLASS_BASE_DOC_ATTRS_PY);
 
 WOO_PLUGIN(core,(LabelMapper));
-CREATE_LOGGER(LabelMapper);
+WOO_IMPL_LOGGER(LabelMapper);
 
 int LabelMapper::whereIs(const string& label) const {
 	if(pyMap.find(label)!=pyMap.end()) return IN_PY;

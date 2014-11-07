@@ -3,7 +3,7 @@
 #include"OpenGLManager.hpp"
 #include<woo/core/Timing.hpp>
 
-CREATE_LOGGER(OpenGLManager);
+WOO_IMPL_LOGGER(OpenGLManager);
 
 OpenGLManager* OpenGLManager::self=NULL;
 

@@ -53,7 +53,7 @@ struct Cg2_Wall_Sphere_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 	WOO_DECL__CLASS_BASE_DOC(woo_dem_Cg2_Wall_Sphere_L6Geom__CLASS_BASE_DOC);
 	FUNCTOR2D(Wall,Sphere);
 	DEFINE_FUNCTOR_ORDER_2D(Wall,Sphere);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 };
 WOO_REGISTER_OBJECT(Cg2_Wall_Sphere_L6Geom);
 
@@ -67,7 +67,7 @@ struct Cg2_Wall_Facet_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 	WOO_DECL__CLASS_BASE_DOC(woo_dem_Cg2_Wall_Facet_L6Geom__CLASS_BASE_DOC);
 	FUNCTOR2D(Wall,Facet);
 	DEFINE_FUNCTOR_ORDER_2D(Wall,Facet);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 };
 WOO_REGISTER_OBJECT(Cg2_Wall_Facet_L6Geom);
 
@@ -76,7 +76,7 @@ WOO_REGISTER_OBJECT(Cg2_Wall_Facet_L6Geom);
 #include<woo/pkg/gl/Functors.hpp>
 struct Gl1_Wall: public GlShapeFunctor{	
 	virtual void go(const shared_ptr<Shape>&, const Vector3r&, bool,const GLViewInfo&);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Wall,GlShapeFunctor,"Renders :obj:`woo.dem.Wall` object",
 		((int,div,20,,"Number of divisions of the wall inside visible scene part."))
 	);

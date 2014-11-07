@@ -3,8 +3,8 @@
 /*
  * This file defines various useful logging-related macros - userspace stuff is
  * - LOG_* for actual logging,
- * - DECLARE_LOGGER; that should be used in class header to create separate logger for that class,
- * - CREATE_LOGGER(className); that must be used in class implementation file to create the static variable.
+ * - WOO_DECL_LOGGER; that should be used in class header to create separate logger for that class,
+ * - WOO_IMPL_LOGGER(className); that must be used in class implementation file to create the static variable.
  *
  * Note that the latter 2 may change their name to something like LOG_DECLARE and LOG_CREATE, to be consistent.
  * Some other macros will be very likely added, to allow for easy variable tracing etc. Suggestions welcome.
@@ -55,8 +55,8 @@
 #	define LOG_ERROR(msg) {LOG4CXX_ERROR(logger, _LOG_HEAD<<msg);}
 #	define LOG_FATAL(msg) {LOG4CXX_FATAL(logger, _LOG_HEAD<<msg);}
 
-#	define DECLARE_LOGGER public: static log4cxx::LoggerPtr logger
-#	define CREATE_LOGGER(classname) log4cxx::LoggerPtr classname::logger = log4cxx::Logger::getLogger("woo." #classname)
+#	define WOO_DECL_LOGGER public: static log4cxx::LoggerPtr logger
+#	define WOO_IMPL_LOGGER(classname) log4cxx::LoggerPtr classname::logger = log4cxx::Logger::getLogger("woo." #classname)
 
 #else
 
@@ -70,8 +70,8 @@
 #	define LOG_ERROR(msg) _POOR_MANS_LOG("ERROR",msg)
 #	define LOG_FATAL(msg) _POOR_MANS_LOG("FATAL",msg)
 
-#	define DECLARE_LOGGER
-#	define CREATE_LOGGER(classname)
+#	define WOO_DECL_LOGGER
+#	define WOO_IMPL_LOGGER(classname)
 
 #endif
 

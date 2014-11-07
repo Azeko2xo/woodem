@@ -310,7 +310,7 @@ bool Cg2_Capsule_Capsule_L6Geom::go(const shared_ptr<Shape>& s1, const shared_pt
 }
 
 
-CREATE_LOGGER(Cg2_Facet_Capsule_L6Geom);
+WOO_IMPL_LOGGER(Cg2_Facet_Capsule_L6Geom);
 bool Cg2_Facet_Capsule_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
 	const auto& facet(s1->cast<Facet>()); const auto& cap(s2->cast<Capsule>());
 	// const auto& wallPos(wall.nodes[0]->pos);

@@ -14,7 +14,7 @@ struct DynDt: public PeriodicEngine{
 	Real critDt_compute(const shared_ptr<Scene>& s, const shared_ptr<DemField>& f){ scene=s.get(); field=f; return critDt_compute(); }
 	Real critDt_compute();
 	void postLoad(DynDt&,void*);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	shared_ptr<IntraForce> intraForce; // cache the dispatcher, if available
 	WOO_CLASS_BASE_DOC_ATTRS(DynDt,PeriodicEngine,"Adjusts :obj:`Scene.dt` based on current stiffness of particle contacts.",
 		((Real,maxRelInc,1e-4,AttrTrait<Attr::triggerPostLoad>(),"Maximum relative increment of timestep within one step, to void abrupt changes in timestep leading to numerical artefacts."))

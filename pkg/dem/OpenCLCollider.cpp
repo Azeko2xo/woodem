@@ -5,7 +5,7 @@
 
 WOO_PLUGIN(dem,(OpenCLCollider));
 
-CREATE_LOGGER(OpenCLCollider);
+WOO_IMPL_LOGGER(OpenCLCollider);
 
 #define OCLC_TIMING
 

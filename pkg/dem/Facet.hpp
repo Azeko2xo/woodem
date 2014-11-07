@@ -18,7 +18,7 @@ struct Facet: public Shape {
 		Vector3r getGlVertex(int i) const;
 		Vector3r getGlCentroid() const;
 	#endif
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	// return velocity which is linearly interpolated between velocities of facet nodes, and also angular velocity at that point
 	// takes fakeVel in account, with the NaN special case as documented
 	std::tuple<Vector3r,Vector3r> interpolatePtLinAngVel(const Vector3r& x) const;
@@ -78,7 +78,7 @@ struct Cg2_Facet_Sphere_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 	WOO_DECL__CLASS_BASE_DOC(woo_dem_Cg2_Facet_Sphere_L6Geom__CLASS_BASE_DOC);
 	FUNCTOR2D(Facet,Sphere);
 	DEFINE_FUNCTOR_ORDER_2D(Facet,Sphere);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 };
 WOO_REGISTER_OBJECT(Cg2_Facet_Sphere_L6Geom);
 
@@ -91,7 +91,7 @@ struct Cg2_Facet_Facet_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 	WOO_DECL__CLASS_BASE_DOC(woo_dem_Cg2_Facet_Facet_L6Geom__CLASS_BASE_DOC);
 	FUNCTOR2D(Facet,Facet);
 	DEFINE_FUNCTOR_ORDER_2D(Facet,Facet);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 };
 WOO_REGISTER_OBJECT(Cg2_Facet_Facet_L6Geom);
 
@@ -103,7 +103,7 @@ struct Cg2_Facet_InfCylinder_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 	WOO_DECL__CLASS_BASE_DOC(woo_dem_Cg2_Facet_InfCylinder_L6Geom__CLASS_BASE_DOC);
 	FUNCTOR2D(Facet,InfCylinder);
 	DEFINE_FUNCTOR_ORDER_2D(Facet,InfCylinder);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 };
 WOO_REGISTER_OBJECT(Cg2_Facet_InfCylinder_L6Geom);
 

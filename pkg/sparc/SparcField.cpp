@@ -13,8 +13,8 @@ using boost::format;
 
 WOO_PLUGIN(sparc,(SparcField)(SparcData)(ExplicitNodeIntegrator)(StaticEquilibriumSolver));
 
-CREATE_LOGGER(SparcField);
-CREATE_LOGGER(ExplicitNodeIntegrator);
+WOO_IMPL_LOGGER(SparcField);
+WOO_IMPL_LOGGER(ExplicitNodeIntegrator);
 
 void SparcField::constructLocator(){
 	locator=vtkPointLocator::New(); points=vtkPoints::New(); grid=vtkUnstructuredGrid::New(); grid->SetPoints(points); locator->SetDataSet(grid);
@@ -511,7 +511,7 @@ void ExplicitNodeIntegrator::run(){
 	};
 };
 
-CREATE_LOGGER(StaticEquilibriumSolver);
+WOO_IMPL_LOGGER(StaticEquilibriumSolver);
 
 int StaticEquilibriumSolver::ResidualsFunctorBase::operator()(const VectorXr &v, VectorXr& resid) const {
 	#ifdef SPARC_TRACE

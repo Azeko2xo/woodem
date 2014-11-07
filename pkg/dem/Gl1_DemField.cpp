@@ -19,7 +19,7 @@
 #endif
 
 WOO_PLUGIN(gl,(Gl1_DemField));
-CREATE_LOGGER(Gl1_DemField);
+WOO_IMPL_LOGGER(Gl1_DemField);
 
 bool Gl1_DemField::doPostLoad;
 unsigned int Gl1_DemField::mask;
@@ -392,7 +392,7 @@ void Gl1_DemField::doNodes(const vector<shared_ptr<Node>>& nodeContainer){
 
 
 void Gl1_DemField::doContactNodes(){
-	if(cNode==CNODE_NONE) return;
+	// if(cNode==CNODE_NONE) return;
 	Renderer::nodeDispatcher.scene=scene; Renderer::nodeDispatcher.updateScenePtr();
 	boost::mutex::scoped_lock lock(dem->contacts->manipMutex);
 	for(size_t i=0; i<dem->contacts->size(); i++){
@@ -474,11 +474,14 @@ void Gl1_DemField::go(const shared_ptr<Field>& demField, GLViewInfo* _viewInfo){
 	if(updateRefPos && periodic) scene->cell->refHSize=scene->cell->hSize;
 
 	if(shape!=SHAPE_NONE || shape2) doShape();
-	if(bound && !Renderer::fastDraw) doBound();
-	doNodes(dem->nodes);
-	if(deadNodes && !dem->deadNodes.empty()) doNodes(dem->deadNodes);
-	if(!Renderer::fastDraw) doContactNodes();
-	if(cPhys && !Renderer::fastDraw) doCPhys();
+
+	if(!Renderer::fastDraw){
+		if(bound) doBound();
+		doNodes(dem->nodes);
+		if(deadNodes && !dem->deadNodes.empty()) doNodes(dem->deadNodes);
+		if(cNode!=CNODE_NONE) doContactNodes();
+		if(cPhys) doCPhys();
+	}
 	updateRefPos=false;
 };
 

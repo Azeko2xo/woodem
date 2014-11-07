@@ -56,7 +56,7 @@ struct Cg2_Shape_Shape_L6Geom__Potential: public Cg2_Any_Any_L6Geom__Base{
 	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_Cg2_Shape_Shape_L6Geom__Potential__CLASS_BASE_DOC_ATTRS);
 	DEFINE_FUNCTOR_ORDER_2D(Shape,Shape);
 	FUNCTOR2D(Shape,Shape);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 };
 WOO_REGISTER_OBJECT(Cg2_Shape_Shape_L6Geom__Potential);
 #endif

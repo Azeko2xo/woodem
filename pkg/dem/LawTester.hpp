@@ -4,7 +4,7 @@
 #include<woo/pkg/dem/Particle.hpp>
 
 struct LawTesterStage: public Object{
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
 	bool pyBroken() const { return hadC && !hasC; }
 	bool pyRebound() const { return bounces>=2 || pyBroken(); }
@@ -36,7 +36,7 @@ struct LawTesterStage: public Object{
 WOO_REGISTER_OBJECT(LawTesterStage);
 
 struct LawTester: public Engine{
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	virtual void run();
 	void restart();

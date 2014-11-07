@@ -6,8 +6,8 @@ WOO_PLUGIN(dem,(ClumpData)(SphereClumpGeom));
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_SphereClumpGeom__CLASS_BASE_DOC_ATTRS_PY);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_ClumpData__CLASS_BASE_DOC_ATTRS);
 
-CREATE_LOGGER(ClumpData);
-CREATE_LOGGER(SphereClumpGeom);
+WOO_IMPL_LOGGER(ClumpData);
+WOO_IMPL_LOGGER(SphereClumpGeom);
 
 void SphereClumpGeom::postLoad(SphereClumpGeom&,void* attr){
 	if(attr==NULL){

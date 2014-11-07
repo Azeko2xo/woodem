@@ -50,7 +50,7 @@ struct Cg2_Capsule_Capsule_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 	WOO_DECL__CLASS_BASE_DOC(woo_dem_Cg2_Capsule_Capsule_L6Geom__CLASS_BASE_DOC);
 	FUNCTOR2D(Capsule,Capsule);
 	DEFINE_FUNCTOR_ORDER_2D(Capsule,Capsule);
-	//DECLARE_LOGGER;
+	//WOO_DECL_LOGGER;
 };
 WOO_REGISTER_OBJECT(Cg2_Capsule_Capsule_L6Geom);
 
@@ -86,7 +86,7 @@ struct Cg2_InfCylinder_Capsule_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 WOO_REGISTER_OBJECT(Cg2_InfCylinder_Capsule_L6Geom);
 
 struct Cg2_Facet_Capsule_L6Geom: public Cg2_Any_Any_L6Geom__Base{
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE;
 	#define woo_dem_Cg2_Facet_Capsule_L6Geom__CLASS_BASE_DOC \
 		Cg2_Facet_Capsule_L6Geom,Cg2_Any_Any_L6Geom__Base,"Compute :obj:`L6Geom` for contact of :obj:`~woo.dem.Capsule` and :obj:`~woo.dem.Facet`."

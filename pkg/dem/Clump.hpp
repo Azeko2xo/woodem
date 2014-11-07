@@ -4,7 +4,7 @@
 #include<woo/pkg/dem/ShapePack.hpp>
 
 struct SphereClumpGeom: public ShapeClump {
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	void postLoad(SphereClumpGeom&,void*);
 	// may fail when called from postLoad, but not from ensureOk()
 	void recompute(int div, bool failOk=false, bool fastOnly=false) WOO_CXX11_OVERRIDE;
@@ -52,7 +52,7 @@ struct ClumpData: public DemData{
 	// compute pos, ori, inertia given mass, first and second-order momenum
 	static void computePrincipalAxes(const Real& m, const Vector3r& Sg, const Matrix3r& Ig, Vector3r& pos, Quaternionr& ori, Vector3r& inertia);
 
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	#define woo_dem_ClumpData__CLASS_BASE_DOC_ATTRS \
 		ClumpData,DemData,"Data of a DEM particle which binds multiple particles together.", \
 		((vector<shared_ptr<Node>>,nodes,,AttrTrait<Attr::readonly>().noGui(),"Member nodes")) \

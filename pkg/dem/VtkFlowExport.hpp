@@ -41,7 +41,7 @@ struct VtkFlowExport: public PeriodicEngine{
 
 	void run(); 
 
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 

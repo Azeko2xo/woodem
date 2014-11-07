@@ -11,7 +11,7 @@
 
 WOO_PLUGIN(dem,(ParticleContainer));
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_ParticleContainer__CLASS_BASE_DOC_ATTRS_PY);
-CREATE_LOGGER(ParticleContainer);
+WOO_IMPL_LOGGER(ParticleContainer);
  
 void ParticleContainer::clear(){
 	parts.clear();

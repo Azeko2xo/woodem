@@ -35,7 +35,7 @@ class RenderMutexLock: public boost::mutex::scoped_lock{
 	~RenderMutexLock(){/* cerr<<"Unlock renderMutex"<<endl;*/ }
 };
 
-CREATE_LOGGER(Master);
+WOO_IMPL_LOGGER(Master);
 
 #ifdef __MINGW64__
 /* make sure that both sets of env vars define variable *name* the same way */

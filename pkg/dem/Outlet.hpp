@@ -8,7 +8,7 @@
 #endif
 
 struct Outlet: public PeriodicEngine{
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
 	virtual bool isInside(const Vector3r& p) { throw std::runtime_error(pyStr()+" did not override Outlet::isInside."); }
 	void run();

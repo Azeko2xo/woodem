@@ -37,7 +37,7 @@ struct Cg2_InfCylinder_Sphere_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 	WOO_DECL__CLASS_BASE_DOC(woo_dem_Cg2_InfCylinder_Sphere_L6Geom__CLASS_BASE_DOC);
 	FUNCTOR2D(InfCylinder,Sphere);
 	DEFINE_FUNCTOR_ORDER_2D(InfCylinder,Sphere);
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 };
 WOO_REGISTER_OBJECT(Cg2_InfCylinder_Sphere_L6Geom);
 

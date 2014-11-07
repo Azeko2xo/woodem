@@ -29,7 +29,7 @@ struct LabelMapper: public Object{
 	int __len__() const;
 	py::list __dir__(const string& prefix="") const;
 
-	DECLARE_LOGGER;
+	WOO_DECL_LOGGER;
 
 	static string pyAsStr(const py::object& o);
 

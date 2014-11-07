@@ -10,7 +10,7 @@
 
 
 WOO_PLUGIN(dem,(PsdSphereGenerator));
-CREATE_LOGGER(PsdSphereGenerator);
+WOO_IMPL_LOGGER(PsdSphereGenerator);
 #ifndef WOO_NOCAPSULE
 	WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_PharmaCapsuleGenerator__CLASS_BASE_DOC_ATTRS);
 #endif
@@ -186,7 +186,7 @@ py::tuple PsdSphereGenerator::pyInputPsd(bool normalize, bool cumulative, int nu
 **********************************************/
 
 WOO_PLUGIN(dem,(PsdClumpGenerator));
-CREATE_LOGGER(PsdClumpGenerator);
+WOO_IMPL_LOGGER(PsdClumpGenerator);
 
 Real PsdClumpGenerator::critDt(Real density, Real young) {
 	if(psdPts.empty()) return Inf;
@@ -282,7 +282,7 @@ PsdClumpGenerator::operator()(const shared_ptr<Material>&mat,const Real& time){
 **********************************************/
 
 WOO_PLUGIN(dem,(PsdCapsuleGenerator)(PharmaCapsuleGenerator));
-CREATE_LOGGER(PsdCapsuleGenerator);
+WOO_IMPL_LOGGER(PsdCapsuleGenerator);
 
 
 Real PharmaCapsuleGenerator::critDt(Real density, Real young){
@@ -373,7 +373,7 @@ PsdCapsuleGenerator::operator()(const shared_ptr<Material>&mat, const Real& time
 **********************************************/
 
 WOO_PLUGIN(dem,(PsdEllipsoidGenerator));
-CREATE_LOGGER(PsdEllipsoidGenerator);
+WOO_IMPL_LOGGER(PsdEllipsoidGenerator);
 
 
 vector<ParticleGenerator::ParticleAndBox>

@@ -8,7 +8,7 @@ WOO_PLUGIN(dem,(AnisoPorosityAnalyzer));
 WOO_PLUGIN(gl,(GlExtra_AnisoPorosityAnalyzer));
 #endif
 
-CREATE_LOGGER(AnisoPorosityAnalyzer);
+WOO_IMPL_LOGGER(AnisoPorosityAnalyzer);
 
 Real AnisoPorosityAnalyzer::relSolid(Real theta, Real phi, Vector3r pt0, bool vis){
 	setField();

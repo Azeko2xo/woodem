@@ -13,7 +13,7 @@
 #include<vtkXMLImageDataWriter.h>
 
 WOO_PLUGIN(dem,(FlowAnalysis));
-CREATE_LOGGER(FlowAnalysis);
+WOO_IMPL_LOGGER(FlowAnalysis);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_FlowAnalysis__CLASS_BASE_DOC_ATTRS_PY);
 
 

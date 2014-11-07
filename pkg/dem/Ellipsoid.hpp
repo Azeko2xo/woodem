@@ -58,7 +58,7 @@ struct Cg2_Ellipsoid_Ellipsoid_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_Cg2_Ellipsoid_Ellipsoid_L6Geom__CLASS_BASE_DOC_ATTRS);
 	FUNCTOR2D(Ellipsoid,Ellipsoid);
 	DEFINE_FUNCTOR_ORDER_2D(Ellipsoid,Ellipsoid);
-	//DECLARE_LOGGER;
+	//WOO_DECL_LOGGER;
 };
 WOO_REGISTER_OBJECT(Cg2_Ellipsoid_Ellipsoid_L6Geom);
 

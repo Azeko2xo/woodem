@@ -11,7 +11,7 @@
 #include<woo/pkg/dem/Funcs.hpp>
 
 WOO_PLUGIN(dem,(VtkExport));
-CREATE_LOGGER(VtkExport);
+WOO_IMPL_LOGGER(VtkExport);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_VtkExport__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 
 

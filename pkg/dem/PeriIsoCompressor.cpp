@@ -9,7 +9,7 @@
 #include<woo/pkg/dem/Leapfrog.hpp>
 #include<woo/lib/pyutil/gil.hpp>
 
-CREATE_LOGGER(PeriIsoCompressor);
+WOO_IMPL_LOGGER(PeriIsoCompressor);
 
 WOO_PLUGIN(dem,(PeriIsoCompressor))
 
@@ -110,7 +110,7 @@ void PeriIsoCompressor::run(){
 
 
 
-CREATE_LOGGER(WeirdTriaxControl);
+WOO_IMPL_LOGGER(WeirdTriaxControl);
 WOO_PLUGIN(dem,(WeirdTriaxControl))
 
 void WeirdTriaxControl::run(){
