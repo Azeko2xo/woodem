@@ -13,7 +13,7 @@
 /*! Object representing infinite plane aligned with the coordinate system (axis-aligned wall). */
 struct Wall: public Shape{
 	int numNodes() const WOO_CXX11_OVERRIDE { return 1; }
-	void updateMassInertia(const Real& density) const WOO_CXX11_OVERRIDE;
+	void lumpMassInertia(const shared_ptr<Node>&, Real density, Real& mass, Matrix3r& I, bool& rotateOk) WOO_CXX11_OVERRIDE;
 	#define woo_dem_Wall__CLASS_BASE_DOC_ATTRS_CTOR \
 		Wall,Shape,"Object representing infinite plane aligned with the coordinate system (axis-aligned wall).", \
 		((int,sense,0,,"Which side of the wall interacts: -1 for negative only, 0 for both, +1 for positive only.")) \

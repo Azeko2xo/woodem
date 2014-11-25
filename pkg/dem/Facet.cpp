@@ -1,5 +1,6 @@
 #include<woo/pkg/dem/Facet.hpp>
 #include<woo/lib/base/CompUtils.hpp>
+#include<woo/lib/base/Volumetric.hpp>
 #include<boost/range/algorithm/count_if.hpp>
 
 #ifdef WOO_OPENGL
@@ -30,13 +31,27 @@ void Facet::selfTest(const shared_ptr<Particle>& p){
 	if(ffCon>0) LOG_WARN("Facet.selfTest: Facet #"<<p->id<<" has "<<ffCon<<" contacts with other facets. This is not per se an error though very likely unintended -- there is no functor to handle such contact and it will be uselessly recomputed in every step. Set both particles masks to have some DemField.loneMask bits and contact will not be created at all.");
 }
 
-void Facet::updateMassInertia(const Real& density) const {
+void Facet::lumpMassInertia(const shared_ptr<Node>& n, Real density, Real& mass, Matrix3r& I, bool& rotateOk){
 	checkNodesHaveDemData();
-	for(int i:{0,1,2}){
-		auto& dyn(nodes[i]->getData<DemData>());
-		dyn.mass=0;
-		dyn.inertia=Vector3r::Zero();
-	}
+	rotateOk=true;
+	if(!(halfThick>0)) return;
+	auto N=std::find_if(nodes.begin(),nodes.end(),[&n](const shared_ptr<Node>& n2){ return n.get()==n2.get(); });
+	if(N==nodes.end()){ /* LOG_WARN("Facet::lumpMassInertia: called with node not belonging to the facet."); */ return;	}
+	size_t ix=N-nodes.begin();
+	// midpoint local coords
+	Vector3r vv[2]; for(int i:{1,2}) vv[i-1]=.5*n->glob2loc(nodes[(ix+i)%3]->pos);
+	Vector3r C=n->glob2loc(getCentroid());
+	cerr<<ix<<"; "<<vv[0].transpose()<<"; "<<vv[1].transpose()<<"; "<<C.transpose()<<endl;
+	cerr<<woo::Volumetric::triangleInertia(Vector3r::Zero(),vv[0],vv[1])<<endl;	
+	cerr<<woo::Volumetric::triangleInertia(vv[0],vv[1],C)<<endl;
+	I+=density*(2*halfThick)*woo::Volumetric::triangleInertia(Vector3r::Zero(),vv[0],vv[1]);
+	//cerr<<I<<endl;
+	I+=density*(2*halfThick)*woo::Volumetric::triangleInertia(vv[0],vv[1],C);
+	//cerr<<I<<endl;
+	mass+=density*(2*halfThick)*woo::Volumetric::triangleArea(Vector3r::Zero(),vv[0],vv[1]);
+	//cerr<<mass<<endl;
+	mass+=density*(2*halfThick)*woo::Volumetric::triangleArea(vv[0],vv[1],C);
+	//cerr<<mass<<endl;
 }
 
 

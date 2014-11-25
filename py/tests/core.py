@@ -128,7 +128,7 @@ class TestObjectInstantiation(unittest.TestCase):
 		# loaded copy has the default value
 		self.assert_(t2.noSaveAttr==i0)
 	def testNoSave_static(self):
-		'Cote:: Attr::noSave (static)'
+		'Core: Attr::noSave (static)'
 		ts=self.ts
 		ts.noSave=344
 		ts.namedEnum='one'
@@ -209,7 +209,7 @@ class TestObjectInstantiation(unittest.TestCase):
 		self.assert_(tt.namedEnum=='one')
 
 	def testBits(self):
-		'Core:: AttrTrait.bits accessors' 
+		'Core: AttrTrait.bits accessors' 
 		t=self.t
 		# flags and bits read-write
 		t.bits=1
@@ -353,7 +353,7 @@ class TestParticles(unittest.TestCase):
 		S.dem.par.add([utils.sphere([random.random(),random.random(),random.random()],random.random()) for i in range(0,self.count)])
 		random.seed()
 	def testIterate(self):
-		"Particles: Iteration"
+		"Particles: iteration"
 		counted=0
 		S=woo.master.scene
 		for b in S.dem.par: counted+=1
@@ -374,11 +374,11 @@ class TestParticles(unittest.TestCase):
 			S.dem.par.remove(i)
 			self.assert_(len(S.dem.par)==i)
 	def testNegativeIndex(self):
-		"Particles: Negative index counts backwards (like python sequences)."
+		"Particles: negative index counts backwards (like python sequences)."
 		S=woo.master.scene
 		self.assert_(S.dem.par[-1]==S.dem.par[self.count-1])
 	def testRemovedIterate(self):
-		"Particles: Iterator silently skips erased ones"
+		"Particles: iterator silently skips erased particles"
 		S=woo.master.scene
 		removed,counted=0,0
 		for i in range(0,10):

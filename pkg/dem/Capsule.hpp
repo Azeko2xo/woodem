@@ -17,7 +17,7 @@ struct Capsule: public Shape{
 	void setFromRaw(const Vector3r& _center, const Real& _radius, const vector<Real>& raw) WOO_CXX11_OVERRIDE;
 	void asRaw(Vector3r& _center, Real& _radius, vector<Real>& raw) const WOO_CXX11_OVERRIDE;
 	// recompute inertia and mass
-	void updateMassInertia(const Real& density) const WOO_CXX11_OVERRIDE;
+	void lumpMassInertia(const shared_ptr<Node>& n, Real density, Real& mass, Matrix3r& I, bool& rotateOk) WOO_CXX11_OVERRIDE;
 	Real equivRadius() const WOO_CXX11_OVERRIDE;
 	Real volume() const WOO_CXX11_OVERRIDE;
 	bool isInside(const Vector3r& pt) const WOO_CXX11_OVERRIDE;

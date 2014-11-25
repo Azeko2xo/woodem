@@ -34,13 +34,14 @@ bool woo::Ellipsoid::isInside(const Vector3r& pt) const {
 	return pow(l[0]/semiAxes[0],2)+pow(l[1]/semiAxes[1],2)+pow(l[2]/semiAxes[2],2)<=1;
 }
 
-
-void woo::Ellipsoid::updateMassInertia(const Real& density) const {
+void woo::Ellipsoid::lumpMassInertia(const shared_ptr<Node>&, Real density, Real& mass, Matrix3r& I, bool& rotateOk){
+	rotateOk=false;
 	checkNodesHaveDemData();
-	auto& dyn=nodes[0]->getData<DemData>();
-	dyn.mass=(4/3.)*M_PI*semiAxes.prod()*density;
-	dyn.inertia=(1/5.)*dyn.mass*Vector3r(pow(semiAxes[1],2)+pow(semiAxes[2],2),pow(semiAxes[2],2)+pow(semiAxes[0],2),pow(semiAxes[0],2)+pow(semiAxes[1],2));
-};
+	Real m=(4/3.)*M_PI*semiAxes.prod()*density;
+	mass+=m;
+	I.diagonal()+=(1/5.)*m*Vector3r(pow(semiAxes[1],2)+pow(semiAxes[2],2),pow(semiAxes[2],2)+pow(semiAxes[0],2),pow(semiAxes[0],2)+pow(semiAxes[1],2));
+}
+
 
 void woo::Ellipsoid::asRaw(Vector3r& _center, Real& _radius, vector<Real>& raw) const{
 	_center=nodes[0]->pos;

@@ -11,12 +11,11 @@ WOO_PLUGIN(dem,(InfCylinder)(Bo1_InfCylinder_Aabb)(Cg2_InfCylinder_Sphere_L6Geom
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_InfCylinder__CLASS_BASE_DOC_ATTRS_CTOR);
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_InfCylinder_Sphere_L6Geom__CLASS_BASE_DOC);
 
-void InfCylinder::updateMassInertia(const Real& density) const {
-	checkNodesHaveDemData();
-	auto& dyn(nodes[0]->getData<DemData>());
-	dyn.mass=0;
-	dyn.inertia=Vector3r(Inf,Inf,Inf);
-}
+void InfCylinder::lumpMassInertia(const shared_ptr<Node>&, Real density, Real& mass, Matrix3r& I, bool& rotateOk){
+	mass+=Inf;
+	I.diagonal()+=Vector3r(Inf,Inf,Inf);
+	rotateOk=false;
+}	
 
 
 void Bo1_InfCylinder_Aabb::go(const shared_ptr<Shape>& sh){

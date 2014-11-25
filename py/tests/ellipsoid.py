@@ -62,5 +62,14 @@ class TestEllipsoid(unittest.TestCase):
 		#self.S.saveTmp()
 		#for scale in [.1,1.,10.]:
 		#	gOri=Quaternion((1,2,3),math.pi/4.) # some random orientation
+	def testMassInertia(self):
+		'Ellipsoid: mass and inertia computation'
+		a,b,c=1,2,3
+		rho=1
+		e=Ellipsoid.make(center=(0,0,0),semiAxes=(a,b,c),mat=FrictMat(density=rho))
+		m=rho*(4/3.)*math.pi*a*b*c
+		I=(1/5.)*m*Vector3(b**2+c**2,a**2+c**2,a**2+b**2)
+		self.assertAlmostEqual(e.mass,m)
+		self.assertAlmostEqual(e.inertia,I)
 
 

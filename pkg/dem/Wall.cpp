@@ -14,11 +14,11 @@ WOO_IMPL__CLASS_BASE_DOC(woo_dem_In2_Wall_ElastMat__CLASS_BASE_DOC);
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Wall_Sphere_L6Geom__CLASS_BASE_DOC);
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Wall_Facet_L6Geom__CLASS_BASE_DOC);
 
-void Wall::updateMassInertia(const Real& density) const {
-	checkNodesHaveDemData();
-	auto& dyn(nodes[0]->getData<DemData>());
-	dyn.mass=0;
-	dyn.inertia=Vector3r::Zero();
+
+void Wall::lumpMassInertia(const shared_ptr<Node>&, Real density, Real& mass, Matrix3r& I, bool& rotateOk){
+	rotateOk=true;
+	// don't add nothing
+	return;
 }
 
 void Bo1_Wall_Aabb::go(const shared_ptr<Shape>& sh){

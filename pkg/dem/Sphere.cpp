@@ -21,11 +21,13 @@ AlignedBox3r woo::Sphere::alignedBox() const {
 	AlignedBox3r ret; ret.extend(nodes[0]->pos-radius*Vector3r::Ones()); ret.extend(nodes[0]->pos+radius*Vector3r::Ones()); return ret;
 }
 
-void woo::Sphere::updateMassInertia(const Real& density) const {
+void woo::Sphere::lumpMassInertia(const shared_ptr<Node>& n, Real density, Real& mass, Matrix3r& I, bool& rotateOk){
+	if(n.get()!=nodes[0].get()) return;
 	checkNodesHaveDemData();
-	auto& dyn=nodes[0]->getData<DemData>();
-	dyn.mass=(4/3.)*M_PI*pow(radius,3)*density;
-	dyn.inertia=Vector3r::Ones()*(2./5.)*dyn.mass*pow(radius,2);
+	rotateOk=true;
+	Real m=(4/3.)*M_PI*pow(radius,3)*density;
+	mass+=m;
+	I.diagonal()+=Vector3r::Ones()*(2./5.)*m*pow(radius,2);
 };
 
 void woo::Sphere::setFromRaw(const Vector3r& _center, const Real& _radius, const vector<Real>& raw) {

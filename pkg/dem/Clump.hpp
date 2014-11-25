@@ -42,16 +42,6 @@ struct ClumpData: public DemData{
 	static void applyToMembers(const shared_ptr<Node>&, bool resetForceTorque=false);
 	static void resetForceTorque(const shared_ptr<Node>&);
 
-	//! Recalculates inertia tensor of a body after translation away from (default) or towards its centroid.
-	static Matrix3r inertiaTensorTranslate(const Matrix3r& I,const Real m, const Vector3r& off);
-	//! Recalculate body's inertia tensor in rotated coordinates.
-	static Matrix3r inertiaTensorRotate(const Matrix3r& I, const Matrix3r& T);
-	//! Recalculate body's inertia tensor in rotated coordinates.
-	static Matrix3r inertiaTensorRotate(const Matrix3r& I, const Quaternionr& rot);
-
-	// compute pos, ori, inertia given mass, first and second-order momenum
-	static void computePrincipalAxes(const Real& m, const Vector3r& Sg, const Matrix3r& Ig, Vector3r& pos, Quaternionr& ori, Vector3r& inertia);
-
 	WOO_DECL_LOGGER;
 	#define woo_dem_ClumpData__CLASS_BASE_DOC_ATTRS \
 		ClumpData,DemData,"Data of a DEM particle which binds multiple particles together.", \

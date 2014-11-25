@@ -6,7 +6,7 @@ import woo.dem
 
 
 def findPV():
-	'Find Paraview executable in the system. Under Windows (64bit only), this entails searching the registry (see `this post <http://www.paraview.org/pipermail/paraview/2010-August/018645.html>`__), under Linux, just return ``paraview`` and suppose the executable is in the ``$PATH``.'
+	'Find Paraview executable in the system. Under Windows (64bit only), this entails searching the registry (see `this post <http://www.paraview.org/pipermail/paraview/2010-August/018645.html>`__); under Linux, look in ``$PATH44 for executable called ``paraview``. Returns ``None`` is Paraview is not found.'
 	import sys,operator
 	if sys.platform=='win32':
 		# oh gee...
@@ -28,13 +28,13 @@ def findPV():
 			for i in range(0,winreg.QueryInfoKey(aKey)[0]):
 				keyname=winreg.EnumKey(aKey,i)
 				if not keyname.startswith('ParaView '):
-					print 'no match:',keyname
+					# print 'no match:',keyname
 					continue
 				subKey=winreg.OpenKey(aKey,keyname)
 				paraviews.append((keyname,subKey))
 		# sort lexically using key name and use the last one (highest version)
 		pv=sorted(paraviews,key=operator.itemgetter(1))
-		if not pv: raise RuntimeError('ParaView installation not found in registry.')
+		if not pv: return None # raise RuntimeError('ParaView installation not found in registry.')
 		pvName,pvKey=pv[-1]
 		pvExec=''
 		for i in range(0,winreg.QueryInfoKey(pvKey)[1]):
@@ -42,17 +42,22 @@ def findPV():
 			if key=='':
 				pvExec=val+'/bin/paraview'
 				break
-		if not pvExec: raise RuntimeError('ParaView installation: found in registry, but default key is missing...?')
+		if not pvExec: return None # raise RuntimeError('ParaView installation: found in registry, but default key is missing...?')
 		return pvExec
 	else:
-		# on Linux, assume it is in $PATH
-		return 'paraview'
+		# on Linux, find it in $PATH
+		import distutils.spawn
+		return distutils.spawn.find_executable('paraview')
 
 def launchPV(script):
-	'Launch paraview as background process, passing --script=*script* as the only argument.'
+	'Launch paraview as background process, passing --script=*script* as the only argument. If Paraview executable is not found via :obj:`findPV`, only a warning is printed and Paraview is not launched.'
 	import subprocess
 	# will launch it in the background
-	cmd=[findPV(),'--script='+script]
+	pv=findPV()
+	if not pv:
+		print 'Paraview not executed since the executable was not found.'
+		return
+	cmd=[pv,'--script='+script]
 	print 'Running ',' '.join(cmd)
 	subprocess.Popen(cmd)
 
@@ -231,7 +236,7 @@ if hasattr(sys,'argv') and len(sys.argv)>1:
 					ar.write(f,out0+'/'+fn)
 					ff2.append(fn)
 				newFiles[fff]=ff2
-			for ff in ('splitFile','flowMeshFile','flowFile'):
+			for ff in ('splitFile','flowMeshFile','flowFile','tracesFile'):
 				f=eval(ff)
 				fn=os.path.basename(f)
 				newFiles[ff]=fn
@@ -244,7 +249,7 @@ if hasattr(sys,'argv') and len(sys.argv)>1:
 			ll=[]
 			for l in open(sys.argv[0]):
 				var=l.split('=',1)[0]
-				if var in ('sphereFiles','meshFiles','conFiles','triFiles','splitFile','flowMeshFile','flowFile'):
+				if var in ('sphereFiles','meshFiles','conFiles','triFiles','splitFile','flowMeshFile','flowFile','tracesFile'):
 					if type(newFiles[var])==list: ll.append(var+'='+str(newFiles[var])+'\n')
 					else: ll.append(var+"='"+newFiles[var]+"'\n")
 				else: ll.append(l)

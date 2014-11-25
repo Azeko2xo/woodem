@@ -491,7 +491,7 @@ def createPlots(P,subPlots=True,noShow=False,replace=True,scatterSize=60,wider=F
 					evEx=eval(ys[0][(2 if ys[0].startswith('**') else 1):],{'S':P.scene})
 					yNameFuncs.add(evEx)  # add callable or dictionary
 					# XXX: what is ys[1]? Previously, there was no line specifier there for dicts at least
-					print evEx,type(evEx), evEx.__iter__(),type(evEx.__iter__())
+					# print evEx,type(evEx), evEx.__iter__(),type(evEx.__iter__())
 					ySpecs2+=[(ret,ys[1]) for ret in evEx] # traverse list or dict keys
 				else: ySpecs2.append(ys)
 			if len(ySpecs2)==0:

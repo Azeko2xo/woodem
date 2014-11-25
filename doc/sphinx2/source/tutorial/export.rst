@@ -156,7 +156,7 @@ Movies in Paraview can be created using :menuselection:`File --> Save Animation`
 :obj:`~woo.dem.VtkExport`
 -------------------------
 
-:obj:`~woo.dem.VtkExport` is a :obj:`periodic engine <woo.core.PeriodicEngine>` which saves particles and contacts in regular intervals; this results in several time-series of data which can be used e.g. to create beautiful movies from Paraview; Paraview visualization capabilities are far more advanced than what the 3d view in Woo offers, which is in contract more DEM-specific, thus more useful in other situations.
+:obj:`~woo.dem.VtkExport` is a :obj:`periodic engine <woo.core.PeriodicEngine>` which saves particles and contacts in regular intervals; this results in several time-series of data which can be used e.g. to create beautiful movies from Paraview; Paraview visualization capabilities are far more advanced than what the 3d view in Woo offers, which is in contrast more DEM-specific, thus more useful in other situations.
 
 .. ipython::
 

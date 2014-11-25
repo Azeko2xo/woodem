@@ -1,5 +1,6 @@
 #include<woo/pkg/dem/Clump.hpp>
 #include<woo/pkg/dem/Funcs.hpp>
+#include<woo/lib/base/Volumetric.hpp>
 
 WOO_PLUGIN(dem,(ClumpData)(SphereClumpGeom));
 
@@ -100,7 +101,7 @@ void SphereClumpGeom::recompute(int _div, bool failOk, bool fastOnly){
 			Real v=(4/3.)*M_PI*pow(r,3);
 			volume+=v;
 			Sg+=v*x;
-			Ig+=ClumpData::inertiaTensorTranslate(Vector3r::Constant((2/5.)*v*pow(r,2)).asDiagonal(),v,-1.*x);
+			Ig+=woo::Volumetric::inertiaTensorTranslate(Vector3r::Constant((2/5.)*v*pow(r,2)).asDiagonal(),v,-1.*x);
 		}
 	} else {
 		// intersecting: grid sampling
@@ -135,7 +136,7 @@ void SphereClumpGeom::recompute(int _div, bool failOk, bool fastOnly){
 			}
 		}
 	}
-	ClumpData::computePrincipalAxes(volume,Sg,Ig,pos,ori,inertia);
+	woo::Volumetric::computePrincipalAxes(volume,Sg,Ig,pos,ori,inertia);
 	equivRad=(inertia.array()/volume).sqrt().mean(); // mean of radii of gyration
 }
 
@@ -173,23 +174,6 @@ std::tuple<vector<shared_ptr<Node>>,vector<shared_ptr<Particle>>> SphereClumpGeo
 }
 
 
-
-void ClumpData::computePrincipalAxes(const Real& M, const Vector3r& Sg, const Matrix3r& Ig, Vector3r& pos, Quaternionr& ori, Vector3r& inertia){
-	assert(M>0); LOG_TRACE("M=\n"<<M<<"\nIg=\n"<<Ig<<"\nSg=\n"<<Sg);
-	// clump's centroid
-	pos=Sg/M;
-	// this will calculate translation only, since rotation is zero
-	Matrix3r Ic_orientG=inertiaTensorTranslate(Ig, -M /* negative mass means towards centroid */, pos); // inertia at clump's centroid but with world orientation
-	LOG_TRACE("Ic_orientG=\n"<<Ic_orientG);
-	Ic_orientG(1,0)=Ic_orientG(0,1); Ic_orientG(2,0)=Ic_orientG(0,2); Ic_orientG(2,1)=Ic_orientG(1,2); // symmetrize
-	Eigen::SelfAdjointEigenSolver<Matrix3r> decomposed(Ic_orientG);
-	const Matrix3r& R_g2c(decomposed.eigenvectors());
-	// has NaNs for identity matrix??
-	LOG_TRACE("R_g2c=\n"<<R_g2c);
-	// set quaternion from rotation matrix
-	ori=Quaternionr(R_g2c); ori.normalize();
-	inertia=decomposed.eigenvalues();
-}
 
 
 shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, shared_ptr<Node> centralNode, bool intersecting){
@@ -229,10 +213,10 @@ shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, shared
 		if(dem.parRef.empty()) woo::RuntimeError("Node "+lexical_cast<string>(n)+": back-references (demData.parRef) empty (Node does not belong to any particle)");
 		M+=dem.mass;
 		Sg+=dem.mass*n->pos;
-		Ig+=inertiaTensorTranslate(inertiaTensorRotate(dem.inertia.asDiagonal(),n->ori.conjugate()),dem.mass,-1.*n->pos);
+		Ig+=woo::Volumetric::inertiaTensorTranslate(woo::Volumetric::inertiaTensorRotate(dem.inertia.asDiagonal(),n->ori.conjugate()),dem.mass,-1.*n->pos);
 	}
 	if(M>0){
-		computePrincipalAxes(M,Sg,Ig,cNode->pos,cNode->ori,clump->inertia);
+		woo::Volumetric::computePrincipalAxes(M,Sg,Ig,cNode->pos,cNode->ori,clump->inertia);
 		clump->mass=M;
 		clump->equivRad=(clump->inertia.array()/clump->mass).sqrt().mean();
 	} else {
@@ -294,39 +278,5 @@ void ClumpData::resetForceTorque(const shared_ptr<Node>& node){
 		DemData& nDyn(clump.nodes[i]->getData<DemData>());
 		nDyn.force=nDyn.torque=Vector3r::Zero();
 	}
-}
-
-/*! @brief Recalculates inertia tensor of a body after translation away from (default) or towards its centroid.
- *
- * @param I inertia tensor in the original coordinates; it is assumed to be upper-triangular (elements below the diagonal are ignored).
- * @param m mass of the body; if positive, translation is away from the centroid; if negative, towards centroid.
- * @param off offset of the new origin from the original origin
- * @return inertia tensor in the new coordinate system; the matrix is symmetric.
- */
-Matrix3r ClumpData::inertiaTensorTranslate(const Matrix3r& I,const Real m, const Vector3r& off){
-	// short eigen implementation; check it gives the same result as above
-	return I+m*(off.dot(off)*Matrix3r::Identity()-off*off.transpose());
-}
-
-/*! @brief Recalculate body's inertia tensor in rotated coordinates.
- *
- * @param I inertia tensor in old coordinates
- * @param T rotation matrix from old to new coordinates
- * @return inertia tensor in new coordinates
- */
-Matrix3r ClumpData::inertiaTensorRotate(const Matrix3r& I,const Matrix3r& T){
-	/* [http://www.kwon3d.com/theory/moi/triten.html] */
-	return T.transpose()*I*T;
-}
-
-/*! @brief Recalculate body's inertia tensor in rotated coordinates.
- *
- * @param I inertia tensor in old coordinates
- * @param rot quaternion that describes rotation from old to new coordinates
- * @return inertia tensor in new coordinates
- */
-Matrix3r ClumpData::inertiaTensorRotate(const Matrix3r& I, const Quaternionr& rot){
-	Matrix3r T=rot.toRotationMatrix();
-	return inertiaTensorRotate(I,T);
 }
 

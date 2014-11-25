@@ -178,7 +178,8 @@ def dbReadResults(db,basicTypes=False):
 	'''
 	import numpy, sqlite3, json, woo.core
 	try:
-		import h5py
+		import h5py, h5py.h5f
+		if not h5py.h5f.is_hdf5(db): raise IOError('Not a HDF5 file.')
 		hdf=h5py.File(db,'r',libver='latest')
 	except (ImportError,IOError):
 		# connect always succeeds, as it seems, even if the type is not sqlite3 db
@@ -313,7 +314,9 @@ def dbToSpread(db,out=None,dialect='xls',rows=False,series=True,ignored=('plotDa
 	seriesData={}
 	# open db and get rows
 	try:
-		import h5py
+		import h5py, h5py.h5f
+		# check first, to avoid warning from h5py.File in stderr
+		if not h5py.h5f.is_hdf5(db): raise IOError('Not a HDF5 file.')
 		hdf=h5py.File(db,'r',libver='latest')
 	except (ImportError,IOError):
 		# connect always succeeds, as it seems, even if the type is not sqlite3 db

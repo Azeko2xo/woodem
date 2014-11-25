@@ -73,7 +73,7 @@ Vector3r Shape::avgNodePos(){
 	return ret/sz;
 }
 
-void Particle::updateMassInertia() const {
+void Particle::updateMassInertia() {
 	if(!shape) throw std::runtime_error("Particle.shape==None");
 	if(!material) throw std::runtime_error("Particle.material==None");
 	shape->updateMassInertia(material->density);
@@ -84,9 +84,29 @@ void Shape::checkNodesHaveDemData() const{
 	for(const auto& n: nodes){ if(!n->hasData<DemData>()) woo::AttributeError(pyStr()+": Node.dem==None."); } 
 }
 
-void Shape::updateMassInertia(const Real& density) const{
-	throw std::runtime_error(getClassName()+"::updateMassInertia: not implemented for this shape.");
+void Shape::updateMassInertia(const Real& density) {
+	if(nodes.size()==1 && nodes[0]->getData<DemData>().parRef.size()<=1){ // parRef is perhaps not yet updated here, accept zero as well
+		Real m(0.); Matrix3r I(Matrix3r::Zero()); bool rotateOk;
+		lumpMassInertia(nodes[0],density,m,I,rotateOk);
+		if(!I.isDiagonal()) throw std::runtime_error("Inertia tensor is not diagonal for mononodal shape "+pyStr()+" ?");
+		auto& dyn=nodes[0]->getData<DemData>();
+		dyn.inertia=I.diagonal();
+		dyn.mass=m;
+	} else {
+		throw std::runtime_error(pyStr()+"::updateMassInertia: only works for unshared nodes (parRef.size()="+to_string(nodes[0]->getData<DemData>().parRef.size())+") and uninodal particles (nodes.size()="+to_string(nodes.size())+")");
+	}
 }
+
+void Shape::lumpMassInertia(const shared_ptr<Node>&, Real density, Real& mass, Matrix3r& I, bool& rotateOk){
+	throw std::runtime_error(pyStr()+": lumpMassInertia not implemented.");
+}
+
+py::tuple Shape::pyLumpMassInertia(const shared_ptr<Node>& n, Real density){
+	Real m(0.); Matrix3r I(Matrix3r::Zero()); bool rotateOk;
+	lumpMassInertia(n,density,m,I,rotateOk);
+	return py::make_tuple(m,I,rotateOk);
+}
+
 
 
 int Particle::countRealContacts() const{
@@ -129,6 +149,35 @@ void DemData::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){
 	blocked_vec_set(strEx());
 	py::api::delitem(kw,"blocked");
 }
+
+
+
+void DemData::setOriMassInertia(const shared_ptr<Node>& n, const Real& density){
+	if(!n->hasData<DemData>()) throw std::runtime_error("DemData::setOriMassInertia: "+n->pyStr()+" has no DemData.");
+	auto& dyn=n->getData<DemData>();
+	Matrix3r I(Matrix3r::Zero()); Real mass=0.;
+	bool rotateOk=true;
+	for(auto& p: dyn.parRef){
+		if(!p->shape) continue;
+		bool rot=true;
+		p->shape->lumpMassInertia(n,density,mass,I,rotateOk);
+		if(!rot) rotateOk=false;
+	}
+	if(I.isDiagonal()){
+		dyn.mass=mass;
+		dyn.inertia=I.diagonal();
+		return;
+	}
+	if(!rotateOk) throw std::runtime_error("DemData::setOriMassInertia: inertia matrix computed from "+to_string(dyn.parRef.size())+" particles attached to "+n->pyStr()+" is not diagonal, and at least one particle refused to change node's orientation.");
+	// rotate the node so that inertia is diagonal
+	cerr<<I<<endl;
+	Eigen::SelfAdjointEigenSolver<Matrix3r> eig(I);
+	Quaternionr rot=Quaternionr(eig.eigenvectors()).normalized();
+	n->ori=rot*n->ori;
+	dyn.inertia=eig.eigenvalues();
+	dyn.mass=mass;
+	// throw std::runtime_error("DemData::setOriMassInertia: handling of non-diagonal inertia tensor not yet implemented.");
+};
 
 
 

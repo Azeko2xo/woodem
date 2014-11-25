@@ -39,19 +39,28 @@ bool Capsule::isInside(const Vector3r& pt) const{
 void Capsule::applyScale(Real scale){ radius*=scale; shaft*=scale; }
 
 
-
-void Capsule::updateMassInertia(const Real& density) const {
+void Capsule::lumpMassInertia(const shared_ptr<Node>& n, Real density, Real& mass, Matrix3r& I, bool& rotateOk){
+	if(n.get()!=nodes[0].get()) return; // not our node
+	rotateOk=false; // node may not be rotated without geometry change
 	checkNodesHaveDemData();
-	auto& dyn=nodes[0]->getData<DemData>();
 	Real r2(pow(radius,2)), r3(pow(radius,3));
 	Real mCaps=(4/3.)*M_PI*r3*density;
 	Real mShaft=M_PI*r2*shaft*density;
 	Real distCap=.5*shaft+(3/8.)*radius; // distance between centroid and the cap's centroid
 	Real Ix=2*mCaps*r2/5.+.5*mShaft*r2;
 	Real Iy=(83/320.)*mCaps*r2+mCaps*pow(distCap,2)+(1/12.)*mShaft*(3*r2+pow(shaft,2));
-	dyn.inertia=Vector3r(Ix,Iy,Iy);
-	dyn.mass=mCaps+mShaft;
+	I.diagonal()+=Vector3r(Ix,Iy,Iy);
+	mass+=mCaps+mShaft;
+
 }
+
+#if 0
+void Capsule::updateMassInertia(const Real& density) {
+	Real m(0.); Matrix3r I(Matrix3r::Zero()); bool rotateOk;
+	lumpMassInertia(nodes[0],density,m,I,rotateOk);
+	// FIXME: only correct if this is the only particle in the node
+}
+#endif
 
 AlignedBox3r Capsule::alignedBox() const {
 	const auto& pos(nodes[0]->pos); const auto& ori(nodes[0]->ori);

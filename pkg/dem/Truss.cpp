@@ -1,20 +1,27 @@
 #include<woo/pkg/dem/Truss.hpp>
-WOO_PLUGIN(dem,(Truss)(Bo1_Truss_Aabb)(In2_Truss_ElastMat)(Cg2_Truss_Sphere_L6Geom));
+
+WOO_PLUGIN(dem,(Rod)(Truss)(Bo1_Rod_Aabb)(In2_Truss_ElastMat)(Cg2_Truss_Sphere_L6Geom));
+
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_Rod__CLASS_BASE_DOC_ATTRS_CTOR);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_Truss__CLASS_BASE_DOC_ATTRS_CTOR);
 WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cg2_Truss_Sphere_L6Geom__CLASS_BASE_DOC);
 
-void Truss::updateMassInertia(const Real& density) const {
-	checkNodesHaveDemData();
-	for(int i:{0,1}){
-		auto& dyn(nodes[i]->getData<DemData>());
-		dyn.mass=0;
-		dyn.inertia=Vector3r::Zero();
-	}
+void Rod::lumpMassInertia(const shared_ptr<Node>&, Real density, Real& mass, Matrix3r& I, bool& rotateOk){
+	throw std::runtime_error("Rod::lumpMassInertia: not yet implemented.");
+	#if 0
+		checkNodesHaveDemData();
+		for(int i:{0,1}){
+			auto& dyn(nodes[i]->getData<DemData>());
+			dyn.mass=0;
+			dyn.inertia=Vector3r::Zero();
+		}
+	#endif
 }
 
 
-void Bo1_Truss_Aabb::go(const shared_ptr<Shape>& sh){
+void Bo1_Rod_Aabb::go(const shared_ptr<Shape>& sh){
 	assert(sh->numNodesOk());
-	Truss& t=sh->cast<Truss>();
+	Rod& t=sh->cast<Rod>();
 	if(!t.bound){ t.bound=make_shared<Aabb>(); /* ignore node rotation*/ t.bound->cast<Aabb>().maxRot=-1; }
 	Aabb& aabb=sh->bound->cast<Aabb>();
 	// TODO: fix caps and so on; for now, approximate, a bit larger than necessary.
@@ -98,7 +105,7 @@ bool Cg2_Truss_Sphere_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<S
 	Real unDistSq=relPos.squaredNorm()-pow(s.radius+t.radius,2); // no distFactor here
 
 	// TODO: find closest point of sharp-cut ends, remove this error
-	if(!(t.caps|Truss::CAP_A) || !(t.caps|Truss::CAP_B)) throw std::runtime_error("Cg2_Sphere_Truss_L6Geom: only handles capped trusses for now.");
+	// if(!(t.caps|Truss::CAP_A) || !(t.caps|Truss::CAP_B)) throw std::runtime_error("Cg2_Sphere_Truss_L6Geom: only handles capped trusses for now.");
 
 	if (unDistSq>0 && !C->isReal() && !force) return false;
 
@@ -124,29 +131,30 @@ bool Cg2_Truss_Sphere_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<S
 
 
 #ifdef WOO_OPENGL
-WOO_PLUGIN(gl,(Gl1_Truss));
+WOO_PLUGIN(gl,(Gl1_Rod));
 #include<woo/lib/opengl/OpenGLWrapper.hpp>
 #include<woo/lib/opengl/GLUtils.hpp>
 #include<woo/lib/base/CompUtils.hpp>
-bool Gl1_Truss::wire;
-int Gl1_Truss::slices;
-int Gl1_Truss::stacks;
-Vector2r Gl1_Truss::stressRange;
-bool Gl1_Truss::colorStress;
-void Gl1_Truss::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool wire2, const GLViewInfo&){
-	const Truss& t(shape->cast<Truss>());
+bool Gl1_Rod::wire;
+int Gl1_Rod::slices;
+int Gl1_Rod::stacks;
+Vector2r Gl1_Rod::stressRange;
+bool Gl1_Rod::colorStress;
+void Gl1_Rod::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool wire2, const GLViewInfo&){
+	const Rod& t(shape->cast<Rod>());
 	assert(t.numNodesOk());
-	Vector3r color;
-	if(!colorStress) color=Vector3r(NaN,NaN,NaN); // keep current
-	else {
-		stressRange[0]=min(stressRange[0],t.axialStress);
-		stressRange[1]=max(stressRange[1],t.axialStress);
-		color=CompUtils::scalarOnColorScale(t.axialStress,stressRange[0],stressRange[1]);
-	}
+	#if 0
+		Vector3r color;
+		if(!colorStress) color=Vector3r(NaN,NaN,NaN); // keep current
+		else {
+			stressRange[0]=min(stressRange[0],t.axialStress);
+			stressRange[1]=max(stressRange[1],t.axialStress);
+			color=CompUtils::scalarOnColorScale(t.axialStress,stressRange[0],stressRange[1]);
+		}
+	#endif
 	glShadeModel(GL_SMOOTH);
-	GLUtils::Cylinder(t.nodes[0]->pos+shift,t.nodes[1]->pos+shift,t.radius,color,t.getWire()||wire2,/*caps*/false,t.radius,slices,stacks);
+	GLUtils::Cylinder(t.nodes[0]->pos+shift,t.nodes[1]->pos+shift,t.radius,/*color*/Vector3r(NaN,NaN,NaN),t.getWire()||wire2,/*caps*/false,t.radius,slices,stacks);
 	for(int end=0; end<2; end++){
-		if(!(t.caps&(end==0?Truss::CAP_A:Truss::CAP_B))) continue;
 		glPushMatrix();
 			glTranslatev(t.nodes[end]->pos);
 			// do not use stack value here, that is for cylinder length subdivision

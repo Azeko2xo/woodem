@@ -9,7 +9,7 @@ Meshes
 STL import
 ===========
 
-`STL (STereoLitography) file format <http://en.wikipedia.org/wiki/STL_%28file_format%29>`__ is an interchange format for triangulated sorfaces in 3d. It is used as a possible export format in many CAD systems. There is a single function for their import, :obj:`woo.utils.importSTL <_utils2.importSTL>` which return list of facet particles, which can be added to the simulation instantly::
+`STL (STereoLitography) file format <http://en.wikipedia.org/wiki/STL_%28file_format%29>`__ is an interchange format for triangulated surfaces in 3d. It is used as a possible export format in many CAD systems. There is a single function for their import, :obj:`woo.utils.importSTL <_utils2.importSTL>` which return list of facet particles, which can be added to the simulation instantly::
 
    S.dem.par.add(woo.utils.importSTL('your-model.stl'),mat=woo.utils.defaultMaterial())
 
@@ -24,9 +24,9 @@ The :obj:`woo.utils.importSTL <_utils2.importSTL>` function has options for scal
 Parametric surfaces
 ====================
 
-`GNU Triangulated Surface library <http://gts.sourceforce.net>`__ is a library for constructing and manipulating triangulated surfaces. There are a few convenience functions in Woo for converting lists of points into a GTS surface, which can be again converted to list of facets easily, and added to the simulation.
+`GNU Triangulated Surface library <http://gts.sourceforge.net>`__ is a library for constructing and manipulating triangulated surfaces. There are a few convenience functions in Woo for converting lists of points into a GTS surface, which can be again converted to list of facets easily, and added to the simulation.
 
-For example, let's create V-shaped conveyor bed with flad bottom. Let's work in local coordinates first, so that :math:`x`-axis is the conveyor axis, :math:`y` is horizontal and :math:`z` is vertical. The dimensions of the bed will be:
+For example, let's create V-shaped conveyor bed with flat bottom. Let's work in local coordinates first, so that :math:`x`-axis is the conveyor axis, :math:`y` is horizontal and :math:`z` is vertical. The dimensions of the bed will be:
 
 * ``botWd``, flat bottom width
 * ``sideWd``, elevated side width

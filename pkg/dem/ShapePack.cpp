@@ -1,5 +1,6 @@
 #include<woo/pkg/dem/ShapePack.hpp>
 #include<woo/pkg/dem/Clump.hpp>
+#include<woo/lib/base/Volumetric.hpp>
 
 #include<woo/pkg/dem/Sphere.hpp>
 #include<woo/pkg/dem/Capsule.hpp>
@@ -149,7 +150,7 @@ void RawShapeClump::recompute(int _div, bool failOk/* =false */, bool fastOnly/*
 				const Vector3r& x(n->pos);
 				volume+=v;
 				Sg+=v*x;
-				Ig+=ClumpData::inertiaTensorTranslate(n->getData<DemData>().inertia.asDiagonal(),v,-1.*x);
+				Ig+=woo::Volumetric::inertiaTensorTranslate(n->getData<DemData>().inertia.asDiagonal(),v,-1.*x);
 			}
 		}
 	} else {
@@ -184,7 +185,7 @@ void RawShapeClump::recompute(int _div, bool failOk/* =false */, bool fastOnly/*
 			}
 		}
 	}
-	ClumpData::computePrincipalAxes(volume,Sg,Ig,pos,ori,inertia);
+	woo::Volumetric::computePrincipalAxes(volume,Sg,Ig,pos,ori,inertia);
 	equivRad=(inertia.array()/volume).sqrt().mean(); // mean of radii of gyration
 }
 

@@ -66,7 +66,7 @@ struct Particle: public Object{
 	static shared_ptr<Particle> make(const shared_ptr<Shape>&, const shared_ptr<Material>&, bool fixed=false);
 
 	// call Shape.updateMassInertia(mat.density): convenience function
-	void updateMassInertia() const;
+	void updateMassInertia();
 
 	// return internal reference for refPos with OpenGL
 	// without OpenGL, there is nothing like that
@@ -222,6 +222,11 @@ public:
 	void addParRef(const shared_ptr<Particle>&);
 	void addParRef_raw(Particle*);
 	shared_ptr<Node> pyGetMaster(){ return master.lock(); }
+
+	//! Attempt to compute node's orientation (if allowed), mass and inertia
+	// by asking particles in parRef to do that; this assumes the particles
+	// are not overlapping
+	static void setOriMassInertia(const shared_ptr<Node>& n, const Real& density);
 	
 	// type for back-referencing particle which has this node;
 	// cannot be shared_ptr, as it would be circular
@@ -255,6 +260,7 @@ public:
 		.add_property("master",&DemData::pyGetMaster) \
 		.add_property("parRef",&DemData::pyParRef_get).def("addParRef",&DemData::addParRef) \
 		.add_property("isAspherical",&DemData::isAspherical,"Return ``True`` when inertia components are not equal.") \
+		.def("setOriMassInertia",&DemData::setOriMassInertia,"Lump mass and inertia from all attached particles and attempt to rotate the node so that its axes are principal axes of inertia, if allowed by particles shape (without chaning the geometry).").staticmethod("setOriMassInertia") \
 		.def("_getDataOnNode",&Node::pyGetData<DemData>).staticmethod("_getDataOnNode").def("_setDataOnNode",&Node::pySetData<DemData>).staticmethod("_setDataOnNode")
 
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_DemData__CLASS_BASE_DOC_ATTRS_PY);
@@ -372,7 +378,14 @@ struct Shape: public Object, public Indexable{
 	#endif
 
 	// update mass and inertia of this object
-	virtual void updateMassInertia(const Real& density) const;
+	virtual void updateMassInertia(const Real& density);
+
+	// add mass and inertia for given node to m and J, in node's coordinate system
+	// rotateOk indicates whether the node may rotate without changing the geometry (as for spheres or facets)
+	virtual void lumpMassInertia(const shared_ptr<Node>&, Real density, Real& mass, Matrix3r& I, bool& rotateOk);
+	py::tuple pyLumpMassInertia(const shared_ptr<Node>& n, Real density);
+
+
 	// return equivalent radius of the particle, or NaN if not defined by the shape
 	virtual Real equivRadius() const { return NaN; }
 	virtual Real volume() const { return NaN; }
@@ -391,6 +404,7 @@ struct Shape: public Object, public Indexable{
 			.def("asRaw",&Shape::pyAsRaw) \
 			.def("setFromRaw",&Shape::setFromRaw) \
 			.def("isInside",&Shape::isInside) \
+			.def("lumpMassInertia",&Shape::pyLumpMassInertia) \
 			WOO_PY_TOPINDEXABLE(Shape) \
 			; \
 			woo::converters_cxxVector_pyList_2way<shared_ptr<Shape>>();

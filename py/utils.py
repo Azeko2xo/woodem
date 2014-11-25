@@ -49,7 +49,7 @@ def defaultMaterial():
 def defaultEngines(damping=0.,gravity=None,verletDist=-.05,kinSplit=False,dontCollect=False,noSlip=False,noBreak=False,cp2=None,law=None,model=None,grid=False,dynDtPeriod=100):
 	"""Return default set of engines, suitable for basic simulations during testing."""
 	if gravity: raise ValueError("gravity MUST NOT be specified anymore, set DemField.gravity=... instead.")
-	if not grid: collider=InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb(),Bo1_Wall_Aabb(),Bo1_InfCylinder_Aabb(),Bo1_Ellipsoid_Aabb(),Bo1_Truss_Aabb()]+([] if 'nocapsule' in woo.config.features else [Bo1_Capsule_Aabb()]),label='collider',verletDist=verletDist)
+	if not grid: collider=InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb(),Bo1_Wall_Aabb(),Bo1_InfCylinder_Aabb(),Bo1_Ellipsoid_Aabb(),Bo1_Rod_Aabb()]+([] if 'nocapsule' in woo.config.features else [Bo1_Capsule_Aabb()]),label='collider',verletDist=verletDist)
 	else: collider=GridCollider([Grid1_Sphere(),Grid1_Facet(),Grid1_Wall(),Grid1_InfCylinder()],label='collider',verletDist=verletDist)
 	if model:
 		if cp2 or law: warnings.warn("cp2 and law args are ignored when model is provided.")
@@ -75,7 +75,11 @@ def _commonBodySetup(b,nodes,mat,fixed=False):
 	elif callable(mat): b.mat=mat()
 	else: raise TypeError("The 'mat' argument must be Material instance, or a callable returning Material.");
 	b.shape.nodes=nodes
-	b.updateMassInertia()
+	if len(nodes)==1:
+		b.updateMassInertia()
+	else:
+		for n in b.shape.nodes:
+			n.mass=0; n.inertia=Vector3.Zero
 	for i,n in enumerate(b.nodes):
 		n.dem.addParRef(b) # tell the node that it has that particle
 		if fixed==None: pass # do not modify blocked at all

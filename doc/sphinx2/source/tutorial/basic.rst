@@ -11,7 +11,7 @@ Basics
 Scene
 =======
 
-The whole simulation is contained in a single :obj:`woo.core.Scene` object, which contains the rest; a scene can be can be loaded from and saved to a file, just like any other object. Scene defines things like timestep (:obj:`~woo.core.Scene.dt`) or periodic boundary conditions (:obj:`~woo.core.Scene.cell`).
+The whole simulation is contained in a single :obj:`woo.core.Scene` object, which contains the rest; a scene can be loaded from and saved to a file, just like any other object. Scene defines things like timestep (:obj:`~woo.core.Scene.dt`) or periodic boundary conditions (:obj:`~woo.core.Scene.cell`).
 
 It also contains several :obj:`fields <woo.core.Field>`; each field is dedicated to a one simulation method, and the fields can be semi-independent. As we go for a DEM simulation, the important field for us is a :obj:`~woo.dem.DemField`; that is the one containing particles and contacts (we deal with that later); we can also define gravity acceleration for this field by setting :obj:`DemField.gravity <woo.dem.DemField.gravity>`.
 

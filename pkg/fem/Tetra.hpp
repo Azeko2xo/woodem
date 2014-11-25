@@ -29,10 +29,9 @@ struct Tetra: public Shape {
 	// Real getPerimeterSq() const; 
 	// generic routine: return nearest point on triangle closes to *pt*, given triangle vertices and its normal
 	// static Vector3r getNearestTrianglePt(const Vector3r& pt, const Vector3r& A, const Vector3r& B, const Vector3r& C, const Vector3r& normal);
-	// defaults
-	void updateMassInertia(const Real& density) const WOO_CXX11_OVERRIDE;
 
-	//
+	void lumpMassInertia(const shared_ptr<Node>&, Real density, Real& mass, Matrix3r& I, bool& rotateOk) WOO_CXX11_OVERRIDE;
+
 	#define woo_fem_Tetra__CLASS_BASE_DOC_ATTRS_CTOR_PY \
 		Tetra,Shape,"Tetra (triangle in 3d) particle.", \
 		/*((Real,halfThick,0.,,"Geometric thickness (added in all directions)"))*/ \

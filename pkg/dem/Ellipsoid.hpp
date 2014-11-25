@@ -17,8 +17,9 @@ namespace woo{
 		// return extent along one global axis
 		Real axisExtent(short axis) const;
 		Real rotatedExtent(short axis, const Quaternionr& ori) const; //with additional rotation
-		// update dynamic properties (mass, intertia) of the sphere based on current radius
-		void updateMassInertia(const Real& density) const WOO_CXX11_OVERRIDE;
+		// update dynamic properties (mass, intertia) of the ellipsoid based on semiAxes and density
+		void lumpMassInertia(const shared_ptr<Node>&, Real density, Real& mass, Matrix3r& I, bool& rotateOk) WOO_CXX11_OVERRIDE;
+
 		Real equivRadius() const WOO_CXX11_OVERRIDE;
 		Real volume() const WOO_CXX11_OVERRIDE;
 		bool isInside(const Vector3r& pt) const WOO_CXX11_OVERRIDE;

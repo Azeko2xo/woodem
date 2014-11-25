@@ -117,7 +117,7 @@ There are some generators which are not based on PSD; one of them is :obj:`woo.d
 Inlets
 ==========
 
-Newly created particles must be placed in the simulation space, without colliding with existing particles; this is the task of :obj:`~woo.dem.Inlet`. The mass rate of particles generated is can be always obtained by querying :obj:`~woo.dem.Inlet.currRate`.
+Newly created particles must be placed in the simulation space, without colliding with existing particles; this is the task of :obj:`~woo.dem.Inlet`. The mass rate of particles generated can be always obtained by querying :obj:`~woo.dem.Inlet.currRate`.
 
 Random
 -------
