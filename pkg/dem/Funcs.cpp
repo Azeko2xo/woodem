@@ -549,7 +549,7 @@ vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const s
 #include<woo/pkg/dem/Tracer.hpp>
 
 
-bool DemFuncs::vtkExportTraces(const shared_ptr<Scene>& scene, const shared_ptr<DemField>& dem, const string& filename){
+bool DemFuncs::vtkExportTraces(const shared_ptr<Scene>& scene, const shared_ptr<DemField>& dem, const string& filename, const Vector2i& moduloOffset){
 	auto polyData=vtkSmartPointer<vtkPolyData>::New();
 	auto points=vtkSmartPointer<vtkPoints>::New();
 	auto cellArray=vtkSmartPointer<vtkCellArray>::New();
@@ -561,6 +561,7 @@ bool DemFuncs::vtkExportTraces(const shared_ptr<Scene>& scene, const shared_ptr<
 
 	for(const auto& n: dem->nodes){
 		const auto& dyn=n->getData<DemData>();
+		if(moduloOffset[0]>0 && ((dyn.linIx-moduloOffset[1])%moduloOffset[0])!=0) continue;
 		if(dyn.parRef.size()!=1) continue; // skip nodes with more than 1 particle
 		const Particle* p=dyn.parRef.front();
 		if(!n->rep || !n->rep->isA<TraceVisRep>()) continue;
