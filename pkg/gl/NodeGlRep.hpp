@@ -3,6 +3,7 @@
 #pragma once
 
 #include<woo/core/Field.hpp>
+#include<woo/core/ScalarRange.hpp>
 
 struct LabelGlRep: public NodeVisRep{
 	void render(const shared_ptr<Node>&, const GLViewInfo*);

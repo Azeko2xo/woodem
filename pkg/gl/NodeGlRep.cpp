@@ -6,7 +6,9 @@
 #include<woo/lib/opengl/GLUtils.hpp>
 #include<woo/lib/base/CompUtils.hpp>
 #include<woo/core/Scene.hpp>
+#include<woo/core/ScalarRange.hpp>
 #include<woo/pkg/gl/Renderer.hpp>
+
 
 #include<GL/gle.h>
 
