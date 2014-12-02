@@ -29,6 +29,8 @@ struct PelletMatState: public MatState{
 		switch(index){
 			case 0: return "normal+shear dissipation";
 			case 1: return "agglom. rate [kg/s]";
+			case 2: return "cum. agglom. [kg]";
+			case 3: return "cum. agglom. angle [rad]";
 			default: return "";
 		}
 	}
@@ -37,6 +39,8 @@ struct PelletMatState: public MatState{
 			case 0: return normPlast+shearPlast;
 			// invalid value if not yet updated in this step
 			case 1: return (step<0||smooth<=0)?agglomRate:pow(smooth,step-stepAgglomUpdated)*agglomRate;
+			case 2: return cumAgglomMass;
+			case 3: return cumAgglomAngle;
 			default: return NaN;	
 		}
 	}
@@ -45,6 +49,8 @@ struct PelletMatState: public MatState{
 		((Real,shearPlast,0,,"Plastic energy dissipated in the tangential sense"))
 		((Real,agglomRate,NaN,,"Agglomeration speed"))
 		((long,stepAgglomUpdated,-1,,"Step in which the agglomeration speed was updated for the last time."))
+		((Real,cumAgglomMass,0,,"Cumulative mass agglomerated by this particle."))
+		((Real,cumAgglomAngle,0,,"Cumulative length of rolling when agglomeration was active."))
 	);
 };
 WOO_REGISTER_OBJECT(PelletMatState);

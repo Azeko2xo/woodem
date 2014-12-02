@@ -437,7 +437,7 @@ void Gl1_Capsule::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool
 	// 1st rotation: rotate around x so that vertices or segments of cylinder and half-spheres coindice
 	Quaternionr axisRot=/* Quaternionr(AngleAxisr(M_PI/2.,Vector3r::UnitX()))* */Quaternionr(AngleAxisr(M_PI/2.,Vector3r::UnitY())); // XXX: to be fixed
 	GLUtils::setLocalCoords(dPos+shape->nodes[0]->pos+shift,(dOri*shape->nodes[0]->ori*axisRot));
-	int cylStacks(.5*(shaft/r)*quality*glutStacks); // approx the same dist as on the caps
+	int cylStacks(max(1.,.5*(shaft/r)*quality*glutStacks)); // approx the same dist as on the caps
 	if (wire || wire2 ){
 		glLineWidth(1.);
 		if(!smooth) glDisable(GL_LINE_SMOOTH);

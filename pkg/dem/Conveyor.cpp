@@ -132,7 +132,7 @@ void ConveyorInlet::postLoad(ConveyorInlet&,void* attr){
 	if(shapePack){
 		size_t N=shapePack->raws.size();
 		centers.resize(N); radii.resize(N);
-		LOG_WARN("Copying data from shapePack over to centers, radii ("<<N<<" items).");
+		LOG_INFO("Copying data from shapePack over to centers, radii ("<<N<<" items).");
 		for(size_t i=0; i<N; i++){
 			centers[i]=shapePack->raws[i]->pos;
 			radii[i]=shapePack->raws[i]->equivRad;

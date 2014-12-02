@@ -1,5 +1,6 @@
 #include<woo/pkg/dem/Pellet.hpp>
 #include<woo/pkg/dem/Sphere.hpp>
+#include<woo/pkg/dem/Capsule.hpp>
 WOO_PLUGIN(dem,(PelletMat)(PelletMatState)(PelletPhys)(Cp2_PelletMat_PelletPhys)(Law2_L6Geom_PelletPhys_Pellet)(PelletCData)(PelletAgglomerator));
 
 void Cp2_PelletMat_PelletPhys::go(const shared_ptr<Material>& m1, const shared_ptr<Material>& m2, const shared_ptr<Contact>& C){
@@ -128,15 +129,18 @@ void PelletAgglomerator::run(){
 			const shared_ptr<Contact>& c(idCon.second);
 			if(!c->isReal()) continue;
 			Particle* other(c->leakOther(src.get()));
-			if(!other->shape->isA<Sphere>()) continue; // other particles is not a sphere
-			Sphere& sphere=other->shape->cast<Sphere>();
+			Real* radius=nullptr;
+			// if(!other->shape->isA<Sphere>()) continue; // other particles is not a sphere
+			if(other->shape->isA<Sphere>()) radius=&(other->shape->cast<Sphere>().radius);
+			else if(other->shape->isA<Capsule>()) radius=&(other->shape->cast<Capsule>().radius);
+			else continue;
 			assert(dynamic_pointer_cast<L6Geom>(c->geom));
 			// radius change
 			// angVel is local already
 			Real dMass=c->geom->cast<L6Geom>().angVel.tail<2>().norm()*scene->dt*massIncPerRad;
-			Real newVol=(4/3.)*M_PI*pow(sphere.radius,3)+dMass/other->material->density;
-			sphere.radius=cbrt(3*newVol/(4*M_PI));
-			sphere.updateMassInertia(other->material->density);
+			Real newVol=(4/3.)*M_PI*pow(*radius,3)+dMass/other->material->density;
+			*radius=cbrt(3*newVol/(4*M_PI));
+			other->shape->updateMassInertia(other->material->density);
 			if(!other->matState) other->matState=make_shared<PelletMatState>();
 			assert(dynamic_pointer_cast<PelletMatState>(other->matState));
 			auto& pms=other->matState->cast<PelletMatState>();
@@ -146,6 +150,9 @@ void PelletAgglomerator::run(){
 			if(lambda>0){
 				other->shape->nodes[0]->getData<DemData>().angVel*=(1-lambda*scene->dt);
 			}
+			boost::mutex::scoped_lock l(pms.lock);
+			pms.cumAgglomMass+=dMass;
+			pms.cumAgglomAngle+=c->geom->cast<L6Geom>().angVel.tail<2>().norm()*scene->dt;
 		}
 	}
 };
