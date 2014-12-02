@@ -10,6 +10,7 @@
 #include<boost/regex.hpp>
 
 #include<woo/lib/pyutil/except.hpp>
+#include<woo/lib/pyutil/converters.hpp>
 #include<woo/lib/pyutil/gil.hpp>
 
 

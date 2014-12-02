@@ -6,6 +6,8 @@
 
 #include<woo/core/Scene.hpp>
 #include<woo/pkg/dem/Particle.hpp> // for Particle::id_t
+#include<woo/lib/pyutil/converters.hpp>
+
 
 struct Particle;
 struct Scene;

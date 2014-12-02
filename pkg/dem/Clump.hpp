@@ -2,6 +2,8 @@
 #include<woo/pkg/dem/Particle.hpp>
 #include<woo/lib/sphere-pack/SpherePack.hpp>
 #include<woo/pkg/dem/ShapePack.hpp>
+#include<woo/lib/pyutil/converters.hpp>
+
 
 struct SphereClumpGeom: public ShapeClump {
 	WOO_DECL_LOGGER;

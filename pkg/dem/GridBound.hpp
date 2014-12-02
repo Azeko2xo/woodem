@@ -1,5 +1,7 @@
 #pragma once
 #include<woo/pkg/dem/Collision.hpp>
+#include<woo/lib/pyutil/converters.hpp>
+
 
 struct GridCollider;
 struct GridStore;

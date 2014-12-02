@@ -1,6 +1,8 @@
 #pragma once
 #include<woo/core/Dispatcher.hpp>
 #include<woo/pkg/dem/Particle.hpp>
+#include<woo/lib/pyutil/converters.hpp>
+
 
 #ifdef WOO_OPENGL
 #include<woo/pkg/gl/Functors.hpp>

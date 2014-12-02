@@ -6,8 +6,10 @@
 #include<woo/core/Field-templates.hpp>
 #include<woo/pkg/dem/ParticleContainer.hpp>
 #include<woo/pkg/dem/ContactContainer.hpp>
+#include<woo/lib/pyutil/converters.hpp>
 #include<atomic>
 #include<boost/utility/binary.hpp>
+
 
 // namespace woo{namespace dem{
 

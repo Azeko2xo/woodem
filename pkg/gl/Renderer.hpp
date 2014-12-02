@@ -4,6 +4,8 @@
 #ifdef WOO_OPENGL
 
 #include<woo/lib/multimethods/DynLibDispatcher.hpp>
+#include<woo/lib/pyutil/converters.hpp>
+
 #include<woo/core/Dispatcher.hpp>
 #include<woo/lib/opengl/OpenGLWrapper.hpp>
 

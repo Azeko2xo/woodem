@@ -2,6 +2,8 @@
 
 #include<woo/pkg/dem/Impose.hpp>
 #include<woo/pkg/dem/Particle.hpp>
+#include<woo/lib/pyutil/converters.hpp>
+
 
 struct LawTesterStage: public Object{
 	WOO_DECL_LOGGER;

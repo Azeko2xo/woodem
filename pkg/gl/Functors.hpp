@@ -6,6 +6,8 @@
 
 #include<woo/lib/multimethods/FunctorWrapper.hpp>
 #include<woo/core/Dispatcher.hpp>
+#include<woo/lib/pyutil/converters.hpp>
+
 
 
 #define RENDERS(name) public: virtual string renders() const { return #name;}; FUNCTOR1D(name);

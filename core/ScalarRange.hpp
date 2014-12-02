@@ -2,6 +2,7 @@
 
 #include<woo/lib/base/Types.hpp>
 #include<woo/lib/object/Object.hpp>
+#include<woo/lib/pyutil/converters.hpp>
 
 #ifdef WOO_OPENGL
 	struct QglMovableObject;
