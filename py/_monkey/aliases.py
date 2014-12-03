@@ -106,6 +106,7 @@ try:
 	dem.Wall.make=staticmethod(woo.utils.wall)
 	dem.InfCylinder.make=staticmethod(woo.utils.infCylinder)
 	dem.Facet.make=staticmethod(woo.utils.facet)
+	dem.Rod.make=staticmethod(woo.utils.rod)
 	dem.Truss.make=staticmethod(woo.utils.truss)
 except ImportError:
 	core.Scene.hasDem=lambda o: False

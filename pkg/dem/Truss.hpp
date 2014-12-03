@@ -33,16 +33,16 @@ struct Truss: public Rod{
 };
 WOO_REGISTER_OBJECT(Truss);
 
-struct Cg2_Truss_Sphere_L6Geom: public Cg2_Any_Any_L6Geom__Base{
+struct Cg2_Rod_Sphere_L6Geom: public Cg2_Any_Any_L6Geom__Base{
 	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
-	#define woo_dem_Cg2_Truss_Sphere_L6Geom__CLASS_BASE_DOC \
-		Cg2_Truss_Sphere_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :obj:`L6Geom` for contact between :obj:`Truss` and :obj:`Sphere`. Uses attributes of :obj:`Cg2_Sphere_Sphere_L6Geom`."
-	WOO_DECL__CLASS_BASE_DOC(woo_dem_Cg2_Truss_Sphere_L6Geom__CLASS_BASE_DOC);
-	FUNCTOR2D(Truss,Sphere);
-	DEFINE_FUNCTOR_ORDER_2D(Truss,Sphere);
+	#define woo_dem_Cg2_Rod_Sphere_L6Geom__CLASS_BASE_DOC \
+		Cg2_Rod_Sphere_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :obj:`L6Geom` for contact between :obj:`Rod` and :obj:`Sphere`. Uses attributes of :obj:`Cg2_Sphere_Sphere_L6Geom`."
+	WOO_DECL__CLASS_BASE_DOC(woo_dem_Cg2_Rod_Sphere_L6Geom__CLASS_BASE_DOC);
+	FUNCTOR2D(Rod,Sphere);
+	DEFINE_FUNCTOR_ORDER_2D(Rod,Sphere);
 	WOO_DECL_LOGGER;
 };
-WOO_REGISTER_OBJECT(Cg2_Truss_Sphere_L6Geom);
+WOO_REGISTER_OBJECT(Cg2_Rod_Sphere_L6Geom);
 
 
 #ifdef WOO_OPENGL

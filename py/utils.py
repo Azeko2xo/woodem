@@ -64,7 +64,7 @@ def defaultEngines(damping=0.,gravity=None,verletDist=-.05,kinSplit=False,dontCo
 		Leapfrog(damping=damping,reset=True,kinSplit=kinSplit,dontCollect=dontCollect,label='leapfrog'),
 		collider,
 		ContactLoop(
-			[Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom(),Cg2_Wall_Sphere_L6Geom(),Cg2_InfCylinder_Sphere_L6Geom(),Cg2_Ellipsoid_Ellipsoid_L6Geom(),Cg2_Sphere_Ellipsoid_L6Geom(),Cg2_Wall_Ellipsoid_L6Geom(),Cg2_Wall_Facet_L6Geom(),Cg2_Truss_Sphere_L6Geom()]+([] if 'nocapsule' in woo.config.features else [Cg2_Wall_Capsule_L6Geom(),Cg2_Capsule_Capsule_L6Geom(),Cg2_InfCylinder_Capsule_L6Geom(),Cg2_Facet_Capsule_L6Geom(),Cg2_Sphere_Capsule_L6Geom(),Cg2_Facet_Facet_L6Geom(),Cg2_Facet_InfCylinder_L6Geom()]),
+			[Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom(),Cg2_Wall_Sphere_L6Geom(),Cg2_InfCylinder_Sphere_L6Geom(),Cg2_Ellipsoid_Ellipsoid_L6Geom(),Cg2_Sphere_Ellipsoid_L6Geom(),Cg2_Wall_Ellipsoid_L6Geom(),Cg2_Wall_Facet_L6Geom(),Cg2_Rod_Sphere_L6Geom()]+([] if 'nocapsule' in woo.config.features else [Cg2_Wall_Capsule_L6Geom(),Cg2_Capsule_Capsule_L6Geom(),Cg2_InfCylinder_Capsule_L6Geom(),Cg2_Facet_Capsule_L6Geom(),Cg2_Sphere_Capsule_L6Geom(),Cg2_Facet_Facet_L6Geom(),Cg2_Facet_InfCylinder_L6Geom()]),
 			cp2,law,applyForces=True,label='contactLoop'
 		),
 	]+([woo.dem.DynDt(stepPeriod=dynDtPeriod,label='dynDt')] if dynDtPeriod>0 else [])
@@ -191,10 +191,16 @@ def wall(position,axis,sense=0,glAB=None,fixed=True,mass=0,color=None,mat=defaul
 	p.shape.visible=visible
 	return p
 
-def truss(vertices,radius,fixed=False,wire=True,color=None,mat=defaultMaterial,visible=True,mask=DemField.defaultBoundaryMask):
-	'''Create truss with given parameters:
+def rod(vertices,radius,fixed=True,wire=True,color=None,mat=defaultMaterial,visible=True,mask=DemField.defaultBoundaryMask,__class=woo.dem.Rod):
+	'''Create :obj:`~woo.dem.Rod` with given parameters:
 
 		:param vertices: endpoints given as coordinates (Vector3) or nodes
+		:param radius: radius of the rod
+		:param wire: render as wire by default
+		:param color: color as scalar (0...1); if not given, random color is assigned
+		:param mat: material; if not given, default material is assigned
+		:param visible:
+		:param mask:
 	'''
 	assert len(vertices)==2
 	nodes=[]
@@ -203,12 +209,16 @@ def truss(vertices,radius,fixed=False,wire=True,color=None,mat=defaultMaterial,v
 		else: nodes.append(_mkDemNode(pos=vertices[i]))
 		if not nodes[-1].dem: nodes[-1].dem=DemData()
 	p=Particle()
-	p.shape=Truss(radius=radius,color=color if color else random.random())
+	p.shape=__class(radius=radius,color=color if color else random.random())
 	p.shape.wire=wire
 	_commonBodySetup(p,nodes,mat=mat,fixed=fixed)
 	p.mask=mask
 	p.shape.visible=visible
 	return p
+
+def truss(*args,**kw):
+	return rod(__class=woo.dem.Truss,*args,**kw)
+
 
 
 def facet(vertices,fakeVel=None,halfThick=0.,fixed=True,wire=True,color=None,highlight=False,mat=defaultMaterial,visible=True,mask=DemField.defaultBoundaryMask,flex=None,__class=woo.dem.Facet):
