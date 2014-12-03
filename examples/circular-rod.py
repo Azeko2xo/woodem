@@ -28,5 +28,8 @@ S.dem.par.add(woo.dem.Sphere.make((.7,0,1),.1,mat=mat))
 # otherwise use S.dem.collectNodes() to add nodes from all particles
 S.dem.nodesAppend(S.dem.par[-1].shape.nodes[0])
 
+# run slower than full-speed
+S.throttle=5e-3
+
 S.saveTmp()
 
