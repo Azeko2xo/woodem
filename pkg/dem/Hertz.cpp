@@ -25,7 +25,7 @@ void Cp2_FrictMat_HertzPhys::go(const shared_ptr<Material>& m1, const shared_ptr
 	ph.alpha=alpha;
 
 	// shear behavior
-	Real G1=E1/(2*1+nu1); Real G2=E2/(2*1+nu2);
+	Real G1=E1/(2*(1+nu1)); Real G2=E2/(2*(1+nu2));
 	Real G=.5*(G1+G2);
 	Real nu=.5*(nu1+nu2); 
 	ph.kt0=2*sqrt(4*ph.R)*G/(2-nu);
