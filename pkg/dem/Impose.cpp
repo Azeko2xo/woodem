@@ -1,9 +1,10 @@
 #include<woo/pkg/dem/Impose.hpp>
 #include<woo/lib/smoothing/LinearInterpolate.hpp>
 
-WOO_PLUGIN(dem,(HarmonicOscillation)(AlignedHarmonicOscillations)(CircularOrbit)(RadialForce)(Local6Dofs)(VariableAlignedRotation)(InterpolatedMotion));
+WOO_PLUGIN(dem,(HarmonicOscillation)(AlignedHarmonicOscillations)(CircularOrbit)(StableCircularOrbit)(RadialForce)(Local6Dofs)(VariableAlignedRotation)(InterpolatedMotion));
 
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_InterpolatedMotion__CLASS_BASE_DOC_ATTRS_CTOR);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_StableCircularOrbit__CLASS_BASE_DOC_ATTRS);
 
 void CircularOrbit::velocity(const Scene* scene, const shared_ptr<Node>& n){
 	if(!node) throw std::runtime_error("CircularOrbit: node must not be None.");
@@ -16,8 +17,18 @@ void CircularOrbit::velocity(const Scene* scene, const shared_ptr<Node>& n){
 	// tangential velocity at this point
 	Real v2t=omega*rho; // XXX: might be actually smaller due to leapfrog?
 	Real ttheta=theta+.5*v2t*scene->dt; // mid-step polar angle
-	if(isFirstStepRun(scene)) angle+=omega*scene->dt;
 	vv=node->ori*(Quaternionr(AngleAxisr(ttheta,Vector3r::UnitZ()))*Vector3r(0,v2t,0));
+	if(isFirstStepRun(scene)) angle+=omega*scene->dt;
+}
+
+void StableCircularOrbit::velocity(const Scene* scene, const shared_ptr<Node>& n){
+	if(!node) throw std::runtime_error("StableCircularOrbit: node must not be None.");
+	const auto& pos0(n->pos);
+	Vector3r rtz0(CompUtils::cart2cyl(node->glob2loc(n->pos))); // curr pos in local cyl (r, theta, z)
+	Vector3r rtz1(radius,rtz0[1]+omega*scene->dt,rtz0[2]);    // target pos in local cyl
+	Vector3r pos1(node->loc2glob(CompUtils::cyl2cart(rtz1))); // target pos in global cart
+	n->getData<DemData>().vel=(pos1-pos0)/scene->dt;
+	if(isFirstStepRun(scene)) angle+=omega*scene->dt;
 }
 
 void RadialForce::force(const Scene* scene, const shared_ptr<Node>& n){

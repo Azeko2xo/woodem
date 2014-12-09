@@ -25,7 +25,7 @@ WOO_REGISTER_OBJECT(HarmonicOscillation);
 
 struct CircularOrbit: public Impose{
 	void velocity(const Scene* scene, const shared_ptr<Node>&n) WOO_CXX11_OVERRIDE;
-	WOO_CLASS_BASE_DOC_ATTRS_CTOR(CircularOrbit,Impose,"Imposes circual orbiting around the local z-axis; the velocity is prescribed using midstep position.",
+	WOO_CLASS_BASE_DOC_ATTRS_CTOR(CircularOrbit,Impose,"Imposes circular orbiting around the local z-axis; the velocity is prescribed using approximated midstep position in an incremental manner. This can lead to unstabilities (such as changing radius) when used over millions of steps, but does not require radius to be given explicitly (see also :obj:`StableCircularOrbit`).",
 		((shared_ptr<Node>,node,make_shared<Node>(),,"Local coordinate system."))
 		((bool,rotate,false,,"Impose rotational velocity so that orientation relative to the local z-axis is always the same.\n\n.. warning:: This is not yet implemented."))
 		((Real,omega,NaN,,"Orbiting angular velocity."))
@@ -34,6 +34,15 @@ struct CircularOrbit: public Impose{
 	);
 };
 WOO_REGISTER_OBJECT(CircularOrbit);
+
+struct StableCircularOrbit: public CircularOrbit {
+	void velocity(const Scene* scene, const shared_ptr<Node>&n) WOO_CXX11_OVERRIDE;
+	#define woo_dem_StableCircularOrbit__CLASS_BASE_DOC_ATTRS \
+		StableCircularOrbit,CircularOrbit,"Impose circular orbiting around local z-axis, enforcing constant radius of orbiting.", \
+		((Real,radius,NaN,,"Radius, i.e. enforced distance from the rotation axis."))
+	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_StableCircularOrbit__CLASS_BASE_DOC_ATTRS);
+};
+WOO_REGISTER_OBJECT(StableCircularOrbit);
 
 struct AlignedHarmonicOscillations: public Impose{
 	void velocity(const Scene* scene, const shared_ptr<Node>& n){
