@@ -80,7 +80,7 @@ def prepareHorse(pre):
 	if not pre.deformable: S.dem.collectNodes() # for deformable, done later
 	S.dem.par.add(woo.pack.gtsSurface2Facets(surf,wire=False,flex=pre.deformable,mat=meshMat,halfThick=pre.halfThick,fixed=(not pre.deformable)))
 	S.dem.par.add(woo.utils.wall(zMin,axis=2,sense=1,mat=meshMat,glAB=((xMin,yMin),(xMax,yMax)),mask=DemField.defaultMovableMask))
-	S.dem.saveDeadNodes=True # for traces, if used
+	S.dem.saveDead=True # for traces, if used
 	if pre.deformable: S.dem.collectNodes() # collects also mesh nodes
 	
 	nan=float('nan')

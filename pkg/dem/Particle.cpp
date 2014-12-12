@@ -422,6 +422,7 @@ void DemField::removeParticle(Particle::id_t id){
 	}
 	if(!p->shape || p->shape->nodes.empty()){
 		LOG_TRACE("Removing #"<<id<<" without shape or nodes");
+		if(saveDead) deadParticles.push_back((*particles)[id]);
 		particles->remove(id);
 		return;
 	}
@@ -440,7 +441,7 @@ void DemField::removeParticle(Particle::id_t id){
 			if(dyn.linIx>(int)nodes.size() || nodes[dyn.linIx].get()!=n.get()) throw std::runtime_error("Node in #"+to_string(id)+" has invalid linIx entry!");
 			LOG_DEBUG("Removing #"<<id<<" / DemField::nodes["<<dyn.linIx<<"]"<<" (not used anymore)");
 			boost::mutex::scoped_lock lock(nodesMutex);
-			if(saveDeadNodes) deadNodes.push_back(n);
+			if(saveDead) deadNodes.push_back(n);
 			(*nodes.rbegin())->getData<DemData>().linIx=dyn.linIx;
 			nodes[dyn.linIx]=*nodes.rbegin(); // move the last node to the current position
 			nodes.resize(nodes.size()-1);
@@ -456,6 +457,7 @@ void DemField::removeParticle(Particle::id_t id){
 		}
 	}
 	LOG_TRACE("Actually removing #"<<id<<" now");
+	if(saveDead) deadParticles.push_back((*particles)[id]);
 	particles->remove(id);
 };
 
@@ -480,8 +482,11 @@ void DemField::removeClump(size_t linIx){
 			delPar.insert(p->id);
 		}
 	}
-	for(const auto& pId: delPar) removeParticle(pId);
-	if(saveDeadNodes) deadNodes.push_back(node);
+	for(const auto& pId: delPar){
+		if(saveDead) deadParticles.push_back((*particles)[pId]);
+		removeParticle(pId);
+	}
+	if(saveDead) deadNodes.push_back(node);
 	// remove the clump node here
 	boost::mutex::scoped_lock lock(nodesMutex);
 	(*nodes.rbegin())->getData<DemData>().linIx=cd.linIx;

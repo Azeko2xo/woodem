@@ -274,7 +274,7 @@ template<> struct NodeData::Index<DemData>{enum{value=Node::ST_DEM};};
 struct DemField: public Field{
 	WOO_DECL_LOGGER;
 	int collectNodes();
-	void clearDead(){ deadNodes.clear(); }
+	void clearDead(){ deadNodes.clear(); deadParticles.clear(); }
 	void removeParticle(Particle::id_t id);
 	void removeClump(size_t id);
 	vector<shared_ptr<Node>> splitNode(const shared_ptr<Node>&, const vector<shared_ptr<Particle>>& pp, const Real massMult=NaN, const Real inertiaMult=NaN);
@@ -311,8 +311,9 @@ struct DemField: public Field{
 		((shared_ptr<ContactContainer>,contacts,make_shared<ContactContainer>(),AttrTrait<>().pyByRef().readonly().ini(),"Linear view on particle contacts")) \
 		((uint,loneMask,((void)":obj:`DemField.defaultLoneMask`",DemField::defaultLoneMask),,"Particle groups which have bits in loneMask in common (i.e. (A.mask & B.mask & loneMask)!=0) will not have contacts between themselves")) \
 		((Vector3r,gravity,Vector3r::Zero(),,"Constant gravity acceleration")) \
-		((bool,saveDeadNodes,false,AttrTrait<>().buttons({"Clear dead nodes","self.clearDead()",""}),"Save unused nodes of deleted particles, which would be otherwise removed (useful for displaying traces of deleted particles).")) \
-		((vector<shared_ptr<Node>>,deadNodes,,AttrTrait<Attr::readonly>().noGui(),"List of nodes belonging to deleted particles; only used if :obj:`saveDeadNodes` is ``True``")) \
+		((bool,saveDead,false,AttrTrait<>().buttons({"Clear dead nodes","self.clearDead()",""}),"Save unused nodes of deleted particles, which would be otherwise removed (useful for displaying traces of deleted particles).")) \
+		((vector<shared_ptr<Node>>,deadNodes,,AttrTrait<Attr::readonly>().noGui(),"List of nodes belonging to deleted particles; only used if :obj:`saveDead` is ``True``")) \
+		((vector<shared_ptr<Particle>>,deadParticles,,AttrTrait<Attr::readonly>().noGui(),"Deleted particles; only used if :obj:`saveDead` is ``True``")) \
 		, /* ctor */ createIndex(); postLoad(*this,NULL); /* to make sure pointers are OK */ \
 		, /*py*/ \
 		.def("collectNodes",&DemField::collectNodes,"Collect nodes from all particles and clumps and insert them to nodes defined for this field. Nodes are not added multiple times, even if they are referenced from different particles.") \
