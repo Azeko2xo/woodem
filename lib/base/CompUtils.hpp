@@ -41,9 +41,9 @@ struct CompUtils{
 	// convert cylindrical coordinates to cartesian
 	static Vector3r cyl2cart(const Vector3r& cy);
 
-	static Vector3r cylCoordBox_sample_cylindrical(const AlignedBox3r& box);
+	static Vector3r cylCoordBox_sample_cylindrical(const AlignedBox3r& box, const Vector3r& unitRand=Vector3r(NaN,NaN,NaN));
 	static bool cylCoordBox_contains_cylindrical(const AlignedBox3r& box, const Vector3r& pt);
-	static Vector3r cylCoordBox_sample_cartesian(const AlignedBox3r& box);
+	static Vector3r cylCoordBox_sample_cartesian(const AlignedBox3r& box, const Vector3r& unitRand=Vector3r(NaN,NaN,NaN));
 	static bool cylCoordBox_contains_cartesian(const AlignedBox3r& box, const Vector3r& pt);
 
 

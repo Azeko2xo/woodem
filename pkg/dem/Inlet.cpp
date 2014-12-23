@@ -5,6 +5,7 @@
 #include<woo/pkg/dem/Sphere.hpp>
 
 #include<woo/lib/sphere-pack/SpherePack.hpp>
+#include<woo/lib/smoothing/LinearInterpolate.hpp>
 
 // hack
 #include<woo/pkg/dem/InsertionSortCollider.hpp>
@@ -17,7 +18,7 @@
 
 #include<boost/tuple/tuple_comparison.hpp>
 
-WOO_PLUGIN(dem,(Inlet)(ParticleGenerator)(MinMaxSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(RandomInlet)(BoxInlet)(BoxInlet2d)(CylinderInlet)(ArcInlet)/*(ArcShooter)*/);
+WOO_PLUGIN(dem,(Inlet)(ParticleGenerator)(MinMaxSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(RandomInlet)(BoxInlet)(BoxInlet2d)(CylinderInlet)(ArcInlet)/*(ArcShooter)*/(SpatialBias)(AxialBias)(PsdAxialBias));
 WOO_IMPL_LOGGER(RandomInlet);
 
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_Inlet__CLASS_BASE_DOC_ATTRS);
@@ -30,9 +31,33 @@ WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_BoxInlet__CLASS_BASE_DOC_ATTRS);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_BoxInlet2d__CLASS_BASE_DOC_ATTRS);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_CylinderInlet__CLASS_BASE_DOC_ATTRS);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_ArcInlet__CLASS_BASE_DOC_ATTRS);
+WOO_IMPL__CLASS_BASE_DOC_PY(woo_dem_SpatialBias__CLASS_BASE_DOC_PY);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_AxialBias__CLASS_BASE_DOC_ATTRS);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_PsdAxialBias__CLASS_BASE_DOC_ATTRS);
+
+
 #if 0
 	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_ArcShooter__CLASS_BASE_DOC_ATTRS);
 #endif
+
+
+Vector3r AxialBias::unitPos(const Real& d){
+	Vector3r p3=Mathr::UnitRandom3();
+	if(axis<0 || axis>2) throw std::runtime_error("AxialBias.axis: must be in 0..2 (not "+to_string(axis));
+	Real& p(p3[axis]);
+	p=CompUtils::clamped((d-d01[0])/(d01[1]-d01[0])+(p-.5)*fuzz,0,1);
+	return p3;
+}
+
+Vector3r PsdAxialBias::unitPos(const Real& d){
+	if(discrete) throw std::runtime_error("PsdAxialBias.discrete==True: not yet implemented.");
+	if(axis<0 || axis>2) throw std::runtime_error("AxialBias.axis: must be in 0..2 (not "+to_string(axis));
+	Vector3r p3=Mathr::UnitRandom3();
+	Real& p(p3[axis]);
+	size_t pos=0; // discarded after use
+	p=linearInterpolate(d,psdPts,pos)+(p-.5)*fuzz;
+	return p3;
+}
 
 
 
@@ -52,7 +77,7 @@ py::object ParticleGenerator::pyPsd(bool mass, bool cumulative, bool normalize, 
 	vector<Vector2r> psd=DemFuncs::psd(genDiamMassTime,/*cumulative*/cumulative,/*normalize*/normalize,num,dRange,
 		/*diameter getter*/[&tOk](const Vector3r& dmt) ->Real { return tOk(dmt[2])?dmt[0]:NaN; },
 		/*weight getter*/[&](const Vector3r& dmt) -> Real{ return mass?dmt[1]:1.; }
-	);
+	);// 
 	return DemFuncs::seqVectorToPy(psd,[](const Vector2r& i)->Vector2r{ return i; },/*zip*/false);
 }
 
@@ -70,14 +95,14 @@ Real ParticleGenerator::pyMassOfDiam(Real min, Real max) const{
 
 
 
-vector<ParticleGenerator::ParticleAndBox>
+std::tuple<Real,vector<ParticleGenerator::ParticleAndBox>>
 MinMaxSphereGenerator::operator()(const shared_ptr<Material>&mat, const Real& time){
 	if(isnan(dRange[0]) || isnan(dRange[1]) || dRange[0]>dRange[1]) throw std::runtime_error("MinMaxSphereGenerator: dRange[0]>dRange[1], or they are NaN!");
 	Real r=.5*(dRange[0]+Mathr::UnitRandom()*(dRange[1]-dRange[0]));
 	auto sphere=DemFuncs::makeSphere(r,mat);
 	Real m=sphere->shape->nodes[0]->getData<DemData>().mass;
 	if(save) genDiamMassTime.push_back(Vector3r(2*r,m,time));
-	return vector<ParticleAndBox>({{sphere,AlignedBox3r(Vector3r(-r,-r,-r),Vector3r(r,r,r))}});
+	return std::make_tuple(2*r,vector<ParticleAndBox>({{sphere,AlignedBox3r(Vector3r(-r,-r,-r),Vector3r(r,r,r))}}));
 };
 
 Real MinMaxSphereGenerator::critDt(Real density, Real young) {
@@ -162,6 +187,7 @@ void RandomInlet::run(){
 
 		shared_ptr<Material> mat;
 		Vector3r pos=Vector3r::Zero();
+		Real diam;
 		vector<ParticleGenerator::ParticleAndBox> pee;
 		int attempt=-1;
 		while(true){
@@ -197,12 +223,12 @@ void RandomInlet::run(){
 					mat=materials[i];
 				}
 				// generate a new particle
-				pee=(*generator)(mat,scene->time);
+				std::tie(diam,pee)=(*generator)(mat,scene->time);
 				assert(!pee.empty());
 				LOG_TRACE("Placing "<<pee.size()<<"-sized particle; first component is a "<<pee[0].par->getClassName()<<", extents from "<<pee[0].extents.min().transpose()<<" to "<<pee[0].extents.max().transpose());
 			}
 
-			pos=randomPosition(padDist); // overridden in child classes
+			pos=randomPosition(diam,padDist); // overridden in child classes
 			LOG_TRACE("Trying pos="<<pos.transpose());
 			for(const auto& pe: pee){
 				// make translated copy
@@ -356,9 +382,10 @@ void RandomInlet::run(){
 	setCurrRate(stepMass/(nSteps*scene->dt));
 }
 
-Vector3r BoxInlet::randomPosition(const Real& padDist){
+Vector3r BoxInlet::randomPosition(const Real& rad, const Real& padDist){
 	AlignedBox3r box2(box.min()+padDist*Vector3r::Ones(),box.max()-padDist*Vector3r::Ones());
-	return box2.sample();
+	if(!spatialBias) return box2.sample();
+	else return box2.min()+spatialBias->unitPos(rad).cwiseProduct(box2.sizes());
 }
 
 
@@ -386,16 +413,16 @@ bool BoxInlet::validatePeriodicBox(const AlignedBox3r& b) const {
 #endif
 
 
-Vector3r CylinderInlet::randomPosition(const Real& padDist) {
+Vector3r CylinderInlet::randomPosition(const Real& rad, const Real& padDist) {
 	if(!node) throw std::runtime_error("CylinderInlet.node==None.");
 	if(padDist>radius) throw std::runtime_error("CylinderInlet.randomPosition: padDist="+to_string(padDist)+" > radius="+to_string(radius));
 	// http://stackoverflow.com/questions/5837572/generate-a-random-point-within-a-circle-uniformly
-	Real t=2*M_PI*Mathr::UnitRandom();
-	Real u=Mathr::UnitRandom()+Mathr::UnitRandom();
+	Vector3r rand=(spatialBias?spatialBias->unitPos(rad):Mathr::UnitRandom3());
+	Real t=2*M_PI*rand[0];
+	Real u=2*rand[1];
 	Real r=u>1.?2.-u:u;
-	Real h=Mathr::UnitRandom()*(height-2*padDist)+padDist;
+	Real h=rand[2]*(height-2*padDist)+padDist;
 	Vector3r p(h,(radius-padDist)*r*cos(t),(radius-padDist)*r*sin(t));
-	// cerr<<node->loc2glob(p)<<endl;
 	return node->loc2glob(p);
 
 };
@@ -422,7 +449,12 @@ void ArcInlet::postLoad(ArcInlet&, void* attr){
 
 
 
-Vector3r ArcInlet::randomPosition(const Real& padDist) { AlignedBox3r b2(cylBox); Vector3r pad(padDist,padDist/cylBox.min()[0],padDist); b2.min()+=pad; b2.max()-=pad; return node->loc2glob(CompUtils::cylCoordBox_sample_cartesian(b2)); }
+Vector3r ArcInlet::randomPosition(const Real& rad, const Real& padDist) {
+	AlignedBox3r b2(cylBox);
+	Vector3r pad(padDist,padDist/cylBox.min()[0],padDist); b2.min()+=pad; b2.max()-=pad;
+	if(!spatialBias) return node->loc2glob(CompUtils::cylCoordBox_sample_cartesian(b2));
+	else return node->loc2glob(CompUtils::cylCoordBox_sample_cartesian(b2,spatialBias->unitPos(rad)));
+}
 
 bool ArcInlet::validateBox(const AlignedBox3r& b) {
 	for(const auto& c:{AlignedBox3r::BottomLeftFloor,AlignedBox3r::BottomRightFloor,AlignedBox3r::TopLeftFloor,AlignedBox3r::TopRightFloor,AlignedBox3r::BottomLeftCeil,AlignedBox3r::BottomRightCeil,AlignedBox3r::TopLeftCeil,AlignedBox3r::TopRightCeil}){

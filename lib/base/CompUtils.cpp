@@ -132,12 +132,14 @@ bool CompUtils::angleInside(const Real& phi, Real a, const Real& b){
 
 
 // return sample for cylindrical coordinate "box" uniformly-distributed in cartesian space; returned point is in cylindrical coordinates
-Vector3r CompUtils::cylCoordBox_sample_cylindrical(const AlignedBox3r& box){
+Vector3r CompUtils::cylCoordBox_sample_cylindrical(const AlignedBox3r& box, const Vector3r& unitRand){
+	// three random numbers; can be user-provided (for biased sampling), otherwise computed
+	Vector3r rand=isnan(unitRand.maxCoeff())?Vector3r(Mathr::UnitRandom(),Mathr::UnitRandom(),Mathr::UnitRandom()):unitRand;
 	// explanation at http://www.anderswallin.net/2009/05/uniform-random-points-in-a-circle-using-polar-coordinates/
 	const Real& r0(box.min()[0]); const Real& r1(box.max()[0]);
-	Real r=sqrt(pow(r0,2)+Mathr::UnitRandom()*(pow(r1,2)-pow(r0,2)));
-	Real theta=Mathr::IntervalRandom(box.min()[1],box.max()[1]);
-	Real z=Mathr::IntervalRandom(box.min()[2],box.max()[2]);
+	Real r=sqrt(pow(r0,2)+rand.x()*(pow(r1,2)-pow(r0,2)));
+	Real theta=box.min().y()+rand.y()*box.sizes().y();
+	Real z=box.min().z()+rand.z()*box.sizes().z();
 	return Vector3r(r,theta,z);
 }
 // test whether the point (given in cylindrical coordinates) is contained in box
@@ -145,8 +147,8 @@ bool CompUtils::cylCoordBox_contains_cylindrical(const AlignedBox3r& box, const 
 	return (pt[0]>=box.min()[0] && pt[0]<=box.max()[0]) && angleInside(pt[1],box.min()[1],box.max()[1]) && (pt[2]>=box.min()[2] && pt[2]<=box.max()[2]);
 }
 
-Vector3r CompUtils::cylCoordBox_sample_cartesian(const AlignedBox3r& box){
-	return cyl2cart(cylCoordBox_sample_cylindrical(box));
+Vector3r CompUtils::cylCoordBox_sample_cartesian(const AlignedBox3r& box, const Vector3r& unitRand){
+	return cyl2cart(cylCoordBox_sample_cylindrical(box,unitRand));
 }
 bool CompUtils::cylCoordBox_contains_cartesian(const AlignedBox3r& box, const Vector3r& pt){
 	return cylCoordBox_contains_cylindrical(box,cart2cyl(pt));

@@ -5,7 +5,7 @@
 
 struct PsdSphereGenerator: public ParticleGenerator{
 	WOO_DECL_LOGGER;
-	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m, const Real& time) WOO_CXX11_OVERRIDE;
+	std::tuple<Real,vector<ParticleAndBox>> operator()(const shared_ptr<Material>&m, const Real& time) WOO_CXX11_OVERRIDE;
 	void postLoad(PsdSphereGenerator&,void*);
 	// return radius and bin for the next particle (also used by derived classes)
 	std::tuple<Real,int> computeNextRadiusBin();
@@ -37,7 +37,7 @@ WOO_REGISTER_OBJECT(PsdSphereGenerator);
 
 struct PsdClumpGenerator: public PsdSphereGenerator {
 	WOO_DECL_LOGGER;
-	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m, const Real& time) WOO_CXX11_OVERRIDE;
+	std::tuple<Real,vector<ParticleAndBox>> operator()(const shared_ptr<Material>&m, const Real& time) WOO_CXX11_OVERRIDE;
 	void clear() WOO_CXX11_OVERRIDE { genClumpNo.clear(); /*call parent*/ PsdSphereGenerator::clear(); };
 	Real critDt(Real density, Real young) WOO_CXX11_OVERRIDE;
 	bool isSpheresOnly() const WOO_CXX11_OVERRIDE { return true; }
@@ -51,7 +51,7 @@ WOO_REGISTER_OBJECT(PsdClumpGenerator);
 #ifndef WOO_NOCAPSULE
 struct PsdCapsuleGenerator: public PsdSphereGenerator {
 	WOO_DECL_LOGGER;
-	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m, const Real& time) WOO_CXX11_OVERRIDE;
+	std::tuple<Real,vector<ParticleAndBox>> operator()(const shared_ptr<Material>&m, const Real& time) WOO_CXX11_OVERRIDE;
 	bool isSpheresOnly() const WOO_CXX11_OVERRIDE { return false; }
 	// clear, critDt: same as for PsdSphereGenerator
 	WOO_CLASS_BASE_DOC_ATTRS(PsdCapsuleGenerator,PsdSphereGenerator,"Generate capsules following a given Particle Size Distribution; elongation is chosen randomly using :obj:`shaftRadiusRatio`; orientation is random.",
@@ -61,7 +61,7 @@ struct PsdCapsuleGenerator: public PsdSphereGenerator {
 WOO_REGISTER_OBJECT(PsdCapsuleGenerator);
 
 struct PharmaCapsuleGenerator: public ParticleGenerator{
-	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m, const Real& time) WOO_CXX11_OVERRIDE;
+	std::tuple<Real,vector<ParticleAndBox>> operator()(const shared_ptr<Material>&m, const Real& time) WOO_CXX11_OVERRIDE;
 	bool isSpheresOnly() const WOO_CXX11_OVERRIDE { return false; }
 	Real critDt(Real density, Real young) WOO_CXX11_OVERRIDE;
 	Real padDist() const WOO_CXX11_OVERRIDE { return extDiam.minCoeff()/2.; }
@@ -80,7 +80,7 @@ WOO_REGISTER_OBJECT(PharmaCapsuleGenerator);
 
 struct PsdEllipsoidGenerator: public PsdSphereGenerator {
 	WOO_DECL_LOGGER;
-	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m, const Real& time) WOO_CXX11_OVERRIDE;
+	std::tuple<Real,vector<ParticleAndBox>> operator()(const shared_ptr<Material>&m, const Real& time) WOO_CXX11_OVERRIDE;
 	bool isSpheresOnly() const WOO_CXX11_OVERRIDE { return false; }
 	// clear, critDt: same as for PsdSphereGenerator
 	WOO_CLASS_BASE_DOC_ATTRS(PsdEllipsoidGenerator,PsdSphereGenerator,"Generate ellipsoids following a given Particle Size Distribution; ratio of :obj:`Ellipsoid.semiAxes` is chosen randomly from the :obj:`semiAxesRatio` range; orientation is random.",

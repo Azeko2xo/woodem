@@ -189,7 +189,6 @@ void RawShapeClump::recompute(int _div, bool failOk/* =false */, bool fastOnly/*
 	equivRad=(inertia.array()/volume).sqrt().mean(); // mean of radii of gyration
 }
 
-
 std::tuple<vector<shared_ptr<Node>>,vector<shared_ptr<Particle>>> RawShapeClump::makeParticles(const shared_ptr<Material>& mat, const Vector3r& clumpPos, const Quaternionr& clumpOri, int mask, Real scale){
 	ensureOk(); // this already failed with rawShapes.empty()
 	vector<shared_ptr<Shape>> shsh(rawShapes.size());

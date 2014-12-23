@@ -96,3 +96,13 @@ class PsdSphereGeneratorTest(unittest.TestCase):
 		# 3% tolerance here
 		self.assertAlmostEqual(dMin,oPsd[0][0],delta=relDeltaD*dMin)
 		self.assertAlmostEqual(dMax,oPsd[0][-1],delta=relDeltaD*dMax)
+
+class BiasedPositionTest(unittest.TestCase):
+	def testAxialBias(self):
+		'Inlet: axial bias'
+		bb=AxialBias(axis=0,r01=(2,1),fuzz=.1)
+		r0,r1=bb.r01
+		for r in numpy.linspace(.5,2.5):
+			p=bb.unitPos(r)[0]
+			pMid=numpy.clip((r-r0)/(r1-r0),0,1)
+			self.assert_(abs(p-pMid)<=bb.fuzz/2.)

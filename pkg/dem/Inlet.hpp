@@ -45,7 +45,7 @@ struct ParticleGenerator: public Object{
 	struct ParticleAndBox{ shared_ptr<Particle> par; AlignedBox3r extents; };
 	// return (one or multiple, for clump) particles and extents (min and max)
 	// extents are computed for position of (0,0,0)
-	virtual vector<ParticleAndBox> operator()(const shared_ptr<Material>& m, const Real& time){ throw std::runtime_error("Calling ParticleGenerator.operator() (abstract method); use derived classes."); }
+	virtual std::tuple<Real,vector<ParticleAndBox>> operator()(const shared_ptr<Material>& m, const Real& time){ throw std::runtime_error("Calling ParticleGenerator.operator() (abstract method); use derived classes."); }
 	virtual Real critDt(Real density, Real young) { return Inf; }
 	// called when the particle placement failed; the generator must revoke it and update its bookkeeping information (e.g. PSD, generated radii and diameters etc)
 	virtual void revokeLast(){ if(save && !genDiamMassTime.empty()) genDiamMassTime.resize(genDiamMassTime.size()-1); }
@@ -57,7 +57,7 @@ struct ParticleGenerator: public Object{
 	py::object pyPsd(bool mass, bool cumulative, bool normalize, const Vector2r& dRange, const Vector2r& tRange, int num) const;
 	py::object pyDiamMass(bool zipped=false) const;
 	Real pyMassOfDiam(Real min, Real max) const;
-	py::list pyCall(const shared_ptr<Material>& m, const Real& time){ vector<ParticleAndBox> pee=(*this)(m,time); py::list ret; for(const auto& pe: pee) ret.append(py::make_tuple(pe.par,pe.extents)); return ret; }
+	py::tuple pyCall(const shared_ptr<Material>& m, const Real& time){ Real diam; vector<ParticleAndBox> pee; std::tie(diam,pee)=(*this)(m,time); py::list ret; for(const auto& pe: pee) ret.append(py::make_tuple(pe.par,pe.extents)); return py::make_tuple(diam,ret); }
 	#define woo_dem_ParticleGenerator__CLASS_BASE_DOC_ATTRS_PY \
 		ParticleGenerator,Object,"Abstract class for generating particles", \
 		((vector<Vector3r>,genDiamMassTime,,AttrTrait<Attr::readonly>().noGui().noDump(),"List of generated particle's (equivalent) radii and masses (for making granulometry)")) \
@@ -76,7 +76,7 @@ struct ParticleGenerator: public Object{
 WOO_REGISTER_OBJECT(ParticleGenerator);
 
 struct MinMaxSphereGenerator: public ParticleGenerator{
-	vector<ParticleAndBox> operator()(const shared_ptr<Material>&m, const Real& time);
+	std::tuple<Real,vector<ParticleAndBox>> operator()(const shared_ptr<Material>&m, const Real& time);
 	Real critDt(Real density, Real young) WOO_CXX11_OVERRIDE; 
 	bool isSpheresOnly() const WOO_CXX11_OVERRIDE { return true; }
 	Real padDist() const WOO_CXX11_OVERRIDE{ return dRange.minCoeff()/2.; }
@@ -111,12 +111,45 @@ struct AlignedMinMaxShooter: public ParticleShooter{
 };
 WOO_REGISTER_OBJECT(AlignedMinMaxShooter);
 
+struct SpatialBias: public Object{
+	// returns biased position in unit cube, based on particle radius
+	virtual Vector3r unitPos(const Real& diam){ throw std::runtime_error(pyStr()+": SpatialBias.biasedPos not overridden."); }
+	#define woo_dem_SpatialBias__CLASS_BASE_DOC_PY \
+		SpatialBias,Object,"Functor which biases random position (in unit cube) based on particle diameter, returning the biased position in unit cube. These objects are used with :obj:`RandomInlet.spatialBias` to make possible things like sptially graded distribution of random particles." \
+		,/*py*/ .def("unitPos",&SpatialBias::unitPos,(py::arg("diam")),"Return biased position inside a unit cube (caller transforms this to cartesian coordinates in the simulation space.")
+
+	WOO_DECL__CLASS_BASE_DOC_PY(woo_dem_SpatialBias__CLASS_BASE_DOC_PY);
+};
+WOO_REGISTER_OBJECT(SpatialBias);
+
+struct AxialBias: public SpatialBias{
+	Vector3r unitPos(const Real& diam) WOO_CXX11_OVERRIDE;
+	#define woo_dem_AxialBias__CLASS_BASE_DOC_ATTRS \
+		AxialBias,SpatialBias,"Bias position (within unit interval) along :obj:`axis` :math:`p`, so that radii are distributed along :obj:`axis`, as in :math:`p=\\frac{d-d_0}{d_1-d_0}+f\\left(a-\\frac{1}{2}\\right)`, where :math:`f` is the :obj:`fuzz`, :math:`a` is unit random number, :math:`d` is the current particle diameter and :math:`d_0` and :math:`d_1` are diameters at the lower and upper end (:obj:`d01`). :math:`p` is clamped to :math:`\\rangle0,1\\langle` after the computation.", \
+			((int,axis,0,,"Axis which is biased.")) \
+			((Vector2r,d01,Vector2r(NaN,NaN),,"Diameter at the lower and upper end (the order matters); it is possible that :math:`r_0>r_1`, in which case the bias is reversed (bigger radii have smaller coordinate).")) \
+			((Real,fuzz,0,,"Allow for random variations around the position determined from diameter."))
+	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_AxialBias__CLASS_BASE_DOC_ATTRS);
+};
+WOO_REGISTER_OBJECT(AxialBias);
+
+struct PsdAxialBias: public AxialBias {
+	Vector3r unitPos(const Real& diam) WOO_CXX11_OVERRIDE;
+	#define woo_dem_PsdAxialBias__CLASS_BASE_DOC_ATTRS \
+		PsdAxialBias,AxialBias,"Bias position based on PSD curve, so that fractions get the amount of space they require according to their percentage. The PSD must be specified with mass fractions, using With :obj:`discrete` (suitable for use with :obj:`PsdParticleGenerator.discrete`), the whole interval between the current and previous radius will be used with uniform probability, allowing for layered particle arangement. The :obj:`d01` attribute is ignored with PSD.", \
+			((vector<Vector2r>,psdPts,,,"Points of the mapping function, similar to :obj:`PsdParticleGenerator.psdPts`."))\
+			((bool,discrete,false,,"Interpret :obj:`psdPts` as piecewise-constant (rather than piecewise-linear) function. Each diameter will be distributed uniformly in the whole interval between percentage of the current and previous points."))
+
+	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_PsdAxialBias__CLASS_BASE_DOC_ATTRS);
+};
+WOO_REGISTER_OBJECT(PsdAxialBias);
+
 struct Collider;
 
 struct RandomInlet: public Inlet{
 	WOO_DECL_LOGGER;
 	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
-	virtual Vector3r randomPosition(const Real& padDist){ throw std::runtime_error("Calling ParticleFactor.randomPosition	(abstract method); use derived classes."); }
+	virtual Vector3r randomPosition(const Real& read, const Real& padDist){ throw std::runtime_error("Calling RandomInlet.randomPosition	(abstract method); use derived classes."); }
 	virtual bool validateBox(const AlignedBox3r& b) { throw std::runtime_error("Calling ParticleFactor.validateBox (abstract method); use derived classes."); }
 	void run();
 	void pyClear(){ if(generator) generator->clear(); num=0; mass=0; stepGoalMass=0; /* do not reset stepPrev! */ }
@@ -130,6 +163,7 @@ struct RandomInlet: public Inlet{
 		((vector<shared_ptr<Material>>,materials,,,"Set of materials for new particles, randomly picked from")) \
 		((shared_ptr<ParticleGenerator>,generator,,,"Particle generator instance")) \
 		((shared_ptr<ParticleShooter>,shooter,,,"Particle shooter instance (assigns velocities to generated particles. If not given, particles have zero velocities initially.")) \
+		((shared_ptr<SpatialBias>,spatialBias,,,"Make random position biased based on the radius of the current particle; if unset, distribute uniformly.")) \
 		((int,maxAttempts,5000,,"Maximum attempts to position new particles randomly, without collision. If 0, no limit is imposed. When reached, :obj:`atMaxAttempts` determines, what will be done. Each particle is tried maxAttempts/maxMetaAttempts times, then a new particle is tried.")) \
 		((int,attemptPar,5,,"Number of trying a different particle to position (each will be tried maxAttempts/attemptPar times)")) \
 		((int,atMaxAttempts,MAXATT_ERROR,AttrTrait<>().choice({{MAXATT_ERROR,"error"},{MAXATT_DEAD,"dead"},{MAXATT_WARN,"warn"},{MAXATT_SILENT,"silent"}}),"What to do when maxAttempts is reached.")) \
@@ -157,7 +191,7 @@ new particles can cross the boundary; note however that this is not properly sup
 */
 	// #define BOX_FACTORY_PERI
 struct BoxInlet: public RandomInlet{
-	Vector3r randomPosition(const Real& padDist) WOO_CXX11_OVERRIDE;
+	Vector3r randomPosition(const Real& rad, const Real& padDist) WOO_CXX11_OVERRIDE;
 	#ifdef BOX_FACTORY_PERI
 		bool validateBox(const AlignedBox3r& b) WOO_CXX11_OVERRIDE { return scene->isPeriodic?box.contains(b):validatePeriodicBox(b); }
 		bool validatePeriodicBox(const AlignedBox3r& b) const;
@@ -188,7 +222,7 @@ struct BoxInlet: public RandomInlet{
 WOO_REGISTER_OBJECT(BoxInlet);
 
 struct CylinderInlet: public RandomInlet{
-	Vector3r randomPosition(const Real& padDist) WOO_CXX11_OVERRIDE; /* http://stackoverflow.com/questions/5837572/generate-a-random-point-within-a-circle-uniformly */
+	Vector3r randomPosition(const Real& rad, const Real& padDist) WOO_CXX11_OVERRIDE; /* http://stackoverflow.com/questions/5837572/generate-a-random-point-within-a-circle-uniformly */
 	bool validateBox(const AlignedBox3r& b) WOO_CXX11_OVERRIDE; /* check all corners are inside the cylinder */
 	#ifdef WOO_OPENGL
 		void render(const GLViewInfo&) WOO_CXX11_OVERRIDE;
@@ -217,7 +251,7 @@ struct BoxInlet2d: public BoxInlet{
 WOO_REGISTER_OBJECT(BoxInlet2d);
 
 struct ArcInlet: public RandomInlet{
-	Vector3r randomPosition(const Real& padDist) WOO_CXX11_OVERRIDE;
+	Vector3r randomPosition(const Real& rad, const Real& padDist) WOO_CXX11_OVERRIDE;
 	bool validateBox(const AlignedBox3r& b) WOO_CXX11_OVERRIDE;
 	void postLoad(ArcInlet&, void* attr);
 	#ifdef WOO_OPENGL

@@ -144,7 +144,7 @@ bool ParticleContainer::remove(Particle::id_t id){
 	#endif /* WOO_SUBDOMAINS */
 	{
 		// XXX: see https://svn.boost.org/trac/boost/ticket/8290
-		GilLock lock; // avoids the crash :D hopefully removeing particles from python will not deadlock (!!)
+		GilLock lock; // avoids the crash :D hopefully removing particles from python will not deadlock
 		parts[id].reset(); 
 	}
 	// removing last element, shrink the size as much as possible

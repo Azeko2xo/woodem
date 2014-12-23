@@ -376,7 +376,7 @@ def randomLoosePsd(predicate,psd,mass=True,discrete=False,maxAttempts=5000,clump
 	S.one()
 	if not returnSpherePack: raise ValueError('returnSpherePack must be True.')
 	sp=SpherePack()
-	sp.fromSimulation(S)
+	sp.fromDem(S,S.dem)
 	return sp.filtered(predicate)
 	#ret=[]
 	#for p in S.dem.par:
@@ -531,7 +531,7 @@ def randomDensePack(predicate,radius,mat=-1,dim=None,cropLayers=0,rRelFuzz=0.,sp
 		S.dem.collectNodes()
 		S.dt=.5*utils.pWaveDt(S)
 		S.run(); S.wait()
-		sp=SpherePack(); sp.fromSimulation(S)
+		sp=SpherePack(); sp.fromDem(S,S.dem)
 		#print 'Resulting cellSize',sp.cellSize,'proportions',sp.cellSize[1]/sp.cellSize[0],sp.cellSize[2]/sp.cellSize[0]
 		# repetition to the required cell size will be done below, after memoizing the result
 	else:
@@ -546,7 +546,7 @@ def randomDensePack(predicate,radius,mat=-1,dim=None,cropLayers=0,rRelFuzz=0.,sp
 			noFiles=True,lowerCorner=[0,0,0],sigmaIsoCompaction=1e7,sigmaLateralConfinement=1e3,StabilityCriterion=.05,strainRate=.2,thickness=-1,maxWallVelocity=.1,wallOversizeFactor=1.5,autoUnload=True,autoCompressionActivation=False).load()
 		log.setLevel('TriaxialCompressionEngine',log.WARN)
 		S.run(); S.wait()
-		sp=SpherePack(); sp.fromSimulation()
+		sp=SpherePack(); sp.fromDem(S,S.dem)
 	_memoizePacking(memoizeDb,sp,radius,rRelFuzz,wantPeri,fullDim)
 	if wantPeri: sp.cellFill(Vector3(fullDim[0],fullDim[1],fullDim[2]))
 	if orientation:
@@ -584,7 +584,7 @@ def randomPeriPack(radius,initSize,rRelFuzz=0.0,memoizeDb=None):
 	#O.timingEnabled=True
 	S.run(); S.wait()
 	ret=SpherePack()
-	ret.fromSimulation(S)
+	ret.fromDem(S,S.dem)
 	_memoizePacking(memoizeDb,ret,radius,rRelFuzz,wantPeri=True,fullDim=Vector3(0,0,0)) # fullDim unused
 	return ret
 
@@ -747,7 +747,7 @@ def makePeriodicFeedPack(dim,psd,lenAxis=0,damping=.3,porosity=.5,goal=.15,maxNu
 	S.run(); S.wait()
 	if gen: sp=woo.dem.ShapePack()
 	else: sp=SpherePack()
-	sp.fromSimulation(S)
+	sp.fromDem(S,S.dem)
 	print 'Packing size is',sp.cellSize
 	sp.canonicalize()
 	if not gen: sp.makeOverlapFree()
@@ -906,7 +906,7 @@ def makeBandFeedPack(dim,mat,gravity,psd=[],excessWd=None,damping=.3,porosity=.5
 	
 	if gen: sp=woo.dem.ShapePack()
 	else: sp=SpherePack()
-	sp.fromSimulation(S)
+	sp.fromDem(S,S.dem)
 	sp.canonicalize()
 	# remove what is above the requested height
 	sp=sp.filtered(woo.pack.inAxisRange(axis=2,range=(0,dim[2])),recenter=False)

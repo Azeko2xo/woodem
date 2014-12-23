@@ -81,7 +81,7 @@ struct Law2_L6Geom_PelletPhys_Pellet: public LawFunctor{
 
 	FUNCTOR2D(L6Geom,PelletPhys);
 	WOO_DECL_LOGGER;
-	static Real yieldForce          (Real uN, Real d0, Real kn, Real alpha, int yieldFunc=0, Real yf1_beta=0, Real yf1_w=0){
+	static Real yieldForce (Real uN, Real d0, Real kn, Real alpha, int yieldFunc=0, Real yf1_beta=0, Real yf1_w=0){
 		switch(yieldFunc){
 			case 0: return (-kn*d0/alpha)*log(alpha*(-uN/d0)+1);
 			case 1:

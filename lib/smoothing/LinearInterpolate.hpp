@@ -37,19 +37,6 @@ std::tuple<T,T,timeT> linearInterpolateRel(const Real t, const std::vector<timeT
  */
 template<typename T, typename timeT>
 T linearInterpolate(const Real t, const std::vector<timeT>& tt, const std::vector<T>& values, size_t& pos){
-	#if 0
-	assert(tt.size()==values.size());
-	if(t<=tt[0]){ pos=0; return values[0];}
-	if(t>=*tt.rbegin()){ pos=tt.size()-2; return *values.rbegin();}
-	pos=std::min(pos,tt.size()-2);
-	while((tt[pos]>t) || (tt[pos+1]<t)){
-		assert(tt[pos]<tt[pos+1]);
-		if(tt[pos]>t) pos--;
-		else pos++;
-	}
-	const Real &t0=tt[pos], &t1=tt[pos+1]; const T &v0=values[pos], &v1=values[pos+1];
-	return v0+(v1-v0)*((t-t0)/(t1-t0));
-	#endif
 	T A, B; // endpoints
 	timeT tRel;
 	std::tie(A,B,tRel)=linearInterpolateRel(t,tt,values,pos);

@@ -60,6 +60,17 @@ struct ShapeClump: public Object{
 };
 WOO_REGISTER_OBJECT(ShapeClump);
 
+#if 0
+struct ShapeCompound: public Object{
+	#define woo_dem_ShapeCompound,Object,"Defies pure geometry of a flexible compound (as opposed to a rigid clump)." \
+		((vector<Real>,volumes,,AttrTrait<>().readonly().noDump().volUnit(),"Volumes belonging to nodes.")) \
+		((vector<Matrix3r>,inertiae,,AttrTrait<>().readonly().noDump().lenUnit(),"Inertiae of nodes.")) \
+		((vector<shared_ptr<Node>>,nodes,
+
+};
+WOO_REGISTER_OBJECT(ShapeCompound);
+#endif
+
 struct RawShapeClump: public ShapeClump {
 	WOO_DECL_LOGGER;
 	void recompute(int div, bool failOk=false, bool fastOnly=false) WOO_CXX11_OVERRIDE;

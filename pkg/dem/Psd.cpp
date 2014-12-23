@@ -121,7 +121,7 @@ void PsdSphereGenerator::revokeLast(){
 	ParticleGenerator::revokeLast(); // removes from genDiamMassTime, if needed
 }
 
-vector<ParticleGenerator::ParticleAndBox>
+std::tuple<Real,vector<ParticleGenerator::ParticleAndBox>>
 PsdSphereGenerator::operator()(const shared_ptr<Material>&mat, const Real& time){
 	if(mass && !(mat->density>0)) throw std::invalid_argument("PsdSphereGenerator: material density must be positive (not "+to_string(mat->density)+")");
 	int bin; Real r;
@@ -133,7 +133,7 @@ PsdSphereGenerator::operator()(const shared_ptr<Material>&mat, const Real& time)
 
 	saveBinMassRadiusTime(bin,m,r,time);
 
-	return vector<ParticleAndBox>({{sphere,AlignedBox3r(Vector3r(-r,-r,-r),Vector3r(r,r,r))}});
+	return std::make_tuple(2*r,vector<ParticleAndBox>({{sphere,AlignedBox3r(Vector3r(-r,-r,-r),Vector3r(r,r,r))}}));
 };
 
 py::tuple PsdSphereGenerator::pyInputPsd(bool normalize, bool cumulative, int num) const {
@@ -194,7 +194,7 @@ Real PsdClumpGenerator::critDt(Real density, Real young) {
 	return PsdSphereGenerator::critDt(density,young);
 }
 
-vector<ParticleGenerator::ParticleAndBox>
+std::tuple<Real,vector<ParticleGenerator::ParticleAndBox>>
 PsdClumpGenerator::operator()(const shared_ptr<Material>&mat,const Real& time){
 	if(mass && !(mat->density>0)) throw std::invalid_argument("PsdClumpGenerator: material density must be positive (not "+to_string(mat->density)+")");
 	if(clumps.empty()) throw std::invalid_argument("PsdClumpGenerator.clump may not be empty.");
@@ -271,7 +271,7 @@ PsdClumpGenerator::operator()(const shared_ptr<Material>&mat,const Real& time){
 	}
 	saveBinMassRadiusTime(bin,mass,r,time);
 	if(save) genClumpNo.push_back(cNo);
-	return ret;
+	return std::make_tuple(2*r,ret);
 }
 
 
@@ -289,7 +289,7 @@ Real PharmaCapsuleGenerator::critDt(Real density, Real young){
 	return DemFuncs::spherePWaveDt(extDiam.minCoeff(),density,young);
 }
 
-vector<ParticleGenerator::ParticleAndBox>
+std::tuple<Real,vector<ParticleGenerator::ParticleAndBox>>
 PharmaCapsuleGenerator::operator()(const shared_ptr<Material>&mat, const Real& time){
 	Real re=extDiam.maxCoeff()/2.;
 	Real ri=extDiam.minCoeff()/2.;
@@ -304,24 +304,28 @@ PharmaCapsuleGenerator::operator()(const shared_ptr<Material>&mat, const Real& t
 	Quaternionr ori=Mathr::UniformRandomRotation();
 
 	vector<shared_ptr<Particle>> pp(2);
+	Real V=0;
 
 	for(int i:{0,1}){
 		shared_ptr<Capsule> c=make_shared<Capsule>();
 		c->color=colors[i];
 		c->radius=rads[i];
 		c->shaft=shafts[i];
+		V+=c->volume();
 		shared_ptr<Particle> p=Particle::make(c,mat);
 		c->nodes[0]->pos=ori*Vector3r(xpos[i],0,0);
 		c->nodes[0]->ori=ori;
 		pp[i]=p;
 	}
-	return vector<ParticleAndBox>({{pp[0],pp[0]->shape->alignedBox()},{pp[1],pp[1]->shape->alignedBox()}});
+	// informative only
+	Real rEq=cbrt(3*V/(4*M_PI));
+	return std::make_tuple(2*rEq,vector<ParticleGenerator::ParticleAndBox>({{pp[0],pp[0]->shape->alignedBox()},{pp[1],pp[1]->shape->alignedBox()}}));
 }
 
 
 
 
-vector<ParticleGenerator::ParticleAndBox>
+std::tuple<Real,vector<ParticleGenerator::ParticleAndBox>>
 PsdCapsuleGenerator::operator()(const shared_ptr<Material>&mat, const Real& time){
 	if(mass && !(mat->density>0)) throw std::invalid_argument("PsdCapsuleGenerator: material density must be positive (not "+to_string(mat->density)+")");
 	int bin; Real rEq; // equivalent radius
@@ -362,7 +366,7 @@ PsdCapsuleGenerator::operator()(const shared_ptr<Material>&mat, const Real& time
 	// bookkeeping
 	saveBinMassRadiusTime(bin,node->getData<DemData>().mass,rEq,time);
 
-	return vector<ParticleAndBox>({{par,capsule->alignedBox()}});
+	return std::make_tuple(2*rEq,vector<ParticleAndBox>({{par,capsule->alignedBox()}}));
 };
 
 #endif /* WOO_NOCAPSULE */
@@ -376,7 +380,7 @@ WOO_PLUGIN(dem,(PsdEllipsoidGenerator));
 WOO_IMPL_LOGGER(PsdEllipsoidGenerator);
 
 
-vector<ParticleGenerator::ParticleAndBox>
+std::tuple<Real,vector<ParticleGenerator::ParticleAndBox>>
 PsdEllipsoidGenerator::operator()(const shared_ptr<Material>&mat, const Real& time){
 	if(mass && !(mat->density>0)) throw std::invalid_argument("PsdEllipsoidGenerator: material density must be positive (not "+to_string(mat->density)+")");
 	int bin; Real rEq; // equivalent radius
@@ -414,6 +418,6 @@ PsdEllipsoidGenerator::operator()(const shared_ptr<Material>&mat, const Real& ti
 	// bookkeeping
 	saveBinMassRadiusTime(bin,node->getData<DemData>().mass,rEq,time);
 
-	return vector<ParticleAndBox>({{par,ellipsoid->alignedBox()}});
+	return std::make_tuple(2*rEq,vector<ParticleAndBox>({{par,ellipsoid->alignedBox()}}));
 };
 
