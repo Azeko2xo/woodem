@@ -92,6 +92,21 @@ void In2_Truss_ElastMat::go(const shared_ptr<Shape>& shape, const shared_ptr<Mat
 	t.nodes[1]->getData<DemData>().addForceTorque(Fb);
 };
 
+void In2_Truss_ElastMat::addIntraStiffnesses(const shared_ptr<Particle>& p, const shared_ptr<Node>&, Vector3r& ktrans, Vector3r& krot) const {
+	// see http://people.duke.edu/~hpgavin/cee421/truss-3d.pdf
+	const auto& t(p->shape->cast<Truss>());
+	Vector3r dx=t.nodes[1]->pos-t.nodes[0]->pos;
+	Real L=dx.norm();
+	Real A=M_PI*pow(t.radius,2);
+	Vector3r cc=dx/L; // direction cosines
+	if(!p->material || !p->material->isA<ElastMat>()) return;
+	const Real& E=p->material->cast<ElastMat>().young;
+	// same for both nodes
+	ktrans+=(E*A/L)*cc.array().pow(2).matrix();
+	// nothing to do for krot
+}
+
+
 bool Cg2_Rod_Sphere_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
 	const Rod& t=s1->cast<Rod>(); const Sphere& s=s2->cast<Sphere>();
 	assert(s1->numNodesOk()); assert(s2->numNodesOk());
