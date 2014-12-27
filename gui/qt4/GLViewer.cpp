@@ -94,6 +94,7 @@ void SnapshotEngine::run(){
 WOO_IMPL_LOGGER(GLViewer);
 
 bool GLViewer::rotCursorFreeze=false;
+bool GLViewer::paraviewLike3d=true;
 
 GLLock::GLLock(GLViewer* _glv): boost::try_mutex::scoped_lock(Master::instance().renderMutex), glv(_glv){
 	glv->makeCurrent();
@@ -241,11 +242,18 @@ void GLViewer::mouseMovesCamera(){
 	setMouseBinding(Qt::RightButton, CAMERA, TRANSLATE);
 #else
 	setMouseBinding(Qt::ShiftModifier, Qt::LeftButton, SELECT);
-	setMouseBinding(Qt::ShiftModifier, Qt::MidButton, FRAME, TRANSLATE);
-	setMouseBinding(Qt::ShiftModifier, Qt::RightButton, FRAME, ROTATE);
-	setMouseBinding(Qt::NoModifier, Qt::MidButton, CAMERA, ZOOM);
 	setMouseBinding(Qt::NoModifier, Qt::LeftButton, CAMERA, ROTATE);
-	setMouseBinding(Qt::NoModifier, Qt::RightButton, CAMERA, TRANSLATE);
+	if(paraviewLike3d){
+		setMouseBinding(Qt::NoModifier, Qt::RightButton, CAMERA, ZOOM);
+		setMouseBinding(Qt::NoModifier, Qt::MidButton, CAMERA, TRANSLATE);
+		setMouseBinding(Qt::ShiftModifier, Qt::RightButton, FRAME, TRANSLATE);
+		setMouseBinding(Qt::ShiftModifier, Qt::MidButton, FRAME, ROTATE);
+	} else {
+		setMouseBinding(Qt::ShiftModifier, Qt::MidButton, FRAME, TRANSLATE);
+		setMouseBinding(Qt::ShiftModifier, Qt::RightButton, FRAME, ROTATE);
+		setMouseBinding(Qt::NoModifier, Qt::MidButton, CAMERA, ZOOM);
+		setMouseBinding(Qt::NoModifier, Qt::RightButton, CAMERA, TRANSLATE);
+	}
 #endif
 	setWheelBinding(Qt::ShiftModifier , FRAME, ZOOM);
 	setWheelBinding(Qt::NoModifier, CAMERA, ZOOM);

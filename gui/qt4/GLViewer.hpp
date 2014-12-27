@@ -130,6 +130,7 @@ class GLViewer : public QGLViewer
 		// public because of _GLViewer which exposes this to python
 		// shared by all instances
 		static bool rotCursorFreeze;
+		static bool paraviewLike3d;
 		long framesDone;
 
 		void centerMedianQuartile();
