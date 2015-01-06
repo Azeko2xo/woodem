@@ -28,6 +28,10 @@ except ImportError:
 
 nan,inf=float('nan'),float('inf') # for values in expressions
 
+# ensure that the string is unicode
+def _ensureUnicode(s): return s if isinstance(s,unicode) else s.decode('utf-8')
+
+
 def Object_getAllTraits(obj):
 	'Return list of all trait objects for this instance, recursively including all parent classes.'
 	ret=[]; k=obj.__class__
@@ -106,6 +110,8 @@ def Object_dump(obj,out,format='auto',fallbackFormat=None,overwrite=True,fragmen
 			out.write(SerializerToHtmlTable(showDoc=showDoc)(obj))
 			if not fragment: out.write('</body>')
 		
+
+
 class SerializerToHtmlTableGenshi:
 	'Dump given object to HTML table, using the `Genshi <http://genshi.edgewall.org>`_ templating engine; the produced serialization is XHTML-compliant. Do not use this class directly, say ``object.dump(format="html")`` instead.'
 	padding=dict(cellpadding='2px')
@@ -153,7 +159,7 @@ class SerializerToHtmlTableGenshi:
 		if depth>0: kw.update(width='100%')
 		# was [1:] to omit leading woo./wooExtra., but that is not desirable
 		head=tag.b('.'.join(obj.__class__.__module__.split('.')[0:])+'.'+obj.__class__.__name__)
-		head=tag.a(head,href=woo.document.makeObjectUrl(obj),title=obj.__class__.__doc__.decode('utf-8'))
+		head=tag.a(head,href=woo.document.makeObjectUrl(obj),title=_ensureUnicode(obj.__class__.__doc__))
 		ret=tag.table(tag.th(head,colspan=3,align='left'),frame='box',rules='all',**kw)
 		# get all attribute traits first
 		traits=obj._getAllTraits()
@@ -161,10 +167,16 @@ class SerializerToHtmlTableGenshi:
 			if trait.hidden or (self.hideNoGui and trait.noGui) or trait.noDump or (trait.hideIf and eval(trait.hideIf,globals(),{'self':obj})): continue
 			# start new group (additional line)
 			if trait.startGroup:
-				ret.append(tag.tr(tag.td(tag.i(u'▸ %s'%trait.startGroup.decode('utf-8')),colspan=3)))
+				ret.append(tag.tr(tag.td(tag.i(u'▸ %s'%_ensureUnicode(trait.startGroup)),colspan=3)))
 			attr=getattr(obj,trait.name)
-			if self.showDoc: tr=tag.tr(tag.td(trait.doc.decode('utf-8')))
-			else: tr=tag.tr(tag.td(tag.a(trait.name,href=woo.document.makeObjectUrl(obj,trait.name),title=trait.doc.decode('utf-8'))))
+			if self.showDoc: tr=tag.tr(tag.td(_ensureUnicode(trait.doc)))
+			else:
+				try:
+					tr=tag.tr(tag.td(tag.a(trait.name,href=woo.document.makeObjectUrl(obj,trait.name),title=_ensureUnicode(trait.doc))))
+				except UnicodeEncodeError:
+					print 'ERROR: UnicodeEncodeError while formatting the attribute ',obj.__class__.__name__+'.'+trait.name
+					print 'ERROR: the docstring is',trait.doc
+					raise
 			# tr=tag.tr(tag.td(trait.name if not self.showDoc else trait.doc.decode('utf-8')))
 			# nested object
 			if isinstance(attr,woo.core.Object):
@@ -176,11 +188,10 @@ class SerializerToHtmlTableGenshi:
 				# !! make deepcopy so that the original object is not modified !!
 				import copy
 				attr=copy.deepcopy(attr)
-				def _unicodeUnit(u): return u if isinstance(u,unicode) else u.decode('utf-8')
 				if not trait.multiUnit: # the easier case
 					if not trait.prefUnit: unit=u'−'
 					else:
-						unit=_unicodeUnit(trait.prefUnit[0][0])
+						unit=_ensureUnicode(trait.prefUnit[0][0])
 						# create new list, where entries are multiplied by the multiplier
 						if type(attr)==list: attr=[a*trait.prefUnit[0][1] for a in attr]
 						else: attr=attr*trait.prefUnit[0][1]
@@ -191,7 +202,7 @@ class SerializerToHtmlTableGenshi:
 					for i in range(len(attr)):
 						attr[i]=[attr[i][j]*trait.prefUnit[j][1] for j in range(len(attr[i]))]
 					for pu in trait.prefUnit:
-						unit.append(_unicodeUnit(pu[0]))
+						unit.append(_ensureUnicode(pu[0]))
 					if not wasList: attr=attr[0]
 					unit=', '.join(unit)
 				# sequence type, or something similar				
