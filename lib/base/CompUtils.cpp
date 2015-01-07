@@ -6,7 +6,6 @@
 using std::min; using std::max;
 
 int CompUtils::defaultCmap=19; // corresponds to 'jet' in Colormap-data.ipp
-constexpr int CompUtils::unitSphereTri20_maxTesselationLevel;
 
 const vector<CompUtils::Colormap> CompUtils::colormaps={
 	#include"Colormap-data.matplotlib-part.ipp"
@@ -154,12 +153,18 @@ bool CompUtils::cylCoordBox_contains_cartesian(const AlignedBox3r& box, const Ve
 	return cylCoordBox_contains_cylindrical(box,cart2cyl(pt));
 }
 
-vector<Vector3r> unitSphereTri20_vertices[CompUtils::unitSphereTri20_maxTesselationLevel+1];
-vector<Vector3i> unitSphereTri20_faces[CompUtils::unitSphereTri20_maxTesselationLevel+1];
+// initial size is 10, grows if necessary
+// doubt that anyone ever uses more than 5 anyway
+vector<vector<Vector3r>> unitSphereTri20_vertices(10);
+vector<vector<Vector3i>> unitSphereTri20_faces(10);
 void unitSphereTri20_compute(int); // defined below
 
 std::tuple<const vector<Vector3r>&,const vector<Vector3i>&> CompUtils::unitSphereTri20(int level){
-	if(level<0 || level>unitSphereTri20_maxTesselationLevel) throw std::invalid_argument("CompUtils::unitSphereTri20: level must in 0..."+to_string(unitSphereTri20_maxTesselationLevel)+" (not "+to_string(level)+").");
+	if(level<0) throw std::invalid_argument("CompUtils::unitSphereTri20: level must non-negative (not "+to_string(level)+").");
+	if(unitSphereTri20_vertices.size()<(size_t)level+1){
+		unitSphereTri20_vertices.resize(level+1);	
+		unitSphereTri20_faces.resize(level+1);
+	}
 	for(int l=0; l<=level; l++){
 		if(!unitSphereTri20_vertices[level].empty()) continue;
 		unitSphereTri20_compute(l);
@@ -168,7 +173,7 @@ std::tuple<const vector<Vector3r>&,const vector<Vector3i>&> CompUtils::unitSpher
 }
 
 void unitSphereTri20_compute(int l){
-	assert(l>=0 && l<=CompUtils::unitSphereTri20_maxTesselationLevel);
+	assert(l>=0);
 	if(l==0){
 		// icosahedron, inspired by http://www.neubert.net/Htmapp/SPHEmesh.htm
 		Real t=(1+sqrt(5))/2;

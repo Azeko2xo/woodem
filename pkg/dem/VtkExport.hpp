@@ -4,11 +4,13 @@
 #include<woo/core/Engine.hpp>
 #include<woo/pkg/dem/Particle.hpp>
 
+struct Capsule; // for triangulateCapsule decl
+
 #pragma GCC diagnostic push
 	// avoid warnings in VTK headers for using sstream
 	#pragma GCC diagnostic ignored "-Wdeprecated"
 	// work around error in vtkMath.h?
-	bool _isnan(double x){ return std::isnan(x); }
+	__attribute__((unused))	static bool _isnan(double x){ return std::isnan(x); }
 	#include<vtkCellArray.h>
 	#include<vtkPoints.h>
 	#include<vtkPointData.h>
@@ -39,8 +41,11 @@ struct VtkExport: public PeriodicEngine{
 	static int addTriangulatedObject(const vector<Vector3r>& pts, const vector<Vector3i>& tri, const vtkSmartPointer<vtkPoints>& vtkPts, const vtkSmartPointer<vtkCellArray>& cells);
 
 	// TODO: convert to boost::range instead of 2 iterators
-	int triangulateStrip(const vector<int>::iterator& ABegin, const vector<int>::iterator& AEnd, const vector<int>::iterator& BBegin, const vector<int>::iterator& BEnd, bool close, vector<Vector3i>& tri);
-	int triangulateFan(const int& a, const vector<int>::iterator& BBegin, const vector<int>::iterator& BEnd, bool invert, vector<Vector3i>& tri);
+	static int triangulateStrip(const vector<int>::iterator& ABegin, const vector<int>::iterator& AEnd, const vector<int>::iterator& BBegin, const vector<int>::iterator& BEnd, bool close, vector<Vector3i>& tri);
+	static int triangulateFan(const int& a, const vector<int>::iterator& BBegin, const vector<int>::iterator& BEnd, bool invert, vector<Vector3i>& tri);
+
+
+	static std::tuple<vector<Vector3r>,vector<Vector3i>> triangulateCapsule(const shared_ptr<Capsule>& capsule, int subdiv);
 
 
 	void postLoad(VtkExport&,void*){
@@ -63,7 +68,7 @@ struct VtkExport: public PeriodicEngine{
 		((bool,infError,true,,"Raise exception for infinite objects which don't have the glAB attribute set properly.")) \
 		((bool,skipInvisible,true,,"Skip invisible particles")) \
 		((int,subdiv,16,AttrTrait<>(),"Subdivision fineness for circular objects (such as cylinders).\n\n.. note:: :obj:`Facets <woo.dem.Facet>` are rendered without rounded edges (they are closed flat).\n\n.. note:: :obj:`Ellipsoids <woo.dem.Ellipsoid>` triangulation is controlled via the :obj:`ellLev` parameter.")) \
-		((int,ellLev,0,AttrTrait<>().range(Vector2i(0,CompUtils::unitSphereTri20_maxTesselationLevel)),"Tesselation level for exporting ellipsoids (0 = icosahedron, each level subdivides one triangle into three.")) \
+		((int,ellLev,0,AttrTrait<>().range(Vector2i(0,3)),"Tesselation level for exporting ellipsoids (0 = icosahedron, each level subdivides one triangle into three.")) \
 		((int,thickFacetDiv,1,AttrTrait<>(),"Subdivision for :obj:`woo.dem.Facet` objects with non-zero :obj:`woo.dem.Facet.halfThick`; the value of -1 will use :obj:`subdiv`; 0 will render only faces, without edges; 1 will close the edge flat; higher values mean the number of subdivisions.")) \
 		((bool,cylCaps,true,,"Render caps of :obj:`InfCylinder` (at :obj:`InfCylinder.glAB`).")) \
 		((Real,nanValue,0.,,"Use this number instead of NaN in entries, since VTK cannot read NaNs properly")) \

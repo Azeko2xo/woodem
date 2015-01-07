@@ -3,6 +3,10 @@ import woo.pack
 import numpy
 import math
 
+from woo._triangulated import *
+
+_docInlineModules=(woo._triangulated,)
+
 def cylinder(A,B,radius,div=20,axDiv=1,capA=False,capB=False,wallCaps=False,angVel=0,fixed=True,**kw):
 	'''Return triangulated cylinder, as list of facets to be passed to :obj:`ParticleContainer.append`. ``**kw`` arguments are passed to :obj:`woo.pack.gtsSurface2Facets` (and thus to :obj:`woo.utils.facet`).
 
@@ -56,9 +60,10 @@ def quadrilateral(A,B,C,D,size=0,div=Vector2i(0,0),**kw):
 		if size>0: raise ValueError('only one of *div* or *size* may be given (not both)')
 	else:
 		l1,l2=min((A-C).norm(),(D-B).norm()),min((A-B).norm(),(C-D).norm())
-		div=Vector2i(int(max(1,math.ceil(l1/size))),int(max(1,math.ceil(l2/size))))
+		if size!=0: div=Vector2i(int(max(2,math.ceil(l1/size))),int(max(2,math.ceil(l2/size))))
+		else: div=Vector2i(2,2)
 	AB,AC,CD,BD=B-A,C-A,D-C,D-B
-	aabb,aacc=numpy.linspace(0,1,div[0]),numpy.linspace(0,1,div[1])
+	aabb,aacc=numpy.linspace(0,1,div[0]+1),numpy.linspace(0,1,div[1]+1)
 	pts=[[A+ac*AC+ab*(B+ac*BD-(A+ac*AC)).normalized() for ac in aacc] for ab in aabb]
 	return woo.pack.gtsSurface2Facets(woo.pack.sweptPolylines2gtsSurface(pts),**kw)
 

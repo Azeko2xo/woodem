@@ -747,7 +747,7 @@ def runAllPreprocessors():
 	print 20*'*'+'   ALL OK   '+20*'*'
 
 def unbalancedEnergy(S):
-	if not S.trackEnergy: raise RuntimError('Scene.trackEnergy==False')
+	if not S.trackEnergy: raise RuntimeError('Scene.trackEnergy==False')
 	if not 'elast' in S.energy or 'kinetic' not in S.energy: return float('nan')
 	#raise RuntimeError('Scene.energy: does not contain *elast* or *kinetic* keys')
 	# this line seems to be necessary under Windows, zero raises ZeroDivisionError...?!

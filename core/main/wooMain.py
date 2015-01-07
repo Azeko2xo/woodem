@@ -962,7 +962,7 @@ finished: %s
 		for col in params[l].keys():
 			if col[0]!='!': continue
 			val=params[l][col]
-			if col=='!OMP_NUM_THREADS' or col=='!THREADS': nCores=int(val)
+			if col=='!OMP_NUM_THREADS' or col=='!THREADS': nCores=int(float(val))
 			elif col=='!EXEC': jobExecutable=val
 			elif col=='!SCRIPT': script=val
 			elif col=='!AFFINITY': jobAffinity=eval(val)

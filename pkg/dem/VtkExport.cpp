@@ -65,6 +65,52 @@ int VtkExport::triangulateFan(const int& a, const vector<int>::iterator& BBegin,
 	return BSize;
 }
 
+std::tuple<vector<Vector3r>,vector<Vector3i>>
+VtkExport::triangulateCapsule(const shared_ptr<Capsule>& capsule, int subdiv){
+	vector<Vector3r> vert; vector<Vector3i> tri;
+
+	const Real& rad(capsule->radius); const Real& shaft(capsule->shaft);
+	const auto& node=capsule->nodes[0];
+	//int capPos=0, capNeg=1;
+	//vert.push_back(node->loc2glob(Vector3r( rad+.5*shaft,0,0)));
+	//vert.push_back(node->loc2glob(Vector3r(-rad-.5*shaft,0,0)));
+	Real phiStep=2*M_PI/subdiv;
+	int thetaDiv=int(ceil(subdiv/4));
+	Real thetaStep=.5*M_PI/thetaDiv;
+	// create points around; cap at +x first
+	for(int i=1; i<=thetaDiv; i++){
+		Real theta=i*thetaStep;
+		for(int j=0; j<subdiv; j++){
+			Real phi=j*phiStep;
+			vert.push_back(node->loc2glob(Vector3r(.5*shaft+rad*cos(theta),rad*sin(theta)*cos(phi),rad*sin(theta)*sin(phi))));
+		}
+	}
+	for(int i=0; i<thetaDiv; i++){
+		Real theta=.5*M_PI-i*thetaStep;
+		for(int j=0; j<subdiv; j++){
+			Real phi=j*phiStep;
+			vert.push_back(node->loc2glob(Vector3r(-.5*shaft-rad*cos(theta),rad*sin(theta)*cos(phi),rad*sin(theta)*sin(phi))));
+		}
+	}
+	// dummy array of sequential indices to pass to triangulateStrip and triangulateFan 
+	vector<int> ii(vert.size()); for(size_t i=0; i<vert.size(); i++) ii[i]=i;
+	// connect successive groups of subdiv points
+	assert((vert.size()%subdiv)==0);
+	for(size_t i=0; i<=vert.size()-2*subdiv; i+=subdiv){
+		auto i0=ii.begin()+i;
+		triangulateStrip(i0,i0+subdiv,i0+subdiv,i0+2*subdiv,/*close*/true,tri);
+	}
+	// connect endpoints (caps)
+	size_t lastGroupAt=vert.size()-subdiv;
+	vert.push_back(node->loc2glob(Vector3r( rad+.5*shaft,0,0)));
+	triangulateFan(vert.size()-1,ii.begin(),ii.begin()+subdiv,/*invert*/false,tri);
+	vert.push_back(node->loc2glob(Vector3r(-rad-.5*shaft,0,0)));
+	triangulateFan(vert.size()-1,ii.begin()+lastGroupAt,ii.begin()+lastGroupAt+subdiv,/*invert*/true,tri);
+
+	return std::make_tuple(vert,tri);
+}
+
+
 py::dict VtkExport::pyOutFiles() const {
 	py::dict ret;
 	for(auto& item: outFiles){
@@ -324,44 +370,7 @@ void VtkExport::run(){
 		}
 		else if(capsule){
 			vector<Vector3r> vert; vector<Vector3i> tri;
-			const Real& rad(capsule->radius); const Real& shaft(capsule->shaft);
-			const auto& node=capsule->nodes[0];
-			//int capPos=0, capNeg=1;
-			//vert.push_back(node->loc2glob(Vector3r( rad+.5*shaft,0,0)));
-			//vert.push_back(node->loc2glob(Vector3r(-rad-.5*shaft,0,0)));
-			Real phiStep=2*M_PI/subdiv;
-			int thetaDiv=int(ceil(subdiv/4));
-			Real thetaStep=.5*M_PI/thetaDiv;
-			// create points around; cap at +x first
-			for(int i=1; i<=thetaDiv; i++){
-				Real theta=i*thetaStep;
-				for(int j=0; j<subdiv; j++){
-					Real phi=j*phiStep;
-					vert.push_back(node->loc2glob(Vector3r(.5*shaft+rad*cos(theta),rad*sin(theta)*cos(phi),rad*sin(theta)*sin(phi))));
-				}
-			}
-			for(int i=0; i<thetaDiv; i++){
-				Real theta=.5*M_PI-i*thetaStep;
-				for(int j=0; j<subdiv; j++){
-					Real phi=j*phiStep;
-					vert.push_back(node->loc2glob(Vector3r(-.5*shaft-rad*cos(theta),rad*sin(theta)*cos(phi),rad*sin(theta)*sin(phi))));
-				}
-			}
-			// dummy array of sequential indices to pass to triangulateStrip and triangulateFan 
-			vector<int> ii(vert.size()); for(size_t i=0; i<vert.size(); i++) ii[i]=i;
-			// connect successive groups of subdiv points
-			assert((vert.size()%subdiv)==0);
-			for(size_t i=0; i<=vert.size()-2*subdiv; i+=subdiv){
-				auto i0=ii.begin()+i;
-				triangulateStrip(i0,i0+subdiv,i0+subdiv,i0+2*subdiv,/*close*/true,tri);
-			}
-			// connect endpoints (caps)
-			size_t lastGroupAt=vert.size()-subdiv;
-			vert.push_back(node->loc2glob(Vector3r( rad+.5*shaft,0,0)));
-			triangulateFan(vert.size()-1,ii.begin(),ii.begin()+subdiv,/*invert*/false,tri);
-			vert.push_back(node->loc2glob(Vector3r(-rad-.5*shaft,0,0)));
-			triangulateFan(vert.size()-1,ii.begin()+lastGroupAt,ii.begin()+lastGroupAt+subdiv,/*invert*/true,tri);
-
+			std::tie(vert,tri)=triangulateCapsule(static_pointer_cast<Capsule>(p->shape),subdiv);
 			tCellNum=addTriangulatedObject(vert,tri,tPos,tCells);
 		}
 		else if(wall){

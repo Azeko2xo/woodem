@@ -77,6 +77,7 @@ struct Cell: public Object{
 
 	/*! Return point inside periodic cell, even if shear is applied; store cell coordinates in period. */
 	Vector3r canonicalizePt(const Vector3r& pt, Vector3i& period) const { return shearPt(wrapPt(unshearPt(pt),period)); }
+	bool isCanonical(const Vector3r& pt) const { return AlignedBox3r(Vector3r::Zero(),getSize()).contains(unshearPt(pt)); }
 	/*! Apply inverse shear on point; to put it inside (unsheared) periodic cell, apply wrapPt on the returned value. */
 	Vector3r unshearPt(const Vector3r& pt) const { return _unshearTrsf*pt; }
 	//! Apply shear on point. 
