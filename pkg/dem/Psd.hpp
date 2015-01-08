@@ -6,6 +6,9 @@
 struct PsdSphereGenerator: public ParticleGenerator{
 	WOO_DECL_LOGGER;
 	std::tuple<Real,vector<ParticleAndBox>> operator()(const shared_ptr<Material>&m, const Real& time) WOO_CXX11_OVERRIDE;
+
+	static void sanitizePsd(vector<Vector2r>& psdPts, const string& src);
+
 	void postLoad(PsdSphereGenerator&,void*);
 	// return radius and bin for the next particle (also used by derived classes)
 	std::tuple<Real,int> computeNextRadiusBin();

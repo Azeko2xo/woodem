@@ -3,6 +3,7 @@
 #include<woo/pkg/dem/Funcs.hpp>
 #include<woo/pkg/dem/Clump.hpp>
 #include<woo/pkg/dem/Sphere.hpp>
+#include<woo/pkg/dem/Psd.hpp> // PsdSphereGenerator::sanitizePsd
 
 #include<woo/lib/sphere-pack/SpherePack.hpp>
 #include<woo/lib/smoothing/LinearInterpolate.hpp>
@@ -35,11 +36,16 @@ WOO_IMPL__CLASS_BASE_DOC_PY(woo_dem_SpatialBias__CLASS_BASE_DOC_PY);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_AxialBias__CLASS_BASE_DOC_ATTRS);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_PsdAxialBias__CLASS_BASE_DOC_ATTRS);
 
+WOO_IMPL_LOGGER(PsdAxialBias);
+
 
 #if 0
 	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_ArcShooter__CLASS_BASE_DOC_ATTRS);
 #endif
 
+void AxialBias::postLoad(AxialBias&,void*){
+	if(axis<0 || axis>2) throw std::runtime_error("AxialBias.axis: must be in 0..2 (not "+to_string(axis)+").");
+}
 
 Vector3r AxialBias::unitPos(const Real& d){
 	Vector3r p3=Mathr::UnitRandom3();
@@ -49,13 +55,50 @@ Vector3r AxialBias::unitPos(const Real& d){
 	return p3;
 }
 
+void PsdAxialBias::postLoad(PsdAxialBias&,void*){
+	PsdSphereGenerator::sanitizePsd(psdPts,"PsdAxialBias.psdPts");
+	if(!reorder.empty()){
+		if(reorder.size()!=psdPts.size()) throw std::runtime_error("PsdAxialBias.reorder: must have the length of psdPts minus 1 (len(reorder)=="+to_string(reorder.size())+", len(psdPts)="+to_string(psdPts.size())+").");
+		for(int i=0; i<psdPts.size()-1; i++){
+			size_t c=std::count(reorder.begin(),reorder.end(),i);
+			if(c!=1) throw std::runtime_error("PsdAxialBias.reorder: must contain all integers in 0.."+to_string(psdPts.size()-1)+", each exactly once ("+to_string(c)+" occurences of "+to_string(i)+").");
+		}
+	}
+}
+
+
 Vector3r PsdAxialBias::unitPos(const Real& d){
-	if(discrete) throw std::runtime_error("PsdAxialBias.discrete==True: not yet implemented.");
-	if(axis<0 || axis>2) throw std::runtime_error("AxialBias.axis: must be in 0..2 (not "+to_string(axis));
+	if(psdPts.empty()) throw std::runtime_error("AxialBias.psdPts: must not be empty.");
 	Vector3r p3=Mathr::UnitRandom3();
 	Real& p(p3[axis]);
-	size_t pos=0; // discarded after use
-	p=linearInterpolate(d,psdPts,pos)+(p-.5)*fuzz;
+	size_t pos=0; // contains fraction number in the PSD
+	if(!discrete){
+		p=linearInterpolate(d,psdPts,pos);
+	} else {
+		Real f0,f1,t;
+		std::tie(f0,f1,t)=linearInterpolateRel(d,psdPts,pos);
+		//cerr<<"PSD interp for "<<d<<": "<<d0<<".."<<d1<<", pos="<<pos<<", t="<<t<<endl;
+		if(t==0){
+			// we want the interval to the left of our point
+			if(pos==0){ LOG_WARN("PsdAxiaBias.unitPos: discrete PSD interpolation returned point at the beginning for d="<<d<<", which should be zero. No interpolation done, setting 0."); p=0; return p3; }
+			f1=f0; f0=psdPts[pos-1].y();
+		}
+		// pick randomly in our interval
+		p=f0+Mathr::UnitRandom()*(f1-f0);
+		//cerr<<"Picked from "<<d0<<".."<<d1<<": "<<p<<endl;
+	}
+	// reorder fractions if desired
+	if(!reorder.empty()){
+		Real a=0, dp=p-psdPts[pos].y();
+		for(size_t i=0; i<reorder.size(); i++){
+			if(reorder[i]==pos){ p=a+dp; break; } 
+			// cumulate bin sizes of other fractions, except for the very last one which is zero by definition
+			if(i<psdPts.size()-1) a+=psdPts[reorder[i]+1].y()-psdPts[reorder[i]].y();
+		}
+	}
+	// apply fuzz
+	p=CompUtils::clamped(p+fuzz*(Mathr::UnitRandom()-.5),0,1);
+	if(invert) p=1-p;
 	return p3;
 }
 
@@ -458,7 +501,8 @@ Vector3r ArcInlet::randomPosition(const Real& rad, const Real& padDist) {
 
 bool ArcInlet::validateBox(const AlignedBox3r& b) {
 	for(const auto& c:{AlignedBox3r::BottomLeftFloor,AlignedBox3r::BottomRightFloor,AlignedBox3r::TopLeftFloor,AlignedBox3r::TopRightFloor,AlignedBox3r::BottomLeftCeil,AlignedBox3r::BottomRightCeil,AlignedBox3r::TopLeftCeil,AlignedBox3r::TopRightCeil}){
-		CompUtils::cylCoordBox_contains_cartesian(cylBox,node->glob2loc(b.corner(c)));
+		// FIXME: all boxes fail?!
+		if(!CompUtils::cylCoordBox_contains_cartesian(cylBox,node->glob2loc(b.corner(c)))) return false;
 	}
 	return true;
 }

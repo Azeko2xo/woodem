@@ -16,12 +16,12 @@ WOO_IMPL_LOGGER(PsdSphereGenerator);
 #endif
 
 
-void PsdSphereGenerator::postLoad(PsdSphereGenerator&,void*){
+void PsdSphereGenerator::sanitizePsd(vector<Vector2r>& psdPts, const string& src) {
 	if(psdPts.empty()) return;
 	for(int i=0; i<(int)psdPts.size()-1; i++){
-		if(psdPts[i][0]<0 || psdPts[i][1]<0) throw std::runtime_error("PsdSphereGenerator.psdPts: negative values not allowed.");
-		if(psdPts[i][0]>psdPts[i+1][0]) throw std::runtime_error("PsdSphereGenerator.psdPts: diameters (the x-component) must be increasing ("+to_string(psdPts[i][0])+">="+to_string(psdPts[i+1][0])+")");
-		if(psdPts[i][1]>psdPts[i+1][1]) throw std::runtime_error("PsdSphereGenerator.psdPts: passing values (the y-component) must be increasing ("+to_string(psdPts[i][1])+">"+to_string(psdPts[i+1][1])+")");
+		if(psdPts[i][0]<0 || psdPts[i][1]<0) throw std::runtime_error(src+": negative values not allowed.");
+		if(psdPts[i][0]>psdPts[i+1][0]) throw std::runtime_error(src+": diameters (the x-component) must be increasing ("+to_string(psdPts[i][0])+">="+to_string(psdPts[i+1][0])+")");
+		if(psdPts[i][1]>psdPts[i+1][1]) throw std::runtime_error(src+": passing values (the y-component) must be increasing ("+to_string(psdPts[i][1])+">"+to_string(psdPts[i+1][1])+")");
 	}
 	Real maxPass=psdPts.back()[1];
 	// remove leading zero points
@@ -31,12 +31,17 @@ void PsdSphereGenerator::postLoad(PsdSphereGenerator&,void*){
 	// remove trailing points with the same passing value
 	for(ii=(int)psdPts.size()-2; ii>=0; ii--){ if(psdPts[ii][1]<maxPass) break; }
 	if(ii<(int)psdPts.size()-2) psdPts.erase(psdPts.begin()+ii+2,psdPts.end());
-	if(psdPts.empty()) throw std::logic_error("PsdSphereGenerator.psdPts: empty after removing spurious values?");
+	if(psdPts.empty()) throw std::logic_error(src+": empty after removing spurious values?");
 
 	if(maxPass!=1.0){
 		LOG_INFO("Normalizing psdPts so that highest value of passing is 1.0 rather than "<<maxPass);
 		for(Vector2r& v: psdPts) v[1]/=maxPass;
 	}
+}
+
+void PsdSphereGenerator::postLoad(PsdSphereGenerator&,void*){
+	if(psdPts.empty()) return;
+	sanitizePsd(psdPts,"PsdSphereGenerator.psdPts");
 	weightPerBin.resize(psdPts.size());
 	std::fill(weightPerBin.begin(),weightPerBin.end(),0);
 	weightTotal=0;
@@ -53,10 +58,19 @@ std::tuple<Real,int> PsdSphereGenerator::computeNextRadiusBin(){
 	// compute now
 	Real r;
 	Real maxBinDiff=-Inf; int maxBin=-1;
-	// find the bin which is the most below the expected percentage according to the psdPts
-	// we use mass or number automatically: weightTotal and weightPerBin accumulates number or mass
-	if(weightTotal<=0) maxBin=0;
+	if(weightTotal<=0){
+		// running for the very first time, just pick something which will work
+		maxBin=0; // the default, just in case the PSD is not sane
+		for(size_t i=0; i<psdPts.size()-1; i++){
+			if(psdPts[i+1][1]-psdPts[i][1]>0){
+				// for discrete PSDs, we have an additional restriction that the left point is non-zero
+				if(!discrete || psdPts[i][1]>0){ maxBin=i; break; }
+			}
+		}
+	}
 	else{
+		// find the bin which is the most below the expected percentage according to the psdPts
+		// we use mass or number automatically: weightTotal and weightPerBin accumulates number or mass
 		for(size_t i=0;i<psdPts.size();i++){
 			Real binDesired=psdPts[i][1]-(i>0?psdPts[i-1][1]:0.);
 			Real binDiff=binDesired-weightPerBin[i]*1./weightTotal;

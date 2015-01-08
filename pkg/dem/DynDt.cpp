@@ -5,6 +5,8 @@
 #include<woo/pkg/dem/Clump.hpp>
 
 WOO_PLUGIN(dem,(DynDt));
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_DynDt__CLASS_BASE_DOC_ATTRS);
+
 WOO_IMPL_LOGGER(DynDt);
 
 void DynDt::postLoad(DynDt&,void*){

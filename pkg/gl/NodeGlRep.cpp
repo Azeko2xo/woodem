@@ -13,9 +13,17 @@
 
 WOO_PLUGIN(gl,(LabelGlRep)(ScalarGlRep)(VectorGlRep)(TensorGlRep)(ActReactGlRep)(CylGlRep));
 
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_gl_LabelGlRep__CLASS_BASE_DOC_ATTRS);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_gl_ScalarGlRep__CLASS_BASE_DOC_ATTRS);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_gl_VectorGlRep__CLASS_BASE_DOC_ATTRS);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_gl_ActReactGlRep__CLASS_BASE_DOC_ATTRS);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_gl_TensorGlRep__CLASS_BASE_DOC_ATTRS);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_gl_CylGlRep__CLASS_BASE_DOC_ATTRS);
+
+
 void LabelGlRep::render(const shared_ptr<Node>& node, const GLViewInfo* viewInfo){
 	Vector3r pos=node->pos+(node->hasData<GlData>()?node->getData<GlData>().dGlPos:Vector3r::Zero());
-	GLUtils::GLDrawText(text,pos,color);
+	GLUtils::GLDrawText(text,pos,color,center);
 };
 
 

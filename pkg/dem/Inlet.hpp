@@ -123,10 +123,11 @@ struct SpatialBias: public Object{
 WOO_REGISTER_OBJECT(SpatialBias);
 
 struct AxialBias: public SpatialBias{
+	void postLoad(AxialBias&,void*);
 	Vector3r unitPos(const Real& diam) WOO_CXX11_OVERRIDE;
 	#define woo_dem_AxialBias__CLASS_BASE_DOC_ATTRS \
 		AxialBias,SpatialBias,"Bias position (within unit interval) along :obj:`axis` :math:`p`, so that radii are distributed along :obj:`axis`, as in :math:`p=\\frac{d-d_0}{d_1-d_0}+f\\left(a-\\frac{1}{2}\\right)`, where :math:`f` is the :obj:`fuzz`, :math:`a` is unit random number, :math:`d` is the current particle diameter and :math:`d_0` and :math:`d_1` are diameters at the lower and upper end (:obj:`d01`). :math:`p` is clamped to :math:`\\rangle0,1\\langle` after the computation.", \
-			((int,axis,0,,"Axis which is biased.")) \
+			((int,axis,0,AttrTrait<Attr::triggerPostLoad>(),"Axis which is biased.")) \
 			((Vector2r,d01,Vector2r(NaN,NaN),,"Diameter at the lower and upper end (the order matters); it is possible that :math:`r_0>r_1`, in which case the bias is reversed (bigger radii have smaller coordinate).")) \
 			((Real,fuzz,0,,"Allow for random variations around the position determined from diameter."))
 	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_AxialBias__CLASS_BASE_DOC_ATTRS);
@@ -134,13 +135,17 @@ struct AxialBias: public SpatialBias{
 WOO_REGISTER_OBJECT(AxialBias);
 
 struct PsdAxialBias: public AxialBias {
+	void postLoad(PsdAxialBias&,void*);
 	Vector3r unitPos(const Real& diam) WOO_CXX11_OVERRIDE;
 	#define woo_dem_PsdAxialBias__CLASS_BASE_DOC_ATTRS \
 		PsdAxialBias,AxialBias,"Bias position based on PSD curve, so that fractions get the amount of space they require according to their percentage. The PSD must be specified with mass fractions, using With :obj:`discrete` (suitable for use with :obj:`PsdParticleGenerator.discrete`), the whole interval between the current and previous radius will be used with uniform probability, allowing for layered particle arangement. The :obj:`d01` attribute is ignored with PSD.", \
-			((vector<Vector2r>,psdPts,,,"Points of the mapping function, similar to :obj:`PsdParticleGenerator.psdPts`."))\
-			((bool,discrete,false,,"Interpret :obj:`psdPts` as piecewise-constant (rather than piecewise-linear) function. Each diameter will be distributed uniformly in the whole interval between percentage of the current and previous points."))
+			((vector<Vector2r>,psdPts,,AttrTrait<Attr::triggerPostLoad>(),"Points of the mapping function, similar to :obj:`PsdParticleGenerator.psdPts`."))\
+			((bool,invert,false,,"Reverse the ordering along the axis, which makes the bigger particles be close to zero.")) \
+			((bool,discrete,false,,"Interpret :obj:`psdPts` as piecewise-constant (rather than piecewise-linear) function. Each diameter will be distributed uniformly in the whole interval between percentage of the current and previous points.")) \
+			((vector<int>,reorder,,AttrTrait<Attr::triggerPostLoad>(),"Reorder the PSD fractions; this is mainly useful for discrete distributions, where the order can be non-increasing, such as with ``reorder=[1,0,2]`` which will put the finest fraction in the middle of the other two"))
 
 	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_PsdAxialBias__CLASS_BASE_DOC_ATTRS);
+	WOO_DECL_LOGGER;
 };
 WOO_REGISTER_OBJECT(PsdAxialBias);
 

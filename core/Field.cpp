@@ -28,6 +28,18 @@ string Node::pyStr() const {
 }
 
 void Node::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){
+	if(py::len(args)>0){
+		if(py::len(args)>2) throw std::runtime_error("Node: only takes 0, 1 or 2 non-keyword arguments ("+to_string(py::len(args))+" given).");
+		py::extract<Vector3r> posEx(args[0]);
+		if(!posEx.check()) woo::TypeError("Node: first non-keyword argument must be Vector3 (pos)");
+		pos=posEx();
+		if(py::len(args)==2){
+			py::extract<Quaternionr> oriEx(args[1]);
+			if(!oriEx.check()) woo::TypeError("Node: second non-keyword argument must be Quaternion (ori)");
+			ori=oriEx();
+		}
+		args=py::tuple(); // clear args
+	}
 	for(const char* name:{"dem","gl","sparc","clDem"}){
 		if(!kw.has_key(name)) continue;
 		auto& d=py::extract<shared_ptr<NodeData>>(kw[name])();

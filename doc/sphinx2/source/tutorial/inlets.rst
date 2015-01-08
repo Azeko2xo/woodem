@@ -114,6 +114,10 @@ There are some generators which are not based on PSD; one of them is :obj:`woo.d
 .. youtube:: jXL8qXi780M
 
 
+
+
+
+
 Inlets
 ==========
 
@@ -130,6 +134,31 @@ Random inlets position particles in a given part of space (box with :obj:`~woo.d
 The bottle in the example above has :obj:`~woo.dem.CylinderInlet` above the neck:
 
 .. literalinclude:: bottle.py
+
+Spatial bias
+^^^^^^^^^^^^^
+
+Sometimes, it is useful to distribute particles in the inlet volume non-uniformly, such as by requiring larger radii to tend to one end; this allows to produce graded or layered packings, e.g. for use in geomechanics. This functionality is provided by subclasses of :obj:`~woo.dem.SpatialBias`, in particular by :obj:`~woo.dem.PsdAxialBias`.
+
+All random inlets (see below) pick point uniformly from unit cube initially, and then map it on the area they occupy (box for :obj:`~woo.dem.BoxInlet`, arc for :obj:`~woo.dem.ArcInlet`) by transforming coordinates (cartesian or cylindrical, respectively). :obj:`~woo.dem.PsdAxialBias` will change one of the coordinates (chosen by :obj:`~woo.dem.AxialBias.axis`) depending on diameter of the particle being generated. The mapping function is PSD-like (monotonically increasing, providing the desired unit coordinate for each diameter), and indeed the PSD can be re-used between the generator and the bias.
+
+* :obj:`~woo.dem.AxialBias.fuzz` can be given to introduce some random perturbation to the coordinate computed.
+* the PSD-like function can be :obj:`inverted <woo.dem.PsdAxialBias.invert>` to be monotonically decreasing rather than increasing;
+* segments of the PSD-like sequence can be :obj:`reordered <woo.dem.PsdAxialBias.reorder>` to allow arbitrary arrangement of layers.
+* :obj:`~woo.dem.PsdAxialBias.discrete` PSD's are supported, and each of the few diameters generated will occupy space between the last fraction and its own.
+
+The script below gives the following, showing some of the possibilities:
+
+.. figure:: fig/inlet-bias-3d.*
+   :align: center
+
+   Various possibilities for the inlet bias functionality.
+
+.. literalinclude:: inlet-bias.py
+
+
+
+
 
 Dense
 ------
