@@ -59,7 +59,7 @@ void PsdAxialBias::postLoad(PsdAxialBias&,void*){
 	PsdSphereGenerator::sanitizePsd(psdPts,"PsdAxialBias.psdPts");
 	if(!reorder.empty()){
 		if(reorder.size()!=psdPts.size()) throw std::runtime_error("PsdAxialBias.reorder: must have the length of psdPts minus 1 (len(reorder)=="+to_string(reorder.size())+", len(psdPts)="+to_string(psdPts.size())+").");
-		for(int i=0; i<psdPts.size()-1; i++){
+		for(int i=0; i<(int)psdPts.size()-1; i++){
 			size_t c=std::count(reorder.begin(),reorder.end(),i);
 			if(c!=1) throw std::runtime_error("PsdAxialBias.reorder: must contain all integers in 0.."+to_string(psdPts.size()-1)+", each exactly once ("+to_string(c)+" occurences of "+to_string(i)+").");
 		}
@@ -91,7 +91,7 @@ Vector3r PsdAxialBias::unitPos(const Real& d){
 	if(!reorder.empty()){
 		Real a=0, dp=p-psdPts[pos].y();
 		for(size_t i=0; i<reorder.size(); i++){
-			if(reorder[i]==pos){ p=a+dp; break; } 
+			if(reorder[i]==(int)pos){ p=a+dp; break; } 
 			// cumulate bin sizes of other fractions, except for the very last one which is zero by definition
 			if(i<psdPts.size()-1) a+=psdPts[reorder[i]+1].y()-psdPts[reorder[i]].y();
 		}
@@ -108,7 +108,7 @@ Vector3r PsdAxialBias::unitPos(const Real& d){
 	void Inlet::renderMassAndRate(const Vector3r& pos){
 		std::ostringstream oss; oss.precision(4); oss<<mass;
 		if(maxMass>0){ oss<<"/"; oss.precision(4); oss<<maxMass; }
-		if(!isnan(currRate)){ oss.precision(3); oss<<"\n("<<currRate<<")"; }
+		if(!isnan(currRate) && !isinf(currRate)){ oss.precision(3); oss<<"\n("<<currRate<<")"; }
 		GLUtils::GLDrawText(oss.str(),pos,CompUtils::mapColor(glColor));
 	}
 #endif
