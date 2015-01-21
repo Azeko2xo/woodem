@@ -246,7 +246,7 @@ All data in the scene can be accessed as well:
 
 .. ipython::
 
-   Woo [1]: from woo.dem import *; from woo.core import *; import woo; S=Scene(fields=[DemField(gravity=(0,0,-9.81),par=[Wall.make(0,axis=2),Sphere.make((0,0,2),.2)])],engines=DemField.minimalEngines(damping=.2)); S.run(100,True)
+   Woo [1]: from woo.dem import *; from woo.core import *; import woo; S=Scene(fields=[DemField(gravity=(0,0,-9.81),par=[Wall.make(0,axis=2),Sphere.make((0,0,.2),.2)])],engines=DemField.minimalEngines(damping=.2)); S.run(100,True)
 
    Woo [1]: S.dem                    # the DEM field
 
@@ -256,14 +256,42 @@ All data in the scene can be accessed as well:
 
    Woo [1]: S.dt                     # time-step
 
+   Woo [1]: S.engines                # all engines
+
    Woo [1]: S.dem.par[0]             # first particle (numbering starts from 0)
 
    Woo [1]: S.dem.par[1]             # second particle
 
    Woo [1]: S.dem.par[-1]            # last particle; negative numbers from the end
 
-   Woo [1]: S.dem.par[1].pos         # position of particle #1
+   Woo [1]: p1=S.dem.par[1]
 
-   Woo [1]: S.dem.par[1].shape       # geometrical shape of particle #1
+   Woo [1]: p1.pos                   # position of particle #1
 
-   Woo [1]: S.engines                # all engines
+   Woo [1]: p1.shape                 # geometrical shape of particle #1
+
+   Woo [1]: p1.f                     # force on the particle (only works for uninodal particles)
+
+   Woo [1]: p1.t                     # torque on the particle (uninodal only)
+
+   Woo [1]: p1.contacts              # contacts of this particle (*real* contacts only), as mapping of id and contact object
+
+   Woo [1]: p1.con                   # ids of contacting particles (shorthand for keys of p1.contacts)
+
+   Woo [1]: p1.tacts                 # contact objects (shorthand for values of p1.contacts)
+
+   Woo [1]: len(p1.con)              # number of contacts of this particle
+
+   Woo [1]: p1.contacts[0]           # contact between 0 and 1
+   
+   Woo [1]: S.dem.con[0,1]           # the same contact, accessed differently
+
+   Woo [1]: c01=S.dem.con[0,1]
+
+   Woo [1]: c01.geom                 # contact geometry
+
+   Woo [1]: c01.geom.uN              # normal overlap
+
+   Woo [1]: c01.phys.force           # force in contact-local coordinates
+
+

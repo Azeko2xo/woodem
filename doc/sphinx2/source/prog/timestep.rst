@@ -21,7 +21,7 @@ When timestep is not a meaningful value at the beginning of the timestep (usuall
 The critical timestep from all these sources is multipled by the :obj:`~woo.core.Scene.dtSafety` factor before being applied to :obj:`~woo.core.Scene.dt`.
 
 :obj:`~woo.dem.DynDt`
---------------------
+---------------------
 
 :obj:`~woo.dem.DynDt` uses both contact and intra-particle stiffnesses to determin critical timestep:
 
