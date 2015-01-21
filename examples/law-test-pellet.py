@@ -6,7 +6,7 @@ from woo import plot
 from woo import *
 import woo.log
 woo.log.setLevel('LawTester',woo.log.INFO)
-woo.log.setLevel('Law2_L6Geom_FrictPhys_Pellet',woo.log.TRACE)
+woo.log.setLevel('Law2_L6Geom_PelletPhys_Pellet',woo.log.TRACE)
 m=PelletMat(density=1e3,young=1e7,ktDivKn=.2,tanPhi=.5,normPlastCoeff=1e3,kaDivKn=.05)
 S=woo.master.scene=Scene(fields=[DemField(gravity=(0,0,0))])
 S.dem.par.add([
@@ -38,7 +38,7 @@ S.engines=utils.defaultEngines(damping=.0,cp2=Cp2_PelletMat_PelletPhys(),law=Law
 S.dt=1e-3
 #S.pause()
 S.trackEnergy=True
-#plot.plots={' i':(('fErrRel_xx','k'),None,'fErrAbs_xx'),'i ':('dist',None),' i ':(S.energy),'   i':('f_xx',None,'f_yy','f_zz'),'  i':('u_xx',None,'u_yy','u_zz'),'i  ':('u_yz',None,'u_zx','u_xy')}
+#plot.plots={' i':(('fErrRel_xx','k'),None,'fErrAbs_xx'),'i ':('dist',None),' i ':(**S.energy),'   i':('f_xx',None,'f_yy','f_zz'),'  i':('u_xx',None,'u_yy','u_zz'),'i  ':('u_yz',None,'u_zx','u_xy')}
 S.plot.plots={'i':('u_xx',None,'uNPl'),'u_xx':('f_xx',)}
 S.plot.plot()
 S.saveTmp()

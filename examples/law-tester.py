@@ -34,7 +34,7 @@ S.engines=utils.defaultEngines(damping=.01)+[
 S.dt=1e-3
 #S.pause()
 S.trackEnergy=True
-S.plot.plots={' i':(('fErrRel_xx','k'),None,'fErrAbs_xx'),'i ':('dist',None),' i ':(S.energy),'   i':('f_xx',None,'f_yy','f_zz'),'  i':('u_xx',None,'u_yy','u_zz'),'i  ':('u_yz',None,'u_zx','u_xy')}
+S.plot.plots={' i':(('fErrRel_xx','k'),None,'fErrAbs_xx'),'i ':('dist',None),' i ':('**S.energy'),'   i':('f_xx',None,'f_yy','f_zz'),'  i':('u_xx',None,'u_yy','u_zz'),'i  ':('u_yz',None,'u_zx','u_xy')}
 S.plot.plot()
 S.saveTmp()
 S.run()

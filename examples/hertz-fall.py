@@ -21,7 +21,7 @@ S.engines=utils.defaultEngines(damping=.0,cp2=Cp2_FrictMat_HertzPhys(gamma=0.,en
 	PyRunner(1,'import woo; S.plot.addData(i=S.step,x=S.dem.par[1].pos,v=S.dem.par[1].vel,t=S.time,dt=S.dt,Etot=S.energy.total(),bounces=S.lab.tester.stages[0].bounces,vRel=S.lab.tester.v,**S.energy)'),
 ]
 S.trackEnergy=True
-S.plot.plots={'t':('x_z'),'i ':('S.energy.keys()'),'t ':('v_z')} #,None,('Etot','g--'))}# ,'i':('v_z','vRel_xx')}
+S.plot.plots={'t':('x_z'),'i ':('**S.energy'),'t ':('v_z')} #,None,('Etot','g--'))}# ,'i':('v_z','vRel_xx')}
 S.plot.plot()
 S.saveTmp()
 

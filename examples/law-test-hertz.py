@@ -6,7 +6,7 @@ from woo import plot
 from woo import *
 import woo.log
 woo.log.setLevel('LawTester',woo.log.INFO)
-woo.log.setLevel('Law2_L6Geom_FrictPhys_Pellet',woo.log.TRACE)
+woo.log.setLevel('Law2_L6Geom_PelletPhys_Pellet',woo.log.TRACE)
 m=FrictMat(density=1e3,young=1e7,ktDivKn=.2,tanPhi=.5)
 S=woo.master.scene=Scene(fields=[DemField(gravity=(0,0,0))])
 S.dtSafety=0.01
