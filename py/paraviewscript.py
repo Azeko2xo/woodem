@@ -213,7 +213,7 @@ if hasattr(sys,'argv') and len(sys.argv)>1:
 	import argparse,re
 	parser=argparse.ArgumentParser()
 	parser.add_argument('--zip',help='Create self-contained zip file from data files.',dest='zip',type=str,default='')
-	parser.add_argument('--slice',type=str,default='',dest='slice',help='Slice for packing files, to avoid large volumes of data; the slice must be in python format, i.e. ``start:stop`` or ``start:stop:step``, where any of the fields may be empty. E.g. to choose every second file, say ``--slice=::2``, to get just the last one, say ``--slice=:-1``.')
+	parser.add_argument('--slice',type=str,default='',dest='slice',help='Slice for packing files, to avoid large volumes of data; the slice must be in python format, i.e. ``start:stop`` or ``start:stop:step``, where any of the fields may be empty. E.g. to choose every second file, say ``--slice=::2``, to get just the last one, say ``--slice=-1:``.')
 	opts=parser.parse_args()
 	if opts.zip:
 		zipName=opts.zip+('.zip' if not opts.zip.endswith('.zip') else '')
@@ -222,7 +222,7 @@ if hasattr(sys,'argv') and len(sys.argv)>1:
 		if opts.slice:
 			# from http://stackoverflow.com/a/681949/761090 in comment by pprzemek
 			vtkSlice=slice(*map(lambda x: int(x.strip()) if x.strip() else None, opts.slice.split(':')))
-		else: vtkSlice=Slice(None,None) # all files
+		else: vtkSlice=slice(None,None) # all files
 		import zipfile
 		with zipfile.ZipFile(zipName,'w',allowZip64=True) as ar:
 			zippedFiles=set()

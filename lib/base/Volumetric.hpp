@@ -8,6 +8,10 @@ namespace woo{
 		static Real tetraVolume(const Vector3r& A, const Vector3r& B, const Vector3r& C, const Vector3r& D);
 		//! Compute tetrahedron inertia
 		static Matrix3r tetraInertia(const Vector3r& A, const Vector3r& B, const Vector3r& C, const Vector3r& D);
+		static Matrix3r tetraInertia_cov(const Vector3r v[4], bool fixSign=true);
+		static Matrix3r tetraInertia_grid(const Vector3r v[4],int div=100);
+
+
 
 		//! Compute triangle inertia; zero thickness is assumed for inertia as such;
 		//! the density to multiply with at the end is per unit area;

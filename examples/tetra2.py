@@ -10,7 +10,7 @@ S=woo.master.scene=Scene(fields=[DemField(gravity=(0,0,-10),loneMask=0)])
 maskTri=0b0001
 maskTet=0b0010
 
-if 1:
+if 0:
 	# ignore return value		
 	woo.utils.importNmesh('tetra2.horse.nmesh',mat=mat,mask=maskTet,dem=S.dem,surf=True,surfMask=maskTri,surfHalfThick=halfThick)
 else:
@@ -30,8 +30,9 @@ else:
 	S.dem.par.add(f3)
 	S.dem.nodesAppend(nn)
 	# lumped mass
-	for n in nn:
-		n.dem.mass=sum([p.material.density*.25*p.shape.getVolume() for p in n.dem.parRef if isinstance(p.shape,Tet4)])
+	#for n in nn:
+	#	n.dem.mass=sum([p.material.density*.25*p.shape.getVolume() for p in n.dem.parRef if isinstance(p.shape,Tet4)])
+	for n in nn: DemData.setOriMassInertia(n)
 
 S.dem.par.add(Wall.make(-.1,axis=2,sense=1,mat=mat,glAB=((-.4,-.4),(.4,.4))))
 

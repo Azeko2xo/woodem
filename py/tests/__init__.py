@@ -18,6 +18,7 @@ from . import ellipsoid
 from . import batch
 from . import shapepack
 from . import tetra
+from . import volumetric
 # this is ugly, but automatic
 allTests=[m for m in dir() if type(eval(m))==types.ModuleType and eval(m).__name__.startswith('woo.tests')]
 # should the above break, do it manually (but keep the imports above):
@@ -25,8 +26,8 @@ allTests=[m for m in dir() if type(eval(m))==types.ModuleType and eval(m).__name
 
 
 # all woo modules (ugly...)
-import woo.linterpolation,woo.log,woo.pack,woo.plot,woo.post2d,woo.timing,woo.utils,woo.batch
-allModules=(woo.linterpolation,woo.log,woo.pack,woo.plot,woo.post2d,woo.timing,woo.utils,woo.batch)
+import woo.linterpolation,woo.log,woo.pack,woo.plot,woo.post2d,woo.timing,woo.utils,woo.batch,woo.comp,woo.triangulated
+allModules=(woo.linterpolation,woo.log,woo.pack,woo.plot,woo.post2d,woo.timing,woo.utils,woo.batch,woo.comp,woo.triangulated)
 try:
 	import woo.qt
 	allModules+=(woo.qt,)

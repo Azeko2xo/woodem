@@ -48,6 +48,7 @@ struct Particle: public Object{
 	Vector3r getForce() const;
 	Vector3r getTorque() const;
 	py::dict pyContacts() const;
+	py::dict pyAllContacts() const;
 	py::list pyCon() const;
 	py::list pyTacts() const;
 	std::string getBlocked() const; void setBlocked(const std::string&);
@@ -94,6 +95,7 @@ struct Particle: public Object{
 			.add_property("contacts",&Particle::pyContacts) \
 			.add_property("con",&Particle::pyCon) \
 			.add_property("tacts",&Particle::pyTacts) \
+			.add_property("allContacts",&Particle::pyAllContacts) \
 		.add_property("pos",py::make_function(&Particle::getPos,py::return_internal_reference<>()),py::make_function(&Particle::setPos)) \
 		.add_property("refPos",py::make_function(&Particle::getRefPos woo_dem_Particle__OPENGL__return_internal_reference ),py::make_function(&Particle::setRefPos)) \
 		.add_property("ori",py::make_function(&Particle::getOri,py::return_internal_reference<>()),py::make_function(&Particle::setOri)) \
@@ -228,7 +230,7 @@ public:
 	//! Attempt to compute node's orientation (if allowed), mass and inertia
 	// by asking particles in parRef to do that; this assumes the particles
 	// are not overlapping
-	static void setOriMassInertia(const shared_ptr<Node>& n, const Real& density);
+	static void setOriMassInertia(const shared_ptr<Node>& n);
 	
 	// type for back-referencing particle which has this node;
 	// cannot be shared_ptr, as it would be circular

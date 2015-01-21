@@ -75,9 +75,9 @@ Table
 
 Batch table is tabular representation of data, where each row represents one simulation, and each column one parameter value. The table can be given in text (space-separated columns) or as XLS file, where the first worksheet is used. ``#`` can be used for comments. The first non-empty line are column headers, each non-empty line afterwards is one simulation.
 
-===== ========
+===== ===========
 title	dtSafety
-===== ========
+===== ===========
 dt.9	0.9
 dt.7	0.7
 dt.4	0.4

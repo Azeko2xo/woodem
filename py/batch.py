@@ -824,7 +824,7 @@ This class is used by :obj:`woo.utils.readParamsFromTable`.
 					dd=','.join(ddd).replace("'",'').replace('"','')
 					#dd=','.join(head.replace('!','')+'='+('%g'%values[head] if isinstance(values[l][head],float) else str(values[l][head])) for head in bangHeads if (values[l][head].strip()!='-').replace("'",'').replace('"','')
 					if dd in descs: dd+='__line=%d__'%l
-					dvalues[l]['title']=dd
+					dvalues[l]['title']=dd.replace('/','_')
 					descs.add(dd)
 
 			self.values=dvalues

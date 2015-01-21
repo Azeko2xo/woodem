@@ -29,9 +29,10 @@ WOO_IMPL_LOGGER(DemField);
 WOO_IMPL_LOGGER(DemData);
 WOO_IMPL_LOGGER(Particle);
 
-py::dict Particle::pyContacts()const{	py::dict ret; FOREACH(MapParticleContact::value_type i,contacts) ret[i.first]=i.second; return ret;}
-py::list Particle::pyCon()const{ py::list ret; FOREACH(MapParticleContact::value_type i,contacts) ret.append(i.first); return ret;}
-py::list Particle::pyTacts()const{	py::list ret; FOREACH(MapParticleContact::value_type i,contacts) ret.append(i.second); return ret;}
+py::dict Particle::pyAllContacts()const{ py::dict ret; for(const auto& i: contacts) ret[i.first]=i.second; return ret; }
+py::dict Particle::pyContacts()const{	py::dict ret; for(const auto& i: contacts){ if(i.second->isReal()) ret[i.first]=i.second; } return ret;}
+py::list Particle::pyCon()const{ py::list ret; for(const auto& i: contacts){ if(i.second->isReal()) ret.append(i.first); } return ret;}
+py::list Particle::pyTacts()const{	py::list ret; for(const auto& i: contacts){ if(i.second->isReal()) ret.append(i.second); } return ret;}
 
 void Particle::checkNodes(bool dyn, bool checkOne) const {
 	if(!shape || (checkOne  && shape->nodes.size()!=1) || (dyn && !shape->nodes[0]->hasData<DemData>())) woo::AttributeError("Particle #"+lexical_cast<string>(id)+" has no Shape"+(checkOne?string(", or the shape has no/multiple nodes")+string(!dyn?".":", or node.dem is None."):string(".")));
@@ -152,15 +153,15 @@ void DemData::pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw){
 
 
 
-void DemData::setOriMassInertia(const shared_ptr<Node>& n, const Real& density){
+void DemData::setOriMassInertia(const shared_ptr<Node>& n){
 	if(!n->hasData<DemData>()) throw std::runtime_error("DemData::setOriMassInertia: "+n->pyStr()+" has no DemData.");
 	auto& dyn=n->getData<DemData>();
 	Matrix3r I(Matrix3r::Zero()); Real mass=0.;
 	bool rotateOk=true;
 	for(auto& p: dyn.parRef){
-		if(!p->shape) continue;
+		if(!p->shape || !p->material) continue;
 		bool rot=true;
-		p->shape->lumpMassInertia(n,density,mass,I,rotateOk);
+		p->shape->lumpMassInertia(n,p->material->density,mass,I,rotateOk);
 		if(!rot) rotateOk=false;
 	}
 	if(I.isDiagonal()){

@@ -64,7 +64,7 @@ class PsdSphereGeneratorTest(unittest.TestCase):
 		oPsdNcum=self.gen.psd(mass=self.gen.mass,normalize=False,num=150,cumulative=False)
 		iInt=numpy.trapz(*iPsd)
 		oInt=numpy.trapz(*oPsd)
-		if 0: # enable to show graphical output
+		if 1: # enable to show graphical output
 			import pylab
 			pylab.figure()
 
@@ -93,6 +93,8 @@ class PsdSphereGeneratorTest(unittest.TestCase):
 		self.assertAlmostEqual(iInt,oInt,delta=relDeltaInt*iInt) 
 		# check that integration minima and maxima match
 		dMin,dMax=self.gen.psdPts[0][0],self.gen.psdPts[-1][0]
+		# minimum diameter for discrete PSDs is the first one with fraction > 0
+		if self.gen.discrete: dMin=[dd[0] for dd in self.gen.psdPts if dd[1]>0][0]
 		# 3% tolerance here
 		self.assertAlmostEqual(dMin,oPsd[0][0],delta=relDeltaD*dMin)
 		self.assertAlmostEqual(dMax,oPsd[0][-1],delta=relDeltaD*dMax)

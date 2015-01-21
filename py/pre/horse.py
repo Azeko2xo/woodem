@@ -1,6 +1,7 @@
 # encoding: utf-8
 
 from woo.dem import *
+from woo.fem import *
 import woo.core
 import woo.dem
 import woo.pyderived
