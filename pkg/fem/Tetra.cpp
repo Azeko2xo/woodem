@@ -55,15 +55,16 @@ void Tetra::lumpMassInertia(const shared_ptr<Node>& n, Real density, Real& mass,
 	size_t ix=N-nodes.begin();
 	// mid-points in local coordinates
 	Vector3r vv[3]; for(int i:{1,2,3}) vv[i-1]=.5*n->glob2loc(nodes[(ix+i)%4]->pos);
-	// centroid in local coords; 2 since vv are mid-points, muliply by 2 to get vertices
+	// tetrahedron centroid in local coords; 2 since vv are mid-points, muliply by 2 to get vertices
 	Vector3r C=n->glob2loc(getCentroid());
-	// FIXME: canonical ordering so that sign is correct?
-	if(vv[0].cross(vv[1]-vv[0]).dot(vv[2])<0) cerr<<"Node "+n->pyStr()+" computing near sub-tetra: non-canonical vertex order."<<endl;
-	I+=density*woo::Volumetric::tetraInertia(Vector3r::Zero(),vv[0],vv[1],vv[2]);
-	if((vv[1]-vv[0]).cross(vv[2]-vv[1]).dot(C-vv[0])<0) cerr<<"Node "+n->pyStr()+" computing far sub-tetra: non-canonical vertex order."<<endl;
-	I+=density*woo::Volumetric::tetraInertia(vv[0],vv[1],vv[2],C);
-	mass+=density*abs(woo::Volumetric::tetraVolume(Vector3r::Zero(),vv[0],vv[1],vv[2]));
-	mass+=density*abs(woo::Volumetric::tetraVolume(vv[0],vv[1],vv[2],C));
+	// near and far sub-tetra vertices
+	Vector3r vvN[]={Vector3r::Zero(),vv[0],vv[1],vv[2]};
+	Vector3r vvF[]={vv[0],vv[1],vv[2],C};
+	Real vN, vF; // near and far volums
+	I+=density*woo::Volumetric::tetraInertia_cov(vvN,vN,/*fixSign*/true);
+	I+=density*woo::Volumetric::tetraInertia_cov(vvF,vF,/*fixSign*/true);
+	mass+=density*vN;
+	mass+=density*vF;
 }
 
 void Tetra::asRaw(Vector3r& center, Real& radius, vector<Real>& raw) const {

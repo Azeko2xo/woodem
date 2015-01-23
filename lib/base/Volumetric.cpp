@@ -46,6 +46,10 @@ Matrix3r woo::Volumetric::tetraInertia(const Vector3r& A, const Vector3r& B, con
 	#define y4 D[1]
 	#define z4 D[2]
 
+	// throw std::runtime_error("Do not call woo::Volumetric::tetraInertia, the result is incorrect.");
+
+	cerr<<"WARN: woo::Volumetric::tetraInertia: result is incorrect."<<endl;
+
 	// Jacobian of transformation to the reference 4hedron
 	Real detJ=(x2-x1)*(y3-y1)*(z4-z1)+(x3-x1)*(y4-y1)*(z2-z1)+(x4-x1)*(y2-y1)*(z3-z1)
 		-(x2-x1)*(y4-y1)*(z3-z1)-(x3-x1)*(y2-y1)*(z4-z1)-(x4-x1)*(y3-y1)*(z2-z1);
@@ -91,28 +95,19 @@ Matrix3r woo::Volumetric::tetraInertia(const Vector3r& A, const Vector3r& B, con
 };
 
 // http://www.mjoldfield.com/atelier/2011/03/tetra-moi.html
-Matrix3r woo::Volumetric::tetraInertia_cov(const Vector3r v[4], bool fixSign){
-#if 0
-	// following http://number-none.com/blow/inertia/bb_inertia.doc
-	// canonical covariance
-	Matrix3r Cc; Cc<<2,1,1, 1,2,1, 1,1,2; Cc*=(1/120.);
-	Matrix3r a; a<<B-A,C-A,D-A; // column vectors
-	Real aDet=a.determinant();
-	Real V=aDet/6.;
-	Vector3r c=(1/4.)*(A+B+C+D); // centroid
-	Matrix3r c1=aDet*a*Cc*a.transpose(); // C'
-	Matrix3r c2=c1+V*(A*A.transpose()+A*c.transpose()+c*A.transpose()); // C''
-	return Matrix3r::Identity()*c2.trace()-c2;
-#endif
+Matrix3r woo::Volumetric::tetraInertia_cov(const Vector3r v[4], Real& vol, bool fixSign){
 	Matrix3r C0=Matrix3r::Zero(); // separate parts of covariance
 	Vector3r C1=Vector3r::Zero();
 	for(int i:{0,1,2,3}){
 		C0+=v[i]*v[i].transpose();
 		C1+=v[i];
 	};
-	Matrix3r C=(tetraVolume(v[0],v[1],v[2],v[3])/20.)*(C0+C1*C1.transpose());
+	vol=tetraVolume(v[0],v[1],v[2],v[3]);
+	if(vol<0 && fixSign) vol*=-1;
+	Matrix3r C=(vol/20.)*(C0+C1*C1.transpose());
 	Matrix3r I=Matrix3r::Identity()*C.trace()-C;
-	if(fixSign && I(0,0)<0) return -I;
+	// if(fixSign && I(0,0)<0) return -I;
+	assert(!fixSign || I(0,0)<0);
 	return I;
 }
 
@@ -129,7 +124,7 @@ Matrix3r woo::Volumetric::tetraInertia_grid(const Vector3r v[4], int div){
 	// Matrix3r I(Matrix3r::Zero());
 	Matrix3r C(Matrix3r::Zero());
 	Real dV=pow(dd,3);
-	std::ofstream dbg("/tmp/tetra.txt");
+	// std::ofstream dbg("/tmp/tetra.txt");
 	for(xyz.x()=b.min().x()+dd/2.; xyz.x()<b.max().x(); xyz.x()+=dd){
 		for(xyz.y()=b.min().y()+dd/2.; xyz.y()<b.max().y(); xyz.y()+=dd){
 			for(xyz.z()=b.min().z()+dd/2.; xyz.z()<b.max().z(); xyz.z()+=dd){
@@ -141,7 +136,7 @@ Matrix3r woo::Volumetric::tetraInertia_grid(const Vector3r v[4], int div){
 				}
 				if(inside){
 					C+=dV*(xyz*xyz.transpose());
-					dbg<<xyz[0]<<" "<<xyz[1]<<" "<<xyz[2]<<" "<<dd/2.<<endl;
+					// dbg<<xyz[0]<<" "<<xyz[1]<<" "<<xyz[2]<<" "<<dd/2.<<endl;
 				}
 			}
 		}

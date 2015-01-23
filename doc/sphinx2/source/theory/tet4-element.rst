@@ -11,7 +11,7 @@ Element coordinate system
 
 Initial element configuration is the reference one, and element-local nodal positions (orientations are ignored) are stored in :obj:`~woo.fem.Tet4.refPos`. This reference configuration is created automatically when the element is first used (usually when :obj:`woo.dem.DynDt` asks for stiffnesses before the simulation starts, or by an explicit call to :obj:`~woo.fem.Tet4.setRefConf`).
 
-Current element configuration is stored in :obj:`~woo.fem.Tet4.node`; its origin is always at element's centorid (:obj:`~woo.fem.Tetra.getCentroid`), which is computed as average of nodal positions. The orientation is determined using the algorithm described in :cite:`Mostafa2014` (pg. 114, Procedure 1):
+Current element configuration is stored in :obj:`woo.fem.Tet4.node`; its origin is always at element's centorid (:obj:`~woo.fem.Tetra.getCentroid`), which is computed as average of nodal positions. The orientation is determined using the algorithm described in :cite:`Mostafa2014` (pg. 114, Procedure 1):
 
 1. compute
 
@@ -38,7 +38,7 @@ Current element configuration is stored in :obj:`~woo.fem.Tet4.node`; its origin
 
         [\mathbf{q}^\circ]_R=\pmatrix{ 0 & -q^T \\ q & -\hat q};
 
-   * the hat operator :math:`\hat\bullet` is the skew-symmetric matrix representing corss-product by :math:`\bullet` (:cite:`Mostafa2014`, A.1):
+   * the hat operator :math:`\hat\bullet` is the skew-symmetric matrix representing cross-product by :math:`\bullet` (:cite:`Mostafa2014`, A.1):
 
      .. math::
 
@@ -58,3 +58,32 @@ Stiffness matrix
 ----------------
 
 .. todo:: Mostly from :cite:`FelippaAFEM`, chapter 9.
+
+Lumped mass and inertia
+------------------------
+
+Suppose the tetrahedron is defined by vertices :math:`\vec{v}_1, \vec{v}_2, \vec{v}_3, \vec{v}_4`.
+
+Centroid of the tetrahedron is the average :math:`\vec{c}_g=\frac{1}{4}\vec{v}_i`.
+
+Volume of tetrahedron can be computed in various ways, `wikipedia <http://en.wikipedia.org/wiki/Tetrahedron#Volume>`__ gives the two following:
+
+.. math:: V=\frac{1}{6}\begin{vmatrix}(\vec{v}_1-\vec{v}_4)^T \\ (\vec{v}_2-\vec{v}_4)^T \\ (\vec{v}_3-\vec{v}_4)^T\end{vmatrix}=\frac{(\vec{v}_1-\vec{v}_4)\cdot\left((\vec{v}_2-\vec{v}_4)\times(\vec{v}_3-\vec{v}_4)\right)}{6}
+
+where non-canonical vertex ordering yields negative volume value.
+
+Inertia tensor of tetrahedron in term of its vertex coordinates (with respect to origin and global axes) is derived at `this excellent page <http://www.mjoldfield.com/atelier/2011/03/tetra-moi.html>`__. We only summarize the most important parts here.
+
+In general, inertia tensor :math:`\mat{J}` of any body can be computed from covariance
+
+.. math:: \mat{J}=\operatorname{tr}(\mat{C})\mat{I}_{3}-\mat{C}
+
+where covariance is outer product of coordinates over the volume
+
+.. math:: \mat{C}\equiv\int_V \vec{x}\vec{x}^T \d V .
+
+The page referenced shows that covariance of generic tetrahedron can be derived by transforming covariance of unit tetrahedron, giving
+
+.. math:: \mat{C}=\frac{V}{20}\left(\sum_i\vec{v}_i\vec{v}_i^T+\sum_i\vec{v}_i\sum\vec{v}_i^T\right) .
+
+When lumping mass and inertia, only the part adjacent to each node is considered; tetrahedron is partitioned into 8 sub-tetrahedra. When we define :math:`\vec{v}_{ij}=\frac{\vec{v}_i+\vec{v}_j}{2}`, those sub-tetrahedra for node :math:`i` are defined by vertices :math:`\{\vec{v}_i,\vec{v}_{ij},\vec{v}_{ik},\vec{v}_{il}\}` and :math:`\{\vec{v}_{ij},\vec{v}_{ik},\vec{v}_{il},\vec{c}_g\}` (partitioning planes are voronoi tesselation of vertices). Mass and inertia of sub-tetrahedra are computed in node coordinate system, summed over all attached particles, and lumped into the node.

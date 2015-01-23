@@ -32,7 +32,7 @@ S.engines=utils.defaultEngines(damping=.0,cp2=Cp2_FrictMat_HertzPhys(gamma=10,en
 #S.pause()
 S.trackEnergy=True
 #plot.plots={' i':(('fErrRel_xx','k'),None,'fErrAbs_xx'),'i ':('dist',None),' i ':(S.energy),'   i':('f_xx',None,'f_yy','f_zz'),'  i':('u_xx',None,'u_yy','u_zz'),'i  ':('u_yz',None,'u_zx','u_xy')}
-S.plot.plots={'i':('u_xx',None,('f_xx','g--')),'u_xx':('f_xx',),'i ':('S.energy.keys()'),' i':('k_xx',None,('dt','g-'))}
+S.plot.plots={'i':('u_xx',None,('f_xx','g--')),'u_xx':('f_xx',),'i ':('**S.energy'),' i':('k_xx',None,('dt','g-'))}
 S.plot.plot()
 import woo.gl
 S.any=[woo.gl.Gl1_DemField(glyph=woo.gl.Gl1_DemField.glyphForce)]

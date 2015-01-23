@@ -14,8 +14,8 @@ struct LawTesterStage: public Object{
 	void reset();
 	#define woo_dem_LawTesterStage__CLASS_BASE_DOC_ATTRS_PY \
 		LawTesterStage,Object,"Stage to be reached by LawTester.", \
-		((Vector6r,values,Vector6r::Zero(),AttrTrait<>(),"Prescribed values during this step")) \
-		((Vector6i,whats,Vector6i::Zero(),AttrTrait<>(),"Meaning of *values* components")) \
+		((Vector6r,values,Vector6r::Zero(),AttrTrait<>(),"Prescribed values during this step (DoF-ordering: x,y,z linear, x,y,z angular)")) \
+		((Vector6i,whats,Vector6i::Zero(),AttrTrait<>(),"Meaning of *values* components (DoF-odering). The constructor acceps this attribute specified as string of 6 characters, where each of them can be: ``.`` for imposing nothing, ``v`` for imposing velocity, ``i`` for imposing initial velocity only, ``f`` for imposing force.")) \
 		((string,until,"",,"Stage finishes when *until* (python expression) evaluates to True. Besides receiving global variables, several local variables are passed: `C` (contact object; `None` if contact does not exist), `pA` (first particle), `pB` (second particle), `scene` (current scene object), `tester` (`LawTester` object), `stage` (`LawTesterStage` object).")) \
 		((int,untilEvery,1,,"Test the :obj:`until` expression only every *untilEvery* steps (this may make the execution faster)")) \
 		((string,done,"",,"Run this python command when the stage finishes")) \

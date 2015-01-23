@@ -82,7 +82,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 		((bool,fluct,false,AttrTrait<>().hideIf("not self.periodic or (self.colorBy not in ('velocity','angular velocity') and self.glyph not in ('velocity',))"),"With periodic boundaries, show only fluctuation components of velocity."))
 
 		((bool,nodes,false,AttrTrait<>().startGroup("Nodes"),"Render DEM nodes"))
-		((int,glyph,GLYPH_KEEP,AttrTrait<Attr::triggerPostLoad>().choice({{GLYPH_KEEP,"keep"},{GLYPH_NONE,"none"},{GLYPH_FORCE,"force"},{GLYPH_TORQUE,"torque"},{GLYPH_VEL,"velocity"}}),"Show glyphs on particles by setting :obj:`GlData` on their nodes."))
+		((int,glyph,GLYPH_KEEP,AttrTrait<Attr::triggerPostLoad|Attr::namedEnum>().namedEnum({{GLYPH_KEEP,{"keep"}},{GLYPH_NONE,{"none",""}},{GLYPH_FORCE,{"force","f"}},{GLYPH_TORQUE,{"torque","t"}},{GLYPH_VEL,{"velocity","v"}}}),"Show glyphs on particles by setting :obj:`GlData` on their nodes."))
 		((shared_ptr<ScalarRange>,glyphRange,,AttrTrait<>().readonly(),"Range for glyph colors"))
 		((Real,glyphRelSz,.1,,"Maximum glyph size relative to scene radius"))
 		((bool,deadNodes,true,,"Show :obj:`DemField.deadNodes <woo.dem.DemField.deadNodes>`."))

@@ -12,7 +12,8 @@ py::tuple computePrincipalAxes(const Real& V, const Vector3r& Sg, const Matrix3r
 
 Matrix3r tetraInertia_cov(const Vector3r& A, const Vector3r& B, const Vector3r& C, const Vector3r& D, bool fixSign){
 	Vector3r v[]={A,B,C,D};
-	return woo::Volumetric::tetraInertia_cov(v);
+	Real vol; // discarded
+	return woo::Volumetric::tetraInertia_cov(v,vol);
 }
 
 Matrix3r tetraInertia_grid(const Vector3r& A, const Vector3r& B, const Vector3r& C, const Vector3r& D,int div){

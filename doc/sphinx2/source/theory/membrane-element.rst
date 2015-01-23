@@ -147,3 +147,31 @@ Generalized forces from elements are distributed to nodes as follows:
 This video demonstrates the :obj:`cylindrical triaxial test <woo.pre.cylTriax.CylTriaxTest>` which includes CST+DKT elements with hydrostatic pressure and interaction with particles inside the membrane (displacements are scaled 10×):
 
 .. youtube:: Li13NrIyMYU
+
+
+Lumped mass and inertia
+------------------------
+
+Triangle mass and inertia are computed supposing the entire :obj:`thickness <woo.dem.Facet.halfThick>` in the triangle plane. The "sleeve" rounding the edges is ignored for the purposes of computing mass and inertia.
+
+Inertia computation is described at `Wikipedia <http://en.wikipedia.org/wiki/Inertia_tensor_of_triangle>`__ and summarized here. For triangle with vertices :math:`\vec{a}`, :math:`\vec{b}`, :math:`\vec{c}`, its area is computed as 
+
+.. math:: A=\left|(\vec{b}-\vec{a})\times(\vec{c}-\vec{a})\right|.
+
+Using covariance of unit triangle
+
+.. math:: \mat{S}=\frac{1}{24}\begin{pmatrix}2&1&1\\1&2&1\\1&1&2\end{pmatrix}
+
+and transformation matrix
+
+.. math:: \mat{V}=\begin{pmatrix}\vec{a}^T \\ \vec{b}^T \\ \vec{c}^T\end{pmatrix},
+
+we compute the covariance as
+
+.. math:: \mat{C}=\frac{A}{2}\mat{V}^T\mat{S}\mat{V}.
+
+Inertia tensor (with respect to global origin and axes) is then evaluated as usually,
+
+.. math:: \mat{J}=\operatorname{tr}(\mat{C})\mat{I}_3-\mat{C}.
+
+When lumping mass and inertia, only the part adjacent to each node is considered; triangle is partitioned into 3 triangles. With midpoints :math:`\vec{m}_{ab}=\frac{\vec{a}+\vec{b}}{2}` etc., the part adjacent to :math:`\vec{a}` is the triange :math:`\{\vec{a},\vec{m}_{ab},\vec{m}_{ac}\}`.
