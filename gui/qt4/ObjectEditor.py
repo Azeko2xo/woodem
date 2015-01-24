@@ -39,6 +39,9 @@ seqObjectShowType=True # show type headings in serializable sequences (takes ver
 
 colormapIconSize=(50,20)
 
+def _ensureUnicode(s): return s if isinstance(s,unicode) else s.decode('utf-8')
+
+
 def makeColormapIcons():
 	ret=[]
 	for cmap in range(len(woo.master.cmaps)):
@@ -976,7 +979,7 @@ class ObjectEditor(QFrame):
 		if attr==None:
 			if self.oneObject.__class__.__doc__!=None:
 				doc=self.oneObject.__class__.__doc__
-				if not PY3K: doc=doc.decode("utf-8")
+				if not PY3K: doc=_ensureUnicode(doc)
 			else:
 				logging.error('Class %s __doc__ is None?'%self.ser.__class__.__name__)
 				return None
@@ -1118,7 +1121,7 @@ class ObjectEditor(QFrame):
 		toolTip=entry.containingClass.__name__+'.<b><i>'+entry.name+'</i></b><br>'+entry.doc+('<br><small>default: %s</small>'%ini)
 		if self.labelIsVar: return woo.document.makeObjectHref(entry.obj,entry.name,text=entry.label),toolTip
 		if PY3K: return entry.doc,toolTip
-		else: return entry.doc.decode('utf-8'),toolTip
+		else: return _ensureUnicode(entry.doc),toolTip
 	def toggleLabelIsVar(self,val=None):
 		self.labelIsVar=(not self.labelIsVar if val==None else val)
 		for entry in self.entries:
