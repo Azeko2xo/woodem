@@ -468,13 +468,24 @@ def plotDirections(aabb=(),mask=0,bins=20,numHist=True,noShow=False):
 def makeVideo(frameSpec,out,renameNotOverwrite=True,fps=24,kbps=15000,holdLast=-.5):
 	"""Create a video from external image files using `mencoder <http://www.mplayerhq.hu>`__. Two-pass encoding using the default mencoder codec (mpeg4) is performed, running multi-threaded with number of threads equal to number of OpenMP threads allocated for Yade.
 
-	:param frameSpec: wildcard | sequence of filenames. If list or tuple, filenames to be encoded in given order; otherwise wildcard understood by mencoder's mf:// URI option (shell wildcards such as ``/tmp/snap-*.png`` or and printf-style pattern like ``/tmp/snap-%05d.png``)
+	:param frameSpec: wildcard | sequence of filenames. If list or tuple, filenames to be encoded in given order; otherwise wildcard understood by mencoder's mf:// URI option (shell wildcards such as ``/tmp/snap-*.png`` or and printf-style pattern like ``/tmp/snap-%05d.png``), if using mencoder, or understood by ``avconv`` or ``ffmpeg`` if those are being used.
 	:param str out: file to save video into
 	:param bool renameNotOverwrite: if True, existing same-named video file will have -*number* appended; will be overwritten otherwise.
 	:param int fps: Frames per second (``-mf fps=…``)
 	:param int kbps: Bitrate (``-lavcopts vbitrate=…``) in kb/s
 	:param holdLast: Repeat the last frame this many times; if negative, it means seconds and will be converted to frames according to *fps*. This option is not applicable if *frameSpec* is a wildcard (as opposed to a list of images).
 	"""
+	# find which encoder to actually use
+	import distutils.spawn
+	menc=distutils.spawn.find_executable('mencoder')
+	ffmp=distutils.spawn.find_executable('ffmpeg')
+	avco=distutils.spawn.find_executable('avconv')
+	# the first one wins
+	if menc: encExec,encType=menc,'mencoder'
+	elif ffmp: encExec,encType=ffmp,'avconv'
+	elif avco: encExec,encType=avco,'avconv'
+	else: raise RuntimeError('No suitable video encoder (mencoder, ffmpeg, avconv) found in PATH.')
+
 	import os,os.path,subprocess
 	if renameNotOverwrite and os.path.exists(out):
 		i=0
@@ -483,17 +494,34 @@ def makeVideo(frameSpec,out,renameNotOverwrite=True,fps=24,kbps=15000,holdLast=-
 	if holdLast<0: holdLast*=-fps
 	if isinstance(frameSpec,list) or isinstance(frameSpec,tuple):
 		if holdLast>0: frameSpec=list(frameSpec)+int(holdLast)*[frameSpec[-1]]
-		frameSpec=','.join(frameSpec)
+		frameSpecMenc=','.join(frameSpec)
+		frameSpecAvconv=list(frameSpec)
+	else:
+		frameSpecMenc=frameSpec
+		frameSpecAvconv=[frameSpec]
+
+	if encType=='avconv': raise RuntimeError('Encoding via ffmpeg/avconv is not yet implemented (see http://stackoverflow.com/questions/28188385/avconv-convert-sequence-of-randomly-named-images-to-video).')
+
+	# write input images to file
+	#if encType=='avconv':
+	#	i=woo.master.tmpFilename()+'.txt'
+	#	with open(i,'w') as ii:
+	#		for f in frameSpecAvconv: ii.write("file '%s'\n"%f)
+	#	frameSpecAvconv=[i]
 
 	devNull='nul' if (sys.platform=='win32') else '/dev/null'
 	# mencoder normally creates divx2pass.log in the current dir, which might fail
 	# use temp file instead, explicitly
 	passLogFile=woo.master.tmpFilename()+'.log'
 	for passNo in (1,2):
-		cmd=['mencoder','mf://%s'%frameSpec,'-mf','fps=%d'%int(fps),'-ovc','lavc','-lavcopts','vbitrate=%d:vpass=%d:threads=%d:%s'%(int(kbps),passNo,woo.master.numThreads,'turbo' if passNo==1 else ''),'-passlogfile',passLogFile,'-o',(devNull if passNo==1 else out)]
+		if encType=='mencoder': cmd=[encExec,'mf://%s'%frameSpecMenc,'-mf','fps=%d'%int(fps),'-ovc','lavc','-lavcopts','vbitrate=%d:vpass=%d:threads=%d:%s'%(int(kbps),passNo,woo.master.numThreads,'turbo' if passNo==1 else ''),'-passlogfile',passLogFile,'-o',(devNull if passNo==1 else out)]
+		elif encType=='avconv':
+			inputs=sum([['-i',f] for f in frameSpecAvconv],[])
+			# inputs=['-i','concat:"'+'|'.join(frameSpecAvconv)+'"']
+			cmd=[encExec]+inputs+['-r',str(int(fps)),'-b:v','%dk'%int(kbps),'-threads',str(woo.master.numThreads),'-pass',str(passNo),'-passlogfile',passLogFile,'-an']+(['-f','rawvideo','-y',devNull] if passNo==1 else ['-f','mp4','-y',out])
 		print 'Pass %d:'%passNo,' '.join(cmd)
 		ret=subprocess.call(cmd)
-		if ret!=0: raise RuntimeError("Error when running mencoder.")
+		if ret!=0: raise RuntimeError("Error running %s."%encExec)
 
 def _procStatus(name):
 	import os
