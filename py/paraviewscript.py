@@ -385,12 +385,16 @@ if conFiles:
 	con=XMLPolyDataReader(FileName=conFiles)
 	readPointCellData(con)
 	RenameSource(conFiles[0],con)
+	# by default, only lines are visible
+	rep=Show()
+	c2p=CellDatatoPointData(PassCellData=1)
 	rep=Show()
 	rep.Visibility=0
-	# c2p=CellDatatoPointData(PassCellData=1)
-	# rep=Show()
-	# rep.Visibility=0
-	# tub=Tube(Scalars=['POINTS','Fn'] # not yet finished
+	# TODO: find some characteristic radius from the data
+	tub=Tube(Scalars=['POINTS','Fn'],Radius=1e-5,VaryRadius='By Scalar',Capping=0,RadiusFactor=1000)
+	rep=Show()
+	rep.Visibility=0
+
 
 
 
