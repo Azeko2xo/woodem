@@ -34,7 +34,7 @@ The numerical testcase (in TetraTestGen::generate) is exact as in the article fo
 */
 Matrix3r woo::Volumetric::tetraInertia(const Vector3r& A, const Vector3r& B, const Vector3r& C, const Vector3r& D){
 	#define x1 A[0]
-	#define y1 A[1
+	#define y1 A[1]
 	#define z1 A[2]
 	#define x2 B[0]
 	#define y2 B[1]

@@ -156,7 +156,7 @@ Snapshots from the 3d view can be created by pressing :kbd:`Control-C` in the vi
 Movies
 -------
 
-Sequence of snapshots can be saved :obj:`periodically <woo.core.PeriodicEngine>` by checking `Controller --> Video --> Take snapshots`; periodicity should be set according to your needs, and perhaps some experimentation is necessary as to how often to take a snapshot. When done, click on :menuselection:`Controller --> Video --> Make video`. The resulting ``.mpeg4`` file can be, for example, uploaded to `youtube <http://youtube.com>`__.
+Sequence of snapshots can be saved :obj:`periodically <woo.core.PeriodicEngine>` by checking :menuselection:`Controller --> Video --> Take snapshots`; periodicity should be set according to your needs, and perhaps some experimentation is necessary as to how often to take a snapshot. When done, click on :menuselection:`Controller --> Video --> Make video`. The resulting ``.mpeg4`` file can be, for example, uploaded to `youtube <http://youtube.com>`__.
 
 .. youtube:: D_pc3RU5IXc
 
