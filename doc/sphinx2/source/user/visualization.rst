@@ -93,7 +93,6 @@ Contact network, where contacts are shown as cylinder, with radius corresponding
 
    Force chain in cylindrical :obj:`triaxial test <woo.pre.triax.TriaxTest>`, with default settings of :obj:`woo.gl.Gl1_CPhys`.
 
-.. _vis-paraview:
 
 Particle traces
 ----------------
@@ -110,6 +109,10 @@ Movies
 -------
 
 Movie can be made from snapshots of the 3d view taken by :obj:`woo.qt.SnapshotEngine`. This engine is usually activated from the control panel in :menuselection:`Video --> Take snapshots`; snapshots are taken using the usual periodicity parameters; video from those snapshots is created when clicking the :menuselection:`Make video` button.
+
+
+
+.. _vis-paraview:
 
 Paraview
 =========
