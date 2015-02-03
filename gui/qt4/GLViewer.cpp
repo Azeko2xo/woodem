@@ -229,7 +229,6 @@ void GLViewer::setInitialView(){
 }
 
 void GLViewer::mouseMovesCamera(){
-	camera()->frame()->setWheelSensitivity(-1.0f);
 	// old version -- used in Ubuntu 12.04 LTS
 #if QGLVIEWER_VERSION<0x020500
 	setMouseBinding(Qt::SHIFT + Qt::LeftButton, SELECT);
@@ -255,6 +254,8 @@ void GLViewer::mouseMovesCamera(){
 		setMouseBinding(Qt::NoModifier, Qt::RightButton, CAMERA, TRANSLATE);
 	}
 #endif
+	// inversed zoom/in out on the wheel
+	camera()->frame()->setWheelSensitivity(paraviewLike3d?+1.:-1.);
 	setWheelBinding(Qt::ShiftModifier , FRAME, ZOOM);
 	setWheelBinding(Qt::NoModifier, CAMERA, ZOOM);
 };

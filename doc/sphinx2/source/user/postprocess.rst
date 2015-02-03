@@ -19,53 +19,7 @@ Every simulation (not just in batch) may generate report which summarizes its in
 VTK Export
 ===========
 
-Simulation may, using the :obj:`woo.dem.VtkExport` engine, output some simulation data (particle positions, contact information) in the `VTK <http://www.vtk.org>`_ format. It is suitable for being loaded with `Paraview <http://www.paraview.org>`_ offering advanced visualization capabilities.
-
-VTK files are saved periodically, and every time several files may be created, for example::
-
-    /tmp/20130107T161406p4252-con.1040.vtp
-    /tmp/20130107T161406p4252-mesh.1040.vtu
-    /tmp/20130107T161406p4252-spheres.1040.vtu
-
-``-con`` contains contact data, ``-mesh`` mesh data (triangulated surfaces), ``-spheres`` data concerning spherical particles. You can open all datasets at once with Paraview by selecting them with :kbd:`Ctrl`:
-
-.. image:: fig/paraview-open-files.png
-
-Datasets appear in the *Pipeline browser*, but will not be displayed until the :guilabel:`Apply` button is clicked.
-
-.. image:: fig/paraview-properties-apply.png
-
-Every dataset can be colored, e.g. velocity can be used as coloring scalar by selecting that property:
-
-.. image:: fig/paraview-color-by-vel.png
-
-Datasets can be visualized at different timesteps using the frame control in the Paraview menu:
-
-.. image:: fig/paraview-frame-control.png
-
-
-Spherical particles
--------------------
-
-.. |paraview-glyph-icon| image:: fig/paraview-glyph-icon.png
-
-You notice that spherical particles are rendered as points rather than spheres. In order to see spheres, sphere "glyph" has to be attached to each point, and it will be scaled by the *radius* scalar defined in each point (particle).
-
-Select the ``-spheres`` dataset in the *Pipeline browser*, then add glyph using the |paraview-glyph-icon| icon. In the *Properties* for the glyph, set the following:
-
-* *Glyph type* = Sphere;
-* *Radius* = 1 (further scaled by selected scalars to obtain true radius);
-* *Scale Mode* = scalar;
-* *Set Scale Factor* = 1;
-* disable *Mask Points* and *Random Mode*;
-* on the top, set *Scalars* = radius.
-
-Since glyphs are rendered over points of the dataset, those can be made invisible by clicking on the eye icon next to the ``-spheres`` dataset in the *Pipeline browser*.
-
-Making movies
--------------
-
-Movies are important for cool presentatations. Once the visualization pipeline is set up to your satisfaction, go to :menuselection:`File --> Save Animation`.
+Woo exports python script for Paraview which serves to set the visualization pipeline so that important features of DEM are shown. This includes particles, force networks, transparent meshes and movies. This topic is covered in :ref:`vis-paraview`.
 
 
 Results database

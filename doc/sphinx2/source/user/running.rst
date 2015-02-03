@@ -108,55 +108,11 @@ For the object, attributes can be displayed either as variable names, or as thei
 3d rendering
 ------------
 
-3d view
-^^^^^^^^
+.. note:: The 3d rendering part of Woo is described in detail in :ref:`vis_opengl`. 
 
-The 3d windows is opened by clicking the "3D" button in the **D** part of the controller.
+The 3d view is opened by clicking the "3D" button in the **D** part of the controller. It is navigated with mouse similar to other 3d software, and supports many keyboard shortcuts. It can be used to make movies by taking snapshots. Detailed settings are accessible in the *Display* tab of the controller. Details are given in dedicated section :ref:`vis_opengl`.
 
 .. image:: fig/controller-3d.png
-
-It is navigated with mouse similar to other 3d software:
-
-* *left drag* rotates
-* *right drag* moves
-* *middle drag* (wheel) zooms
-* *double left-click* sets view angle to the closes multiple of 45°
-* :kbd:`Alt` + *left-click* selects object (and shows distance to previous selection)
-
-Many keyboard shortcuts are defined of which the most important ones are:
-
-* :kbd:`h` shows help;
-* :kbd:`t` toggles perspective/orthographic camera;
-* :kbd:`c` centers the view around whole scene;
-* :kbd:`Alt-c` centers the view intelligently around that part of the scene where most particles are;
-* :kbd:`a` toggles display of axes;
-* :kbd:`g` displays axes grids (cycles between all possible combinations);
-* :kbd:`x`, :kbd:`X`, :kbd:`y`, :kbd:`Y`, :kbd:`z`, :kbd:`Z`: make selected axes point upwars and align the other two, i.e. show respectively the ``zx``, ``yx``, ``xy``, ``zy``, ``yz``, ``xz`` plane;
-* :kbd:`s` toggles displacement/rotations scaling (see :obj:`woo.gl.Renderer.scaleOn`);
-* :kbd:`d` selects which time information is displayed;
-* :kbd:`Ctrl-c` copies the view to clipboard, as raster image (can be pasted to documents/graphics editors).
-
-Colorscales can be manipulated using mouse:
-
-* *wheel* changes size
-* *right-draw* moves, and toggles portrait/landscape when touching the edge
-* *left-click* resets the range an sets to auto-adjust
-
-A movie from the 3d view can be made by checking the :menuselection:`Controller --> Video --> Take snapshots` first, and, when sufficient number of snapshots will have been save, clicking :menuselection:`Controller --> Video --> Make video`.
-
-Display control
-^^^^^^^^^^^^^^^^^
-
-The *Display* tab of the controller configures the 3D display. Woo dispatches OpenGL display of all objects to objects (always called ``Gl1_*``) responsible for actual drawing, which is also how this dialogue is organized.
-
-.. image:: fig/controller-display.png
-
-
-:obj:`Renderer <woo.gl.Renderer>` configures global view properties -- initial orientation, displacement scaling, lighting, clipping, and which general items are displayed.
-
-:obj:`Gl1_DemField <woo.dem.Gl1_DemField>` (shown on the image) is reponsible for displaying contents of DEM simulations (:obj:`woo.dem.DemField`) -- particles, contacts between particles and so on. For instance, particles corresponding to the :obj:`shape <woo.gl.Gl1_DemField.shape>` attribute are colored using the method specified with :obj:`colorBy <woo.gl.Gl1_DemField.colorBy>`. Other particles (not matching :obj:`shape <woo.gl.Gl1_DemField.shape>`, or not able to be colored using :obj:`colorBy <woo.gl.Gl1_DemField.colorBy>`, e.g. non-spherical particle by radius) are colored using :obj:`colorBy2 <woo.gl.Gl1_DemField.colorBy2>`.
-
-Display of each particle's :obj:`shape <woo.dem.Shape>` is dispatched to :obj:`Gl1_* <woo.gl.GlShapeFunctor>` objects (e.g. :obj:`woo.gl.Gl1_Sphere`, :obj:`woo.gl.Gl1_Facet`, …), which control shape-specific options, such as display quality.
 
 .. _preprocessor_gui:
 

@@ -141,70 +141,7 @@ The resulting file is a bit more complicated::
 Paraview
 ==========
 
-`Paraview <http://www.paraview.org>`__ is multi-platform data analysis and scientific visualization application. Woo can export two types of data:
-
-* snapshots of particles and contacts for visualization or evolution analysis using :obj:`~woo.dem.VtkExport` 
-* time-averaged and space-averaged data for flow and segregation analysis using :obj:`~woo.dem.FlowAnalysis`
-
-Both are shown in this movie, created in Paraview from the :obj:`woo.pre.horse.FallingHorse` simulation:
-
-.. youtube:: LB3T6sBdwz0
-
-Movies in Paraview can be created using :menuselection:`File --> Save Animation`.
-
-
-:obj:`~woo.dem.VtkExport`
--------------------------
-
-:obj:`~woo.dem.VtkExport` is a :obj:`periodic engine <woo.core.PeriodicEngine>` which saves particles and contacts in regular intervals; this results in several time-series of data which can be used e.g. to create beautiful movies from Paraview; Paraview visualization capabilities are far more advanced than what the 3d view in Woo offers, which is in contrast more DEM-specific, thus more useful in other situations.
-
-.. ipython::
-
-   Woo [1]: S.engines=S.engines+[
-      ...:   VtkExport(
-      ...:      # run every 100 steps
-      ...:      stepPeriod=100,  
-      ...:      # the default is what=VtkExport.all, no need to specify it usually
-      ...:      what=VtkExport.spheres|VtkExport.mesh|VtkExport.tri|VtkExport.con 
-      ...:      # where will the output go; can use {tags} 
-      ...:      out="/tmp/{tid}-"
-      ...:   )
-
-:obj:`~woo.dem.VtkExport` produces several files per time-step; those can be loaded into Paraview as groups.  Note that the ``/tmp/{tid}-`` was expanded (see :ref:`tutorial-tags`) to ``/tmp/20140620T145830p6238-`` and different endings were appended for different data (``con`` for contacts, ``mesh`` for boundary meshes, ``spheres`` for spherical particles, ``tri`` for triangulated particles). Each ``...`` hides series of step numbers (40, 80, 120, ...) which Paraview loads sequentially:
-
-.. figure:: fig/paraview-multiple-open.png
-   :align: center
-
-   Opening multiple files in Paraview.
-
-Loading files manually this way (detailed in :ref:`user-manual-postprocess-vtk-export`) is not very easy. Fortunately, there is a handy command :obj:`woo.paraviewscript.fromEngines` which writes Paraview script including all setup, by scanning engines in the simulation:
-
-.. ipython::
-
-   Woo [1]: import woo.paraviewscript
-
-   # add launch=True to run Paraview right away
-   # this writes into temporary file
-   Woo [1]: woo.paraviewscript.fromEngines(S) 
-
-   # writes into user-defined file
-   Woo [1]: woo.paraviewscript.fromEngines(S,out='something.py') 
-
-The script can be then used in 2 ways:
-
-1. As script to be run with Paraview, which will load all necessary files and set the visualization pipeline up::
-
-      paraview --script=something.py
-
-2. As a means to zip all data files and the script itself, e.g. for easy transfer or archiving (run with ``--help`` for more help)::
-
-      python something.py --zip
-
-
-:obj:`~woo.dem.FlowAnalysis`
------------------------------
-
-:obj:`~woo.dem.FlowAnalysis` is an engine which :obj:`periodically <woo.core.PeriodicEngine>` stores flow data interpolated in a uniform grid. The theory is described in :ref:`user-manual-flow-analysis`. The :obj:`woo.paraviewscript.fromEngines` introduced above recognizes the presence of :obj:`~woo.dem.FlowAnalysis` and puts its data into the visualization pipeline as well.
+Post-processing in Paraview is covered in :ref:`vis-paraview`.
 
 3d view
 ========

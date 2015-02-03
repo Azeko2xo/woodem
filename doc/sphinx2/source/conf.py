@@ -35,17 +35,17 @@ except ImportError:
 try:
 	import cloud_sptheme
 except ImportError:
-	raise ImportError("Sphinx cloud theme is not importable; install it using 'easy_install cloud_sptheme'.")
+	raise ImportError("Sphinx cloud theme is not importable; install it using 'pip install cloud_sptheme'.")
 
 try:
 	import sphinxcontrib.bibtex
 except ImportError:
-	raise ImportError("BibTeX support for sphinx not found; install it using 'easy_install sphinxcontrib-bibtex'")
+	raise ImportError("BibTeX support for sphinx not found; install it using 'pip install sphinxcontrib-bibtex'")
 
 try:
 	import sphinxcontrib.newsfeed
 except ImportError:
-	raise ImportError("Disqus support for sphinx not found; install it using 'easy_install sphinxcontrib-newsfeed'")
+	raise ImportError("Disqus support for sphinx not found; install it using 'pip install sphinxcontrib-newsfeed'")
 
 mathjax=('PNGMATH' not in os.environ)
 if not mathjax: print 100*'#'+'  USING PNGMATH  '+100*'#'
@@ -73,10 +73,13 @@ ipython_promptin ='Woo[%d]:'  ### make smaller to be aligned with "Out" as " -> 
 ipython_promptout=' -> [%d]:' ### FIXME:: this does not work for some reason :|
 
 import IPython.sphinxext.ipython_console_highlighting as ich
+
+try: ilex=ich.IPyLexer  # ipy>=2.3
+except NameError: ilex=ich.IPythonConsoleLexer
 # TODO: 
-ich.IPythonConsoleLexer.input_prompt=re.compile(r'(Woo\[[0-9]+\]: )')
-ich.IPythonConsoleLexer.output_prompt=re.compile(r'(( -> |Out)|\[[0-9]+\]: )')
-ich.IPythonConsoleLexer.continue_prompt=re.compile(r'\s+\.\.\.+:')
+ilex.input_prompt=re.compile(r'(Woo\[[0-9]+\]: )')
+ilex.output_prompt=re.compile(r'(( -> |Out)|\[[0-9]+\]: )')
+ilex.continue_prompt=re.compile(r'\s+\.\.\.+:')
 
 intersphinx_mapping={'yade':('http://www.yade-dem.org/doc',None)}
 

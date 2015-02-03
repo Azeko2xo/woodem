@@ -9,5 +9,6 @@ User's manual
 	running.rst
 	batch.rst
 	postprocess.rst
+	visualization.rst
 	flow-analysis.rst
 	yade-diff.rst
