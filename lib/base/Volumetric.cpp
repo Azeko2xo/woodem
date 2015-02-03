@@ -34,7 +34,7 @@ The numerical testcase (in TetraTestGen::generate) is exact as in the article fo
 */
 Matrix3r woo::Volumetric::tetraInertia(const Vector3r& A, const Vector3r& B, const Vector3r& C, const Vector3r& D){
 	#define x1 A[0]
-	#define y1 A[1]
+	#define y1 A[1
 	#define z1 A[2]
 	#define x2 B[0]
 	#define y2 B[1]
@@ -48,7 +48,7 @@ Matrix3r woo::Volumetric::tetraInertia(const Vector3r& A, const Vector3r& B, con
 
 	// throw std::runtime_error("Do not call woo::Volumetric::tetraInertia, the result is incorrect.");
 
-	cerr<<"WARN: woo::Volumetric::tetraInertia: result is incorrect."<<endl;
+	std::cerr<<"WARN: woo::Volumetric::tetraInertia: result is incorrect."<<std::endl;
 
 	// Jacobian of transformation to the reference 4hedron
 	Real detJ=(x2-x1)*(y3-y1)*(z4-z1)+(x3-x1)*(y4-y1)*(z2-z1)+(x4-x1)*(y2-y1)*(z3-z1)
@@ -114,7 +114,7 @@ Matrix3r woo::Volumetric::tetraInertia_cov(const Vector3r v[4], Real& vol, bool 
 // grid sampling
 Matrix3r woo::Volumetric::tetraInertia_grid(const Vector3r v[4], int div){
 	AlignedBox3r b; for(int i:{0,1,2,3}) b.extend(v[i]);
-	cerr<<"bbox "<<b.min()<<", "<<b.max()<<endl;
+	std::cerr<<"bbox "<<b.min()<<", "<<b.max()<<std::endl;
 	Real dd=b.sizes().minCoeff()/div;
 	Vector3r xyz;
 	// point inside test: http://steve.hollasch.net/cgindex/geometry/ptintet.html
