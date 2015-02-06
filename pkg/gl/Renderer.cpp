@@ -299,7 +299,7 @@ void Renderer::render(const shared_ptr<Scene>& _scene, bool _withNames, bool _fa
 
 	if(engines){
 		for(const auto& e: scene->engines){
-			if(!e) continue; // should not happen, but...
+			if(!e || e->dead) continue; // should not happen, but...
 			glScopedName name(e,shared_ptr<Node>());
 			e->render(viewInfo);
 		}

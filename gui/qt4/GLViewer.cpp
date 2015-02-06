@@ -207,7 +207,7 @@ GLViewer::GLViewer(int _viewId, QGLWidget* shareWidget): QGLViewer(/*parent*/(QW
 	setKeyDescription(Qt::Key_7,"Load [Alt: save] view configuration #0");
 	setKeyDescription(Qt::Key_8,"Load [Alt: save] view configuration #1");
 	setKeyDescription(Qt::Key_9,"Load [Alt: save] view configuration #2");
-	setKeyDescription(Qt::Key_Space,"Center scene (same as Alt-C); clip plane: activate/deactivate");
+	setKeyDescription(Qt::Key_Space,"Run/stop simulation; clip plane: activate/deactivate");
 
 	setInitialView();
 
@@ -421,7 +421,11 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 	}
 	else if(e->key()==Qt::Key_Space){
 		if(manipulatedClipPlane>=0) {displayMessage("Clip plane #"+lexical_cast<string>(manipulatedClipPlane+1)+(Renderer::clipPlaneActive[manipulatedClipPlane]?" de":" ")+"activated"); Renderer::clipPlaneActive[manipulatedClipPlane]=!Renderer::clipPlaneActive[manipulatedClipPlane]; }
-		else{ centerMedianQuartile(); }
+		else{
+			Scene* scene=Master::instance().getScene().get();
+			if(scene->running()) scene->pyStop();
+			else scene->pyRun();
+		}
 	}
 	/* function keys */
 	else if(e->key()==Qt::Key_F1 || e->key()==Qt::Key_F2 || e->key()==Qt::Key_F3 /* || ... */ ){

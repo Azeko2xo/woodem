@@ -1,7 +1,7 @@
 from woo.dem import *
+from woo.gl import *
 from woo.core import *
 from woo.fem import *
-from woo.gl import *
 import woo.utils
 mat=woo.dem.FrictMat(young=1e5,ktDivKn=.2,tanPhi=1)
 halfThick=.001
@@ -28,6 +28,7 @@ else:
 	S.dem.par.add(t4)
 	## surface facets, for contacts
 	S.dem.par.add(f3)
+	for f in f3: f.shape.visible=False
 	S.dem.nodesAppend(nn)
 	# lumped mass
 	#for n in nn:
@@ -47,7 +48,7 @@ def showStresses(S):
 		if not isinstance(p.shape.node.rep,TensorGlRep): p.shape.node.rep=TensorGlRep(val=sig,range=S.lab.sigSym,skewRange=S.lab.sigSkew,skewRelSz=.02,relSz=.05)
 		else: p.shape.node.rep.val=sig
 
-S.engines=DemField.minimalEngines(damping=.01)+[IntraForce([In2_Tet4_ElastMat(),In2_Facet()]),PyRunner(100,'showStresses(S)'),VtkExport(out='/tmp/tetra2-',stepPeriod=200,what=VtkExport.mesh,mask=maskTet)]
+S.engines=DemField.minimalEngines(damping=.01)+[IntraForce([In2_Tet4_ElastMat(),In2_Facet()]),PyRunner(100,'showStresses(S)'),VtkExport(dead=True,out='/tmp/tetra2-',stepPeriod=200,what=VtkExport.mesh,mask=maskTet)]
 S.lab.collider.noBoundOk=True
 #S.lab.collider.dead=True
 #S.lab.contactLoop.dead=True

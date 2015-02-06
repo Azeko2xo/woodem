@@ -151,7 +151,7 @@ def Scene_plot_autoData(P,**kw):
 	>>> S=Scene(fields=[DemField(gravity=(0,0,-10))])
 	>>> S.plot.plots={'i=S.step':('**S.energy','total energy=S.energy.total()',None,'rel. error=S.energy.relErr()')}
 	>>> # we create a simple simulation with one ball falling down
-	>>> S.dem.par.add(utils.sphere((0,0,0),1,mat=utils.defaultMaterial()))
+	>>> S.dem.par.add(Sphere.make((0,0,0),1,mat=utils.defaultMaterial()))
 	0
 	>>> S.dem.collectNodes() 
 	1
@@ -175,7 +175,7 @@ def Scene_plot_autoData(P,**kw):
 		from woo.dem import *
 		from woo.core import *
 		S=Scene(fields=[DemField(gravity=(0,0,-10))])
-		S.dem.par.append(woo.utils.sphere((0,0,0),1));
+		S.dem.par.add(Sphere.make((0,0,0),1));
 		S.dem.collectNodes()
 		S.engines=[Leapfrog(damping=.4,reset=True),PyRunner('S.plot.autoData()')]
 		S.plot.plots={'i=S.step':('**S.energy','total energy=S.energy.total()',None,'rel. error=S.energy.relErr()')}

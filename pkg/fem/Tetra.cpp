@@ -347,16 +347,16 @@ void Gl1_Tet4::go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire2
 		if(rep && t.node->rep) t.node->rep->render(t.node,&viewInfo);
 	}
 
-	glPushMatrix();
-		GLUtils::setLocalCoords(t.node->pos,t.node->ori);
-		if(refConf){
+	if(refConf){
+		glPushMatrix();
+			GLUtils::setLocalCoords(t.node->pos,t.node->ori);
 			glColor3v(refColor);
 			glLineWidth(refWd);
 			glBegin(GL_LINE_STRIP);
 				for(int i:{0,1,2,3,0,2,1,3}) glVertex3v(Vector3r(t.refPos.col(i)));
 			glEnd();
-		}
-	glPopMatrix();
+		glPopMatrix();
+	}
 };
 
 

@@ -4,6 +4,8 @@
 Pellet contact model
 ==============================
 
+.. note:: Development of this model was sponsored by `COREM <http://corem.qc.ca>`__.
+
 Pellet contact model is custom-developed model with high plastic dissipation in the normal sense, accumulating plastic dissipation immediately when loaded. Adhesion force is initially zero, though it grows with normal plastic deformation, i.e. is dependent on the history of the contact loading.
 
 Normal plastic dissipation is controlled by a single dimensionless parameter :math:`\alpha` (:obj:`normPlastCoeff <woo.dem.PelletPhys.normPlastCoeff>`, averaged from :obj:`woo.dem.PelletMat.normPlastCoeff`) which determines the measure of deviation from the linear response.  Adhesion is controlled by the :math:`k_a` parameter (:obj:`ka <woo.dem.PelletPhys.ka>`, computed from the ratio :obj:`woo.dem.PelletMat.kaDivKn`).

@@ -120,6 +120,7 @@ void Gl1_DemField::initAllRanges(){
 			case GLYPH_FORCE: r->label="force"; break;
 			case GLYPH_TORQUE: r->label="torque"; break;
 			case GLYPH_VEL:   r->label="velocity"; break;
+			case GLYPH_ANGVEL:   r->label="angular velocity"; break;
 		}
 	}
 	glyphRange=glyphRanges[glyph];
@@ -366,7 +367,7 @@ void Gl1_DemField::doNodes(const vector<shared_ptr<Node>>& nodeContainer){
 		if(glyph!=GLYPH_KEEP){
 			// prepare rep types
 			// vector values
-			if(glyph==GLYPH_VEL || glyph==GLYPH_FORCE || glyph==GLYPH_TORQUE){
+			if(glyph==GLYPH_VEL || glyph==GLYPH_ANGVEL || glyph==GLYPH_FORCE || glyph==GLYPH_TORQUE){
 				if(!n->rep || !n->rep->isA<VectorGlRep>()){ n->rep=make_shared<VectorGlRep>(); }
 				auto& vec=n->rep->cast<VectorGlRep>();
 				vec.range=glyphRange;
@@ -375,6 +376,7 @@ void Gl1_DemField::doNodes(const vector<shared_ptr<Node>>& nodeContainer){
 			switch(glyph){
 				case GLYPH_NONE: n->rep.reset(); break; // no rep
 				case GLYPH_VEL: n->rep->cast<VectorGlRep>().val=getNodeVel(n); break;
+				case GLYPH_ANGVEL: n->rep->cast<VectorGlRep>().val=dyn.angVel; break;
 				case GLYPH_FORCE: n->rep->cast<VectorGlRep>().val=dyn.force; break;
 				case GLYPH_TORQUE: n->rep->cast<VectorGlRep>().val=dyn.torque; break;
 				case GLYPH_KEEP:

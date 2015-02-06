@@ -29,15 +29,17 @@ class NewtonsCradle(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		_PAT(float,'rad',.005,unit='m',doc='Radius of spheres'),
 		_PAT(Vector2,'cabHtWd',(.1,.1),unit='m',doc='Height and width of the suspension'),
 		_PAT(float,'cabRad',.0005,unit='m',doc='Radius of the suspending cables'),
-		_PAT(woo.models.ContactModelSelector,'model',woo.models.ContactModelSelector(name='Hertz',restitution=.99,numMat=(1,2),matDesc=['spheres','cables'],mats=[FrictMat(density=3e3,young=2e10),FrictMat(density=.001,young=2e10)]),doc='Select contact model. The first material is for spheres; the second, optional, material, is for the suspension cables.'),
+		_PAT(woo.models.ContactModelSelector,'model',woo.models.ContactModelSelector(name='Hertz',restitution=.99,numMat=(1,2),matDesc=['spheres','cables'],mats=[FrictMat(density=3e3,young=2e8),FrictMat(density=.001,young=2e8)]),doc='Select contact model. The first material is for spheres; the second, optional, material, is for the suspension cables.'),
 		_PAT(Vector3,'gravity',(0,0,-9.81),'Gravity acceleration'),
+		_PAT(int,'plotEvery',10,'How often to collect plot data'),
+		_PAT(float,'dtSafety',.7,':obj:`woo.core.Scene.dtSafety`')
 	]
 	def __init__(self,**kw):
 		woo.core.Preprocessor.__init__(self)
 		self.wooPyInit(self.__class__,woo.core.Preprocessor,**kw)
 	def __call__(self):
 		pre=self
-		S=woo.core.Scene(fields=[DemField(gravity=pre.gravity)],dtSafety=.7)
+		S=woo.core.Scene(fields=[DemField(gravity=pre.gravity)],dtSafety=self.dtSafety)
 		S.pre=pre.deepcopy()
 
 		# preprocessor builds the simulation when called
@@ -58,11 +60,11 @@ class NewtonsCradle(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 				S.dem.par.add(t)
 		S.engines=DemField.minimalEngines(model=pre.model,dynDtPeriod=20)+[
 			IntraForce([In2_Truss_ElastMat()]),
-				woo.core.PyRunner(10,'S.plot.addData(i=S.step,t=S.time,total=S.energy.total(),relErr=(S.energy.relErr() if S.step>1000 else 0),**S.energy)'),
+				woo.core.PyRunner(self.plotEvery,'S.plot.addData(i=S.step,t=S.time,total=S.energy.total(),relErr=(S.energy.relErr() if S.step>1000 else 0),**S.energy)'),
 			]
 		S.lab.dynDt.maxRelInc=1e-6
 		S.trackEnergy=True
-		S.plot.plots={'i':('total','**S.energy'),' t':('relErr')}
+		S.plot.plots={'i':('total','**S.energy')}
 
 		return S
 

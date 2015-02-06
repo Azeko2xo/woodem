@@ -110,7 +110,7 @@ struct Gl1_Tetra: public GlShapeFunctor{
 	//void glVertex(const Tetra& f, int i);
 	RENDERS(Tetra);
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Tetra,GlShapeFunctor,"Renders :obj:`Tetra` object",
-		((bool,wire,false,AttrTrait<>().buttons({"All facets solid","import woo\nfor p in woo.master.scene.dem.par:\n\tif isinstance(p.shape,woo.dem.Tetra): p.shape.wire=False\n","","All facets wire","import woo\nfor p in woo.master.scene.dem.par:\n\tif isinstance(p.shape,woo.dem.Tetra): p.shape.wire=True\n",""}),"Only show wireframe."))
+		((bool,wire,false,AttrTrait<>().buttons({"All tetrahedra solid","import woo\nfor p in woo.master.scene.dem.par:\n\tif isinstance(p.shape,woo.fem.Tetra): p.shape.wire=False\n","","All tetrahedra wire","import woo\nfor p in woo.master.scene.dem.par:\n\tif isinstance(p.shape,woo.fem.Tetra): p.shape.wire=True\n",""}),"Only show wireframe."))
 		((int,wd,1,AttrTrait<>().range(Vector2i(1,20)),"Line width when drawing with wireframe (only applies to the triangle, not to rounded corners)"))
 		((Real,fastDrawLim,1e-3,,"If performing fast draw (during camera manipulation) and the distance of centroid to the first node is smaller than *fastDrawLim* times scene radius, skip rendering of that tetra."))
 	);

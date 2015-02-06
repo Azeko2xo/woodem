@@ -32,7 +32,7 @@ struct Outlet: public PeriodicEngine{
 		((vector<Real>,timeOut,,AttrTrait<>().noGui().readonly(),"Time when particles were deleted.")) \
 		((int,num,0,AttrTrait<Attr::readonly>(),"Number of deleted particles")) \
 		((Real,mass,0.,AttrTrait<Attr::readonly>(),"Total mass of deleted particles")) \
-		((Real,glColor,0,AttrTrait<>().noGui(),"Color for rendering (NaN disables rendering)")) \
+		((Real,glColor,0,AttrTrait<>(),"Color for rendering (NaN disables rendering)")) \
 		((bool,glHideZero,false,,"Show numbers (mass and rate) even if they are zero.")) \
 		((Real,currRate,NaN,AttrTrait<>().readonly(),"Current value of mass flow rate")) \
 		((Real,currRateSmooth,1,AttrTrait<>().range(Vector2r(0,1)),"Smoothing factor for currRate ∈〈0,1〉")) \

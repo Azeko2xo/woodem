@@ -171,7 +171,7 @@ void DemData::setOriMassInertia(const shared_ptr<Node>& n){
 	}
 	if(!rotateOk) throw std::runtime_error("DemData::setOriMassInertia: inertia matrix computed from "+to_string(dyn.parRef.size())+" particles attached to "+n->pyStr()+" is not diagonal, and at least one particle refused to change node's orientation.");
 	// rotate the node so that inertia is diagonal
-	cerr<<I<<endl;
+	//cerr<<I<<endl;
 	Eigen::SelfAdjointEigenSolver<Matrix3r> eig(I);
 	Quaternionr rot=Quaternionr(eig.eigenvectors()).normalized();
 	n->ori=rot*n->ori;

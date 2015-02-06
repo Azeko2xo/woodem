@@ -41,9 +41,9 @@ void Facet::lumpMassInertia(const shared_ptr<Node>& n, Real density, Real& mass,
 	// midpoint local coords
 	Vector3r vv[2]; for(int i:{1,2}) vv[i-1]=.5*n->glob2loc(nodes[(ix+i)%3]->pos);
 	Vector3r C=n->glob2loc(getCentroid());
-	cerr<<ix<<"; "<<vv[0].transpose()<<"; "<<vv[1].transpose()<<"; "<<C.transpose()<<endl;
-	cerr<<woo::Volumetric::triangleInertia(Vector3r::Zero(),vv[0],vv[1])<<endl;	
-	cerr<<woo::Volumetric::triangleInertia(vv[0],vv[1],C)<<endl;
+	//cerr<<ix<<"; "<<vv[0].transpose()<<"; "<<vv[1].transpose()<<"; "<<C.transpose()<<endl;
+	//cerr<<woo::Volumetric::triangleInertia(Vector3r::Zero(),vv[0],vv[1])<<endl;	
+	//cerr<<woo::Volumetric::triangleInertia(vv[0],vv[1],C)<<endl;
 	I+=density*(2*halfThick)*woo::Volumetric::triangleInertia(Vector3r::Zero(),vv[0],vv[1]);
 	//cerr<<I<<endl;
 	I+=density*(2*halfThick)*woo::Volumetric::triangleInertia(vv[0],vv[1],C);

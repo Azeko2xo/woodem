@@ -30,7 +30,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 	void postLoad2();
 
 	enum{COLOR_SOLID=0,COLOR_SHAPE,COLOR_RADIUS,COLOR_VEL,COLOR_ANGVEL,COLOR_MASS,COLOR_DISPLACEMENT,COLOR_ROTATION,COLOR_REFPOS,COLOR_MAT_ID,COLOR_MATSTATE,COLOR_SIG_N,COLOR_SIG_T,COLOR_MASK,COLOR_NUM_CON,COLOR_INVISIBLE,/*last*/COLOR_SENTINEL};
-	enum{GLYPH_KEEP=0,GLYPH_NONE,GLYPH_FORCE,GLYPH_TORQUE,GLYPH_VEL,/*last*/GLYPH_SENTINEL};
+	enum{GLYPH_KEEP=0,GLYPH_NONE,GLYPH_FORCE,GLYPH_TORQUE,GLYPH_VEL,GLYPH_ANGVEL,/*last*/GLYPH_SENTINEL};
 	enum{CNODE_NONE=0,CNODE_GLREP=1,CNODE_LINE=2,CNODE_NODE=4,CNODE_POTLINE=8};
 	enum{SHAPE_NONE=0,SHAPE_ALL,SHAPE_SPHERES,SHAPE_NONSPHERES,SHAPE_MASK};
 	RENDERS(DemField);
@@ -82,7 +82,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 		((bool,fluct,false,AttrTrait<>().hideIf("not self.periodic or (self.colorBy not in ('velocity','angular velocity') and self.glyph not in ('velocity',))"),"With periodic boundaries, show only fluctuation components of velocity."))
 
 		((bool,nodes,false,AttrTrait<>().startGroup("Nodes"),"Render DEM nodes"))
-		((int,glyph,GLYPH_KEEP,AttrTrait<Attr::triggerPostLoad|Attr::namedEnum>().namedEnum({{GLYPH_KEEP,{"keep"}},{GLYPH_NONE,{"none",""}},{GLYPH_FORCE,{"force","f"}},{GLYPH_TORQUE,{"torque","t"}},{GLYPH_VEL,{"velocity","v"}}}),"Show glyphs on particles by setting :obj:`GlData` on their nodes."))
+		((int,glyph,GLYPH_KEEP,AttrTrait<Attr::triggerPostLoad|Attr::namedEnum>().namedEnum({{GLYPH_KEEP,{"keep"}},{GLYPH_NONE,{"none",""}},{GLYPH_FORCE,{"force","f"}},{GLYPH_TORQUE,{"torque","t"}},{GLYPH_VEL,{"velocity","vel","v"}},{GLYPH_ANGVEL,{"angular velocity","angVel","angvel"}}}),"Show glyphs on particles by setting :obj:`GlData` on their nodes."))
 		((shared_ptr<ScalarRange>,glyphRange,,AttrTrait<>().readonly(),"Range for glyph colors"))
 		((Real,glyphRelSz,.1,,"Maximum glyph size relative to scene radius"))
 		((bool,deadNodes,true,,"Show :obj:`DemField.deadNodes <woo.dem.DemField.deadNodes>`."))
@@ -104,6 +104,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 			_classObj.attr("glyphForce")=(int)Gl1_DemField::GLYPH_FORCE;
 			_classObj.attr("glyphTorque")=(int)Gl1_DemField::GLYPH_TORQUE;
 			_classObj.attr("glyphVel")=(int)Gl1_DemField::GLYPH_VEL;
+			_classObj.attr("glyphAngVel")=(int)Gl1_DemField::GLYPH_ANGVEL;
 			_classObj.attr("shapeAll")=(int)Gl1_DemField::SHAPE_ALL;
 			_classObj.attr("shapeNone")=(int)Gl1_DemField::SHAPE_NONE;
 			_classObj.attr("shapeSpheres")=(int)Gl1_DemField::SHAPE_SPHERES;

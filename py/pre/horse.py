@@ -100,27 +100,36 @@ def prepareHorse(pre):
 	S.plot.data={'i':[nan],'total':[nan],'relErr':[nan]} # to make plot displayable from the very start
 
 	if pre.deformable:
-		# set deformation just for mesh nodes
+		# set damping just for mesh nodes, if particles have no damping
 		if S.lab.leapfrog.damping==0.:
 			setNoDamp=True
 			S.lab.leapfrog.damping=pre.meshDamping 
 		else: setNoDamp=False
+
+		for n in S.dem.nodes:
+			DemData.setOriMassInertia(n)
+			if type(n.dem.parRef[0].shape)==Membrane:
+				if pre.stand and n.pos[2]<-0.22: n.dem.blocked='xyzXYZ'
+			else: # non-membrane
+				if setNoDamp: n.dem.dampingSkip=True
+		for p in S.dem.par:
+			if type(p.shape)!=Membrane: continue
+			p.mask=(DemField.defaultMovableMask|S.dem.loneMask)^DemField.defaultOutletMask # make horse movable, but avoid deletion by the deleter
+
 		# more complicated here
 		# go through facet's nodes, give them some mass
-		nodeM=1e-1*mat.density*(4/3)*math.pi*pre.radius**3
-		nodeI=3e3*(2/5.)*nodeM*pre.radius**2
-		for p in S.dem.par:
-			if type(p.shape)!=Membrane:
-				if not setNoDamp: continue
-				for n in p.shape.nodes:
-					n.dem.dampingSkip=True
-			else:
-				p.mask=(DemField.defaultMovableMask|S.dem.loneMask)^DemField.defaultDeleterMask # make horse movable, but avoid deletion by the deleter
-				for n in p.shape.nodes:
-					n.dem.mass=nodeM
-					n.dem.inertia=nodeI*Vector3(1,1,1)
-					# n.dem.gravitySkip=True
-					if pre.stand and n.pos[2]<-0.22: n.dem.blocked='xyzXYZ'
+		#nodeM=1e-1*mat.density*(4/3)*math.pi*pre.radius**3
+		#nodeI=3e3*(2/5.)*nodeM*pre.radius**2
+		#for p in S.dem.par:
+		#	if type(p.shape)!=Membrane:
+		#		if not setNoDamp: continue
+		#		for n in p.shape.nodes:
+		#			n.dem.dampingSkip=True
+		#	else:
+		#		for n in p.shape.nodes:
+		#			n.dem.mass=nodeM
+		#			n.dem.inertia=nodeI*Vector3(1,1,1)
+		#			# n.dem.gravitySkip=True
 
 		S.engines=S.engines[:-1]+[IntraForce([In2_Membrane_ElastMat(bending=True,thickness=(pre.radius if pre.halfThick<=0 else float('nan'))),In2_Sphere_ElastMat()])]+[S.engines[-1]] # put dynDt to the very end
 		S.lab.contactLoop.applyForces=False

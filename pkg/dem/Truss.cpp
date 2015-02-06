@@ -168,10 +168,23 @@ void Gl1_Rod::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool wir
 		}
 	#endif
 	glShadeModel(GL_SMOOTH);
-	GLUtils::Cylinder(t.nodes[0]->pos+shift,t.nodes[1]->pos+shift,t.radius,/*color*/Vector3r(NaN,NaN,NaN),t.getWire()||wire2,/*caps*/false,t.radius,slices,stacks);
+	Vector3r shifts[2]={shift,shift};
+	if(scene->isPeriodic && t.nodes[0]->hasData<GlData>() && t.nodes[1]->hasData<GlData>()){
+		GlData* g[2]={&(t.nodes[0]->getData<GlData>()),&(t.nodes[1]->getData<GlData>())};
+		if(g[0]->dCellDist!=g[1]->dCellDist){
+			Vector3i dCell;
+			scene->cell->canonicalizePt(.5*(t.nodes[0]->pos,t.nodes[1]->pos),dCell);
+			for(int i:{0,1}) shifts[i]+=scene->cell->intrShiftPos(g[i]->dCellDist-dCell);
+		}
+	}
+	Vector3r glVertices[]={
+		shifts[0]+t.nodes[0]->pos+(t.nodes[0]->hasData<GlData>()?t.nodes[0]->getData<GlData>().dGlPos:Vector3r::Zero()),
+		shifts[1]+t.nodes[1]->pos+(t.nodes[1]->hasData<GlData>()?t.nodes[1]->getData<GlData>().dGlPos:Vector3r::Zero())
+	};
+	GLUtils::Cylinder(glVertices[0],glVertices[1],t.radius,/*color*/Vector3r(NaN,NaN,NaN),t.getWire()||wire2,/*caps*/false,t.radius,slices,stacks);
 	for(int end=0; end<2; end++){
 		glPushMatrix();
-			glTranslatev(t.nodes[end]->pos);
+			glTranslatev(glVertices[end]);
 			// do not use stack value here, that is for cylinder length subdivision
 			// TODO: only render half of the sphere
 			if(wire||wire2) glutWireSphere(t.radius,slices,slices/3);
