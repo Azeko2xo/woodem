@@ -183,3 +183,6 @@ By composing :math:`P_n(a)` and (numerically evaluated) :math:`a(\delta)`, we ob
    woo.models.SchwarzModel.normalized_plot('F(delta)',alphaGammaName)
 
 
+.. admonition:: Implementation note:
+
+   DMT/Schwarz contact models can be used via :obj:`woo.dem.Law2_L6Geom_HertzPhys_DMT`, when :obj:`woo.dem.Cp2_FrictMat_HertzPhys.gamma` (surface energy :math:`\gamma`) is non-zero; :obj:`woo.dem.Cp2_FrictMat_HertzPhys.alpha` (Carpick-Ogletree-Salmeron transition parameter :math:`\alpha`) determines the model behavior on the continuous DMT (:math:`\alpha=0`) -- JKR (:math:`\alpha=1`) range. Appropriate engines are returned from :obj:`woo.dem.DemField.minimalEngines` when ``model`` is an instance of :obj:`woo.models.ContactModelSelector` with ``name`` equal to ``"DMT"`` or ``"Schwarz"``.

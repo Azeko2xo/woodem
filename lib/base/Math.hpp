@@ -77,6 +77,7 @@
 // templates of those types with single parameter are not possible, use macros for now
 #define VECTOR2_TEMPLATE(Scalar) Eigen::Matrix<Scalar,2,1>
 #define VECTOR3_TEMPLATE(Scalar) Eigen::Matrix<Scalar,3,1>
+#define VECTOR4_TEMPLATE(Scalar) Eigen::Matrix<Scalar,4,1>
 #define VECTOR6_TEMPLATE(Scalar) Eigen::Matrix<Scalar,6,1>
 #define MATRIX3_TEMPLATE(Scalar) Eigen::Matrix<Scalar,3,3>
 #define MATRIX6_TEMPLATE(Scalar) Eigen::Matrix<Scalar,6,6>
@@ -99,6 +100,7 @@ typedef VECTOR3_TEMPLATE(int) Vector3i;
 #else
 	typedef Eigen::AlignedVector3<Real> Vector3r;
 #endif
+typedef VECTOR4_TEMPLATE(Real) Vector4r;
 typedef VECTOR6_TEMPLATE(Real) Vector6r;
 typedef VECTOR6_TEMPLATE(int) Vector6i;
 typedef MATRIX3_TEMPLATE(Real) Matrix3r;
@@ -127,6 +129,7 @@ template<> Real ZeroInitializer<Real>();
 // io
 template<class Scalar> std::ostream & operator<<(std::ostream &os, const VECTOR2_TEMPLATE(Scalar)& v){ os << v.x()<<" "<<v.y(); return os; };
 template<class Scalar> std::ostream & operator<<(std::ostream &os, const VECTOR3_TEMPLATE(Scalar)& v){ os << v.x()<<" "<<v.y()<<" "<<v.z(); return os; };
+template<class Scalar> std::ostream & operator<<(std::ostream &os, const VECTOR4_TEMPLATE(Scalar)& v){ os << v.x()<<" "<<v.y()<<" "<<v.z(); return os; };
 template<class Scalar> std::ostream & operator<<(std::ostream &os, const VECTOR6_TEMPLATE(Scalar)& v){ os << v[0]<<" "<<v[1]<<" "<<v[2]<<" "<<v[3]<<" "<<v[4]<<" "<<v[5]; return os; };
 template<class Scalar> std::ostream & operator<<(std::ostream &os, const Eigen::Quaternion<Scalar>& q){ os<<q.w()<<" "<<q.x()<<" "<<q.y()<<" "<<q.z(); return os; };
 // operators
@@ -144,6 +147,8 @@ template<typename Scalar> bool operator==(const MATRIX6_TEMPLATE(Scalar)& m, con
 template<typename Scalar> bool operator!=(const MATRIX6_TEMPLATE(Scalar)& m, const MATRIX6_TEMPLATE(Scalar)& n){ return !(m==n); }
 template<typename Scalar> bool operator==(const VECTOR6_TEMPLATE(Scalar)& u, const VECTOR6_TEMPLATE(Scalar)& v){ return u[0]==v[0] && u[1]==v[1] && u[2]==v[2] && u[3]==v[3] && u[4]==v[4] && u[5]==v[5]; }
 template<typename Scalar> bool operator!=(const VECTOR6_TEMPLATE(Scalar)& u, const VECTOR6_TEMPLATE(Scalar)& v){ return !(u==v); }
+template<typename Scalar> bool operator==(const VECTOR4_TEMPLATE(Scalar)& u, const VECTOR4_TEMPLATE(Scalar)& v){ return u[0]==v[0] && u[1]==v[1] && u[2]==v[2] && u[3]=v[3]; }
+template<typename Scalar> bool operator!=(const VECTOR4_TEMPLATE(Scalar)& u, const VECTOR4_TEMPLATE(Scalar)& v){ return !(u==v); }
 template<typename Scalar> bool operator==(const VECTOR3_TEMPLATE(Scalar)& u, const VECTOR3_TEMPLATE(Scalar)& v){ return u.x()==v.x() && u.y()==v.y() && u.z()==v.z(); }
 template<typename Scalar> bool operator!=(const VECTOR3_TEMPLATE(Scalar)& u, const VECTOR3_TEMPLATE(Scalar)& v){ return !(u==v); }
 template<typename Scalar> bool operator==(const VECTOR2_TEMPLATE(Scalar)& u, const VECTOR2_TEMPLATE(Scalar)& v){ return u.x()==v.x() && u.y()==v.y(); }
@@ -254,6 +259,7 @@ BOOST_IS_BITWISE_SERIALIZABLE(Vector2r);
 BOOST_IS_BITWISE_SERIALIZABLE(Vector2i);
 BOOST_IS_BITWISE_SERIALIZABLE(Vector3r);
 BOOST_IS_BITWISE_SERIALIZABLE(Vector3i);
+BOOST_IS_BITWISE_SERIALIZABLE(Vector4r);
 BOOST_IS_BITWISE_SERIALIZABLE(Vector6r);
 BOOST_IS_BITWISE_SERIALIZABLE(Vector6i);
 BOOST_IS_BITWISE_SERIALIZABLE(Quaternionr);
@@ -288,6 +294,12 @@ void serialize(Archive & ar, Vector3r & g, const unsigned int version)
 template<class Archive>
 void serialize(Archive & ar, Vector3i & g, const unsigned int version){
 	ar & boost::serialization::make_nvp("data",boost::serialization::make_array(g.data(),3));
+}
+
+template<class Archive>
+void serialize(Archive & ar, Vector4r & g, const unsigned int version)
+{
+	ar & boost::serialization::make_nvp("data",boost::serialization::make_array(g.data(),4));
 }
 
 template<class Archive>

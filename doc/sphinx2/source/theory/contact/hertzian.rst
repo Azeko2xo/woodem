@@ -137,3 +137,7 @@ The presence of viscous force can lead to attraction between spheres towards the
 
 This effect is discussed in :cite:`Antypov2011` and should be taken in account when measuring coefficients of restitution in simulations (see `this discussion <https://answers.launchpad.net/yade/+question/235934>`__).
 
+
+.. admonition:: Implementation note:
+
+   Hertz contact model can be used via :obj:`woo.dem.Law2_L6Geom_HertzPhys_DMT`, when :obj:`woo.dem.Cp2_FrictMat_HertzPhys.gamma` (surface energy :math:`\gamma`) and :obj:`woo.dem.Cp2_FrictMat_HertzPhys.alpha` (Carpick-Ogletree-Salmeron transition parameter :math:`\alpha`) are zero. Appropriate engines are returned from :obj:`woo.dem.DemField.minimalEngines` when ``model`` is an instance of :obj:`woo.models.ContactModelSelector` with ``name`` equal to ``"Hertz"``.

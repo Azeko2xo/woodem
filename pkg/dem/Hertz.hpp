@@ -26,8 +26,8 @@ struct Cp2_FrictMat_HertzPhys: public Cp2_FrictMat_FrictPhys{
 	WOO_DECL_LOGGER;
 	WOO_CLASS_BASE_DOC_ATTRS(Cp2_FrictMat_HertzPhys,Cp2_FrictMat_FrictPhys,"Compute :obj:`HertzPhys` given two instances of :ref`FrictMat`.",
 		((Real,poisson,.2,,"Poisson ratio for computing contact properties (not provided by the material class currently)"))
-		((Real,gamma,0.0,,"Surface energy parameter [J/m^2] per each unit contact surface, to derive DMT formulation from HM. If zero, adhesion is disabled."))
-		((Real,en,NaN,,"Normal coefficient of restitution (if outside the 0-1 range, there will be no damping, making en effectively equal to one)."))
+		((Real,gamma,0.0,,"Surface energy parameter [J/m^2] per each unit contact surface, to derive adhesive (DMT, JKR, Schwarz) formulation from HM. If zero, adhesion is disabled.."))
+		((Real,en,NaN,,"Normal coefficient of restitution (if outside the 0-1 range, there will be no damping, making ``en`` effectively equal to one)."))
 		((Real,alpha,0.,,"COS alpha parameter"))
 	);
 };
@@ -48,7 +48,6 @@ struct Law2_L6Geom_HertzPhys_DMT: public LawFunctor{
 	inline Real normalElasticEnergy(const Real& kn0, const Real& uN){ return kn0*(2/5.)*pow_i_2(uN,5); }
 	FUNCTOR2D(L6Geom,HertzPhys);
 	WOO_DECL_LOGGER;
-	enum{MODEL_DMT=0,MODEL_JKR,MODEL_COS};
 	void postLoad(Law2_L6Geom_HertzPhys_DMT&,void*);
 	#define WOO_SCHWARZ_COUNTERS
 	#ifdef WOO_SCHWARZ_COUNTERS

@@ -4,7 +4,7 @@
 Ice contact model
 =============================
 
-.. note:: Developement of this model was sponsored by `Centre for Arctic Resource Development (CARD) <http://www.card-arctic.ca>`__.
+.. note:: Developement of this model is commercially sponsored (identity undisclosed).
 
 The ``Ice`` model was conceived for ice simulations originally, but may be suitable for a wide range of materials. It considers elasticity, cohesion and friction in 4 senses (normal, shear, twisting, rolling); each of the senses can be independently fragile ("unbonding" upon reaching critical force/torque value -- see below) or non-fragile (plastic slip taking place when critical force/torque is reached).
 
@@ -26,6 +26,8 @@ There are 4 stiffness values:
 * twisting stiffness :math:`k_w=\alpha_w k_n A`, where :math:`\alpha_w` is material parameter and :math:`A` is geometry-dependent :obj:`contact area <woo.dem.L6Geom.contA>`.
 * rolling stiffness :math:`k_r=\alpha_r k_t A`, where :math:`\alpha_r` is material parameter.
 
+:math:`\alpha_w` and :math:`\alpha_r` are stored together (in this order) as 2-vector in :obj:`IceMat.alpha <woo.dem.IceMat.alpha>`.
+
 Bonds
 ------
 
@@ -43,33 +45,81 @@ Breakage
 
 #. The transition from unbonded to bonded state never occurs naturally (though it can be forced by hand).
 
-Limit force value depends on cohesion parameters (:math:`c_n`, :math:`c_t`, :math:`c_w`, :math:`c_r`) and is only useful for senses which are both bonded and breakable, and the breakage condition is slightly different for different senses:
+Limit force values depend on cohesion parameters; the normal cohesion is computed as :math:`c_n=E'\eps_{bn}`, where equivalent young's modulus :math:`E'=l\left(\frac{l_1}{E_1}+\frac{l_2}{E_2}\right)^{-1}` and :math:`\eps_{bn}` is strain at breakage in the normal sense (material parameter). Other cohesions are computed from :math:`c_n` by multiplying that value by dimensionless scaling parameters :math:`\beta_t`, :math:`\beta_w`, :math:`\beta_b` (stored as 3-vector in :obj:`IceMat.beta`).
+
+Cohesion values are only useful for senses which are both bonded and breakable, and the breakage condition is slightly different for different senses:
 
 .. math::
    :nowrap:
 
    \begin{align*}
       F_{nb}&=c_n A, & F_{n}& > F_{nb}\quad \mbox{(no breakage for $F_n<0$ (compression))}, \\
-      F_{tb}&=c_t A, & |\vec{F}_{t}|&> F_{tb}, \\
-      T_{wb}&=c_w A^{\frac{3}{2}}, & |T_{w}|&>T_{wb}, \\
-      T_{rb}&=c_b A^{\frac{3}{2}}, & |\vec{T}_{b}|&>T_{rb}.
+      F_{tb}&=\beta_t c_n A, & |\vec{F}_{t}|&> F_{tb}, \\
+      T_{wb}&=\beta_w c_n A^{\frac{3}{2}}, & |T_{w}|&>T_{wb}, \\
+      T_{rb}&=\beta_b c_n A^{\frac{3}{2}}, & |\vec{T}_{b}|&>T_{rb}.
    \end{align*}
 
 Plasticity
 -----------
 
-Plastic force limiters apply only for senses which are currently not bonded (they could be broken, or were never bonded at all). If force/torque exceeds respective yield force/torque, it is limited to that yield value (in the original direction).
+Plastic force limiters (yield values) apply only for senses which are currently not bonded (be they broken, or simply never bonded at all). If force/torque exceeds respective yield force/torque, it is limited to that yield value (retaining its direction).
 
-There are two plastic parameters, friction angle :math:`\phi` (:obj:`~woo.dem.FrictMat.tanPhi`) and kinetic friction :math:`\mu`.
+There are two plastic parameters, friction angle :math:`\phi` (:obj:`~woo.dem.FrictMat.tanPhi`) and kinetic friction :math:`\mu`, used to compute yield values. Note that the use of :math:`\min(0,F_n \dots)` implies that the *yield values are always zero in tension*, therefore the behavior is ideally plastic in that case.
 
 .. math::
-	:nowrap:
+   :nowrap:
 
-	\begin{align*}
-		F_{ty}&=\min(0,F_n\tan\phi) \quad\mbox{(zero shear in tension)} \\
-		T_{wy}&=\sqrt{\frac{A}{pi}} \min(0,F_n\tan\phi) \quad\mbox{(zero twist in tension)}
-	\end{align*}
+   \begin{align*}
+      F_{ty}&=\min(0,F_n\tan\phi)\\
+      T_{wy}&=\sqrt{A/\pi} \min(0,F_n\tan\phi) \\
+      T_{ry}&=\sqrt{A/\pi} \min(0,F_n\mu)
+   \end{align*}
 
-.. todo:: Rolling friction? Where is it applied, what does it depend on? Robert wrote :math:`F_r=F_n\mu`, but... what is the orientation of the force? It must depend on whether the contact is deforming or not (rolling?), and must result in force/torque acting at the contact point.
 
+Nomenclature
+-------------
 
+.. list-table::
+   :widths: 15 10 30 50
+   :header-rows: 1
+
+   * - Symbol
+     - Unit
+     - Variable
+     - Meaning
+   * - :math:`E`
+     - Pa
+     - :obj:`ElastMat.young <woo.dem.ElastMat.young>`
+     - Young's modulus
+   * - :math:`A`
+     - :math:`\mathrm{m^2}`
+     - :obj:`L6Geom.contA <woo.dem.L6Geom.contA>`
+     - contact area (auto-computed)
+   * - :math:`k_t/k_n`
+     - --
+     - :obj:`FrictMat.ktDivKn <woo.dem.FrictMat.ktDivKn>`
+     - factor to compute :math:`k_t` from :math:`k_n`
+   * - :math:`\tan\phi`
+     - --
+     - :obj:`FrictMat.tanPhi <woo.dem.FrictMat.tanPhi>`
+     - friction angle
+   * - :math:`(\alpha_w,\alpha_r)`
+     - --
+     - :obj:`IceMat.alpha <woo.dem.IceMat.alpha>`
+     - factors for computing :math:`k_w`, :math:`k_r` from :math:`k_n`, :math:`k_t`
+   * - :math:`\eps_{bn}`
+     - --
+     - :obj:`IceMat.breakN <woo.dem.IceMat.breakN>`
+     - normal strain where cohesion stress is reached
+   * - :math:`c_n`
+     - Pa
+     - (not stored?)
+     - normal cohesion value
+   * - :math:`(\beta_t,\beta_w,\beta_r)`
+     - --
+     - :obj:`IceMat.beta <woo.dem.IceMat.beta>`
+     - factors for computing cohesions from :math:`c_n`
+   * - :math:`\mu`
+     - --
+     - :obj:`IceMat.mu <woo.dem.IceMat.mu>`
+     - kinetic (rolling) friction coefficient

@@ -150,6 +150,7 @@ WOO_PLUGIN(gl,(Gl1_Rod));
 #include<woo/lib/opengl/OpenGLWrapper.hpp>
 #include<woo/lib/opengl/GLUtils.hpp>
 #include<woo/lib/base/CompUtils.hpp>
+#include<woo/pkg/gl/GlData.hpp>
 bool Gl1_Rod::wire;
 int Gl1_Rod::slices;
 int Gl1_Rod::stacks;

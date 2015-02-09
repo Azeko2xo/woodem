@@ -31,7 +31,7 @@ struct Cg2_Any_Any_L6Geom__Base: public CGeomFunctor{
 	void handleSpheresLikeContact(const shared_ptr<Contact>& C, const Vector3r& pos1, const Vector3r& vel1, const Vector3r& angVel1, const Vector3r& pos2, const Vector3r& vel2, const Vector3r& angVel2, const Vector3r& normal, const Vector3r& contPt, Real uN, Real r1, Real r2);
 	enum { APPROX_NO_MID_NORMAL=1, APPROX_NO_RENORM_MID_NORMAL=2, APPROX_NO_MID_TRSF=4, APPROX_NO_MID_BRANCH=8 };
 	#define woo_dem_Cg2_Any_Any_L6Geom__Base__CLASS_BASE_DOC_ATTRS \
-		Cg2_Any_Any_L6Geom__Base,CGeomFunctor,"Common base for L6Geom-computing functors such as :obj:`Cg2_SPhere_Sphere_L6Geom`, holding common approximation flags.", \
+		Cg2_Any_Any_L6Geom__Base,CGeomFunctor,"Common base for L6Geom-computing functors such as :obj:`Cg2_Sphere_Sphere_L6Geom`, holding common approximation flags.", \
 		((bool,noRatch,false,,"FIXME: document what it really does.")) \
 		((int,trsfRenorm,100,,"How often to renormalize :obj:`trsf <L6Geom.trsf>`; if non-positive, never renormalized (simulation might be unstable)")) \
 		((int,approxMask,0,AttrTrait<>().range(Vector2i(0,15)),"Selectively enable geometrical approximations (bitmask); add the values for approximations to be enabled.\n\n" \
