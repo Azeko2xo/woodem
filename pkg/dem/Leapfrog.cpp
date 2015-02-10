@@ -184,19 +184,10 @@ void Leapfrog::run(){
 				pprevFluctAngVel=scene->cell->pprevFluctAngVel(dyn.angVel);
 			} else { pprevFluctVel=dyn.vel; pprevFluctAngVel=dyn.angVel; }
 			// linear damping
-			#ifdef DUMP_INTEGRATOR
-				cerr<<"*"<<scene->step<<"/"<<i<<": v="<<dyn.vel<<", ω="<<dyn.angVel<<", F="<<f<<", T="<<t<<", a="<<linAccel;
-			#endif
 			if(damp) nonviscDamp2nd(dt,f,pprevFluctVel,linAccel);
-			#ifdef DUMP_INTEGRATOR
-				cerr<<", aDamp="<<linAccel;
-			#endif
 			// compute v(t+dt/2)
 			if(homoDeform==Cell::HOMO_GRADV2) dyn.vel=ImLL4hInv*(LmL*node->pos+IpLL4h*dyn.vel+linAccel*dt);
-			else dyn.vel+=dt*linAccel; // correction for this case is below
-			#ifdef DUMP_INTEGRATOR
-				cerr<<", vNew="<<dyn.vel;
-			#endif
+			else dyn.vel+=dt*linAccel;  // correction for this case is below
 			// angular acceleration
 			if(dyn.inertia!=Vector3r::Zero()){
 				if(!useAspherical){ // spherical integrator, uses angular velocity
@@ -219,7 +210,7 @@ void Leapfrog::run(){
 		}
 		/* adapt node velocity/position in (t+dt/2) to space gradV;	must be done before position update, so that particle follows */
 		// this is for both fixed and free particles, without gradV2
-		if(homoDeform!=Cell::HOMO_GRADV2) applyPeriodicCorrections(node,linAccel);
+		if(homoDeform>=0 && homoDeform!=Cell::HOMO_GRADV2) applyPeriodicCorrections(node,linAccel);
 
 		// kinetic energy
 		// accelerations are needed, therefore not evaluated earlier;

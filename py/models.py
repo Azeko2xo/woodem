@@ -216,21 +216,25 @@ class ContactModelSelector(woo.core.Object,woo.pyderived.PyWooObject):
 	_classTrait=None
 	_PAT=woo.pyderived.PyAttrTrait
 	_attrTraits=[
-		_PAT(str,'name','linear',triggerPostLoad=True,choice=['linear','pellet','Hertz','DMT','Schwarz'],doc='Material model to use.'),
+		_PAT(str,'name','linear',triggerPostLoad=True,choice=['linear','pellet','Hertz','DMT','Schwarz','concrete','ice'],doc='Material model to use.'),
 		_PAT(Vector2i,'numMat',Vector2i(1,1),noGui=True,guiReadonly=True,triggerPostLoad=True,doc='Minimum and maximum number of material definitions.'),
 		_PAT([str,],'matDesc',[],noGui=True,triggerPostLoad=True,doc='List of strings describing individual materials. Keep the description very short (one word) as it will show up in the UI combo box for materials.'),
 		_PAT([woo.dem.Material],'mats',[],doc='Material definitions'),
+		_PAT(float,'distFactor',1.,doc='Distance factor for sphere-sphere contacts (copied to :obj:`woo.dem.Bo1_Sphere_Aabb.distFactor` and :obj:`woo.dem.Cg2_Sphere_Sphere_L6Geom.distFactor`)'),
+		# hertzian models
 		_PAT(float,'poisson',.2,hideIf='self.name not in ("Hertz","DMT","Schwarz")',doc='Poisson ratio (:obj:`woo.dem.Cp2_FrictMat_HertzPhys.poisson`)'),
 		_PAT(float,'surfEnergy',.01,unit=u'J/m²',hideIf='self.name not in ("DMT","Schwarz")',doc='Surface energy for adhesive models (:obj:`woo.dem.Cp2_FrictMat_HertzPhys.gamma`)'),
 		_PAT(float,'restitution',1.,hideIf='self.name not in ("Hertz","DMT","Schwarz")',doc='Restitution coefficient for models with viscosity (:obj:`woo.dem.Cp2_FrictMat_HertzPhys.en`).'),
 		_PAT(float,'alpha',.5,hideIf='self.name not in ("Schwarz",)',doc='Parameter interpolating between DMT and JKR extremes in the Schwarz model. :math:`alpha` was introduced in :cite:`Carpick1999`.'),
+		# linear model
 		_PAT(float,'damping',.2,hideIf='self.name not in ("linear",)',doc='Numerical (non-viscous) damping (:obj:`woo.dem.Leapfrog.damping`)'),
+		_PAT(bool,'linRoll',False,hideIf='self.name!="linear"',doc='*Linear model*: enable rolling, with parameters set in :obj:`linRollParams`.'),
+		_PAT(Vector3,'linRollParams',Vector3(1.,1.,1.),hideIf='self.name!="linear" or not self.linRoll',doc='Rolling parameters for the linear model, in the order of :obj:`relRollStiff <woo.dem.Law2_L6Geom_FrictPhys_IdealElPl.relRollStiff>`, :obj:`relTwistStiff <woo.dem.Law2_L6Geom_FrictPhys_IdealElPl.relTwistStiff>`, :obj:`rollTanPhi <woo.dem.Law2_L6Geom_FrictPhys_IdealElPl.rollTanPhi>`.'),
+		# pellet model
 		_PAT(bool,'plastSplit',False,hideIf='self.name not in ("pellet",)',doc='Split plastic dissipation into the normal and tangent component (obj:`woo.dem.Law2_L6Geom_PelletPhys_Pellet.plastSplit`).'),
 		_PAT(Vector3,'pelletThin',(0,0,0),hideIf='self.name!="pellet"',doc='*Pellet model:* parameters for plastic thinning (decreasing pellet radius during normal plastic loading); their order is :obj:`thinRate <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinRate>`, :obj:`thinRelRMin <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinRelRMin>`, :obj:`thinExp <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinExp>`. Set the first value to zero to deactivate.'),
 		_PAT(Vector3,'pelletConf',(0,0,0),hideIf='self.name!="pellet"',doc='*Pellet model:* parameters for history-independent adhesion ("confinement"); the values are :obj:`confSigma <woo.dem.Law2_L6Geom_PelletPhys_Pellet.confSigma>`, :obj:`confRefRad <woo.dem.Law2_L6Geom_PelletPhys_Pellet.confRefRad>` and :obj:`confExp <woo.dem.Law2_L6Geom_PelletPhys_Pellet.confExp>`.'),
 		_PAT(Vector2,'pelletYf1Params',Vector2(float('nan'),float('nan')),hideIf='self.name!="pellet"',doc='When the first component is not NaN, set  :obj:`yieldFunc <woo.dem.Law2_L6Geom_PelletPhys_Pellet.yieldFunc>` to ``1`` and the values of :obj:`yf1_beta <woo.dem.Law2_L6Geom_PelletPhys_Pellet.yf1_beta>` and :obj:`yf1_w <woo.dem.Law2_L6Geom_PelletPhys_Pellet.yf1_w>` to the values of :obj:`pelletYf1Params`.'),
-		_PAT(bool,'linRoll',False,hideIf='self.name!="linear"',doc='*Linear model*: enable rolling, with parameters set in :obj:`linRollParams`.'),
-		_PAT(Vector3,'linRollParams',Vector3(1.,1.,1.),hideIf='self.name!="linear" or not self.linRoll',doc='Rolling parameters for the linear model, in the order of :obj:`relRollStiff <woo.dem.Law2_L6Geom_FrictPhys_IdealElPl.relRollStiff>`, :obj:`relTwistStiff <woo.dem.Law2_L6Geom_FrictPhys_IdealElPl.relTwistStiff>`, :obj:`rollTanPhi <woo.dem.Law2_L6Geom_FrictPhys_IdealElPl.rollTanPhi>`.'),
 	]
 	def __init__(self,**kw):
 		woo.core.Object.__init__(self)
@@ -277,6 +281,10 @@ class ContactModelSelector(woo.core.Object,woo.pyderived.PyWooObject):
 			return [woo.dem.Cp2_FrictMat_HertzPhys(poisson=self.poisson,alpha=0.,gamma=self.surfEnergy,en=self.restitution)],[woo.dem.Law2_L6Geom_HertzPhys_DMT()]
 		elif self.name=='Schwarz':
 			return [woo.dem.Cp2_FrictMat_HertzPhys(poisson=self.poisson,alpha=self.alpha,gamma=self.surfEnergy,en=self.restitution)],[woo.dem.Law2_L6Geom_HertzPhys_DMT()]
+		elif self.name=='concrete':
+			return [woo.dem.Cp2_ConcreteMat_ConcretePhys()],[woo.dem.Law2_L6Geom_ConcretePhys()]
+		elif self.name=='ice':
+			return [woo.dem.Cp2_IceMat_IcePhys()],[woo.dem.Law2_L6Geom_IcePhys()]
 		else: raise ValueError('Unknown model: '+self.name)
 	def getMat(self):
 		'''Return default-initialized material for use with this model.'''
@@ -284,7 +292,7 @@ class ContactModelSelector(woo.core.Object,woo.pyderived.PyWooObject):
 	def getMatClass(self):
 		'''Return class object of material for use with this model.'''
 		import woo.dem
-		d={'linear':woo.dem.FrictMat,'pellet':woo.dem.PelletMat,'Hertz':woo.dem.FrictMat,'DMT':woo.dem.FrictMat,'Schwarz':woo.dem.FrictMat}
+		d={'linear':woo.dem.FrictMat,'pellet':woo.dem.PelletMat,'Hertz':woo.dem.FrictMat,'DMT':woo.dem.FrictMat,'Schwarz':woo.dem.FrictMat,'concrete':woo.dem.ConcreteMat,'ice':woo.dem.IceMat}
 		if self.name not in d: raise ValueError('Unknown model: '+self.name)
 		return d[self.name]
 	def getNonviscDamping(self):

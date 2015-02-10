@@ -92,7 +92,7 @@ struct ConcretePhys: public FrictPhys {
 		,/*py*/  \
 		.def_readonly("cummBetaIter",&ConcretePhys::cummBetaIter,"Cummulative number of iterations inside ConcreteMat::solveBeta (for debugging).") \
 		.def_readonly("cummBetaCount",&ConcretePhys::cummBetaCount,"Cummulative number of calls of ConcreteMat::solveBeta (for debugging).") \
-		.def("funcG",&ConcretePhys::funcG,(py::arg("kappaD"),py::arg("epsCrackOnset"),py::arg("epsFracture"),py::arg("neverDamage")=false,py::arg("damLaw")=1),"Damage evolution law, evaluating the $\\omega$ parameter. $\\kappa_D$ is historically maximum strain, *epsCrackOnset* ($\\varepsilon_0$) = :yref:`ConcretePhys.epsCrackOnset`, *epsFracture* = :yref:`ConcretePhys.epsFracture`; if *neverDamage* is ``True``, the value returned will always be 0 (no damage).") \
+		.def("funcG",&ConcretePhys::funcG,(py::arg("kappaD"),py::arg("epsCrackOnset"),py::arg("epsFracture"),py::arg("neverDamage")=false,py::arg("damLaw")=1),"Damage evolution law, evaluating the $\\omega$ parameter. $\\kappa_D$ is historically maximum strain, *epsCrackOnset* ($\\varepsilon_0$) = :obj:`epsCrackOnset`, *epsFracture* = :obj:`epsFracture`; if *neverDamage* is ``True``, the value returned will always be 0 (no damage).") \
 		.staticmethod("funcG") \
 		.def("funcGInv",&ConcretePhys::funcGInv,(py::arg("omega"),py::arg("epsCrackOnset"),py::arg("epsFracture"),py::arg("neverDamage")=false,py::arg("damLaw")=1),"Inversion of damage evolution law, evaluating the $\\kappa_D$ parameter. $\\omega$ is damage, for other parameters see funcG function") \
 		.staticmethod("funcGInv") \

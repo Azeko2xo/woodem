@@ -174,7 +174,7 @@ void Gl1_Rod::go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool wir
 		GlData* g[2]={&(t.nodes[0]->getData<GlData>()),&(t.nodes[1]->getData<GlData>())};
 		if(g[0]->dCellDist!=g[1]->dCellDist){
 			Vector3i dCell;
-			scene->cell->canonicalizePt(.5*(t.nodes[0]->pos,t.nodes[1]->pos),dCell);
+			scene->cell->canonicalizePt(.5*(t.nodes[0]->pos+t.nodes[1]->pos),dCell);
 			for(int i:{0,1}) shifts[i]+=scene->cell->intrShiftPos(g[i]->dCellDist-dCell);
 		}
 	}

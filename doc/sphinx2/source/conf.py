@@ -75,7 +75,7 @@ ipython_promptout=' -> [%d]:' ### FIXME:: this does not work for some reason :|
 import IPython.sphinxext.ipython_console_highlighting as ich
 
 try: ilex=ich.IPyLexer  # ipy>=2.3
-except NameError: ilex=ich.IPythonConsoleLexer
+except AttributeError: ilex=ich.IPythonConsoleLexer
 # TODO: 
 ilex.input_prompt=re.compile(r'(Woo\[[0-9]+\]: )')
 ilex.output_prompt=re.compile(r'(( -> |Out)|\[[0-9]+\]: )')

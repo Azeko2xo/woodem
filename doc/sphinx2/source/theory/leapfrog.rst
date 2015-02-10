@@ -54,6 +54,8 @@ The algorithm can then be written down by first computing current mean velocity 
 
 Positions are known at times :math:`i\Delta t` (if :math:`\Delta t` is constant) while velocities are known at :math:`i\Delta t+\frac{\Delta t}{2}`. The fact that they interleave (jump over each other) in such way gave rise to the colloquial name "leap-frog".
 
+.. note:: The initial (often zero) nodal velocity :obj:`DemData.vel <woo.dem.DemData.vel>`, before motion is integrated for the first time, is usually understood to be :math:`\curr{\vec{v}}` rather than :math:`\pprev{\vec{v}}`. In that case, :eq:`eq-leapfrog-nnextvel` is modified to read :math:`\nnext{\vec{v}}=\curr{\vec{v}}+\curr{\vec{a}}\Dt/2`. The :obj:`DemData.velMidstep <woo.dem.DemData.velMidstep>` bit is used to know whether the node has already been encountered by the integrator or not. This adjustment can be turned off by unsetting :obj:`woo.dem.Leapfrog.adjVel0`.
+
 
 Orientation
 ------------
@@ -69,10 +71,11 @@ The basic integration procedure applies to nodes which have inertia tensor such 
 
 	\begin{align*}
       \curr{\dot{\vec{\omega}}}&=\frac{\curr{\vec{T}_{\Sigma}}}{\tens{I}_{11}} \\
-      \nnext{\vec{\omega}}&=\pprev{\vec{\omega}}+\Dt\curr{\dot{\vec{\omega}}} \\
+      \nnext{\vec{\omega}}&=\pprev{\vec{\omega}}+\curr{\dot{\vec{\omega}}}\Dt \\
       \next{\vec{q}}&=\mathrm{Quaternion}(\nnext{\vec{\omega}}\Dt)\curr{\vec{q}}
 	\end{align*}
 	
+.. note:: As with linear velocity, the first motion integration modifies the equation to read :math:`\nnext{\vec{\omega}}&=\curr{\vec{\omega}}+\curr{\dot{\vec{\omega}}}\Dt/2`, under the conditions explained above.
 
 Aspherical nodes
 ^^^^^^^^^^^^^^^^^
