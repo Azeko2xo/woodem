@@ -110,7 +110,7 @@ Extended strain-stress diagram for multiple loading cycles is shown in :ref:`thi
    :figclass: align-center
    :width: 80%
 
-This plot shows tge strain-stress diagram in normal direction, loaded cyclically in tension and compression; it shows several features of the model: (1) damage in tension, but not damage in compression (governed by the :math:`\omega` internal variable) (2) plasticity in compression, starting at strain :math:`\eps_s`; reduced (hardening) modulus is :math:`\tilde K_s k_N`:
+This following is the strain-stress diagram in normal direction, loaded cyclically in tension and compression; it shows several features of the model: (1) damage in tension, but not damage in compression (governed by the :math:`\omega` internal variable) (2) plasticity in compression, starting at strain :math:`\eps_s`; reduced (hardening) modulus is :math:`\tilde K_s k_N`:
 
 .. plot::
 
