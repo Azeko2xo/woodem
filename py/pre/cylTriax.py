@@ -25,7 +25,7 @@ class CylTriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 
 	Supports are from the same material as *particles*, but they may have their friction reduced (when :obj:`suppTanPhi` is given). 
 
-	.. warning:: There are (unfortunately) quite a few tunables which must be tinkered with to get the desired result (those are in the *Tunables* section: :obj:`dtSafety`, :obj:`massFactor`, :obj:`damping`, :obj:`maxUnbalanced`). Several factors are also hard-set in the code, hoping that they will work in different scenarios than those which were tested.
+	.. warning:: There are (unfortunately) quite a few tunables which must be tinkered with to get the desired result (those are in the *Tunables* section: :obj:`dtSafety`, :obj:`massFactor`, :obj:`model.damping`, :obj:`maxUnbalanced`). Several factors are also hard-set in the code, hoping that they will work in different scenarios than those which were tested.
 
 	.. youtube:: Li13NrIyMYU
 
@@ -42,10 +42,17 @@ class CylTriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		_PAT(Vector2,'maxRates',(2e-1,1.),'Maximum strain rates during the compaction phase (for all axes), and during the triaxial phase in the axial sense.'),
 
 		## materials
-		_PAT(woo.dem.FrictMat,'parMat',FrictMat(young=0.3e9,ktDivKn=.2,tanPhi=.4,density=1e8),startGroup='Materials',doc='Material of particles.'),
+		_PAT(
+			woo.models.ContactModelSelector,'model',woo.models.ContactModelSelector(name='linear',damping=.5,numMat=(1,2),matDesc=['particles','membrane'],mats=[
+				FrictMat(young=0.3e9,ktDivKn=.2,tanPhi=.4,density=1e8),
+				FrictMat(young=1.1e6,ktDivKn=.2,tanPhi=.4,density=1e8)
+			]),
+			startGroup='Materials',
+			doc='Select contact model. The first material is for particles; the second, optional, material, is for the membrane (the first material is used if there is no second one, but its friction is nevertheless reduced during the compaction phase to :obj:`suppTanPhi`).'
+		),
 		_PAT([Vector2,],'psd',[(2e-3,0),(2.5e-3,.2),(4e-3,1.)],unit=['mm','%'],psd=True,doc='Particle size distribution of particles; first value is diameter, scond is cummulative mass fraction.'),
 		_PAT([woo.dem.SphereClumpGeom],'clumps',[],"Clump definitions (if empty, use spheres, not clumps)"),
-		_PAT(woo.dem.FrictMat,'memMat',FrictMat(young=1.1e6,ktDivKn=.2,tanPhi=.4,density=1e8),'Membrane material; if unspecified, particle material is used (with reduced friction during the compaction phase)'),
+		_PAT(str,'spheresFrom','',existingFilename=True,doc='Instead of generating spheres, load them from file (space-separated colums with x,y,z,r entries). The initial cylinder is made to fit inside the packing\'s axis-aligned bounding box (the user is responsible for having those spheres inside cylinder). Cylinder geometry (:obj:`htDiam`) and particle sizes (:obj:`psd` and :obj:`clumps`) are ignored.\n\n.. note:: :obj:`packCacheDir` is still used as usual to cache packings after compaction (to disable packing cache, set it to empty string), and will take precedence over :obj:`spheresFrom` if compacted packing for the same parameters is already cached.'),
 		_PAT(float,'suppTanPhi',float('nan'),'Friction at supports; if NaN, the same as for particles is used. Supports use the same material as particles otherwise.'),
 
 		## output
@@ -59,7 +66,6 @@ class CylTriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		## tunables
 		_PAT(float,'dtSafety',.9,startGroup='Tunables',doc='Safety factor, stored in :obj:`woo.core.Scene.dtSafety` and used for computing the initial timestep as well as by :obj:`woo.dem.DynDt` later during the simulation.'),
 		_PAT(float,'massFactor',.5,'Multiply real mass of particles by this number to obtain the :obj:`woo.dem.WeirdTriaxControl.mass` control parameter'),
-		_PAT(float,'damping',.5,'Nonviscous damping'),
 		_PAT(float,'maxUnbalanced',.05,'Maximum unbalanced force at the end of compaction'),
 	]
 	def __init__(self,**kw):
@@ -148,9 +154,9 @@ def prepareCylTriax(pre):
 	S.dem.loneMask=loneMask
 
 	# save materials for later manipulation
-	S.lab.parMat=pre.parMat
-	S.lab.memMat=(pre.memMat if pre.memMat else pre.parMat.deepcopy())
-	S.lab.suppMat=pre.parMat.deepcopy()
+	S.lab.parMat=pre.model.mats[0]
+	S.lab.memMat=(pre.model.mats[1] if len(pre.model.mats)>1 else pre.model.mats[0].deepcopy())
+	S.lab.suppMat=pre.model.mats[0].deepcopy()
 	S.lab.suppMat.tanPhi=pre.suppTanPhi
 
 	## generate particles inside cylinder
@@ -173,7 +179,11 @@ def prepareCylTriax(pre):
 		S.lab.compactMemoize=None # none means we just loaded that file
 		sp.toSimulation(S,mat=S.lab.parMat)
 	else:
-		pack=woo.pack.randomLoosePsd(predicate=woo.pack.inCylinder(centerBottom=(xymid[0],xymid[1],bot),centerTop=(xymid[0],xymid[1],top),radius=innerRad),psd=pre.psd,mat=S.lab.parMat,clumps=pre.clumps,returnSpherePack=True)
+		if pre.spheresFrom:
+			pack=woo.pack.SpherePack()
+			pack.load(pre.spheresFrom)
+		else:
+			pack=woo.pack.randomLoosePsd(predicate=woo.pack.inCylinder(centerBottom=(xymid[0],xymid[1],bot),centerTop=(xymid[0],xymid[1],top),radius=innerRad),psd=pre.psd,mat=S.lab.parMat,clumps=pre.clumps,returnSpherePack=True)
 		pack.toSimulation(S)
 		meshAabb=AlignedBox3((xymin[0],xymin[1],bot),(xymax[0],xymax[1],top))
 		S.lab.compactMemoize=compactMemoize
@@ -182,7 +192,7 @@ def prepareCylTriax(pre):
 
 	# create mesh (supports+membrane)
 	cylDivHt=int(round(ht/(2*math.pi*rad/pre.cylDiv))) # try to be as square as possible
-	nodeMass=(ht/cylDivHt)**2*pre.memThick*pre.memMat.density # approx mass of square slab of our size
+	nodeMass=(ht/cylDivHt)**2*pre.memThick*S.lab.memMat.density # approx mass of square slab of our size
 	nodeInertia=((3/4.)*(nodeMass/math.pi))**(5/3.)*(6/15.)*math.pi # inertial of sphere with the same mass
 	particles,nodes=mkFacetCyl(
 		aabb=meshAabb,
@@ -205,25 +215,26 @@ def prepareCylTriax(pre):
 	if pre.clumps: print 'WARNING: clumps used, Scene.dt might not be correct; lower CylTriaxTest.dtSafety (currently %g) if the simulation is unstable'%(pre.dtSafety)
 	# setup engines
 	S.engines=[
-		InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb()],verletDist=-.05),
-		ContactLoop(
-			[Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom()],
-			[Cp2_FrictMat_FrictPhys()],
-			[Law2_L6Geom_FrictPhys_IdealElPl(noFrict=True,label='contactLaw')],
-			applyForces=True,label='contactLoop'
-		), 
+		WeirdTriaxControl(goal=(pre.sigIso,pre.sigIso,pre.sigIso),maxStrainRate=(pre.maxRates[0],pre.maxRates[0],pre.maxRates[0]),relVol=math.pi*innerRad**2*ht/S.cell.volume,stressMask=0b0111,maxUnbalanced=pre.maxUnbalanced,mass=pre.massFactor*sumParMass,doneHook='import woo.pre.cylTriax; woo.pre.cylTriax.compactionDone(S)',label='triax',absStressTol=1e4,relStressTol=1e-2),
+	]+DemField.minimalEngines(model=pre.model,lawKw=dict(noFrict=True))+[
+		#InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb()],verletDist=-.05),
+		#ContactLoop(
+		#	[Cg2_Sphere_Sphere_L6Geom(),Cg2_Facet_Sphere_L6Geom()],
+		#	[Cp2_FrictMat_FrictPhys()],
+		#	[Law2_L6Geom_FrictPhys_IdealElPl(noFrict=True,label='contactLaw')],
+		#	applyForces=True,label='contactLoop'
+		#), 
 		IntraForce([
 				In2_Sphere_ElastMat(),
 				In2_Membrane_ElastMat(bending=True)],
 			label='intraForce',dead=True # ContactLoop applies forces during compaction
 		), 
-		WeirdTriaxControl(goal=(pre.sigIso,pre.sigIso,pre.sigIso),maxStrainRate=(pre.maxRates[0],pre.maxRates[0],pre.maxRates[0]),relVol=math.pi*innerRad**2*ht/S.cell.volume,stressMask=0b0111,maxUnbalanced=pre.maxUnbalanced,mass=pre.massFactor*sumParMass,doneHook='import woo.pre.cylTriax; woo.pre.cylTriax.compactionDone(S)',label='triax',absStressTol=1e4,relStressTol=1e-2),
 		# run the same as addPlotData
 		MeshVolume(mask=S.dem.loneMask,stepPeriod=20,label='meshVolume',dead=False),  
 		woo.core.PyRunner(20,'import woo.pre.cylTriax; woo.pre.cylTriax.addPlotData(S)'),
 		VtkExport(out=pre.vtkFmt,stepPeriod=pre.vtkStep,what=VtkExport.all,dead=True,label='vtk'),
-		Leapfrog(damping=pre.damping,reset=True,label='leapfrog'),
-		DynDt(stepPeriod=500),
+		#Leapfrog(damping=pre.damping,reset=True,label='leapfrog'),
+		#DynDt(stepPeriod=500),
 	]
 
 	S.lab.stage='compact'

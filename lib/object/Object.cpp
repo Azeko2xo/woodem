@@ -17,17 +17,19 @@ namespace woo {
 vector<py::object> Object::derivedCxxClasses;
 py::list Object::getDerivedCxxClasses(){ py::list ret; for(py::object c: derivedCxxClasses) ret.append(c); return ret; }
 
+py::dict Object_pyDict_pickleable(const Object& o) { return o.pyDict(/*all*/false); }
+
 void Object::pyRegisterClass() {
 	checkPyClassRegistersItself("Object");
 	py::class_<Object, shared_ptr<Object>, boost::noncopyable > classObj("Object","Base class for all Woo classes, providing uniform interface for constructors with attributes, attribute access, pickling, serialization via boost::serialization, equality comparison, attribute traits.");
 	classObj
 		.def("__str__",&Object::pyStr).def("__repr__",&Object::pyStr)
-		.def("dict",&Object::pyDict,"Return dictionary of attributes.")
+		.def("dict",&Object::pyDict,(py::arg("all")=true),"Return dictionary of attributes; *all* will cause also attributed with the ``noSave`` or ``noDump`` flags to be returned.")
 		//.def("_attrTraits",&Object::pyAttrTraits,(py::arg("parents")=true),"Return list of attribute traits.")
 		.def("updateAttrs",&Object::pyUpdateAttrs,"Update object attributes from given dictionary")
 		#if 1
 			/* boost::python pickling support, as per http://www.boost.org/doc/libs/1_42_0/libs/python/doc/v2/pickle.html */ 
-			.def("__getstate__",&Object::pyDict).def("__setstate__",&Object::pyUpdateAttrs)
+			.def("__getstate__",Object_pyDict_pickleable).def("__setstate__",&Object::pyUpdateAttrs)
 			.add_property("__safe_for_unpickling__",&Object::getClassName,"just define the attr, return some bogus data")
 			.add_property("__getstate_manages_dict__",&Object::getClassName,"just define the attr, return some bogus data")
 		#endif

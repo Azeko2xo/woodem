@@ -58,11 +58,13 @@ Cohesion values are only useful for senses which are both bonded and breakable, 
    :nowrap:
 
    \begin{align*}
-      F_{nb}&=c_n A, & F_{n}& > F_{nb}\quad \mbox{(no breakage for $F_n<0$ (compression))}, \\
-      F_{tb}&=\beta_t c_n A, & |\vec{F}_{t}|&> F_{tb}, \\
-      T_{wb}&=\beta_w c_n A^{\frac{3}{2}}, & |T_{w}|&>T_{wb}, \\
-      T_{rb}&=\beta_b c_n A^{\frac{3}{2}}, & |\vec{T}_{b}|&>T_{rb}.
+      F_{nb}&=c_n A, & F_{n}& > F_{nb}, \\
+      F_{tb}&=\beta_t F_{nb}=\beta_t c_n A, & |\vec{F}_{t}|&> F_{tb}, \\
+      T_{wb}&=\beta_w F_{nb}A^{\frac{1}{2}}=\beta_w c_n A^{\frac{3}{2}}, & |T_{w}|&>T_{wb}, \\
+      T_{rb}&=\beta_r F_{tb}A^{\frac{1}{2}}=\beta_r \beta_t c_n A^{\frac{3}{2}}, & |\vec{T}_{b}|&>T_{rb}.
    \end{align*}
+
+Note that there is no absolute value in the first equation, as there is no breakage in compression (:math:`F_n<0`).
 
 Plasticity
 -----------

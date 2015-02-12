@@ -62,9 +62,6 @@ struct ConcretePhys: public FrictPhys {
 		((Real,G,NaN,,"shear modulus [Pa]")) \
 		/*((Real,tanPhi,NaN,,"tangens of internal friction angle [-]"))*/ \
 		((Real,coh0,NaN,,"virgin material cohesion [Pa]")) \
-		((Real,crossSection,NaN,,"equivalent cross-section associated with this contact [m²]")) \
-		((Real,refLength,NaN,,"initial length of interaction [m]")) \
-		((Real,refPD,NaN,,"initial penetration depth of interaction [m] (used with ScGeom)")) \
 		((Real,epsCrackOnset,NaN,,"strain at which the material starts to behave non-linearly")) \
 		/*((Real,relDuctility,NaN,,"Relative ductility of bonds in normal direction"))*/ \
 		((Real,epsFracture,NaN,,"strain at which the bond is fully broken [-]")) \

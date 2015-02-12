@@ -163,7 +163,9 @@ def main(sysArgv=None):
 		import subprocess, woo.config, glob
 		if not woo.config.sourceRoot: raise RuntimeError('This build does not define woo.config.sourceRoot (packaged version?)')
 		if opts.rebuild>1:
-			cmd=['bzr','up',woo.config.sourceRoot]
+			if os.path.exists(woo.config.sourceRoot+'/.bzr'):
+				cmd=['bzr','up',woo.config.sourceRoot]
+			elif os.path.exists(woo.config.sourceRoot+'/.git'): raise RuntimeError('Updating git repositories not yet supported')
 			print 'Updating Woo using ',' '.join(cmd)
 			if subprocess.call(cmd): raise RuntimeError('Error updating Woo from bzr repository.')
 			# find updatable dirs in wooExtra

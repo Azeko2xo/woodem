@@ -3,6 +3,16 @@
 #include<woo/pkg/dem/Capsule.hpp>
 WOO_PLUGIN(dem,(PelletMat)(PelletMatState)(PelletPhys)(Cp2_PelletMat_PelletPhys)(Law2_L6Geom_PelletPhys_Pellet)(PelletCData)(PelletAgglomerator));
 
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_PelletMat__CLASS_BASE_DOC_ATTRS_CTOR);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_PelletMatState__CLASS_BASE_DOC_ATTRS);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_PelletPhys_CLASS_BASE_DOC_ATTRS_CTOR);
+WOO_IMPL__CLASS_BASE_DOC(woo_dem_Cp2_PelletMat_PelletPhys_CLASS_BASE_DOC);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Law2_L6Geom_PelletPhys_Pellet__CLASS_BASE_DOC_ATTRS_PY);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_PelletCData__CLASS_BASE_DOC_ATTRS);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_PelletAgglomerator__CLASS_BASE_DOC_ATTRS);
+
+
+
 void Cp2_PelletMat_PelletPhys::go(const shared_ptr<Material>& m1, const shared_ptr<Material>& m2, const shared_ptr<Contact>& C){
 	if(!C->phys) C->phys=make_shared<PelletPhys>();
 	auto& mat1=m1->cast<PelletMat>(); auto& mat2=m2->cast<PelletMat>();
@@ -55,14 +65,14 @@ bool Law2_L6Geom_PelletPhys_Pellet::go(const shared_ptr<CGeom>& cg, const shared
 			if(ph.ka<=0) Fn=0;
 			else{ Fn=min(Fn,adhesionForce(g.uN,uNPl,ph.ka)); assert(Fn>0); }
 		} else {
-			Real Fy=yieldForce(g.uN,d0,ph.kn,ph.normPlastCoeff,yieldFunc,yf1_beta,yf1_w);
+			Real Fy=yieldForce(g.uN,d0,ph.kn,ph.normPlastCoeff);
 			// normal plastic slip
 			if(Fn<Fy){
 				Real uNPl0=uNPl; // needed when tracking energy
 				uNPl=g.uN-Fy/ph.kn;
 				if(unlikely(scene->trackEnergy)){
 					// backwards trapezoid integration
-					Real Fy0=Fy+yieldForceDerivative(g.uN,d0,ph.kn,ph.normPlastCoeff,yieldFunc,yf1_beta,yf1_w)*(uNPl0-uNPl);
+					Real Fy0=Fy+yieldForceDerivative(g.uN,d0,ph.kn,ph.normPlastCoeff)*(uNPl0-uNPl);
 					Real dissip=.5*abs(Fy0+Fy)*abs(uNPl-uNPl0);
 					scene->energy->add(dissip,plastSplit?"normPlast":"plast",plastSplit?normPlastIx:plastIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate);
 					tryAddDissipState(DISSIP_NORM_PLAST,dissip,C);

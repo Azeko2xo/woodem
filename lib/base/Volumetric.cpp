@@ -1,98 +1,103 @@
 #include<woo/lib/base/Volumetric.hpp>
 #include<iostream>
 #include<fstream>
-/*! Calculates tetrahedron inertia relative to the origin (0,0,0), with unit density (scales linearly).
 
-See article F. Tonon, "Explicit Exact Formulas for the 3-D Tetrahedron Inertia Tensor in Terms of its Vertex Coordinates", http://www.scipub.org/fulltext/jms2/jms2118-11.pdf
 
-Numerical example to check:
+// THIS ROUTINE IS BROKEN, AND THE ARTICLE WRONG!!!
+#if 0
+	/*! Calculates tetrahedron inertia relative to the origin (0,0,0), with unit density (scales linearly).
 
-vertices:
-	(8.33220, -11.86875, 0.93355)
-	(0.75523, 5.00000, 16.37072)
-	(52.61236, 5.00000, -5.38580)
-	(2.00000, 5.00000, 3.00000)
-centroid:
-	(15.92492, 0.78281, 3.72962)
-intertia/density WRT centroid:
-	a/μ = 43520.33257 m⁵
-	b/μ = 194711.28938 m⁵
-	c/μ = 191168.76173 m⁵
-	a’/μ= 4417.66150 m⁵
-	b’/μ=-46343.16662 m⁵
-	c’/μ= 11996.20119 m⁵
+	See article F. Tonon, "Explicit Exact Formulas for the 3-D Tetrahedron Inertia Tensor in Terms of its Vertex Coordinates", http://www.scipub.org/fulltext/jms2/jms2118-11.pdf
 
-The numerical testcase (in TetraTestGen::generate) is exact as in the article for inertia (as well as centroid):
+	Numerical example to check:
 
-43520.3
-194711
-191169
-4417.66
--46343.2
-11996.2
+	vertices:
+		(8.33220, -11.86875, 0.93355)
+		(0.75523, 5.00000, 16.37072)
+		(52.61236, 5.00000, -5.38580)
+		(2.00000, 5.00000, 3.00000)
+	centroid:
+		(15.92492, 0.78281, 3.72962)
+	intertia/density WRT centroid:
+		a/μ = 43520.33257 m⁵
+		b/μ = 194711.28938 m⁵
+		c/μ = 191168.76173 m⁵
+		a’/μ= 4417.66150 m⁵
+		b’/μ=-46343.16662 m⁵
+		c’/μ= 11996.20119 m⁵
 
-*/
-Matrix3r woo::Volumetric::tetraInertia(const Vector3r& A, const Vector3r& B, const Vector3r& C, const Vector3r& D){
-	#define x1 A[0]
-	#define y1 A[1]
-	#define z1 A[2]
-	#define x2 B[0]
-	#define y2 B[1]
-	#define z2 B[2]
-	#define x3 C[0]
-	#define y3 C[1]
-	#define z3 C[2]
-	#define x4 D[0]
-	#define y4 D[1]
-	#define z4 D[2]
+	The numerical testcase (in TetraTestGen::generate) is exact as in the article for inertia (as well as centroid):
 
-	// throw std::runtime_error("Do not call woo::Volumetric::tetraInertia, the result is incorrect.");
+	43520.3
+	194711
+	191169
+	4417.66
+	-46343.2
+	11996.2
 
-	std::cerr<<"WARN: woo::Volumetric::tetraInertia: result is incorrect."<<std::endl;
+	*/
+	Matrix3r woo::Volumetric::tetraInertia(const Vector3r& A, const Vector3r& B, const Vector3r& C, const Vector3r& D){
+		#define x1 A[0]
+		#define y1 A[1]
+		#define z1 A[2]
+		#define x2 B[0]
+		#define y2 B[1]
+		#define z2 B[2]
+		#define x3 C[0]
+		#define y3 C[1]
+		#define z3 C[2]
+		#define x4 D[0]
+		#define y4 D[1]
+		#define z4 D[2]
 
-	// Jacobian of transformation to the reference 4hedron
-	Real detJ=(x2-x1)*(y3-y1)*(z4-z1)+(x3-x1)*(y4-y1)*(z2-z1)+(x4-x1)*(y2-y1)*(z3-z1)
-		-(x2-x1)*(y4-y1)*(z3-z1)-(x3-x1)*(y2-y1)*(z4-z1)-(x4-x1)*(y3-y1)*(z2-z1);
-	detJ=std::abs(detJ);
-	Real a=detJ*(y1*y1+y1*y2+y2*y2+y1*y3+y2*y3+
-		y3*y3+y1*y4+y2*y4+y3*y4+y4*y4+z1*z1+z1*z2+
-		z2*z2+z1*z3+z2*z3+z3*z3+z1*z4+z2*z4+z3*z4+z4*z4)/60.;
-	Real b=detJ*(x1*x1+x1*x2+x2*x2+x1*x3+x2*x3+x3*x3+
-		x1*x4+x2*x4+x3*x4+x4*x4+z1*z1+z1*z2+z2*z2+z1*z3+
-		z2*z3+z3*z3+z1*z4+z2*z4+z3*z4+z4*z4)/60.;
-	Real c=detJ*(x1*x1+x1*x2+x2*x2+x1*x3+x2*x3+x3*x3+x1*x4+
-		x2*x4+x3*x4+x4*x4+y1*y1+y1*y2+y2*y2+y1*y3+
-		y2*y3+y3*y3+y1*y4+y2*y4+y3*y4+y4*y4)/60.;
-	// a', b', c' in the article etc.
-	Real a_=detJ*(2*y1*z1+y2*z1+y3*z1+y4*z1+y1*z2+
-		2*y2*z2+y3*z2+y4*z2+y1*z3+y2*z3+2*y3*z3+
-		y4*z3+y1*z4+y2*z4+y3*z4+2*y4*z4)/120.;
-	Real b_=detJ*(2*x1*z1+x2*z1+x3*z1+x4*z1+x1*z2+
-		2*x2*z2+x3*z2+x4*z2+x1*z3+x2*z3+2*x3*z3+
-		x4*z3+x1*z4+x2*z4+x3*z4+2*x4*z4)/120.;
-	Real c_=detJ*(2*x1*y1+x2*y1+x3*y1+x4*y1+x1*y2+
-		2*x2*y2+x3*y2+x4*y2+x1*y3+x2*y3+2*x3*y3+
-		x4*y3+x1*y4+x2*y4+x3*y4+2*x4*y4)/120.;
+		// throw std::runtime_error("Do not call woo::Volumetric::tetraInertia, the result is incorrect.");
 
-	Matrix3r ret; ret<<
-		 a , -b_, -c_,
-		-b_,  b , -a_,
-		-c_, -a_,  c ;
-	return ret;
+		std::cerr<<"WARN: woo::Volumetric::tetraInertia: result is incorrect."<<std::endl;
 
-	#undef x1
-	#undef y1
-	#undef z1
-	#undef x2
-	#undef y2
-	#undef z2
-	#undef x3
-	#undef y3
-	#undef z3
-	#undef x4
-	#undef y4
-	#undef z4
-};
+		// Jacobian of transformation to the reference 4hedron
+		Real detJ=(x2-x1)*(y3-y1)*(z4-z1)+(x3-x1)*(y4-y1)*(z2-z1)+(x4-x1)*(y2-y1)*(z3-z1)
+			-(x2-x1)*(y4-y1)*(z3-z1)-(x3-x1)*(y2-y1)*(z4-z1)-(x4-x1)*(y3-y1)*(z2-z1);
+		detJ=std::abs(detJ);
+		Real a=detJ*(y1*y1+y1*y2+y2*y2+y1*y3+y2*y3+
+			y3*y3+y1*y4+y2*y4+y3*y4+y4*y4+z1*z1+z1*z2+
+			z2*z2+z1*z3+z2*z3+z3*z3+z1*z4+z2*z4+z3*z4+z4*z4)/60.;
+		Real b=detJ*(x1*x1+x1*x2+x2*x2+x1*x3+x2*x3+x3*x3+
+			x1*x4+x2*x4+x3*x4+x4*x4+z1*z1+z1*z2+z2*z2+z1*z3+
+			z2*z3+z3*z3+z1*z4+z2*z4+z3*z4+z4*z4)/60.;
+		Real c=detJ*(x1*x1+x1*x2+x2*x2+x1*x3+x2*x3+x3*x3+x1*x4+
+			x2*x4+x3*x4+x4*x4+y1*y1+y1*y2+y2*y2+y1*y3+
+			y2*y3+y3*y3+y1*y4+y2*y4+y3*y4+y4*y4)/60.;
+		// a', b', c' in the article etc.
+		Real a_=detJ*(2*y1*z1+y2*z1+y3*z1+y4*z1+y1*z2+
+			2*y2*z2+y3*z2+y4*z2+y1*z3+y2*z3+2*y3*z3+
+			y4*z3+y1*z4+y2*z4+y3*z4+2*y4*z4)/120.;
+		Real b_=detJ*(2*x1*z1+x2*z1+x3*z1+x4*z1+x1*z2+
+			2*x2*z2+x3*z2+x4*z2+x1*z3+x2*z3+2*x3*z3+
+			x4*z3+x1*z4+x2*z4+x3*z4+2*x4*z4)/120.;
+		Real c_=detJ*(2*x1*y1+x2*y1+x3*y1+x4*y1+x1*y2+
+			2*x2*y2+x3*y2+x4*y2+x1*y3+x2*y3+2*x3*y3+
+			x4*y3+x1*y4+x2*y4+x3*y4+2*x4*y4)/120.;
+
+		Matrix3r ret; ret<<
+			 a , -b_, -c_,
+			-b_,  b , -a_,
+			-c_, -a_,  c ;
+		return ret;
+
+		#undef x1
+		#undef y1
+		#undef z1
+		#undef x2
+		#undef y2
+		#undef z2
+		#undef x3
+		#undef y3
+		#undef z3
+		#undef x4
+		#undef y4
+		#undef z4
+	};
+#endif
 
 // http://www.mjoldfield.com/atelier/2011/03/tetra-moi.html
 Matrix3r woo::Volumetric::tetraInertia_cov(const Vector3r v[4], Real& vol, bool fixSign){
@@ -107,7 +112,7 @@ Matrix3r woo::Volumetric::tetraInertia_cov(const Vector3r v[4], Real& vol, bool 
 	Matrix3r C=(vol/20.)*(C0+C1*C1.transpose());
 	Matrix3r I=Matrix3r::Identity()*C.trace()-C;
 	// if(fixSign && I(0,0)<0) return -I;
-	assert(!fixSign || I(0,0)<0);
+	assert(!fixSign || I(0,0)>0);
 	return I;
 }
 

@@ -229,17 +229,6 @@ void GLViewer::setInitialView(){
 }
 
 void GLViewer::mouseMovesCamera(){
-	// old version -- used in Ubuntu 12.04 LTS
-#if QGLVIEWER_VERSION<0x020500
-	setMouseBinding(Qt::SHIFT + Qt::LeftButton, SELECT);
-	setMouseBinding(Qt::SHIFT + Qt::LeftButton + Qt::RightButton, FRAME, ZOOM);
-	setMouseBinding(Qt::SHIFT + Qt::MidButton, FRAME, TRANSLATE);
-	setMouseBinding(Qt::SHIFT + Qt::RightButton, FRAME, ROTATE);
-	setMouseBinding(Qt::LeftButton + Qt::RightButton, CAMERA, ZOOM);
-	setMouseBinding(Qt::MidButton, CAMERA, ZOOM);
-	setMouseBinding(Qt::LeftButton, CAMERA, ROTATE);
-	setMouseBinding(Qt::RightButton, CAMERA, TRANSLATE);
-#else
 	setMouseBinding(Qt::ShiftModifier, Qt::LeftButton, SELECT);
 	setMouseBinding(Qt::NoModifier, Qt::LeftButton, CAMERA, ROTATE);
 	if(paraviewLike3d){
@@ -253,7 +242,6 @@ void GLViewer::mouseMovesCamera(){
 		setMouseBinding(Qt::NoModifier, Qt::MidButton, CAMERA, ZOOM);
 		setMouseBinding(Qt::NoModifier, Qt::RightButton, CAMERA, TRANSLATE);
 	}
-#endif
 	// inversed zoom/in out on the wheel
 	camera()->frame()->setWheelSensitivity(paraviewLike3d?+1.:-1.);
 	setWheelBinding(Qt::ShiftModifier , FRAME, ZOOM);
@@ -261,17 +249,9 @@ void GLViewer::mouseMovesCamera(){
 };
 
 void GLViewer::mouseMovesManipulatedFrame(qglviewer::Constraint* c){
-	// old version -- used in Ubuntu 12.04 LTS
-#if QGLVIEWER_VERSION<0x020500
-	setMouseBinding(Qt::LeftButton + Qt::RightButton, FRAME, ZOOM);
-	setMouseBinding(Qt::MidButton, FRAME, ZOOM);
-	setMouseBinding(Qt::LeftButton, FRAME, ROTATE);
-	setMouseBinding(Qt::RightButton, FRAME, TRANSLATE);
-#else
 	setMouseBinding(Qt::NoModifier, Qt::MidButton, FRAME, ZOOM);
 	setMouseBinding(Qt::NoModifier, Qt::LeftButton, FRAME, ROTATE);
 	setMouseBinding(Qt::NoModifier, Qt::RightButton, FRAME, TRANSLATE);
-#endif
 	setWheelBinding(Qt::NoModifier , FRAME, ZOOM);
 	manipulatedFrame()->setConstraint(c);
 }
@@ -1084,15 +1064,12 @@ void GLViewer::mouseDoubleClickEvent(QMouseEvent *event){
 	// last_user_event = boost::posix_time::second_clock::local_time();
 
 	if(manipulatedClipPlane<0) { /* LOG_DEBUG("Double click not on clipping plane"); */ QGLViewer::mouseDoubleClickEvent(event); return; }
-#if QT_VERSION >= 0x040000
-	if (event->modifiers() == Qt::NoModifier)
-#else
-	if (event->state() == Qt::NoButton)
-#endif
-	switch (event->button()){
-		case Qt::LeftButton:  manipulatedFrame()->alignWithFrame(NULL,true); LOG_DEBUG("Aligning cutting plane"); break;
-		// case Qt::RightButton: projectOnLine(camera->position(), camera->viewDirection()); break;
-		default: break; // avoid warning
+	if (event->modifiers() == Qt::NoModifier){
+		switch (event->button()){
+			case Qt::LeftButton:  manipulatedFrame()->alignWithFrame(NULL,true); LOG_DEBUG("Aligning cutting plane"); break;
+			// case Qt::RightButton: projectOnLine(camera->position(), camera->viewDirection()); break;
+			default: break; // avoid warning
+		}
 	}
 }
 

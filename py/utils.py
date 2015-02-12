@@ -29,6 +29,11 @@ _docInlineModules=(woo._utils2,)
 
 inf=float('inf')
 
+# try at import time, this is expensive
+hasGL=True
+try: import woo.gl
+except ImportError: hasGL=False
+
 def spherePWaveDt(radius,density,young):
 	r"""Compute P-wave critical timestep for a single (presumably representative) sphere, using formula for P-Wave propagation speed :math:`\Delta t_{c}=\frac{r}{\sqrt{E/\rho}}`. If you want to compute minimum critical timestep for all spheres in the simulation, use :obj:`woo.utils.pWaveDt` instead.
 
@@ -46,7 +51,7 @@ def defaultMaterial():
 	import math
 	return FrictMat(density=1e3,young=1e7,ktDivKn=.2,tanPhi=math.tan(.5))
 
-def defaultEngines(damping=0.,gravity=None,verletDist=-.05,kinSplit=False,dontCollect=False,noSlip=False,noBreak=False,cp2=None,law=None,model=None,grid=False,dynDtPeriod=100):
+def defaultEngines(damping=0.,gravity=None,verletDist=-.05,kinSplit=False,dontCollect=False,noSlip=False,noBreak=False,cp2=None,law=None,model=None,grid=False,dynDtPeriod=100,cpKw={},lawKw={}):
 	"""Return default set of engines, suitable for basic simulations during testing."""
 	if gravity: raise ValueError("gravity MUST NOT be specified anymore, set DemField.gravity=... instead.")
 	if model:
@@ -60,6 +65,8 @@ def defaultEngines(damping=0.,gravity=None,verletDist=-.05,kinSplit=False,dontCo
 		cp2=[cp2 if cp2 else Cp2_FrictMat_FrictPhys()]
 		law=[law if law else Law2_L6Geom_FrictPhys_IdealElPl(noSlip=noSlip,noBreak=noBreak,label='contactLaw')]
 		distFactor=1.
+	cp2[0].updateAttrs(cpKw)
+	law[0].updateAttrs(lawKw)
 
 	if not grid: collider=InsertionSortCollider([Bo1_Sphere_Aabb(distFactor=distFactor),Bo1_Facet_Aabb(),Bo1_Wall_Aabb(),Bo1_InfCylinder_Aabb(),Bo1_Ellipsoid_Aabb(),Bo1_Rod_Aabb()]+([] if 'nocapsule' in woo.config.features else [Bo1_Capsule_Aabb()]),label='collider',verletDist=verletDist)
 	else: collider=GridCollider([Grid1_Sphere(),Grid1_Facet(),Grid1_Wall(),Grid1_InfCylinder()],label='collider',verletDist=verletDist)
@@ -90,16 +97,10 @@ def _commonBodySetup(b,nodes,mat,fixed=False):
 		elif fixed==True: n.dem.blocked='xyzXYZ'
 		else: n.dem.blocked=''.join(['XYZ'[ax] for ax in (0,1,2) if n.dem.inertia[ax]==inf]) # block rotational DOFs where inertia is infinite
 
-
 def _mkDemNode(**kw):
-	'''Helper function to create new Node instance, with dem set to an new empty instance.
-	dem can't be assigned directly in the ctor, since it is not a c++ attribute :-| '''
-	n=Node(**kw); n.dem=DemData()
-	import woo.config
-	if 'gl' in woo.config.features:
-		import woo.gl
-		n.gl=woo.gl.GlData()
-	return n
+	'''Helper function to create new Node instance, with dem set to an new empty instance.'''
+	if hasGL: return Node(dem=DemData(),gl=woo.gl.GlData(),**kw)
+	else: return Node(dem=DemData(),**kw)
 
 def sphere(center,radius,mat=defaultMaterial,fixed=False,wire=False,color=None,highlight=False,mask=DemField.defaultMovableMask):
 	"""Create sphere with given parameters; mass and inertia computed automatically.

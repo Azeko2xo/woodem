@@ -390,6 +390,7 @@ int DemField::collectNodes(){
 		if(!p || !p->shape || p->shape->nodes.empty()) continue;
 		for(const shared_ptr<Node>& n: p->shape->nodes){
 			if(seen.count((void*)n.get())!=0) continue; // node already seen
+			if(!n->hasData<DemData>()){ throw std::runtime_error("Node "+n->pyStr()+" (in S.dem.par["+to_string(p->id)+"] = "+p->pyStr()+"): does not have DemData."); }
 			seen.insert((void*)n.get());
 			n->getData<DemData>().linIx=nodes.size();
 			nodes.push_back(n);

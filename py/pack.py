@@ -152,11 +152,11 @@ The current state (even if rotated) is taken as mechanically undeformed, i.e. wi
 	from woo.dem import DemField
 	if not self.hasClumps():
 		if 'mat' not in kw.keys(): kw['mat']=utils.defaultMaterial()
-		return scene.dem.par.add([utils.sphere(rot*c,r,**kw) for c,r in self])
+		return scene.dem.par.add([woo.dem.Sphere.make(rot*c,r,**kw) for c,r in self])
 	else:
 		standalone,clumps=self.getClumps()
 		# add standalone
-		ids=scene.dem.par.add([utils.sphere(rot*self[i][0],self[i][1],**kw) for i in standalone])
+		ids=scene.dem.par.add([woo.dem.Sphere.make(rot*self[i][0],self[i][1],**kw) for i in standalone])
 		# add clumps
 		clumpIds=[]
 		for clump in clumps:

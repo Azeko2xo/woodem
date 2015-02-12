@@ -7,15 +7,24 @@ woo.pre.cylTriax.CylTriaxTest(
 	sigIso=-500000.0,
 	stopStrain=-0.06, ## 6% is enough
 	maxRates=(0.2, .02),
-	parMat=woo.dem.FrictMat(density=100000000.0, id=-1, young=300000000.0, tanPhi=0.4, ktDivKn=0.2),
+	model=woo.models.ContactModelSelector(
+		name='linear',
+		numMat=(1, 2),
+		matDesc=['particles', 'membrane'],
+		mats=[
+			woo.dem.FrictMat(density=100000000.0, id=-1, young=300000000.0, tanPhi=0.4, ktDivKn=0.2),
+			woo.dem.FrictMat(density=100000000.0, id=-1, young=1100000.0, tanPhi=0.4, ktDivKn=0.2),
+		],
+		distFactor=1,
+		damping=0.4,
+		linRoll=False
+	),
 	psd=[(0.001, 0.0), (0.002, 0.6), (0.003, 1.0)], # wider PSD
-	memMat=woo.dem.FrictMat(density=100000000.0, id=-1, young=1100000.0, tanPhi=0.4, ktDivKn=0.2),
 	suppTanPhi=nan,
 	reportFmt='./{tid}.xhtml',
 	packCacheDir='.',
-	pWaveSafety=0.4, ### 0.7 is already unstable?!
+	dtSafety=0.4, ### 0.7 is already unstable?!
 	massFactor=5.,
-	damping=0.4,
 	maxUnbalanced=0.04,
 	vtkStep=0,
 	vtkFmt='/tmp/{title}.{id}-'

@@ -234,7 +234,6 @@ class ContactModelSelector(woo.core.Object,woo.pyderived.PyWooObject):
 		_PAT(bool,'plastSplit',False,hideIf='self.name not in ("pellet",)',doc='Split plastic dissipation into the normal and tangent component (obj:`woo.dem.Law2_L6Geom_PelletPhys_Pellet.plastSplit`).'),
 		_PAT(Vector3,'pelletThin',(0,0,0),hideIf='self.name!="pellet"',doc='*Pellet model:* parameters for plastic thinning (decreasing pellet radius during normal plastic loading); their order is :obj:`thinRate <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinRate>`, :obj:`thinRelRMin <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinRelRMin>`, :obj:`thinExp <woo.dem.Law2_L6Geom_PelletPhys_Pellet.thinExp>`. Set the first value to zero to deactivate.'),
 		_PAT(Vector3,'pelletConf',(0,0,0),hideIf='self.name!="pellet"',doc='*Pellet model:* parameters for history-independent adhesion ("confinement"); the values are :obj:`confSigma <woo.dem.Law2_L6Geom_PelletPhys_Pellet.confSigma>`, :obj:`confRefRad <woo.dem.Law2_L6Geom_PelletPhys_Pellet.confRefRad>` and :obj:`confExp <woo.dem.Law2_L6Geom_PelletPhys_Pellet.confExp>`.'),
-		_PAT(Vector2,'pelletYf1Params',Vector2(float('nan'),float('nan')),hideIf='self.name!="pellet"',doc='When the first component is not NaN, set  :obj:`yieldFunc <woo.dem.Law2_L6Geom_PelletPhys_Pellet.yieldFunc>` to ``1`` and the values of :obj:`yf1_beta <woo.dem.Law2_L6Geom_PelletPhys_Pellet.yf1_beta>` and :obj:`yf1_w <woo.dem.Law2_L6Geom_PelletPhys_Pellet.yf1_w>` to the values of :obj:`pelletYf1Params`.'),
 	]
 	def __init__(self,**kw):
 		woo.core.Object.__init__(self)
@@ -299,7 +298,6 @@ class ContactModelSelector(woo.core.Object,woo.pyderived.PyWooObject):
 		'''Return the value for :obj:`woo.dem.Leapfrog.damping`; returns zero for models with internal damping, and :obj:`damping` for the "linear" model.'''
 		if self.name=='linear': return self.damping
 		else: return 0.
-
 
 
 if __name__=='__main__':

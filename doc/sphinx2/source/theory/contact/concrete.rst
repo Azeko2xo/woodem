@@ -106,11 +106,27 @@ Extended strain-stress diagram for multiple loading cycles is shown in :ref:`thi
 
 .. _concrete-strain-stress-normal-hardening:
 
-.. figure:: fig/cpm-cycleProxDist.*
+.. .. figure:: fig/cpm-cycleProxDist.*
    :figclass: align-center
    :width: 80%
 
-   Strain-stress diagram in normal direction, loaded cyclically in tension and compression; it shows several features of the model: (1) damage in tension, but not damage in compression (governed by the :math:`\omega` internal variable) (2) plasticity in compression, starting at strain :math:`\eps_s`; reduced (hardening) modulus is :math:`\tilde K_s k_N`.
+This plot shows tge strain-stress diagram in normal direction, loaded cyclically in tension and compression; it shows several features of the model: (1) damage in tension, but not damage in compression (governed by the :math:`\omega` internal variable) (2) plasticity in compression, starting at strain :math:`\eps_s`; reduced (hardening) modulus is :math:`\tilde K_s k_N`:
+
+.. plot::
+
+   from woo.dem import *
+   from woo.core import *
+   import woo
+   r=1e-3
+   m=ConcreteMat(young=30e9,ktDivKn=.2,sigmaT=3e6,tanPhi=.8,epsCrackOnset=1e-4,relDuctility=5.)
+   S=woo.master.scene=Scene(
+      fields=[DemField(par=[Sphere.make((0,0,0),r,fixed=False,wire=True,mat=m),Sphere.make((0,2*r,0),r,fixed=False,wire=True,mat=m)])],
+      engines=DemField.minimalEngines(model=woo.models.ContactModelSelector(name='concrete',distFactor=1.5),lawKw=dict(epsSoft=-2*m.epsCrackOnset,relKnSoft=.5))+[LawTester(ids=(0,1),abWeight=.5,smooth=1e-4,stages=[LawTesterStage(values=((1 if i%2==0 else -1)*1e-2,0,0,0,0,0),whats='v.....',until='C.phys.epsN'+('>' if epsN>0 else '<')+'%g'%epsN) for i,epsN in enumerate([6e-4,-6e-4,12e-4,-8e-4,15e-4])],done='S.stop()',label='tester'),PyRunner(5,'C=S.dem.con[0]; S.plot.addData(i=S.step,**C.phys.dict())')],
+      plot=Plot(plots={'epsN':('sigmaN',)},labels={'epsN':r'$\varepsilon_N$','sigmaN':r'$\sigma_N$'}) # ,'i':('epsN',None,'omega')}
+   )
+   S.run(); S.wait()
+   S.plot.plot()
+
 
 .. sect-cpm-visco-damage
 
@@ -366,34 +382,117 @@ The computation described above proceeds in the following order:
 
 The following table summarizes the nomenclature and corresponding internal Woo (and Yade, for reference) variables:
 
-.. csv-table::
-   :header: symbol, Woo, Yade, meaning
-
-    :math:`A_{eq}`, :obj:`~woo.dem.L6Geom.contA`, :obj:`CpmPhys.crossSection <yade:yade.wrapper.CpmPhys.crossSection>`, geometry
-    :math:`\tan\phi`, :obj:`~woo.dem.FrictPhys.tanPhi`, :obj:`CpmPhys.tanFrictionAngle <yade:yade.wrapper.CpmPhys.tanFrictionAngle>`, material
-    :math:`\eps_0`, :obj:`~woo.dem.ConcretePhys.epsCrackOnset`, :obj:`CpmPhys.epsCrackOnset <yade:yade.wrapper.CpmPhys.epsCrackOnset>`, material
-    :math:`\eps_f`, :obj:`~woo.dem.ConcretePhys.epsFracture`, :obj:`CpmPhys.epsFracture <yade:yade.wrapper.CpmPhys.epsFracture>`, :obj:`~woo.dem.ConcreteMat.epsCrackOnset` multiplied by :obj:`~woo.dem.ConcreteMat.relDuctility`
-    :math:`\eps_N`, :obj:`~woo.dem.ConcretePhys.epsN`, :obj:`CpmPhys.epsN <yade:yade.wrapper.CpmPhys.epsN>`, state
-    :math:`\vec{\eps}_T`, :obj:`~woo.dem.ConcretePhys.epsT`, :obj:`CpmPhys.epsT <yade:yade.wrapper.CpmPhys.epsT>`, state
-    :math:`\eps_s`, :obj:`~woo.dem.Law2_L6Geom_ConcretePhys.epsSoft`, :obj:`Law2_ScGeom_CpmPhys_Cpm.epsSoft <yade:yade.wrapper.Law2_ScGeom_CpmPhys_Cpm.epsSoft>`, material
-    :math:`\vec{F}_N`, ???, :obj:`NormShearPhys.normalForce <yade:yade.wrapper.NormShearPhys.normalForce>`, state
-    :math:`\vec{F}_T`, ???, :obj:`NormShearPhys.shearForce <yade:yade.wrapper.NormShearPhys.shearForce>`, state
-    :math:`F_N\vec{n}`, ???, :obj:`CpmPhys.Fn <yade:yade.wrapper.CpmPhys.Fn>`, state
-    :math:`|\vec{F}_T|`, ???, :obj:`CpmPhys.Fs <yade:yade.wrapper.CpmPhys.Fs>`, state
-    :math:`\tilde K_s`, :obj:`~woo.dem.Law2_L6Geom_ConcretePhys.relKnSoft`, :obj:`Law2_ScGeom_CpmPhys_Cpm.relKnSoft <yade:yade.wrapper.Law2_ScGeom_CpmPhys_Cpm.relKnSoft>`, material
-    :math:`k_N`, ???, :obj:`CpmPhys.E <yade:yade.wrapper.CpmPhys.E>`, material
-    :math:`k_T`, ???, :obj:`CpmPhys.G <yade:yade.wrapper.CpmPhys.G>`, material
-    :math:`\kappa`, :obj:`~woo.dem.ConcretePhjys.kappaD`, :obj:`CpmPhys.kappaD <yade:yade.wrapper.CpmPhys.kappaD>`, state
-    :math:`M_d`, :obj:`~woo.dem.ConcretePhys.dmgRateExp`, :obj:`CpmPhys.dmgRateExp <yade:yade.wrapper.CpmPhys.dmgRateExp>`, material
-    :math:`\tau_d`, :obj:`~woo.dem.ConcretePhys.dmgTau`, :obj:`CpmPhys.dmgTau <yade:yade.wrapper.CpmPhys.dmgTau>`, material
-    :math:`M_{pl}`, :obj:`~woo.dem.ConcretePhys.plRateExp`, :obj:`CpmPhys.plRateExp <yade:yade.wrapper.CpmPhys.plRateExp>`, material
-    :math:`\tau_{pl}`, :obj:`~woo.dem.ConcretePhys.plTau`, :obj:`CpmPhys.plTau <yade:yade.wrapper.CpmPhys.plTau>`, material
-    :math:`\omega`, :obj:`~woo.dem.ConcretePhys.omega`, :obj:`CpmPhys.omega <yade:yade.wrapper.CpmPhys.omega>`, state
-    :math:`\sigma_N`, ???, :obj:`CpmPhys.sigmaN <yade:yade.wrapper.CpmPhys.sigmaN>`, state
-    :math:`\vec{\sigma}_T`, ???, :obj:`CpmPhys.sigmaT <yade:yade.wrapper.CpmPhys.sigmaT>`, state
-    :math:`\sigma_0`, :obj:`~woo.dem.ConcretePhys.isoPrestress`, :obj:`CpmPhys.isoPrestress <yade:yade.wrapper.CpmPhys.isoPrestress>`, material
-    :math:`c_{T0}`, :obj:`~woo.dem.ConcretePhys.coh0`, :obj:`CpmPhys.undamagedCohesion <yade:yade.wrapper.CpmPhys.undamagedCohesion>`, material
-    :math:`Y_0`, :obj:`~woo.dem.Law2_L6Geom_ConcretePhys.yieldLogSpeed`,  :obj:`Law2_ScGeom_CpmPhys_Cpm.yieldLogSpeed <yade:yade.wrapper.Law2_ScGeom_CpmPhys_Cpm.yieldLogSpeed>`, material
+.. list-table::
+   :header-rows: 1
+   
+  * - symbol
+    - Woo
+    - Yade
+    - meaning
+  * - :math:`A_{eq}`
+    - :obj:`L6Geom.contA <woo.dem.L6Geom.contA>`
+    - :obj:`CpmPhys.crossSection <yade:yade.wrapper.CpmPhys.crossSection>`
+    - geometry
+  * - :math:`\tan\phi`
+    - :obj:`FrictPhys.tanPhi <woo.dem.FrictPhys.tanPhi>`
+    - :obj:`CpmPhys.tanFrictionAngle <yade:yade.wrapper.CpmPhys.tanFrictionAngle>`
+    - material
+  * - :math:`\eps_0`
+    - :obj:`ConcretePhys.epsCrackOnset <woo.dem.ConcretePhys.epsCrackOnset>`
+    - :obj:`CpmPhys.epsCrackOnset <yade:yade.wrapper.CpmPhys.epsCrackOnset>`
+    - material
+  * - :math:`\eps_f`
+    - :obj:`woo.dem.ConcretePhys.epsFracture <woo.dem.ConcretePhys.epsFracture>`
+    - :obj:`CpmPhys.epsFracture <yade:yade.wrapper.CpmPhys.epsFracture>`
+    - :obj:`~woo.dem.ConcreteMat.epsCrackOnset` multiplied by :obj:`~woo.dem.ConcreteMat.relDuctility`
+  * - :math:`\eps_N`
+    - :obj:`ConcretePhys.epsN <woo.dem.ConcretePhys.epsN>`
+    - :obj:`CpmPhys.epsN <yade:yade.wrapper.CpmPhys.epsN>`
+    - state
+  * - :math:`\vec{\eps}_T`
+    - :obj:`ConcretePhys.epsT <woo.dem.ConcretePhys.epsT>`
+    - :obj:`CpmPhys.epsT <yade:yade.wrapper.CpmPhys.epsT>`
+    - state
+  * - :math:`\eps_s`
+    - :obj:`Law2_L6Geom_ConcretePhys.epsSoft <woo.dem.Law2_L6Geom_ConcretePhys.epsSoft>`
+    - :obj:`Law2_ScGeom_CpmPhys_Cpm.epsSoft <yade:yade.wrapper.Law2_ScGeom_CpmPhys_Cpm.epsSoft>`
+    - material
+  * - :math:`\vec{F}_N`
+    - -- 
+    - :obj:`NormShearPhys.normalForce <yade:yade.wrapper.NormShearPhys.normalForce>`
+    - state
+  * - :math:`\vec{F}_T`
+    - -- 
+    - :obj:`NormShearPhys.shearForce <yade:yade.wrapper.NormShearPhys.shearForce>`
+    - state
+  * - :math:`F_N\vec{n}`
+    - :obj:`CPhys.force[0] <woo.dem.CPhys.force>`
+    - :obj:`CpmPhys.Fn <yade:yade.wrapper.CpmPhys.Fn>`
+    - state
+  * - :math:`|\vec{F}_T|`
+    - --
+    - :obj:`CpmPhys.Fs <yade:yade.wrapper.CpmPhys.Fs>`
+    - state
+  * - :math:`\vec{F}_T`
+    - :obj:`CPhys.force[1,2] <woo.dem.CPhys.force>`
+    - --
+    - state
+  * - :math:`\tilde K_s`
+    - :obj:`Law2_L6Geom_ConcretePhys.relKnSoft <woo.dem.Law2_L6Geom_ConcretePhys.relKnSoft>`
+    - :obj:`Law2_ScGeom_CpmPhys_Cpm.relKnSoft <yade:yade.wrapper.Law2_ScGeom_CpmPhys_Cpm.relKnSoft>`
+    - material
+  * - :math:`k_N`
+    - :obj:`FrictPhys.kn <woo.dem.FrictPhys.kn>`
+    - :obj:`CpmPhys.E <yade:yade.wrapper.CpmPhys.E>`
+    - material
+  * - :math:`k_T`
+    - :obj:`FrictPhys.kt <woo.dem.FrictPhys.kt>`
+    - :obj:`CpmPhys.G <yade:yade.wrapper.CpmPhys.G>`
+    - material
+  * - :math:`\kappa`
+    - :obj:`~woo.dem.ConcretePhjys.kappaD`
+    - :obj:`CpmPhys.kappaD <yade:yade.wrapper.CpmPhys.kappaD>`
+    - state
+  * - :math:`M_d`
+    - :obj:`ConcreteMat.dmgRateExp <woo.dem.ConcreteMat.dmgRateExp>` :obj:`ConcretePhys.dmgRateExp <woo.dem.ConcretePhys.dmgRateExp>`
+    - :obj:`CpmPhys.dmgRateExp <yade:yade.wrapper.CpmPhys.dmgRateExp>`
+    - material
+  * - :math:`\tau_d`
+    - :obj:`~woo.dem.ConcretePhys.dmgTau`
+    - :obj:`CpmPhys.dmgTau <yade:yade.wrapper.CpmPhys.dmgTau>`
+    - material
+  * - :math:`M_{pl}`
+    - :obj:`~woo.dem.ConcretePhys.plRateExp`
+    - :obj:`CpmPhys.plRateExp <yade:yade.wrapper.CpmPhys.plRateExp>`
+    - material
+  * - :math:`\tau_{pl}`
+    - :obj:`~woo.dem.ConcretePhys.plTau`
+    - :obj:`CpmPhys.plTau <yade:yade.wrapper.CpmPhys.plTau>`
+    - material
+  * - :math:`\omega`
+    - :obj:`~woo.dem.ConcretePhys.omega`
+    - :obj:`CpmPhys.omega <yade:yade.wrapper.CpmPhys.omega>`
+    - state
+  * - :math:`\sigma_N`
+    - :obj:`ConcretePhys.sigmaN <woo.dem.ConcretePhys.sigmaN>`
+    - :obj:`CpmPhys.sigmaN <yade:yade.wrapper.CpmPhys.sigmaN>`
+    - state
+  * - :math:`\vec{\sigma}_T`
+    - :obj:`ConcretePhys.sigmaT <woo.dem.ConcretePhys.sigmaT>`
+    - :obj:`CpmPhys.sigmaT <yade:yade.wrapper.CpmPhys.sigmaT>`
+    - state
+  * - :math:`\sigma_0`
+    - :obj:`~woo.dem.ConcretePhys.isoPrestress`
+    - :obj:`CpmPhys.isoPrestress <yade:yade.wrapper.CpmPhys.isoPrestress>`
+    - material
+  * - :math:`c_{T0}`
+    - :obj:`~woo.dem.ConcretePhys.coh0`
+    - :obj:`CpmPhys.undamagedCohesion <yade:yade.wrapper.CpmPhys.undamagedCohesion>`
+    - material
+  * - :math:`Y_0`
+    - :obj:`~woo.dem.Law2_L6Geom_ConcretePhys.yieldLogSpeed`
+    - :obj:`Law2_ScGeom_CpmPhys_Cpm.yieldLogSpeed <yade:yade.wrapper.Law2_ScGeom_CpmPhys_Cpm.yieldLogSpeed>`
+    - material
 
 
 .. _concrete-model-calibration:
@@ -429,7 +528,8 @@ The model comprises two sets of parameters that determine elastic and inelastic 
   * :math:`\eps_s` hardening strain in compression
   * :math:`\tilde K_s` relative hardening modulus in compression
 
-* rate-dependence 
+* rate-dependence
+
   * :math:`\tau_d` characteristic time for visco-damage
   * :math:`M_d` dimensionless visco-damage exponent
   * :math:`\tau_{pl}` characteristic time for visco-plasticity
@@ -510,7 +610,7 @@ The 3rd-order tangential projection tensor :math:`\tens{T}^T=\tens{I}_{\rm sym}\
 
 Plugging these expressions into :eq:`eq-cpm-stress-tensor0` gives
 
-.. math:: \tens{\sigma}_{ij}=\frac{1}{V}\sum_{c\in V}\vec{n}_i^c\vec{n}_j^c F_N^c+\frac{\vec{n}_j^c \vec{F}_{Ti}^c}{2}+\frac{\vec{n}_i^c \vec{F}_{Tj}^c}{2}-\vec{n}_i^c\vec{n}_j^c\underbrace{\vec{n}_k^c\vec{F}_{Tk}^c}_{$=0$, since $\vec{n}^c\perp\vec{F}_{T}^c$}
+.. math:: \tens{\sigma}_{ij}=\frac{1}{V}\sum_{c\in V}\vec{n}_i^c\vec{n}_j^c F_N^c+\frac{\vec{n}_j^c \vec{F}_{Ti}^c}{2}+\frac{\vec{n}_i^c \vec{F}_{Tj}^c}{2}-\vec{n}_i^c\vec{n}_j^c\underbrace{\vec{n}_k^c\vec{F}_{Tk}^c}_{=0, \mbox{ since } \vec{n}^c\perp\vec{F}_{T}^c}
             
 Results from this formula were slightly lower than stress obtained from support reaction forces. It is likely due to small number of interaction in :math:`V`; we were considering an interaction inside if the contact point was inside spherical :math:`V`, which can also happen for an interaction between two spheres outside :math:`V`; some weighting function could be used to avoid :math:`V` boundary problems.
             

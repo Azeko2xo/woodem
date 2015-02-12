@@ -76,7 +76,7 @@ struct LawTester: public Engine{
 		((Real,stageT0,-1,AttrTrait<>().readonly(),"Time at which this stage was entered")) \
 		((vector<shared_ptr<LawTesterStage>>,stages,,,"Stages to be reached during the testing")) \
 		((int,maxStageSteps,100000,AttrTrait<>().noGui(),"Throw error if stage takes this many steps")) \
-		,/*py*/ .def("fuv",&LawTester::pyFuv,"Return python dictionary containing f,u,v,smooF,smooU,smooU; useful for plotting with `woo.plot.addData(**tester.dict())`").def("restart",&LawTester::restart,"Reset the tester to initial state; all stages are reset via :obj:`LawTesterStage.reset`, the :obj:`woo.core.Engine.dead` flag is unset.") \
+		,/*py*/ .def("fuv",&LawTester::pyFuv,"Return python dictionary containing f,u,v,smooF,smooU,smooU; useful for plotting with `woo.plot.addData(**tester.fuv())`").def("restart",&LawTester::restart,"Reset the tester to initial state; all stages are reset via :obj:`LawTesterStage.reset`, the :obj:`woo.core.Engine.dead` flag is unset.") \
 
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_LawTester__CLASS_BASE_DOC_ATTRS_PY);
 

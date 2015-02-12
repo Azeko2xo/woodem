@@ -70,7 +70,6 @@ class TriaxTest(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		_PAT(int,'cylDiv',40,hideIf='self.shape!="cylinder"',doc='Number of segments to approximate the cylinder with.'),
 		_PAT(float,'massFactor',.2,'Multiply real mass of particles by this number to obtain the :obj:`woo.dem.WeirdTriaxControl.mass` control parameter'),
 		_PAT(float,'rateStep',.01,'Increase strain rate by this relative amount at the beginning of the triaxial phase, until the value given in :obj:`maxRates` is reached.'),
-		# _PAT(float,'damping',.4,'Numerical damping (in addition to material damping, if any.')
 	]
 	def __init__(self,**kw):
 		woo.core.Preprocessor.__init__(self)
