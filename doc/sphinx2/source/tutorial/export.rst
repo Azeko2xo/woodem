@@ -66,7 +66,20 @@ Packings
 
 Packings contain purely geometrical information about particles, without material properties, velocity or anything else.
 
-:obj:`woo.pack.SpherePack <_packSpheres.SpherePack>` is sphere-only, as this feature allows many operations to be optimized, as only position and radius is stored for each particles. :obj:`~_packSpheres.SpherePack` can be saved and loaded from/to file in CSV (space-separated) file. It is occasionally useful to do analyses on e.g. radii distribution of particles in 3rd-party tools, and this might be a useful format for interchange:
+:obj:`SpherePack <_packSpheres.SpherePack>`
+--------------------------------------------
+
+:obj:`woo.pack.SpherePack <_packSpheres.SpherePack>` is sphere-only, as this feature allows many operations to be optimized, as only position and radius is stored for each particles. :obj:`~_packSpheres.SpherePack` can be saved and loaded from/to file in CSV (space-separated) file. It is occasionally useful to do analyses on e.g. radii distribution of particles in 3rd-party tools, and this might be a useful format for interchange.
+
+Format of the CSV file is the followin:
+
+* ``x y z r`` (center coordinates and radius), one sphere per line, as ASCII float numbers;
+* clumps are supported, by adding an extra column with clump number (to all lines); spheres with the same clump number will be clumped together when added to the simulation. In mixed packings (clumps, non-clumps), stand-alone spheres can be given ``-1`` as clump number;
+* lines starting with ``#`` are comments and are ignored, with some exceptions:
+
+  * ``##PERIODIC:: x y z`` line encodes periodic cell size of the packing (:obj:`~_packSpheres.SpherePack.cellSize`);
+  * ``##USER-DATA:: data`` contains arbitrary data (no newlines allowed) which will be saved and loaded with the packing.
+
 
 .. ipython::
 
@@ -76,7 +89,7 @@ Packings contain purely geometrical information about particles, without materia
 
    Woo [1]: sp.saveTxt('export-spherepack.txt')
 
-The saved file looks like this::
+The saved file can looks e.g. like this::
 
    7.71021 10.6062 5.91934 0.217513
    5.85643 8.52155 5.99748 0.282825
@@ -87,17 +100,20 @@ The saved file looks like this::
    9.01273 10.2351 4.69186 0.327873
    6.82611 11.182 5.34845 0.213343
    8.57821 6.50656 9.28098 0.474686
-   3.79305 8.90701 4.8198 0.243364
-   15.8104 9.63479 3.84705 0.47203
-   5.91564 4.77783 6.93301 0.262763
-   8.54327 16.299 4.78721 0.286109
-   7.86159 6.24416 5.04026 0.476094
-   8.27932 7.06996 4.80186 0.351547
-   3.87878 5.13792 6.64882 0.225581
-   8.03089 6.8345 6.93142 0.334378
-   8.68977 6.01668 6.44593 0.340974
-   9.22379 11.228 6.88674 0.584069
-   10.5946 12.7885 6.43311 0.322232
+
+Such file can be loaded into Woo again (see :obj:`~_packSphere.SpherePack.toSimulation`):
+
+.. ipython::
+
+   Woo [1]: sp=woo.pack.SpherePack()
+
+   Woo [1]: sp.loadTxt('export-spherepack.txt')
+
+   Woo [1]: sp.toSimulation(S) # using default material
+
+
+:obj:`~woo.dem.ShapePack`
+--------------------------
 
 :obj:`woo.dem.ShapePack` can contain any particles which support it (boundary particles are skipped) as it stores variable number of data for each particle.
 

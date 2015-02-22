@@ -45,23 +45,23 @@ Breakage
 
 #. The transition from unbonded to bonded state never occurs naturally (though it can be forced by hand).
 
-Limit force values depend on cohesion parameters; the normal cohesion is computed as
+Limit force values depend on cohesion parameters; the normal cohesion (size-independent stress) is computed as
 
 .. math:: c_n=\underbrace{l\left(\frac{l_1}{E_1}+\frac{l_2}{E_2}\right)^{-1}}_{E'}\eps_{bn}
    :label: ice-cn
    
-:math:`E'` being equivalent Young's modulus and :math:`\eps_{bn}` being strain at breakage in the normal sense (material parameter). Other cohesions are computed from :math:`c_n` by multiplying that value by dimensionless scaling parameters :math:`\beta_t`, :math:`\beta_w`, :math:`\beta_b` (stored as 3-vector in :obj:`IceMat.beta <woo.dem.IceMat.beta>`).
+:math:`E'` being equivalent Young's modulus and :math:`\eps_{bn}` being strain at breakage in the normal sense (material parameter :obj:`IceMat.breakN <woo.dem.IceMat.breakN>`).
 
-Cohesion values are only useful for senses which are both bonded and breakable, and the breakage condition is slightly different for different senses:
+Cohesion values are only useful for senses which are both bonded and breakable, and the breakage condition is slightly different for different senses. The values are all computed from :math:`c_n` using :math:`A` for correct dimension and :math:`\beta_t`, :math:`\beta_w`, :math:`\beta_b` (stored as 3-vector in :obj:`IceMat.beta <woo.dem.IceMat.beta>`) as dimensionless scaling parameters:
 
 .. math::
    :nowrap:
 
    \begin{align*}
-      F_{nb}&=c_n A, & F_{n}& > F_{nb}, \\
-      F_{tb}&=\beta_t F_{nb}=\beta_t c_n A, & |\vec{F}_{t}|&> F_{tb}, \\
-      T_{wb}&=\beta_w F_{nb}A^{\frac{1}{2}}=\beta_w c_n A^{\frac{3}{2}}, & |T_{w}|&>T_{wb}, \\
-      T_{rb}&=\beta_r F_{tb}A^{\frac{1}{2}}=\beta_r \beta_t c_n A^{\frac{3}{2}}, & |\vec{T}_{b}|&>T_{rb}.
+      F_{n}& > F_{nb},         & F_{nb}&=c_n A, \\
+      |\vec{F}_{t}|& > F_{tb}, & F_{tb}&=\beta_t F_{nb}=\beta_t c_n A, \\
+      |T_{w}|& > T_{wb},       & T_{wb}&=\beta_w F_{nb}A^{\frac{1}{2}}=\beta_w c_n A^{\frac{3}{2}}, \\
+      |\vec{T}_{b}|& > T_{rb}, & T_{rb}&=\beta_r F_{tb}A^{\frac{1}{2}}=\beta_r \beta_t c_n A^{\frac{3}{2}}.
    \end{align*}
 
 Note that there is no absolute value in the first equation, as there is no breakage in compression (:math:`F_n<0`).
@@ -71,7 +71,7 @@ Plasticity
 
 Plastic force limiters (yield values) apply only for senses which are currently not bonded (be they broken, or simply never bonded at all). If force/torque exceeds respective yield force/torque, it is limited to that yield value (retaining its direction).
 
-   There are two plastic parameters, friction angle :math:`\phi` (:obj:`~woo.dem.FrictMat.tanPhi`) and kinetic friction :math:`\mu` (:obj:`~woo.dem.IceMat.mu`), used to compute yield values. Note that the use of :math:`\min(0,F_n \dots)` implies that the *yield values are always zero in tension*, therefore the behavior is ideally plastic in that case. 
+There are two plastic parameters, friction angle :math:`\phi` (:obj:`~woo.dem.FrictMat.tanPhi`) and kinetic friction :math:`\mu` (:obj:`~woo.dem.IceMat.mu`), used to compute yield values. Note that the use of :math:`\min(0,F_n \dots)` implies that the *yield values are always zero in tension*, therefore the behavior is ideally plastic in that case. 
 
 .. math::
    :nowrap:
@@ -82,7 +82,7 @@ Plastic force limiters (yield values) apply only for senses which are currently 
       T_{ry}&=-\sqrt{A/\pi} \min(0,F_n\mu)
    \end{align*}
 
-Note that all these values are non-negative, since :math:`\min(0,F_n)`\leq0` and :math:`\mu\geq0`, :math:`\tan\phi\geq0`.
+Note that all these values are non-negative, since :math:`\min(0,F_n)\leq0` and :math:`\mu\geq0`, :math:`\tan\phi\geq0`.
 
 
 Nomenclature

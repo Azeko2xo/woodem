@@ -68,7 +68,7 @@ struct Law2_L6Geom_IcePhys: public LawFunctor{
 	void slipXd(ValueT& x, const Real& norm, const Real& mx, const Real& stiff, Scene* scene, const char* eName, int& eIndex){
 		if(norm==0) return;
 		Real ratio=mx/norm;
-		if(unlikely(scene->trackEnergy)){
+		if(unlikely(scene->trackEnergy) && stiff>0){
 			Real dissip=(.5*(norm-mx)+mx)*(norm-mx)/stiff;
 			scene->energy->add(dissip,eName,eIndex,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate);
 		}
