@@ -90,6 +90,11 @@ This table will run 6 simulations. The **title** column is optional; if not give
 
 .. note:: Simulation title can be used as basis for output files. In particular, Windows systems don't allow many characters in filenames, which can lead to errors. Therefore, specifying the **title** column without dangerous characters is always advisable under Windows.
 
+Generated table
+"""""""""""""""
+
+If a batcvh is to be run for all possible combinations of input parameters, use :obj:`woo.batch.cartProdParamTable` to generate the table, intead of writing it by hand.
+
 Launching the batch
 --------------------
 

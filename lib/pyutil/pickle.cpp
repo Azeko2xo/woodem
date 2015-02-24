@@ -23,13 +23,27 @@ namespace woo{
 	std::string Pickler::dumps(py::object o){
 		ensureInitialized();
 		GilLock pyLock;
-		//cerr<<"[dumps:gil]";
-		return py::extract<string>(cPickle_dumps(o,-1))(); // -1: use binary protocol
+		#if PY_MAJOR_VERSION >= 3
+			// destructed at the end of the scope, when std::string copied the content already
+			py::object s(cPickle_dumps(o,-1)); 
+			PyObject* b=s.ptr();
+			assert(PyBytes_Check(b));
+			//cerr<<"[dumps:gil:length="<<PyBytes_Size(b)<<"]";
+			// bytes may contain 0 (only in py3k apparently), make sure size is passed explicitly
+			return std::string(PyBytes_AsString(b),PyBytes_Size(b)); // -1: use binary protocol
+		#else
+			return py::extract<string>(cPickle_dumps(o,-1))(); // -1: use binary protocol
+		#endif
+		;
 	}
 	py::object Pickler::loads(const std::string& s){
 		ensureInitialized();
 		GilLock pyLock;
 		//cerr<<"[loads:gil]";
-		return cPickle_loads(s);
+		#if PY_MAJOR_VERSION >= 3
+			return cPickle_loads(py::handle<>(PyBytes_FromStringAndSize(s.data(),(Py_ssize_t)s.size())));
+		#else
+			return cPickle_loads(s);
+		#endif
 	}
 }

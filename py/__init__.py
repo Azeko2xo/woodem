@@ -19,6 +19,7 @@ import warnings,traceback
 import sys,os,os.path,re,string
 
 WIN=sys.platform=='win32'
+PY3K=(sys.version_info[0]==3)
 
 if WIN:
 	class WooOsEnviron:
@@ -117,6 +118,8 @@ if WIN:
 
 # enable warnings which are normally invisible, such as DeprecationWarning
 warnings.simplefilter('default')
+# disable warning for unclosed files/sockets
+if PY3K: warnings.simplefilter('ignore',ResourceWarning)
 
 # import eigen before plugins because of its converters, so that default args to python methods can use Vector3r etc
 import minieigen
@@ -167,7 +170,6 @@ cxxInternalFile=_cxxInternal.__file__
 from . import core
 master=core.Master.instance
 
-PY3K=(sys.version_info[0]==3)
 
 #
 # create compiled python modules

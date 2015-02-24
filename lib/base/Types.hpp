@@ -93,6 +93,10 @@ using std::abs;
 	#define WOO_CXX11_OVERRIDE override
 #endif
 
+// includes python headers, which also define PY_MAJOR_VERSION
+#include<boost/python.hpp>
+namespace py=boost::python;
+
 // py 2x: iterator.next, py3k: iterator.__next__
 #if PY_MAJOR_VERSION >= 3
 	#define WOO_next_OR__next__ "__next__"
@@ -105,8 +109,13 @@ typedef unsigned int uint;
 typedef unsigned long ulong;
 typedef unsigned short ushort;
 
-#include<boost/python.hpp>
-namespace py=boost::python;
+#if 0
+// equivalent to std::string, but exposed to Python3 as bytes rather than (encoded) string
+namespace woo{
+	typedef std::basic_string<char> bytes;
+};
+#endif
+
 
 // allow using lambda funcs in in add_property
 // http://stackoverflow.com/a/25281985/761090

@@ -10,7 +10,7 @@ import sys
 from wooMain import options as wooOptions
 
 
-PY3K=(sys.version_info[0]==3)
+py3k=(sys.version_info[0]==3)
 
 try:
 	from lockfile import FileLock
@@ -72,12 +72,12 @@ def writeResults(scene,defaultDb='woo-results.hdf5',syncXls=True,dbFmt=None,seri
 	if not quiet: print 'Writing results to the database %s (%s)'%(db,'new' if newDb else 'existing')
 	if dbFmt==None:
 		ext=os.path.splitext(db)[-1]
-		if ext in ('.sqlite','.db'): dbFmt='sqlite'
-		elif ext in ('.h5','.hdf5','.he5','.hdf'): dbFmt='hdf5'
+		if ext in ('.sqlite','.db',b'.sqlite',b'.db'): dbFmt='sqlite'
+		elif ext in ('.h5','.hdf5','.he5','.hdf',b'.h5',b'.hdf5',b'.he4',b'.hdf'): dbFmt='hdf5'
 		else: raise ValueError("Unable to determine database format from file extension: must be *.h5, *.hdf5, *.he5, *.hdf, *.sqlite, *.db.")
 
 	# make sure keys are unicode objects (which is what json converts to!)
-	if PY3K: unicodeTags=dict(S.tags)
+	if py3k: unicodeTags=dict(S.tags)
 	else:
 		# but preserve values using a 8-bit encoding)
 		# this sort-of sucks, hopefully there is a better solution soon
@@ -157,9 +157,9 @@ def writeResults(scene,defaultDb='woo-results.hdf5',syncXls=True,dbFmt=None,seri
 
 	if syncXls:
 		import re
-		xls=db+('.xlsx' if PY3K else '.xls')
+		xls=db+('.xlsx' if py3k else '.xls')
 		if not quiet: print 'Converting %s to file://%s'%(db,os.path.abspath(xls))
-		dbToSpread(db,out=xls,dialect=('xlsx' if PY3K else 'xls'))
+		dbToSpread(db,out=xls,dialect=('xlsx' if py3k else 'xls'))
 	for ph in postHooks: ph(db)
 
 def _checkHdf5sim(sim):
@@ -179,7 +179,7 @@ def dbReadResults(db,basicTypes=False):
 	import numpy, sqlite3, json, woo.core
 	try:
 		import h5py, h5py.h5f
-		if not h5py.h5f.is_hdf5(db): raise IOError('Not a HDF5 file.')
+		if not h5py.h5f.is_hdf5(bytes(db,'utf-8') if py3k else db): raise IOError('Not a HDF5 file.')
 		hdf=h5py.File(db,'r',libver='latest')
 	except (ImportError,IOError):
 		# connect always succeeds, as it seems, even if the type is not sqlite3 db
@@ -315,8 +315,10 @@ def dbToSpread(db,out=None,dialect='xls',rows=False,series=True,ignored=('plotDa
 	# open db and get rows
 	try:
 		import h5py, h5py.h5f
+		if py3k and isinstance(db,str): dbBytes=bytes(db,'utf-8')
+		else: dbBytes=db
 		# check first, to avoid warning from h5py.File in stderr
-		if not h5py.h5f.is_hdf5(db): raise IOError('Not a HDF5 file.')
+		if not h5py.h5f.is_hdf5(dbBytes): raise IOError('Not a HDF5 file.')
 		hdf=h5py.File(db,'r',libver='latest')
 	except (ImportError,IOError):
 		# connect always succeeds, as it seems, even if the type is not sqlite3 db
@@ -332,7 +334,7 @@ def dbToSpread(db,out=None,dialect='xls',rows=False,series=True,ignored=('plotDa
 			sortAttrs=('batchTable','batchTableLine','finished')
 			# sort simulation ids by attribute tuples:
 			# http://stackoverflow.com/a/6620187/761090
-			simIds=zip(*sorted(zip([s for s in hdf if _checkHdf5sim(hdf[s])],[tuple([natural_key(str(hdf[s].attrs[a])) for a in sortAttrs if a in hdf[s].attrs]) for s in hdf if _checkHdf5sim(hdf[s])]),key=operator.itemgetter(1)))[0]
+			simIds=list(zip(*sorted(zip([s for s in hdf if _checkHdf5sim(hdf[s])],[tuple([natural_key(str(hdf[s].attrs[a])) for a in sortAttrs if a in hdf[s].attrs]) for s in hdf if _checkHdf5sim(hdf[s])]),key=operator.itemgetter(1))))[0]
 			# print simIds
 			# iterate over simulations
 			for i,simId in enumerate(simIds):
@@ -648,18 +650,18 @@ A special value ``=`` can be used instead of parameter value; value from the pre
 This class is used by :obj:`woo.utils.readParamsFromTable`.
 
 >>> tryData=[
-... 	['head1','important2!','head3','...','...','!OMP_NUM_THREADS!','abcd'],
-... 	[1,1.1, '1.','1','5', 1.2,1.3,],
-... 	['a','b','HE','AD','_3','c','d','###','comment'],
-... 	['# empty line'],
-... 	[1,'=','=','=','=','=','g']
+...   ['head1','important2!','head3','...','...','!OMP_NUM_THREADS!','abcd'],
+...   [1,1.1, '1.','1','5', 1.2,1.3,],
+...   ['a','b','HE','AD','_3','c','d','###','comment'],
+...   ['# empty line'],
+...   [1,'=','=','=','=','=','g']
 ... ]
 >>> import woo
 >>> tryFile=woo.master.tmpFilename()
 >>> # write text
 >>> f1=tryFile+'.txt'
 >>> txt=open(f1,'w')
->>> for ll in tryData: txt.write(' '.join([str(l) for l in ll])+'\n')
+>>> for ll in tryData: n=txt.write(' '.join([str(l) for l in ll])+'\n') # set n to suppress output in doctest under py3k
 >>> txt.close()
 >>> 
 >>> # write xls
@@ -667,8 +669,8 @@ This class is used by :obj:`woo.utils.readParamsFromTable`.
 >>> f2=tryFile+'.xls'
 >>> xls=xlwt.Workbook(); sheet=xls.add_sheet('test')
 >>> for r in range(len(tryData)):
-... 	for c in range(len(tryData[r])):
-... 		sheet.write(r,c,tryData[r][c])
+...   for c in range(len(tryData[r])):
+...     sheet.write(r,c,tryData[r][c])
 >>> xls.save(f2)
 >>> 
 >>> from pprint import *
@@ -832,6 +834,129 @@ This class is used by :obj:`woo.utils.readParamsFromTable`.
 	def paramDict(self):
 		"""Return dictionary containing data from file given to constructor. Keys are line numbers (which might be non-contiguous and refer to real line numbers that one can see in text editors), values are dictionaries mapping parameter names to their values given in the file. The special value '=' has already been interpreted, ``!`` (bangs) (if any) were already removed from column titles, ``title`` column has already been added (if absent)."""
 		return self.values
+
+def cartProdParamTable(params,out,same=''):
+	'''Write parameter table (as XLS) where all parameters in pp (which is a dictionary, or :obj:`python:collections.OrderedDict`) are traversed.
+	
+:param same: content of repeated cellls; if ``None``, repeated cells are filled with the repeated value. Other useful values are ``'='`` and ``''`` (empty cell)
+:param out: XLS file to write to
+:param params: dictionary-like with parameter values; keys may be n-tuples, which will span multiple columns -- in that case, values must also be n-tuples, and will also span those columns
+:return: total number of lines written
+
+>>> import collections, woo.batch 
+>>> pp=collections.OrderedDict() # use OrderedDict for predictable column ordering
+>>> pp['pattern']=['ortho','hexa']
+>>> pp['radius','...']=[(r,'*woo.unit["mm"]') for r in (1,2,3)]    # use continuation columns for unit specification
+>>> pp['gravity','...','...']=[('(0,0,',g,')') for g in (9.81,20)] # use continuation columns for concatenation of expression
+>>> xls=woo.master.tmpFilename()+'.xls'
+>>> woo.batch.cartProdParamTable(params=pp,out=xls)
+12
+>>> import pprint
+>>> pprint.pprint(TableParamReader(xls).paramDict())
+{2: {u'gravity': u'(0,0,9.81)',
+     u'pattern': u'ortho',
+     u'radius': u'1*woo.unit["mm"]',
+     'title': u'pattern=ortho,radius=1*woo.unit[mm],gravity=(0,0,9.81)'},
+ 3: {u'gravity': u'(0,0,20)',
+     u'pattern': u'ortho',
+     u'radius': u'1*woo.unit["mm"]',
+     'title': u'pattern=ortho,radius=1*woo.unit[mm],gravity=(0,0,20)'},
+ 4: {u'gravity': u'(0,0,9.81)',
+     u'pattern': u'ortho',
+     u'radius': u'2*woo.unit["mm"]',
+     'title': u'pattern=ortho,radius=2*woo.unit[mm],gravity=(0,0,9.81)'},
+ 5: {u'gravity': u'(0,0,20)',
+     u'pattern': u'ortho',
+     u'radius': u'2*woo.unit["mm"]',
+     'title': u'pattern=ortho,radius=2*woo.unit[mm],gravity=(0,0,20)'},
+ 6: {u'gravity': u'(0,0,9.81)',
+     u'pattern': u'ortho',
+     u'radius': u'3*woo.unit["mm"]',
+     'title': u'pattern=ortho,radius=3*woo.unit[mm],gravity=(0,0,9.81)'},
+ 7: {u'gravity': u'(0,0,20)',
+     u'pattern': u'ortho',
+     u'radius': u'3*woo.unit["mm"]',
+     'title': u'pattern=ortho,radius=3*woo.unit[mm],gravity=(0,0,20)'},
+ 8: {u'gravity': u'(0,0,9.81)',
+     u'pattern': u'hexa',
+     u'radius': u'1*woo.unit["mm"]',
+     'title': u'pattern=hexa,radius=1*woo.unit[mm],gravity=(0,0,9.81)'},
+ 9: {u'gravity': u'(0,0,20)',
+     u'pattern': u'hexa',
+     u'radius': u'1*woo.unit["mm"]',
+     'title': u'pattern=hexa,radius=1*woo.unit[mm],gravity=(0,0,20)'},
+ 10: {u'gravity': u'(0,0,9.81)',
+      u'pattern': u'hexa',
+      u'radius': u'2*woo.unit["mm"]',
+      'title': u'pattern=hexa,radius=2*woo.unit[mm],gravity=(0,0,9.81)'},
+ 11: {u'gravity': u'(0,0,20)',
+      u'pattern': u'hexa',
+      u'radius': u'2*woo.unit["mm"]',
+      'title': u'pattern=hexa,radius=2*woo.unit[mm],gravity=(0,0,20)'},
+ 12: {u'gravity': u'(0,0,9.81)',
+      u'pattern': u'hexa',
+      u'radius': u'3*woo.unit["mm"]',
+      'title': u'pattern=hexa,radius=3*woo.unit[mm],gravity=(0,0,9.81)'},
+ 13: {u'gravity': u'(0,0,20)',
+      u'pattern': u'hexa',
+      u'radius': u'3*woo.unit["mm"]',
+      'title': u'pattern=hexa,radius=3*woo.unit[mm],gravity=(0,0,20)'}}
+
+
+
+.. csv-table:: Generated cartesian product parameter table (XLS)
+   :header: pattern,radius,...,gravity,...,...
+
+   ortho,1,"*woo.unit[""mm""]","(0,0,",9.81,)
+   ,,,,20,
+   ,2,,,9.81,
+   ,,,,20,
+   ,3,,,9.81,
+   ,,,,20,
+   hexa,1,,,9.81,
+   ,,,,20,
+   ,2,,,9.81,
+   ,,,,20,
+   ,3,,,9.81,
+   ,,,,20,
+
+	'''
+	import xlwt,itertools
+	xls=xlwt.Workbook(); sheet=xls.add_sheet('product')
+	kk=params.keys()
+	col=0
+	bold=xlwt.easyxf('font: bold on')
+	for k in kk:
+		if isinstance(k,tuple):
+			for l in k:
+				sheet.write(0,col,l,style=bold)
+				col+=1
+		else:
+			sheet.write(0,col,k,style=bold)
+			col+=1
+	prevVV=None
+	for row,vv in enumerate(itertools.product(*params.values())):
+		#print row+1,vv
+		col=0
+		for i,v in enumerate(vv):
+			if isinstance(v,tuple):
+				for ii,w in enumerate(v):
+					# print w
+					#print row+1,col,w
+					if same==None or not prevVV or prevVV[i][ii]!=w: sheet.write(row+1,col,unicode(w))
+					else:
+						if same!='': sheet.write(row+1,col,same)
+					col+=1
+			else:
+				#print row+1,col,v
+				if same==None or not prevVV or prevVV[i]!=v: sheet.write(row+1,col,unicode(v))
+				else:
+					if same!='': sheet.write(row+1,col,same)
+				col+=1
+		prevVV=vv
+	xls.save(out)
+	return row+1
+
 
 if __name__=="__main__":
 	## this is now in the doctest as well

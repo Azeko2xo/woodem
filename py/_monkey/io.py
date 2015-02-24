@@ -31,6 +31,7 @@ nan,inf=float('nan'),float('inf') # for values in expressions
 # ensure that the string is unicode
 def _ensureUnicode(s): return s if isinstance(s,unicode) else s.decode('utf-8')
 
+py3k=(sys.version_info[0]==3)
 
 def Object_getAllTraits(obj):
 	'Return list of all trait objects for this instance, recursively including all parent classes.'
@@ -67,7 +68,7 @@ def Object_dumps(obj,format,fragment=False,width=80,noMagic=False,stream=True,sh
 	elif format=='expr':
 		return SerializerToExpr(maxWd=width,noMagic=noMagic)(obj)
 	elif format=='html':
-		return ('' if fragment else htmlHead)+SerializerToHtmlTable(showDoc=showDoc)(obj)+('' if fragment else '</body>')
+		return ('' if fragment else htmlHead)+str(SerializerToHtmlTable(showDoc=showDoc)(obj))+('' if fragment else '</body>')
 	elif format=='genshi':
 		return SerializerToHtmlTable()(obj,dontRender=True,showDoc=showDoc)
 
@@ -107,7 +108,7 @@ def Object_dump(obj,out,format='auto',fallbackFormat=None,overwrite=True,fragmen
 			out.write(WooJSONEncoder().encode(obj))
 		elif format=='html':
 			if not fragment: out.write(htmlHead)
-			out.write(SerializerToHtmlTable(showDoc=showDoc)(obj))
+			out.write(str(SerializerToHtmlTable(showDoc=showDoc)(obj)))
 			if not fragment: out.write('</body>')
 		
 
@@ -217,7 +218,7 @@ class SerializerToHtmlTableGenshi:
 					tr.append(tag.td(unit,align='right'))
 			ret.append(tr)
 		if depth>0 or dontRender: return ret
-		return ret.generate().render('xhtml',encoding='ascii')+'\n'
+		return ret.generate().render('xhtml',encoding='ascii')+b'\n'
 
 SerializerToHtmlTable=SerializerToHtmlTableGenshi
 
@@ -339,7 +340,8 @@ class WooJSONDecoder(json.JSONDecoder):
 			m=__import__(mname,level=0) # absolute imports only
 			if i==0: localns[mname]=m
 		try:
-			return eval(klass,globals(),localns)(**dict((key.encode('ascii'),value.encode('ascii') if isinstance(value,unicode) else value) for key,value in d.items()))
+			if py3k: return eval(klass,globals(),localns)(**d)
+			else: return eval(klass,globals(),localns)(**dict((key.encode('ascii'),(value.encode('ascii') if isinstance(value,unicode) else value)) for key,value in d.items()))
 		except Exception as e:
 			if self.onError=='error': raise
 			elif self.onError=='warn':
@@ -347,7 +349,7 @@ class WooJSONDecoder(json.JSONDecoder):
 				if e.__class__ in (TypeError,AttributeError): reason='class definition changed?'
 				elif e.__class__==NameError: reason='class does not exist anymore?'
 				else: reason='unknown error'
-				logging.warn('%s while decoding class %s from JSON (%s), returning dictionary: %s'%(e.__class__.__name__,klass,reason,str(e)))
+				logging.warning('%s while decoding class %s from JSON (%s), returning dictionary: %s'%(e.__class__.__name__,klass,reason,str(e)))
 			return d
 
 # inject into the core namespace, so that it can be used elsewhere as well
@@ -372,11 +374,14 @@ def Object_loads(typ,data,format='auto'):
 		return obj
 	if format not in ('auto','pickle','expr','json'): raise ValueError('Invalid format %s'%format)
 	elif format=='auto':
-		if data.startswith('##woo-expression##'): format='expr'
+		if type(data)==bytes and data.startswith(b'##woo-expression##'): format='expr'
+		elif type(data) in (str,unicode) and data.startswith('##woo-expression##'): format='expr'
 		else:
 			# try pickle
-			try: return typeChecked(pickle.loads(data),typ)
-			except (IOError,KeyError): pass
+			try:
+				if py3k and type(data)==str: return typeChecked(pickle.loads(bytes(data,'utf-8')),typ)
+				else: return typeChecked(pickle.loads(data),typ)
+			except (IOError,KeyError,pickle.UnpicklingError,EOFError): pass
 			# try json
 			try: return typeChecked(WooJSONDecoder().decode(data),typ)
 			except (IOError,ValueError,KeyError): pass
@@ -404,10 +409,10 @@ def Object_load(typ,inFile,format='auto'):
 		# check for compression first
 		head=open(inFile,'rb').read(100)
 		# we might want to pass this data to ObjectIO, which currently determines format by looking at extension
-		if head[:2]=='\x1f\x8b':
+		if head[:2]==b'\x1f\x8b':
 			import gzip
 			head=gzip.open(inFile,'rb').read(100)
-		elif head[:2]=='BZ':
+		elif head[:2]==b'BZ':
 			import bz2
 			head=bz2.BZ2File(inFile,'rb').read(100)
 		# detect real format here (head is uncompressed already)
@@ -415,19 +420,19 @@ def Object_load(typ,inFile,format='auto'):
 		# see http://stackoverflow.com/questions/10614215/magic-for-detecting-boostserialization-file
 		# newer versions (1.51 and perhaps greater) put '\n' (\x0a) after serialization::archive instead of null,
 		# so let's just not test the byte after "archive"
-		if head.startswith('\x16\x00\x00\x00\x00\x00\x00\x00\x73\x65\x72\x69\x61\x6c\x69\x7a\x61\x74\x69\x6f\x6e\x3a\x3a\x61\x72\x63\x68\x69\x76\x65'):
+		if head.startswith(b'\x16\x00\x00\x00\x00\x00\x00\x00\x73\x65\x72\x69\x61\x6c\x69\x7a\x61\x74\x69\x6f\x6e\x3a\x3a\x61\x72\x63\x68\x69\x76\x65'):
 			format='boost::serialization'
-		elif head.startswith('<?xml version="1.0"'):
+		elif head.startswith(b'<?xml version="1.0"'):
 			format='boost::serialization'
-		elif head.startswith('##woo-expression##'):
+		elif head.startswith(b'##woo-expression##'):
 			format='expr'
 		else:
 			# test pickling by trying to load
 			try: return typeChecked(pickle.load(open(inFile,'rb')),typ) # open again to seek to the beginning
-			except (IOError,KeyError): pass
-			try: return typeChecked(WooJSONDecoder().decode(open(inFile,'rb').read()),typ)
+			except (IOError,KeyError,pickle.UnpicklingError,EOFError): pass
+			try: return typeChecked(WooJSONDecoder().decode(codecs.open(inFile,'rb','utf-8').read()),typ)
 			except (IOError,ValueError): pass
-		if not format: raise RuntimeError('File format detection failed on %s (head: %s)'%(inFile,''.join(["\\x%02x"%ord(x) for x in head])))
+		if not format:	raise RuntimeError('File format detection failed on %s (head: %s, bin: %s)'%(inFile,''.join(["\\x%02x"%(x if py3k else ord(x)) for x in head]),unicode(head))) # in py3k, bytes contain integers rather than chars
 	if format not in validFormats: raise RuntimeError("format='%s'??"%format)
 	assert format in validFormats
 	if format==None:
@@ -441,13 +446,13 @@ def Object_load(typ,inFile,format='auto'):
 	elif format=='pickle':
 		return typeChecked(pickle.load(open(inFile,'rb')),typ)
 	elif format=='json':
-		return typeChecked(WooJSONDecoder().decode(open(inFile,'rb').read()),typ)
+		return typeChecked(WooJSONDecoder().decode(codecs.open(inFile,'rb','utf-8').read()),typ)
 	assert False
 
 
 
 def Object_loadTmp(typ,name=''):
-	obj=woo.master.loadTmpAny(name)
+	obj=woo.master.loadTmpAny(str(name))
 	if not isinstance(obj,typ): raise TypeError('Loaded object of type '+obj.__class__.__name__+' is not a '+typ.__name__)
 	return obj
 def Object_saveTmp(obj,name='',quiet=False):

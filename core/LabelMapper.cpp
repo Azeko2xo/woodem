@@ -287,7 +287,7 @@ py::object LabelMapper::__getitem__(const string& label){
 	}
 	int where=whereIs(label);
 	switch(where){
-		case NOWHERE: woo::NameError("No such label: '"+label+"'"); break;
+		case NOWHERE: woo::AttributeError("No such label: '"+label+"'"); break;
 		case IN_MOD: woo::ValueError("Label '"+label+"' is a pseudo-module and cannot be obtained directly.");
 		case IN_WOO: return py::object(wooMap[label]); break;
 		case IN_PY: return pyMap[label]; break;

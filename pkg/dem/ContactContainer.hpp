@@ -130,8 +130,8 @@ struct ContactContainer: public Object{
 		/* .def("__contains__",&ContactContainer::pyContains,"Equivalent to :obj:`existsReal`, but taking tuple as argument.") */ \
 		.def("__iter__",&ContactContainer::pyIter) \
 		/* define nested iterator class here; ugly, same as in ParticleContainer */ \
-		; boost::python::scope foo(_classObj); \
-		boost::python::class_<ContactContainer::pyIterator>("iterator",py::init<pyIterator>()).def("__iter__",&pyIterator::iter).def(WOO_next_OR__next__,&pyIterator::next);
+		; py::scope foo(_classObj); \
+		py::class_<ContactContainer::pyIterator>("ContactContainer_iterator",py::init<pyIterator>()).def("__iter__",&pyIterator::iter).def(WOO_next_OR__next__,&pyIterator::next);
 
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_ContactContainer__CLASS_BASE_DOC_ATTRS_PY);
 

@@ -14,7 +14,7 @@ class LabelMapperProxy(object):
 		# some mapper method was requested
 		if key=='__dir__': return lambda: self._mapper.__dir__(self._prefix)
 		if key.startswith('_'):
-			if self._prefix: raise AttributeError('Attributes/methods starting with _ must be obtained from root LabelMappr or proxy (this instance has prefix "'+self._prefix+'")')
+			if self._prefix: raise AttributeError('Attributes/methods starting with _ must be obtained from root LabelMapper or proxy (this instance has prefix "'+self._prefix+'")')
 			else: return getattr(self._mapper,key)
 		# submodule requested, return proxy with new prefix
 		if self._mapper._whereIs(self._prefix+key)==core.LabelMapper.inMod:
@@ -23,7 +23,8 @@ class LabelMapperProxy(object):
 		return self._mapper[self._prefix+key]
 	def __setattr__(self,key,val): self._mapper[self._prefix+key]=val
 	def __delattr__(self,key): del self._mapper[self._prefix+key]
-	# def __dir__(self): return self._mapper.__dir__(prefix=self._prefix)
+	# this is necessary for py3k
+	def __dir__(self): return self._mapper.__dir__(prefix=self._prefix)
 	# def __len__(self): return self._mapper.__len__(prefix=self._prefix)
 	# def _newModule(self,mod): return self._mapper._newModule(self._prefix+mod)
 def Scene_lab(scene):

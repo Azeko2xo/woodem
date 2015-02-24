@@ -50,7 +50,7 @@ Limit force values depend on cohesion parameters; the normal cohesion (size-inde
 .. math:: c_n=\underbrace{l\left(\frac{l_1}{E_1}+\frac{l_2}{E_2}\right)^{-1}}_{E'}\eps_{bn}
    :label: ice-cn
    
-:math:`E'` being equivalent Young's modulus and :math:`\eps_{bn}` being strain at breakage in the normal sense (material parameter :obj:`IceMat.breakN <woo.dem.IceMat.breakN>`).
+:math:`E'` being equivalent Young's modulus and :math:`\eps_{bn}` being "strain" (as in :math:`\eps_{bn}=\Delta l/l`) at breakage in the normal sense (material parameter :obj:`IceMat.breakN <woo.dem.IceMat.breakN>`), :math:`l=l_1+l_2` is total center distance and radii, as used  in :ref:`linear_contact_model` (or equivalent measures used to distribute stiffness, when contacting particles are not spheres).
 
 Cohesion values are only useful for senses which are both bonded and breakable, and the breakage condition is slightly different for different senses. The values are all computed from :math:`c_n` using :math:`A` for correct dimension and :math:`\beta_t`, :math:`\beta_w`, :math:`\beta_b` (stored as 3-vector in :obj:`IceMat.beta <woo.dem.IceMat.beta>`) as dimensionless scaling parameters:
 
@@ -69,7 +69,7 @@ Note that there is no absolute value in the first equation, as there is no break
 Plasticity
 -----------
 
-Plastic force limiters (yield values) apply only for senses which are currently not bonded (be they broken, or simply never bonded at all). If force/torque exceeds respective yield force/torque, it is limited to that yield value (retaining its direction).
+Plastic force limiters (yield values, noted :math:`\bullet_y`) apply only for senses which are currently not bonded (be they broken, or simply never bonded at all). If force/torque exceeds respective yield force/torque, it is limited to that yield value (retaining its direction).
 
 There are two plastic parameters, friction angle :math:`\phi` (:obj:`~woo.dem.FrictMat.tanPhi`) and kinetic friction :math:`\mu` (:obj:`~woo.dem.IceMat.mu`), used to compute yield values. Note that the use of :math:`\min(0,F_n \dots)` implies that the *yield values are always zero in tension*, therefore the behavior is ideally plastic in that case. 
 
@@ -83,6 +83,18 @@ There are two plastic parameters, friction angle :math:`\phi` (:obj:`~woo.dem.Fr
    \end{align*}
 
 Note that all these values are non-negative, since :math:`\min(0,F_n)\leq0` and :math:`\mu\geq0`, :math:`\tan\phi\geq0`.
+
+For each unbonded sense, when the yield condition is satisfied, the corresponding force is reduced to return to the yield value:
+
+.. math::
+   :nowrap:
+
+   \begin{align*}
+      |\vec{F}_t|&>F_{ty} &  \Longrightarrow && \vec{F}_t&\leftarrow \normalized{\vec{F}_t} F_{ty}, \\
+      |T_w|&>T_{wy} &  \Longrightarrow && T_w&\leftarrow \normalized{T_w} T_{wy}, \\
+      |\vec{T}_r|&>T_{ry} &  \Longrightarrow && \vec{T}_r&\leftarrow \normalized{\vec{T}_r} T_{ry}.
+   \end{align*}
+
 
 
 Nomenclature

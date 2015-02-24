@@ -128,6 +128,10 @@ void SpherePack::toFile(const string& fname) const {
 	f.close();
 };
 
+long SpherePack::makeCloud_simple(const Vector3r& mn, const Vector3r& mx, const Real& rMean, const Real& rRelFuzz, int num, bool periodic){
+	return makeCloud(mn,mx,rMean,rRelFuzz,num,periodic,/*porosity*/0.5);
+}
+
 long SpherePack::makeCloud(Vector3r mn, Vector3r mx, Real rMean, Real rRelFuzz, int num, bool periodic, Real porosity, const vector<Real>& psdSizes, const vector<Real>& psdCumm, bool distributeMass, int seed, Matrix3r hSize){
 	static boost::minstd_rand randGen(seed!=0?seed:(int)getNow());
 	static boost::variate_generator<boost::minstd_rand&, boost::uniform_real<Real> > rnd(randGen, boost::uniform_real<Real>(0,1));

@@ -81,7 +81,7 @@ class TestSceneLabels(unittest.TestCase):
 		'LabelMapper: pseudo-modules'
 		S=self.S
 		# using name which does not exist yet
-		self.assertRaises(NameError,lambda: S.lab.abc)
+		self.assertRaises(AttributeError,lambda: S.lab.abc)
 		# using name which does not exist yet as pseudo-module
 		self.assertRaises(NameError,lambda: setattr(S.lab,'abc.defg',1))
 		S.lab._newModule('abc')
@@ -111,6 +111,14 @@ class TestSceneLabels(unittest.TestCase):
 		S.lab._newModule('foo')
 		S.lab.foo.bar=1
 		self.assert_('bar' in S.lab.foo.__dir__())
+	def testHasattr(self):
+		'LabelMapper: __hasattr__'
+		S=self.S
+		S.lab._newModule('foo')
+		S.lab.foo.bar=1
+		S.lab.foo2=1
+		self.assert_(hasattr(S.lab.foo,'bar'))
+		self.assert_(hasattr(S.lab,'foo2'))
 	def testGetattrIndexed(self):
 		'LabelMapper: getattr with index'
 		S=self.S

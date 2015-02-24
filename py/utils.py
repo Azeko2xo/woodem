@@ -28,6 +28,7 @@ from woo._utils2 import *
 _docInlineModules=(woo._utils2,)
 
 inf=float('inf')
+py3k=(sys.version_info[0]==3)
 
 # try at import time, this is expensive
 hasGL=True
@@ -637,12 +638,13 @@ def htmlReportHead(S,headline,dialect='xhtml',repBase=''):
 		In order to obtain a well-formed XHTML document, don't forget to add '</body></html>'.
 	'''
 	import time, platform, pkg_resources, shutil
+	if py3k: import base64
 	headers=dict(xhtml='''<?xml version="1.0" encoding="UTF-8"?>
 	<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> 
 	<html xmlns="http://www.w3.org/1999/xhtml" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">\n''',html5='<!DOCTYPE html><html lang="en">',html4='<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd"><html>')
 	logoSrc=pkg_resources.resource_filename('woo','data/woo-icon.128.png')
 	logoExtern='%s_wooLogo.png'%(repBase)
-	logoBase64='<img src="data:image/png;base64,'+open(logoSrc).read().encode('base64')+'" alt="Woo logo"/>'
+	logoBase64='<img src="data:image/png;base64,'+(str(base64.b64encode(open(logoSrc,'rb').read())) if py3k else  open(logoSrc).read().encode('base64'))+'" alt="Woo logo"/>'
 	logoImgExtern='<img src="%s_wooLogo.png" alt="Woo logo"/>'%(repBase)
 	svgLogos=dict(
 		# embedded svg
@@ -674,7 +676,7 @@ def htmlReportHead(S,headline,dialect='xhtml',repBase=''):
 			<tr><td>compiled with</td><td align="right">{compiledWith}</td></tr>
 			<tr><td>platform</td><td align="right">{platform}</td></tr>
 		</table>
-		'''.format(headline=headline,title=(S.tags['title'] if S.tags['title'] else '<i>[none]</i>'),id=S.tags['id'],user=S.tags['user'].decode('utf-8'),started=time.ctime(time.time()-woo.master.realtime),step=S.step,duration=woo.master.realtime,nCores=woo.master.numThreads,stepsPerSec=S.step/woo.master.realtime,engine='wooDem '+woo.config.version+'/'+woo.config.revision+(' (debug)' if woo.config.debug else ''),compiledWith=','.join(woo.config.features),platform=platform.platform().replace('-',' '),svgLogo=svgLogos[dialect])
+		'''.format(headline=headline,title=(S.tags['title'] if S.tags['title'] else '<i>[none]</i>'),id=S.tags['id'],user=(S.tags['user'] if py3k else S.tags['user'].decode('utf-8')),started=time.ctime(time.time()-woo.master.realtime),step=S.step,duration=woo.master.realtime,nCores=woo.master.numThreads,stepsPerSec=S.step/woo.master.realtime,engine='wooDem '+woo.config.version+'/'+woo.config.revision+(' (debug)' if woo.config.debug else ''),compiledWith=','.join(woo.config.features),platform=platform.platform().replace('-',' '),svgLogo=svgLogos[dialect])
 		+'<h2>Input data</h2>'+S.pre.dumps(format='html',fragment=True,showDoc=False)
 	)
 	return headers[dialect]+html

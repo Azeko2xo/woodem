@@ -47,10 +47,15 @@ try:
 except ImportError:
 	raise ImportError("Disqus support for sphinx not found; install it using 'pip install sphinxcontrib-newsfeed'")
 
+try:
+	import sphinxcontrib.exceltable
+except ImportError:
+	raise ImportError("Exceltable support for sphinx not found; install it using 'pip install sphinxcontrib-exceltable'")
+
 mathjax=('PNGMATH' not in os.environ)
 if not mathjax: print 100*'#'+'  USING PNGMATH  '+100*'#'
 
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.mathjax' if mathjax else 'sphinx.ext.pngmath', 'sphinx.ext.viewcode', 'matplotlib.sphinxext.plot_directive', 'sphinx.ext.inheritance_diagram', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'sphinx.ext.extlinks', 'sphinxcontrib.bibtex','sphinxcontrib.newsfeed',
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.mathjax' if mathjax else 'sphinx.ext.pngmath', 'sphinx.ext.viewcode', 'matplotlib.sphinxext.plot_directive', 'sphinx.ext.inheritance_diagram', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'sphinx.ext.extlinks', 'sphinxcontrib.bibtex','sphinxcontrib.newsfeed','sphinxcontrib.exceltable',
 	# local copies
 	'sphinxcontrib_youtube',
 	'tikz',
@@ -81,7 +86,10 @@ ilex.input_prompt=re.compile(r'(Woo\[[0-9]+\]: )')
 ilex.output_prompt=re.compile(r'(( -> |Out)|\[[0-9]+\]: )')
 ilex.continue_prompt=re.compile(r'\s+\.\.\.+:')
 
-intersphinx_mapping={'yade':('http://www.yade-dem.org/doc',None)}
+intersphinx_mapping={
+	'yade':('http://www.yade-dem.org/doc',None),
+	'python':('http://docs.python.org/%d.%d'%(sys.version_info.major,sys.version_info.minor),None),
+}
 
 # make graphviz determine the best size instead of hard-coded one
 # http://stackoverflow.com/a/2151808/761090

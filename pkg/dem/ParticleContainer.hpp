@@ -200,8 +200,8 @@ struct ParticleContainer: public Object{
 			.def("disappear",&ParticleContainer::pyDisappear,(py::arg("ids"),py::arg("mask")),"Remask particle (so that it does not have contacts with other particles), remove contacts, which would no longer exist and make it invisible. Shorthand for calling ``remask(ids,mask,visible=False,removeContacts=True)``") \
 			.def("reappear",&ParticleContainer::pyReappear,(py::arg("ids"),py::arg("mask"),py::arg("removeOverlapping")=false),"Remask particle, remove particles, which would overlap with newly-appeared particle (if ``removeOverlapping`` is ``True``), make it visible again. Shorthand for ``remask(ids,mask,visible=True,removeContacts=False)``") \
 			/* define nested iterator class here; ugly: abuses _classObj from the macro definition (implementation detail) */ \
-			; boost::python::scope foo(_classObj); \
-			boost::python::class_<ParticleContainer::pyIterator>("iterator",py::init<pyIterator>()).def("__iter__",&pyIterator::iter).def(WOO_next_OR__next__,&pyIterator::next);
+			; py::scope foo(_classObj); /*this does not seem to work?? */ \
+			py::class_<ParticleContainer::pyIterator>("ParticleContainer_iterator",py::init<pyIterator>()).def("__iter__",&pyIterator::iter).def(WOO_next_OR__next__,&pyIterator::next);
 
 
 		WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_ParticleContainer__CLASS_BASE_DOC_ATTRS_PY);
