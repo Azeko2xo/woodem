@@ -238,7 +238,7 @@ cxxFlags+=['-Wall','-fvisibility=hidden','-std='+cxxStd,'-pipe']
 
 
 cxxLibs+=['m',
-	'boost_python-py34' if PY3K else 'boost_python' ,
+	'boost_python-py3%d'%(sys.version_info[1]) if PY3K else 'boost_python' ,
 	'boost_system',
 	'boost_thread',
 	'boost_date_time',
