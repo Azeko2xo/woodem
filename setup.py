@@ -7,7 +7,7 @@ from setuptools import setup,Extension
 #import distutils.command.install_scripts
 #import distutils.command.sdist
 #import distutils.command.build_ext
-import os.path, os, shutil, re, subprocess, sys
+import os.path, os, shutil, re, subprocess, sys, codecs
 from glob import glob
 from os.path import sep,join,basename,dirname
 
@@ -46,7 +46,7 @@ version=None
 revno=None
 # on debian, get version from changelog
 if DISTBUILD=='debian':
-	version=re.match(r'^[^(]* \(([^)]+)\).*$',open('debian/changelog').readlines()[0]).group(1)
+	version=re.match(r'^[^(]* \(([^)]+)\).*$',codecs.open('debian/changelog','r','utf-8').readlines()[0]).group(1)
 	print('Debian version from changelog: ',version)
 	revno='debian'
 # get version from queryling local bzr repo
