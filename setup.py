@@ -227,9 +227,9 @@ cxxStd='c++11'
 ## this is needed for packaging on Ubuntu 12.04, where gcc 4.6 is the default
 if DISTBUILD=='debian':
 	# c++0x for gcc == 4.6
-	gccVer=subprocess.check_output(['g++','--version']).split('\n')[0].split()[-1]
+	gccVer=bytes(subprocess.check_output(['g++','--version'])).split(b'\n')[0].split()[-1]
 	print('GCC version is',gccVer)
-	if gccVer.startswith('4.6'):
+	if gccVer.startswith(b'4.6'):
 		cxxStd='c++0x'
 		print('Compiling with gcc 4.6 (%s), using -std=%s. Adding -pedantic.'%(gccVer,cxxStd))
 		cxxFlags+=['-pedantic'] # work around for http://gcc.gnu.org/bugzilla/show_bug.cgi?id=50478
