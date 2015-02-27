@@ -58,7 +58,7 @@ if not version and os.path.exists('.bzr'):
 		revno=str(branch.last_revision_info()[0])
 	except:
 		revno='na'
-	version='0.99+r'+revno
+	version='1.0+r'+revno
 	
 
 ##
