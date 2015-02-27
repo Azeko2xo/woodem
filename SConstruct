@@ -97,7 +97,7 @@ def colonSplit(x): return x.split(':')
 ## http://stackoverflow.com/a/1883251/761090
 import sys,site
 VENV=hasattr(sys,'real_prefix')
-if not hasattr(site,'getsitepackages'):
+if not VENV and not hasattr(site,'getsitepackages'):
 	# avoid this warning for rebuilds using -R, which should actually work just fine
 	if saveFlavor:
 		print 'WARN: it seems that you are running SCons inside a virtual environment, without having set it up properly (e.g. "source /my/virtual/env/bin/activate"). (sys.real_prefix is not defined, but site.getsitepackages is not defined either.) I will pretend we are inside a virtual environment, but things may break.'

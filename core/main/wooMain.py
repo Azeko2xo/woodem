@@ -352,13 +352,6 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 	import sys, traceback, site
 	try: import wooExtra
 	except: pass
-	#
-	# start non-blocking qt4 app here; need to ask on the mailing list on how to make it functional
-	# with ipython >0.11, start the even loop early (impossible with 0.10, which is thread-based)
-	# http://mail.scipy.org/pipermail/ipython-user/2011-July/007931.html mentions this
-	#if False and qt4 and woo.runtime.ipython_version>=11:
-	#	import IPython.lib.guisupport
-	#	IPython.lib.guisupport.start_event_loop_qt4()
 
 	if len(sys.argv)>0:
 		arg0=sys.argv[0]
@@ -439,37 +432,26 @@ def ipythonSession(opts,qt4=False,qapp=None,qtConsole=False):
 	if qt4 and WIN: woo.qt.Controller()
 
 	# show python console
-	# handle both ipython 0.10 and 0.11 (incompatible API)
+
 	ipython_version=woo.runtime.ipython_version()
 	import woo.ipythonintegration
 	woo.ipythonintegration.replaceInputHookIfNeeded()
-	if ipython_version==10:
-		from IPython.Shell import IPShellEmbed
-		ipshell=IPShellEmbed(banner=banner,rc_override=ipconfig)
-		ipshell()
-		# save history -- a workaround for atexit handlers not being run (why?)
-		# http://lists.ipython.scipy.org/pipermail/ipython-user/2008-September/005839.html
-		import IPython.ipapi
-		IPython.ipapi.get().IP.atexit_operations()
+	if ipython_version in (10,11): raise RuntimeError('Ipython 0.10, 0.11 are obsolete and not supported anymore.')
+	if qtConsole:
+		qapp.start()
 	else:
-		if qtConsole:
-			qapp.start()
-		else:
-			try: from IPython.terminal.embed import InteractiveShellEmbed # IPython>=1.0
-			except ImportError: from IPython.frontend.terminal.embed import InteractiveShellEmbed # IPython<1.0
-			# use the dict to set attributes
-			ipconfig['banner1']=banner+'\n' # called banner1 in >=0.11, not banner as in 0.10
-			for k in ipconfig: setattr(InteractiveShellEmbed,k,ipconfig[k])
-			ipshell=InteractiveShellEmbed()
-			if ipython_version>=12:
-				ipshell.prompt_manager.in_template= 'Woo [\#]: '
-				ipshell.prompt_manager.in2_template='    .\D.: '
-				ipshell.prompt_manager.out_template=' -> [\#]: '
-			ipshell()
-			# similar to the workaround, as for 0.10 (perhaps not needed?)
-			ipshell.atexit_operations()
-
-
+		try: from IPython.terminal.embed import InteractiveShellEmbed # IPython>=1.0
+		except ImportError: from IPython.frontend.terminal.embed import InteractiveShellEmbed # IPython<1.0
+		# use the dict to set attributes
+		ipconfig['banner1']=banner+'\n' # called banner1 in >=0.11, not banner as in 0.10
+		for k in ipconfig: setattr(InteractiveShellEmbed,k,ipconfig[k])
+		ipshell=InteractiveShellEmbed()
+		ipshell.prompt_manager.in_template= 'Woo [\#]: '
+		ipshell.prompt_manager.in2_template='    .\D.: '
+		ipshell.prompt_manager.out_template=' -> [\#]: '
+		ipshell()
+		# similar to the workaround, as for 0.10 (perhaps not needed?)
+		ipshell.atexit_operations()
 
 
 def batch(sysArgv=None):

@@ -75,7 +75,11 @@ If you want to use SCons for building (which is quite useful for keeping your in
     # install scons (needs the --egg option)
     pip install --egg scons
     # install all required python modules, this may take a while
-    pip install minieigen ipython numpy matplotlib genshi xlwt xlrd h5py lockfile psutil pillow bzr colour-runner
+    # note: headers for HDF5 must be installed (libhdf5-dev)
+    pip install cython minieigen ipython numpy matplotlib genshi xlwt xlrd h5py lockfile psutil pillow bzr colour-runner
+    # if you need the GUI, also run this (and add opengl,qt4 features to scons below)
+    pip install svn+https://svn.code.sf.net/p/python-xlib/code/trunk/  # xlib
+    ln -s /usr/lib/python2.7/dist-packages/{sip*,PyQt4} $VIRTUAL_ENV/lib/python2.7/site-packages
     # checkout the source from Launchpad
     bzr co lp:woo woo
     ### for wooExtra modules (if you need some)
@@ -92,6 +96,12 @@ If you want to use SCons for building (which is quite useful for keeping your in
     deactivate                       
 
 The ``woo`` executable remembers virtual python used during the build (in `shebang <http://en.wikipedia.org/wiki/Shebang_%28Unix%29>`__), so you can also execute it *without* activating the virtual environment (by saying ``my/venv/bin/woo``) the next time, and it *should* work (including recompilation with ``-R`` or ``-RR``), **unless** you have another installation of woo system-wide (in that case, make sure you always activate the virtual environment properly).
+
+.. note:: There is a script for quick creation of virtual installation, which is useful e.g. for keeping exact installed version despite ongoing development. It is located in :woosrc:`scripts/make-venv.sh` and can be run e.g. as::
+
+    $ scripts/make-venv.sh path/to/venv name /woo/source/tree
+
+  which will create the virtual environment and compile and install Woo in it.
 
 
 Windows
