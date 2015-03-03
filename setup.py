@@ -87,7 +87,8 @@ if DISTBUILD: march='core2'
 ##
 if DISTBUILD=='debian':
 	chunkSize=1 # be nice to the builder at launchpad
-	features+=['noxml'] # this should cut to half RAM used by boost::serialization templates at compile-time
+	# build with XML even for Debian (should be OK RAM-wise now)
+	# features+=['noxml'] # this should cut to half RAM used by boost::serialization templates at compile-time
 
 
 cxxFlavor=('_'+re.sub('[^a-zA-Z0-9_]','_',flavor) if flavor else '')
