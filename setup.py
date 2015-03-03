@@ -67,7 +67,7 @@ if not version and os.path.exists('.bzr'):
 features=['qt4','vtk','opengl','gts','openmp']
 if 'CC' in os.environ and os.environ['CC'].endswith('clang'): features.remove('openmp')
 flavor='' #('' if WIN else 'distutils')
-if PY3K: flavor+=('-' if flavor else '')+'py3k'
+if PY3K: flavor+=('-' if flavor else '')+'py3'
 debug=False
 chunkSize=1 # (1 if WIN else 10)
 hotCxx=[] # plugins to be compiled separately despite chunkSize>1
@@ -155,7 +155,7 @@ def wooPrepareChunks():
 				print('Updating timestamp of %s (%s -> %s)'%(chunkPath,os.path.getmtime(chunkPath),last+10))
 				os.utime(chunkPath,(last+10,last+10))
 def wooPrepareQt4():
-	'Generate Qt4 files (normally handled by scons); those are only neede with OpenGL'
+	'Generate Qt4 files (normally handled by scons); those are only needed with Qt/OpenGL'
 	global features
 	if 'qt4' not in features: return
 	rccInOut=[('gui/qt4/img.qrc','gui/qt4/img_rc.py')]
@@ -165,6 +165,12 @@ def wooPrepareQt4():
 		('gui/qt4/OpenGLManager.hpp','gui/qt4/moc_OpenGLManager.cc')
 	]
 	cxxRccInOut=[('gui/qt4/GLViewer.qrc','gui/qt4/qrc_GLViewer.cc')]
+	# stamp for python version, so that files are re-created even if time-stamp is OK but python version is different
+	# this is encountered when building debian package for py2 and py3 one after another
+	stamp='_pyversion__by_setup.py_'
+	currver=str(sys.version_info[:2]) # e.g (2, 7)
+	sameVer=os.path.exists(stamp) and (open(stamp,'r').read()==currver)
+	if not sameVer: open(stamp,'w').write(currver)
 	if WIN:
 		# this is ugly
 		# pyuic is a batch file, which is not runnable from mingw shell directly
@@ -178,7 +184,7 @@ def wooPrepareQt4():
 		for fIn,fOut in inOut:
 			cmd=tool+opts+[fIn,'-o',fOut]
 			# no need to recreate, since source is older
-			if os.path.exists(fOut) and os.path.getmtime(fIn)<os.path.getmtime(fOut): continue
+			if sameVer and os.path.exists(fOut) and os.path.getmtime(fIn)<os.path.getmtime(fOut): continue
 			print(' '.join(cmd))
 			status=subprocess.call(cmd)
 			if status: raise RuntimeError("Error %d returned when running %s"%(status,' '.join(cmd)))
@@ -296,9 +302,9 @@ if 'opengl' in features:
 			# this will for sure fail - either the lib is not found (the first error reported), or we get "undefined reference to main" when the lib is there
 			subprocess.check_output(['gcc','-lqglviewer-qt4'],stderr=subprocess.STDOUT)
 		except (subprocess.CalledProcessError,) as e:
-			print(20*'=','the output from gcc -lqglviewer-qt4',20*'=')
-			print(e.output)
-			print(60*'=')
+			#print(20*'=','output from gcc -lqglviewer-qt4',20*'=')
+			#print(e.output)
+			#print(60*'=')
 			if ' -lqglviewer-qt4' in e.output.decode('utf-8').split('\n')[0]:
 				print('info: library check: qglviewer-qt4 not found, using QGLViewer instead')
 				cxxLibs+=['QGLViewer']
