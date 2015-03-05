@@ -229,19 +229,35 @@ void GLViewer::setInitialView(){
 }
 
 void GLViewer::mouseMovesCamera(){
-	setMouseBinding(Qt::ShiftModifier, Qt::LeftButton, SELECT);
-	setMouseBinding(Qt::NoModifier, Qt::LeftButton, CAMERA, ROTATE);
-	if(paraviewLike3d){
-		setMouseBinding(Qt::NoModifier, Qt::RightButton, CAMERA, ZOOM);
-		setMouseBinding(Qt::NoModifier, Qt::MidButton, CAMERA, TRANSLATE);
-		setMouseBinding(Qt::ShiftModifier, Qt::RightButton, FRAME, TRANSLATE);
-		setMouseBinding(Qt::ShiftModifier, Qt::MidButton, FRAME, ROTATE);
-	} else {
-		setMouseBinding(Qt::ShiftModifier, Qt::MidButton, FRAME, TRANSLATE);
-		setMouseBinding(Qt::ShiftModifier, Qt::RightButton, FRAME, ROTATE);
-		setMouseBinding(Qt::NoModifier, Qt::MidButton, CAMERA, ZOOM);
-		setMouseBinding(Qt::NoModifier, Qt::RightButton, CAMERA, TRANSLATE);
-	}
+	#if QGLVIEWER_VERSION<0x020500
+		setMouseBinding(Qt::SHIFT + Qt::LeftButton, SELECT);
+		setMouseBinding(Qt::LeftButton, CAMERA, ROTATE);
+		if(paraviewLike3d){
+			setMouseBinding(Qt::RightButton, CAMERA, ZOOM);
+			setMouseBinding(Qt::MidButton, CAMERA, TRANSLATE);
+			setMouseBinding(Qt::SHIFT + Qt::RightButton, FRAME, TRANSLATE);
+			setMouseBinding(Qt::SHIFT + Qt::MidButton, FRAME, ROTATE);
+		} else {
+			setMouseBinding(Qt::MidButton, CAMERA, ZOOM);
+			setMouseBinding(Qt::RightButton, CAMERA, TRANSLATE);
+			setMouseBinding(Qt::SHIFT + Qt::MidButton, FRAME, TRANSLATE);
+			setMouseBinding(Qt::SHIFT + Qt::RightButton, FRAME, ROTATE);
+		}
+	#else
+		setMouseBinding(Qt::ShiftModifier, Qt::LeftButton, SELECT);
+		setMouseBinding(Qt::NoModifier, Qt::LeftButton, CAMERA, ROTATE);
+		if(paraviewLike3d){
+			setMouseBinding(Qt::NoModifier, Qt::RightButton, CAMERA, ZOOM);
+			setMouseBinding(Qt::NoModifier, Qt::MidButton, CAMERA, TRANSLATE);
+			setMouseBinding(Qt::ShiftModifier, Qt::RightButton, FRAME, TRANSLATE);
+			setMouseBinding(Qt::ShiftModifier, Qt::MidButton, FRAME, ROTATE);
+		} else {
+			setMouseBinding(Qt::NoModifier, Qt::MidButton, CAMERA, ZOOM);
+			setMouseBinding(Qt::NoModifier, Qt::RightButton, CAMERA, TRANSLATE);
+			setMouseBinding(Qt::ShiftModifier, Qt::MidButton, FRAME, TRANSLATE);
+			setMouseBinding(Qt::ShiftModifier, Qt::RightButton, FRAME, ROTATE);
+		}
+	#endif
 	// inversed zoom/in out on the wheel
 	camera()->frame()->setWheelSensitivity(paraviewLike3d?+1.:-1.);
 	setWheelBinding(Qt::ShiftModifier , FRAME, ZOOM);
@@ -249,9 +265,15 @@ void GLViewer::mouseMovesCamera(){
 };
 
 void GLViewer::mouseMovesManipulatedFrame(qglviewer::Constraint* c){
-	setMouseBinding(Qt::NoModifier, Qt::MidButton, FRAME, ZOOM);
-	setMouseBinding(Qt::NoModifier, Qt::LeftButton, FRAME, ROTATE);
-	setMouseBinding(Qt::NoModifier, Qt::RightButton, FRAME, TRANSLATE);
+	#if QGLVIEWER_VERSION<0x020500
+		setMouseBinding(Qt::MidButton, FRAME, ZOOM);
+		setMouseBinding(Qt::LeftButton, FRAME, ROTATE);
+		setMouseBinding(Qt::RightButton, FRAME, TRANSLATE);
+	#else
+		setMouseBinding(Qt::NoModifier, Qt::MidButton, FRAME, ZOOM);
+		setMouseBinding(Qt::NoModifier, Qt::LeftButton, FRAME, ROTATE);
+		setMouseBinding(Qt::NoModifier, Qt::RightButton, FRAME, TRANSLATE);
+	#endif
 	setWheelBinding(Qt::NoModifier , FRAME, ZOOM);
 	manipulatedFrame()->setConstraint(c);
 }

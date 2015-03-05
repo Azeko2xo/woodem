@@ -9,18 +9,20 @@ Linux is the platform of choice for both developing and using Woo. Installation 
 
 Package installation
 ---------------------
-.. admonition:: Recommendation
 
-   Installation from packages is the recommended method of installation. You will receive updates automatically via your system's package manager. `Woo-daily package archive <https://code.launchpad.net/~eudoxos/+archive/woo-daily>`_ contains the packages. Open the terminal and type::
+.. admonition:: Ubuntu
+
+   Installation from pre-compiled packages is the recommended method of installation. You will receive updates automatically via your system's package manager. `Woo-daily package archive <https://code.launchpad.net/~eudoxos/+archive/woo-daily>`_ contains the packages. Open the terminal and type::
 
       sudo add-apt-repository ppa:eudoxos/woo-daily
       sudo apt-get update
       sudo apt-get install python-woo
 
-
 Compilation from source
 -----------------------
-Source code is hosted at `Launchpad <http://www.launchpad.net/woo>`_ and can be obtained with the `Bazaar revision control system <http://bazaar.canonical.com>`_ by saying ``bzr checkout lp:woo``.
+Source code is hosted at `GitHub <https://github.com/eudoxos/woodem>`__ and can be otained with the `Git revision control system <http://git-scm.com/>`__ by saying ``git clone https://github.com/eudoxos/woodem.git``.
+
+(We still also use the hosting and `Launchpad <http://www.launchpad.net/woo>`_ and sources synced from GitHub can be obtained with the `Bazaar  <http://bazaar.canonical.com>`_ by saying ``bzr checkout lp:woo``).
 
 Woo is written in `C++11 <http://en.wikipedia.org/wiki/C%2B%2B11>`_ and can be compiled with gcc>=4.6 or clang >= 3.1. Note that clang does not support all features (``openmp`` in particular).
 
