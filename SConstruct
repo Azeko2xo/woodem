@@ -259,7 +259,12 @@ def CheckCXX(context):
 	# we REQUIRE gold to build Woo under Linux (not ld.bfd, the old GNU linker)
 	# binutils now require us to select gold explicitly (see https://launchpad.net/ubuntu/saucy/+source/binutils/+changelog)
 	# this option adds this to gcc and is hopefully backwards-compatible as to not break other builds
+	prev=env['LINKFLAGS']
 	env.Append(LINKFLAGS='-fuse-ld=gold')
+	ret2=context.TryLink('#include<iostream>\nint main(int argc, char**argv){std::cerr<<std::endl;return 0;}\n','.cpp')
+	if not ret2:
+		print '(-fuse-ld=gold not supported by the compiler, make sure that gold is used yourself)'
+		env.Replace(LINKFLAGS=prev)
 	return ret
 
 def CheckPython(context):
