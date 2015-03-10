@@ -75,7 +75,10 @@ std::tuple<Real,int> PsdSphereGenerator::computeNextRadiusBin(){
 			Real binDesired=psdPts[i][1]-(i>0?psdPts[i-1][1]:0.);
 			Real binDiff=binDesired-weightPerBin[i]*1./weightTotal;
 			LOG_TRACE("bin "<<i<<" (d="<<psdPts[i][0]<<"): should be "<<binDesired<<", current "<<weightPerBin[i]*1./weightTotal<<", diff="<<binDiff);
-			if(binDiff>maxBinDiff){ maxBinDiff=binDiff; maxBin=i; }
+			if(binDiff>maxBinDiff){
+				if(discrete && binDesired==0.){ /* if bins are filled exactly with discrete, then they may have all light negative diff, while the 0th bin has exact 0 and gets chosed; avoid this corner case explicitly */ }
+				else { maxBinDiff=binDiff; maxBin=i; }
+			}
 		}
 	}
 	LOG_TRACE("** maxBin="<<maxBin<<", d="<<psdPts[maxBin][0]);

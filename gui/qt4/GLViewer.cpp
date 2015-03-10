@@ -259,7 +259,7 @@ void GLViewer::mouseMovesCamera(){
 		}
 	#endif
 	// inversed zoom/in out on the wheel
-	camera()->frame()->setWheelSensitivity(paraviewLike3d?+1.:-1.);
+	camera()->frame()->setWheelSensitivity(paraviewLike3d?-1.:+1.);
 	setWheelBinding(Qt::ShiftModifier , FRAME, ZOOM);
 	setWheelBinding(Qt::NoModifier, CAMERA, ZOOM);
 };

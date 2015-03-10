@@ -24,7 +24,7 @@ struct Inlet: public PeriodicEngine{
 		void renderMassAndRate(const Vector3r& pos);
 	#endif
 	#define woo_dem_Inlet__CLASS_BASE_DOC_ATTRS \
-		Inlet,PeriodicEngine,ClassTrait().doc("Inlet generating new particles. This is an abstract base class which in itself does not generate anything, but provides some unified interface to derived classes.").section("Inlets & Outlets","TODO",{"ParticleGenerator","ParticleShooter","Outlet"}), \
+		Inlet,PeriodicEngine,ClassTrait().doc("Inlet generating new particles. This is an abstract base class which in itself does not generate anything, but provides some unified interface to derived classes.").section("Inlets & Outlets","TODO",{"ParticleGenerator","SpatialBias","ParticleShooter","Outlet"}), \
 		((int,mask,((void)":obj:`DemField.defaultInletMask`",DemField::defaultInletMask),,":obj:`~woo.dem.Particle.mask` for new particles.")) \
 		((Real,maxMass,-1,,"Mass at which the engine will not produce any particles (inactive if not positive)")) \
 		((long,maxNum,-1,,"Number of generated particles after which no more will be produced (inactive if not positive)")) \

@@ -72,7 +72,7 @@ int spheroidsToSTL(const string& out, const shared_ptr<DemField>& dem, Real tol,
 				throw std::runtime_error("Triangulation of capsules is (for internal and entirely fixable reasons) only available when compiled with the 'vtk' features.");
 			#endif
 		}
-		auto writeFacets=[&](const Vector3r& off, std::function<bool(const Vector3r&)> clip=std::function<bool(const Vector3r&)>([](const Vector3r&){ return true; })) {
+		auto writeFacets=[&](const Vector3r& off, std::function<bool(const Vector3r&)> clip=std::function<bool(const Vector3r&)>([](const Vector3r&){ return false; })) {
 			for(const Vector3i& t: tri){
 				Vector3r pp[]={pts[t[0]]+off,pts[t[1]]+off,pts[t[2]]+off};
 				// skip triangles which are entirely out of the clipping box (e.g. periodic cell)

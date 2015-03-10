@@ -100,10 +100,18 @@ env.Install('$LIBDIR/woo/_monkey',[env.File(env.Glob('py/_monkey/*.py'),'_monkey
 # install any locally-linked extra modules
 # using their respective setup.py
 import subprocess, sys
-for s in env.Glob('wooExtra/*/setup.py'):
-	s=str(s)
-	print 'Installing',os.path.abspath(s)
-	subprocess.check_call([sys.executable,os.path.abspath(s),'--quiet','install'],cwd=os.path.dirname(s))
+setups=[str(s) for s in env.Glob('wooExtra/*/setup.py')]
+if setups:
+	print 'Running setup.py (parallel):',' '.join([os.path.dirname(s) for s in setups])
+
+# http://stackoverflow.com/a/23616229/761090
+pp=[subprocess.Popen([sys.executable,os.path.abspath(s),'--quiet','install'],cwd=os.path.dirname(s)) for s in setups]
+exits=[p.wait() for p in pp]
+if sum(exits)>0:
+	print 'Error running:','. '.join([setups[i] for i,e in enumerate(exits) if e>0])
+	sys.exit(1)
+
+
 
 if 'qt4' in env['features']:
 	env.Install('$LIBDIR/woo/qt',[

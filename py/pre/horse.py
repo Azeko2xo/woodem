@@ -90,7 +90,7 @@ def prepareHorse(pre):
 	if not pre.grid: collider=InsertionSortCollider([Bo1_Sphere_Aabb(),Bo1_Facet_Aabb(),Bo1_Wall_Aabb()],verletDist=0.01)
 	else: collider=GridCollider([Grid1_Sphere(),Grid1_Facet(),Grid1_Wall()],label='collider')
 
-	S.engines=woo.utils.defaultEngines(model=pre.model,grid=pre.grid,dynDtPeriod=100,
+	S.engines=woo.dem.DemField.minimalEngines(model=pre.model,grid=pre.grid,dynDtPeriod=100,
 	)+[
 		woo.core.PyRunner(10,'S.plot.addData(i=S.step,t=S.time,total=S.energy.total(),relErr=(S.energy.relErr() if S.step>100 else 0),**S.energy)'),
 		woo.core.PyRunner(50,'import woo.pre.horse\nif S.step>100 and S.energy["kinetic"]<S.pre.relEkStop*abs(S.energy["grav"]): woo.pre.horse.finished(S)'),

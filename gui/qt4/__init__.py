@@ -128,7 +128,7 @@ class UiPrefs(woo.core.Object,woo.pyderived.PyWooObject):
 	_attrTraits=[
 		_PAT(bool,'glRotCursorFreeze',False,triggerPostLoad=True,doc='Freeze cursor when rotating things (moving with buttons pressed); useful for trackballs; not yet functional.'),
 		_PAT(bool,'prepShowVars',False,'Show variable names rather than descriptions by default in the preprocessor interface'),
-		_PAT(bool,'paraviewLike3d',True,triggerPostLoad=True,doc='Paraview-like mouse bindings for the 3d view (requires restart): middle-drag to move, left-drag to zoom. The default is the opposite.'),
+		_PAT(bool,'paraviewLike3d',True,triggerPostLoad=True,doc='Paraview-like mouse bindings for the 3d view (requires restart): middle-drag to move, left-drag to zoom. IF false, use old (Yade) behavior, which is the opposite.'),
 		_PAT(str,'defaultCmap','coolwarm',choice=woo.master.cmaps,triggerPostLoad=True,doc='Default colormap for scales.'),
 		# where to save preferences, plus a button to do so
 		_PAT(str,'prefsFile',woo.master.confDir+'/uiPrefs.conf',guiReadonly=True,noDump=True,buttons=(['Save preferences','self.savePrefs()',''],0),doc='Preferences will be loaded/saved from/to this file.'),

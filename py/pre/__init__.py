@@ -8,3 +8,4 @@ from . import horse
 from . import cylTriax
 from . import ell2d
 from . import triax
+from . import depot

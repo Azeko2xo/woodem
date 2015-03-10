@@ -79,7 +79,6 @@ Real DemFuncs::porosity(const shared_ptr<DemField>& dem, const shared_ptr<Node>&
 }
 
 vector<Real> DemFuncs::contactCoordQuantiles(const shared_ptr<DemField>& dem, const vector<Real>& quantiles, const shared_ptr<Node>& node, const AlignedBox3r& box){
-	if(!node) throw std::runtime_error("DemFuncs::contactCoordQuantiles: node must not be None.");
 	vector<Real> ret;
 	ret.reserve(quantiles.size());
 	if(quantiles.empty()) return ret;
@@ -93,8 +92,8 @@ vector<Real> DemFuncs::contactCoordQuantiles(const shared_ptr<DemField>& dem, co
 	#endif
 	for(const shared_ptr<Contact>& C: *dem->contacts){
 		if(!C->isReal()) continue;
-		Vector3r p=node->glob2loc(C->geom->node->pos);
-		if(!box.contains(p)) continue;
+		Vector3r p=node?node->glob2loc(C->geom->node->pos):C->geom->node->pos;
+		if(!box.isEmpty() && !box.contains(p)) continue;
 		coords.push_back(p[2]);
 	};
 	// no contacts yet, return NaNs

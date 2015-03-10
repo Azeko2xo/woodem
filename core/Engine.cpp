@@ -17,11 +17,17 @@ WOO_IMPL_LOGGER(Engine);
 
 void Engine::run(){ throw std::logic_error((getClassName()+" did not override Engine::run()").c_str()); } 
 
-void Engine::explicitRun(const shared_ptr<Scene>& scene_, const shared_ptr<Field>& field){
+void Engine::explicitRun(const shared_ptr<Scene>& scene_, const shared_ptr<Field>& field_){
 	if(!scene_) throw std::runtime_error("Engine.__call__: scene must not be None.");
 	scene=scene_.get();
-	if(field && !acceptsField(field.get())) throw std::runtime_error("Engine.__call__: field "+field->pyStr()+" passed, but is not accepted by the engine.");
-	if(!field && needsField()) setField();
+	if(field_){
+		// assign field spcified, if possible
+		if(!acceptsField(field_.get())) throw std::runtime_error("Engine.__call__: field "+field_->pyStr()+" passed, but is not accepted by the engine.");
+		this->field=field_;
+	} else {
+		// no field given; use one which is acceptable (error if none or more found)
+		if(needsField()) setField();
+	}
 	run();
 }
 
@@ -39,7 +45,7 @@ void Engine::setField(){
 		throw std::runtime_error(err); 
 	}
 	if(accepted.empty()) throw std::runtime_error("Engine "+pyStr()+" accepted no field to run on; remove it from engines."); 
-	field=accepted[0];
+	this->field=accepted[0];
 }
 
 void Engine::postLoad(Engine&, void* addr){
