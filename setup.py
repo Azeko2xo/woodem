@@ -50,15 +50,19 @@ if DISTBUILD=='debian':
 	print('Debian version from changelog: ',version)
 	revno='debian'
 # get version from queryling local bzr repo
-if not version and os.path.exists('.bzr'):
-	try:
-		# http://stackoverflow.com/questions/3630893/determining-the-bazaar-version-number-from-python-without-calling-bzr
-		from bzrlib.branch import BzrBranch
-		branch = BzrBranch.open_containing('.')[0]
-		revno=str(branch.last_revision_info()[0])
-	except:
-		revno='na'
-	version='1.0+r'+revno
+if not version
+	if os.path.exists('.git'):
+		for l in os.popen("LC_AL=C git rev-list HEAD --count 2>/dev/null").readlines():
+			revno=[:-1]
+	if os.path.exists('.bzr'):
+		try:
+			# http://stackoverflow.com/questions/3630893/determining-the-bazaar-version-number-from-python-without-calling-bzr
+			from bzrlib.branch import BzrBranch
+			branch = BzrBranch.open_containing('.')[0]
+			revno=str(branch.last_revision_info()[0])
+		except:
+			revno='na'
+		version='1.0+r'+revno
 	
 
 ##

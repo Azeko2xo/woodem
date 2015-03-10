@@ -163,18 +163,20 @@ def main(sysArgv=None):
 		import subprocess, woo.config, glob
 		if not woo.config.sourceRoot: raise RuntimeError('This build does not define woo.config.sourceRoot (packaged version?)')
 		if opts.rebuild>1:
-			if os.path.exists(woo.config.sourceRoot+'/.bzr'):
-				cmd=['bzr','up',woo.config.sourceRoot]
-			elif os.path.exists(woo.config.sourceRoot+'/.git'): raise RuntimeError('Updating git repositories not yet supported')
-			print 'Updating Woo using ',' '.join(cmd)
-			if subprocess.call(cmd): raise RuntimeError('Error updating Woo from bzr repository.')
+			if os.path.exists(woo.config.sourceRoot+'/.git'): cmd=['git','-C',woo.config.sourceRoot,'fetch']
+			elif os.path.exists(woo.config.sourceRoot+'/.bzr'): cmd=['bzr','up',woo.config.sourceRoot]
+			print 'Updating Woo using '+' '.join(cmd)
+			if subprocess.call(cmd): raise RuntimeError('Error updating Woo from repository.')
 			# find updatable dirs in wooExtra
 			for d in glob.glob(woo.config.sourceRoot+'/wooExtra/*')+glob.glob(woo.config.sourceRoot+'/wooExtra/*/*'):
 				dd=os.path.abspath(d)
 				if not os.path.isdir(dd): continue
-				if os.path.exists(dd+'/.bzr'):
-					print 'Updating '+dd
-					if subprocess.call(['bzr','up',dd]): raise RuntimeError('Error updating %d from bzr.'%(dd))
+				cmd=None
+				if os.path.exists(dd+'/.git'): cmd=['git','-C',dd,'fetch']
+				elif os.path.exists(dd+'/.bzr'): cmd=['bzr','up',dd]
+				if not cmd: continue
+				print 'Running: '+' '.join(cmd)
+				if subprocess.call(cmd): raise RuntimeError('Error updating %d from repository.'%(dd))
 		# rebuild
 		cmd=(['scons'] if not hasattr(woo.config,'sconsPath') else [sys.executable,woo.config.sconsPath])+['-Q','-C',woo.config.sourceRoot,'flavor=%s!'%woo.config.flavor,'debug=%d'%(1 if opts.debug else 0),'execCheck=%s'%(os.path.abspath(sys.argv[0]))]
 		print 'Rebuilding Woo using',' '.join(cmd)
