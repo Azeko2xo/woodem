@@ -163,7 +163,7 @@ def main(sysArgv=None):
 		import subprocess, woo.config, glob
 		if not woo.config.sourceRoot: raise RuntimeError('This build does not define woo.config.sourceRoot (packaged version?)')
 		if opts.rebuild>1:
-			if os.path.exists(woo.config.sourceRoot+'/.git'): cmd=['git','-C',woo.config.sourceRoot,'pull']
+			if os.path.exists(woo.config.sourceRoot+'/.git'): cmd=['git','-C',woo.config.sourceRoot,'pull','origin','master']
 			elif os.path.exists(woo.config.sourceRoot+'/.bzr'): cmd=['bzr','up',woo.config.sourceRoot]
 			print 'Updating Woo using '+' '.join(cmd)
 			if subprocess.call(cmd): raise RuntimeError('Error updating Woo from repository.')
@@ -172,7 +172,7 @@ def main(sysArgv=None):
 				dd=os.path.abspath(d)
 				if not os.path.isdir(dd): continue
 				cmd=None
-				if os.path.exists(dd+'/.git'): cmd=['git','-C',dd,'pull']
+				if os.path.exists(dd+'/.git'): cmd=['git','-C',dd,'pull','origin','master']
 				elif os.path.exists(dd+'/.bzr'): cmd=['bzr','up',dd]
 				if not cmd: continue
 				print 'Running: '+' '.join(cmd)
