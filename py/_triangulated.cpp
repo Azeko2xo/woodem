@@ -13,7 +13,29 @@
 	static log4cxx::LoggerPtr logger=log4cxx::Logger::getLogger("woo.triangulated");
 #endif
 
-int spheroidsToSTL(const string& out, const shared_ptr<DemField>& dem, Real tol, int mask, bool clipCell){
+int facetsToSTL(const string& out, const shared_ptr<DemField>& dem, const string& solid, int mask, bool append){
+	auto particleOk=[&](const shared_ptr<Particle>&p){ return (mask==0 || (p->mask & mask)) && (p->shape->isA<Facet>()); };
+	std::ofstream stl(out,append?(std::ofstream::app|std::ofstream::binary):std::ofstream::binary); // binary better, anyway
+	if(!stl.good()) throw std::runtime_error("Failed to open output file "+out+" for writing.");
+	int num=0;
+	stl<<"solid "<<solid<<"\n";
+	for(const auto& p: *dem->particles){
+		if(!particleOk(p)) continue;
+		const auto& f=p->shape->cast<Facet>();
+		Vector3r normal=f.getNormal().normalized();
+		stl<<"  facet normal "<<normal.x()<<" "<<normal.y()<<" "<<normal.z()<<"\n";
+		stl<<"    outer loop\n";
+		for(const auto& n: f.nodes) stl<<"      vertex "<<n->pos[0]<<" "<<n->pos[1]<<" "<<n->pos[2]<<"\n";
+		stl<<"    endloop\n";
+		stl<<"  endfacet\n";
+		num+=1;
+	}
+	stl<<"endsolid "<<solid<<"\n";
+	stl.close();
+	return num;
+}
+
+int spheroidsToSTL(const string& out, const shared_ptr<DemField>& dem, Real tol, const string& solid, int mask, bool append, bool clipCell){
 	if(tol==0 || isnan(tol)) throw std::runtime_error("tol must be non-zero.");
 	// first traversal to find reference radius
 	auto particleOk=[&](const shared_ptr<Particle>&p){ return (mask==0 || (p->mask & mask)) && (p->shape->isA<Sphere>() || p->shape->isA<Ellipsoid>() || p->shape->isA<Capsule>()); };
@@ -31,9 +53,9 @@ int spheroidsToSTL(const string& out, const shared_ptr<DemField>& dem, Real tol,
 	}
 	LOG_DEBUG("Triangulation tolerance is "<<tol);
 	
-	std::ofstream stl(out,std::ofstream::binary); // binary better, anyway
+	std::ofstream stl(out,append?(std::ofstream::app|std::ofstream::binary):std::ofstream::binary); // binary better, anyway
 	if(!stl.good()) throw std::runtime_error("Failed to open output file "+out+" for writing.");
-	stl<<"solid woo_export\n";
+	stl<<"solid "<<solid<<"\n";
 
 	Scene* scene=dem->scene;
 	if(!scene) throw std::logic_error("DEM field has not associated scene?");
@@ -117,7 +139,7 @@ int spheroidsToSTL(const string& out, const shared_ptr<DemField>& dem, Real tol,
 			}
 		}
 	}
-	stl<<"endsolid woo_export\n";
+	stl<<"endsolid "<<solid<<"\n";
 	stl.close();
 	return numTri;
 }
@@ -126,5 +148,10 @@ WOO_PYTHON_MODULE(_triangulated);
 BOOST_PYTHON_MODULE(_triangulated){
 	WOO_SET_DOCSTRING_OPTS;
 
-	py::def("spheroidsToSTL",spheroidsToSTL,(py::arg("stl"),py::arg("dem"),py::arg("tol"),py::arg("mask")=0,py::arg("cellClip")=false),"Export spheroids (:obj:`spheres <woo.dem.Sphere>`, :obj:`capsules <woo.dem.Capsule>`, :obj:`ellipsoids <woo.dem.Ellipsoid>`) to STL file. *tol* is the maximum distance between triangulation and smooth surface; if negative, it is relative to the smallest equivalent radius of particles for export. *mask* (if non-zero) only selects particles with matching :obj:`woo.dem.Particle.mask`. The exported STL ist ASCII.\n\nSpheres and ellipsoids are exported as tesselated icosahedra, with tesselation level determined from *tol*. The maximum error is :math:`e=r\\left(1-\\cos \\frac{2\\pi}{5}\\frac{1}{2}\\frac{1}{n}\\right)` for given tesselation level :math:`n` (1 for icosahedron, each level quadruples the number of triangles), with :math:`r` being the sphere's :obj:`radius <woo.dem.Sphere.radius>` (or ellipsoid's smallest :obj:`semiAxis <woo.dem.Ellipsoid.semiAxes>`); it follows that :math:`n=\\frac{\\pi}{5\\arccos\\left(1-\\frac{e}{r}\\right)}`, where :math:`n` will be rounded up.\n\nCapsules are triangulated in polar coordinates (slices, stacks). The error for regular :math:`n`-gon is :math:`e=r\\left(1-\\cos\\frac{2\\pi}{2n}\\right)` and it follows that :math:`n=\\frac{\\pi}{\\arccos\\left(1-\\frac{e}{r}\\right)}`; the minimum is restricted to be 4, to avoid degenerate shapes.\n\nThe number of facets written to the STL file is returned.\n\nWith periodic boundaries, *clipCell* will cause all triangles entirely outside of the periodic cell to be discarded.");
+	py::scope().attr("__name__")="woo._triangulated";
+
+	py::def("spheroidsToSTL",spheroidsToSTL,(py::arg("stl"),py::arg("dem"),py::arg("tol"),py::arg("solid")="woo_export",py::arg("mask")=0,py::arg("append")=false,py::arg("cellClip")=false),"Export spheroids (:obj:`spheres <woo.dem.Sphere>`, :obj:`capsules <woo.dem.Capsule>`, :obj:`ellipsoids <woo.dem.Ellipsoid>`) to STL file. *tol* is the maximum distance between triangulation and smooth surface; if negative, it is relative to the smallest equivalent radius of particles for export. *mask* (if non-zero) only selects particles with matching :obj:`woo.dem.Particle.mask`. The exported STL ist ASCII.\n\nSpheres and ellipsoids are exported as tesselated icosahedra, with tesselation level determined from *tol*. The maximum error is :math:`e=r\\left(1-\\cos \\frac{2\\pi}{5}\\frac{1}{2}\\frac{1}{n}\\right)` for given tesselation level :math:`n` (1 for icosahedron, each level quadruples the number of triangles), with :math:`r` being the sphere's :obj:`radius <woo.dem.Sphere.radius>` (or ellipsoid's smallest :obj:`semiAxis <woo.dem.Ellipsoid.semiAxes>`); it follows that :math:`n=\\frac{\\pi}{5\\arccos\\left(1-\\frac{e}{r}\\right)}`, where :math:`n` will be rounded up.\n\nCapsules are triangulated in polar coordinates (slices, stacks). The error for regular :math:`n`-gon is :math:`e=r\\left(1-\\cos\\frac{2\\pi}{2n}\\right)` and it follows that :math:`n=\\frac{\\pi}{\\arccos\\left(1-\\frac{e}{r}\\right)}`; the minimum is restricted to be 4, to avoid degenerate shapes.\n\nThe number of facets written to the STL file is returned.\n\nWith periodic boundaries, *clipCell* will cause all triangles entirely outside of the periodic cell to be discarded.\n\n*solid* specified name of ``solid`` inside the STL file; this is useful in conjunction with *append* (which writes at the end of the file) when writing multi-part STL suitable e.g. for `snappyHexMesh <http://www.openfoam.org/docs/user/snappyHexMesh.php>`__.");
+
+	py::def("facetsToSTL",facetsToSTL,(py::arg("stl"),py::arg("dem"),py::arg("solid"),py::arg("mask")=0,py::arg("append")=false),"Export :obj:`facets <woo.dem.Facet>` to STL file. Periodic boundaries are not handled in any special way.");
+
 };
