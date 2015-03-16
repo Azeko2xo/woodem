@@ -824,7 +824,7 @@ def _mkTimestamp():
 	import time
 	return time.strftime('_%Y%m%d_%H:%M')
 
-def Scene_plot_saveGnuplot(P,baseName,term='wxt',extension=None,timestamp=False,comment=None,title=None,varData=False):
+def Scene_plot_saveGnuplot(P,baseName,term='wxt',extension=None,timestamp=False,comment=None,title=None,varData=False,timeStamp=True):
 	"""Save data added with :obj:`woo.plot.addData` into (compressed) file and create .gnuplot file that attempts to mimick plots specified with :obj:`woo.plot.plots`.
 
 :param baseName: used for creating baseName.gnuplot (command file for gnuplot), associated ``baseName.data.bz2`` (data) and output files (if applicable) in the form ``baseName.[plot number].extension``
@@ -843,7 +843,8 @@ def Scene_plot_saveGnuplot(P,baseName,term='wxt',extension=None,timestamp=False,
 	vars=data.keys(); vars.sort()
 	P.saveDataTxt(fileName=baseName+'.data.bz2',vars=vars)
 	fPlot=file(baseName+".gnuplot",'w')
-	fPlot.write('#!/usr/bin/env gnuplot\n#\n# created '+time.asctime()+' ('+time.strftime('%Y%m%d_%H:%M')+')\n#\n')
+	fPlot.write('#!/usr/bin/env gnuplot\n#\n')
+	if  timeStamp: fPlot.write('# created '+time.asctime()+' ('+time.strftime('%Y%m%d_%H:%M')+')\n#\n')
 	if comment: fPlot.write('# '+comment.replace('\n','\n# ')+'#\n')
 	dataFile='"< bzcat %s.data.bz2"'%(baseNameNoPath)
 	if varData:

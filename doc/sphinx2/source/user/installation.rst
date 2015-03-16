@@ -57,7 +57,7 @@ A typical first-compile command line may look like this::
 
    scons jobs=4 CXX='ccache g++' features=qt4,opengl,vtk,openmp,gts
 
-For quick development, woo takes the ``-R`` flag, which will recompile itself (with remembered options) and run. The ``-RR`` flag will, in addition, update the source from upstream before recompiling (if managed with bzr).
+For quick development, woo takes the ``-R`` flag, which will recompile itself (with remembered options) and run. The ``-RR`` flag will, in addition, update the source from upstream before recompiling (if managed with git/bzr).
 
 Virtual environment
 ^^^^^^^^^^^^^^^^^^^

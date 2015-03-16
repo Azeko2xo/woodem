@@ -47,7 +47,7 @@ There is an export function which, besides data file, also exports file for `Gnu
 
 .. ipython::
 
-   Woo [1]: S.plot.saveGnuplot('tutorial/data-plot-energy-gnuplot')
+   Woo [1]: S.plot.saveGnuplot('tutorial/data-plot-energy-gnuplot',timeStamp=False)  # no timeStamp=False so that the file does not change at every run
 
 .. literalinclude:: data-plot-energy-gnuplot.gnuplot
 

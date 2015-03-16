@@ -1,7 +1,5 @@
 #!/usr/bin/env gnuplot
 #
-# created Fri Feb 27 10:50:28 2015 (20150227_10:50)
-#
 set term wxt 0 persist
 set xlabel ' t=S.time'
 set grid

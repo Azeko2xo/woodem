@@ -23,7 +23,7 @@ class CylDepot(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		_PAT(woo.models.ContactModelSelector,'model',woo.models.ContactModelSelector(name='linear',damping=.4,numMat=(1,1),matDesc=['everything'],mats=[woo.dem.FrictMat(density=2e3,young=2e5,tanPhi=0)]),doc='Contact model and materials.'),
 		_PAT(int,'cylDiv',40,'Fineness of cylinder division'),
 		_PAT(str,'stlOut','',filename=True,doc='Output file with triangulated particles (not the boundary); if empty, nothing will be exported at the end.'),
-		_PAT(float,'stlTol',.2e-3,unit='m',doc='Tolerance for STL export (maximum distance between ideal shape and triangulation; passed to :obj:`_triangulated.spheroidsToStl)'),
+		_PAT(float,'stlTol',.2e-3,unit='m',doc='Tolerance for STL export (maximum distance between ideal shape and triangulation; passed to :obj:`_triangulated.spheroidsToStl`)'),
 	]
 	def __init__(self,**kw):
 		woo.core.Preprocessor.__init__(self)
