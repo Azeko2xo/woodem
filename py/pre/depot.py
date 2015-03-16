@@ -22,8 +22,12 @@ class CylDepot(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		_PAT(woo.dem.SpatialBias,'bias',woo.dem.PsdAxialBias(psdPts=defaultPsd,axis=2,fuzz=.1,discrete=True),doc='Uneven distribution of particles in space, depending on their radius. Use axis=2 for altering the distribution along the cylinder axis.'),
 		_PAT(woo.models.ContactModelSelector,'model',woo.models.ContactModelSelector(name='linear',damping=.4,numMat=(1,1),matDesc=['everything'],mats=[woo.dem.FrictMat(density=2e3,young=2e5,tanPhi=0)]),doc='Contact model and materials.'),
 		_PAT(int,'cylDiv',40,'Fineness of cylinder division'),
-		_PAT(str,'stlOut','',filename=True,doc='Output file with triangulated particles (not the boundary); if empty, nothing will be exported at the end.'),
-		_PAT(float,'stlTol',.2e-3,unit='m',doc='Tolerance for STL export (maximum distance between ideal shape and triangulation; passed to :obj:`_triangulated.spheroidsToStl`)'),
+		_PAT(float,'unbE',0.005,':obj:`Unbalanced energy <woo._utils2.unbalancedEnergy>` as criterion to consider the particles settled.'),
+		# STL output
+		_PAT(str,'stlOut','',startGroup='STL output',filename=True,doc='Output file with triangulated particles (not the boundary); if empty, nothing will be exported at the end.'),
+		_PAT(float,'stlTol',.2e-3,unit='m',doc='Tolerance for STL export (maximum distance between ideal shape and triangulation; passed to :obj:`_triangulated.spheroidsToStl)'),
+		_PAT(Vector2,'extraHt',(.5,.5),unit='m',doc='Extra height to be added to bottom and top of the resulting packing, when the new STL-exported cylinder is created.'),
+		_PAT(float,'cylAxDiv',-1.,'Fineness of division of the STL cylinder; see :obj:`woo.triangulated.cylinder` ``axDiv``. The default create nearly-square triangulation'),
 	]
 	def __init__(self,**kw):
 		woo.core.Preprocessor.__init__(self)
@@ -60,18 +64,30 @@ class CylDepot(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 
 	def checkProgress(self,S):
 		u=woo.utils.unbalancedEnergy(S)
-		print("unbalanced E: %g/0.001"%u)
-		if not u<0.05: return
+		print("unbalanced E: %g/%g"%(u,S.pre.unbE))
+		if not u<S.pre.unbE: return
 
 		r,h=S.pre.htDiam[1]/2.,S.pre.htDiam[0]
 		# check how much was the settlement
 		zz=woo.utils.contactCoordQuantiles(S.dem,[.999])
 		print 'Compaction done, settlement from %g (loose) to %g (dense); rel. %g, relSettle was %g.'%(S.pre.ht0,zz[0],zz[0]/S.pre.ht0,S.pre.relSettle)
-		# run this engine just once, explicitly
+		# delete everything abot; run this engine just once, explicitly
 		woo.dem.BoxOutlet(box=((-r,-r,0),(r,r,h)))(S,S.dem)
 		S.stop()
 		if S.pre.stlOut:
-			n=woo.triangulated.spheroidsToSTL(S.pre.stlOut,S.dem,tol=S.pre.stlTol)
+			# delete the triangulated cylinder
+			for p in S.dem.par:
+				if isinstance(p.shape,Facet): S.dem.par.remove(p.id)
+			# create a new (CFD-suitable) cylinder
+			# bits for marking the mesh parts
+			S.lab.cylBits=8,16,32
+			cylMasks=[DemField.defaultBoundaryMask | b for b in S.lab.cylBits]
+			S.dem.par.add(woo.triangulated.cylinder(Vector3(0,0,-S.pre.extraHt[0]),Vector3(0,0,S.pre.htDiam[0]+S.pre.extraHt[1]),radius=S.pre.htDiam[1]/2.,div=S.pre.cylDiv,axDiv=S.pre.cylAxDiv,capA=True,capB=True,wallCaps=False,masks=cylMasks,mat=S.pre.model.mats[0]))
+
+			n=woo.triangulated.spheroidsToSTL(S.pre.stlOut,S.dem,tol=S.pre.stlTol,solid="particles")
+			n+=woo.triangulated.facetsToSTL(S.pre.stlOut,S.dem,append=True,mask=S.lab.cylBits[0],solid="lateral")
+			n+=woo.triangulated.facetsToSTL(S.pre.stlOut,S.dem,append=True,mask=S.lab.cylBits[1],solid="bottom")
+			n+=woo.triangulated.facetsToSTL(S.pre.stlOut,S.dem,append=True,mask=S.lab.cylBits[2],solid="top")
 			print 'Exported %d facets to %s'%(n,S.pre.stlOut)
 		else:
 			print 'Not running STL export (stlOut empty)'

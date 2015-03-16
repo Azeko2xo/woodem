@@ -7,12 +7,13 @@ from woo._triangulated import *
 
 _docInlineModules=(woo._triangulated,)
 
-def cylinder(A,B,radius,div=20,axDiv=1,capA=False,capB=False,wallCaps=False,angVel=0,fixed=True,**kw):
+def cylinder(A,B,radius,div=20,axDiv=1,capA=False,capB=False,masks=None,wallCaps=False,angVel=0,fixed=True,**kw):
 	'''Return triangulated cylinder, as list of facets to be passed to :obj:`ParticleContainer.append`. ``**kw`` arguments are passed to :obj:`woo.pack.gtsSurface2Facets` (and thus to :obj:`woo.utils.facet`).
 
 :param angVel: axial angular velocity of the cylinder; the cylinder has nevertheless zero velocity, only :obj:`woo.dem.Facet.fakeVel` is assigned.
 :param axDiv: divide the triangulation axially as well; the default creates facets spanning between both bases. If negative, it will attempt to have that ratio with circumferential division, e.g. specifying -1 will give nearly-square division.
 :param wallCaps: create caps as walls (with :obj:`woo.dem.wall.glAB` properly set) rather than triangulation; cylinder axis *must* be aligned with some global axis in this case, otherwise and error is raised.
+:param masks: mask values for cylinder, capA and capB respectively; it must be either *None* or a 3-tuple (regardless of whether caps are created or not); ``**kw`` can be used to specify ``mask`` which is passed to :obj:`woo.dem.Facet.make`, but *masks* will override this, if given.
 :returns: List of :obj:`particles <woo.dem.Particle>` building up the cylinder. Caps (if any) are always at the beginning of the list, triangulated perimeter is at the end.
 	'''
 	cylLen=(B-A).norm()
@@ -51,6 +52,19 @@ def cylinder(A,B,radius,div=20,axDiv=1,capA=False,capB=False,wallCaps=False,angV
 	if angVel!=0: 
 		for f in ff:
 			f.shape.fakeVel=-radius*angVel*f.shape.getNormal().cross(ax)
+	# override masks of particles
+	if masks:
+		for f in ff: f.mask=masks[0] # set the cylinder as if everywhere first
+		if wallCaps:
+			if capA: caps[0].mask=masks[1]
+			if capB: caps[-1].masks[2]
+		else:
+			if capA:
+				for f in ff:
+					if sum([1 for n in f.shape.nodes if n.pos==A]): f.mask=masks[1]
+			if capB:
+				for f in ff:
+					if sum([1 for n in f.shape.nodes if n.pos==B]): f.mask=masks[2]
 	return caps+ff
 
 def quadrilateral(A,B,C,D,size=0,div=Vector2i(0,0),**kw):

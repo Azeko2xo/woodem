@@ -218,6 +218,8 @@ WOO_PYTHON_MODULE(_utils2);
 BOOST_PYTHON_MODULE(_utils2){
 	// http://numpy.scipy.org/numpydoc/numpy-13.html mentions this must be done in module init, otherwise we will crash
 	//import_array();
+	py::scope().attr("__name__")="woo._utils2";
+
 
 	WOO_SET_DOCSTRING_OPTS;
 	py::def("pWaveDt",pWaveDt,(py::arg("scene")=py::object(),py::arg("noClumps")=false),"Get timestep accoring to the velocity of P-Wave propagation; computed from sphere radii, rigidities and masses.");

@@ -125,6 +125,7 @@ struct VectorPickle: py::pickle_suite{
 
 WOO_PYTHON_MODULE(_customConverters);
 BOOST_PYTHON_MODULE(_customConverters){
+	py::scope().attr("__name__")="woo._customConverters";
 
 	custom_OpenMPAccumulator_from_float(); py::to_python_converter<OpenMPAccumulator<Real>, custom_OpenMPAccumulator_to_float>(); 
 	custom_OpenMPAccumulator_from_int(); py::to_python_converter<OpenMPAccumulator<int>, custom_OpenMPAccumulator_to_int>(); 
