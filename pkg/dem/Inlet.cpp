@@ -13,10 +13,6 @@
 
 #include<boost/range/algorithm/lower_bound.hpp>
 
-#if 0
-	#include<woo/extra/numpy_boost.hpp>
-#endif
-
 #include<boost/tuple/tuple_comparison.hpp>
 
 WOO_PLUGIN(dem,(Inlet)(ParticleGenerator)(MinMaxSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(RandomInlet)(BoxInlet)(BoxInlet2d)(CylinderInlet)(ArcInlet)/*(ArcShooter)*/(SpatialBias)(AxialBias)(PsdAxialBias));
@@ -77,8 +73,8 @@ Vector3r PsdAxialBias::unitPos(const Real& d){
 	} else {
 		Real f0,f1,t;
 		std::tie(f0,f1,t)=linearInterpolateRel(d,psdPts,pos);
-		//cerr<<"PSD interp for "<<d<<": "<<d0<<".."<<d1<<", pos="<<pos<<", t="<<t<<endl;
-		if(t==0){
+		LOG_TRACE("PSD interp for "<<d<<": "<<f0<<".."<<f1<<", pos="<<pos<<", t="<<t);
+		if(t==0.){
 			// we want the interval to the left of our point
 			if(pos==0){ LOG_WARN("PsdAxiaBias.unitPos: discrete PSD interpolation returned point at the beginning for d="<<d<<", which should be zero. No interpolation done, setting 0."); p=0; return p3; }
 			f1=f0; f0=psdPts[pos-1].y();

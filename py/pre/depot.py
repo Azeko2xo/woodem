@@ -10,7 +10,8 @@ class CylDepot(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 	'Deposition of particles inside cylindrical tube'
 	_classTraits=None
 	_PAT=woo.pyderived.PyAttrTrait # less typing
-	defaultPsd=[(.007,0),(.01,.4),(.012,.7),(.02,1)]
+	#defaultPsd=[(.007,0),(.01,.4),(.012,.7),(.02,1)]
+	defaultPsd=[(5e-3,.0),(6.3e-3,.12),(8e-3,.53),(10e-3,.8),(12.5e-3,.94),(20e-3,1)]
 	def postLoad(self,I):
 		self.ht0=self.htDiam[0]/self.relSettle
 		# if I==id(self.estSettle): 
@@ -18,7 +19,7 @@ class CylDepot(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		_PAT(Vector2,'htDiam',(.45,.1),unit='m',doc='Height and diameter of the resulting cylinder; the initial cylinder has the height of :obj:`ht0`, and particles are, after stabilization, clipped to :obj:`htDiam`, the resulting height.'),
 		_PAT(float,'relSettle',.3,triggerPostLoad=True,doc='Estimated relative height after deposition (e.g. 0.4 means that the sample will settle around 0.4 times the original height). This value has to be guessed, as there is no exact relation to predict the amount of settling; 0.3 is a good initial guess, but it may depend on the PSD.'),
 		_PAT(float,'ht0',.9,guiReadonly=True,doc='Initial height (for loose sample), computed automatically from :obj:`relSettle` and :obj:`htDiam`.'),
-		_PAT(woo.dem.ParticleGenerator,'gen',woo.dem.PsdSphereGenerator(psdPts=defaultPsd,discrete=True),'Object for particle generation'),
+		_PAT(woo.dem.ParticleGenerator,'gen',woo.dem.PsdSphereGenerator(psdPts=defaultPsd,discrete=False),'Object for particle generation'),
 		_PAT(woo.dem.SpatialBias,'bias',woo.dem.PsdAxialBias(psdPts=defaultPsd,axis=2,fuzz=.1,discrete=True),doc='Uneven distribution of particles in space, depending on their radius. Use axis=2 for altering the distribution along the cylinder axis.'),
 		_PAT(woo.models.ContactModelSelector,'model',woo.models.ContactModelSelector(name='linear',damping=.4,numMat=(1,1),matDesc=['everything'],mats=[woo.dem.FrictMat(density=2e3,young=2e5,tanPhi=0)]),doc='Contact model and materials.'),
 		_PAT(int,'cylDiv',40,'Fineness of cylinder division'),
@@ -74,16 +75,17 @@ class CylDepot(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		# delete everything abot; run this engine just once, explicitly
 		woo.dem.BoxOutlet(box=((-r,-r,0),(r,r,h)))(S,S.dem)
 		S.stop()
-		if S.pre.stlOut:
-			# delete the triangulated cylinder
-			for p in S.dem.par:
-				if isinstance(p.shape,Facet): S.dem.par.remove(p.id)
-			# create a new (CFD-suitable) cylinder
-			# bits for marking the mesh parts
-			S.lab.cylBits=8,16,32
-			cylMasks=[DemField.defaultBoundaryMask | b for b in S.lab.cylBits]
-			S.dem.par.add(woo.triangulated.cylinder(Vector3(0,0,-S.pre.extraHt[0]),Vector3(0,0,S.pre.htDiam[0]+S.pre.extraHt[1]),radius=S.pre.htDiam[1]/2.,div=S.pre.cylDiv,axDiv=S.pre.cylAxDiv,capA=True,capB=True,wallCaps=False,masks=cylMasks,mat=S.pre.model.mats[0]))
 
+		# delete the triangulated cylinder
+		for p in S.dem.par:
+			if isinstance(p.shape,Facet): S.dem.par.remove(p.id)
+		# create a new (CFD-suitable) cylinder
+		# bits for marking the mesh parts
+		S.lab.cylBits=8,16,32
+		cylMasks=[DemField.defaultBoundaryMask | b for b in S.lab.cylBits]
+		S.dem.par.add(woo.triangulated.cylinder(Vector3(0,0,-S.pre.extraHt[0]),Vector3(0,0,S.pre.htDiam[0]+S.pre.extraHt[1]),radius=S.pre.htDiam[1]/2.,div=S.pre.cylDiv,axDiv=S.pre.cylAxDiv,capA=True,capB=True,wallCaps=False,masks=cylMasks,mat=S.pre.model.mats[0]))
+
+		if S.pre.stlOut:
 			n=woo.triangulated.spheroidsToSTL(S.pre.stlOut,S.dem,tol=S.pre.stlTol,solid="particles")
 			n+=woo.triangulated.facetsToSTL(S.pre.stlOut,S.dem,append=True,mask=S.lab.cylBits[0],solid="lateral")
 			n+=woo.triangulated.facetsToSTL(S.pre.stlOut,S.dem,append=True,mask=S.lab.cylBits[1],solid="bottom")

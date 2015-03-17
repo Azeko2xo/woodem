@@ -63,8 +63,11 @@ std::tuple<Real,int> PsdSphereGenerator::computeNextRadiusBin(){
 		maxBin=0; // the default, just in case the PSD is not sane
 		for(size_t i=0; i<psdPts.size()-1; i++){
 			if(psdPts[i+1][1]-psdPts[i][1]>0){
-				// for discrete PSDs, we have an additional restriction that the left point is non-zero
-				if(!discrete || psdPts[i][1]>0){ maxBin=i; break; }
+				// for discrete PSDs, we have an additional restriction that the left point is non-zero;
+				// for non-discrete, discard it as well, since we interpolate between maxBin-1..maxBin
+				// and if psdPts[i][1]==0, it means that we will pick maxBin-1 directly, which should
+				// happen with zero probability actually
+				if(psdPts[i][1]>0){ maxBin=i; break; }
 			}
 		}
 	}

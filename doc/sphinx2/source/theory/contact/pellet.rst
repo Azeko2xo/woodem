@@ -4,7 +4,9 @@
 Pellet contact model
 ==============================
 
-.. note:: Development of this model was sponsored by `COREM <http://corem.qc.ca>`__.
+.. note:: Development of this model was commercially sponsored.
+
+.. sponsored by `COREM <http://corem.qc.ca>`__.
 
 Pellet contact model is custom-developed model with high plastic dissipation in the normal sense, accumulating plastic dissipation immediately when loaded. Adhesion force is initially zero, though it grows with normal plastic deformation, i.e. is dependent on the history of the contact loading.
 
