@@ -865,8 +865,10 @@ class ObjectEditor(QFrame):
 		self.refreshTimer.timeout.connect(self.refreshEvent)
 		self.refreshTimer.start(500)
 
-	def getListTypeFromDocstring(self,trait):
+	def getListTypeFromDocstring(self,obj,trait):
 		"Guess type of array from parsing trait.cxxType. Ugly but works."
+		# head for warnings
+		wHead=obj.__class__.__module__+'.'+obj.__class__.__name__+'.'+trait.name
 		def vecTest(T,cxxT):
 			regexp=r'^\s*(std\s*::)?\s*vector\s*<\s*(shared_ptr\s*<\s*)?\s*(std\s*::)?\s*('+T+r')(\s*>)?\s*>\s*$'
 			m=re.match(regexp,cxxT)
@@ -883,6 +885,7 @@ class ObjectEditor(QFrame):
 			'Real':float,'float':float,'double':float,
 			'Vector6r':Vector6,'Vector6i':Vector6i,'Vector3i':Vector3i,'Vector2r':Vector2,'Vector2i':Vector2i,
 			'Vector3r':Vector3,'Matrix3r':Matrix3,'Se3r':Se3FakeType,'Quaternionr':Quaternion,
+			'VectorXr':VectorX,'MatrixXr':MatrixX,
 			'AlignedBox2r':AlignedBox2,'AlignedBox3r':AlignedBox3,
 			'string':str
 		}
@@ -897,7 +900,7 @@ class ObjectEditor(QFrame):
 		#print 'No luck with ',T
 		m=vecGuess(cxxT)
 		if m:
-			#print 'guessed literal type',m.group('elemT')
+			# print 'guessed literal type',m.group('elemT')
 			elemT=m.group('elemT')
 			klasses=[c for c in woo.system.childClasses(woo.core.Object,includeBase=True) if c.__name__==elemT]
 			if len(klasses)==0: logging.warn('%s: no Python type object with name %s found (cxxType=%s)'%(wHead,elemT,trait.cxxType))
@@ -957,7 +960,7 @@ class ObjectEditor(QFrame):
 
 		# determine entry type
 		if isinstance(val,list):
-			t=self.getListTypeFromDocstring(trait)
+			t=self.getListTypeFromDocstring(obj,trait)
 			if not t and len(val)==0: t=(val[0].__class__,) # 1-tuple is list of the contained type
 			#if not t: raise RuntimeError('Unable to guess type of '+str(obj)+'.'+attr)
 		elif val.__class__ in _attributeGuessedTypeMap: t=_attributeGuessedTypeMap[val.__class__]

@@ -22,7 +22,7 @@ Compilation from source
 -----------------------
 Source code is hosted at `GitHub <https://github.com/eudoxos/woodem>`__ and can be otained with the `Git revision control system <http://git-scm.com/>`__ by saying ``git clone https://github.com/eudoxos/woodem.git``.
 
-(We still also use the hosting and `Launchpad <http://www.launchpad.net/woo>`_ and sources synced from GitHub can be obtained with the `Bazaar  <http://bazaar.canonical.com>`_ by saying ``bzr checkout lp:woo``).
+(We still also use the hosting and `Launchpad <http://www.launchpad.net/woo>`_ and sources synced from GitHub can be obtained with the `Bazaar  <http://bazaar.canonical.com>`_ by saying ``bzr checkout lp:woo``. Prefer to use git, however, since updates via ``-RR`` are more reliable, and git is also much faster).
 
 Woo is written in `C++11 <http://en.wikipedia.org/wiki/C%2B%2B11>`_ and can be compiled with gcc>=4.6 or clang >= 3.1. Note that clang does not support all features (``openmp`` in particular).
 

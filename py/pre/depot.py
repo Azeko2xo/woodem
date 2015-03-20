@@ -28,7 +28,7 @@ class CylDepot(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		self.ht0=self.htDiam[0]/self.relSettle
 		# if I==id(self.estSettle): 
 	_attrTraits=[
-		_PAT(str,'preCooked','',noDump=True,noGui=False,startGroup='Predefined config',choice=['','Berlin 1','Berlin 2'],triggerPostLoad=True,doc='Apply pre-cooked configuration (i.e. change other parameters); this option is not saved.'),
+		_PAT(str,'preCooked','',noDump=True,noGui=False,startGroup='General',choice=['','Berlin 1','Berlin 2'],triggerPostLoad=True,doc='Apply pre-cooked configuration (i.e. change other parameters); this option is not saved.'),
 		_PAT(Vector2,'htDiam',(.45,.1),unit='m',doc='Height and diameter of the resulting cylinder; the initial cylinder has the height of :obj:`ht0`, and particles are, after stabilization, clipped to :obj:`htDiam`, the resulting height.'),
 		_PAT(float,'relSettle',.3,triggerPostLoad=True,doc='Estimated relative height after deposition (e.g. 0.4 means that the sample will settle around 0.4 times the original height). This value has to be guessed, as there is no exact relation to predict the amount of settling; 0.3 is a good initial guess, but it may depend on the PSD.'),
 		_PAT(float,'ht0',.9,guiReadonly=True,doc='Initial height (for loose sample), computed automatically from :obj:`relSettle` and :obj:`htDiam`.'),
