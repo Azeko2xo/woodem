@@ -15,8 +15,7 @@
 
 #include<boost/tuple/tuple_comparison.hpp>
 
-WOO_PLUGIN(dem,(Inlet)(ParticleGenerator)(MinMaxSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(RandomInlet)(BoxInlet)(BoxInlet2d)(CylinderInlet)(ArcInlet)/*(ArcShooter)*/(SpatialBias)(AxialBias)(PsdAxialBias));
-WOO_IMPL_LOGGER(RandomInlet);
+WOO_PLUGIN(dem,(Inlet)(ParticleGenerator)(MinMaxSphereGenerator)(ParticleShooter)(AlignedMinMaxShooter)(RandomInlet)(BoxInlet)(BoxInlet2d)(CylinderInlet)(ArcInlet)/*(ArcShooter)*/(SpatialBias)(AxialBias)(PsdAxialBias)(LayeredAxialBias));
 
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_Inlet__CLASS_BASE_DOC_ATTRS);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_ParticleGenerator__CLASS_BASE_DOC_ATTRS_PY);
@@ -31,8 +30,11 @@ WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_ArcInlet__CLASS_BASE_DOC_ATTRS);
 WOO_IMPL__CLASS_BASE_DOC_PY(woo_dem_SpatialBias__CLASS_BASE_DOC_PY);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_AxialBias__CLASS_BASE_DOC_ATTRS);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_PsdAxialBias__CLASS_BASE_DOC_ATTRS);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_LayeredAxialBias__CLASS_BASE_DOC_ATTRS);
 
+WOO_IMPL_LOGGER(RandomInlet);
 WOO_IMPL_LOGGER(PsdAxialBias);
+WOO_IMPL_LOGGER(LayeredAxialBias);
 
 
 #if 0
@@ -97,6 +99,45 @@ Vector3r PsdAxialBias::unitPos(const Real& d){
 	if(invert) p=1-p;
 	return p3;
 }
+
+void LayeredAxialBias::postLoad(LayeredAxialBias&,void*){
+	// check correctness
+	xRangeSum.resize(layerSpec.size());
+	for(size_t i=0; i<layerSpec.size(); i++){
+		const auto& l=layerSpec[i];
+		if(l.size()<4 || l.size()%2!=0) throw std::runtime_error("LayeredAxialBias.layerSpec["+to_string(i)+"]: must have at least 4 items, and even number of items.");
+		for(int j=0; j<l.size(); j+=2){
+			if(l[j+1]<=l[j]) throw std::runtime_error("LayeredAxialBias.layerSpec["+to_string(i)+"]: items ["+to_string(j)+"]="+to_string(l[j])+" and ["+to_string(j+1)+"]="+to_string(l[j+1])+" not ordered increasingly.");
+		}
+		for(int j=2; j<l.size(); j++){
+			if(!(l[j]>=0 && l[j]<=1)) throw std::runtime_error("LayeredAxialBias.layerSpec["+to_string(i)+"]["+to_string(j)+"]="+to_string(l[j])+": must be in 〈0,1〉.");
+		}
+		xRangeSum[i]=0;
+		for(int j=2; j<l.size(); j+=2) xRangeSum[i]+=l[j+1]-l[j];
+	}
+}
+
+Vector3r LayeredAxialBias::unitPos(const Real& d){
+	Vector3r p3=Mathr::UnitRandom3();
+	Real& p(p3[axis]);
+	int ll=-1;
+	for(size_t i=0; i<layerSpec.size(); i++){ if(layerSpec[i][0]<=d && layerSpec[i][1]>d) ll=i; }
+	if(ll<0){ LOG_WARN("No matching fraction for d="<<d<<", no bias applied."); return p3; }
+	const auto& l(layerSpec[ll]);
+	Real r=Mathr::UnitRandom()*xRangeSum[ll];
+	for(int j=2; j<l.size(); j+=2){
+		Real d=l[j+1]-l[j];
+		if(r<=d){
+			p=l[j]+r;
+			p=CompUtils::clamped(p+fuzz*(Mathr::UnitRandom()-.5),0,1); // apply fuzz
+			return p3;
+		}
+		r-=d; 
+	}
+	LOG_ERROR("internal error: layerSpec["<<ll<<"]="<<l.transpose()<<": did not select any layer for d="<<d<<" with xRangeSum["<<ll<<"]="<<xRangeSum[ll]<<"; final r="<<r<<" (original must have been r0="<<r+xRangeSum[ll]<<"). What's up? Applying no bias and proceeding.");
+	return p3;
+}
+
 
 
 

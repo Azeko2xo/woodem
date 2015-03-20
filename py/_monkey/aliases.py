@@ -105,6 +105,7 @@ try:
 	dem.Ellipsoid.make=staticmethod(woo.utils.ellipsoid)
 	dem.Capsule.make=staticmethod(woo.utils.capsule)
 	dem.Wall.make=staticmethod(woo.utils.wall)
+	dem.Wall.makeBox=staticmethod(woo.utils.wallBox)
 	dem.InfCylinder.make=staticmethod(woo.utils.infCylinder)
 	dem.Facet.make=staticmethod(woo.utils.facet)
 	dem.Rod.make=staticmethod(woo.utils.rod)

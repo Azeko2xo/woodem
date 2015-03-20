@@ -197,6 +197,17 @@ def wall(position,axis,sense=0,glAB=None,fixed=True,mass=0,color=None,mat=defaul
 	p.shape.visible=visible
 	return p
 
+def wallBox(box,which=(1,1,1,1,1,1),**kw):
+	'''Return box delimited by walls, created by :obj:`woo.dem.Wall.make`, which receives most arguments. *which* determines which walls are created, in the order -x, +x, -y, +y, -z, +z.'''
+	ret=[]
+	if len(which)!=6: raise ValueError("Wall.makeBox: which must be a sequence of boolean-convertible.")
+	for sense,ix,coord in [(1,0,box.min),(-1,1,box.max)]:
+		for ax in (0,1,2):
+			if not which[3*ix+ax]: continue
+			ax1,ax2=(ax+1)%3,(ax+2)%3
+			ret.append(woo.dem.Wall.make(coord[ax],sense=sense,axis=ax,glAB=AlignedBox2((box.min[ax1],box.min[ax2]),(box.max[ax1],box.max[ax2])),**kw))
+	return ret
+
 def rod(vertices,radius,fixed=True,wire=True,color=None,mat=defaultMaterial,visible=True,mask=DemField.defaultBoundaryMask,__class=woo.dem.Rod):
 	'''Create :obj:`~woo.dem.Rod` with given parameters:
 

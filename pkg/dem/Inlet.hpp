@@ -149,6 +149,19 @@ struct PsdAxialBias: public AxialBias {
 };
 WOO_REGISTER_OBJECT(PsdAxialBias);
 
+struct LayeredAxialBias: public AxialBias {
+	void postLoad(LayeredAxialBias&,void*);
+	Vector3r unitPos(const Real& diam) WOO_CXX11_OVERRIDE;
+	#define woo_dem_LayeredAxialBias__CLASS_BASE_DOC_ATTRS \
+		LayeredAxialBias,AxialBias,"Bias position so that particles occupy different layers based on their diameter. This is similar to :obj:`PsdAxialBias` with :obj:`~PsdAxialBias.discrete`, but allows for more flexibility, such as one fraction occupying multiple non-adjacent layers.", \
+		((vector<VectorXr>,layerSpec,,AttrTrait<Attr::triggerPostLoad>(),"Vector specifying layering; each item contains the following numbers: ``dMin, dMax, xMin0, xMax0, xMin1, xMax1, ...``. A particle which falls within ``dMin, dMax`` will be placed, with uniform probability, into intervals specified by other couples. Coordinates are given in normalized space, so ``xMin..xMax`` must lie in in 〈0,1〉. Particles which do not fall into any fraction will not be biased (thus placed uniformly randomly), and a warning will be issued.")) \
+		((vector<Real>,xRangeSum,,AttrTrait<Attr::readonly|Attr::noSave|Attr::noGui>(),"Sum of ``xMax_i-xMin_i`` for each fraction, for faster lookup. Internal/debugging use only."))
+	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_LayeredAxialBias__CLASS_BASE_DOC_ATTRS);
+	WOO_DECL_LOGGER;
+};
+WOO_REGISTER_OBJECT(LayeredAxialBias);
+
+
 struct Collider;
 
 struct RandomInlet: public Inlet{
@@ -171,7 +184,7 @@ struct RandomInlet: public Inlet{
 		((shared_ptr<SpatialBias>,spatialBias,,,"Make random position biased based on the radius of the current particle; if unset, distribute uniformly.")) \
 		((int,maxAttempts,5000,,"Maximum attempts to position new particles randomly, without collision. If 0, no limit is imposed. When reached, :obj:`atMaxAttempts` determines, what will be done. Each particle is tried maxAttempts/maxMetaAttempts times, then a new particle is tried.")) \
 		((int,attemptPar,5,,"Number of trying a different particle to position (each will be tried maxAttempts/attemptPar times)")) \
-		((int,atMaxAttempts,MAXATT_ERROR,AttrTrait<>().choice({{MAXATT_ERROR,"error"},{MAXATT_DEAD,"dead"},{MAXATT_WARN,"warn"},{MAXATT_SILENT,"silent"}}),"What to do when maxAttempts is reached.")) \
+		((int,atMaxAttempts,MAXATT_ERROR,AttrTrait<Attr::namedEnum>().namedEnum({{MAXATT_ERROR,{"error"}},{MAXATT_DEAD,{"dead"}},{MAXATT_WARN,{"warn"}},{MAXATT_SILENT,{"silent",""}}}),"What to do when maxAttempts is reached.")) \
 		((Real,padDist,0.,AttrTrait<Attr::readonly>(),"Pad geometry by this distance inside; random points will be chosen inside the shrunk geometry, whereas boxes will be validated in the larger one. This attribute must be set by the generator.")) \
 		((int,kinEnergyIx,-1,AttrTrait<Attr::hidden|Attr::noSave>(),"Index for kinetic energy in scene.energy")) \
 		((Real,color,NaN,,"Color for new particles (NaN for random; negative for keeping color assigned by the generator).")) \

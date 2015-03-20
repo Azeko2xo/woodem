@@ -47,6 +47,8 @@ struct PsdClumpGenerator: public PsdSphereGenerator {
 	WOO_CLASS_BASE_DOC_ATTRS(PsdClumpGenerator,PsdSphereGenerator,"Generate clump particles following a given Particle Size Distribution. !! FULL DOCUMENTATION IS IN py/_monkey/extraDocs.py !!!",
 		((vector<shared_ptr<SphereClumpGeom>>,clumps,,,"Sequence of clump geometry definitions (:obj:`SphereClumpGeom`); for every selected radius from the PSD, clump will be chosen based on the :obj:`SphereClumpGeom.scaleProb` function and scaled to that radius."))
 		((vector<int>,genClumpNo,,AttrTrait<>().noGui().readonly(),"If :obj:`save` is set, keeps clump numbers (indices in :obj:`clumps` for each generated clump."))
+		((vector<Quaternionr>,oris,,,"Base orientations for clumps, in the same order as :obj:`clumps`. If the sequence is shorter than selected clump configuration, its orientation will be completely random."))
+		((vector<Real>,oriFuzz,,,"Fuzz (in radians) for orientation, if set based on :obj:`oris`; if :obj:`oriFuzz` is shorter than clump configuration in question, the base orientation (:obj:`oriFuzz`) is used as-is. Random orientation axis is picked first, then rotation angle is taken from ``〈-oriFuzz[i],+oriFuzz[i]〉`` with uniform probability. Note: this simple algorithm does not generate completely homogeneous probability density in the rotation space."))
 	);
 };
 WOO_REGISTER_OBJECT(PsdClumpGenerator);

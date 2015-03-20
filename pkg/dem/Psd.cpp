@@ -277,9 +277,13 @@ PsdClumpGenerator::operator()(const shared_ptr<Material>&mat,const Real& time){
 	*/
 	vector<ParticleAndBox> ret(C.centers.size());
 	Real mass=0.;
-	Quaternionr ori(AngleAxisr(Mathr::UnitRandom()*2*M_PI,Vector3r::Random().normalized()));
-	if(ori.norm()>0) ori.normalize();
-	else ori=Quaternionr::Identity(); // very unlikely that q has all zeros
+	Quaternionr ori;
+	if(cNo>=oris.size()) ori=Mathr::UniformRandomRotation();
+	else{
+		ori=oris[cNo];
+		// rotate in random direction by some angle
+		if(cNo<oriFuzz.size()) ori=Quaternionr(AngleAxisr(Mathr::SymmetricRandom()*oriFuzz[cNo],Vector3r::Random().normalized()))*ori;
+	}
 	for(size_t i=0; i<C.centers.size(); i++){
 		shared_ptr<Particle> sphere=DemFuncs::makeSphere(C.radii[i]*scale,mat);
 		Vector3r center=ori*(C.centers[i]*scale);

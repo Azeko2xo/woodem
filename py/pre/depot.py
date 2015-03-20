@@ -13,9 +13,22 @@ class CylDepot(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 	#defaultPsd=[(.007,0),(.01,.4),(.012,.7),(.02,1)]
 	defaultPsd=[(5e-3,.0),(6.3e-3,.12),(8e-3,.53),(10e-3,.8),(12.5e-3,.94),(20e-3,1)]
 	def postLoad(self,I):
+		if self.preCooked and (I==None or I==id(self.preCooked)):
+			print 'Applying pre-cooked configuration "%s".'%self.preCooked
+			if self.preCooked=='Berlin 1':
+				self.gen=woo.dem.PsdSphereGenerator(psdPts=[(6.3e-3,0),(12.5e-3,.82222),(20e-3,1)],discrete=False)
+				self.bias=woo.dem.LayeredAxialBias(axis=2,fuzz=0,layerSpec=[VectorX([12.5e-3,1,0,.177777]),VectorX([0,12.5e-3,.177777,1])])
+				self.relSettle=.38
+			elif self.preCooked=='Berlin 2':
+				self.gen=woo.dem.PsdSphereGenerator(psdPts=[(6.3e-3,0),(12.5e-3,.41111),(20e-3,1)],discrete=False)
+				self.bias=woo.dem.LayeredAxialBias(axis=2,fuzz=0,layerSpec=[VectorX([12.5e-3,1,0,.177777,.58888,1]),VectorX([0,12.5e-3,.177777,.58888])])
+				self.relSettle=.37
+			else: raise RuntimeError('Unknown precooked configuration "%s"'%self.preCooked)
+			self.preCooked=''
 		self.ht0=self.htDiam[0]/self.relSettle
 		# if I==id(self.estSettle): 
 	_attrTraits=[
+		_PAT(str,'preCooked','',noDump=True,noGui=False,startGroup='Predefined config',choice=['','Berlin 1','Berlin 2'],triggerPostLoad=True,doc='Apply pre-cooked configuration (i.e. change other parameters); this option is not saved.'),
 		_PAT(Vector2,'htDiam',(.45,.1),unit='m',doc='Height and diameter of the resulting cylinder; the initial cylinder has the height of :obj:`ht0`, and particles are, after stabilization, clipped to :obj:`htDiam`, the resulting height.'),
 		_PAT(float,'relSettle',.3,triggerPostLoad=True,doc='Estimated relative height after deposition (e.g. 0.4 means that the sample will settle around 0.4 times the original height). This value has to be guessed, as there is no exact relation to predict the amount of settling; 0.3 is a good initial guess, but it may depend on the PSD.'),
 		_PAT(float,'ht0',.9,guiReadonly=True,doc='Initial height (for loose sample), computed automatically from :obj:`relSettle` and :obj:`htDiam`.'),
