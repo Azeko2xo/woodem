@@ -155,7 +155,7 @@ struct LayeredAxialBias: public AxialBias {
 	#define woo_dem_LayeredAxialBias__CLASS_BASE_DOC_ATTRS \
 		LayeredAxialBias,AxialBias,"Bias position so that particles occupy different layers based on their diameter. This is similar to :obj:`PsdAxialBias` with :obj:`~PsdAxialBias.discrete`, but allows for more flexibility, such as one fraction occupying multiple non-adjacent layers.", \
 		((vector<VectorXr>,layerSpec,,AttrTrait<Attr::triggerPostLoad>(),"Vector specifying layering; each item contains the following numbers: ``dMin, dMax, xMin0, xMax0, xMin1, xMax1, ...``. A particle which falls within ``dMin, dMax`` will be placed, with uniform probability, into intervals specified by other couples. Coordinates are given in normalized space, so ``xMin..xMax`` must lie in in 〈0,1〉. Particles which do not fall into any fraction will not be biased (thus placed uniformly randomly), and a warning will be issued.")) \
-		((vector<Real>,xRangeSum,,AttrTrait<Attr::readonly|Attr::noSave|Attr::noGui>(),"Sum of ``xMax_i-xMin_i`` for each fraction, for faster lookup. Internal/debugging use only."))
+		((vector<Real>,xRangeSum,,AttrTrait<Attr::readonly|Attr::noSave>().noGui().noDump(),"Sum of ``xMax_i-xMin_i`` for each fraction, for faster lookup. Internal/debugging use only."))
 	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_LayeredAxialBias__CLASS_BASE_DOC_ATTRS);
 	WOO_DECL_LOGGER;
 };

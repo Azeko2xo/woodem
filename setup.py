@@ -331,14 +331,24 @@ if 'opengl' in features:
 		else: cppDirs+=['/usr/include/qt4']+['/usr/include/qt4/'+component for component in ('QtCore','QtGui','QtOpenGL','QtXml')]
 		# cxxLibs+=['QtGui4','QtCore4','QtOpenGL4','
 if 'vtk' in features:
-	cxxLibs+=['vtkCommon','vtkHybrid','vtkRendering','vtkIO','vtkFiltering']
-	if WIN:
-		libDirs+=glob('c:/MinGW64/lib/vtk-*')
-		cxxLibs+=['vtksys']
 	vtks=(glob('/usr/include/vtk-*') if not WIN else glob('c:/MinGW64/include/vtk-*'))
 	if not vtks: raise ValueError("No header directory for VTK detected.")
 	elif len(vtks)>1: raise ValueError("Multiple header directories for VTK detected: "%','.join(vtks))
 	cppDirs+=[vtks[0]]
+	# find VTK version from include directory ending in -x.y
+	m=re.match(r'.*-(\d)\.(\d)$',vtks[0])
+	if not m: raise ValueError("VTK include directory %s not matching numbers ...-x.y, unable to guess VTK version."%vtks[0])
+	vtkMajor,vtkMinor=int(m.group(1)),int(m.group(2))
+	if vtkMajor==5:
+		cxxLibs+=['vtkCommon','vtkHybrid','vtkRendering','vtkIO','vtkFiltering']
+	elif vtkMajor==6:
+		suff='-%d.%d'%(vtkMajor,vtkMinor) # library suffix used on Debian, perhaps not used elsewhere?!
+		cxxLibs+=['vtkCommonCore'+suff,'vtkCommonDataModel'+suff,'vtkIOXML'+suff]
+	else: raise ValueError('Unsupported VTK version %d.x'%vtkMajor)
+	if WIN:
+		if vtkMajor==6: raise ValueError("VTK6.x not supported under Windows (yet).")
+		libDirs+=glob('c:/MinGW64/lib/vtk-*')
+		cxxLibs+=['vtksys']
 if 'gts' in features:
 	c=pkgconfig(['gts'])
 	cxxLibs+=['gts']+c['libraries']

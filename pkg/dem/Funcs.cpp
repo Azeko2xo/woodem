@@ -596,7 +596,11 @@ bool DemFuncs::vtkExportTraces(const shared_ptr<Scene>& scene, const shared_ptr<
 	// string out=filename;
 	// if(!boost::algorithm::ends_with(out,".vtp")) out+=".vtp";
 	writer->SetFileName(filename.c_str());
-	writer->SetInput(polyData);
+	#if VTK_MAJOR_VERSION==5
+		writer->SetInput(polyData);
+	#else
+		writer->SetInputData(polyData);
+	#endif
 	writer->Write();
 	return true;
 }

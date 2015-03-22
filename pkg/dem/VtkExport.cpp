@@ -499,7 +499,11 @@ void VtkExport::run(){
 			if(ascii) writer->SetDataModeToAscii();
 			string fn=out+"con."+to_string(scene->step)+".vtp";
 			writer->SetFileName(fn.c_str());
-			writer->SetInput(cPoly);
+			#if VTK_MAJOR_VERSION==5
+				writer->SetInput(cPoly);
+			#else
+				writer->SetInputData(cPoly);
+			#endif
 			writer->Write();
 			outFiles["con"].push_back(fn);
 		} 
@@ -509,7 +513,11 @@ void VtkExport::run(){
 			if(ascii) writer->SetDataModeToAscii();
 			string fn=out+"spheres."+to_string(scene->step)+".vtu";
 			writer->SetFileName(fn.c_str());
-			writer->SetInput(sGrid);
+			#if VTK_MAJOR_VERSION==5
+				writer->SetInput(sGrid);
+			#else
+				writer->SetInputData(sGrid);
+			#endif
 			writer->Write();
 			outFiles["spheres"].push_back(fn);
 		}
@@ -519,7 +527,11 @@ void VtkExport::run(){
 			if(ascii) writer->SetDataModeToAscii();
 			string fn=out+"mesh."+to_string(scene->step)+".vtu";
 			writer->SetFileName(fn.c_str());
-			writer->SetInput(mGrid);
+			#if VTK_MAJOR_VERSION==5
+				writer->SetInput(mGrid);
+			#else
+				writer->SetInputData(mGrid);
+			#endif
 			writer->Write();
 			outFiles["mesh"].push_back(fn);
 		}
@@ -529,7 +541,11 @@ void VtkExport::run(){
 			if(ascii) writer->SetDataModeToAscii();
 			string fn=out+"tri."+to_string(scene->step)+".vtu";
 			writer->SetFileName(fn.c_str());
-			writer->SetInput(tGrid);
+			#if VTK_MAJOR_VERSION==5
+				writer->SetInput(tGrid);
+			#else
+				writer->SetInputData(tGrid);
+			#endif
 			writer->Write();
 			outFiles["tri"].push_back(fn);
 		}
@@ -546,7 +562,11 @@ void VtkExport::run(){
 		if(ascii) writer->SetDataModeToAscii();
 		string fn=out+to_string(scene->step)+".vtm";
 		writer->SetFileName(fn.c_str());
-		writer->SetInput(multi);
+		#if VTK_MAJOR_VERSION==5
+			writer->SetInput(multi);
+		#else
+			writer->SetInputData(multi);
+		#endif
 		writer->Write();	
 	}
 

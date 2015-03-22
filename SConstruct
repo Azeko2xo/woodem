@@ -379,7 +379,7 @@ if not env.GetOption('clean'):
 		print "\nOne of the essential libraries above was not found, unable to continue.\n\nCheck `%s' for possible causes, note that there are options that you may need to customize:\n\n"%(buildDir+'/config.log')+opts.GenerateHelpText(env)
 		Exit(1)
 	def featureNotOK(featureName,note=None):
-		print "\nERROR: Unable to compile with optional feature `%s'.\n\nIf you are sure, remove it from features (scons features=featureOne,featureTwo for example) and build again."%featureName
+		print "\nERROR: Unable to compile with optional feature `%s'.\n\nIf you are sure, remove it from features (scons features=featureOne,featureTwo for example) and build again. Config log is %s."%(featureName,buildDir+'/config.log')
 		if note: print "Note:",note
 		Exit(1)
 	# check "optional" libs
@@ -408,9 +408,19 @@ if not env.GetOption('clean'):
 		env['haveClHpp']=conf.CheckCXXHeader('CL/cl.hpp')
 		if not env['haveClHpp']: print '(OK, local version (from Khronos website) will be used instead; some SDK\'s (Intel) are not providing cl.hpp)'
 	if 'vtk' in env['features']:
-		ok=conf.CheckLibWithHeader(['vtkCommon'],'vtkInstantiator.h','c++','vtkInstantiator::New();',autoadd=1)
-		env.Append(LIBS=['vtkHybrid','vtkRendering','vtkIO','vtkFiltering'])
-		if not ok: featureNotOK('vtk',note="Installer can`t find vtk-library. Be sure you have it installed (usually, libvtk5-dev package). Or you might have to add VTK header directory (e.g. /usr/include/vtk-5.4) to CPPPATH.")
+		if not conf.CheckCXXHeader('vtkVersion.h'): featureNotOK('vtk',note='VTK headers not found; add the respective include directory to CPPPATH (usually something like /usr/include/vtk-?.?).')
+		vtk5=conf.CheckLibWithHeader(['vtkCommon'],'vtkInstantiator.h','c++','vtkInstantiator::New();',autoadd=1)
+		if vtk5: env.Append(LIBS=['vtkHybrid','vtkRendering','vtkIO','vtkFiltering'])
+		vtk6=False
+		for minor in (-1,0,1,2,3,4,5):
+			vtk6LibSuffix=('' if minor<0 else '-6.%d'%minor)
+			vtk6=conf.CheckLibWithHeader(['vtkCommonCore'+vtk6LibSuffix],'vtkCommonCoreInstantiator.h','c++','vtkCommonCoreInstantiator();',autoadd=1)
+			if vtk6: break
+		if vtk6:
+			if minor==0: featureNotOK('vtk',note='VTK 6.0 is not supported (http://www.paraview.org/Bug/view.php?id=14164), use 6.1 and greater or 5.x.')
+			env.Append(LIBS=['vtkCommonDataModel'+vtk6LibSuffix,'vtkIOXML'+vtk6LibSuffix]) # plus vtkCommonCore above
+		if not (vtk5 or vtk6):
+			featureNotOK('vtk',note="VTK library not found: install packages libvtk5-dev or libvtk6-dev.")
 	if 'gts' in env['features']:
 		env.ParseConfig('pkg-config gts --cflags --libs');
 		ok=conf.CheckLibWithHeader('gts','gts.h','c++','gts_object_class();',autoadd=1)
