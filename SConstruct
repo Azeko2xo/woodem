@@ -414,11 +414,11 @@ if not env.GetOption('clean'):
 		vtk6=False
 		for minor in (-1,0,1,2,3,4,5):
 			vtk6LibSuffix=('' if minor<0 else '-6.%d'%minor)
-			vtk6=conf.CheckLibWithHeader(['vtkCommonCore'+vtk6LibSuffix],'vtkCommonCoreInstantiator.h','c++','vtkCommonCoreInstantiator();',autoadd=1)
+			vtk6=conf.CheckLibWithHeader(['vtkCommonDataModel'+vtk6LibSuffix],'vtkDataObjectTree.h','c++','vtkDataObjectTree::GetData((vtkInformationVector*)NULL);',autoadd=1)
 			if vtk6: break
 		if vtk6:
-			if minor==0: featureNotOK('vtk',note='VTK 6.0 is not supported (http://www.paraview.org/Bug/view.php?id=14164), use 6.1 and greater or 5.x.')
-			env.Append(LIBS=['vtkCommonDataModel'+vtk6LibSuffix,'vtkIOXML'+vtk6LibSuffix]) # plus vtkCommonCore above
+			# if minor==0: featureNotOK('vtk',note='VTK 6.0 is not supported (http://www.paraview.org/Bug/view.php?id=14164), use 6.1 and greater or 5.x.')
+			env.Append(LIBS=['vtkCommonCore'+vtk6LibSuffix,'vtkIOXML'+vtk6LibSuffix]) # plus vtkCommonDataModel above
 		if not (vtk5 or vtk6):
 			featureNotOK('vtk',note="VTK library not found: install packages libvtk5-dev or libvtk6-dev.")
 	if 'gts' in env['features']:
