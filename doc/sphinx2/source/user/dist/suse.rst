@@ -5,7 +5,9 @@ If on one-user machine, make /usr/local owned by yourself -- for easy installati
 
    sudo chown $USER: -R /usr/local
 
-Install all dependencies::
+Install all dependencies:
+
+.. code-block:: bash
 
    # repository for libQGLViewer
    sudo zypper ar -f http://download.opensuse.org/repositories/KDE:/Qt/openSUSE_13.1/KDE:Qt.repo
@@ -22,9 +24,12 @@ Install all dependencies::
    # patch vtk-6.0 headers, to work around http://www.paraview.org/Bug/view.php?id=14164
    sudo perl -pi -e's/\((isnan|isinf|isfinite)/\(std::$1/' /usr/include/vtk-6.0/vtkMath.h
    # locally compile python modules which are not packaged
+   # do not use python-h5py package since there may be hdf5 version mismatch for some reason
    sudo pip install h5py minieigen colour_runner 
 
-Now grab and compile woo itself::
+Now grab and compile woo itself:
+
+.. code-block:: bash
 
    # get Woo source
    git clone https://github.com/eudoxos/woodem woo
@@ -32,3 +37,6 @@ Now grab and compile woo itself::
    scons jobs=4 CXX='ccache g++' brief=0 features=qt4,opengl,vtk,openmp,gts CPPPATH=/usr/lib64/python2.7/site-packages/numpy/core/include/:/usr/include/eigen3:/usr/include/vtk-6.1 LIBPATH=/usr/lib64/vtk LIBDIR=/usr/local/lib64/python2.7/site-packages EXECDIR=/usr/local/bin
    # run self-tests
    woo --test
+   # later, try integrated git update & rebuild
+   woo -RR
+

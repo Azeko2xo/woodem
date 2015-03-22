@@ -190,7 +190,7 @@ def main(sysArgv=None):
 		sys.exit(subprocess.call(argv))
 	# QUIRK running in gdb
 	if (options.quirks & options.quirkFirePro) and (not options.forceNoGui and 'DISPLAY' in os.environ):
-		vgas=os.popen("LC_ALL=C lspci -nnk | grep VGA -A3").readlines()
+		vgas=os.popen("LC_ALL=C /sbin/lspci -nnk 2>/dev/null | grep VGA -A3").readlines()
 		if sum (['FirePro' in vga for vga in vgas]):
 			if sum(['fglrx' in vga for vga in vgas]):
 				print 'AMD FirePro GPU detected, will run inside gdb to avoid crash in buggy fglrx.so.'
