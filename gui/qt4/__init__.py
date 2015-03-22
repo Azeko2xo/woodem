@@ -312,7 +312,7 @@ class ControllerClass(QWidget,Ui_Controller):
 			<tr><td>features&nbsp;</td><td>{features}</td></tr>
 			<tr><td>extras</td><td>{extraModules}</td></tr>
 		</table>
-		'''.format(user=user,nCores=woo.master.numThreads,platform='<br>'.join(textwrap.wrap(platform.platform().replace('-',' '),40)),version=woo.config.version+'/'+woo.config.revision+(' (debug)' if woo.config.debug else ''),features=', '.join(woo.config.features),buildDate=woo.config.buildDate,flavor=((', flavor "'+woo.config.flavor+'"') if woo.config.flavor else ''),extraModules='<br>'.join(['{e.name} ({e.version})'.format(e=e) for e in extras])))
+		'''.format(user=user,nCores=woo.master.numThreads,platform='<br>'.join(textwrap.wrap(platform.platform().replace('-',' '),40)),version=woo.config.version+('' if woo.config.version==woo.config.revision else ('/' if woo.config.version else '')+woo.config.revision)+(' (debug)' if woo.config.debug else ''),features=', '.join(woo.config.features),buildDate=woo.config.buildDate,flavor=((', flavor "'+woo.config.flavor+'"') if woo.config.flavor else ''),extraModules='<br>'.join(['{e.name} ({e.version})'.format(e=e) for e in extras])))
 		if extras:
 			self.aboutExtraLabel.setText(u"<h4>Extra modules</h4><table cellpadding='10px' width='100%'>"+u''.join([u'<tr><td>wooExtra.<b>{e.name}&nbsp;</b><br>{e.version}</td><td>{e.distributor}</td></tr>'.format(e=e) for e in extras])+'</table')
 	def inspectSlot(self):
