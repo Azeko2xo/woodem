@@ -105,6 +105,12 @@ The ``woo`` executable remembers virtual python used during the build (in `sheba
 
   which will create the virtual environment and compile and install Woo in it.
 
+Distribution-specific instructions
+----------------------------------
+
+.. toctree::
+   dist/suse.rst
+
 
 Windows
 =======

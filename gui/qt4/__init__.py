@@ -261,7 +261,7 @@ class ControllerClass(QWidget,Ui_Controller):
 		self.generatorCombo.addItem(u'−')
 		self.preIndexOther=self.generatorCombo.count()-1
 		# make this item non-selectable by the user
-		self.generatorCombo.model().setData(self.generatorCombo.model().index(self.preIndexOther,0),0 if PY3K else QtCore.QVariant(0),QtCore.Qt.UserRole-1)
+		self.generatorCombo.model().setData(self.generatorCombo.model().index(self.preIndexOther,0),0,QtCore.Qt.UserRole-1)
 		# refresh the view
 		self.generatorComboSlot(0)
 	def addRenderers(self):
