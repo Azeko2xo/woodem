@@ -414,7 +414,7 @@ if not env.GetOption('clean'):
 		vtk6=False
 		for minor in (-1,0,1,2,3,4,5):
 			vtk6LibSuffix=('' if minor<0 else '-6.%d'%minor)
-			vtk6=conf.CheckLibWithHeader(['vtkCommonDataModel'+vtk6LibSuffix],'vtkDataObjectTree.h','c++','vtkDataObjectTree::GetData((vtkInformationVector*)NULL);',autoadd=1)
+			vtk6=conf.CheckLibWithHeader(['vtkCommonDataModel'+vtk6LibSuffix],'vtkPath.h','c++','vtkPath::New();',autoadd=1)
 			if vtk6: break
 		if vtk6:
 			# if minor==0: featureNotOK('vtk',note='VTK 6.0 is not supported (http://www.paraview.org/Bug/view.php?id=14164), use 6.1 and greater or 5.x.')
