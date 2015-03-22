@@ -210,7 +210,7 @@ void VtkFlowExport::writeGrid(){
 	auto writer=vtkSmartPointer<vtkXMLImageDataWriter>::New();
 	string fn=out+to_string(scene->step)+".vti";
 	writer->SetFileName(fn.c_str());
-	#if VTK_MAJOR_VERION==5
+	#if VTK_MAJOR_VERSION==5
 		writer->SetInput(dataGrid);
 	#else
 		writer->SetInputData(dataGrid);
