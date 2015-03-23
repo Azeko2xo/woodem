@@ -20,7 +20,7 @@ Install all dependencies:
    # install everything what is packaged
    # IMPORTANT: there will be vendor cachanges (KDE:Qt.repo) for packages
    #   make sure you accept all of them!
-   sudo zypper install git scons ccache gcc-c++ binutils-gold libeigen3-devel boost-devel ipython python-matplotlib python-numpy python-genshi python-xlwt python-xlrd python-h5py python-lockfile python-xlib python-imaging vtk-devel ipython hdf5-devel python-pip python-Cython python-devel python-numpy-devel python-psutil freeglut-devel libgle-devel libqt4-devel python-qt4-devel python-qt4-utils libQGLViewer-devel vtk-devel gts-snapshot-devel
+   sudo zypper install git scons ccache gcc-c++ binutils-gold libeigen3-devel boost-devel ipython python-matplotlib python-numpy python-genshi python-xlwt python-xlrd python-h5py python-lockfile python-xlib python-imaging vtk-devel ipython hdf5-devel python-pip python-Cython python-devel python-numpy-devel python-psutil python-colorama freeglut-devel libgle-devel libqt4-devel python-qt4-devel python-qt4-utils libQGLViewer-devel vtk-devel gts-snapshot-devel
    # patch vtk-6.0 headers, to work around http://www.paraview.org/Bug/view.php?id=14164
    sudo perl -pi -e's/\((isnan|isinf|isfinite)/\(std::$1/' /usr/include/vtk-6.0/vtkMath.h
    # locally compile python modules which are not packaged

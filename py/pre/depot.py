@@ -7,7 +7,52 @@ import math
 from minieigen import *
 
 class CylDepot(woo.core.Preprocessor,woo.pyderived.PyWooObject):
-	'Deposition of particles inside cylindrical tube'
+	''''Deposition of particles inside cylindrical tube. This preprocessor was created for pre-generation of dense packing inside cylindrical chamber, which is then exported to STL serving as input to `OpenFOAM <http://openfoam.org>`__ for computing permeability (pressure loss) of the layering.
+
+	The target specimen (particle packing) dimensions are :obj:`htDiam` (cylinder height and diameter); the packing is inside cylindrical wall, with inlet at the bottom and outlet at the top; this cylinder may be longer than the specimen, which is set by :obj:`extraHt`.
+
+	The height of compact packing is not known in advance precisely (it is a function of PSD, material, layering etc); the estimate is set by :obj:`relSettle`, which is used to compute :obj:`ht0`, the height of loose packing (where particles are initially generated), which then settles down in gravity. 
+
+	The packing is settled when :obj:`unbalanced energy <woo.utils.unbalancedEnergy>` (the ratio of kinetic to elastic energy) drops below :obj:`unbE`.
+
+	Once settled, particles are clipped to the required height. The actual value of settlement is computed and printed (so that it can be used iteratively as input for the next simulation).
+
+	Layering specification uses the functionality of :obj:`woo.dem.LayeredAxialBias`, which distributed fractions along some axis in particle generation space. Suppose that we are to model the following two scenarios (which correspond to :obj:`preCooked` variants ``Brisbane 1`` and ``Brisbane 2``, which have spherical particles with piecewise-linear PSD distributed in layered fractions:
+
+	.. image:: fig/depot-brisbane.*
+
+	This arrangement is achieved with the following settings:
+
+	1. ``Brisbane 1``:
+
+		PSD is defined (via :obj:`PsdSphereGenerator.psdPts <woo.dem.PsdSphereGenerator.psdPts>`) to match relative height (and thus mass) of fractions (on the right), which is 0.1777 for the coarser fraction (12.5-20mm) and 0.8222 for the finer fraction. This we set by::
+		
+		   psdPts=[(6.3e-3,0),(12.5e-3,.82222),(20e-3,1)]
+
+		Layering is achieved by assigning :obj:`~woo.dem.LayeredAxialBias` to :obj:`bias`. The layers are distributed along the normalized height by setting :obj:`~woo.dem.LayeredAxialBias.layerSpec` to::
+		
+		    [VectorX([12.5e-3,20e-3,0,.1777]),VectorX([0,12.5e-3,.1777,1]
+			 
+		where each ``VectorX`` contains first minimum and maximum diameter, and at least one axial height range (in normalized coordinates).
+
+	2. ``Brisbane 2``:
+
+		PSD: set :obj:`~woo.dem.PsdSphereGenerator.psdPts` to::
+		
+		   psdPts=[(6.3e-3,0),(12.5e-3,.4111),(20e-3,1)]
+
+		Layering (:obj:`~woo.dem.LayeredAxialBias.layerSpec`) is set as::
+
+		   layerSpec=[VectorX([12.5e-3,20e-3, 0,.1777,.5888,1]),VectorX([0,12.5e-3, .177777,.58888]
+			
+		where the coarse fraction is distributed uniformly over both intervals in 0-0.1777 *and* 0.5888-1.0.
+
+	Resulting heights of fractions vitally depend on :obj:`relSettlement`, so it may take some experimentation to get the result right:
+
+	.. image:: fig/depot-brisbane-3d.png
+
+
+	'''
 	_classTraits=None
 	_PAT=woo.pyderived.PyAttrTrait # less typing
 	#defaultPsd=[(.007,0),(.01,.4),(.012,.7),(.02,1)]
@@ -15,11 +60,11 @@ class CylDepot(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 	def postLoad(self,I):
 		if self.preCooked and (I==None or I==id(self.preCooked)):
 			print 'Applying pre-cooked configuration "%s".'%self.preCooked
-			if self.preCooked=='Berlin 1':
+			if self.preCooked=='Brisbane 1':
 				self.gen=woo.dem.PsdSphereGenerator(psdPts=[(6.3e-3,0),(12.5e-3,.82222),(20e-3,1)],discrete=False)
 				self.bias=woo.dem.LayeredAxialBias(axis=2,fuzz=0,layerSpec=[VectorX([12.5e-3,1,0,.177777]),VectorX([0,12.5e-3,.177777,1])])
 				self.relSettle=.38
-			elif self.preCooked=='Berlin 2':
+			elif self.preCooked=='Brisbane 2':
 				self.gen=woo.dem.PsdSphereGenerator(psdPts=[(6.3e-3,0),(12.5e-3,.41111),(20e-3,1)],discrete=False)
 				self.bias=woo.dem.LayeredAxialBias(axis=2,fuzz=0,layerSpec=[VectorX([12.5e-3,1,0,.177777,.58888,1]),VectorX([0,12.5e-3,.177777,.58888])])
 				self.relSettle=.37
@@ -28,7 +73,7 @@ class CylDepot(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		self.ht0=self.htDiam[0]/self.relSettle
 		# if I==id(self.estSettle): 
 	_attrTraits=[
-		_PAT(str,'preCooked','',noDump=True,noGui=False,startGroup='General',choice=['','Berlin 1','Berlin 2'],triggerPostLoad=True,doc='Apply pre-cooked configuration (i.e. change other parameters); this option is not saved.'),
+		_PAT(str,'preCooked','',noDump=True,noGui=False,startGroup='General',choice=['','Brisbane 1','Brisbane 2'],triggerPostLoad=True,doc='Apply pre-cooked configuration (i.e. change other parameters); this option is not saved.'),
 		_PAT(Vector2,'htDiam',(.45,.1),unit='m',doc='Height and diameter of the resulting cylinder; the initial cylinder has the height of :obj:`ht0`, and particles are, after stabilization, clipped to :obj:`htDiam`, the resulting height.'),
 		_PAT(float,'relSettle',.3,triggerPostLoad=True,doc='Estimated relative height after deposition (e.g. 0.4 means that the sample will settle around 0.4 times the original height). This value has to be guessed, as there is no exact relation to predict the amount of settling; 0.3 is a good initial guess, but it may depend on the PSD.'),
 		_PAT(float,'ht0',.9,guiReadonly=True,noDump=True,doc='Initial height (for loose sample), computed automatically from :obj:`relSettle` and :obj:`htDiam`.'),
@@ -41,7 +86,7 @@ class CylDepot(woo.core.Preprocessor,woo.pyderived.PyWooObject):
 		_PAT(str,'stlOut','',startGroup='STL output',filename=True,doc='Output file with triangulated particles (not the boundary); if empty, nothing will be exported at the end.'),
 		_PAT(float,'stlTol',.2e-3,unit='m',doc='Tolerance for STL export (maximum distance between ideal shape and triangulation; passed to :obj:`_triangulated.spheroidsToStl)'),
 		_PAT(Vector2,'extraHt',(.5,.5),unit='m',doc='Extra height to be added to bottom and top of the resulting packing, when the new STL-exported cylinder is created.'),
-		_PAT(float,'cylAxDiv',-1.,'Fineness of division of the STL cylinder; see :obj:`woo.triangulated.cylinder` ``axDiv``. The default create nearly-square triangulation'),
+		_PAT(float,'cylAxDiv',-1.,'Fineness of division of the STL cylinder; see :obj:`woo.triangulated.cylinder` ``axDiv``. The defaults create nearly-square triangulation'),
 	]
 	def __init__(self,**kw):
 		woo.core.Preprocessor.__init__(self)
