@@ -167,6 +167,7 @@ GLViewer::GLViewer(int _viewId, QGLWidget* shareWidget): QGLViewer(/*parent*/(QW
 	setKeyDescription(Qt::Key_C,"Set scene center so that all bodies are visible; if a body is selected, center around this body.");
 	setKeyDescription(Qt::Key_C & Qt::AltModifier,"Set scene center to median body position (same as space)");
 	setKeyDescription(Qt::Key_D,"Toggle time display mask");
+	setKeyDescription(Qt::Key_D & Qt::ShiftModifier,"Toggle local date/time display");
 	setKeyDescription(Qt::Key_G,"Cycle through visible grid planes");
 	setKeyDescription(Qt::Key_G & Qt::ShiftModifier ,"Toggle grid visibility.");
 	setKeyDescription(Qt::Key_X,"Show the xz [shift: xy] (up-right) plane (clip plane: align normal with +x)");
@@ -467,7 +468,13 @@ void GLViewer::keyPressEvent(QKeyEvent *e)
 	#if 0
 		else if(e->key()==Qt::Key_D &&(e->modifiers() & Qt::AltModifier)){ /*Body::id_t id; if((id=Master::instance().getScene()->selection)>=0){ const shared_ptr<Body>& b=Body::byId(id); b->setDynamic(!b->isDynamic()); LOG_INFO("Body #"<<id<<" now "<<(b->isDynamic()?"":"NOT")<<" dynamic"); }*/ LOG_INFO("Selection not supported!!"); }
 	#endif
-	else if(e->key()==Qt::Key_D) {Renderer::showTime+=1; if(Renderer::showTime>Renderer::TIME_ALL) Renderer::showTime=Renderer::TIME_NONE; }
+	else if(e->key()==Qt::Key_D) {
+		if(e->modifiers() & Qt::ShiftModifier) Renderer::showDate=!Renderer::showDate;
+		else {
+			Renderer::showTime+=1;
+			if(Renderer::showTime>Renderer::TIME_ALL) Renderer::showTime=Renderer::TIME_NONE;
+		}
+	}
 	else if(e->key()==Qt::Key_G) { if(e->modifiers() & Qt::ShiftModifier){ Renderer::grid=(Renderer::grid>0?0:7); return; } else Renderer::grid++; if(Renderer::grid>=8) Renderer::grid=0; }
 	else if (e->key()==Qt::Key_M && selectedName() >= 0){ 
 		if(!(isMoving=!isMoving)){displayMessage("Moving done."); mouseMovesCamera();}
@@ -798,9 +805,19 @@ void GLViewer::postDraw(){
 	Scene* scene=Master::instance().getScene().get();
 	#define _W3 std::setw(3)<<std::setfill('0')
 	#define _W2 std::setw(2)<<std::setfill('0')
-	if(Renderer::showTime!=Renderer::TIME_NONE){
+	if(Renderer::showTime!=Renderer::TIME_NONE || Renderer::showDate){
 		const int lineHt=13;
 		unsigned x=10,y=height()-3-lineHt*2;
+		if(Renderer::showDate){
+			glColor3v(Renderer::dateColor);
+			time_t rawtime;
+			time(&rawtime);
+			struct tm* timeinfo=localtime(&rawtime);;
+			char buffer[64];
+			strftime(buffer,64,"%F %T",timeinfo);
+			QGLViewer::drawText(x,y,buffer);
+			y-=lineHt;
+		}
 		if(Renderer::showTime & Renderer::TIME_VIRT){
 			glColor3v(Renderer::virtColor);
 			std::ostringstream oss;

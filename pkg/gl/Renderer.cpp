@@ -71,6 +71,8 @@ Vector3r Renderer::iniUp;
 Vector3r Renderer::iniViewDir;
 
 int Renderer::showTime;
+bool Renderer::showDate;
+Vector3r Renderer::dateColor;
 Vector3r Renderer::virtColor;
 Vector3r Renderer::realColor;
 Vector3r Renderer::stepColor;
