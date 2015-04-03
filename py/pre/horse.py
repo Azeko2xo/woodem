@@ -195,36 +195,39 @@ def plotBatchResults(db):
 def finished(S):
 	import os,re,woo.batch,woo.utils,codecs
 	S.stop()
-	repName=os.path.abspath(S.pre.reportFmt.format(S=S,**(dict(S.tags))))
-	woo.batch.writeResults(S,defaultDb='horse.sqlite',series=S.plot.data,postHooks=[plotBatchResults],simulationName='horse',report='file://'+repName)
+	repName=(os.path.abspath(S.pre.reportFmt.format(S=S,**(dict(S.tags)))) if S.pre.reportFmt else None)
+	woo.batch.writeResults(S,defaultDb='horse.sqlite',series=S.plot.data,postHooks=[plotBatchResults],simulationName='horse',report=(('file://'+repName) if repName else None))
 
 	# energy plot, to show how to add plot to the report
 	# instead of doing pylab stuff here, just get plot object from woo
 	figs=S.plot.plot(noShow=True,subPlots=False)
 	
-	repExtra=re.sub('\.xhtml$','',repName)
-	svgs=[]
-	for i,fig in enumerate(figs):
-		svgs.append(('Figure %d'%i,repExtra+'.fig-%d.svg'%i))
-		fig.savefig(svgs[-1][1])
+	if repName:
+		repExtra=re.sub('\.xhtml$','',repName)
+		svgs=[]
+		for i,fig in enumerate(figs):
+			svgs.append(('Figure %d'%i,repExtra+'.fig-%d.svg'%i))
+			fig.savefig(svgs[-1][1])
 
-	rep=codecs.open(repName,'w','utf-8','replace')
-	html=woo.utils.htmlReportHead(S,'Report for falling horse simulation')+'<h2>Figures</h2>'+(
-		u'\n'.join(['<h3>'+svg[0]+u'</h3>'+'<img src="%s" alt="%s"/>'%(os.path.basename(svg[1]),svg[0]) for svg in svgs])
-		+'</body></html>'
-	)
-	rep.write(html)
-	rep.close()
-	if not woo.batch.inBatch():
-		import webbrowser
-		webbrowser.open('file://'+os.path.abspath(repName),new=2)
+		rep=codecs.open(repName,'w','utf-8','replace')
+		html=woo.utils.htmlReportHead(S,'Report for falling horse simulation')+'<h2>Figures</h2>'+(
+			u'\n'.join(['<h3>'+svg[0]+u'</h3>'+'<img src="%s" alt="%s"/>'%(os.path.basename(svg[1]),svg[0]) for svg in svgs])
+			+'</body></html>'
+		)
+		rep.write(html)
+		rep.close()
+
+		if not woo.batch.inBatch():
+			import webbrowser
+			webbrowser.open('file://'+os.path.abspath(repName),new=2)
 
 	## save flow data
 	#if not S.lab.flowAnalysis.dead: S.lab.flowAnalysis.vtkExport(out=S.pre.vtkPrefix)
 
 	# catch exception if there are no VTK data (disabled in preprocessor)
-	try:
-		import woo.paraviewscript
-		pvscript=woo.paraviewscript.fromEngines(S,out=S.expandTags(S.pre.vtkPrefix),launch=(not woo.batch.inBatch()))
-		print 'Paraview script written to',pvscript
-	except RuntimeError: raise
+	if S.pre.vtkPrefix and (S.pre.vtkStep>0 or S.pre.vtkFlowStep>0):
+		try:
+			import woo.paraviewscript
+			pvscript=woo.paraviewscript.fromEngines(S,out=S.expandTags(S.pre.vtkPrefix),launch=(not woo.batch.inBatch()))
+			print 'Paraview script written to',pvscript
+		except RuntimeError: raise

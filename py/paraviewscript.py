@@ -291,7 +291,14 @@ if splitFile:
 		arrData=split.GetPointDataInformation().GetArray(arr)
 		scale=_avgcell/max([max([abs(r) for r in arrData.GetRange(i)]) for i in (0,1,2)])
 		scale*=10*splitStride # biggest vector spans about 20 cells (including stride)
-		gl=Glyph(GlyphType="Arrow",GlyphTransform="Transform2",Vectors=['POINTS',arr],RandomMode=0,MaskPoints=0,SetScaleFactor=scale)
+		gl=Glyph(GlyphType="Arrow",GlyphTransform="Transform2",Vectors=['POINTS',arr])
+		if hasattr(gl,'MaskPoints'): # PV 4.0
+			gl.MaskPoints=0 
+			gl.SetScaleFactor=scale
+			gl.RandomMode=0
+		elif hasattr(gl,'GlyphMode'): # PV>=4.3
+			gl.GlyphMode='All Points'
+			gl.ScaleFactor=1.0
 		RenameSource(name,gl)
 		rep=Show()
 		rep.ColorArrayName=('POINT_DATA','') # solid color
@@ -354,8 +361,15 @@ if sphereFiles:
 	# don't show glyphs for more than 5e4 spheres by default to avoid veeery sloooow rendering
 	isBig=(spheres.CellData.Proxy.GetDataInformation().GetNumberOfCells()>5e4)
 	# setup glyphs, but don't show those by default
-	gl=Glyph(GlyphType='Sphere',ScaleMode='scalar',Scalars=['POINTS','radius'],MaskPoints=0,RandomMode=0,SetScaleFactor=1.0)
+	gl=Glyph(GlyphType='Sphere',ScaleMode='scalar',Scalars=['POINTS','radius'])
 	gl.GlyphType.Radius=1.0
+	if hasattr(gl,'MaskPoints'): # PV 4.0
+		gl.MaskPoints=0 
+		gl.SetScaleFactor=1.0
+		gl.RandomMode=0
+	elif hasattr(gl,'GlyphMode'): # PV>=4.3
+		gl.GlyphMode='All Points'
+		gl.ScaleFactor=1.0
 	rep=Show()
 	rep.Visibility=(0 if isBig else 1)
 	rep.ColorArrayName=('POINT_DATA','radius')

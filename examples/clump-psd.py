@@ -16,8 +16,9 @@ S.engines=[
 		generator=PsdClumpGenerator(
 			psdPts=[(.1,0),(.2,1.)],discrete=False,mass=True,
 			clumps=[
-				SphereClumpGeom(centers=[(0,0,-.15),(0,0,-.05),(0,0,.05)],radii=(.05,.10,.05),scaleProb=[(0,1.)]),
-				SphereClumpGeom(centers=[(.05,0,0) ,(0,.05,0) ,(0,0,.05)],radii=(.05,.05,.05),scaleProb=[(0,.5)]),
+				#SphereClumpGeom(centers=[(0,0,-.15),(0,0,-.05),(0,0,.05)],radii=(.05,.10,.05),scaleProb=[(0,1.)]),
+				#SphereClumpGeom(centers=[(.05,0,0) ,(0,.05,0) ,(0,0,.05)],radii=(.05,.05,.05),scaleProb=[(0,.5)]),
+				SphereClumpGeom(centers=[(0,0,0),(0,.05,0),(.05,0,0),(0,0,.05)],radii=(.04,.04,.04,.04),scaleProb=[(0,1.)]),
 			],
 		),
 		materials=[woo.dem.ElastMat(density=1)],

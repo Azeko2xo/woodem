@@ -86,6 +86,10 @@ class ContactLoop: public Engine {
 		void removeAfterLoop(const shared_ptr<Contact>& c){ removeAfterLoopRefs.push_back(c); }
 	#endif
 	void reorderContacts();
+
+	// internal use only
+	void applyForceUninodal(const shared_ptr<Contact>& C, const Particle* p);
+
 	public:
 		virtual void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d);
 		virtual void getLabeledObjects(const shared_ptr<LabelMapper>&);

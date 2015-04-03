@@ -25,6 +25,9 @@ namespace py=boost::python;
 WOO_PLUGIN(core,(Scene));
 WOO_IMPL_LOGGER(Scene);
 
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_INI_CTOR_DTOR_PY(woo_core_Scene__CLASS_BASE_DOC_ATTRS_INI_CTOR_DTOR_PY);
+
+
 
 // should be elsewhere, probably
 bool TimingInfo::enabled=false;

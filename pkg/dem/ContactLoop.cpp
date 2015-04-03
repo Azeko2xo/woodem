@@ -121,6 +121,7 @@ void ContactLoop::run(){
 	bool removeUnseen=(dem.contacts->stepColliderLastRun>=0 && dem.contacts->stepColliderLastRun==scene->step);
 
 	const bool doStress=(evalStress && scene->isPeriodic);
+	const bool deterministic(scene->deterministic);
 
 	if(reorderEvery>0 && (scene->step%reorderEvery==0)) reorderContacts();
 
@@ -184,20 +185,25 @@ void ContactLoop::run(){
 		if(!keepContact) dem.contacts->requestRemoval(C);
 		CONTACTLOOP_CHECKPOINT("law");
 
-		if(applyForces && C->isReal()){
+		if(applyForces && C->isReal() && likely(!deterministic)){
+			applyForceUninodal(C,pA);
+			applyForceUninodal(C,pB);
+			#if  0
 			for(const Particle* particle:{pA,pB}){
-				const shared_ptr<Shape>& sh(particle->shape);
-				if(!sh || sh->nodes.size()!=1) continue;
-				// if(sh->nodes.size()!=1) continue;
-				#if 0
-					for(size_t i=0; i<sh->nodes.size(); i++){
-						if((sh->nodes[i]->getData<DemData>().flags&DemData::DOF_ALL)!=DemData::DOF_ALL) LOG_WARN("Multinodal #"<<particle->id<<" has free DOFs, but force will not be applied; set ContactLoop.applyForces=False and use IntraForce(...) dispatcher instead.");
-					}
-				#endif
-				Vector3r F,T,xc;
-				std::tie(F,T,xc)=C->getForceTorqueBranch(particle,/*nodeI*/0,scene);
-				sh->nodes[0]->getData<DemData>().addForceTorque(F,xc.cross(F)+T);
+				// remove once tested thoroughly
+					const shared_ptr<Shape>& sh(particle->shape);
+					if(!sh || sh->nodes.size()!=1) continue;
+					// if(sh->nodes.size()!=1) continue;
+					#if 0
+						for(size_t i=0; i<sh->nodes.size(); i++){
+							if((sh->nodes[i]->getData<DemData>().flags&DemData::DOF_ALL)!=DemData::DOF_ALL) LOG_WARN("Multinodal #"<<particle->id<<" has free DOFs, but force will not be applied; set ContactLoop.applyForces=False and use IntraForce(...) dispatcher instead.");
+						}
+					#endif
+					Vector3r F,T,xc;
+					std::tie(F,T,xc)=C->getForceTorqueBranch(particle,/*nodeI*/0,scene);
+					sh->nodes[0]->getData<DemData>().addForceTorque(F,xc.cross(F)+T);
 			}
+			#endif
 		}
 
 		// track gradV work
@@ -239,5 +245,23 @@ void ContactLoop::run(){
 		prevVol=scene->cell->getVolume();
 		prevStress=stress;
 	}
+	// apply forces deterministically, after the parallel loop
+	// this could be also loop over particles in parallel (since per-particle loop would still be deterministic) but time per particle is very small here
+	if(unlikely(deterministic) && applyForces){
+		// non-paralell loop here
+		for(const auto& C: *dem.contacts){
+			if(!C->isReal()) continue;
+			applyForceUninodal(C,C->leakPA());
+			applyForceUninodal(C,C->leakPB());
+		}
+	}
 	CONTACTLOOP_CHECKPOINT("epilogue");
+}
+
+void ContactLoop::applyForceUninodal(const shared_ptr<Contact>& C, const Particle* particle){
+	const auto& sh(particle->shape);
+	if(!sh || sh->nodes.size()!=1) return;
+	Vector3r F,T,xc;
+	std::tie(F,T,xc)=C->getForceTorqueBranch(particle,/*nodeI*/0,scene);
+	sh->nodes[0]->getData<DemData>().addForceTorque(F,xc.cross(F)+T);
 }
