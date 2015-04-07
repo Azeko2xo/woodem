@@ -23,7 +23,7 @@ sudo apt-get install software-properties-common python-software-properties # for
 sudo add-apt-repository ppa:eudoxos/minieigen
 sudo apt-get update
 
-sudo apt-get install libboost-all-dev python-colorama libqt4-dev-bin python-setuptools python-all-dev pyqt4-dev-tools libqt4-dev qt4-dev-tools libgle3-dev libqglviewer-dev libvtk5-dev libgts-dev libeigen3-dev freeglut3-dev python-xlrd python-xlwt python-numpy python-matplotlib python-qt4 python-xlib python-genshi python-psutil python-imaging python-h5py python-lockfile git ccache scons ipython mencoder python-imaging python-minieigen python-prettytable
+sudo apt-get install libboost-all-dev python-colorama libqt4-dev-bin python-setuptools python-all-dev pyqt4-dev-tools libqt4-dev qt4-dev-tools libgle3-dev libqglviewer-dev libvtk5-dev libgts-dev libeigen3-dev freeglut3-dev python-xlrd python-xlwt python-numpy python-matplotlib python-qt4 python-xlib python-genshi python-psutil python-imaging python-h5py python-lockfile git ccache scons ipython libav-tools python-imaging python-minieigen python-prettytable
 		
 sudo chown -R $USER: /usr/local
 
