@@ -23,33 +23,33 @@ sudo apt-get install software-properties-common python-software-properties # for
 sudo add-apt-repository ppa:eudoxos/minieigen
 sudo apt-get update
 
-sudo apt-get install libboost-all-dev python-colorama libqt4-dev-bin python-setuptools python-all-dev pyqt4-dev-tools libqt4-dev qt4-dev-tools libgle3-dev libqglviewer-dev libvtk5-dev libgts-dev libeigen3-dev freeglut3-dev python-xlrd python-xlwt python-numpy python-matplotlib python-qt4 python-xlib python-genshi python-psutil python-imaging python-h5py python-lockfile bzr ccache scons ipython mencoder python-imaging python-minieigen python-prettytable
+sudo apt-get install libboost-all-dev python-colorama libqt4-dev-bin python-setuptools python-all-dev pyqt4-dev-tools libqt4-dev qt4-dev-tools libgle3-dev libqglviewer-dev libvtk5-dev libgts-dev libeigen3-dev freeglut3-dev python-xlrd python-xlwt python-numpy python-matplotlib python-qt4 python-xlib python-genshi python-psutil python-imaging python-h5py python-lockfile git ccache scons ipython mencoder python-imaging python-minieigen python-prettytable
 		
 sudo chown -R $USER: /usr/local
 
 
-if [ ! -d ~/woo/.bzr ]; then
+if [ ! -d ~/woo/.git ]; then
 	rm -rf ~/woo # in case it contains some garbage
-	bzr co http://bazaar.launchpad.net/~eudoxos/woo/trunk ~/woo
+	git clone https://github.com/eudoxos/woodem.git ~/woo
 else
-	bzr up ~/woo
+	git -C ~/woo pull
 fi
 
 # grab extra modules
 for KEY in "$@"; do
 	DEST=~/woo/wooExtra/$KEY
-	if [ ! -d $DEST/.bzr ]; then
+	if [ ! -d $DEST/.git ]; then
 		rm -rf $DEST
-		bzr co http://woodem.eu/private/$KEY/branch $DEST
+		git clone http://woodem.eu/private/$KEY/git $DEST
 	else
-		bzr up $DEST
+		git -C $DEST pull
 	fi
 done
 
 # compile
 mkdir -p ~/woo-build
 ccache -M50G -F10000 # adjust maxima for ccache
-scons -C ~/woo flavor= features=gts,opengl,openmp,qt4,vtk jobs=4 buildPrefix=~/woo-build CPPPATH=`ls -d /usr/include/vtk-5.*`:/usr/include/eigen3 CXX='ccache g++' brief=0 debug=0
+scons -C ~/woo flavor= features=gts,opengl,openmp,qt4,vtk jobs=4 buildPrefix=~/woo-build CPPPATH=`ls -d /usr/include/vtk-{5,6}.*`:/usr/include/eigen3 CXX='ccache g++' brief=0 debug=0
 
 ## tests
 # crash at exit perhaps, should be fixed
