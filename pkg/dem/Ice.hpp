@@ -25,15 +25,20 @@ struct IcePhys: public FrictPhys{
 	bool isBrkBondX(short x) const { return bonds & (1<<x) & (1<<(4+x)); }
 	void setAllBroken() { bonds&=~( 1<<0 | 1<<1 | 1<<2 | 1<<3 ); }
 
-	#define woo_dem_IcePhys__CLASS_BASE_DOC_ATTRS_CTOR \
+	#define woo_dem_IcePhys__CLASS_BASE_DOC_ATTRS_CTOR_PY \
 		IcePhys,FrictPhys,"Physical properties of a contact of two :obj:`IceMat`.", \
 		((Vector2r,kWR,Vector2r(NaN,NaN),,"Twisting and rolling stiffness.")) \
 		((Vector2r,brkNT,Vector2r(NaN,NaN),AttrTrait<>().forceUnit(),"Limits of breakage in normal & tangential senses.")) \
 		((Vector2r,brkWR,Vector2r(NaN,NaN),AttrTrait<>().torqueUnit(),"Limits of breakage in twisting & rolling senses.")) \
 		((Real,mu,NaN,,"Kinetic (rolling) friction coefficient.")) \
 		((int,bonds,0,AttrTrait<>().bits({"bondN","bondT","bondW","bondR","brkN","brkT","brkW","brkR"}),"Bits specifying whether the contact is bonded (in 4 senses) and whether it is breakable (in 4 senses).")) \
-		, /*ctor*/ createIndex();
-	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_IcePhys__CLASS_BASE_DOC_ATTRS_CTOR);
+		((Real,uN0,0,,"Initial value of normal overlap; set automatically by :obj:`Law_L6Geom_IcePhys` when :obj:`~Law_L6Geom_IcePhys.iniEqlb` is true (default).")) \
+		, /*ctor*/ createIndex(); \
+		, /*py*/ \
+			.def("isBondX",&IcePhys::isBondX,"Whether the contact is bonded in the *x* sense (0..3)") \
+			.def("isBrkX",&IcePhys::isBrkX,"Whether the contact is breakable in the *x* sense (0..3)") \
+			.def("isBrkBondX",&IcePhys::isBrkBondX,"Whether the contact is breakable *and* bonded in the *x* sense (0..3)")
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_IcePhys__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 	REGISTER_CLASS_INDEX(IcePhys,CPhys);
 };
 WOO_REGISTER_OBJECT(IcePhys);
@@ -76,10 +81,11 @@ struct Law2_L6Geom_IcePhys: public LawFunctor{
 	}
 
 	Real elastE(const IcePhys& p);
-
+	FUNCTOR2D(L6Geom,IcePhys);
 	#define woo_dem_Law2_L6Geom_IcePhys__CLASS_BASE_DOC_ATTRS_PY \
 		Law2_L6Geom_IcePhys,LawFunctor,"Contact law implementing :ref:`ice-contact-model`.", \
 		/* attrs */ \
+		((bool,iniEqlb,true,,"Set the intial distance as equilibrium distance (saved in :obj:`IcePhys.uN0`, subtracted from L6Geom.uN); enabling during simulation will only affect newly created contacts).")) \
 		((int,elastIx,-1,AttrTrait<Attr::readonly>(),"Index of elastic energy (cache).")) \
 		((int,brokenIx,-1,AttrTrait<Attr::readonly>(),"Index of energy which disappeared when contacts broke (cache).")) \
 		((int,plastIx,-1,AttrTrait<Attr::readonly>(),"Index of plastically dissipated energy (cache).")) \

@@ -6,7 +6,7 @@ WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_IceMat__CLASS_BASE_DOC_ATTRS_CTOR);
 #endif
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_Cp2_IceMat_IcePhys__CLASS_BASE_DOC_ATTRS);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Law2_L6Geom_IcePhys__CLASS_BASE_DOC_ATTRS_PY);
-WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_IcePhys__CLASS_BASE_DOC_ATTRS_CTOR);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_IcePhys__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 
 
 
@@ -28,7 +28,7 @@ void Cp2_IceMat_IcePhys::go(const shared_ptr<Material>& m1, const shared_ptr<Mat
 	// rolling friction
 	ph.mu=min(mat1.mu,mat2.mu);
 	// bonding
-	ph.bonds=scene->step>step01?bonds0:bonds1;
+	ph.bonds=scene->step<step01?bonds0:bonds1;
 }
 
 Real Law2_L6Geom_IcePhys::elastE(const IcePhys& p){
@@ -57,9 +57,11 @@ bool Law2_L6Geom_IcePhys::go(const shared_ptr<CGeom>& cg, const shared_ptr<CPhys
 	bool energy(unlikely(scene->trackEnergy));
 	// compute current (with old forces) elastic potential for the case the contact disappears
 	if(energy) Ee0=elastE(ph); 
+	// fresh contact, set uN0 for the first time
+	if(C->isFresh(scene) && iniEqlb) ph.uN0=g.uN;
 
 	// normal force: total formulation
-	Fn=ph.kn*g.uN;
+	Fn=ph.kn*(g.uN-ph.uN0);
 	// incremental formulation for the rest
 	Ft+=dt*ph.kt*velT;
 	Tw+=dt*ph.kWR[0]*angVelW;

@@ -60,6 +60,7 @@ def defaultEngines(damping=0.,gravity=None,verletDist=-.05,kinSplit=False,dontCo
 		if damping!=0.: warnings.warn("damping is ignored when model is provided.")
 		cp2,law=model.getFunctors()
 		if len(law)==1: law[0].label='contactLaw'
+		if len(cp2)==1: cp2[0].label='cp2'
 		damping=model.getNonviscDamping()
 		distFactor=model.distFactor
 	else:
