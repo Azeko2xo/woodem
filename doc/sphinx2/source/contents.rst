@@ -1,9 +1,10 @@
 Welcome to Woo's documentation!
 ===============================
 
-* Code available at http://www.launchpad.net/woo
+* Code available at http://github.com/eudoxos/woodem
 * Contact us at `info@woodem.eu <mailto:info@woodem.eu>`_
-* Back to the `main website <http://woodem.eu>`_
+* Post to the the forum at http://answers.launchpad.net/woo
+* Return to the `main website <http://woodem.eu>`_
 
 Contents:
 
