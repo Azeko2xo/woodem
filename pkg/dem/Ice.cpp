@@ -9,7 +9,6 @@ WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Law2_L6Geom_IcePhys__CLASS_BASE_DOC_AT
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_IcePhys__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 
 
-
 void Cp2_IceMat_IcePhys::go(const shared_ptr<Material>& m1, const shared_ptr<Material>& m2, const shared_ptr<Contact>& C){
 	if(!C->phys) C->phys=make_shared<IcePhys>();
 	auto& mat1=m1->cast<IceMat>(); auto& mat2=m2->cast<IceMat>();

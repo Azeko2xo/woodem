@@ -89,6 +89,7 @@ ilex.continue_prompt=re.compile(r'\s+\.\.\.+:')
 intersphinx_mapping={
 	'yade':('http://www.yade-dem.org/doc',None),
 	'python':('http://docs.python.org/%d.%d'%(sys.version_info.major,sys.version_info.minor),None),
+	'minieigen':('http://eudoxos.github.io/minieigen',None),
 }
 
 # make graphviz determine the best size instead of hard-coded one

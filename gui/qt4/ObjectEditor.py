@@ -865,64 +865,6 @@ class ObjectEditor(QFrame):
 		self.refreshTimer.timeout.connect(self.refreshEvent)
 		self.refreshTimer.start(500)
 
-	def getListTypeFromDocstring(self,obj,trait):
-		"Guess type of array from parsing trait.cxxType. Ugly but works."
-		# head for warnings
-		wHead=obj.__class__.__module__+'.'+obj.__class__.__name__+'.'+trait.name
-		def vecTest(T,cxxT):
-			regexp=r'^\s*(std\s*::)?\s*vector\s*<\s*(shared_ptr\s*<\s*)?\s*(std\s*::)?\s*('+T+r')(\s*>)?\s*>\s*$'
-			m=re.match(regexp,cxxT)
-			return m
-		def vecGuess(T):
-			regexp=r'^\s*(std\s*::)?\s*vector\s*<\s*(shared_ptr\s*<\s*)?\s*(std\s*::)?\s*(?P<elemT>[a-zA-Z_][a-zA-Z0-9_]+)(\s*>)?\s*>\s*$'
-			m=re.match(regexp,T)
-			return m
-		from woo import dem
-		if 'opengl' in woo.config.features: from woo import gl
-		from woo import core
-		vecMap={
-			'bool':bool,'int':int,'long':int,'Body::id_t':long,'size_t':long,
-			'Real':float,'float':float,'double':float,
-			'Vector6r':Vector6,'Vector6i':Vector6i,'Vector3i':Vector3i,'Vector2r':Vector2,'Vector2i':Vector2i,
-			'Vector3r':Vector3,'Matrix3r':Matrix3,'Se3r':Se3FakeType,'Quaternionr':Quaternion,
-			'VectorXr':VectorX,'MatrixXr':MatrixX,
-			'AlignedBox2r':AlignedBox2,'AlignedBox3r':AlignedBox3,
-			'string':str
-		}
-		cxxT=trait.cxxType
-		if not cxxT:
-			logging.error("Trait for %s does not define cxxType"%(trait.name))
-			return None
-		for T,ret in vecMap.items():
-			if vecTest(T,cxxT):
-				logging.debug("Got type %s from cxx type %s"%(repr(ret),cxxT))
-				return (ret,)
-		#print 'No luck with ',T
-		m=vecGuess(cxxT)
-		if m:
-			# print 'guessed literal type',m.group('elemT')
-			elemT=m.group('elemT')
-			klasses=[c for c in woo.system.childClasses(woo.core.Object,includeBase=True) if c.__name__==elemT]
-			if len(klasses)==0: logging.warn('%s: no Python type object with name %s found (cxxType=%s)'%(wHead,elemT,trait.cxxType))
-			elif len(klasses)>1: logging.warn('%s: multiple Python types with name %s found (cxxType=%s): %s'%(wHead,elemT,trait.cxxType,', '.join([c.__module__+'.'+c.__name__ for c in klasses])))
-			else: return (klasses[0],) # return tuple to signify sequence
-		logging.error("Unable to guess python type from cxx type '%s'"%cxxT)
-		return None
-	def guessInstanceTypeFromCxxType(self,obj,trait):
-		'Return type object guessed from cxxType'
-		wHead=obj.__class__.__module__+'.'+obj.__class__.__name__+'.'+trait.name
-		m=re.match(r'^\s*(weak_ptr\s*<|shared_ptr\s*<)?([A-Za-z0-9_:]+)(\s*>)?\s*',trait.cxxType)
-		if m:
-			cT=m.group(2)
-			logging.debug('%s: got c++ base type: %s -> %s'%(wHead,trait.cxxType,cT))
-			klasses=[c for c in woo.system.childClasses(woo.core.Object,includeBase=True) if c.__name__==cT]
-			if len(klasses)==0: logging.warn('%s: no Python type object with name %s found (cxxType=%s)'%(wHead,cT,trait.cxxType))
-			elif len(klasses)>1: logging.warn('%s: multiple Python types with name %s found (cxxType=%s): %s'%(wHead,cT,trait.cxxType,', '.join([c.__module__+'.'+c.__name__ for c in klasses])))
-			else: return klasses[0]
-		logging.warn('%s: no c++ base type found for %s'%(wHead,trait.cxxType))
-		logging.warn('%s: using woo.core.Object as type'%(wHead))
-		return Object
-
 	def addListObjAttrEntries(self,objAttrLabelList):
 		for obj,attr,label in objAttrLabelList:
 			if not isinstance(obj,woo.core.Object): logging.error('%s is not a woo.core.Object (attribtue %s requested)'%(str(obj),attr))
@@ -960,13 +902,13 @@ class ObjectEditor(QFrame):
 
 		# determine entry type
 		if isinstance(val,list):
-			t=self.getListTypeFromDocstring(obj,trait)
+			t=woo.document.guessListTypeFromCxxType(obj.__class__,trait,warnFail=True)
 			if not t and len(val)==0: t=(val[0].__class__,) # 1-tuple is list of the contained type
 			#if not t: raise RuntimeError('Unable to guess type of '+str(obj)+'.'+attr)
 		elif val.__class__ in _attributeGuessedTypeMap: t=_attributeGuessedTypeMap[val.__class__]
 		elif not isinstance(val,woo.core.Object) and val!=None: t=val.__class__
 		else: # for Woo objects, determine base class if manipulation is allowed; if not, use current instance type (it can't be changed anyway) or Object (it the value is None)
-			if self.objManip: t=self.guessInstanceTypeFromCxxType(obj,trait)
+			if self.objManip: t=woo.document.guessInstanceTypeFromCxxType(obj.__class__,trait)
 			elif val!=None: t=val.__class__
 			else: t=Object
 
