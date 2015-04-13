@@ -122,12 +122,14 @@ def makeTraitInfo(trait):
 	if trait.noSave: ret.append('not saved')
 	if trait.hidden: ret.append('not accessible from python')
 	if trait.readonly: ret.append('read-only in python')
-	if trait.choice:
+	if trait.choice and not trait.namedEnum: # named enums formatted differently below
 		if isinstance(trait.choice[0],tuple): ret.append('choices: '+', '.join('%d = %s'%(c[0],c[1] if '|' not in c[1] else '``'+c[1]+'``') for c in trait.choice))
 		else: ret.append('choices: '+', '.join(str(c) for c in trait.choice))
+	if trait.namedEnum: ret.append('named enum, possible values are: '+trait.namedEnum_validValues(pre0="**'",post0="'**",pre="*'",post="'*"))
 	if trait.filename: ret.append('filename')
 	if trait.existingFilename: ret.append('existing filename')
 	if trait.dirname: ret.append('directory name')
+	if trait.bits: ret.append('bit accessors: '+', '.join(['**'+b+'**' for  b in trait.bits]))
 
 	return ', '.join(ret)
 	

@@ -5,6 +5,7 @@
 
 
 py::tuple computePrincipalAxes(const Real& V, const Vector3r& Sg, const Matrix3r& Ig){
+	if(V<0) throw std::invalid_argument("Volume V must be greater than 0 (is vertex ordering inverted?).");
 	Vector3r pos; Quaternionr ori; Vector3r inertia;
 	woo::Volumetric::computePrincipalAxes(V,Sg,Ig,pos,ori,inertia);
 	return py::make_tuple(pos,ori,inertia);

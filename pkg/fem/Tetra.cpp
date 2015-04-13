@@ -67,17 +67,19 @@ void Tetra::lumpMassInertia(const shared_ptr<Node>& n, Real density, Real& mass,
 	mass+=density*vF;
 }
 
-void Tetra::asRaw(Vector3r& center, Real& radius, vector<Real>& raw) const {
+void Tetra::asRaw(Vector3r& center, Real& radius, vector<shared_ptr<Node>>&nn, vector<Real>& raw) const {
 	// this should be circumscribed sphere, but that is too complicated to compute
 	// so just use centroid and the largest distance to vertex
 	center=getCentroid();
 	radius=0; for(int i:{0,1,2,3}) radius=max(radius,(nodes[i]->pos-center).norm());
-	for(int i:{0,1,2,3}) for(int ax:{0,1,2}) raw[3*i+ax]=nodes[i]->pos[ax]-center[ax];
+	for(int i:{0,1,2,3}) Shape::asRaw_helper_coordsFromNode(nn,raw,3*i,/*nodeNum*/i);
+	// for(int i:{0,1,2,3}) for(int ax:{0,1,2}) raw[3*i+ax]=nodes[i]->pos[ax];
 }
 
-void Tetra::setFromRaw(const Vector3r& center, const Real& radius, const vector<Real>& raw){
+void Tetra::setFromRaw(const Vector3r& center, const Real& radius, vector<shared_ptr<Node>>& nn, const vector<Real>& raw){
 	Shape::setFromRaw_helper_checkRaw_makeNodes(raw,12);
-	for(int i:{0,1,2,3}) for(int ax:{0,1,2}) nodes[i]->pos[ax]=raw[3*i+ax]+center[ax];
+	// for(int i:{0,1,2,3}) for(int ax:{0,1,2}) nodes[i]->pos[ax]=raw[3*i+ax]+center[ax];
+	for(int i:{0,1,2,4}) nodes[i]=Shape::setFromRaw_helper_nodeFromCoords(nn,raw,3*i);
 }
 
 

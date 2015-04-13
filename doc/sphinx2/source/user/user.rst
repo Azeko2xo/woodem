@@ -11,4 +11,6 @@ User's manual
 	postprocess.rst
 	visualization.rst
 	flow-analysis.rst
+	clump.rst
 	yade-diff.rst
+

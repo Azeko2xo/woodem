@@ -171,7 +171,7 @@ Real woo::Volumetric::triangleArea(const Vector3r& v0, const Vector3r& v1, const
 
 
 void woo::Volumetric::computePrincipalAxes(const Real& M, const Vector3r& Sg, const Matrix3r& Ig, Vector3r& pos, Quaternionr& ori, Vector3r& inertia){
-assert(M>0); // LOG_TRACE("M=\n"<<M<<"\nIg=\n"<<Ig<<"\nSg=\n"<<Sg);
+	assert(M>0); // LOG_TRACE("M=\n"<<M<<"\nIg=\n"<<Ig<<"\nSg=\n"<<Sg);
 	// clump's centroid
 	pos=Sg/M;
 	// this will calculate translation only, since rotation is zero

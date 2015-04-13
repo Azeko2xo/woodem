@@ -155,7 +155,8 @@ void Leapfrog::run(){
 		bool isClump=dyn.isClump();
 		bool damp=(damping!=0. && !dyn.isDampingSkip());
 		if(isClump){
-			ClumpData::collectFromMembers(node,dyn.force,dyn.torque);
+			// accumulates to existing values of dyn.force, dy.torque (normally zero)
+			ClumpData::forceTorqueFromMembers(node,dyn.force,dyn.torque);
 		}
 		Vector3r& f=dyn.force;
 		Vector3r& t=dyn.torque;

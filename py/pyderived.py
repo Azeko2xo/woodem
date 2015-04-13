@@ -154,7 +154,7 @@ class PyAttrTrait(object):
 		self.noGuiResize=noGuiResize
 		self.readonly=guiReadonly # this has different meaning in c++ and python, so call it differently
 		# those are unsupported in python
-		self.noSave=self.hidden=self.pyByRef=self.static=self.activeLabel=False
+		self.noSave=self.hidden=self.pyByRef=self.static=self.activeLabel=self.namedEnum=False
 		#
 		self.validator=None
 		if self.choice and type(self.choice[0])==str:

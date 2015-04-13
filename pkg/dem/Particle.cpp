@@ -28,6 +28,7 @@ WOO_IMPL__CLASS_BASE_DOC_ATTRS_INI_CTOR_PY(woo_dem_Bound__CLASS_BASE_DOC_ATTRS_I
 WOO_IMPL_LOGGER(DemField);
 WOO_IMPL_LOGGER(DemData);
 WOO_IMPL_LOGGER(Particle);
+WOO_IMPL_LOGGER(Shape);
 
 py::dict Particle::pyAllContacts()const{ py::dict ret; for(const auto& i: contacts) ret[i.first]=i.second; return ret; }
 py::dict Particle::pyContacts()const{	py::dict ret; for(const auto& i: contacts){ if(i.second->isReal()) ret[i.first]=i.second; } return ret;}
@@ -114,6 +115,20 @@ int Particle::countRealContacts() const{
 	return boost::range::count_if(contacts,[&](const MapParticleContact::value_type& C)->bool{ return C.second->isReal(); });
 }
 
+void Shape::asRaw_helper_coordsFromNode(vector<shared_ptr<Node>>& nn, vector<Real>& raw, size_t pos, size_t nodeNum) const {
+	// find if the node is in nn
+	const auto& n=nodes[nodeNum];
+	auto I=std::find_if(nn.begin(),nn.end(),[&n](const shared_ptr<Node>& n_){ return n.get()==n_.get(); });
+	assert(raw.size()>=pos+3);
+	if(I!=nn.end()){ // existing node
+		raw[pos]=NaN; raw[pos+1]=NaN; raw[pos+2]=(Real)(I-nn.begin());
+	} else {
+		for(int i:{0,1,2}) raw[pos+i]=n->pos[i];
+		nn.push_back(n);
+	}
+}
+
+
 void Shape::setFromRaw_helper_checkRaw_makeNodes(const vector<Real>& raw, size_t numRaw){
 	if(raw.size()!=numRaw) throw std::runtime_error("Error setting "+pyStr()+" from raw data: "+to_string(numRaw)+" numbers expected, "+to_string(raw.size())+" given.");
 	// add/remove nodes as necessary
@@ -121,14 +136,29 @@ void Shape::setFromRaw_helper_checkRaw_makeNodes(const vector<Real>& raw, size_t
 	nodes.resize(numNodes());
 }
 
-py::tuple Shape::pyAsRaw() const {
-	Vector3r center; Real radius; vector<Real> raw;
-	asRaw(center,radius,raw);
-	return py::make_tuple(center,radius,raw);
+shared_ptr<Node> Shape::setFromRaw_helper_nodeFromCoords(vector<shared_ptr<Node>>& nn, const vector<Real>& raw, size_t pos){
+	if(raw.size()<pos+3){ LOG_ERROR("Raw data too short (length "<<raw.size()<<", pos="<<pos<<"; this should be checked automatically before invoking this function."); throw std::logic_error("Error in setFromRaw_helper_nodeFromCoords: see error message."); }
+	Vector3r p(raw[pos],raw[pos+1],raw[pos+2]);
+	if(isnan(p[0]) || isnan(p[1])){ //return existing node
+		int p2i=int(p[2]);
+		if(!(p2i>=0 && p2i<(int)nn.size())) throw std::runtime_error("Raw coords beginning with NaN signify an existing node, but the index (z-component) is "+to_string(p[2])+" ("+to_string(p2i)+" as int), which is not a valid index (0.."+to_string(nn.size()-1)+") of existing nodes.");
+		return nn[p2i];
+	} else { // create new node
+		auto n=make_shared<Node>();
+		n->pos=p;
+		nn.push_back(n);
+		return n;
+	}
 }
 
-void Shape::asRaw(Vector3r& center, Real& radius, vector<Real>& raw) const { throw std::runtime_error(pyStr()+" does not implement Shape.asRaw."); }
-void Shape::setFromRaw(const Vector3r& center, const Real& radius, const vector<Real>& raw){	throw std::runtime_error(pyStr()+" does not implement Shape.setFromRaw."); }
+py::tuple Shape::pyAsRaw() const {
+	Vector3r center; Real radius; vector<Real> raw; vector<shared_ptr<Node>> nn;
+	asRaw(center,radius,nn,raw);
+	return py::make_tuple(center,radius,nn,raw);
+}
+
+void Shape::asRaw(Vector3r& center, Real& radius,  vector<shared_ptr<Node>>&nn, vector<Real>& raw) const { throw std::runtime_error(pyStr()+" does not implement Shape.asRaw."); }
+void Shape::setFromRaw(const Vector3r& center, const Real& radius, vector<shared_ptr<Node>>& nn, const vector<Real>& raw){	throw std::runtime_error(pyStr()+" does not implement Shape.setFromRaw."); }
 bool Shape::isInside(const Vector3r& pt) const { throw std::runtime_error(pyStr()+" does not implement Shape.isInside."); }
 AlignedBox3r Shape::alignedBox() const { throw std::runtime_error(pyStr()+" does not implement Shape.alignedBox."); }
 void Shape::applyScale(Real s) { throw std::runtime_error(pyStr()+" does not implement Shape.applyScale."); }

@@ -24,7 +24,8 @@ WOO_IMPL_LOGGER(ShapePack);
 
 
 RawShape::RawShape(const shared_ptr<Shape>& sh){
-	sh->asRaw(center,radius,raw);
+	vector<shared_ptr<Node>> nn; // unused
+	sh->asRaw(center,radius,nn,raw);
 	className=sh->getClassName();
 }
 
@@ -59,18 +60,20 @@ shared_ptr<Shape> RawShape::toShape(Real density, Real scale) const {
 	#endif
 	else throw std::invalid_argument("RawShape.toShape: className '"+className+"' is not supported.");
 	if(scale<=0) throw std::invalid_argument("RawShape.toShape: scale must be a positive number.");
-	ret->setFromRaw(center,radius,raw);
+	vector<shared_ptr<Node>> nodes; // initially empty
+	ret->setFromRaw(center,radius,nodes,raw);
 	if(scale!=1.) ret->applyScale(scale);
 
 	if(!isnan(density)){
-		for(const auto& n: ret->nodes){
+		for(const auto& n: nodes){
 			n->setData<DemData>(make_shared<DemData>());
 			#ifdef WOO_OPENGL
 				// to avoid crashes if renderer must resize the node's data array and reallocates it while other thread accesses those data
 				n->setData<GlData>(make_shared<GlData>());
 			#endif
+			n->getData<DemData>().setOriMassInertia(n);
 		}
-		ret->updateMassInertia(density);
+		// ret->updateMassInertia(density);
 	}
 	return ret;
 }

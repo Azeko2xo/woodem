@@ -43,7 +43,7 @@ void woo::Ellipsoid::lumpMassInertia(const shared_ptr<Node>&, Real density, Real
 }
 
 
-void woo::Ellipsoid::asRaw(Vector3r& _center, Real& _radius, vector<Real>& raw) const{
+void woo::Ellipsoid::asRaw(Vector3r& _center, Real& _radius, vector<shared_ptr<Node>>&nn, vector<Real>& raw) const{
 	_center=nodes[0]->pos;
 	_radius=semiAxes.maxCoeff();
 	AngleAxisr aa(nodes[0]->ori);
@@ -54,7 +54,7 @@ void woo::Ellipsoid::asRaw(Vector3r& _center, Real& _radius, vector<Real>& raw) 
 	rawSemiAxes=semiAxes;
 }
 
-void woo::Ellipsoid::setFromRaw(const Vector3r& _center, const Real& _radius, const vector<Real>& raw){
+void woo::Ellipsoid::setFromRaw(const Vector3r& _center, const Real& _radius, vector<shared_ptr<Node>>& nn, const vector<Real>& raw){
 	Shape::setFromRaw_helper_checkRaw_makeNodes(raw,6);
 	Eigen::Map<const Vector3r> rawOri(raw.data());
 	Eigen::Map<const Vector3r> rawSemiAxes(raw.data()+3);
@@ -62,6 +62,7 @@ void woo::Ellipsoid::setFromRaw(const Vector3r& _center, const Real& _radius, co
 	Real n=rawOri.norm();
 	if(n==0.) nodes[0]->ori=Quaternionr::Identity();
 	else nodes[0]->ori=Quaternionr(AngleAxisr(n,rawOri/n));
+	nn.push_back(nodes[0]);
 	semiAxes=rawSemiAxes;
 }
 

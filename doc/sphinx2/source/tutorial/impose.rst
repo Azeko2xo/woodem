@@ -52,7 +52,7 @@ Blocking `degrees of freedom (DoFs) <http://en.wikipedia.org/wiki/Degrees_of_fre
 
 A more versatile option is to use the :obj:`DemData.impose <woo.dem.DemData.impose>` to assign any object deriving from :obj:`woo.dem.Impose`. What is imposed in each step is either force or velocity, though those are not constrained to global coordinate axes, and are computed by some c++ routine. :obj:`~woo.dem.Impose` instances can be shared by many nodes.
 
-This shows how the feed was made movable by imposing :obj:`woo.dem.HarmonicOscillation` on the :obj:`woo.dem.ConveyorFactory.node`.
+This shows how the feed was made movable by imposing :obj:`woo.dem.HarmonicOscillation` on the :obj:`woo.dem.ConveyorInlet.node`.
 
 .. youtube:: M23o4tuak6g
 
@@ -64,10 +64,12 @@ This example shows the :obj:`woo.dem.AlignedHarmonicOscillations` imposition, wh
 .. literalinclude:: impose-harmonic.py
 
 
+.. _tutorial-interpolated:
+
 Interpolated
 --------------
 
-:obj:`woo.dem.InterpolatedMotion` was used in this example to move the bottle (using :guilabel:`Video`, internally :obj:`woo.qt.SnapshotEngine`)
+:obj:`woo.dem.InterpolatedMotion` was used in this example to move the bottle (using :guilabel:`Video`, internally :obj:`woo.qt.SnapshotEngine`); since we needed to move the whole bottle as an aggregate, it was added as a :ref:`clump <user-clumps>`.
 
 .. youtube:: D_pc3RU5IXc
 

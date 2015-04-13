@@ -90,7 +90,7 @@ class TestVolumetric(unittest.TestCase):
 			for j in (0,1,2):
 				self.assertAlmostEqual(In[i,j],Ib[i,j],delta=1e-9)
 		# principal axes
-		pn,on,ii=woo.comp.computePrincipalAxes(woo.comp.tetraVolume(*vvC),Vector3.Zero,In)
+		pn,on,ii=woo.comp.computePrincipalAxes(abs(woo.comp.tetraVolume(*vvC)),Vector3.Zero,In)
 		# book values: principal inertia
 		ib=(1.20592,.93268,.38140) 
 		for i in 0,1,2: self.assertAlmostEqual(ib[i],ii[2-i],delta=1e-4) # book orders decreasing, we order increasing

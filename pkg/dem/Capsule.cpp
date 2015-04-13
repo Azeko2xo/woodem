@@ -70,7 +70,7 @@ AlignedBox3r Capsule::alignedBox() const {
 	return ret;
 }
 
-void Capsule::asRaw(Vector3r& _center, Real& _radius, vector<Real>& raw) const {
+void Capsule::asRaw(Vector3r& _center, Real& _radius, vector<shared_ptr<Node>>&nn, vector<Real>& raw) const {
 	_center=nodes[0]->pos;
 	_radius=radius+.5*shaft;
 	// store as half-shaft vector
@@ -80,7 +80,7 @@ void Capsule::asRaw(Vector3r& _center, Real& _radius, vector<Real>& raw) const {
 	hShaft=nodes[0]->ori*Vector3r(.5*shaft,0,0);
 }
 
-void Capsule::setFromRaw(const Vector3r& _center, const Real& _radius, const vector<Real>& raw) {
+void Capsule::setFromRaw(const Vector3r& _center, const Real& _radius, vector<shared_ptr<Node>>& nn, const vector<Real>& raw) {
 	Shape::setFromRaw_helper_checkRaw_makeNodes(raw,3);
 	Eigen::Map<const Vector3r> hShaft(raw.data());
 	nodes[0]->pos=_center;
@@ -88,6 +88,7 @@ void Capsule::setFromRaw(const Vector3r& _center, const Real& _radius, const vec
 	radius=_radius-.5*shaft;
 	if(shaft>0.) nodes[0]->ori.setFromTwoVectors(Vector3r::UnitX(),hShaft.normalized());
 	else nodes[0]->ori=Quaternionr::Identity();
+	nn.push_back(nodes[0]);
 }
 
 

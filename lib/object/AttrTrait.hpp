@@ -74,19 +74,24 @@ namespace woo{
 
 		string pyStr(){ return "<AttrTrait '"+_name+"', flags="+to_string(_flags)+" @ '"+lexical_cast<string>(this)+">"; }
 
-		void namedEnum_validValues(std::ostream& os) const {
+
+		void namedEnum_validValues(std::ostream& os, const string& pre0="", const string& post0="", const string& pre="", const string& post="") const {
 			bool first=true;
 			for(const auto& iss: _enumNum2Names){
 				os<<(first?"":", "); first=false;
 				const auto& ss(iss.second);
 				assert(!ss.empty());
-				os<<ss[0]<<" (";
+				os<<pre0<<ss[0]<<post0<<" (";
 				for(size_t i=1; i<ss.size(); i++){
-					os<<(i==1?"":", ")<<ss[i];
+					os<<(i==1?"":", ")<<pre<<ss[i]<<post;
 				}
 				os<<(ss.size()>1?"; ":"")<<iss.first<<")";
 			}
-			os<<".";
+		}
+		std::string namedEnum_pyValidValues(const string& pre0, const string& post0, const string& pre, const string& post) const {
+			std::ostringstream oss;
+			namedEnum_validValues(oss,pre0,post0,pre,post);
+			return oss.str();
 		}
 		int namedEnum_name2num(py::object o) const {
 			py::extract<int> i(o);
@@ -95,6 +100,7 @@ namespace woo{
 					std::ostringstream oss;
 					oss<<i<<" invalid for "<<_className+"."+_name<<". Valid values are: ";
 					namedEnum_validValues(oss);
+					oss<<".";
 					woo::ValueError(oss.str());
 				} else return i();
 			}
@@ -105,6 +111,7 @@ namespace woo{
 					std::ostringstream oss;
 					oss<<"'"<<s()<<"' invalid for "<<_className<<"."<<_name<<". Valid values are: ";
 					namedEnum_validValues(oss);
+					oss<<".";
 					woo::ValueError(oss.str());
 				}
 				return I->second;
@@ -137,6 +144,7 @@ namespace woo{
 				.add_property("existingFilename",&AttrTraitBase::isExistingFilename)
 				.add_property("dirname",&AttrTraitBase::isDirname)
 				.add_property("namedEnum",&AttrTraitBase::isNamedEnum)
+				.def("namedEnum_validValues",&AttrTraitBase::namedEnum_pyValidValues,(py::arg("pre0")="",py::arg("post0")="",py::arg("pre")="",py::arg("post")=""),"Valid values for named enum. *pre* and *post* are prefixed/suffixed to each possible value (used for formatting), *pre0* and *post0* are used with the first (primary/preferred) value.")
 				.def_readonly("_flags",&AttrTraitBase::_flags)
 				// non-flag attributes
 				.def_readonly("doc",&AttrTraitBase::_doc)

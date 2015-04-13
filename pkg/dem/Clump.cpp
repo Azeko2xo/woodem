@@ -5,7 +5,7 @@
 WOO_PLUGIN(dem,(ClumpData)(SphereClumpGeom));
 
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_SphereClumpGeom__CLASS_BASE_DOC_ATTRS_PY);
-WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_ClumpData__CLASS_BASE_DOC_ATTRS);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_ClumpData__CLASS_BASE_DOC_ATTRS_PY);
 
 WOO_IMPL_LOGGER(ClumpData);
 WOO_IMPL_LOGGER(SphereClumpGeom);
@@ -246,7 +246,17 @@ shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, shared
 	return cNode;
 }
 
-void ClumpData::collectFromMembers(const shared_ptr<Node>& node, Vector3r& F, Vector3r& T){
+py::tuple ClumpData::pyForceTorqueFromMembers(const shared_ptr<Node>& node){
+	if(!node->hasData<DemData>()) throw std::runtime_error(node->pyStr()+": Node.dem==None.");
+	if(!node->getData<DemData>().isA<ClumpData>()) throw std::runtime_error(node->pyStr()+": Node.dem is not a ClumpData instance (the node is not clump's master node).");
+	if(!node->getData<DemData>().isClump()) throw std::runtime_error(node->pyStr()+": Node.isClump is False, even though Node.dem is a ClumpData instance (programming error?).");
+	Vector3r f(Vector3r::Zero()), t(Vector3r::Zero());
+	ClumpData::forceTorqueFromMembers(node,f,t);
+	return py::make_tuple(f,t);
+}
+
+
+void ClumpData::forceTorqueFromMembers(const shared_ptr<Node>& node, Vector3r& F, Vector3r& T){
 	ClumpData& clump=node->getData<DemData>().cast<ClumpData>();
 	for(const auto& n: clump.nodes){
 		const DemData& dyn=n->getData<DemData>();

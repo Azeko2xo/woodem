@@ -207,7 +207,7 @@ Real DemFuncs::unbalancedForce(const Scene* scene, const DemField* dem, bool use
 		// and get additional forces from particles
 		if(dyn.isClump()){ 
 			Vector3r F(dyn.force), T(Vector3r::Zero()) /*we don't care about torque*/; 
-			ClumpData::collectFromMembers(n,F,T); 
+			ClumpData::forceTorqueFromMembers(n,F,T); 
 			currF=F.norm();
 		} else currF=dyn.force.norm();
 		maxF=max(currF,maxF);

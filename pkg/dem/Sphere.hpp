@@ -10,8 +10,8 @@ namespace woo{
 	struct Sphere: public Shape{
 		void selfTest(const shared_ptr<Particle>&) WOO_CXX11_OVERRIDE;
 		int numNodes() const WOO_CXX11_OVERRIDE { return 1; }
-		void setFromRaw(const Vector3r& center, const Real& radius, const vector<Real>& raw) WOO_CXX11_OVERRIDE;
-		void asRaw(Vector3r& center, Real& radius, vector<Real>& raw) const WOO_CXX11_OVERRIDE;
+		void setFromRaw(const Vector3r& center, const Real& radius, vector<shared_ptr<Node>>& nn, const vector<Real>& raw) WOO_CXX11_OVERRIDE;
+		void asRaw(Vector3r& center, Real& radius, vector<shared_ptr<Node>>&nn, vector<Real>& raw) const WOO_CXX11_OVERRIDE;
 		bool isInside(const Vector3r& pt) const WOO_CXX11_OVERRIDE;
 		// update dynamic properties (mass, intertia) of the sphere based on current radius
 		void lumpMassInertia(const shared_ptr<Node>&, Real density, Real& mass, Matrix3r& I, bool& rotateOk) WOO_CXX11_OVERRIDE;

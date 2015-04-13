@@ -11,8 +11,8 @@ struct Facet: public Shape {
 	void selfTest(const shared_ptr<Particle>&) WOO_CXX11_OVERRIDE;
 	Vector3r getNormal() const;
 	Vector3r getCentroid() const;
-	void setFromRaw(const Vector3r& center, const Real& radius, const vector<Real>& raw) WOO_CXX11_OVERRIDE;
-	void asRaw(Vector3r& center, Real& radius, vector<Real>& raw) const WOO_CXX11_OVERRIDE;
+	void setFromRaw(const Vector3r& center, const Real& radius, vector<shared_ptr<Node>>& nn, const vector<Real>& raw) WOO_CXX11_OVERRIDE;
+	void asRaw(Vector3r& center, Real& radius, vector<shared_ptr<Node>>&nn, vector<Real>& raw) const WOO_CXX11_OVERRIDE;
 	#ifdef WOO_OPENGL
 		Vector3r getGlNormal() const;
 		Vector3r getGlVertex(int i) const;

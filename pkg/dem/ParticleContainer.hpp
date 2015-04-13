@@ -186,7 +186,7 @@ struct ParticleContainer: public Object{
 			,/*py*/ \
 			.def("add",&ParticleContainer::pyAppend) /* wrapper checks if the id is not already assigned */ \
 			.def("add",&ParticleContainer::pyAppendList) \
-			.def("addClumped",&ParticleContainer::pyAppendClumped,(py::arg("par"),py::arg("centralNode")=shared_ptr<Node>()),"Add particles as rigid aggregate. Add resulting clump node (which is *not* a particle) to Scene.dem.nodes, subject to integration. *centralNode* must be provided if particles have zero mass (in that case, clump position cannot be computed), all DOFs will be blocked automatically in that case; centralNode.dem will be set with a new instance of :obj:`ClumpData` and the old value, if any, discarded. Clump node is added automatically to DemField.nodes.") \
+			.def("addClumped",&ParticleContainer::pyAppendClumped,(py::arg("par"),py::arg("centralNode")=shared_ptr<Node>()),"Add particles as rigid aggregate. Add resulting clump node (which is *not* a particle) to Scene.dem.nodes, subject to integration. *centralNode* must be provided if particles have zero mass (in that case, clump position cannot be computed), all DOFs will be blocked automatically in that case; centralNode.dem will be set with a new instance of :obj:`ClumpData` and the old value, if any, discarded. Clump node is added automatically to :obj:`DemField.nodes`.") \
 			.def("remove",&ParticleContainer::pyRemove)  \
 			.def("remove",&ParticleContainer::pyRemoveList)  \
 			.def("exists",&ParticleContainer::exists) \

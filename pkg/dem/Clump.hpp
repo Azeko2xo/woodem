@@ -39,19 +39,21 @@ struct ClumpData: public DemData{
 	static shared_ptr<Node> makeClump(const vector<shared_ptr<Node>>& nodes, shared_ptr<Node> centralNode=shared_ptr<Node>(), bool intersecting=false);
 	// sum forces and torques from members; does not touch our data, adds to passed references F, T
 	// only the integrator should modify DemData.{force,torque} directly
-	static void collectFromMembers(const shared_ptr<Node>& node, Vector3r& F, Vector3r& T);
+	static py::tuple pyForceTorqueFromMembers(const shared_ptr<Node>& node);
+	static void forceTorqueFromMembers(const shared_ptr<Node>& node, Vector3r& F, Vector3r& T);
 	// update member's positions and velocities
 	static void applyToMembers(const shared_ptr<Node>&, bool resetForceTorque=false);
 	static void resetForceTorque(const shared_ptr<Node>&);
 
 	WOO_DECL_LOGGER;
-	#define woo_dem_ClumpData__CLASS_BASE_DOC_ATTRS \
+	#define woo_dem_ClumpData__CLASS_BASE_DOC_ATTRS_PY \
 		ClumpData,DemData,"Data of a DEM particle which binds multiple particles together.", \
 		((vector<shared_ptr<Node>>,nodes,,AttrTrait<Attr::readonly>().noGui(),"Member nodes")) \
 		((vector<Vector3r>,relPos,,AttrTrait<Attr::readonly>(),"Relative member's positions")) \
 		((vector<Quaternionr>,relOri,,AttrTrait<Attr::readonly>(),"Relative member's orientations")) \
-		((Real,equivRad,NaN,,"Equivalent radius, for PSD statistics (e.g. in :obj:`BoxOutlet`)."))
-	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_ClumpData__CLASS_BASE_DOC_ATTRS);
+		((Real,equivRad,NaN,,"Equivalent radius, for PSD statistics (e.g. in :obj:`BoxOutlet`).")) \
+		,/*py*/ .def("forceTorqueFromMembers",&ClumpData::pyForceTorqueFromMembers,"Return the tuple (F,T), summary force and torque values collected from clump members, as acting on the clump node passed as argument.").staticmethod("forceTorqueFromMembers")
+	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_ClumpData__CLASS_BASE_DOC_ATTRS_PY);
 };
 WOO_REGISTER_OBJECT(ClumpData);
 

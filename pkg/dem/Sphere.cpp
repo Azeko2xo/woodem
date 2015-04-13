@@ -30,12 +30,13 @@ void woo::Sphere::lumpMassInertia(const shared_ptr<Node>& n, Real density, Real&
 	I.diagonal()+=Vector3r::Ones()*(2./5.)*m*pow(radius,2);
 };
 
-void woo::Sphere::setFromRaw(const Vector3r& _center, const Real& _radius, const vector<Real>& raw) {
+void woo::Sphere::setFromRaw(const Vector3r& _center, const Real& _radius, vector<shared_ptr<Node>>& nn, const vector<Real>& raw) {
 	Shape::setFromRaw_helper_checkRaw_makeNodes(raw,0);
 	radius=_radius;
 	nodes[0]->pos=_center;
+	nn.push_back(nodes[0]);
 }
-void woo::Sphere::asRaw(Vector3r& _center, Real& _radius, vector<Real>& raw) const {
+void woo::Sphere::asRaw(Vector3r& _center, Real& _radius, vector<shared_ptr<Node>>&nn, vector<Real>& raw) const {
 	raw.resize(0);
 	_center=nodes[0]->pos;
 	_radius=radius;

@@ -253,7 +253,7 @@ public:
 		((Vector3r,force,Vector3r::Zero(),AttrTrait<>().forceUnit(),"Applied force")) \
 		((Vector3r,torque,Vector3r::Zero(),AttrTrait<>().torqueUnit(),"Applied torque")) \
 		((Vector3r,angMom,Vector3r(NaN,NaN,NaN),AttrTrait<>().angMomUnit(),"Angular momentum; used with the aspherical integrator. If NaN and aspherical integrator (:obj:`Leapfrog`) is used, the value is initialized to :obj:`inertia` × :obj:`angVel`.")) \
-		((unsigned,flags,0,AttrTrait<Attr::readonly>().bits({"blockX","blockY","blockZ","blockRotX","blockRotY","blockRotZz","clumped","clump","energySkip","gravitySkip","tracerSkip","dampingSkip"},/*rw*/true),"Bit flags storing blocked DOFs, clump status, ...")) \
+		((unsigned,flags,0,AttrTrait<Attr::readonly>().bits({"blockX","blockY","blockZ","blockRotX","blockRotY","blockRotZ","clumped","clump","energySkip","gravitySkip","tracerSkip","dampingSkip"},/*rw*/true),"Bit flags storing blocked DOFs, clump status, ...")) \
 		((long,linIx,-1,AttrTrait<>().readonly().noGui(),"Index within DemField.nodes (for efficient removal)")) \
 		((std::list<Particle*>,parRef,,AttrTrait<Attr::hidden|Attr::noSave>().noGui(),"Back-reference for particles using this node; this is important for knowing when a node may be deleted (no particles referenced) and such. Should be kept consistent.")) \
 		((shared_ptr<Impose>,impose,,,"Impose arbitrary velocity, angular velocity, ... on the node; the functor is called from Leapfrog, after new position and velocity have been computed.")) \
@@ -339,6 +339,7 @@ WOO_REGISTER_OBJECT(DemField);
 
 
 struct Shape: public Object, public Indexable{
+	WOO_DECL_LOGGER;
 	// return number of nodes for this shape; derived classes must override
 	virtual int numNodes() const { return -1; } 
 	// checks for the right number of nodes; to be used in assertions
@@ -368,14 +369,17 @@ struct Shape: public Object, public Indexable{
 	virtual void applyScale(Real s); 
 
 	// set shape and geometry from raw numbers (center, radius (bounding sphere) plus array of numbers with shape-specific length)
-	virtual void setFromRaw(const Vector3r& center, const Real& radius, const vector<Real>& raw);
+	virtual void setFromRaw(const Vector3r& center, const Real& radius, vector<shared_ptr<Node>>& nn, const vector<Real>& raw);
 	// return this shape config as raw numbers
-	virtual void asRaw(Vector3r& center, Real& radius, vector<Real>& raw) const;
+	virtual void asRaw(Vector3r& center, Real& radius, vector<shared_ptr<Node>>&nn, vector<Real>& raw) const;
+	void asRaw_helper_coordsFromNode(vector<shared_ptr<Node>>& nn, vector<Real>& raw, size_t pos, size_t nodeNum) const;
 	// python version - return as tuple
 	py::tuple pyAsRaw() const;
-	// check that size of raw in setFromRaw matches what we expect;
-	// create the right amount of nodes as necessary
+	// check that size of raw in setFromRaw matches what we expect
 	void setFromRaw_helper_checkRaw_makeNodes(const vector<Real>& raw, size_t numRaw);
+	// return node given coordinates; handles special (nan,nan,i) coordinate which selects from existing nodes
+	// returned node added or already existing inside nn
+	shared_ptr<Node> setFromRaw_helper_nodeFromCoords(vector<shared_ptr<Node>>& nn, const vector<Real>& raw, size_t pos);
 
 	#if 0
 		shared_ptr<Particle> make(const shared_ptr<Shape>& shape, const shared_ptr<Material>& mat, py::dict kwargs);

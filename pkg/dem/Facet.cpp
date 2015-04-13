@@ -55,20 +55,21 @@ void Facet::lumpMassInertia(const shared_ptr<Node>& n, Real density, Real& mass,
 }
 
 
-void Facet::asRaw(Vector3r& center, Real& radius, vector<Real>& raw) const {
+void Facet::asRaw(Vector3r& center, Real& radius, vector<shared_ptr<Node>>&nn, vector<Real>& raw) const {
 	center=CompUtils::circumscribedCircleCenter(nodes[0]->pos,nodes[1]->pos,nodes[2]->pos);
 	radius=(nodes[0]->pos-center).norm();
 	// store nodal positions as raw data
 	raw.resize(10);
+	for(int i:{0,1,2}) Shape::asRaw_helper_coordsFromNode(nn,raw,3*i,/*nodeNum*/i);
 	// use positions relative to the center so that translation of center translates the whole thing
-	for(int i:{0,1,2}) for(int ax:{0,1,2}) raw[3*i+ax]=nodes[i]->pos[ax]-center[ax];
+	// for(int i:{0,1,2}) for(int ax:{0,1,2}) raw[3*i+ax]=nodes[i]->pos[ax];
 	raw[9]=halfThick;
 }
 
-void Facet::setFromRaw(const Vector3r& center, const Real& radius, const vector<Real>& raw){
+void Facet::setFromRaw(const Vector3r& center, const Real& radius, vector<shared_ptr<Node>>& nn, const vector<Real>& raw){
 	Shape::setFromRaw_helper_checkRaw_makeNodes(raw,10);
 	// radius is ignored
-	for(int i:{0,1,2}) for(int ax:{0,1,2}) nodes[i]->pos[ax]=raw[3*i+ax]+center[ax];
+	for(int i:{0,1,2}) nodes[i]=Shape::setFromRaw_helper_nodeFromCoords(nn,raw,3*i);
 	halfThick=raw[9];
 }
 
